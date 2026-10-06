@@ -69,7 +69,7 @@ conditionalTest({ min: 22 })('Mastra integration', () => {
               const agentSpan = spans.find(span => span.name === 'invoke_agent weather_agent')!;
               expect(agentSpan.status).toBe('ok');
               expect(agentSpan.attributes['sentry.op'].value).toBe('gen_ai.invoke_agent');
-              expect(agentSpan.attributes['sentry.origin'].value).toBe('auto.ai.mastra');
+              expect(agentSpan.attributes[SENTRY_ORIGIN].value).toBe('auto.ai.mastra');
               expect(agentSpan.attributes[GEN_AI_OPERATION_NAME].value).toBe('invoke_agent');
               expect(agentSpan.attributes[GEN_AI_AGENT_NAME].value).toBe('weather_agent');
               expect(agentSpan.attributes[GEN_AI_PIPELINE_NAME].value).toBe('weather_agent');
@@ -81,7 +81,7 @@ conditionalTest({ min: 22 })('Mastra integration', () => {
               const chatSpan = spans.find(span => span.name === 'chat gpt-4o-mini')!;
               expect(chatSpan.status).toBe('ok');
               expect(chatSpan.attributes['sentry.op'].value).toBe('gen_ai.chat');
-              expect(chatSpan.attributes['sentry.origin'].value).toBe('auto.ai.mastra');
+              expect(chatSpan.attributes[SENTRY_ORIGIN].value).toBe('auto.ai.mastra');
               expect(chatSpan.attributes[GEN_AI_OPERATION_NAME].value).toBe('chat');
               expect(chatSpan.attributes[GEN_AI_REQUEST_MODEL].value).toBe('gpt-4o-mini');
               expect(chatSpan.attributes[GEN_AI_PROVIDER_NAME].value).toBe('openai');
@@ -177,7 +177,7 @@ conditionalTest({ min: 22 })('Mastra integration', () => {
               const toolSpan = spans.find(span => span.name === 'execute_tool get_weather')!;
               expect(toolSpan.status).toBe('ok');
               expect(toolSpan.attributes['sentry.op'].value).toBe('gen_ai.execute_tool');
-              expect(toolSpan.attributes['sentry.origin'].value).toBe('auto.ai.mastra');
+              expect(toolSpan.attributes[SENTRY_ORIGIN].value).toBe('auto.ai.mastra');
               expect(toolSpan.attributes[GEN_AI_OPERATION_NAME].value).toBe('execute_tool');
               expect(toolSpan.attributes[GEN_AI_TOOL_NAME].value).toBe('get_weather');
               expect(toolSpan.attributes[GEN_AI_TOOL_CALL_ARGUMENTS].value).toContain('Berlin');
@@ -244,7 +244,7 @@ conditionalTest({ min: 22 })('Mastra integration', () => {
               const spans = allSpans.filter(span => span.attributes[SENTRY_ORIGIN]?.value === 'auto.ai.mastra');
               expect(spans.map(span => span.name).sort()).toEqual(['chat gpt-4o-mini', 'invoke_agent weather_agent']);
               for (const span of spans) {
-                expect(span.attributes['sentry.origin'].value).toBe('auto.ai.mastra');
+                expect(span.attributes[SENTRY_ORIGIN].value).toBe('auto.ai.mastra');
               }
             },
           })
