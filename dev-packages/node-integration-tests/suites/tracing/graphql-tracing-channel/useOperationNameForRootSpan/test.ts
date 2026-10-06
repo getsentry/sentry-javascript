@@ -18,7 +18,6 @@ conditionalTest({ min: 22 })('GraphQL tracing channel Test > useOperationNameFor
           .expect({
             span: container => {
               const segment = container.items.find(span => span.is_segment);
-              expect(segment).toBeDefined();
               expect(segment?.name).toBe('Test Transaction');
 
               expect(segment?.attributes['sentry.graphql.operation']).toEqual({
@@ -44,7 +43,6 @@ conditionalTest({ min: 22 })('GraphQL tracing channel Test > useOperationNameFor
           .expect({
             span: container => {
               const segment = container.items.find(span => span.is_segment);
-              expect(segment).toBeDefined();
               expect(segment?.name).toBe('Test Transaction');
 
               expect(segment?.attributes['sentry.graphql.operation']).toEqual({
@@ -70,7 +68,6 @@ conditionalTest({ min: 22 })('GraphQL tracing channel Test > useOperationNameFor
           .expect({
             span: container => {
               const segment = container.items.find(span => span.is_segment);
-              expect(segment).toBeDefined();
               expect(segment?.name).toBe('Test Transaction');
 
               expect(segment?.attributes['sentry.graphql.operation']).toBeUndefined();

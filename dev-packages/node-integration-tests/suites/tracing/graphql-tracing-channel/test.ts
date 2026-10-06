@@ -22,7 +22,6 @@ conditionalTest({ min: 22 })('GraphQL tracing channel Test', () => {
           .expect({
             span: container => {
               const segment = container.items.find(span => span.is_segment);
-              expect(segment).toBeDefined();
               const children = container.items.filter(span => !span.is_segment);
 
               expect(segment?.name).toBe('Test Transaction');
@@ -31,13 +30,11 @@ conditionalTest({ min: 22 })('GraphQL tracing channel Test', () => {
                 type: 'array',
               });
               const parseSpan = children.find(span => span.attributes['graphql.processing.type']?.value === 'parse');
-              expect(parseSpan).toBeDefined();
               expect(parseSpan?.name).toBe('GraphQL parse');
               expect(parseSpan?.attributes['sentry.op']).toEqual({ value: 'graphql', type: 'string' });
               const validateSpan = children.find(
                 span => span.attributes['graphql.processing.type']?.value === 'validate',
               );
-              expect(validateSpan).toBeDefined();
               expect(validateSpan?.name).toBe('GraphQL validate');
               expect(validateSpan?.attributes['sentry.op']).toEqual({ value: 'graphql', type: 'string' });
               const executeSpan = children.find(
@@ -45,7 +42,6 @@ conditionalTest({ min: 22 })('GraphQL tracing channel Test', () => {
                   span.attributes['graphql.processing.type']?.value === 'execute' &&
                   span.attributes['graphql.operation.name'] === undefined,
               );
-              expect(executeSpan).toBeDefined();
               expect(executeSpan?.name).toBe('GraphQL query');
               expect(executeSpan?.attributes['sentry.op']).toEqual({ value: 'graphql', type: 'string' });
               expect(executeSpan?.attributes['sentry.origin']).toEqual({
@@ -59,7 +55,6 @@ conditionalTest({ min: 22 })('GraphQL tracing channel Test', () => {
                   span.attributes['graphql.processing.type']?.value === 'execute' &&
                   span.attributes['graphql.operation.name']?.value === 'GetUser',
               );
-              expect(getUserSpan).toBeDefined();
               expect(getUserSpan?.name).toBe('GraphQL query');
               expect(getUserSpan?.attributes['sentry.op']).toEqual({ value: 'graphql', type: 'string' });
               expect(getUserSpan?.attributes['sentry.origin']).toEqual({
@@ -77,7 +72,6 @@ conditionalTest({ min: 22 })('GraphQL tracing channel Test', () => {
                   span.attributes['graphql.processing.type']?.value === 'execute' &&
                   span.attributes['graphql.operation.name']?.value === 'Login',
               );
-              expect(loginSpan).toBeDefined();
               expect(loginSpan?.name).toBe('GraphQL mutation');
               expect(loginSpan?.attributes['sentry.op']).toEqual({ value: 'graphql', type: 'string' });
               expect(loginSpan?.attributes['sentry.origin']).toEqual({
@@ -101,7 +95,6 @@ conditionalTest({ min: 22 })('GraphQL tracing channel Test', () => {
           .expect({
             span: container => {
               const segment = container.items.find(span => span.is_segment);
-              expect(segment).toBeDefined();
               expect(segment?.name).toBe('Test Transaction');
               const spans = container.items.filter(span => !span.is_segment);
 
@@ -124,7 +117,6 @@ conditionalTest({ min: 22 })('GraphQL tracing channel Test', () => {
           .expect({
             span: container => {
               const segment = container.items.find(span => span.is_segment);
-              expect(segment).toBeDefined();
               expect(segment?.name).toBe('Test Transaction');
               const spans = container.items.filter(span => !span.is_segment);
 
@@ -133,7 +125,6 @@ conditionalTest({ min: 22 })('GraphQL tracing channel Test', () => {
                   span.attributes['graphql.processing.type']?.value === 'execute' &&
                   span.attributes['graphql.operation.name']?.value === 'Login',
               );
-              expect(loginSpan).toBeDefined();
               expect(loginSpan?.attributes['graphql.document']).toEqual({
                 value: 'mutation Login { login(email: "*") }',
                 type: 'string',
@@ -151,7 +142,6 @@ conditionalTest({ min: 22 })('GraphQL tracing channel Test', () => {
           .expect({
             span: container => {
               const segment = container.items.find(span => span.is_segment);
-              expect(segment).toBeDefined();
               expect(segment?.name).toBe('Test Transaction');
               const spans = container.items.filter(span => !span.is_segment);
 
@@ -160,7 +150,6 @@ conditionalTest({ min: 22 })('GraphQL tracing channel Test', () => {
                   span.attributes['graphql.processing.type']?.value === 'execute' &&
                   span.attributes['graphql.operation.name']?.value === 'Boom',
               );
-              expect(boomSpan).toBeDefined();
               expect(boomSpan?.status).toBe('error');
               expect(boomSpan?.attributes['sentry.status.message']?.value).toBe('internal_error');
             },
@@ -174,7 +163,6 @@ conditionalTest({ min: 22 })('GraphQL tracing channel Test', () => {
           .expect({
             span: container => {
               const segment = container.items.find(span => span.is_segment);
-              expect(segment).toBeDefined();
               expect(segment?.name).toBe('Test Transaction');
               const spans = container.items.filter(span => !span.is_segment);
 
@@ -206,12 +194,10 @@ conditionalTest({ min: 22 })('GraphQL tracing channel Test', () => {
           .expect({
             span: container => {
               const segment = container.items.find(span => span.is_segment);
-              expect(segment).toBeDefined();
               expect(segment?.name).toBe('Test Transaction');
               const spans = container.items.filter(span => !span.is_segment);
 
               const validateSpan = spans.find(span => span.attributes['graphql.processing.type']?.value === 'validate');
-              expect(validateSpan).toBeDefined();
               expect(validateSpan?.status).toBe('error');
               expect(validateSpan?.attributes['sentry.status.message']?.value).toBe('invalid_argument');
             },

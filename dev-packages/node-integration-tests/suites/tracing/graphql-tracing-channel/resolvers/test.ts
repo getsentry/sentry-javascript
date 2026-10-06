@@ -20,7 +20,6 @@ conditionalTest({ min: 22 })('GraphQL tracing channel Test > resolve spans', () 
           .expect({
             span: container => {
               const segment = container.items.find(span => span.is_segment);
-              expect(segment).toBeDefined();
               const children = container.items.filter(span => !span.is_segment);
 
               expect(segment?.name).toBe('Test Transaction');
@@ -33,7 +32,6 @@ conditionalTest({ min: 22 })('GraphQL tracing channel Test > resolve spans', () 
                   span.attributes['graphql.processing.type']?.value === 'execute' &&
                   span.attributes['graphql.operation.name'] === undefined,
               );
-              expect(executeSpan).toBeDefined();
               expect(executeSpan?.name).toBe('GraphQL query');
               expect(executeSpan?.attributes['sentry.op']).toEqual({ value: 'graphql', type: 'string' });
               expect(executeSpan?.attributes['graphql.document']).toEqual({ value: '{ hello }', type: 'string' });
@@ -42,7 +40,6 @@ conditionalTest({ min: 22 })('GraphQL tracing channel Test > resolve spans', () 
                   span.attributes['graphql.processing.type']?.value === 'execute' &&
                   span.attributes['graphql.operation.name']?.value === 'GetUser',
               );
-              expect(getUserSpan).toBeDefined();
               expect(getUserSpan?.name).toBe('GraphQL query');
               expect(getUserSpan?.attributes['sentry.op']).toEqual({ value: 'graphql', type: 'string' });
               expect(getUserSpan?.attributes['graphql.operation.name']).toEqual({ value: 'GetUser', type: 'string' });
@@ -51,7 +48,6 @@ conditionalTest({ min: 22 })('GraphQL tracing channel Test > resolve spans', () 
                   span.attributes['graphql.processing.type']?.value === 'resolve' &&
                   span.attributes['graphql.field.path']?.value === 'hello',
               );
-              expect(helloResolverSpan).toBeDefined();
               expect(helloResolverSpan?.name).toBe('GraphQL resolve');
               expect(helloResolverSpan?.attributes['sentry.op']).toEqual({ value: 'graphql', type: 'string' });
               expect(helloResolverSpan?.attributes['sentry.origin']).toEqual({
@@ -66,7 +62,6 @@ conditionalTest({ min: 22 })('GraphQL tracing channel Test > resolve spans', () 
                   span.attributes['graphql.processing.type']?.value === 'resolve' &&
                   span.attributes['graphql.field.path']?.value === 'user',
               );
-              expect(userResolverSpan).toBeDefined();
               expect(userResolverSpan?.name).toBe('GraphQL resolve');
               expect(userResolverSpan?.attributes['sentry.op']).toEqual({ value: 'graphql', type: 'string' });
               expect(userResolverSpan?.attributes['sentry.origin']).toEqual({
@@ -87,7 +82,6 @@ conditionalTest({ min: 22 })('GraphQL tracing channel Test > resolve spans', () 
           .expect({
             span: container => {
               const segment = container.items.find(span => span.is_segment);
-              expect(segment).toBeDefined();
               expect(segment?.name).toBe('Test Transaction');
               const spans = container.items.filter(span => !span.is_segment);
 
@@ -116,7 +110,6 @@ conditionalTest({ min: 22 })('GraphQL tracing channel Test > resolve spans', () 
           .expect({
             span: container => {
               const segment = container.items.find(span => span.is_segment);
-              expect(segment).toBeDefined();
               expect(segment?.name).toBe('Test Transaction');
               const spans = container.items.filter(span => !span.is_segment);
 
