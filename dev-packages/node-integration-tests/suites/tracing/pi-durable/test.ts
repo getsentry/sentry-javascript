@@ -15,8 +15,13 @@ import {
   GEN_AI_TOOL_NAME,
   GEN_AI_USAGE_INPUT_TOKENS,
   GEN_AI_USAGE_OUTPUT_TOKENS,
+  SENTRY_OP,
+  SENTRY_ORIGIN,
+  SENTRY_STATUS_MESSAGE,
 } from '@sentry/conventions/attributes';
+import { GEN_AI_CHAT, GEN_AI_EXECUTE_TOOL, GEN_AI_INVOKE_AGENT } from '@sentry/conventions/op';
 import { afterAll, expect } from 'vitest';
+import { GEN_AI_TOOL_CALL_ID_ATTRIBUTE } from '../../../../../packages/server-utils/src/ai/core/gen-ai-attributes';
 import { conditionalTest } from '../../../utils';
 import { cleanupChildProcesses, createEsmAndCjsTests } from '../../../utils/runner';
 
@@ -71,12 +76,12 @@ conditionalTest({ min: 22 })('pi-durable integration', () => {
               expect(agent.name).toBe('invoke_agent');
               expect(spans.filter(span => span.name === 'chat faux-model')).toHaveLength(2);
               // One span per run, request and tool call: a tool wrapped twice would add a span.
-              expect(
-                spans.filter(span => span.attributes['sentry.origin']?.value === 'auto.ai.pi_durable'),
-              ).toHaveLength(5);
+              expect(spans.filter(span => span.attributes[SENTRY_ORIGIN]?.value === 'auto.ai.pi_durable')).toHaveLength(
+                5,
+              );
 
-              expect(agent.attributes['sentry.op']?.value).toBe('gen_ai.invoke_agent');
-              expect(agent.attributes['sentry.origin']?.value).toBe('auto.ai.pi_durable');
+              expect(agent.attributes[SENTRY_OP]?.value).toBe(GEN_AI_INVOKE_AGENT);
+              expect(agent.attributes[SENTRY_ORIGIN]?.value).toBe('auto.ai.pi_durable');
               expect(agent.attributes[GEN_AI_OPERATION_NAME]?.value).toBe('invoke_agent');
               const conversationId = agent.attributes[GEN_AI_CONVERSATION_ID]?.value;
               // The root conversation's id is `1` in every pi-durable storage, so it is prefixed
@@ -88,8 +93,8 @@ conditionalTest({ min: 22 })('pi-durable integration', () => {
                 .sort((a, b) => a.start_timestamp - b.start_timestamp);
               for (const chat of chats) {
                 expect(chat.parent_span_id).toBe(agent.span_id);
-                expect(chat.attributes['sentry.op']?.value).toBe('gen_ai.chat');
-                expect(chat.attributes['sentry.origin']?.value).toBe('auto.ai.pi_durable');
+                expect(chat.attributes[SENTRY_OP]?.value).toBe(GEN_AI_CHAT);
+                expect(chat.attributes[SENTRY_ORIGIN]?.value).toBe('auto.ai.pi_durable');
                 expect(chat.attributes[GEN_AI_PROVIDER_NAME]?.value).toBe('faux');
                 expect(chat.attributes[GEN_AI_REQUEST_MODEL]?.value).toBe('faux-model');
                 expect(chat.attributes[GEN_AI_CONVERSATION_ID]?.value).toBe(conversationId);
@@ -139,10 +144,10 @@ conditionalTest({ min: 22 })('pi-durable integration', () => {
               const weather = spans.find(span => span.name === 'execute_tool get_weather')!;
               expect(weather.parent_span_id).toBe(agent.span_id);
               expect(weather.status).toBe('ok');
-              expect(weather.attributes['sentry.op']?.value).toBe('gen_ai.execute_tool');
+              expect(weather.attributes[SENTRY_OP]?.value).toBe(GEN_AI_EXECUTE_TOOL);
               expect(weather.attributes[GEN_AI_TOOL_NAME]?.value).toBe('get_weather');
               expect(weather.attributes[GEN_AI_TOOL_DESCRIPTION]?.value).toBe('Get the current weather for a city.');
-              expect(weather.attributes['gen_ai.tool.call.id']?.value).toBe('call_1');
+              expect(weather.attributes[GEN_AI_TOOL_CALL_ID_ATTRIBUTE]?.value).toBe('call_1');
               expect(weather.attributes[GEN_AI_TOOL_CALL_ARGUMENTS]?.value).toBe('{"city":"Berlin"}');
               expect(weather.attributes[GEN_AI_TOOL_CALL_RESULT]?.value).toContain('sunny in Berlin');
               expect(weather.attributes[GEN_AI_CONVERSATION_ID]?.value).toBe(conversationId);
@@ -387,7 +392,7 @@ conditionalTest({ min: 22 })('pi-durable integration', () => {
               expect(container.items).toHaveLength(1);
               const summary = container.items[0]!;
               expect(summary.is_segment).toBe(true);
-              expect(summary.attributes['sentry.op']?.value).toBe('gen_ai.chat');
+              expect(summary.attributes[SENTRY_OP]?.value).toBe(GEN_AI_CHAT);
               compactionConversationId = summary.attributes[GEN_AI_CONVERSATION_ID]?.value;
             },
           })
@@ -504,11 +509,11 @@ conditionalTest({ min: 22 })('pi-durable integration', () => {
               expect(chat.attributes[GEN_AI_INPUT_MESSAGES]?.value).toContain('Fail please.');
               expect(chat.attributes[GEN_AI_RESPONSE_FINISH_REASONS]?.value).toBe('["error"]');
               expect(chat.status).toBe('error');
-              expect(chat.attributes['sentry.status.message']?.value).toBe('internal_error');
+              expect(chat.attributes[SENTRY_STATUS_MESSAGE]?.value).toBe('internal_error');
               const agent = container.items.find(span => span.is_segment)!;
               expect(agent.name).toBe('invoke_agent');
               expect(agent.status).toBe('error');
-              expect(agent.attributes['sentry.status.message']?.value).toBe('model_error');
+              expect(agent.attributes[SENTRY_STATUS_MESSAGE]?.value).toBe('model_error');
             },
           })
           .expect({
@@ -516,9 +521,9 @@ conditionalTest({ min: 22 })('pi-durable integration', () => {
               // 2. The provider threw: the generation faulted.
               const chat = container.items.find(span => span.name === 'chat faux-model')!;
               expect(chat.attributes[GEN_AI_RESPONSE_FINISH_REASONS]).toBeUndefined();
-              expect(chat.attributes['sentry.status.message']?.value).toBe('internal_error');
+              expect(chat.attributes[SENTRY_STATUS_MESSAGE]?.value).toBe('internal_error');
               const agent = container.items.find(span => span.is_segment)!;
-              expect(agent.attributes['sentry.status.message']?.value).toBe('internal_error');
+              expect(agent.attributes[SENTRY_STATUS_MESSAGE]?.value).toBe('internal_error');
             },
           })
           .expect({
@@ -556,7 +561,7 @@ conditionalTest({ min: 22 })('pi-durable integration', () => {
               expect(chat.attributes[GEN_AI_INPUT_MESSAGES]?.value).toContain('Fail, then close.');
               const agent = container.items.find(span => span.is_segment)!;
               expect(agent.status).toBe('error');
-              expect(agent.attributes['sentry.status.message']?.value).toBe('model_error');
+              expect(agent.attributes[SENTRY_STATUS_MESSAGE]?.value).toBe('model_error');
             },
           })
           .start()

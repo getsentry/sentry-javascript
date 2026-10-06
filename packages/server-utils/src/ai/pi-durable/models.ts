@@ -28,8 +28,9 @@ import {
   SERVER_ADDRESS,
   SERVER_PORT,
 } from '@sentry/conventions/attributes';
+import { GEN_AI_CHAT } from '@sentry/conventions/op';
 import type { GenAiOptions } from '../core/utils';
-import { getGenAiSpanOp, resolveAIRecordingOptions } from '../core/utils';
+import { resolveAIRecordingOptions } from '../core/utils';
 import type { PiAiContext } from '../pi-ai/messages';
 import {
   piAiAssistantMessageToGenAiMessage,
@@ -111,7 +112,7 @@ function traceModelRequest(
   return startSpanManual(
     {
       name: model.id ? `chat ${model.id}` : 'chat',
-      op: getGenAiSpanOp('chat'),
+      op: GEN_AI_CHAT,
       attributes: {
         [SENTRY_ORIGIN]: PI_DURABLE_ORIGIN,
         [GEN_AI_OPERATION_NAME]: 'chat',

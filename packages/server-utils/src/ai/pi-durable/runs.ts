@@ -8,8 +8,8 @@ import {
   uuid4,
 } from '@sentry/core';
 import { GEN_AI_CONVERSATION_ID, GEN_AI_OPERATION_NAME, SENTRY_ORIGIN } from '@sentry/conventions/attributes';
+import { GEN_AI_INVOKE_AGENT } from '@sentry/conventions/op';
 import { DEBUG_BUILD } from '../../debug-build';
-import { getGenAiSpanOp } from '../core/utils';
 import { MAX_TRACKED_PI_RUNS, PI_DURABLE_ORIGIN, PI_LIVE_DOC_KIND } from './constants';
 import type { PiCommitChange, PiDocToken, PiLiveState, PiSettlement, PiTaskRuntime } from './types';
 import { bound, withCleanScopes } from './utils';
@@ -96,7 +96,7 @@ export function startRun(conversationId: unknown, runs: PiRuns): PiRun {
   const startRunSpan = (): Span =>
     startInactiveSpan({
       name: 'invoke_agent',
-      op: getGenAiSpanOp('invoke_agent'),
+      op: GEN_AI_INVOKE_AGENT,
       ...(owner ? { parentSpan: owner } : {}),
       attributes: {
         [SENTRY_ORIGIN]: PI_DURABLE_ORIGIN,

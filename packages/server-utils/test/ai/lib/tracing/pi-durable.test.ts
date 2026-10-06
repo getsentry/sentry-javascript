@@ -11,6 +11,39 @@ import {
   spanToStaticSpanJSON,
   withScope,
 } from '@sentry/core';
+import {
+  GEN_AI_CONVERSATION_ID,
+  GEN_AI_INPUT_MESSAGES,
+  GEN_AI_OUTPUT_MESSAGES,
+  GEN_AI_PROVIDER_NAME,
+  GEN_AI_REQUEST_MAX_TOKENS,
+  GEN_AI_REQUEST_MODEL,
+  GEN_AI_REQUEST_REASONING_LEVEL,
+  GEN_AI_REQUEST_TEMPERATURE,
+  GEN_AI_RESPONSE_FINISH_REASONS,
+  GEN_AI_RESPONSE_ID,
+  GEN_AI_RESPONSE_MODEL,
+  GEN_AI_RESPONSE_STREAMING,
+  GEN_AI_SYSTEM_INSTRUCTIONS,
+  GEN_AI_TOOL_CALL_ARGUMENTS,
+  GEN_AI_TOOL_CALL_RESULT,
+  GEN_AI_TOOL_DEFINITIONS,
+  GEN_AI_TOOL_DESCRIPTION,
+  GEN_AI_TOOL_NAME,
+  GEN_AI_USAGE_CACHE_CREATION_INPUT_TOKENS,
+  GEN_AI_USAGE_CACHE_READ_INPUT_TOKENS,
+  GEN_AI_USAGE_INPUT_TOKENS,
+  GEN_AI_USAGE_OUTPUT_TOKENS,
+  GEN_AI_USAGE_REASONING_OUTPUT_TOKENS,
+  GEN_AI_USAGE_TOTAL_TOKENS,
+  SENTRY_OP,
+  SENTRY_ORIGIN,
+  SENTRY_STATUS_MESSAGE,
+  SERVER_ADDRESS,
+  SERVER_PORT,
+} from '@sentry/conventions/attributes';
+import { GEN_AI_CHAT, GEN_AI_EXECUTE_TOOL, GEN_AI_INVOKE_AGENT } from '@sentry/conventions/op';
+import { GEN_AI_TOOL_CALL_ID_ATTRIBUTE } from '../../../../src/ai/core/gen-ai-attributes';
 import { endRunsOnClose, instrumentPiDurableHarnessOptions } from '../../../../src/ai/pi-durable';
 import { MAX_TRACKED_PI_RUNS } from '../../../../src/ai/pi-durable/constants';
 import { createRuns, startRun } from '../../../../src/ai/pi-durable/runs';
@@ -130,19 +163,19 @@ describe('instrumentPiDurableHarnessOptions', () => {
     expect(_INTERNAL_shouldSkipAiProviderWrapping(OPENAI_INTEGRATION_NAME)).toBe(true);
     const chat = spanToStaticSpanJSON(endedSpans[0]!);
     expect(chat.description).toBe('chat faux-model');
-    expect(chat.op).toBe('gen_ai.chat');
+    expect(chat.op).toBe(GEN_AI_CHAT);
     expect(chat.data).toMatchObject({
-      'gen_ai.provider.name': 'faux',
-      'gen_ai.request.model': 'faux-model',
-      'gen_ai.response.streaming': true,
-      'gen_ai.response.finish_reasons': '["stop"]',
-      'gen_ai.usage.input_tokens': 10,
-      'gen_ai.usage.output_tokens': 2,
+      [GEN_AI_PROVIDER_NAME]: 'faux',
+      [GEN_AI_REQUEST_MODEL]: 'faux-model',
+      [GEN_AI_RESPONSE_STREAMING]: true,
+      [GEN_AI_RESPONSE_FINISH_REASONS]: '["stop"]',
+      [GEN_AI_USAGE_INPUT_TOKENS]: 10,
+      [GEN_AI_USAGE_OUTPUT_TOKENS]: 2,
     });
-    expect(chat.data['gen_ai.input.messages']).toBe(
+    expect(chat.data[GEN_AI_INPUT_MESSAGES]).toBe(
       '[{"role":"user","parts":[{"type":"text","content":"Capital of France?"}]}]',
     );
-    expect(chat.data['gen_ai.output.messages']).toBe(
+    expect(chat.data[GEN_AI_OUTPUT_MESSAGES]).toBe(
       '[{"role":"assistant","parts":[{"type":"text","content":"Paris."}],"finish_reason":"stop"}]',
     );
   });
@@ -170,17 +203,17 @@ describe('instrumentPiDurableHarnessOptions', () => {
 
     const chat = spanToJSON(endedSpans[0]!);
     expect(chat.name).toBe('chat faux-model');
-    expect(chat.attributes['gen_ai.response.streaming']).toBe(streaming ? true : undefined);
-    expect(chat.attributes['gen_ai.response.model']).toBe('faux-model-2026');
-    expect(chat.attributes['gen_ai.response.id']).toBe('resp_1');
-    expect(chat.attributes['server.address']).toBe('api.example.com');
-    expect(chat.attributes['server.port']).toBe(8443);
+    expect(chat.attributes[GEN_AI_RESPONSE_STREAMING]).toBe(streaming ? true : undefined);
+    expect(chat.attributes[GEN_AI_RESPONSE_MODEL]).toBe('faux-model-2026');
+    expect(chat.attributes[GEN_AI_RESPONSE_ID]).toBe('resp_1');
+    expect(chat.attributes[SERVER_ADDRESS]).toBe('api.example.com');
+    expect(chat.attributes[SERVER_PORT]).toBe(8443);
     // The deferred methods take a handle, not a request, so there is nothing to record.
     const deferred = method.endsWith('Deferred');
-    expect(chat.attributes['gen_ai.request.temperature']).toBe(deferred ? undefined : 0.2);
-    expect(chat.attributes['gen_ai.request.max_tokens']).toBe(deferred ? undefined : 50);
-    expect(chat.attributes['gen_ai.request.reasoning.level']).toBe(deferred ? undefined : 'low');
-    expect(chat.attributes['gen_ai.input.messages']).toBe(
+    expect(chat.attributes[GEN_AI_REQUEST_TEMPERATURE]).toBe(deferred ? undefined : 0.2);
+    expect(chat.attributes[GEN_AI_REQUEST_MAX_TOKENS]).toBe(deferred ? undefined : 50);
+    expect(chat.attributes[GEN_AI_REQUEST_REASONING_LEVEL]).toBe(deferred ? undefined : 'low');
+    expect(chat.attributes[GEN_AI_INPUT_MESSAGES]).toBe(
       deferred ? undefined : '[{"role":"user","parts":[{"type":"text","content":"Hi."}]}]',
     );
   });
@@ -194,7 +227,7 @@ describe('instrumentPiDurableHarnessOptions', () => {
       await instrumented.models!.completeSimple!(MODEL, { messages: [] });
     });
 
-    expect(spanToJSON(endedSpans[0]!).attributes['gen_ai.conversation.id']).toBe('harness:7');
+    expect(spanToJSON(endedSpans[0]!).attributes[GEN_AI_CONVERSATION_ID]).toBe('harness:7');
   });
 
   it('counts the cached tokens of a response into its input tokens', async () => {
@@ -208,11 +241,11 @@ describe('instrumentPiDurableHarnessOptions', () => {
     await instrumented.models!.completeSimple!(MODEL, { messages: [] });
 
     expect(spanToJSON(endedSpans[0]!).attributes).toMatchObject({
-      'gen_ai.usage.input_tokens': 127,
-      'gen_ai.usage.cache_read.input_tokens': 52,
-      'gen_ai.usage.cache_creation.input_tokens': 38,
-      'gen_ai.usage.reasoning.output_tokens': 1,
-      'gen_ai.usage.total_tokens': 129,
+      [GEN_AI_USAGE_INPUT_TOKENS]: 127,
+      [GEN_AI_USAGE_CACHE_READ_INPUT_TOKENS]: 52,
+      [GEN_AI_USAGE_CACHE_CREATION_INPUT_TOKENS]: 38,
+      [GEN_AI_USAGE_REASONING_OUTPUT_TOKENS]: 1,
+      [GEN_AI_USAGE_TOTAL_TOKENS]: 129,
     });
   });
 
@@ -232,9 +265,9 @@ describe('instrumentPiDurableHarnessOptions', () => {
     await instrumented.models!.fetchDeferred!(MODEL, { id: 'handle_1' });
 
     const [parkedChat, answerChat] = endedSpans.map(span => spanToJSON(span).attributes);
-    expect(parkedChat!['gen_ai.response.finish_reasons']).toBe('["deferred"]');
-    expect(parkedChat!['gen_ai.usage.total_tokens']).toBeUndefined();
-    expect(answerChat!['gen_ai.usage.total_tokens']).toBe(10);
+    expect(parkedChat![GEN_AI_RESPONSE_FINISH_REASONS]).toBe('["deferred"]');
+    expect(parkedChat![GEN_AI_USAGE_TOTAL_TOKENS]).toBeUndefined();
+    expect(answerChat![GEN_AI_USAGE_TOTAL_TOKENS]).toBe(10);
   });
 
   it('marks a failed request with a fixed status message and maps a tool-calling stop', async () => {
@@ -258,11 +291,11 @@ describe('instrumentPiDurableHarnessOptions', () => {
 
     const [chatFailed, chatToolCall] = endedSpans.map(span => spanToJSON(span));
     expect(chatFailed!.status).toBe('error');
-    expect(chatFailed!.attributes['sentry.status.message']).toBe('internal_error');
+    expect(chatFailed!.attributes[SENTRY_STATUS_MESSAGE]).toBe('internal_error');
     expect(JSON.stringify(chatFailed!.attributes)).not.toContain('x-api-key');
-    expect(chatFailed!.attributes['gen_ai.usage.total_tokens']).toBeUndefined();
-    expect(chatToolCall!.attributes['gen_ai.response.finish_reasons']).toBe('["tool_call"]');
-    expect(chatToolCall!.attributes['gen_ai.output.messages']).toContain('"finish_reason":"tool_call"');
+    expect(chatFailed!.attributes[GEN_AI_USAGE_TOTAL_TOKENS]).toBeUndefined();
+    expect(chatToolCall!.attributes[GEN_AI_RESPONSE_FINISH_REASONS]).toBe('["tool_call"]');
+    expect(chatToolCall!.attributes[GEN_AI_OUTPUT_MESSAGES]).toContain('"finish_reason":"tool_call"');
   });
 
   it('marks a rejected or throwing request as errored and keeps the error', async () => {
@@ -279,7 +312,7 @@ describe('instrumentPiDurableHarnessOptions', () => {
     await expect(instrumented.models!.completeSimple!(MODEL, { messages: [] })).rejects.toThrow('boom');
     expect(() => instrumented.models!.stream!(MODEL, { messages: [] })).toThrow('sync boom');
 
-    expect(endedSpans.map(span => spanToJSON(span).attributes['sentry.status.message'])).toEqual([
+    expect(endedSpans.map(span => spanToJSON(span).attributes[SENTRY_STATUS_MESSAGE])).toEqual([
       'internal_error',
       'internal_error',
     ]);
@@ -307,9 +340,9 @@ describe('instrumentPiDurableHarnessOptions', () => {
     }).result();
 
     const chat = spanToStaticSpanJSON(endedSpans[0]!);
-    expect(chat.data['gen_ai.system_instructions']).toBe('You help.\n\nPlan only.');
-    expect(chat.data['gen_ai.tool.definitions']).toBe('[{"name":"read"}]');
-    expect(chat.data['gen_ai.input.messages']).toBe('[{"role":"user","parts":[{"type":"text","content":"Hi."}]}]');
+    expect(chat.data[GEN_AI_SYSTEM_INSTRUCTIONS]).toBe('You help.\n\nPlan only.');
+    expect(chat.data[GEN_AI_TOOL_DEFINITIONS]).toBe('[{"name":"read"}]');
+    expect(chat.data[GEN_AI_INPUT_MESSAGES]).toBe('[{"role":"user","parts":[{"type":"text","content":"Hi."}]}]');
   });
 
   describe('provider skip', () => {
@@ -398,13 +431,13 @@ describe('instrumentPiDurableHarnessOptions', () => {
       await instrumentTool(tool, createRuns(), options).execute({ city: 'Berlin' }, { callId: 'call_1' }, undefined);
 
       const [chat, execute] = endedSpans.map(span => spanToJSON(span).attributes);
-      expect(Object.keys(chat!)).not.toContain('gen_ai.input.messages');
-      expect(Object.keys(chat!)).not.toContain('gen_ai.output.messages');
-      expect(Object.keys(chat!)).not.toContain('gen_ai.system_instructions');
-      expect(Object.keys(chat!)).not.toContain('gen_ai.tool.definitions');
-      expect(Object.keys(execute!)).not.toContain('gen_ai.tool.call.arguments');
-      expect(Object.keys(execute!)).not.toContain('gen_ai.tool.call.result');
-      expect(execute!['gen_ai.tool.description']).toBe('Get the weather.');
+      expect(Object.keys(chat!)).not.toContain(GEN_AI_INPUT_MESSAGES);
+      expect(Object.keys(chat!)).not.toContain(GEN_AI_OUTPUT_MESSAGES);
+      expect(Object.keys(chat!)).not.toContain(GEN_AI_SYSTEM_INSTRUCTIONS);
+      expect(Object.keys(chat!)).not.toContain(GEN_AI_TOOL_DEFINITIONS);
+      expect(Object.keys(execute!)).not.toContain(GEN_AI_TOOL_CALL_ARGUMENTS);
+      expect(Object.keys(execute!)).not.toContain(GEN_AI_TOOL_CALL_RESULT);
+      expect(execute![GEN_AI_TOOL_DESCRIPTION]).toBe('Get the weather.');
     });
 
     it('follows the data collection settings of the current client', async () => {
@@ -425,12 +458,12 @@ describe('instrumentPiDurableHarnessOptions', () => {
       await instrumentTool(tool, createRuns(), {}).execute({ city: 'Berlin' }, { callId: 'call_1' }, undefined);
 
       const recorded = endedSpans.flatMap(span => Object.keys(spanToJSON(span).attributes));
-      expect(recorded).not.toContain('gen_ai.input.messages');
-      expect(recorded).not.toContain('gen_ai.output.messages');
-      expect(recorded).not.toContain('gen_ai.system_instructions');
-      expect(recorded).not.toContain('gen_ai.tool.definitions');
-      expect(recorded).not.toContain('gen_ai.tool.call.arguments');
-      expect(recorded).not.toContain('gen_ai.tool.call.result');
+      expect(recorded).not.toContain(GEN_AI_INPUT_MESSAGES);
+      expect(recorded).not.toContain(GEN_AI_OUTPUT_MESSAGES);
+      expect(recorded).not.toContain(GEN_AI_SYSTEM_INSTRUCTIONS);
+      expect(recorded).not.toContain(GEN_AI_TOOL_DEFINITIONS);
+      expect(recorded).not.toContain(GEN_AI_TOOL_CALL_ARGUMENTS);
+      expect(recorded).not.toContain(GEN_AI_TOOL_CALL_RESULT);
     });
   });
 
@@ -547,14 +580,14 @@ describe('instrumentPiDurableHarnessOptions', () => {
       expect(execute.name).toBe('execute_tool get_weather');
       expect(execute.status).toBe('ok');
       expect(execute.attributes).toMatchObject({
-        'sentry.op': 'gen_ai.execute_tool',
-        'sentry.origin': 'auto.ai.pi_durable',
-        'gen_ai.tool.name': 'get_weather',
-        'gen_ai.tool.description': 'Get the weather.',
-        'gen_ai.tool.call.id': 'call_1',
-        'gen_ai.conversation.id': `${runs.harnessId}:4`,
-        'gen_ai.tool.call.arguments': '{"city":"Berlin"}',
-        'gen_ai.tool.call.result': 'sunny',
+        [SENTRY_OP]: GEN_AI_EXECUTE_TOOL,
+        [SENTRY_ORIGIN]: 'auto.ai.pi_durable',
+        [GEN_AI_TOOL_NAME]: 'get_weather',
+        [GEN_AI_TOOL_DESCRIPTION]: 'Get the weather.',
+        [GEN_AI_TOOL_CALL_ID_ATTRIBUTE]: 'call_1',
+        [GEN_AI_CONVERSATION_ID]: `${runs.harnessId}:4`,
+        [GEN_AI_TOOL_CALL_ARGUMENTS]: '{"city":"Berlin"}',
+        [GEN_AI_TOOL_CALL_RESULT]: 'sunny',
       });
     });
 
@@ -566,7 +599,7 @@ describe('instrumentPiDurableHarnessOptions', () => {
 
       await instrumentTool(tool, createRuns(), {}).execute({}, { callId: 'call_1' }, undefined);
 
-      expect(spanToJSON(endedSpans[0]!).attributes['gen_ai.tool.call.result']).toBe('');
+      expect(spanToJSON(endedSpans[0]!).attributes[GEN_AI_TOOL_CALL_RESULT]).toBe('');
     });
 
     it('marks error results and throws, and captures a throw unless the tool is built in', async () => {
@@ -595,10 +628,10 @@ describe('instrumentPiDurableHarnessOptions', () => {
       await client.flush();
 
       const [errored, thrown, bash] = endedSpans.map(span => spanToJSON(span));
-      expect(errored!.attributes['sentry.status.message']).toBe('internal_error');
-      expect(errored!.attributes['gen_ai.tool.call.result']).toBe('not found');
-      expect(thrown!.attributes['sentry.status.message']).toBe('internal_error');
-      expect(bash!.attributes['sentry.status.message']).toBe('internal_error');
+      expect(errored!.attributes[SENTRY_STATUS_MESSAGE]).toBe('internal_error');
+      expect(errored!.attributes[GEN_AI_TOOL_CALL_RESULT]).toBe('not found');
+      expect(thrown!.attributes[SENTRY_STATUS_MESSAGE]).toBe('internal_error');
+      expect(bash!.attributes[SENTRY_STATUS_MESSAGE]).toBe('internal_error');
       expect(events.map(event => event.exception?.values?.[0]?.value)).toEqual(['tool failed']);
       expect(events[0]?.exception?.values?.[0]?.mechanism).toEqual({ type: 'auto.ai.pi_durable', handled: true });
     });
@@ -657,7 +690,7 @@ describe('instrumentPiDurableHarnessOptions', () => {
       await outer.execute({}, api, undefined);
 
       expect(endedSpans.map(span => spanToJSON(span).name)).toEqual(['execute_tool inner']);
-      expect(spanToJSON(endedSpans[0]!).attributes['gen_ai.tool.call.result']).toBe('INNER');
+      expect(spanToJSON(endedSpans[0]!).attributes[GEN_AI_TOOL_CALL_RESULT]).toBe('INNER');
       // The outer call waits for the result entry its phase commits.
       const [outerCall] = runs.toolCalls.get(7)!;
       expect(outerCall!.span.spanContext().spanId).toBe(spanToJSON(endedSpans[0]!).parent_span_id);
@@ -720,7 +753,7 @@ describe('instrumentPiDurableHarnessOptions', () => {
     function runSpans(): ReturnType<typeof spanToJSON>[] {
       return endedSpans
         .map(span => spanToJSON(span))
-        .filter(span => span.attributes['sentry.op'] === 'gen_ai.invoke_agent');
+        .filter(span => span.attributes[SENTRY_OP] === GEN_AI_INVOKE_AGENT);
     }
 
     it('keeps the run open while run control moves to the next generation', async () => {
@@ -743,8 +776,8 @@ describe('instrumentPiDurableHarnessOptions', () => {
       const runs = runSpans();
       expect(runs).toHaveLength(1);
       expect(runs[0]!.status).toBe(status);
-      expect(runs[0]!.attributes['sentry.status.message']).toBe(message);
-      expect(runs[0]!.attributes['gen_ai.conversation.id']).toMatch(/^[0-9a-f]{32}:1$/);
+      expect(runs[0]!.attributes[SENTRY_STATUS_MESSAGE]).toBe(message);
+      expect(runs[0]!.attributes[GEN_AI_CONVERSATION_ID]).toMatch(/^[0-9a-f]{32}:1$/);
     });
 
     // `@sentry/cloudflare` initializes the SDK inside each request, so the client is bound to the
@@ -777,7 +810,7 @@ describe('instrumentPiDurableHarnessOptions', () => {
       await runGeneration(first);
       await runGeneration(harnessFor(phase));
 
-      const ids = runSpans().map(run => String(run.attributes['gen_ai.conversation.id']));
+      const ids = runSpans().map(run => String(run.attributes[GEN_AI_CONVERSATION_ID]));
       expect(ids).toHaveLength(3);
       expect(ids[0]).toBe(ids[1]);
       expect(ids[2]).not.toBe(ids[0]);
@@ -831,7 +864,7 @@ describe('instrumentPiDurableHarnessOptions', () => {
       const runs = runSpans();
       expect(runs).toHaveLength(1);
       expect(runs[0]!.status).toBe('error');
-      expect(runs[0]!.attributes['sentry.status.message']).toBe('model_error');
+      expect(runs[0]!.attributes[SENTRY_STATUS_MESSAGE]).toBe('model_error');
     });
 
     // A run the process never sees settle would otherwise stay in the map for the process lifetime.
@@ -845,7 +878,7 @@ describe('instrumentPiDurableHarnessOptions', () => {
       expect(runs.active.size).toBe(MAX_TRACKED_PI_RUNS);
       expect(runs.active.has(0)).toBe(false);
       expect(endedSpans).toHaveLength(1);
-      expect(spanToJSON(endedSpans[0]!).attributes['gen_ai.conversation.id']).toBe(`${runs.harnessId}:0`);
+      expect(spanToJSON(endedSpans[0]!).attributes[GEN_AI_CONVERSATION_ID]).toBe(`${runs.harnessId}:0`);
     });
   });
 });

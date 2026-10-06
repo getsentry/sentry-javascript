@@ -16,9 +16,10 @@ import {
   GEN_AI_TOOL_NAME,
   SENTRY_ORIGIN,
 } from '@sentry/conventions/attributes';
+import { GEN_AI_EXECUTE_TOOL } from '@sentry/conventions/op';
 import { GEN_AI_TOOL_CALL_ID_ATTRIBUTE } from '../core/gen-ai-attributes';
 import type { GenAiOptions } from '../core/utils';
-import { getGenAiSpanOp, resolveAIRecordingOptions } from '../core/utils';
+import { resolveAIRecordingOptions } from '../core/utils';
 import { piAiContentToString } from '../pi-ai/messages';
 import { MAX_TRACKED_PI_RUNS, PI_DURABLE_ORIGIN, PI_TOOL_RESULT_ENTRY_KIND } from './constants';
 import type { PiRuns, PiToolCall } from './runs';
@@ -113,7 +114,7 @@ export function instrumentTool(tool: PiTool, runs: PiRuns, options: GenAiOptions
     return startSpanManual(
       {
         name: `execute_tool ${tool.name}`,
-        op: getGenAiSpanOp('execute_tool'),
+        op: GEN_AI_EXECUTE_TOOL,
         attributes: {
           [SENTRY_ORIGIN]: PI_DURABLE_ORIGIN,
           [GEN_AI_OPERATION_NAME]: 'execute_tool',
