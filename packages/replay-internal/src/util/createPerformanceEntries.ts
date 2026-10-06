@@ -1,4 +1,4 @@
-import { browserPerformanceTimeOrigin } from '@sentry/core';
+import { performanceTimeToSeconds } from '@sentry/core';
 import { record } from '@sentry/rrweb';
 import type {
   AllPerformanceEntry,
@@ -89,7 +89,7 @@ function getAbsoluteTime(time: number, entryStartTime = time): number {
   // Entries are only converted on flush, which can be minutes after they were recorded, so we use the time origin
   // from when the entry started. Pass the entry's start for all its timings, so its duration stays correct.
   // The cast is safe: this integration only runs if the Performance API exists.
-  return ((browserPerformanceTimeOrigin(entryStartTime) as number) + time) / 1000;
+  return performanceTimeToSeconds(time, entryStartTime) as number;
 }
 
 function createPaintEntry(entry: PerformancePaintTiming): ReplayPerformanceEntry<PaintData> {

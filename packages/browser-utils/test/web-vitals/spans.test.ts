@@ -379,6 +379,9 @@ describe('_sendLcpSpan', () => {
   beforeEach(() => {
     vi.mocked(SentryCore.getCurrentScope).mockReturnValue(mockScope as any);
     vi.mocked(SentryCore.browserPerformanceTimeOrigin).mockReturnValue(1000);
+    vi.mocked(SentryCore.performanceTimeToSeconds).mockImplementation(
+      (time, entryStartTime = time) => (SentryCore.browserPerformanceTimeOrigin(entryStartTime)! + time) / 1000,
+    );
     vi.mocked(htmlTreeAsString).mockImplementation((node: any) => `<${node?.tagName || 'div'}>`);
     vi.mocked(SentryCoreBrowser.startInactiveSpan).mockReturnValue(mockSpan as any);
     vi.mocked(SentryCore.spanToJSON).mockReturnValue({

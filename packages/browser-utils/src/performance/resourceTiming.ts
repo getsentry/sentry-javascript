@@ -1,5 +1,5 @@
 import type { SpanAttributes } from '@sentry/core';
-import { browserPerformanceTimeOrigin } from '@sentry/core';
+import { performanceTimeToSeconds } from '@sentry/core';
 import { extractNetworkProtocol, msToSec } from './utils';
 
 /**
@@ -22,16 +22,15 @@ export function resourceTimingToSpanAttributes(resourceTiming: PerformanceResour
     timingSpanData['network.protocol.name'] = name;
   }
 
-  // Use the origin from the request start for all timings, so the durations between them stay correct.
-  const timeOrigin = browserPerformanceTimeOrigin(resourceTiming.startTime);
-  if (!timeOrigin) {
+  if (performanceTimeToSeconds(resourceTiming.startTime) === undefined) {
     return timingSpanData;
   }
 
+  // Use the origin from the request start for all timings, so the durations between them stay correct.
   const getAbsoluteTime = (time: number | undefined): number | undefined =>
     // falsy values should be preserved so that we can later on drop undefined values and
     // preserve 0 vals for cross-origin resources without proper `Timing-Allow-Origin` header.
-    time ? msToSec(timeOrigin + time) : time;
+    time ? performanceTimeToSeconds(time, resourceTiming.startTime) : time;
 
   return dropUndefinedKeysFromObject({
     ...timingSpanData,

@@ -11,7 +11,7 @@ let freshImportCounter = 0;
 
 async function getFreshTimeModule(): Promise<{
   timestampInSeconds: () => number;
-  performanceTimeToSeconds: (monotonicTimeInMs: number) => number | undefined;
+  performanceTimeToSeconds: (monotonicTimeInMs: number, entryStartTimeInMs?: number) => number | undefined;
 }> {
   // We use a counter instead of `Date.now()` because fake timers freeze `Date.now()`, which would return a cached
   // module.
@@ -225,6 +225,29 @@ describe('performanceTimeToSeconds', () => {
     // performance entries and spans would not line up.
     expect(performanceTimeToSeconds(timeSincePageloadMs)).toBe(timestampInSeconds());
     expect(performanceTimeToSeconds(timeSincePageloadMs)).toBe((currentTimeMs + sleepDurationMs) / 1000);
+  });
+
+  it('converts a time with the time origin of `entryStartTimeInMs`', async () => {
+    let monotonicNowMs = timeSincePageloadMs;
+    const timeOrigin = currentTimeMs - timeSincePageloadMs;
+
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date(currentTimeMs));
+    vi.stubGlobal('performance', { timeOrigin, now: () => monotonicNowMs });
+
+    const { performanceTimeToSeconds, timestampInSeconds } = await getFreshTimeModule();
+
+    const entryStartTime = monotonicNowMs - 100;
+    timestampInSeconds();
+
+    // The device sleeps while the entry runs.
+    vi.setSystemTime(new Date(currentTimeMs + sleepDurationMs));
+    monotonicNowMs += 10;
+    timestampInSeconds();
+    const entryEndTime = monotonicNowMs + 100;
+
+    expect(performanceTimeToSeconds(entryEndTime, entryStartTime)).toBe((timeOrigin + entryEndTime) / 1000);
+    expect(performanceTimeToSeconds(entryEndTime)).not.toBe((timeOrigin + entryEndTime) / 1000);
   });
 
   it('converts a time before a correction with the old time origin', async () => {

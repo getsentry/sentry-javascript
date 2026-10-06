@@ -11,6 +11,10 @@ describe('resourceTimingToSpanAttributes', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     browserPerformanceTimeOriginSpy = vi.spyOn(utils, 'browserPerformanceTimeOrigin');
+    vi.spyOn(utils, 'performanceTimeToSeconds').mockImplementation((time, entryStartTime = time) => {
+      const origin = utils.browserPerformanceTimeOrigin(entryStartTime);
+      return origin ? (origin + time) / 1000 : undefined;
+    });
     extractNetworkProtocolSpy = vi.spyOn(browserMetricsUtils, 'extractNetworkProtocol');
   });
 

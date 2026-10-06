@@ -8,9 +8,12 @@ import { getDefaultClientOptions, TestClient } from '../utils/TestClient';
 
 vi.mock('@sentry/core', async () => {
   const actual = await vi.importActual('@sentry/core');
+  const browserPerformanceTimeOrigin = vi.fn();
   return {
     ...actual,
-    browserPerformanceTimeOrigin: vi.fn(),
+    browserPerformanceTimeOrigin,
+    performanceTimeToSeconds: (time: number, entryStartTime = time) =>
+      (browserPerformanceTimeOrigin(entryStartTime) + time) / 1000,
   };
 });
 

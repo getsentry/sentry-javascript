@@ -124,11 +124,17 @@ let _cachedTimestampInSecondsFn: (() => number) | undefined;
  *
  * Corrects for clock drift via browserPerformanceTimeOrigin().
  *
+ * Pass `entryStartTimeInMs` (also a `performance.now()` based time) to use the time origin that was valid at the entry's
+ * start. Use it for all timings of one entry, so its duration stays correct.
+ *
  * Returns `undefined` if the Performance API is unavailable.
  */
-export function performanceTimeToSeconds(monotonicTimeInMs: number): number | undefined {
-  const origin = browserPerformanceTimeOrigin(monotonicTimeInMs);
-  return origin === undefined ? undefined : (origin + monotonicTimeInMs) / ONE_SECOND_IN_MS;
+export function performanceTimeToSeconds(
+  monotonicTimeInMs: number,
+  entryStartTimeInMs = monotonicTimeInMs,
+): number | undefined {
+  const origin = browserPerformanceTimeOrigin(entryStartTimeInMs);
+  return origin == null ? undefined : (origin + monotonicTimeInMs) / ONE_SECOND_IN_MS;
 }
 
 /**

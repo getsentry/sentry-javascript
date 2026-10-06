@@ -12,10 +12,15 @@ import { PerformanceEntryNavigation } from '../../fixtures/performanceEntry/navi
 
 const TIME_ORIGIN = new Date('2023-01-01').getTime();
 
-vi.mock('@sentry/core', async () => ({
-  ...(await vi.importActual('@sentry/core')),
-  browserPerformanceTimeOrigin: vi.fn(() => new Date('2023-01-01').getTime()),
-}));
+vi.mock('@sentry/core', async () => {
+  const browserPerformanceTimeOrigin = vi.fn((_monotonicTimeInMs?: number) => new Date('2023-01-01').getTime());
+  return {
+    ...(await vi.importActual('@sentry/core')),
+    browserPerformanceTimeOrigin,
+    performanceTimeToSeconds: (time: number, entryStartTime = time) =>
+      (browserPerformanceTimeOrigin(entryStartTime) + time) / 1000,
+  };
+});
 
 describe('Unit | util | createPerformanceEntries', () => {
   beforeAll(() => {
