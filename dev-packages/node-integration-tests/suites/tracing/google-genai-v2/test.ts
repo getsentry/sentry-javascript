@@ -10,6 +10,7 @@ import {
   GEN_AI_USAGE_INPUT_TOKENS,
   GEN_AI_USAGE_OUTPUT_TOKENS,
   GEN_AI_USAGE_TOTAL_TOKENS,
+  SENTRY_OP,
   SENTRY_ORIGIN,
 } from '@sentry/conventions/attributes';
 import { cleanupChildProcesses, createEsmAndCjsTests } from '../../../utils/runner';
@@ -52,7 +53,7 @@ describe('Google GenAI integration (v2)', () => {
 
               const chatSpan = spans.find(span => span.name === 'chat gemini-1.5-pro');
               expect(chatSpan!.status).toBe('ok');
-              expect(chatSpan!.attributes['sentry.op'].value).toBe('gen_ai.chat');
+              expect(chatSpan!.attributes[SENTRY_OP].value).toBe('gen_ai.chat');
               expect(chatSpan!.attributes[GEN_AI_OPERATION_NAME].value).toBe('chat');
               expect(chatSpan!.attributes[SENTRY_ORIGIN].value).toBe(EXPECTED_ORIGIN);
               expect(chatSpan!.attributes[GEN_AI_PROVIDER_NAME].value).toBe('google_genai');
@@ -63,7 +64,7 @@ describe('Google GenAI integration (v2)', () => {
 
               const generateContentSpan = spans.find(span => span.name === 'generate_content gemini-1.5-flash');
               expect(generateContentSpan!.status).toBe('ok');
-              expect(generateContentSpan!.attributes['sentry.op'].value).toBe('gen_ai.generate_content');
+              expect(generateContentSpan!.attributes[SENTRY_OP].value).toBe('gen_ai.generate_content');
               expect(generateContentSpan!.attributes[GEN_AI_OPERATION_NAME].value).toBe('generate_content');
               expect(generateContentSpan!.attributes[SENTRY_ORIGIN].value).toBe(EXPECTED_ORIGIN);
               expect(generateContentSpan!.attributes[GEN_AI_PROVIDER_NAME].value).toBe('google_genai');
@@ -77,7 +78,7 @@ describe('Google GenAI integration (v2)', () => {
 
               const errorSpan = spans.find(span => span.name === 'generate_content error-model');
               expect(errorSpan!.status).toBe('error');
-              expect(errorSpan!.attributes['sentry.op'].value).toBe('gen_ai.generate_content');
+              expect(errorSpan!.attributes[SENTRY_OP].value).toBe('gen_ai.generate_content');
               expect(errorSpan!.attributes[GEN_AI_OPERATION_NAME].value).toBe('generate_content');
               expect(errorSpan!.attributes[GEN_AI_REQUEST_MODEL].value).toBe('error-model');
             },
@@ -120,7 +121,7 @@ describe('Google GenAI integration (v2)', () => {
               );
               expect(successfulSpans).toHaveLength(2);
               for (const span of successfulSpans) {
-                expect(span.attributes['sentry.op'].value).toBe('gen_ai.embeddings');
+                expect(span.attributes[SENTRY_OP].value).toBe('gen_ai.embeddings');
                 expect(span.attributes[GEN_AI_OPERATION_NAME].value).toBe('embeddings');
                 expect(span.attributes[SENTRY_ORIGIN].value).toBe(EXPECTED_ORIGIN);
                 expect(span.attributes[GEN_AI_PROVIDER_NAME].value).toBe('google_genai');
@@ -129,7 +130,7 @@ describe('Google GenAI integration (v2)', () => {
 
               const errorSpan = spans.find(span => span.name === 'embeddings error-model');
               expect(errorSpan!.status).toBe('error');
-              expect(errorSpan!.attributes['sentry.op'].value).toBe('gen_ai.embeddings');
+              expect(errorSpan!.attributes[SENTRY_OP].value).toBe('gen_ai.embeddings');
               expect(errorSpan!.attributes[GEN_AI_OPERATION_NAME].value).toBe('embeddings');
             },
           })
