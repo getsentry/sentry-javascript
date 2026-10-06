@@ -1,14 +1,8 @@
 /**
  * @vitest-environment jsdom
  */
-import {
-  createTransport,
-  getCurrentScope,
-  SEMANTIC_ATTRIBUTE_SENTRY_OP,
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  setCurrentClient,
-} from '@sentry/core';
-import { SENTRY_SEGMENT_NAME_SOURCE, URL_TEMPLATE } from '@sentry/conventions/attributes';
+import { createTransport, getCurrentScope, setCurrentClient } from '@sentry/core';
+import { SENTRY_SEGMENT_NAME_SOURCE, URL_TEMPLATE, SENTRY_OP, SENTRY_ORIGIN } from '@sentry/conventions/attributes';
 import { fireEvent, render } from '@testing-library/react';
 import * as React from 'react';
 import type { RouteObject } from 'react-router-6';
@@ -214,8 +208,8 @@ describe('reactRouterV6BrowserTracingIntegration', () => {
       name: 'Pageload',
       attributes: {
         [SENTRY_SEGMENT_NAME_SOURCE]: 'url',
-        [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'pageload',
-        [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.pageload.react.reactrouter_v6',
+        [SENTRY_OP]: 'pageload',
+        [SENTRY_ORIGIN]: 'auto.pageload.react.reactrouter_v6',
       },
     });
 
@@ -261,8 +255,8 @@ describe('reactRouterV6BrowserTracingIntegration', () => {
       name: 'Pageload',
       attributes: {
         [SENTRY_SEGMENT_NAME_SOURCE]: 'url',
-        [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'pageload',
-        [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.pageload.react.reactrouter_v6',
+        [SENTRY_OP]: 'pageload',
+        [SENTRY_ORIGIN]: 'auto.pageload.react.reactrouter_v6',
       },
     });
 
@@ -298,8 +292,8 @@ describe('reactRouterV6BrowserTracingIntegration', () => {
         name: 'Pageload',
         attributes: {
           [SENTRY_SEGMENT_NAME_SOURCE]: 'url',
-          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'pageload',
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.pageload.react.reactrouter_v6',
+          [SENTRY_OP]: 'pageload',
+          [SENTRY_ORIGIN]: 'auto.pageload.react.reactrouter_v6',
         },
       });
     });
@@ -416,8 +410,8 @@ describe('reactRouterV6BrowserTracingIntegration', () => {
         attributes: {
           [SENTRY_SEGMENT_NAME_SOURCE]: 'route',
           [URL_TEMPLATE]: '/about',
-          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'navigation',
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.react.reactrouter_v6',
+          [SENTRY_OP]: 'navigation',
+          [SENTRY_ORIGIN]: 'auto.navigation.react.reactrouter_v6',
         },
       });
     });
@@ -503,8 +497,8 @@ describe('reactRouterV6BrowserTracingIntegration', () => {
         attributes: {
           [SENTRY_SEGMENT_NAME_SOURCE]: 'route',
           [URL_TEMPLATE]: '/about/us',
-          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'navigation',
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.react.reactrouter_v6',
+          [SENTRY_OP]: 'navigation',
+          [SENTRY_ORIGIN]: 'auto.navigation.react.reactrouter_v6',
         },
       });
     });
@@ -541,8 +535,8 @@ describe('reactRouterV6BrowserTracingIntegration', () => {
         attributes: {
           [SENTRY_SEGMENT_NAME_SOURCE]: 'route',
           [URL_TEMPLATE]: '/about/:page',
-          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'navigation',
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.react.reactrouter_v6',
+          [SENTRY_OP]: 'navigation',
+          [SENTRY_ORIGIN]: 'auto.navigation.react.reactrouter_v6',
         },
       });
     });
@@ -581,8 +575,8 @@ describe('reactRouterV6BrowserTracingIntegration', () => {
         attributes: {
           [SENTRY_SEGMENT_NAME_SOURCE]: 'route',
           [URL_TEMPLATE]: '/stores/:storeId/products/:productId',
-          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'navigation',
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.react.reactrouter_v6',
+          [SENTRY_OP]: 'navigation',
+          [SENTRY_ORIGIN]: 'auto.navigation.react.reactrouter_v6',
         },
       });
     });
@@ -629,8 +623,8 @@ describe('reactRouterV6BrowserTracingIntegration', () => {
         attributes: {
           [SENTRY_SEGMENT_NAME_SOURCE]: 'route',
           [URL_TEMPLATE]: '/projects/:projectId/views/:viewId',
-          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'navigation',
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.react.reactrouter_v6',
+          [SENTRY_OP]: 'navigation',
+          [SENTRY_ORIGIN]: 'auto.navigation.react.reactrouter_v6',
         },
       });
     });
@@ -679,8 +673,8 @@ describe('reactRouterV6BrowserTracingIntegration', () => {
         attributes: {
           [SENTRY_SEGMENT_NAME_SOURCE]: 'route',
           [URL_TEMPLATE]: '/projects/:projectId/views/:viewId',
-          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'navigation',
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.react.reactrouter_v6',
+          [SENTRY_OP]: 'navigation',
+          [SENTRY_ORIGIN]: 'auto.navigation.react.reactrouter_v6',
         },
       });
     });
@@ -731,8 +725,8 @@ describe('reactRouterV6BrowserTracingIntegration', () => {
         attributes: {
           [SENTRY_SEGMENT_NAME_SOURCE]: 'route',
           [URL_TEMPLATE]: '/projects/:projectId/views/:viewId',
-          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'navigation',
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.react.reactrouter_v6',
+          [SENTRY_OP]: 'navigation',
+          [SENTRY_ORIGIN]: 'auto.navigation.react.reactrouter_v6',
         },
       });
     });
@@ -771,8 +765,8 @@ describe('reactRouterV6BrowserTracingIntegration', () => {
         attributes: {
           [SENTRY_SEGMENT_NAME_SOURCE]: 'route',
           [URL_TEMPLATE]: '/issues/:groupId/',
-          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'navigation',
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.react.reactrouter_v6',
+          [SENTRY_OP]: 'navigation',
+          [SENTRY_ORIGIN]: 'auto.navigation.react.reactrouter_v6',
         },
       });
     });
@@ -811,8 +805,8 @@ describe('reactRouterV6BrowserTracingIntegration', () => {
         attributes: {
           [SENTRY_SEGMENT_NAME_SOURCE]: 'route',
           [URL_TEMPLATE]: '/issues/:groupId/',
-          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'navigation',
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.react.reactrouter_v6',
+          [SENTRY_OP]: 'navigation',
+          [SENTRY_ORIGIN]: 'auto.navigation.react.reactrouter_v6',
         },
       });
     });
@@ -883,8 +877,8 @@ describe('reactRouterV6BrowserTracingIntegration', () => {
         name: 'Pageload',
         attributes: {
           [SENTRY_SEGMENT_NAME_SOURCE]: 'url',
-          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'pageload',
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.pageload.react.reactrouter_v6',
+          [SENTRY_OP]: 'pageload',
+          [SENTRY_ORIGIN]: 'auto.pageload.react.reactrouter_v6',
         },
       });
     });
@@ -1035,8 +1029,8 @@ describe('reactRouterV6BrowserTracingIntegration', () => {
         attributes: {
           [SENTRY_SEGMENT_NAME_SOURCE]: 'route',
           [URL_TEMPLATE]: '/about',
-          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'navigation',
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.react.reactrouter_v6',
+          [SENTRY_OP]: 'navigation',
+          [SENTRY_ORIGIN]: 'auto.navigation.react.reactrouter_v6',
         },
       });
     });
@@ -1087,8 +1081,8 @@ describe('reactRouterV6BrowserTracingIntegration', () => {
         attributes: {
           [SENTRY_SEGMENT_NAME_SOURCE]: 'route',
           [URL_TEMPLATE]: '/about/us',
-          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'navigation',
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.react.reactrouter_v6',
+          [SENTRY_OP]: 'navigation',
+          [SENTRY_ORIGIN]: 'auto.navigation.react.reactrouter_v6',
         },
       });
     });
@@ -1139,8 +1133,8 @@ describe('reactRouterV6BrowserTracingIntegration', () => {
         attributes: {
           [SENTRY_SEGMENT_NAME_SOURCE]: 'route',
           [URL_TEMPLATE]: '/about/:page',
-          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'navigation',
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.react.reactrouter_v6',
+          [SENTRY_OP]: 'navigation',
+          [SENTRY_ORIGIN]: 'auto.navigation.react.reactrouter_v6',
         },
       });
     });
@@ -1197,8 +1191,8 @@ describe('reactRouterV6BrowserTracingIntegration', () => {
         attributes: {
           [SENTRY_SEGMENT_NAME_SOURCE]: 'route',
           [URL_TEMPLATE]: '/stores/:storeId/products/:productId',
-          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'navigation',
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.react.reactrouter_v6',
+          [SENTRY_OP]: 'navigation',
+          [SENTRY_ORIGIN]: 'auto.navigation.react.reactrouter_v6',
         },
       });
     });
@@ -1279,8 +1273,8 @@ describe('reactRouterV6BrowserTracingIntegration', () => {
         attributes: {
           [SENTRY_SEGMENT_NAME_SOURCE]: 'route',
           [URL_TEMPLATE]: '/projects/:projectId/views/:viewId',
-          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'navigation',
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.react.reactrouter_v6',
+          [SENTRY_OP]: 'navigation',
+          [SENTRY_ORIGIN]: 'auto.navigation.react.reactrouter_v6',
         },
       });
     });
@@ -1359,8 +1353,8 @@ describe('reactRouterV6BrowserTracingIntegration', () => {
         attributes: {
           [SENTRY_SEGMENT_NAME_SOURCE]: 'route',
           [URL_TEMPLATE]: '/param-page/:id/details/:superId',
-          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'navigation',
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.react.reactrouter_v6',
+          [SENTRY_OP]: 'navigation',
+          [SENTRY_ORIGIN]: 'auto.navigation.react.reactrouter_v6',
         },
       });
     });
@@ -1516,8 +1510,8 @@ describe('reactRouterV6BrowserTracingIntegration', () => {
         attributes: {
           [SENTRY_SEGMENT_NAME_SOURCE]: 'route',
           [URL_TEMPLATE]: '/issues/:groupId/',
-          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'navigation',
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.react.reactrouter_v6',
+          [SENTRY_OP]: 'navigation',
+          [SENTRY_ORIGIN]: 'auto.navigation.react.reactrouter_v6',
         },
       });
     });
@@ -1556,8 +1550,8 @@ describe('reactRouterV6BrowserTracingIntegration', () => {
         attributes: {
           [SENTRY_SEGMENT_NAME_SOURCE]: 'route',
           [URL_TEMPLATE]: '/issues/:groupId/',
-          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'navigation',
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.react.reactrouter_v6',
+          [SENTRY_OP]: 'navigation',
+          [SENTRY_ORIGIN]: 'auto.navigation.react.reactrouter_v6',
         },
       });
     });

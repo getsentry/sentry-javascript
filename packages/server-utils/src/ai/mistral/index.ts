@@ -1,10 +1,4 @@
-import {
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  SPAN_STATUS_ERROR,
-  startSpan,
-  startSpanManual,
-  stringify,
-} from '@sentry/core';
+import { SPAN_STATUS_ERROR, startSpan, startSpanManual, stringify } from '@sentry/core';
 import type { Span, SpanAttributeValue } from '@sentry/core';
 import {
   GEN_AI_AGENT_NAME,
@@ -14,6 +8,7 @@ import {
   GEN_AI_PROVIDER_NAME,
   GEN_AI_SYSTEM_INSTRUCTIONS,
   GEN_AI_TOOL_DEFINITIONS,
+  SENTRY_ORIGIN,
 } from '@sentry/conventions/attributes';
 import type { InstrumentedMethodEntry } from '../core/utils';
 import {
@@ -55,7 +50,7 @@ export function extractRequestAttributes(
   const attributes: Record<string, unknown> = {
     [GEN_AI_PROVIDER_NAME]: MISTRAL_PROVIDER_NAME,
     [GEN_AI_OPERATION_NAME]: operationName,
-    [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: MISTRAL_ORIGIN,
+    [SENTRY_ORIGIN]: MISTRAL_ORIGIN,
     [GEN_AI_REQUEST_STREAM_ATTRIBUTE]: streaming,
   };
 

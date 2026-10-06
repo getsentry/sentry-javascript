@@ -1,3 +1,4 @@
+import { isObjectLike } from '@sentry/core';
 import type App from 'next/app';
 import { isBuild } from '../utils/isBuild';
 import { withErrorInstrumentation, withTracedServerSideDataFetcher } from '../utils/wrapperUtils';
@@ -45,23 +46,23 @@ export function wrapAppGetInitialPropsWithSentry(origAppGetInitialProps: AppGetI
           baggage?: string;
         } = await tracedGetInitialProps.apply(thisArg, args);
 
-        if (typeof appGetInitialProps === 'object' && appGetInitialProps !== null) {
+        if (isObjectLike(appGetInitialProps)) {
           // Per definition, `pageProps` is not optional, however an increased amount of users doesn't seem to call
           // `App.getInitialProps(appContext)` in their custom `_app` pages which is required as per
           // https://nextjs.org/docs/advanced-features/custom-app - resulting in missing `pageProps`.
           // For this reason, we just handle the case where `pageProps` doesn't exist explicitly.
-          if (!(appGetInitialProps as Record<string, unknown>).pageProps) {
-            (appGetInitialProps as Record<string, unknown>).pageProps = {};
+          if (!appGetInitialProps.pageProps) {
+            appGetInitialProps.pageProps = {};
           }
 
           // The Next.js serializer throws on undefined values so we need to guard for it (#12102)
           if (sentryTrace) {
-            (appGetInitialProps as { pageProps: Record<string, unknown> }).pageProps._sentryTraceData = sentryTrace;
+            (appGetInitialProps.pageProps as Record<string, unknown>)._sentryTraceData = sentryTrace;
           }
 
           // The Next.js serializer throws on undefined values so we need to guard for it (#12102)
           if (baggage) {
-            (appGetInitialProps as { pageProps: Record<string, unknown> }).pageProps._sentryBaggage = baggage;
+            (appGetInitialProps.pageProps as Record<string, unknown>)._sentryBaggage = baggage;
           }
         }
 

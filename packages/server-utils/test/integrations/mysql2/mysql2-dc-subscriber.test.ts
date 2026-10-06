@@ -8,6 +8,7 @@ import {
   createTransport,
   getActiveSpan,
   getAsyncContextStrategy,
+  getCurrentScope,
   getDefaultCurrentScope,
   getDefaultIsolationScope,
   getMainCarrier,
@@ -42,6 +43,7 @@ class TestClient extends Client<any> {
 }
 
 function initTestClient(traceLifecycle: 'static' | 'stream' = 'static'): void {
+  getCurrentScope().setClient(undefined);
   initAndBind(TestClient, {
     dsn: 'https://username@domain/123',
     integrations: [],

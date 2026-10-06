@@ -3,14 +3,8 @@ import {
   startBrowserTracingNavigationSpan,
   WINDOW,
 } from '@sentry/browser';
-import { SENTRY_SEGMENT_NAME_SOURCE } from '@sentry/conventions/attributes';
-import {
-  type Client,
-  hasSpanStreamingEnabled,
-  type Integration,
-  NAVIGATION_SPAN_NAME_FALLBACK,
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-} from '@sentry/core';
+import { SENTRY_SEGMENT_NAME_SOURCE, SENTRY_ORIGIN } from '@sentry/conventions/attributes';
+import { type Client, hasSpanStreamingEnabled, type Integration, NAVIGATION_SPAN_NAME_FALLBACK } from '@sentry/core';
 
 type Options = Parameters<typeof originalBrowserTracingIntegration>[0];
 
@@ -57,7 +51,7 @@ function instrumentNavigationApi(client: Client): void {
         name: hasSpanStreamingEnabled(client) ? NAVIGATION_SPAN_NAME_FALLBACK : pathnameOf(url) || '/',
         attributes: {
           [SENTRY_SEGMENT_NAME_SOURCE]: 'url',
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.remix_v3',
+          [SENTRY_ORIGIN]: 'auto.navigation.remix_v3',
         },
       },
       // The span needs the destination: `location` still points at the previous page until the

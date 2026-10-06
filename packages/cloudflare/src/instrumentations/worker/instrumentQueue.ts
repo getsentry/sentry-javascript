@@ -1,9 +1,9 @@
 import type { MessageBatch } from '@cloudflare/workers-types';
 import type { AnyExportedHandler } from '../../types';
 import type { env as cloudflareEnv, WorkerEntrypoint } from 'cloudflare:workers';
-import { SENTRY_SEGMENT_NAME_SOURCE, SENTRY_OP } from '@sentry/conventions/attributes';
+import { SENTRY_SEGMENT_NAME_SOURCE, SENTRY_OP, SENTRY_ORIGIN } from '@sentry/conventions/attributes';
 import { QUEUE_PROCESS } from '@sentry/conventions/op';
-import { captureException, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, startSpan, withIsolationScope } from '@sentry/core';
+import { captureException, startSpan, withIsolationScope } from '@sentry/core';
 import type { CloudflareOptions } from '../../client';
 import { flushAndDispose } from '../../flush';
 import { ensureInstrumented } from '../../instrument';
@@ -45,7 +45,7 @@ function wrapQueueHandler(
           'messaging.operation.name': 'process',
           'messaging.batch.message_count': batch.messages.length,
           'messaging.message.retry.count': batch.messages.reduce((acc, message) => acc + message.attempts - 1, 0),
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.faas.cloudflare.queue',
+          [SENTRY_ORIGIN]: 'auto.faas.cloudflare.queue',
           [SENTRY_SEGMENT_NAME_SOURCE]: 'task',
         },
       },

@@ -37,7 +37,7 @@ function instrumentRun(
 
     const [model, inputs, runOptions] = args as [unknown, unknown, Record<string, unknown> | undefined];
 
-    const operationName = getOperationName(inputs);
+    const operationName = getOperationName(model, inputs);
     const requestAttributes = extractRequestAttributes(model, inputs, operationName);
     const modelName = typeof model === 'string' && model ? model : 'unknown';
     const client = getClient();

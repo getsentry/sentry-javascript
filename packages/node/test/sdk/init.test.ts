@@ -1,9 +1,9 @@
 import type { Integration } from '@sentry/core';
-import { debug, SDK_VERSION } from '@sentry/core';
+import { debug, originalConsoleMethods, SDK_VERSION } from '@sentry/core';
 import * as SentryOpentelemetry from '@sentry/opentelemetry';
 import * as SentryServerUtils from '@sentry/server-utils';
 import { afterEach, beforeEach, describe, expect, it, type Mock, type MockInstance, vi } from 'vitest';
-import { getClient, NodeClient } from '../../src/';
+import { close, getClient, NodeClient } from '../../src/';
 import { init } from '../../src/sdk';
 import { cleanupOtel } from '../helpers/mockSdkInit';
 
@@ -281,6 +281,45 @@ describe('init()', () => {
     const client = init({ dsn: PUBLIC_DSN, enableOpenTelemetrySetup: false });
 
     expect(client).toBeInstanceOf(NodeClient);
+  });
+
+  describe('when called again', () => {
+    // `consoleSandbox` calls the method stored in `originalConsoleMethods`, so a
+    // spy on `console.warn` misses the warning once the console is instrumented.
+    const originalWarn = originalConsoleMethods.warn;
+    let warnSpy: Mock;
+
+    beforeEach(() => {
+      warnSpy = vi.fn();
+      originalConsoleMethods.warn = warnSpy;
+    });
+
+    afterEach(() => {
+      if (originalWarn) {
+        originalConsoleMethods.warn = originalWarn;
+      } else {
+        delete originalConsoleMethods.warn;
+      }
+    });
+
+    it('warns and replaces the active client', () => {
+      const first = init({ dsn: PUBLIC_DSN, enableOpenTelemetrySetup: false });
+      const second = init({ dsn: PUBLIC_DSN, enableOpenTelemetrySetup: false });
+
+      expect(warnSpy).toHaveBeenCalledTimes(1);
+      expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('`Sentry.init()` was called more than once'));
+      expect(second).not.toBe(first);
+      expect(getClient()).toBe(second);
+    });
+
+    it('does not warn after close()', async () => {
+      init({ dsn: PUBLIC_DSN, enableOpenTelemetrySetup: false });
+      await close();
+      const second = init({ dsn: PUBLIC_DSN, enableOpenTelemetrySetup: false });
+
+      expect(warnSpy).not.toHaveBeenCalled();
+      expect(getClient()).toBe(second);
+    });
   });
 
   it('registers a SIGTERM handler on Vercel', () => {

@@ -9,6 +9,7 @@ import {
   SENTRY_OP,
   SERVER_ADDRESS,
   SERVER_PORT,
+  SENTRY_ORIGIN,
 } from '@sentry/conventions/attributes';
 import { DB } from '@sentry/conventions/op';
 import type { IntegrationFn, Scope } from '@sentry/core';
@@ -19,7 +20,6 @@ import {
   getClient,
   getCurrentScope,
   hasSpanStreamingEnabled,
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   startInactiveSpan,
 } from '@sentry/core';
 import { sanitizeSqlQueryWithSummary } from '../utils/sql';
@@ -102,7 +102,7 @@ function instrumentMysql(): void {
           [SENTRY_OP]: DB,
           [SENTRY_KIND]: 'client',
           [DB_SYSTEM_NAME]: DB_SYSTEM_NAME_VALUE_MYSQL,
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.db.mysql',
+          [SENTRY_ORIGIN]: 'auto.db.mysql',
           [ATTR_DB_CONNECTION_STRING]: getJDBCString(host, portIsNumber ? portNumber : undefined, database),
           ...(database ? { [DB_NAMESPACE]: database } : {}),
           ...(user ? { [DB_USER]: user } : {}),

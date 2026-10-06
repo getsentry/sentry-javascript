@@ -4,7 +4,6 @@ import {
   handleCallbackErrors,
   hasSpanStreamingEnabled,
   objectify,
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
 } from '@sentry/core';
 import { startSpan } from '@sentry/core/browser';
 import {
@@ -14,6 +13,7 @@ import {
   SENTRY_OP,
   URL_PATH,
   URL_TEMPLATE,
+  SENTRY_ORIGIN,
 } from '@sentry/conventions/attributes';
 import { FUNCTION } from '@sentry/conventions/op';
 import { captureException } from '@sentry/svelte';
@@ -95,7 +95,7 @@ export function wrapLoadWithSentry<T extends (...args: any) => any>(origLoad: T)
           attributes: {
             [SENTRY_OP]: FUNCTION,
             [CODE_FUNCTION_NAME]: 'load',
-            [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.sveltekit',
+            [SENTRY_ORIGIN]: 'auto.function.sveltekit',
             [SENTRY_SEGMENT_NAME_SOURCE]: routeId ? 'route' : 'url',
             [URL_PATH]: event.url.pathname,
             ...(routeId && { [URL_TEMPLATE]: routeId }),
