@@ -2,6 +2,7 @@ import * as os from 'node:os';
 import type { Integration, Options } from '@sentry/core';
 import {
   applySdkMetadata,
+  conversationIdIntegration,
   dedupeIntegration,
   eventFiltersIntegration,
   functionToStringIntegration,
@@ -51,6 +52,7 @@ export function getDefaultIntegrationsWithoutPerformance(): Integration[] {
     linkedErrorsIntegration(),
     dedupeIntegration(),
     requestDataIntegration(),
+    conversationIdIntegration(),
     // Native Wrappers
     consoleIntegration(),
     httpIntegration(),

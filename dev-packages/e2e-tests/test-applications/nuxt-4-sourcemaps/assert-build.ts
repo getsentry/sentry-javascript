@@ -2,6 +2,9 @@ import * as assert from 'assert/strict';
 import * as fs from 'fs';
 import * as path from 'path';
 import {
+  findDebugIdsWithConflictingSourcemaps,
+  findFilesWithForeignSourcemaps,
+  findFilesWithMultipleDebugIds,
   findInjectedDebugIds,
   findSourceMapFiles,
   findSourceMappingUrlComments,
@@ -9,6 +12,7 @@ import {
   getAssembleRequests,
   getChunkUploadPosts,
   getDebugIdPairs,
+  getSourcemapSources,
   getSourcemaps,
   loadMockServerResults,
 } from '@sentry-internal/test-utils';
@@ -173,6 +177,36 @@ for (const outputDir of isStaticBuild ? [CLIENT_OUTPUT] : [CLIENT_OUTPUT, SERVER
   assert.deepEqual(unuploaded, [], `Expected every debug ID in ${outputDir} to have an uploaded sourcemap`);
 
   console.log(`  ${outputDir}: ${injectedDebugIds.length} injected debug ID(s), all uploaded`);
+
+  // Nitro bundles the SSR build again, so its debug IDs can end up next to Nitro's own.
+  // Reference issue: https://github.com/getsentry/sentry-javascript/issues/18519
+  const filesWithMultipleDebugIds = findFilesWithMultipleDebugIds({ outputDir });
+  assert.deepEqual(filesWithMultipleDebugIds, [], `Expected at most one debug ID per file in ${outputDir}`);
+
+  // A server file can borrow the debug ID of its SSR build chunk. Then the upload check above passes on
+  // Vite's map even if Nitro uploaded nothing.
+  const filesWithForeignSourcemaps = findFilesWithForeignSourcemaps({ outputDir }, sourcemaps);
+  assert.deepEqual(
+    filesWithForeignSourcemaps,
+    [],
+    `Expected the source map uploaded for each file in ${outputDir} to be generated for that file`,
+  );
+}
+
+// If both builds upload a map under a borrowed debug ID, Sentry can resolve with the wrong one.
+const conflictingDebugIds = findDebugIdsWithConflictingSourcemaps(sourcemaps);
+assert.deepEqual(conflictingDebugIds, [], 'Expected every uploaded debug ID to resolve to exactly one source map');
+
+if (!isStaticBuild) {
+  // Nitro bundles Vite's SSR output, so server frames reach `.vue` files only through the maps of that build.
+  const serverDebugIds = new Set(findInjectedDebugIds({ outputDir: SERVER_OUTPUT }));
+  const serverSources = sourcemaps
+    .filter(map => map.debugId && serverDebugIds.has(map.debugId))
+    .flatMap(map => getSourcemapSources(map.sourcemap));
+  assert.ok(
+    serverSources.some(source => source.endsWith('app/pages/index.vue')),
+    `Expected the server source maps to resolve to app/pages/index.vue, got: ${serverSources.join(', ')}`,
+  );
 }
 console.log('');
 

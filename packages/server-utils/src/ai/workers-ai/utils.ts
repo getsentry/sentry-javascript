@@ -16,16 +16,11 @@ import {
   GEN_AI_SYSTEM_INSTRUCTIONS,
   SENTRY_ORIGIN,
 } from '@sentry/conventions/attributes';
-import { GEN_AI_CHAT, GEN_AI_EMBEDDINGS } from '@sentry/conventions/op';
+import { GEN_AI_CHAT, GEN_AI_EMBEDDINGS, GEN_AI_EVALUATE } from '@sentry/conventions/op';
 import { isObjectLike, stringify } from '@sentry/core';
 import type { Span, SpanAttributeValue } from '@sentry/core';
 import { GEN_AI_REQUEST_STREAM_ATTRIBUTE } from '../core/gen-ai-attributes';
-import {
-  extractSystemInstructions,
-  getGenAiSpanOp,
-  getTokenUsageAttributes,
-  setOutputMessagesAttribute,
-} from '../core/utils';
+import { extractSystemInstructions, getTokenUsageAttributes, setOutputMessagesAttribute } from '../core/utils';
 import { addResponseAttributes as addEvaluateResponseAttributes, getEvaluationInputMessages } from '../typesafe';
 // Re-exported so `workers-ai/streaming.ts` keeps importing it from this module.
 export { setOutputMessagesAttribute };
@@ -37,7 +32,7 @@ export type WorkersAiOperationName = 'chat' | 'embeddings' | 'evaluate';
 export const WORKERS_AI_OPERATION_SPAN_OPS: Record<WorkersAiOperationName, string> = {
   chat: GEN_AI_CHAT,
   embeddings: GEN_AI_EMBEDDINGS,
-  evaluate: getGenAiSpanOp('evaluate'),
+  evaluate: GEN_AI_EVALUATE,
 };
 
 /**
