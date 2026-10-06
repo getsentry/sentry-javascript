@@ -2,8 +2,10 @@ import type { SerializedStreamedSpan, SerializedStreamedSpanContainer } from '@s
 import type { Event } from '@sentry/node';
 import { afterAll, describe, expect } from 'vitest';
 import {
+  GEN_AI_CONVERSATION_ID,
   GEN_AI_EMBEDDINGS_INPUT,
   GEN_AI_INPUT_MESSAGES,
+  GEN_AI_OPERATION_NAME,
   GEN_AI_OUTPUT_MESSAGES,
   GEN_AI_PROVIDER_NAME,
   GEN_AI_REQUEST_MODEL,
@@ -17,8 +19,8 @@ import {
   GEN_AI_USAGE_INPUT_TOKENS,
   GEN_AI_USAGE_OUTPUT_TOKENS,
   GEN_AI_USAGE_TOTAL_TOKENS,
+  SENTRY_OP,
   SENTRY_ORIGIN,
-  GEN_AI_OPERATION_NAME,
 } from '@sentry/conventions/attributes';
 import { GEN_AI_TOOL_CALL_ID_ATTRIBUTE } from '../../../../../packages/server-utils/src/ai/core/gen-ai-attributes';
 import { cleanupChildProcesses, createEsmAndCjsTests } from '../../../utils/runner';
@@ -56,7 +58,7 @@ describe('Vercel AI integration (v4)', () => {
               value: 'invoke_agent',
             });
             expect(firstInvokeAgentSpan!.status).toBe('ok');
-            expect(firstInvokeAgentSpan!.attributes['sentry.op'].value).toBe('gen_ai.invoke_agent');
+            expect(firstInvokeAgentSpan!.attributes[SENTRY_OP].value).toBe('gen_ai.invoke_agent');
             expect(firstInvokeAgentSpan!.attributes[GEN_AI_REQUEST_MODEL].value).toBe('mock-model-id');
             expect(firstInvokeAgentSpan!.attributes[GEN_AI_RESPONSE_MODEL].value).toBe('mock-model-id');
             expect(firstInvokeAgentSpan!.attributes[GEN_AI_USAGE_OUTPUT_TOKENS].value).toBe(20);
@@ -94,7 +96,7 @@ describe('Vercel AI integration (v4)', () => {
               value: 'mock-model-id',
             });
             expect(firstGenerateContentSpan!.status).toBe('ok');
-            expect(firstGenerateContentSpan!.attributes['sentry.op'].value).toBe('gen_ai.generate_content');
+            expect(firstGenerateContentSpan!.attributes[SENTRY_OP].value).toBe('gen_ai.generate_content');
             expect(firstGenerateContentSpan!.attributes[GEN_AI_PROVIDER_NAME].value).toBe('mock-provider');
 
             const secondInvokeAgentSpan = spans.find(
@@ -125,7 +127,7 @@ describe('Vercel AI integration (v4)', () => {
               value: 'mock-model-id',
             });
             expect(secondInvokeAgentSpan!.status).toBe('ok');
-            expect(secondInvokeAgentSpan!.attributes['sentry.op'].value).toBe('gen_ai.invoke_agent');
+            expect(secondInvokeAgentSpan!.attributes[SENTRY_OP].value).toBe('gen_ai.invoke_agent');
             expect(secondInvokeAgentSpan!.attributes[GEN_AI_OUTPUT_MESSAGES].value).toBe(
               '[{"role":"assistant","parts":[{"type":"text","content":"Second span here!"}],"finish_reason":"stop"}]',
             );
@@ -136,7 +138,7 @@ describe('Vercel AI integration (v4)', () => {
                 getStringAttributeValue(span.attributes[GEN_AI_OUTPUT_MESSAGES]?.value)?.includes('Second span here!'),
             );
             expect(secondGenerateContentSpan!.status).toBe('ok');
-            expect(secondGenerateContentSpan!.attributes['sentry.op'].value).toBe('gen_ai.generate_content');
+            expect(secondGenerateContentSpan!.attributes[SENTRY_OP].value).toBe('gen_ai.generate_content');
             expect(secondGenerateContentSpan!.attributes[GEN_AI_INPUT_MESSAGES]).toBeDefined();
             expect(secondGenerateContentSpan!.attributes[GEN_AI_OUTPUT_MESSAGES].value).toContain('Second span here!');
 
@@ -153,7 +155,7 @@ describe('Vercel AI integration (v4)', () => {
               value: 'mock-model-id',
             });
             expect(toolInvokeAgentSpan!.status).toBe('ok');
-            expect(toolInvokeAgentSpan!.attributes['sentry.op'].value).toBe('gen_ai.invoke_agent');
+            expect(toolInvokeAgentSpan!.attributes[SENTRY_OP].value).toBe('gen_ai.invoke_agent');
             expect(toolInvokeAgentSpan!.attributes[GEN_AI_USAGE_OUTPUT_TOKENS].value).toBe(25);
             expect(toolInvokeAgentSpan!.attributes[GEN_AI_USAGE_TOTAL_TOKENS].value).toBe(40);
 
@@ -183,7 +185,7 @@ describe('Vercel AI integration (v4)', () => {
               value: 'mock-model-id',
             });
             expect(toolGenerateContentSpan!.status).toBe('ok');
-            expect(toolGenerateContentSpan!.attributes['sentry.op'].value).toBe('gen_ai.generate_content');
+            expect(toolGenerateContentSpan!.attributes[SENTRY_OP].value).toBe('gen_ai.generate_content');
 
             const toolExecutionSpan = spans.find(span => span.name === 'execute_tool getWeather');
             expect(toolExecutionSpan!.attributes[SENTRY_ORIGIN]).toEqual({ type: 'string', value: expectedOrigin });
@@ -192,7 +194,7 @@ describe('Vercel AI integration (v4)', () => {
               value: 'execute_tool',
             });
             expect(toolExecutionSpan!.status).toBe('ok');
-            expect(toolExecutionSpan!.attributes['sentry.op'].value).toBe('gen_ai.execute_tool');
+            expect(toolExecutionSpan!.attributes[SENTRY_OP].value).toBe('gen_ai.execute_tool');
             expect(toolExecutionSpan!.attributes[GEN_AI_TOOL_NAME].value).toBe('getWeather');
             expect(toolExecutionSpan!.attributes[GEN_AI_TOOL_CALL_ID_ATTRIBUTE].value).toBe('call-1');
           },
@@ -239,7 +241,7 @@ describe('Vercel AI integration (v4)', () => {
               value: 'mock-model-id',
             });
             expect(firstInvokeAgentSpan!.status).toBe('ok');
-            expect(firstInvokeAgentSpan!.attributes['sentry.op'].value).toBe('gen_ai.invoke_agent');
+            expect(firstInvokeAgentSpan!.attributes[SENTRY_OP].value).toBe('gen_ai.invoke_agent');
             expect(firstInvokeAgentSpan!.attributes['vercel.ai.operationId'].value).toBe('ai.generateText');
             expect(firstInvokeAgentSpan!.attributes[GEN_AI_OUTPUT_MESSAGES].value).toBe(
               '[{"role":"assistant","parts":[{"type":"text","content":"First span here!"}],"finish_reason":"stop"}]',
@@ -279,7 +281,7 @@ describe('Vercel AI integration (v4)', () => {
               value: 'mock-model-id',
             });
             expect(firstGenerateContentSpan!.status).toBe('ok');
-            expect(firstGenerateContentSpan!.attributes['sentry.op'].value).toBe('gen_ai.generate_content');
+            expect(firstGenerateContentSpan!.attributes[SENTRY_OP].value).toBe('gen_ai.generate_content');
             expect(firstGenerateContentSpan!.attributes['vercel.ai.operationId'].value).toBe(
               'ai.generateText.doGenerate',
             );
@@ -323,7 +325,7 @@ describe('Vercel AI integration (v4)', () => {
                 '[{"role":"assistant","parts":[{"type":"text","content":"Second span here!"}],"finish_reason":"stop"}]',
             });
             expect(secondInvokeAgentSpan!.status).toBe('ok');
-            expect(secondInvokeAgentSpan!.attributes['sentry.op'].value).toBe('gen_ai.invoke_agent');
+            expect(secondInvokeAgentSpan!.attributes[SENTRY_OP].value).toBe('gen_ai.invoke_agent');
 
             const secondGenerateContentSpan = spans.find(
               span =>
@@ -331,7 +333,7 @@ describe('Vercel AI integration (v4)', () => {
                 getStringAttributeValue(span.attributes[GEN_AI_OUTPUT_MESSAGES]?.value)?.includes('Second span here!'),
             );
             expect(secondGenerateContentSpan!.status).toBe('ok');
-            expect(secondGenerateContentSpan!.attributes['sentry.op'].value).toBe('gen_ai.generate_content');
+            expect(secondGenerateContentSpan!.attributes[SENTRY_OP].value).toBe('gen_ai.generate_content');
 
             const toolInvokeAgentSpan = spans.find(
               span =>
@@ -352,7 +354,7 @@ describe('Vercel AI integration (v4)', () => {
               value: 'mock-model-id',
             });
             expect(toolInvokeAgentSpan!.status).toBe('ok');
-            expect(toolInvokeAgentSpan!.attributes['sentry.op'].value).toBe('gen_ai.invoke_agent');
+            expect(toolInvokeAgentSpan!.attributes[SENTRY_OP].value).toBe('gen_ai.invoke_agent');
             expect(toolInvokeAgentSpan!.attributes[GEN_AI_OUTPUT_MESSAGES]).toEqual({
               type: 'string',
               value: `[{"role":"assistant","parts":[{"type":"text","content":"Tool call completed!"},{"type":"tool_call","id":"call-1","name":"getWeather","arguments":"${toolCallArgs}"}],"finish_reason":"tool_call"}]`,
@@ -384,7 +386,7 @@ describe('Vercel AI integration (v4)', () => {
               value: 'mock-model-id',
             });
             expect(toolGenerateContentSpan!.status).toBe('ok');
-            expect(toolGenerateContentSpan!.attributes['sentry.op'].value).toBe('gen_ai.generate_content');
+            expect(toolGenerateContentSpan!.attributes[SENTRY_OP].value).toBe('gen_ai.generate_content');
             expect(toolGenerateContentSpan!.attributes[GEN_AI_TOOL_DEFINITIONS]).toEqual({
               type: 'string',
               value: expect.stringContaining('getWeather'),
@@ -402,7 +404,7 @@ describe('Vercel AI integration (v4)', () => {
               value: 'call-1',
             });
             expect(toolExecutionSpan!.status).toBe('ok');
-            expect(toolExecutionSpan!.attributes['sentry.op'].value).toBe('gen_ai.execute_tool');
+            expect(toolExecutionSpan!.attributes[SENTRY_OP].value).toBe('gen_ai.execute_tool');
             expect(toolExecutionSpan!.attributes[GEN_AI_TOOL_NAME].value).toBe('getWeather');
             expect(toolExecutionSpan!.attributes[GEN_AI_TOOL_DESCRIPTION].value).toBe(
               'Get the current weather for a location',
@@ -438,7 +440,7 @@ describe('Vercel AI integration (v4)', () => {
               type: 'string',
               value: 'invoke_agent',
             });
-            expect(invokeAgentSpan!.attributes['sentry.op'].value).toBe('gen_ai.invoke_agent');
+            expect(invokeAgentSpan!.attributes[SENTRY_OP].value).toBe('gen_ai.invoke_agent');
             expect(invokeAgentSpan!.attributes['vercel.ai.operationId'].value).toBe('ai.generateText');
 
             const generateContentSpan = spans.find(span => span.name === 'generate_content mock-model-id');
@@ -455,14 +457,14 @@ describe('Vercel AI integration (v4)', () => {
               value: 'mock-model-id',
             });
             expect(generateContentSpan!.status).toBe('ok');
-            expect(generateContentSpan!.attributes['sentry.op'].value).toBe('gen_ai.generate_content');
+            expect(generateContentSpan!.attributes[SENTRY_OP].value).toBe('gen_ai.generate_content');
             expect(generateContentSpan!.attributes['vercel.ai.operationId'].value).toBe('ai.generateText.doGenerate');
 
             const toolSpan = spans.find(span => span.name === 'execute_tool getWeather');
             expect(toolSpan!.attributes[GEN_AI_OPERATION_NAME]).toEqual({ type: 'string', value: 'execute_tool' });
             expect(toolSpan!.attributes[GEN_AI_TOOL_CALL_ID_ATTRIBUTE]).toEqual({ type: 'string', value: 'call-1' });
             expect(toolSpan!.status).toBe('error');
-            expect(toolSpan!.attributes['sentry.op'].value).toBe('gen_ai.execute_tool');
+            expect(toolSpan!.attributes[SENTRY_OP].value).toBe('gen_ai.execute_tool');
             expect(toolSpan!.attributes[GEN_AI_TOOL_NAME].value).toBe('getWeather');
           },
         })
@@ -514,16 +516,16 @@ describe('Vercel AI integration (v4)', () => {
             );
             expect(spans).toHaveLength(3);
             const invokeAgentSpan = spans.find(span => span.name === 'invoke_agent' && span.status === 'error');
-            expect(invokeAgentSpan!.attributes['sentry.op'].value).toBe('gen_ai.invoke_agent');
+            expect(invokeAgentSpan!.attributes[SENTRY_OP].value).toBe('gen_ai.invoke_agent');
             expect(invokeAgentSpan!.attributes['vercel.ai.operationId'].value).toBe('ai.generateText');
 
             const generateContentSpan = spans.find(span => span.name === 'generate_content mock-model-id');
             expect(generateContentSpan!.status).toBe('ok');
-            expect(generateContentSpan!.attributes['sentry.op'].value).toBe('gen_ai.generate_content');
+            expect(generateContentSpan!.attributes[SENTRY_OP].value).toBe('gen_ai.generate_content');
 
             const toolSpan = spans.find(span => span.name === 'execute_tool getWeather');
             expect(toolSpan!.status).toBe('error');
-            expect(toolSpan!.attributes['sentry.op'].value).toBe('gen_ai.execute_tool');
+            expect(toolSpan!.attributes[SENTRY_OP].value).toBe('gen_ai.execute_tool');
             expect(toolSpan!.attributes[GEN_AI_TOOL_NAME].value).toBe('getWeather');
           },
         })
@@ -575,13 +577,13 @@ describe('Vercel AI integration (v4)', () => {
               );
               expect(spans).toHaveLength(2);
               const invokeAgentSpan = spans.find(span => span.name === 'invoke_agent');
-              expect(invokeAgentSpan!.attributes['sentry.op'].value).toBe('gen_ai.invoke_agent');
+              expect(invokeAgentSpan!.attributes[SENTRY_OP].value).toBe('gen_ai.invoke_agent');
               expect(invokeAgentSpan!.attributes[GEN_AI_SYSTEM_INSTRUCTIONS].value).toBe(
                 JSON.stringify([{ type: 'text', content: 'You are a helpful assistant' }]),
               );
 
               const generateContentSpan = spans.find(span => span.name === 'generate_content mock-model-id');
-              expect(generateContentSpan!.attributes['sentry.op'].value).toBe('gen_ai.generate_content');
+              expect(generateContentSpan!.attributes[SENTRY_OP].value).toBe('gen_ai.generate_content');
             },
           })
           .start()
@@ -604,13 +606,13 @@ describe('Vercel AI integration (v4)', () => {
             const embedSpan = spans.find(span => span.attributes[GEN_AI_USAGE_INPUT_TOKENS]?.value === 10);
             expect(embedSpan!.name).toBe('embeddings mock-model-id');
             expect(embedSpan!.status).toBe('ok');
-            expect(embedSpan!.attributes['sentry.op'].value).toBe('gen_ai.embeddings');
+            expect(embedSpan!.attributes[SENTRY_OP].value).toBe('gen_ai.embeddings');
             expect(embedSpan!.attributes[GEN_AI_REQUEST_MODEL].value).toBe('mock-model-id');
 
             const embedManySpan = spans.find(span => span.attributes[GEN_AI_USAGE_INPUT_TOKENS]?.value === 20);
             expect(embedManySpan!.name).toBe('embeddings mock-model-id');
             expect(embedManySpan!.status).toBe('ok');
-            expect(embedManySpan!.attributes['sentry.op'].value).toBe('gen_ai.embeddings');
+            expect(embedManySpan!.attributes[SENTRY_OP].value).toBe('gen_ai.embeddings');
           },
         })
         .start()
@@ -632,14 +634,14 @@ describe('Vercel AI integration (v4)', () => {
             const embedSpan = spans.find(span => span.attributes[GEN_AI_EMBEDDINGS_INPUT]?.value === 'Embedding test!');
             expect(embedSpan!.name).toBe('embeddings mock-model-id');
             expect(embedSpan!.status).toBe('ok');
-            expect(embedSpan!.attributes['sentry.op'].value).toBe('gen_ai.embeddings');
+            expect(embedSpan!.attributes[SENTRY_OP].value).toBe('gen_ai.embeddings');
 
             const embedManySpan = spans.find(
               span => span.attributes[GEN_AI_EMBEDDINGS_INPUT]?.value === '["First input","Second input"]',
             );
             expect(embedManySpan!.name).toBe('embeddings mock-model-id');
             expect(embedManySpan!.status).toBe('ok');
-            expect(embedManySpan!.attributes['sentry.op'].value).toBe('gen_ai.embeddings');
+            expect(embedManySpan!.attributes[SENTRY_OP].value).toBe('gen_ai.embeddings');
           },
         })
         .start()
@@ -659,12 +661,12 @@ describe('Vercel AI integration (v4)', () => {
             );
             expect(spans).toHaveLength(2);
             const invokeAgentSpan = spans.find(span => span.name === 'invoke_agent');
-            expect(invokeAgentSpan!.attributes['sentry.op'].value).toBe('gen_ai.invoke_agent');
-            expect(invokeAgentSpan!.attributes['gen_ai.conversation.id'].value).toBe('conv-a');
+            expect(invokeAgentSpan!.attributes[SENTRY_OP].value).toBe('gen_ai.invoke_agent');
+            expect(invokeAgentSpan!.attributes[GEN_AI_CONVERSATION_ID].value).toBe('conv-a');
 
             const generateContentSpan = spans.find(span => span.name === 'generate_content mock-model-id');
-            expect(generateContentSpan!.attributes['sentry.op'].value).toBe('gen_ai.generate_content');
-            expect(generateContentSpan!.attributes['gen_ai.conversation.id'].value).toBe('conv-a');
+            expect(generateContentSpan!.attributes[SENTRY_OP].value).toBe('gen_ai.generate_content');
+            expect(generateContentSpan!.attributes[GEN_AI_CONVERSATION_ID].value).toBe('conv-a');
           },
         })
         .start()
@@ -686,7 +688,7 @@ describe('Vercel AI integration (v4)', () => {
 
             const invokeAgentSpan = spans.find(span => span.name === 'invoke_agent');
             expect(invokeAgentSpan!.status).toBe('ok');
-            expect(invokeAgentSpan!.attributes['sentry.op'].value).toBe('gen_ai.invoke_agent');
+            expect(invokeAgentSpan!.attributes[SENTRY_OP].value).toBe('gen_ai.invoke_agent');
             expect(invokeAgentSpan!.attributes['vercel.ai.operationId'].value).toBe('ai.streamText');
             expect(invokeAgentSpan!.attributes[GEN_AI_REQUEST_MODEL].value).toBe('mock-model-id');
             // Aggregated over the drained stream: v4 reports `promptTokens`/`completionTokens`, which the
@@ -698,7 +700,7 @@ describe('Vercel AI integration (v4)', () => {
 
             const generateContentSpan = spans.find(span => span.name === 'generate_content mock-model-id');
             expect(generateContentSpan!.status).toBe('ok');
-            expect(generateContentSpan!.attributes['sentry.op'].value).toBe('gen_ai.generate_content');
+            expect(generateContentSpan!.attributes[SENTRY_OP].value).toBe('gen_ai.generate_content');
             expect(generateContentSpan!.attributes['vercel.ai.operationId'].value).toBe('ai.streamText.doStream');
           },
         })
@@ -722,26 +724,26 @@ describe('Vercel AI integration (v4)', () => {
             // generateObject (invoke_agent)
             const invokeAgentSpan = spans.find(span => span.name === 'invoke_agent');
             expect(invokeAgentSpan!.status).toBe('ok');
-            expect(invokeAgentSpan!.attributes['sentry.op'].value).toBe('gen_ai.invoke_agent');
+            expect(invokeAgentSpan!.attributes[SENTRY_OP].value).toBe('gen_ai.invoke_agent');
             expect(invokeAgentSpan!.attributes['vercel.ai.operationId'].value).toBe('ai.generateObject');
-            expect(invokeAgentSpan!.attributes['gen_ai.operation.name'].value).toBe('invoke_agent');
-            expect(invokeAgentSpan!.attributes['gen_ai.response.model'].value).toBe('mock-model-id');
-            expect(invokeAgentSpan!.attributes['gen_ai.usage.input_tokens'].value).toBe(15);
-            expect(invokeAgentSpan!.attributes['gen_ai.usage.output_tokens'].value).toBe(25);
-            expect(invokeAgentSpan!.attributes['gen_ai.usage.total_tokens'].value).toBe(40);
+            expect(invokeAgentSpan!.attributes[GEN_AI_OPERATION_NAME].value).toBe('invoke_agent');
+            expect(invokeAgentSpan!.attributes[GEN_AI_RESPONSE_MODEL].value).toBe('mock-model-id');
+            expect(invokeAgentSpan!.attributes[GEN_AI_USAGE_INPUT_TOKENS].value).toBe(15);
+            expect(invokeAgentSpan!.attributes[GEN_AI_USAGE_OUTPUT_TOKENS].value).toBe(25);
+            expect(invokeAgentSpan!.attributes[GEN_AI_USAGE_TOTAL_TOKENS].value).toBe(40);
 
             // generateObject.doGenerate (generate_content)
             const generateContentSpan = spans.find(span => span.name === 'generate_content mock-model-id');
             expect(generateContentSpan!.status).toBe('ok');
-            expect(generateContentSpan!.attributes['sentry.op'].value).toBe('gen_ai.generate_content');
+            expect(generateContentSpan!.attributes[SENTRY_OP].value).toBe('gen_ai.generate_content');
             expect(generateContentSpan!.attributes['vercel.ai.operationId'].value).toBe('ai.generateObject.doGenerate');
-            expect(generateContentSpan!.attributes['gen_ai.operation.name'].value).toBe('generate_content');
-            expect(generateContentSpan!.attributes['gen_ai.provider.name'].value).toBe('mock-provider');
-            expect(generateContentSpan!.attributes['gen_ai.request.model'].value).toBe('mock-model-id');
-            expect(generateContentSpan!.attributes['gen_ai.response.model'].value).toBe('mock-model-id');
-            expect(generateContentSpan!.attributes['gen_ai.usage.input_tokens'].value).toBe(15);
-            expect(generateContentSpan!.attributes['gen_ai.usage.output_tokens'].value).toBe(25);
-            expect(generateContentSpan!.attributes['gen_ai.usage.total_tokens'].value).toBe(40);
+            expect(generateContentSpan!.attributes[GEN_AI_OPERATION_NAME].value).toBe('generate_content');
+            expect(generateContentSpan!.attributes[GEN_AI_PROVIDER_NAME].value).toBe('mock-provider');
+            expect(generateContentSpan!.attributes[GEN_AI_REQUEST_MODEL].value).toBe('mock-model-id');
+            expect(generateContentSpan!.attributes[GEN_AI_RESPONSE_MODEL].value).toBe('mock-model-id');
+            expect(generateContentSpan!.attributes[GEN_AI_USAGE_INPUT_TOKENS].value).toBe(15);
+            expect(generateContentSpan!.attributes[GEN_AI_USAGE_OUTPUT_TOKENS].value).toBe(25);
+            expect(generateContentSpan!.attributes[GEN_AI_USAGE_TOTAL_TOKENS].value).toBe(40);
           },
         })
         .start()
