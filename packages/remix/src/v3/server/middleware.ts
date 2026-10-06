@@ -10,6 +10,7 @@ import {
   winterCGRequestToRequestData,
 } from '@sentry/core';
 
+import { formatRouteTiming } from '../routeTiming';
 import type { MatcherLike, MiddlewareLike, NextFunctionLike, RequestContextLike } from '../types';
 import { captureRequestError } from './errorFilter';
 import { resolveRoutePattern } from './route';
@@ -78,9 +79,7 @@ function addRouteHeader(response: Response, request: Request, route: string): vo
     return;
   }
   try {
-    // Quoted string per the header grammar; the browser unquotes it for the timing entry.
-    const quoted = route.replace(/["\\]/g, '\\$&');
-    response.headers.append('Server-Timing', `sentry-route;desc="${quoted}"`);
+    response.headers.append('Server-Timing', formatRouteTiming(route));
   } catch {
     // Immutable headers, e.g. a response passed through from `fetch()`.
   }
