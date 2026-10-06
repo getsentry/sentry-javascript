@@ -10,7 +10,6 @@ function assertBedrockSpans(container: SerializedStreamedSpanContainer): void {
 
   // Converse (non-streaming)
   const converseSpan = container.items.find(span => span.name === `chat ${MODEL_ID}`);
-  expect(converseSpan).toBeDefined();
   expect(converseSpan!.status).toBe('ok');
   expect(converseSpan!.attributes['sentry.origin'].value).toBe('auto.aws.aws_sdk');
   expect(converseSpan!.attributes['sentry.op'].value).toBe('gen_ai.chat');
@@ -26,7 +25,6 @@ function assertBedrockSpans(container: SerializedStreamedSpanContainer): void {
 
   // InvokeModel (non-streaming, anthropic.claude request/response body)
   const invokeModelSpan = container.items.find(span => span.name === `generate_content ${MODEL_ID}`);
-  expect(invokeModelSpan).toBeDefined();
   expect(invokeModelSpan!.status).toBe('ok');
   expect(invokeModelSpan!.attributes['sentry.origin'].value).toBe('auto.aws.aws_sdk');
   expect(invokeModelSpan!.attributes['sentry.op'].value).toBe('gen_ai.generate_content');
