@@ -162,7 +162,16 @@ export class BrowserClient extends Client<BrowserClientOptions> {
           });
         }
       });
+
+      // `freeze` and `resume` are only fired by Chromium browsers. Other browsers never fire them, so these listeners
+      // are no-ops there.
+      WINDOW.document.addEventListener('freeze', () => timestampInSeconds());
+      WINDOW.document.addEventListener('resume', () => timestampInSeconds());
     }
+
+    // Pages restored from the back/forward cache were paused while they were cached.
+    WINDOW.addEventListener?.('pagehide', () => timestampInSeconds());
+    WINDOW.addEventListener?.('pageshow', () => timestampInSeconds());
 
     if (userInfo) {
       this.on('beforeSendSession', addAutoIpAddressToSession);

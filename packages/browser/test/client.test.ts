@@ -63,6 +63,20 @@ describe('BrowserClient', () => {
     expect(SentryCore.timestampInSeconds).toHaveBeenCalled();
   });
 
+  it.each([
+    ['freeze', () => WINDOW.document],
+    ['resume', () => WINDOW.document],
+    ['pagehide', () => WINDOW],
+    ['pageshow', () => WINDOW],
+  ])('checks the clocks for drift on %s', (eventName, getTarget) => {
+    client = new BrowserClient(getDefaultBrowserClientOptions());
+    vi.mocked(SentryCore.timestampInSeconds).mockClear();
+
+    getTarget().dispatchEvent(new Event(eventName));
+
+    expect(SentryCore.timestampInSeconds).toHaveBeenCalled();
+  });
+
   it('does not flush outcomes when sendClientReports is disabled but still flushes the client', async () => {
     client = new BrowserClient(getDefaultBrowserClientOptions({ sendClientReports: false }));
     const flushSpy = vi.spyOn(client, 'flush').mockReturnValue(Promise.resolve(true) as any);
