@@ -1,9 +1,33 @@
 import type { Client } from '@sentry/core';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import type * as SentryCore from '@sentry/core';
+
+/** The span a start function returns: records the renames the integration applies. */
+function fakeSpan(op: string) {
+  return { op, updateName: vi.fn(), setAttributes: vi.fn() };
+}
+type FakeSpan = ReturnType<typeof fakeSpan>;
+
+let activeSpan: FakeSpan | undefined;
+
 const startBrowserTracingNavigationSpan = vi.fn();
 const upstreamIntegration = { name: 'BrowserTracing', afterAllSetup: vi.fn() };
 const upstreamOptions: { instrumentNavigation?: boolean }[] = [];
+
+/** What `createCachedRouteProvider` does, in miniature: answers from the routes it was told about. */
+const recorded = new Map<string, string>();
+const routeProvider = {
+  resolveRoute: (url: { pathname: string }) => recorded.get(url.pathname),
+  resolveCurrentRoute: () => recorded.get((globalThis as { location?: { pathname: string } }).location?.pathname ?? ''),
+  record: (pathname: string | undefined, route: string | undefined) => {
+    if (pathname && route) {
+      recorded.set(pathname, route);
+    }
+  },
+};
+let registeredProvider: typeof routeProvider | undefined = routeProvider;
+const scope = { setTransactionName: vi.fn() };
 
 vi.mock('@sentry/browser', () => ({
   browserTracingIntegration: (options: { instrumentNavigation?: boolean }) => {
@@ -11,7 +35,17 @@ vi.mock('@sentry/browser', () => ({
     return upstreamIntegration;
   },
   startBrowserTracingNavigationSpan: (...args: unknown[]) => startBrowserTracingNavigationSpan(...args),
+  getActiveSpan: () => activeSpan,
+  getCurrentScope: () => scope,
+  getRootSpan: (span: unknown) => span,
+  getRouteProvider: () => registeredProvider,
+  resolveCurrentRoute: () => registeredProvider?.resolveCurrentRoute(),
   WINDOW: globalThis,
+}));
+
+vi.mock('@sentry/core', async importOriginal => ({
+  ...(await importOriginal<typeof SentryCore>()),
+  spanToJSON: (span: FakeSpan) => ({ attributes: { 'sentry.op': span.op } }),
 }));
 
 const { browserTracingIntegration } = await import('../../src/v3/client/browserTracingIntegration');
@@ -25,11 +59,11 @@ interface FakeNavigateEvent {
 const client = { getOptions: () => ({ traceLifecycle: 'stream' }) } as unknown as Client;
 
 /** Sets up the integration over a fake Navigation API and returns a way to fire `navigate` events. */
-function setup(options = {}): (event: FakeNavigateEvent) => void {
+function setup(options = {}, pathname = '/'): (event: FakeNavigateEvent) => void {
   let listener: ((event: FakeNavigateEvent) => void) | undefined;
 
   Object.assign(globalThis, {
-    location: { origin: 'https://app.test', pathname: '/' },
+    location: { origin: 'https://app.test', pathname, href: `https://app.test${pathname}` },
     navigation: {
       addEventListener: (_type: string, fn: (event: FakeNavigateEvent) => void) => {
         listener = fn;
@@ -42,16 +76,82 @@ function setup(options = {}): (event: FakeNavigateEvent) => void {
   return event => listener?.(event);
 }
 
+/** A document whose response carried the given route in `Server-Timing`, as the timing entry reports it. */
+function documentWithRoute(route?: string): void {
+  Object.assign(globalThis, {
+    performance: {
+      getEntriesByType: () => [{ serverTiming: route ? [{ name: 'sentry-route', description: route }] : [] }],
+    },
+  });
+}
+
 describe('browserTracingIntegration', () => {
   beforeEach(() => {
     startBrowserTracingNavigationSpan.mockClear();
     upstreamOptions.length = 0;
+    activeSpan = undefined;
+    recorded.clear();
+    registeredProvider = routeProvider;
+    scope.setTransactionName.mockClear();
+    documentWithRoute(undefined);
   });
 
   it('leaves page loads to the upstream integration and takes over navigation', () => {
     setup();
 
     expect(upstreamOptions[0]).toEqual({ instrumentNavigation: false });
+  });
+
+  it('records the route the document reports, so the whole SDK can resolve it', () => {
+    activeSpan = fakeSpan('pageload');
+    documentWithRoute('/users/:id');
+
+    setup({}, '/users/1');
+
+    expect(recorded.get('/users/1')).toBe('/users/:id');
+  });
+
+  it("names the page load span after the route the document's Server-Timing reports", () => {
+    activeSpan = fakeSpan('pageload');
+    documentWithRoute('/users/:id');
+
+    setup({}, '/users/1');
+
+    expect(activeSpan.updateName).toHaveBeenCalledWith('/users/:id');
+    expect(activeSpan.setAttributes).toHaveBeenCalledWith({
+      'sentry.segment.name.source': 'route',
+      'url.template': '/users/:id',
+    });
+    // Errors captured from now on group by the route, not the path the span started under.
+    expect(scope.setTransactionName).toHaveBeenCalledWith('/users/:id');
+  });
+
+  it('leaves the page load span alone when the document reports no route', () => {
+    activeSpan = fakeSpan('pageload');
+
+    setup();
+
+    expect(activeSpan.updateName).not.toHaveBeenCalled();
+    expect(scope.setTransactionName).not.toHaveBeenCalled();
+  });
+
+  it('does not rename an active span that is not a page load', () => {
+    activeSpan = fakeSpan('navigation');
+    documentWithRoute('/');
+
+    setup();
+
+    expect(activeSpan.updateName).not.toHaveBeenCalled();
+  });
+
+  it('leaves the page load span alone without a provider that records', () => {
+    registeredProvider = undefined;
+    activeSpan = fakeSpan('pageload');
+    documentWithRoute('/users/:id');
+
+    setup({}, '/users/1');
+
+    expect(activeSpan.updateName).not.toHaveBeenCalled();
   });
 
   it('starts a navigation span for an intercepted navigation', () => {
@@ -62,7 +162,7 @@ describe('browserTracingIntegration', () => {
     expect(startBrowserTracingNavigationSpan).toHaveBeenCalledWith(
       client,
       {
-        // Low cardinality, because the browser has no route patterns.
+        // Low cardinality: navigations do not read the route the server reports yet.
         name: 'Navigation',
         attributes: {
           'sentry.segment.name.source': 'url',
