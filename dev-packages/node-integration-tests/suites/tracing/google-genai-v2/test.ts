@@ -1,3 +1,4 @@
+import type { SerializedStreamedSpanContainer } from '@sentry/core';
 import { afterAll, describe, expect } from 'vitest';
 import {
   GEN_AI_OPERATION_NAME,
@@ -31,15 +32,17 @@ describe('Google GenAI integration (v2)', () => {
     'instrument.mjs',
     (createRunner, test) => {
       test('auto-instruments chat and generateContent on @google/genai v2', async () => {
+        const allSpans: SerializedStreamedSpanContainer['items'] = [];
+
         await createRunner()
+          .unordered()
           .ignore('event')
           .expect({
             span: container => {
-              const segment = container.items.find(span => span.is_segment && span.name === 'main');
+              allSpans.push(...container.items);
+              const segment = allSpans.find(span => span.is_segment && span.name === 'main');
               expect(segment).toBeDefined();
-              const spans = container.items.filter(
-                span => span.attributes[SENTRY_ORIGIN]?.value === 'auto.ai.google_genai',
-              );
+              const spans = allSpans.filter(span => span.attributes[SENTRY_ORIGIN]?.value === 'auto.ai.google_genai');
               expect(spans).toHaveLength(3);
               expect(spans.map(span => span.name).sort()).toEqual([
                 'chat gemini-1.5-pro',
@@ -94,15 +97,17 @@ describe('Google GenAI integration (v2)', () => {
       // `embedContent` is the member that changed shape in v2; asserting its span proves the
       // `className`/`methodName` selector still matches the constructor-assigned arrow.
       test('auto-instruments embedContent on @google/genai v2', async () => {
+        const allSpans: SerializedStreamedSpanContainer['items'] = [];
+
         await createRunner()
+          .unordered()
           .ignore('event')
           .expect({
             span: container => {
-              const segment = container.items.find(span => span.is_segment && span.name === 'main');
+              allSpans.push(...container.items);
+              const segment = allSpans.find(span => span.is_segment && span.name === 'main');
               expect(segment).toBeDefined();
-              const spans = container.items.filter(
-                span => span.attributes[SENTRY_ORIGIN]?.value === 'auto.ai.google_genai',
-              );
+              const spans = allSpans.filter(span => span.attributes[SENTRY_ORIGIN]?.value === 'auto.ai.google_genai');
               expect(spans).toHaveLength(3);
               expect(spans.map(span => span.name).sort()).toEqual([
                 'embeddings error-model',

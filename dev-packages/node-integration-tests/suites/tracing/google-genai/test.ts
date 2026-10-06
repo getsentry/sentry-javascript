@@ -1,3 +1,4 @@
+import type { SerializedStreamedSpanContainer } from '@sentry/core';
 import { afterAll, describe, expect } from 'vitest';
 import {
   GEN_AI_EMBEDDINGS_INPUT,
@@ -33,14 +34,16 @@ describe('Google GenAI integration', () => {
 
   createEsmAndCjsTests(__dirname, 'scenario.mjs', 'instrument.mjs', (createRunner, test) => {
     test('creates google genai related spans with genAI recording disabled', async () => {
+      const allSpans: SerializedStreamedSpanContainer['items'] = [];
+
       await createRunner()
+        .unordered()
         .expect({
           span: container => {
-            const segment = container.items.find(span => span.is_segment && span.name === 'main');
+            allSpans.push(...container.items);
+            const segment = allSpans.find(span => span.is_segment && span.name === 'main');
             expect(segment).toBeDefined();
-            const spans = container.items.filter(
-              span => span.attributes[SENTRY_ORIGIN]?.value === 'auto.ai.google_genai',
-            );
+            const spans = allSpans.filter(span => span.attributes[SENTRY_ORIGIN]?.value === 'auto.ai.google_genai');
             expect(spans).toHaveLength(3);
             expect(spans.map(span => span.name).sort()).toEqual([
               'chat gemini-1.5-pro',
@@ -92,14 +95,16 @@ describe('Google GenAI integration', () => {
 
   createEsmAndCjsTests(__dirname, 'scenario.mjs', 'instrument-with-pii.mjs', (createRunner, test) => {
     test('creates google genai related spans with genAI recording enabled', async () => {
+      const allSpans: SerializedStreamedSpanContainer['items'] = [];
+
       await createRunner()
+        .unordered()
         .expect({
           span: container => {
-            const segment = container.items.find(span => span.is_segment && span.name === 'main');
+            allSpans.push(...container.items);
+            const segment = allSpans.find(span => span.is_segment && span.name === 'main');
             expect(segment).toBeDefined();
-            const spans = container.items.filter(
-              span => span.attributes[SENTRY_ORIGIN]?.value === 'auto.ai.google_genai',
-            );
+            const spans = allSpans.filter(span => span.attributes[SENTRY_ORIGIN]?.value === 'auto.ai.google_genai');
             expect(spans).toHaveLength(3);
             expect(spans.map(span => span.name).sort()).toEqual([
               'chat gemini-1.5-pro',
@@ -152,14 +157,16 @@ describe('Google GenAI integration', () => {
 
   createEsmAndCjsTests(__dirname, 'scenario.mjs', 'instrument-with-options.mjs', (createRunner, test) => {
     test('creates google genai related spans with custom options', async () => {
+      const allSpans: SerializedStreamedSpanContainer['items'] = [];
+
       await createRunner()
+        .unordered()
         .expect({
           span: container => {
-            const segment = container.items.find(span => span.is_segment && span.name === 'main');
+            allSpans.push(...container.items);
+            const segment = allSpans.find(span => span.is_segment && span.name === 'main');
             expect(segment).toBeDefined();
-            const spans = container.items.filter(
-              span => span.attributes[SENTRY_ORIGIN]?.value === 'auto.ai.google_genai',
-            );
+            const spans = allSpans.filter(span => span.attributes[SENTRY_ORIGIN]?.value === 'auto.ai.google_genai');
             expect(spans).toHaveLength(3);
             expect(spans.map(span => span.name).sort()).toEqual([
               'chat gemini-1.5-pro',
@@ -189,14 +196,16 @@ describe('Google GenAI integration', () => {
 
   createEsmAndCjsTests(__dirname, 'scenario-tools.mjs', 'instrument-with-options.mjs', (createRunner, test) => {
     test('creates google genai related spans with tool calls', async () => {
+      const allSpans: SerializedStreamedSpanContainer['items'] = [];
+
       await createRunner()
+        .unordered()
         .expect({
           span: container => {
-            const segment = container.items.find(span => span.is_segment && span.name === 'main');
+            allSpans.push(...container.items);
+            const segment = allSpans.find(span => span.is_segment && span.name === 'main');
             expect(segment).toBeDefined();
-            const spans = container.items.filter(
-              span => span.attributes[SENTRY_ORIGIN]?.value === 'auto.ai.google_genai',
-            );
+            const spans = allSpans.filter(span => span.attributes[SENTRY_ORIGIN]?.value === 'auto.ai.google_genai');
             expect(spans).toHaveLength(3);
             const nonStreamingToolsSpan = spans.find(
               span =>
@@ -294,6 +303,8 @@ describe('Google GenAI integration', () => {
 
   createEsmAndCjsTests(__dirname, 'scenario-streaming.mjs', 'instrument.mjs', (createRunner, test) => {
     test('creates google genai streaming spans with genAI recording disabled', async () => {
+      const allSpans: SerializedStreamedSpanContainer['items'] = [];
+
       await createRunner()
         // The provider surfaces blocked content within the stream and never returns it to the caller as
         // a thrown error, so the instrumentation intentionally captures it as an event.
@@ -312,11 +323,10 @@ describe('Google GenAI integration', () => {
         })
         .expect({
           span: container => {
-            const segment = container.items.find(span => span.is_segment && span.name === 'main');
+            allSpans.push(...container.items);
+            const segment = allSpans.find(span => span.is_segment && span.name === 'main');
             expect(segment).toBeDefined();
-            const spans = container.items.filter(
-              span => span.attributes[SENTRY_ORIGIN]?.value === 'auto.ai.google_genai',
-            );
+            const spans = allSpans.filter(span => span.attributes[SENTRY_ORIGIN]?.value === 'auto.ai.google_genai');
             expect(spans).toHaveLength(4);
             expect(spans.map(span => span.name).sort()).toEqual([
               'chat gemini-1.5-pro',
@@ -368,6 +378,8 @@ describe('Google GenAI integration', () => {
 
   createEsmAndCjsTests(__dirname, 'scenario-streaming.mjs', 'instrument-with-pii.mjs', (createRunner, test) => {
     test('creates google genai streaming spans with genAI recording enabled', async () => {
+      const allSpans: SerializedStreamedSpanContainer['items'] = [];
+
       await createRunner()
         // The provider surfaces blocked content within the stream and never returns it to the caller as
         // a thrown error, so the instrumentation intentionally captures it as an event.
@@ -386,11 +398,10 @@ describe('Google GenAI integration', () => {
         })
         .expect({
           span: container => {
-            const segment = container.items.find(span => span.is_segment && span.name === 'main');
+            allSpans.push(...container.items);
+            const segment = allSpans.find(span => span.is_segment && span.name === 'main');
             expect(segment).toBeDefined();
-            const spans = container.items.filter(
-              span => span.attributes[SENTRY_ORIGIN]?.value === 'auto.ai.google_genai',
-            );
+            const spans = allSpans.filter(span => span.attributes[SENTRY_ORIGIN]?.value === 'auto.ai.google_genai');
             expect(spans).toHaveLength(4);
             expect(spans.map(span => span.name).sort()).toEqual([
               'chat gemini-1.5-pro',
@@ -445,14 +456,16 @@ describe('Google GenAI integration', () => {
     'instrument-with-pii.mjs',
     (createRunner, test) => {
       test('extracts system instructions and normalizes messages', async () => {
+        const allSpans: SerializedStreamedSpanContainer['items'] = [];
+
         await createRunner()
+          .unordered()
           .expect({
             span: container => {
-              const segment = container.items.find(span => span.is_segment && span.name === 'main');
+              allSpans.push(...container.items);
+              const segment = allSpans.find(span => span.is_segment && span.name === 'main');
               expect(segment).toBeDefined();
-              const spans = container.items.filter(
-                span => span.attributes[SENTRY_ORIGIN]?.value === 'auto.ai.google_genai',
-              );
+              const spans = allSpans.filter(span => span.attributes[SENTRY_ORIGIN]?.value === 'auto.ai.google_genai');
               expect(spans).toHaveLength(2);
               const [firstSpan, secondSpan] = spans;
 
@@ -493,14 +506,16 @@ describe('Google GenAI integration', () => {
 
   createEsmAndCjsTests(__dirname, 'scenario-embeddings.mjs', 'instrument.mjs', (createRunner, test) => {
     test('creates google genai embeddings spans with genAI recording disabled', async () => {
+      const allSpans: SerializedStreamedSpanContainer['items'] = [];
+
       await createRunner()
+        .unordered()
         .expect({
           span: container => {
-            const segment = container.items.find(span => span.is_segment && span.name === 'main');
+            allSpans.push(...container.items);
+            const segment = allSpans.find(span => span.is_segment && span.name === 'main');
             expect(segment).toBeDefined();
-            const spans = container.items.filter(
-              span => span.attributes[SENTRY_ORIGIN]?.value === 'auto.ai.google_genai',
-            );
+            const spans = allSpans.filter(span => span.attributes[SENTRY_ORIGIN]?.value === 'auto.ai.google_genai');
             expect(spans).toHaveLength(3);
             expect(spans.map(span => span.name).sort()).toEqual([
               'embeddings error-model',
@@ -534,14 +549,16 @@ describe('Google GenAI integration', () => {
 
   createEsmAndCjsTests(__dirname, 'scenario-embeddings.mjs', 'instrument-with-pii.mjs', (createRunner, test) => {
     test('creates google genai embeddings spans with genAI recording enabled', async () => {
+      const allSpans: SerializedStreamedSpanContainer['items'] = [];
+
       await createRunner()
+        .unordered()
         .expect({
           span: container => {
-            const segment = container.items.find(span => span.is_segment && span.name === 'main');
+            allSpans.push(...container.items);
+            const segment = allSpans.find(span => span.is_segment && span.name === 'main');
             expect(segment).toBeDefined();
-            const spans = container.items.filter(
-              span => span.attributes[SENTRY_ORIGIN]?.value === 'auto.ai.google_genai',
-            );
+            const spans = allSpans.filter(span => span.attributes[SENTRY_ORIGIN]?.value === 'auto.ai.google_genai');
             expect(spans).toHaveLength(3);
             expect(spans.map(span => span.name).sort()).toEqual([
               'embeddings error-model',
