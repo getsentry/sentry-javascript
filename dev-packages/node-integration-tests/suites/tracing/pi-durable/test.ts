@@ -188,7 +188,7 @@ conditionalTest({ min: 22 })('pi-durable integration', () => {
             event: event => {
               const exception = event.exception?.values?.[0];
               expect(exception?.value).toBe('broken tool');
-              expect(exception?.mechanism).toEqual({ type: 'auto.ai.pi_durable', handled: true });
+              expect(exception?.mechanism).toEqual({ type: 'auto.ai.pi_durable', handled: false });
 
               errorTraceId = event.contexts?.trace?.trace_id;
               errorSpanId = event.contexts?.trace?.span_id;
@@ -307,7 +307,7 @@ conditionalTest({ min: 22 })('pi-durable integration', () => {
             event: event => {
               const exception = event.exception?.values?.[0];
               expect(exception?.value).toBe('Intentional pi-durable tool failure');
-              expect(exception?.mechanism).toEqual({ type: 'auto.ai.pi_durable', handled: true });
+              expect(exception?.mechanism).toEqual({ type: 'auto.ai.pi_durable', handled: false });
               errorSpanId = event.contexts?.trace?.span_id;
             },
           })
@@ -369,7 +369,7 @@ conditionalTest({ min: 22 })('pi-durable integration', () => {
             event: event => {
               const exception = event.exception?.values?.[0];
               expect(exception?.value).toBe('afterResponse hook failed');
-              expect(exception?.mechanism).toEqual({ type: 'auto.ai.pi_durable', handled: true });
+              expect(exception?.mechanism).toEqual({ type: 'auto.ai.pi_durable', handled: false });
             },
           })
           .expect({

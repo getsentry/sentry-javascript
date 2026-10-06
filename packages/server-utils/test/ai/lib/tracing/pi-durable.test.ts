@@ -482,6 +482,16 @@ describe('instrumentPiDurableHarnessOptions', () => {
     expect(client.event?.exception?.values?.[0]?.mechanism).toEqual({ type: 'auto.ai.pi_durable', handled: true });
   });
 
+  it('reports the failures as unhandled when the app passed no onReport', async () => {
+    const options: PiHarnessOptions = {};
+    const instrumented = instrumentPiDurableHarnessOptions(options);
+
+    instrumented.onReport!(new Error('section render failed'));
+    await client.flush();
+
+    expect(client.event?.exception?.values?.[0]?.mechanism).toEqual({ type: 'auto.ai.pi_durable', handled: false });
+  });
+
   it('returns the same wrapped task for the same definition in every snapshot', () => {
     const generation: PiTask = { definition: { name: 'pi.generation', phases: { prepare: async () => undefined } } };
     const registry: PiRegistryReader = {
@@ -633,7 +643,7 @@ describe('instrumentPiDurableHarnessOptions', () => {
       expect(thrown!.attributes[SENTRY_STATUS_MESSAGE]).toBe('internal_error');
       expect(bash!.attributes[SENTRY_STATUS_MESSAGE]).toBe('internal_error');
       expect(events.map(event => event.exception?.values?.[0]?.value)).toEqual(['tool failed']);
-      expect(events[0]?.exception?.values?.[0]?.mechanism).toEqual({ type: 'auto.ai.pi_durable', handled: true });
+      expect(events[0]?.exception?.values?.[0]?.mechanism).toEqual({ type: 'auto.ai.pi_durable', handled: false });
     });
 
     it('marks an aborted call as cancelled and captures nothing', async () => {

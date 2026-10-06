@@ -141,14 +141,14 @@ export function instrumentTool(tool: PiTool, runs: PiRuns, options: GenAiOptions
         } catch (error) {
           call.endTimestamp = timestampInSeconds();
           call.failed = true;
-          // pi-durable turns the throw into an error result for the model, so nothing propagates to
-          // the global handlers. An aborted call is not a failure.
+          // pi-durable turns the throw into an error result for the model, so the app never gets a
+          // chance to handle it. An aborted call is not a failure.
           if ((context as { abortSignal?: AbortSignal } | undefined)?.abortSignal?.aborted) {
             span.setStatus({ code: SPAN_STATUS_ERROR, message: 'cancelled' });
           } else {
             span.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
             if (!BUILT_IN_TOOLS.has(tool)) {
-              captureException(error, { mechanism: { handled: true, type: PI_DURABLE_ORIGIN } });
+              captureException(error, { mechanism: { handled: false, type: PI_DURABLE_ORIGIN } });
             }
           }
           if (!calls) {

@@ -64,8 +64,9 @@ export function instrumentPiDurableHarnessOptions<T extends PiHarnessOptions>(
       : {}),
     ...(harnessOptions.registry ? { registry: own(instrumentRegistry(harnessOptions.registry, options, runs)) } : {}),
     // pi-durable passes failures of extension code here, such as a throwing hook, and keeps going.
+    // Only an app that passed its own `onReport` gets a chance to handle them.
     onReport: own((error: unknown) => {
-      captureException(error, { mechanism: { handled: true, type: PI_DURABLE_ORIGIN } });
+      captureException(error, { mechanism: { handled: !!harnessOptions.onReport, type: PI_DURABLE_ORIGIN } });
       harnessOptions.onReport?.(error);
     }),
   });
