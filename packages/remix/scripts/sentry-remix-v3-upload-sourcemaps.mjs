@@ -24,7 +24,7 @@ try {
   const org = values.org ?? process.env.SENTRY_ORG;
   const project = values.project ?? process.env.SENTRY_PROJECT;
   if (!values['dry-run'] && !project) {
-    fail('a project is required for the upload. Pass `--project` or set `SENTRY_PROJECT`.');
+    fail('a project is required for the upload. Pass `--project` or set `SENTRY_PROJECT` as environment variable.');
   }
 
   const { emitAssets } = await import('@sentry/remix/v3');

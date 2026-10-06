@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const createMock = vi.fn();
 const uploadSourceMapsMock = vi.fn();
@@ -46,6 +46,10 @@ beforeEach(() => {
   uploadSourceMapsMock.mockClear();
   finalizeMock.mockClear();
   proposeVersionMock.mockClear();
+});
+
+afterEach(() => {
+  vi.unstubAllEnvs();
 });
 
 describe('createRelease', () => {
@@ -126,22 +130,16 @@ describe('createRelease', () => {
 
   it('falls back to SENTRY_PROJECT for the release project', async () => {
     vi.stubEnv('SENTRY_PROJECT', 'env-project');
-    try {
-      await createRelease({ release: '0.1.2.3' }, '~/build/', 'public/build');
-    } finally {
-      vi.unstubAllEnvs();
-    }
+
+    await createRelease({ release: '0.1.2.3' }, '~/build/', 'public/build');
 
     expect(createMock).toHaveBeenCalledWith({ orgVersion: '0.1.2.3', project: 'env-project' });
   });
 
   it('fails before creating a release when no project is known', async () => {
     vi.stubEnv('SENTRY_PROJECT', '');
-    try {
-      await expect(createRelease({ release: '0.1.2.3' }, '~/build/', 'public/build')).rejects.toThrow('--project');
-    } finally {
-      vi.unstubAllEnvs();
-    }
+
+    await expect(createRelease({ release: '0.1.2.3' }, '~/build/', 'public/build')).rejects.toThrow('--project');
 
     expect(createMock).not.toHaveBeenCalled();
   });
