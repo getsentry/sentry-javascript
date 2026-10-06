@@ -44,7 +44,7 @@ describe('LangGraph integration', () => {
             expect(invokeAgentSpans).toHaveLength(2);
             for (const span of invokeAgentSpans) {
               expect(span.status).toBe('ok');
-              expect(span.attributes['sentry.op'].value).toBe('gen_ai.invoke_agent');
+              expect(span.attributes[SENTRY_OP].value).toBe('gen_ai.invoke_agent');
               expect(span.attributes[SENTRY_ORIGIN].value).toBe('auto.ai.langgraph');
               expect(span.attributes[GEN_AI_OPERATION_NAME].value).toBe('invoke_agent');
               expect(span.attributes[GEN_AI_AGENT_NAME].value).toBe('weather_assistant');
@@ -74,7 +74,7 @@ describe('LangGraph integration', () => {
             );
             expect(weatherTodaySpan!.name).toBe('invoke_agent weather_assistant');
             expect(weatherTodaySpan!.status).toBe('ok');
-            expect(weatherTodaySpan!.attributes['sentry.op'].value).toBe('gen_ai.invoke_agent');
+            expect(weatherTodaySpan!.attributes[SENTRY_OP].value).toBe('gen_ai.invoke_agent');
             expect(weatherTodaySpan!.attributes[SENTRY_ORIGIN].value).toBe('auto.ai.langgraph');
 
             const weatherDetailsSpan = spans.find(span =>
@@ -84,7 +84,7 @@ describe('LangGraph integration', () => {
             );
             expect(weatherDetailsSpan!.name).toBe('invoke_agent weather_assistant');
             expect(weatherDetailsSpan!.status).toBe('ok');
-            expect(weatherDetailsSpan!.attributes['sentry.op'].value).toBe('gen_ai.invoke_agent');
+            expect(weatherDetailsSpan!.attributes[SENTRY_OP].value).toBe('gen_ai.invoke_agent');
           },
         })
         .start()
@@ -108,7 +108,7 @@ describe('LangGraph integration', () => {
 
             const toolAgentInvokeSpan = spans.find(span => span.name === 'invoke_agent tool_agent');
             expect(toolAgentInvokeSpan!.status).toBe('ok');
-            expect(toolAgentInvokeSpan!.attributes['sentry.op'].value).toBe('gen_ai.invoke_agent');
+            expect(toolAgentInvokeSpan!.attributes[SENTRY_OP].value).toBe('gen_ai.invoke_agent');
             expect(toolAgentInvokeSpan!.attributes[GEN_AI_TOOL_DEFINITIONS].value).toContain('get_weather');
             expect(toolAgentInvokeSpan!.attributes[GEN_AI_INPUT_MESSAGES].value).toContain('What is the weather?');
             expect(toolAgentInvokeSpan!.attributes[GEN_AI_RESPONSE_MODEL].value).toBe('gpt-4-0613');
@@ -121,7 +121,7 @@ describe('LangGraph integration', () => {
 
             const toolCallingInvokeSpan = spans.find(span => span.name === 'invoke_agent tool_calling_agent');
             expect(toolCallingInvokeSpan!.status).toBe('ok');
-            expect(toolCallingInvokeSpan!.attributes['sentry.op'].value).toBe('gen_ai.invoke_agent');
+            expect(toolCallingInvokeSpan!.attributes[SENTRY_OP].value).toBe('gen_ai.invoke_agent');
             expect(toolCallingInvokeSpan!.attributes[GEN_AI_INPUT_MESSAGES].value).toContain('San Francisco');
             expect(toolCallingInvokeSpan!.attributes[GEN_AI_RESPONSE_MODEL].value).toBe('gpt-4-0613');
             expect(toolCallingInvokeSpan!.attributes[GEN_AI_RESPONSE_TEXT].value).toMatch(/"role":"tool"/);
@@ -152,7 +152,7 @@ describe('LangGraph integration', () => {
             );
             expect(firstThreadSpan!.name).toBe('invoke_agent thread_test_agent');
             expect(firstThreadSpan!.status).toBe('ok');
-            expect(firstThreadSpan!.attributes['sentry.op'].value).toBe('gen_ai.invoke_agent');
+            expect(firstThreadSpan!.attributes[SENTRY_OP].value).toBe('gen_ai.invoke_agent');
 
             const secondThreadSpan = spans.find(
               span => span.attributes[GEN_AI_CONVERSATION_ID]?.value === 'thread_xyz789_session_2',
@@ -216,7 +216,7 @@ describe('LangGraph integration', () => {
             );
             expect(invokeAgentSpan!.name).toBe('invoke_agent resume_agent');
             expect(invokeAgentSpan!.status).toBe('ok');
-            expect(invokeAgentSpan!.attributes['sentry.op'].value).toBe('gen_ai.invoke_agent');
+            expect(invokeAgentSpan!.attributes[SENTRY_OP].value).toBe('gen_ai.invoke_agent');
             expect(invokeAgentSpan!.attributes[SENTRY_ORIGIN].value).toBe('auto.ai.langgraph');
             expect(invokeAgentSpan!.attributes[GEN_AI_AGENT_NAME].value).toBe('resume_agent');
             expect(invokeAgentSpan!.attributes[GEN_AI_PIPELINE_NAME].value).toBe('resume_agent');
