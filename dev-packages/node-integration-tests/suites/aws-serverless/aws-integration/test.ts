@@ -258,14 +258,11 @@ describe('awsIntegration', () => {
       'instrument.mjs',
       (createTestRunner, test) => {
         test('auto-instruments aws-sdk service operations', { timeout: 90_000 }, async () => {
-          const spans: SerializedStreamedSpanContainer['items'] = [];
           await createTestRunner()
             .ignore('event')
-            .unordered()
             .expect({
               span: container => {
-                spans.push(...container.items);
-                assertAwsServiceSpans(spans);
+                assertAwsServiceSpans(container.items);
               },
             })
             .start()
