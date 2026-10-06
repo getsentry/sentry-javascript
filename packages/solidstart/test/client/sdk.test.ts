@@ -9,6 +9,7 @@ const browserInit = vi.spyOn(SentrySolid, 'init');
 describe('Initialize Solid Start SDK', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    SentrySolid.getCurrentScope().setClient(undefined);
   });
 
   it('has the correct metadata', () => {
@@ -39,6 +40,10 @@ describe('Initialize Solid Start SDK', () => {
 });
 
 describe('browserTracingIntegration', () => {
+  beforeEach(() => {
+    SentrySolid.getCurrentScope().setClient(undefined);
+  });
+
   it('adds the `browserTracingIntegration` when `__SENTRY_TRACING__` is not set', () => {
     const client = solidStartInit({
       dsn: 'https://public@dsn.ingest.sentry.io/1337',

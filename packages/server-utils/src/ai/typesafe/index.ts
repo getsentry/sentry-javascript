@@ -10,10 +10,11 @@ import {
   GEN_AI_USAGE_TOTAL_TOKENS,
   SENTRY_ORIGIN,
 } from '@sentry/conventions/attributes';
+import { GEN_AI_EVALUATE } from '@sentry/conventions/op';
 import type { Span, SpanAttributes } from '@sentry/core';
 import { isObjectLike, SPAN_STATUS_ERROR, startInactiveSpan, stringify, withActiveSpan } from '@sentry/core';
 import type { GenAiOptions } from '../core/utils';
-import { getGenAiSpanOp, resolveAIRecordingOptions } from '../core/utils';
+import { resolveAIRecordingOptions } from '../core/utils';
 import { TYPESAFE_ORIGIN, TYPESAFE_PROVIDER_NAME } from './constants';
 
 /**
@@ -28,7 +29,7 @@ export function startEvaluateSpan(request: unknown, client: unknown, recordInput
 
   return startInactiveSpan({
     name: model ? `evaluate ${model}` : 'evaluate',
-    op: getGenAiSpanOp('evaluate'),
+    op: GEN_AI_EVALUATE,
     attributes: getRequestAttributes(params, model, recordInputs),
   });
 }
