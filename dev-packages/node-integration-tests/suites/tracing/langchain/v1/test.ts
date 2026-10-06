@@ -48,7 +48,6 @@ describe('LangChain integration (v1)', () => {
               ]);
 
               const sonnetSpan = spans.find(span => span.name === 'chat claude-3-5-sonnet-20241022');
-              expect(sonnetSpan).toBeDefined();
               expect(sonnetSpan!.status).toBe('ok');
               expect(sonnetSpan!.attributes['sentry.op'].value).toBe('gen_ai.chat');
               expect(sonnetSpan!.attributes['sentry.origin'].value).toBe('auto.ai.langchain');
@@ -65,7 +64,6 @@ describe('LangChain integration (v1)', () => {
               expect(sonnetSpan!.attributes[GEN_AI_RESPONSE_STOP_REASON_ATTRIBUTE]).toBeDefined();
 
               const opusSpan = spans.find(span => span.name === 'chat claude-3-opus-20240229');
-              expect(opusSpan).toBeDefined();
               expect(opusSpan!.status).toBe('ok');
               expect(opusSpan!.attributes['sentry.op'].value).toBe('gen_ai.chat');
               expect(opusSpan!.attributes['sentry.origin'].value).toBe('auto.ai.langchain');
@@ -79,7 +77,6 @@ describe('LangChain integration (v1)', () => {
               expect(opusSpan!.attributes[GEN_AI_USAGE_TOTAL_TOKENS].value).toBe(25);
 
               const errorSpan = spans.find(span => span.name === 'chat error-model');
-              expect(errorSpan).toBeDefined();
               expect(errorSpan!.status).toBe('error');
               expect(errorSpan!.attributes['sentry.op'].value).toBe('gen_ai.chat');
               expect(errorSpan!.attributes['sentry.origin'].value).toBe('auto.ai.langchain');
@@ -123,7 +120,6 @@ describe('LangChain integration (v1)', () => {
               ]);
 
               const sonnetSpan = spans.find(span => span.name === 'chat claude-3-5-sonnet-20241022');
-              expect(sonnetSpan).toBeDefined();
               expect(sonnetSpan!.status).toBe('ok');
               expect(sonnetSpan!.attributes['sentry.op'].value).toBe('gen_ai.chat');
               expect(sonnetSpan!.attributes['sentry.origin'].value).toBe('auto.ai.langchain');
@@ -141,7 +137,6 @@ describe('LangChain integration (v1)', () => {
               expect(sonnetSpan!.attributes[GEN_AI_USAGE_TOTAL_TOKENS].value).toBe(25);
 
               const opusSpan = spans.find(span => span.name === 'chat claude-3-opus-20240229');
-              expect(opusSpan).toBeDefined();
               expect(opusSpan!.status).toBe('ok');
               expect(opusSpan!.attributes[GEN_AI_PROVIDER_NAME].value).toBe('anthropic');
               expect(opusSpan!.attributes[GEN_AI_REQUEST_MODEL].value).toBe('claude-3-opus-20240229');
@@ -155,7 +150,6 @@ describe('LangChain integration (v1)', () => {
               expect(opusSpan!.attributes[GEN_AI_USAGE_TOTAL_TOKENS].value).toBe(25);
 
               const errorSpan = spans.find(span => span.name === 'chat error-model');
-              expect(errorSpan).toBeDefined();
               expect(errorSpan!.status).toBe('error');
               expect(errorSpan!.attributes[GEN_AI_PROVIDER_NAME].value).toBe('anthropic');
               expect(errorSpan!.attributes[GEN_AI_REQUEST_MODEL].value).toBe('error-model');
@@ -241,11 +235,9 @@ describe('LangChain integration (v1)', () => {
               );
               expect(spans).toHaveLength(2);
               const anthropicSpan = spans.find(span => span.attributes['sentry.origin'].value === 'auto.ai.anthropic');
-              expect(anthropicSpan).toBeDefined();
               expect(anthropicSpan!.name).toBe('chat claude-3-5-sonnet-20241022');
 
               const langchainSpan = spans.find(span => span.attributes['sentry.origin'].value === 'auto.ai.langchain');
-              expect(langchainSpan).toBeDefined();
               expect(langchainSpan!.name).toBe('chat claude-3-5-sonnet-20241022');
 
               // Third call (not present): Direct Anthropic call made AFTER LangChain import
@@ -288,7 +280,6 @@ describe('LangChain integration (v1)', () => {
               ]);
 
               const gpt4oSpan = spans.find(span => span.name === 'chat gpt-4o');
-              expect(gpt4oSpan).toBeDefined();
               expect(gpt4oSpan!.status).toBe('ok');
               expect(gpt4oSpan!.attributes['sentry.op'].value).toBe('gen_ai.chat');
               expect(gpt4oSpan!.attributes['sentry.origin'].value).toBe('auto.ai.langchain');
@@ -305,7 +296,6 @@ describe('LangChain integration (v1)', () => {
               expect(gpt4oSpan!.attributes[GEN_AI_RESPONSE_STOP_REASON_ATTRIBUTE].value).toBe('stop');
 
               const gpt35Span = spans.find(span => span.name === 'chat gpt-3.5-turbo');
-              expect(gpt35Span).toBeDefined();
               expect(gpt35Span!.status).toBe('ok');
               expect(gpt35Span!.attributes['sentry.op'].value).toBe('gen_ai.chat');
               expect(gpt35Span!.attributes['sentry.origin'].value).toBe('auto.ai.langchain');
@@ -319,7 +309,6 @@ describe('LangChain integration (v1)', () => {
               expect(gpt35Span!.attributes[GEN_AI_RESPONSE_STOP_REASON_ATTRIBUTE].value).toBe('stop');
 
               const errorSpan = spans.find(span => span.name === 'chat error-model');
-              expect(errorSpan).toBeDefined();
               expect(errorSpan!.status).toBe('error');
               expect(errorSpan!.attributes['sentry.op'].value).toBe('gen_ai.chat');
               expect(errorSpan!.attributes['sentry.origin'].value).toBe('auto.ai.langchain');
