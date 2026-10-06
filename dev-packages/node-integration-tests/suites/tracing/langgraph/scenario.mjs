@@ -44,6 +44,16 @@ async function run() {
         { role: 'user', content: 'Tell me about the weather' },
       ],
     });
+
+    const stream = await graph.stream({
+      messages: [{ role: 'user', content: 'Stream the weather forecast' }],
+    });
+    await stream.pipeTo(new WritableStream());
+
+    const canceledStream = await graph.stream({
+      messages: [{ role: 'user', content: 'Cancel the weather forecast' }],
+    });
+    await canceledStream.cancel('no longer needed');
   });
 
   await Sentry.flush(2000);

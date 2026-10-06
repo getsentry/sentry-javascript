@@ -4,7 +4,10 @@ import {
   GEN_AI_INPUT_MESSAGES,
   GEN_AI_OPERATION_NAME,
   GEN_AI_PIPELINE_NAME,
+  GEN_AI_RESPONSE_FINISH_REASONS,
   GEN_AI_RESPONSE_MODEL,
+  GEN_AI_RESPONSE_STREAMING,
+  GEN_AI_RESPONSE_TEXT,
   GEN_AI_USAGE_INPUT_TOKENS,
   GEN_AI_USAGE_OUTPUT_TOKENS,
   GEN_AI_USAGE_TOTAL_TOKENS,
@@ -17,7 +20,7 @@ import { getSpanOp, getSpansFromEnvelope } from '../../../spanUtils';
 // want to test that the instrumentation does not break in our
 // cloudflare SDK.
 
-it('traces langgraph compile and invoke operations', async ({ signal }) => {
+it('traces langgraph invoke and stream operations', async ({ signal }) => {
   const runner = createRunner(__dirname)
     .ignore('event')
     .expect(envelope => {
@@ -26,10 +29,13 @@ it('traces langgraph compile and invoke operations', async ({ signal }) => {
       expect(segmentSpan?.name).toBe('GET /');
 
       const genAiSpans = spans.filter(span => getSpanOp(span)?.startsWith('gen_ai.'));
-      expect(genAiSpans).toHaveLength(1);
-      expect(genAiSpans.map(span => span.name).sort()).toEqual(['invoke_agent weather_assistant']);
+      expect(genAiSpans).toHaveLength(2);
+      expect(genAiSpans.map(span => span.name).sort()).toEqual([
+        'invoke_agent weather_assistant',
+        'invoke_agent weather_assistant',
+      ]);
 
-      const invokeAgentSpan = genAiSpans.find(span => span.name === 'invoke_agent weather_assistant');
+      const invokeAgentSpan = genAiSpans.find(span => span.attributes[GEN_AI_RESPONSE_STREAMING] === undefined);
       expect(invokeAgentSpan).toBeDefined();
       expect(invokeAgentSpan!.status).toBe('ok');
       expect(invokeAgentSpan!.attributes[GEN_AI_OPERATION_NAME]).toEqual({
@@ -63,6 +69,38 @@ it('traces langgraph compile and invoke operations', async ({ signal }) => {
         value: 10,
       });
       expect(invokeAgentSpan!.attributes[GEN_AI_USAGE_TOTAL_TOKENS]).toEqual({
+        type: 'integer',
+        value: 30,
+      });
+
+      const streamSpan = genAiSpans.find(span => span.attributes[GEN_AI_RESPONSE_STREAMING]?.value === true);
+      expect(streamSpan).toBeDefined();
+      expect(streamSpan!.status).toBe('ok');
+      expect(streamSpan!.attributes[GEN_AI_INPUT_MESSAGES]).toEqual({
+        type: 'string',
+        value: '[{"role":"user","content":"Stream the weather in SF"}]',
+      });
+      expect(streamSpan!.attributes[GEN_AI_RESPONSE_TEXT]).toEqual({
+        type: 'string',
+        value: '[{"role":"assistant","content":"Mock response from LangGraph agent"}]',
+      });
+      expect(streamSpan!.attributes[GEN_AI_RESPONSE_MODEL]).toEqual({
+        type: 'string',
+        value: 'mock-model',
+      });
+      expect(streamSpan!.attributes[GEN_AI_RESPONSE_FINISH_REASONS]).toEqual({
+        type: 'array',
+        value: ['stop'],
+      });
+      expect(streamSpan!.attributes[GEN_AI_USAGE_INPUT_TOKENS]).toEqual({
+        type: 'integer',
+        value: 20,
+      });
+      expect(streamSpan!.attributes[GEN_AI_USAGE_OUTPUT_TOKENS]).toEqual({
+        type: 'integer',
+        value: 10,
+      });
+      expect(streamSpan!.attributes[GEN_AI_USAGE_TOTAL_TOKENS]).toEqual({
         type: 'integer',
         value: 30,
       });
