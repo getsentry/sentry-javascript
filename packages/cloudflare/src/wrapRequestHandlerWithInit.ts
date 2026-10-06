@@ -14,11 +14,13 @@ import {
   httpHeadersToSpanAttributes,
   HTTP_SPAN_NAME_FALLBACK,
   parseStringToURLObject,
+  safeCallback,
   setHttpStatus,
   startSpanManual,
   winterCGHeadersToDict,
 } from '@sentry/core';
 import { classifyResponseStreaming } from '@sentry/core/server';
+import { DEBUG_BUILD } from './debug-build';
 import { captureIncomingRequestBody } from './integrations/httpServer';
 import { flushDeferredChannelEvents } from './orchestrion-deferred-channels';
 import type { CloudflareClient, CloudflareOptions } from './client';
@@ -180,10 +182,14 @@ export function wrapRequestHandlerWithInit(
             throw e;
           }
 
-          // Classify response to detect actual streaming
-          const classification = classifyResponseStreaming(res);
+          const isStreaming =
+            safeCallback(
+              DEBUG_BUILD ? 'Error in `isStreamingResponse`, using the default classification:' : '',
+              () => options.isStreamingResponse?.(res),
+              () => undefined,
+            ) ?? classifyResponseStreaming(res).isStreaming;
 
-          if (classification.isStreaming && res.body) {
+          if (isStreaming && res.body) {
             try {
               let ended = false;
               let transformerUsed = false;
@@ -196,9 +202,10 @@ export function wrapRequestHandlerWithInit(
                 waitUntil?.(flushAndDispose(client));
               };
 
-              // Without the `transformstream_enable_standard_constructor` compatibility flag (default from
-              // 2022-11-30, but Hydrogen's mini-oxygen uses 2022-10-31), workerd ignores the transformer, so
-              // `flush` and `cancel` would never end the span. Only a used transformer runs `start`.
+              // Workers with a compatibility date before 2022-11-30 and without the
+              // `transformstream_enable_standard_constructor` flag (for example under older mini-oxygen
+              // releases) ignore the transformer, so `flush` and `cancel` would never end the span. Only a
+              // used transformer runs `start`.
               const transform = new TransformStream({
                 start() {
                   transformerUsed = true;

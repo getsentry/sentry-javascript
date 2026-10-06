@@ -1,7 +1,7 @@
 {
   "name": "worker-name",
-  // Hydrogen's mini-oxygen runs Workers with this date and only this flag, so `new TransformStream()`
-  // ignores the transformer.
+  // With this date and only this flag, `new TransformStream()` ignores the transformer. Mini-oxygen
+  // releases before 4.0.0 run Workers with this setup.
   "compatibility_date": "2022-10-31",
   "compatibility_flags": ["streams_enable_constructors"],
   "main": "index.ts",

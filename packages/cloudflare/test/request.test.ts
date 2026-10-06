@@ -1059,6 +1059,103 @@ describe('flushAndDispose', () => {
 
       flushSpy.mockRestore();
     });
+
+    test('tears down at handler return when isStreamingResponse returns false', async () => {
+      const waitUntil = vi.fn();
+      const context = { waitUntil } as unknown as ExecutionContext;
+
+      const flushSpy = vi.spyOn(SentryCore.Client.prototype, 'flush').mockResolvedValue(true);
+
+      const response = new Response('<div>buffered</div>', { headers: { 'content-type': 'text/html;charset=utf-8' } });
+
+      const result = await wrapRequestHandler(
+        {
+          options: { ...options, isStreamingResponse: () => false },
+          request: new Request('https://example.com'),
+          context,
+        },
+        () => response,
+      );
+
+      expect(result).toBe(response);
+      expect(waitUntil).toHaveBeenCalledTimes(1);
+
+      flushSpy.mockRestore();
+    });
+
+    test('defers teardown when isStreamingResponse returns true for an unknown content type', async () => {
+      const waits: Promise<unknown>[] = [];
+      const waitUntil = vi.fn((promise: Promise<unknown>) => waits.push(promise));
+      const context = { waitUntil } as unknown as ExecutionContext;
+
+      const flushSpy = vi.spyOn(SentryCore.Client.prototype, 'flush').mockResolvedValue(true);
+
+      let releaseLastChunk!: () => void;
+      const lastChunkGate = new Promise<void>(resolve => {
+        releaseLastChunk = resolve;
+      });
+
+      const stream = new ReadableStream({
+        async start(controller) {
+          controller.enqueue(new TextEncoder().encode('first'));
+          await lastChunkGate;
+          controller.enqueue(new TextEncoder().encode('deferred'));
+          controller.close();
+        },
+      });
+
+      const result = await wrapRequestHandler(
+        {
+          options: {
+            ...options,
+            isStreamingResponse: response =>
+              response.headers.get('content-type') === 'text/x-script' ? true : undefined,
+          },
+          request: new Request('https://example.com'),
+          context,
+        },
+        () => new Response(stream, { headers: { 'content-type': 'text/x-script' } }),
+      );
+
+      expect(waitUntil).not.toHaveBeenCalled();
+
+      releaseLastChunk();
+      expect(await result.text()).toBe('firstdeferred');
+
+      await Promise.all(waits);
+      expect(waitUntil).toHaveBeenCalledTimes(1);
+
+      flushSpy.mockRestore();
+    });
+
+    test('uses the default classification when isStreamingResponse throws', async () => {
+      const waitUntil = vi.fn();
+      const context = { waitUntil } as unknown as ExecutionContext;
+
+      const flushSpy = vi.spyOn(SentryCore.Client.prototype, 'flush').mockResolvedValue(true);
+
+      const response = new Response('<div>shell</div>', { headers: { 'content-type': 'text/html;charset=utf-8' } });
+
+      const result = await wrapRequestHandler(
+        {
+          options: {
+            ...options,
+            isStreamingResponse: () => {
+              throw new Error('isStreamingResponse failed');
+            },
+          },
+          request: new Request('https://example.com'),
+          context,
+        },
+        () => response,
+      );
+
+      expect(result).not.toBe(response);
+      expect(waitUntil).not.toHaveBeenCalled();
+      expect(await result.text()).toBe('<div>shell</div>');
+
+      flushSpy.mockRestore();
+    });
   });
 
   test('dispose is NOT called for protocol upgrade responses (status 101)', async () => {
