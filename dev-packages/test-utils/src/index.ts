@@ -23,6 +23,8 @@ export {
   findSourceMapFiles,
   findSourceMappingUrlComments,
   findInjectedDebugIds,
+  findFilesWithMultipleDebugIds,
+  findFilesWithForeignSourcemaps,
   bundleReferencesModule,
 } from './build-output';
 export type { OutputScanOptions } from './build-output';
