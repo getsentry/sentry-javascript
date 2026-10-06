@@ -7,10 +7,11 @@ import {
   SENTRY_OP,
   SERVER_ADDRESS,
   SERVER_PORT,
+  SENTRY_ORIGIN,
 } from '@sentry/conventions/attributes';
 import { DB_QUERY, DB } from '@sentry/conventions/op';
 import type { Span, SpanAttributes } from '@sentry/core';
-import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, startInactiveSpan } from '@sentry/core';
+import { startInactiveSpan } from '@sentry/core';
 import { CHANNELS } from '../../orchestrion/channels';
 import { bindTracingChannelToSpan } from '../../tracing-channel';
 import type { RedisCacheOptions } from './redis-cache';
@@ -50,7 +51,7 @@ function connectionAttributes(host: string | undefined, port: number | undefined
     [DB_SYSTEM_NAME]: DB_SYSTEM_VALUE_REDIS,
     ...(host != null ? { [SERVER_ADDRESS]: host } : {}),
     ...(port != null ? { [SERVER_PORT]: port } : {}),
-    [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: ORIGIN,
+    [SENTRY_ORIGIN]: ORIGIN,
   };
 }
 

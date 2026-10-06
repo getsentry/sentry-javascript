@@ -76,6 +76,9 @@ Uses **Git Flow** (see `docs/gitflow.md`).
   Runtime packages (`node`, `cloudflare`, ...) re-export from
   `@sentry/server-utils` rather than defining their own.
 
+- `Sentry.init()` follows one rule for repeated calls: the first call wins. See
+  `docs/repeated-init.md` before you add or change an `init()`.
+
 ## Linting & Formatting
 
 - This project uses **Oxlint** and **Oxfmt** — NOT ESLint or Prettier

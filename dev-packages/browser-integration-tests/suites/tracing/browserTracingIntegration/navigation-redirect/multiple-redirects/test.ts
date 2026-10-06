@@ -1,12 +1,14 @@
 import { expect } from '@playwright/test';
-import {
-  SEMANTIC_ATTRIBUTE_SENTRY_OP,
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE,
-} from '@sentry/core';
+import { SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE } from '@sentry/core';
 import { sentryTest } from '../../../../../utils/fixtures';
 import { envelopeRequestParser, shouldSkipTracingTest, waitForTransactionRequest } from '../../../../../utils/helpers';
-import { SENTRY_SEGMENT_NAME_SOURCE, URL_FULL, URL_PATH } from '@sentry/conventions/attributes';
+import {
+  SENTRY_SEGMENT_NAME_SOURCE,
+  URL_FULL,
+  URL_PATH,
+  SENTRY_OP,
+  SENTRY_ORIGIN,
+} from '@sentry/conventions/attributes';
 
 sentryTest(
   'creates a pageload and navigation root spans each with multiple navigation.redirect childspans',
@@ -31,10 +33,10 @@ sentryTest(
     expect(pageloadRequest.contexts?.trace?.op).toBe('pageload');
 
     expect(pageloadRequest.contexts?.trace?.data).toMatchObject({
-      [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.pageload.browser',
+      [SENTRY_ORIGIN]: 'auto.pageload.browser',
       [SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE]: 1,
       [SENTRY_SEGMENT_NAME_SOURCE]: 'url',
-      [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'pageload',
+      [SENTRY_OP]: 'pageload',
       ['sentry.idle_span_finish_reason']: 'cancelled',
     });
 

@@ -1,13 +1,8 @@
 import type { Client, TransactionSource } from '@sentry/core';
-import {
-  hasSpanStreamingEnabled,
-  NAVIGATION_SPAN_NAME_FALLBACK,
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  stripUrlQueryAndFragment,
-} from '@sentry/core';
+import { hasSpanStreamingEnabled, NAVIGATION_SPAN_NAME_FALLBACK, stripUrlQueryAndFragment } from '@sentry/core';
 import { getAbsoluteUrl, startBrowserTracingNavigationSpan } from '@sentry/react';
 import RouterImport from 'next/router';
-import { SENTRY_OP, SENTRY_SEGMENT_NAME_SOURCE, URL_TEMPLATE } from '@sentry/conventions/attributes';
+import { SENTRY_OP, SENTRY_SEGMENT_NAME_SOURCE, URL_TEMPLATE, SENTRY_ORIGIN } from '@sentry/conventions/attributes';
 import { NAVIGATION } from '@sentry/conventions/op';
 import { getNextRouteFromPathname } from './pagesRouterRoutingInstrumentation';
 
@@ -49,7 +44,7 @@ export function pagesRouterInstrumentNavigation(client: Client): void {
         name: spanSource === 'route' || !hasSpanStreamingEnabled(client) ? newLocation : NAVIGATION_SPAN_NAME_FALLBACK,
         attributes: {
           [SENTRY_OP]: NAVIGATION,
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.nextjs.pages_router_instrumentation',
+          [SENTRY_ORIGIN]: 'auto.navigation.nextjs.pages_router_instrumentation',
           [SENTRY_SEGMENT_NAME_SOURCE]: spanSource,
           ...(spanSource === 'route' && { [URL_TEMPLATE]: newLocation }),
         },

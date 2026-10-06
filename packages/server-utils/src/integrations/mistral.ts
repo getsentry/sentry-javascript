@@ -1,11 +1,7 @@
+import { SENTRY_ORIGIN } from '@sentry/conventions/attributes';
 import * as diagnosticsChannel from '../utils/diagnosticsChannel';
 import type { IntegrationFn, Span, SpanAttributeValue } from '@sentry/core';
-import {
-  _INTERNAL_shouldSkipAiProviderWrapping,
-  defineIntegration,
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  startInactiveSpan,
-} from '@sentry/core';
+import { _INTERNAL_shouldSkipAiProviderWrapping, defineIntegration, startInactiveSpan } from '@sentry/core';
 import { getGenAiSpanOp, resolveAIRecordingOptions } from '../ai/core/utils';
 import { addRequestAttributes, extractRequestAttributes } from '../ai/mistral';
 import { MISTRAL_INTEGRATION_NAME, MISTRAL_ORIGIN } from '../ai/mistral/constants';
@@ -86,7 +82,7 @@ function createGenAiSpan(
   const { recordInputs } = resolveAIRecordingOptions(options);
 
   const attributes = extractRequestAttributes(args, operation, recordInputs, streaming);
-  attributes[SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN] = MISTRAL_ORIGIN;
+  attributes[SENTRY_ORIGIN] = MISTRAL_ORIGIN;
 
   const span = startInactiveSpan({
     name: getSpanName(operation, attributes),

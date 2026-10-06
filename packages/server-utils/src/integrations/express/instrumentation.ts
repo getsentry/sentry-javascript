@@ -1,5 +1,5 @@
 import type * as diagnosticsChannel from 'node:diagnostics_channel';
-import { HTTP_ROUTE, SENTRY_OP } from '@sentry/conventions/attributes';
+import { HTTP_ROUTE, SENTRY_OP, SENTRY_ORIGIN } from '@sentry/conventions/attributes';
 import { HANDLER, MIDDLEWARE, ROUTER } from '@sentry/conventions/op';
 import type { Span } from '@sentry/core';
 import {
@@ -12,7 +12,6 @@ import {
   hasSpanStreamingEnabled,
   REQUEST_HANDLER_SPAN_NAME_FALLBACK,
   ROUTER_SPAN_NAME_FALLBACK,
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   startInactiveSpan,
   stringMatchesSomePattern,
   withActiveSpan,
@@ -340,7 +339,7 @@ function getSpanForLayer(data: HandleChannelContext, options: ExpressIntegration
         ? matchedRoute || REQUEST_HANDLER_SPAN_NAME_FALLBACK
         : name,
     attributes: {
-      [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: ORIGIN,
+      [SENTRY_ORIGIN]: ORIGIN,
       [SENTRY_OP]: EXPRESS_TYPE_TO_SPAN_OP[type],
       [ATTR_EXPRESS_NAME]: name,
       [ATTR_EXPRESS_TYPE]: type,

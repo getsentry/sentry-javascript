@@ -1,4 +1,3 @@
-import { SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '@sentry/core';
 import {
   GEN_AI_AGENT_NAME,
   GEN_AI_EMBEDDINGS_INPUT,
@@ -20,6 +19,8 @@ import {
   GEN_AI_USAGE_INPUT_TOKENS,
   GEN_AI_USAGE_OUTPUT_TOKENS,
   GEN_AI_USAGE_TOTAL_TOKENS,
+  SENTRY_OP,
+  SENTRY_ORIGIN,
 } from '@sentry/conventions/attributes';
 import { afterAll, describe, expect } from 'vitest';
 import { cleanupChildProcesses, createEsmTests } from '../../../utils/runner';
@@ -47,8 +48,8 @@ describe('Mistral integration', () => {
             expect(chatSpan!.name).toBe('chat mistral-small-latest');
             expect(chatSpan!.status).toBe('ok');
             expect(chatSpan!.attributes[GEN_AI_OPERATION_NAME]?.value).toBe('chat');
-            expect(chatSpan!.attributes[SEMANTIC_ATTRIBUTE_SENTRY_OP]?.value).toBe('gen_ai.chat');
-            expect(chatSpan!.attributes[SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]?.value).toBe(ORIGIN);
+            expect(chatSpan!.attributes[SENTRY_OP]?.value).toBe('gen_ai.chat');
+            expect(chatSpan!.attributes[SENTRY_ORIGIN]?.value).toBe(ORIGIN);
             expect(chatSpan!.attributes[GEN_AI_PROVIDER_NAME]?.value).toBe(PROVIDER);
             expect(chatSpan!.attributes[GEN_AI_REQUEST_MODEL]?.value).toBe('mistral-small-latest');
             expect(chatSpan!.attributes[GEN_AI_REQUEST_TEMPERATURE]?.value).toBe(0.7);
@@ -140,8 +141,8 @@ describe('Mistral integration', () => {
             expect(embeddingsSpan!.name).toBe('embeddings mistral-embed');
             expect(embeddingsSpan!.status).toBe('ok');
             expect(embeddingsSpan!.attributes[GEN_AI_OPERATION_NAME]?.value).toBe('embeddings');
-            expect(embeddingsSpan!.attributes[SEMANTIC_ATTRIBUTE_SENTRY_OP]?.value).toBe('gen_ai.embeddings');
-            expect(embeddingsSpan!.attributes[SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]?.value).toBe(ORIGIN);
+            expect(embeddingsSpan!.attributes[SENTRY_OP]?.value).toBe('gen_ai.embeddings');
+            expect(embeddingsSpan!.attributes[SENTRY_ORIGIN]?.value).toBe(ORIGIN);
             expect(embeddingsSpan!.attributes[GEN_AI_PROVIDER_NAME]?.value).toBe(PROVIDER);
             expect(embeddingsSpan!.attributes[GEN_AI_REQUEST_MODEL]?.value).toBe('mistral-embed');
             expect(embeddingsSpan!.attributes[GEN_AI_USAGE_INPUT_TOKENS]?.value).toBe(8);
@@ -183,8 +184,8 @@ describe('Mistral integration', () => {
             expect(agentSpan!.name).toBe('invoke_agent');
             expect(agentSpan!.status).toBe('ok');
             expect(agentSpan!.attributes[GEN_AI_OPERATION_NAME]?.value).toBe('invoke_agent');
-            expect(agentSpan!.attributes[SEMANTIC_ATTRIBUTE_SENTRY_OP]?.value).toBe('gen_ai.invoke_agent');
-            expect(agentSpan!.attributes[SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]?.value).toBe(ORIGIN);
+            expect(agentSpan!.attributes[SENTRY_OP]?.value).toBe('gen_ai.invoke_agent');
+            expect(agentSpan!.attributes[SENTRY_ORIGIN]?.value).toBe(ORIGIN);
             expect(agentSpan!.attributes[GEN_AI_PROVIDER_NAME]?.value).toBe(PROVIDER);
             expect(agentSpan!.attributes[GEN_AI_AGENT_NAME]?.value).toBe('ag-mock-123');
             expect(agentSpan!.attributes[GEN_AI_USAGE_INPUT_TOKENS]?.value).toBe(10);
@@ -262,7 +263,7 @@ describe('Mistral integration', () => {
             expect(chatSpan).toBeDefined();
             expect(chatSpan!.name).toBe('chat mistral-small-latest');
             expect(chatSpan!.status).toBe('ok');
-            expect(chatSpan!.attributes[SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]?.value).toBe(ORIGIN);
+            expect(chatSpan!.attributes[SENTRY_ORIGIN]?.value).toBe(ORIGIN);
             expect(chatSpan!.attributes[GEN_AI_PROVIDER_NAME]?.value).toBe(PROVIDER);
             expect(chatSpan!.attributes[GEN_AI_RESPONSE_TEXT]?.value).toBe('["Hello from the manual client!"]');
 
@@ -297,7 +298,7 @@ describe('Mistral integration', () => {
             expect(parseSpans[0]!.name).toBe('chat mistral-small-latest');
             expect(parseSpans[0]!.status).toBe('ok');
             expect(parseSpans[0]!.attributes[GEN_AI_OPERATION_NAME]?.value).toBe('chat');
-            expect(parseSpans[0]!.attributes[SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]?.value).toBe(ORIGIN);
+            expect(parseSpans[0]!.attributes[SENTRY_ORIGIN]?.value).toBe(ORIGIN);
             expect(parseSpans[0]!.attributes[GEN_AI_REQUEST_STREAM]?.value).toBe(false);
             expect(parseSpans[0]!.attributes[GEN_AI_USAGE_TOTAL_TOKENS]?.value).toBe(12);
 

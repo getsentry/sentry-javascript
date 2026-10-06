@@ -1,5 +1,5 @@
 /* oxlint-disable max-lines */
-import { SENTRY_OP } from '@sentry/conventions/attributes';
+import { SENTRY_OP, SENTRY_ORIGIN } from '@sentry/conventions/attributes';
 import { HTTP_CLIENT, HTTP_SERVER } from '@sentry/conventions/op';
 import type { Span, StartSpanOptions } from '@sentry/core';
 import {
@@ -9,7 +9,6 @@ import {
   getCurrentScope,
   getDefaultCurrentScope,
   isObjectLike,
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   startNewTrace,
   withActiveSpan,
   withScope,
@@ -390,7 +389,7 @@ function createSentrySpan(
       // Setting these to `undefined` would strip the core defaults instead of leaving them in place.
       attributes: {
         ...(op && { [SENTRY_OP]: op }),
-        ...(origin && { [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: origin }),
+        ...(origin && { [SENTRY_ORIGIN]: origin }),
       },
     },
     parent,

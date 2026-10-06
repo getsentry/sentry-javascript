@@ -26,14 +26,14 @@ vi.mock('@sentry/core', async () => {
     // eslint-disable-next-line @typescript-eslint/ban-ts-comment
     // @ts-ignore
     applySdkMetadata: vi.fn(actual.applySdkMetadata),
-    getClient: vi.fn(() => undefined),
+    _INTERNAL_getActiveClient: vi.fn(() => undefined),
     // Pass-through so console.warn calls inside consoleSandbox are observable in tests
     consoleSandbox: vi.fn((cb: () => unknown) => cb()),
   };
 });
 
 const applySdkMetadataMock = SentryCore.applySdkMetadata as Mock;
-const getClientMock = SentryCore.getClient as Mock;
+const getActiveClientMock = SentryCore._INTERNAL_getActiveClient as Mock;
 
 describe('Hono Bun Middleware', () => {
   beforeEach(() => {
@@ -64,7 +64,7 @@ describe('Hono Bun Middleware', () => {
     });
 
     it('calls init from @sentry/bun when no client exists yet', () => {
-      getClientMock.mockReturnValue(undefined);
+      getActiveClientMock.mockReturnValue(undefined);
       const app = new Hono();
       const options = {
         dsn: 'https://public@dsn.ingest.sentry.io/1337',
@@ -173,7 +173,7 @@ describe('Hono Bun Middleware', () => {
   describe('double-init guard', () => {
     it('does not re-initialize when Sentry is already initialized', () => {
       const fakeClient = { getOptions: () => ({}) };
-      getClientMock.mockReturnValue(fakeClient as unknown as SentryCore.Client);
+      getActiveClientMock.mockReturnValue(fakeClient as unknown as SentryCore.Client);
 
       const app = new Hono();
       sentry(app, { dsn: 'https://public@dsn.ingest.sentry.io/1337' });
@@ -183,7 +183,7 @@ describe('Hono Bun Middleware', () => {
 
     it('returns the existing client when Sentry is already initialized', () => {
       const fakeClient = { getOptions: () => ({}) };
-      getClientMock.mockReturnValue(fakeClient as unknown as SentryCore.Client);
+      getActiveClientMock.mockReturnValue(fakeClient as unknown as SentryCore.Client);
 
       expect(init({ dsn: 'https://public@dsn.ingest.sentry.io/1337' })).toBe(fakeClient);
       expect(initBunMock).not.toHaveBeenCalled();
@@ -192,7 +192,7 @@ describe('Hono Bun Middleware', () => {
     it('emits a console.warn directing to remove the duplicate init call when Sentry is already initialized', () => {
       const warnSpy = vi.spyOn(console, 'warn');
       const fakeClient = { getOptions: () => ({}) };
-      getClientMock.mockReturnValue(fakeClient as unknown as SentryCore.Client);
+      getActiveClientMock.mockReturnValue(fakeClient as unknown as SentryCore.Client);
 
       const app = new Hono();
       sentry(app, { dsn: 'https://public@dsn.ingest.sentry.io/1337' });
@@ -204,7 +204,7 @@ describe('Hono Bun Middleware', () => {
 
     it('does not emit a console.warn when no client exists yet', () => {
       const warnSpy = vi.spyOn(console, 'warn');
-      getClientMock.mockReturnValue(undefined);
+      getActiveClientMock.mockReturnValue(undefined);
 
       const app = new Hono();
       sentry(app, { dsn: 'https://public@dsn.ingest.sentry.io/1337' });
@@ -213,7 +213,7 @@ describe('Hono Bun Middleware', () => {
     });
 
     it('always calls init regardless of whether a client already exists', () => {
-      getClientMock.mockReturnValue(undefined);
+      getActiveClientMock.mockReturnValue(undefined);
 
       init({ dsn: 'https://public@dsn.ingest.sentry.io/1337' });
 
