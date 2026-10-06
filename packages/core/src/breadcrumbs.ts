@@ -1,6 +1,8 @@
 import { getClient, getIsolationScope } from './currentScopes';
+import { DEBUG_BUILD } from './debug-build';
 import type { Breadcrumb, BreadcrumbHint } from './types/breadcrumb';
 import { consoleSandbox } from './utils/debug-logger';
+import { safeCallback } from './utils/safeCallback';
 import { dateTimestampInSeconds } from './utils/time';
 
 /**
@@ -28,7 +30,11 @@ export function addBreadcrumb(breadcrumb: Breadcrumb, hint?: BreadcrumbHint): vo
   const timestamp = dateTimestampInSeconds();
   const mergedBreadcrumb = { timestamp, ...breadcrumb };
   const finalBreadcrumb = beforeBreadcrumb
-    ? consoleSandbox(() => beforeBreadcrumb(mergedBreadcrumb, hint))
+    ? safeCallback(
+        DEBUG_BUILD ? 'The `beforeBreadcrumb` callback threw an error, dropping the breadcrumb:' : '',
+        () => consoleSandbox(() => beforeBreadcrumb(mergedBreadcrumb, hint)),
+        () => null,
+      )
     : mergedBreadcrumb;
 
   if (finalBreadcrumb === null) return;

@@ -86,9 +86,10 @@ export {
   instrumentSupabaseClient,
   zodErrorsIntegration,
   consoleIntegration,
+  // oxlint-disable-next-line typescript/no-deprecated
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
+  // oxlint-disable-next-line typescript/no-deprecated
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  SENTRY_SEGMENT_NAME_SOURCE,
   SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE,
   spanToStaticSpanJSON,
   spanToJSON,
@@ -106,11 +107,14 @@ export {
   withStreamedSpan,
   spanStreamingIntegration,
 } from '@sentry/core';
-export { instrumentPostgresJsSql, trpcMiddleware, wrapMcpServerWithSentry } from '@sentry/core/server';
+export { trpcMiddleware, wrapMcpServerWithSentry } from '@sentry/core/server';
+export { createFlueInstrumentation, instrumentPostgresJsSql } from '@sentry/server-utils';
+export type { FlueOptions } from '@sentry/server-utils';
 
 export { withSentry } from './withSentry';
 export { defineCloudflareOptions } from './defineCloudflareOptions';
 export { instrumentAgentWithSentry, instrumentDurableObjectWithSentry } from './durableobject';
+export { _INTERNAL_wrapUnlessInstrumented } from './instrument';
 export { sentryPagesPlugin } from './pages-plugin';
 
 export { CloudflareClient } from './client';
@@ -118,11 +122,14 @@ export { _INTERNAL_wrapRequestHandler, getDefaultIntegrations } from './sdk';
 
 export { httpServerIntegration } from './integrations/httpServer';
 export { fetchIntegration } from './integrations/fetch';
+export type { FetchIntegrationOptions } from '@sentry/core';
 export { spotlightIntegration } from './integrations/spotlight';
 export {
   openTelemetryIntegration,
   getOtlpTracesEndpoint,
   prismaIntegration,
+  instrumentMistralAiClient,
+  instrumentTypeSafeClient,
   instrumentOpenAiClient,
   instrumentAnthropicAiClient,
   instrumentGoogleGenAIClient,
@@ -132,6 +139,11 @@ export {
   instrumentStateGraph,
   instrumentCreateReactAgent,
   vercelAIIntegration,
+  honoIntegration,
+  honoMiddleware,
+  eveConversationHook,
+  eveIntegration,
+  getInstrumentedModuleNames,
 } from '@sentry/server-utils';
 
 export { instrumentWorkflowWithSentry } from './workflows';

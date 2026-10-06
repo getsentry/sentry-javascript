@@ -13,18 +13,28 @@ export {
   genericPoolIntegration,
   googleGenAIIntegration,
   graphqlIntegration,
+  groqIntegration,
   hapiIntegration,
+  honoIntegration,
+  honoMiddleware,
   kafkaIntegration,
   knexIntegration,
   koaIntegration,
   langChainIntegration,
   langGraphIntegration,
   lruMemoizerIntegration,
+  createFlueInstrumentation,
+  mastraIntegration,
+  mcpServerIntegration,
+  SentryMastraExporter,
   mongoIntegration,
   mongooseIntegration,
   mysqlIntegration,
+  mistralAIIntegration,
   mysql2Integration,
   openAIIntegration,
+  togetherAIIntegration,
+  typesafeIntegration,
   postgresIntegration,
   postgresJsIntegration,
   redisIntegration,
@@ -38,6 +48,8 @@ export {
   instrumentOpenAiClient,
   instrumentAnthropicAiClient,
   instrumentGoogleGenAIClient,
+  instrumentMistralAiClient,
+  instrumentTypeSafeClient,
   createLangChainCallbackHandler,
   instrumentLangChainEmbeddings,
   instrumentStateGraph,
@@ -101,7 +113,9 @@ export {
   setAttributes,
   setUser,
   setConversationId,
+  // oxlint-disable-next-line typescript/no-deprecated
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
+  // oxlint-disable-next-line typescript/no-deprecated
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE,
   setCurrentClient,
@@ -213,7 +227,8 @@ export { defaultStackParser, getSentryRelease } from './sdk/api';
 export { makeNodeTransport } from './transports';
 export { createGetModuleFromFilename } from './utils/module';
 
-export { SENTRY_SEGMENT_NAME_SOURCE } from '@sentry/conventions/attributes';
+export { eveConversationHook, eveIntegration, getInstrumentedModuleNames } from '@sentry/server-utils';
+export { eveInstrumentation } from './eve';
 export { httpServerIntegration } from './integrations/http/httpServerIntegration';
 export { httpServerSpansIntegration } from './integrations/http/httpServerSpansIntegration';
 export { processSessionIntegration } from './integrations/processSession';

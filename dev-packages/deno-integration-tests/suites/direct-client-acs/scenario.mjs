@@ -12,22 +12,24 @@ import { nodeStackLineParser } from '@sentry/core/server';
 import { DenoClient, getCurrentScope, getDefaultIntegrations, startSpan } from '@sentry/deno';
 import { tracingChannel } from 'node:diagnostics_channel';
 
-let nested = false;
+const spans = [];
 
 const client = new DenoClient({
   dsn: 'https://username@domain/123',
   tracesSampleRate: 1,
-  traceLifecycle: 'static',
-  integrations: getDefaultIntegrations({}),
+  integrations: getDefaultIntegrations({ tracesSampleRate: 1 }),
   stackParser: createStackParser(nodeStackLineParser()),
-  beforeSendTransaction(event) {
-    const spans = event.spans ?? [];
-    if (spans.some(s => s.op === 'db' && s.data?.['sentry.origin'] === 'auto.db.mysql')) {
-      nested = true;
-    }
-    return null;
-  },
-  transport: () => ({ send: () => Promise.resolve({}), flush: () => Promise.resolve(true) }),
+  transport: () => ({
+    send(envelope) {
+      for (const [header, payload] of envelope[1]) {
+        if (header.type === 'span') {
+          spans.push(...payload.items);
+        }
+      }
+      return Promise.resolve({});
+    },
+    flush: () => Promise.resolve(true),
+  }),
 });
 
 client.init();
@@ -49,6 +51,15 @@ startSpan({ name: 'parent', op: 'test' }, () => {
 });
 
 await client.flush(2000);
+
+const parent = spans.find(span => span.is_segment && span.name === 'parent');
+const nested = spans.some(
+  span =>
+    span.attributes['sentry.op']?.value === 'db' &&
+    span.attributes['sentry.origin']?.value === 'auto.db.mysql' &&
+    span.parent_span_id === parent?.span_id &&
+    span.trace_id === parent?.trace_id,
+);
 
 // eslint-disable-next-line no-console
 console.log(`SCENARIO nested=${nested}`);

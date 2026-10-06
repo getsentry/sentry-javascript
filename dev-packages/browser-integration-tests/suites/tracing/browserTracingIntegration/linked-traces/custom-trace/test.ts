@@ -1,5 +1,5 @@
 import { expect } from '@playwright/test';
-import { SEMANTIC_LINK_ATTRIBUTE_LINK_TYPE } from '@sentry/core';
+import { SENTRY_LINK_TYPE } from '@sentry/conventions/attributes';
 import { sentryTest } from '../../../../../utils/fixtures';
 import { envelopeRequestParser, shouldSkipTracingTest, waitForTransactionRequest } from '../../../../../utils/helpers';
 
@@ -31,7 +31,7 @@ sentryTest('manually started custom traces are linked correctly in the chain', a
         span_id: pageloadTraceContext?.span_id,
         sampled: true,
         attributes: {
-          [SEMANTIC_LINK_ATTRIBUTE_LINK_TYPE]: 'previous_trace',
+          [SENTRY_LINK_TYPE]: 'previous_trace',
         },
       },
     ]);
@@ -54,7 +54,7 @@ sentryTest('manually started custom traces are linked correctly in the chain', a
         span_id: customTrace1Context?.span_id,
         sampled: true,
         attributes: {
-          [SEMANTIC_LINK_ATTRIBUTE_LINK_TYPE]: 'previous_trace',
+          [SENTRY_LINK_TYPE]: 'previous_trace',
         },
       },
     ]);

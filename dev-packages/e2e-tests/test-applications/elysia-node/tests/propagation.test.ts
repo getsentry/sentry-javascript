@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import { expect, test } from '@playwright/test';
-import { waitForTransaction } from '@sentry-internal/test-utils';
+import { waitForStreamedSpan, getSpanOp } from '@sentry-internal/test-utils';
 
 test('Includes sentry-trace and baggage in response headers', async ({ baseURL }) => {
   const response = await fetch(`${baseURL}/test-success`);
@@ -21,27 +21,23 @@ test('Includes sentry-trace and baggage in response headers', async ({ baseURL }
 test.fixme('Propagates trace for outgoing fetch requests', async ({ baseURL }) => {
   const id = randomUUID();
 
-  const inboundTransactionPromise = waitForTransaction('elysia-node', transactionEvent => {
-    return (
-      transactionEvent.contexts?.trace?.op === 'http.server' &&
-      transactionEvent.transaction === 'GET /test-inbound-headers/:id'
-    );
+  const inboundSegmentPromise = waitForStreamedSpan('elysia-node', segmentEvent => {
+    if (!segmentEvent.is_segment) return false;
+    return getSpanOp(segmentEvent!) === 'http.server' && segmentEvent.name === 'GET /test-inbound-headers/:id';
   });
 
-  const outboundTransactionPromise = waitForTransaction('elysia-node', transactionEvent => {
-    return (
-      transactionEvent.contexts?.trace?.op === 'http.server' &&
-      transactionEvent.transaction === 'GET /test-outgoing-fetch/:id'
-    );
+  const outboundSegmentPromise = waitForStreamedSpan('elysia-node', segmentEvent => {
+    if (!segmentEvent.is_segment) return false;
+    return getSpanOp(segmentEvent!) === 'http.server' && segmentEvent.name === 'GET /test-outgoing-fetch/:id';
   });
 
   const response = await fetch(`${baseURL}/test-outgoing-fetch/${id}`);
   const data = await response.json();
 
-  const inboundTransaction = await inboundTransactionPromise;
-  const outboundTransaction = await outboundTransactionPromise;
+  const inboundSegment = await inboundSegmentPromise;
+  const outboundSegment = await outboundSegmentPromise;
 
-  const traceId = outboundTransaction?.contexts?.trace?.trace_id;
+  const traceId = outboundSegment?.trace_id;
   expect(traceId).toEqual(expect.any(String));
 
   // Verify sentry-trace header was propagated to the inbound request
@@ -61,22 +57,22 @@ test.fixme('Propagates trace for outgoing fetch requests', async ({ baseURL }) =
   );
 
   // Both transactions should share the same trace ID
-  expect(inboundTransaction.contexts?.trace?.trace_id).toBe(traceId);
+  expect(inboundSegment?.trace_id).toBe(traceId);
 });
 
 test.fixme('Propagates trace for outgoing fetch to external allowed URL', async ({ baseURL }) => {
-  const inboundTransactionPromise = waitForTransaction('elysia-node', transactionEvent => {
+  const inboundSegmentPromise = waitForStreamedSpan('elysia-node', segmentEvent => {
+    if (!segmentEvent.is_segment) return false;
     return (
-      transactionEvent.contexts?.trace?.op === 'http.server' &&
-      transactionEvent.transaction === 'GET /test-outgoing-fetch-external-allowed'
+      getSpanOp(segmentEvent!) === 'http.server' && segmentEvent.name === 'GET /test-outgoing-fetch-external-allowed'
     );
   });
 
   const response = await fetch(`${baseURL}/test-outgoing-fetch-external-allowed`);
   const data = await response.json();
 
-  const inboundTransaction = await inboundTransactionPromise;
-  const traceId = inboundTransaction?.contexts?.trace?.trace_id;
+  const inboundSegment = await inboundSegmentPromise;
+  const traceId = inboundSegment?.trace_id;
 
   expect(traceId).toEqual(expect.any(String));
 
@@ -95,17 +91,18 @@ test.fixme('Propagates trace for outgoing fetch to external allowed URL', async 
 });
 
 test('Does not propagate outgoing fetch requests not covered by tracePropagationTargets', async ({ baseURL }) => {
-  const inboundTransactionPromise = waitForTransaction('elysia-node', transactionEvent => {
-    return (
-      transactionEvent.contexts?.trace?.op === 'http.server' &&
-      transactionEvent.transaction === 'GET /test-outgoing-fetch-external-disallowed'
-    );
-  });
+  const inboundSegmentPromise = waitForStreamedSpan(
+    'elysia-node',
+    segment =>
+      segment.is_segment &&
+      getSpanOp(segment) === 'http.server' &&
+      segment.name === 'GET /test-outgoing-fetch-external-disallowed',
+  );
 
   const response = await fetch(`${baseURL}/test-outgoing-fetch-external-disallowed`);
   const data = await response.json();
 
-  await inboundTransactionPromise;
+  await inboundSegmentPromise;
 
   expect(data.route).toBe('/external-disallowed');
   expect(data.headers?.['sentry-trace']).toBeUndefined();

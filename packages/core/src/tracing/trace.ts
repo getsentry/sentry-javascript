@@ -6,14 +6,15 @@ import { getMainCarrier } from '../carrier';
 import { getClient, getCurrentScope, getIsolationScope, withScope } from '../currentScopes';
 import { DEBUG_BUILD } from '../debug-build';
 import type { Scope } from '../scope';
-import { SENTRY_SEGMENT_NAME_SOURCE } from '@sentry/conventions/attributes';
-import { SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE } from '../semanticAttributes';
+import { SENTRY_SEGMENT_NAME_SOURCE, SENTRY_OP } from '@sentry/conventions/attributes';
+import { SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE } from '../semanticAttributes';
 import type { ClientOptions } from '../types/options';
 import type { SentrySpanArguments, Span, SpanTimeInput } from '../types/span';
 import type { StartSpanOptions } from '../types/startSpanOptions';
 import { baggageHeaderToDynamicSamplingContext } from '../utils/baggage';
 import { debug } from '../utils/debug-logger';
 import { handleCallbackErrors } from '../utils/handleCallbackErrors';
+import { recordEscapedErrorSpan } from '../utils/errorSpanAttribution';
 import { hasSpansEnabled } from '../utils/hasSpansEnabled';
 import { shouldIgnoreSpan } from '../utils/should-ignore-span';
 import { hasSpanStreamingEnabled } from './spans/hasSpanStreamingEnabled';
@@ -447,7 +448,7 @@ function parseSentrySpanArguments(options: StartSpanOptions): SentrySpanArgument
   // constructor only adds it after the sampling decision. An explicit `sentry.op` attribute wins.
   if (options.op) {
     initialCtx.attributes = {
-      [SEMANTIC_ATTRIBUTE_SENTRY_OP]: options.op,
+      [SENTRY_OP]: options.op,
       ...options.attributes,
     };
   }
@@ -495,7 +496,7 @@ function _startRootSpan(
   const currentPropagationContext = scope.getPropagationContext();
   const _isTracingSuppressed = isTracingSuppressed(scope);
 
-  const [sampled, sampleRate, localSampleRateWasApplied] = _isTracingSuppressed
+  const [sampled, sampleRate, localSampleRateWasApplied, dropReason] = _isTracingSuppressed
     ? [false]
     : sampleSpan(
         options,
@@ -522,7 +523,7 @@ function _startRootSpan(
 
   if (!sampled && client && !_isTracingSuppressed) {
     DEBUG_BUILD && debug.log('[Tracing] Discarding root span because its trace was not chosen to be sampled.');
-    client.recordDroppedEvent('sample_rate', hasSpanStreamingEnabled(client) ? 'span' : 'transaction');
+    client.recordDroppedEvent(dropReason || 'sample_rate', hasSpanStreamingEnabled(client) ? 'span' : 'transaction');
   }
 
   setCapturedScopesOnSpan(rootSpan, scope, isolationScope);
@@ -632,7 +633,7 @@ function _shouldIgnoreStreamedSpan(client: Client | undefined, spanArguments: Se
   return shouldIgnoreSpan(
     {
       description: spanArguments.name || '',
-      op: spanArguments.attributes?.[SEMANTIC_ATTRIBUTE_SENTRY_OP] || spanArguments.op,
+      op: spanArguments.attributes?.[SENTRY_OP] || spanArguments.op,
       attributes: spanArguments.attributes,
     },
     ignoreSpans,
@@ -670,7 +671,9 @@ function runCallback<T>(span: Span, makeSpanActive: boolean, callback: () => T, 
   return wrapper(() =>
     handleCallbackErrors(
       () => callback(),
-      () => {
+      error => {
+        recordEscapedErrorSpan(error, span);
+
         // Only update the span status if it hasn't been changed yet, and the span is not yet finished
         const { status } = spanToStaticSpanJSON(span);
         if (span.isRecording() && status === 'ok') {

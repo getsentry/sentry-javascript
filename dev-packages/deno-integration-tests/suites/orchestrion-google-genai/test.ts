@@ -2,27 +2,29 @@
 
 import { tracingChannel } from 'node:diagnostics_channel';
 import type { DenoClient } from '@sentry/deno';
-import { init, startSpan } from '@sentry/deno';
+import { flush, init, startSpan } from '@sentry/deno';
 import { assert } from 'https://deno.land/std@0.212.0/assert/assert.ts';
 import { assertExists } from 'https://deno.land/std@0.212.0/assert/assert_exists.ts';
 import { assertEquals } from 'https://deno.land/std@0.212.0/assert/assert_equals.ts';
-import { resetGlobals, transactionSink, withTimeout } from '../../src/index.ts';
+import { getSpanOp, resetGlobals, spanSink, withTimeout } from '../../src/index.ts';
 
 Deno.test('google-genai instrumentation: included in default integrations (Deno 2.8.0+)', () => {
   resetGlobals();
-  const client = init({ traceLifecycle: 'static', dsn: 'https://username@domain/123' }) as DenoClient;
+  const client = init({
+    dsn: 'https://username@domain/123',
+    tracesSampleRate: 1,
+  }) as DenoClient;
   const names = client.getOptions().integrations.map(i => i.name);
   assert(names.includes('Google_GenAI'), `Google_GenAI should be in defaults, got ${names.join(', ')}`);
 });
 
 Deno.test('google-genai instrumentation: orchestrion @google/genai:generate-content channel produces a nested gen_ai span', async () => {
   resetGlobals();
-  const sink = transactionSink();
+  const sink = spanSink();
   init({
-    traceLifecycle: 'static',
     dsn: 'https://username@domain/123',
     tracesSampleRate: 1,
-    beforeSendTransaction: sink.beforeSendTransaction,
+    transport: sink.transport,
   });
 
   const channel = tracingChannel('orchestrion:@google/genai:generate-content');
@@ -41,22 +43,28 @@ Deno.test('google-genai instrumentation: orchestrion @google/genai:generate-cont
     channel.asyncEnd.publish(ctx);
   });
 
-  const parent = await withTimeout(
-    sink.waitFor(t => t.transaction === 'parent'),
-    5000,
-    "'parent' transaction",
-  );
+  await flush();
 
-  const aiSpan = parent.spans?.find(s => s.op === 'gen_ai.generate_content');
+  const parent = await withTimeout(
+    sink.waitFor(span => span.is_segment && span.name === 'parent'),
+    5000,
+    "'parent' segment span",
+  );
+  const children = sink.spans.filter(span => span.parent_span_id === parent.span_id);
+  assertEquals(children.length, 1);
+  assertEquals(children[0]!.trace_id, parent.trace_id);
+  assertEquals(children[0]!.is_segment, false);
+
+  const aiSpan = children.find(s => getSpanOp(s) === 'gen_ai.generate_content');
   assertExists(
     aiSpan,
-    `expected a gen_ai.generate_content child span, got ops: ${parent.spans?.map(s => s.op).join(', ')}`,
+    `expected a gen_ai.generate_content child span, got ops: ${children.map(s => getSpanOp(s)).join(', ')}`,
   );
-  assertEquals(aiSpan!.description, 'generate_content gemini-1.5-flash');
-  assertEquals(aiSpan!.data?.['gen_ai.provider.name'], 'google_genai');
-  assertEquals(aiSpan!.data?.['gen_ai.operation.name'], 'generate_content');
-  assertEquals(aiSpan!.data?.['gen_ai.request.model'], 'gemini-1.5-flash');
-  assertEquals(aiSpan!.data?.['gen_ai.response.model'], 'gemini-1.5-flash-002');
-  assertEquals(aiSpan!.data?.['gen_ai.usage.total_tokens'], 15);
-  assertEquals(aiSpan!.data?.['sentry.origin'], 'auto.ai.google_genai');
+  assertEquals(aiSpan.name, 'generate_content gemini-1.5-flash');
+  assertEquals(aiSpan.attributes['gen_ai.provider.name']?.value, 'google_genai');
+  assertEquals(aiSpan.attributes['gen_ai.operation.name']?.value, 'generate_content');
+  assertEquals(aiSpan.attributes['gen_ai.request.model']?.value, 'gemini-1.5-flash');
+  assertEquals(aiSpan.attributes['gen_ai.response.model']?.value, 'gemini-1.5-flash-002');
+  assertEquals(aiSpan.attributes['gen_ai.usage.total_tokens']?.value, 15);
+  assertEquals(aiSpan.attributes['sentry.origin']?.value, 'auto.ai.google_genai');
 });

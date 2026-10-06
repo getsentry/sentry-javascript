@@ -1,8 +1,10 @@
 import { expect, test } from '@playwright/test';
-import { waitForError, waitForTransaction } from '@sentry-internal/test-utils';
+import { collectStreamedSpansUntilSegment, waitForError } from '@sentry-internal/test-utils';
+
+const APP_NAME = 'nestjs-basic-with-graphql';
 
 test('Sends exception to Sentry', async ({ baseURL }) => {
-  const errorEventPromise = waitForError('nestjs-basic-with-graphql', event => {
+  const errorEventPromise = waitForError(APP_NAME, event => {
     return !event.type && event.exception?.values?.[0]?.value === 'This is an exception with id 123';
   });
 
@@ -38,7 +40,7 @@ test('Sends exception to Sentry', async ({ baseURL }) => {
 test('Does not send HttpExceptions to Sentry', async ({ baseURL }) => {
   let errorEventOccurred = false;
 
-  waitForError('nestjs-basic-with-graphql', event => {
+  waitForError(APP_NAME, event => {
     if (!event.type && event.exception?.values?.[0]?.value === 'This is an expected 400 exception with id 123') {
       errorEventOccurred = true;
     }
@@ -46,7 +48,7 @@ test('Does not send HttpExceptions to Sentry', async ({ baseURL }) => {
     return event?.transaction === 'GET /test-expected-400-exception/:id';
   });
 
-  waitForError('nestjs-basic-with-graphql', event => {
+  waitForError(APP_NAME, event => {
     if (!event.type && event.exception?.values?.[0]?.value === 'This is an expected 500 exception with id 123') {
       errorEventOccurred = true;
     }
@@ -54,13 +56,11 @@ test('Does not send HttpExceptions to Sentry', async ({ baseURL }) => {
     return event?.transaction === 'GET /test-expected-500-exception/:id';
   });
 
-  const transactionEventPromise400 = waitForTransaction('nestjs-basic-with-graphql', transactionEvent => {
-    return transactionEvent?.transaction === 'GET /test-expected-400-exception/:id';
-  });
+  // Waiting for each request's segment span is how this spec knows the request finished and
+  // any error it would have produced had its chance to be sent.
+  const spansPromise400 = collectStreamedSpansUntilSegment(APP_NAME, 'GET /test-expected-400-exception/:id');
 
-  const transactionEventPromise500 = waitForTransaction('nestjs-basic-with-graphql', transactionEvent => {
-    return transactionEvent?.transaction === 'GET /test-expected-500-exception/:id';
-  });
+  const spansPromise500 = collectStreamedSpansUntilSegment(APP_NAME, 'GET /test-expected-500-exception/:id');
 
   const response400 = await fetch(`${baseURL}/test-expected-400-exception/123`);
   expect(response400.status).toBe(400);
@@ -68,8 +68,8 @@ test('Does not send HttpExceptions to Sentry', async ({ baseURL }) => {
   const response500 = await fetch(`${baseURL}/test-expected-500-exception/123`);
   expect(response500.status).toBe(500);
 
-  await transactionEventPromise400;
-  await transactionEventPromise500;
+  await spansPromise400;
+  await spansPromise500;
 
   (await fetch(`${baseURL}/flush`)).text();
 
@@ -77,7 +77,7 @@ test('Does not send HttpExceptions to Sentry', async ({ baseURL }) => {
 });
 
 test('Sends graphql exception to Sentry', async ({ baseURL }) => {
-  const errorEventPromise = waitForError('nestjs-basic-with-graphql', event => {
+  const errorEventPromise = waitForError(APP_NAME, event => {
     return !event.type && event.exception?.values?.[0]?.value === 'This is an exception!';
   });
 

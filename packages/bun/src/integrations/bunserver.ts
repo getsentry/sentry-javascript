@@ -1,5 +1,6 @@
-import type { IntegrationFn, RequestEventData, SpanAttributes } from '@sentry/core';
+import type { Integration, IntegrationFn, MaxRequestBodySize, SpanAttributes } from '@sentry/core';
 import {
+  captureBodyFromWinterCGRequest,
   captureException,
   continueTrace,
   defineIntegration,
@@ -11,16 +12,20 @@ import {
   HTTP_SPAN_NAME_FALLBACK,
   isURLObjectRelative,
   parseStringToURLObject,
-  SEMANTIC_ATTRIBUTE_HTTP_REQUEST_METHOD,
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   setHttpStatus,
   startSpan,
+  winterCGRequestToRequestData,
   withIsolationScope,
   filterCollectedUrl,
   filterCollectedUrlQuery,
 } from '@sentry/core';
-import type { ServeOptions } from 'bun';
+import { getClientIPAddress } from '@sentry/core/server';
+import type { Server, ServeOptions } from 'bun';
 import {
+  CLIENT_ADDRESS,
+  CLIENT_PORT,
+  HTTP_REQUEST_METHOD,
+  NETWORK_PROTOCOL_NAME,
   SENTRY_OP,
   SENTRY_SEGMENT_NAME_SOURCE,
   URL_DOMAIN,
@@ -30,14 +35,28 @@ import {
   URL_PORT,
   URL_QUERY,
   URL_SCHEME,
+  SENTRY_ORIGIN,
 } from '@sentry/conventions/attributes';
 import { HTTP_SERVER } from '@sentry/conventions/op';
 
 const INTEGRATION_NAME = 'BunServer' as const;
 
-const _bunServerIntegration = (() => {
+export type BunServerIntegrationOptions = {
+  /**
+   * Controls the maximum size of incoming HTTP request bodies attached to events.
+   * An explicit value overrides `dataCollection.httpBodies`.
+   *
+   * If `dataCollection.httpBodies` excludes `'incomingRequest'`, body capture defaults to `'none'`.
+   *
+   * @default 'medium'
+   */
+  maxRequestBodySize?: MaxRequestBodySize;
+};
+
+const _bunServerIntegration = ((options: BunServerIntegrationOptions = {}) => {
   return {
     name: INTEGRATION_NAME,
+    maxRequestBodySize: options.maxRequestBodySize,
     setupOnce() {
       instrumentBunServe();
     },
@@ -192,8 +211,8 @@ function wrapRequestHandler<T extends RouteHandler = RouteHandler>(
   thisArg: unknown,
   args: Parameters<T>,
   route?: string,
-): ReturnType<T> {
-  return withIsolationScope(isolationScope => {
+): Promise<Awaited<ReturnType<T>>> {
+  return withIsolationScope(async isolationScope => {
     const request = args[0];
     const upperCaseMethod = request.method.toUpperCase();
     if (upperCaseMethod === 'OPTIONS' || upperCaseMethod === 'HEAD') {
@@ -227,18 +246,47 @@ function wrapRequestHandler<T extends RouteHandler = RouteHandler>(
     const client = getClient();
     const dataCollection = client?.getDataCollectionOptions();
 
+    let socketAddress: { address: string; port: number } | undefined;
     if (dataCollection) {
-      Object.assign(attributes, httpHeadersToSpanAttributes(request.headers.toJSON(), dataCollection));
+      const headers = request.headers.toJSON();
+      // Bun passes the `Server` as the second argument to both `fetch` and route handlers, except
+      // when the handler runs through `server.fetch()`.
+      socketAddress = getRequestIP(args[1], request);
+
+      if (dataCollection.userInfo) {
+        // `client.address` is the originating client, so a forwarding header wins over the socket, which
+        // behind a proxy holds the proxy's address. The socket port is the proxy's too, so `client.port`
+        // stays unset then.
+        const forwardedAddress = getClientIPAddress(headers);
+        if (forwardedAddress) {
+          attributes[CLIENT_ADDRESS] = forwardedAddress;
+        } else if (socketAddress) {
+          attributes[CLIENT_ADDRESS] = socketAddress.address;
+          attributes[CLIENT_PORT] = socketAddress.port;
+        }
+      }
+
+      Object.assign(attributes, httpHeadersToSpanAttributes(headers, dataCollection));
     }
 
+    // describes the OSI application-layer protocol (http), not the scheme (might be https)
+    attributes[NETWORK_PROTOCOL_NAME] = 'http';
+
     isolationScope.setSDKProcessingMetadata({
-      normalizedRequest: {
-        url: request.url,
-        method: request.method,
-        headers: request.headers.toJSON(),
-        query_string: parsedUrl?.search,
-      } satisfies RequestEventData,
+      normalizedRequest: winterCGRequestToRequestData(request),
+      ipAddress: socketAddress?.address,
     });
+
+    if (client && dataCollection) {
+      const configuredBodySize = client.getIntegrationByName<Integration & { maxRequestBodySize?: MaxRequestBodySize }>(
+        INTEGRATION_NAME,
+      )?.maxRequestBodySize;
+      const effectiveBodySize =
+        configuredBodySize ?? (dataCollection.httpBodies.includes('incomingRequest') ? 'medium' : 'none');
+      if (upperCaseMethod !== 'GET' && effectiveBodySize !== 'none') {
+        await captureBodyFromWinterCGRequest(request, isolationScope, effectiveBodySize);
+      }
+    }
 
     return continueTrace(
       {
@@ -287,13 +335,28 @@ function wrapRequestHandler<T extends RouteHandler = RouteHandler>(
   });
 }
 
+function getRequestIP(
+  server: Partial<Pick<Server, 'requestIP'>> | undefined,
+  request: Request,
+): { address: string; port: number } | undefined {
+  if (typeof server?.requestIP !== 'function') {
+    return undefined;
+  }
+  try {
+    return server.requestIP(request) ?? undefined;
+  } catch {
+    // Defensive: never let a failed lookup break the user's handler.
+    return undefined;
+  }
+}
+
 function getSpanAttributesFromParsedUrl(
   parsedUrl: ReturnType<typeof parseStringToURLObject>,
   request: Request,
 ): SpanAttributes {
   const attributes: SpanAttributes = {
-    [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.bun.serve',
-    [SEMANTIC_ATTRIBUTE_HTTP_REQUEST_METHOD]: request.method || 'GET',
+    [SENTRY_ORIGIN]: 'auto.http.bun.serve',
+    [HTTP_REQUEST_METHOD]: request.method || 'GET',
     [SENTRY_SEGMENT_NAME_SOURCE]: 'url',
   };
 

@@ -1,14 +1,8 @@
 /**
  * @vitest-environment jsdom
  */
-import {
-  createTransport,
-  getCurrentScope,
-  SEMANTIC_ATTRIBUTE_SENTRY_OP,
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  setCurrentClient,
-} from '@sentry/core';
-import { SENTRY_SEGMENT_NAME_SOURCE, URL_TEMPLATE } from '@sentry/conventions/attributes';
+import { createTransport, getCurrentScope, setCurrentClient } from '@sentry/core';
+import { SENTRY_SEGMENT_NAME_SOURCE, URL_TEMPLATE, SENTRY_OP, SENTRY_ORIGIN } from '@sentry/conventions/attributes';
 import { render, waitFor } from '@testing-library/react';
 import * as React from 'react';
 import { act } from 'react';
@@ -34,6 +28,23 @@ import {
   wrapCreateMemoryRouterV6,
   wrapUseRoutesV6,
 } from '../src/reactrouterv6';
+
+// jsdom provides its own AbortSignal, which the undici `Request` of Node >= 24 rejects
+// in `RequestInit`. React Router only reads the signal back off the request, so keep it
+// as an own property instead of handing it to undici.
+const NativeRequest = globalThis.Request;
+vi.stubGlobal(
+  'Request',
+  class extends NativeRequest {
+    public constructor(input: RequestInfo | URL, init: RequestInit = {}) {
+      const { signal, ...rest } = init;
+      super(input, rest);
+      if (signal) {
+        Object.defineProperty(this, 'signal', { value: signal, configurable: true });
+      }
+    }
+  },
+);
 
 const mockStartBrowserTracingPageLoadSpan = vi.fn();
 const mockStartBrowserTracingNavigationSpan = vi.fn();
@@ -650,8 +661,8 @@ describe('React Router cross usage of wrappers', () => {
         attributes: {
           [SENTRY_SEGMENT_NAME_SOURCE]: 'route',
           [URL_TEMPLATE]: '/settings',
-          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'navigation',
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.react.reactrouter_v6',
+          [SENTRY_OP]: 'navigation',
+          [SENTRY_ORIGIN]: 'auto.navigation.react.reactrouter_v6',
         },
       });
 
@@ -670,8 +681,8 @@ describe('React Router cross usage of wrappers', () => {
       const calls = mockStartBrowserTracingNavigationSpan.mock.calls;
       expect(calls[0]![1].name).toBe('/settings');
       expect(calls[1]![1].name).toBe('/profile');
-      expect(calls[0]![1].attributes[SEMANTIC_ATTRIBUTE_SENTRY_OP]).toBe('navigation');
-      expect(calls[1]![1].attributes[SEMANTIC_ATTRIBUTE_SENTRY_OP]).toBe('navigation');
+      expect(calls[0]![1].attributes[SENTRY_OP]).toBe('navigation');
+      expect(calls[1]![1].attributes[SENTRY_OP]).toBe('navigation');
     });
 
     it('should create separate transactions for rapid consecutive navigations', async () => {
@@ -769,8 +780,8 @@ describe('React Router cross usage of wrappers', () => {
         attributes: {
           [SENTRY_SEGMENT_NAME_SOURCE]: 'route',
           [URL_TEMPLATE]: '/user/:id',
-          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'navigation',
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.react.reactrouter_v6',
+          [SENTRY_OP]: 'navigation',
+          [SENTRY_ORIGIN]: 'auto.navigation.react.reactrouter_v6',
         },
       });
 
@@ -791,8 +802,8 @@ describe('React Router cross usage of wrappers', () => {
         attributes: {
           [SENTRY_SEGMENT_NAME_SOURCE]: 'route',
           [URL_TEMPLATE]: '/user/:id',
-          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'navigation',
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.react.reactrouter_v6',
+          [SENTRY_OP]: 'navigation',
+          [SENTRY_ORIGIN]: 'auto.navigation.react.reactrouter_v6',
         },
       });
     });
@@ -847,7 +858,7 @@ describe('React Router cross usage of wrappers', () => {
       expect(mockStartBrowserTracingNavigationSpan).toHaveBeenLastCalledWith(expect.any(BrowserClient), {
         name: '/settings/*',
         attributes: expect.objectContaining({
-          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'navigation',
+          [SENTRY_OP]: 'navigation',
         }),
       });
     });
@@ -895,7 +906,7 @@ describe('React Router cross usage of wrappers', () => {
       expect(mockStartBrowserTracingNavigationSpan).toHaveBeenCalledWith(expect.any(BrowserClient), {
         name: '/details/*',
         attributes: expect.objectContaining({
-          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'navigation',
+          [SENTRY_OP]: 'navigation',
         }),
       });
     });

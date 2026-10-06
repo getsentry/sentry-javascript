@@ -1,4 +1,4 @@
-import * as diagnosticsChannel from 'node:diagnostics_channel';
+import * as diagnosticsChannel from '../../utils/diagnosticsChannel';
 import {
   DB_OPERATION_BATCH_SIZE,
   DB_OPERATION_NAME,
@@ -8,6 +8,7 @@ import {
   SERVER_ADDRESS,
   SERVER_PORT,
   SENTRY_OP,
+  SENTRY_ORIGIN,
 } from '@sentry/conventions/attributes';
 import { DB_QUERY, DB } from '@sentry/conventions/op';
 import type { IntegrationFn, Span, SpanAttributes } from '@sentry/core';
@@ -15,7 +16,6 @@ import {
   isObjectLike,
   defineIntegration,
   getActiveSpan,
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SPAN_STATUS_ERROR,
   startInactiveSpan,
   withActiveSpan,
@@ -25,7 +25,7 @@ import { CHANNELS } from '../../orchestrion/channels';
 import { getRedisQueryNaming } from './redis-span-name';
 import { defaultDbStatementSerializer } from './redis-statement-serializer';
 import type { RedisCacheOptions } from './redis-cache';
-import { applyRedisCacheAttributes } from './redis-cache';
+import { applyCacheResponseAttributes, getRedisCacheAttributes } from './redis-cache';
 import { bindTracingChannelToSpan } from '../../tracing-channel';
 import { redisModuleNames } from '../../orchestrion/config/redis';
 import { ioredisModuleNames } from '../../orchestrion/config/ioredis';
@@ -104,19 +104,25 @@ function nodeRedisAttributes(options: NodeRedisClientOptions | undefined): SpanA
     [DB_SYSTEM_NAME]: DB_SYSTEM_VALUE_REDIS,
     [SERVER_ADDRESS]: host,
     ...(port != null ? { [SERVER_PORT]: port } : {}),
-    [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: ORIGIN,
+    [SENTRY_ORIGIN]: ORIGIN,
   };
 }
 
-function startCommandSpan(commandName: string, commandArgs: Array<string | Buffer>, attributes: SpanAttributes): Span {
+function startCommandSpan(
+  commandName: string,
+  commandArgs: Array<string | Buffer>,
+  attributes: SpanAttributes,
+  cacheOptions: RedisCacheOptions,
+): Span {
   const dbStatement = defaultDbStatementSerializer(commandName, commandArgs);
   const { streamedName, attributes: namingAttributes } = getRedisQueryNaming(commandName, commandArgs, {
     host: attributes[SERVER_ADDRESS],
     port: attributes[SERVER_PORT],
   });
+  const cacheProperties = getRedisCacheAttributes(commandName, commandArgs, attributes, cacheOptions);
 
   return startInactiveSpan({
-    name: streamedName || dbStatement || `redis-${commandName}`,
+    name: cacheProperties?.name ?? streamedName ?? (dbStatement || `redis-${commandName}`),
     attributes: {
       [SENTRY_KIND]: 'client',
       ...attributes,
@@ -124,6 +130,7 @@ function startCommandSpan(commandName: string, commandArgs: Array<string | Buffe
       [DB_OPERATION_NAME]: commandName,
       ...namingAttributes,
       [DB_QUERY_TEXT]: dbStatement,
+      ...cacheProperties?.attributes,
     },
   });
 }
@@ -153,7 +160,7 @@ function subscribeLegacyRedisCommand(cacheOptions: RedisCacheOptions): void {
       const client = data.self as LegacyRedisClient | undefined;
       const attributes: SpanAttributes = {
         [DB_SYSTEM_NAME]: DB_SYSTEM_VALUE_REDIS,
-        [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: ORIGIN,
+        [SENTRY_ORIGIN]: ORIGIN,
       };
 
       if (client?.connection_options?.host != null) {
@@ -162,13 +169,13 @@ function subscribeLegacyRedisCommand(cacheOptions: RedisCacheOptions): void {
       if (client?.connection_options?.port != null) {
         attributes[SERVER_PORT] = client.connection_options.port;
       }
-      const span = startCommandSpan(command.command, command.args ?? [], attributes);
+      const span = startCommandSpan(command.command, command.args ?? [], attributes, cacheOptions);
       (data as CommandContext & { _sentrySpan?: Span })._sentrySpan = span;
 
       const parentSpan = getActiveSpan();
       command.callback = function (this: unknown, err: Error | null | undefined, reply: unknown) {
         if (!err) {
-          applyRedisCacheAttributes(span, command.command, command.args ?? [], reply, cacheOptions);
+          applyCacheResponseAttributes(span, reply);
         }
         endSpan(span, err);
         // eslint-disable-next-line prefer-rest-params
@@ -203,16 +210,12 @@ function bindNodeRedisCommandChannel(
       }
       const commandName = String(wireArgs[0]);
       const options = (data.self as NodeRedisClient | undefined)?.options;
-      return startCommandSpan(commandName, wireArgs.slice(1), nodeRedisAttributes(options));
+      return startCommandSpan(commandName, wireArgs.slice(1), nodeRedisAttributes(options), cacheOptions);
     },
     {
       beforeSpanEnd(span, data) {
-        if ('error' in data) {
-          return;
-        }
-        const wireArgs = getWireArgs(data);
-        if (wireArgs?.length) {
-          applyRedisCacheAttributes(span, String(wireArgs[0]), wireArgs.slice(1), data.result, cacheOptions);
+        if (!('error' in data)) {
+          applyCacheResponseAttributes(span, data.result);
         }
       },
     },

@@ -1,4 +1,5 @@
 import { createRouter, createWebHistory } from 'vue-router';
+import DelayedView from '../views/DelayedView.vue';
 import HomeView from '../views/HomeView.vue';
 
 const router = createRouter({
@@ -9,6 +10,11 @@ const router = createRouter({
       component: HomeView,
     },
     {
+      // Loaded eagerly so the only async step on this route is the view's delayed child component.
+      path: '/delayed',
+      component: DelayedView,
+    },
+    {
       path: '/about',
       name: 'AboutView',
       component: () => import('../views/AboutView.vue'),
@@ -16,6 +22,10 @@ const router = createRouter({
     {
       path: '/users/:id',
       component: () => import('../views/UserIdView.vue'),
+    },
+    {
+      path: '/route-provider/:id',
+      component: () => import('../views/RouteProviderView.vue'),
     },
     {
       path: '/users-error/:id',

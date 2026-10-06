@@ -30,6 +30,9 @@ test.skip('Should create a span for middleware', async ({ request }) => {
   expect(middlewareSpan.status).toBe('ok');
   expect(getSpanOp(middlewareSpan)).toBe('middleware');
   expect(middlewareSpan.attributes['sentry.segment.name.source']?.value).toBe('route');
+
+  // Assert that isolation scope works properly
+  // expect(middlewareSpan.attributes['isolation_scope.is_default']).toEqual({ value: false, type: 'boolean' });
 });
 
 // TODO: Middleware tests need SDK adjustments for Cloudflare Workers edge runtime

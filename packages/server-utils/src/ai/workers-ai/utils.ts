@@ -3,7 +3,6 @@ import {
   GEN_AI_EMBEDDINGS_INPUT,
   GEN_AI_INPUT_MESSAGES,
   GEN_AI_OPERATION_NAME,
-  GEN_AI_OUTPUT_MESSAGES,
   GEN_AI_PROVIDER_NAME,
   GEN_AI_REQUEST_FREQUENCY_PENALTY,
   GEN_AI_REQUEST_MAX_TOKENS,
@@ -15,27 +14,40 @@ import {
   GEN_AI_RESPONSE_TEXT,
   GEN_AI_RESPONSE_TOOL_CALLS,
   GEN_AI_SYSTEM_INSTRUCTIONS,
+  SENTRY_ORIGIN,
 } from '@sentry/conventions/attributes';
 import { GEN_AI_CHAT, GEN_AI_EMBEDDINGS } from '@sentry/conventions/op';
-import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, stringify } from '@sentry/core';
+import { isObjectLike, stringify } from '@sentry/core';
 import type { Span, SpanAttributeValue } from '@sentry/core';
 import { GEN_AI_REQUEST_STREAM_ATTRIBUTE } from '../core/gen-ai-attributes';
-import { extractSystemInstructions, setTokenUsageAttributes } from '../core/utils';
+import {
+  extractSystemInstructions,
+  getGenAiSpanOp,
+  setOutputMessagesAttribute,
+  setTokenUsageAttributes,
+} from '../core/utils';
+import { addResponseAttributes as addEvaluateResponseAttributes, getEvaluationInputMessages } from '../typesafe';
+// Re-exported so `workers-ai/streaming.ts` keeps importing it from this module.
+export { setOutputMessagesAttribute };
 import { WORKERS_AI_ORIGIN, WORKERS_AI_PROVIDER_NAME } from './constants';
 import type { WorkersAiInput, WorkersAiOutput } from './types';
 
-/**
- * Determine the gen_ai operation name from the inputs passed to `AI.run`.
- * Workers AI exposes a single `run` method, so we infer the operation from the input shape.
- */
-export type WorkersAiOperationName = 'chat' | 'embeddings';
+export type WorkersAiOperationName = 'chat' | 'embeddings' | 'evaluate';
 
 export const WORKERS_AI_OPERATION_SPAN_OPS: Record<WorkersAiOperationName, string> = {
   chat: GEN_AI_CHAT,
   embeddings: GEN_AI_EMBEDDINGS,
+  evaluate: getGenAiSpanOp('evaluate'),
 };
 
-export function getOperationName(inputs: unknown): WorkersAiOperationName {
+/**
+ * Determine the gen_ai operation name from the model and inputs passed to `AI.run`.
+ * Workers AI exposes a single `run` method, so we infer the operation from the model ID and the input shape.
+ */
+export function getOperationName(model: unknown, inputs: unknown): WorkersAiOperationName {
+  if (typeof model === 'string' && model.startsWith('typesafe/jev')) {
+    return 'evaluate';
+  }
   if (inputs && typeof inputs === 'object') {
     if ('messages' in inputs || 'prompt' in inputs) {
       return 'chat';
@@ -58,7 +70,7 @@ export function extractRequestAttributes(
   const attributes: Record<string, SpanAttributeValue> = {
     [GEN_AI_PROVIDER_NAME]: WORKERS_AI_PROVIDER_NAME,
     [GEN_AI_OPERATION_NAME]: operationName,
-    [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: WORKERS_AI_ORIGIN,
+    [SENTRY_ORIGIN]: WORKERS_AI_ORIGIN,
     [GEN_AI_REQUEST_MODEL]: typeof model === 'string' ? model : 'unknown',
   };
 
@@ -101,6 +113,11 @@ export function addRequestAttributes(span: Span, inputs: unknown, operationName:
   }
   const params = inputs as WorkersAiInput;
 
+  if (operationName === 'evaluate') {
+    span.setAttribute(GEN_AI_INPUT_MESSAGES, getEvaluationInputMessages(inputs as Record<string, unknown>));
+    return;
+  }
+
   // Store embeddings input on a separate attribute
   if (operationName === 'embeddings') {
     const text = params.text;
@@ -129,58 +146,21 @@ export function addRequestAttributes(span: Span, inputs: unknown, operationName:
 }
 
 /**
- * Build the `gen_ai.output.messages` value (a single assistant message with text and/or
- * tool-call parts) from the response text and tool calls.
- *
- * We set this in addition to the deprecated `gen_ai.response.text` / `gen_ai.response.tool_calls`
- * attributes because Sentry's product reads the model output from `gen_ai.output.messages` first.
- * Relay migrates `gen_ai.response.text` into `gen_ai.output.messages`, but the tool-calls half of
- * that migration is lossy — so tool-call turns would otherwise render an empty Output. Emitting the
- * normalized message here (mirroring the Vercel AI integration) keeps tool calls visible.
- */
-export function setOutputMessagesAttribute(
-  span: Span,
-  { responseText, toolCalls }: { responseText?: string; toolCalls?: unknown[] },
-): void {
-  const parts: Array<Record<string, unknown>> = [];
-
-  if (typeof responseText === 'string' && responseText.length > 0) {
-    parts.push({ type: 'text', content: responseText });
-  }
-
-  if (Array.isArray(toolCalls)) {
-    for (const toolCall of toolCalls) {
-      if (!toolCall || typeof toolCall !== 'object') {
-        continue;
-      }
-      const call = toolCall as {
-        id?: unknown;
-        function?: { name?: unknown; arguments?: unknown };
-        name?: unknown;
-        arguments?: unknown;
-      };
-      // Normalize both the OpenAI-compatible shape (name/arguments nested under `function`)
-      // and the native Workers AI shape (name/arguments at the top level).
-      const name = call.function?.name ?? call.name;
-      const args = call.function?.arguments ?? call.arguments;
-      parts.push({
-        type: 'tool_call',
-        id: call.id,
-        name,
-        arguments: stringify(args ?? {}, String),
-      });
-    }
-  }
-
-  if (parts.length > 0) {
-    span.setAttribute(GEN_AI_OUTPUT_MESSAGES, JSON.stringify([{ role: 'assistant', parts }]));
-  }
-}
-
-/**
  * Record the response attributes (token usage, response text, tool calls) on the span.
  */
-export function addResponseAttributes(span: Span, result: unknown, recordOutputs: boolean): void {
+export function addResponseAttributes(
+  span: Span,
+  result: unknown,
+  recordOutputs: boolean,
+  operationName?: WorkersAiOperationName,
+): void {
+  if (operationName === 'evaluate') {
+    // The binding wraps the TypeSafe response as `{ state, result }`, but the docs show it unwrapped.
+    const body = isObjectLike(result) && isObjectLike(result.result) ? result.result : result;
+    addEvaluateResponseAttributes(span, body, recordOutputs);
+    return;
+  }
+
   if (
     !result ||
     typeof result !== 'object' ||

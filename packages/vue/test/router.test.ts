@@ -1,8 +1,12 @@
 import * as SentryBrowser from '@sentry/browser';
 import type { Span, SpanAttributes } from '@sentry/core';
 import * as SentryCore from '@sentry/core';
-import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '@sentry/core';
-import { SENTRY_SEGMENT_NAME_SOURCE, NAVIGATION_ROUTE_ID, URL_TEMPLATE } from '@sentry/conventions/attributes';
+import {
+  SENTRY_SEGMENT_NAME_SOURCE,
+  ROUTER_NAVIGATION_ROUTE_ID,
+  URL_TEMPLATE,
+  SENTRY_ORIGIN,
+} from '@sentry/conventions/attributes';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { Route } from '../src/router';
 import { instrumentVueRouter } from '../src/router';
@@ -127,7 +131,7 @@ describe('instrumentVueRouter()', () => {
           name: transactionName,
           attributes: {
             'sentry.op': 'navigation',
-            [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.vue',
+            [SENTRY_ORIGIN]: 'auto.navigation.vue',
             [SENTRY_SEGMENT_NAME_SOURCE]: transactionSource,
             ...getAttributesForRoute(to, transactionSource === 'route' ? transactionName : undefined),
           },
@@ -179,7 +183,7 @@ describe('instrumentVueRouter()', () => {
       expect(mockRootSpan.updateName).toHaveBeenCalledWith(transactionName);
       expect(mockRootSpan.setAttribute).toHaveBeenCalledWith(SENTRY_SEGMENT_NAME_SOURCE, transactionSource);
       expect(mockRootSpan.setAttributes).toHaveBeenCalledWith({
-        [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.pageload.vue',
+        [SENTRY_ORIGIN]: 'auto.pageload.vue',
         ...getAttributesForRoute(to, transactionSource === 'route' ? transactionName : undefined),
       });
     },
@@ -207,7 +211,7 @@ describe('instrumentVueRouter()', () => {
         name: '/login',
         attributes: {
           'sentry.op': 'navigation',
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.vue',
+          [SENTRY_ORIGIN]: 'auto.navigation.vue',
           [SENTRY_SEGMENT_NAME_SOURCE]: 'route',
           ...getAttributesForRoute(to, '/login'),
         },
@@ -238,7 +242,7 @@ describe('instrumentVueRouter()', () => {
         name: 'login-screen',
         attributes: {
           'sentry.op': 'navigation',
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.vue',
+          [SENTRY_ORIGIN]: 'auto.navigation.vue',
           [SENTRY_SEGMENT_NAME_SOURCE]: 'custom',
           ...getAttributesForRoute(to),
         },
@@ -298,7 +302,7 @@ describe('instrumentVueRouter()', () => {
     expect(mockRootSpan.updateName).not.toHaveBeenCalled();
     expect(mockRootSpan.setAttribute).not.toHaveBeenCalled();
     expect(mockRootSpan.setAttributes).toHaveBeenCalledWith({
-      [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.pageload.vue',
+      [SENTRY_ORIGIN]: 'auto.pageload.vue',
       ...getAttributesForRoute(to, '/books/:bookId/chapter/:chapterId'),
     });
     expect(mockRootSpan.name).toEqual('customTxnName');
@@ -471,7 +475,7 @@ describe('instrumentVueRouter()', () => {
           name: 'Navigation',
           attributes: {
             'sentry.op': 'navigation',
-            [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.vue',
+            [SENTRY_ORIGIN]: 'auto.navigation.vue',
             [SENTRY_SEGMENT_NAME_SOURCE]: 'url',
             ...getAttributesForRoute(to),
           },
@@ -523,7 +527,7 @@ function getAttributesForRoute(route: Route, urlTemplate?: string): SpanAttribut
   }
 
   if (route.name) {
-    attributes[NAVIGATION_ROUTE_ID] = route.name.toString();
+    attributes[ROUTER_NAVIGATION_ROUTE_ID] = route.name.toString();
   }
 
   return attributes;

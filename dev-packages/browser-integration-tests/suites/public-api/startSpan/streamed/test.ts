@@ -1,13 +1,5 @@
 import { expect } from '@playwright/test';
-import {
-  SDK_VERSION,
-  SEMANTIC_ATTRIBUTE_SENTRY_ENVIRONMENT,
-  SEMANTIC_ATTRIBUTE_SENTRY_OP,
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE,
-  SEMANTIC_ATTRIBUTE_SENTRY_SDK_INTEGRATIONS,
-  SEMANTIC_ATTRIBUTE_SENTRY_STATUS_MESSAGE,
-} from '@sentry/core';
+import { SDK_VERSION, SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE } from '@sentry/core';
 import { sentryTest } from '../../../../utils/fixtures';
 import { shouldSkipTracingTest } from '../../../../utils/helpers';
 import { waitForStreamedSpanEnvelope } from '../../../../utils/spanUtils';
@@ -18,6 +10,12 @@ import {
   SENTRY_SDK_NAME,
   SENTRY_SDK_VERSION,
   SENTRY_TRACE_LIFECYCLE,
+  USER_AGENT_ORIGINAL,
+  SENTRY_STATUS_MESSAGE,
+  SENTRY_ENVIRONMENT,
+  SENTRY_SDK_INTEGRATIONS,
+  SENTRY_OP,
+  SENTRY_ORIGIN,
 } from '@sentry/conventions/attributes';
 
 sentryTest(
@@ -75,11 +73,12 @@ sentryTest(
     expect(spans).toEqual([
       {
         attributes: {
-          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: {
+          'sentry.is_localhost': { value: false, type: 'boolean' },
+          [SENTRY_OP]: {
             type: 'string',
             value: 'test-child',
           },
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: {
+          [SENTRY_ORIGIN]: {
             type: 'string',
             value: 'manual',
           },
@@ -99,13 +98,17 @@ sentryTest(
             type: 'string',
             value: 'test-span',
           },
-          [SEMANTIC_ATTRIBUTE_SENTRY_ENVIRONMENT]: {
+          [SENTRY_ENVIRONMENT]: {
             type: 'string',
             value: 'production',
           },
           [SENTRY_TRACE_LIFECYCLE]: {
             type: 'string',
             value: 'stream',
+          },
+          [USER_AGENT_ORIGINAL]: {
+            type: 'string',
+            value: expect.any(String),
           },
         },
         end_timestamp: expect.any(Number),
@@ -119,7 +122,8 @@ sentryTest(
       },
       {
         attributes: {
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: {
+          'sentry.is_localhost': { value: false, type: 'boolean' },
+          [SENTRY_ORIGIN]: {
             type: 'string',
             value: 'manual',
           },
@@ -139,13 +143,17 @@ sentryTest(
             type: 'string',
             value: 'test-span',
           },
-          [SEMANTIC_ATTRIBUTE_SENTRY_ENVIRONMENT]: {
+          [SENTRY_ENVIRONMENT]: {
             type: 'string',
             value: 'production',
           },
           [SENTRY_TRACE_LIFECYCLE]: {
             type: 'string',
             value: 'stream',
+          },
+          [USER_AGENT_ORIGINAL]: {
+            type: 'string',
+            value: expect.any(String),
           },
         },
         end_timestamp: expect.any(Number),
@@ -159,7 +167,8 @@ sentryTest(
       },
       {
         attributes: {
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: {
+          'sentry.is_localhost': { value: false, type: 'boolean' },
+          [SENTRY_ORIGIN]: {
             type: 'string',
             value: 'manual',
           },
@@ -179,17 +188,21 @@ sentryTest(
             type: 'string',
             value: 'test-span',
           },
-          [SEMANTIC_ATTRIBUTE_SENTRY_ENVIRONMENT]: {
+          [SENTRY_ENVIRONMENT]: {
             type: 'string',
             value: 'production',
           },
-          [SEMANTIC_ATTRIBUTE_SENTRY_STATUS_MESSAGE]: {
+          [SENTRY_STATUS_MESSAGE]: {
             type: 'string',
             value: 'Connection Refused',
           },
           [SENTRY_TRACE_LIFECYCLE]: {
             type: 'string',
             value: 'stream',
+          },
+          [USER_AGENT_ORIGINAL]: {
+            type: 'string',
+            value: expect.any(String),
           },
         },
         end_timestamp: expect.any(Number),
@@ -203,6 +216,7 @@ sentryTest(
       },
       {
         attributes: {
+          'sentry.is_localhost': { value: false, type: 'boolean' },
           'culture.calendar': {
             type: 'string',
             value: expect.any(String),
@@ -215,7 +229,7 @@ sentryTest(
             type: 'string',
             value: expect.any(String),
           },
-          'http.request.header.user_agent': {
+          [USER_AGENT_ORIGINAL]: {
             type: 'string',
             value: expect.any(String),
           },
@@ -223,11 +237,11 @@ sentryTest(
             type: 'string',
             value: expect.any(String),
           },
-          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: {
+          [SENTRY_OP]: {
             type: 'string',
             value: 'test',
           },
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: {
+          [SENTRY_ORIGIN]: {
             type: 'string',
             value: 'manual',
           },
@@ -243,7 +257,7 @@ sentryTest(
             type: 'string',
             value: SDK_VERSION,
           },
-          [SEMANTIC_ATTRIBUTE_SENTRY_SDK_INTEGRATIONS]: {
+          [SENTRY_SDK_INTEGRATIONS]: {
             type: 'array',
             value: expect.arrayContaining(['SpanStreaming']),
           },
@@ -259,7 +273,7 @@ sentryTest(
             type: 'string',
             value: 'custom',
           },
-          [SEMANTIC_ATTRIBUTE_SENTRY_ENVIRONMENT]: {
+          [SENTRY_ENVIRONMENT]: {
             type: 'string',
             value: 'production',
           },

@@ -637,7 +637,7 @@ describe('withSentry', () => {
           'sentry.sample_rate': 1,
           'http.response.status_code': 200,
           'http.request.body.size': 10,
-          'http.request.header.content_length': '10',
+          'http.request.header.content-length': ['10'],
         },
         op: 'http.server',
         origin: 'auto.http.cloudflare',
@@ -1051,6 +1051,7 @@ describe('Durable Object (DO) context', () => {
 
     // Teardown is registered via waitUntil on error too
     expect(waitUntilSpy).toHaveBeenCalled();
+    await Promise.all(waitUntilSpy.mock.calls.map(([promise]) => promise));
     // And flush runs as part of that teardown
     expect(flushSpy).toHaveBeenCalled();
 
@@ -1072,6 +1073,7 @@ describe('Durable Object (DO) context', () => {
     );
 
     expect(waitUntilSpy).toHaveBeenCalled();
+    await Promise.all(waitUntilSpy.mock.calls.map(([promise]) => promise));
     expect(flushSpy).toHaveBeenCalled();
 
     flushSpy.mockRestore();
@@ -1092,6 +1094,7 @@ describe('Durable Object (DO) context', () => {
     );
 
     expect(waitUntilSpy).toHaveBeenCalled();
+    await Promise.all(waitUntilSpy.mock.calls.map(([promise]) => promise));
     expect(flushSpy).toHaveBeenCalled();
 
     flushSpy.mockRestore();
@@ -1169,7 +1172,9 @@ describe('Durable Object (DO) context', () => {
 
 describe('cached client (cacheClient)', () => {
   beforeEach(() => {
+    vi.clearAllMocks();
     _clearGlobalClientCache();
+    SentryCore.getCurrentScope().setClient(undefined);
   });
 
   // `init()` resolves defaults into the options object it is given, so each call
@@ -1217,6 +1222,7 @@ describe('cached client (cacheClient)', () => {
   test('clears cache with _clearGlobalClientCache', async () => {
     const client1 = init(makeOptions());
     _clearGlobalClientCache();
+    SentryCore.getCurrentScope().setClient(undefined);
     const client2 = init(makeOptions());
     expect(client2).not.toBe(client1);
   });

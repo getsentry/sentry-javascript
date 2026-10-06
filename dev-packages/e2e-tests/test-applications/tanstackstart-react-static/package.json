@@ -1,0 +1,52 @@
+{
+  "name": "tanstackstart-react-static",
+  "private": true,
+  "version": "0.0.1",
+  "type": "module",
+  "scripts": {
+    "build": "vite build && cp instrument.server.mjs .output/server",
+    "dev": "vite dev",
+    "start": "node --import ./.output/server/instrument.server.mjs .output/server/index.mjs",
+    "test": "playwright test",
+    "clean": "npx rimraf node_modules pnpm-lock.yaml",
+    "test:build": "pnpm install && pnpm build",
+    "test:build:tunnel-generated": "pnpm install && E2E_TEST_TUNNEL_ROUTE_MODE=dynamic E2E_TEST_DSN=http://public@localhost:3031/1337 pnpm build",
+    "test:build:tunnel-static": "pnpm install && E2E_TEST_TUNNEL_ROUTE_MODE=static E2E_TEST_DSN=http://public@localhost:3031/1337 pnpm build",
+    "test:build:tunnel-custom": "pnpm install && E2E_TEST_CUSTOM_TUNNEL_ROUTE=1 pnpm build",
+    "test:build:tunnel-object": "pnpm install && E2E_TEST_TUNNEL_ROUTE_MODE=object E2E_TEST_DSN=http://public@localhost:3031/1337 pnpm build",
+    "test:build-latest": "pnpm add @tanstack/react-start@latest @tanstack/react-router@latest && pnpm install && pnpm build",
+    "test:assert:proxy": "pnpm test && TEST_ENV=development pnpm playwright test db-drivers",
+    "test:assert": "pnpm test:assert:proxy",
+    "test:assert:tunnel-generated": "E2E_TEST_TUNNEL_ROUTE_MODE=dynamic E2E_TEST_DSN=http://public@localhost:3031/1337 pnpm test",
+    "test:assert:tunnel-static": "E2E_TEST_TUNNEL_ROUTE_MODE=static E2E_TEST_DSN=http://public@localhost:3031/1337 pnpm test",
+    "test:assert:tunnel-custom": "E2E_TEST_CUSTOM_TUNNEL_ROUTE=1 pnpm test",
+    "test:assert:tunnel-object": "E2E_TEST_TUNNEL_ROUTE_MODE=object E2E_TEST_DSN=http://public@localhost:3031/1337 pnpm test"
+  },
+  "//": "Need to use ioredis 5.10.1 because that's the last version before they support tracing channels",
+  "dependencies": {
+    "@sentry/tanstackstart-react": "file:../../packed/sentry-tanstackstart-react-packed.tgz",
+    "@tanstack/react-start": "1.168.35",
+    "@tanstack/react-router": "1.170.18",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0",
+    "nitro": "latest || *",
+    "ioredis": "5.10.1",
+    "mysql": "^2.18.1"
+  },
+  "devDependencies": {
+    "@types/react": "^19.2.0",
+    "@types/react-dom": "^19.2.0",
+    "@types/node": "^24.10.0",
+    "@typescript-eslint/eslint-plugin": "^7.2.0",
+    "@typescript-eslint/parser": "^7.2.0",
+    "@vitejs/plugin-react-swc": "^3.5.0",
+    "typescript": "^5.9.0",
+    "vite": "7.3.2",
+    "vite-tsconfig-paths": "^5.1.4",
+    "@playwright/test": "~1.56.0",
+    "@sentry-internal/test-utils": "link:../../../test-utils"
+  },
+  "volta": {
+    "extends": "../../package.json"
+  }
+}

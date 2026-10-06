@@ -4,7 +4,6 @@ import {
   getActiveSpan,
   getCurrentScope,
   getRootSpan,
-  httpRequestToRequestData,
   objectify,
   setCapturedScopesOnSpan,
   withIsolationScope,
@@ -12,6 +11,7 @@ import {
 import type { NextApiRequest } from 'next';
 import { TRANSACTION_ATTR_SENTRY_ROUTE_BACKFILL } from '../span-attributes-with-logic-attached';
 import type { AugmentedNextApiResponse, NextApiHandler } from '../types';
+import { pagesRouterRequestToRequestData } from '../utils/pagesRouterRequestToRequestData';
 import { flushSafelyWithTimeout, waitUntil } from '../utils/responseEnd';
 
 export type AugmentedNextApiRequest = NextApiRequest & {
@@ -56,7 +56,7 @@ export function wrapApiHandlerWithSentry(apiHandler: NextApiHandler, parameteriz
       return withIsolationScope(async isolationScope => {
         const reqMethod = `${(req.method || 'GET').toUpperCase()} `;
 
-        isolationScope.setSDKProcessingMetadata({ normalizedRequest: httpRequestToRequestData(req) });
+        isolationScope.setSDKProcessingMetadata({ normalizedRequest: pagesRouterRequestToRequestData(req) });
         isolationScope.setTransactionName(`${reqMethod}${parameterizedRoute}`);
 
         // We no longer create the transaction ourselves: it's the Next.js root span, which captured a different

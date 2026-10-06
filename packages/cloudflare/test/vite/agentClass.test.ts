@@ -280,8 +280,18 @@ describe('collectAgentCandidates', () => {
     expect(collectAgentCandidates(parseJS(code), ['ConfiguredAgent'])).toEqual(new Set(['LocalAgent']));
   });
 
-  it('returns nothing when no configured class is declared here', async () => {
+  it('returns a configured name re-exported from another module', async () => {
     const code = "export { MyAgent } from './agent';";
+    expect(collectAgentCandidates(parseJS(code), ['MyAgent'])).toEqual(new Set(['MyAgent']));
+  });
+
+  it('returns the local binding of a configured name imported from another module', async () => {
+    const code = ["import { Impl as MyAgent } from './agent';", 'export { MyAgent };'].join('\n');
+    expect(collectAgentCandidates(parseJS(code), ['MyAgent'])).toEqual(new Set(['MyAgent']));
+  });
+
+  it('returns nothing when no binding points at the configured name', async () => {
+    const code = "export * from './agent';";
     expect(collectAgentCandidates(parseJS(code), ['MyAgent'])).toEqual(new Set());
   });
 });

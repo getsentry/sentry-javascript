@@ -1,6 +1,6 @@
 import * as SentryCore from '@sentry/core';
 import * as SentryCoreServer from '@sentry/core/server';
-import { HTTPError } from 'h3';
+import { HTTPError } from 'nitro/h3';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { captureErrorHook } from '../../../src/runtime/hooks/captureErrorHook';
 

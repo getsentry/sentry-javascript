@@ -1,4 +1,4 @@
-import { SEMANTIC_ATTRIBUTE_EXCLUSIVE_TIME, SEMANTIC_ATTRIBUTE_PROFILE_ID } from '../semanticAttributes';
+import { SENTRY_PROFILE_ID, SENTRY_EXCLUSIVE_TIME } from '@sentry/conventions/attributes';
 import type { TransactionEvent } from '../types/event';
 import type { SpanJSON } from '../types/span';
 
@@ -19,8 +19,8 @@ export function convertTransactionEventToSpanJson(event: TransactionEvent): Span
     timestamp: event.timestamp,
     trace_id: trace_id ?? '',
     origin,
-    profile_id: data?.[SEMANTIC_ATTRIBUTE_PROFILE_ID] as string | undefined,
-    exclusive_time: data?.[SEMANTIC_ATTRIBUTE_EXCLUSIVE_TIME] as number | undefined,
+    profile_id: data?.[SENTRY_PROFILE_ID] as string | undefined,
+    exclusive_time: data?.[SENTRY_EXCLUSIVE_TIME] as number | undefined,
     measurements: event.measurements,
     is_segment: true,
   };
@@ -45,8 +45,8 @@ export function convertSpanJsonToTransactionEvent(span: SpanJSON): TransactionEv
         origin: span.origin,
         data: {
           ...span.data,
-          ...(span.profile_id && { [SEMANTIC_ATTRIBUTE_PROFILE_ID]: span.profile_id }),
-          ...(span.exclusive_time && { [SEMANTIC_ATTRIBUTE_EXCLUSIVE_TIME]: span.exclusive_time }),
+          ...(span.profile_id && { [SENTRY_PROFILE_ID]: span.profile_id }),
+          ...(span.exclusive_time && { [SENTRY_EXCLUSIVE_TIME]: span.exclusive_time }),
         },
       },
     },

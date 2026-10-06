@@ -1,12 +1,10 @@
+import { SENTRY_OP, SENTRY_ORIGIN } from '@sentry/conventions/attributes';
+import type { Client } from '@sentry/core';
 import * as SentryCore from '@sentry/core';
 import type { NumericRange, RequestEvent } from '@sveltejs/kit';
 import { error, redirect } from '@sveltejs/kit';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
-import {
-  SEMANTIC_ATTRIBUTE_SENTRY_OP,
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  wrapServerRouteWithSentry,
-} from '../../src/server';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { wrapServerRouteWithSentry } from '../../src/server';
 
 describe('wrapServerRouteWithSentry', () => {
   const originalRouteHandler = vi.fn();
@@ -36,10 +34,11 @@ describe('wrapServerRouteWithSentry', () => {
       expect(startSpanSpy).toHaveBeenCalledWith(
         {
           attributes: {
-            [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'function',
+            [SENTRY_OP]: 'function',
             'code.function.name': 'GET',
-            [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.sveltekit',
+            [SENTRY_ORIGIN]: 'auto.function.sveltekit',
             'http.request.method': 'GET',
+            'http.route': '/api/users/:id',
           },
           name: 'GET /api/users/:id',
           onlyIfParent: true,
@@ -58,9 +57,9 @@ describe('wrapServerRouteWithSentry', () => {
       expect(startSpanSpy).toHaveBeenCalledWith(
         {
           attributes: {
-            [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'function',
+            [SENTRY_OP]: 'function',
             'code.function.name': 'GET',
-            [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.sveltekit',
+            [SENTRY_ORIGIN]: 'auto.function.sveltekit',
             'http.request.method': 'GET',
           },
           name: 'GET Server Route',
@@ -70,6 +69,61 @@ describe('wrapServerRouteWithSentry', () => {
       );
 
       expect(originalRouteHandler).toHaveBeenCalledTimes(1);
+    });
+
+    describe('with span streaming enabled', () => {
+      beforeEach(() => {
+        vi.spyOn(SentryCore, 'getClient').mockImplementation(
+          () => ({ getOptions: () => ({ traceLifecycle: 'stream' }) }) as unknown as Client,
+        );
+      });
+
+      afterEach(() => {
+        vi.mocked(SentryCore.getClient).mockRestore();
+      });
+
+      it('names the span after the handler function and keeps the route in the description', () => {
+        const wrappedRouteHandler = wrapServerRouteWithSentry(originalRouteHandler);
+
+        wrappedRouteHandler(getRequestEventMock());
+
+        expect(startSpanSpy).toHaveBeenCalledWith(
+          {
+            attributes: {
+              [SENTRY_OP]: 'function',
+              'code.function.name': 'GET',
+              [SENTRY_ORIGIN]: 'auto.function.sveltekit',
+              'http.request.method': 'GET',
+              'http.route': '/api/users/:id',
+              'sentry.description': 'GET /api/users/:id',
+            },
+            name: 'GET',
+            onlyIfParent: true,
+          },
+          expect.any(Function),
+        );
+      });
+
+      it('keeps the generic description if the route id is not available', () => {
+        const wrappedRouteHandler = wrapServerRouteWithSentry(originalRouteHandler);
+
+        wrappedRouteHandler({ ...getRequestEventMock(), route: undefined } as unknown as RequestEvent);
+
+        expect(startSpanSpy).toHaveBeenCalledWith(
+          {
+            attributes: {
+              [SENTRY_OP]: 'function',
+              'code.function.name': 'GET',
+              [SENTRY_ORIGIN]: 'auto.function.sveltekit',
+              'http.request.method': 'GET',
+              'sentry.description': 'GET Server Route',
+            },
+            name: 'GET',
+            onlyIfParent: true,
+          },
+          expect.any(Function),
+        );
+      });
     });
   });
 

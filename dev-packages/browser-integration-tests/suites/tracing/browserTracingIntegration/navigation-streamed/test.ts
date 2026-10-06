@@ -1,13 +1,16 @@
 import { expect } from '@playwright/test';
+import { SDK_VERSION, SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE } from '@sentry/core';
 import {
-  SDK_VERSION,
-  SEMANTIC_ATTRIBUTE_SENTRY_ENVIRONMENT,
-  SEMANTIC_ATTRIBUTE_SENTRY_OP,
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE,
-  SEMANTIC_ATTRIBUTE_SENTRY_SDK_INTEGRATIONS,
-} from '@sentry/core';
-import { SENTRY_SEGMENT_NAME_SOURCE, SENTRY_TRACE_LIFECYCLE, URL_FULL, URL_PATH } from '@sentry/conventions/attributes';
+  SENTRY_SEGMENT_NAME_SOURCE,
+  SENTRY_TRACE_LIFECYCLE,
+  URL_FULL,
+  URL_PATH,
+  USER_AGENT_ORIGINAL,
+  SENTRY_ENVIRONMENT,
+  SENTRY_SDK_INTEGRATIONS,
+  SENTRY_OP,
+  SENTRY_ORIGIN,
+} from '@sentry/conventions/attributes';
 import { sentryTest } from '../../../../utils/fixtures';
 import { shouldSkipTracingTest } from '../../../../utils/helpers';
 import {
@@ -71,6 +74,7 @@ sentryTest('starts a streamed navigation span on page navigation', async ({ brow
 
   expect(navigationSpan).toEqual({
     attributes: {
+      'sentry.is_localhost': { value: false, type: 'boolean' },
       [SENTRY_TRACE_LIFECYCLE]: {
         type: 'string',
         value: 'stream',
@@ -87,7 +91,7 @@ sentryTest('starts a streamed navigation span on page navigation', async ({ brow
         type: 'string',
         value: expect.any(String),
       },
-      'http.request.header.user_agent': {
+      [USER_AGENT_ORIGINAL]: {
         type: 'string',
         value: expect.any(String),
       },
@@ -117,11 +121,11 @@ sentryTest('starts a streamed navigation span on page navigation', async ({ brow
         type: 'string',
         value: 'idleTimeout',
       },
-      [SEMANTIC_ATTRIBUTE_SENTRY_OP]: {
+      [SENTRY_OP]: {
         type: 'string',
         value: 'navigation',
       },
-      [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: {
+      [SENTRY_ORIGIN]: {
         type: 'string',
         value: 'auto.navigation.browser',
       },
@@ -141,7 +145,7 @@ sentryTest('starts a streamed navigation span on page navigation', async ({ brow
         type: 'string',
         value: SDK_VERSION,
       },
-      [SEMANTIC_ATTRIBUTE_SENTRY_SDK_INTEGRATIONS]: {
+      [SENTRY_SDK_INTEGRATIONS]: {
         type: 'array',
         value: expect.arrayContaining(['BrowserTracing', 'SpanStreaming']),
       },
@@ -157,7 +161,7 @@ sentryTest('starts a streamed navigation span on page navigation', async ({ brow
         type: 'string',
         value: 'url',
       },
-      [SEMANTIC_ATTRIBUTE_SENTRY_ENVIRONMENT]: {
+      [SENTRY_ENVIRONMENT]: {
         type: 'string',
         value: 'production',
       },
@@ -217,7 +221,7 @@ sentryTest('handles pushState with full URL', async ({ getLocalTestUrl, page }) 
       type: 'string',
       value: '/sub-page',
     },
-    [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: {
+    [SENTRY_ORIGIN]: {
       type: 'string',
       value: 'auto.navigation.browser',
     },
@@ -229,7 +233,7 @@ sentryTest('handles pushState with full URL', async ({ getLocalTestUrl, page }) 
       type: 'string',
       value: 'url',
     },
-    [SEMANTIC_ATTRIBUTE_SENTRY_OP]: {
+    [SENTRY_OP]: {
       type: 'string',
       value: 'navigation',
     },
@@ -246,7 +250,7 @@ sentryTest('handles pushState with full URL', async ({ getLocalTestUrl, page }) 
       type: 'string',
       value: '/sub-page-2',
     },
-    [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: {
+    [SENTRY_ORIGIN]: {
       type: 'string',
       value: 'auto.navigation.browser',
     },
@@ -258,7 +262,7 @@ sentryTest('handles pushState with full URL', async ({ getLocalTestUrl, page }) 
       type: 'string',
       value: 'url',
     },
-    [SEMANTIC_ATTRIBUTE_SENTRY_OP]: {
+    [SENTRY_OP]: {
       type: 'string',
       value: 'navigation',
     },

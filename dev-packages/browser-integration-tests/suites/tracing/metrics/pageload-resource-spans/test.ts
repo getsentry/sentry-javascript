@@ -1,6 +1,7 @@
+import { SENTRY_OP, SENTRY_ORIGIN } from '@sentry/conventions/attributes';
 import type { Route } from '@playwright/test';
 import { expect } from '@playwright/test';
-import { type Event, SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '@sentry/core';
+import { type Event } from '@sentry/core';
 import { sentryTest } from '../../../../utils/fixtures';
 import { getFirstSentryEnvelopeRequest, shouldSkipTracingTest } from '../../../../utils/helpers';
 
@@ -95,17 +96,19 @@ sentryTest('adds resource spans to pageload transaction', async ({ getLocalTestU
       'http.request.time_to_first_byte': expect.any(Number),
       'network.protocol.name': '',
       'network.protocol.version': 'unknown',
-      [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'resource.img',
-      [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.resource.browser.metrics',
+      [SENTRY_OP]: 'resource.img',
+      [SENTRY_ORIGIN]: 'auto.resource.browser.metrics',
       'server.address': 'sentry-test-site.example',
       'url.domain': 'sentry-test-site.example',
       'http.request.same_origin': false,
       'url.scheme': 'https',
       'url.full': 'https://sentry-test-site.example/path/to/image.svg',
+      // WebKit reports `deliveryType` as of Playwright 1.63's build, but still no response status
+      // or render blocking status.
+      'http.response_delivery_type': '',
       ...(!isWebkitRun && {
         'http.response.status_code': expect.any(Number),
         'resource.render_blocking_status': 'non-blocking',
-        'http.response_delivery_type': '',
       }),
     },
     description: 'https://sentry-test-site.example/path/to/image.svg',
@@ -119,10 +122,11 @@ sentryTest('adds resource spans to pageload transaction', async ({ getLocalTestU
     trace_id: traceId,
   });
 
-  // range check: TTFB must be >0 (at least in this case) and it's reasonable to
-  // assume <10 seconds. This also tests that we're reporting TTFB in seconds.
+  // range check: TTFB is reasonably <10 seconds, which is really a check that we report it in
+  // seconds rather than milliseconds. WebKit resolves these intercepted routes without measurable
+  // delay, so only the other engines are held to a non-zero value.
   const imgSpanTtfb = imgSpan?.data['http.request.time_to_first_byte'];
-  expect(imgSpanTtfb).toBeGreaterThan(0);
+  expect(imgSpanTtfb).toBeGreaterThan(isWebkitRun ? -1 : 0);
   expect(imgSpanTtfb).toBeLessThan(10);
 
   expect(linkSpan).toEqual({
@@ -145,17 +149,19 @@ sentryTest('adds resource spans to pageload transaction', async ({ getLocalTestU
       'http.request.time_to_first_byte': expect.any(Number),
       'network.protocol.name': '',
       'network.protocol.version': 'unknown',
-      [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'resource.link',
-      [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.resource.browser.metrics',
+      [SENTRY_OP]: 'resource.link',
+      [SENTRY_ORIGIN]: 'auto.resource.browser.metrics',
       'server.address': 'sentry-test-site.example',
       'url.domain': 'sentry-test-site.example',
       'http.request.same_origin': false,
       'url.scheme': 'https',
       'url.full': 'https://sentry-test-site.example/path/to/style.css',
+      // WebKit reports `deliveryType` as of Playwright 1.63's build, but still no response status
+      // or render blocking status.
+      'http.response_delivery_type': '',
       ...(!isWebkitRun && {
         'http.response.status_code': expect.any(Number),
         'resource.render_blocking_status': 'non-blocking',
-        'http.response_delivery_type': '',
       }),
     },
     description: 'https://sentry-test-site.example/path/to/style.css',
@@ -196,10 +202,12 @@ sentryTest('adds resource spans to pageload transaction', async ({ getLocalTestU
       'http.request.same_origin': false,
       'url.scheme': 'https',
       'url.full': 'https://sentry-test-site.example/path/to/script.js',
+      // WebKit reports `deliveryType` as of Playwright 1.63's build, but still no response status
+      // or render blocking status.
+      'http.response_delivery_type': '',
       ...(!isWebkitRun && {
         'http.response.status_code': expect.any(Number),
         'resource.render_blocking_status': 'non-blocking',
-        'http.response_delivery_type': '',
       }),
     },
     description: 'https://sentry-test-site.example/path/to/script.js',

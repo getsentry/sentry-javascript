@@ -8,4 +8,7 @@ Sentry.init({
   tracesSampleRate: 1.0,
   transport: loggingTransport,
   integrations: [Sentry.redisIntegration({ cachePrefixes: ['dc-cache:'] })],
+  ignoreSpans: process.env.IGNORE_CACHE_GET === 'true' ? [{ op: 'cache.get' }] : undefined,
+  // so the `ignored` span outcomes flush while the scenario is still running
+  clientReportFlushInterval: 1_000,
 });

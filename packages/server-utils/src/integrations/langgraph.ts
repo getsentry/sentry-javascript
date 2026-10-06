@@ -1,6 +1,6 @@
-import * as diagnosticsChannel from 'node:diagnostics_channel';
+import * as diagnosticsChannel from '../utils/diagnosticsChannel';
 import type { IntegrationFn } from '@sentry/core';
-import { debug, defineIntegration } from '@sentry/core';
+import { debug, defineIntegration, isObjectLike } from '@sentry/core';
 import { resolveAIRecordingOptions } from '../ai/core/utils';
 import { createLangChainCallbackHandler } from '../ai/langchain';
 import { instrumentCompiledGraphInvoke, instrumentCompiledGraphStream } from '../ai/langgraph';
@@ -95,7 +95,7 @@ function instrumentLanggraph(options: LangGraphOptions): void {
 function getFirstArgObject(args: unknown[] | undefined): Record<string, unknown> | undefined {
   const first = (args ?? [])[0];
 
-  return typeof first === 'object' && first !== null ? (first as Record<string, unknown>) : undefined;
+  return isObjectLike(first) ? first : undefined;
 }
 
 /**

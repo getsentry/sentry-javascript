@@ -1,12 +1,13 @@
-import * as diagnosticsChannel from 'node:diagnostics_channel';
+import * as diagnosticsChannel from '../../utils/diagnosticsChannel';
 import type { IntegrationFn, Span } from '@sentry/core';
-import { defineIntegration, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, startInactiveSpan } from '@sentry/core';
+import { defineIntegration, startInactiveSpan } from '@sentry/core';
 import {
   _AWS_REQUEST_ID as AWS_REQUEST_ID,
   AWS_REQUEST_EXTENDED_ID,
   CLOUD_REGION,
   SENTRY_KIND,
   HTTP_RESPONSE_STATUS_CODE,
+  SENTRY_ORIGIN,
 } from '@sentry/conventions/attributes';
 import { RPC } from '@sentry/conventions/op';
 import { CHANNELS } from '../../orchestrion/channels';
@@ -111,7 +112,7 @@ function instrumentAwsSdk(servicesExtensions: ServicesExtensions): void {
         op: requestMetadata.spanOp || RPC,
         attributes: {
           [SENTRY_KIND]: 'client',
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: AWS_SDK_ORIGIN,
+          [SENTRY_ORIGIN]: AWS_SDK_ORIGIN,
           ...extractAttributesFromNormalizedRequest(normalizedRequest),
           ...requestMetadata.spanAttributes,
         },

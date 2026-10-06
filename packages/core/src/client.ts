@@ -20,7 +20,7 @@ import type { EventDropReason, Outcome } from './types/clientreport';
 import type { DataCategory } from './types/datacategory';
 import type { DsnComponents } from './types/dsn';
 import type { DynamicSamplingContext, Envelope } from './types/envelope';
-import type { ErrorEvent, Event, EventHint, EventType, TransactionEvent } from './types/event';
+import type { ErrorEvent, Event, EventHint, TransactionEvent } from './types/event';
 import type { EventProcessor } from './types/eventprocessor';
 import type { FeedbackEvent } from './types/feedback';
 import type { Integration } from './types/integration';
@@ -41,7 +41,7 @@ import type { ResolvedDataCollection } from './types/datacollection';
 import { createClientReportEnvelope } from './utils/clientreport';
 import { consoleSandbox, debug } from './utils/debug-logger';
 import { dsnToString, makeDsn } from './utils/dsn';
-import { addItemToEnvelope, createAttachmentEnvelopeItem } from './utils/envelope';
+import { addItemToEnvelope, createAttachmentEnvelopeItem, getDataCategoryByType } from './utils/envelope';
 import { getPossibleEventMessages } from './utils/eventUtils';
 import { isObjectLike, isParameterizedString, isPlainObject, isPrimitive, isThenable } from './utils/is';
 import { merge } from './utils/merge';
@@ -50,6 +50,7 @@ import { parseSampleRate } from './utils/parseSampleRate';
 import { prepareEvent } from './utils/prepareEvent';
 import { makePromiseBuffer, type PromiseBuffer, SENTRY_BUFFER_FULL_ERROR } from './utils/promisebuffer';
 import { safeMathRandom } from './utils/randomSafeContext';
+import { safeCallback } from './utils/safeCallback';
 import { reparentChildSpans, shouldIgnoreSpan } from './utils/should-ignore-span';
 import { safeUnref } from './utils/timer';
 import { convertSpanJsonToTransactionEvent, convertTransactionEventToSpanJson } from './utils/transactionEvent';
@@ -65,6 +66,20 @@ const DO_NOT_SEND_EVENT_SYMBOL = Symbol.for('SentryDoNotSendEventError');
 
 // Default interval for flushing logs and metrics (5 seconds)
 const DEFAULT_FLUSH_INTERVAL = 5000;
+
+// Clones of a scope keep their own reference to its client, so unbinding a
+// closed client from one scope does not reach the others. The mark lives on
+// the client under a `Symbol.for` key, so every copy of the SDK can read it.
+const CLOSED_CLIENT_SYMBOL = Symbol.for('SentryClosedClient');
+
+/**
+ * Whether `close()` was called on the given client.
+ *
+ * @hidden
+ */
+export function isClientClosed(client: Client): boolean {
+  return CLOSED_CLIENT_SYMBOL in client;
+}
 
 interface InternalError {
   message: string;
@@ -487,6 +502,7 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
    */
   // @ts-expect-error - PromiseLike is a subset of Promise
   public async close(timeout?: number): PromiseLike<boolean> {
+    Object.defineProperty(this, CLOSED_CLIENT_SYMBOL, { value: true });
     const result = await this.flush(timeout);
     this.getOptions().enabled = false;
     this.emit('close');
@@ -1514,6 +1530,7 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
     const isError = isErrorEvent(event);
     const eventType = event.type || 'error';
     const beforeSendLabel = `before send for type \`${eventType}\``;
+    let beforeSendDropReason: 'before_send' | 'callback_error' = 'before_send';
 
     // 1.0 === 100% events are sent
     // 0.0 === 0% events are sent
@@ -1524,7 +1541,6 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
     return this._prepareEvent(event, hint, currentScope, isolationScope)
       .then(prepared => {
         if (prepared === null) {
-          this.recordDroppedEvent('event_processor', dataCategory);
           throw _makeDoNotSendEventError('An event processor returned `null`, will not send event.');
         }
 
@@ -1533,19 +1549,21 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
           return prepared;
         }
 
-        const result = processBeforeSend(this, options, prepared, hint);
+        const result = processBeforeSend(this, options, prepared, hint, () => {
+          beforeSendDropReason = 'callback_error';
+        });
         return _validateBeforeSendResult(result, beforeSendLabel);
       })
       .then(processedEvent => {
         if (processedEvent === null) {
-          this.recordDroppedEvent('before_send', dataCategory);
+          this.recordDroppedEvent(beforeSendDropReason, dataCategory);
           if (isTransaction) {
             const spans = event.spans || [];
             // the transaction itself counts as one span, plus all the child spans that are added
-            const spanCount = 1 + spans.length;
-            this.recordDroppedEvent('before_send', 'span', spanCount);
+            this.recordDroppedEvent(beforeSendDropReason, 'span', 1 + spans.length);
           }
-          throw _makeDoNotSendEventError(`${beforeSendLabel} returned \`null\`, will not send event.`);
+          const dropMessage = beforeSendDropReason === 'callback_error' ? 'threw an error' : 'returned `null`';
+          throw _makeDoNotSendEventError(`${beforeSendLabel} ${dropMessage}, will not send event.`);
         }
 
         const session = currentScope.getSession() || isolationScope.getSession();
@@ -1688,10 +1706,6 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
   ): PromiseLike<Event>;
 }
 
-function getDataCategoryByType(type: EventType | 'replay_event' | undefined): DataCategory {
-  return type === 'replay_event' ? 'replay' : type || 'error';
-}
-
 /**
  * Verifies that return value of configured `beforeSend` or `beforeSendTransaction` is of expected type, and returns the value if so.
  */
@@ -1726,6 +1740,7 @@ function processBeforeSend(
   options: ClientOptions,
   event: Event,
   hint: EventHint,
+  onCallbackError: () => void,
 ): PromiseLike<Event | null> | Event | null {
   const {
     beforeSend,
@@ -1738,7 +1753,15 @@ function processBeforeSend(
   let processedEvent = event;
 
   if (isErrorEvent(processedEvent) && beforeSend) {
-    return beforeSend(processedEvent, hint);
+    const errorEvent = processedEvent;
+    return safeCallback(
+      DEBUG_BUILD ? 'The `beforeSend` callback threw an error, dropping the event:' : '',
+      () => beforeSend(errorEvent, hint),
+      () => {
+        onCallbackError();
+        return null;
+      },
+    );
   }
 
   if (isTransactionEvent(processedEvent)) {
@@ -1809,7 +1832,14 @@ function processBeforeSend(
           spanCountBeforeProcessing: spanCountBefore,
         };
       }
-      return beforeSendTransaction(processedEvent as TransactionEvent, hint);
+      return safeCallback(
+        DEBUG_BUILD ? 'The `beforeSendTransaction` callback threw an error, dropping the event:' : '',
+        () => beforeSendTransaction(processedEvent as TransactionEvent, hint),
+        () => {
+          onCallbackError();
+          return null;
+        },
+      );
     }
   }
 

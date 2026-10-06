@@ -2,7 +2,7 @@ import type { Transport } from '@sentry/core';
 import * as Sentry from '@sentry/node';
 import type { NodeClientOptions } from '@sentry/node/build/types/types';
 import { CpuProfilerBindings } from '@sentry/node-cpu-profiler';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { _nodeProfilingIntegration } from '../src/integration';
 import { NODE_VERSION } from '../src/nodeVersion';
 
@@ -31,6 +31,10 @@ function makeSpanProfilingClient(options: Partial<NodeClientOptions> = {}): [Sen
 const wait = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
 describe('ProfilingIntegration', () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
   describe('manual continuous profiling', () => {
     it('start and stops a profile session', () => {
       const [client] = makeSpanProfilingClient({
@@ -139,6 +143,32 @@ describe('ProfilingIntegration', () => {
           profile: expect.objectContaining({
             stacks: expect.any(Array),
           }),
+        });
+      });
+
+      it('emits the `beforeEnvelope` hook for profile chunks', async () => {
+        const [client, transport] = makeSpanProfilingClient({
+          profileLifecycle: 'manual',
+          profileSessionSampleRate: 1,
+        });
+
+        Sentry.setCurrentClient(client);
+        client.init();
+
+        vi.spyOn(transport, 'send').mockReturnValue(Promise.resolve({}));
+
+        const beforeEnvelope = vi.fn();
+        client.on('beforeEnvelope', beforeEnvelope);
+
+        Sentry.profiler.startProfiler();
+        await wait(1000);
+        Sentry.profiler.stopProfiler();
+
+        await Sentry.flush(1000);
+
+        expect(beforeEnvelope).toHaveBeenCalledTimes(1);
+        expect(beforeEnvelope.mock.calls[0]?.[0]?.[1]?.[0]?.[0]).toMatchObject({
+          type: 'profile_chunk',
         });
       });
     });

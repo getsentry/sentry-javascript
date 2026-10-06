@@ -1,19 +1,19 @@
 import { expect } from '@playwright/test';
+import { SDK_VERSION } from '@sentry/core';
 import {
-  SDK_VERSION,
-  SEMANTIC_ATTRIBUTE_SENTRY_ENVIRONMENT,
-  SEMANTIC_ATTRIBUTE_SENTRY_IDLE_SPAN_FINISH_REASON,
-  SEMANTIC_ATTRIBUTE_SENTRY_OP,
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  SEMANTIC_ATTRIBUTE_SENTRY_SDK_INTEGRATIONS,
-} from '@sentry/core';
-import {
+  SENTRY_IDLE_SPAN_FINISH_REASON,
   SENTRY_SEGMENT_ID,
   SENTRY_SEGMENT_NAME,
   SENTRY_SEGMENT_NAME_SOURCE,
   SENTRY_SDK_NAME,
   SENTRY_SDK_VERSION,
   SENTRY_TRACE_LIFECYCLE,
+  USER_AGENT_ORIGINAL,
+  URL_PATH,
+  SENTRY_ENVIRONMENT,
+  SENTRY_SDK_INTEGRATIONS,
+  SENTRY_OP,
+  SENTRY_ORIGIN,
 } from '@sentry/conventions/attributes';
 import { sentryTest } from '../../../../utils/fixtures';
 import { shouldSkipTracingTest } from '../../../../utils/helpers';
@@ -45,6 +45,7 @@ sentryTest('captures streamed interaction span tree. @firefox', async ({ browser
 
   expect(interactionSegmentSpan).toEqual({
     attributes: {
+      'sentry.is_localhost': { value: false, type: 'boolean' },
       [SENTRY_TRACE_LIFECYCLE]: {
         type: 'string',
         value: 'stream',
@@ -61,7 +62,7 @@ sentryTest('captures streamed interaction span tree. @firefox', async ({ browser
         type: 'string',
         value: expect.any(String),
       },
-      'http.request.header.user_agent': {
+      [USER_AGENT_ORIGINAL]: {
         type: 'string',
         value: expect.any(String),
       },
@@ -69,15 +70,19 @@ sentryTest('captures streamed interaction span tree. @firefox', async ({ browser
         type: 'string',
         value: expect.any(String),
       },
-      [SEMANTIC_ATTRIBUTE_SENTRY_IDLE_SPAN_FINISH_REASON]: {
+      [URL_PATH]: {
+        type: 'string',
+        value: '/index.html',
+      },
+      [SENTRY_IDLE_SPAN_FINISH_REASON]: {
         type: 'string',
         value: 'idleTimeout',
       },
-      [SEMANTIC_ATTRIBUTE_SENTRY_OP]: {
+      [SENTRY_OP]: {
         type: 'string',
         value: 'ui.action.click',
       },
-      [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: {
+      [SENTRY_ORIGIN]: {
         type: 'string',
         value: 'auto.browser.interactions',
       },
@@ -89,7 +94,7 @@ sentryTest('captures streamed interaction span tree. @firefox', async ({ browser
         type: 'string',
         value: SDK_VERSION,
       },
-      [SEMANTIC_ATTRIBUTE_SENTRY_SDK_INTEGRATIONS]: {
+      [SENTRY_SDK_INTEGRATIONS]: {
         type: 'array',
         value: expect.arrayContaining(['BrowserTracing', 'SpanStreaming']),
       },
@@ -99,21 +104,20 @@ sentryTest('captures streamed interaction span tree. @firefox', async ({ browser
       },
       [SENTRY_SEGMENT_NAME]: {
         type: 'string',
-        value: 'Pageload',
+        value: 'Click',
       },
       [SENTRY_SEGMENT_NAME_SOURCE]: {
         type: 'string',
-        value: 'url',
+        value: 'custom',
       },
-      [SEMANTIC_ATTRIBUTE_SENTRY_ENVIRONMENT]: {
+      [SENTRY_ENVIRONMENT]: {
         type: 'string',
         value: 'production',
       },
     },
     end_timestamp: expect.any(Number),
     is_segment: true,
-    // Interaction spans are named after the current route, which is the pageload span's name.
-    name: 'Pageload',
+    name: 'Click',
     span_id: interactionSegmentSpan!.span_id,
     start_timestamp: expect.any(Number),
     status: 'ok',
@@ -126,15 +130,20 @@ sentryTest('captures streamed interaction span tree. @firefox', async ({ browser
   const interactionSpan = interactionSpanTree.find(span => getSpanOp(span) === 'ui.interaction.click');
   expect(interactionSpan).toEqual({
     attributes: {
+      'sentry.is_localhost': { value: false, type: 'boolean' },
       [SENTRY_TRACE_LIFECYCLE]: {
         type: 'string',
         value: 'stream',
       },
-      [SEMANTIC_ATTRIBUTE_SENTRY_OP]: {
+      [SENTRY_OP]: {
         type: 'string',
         value: 'ui.interaction.click',
       },
-      [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: {
+      [USER_AGENT_ORIGINAL]: {
+        type: 'string',
+        value: expect.any(String),
+      },
+      [SENTRY_ORIGIN]: {
         type: 'string',
         value: 'auto.browser.interactions',
       },
@@ -152,16 +161,20 @@ sentryTest('captures streamed interaction span tree. @firefox', async ({ browser
       },
       [SENTRY_SEGMENT_NAME]: {
         type: 'string',
-        value: 'Pageload',
+        value: 'Click',
       },
-      [SEMANTIC_ATTRIBUTE_SENTRY_ENVIRONMENT]: {
+      [SENTRY_ENVIRONMENT]: {
         type: 'string',
         value: 'production',
+      },
+      'browser.web_vital.inp.target': {
+        type: 'string',
+        value: 'body > button.clicked',
       },
     },
     end_timestamp: expect.any(Number),
     is_segment: false,
-    name: 'body > button.clicked',
+    name: 'Click',
     parent_span_id: interactionSegmentSpan!.span_id,
     span_id: expect.stringMatching(/^[\da-f]{16}$/),
     start_timestamp: expect.any(Number),

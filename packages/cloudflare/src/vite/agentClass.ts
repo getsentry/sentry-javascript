@@ -80,21 +80,25 @@ export async function detectAgentClasses(
 }
 
 /**
- * The local class names in the entry that a configured class name could refer to — either declared
- * under that name directly, or aliased to it by an `export { Local as Configured }` specifier.
+ * The entry-module binding names a configured class name could refer to — a class declared under
+ * that name, an import of it from another module, a `export { X } from './x'` re-export, or the
+ * local binding an `export { Local as Configured }` specifier aliases.
  *
- * Keeps detection (which reads and scans other modules) off classes that no binding points at.
+ * Keeps detection (which reads and scans other modules) off names no binding points at.
  */
 export function collectAgentCandidates(ast: ProgramBody, configuredNames: Iterable<string>): Set<string> {
   const shape = shapeFromAst(ast);
   const candidates = new Set<string>();
 
+  const isResolvable = (name: string): boolean =>
+    shape.classes.has(name) || shape.imports.has(name) || shape.reexports.has(name);
+
   for (const configured of configuredNames) {
-    if (shape.classes.has(configured)) {
+    if (isResolvable(configured)) {
       candidates.add(configured);
     }
     const local = shape.localExports.get(configured);
-    if (local && shape.classes.has(local)) {
+    if (local && isResolvable(local)) {
       candidates.add(local);
     }
   }

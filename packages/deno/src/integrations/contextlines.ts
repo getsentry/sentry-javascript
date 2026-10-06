@@ -3,7 +3,7 @@ import { addContextToFrame, defineIntegration, LRUMap } from '@sentry/core';
 
 const INTEGRATION_NAME = 'ContextLines' as const;
 const FILE_CONTENT_CACHE = new LRUMap<string, string | null>(100);
-const DEFAULT_LINES_OF_CONTEXT = 7;
+const DEFAULT_LINES_OF_CONTEXT = 5;
 
 /**
  * Resets the file cache. Exists for testing purposes.
@@ -36,11 +36,10 @@ async function readSourceFile(filename: string): Promise<string | null> {
   return content;
 }
 
-// TODO(v11): Use `dataCollection.frameContextLines` default (5)
 interface ContextLinesOptions {
   /**
    * Sets the number of context lines for each frame when loading a file.
-   * Defaults to 7.
+   * Defaults to `dataCollection.frameContextLines` (5).
    *
    * Set to 0 to disable loading and inclusion of source files.
    *

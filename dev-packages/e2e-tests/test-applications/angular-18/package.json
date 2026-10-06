@@ -29,7 +29,7 @@
     "zone.js": "~0.14.3"
   },
   "devDependencies": {
-    "@playwright/test": "~1.56.0",
+    "@playwright/test": "~1.63.0",
     "@sentry-internal/test-utils": "link:../../../test-utils",
     "@sentry/core": "file:../../packed/sentry-core-packed.tgz",
     "@angular-devkit/build-angular": "^18.0.0",

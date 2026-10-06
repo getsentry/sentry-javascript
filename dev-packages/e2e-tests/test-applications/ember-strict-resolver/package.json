@@ -14,7 +14,7 @@
     "test:assert:streamed": "E2E_TEST_TRACE_LIFECYCLE=stream pnpm run test"
   },
   "devDependencies": {
-    "@playwright/test": "~1.56.0",
+    "@playwright/test": "~1.63.0",
     "@babel/core": "^7.29.0",
     "@babel/plugin-transform-typescript": "^7.28.6",
     "@babel/runtime": "^7.29.2",
@@ -41,6 +41,14 @@
   },
   "ember": {
     "edition": "octane"
+  },
+  "pnpm": {
+    "overrides": {
+      "@embroider/vite@1.7.14": "1.7.13",
+      "@embroider/macros@1.21.2": "1.21.1",
+      "@embroider/core@4.6.8": "4.6.7",
+      "@embroider/compat@4.1.26": "4.1.25"
+    }
   },
   "volta": {
     "extends": "../../package.json"

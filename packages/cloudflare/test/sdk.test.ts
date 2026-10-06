@@ -151,6 +151,45 @@ describe('cacheClient', () => {
     expect(getClient()).toBe(cached);
   });
 
+  test('sets up a new cached client after close()', async () => {
+    const options = {
+      dsn: 'https://public@dsn.ingest.sentry.io/1337',
+    } as const;
+
+    const first = init({ ...options });
+    await SentryCore.close();
+    const second = init({ ...options });
+
+    expect(second).not.toBe(first);
+    expect(second?.getOptions().enabled).not.toBe(false);
+    expect(getClient()).toBe(second);
+    expect(init({ ...options })).toBe(second);
+  });
+
+  test('sets up a new cached client while the cached client is closing', async () => {
+    const options = {
+      dsn: 'https://public@dsn.ingest.sentry.io/1337',
+    } as const;
+
+    const first = init({ ...options });
+    const closing = first!.close();
+    const second = init({ ...options });
+    await closing;
+
+    expect(second).not.toBe(first);
+    expect(second?.getOptions().enabled).not.toBe(false);
+    expect(init({ ...options })).toBe(second);
+  });
+
+  test('keeps the cached client when a client that is not cached closes', async () => {
+    const cached = init({ dsn: 'https://public@dsn.ingest.sentry.io/1337' });
+    const uncached = init({ dsn: 'https://public@dsn.ingest.sentry.io/1337', cacheClient: false });
+
+    await uncached?.close();
+
+    expect(init({ dsn: 'https://public@dsn.ingest.sentry.io/1337' })).toBe(cached);
+  });
+
   test('caches a client without a DSN and reuses it', () => {
     // A disabled (DSN-less) client is still created once per isolate, not per invocation.
     const first = init({});
@@ -187,6 +226,26 @@ describe('cacheClient', () => {
     await client!.sendEnvelope(TEST_ENVELOPE);
 
     expect(flushSpy).toHaveBeenCalled();
+  });
+
+  test('does not warn about a repeated init when cacheClient is disabled', () => {
+    const originalWarn = SentryCore.originalConsoleMethods.warn;
+    const warn = vi.fn();
+    SentryCore.originalConsoleMethods.warn = warn;
+
+    try {
+      const first = init({ dsn: 'https://public@dsn.ingest.sentry.io/1337', cacheClient: false });
+      const second = init({ dsn: 'https://public@dsn.ingest.sentry.io/1337', cacheClient: false });
+
+      expect(second).not.toBe(first);
+      expect(warn).not.toHaveBeenCalled();
+    } finally {
+      if (originalWarn) {
+        SentryCore.originalConsoleMethods.warn = originalWarn;
+      } else {
+        delete SentryCore.originalConsoleMethods.warn;
+      }
+    }
   });
 
   test('does not flush eagerly when cacheClient is disabled', async () => {
@@ -343,6 +402,7 @@ describe('getDefaultIntegrations', () => {
   });
 
   test('installs an integration registered after init via the module-injected event', async () => {
+    resetSdk();
     const { mysqlIntegration } = await import('@sentry/server-utils');
     const client = init({});
     expect(client?.getIntegrationByName('Mysql')).toBeUndefined();

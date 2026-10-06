@@ -1,99 +1,58 @@
 import { expect, test } from '@playwright/test';
-import { waitForTransaction } from '@sentry-internal/test-utils';
+import { getSpanOp, waitForStreamedSpan } from '@sentry-internal/test-utils';
 
-test('captures a pageload transaction', async ({ page }) => {
-  const transactionPromise = waitForTransaction('default-browser', async transactionEvent => {
-    return !!transactionEvent?.transaction && transactionEvent.contexts?.trace?.op === 'pageload';
+test('captures a pageload span', async ({ page }) => {
+  const spanPromise = waitForStreamedSpan('default-browser', span => {
+    return getSpanOp(span) === 'pageload' && span.is_segment;
   });
 
   await page.goto(`/`);
 
-  const pageLoadTransaction = await transactionPromise;
+  const span = await spanPromise;
 
-  expect(pageLoadTransaction).toMatchObject({
-    contexts: {
-      trace: {
-        data: expect.objectContaining({
-          'sentry.idle_span_finish_reason': 'idleTimeout',
-          'sentry.op': 'pageload',
-          'sentry.origin': 'auto.pageload.browser',
-          'sentry.sample_rate': 1,
-          'sentry.segment.name.source': 'url',
-          'url.full': 'http://localhost:3030/',
-          'url.path': '/',
-        }),
-        op: 'pageload',
-        origin: 'auto.pageload.browser',
-        span_id: expect.stringMatching(/[a-f0-9]{16}/),
-        trace_id: expect.stringMatching(/[a-f0-9]{32}/),
-      },
-    },
-    environment: 'qa',
-    event_id: expect.stringMatching(/[a-f0-9]{32}/),
-    measurements: expect.any(Object),
-    platform: 'javascript',
-    release: 'e2e-test',
-    request: {
-      headers: {
-        'User-Agent': expect.any(String),
-      },
-      url: 'http://localhost:3030/',
-    },
-    sdk: {
-      integrations: expect.any(Array),
-      name: 'sentry.javascript.browser',
-      packages: [
-        {
-          name: 'npm:@sentry/browser',
-          version: expect.any(String),
-        },
-      ],
-      version: expect.any(String),
-    },
-    spans: expect.any(Array),
-    start_timestamp: expect.any(Number),
-    timestamp: expect.any(Number),
-    transaction: '/',
-    transaction_info: {
-      source: 'url',
-    },
-    type: 'transaction',
+  expect(span.name).toBe('Pageload');
+  expect(span.status).toBe('ok');
+  expect(span.span_id).toMatch(/[a-f0-9]{16}/);
+  expect(span.trace_id).toMatch(/[a-f0-9]{32}/);
+  expect(span.attributes).toMatchObject({
+    'sentry.idle_span_finish_reason': { value: 'idleTimeout', type: 'string' },
+    'sentry.op': { value: 'pageload', type: 'string' },
+    'sentry.origin': { value: 'auto.pageload.browser', type: 'string' },
+    'sentry.sample_rate': { value: 1, type: 'integer' },
+    'sentry.segment.name.source': { value: 'url', type: 'string' },
+    'url.full': { value: 'http://localhost:3030/', type: 'string' },
+    'url.path': { value: '/', type: 'string' },
   });
 });
 
-test('captures a navigation transaction', async ({ page }) => {
+test('captures a navigation span', async ({ page }) => {
   page.on('console', msg => console.log(msg.text()));
-  const pageLoadTransactionPromise = waitForTransaction('default-browser', async transactionEvent => {
-    return !!transactionEvent?.transaction && transactionEvent.contexts?.trace?.op === 'pageload';
+  const pageloadSpanPromise = waitForStreamedSpan('default-browser', span => {
+    return getSpanOp(span) === 'pageload' && span.is_segment;
   });
 
-  const navigationTransactionPromise = waitForTransaction('default-browser', async transactionEvent => {
-    return !!transactionEvent?.transaction && transactionEvent.contexts?.trace?.op === 'navigation';
+  const navigationSpanPromise = waitForStreamedSpan('default-browser', span => {
+    return getSpanOp(span) === 'navigation' && span.is_segment;
   });
 
   await page.goto(`/`);
-  await pageLoadTransactionPromise;
+  await pageloadSpanPromise;
 
   const linkElement = page.locator('id=navigation-link');
 
   await linkElement.click();
 
-  const navigationTransaction = await navigationTransactionPromise;
+  const navigationSpan = await navigationSpanPromise;
 
-  expect(navigationTransaction).toMatchObject({
-    contexts: {
-      trace: {
-        op: 'navigation',
-        origin: 'auto.navigation.browser',
-        data: expect.objectContaining({
-          'url.full': 'http://localhost:3030/#navigation-target',
-          'url.path': '/',
-        }),
-      },
-    },
-    transaction: '/',
-    transaction_info: {
-      source: 'url',
-    },
+  expect(navigationSpan.name).toBe('Navigation');
+  expect(navigationSpan.status).toBe('ok');
+  expect(navigationSpan.span_id).toMatch(/[a-f0-9]{16}/);
+  expect(navigationSpan.trace_id).toMatch(/[a-f0-9]{32}/);
+  expect(navigationSpan.attributes).toMatchObject({
+    'sentry.op': { value: 'navigation', type: 'string' },
+    'sentry.origin': { value: 'auto.navigation.browser', type: 'string' },
+    'sentry.segment.name.source': { value: 'url', type: 'string' },
+    'url.full': { value: 'http://localhost:3030/#navigation-target', type: 'string' },
+    'url.path': { value: '/', type: 'string' },
   });
 });

@@ -1,4 +1,4 @@
-import { type Integration } from '@sentry/core';
+import { getCurrentScope, type Integration } from '@sentry/core';
 import * as sentryServerUtils from '@sentry/server-utils';
 import type { Mock } from 'bun:test';
 import { afterEach, beforeEach, describe, expect, it, mock, spyOn } from 'bun:test';
@@ -25,6 +25,7 @@ describe('init()', () => {
   let mockGetTracingIntegrations: Mock<() => Integration[]>;
 
   beforeEach(() => {
+    getCurrentScope().setClient(undefined);
     mockGetTracingIntegrations = spyOn(sentryServerUtils, 'getTracingIntegrations');
   });
 
@@ -126,6 +127,20 @@ describe('init()', () => {
       expect(integrations?.map(({ name }) => name)).toContain('Performance integration');
       expect(integrations?.map(({ name }) => name)).toContain('Some mock integration 4.1');
       expect(integrations?.map(({ name }) => name)).toContain('Some mock integration 4.3');
+    });
+  });
+
+  describe('runtime', () => {
+    it('defaults to bun', () => {
+      init({ dsn: PUBLIC_DSN, traceLifecycle: 'static' });
+
+      expect(getClient()?.getOptions().runtime).toEqual({ name: 'bun', version: Bun.version });
+    });
+
+    it('respects a runtime provided through options', () => {
+      init({ dsn: PUBLIC_DSN, traceLifecycle: 'static', runtime: { name: 'node', version: '20.0.0' } });
+
+      expect(getClient()?.getOptions().runtime).toEqual({ name: 'node', version: '20.0.0' });
     });
   });
 

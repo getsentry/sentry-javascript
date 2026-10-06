@@ -187,7 +187,7 @@ describe('instrumentGoogleGenAIClient chat config propagation', () => {
     expect(data[GEN_AI_TOOL_DEFINITIONS]).toBe('[{"name":"getWeather"}]');
     expect(data[GEN_AI_SYSTEM_INSTRUCTIONS]).toBe('[{"type":"text","content":"You are a friendly robot."}]');
     // The chat message stays as the only input message; the system instruction is split out above.
-    expect(data[GEN_AI_INPUT_MESSAGES]).toBe('[{"role":"user","content":"Tell me a joke"}]');
+    expect(data[GEN_AI_INPUT_MESSAGES]).toBe('[{"role":"user","parts":[{"type":"text","content":"Tell me a joke"}]}]');
   });
 
   it('reports the chat config on chat.sendMessageStream() spans', async () => {

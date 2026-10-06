@@ -29,7 +29,7 @@ These are non-negotiable. Every one of them was arrived at by rejecting the alte
 1. **Gate on span streaming at each site.** `hasSpanStreamingEnabled(client)` (from `@sentry/core`) must appear inline where the name is chosen, so a reader can see the gate without following a call chain. Never gate centrally.
 2. **Set the low-cardinality name when the span _starts_** — and at every later site that could write a high-cardinality name onto it. Never rewrite names retroactively (not in `captureSpan`, not in `spanToJSON`, not in a `processSpan`/`preprocessSpan` hook). A span must never carry a raw URL.
 3. **Check span name updates** to ensure every name update is low-cardinality if span streaming is enabled.
-4. **Only the name changes.** Do not touch `sentry.source`, `url.template`, `http.route`, or any other attribute. They keep describing where the name came from.
+4. **Only the name and its description change.** Do not touch `sentry.source`, `url.template`, `http.route`, or any other attribute — they keep describing where the name came from. The two exceptions are `sentry.description` and the single attribute the op's description template reads (see step 1); both exist to preserve what the name gave up.
 5. **Do not derive the name from attributes in code.** The conventions describe names as attribute templates, but you implement them by reusing the value the site _already_ has for `url.template` / `http.route`. No attribute lookups, no generic template resolver.
 6. **No helpers, no abstraction.** An inline ternary at each site. A shared `const` for the fallback string is fine (and required, see rule 6); a function that sets names or attributes is not.
 7. **The fallback must never reach `scope.setTransactionName`.** The scope's transaction name is what error events are grouped by, so it keeps the raw URL or the parameterized route — never `Pageload`/`Navigation`/etc. Export the fallback as a constant from `packages/core/src/tracing/spans/spanNames.ts` so the guard cannot drift.
@@ -41,13 +41,39 @@ Read <https://getsentry.github.io/sentry-conventions/names/> and find the op. Ea
 
 Add it next to `PAGELOAD_SPAN_NAME_FALLBACK` in `packages/core/src/tracing/spans/spanNames.ts` and export it from `shared-exports.ts`. Every package imports it from `@sentry/core` directly — no re-export from `@sentry/browser` is needed.
 
+### Then look up the description rules
+
+The name is only half the contract. Relay re-derives a span's **description** from its attributes using the [span description rules](https://getsentry.github.io/sentry-conventions/descriptions/) — a separate, much shorter set of templates from the name rules. `function`, for example, has exactly one (`{{code.function.name}}`) and no static fallback, so a `function` span with no `code.function.name` gets no inferred description at all.
+
+Renaming a span therefore drops information unless you check what the op's description template can still produce. For each site, in this order:
+
+1. **The template rebuilds the old name from attributes the site already sets** — do nothing, Relay infers it.
+2. **It rebuilds it from an attribute the site could legitimately set** — set that attribute. Only when the value genuinely describes the span, never to smuggle the old name into an attribute that means something else.
+3. **It cannot** — set `sentry.description` (`SENTRY_DESCRIPTION` from `@sentry/conventions/attributes`) to the name the span had before.
+
+Case 3 must only be applied if case 1 or 2 do not work for the span: the templates are generic, and most old names were framework-specific strings the conventions cannot express (`serverAction/updateUser`, `Scheduled Cron */5 * * * *`, `Fetcher fetcher-1`).
+
+```ts
+// Relay infers a `function` span's description from `code.function.name` alone, which drops the route.
+...(hasSpanStreaming && { [SENTRY_DESCRIPTION]: routePattern }),
+```
+
+Two constraints on the description:
+
+- **Set it on the streaming branch only**, gated by the same `hasSpanStreamingEnabled` check as the name. In transaction mode the description already equals the name, and writing it changes nothing.
+- **Descriptions may be high cardinality** — the `http.server` templates end in `url.full`. The raw URL, route or id that the name gave up belongs here. This is the one place the cardinality rule does not apply.
+
 ## 2. Find every site that names a span with this op
 
 Be exhaustive; a missed site is a raw URL in production.
 
+Most sites set the op to the constant from `@sentry/conventions/op` (`FUNCTION`, `HTTP_SERVER`, ...), not to a string literal, so grep for both spellings:
+
 ```bash
-# span starts
-grep -rn "SEMANTIC_ATTRIBUTE_SENTRY_OP\]: '<op>'\|SENTRY_OP\]: '<op>'\|op: '<op>'" packages/*/src
+# span starts, via the op constant
+grep -rn "SENTRY_OP\]: <OP_CONST>\|SEMANTIC_ATTRIBUTE_SENTRY_OP\]: <OP_CONST>\|op: <OP_CONST>\|spanOp: <OP_CONST>\|\.op = <OP_CONST>" packages/*/src
+# span starts, via a string literal
+grep -rn "SENTRY_OP\]: '<op>'\|SEMANTIC_ATTRIBUTE_SENTRY_OP\]: '<op>'\|op: '<op>'\|= '<op>'" packages/*/src
 # for browser routing ops, also the dedicated starters
 grep -rn "startBrowserTracingNavigationSpan\|startBrowserTracingPageLoadSpan" packages/*/src
 
@@ -57,6 +83,14 @@ grep -rn "\.updateName(\|updateSpanName(" packages/*/src
 # readers that compare a span name against a URL or route (these break, see step 4)
 grep -rn "spanToJSON(.*)\.name" packages/*/src
 ```
+
+Neither grep finds an op that reaches the span through a variable, and those are the sites that get missed. Enumerate them by hand — list every file importing the op constant (`grep -rln "<OP_CONST>" packages/*/src`) and follow the ones that never spell out a span start:
+
+- **shared wrappers** taking the op as an option — `spanOp: FUNCTION` handed to cloudflare's `wrapMethodWithSentry`
+- **helpers computing the op** — `getGenAiSpanOp(operation)` returns `function` for any unrecognized gen-AI operation
+- **defaults on public APIs** — `SentryTraced(op: string = 'function')` in `@sentry/nestjs`
+
+Cross-check the total against the renames too: a `updateSpanName` in a different file can rewrite a span whose op is set elsewhere (`tanstackstart-react`'s global function middleware renames the span that `wrapFetchWithSentry` starts), and it will not appear in any op grep.
 
 Classify each write site: does it set a low cardinality value? Low cardinality values are for example:
 
@@ -151,6 +185,7 @@ Before assuming a failure is yours, baseline it: `git stash`, re-run, `git stash
 Expect to update, and read each one to confirm the new value is _correct_ rather than just green:
 
 - unit assertions on the span name and on `scope.transactionName`
+- the span's `sentry.description` in **both** lifecycles: streamed spans carry the previous name, static ones must not gain the attribute
 - `dev-packages/browser-integration-tests` suites whose `init.js` does **not** set `traceLifecycle: 'static'` (the static ones must not change — that is your regression check)
 - `sentry.segment.name` / `sentry.transaction` on child spans of a renamed segment span
 - span mocks missing `spanContext`/`setAttribute` once code paths shift

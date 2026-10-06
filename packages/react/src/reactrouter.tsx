@@ -12,15 +12,13 @@ import {
   hasSpanStreamingEnabled,
   NAVIGATION_SPAN_NAME_FALLBACK,
   PAGELOAD_SPAN_NAME_FALLBACK,
-  SEMANTIC_ATTRIBUTE_SENTRY_OP,
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   spanToJSON,
 } from '@sentry/core';
 import type { ReactElement } from 'react';
 import * as React from 'react';
 import { hoistNonReactStatics } from './hoist-non-react-statics';
 import type { Action, Location } from './types';
-import { SENTRY_OP, SENTRY_SEGMENT_NAME_SOURCE, URL_TEMPLATE } from '@sentry/conventions/attributes';
+import { SENTRY_OP, SENTRY_SEGMENT_NAME_SOURCE, URL_TEMPLATE, SENTRY_ORIGIN } from '@sentry/conventions/attributes';
 import { NAVIGATION, PAGELOAD } from '@sentry/conventions/op';
 
 // We need to disable eslint no-explicit-any because any is required for the
@@ -165,7 +163,7 @@ function instrumentReactRouter(
         name: source === 'route' || !hasSpanStreamingEnabled(client) ? name : PAGELOAD_SPAN_NAME_FALLBACK,
         attributes: {
           [SENTRY_OP]: PAGELOAD,
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: `auto.pageload.react.${instrumentationName}`,
+          [SENTRY_ORIGIN]: `auto.pageload.react.${instrumentationName}`,
           [SENTRY_SEGMENT_NAME_SOURCE]: source,
           ...(source === 'route' && { [URL_TEMPLATE]: name }),
         },
@@ -182,7 +180,7 @@ function instrumentReactRouter(
           name: source === 'route' || !hasSpanStreamingEnabled(client) ? name : NAVIGATION_SPAN_NAME_FALLBACK,
           attributes: {
             [SENTRY_OP]: NAVIGATION,
-            [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: `auto.navigation.react.${instrumentationName}`,
+            [SENTRY_ORIGIN]: `auto.navigation.react.${instrumentationName}`,
             [SENTRY_SEGMENT_NAME_SOURCE]: source,
             ...(source === 'route' && { [URL_TEMPLATE]: name }),
           },
@@ -228,6 +226,22 @@ function computeRootMatch(pathname: string): Match {
   return { path: '/', url: '/', params: {}, isExact: pathname === '/' };
 }
 
+/**
+ * A higher-order component that adds Sentry routing instrumentation to a React Router v4 or v5 `Route` component.
+ * When the wrapped `Route` matches, the active pageload/navigation span is renamed to the parameterized route path.
+ *
+ * The wrapped `Route` must be rendered inside a `Switch`, since the match is read from the `computedMatch` prop
+ * that only `Switch` passes down. For React Router v6 and later, use `wrapReactRouterRouting` instead.
+ *
+ * @example
+ * ```jsx
+ * const SentryRoute = Sentry.withSentryRouting(Route);
+ *
+ * <Switch>
+ *   <SentryRoute path="/users/:id" component={User} />
+ * </Switch>
+ * ```
+ */
 /* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access */
 export function withSentryRouting<P extends Record<string, any>, R extends React.ComponentType<P>>(Route: R): R {
   const componentDisplayName = Route.displayName || Route.name;
@@ -271,7 +285,7 @@ function getActiveRootSpan(): Span | undefined {
     return undefined;
   }
 
-  const op = spanToJSON(rootSpan).attributes[SEMANTIC_ATTRIBUTE_SENTRY_OP];
+  const op = spanToJSON(rootSpan).attributes[SENTRY_OP];
 
   // Only use this root span if it is a pageload or navigation span
   return op === 'navigation' || op === 'pageload' ? rootSpan : undefined;

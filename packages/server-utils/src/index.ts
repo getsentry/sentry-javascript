@@ -14,6 +14,12 @@ export type { InstrumentationConfig } from './orchestrion/apmTypes';
 // helper with no orchestrion build-time dependency.
 export { orchestrionModuleInjected } from './utils/moduleInjected';
 export {
+  subscribe as subscribeDiagnosticsChannel,
+  tracingChannel as diagnosticsTracingChannel,
+} from './utils/diagnosticsChannel';
+export { eveConversationHook, eveIntegration } from './eve';
+export { getInstrumentedModuleNames } from './orchestrion/config';
+export {
   fastifyIntegration,
   // oxlint-disable-next-line typescript/no-deprecated
   setupFastifyErrorHandler,
@@ -34,15 +40,27 @@ export { genericPoolIntegration } from './integrations/generic-pool';
 export { googleGenAIIntegration } from './integrations/google-genai';
 export { graphqlIntegration } from './integrations/graphql';
 export { hapiIntegration } from './integrations/hapi';
+export { honoIntegration, honoMiddleware } from './integrations/hono';
+export type { HonoIntegrationOptions } from './integrations/hono';
 export { koaIntegration } from './integrations/koa';
 export { redisIntegration } from './integrations/redis';
 export { kafkaIntegration } from './integrations/kafkajs';
 export { knexIntegration } from './integrations/knex';
 export { langChainIntegration } from './integrations/langchain';
 export { langGraphIntegration } from './integrations/langgraph';
+export { createFlueInstrumentation } from './ai/flue';
+export { flueIntegration } from './integrations/flue';
+export type { FlueOptions } from './ai/flue';
+export { mastraIntegration } from './integrations/mastra';
+export { mcpServerIntegration } from './integrations/mcp-server';
+export { SentryMastraExporter } from './ai/mastra';
 export { lruMemoizerIntegration } from './integrations/lru-memoizer';
 export { mongoIntegration } from './integrations/mongodb';
 export { mongooseIntegration } from './integrations/mongoose';
+export { mistralAIIntegration } from './integrations/mistral';
+export { groqIntegration } from './integrations/groq';
+export { togetherAIIntegration } from './integrations/together-ai';
+export { typesafeIntegration } from './integrations/typesafe';
 export { mysqlIntegration } from './integrations/mysql';
 export { mysql2Integration } from './integrations/mysql2';
 export { openAIIntegration } from './integrations/openai';

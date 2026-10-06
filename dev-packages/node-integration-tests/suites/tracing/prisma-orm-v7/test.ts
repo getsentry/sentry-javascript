@@ -112,8 +112,6 @@ describe('Prisma ORM v7 Tests', () => {
                       item.attributes['sentry.origin']?.value === 'auto.db.prisma' && item.attributes['db.query.text'],
                   );
 
-                  // `SELECT "public"` is what the core query-summary helper derives from a schema-qualified,
-                  // quoted table (it stops at the first quoted identifier).
                   expect(
                     querySpans.map(span => ({
                       name: span.name,
@@ -121,7 +119,7 @@ describe('Prisma ORM v7 Tests', () => {
                     })),
                   ).toEqual([
                     { name: 'INSERT "public"."User"', summary: 'INSERT "public"."User"' },
-                    { name: 'SELECT "public"', summary: 'SELECT "public"' },
+                    { name: 'SELECT "public"."User"', summary: 'SELECT "public"."User"' },
                     { name: 'DELETE "public"."User"', summary: 'DELETE "public"."User"' },
                   ]);
 

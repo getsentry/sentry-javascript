@@ -1,15 +1,27 @@
 import type * as SentryCore from '@sentry/core';
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import type * as NodeModule from 'node:module';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { pathToFileURL } from 'node:url';
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
+
+type LoadResult = { format?: string | null };
+type LoadHook = (url: string, context: unknown, nextLoad: (url: string, context: unknown) => LoadResult) => unknown;
 
 // The registration installs real Node module hooks, which we neither want nor need here. Stub the
 // tracing-hooks surface so the tests can drive the diagnostics callback directly, and neuter
 // `node:module`'s hook installers: on Node 24.13+/26 the stable-sync-hooks path would otherwise call
 // the real `Module.registerHooks({ resolve, load })` with the mocked (undefined-returning) callbacks,
 // leaving a broken resolve hook installed process-wide that crashes vitest's next dynamic `import()`.
+const registerHooksMock = vi.fn<(options: { load: LoadHook; resolve: unknown }) => void>();
 vi.mock('node:module', async importOriginal => {
   const actual = await importOriginal<typeof NodeModule>();
-  return { ...actual, registerHooks: vi.fn(), register: vi.fn() };
+  return {
+    ...actual,
+    registerHooks: (options: { load: LoadHook; resolve: unknown }) => registerHooksMock(options),
+    register: vi.fn(),
+  };
 });
 
 const setDiagnosticsHookMock = vi.fn<(cb: DiagnosticsCallback) => void>();
@@ -21,9 +33,10 @@ vi.mock('@apm-js-collab/tracing-hooks', () => ({
     patch(): void {}
   },
 }));
+const loadMock = vi.fn<LoadHook>();
 vi.mock('@apm-js-collab/tracing-hooks/hook-sync.mjs', () => ({
   initialize: vi.fn(),
-  load: vi.fn(),
+  load: (...args: Parameters<LoadHook>) => loadMock(...args),
   resolve: vi.fn(),
   createDiagnosticsPort: vi.fn(),
 }));
@@ -36,12 +49,14 @@ vi.mock('@sentry/core', async importOriginal => {
 });
 
 import { GLOBAL_OBJ } from '@sentry/core';
-import { registerDiagnosticsChannelInjection } from '../src/register';
+import type * as RegisterModule from '../src/register';
 
 type DiagnosticsCallback = (event: { moduleName: string; error?: unknown }) => void;
 
 describe('registerDiagnosticsChannelInjection - bundled/tree-shaken detection', () => {
   let warnSpy: ReturnType<typeof vi.spyOn>;
+  // Re-imported per test (see `beforeEach`) so the one-warning-per-process module state is fresh.
+  let registerDiagnosticsChannelInjection: typeof RegisterModule.registerDiagnosticsChannelInjection;
 
   /**
    * The bundling warnings only. Registration itself can warn for unrelated reasons in this
@@ -49,6 +64,11 @@ describe('registerDiagnosticsChannelInjection - bundled/tree-shaken detection', 
    */
   function bundlingWarnings(): string[] {
     return warnSpy.mock.calls.map(([message]) => String(message)).filter(m => m.includes('was bundled into'));
+  }
+
+  /** The isolated per-module failure warnings only (a transform failure that is not a stripped transformer). */
+  function moduleFailureWarnings(): string[] {
+    return warnSpy.mock.calls.map(([message]) => String(message)).filter(m => m.includes('Could not instrument'));
   }
 
   /** The callback the registration handed to tracing-hooks. */
@@ -64,8 +84,11 @@ describe('registerDiagnosticsChannelInjection - bundled/tree-shaken detection', 
     delete GLOBAL_OBJ.__SENTRY_ORCHESTRION__;
     setDiagnosticsHookMock.mockClear();
     warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
-    // The one-warning-per-process flag is module state, so each test needs a fresh module.
+    // The one-warning-per-process flags are module state, so each test needs a fresh module — hence
+    // the dynamic re-import below rather than a static top-level one (`resetModules` cannot refresh
+    // an already-bound static import).
     vi.resetModules();
+    ({ registerDiagnosticsChannelInjection } = await import('../src/register'));
   });
 
   afterEach(() => {
@@ -77,13 +100,83 @@ describe('registerDiagnosticsChannelInjection - bundled/tree-shaken detection', 
     registerDiagnosticsChannelInjection();
     const onDiagnostics = diagnosticsCallback();
 
-    // A tree-shaken chain: `parse`/`generate` are `undefined`, so the transform throws a TypeError.
-    onDiagnostics({ moduleName: 'mysql2', error: new TypeError('parse is not a function') });
-    onDiagnostics({ moduleName: 'pg', error: new TypeError('parse is not a function') });
+    // A tree-shaken chain: the vendored `parse`/`generate` are `undefined`, so the transform throws
+    // a TypeError. The bundler that stripped them also renames these module-level imports while
+    // merging modules — esbuild emits `parse3` — so the fingerprint must not hinge on the name.
+    onDiagnostics({ moduleName: 'mysql2', error: new TypeError('parse3 is not a function') });
+    onDiagnostics({ moduleName: 'pg', error: new TypeError('parse3 is not a function') });
 
     expect(bundlingWarnings()).toHaveLength(1);
     expect(bundlingWarnings()[0]).toContain('mysql2');
     expect(bundlingWarnings()[0]).toContain('docs.sentry.io');
+    // The underlying error is surfaced so the warning is self-diagnosing.
+    expect(bundlingWarnings()[0]).toContain('parse3 is not a function');
+  });
+
+  it.each([
+    // Rollup/Vite deconflict merged bindings with a `$N` suffix, not a bare number.
+    ['rollup/vite `$N` suffix', 'generate$1 is not a function'],
+    // Production minifiers rename the stripped import to a short opaque identifier.
+    ['minified short name', 'e is not a function'],
+  ])('detects a tree-shaken transformer whose primitive was renamed (%s)', (_label, reason) => {
+    registerDiagnosticsChannelInjection();
+
+    diagnosticsCallback()({ moduleName: 'mysql2', error: new TypeError(reason) });
+
+    expect(bundlingWarnings()).toHaveLength(1);
+    expect(bundlingWarnings()[0]).toContain('mysql2');
+    expect(bundlingWarnings()[0]).toContain(reason);
+  });
+
+  it('treats a member-expression TypeError as an isolated failure, not bundling', () => {
+    registerDiagnosticsChannelInjection();
+
+    // `x.y is not a function` is an ordinary per-module bug, not a stripped bare top-level binding,
+    // so even as the first failing module it must not be blamed on bundling.
+    diagnosticsCallback()({ moduleName: 'lib-member', error: new TypeError('node.foo is not a function') });
+
+    expect(bundlingWarnings()).toEqual([]);
+    expect(moduleFailureWarnings()).toHaveLength(1);
+    expect(moduleFailureWarnings()[0]).toContain('lib-member');
+  });
+
+  it('reports a non-stripped transform TypeError as an isolated failure, not bundling', () => {
+    registerDiagnosticsChannelInjection();
+
+    // `transform is not a function` (a config operator not registered at runtime) is not the
+    // stripped-parser fingerprint, so even as the first and only failing module it must not be
+    // blamed on bundling.
+    diagnosticsCallback()({ moduleName: 'lib-op-missing', error: new TypeError('transform is not a function') });
+
+    expect(bundlingWarnings()).toEqual([]);
+    expect(moduleFailureWarnings()).toHaveLength(1);
+    expect(moduleFailureWarnings()[0]).toContain('lib-op-missing');
+    expect(moduleFailureWarnings()[0]).toContain('transform is not a function');
+  });
+
+  it('treats a stripped-parser error as isolated once another module has been instrumented', () => {
+    registerDiagnosticsChannelInjection();
+    const onDiagnostics = diagnosticsCallback();
+
+    // A successful transform proves the transformer works, so a later `parse is not a function`
+    // cannot be a tree-shaken transformer — it is isolated to that module.
+    onDiagnostics({ moduleName: 'lib-ok' });
+    onDiagnostics({ moduleName: 'lib-guarded', error: new TypeError('parse is not a function') });
+
+    expect(bundlingWarnings()).toEqual([]);
+    expect(moduleFailureWarnings()).toHaveLength(1);
+    expect(moduleFailureWarnings()[0]).toContain('lib-guarded');
+  });
+
+  it('warns once per module for isolated failures', () => {
+    registerDiagnosticsChannelInjection();
+    const onDiagnostics = diagnosticsCallback();
+
+    onDiagnostics({ moduleName: 'lib-dup', error: new TypeError('transform is not a function') });
+    onDiagnostics({ moduleName: 'lib-dup', error: new TypeError('transform is not a function') });
+    onDiagnostics({ moduleName: 'lib-other', error: new TypeError('transform is not a function') });
+
+    expect(moduleFailureWarnings()).toHaveLength(2);
   });
 
   it('stays quiet for transform failures that are not a stripped transformer', () => {
@@ -110,5 +203,71 @@ describe('registerDiagnosticsChannelInjection - bundled/tree-shaken detection', 
     registerDiagnosticsChannelInjection();
 
     expect(setDiagnosticsHookMock).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('registerDiagnosticsChannelInjection - Deno module formats', () => {
+  let fixtureDir: string;
+  let registerDiagnosticsChannelInjection: typeof RegisterModule.registerDiagnosticsChannelInjection;
+  let loadHook: LoadHook;
+
+  beforeAll(() => {
+    fixtureDir = mkdtempSync(join(tmpdir(), 'sentry-deno-formats-'));
+    mkdirSync(join(fixtureDir, 'esm-package', 'lib'), { recursive: true });
+    writeFileSync(join(fixtureDir, 'esm-package', 'package.json'), JSON.stringify({ type: 'module' }));
+    writeFileSync(join(fixtureDir, 'esm-package', 'lib', 'index.js'), 'export default 1;');
+    mkdirSync(join(fixtureDir, 'cjs-package'), { recursive: true });
+    writeFileSync(join(fixtureDir, 'cjs-package', 'package.json'), JSON.stringify({}));
+    writeFileSync(join(fixtureDir, 'cjs-package', 'index.js'), 'module.exports = 1;');
+  });
+
+  afterAll(() => {
+    rmSync(fixtureDir, { recursive: true, force: true });
+  });
+
+  beforeEach(async () => {
+    delete GLOBAL_OBJ.__SENTRY_ORCHESTRION__;
+    (globalThis as { Deno?: unknown }).Deno = { version: { deno: '2.8.3' } };
+    vi.resetModules();
+    registerHooksMock.mockClear();
+    // The transform reads the format from what `nextLoad` returns, so the stub forwards to it.
+    loadMock.mockImplementation((url, context, nextLoad) => nextLoad(url, context));
+
+    ({ registerDiagnosticsChannelInjection } = await import('../src/register'));
+    registerDiagnosticsChannelInjection();
+
+    const [options] = registerHooksMock.mock.lastCall ?? [];
+    if (!options) {
+      throw new Error('registerDiagnosticsChannelInjection() did not call Module.registerHooks()');
+    }
+    loadHook = options.load;
+  });
+
+  afterEach(() => {
+    delete GLOBAL_OBJ.__SENTRY_ORCHESTRION__;
+    delete (globalThis as { Deno?: unknown }).Deno;
+    loadMock.mockReset();
+  });
+
+  it.each([
+    ['a `.js` file in a `"type": "module"` package', 'esm-package/lib/index.js', 'module'],
+    ['an `.mjs` file', 'cjs-package/other.mjs', 'module'],
+    ['a `.json` file', 'cjs-package/package.json', 'json'],
+  ])('restores the format Deno leaves out for %s', (_label, file, format) => {
+    const url = pathToFileURL(join(fixtureDir, file)).href;
+
+    expect(loadHook(url, {}, () => ({ format: null }))).toEqual({ format });
+  });
+
+  it('keeps the format missing for a `.js` file in a package without `"type": "module"`', () => {
+    const url = pathToFileURL(join(fixtureDir, 'cjs-package', 'index.js')).href;
+
+    expect(loadHook(url, {}, () => ({ format: null }))).toEqual({ format: null });
+  });
+
+  it('keeps a format that Deno reports', () => {
+    const url = pathToFileURL(join(fixtureDir, 'esm-package', 'lib', 'index.js')).href;
+
+    expect(loadHook(url, {}, () => ({ format: 'commonjs' }))).toEqual({ format: 'commonjs' });
   });
 });

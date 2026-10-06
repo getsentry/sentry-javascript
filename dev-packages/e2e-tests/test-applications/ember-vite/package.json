@@ -43,7 +43,7 @@
     "@glint/ember-tsc": "^1.5.0",
     "@glint/template": "^1.7.7",
     "@glint/tsserver-plugin": "^2.4.0",
-    "@playwright/test": "~1.56.0",
+    "@playwright/test": "~1.63.0",
     "@rollup/plugin-babel": "^7.0.0",
     "@sentry-internal/test-utils": "link:../../../test-utils",
     "@sentry/ember": "file:../../packed/sentry-ember-packed.tgz",
@@ -66,6 +66,14 @@
   },
   "ember": {
     "edition": "octane"
+  },
+  "pnpm": {
+    "overrides": {
+      "@embroider/vite@1.7.14": "1.7.13",
+      "@embroider/macros@1.21.2": "1.21.1",
+      "@embroider/core@4.6.8": "4.6.7",
+      "@embroider/compat@4.1.26": "4.1.25"
+    }
   },
   "volta": {
     "extends": "../../package.json"

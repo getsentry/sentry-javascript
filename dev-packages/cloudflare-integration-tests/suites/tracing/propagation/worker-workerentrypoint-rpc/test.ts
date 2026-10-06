@@ -1,57 +1,35 @@
 import { expect, it } from 'vitest';
-import type { Event } from '@sentry/core';
+import type { Event, SerializedStreamedSpan } from '@sentry/core';
 import { createRunner } from '../../../../runner';
+import { getSpanOp, getSpansFromEnvelope } from '../../../../spanUtils';
+
+// Every route here is a raw URL, so the streamed segment name keeps the method only and the route
+// is identified through `url.path`.
 
 it('propagates trace from Worker (ExportedHandler) to WorkerEntrypoint via service binding fetch', async ({
   signal,
 }) => {
-  let workerTraceId: string | undefined;
-  let workerSpanId: string | undefined;
-  let entrypointTraceId: string | undefined;
-  let entrypointParentSpanId: string | undefined;
+  let workerSpan: SerializedStreamedSpan | undefined;
+  let entrypointSpan: SerializedStreamedSpan | undefined;
 
   const runner = createRunner(__dirname)
     .expect(envelope => {
-      const transactionEvent = envelope[1]?.[0]?.[1] as Event;
+      const segmentSpan = getSpansFromEnvelope(envelope).find(span => span.is_segment);
 
-      // Main worker HTTP server transaction
-      expect(transactionEvent).toEqual(
-        expect.objectContaining({
-          contexts: expect.objectContaining({
-            trace: expect.objectContaining({
-              op: 'http.server',
-              data: expect.objectContaining({
-                'sentry.origin': 'auto.http.cloudflare',
-              }),
-              origin: 'auto.http.cloudflare',
-            }),
-          }),
-          transaction: 'GET /call-entrypoint',
-        }),
-      );
-      workerTraceId = transactionEvent.contexts?.trace?.trace_id as string;
-      workerSpanId = transactionEvent.contexts?.trace?.span_id as string;
+      // Main worker HTTP server segment span
+      expect(getSpanOp(segmentSpan!)).toBe('http.server');
+      expect(segmentSpan?.attributes['sentry.origin']).toEqual({ type: 'string', value: 'auto.http.cloudflare' });
+      expect(segmentSpan?.attributes['url.path']).toEqual({ type: 'string', value: '/call-entrypoint' });
+      workerSpan = segmentSpan;
     })
     .expect(envelope => {
-      const transactionEvent = envelope[1]?.[0]?.[1] as Event;
+      const segmentSpan = getSpansFromEnvelope(envelope).find(span => span.is_segment);
 
-      // WorkerEntrypoint HTTP server transaction (from service binding fetch)
-      expect(transactionEvent).toEqual(
-        expect.objectContaining({
-          contexts: expect.objectContaining({
-            trace: expect.objectContaining({
-              op: 'http.server',
-              data: expect.objectContaining({
-                'sentry.origin': 'auto.http.cloudflare',
-              }),
-              origin: 'auto.http.cloudflare',
-            }),
-          }),
-          transaction: 'GET /answer',
-        }),
-      );
-      entrypointTraceId = transactionEvent.contexts?.trace?.trace_id as string;
-      entrypointParentSpanId = transactionEvent.contexts?.trace?.parent_span_id as string;
+      // WorkerEntrypoint HTTP server segment span (from service binding fetch)
+      expect(getSpanOp(segmentSpan!)).toBe('http.server');
+      expect(segmentSpan?.attributes['sentry.origin']).toEqual({ type: 'string', value: 'auto.http.cloudflare' });
+      expect(segmentSpan?.attributes['url.path']).toEqual({ type: 'string', value: '/answer' });
+      entrypointSpan = segmentSpan;
     })
     .unordered()
     .start(signal);
@@ -61,55 +39,32 @@ it('propagates trace from Worker (ExportedHandler) to WorkerEntrypoint via servi
 
   await runner.completed();
 
-  // Both transactions should share the same trace_id
-  expect(workerTraceId).toBeDefined();
-  expect(entrypointTraceId).toBeDefined();
-  expect(workerTraceId).toBe(entrypointTraceId);
+  // Both segment spans should share the same trace_id
+  expect(workerSpan?.trace_id).toBeDefined();
+  expect(entrypointSpan?.trace_id).toBe(workerSpan?.trace_id);
 
   // Verify the parent-child relationship: Worker -> WorkerEntrypoint
-  expect(workerSpanId).toBeDefined();
-  expect(entrypointParentSpanId).toBeDefined();
-  expect(entrypointParentSpanId).toBe(workerSpanId);
+  expect(entrypointSpan?.parent_span_id).toBe(workerSpan?.span_id);
 });
 
 it('propagates trace for request with query params from Worker to WorkerEntrypoint', async ({ signal }) => {
-  let workerTraceId: string | undefined;
-  let workerSpanId: string | undefined;
-  let entrypointTraceId: string | undefined;
-  let entrypointParentSpanId: string | undefined;
+  let workerSpan: SerializedStreamedSpan | undefined;
+  let entrypointSpan: SerializedStreamedSpan | undefined;
 
   const runner = createRunner(__dirname)
     .expect(envelope => {
-      const transactionEvent = envelope[1]?.[0]?.[1] as Event;
+      const segmentSpan = getSpansFromEnvelope(envelope).find(span => span.is_segment);
 
-      expect(transactionEvent).toEqual(
-        expect.objectContaining({
-          contexts: expect.objectContaining({
-            trace: expect.objectContaining({
-              op: 'http.server',
-            }),
-          }),
-          transaction: 'GET /call-entrypoint-greet',
-        }),
-      );
-      workerTraceId = transactionEvent.contexts?.trace?.trace_id as string;
-      workerSpanId = transactionEvent.contexts?.trace?.span_id as string;
+      expect(getSpanOp(segmentSpan!)).toBe('http.server');
+      expect(segmentSpan?.attributes['url.path']).toEqual({ type: 'string', value: '/call-entrypoint-greet' });
+      workerSpan = segmentSpan;
     })
     .expect(envelope => {
-      const transactionEvent = envelope[1]?.[0]?.[1] as Event;
+      const segmentSpan = getSpansFromEnvelope(envelope).find(span => span.is_segment);
 
-      expect(transactionEvent).toEqual(
-        expect.objectContaining({
-          contexts: expect.objectContaining({
-            trace: expect.objectContaining({
-              op: 'http.server',
-            }),
-          }),
-          transaction: 'GET /greet',
-        }),
-      );
-      entrypointTraceId = transactionEvent.contexts?.trace?.trace_id as string;
-      entrypointParentSpanId = transactionEvent.contexts?.trace?.parent_span_id as string;
+      expect(getSpanOp(segmentSpan!)).toBe('http.server');
+      expect(segmentSpan?.attributes['url.path']).toEqual({ type: 'string', value: '/greet' });
+      entrypointSpan = segmentSpan;
     })
     .unordered()
     .start(signal);
@@ -119,81 +74,44 @@ it('propagates trace for request with query params from Worker to WorkerEntrypoi
 
   await runner.completed();
 
-  expect(workerTraceId).toBeDefined();
-  expect(entrypointTraceId).toBeDefined();
-  expect(workerTraceId).toBe(entrypointTraceId);
-
-  expect(workerSpanId).toBeDefined();
-  expect(entrypointParentSpanId).toBeDefined();
-  expect(entrypointParentSpanId).toBe(workerSpanId);
+  expect(workerSpan?.trace_id).toBeDefined();
+  expect(entrypointSpan?.trace_id).toBe(workerSpan?.trace_id);
+  expect(entrypointSpan?.parent_span_id).toBe(workerSpan?.span_id);
 });
 
 it('instruments inherited custom WorkerEntrypoint RPC methods and strips metadata', async ({ signal }) => {
-  let callerTraceId: string | undefined;
-  let callerSpanId: string | undefined;
-  let receiverGetTraceId: string | undefined;
-  let receiverGetParentSpanId: string | undefined;
+  let callerSpan: SerializedStreamedSpan | undefined;
+  let receiverGetSpan: SerializedStreamedSpan | undefined;
 
   const runner = createRunner(__dirname)
     .expect(envelope => {
-      const transactionEvent = envelope[1]?.[0]?.[1] as Event;
+      const segmentSpan = getSpansFromEnvelope(envelope).find(span => span.is_segment);
 
-      expect(transactionEvent).toEqual(
-        expect.objectContaining({
-          contexts: expect.objectContaining({
-            trace: expect.objectContaining({
-              op: 'http.server',
-              origin: 'auto.http.cloudflare',
-              data: expect.objectContaining({
-                'sentry.origin': 'auto.http.cloudflare',
-              }),
-            }),
-          }),
-          transaction: 'GET /call-entrypoint-rpc',
-        }),
-      );
-      callerTraceId = transactionEvent.contexts?.trace?.trace_id as string;
-      callerSpanId = transactionEvent.contexts?.trace?.span_id as string;
+      expect(getSpanOp(segmentSpan!)).toBe('http.server');
+      expect(segmentSpan?.attributes['sentry.origin']).toEqual({ type: 'string', value: 'auto.http.cloudflare' });
+      expect(segmentSpan?.attributes['url.path']).toEqual({ type: 'string', value: '/call-entrypoint-rpc' });
+      callerSpan = segmentSpan;
     })
     .expect(envelope => {
-      const transactionEvent = envelope[1]?.[0]?.[1] as Event;
+      const segmentSpan = getSpansFromEnvelope(envelope).find(span => span.is_segment);
 
-      expect(transactionEvent).toEqual(
-        expect.objectContaining({
-          contexts: expect.objectContaining({
-            trace: expect.objectContaining({
-              op: 'rpc',
-              origin: 'auto.faas.cloudflare.worker_entrypoint',
-              data: expect.objectContaining({
-                'sentry.op': 'rpc',
-                'sentry.origin': 'auto.faas.cloudflare.worker_entrypoint',
-              }),
-            }),
-          }),
-          transaction: 'get',
-        }),
-      );
-      receiverGetTraceId = transactionEvent.contexts?.trace?.trace_id as string;
-      receiverGetParentSpanId = transactionEvent.contexts?.trace?.parent_span_id as string;
+      expect(segmentSpan?.name).toBe('get');
+      expect(getSpanOp(segmentSpan!)).toBe('rpc');
+      expect(segmentSpan?.attributes['sentry.origin']).toEqual({
+        type: 'string',
+        value: 'auto.faas.cloudflare.worker_entrypoint',
+      });
+      receiverGetSpan = segmentSpan;
     })
     .expect(envelope => {
-      const transactionEvent = envelope[1]?.[0]?.[1] as Event;
+      const segmentSpan = getSpansFromEnvelope(envelope).find(span => span.is_segment);
 
-      expect(transactionEvent).toEqual(
-        expect.objectContaining({
-          contexts: expect.objectContaining({
-            trace: expect.objectContaining({
-              op: 'rpc',
-              origin: 'auto.faas.cloudflare.worker_entrypoint',
-              data: expect.objectContaining({
-                'sentry.op': 'rpc',
-                'sentry.origin': 'auto.faas.cloudflare.worker_entrypoint',
-              }),
-            }),
-          }),
-          transaction: 'inherited',
-        }),
-      );
+      expect(segmentSpan?.name).toBe('inherited');
+      expect(getSpanOp(segmentSpan!)).toBe('rpc');
+      expect(segmentSpan?.attributes['sentry.origin']).toEqual({
+        type: 'string',
+        value: 'auto.faas.cloudflare.worker_entrypoint',
+      });
     })
     .unordered()
     .start(signal);
@@ -206,13 +124,9 @@ it('instruments inherited custom WorkerEntrypoint RPC methods and strips metadat
 
   await runner.completed();
 
-  expect(receiverGetTraceId).toBeDefined();
-  expect(callerTraceId).toBeDefined();
-  expect(receiverGetTraceId).toBe(callerTraceId);
-
-  expect(receiverGetParentSpanId).toBeDefined();
-  expect(callerSpanId).toBeDefined();
-  expect(receiverGetParentSpanId).toBe(callerSpanId);
+  expect(receiverGetSpan?.trace_id).toBeDefined();
+  expect(receiverGetSpan?.trace_id).toBe(callerSpan?.trace_id);
+  expect(receiverGetSpan?.parent_span_id).toBe(callerSpan?.span_id);
 });
 
 it('captures errors thrown by custom WorkerEntrypoint RPC methods', async ({ signal }) => {
@@ -228,12 +142,15 @@ it('captures errors thrown by custom WorkerEntrypoint RPC methods', async ({ sig
       expect(event.tags?.before_send).toBe('applied');
     })
     .expect(envelope => {
-      const event = envelope[1]?.[0]?.[1] as Event;
-      expect(event.transaction).toBe('throwError');
+      const segmentSpan = getSpansFromEnvelope(envelope).find(span => span.is_segment);
+      expect(segmentSpan?.name).toBe('throwError');
     })
     .expect(envelope => {
-      const event = envelope[1]?.[0]?.[1] as Event;
-      expect(event.transaction).toBe('GET /call-entrypoint-rpc-error');
+      const segmentSpan = getSpansFromEnvelope(envelope).find(span => span.is_segment);
+      expect(segmentSpan?.attributes['url.path']).toEqual({
+        type: 'string',
+        value: '/call-entrypoint-rpc-error',
+      });
     })
     .unordered()
     .start(signal);
@@ -250,8 +167,8 @@ it('captures errors thrown by custom WorkerEntrypoint RPC methods', async ({ sig
 it('does not change RPC method arguments for a binding left off the allowlist', async ({ signal }) => {
   const runner = createRunner(__dirname)
     .expect(envelope => {
-      const transactionEvent = envelope[1]?.[0]?.[1] as Event;
-      expect(transactionEvent.transaction).toBe('GET /call-uninstrumented-rpc');
+      const segmentSpan = getSpansFromEnvelope(envelope).find(span => span.is_segment);
+      expect(segmentSpan?.attributes['url.path']).toEqual({ type: 'string', value: '/call-uninstrumented-rpc' });
     })
     .start(signal);
 
@@ -266,22 +183,14 @@ it('does not inject RPC trace metadata into receiver calls when rpcTracePropagat
 }) => {
   const runner = createRunner(__dirname)
     .expect(envelope => {
-      const transactionEvent = envelope[1]?.[0]?.[1] as Event;
+      const segmentSpan = getSpansFromEnvelope(envelope).find(span => span.is_segment);
 
-      expect(transactionEvent).toEqual(
-        expect.objectContaining({
-          contexts: expect.objectContaining({
-            trace: expect.objectContaining({
-              op: 'http.server',
-              data: expect.objectContaining({
-                'sentry.origin': 'auto.http.cloudflare',
-              }),
-              origin: 'auto.http.cloudflare',
-            }),
-          }),
-          transaction: 'GET /call-entrypoint-rpc-no-propagation',
-        }),
-      );
+      expect(getSpanOp(segmentSpan!)).toBe('http.server');
+      expect(segmentSpan?.attributes['sentry.origin']).toEqual({ type: 'string', value: 'auto.http.cloudflare' });
+      expect(segmentSpan?.attributes['url.path']).toEqual({
+        type: 'string',
+        value: '/call-entrypoint-rpc-no-propagation',
+      });
     })
     .start(signal);
 
@@ -305,8 +214,8 @@ it('captures errors from loopback WorkerEntrypoint RPC without trace propagation
       });
     })
     .expect(envelope => {
-      const event = envelope[1]?.[0]?.[1] as Event;
-      expect(event.transaction).toBe('GET /call-loopback-rpc-error');
+      const segmentSpan = getSpansFromEnvelope(envelope).find(span => span.is_segment);
+      expect(segmentSpan?.attributes['url.path']).toEqual({ type: 'string', value: '/call-loopback-rpc-error' });
     })
     .unordered()
     .start(signal);

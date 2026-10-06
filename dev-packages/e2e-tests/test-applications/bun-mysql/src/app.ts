@@ -4,7 +4,6 @@ import * as Sentry from '@sentry/bun';
 import mysql from 'mysql';
 
 Sentry.init({
-  traceLifecycle: 'static',
   environment: 'qa',
   dsn: process.env.E2E_TEST_DSN,
   debug: !!process.env.DEBUG,

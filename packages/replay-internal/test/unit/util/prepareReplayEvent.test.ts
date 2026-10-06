@@ -1,5 +1,5 @@
 import type { ReplayEvent } from '@sentry/core';
-import { getClient, getCurrentScope, setCurrentClient } from '@sentry/core';
+import { getClient, getCurrentScope, Scope, setCurrentClient } from '@sentry/core';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { REPLAY_EVENT_NAME } from '../../../src/constants';
 import { prepareReplayEvent } from '../../../src/util/prepareReplayEvent';
@@ -23,6 +23,29 @@ describe('Unit | util | prepareReplayEvent', () => {
 
   afterEach(() => {
     vi.clearAllMocks();
+  });
+
+  it('resolves `null` and records a client report when an event processor throws', async () => {
+    const client = getClient()!;
+    const scope = new Scope();
+    const recordDroppedEventSpy = vi.spyOn(client, 'recordDroppedEvent');
+    scope.addEventProcessor(() => {
+      throw new Error('sorry');
+    });
+
+    const event: ReplayEvent = {
+      type: REPLAY_EVENT_NAME,
+      timestamp: 1670837008.634,
+      error_ids: [],
+      trace_ids: [],
+      urls: [],
+      replay_id: 'replay-ID',
+      replay_type: 'session',
+      segment_id: 0,
+    };
+
+    await expect(prepareReplayEvent({ scope, client, replayId: 'replay-ID', event })).resolves.toBeNull();
+    expect(recordDroppedEventSpy).toHaveBeenCalledWith('callback_error', 'replay');
   });
 
   it('works', async () => {

@@ -11,48 +11,14 @@
 [![npm dm](https://img.shields.io/npm/dm/@sentry/browser.svg)](https://www.npmjs.com/package/@sentry/browser)
 [![npm dt](https://img.shields.io/npm/dt/@sentry/browser.svg)](https://www.npmjs.com/package/@sentry/browser)
 
-## Links
+The official Sentry SDK for monitoring JavaScript applications in the browser.
 
-- [Official SDK Docs](https://docs.sentry.io/quickstart/)
+## Documentation
 
-## Usage
+- [Getting started](https://docs.sentry.io/platforms/javascript/)
+- [Configuration](https://docs.sentry.io/platforms/javascript/configuration/)
 
-To use this SDK, call `Sentry.init(options)` as early as possible after loading the page. This will initialize the SDK
-and hook into the environment. Note that you can turn off almost all side effects using the respective options.
+## Support
 
-```javascript
-import * as Sentry from '@sentry/browser';
-
-Sentry.init({
-  dsn: '__DSN__',
-  // ...
-});
-```
-
-To set context information or send manual events, use the exported functions of `@sentry/browser`. Note that these
-functions will not perform any action before you have called `Sentry.init()`:
-
-```javascript
-import * as Sentry from '@sentry/browser';
-
-// Set user information, as well as tags and further extras
-Sentry.setExtra('battery', 0.7);
-Sentry.setTag('user_mode', 'admin');
-Sentry.setUser({ id: '4711' });
-
-// Add a breadcrumb for future events
-Sentry.addBreadcrumb({
-  message: 'My Breadcrumb',
-  // ...
-});
-
-// Capture exceptions, messages or manual events
-Sentry.captureMessage('Hello, world!');
-Sentry.captureException(new Error('Good bye'));
-Sentry.captureEvent({
-  message: 'Manual',
-  stacktrace: [
-    // ...
-  ],
-});
-```
+- [Report a bug](https://github.com/getsentry/sentry-javascript/issues/new/choose)
+- [Contributing](https://github.com/getsentry/sentry-javascript/blob/develop/CONTRIBUTING.md)

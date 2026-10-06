@@ -1,6 +1,6 @@
 import type { Integration, SpanJSON, SpanOrigin, StreamedSpanJSON } from '@sentry/core';
-import { safeSetSpanJSONAttributes, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '@sentry/core';
-import { SENTRY_OP } from '@sentry/conventions/attributes';
+import { safeSetSpanJSONAttributes } from '@sentry/core';
+import { SENTRY_DESCRIPTION, SENTRY_OP, SENTRY_ORIGIN } from '@sentry/conventions/attributes';
 import { FUNCTION } from '@sentry/conventions/op';
 
 /**
@@ -39,7 +39,7 @@ export function _enhanceKitSpan(span: SpanJSON): void {
   }
 
   const previousOp = span.op || span.data[SENTRY_OP];
-  const previousOrigin = span.origin || span.data[SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN];
+  const previousOrigin = span.origin || span.data[SENTRY_ORIGIN];
 
   if (!previousOp) {
     span.op = FUNCTION;
@@ -48,7 +48,7 @@ export function _enhanceKitSpan(span: SpanJSON): void {
 
   if (!previousOrigin || previousOrigin === 'manual') {
     span.origin = origin;
-    span.data[SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN] = origin;
+    span.data[SENTRY_ORIGIN] = origin;
   }
 }
 
@@ -62,15 +62,17 @@ export function _enhanceKitSpanStreamed(span: StreamedSpanJSON): void {
     return;
   }
 
-  const previousOrigin = span.attributes[SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN] as SpanOrigin | undefined;
+  const previousOrigin = span.attributes[SENTRY_ORIGIN] as SpanOrigin | undefined;
 
-  safeSetSpanJSONAttributes(span, { [SENTRY_OP]: FUNCTION });
+  // Kit's span names carry no `code.function.name`, so without an explicit description, these spans
+  // would be described by the `function` op's static fallback instead of the operation they ran.
+  safeSetSpanJSONAttributes(span, { [SENTRY_OP]: FUNCTION, [SENTRY_DESCRIPTION]: span.name });
 
   if (previousOrigin === 'manual') {
     // `safeSetSpanJSONAttributes` skips existing keys, so overwrite the 'manual' sentinel directly.
-    span.attributes[SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN] = origin;
+    span.attributes[SENTRY_ORIGIN] = origin;
   } else {
-    safeSetSpanJSONAttributes(span, { [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: origin });
+    safeSetSpanJSONAttributes(span, { [SENTRY_ORIGIN]: origin });
   }
 }
 

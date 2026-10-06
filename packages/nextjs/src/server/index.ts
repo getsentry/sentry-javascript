@@ -3,12 +3,19 @@
 /* eslint-disable import/export */
 import { HTTP_TARGET, URL_QUERY } from '@sentry/conventions/attributes';
 import type { EventProcessor } from '@sentry/core';
-import { applySdkMetadata, debug, getClient, getGlobalScope, getRootSpan, GLOBAL_OBJ } from '@sentry/core';
+import {
+  _INTERNAL_getActiveClient,
+  applySdkMetadata,
+  debug,
+  getGlobalScope,
+  getRootSpan,
+  getVercelEnv,
+  GLOBAL_OBJ,
+} from '@sentry/core';
 import type { NodeClient, NodeOptions } from '@sentry/node';
 import { getDefaultIntegrations, httpIntegration, init as nodeInit } from '@sentry/node';
 import { DEBUG_BUILD } from '../common/debug-build';
 import { devErrorSymbolicationEventProcessor } from '../common/devErrorSymbolicationEventProcessor';
-import { getVercelEnv } from '../common/getVercelEnv';
 import { isPrerenderControlFlowError } from '../common/nextNavigationErrorUtils';
 import { TRANSACTION_ATTR_SHOULD_DROP_TRANSACTION } from '../common/span-attributes-with-logic-attached';
 import { isBuild } from '../common/utils/isBuild';
@@ -21,6 +28,7 @@ import { createLiveRootSpanAdapter } from '../common/utils/liveRootSpanAdapter';
 import { enhanceHandleRequestRootSpan } from './enhanceHandleRequestRootSpan';
 import { handleOnSpanStart } from './handleOnSpanStart';
 import { prepareSafeIdGeneratorContext } from './prepareSafeIdGeneratorContext';
+import { nextjsUseCacheIntegration } from './useCacheInstrumentation';
 import { maybeCompleteCronCheckIn } from './vercelCronsMonitoring';
 import { maybeCleanupQueueSpan } from './vercelQueuesMonitoring';
 
@@ -134,11 +142,13 @@ export function init(options: NodeOptions): NodeClient | undefined {
     customDefaultIntegrations.push(distDirRewriteFramesIntegration({ distDirName }));
   }
 
+  customDefaultIntegrations.push(nextjsUseCacheIntegration());
+
   // Detect if running on OpenNext/Cloudflare and get runtime config
   const cloudflareConfig = getCloudflareRuntimeConfig();
 
   const opts: NodeOptions = {
-    environment: options.environment || process.env.SENTRY_ENVIRONMENT || getVercelEnv(false) || process.env.NODE_ENV,
+    environment: options.environment || process.env.SENTRY_ENVIRONMENT || getVercelEnv() || process.env.NODE_ENV,
     release: process.env._sentryRelease || globalWithInjectedValues._sentryRelease,
     defaultIntegrations: customDefaultIntegrations,
     // Next.js emits its own OpenTelemetry spans, so it defaults to registering the Sentry tracer
@@ -172,9 +182,10 @@ export function init(options: NodeOptions): NodeClient | undefined {
 
   DEBUG_BUILD && debug.log('Initializing SDK...');
 
-  if (sdkAlreadyInitialized()) {
+  const existingClient = _INTERNAL_getActiveClient<NodeClient>();
+  if (existingClient) {
     DEBUG_BUILD && debug.log('SDK already initialized');
-    return;
+    return existingClient;
   }
 
   // Use appropriate SDK metadata based on the runtime environment
@@ -221,7 +232,9 @@ export function init(options: NodeOptions): NodeClient | undefined {
   client?.on('spanEnd', maybeCompleteCronCheckIn);
   client?.on('spanEnd', maybeCleanupQueueSpan);
 
-  getGlobalScope().addEventProcessor(
+  // On the client, not the global scope, so a later `init()` after
+  // `close()` does not stack another copy.
+  client?.addEventProcessor(
     Object.assign(
       ((event, hint) => {
         if (event.type !== undefined) {
@@ -268,7 +281,7 @@ export function init(options: NodeOptions): NodeClient | undefined {
   });
 
   if (process.env.NODE_ENV === 'development') {
-    getGlobalScope().addEventProcessor(devErrorSymbolicationEventProcessor);
+    client?.addEventProcessor(devErrorSymbolicationEventProcessor);
   }
 
   try {
@@ -285,10 +298,6 @@ export function init(options: NodeOptions): NodeClient | undefined {
   DEBUG_BUILD && debug.log('SDK successfully initialized');
 
   return client;
-}
-
-function sdkAlreadyInitialized(): boolean {
-  return !!getClient();
 }
 
 export * from '../common';

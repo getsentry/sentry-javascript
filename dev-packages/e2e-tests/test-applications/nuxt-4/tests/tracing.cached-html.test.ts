@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
-import { waitForTransaction } from '@sentry-internal/test-utils';
+import { getSpanOp, waitForStreamedSpan } from '@sentry-internal/test-utils';
 
 test.describe('Rendering Modes with Cached HTML', () => {
   test('changes tracing meta tags with multiple requests on Client-Side only page', async ({ page }) => {
@@ -27,6 +27,20 @@ test.describe('Rendering Modes with Cached HTML', () => {
   });
 });
 
+// Cached pages have exact-match routes, so the server segment is selected by `url.path` instead of
+// its name (route matching may or may not rename exact-match segments under span streaming).
+function waitForServerSegment(routePath: string) {
+  return waitForStreamedSpan('nuxt-4', span => {
+    return span.is_segment && getSpanOp(span) === 'http.server' && span.attributes['url.path']?.value === routePath;
+  });
+}
+
+function waitForPageloadSegment(routePath: string) {
+  return waitForStreamedSpan('nuxt-4', span => {
+    return span.is_segment && getSpanOp(span) === 'pageload' && span.attributes['url.path']?.value === routePath;
+  });
+}
+
 /**
  * Tests that tracing meta-tags change with multiple requests on ISR-cached pages
  * This utility handles the common pattern of:
@@ -45,18 +59,13 @@ export async function testChangingTracingMetaTagsOnISRPage(
   expectedPageText: string,
 ): Promise<void> {
   // === 1. Request ===
-  const clientTxnEventPromise1 = waitForTransaction('nuxt-4', txnEvent => {
-    return txnEvent.transaction === routePath;
-  });
+  const clientSpanPromise1 = waitForPageloadSegment(routePath);
+  const serverSpanPromise1 = waitForServerSegment(routePath);
 
-  const serverTxnEventPromise1 = waitForTransaction('nuxt-4', txnEvent => {
-    return txnEvent.transaction?.includes(`GET ${routePath}`) ?? false;
-  });
-
-  const [_1, clientTxnEvent1, serverTxnEvent1] = await Promise.all([
+  const [_1, clientSpan1, serverSpan1] = await Promise.all([
     page.goto(routePath),
-    clientTxnEventPromise1,
-    serverTxnEventPromise1,
+    clientSpanPromise1,
+    serverSpanPromise1,
     expect(page.getByText(expectedPageText, { exact: true })).toBeVisible(),
   ]);
 
@@ -66,18 +75,13 @@ export async function testChangingTracingMetaTagsOnISRPage(
 
   // === 2. Request ===
 
-  const clientTxnEventPromise2 = waitForTransaction('nuxt-4', txnEvent => {
-    return txnEvent.transaction === routePath;
-  });
+  const clientSpanPromise2 = waitForPageloadSegment(routePath);
+  const serverSpanPromise2 = waitForServerSegment(routePath);
 
-  const serverTxnEventPromise2 = waitForTransaction('nuxt-4', txnEvent => {
-    return txnEvent.transaction?.includes(`GET ${routePath}`) ?? false;
-  });
-
-  const [_2, clientTxnEvent2, serverTxnEvent2] = await Promise.all([
+  const [_2, clientSpan2, serverSpan2] = await Promise.all([
     page.goto(routePath),
-    clientTxnEventPromise2,
-    serverTxnEventPromise2,
+    clientSpanPromise2,
+    serverSpanPromise2,
     expect(page.getByText(expectedPageText, { exact: true })).toBeVisible(),
   ]);
 
@@ -85,30 +89,30 @@ export async function testChangingTracingMetaTagsOnISRPage(
   const sentryTraceMetaTagContent2 = await page.locator('meta[name="sentry-trace"]').getAttribute('content');
   const [htmlMetaTraceId2] = sentryTraceMetaTagContent2?.split('-') || [];
 
-  const serverTxnEvent1TraceId = serverTxnEvent1.contexts?.trace?.trace_id;
-  const serverTxnEvent2TraceId = serverTxnEvent2.contexts?.trace?.trace_id;
+  const serverSpan1TraceId = serverSpan1.trace_id;
+  const serverSpan2TraceId = serverSpan2.trace_id;
 
   await test.step('Test distributed trace from 1. request', () => {
-    expect(baggageMetaTagContent1).toContain(`sentry-trace_id=${serverTxnEvent1TraceId}`);
+    expect(baggageMetaTagContent1).toContain(`sentry-trace_id=${serverSpan1TraceId}`);
 
-    expect(clientTxnEvent1.contexts?.trace?.trace_id).toBe(serverTxnEvent1TraceId);
-    expect(clientTxnEvent1.contexts?.trace?.parent_span_id).toBe(serverTxnEvent1.contexts?.trace?.span_id);
-    expect(serverTxnEvent1.contexts?.trace?.trace_id).toBe(htmlMetaTraceId1);
+    expect(clientSpan1.trace_id).toBe(serverSpan1TraceId);
+    expect(clientSpan1.parent_span_id).toBe(serverSpan1.span_id);
+    expect(serverSpan1TraceId).toBe(htmlMetaTraceId1);
   });
 
   await test.step('Test distributed trace from 2. request', () => {
-    expect(baggageMetaTagContent2).toContain(`sentry-trace_id=${serverTxnEvent2TraceId}`);
+    expect(baggageMetaTagContent2).toContain(`sentry-trace_id=${serverSpan2TraceId}`);
 
-    expect(clientTxnEvent2.contexts?.trace?.trace_id).toBe(serverTxnEvent2TraceId);
-    expect(clientTxnEvent2.contexts?.trace?.parent_span_id).toBe(serverTxnEvent2.contexts?.trace?.span_id);
-    expect(serverTxnEvent2.contexts?.trace?.trace_id).toBe(htmlMetaTraceId2);
+    expect(clientSpan2.trace_id).toBe(serverSpan2TraceId);
+    expect(clientSpan2.parent_span_id).toBe(serverSpan2.span_id);
+    expect(serverSpan2TraceId).toBe(htmlMetaTraceId2);
   });
 
   await test.step('Test that trace IDs from subsequent requests are different', () => {
-    // Different trace IDs for the server transactions
-    expect(serverTxnEvent1TraceId).toBeDefined();
-    expect(serverTxnEvent1TraceId).not.toBe(serverTxnEvent2TraceId);
-    expect(serverTxnEvent1TraceId).not.toBe(htmlMetaTraceId2);
+    // Different trace IDs for the server root spans
+    expect(serverSpan1TraceId).toBeDefined();
+    expect(serverSpan1TraceId).not.toBe(serverSpan2TraceId);
+    expect(serverSpan1TraceId).not.toBe(htmlMetaTraceId2);
   });
 }
 
@@ -117,13 +121,11 @@ export async function testChangingTracingMetaTagsOnISRPage(
  * This utility handles the common pattern of:
  * 1. Making two requests to a cached page
  * 2. Verifying no tracing meta-tags are present
- * 3. Verifying only the first request creates a server transaction
- * 4. Verifying traces are not distributed
+ * 3. Verifying traces are not distributed (each pageload starts its own trace)
  *
  * @param page - Playwright page object
  * @param routePath - The route path to test (e.g., '/rendering-modes/swr-cached-page')
  * @param expectedPageText - The text to verify is visible on the page (e.g., 'SWR Cached Page')
- * @returns Object containing transaction events for additional custom assertions
  */
 export async function testExcludeTracingMetaTagsOnCachedPage(
   page: Page,
@@ -131,19 +133,15 @@ export async function testExcludeTracingMetaTagsOnCachedPage(
   expectedPageText: string,
 ): Promise<void> {
   // === 1. Request ===
-  const clientTxnEventPromise1 = waitForTransaction('nuxt-4', txnEvent => {
-    return txnEvent.transaction === routePath;
-  });
+  const clientSpanPromise1 = waitForPageloadSegment(routePath);
 
-  // Only the 1. request creates a server transaction
-  const serverTxnEventPromise1 = waitForTransaction('nuxt-4', txnEvent => {
-    return txnEvent.transaction?.includes(`GET ${routePath}`) ?? false;
-  });
+  // Only the 1. request creates a server root span
+  const serverSpanPromise1 = waitForServerSegment(routePath);
 
-  const [_1, clientTxnEvent1, serverTxnEvent1] = await Promise.all([
+  const [_1, clientSpan1, serverSpan1] = await Promise.all([
     page.goto(routePath),
-    clientTxnEventPromise1,
-    serverTxnEventPromise1,
+    clientSpanPromise1,
+    serverSpanPromise1,
     expect(page.getByText(expectedPageText, { exact: true })).toBeVisible(),
   ]);
 
@@ -153,54 +151,37 @@ export async function testExcludeTracingMetaTagsOnCachedPage(
 
   // === 2. Request ===
 
-  await page.goto(routePath);
+  const clientSpanPromise2 = waitForPageloadSegment(routePath);
 
-  const clientTxnEventPromise2 = waitForTransaction('nuxt-4', txnEvent => {
-    return txnEvent.transaction === routePath;
-  });
-
-  let serverTxnEvent2 = undefined;
-  const serverTxnEventPromise2 = Promise.race([
-    waitForTransaction('nuxt-4', txnEvent => {
-      return txnEvent.transaction?.includes(`GET ${routePath}`) ?? false;
-    }),
-    new Promise((_, reject) => setTimeout(() => reject(new Error('No second server transaction expected')), 2000)),
-  ]);
-
-  try {
-    serverTxnEvent2 = await serverTxnEventPromise2;
-    throw new Error('Second server transaction should not have been sent');
-  } catch (error) {
-    expect(error.message).toBe('No second server transaction expected');
-  }
-
-  const [clientTxnEvent2] = await Promise.all([
-    clientTxnEventPromise2,
+  const [_2, clientSpan2] = await Promise.all([
+    page.goto(routePath),
+    clientSpanPromise2,
     expect(page.getByText(expectedPageText, { exact: true })).toBeVisible(),
   ]);
 
-  const clientTxnEvent1TraceId = clientTxnEvent1.contexts?.trace?.trace_id;
-  const clientTxnEvent2TraceId = clientTxnEvent2.contexts?.trace?.trace_id;
+  const clientSpan1TraceId = clientSpan1.trace_id;
+  const clientSpan2TraceId = clientSpan2.trace_id;
 
-  const serverTxnEvent1TraceId = serverTxnEvent1.contexts?.trace?.trace_id;
-  const serverTxnEvent2TraceId = serverTxnEvent2?.contexts?.trace?.trace_id;
+  const serverSpan1TraceId = serverSpan1.trace_id;
 
   await test.step('No baggage and sentry-trace meta-tags are present on second request', async () => {
     expect(await page.locator('meta[name="baggage"]').count()).toBe(0);
     expect(await page.locator('meta[name="sentry-trace"]').count()).toBe(0);
   });
 
-  await test.step('1. Server Transaction and all Client Transactions are defined', () => {
-    expect(serverTxnEvent1TraceId).toBeDefined();
-    expect(clientTxnEvent1TraceId).toBeDefined();
-    expect(clientTxnEvent2TraceId).toBeDefined();
-    expect(serverTxnEvent2).toBeUndefined();
-    expect(serverTxnEvent2TraceId).toBeUndefined();
+  await test.step('1. server root span and all client root spans are defined', () => {
+    expect(serverSpan1TraceId).toBeDefined();
+    expect(clientSpan1TraceId).toBeDefined();
+    expect(clientSpan2TraceId).toBeDefined();
   });
 
   await test.step('Trace is not distributed', () => {
     // Cannot create distributed trace as HTML Meta Tags are not added (caching leads to multiple usages of the same server trace id)
-    expect(clientTxnEvent1TraceId).not.toBe(clientTxnEvent2TraceId);
-    expect(clientTxnEvent1TraceId).not.toBe(serverTxnEvent1TraceId);
+    expect(clientSpan1TraceId).not.toBe(clientSpan2TraceId);
+    expect(clientSpan1TraceId).not.toBe(serverSpan1TraceId);
+    expect(clientSpan2TraceId).not.toBe(serverSpan1TraceId);
+    // Without meta tags the pageloads have no parent and start their own traces
+    expect(clientSpan1.parent_span_id).toBeUndefined();
+    expect(clientSpan2.parent_span_id).toBeUndefined();
   });
 }

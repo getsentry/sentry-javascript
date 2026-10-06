@@ -3,13 +3,14 @@ import { getClient, getTraceData, hasSpanStreamingEnabled } from '@sentry/core';
 import {
   AWS_SNS_TOPIC_ARN as ATTR_AWS_SNS_TOPIC_ARN,
   MESSAGING_DESTINATION as ATTR_MESSAGING_DESTINATION,
+  MESSAGING_DESTINATION_KIND as ATTR_MESSAGING_DESTINATION_KIND,
   MESSAGING_DESTINATION_NAME,
   MESSAGING_OPERATION_TYPE,
   MESSAGING_SYSTEM,
   SENTRY_KIND,
 } from '@sentry/conventions/attributes';
 import { QUEUE_PUBLISH } from '@sentry/conventions/op';
-import { ATTR_MESSAGING_DESTINATION_KIND, MESSAGING_DESTINATION_KIND_VALUE_TOPIC } from '../constants';
+import { MESSAGING_DESTINATION_KIND_VALUE_TOPIC } from '../constants';
 import type { NormalizedRequest, NormalizedResponse } from '../types';
 import { injectPropagationContext } from './MessageAttributes';
 import type { RequestMetadata, ServiceExtension } from './ServiceExtension';
@@ -43,6 +44,7 @@ export class SnsServiceExtension implements ServiceExtension {
       spanOp = QUEUE_PUBLISH;
       spanAttributes[SENTRY_KIND] = 'producer';
 
+      // oxlint-disable-next-line typescript/no-deprecated -- old-semconv messaging.destination_kind, matched to the OTel aws-sdk integration
       spanAttributes[ATTR_MESSAGING_DESTINATION_KIND] = MESSAGING_DESTINATION_KIND_VALUE_TOPIC;
       const { TopicArn, TargetArn, PhoneNumber } = request.commandInput;
       const destinationName = extractDestinationName(TopicArn, TargetArn, PhoneNumber);

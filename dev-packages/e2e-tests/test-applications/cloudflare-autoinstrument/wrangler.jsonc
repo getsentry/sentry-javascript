@@ -10,15 +10,19 @@
   // "this one is an Agent". Only the base-class chain distinguishes them, which
   // is exactly what the plugin's detection has to work out at build time:
   //
-  //   MyAgent       -> extends Agent         (entry-local)      => agent
-  //   MyChatAgent   -> extends AIChatAgent   (entry-local)      => agent
-  //   DerivedAgent  -> extends ./base#MyBase -> Agent           => agent
-  //   PlainDO       -> extends DurableObject                    => durableObject
+  //   MyAgent          -> extends Agent         (entry-local)      => agent
+  //   MyChatAgent      -> extends AIChatAgent   (entry-local)      => agent
+  //   DerivedAgent     -> extends ./base#MyBase -> Agent           => agent
+  //   ImportedAgent    -> imported, then `export { ImportedAgent }` => agent
+  //   ReExportedAgent  -> `export { ... } from './reexported-agent'` => agent
+  //   PlainDO          -> extends DurableObject                    => durableObject
   "durable_objects": {
     "bindings": [
       { "name": "MyAgent", "class_name": "MyAgent" },
       { "name": "MyChatAgent", "class_name": "MyChatAgent" },
       { "name": "DerivedAgent", "class_name": "DerivedAgent" },
+      { "name": "ImportedAgent", "class_name": "ImportedAgent" },
+      { "name": "ReExportedAgent", "class_name": "ReExportedAgent" },
       { "name": "PlainDO", "class_name": "PlainDO" },
     ],
   },
@@ -27,6 +31,10 @@
     {
       "tag": "v1",
       "new_sqlite_classes": ["MyAgent", "MyChatAgent", "DerivedAgent", "PlainDO"],
+    },
+    {
+      "tag": "v2",
+      "new_sqlite_classes": ["ImportedAgent", "ReExportedAgent"],
     },
   ],
 }

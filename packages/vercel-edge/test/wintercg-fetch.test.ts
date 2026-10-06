@@ -1,210 +1,49 @@
-import type { HandlerDataFetch, Integration } from '@sentry/core';
-import * as sentryCore from '@sentry/core';
-import { createStackParser } from '@sentry/core';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import type { TransactionEvent } from '@sentry/core';
+import { createStackParser, setCurrentClient, startSpan } from '@sentry/core';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { VercelEdgeClient } from '../src/index';
 import { winterCGFetchIntegration } from '../src/integrations/wintercg-fetch';
+import { getDefaultIntegrations } from '../src/sdk';
 
-class FakeClient extends VercelEdgeClient {
-  public getIntegrationByName<T extends Integration = Integration>(name: string): T | undefined {
-    return name === 'WinterCGFetch' ? (winterCGFetchIntegration() as T) : undefined;
-  }
-}
+// The behavior lives in `createFetchIntegration` and is covered by
+// `packages/core/test/lib/integrations/fetch.test.ts`. This only pins the wiring.
+describe('winterCGFetchIntegration', () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
 
-const addFetchInstrumentationHandlerSpy = vi.spyOn(sentryCore, 'addFetchInstrumentationHandler');
-const instrumentFetchRequestSpy = vi.spyOn(sentryCore, 'instrumentFetchRequest');
-const addBreadcrumbSpy = vi.spyOn(sentryCore, 'addBreadcrumb');
+  it('is named `Fetch` and is enabled by default', () => {
+    expect(winterCGFetchIntegration().name).toBe('WinterCGFetch');
+    expect(getDefaultIntegrations().map(integration => integration.name)).toContain('WinterCGFetch');
+  });
 
-describe('WinterCGFetch instrumentation', () => {
-  let client: FakeClient;
+  it('creates `http.client` spans with the `auto.http.wintercg_fetch` origin', async () => {
+    vi.stubGlobal('fetch', () => Promise.resolve(new Response('ok')));
 
-  beforeEach(() => {
-    vi.clearAllMocks();
-
-    client = new FakeClient({
+    const transactions: TransactionEvent[] = [];
+    const client = new VercelEdgeClient({
       dsn: 'https://public@dsn.ingest.sentry.io/1337',
       tracesSampleRate: 1,
-      integrations: [],
-      transport: () => ({
-        send: () => Promise.resolve({}),
-        flush: () => Promise.resolve(true),
-      }),
-      tracePropagationTargets: ['http://my-website.com/'],
+      traceLifecycle: 'static',
+      integrations: [winterCGFetchIntegration()],
       stackParser: createStackParser(),
-    });
-
-    vi.spyOn(sentryCore, 'getClient').mockImplementation(() => client);
-  });
-
-  it('should call `instrumentFetchRequest` for outgoing fetch requests', () => {
-    addFetchInstrumentationHandlerSpy.mockImplementationOnce(() => undefined);
-
-    const integration = winterCGFetchIntegration();
-    integration.setupOnce!();
-    integration.setup!(client);
-
-    const [fetchInstrumentationHandlerCallback] = addFetchInstrumentationHandlerSpy.mock.calls[0]!;
-    expect(fetchInstrumentationHandlerCallback).toBeDefined();
-
-    const startHandlerData: HandlerDataFetch = {
-      fetchData: { url: 'http://my-website.com/', method: 'POST' },
-      args: ['http://my-website.com/'],
-      startTimestamp: Date.now(),
-    };
-    fetchInstrumentationHandlerCallback(startHandlerData);
-
-    expect(instrumentFetchRequestSpy).toHaveBeenCalledWith(
-      startHandlerData,
-      expect.any(Function),
-      expect.any(Function),
-      expect.any(Object),
-      { spanOrigin: 'auto.http.wintercg_fetch' },
-    );
-
-    const [, shouldCreateSpan, shouldAttachTraceData] = instrumentFetchRequestSpy.mock.calls[0]!;
-
-    expect(shouldAttachTraceData('http://my-website.com/')).toBe(true);
-    expect(shouldAttachTraceData('https://www.3rd-party-website.at/')).toBe(false);
-
-    // tracePropagationTargets match regardless of casing
-    expect(shouldAttachTraceData('http://MY-WEBSITE.com/')).toBe(true);
-    expect(shouldAttachTraceData('https://WWW.3RD-PARTY-WEBSITE.at/')).toBe(false);
-
-    expect(shouldCreateSpan('http://my-website.com/')).toBe(true);
-    expect(shouldCreateSpan('https://www.3rd-party-website.at/')).toBe(true);
-  });
-
-  it('should not instrument if client is not setup', () => {
-    addFetchInstrumentationHandlerSpy.mockImplementationOnce(() => undefined);
-
-    const integration = winterCGFetchIntegration();
-    integration.setupOnce!();
-    // integration.setup!(client) is not called!
-
-    const [fetchInstrumentationHandlerCallback] = addFetchInstrumentationHandlerSpy.mock.calls[0]!;
-    expect(fetchInstrumentationHandlerCallback).toBeDefined();
-
-    const startHandlerData: HandlerDataFetch = {
-      fetchData: { url: 'http://my-website.com/', method: 'POST' },
-      args: ['http://my-website.com/'],
-      startTimestamp: Date.now(),
-    };
-    fetchInstrumentationHandlerCallback(startHandlerData);
-
-    expect(instrumentFetchRequestSpy).not.toHaveBeenCalled();
-  });
-
-  it('should call `instrumentFetchRequest` for outgoing fetch requests to Sentry', () => {
-    addFetchInstrumentationHandlerSpy.mockImplementationOnce(() => undefined);
-
-    const integration = winterCGFetchIntegration();
-    integration.setupOnce!();
-    integration.setup!(client);
-
-    const [fetchInstrumentationHandlerCallback] = addFetchInstrumentationHandlerSpy.mock.calls[0]!;
-    expect(fetchInstrumentationHandlerCallback).toBeDefined();
-
-    const startHandlerData: HandlerDataFetch = {
-      fetchData: { url: 'https://dsn.ingest.sentry.io/1337?sentry_key=123', method: 'POST' },
-      args: ['https://dsn.ingest.sentry.io/1337?sentry_key=123'],
-      startTimestamp: Date.now(),
-    };
-    fetchInstrumentationHandlerCallback(startHandlerData);
-
-    expect(instrumentFetchRequestSpy).not.toHaveBeenCalled();
-  });
-
-  it('should properly apply the `shouldCreateSpanForRequest` option', () => {
-    addFetchInstrumentationHandlerSpy.mockImplementationOnce(() => undefined);
-
-    const integration = winterCGFetchIntegration({
-      shouldCreateSpanForRequest(url) {
-        return url === 'http://only-acceptable-url.com/';
+      transport: () => ({ send: () => Promise.resolve({}), flush: () => Promise.resolve(true) }),
+      beforeSendTransaction(event) {
+        transactions.push(event);
+        return null;
       },
     });
-    integration.setupOnce!();
-    integration.setup!(client);
+    setCurrentClient(client);
+    client.init();
 
-    const [fetchInstrumentationHandlerCallback] = addFetchInstrumentationHandlerSpy.mock.calls[0]!;
-    expect(fetchInstrumentationHandlerCallback).toBeDefined();
+    await startSpan({ name: 'parent', op: 'test' }, async () => {
+      await fetch('http://my-website.com/').then(response => response.text());
+    });
 
-    const startHandlerData: HandlerDataFetch = {
-      fetchData: { url: 'http://my-website.com/', method: 'POST' },
-      args: ['http://my-website.com/'],
-      startTimestamp: Date.now(),
-    };
-    fetchInstrumentationHandlerCallback(startHandlerData);
+    const parent = transactions.find(event => event.transaction === 'parent');
+    const clientSpan = parent?.spans?.find(span => span.op === 'http.client');
 
-    const [, shouldCreateSpan] = instrumentFetchRequestSpy.mock.calls[0]!;
-
-    expect(shouldCreateSpan('http://only-acceptable-url.com/')).toBe(true);
-    expect(shouldCreateSpan('http://my-website.com/')).toBe(false);
-    expect(shouldCreateSpan('https://www.3rd-party-website.at/')).toBe(false);
-  });
-
-  it('should create a breadcrumb for an outgoing request', () => {
-    addFetchInstrumentationHandlerSpy.mockImplementationOnce(() => undefined);
-
-    const integration = winterCGFetchIntegration();
-    integration.setupOnce!();
-    integration.setup!(client);
-
-    const [fetchInstrumentationHandlerCallback] = addFetchInstrumentationHandlerSpy.mock.calls[0]!;
-    expect(fetchInstrumentationHandlerCallback).toBeDefined();
-
-    const startTimestamp = Date.now();
-    const endTimestamp = Date.now() + 100;
-
-    const startHandlerData: HandlerDataFetch = {
-      fetchData: { url: 'http://my-website.com/', method: 'POST' },
-      args: ['http://my-website.com/'],
-      response: { ok: true, status: 201, url: 'http://my-website.com/' } as Response,
-      startTimestamp,
-      endTimestamp,
-    };
-    fetchInstrumentationHandlerCallback(startHandlerData);
-
-    expect(addBreadcrumbSpy).toBeCalledWith(
-      {
-        category: 'fetch',
-        data: {
-          method: 'POST',
-          status_code: 201,
-          url: 'http://my-website.com/',
-        },
-        type: 'http',
-      },
-      {
-        endTimestamp,
-        input: ['http://my-website.com/'],
-        response: { ok: true, status: 201, url: 'http://my-website.com/' },
-        startTimestamp,
-      },
-    );
-  });
-
-  it('should not create a breadcrumb for an outgoing request if `breadcrumbs: false` is set', () => {
-    addFetchInstrumentationHandlerSpy.mockImplementationOnce(() => undefined);
-
-    const integration = winterCGFetchIntegration({ breadcrumbs: false });
-    integration.setupOnce!();
-    integration.setup!(client);
-
-    const [fetchInstrumentationHandlerCallback] = addFetchInstrumentationHandlerSpy.mock.calls[0]!;
-    expect(fetchInstrumentationHandlerCallback).toBeDefined();
-
-    const startTimestamp = Date.now();
-    const endTimestamp = Date.now() + 100;
-
-    const startHandlerData: HandlerDataFetch = {
-      fetchData: { url: 'http://my-website.com/', method: 'POST' },
-      args: ['http://my-website.com/'],
-      response: { ok: true, status: 201, url: 'http://my-website.com/' } as Response,
-      startTimestamp,
-      endTimestamp,
-    };
-    fetchInstrumentationHandlerCallback(startHandlerData);
-
-    expect(addBreadcrumbSpy).not.toHaveBeenCalled();
+    expect(clientSpan).toBeDefined();
+    expect(clientSpan?.origin).toBe('auto.http.wintercg_fetch');
   });
 });

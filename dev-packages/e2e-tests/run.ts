@@ -6,6 +6,7 @@ import { sync as globSync } from 'glob';
 import { tmpdir } from 'os';
 import { join, resolve } from 'path';
 import { copyToTemp } from './lib/copyToTemp';
+import { applyRuntimeFiles } from './lib/runtimeFiles';
 import { syncPackedTarballSymlinks } from './lib/syncPackedTarballSymlinks';
 import { addPnpmOverrides } from './lib/pnpmOverrides';
 
@@ -13,6 +14,9 @@ interface SentryTestVariant {
   'build-command': string;
   'assert-command'?: string;
   label?: string;
+  skip?: boolean;
+  /** Runtime of the variant (`bun`, `deno` or `cloudflare`). Sets `RUNTIME` and selects the runtime-specific files. */
+  runtime?: string;
 }
 
 interface PackageJson {
@@ -82,7 +86,14 @@ async function getVariantBuildCommand(
   packageJsonPath: string,
   variantLabel: string,
   testAppPath: string,
-): Promise<{ buildCommand: string; assertCommand: string; testLabel: string; matchedVariantLabel?: string }> {
+): Promise<{
+  buildCommand: string;
+  assertCommand: string;
+  testLabel: string;
+  matchedVariantLabel?: string;
+  skip?: boolean;
+  runtime?: string;
+}> {
   try {
     const packageJsonContent = await readFile(packageJsonPath, 'utf-8');
     const packageJson: PackageJson = JSON.parse(packageJsonContent);
@@ -100,6 +111,8 @@ async function getVariantBuildCommand(
         assertCommand: matchingVariant['assert-command'] || 'pnpm test:assert',
         testLabel: matchingVariant.label || testAppPath,
         matchedVariantLabel: matchingVariant.label,
+        skip: matchingVariant.skip,
+        runtime: matchingVariant.runtime,
       };
     }
 
@@ -224,22 +237,28 @@ async function run(): Promise<void> {
     // at all - breaks the build with `unable to open database file`. Give each app its own.
     const sentryConfigDir = join(tmpDirPath, '.tmp_sentry_home');
     await mkdir(sentryConfigDir, { recursive: true });
-    const appEnv = { ...env, SENTRY_CONFIG_DIR: sentryConfigDir };
 
     const cwd = tmpDirPath;
     // Resolve variant if needed
-    const { buildCommand, assertCommand, testLabel, matchedVariantLabel } = variantLabel
+    const { buildCommand, assertCommand, testLabel, matchedVariantLabel, runtime } = variantLabel
       ? await getVariantBuildCommand(join(tmpDirPath, 'package.json'), variantLabel, testAppPath)
       : {
           buildCommand: 'pnpm test:build',
           assertCommand: 'pnpm test:assert',
           testLabel: testAppPath,
+          runtime: undefined,
         };
 
     // Print which variant we're using if found
     if (matchedVariantLabel) {
       console.log(`\n\nUsing variant: "${matchedVariantLabel}"\n\n`);
     }
+
+    if (runtime) {
+      applyRuntimeFiles(tmpDirPath, runtime);
+    }
+
+    const appEnv = { ...env, SENTRY_CONFIG_DIR: sentryConfigDir, ...(runtime ? { RUNTIME: runtime } : {}) };
 
     console.log(`Building ${testLabel} in ${tmpDirPath}...`);
     await asyncExec(`volta run ${buildCommand}`, { env: appEnv, cwd });
@@ -260,7 +279,7 @@ async function run(): Promise<void> {
     await asyncExec(testCommand, { env: appEnv, cwd });
 
     // clean up (although this is tmp, still nice to do)
-    await rm(tmpDirPath, { recursive: true });
+    await rm(tmpDirPath, { recursive: true, force: true, maxRetries: 5, retryDelay: 300 });
   }
 }
 

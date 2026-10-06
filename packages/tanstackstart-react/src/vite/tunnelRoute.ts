@@ -194,6 +194,10 @@ export const Route = createFileRoute(${serializedTunnelRoute})({
         const Sentry = await import('@sentry/tanstackstart-react');
         return Sentry.createSentryTunnelRoute(${serializedAllowedDsns ? `{ allowedDsns: ${serializedAllowedDsns} }` : `{}`}).handlers.POST({ request });
       },
+      // Without a handler for a method, TanStack Start falls back to SSR-rendering the app (running root loaders).
+      ANY() {
+        return new Response(null, { status: 405, headers: { Allow: 'POST' } });
+      },
     },
   },
 });

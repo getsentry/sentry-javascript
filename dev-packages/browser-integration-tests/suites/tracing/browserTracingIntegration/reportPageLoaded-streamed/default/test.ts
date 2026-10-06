@@ -1,11 +1,11 @@
-import { SENTRY_SEGMENT_NAME_SOURCE } from '@sentry/conventions/attributes';
-import { expect } from '@playwright/test';
 import {
-  SEMANTIC_ATTRIBUTE_SENTRY_OP,
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE,
-} from '@sentry/browser';
-import { SEMANTIC_ATTRIBUTE_SENTRY_IDLE_SPAN_FINISH_REASON } from '@sentry/core';
+  SENTRY_IDLE_SPAN_FINISH_REASON,
+  SENTRY_SEGMENT_NAME_SOURCE,
+  SENTRY_OP,
+  SENTRY_ORIGIN,
+} from '@sentry/conventions/attributes';
+import { expect } from '@playwright/test';
+import { SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE } from '@sentry/browser';
 import { sentryTest } from '../../../../../utils/fixtures';
 import { shouldSkipTracingTest } from '../../../../../utils/helpers';
 import { getSpanOp, waitForStreamedSpan } from '../../../../../utils/spanUtils';
@@ -26,16 +26,16 @@ sentryTest(
     const spanDurationSeconds = pageloadSpan.end_timestamp - pageloadSpan.start_timestamp;
 
     expect(pageloadSpan.attributes).toMatchObject({
-      [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: { type: 'string', value: 'auto.pageload.browser' },
+      [SENTRY_ORIGIN]: { type: 'string', value: 'auto.pageload.browser' },
       [SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE]: expect.objectContaining({ value: 1 }),
       [SENTRY_SEGMENT_NAME_SOURCE]: { type: 'string', value: 'url' },
-      [SEMANTIC_ATTRIBUTE_SENTRY_OP]: { type: 'string', value: 'pageload' },
-      [SEMANTIC_ATTRIBUTE_SENTRY_IDLE_SPAN_FINISH_REASON]: { type: 'string', value: 'reportPageLoaded' },
+      [SENTRY_OP]: { type: 'string', value: 'pageload' },
+      [SENTRY_IDLE_SPAN_FINISH_REASON]: { type: 'string', value: 'reportPageLoaded' },
     });
 
-    // We wait for 2.5 seconds before calling Sentry.reportPageLoaded()
-    // the margins are to account for timing weirdness in CI to avoid flakes
+    // We wait for 2.5 seconds before calling Sentry.reportPageLoaded(). The span starts at navigation start,
+    // but the timeout only starts once the bundle has executed, so allow generous upper headroom for slow CI.
     expect(spanDurationSeconds).toBeGreaterThan(2);
-    expect(spanDurationSeconds).toBeLessThan(3);
+    expect(spanDurationSeconds).toBeLessThan(4);
   },
 );

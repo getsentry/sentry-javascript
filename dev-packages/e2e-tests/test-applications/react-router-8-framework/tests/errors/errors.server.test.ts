@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test';
 import { waitForError } from '@sentry-internal/test-utils';
-import { APP_NAME } from '../constants';
+import { APP_NAME, RUNTIME } from '../constants';
 
 test.describe('server-side errors', () => {
   test('captures error thrown in server loader', async ({ page }) => {
@@ -26,21 +26,26 @@ test.describe('server-side errors', () => {
           },
         ],
       },
-      // todo: should be 'GET /errors/server-loader'
-      transaction: 'GET /{*splat}',
+      // Express names the transaction on Node and Deno. On Bun, where Express is not instrumented under
+      // `bun run`, it stays the request path. On Cloudflare the error has no transaction.
+      // todo: should be 'GET /errors/server-loader' everywhere
+      ...(RUNTIME === 'cloudflare'
+        ? {}
+        : { transaction: RUNTIME === 'bun' ? 'GET /errors/server-loader' : 'GET /{*splat}' }),
       request: {
         url: expect.stringContaining('errors/server-loader'),
         headers: expect.any(Object),
       },
       level: 'error',
-      platform: 'node',
+      // Only Node inits `@sentry/react-router`. Bun, Deno and Cloudflare init their runtime's own SDK.
+      platform: RUNTIME === 'cloudflare' || RUNTIME === 'deno' ? 'javascript' : 'node',
       environment: 'qa',
       sdk: {
         integrations: expect.any(Array<string>),
-        name: 'sentry.javascript.react-router',
+        name: RUNTIME === 'node' ? 'sentry.javascript.react-router' : `sentry.javascript.${RUNTIME}`,
         version: expect.any(String),
       },
-      tags: { runtime: 'node' },
+      ...(RUNTIME === 'node' ? { tags: { runtime: 'node' } } : {}),
       contexts: {
         trace: {
           span_id: expect.any(String),
@@ -74,21 +79,25 @@ test.describe('server-side errors', () => {
           },
         ],
       },
-      // todo: should be 'POST /errors/server-action'
-      transaction: 'POST /{*splat}',
+      // Express names the transaction on Node and Deno. On Bun, where Express is not instrumented under
+      // `bun run`, it stays the request path. On Cloudflare the error has no transaction.
+      // todo: should be 'POST /errors/server-action' everywhere
+      ...(RUNTIME === 'cloudflare'
+        ? {}
+        : { transaction: RUNTIME === 'bun' ? 'POST /errors/server-action.data' : 'POST /{*splat}' }),
       request: {
         url: expect.stringContaining('errors/server-action'),
         headers: expect.any(Object),
       },
       level: 'error',
-      platform: 'node',
+      platform: RUNTIME === 'cloudflare' || RUNTIME === 'deno' ? 'javascript' : 'node',
       environment: 'qa',
       sdk: {
         integrations: expect.any(Array<string>),
-        name: 'sentry.javascript.react-router',
+        name: RUNTIME === 'node' ? 'sentry.javascript.react-router' : `sentry.javascript.${RUNTIME}`,
         version: expect.any(String),
       },
-      tags: { runtime: 'node' },
+      ...(RUNTIME === 'node' ? { tags: { runtime: 'node' } } : {}),
       contexts: {
         trace: {
           span_id: expect.any(String),

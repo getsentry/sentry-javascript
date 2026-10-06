@@ -139,7 +139,7 @@ describe('normalizeUserOptions()', () => {
       const normalizedOptions = normalizeUserOptions(userOptions);
 
       expect(normalizedOptions.release.deploy).toEqual({
-        env: 'vercel-production',
+        env: 'production',
         url: 'https://my-app.vercel.app',
       });
     });

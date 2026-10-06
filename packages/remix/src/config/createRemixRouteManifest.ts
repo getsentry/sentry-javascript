@@ -36,6 +36,7 @@ function isRouteFile(filename: string): boolean {
  *   - users/$id.tsx (nested folder) -> /users/:id
  *   - users/$id/posts.tsx (nested folder) -> /users/:id/posts
  *   - users/_index.tsx (nested folder) -> /users
+ *   - concerts_.mine.tsx -> /concerts/mine (trailing underscore opts out of layout nesting only)
  *   - _layout.tsx -> null (pathless layout route, not URL-addressable)
  *   - _auth.tsx -> null (pathless layout route, not URL-addressable)
  *
@@ -75,18 +76,22 @@ export function convertRemixRouteToPath(filename: string): { path: string; isDyn
       continue;
     }
 
-    if (segment === '$') {
+    // A trailing underscore opts a segment out of layout nesting without appearing in the URL,
+    // so it has to be dropped before the segment is turned into a path segment.
+    const pathSegment = segment.endsWith('_') ? segment.slice(0, -1) : segment;
+
+    if (pathSegment === '$') {
       pathSegments.push(':*');
       isDynamic = true;
       continue;
     }
 
-    if (segment.startsWith('$')) {
-      const paramName = segment.substring(1);
+    if (pathSegment.startsWith('$')) {
+      const paramName = pathSegment.substring(1);
       pathSegments.push(`:${paramName}`);
       isDynamic = true;
     } else {
-      pathSegments.push(segment);
+      pathSegments.push(pathSegment);
     }
   }
 

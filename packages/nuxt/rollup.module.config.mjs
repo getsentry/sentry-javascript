@@ -1,5 +1,5 @@
 import { readdirSync } from 'node:fs';
-import { join } from 'node:path';
+import { isAbsolute, join } from 'node:path';
 import esbuild from 'rollup-plugin-esbuild';
 
 // The Nuxt module ships two kinds of output that live side by side in `build/module`:
@@ -11,7 +11,7 @@ import esbuild from 'rollup-plugin-esbuild';
 
 // Anything that isn't a relative path is provided by the consuming app or Node at runtime
 // (this covers `@sentry/*`, `nuxt/app`, `#imports`, node builtins), so it stays external.
-const isExternal = id => !id.startsWith('.') && !id.startsWith('/') && !id.startsWith('\0');
+const isExternal = id => !id.startsWith('.') && !isAbsolute(id) && !id.startsWith('\0');
 
 const transpile = esbuild({
   target: 'es2020',

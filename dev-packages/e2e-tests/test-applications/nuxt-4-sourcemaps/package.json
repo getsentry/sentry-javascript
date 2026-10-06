@@ -18,7 +18,7 @@
     "nuxt": "^4.1.2"
   },
   "devDependencies": {
-    "@playwright/test": "~1.56.0",
+    "@playwright/test": "~1.63.0",
     "@sentry-internal/test-utils": "link:../../../test-utils",
     "@types/node": "^22.20.0",
     "ts-node": "10.9.1",

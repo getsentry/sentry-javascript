@@ -1,0 +1,31 @@
+---
+import Redis from 'ioredis';
+
+export const prerender = false;
+
+const redis = new Redis({
+  // Don't keep retrying forever if Redis goes away (e.g. on test teardown)
+  maxRetriesPerRequest: 1,
+  retryStrategy: () => null,
+});
+
+let value: string | null = null;
+
+try {
+  await redis.set('test-key', 'test-value');
+  value = await redis.get('test-key');
+} finally {
+  redis.disconnect();
+}
+---
+
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>db-ioredis</title>
+  </head>
+  <body>
+    <h1>ioredis queries executed</h1>
+    <p>{value}</p>
+  </body>
+</html>

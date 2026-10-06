@@ -1,6 +1,7 @@
 import { SENTRY_TRACE_LIFECYCLE } from '@sentry/conventions/attributes';
 import type { SerializedStreamedSpanContainer } from '@sentry/core';
 import { afterAll, describe, expect } from 'vitest';
+import { EXPECTED_SDK_NAME } from '../../../utils';
 import { cleanupChildProcesses, createEsmAndCjsTests, describeWithDockerCompose } from '../../../utils/runner';
 
 describeWithDockerCompose('redis cache auto instrumentation', { workingDirectory: [__dirname] }, () => {
@@ -705,11 +706,12 @@ describeWithDockerCompose('redis cache auto instrumentation', { workingDirectory
         'sentry.kind': 'client',
         'sentry.origin': redisOrigin,
         'sentry.release': '1.0',
-        'sentry.sdk.name': 'sentry.javascript.node',
+        'sentry.sdk.name': EXPECTED_SDK_NAME,
         'sentry.segment.name': segmentName,
         [SENTRY_TRACE_LIFECYCLE]: 'stream',
       }),
       'sentry.sdk.version': { type: 'string', value: expect.any(String) },
+      'sentry.is_localhost': { type: 'boolean', value: false },
       'sentry.segment.id': { type: 'string', value: expect.stringMatching(/^[\da-f]{16}$/) },
     });
 

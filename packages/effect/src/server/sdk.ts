@@ -1,7 +1,15 @@
-import type { Client } from '@sentry/core';
+import type { Client, Integration } from '@sentry/core';
 import { applySdkMetadata } from '@sentry/core';
 import type { NodeOptions } from '@sentry/node';
-import { init as initNode } from '@sentry/node';
+import { contextLinesIntegration, init as initNode, linkedErrorsIntegration } from '@sentry/node';
+
+/**
+ * Only the integrations needed to enrich captured errors with source context and `cause` chains.
+ * Node's auto-instrumentation defaults are left out because `SentryEffectTracer` records Effect's own spans.
+ */
+export function getDefaultIntegrations(): Integration[] {
+  return [contextLinesIntegration(), linkedErrorsIntegration()];
+}
 
 /**
  * Initializes the Sentry Effect SDK for Node.js servers.
@@ -12,9 +20,7 @@ import { init as initNode } from '@sentry/node';
 export function init(options: NodeOptions): Client | undefined {
   const opts = {
     ...options,
-    // The Effect SDK provides its own tracing (`SentryEffectTracer`), logging and error capture, so
-    // node's auto-instrumentation default integrations should not additionally create spans.
-    defaultIntegrations: options.defaultIntegrations ?? false,
+    defaultIntegrations: options.defaultIntegrations ?? getDefaultIntegrations(),
   };
 
   applySdkMetadata(opts, 'effect', ['effect', 'node']);

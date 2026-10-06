@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import type { Span } from '@sentry/core';
+import { SPAN_STATUS_ERROR } from '@sentry/core';
 import { AIMessageChunk } from '@langchain/core/messages';
 import { GEN_AI_RESPONSE_TEXT, GEN_AI_USAGE_OUTPUT_TOKENS } from '@sentry/conventions/attributes';
 import { instrumentStreamResult } from '../../../../src/ai/langgraph/streaming';
@@ -12,6 +13,119 @@ function createSpan() {
     spanContext: () => ({ traceId: 'a'.repeat(32), spanId: 'b'.repeat(16), traceFlags: 1 }),
   };
 }
+
+describe('LangGraph iterable protocol', () => {
+  it('preserves repeated iteration over a reusable async iterable', async () => {
+    const span = createSpan();
+    const stream = instrumentStreamResult(
+      {
+        async *[Symbol.asyncIterator]() {
+          yield 'Sunny in Seoul';
+          yield 'Clear skies tomorrow';
+        },
+      },
+      span as unknown as Span,
+      null,
+      false,
+    );
+    const first: string[] = [];
+    const second: string[] = [];
+    for await (const chunk of stream) {
+      first.push(chunk);
+    }
+    for await (const chunk of stream) {
+      second.push(chunk);
+    }
+    expect(first).toEqual(['Sunny in Seoul', 'Clear skies tomorrow']);
+    expect(second).toEqual(first);
+    expect(span.end).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('LangGraph pipeThrough execution lifecycle', () => {
+  it('awaits async transform and flush while allowing buffered output to outlive execution', async () => {
+    const span = createSpan();
+    let finishTransform!: () => void;
+    let finishFlush!: () => void;
+    const transformPending = new Promise<void>(resolve => {
+      finishTransform = resolve;
+    });
+    const flushPending = new Promise<void>(resolve => {
+      finishFlush = resolve;
+    });
+    const transformStarted = vi.fn();
+    const flushStarted = vi.fn();
+    const stream = instrumentStreamResult(
+      new ReadableStream<string>({
+        start(controller) {
+          controller.enqueue('Sunny in Seoul');
+          controller.close();
+        },
+      }),
+      span as unknown as Span,
+      null,
+      false,
+    );
+    const output = stream.pipeThrough(
+      new TransformStream<string, string>(
+        {
+          async transform(chunk, controller) {
+            transformStarted();
+            await transformPending;
+            controller.enqueue(chunk);
+          },
+          async flush() {
+            flushStarted();
+            await flushPending;
+          },
+        },
+        undefined,
+        { highWaterMark: 2 },
+      ),
+    );
+    await vi.waitFor(() => expect(transformStarted).toHaveBeenCalledTimes(1));
+    expect(span.end).not.toHaveBeenCalled();
+    finishTransform();
+    await vi.waitFor(() => expect(flushStarted).toHaveBeenCalledTimes(1));
+    expect(span.end).not.toHaveBeenCalled();
+    finishFlush();
+    await vi.waitFor(() => expect(span.end).toHaveBeenCalledTimes(1));
+    const reader = output.getReader();
+    expect(await reader.read()).toEqual({ done: false, value: 'Sunny in Seoul' });
+    expect(await reader.read()).toEqual({ done: true, value: undefined });
+    expect(span.setStatus).not.toHaveBeenCalled();
+    reader.releaseLock();
+  });
+
+  it('marks async flush errors as failures of the source execution', async () => {
+    const span = createSpan();
+    const error = new Error('Weather transform flush failed');
+    const stream = instrumentStreamResult(
+      new ReadableStream<string>({
+        start(controller) {
+          controller.close();
+        },
+      }),
+      span as unknown as Span,
+      null,
+      false,
+    );
+    const output = stream.pipeThrough(
+      new TransformStream<string, string>({
+        async flush() {
+          throw error;
+        },
+      }),
+    );
+    const reader = output.getReader();
+    await expect(reader.read()).rejects.toThrow(error);
+    await vi.waitFor(() => {
+      expect(span.setStatus).toHaveBeenCalledWith({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
+      expect(span.end).toHaveBeenCalledTimes(1);
+    });
+    reader.releaseLock();
+  });
+});
 
 describe('LangGraph stream response recording', () => {
   it.each([

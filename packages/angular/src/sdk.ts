@@ -13,6 +13,7 @@ import {
 import type { Client, Integration } from '@sentry/core';
 import {
   applySdkMetadata,
+  consoleIntegration,
   conversationIdIntegration,
   debug,
   dedupeIntegration,
@@ -38,6 +39,7 @@ export function getDefaultIntegrations(_options: BrowserOptions = {}): Integrati
     functionToStringIntegration(),
     conversationIdIntegration(),
     breadcrumbsIntegration(),
+    consoleIntegration(),
     globalHandlersIntegration(),
     linkedErrorsIntegration(),
     dedupeIntegration(),

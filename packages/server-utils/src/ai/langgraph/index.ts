@@ -1,12 +1,5 @@
 /* eslint-disable typescript-eslint/no-deprecated */
-import {
-  getCurrentScope,
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  SPAN_STATUS_ERROR,
-  startSpan,
-  startSpanManual,
-  stringify,
-} from '@sentry/core';
+import { getCurrentScope, SPAN_STATUS_ERROR, startSpan, startSpanManual, stringify } from '@sentry/core';
 import type { Span } from '@sentry/core';
 import {
   GEN_AI_AGENT_NAME,
@@ -19,6 +12,7 @@ import {
   GEN_AI_SYSTEM_INSTRUCTIONS,
   GEN_AI_TOOL_DEFINITIONS,
   SENTRY_OP,
+  SENTRY_ORIGIN,
 } from '@sentry/conventions/attributes';
 import { GEN_AI_INVOKE_AGENT } from '@sentry/conventions/op';
 import { extractSystemInstructions, resolveAIRecordingOptions } from '../core/utils';
@@ -47,12 +41,14 @@ const LANGGRAPH_INVOKE_ACTIVE = 'sentry_langgraph_invoke_active';
  */
 export function instrumentStateGraphCompile(
   originalCompile: (...args: unknown[]) => CompiledGraph,
-  options: LangGraphOptions,
+  rawOptions: LangGraphOptions,
 ): (...args: unknown[]) => CompiledGraph {
   if (Object.prototype.hasOwnProperty.call(originalCompile, SENTRY_PATCHED)) {
     return originalCompile;
   }
 
+  // This exported entry point also needs the dataCollection defaults.
+  const options = resolveAIRecordingOptions(rawOptions);
   const sentryHandler = createLangChainCallbackHandler(options);
 
   const wrapped = new Proxy(originalCompile, {
@@ -167,7 +163,7 @@ function instrumentCompiledGraphOperation(
       const spanOptions = {
         name: 'invoke_agent',
         attributes: {
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: LANGGRAPH_ORIGIN,
+          [SENTRY_ORIGIN]: LANGGRAPH_ORIGIN,
           [SENTRY_OP]: GEN_AI_INVOKE_AGENT,
           [GEN_AI_OPERATION_NAME]: 'invoke_agent',
         },
@@ -213,15 +209,16 @@ function instrumentCompiledGraphOperation(
             );
           }
 
+          const recordInputs = options.recordInputs;
+          const recordOutputs = options.recordOutputs;
+
           // Extract available tools from the graph instance
-          const tools = extractToolsFromCompiledGraph(graphInstance);
+          const tools = recordInputs ? extractToolsFromCompiledGraph(graphInstance) : null;
           if (tools) {
             span.setAttribute(GEN_AI_TOOL_DEFINITIONS, JSON.stringify(tools));
           }
 
           // Parse input messages
-          const recordInputs = options.recordInputs;
-          const recordOutputs = options.recordOutputs;
           const inputMessages =
             args.length > 0 ? ((args[0] as { messages?: LangChainMessage[] } | null)?.messages ?? []) : [];
 

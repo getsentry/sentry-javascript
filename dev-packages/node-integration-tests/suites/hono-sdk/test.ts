@@ -7,17 +7,17 @@ describe('hono-sdk (Node)', () => {
   });
 
   createEsmAndCjsTests(__dirname, 'scenario.mjs', 'instrument.mjs', (createRunner, test) => {
-    test('creates a transaction for a basic GET request', async () => {
+    test('creates a segment span for a basic GET request', async () => {
       const runner = createRunner()
         .expect({
-          transaction: {
-            transaction: 'GET /',
-            contexts: {
-              trace: {
-                op: 'http.server',
-                status: 'ok',
-              },
-            },
+          span: container => {
+            expect(container.items.find(item => item.is_segment)).toMatchObject({
+              name: 'GET /',
+              status: 'ok',
+              attributes: expect.objectContaining({
+                'sentry.op': { type: 'string', value: 'http.server' },
+              }),
+            });
           },
         })
         .start();
@@ -25,20 +25,18 @@ describe('hono-sdk (Node)', () => {
       await runner.completed();
     });
 
-    test('creates a transaction with a parametrized route name', async () => {
+    test('creates a segment span with a parametrized route name', async () => {
       const runner = createRunner()
         .expect({
-          transaction: {
-            transaction: 'GET /hello/:name',
-            transaction_info: {
-              source: 'route',
-            },
-            contexts: {
-              trace: {
-                op: 'http.server',
-                status: 'ok',
-              },
-            },
+          span: container => {
+            expect(container.items.find(item => item.is_segment)).toMatchObject({
+              name: 'GET /hello/:name',
+              status: 'ok',
+              attributes: expect.objectContaining({
+                'sentry.op': { type: 'string', value: 'http.server' },
+                'sentry.segment.name.source': { type: 'string', value: 'route' },
+              }),
+            });
           },
         })
         .start();
@@ -48,7 +46,7 @@ describe('hono-sdk (Node)', () => {
 
     test('captures an error with the correct mechanism', async () => {
       const runner = createRunner()
-        .ignore('transaction')
+        .ignore('span')
         .expect({
           event: {
             exception: {
@@ -71,21 +69,20 @@ describe('hono-sdk (Node)', () => {
       await runner.completed();
     });
 
-    test('creates a transaction with internal_error status when an error occurs', async () => {
+    test('creates a segment span with error status when an error occurs', async () => {
       const runner = createRunner()
         .ignore('event')
         .expect({
-          transaction: {
-            transaction: 'GET /error/:param',
-            contexts: {
-              trace: {
-                op: 'http.server',
-                status: 'internal_error',
-                data: expect.objectContaining({
-                  'http.response.status_code': 500,
-                }),
-              },
-            },
+          span: container => {
+            expect(container.items.find(item => item.is_segment)).toMatchObject({
+              name: 'GET /error/:param',
+              status: 'error',
+              attributes: expect.objectContaining({
+                'sentry.op': { type: 'string', value: 'http.server' },
+                'sentry.status.message': { type: 'string', value: 'internal_error' },
+                'http.response.status_code': { type: 'integer', value: 500 },
+              }),
+            });
           },
         })
         .start();

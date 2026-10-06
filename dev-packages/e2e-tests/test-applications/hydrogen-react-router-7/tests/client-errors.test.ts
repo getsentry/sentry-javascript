@@ -1,12 +1,12 @@
 import { expect, test } from '@playwright/test';
-import { waitForError, waitForTransaction } from '@sentry-internal/test-utils';
+import { getSpanOp, waitForError, waitForStreamedSpan } from '@sentry-internal/test-utils';
 
 test('Sends a client-side exception to Sentry', async ({ page }) => {
-  // The pageload transaction only completes once the client SDK and the router have hydrated.
+  // The pageload span only completes once the client SDK and the router have hydrated.
   // Awaiting it before clicking guarantees the button's onClick handler is attached — a click that
   // lands before hydration would do nothing, and the exception would never be captured.
-  const pageloadTransactionPromise = waitForTransaction('hydrogen-react-router-7', transactionEvent => {
-    return transactionEvent.contexts?.trace?.op === 'pageload' && transactionEvent.transaction === '/';
+  const pageloadSpanPromise = waitForStreamedSpan('hydrogen-react-router-7', span => {
+    return getSpanOp(span) === 'pageload' && span.is_segment && span.name === '/';
   });
 
   const errorPromise = waitForError('hydrogen-react-router-7', errorEvent => {
@@ -15,7 +15,7 @@ test('Sends a client-side exception to Sentry', async ({ page }) => {
 
   await page.goto('/');
 
-  await pageloadTransactionPromise;
+  await pageloadSpanPromise;
 
   const exceptionButton = page.locator('id=exception-button');
   await exceptionButton.click();
@@ -27,8 +27,8 @@ test('Sends a client-side exception to Sentry', async ({ page }) => {
 
 test('Sends a client-side ErrorBoundary exception to Sentry', async ({ page }) => {
   // Wait for hydration (see above) before clicking, so the button's onClick handler is attached.
-  const pageloadTransactionPromise = waitForTransaction('hydrogen-react-router-7', transactionEvent => {
-    return transactionEvent.contexts?.trace?.op === 'pageload' && transactionEvent.transaction === '/client-error';
+  const pageloadSpanPromise = waitForStreamedSpan('hydrogen-react-router-7', span => {
+    return getSpanOp(span) === 'pageload' && span.is_segment && span.name === '/client-error';
   });
 
   const errorPromise = waitForError('hydrogen-react-router-7', errorEvent => {
@@ -37,7 +37,7 @@ test('Sends a client-side ErrorBoundary exception to Sentry', async ({ page }) =
 
   await page.goto('/client-error');
 
-  await pageloadTransactionPromise;
+  await pageloadSpanPromise;
 
   const throwButton = page.locator('id=throw-on-click');
   await throwButton.click();

@@ -1,11 +1,10 @@
 import type { Integration } from '@sentry/core';
-import { debug, getMainCarrier, SentryNonRecordingSpan } from '@sentry/core';
+import { debug, getMainCarrier, GLOBAL_OBJ, SentryNonRecordingSpan, spanToJSON } from '@sentry/core';
 import * as SentryReact from '@sentry/react';
-import { getClient, WINDOW } from '@sentry/react';
+import { close, getClient, getIsolationScope, WINDOW } from '@sentry/react';
 import { JSDOM } from 'jsdom';
 import { afterAll, afterEach, describe, expect, it, vi } from 'vitest';
 import { breadcrumbsIntegration, browserTracingIntegration, init } from '../src/client';
-import { INCOMPLETE_APP_ROUTER_INSTRUMENTATION_TRANSACTION_NAME } from '../src/client/routing/appRouterRoutingInstrumentation';
 
 const reactInit = vi.spyOn(SentryReact, 'init');
 const debugLogSpy = vi.spyOn(debug, 'log');
@@ -101,37 +100,12 @@ describe('Client init()', () => {
       expect(debugLogSpy).toHaveBeenCalledWith(expect.stringContaining('matches `ignoreSpans`'));
     });
 
-    it('drops incomplete navigation transactions', () => {
-      init({ dsn: TEST_DSN_404, tracesSampleRate: 1.0 });
-      const transportSend = vi.spyOn(getClient()!.getTransport()!, 'send');
-
-      // Ensure we have no current span, so our next span is a transaction
-      SentryReact.withActiveSpan(null, () => {
-        SentryReact.startInactiveSpan({ name: INCOMPLETE_APP_ROUTER_INSTRUMENTATION_TRANSACTION_NAME })?.end();
-      });
-
-      expect(transportSend).not.toHaveBeenCalled();
-      expect(debugLogSpy).toHaveBeenCalledWith(expect.stringContaining('matches `ignoreSpans`'));
-    });
-
     describe('span streaming', () => {
       it('drops /404 segment spans', () => {
         init({ dsn: TEST_DSN_404, tracesSampleRate: 1.0, traceLifecycle: 'stream' });
 
         // Ensure we have no current span, so our next span is a segment span
         const span = SentryReact.withActiveSpan(null, () => SentryReact.startInactiveSpan({ name: '/404' }));
-
-        expect(span).toBeInstanceOf(SentryNonRecordingSpan);
-        expect(debugLogSpy).toHaveBeenCalledWith(expect.stringContaining('matches `ignoreSpans`'));
-      });
-
-      it('drops incomplete navigation segment spans', () => {
-        init({ dsn: TEST_DSN_404, tracesSampleRate: 1.0, traceLifecycle: 'stream' });
-
-        // Ensure we have no current span, so our next span is a segment span
-        const span = SentryReact.withActiveSpan(null, () =>
-          SentryReact.startInactiveSpan({ name: INCOMPLETE_APP_ROUTER_INSTRUMENTATION_TRANSACTION_NAME }),
-        );
 
         expect(span).toBeInstanceOf(SentryNonRecordingSpan);
         expect(debugLogSpy).toHaveBeenCalledWith(expect.stringContaining('matches `ignoreSpans`'));
@@ -154,7 +128,7 @@ describe('Client init()', () => {
     type ModifiedInitOptionsIntegrationArray = { defaultIntegrations: Integration[]; integrations: Integration[] };
 
     it('supports passing unrelated integrations through options', () => {
-      init({ integrations: [breadcrumbsIntegration({ console: false })] });
+      init({ integrations: [breadcrumbsIntegration({ dom: false })] });
 
       const reactInitOptions = reactInit.mock.calls[0]![0] as ModifiedInitOptionsIntegrationArray;
       const installedBreadcrumbsIntegration = findIntegrationByName(reactInitOptions.integrations, 'Breadcrumbs');
@@ -214,6 +188,36 @@ describe('Client init()', () => {
         delete globalThis.__SENTRY_TRACING__;
       });
 
+      it('names the pageload span after the parameterized route', () => {
+        const globalWithManifest = GLOBAL_OBJ as typeof GLOBAL_OBJ & { _sentryRouteManifest?: string };
+        globalWithManifest._sentryRouteManifest = JSON.stringify({
+          staticRoutes: [{ path: '/' }],
+          dynamicRoutes: [],
+          isrRoutes: [],
+        });
+
+        init({ dsn: TEST_DSN, tracesSampleRate: 1.0 });
+
+        expect(spanToJSON(SentryReact.getActiveSpan()!)).toMatchObject({
+          name: '/',
+          attributes: {
+            'sentry.op': 'pageload',
+            'sentry.segment.name.source': 'route',
+            'url.template': '/',
+          },
+        });
+
+        delete globalWithManifest._sentryRouteManifest;
+      });
+
+      it('keeps a route provider passed by the user', () => {
+        const routeProvider = { resolveRoute: () => '/custom', resolveCurrentRoute: () => '/custom' };
+
+        init({ dsn: TEST_DSN, routeProvider });
+
+        expect(reactInit).toHaveBeenCalledWith(expect.objectContaining({ routeProvider }));
+      });
+
       it("doesn't run Next.js router instrumentation for bot user agents", () => {
         Object.defineProperty(WINDOW, 'navigator', {
           value: {
@@ -237,6 +241,22 @@ describe('Client init()', () => {
 
   it('returns client from init', () => {
     expect(init({})).not.toBeUndefined();
+  });
+
+  it('registers its event processors on the client', () => {
+    const client = init({});
+
+    expect(client?.getEventProcessors().map(processor => processor.id)).toContain('NextRedirectErrorFilter');
+  });
+
+  it('does not add event processors to the isolation scope after close()', async () => {
+    const isolationProcessorCount = getIsolationScope().getScopeData().eventProcessors.length;
+
+    init({});
+    await close();
+    init({});
+
+    expect(getIsolationScope().getScopeData().eventProcessors.length).toBe(isolationProcessorCount);
   });
 
   describe('environment option', () => {

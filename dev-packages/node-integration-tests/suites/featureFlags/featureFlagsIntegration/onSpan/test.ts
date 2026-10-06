@@ -1,4 +1,4 @@
-import { _INTERNAL_MAX_FLAGS_PER_SPAN as MAX_FLAGS_PER_SPAN } from '@sentry/core';
+import { _INTERNAL_MAX_FLAGS_PER_SPAN as MAX_FLAGS_PER_SPAN, type SerializedStreamedSpanContainer } from '@sentry/core';
 import { afterAll, expect, test } from 'vitest';
 import { cleanupChildProcesses, createRunner } from '../../../../utils/runner';
 
@@ -8,24 +8,31 @@ afterAll(() => {
 
 test('Flags captured on span attributes with max limit', async () => {
   // Based on scenario.ts.
-  const expectedFlags: Record<string, boolean> = {};
+  const expectedFlags: Record<string, { type: 'boolean'; value: boolean }> = {};
   for (let i = 1; i <= MAX_FLAGS_PER_SPAN; i++) {
-    expectedFlags[`flag.evaluation.feat${i}`] = i === 3;
+    expectedFlags[`flag.evaluation.feat${i}`] = { type: 'boolean', value: i === 3 };
   }
+  const spans: SerializedStreamedSpanContainer['items'] = [];
 
   await createRunner(__dirname, 'scenario.ts')
+    .unordered()
     .expect({
-      transaction: {
-        spans: [
-          expect.objectContaining({
-            description: 'test-span',
-            data: expect.objectContaining({}),
-          }),
-          expect.objectContaining({
-            description: 'test-nested-span',
-            data: expect.objectContaining(expectedFlags),
-          }),
-        ],
+      span: container => {
+        spans.push(...container.items);
+        const children = spans.filter(span => !span.is_segment);
+        expect(children).toHaveLength(2);
+        expect(children).toEqual(
+          expect.arrayContaining([
+            expect.objectContaining({
+              name: 'test-span',
+              attributes: expect.objectContaining({}),
+            }),
+            expect.objectContaining({
+              name: 'test-nested-span',
+              attributes: expect.objectContaining(expectedFlags),
+            }),
+          ]),
+        );
       },
     })
     .start()

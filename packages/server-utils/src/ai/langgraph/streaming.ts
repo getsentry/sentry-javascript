@@ -43,8 +43,7 @@ export function instrumentStreamResult<T extends AsyncIterable<unknown>>(
   }
 
   const iterate = stream[Symbol.asyncIterator].bind(stream);
-  const instrumented = instrumentStreamIterator({ [Symbol.asyncIterator]: iterate }, span, lifecycle);
-  stream[Symbol.asyncIterator] = () => instrumented;
+  stream[Symbol.asyncIterator] = () => instrumentStreamIterator({ [Symbol.asyncIterator]: iterate }, span, lifecycle);
   return stream;
 }
 

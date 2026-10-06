@@ -1,6 +1,9 @@
 import type { IntegrationFn } from '@sentry/core';
 import { defineIntegration } from '@sentry/core';
+import { prismaModuleNames } from '../../orchestrion/config/prisma';
+import { invokeOrchestrionInstrumentation } from '../../orchestrion/instrumentation';
 import { setGlobalTracingHelper } from './global';
+import { instrumentPrismaV8 } from './orchestrion';
 import { ActiveTracingHelper } from './tracing-helper';
 
 const INTEGRATION_NAME = 'Prisma' as const;
@@ -43,6 +46,12 @@ const _prismaIntegration = ((options?: PrismaOptions) => {
     setupOnce() {
       instrumentPrisma(options);
     },
+    // Prisma 8 has no tracing helper to install; its ORM terminals are instrumented via orchestrion instead.
+    setup(client) {
+      invokeOrchestrionInstrumentation(client, prismaModuleNames, instrumentPrismaV8, [
+        { ignoreSpanTypes: options?.instrumentationConfig?.ignoreSpanTypes ?? [] },
+      ]);
+    },
   };
 }) satisfies IntegrationFn;
 
@@ -50,7 +59,9 @@ const _prismaIntegration = ((options?: PrismaOptions) => {
  * Adds Sentry tracing instrumentation for the [prisma](https://www.npmjs.com/package/prisma) library.
  * For more information, see the [`prismaIntegration` documentation](https://docs.sentry.io/platforms/javascript/guides/node/configuration/integrations/prisma/).
  *
- * NOTE: This integration works out of the box with Prisma v6, and v7.
+ * NOTE: This integration works out of the box with Prisma v6, v7 and v8. Prisma v8 ("Prisma Next")
+ * has no tracing surface of its own, so its ORM calls are instrumented through Sentry's runtime hook
+ * or bundler plugin, like the other channel-based integrations.
  * On Prisma versions prior to v6, add `previewFeatures = ["tracing"]` to the client generator block of your Prisma schema:
  *
  *    ```

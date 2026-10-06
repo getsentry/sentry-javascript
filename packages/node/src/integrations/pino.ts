@@ -1,4 +1,3 @@
-import * as diagnosticsChannel from 'node:diagnostics_channel';
 import type { IntegrationFn, LogSeverityLevel } from '@sentry/core';
 import {
   _INTERNAL_captureLog,
@@ -10,6 +9,7 @@ import {
   severityLevelFromString,
   withScope,
 } from '@sentry/core';
+import { diagnosticsTracingChannel } from '@sentry/server-utils';
 
 const SENTRY_TRACK_SYMBOL = Symbol('sentry-track-pino-logger');
 
@@ -125,7 +125,7 @@ const _pinoIntegration = defineIntegration((userOptions: DeepPartial<PinoOptions
   return {
     name: 'Pino',
     setup: () => {
-      const integratedChannel = diagnosticsChannel.tracingChannel('pino_asJson');
+      const integratedChannel = diagnosticsTracingChannel('pino_asJson');
 
       function onPinoStart(self: Pino, args: PinoHookArgs, result: PinoResult): void {
         if (!shouldTrackLogger(self)) {

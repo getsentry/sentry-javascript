@@ -2,16 +2,17 @@ import { createTestServer } from '@sentry-internal/test-utils';
 import { URL_FULL, URL_PATH } from '@sentry/conventions/attributes';
 import { afterAll, describe, expect, test } from 'vitest';
 import { cleanupChildProcesses, createEsmAndCjsTests, createRunner } from '../../../utils/runner';
+import { RUNTIME } from '../../../utils';
 
 function getCommonHttpRequestHeaders(): Record<string, unknown> {
   return {
-    'http.request.header.accept': '*/*',
-    'http.request.header.accept_encoding': 'gzip, deflate',
-    'http.request.header.accept_language': '*',
-    'http.request.header.connection': 'keep-alive',
-    'http.request.header.host': expect.any(String),
-    'http.request.header.sec_fetch_mode': 'cors',
-    'http.request.header.user_agent': 'node',
+    'http.request.header.accept': ['*/*'],
+    'http.request.header.accept-encoding': ['gzip, deflate'],
+    'http.request.header.accept-language': ['*'],
+    'http.request.header.connection': ['keep-alive'],
+    'http.request.header.host': [expect.any(String)],
+    'http.request.header.sec-fetch-mode': ['cors'],
+    'http.request.header.user-agent': ['node'],
   };
 }
 
@@ -160,8 +161,8 @@ describe('httpIntegration', () => {
                 'sentry.segment.name.source': 'route',
                 [URL_FULL]: `http://localhost:${port}/test?a=1&b=2`,
                 [URL_PATH]: '/test',
-                'http.request.header.content_length': '9',
-                'http.request.header.content_type': 'text/plain;charset=UTF-8',
+                'http.request.header.content-length': ['9'],
+                'http.request.header.content-type': ['text/plain;charset=UTF-8'],
                 ...getCommonHttpRequestHeaders(),
               });
             },
@@ -171,9 +172,31 @@ describe('httpIntegration', () => {
         runner.makeRequest('post', '/test?a=1&b=2#hash', { data: 'test body' });
         await runner.completed();
       });
+
+      test('prefers the forwarded client address, without the socket port', async () => {
+        const runner = createRunner()
+          .expect({
+            transaction: transaction => {
+              const data = transaction.contexts?.trace?.data;
+              expect(data).toEqual(
+                expect.objectContaining({
+                  'client.address': '203.0.113.7',
+                  'network.peer.address': '::1',
+                  'network.peer.port': expect.any(Number),
+                }),
+              );
+              expect(data).not.toHaveProperty('client.port');
+            },
+          })
+          .start();
+
+        runner.makeRequest('get', '/test', { headers: { 'X-Forwarded-For': '203.0.113.7, 10.0.0.1' } });
+        await runner.completed();
+      });
     });
 
-    describe('custom server.emit', () => {
+    // Deno: the requests sometimes get a 500 response when `server.emit` is overwritten.
+    describe.skipIf(RUNTIME === 'deno')('custom server.emit', () => {
       createEsmAndCjsTests(
         __dirname,
         'scenario-overwrite-server-emit.mjs',

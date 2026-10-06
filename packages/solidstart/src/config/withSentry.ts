@@ -1,7 +1,11 @@
 import { debug } from '@sentry/core';
 import { INSTRUMENTED_MODULE_NAMES } from '@sentry/server-utils/orchestrion/config';
-import { sentryOrchestrionPlugin } from '@sentry/server-utils/orchestrion/rollup';
-import type { Nitro } from 'nitropack';
+import {
+  commonJSInteropOptions,
+  sentryCommonJSInteropPlugin,
+  sentryOrchestrionPlugin,
+} from '@sentry/server-utils/orchestrion/rollup';
+import type { Nitro, NitroConfig } from 'nitropack';
 import { addSentryPluginToVite } from '../vite/sentrySolidStartVite';
 import type { SentrySolidStartPluginOptions } from '../vite/types';
 import {
@@ -60,6 +64,7 @@ export function withSentry(
       if (addBuildTimeInstrumentation) {
         sentryRollupConfig.plugins.push(
           sentryOrchestrionPlugin({ buildTimeInstrumentation: sentryPluginOptions.buildTimeInstrumentation }),
+          sentryCommonJSInteropPlugin(),
         );
       }
 
@@ -90,12 +95,17 @@ export function withSentry(
   // the instrumented modules. This has to be set statically on the Nitro config (not in a hook)
   // because externalization is a resolution-time decision made before Rollup normalizes `external`.
   let externals = (server as SolidStartInlineServerConfig & { externals?: { inline?: string[] } }).externals;
+  let commonJS = (server as SolidStartInlineServerConfig & { commonJS?: NitroConfig['commonJS'] }).commonJS;
   if (addBuildTimeInstrumentation) {
     const existingInline = externals?.inline || [];
     externals = {
       ...externals,
       inline: [...new Set([...existingInline, ...INSTRUMENTED_MODULE_NAMES, ...IORedisDependencies])],
     };
+
+    // The inlined drivers `require()` CommonJS dependencies that stay external. Fix the interop
+    // for those requires (see `commonJSInteropOptions`). User-provided options win.
+    commonJS = { ...commonJSInteropOptions(), ...commonJS };
   }
 
   return {
@@ -104,6 +114,7 @@ export function withSentry(
     server: {
       ...server,
       externals,
+      commonJS,
       modules: [...existingModules, sentryNitroModule],
     },
   };

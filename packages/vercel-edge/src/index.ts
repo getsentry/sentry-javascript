@@ -83,9 +83,10 @@ export {
   instrumentSupabaseClient,
   zodErrorsIntegration,
   consoleIntegration,
+  // oxlint-disable-next-line typescript/no-deprecated
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
+  // oxlint-disable-next-line typescript/no-deprecated
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  SENTRY_SEGMENT_NAME_SOURCE,
   SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE,
   spanToStaticSpanJSON,
   spanToJSON,
@@ -105,6 +106,8 @@ export { trpcMiddleware, wrapMcpServerWithSentry } from '@sentry/core/server';
 export {
   openTelemetryIntegration,
   getOtlpTracesEndpoint,
+  instrumentMistralAiClient,
+  instrumentTypeSafeClient,
   instrumentOpenAiClient,
   instrumentAnthropicAiClient,
   instrumentGoogleGenAIClient,
@@ -117,3 +120,4 @@ export { VercelEdgeClient } from './client';
 export { getDefaultIntegrations, init } from './sdk';
 
 export { winterCGFetchIntegration } from './integrations/wintercg-fetch';
+export type { FetchIntegrationOptions } from '@sentry/core';

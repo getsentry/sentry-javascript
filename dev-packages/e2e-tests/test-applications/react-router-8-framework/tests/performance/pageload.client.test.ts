@@ -8,7 +8,7 @@ test.describe('client - pageload performance', () => {
       return span.name === '/performance' && getSpanOp(span) === 'pageload' && span.is_segment;
     });
 
-    await page.goto(`/performance`);
+    await page.goto(`/performance/`);
 
     const span = await spanPromise;
 
@@ -30,7 +30,6 @@ test.describe('client - pageload performance', () => {
       'sentry.sdk.version': { value: expect.any(String), type: 'string' },
       'sentry.sdk.integrations': { value: expect.arrayContaining([expect.any(String)]), type: 'array' },
       'url.template': { value: '/performance', type: 'string' },
-      // react-router-serve 301-redirects the bare index route to a trailing slash
       'url.path': { value: '/performance/', type: 'string' },
       'url.full': { value: expect.stringMatching(/^https?:\/\/localhost:\d+\/performance\/$/), type: 'string' },
     });

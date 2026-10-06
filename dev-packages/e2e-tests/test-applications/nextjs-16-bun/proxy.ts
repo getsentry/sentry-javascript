@@ -7,6 +7,15 @@ export async function proxy(request: NextRequest) {
   Sentry.setTag('my-isolated-tag', true);
   Sentry.setTag('my-global-scope-isolated-tag', getDefaultIsolationScope().getScopeData().tags['my-isolated-tag']); // We set this tag to be able to assert that the previously set tag has not leaked into the global isolation scope
 
+  // Streamed spans carry no scope tags, so the tests read the isolation state from this attribute instead
+  const activeSpan = Sentry.getActiveSpan();
+  if (activeSpan) {
+    Sentry.getRootSpan(activeSpan).setAttribute(
+      'isolation_scope.is_default',
+      Sentry.getIsolationScope() === getDefaultIsolationScope(),
+    );
+  }
+
   if (request.headers.has('x-should-throw')) {
     throw new Error('Middleware Error');
   }

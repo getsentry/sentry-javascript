@@ -1,4 +1,5 @@
 import { getTraceMetaTags } from '@sentry/core';
+import { isPrerenderRequest } from '../server/serverBuild';
 
 export * from '../client';
 
@@ -11,6 +12,10 @@ export { wrapSentryHandleRequest } from '../server/wrapSentryHandleRequest';
  * @returns A new ReadableStream with Sentry trace meta tags injected into the head section
  */
 export function injectTraceMetaTags(body: ReadableStream): ReadableStream {
+  if (isPrerenderRequest()) {
+    return body;
+  }
+
   const headClosingTag = '</head>';
 
   const reader = body.getReader();

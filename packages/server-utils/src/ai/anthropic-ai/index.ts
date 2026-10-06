@@ -1,12 +1,5 @@
 /* eslint-disable typescript-eslint/no-deprecated */
-import {
-  getClient,
-  hasSpanStreamingEnabled,
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  SPAN_STATUS_ERROR,
-  startSpan,
-  startSpanManual,
-} from '@sentry/core';
+import { getClient, hasSpanStreamingEnabled, SPAN_STATUS_ERROR, startSpan, startSpanManual } from '@sentry/core';
 import type { Span, SpanAttributeValue } from '@sentry/core';
 import {
   GEN_AI_OPERATION_NAME,
@@ -22,6 +15,7 @@ import {
   GEN_AI_RESPONSE_TEXT,
   GEN_AI_RESPONSE_TOOL_CALLS,
   GEN_AI_TOOL_DEFINITIONS,
+  SENTRY_ORIGIN,
 } from '@sentry/conventions/attributes';
 import { GEN_AI_REQUEST_STREAM_ATTRIBUTE } from '../core/gen-ai-attributes';
 import type { InstrumentedMethodEntry } from '../core/utils';
@@ -48,16 +42,20 @@ const INSTRUMENTED_METHODS = new WeakSet<object>();
 /**
  * Extract request attributes from method arguments
  */
-export function extractRequestAttributes(args: unknown[], operationName: string): Record<string, unknown> {
+export function extractRequestAttributes(
+  args: unknown[],
+  operationName: string,
+  recordInputs: boolean,
+): Record<string, unknown> {
   const attributes: Record<string, unknown> = {
     [GEN_AI_PROVIDER_NAME]: 'anthropic',
     [GEN_AI_OPERATION_NAME]: operationName,
-    [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ai.anthropic',
+    [SENTRY_ORIGIN]: 'auto.ai.anthropic',
   };
 
   if (args.length > 0 && typeof args[0] === 'object' && args[0] !== null) {
     const params = args[0] as Record<string, unknown>;
-    if (params.tools && Array.isArray(params.tools)) {
+    if (recordInputs && params.tools && Array.isArray(params.tools)) {
       attributes[GEN_AI_TOOL_DEFINITIONS] = JSON.stringify(params.tools);
     }
 
@@ -259,7 +257,7 @@ function instrumentMethod<T extends unknown[], R>(
       }
 
       const operationName = instrumentedMethod.operation || 'unknown';
-      const requestAttributes = extractRequestAttributes(args, operationName);
+      const requestAttributes = extractRequestAttributes(args, operationName, !!options.recordInputs);
       const model = requestAttributes[GEN_AI_REQUEST_MODEL] || 'unknown';
       const client = getClient();
       // With span streaming, omit the `'unknown'` model sentinel so the name stays low-cardinality.

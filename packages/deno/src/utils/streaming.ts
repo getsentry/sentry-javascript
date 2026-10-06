@@ -103,5 +103,8 @@ function monitorStream(
       controller.close();
       reader.releaseLock();
     },
+    cancel(reason) {
+      return reader.cancel(reason);
+    },
   });
 }

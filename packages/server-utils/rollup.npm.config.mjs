@@ -48,6 +48,19 @@ const debugNodeAlias = {
   },
 };
 
+// This package only runs in Node, but rollup's default CJS replacement for `import.meta.url`
+// picks browser behavior whenever a `document` global exists, and jsdom/happy-dom define
+// `document` while tests run in Node. Always emit the unconditional Node form instead.
+const importMetaUrlNodeShim = {
+  name: 'import-meta-url-node-shim',
+  resolveImportMeta(property, { format }) {
+    if (property === 'url' && format === 'cjs') {
+      return "require('node:url').pathToFileURL(__filename).href";
+    }
+    return null;
+  },
+};
+
 // Bundling files from the repo-root `node_modules` moves rollup's common source ancestor up to the
 // repo root, so `preserveModules` names our own files `packages/server-utils/src/...` — strip that
 // prefix to keep the `build/cjs/index.js` layout the `exports` map points at. And npm never packs
@@ -90,11 +103,12 @@ export default [
         'src/orchestrion/bundler/rollup.ts',
         'src/orchestrion/bundler/webpack.ts',
         'src/orchestrion/bundler/webpack-loader.ts',
+        'src/orchestrion/bundler/load-hook.ts',
         'src/orchestrion/bundler/esbuild.ts',
         'src/orchestrion/bundler/bun.ts',
       ],
       packageSpecificConfig: {
-        plugins: [debugNodeAlias, commonJSPlugin, thirdPartyLicensePlugin],
+        plugins: [debugNodeAlias, commonJSPlugin, importMetaUrlNodeShim, thirdPartyLicensePlugin],
         output: {
           // set exports to 'named' or 'auto' so that rollup doesn't warn
           exports: 'named',

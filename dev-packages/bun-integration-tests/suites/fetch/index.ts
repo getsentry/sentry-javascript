@@ -1,3 +1,4 @@
+import { sendPortToRunner } from '@sentry-internal/node-integration-tests';
 import * as Sentry from '@sentry/bun';
 
 // The target server the instrumented app makes outgoing fetch requests to. It
@@ -13,7 +14,6 @@ const targetServer = Bun.serve({
 const targetUrl = `http://localhost:${targetServer.port}`;
 
 Sentry.init({
-  traceLifecycle: 'static',
   environment: 'production',
   dsn: process.env.SENTRY_DSN,
   tracesSampleRate: 1.0,
@@ -39,8 +39,14 @@ const server = Bun.serve({
       return Response.json(data);
     }
 
+    if (url.pathname === '/outgoing-fetch-error') {
+      await fetch(`${targetUrl}/allowed`);
+      Sentry.captureException(new Error('fetch done'));
+      return new Response('OK');
+    }
+
     return new Response('Hello from Bun!');
   },
 });
 
-process.send?.(JSON.stringify({ event: 'READY', port: server.port }));
+sendPortToRunner(server.port!);

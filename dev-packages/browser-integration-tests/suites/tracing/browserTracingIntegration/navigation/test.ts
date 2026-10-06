@@ -1,11 +1,7 @@
-import { SENTRY_SEGMENT_NAME_SOURCE } from '@sentry/conventions/attributes';
+import { SENTRY_SEGMENT_NAME_SOURCE, SENTRY_OP, SENTRY_ORIGIN } from '@sentry/conventions/attributes';
 import { expect } from '@playwright/test';
 import type { Event } from '@sentry/core';
-import {
-  SEMANTIC_ATTRIBUTE_SENTRY_OP,
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE,
-} from '@sentry/core';
+import { SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE } from '@sentry/core';
 import { sentryTest } from '../../../../utils/fixtures';
 import {
   envelopeRequestParser,
@@ -41,17 +37,17 @@ sentryTest('should create a navigation transaction on page navigation', async ({
   expect(navigationRequest.transaction).toEqual('/index.html');
 
   expect(pageloadRequest.contexts?.trace?.data).toMatchObject({
-    [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.pageload.browser',
+    [SENTRY_ORIGIN]: 'auto.pageload.browser',
     [SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE]: 1,
     [SENTRY_SEGMENT_NAME_SOURCE]: 'url',
-    [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'pageload',
+    [SENTRY_OP]: 'pageload',
     ['sentry.idle_span_finish_reason']: 'idleTimeout',
   });
   expect(navigationRequest.contexts?.trace?.data).toMatchObject({
-    [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.browser',
+    [SENTRY_ORIGIN]: 'auto.navigation.browser',
     [SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE]: 1,
     [SENTRY_SEGMENT_NAME_SOURCE]: 'url',
-    [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'navigation',
+    [SENTRY_OP]: 'navigation',
     ['sentry.idle_span_finish_reason']: 'idleTimeout',
   });
   expect(pageloadRequest.request).toEqual({
@@ -119,10 +115,10 @@ sentryTest('should handle pushState with full URL', async ({ getLocalTestUrl, pa
   expect(navigationRequest.transaction).toEqual('/sub-page');
 
   expect(navigationRequest.contexts?.trace?.data).toMatchObject({
-    [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.browser',
+    [SENTRY_ORIGIN]: 'auto.navigation.browser',
     [SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE]: 1,
     [SENTRY_SEGMENT_NAME_SOURCE]: 'url',
-    [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'navigation',
+    [SENTRY_OP]: 'navigation',
     ['sentry.idle_span_finish_reason']: 'idleTimeout',
   });
   expect(navigationRequest.request).toEqual({
@@ -139,10 +135,10 @@ sentryTest('should handle pushState with full URL', async ({ getLocalTestUrl, pa
   expect(navigationRequest2.transaction).toEqual('/sub-page-2');
 
   expect(navigationRequest2.contexts?.trace?.data).toMatchObject({
-    [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.browser',
+    [SENTRY_ORIGIN]: 'auto.navigation.browser',
     [SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE]: 1,
     [SENTRY_SEGMENT_NAME_SOURCE]: 'url',
-    [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'navigation',
+    [SENTRY_OP]: 'navigation',
     ['sentry.idle_span_finish_reason']: 'idleTimeout',
   });
   expect(navigationRequest2.request).toEqual({

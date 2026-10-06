@@ -8,10 +8,16 @@ if (!testEnv) {
 
 const getStartCommand = () => {
   if (testEnv === 'development') {
-    return "NODE_OPTIONS='--import ./.nuxt/dev/sentry.server.config.mjs' nuxt dev -p 3030";
+    // The Sentry server config is bundled into the dev server via a nitro plugin, so no preload is needed.
+    return 'nuxt dev -p 3030';
   }
 
   if (testEnv === 'production') {
+    return 'pnpm start';
+  }
+
+  // Runs the suite with the compat shim preloaded, like existing `--import` deploy commands do.
+  if (testEnv === 'production-import') {
     return 'pnpm start:import';
   }
 

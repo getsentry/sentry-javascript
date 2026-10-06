@@ -12,7 +12,6 @@ const aiBinding = new MockAi();
 export default Sentry.withSentry(
   (env: Env) => ({
     dsn: env.SENTRY_DSN,
-    traceLifecycle: 'static',
     tracesSampleRate: 1.0,
     // Responses only. Asserting that prompts are *absent* is what makes this suite fail if the
     // binding is ever wrapped before the SDK is initialized again, since the fallback collects both.
@@ -32,6 +31,14 @@ export default Sentry.withSentry(
         // A failing `run` must bubble up out of the handler so the top-level Cloudflare
         // instrumentation reports it instead — showing up in Sentry exactly once.
         const result = await ai.run('error-model', { prompt: 'Hello' });
+        return new Response(JSON.stringify(result));
+      }
+
+      if (url.pathname === '/evaluate') {
+        const result = await ai.run('typesafe/jev', {
+          state: 'Help! My payouts have been failing for 3 days.',
+          questions: { is_urgent: { type: 'noul', instructions: 'Does this convey urgency?' } },
+        });
         return new Response(JSON.stringify(result));
       }
 

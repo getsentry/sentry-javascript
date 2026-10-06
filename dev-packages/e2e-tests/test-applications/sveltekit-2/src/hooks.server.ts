@@ -2,7 +2,6 @@ import { E2E_TEST_DSN } from '$env/static/private';
 import * as Sentry from '@sentry/sveltekit';
 
 Sentry.init({
-  traceLifecycle: 'static',
   environment: 'qa', // dynamic sampling bias to keep transactions
   dsn: E2E_TEST_DSN,
   debug: !!process.env.DEBUG,

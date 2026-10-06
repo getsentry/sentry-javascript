@@ -1,7 +1,12 @@
 import type { Nuxt } from '@nuxt/schema';
 import { INSTRUMENTED_MODULE_NAMES } from '@sentry/server-utils/orchestrion/config';
-import { sentryOrchestrionPlugin } from '@sentry/server-utils/orchestrion/rollup';
+import {
+  commonJSInteropOptions,
+  sentryCommonJSInteropPlugin,
+  sentryOrchestrionPlugin,
+} from '@sentry/server-utils/orchestrion/rollup';
 import type { NitroConfig } from 'nitropack';
+import { isCloudflarePreset } from './utils';
 
 // ioredis requires this CommonJS helper to be bundled with it. Leaving it
 // external makes Nitro resolve the default export as a namespace object.
@@ -34,8 +39,7 @@ export function setupOrchestrion(nuxt: Nuxt, hasServerConfig: boolean, buildTime
 
     // On Cloudflare (workerd) the SDK is initialized through `sentryCloudflareNitroPlugin` (no
     // server config file), so the transform must still run there — detected via the Nitro preset.
-    // Nitro normalizes preset names, so match any `cloudflare*` spelling.
-    const isCloudflare = !!nitroConfig.preset?.replace(/-/g, '_').startsWith('cloudflare');
+    const isCloudflare = isCloudflarePreset(nitroConfig.preset);
 
     if (!hasServerConfig && !isCloudflare) {
       return;
@@ -49,11 +53,18 @@ export function setupOrchestrion(nuxt: Nuxt, hasServerConfig: boolean, buildTime
       nitroConfig.rollupConfig.plugins = [nitroConfig.rollupConfig.plugins];
     }
 
-    nitroConfig.rollupConfig.plugins.push(sentryOrchestrionPlugin({}));
+    nitroConfig.rollupConfig.plugins.push(sentryOrchestrionPlugin({}), sentryCommonJSInteropPlugin());
 
     const externals = (nitroConfig.externals ||= {});
     const inline = externals.inline;
     const existingInline = Array.isArray(inline) ? inline : inline ? [inline] : [];
     externals.inline = [...new Set([...existingInline, ...INSTRUMENTED_MODULE_NAMES, ...IORedisDependencies])];
+
+    // The inlined drivers `require()` CommonJS dependencies that stay external. Fix the interop
+    // for those requires (see `commonJSInteropOptions`). User-provided options win.
+    const commonJS = (nitroConfig.commonJS ||= {});
+    const interop = commonJSInteropOptions();
+    commonJS.requireReturnsDefault ??= interop.requireReturnsDefault;
+    commonJS.ignoreTryCatch ??= interop.ignoreTryCatch;
   });
 }

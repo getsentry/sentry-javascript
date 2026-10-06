@@ -1,0 +1,28 @@
+---
+import mysql from 'mysql';
+
+export const prerender = false;
+
+const connection = mysql.createConnection({
+  user: 'root',
+  password: 'docker',
+});
+
+await new Promise<void>(resolve => {
+  connection.query('SELECT 1 + 1 AS solution', () => {
+    connection.query('SELECT NOW()', ['1', '2'], () => {
+      resolve();
+    });
+  });
+});
+---
+
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>db-mysql</title>
+  </head>
+  <body>
+    <h1>mysql queries executed</h1>
+  </body>
+</html>

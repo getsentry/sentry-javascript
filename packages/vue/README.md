@@ -6,87 +6,15 @@
 
 # Official Sentry SDK for Vue.js
 
-## Links
+The official Sentry SDK for monitoring Vue applications.
 
-- [Official SDK Docs](https://docs.sentry.io/platforms/javascript/guides/vue/)
+## Documentation
 
-## General
+- [Getting started](https://docs.sentry.io/platforms/javascript/guides/vue/)
+- [Configuration](https://docs.sentry.io/platforms/javascript/guides/vue/configuration/)
+- [Vue-specific features](https://docs.sentry.io/platforms/javascript/guides/vue/features/)
 
-This package is a wrapper around `@sentry/browser`, with added functionality related to Vue.js. All methods available in
-`@sentry/browser` can be imported from `@sentry/vue`.
+## Support
 
-To use this SDK, call `Sentry.init(options)` as early in your application as possible.
-
-### Vue 3
-
-```javascript
-const app = createApp({
-  // ...
-});
-
-Sentry.init({
-  app,
-  dsn: '__PUBLIC_DSN__',
-  integrations: [
-    // Or omit `router` if you're not using vue-router
-    Sentry.browserTracingIntegration({ router }),
-  ],
-});
-```
-
-### Vue 2
-
-```javascript
-import Vue from 'vue';
-import App from './App';
-import router from './router';
-import * as Sentry from '@sentry/vue';
-
-Sentry.init({
-  Vue: Vue,
-  dsn: '__PUBLIC_DSN__',
-  integrations: [
-    // Or omit `router` if you're not using vue-router
-    Sentry.browserTracingIntegration({ router }),
-  ],
-});
-
-new Vue({
-  el: '#app',
-  router,
-  components: { App },
-  template: '<App/>',
-});
-```
-
-### TanStack Router
-
-If you use TanStack Router for Vue instead of Vue Router, you can use the TanStack Router instrumentation to create
-navigation spans and collect meaningful performance data about the health of your page loads and associated requests.
-
-Add `tanstackRouterBrowserTracingIntegration` from `@sentry/vue/tanstackrouter` instead of the regular
-`Sentry.browserTracingIntegration`.
-
-Make sure `tanstackRouterBrowserTracingIntegration` is initialized by your `Sentry.init` call. Otherwise, the routing
-instrumentation will not work properly.
-
-Pass your router instance from `createRouter` to the integration.
-
-```javascript
-import { createApp } from 'vue';
-import { createRouter } from '@tanstack/vue-router';
-import * as Sentry from '@sentry/vue';
-import { tanstackRouterBrowserTracingIntegration } from '@sentry/vue/tanstackrouter';
-
-const router = createRouter({
-  // your router config
-  // ...
-});
-
-Sentry.init({
-  app,
-  dsn: '__PUBLIC_DSN__',
-  integrations: [tanstackRouterBrowserTracingIntegration(router)],
-  tracesSampleRate: 1.0, // Capture 100% of the transactions
-});
-```
+- [Report a bug](https://github.com/getsentry/sentry-javascript/issues/new/choose)
+- [Contributing](https://github.com/getsentry/sentry-javascript/blob/develop/CONTRIBUTING.md)

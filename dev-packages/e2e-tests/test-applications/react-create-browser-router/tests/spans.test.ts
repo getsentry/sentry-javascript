@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test';
 import {
-  collectStreamedSpans,
+  collectStreamedSpansUntilSegment,
   getSpanOp,
   waitForStreamedSpan,
   waitForStreamedSpans,
@@ -84,9 +84,10 @@ test('Captures a navigation span', async ({ page }) => {
 });
 
 test('Captures a lazy pageload span', async ({ page }) => {
-  const spansPromise = collectStreamedSpans('react-create-browser-router', spans => {
-    return spans.some(span => getSpanOp(span) === 'pageload' && span.is_segment);
-  });
+  const spansPromise = collectStreamedSpansUntilSegment(
+    'react-create-browser-router',
+    span => getSpanOp(span) === 'pageload',
+  );
 
   await page.goto('/lazy-loaded-user/5/foo');
 
@@ -123,9 +124,10 @@ test('Captures a lazy pageload span', async ({ page }) => {
 });
 
 test('Captures a lazy navigation span', async ({ page }) => {
-  const spansPromise = collectStreamedSpans('react-create-browser-router', spans => {
-    return spans.some(span => getSpanOp(span) === 'navigation' && span.is_segment);
-  });
+  const spansPromise = collectStreamedSpansUntilSegment(
+    'react-create-browser-router',
+    span => getSpanOp(span) === 'navigation',
+  );
 
   await page.goto('/');
   const linkElement = page.locator('id=lazy-navigation');

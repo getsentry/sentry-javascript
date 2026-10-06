@@ -1,18 +1,10 @@
+// Import the Sentry init first so `honoIntegration` is set up (and subscribed to Hono's per-request
+// Context channel) before any request is handled.
+import './instrument.bun';
 import { Hono } from 'hono';
-import { sentry } from '@sentry/hono/bun';
 import { addRoutes } from './routes';
 
 const app = new Hono();
-
-app.use(
-  sentry(app, {
-    traceLifecycle: 'static',
-    dsn: process.env.E2E_TEST_DSN,
-    environment: 'qa',
-    tracesSampleRate: 1.0,
-    tunnel: 'http://localhost:3031/',
-  }),
-);
 
 addRoutes(app);
 

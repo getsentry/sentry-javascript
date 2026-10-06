@@ -1,723 +1,345 @@
 import { expect, test } from '@playwright/test';
-import { waitForTransaction } from '@sentry-internal/test-utils';
+import type { SerializedStreamedSpan } from '@sentry-internal/test-utils';
+import { collectStreamedSpansUntilSegment } from '@sentry-internal/test-utils';
 
-test('Sends an API route transaction', async ({ baseURL }) => {
-  const pageloadTransactionEventPromise = waitForTransaction('nestjs-8', transactionEvent => {
-    return (
-      transactionEvent?.contexts?.trace?.op === 'http.server' &&
-      transactionEvent?.transaction === 'GET /test-transaction'
-    );
-  });
+const APP_NAME = 'nestjs-8';
+
+function findSpan(spans: SerializedStreamedSpan[], name: string): SerializedStreamedSpan | undefined {
+  return spans.find(span => span.name === name);
+}
+
+test('Sends streamed spans for an API route', async ({ baseURL }) => {
+  const spansPromise = collectStreamedSpansUntilSegment(APP_NAME, 'GET /test-transaction');
 
   await fetch(`${baseURL}/test-transaction`);
 
-  const transactionEvent = await pageloadTransactionEventPromise;
+  const spans = await spansPromise;
+  const segmentSpan = spans.find(span => span.is_segment)!;
 
-  expect(transactionEvent.contexts?.trace).toEqual({
-    data: {
-      'sentry.segment.name.source': 'route',
-      'sentry.origin': 'auto.http.http_server',
-      'sentry.op': 'http.server',
-      'sentry.sample_rate': 1,
-      'sentry.kind': 'server',
-      'http.response.status_code': 200,
-      'url.full': 'http://localhost:3030/test-transaction',
-      'url.path': '/test-transaction',
-      'server.address': 'localhost',
-      'http.request.method': 'GET',
-      'url.scheme': 'http',
-      'user_agent.original': 'node',
-      'client.address': '::1',
-      'client.port': expect.any(Number),
-      'network.transport': 'tcp',
-      'network.local.address': expect.any(String),
-      'network.local.port': expect.any(Number),
-      'network.peer.address': expect.any(String),
-      'network.peer.port': expect.any(Number),
-      'network.protocol.name': 'http',
-      'network.protocol.version': '1.1',
-      'server.port': 3030,
-      'http.response.status_text': 'OK',
-      'http.route': '/test-transaction',
-      'http.request.header.accept': '*/*',
-      'http.request.header.accept_encoding': 'gzip, deflate',
-      'http.request.header.accept_language': '*',
-      'http.request.header.connection': 'keep-alive',
-      'http.request.header.host': expect.any(String),
-      'http.request.header.sec_fetch_mode': 'cors',
-      'http.request.header.user_agent': 'node',
-    },
-    op: 'http.server',
-    span_id: expect.stringMatching(/[a-f0-9]{16}/),
+  expect(segmentSpan).toMatchObject({
+    name: 'GET /test-transaction',
+    is_segment: true,
     status: 'ok',
-    trace_id: expect.stringMatching(/[a-f0-9]{32}/),
-    origin: 'auto.http.http_server',
-  });
-
-  expect(transactionEvent.contexts?.response).toEqual({
-    status_code: 200,
-  });
-
-  expect(transactionEvent).toEqual(
-    expect.objectContaining({
-      spans: expect.arrayContaining([
-        {
-          data: {
-            'express.name': '/test-transaction',
-            'express.type': 'request_handler',
-            'http.route': '/test-transaction',
-            'sentry.origin': 'auto.http.express',
-            'sentry.op': 'handler',
-          },
-          op: 'handler',
-          description: '/test-transaction',
-          parent_span_id: expect.stringMatching(/[a-f0-9]{16}/),
-          span_id: expect.stringMatching(/[a-f0-9]{16}/),
-          start_timestamp: expect.any(Number),
-          status: 'ok',
-          timestamp: expect.any(Number),
-          trace_id: expect.stringMatching(/[a-f0-9]{32}/),
-          origin: 'auto.http.express',
-        },
-        {
-          data: {
-            'sentry.origin': 'manual',
-          },
-          description: 'test-span',
-          parent_span_id: expect.stringMatching(/[a-f0-9]{16}/),
-          span_id: expect.stringMatching(/[a-f0-9]{16}/),
-          start_timestamp: expect.any(Number),
-          status: 'ok',
-          timestamp: expect.any(Number),
-          trace_id: expect.stringMatching(/[a-f0-9]{32}/),
-          origin: 'manual',
-        },
-        {
-          data: {
-            'sentry.origin': 'manual',
-          },
-          description: 'child-span',
-          parent_span_id: expect.stringMatching(/[a-f0-9]{16}/),
-          span_id: expect.stringMatching(/[a-f0-9]{16}/),
-          start_timestamp: expect.any(Number),
-          status: 'ok',
-          timestamp: expect.any(Number),
-          trace_id: expect.stringMatching(/[a-f0-9]{32}/),
-          origin: 'manual',
-        },
-        {
-          span_id: expect.stringMatching(/[a-f0-9]{16}/),
-          trace_id: expect.stringMatching(/[a-f0-9]{32}/),
-          data: {
-            'sentry.origin': 'auto.http.nestjs',
-            'sentry.op': 'handler',
-            component: '@nestjs/core',
-            'nestjs.version': expect.any(String),
-            'nestjs.type': 'handler',
-            'nestjs.callback': 'testTransaction',
-          },
-          description: 'testTransaction',
-          parent_span_id: expect.stringMatching(/[a-f0-9]{16}/),
-          start_timestamp: expect.any(Number),
-          timestamp: expect.any(Number),
-          status: 'ok',
-          origin: 'auto.http.nestjs',
-          op: 'handler',
-        },
-      ]),
-      transaction: 'GET /test-transaction',
-      type: 'transaction',
-      transaction_info: {
-        source: 'route',
-      },
+    attributes: expect.objectContaining({
+      'sentry.origin': { type: 'string', value: 'auto.http.http_server' },
+      'sentry.op': { type: 'string', value: 'http.server' },
+      'sentry.segment.name.source': { type: 'string', value: 'route' },
+      'sentry.sample_rate': { type: 'integer', value: 1 },
+      'sentry.kind': { type: 'string', value: 'server' },
+      'http.request.method': { type: 'string', value: 'GET' },
+      'http.route': { type: 'string', value: '/test-transaction' },
+      'http.response.status_code': { type: 'integer', value: 200 },
+      'http.response.status_text': { type: 'string', value: 'OK' },
+      'url.full': { type: 'string', value: 'http://localhost:3030/test-transaction' },
+      'url.path': { type: 'string', value: '/test-transaction' },
+      'url.scheme': { type: 'string', value: 'http' },
+      'server.address': { type: 'string', value: 'localhost' },
+      'server.port': { type: 'integer', value: 3030 },
+      'user_agent.original': { type: 'string', value: 'node' },
     }),
-  );
+  });
+
+  expect(findSpan(spans, '/test-transaction')).toMatchObject({
+    is_segment: false,
+    status: 'ok',
+    parent_span_id: segmentSpan.span_id,
+    attributes: expect.objectContaining({
+      'sentry.op': { type: 'string', value: 'handler' },
+      'sentry.origin': { type: 'string', value: 'auto.http.express' },
+      'express.name': { type: 'string', value: '/test-transaction' },
+      'express.type': { type: 'string', value: 'request_handler' },
+      'http.route': { type: 'string', value: '/test-transaction' },
+    }),
+  });
+
+  // The Nest handler span carries the callback name as an attribute rather than in its name, which
+  // stays low cardinality under span streaming.
+  expect(findSpan(spans, 'Request handler')).toMatchObject({
+    is_segment: false,
+    status: 'ok',
+    attributes: expect.objectContaining({
+      'sentry.op': { type: 'string', value: 'handler' },
+      'sentry.origin': { type: 'string', value: 'auto.http.nestjs' },
+      component: { type: 'string', value: '@nestjs/core' },
+      'nestjs.type': { type: 'string', value: 'handler' },
+      'nestjs.callback': { type: 'string', value: 'testTransaction' },
+      'nestjs.version': { type: 'string', value: expect.any(String) },
+    }),
+  });
+
+  const testSpan = findSpan(spans, 'test-span');
+  expect(testSpan).toMatchObject({
+    is_segment: false,
+    status: 'ok',
+    attributes: expect.objectContaining({ 'sentry.origin': { type: 'string', value: 'manual' } }),
+  });
+
+  expect(findSpan(spans, 'child-span')).toMatchObject({
+    is_segment: false,
+    status: 'ok',
+    parent_span_id: testSpan!.span_id,
+    attributes: expect.objectContaining({ 'sentry.origin': { type: 'string', value: 'manual' } }),
+  });
+
+  for (const span of spans) {
+    expect(span.trace_id).toBe(segmentSpan.trace_id);
+  }
 });
 
-test('API route transaction includes nest middleware span. Spans created in and after middleware are nested correctly', async ({
+test('API route trace includes nest middleware span. Spans created in and after middleware are nested correctly', async ({
   baseURL,
 }) => {
-  const pageloadTransactionEventPromise = waitForTransaction('nestjs-8', transactionEvent => {
-    return (
-      transactionEvent?.contexts?.trace?.op === 'http.server' &&
-      transactionEvent?.transaction === 'GET /test-middleware-instrumentation'
-    );
-  });
+  const spansPromise = collectStreamedSpansUntilSegment(APP_NAME, 'GET /test-middleware-instrumentation');
 
   const response = await fetch(`${baseURL}/test-middleware-instrumentation`);
   expect(response.status).toBe(200);
 
-  const transactionEvent = await pageloadTransactionEventPromise;
+  const spans = await spansPromise;
 
-  expect(transactionEvent).toEqual(
-    expect.objectContaining({
-      spans: expect.arrayContaining([
-        {
-          span_id: expect.stringMatching(/[a-f0-9]{16}/),
-          trace_id: expect.stringMatching(/[a-f0-9]{32}/),
-          data: {
-            'sentry.op': 'middleware',
-            'sentry.origin': 'auto.middleware.nestjs',
-          },
-          description: 'ExampleMiddleware',
-          parent_span_id: expect.stringMatching(/[a-f0-9]{16}/),
-          start_timestamp: expect.any(Number),
-          timestamp: expect.any(Number),
-          status: 'ok',
-          op: 'middleware',
-          origin: 'auto.middleware.nestjs',
-        },
-      ]),
+  const exampleMiddlewareSpan = findSpan(spans, 'ExampleMiddleware');
+  expect(exampleMiddlewareSpan).toMatchObject({
+    is_segment: false,
+    status: 'ok',
+    attributes: expect.objectContaining({
+      'sentry.op': { type: 'string', value: 'middleware' },
+      'sentry.origin': { type: 'string', value: 'auto.middleware.nestjs' },
     }),
-  );
+  });
 
-  const exampleMiddlewareSpan = transactionEvent.spans.find(span => span.description === 'ExampleMiddleware');
-  const exampleMiddlewareSpanId = exampleMiddlewareSpan?.span_id;
+  const testMiddlewareSpan = findSpan(spans, 'test-middleware-span');
+  const testControllerSpan = findSpan(spans, 'test-controller-span');
 
-  expect(transactionEvent).toEqual(
-    expect.objectContaining({
-      spans: expect.arrayContaining([
-        {
-          span_id: expect.stringMatching(/[a-f0-9]{16}/),
-          trace_id: expect.stringMatching(/[a-f0-9]{32}/),
-          data: expect.any(Object),
-          description: 'test-controller-span',
-          parent_span_id: expect.stringMatching(/[a-f0-9]{16}/),
-          start_timestamp: expect.any(Number),
-          timestamp: expect.any(Number),
-          status: 'ok',
-          origin: 'manual',
-        },
-        {
-          span_id: expect.stringMatching(/[a-f0-9]{16}/),
-          trace_id: expect.stringMatching(/[a-f0-9]{32}/),
-          data: expect.any(Object),
-          description: 'test-middleware-span',
-          parent_span_id: expect.stringMatching(/[a-f0-9]{16}/),
-          start_timestamp: expect.any(Number),
-          timestamp: expect.any(Number),
-          status: 'ok',
-          origin: 'manual',
-        },
-      ]),
-    }),
-  );
-
-  // verify correct span parent-child relationships
-  const testMiddlewareSpan = transactionEvent.spans.find(span => span.description === 'test-middleware-span');
-  const testControllerSpan = transactionEvent.spans.find(span => span.description === 'test-controller-span');
+  expect(testMiddlewareSpan).toMatchObject({ is_segment: false, status: 'ok' });
+  expect(testControllerSpan).toMatchObject({ is_segment: false, status: 'ok' });
 
   // 'ExampleMiddleware' is the parent of 'test-middleware-span'
-  expect(testMiddlewareSpan.parent_span_id).toBe(exampleMiddlewareSpanId);
+  expect(testMiddlewareSpan!.parent_span_id).toBe(exampleMiddlewareSpan!.span_id);
 
   // 'ExampleMiddleware' is NOT the parent of 'test-controller-span'
-  expect(testControllerSpan.parent_span_id).not.toBe(exampleMiddlewareSpanId);
+  expect(testControllerSpan!.parent_span_id).not.toBe(exampleMiddlewareSpan!.span_id);
 });
 
-test('API route transaction includes nest guard span and span started in guard is nested correctly', async ({
-  baseURL,
-}) => {
-  const transactionEventPromise = waitForTransaction('nestjs-8', transactionEvent => {
-    return (
-      transactionEvent?.contexts?.trace?.op === 'http.server' &&
-      transactionEvent?.transaction === 'GET /test-guard-instrumentation'
-    );
-  });
+test('API route trace includes nest guard span and span started in guard is nested correctly', async ({ baseURL }) => {
+  const spansPromise = collectStreamedSpansUntilSegment(APP_NAME, 'GET /test-guard-instrumentation');
 
   const response = await fetch(`${baseURL}/test-guard-instrumentation`);
   expect(response.status).toBe(200);
 
-  const transactionEvent = await transactionEventPromise;
+  const spans = await spansPromise;
 
-  expect(transactionEvent).toEqual(
-    expect.objectContaining({
-      spans: expect.arrayContaining([
-        {
-          span_id: expect.stringMatching(/[a-f0-9]{16}/),
-          trace_id: expect.stringMatching(/[a-f0-9]{32}/),
-          data: {
-            'sentry.op': 'middleware',
-            'sentry.origin': 'auto.middleware.nestjs.guard',
-          },
-          description: 'ExampleGuard',
-          parent_span_id: expect.stringMatching(/[a-f0-9]{16}/),
-          start_timestamp: expect.any(Number),
-          timestamp: expect.any(Number),
-          status: 'ok',
-          op: 'middleware',
-          origin: 'auto.middleware.nestjs.guard',
-        },
-      ]),
+  const exampleGuardSpan = findSpan(spans, 'ExampleGuard');
+  expect(exampleGuardSpan).toMatchObject({
+    is_segment: false,
+    status: 'ok',
+    attributes: expect.objectContaining({
+      'sentry.op': { type: 'string', value: 'middleware' },
+      'sentry.origin': { type: 'string', value: 'auto.middleware.nestjs.guard' },
     }),
-  );
+  });
 
-  const exampleGuardSpan = transactionEvent.spans.find(span => span.description === 'ExampleGuard');
-  const exampleGuardSpanId = exampleGuardSpan?.span_id;
-
-  expect(transactionEvent).toEqual(
-    expect.objectContaining({
-      spans: expect.arrayContaining([
-        {
-          span_id: expect.stringMatching(/[a-f0-9]{16}/),
-          trace_id: expect.stringMatching(/[a-f0-9]{32}/),
-          data: expect.any(Object),
-          description: 'test-guard-span',
-          parent_span_id: expect.stringMatching(/[a-f0-9]{16}/),
-          start_timestamp: expect.any(Number),
-          timestamp: expect.any(Number),
-          status: 'ok',
-          origin: 'manual',
-        },
-      ]),
-    }),
-  );
-
-  // verify correct span parent-child relationships
-  const testGuardSpan = transactionEvent.spans.find(span => span.description === 'test-guard-span');
+  const testGuardSpan = findSpan(spans, 'test-guard-span');
+  expect(testGuardSpan).toMatchObject({ is_segment: false, status: 'ok' });
 
   // 'ExampleGuard' is the parent of 'test-guard-span'
-  expect(testGuardSpan.parent_span_id).toBe(exampleGuardSpanId);
+  expect(testGuardSpan!.parent_span_id).toBe(exampleGuardSpan!.span_id);
 });
 
-test('API route transaction includes nest pipe span for valid request', async ({ baseURL }) => {
-  const transactionEventPromise = waitForTransaction('nestjs-8', transactionEvent => {
-    return (
-      transactionEvent?.contexts?.trace?.op === 'http.server' &&
-      transactionEvent?.transaction === 'GET /test-pipe-instrumentation/:id' &&
-      transactionEvent?.request?.url?.includes('/test-pipe-instrumentation/123')
-    );
-  });
+test('API route trace includes nest pipe span for valid request', async ({ baseURL }) => {
+  // Both pipe specs hit the same route, so the segment name alone does not tell their traces apart.
+  const spansPromise = collectStreamedSpansUntilSegment(
+    APP_NAME,
+    span =>
+      span.name === 'GET /test-pipe-instrumentation/:id' &&
+      span.attributes['url.path']?.value === '/test-pipe-instrumentation/123',
+  );
 
   const response = await fetch(`${baseURL}/test-pipe-instrumentation/123`);
   expect(response.status).toBe(200);
 
-  const transactionEvent = await transactionEventPromise;
+  const spans = await spansPromise;
 
-  expect(transactionEvent).toEqual(
-    expect.objectContaining({
-      spans: expect.arrayContaining([
-        {
-          span_id: expect.stringMatching(/[a-f0-9]{16}/),
-          trace_id: expect.stringMatching(/[a-f0-9]{32}/),
-          data: {
-            'sentry.op': 'middleware',
-            'sentry.origin': 'auto.middleware.nestjs.pipe',
-          },
-          description: 'ParseIntPipe',
-          parent_span_id: expect.stringMatching(/[a-f0-9]{16}/),
-          start_timestamp: expect.any(Number),
-          timestamp: expect.any(Number),
-          status: 'ok',
-          op: 'middleware',
-          origin: 'auto.middleware.nestjs.pipe',
-        },
-      ]),
+  expect(findSpan(spans, 'ParseIntPipe')).toMatchObject({
+    is_segment: false,
+    status: 'ok',
+    attributes: expect.objectContaining({
+      'sentry.op': { type: 'string', value: 'middleware' },
+      'sentry.origin': { type: 'string', value: 'auto.middleware.nestjs.pipe' },
     }),
-  );
+  });
 });
 
-test('API route transaction includes nest pipe span for invalid request', async ({ baseURL }) => {
-  const transactionEventPromise = waitForTransaction('nestjs-8', transactionEvent => {
-    return (
-      transactionEvent?.contexts?.trace?.op === 'http.server' &&
-      transactionEvent?.transaction === 'GET /test-pipe-instrumentation/:id' &&
-      transactionEvent?.request?.url?.includes('/test-pipe-instrumentation/abc')
-    );
-  });
+test('API route trace includes nest pipe span for invalid request', async ({ baseURL }) => {
+  const spansPromise = collectStreamedSpansUntilSegment(
+    APP_NAME,
+    span =>
+      span.name === 'GET /test-pipe-instrumentation/:id' &&
+      span.attributes['url.path']?.value === '/test-pipe-instrumentation/abc',
+  );
 
   const response = await fetch(`${baseURL}/test-pipe-instrumentation/abc`);
   expect(response.status).toBe(400);
 
-  const transactionEvent = await transactionEventPromise;
+  const spans = await spansPromise;
 
-  expect(transactionEvent).toEqual(
-    expect.objectContaining({
-      spans: expect.arrayContaining([
-        {
-          span_id: expect.stringMatching(/[a-f0-9]{16}/),
-          trace_id: expect.stringMatching(/[a-f0-9]{32}/),
-          data: {
-            'sentry.op': 'middleware',
-            'sentry.origin': 'auto.middleware.nestjs.pipe',
-          },
-          description: 'ParseIntPipe',
-          parent_span_id: expect.stringMatching(/[a-f0-9]{16}/),
-          start_timestamp: expect.any(Number),
-          timestamp: expect.any(Number),
-          status: 'internal_error',
-          op: 'middleware',
-          origin: 'auto.middleware.nestjs.pipe',
-        },
-      ]),
+  // Streamed spans only distinguish `ok` from `error`; the detailed status lives in
+  // `sentry.status.message`.
+  expect(findSpan(spans, 'ParseIntPipe')).toMatchObject({
+    is_segment: false,
+    status: 'error',
+    attributes: expect.objectContaining({
+      'sentry.op': { type: 'string', value: 'middleware' },
+      'sentry.origin': { type: 'string', value: 'auto.middleware.nestjs.pipe' },
+      'sentry.status.message': { type: 'string', value: 'internal_error' },
     }),
-  );
+  });
 });
 
-test('API route transaction includes nest interceptor spans before route execution. Spans created in and after interceptor are nested correctly', async ({
+test('API route trace includes nest interceptor spans before route execution. Spans created in and after interceptor are nested correctly', async ({
   baseURL,
 }) => {
-  const pageloadTransactionEventPromise = waitForTransaction('nestjs-8', transactionEvent => {
-    return (
-      transactionEvent?.contexts?.trace?.op === 'http.server' &&
-      transactionEvent?.transaction === 'GET /test-interceptor-instrumentation'
-    );
-  });
+  const spansPromise = collectStreamedSpansUntilSegment(APP_NAME, 'GET /test-interceptor-instrumentation');
 
   const response = await fetch(`${baseURL}/test-interceptor-instrumentation`);
   expect(response.status).toBe(200);
 
-  const transactionEvent = await pageloadTransactionEventPromise;
+  const spans = await spansPromise;
 
-  // check if interceptor spans before route execution exist
-  expect(transactionEvent).toEqual(
-    expect.objectContaining({
-      spans: expect.arrayContaining([
-        {
-          span_id: expect.stringMatching(/[a-f0-9]{16}/),
-          trace_id: expect.stringMatching(/[a-f0-9]{32}/),
-          data: {
-            'sentry.op': 'middleware',
-            'sentry.origin': 'auto.middleware.nestjs.interceptor',
-          },
-          description: 'ExampleInterceptor1',
-          parent_span_id: expect.stringMatching(/[a-f0-9]{16}/),
-          start_timestamp: expect.any(Number),
-          timestamp: expect.any(Number),
-          status: 'ok',
-          op: 'middleware',
-          origin: 'auto.middleware.nestjs.interceptor',
-        },
-        {
-          span_id: expect.stringMatching(/[a-f0-9]{16}/),
-          trace_id: expect.stringMatching(/[a-f0-9]{32}/),
-          data: {
-            'sentry.op': 'middleware',
-            'sentry.origin': 'auto.middleware.nestjs.interceptor',
-          },
-          description: 'ExampleInterceptor2',
-          parent_span_id: expect.stringMatching(/[a-f0-9]{16}/),
-          start_timestamp: expect.any(Number),
-          timestamp: expect.any(Number),
-          status: 'ok',
-          op: 'middleware',
-          origin: 'auto.middleware.nestjs.interceptor',
-        },
-      ]),
-    }),
-  );
+  const exampleInterceptor1Span = findSpan(spans, 'ExampleInterceptor1');
+  const exampleInterceptor2Span = findSpan(spans, 'ExampleInterceptor2');
 
-  // get interceptor spans
-  const exampleInterceptor1Span = transactionEvent.spans.find(span => span.description === 'ExampleInterceptor1');
-  const exampleInterceptor1SpanId = exampleInterceptor1Span?.span_id;
-  const exampleInterceptor2Span = transactionEvent.spans.find(span => span.description === 'ExampleInterceptor2');
-  const exampleInterceptor2SpanId = exampleInterceptor2Span?.span_id;
+  for (const interceptorSpan of [exampleInterceptor1Span, exampleInterceptor2Span]) {
+    expect(interceptorSpan).toMatchObject({
+      is_segment: false,
+      status: 'ok',
+      attributes: expect.objectContaining({
+        'sentry.op': { type: 'string', value: 'middleware' },
+        'sentry.origin': { type: 'string', value: 'auto.middleware.nestjs.interceptor' },
+      }),
+    });
+  }
 
-  // check if manually started spans exist
-  expect(transactionEvent).toEqual(
-    expect.objectContaining({
-      spans: expect.arrayContaining([
-        {
-          span_id: expect.stringMatching(/[a-f0-9]{16}/),
-          trace_id: expect.stringMatching(/[a-f0-9]{32}/),
-          data: expect.any(Object),
-          description: 'test-controller-span',
-          parent_span_id: expect.stringMatching(/[a-f0-9]{16}/),
-          start_timestamp: expect.any(Number),
-          timestamp: expect.any(Number),
-          status: 'ok',
-          origin: 'manual',
-        },
-        {
-          span_id: expect.stringMatching(/[a-f0-9]{16}/),
-          trace_id: expect.stringMatching(/[a-f0-9]{32}/),
-          data: expect.any(Object),
-          description: 'test-interceptor-span-1',
-          parent_span_id: expect.stringMatching(/[a-f0-9]{16}/),
-          start_timestamp: expect.any(Number),
-          timestamp: expect.any(Number),
-          status: 'ok',
-          origin: 'manual',
-        },
-        {
-          span_id: expect.stringMatching(/[a-f0-9]{16}/),
-          trace_id: expect.stringMatching(/[a-f0-9]{32}/),
-          data: expect.any(Object),
-          description: 'test-interceptor-span-2',
-          parent_span_id: expect.stringMatching(/[a-f0-9]{16}/),
-          start_timestamp: expect.any(Number),
-          timestamp: expect.any(Number),
-          status: 'ok',
-          origin: 'manual',
-        },
-      ]),
-    }),
-  );
+  const testInterceptor1Span = findSpan(spans, 'test-interceptor-span-1');
+  const testInterceptor2Span = findSpan(spans, 'test-interceptor-span-2');
+  const testControllerSpan = findSpan(spans, 'test-controller-span');
 
-  // verify correct span parent-child relationships
-  const testInterceptor1Span = transactionEvent.spans.find(span => span.description === 'test-interceptor-span-1');
-  const testInterceptor2Span = transactionEvent.spans.find(span => span.description === 'test-interceptor-span-2');
-  const testControllerSpan = transactionEvent.spans.find(span => span.description === 'test-controller-span');
+  for (const manualSpan of [testInterceptor1Span, testInterceptor2Span, testControllerSpan]) {
+    expect(manualSpan).toMatchObject({ is_segment: false, status: 'ok' });
+  }
 
   // 'ExampleInterceptor1' is the parent of 'test-interceptor-span-1'
-  expect(testInterceptor1Span.parent_span_id).toBe(exampleInterceptor1SpanId);
+  expect(testInterceptor1Span!.parent_span_id).toBe(exampleInterceptor1Span!.span_id);
 
   // 'ExampleInterceptor1' is NOT the parent of 'test-controller-span'
-  expect(testControllerSpan.parent_span_id).not.toBe(exampleInterceptor1SpanId);
+  expect(testControllerSpan!.parent_span_id).not.toBe(exampleInterceptor1Span!.span_id);
 
   // 'ExampleInterceptor2' is the parent of 'test-interceptor-span-2'
-  expect(testInterceptor2Span.parent_span_id).toBe(exampleInterceptor2SpanId);
+  expect(testInterceptor2Span!.parent_span_id).toBe(exampleInterceptor2Span!.span_id);
 
   // 'ExampleInterceptor2' is NOT the parent of 'test-controller-span'
-  expect(testControllerSpan.parent_span_id).not.toBe(exampleInterceptor2SpanId);
+  expect(testControllerSpan!.parent_span_id).not.toBe(exampleInterceptor2Span!.span_id);
 });
 
-test('API route transaction includes exactly one nest interceptor span after route execution. Spans created in controller and in interceptor are nested correctly', async ({
+test('API route trace includes exactly one nest interceptor span after route execution. Spans created in controller and in interceptor are nested correctly', async ({
   baseURL,
 }) => {
-  const pageloadTransactionEventPromise = waitForTransaction('nestjs-8', transactionEvent => {
-    return (
-      transactionEvent?.contexts?.trace?.op === 'http.server' &&
-      transactionEvent?.transaction === 'GET /test-interceptor-instrumentation'
-    );
-  });
+  const spansPromise = collectStreamedSpansUntilSegment(APP_NAME, 'GET /test-interceptor-instrumentation');
 
   const response = await fetch(`${baseURL}/test-interceptor-instrumentation`);
   expect(response.status).toBe(200);
 
-  const transactionEvent = await pageloadTransactionEventPromise;
+  const spans = await spansPromise;
 
-  // check if interceptor spans after route execution exist
-  expect(transactionEvent).toEqual(
-    expect.objectContaining({
-      spans: expect.arrayContaining([
-        {
-          span_id: expect.stringMatching(/[a-f0-9]{16}/),
-          trace_id: expect.stringMatching(/[a-f0-9]{32}/),
-          data: {
-            'sentry.op': 'middleware',
-            'sentry.origin': 'auto.middleware.nestjs.interceptor',
-          },
-          description: 'Interceptors - After Route',
-          parent_span_id: expect.stringMatching(/[a-f0-9]{16}/),
-          start_timestamp: expect.any(Number),
-          timestamp: expect.any(Number),
-          status: 'ok',
-          op: 'middleware',
-          origin: 'auto.middleware.nestjs.interceptor',
-        },
-      ]),
+  const interceptorSpansAfterRoute = spans.filter(span => span.name === 'Interceptors - After Route');
+  expect(interceptorSpansAfterRoute).toHaveLength(1);
+
+  const interceptorSpanAfterRoute = interceptorSpansAfterRoute[0]!;
+  expect(interceptorSpanAfterRoute).toMatchObject({
+    is_segment: false,
+    status: 'ok',
+    attributes: expect.objectContaining({
+      'sentry.op': { type: 'string', value: 'middleware' },
+      'sentry.origin': { type: 'string', value: 'auto.middleware.nestjs.interceptor' },
     }),
-  );
+  });
 
-  // check that exactly one after route span is sent
-  const allInterceptorSpansAfterRoute = transactionEvent.spans.filter(
-    span => span.description === 'Interceptors - After Route',
-  );
-  expect(allInterceptorSpansAfterRoute.length).toBe(1);
+  const testInterceptorSpanAfterRoute = findSpan(spans, 'test-interceptor-span-after-route');
+  const testControllerSpan = findSpan(spans, 'test-controller-span');
 
-  // get interceptor span
-  const exampleInterceptorSpanAfterRoute = transactionEvent.spans.find(
-    span => span.description === 'Interceptors - After Route',
-  );
-  const exampleInterceptorSpanAfterRouteId = exampleInterceptorSpanAfterRoute?.span_id;
+  expect(testInterceptorSpanAfterRoute).toMatchObject({ is_segment: false, status: 'ok' });
 
-  // check if manually started span in interceptor after route exists
-  expect(transactionEvent).toEqual(
-    expect.objectContaining({
-      spans: expect.arrayContaining([
-        {
-          span_id: expect.stringMatching(/[a-f0-9]{16}/),
-          trace_id: expect.stringMatching(/[a-f0-9]{32}/),
-          data: expect.any(Object),
-          description: 'test-interceptor-span-after-route',
-          parent_span_id: expect.stringMatching(/[a-f0-9]{16}/),
-          start_timestamp: expect.any(Number),
-          timestamp: expect.any(Number),
-          status: 'ok',
-          origin: 'manual',
-        },
-      ]),
-    }),
-  );
+  // 'Interceptors - After Route' is the parent of 'test-interceptor-span-after-route'
+  expect(testInterceptorSpanAfterRoute!.parent_span_id).toBe(interceptorSpanAfterRoute.span_id);
 
-  // verify correct span parent-child relationships
-  const testInterceptorSpanAfterRoute = transactionEvent.spans.find(
-    span => span.description === 'test-interceptor-span-after-route',
-  );
-  const testControllerSpan = transactionEvent.spans.find(span => span.description === 'test-controller-span');
-
-  // 'Interceptor - After Route' is the parent of 'test-interceptor-span-after-route'
-  expect(testInterceptorSpanAfterRoute.parent_span_id).toBe(exampleInterceptorSpanAfterRouteId);
-
-  // 'Interceptor - After Route' is NOT the parent of 'test-controller-span'
-  expect(testControllerSpan.parent_span_id).not.toBe(exampleInterceptorSpanAfterRouteId);
+  // 'Interceptors - After Route' is NOT the parent of 'test-controller-span'
+  expect(testControllerSpan!.parent_span_id).not.toBe(interceptorSpanAfterRoute.span_id);
 });
 
-test('API route transaction includes nest async interceptor spans before route execution. Spans created in and after async interceptor are nested correctly', async ({
+test('API route trace includes nest async interceptor spans before route execution. Spans created in and after async interceptor are nested correctly', async ({
   baseURL,
 }) => {
-  const pageloadTransactionEventPromise = waitForTransaction('nestjs-8', transactionEvent => {
-    return (
-      transactionEvent?.contexts?.trace?.op === 'http.server' &&
-      transactionEvent?.transaction === 'GET /test-async-interceptor-instrumentation'
-    );
-  });
+  const spansPromise = collectStreamedSpansUntilSegment(APP_NAME, 'GET /test-async-interceptor-instrumentation');
 
   const response = await fetch(`${baseURL}/test-async-interceptor-instrumentation`);
   expect(response.status).toBe(200);
 
-  const transactionEvent = await pageloadTransactionEventPromise;
+  const spans = await spansPromise;
 
-  // check if interceptor spans before route execution exist
-  expect(transactionEvent).toEqual(
-    expect.objectContaining({
-      spans: expect.arrayContaining([
-        {
-          span_id: expect.stringMatching(/[a-f0-9]{16}/),
-          trace_id: expect.stringMatching(/[a-f0-9]{32}/),
-          data: {
-            'sentry.op': 'middleware',
-            'sentry.origin': 'auto.middleware.nestjs.interceptor',
-          },
-          description: 'AsyncInterceptor',
-          parent_span_id: expect.stringMatching(/[a-f0-9]{16}/),
-          start_timestamp: expect.any(Number),
-          timestamp: expect.any(Number),
-          status: 'ok',
-          op: 'middleware',
-          origin: 'auto.middleware.nestjs.interceptor',
-        },
-      ]),
+  const asyncInterceptorSpan = findSpan(spans, 'AsyncInterceptor');
+  expect(asyncInterceptorSpan).toMatchObject({
+    is_segment: false,
+    status: 'ok',
+    attributes: expect.objectContaining({
+      'sentry.op': { type: 'string', value: 'middleware' },
+      'sentry.origin': { type: 'string', value: 'auto.middleware.nestjs.interceptor' },
     }),
-  );
+  });
 
-  // get interceptor spans
-  const exampleAsyncInterceptor = transactionEvent.spans.find(span => span.description === 'AsyncInterceptor');
-  const exampleAsyncInterceptorSpanId = exampleAsyncInterceptor?.span_id;
+  const testAsyncInterceptorSpan = findSpan(spans, 'test-async-interceptor-span');
+  const testControllerSpan = findSpan(spans, 'test-controller-span');
 
-  // check if manually started spans exist
-  expect(transactionEvent).toEqual(
-    expect.objectContaining({
-      spans: expect.arrayContaining([
-        {
-          span_id: expect.stringMatching(/[a-f0-9]{16}/),
-          trace_id: expect.stringMatching(/[a-f0-9]{32}/),
-          data: expect.any(Object),
-          description: 'test-controller-span',
-          parent_span_id: expect.stringMatching(/[a-f0-9]{16}/),
-          start_timestamp: expect.any(Number),
-          timestamp: expect.any(Number),
-          status: 'ok',
-          origin: 'manual',
-        },
-        {
-          span_id: expect.stringMatching(/[a-f0-9]{16}/),
-          trace_id: expect.stringMatching(/[a-f0-9]{32}/),
-          data: expect.any(Object),
-          description: 'test-async-interceptor-span',
-          parent_span_id: expect.stringMatching(/[a-f0-9]{16}/),
-          start_timestamp: expect.any(Number),
-          timestamp: expect.any(Number),
-          status: 'ok',
-          origin: 'manual',
-        },
-      ]),
-    }),
-  );
-
-  // verify correct span parent-child relationships
-  const testAsyncInterceptorSpan = transactionEvent.spans.find(
-    span => span.description === 'test-async-interceptor-span',
-  );
-  const testControllerSpan = transactionEvent.spans.find(span => span.description === 'test-controller-span');
+  expect(testAsyncInterceptorSpan).toMatchObject({ is_segment: false, status: 'ok' });
+  expect(testControllerSpan).toMatchObject({ is_segment: false, status: 'ok' });
 
   // 'AsyncInterceptor' is the parent of 'test-async-interceptor-span'
-  expect(testAsyncInterceptorSpan.parent_span_id).toBe(exampleAsyncInterceptorSpanId);
+  expect(testAsyncInterceptorSpan!.parent_span_id).toBe(asyncInterceptorSpan!.span_id);
 
   // 'AsyncInterceptor' is NOT the parent of 'test-controller-span'
-  expect(testControllerSpan.parent_span_id).not.toBe(exampleAsyncInterceptorSpanId);
+  expect(testControllerSpan!.parent_span_id).not.toBe(asyncInterceptorSpan!.span_id);
 });
 
-test('API route transaction includes exactly one nest async interceptor span after route execution. Spans created in controller and in async interceptor are nested correctly', async ({
+test('API route trace includes exactly one nest async interceptor span after route execution. Spans created in controller and in async interceptor are nested correctly', async ({
   baseURL,
 }) => {
-  const pageloadTransactionEventPromise = waitForTransaction('nestjs-8', transactionEvent => {
-    return (
-      transactionEvent?.contexts?.trace?.op === 'http.server' &&
-      transactionEvent?.transaction === 'GET /test-async-interceptor-instrumentation'
-    );
-  });
+  const spansPromise = collectStreamedSpansUntilSegment(APP_NAME, 'GET /test-async-interceptor-instrumentation');
 
   const response = await fetch(`${baseURL}/test-async-interceptor-instrumentation`);
   expect(response.status).toBe(200);
 
-  const transactionEvent = await pageloadTransactionEventPromise;
+  const spans = await spansPromise;
 
-  // check if interceptor spans after route execution exist
-  expect(transactionEvent).toEqual(
-    expect.objectContaining({
-      spans: expect.arrayContaining([
-        {
-          span_id: expect.stringMatching(/[a-f0-9]{16}/),
-          trace_id: expect.stringMatching(/[a-f0-9]{32}/),
-          data: {
-            'sentry.op': 'middleware',
-            'sentry.origin': 'auto.middleware.nestjs.interceptor',
-          },
-          description: 'Interceptors - After Route',
-          parent_span_id: expect.stringMatching(/[a-f0-9]{16}/),
-          start_timestamp: expect.any(Number),
-          timestamp: expect.any(Number),
-          status: 'ok',
-          op: 'middleware',
-          origin: 'auto.middleware.nestjs.interceptor',
-        },
-      ]),
+  const interceptorSpansAfterRoute = spans.filter(span => span.name === 'Interceptors - After Route');
+  expect(interceptorSpansAfterRoute).toHaveLength(1);
+
+  const interceptorSpanAfterRoute = interceptorSpansAfterRoute[0]!;
+  expect(interceptorSpanAfterRoute).toMatchObject({
+    is_segment: false,
+    status: 'ok',
+    attributes: expect.objectContaining({
+      'sentry.op': { type: 'string', value: 'middleware' },
+      'sentry.origin': { type: 'string', value: 'auto.middleware.nestjs.interceptor' },
     }),
-  );
+  });
 
-  // check that exactly one after route span is sent
-  const allInterceptorSpansAfterRoute = transactionEvent.spans.filter(
-    span => span.description === 'Interceptors - After Route',
-  );
-  expect(allInterceptorSpansAfterRoute.length).toBe(1);
+  const testInterceptorSpanAfterRoute = findSpan(spans, 'test-async-interceptor-span-after-route');
+  const testControllerSpan = findSpan(spans, 'test-controller-span');
 
-  // get interceptor span
-  const exampleInterceptorSpanAfterRoute = transactionEvent.spans.find(
-    span => span.description === 'Interceptors - After Route',
-  );
-  const exampleInterceptorSpanAfterRouteId = exampleInterceptorSpanAfterRoute?.span_id;
+  expect(testInterceptorSpanAfterRoute).toMatchObject({ is_segment: false, status: 'ok' });
 
-  // check if manually started span in interceptor after route exists
-  expect(transactionEvent).toEqual(
-    expect.objectContaining({
-      spans: expect.arrayContaining([
-        {
-          span_id: expect.stringMatching(/[a-f0-9]{16}/),
-          trace_id: expect.stringMatching(/[a-f0-9]{32}/),
-          data: expect.any(Object),
-          description: 'test-async-interceptor-span-after-route',
-          parent_span_id: expect.stringMatching(/[a-f0-9]{16}/),
-          start_timestamp: expect.any(Number),
-          timestamp: expect.any(Number),
-          status: 'ok',
-          origin: 'manual',
-        },
-      ]),
-    }),
-  );
+  // 'Interceptors - After Route' is the parent of 'test-async-interceptor-span-after-route'
+  expect(testInterceptorSpanAfterRoute!.parent_span_id).toBe(interceptorSpanAfterRoute.span_id);
 
-  // verify correct span parent-child relationships
-  const testInterceptorSpanAfterRoute = transactionEvent.spans.find(
-    span => span.description === 'test-async-interceptor-span-after-route',
-  );
-  const testControllerSpan = transactionEvent.spans.find(span => span.description === 'test-controller-span');
-
-  // 'Interceptor - After Route' is the parent of 'test-interceptor-span-after-route'
-  expect(testInterceptorSpanAfterRoute.parent_span_id).toBe(exampleInterceptorSpanAfterRouteId);
-
-  // 'Interceptor - After Route' is NOT the parent of 'test-controller-span'
-  expect(testControllerSpan.parent_span_id).not.toBe(exampleInterceptorSpanAfterRouteId);
+  // 'Interceptors - After Route' is NOT the parent of 'test-controller-span'
+  expect(testControllerSpan!.parent_span_id).not.toBe(interceptorSpanAfterRoute.span_id);
 });
 
 test('Calling use method on service with Injectable decorator returns 200', async ({ baseURL }) => {

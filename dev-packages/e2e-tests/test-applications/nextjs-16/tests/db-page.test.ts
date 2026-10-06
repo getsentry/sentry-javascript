@@ -1,11 +1,9 @@
 import { expect, test } from '@playwright/test';
-import { collectStreamedSpans } from '@sentry-internal/test-utils';
+import { collectStreamedSpansUntilSegment } from '@sentry-internal/test-utils';
 
 test('Instruments DB calls made during server-side rendering of a page', async ({ page }) => {
   // The db spans are children of the segment span, which ends last.
-  const spansPromise = collectStreamedSpans('nextjs-16', spans =>
-    spans.some(span => span.name === 'GET /db-page' && span.is_segment),
-  );
+  const spansPromise = collectStreamedSpansUntilSegment('nextjs-16', 'GET /db-page');
 
   await page.goto('/db-page');
   await expect(page.locator('#answer')).toHaveText('answer: 42');
@@ -23,7 +21,7 @@ test('Instruments DB calls made during server-side rendering of a page', async (
         'sentry.op': { value: 'db', type: 'string' },
         'sentry.origin': { value: 'auto.db.postgres', type: 'string' },
         'db.system.name': { value: 'postgresql', type: 'string' },
-        'db.query.text': { value: 'SELECT 40 + 2 AS answer', type: 'string' },
+        'db.query.text': { value: 'SELECT ? + ? AS answer', type: 'string' },
       }),
     }),
   );

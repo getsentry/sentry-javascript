@@ -6,6 +6,6 @@ Sentry.init({
   traceLifecycle: 'static',
   dsn: 'https://public@dsn.ingest.sentry.io/1337',
   defaultIntegrations: false,
-  integrations: [Sentry.breadcrumbsIntegration()],
+  integrations: [Sentry.breadcrumbsIntegration(), Sentry.consoleIntegration()],
   sampleRate: 1,
 });

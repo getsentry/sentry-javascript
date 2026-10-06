@@ -1,7 +1,7 @@
 /* eslint-disable typescript/no-deprecated */
 import type { Span, TimeInput } from '@opentelemetry/api';
 import { context, ROOT_CONTEXT, trace, TraceFlags } from '@opentelemetry/api';
-import { SENTRY_SEGMENT_NAME_SOURCE, SENTRY_KIND } from '@sentry/conventions/attributes';
+import { SENTRY_SEGMENT_NAME_SOURCE, SENTRY_KIND, SENTRY_OP, SENTRY_ORIGIN } from '@sentry/conventions/attributes';
 import type { Event, Scope } from '@sentry/core';
 import {
   getCapturedScopesOnSpan,
@@ -10,8 +10,6 @@ import {
   getDynamicSamplingContextFromClient,
   getDynamicSamplingContextFromSpan,
   getRootSpan,
-  SEMANTIC_ATTRIBUTE_SENTRY_OP,
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE,
   spanToJSON,
   startInactiveSpan,
@@ -211,7 +209,7 @@ describe('trace', () => {
         span => {
           expect(span).toBeDefined();
           expect(getSpanAttributes(span)).toEqual({
-            [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'manual',
+            [SENTRY_ORIGIN]: 'manual',
             [SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE]: 1,
             [SENTRY_SEGMENT_NAME_SOURCE]: 'custom',
           });
@@ -224,15 +222,15 @@ describe('trace', () => {
           op: 'my-op',
           attributes: {
             [SENTRY_SEGMENT_NAME_SOURCE]: 'task',
-            [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.test.origin',
+            [SENTRY_ORIGIN]: 'auto.test.origin',
           },
         },
         span => {
           expect(span).toBeDefined();
           expect(getSpanAttributes(span)).toEqual({
             [SENTRY_SEGMENT_NAME_SOURCE]: 'task',
-            [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.test.origin',
-            [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'my-op',
+            [SENTRY_ORIGIN]: 'auto.test.origin',
+            [SENTRY_OP]: 'my-op',
             [SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE]: 1,
           });
         },
@@ -257,7 +255,7 @@ describe('trace', () => {
           expect(getSpanName(span)).toEqual('outer');
           expect(getSpanStartTime(span)).toEqual(date);
           expect(getSpanAttributes(span)).toEqual({
-            [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'manual',
+            [SENTRY_ORIGIN]: 'manual',
             [SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE]: 1,
             [SENTRY_SEGMENT_NAME_SOURCE]: 'custom',
             test1: 'test 1',
@@ -608,7 +606,7 @@ describe('trace', () => {
 
       expect(span).toBeDefined();
       expect(getSpanAttributes(span)).toEqual({
-        [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'manual',
+        [SENTRY_ORIGIN]: 'manual',
         [SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE]: 1,
         [SENTRY_SEGMENT_NAME_SOURCE]: 'custom',
       });
@@ -618,7 +616,7 @@ describe('trace', () => {
         op: 'my-op',
         attributes: {
           [SENTRY_SEGMENT_NAME_SOURCE]: 'task',
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.test.origin',
+          [SENTRY_ORIGIN]: 'auto.test.origin',
         },
       });
 
@@ -626,8 +624,8 @@ describe('trace', () => {
       expect(getSpanAttributes(span2)).toEqual({
         [SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE]: 1,
         [SENTRY_SEGMENT_NAME_SOURCE]: 'task',
-        [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.test.origin',
-        [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'my-op',
+        [SENTRY_ORIGIN]: 'auto.test.origin',
+        [SENTRY_OP]: 'my-op',
       });
     });
 
@@ -648,7 +646,7 @@ describe('trace', () => {
       expect(getSpanName(span)).toEqual('outer');
       expect(getSpanStartTime(span)).toEqual(date);
       expect(getSpanAttributes(span)).toEqual({
-        [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'manual',
+        [SENTRY_ORIGIN]: 'manual',
         [SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE]: 1,
         [SENTRY_SEGMENT_NAME_SOURCE]: 'custom',
         test1: 'test 1',
@@ -981,7 +979,7 @@ describe('trace', () => {
           expect(getSpanName(span)).toEqual('outer');
           expect(getSpanStartTime(span)).toEqual(date);
           expect(getSpanAttributes(span)).toEqual({
-            [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'manual',
+            [SENTRY_ORIGIN]: 'manual',
             [SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE]: 1,
             [SENTRY_SEGMENT_NAME_SOURCE]: 'custom',
             test1: 'test 1',

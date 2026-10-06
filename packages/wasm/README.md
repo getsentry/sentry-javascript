@@ -10,10 +10,14 @@
 [![npm dm](https://img.shields.io/npm/dm/@sentry/wasm.svg)](https://www.npmjs.com/package/@sentry/wasm)
 [![npm dt](https://img.shields.io/npm/dt/@sentry/wasm.svg)](https://www.npmjs.com/package/@sentry/wasm)
 
-## Links
+WebAssembly stack-trace support for the Sentry JavaScript SDK.
 
-- [Official SDK Docs](https://docs.sentry.io/quickstart/)
+## Documentation
 
-## General
+- [Getting started](https://docs.sentry.io/platforms/javascript/guides/wasm/)
+- [Configuration](https://docs.sentry.io/platforms/javascript/guides/wasm/configuration/)
 
-This package provides support for WebAssembly in stack traces.
+## Support
+
+- [Report a bug](https://github.com/getsentry/sentry-javascript/issues/new/choose)
+- [Contributing](https://github.com/getsentry/sentry-javascript/blob/develop/CONTRIBUTING.md)

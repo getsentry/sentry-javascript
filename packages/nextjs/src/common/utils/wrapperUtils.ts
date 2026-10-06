@@ -6,11 +6,11 @@ import {
   getIsolationScope,
   getRootSpan,
   getTraceData,
-  httpRequestToRequestData,
   isThenable,
 } from '@sentry/core';
 import type { IncomingMessage, ServerResponse } from 'http';
 import { TRANSACTION_ATTR_SENTRY_ROUTE_BACKFILL } from '../span-attributes-with-logic-attached';
+import { pagesRouterRequestToRequestData } from './pagesRouterRequestToRequestData';
 
 /**
  * Wraps a function that potentially throws. If it does, the error is passed to `captureException` and rethrown.
@@ -68,7 +68,7 @@ export function withTracedServerSideDataFetcher<F extends (...args: any[]) => Pr
     this: unknown,
     ...args: Parameters<F>
   ): Promise<{ data: ReturnType<F>; sentryTrace?: string; baggage?: string }> {
-    const normalizedRequest = httpRequestToRequestData(req);
+    const normalizedRequest = pagesRouterRequestToRequestData(req);
     getCurrentScope().setTransactionName(`${options.dataFetchingMethodName} (${options.dataFetcherRouteName})`);
     getIsolationScope().setSDKProcessingMetadata({ normalizedRequest });
 
