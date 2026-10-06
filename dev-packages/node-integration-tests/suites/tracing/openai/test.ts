@@ -1557,14 +1557,14 @@ describe('OpenAI integration', () => {
             for (const span of spans) {
               expect(span!.name).toBe('chat gpt-4');
               expect(span!.status).toBe('ok');
-              expect(span!.attributes['gen_ai.conversation.id']).toEqual({
+              expect(span!.attributes[GEN_AI_CONVERSATION_ID]).toEqual({
                 type: 'string',
                 value: 'user_chat_session_abc123',
               });
-              expect(span!.attributes['gen_ai.provider.name']).toEqual({ type: 'string', value: 'openai' });
-              expect(span!.attributes['gen_ai.request.model']).toEqual({ type: 'string', value: 'gpt-4' });
-              expect(span!.attributes['gen_ai.operation.name']).toEqual({ type: 'string', value: 'chat' });
-              expect(span!.attributes['sentry.op']).toEqual({ type: 'string', value: 'gen_ai.chat' });
+              expect(span!.attributes[GEN_AI_PROVIDER_NAME]).toEqual({ type: 'string', value: 'openai' });
+              expect(span!.attributes[GEN_AI_REQUEST_MODEL]).toEqual({ type: 'string', value: 'gpt-4' });
+              expect(span!.attributes[GEN_AI_OPERATION_NAME]).toEqual({ type: 'string', value: 'chat' });
+              expect(span!.attributes[SENTRY_OP]).toEqual({ type: 'string', value: 'gen_ai.chat' });
             }
           },
         })
@@ -1591,13 +1591,13 @@ describe('OpenAI integration', () => {
             for (const span of spans) {
               expect(span!.name).toBe('chat gpt-4');
               expect(span!.status).toBe('ok');
-              expect(span!.attributes['gen_ai.conversation.id']).toEqual({
+              expect(span!.attributes[GEN_AI_CONVERSATION_ID]).toEqual({
                 type: 'string',
                 value: 'conv_user1_session_abc',
               });
-              expect(span!.attributes['gen_ai.provider.name']).toEqual({ type: 'string', value: 'openai' });
-              expect(span!.attributes['gen_ai.request.model']).toEqual({ type: 'string', value: 'gpt-4' });
-              expect(span!.attributes['sentry.op']).toEqual({ type: 'string', value: 'gen_ai.chat' });
+              expect(span!.attributes[GEN_AI_PROVIDER_NAME]).toEqual({ type: 'string', value: 'openai' });
+              expect(span!.attributes[GEN_AI_REQUEST_MODEL]).toEqual({ type: 'string', value: 'gpt-4' });
+              expect(span!.attributes[SENTRY_OP]).toEqual({ type: 'string', value: 'gen_ai.chat' });
             }
           },
         })
@@ -1624,13 +1624,13 @@ describe('OpenAI integration', () => {
             for (const span of spans) {
               expect(span!.name).toBe('chat gpt-4');
               expect(span!.status).toBe('ok');
-              expect(span!.attributes['gen_ai.conversation.id']).toEqual({
+              expect(span!.attributes[GEN_AI_CONVERSATION_ID]).toEqual({
                 type: 'string',
                 value: 'conv_user2_session_xyz',
               });
-              expect(span!.attributes['gen_ai.provider.name']).toEqual({ type: 'string', value: 'openai' });
-              expect(span!.attributes['gen_ai.request.model']).toEqual({ type: 'string', value: 'gpt-4' });
-              expect(span!.attributes['sentry.op']).toEqual({ type: 'string', value: 'gen_ai.chat' });
+              expect(span!.attributes[GEN_AI_PROVIDER_NAME]).toEqual({ type: 'string', value: 'openai' });
+              expect(span!.attributes[GEN_AI_REQUEST_MODEL]).toEqual({ type: 'string', value: 'gpt-4' });
+              expect(span!.attributes[SENTRY_OP]).toEqual({ type: 'string', value: 'gen_ai.chat' });
             }
           },
         })
