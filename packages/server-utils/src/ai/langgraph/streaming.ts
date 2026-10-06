@@ -90,6 +90,8 @@ function createStreamLifecycle(
     completed = true;
     try {
       completeResponse?.();
+    } catch {
+      // Recording failures must not replace the application's stream outcome.
     } finally {
       span.end();
     }
