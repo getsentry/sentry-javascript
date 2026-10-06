@@ -12,18 +12,12 @@ const AMQP_URL = `amqp://${amqpUsername}:${amqpPassword}@localhost:5672/`;
   const channel = await toPromise(cb => connection.createChannel(cb));
   await toPromise(cb => channel.assertQueue(queueName, { durable: false, exclusive: true }, cb));
 
+  // Without the info from `consume`, a `noAck` span stays open until the channel closes and ends as an error.
   const received = new Promise((resolve, reject) => {
     channel.consume(
       queueName,
-      message => {
-        if (message) {
-          channel.ack(message);
-          resolve();
-        } else {
-          reject(new Error('No message received'));
-        }
-      },
-      { noAck: false },
+      message => (message ? resolve() : reject(new Error('No message received'))),
+      { noAck: true },
       err => err && reject(err),
     );
   });

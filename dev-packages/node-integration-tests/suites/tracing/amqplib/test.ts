@@ -281,7 +281,7 @@ describeWithDockerCompose('amqplib auto-instrumentation', { workingDirectory: [_
     'scenario-callback-api.mjs',
     'instrument-span-streaming.mjs',
     (createTestRunner, test) => {
-      test('instruments publish and ack on the callback API', { timeout: 60_000 }, async () => {
+      test('instruments publish and noAck consume on the callback API', { timeout: 60_000 }, async () => {
         await createTestRunner()
           .ignore('event')
           .expect({

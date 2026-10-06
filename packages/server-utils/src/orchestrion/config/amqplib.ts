@@ -32,11 +32,12 @@ export const amqplibConfig = [
       functionQuery: { className: 'ConfirmChannel', methodName: 'publish', kind: 'Callback' },
     },
     // `consume` knows the queue and `noAck`, and `registerConsumer` knows the tag. Together they tell the
-    // dispatch hook how to name the consumer span and when to end it.
+    // dispatch hook how to name the consumer span and when to end it. `Sync`, because the callback API
+    // returns the channel and only a synchronous throw leaves the channel open.
     {
       channelName: 'consume',
       module: { ...module, filePath },
-      functionQuery: { className: 'Channel', methodName: 'consume', kind: 'Async' },
+      functionQuery: { className: 'Channel', methodName: 'consume', kind: 'Sync' },
     },
     // End the consumer span when the user settles the message.
     {

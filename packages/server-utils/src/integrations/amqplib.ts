@@ -234,8 +234,8 @@ function subscribeConsume(): void {
     data._sentryPendingConsumer = entry;
   });
 
-  // Some failures, such as invalid `arguments`, leave the channel open. A stale entry would label the
-  // next consumer that shares this callback.
+  // A synchronous throw, such as for invalid `arguments`, leaves the channel open. RPC failures close it.
+  // A stale entry would label the next consumer that shares this callback.
   channel.error.subscribe(message => {
     const data = message as AmqpConsumeContext;
     if (data.self && data._sentryPendingConsumer) {
