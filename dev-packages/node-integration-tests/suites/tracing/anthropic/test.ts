@@ -1,3 +1,4 @@
+import type { SerializedStreamedSpanContainer } from '@sentry/core';
 import { afterAll, describe, expect } from 'vitest';
 import {
   GEN_AI_INPUT_MESSAGES,
@@ -33,12 +34,16 @@ describe('Anthropic integration', () => {
 
   createEsmAndCjsTests(__dirname, 'scenario-with-response.mjs', 'instrument.mjs', (createRunner, test) => {
     test('preserves .withResponse() and .asResponse() for non-streaming and streaming', async () => {
+      const allSpans: SerializedStreamedSpanContainer['items'] = [];
+
       await createRunner()
+        .unordered()
         .expect({
           span: container => {
-            const segment = container.items.find(span => span.is_segment && span.name === 'main');
+            allSpans.push(...container.items);
+            const segment = allSpans.find(span => span.is_segment && span.name === 'main');
             expect(segment).toBeDefined();
-            const spans = container.items.filter(span => span.attributes[SENTRY_ORIGIN]?.value === 'auto.ai.anthropic');
+            const spans = allSpans.filter(span => span.attributes[SENTRY_ORIGIN]?.value === 'auto.ai.anthropic');
             expect(spans).toHaveLength(6);
             const nonStreamingSpans = spans.filter(
               span => span.attributes[GEN_AI_RESPONSE_ID]?.value === 'msg_withresponse',
@@ -81,14 +86,17 @@ describe('Anthropic integration', () => {
 
   createEsmAndCjsTests(__dirname, 'scenario.mjs', 'instrument.mjs', (createRunner, test) => {
     test('creates anthropic related spans with genAI recording disabled', async () => {
-      const runner = createRunner();
+      const allSpans: SerializedStreamedSpanContainer['items'] = [];
+
+      const runner = createRunner().unordered();
 
       await runner
         .expect({
           span: container => {
-            const segment = container.items.find(span => span.is_segment && span.name === 'main');
+            allSpans.push(...container.items);
+            const segment = allSpans.find(span => span.is_segment && span.name === 'main');
             expect(segment).toBeDefined();
-            const spans = container.items.filter(span => span.attributes[SENTRY_ORIGIN]?.value === 'auto.ai.anthropic');
+            const spans = allSpans.filter(span => span.attributes[SENTRY_ORIGIN]?.value === 'auto.ai.anthropic');
             expect(spans).toHaveLength(3);
             const completionSpan = spans.find(span => span.attributes[GEN_AI_RESPONSE_ID]?.value === 'msg_mock123');
             expect(completionSpan!.name).toBe('chat claude-3-haiku-20240307');
@@ -111,14 +119,17 @@ describe('Anthropic integration', () => {
 
   createEsmAndCjsTests(__dirname, 'scenario.mjs', 'instrument-with-pii.mjs', (createRunner, test) => {
     test('creates anthropic related spans with genAI recording enabled', async () => {
-      const runner = createRunner();
+      const allSpans: SerializedStreamedSpanContainer['items'] = [];
+
+      const runner = createRunner().unordered();
 
       await runner
         .expect({
           span: container => {
-            const segment = container.items.find(span => span.is_segment && span.name === 'main');
+            allSpans.push(...container.items);
+            const segment = allSpans.find(span => span.is_segment && span.name === 'main');
             expect(segment).toBeDefined();
-            const spans = container.items.filter(span => span.attributes[SENTRY_ORIGIN]?.value === 'auto.ai.anthropic');
+            const spans = allSpans.filter(span => span.attributes[SENTRY_ORIGIN]?.value === 'auto.ai.anthropic');
             expect(spans).toHaveLength(3);
             const completionSpan = spans.find(span => span.attributes[GEN_AI_RESPONSE_ID]?.value === 'msg_mock123');
             expect(completionSpan!.name).toBe('chat claude-3-haiku-20240307');
@@ -170,14 +181,17 @@ describe('Anthropic integration', () => {
 
   createEsmAndCjsTests(__dirname, 'scenario.mjs', 'instrument-with-options.mjs', (createRunner, test) => {
     test('creates anthropic related spans with custom options', async () => {
-      const runner = createRunner();
+      const allSpans: SerializedStreamedSpanContainer['items'] = [];
+
+      const runner = createRunner().unordered();
 
       await runner
         .expect({
           span: container => {
-            const segment = container.items.find(span => span.is_segment && span.name === 'main');
+            allSpans.push(...container.items);
+            const segment = allSpans.find(span => span.is_segment && span.name === 'main');
             expect(segment).toBeDefined();
-            const spans = container.items.filter(span => span.attributes[SENTRY_ORIGIN]?.value === 'auto.ai.anthropic');
+            const spans = allSpans.filter(span => span.attributes[SENTRY_ORIGIN]?.value === 'auto.ai.anthropic');
             expect(spans).toHaveLength(3);
             const completionSpan = spans.find(span => span.attributes[GEN_AI_RESPONSE_ID]?.value === 'msg_mock123');
             expect(completionSpan!.name).toBe('chat claude-3-haiku-20240307');
@@ -204,12 +218,16 @@ describe('Anthropic integration', () => {
 
   createEsmAndCjsTests(__dirname, 'scenario-stream.mjs', 'instrument.mjs', (createRunner, test) => {
     test('streams produce spans with token usage and metadata (PII false)', async () => {
+      const allSpans: SerializedStreamedSpanContainer['items'] = [];
+
       await createRunner()
+        .unordered()
         .expect({
           span: container => {
-            const segment = container.items.find(span => span.is_segment && span.name === 'main');
+            allSpans.push(...container.items);
+            const segment = allSpans.find(span => span.is_segment && span.name === 'main');
             expect(segment).toBeDefined();
-            const spans = container.items.filter(span => span.attributes[SENTRY_ORIGIN]?.value === 'auto.ai.anthropic');
+            const spans = allSpans.filter(span => span.attributes[SENTRY_ORIGIN]?.value === 'auto.ai.anthropic');
             expect(spans).toHaveLength(3);
             const requestStreamSpans = spans.filter(
               span => span.attributes[GEN_AI_REQUEST_STREAM_ATTRIBUTE]?.value === true,
@@ -257,12 +275,16 @@ describe('Anthropic integration', () => {
 
   createEsmAndCjsTests(__dirname, 'scenario-stream.mjs', 'instrument-with-pii.mjs', (createRunner, test) => {
     test('streams record response text when PII true', async () => {
+      const allSpans: SerializedStreamedSpanContainer['items'] = [];
+
       await createRunner()
+        .unordered()
         .expect({
           span: container => {
-            const segment = container.items.find(span => span.is_segment && span.name === 'main');
+            allSpans.push(...container.items);
+            const segment = allSpans.find(span => span.is_segment && span.name === 'main');
             expect(segment).toBeDefined();
-            const spans = container.items.filter(span => span.attributes[SENTRY_ORIGIN]?.value === 'auto.ai.anthropic');
+            const spans = allSpans.filter(span => span.attributes[SENTRY_ORIGIN]?.value === 'auto.ai.anthropic');
             expect(spans).toHaveLength(3);
             const requestStreamSpans = spans.filter(
               span => span.attributes[GEN_AI_REQUEST_STREAM_ATTRIBUTE]?.value === true,
@@ -308,12 +330,16 @@ describe('Anthropic integration', () => {
   // helper span is still the active span). Regression test for over-suppression.
   createEsmAndCjsTests(__dirname, 'scenario-stream-nested-create.mjs', 'instrument.mjs', (createRunner, test) => {
     test('traces a create() invoked from a stream event handler (dedup does not over-suppress)', async () => {
+      const allSpans: SerializedStreamedSpanContainer['items'] = [];
+
       await createRunner()
+        .unordered()
         .expect({
           span: container => {
-            const segment = container.items.find(span => span.is_segment && span.name === 'main');
+            allSpans.push(...container.items);
+            const segment = allSpans.find(span => span.is_segment && span.name === 'main');
             expect(segment).toBeDefined();
-            const spans = container.items.filter(span => span.attributes[SENTRY_ORIGIN]?.value === 'auto.ai.anthropic');
+            const spans = allSpans.filter(span => span.attributes[SENTRY_ORIGIN]?.value === 'auto.ai.anthropic');
             const nestedSpan = spans.find(span => span.attributes[GEN_AI_RESPONSE_ID]?.value === 'msg_nested');
             expect(nestedSpan.attributes['sentry.op'].value).toBe('gen_ai.chat');
 
@@ -331,16 +357,20 @@ describe('Anthropic integration', () => {
   // Non-streaming tool calls + available tools (PII true)
   createEsmAndCjsTests(__dirname, 'scenario-tools.mjs', 'instrument-with-pii.mjs', (createRunner, test) => {
     test('non-streaming sets available tools and tool calls with PII', async () => {
+      const allSpans: SerializedStreamedSpanContainer['items'] = [];
+
       const EXPECTED_TOOLS_JSON =
         '[{"name":"weather","description":"Get the weather by city","input_schema":{"type":"object","properties":{"city":{"type":"string"}},"required":["city"]}}]';
       const EXPECTED_TOOL_CALLS_JSON =
         '[{"type":"tool_use","id":"tool_weather_1","name":"weather","input":{"city":"Paris"}}]';
       await createRunner()
+        .unordered()
         .expect({
           span: container => {
-            const segment = container.items.find(span => span.is_segment);
+            allSpans.push(...container.items);
+            const segment = allSpans.find(span => span.is_segment);
             expect(segment).toBeDefined();
-            const spans = container.items.filter(span => span.attributes[SENTRY_ORIGIN]?.value === 'auto.ai.anthropic');
+            const spans = allSpans.filter(span => span.attributes[SENTRY_ORIGIN]?.value === 'auto.ai.anthropic');
             expect(spans).toHaveLength(1);
             const [firstSpan] = spans;
 
@@ -360,16 +390,20 @@ describe('Anthropic integration', () => {
   // Streaming tool calls + available tools (PII true)
   createEsmAndCjsTests(__dirname, 'scenario-stream-tools.mjs', 'instrument-with-pii.mjs', (createRunner, test) => {
     test('streaming sets available tools and tool calls with PII', async () => {
+      const allSpans: SerializedStreamedSpanContainer['items'] = [];
+
       const EXPECTED_TOOLS_JSON =
         '[{"name":"weather","description":"Get weather","input_schema":{"type":"object","properties":{"city":{"type":"string"}},"required":["city"]}}]';
       const EXPECTED_TOOL_CALLS_JSON =
         '[{"type":"tool_use","id":"tool_weather_2","name":"weather","input":{"city":"Paris"}}]';
       await createRunner()
+        .unordered()
         .expect({
           span: container => {
-            const segment = container.items.find(span => span.is_segment);
+            allSpans.push(...container.items);
+            const segment = allSpans.find(span => span.is_segment);
             expect(segment).toBeDefined();
-            const spans = container.items.filter(span => span.attributes[SENTRY_ORIGIN]?.value === 'auto.ai.anthropic');
+            const spans = allSpans.filter(span => span.attributes[SENTRY_ORIGIN]?.value === 'auto.ai.anthropic');
             expect(spans).toHaveLength(2);
             for (const span of spans) {
               expect(span.name).toBe('chat claude-3-haiku-20240307');
@@ -400,16 +434,20 @@ describe('Anthropic integration', () => {
   // Additional error scenarios - Streaming errors
   createEsmAndCjsTests(__dirname, 'scenario-stream-errors.mjs', 'instrument-with-pii.mjs', (createRunner, test) => {
     test('handles streaming errors correctly', async () => {
+      const allSpans: SerializedStreamedSpanContainer['items'] = [];
+
       await createRunner()
+        .unordered()
         // Stream errors surface via the MessageStream `error` event; attaching that listener stops it
         // being raised as an unhandled rejection, so the instrumentation captures it. This test only
         // asserts the spans.
         .ignore('event')
         .expect({
           span: container => {
-            const segment = container.items.find(span => span.is_segment && span.name === 'main');
+            allSpans.push(...container.items);
+            const segment = allSpans.find(span => span.is_segment && span.name === 'main');
             expect(segment).toBeDefined();
-            const spans = container.items.filter(span => span.attributes[SENTRY_ORIGIN]?.value === 'auto.ai.anthropic');
+            const spans = allSpans.filter(span => span.attributes[SENTRY_ORIGIN]?.value === 'auto.ai.anthropic');
             expect(spans).toHaveLength(4);
             const createInitErrorSpan = spans.find(
               span =>
@@ -449,12 +487,16 @@ describe('Anthropic integration', () => {
 
   createEsmAndCjsTests(__dirname, 'scenario-errors.mjs', 'instrument-with-pii.mjs', (createRunner, test) => {
     test('handles tool errors correctly', async () => {
+      const allSpans: SerializedStreamedSpanContainer['items'] = [];
+
       await createRunner()
+        .unordered()
         .expect({
           span: container => {
-            const segment = container.items.find(span => span.is_segment && span.name === 'main');
+            allSpans.push(...container.items);
+            const segment = allSpans.find(span => span.is_segment && span.name === 'main');
             expect(segment).toBeDefined();
-            const spans = container.items.filter(span => span.attributes[SENTRY_ORIGIN]?.value === 'auto.ai.anthropic');
+            const spans = allSpans.filter(span => span.attributes[SENTRY_ORIGIN]?.value === 'auto.ai.anthropic');
             expect(spans).toHaveLength(2);
             const invalidFormatSpan = spans.find(span => span.name === 'chat invalid-format');
             expect(invalidFormatSpan!.status).toBe('error');
@@ -477,15 +519,17 @@ describe('Anthropic integration', () => {
     'instrument-with-pii.mjs',
     (createRunner, test) => {
       test('extracts system instructions from messages', async () => {
+        const allSpans: SerializedStreamedSpanContainer['items'] = [];
+
         const expectedInstructions = JSON.stringify([{ type: 'text', content: 'You are a helpful assistant' }]);
         await createRunner()
+          .unordered()
           .expect({
             span: container => {
-              const segment = container.items.find(span => span.is_segment && span.name === 'main');
+              allSpans.push(...container.items);
+              const segment = allSpans.find(span => span.is_segment && span.name === 'main');
               expect(segment).toBeDefined();
-              const spans = container.items.filter(
-                span => span.attributes[SENTRY_ORIGIN]?.value === 'auto.ai.anthropic',
-              );
+              const spans = allSpans.filter(span => span.attributes[SENTRY_ORIGIN]?.value === 'auto.ai.anthropic');
               expect(spans).toHaveLength(1);
               const [firstSpan] = spans;
 
@@ -501,6 +545,8 @@ describe('Anthropic integration', () => {
 
   createEsmAndCjsTests(__dirname, 'scenario-response-error.mjs', 'instrument.mjs', (createRunner, test) => {
     test('captures error-shaped responses returned as data', async () => {
+      const allSpans: SerializedStreamedSpanContainer['items'] = [];
+
       await createRunner()
         // The API returns the error as data on a 200 response, never as a thrown error to the caller,
         // so the instrumentation intentionally captures it as an event.
@@ -519,7 +565,8 @@ describe('Anthropic integration', () => {
         })
         .expect({
           span: container => {
-            const segment = container.items.find(span => span.is_segment && span.name === 'main');
+            allSpans.push(...container.items);
+            const segment = allSpans.find(span => span.is_segment && span.name === 'main');
             expect(segment).toBeDefined();
           },
         })
