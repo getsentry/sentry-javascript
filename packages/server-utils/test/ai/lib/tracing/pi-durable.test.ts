@@ -660,6 +660,36 @@ describe('instrumentPiDurableHarnessOptions', () => {
       expect(events[0]?.exception?.values?.[0]?.mechanism).toEqual({ type: 'auto.ai.pi_durable', handled: false });
     });
 
+    it('does not link a conversation to the failed tool call that created it', async () => {
+      const runs = createRuns();
+      const tool = instrumentTool(
+        {
+          name: 'delegate',
+          execute: async (_args, api) => {
+            await api.commit!(
+              tx =>
+                (tx as { createConversation: (...args: unknown[]) => unknown }).createConversation({
+                  ownership: { kind: 'task', taskId: 7 },
+                }),
+              undefined,
+            );
+            throw new Error('delegation failed');
+          },
+        },
+        runs,
+        {},
+      );
+      const api: PiToolExecutionApi = {
+        taskId: 7,
+        callId: 'call_1',
+        commit: async change => change({ createConversation: async () => ({ id: 42 }) }),
+      };
+
+      await expect(tool.execute({}, api, undefined)).rejects.toThrow('delegation failed');
+
+      expect(spanToJSON(startRun(42, runs).span).parent_span_id).toBeUndefined();
+    });
+
     it('marks an aborted call as cancelled and captures nothing', async () => {
       const controller = new AbortController();
       const tool: PiTool = {
