@@ -18,7 +18,7 @@ import { isPrerenderControlFlowError } from '../common/nextNavigationErrorUtils'
 import { isBuild } from '../common/utils/isBuild';
 import { isAsyncContextOwnedByCloudflare, isCloudflareWaitUntilAvailable } from '../common/utils/responseEnd';
 import { distDirRewriteFramesIntegration } from './distDirRewriteFramesIntegration';
-import { addNextjsServerSpanHooks, NEXTJS_SERVER_IGNORE_SPANS } from './handleOnSpanStart';
+import { addNextjsServerSpanHooks, NEXTJS_SERVER_IGNORE_SPANS } from './serverSpanHooks';
 import { prepareSafeIdGeneratorContext } from './prepareSafeIdGeneratorContext';
 import { nextjsUseCacheIntegration } from './useCacheInstrumentation';
 
