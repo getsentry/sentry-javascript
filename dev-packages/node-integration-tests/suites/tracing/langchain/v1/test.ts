@@ -1,3 +1,4 @@
+import type { SerializedStreamedSpanContainer } from '@sentry/core';
 import { afterAll, describe, expect } from 'vitest';
 import {
   GEN_AI_INPUT_MESSAGES,
@@ -31,15 +32,17 @@ describe('LangChain integration (v1)', () => {
     'instrument.mjs',
     (createRunner, test) => {
       test('creates langchain related spans with genAI recording disabled', async () => {
+        const allSpans: SerializedStreamedSpanContainer['items'] = [];
+
         await createRunner()
+          .unordered()
           .ignore('event')
           .expect({
             span: container => {
-              const segment = container.items.find(span => span.is_segment && span.name === 'main');
+              allSpans.push(...container.items);
+              const segment = allSpans.find(span => span.is_segment && span.name === 'main');
               expect(segment).toBeDefined();
-              const spans = container.items.filter(
-                span => span.attributes[SENTRY_ORIGIN]?.value === 'auto.ai.langchain',
-              );
+              const spans = allSpans.filter(span => span.attributes[SENTRY_ORIGIN]?.value === 'auto.ai.langchain');
               expect(spans).toHaveLength(3);
               expect(spans.map(span => span.name).sort()).toEqual([
                 'chat claude-3-5-sonnet-20241022',
@@ -103,15 +106,17 @@ describe('LangChain integration (v1)', () => {
     'instrument-with-pii.mjs',
     (createRunner, test) => {
       test('creates langchain related spans with genAI recording enabled', async () => {
+        const allSpans: SerializedStreamedSpanContainer['items'] = [];
+
         await createRunner()
+          .unordered()
           .ignore('event')
           .expect({
             span: container => {
-              const segment = container.items.find(span => span.is_segment && span.name === 'main');
+              allSpans.push(...container.items);
+              const segment = allSpans.find(span => span.is_segment && span.name === 'main');
               expect(segment).toBeDefined();
-              const spans = container.items.filter(
-                span => span.attributes[SENTRY_ORIGIN]?.value === 'auto.ai.langchain',
-              );
+              const spans = allSpans.filter(span => span.attributes[SENTRY_ORIGIN]?.value === 'auto.ai.langchain');
               expect(spans).toHaveLength(3);
               expect(spans.map(span => span.name).sort()).toEqual([
                 'chat claude-3-5-sonnet-20241022',
@@ -175,15 +180,17 @@ describe('LangChain integration (v1)', () => {
     'instrument.mjs',
     (createRunner, test) => {
       test('creates langchain spans with tool calls', async () => {
+        const allSpans: SerializedStreamedSpanContainer['items'] = [];
+
         await createRunner()
+          .unordered()
           .ignore('event')
           .expect({
             span: container => {
-              const segment = container.items.find(span => span.is_segment && span.name === 'main');
+              allSpans.push(...container.items);
+              const segment = allSpans.find(span => span.is_segment && span.name === 'main');
               expect(segment).toBeDefined();
-              const spans = container.items.filter(
-                span => span.attributes[SENTRY_ORIGIN]?.value === 'auto.ai.langchain',
-              );
+              const spans = allSpans.filter(span => span.attributes[SENTRY_ORIGIN]?.value === 'auto.ai.langchain');
               expect(spans).toHaveLength(1);
               const [firstSpan] = spans;
 
@@ -222,13 +229,17 @@ describe('LangChain integration (v1)', () => {
     'instrument.mjs',
     (createRunner, test) => {
       test('demonstrates timing issue with duplicate spans', async () => {
+        const allSpans: SerializedStreamedSpanContainer['items'] = [];
+
         await createRunner()
+          .unordered()
           .ignore('event')
           .expect({
             span: container => {
-              const segment = container.items.find(span => span.is_segment && span.name === 'main');
+              allSpans.push(...container.items);
+              const segment = allSpans.find(span => span.is_segment && span.name === 'main');
               expect(segment).toBeDefined();
-              const spans = container.items.filter(
+              const spans = allSpans.filter(
                 span =>
                   span.attributes[SENTRY_ORIGIN]?.value === 'auto.ai.langchain' ||
                   span.attributes[SENTRY_ORIGIN]?.value === 'auto.ai.anthropic',
@@ -263,15 +274,17 @@ describe('LangChain integration (v1)', () => {
     'instrument.mjs',
     (createRunner, test) => {
       test('creates langchain spans using initChatModel with OpenAI', async () => {
+        const allSpans: SerializedStreamedSpanContainer['items'] = [];
+
         await createRunner()
+          .unordered()
           .ignore('event')
           .expect({
             span: container => {
-              const segment = container.items.find(span => span.is_segment && span.name === 'main');
+              allSpans.push(...container.items);
+              const segment = allSpans.find(span => span.is_segment && span.name === 'main');
               expect(segment).toBeDefined();
-              const spans = container.items.filter(
-                span => span.attributes[SENTRY_ORIGIN]?.value === 'auto.ai.langchain',
-              );
+              const spans = allSpans.filter(span => span.attributes[SENTRY_ORIGIN]?.value === 'auto.ai.langchain');
               expect(spans).toHaveLength(3);
               expect(spans.map(span => span.name).sort()).toEqual([
                 'chat error-model',
