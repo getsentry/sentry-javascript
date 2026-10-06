@@ -1,7 +1,25 @@
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import * as os from 'os';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import * as util from '../../src/config/util';
 
 describe('util', () => {
+  describe('getNextjsVersion', () => {
+    afterEach(() => {
+      vi.restoreAllMocks();
+    });
+
+    it('returns the installed Next.js version', () => {
+      expect(util.getNextjsVersion()).toMatch(/^\d+\.\d+\.\d+/);
+    });
+
+    it('returns the installed Next.js version when cwd is not the project root', () => {
+      const expected = util.getNextjsVersion();
+      vi.spyOn(process, 'cwd').mockReturnValue(os.tmpdir());
+
+      expect(util.getNextjsVersion()).toBe(expected);
+    });
+  });
+
   describe('supportsProductionCompileHook', () => {
     describe('supported versions', () => {
       it('returns true for Next.js 15.4.1', () => {

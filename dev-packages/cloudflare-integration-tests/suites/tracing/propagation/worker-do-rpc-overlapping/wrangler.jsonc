@@ -1,0 +1,11 @@
+{
+  "$schema": "../../../../node_modules/wrangler/config-schema.json",
+  "name": "cloudflare-worker-do-rpc-overlapping",
+  "main": "index.ts",
+  "compatibility_date": "2025-06-17",
+  "compatibility_flags": ["nodejs_compat"],
+  "durable_objects": {
+    "bindings": [{ "name": "COUNTER", "class_name": "Counter" }],
+  },
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["Counter"] }],
+}

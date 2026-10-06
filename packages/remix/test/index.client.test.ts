@@ -1,4 +1,4 @@
-import { getMainCarrier } from '@sentry/core';
+import { getCurrentScope, getMainCarrier } from '@sentry/core';
 import * as SentryReact from '@sentry/react';
 import { afterEach, describe, expect, it, type Mock, vi } from 'vitest';
 import { init } from '../src/index.client';
@@ -41,6 +41,18 @@ describe('Client init()', () => {
         },
       }),
     );
+  });
+
+  it('passes the Remix route provider unless the user passed one', () => {
+    init({});
+    expect(reactInit).toHaveBeenLastCalledWith(
+      expect.objectContaining({ routeProvider: expect.objectContaining({ resolveRoute: expect.any(Function) }) }),
+    );
+
+    getCurrentScope().setClient(undefined);
+    const routeProvider = { resolveRoute: () => '/custom', resolveCurrentRoute: () => '/custom' };
+    init({ routeProvider });
+    expect(reactInit).toHaveBeenLastCalledWith(expect.objectContaining({ routeProvider }));
   });
 
   it('returns client from init', () => {

@@ -1,45 +1,113 @@
 import { expect, test } from '@playwright/test';
-import { collectSpanNamesUntilSegment } from '@sentry-internal/test-utils';
+import { collectStreamedSpansUntilSegment, getSpanOp } from '@sentry-internal/test-utils';
+
+// Next.js emits these spans itself. The SDK attaches no op, description or function name to
+// them, so asserting `undefined` pins that they stay untouched.
+const nextjsSpan = { op: undefined, description: undefined, codeFunctionName: undefined };
 
 test('Will create spans for every server component and metadata generation functions when visiting a page', async ({
   page,
 }) => {
-  const spanNamesPromise = collectSpanNamesUntilSegment('nextjs-app-dir', 'GET /nested-layout');
+  const spansPromise = collectStreamedSpansUntilSegment('nextjs-app-dir', 'GET /nested-layout');
 
   await page.goto('/nested-layout');
 
-  const spanNames = await spanNamesPromise;
+  const fullSpans = await spansPromise;
+  const spans = fullSpans.map(span => ({
+    name: span.name,
+    op: getSpanOp(span),
+    description: span.attributes['sentry.description']?.value,
+    codeFunctionName: span.attributes['code.function.name']?.value,
+  }));
 
-  expect(spanNames).toContainEqual('render route (app) /nested-layout');
-  expect(spanNames).toContainEqual('generateMetadata /(nested-layout)/nested-layout/page');
+  expect(spans).toContainEqual({ ...nextjsSpan, name: 'render route (app) /nested-layout' });
+  expect(spans).toContainEqual({ ...nextjsSpan, name: 'generateMetadata /(nested-layout)/nested-layout/page' });
 
-  expect(spanNames).toContainEqual('resolve page components');
-  expect(spanNames).toContainEqual('build component tree');
-  expect(spanNames).toContainEqual('resolve root layout server component');
-  expect(spanNames).toContainEqual('resolve layout server component "(nested-layout)"');
-  expect(spanNames).toContainEqual('resolve layout server component "nested-layout"');
-  expect(spanNames).toContainEqual('resolve page server component "/nested-layout"');
-  expect(spanNames).toContainEqual('start response');
+  expect(spans).toContainEqual({ ...nextjsSpan, name: 'resolve page components' });
+  expect(spans).toContainEqual({ ...nextjsSpan, name: 'build component tree' });
+  // Server component spans: the name is the low-cardinality `code.function.name`, and the
+  // segment each one resolved for is on the description.
+  expect(spans).toContainEqual({
+    name: 'Layout',
+    op: 'function',
+    description: 'resolve root layout server component',
+    codeFunctionName: 'Layout',
+  });
+  expect(spans).toContainEqual({
+    name: 'Layout',
+    op: 'function',
+    description: 'resolve layout server component "(nested-layout)"',
+    codeFunctionName: 'Layout',
+  });
+  expect(spans).toContainEqual({
+    name: 'Layout',
+    op: 'function',
+    description: 'resolve layout server component "nested-layout"',
+    codeFunctionName: 'Layout',
+  });
+  expect(spans).toContainEqual({
+    name: 'Page',
+    op: 'function',
+    description: 'resolve page server component "/nested-layout"',
+    codeFunctionName: 'Page',
+  });
+  expect(spans).toContainEqual({ ...nextjsSpan, name: 'start response' });
 });
 
 test('Will create spans for every server component and metadata generation functions when visiting a dynamic page', async ({
   page,
 }) => {
-  const spanNamesPromise = collectSpanNamesUntilSegment('nextjs-app-dir', 'GET /nested-layout/[dynamic]');
+  const spansPromise = collectStreamedSpansUntilSegment('nextjs-app-dir', 'GET /nested-layout/[dynamic]');
 
   await page.goto('/nested-layout/123');
 
-  const spanNames = await spanNamesPromise;
+  const fullSpans = await spansPromise;
+  const spans = fullSpans.map(span => ({
+    name: span.name,
+    op: getSpanOp(span),
+    description: span.attributes['sentry.description']?.value,
+    codeFunctionName: span.attributes['code.function.name']?.value,
+  }));
 
-  expect(spanNames).toContainEqual('render route (app) /nested-layout/[dynamic]');
-  expect(spanNames).toContainEqual('generateMetadata /(nested-layout)/nested-layout/[dynamic]/page');
+  expect(spans).toContainEqual({ ...nextjsSpan, name: 'render route (app) /nested-layout/[dynamic]' });
+  expect(spans).toContainEqual({
+    ...nextjsSpan,
+    name: 'generateMetadata /(nested-layout)/nested-layout/[dynamic]/page',
+  });
 
-  expect(spanNames).toContainEqual('resolve page components');
-  expect(spanNames).toContainEqual('build component tree');
-  expect(spanNames).toContainEqual('resolve root layout server component');
-  expect(spanNames).toContainEqual('resolve layout server component "(nested-layout)"');
-  expect(spanNames).toContainEqual('resolve layout server component "nested-layout"');
-  expect(spanNames).toContainEqual('resolve layout server component "[dynamic]"');
-  expect(spanNames).toContainEqual('resolve page server component "/nested-layout/[dynamic]"');
-  expect(spanNames).toContainEqual('start response');
+  expect(spans).toContainEqual({ ...nextjsSpan, name: 'resolve page components' });
+  expect(spans).toContainEqual({ ...nextjsSpan, name: 'build component tree' });
+  // Server component spans: the name is the low-cardinality `code.function.name`, and the
+  // segment each one resolved for is on the description.
+  expect(spans).toContainEqual({
+    name: 'Layout',
+    op: 'function',
+    description: 'resolve root layout server component',
+    codeFunctionName: 'Layout',
+  });
+  expect(spans).toContainEqual({
+    name: 'Layout',
+    op: 'function',
+    description: 'resolve layout server component "(nested-layout)"',
+    codeFunctionName: 'Layout',
+  });
+  expect(spans).toContainEqual({
+    name: 'Layout',
+    op: 'function',
+    description: 'resolve layout server component "nested-layout"',
+    codeFunctionName: 'Layout',
+  });
+  expect(spans).toContainEqual({
+    name: 'Layout',
+    op: 'function',
+    description: 'resolve layout server component "[dynamic]"',
+    codeFunctionName: 'Layout',
+  });
+  expect(spans).toContainEqual({
+    name: 'Page',
+    op: 'function',
+    description: 'resolve page server component "/nested-layout/[dynamic]"',
+    codeFunctionName: 'Page',
+  });
+  expect(spans).toContainEqual({ ...nextjsSpan, name: 'start response' });
 });

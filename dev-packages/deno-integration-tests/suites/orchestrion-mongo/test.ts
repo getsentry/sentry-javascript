@@ -2,27 +2,29 @@
 
 import { tracingChannel } from 'node:diagnostics_channel';
 import type { DenoClient } from '@sentry/deno';
-import { init, startSpan } from '@sentry/deno';
+import { flush, init, startSpan } from '@sentry/deno';
 import { assert } from 'https://deno.land/std@0.212.0/assert/assert.ts';
 import { assertEquals } from 'https://deno.land/std@0.212.0/assert/assert_equals.ts';
 import { assertExists } from 'https://deno.land/std@0.212.0/assert/assert_exists.ts';
-import { resetGlobals, transactionSink, withTimeout } from '../../src/index.ts';
+import { getSpanOp, resetGlobals, spanSink, withTimeout } from '../../src/index.ts';
 
 Deno.test('mongodb instrumentation: included in default integrations (Deno 2.8.0+)', () => {
   resetGlobals();
-  const client = init({ traceLifecycle: 'static', dsn: 'https://username@domain/123' }) as DenoClient;
+  const client = init({
+    dsn: 'https://username@domain/123',
+    tracesSampleRate: 1,
+  }) as DenoClient;
   const names = client.getOptions().integrations.map(i => i.name);
   assert(names.includes('Mongo'), `Mongo should be in defaults, got ${names.join(', ')}`);
 });
 
 Deno.test('mongodb instrumentation: orchestrion:mongodb:command channel produces a nested db span', async () => {
   resetGlobals();
-  const sink = transactionSink();
+  const sink = spanSink();
   init({
-    traceLifecycle: 'static',
     dsn: 'https://username@domain/123',
     tracesSampleRate: 1,
-    beforeSendTransaction: sink.beforeSendTransaction,
+    transport: sink.transport,
   });
 
   const channel = tracingChannel('orchestrion:mongodb:command');
@@ -46,21 +48,27 @@ Deno.test('mongodb instrumentation: orchestrion:mongodb:command channel produces
     });
   });
 
-  const parent = await withTimeout(
-    sink.waitFor(t => t.transaction === 'parent'),
-    5000,
-    "'parent' transaction",
-  );
+  await flush();
 
-  const mongoSpan = parent.spans?.find(s => s.op === 'db');
-  assertExists(mongoSpan, `expected a db child span, got ops: ${parent.spans?.map(s => s.op).join(', ')}`);
-  assertEquals(mongoSpan!.description, '{"find":"?","filter":{"name":"?"}}');
-  assertEquals(mongoSpan!.data?.['db.system.name'], 'mongodb');
-  assertEquals(mongoSpan!.data?.['db.query.text'], '{"find":"?","filter":{"name":"?"}}');
-  assertEquals(mongoSpan!.data?.['db.namespace'], 'mydb');
-  assertEquals(mongoSpan!.data?.['db.collection.name'], 'users');
-  assertEquals(mongoSpan!.data?.['db.operation.name'], 'find');
-  assertEquals(mongoSpan!.data?.['server.address'], '127.0.0.1');
-  assertEquals(mongoSpan!.data?.['server.port'], 27017);
-  assertEquals(mongoSpan!.data?.['sentry.origin'], 'auto.db.mongo');
+  const parent = await withTimeout(
+    sink.waitFor(span => span.is_segment && span.name === 'parent'),
+    5000,
+    "'parent' segment span",
+  );
+  const children = sink.spans.filter(span => span.parent_span_id === parent.span_id);
+  assertEquals(children.length, 1);
+  assertEquals(children[0]!.trace_id, parent.trace_id);
+  assertEquals(children[0]!.is_segment, false);
+
+  const mongoSpan = children.find(s => getSpanOp(s) === 'db');
+  assertExists(mongoSpan, `expected a db child span, got ops: ${children.map(s => getSpanOp(s)).join(', ')}`);
+  assertEquals(mongoSpan.name, 'find users');
+  assertEquals(mongoSpan.attributes['db.system.name']?.value, 'mongodb');
+  assertEquals(mongoSpan.attributes['db.query.text']?.value, '{"find":"?","filter":{"name":"?"}}');
+  assertEquals(mongoSpan.attributes['db.namespace']?.value, 'mydb');
+  assertEquals(mongoSpan.attributes['db.collection.name']?.value, 'users');
+  assertEquals(mongoSpan.attributes['db.operation.name']?.value, 'find');
+  assertEquals(mongoSpan.attributes['server.address']?.value, '127.0.0.1');
+  assertEquals(mongoSpan.attributes['server.port']?.value, 27017);
+  assertEquals(mongoSpan.attributes['sentry.origin']?.value, 'auto.db.mongo');
 });

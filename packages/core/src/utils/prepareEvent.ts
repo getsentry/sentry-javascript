@@ -8,6 +8,7 @@ import type { ClientOptions } from '../types/options';
 import type { StackParser } from '../types/stacktrace';
 import { getFilenameToDebugIdMap } from './debug-ids';
 import { getDataCategoryByType } from './envelope';
+import { applyEscapedErrorSpanToEvent } from './errorSpanAttribution';
 import { addExceptionMechanismToCapturedException, uuid4 } from './misc';
 import { normalize } from './normalize';
 import { applyScopeDataToEvent, applySpanToEvent, getCombinedScopeData } from './scopeData';
@@ -94,6 +95,11 @@ export function prepareEvent(
   if (span) {
     applySpanToEvent(prepared, span);
   }
+
+  // After the active span, so an error that escaped a span is attributed to that span rather than
+  // to whichever one happened to be active at capture time. Done here rather than once the event is
+  // assembled so that event processors and the `postprocessEvent` hook see the corrected span id.
+  applyEscapedErrorSpanToEvent(prepared, hint, finalScope);
 
   const eventProcessors = [
     ...clientEventProcessors,

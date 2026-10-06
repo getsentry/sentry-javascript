@@ -1,8 +1,7 @@
-import { SEMANTIC_ATTRIBUTE_SENTRY_OP } from '@sentry/core';
 import type { SerializedStreamedSpanContainer } from '@sentry/core';
-import { SENTRY_TRACE_LIFECYCLE } from '@sentry/conventions/attributes';
+import { SENTRY_TRACE_LIFECYCLE, SENTRY_OP } from '@sentry/conventions/attributes';
 import { afterAll, describe, expect } from 'vitest';
-import { conditionalTest } from '../../../utils';
+import { conditionalTest, EXPECTED_SDK_NAME } from '../../../utils';
 import { cleanupChildProcesses, createEsmAndCjsTests, describeWithDockerCompose } from '../../../utils/runner';
 
 // Query-span origin depends on which instrumentation is active. Blocks driving the SDK's default
@@ -12,6 +11,10 @@ import { cleanupChildProcesses, createEsmAndCjsTests, describeWithDockerCompose 
 const QUERY_ORIGIN = 'auto.db.postgres';
 
 const COMMON_DB_ATTRIBUTES = {
+  'sentry.is_localhost': {
+    type: 'boolean',
+    value: false,
+  },
   'db.connection_string': {
     type: 'string',
     value: expect.stringMatching(/^postgresql:\/\/localhost:\d+\/tests$/),
@@ -54,7 +57,7 @@ const COMMON_DB_ATTRIBUTES = {
   },
   'sentry.sdk.name': {
     type: 'string',
-    value: 'sentry.javascript.node',
+    value: EXPECTED_SDK_NAME,
   },
   'sentry.sdk.version': {
     type: 'string',
@@ -147,13 +150,13 @@ function expectedDbSpan({
 }
 
 const CREATE_USER_TABLE_STATEMENT =
-  'CREATE TABLE "User" ("id" SERIAL NOT NULL,"createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,"email" TEXT NOT NULL,"name" TEXT,CONSTRAINT "User_pkey" PRIMARY KEY ("id"));';
+  'CREATE TABLE "User" ("id" SERIAL NOT NULL,"createdAt" TIMESTAMP(?) NOT NULL DEFAULT CURRENT_TIMESTAMP,"email" TEXT NOT NULL,"name" TEXT,CONSTRAINT "User_pkey" PRIMARY KEY ("id"))';
 
 const CREATE_NATIVE_USER_TABLE_STATEMENT =
-  'CREATE TABLE "NativeUser" ("id" SERIAL NOT NULL,"createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,"email" TEXT NOT NULL,"name" TEXT,CONSTRAINT "User_pkey" PRIMARY KEY ("id"));';
+  'CREATE TABLE "NativeUser" ("id" SERIAL NOT NULL,"createdAt" TIMESTAMP(?) NOT NULL DEFAULT CURRENT_TIMESTAMP,"email" TEXT NOT NULL,"name" TEXT,CONSTRAINT "User_pkey" PRIMARY KEY ("id"))';
 
 function getDbSpans(container: SerializedStreamedSpanContainer): SerializedStreamedSpanContainer['items'] {
-  return container.items.filter(item => item.attributes[SEMANTIC_ATTRIBUTE_SENTRY_OP]?.value === 'db');
+  return container.items.filter(item => item.attributes[SENTRY_OP]?.value === 'db');
 }
 
 describeWithDockerCompose('postgres auto instrumentation (streamed)', { workingDirectory: [__dirname] }, () => {
@@ -223,7 +226,9 @@ describeWithDockerCompose('postgres auto instrumentation (streamed)', { workingD
     });
   });
 
-  conditionalTest({ max: 25 })('pg-native', () => {
+  // Deno: with a module load hook installed, Deno compiles a native addon (`libpq`) as JavaScript.
+  // Bun: the `libpq` addon needs the Node symbol `node::EmitAsyncInit`, which Bun does not provide.
+  conditionalTest({ max: 25, skipRuntimes: ['bun', 'deno'] })('pg-native', () => {
     createEsmAndCjsTests(
       __dirname,
       'scenario-native.mjs',

@@ -1,6 +1,6 @@
 import type { ChildProcess } from 'node:child_process';
-import * as diagnosticsChannel from 'node:diagnostics_channel';
 import { addBreadcrumb, defineIntegration, isObjectLike } from '@sentry/core';
+import { subscribeDiagnosticsChannel } from '@sentry/server-utils';
 
 interface Options {
   /**
@@ -21,7 +21,7 @@ export const childProcessIntegration = defineIntegration((options: Options = {})
   return {
     name: INTEGRATION_NAME,
     setup() {
-      diagnosticsChannel.channel('child_process').subscribe((event: unknown) => {
+      subscribeDiagnosticsChannel('child_process', (event: unknown) => {
         if (isObjectLike(event) && 'process' in event) {
           captureChildProcessEvents(event.process as ChildProcess, options);
         }

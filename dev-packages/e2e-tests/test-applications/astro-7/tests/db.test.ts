@@ -62,6 +62,6 @@ test('Instruments mysql automatically', async ({ baseURL }) => {
       }),
     });
 
-  expect(mysqlSpans).toContainEqual(expectedQuerySpan('SELECT 1 + 1 AS solution'));
+  expect(mysqlSpans).toContainEqual(expectedQuerySpan('SELECT ? + ? AS solution'));
   expect(mysqlSpans).toContainEqual(expectedQuerySpan('SELECT NOW()'));
 });

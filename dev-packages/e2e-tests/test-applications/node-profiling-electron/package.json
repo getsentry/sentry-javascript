@@ -9,7 +9,7 @@
   },
   "dependencies": {
     "@electron/rebuild": "^3.7.0",
-    "@playwright/test": "~1.56.0",
+    "@playwright/test": "~1.63.0",
     "@sentry/electron": "latest || *",
     "@sentry/node": "file:../../packed/sentry-node-packed.tgz",
     "@sentry/profiling-node": "file:../../packed/sentry-profiling-node-packed.tgz",

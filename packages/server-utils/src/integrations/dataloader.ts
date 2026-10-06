@@ -1,4 +1,4 @@
-import * as diagnosticsChannel from 'node:diagnostics_channel';
+import * as diagnosticsChannel from '../utils/diagnosticsChannel';
 import {
   CACHE_KEY,
   CACHE_OPERATION,
@@ -6,6 +6,7 @@ import {
   DB_OPERATION_NAME,
   SENTRY_KIND,
   SENTRY_OP,
+  SENTRY_ORIGIN,
 } from '@sentry/conventions/attributes';
 import { CACHE_GET, CACHE_PUT, CACHE_REMOVE } from '@sentry/conventions/op';
 import type { IntegrationFn, Span, StartSpanOptions } from '@sentry/core';
@@ -15,7 +16,6 @@ import {
   defineIntegration,
   getClient,
   hasSpanStreamingEnabled,
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   startInactiveSpan,
   startSpan,
   waitForTracingChannelBinding,
@@ -113,7 +113,7 @@ function makeSpanOptions(
       // the vendored OTel instrumentation. The `batch` runs off a deferred tick with no obvious network
       // peer, so it gets no kind.
       [SENTRY_KIND]: operation === 'batch' ? undefined : 'client',
-      [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: ORIGIN,
+      [SENTRY_ORIGIN]: ORIGIN,
       [DB_OPERATION_NAME]: operation,
       // A loader batches and caches one entity type, so it is the closest thing dataloader has to a
       // collection. Unnamed loaders report nothing.

@@ -94,6 +94,14 @@ export type InternalGlobal = {
      * Dedupes the one-time warning and short-circuits repeat calls.
      */
     runtimeUnavailable?: boolean;
+    /**
+     * Module namespaces stashed by build-time provider imports, keyed by module
+     * name (e.g. `@mastra/observability`). A bundler plugin can splice a static
+     * `import * as ns from '<pkg>'` into an integration and record `ns` here, so
+     * the integration can read a bundled peer dependency it cannot `createRequire`
+     * in a bundled runtime such as Cloudflare Workers.
+     */
+    providedModules?: Record<string, Record<string, unknown>>;
   };
 } & Carrier;
 

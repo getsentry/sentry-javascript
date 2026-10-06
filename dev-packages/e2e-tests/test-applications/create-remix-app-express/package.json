@@ -28,7 +28,7 @@
     "source-map-support": "^0.5.21"
   },
   "devDependencies": {
-    "@playwright/test": "~1.56.0",
+    "@playwright/test": "~1.63.0",
     "@sentry-internal/test-utils": "link:../../../test-utils",
     "@remix-run/dev": "^2.17.4",
     "@types/compression": "^1.7.2",

@@ -1,4 +1,4 @@
-import * as diagnosticsChannel from 'node:diagnostics_channel';
+import * as diagnosticsChannel from '../utils/diagnosticsChannel';
 import {
   DB_NAMESPACE,
   DB_QUERY_SUMMARY,
@@ -9,6 +9,7 @@ import {
   SENTRY_OP,
   SERVER_ADDRESS,
   SERVER_PORT,
+  SENTRY_ORIGIN,
 } from '@sentry/conventions/attributes';
 import { DB } from '@sentry/conventions/op';
 import type { IntegrationFn, Scope, SpanAttributes } from '@sentry/core';
@@ -19,10 +20,9 @@ import {
   getClient,
   getCurrentScope,
   hasSpanStreamingEnabled,
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   startInactiveSpan,
 } from '@sentry/core';
-import { getSqlQuerySummary, sanitizeSqlQuery } from '../utils/sql';
+import { sanitizeSqlQueryWithSummary } from '../utils/sql';
 import { CHANNELS } from '../orchestrion/channels';
 import { bindTracingChannelToSpan } from '../tracing-channel';
 import { pgModuleNames } from '../orchestrion/config/pg';
@@ -180,22 +180,19 @@ function querySpanOptions(ctx: PgChannelContext): { name: string; attributes: Sp
   const params = (ctx.self as { connectionParameters?: PgConnectionParams } | undefined)?.connectionParameters ?? {};
   const queryConfig = extractQueryConfig(ctx.arguments);
   const client = getClient();
-  // The statement is sanitized before it is summarized, so that a string literal containing
-  // `from`/`join` can't leak a value into the summary.
-  const querySummary = queryConfig?.text ? getSqlQuerySummary(sanitizeSqlQuery(queryConfig.text)) : undefined;
-
+  const { queryText, querySummary } = sanitizeSqlQueryWithSummary(queryConfig?.text);
   const name =
     client && hasSpanStreamingEnabled(client)
       ? querySummary || params.database || DB_SYSTEM_POSTGRESQL
-      : (queryConfig?.text ?? SPAN_QUERY_FALLBACK);
+      : (queryText ?? SPAN_QUERY_FALLBACK);
 
   return {
     name,
     attributes: {
       [SENTRY_OP]: DB,
       ...getConnectionAttributes(params),
-      [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: ORIGIN,
-      [DB_QUERY_TEXT]: queryConfig?.text || undefined,
+      [SENTRY_ORIGIN]: ORIGIN,
+      [DB_QUERY_TEXT]: queryText || undefined,
       [DB_QUERY_SUMMARY]: querySummary,
       [ATTR_PG_PLAN]: typeof queryConfig?.name === 'string' ? queryConfig.name : undefined,
     },

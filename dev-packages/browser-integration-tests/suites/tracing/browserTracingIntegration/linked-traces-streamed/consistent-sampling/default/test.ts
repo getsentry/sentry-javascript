@@ -1,5 +1,6 @@
+import { SENTRY_LINK_TYPE } from '@sentry/conventions/attributes';
 import { expect } from '@playwright/test';
-import { extractTraceparentData, parseBaggageHeader, SEMANTIC_LINK_ATTRIBUTE_LINK_TYPE } from '@sentry/core';
+import { extractTraceparentData, parseBaggageHeader } from '@sentry/core';
 import { sentryTest } from '../../../../../../utils/fixtures';
 import { shouldSkipTracingTest, waitForTracingHeadersOnUrl } from '../../../../../../utils/helpers';
 import { getSpanOp, waitForStreamedSpanEnvelope } from '../../../../../../utils/spanUtils';
@@ -66,7 +67,7 @@ sentryTest.describe('When `consistentTraceSampling` is `true`', () => {
           span_id: customTraceSpan.span_id,
           sampled: true,
           attributes: {
-            [SEMANTIC_LINK_ATTRIBUTE_LINK_TYPE]: {
+            [SENTRY_LINK_TYPE]: {
               type: 'string',
               value: 'previous_trace',
             },

@@ -4,10 +4,19 @@ import type { NodeClient } from '../sdk/client';
 
 const DEFAULT_SHUTDOWN_TIMEOUT = 2000;
 
+let isShuttingDown = false;
+
 /**
  * @hidden
  */
 export function logAndExitProcess(error: unknown): void {
+  // A broken stderr makes the console write below raise EPIPE, re-entering here. Return
+  // rather than exit, so the in-flight `client.close()` still flushes the fatal event.
+  if (isShuttingDown) {
+    return;
+  }
+  isShuttingDown = true;
+
   consoleSandbox(() => {
     // eslint-disable-next-line no-console
     console.error(error);
@@ -33,6 +42,7 @@ export function logAndExitProcess(error: unknown): void {
     },
     error => {
       DEBUG_BUILD && debug.error(error);
+      global.process.exit(1);
     },
   );
 }

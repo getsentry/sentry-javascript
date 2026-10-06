@@ -1,8 +1,8 @@
-import * as diagnosticsChannel from 'node:diagnostics_channel';
-import { SENTRY_OP } from '@sentry/conventions/attributes';
+import * as diagnosticsChannel from '../utils/diagnosticsChannel';
+import { SENTRY_OP, SENTRY_ORIGIN } from '@sentry/conventions/attributes';
 import { DB } from '@sentry/conventions/op';
 import type { IntegrationFn } from '@sentry/core';
-import { defineIntegration, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, startInactiveSpan } from '@sentry/core';
+import { defineIntegration, startInactiveSpan } from '@sentry/core';
 import { CHANNELS } from '../orchestrion/channels';
 import { genericPoolModuleNames } from '../orchestrion/config/generic-pool';
 import { invokeOrchestrionInstrumentation } from '../orchestrion/instrumentation';
@@ -41,7 +41,7 @@ function instrumentGenericPool(): void {
         name: 'generic-pool.acquire',
         attributes: {
           [SENTRY_OP]: DB,
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.db.generic_pool',
+          [SENTRY_ORIGIN]: 'auto.db.generic_pool',
         },
       }),
   );

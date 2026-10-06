@@ -16,11 +16,13 @@ export const SEMANTIC_ATTRIBUTE_SENTRY_PREVIOUS_TRACE_SAMPLE_RATE = 'sentry.prev
 
 /**
  * Use this attribute to represent the operation of a span.
+ * @deprecated Use `SENTRY_OP` from `@sentry/conventions/attributes` instead.
  */
 export const SEMANTIC_ATTRIBUTE_SENTRY_OP = 'sentry.op';
 
 /**
  * Use this attribute to represent the origin of a span.
+ * @deprecated Use `SENTRY_ORIGIN` from `@sentry/conventions/attributes` instead.
  */
 export const SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN = 'sentry.origin';
 
@@ -31,10 +33,14 @@ export const SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN = 'sentry.origin';
  * Streamed (v2) span statuses are reduced to `ok`/`error`, so we preserve the
  * message as an attribute instead of dropping it. This mirrors the attribute
  * Sentry's OTLP ingestion uses for the same purpose.
+ * @deprecated Use `SENTRY_STATUS_MESSAGE` from `@sentry/conventions/attributes` instead.
  */
 export const SEMANTIC_ATTRIBUTE_SENTRY_STATUS_MESSAGE = 'sentry.status.message';
 
-/** The reason why an idle span finished. */
+/**
+ * The reason why an idle span finished.
+ * @deprecated Use `SENTRY_IDLE_SPAN_FINISH_REASON` from `@sentry/conventions/attributes` instead.
+ */
 export const SEMANTIC_ATTRIBUTE_SENTRY_IDLE_SPAN_FINISH_REASON = 'sentry.idle_span_finish_reason';
 
 /** The unit of a measurement, which may be stored as a TimedEvent. */
@@ -43,9 +49,15 @@ export const SEMANTIC_ATTRIBUTE_SENTRY_MEASUREMENT_UNIT = 'sentry.measurement_un
 /** The value of a measurement, which may be stored as a TimedEvent. */
 export const SEMANTIC_ATTRIBUTE_SENTRY_MEASUREMENT_VALUE = 'sentry.measurement_value';
 
-/** The release version of the application */
+/**
+ * The release version of the application
+ * @deprecated Use `SENTRY_RELEASE` from `@sentry/conventions/attributes` instead.
+ */
 export const SEMANTIC_ATTRIBUTE_SENTRY_RELEASE = 'sentry.release';
-/** The environment name (e.g., "production", "staging", "development") */
+/**
+ * The environment name (e.g., "production", "staging", "development")
+ * @deprecated Use `SENTRY_ENVIRONMENT` from `@sentry/conventions/attributes` instead.
+ */
 export const SEMANTIC_ATTRIBUTE_SENTRY_ENVIRONMENT = 'sentry.environment';
 /**
  * The segment name (e.g., "GET /users")
@@ -67,16 +79,31 @@ export const SEMANTIC_ATTRIBUTE_SENTRY_SDK_NAME = 'sentry.sdk.name';
  * @deprecated Use `SENTRY_SDK_VERSION` `@sentry/conventions/attributes` instead.
  */
 export const SEMANTIC_ATTRIBUTE_SENTRY_SDK_VERSION = 'sentry.sdk.version';
-/** The list of integrations enabled in the Sentry SDK (e.g., ["EventFilters", "BrowserTracing"]) */
+/**
+ * The list of integrations enabled in the Sentry SDK (e.g., ["EventFilters", "BrowserTracing"])
+ * @deprecated Use `SENTRY_SDK_INTEGRATIONS` from `@sentry/conventions/attributes` instead.
+ */
 export const SEMANTIC_ATTRIBUTE_SENTRY_SDK_INTEGRATIONS = 'sentry.sdk.integrations';
 
-/** The user ID */
+/**
+ * The user ID
+ * @deprecated Use `USER_ID` from `@sentry/conventions/attributes` instead.
+ */
 export const SEMANTIC_ATTRIBUTE_USER_ID = 'user.id';
-/** The user email */
+/**
+ * The user email
+ * @deprecated Use `USER_EMAIL` from `@sentry/conventions/attributes` instead.
+ */
 export const SEMANTIC_ATTRIBUTE_USER_EMAIL = 'user.email';
-/** The user IP address */
+/**
+ * The user IP address
+ * @deprecated Use `USER_IP_ADDRESS` from `@sentry/conventions/attributes` instead.
+ */
 export const SEMANTIC_ATTRIBUTE_USER_IP_ADDRESS = 'user.ip_address';
-/** The user username */
+/**
+ * The user username
+ * @deprecated Use `USER_NAME` from `@sentry/conventions/attributes` instead.
+ */
 export const SEMANTIC_ATTRIBUTE_USER_USERNAME = 'user.name';
 
 /**
@@ -90,18 +117,33 @@ export const SEMANTIC_ATTRIBUTE_SENTRY_CUSTOM_SPAN_NAME = 'sentry.custom_span_na
 
 /**
  * The id of the profile that this span occurred in.
+ * @deprecated Use `SENTRY_PROFILE_ID` from `@sentry/conventions/attributes` instead.
  */
 export const SEMANTIC_ATTRIBUTE_PROFILE_ID = 'sentry.profile_id';
 
+/**
+ * @deprecated Use `SENTRY_EXCLUSIVE_TIME` from `@sentry/conventions/attributes` instead.
+ */
 export const SEMANTIC_ATTRIBUTE_EXCLUSIVE_TIME = 'sentry.exclusive_time';
 
+/**
+ * @deprecated Use `CACHE_HIT` from `@sentry/conventions/attributes` instead.
+ */
 export const SEMANTIC_ATTRIBUTE_CACHE_HIT = 'cache.hit';
 
+/**
+ * @deprecated Use `CACHE_KEY` from `@sentry/conventions/attributes` instead.
+ */
 export const SEMANTIC_ATTRIBUTE_CACHE_KEY = 'cache.key';
 
+/**
+ * @deprecated Use `CACHE_ITEM_SIZE` from `@sentry/conventions/attributes` instead.
+ */
 export const SEMANTIC_ATTRIBUTE_CACHE_ITEM_SIZE = 'cache.item_size';
 
-/** TODO: Remove these once we update to latest semantic conventions */
+/**
+ * @deprecated Use `HTTP_REQUEST_METHOD` from `@sentry/conventions/attributes` instead.
+ */
 export const SEMANTIC_ATTRIBUTE_HTTP_REQUEST_METHOD = 'http.request.method';
 /**
  * @deprecated Use `URL_FULL` `@sentry/conventions/attributes` instead.
@@ -116,6 +158,7 @@ export const SEMANTIC_ATTRIBUTE_URL_FULL = 'url.full';
  * - `next_trace`: The span links to the frontend root span of the next trace. (Not set by the SDK)
  *
  * Other values may be set as appropriate.
+ * @deprecated Use `SENTRY_LINK_TYPE` from `@sentry/conventions/attributes` instead.
  * @see https://develop.sentry.dev/sdk/telemetry/traces/span-links/#link-types
  */
 export const SEMANTIC_LINK_ATTRIBUTE_LINK_TYPE = 'sentry.link.type';
@@ -132,5 +175,6 @@ export const SEMANTIC_LINK_ATTRIBUTE_LINK_TYPE = 'sentry.link.type';
  * The conversation ID for linking messages across API calls.
  * For OpenAI Assistants API: thread_id
  * For LangGraph: configurable.thread_id
+ * @deprecated Use `GEN_AI_CONVERSATION_ID` from `@sentry/conventions/attributes` instead.
  */
 export const GEN_AI_CONVERSATION_ID_ATTRIBUTE = 'gen_ai.conversation.id';

@@ -2,7 +2,7 @@
 // emit them deliberately to preserve parity with what `@opentelemetry/instrumentation-knex` produced.
 /* oxlint-disable typescript/no-deprecated */
 
-import * as diagnosticsChannel from 'node:diagnostics_channel';
+import * as diagnosticsChannel from '../utils/diagnosticsChannel';
 import type { IntegrationFn, Span, SpanAttributes } from '@sentry/core';
 import {
   debug,
@@ -10,7 +10,6 @@ import {
   getActiveSpan,
   getClient,
   hasSpanStreamingEnabled,
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SPAN_STATUS_ERROR,
   startInactiveSpan,
   truncate,
@@ -28,12 +27,13 @@ import {
   SENTRY_OP,
   SERVER_ADDRESS,
   SERVER_PORT,
+  SENTRY_ORIGIN,
 } from '@sentry/conventions/attributes';
 import { DB } from '@sentry/conventions/op';
 import { DEBUG_BUILD } from '../debug-build';
 import { CHANNELS } from '../orchestrion/channels';
 import { bindTracingChannelToSpan } from '../tracing-channel';
-import { getSqlQuerySummary, sanitizeSqlQuery } from '../utils/sql';
+import { sanitizeSqlQueryWithSummary, toSqlDialect } from '../utils/sql';
 
 // NOTE: this uses the same name as the OTel integration by design. `@sentry/node`'s `knexIntegration`
 // picks this subscriber over the vendored OTel path when orchestrion injection is active.
@@ -174,13 +174,15 @@ function subscribeQuery(): void {
         connection?.filename || connection?.database || extractDatabaseFromConnectionString(connectionString);
       const dbSystem = mapSystem(client?.driverName);
 
-      const dbStatement = query?.sql != null ? truncate(query.sql, MAX_QUERY_LENGTH) : undefined;
-      const dialect = client?.driverName === 'mysql' || client?.driverName === 'mysql2' ? 'mysql' : undefined;
-      const querySummary = dbStatement ? getSqlQuerySummary(sanitizeSqlQuery(dbStatement, dialect)) : undefined;
+      const dialect = toSqlDialect(client?.driverName);
+      const { queryText: dbStatement, querySummary } = sanitizeSqlQueryWithSummary(
+        query?.sql ? truncate(query.sql, MAX_QUERY_LENGTH) : undefined,
+        dialect,
+      );
       const attributes: SpanAttributes = {
         [SENTRY_OP]: DB,
         [SENTRY_KIND]: 'client',
-        [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: ORIGIN,
+        [SENTRY_ORIGIN]: ORIGIN,
         'knex.version': data.moduleVersion,
         [DB_SYSTEM_NAME]: dbSystem,
         [ATTR_DB_SQL_TABLE]: table,

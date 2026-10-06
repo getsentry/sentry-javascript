@@ -152,12 +152,12 @@ describe('ContextLines', () => {
       const outerFrame = overlappingContextWithFirstError[overlappingContextWithFirstError.length - 2]!;
 
       expect(innerFrame.context_line).toBe("        return new Error('inner');");
-      expect(innerFrame.pre_context).toHaveLength(7);
-      expect(innerFrame.post_context).toHaveLength(7);
+      expect(innerFrame.pre_context).toHaveLength(5);
+      expect(innerFrame.post_context).toHaveLength(5);
 
       expect(outerFrame.context_line).toBe('        return inner();');
-      expect(outerFrame.pre_context).toHaveLength(7);
-      expect(outerFrame.post_context).toHaveLength(7);
+      expect(outerFrame.pre_context).toHaveLength(5);
+      expect(outerFrame.post_context).toHaveLength(5);
     });
 
     test('parseStack with error on first line errors', async () => {

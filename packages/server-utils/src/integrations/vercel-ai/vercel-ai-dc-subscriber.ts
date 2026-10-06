@@ -18,14 +18,18 @@ import {
   GEN_AI_TOOL_DEFINITIONS,
   GEN_AI_TOOL_DESCRIPTION,
   GEN_AI_TOOL_NAME,
+  GEN_AI_USAGE_CACHE_CREATION_INPUT_TOKENS,
+  GEN_AI_USAGE_CACHE_READ_INPUT_TOKENS,
   GEN_AI_USAGE_INPUT_TOKENS,
   GEN_AI_USAGE_OUTPUT_TOKENS,
   GEN_AI_USAGE_REASONING_OUTPUT_TOKENS,
   GEN_AI_USAGE_TOTAL_TOKENS,
   SENTRY_OP,
+  SENTRY_ORIGIN,
 } from '@sentry/conventions/attributes';
 import {
   GEN_AI_EMBEDDINGS,
+  GEN_AI_EVALUATE,
   GEN_AI_EXECUTE_TOOL,
   GEN_AI_GENERATE_CONTENT,
   GEN_AI_INVOKE_AGENT,
@@ -37,7 +41,6 @@ import {
   captureException,
   getClient,
   isObjectLike,
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SPAN_STATUS_ERROR,
   spanToJSON,
   spanToTraceContext,
@@ -47,6 +50,7 @@ import {
 } from '@sentry/core';
 import type { TracingChannel } from 'node:diagnostics_channel';
 import { GEN_AI_TOOL_CALL_ID_ATTRIBUTE } from '../../ai/core/gen-ai-attributes';
+import { isEveGenAiRecordingDefault } from './gen-ai-recording-mode';
 import type { GenAiOptions } from '../../ai/core/utils';
 import { getProviderMetadataAttributes, LAST_STEP_ONLY_USAGE_KEYS } from '../../ai/vercel-ai';
 import { WORKERS_AI_INTEGRATION_NAME } from '../../ai/workers-ai/constants';
@@ -66,6 +70,7 @@ const ORIGIN = 'auto.vercelai.channel';
 const GEN_AI_OPERATION_SPAN_OPS = {
   embeddings: GEN_AI_EMBEDDINGS,
   rerank: GEN_AI_RERANK,
+  evaluate: GEN_AI_EVALUATE,
   invoke_agent: GEN_AI_INVOKE_AGENT,
   execute_tool: GEN_AI_EXECUTE_TOOL,
   // The model-call op matches the Vercel AI OTel integration (`gen_ai.generate_content`) rather than
@@ -79,6 +84,7 @@ type GenAiOperation = keyof typeof GEN_AI_OPERATION_SPAN_OPS;
 const VERCEL_AI_OPERATION_ID_ATTRIBUTE = 'vercel.ai.operationId';
 const VERCEL_AI_MODEL_PROVIDER_ATTRIBUTE = 'vercel.ai.model.provider';
 const VERCEL_AI_SETTINGS_MAX_RETRIES_ATTRIBUTE = 'vercel.ai.settings.maxRetries';
+const VERCEL_AI_TELEMETRY_METADATA_ATTRIBUTE_PREFIX = 'vercel.ai.telemetry.metadata.';
 
 // Tracks the top-level operationId (and whether it streams) per `callId` so a model-call span can
 // name its `doGenerate`/`doStream` operation the same way the OTel integration does. `isStream` is
@@ -208,7 +214,9 @@ export type ChannelEventType =
   | 'executeTool'
   | 'embed'
   | 'embedMany'
-  | 'rerank';
+  | 'rerank'
+  | 'experimental_evaluate'
+  | 'experimental_decide';
 
 /**
  * The context object the AI SDK passes through one tracing-channel call. It is the same object
@@ -356,6 +364,9 @@ function enrichInvokeAgentFromStream(
     addTokensToSpan(span, GEN_AI_USAGE_INPUT_TOKENS, input);
     addTokensToSpan(span, GEN_AI_USAGE_OUTPUT_TOKENS, output);
     addTokensToSpan(span, GEN_AI_USAGE_TOTAL_TOKENS, tokenCount(usage.totalTokens) ?? sum(input, output));
+    const { cacheRead, cacheWrite } = cacheTokens(usage);
+    addTokensToSpan(span, GEN_AI_USAGE_CACHE_READ_INPUT_TOKENS, cacheRead);
+    addTokensToSpan(span, GEN_AI_USAGE_CACHE_CREATION_INPUT_TOKENS, cacheWrite);
   }
 
   if (recordOutputs) {
@@ -406,8 +417,9 @@ export function createSpanFromMessage(
     recordToolDescriptions(callId, event.tools);
   }
 
-  const baseAttributes: Record<string, string | number | boolean> = {
-    [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: ORIGIN,
+  const baseAttributes: SpanAttributes = {
+    [SENTRY_ORIGIN]: ORIGIN,
+    ...telemetryMetadataAttributes(event.telemetryMetadata),
     ...(provider ? { [GEN_AI_PROVIDER_NAME]: provider, [VERCEL_AI_MODEL_PROVIDER_ATTRIBUTE]: provider } : {}),
     ...(modelId ? { [GEN_AI_REQUEST_MODEL]: modelId } : {}),
     ...(maxRetries !== undefined ? { [VERCEL_AI_SETTINGS_MAX_RETRIES_ATTRIBUTE]: maxRetries } : {}),
@@ -438,10 +450,39 @@ export function createSpanFromMessage(
     }
     case 'rerank':
       return startGenAiSpan('rerank', modelId, baseAttributes);
+    // `ai` 7.0.128 renamed `experimental_evaluate` to `experimental_decide`; older 7.x still publishes the old name.
+    case 'experimental_evaluate':
+    case 'experimental_decide':
+      return startGenAiSpan('evaluate', modelId, {
+        ...baseAttributes,
+        ...(recordInputs
+          ? {
+              [GEN_AI_INPUT_MESSAGES]: stringify([
+                { type: 'evaluation', state: event.state, questions: event.questions },
+              ]),
+            }
+          : {}),
+      });
     default:
       // Unknown event type: opt out rather than open a span we can't shape correctly.
       return undefined;
   }
+}
+
+/**
+ * `experimental_telemetry.metadata` (`ai` <= 6) as `vercel.ai.telemetry.metadata.<key>`, the names the OTel
+ * integration produced from the SDK's `ai.telemetry.metadata.*`. Only the orchestrion adapter sets
+ * `event.telemetryMetadata`; `ai` 7 has no `telemetry.metadata`.
+ */
+function telemetryMetadataAttributes(metadata: unknown): Record<string, string> {
+  const attributes: Record<string, string> = {};
+  if (isObjectLike(metadata)) {
+    for (const [key, value] of Object.entries(metadata)) {
+      if (value === null || value === undefined) continue;
+      attributes[`${VERCEL_AI_TELEMETRY_METADATA_ATTRIBUTE_PREFIX}${key}`] = String(value);
+    }
+  }
+  return attributes;
 }
 
 /** Start a `gen_ai.<operation>` span named `<operation> <suffix>` (or just `<operation>` when no suffix). */
@@ -511,7 +552,7 @@ function buildToolSpan(event: Record<string, unknown>, recordInputs: boolean): S
   const description =
     recordInputs && toolName ? resolveToolDescription(asString(event.callId), toolName, event.tools) : undefined;
   return startGenAiSpan('execute_tool', toolName, {
-    [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: ORIGIN,
+    [SENTRY_ORIGIN]: ORIGIN,
     ...(toolName ? { [GEN_AI_TOOL_NAME]: toolName } : {}),
     ...(toolCallId ? { [GEN_AI_TOOL_CALL_ID_ATTRIBUTE]: toolCallId } : {}),
     ...(description ? { [GEN_AI_TOOL_DESCRIPTION]: description } : {}),
@@ -567,6 +608,7 @@ export function enrichSpanOnEnd(
     if (totalTokens !== undefined) {
       span.setAttribute(GEN_AI_USAGE_TOTAL_TOKENS, totalTokens);
     }
+    setCacheTokens(span, usage);
   }
 
   // Match the OTel integration: finish reasons live on the model-call (`generate_content`) span, not
@@ -601,17 +643,50 @@ export function enrichSpanOnEnd(
   span.setAttributes(providerAttributes);
 
   if (recordOutputs) {
-    // `languageModelCall` exposes the response as a `content` parts array; top-level results expose
-    // `text` + `toolCalls`. Both normalize into the OTel `gen_ai.output.messages` assistant message.
-    const parts =
-      type === 'languageModelCall' && Array.isArray(result.content)
-        ? partsFromContent(result.content)
-        : partsFromTextAndToolCalls(result.text, result.toolCalls);
-    const outputMessages = buildOutputMessages(parts, finishReason);
+    const outputMessages = getOutputMessages(type, result, finishReason);
     if (outputMessages) {
       span.setAttribute(GEN_AI_OUTPUT_MESSAGES, outputMessages);
     }
   }
+}
+
+function getOutputMessages(
+  type: ChannelEventType,
+  result: Record<string, unknown>,
+  finishReason: string | undefined,
+): string | undefined {
+  if (type === 'experimental_evaluate' || type === 'experimental_decide') {
+    return stringify([{ type: 'evaluation', answers: withProviderConfidence(result) }]);
+  }
+  // `languageModelCall` exposes the response as a `content` parts array; top-level results expose
+  // `text` + `toolCalls`. Both normalize into the OTel `gen_ai.output.messages` assistant message.
+  const parts =
+    type === 'languageModelCall' && Array.isArray(result.content)
+      ? partsFromContent(result.content)
+      : partsFromTextAndToolCalls(result.text, result.toolCalls);
+  return buildOutputMessages(parts, finishReason);
+}
+
+/**
+ * The AI SDK TypeSafe provider moves each answer's `confidence` out of the answers into
+ * `providerMetadata.typesafe.confidence` (keyed by question id). Put it back so evaluate answers keep it.
+ */
+function withProviderConfidence(result: Record<string, unknown>): unknown {
+  const { answers, providerMetadata } = result;
+  const typesafe = isObjectLike(providerMetadata) ? providerMetadata.typesafe : undefined;
+  const confidence = isObjectLike(typesafe) && isObjectLike(typesafe.confidence) ? typesafe.confidence : undefined;
+  if (!confidence || !isObjectLike(answers)) {
+    return answers;
+  }
+
+  return Object.fromEntries(
+    Object.entries(answers).map(([id, answer]) => [
+      id,
+      isObjectLike(answer) && typeof confidence[id] === 'number' && answer.confidence === undefined
+        ? { ...answer, confidence: confidence[id] }
+        : answer,
+    ]),
+  );
 }
 
 /** Maps a Vercel AI finish reason to the OTel `gen_ai.output.messages` form (`tool-calls` → `tool_call`). */
@@ -631,6 +706,32 @@ function getFinishReason(result: Record<string, unknown>): string | undefined {
 /** Reads a token count that may be a plain number or a `{ total }` object (model-call usage). */
 function tokenCount(value: unknown): number | undefined {
   return asNumber(value) ?? (isObjectLike(value) ? asNumber(value.total) : undefined);
+}
+
+/**
+ * Cache token counts as the AI SDK normalizes them: v5 `cachedInputTokens`, v6 `inputTokenDetails`,
+ * v7 `inputTokens.{cacheRead,cacheWrite}`.
+ */
+function setCacheTokens(span: Span, usage: Record<string, unknown>): void {
+  const { cacheRead, cacheWrite } = cacheTokens(usage);
+  if (cacheRead !== undefined) {
+    span.setAttribute(GEN_AI_USAGE_CACHE_READ_INPUT_TOKENS, cacheRead);
+  }
+  if (cacheWrite !== undefined) {
+    span.setAttribute(GEN_AI_USAGE_CACHE_CREATION_INPUT_TOKENS, cacheWrite);
+  }
+}
+
+function cacheTokens(usage: Record<string, unknown>): { cacheRead?: number; cacheWrite?: number } {
+  const inputTokens = isObjectLike(usage.inputTokens) ? usage.inputTokens : undefined;
+  const inputTokenDetails = isObjectLike(usage.inputTokenDetails) ? usage.inputTokenDetails : undefined;
+  return {
+    cacheRead:
+      asNumber(inputTokens?.cacheRead) ??
+      asNumber(inputTokenDetails?.cacheReadTokens) ??
+      asNumber(usage.cachedInputTokens),
+    cacheWrite: asNumber(inputTokens?.cacheWrite) ?? asNumber(inputTokenDetails?.cacheWriteTokens),
+  };
 }
 
 function buildOutputMessages(
@@ -718,11 +819,13 @@ function getRecordingOptions(
   recordInputs: boolean;
   recordOutputs: boolean;
 } {
-  const genAI = getClient()?.getDataCollectionOptions().genAI;
+  const client = getClient();
+  const genAI = client?.getDataCollectionOptions().genAI;
+  const eveMode = client ? isEveGenAiRecordingDefault(client) : false;
 
   return {
-    recordInputs: resolveRecording(channelOptions.recordInputs, event.recordInputs, genAI?.inputs),
-    recordOutputs: resolveRecording(channelOptions.recordOutputs, event.recordOutputs, genAI?.outputs),
+    recordInputs: resolveRecording(channelOptions.recordInputs, event.recordInputs, genAI?.inputs, eveMode),
+    recordOutputs: resolveRecording(channelOptions.recordOutputs, event.recordOutputs, genAI?.outputs, eveMode),
   };
 }
 
@@ -735,10 +838,22 @@ function getRecordingOptions(
  * `experimental_telemetry: { isEnabled: true }`. The `ai:telemetry` channel does not expose `isEnabled`
  * (nor a resolved recording flag), so that per-call default cannot be reproduced here — v7 users who
  * want inputs/outputs recorded must enable `dataCollection.genAI` or set `recordInputs`/`recordOutputs`.
+ *
+ * Under `eveMode` (set by `eveIntegration()`) the per-call flag is eve's blanket framework default
+ * rather than an end-user decision, so it is skipped: an explicit `dataCollection.genAI` still wins,
+ * otherwise recording defaults to `true`. An integration-level option outranks both regardless.
  */
-function resolveRecording(integrationOption: unknown, perCallOption: unknown, globalDefault: unknown): boolean {
+function resolveRecording(
+  integrationOption: unknown,
+  perCallOption: unknown,
+  globalDefault: unknown,
+  eveMode = false,
+): boolean {
   if (typeof integrationOption === 'boolean') {
     return integrationOption;
+  }
+  if (eveMode) {
+    return typeof globalDefault === 'boolean' ? globalDefault : true;
   }
   if (typeof perCallOption === 'boolean') {
     return perCallOption;

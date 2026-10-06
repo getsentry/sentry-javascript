@@ -20,7 +20,7 @@
     "test:build-latest-webpack": "pnpm install && pnpm add next@latest && pnpm build-webpack",
     "test:build-canary-webpack": "pnpm install && pnpm add next@canary && pnpm build-webpack",
     "test:assert": "pnpm test:prod && pnpm test:dev",
-    "test:assert-webpack": "pnpm test:prod && pnpm test:dev-webpack"
+    "test:assert-webpack": "TEST_BUNDLER=webpack pnpm test:prod && pnpm test:dev-webpack"
   },
   "dependencies": {
     "@sentry/nextjs": "file:../../packed/sentry-nextjs-packed.tgz",
@@ -33,7 +33,7 @@
     "zod": "^3.22.4"
   },
   "devDependencies": {
-    "@playwright/test": "~1.56.0",
+    "@playwright/test": "~1.63.0",
     "@sentry-internal/test-utils": "link:../../../test-utils",
     "@types/node": "^20",
     "@types/react": "^19",

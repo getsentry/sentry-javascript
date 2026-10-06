@@ -8,6 +8,9 @@ afterAll(() => {
 test('cron instrumentation', { timeout: 60_000 }, async () => {
   await createRunner(__dirname, 'scenario.ts')
     .withMockSentryServer()
+    // Each check-in is its own HTTP request, so the order they reach the mock server is not the
+    // order the SDK sent them in. Under load the `ok` check-in has overtaken the `in_progress` one.
+    .unordered()
     .expect({
       check_in: {
         check_in_id: expect.any(String),

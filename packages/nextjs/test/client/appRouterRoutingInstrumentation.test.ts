@@ -3,12 +3,21 @@ import type { Client } from '@sentry/core';
 import type * as SentryCore from '@sentry/core';
 import type * as SentryReact from '@sentry/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+// Loaded for their side effect: `setup()` re-imports these for every test, and the first of
+// those imports also pays for transforming the whole `@sentry/react` graph. Charged to a test
+// that ran into the 5s timeout on a loaded CI runner; charged to collection it is untimed.
+// Later imports only re-evaluate an already transformed graph, which is cheap.
+import '@sentry/core';
+import '@sentry/react';
+import '../../src/client/routing/appRouterRoutingInstrumentation';
 import type * as AppRouterInstrumentation from '../../src/client/routing/appRouterRoutingInstrumentation';
+import type * as RouteProvider from '../../src/client/routing/routeProvider';
 import type { RouteManifest } from '../../src/config/manifest/types';
 
 type Core = typeof SentryCore;
 type React = typeof SentryReact;
 type Instrumentation = typeof AppRouterInstrumentation;
+type RouteProviderModule = typeof RouteProvider;
 
 interface NextRouter {
   back: () => void;
@@ -20,6 +29,7 @@ interface NextRouter {
 const globalWithNext = globalThis as typeof globalThis & {
   next?: { router?: NextRouter };
   _sentryRouteManifest?: string;
+  _sentryBasePath?: string;
 };
 
 const manifest: RouteManifest = {
@@ -28,6 +38,12 @@ const manifest: RouteManifest = {
     {
       path: '/navigation/:param/router-back',
       regex: '^/navigation/([^/]+)/router-back$',
+      paramNames: ['param'],
+      hasOptionalPrefix: false,
+    },
+    {
+      path: '/my-app/navigation/:param/router-push',
+      regex: '^/my-app/navigation/([^/]+)/router-push$',
       paramNames: ['param'],
       hasOptionalPrefix: false,
     },
@@ -49,11 +65,13 @@ async function setup(traceLifecycle: 'stream' | 'static'): Promise<{
   core: Core;
   router: NextRouter;
   client: Client;
+  instrumentation: Instrumentation;
 }> {
   vi.resetModules();
   const core: Core = await import('@sentry/core');
   const react: React = await import('@sentry/react');
   const instrumentation: Instrumentation = await import('../../src/client/routing/appRouterRoutingInstrumentation');
+  const routeProvider: RouteProviderModule = await import('../../src/client/routing/routeProvider');
 
   const client = new react.BrowserClient({
     dsn: 'http://examplePublicKey@localhost/0',
@@ -61,6 +79,7 @@ async function setup(traceLifecycle: 'stream' | 'static'): Promise<{
     stackParser: () => [],
     tracesSampleRate: 1,
     traceLifecycle,
+    routeProvider: routeProvider.createNextRouteProvider(),
     integrations: [react.browserTracingIntegration({ instrumentPageLoad: false, instrumentNavigation: false })],
   });
   core.setCurrentClient(client);
@@ -73,7 +92,7 @@ async function setup(traceLifecycle: 'stream' | 'static'): Promise<{
   instrumentation.appRouterInstrumentNavigation(client);
   await vi.waitFor(() => expect(router.back).not.toBe(originalBack));
 
-  return { core, router, client };
+  return { core, router, client, instrumentation };
 }
 
 describe('appRouterInstrumentNavigation (router-patch mode)', () => {
@@ -198,5 +217,51 @@ describe('appRouterInstrumentNavigation (router-patch mode)', () => {
         expect.objectContaining({ 'navigation.type': 'browser.popstate' }),
       );
     });
+  });
+});
+
+describe('appRouterInstrumentNavigation with basePath', () => {
+  beforeEach(() => {
+    globalWithNext._sentryRouteManifest = JSON.stringify(manifest);
+    globalWithNext._sentryBasePath = '/my-app';
+    window.history.replaceState({}, '', '/my-app/navigation');
+  });
+
+  afterEach(() => {
+    delete globalWithNext.next;
+    delete globalWithNext._sentryRouteManifest;
+    delete globalWithNext._sentryBasePath;
+  });
+
+  it.each([
+    ['a root-relative path without basePath', '/navigation/42/router-push'],
+    ['a root-relative path with basePath', '/my-app/navigation/42/router-push'],
+    ['an absolute URL', 'http://localhost:3000/my-app/navigation/42/router-push'],
+  ])('names the router-patch navigation span correctly for %s', async (_, href) => {
+    const { core, router } = await setup('static');
+
+    router.push(href);
+
+    const span = core.getActiveSpan();
+    expect(span).toBeDefined();
+    const spanJson = core.spanToJSON(span!);
+    expect(spanJson.name).toBe('/my-app/navigation/:param/router-push');
+    expect(spanJson.attributes).toEqual(
+      expect.objectContaining({ 'url.full': 'http://localhost:3000/my-app/navigation/42/router-push' }),
+    );
+  });
+
+  it.each([
+    ['a root-relative path without basePath', '/navigation/42/router-push'],
+    ['a root-relative path with basePath', '/my-app/navigation/42/router-push'],
+    ['an absolute URL', 'http://localhost:3000/my-app/navigation/42/router-push'],
+  ])('names the transition-start-hook navigation span correctly for %s', async (_, href) => {
+    const { core, instrumentation } = await setup('static');
+
+    instrumentation.captureRouterTransitionStart(href, 'push');
+
+    const span = core.getActiveSpan();
+    expect(span).toBeDefined();
+    expect(core.spanToJSON(span!).name).toBe('/my-app/navigation/:param/router-push');
   });
 });

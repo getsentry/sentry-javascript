@@ -4,7 +4,6 @@ import {
   getClient,
   handleCallbackErrors,
   hasSpanStreamingEnabled,
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SPAN_STATUS_ERROR,
   startSpan,
   startSpanManual,
@@ -31,14 +30,20 @@ import {
   GEN_AI_USAGE_INPUT_TOKENS,
   GEN_AI_USAGE_OUTPUT_TOKENS,
   GEN_AI_USAGE_TOTAL_TOKENS,
+  SENTRY_ORIGIN,
 } from '@sentry/conventions/attributes';
 import type { InstrumentedMethodEntry } from '../core/utils';
-import { buildMethodPath, extractSystemInstructions, getGenAiSpanOp, resolveAIRecordingOptions } from '../core/utils';
+import { buildMethodPath, getGenAiSpanOp, resolveAIRecordingOptions } from '../core/utils';
 import { GOOGLE_GENAI_METHOD_REGISTRY, GOOGLE_GENAI_SYSTEM_NAME } from './constants';
 import { instrumentStream } from './streaming';
 import type { Candidate, ContentPart, GoogleGenAIOptions, GoogleGenAIResponse } from './types';
 import type { ContentListUnion, Message, PartListUnion } from './utils';
-import { contentUnionToMessages } from './utils';
+import {
+  candidatesToMessageParts,
+  contentUnionToMessages,
+  setOutputMessagesAttribute,
+  systemInstructionToText,
+} from './utils';
 
 /**
  * Extract model from parameters or chat context object
@@ -108,7 +113,7 @@ export function extractRequestAttributes(
   const attributes: Record<string, SpanAttributeValue> = {
     [GEN_AI_PROVIDER_NAME]: GOOGLE_GENAI_SYSTEM_NAME,
     [GEN_AI_OPERATION_NAME]: operationName,
-    [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ai.google_genai',
+    [SENTRY_ORIGIN]: 'auto.ai.google_genai',
   };
 
   if (params) {
@@ -148,9 +153,7 @@ export function addPrivateRequestAttributes(span: Span, params: Record<string, u
     return;
   }
 
-  const messages: Message[] = [];
-
-  // config.systemInstruction: ContentUnion
+  // config.systemInstruction: ContentUnion. It has its own attribute, so it never joins the message list.
   if (
     'config' in params &&
     params.config &&
@@ -158,8 +161,13 @@ export function addPrivateRequestAttributes(span: Span, params: Record<string, u
     'systemInstruction' in params.config &&
     params.config.systemInstruction
   ) {
-    messages.push(...contentUnionToMessages(params.config.systemInstruction, 'system'));
+    const systemInstructions = systemInstructionToText(params.config.systemInstruction);
+    if (systemInstructions) {
+      span.setAttribute(GEN_AI_SYSTEM_INSTRUCTIONS, JSON.stringify([{ type: 'text', content: systemInstructions }]));
+    }
   }
+
+  const messages: Message[] = [];
 
   // For chats.create: history contains the conversation history
   if ('history' in params) {
@@ -176,15 +184,9 @@ export function addPrivateRequestAttributes(span: Span, params: Record<string, u
     messages.push(...contentUnionToMessages(params.message as PartListUnion, 'user'));
   }
 
-  if (Array.isArray(messages) && messages.length) {
-    const { systemInstructions, filteredMessages } = extractSystemInstructions(messages);
-
-    if (systemInstructions) {
-      span.setAttribute(GEN_AI_SYSTEM_INSTRUCTIONS, systemInstructions);
-    }
-
+  if (messages.length) {
     span.setAttributes({
-      [GEN_AI_INPUT_MESSAGES]: stringify(filteredMessages),
+      [GEN_AI_INPUT_MESSAGES]: stringify(messages),
     });
   }
 }
@@ -218,6 +220,10 @@ export function addResponseAttributes(span: Span, response: GoogleGenAIResponse,
         [GEN_AI_USAGE_TOTAL_TOKENS]: usage.totalTokenCount,
       });
     }
+  }
+
+  if (recordOutputs) {
+    setOutputMessagesAttribute(span, candidatesToMessageParts(response.candidates));
   }
 
   // Add response text if recordOutputs is enabled

@@ -1,4 +1,4 @@
-import * as diagnosticsChannel from 'node:diagnostics_channel';
+import * as diagnosticsChannel from '../../utils/diagnosticsChannel';
 import {
   DB_OPERATION_BATCH_SIZE,
   DB_OPERATION_NAME,
@@ -8,6 +8,7 @@ import {
   SERVER_ADDRESS,
   SERVER_PORT,
   SENTRY_OP,
+  SENTRY_ORIGIN,
 } from '@sentry/conventions/attributes';
 import { DB_QUERY, DB } from '@sentry/conventions/op';
 import type { IntegrationFn, Span, SpanAttributes } from '@sentry/core';
@@ -15,7 +16,6 @@ import {
   isObjectLike,
   defineIntegration,
   getActiveSpan,
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SPAN_STATUS_ERROR,
   startInactiveSpan,
   withActiveSpan,
@@ -104,7 +104,7 @@ function nodeRedisAttributes(options: NodeRedisClientOptions | undefined): SpanA
     [DB_SYSTEM_NAME]: DB_SYSTEM_VALUE_REDIS,
     [SERVER_ADDRESS]: host,
     ...(port != null ? { [SERVER_PORT]: port } : {}),
-    [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: ORIGIN,
+    [SENTRY_ORIGIN]: ORIGIN,
   };
 }
 
@@ -160,7 +160,7 @@ function subscribeLegacyRedisCommand(cacheOptions: RedisCacheOptions): void {
       const client = data.self as LegacyRedisClient | undefined;
       const attributes: SpanAttributes = {
         [DB_SYSTEM_NAME]: DB_SYSTEM_VALUE_REDIS,
-        [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: ORIGIN,
+        [SENTRY_ORIGIN]: ORIGIN,
       };
 
       if (client?.connection_options?.host != null) {

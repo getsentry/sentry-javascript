@@ -1,6 +1,11 @@
 import { expect, test } from '@playwright/test';
 import type { SerializedStreamedSpan } from '@sentry-internal/test-utils';
-import { getSpanOp, waitForStreamedSpan, waitForStreamedSpans } from '@sentry-internal/test-utils';
+import {
+  collectStreamedSpansUntilSegment,
+  getSpanOp,
+  waitForStreamedSpan,
+  waitForStreamedSpans,
+} from '@sentry-internal/test-utils';
 
 const APP_NAME = 'remix-hydrogen';
 
@@ -17,6 +22,29 @@ test('Sends a parameterized span name to Sentry', async ({ page }) => {
   const span = await spanPromise;
 
   expect(span.attributes['sentry.segment.name.source']?.value).toBe('route');
+});
+
+test('Sends a low cardinality documentRequest span to Sentry', async ({ page }) => {
+  // Another test hits `/user/:id` too, and `collectStreamedSpans` evaluates one trace at a time, so
+  // a unique path is what keeps this assertion on the request under test.
+  const path = `/user/${crypto.randomUUID()}`;
+  const spansPromise = collectStreamedSpansUntilSegment(
+    APP_NAME,
+    span => getSpanOp(span) === 'http.server' && span.attributes['url.path']?.value === path,
+  );
+
+  await page.goto(path);
+
+  const spans = await spansPromise;
+  const segment = spans.find(span => span.is_segment)!;
+  const documentRequestSpan = spans.find(span => span.attributes['code.function.name']?.value === 'documentRequest');
+
+  expect(documentRequestSpan).toBeDefined();
+  expect(documentRequestSpan!.name).toBe('documentRequest');
+  expect(getSpanOp(documentRequestSpan!)).toBe('function');
+  expect(documentRequestSpan!.attributes['sentry.origin']?.value).toBe('auto.function.remix');
+  // The span name is low cardinality now, so the description carries the name it used to have.
+  expect(documentRequestSpan!.attributes['sentry.description']?.value).toBe(segment.name);
 });
 
 test('Sends two linked spans (server & client) to Sentry', async ({ page }) => {

@@ -91,6 +91,7 @@ test('Sends streamed spans for an API route', async ({ baseURL }) => {
       'sentry.origin': { type: 'string', value: 'auto.http.nestjs' },
       component: { type: 'string', value: '@nestjs/core' },
       'nestjs.type': { type: 'string', value: 'request_context' },
+      'code.function.name': { type: 'string', value: 'AppController.testTransaction' },
       'nestjs.controller': { type: 'string', value: 'AppController' },
       'nestjs.callback': { type: 'string', value: 'testTransaction' },
       'http.route': { type: 'string', value: '/test-transaction' },
@@ -429,6 +430,7 @@ test('Sets error status on nest spans when a handler throws', async ({ baseURL }
       'sentry.op': { type: 'string', value: 'function' },
       'sentry.status.message': { type: 'string', value: 'internal_error' },
       'nestjs.type': { type: 'string', value: 'request_context' },
+      'code.function.name': { type: 'string', value: 'AppController.testException' },
     }),
   });
 

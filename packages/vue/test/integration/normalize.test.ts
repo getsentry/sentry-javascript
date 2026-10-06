@@ -26,6 +26,7 @@ describe('@sentry/vue init() normalize stringifier', () => {
   afterEach(() => {
     // Reset the registered stringifier so subsequent test files start clean.
     setNormalizeStringifier(undefined);
+    Sentry.getCurrentScope().setClient(undefined);
   });
 
   it("collapses Vue 3 component instances (`__isVue`) to '[VueViewModel]'", () => {

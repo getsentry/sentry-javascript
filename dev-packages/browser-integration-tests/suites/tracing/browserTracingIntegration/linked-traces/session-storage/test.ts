@@ -1,5 +1,5 @@
 import { expect } from '@playwright/test';
-import { SEMANTIC_LINK_ATTRIBUTE_LINK_TYPE } from '@sentry/core';
+import { SENTRY_LINK_TYPE } from '@sentry/conventions/attributes';
 import { sentryTest } from '../../../../../utils/fixtures';
 import { envelopeRequestParser, shouldSkipTracingTest, waitForTransactionRequest } from '../../../../../utils/helpers';
 
@@ -31,7 +31,7 @@ sentryTest('adds link between hard page reloads when opting into sessionStorage'
       trace_id: pageload1TraceContext?.trace_id,
       span_id: pageload1TraceContext?.span_id,
       sampled: true,
-      attributes: { [SEMANTIC_LINK_ATTRIBUTE_LINK_TYPE]: 'previous_trace' },
+      attributes: { [SENTRY_LINK_TYPE]: 'previous_trace' },
     },
   ]);
 

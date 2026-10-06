@@ -8,6 +8,7 @@ import {
   GCP_FUNCTION_CONTEXT_SOURCE,
   GCP_FUNCTION_CONTEXT_SPECVERSION,
   GCP_FUNCTION_CONTEXT_TIME,
+  SENTRY_ORIGIN,
 } from '@sentry/conventions/attributes';
 import { FUNCTION_GCP } from '@sentry/conventions/op';
 import {
@@ -15,7 +16,6 @@ import {
   getClient,
   handleCallbackErrors,
   hasSpanStreamingEnabled,
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SERVERLESS_FUNCTION_SPAN_NAME_FALLBACK,
 } from '@sentry/core';
 import { captureException, flush, getCurrentScope, startSpanManual } from '@sentry/node';
@@ -64,7 +64,7 @@ function _wrapCloudEventFunction(
           [FAAS_NAME]: functionName,
           [FAAS_TRIGGER]: 'cloud_event',
           [SENTRY_SEGMENT_NAME_SOURCE]: 'component',
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.serverless.gcp_cloud_event',
+          [SENTRY_ORIGIN]: 'auto.function.serverless.gcp_cloud_event',
           [GCP_FUNCTION_CONTEXT_TYPE]: context.type,
           [GCP_FUNCTION_CONTEXT_ID]: context.id,
           [GCP_FUNCTION_CONTEXT_SOURCE]: context.source,

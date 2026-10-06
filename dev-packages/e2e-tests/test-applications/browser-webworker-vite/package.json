@@ -12,14 +12,14 @@
     "test:assert": "pnpm test"
   },
   "devDependencies": {
-    "@playwright/test": "~1.56.0",
+    "@playwright/test": "~1.63.0",
     "@sentry-internal/test-utils": "link:../../../test-utils",
     "typescript": "~5.8.3",
     "vite": "^7.3.2"
   },
   "dependencies": {
     "@sentry/browser": "file:../../packed/sentry-browser-packed.tgz",
-    "@sentry/vite-plugin": "^5.3.0"
+    "@sentry/vite-plugin": "^5.4.1"
   },
   "volta": {
     "node": "20.19.2",

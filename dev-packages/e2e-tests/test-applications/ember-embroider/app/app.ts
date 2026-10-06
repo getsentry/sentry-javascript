@@ -6,7 +6,6 @@ import Resolver from 'ember-resolver';
 
 Sentry.init({
   dsn: config.sentryDsn,
-  traceLifecycle: 'static',
   tracesSampleRate: 1,
   replaysSessionSampleRate: 1,
   replaysOnErrorSampleRate: 1,

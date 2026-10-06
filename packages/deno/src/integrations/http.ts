@@ -51,6 +51,9 @@ export interface DenoHttpIntegrationOptions {
    * When set to `false`, Sentry will not inject any trace propagation headers, but will still create breadcrumbs
    * (if `breadcrumbs` is enabled).
    *
+   * Covers `node:http` requests only. Outgoing `fetch` has its own switch,
+   * `fetchIntegration({ tracePropagation: false })`.
+   *
    * @default `true`
    */
   tracePropagation?: boolean;

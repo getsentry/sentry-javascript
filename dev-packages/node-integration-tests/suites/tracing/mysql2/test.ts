@@ -14,12 +14,12 @@ describeWithDockerCompose('mysql2 auto instrumentation', { workingDirectory: [__
     transaction: 'Test Transaction',
     spans: expect.arrayContaining([
       expect.objectContaining({
-        description: 'SELECT 1 + 1 AS solution',
+        description: 'SELECT ? + ? AS solution',
         op: 'db',
         origin: ORIGIN,
         data: expect.objectContaining({
           'db.system.name': 'mysql',
-          'db.query.text': 'SELECT 1 + 1 AS solution',
+          'db.query.text': 'SELECT ? + ? AS solution',
           'server.address': 'localhost',
           'server.port': 3306,
           'db.user': 'root',
@@ -50,12 +50,12 @@ describeWithDockerCompose('mysql2 auto instrumentation', { workingDirectory: [__
       }),
       // `execute` is instrumented the same way as `query`
       expect.objectContaining({
-        description: 'SELECT 42 AS answer',
+        description: 'SELECT ? AS answer',
         op: 'db',
         origin: ORIGIN,
         data: expect.objectContaining({
           'db.system.name': 'mysql',
-          'db.query.text': 'SELECT 42 AS answer',
+          'db.query.text': 'SELECT ? AS answer',
         }),
       }),
       // a failing query produces a span with an error status

@@ -40,7 +40,7 @@ describe('instrumentEnv', () => {
     await db.prepare('SELECT 1').first();
 
     expect(startSpanSpy).toHaveBeenCalledWith(
-      expect.objectContaining({ name: 'SELECT 1', attributes: expect.objectContaining({ 'sentry.op': 'db.query' }) }),
+      expect.objectContaining({ name: 'SELECT ?', attributes: expect.objectContaining({ 'sentry.op': 'db.query' }) }),
       expect.any(Function),
     );
   });
@@ -408,6 +408,30 @@ describe('instrumentEnv', () => {
           baggage: 'sentry-environment=production',
         },
       });
+    });
+
+    it('calls JSRPC connect with the underlying binding as `this`', () => {
+      const jsrpcTarget = {
+        fetch: vi.fn(),
+        connect(this: unknown, _address: string) {
+          if (this !== jsrpcProxy) {
+            throw new TypeError('Illegal invocation: function called with incorrect `this` reference.');
+          }
+          return 'socket';
+        },
+      };
+      const jsrpcProxy = new Proxy(jsrpcTarget, {
+        get(target, prop) {
+          if (prop in target) {
+            return Reflect.get(target, prop);
+          }
+          return () => {};
+        },
+      });
+      const env = { SERVICE: jsrpcProxy };
+      const instrumented = instrumentEnv(env, { rpcTracePropagationBindings: [/.*/] });
+
+      expect(instrumented.SERVICE.connect('127.0.0.1:9')).toBe('socket');
     });
 
     it('does not inject meta into JSRPC fetch calls', () => {

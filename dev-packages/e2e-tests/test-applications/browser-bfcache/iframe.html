@@ -4,11 +4,23 @@
     <meta charset="UTF-8" />
     <title>BFCache E2E - iframe</title>
     <script>
-      // A same-origin child frame. With ?blocker=unload it registers an unload listener, which makes
-      // the *whole* embedding page bfcache-ineligible - the not-restored reason then comes from this
-      // child frame (frame: 'child').
-      if (new URLSearchParams(window.location.search).get('blocker') === 'unload') {
-        window.addEventListener('unload', () => {});
+      // A same-origin child frame. With ?blocker=indexeddb it holds up an IndexedDB version upgrade,
+      // which makes the *whole* embedding page bfcache-ineligible - the not-restored reason then
+      // comes from this child frame (frame: 'child'). Mirrors the top-level `indexeddb` botcher.
+      if (new URLSearchParams(window.location.search).get('blocker') === 'indexeddb') {
+        var dbName = 'bf_child_' + Math.random().toString(36).slice(2);
+        window.__idbBlocked = false;
+        var open1 = indexedDB.open(dbName, 1);
+        open1.addEventListener('upgradeneeded', function (event) {
+          event.target.result.createObjectStore('s');
+        });
+        open1.addEventListener('success', function (event) {
+          window.__db = event.target.result; // intentionally no `versionchange` handler
+          var open2 = indexedDB.open(dbName, 2);
+          open2.addEventListener('blocked', function () {
+            window.__idbBlocked = true;
+          });
+        });
       }
     </script>
   </head>

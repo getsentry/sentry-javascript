@@ -1,4 +1,9 @@
-import type { DataCollection, ResolvedDataCollection } from '../../types/datacollection';
+import type {
+  CollectBehavior,
+  DataCollection,
+  HttpHeadersCollection,
+  ResolvedDataCollection,
+} from '../../types/datacollection';
 
 const DEFAULTS: ResolvedDataCollection = {
   userInfo: true,
@@ -14,6 +19,25 @@ const DEFAULTS: ResolvedDataCollection = {
   frameContextLines: 5,
 };
 
+function isCollectBehavior(value: CollectBehavior | HttpHeadersCollection): value is CollectBehavior {
+  return typeof value === 'boolean' || 'allow' in value || 'deny' in value;
+}
+
+function resolveHttpHeaders(httpHeaders: DataCollection['httpHeaders']): ResolvedDataCollection['httpHeaders'] {
+  if (httpHeaders === undefined) {
+    return { ...DEFAULTS.httpHeaders };
+  }
+
+  if (isCollectBehavior(httpHeaders)) {
+    return { request: httpHeaders, response: httpHeaders };
+  }
+
+  return {
+    request: httpHeaders.request ?? DEFAULTS.httpHeaders.request,
+    response: httpHeaders.response ?? DEFAULTS.httpHeaders.response,
+  };
+}
+
 /**
  * Resolves the effective `DataCollection` configuration from client options.
  *
@@ -27,10 +51,7 @@ export function resolveDataCollectionOptions(options: { dataCollection?: DataCol
   return {
     userInfo: dc.userInfo ?? DEFAULTS.userInfo,
     cookies: dc.cookies ?? DEFAULTS.cookies,
-    httpHeaders: {
-      request: dc.httpHeaders?.request ?? DEFAULTS.httpHeaders.request,
-      response: dc.httpHeaders?.response ?? DEFAULTS.httpHeaders.response,
-    },
+    httpHeaders: resolveHttpHeaders(dc.httpHeaders),
     httpBodies: dc.httpBodies ?? DEFAULTS.httpBodies,
     urlQueryParams: dc.urlQueryParams ?? DEFAULTS.urlQueryParams,
     graphQL: {

@@ -1,25 +1,37 @@
 import {
+  BROWSER_WEB_VITAL_INP_TARGET,
+  HTTP_ROUTE,
+  ROUTER_NAVIGATION_ROUTE_ID,
+  SENTRY_IDLE_SPAN_FINISH_REASON,
   SENTRY_OP,
   SENTRY_ORIGIN,
-  SENTRY_IDLE_SPAN_FINISH_REASON,
-  UI_COMPONENT_NAME,
-  SENTRY_SOURCE,
+  SENTRY_SEGMENT_NAME,
   SENTRY_SEGMENT_NAME_SOURCE,
+  SENTRY_SOURCE,
+  UI_COMPONENT_NAME,
+  URL_FULL,
+  URL_PATH,
+  URL_TEMPLATE,
 } from '@sentry/conventions/attributes';
-import { UI_INTERACTION_CLICK, UI_ACTION_CLICK } from '@sentry/conventions/op';
-import type { IntegrationFn, Span, StartSpanOptions, TransactionSource } from '@sentry/core';
+import { UI_ACTION_CLICK, UI_INTERACTION_CLICK } from '@sentry/conventions/op';
+import type { Client, IntegrationFn, Span, StartSpanOptions, TransactionSource } from '@sentry/core';
 import {
   browserPerformanceTimeOrigin,
   debug,
   defineIntegration,
+  filterCollectedUrl,
   getActiveSpan,
   getRootSpan,
+  hasSpanStreamingEnabled,
   spanToJSON,
+  UI_ACTION_CLICK_SPAN_NAME_FALLBACK,
+  UI_INTERACTION_CLICK_SPAN_NAME_FALLBACK,
 } from '@sentry/core';
 import { startIdleSpan } from '@sentry/core/browser';
 import { DEBUG_BUILD } from '../debug-build';
 import { htmlTreeAsString } from '../htmlTreeAsString';
 import { addPerformanceInstrumentationHandler } from '../instrumentation/performanceObserver';
+import { UNKNOWN_ELEMENT_NAME } from '../web-vitals/inp';
 import { isBotUserAgent } from '../isBotUserAgent';
 import { WINDOW } from '../types';
 import { msToSec, startAndEndSpan } from './utils';
@@ -56,6 +68,11 @@ interface InteractionsOptions {
 interface RouteInfo {
   name: string | undefined;
   source: TransactionSource | undefined;
+  routeId: string | undefined;
+  urlTemplate: string | undefined;
+  httpRoute: string | undefined;
+  urlPath: string | undefined;
+  urlFull: string | undefined;
 }
 
 const _interactionsIntegration = ((options: InteractionsOptions = {}) => {
@@ -66,7 +83,15 @@ const _interactionsIntegration = ((options: InteractionsOptions = {}) => {
         return;
       }
 
-      const latestRoute: RouteInfo = { name: undefined, source: undefined };
+      const latestRoute: RouteInfo = {
+        name: undefined,
+        source: undefined,
+        routeId: undefined,
+        urlTemplate: undefined,
+        httpRoute: undefined,
+        urlPath: undefined,
+        urlFull: undefined,
+      };
       // The pageload/navigation span that is currently in progress, if any. Clicks that happen while one
       // is open are not turned into interaction spans, as they'd compete with the route span for children.
       let inflightRouteSpan: Span | undefined;
@@ -78,6 +103,11 @@ const _interactionsIntegration = ((options: InteractionsOptions = {}) => {
         latestRoute.source = (attributes[SENTRY_SOURCE] || attributes[SENTRY_SEGMENT_NAME_SOURCE]) as
           | TransactionSource
           | undefined;
+        latestRoute.routeId = attributes[ROUTER_NAVIGATION_ROUTE_ID] as string | undefined;
+        latestRoute.urlTemplate = attributes[URL_TEMPLATE] as string | undefined;
+        latestRoute.httpRoute = attributes[HTTP_ROUTE] as string | undefined;
+        latestRoute.urlPath = attributes[URL_PATH] as string | undefined;
+        latestRoute.urlFull = attributes[URL_FULL] as string | undefined;
       }
 
       client.on('spanStart', span => {
@@ -97,9 +127,9 @@ const _interactionsIntegration = ((options: InteractionsOptions = {}) => {
         trackRoute(span);
       });
 
-      registerInteractionListener(latestRoute, () => inflightRouteSpan, options);
+      registerInteractionListener(client, latestRoute, () => inflightRouteSpan, options);
 
-      trackInteractionsAsSpans();
+      trackInteractionsAsSpans(client);
     },
   };
 }) satisfies IntegrationFn;
@@ -135,6 +165,7 @@ function isRouteSpan(span: Span): boolean {
 }
 
 function registerInteractionListener(
+  client: Client,
   latestRoute: RouteInfo,
   getInflightRouteSpan: () => Span | undefined,
   // `startIdleSpan` fills in `TRACING_DEFAULTS` for whatever is left out, which are the same defaults
@@ -172,13 +203,25 @@ function registerInteractionListener(
         return;
       }
 
+      const hasSpanStreaming = hasSpanStreamingEnabled(client);
+      const routeName = latestRoute.routeId || latestRoute.urlTemplate || latestRoute.httpRoute;
+      const streamedName = routeName || UI_ACTION_CLICK_SPAN_NAME_FALLBACK;
+      // A route id is a name the app gave the route, so it is `custom` rather than a `route` pattern.
+      const streamedNameSource = !routeName || latestRoute.routeId ? 'custom' : 'route';
+
       inflightInteractionSpan = startIdleSpan(
         {
-          name: latestRoute.name,
+          name: hasSpanStreaming ? streamedName : latestRoute.name,
           attributes: {
             [SENTRY_OP]: UI_ACTION_CLICK,
-            [SENTRY_SEGMENT_NAME_SOURCE]: latestRoute.source || 'url',
+            [SENTRY_SEGMENT_NAME_SOURCE]: hasSpanStreaming ? streamedNameSource : latestRoute.source || 'url',
             [SENTRY_ORIGIN]: 'auto.browser.interactions',
+            ...(hasSpanStreaming && { [SENTRY_SEGMENT_NAME]: streamedName }),
+            ...(latestRoute.routeId && { [ROUTER_NAVIGATION_ROUTE_ID]: latestRoute.routeId }),
+            ...(latestRoute.urlTemplate && { [URL_TEMPLATE]: latestRoute.urlTemplate }),
+            ...(latestRoute.httpRoute && { [HTTP_ROUTE]: latestRoute.httpRoute }),
+            ...(latestRoute.urlPath && { [URL_PATH]: latestRoute.urlPath }),
+            ...(latestRoute.urlFull && { [URL_FULL]: filterCollectedUrl(latestRoute.urlFull) }),
           },
         },
         idleSpanOptions,
@@ -191,7 +234,7 @@ function registerInteractionListener(
 /**
  * Record the browser's `event` timing entries for clicks as spans on the currently active span.
  */
-function trackInteractionsAsSpans(): void {
+function trackInteractionsAsSpans(client: Client): void {
   addPerformanceInstrumentationHandler('event', ({ entries }) => {
     const parent = getActiveSpan();
     if (!parent) {
@@ -202,16 +245,20 @@ function trackInteractionsAsSpans(): void {
         const startTime = msToSec((browserPerformanceTimeOrigin() as number) + entry.startTime);
         const duration = msToSec(entry.duration);
 
+        const selector = htmlTreeAsString(entry.target);
+        const componentName = getComponentName(entry.target);
+        const hasSpanStreaming = hasSpanStreamingEnabled(client);
+
         const spanOptions: StartSpanOptions & Required<Pick<StartSpanOptions, 'attributes'>> = {
-          name: htmlTreeAsString(entry.target),
+          name: hasSpanStreaming ? componentName || UI_INTERACTION_CLICK_SPAN_NAME_FALLBACK : selector,
           startTime: startTime,
           attributes: {
             [SENTRY_OP]: UI_INTERACTION_CLICK,
             [SENTRY_ORIGIN]: 'auto.browser.interactions',
+            ...(selector && selector !== UNKNOWN_ELEMENT_NAME && { [BROWSER_WEB_VITAL_INP_TARGET]: selector }),
           },
         };
 
-        const componentName = getComponentName(entry.target);
         if (componentName) {
           spanOptions.attributes[UI_COMPONENT_NAME] = componentName;
         }

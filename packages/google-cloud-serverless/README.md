@@ -6,41 +6,14 @@
 
 # Official Sentry SDK for Google Cloud Functions
 
-## Links
+The official Sentry SDK for monitoring Google Cloud Functions.
 
-- [Official SDK Docs](https://docs.sentry.io/)
+## Documentation
 
-## General
+- [Getting started](https://docs.sentry.io/platforms/javascript/guides/gcp-functions/)
+- [Configuration](https://docs.sentry.io/platforms/javascript/guides/gcp-functions/configuration/)
 
-This package is a wrapper around `@sentry/node`, with added functionality related to various Serverless solutions. All
-methods available in `@sentry/node` can be imported from `@sentry/google-cloud-serverless`.
+## Support
 
-To use this SDK, call `Sentry.init(options)` at the very beginning of your JavaScript file.
-
-```javascript
-const Sentry = require('@sentry/google-cloud-serverless');
-
-Sentry.init({
-  dsn: '__DSN__',
-  tracesSampleRate: 1.0,
-  // ...
-});
-
-// For HTTP Functions:
-
-exports.helloHttp = Sentry.wrapHttpFunction((req, res) => {
-  throw new Error('oh, hello there!');
-});
-
-// For Background Functions:
-
-exports.helloEvents = Sentry.wrapEventFunction((data, context, callback) => {
-  throw new Error('oh, hello there!');
-});
-
-// For CloudEvents:
-
-exports.helloEvents = Sentry.wrapCloudEventFunction((context, callback) => {
-  throw new Error('oh, hello there!');
-});
-```
+- [Report a bug](https://github.com/getsentry/sentry-javascript/issues/new/choose)
+- [Contributing](https://github.com/getsentry/sentry-javascript/blob/develop/CONTRIBUTING.md)

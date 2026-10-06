@@ -2,7 +2,7 @@
  * @vitest-environment jsdom
  */
 
-import { normalize, setNormalizeStringifier } from '@sentry/core';
+import { getCurrentScope, normalize, setNormalizeStringifier } from '@sentry/core';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { init } from '../src/sdk';
 
@@ -23,6 +23,7 @@ describe('@sentry/react init() normalize stringifier', () => {
 
   afterEach(() => {
     setNormalizeStringifier(undefined);
+    getCurrentScope().setClient(undefined);
   });
 
   it("collapses React SyntheticEvent-like objects to '[SyntheticEvent]'", () => {

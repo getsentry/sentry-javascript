@@ -1,23 +1,26 @@
 import { expect, test } from '@playwright/test';
-import { waitForError, waitForStreamedSpan } from '@sentry-internal/test-utils';
+import {
+  collectStreamedSpansUntilSegment,
+  getSpanOp,
+  waitForError,
+  waitForStreamedSpan,
+} from '@sentry-internal/test-utils';
 
 test('Sends thrown error to Sentry', async ({ baseURL }) => {
   const errorEventPromise = waitForError('node-hapi', errorEvent => {
     return errorEvent?.exception?.values?.[0]?.value === 'This is an error';
   });
 
-  const segmentEventPromise = waitForStreamedSpan(
-    'node-hapi',
-    segment => segment.is_segment && segment.name === 'GET /test-failure',
-  );
+  const spansPromise = collectStreamedSpansUntilSegment('node-hapi', 'GET /test-failure');
 
   await fetch(`${baseURL}/test-failure`);
 
   const errorEvent = await errorEventPromise;
-  const segmentEvent = await segmentEventPromise;
+  const spans = await spansPromise;
+  const segmentSpan = spans.find(span => span.is_segment);
 
-  expect(segmentEvent.name).toBe('GET /test-failure');
-  expect(segmentEvent).toMatchObject({
+  expect(segmentSpan?.name).toBe('GET /test-failure');
+  expect(segmentSpan).toMatchObject({
     trace_id: expect.stringMatching(/[a-f0-9]{32}/),
     span_id: expect.stringMatching(/[a-f0-9]{16}/),
   });
@@ -42,10 +45,15 @@ test('Sends thrown error to Sentry', async ({ baseURL }) => {
   expect(errorEvent.contexts?.trace).toEqual({
     trace_id: expect.stringMatching(/[a-f0-9]{32}/),
     span_id: expect.stringMatching(/[a-f0-9]{16}/),
+    parent_span_id: expect.stringMatching(/[a-f0-9]{16}/),
   });
 
-  expect(errorEvent.contexts?.trace?.trace_id).toBe(segmentEvent?.trace_id);
-  expect(errorEvent.contexts?.trace?.span_id).toBe(segmentEvent?.span_id);
+  // The error is attributed to the route handler span that threw, which is a child of the request
+  // span the segment is built from.
+  const routeHandlerSpan = spans.find(span => getSpanOp(span) === 'router');
+  expect(errorEvent.contexts?.trace?.trace_id).toBe(segmentSpan?.trace_id);
+  expect(errorEvent.contexts?.trace?.span_id).toBe(routeHandlerSpan?.span_id);
+  expect(errorEvent.contexts?.trace?.parent_span_id).toBe(segmentSpan?.span_id);
 });
 
 test('sends error with parameterized transaction name', async ({ baseURL }) => {

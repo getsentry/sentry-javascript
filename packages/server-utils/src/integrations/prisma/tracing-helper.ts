@@ -20,7 +20,6 @@ import {
   getClient,
   hasSpanStreamingEnabled,
   LRUMap,
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   startInactiveSpan,
   startSpanManual,
 } from '@sentry/core';
@@ -34,8 +33,9 @@ import {
   DB_SYSTEM_NAME,
   SENTRY_KIND,
   SENTRY_OP,
+  SENTRY_ORIGIN,
 } from '@sentry/conventions/attributes';
-import { getSqlQuerySummary, sanitizeSqlQuery, type SqlDialect } from '../../utils/sql';
+import { getSqlQuerySummary, sanitizeSqlQuery, type SqlDialect, toSqlDialect } from '../../utils/sql';
 
 // Reading `process.env` can throw in runtimes that gate env access (e.g. Deno without `--allow-env`)
 // and `process` may be absent altogether (edge runtimes), so this degrades to `false` in those cases.
@@ -98,7 +98,7 @@ function registerPrismaSpan(id: string, span: Span): void {
 function buildSpanAttributes(name: string, attributes: Record<string, unknown> | undefined): SpanAttributes {
   const merged: SpanAttributes = {
     ...(attributes as SpanAttributes | undefined),
-    [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: PRISMA_ORIGIN,
+    [SENTRY_ORIGIN]: PRISMA_ORIGIN,
   };
 
   // Prisma itself emits the deprecated `db.system` on older versions, so both spellings are checked
@@ -128,10 +128,10 @@ function buildSpanAttributes(name: string, attributes: Record<string, unknown> |
  * a string literal rather than a quoted identifier, so sanitizing it as standard SQL leaves the value
  * in place — and a literal containing `FROM`/`JOIN` then reads as a table name in the summary.
  */
-function getSqlDialect(attributes: SpanAttributes): SqlDialect | undefined {
+function getSqlDialect(attributes: SpanAttributes): SqlDialect {
   // oxlint-disable-next-line typescript/no-deprecated
   const system = attributes[DB_SYSTEM_NAME] ?? attributes[DB_SYSTEM];
-  return system === 'mysql' || system === 'mariadb' ? 'mysql' : undefined;
+  return toSqlDialect(system);
 }
 
 /**
@@ -398,6 +398,7 @@ function isPromiseLike(value: unknown): value is PromiseLike<unknown> {
   return value != null && typeof (value as Record<string, unknown>)['then'] === 'function';
 }
 
-function shouldIgnoreSpan(spanName: string, ignoreSpanTypes: (string | RegExp)[]): boolean {
+/** Whether `spanName` matches one of the configured `ignoreSpanTypes` patterns. */
+export function shouldIgnoreSpan(spanName: string, ignoreSpanTypes: (string | RegExp)[]): boolean {
   return ignoreSpanTypes.some(pattern => (typeof pattern === 'string' ? pattern === spanName : pattern.test(spanName)));
 }

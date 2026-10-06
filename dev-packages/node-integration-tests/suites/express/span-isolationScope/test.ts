@@ -10,30 +10,17 @@ describe('express span isolationScope', () => {
     test('correctly applies isolation scope to span', async () => {
       const runner = createRunner()
         .expect({
-          transaction: {
-            transaction: 'GET /test/isolationScope',
-            breadcrumbs: [
-              {
-                category: 'console',
-                level: 'log',
-                message: expect.stringMatching(/\{"port":(\d+)\}/),
-                timestamp: expect.any(Number),
-              },
-              {
-                category: 'console',
-                level: 'log',
-                message: 'This is a test log.',
-                timestamp: expect.any(Number),
-              },
-              {
-                message: 'manual breadcrumb',
-                timestamp: expect.any(Number),
-              },
-            ],
-            tags: {
-              global: 'tag',
-              'isolation-scope': 'tag',
-            },
+          span: container => {
+            const serverSpan = container.items.find(item => item.is_segment);
+
+            expect(serverSpan).toMatchObject({
+              name: 'GET /test/isolationScope',
+              attributes: expect.objectContaining({
+                global: { type: 'string', value: 'attribute' },
+                'isolation-scope': { type: 'string', value: 'attribute' },
+                'user.id': { type: 'string', value: 'user-1' },
+              }),
+            });
           },
         })
         .start();

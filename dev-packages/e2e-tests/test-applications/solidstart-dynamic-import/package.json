@@ -15,7 +15,7 @@
     "@sentry/solidstart": "file:../../packed/sentry-solidstart-packed.tgz"
   },
   "devDependencies": {
-    "@playwright/test": "~1.56.0",
+    "@playwright/test": "~1.63.0",
     "@sentry-internal/test-utils": "link:../../../test-utils",
     "@solidjs/meta": "^0.29.4",
     "@solidjs/router": "^1.0.0",
@@ -28,8 +28,7 @@
     "typescript": "^5.4.5",
     "vinxi": "^0.4.0",
     "vite": "^5.4.10",
-    "vite-plugin-solid": "^2.11.6",
-    "vitest": "^3.2.7"
+    "vite-plugin-solid": "^2.11.6"
   },
   "volta": {
     "extends": "../../package.json"

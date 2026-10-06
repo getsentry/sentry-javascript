@@ -1,5 +1,5 @@
 /* eslint-disable typescript-eslint/no-deprecated */
-import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, SPAN_STATUS_ERROR, startSpan, stringify } from '@sentry/core';
+import { SPAN_STATUS_ERROR, startSpan, stringify } from '@sentry/core';
 import {
   GEN_AI_AGENT_NAME,
   GEN_AI_CONVERSATION_ID,
@@ -10,6 +10,7 @@ import {
   GEN_AI_SYSTEM_INSTRUCTIONS,
   GEN_AI_TOOL_DEFINITIONS,
   SENTRY_OP,
+  SENTRY_ORIGIN,
 } from '@sentry/conventions/attributes';
 import { GEN_AI_INVOKE_AGENT } from '@sentry/conventions/op';
 import { extractSystemInstructions, resolveAIRecordingOptions } from '../core/utils';
@@ -99,7 +100,7 @@ export function instrumentCompiledGraphInvoke(
         {
           name: 'invoke_agent',
           attributes: {
-            [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: LANGGRAPH_ORIGIN,
+            [SENTRY_ORIGIN]: LANGGRAPH_ORIGIN,
             [SENTRY_OP]: GEN_AI_INVOKE_AGENT,
             [GEN_AI_OPERATION_NAME]: 'invoke_agent',
           },

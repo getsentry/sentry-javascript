@@ -5,6 +5,19 @@ import { describe } from 'vitest';
 
 export const NODE_VERSION = parseSemver(process.versions.node).major || 0;
 
+/**
+ * The runtime that runs the scenarios (`node`, `bun` or `deno`), from the `RUNTIME` env var.
+ * Tests use it in `test.skipIf` for behavior that a runtime does not support.
+ */
+export type Runtime = 'cloudflare' | 'node' | 'bun' | 'deno';
+export const RUNTIME = (process.env.RUNTIME || 'node') as Runtime;
+
+/**
+ * The `sdk.name` the scenarios send. It is `sentry.javascript.node`, unless a runtime package
+ * maps `@sentry/node` to its own SDK and sets the `EXPECTED_SDK_NAME` env var to that SDK's name.
+ */
+export const EXPECTED_SDK_NAME = process.env.EXPECTED_SDK_NAME || 'sentry.javascript.node';
+
 export type TestServerConfig = {
   url: string;
   server: http.Server;
@@ -29,15 +42,32 @@ export type DataCollectorOptions = {
 };
 
 /**
- * Returns`describe` or `describe.skip` depending on allowed major versions of Node.
+ * Returns`describe` or `describe.skip` depending on allowed major versions of Node and on the
+ * runtime that runs the scenarios.
  *
- * @param {{ min?: number; max?: number }} allowedVersion
+ * On Bun and Deno the version gate does not apply and the block always runs. A suite that the gate
+ * keeps off a Node version because it cannot run there must also be excluded for these runtimes,
+ * in `dev-packages/bun-integration-tests/node-suites/excludes.ts` and
+ * `dev-packages/deno-integration-tests/node-suites/excludes.ts`, or skipped with `skipRuntimes`.
+ *
+ * @param options.min Lowest Node major version that runs the block.
+ * @param options.max Highest Node major version that runs the block.
+ * @param options.skipRuntimes Runtimes that skip the block, for a block that cannot run there.
  */
-export function conditionalTest(allowedVersion: {
+export function conditionalTest(options: {
   min?: number;
   max?: number;
+  skipRuntimes?: Runtime[];
 }): typeof describe | typeof describe.skip {
-  return describe.skipIf(!matchesNodeVersion(allowedVersion));
+  if (options.skipRuntimes?.includes(RUNTIME)) {
+    return describe.skip;
+  }
+  // Vitest always runs on Node, so its Node version says nothing about Bun or Deno running the
+  // scenario. Those runtimes list the suites they cannot run in their own exclude lists.
+  if (RUNTIME !== 'node') {
+    return describe;
+  }
+  return describe.skipIf(!matchesNodeVersion(options));
 }
 
 function matchesNodeVersion({ min, max }: { min?: number; max?: number }): boolean {

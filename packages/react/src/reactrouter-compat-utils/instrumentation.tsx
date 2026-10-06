@@ -18,7 +18,6 @@ import {
   hasSpanStreamingEnabled,
   NAVIGATION_SPAN_NAME_FALLBACK,
   PAGELOAD_SPAN_NAME_FALLBACK,
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   spanToJSON,
 } from '@sentry/core';
 import * as React from 'react';
@@ -49,7 +48,7 @@ import {
   setNavigationContext,
   transactionNameHasWildcard,
 } from './utils';
-import { SENTRY_SEGMENT_NAME_SOURCE, SENTRY_OP, URL_TEMPLATE } from '@sentry/conventions/attributes';
+import { SENTRY_SEGMENT_NAME_SOURCE, SENTRY_OP, URL_TEMPLATE, SENTRY_ORIGIN } from '@sentry/conventions/attributes';
 import { NAVIGATION, PAGELOAD } from '@sentry/conventions/op';
 
 const reactRouterConfigByClient = new WeakMap<Client, ReactRouterConfig>();
@@ -373,6 +372,17 @@ export function updateNavigationSpan(
   config: ReactRouterConfig,
 ): void {
   const { name: currentName, end_timestamp, attributes } = spanToJSON(activeRootSpan);
+
+  // React Router resolves a location's routes either side of the SDK starting that navigation's
+  // span, so a resolution can arrive holding the previous navigation's span.
+  const spanPathname = (activeRootSpan as { __sentry_navigation_pathname__?: string })?.__sentry_navigation_pathname__;
+  if (spanPathname !== undefined && spanPathname !== location.pathname) {
+    DEBUG_BUILD &&
+      debug.log(
+        `[React Router] Not renaming the navigation span for "${spanPathname}" with the route of "${location.pathname}"`,
+      );
+    return;
+  }
 
   const hasBeenNamed = (activeRootSpan as { __sentry_navigation_name_set__?: boolean })?.__sentry_navigation_name_set__;
   const currentNameHasWildcard = currentName && transactionNameHasWildcard(currentName);
@@ -745,7 +755,7 @@ export function createReactRouterV6CompatibleTracingIntegration(
           attributes: {
             [SENTRY_SEGMENT_NAME_SOURCE]: 'url',
             [SENTRY_OP]: PAGELOAD,
-            [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: `auto.pageload.react.reactrouter${version ? `_v${version}` : ''}`,
+            [SENTRY_ORIGIN]: `auto.pageload.react.reactrouter${version ? `_v${version}` : ''}`,
           },
         });
       }
@@ -1067,7 +1077,7 @@ export function handleNavigation(opts: {
         attributes: {
           [SENTRY_SEGMENT_NAME_SOURCE]: source,
           [SENTRY_OP]: NAVIGATION,
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: `auto.navigation.react.reactrouter${version ? `_v${version}` : ''}`,
+          [SENTRY_ORIGIN]: `auto.navigation.react.reactrouter${version ? `_v${version}` : ''}`,
           ...(source === 'route' && { [URL_TEMPLATE]: placeholderEntry.routeName }),
         },
       });
@@ -1078,6 +1088,9 @@ export function handleNavigation(opts: {
     }
 
     if (navigationSpan) {
+      // On the span rather than only in the tracked entry, which a late resolution finds already
+      // moved on to the next navigation.
+      addNonEnumerableProperty(navigationSpan, '__sentry_navigation_pathname__', location.pathname);
       // Update the map with the real span (isPlaceholder omitted, defaults to false)
       activeNavigationSpans.set(client, {
         span: navigationSpan,

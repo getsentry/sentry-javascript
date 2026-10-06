@@ -5,14 +5,8 @@
  * directly from `react` / `react-router` so `reactRouterBrowserTracingIntegration()` can be used
  * without passing them in.
  */
-import {
-  createTransport,
-  getCurrentScope,
-  SEMANTIC_ATTRIBUTE_SENTRY_OP,
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  setCurrentClient,
-} from '@sentry/core';
-import { SENTRY_SEGMENT_NAME_SOURCE, URL_TEMPLATE } from '@sentry/conventions/attributes';
+import { createTransport, getCurrentScope, setCurrentClient } from '@sentry/core';
+import { SENTRY_SEGMENT_NAME_SOURCE, URL_TEMPLATE, SENTRY_OP, SENTRY_ORIGIN } from '@sentry/conventions/attributes';
 import { fireEvent, render } from '@testing-library/react';
 import * as React from 'react';
 import { MemoryRouter, Route, Routes, useNavigate } from 'react-router';
@@ -78,9 +72,9 @@ describe('@sentry/react/react-router', () => {
       name: 'Pageload',
       attributes: {
         [SENTRY_SEGMENT_NAME_SOURCE]: 'url',
-        [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'pageload',
+        [SENTRY_OP]: 'pageload',
         // version-agnostic origin (no `_v6`/`_v7` suffix)
-        [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.pageload.react.reactrouter',
+        [SENTRY_ORIGIN]: 'auto.pageload.react.reactrouter',
       },
     });
     expect(getCurrentScope().getScopeData().transactionName).toEqual('/about');
@@ -120,8 +114,8 @@ describe('@sentry/react/react-router', () => {
       attributes: {
         [SENTRY_SEGMENT_NAME_SOURCE]: 'route',
         [URL_TEMPLATE]: '/about',
-        [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'navigation',
-        [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.react.reactrouter',
+        [SENTRY_OP]: 'navigation',
+        [SENTRY_ORIGIN]: 'auto.navigation.react.reactrouter',
       },
     });
   });

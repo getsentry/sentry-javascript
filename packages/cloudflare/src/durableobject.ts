@@ -1,15 +1,16 @@
 /* eslint-disable max-lines */
 /* eslint-disable @typescript-eslint/unbound-method */
 import { RPC } from '@sentry/conventions/op';
-import { isObjectLike } from '@sentry/core';
+import { getDefaultIsolationScope, getIsolationScope, isObjectLike, startNewTrace } from '@sentry/core';
 import type { DurableObject } from 'cloudflare:workers';
-import { setAsyncLocalStorageAsyncContextStrategy } from '@sentry/server-utils/no-diagnostic-channels';
+import { setAsyncLocalStorageAsyncContextStrategyForWorker } from './utils/asyncContextStrategy';
 import type { CloudflareOptions } from './client';
 import { getInstrumented, markAsInstrumented } from './instrument';
 import { instrumentDurableObjectHandlers } from './instrumentations/instrumentDurableObjectHandlers';
 import { instrumentEnv } from './instrumentations/worker/instrumentEnv';
 import { getFinalOptions } from './options';
 import { instrumentContext } from './utils/instrumentContext';
+import { withConstructionIsolationScope } from './utils/invocationScope';
 import { hasRpcMeta } from './utils/rpcMeta';
 import { instrumentCloudflareAgent } from './instrumentations/agents';
 import type { DefaultEnv, ResolveEnv, StrictCloudflareOptions } from './types';
@@ -52,7 +53,7 @@ export function constructInstrumentedDurableObject<E, T extends DurableObject<E>
   context: InstrumentedDurableObjectContext;
   frameworkManagedMethods: ReadonlySet<string>;
 } {
-  setAsyncLocalStorageAsyncContextStrategy();
+  setAsyncLocalStorageAsyncContextStrategyForWorker();
   const options = getFinalOptions(optionsCallback(env), env);
   // See InstrumentedDurableObjectContext — `ctx` is widened to `any` so the concrete
   // `DurableObjectState` type never enters the checker's relation graph in this module.
@@ -67,7 +68,9 @@ export function constructInstrumentedDurableObject<E, T extends DurableObject<E>
   // Pass `newTarget` so that subclasses of the instrumented class (e.g. the wrapper classes
   // created by wrangler's local dev tooling or `@cloudflare/vitest-pool-workers`) keep their
   // own prototype — otherwise subclass methods disappear and `instanceof` checks break.
-  const obj = Reflect.construct(target, [context, instrumentedEnv], newTarget) as T;
+  const obj = withConstructionIsolationScope(
+    () => Reflect.construct(target, [context, instrumentedEnv], newTarget) as T,
+  );
 
   const frameworkManagedMethods = resolveFrameworkManagedMethods(
     prototype,
@@ -144,8 +147,8 @@ function resolveFrameworkManagedMethods(
 type RpcInstanceState = {
   options: CloudflareOptions;
   context: InstrumentedDurableObjectContext;
-  /** Per-instance cache of the traced method wrappers, keyed by method name. Created on first use. */
-  tracedMethods?: Map<string, UncheckedMethod>;
+  /** Per-instance cache of the instrumented method wrappers, keyed by method name. Created on first use. */
+  instrumentedMethods?: Map<string, UncheckedMethod>;
 };
 
 /**
@@ -170,7 +173,7 @@ const RESERVED_RPC_METHOD_NAMES: ReadonlySet<string> = new Set([
 const rpcInstanceStates = new WeakMap<object, RpcInstanceState>();
 
 /**
- * Adds trace propagation to a constructed Durable Object's RPC methods.
+ * Instruments a constructed Durable Object's RPC methods.
  *
  * RPC methods are wrapped on the prototype because Cloudflare dispatches them with the Durable
  * Object instance as the receiver. This preserves native private-field access and keeps the methods
@@ -256,17 +259,53 @@ function instrumentPrototypeRpcMethods(obj: object, excludedMethods?: ReadonlySe
 }
 
 /**
- * Creates a prototype wrapper that traces RPC calls carrying Sentry metadata.
+ * Returns the instance's instrumented wrapper for an RPC method, creating it on first use.
+ */
+function getInstrumentedRpcMethod(
+  state: RpcInstanceState,
+  methodName: string,
+  originalMethod: UncheckedMethod,
+): UncheckedMethod {
+  const instrumentedMethods = (state.instrumentedMethods ??= new Map());
+  let instrumented = instrumentedMethods.get(methodName);
+
+  if (!instrumented) {
+    instrumented = wrapMethodWithSentry(
+      {
+        options: state.options,
+        context: state.context,
+        spanName: rpcMeta => (rpcMeta ? methodName : undefined),
+        spanOp: RPC,
+        origin: 'auto.faas.cloudflare.durable_object',
+      },
+      originalMethod,
+      undefined,
+      true,
+    );
+    instrumentedMethods.set(methodName, instrumented);
+  }
+
+  return instrumented;
+}
+
+/**
+ * Creates a prototype wrapper that instruments external RPC calls.
  *
  * The wrapper looks up SDK state from its receiver, allowing one prototype function to serve every
- * instance. Calls without RPC metadata or instance state use the original method directly. The
- * original function name and arity are preserved because frameworks may inspect them for dispatch.
+ * instance. A call carrying Sentry metadata continues that trace in an `rpc` span. A call without it
+ * still gets a client, so its errors, logs and metrics are captured, but no span. Calls the instance
+ * makes to its own methods run the original method directly. The original function name and arity
+ * are preserved because frameworks may inspect them for dispatch.
  */
 function createRpcPrototypeWrapper(methodName: string, originalMethod: UncheckedMethod): UncheckedMethod {
   const wrapper = function (this: unknown, ...args: unknown[]): unknown {
-    // Untraced calls are the common case — every internal call the instance makes to one of its
-    // own methods lands here too — so check the arguments before touching per-instance state.
-    if (!hasRpcMeta(args)) {
+    const traced = hasRpcMeta(args);
+
+    // workerd dispatches an incoming RPC call outside any async context, so a call made on any other
+    // isolation scope comes from the instance itself (`this.helper()` inside `fetch`, `alarm`,
+    // another RPC method or async work the constructor started). Check that before touching
+    // per-instance state.
+    if (!traced && getIsolationScope() !== getDefaultIsolationScope()) {
       return Reflect.apply(originalMethod, this, args);
     }
 
@@ -276,26 +315,15 @@ function createRpcPrototypeWrapper(methodName: string, originalMethod: Unchecked
       return Reflect.apply(originalMethod, this, args);
     }
 
-    const tracedMethods = (state.tracedMethods ??= new Map());
-    let traced = tracedMethods.get(methodName);
+    const instrumented = getInstrumentedRpcMethod(state, methodName, originalMethod);
 
-    if (!traced) {
-      traced = wrapMethodWithSentry(
-        {
-          options: state.options,
-          context: state.context,
-          spanName: methodName,
-          spanOp: RPC,
-          origin: 'auto.faas.cloudflare.durable_object',
-        },
-        originalMethod,
-        undefined,
-        true,
-      );
-      tracedMethods.set(methodName, traced);
+    if (traced) {
+      return Reflect.apply(instrumented, this, args);
     }
 
-    return Reflect.apply(traced, this, args);
+    // Unlike a WorkerEntrypoint, a Durable Object instance is long-lived and serves overlapping
+    // calls. Without a new trace, every untraced call would share the trace of the default scope.
+    return startNewTrace(() => Reflect.apply(instrumented, this, args));
   };
 
   Object.defineProperties(wrapper, {
@@ -316,7 +344,8 @@ function createRpcPrototypeWrapper(methodName: string, originalMethod: Unchecked
  * - webSocketClose
  * - webSocketError
  *
- * RPC methods (prototype methods) are instrumented too, so an incoming trace continues into them.
+ * RPC methods (prototype methods) are instrumented too: an incoming trace continues into them, and
+ * errors, logs and metrics are captured whether or not the caller propagates a trace.
  *
  * @param optionsCallback Function that returns the options for the SDK initialization.
  * @param DurableObjectClass The Durable Object class to instrument.

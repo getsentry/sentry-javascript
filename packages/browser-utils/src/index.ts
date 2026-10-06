@@ -5,7 +5,11 @@ export {
   addLcpInstrumentationHandler,
   addInpInstrumentationHandler,
   addFcpInstrumentationHandler,
+  enableBfcacheReporting,
+  enableSoftNavigationReporting,
 } from './instrumentation/performanceObserver';
+
+export { startSoftNavigationCorrelation, supportsSoftNavigations } from './web-vitals/softNavs';
 
 export { addPerformanceEntries, startTrackingLongTasks, startTrackingLongAnimationFrames } from './performance/entries';
 
@@ -24,6 +28,16 @@ export { interactionsIntegration } from './performance/interactions';
 export { isBotUserAgent } from './isBotUserAgent';
 
 export { getLocationHref } from './getLocationHref';
+
+export {
+  createCachedRouteProvider,
+  createUrlRouteProvider,
+  getRouteProvider,
+  resolveCurrentRoute,
+  resolveRoute,
+  setRouteProvider,
+} from './routing';
+export type { CachedRouteProvider, RouteProvider } from './routing';
 
 export { userTimingIntegration } from './performance/userTiming';
 

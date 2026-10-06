@@ -6,13 +6,12 @@
  */
 
 import { getClient } from '../../currentScopes';
-import { SENTRY_OP, SENTRY_SEGMENT_NAME_SOURCE } from '@sentry/conventions/attributes';
+import { SENTRY_OP, SENTRY_SEGMENT_NAME_SOURCE, SENTRY_ORIGIN } from '@sentry/conventions/attributes';
 import {
   MCP_NOTIFICATION_CLIENT_TO_SERVER,
   MCP_NOTIFICATION_SERVER_TO_CLIENT,
   MCP_SERVER,
 } from '@sentry/conventions/op';
-import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '../../semanticAttributes';
 import { hasSpanStreamingEnabled } from '../../tracing/spans/hasSpanStreamingEnabled';
 import { MCP_NOTIFICATION_SPAN_NAME_FALLBACK, MCP_SERVER_SPAN_NAME_FALLBACK } from '../../tracing/spans/spanNames';
 import { startSpan } from '../../tracing/trace';
@@ -72,7 +71,7 @@ function buildSentryAttributes(type: McpSpanConfig['type']): Record<string, stri
 
   return {
     [SENTRY_OP]: op,
-    [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: origin,
+    [SENTRY_ORIGIN]: origin,
     [SENTRY_SEGMENT_NAME_SOURCE]: MCP_ROUTE_SOURCE_VALUE,
   };
 }
@@ -103,7 +102,7 @@ function createMcpSpan(config: McpSpanConfig): unknown {
   }
 
   const rawAttributes: Record<string, string | number> = {
-    ...buildTransportAttributes(transport, extra),
+    ...buildTransportAttributes(transport, extra, message),
     [MCP_METHOD_NAME_ATTRIBUTE]: method,
     ...buildTypeSpecificAttributes(type, message, params, options?.recordInputs),
     ...buildSentryAttributes(type),
@@ -201,7 +200,7 @@ export function buildMcpServerSpanConfig(
   const spanName = method ? createSpanName(method, target) : MCP_SERVER_SPAN_NAME_FALLBACK;
 
   const rawAttributes: Record<string, string | number> = {
-    ...buildTransportAttributes(transport, extra),
+    ...buildTransportAttributes(transport, extra, jsonRpcMessage),
     [MCP_METHOD_NAME_ATTRIBUTE]: method,
     ...buildTypeSpecificAttributes('request', jsonRpcMessage, params, options?.recordInputs),
     ...buildSentryAttributes('request'),

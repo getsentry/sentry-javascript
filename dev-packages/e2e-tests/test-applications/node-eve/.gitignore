@@ -1,0 +1,10 @@
+node_modules
+.eve
+.output
+.nitro
+.vercel
+.data
+*.tsbuildinfo
+results.junit.xml
+test-results
+playwright-report

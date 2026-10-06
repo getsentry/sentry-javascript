@@ -67,6 +67,46 @@ test('Instruments ioredis automatically', async ({ baseURL }) => {
   );
 });
 
+// The Nitro bundle force-inlines the instrumented drivers while their CommonJS dependencies and
+// Node builtins stay external, and every `require()` across that boundary needs working interop.
+test('Instruments mongoose automatically', async ({ baseURL }) => {
+  const spansPromise = collectRequestSpans('/api/db-mongoose');
+
+  const response = await fetch(`${baseURL}/api/db-mongoose`);
+  expect(response.status).toBe(200);
+  await expect(response.json()).resolves.toEqual({ title: 'test-post' });
+
+  const spans = await spansPromise;
+
+  const rootSpan = spans.find(span => span.is_segment);
+  expect(rootSpan).toBeDefined();
+  expect(getSpanOp(rootSpan!)).toBe('http.server');
+
+  const mongooseSpans = spans.filter(
+    span => span.attributes['sentry.origin']?.value === 'auto.db.mongoose.diagnostic_channel',
+  );
+  expect(mongooseSpans).toHaveLength(2);
+
+  const saveSpan = mongooseSpans.find(span => span.name === 'save blogposts');
+  expect(saveSpan?.status).toBe('ok');
+  expect(saveSpan?.is_segment).toBe(false);
+  expect(saveSpan?.attributes['sentry.op']).toEqual({ type: 'string', value: 'db' });
+  expect(saveSpan?.attributes['db.system.name']).toEqual({ type: 'string', value: 'mongodb' });
+  expect(saveSpan?.attributes['db.namespace']).toEqual({ type: 'string', value: 'test' });
+  expect(saveSpan?.attributes['db.collection.name']).toEqual({ type: 'string', value: 'blogposts' });
+  expect(saveSpan?.attributes['db.operation.name']).toEqual({ type: 'string', value: 'save' });
+
+  const findOneSpan = mongooseSpans.find(span => span.name === 'findOne blogposts');
+  expect(findOneSpan?.status).toBe('ok');
+  expect(findOneSpan?.is_segment).toBe(false);
+  expect(findOneSpan?.attributes['sentry.op']).toEqual({ type: 'string', value: 'db' });
+  expect(findOneSpan?.attributes['db.system.name']).toEqual({ type: 'string', value: 'mongodb' });
+  expect(findOneSpan?.attributes['db.namespace']).toEqual({ type: 'string', value: 'test' });
+  expect(findOneSpan?.attributes['db.collection.name']).toEqual({ type: 'string', value: 'blogposts' });
+  expect(findOneSpan?.attributes['db.operation.name']).toEqual({ type: 'string', value: 'findOne' });
+  expect(findOneSpan?.attributes['db.query.text']).toEqual({ type: 'string', value: '{"title":"?"}' });
+});
+
 test('Instruments mysql automatically', async ({ baseURL }) => {
   const spansPromise = collectRequestSpans('/api/db-mysql');
 
@@ -87,7 +127,7 @@ test('Instruments mysql automatically', async ({ baseURL }) => {
         'sentry.op': { type: 'string', value: 'db' },
         'sentry.origin': { type: 'string', value: 'auto.db.mysql' },
         'db.system.name': { type: 'string', value: 'mysql' },
-        'db.query.text': { type: 'string', value: 'SELECT 1 + 1 AS solution' },
+        'db.query.text': { type: 'string', value: 'SELECT ? + ? AS solution' },
         'db.query.summary': { type: 'string', value: 'SELECT' },
         'db.user': { type: 'string', value: 'root' },
         'db.connection_string': { type: 'string', value: expect.any(String) },

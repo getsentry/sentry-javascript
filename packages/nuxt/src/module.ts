@@ -107,7 +107,7 @@ export default defineNuxtModule<ModuleOptions>({
 
     if (serverConfigFile) {
       if (!usesDeprecatedInjectMode) {
-        addServerConfigPlugin(nuxt, serverConfigFile);
+        addServerConfigPlugin(nuxt, serverConfigFile, !isNitroV3);
       }
 
       if (isNitroV3) {

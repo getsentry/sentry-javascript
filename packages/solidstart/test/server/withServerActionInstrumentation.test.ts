@@ -1,15 +1,13 @@
-import { SENTRY_SEGMENT_NAME_SOURCE } from '@sentry/conventions/attributes';
+import {
+  SENTRY_SEGMENT_NAME_SOURCE,
+  CODE_FUNCTION_NAME,
+  SENTRY_OP,
+  SENTRY_ORIGIN,
+} from '@sentry/conventions/attributes';
 import * as SentryCore from '@sentry/core';
 import * as SentryCoreServer from '@sentry/core/server';
 import * as SentryNode from '@sentry/node';
-import {
-  createTransport,
-  NodeClient,
-  SEMANTIC_ATTRIBUTE_SENTRY_OP,
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  setCurrentClient,
-  spanToJSON,
-} from '@sentry/node';
+import { createTransport, NodeClient, setCurrentClient, spanToJSON } from '@sentry/node';
 import { redirect } from '@solidjs/router';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { withServerActionInstrumentation } from '../../src/server';
@@ -101,9 +99,10 @@ describe('withServerActionInstrumentation', () => {
       expect.objectContaining({
         name: 'getPrefecture',
         attributes: expect.objectContaining({
-          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'function',
+          [SENTRY_OP]: 'function',
+          [CODE_FUNCTION_NAME]: 'getPrefecture',
           [SENTRY_SEGMENT_NAME_SOURCE]: 'component',
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.solidstart',
+          [SENTRY_ORIGIN]: 'auto.function.solidstart',
         }),
       }),
     );
@@ -127,7 +126,7 @@ describe('withServerActionInstrumentation', () => {
     const span = new SentryCore.SentrySpan({
       attributes: {
         'http.target': '/_server',
-        [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'http.server',
+        [SENTRY_OP]: 'http.server',
       },
     });
     mockGetActiveSpan.mockReturnValue(span);
@@ -152,7 +151,7 @@ describe('withServerActionInstrumentation', () => {
     const span = new SentryCore.SentrySpan({
       attributes: {
         'url.path': '/_server',
-        [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'http.server',
+        [SENTRY_OP]: 'http.server',
       },
     });
     mockGetActiveSpan.mockReturnValue(span);

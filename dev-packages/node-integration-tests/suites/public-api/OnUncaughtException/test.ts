@@ -2,6 +2,7 @@ import * as childProcess from 'child_process';
 import * as path from 'path';
 import { describe, expect, test } from 'vitest';
 import { createRunner } from '../../../utils/runner';
+import { RUNTIME } from '../../../utils';
 
 describe('OnUncaughtException integration', () => {
   test('should close process on uncaught error with no additional listeners registered', () =>
@@ -46,6 +47,26 @@ describe('OnUncaughtException integration', () => {
         done();
       });
     }));
+
+  test('should exit rather than recurse when stderr is a broken pipe', async () => {
+    const testScriptPath = path.resolve(__dirname, 'broken-stdio-pipe-test-script.js');
+
+    // The heap cap makes a regression fail in ~1s; at the default size it takes a minute
+    // and just looks like a hang.
+    const child = childProcess.spawn(process.execPath, ['--max-old-space-size=64', testScriptPath], {
+      stdio: ['ignore', 'pipe', 'pipe'],
+    });
+
+    child.stdout.destroy();
+    child.stderr.destroy();
+
+    const exited = await new Promise<{ code: number | null; signal: string | null }>(resolve => {
+      child.on('exit', (code, signal) => resolve({ code, signal }));
+    });
+
+    // Unbounded recursion shows up as SIGABRT from the V8 OOM abort.
+    expect(exited).toEqual({ code: 1, signal: null });
+  });
 
   describe('with `exitEvenIfOtherHandlersAreRegistered` set to false', () => {
     test('should close process on uncaught error with no additional listeners registered', () =>
@@ -102,7 +123,8 @@ describe('OnUncaughtException integration', () => {
       .completed();
   });
 
-  describe('Worker thread error handling', () => {
+  // Bun and Deno: the worker thread errors are not handled as on Node.
+  describe.skipIf(RUNTIME !== 'node')('Worker thread error handling', () => {
     test.each(['mjs', 'js'])('should not interfere with worker thread error handling ".%s"', async extension => {
       const runner = createRunner(__dirname, `worker-thread/caught-worker.${extension}`)
         .withFlags('--import', path.join(__dirname, `worker-thread/instrument.${extension}`))

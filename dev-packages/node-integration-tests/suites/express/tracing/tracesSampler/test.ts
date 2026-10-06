@@ -1,4 +1,4 @@
-import { afterAll, describe } from 'vitest';
+import { afterAll, describe, expect } from 'vitest';
 import { cleanupChildProcesses, createCjsTests } from '../../../../utils/runner';
 
 describe('express tracesSampler', () => {
@@ -10,8 +10,8 @@ describe('express tracesSampler', () => {
     test('correctly samples & passes data to tracesSampler', async () => {
       const runner = createRunner()
         .expect({
-          transaction: {
-            transaction: 'GET /test/:id',
+          span: container => {
+            expect(container.items.find(item => item.is_segment)?.name).toBe('GET /test/:id');
           },
         })
         .start();
@@ -33,8 +33,8 @@ describe('express tracesSampler', () => {
         test('correctly samples & passes normalizedRequest data to tracesSampler', async () => {
           const runner = createRunner()
             .expect({
-              transaction: {
-                transaction: 'GET /test-normalized-request',
+              span: container => {
+                expect(container.items.find(item => item.is_segment)?.name).toBe('GET /test-normalized-request');
               },
             })
             .start();

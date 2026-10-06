@@ -1,4 +1,4 @@
-import * as diagnosticsChannel from 'node:diagnostics_channel';
+import * as diagnosticsChannel from '../utils/diagnosticsChannel';
 import type { IntegrationFn, Span } from '@sentry/core';
 import { _INTERNAL_skipAiProviderWrapping, defineIntegration, startInactiveSpan } from '@sentry/core';
 import { ANTHROPIC_AI_INTEGRATION_NAME } from '../ai/anthropic-ai/constants';
@@ -8,7 +8,9 @@ import { LANGCHAIN_INTEGRATION_NAME } from '../ai/langchain/constants';
 import { _INTERNAL_getLangChainEmbeddingsSpanOptions } from '../ai/langchain/embeddings';
 import type { LangChainOptions } from '../ai/langchain/types';
 import { _INTERNAL_mergeLangChainCallbackHandler } from '../ai/langchain/utils';
+import { MISTRAL_INTEGRATION_NAME } from '../ai/mistral/constants';
 import { OPENAI_INTEGRATION_NAME } from '../ai/openai/constants';
+import { GROQ_INTEGRATION_NAME } from './groq';
 import { CHANNELS } from '../orchestrion/channels';
 import { langchainEmbeddingsChannels } from '../orchestrion/config/langchain';
 import { bindTracingChannelToSpan } from '../tracing-channel';
@@ -21,7 +23,14 @@ const INTEGRATION_NAME = LANGCHAIN_INTEGRATION_NAME;
 
 // LangChain drives the underlying AI provider SDKs itself, so while it's active those providers must
 // not also instrument, or every call would produce two spans (mirrors the OTel path's skip list).
-const SKIPPED_PROVIDERS = [OPENAI_INTEGRATION_NAME, ANTHROPIC_AI_INTEGRATION_NAME, GOOGLE_GENAI_INTEGRATION_NAME];
+const SKIPPED_PROVIDERS = [
+  OPENAI_INTEGRATION_NAME,
+  ANTHROPIC_AI_INTEGRATION_NAME,
+  GOOGLE_GENAI_INTEGRATION_NAME,
+  MISTRAL_INTEGRATION_NAME,
+  // `@langchain/groq` drives `groq-sdk`, so ChatGroq calls must not also open the Groq integration's span.
+  GROQ_INTEGRATION_NAME,
+];
 
 // The chat-model channels carry the live args array of `invoke(input, options)` / `_streamIterator(input, options)`.
 interface RunnableChannelContext {

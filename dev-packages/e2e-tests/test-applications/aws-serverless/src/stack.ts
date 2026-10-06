@@ -9,7 +9,8 @@ import { execFileSync } from 'node:child_process';
 
 const LAMBDA_FUNCTIONS_DIR = './src/lambda-functions-npm';
 const LAMBDA_FUNCTION_TIMEOUT = 10;
-export const SAM_PORT = Number(process.env.SAM_PORT) || 7120;
+// SAM allocates runtime container ports in [5000, 9000) before binding its own endpoint.
+export const SAM_PORT = Number(process.env.SAM_PORT) || 17120;
 
 /** Match SAM / Docker to this machine so Apple Silicon does not mix arm64 images with an x86_64 template default. */
 function samLambdaArchitecture(): 'arm64' | 'x86_64' {
@@ -143,13 +144,13 @@ export class LocalLambdaStack extends Stack {
       try {
         const response = await fetch(`http://127.0.0.1:${port}/`);
 
-        if (response.ok || response.status === 404) {
+        if (response.status === 404 && response.headers.get('x-amzn-errortype') === 'PathNotFoundLocally') {
           console.log(`[LocalLambdaStack] SAM stack is ready`);
           return;
         }
-      } catch {
-        await new Promise(resolve => setTimeout(resolve, 1000));
-      }
+      } catch {}
+
+      await new Promise(resolve => setTimeout(resolve, 1000));
     }
 
     throw new Error(`[LocalLambdaStack] Failed to start SAM stack after ${timeout}ms`);

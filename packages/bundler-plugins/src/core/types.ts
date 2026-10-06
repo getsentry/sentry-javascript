@@ -114,8 +114,13 @@ export interface Options {
     /**
      * Disables all functionality related to sourcemaps if set to `true`.
      *
-     * If set to `"disable-upload"`, the plugin will not upload sourcemaps to Sentry, but will inject debug IDs into the build artifacts.
-     * This is useful if you want to manually upload sourcemaps to Sentry at a later point in time.
+     * If set to `"disable-upload"`, the plugin will not upload sourcemaps to Sentry, but will still inject debug IDs
+     * into the build artifacts: the bundles receive the runtime debug ID snippet and a `//# debugId=` comment, and the
+     * emitted source maps receive the matching `debug_id` field. This happens inside the bundler's build pipeline, so
+     * hashes computed by later build steps (e.g. for subresource integrity) include the debug IDs.
+     *
+     * This is useful if you want to manually upload sourcemaps to Sentry at a later point in time, e.g. with
+     * `sentry sourcemap upload`. The artifacts already carry their debug IDs, so no `inject` step is needed.
      *
      * @default false
      */

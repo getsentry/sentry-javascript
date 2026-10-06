@@ -2,6 +2,8 @@ import { captureException, SPAN_STATUS_ERROR } from '@sentry/core';
 import type { Span } from '@sentry/core';
 import { endStreamSpan } from '../core/utils';
 import type { GoogleGenAIResponse } from './types';
+import type { MessagePart } from './utils';
+import { candidatesToMessageParts, setOutputMessagesAttribute } from './utils';
 
 /**
  * State object used to accumulate information from a stream of Google GenAI events.
@@ -23,6 +25,8 @@ interface StreamingState {
   totalTokens?: number;
   /** Accumulated tool calls (finalized) */
   toolCalls: Array<Record<string, unknown>>;
+  /** Accumulated output message parts (for output recording). */
+  outputParts: MessagePart[];
 }
 
 /**
@@ -68,8 +72,13 @@ function handleResponseMetadata(chunk: GoogleGenAIResponse, state: StreamingStat
  * @param recordOutputs - Whether to record outputs
  */
 function handleCandidateContent(chunk: GoogleGenAIResponse, state: StreamingState, recordOutputs: boolean): void {
+  // The SDK getter already extracts function calls from candidate parts.
   if (Array.isArray(chunk.functionCalls)) {
     state.toolCalls.push(...chunk.functionCalls);
+  }
+
+  if (recordOutputs) {
+    state.outputParts.push(...candidatesToMessageParts(chunk.candidates));
   }
 
   for (const candidate of chunk.candidates ?? []) {
@@ -79,14 +88,6 @@ function handleCandidateContent(chunk: GoogleGenAIResponse, state: StreamingStat
 
     for (const part of candidate?.content?.parts ?? []) {
       if (recordOutputs && part.text) state.responseTexts.push(part.text);
-      if (part.functionCall) {
-        state.toolCalls.push({
-          type: 'function',
-          id: part.functionCall.id,
-          name: part.functionCall.name,
-          arguments: part.functionCall.args,
-        });
-      }
     }
   }
 }
@@ -118,6 +119,7 @@ export async function* instrumentStream(
     responseTexts: [],
     finishReasons: [],
     toolCalls: [],
+    outputParts: [],
   };
 
   try {
@@ -126,6 +128,9 @@ export async function* instrumentStream(
       yield chunk;
     }
   } finally {
+    if (recordOutputs) {
+      setOutputMessagesAttribute(span, state.outputParts);
+    }
     endStreamSpan(span, state, recordOutputs);
   }
 }

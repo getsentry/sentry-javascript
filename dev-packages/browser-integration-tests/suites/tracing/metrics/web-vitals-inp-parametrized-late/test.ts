@@ -74,10 +74,15 @@ sentryTest(
       is_segment: false,
       status: 'ok',
       attributes: {
+        'sentry.is_localhost': { value: false, type: 'boolean' },
         'sentry.origin': { value: 'auto.http.browser.inp', type: 'string' },
         'sentry.op': { value: 'ui.interaction.click', type: 'string' },
+        'ui.component_name': { value: 'NormalButton', type: 'string' },
+        'browser.web_vital.inp.target': { value: 'body > NormalButton', type: 'string' },
         'sentry.exclusive_time': { value: inpValue, type: expect.stringMatching(/^(integer)|(double)$/) },
         'browser.web_vital.inp.value': { value: inpValue, type: expect.stringMatching(/^(integer)|(double)$/) },
+        'browser.web_vital.inp.interaction_type': { value: 'click', type: 'string' },
+        'browser.navigation.type': { value: 'navigate', type: 'string' },
         // the parametrized route name flows onto the INP span
         'sentry.transaction': { value: 'test-route', type: 'string' },
         'sentry.segment.name': { value: 'test-route', type: 'string' },

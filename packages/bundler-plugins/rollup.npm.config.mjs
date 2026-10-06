@@ -4,11 +4,11 @@ export default makeNPMConfigVariants(
   makeBaseNPMConfig({
     entrypoints: [
       'src/core/index.ts',
+      'src/loader-utils/index.ts',
       'src/rollup/index.ts',
       'src/vite/index.ts',
       'src/esbuild/index.ts',
       'src/webpack/index.ts',
-      'src/webpack/webpack5.ts',
       'src/webpack/component-annotation-transform.ts',
       'src/babel-plugin/index.ts',
     ],

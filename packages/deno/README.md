@@ -10,77 +10,17 @@
 [![npm dm](https://img.shields.io/npm/dm/@sentry/deno.svg)](https://www.npmjs.com/package/@sentry/deno)
 [![npm dt](https://img.shields.io/npm/dt/@sentry/deno.svg)](https://www.npmjs.com/package/@sentry/deno)
 
-## Links
-
-- [Official SDK Docs](https://docs.sentry.io/quickstart/)
+The official Sentry SDK for monitoring Deno applications.
 
 The Sentry Deno SDK is in beta. Please help us improve the SDK by
 [reporting any issues or giving us feedback](https://github.com/getsentry/sentry-javascript/issues).
 
-## Usage
+## Documentation
 
-To use this SDK, call `Sentry.init(options)` as early as possible in the main entry module. This will initialize the SDK
-and hook into the environment. Note that you can turn off almost all side effects using the respective options.
+- [Getting started](https://docs.sentry.io/platforms/javascript/guides/deno/)
+- [Configuration](https://docs.sentry.io/platforms/javascript/guides/deno/configuration/)
 
-```javascript
-import * as Sentry from 'npm:@sentry/deno';
+## Support
 
-Sentry.init({
-  dsn: '__DSN__',
-  // ...
-});
-```
-
-To set context information or send manual events, use the exported functions of the Deno SDK. Note that these functions
-will not perform any action before you have called `init()`:
-
-```javascript
-// Set user information, as well as tags and further extras
-Sentry.setExtra('battery', 0.7);
-Sentry.setTag('user_mode', 'admin');
-Sentry.setUser({ id: '4711' });
-
-// Add a breadcrumb for future events
-Sentry.addBreadcrumb({
-  message: 'My Breadcrumb',
-  // ...
-});
-
-// Capture exceptions, messages or manual events
-Sentry.captureMessage('Hello, world!');
-Sentry.captureException(new Error('Good bye'));
-Sentry.captureEvent({
-  message: 'Manual',
-  stacktrace: [
-    // ...
-  ],
-});
-```
-
-## Auto-instrumentation
-
-Some libraries (e.g. `mysql`) don't emit tracing signals on their
-own. To instrument them, Sentry transforms them at load time so they
-publish to `node:diagnostics_channel`.
-
-Use the `--preload` argument to `deno run` to enable
-these instrumentations.
-
-```bash
-$ deno run --preload=npm:@sentry/deno/import app.ts
-```
-
-If your `deno.json` maps `@sentry/deno` to the npm package, the bare
-`--preload=@sentry/deno/import` form works as well.
-
-Your `app.ts` should simply load Sentry as usual:
-
-```ts
-// app.ts
-
-// initialize Sentry as early as possible
-import * as Sentry from 'npm:@sentry/deno';
-Sentry.init({ dsn: '__DSN__' });
-
-// ... the rest of the app...
-```
+- [Report a bug](https://github.com/getsentry/sentry-javascript/issues/new/choose)
+- [Contributing](https://github.com/getsentry/sentry-javascript/blob/develop/CONTRIBUTING.md)

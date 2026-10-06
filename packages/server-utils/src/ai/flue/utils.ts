@@ -1,0 +1,308 @@
+import type { LRUMap, Span } from '@sentry/core';
+import {
+  captureException,
+  isObjectLike,
+  SPAN_STATUS_ERROR,
+  startInactiveSpan,
+  stringify,
+  withActiveSpan,
+} from '@sentry/core';
+import {
+  GEN_AI_CONVERSATION_ID,
+  GEN_AI_INPUT_MESSAGES,
+  GEN_AI_OPERATION_NAME,
+  GEN_AI_OUTPUT_MESSAGES,
+  GEN_AI_PROVIDER_NAME,
+  GEN_AI_REQUEST_MAX_TOKENS,
+  GEN_AI_REQUEST_MODEL,
+  GEN_AI_REQUEST_REASONING_LEVEL,
+  GEN_AI_REQUEST_TEMPERATURE,
+  GEN_AI_RESPONSE_FINISH_REASONS,
+  GEN_AI_RESPONSE_ID,
+  GEN_AI_RESPONSE_MODEL,
+  GEN_AI_SYSTEM_INSTRUCTIONS,
+  GEN_AI_TOOL_CALL_ARGUMENTS,
+  GEN_AI_TOOL_CALL_RESULT,
+  GEN_AI_TOOL_DEFINITIONS,
+  GEN_AI_TOOL_NAME,
+  SERVER_ADDRESS,
+  SERVER_PORT,
+  SENTRY_ORIGIN,
+} from '@sentry/conventions/attributes';
+import { getGenAiSpanOp } from '../core/utils';
+import {
+  piAiAssistantMessageToGenAiMessage,
+  piAiContentToString,
+  piAiFinishReason,
+  piAiMessagesToGenAiMessages,
+} from '../pi-ai/messages';
+import { setPiAiUsageAttributes } from '../pi-ai/usage';
+import { FLUE_ORIGIN, MAX_TRACKED_FLUE_SPANS } from './constants';
+import type { FlueErrorInfo, FlueModelRequestInfo, FlueObservation } from './types';
+
+/**
+ * Flue persists the incoming W3C `traceparent` at admission and replays it on the agent operation.
+ * Sentry's own propagation uses `sentry-trace`, so the carrier has to be converted before it can
+ * continue the trace. Kept local until something else needs a W3C parser.
+ */
+export function sentryTraceFromTraceparent(traceparent: string): string | undefined {
+  const [version, traceId, spanId, flags] = traceparent.split('-');
+  if (version !== '00' || !traceId || !spanId || !flags) {
+    return undefined;
+  }
+  // The sampled bit is the low bit of the flags byte; `% 2` avoids a bitwise operator.
+  return `${traceId}-${spanId}-${parseInt(flags, 16) % 2 === 1 ? '1' : '0'}`;
+}
+
+/**
+ * Turn and tool spans, keyed by the id of the work they cover. Bounded, because the key is only
+ * removed when the matching end observation arrives and an abandoned stream never emits one.
+ */
+export type SpanTracker = LRUMap<string, Span>;
+
+/**
+ * Store a span under `key`. Callers only reach this with a key the tracker does not hold, so the
+ * one span at risk of being dropped without `end()` is the oldest entry, which `LRUMap.set` silently
+ * evicts once the tracker is full.
+ */
+function trackSpan(tracker: SpanTracker, key: string, span: Span): void {
+  if (tracker.size >= MAX_TRACKED_FLUE_SPANS) {
+    const oldestKey = tracker.keys()[0];
+    if (oldestKey !== undefined) {
+      tracker.remove(oldestKey)?.end();
+    }
+  }
+
+  tracker.set(key, span);
+}
+
+/**
+ * Report a failed tool as an error event.
+ *
+ * Flue catches whatever the tool threw and hands it back to the model as a tool result, so nothing
+ * propagates for the SDK's global handlers to see: without this a throwing tool produces an errored
+ * span and no issue at all. `errorInfo` carries the original name, message and stack, so rebuild an
+ * `Error` from it rather than capturing the serialized shape.
+ *
+ * Tools only. A failed turn carries no `errorInfo` — a provider auth failure produces an errored
+ * `chat` span and nothing to rebuild from — so there is no turn equivalent to capture.
+ */
+function captureToolError(span: Span, errorInfo: FlueErrorInfo | undefined): void {
+  if (!errorInfo) {
+    return;
+  }
+
+  const error = new Error(errorInfo.message ?? 'Flue tool failed');
+  error.name = errorInfo.name ?? errorInfo.type ?? 'Error';
+  if (errorInfo.stack) {
+    error.stack = errorInfo.stack;
+  }
+
+  // Captured under the operation's own span so the issue lands on the right trace, matching how the
+  // Mastra integration attaches its captures.
+  withActiveSpan(span, () => {
+    // Handled: this is not a rejection observed on a tracing channel, where the handled state is
+    // unknowable. Flue caught the throw and returned it to the model as a tool result, so it is
+    // definitively handled and no global hook will ever see it.
+    captureException(error, { mechanism: { handled: true, type: FLUE_ORIGIN } });
+  });
+}
+
+export function startTurnSpan(observation: FlueObservation, turnSpans: SpanTracker): void {
+  const { turnId } = observation;
+  if (!turnId || turnSpans.get(turnId)) {
+    return;
+  }
+
+  trackSpan(
+    turnSpans,
+    turnId,
+    startInactiveSpan({
+      name: 'chat',
+      op: getGenAiSpanOp('chat'),
+      attributes: {
+        [SENTRY_ORIGIN]: FLUE_ORIGIN,
+        [GEN_AI_OPERATION_NAME]: 'chat',
+        ...(observation.conversationId ? { [GEN_AI_CONVERSATION_ID]: observation.conversationId } : {}),
+        // No conventional attribute for this; it is the only way to tell a compaction turn from a
+        // user-facing one.
+        ...(observation.purpose ? { 'flue.turn.purpose': observation.purpose } : {}),
+      },
+    }),
+  );
+}
+
+export function endTurnSpan(observation: FlueObservation, turnSpans: SpanTracker, recordOutputs: boolean): void {
+  const { turnId } = observation;
+  const span = turnId ? turnSpans.get(turnId) : undefined;
+  if (!span || !turnId) {
+    return;
+  }
+  turnSpans.remove(turnId);
+
+  const requestedModel = observation.request?.requestedModel;
+  const responseModel = observation.response?.responseModel;
+  const model = responseModel ?? requestedModel;
+  if (model) {
+    span.updateName(`chat ${model}`);
+  }
+  if (requestedModel) {
+    span.setAttribute(GEN_AI_REQUEST_MODEL, requestedModel);
+  }
+  if (responseModel) {
+    span.setAttribute(GEN_AI_RESPONSE_MODEL, responseModel);
+  }
+
+  // `providerId` is the slug (`anthropic`, `openrouter`); `providerName` is the display name.
+  const provider = observation.request?.providerId;
+  if (provider) {
+    span.setAttribute(GEN_AI_PROVIDER_NAME, provider);
+  }
+
+  setRequestAttributes(span, observation.request);
+
+  const responseId = observation.response?.responseId;
+  if (responseId) {
+    span.setAttribute(GEN_AI_RESPONSE_ID, responseId);
+  }
+  const finishReason = piAiFinishReason(observation.response?.finishReason);
+  if (finishReason) {
+    // Serialized, not a raw array: the conventions declare this attribute's value type as `string`,
+    // and that is what `ai/core`, Mastra, OpenAI and Vercel AI all write.
+    span.setAttribute(GEN_AI_RESPONSE_FINISH_REASONS, stringify([finishReason]));
+  }
+
+  const output = recordOutputs
+    ? piAiAssistantMessageToGenAiMessage(observation.response?.output, finishReason)
+    : undefined;
+  if (output) {
+    span.setAttribute(GEN_AI_OUTPUT_MESSAGES, stringify([output]));
+  }
+
+  setPiAiUsageAttributes(span, observation.response?.usage, observation.isError);
+
+  if (observation.isError) {
+    span.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
+  }
+  span.end();
+}
+
+/**
+ * Tool spans hang off the agent invocation rather than the turn, matching how Flue's own
+ * OpenTelemetry adapter projects them: siblings of `chat`, correlated to model output by tool call
+ * id. Keyed by `toolCallId` so concurrent tool calls in one turn cannot cross-attribute.
+ */
+export function startToolSpan(observation: FlueObservation, toolSpans: SpanTracker, recordInputs: boolean): void {
+  const { toolCallId, toolName } = observation;
+  if (!toolCallId || toolSpans.get(toolCallId)) {
+    return;
+  }
+
+  trackSpan(
+    toolSpans,
+    toolCallId,
+    startInactiveSpan({
+      name: `execute_tool ${toolName ?? 'unknown'}`,
+      op: getGenAiSpanOp('execute_tool'),
+      attributes: {
+        [SENTRY_ORIGIN]: FLUE_ORIGIN,
+        [GEN_AI_OPERATION_NAME]: 'execute_tool',
+        ...(toolName ? { [GEN_AI_TOOL_NAME]: toolName } : {}),
+        ...(observation.conversationId ? { [GEN_AI_CONVERSATION_ID]: observation.conversationId } : {}),
+        ...(recordInputs && observation.args !== undefined
+          ? { [GEN_AI_TOOL_CALL_ARGUMENTS]: stringify(observation.args) }
+          : {}),
+      },
+    }),
+  );
+}
+
+export function endToolSpan(observation: FlueObservation, toolSpans: SpanTracker, recordOutputs: boolean): void {
+  const { toolCallId } = observation;
+  const span = toolCallId ? toolSpans.get(toolCallId) : undefined;
+  if (!span || !toolCallId) {
+    return;
+  }
+  toolSpans.remove(toolCallId);
+
+  if (recordOutputs) {
+    const result = toolResultForModel(observation);
+    if (result !== undefined) {
+      span.setAttribute(GEN_AI_TOOL_CALL_RESULT, result);
+    }
+  }
+
+  if (observation.isError) {
+    span.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
+    captureToolError(span, observation.errorInfo);
+  }
+  span.end();
+}
+
+/**
+ * The result the model receives: Flue's `effectiveResult` when it has one, else the content blocks
+ * of its harness-level `result` (`{ content, details }`, whose `details` payload is tool-specific).
+ */
+function toolResultForModel(observation: FlueObservation): string | undefined {
+  const { effectiveResult } = observation;
+  if (effectiveResult !== undefined) {
+    if (typeof effectiveResult === 'string') {
+      return effectiveResult;
+    }
+    return Array.isArray(effectiveResult) ? piAiContentToString(effectiveResult) : stringify(effectiveResult);
+  }
+  const { result } = observation;
+  if (isObjectLike(result) && Array.isArray(result.content)) {
+    return piAiContentToString(result.content);
+  }
+  return result === undefined ? undefined : stringify(result);
+}
+
+/**
+ * `turn_request` is the only event carrying the request's content — the settled `turn` reports
+ * metadata alone — so input messages, system prompt and tool definitions are read from it.
+ */
+export function recordRequestContent(observation: FlueObservation, turnSpans: SpanTracker): void {
+  const { turnId } = observation;
+  const span = turnId ? turnSpans.get(turnId) : undefined;
+  const input = observation.request?.input;
+  if (!span || !input) {
+    return;
+  }
+
+  if (input.systemPrompt) {
+    span.setAttribute(GEN_AI_SYSTEM_INSTRUCTIONS, input.systemPrompt);
+  }
+  const messages = piAiMessagesToGenAiMessages(input.messages);
+  if (messages.length) {
+    span.setAttribute(GEN_AI_INPUT_MESSAGES, stringify(messages));
+  }
+  if (input.tools?.length) {
+    span.setAttribute(GEN_AI_TOOL_DEFINITIONS, stringify(input.tools));
+  }
+}
+
+/**
+ * Model-call tuning and the provider endpoint, all on the settled turn's `ModelRequestInfo`. These
+ * are the conventional attributes the other AI integrations in this package set.
+ */
+export function setRequestAttributes(span: Span, request: FlueModelRequestInfo | undefined): void {
+  if (!request) {
+    return;
+  }
+
+  const attributes: Record<string, string | number> = {};
+  const set = (key: string, value: string | number | undefined): void => {
+    if (value !== undefined) {
+      attributes[key] = value;
+    }
+  };
+
+  set(GEN_AI_REQUEST_TEMPERATURE, request.temperature);
+  set(GEN_AI_REQUEST_MAX_TOKENS, request.maxTokens);
+  set(GEN_AI_REQUEST_REASONING_LEVEL, request.reasoningLevel);
+  set(SERVER_ADDRESS, request.serverAddress);
+  set(SERVER_PORT, request.serverPort);
+
+  span.setAttributes(attributes);
+}

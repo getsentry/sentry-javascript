@@ -1,3 +1,4 @@
+import { isObjectLike } from '@sentry/core';
 import type { GetServerSideProps } from 'next';
 import { isBuild } from '../utils/isBuild';
 import { withErrorInstrumentation, withTracedServerSideDataFetcher } from '../utils/wrapperUtils';
@@ -39,7 +40,7 @@ export function wrapGetServerSidePropsWithSentry(
         sentryTrace?: string;
       } = await (tracedGetServerSideProps.apply(thisArg, args) as ReturnType<typeof tracedGetServerSideProps>);
 
-      if (typeof serverSideProps === 'object' && serverSideProps !== null && 'props' in serverSideProps) {
+      if (isObjectLike(serverSideProps) && 'props' in serverSideProps) {
         // The Next.js serializer throws on undefined values so we need to guard for it (#12102)
         if (sentryTrace) {
           (serverSideProps.props as Record<string, unknown>)._sentryTraceData = sentryTrace;

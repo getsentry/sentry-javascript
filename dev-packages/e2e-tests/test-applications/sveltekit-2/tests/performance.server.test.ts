@@ -19,9 +19,14 @@ test('server pageload request span has nested request span for sub request', asy
     expect.arrayContaining([
       // load span where the server load function initiates the sub request:
       expect.objectContaining({
-        name: '/server-load-fetch',
+        name: 'load',
         is_segment: false,
-        attributes: expect.objectContaining({ 'sentry.op': { value: 'function', type: 'string' } }),
+        attributes: expect.objectContaining({
+          'sentry.op': { value: 'function', type: 'string' },
+          'code.function.name': { value: 'load', type: 'string' },
+          'http.route': { value: '/server-load-fetch', type: 'string' },
+          'sentry.description': { value: '/server-load-fetch', type: 'string' },
+        }),
       }),
       // sub request span:
       expect.objectContaining({
@@ -52,11 +57,11 @@ test('extracts HTTP request headers as span attributes', async ({ baseURL }) => 
   const serverSpan = await serverSpanPromise;
 
   expect(serverSpan.attributes).toMatchObject({
-    'http.request.header.user_agent': { value: 'Custom-SvelteKit-Agent/1.0', type: 'string' },
-    'http.request.header.content_type': { value: 'application/json', type: 'string' },
-    'http.request.header.x_test_header': { value: 'sveltekit-test-value', type: 'string' },
-    'http.request.header.accept': { value: 'application/json', type: 'string' },
-    'http.request.header.x_framework': { value: 'SvelteKit', type: 'string' },
-    'http.request.header.x_request_id': { value: 'sveltekit-123', type: 'string' },
+    'http.request.header.user-agent': { value: ['Custom-SvelteKit-Agent/1.0'], type: 'array' },
+    'http.request.header.content-type': { value: ['application/json'], type: 'array' },
+    'http.request.header.x-test-header': { value: ['sveltekit-test-value'], type: 'array' },
+    'http.request.header.accept': { value: ['application/json'], type: 'array' },
+    'http.request.header.x-framework': { value: ['SvelteKit'], type: 'array' },
+    'http.request.header.x-request-id': { value: ['sveltekit-123'], type: 'array' },
   });
 });

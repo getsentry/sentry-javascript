@@ -13,7 +13,7 @@
   },
   "dependencies": {
     "@astrojs/node": "^10.0.0",
-    "@playwright/test": "~1.56.0",
+    "@playwright/test": "~1.63.0",
     "@sentry-internal/test-utils": "link:../../../test-utils",
     "@sentry/astro": "file:../../packed/sentry-astro-packed.tgz",
     "astro": "^6.2.0"

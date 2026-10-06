@@ -1,5 +1,5 @@
 import { GEN_AI_REQUEST_MODEL, SENTRY_OP, SENTRY_ORIGIN } from '@sentry/conventions/attributes';
-import * as diagnosticsChannel from 'node:diagnostics_channel';
+import * as diagnosticsChannel from '../utils/diagnosticsChannel';
 import type { IntegrationFn, Span } from '@sentry/core';
 import {
   _INTERNAL_shouldSkipAiProviderWrapping,
@@ -7,7 +7,6 @@ import {
   getActiveSpan,
   getClient,
   hasSpanStreamingEnabled,
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   spanToJSON,
   startInactiveSpan,
 } from '@sentry/core';
@@ -116,7 +115,7 @@ function createGenAiSpan(
 
   const attributes = extractRequestAttributes(operation, params, data.self, recordInputs);
   const model = (attributes[GEN_AI_REQUEST_MODEL] as string) || 'unknown';
-  attributes[SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN] = ORIGIN;
+  attributes[SENTRY_ORIGIN] = ORIGIN;
   const client = getClient();
 
   const span = startInactiveSpan({

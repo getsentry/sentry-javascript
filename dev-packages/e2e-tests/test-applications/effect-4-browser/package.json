@@ -13,11 +13,11 @@
   "dependencies": {
     "@sentry/effect": "latest || *",
     "@types/node": "^18.19.1",
-    "effect": "^4.0.0-beta.50",
+    "effect": "^4.0.0",
     "typescript": "~5.0.0"
   },
   "devDependencies": {
-    "@playwright/test": "~1.56.0",
+    "@playwright/test": "~1.63.0",
     "@sentry-internal/test-utils": "link:../../../test-utils",
     "webpack": "^5.91.0",
     "serve": "14.0.1",
@@ -37,7 +37,6 @@
     ]
   },
   "volta": {
-    "node": "22.15.0",
     "extends": "../../package.json"
   }
 }

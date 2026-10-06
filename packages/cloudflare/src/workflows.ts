@@ -1,15 +1,12 @@
-import { SENTRY_SEGMENT_NAME_SOURCE, CODE_FUNCTION_NAME, SENTRY_OP } from '@sentry/conventions/attributes';
+import {
+  SENTRY_SEGMENT_NAME_SOURCE,
+  CODE_FUNCTION_NAME,
+  SENTRY_OP,
+  SENTRY_ORIGIN,
+} from '@sentry/conventions/attributes';
 import { FUNCTION } from '@sentry/conventions/op';
 import type { PropagationContext, Scope } from '@sentry/core';
-import {
-  captureException,
-  flush,
-  getCurrentScope,
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  startSpan,
-  withIsolationScope,
-  withScope,
-} from '@sentry/core';
+import { captureException, flush, getCurrentScope, startSpan, withIsolationScope, withScope } from '@sentry/core';
 import type {
   WorkflowDelayDuration,
   WorkflowEntrypoint,
@@ -22,7 +19,7 @@ import type {
   WorkflowStepRollbackOptions,
   WorkflowTimeoutDuration,
 } from 'cloudflare:workers';
-import { setAsyncLocalStorageAsyncContextStrategy } from '@sentry/server-utils/no-diagnostic-channels';
+import { setAsyncLocalStorageAsyncContextStrategyForWorker } from './utils/asyncContextStrategy';
 import type { CloudflareOptions } from './client';
 import { flushAndDispose, getOriginalWaitUntil } from './flush';
 import { markAsInstrumented } from './instrument';
@@ -31,6 +28,7 @@ import { addCloudResourceContext } from './scope-utils';
 import { init } from './sdk';
 import { instrumentContext } from './utils/instrumentContext';
 import type { DefaultEnv, ResolveEnv, StrictCloudflareOptions } from './types';
+import { getInvocationState } from './utils/invocationContext';
 import { withInvocationIsolationScope } from './utils/invocationScope';
 
 const UUID_REGEX = /^[0-9a-f]{8}-?[0-9a-f]{4}-?[0-9a-f]{4}-?[0-9a-f]{4}-?[0-9a-f]{12}$/i;
@@ -124,6 +122,12 @@ class WrappedWorkflowStep implements WorkflowStep {
       // run's isolation scope (and with it the invocation state that ties eager sends
       // to this invocation's `waitUntil`) has to be restored explicitly.
       return withIsolationScope(this._isolationScope, () => {
+        const invocationState = getInvocationState();
+
+        if (invocationState) {
+          invocationState.flushPointReached = false;
+        }
+
         const stepResult = startSpan(
           {
             name,
@@ -139,7 +143,7 @@ class WrappedWorkflowStep implements WorkflowStep {
                 typeof config?.retries?.delay === 'function' ? undefined : config?.retries?.delay,
               'cloudflare.workflow.retries.limit': config?.retries?.limit,
               'cloudflare.workflow.attempt': attempt,
-              [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.faas.cloudflare.workflow',
+              [SENTRY_ORIGIN]: 'auto.faas.cloudflare.workflow',
               [SENTRY_SEGMENT_NAME_SOURCE]: 'task',
             },
           },
@@ -157,14 +161,16 @@ class WrappedWorkflowStep implements WorkflowStep {
           },
         );
         // Deliver after the step span has ended, so the span rides this flush instead of
-        // starting an eager drain (same ordering as `wrapMethodWithSentry`'s teardown).
+        // starting an eager drain (same ordering as `wrapMethodWithSentry`'s teardown). The flush runs on the
+        // step's scope: the engine calls the step callback outside of `run()`, so the current scope here has
+        // neither the client nor the run's trace, and envelopes without a DSC are dropped by Relay.
         return stepResult.then(
           result => {
-            this._waitUntil(flush(2000));
+            this._waitUntil(withScope(scopeForStep, () => flush(2000)));
             return result;
           },
           error => {
-            this._waitUntil(flush(2000));
+            this._waitUntil(withScope(scopeForStep, () => flush(2000)));
             throw error;
           },
         );
@@ -245,7 +251,7 @@ export function instrumentWorkflowWithSentry<
         get(obj, prop, receiver) {
           if (prop === 'run') {
             return async function (event: WorkflowEvent<P>, step: WorkflowStep): Promise<unknown> {
-              setAsyncLocalStorageAsyncContextStrategy();
+              setAsyncLocalStorageAsyncContextStrategyForWorker();
 
               return withInvocationIsolationScope(async isolationScope => {
                 const waitUntil = getOriginalWaitUntil(context).bind(context);

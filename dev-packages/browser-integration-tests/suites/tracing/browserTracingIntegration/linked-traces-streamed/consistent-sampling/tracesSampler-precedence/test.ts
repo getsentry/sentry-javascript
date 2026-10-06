@@ -1,7 +1,7 @@
+import { SENTRY_LINK_TYPE } from '@sentry/conventions/attributes';
 import { expect } from '@playwright/test';
 import { SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE } from '@sentry/browser';
 import type { ClientReport } from '@sentry/core';
-import { SEMANTIC_LINK_ATTRIBUTE_LINK_TYPE } from '@sentry/core';
 import { sentryTest } from '../../../../../../utils/fixtures';
 import {
   envelopeRequestParser,
@@ -103,7 +103,7 @@ sentryTest.describe('When `consistentTraceSampling` is `true`', () => {
         expect(customTrace2Span.links).toEqual([
           {
             attributes: {
-              [SEMANTIC_LINK_ATTRIBUTE_LINK_TYPE]: {
+              [SENTRY_LINK_TYPE]: {
                 type: 'string',
                 value: 'previous_trace',
               },
@@ -136,7 +136,7 @@ sentryTest.describe('When `consistentTraceSampling` is `true`', () => {
       expect(navigationSpan.links).toEqual([
         {
           attributes: {
-            [SEMANTIC_LINK_ATTRIBUTE_LINK_TYPE]: {
+            [SENTRY_LINK_TYPE]: {
               type: 'string',
               value: 'previous_trace',
             },

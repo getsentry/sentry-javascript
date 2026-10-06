@@ -2,9 +2,9 @@ import type { Client, Span } from '@sentry/core';
 import {
   GLOBAL_OBJ,
   hasSpanStreamingEnabled,
+  isObjectLike,
   NAVIGATION_SPAN_NAME_FALLBACK,
   PAGELOAD_SPAN_NAME_FALLBACK,
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   filterCollectedUrl,
   timestampInSeconds,
 } from '@sentry/core';
@@ -13,24 +13,19 @@ import {
   startBrowserTracingPageLoadSpan,
   WINDOW,
   getAbsoluteUrl,
+  resolveCurrentRoute,
+  resolveRoute,
 } from '@sentry/react';
-import { maybeParameterizeRoute } from './parameterization';
+import { stripTrailingSlash } from './parameterization';
 import {
   SENTRY_OP,
   SENTRY_SEGMENT_NAME_SOURCE,
   URL_FULL,
   URL_PATH,
   URL_TEMPLATE,
+  SENTRY_ORIGIN,
 } from '@sentry/conventions/attributes';
 import { NAVIGATION, PAGELOAD } from '@sentry/conventions/op';
-
-/**
- * Strips trailing slash from a pathname, unless it's the root path.
- * This normalizes paths like '/about/' to '/about' to handle Next.js `trailingSlash: true` config.
- */
-function stripTrailingSlash(pathname: string): string {
-  return pathname.length > 1 && pathname.endsWith('/') ? pathname.slice(0, -1) : pathname;
-}
 
 function setNavigationSpanUrlAttributes(span: Span, urlPath: string, urlOrPath: string): void {
   span.setAttributes({
@@ -103,14 +98,14 @@ const currentRouterPatchingNavigationSpanRef: NavigationSpanRef = { current: und
 /** Instruments the Next.js app router for pageloads. */
 export function appRouterInstrumentPageLoad(client: Client): void {
   const pathname = stripTrailingSlash(WINDOW.location.pathname);
-  const parameterizedPathname = maybeParameterizeRoute(pathname);
+  const parameterizedPathname = resolveCurrentRoute(client);
   startBrowserTracingPageLoadSpan(client, {
     // With span streaming, span names have to be low cardinality, so we can't fall back to the URL.
     name: parameterizedPathname ?? (hasSpanStreamingEnabled(client) ? PAGELOAD_SPAN_NAME_FALLBACK : pathname),
     // pageload should always start at timeOrigin (and needs to be in s, not ms)
     attributes: {
       [SENTRY_OP]: PAGELOAD,
-      [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.pageload.nextjs.app_router_instrumentation',
+      [SENTRY_ORIGIN]: 'auto.pageload.nextjs.app_router_instrumentation',
       [SENTRY_SEGMENT_NAME_SOURCE]: parameterizedPathname ? 'route' : 'url',
       ...(parameterizedPathname && { [URL_TEMPLATE]: parameterizedPathname }),
     },
@@ -156,9 +151,9 @@ const globalWithInjectedBasePath = GLOBAL_OBJ as typeof GLOBAL_OBJ & {
 export function appRouterInstrumentNavigation(client: Client): void {
   routerTransitionHandler = (href, navigationType) => {
     const basePath = process.env._sentryBasePath ?? globalWithInjectedBasePath._sentryBasePath;
-    const normalizedHref = basePath && !href.startsWith(basePath) ? `${basePath}${href}` : href;
+    const normalizedHref = basePath && href.startsWith('/') && !href.startsWith(basePath) ? `${basePath}${href}` : href;
     const unparameterizedPathname = stripTrailingSlash(new URL(normalizedHref, WINDOW.location.href).pathname);
-    const parameterizedPathname = maybeParameterizeRoute(unparameterizedPathname);
+    const parameterizedPathname = resolveRoute(normalizedHref, client);
     // With span streaming, span names have to be low cardinality, so we can't fall back to the URL.
     const spanName =
       parameterizedPathname ??
@@ -185,7 +180,7 @@ export function appRouterInstrumentNavigation(client: Client): void {
           name: spanName,
           attributes: {
             [SENTRY_OP]: NAVIGATION,
-            [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.nextjs.app_router_instrumentation',
+            [SENTRY_ORIGIN]: 'auto.navigation.nextjs.app_router_instrumentation',
             [SENTRY_SEGMENT_NAME_SOURCE]: parameterizedPathname ? 'route' : 'url',
             'navigation.type': `router.${navigationType}`,
             ...(parameterizedPathname && { [URL_TEMPLATE]: parameterizedPathname }),
@@ -198,7 +193,7 @@ export function appRouterInstrumentNavigation(client: Client): void {
 
   WINDOW.addEventListener('popstate', () => {
     const pathname = stripTrailingSlash(WINDOW.location.pathname);
-    const parameterizedPathname = maybeParameterizeRoute(pathname);
+    const parameterizedPathname = resolveCurrentRoute(client);
     // With span streaming, span names have to be low cardinality, so we can't fall back to the URL.
     const spanName =
       parameterizedPathname ?? (hasSpanStreamingEnabled(client) ? NAVIGATION_SPAN_NAME_FALLBACK : pathname);
@@ -222,7 +217,7 @@ export function appRouterInstrumentNavigation(client: Client): void {
           name: spanName,
           startTime: traversal?.startTime,
           attributes: {
-            [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.nextjs.app_router_instrumentation',
+            [SENTRY_ORIGIN]: 'auto.navigation.nextjs.app_router_instrumentation',
             [SENTRY_SEGMENT_NAME_SOURCE]: parameterizedPathname ? 'route' : 'url',
             'navigation.type': traversal?.navigationType ?? 'browser.popstate',
             ...(parameterizedPathname && { [URL_TEMPLATE]: parameterizedPathname }),
@@ -256,8 +251,8 @@ export function appRouterInstrumentNavigation(client: Client): void {
       if (globalValue) {
         GLOBAL_OBJ_WITH_NEXT_ROUTER.next = new Proxy(globalValue, {
           set(target, p, newValue) {
-            if (p === 'router' && typeof newValue === 'object' && newValue !== null) {
-              patchRouter(client, newValue, currentRouterPatchingNavigationSpanRef);
+            if (p === 'router' && isObjectLike(newValue)) {
+              patchRouter(client, newValue as unknown as NextRouter, currentRouterPatchingNavigationSpanRef);
             }
 
             // @ts-expect-error we cannot possibly type this
@@ -304,9 +299,11 @@ function patchRouter(client: Client, router: NextRouter, currentNavigationSpanRe
           const href = argArray[0];
           const basePath = process.env._sentryBasePath ?? globalWithInjectedBasePath._sentryBasePath;
           const normalizedHref =
-            basePath && typeof href === 'string' && !href.startsWith(basePath) ? `${basePath}${href}` : href;
+            basePath && typeof href === 'string' && href.startsWith('/') && !href.startsWith(basePath)
+              ? `${basePath}${href}`
+              : href;
           const transactionName = stripTrailingSlash(transactionNameifyRouterArgument(normalizedHref));
-          const parameterizedPathname = maybeParameterizeRoute(transactionName);
+          const parameterizedPathname = resolveRoute(transactionName, client);
 
           currentNavigationSpanRef.current = startBrowserTracingNavigationSpan(
             client,
@@ -317,7 +314,7 @@ function patchRouter(client: Client, router: NextRouter, currentNavigationSpanRe
                 (hasSpanStreamingEnabled(client) ? NAVIGATION_SPAN_NAME_FALLBACK : transactionName),
               attributes: {
                 [SENTRY_OP]: NAVIGATION,
-                [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.nextjs.app_router_instrumentation',
+                [SENTRY_ORIGIN]: 'auto.navigation.nextjs.app_router_instrumentation',
                 [SENTRY_SEGMENT_NAME_SOURCE]: parameterizedPathname ? 'route' : 'url',
                 'navigation.type': `router.${routerFunctionName}`,
                 ...(parameterizedPathname && { [URL_TEMPLATE]: parameterizedPathname }),

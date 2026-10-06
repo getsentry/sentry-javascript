@@ -20,7 +20,9 @@ import {
   CLOUD_ACCOUNT_ID,
   CLOUD_PLATFORM,
   CLOUD_PROVIDER,
+  CLOUD_RESOURCE_ID,
   FAAS_COLDSTART,
+  FAAS_INVOCATION_ID,
   FAAS_NAME,
   SENTRY_KIND,
   SENTRY_OP,
@@ -37,7 +39,6 @@ import {
   filterCollectedUrl,
 } from '@sentry/core';
 import type { Context } from 'aws-lambda';
-import { ATTR_FAAS_EXECUTION, ATTR_FAAS_ID } from './semconv';
 
 interface ApiGatewayLikeEvent {
   headers?: Record<string, string | undefined>;
@@ -65,8 +66,8 @@ export function getRequestSpanOptions(event: unknown, context: Context, requestI
       [SENTRY_ORIGIN]: 'auto.aws_lambda',
       [SENTRY_SEGMENT_NAME_SOURCE]: 'component',
       [SENTRY_KIND]: 'server',
-      [ATTR_FAAS_EXECUTION]: context.awsRequestId,
-      [ATTR_FAAS_ID]: context.invokedFunctionArn,
+      [FAAS_INVOCATION_ID]: context.awsRequestId,
+      [CLOUD_RESOURCE_ID]: context.invokedFunctionArn,
       [CLOUD_ACCOUNT_ID]: extractAccountId(context.invokedFunctionArn),
       [CLOUD_PROVIDER]: 'aws',
       [CLOUD_PLATFORM]: 'aws_lambda',

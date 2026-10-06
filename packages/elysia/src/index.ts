@@ -60,10 +60,16 @@ export {
   fetchIntegration,
   onUncaughtExceptionIntegration,
   onUnhandledRejectionIntegration,
+  mistralAIIntegration,
   openAIIntegration,
+  groqIntegration,
+  togetherAIIntegration,
+  typesafeIntegration,
   langChainIntegration,
   langGraphIntegration,
+  createFlueInstrumentation,
   mastraIntegration,
+  mcpServerIntegration,
   SentryMastraExporter,
   modulesIntegration,
   contextLinesIntegration,
@@ -89,9 +95,10 @@ export {
   getAutoPerformanceIntegrations,
   cron,
   parameterize,
+  // oxlint-disable-next-line typescript/no-deprecated
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
+  // oxlint-disable-next-line typescript/no-deprecated
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  SENTRY_SEGMENT_NAME_SOURCE,
   SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE,
   dataloaderIntegration,
   expressIntegration,
@@ -103,6 +110,8 @@ export {
   // oxlint-disable-next-line typescript/no-deprecated
   setupFastifyErrorHandler,
   firebaseIntegration,
+  honoIntegration,
+  honoMiddleware,
   koaIntegration,
   // oxlint-disable-next-line typescript/no-deprecated
   setupKoaErrorHandler,
@@ -134,6 +143,8 @@ export {
   updateSpanName,
   supabaseIntegration,
   instrumentSupabaseClient,
+  instrumentMistralAiClient,
+  instrumentTypeSafeClient,
   instrumentOpenAiClient,
   instrumentAnthropicAiClient,
   instrumentGoogleGenAIClient,
@@ -164,6 +175,8 @@ export {
   // oxlint-disable-next-line typescript/no-deprecated
   withStreamedSpan,
   bunServerIntegration,
+  bunRuntimeMetricsIntegration,
+  type BunRuntimeMetricsOptions,
   makeFetchTransport,
 } from '@sentry/bun';
 

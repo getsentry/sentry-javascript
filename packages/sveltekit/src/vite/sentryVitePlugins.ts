@@ -52,7 +52,11 @@ export async function sentrySvelteKit(options: SentrySvelteKitPluginOptions = {}
 
   // First so the config settles as early as possible. The plugins below read it in `configResolved`,
   // which Vite runs concurrently, so their order relative to the resolver doesn't matter.
-  const sentryPlugins: Plugin[] = [kitConfigResolver.plugin, makeBrowserTracingVariantResolverPlugin()];
+  const sentryPlugins: Plugin[] = [
+    kitConfigResolver.plugin,
+    makeBrowserTracingVariantResolverPlugin(),
+    makeOpenTelemetryApiResolverPlugin(),
+  ];
 
   if (mergedOptions.autoInstrument) {
     const pluginOptions: AutoInstrumentSelection = {
@@ -74,6 +78,7 @@ export async function sentrySvelteKit(options: SentrySvelteKitPluginOptions = {}
     sentryOrchestrionPlugin({
       buildTimeInstrumentation: mergedOptions.buildTimeInstrumentation,
     }),
+    makeBuildFlagPlugin(),
   );
 
   const sentryVitePluginsOptions = generateVitePluginOptions(mergedOptions);
@@ -102,6 +107,65 @@ export async function sentrySvelteKit(options: SentrySvelteKitPluginOptions = {}
   }
 
   return sentryPlugins;
+}
+
+/**
+ * Flags `vite build` so `sentryHandle` can skip trace meta tags on pages SvelteKit renders at build time
+ * (prerendered and adapter fallback pages). Kit renders them in workers that inherit `process.env`, so the
+ * flag must stay set until the adapter ran. Afterwards we remove it again, so it doesn't leak into e.g. a
+ * server started in the same process after a programmatic build.
+ *
+ * When that point is reached depends on the Kit version:
+ * - Kit 2 renders from the SSR build's `writeBundle` and `closeBundle` hooks. In between, it runs a nested
+ *   client build, whose `closeBundle` fires before any page was rendered.
+ * - Kit 3 builds all environments via Vite's app builder and renders from `buildApp` hooks afterwards.
+ *   Every `closeBundle` fires before that.
+ */
+function makeBuildFlagPlugin(): Plugin {
+  let usesAppBuilder = false;
+  let isServerBuild = false;
+  let isWatchMode = false;
+
+  const clearFlag = (): void => {
+    delete process.env._SENTRY_SVELTEKIT_BUILDING;
+  };
+
+  // `buildApp` only exists as a plugin hook in Vite 7+
+  const plugin: Plugin & { buildApp?: { order: 'post'; handler: () => void } } = {
+    name: 'sentry-sveltekit-build-flag',
+    apply: 'build',
+    // Together with `order: 'post'`, this makes our hooks run after Kit's (including its adapter's)
+    enforce: 'post',
+    config() {
+      process.env._SENTRY_SVELTEKIT_BUILDING = 'true';
+    },
+    configResolved(config) {
+      usesAppBuilder = !!config.builder;
+      isServerBuild = !!config.build.ssr;
+      // Kit re-renders pages on every rebuild in watch mode
+      isWatchMode = !!config.build.watch;
+    },
+    closeBundle: {
+      order: 'post',
+      sequential: true,
+      handler() {
+        if (!usesAppBuilder && isServerBuild && !isWatchMode) {
+          clearFlag();
+        }
+      },
+    },
+    buildApp: {
+      order: 'post',
+      handler: async () => {
+        // Without an app builder config, Vite 7+ calls `buildApp` hooks *before* the actual (legacy) build
+        if (usesAppBuilder && !isWatchMode) {
+          clearFlag();
+        }
+      },
+    },
+  };
+
+  return plugin;
 }
 
 // A bare subpath (not a relative import) so this plugin's `resolveId` can intercept it.
@@ -140,6 +204,44 @@ function makeBrowserTracingVariantResolverPlugin(): Plugin {
       }
 
       return path.join(path.dirname(sdkEntry.id), 'client', `${variantModule}.js`);
+    },
+  };
+}
+
+const OTEL_API_ID = '@opentelemetry/api';
+const OTEL_API_REEXPORT_ID = '@sentry/sveltekit/opentelemetry-api';
+const OTEL_API_REEXPORT_FILE_REGEX = /[\\/]opentelemetryApi\.js$/;
+
+/**
+ * SvelteKit 3 externalizes `@opentelemetry/api` in server builds, so its runtime imports it at runtime
+ * from the app root. That only resolves if the app depends on it directly: under pnpm (or Yarn PnP),
+ * the copy installed through `@sentry/sveltekit` isn't reachable, and Kit fails every request once
+ * `tracing.server` is enabled.
+ *
+ * We redirect the import to our re-export instead, which resolves because the app always depends on
+ * `@sentry/sveltekit` directly. It stays external, so the Kit runtime and `instrumentation.server.js`
+ * still share a single module instance, which is why Kit externalizes it in the first place.
+ */
+function makeOpenTelemetryApiResolverPlugin(): Plugin {
+  let isKit3Promise: Promise<boolean> | undefined;
+
+  return {
+    name: 'sentry-sveltekit-opentelemetry-api',
+    enforce: 'pre',
+    // In dev, Kit's import resolves from Kit's own install location, where pnpm links the peer dep.
+    apply: 'build',
+    async resolveId(id, importer, options) {
+      // Skip our own re-export, in case it gets bundled, so it doesn't re-export itself.
+      if (id !== OTEL_API_ID || !options?.ssr || (importer && OTEL_API_REEXPORT_FILE_REGEX.test(importer))) {
+        return null;
+      }
+
+      isKit3Promise ??= isSvelteKit3(id => this.resolve(id, undefined, { skipSelf: true }));
+      if (!(await isKit3Promise)) {
+        return null;
+      }
+
+      return { id: OTEL_API_REEXPORT_ID, external: true };
     },
   };
 }

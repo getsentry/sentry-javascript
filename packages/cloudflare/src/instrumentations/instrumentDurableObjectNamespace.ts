@@ -10,6 +10,7 @@ export const STUB_NON_RPC_METHODS = new Set(['fetch', 'connect', 'dup']);
  *
  * Wraps:
  * - `namespace.get(id)` / `namespace.getByName(name)` with a span + instruments returned stub
+ * - `namespace.jurisdiction(name)` by instrumenting the returned namespace the same way
  * - `namespace.idFromName(name)` / `namespace.idFromString(id)` / `namespace.newUniqueId()` with breadcrumbs
  *
  * @param namespace - The DurableObjectNamespace to instrument
@@ -35,6 +36,14 @@ export function instrumentDurableObjectNamespace(
         };
       }
 
+      if (prop === 'jurisdiction') {
+        return function (this: unknown, ...args: unknown[]) {
+          const subnamespace = Reflect.apply(value, target, args);
+
+          return instrumentDurableObjectNamespace(subnamespace, propagateRpcTrace);
+        };
+      }
+
       return value.bind(target);
     },
   });
@@ -54,6 +63,10 @@ function instrumentDurableObjectStub(stub: DurableObjectStub, propagateRpcTrace:
 
       if (prop === 'fetch' && typeof value === 'function') {
         return instrumentFetcher((...args) => Reflect.apply(value, target, args));
+      }
+
+      if (prop === 'connect' && typeof value === 'function') {
+        return (...args: unknown[]) => Reflect.apply(value, target, args);
       }
 
       if (
