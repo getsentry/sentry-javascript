@@ -77,9 +77,10 @@ export function instrumentPiDurableHarnessOptions<T extends PiHarnessOptions>(
 }
 
 /**
- * End the open runs of `harness` when it closes. Closing stops the scheduler without settling the
- * inputs in flight, so nothing else would end their `invoke_agent` spans. A run whose ending commit
- * is still in flight ends with that commit's status.
+ * End the open runs and tool calls of `harness` when it closes. Closing stops the scheduler without
+ * settling the inputs in flight, so nothing else would end their spans, and the maps that track
+ * them would keep the spans for the lifetime of the process. A run whose ending commit is still in
+ * flight ends with that commit's status.
  */
 export function endRunsOnClose(harnessOptions: PiHarnessOptions, harness: unknown): void {
   const runs = (harnessOptions as Record<symbol, unknown>)[RUNS] as PiRuns | undefined;
@@ -91,6 +92,16 @@ export function endRunsOnClose(harnessOptions: PiHarnessOptions, harness: unknow
     for (const run of runs.active.values()) {
       endRun(run, runs, run.pendingEnd ? run.pendingEnd.status : { code: SPAN_STATUS_ERROR, message: 'cancelled' });
     }
+    for (const calls of runs.toolCalls.values()) {
+      for (const call of calls) {
+        if (call.endTimestamp === undefined) {
+          call.span.setStatus({ code: SPAN_STATUS_ERROR, message: 'cancelled' });
+        }
+        call.span.end(call.endTimestamp);
+      }
+    }
+    runs.toolCalls.clear();
+    runs.owners.clear();
   });
 }
 

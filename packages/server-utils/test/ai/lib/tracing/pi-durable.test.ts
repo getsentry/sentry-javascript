@@ -46,6 +46,7 @@ import { GEN_AI_CHAT, GEN_AI_EXECUTE_TOOL, GEN_AI_INVOKE_AGENT } from '@sentry/c
 import { GEN_AI_TOOL_CALL_ID_ATTRIBUTE } from '../../../../src/ai/core/gen-ai-attributes';
 import { endRunsOnClose, instrumentPiDurableHarnessOptions } from '../../../../src/ai/pi-durable';
 import { MAX_TRACKED_PI_RUNS } from '../../../../src/ai/pi-durable/constants';
+import type { PiRuns } from '../../../../src/ai/pi-durable/runs';
 import { createRuns, startRun } from '../../../../src/ai/pi-durable/runs';
 import { instrumentTool, markBuiltInTool } from '../../../../src/ai/pi-durable/tools';
 import type {
@@ -883,6 +884,49 @@ describe('instrumentPiDurableHarnessOptions', () => {
 
       expect(runSpans()).toHaveLength(1);
       expect(spanToStaticSpanJSON(endedSpans[0]!).status).toBe('cancelled');
+    });
+
+    it('ends the tool calls in flight and forgets subagent links when the Harness closes', async () => {
+      const harness = harnessFor(generationPhase([]));
+      const runs = (harness as unknown as Record<symbol, PiRuns>)[Symbol.for('sentry.pi-durable.runs')]!;
+      let onClose: (() => void) | undefined;
+      endRunsOnClose(harness, { subscribeClose: (listener: () => void) => ((onClose = listener), () => undefined) });
+      let delegated: () => void = () => undefined;
+      const delegating = new Promise<void>(resolve => (delegated = resolve));
+      const tool = instrumentTool(
+        {
+          name: 'delegate',
+          execute: async (_args, api) => {
+            await api.commit!(
+              tx =>
+                (tx as { createConversation: (...args: unknown[]) => unknown }).createConversation({
+                  ownership: { kind: 'task', taskId: 7 },
+                }),
+              undefined,
+            );
+            delegated();
+            return new Promise<PiToolExecutionResult>(() => undefined);
+          },
+        },
+        runs,
+        {},
+      );
+      runs.toolCalls.set(7, []);
+      void tool.execute(
+        {},
+        {
+          taskId: 7,
+          callId: 'call_1',
+          commit: async change => change({ createConversation: async () => ({ id: 42 }) }),
+        },
+        undefined,
+      );
+      await delegating;
+
+      onClose!();
+
+      expect(endedSpans.map(span => spanToStaticSpanJSON(span).status)).toEqual(['cancelled']);
+      expect(spanToJSON(startRun(42, runs).span).parent_span_id).toBeUndefined();
     });
 
     // `wait()` resolves once the ending commit settles the inputs, before `commit()` resolves, so an
