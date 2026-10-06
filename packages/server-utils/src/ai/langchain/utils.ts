@@ -379,7 +379,7 @@ function addTokenUsageAttributes(llmResult: LangChainLLMResult, attrs: Record<st
     | undefined;
 
   // llmOutput.tokenUsage can contain only the final stream chunk's counters.
-  if (anthropicUsage && Object.keys(normalizedUsage).length === 0) {
+  if (anthropicUsage && Object.keys(normalizedUsage).length === 0 && Object.keys(legacyMessageUsage).length === 0) {
     const { input_tokens, output_tokens, cache_creation_input_tokens, cache_read_input_tokens } = anthropicUsage;
     const hasInput =
       input_tokens !== undefined || cache_creation_input_tokens !== undefined || cache_read_input_tokens !== undefined;

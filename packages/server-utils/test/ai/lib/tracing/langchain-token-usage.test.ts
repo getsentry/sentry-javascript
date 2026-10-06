@@ -1,3 +1,10 @@
+import {
+  GEN_AI_USAGE_CACHE_CREATION_INPUT_TOKENS,
+  GEN_AI_USAGE_CACHE_READ_INPUT_TOKENS,
+  GEN_AI_USAGE_INPUT_TOKENS,
+  GEN_AI_USAGE_OUTPUT_TOKENS,
+  GEN_AI_USAGE_TOTAL_TOKENS,
+} from '@sentry/conventions/attributes';
 import { describe, expect, it } from 'vitest';
 import { extractLlmResponseAttributes } from '../../../../src/ai/langchain/utils';
 import type { LangChainLLMResult } from '../../../../src/ai/langchain/types';
@@ -15,11 +22,11 @@ const normalizedUsage = {
   input_token_details: { cache_read: 2048, cache_creation: 512 },
 };
 const expectedUsage = {
-  'gen_ai.usage.input_tokens': 2600,
-  'gen_ai.usage.output_tokens': 120,
-  'gen_ai.usage.total_tokens': 2720,
-  'gen_ai.usage.cache_read.input_tokens': 2048,
-  'gen_ai.usage.cache_creation.input_tokens': 512,
+  [GEN_AI_USAGE_INPUT_TOKENS]: 2600,
+  [GEN_AI_USAGE_OUTPUT_TOKENS]: 120,
+  [GEN_AI_USAGE_TOTAL_TOKENS]: 2720,
+  [GEN_AI_USAGE_CACHE_READ_INPUT_TOKENS]: 2048,
+  [GEN_AI_USAGE_CACHE_CREATION_INPUT_TOKENS]: 512,
 };
 
 describe('LangChain token usage', () => {
@@ -77,21 +84,29 @@ describe('LangChain token usage', () => {
     expect(extractLlmResponseAttributes(result, false)).toEqual(expectedUsage);
   });
 
-  it('prefers raw Anthropic usage over legacy message counters', () => {
+  it.each([
+    { name: 'inclusive totals', promptTokens: 2600, completionTokens: 120, totalTokens: 2720 },
+    { name: 'zero counts', promptTokens: 0, completionTokens: 0, totalTokens: 0 },
+  ])('preserves legacy message $name over raw Anthropic usage', ({ promptTokens, completionTokens, totalTokens }) => {
     const result = {
       generations: [
         [
           {
             message: {
-              response_metadata: { tokenUsage: { promptTokens: 40, completionTokens: 120, totalTokens: 160 } },
+              response_metadata: { tokenUsage: { promptTokens, completionTokens, totalTokens } },
             },
           },
         ],
       ],
-      llmOutput: { usage: rawUsage },
+      llmOutput: { usage: { ...rawUsage, input_tokens: 0, output_tokens: 5 } },
     };
 
-    expect(extractLlmResponseAttributes(result, false)).toEqual(expectedUsage);
+    expect(extractLlmResponseAttributes(result, false)).toEqual({
+      ...expectedUsage,
+      [GEN_AI_USAGE_INPUT_TOKENS]: promptTokens,
+      [GEN_AI_USAGE_OUTPUT_TOKENS]: completionTokens,
+      [GEN_AI_USAGE_TOTAL_TOKENS]: totalTokens,
+    });
   });
 
   it('preserves raw cache details when normalized usage reports only inclusive totals', () => {
@@ -112,11 +127,11 @@ describe('LangChain token usage', () => {
     };
 
     expect(extractLlmResponseAttributes(result, false)).toEqual({
-      'gen_ai.usage.input_tokens': 5200,
-      'gen_ai.usage.output_tokens': 240,
-      'gen_ai.usage.total_tokens': 5440,
-      'gen_ai.usage.cache_read.input_tokens': 4096,
-      'gen_ai.usage.cache_creation.input_tokens': 1024,
+      [GEN_AI_USAGE_INPUT_TOKENS]: 5200,
+      [GEN_AI_USAGE_OUTPUT_TOKENS]: 240,
+      [GEN_AI_USAGE_TOTAL_TOKENS]: 5440,
+      [GEN_AI_USAGE_CACHE_READ_INPUT_TOKENS]: 4096,
+      [GEN_AI_USAGE_CACHE_CREATION_INPUT_TOKENS]: 1024,
     });
   });
 
@@ -129,8 +144,8 @@ describe('LangChain token usage', () => {
 
     expect(extractLlmResponseAttributes(result, false)).toEqual({
       ...expectedUsage,
-      'gen_ai.usage.output_tokens': 240,
-      'gen_ai.usage.total_tokens': 2840,
+      [GEN_AI_USAGE_OUTPUT_TOKENS]: 240,
+      [GEN_AI_USAGE_TOTAL_TOKENS]: 2840,
     });
   });
 
@@ -170,11 +185,11 @@ describe('LangChain token usage', () => {
     },
   ])('preserves zero counts in $name', ({ result }) => {
     expect(extractLlmResponseAttributes(result as LangChainLLMResult, false)).toEqual({
-      'gen_ai.usage.input_tokens': 0,
-      'gen_ai.usage.output_tokens': 0,
-      'gen_ai.usage.total_tokens': 0,
-      'gen_ai.usage.cache_read.input_tokens': 0,
-      'gen_ai.usage.cache_creation.input_tokens': 0,
+      [GEN_AI_USAGE_INPUT_TOKENS]: 0,
+      [GEN_AI_USAGE_OUTPUT_TOKENS]: 0,
+      [GEN_AI_USAGE_TOTAL_TOKENS]: 0,
+      [GEN_AI_USAGE_CACHE_READ_INPUT_TOKENS]: 0,
+      [GEN_AI_USAGE_CACHE_CREATION_INPUT_TOKENS]: 0,
     });
   });
 
@@ -185,9 +200,9 @@ describe('LangChain token usage', () => {
     };
 
     expect(extractLlmResponseAttributes(result, false)).toEqual({
-      'gen_ai.usage.input_tokens': 2600,
-      'gen_ai.usage.output_tokens': 120,
-      'gen_ai.usage.total_tokens': 2720,
+      [GEN_AI_USAGE_INPUT_TOKENS]: 2600,
+      [GEN_AI_USAGE_OUTPUT_TOKENS]: 120,
+      [GEN_AI_USAGE_TOTAL_TOKENS]: 2720,
     });
   });
 
@@ -206,9 +221,9 @@ describe('LangChain token usage', () => {
     };
 
     expect(extractLlmResponseAttributes(result, false)).toEqual({
-      'gen_ai.usage.input_tokens': 2600,
-      'gen_ai.usage.output_tokens': 120,
-      'gen_ai.usage.total_tokens': 2720,
+      [GEN_AI_USAGE_INPUT_TOKENS]: 2600,
+      [GEN_AI_USAGE_OUTPUT_TOKENS]: 120,
+      [GEN_AI_USAGE_TOTAL_TOKENS]: 2720,
     });
   });
 
@@ -221,9 +236,9 @@ describe('LangChain token usage', () => {
     };
 
     expect(extractLlmResponseAttributes(result, false)).toEqual({
-      'gen_ai.usage.input_tokens': 0,
-      'gen_ai.usage.output_tokens': 0,
-      'gen_ai.usage.total_tokens': 0,
+      [GEN_AI_USAGE_INPUT_TOKENS]: 0,
+      [GEN_AI_USAGE_OUTPUT_TOKENS]: 0,
+      [GEN_AI_USAGE_TOTAL_TOKENS]: 0,
     });
   });
 
@@ -241,9 +256,9 @@ describe('LangChain token usage', () => {
     };
 
     expect(extractLlmResponseAttributes(result, false)).toEqual({
-      'gen_ai.usage.input_tokens': 40,
-      'gen_ai.usage.output_tokens': 120,
-      'gen_ai.usage.total_tokens': 160,
+      [GEN_AI_USAGE_INPUT_TOKENS]: 40,
+      [GEN_AI_USAGE_OUTPUT_TOKENS]: 120,
+      [GEN_AI_USAGE_TOTAL_TOKENS]: 160,
     });
   });
 });

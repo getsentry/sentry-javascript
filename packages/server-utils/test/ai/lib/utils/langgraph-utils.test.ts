@@ -1,3 +1,11 @@
+import {
+  GEN_AI_RESPONSE_TEXT,
+  GEN_AI_USAGE_CACHE_CREATION_INPUT_TOKENS,
+  GEN_AI_USAGE_CACHE_READ_INPUT_TOKENS,
+  GEN_AI_USAGE_INPUT_TOKENS,
+  GEN_AI_USAGE_OUTPUT_TOKENS,
+  GEN_AI_USAGE_TOTAL_TOKENS,
+} from '@sentry/conventions/attributes';
 import { describe, expect, it } from 'vitest';
 import type { Span } from '@sentry/core';
 import {
@@ -46,13 +54,13 @@ describe('LangGraph cache usage', () => {
     });
 
     expect(attributes).toEqual({
-      'gen_ai.response.text':
+      [GEN_AI_RESPONSE_TEXT]:
         '[{"role":"assistant","content":"First answer"},{"role":"assistant","content":"Second answer"}]',
-      'gen_ai.usage.input_tokens': 5200,
-      'gen_ai.usage.output_tokens': 240,
-      'gen_ai.usage.total_tokens': 5440,
-      ...(cacheRead === undefined ? {} : { 'gen_ai.usage.cache_read.input_tokens': cacheRead * 2 }),
-      ...(cacheWrite === undefined ? {} : { 'gen_ai.usage.cache_creation.input_tokens': cacheWrite * 2 }),
+      [GEN_AI_USAGE_INPUT_TOKENS]: 5200,
+      [GEN_AI_USAGE_OUTPUT_TOKENS]: 240,
+      [GEN_AI_USAGE_TOTAL_TOKENS]: 5440,
+      ...(cacheRead === undefined ? {} : { [GEN_AI_USAGE_CACHE_READ_INPUT_TOKENS]: cacheRead * 2 }),
+      ...(cacheWrite === undefined ? {} : { [GEN_AI_USAGE_CACHE_CREATION_INPUT_TOKENS]: cacheWrite * 2 }),
     });
   });
 });

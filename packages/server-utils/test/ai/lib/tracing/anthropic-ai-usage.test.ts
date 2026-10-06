@@ -1,3 +1,13 @@
+import {
+  GEN_AI_RESPONSE_ID,
+  GEN_AI_RESPONSE_MODEL,
+  GEN_AI_RESPONSE_STREAMING,
+  GEN_AI_USAGE_CACHE_CREATION_INPUT_TOKENS,
+  GEN_AI_USAGE_CACHE_READ_INPUT_TOKENS,
+  GEN_AI_USAGE_INPUT_TOKENS,
+  GEN_AI_USAGE_OUTPUT_TOKENS,
+  GEN_AI_USAGE_TOTAL_TOKENS,
+} from '@sentry/conventions/attributes';
 import { EventEmitter } from 'node:events';
 import { describe, expect, it } from 'vitest';
 import type { Span } from '@sentry/core';
@@ -31,8 +41,8 @@ describe.each(['response', 'async iterable', 'message stream'] as const)('Anthro
       inputTokens: 2600,
       totalTokens: 2720,
       cacheAttributes: {
-        'gen_ai.usage.cache_read.input_tokens': 2048,
-        'gen_ai.usage.cache_creation.input_tokens': 512,
+        [GEN_AI_USAGE_CACHE_READ_INPUT_TOKENS]: 2048,
+        [GEN_AI_USAGE_CACHE_CREATION_INPUT_TOKENS]: 512,
       },
     },
     {
@@ -40,14 +50,14 @@ describe.each(['response', 'async iterable', 'message stream'] as const)('Anthro
       cache: { cache_read_input_tokens: 2048 },
       inputTokens: 2088,
       totalTokens: 2208,
-      cacheAttributes: { 'gen_ai.usage.cache_read.input_tokens': 2048 },
+      cacheAttributes: { [GEN_AI_USAGE_CACHE_READ_INPUT_TOKENS]: 2048 },
     },
     {
       name: 'includes cache writes when cache reads are absent',
       cache: { cache_creation_input_tokens: 512 },
       inputTokens: 552,
       totalTokens: 672,
-      cacheAttributes: { 'gen_ai.usage.cache_creation.input_tokens': 512 },
+      cacheAttributes: { [GEN_AI_USAGE_CACHE_CREATION_INPUT_TOKENS]: 512 },
     },
     {
       name: 'preserves zero cache counts',
@@ -55,8 +65,8 @@ describe.each(['response', 'async iterable', 'message stream'] as const)('Anthro
       inputTokens: 40,
       totalTokens: 160,
       cacheAttributes: {
-        'gen_ai.usage.cache_read.input_tokens': 0,
-        'gen_ai.usage.cache_creation.input_tokens': 0,
+        [GEN_AI_USAGE_CACHE_READ_INPUT_TOKENS]: 0,
+        [GEN_AI_USAGE_CACHE_CREATION_INPUT_TOKENS]: 0,
       },
     },
     {
@@ -104,13 +114,13 @@ describe.each(['response', 'async iterable', 'message stream'] as const)('Anthro
     }
 
     expect(attributes).toEqual({
-      'gen_ai.response.id': 'msg_cache_usage',
-      'gen_ai.response.model': 'claude-sonnet-4-6',
-      'gen_ai.usage.input_tokens': inputTokens,
-      'gen_ai.usage.output_tokens': 120,
-      'gen_ai.usage.total_tokens': totalTokens,
+      [GEN_AI_RESPONSE_ID]: 'msg_cache_usage',
+      [GEN_AI_RESPONSE_MODEL]: 'claude-sonnet-4-6',
+      [GEN_AI_USAGE_INPUT_TOKENS]: inputTokens,
+      [GEN_AI_USAGE_OUTPUT_TOKENS]: 120,
+      [GEN_AI_USAGE_TOTAL_TOKENS]: totalTokens,
       ...cacheAttributes,
-      ...(mode === 'response' ? {} : { 'gen_ai.response.streaming': true }),
+      ...(mode === 'response' ? {} : { [GEN_AI_RESPONSE_STREAMING]: true }),
     });
   });
 });

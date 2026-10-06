@@ -1,3 +1,14 @@
+import {
+  GEN_AI_RESPONSE_ID,
+  GEN_AI_RESPONSE_MODEL,
+  GEN_AI_RESPONSE_STREAMING,
+  GEN_AI_USAGE_CACHE_CREATION_INPUT_TOKENS,
+  GEN_AI_USAGE_CACHE_READ_INPUT_TOKENS,
+  GEN_AI_USAGE_INPUT_TOKENS,
+  GEN_AI_USAGE_OUTPUT_TOKENS,
+  GEN_AI_USAGE_REASONING_OUTPUT_TOKENS,
+  GEN_AI_USAGE_TOTAL_TOKENS,
+} from '@sentry/conventions/attributes';
 import { describe, expect, it } from 'vitest';
 import type { Span } from '@sentry/core';
 import { addResponseAttributes as addOpenAiResponseAttributes } from '../../../../src/ai/openai/utils';
@@ -78,17 +89,17 @@ describe.each(['openai chat', 'openai responses', 'google'] as const)('cache usa
       }
 
       expect(attributes).toEqual({
-        'gen_ai.usage.input_tokens': 2600,
-        'gen_ai.usage.output_tokens': 120,
-        'gen_ai.usage.total_tokens': 2720,
-        ...(cacheRead === undefined ? {} : { 'gen_ai.usage.cache_read.input_tokens': cacheRead }),
+        [GEN_AI_USAGE_INPUT_TOKENS]: 2600,
+        [GEN_AI_USAGE_OUTPUT_TOKENS]: 120,
+        [GEN_AI_USAGE_TOTAL_TOKENS]: 2720,
+        ...(cacheRead === undefined ? {} : { [GEN_AI_USAGE_CACHE_READ_INPUT_TOKENS]: cacheRead }),
         ...(provider === 'google' || cacheWrite === undefined
           ? {}
-          : { 'gen_ai.usage.cache_creation.input_tokens': cacheWrite }),
+          : { [GEN_AI_USAGE_CACHE_CREATION_INPUT_TOKENS]: cacheWrite }),
         ...(provider === 'google'
           ? {}
-          : { 'gen_ai.response.id': 'response_cache_usage', 'gen_ai.response.model': 'gpt-4o' }),
-        ...(mode === 'response' ? {} : { 'gen_ai.response.streaming': true }),
+          : { [GEN_AI_RESPONSE_ID]: 'response_cache_usage', [GEN_AI_RESPONSE_MODEL]: 'gpt-4o' }),
+        ...(mode === 'response' ? {} : { [GEN_AI_RESPONSE_STREAMING]: true }),
       });
     });
   });
@@ -164,12 +175,12 @@ describe.each(['response', 'stream'] as const)('Google reasoning usage (%s)', mo
     }
 
     expect(attributes).toEqual({
-      'gen_ai.usage.input_tokens': 2600,
-      'gen_ai.usage.cache_read.input_tokens': 2048,
-      'gen_ai.usage.output_tokens': output,
-      'gen_ai.usage.reasoning.output_tokens': thoughts,
-      'gen_ai.usage.total_tokens': expectedTotal,
-      ...(mode === 'stream' ? { 'gen_ai.response.streaming': true } : {}),
+      [GEN_AI_USAGE_INPUT_TOKENS]: 2600,
+      [GEN_AI_USAGE_CACHE_READ_INPUT_TOKENS]: 2048,
+      [GEN_AI_USAGE_OUTPUT_TOKENS]: output,
+      [GEN_AI_USAGE_REASONING_OUTPUT_TOKENS]: thoughts,
+      [GEN_AI_USAGE_TOTAL_TOKENS]: expectedTotal,
+      ...(mode === 'stream' ? { [GEN_AI_RESPONSE_STREAMING]: true } : {}),
     });
   });
 });
