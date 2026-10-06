@@ -28,4 +28,5 @@ test('propagates the trace to an outgoing fetch', async ({ request }) => {
     .toBeDefined();
   const serverSpan = streamedSpans.find(span => span.is_segment && span.trace_id === traceId && !span.parent_span_id)!;
   expect(getSpanOp(serverSpan)).toBe('http.server');
+  expect(serverSpan.name).toBe('GET /performance/outgoing-fetch');
 });
