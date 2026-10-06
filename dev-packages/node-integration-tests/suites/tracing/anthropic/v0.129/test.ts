@@ -18,9 +18,10 @@ describe('Anthropic integration (0.129)', () => {
     (createRunner, test) => {
       test('emits one span for messages.stream(), not a second one for its internal create', async () => {
         await createRunner()
-          .expect({ transaction: { transaction: 'main' } })
           .expect({
             span: container => {
+              const segment = container.items.find(span => span.is_segment && span.name === 'main');
+              expect(segment).toBeDefined();
               const streamingSpans = container.items.filter(
                 span => span.attributes[GEN_AI_RESPONSE_ID]?.value === 'msg_stream_1',
               );
@@ -48,7 +49,7 @@ describe('Anthropic integration (0.129)', () => {
   createEsmAndCjsTests(
     __dirname,
     'scenario-beta-stream-helpers.mjs',
-    'instrument-default-lifecycle.mjs',
+    'instrument.mjs',
     (createRunner, test) => {
       test('emits one span each for beta.messages.stream() and the eager streaming tool runner', async () => {
         await createRunner()
