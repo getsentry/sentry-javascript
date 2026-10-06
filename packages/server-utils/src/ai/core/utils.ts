@@ -136,19 +136,6 @@ export function getTokenUsageAttributes(
   return attributes;
 }
 
-/** Set inclusive token usage and cache breakdown attributes. */
-export function setTokenUsageAttributes(
-  span: Span,
-  promptTokens?: number,
-  completionTokens?: number,
-  cacheCreationInputTokens?: number,
-  cacheReadInputTokens?: number,
-): void {
-  span.setAttributes(
-    getTokenUsageAttributes(promptTokens, completionTokens, cacheCreationInputTokens, cacheReadInputTokens),
-  );
-}
-
 /** One assistant turn for {@link setOutputMessagesAttribute}. */
 export interface GenAiOutputMessage {
   /** The message's text content, already flattened out of any content-part array. */

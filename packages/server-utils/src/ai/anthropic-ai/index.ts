@@ -21,8 +21,8 @@ import { GEN_AI_REQUEST_STREAM_ATTRIBUTE } from '../core/gen-ai-attributes';
 import type { InstrumentedMethodEntry } from '../core/utils';
 import {
   getGenAiSpanOp,
+  getTokenUsageAttributes,
   resolveAIRecordingOptions,
-  setTokenUsageAttributes,
   wrapPromiseWithMethods,
 } from '../core/utils';
 import { ANTHROPIC_METHOD_REGISTRY } from './constants';
@@ -125,14 +125,15 @@ function addMetadataAttributes(span: Span, response: AnthropicAiResponse): void 
     });
 
     if ('usage' in response && response.usage) {
-      setTokenUsageAttributes(
-        span,
-        response.usage.input_tokens +
-          (response.usage.cache_creation_input_tokens ?? 0) +
-          (response.usage.cache_read_input_tokens ?? 0),
-        response.usage.output_tokens,
-        response.usage.cache_creation_input_tokens,
-        response.usage.cache_read_input_tokens,
+      span.setAttributes(
+        getTokenUsageAttributes(
+          response.usage.input_tokens +
+            (response.usage.cache_creation_input_tokens ?? 0) +
+            (response.usage.cache_read_input_tokens ?? 0),
+          response.usage.output_tokens,
+          response.usage.cache_creation_input_tokens,
+          response.usage.cache_read_input_tokens,
+        ),
       );
     }
   }

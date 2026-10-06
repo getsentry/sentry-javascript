@@ -23,8 +23,8 @@ import { GEN_AI_REQUEST_STREAM_ATTRIBUTE } from '../core/gen-ai-attributes';
 import {
   extractSystemInstructions,
   getGenAiSpanOp,
+  getTokenUsageAttributes,
   setOutputMessagesAttribute,
-  setTokenUsageAttributes,
 } from '../core/utils';
 import { addResponseAttributes as addEvaluateResponseAttributes, getEvaluationInputMessages } from '../typesafe';
 // Re-exported so `workers-ai/streaming.ts` keeps importing it from this module.
@@ -173,7 +173,7 @@ export function addResponseAttributes(
   const response = result as WorkersAiOutput;
 
   if (response.usage) {
-    setTokenUsageAttributes(span, response.usage.prompt_tokens, response.usage.completion_tokens);
+    span.setAttributes(getTokenUsageAttributes(response.usage.prompt_tokens, response.usage.completion_tokens));
   }
 
   if (recordOutputs) {
