@@ -282,6 +282,32 @@ conditionalTest({ min: 22 })('Mastra integration', () => {
 
   createEsmAndCjsTests(
     __dirname,
+    'scenario-classifier-error.mjs',
+    'instrument-with-pii.mjs',
+    (createRunner, test) => {
+      test('ends a failed classifier evaluation span with an error status', async () => {
+        await createRunner()
+          .ignore('event')
+          .expect({ transaction: { transaction: 'mastra-test' } })
+          .expect({
+            span: container => {
+              expect(container.items.map(span => span.name)).toEqual(['evaluate jev-latest']);
+
+              const evaluateSpan = container.items[0]!;
+              expect(evaluateSpan.status).toBe('error');
+              expect(evaluateSpan.attributes[GEN_AI_INPUT_MESSAGES].value).toContain('I was charged twice.');
+              expect(evaluateSpan.attributes[GEN_AI_OUTPUT_MESSAGES]).toBeUndefined();
+            },
+          })
+          .start()
+          .completed();
+      });
+    },
+    MASTRA_CLASSIFIER_DEPENDENCIES,
+  );
+
+  createEsmAndCjsTests(
+    __dirname,
     'scenario-auto.mjs',
     'instrument.mjs',
     (createRunner, test) => {
