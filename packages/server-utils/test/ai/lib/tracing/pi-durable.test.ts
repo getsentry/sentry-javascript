@@ -662,7 +662,7 @@ describe('instrumentPiDurableHarnessOptions', () => {
       expect(events[0]?.exception?.values?.[0]?.mechanism).toEqual({ type: 'auto.ai.pi_durable', handled: false });
     });
 
-    it('does not link a conversation to the failed tool call that created it', async () => {
+    it('links a conversation to the failed tool call that created it', async () => {
       const runs = createRuns();
       const tool = instrumentTool(
         {
@@ -689,7 +689,11 @@ describe('instrumentPiDurableHarnessOptions', () => {
 
       await expect(tool.execute({}, api, undefined)).rejects.toThrow('delegation failed');
 
-      expect(spanToJSON(startRun(42, runs).span).parent_span_id).toBeUndefined();
+      const call = spanToJSON(endedSpans[0]!);
+      expect(spanToJSON(startRun(42, runs).span)).toMatchObject({
+        trace_id: call.trace_id,
+        parent_span_id: call.span_id,
+      });
     });
 
     it('marks an aborted call as cancelled and captures nothing', async () => {

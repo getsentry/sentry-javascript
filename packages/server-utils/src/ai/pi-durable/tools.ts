@@ -1,7 +1,6 @@
 import type { Span } from '@sentry/core';
 import {
   captureException,
-  derefWeakRef,
   isObjectLike,
   makeWeakRef,
   SPAN_STATUS_ERROR,
@@ -145,7 +144,6 @@ export function instrumentTool(tool: PiTool, runs: PiRuns, options: GenAiOptions
         } catch (error) {
           call.endTimestamp = timestampInSeconds();
           call.failed = true;
-          forgetOwnedConversations(span, runs);
           // pi-durable turns the throw into an error result for the model, so the app never gets a
           // chance to handle it. An aborted call is not a failure.
           if ((context as { abortSignal?: AbortSignal } | undefined)?.abortSignal?.aborted) {
@@ -209,18 +207,6 @@ function observeToolResultEntries(tx: object, committed: PiToolResultMessage[]):
       };
     },
   });
-}
-
-/**
- * Drop the conversations a failed tool call created for itself, so their entries are not kept until
- * a run of them starts, which may never happen.
- */
-function forgetOwnedConversations(span: Span, runs: PiRuns): void {
-  for (const [conversationId, owner] of runs.owners) {
-    if (derefWeakRef(owner.span) === span) {
-      runs.owners.delete(conversationId);
-    }
-  }
 }
 
 /**
