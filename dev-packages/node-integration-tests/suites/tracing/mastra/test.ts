@@ -55,66 +55,66 @@ conditionalTest({ min: 22 })('Mastra integration', () => {
     'instrument.mjs',
     (createRunner, test) => {
       test('creates invoke_agent and chat spans following the gen_ai conventions', async () => {
-        const allSpans: SerializedStreamedSpanContainer['items'] = [];
+        let receivedSpans: SerializedStreamedSpanContainer['items'] = [];
 
         await createRunner()
           .unordered()
           .expect({
             span: container => {
-              allSpans.push(...container.items);
-              const segment = allSpans.find(span => span.is_segment && span.name === 'mastra-test');
-              expect(segment).toBeDefined();
-              const spans = allSpans.filter(span => span.attributes[SENTRY_ORIGIN]?.value === 'auto.ai.mastra');
-              expect(spans.map(span => span.name).sort()).toEqual(['chat gpt-4o-mini', 'invoke_agent weather_agent']);
-
-              const agentSpan = spans.find(span => span.name === 'invoke_agent weather_agent')!;
-              expect(agentSpan.status).toBe('ok');
-              expect(agentSpan.attributes[SENTRY_OP].value).toBe('gen_ai.invoke_agent');
-              expect(agentSpan.attributes[SENTRY_ORIGIN].value).toBe('auto.ai.mastra');
-              expect(agentSpan.attributes[GEN_AI_OPERATION_NAME].value).toBe('invoke_agent');
-              expect(agentSpan.attributes[GEN_AI_AGENT_NAME].value).toBe('weather_agent');
-              expect(agentSpan.attributes[GEN_AI_PIPELINE_NAME].value).toBe('weather_agent');
-              expect(agentSpan.attributes[GEN_AI_USAGE_INPUT_TOKENS].value).toBe(12);
-              expect(agentSpan.attributes[GEN_AI_USAGE_OUTPUT_TOKENS].value).toBe(7);
-              expect(agentSpan.attributes[GEN_AI_USAGE_TOTAL_TOKENS].value).toBe(19);
-              expect(agentSpan.attributes[GEN_AI_RESPONSE_MODEL].value).toBe('gpt-4o-mini');
-
-              const chatSpan = spans.find(span => span.name === 'chat gpt-4o-mini')!;
-              expect(chatSpan.status).toBe('ok');
-              expect(chatSpan.attributes[SENTRY_OP].value).toBe('gen_ai.chat');
-              expect(chatSpan.attributes[SENTRY_ORIGIN].value).toBe('auto.ai.mastra');
-              expect(chatSpan.attributes[GEN_AI_OPERATION_NAME].value).toBe('chat');
-              expect(chatSpan.attributes[GEN_AI_REQUEST_MODEL].value).toBe('gpt-4o-mini');
-              expect(chatSpan.attributes[GEN_AI_PROVIDER_NAME].value).toBe('openai');
-              expect(chatSpan.attributes[GEN_AI_USAGE_TOTAL_TOKENS].value).toBe(19);
-
-              expect(chatSpan.parent_span_id).toBe(agentSpan.span_id);
+              expect(container.items.find(span => span.is_segment && span.name === 'mastra-test')).toBeDefined();
+              receivedSpans = container.items;
             },
           })
           .start()
           .completed();
+
+        const spans = receivedSpans.filter(span => span.attributes[SENTRY_ORIGIN]?.value === 'auto.ai.mastra');
+        expect(spans.map(span => span.name).sort()).toEqual(['chat gpt-4o-mini', 'invoke_agent weather_agent']);
+
+        const agentSpan = spans.find(span => span.name === 'invoke_agent weather_agent')!;
+        expect(agentSpan.status).toBe('ok');
+        expect(agentSpan.attributes[SENTRY_OP].value).toBe('gen_ai.invoke_agent');
+        expect(agentSpan.attributes[SENTRY_ORIGIN].value).toBe('auto.ai.mastra');
+        expect(agentSpan.attributes[GEN_AI_OPERATION_NAME].value).toBe('invoke_agent');
+        expect(agentSpan.attributes[GEN_AI_AGENT_NAME].value).toBe('weather_agent');
+        expect(agentSpan.attributes[GEN_AI_PIPELINE_NAME].value).toBe('weather_agent');
+        expect(agentSpan.attributes[GEN_AI_USAGE_INPUT_TOKENS].value).toBe(12);
+        expect(agentSpan.attributes[GEN_AI_USAGE_OUTPUT_TOKENS].value).toBe(7);
+        expect(agentSpan.attributes[GEN_AI_USAGE_TOTAL_TOKENS].value).toBe(19);
+        expect(agentSpan.attributes[GEN_AI_RESPONSE_MODEL].value).toBe('gpt-4o-mini');
+
+        const chatSpan = spans.find(span => span.name === 'chat gpt-4o-mini')!;
+        expect(chatSpan.status).toBe('ok');
+        expect(chatSpan.attributes[SENTRY_OP].value).toBe('gen_ai.chat');
+        expect(chatSpan.attributes[SENTRY_ORIGIN].value).toBe('auto.ai.mastra');
+        expect(chatSpan.attributes[GEN_AI_OPERATION_NAME].value).toBe('chat');
+        expect(chatSpan.attributes[GEN_AI_REQUEST_MODEL].value).toBe('gpt-4o-mini');
+        expect(chatSpan.attributes[GEN_AI_PROVIDER_NAME].value).toBe('openai');
+        expect(chatSpan.attributes[GEN_AI_USAGE_TOTAL_TOKENS].value).toBe(19);
+
+        expect(chatSpan.parent_span_id).toBe(agentSpan.span_id);
       });
 
       test('omits prompts and responses when genAI recording is off', async () => {
-        const allSpans: SerializedStreamedSpanContainer['items'] = [];
+        let receivedSpans: SerializedStreamedSpanContainer['items'] = [];
 
         await createRunner()
           .unordered()
           .expect({
             span: container => {
-              allSpans.push(...container.items);
-              const segment = allSpans.find(span => span.is_segment && span.name === 'mastra-test');
-              expect(segment).toBeDefined();
-              const spans = allSpans.filter(span => span.attributes[SENTRY_ORIGIN]?.value === 'auto.ai.mastra');
-              for (const span of spans) {
-                expect(span.attributes[GEN_AI_INPUT_MESSAGES]).toBeUndefined();
-                expect(span.attributes[GEN_AI_OUTPUT_MESSAGES]).toBeUndefined();
-                expect(span.attributes[GEN_AI_SYSTEM_INSTRUCTIONS]).toBeUndefined();
-              }
+              expect(container.items.find(span => span.is_segment && span.name === 'mastra-test')).toBeDefined();
+              receivedSpans = container.items;
             },
           })
           .start()
           .completed();
+
+        const spans = receivedSpans.filter(span => span.attributes[SENTRY_ORIGIN]?.value === 'auto.ai.mastra');
+        for (const span of spans) {
+          expect(span.attributes[GEN_AI_INPUT_MESSAGES]).toBeUndefined();
+          expect(span.attributes[GEN_AI_OUTPUT_MESSAGES]).toBeUndefined();
+          expect(span.attributes[GEN_AI_SYSTEM_INSTRUCTIONS]).toBeUndefined();
+        }
       });
     },
     MASTRA_DEPENDENCIES,
@@ -126,28 +126,28 @@ conditionalTest({ min: 22 })('Mastra integration', () => {
     'instrument-with-pii.mjs',
     (createRunner, test) => {
       test('records prompts and responses when genAI recording is on', async () => {
-        const allSpans: SerializedStreamedSpanContainer['items'] = [];
+        let receivedSpans: SerializedStreamedSpanContainer['items'] = [];
 
         await createRunner()
           .unordered()
           .expect({
             span: container => {
-              allSpans.push(...container.items);
-              const segment = allSpans.find(span => span.is_segment && span.name === 'mastra-test');
-              expect(segment).toBeDefined();
-              const spans = allSpans.filter(span => span.attributes[SENTRY_ORIGIN]?.value === 'auto.ai.mastra');
-              const agentSpan = spans.find(span => span.name === 'invoke_agent weather_agent')!;
-              expect(agentSpan.attributes[GEN_AI_SYSTEM_INSTRUCTIONS].value).toBe('You report the weather.');
-              expect(agentSpan.attributes[GEN_AI_INPUT_MESSAGES].value).toContain('What is the weather in Berlin?');
-              expect(agentSpan.attributes[GEN_AI_OUTPUT_MESSAGES].value).toContain('It is 22C in Berlin.');
-
-              const chatSpan = spans.find(span => span.name === 'chat gpt-4o-mini')!;
-              expect(chatSpan.attributes[GEN_AI_INPUT_MESSAGES].value).toContain('What is the weather in Berlin?');
-              expect(chatSpan.attributes[GEN_AI_OUTPUT_MESSAGES].value).toContain('It is 22C in Berlin.');
+              expect(container.items.find(span => span.is_segment && span.name === 'mastra-test')).toBeDefined();
+              receivedSpans = container.items;
             },
           })
           .start()
           .completed();
+
+        const spans = receivedSpans.filter(span => span.attributes[SENTRY_ORIGIN]?.value === 'auto.ai.mastra');
+        const agentSpan = spans.find(span => span.name === 'invoke_agent weather_agent')!;
+        expect(agentSpan.attributes[GEN_AI_SYSTEM_INSTRUCTIONS].value).toBe('You report the weather.');
+        expect(agentSpan.attributes[GEN_AI_INPUT_MESSAGES].value).toContain('What is the weather in Berlin?');
+        expect(agentSpan.attributes[GEN_AI_OUTPUT_MESSAGES].value).toContain('It is 22C in Berlin.');
+
+        const chatSpan = spans.find(span => span.name === 'chat gpt-4o-mini')!;
+        expect(chatSpan.attributes[GEN_AI_INPUT_MESSAGES].value).toContain('What is the weather in Berlin?');
+        expect(chatSpan.attributes[GEN_AI_OUTPUT_MESSAGES].value).toContain('It is 22C in Berlin.');
       });
     },
     MASTRA_DEPENDENCIES,
@@ -159,43 +159,43 @@ conditionalTest({ min: 22 })('Mastra integration', () => {
     'instrument-with-pii.mjs',
     (createRunner, test) => {
       test('creates an execute_tool span parented onto the generation', async () => {
-        const allSpans: SerializedStreamedSpanContainer['items'] = [];
+        let receivedSpans: SerializedStreamedSpanContainer['items'] = [];
 
         await createRunner()
           .unordered()
           .expect({
             span: container => {
-              allSpans.push(...container.items);
-              const segment = allSpans.find(span => span.is_segment && span.name === 'mastra-test');
-              expect(segment).toBeDefined();
-              const spans = allSpans.filter(span => span.attributes[SENTRY_ORIGIN]?.value === 'auto.ai.mastra');
-              expect(spans.map(span => span.name).sort()).toEqual([
-                'chat gpt-4o-mini',
-                'execute_tool get_weather',
-                'invoke_agent weather_agent',
-              ]);
-
-              const toolSpan = spans.find(span => span.name === 'execute_tool get_weather')!;
-              expect(toolSpan.status).toBe('ok');
-              expect(toolSpan.attributes[SENTRY_OP].value).toBe('gen_ai.execute_tool');
-              expect(toolSpan.attributes[SENTRY_ORIGIN].value).toBe('auto.ai.mastra');
-              expect(toolSpan.attributes[GEN_AI_OPERATION_NAME].value).toBe('execute_tool');
-              expect(toolSpan.attributes[GEN_AI_TOOL_NAME].value).toBe('get_weather');
-              expect(toolSpan.attributes[GEN_AI_TOOL_CALL_ARGUMENTS].value).toContain('Berlin');
-              expect(toolSpan.attributes[GEN_AI_TOOL_CALL_RESULT].value).toContain('22');
-
-              const chatSpan = spans.find(span => span.name === 'chat gpt-4o-mini')!;
-              expect(toolSpan.parent_span_id).toBe(chatSpan.span_id);
-
-              const agentSpan = spans.find(span => span.name === 'invoke_agent weather_agent')!;
-              expect(agentSpan.attributes[GEN_AI_TOOL_DEFINITIONS].value).toContain('get_weather');
-              expect(agentSpan.attributes[GEN_AI_USAGE_INPUT_TOKENS].value).toBe(50);
-              expect(agentSpan.attributes[GEN_AI_USAGE_OUTPUT_TOKENS].value).toBe(13);
-              expect(agentSpan.attributes[GEN_AI_USAGE_TOTAL_TOKENS].value).toBe(63);
+              expect(container.items.find(span => span.is_segment && span.name === 'mastra-test')).toBeDefined();
+              receivedSpans = container.items;
             },
           })
           .start()
           .completed();
+
+        const spans = receivedSpans.filter(span => span.attributes[SENTRY_ORIGIN]?.value === 'auto.ai.mastra');
+        expect(spans.map(span => span.name).sort()).toEqual([
+          'chat gpt-4o-mini',
+          'execute_tool get_weather',
+          'invoke_agent weather_agent',
+        ]);
+
+        const toolSpan = spans.find(span => span.name === 'execute_tool get_weather')!;
+        expect(toolSpan.status).toBe('ok');
+        expect(toolSpan.attributes[SENTRY_OP].value).toBe('gen_ai.execute_tool');
+        expect(toolSpan.attributes[SENTRY_ORIGIN].value).toBe('auto.ai.mastra');
+        expect(toolSpan.attributes[GEN_AI_OPERATION_NAME].value).toBe('execute_tool');
+        expect(toolSpan.attributes[GEN_AI_TOOL_NAME].value).toBe('get_weather');
+        expect(toolSpan.attributes[GEN_AI_TOOL_CALL_ARGUMENTS].value).toContain('Berlin');
+        expect(toolSpan.attributes[GEN_AI_TOOL_CALL_RESULT].value).toContain('22');
+
+        const chatSpan = spans.find(span => span.name === 'chat gpt-4o-mini')!;
+        expect(toolSpan.parent_span_id).toBe(chatSpan.span_id);
+
+        const agentSpan = spans.find(span => span.name === 'invoke_agent weather_agent')!;
+        expect(agentSpan.attributes[GEN_AI_TOOL_DEFINITIONS].value).toContain('get_weather');
+        expect(agentSpan.attributes[GEN_AI_USAGE_INPUT_TOKENS].value).toBe(50);
+        expect(agentSpan.attributes[GEN_AI_USAGE_OUTPUT_TOKENS].value).toBe(13);
+        expect(agentSpan.attributes[GEN_AI_USAGE_TOTAL_TOKENS].value).toBe(63);
       });
     },
     MASTRA_DEPENDENCIES,
@@ -233,24 +233,24 @@ conditionalTest({ min: 22 })('Mastra integration', () => {
     'instrument.mjs',
     (createRunner, test) => {
       test('auto-instruments a Mastra app that configured no observability at all', async () => {
-        const allSpans: SerializedStreamedSpanContainer['items'] = [];
+        let receivedSpans: SerializedStreamedSpanContainer['items'] = [];
 
         await createRunner()
           .unordered()
           .expect({
             span: container => {
-              allSpans.push(...container.items);
-              const segment = allSpans.find(span => span.is_segment && span.name === 'mastra-test');
-              expect(segment).toBeDefined();
-              const spans = allSpans.filter(span => span.attributes[SENTRY_ORIGIN]?.value === 'auto.ai.mastra');
-              expect(spans.map(span => span.name).sort()).toEqual(['chat gpt-4o-mini', 'invoke_agent weather_agent']);
-              for (const span of spans) {
-                expect(span.attributes[SENTRY_ORIGIN].value).toBe('auto.ai.mastra');
-              }
+              expect(container.items.find(span => span.is_segment && span.name === 'mastra-test')).toBeDefined();
+              receivedSpans = container.items;
             },
           })
           .start()
           .completed();
+
+        const spans = receivedSpans.filter(span => span.attributes[SENTRY_ORIGIN]?.value === 'auto.ai.mastra');
+        expect(spans.map(span => span.name).sort()).toEqual(['chat gpt-4o-mini', 'invoke_agent weather_agent']);
+        for (const span of spans) {
+          expect(span.attributes[SENTRY_ORIGIN].value).toBe('auto.ai.mastra');
+        }
       });
     },
     MASTRA_DEPENDENCIES,
@@ -262,21 +262,21 @@ conditionalTest({ min: 22 })('Mastra integration', () => {
     'instrument.mjs',
     (createRunner, test) => {
       test('still exports its own spans when the community @mastra/sentry exporter is present', async () => {
-        const allSpans: SerializedStreamedSpanContainer['items'] = [];
+        let receivedSpans: SerializedStreamedSpanContainer['items'] = [];
 
         await createRunner()
           .unordered()
           .expect({
             span: container => {
-              allSpans.push(...container.items);
-              const segment = allSpans.find(span => span.is_segment && span.name === 'mastra-test');
-              expect(segment).toBeDefined();
-              const spans = allSpans.filter(span => span.attributes[SENTRY_ORIGIN]?.value === 'auto.ai.mastra');
-              expect(spans.map(span => span.name).sort()).toEqual(['chat gpt-4o-mini', 'invoke_agent weather_agent']);
+              expect(container.items.find(span => span.is_segment && span.name === 'mastra-test')).toBeDefined();
+              receivedSpans = container.items;
             },
           })
           .start()
           .completed();
+
+        const spans = receivedSpans.filter(span => span.attributes[SENTRY_ORIGIN]?.value === 'auto.ai.mastra');
+        expect(spans.map(span => span.name).sort()).toEqual(['chat gpt-4o-mini', 'invoke_agent weather_agent']);
       });
     },
     MASTRA_DEPENDENCIES,
@@ -287,23 +287,23 @@ conditionalTest({ min: 22 })('Mastra integration', () => {
     'instrument-no-bootstrap.mjs',
     (createRunner, test) => {
       test('leaves an unconfigured app alone when bootstrapObservability is false', async () => {
-        const allSpans: SerializedStreamedSpanContainer['items'] = [];
+        let receivedSpans: SerializedStreamedSpanContainer['items'] = [];
 
         await createRunner()
           .unordered()
           .expect({
             span: container => {
-              allSpans.push(...container.items);
-              const segment = allSpans.find(span => span.is_segment && span.name === 'mastra-test');
-              expect(segment).toBeDefined();
-              const genAiSpans = allSpans.filter(span =>
-                String(span.attributes[SENTRY_OP]?.value ?? '').startsWith('gen_ai.'),
-              );
-              expect(genAiSpans).toEqual([]);
+              expect(container.items.find(span => span.is_segment && span.name === 'mastra-test')).toBeDefined();
+              receivedSpans = container.items;
             },
           })
           .start()
           .completed();
+
+        const genAiSpans = receivedSpans.filter(span =>
+          String(span.attributes[SENTRY_OP]?.value ?? '').startsWith('gen_ai.'),
+        );
+        expect(genAiSpans).toEqual([]);
       });
     },
     MASTRA_DEPENDENCIES,
@@ -315,7 +315,7 @@ conditionalTest({ min: 22 })('Mastra integration', () => {
     'instrument.mjs',
     (createRunner, test) => {
       test('nests the model fetch and tool work under the exporter spans', async () => {
-        const allSpans: SerializedStreamedSpanContainer['items'] = [];
+        let receivedSpans: SerializedStreamedSpanContainer['items'] = [];
 
         let chatSpanId: string | undefined;
         let executeToolSpanId: string | undefined;
@@ -326,38 +326,37 @@ conditionalTest({ min: 22 })('Mastra integration', () => {
           .unordered()
           .expect({
             span: container => {
-              allSpans.push(...container.items);
-              const segment = allSpans.find(span => span.is_segment && span.name === 'mastra-test');
-              expect(segment).toBeDefined();
-              // The model-provider requests Mastra makes for each step.
-              const modelFetches = allSpans.filter(
-                span =>
-                  span.attributes[SENTRY_OP]?.value === 'http.client' &&
-                  String(span.attributes[URL_FULL]?.value ?? '').includes('/v1/chat/completions'),
-              );
-              expect(modelFetches.length).toBeGreaterThan(0);
-              modelFetchParentIds = modelFetches.map(span => span.parent_span_id);
-
-              // The per-key `dataloader.load` spans opened while the tool runs. (dataloader also emits a
-              // `dataloader.batch` span nested under a load — its own internal structure.)
-              const loadSpans = allSpans.filter(
-                span =>
-                  span.attributes[SENTRY_OP]?.value === 'cache.get' &&
-                  span.attributes[DB_OPERATION_NAME]?.value === 'load',
-              );
-              expect(loadSpans.length).toBeGreaterThan(0);
-              cacheGetParentIds = loadSpans.map(span => span.parent_span_id);
-              const chat = allSpans.find(span => span.attributes[SENTRY_OP]?.value === 'gen_ai.chat')!;
-              expect(chat).toBeDefined();
-              chatSpanId = chat.span_id;
-
-              const executeTool = allSpans.find(span => span.attributes[GEN_AI_TOOL_NAME]?.value === 'count_items')!;
-              expect(executeTool.attributes[SENTRY_OP]?.value).toBe('gen_ai.execute_tool');
-              executeToolSpanId = executeTool.span_id;
+              expect(container.items.find(span => span.is_segment && span.name === 'mastra-test')).toBeDefined();
+              receivedSpans = container.items;
             },
           })
           .start()
           .completed();
+
+        // The model-provider requests Mastra makes for each step.
+        const modelFetches = receivedSpans.filter(
+          span =>
+            span.attributes[SENTRY_OP]?.value === 'http.client' &&
+            String(span.attributes[URL_FULL]?.value ?? '').includes('/v1/chat/completions'),
+        );
+        expect(modelFetches.length).toBeGreaterThan(0);
+        modelFetchParentIds = modelFetches.map(span => span.parent_span_id);
+
+        // The per-key `dataloader.load` spans opened while the tool runs. (dataloader also emits a
+        // `dataloader.batch` span nested under a load — its own internal structure.)
+        const loadSpans = receivedSpans.filter(
+          span =>
+            span.attributes[SENTRY_OP]?.value === 'cache.get' && span.attributes[DB_OPERATION_NAME]?.value === 'load',
+        );
+        expect(loadSpans.length).toBeGreaterThan(0);
+        cacheGetParentIds = loadSpans.map(span => span.parent_span_id);
+        const chat = receivedSpans.find(span => span.attributes[SENTRY_OP]?.value === 'gen_ai.chat')!;
+        expect(chat).toBeDefined();
+        chatSpanId = chat.span_id;
+
+        const executeTool = receivedSpans.find(span => span.attributes[GEN_AI_TOOL_NAME]?.value === 'count_items')!;
+        expect(executeTool.attributes[SENTRY_OP]?.value).toBe('gen_ai.execute_tool');
+        executeToolSpanId = executeTool.span_id;
 
         // The `executeWithContext` bridge makes the exporter spans active during the real work, so the
         // model fetch parents onto the `chat` span and the dataloader loads onto `execute_tool`.
@@ -378,7 +377,7 @@ conditionalTest({ min: 22 })('Mastra integration', () => {
       test('nests the model fetch and tool work under the exporter spans when streaming', async () => {
         // Same nesting guarantee as `generate`, but the agent is driven via `stream()` — the model
         // request is a real streaming (SSE) call, and the tool still runs inside `executeWithContext`.
-        const allSpans: SerializedStreamedSpanContainer['items'] = [];
+        let receivedSpans: SerializedStreamedSpanContainer['items'] = [];
 
         let chatSpanId: string | undefined;
         let executeToolSpanId: string | undefined;
@@ -389,35 +388,34 @@ conditionalTest({ min: 22 })('Mastra integration', () => {
           .unordered()
           .expect({
             span: container => {
-              allSpans.push(...container.items);
-              const segment = allSpans.find(span => span.is_segment && span.name === 'mastra-test');
-              expect(segment).toBeDefined();
-              const modelFetches = allSpans.filter(
-                span =>
-                  span.attributes[SENTRY_OP]?.value === 'http.client' &&
-                  String(span.attributes[URL_FULL]?.value ?? '').includes('/v1/chat/completions'),
-              );
-              expect(modelFetches.length).toBeGreaterThan(0);
-              modelFetchParentIds = modelFetches.map(span => span.parent_span_id);
-
-              const loadSpans = allSpans.filter(
-                span =>
-                  span.attributes[SENTRY_OP]?.value === 'cache.get' &&
-                  span.attributes[DB_OPERATION_NAME]?.value === 'load',
-              );
-              expect(loadSpans.length).toBeGreaterThan(0);
-              cacheGetParentIds = loadSpans.map(span => span.parent_span_id);
-              const chat = allSpans.find(span => span.attributes[SENTRY_OP]?.value === 'gen_ai.chat')!;
-              expect(chat).toBeDefined();
-              chatSpanId = chat.span_id;
-
-              const executeTool = allSpans.find(span => span.attributes[GEN_AI_TOOL_NAME]?.value === 'count_items')!;
-              expect(executeTool.attributes[SENTRY_OP]?.value).toBe('gen_ai.execute_tool');
-              executeToolSpanId = executeTool.span_id;
+              expect(container.items.find(span => span.is_segment && span.name === 'mastra-test')).toBeDefined();
+              receivedSpans = container.items;
             },
           })
           .start()
           .completed();
+
+        const modelFetches = receivedSpans.filter(
+          span =>
+            span.attributes[SENTRY_OP]?.value === 'http.client' &&
+            String(span.attributes[URL_FULL]?.value ?? '').includes('/v1/chat/completions'),
+        );
+        expect(modelFetches.length).toBeGreaterThan(0);
+        modelFetchParentIds = modelFetches.map(span => span.parent_span_id);
+
+        const loadSpans = receivedSpans.filter(
+          span =>
+            span.attributes[SENTRY_OP]?.value === 'cache.get' && span.attributes[DB_OPERATION_NAME]?.value === 'load',
+        );
+        expect(loadSpans.length).toBeGreaterThan(0);
+        cacheGetParentIds = loadSpans.map(span => span.parent_span_id);
+        const chat = receivedSpans.find(span => span.attributes[SENTRY_OP]?.value === 'gen_ai.chat')!;
+        expect(chat).toBeDefined();
+        chatSpanId = chat.span_id;
+
+        const executeTool = receivedSpans.find(span => span.attributes[GEN_AI_TOOL_NAME]?.value === 'count_items')!;
+        expect(executeTool.attributes[SENTRY_OP]?.value).toBe('gen_ai.execute_tool');
+        executeToolSpanId = executeTool.span_id;
 
         expect(chatSpanId).toBeDefined();
         expect(executeToolSpanId).toBeDefined();
@@ -437,7 +435,7 @@ conditionalTest({ min: 22 })('Mastra integration', () => {
         // Two instances run concurrently in one trace. Each instance's `dataloader.load` must nest under
         // that instance's own `execute_tool` span — if the registry cross-talked, one tool span would
         // have no dataloader child.
-        const allSpans: SerializedStreamedSpanContainer['items'] = [];
+        let receivedSpans: SerializedStreamedSpanContainer['items'] = [];
 
         const toolSpanIds: Record<string, string> = {};
         let loadParentIds: (string | undefined)[] = [];
@@ -446,24 +444,23 @@ conditionalTest({ min: 22 })('Mastra integration', () => {
           .unordered()
           .expect({
             span: container => {
-              allSpans.push(...container.items);
-              const segment = allSpans.find(span => span.is_segment && span.name === 'mastra-multi');
-              expect(segment).toBeDefined();
-              const loadSpans = allSpans.filter(
-                span =>
-                  span.attributes[SENTRY_OP]?.value === 'cache.get' &&
-                  span.attributes[DB_OPERATION_NAME]?.value === 'load',
-              );
-              loadParentIds = loadSpans.map(span => span.parent_span_id);
-              for (const toolName of ['count_a', 'count_b']) {
-                const toolSpan = allSpans.find(span => span.attributes[GEN_AI_TOOL_NAME]?.value === toolName)!;
-                expect(toolSpan).toBeDefined();
-                toolSpanIds[toolName] = toolSpan.span_id;
-              }
+              expect(container.items.find(span => span.is_segment && span.name === 'mastra-multi')).toBeDefined();
+              receivedSpans = container.items;
             },
           })
           .start()
           .completed();
+
+        const loadSpans = receivedSpans.filter(
+          span =>
+            span.attributes[SENTRY_OP]?.value === 'cache.get' && span.attributes[DB_OPERATION_NAME]?.value === 'load',
+        );
+        loadParentIds = loadSpans.map(span => span.parent_span_id);
+        for (const toolName of ['count_a', 'count_b']) {
+          const toolSpan = receivedSpans.find(span => span.attributes[GEN_AI_TOOL_NAME]?.value === toolName)!;
+          expect(toolSpan).toBeDefined();
+          toolSpanIds[toolName] = toolSpan.span_id;
+        }
 
         // Each instance's tool span parents at least one dataloader load — neither is starved.
         for (const toolName of ['count_a', 'count_b']) {
