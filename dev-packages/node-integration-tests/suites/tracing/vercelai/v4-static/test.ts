@@ -276,7 +276,7 @@ describe('Vercel AI integration (v4)', () => {
             expect(firstGenerateContentSpan!.attributes['vercel.ai.operationId'].value).toBe(
               'ai.generateText.doGenerate',
             );
-            expect(firstGenerateContentSpan!.attributes[GEN_AI_INPUT_MESSAGES]).toBeDefined();
+            expect(firstGenerateContentSpan!.attributes[GEN_AI_INPUT_MESSAGES]?.value).toEqual(expect.any(String));
             expect(firstGenerateContentSpan!.attributes[GEN_AI_OUTPUT_MESSAGES]).toEqual({
               type: 'string',
               value:
@@ -400,8 +400,8 @@ describe('Vercel AI integration (v4)', () => {
             expect(toolExecutionSpan!.attributes[GEN_AI_TOOL_DESCRIPTION].value).toBe(
               'Get the current weather for a location',
             );
-            expect(toolExecutionSpan!.attributes[GEN_AI_TOOL_CALL_ARGUMENTS]).toBeDefined();
-            expect(toolExecutionSpan!.attributes[GEN_AI_TOOL_CALL_RESULT]).toBeDefined();
+            expect(toolExecutionSpan!.attributes[GEN_AI_TOOL_CALL_ARGUMENTS]?.value).toEqual(expect.any(String));
+            expect(toolExecutionSpan!.attributes[GEN_AI_TOOL_CALL_RESULT]?.value).toEqual(expect.any(String));
           },
         })
         .start()
