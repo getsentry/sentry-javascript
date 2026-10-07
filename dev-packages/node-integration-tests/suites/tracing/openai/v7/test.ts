@@ -123,45 +123,43 @@ conditionalTest({ min: 22 })('OpenAI integration (V7)', () => {
     'instrument.mjs',
     (createRunner, test) => {
       test('instruments the embeddings API on openai v7', async () => {
-        const allSpans: SerializedStreamedSpanContainer['items'] = [];
+        let receivedSpans: SerializedStreamedSpanContainer['items'] = [];
 
         await createRunner()
           .unordered()
           .ignore('event')
           .expect({
             span: container => {
-              allSpans.push(...container.items);
-              const segment = allSpans.find(span => span.is_segment && span.name === 'main');
-              expect(segment).toBeDefined();
-              const spans = allSpans.filter(span => span.attributes[SENTRY_ORIGIN]?.value === 'auto.ai.openai');
-              const embeddingSpans = spans.filter(
-                span => span.attributes[GEN_AI_OPERATION_NAME]?.value === 'embeddings',
-              );
-              expect(embeddingSpans).toHaveLength(3);
-
-              const singleEmbeddingSpan = embeddingSpans.find(
-                span => span.name === 'embeddings text-embedding-3-small' && span.status === 'ok',
-              );
-              expect(singleEmbeddingSpan!.attributes[SENTRY_OP]).toEqual({
-                type: 'string',
-                value: 'gen_ai.embeddings',
-              });
-              expect(singleEmbeddingSpan!.attributes[SENTRY_ORIGIN]).toEqual({
-                type: 'string',
-                value: 'auto.ai.openai',
-              });
-              expect(singleEmbeddingSpan!.attributes[GEN_AI_PROVIDER_NAME]).toEqual({
-                type: 'string',
-                value: 'openai',
-              });
-
-              const errorEmbeddingSpan = embeddingSpans.find(span => span.name === 'embeddings error-model');
-              expect(errorEmbeddingSpan).toBeDefined();
-              expect(errorEmbeddingSpan!.status).not.toBe('ok');
+              expect(container.items.find(span => span.is_segment && span.name === 'main')).toBeDefined();
+              receivedSpans = container.items;
             },
           })
           .start()
           .completed();
+
+        const spans = receivedSpans.filter(span => span.attributes[SENTRY_ORIGIN]?.value === 'auto.ai.openai');
+        const embeddingSpans = spans.filter(span => span.attributes[GEN_AI_OPERATION_NAME]?.value === 'embeddings');
+        expect(embeddingSpans).toHaveLength(3);
+
+        const singleEmbeddingSpan = embeddingSpans.find(
+          span => span.name === 'embeddings text-embedding-3-small' && span.status === 'ok',
+        );
+        expect(singleEmbeddingSpan!.attributes[SENTRY_OP]).toEqual({
+          type: 'string',
+          value: 'gen_ai.embeddings',
+        });
+        expect(singleEmbeddingSpan!.attributes[SENTRY_ORIGIN]).toEqual({
+          type: 'string',
+          value: 'auto.ai.openai',
+        });
+        expect(singleEmbeddingSpan!.attributes[GEN_AI_PROVIDER_NAME]).toEqual({
+          type: 'string',
+          value: 'openai',
+        });
+
+        const errorEmbeddingSpan = embeddingSpans.find(span => span.name === 'embeddings error-model');
+        expect(errorEmbeddingSpan).toBeDefined();
+        expect(errorEmbeddingSpan!.status).not.toBe('ok');
       });
     },
     {

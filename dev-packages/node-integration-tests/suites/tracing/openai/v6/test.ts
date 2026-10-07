@@ -761,129 +761,129 @@ describe('OpenAI integration (V6)', () => {
     'instrument.mjs',
     (createRunner, test) => {
       test('creates openai related spans with genAI recording disabled (v6)', async () => {
-        const allSpans: SerializedStreamedSpanContainer['items'] = [];
+        let receivedSpans: SerializedStreamedSpanContainer['items'] = [];
 
         await createRunner()
           .unordered()
           .expect({
             span: container => {
-              allSpans.push(...container.items);
-              const segment = allSpans.find(span => span.is_segment && span.name === 'main');
-              expect(segment).toBeDefined();
-              const spans = allSpans.filter(span => span.attributes[SENTRY_ORIGIN]?.value === 'auto.ai.openai');
-              expect(spans).toHaveLength(3);
-              const singleEmbeddingSpan = spans.find(
-                span =>
-                  span.name === 'embeddings text-embedding-3-small' &&
-                  span.attributes[GEN_AI_REQUEST_DIMENSIONS_ATTRIBUTE] !== undefined,
-              );
-              expect(singleEmbeddingSpan!.status).toBe('ok');
-              expect(singleEmbeddingSpan!.attributes[GEN_AI_OPERATION_NAME]).toEqual({
-                type: 'string',
-                value: 'embeddings',
-              });
-              expect(singleEmbeddingSpan!.attributes[SENTRY_OP]).toEqual({
-                type: 'string',
-                value: 'gen_ai.embeddings',
-              });
-              expect(singleEmbeddingSpan!.attributes[SENTRY_ORIGIN]).toEqual({
-                type: 'string',
-                value: 'auto.ai.openai',
-              });
-              expect(singleEmbeddingSpan!.attributes[GEN_AI_PROVIDER_NAME]).toEqual({
-                type: 'string',
-                value: 'openai',
-              });
-              expect(singleEmbeddingSpan!.attributes[GEN_AI_REQUEST_MODEL]).toEqual({
-                type: 'string',
-                value: 'text-embedding-3-small',
-              });
-              expect(singleEmbeddingSpan!.attributes[GEN_AI_REQUEST_ENCODING_FORMAT_ATTRIBUTE]).toEqual({
-                type: 'string',
-                value: 'float',
-              });
-              expect(singleEmbeddingSpan!.attributes[GEN_AI_REQUEST_DIMENSIONS_ATTRIBUTE]).toEqual({
-                type: 'integer',
-                value: 1536,
-              });
-              expect(singleEmbeddingSpan!.attributes[GEN_AI_RESPONSE_MODEL]).toEqual({
-                type: 'string',
-                value: 'text-embedding-3-small',
-              });
-              expect(singleEmbeddingSpan!.attributes[GEN_AI_USAGE_INPUT_TOKENS]).toEqual({
-                type: 'integer',
-                value: 10,
-              });
-              expect(singleEmbeddingSpan!.attributes[GEN_AI_USAGE_TOTAL_TOKENS]).toEqual({
-                type: 'integer',
-                value: 10,
-              });
-
-              const errorEmbeddingSpan = spans.find(span => span.name === 'embeddings error-model');
-              expect(errorEmbeddingSpan!.status).toBe('error');
-              expect(errorEmbeddingSpan!.attributes[GEN_AI_OPERATION_NAME]).toEqual({
-                type: 'string',
-                value: 'embeddings',
-              });
-              expect(errorEmbeddingSpan!.attributes[SENTRY_OP]).toEqual({
-                type: 'string',
-                value: 'gen_ai.embeddings',
-              });
-              expect(errorEmbeddingSpan!.attributes[SENTRY_ORIGIN]).toEqual({
-                type: 'string',
-                value: 'auto.ai.openai',
-              });
-              expect(errorEmbeddingSpan!.attributes[GEN_AI_PROVIDER_NAME]).toEqual({
-                type: 'string',
-                value: 'openai',
-              });
-              expect(errorEmbeddingSpan!.attributes[GEN_AI_REQUEST_MODEL]).toEqual({
-                type: 'string',
-                value: 'error-model',
-              });
-
-              const multiEmbeddingSpan = spans.find(
-                span =>
-                  span.name === 'embeddings text-embedding-3-small' &&
-                  span.attributes[GEN_AI_REQUEST_DIMENSIONS_ATTRIBUTE] === undefined,
-              );
-              expect(multiEmbeddingSpan!.status).toBe('ok');
-              expect(multiEmbeddingSpan!.attributes[GEN_AI_OPERATION_NAME]).toEqual({
-                type: 'string',
-                value: 'embeddings',
-              });
-              expect(multiEmbeddingSpan!.attributes[SENTRY_OP]).toEqual({
-                type: 'string',
-                value: 'gen_ai.embeddings',
-              });
-              expect(multiEmbeddingSpan!.attributes[SENTRY_ORIGIN]).toEqual({
-                type: 'string',
-                value: 'auto.ai.openai',
-              });
-              expect(multiEmbeddingSpan!.attributes[GEN_AI_PROVIDER_NAME]).toEqual({
-                type: 'string',
-                value: 'openai',
-              });
-              expect(multiEmbeddingSpan!.attributes[GEN_AI_REQUEST_MODEL]).toEqual({
-                type: 'string',
-                value: 'text-embedding-3-small',
-              });
-              expect(multiEmbeddingSpan!.attributes[GEN_AI_RESPONSE_MODEL]).toEqual({
-                type: 'string',
-                value: 'text-embedding-3-small',
-              });
-              expect(multiEmbeddingSpan!.attributes[GEN_AI_USAGE_INPUT_TOKENS]).toEqual({
-                type: 'integer',
-                value: 10,
-              });
-              expect(multiEmbeddingSpan!.attributes[GEN_AI_USAGE_TOTAL_TOKENS]).toEqual({
-                type: 'integer',
-                value: 10,
-              });
+              expect(container.items.find(span => span.is_segment && span.name === 'main')).toBeDefined();
+              receivedSpans = container.items;
             },
           })
           .start()
           .completed();
+
+        const spans = receivedSpans.filter(span => span.attributes[SENTRY_ORIGIN]?.value === 'auto.ai.openai');
+        expect(spans).toHaveLength(3);
+        const singleEmbeddingSpan = spans.find(
+          span =>
+            span.name === 'embeddings text-embedding-3-small' &&
+            span.attributes[GEN_AI_REQUEST_DIMENSIONS_ATTRIBUTE] !== undefined,
+        );
+        expect(singleEmbeddingSpan!.status).toBe('ok');
+        expect(singleEmbeddingSpan!.attributes[GEN_AI_OPERATION_NAME]).toEqual({
+          type: 'string',
+          value: 'embeddings',
+        });
+        expect(singleEmbeddingSpan!.attributes[SENTRY_OP]).toEqual({
+          type: 'string',
+          value: 'gen_ai.embeddings',
+        });
+        expect(singleEmbeddingSpan!.attributes[SENTRY_ORIGIN]).toEqual({
+          type: 'string',
+          value: 'auto.ai.openai',
+        });
+        expect(singleEmbeddingSpan!.attributes[GEN_AI_PROVIDER_NAME]).toEqual({
+          type: 'string',
+          value: 'openai',
+        });
+        expect(singleEmbeddingSpan!.attributes[GEN_AI_REQUEST_MODEL]).toEqual({
+          type: 'string',
+          value: 'text-embedding-3-small',
+        });
+        expect(singleEmbeddingSpan!.attributes[GEN_AI_REQUEST_ENCODING_FORMAT_ATTRIBUTE]).toEqual({
+          type: 'string',
+          value: 'float',
+        });
+        expect(singleEmbeddingSpan!.attributes[GEN_AI_REQUEST_DIMENSIONS_ATTRIBUTE]).toEqual({
+          type: 'integer',
+          value: 1536,
+        });
+        expect(singleEmbeddingSpan!.attributes[GEN_AI_RESPONSE_MODEL]).toEqual({
+          type: 'string',
+          value: 'text-embedding-3-small',
+        });
+        expect(singleEmbeddingSpan!.attributes[GEN_AI_USAGE_INPUT_TOKENS]).toEqual({
+          type: 'integer',
+          value: 10,
+        });
+        expect(singleEmbeddingSpan!.attributes[GEN_AI_USAGE_TOTAL_TOKENS]).toEqual({
+          type: 'integer',
+          value: 10,
+        });
+
+        const errorEmbeddingSpan = spans.find(span => span.name === 'embeddings error-model');
+        expect(errorEmbeddingSpan!.status).toBe('error');
+        expect(errorEmbeddingSpan!.attributes[GEN_AI_OPERATION_NAME]).toEqual({
+          type: 'string',
+          value: 'embeddings',
+        });
+        expect(errorEmbeddingSpan!.attributes[SENTRY_OP]).toEqual({
+          type: 'string',
+          value: 'gen_ai.embeddings',
+        });
+        expect(errorEmbeddingSpan!.attributes[SENTRY_ORIGIN]).toEqual({
+          type: 'string',
+          value: 'auto.ai.openai',
+        });
+        expect(errorEmbeddingSpan!.attributes[GEN_AI_PROVIDER_NAME]).toEqual({
+          type: 'string',
+          value: 'openai',
+        });
+        expect(errorEmbeddingSpan!.attributes[GEN_AI_REQUEST_MODEL]).toEqual({
+          type: 'string',
+          value: 'error-model',
+        });
+
+        const multiEmbeddingSpan = spans.find(
+          span =>
+            span.name === 'embeddings text-embedding-3-small' &&
+            span.attributes[GEN_AI_REQUEST_DIMENSIONS_ATTRIBUTE] === undefined,
+        );
+        expect(multiEmbeddingSpan!.status).toBe('ok');
+        expect(multiEmbeddingSpan!.attributes[GEN_AI_OPERATION_NAME]).toEqual({
+          type: 'string',
+          value: 'embeddings',
+        });
+        expect(multiEmbeddingSpan!.attributes[SENTRY_OP]).toEqual({
+          type: 'string',
+          value: 'gen_ai.embeddings',
+        });
+        expect(multiEmbeddingSpan!.attributes[SENTRY_ORIGIN]).toEqual({
+          type: 'string',
+          value: 'auto.ai.openai',
+        });
+        expect(multiEmbeddingSpan!.attributes[GEN_AI_PROVIDER_NAME]).toEqual({
+          type: 'string',
+          value: 'openai',
+        });
+        expect(multiEmbeddingSpan!.attributes[GEN_AI_REQUEST_MODEL]).toEqual({
+          type: 'string',
+          value: 'text-embedding-3-small',
+        });
+        expect(multiEmbeddingSpan!.attributes[GEN_AI_RESPONSE_MODEL]).toEqual({
+          type: 'string',
+          value: 'text-embedding-3-small',
+        });
+        expect(multiEmbeddingSpan!.attributes[GEN_AI_USAGE_INPUT_TOKENS]).toEqual({
+          type: 'integer',
+          value: 10,
+        });
+        expect(multiEmbeddingSpan!.attributes[GEN_AI_USAGE_TOTAL_TOKENS]).toEqual({
+          type: 'integer',
+          value: 10,
+        });
       });
     },
     {
@@ -899,144 +899,144 @@ describe('OpenAI integration (V6)', () => {
     'instrument-with-pii.mjs',
     (createRunner, test) => {
       test('creates openai related spans with genAI recording enabled (v6)', async () => {
-        const allSpans: SerializedStreamedSpanContainer['items'] = [];
+        let receivedSpans: SerializedStreamedSpanContainer['items'] = [];
 
         await createRunner()
           .unordered()
           .expect({
             span: container => {
-              allSpans.push(...container.items);
-              const segment = allSpans.find(span => span.is_segment && span.name === 'main');
-              expect(segment).toBeDefined();
-              const spans = allSpans.filter(span => span.attributes[SENTRY_ORIGIN]?.value === 'auto.ai.openai');
-              expect(spans).toHaveLength(3);
-              const singleEmbeddingSpan = spans.find(
-                span => span.attributes[GEN_AI_EMBEDDINGS_INPUT]?.value === 'Embedding test!',
-              );
-              expect(singleEmbeddingSpan!.name).toBe('embeddings text-embedding-3-small');
-              expect(singleEmbeddingSpan!.status).toBe('ok');
-              expect(singleEmbeddingSpan!.attributes[GEN_AI_OPERATION_NAME]).toEqual({
-                type: 'string',
-                value: 'embeddings',
-              });
-              expect(singleEmbeddingSpan!.attributes[SENTRY_OP]).toEqual({
-                type: 'string',
-                value: 'gen_ai.embeddings',
-              });
-              expect(singleEmbeddingSpan!.attributes[SENTRY_ORIGIN]).toEqual({
-                type: 'string',
-                value: 'auto.ai.openai',
-              });
-              expect(singleEmbeddingSpan!.attributes[GEN_AI_PROVIDER_NAME]).toEqual({
-                type: 'string',
-                value: 'openai',
-              });
-              expect(singleEmbeddingSpan!.attributes[GEN_AI_REQUEST_MODEL]).toEqual({
-                type: 'string',
-                value: 'text-embedding-3-small',
-              });
-              expect(singleEmbeddingSpan!.attributes[GEN_AI_REQUEST_ENCODING_FORMAT_ATTRIBUTE]).toEqual({
-                type: 'string',
-                value: 'float',
-              });
-              expect(singleEmbeddingSpan!.attributes[GEN_AI_REQUEST_DIMENSIONS_ATTRIBUTE]).toEqual({
-                type: 'integer',
-                value: 1536,
-              });
-              expect(singleEmbeddingSpan!.attributes[GEN_AI_EMBEDDINGS_INPUT]).toEqual({
-                type: 'string',
-                value: 'Embedding test!',
-              });
-              expect(singleEmbeddingSpan!.attributes[GEN_AI_RESPONSE_MODEL]).toEqual({
-                type: 'string',
-                value: 'text-embedding-3-small',
-              });
-              expect(singleEmbeddingSpan!.attributes[GEN_AI_USAGE_INPUT_TOKENS]).toEqual({
-                type: 'integer',
-                value: 10,
-              });
-              expect(singleEmbeddingSpan!.attributes[GEN_AI_USAGE_TOTAL_TOKENS]).toEqual({
-                type: 'integer',
-                value: 10,
-              });
-
-              const errorEmbeddingSpan = spans.find(
-                span => span.attributes[GEN_AI_EMBEDDINGS_INPUT]?.value === 'Error embedding test!',
-              );
-              expect(errorEmbeddingSpan!.name).toBe('embeddings error-model');
-              expect(errorEmbeddingSpan!.status).toBe('error');
-              expect(errorEmbeddingSpan!.attributes[GEN_AI_OPERATION_NAME]).toEqual({
-                type: 'string',
-                value: 'embeddings',
-              });
-              expect(errorEmbeddingSpan!.attributes[SENTRY_OP]).toEqual({
-                type: 'string',
-                value: 'gen_ai.embeddings',
-              });
-              expect(errorEmbeddingSpan!.attributes[SENTRY_ORIGIN]).toEqual({
-                type: 'string',
-                value: 'auto.ai.openai',
-              });
-              expect(errorEmbeddingSpan!.attributes[GEN_AI_PROVIDER_NAME]).toEqual({
-                type: 'string',
-                value: 'openai',
-              });
-              expect(errorEmbeddingSpan!.attributes[GEN_AI_REQUEST_MODEL]).toEqual({
-                type: 'string',
-                value: 'error-model',
-              });
-              expect(errorEmbeddingSpan!.attributes[GEN_AI_EMBEDDINGS_INPUT]).toEqual({
-                type: 'string',
-                value: 'Error embedding test!',
-              });
-
-              const multiEmbeddingSpan = spans.find(
-                span =>
-                  span.attributes[GEN_AI_EMBEDDINGS_INPUT]?.value ===
-                  '["First input text","Second input text","Third input text"]',
-              );
-              expect(multiEmbeddingSpan!.name).toBe('embeddings text-embedding-3-small');
-              expect(multiEmbeddingSpan!.status).toBe('ok');
-              expect(multiEmbeddingSpan!.attributes[GEN_AI_OPERATION_NAME]).toEqual({
-                type: 'string',
-                value: 'embeddings',
-              });
-              expect(multiEmbeddingSpan!.attributes[SENTRY_OP]).toEqual({
-                type: 'string',
-                value: 'gen_ai.embeddings',
-              });
-              expect(multiEmbeddingSpan!.attributes[SENTRY_ORIGIN]).toEqual({
-                type: 'string',
-                value: 'auto.ai.openai',
-              });
-              expect(multiEmbeddingSpan!.attributes[GEN_AI_PROVIDER_NAME]).toEqual({
-                type: 'string',
-                value: 'openai',
-              });
-              expect(multiEmbeddingSpan!.attributes[GEN_AI_REQUEST_MODEL]).toEqual({
-                type: 'string',
-                value: 'text-embedding-3-small',
-              });
-              expect(multiEmbeddingSpan!.attributes[GEN_AI_EMBEDDINGS_INPUT]).toEqual({
-                type: 'string',
-                value: '["First input text","Second input text","Third input text"]',
-              });
-              expect(multiEmbeddingSpan!.attributes[GEN_AI_RESPONSE_MODEL]).toEqual({
-                type: 'string',
-                value: 'text-embedding-3-small',
-              });
-              expect(multiEmbeddingSpan!.attributes[GEN_AI_USAGE_INPUT_TOKENS]).toEqual({
-                type: 'integer',
-                value: 10,
-              });
-              expect(multiEmbeddingSpan!.attributes[GEN_AI_USAGE_TOTAL_TOKENS]).toEqual({
-                type: 'integer',
-                value: 10,
-              });
+              expect(container.items.find(span => span.is_segment && span.name === 'main')).toBeDefined();
+              receivedSpans = container.items;
             },
           })
           .start()
           .completed();
+
+        const spans = receivedSpans.filter(span => span.attributes[SENTRY_ORIGIN]?.value === 'auto.ai.openai');
+        expect(spans).toHaveLength(3);
+        const singleEmbeddingSpan = spans.find(
+          span => span.attributes[GEN_AI_EMBEDDINGS_INPUT]?.value === 'Embedding test!',
+        );
+        expect(singleEmbeddingSpan!.name).toBe('embeddings text-embedding-3-small');
+        expect(singleEmbeddingSpan!.status).toBe('ok');
+        expect(singleEmbeddingSpan!.attributes[GEN_AI_OPERATION_NAME]).toEqual({
+          type: 'string',
+          value: 'embeddings',
+        });
+        expect(singleEmbeddingSpan!.attributes[SENTRY_OP]).toEqual({
+          type: 'string',
+          value: 'gen_ai.embeddings',
+        });
+        expect(singleEmbeddingSpan!.attributes[SENTRY_ORIGIN]).toEqual({
+          type: 'string',
+          value: 'auto.ai.openai',
+        });
+        expect(singleEmbeddingSpan!.attributes[GEN_AI_PROVIDER_NAME]).toEqual({
+          type: 'string',
+          value: 'openai',
+        });
+        expect(singleEmbeddingSpan!.attributes[GEN_AI_REQUEST_MODEL]).toEqual({
+          type: 'string',
+          value: 'text-embedding-3-small',
+        });
+        expect(singleEmbeddingSpan!.attributes[GEN_AI_REQUEST_ENCODING_FORMAT_ATTRIBUTE]).toEqual({
+          type: 'string',
+          value: 'float',
+        });
+        expect(singleEmbeddingSpan!.attributes[GEN_AI_REQUEST_DIMENSIONS_ATTRIBUTE]).toEqual({
+          type: 'integer',
+          value: 1536,
+        });
+        expect(singleEmbeddingSpan!.attributes[GEN_AI_EMBEDDINGS_INPUT]).toEqual({
+          type: 'string',
+          value: 'Embedding test!',
+        });
+        expect(singleEmbeddingSpan!.attributes[GEN_AI_RESPONSE_MODEL]).toEqual({
+          type: 'string',
+          value: 'text-embedding-3-small',
+        });
+        expect(singleEmbeddingSpan!.attributes[GEN_AI_USAGE_INPUT_TOKENS]).toEqual({
+          type: 'integer',
+          value: 10,
+        });
+        expect(singleEmbeddingSpan!.attributes[GEN_AI_USAGE_TOTAL_TOKENS]).toEqual({
+          type: 'integer',
+          value: 10,
+        });
+
+        const errorEmbeddingSpan = spans.find(
+          span => span.attributes[GEN_AI_EMBEDDINGS_INPUT]?.value === 'Error embedding test!',
+        );
+        expect(errorEmbeddingSpan!.name).toBe('embeddings error-model');
+        expect(errorEmbeddingSpan!.status).toBe('error');
+        expect(errorEmbeddingSpan!.attributes[GEN_AI_OPERATION_NAME]).toEqual({
+          type: 'string',
+          value: 'embeddings',
+        });
+        expect(errorEmbeddingSpan!.attributes[SENTRY_OP]).toEqual({
+          type: 'string',
+          value: 'gen_ai.embeddings',
+        });
+        expect(errorEmbeddingSpan!.attributes[SENTRY_ORIGIN]).toEqual({
+          type: 'string',
+          value: 'auto.ai.openai',
+        });
+        expect(errorEmbeddingSpan!.attributes[GEN_AI_PROVIDER_NAME]).toEqual({
+          type: 'string',
+          value: 'openai',
+        });
+        expect(errorEmbeddingSpan!.attributes[GEN_AI_REQUEST_MODEL]).toEqual({
+          type: 'string',
+          value: 'error-model',
+        });
+        expect(errorEmbeddingSpan!.attributes[GEN_AI_EMBEDDINGS_INPUT]).toEqual({
+          type: 'string',
+          value: 'Error embedding test!',
+        });
+
+        const multiEmbeddingSpan = spans.find(
+          span =>
+            span.attributes[GEN_AI_EMBEDDINGS_INPUT]?.value ===
+            '["First input text","Second input text","Third input text"]',
+        );
+        expect(multiEmbeddingSpan!.name).toBe('embeddings text-embedding-3-small');
+        expect(multiEmbeddingSpan!.status).toBe('ok');
+        expect(multiEmbeddingSpan!.attributes[GEN_AI_OPERATION_NAME]).toEqual({
+          type: 'string',
+          value: 'embeddings',
+        });
+        expect(multiEmbeddingSpan!.attributes[SENTRY_OP]).toEqual({
+          type: 'string',
+          value: 'gen_ai.embeddings',
+        });
+        expect(multiEmbeddingSpan!.attributes[SENTRY_ORIGIN]).toEqual({
+          type: 'string',
+          value: 'auto.ai.openai',
+        });
+        expect(multiEmbeddingSpan!.attributes[GEN_AI_PROVIDER_NAME]).toEqual({
+          type: 'string',
+          value: 'openai',
+        });
+        expect(multiEmbeddingSpan!.attributes[GEN_AI_REQUEST_MODEL]).toEqual({
+          type: 'string',
+          value: 'text-embedding-3-small',
+        });
+        expect(multiEmbeddingSpan!.attributes[GEN_AI_EMBEDDINGS_INPUT]).toEqual({
+          type: 'string',
+          value: '["First input text","Second input text","Third input text"]',
+        });
+        expect(multiEmbeddingSpan!.attributes[GEN_AI_RESPONSE_MODEL]).toEqual({
+          type: 'string',
+          value: 'text-embedding-3-small',
+        });
+        expect(multiEmbeddingSpan!.attributes[GEN_AI_USAGE_INPUT_TOKENS]).toEqual({
+          type: 'integer',
+          value: 10,
+        });
+        expect(multiEmbeddingSpan!.attributes[GEN_AI_USAGE_TOTAL_TOKENS]).toEqual({
+          type: 'integer',
+          value: 10,
+        });
       });
     },
     {
@@ -1052,40 +1052,42 @@ describe('OpenAI integration (V6)', () => {
     'instrument.mjs',
     (createRunner, test) => {
       test('it works without a wrapping span (v6)', async () => {
-        const allSpans: SerializedStreamedSpanContainer['items'] = [];
+        let receivedSpans: SerializedStreamedSpanContainer['items'] = [];
 
         await createRunner()
           .unordered()
           .expect({
             span: container => {
-              allSpans.push(...container.items);
-              const serverSegment = allSpans.find(
-                span => span.is_segment && span.name === 'POST /openai/chat/completions',
-              );
-              expect(serverSegment).toBeDefined();
-              const segment = allSpans.find(span => span.is_segment && span.name === 'chat gpt-3.5-turbo');
-              expect(segment?.span_id).toEqual(expect.any(String));
-              expect(segment?.trace_id).toEqual(expect.any(String));
-              expect(segment?.attributes[GEN_AI_OPERATION_NAME]).toEqual({ value: 'chat', type: 'string' });
-              expect(segment?.attributes[SENTRY_OP]).toEqual({ value: 'gen_ai.chat', type: 'string' });
-              expect(segment?.attributes[SENTRY_ORIGIN]).toEqual({ value: 'auto.ai.openai', type: 'string' });
-              expect(segment?.attributes[GEN_AI_PROVIDER_NAME]).toEqual({ value: 'openai', type: 'string' });
-              expect(segment?.attributes[GEN_AI_REQUEST_MODEL]).toEqual({ value: 'gpt-3.5-turbo', type: 'string' });
-              expect(segment?.attributes[GEN_AI_REQUEST_TEMPERATURE]).toEqual({ value: 0.7, type: 'double' });
-              expect(segment?.attributes[GEN_AI_RESPONSE_MODEL]).toEqual({ value: 'gpt-3.5-turbo', type: 'string' });
-              expect(segment?.attributes[GEN_AI_RESPONSE_ID]).toEqual({ value: 'chatcmpl-mock123', type: 'string' });
-              expect(segment?.attributes[GEN_AI_RESPONSE_FINISH_REASONS]).toEqual({
-                value: '["stop"]',
-                type: 'string',
-              });
-              expect(segment?.attributes[GEN_AI_USAGE_INPUT_TOKENS]).toEqual({ value: 10, type: 'integer' });
-              expect(segment?.attributes[GEN_AI_USAGE_OUTPUT_TOKENS]).toEqual({ value: 15, type: 'integer' });
-              expect(segment?.attributes[GEN_AI_USAGE_TOTAL_TOKENS]).toEqual({ value: 25, type: 'integer' });
-              expect(segment?.status).toEqual('ok');
+              expect(container.items.find(span => span.is_segment && span.name === 'chat gpt-3.5-turbo')).toBeDefined();
+              receivedSpans = container.items;
             },
           })
           .start()
           .completed();
+
+        const serverSegment = receivedSpans.find(
+          span => span.is_segment && span.name === 'POST /openai/chat/completions',
+        );
+        expect(serverSegment).toBeDefined();
+        const segment = receivedSpans.find(span => span.is_segment && span.name === 'chat gpt-3.5-turbo');
+        expect(segment?.span_id).toEqual(expect.any(String));
+        expect(segment?.trace_id).toEqual(expect.any(String));
+        expect(segment?.attributes[GEN_AI_OPERATION_NAME]).toEqual({ value: 'chat', type: 'string' });
+        expect(segment?.attributes[SENTRY_OP]).toEqual({ value: 'gen_ai.chat', type: 'string' });
+        expect(segment?.attributes[SENTRY_ORIGIN]).toEqual({ value: 'auto.ai.openai', type: 'string' });
+        expect(segment?.attributes[GEN_AI_PROVIDER_NAME]).toEqual({ value: 'openai', type: 'string' });
+        expect(segment?.attributes[GEN_AI_REQUEST_MODEL]).toEqual({ value: 'gpt-3.5-turbo', type: 'string' });
+        expect(segment?.attributes[GEN_AI_REQUEST_TEMPERATURE]).toEqual({ value: 0.7, type: 'double' });
+        expect(segment?.attributes[GEN_AI_RESPONSE_MODEL]).toEqual({ value: 'gpt-3.5-turbo', type: 'string' });
+        expect(segment?.attributes[GEN_AI_RESPONSE_ID]).toEqual({ value: 'chatcmpl-mock123', type: 'string' });
+        expect(segment?.attributes[GEN_AI_RESPONSE_FINISH_REASONS]).toEqual({
+          value: '["stop"]',
+          type: 'string',
+        });
+        expect(segment?.attributes[GEN_AI_USAGE_INPUT_TOKENS]).toEqual({ value: 10, type: 'integer' });
+        expect(segment?.attributes[GEN_AI_USAGE_OUTPUT_TOKENS]).toEqual({ value: 15, type: 'integer' });
+        expect(segment?.attributes[GEN_AI_USAGE_TOTAL_TOKENS]).toEqual({ value: 25, type: 'integer' });
+        expect(segment?.status).toEqual('ok');
       });
     },
     {
@@ -1102,40 +1104,42 @@ describe('OpenAI integration (V6)', () => {
     'instrument.mjs',
     (createRunner, test) => {
       test('it works with Azure OpenAI (v6)', async () => {
-        const allSpans: SerializedStreamedSpanContainer['items'] = [];
+        let receivedSpans: SerializedStreamedSpanContainer['items'] = [];
 
         await createRunner()
           .unordered()
           .expect({
             span: container => {
-              allSpans.push(...container.items);
-              const serverSegment = allSpans.find(
-                span => span.is_segment && span.name === 'POST /azureopenai/deployments/:model/chat/completions',
-              );
-              expect(serverSegment).toBeDefined();
-              const segment = allSpans.find(span => span.is_segment && span.name === 'chat gpt-3.5-turbo');
-              expect(segment?.span_id).toEqual(expect.any(String));
-              expect(segment?.trace_id).toEqual(expect.any(String));
-              expect(segment?.attributes[GEN_AI_OPERATION_NAME]).toEqual({ value: 'chat', type: 'string' });
-              expect(segment?.attributes[SENTRY_OP]).toEqual({ value: 'gen_ai.chat', type: 'string' });
-              expect(segment?.attributes[SENTRY_ORIGIN]).toEqual({ value: 'auto.ai.openai', type: 'string' });
-              expect(segment?.attributes[GEN_AI_PROVIDER_NAME]).toEqual({ value: 'openai', type: 'string' });
-              expect(segment?.attributes[GEN_AI_REQUEST_MODEL]).toEqual({ value: 'gpt-3.5-turbo', type: 'string' });
-              expect(segment?.attributes[GEN_AI_REQUEST_TEMPERATURE]).toEqual({ value: 0.7, type: 'double' });
-              expect(segment?.attributes[GEN_AI_RESPONSE_MODEL]).toEqual({ value: 'gpt-3.5-turbo', type: 'string' });
-              expect(segment?.attributes[GEN_AI_RESPONSE_ID]).toEqual({ value: 'chatcmpl-mock123', type: 'string' });
-              expect(segment?.attributes[GEN_AI_RESPONSE_FINISH_REASONS]).toEqual({
-                value: '["stop"]',
-                type: 'string',
-              });
-              expect(segment?.attributes[GEN_AI_USAGE_INPUT_TOKENS]).toEqual({ value: 10, type: 'integer' });
-              expect(segment?.attributes[GEN_AI_USAGE_OUTPUT_TOKENS]).toEqual({ value: 15, type: 'integer' });
-              expect(segment?.attributes[GEN_AI_USAGE_TOTAL_TOKENS]).toEqual({ value: 25, type: 'integer' });
-              expect(segment?.status).toEqual('ok');
+              expect(container.items.find(span => span.is_segment && span.name === 'chat gpt-3.5-turbo')).toBeDefined();
+              receivedSpans = container.items;
             },
           })
           .start()
           .completed();
+
+        const serverSegment = receivedSpans.find(
+          span => span.is_segment && span.name === 'POST /azureopenai/deployments/:model/chat/completions',
+        );
+        expect(serverSegment).toBeDefined();
+        const segment = receivedSpans.find(span => span.is_segment && span.name === 'chat gpt-3.5-turbo');
+        expect(segment?.span_id).toEqual(expect.any(String));
+        expect(segment?.trace_id).toEqual(expect.any(String));
+        expect(segment?.attributes[GEN_AI_OPERATION_NAME]).toEqual({ value: 'chat', type: 'string' });
+        expect(segment?.attributes[SENTRY_OP]).toEqual({ value: 'gen_ai.chat', type: 'string' });
+        expect(segment?.attributes[SENTRY_ORIGIN]).toEqual({ value: 'auto.ai.openai', type: 'string' });
+        expect(segment?.attributes[GEN_AI_PROVIDER_NAME]).toEqual({ value: 'openai', type: 'string' });
+        expect(segment?.attributes[GEN_AI_REQUEST_MODEL]).toEqual({ value: 'gpt-3.5-turbo', type: 'string' });
+        expect(segment?.attributes[GEN_AI_REQUEST_TEMPERATURE]).toEqual({ value: 0.7, type: 'double' });
+        expect(segment?.attributes[GEN_AI_RESPONSE_MODEL]).toEqual({ value: 'gpt-3.5-turbo', type: 'string' });
+        expect(segment?.attributes[GEN_AI_RESPONSE_ID]).toEqual({ value: 'chatcmpl-mock123', type: 'string' });
+        expect(segment?.attributes[GEN_AI_RESPONSE_FINISH_REASONS]).toEqual({
+          value: '["stop"]',
+          type: 'string',
+        });
+        expect(segment?.attributes[GEN_AI_USAGE_INPUT_TOKENS]).toEqual({ value: 10, type: 'integer' });
+        expect(segment?.attributes[GEN_AI_USAGE_OUTPUT_TOKENS]).toEqual({ value: 15, type: 'integer' });
+        expect(segment?.attributes[GEN_AI_USAGE_TOTAL_TOKENS]).toEqual({ value: 25, type: 'integer' });
+        expect(segment?.status).toEqual('ok');
       });
     },
     {
