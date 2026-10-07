@@ -48,5 +48,5 @@ sentryTest('should report finished spans as children of the root transaction', a
   expect(span_1?.description).toBe('child_span');
   expect(span_1?.parent_span_id).toEqual(transaction?.contexts?.trace?.span_id);
   expect(span_1?.origin).toEqual('manual');
-  expect(span_1?.data?.['sentry.origin']).toEqual('manual');
+  expect(span_1?.data?.[SENTRY_ORIGIN]).toEqual('manual');
 });

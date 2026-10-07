@@ -1,3 +1,4 @@
+import { SENTRY_LINK_TYPE } from '@sentry/conventions/attributes';
 import { expect } from '@playwright/test';
 import { sentryTest } from '../../../utils/fixtures';
 import { shouldSkipTracingTest } from '../../../utils/helpers';
@@ -22,7 +23,7 @@ sentryTest('beforeSendSpan applies changes to streamed span', async ({ getLocalT
         spanId: '456',
       },
       attributes: {
-        'sentry.link.type': { type: 'string', value: 'custom_link' },
+        [SENTRY_LINK_TYPE]: { type: 'string', value: 'custom_link' },
       },
     },
   ]);

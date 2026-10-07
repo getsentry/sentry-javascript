@@ -1,3 +1,4 @@
+import { URL_FULL } from '@sentry/conventions/attributes';
 import { expect } from '@playwright/test';
 import { sentryTest } from '../../../utils/fixtures';
 import { shouldSkipTracingTest } from '../../../utils/helpers';
@@ -22,18 +23,18 @@ sentryTest('should attribute spans to their originating microfrontend', async ({
 
   // Each MFE's fetch is attributed via withScope + spanStart hook
   expect(
-    httpSpans.find(s => s.attributes['url.full']?.value?.toString().includes('/api/todos/1'))?.attributes['mfe.name'],
+    httpSpans.find(s => s.attributes[URL_FULL]?.value?.toString().includes('/api/todos/1'))?.attributes['mfe.name'],
   ).toEqual({ type: 'string', value: 'mfe-header' });
   expect(
-    httpSpans.find(s => s.attributes['url.full']?.value?.toString().includes('/api/todos/2'))?.attributes['mfe.name'],
+    httpSpans.find(s => s.attributes[URL_FULL]?.value?.toString().includes('/api/todos/2'))?.attributes['mfe.name'],
   ).toEqual({ type: 'string', value: 'mfe-one' });
   expect(
-    httpSpans.find(s => s.attributes['url.full']?.value?.toString().includes('/api/todos/3'))?.attributes['mfe.name'],
+    httpSpans.find(s => s.attributes[URL_FULL]?.value?.toString().includes('/api/todos/3'))?.attributes['mfe.name'],
   ).toEqual({ type: 'string', value: 'mfe-two' });
 
   // Shell span has no MFE tag
   expect(
-    httpSpans.find(s => s.attributes['url.full']?.value?.toString().includes('/api/shell-config'))?.attributes[
+    httpSpans.find(s => s.attributes[URL_FULL]?.value?.toString().includes('/api/shell-config'))?.attributes[
       'mfe.name'
     ],
   ).toBeUndefined();

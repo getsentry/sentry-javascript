@@ -31,7 +31,7 @@ import type { Event } from '@sentry/core';
 import { sentryTest } from '../../../../utils/fixtures';
 import {
   eventAndTraceHeaderRequestParser,
-  getFirstSentryEnvelopeRequest,
+  getMultipleSentryEnvelopeRequests,
   shouldSkipFeedbackTest,
   shouldSkipTracingTest,
   waitForErrorRequest,
@@ -206,7 +206,7 @@ sentryTest('user feedback event after pageload has pageload traceId in headers',
   expect(pageloadSpan.span_id).toMatch(/^[\da-f]{16}$/);
   expect(pageloadSpan.parent_span_id).toBeUndefined();
 
-  const feedbackEventPromise = getFirstSentryEnvelopeRequest<Event>(page);
+  const feedbackEventsPromise = getMultipleSentryEnvelopeRequests<Event>(page, 1, { envelopeType: 'feedback' });
 
   await page.getByText('Report a Bug').click();
   expect(await page.locator(':visible:text-is("Report a Bug")').count()).toEqual(1);
@@ -215,7 +215,7 @@ sentryTest('user feedback event after pageload has pageload traceId in headers',
   await page.locator('[name="message"]').fill('my example feedback');
   await page.locator('[data-sentry-feedback] .btn--primary').click();
 
-  const feedbackEvent = await feedbackEventPromise;
+  const [feedbackEvent] = await feedbackEventsPromise;
 
   expect(feedbackEvent.type).toEqual('feedback');
 

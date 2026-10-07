@@ -1,9 +1,10 @@
+import { SENTRY_OP } from '@sentry/conventions/attributes';
 import { expect } from '@playwright/test';
 import type { Event } from '@sentry/core';
 import { sentryTest } from '../../../../utils/fixtures';
 import {
   eventAndTraceHeaderRequestParser,
-  getFirstSentryEnvelopeRequest,
+  getMultipleSentryEnvelopeRequests,
   shouldSkipFeedbackTest,
   shouldSkipTracingTest,
   waitForErrorRequest,
@@ -37,7 +38,7 @@ sentryTest(
     expect(pageloadEvent.is_segment).toBe(true);
     expect(pageloadTraceContext).toMatchObject({
       is_segment: true,
-      attributes: expect.objectContaining({ 'sentry.op': { type: 'string', value: 'pageload' } }),
+      attributes: expect.objectContaining({ [SENTRY_OP]: { type: 'string', value: 'pageload' } }),
       trace_id: META_TAG_TRACE_ID,
       parent_span_id: META_TAG_PARENT_SPAN_ID,
       span_id: expect.stringMatching(/^[\da-f]{16}$/),
@@ -57,7 +58,7 @@ sentryTest(
     expect(navigationEvent.is_segment).toBe(true);
     expect(navigationTraceContext).toMatchObject({
       is_segment: true,
-      attributes: expect.objectContaining({ 'sentry.op': { type: 'string', value: 'navigation' } }),
+      attributes: expect.objectContaining({ [SENTRY_OP]: { type: 'string', value: 'navigation' } }),
       trace_id: expect.stringMatching(/^[\da-f]{32}$/),
       span_id: expect.stringMatching(/^[\da-f]{16}$/),
     });
@@ -89,7 +90,7 @@ sentryTest('error after <meta> tag pageload has pageload traceId', async ({ getL
 
   expect(pageloadEvent).toMatchObject({
     is_segment: true,
-    attributes: expect.objectContaining({ 'sentry.op': { type: 'string', value: 'pageload' } }),
+    attributes: expect.objectContaining({ [SENTRY_OP]: { type: 'string', value: 'pageload' } }),
     trace_id: META_TAG_TRACE_ID,
     parent_span_id: META_TAG_PARENT_SPAN_ID,
     span_id: expect.stringMatching(/^[\da-f]{16}$/),
@@ -151,7 +152,7 @@ sentryTest('error during <meta> tag pageload has pageload traceId', async ({ get
   expect(pageloadEvent.is_segment).toBe(true);
   expect(pageloadEvent).toMatchObject({
     is_segment: true,
-    attributes: expect.objectContaining({ 'sentry.op': { type: 'string', value: 'pageload' } }),
+    attributes: expect.objectContaining({ [SENTRY_OP]: { type: 'string', value: 'pageload' } }),
     trace_id: META_TAG_TRACE_ID,
     parent_span_id: META_TAG_PARENT_SPAN_ID,
     span_id: expect.stringMatching(/^[\da-f]{16}$/),
@@ -216,7 +217,7 @@ sentryTest(
     expect(pageloadEvent.is_segment).toBe(true);
     expect(pageloadEvent).toMatchObject({
       is_segment: true,
-      attributes: expect.objectContaining({ 'sentry.op': { type: 'string', value: 'pageload' } }),
+      attributes: expect.objectContaining({ [SENTRY_OP]: { type: 'string', value: 'pageload' } }),
       trace_id: META_TAG_TRACE_ID,
       parent_span_id: META_TAG_PARENT_SPAN_ID,
       span_id: expect.stringMatching(/^[\da-f]{16}$/),
@@ -271,7 +272,7 @@ sentryTest(
     expect(pageloadEvent.is_segment).toBe(true);
     expect(pageloadEvent).toMatchObject({
       is_segment: true,
-      attributes: expect.objectContaining({ 'sentry.op': { type: 'string', value: 'pageload' } }),
+      attributes: expect.objectContaining({ [SENTRY_OP]: { type: 'string', value: 'pageload' } }),
       trace_id: META_TAG_TRACE_ID,
       parent_span_id: META_TAG_PARENT_SPAN_ID,
       span_id: expect.stringMatching(/^[\da-f]{16}$/),
@@ -309,13 +310,13 @@ sentryTest('user feedback event after pageload has pageload traceId in headers',
 
   expect(pageloadTraceContext).toMatchObject({
     is_segment: true,
-    attributes: expect.objectContaining({ 'sentry.op': { type: 'string', value: 'pageload' } }),
+    attributes: expect.objectContaining({ [SENTRY_OP]: { type: 'string', value: 'pageload' } }),
     trace_id: META_TAG_TRACE_ID,
     parent_span_id: META_TAG_PARENT_SPAN_ID,
     span_id: expect.stringMatching(/^[\da-f]{16}$/),
   });
 
-  const feedbackEventPromise = getFirstSentryEnvelopeRequest<Event>(page);
+  const feedbackEventsPromise = getMultipleSentryEnvelopeRequests<Event>(page, 1, { envelopeType: 'feedback' });
 
   await page.getByText('Report a Bug').click();
   expect(await page.locator(':visible:text-is("Report a Bug")').count()).toEqual(1);
@@ -324,7 +325,7 @@ sentryTest('user feedback event after pageload has pageload traceId in headers',
   await page.locator('[name="message"]').fill('my example feedback');
   await page.locator('[data-sentry-feedback] .btn--primary').click();
 
-  const feedbackEvent = await feedbackEventPromise;
+  const [feedbackEvent] = await feedbackEventsPromise;
   const feedbackTraceContext = feedbackEvent.contexts?.trace;
 
   expect(feedbackEvent.type).toEqual('feedback');

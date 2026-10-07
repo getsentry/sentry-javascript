@@ -1,3 +1,4 @@
+import { SENTRY_OP } from '@sentry/conventions/attributes';
 import { expect } from '@playwright/test';
 import { sentryTest } from '../../../../utils/fixtures';
 import { shouldSkipTracingTest } from '../../../../utils/helpers';
@@ -33,7 +34,7 @@ sentryTest(
     expect(pageloadEvent.is_segment).toBe(true);
     expect(pageloadTraceContext).toMatchObject({
       is_segment: true,
-      attributes: expect.objectContaining({ 'sentry.op': { type: 'string', value: 'pageload' } }),
+      attributes: expect.objectContaining({ [SENTRY_OP]: { type: 'string', value: 'pageload' } }),
       trace_id: META_TAG_TRACE_ID,
       parent_span_id: META_TAG_PARENT_SPAN_ID,
       span_id: expect.stringMatching(/^[\da-f]{16}$/),
@@ -53,7 +54,7 @@ sentryTest(
     expect(navigationEvent.is_segment).toBe(true);
     expect(navigationTraceContext).toMatchObject({
       is_segment: true,
-      attributes: expect.objectContaining({ 'sentry.op': { type: 'string', value: 'navigation' } }),
+      attributes: expect.objectContaining({ [SENTRY_OP]: { type: 'string', value: 'navigation' } }),
       trace_id: expect.stringMatching(/^[\da-f]{32}$/),
       span_id: expect.stringMatching(/^[\da-f]{16}$/),
     });

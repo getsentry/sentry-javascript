@@ -1,3 +1,4 @@
+import { SENTRY_LINK_TYPE } from '@sentry/conventions/attributes';
 import { expect } from '@playwright/test';
 import { sentryTest } from '../../../utils/fixtures';
 import { shouldSkipTracingTest } from '../../../utils/helpers';
@@ -41,7 +42,7 @@ sentryTest('should link spans by adding "links" to span options', async ({ getLo
       trace_id: rootSpan1_traceId,
     },
     {
-      attributes: { 'sentry.link.type': { type: 'string', value: 'previous_trace' } },
+      attributes: { [SENTRY_LINK_TYPE]: { type: 'string', value: 'previous_trace' } },
       sampled: true,
       span_id: rootSpan2_spanId,
       trace_id: rootSpan2_traceId,

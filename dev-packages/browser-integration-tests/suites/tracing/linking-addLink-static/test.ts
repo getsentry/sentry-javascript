@@ -1,3 +1,4 @@
+import { SENTRY_LINK_TYPE } from '@sentry/conventions/attributes';
 import { expect } from '@playwright/test';
 import type { SpanJSON, TransactionEvent } from '@sentry/core';
 import { sentryTest } from '../../../utils/fixtures';
@@ -28,7 +29,7 @@ sentryTest('should link spans with addLink() in trace context', async ({ getLoca
 
   expect(rootSpan2.contexts?.trace?.links?.length).toBe(1);
   expect(rootSpan2.contexts?.trace?.links?.[0]).toMatchObject({
-    attributes: { 'sentry.link.type': 'previous_trace' },
+    attributes: { [SENTRY_LINK_TYPE]: 'previous_trace' },
     sampled: true,
     span_id: rootSpan1_spanId,
     trace_id: rootSpan1_traceId,
@@ -61,7 +62,7 @@ sentryTest('should link spans with addLink() in nested startSpan() calls', async
   expect(childSpan_3_1.description).toBe('childSpan3.1');
   expect(childSpan_3_1.links?.length).toBe(1);
   expect(childSpan_3_1.links?.[0]).toMatchObject({
-    attributes: { 'sentry.link.type': 'previous_trace' },
+    attributes: { [SENTRY_LINK_TYPE]: 'previous_trace' },
     sampled: true,
     span_id: rootSpan1_spanId,
     trace_id: rootSpan1_traceId,

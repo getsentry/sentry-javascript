@@ -1,3 +1,5 @@
+import { SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE } from '@sentry/core';
+import { SENTRY_OP } from '@sentry/conventions/attributes';
 import { expect } from '@playwright/test';
 import { sentryTest } from '../../../../utils/fixtures';
 import { shouldSkipTracingTest } from '../../../../utils/helpers';
@@ -29,8 +31,8 @@ sentryTest(
     expect(pageloadTraceContext).toMatchObject({
       is_segment: true,
       attributes: expect.objectContaining({
-        'sentry.op': { type: 'string', value: 'pageload' },
-        'sentry.sample_rate': { type: 'double', value: 0.5 },
+        [SENTRY_OP]: { type: 'string', value: 'pageload' },
+        [SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE]: { type: 'double', value: 0.5 },
       }),
       trace_id: expect.stringMatching(/^[\da-f]{32}$/),
       span_id: expect.stringMatching(/^[\da-f]{16}$/),
@@ -56,8 +58,8 @@ sentryTest(
     expect(newTraceSpanContext).toMatchObject({
       is_segment: true,
       attributes: expect.objectContaining({
-        'sentry.op': { type: 'string', value: 'ui.interaction.click' },
-        'sentry.sample_rate': { type: 'double', value: 0.9 },
+        [SENTRY_OP]: { type: 'string', value: 'ui.interaction.click' },
+        [SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE]: { type: 'double', value: 0.9 },
       }),
       trace_id: expect.stringMatching(/^[\da-f]{32}$/),
       span_id: expect.stringMatching(/^[\da-f]{16}$/),

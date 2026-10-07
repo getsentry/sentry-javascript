@@ -1,4 +1,9 @@
 import {
+  SENTRY_IS_LOCALHOST,
+  CULTURE_CALENDAR,
+  CULTURE_LOCALE,
+  CULTURE_TIMEZONE,
+  URL_FULL,
   SENTRY_SEGMENT_NAME_SOURCE,
   SENTRY_SEGMENT_ID,
   SENTRY_SEGMENT_NAME,
@@ -71,7 +76,7 @@ sentryTest('sends a streamed span envelope by default', async ({ getLocalTestUrl
   expect(spans).toEqual([
     {
       attributes: {
-        'sentry.is_localhost': { value: false, type: 'boolean' },
+        [SENTRY_IS_LOCALHOST]: { value: false, type: 'boolean' },
         [SENTRY_OP]: {
           type: 'string',
           value: 'test-child',
@@ -120,7 +125,7 @@ sentryTest('sends a streamed span envelope by default', async ({ getLocalTestUrl
     },
     {
       attributes: {
-        'sentry.is_localhost': { value: false, type: 'boolean' },
+        [SENTRY_IS_LOCALHOST]: { value: false, type: 'boolean' },
         [SENTRY_ORIGIN]: {
           type: 'string',
           value: 'manual',
@@ -165,7 +170,7 @@ sentryTest('sends a streamed span envelope by default', async ({ getLocalTestUrl
     },
     {
       attributes: {
-        'sentry.is_localhost': { value: false, type: 'boolean' },
+        [SENTRY_IS_LOCALHOST]: { value: false, type: 'boolean' },
         [SENTRY_ORIGIN]: {
           type: 'string',
           value: 'manual',
@@ -214,16 +219,16 @@ sentryTest('sends a streamed span envelope by default', async ({ getLocalTestUrl
     },
     {
       attributes: {
-        'sentry.is_localhost': { value: false, type: 'boolean' },
-        'culture.calendar': {
+        [SENTRY_IS_LOCALHOST]: { value: false, type: 'boolean' },
+        [CULTURE_CALENDAR]: {
           type: 'string',
           value: expect.any(String),
         },
-        'culture.locale': {
+        [CULTURE_LOCALE]: {
           type: 'string',
           value: expect.any(String),
         },
-        'culture.timezone': {
+        [CULTURE_TIMEZONE]: {
           type: 'string',
           value: expect.any(String),
         },
@@ -231,7 +236,7 @@ sentryTest('sends a streamed span envelope by default', async ({ getLocalTestUrl
           type: 'string',
           value: expect.any(String),
         },
-        'url.full': {
+        [URL_FULL]: {
           type: 'string',
           value: expect.any(String),
         },

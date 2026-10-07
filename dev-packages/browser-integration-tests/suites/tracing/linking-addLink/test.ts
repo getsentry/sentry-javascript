@@ -1,3 +1,4 @@
+import { SENTRY_LINK_TYPE } from '@sentry/conventions/attributes';
 sentryTest('links spans with addLink() in trace context', async ({ getLocalTestUrl, page }) => {
   sentryTest.skip(shouldSkipTracingTest());
 
@@ -16,7 +17,7 @@ sentryTest('links spans with addLink() in trace context', async ({ getLocalTestU
   expect(rootSpan2.name).toBe('rootSpan2');
   expect(rootSpan2.links).toHaveLength(1);
   expect(rootSpan2.links?.[0]).toMatchObject({
-    attributes: { 'sentry.link.type': { type: 'string', value: 'previous_trace' } },
+    attributes: { [SENTRY_LINK_TYPE]: { type: 'string', value: 'previous_trace' } },
     sampled: true,
     span_id: rootSpan1.span_id,
     trace_id: rootSpan1.trace_id,
@@ -50,7 +51,7 @@ sentryTest('links spans with addLink() in nested startSpan() calls', async ({ ge
   expect(childSpan1.name).toBe('childSpan3.1');
   expect(childSpan1.links).toHaveLength(1);
   expect(childSpan1.links?.[0]).toMatchObject({
-    attributes: { 'sentry.link.type': { type: 'string', value: 'previous_trace' } },
+    attributes: { [SENTRY_LINK_TYPE]: { type: 'string', value: 'previous_trace' } },
     sampled: true,
     span_id: rootSpan1.span_id,
     trace_id: rootSpan1.trace_id,
