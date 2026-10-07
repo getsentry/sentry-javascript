@@ -1,3 +1,4 @@
+import type { SerializedStreamedSpan } from '@sentry/core';
 import { afterAll, describe, expect } from 'vitest';
 import { cleanupChildProcesses, createEsmAndCjsTests } from '../../../utils/runner';
 
@@ -27,6 +28,221 @@ const LEGACY_AWS_SDK_DEPENDENCIES = {
   '@smithy/node-http-handler': '4.7.8',
 };
 
+/**
+ * Asserts the collected spans include one span per instrumented aws-sdk service. Each service is checked
+ * with its own `expect` so a failure points at the specific service rather than the whole trace.
+ */
+function assertAwsServiceSpans(spans: SerializedStreamedSpan[]): void {
+  const expectSpan = (
+    label: string,
+    expected: Record<string, unknown>,
+    find?: (item: SerializedStreamedSpan) => boolean,
+  ): void => {
+    const matches = spans.filter(item => item.name === expected.name);
+    const span = find ? matches.find(find) : matches[0];
+    expect(span, label).toMatchObject(expected);
+  };
+
+  const segmentSpan = spans.find(item => item.is_segment);
+
+  expect(segmentSpan?.name).toBe('Test Transaction');
+
+  // S3 - PutObject (success)
+  expectSpan('S3.PutObject', {
+    name: 'S3.PutObject',
+    status: 'ok',
+    attributes: expect.objectContaining({
+      'sentry.origin': { value: ORIGIN, type: 'string' },
+      'sentry.op': { value: 'rpc', type: 'string' },
+      'rpc.system': { value: 'aws-api', type: 'string' },
+      'rpc.method': { value: 'PutObject', type: 'string' },
+      'rpc.service': { value: 'S3', type: 'string' },
+      'cloud.region': { value: 'us-east-1', type: 'string' },
+      'aws.s3.bucket': { value: 'ot-demo-test', type: 'string' },
+      'sentry.kind': { value: 'client', type: 'string' },
+    }),
+  });
+
+  // S3 - GetObject (success)
+  expectSpan(
+    'S3.GetObject (success)',
+    {
+      name: 'S3.GetObject',
+      status: 'ok',
+      attributes: expect.objectContaining({
+        'sentry.op': { value: 'rpc', type: 'string' },
+        'sentry.origin': { value: ORIGIN, type: 'string' },
+        'rpc.method': { value: 'GetObject', type: 'string' },
+        'rpc.service': { value: 'S3', type: 'string' },
+        'aws.s3.bucket': { value: 'ot-demo-test', type: 'string' },
+      }),
+    },
+    // Two spans share the name `S3.GetObject`; disambiguate by HTTP status code.
+    item => item.attributes['http.response.status_code']?.value === 200,
+  );
+
+  // S3 - GetObject (errored, missing key)
+  expectSpan(
+    'S3.GetObject (error)',
+    {
+      name: 'S3.GetObject',
+      status: 'error',
+      attributes: expect.objectContaining({
+        'sentry.op': { value: 'rpc', type: 'string' },
+        'sentry.origin': { value: ORIGIN, type: 'string' },
+        'rpc.method': { value: 'GetObject', type: 'string' },
+        'rpc.service': { value: 'S3', type: 'string' },
+      }),
+    },
+    item => item.attributes['http.response.status_code']?.value === 404,
+  );
+
+  // DynamoDB - PutItem
+  expectSpan('DynamoDB.PutItem', {
+    name: 'DynamoDB.PutItem',
+    attributes: expect.objectContaining({
+      'sentry.op': { value: 'db', type: 'string' },
+      'sentry.origin': { value: ORIGIN, type: 'string' },
+      'rpc.method': { value: 'PutItem', type: 'string' },
+      'rpc.service': { value: 'DynamoDB', type: 'string' },
+      'db.system.name': { value: 'dynamodb', type: 'string' },
+      'db.namespace': { value: 'my-table', type: 'string' },
+      'db.operation.name': { value: 'PutItem', type: 'string' },
+      'aws.dynamodb.table_names': { value: ['my-table'], type: 'array' },
+    }),
+  });
+
+  // DynamoDB - Query
+  expectSpan('DynamoDB.Query', {
+    name: 'DynamoDB.Query',
+    attributes: expect.objectContaining({
+      'sentry.op': { value: 'db', type: 'string' },
+      'sentry.origin': { value: ORIGIN, type: 'string' },
+      'rpc.method': { value: 'Query', type: 'string' },
+      'db.operation.name': { value: 'Query', type: 'string' },
+      'aws.dynamodb.count': { value: 1, type: 'integer' },
+      'aws.dynamodb.scanned_count': { value: 1, type: 'integer' },
+    }),
+  });
+
+  // SQS - SendMessage (producer)
+  expectSpan('SQS SendMessage', {
+    name: 'send my-queue',
+    attributes: expect.objectContaining({
+      'sentry.origin': { value: ORIGIN, type: 'string' },
+      'sentry.op': { value: 'queue.publish', type: 'string' },
+      'rpc.method': { value: 'SendMessage', type: 'string' },
+      'rpc.service': { value: 'SQS', type: 'string' },
+      'messaging.system': { value: 'aws_sqs', type: 'string' },
+      'messaging.destination.name': { value: 'my-queue', type: 'string' },
+      'url.full': { value: 'https://sqs.us-east-1.amazonaws.com/123456789012/my-queue', type: 'string' },
+      'messaging.message.id': { value: 'message-id-1', type: 'string' },
+      'sentry.kind': { value: 'producer', type: 'string' },
+    }),
+  });
+
+  // SQS - ReceiveMessage (consumer)
+  expectSpan('SQS ReceiveMessage', {
+    name: 'receive my-queue',
+    attributes: expect.objectContaining({
+      'sentry.origin': { value: ORIGIN, type: 'string' },
+      'sentry.op': { value: 'queue.receive', type: 'string' },
+      'rpc.method': { value: 'ReceiveMessage', type: 'string' },
+      'messaging.system': { value: 'aws_sqs', type: 'string' },
+      'messaging.operation.type': { value: 'receive', type: 'string' },
+      'messaging.batch.message_count': { value: 1, type: 'integer' },
+      'sentry.kind': { value: 'consumer', type: 'string' },
+    }),
+  });
+
+  // SNS - Publish (producer)
+  expectSpan('SNS Publish', {
+    name: 'send my-topic',
+    attributes: expect.objectContaining({
+      'sentry.origin': { value: ORIGIN, type: 'string' },
+      'rpc.method': { value: 'Publish', type: 'string' },
+      'rpc.service': { value: 'SNS', type: 'string' },
+      'messaging.system': { value: 'aws.sns', type: 'string' },
+      'sentry.op': { value: 'queue.publish', type: 'string' },
+      'messaging.destination': { value: 'my-topic', type: 'string' },
+      'aws.sns.topic.arn': { value: 'arn:aws:sns:us-east-1:123456789012:my-topic', type: 'string' },
+      'sentry.kind': { value: 'producer', type: 'string' },
+    }),
+  });
+
+  // The ARN suffix is a per-device id, so the streamed name drops the destination.
+  expectSpan('SNS Publish (platform endpoint)', {
+    name: 'send',
+    attributes: expect.objectContaining({
+      'rpc.method': { value: 'Publish', type: 'string' },
+      'rpc.service': { value: 'SNS', type: 'string' },
+      'sentry.op': { value: 'queue.publish', type: 'string' },
+      'messaging.destination': { value: 'endpoint/GCM/myapp/5e3e9847-3183-3f18-a7e8-671c3a57d4b3', type: 'string' },
+      'messaging.destination.name': {
+        value: 'arn:aws:sns:us-east-1:123456789012:endpoint/GCM/myapp/5e3e9847-3183-3f18-a7e8-671c3a57d4b3',
+        type: 'string',
+      },
+    }),
+  });
+
+  // Lambda - Invoke
+  expectSpan('Lambda Invoke', {
+    name: 'my-function Invoke',
+    attributes: expect.objectContaining({
+      'sentry.op': { value: 'rpc', type: 'string' },
+      'sentry.origin': { value: ORIGIN, type: 'string' },
+      'rpc.method': { value: 'Invoke', type: 'string' },
+      'rpc.service': { value: 'Lambda', type: 'string' },
+      'faas.invoked_name': { value: 'my-function', type: 'string' },
+      'faas.invoked_provider': { value: 'aws', type: 'string' },
+      'faas.invocation_id': { value: 'request-id-1', type: 'string' },
+    }),
+  });
+
+  // Kinesis - PutRecord
+  expectSpan('Kinesis.PutRecord', {
+    name: 'Kinesis.PutRecord',
+    status: 'ok',
+    attributes: expect.objectContaining({
+      'sentry.op': { value: 'rpc', type: 'string' },
+      'sentry.origin': { value: ORIGIN, type: 'string' },
+      'rpc.method': { value: 'PutRecord', type: 'string' },
+      'rpc.service': { value: 'Kinesis', type: 'string' },
+      'aws.kinesis.stream.name': { value: 'my-stream', type: 'string' },
+    }),
+  });
+
+  // SecretsManager - GetSecretValue
+  expectSpan('SecretsManager.GetSecretValue', {
+    name: 'SecretsManager.GetSecretValue',
+    attributes: expect.objectContaining({
+      'sentry.op': { value: 'rpc', type: 'string' },
+      'sentry.origin': { value: ORIGIN, type: 'string' },
+      'rpc.method': { value: 'GetSecretValue', type: 'string' },
+      'rpc.service': { value: 'SecretsManager', type: 'string' },
+      'aws.secretsmanager.secret.arn': {
+        value: 'arn:aws:secretsmanager:us-east-1:123456789012:secret:my-secret-abc',
+        type: 'string',
+      },
+    }),
+  });
+
+  // StepFunctions - StartExecution
+  expectSpan('StepFunctions.StartExecution', {
+    name: 'SFN.StartExecution',
+    attributes: expect.objectContaining({
+      'sentry.op': { value: 'rpc', type: 'string' },
+      'sentry.origin': { value: ORIGIN, type: 'string' },
+      'rpc.method': { value: 'StartExecution', type: 'string' },
+      'rpc.service': { value: 'SFN', type: 'string' },
+      'aws.step_functions.state_machine.arn': {
+        value: 'arn:aws:states:us-east-1:123456789012:stateMachine:my-state-machine',
+        type: 'string',
+      },
+    }),
+  });
+}
+
 describe('awsIntegration', () => {
   afterAll(() => {
     cleanupChildProcesses();
@@ -47,219 +263,7 @@ describe('awsIntegration', () => {
 
           await runner.start().completed();
 
-          const spans = await spansPromise;
-
-          const expectSpan = (
-            label: string,
-            expected: Record<string, unknown>,
-            find?: (item: (typeof spans)[number]) => boolean,
-          ): void => {
-            const matches = spans.filter(item => item.name === expected.name);
-            const span = find ? matches.find(find) : matches[0];
-            expect(span, label).toMatchObject(expected);
-          };
-
-          const segmentSpan = spans.find(item => item.is_segment);
-
-          expect(segmentSpan?.name).toBe('Test Transaction');
-
-          // S3 - PutObject (success)
-          expectSpan('S3.PutObject', {
-            name: 'S3.PutObject',
-            status: 'ok',
-            attributes: expect.objectContaining({
-              'sentry.origin': { value: ORIGIN, type: 'string' },
-              'sentry.op': { value: 'rpc', type: 'string' },
-              'rpc.system': { value: 'aws-api', type: 'string' },
-              'rpc.method': { value: 'PutObject', type: 'string' },
-              'rpc.service': { value: 'S3', type: 'string' },
-              'cloud.region': { value: 'us-east-1', type: 'string' },
-              'aws.s3.bucket': { value: 'ot-demo-test', type: 'string' },
-              'sentry.kind': { value: 'client', type: 'string' },
-            }),
-          });
-
-          // S3 - GetObject (success)
-          expectSpan(
-            'S3.GetObject (success)',
-            {
-              name: 'S3.GetObject',
-              status: 'ok',
-              attributes: expect.objectContaining({
-                'sentry.op': { value: 'rpc', type: 'string' },
-                'sentry.origin': { value: ORIGIN, type: 'string' },
-                'rpc.method': { value: 'GetObject', type: 'string' },
-                'rpc.service': { value: 'S3', type: 'string' },
-                'aws.s3.bucket': { value: 'ot-demo-test', type: 'string' },
-              }),
-            },
-            // Two spans share the name `S3.GetObject`; disambiguate by HTTP status code.
-            item => item.attributes['http.response.status_code']?.value === 200,
-          );
-
-          // S3 - GetObject (errored, missing key)
-          expectSpan(
-            'S3.GetObject (error)',
-            {
-              name: 'S3.GetObject',
-              status: 'error',
-              attributes: expect.objectContaining({
-                'sentry.op': { value: 'rpc', type: 'string' },
-                'sentry.origin': { value: ORIGIN, type: 'string' },
-                'rpc.method': { value: 'GetObject', type: 'string' },
-                'rpc.service': { value: 'S3', type: 'string' },
-              }),
-            },
-            item => item.attributes['http.response.status_code']?.value === 404,
-          );
-
-          // DynamoDB - PutItem
-          expectSpan('DynamoDB.PutItem', {
-            name: 'DynamoDB.PutItem',
-            attributes: expect.objectContaining({
-              'sentry.op': { value: 'db', type: 'string' },
-              'sentry.origin': { value: ORIGIN, type: 'string' },
-              'rpc.method': { value: 'PutItem', type: 'string' },
-              'rpc.service': { value: 'DynamoDB', type: 'string' },
-              'db.system.name': { value: 'dynamodb', type: 'string' },
-              'db.namespace': { value: 'my-table', type: 'string' },
-              'db.operation.name': { value: 'PutItem', type: 'string' },
-              'aws.dynamodb.table_names': { value: ['my-table'], type: 'array' },
-            }),
-          });
-
-          // DynamoDB - Query
-          expectSpan('DynamoDB.Query', {
-            name: 'DynamoDB.Query',
-            attributes: expect.objectContaining({
-              'sentry.op': { value: 'db', type: 'string' },
-              'sentry.origin': { value: ORIGIN, type: 'string' },
-              'rpc.method': { value: 'Query', type: 'string' },
-              'db.operation.name': { value: 'Query', type: 'string' },
-              'aws.dynamodb.count': { value: 1, type: 'integer' },
-              'aws.dynamodb.scanned_count': { value: 1, type: 'integer' },
-            }),
-          });
-
-          // SQS - SendMessage (producer)
-          expectSpan('SQS SendMessage', {
-            name: 'send my-queue',
-            attributes: expect.objectContaining({
-              'sentry.origin': { value: ORIGIN, type: 'string' },
-              'sentry.op': { value: 'queue.publish', type: 'string' },
-              'rpc.method': { value: 'SendMessage', type: 'string' },
-              'rpc.service': { value: 'SQS', type: 'string' },
-              'messaging.system': { value: 'aws_sqs', type: 'string' },
-              'messaging.destination.name': { value: 'my-queue', type: 'string' },
-              'url.full': { value: 'https://sqs.us-east-1.amazonaws.com/123456789012/my-queue', type: 'string' },
-              'messaging.message.id': { value: 'message-id-1', type: 'string' },
-              'sentry.kind': { value: 'producer', type: 'string' },
-            }),
-          });
-
-          // SQS - ReceiveMessage (consumer)
-          expectSpan('SQS ReceiveMessage', {
-            name: 'receive my-queue',
-            attributes: expect.objectContaining({
-              'sentry.origin': { value: ORIGIN, type: 'string' },
-              'sentry.op': { value: 'queue.receive', type: 'string' },
-              'rpc.method': { value: 'ReceiveMessage', type: 'string' },
-              'messaging.system': { value: 'aws_sqs', type: 'string' },
-              'messaging.operation.type': { value: 'receive', type: 'string' },
-              'messaging.batch.message_count': { value: 1, type: 'integer' },
-              'sentry.kind': { value: 'consumer', type: 'string' },
-            }),
-          });
-
-          // SNS - Publish (producer)
-          expectSpan('SNS Publish', {
-            name: 'send my-topic',
-            attributes: expect.objectContaining({
-              'sentry.origin': { value: ORIGIN, type: 'string' },
-              'rpc.method': { value: 'Publish', type: 'string' },
-              'rpc.service': { value: 'SNS', type: 'string' },
-              'messaging.system': { value: 'aws.sns', type: 'string' },
-              'sentry.op': { value: 'queue.publish', type: 'string' },
-              'messaging.destination': { value: 'my-topic', type: 'string' },
-              'aws.sns.topic.arn': { value: 'arn:aws:sns:us-east-1:123456789012:my-topic', type: 'string' },
-              'sentry.kind': { value: 'producer', type: 'string' },
-            }),
-          });
-
-          // The ARN suffix is a per-device id, so the streamed name drops the destination.
-          expectSpan('SNS Publish (platform endpoint)', {
-            name: 'send',
-            attributes: expect.objectContaining({
-              'rpc.method': { value: 'Publish', type: 'string' },
-              'rpc.service': { value: 'SNS', type: 'string' },
-              'sentry.op': { value: 'queue.publish', type: 'string' },
-              'messaging.destination': {
-                value: 'endpoint/GCM/myapp/5e3e9847-3183-3f18-a7e8-671c3a57d4b3',
-                type: 'string',
-              },
-              'messaging.destination.name': {
-                value: 'arn:aws:sns:us-east-1:123456789012:endpoint/GCM/myapp/5e3e9847-3183-3f18-a7e8-671c3a57d4b3',
-                type: 'string',
-              },
-            }),
-          });
-
-          // Lambda - Invoke
-          expectSpan('Lambda Invoke', {
-            name: 'my-function Invoke',
-            attributes: expect.objectContaining({
-              'sentry.op': { value: 'rpc', type: 'string' },
-              'sentry.origin': { value: ORIGIN, type: 'string' },
-              'rpc.method': { value: 'Invoke', type: 'string' },
-              'rpc.service': { value: 'Lambda', type: 'string' },
-              'faas.invoked_name': { value: 'my-function', type: 'string' },
-              'faas.invoked_provider': { value: 'aws', type: 'string' },
-              'faas.invocation_id': { value: 'request-id-1', type: 'string' },
-            }),
-          });
-
-          // Kinesis - PutRecord
-          expectSpan('Kinesis.PutRecord', {
-            name: 'Kinesis.PutRecord',
-            status: 'ok',
-            attributes: expect.objectContaining({
-              'sentry.op': { value: 'rpc', type: 'string' },
-              'sentry.origin': { value: ORIGIN, type: 'string' },
-              'rpc.method': { value: 'PutRecord', type: 'string' },
-              'rpc.service': { value: 'Kinesis', type: 'string' },
-              'aws.kinesis.stream.name': { value: 'my-stream', type: 'string' },
-            }),
-          });
-
-          // SecretsManager - GetSecretValue
-          expectSpan('SecretsManager.GetSecretValue', {
-            name: 'SecretsManager.GetSecretValue',
-            attributes: expect.objectContaining({
-              'sentry.op': { value: 'rpc', type: 'string' },
-              'sentry.origin': { value: ORIGIN, type: 'string' },
-              'rpc.method': { value: 'GetSecretValue', type: 'string' },
-              'rpc.service': { value: 'SecretsManager', type: 'string' },
-              'aws.secretsmanager.secret.arn': {
-                value: 'arn:aws:secretsmanager:us-east-1:123456789012:secret:my-secret-abc',
-                type: 'string',
-              },
-            }),
-          });
-
-          // StepFunctions - StartExecution
-          expectSpan('StepFunctions.StartExecution', {
-            name: 'SFN.StartExecution',
-            attributes: expect.objectContaining({
-              'sentry.op': { value: 'rpc', type: 'string' },
-              'sentry.origin': { value: ORIGIN, type: 'string' },
-              'rpc.method': { value: 'StartExecution', type: 'string' },
-              'rpc.service': { value: 'SFN', type: 'string' },
-              'aws.step_functions.state_machine.arn': {
-                value: 'arn:aws:states:us-east-1:123456789012:stateMachine:my-state-machine',
-                type: 'string',
-              },
-            }),
-          });
+          assertAwsServiceSpans(await spansPromise);
         });
       },
       { additionalDependencies },
