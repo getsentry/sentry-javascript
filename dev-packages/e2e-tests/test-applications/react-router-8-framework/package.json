@@ -73,9 +73,7 @@
       {
         "build-command": "pnpm test:build-latest",
         "label": "react-router-8-framework (latest)"
-      }
-    ],
-    "optionalVariants": [
+      },
       {
         "runtime": "bun",
         "label": "react-router-8-framework (bun)"
