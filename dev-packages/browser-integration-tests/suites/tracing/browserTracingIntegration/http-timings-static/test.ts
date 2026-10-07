@@ -1,3 +1,4 @@
+import { PAGELOAD, HTTP_CLIENT } from '@sentry/conventions/op';
 import {
   HTTP_REQUEST_REDIRECT_START,
   HTTP_REQUEST_REDIRECT_END,
@@ -15,9 +16,8 @@ import {
   NETWORK_PROTOCOL_VERSION,
 } from '@sentry/conventions/attributes';
 import { expect } from '@playwright/test';
-import type { Event } from '@sentry/core';
 import { sentryTest } from '../../../../utils/fixtures';
-import { getMultipleSentryEnvelopeRequests, shouldSkipTracingTest } from '../../../../utils/helpers';
+import { envelopeRequestParser, shouldSkipTracingTest, waitForTransactionRequest } from '../../../../utils/helpers';
 
 sentryTest('creates fetch spans with http timing', async ({ browserName, getLocalTestUrl, page }) => {
   const supportedBrowsers = ['chromium', 'firefox'];
@@ -38,10 +38,11 @@ sentryTest('creates fetch spans with http timing', async ({ browserName, getLoca
 
   const url = await getLocalTestUrl({ testDir: __dirname });
 
-  const envelopes = await getMultipleSentryEnvelopeRequests<Event>(page, 2, { url, timeout: 10000 });
-  const tracingEvent = envelopes[envelopes.length - 1]; // last envelope contains tracing data on all browsers
+  const pageloadPromise = waitForTransactionRequest(page, event => event.contexts?.trace?.op === PAGELOAD);
+  await page.goto(url);
+  const tracingEvent = envelopeRequestParser(await pageloadPromise);
 
-  const requestSpans = tracingEvent.spans?.filter(({ op }) => op === 'http.client');
+  const requestSpans = tracingEvent.spans?.filter(({ op }) => op === HTTP_CLIENT);
 
   expect(requestSpans).toHaveLength(3);
 

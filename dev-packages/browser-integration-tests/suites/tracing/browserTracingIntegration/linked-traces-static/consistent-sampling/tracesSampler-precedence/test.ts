@@ -1,3 +1,4 @@
+import { PAGELOAD, NAVIGATION } from '@sentry/conventions/op';
 import { SENTRY_LINK_TYPE } from '@sentry/conventions/attributes';
 import { expect } from '@playwright/test';
 import { SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE } from '@sentry/browser';
@@ -27,7 +28,7 @@ sentryTest.describe('When `consistentTraceSampling` is `true`', () => {
 
     const { pageloadTraceContext } = await sentryTest.step('Initial pageload', async () => {
       const pageloadRequestPromise = waitForTransactionRequest(page, evt => {
-        return evt.contexts?.trace?.op === 'pageload';
+        return evt.contexts?.trace?.op === PAGELOAD;
       });
       await page.goto(url);
 
@@ -46,7 +47,6 @@ sentryTest.describe('When `consistentTraceSampling` is `true`', () => {
 
       await page.locator('#btn1').click();
 
-      await page.waitForTimeout(500);
       await hidePage(page);
 
       const clientReport = envelopeRequestParser<ClientReport>(await clientReportPromise);
@@ -67,8 +67,6 @@ sentryTest.describe('When `consistentTraceSampling` is `true`', () => {
       const clientReportPromise = waitForClientReportRequest(page);
 
       await page.goto(`${url}#foo`);
-
-      await page.waitForTimeout(500);
 
       await hidePage(page);
 
@@ -115,7 +113,7 @@ sentryTest.describe('When `consistentTraceSampling` is `true`', () => {
     );
 
     await sentryTest.step('Navigation trace is sampled positively (inherited from previous trace)', async () => {
-      const navigationRequestPromise = waitForTransactionRequest(page, evt => evt.contexts?.trace?.op === 'navigation');
+      const navigationRequestPromise = waitForTransactionRequest(page, evt => evt.contexts?.trace?.op === NAVIGATION);
 
       await page.goto(`${url}#bar`);
 

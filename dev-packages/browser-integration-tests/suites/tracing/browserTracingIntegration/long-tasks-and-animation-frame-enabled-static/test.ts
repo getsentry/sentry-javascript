@@ -1,3 +1,4 @@
+import { PAGELOAD, UI_LONG_ANIMATION_FRAME } from '@sentry/conventions/op';
 import {
   BROWSER_SCRIPT_INVOKER,
   CODE_FILE_PATH,
@@ -8,9 +9,8 @@ import {
 } from '@sentry/conventions/attributes';
 import type { Route } from '@playwright/test';
 import { expect } from '@playwright/test';
-import type { Event } from '@sentry/core';
 import { sentryTest } from '../../../../utils/fixtures';
-import { getFirstSentryEnvelopeRequest, shouldSkipTracingTest } from '../../../../utils/helpers';
+import { envelopeRequestParser, shouldSkipTracingTest, waitForTransactionRequest } from '../../../../utils/helpers';
 
 sentryTest(
   'should capture long animation frame for top-level script.',
@@ -28,15 +28,13 @@ sentryTest(
 
     const url = await getLocalTestUrl({ testDir: __dirname });
 
-    const promise = getFirstSentryEnvelopeRequest<Event>(page);
+    const promise = waitForTransactionRequest(page, event => event.contexts?.trace?.op === PAGELOAD);
 
     await page.goto(url);
 
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    const eventData = envelopeRequestParser(await promise);
 
-    const eventData = await promise;
-
-    const uiSpans = eventData.spans?.filter(({ op }) => op?.startsWith('ui.long_animation_frame'));
+    const uiSpans = eventData.spans?.filter(({ op }) => op?.startsWith(UI_LONG_ANIMATION_FRAME));
 
     expect(uiSpans?.length).toBeGreaterThanOrEqual(1);
 
@@ -45,7 +43,7 @@ sentryTest(
     )!;
     expect(topLevelUISpan).toEqual(
       expect.objectContaining({
-        op: 'ui.long_animation_frame',
+        op: UI_LONG_ANIMATION_FRAME,
         description: 'Main UI thread blocked',
         parent_span_id: eventData.contexts?.trace?.span_id,
         data: {
@@ -53,7 +51,7 @@ sentryTest(
           [BROWSER_SCRIPT_SOURCE_CHAR_POSITION]: 0,
           [BROWSER_SCRIPT_INVOKER]: 'https://sentry-test-site.example/path/to/script.js',
           [BROWSER_SCRIPT_INVOKER_TYPE]: 'classic-script',
-          [SENTRY_OP]: 'ui.long_animation_frame',
+          [SENTRY_OP]: UI_LONG_ANIMATION_FRAME,
           [SENTRY_ORIGIN]: 'auto.ui.browser.metrics',
         },
       }),
@@ -81,18 +79,16 @@ sentryTest(
 
     const url = await getLocalTestUrl({ testDir: __dirname });
 
-    const promise = getFirstSentryEnvelopeRequest<Event>(page);
+    const promise = waitForTransactionRequest(page, event => event.contexts?.trace?.op === PAGELOAD);
 
     await page.goto(url);
 
     // trigger long animation frame function
     await page.getByRole('button').click();
 
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    const eventData = envelopeRequestParser(await promise);
 
-    const eventData = await promise;
-
-    const uiSpans = eventData.spans?.filter(({ op }) => op?.startsWith('ui.long_animation_frame')) || [];
+    const uiSpans = eventData.spans?.filter(({ op }) => op?.startsWith(UI_LONG_ANIMATION_FRAME)) || [];
 
     expect(uiSpans.length).toBeGreaterThanOrEqual(2);
 
@@ -100,14 +96,14 @@ sentryTest(
 
     expect(eventListenerUISpan).toEqual(
       expect.objectContaining({
-        op: 'ui.long_animation_frame',
+        op: UI_LONG_ANIMATION_FRAME,
         description: 'Main UI thread blocked',
         parent_span_id: eventData.contexts?.trace?.span_id,
         data: {
           [BROWSER_SCRIPT_INVOKER]: 'BUTTON#clickme.onclick',
           [BROWSER_SCRIPT_INVOKER_TYPE]: 'event-listener',
           [CODE_FILE_PATH]: 'https://sentry-test-site.example/path/to/script.js',
-          [SENTRY_OP]: 'ui.long_animation_frame',
+          [SENTRY_OP]: UI_LONG_ANIMATION_FRAME,
           [SENTRY_ORIGIN]: 'auto.ui.browser.metrics',
         },
       }),

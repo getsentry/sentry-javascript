@@ -4,7 +4,8 @@ import { extractTraceparentData, parseBaggageHeader } from '@sentry/core';
 import { sentryTest } from '../../../../../../utils/fixtures';
 import {
   envelopeRequestParser,
-  getMultipleSentryEnvelopeRequests,
+  envelopeUrlRegex,
+  getEnvelopeType,
   hidePage,
   shouldSkipTracingTest,
   waitForClientReportRequest,
@@ -26,13 +27,17 @@ sentryTest.describe('When `consistentTraceSampling` is `true` and page contains 
       const url = await getLocalTestUrl({ testDir: __dirname });
 
       let txnsReceived = 0;
-      // @ts-expect-error - no need to return something valid here
-      getMultipleSentryEnvelopeRequests<Event>(page, 1, { envelopeType: 'transaction' }, () => {
-        ++txnsReceived;
-        return {};
+      page.on('request', request => {
+        if (envelopeUrlRegex.test(request.url()) && getEnvelopeType(request) === 'transaction') {
+          ++txnsReceived;
+        }
       });
 
-      const clientReportPromise = waitForClientReportRequest(page);
+      const clientReportPromise = waitForClientReportRequest(page, report =>
+        report.discarded_events.some(
+          event => event.category === 'transaction' && event.reason === 'sample_rate' && event.quantity === 4,
+        ),
+      );
 
       await sentryTest.step('Initial pageload', async () => {
         await page.goto(url);
@@ -90,9 +95,8 @@ sentryTest.describe('When `consistentTraceSampling` is `true` and page contains 
         });
       });
 
-      await sentryTest.step('Wait for transactions to be discarded', async () => {
-        // give it a little longer just in case a txn is pending to be sent
-        await page.waitForTimeout(1000);
+      await sentryTest.step('No transactions sent after processing completes', async () => {
+        expect(await page.evaluate(() => (window as any).Sentry.flush())).toBe(true);
         expect(txnsReceived).toEqual(0);
       });
     },

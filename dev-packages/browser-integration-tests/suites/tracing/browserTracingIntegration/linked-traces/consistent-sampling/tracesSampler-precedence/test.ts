@@ -1,3 +1,4 @@
+import { PAGELOAD, NAVIGATION } from '@sentry/conventions/op';
 import { SENTRY_LINK_TYPE } from '@sentry/conventions/attributes';
 import { expect } from '@playwright/test';
 import { SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE } from '@sentry/browser';
@@ -26,12 +27,12 @@ sentryTest.describe('When `consistentTraceSampling` is `true`', () => {
     const { pageloadSpan } = await sentryTest.step('Initial pageload', async () => {
       const pageloadEnvelopePromise = waitForStreamedSpanEnvelope(
         page,
-        env => !!env[1][0][1].items.find(s => getSpanOp(s) === 'pageload'),
+        env => !!env[1][0][1].items.find(s => getSpanOp(s) === PAGELOAD),
       );
       await page.goto(url);
 
       const envelope = await pageloadEnvelopePromise;
-      const pageloadSpan = envelope[1][0][1].items.find(s => getSpanOp(s) === 'pageload')!;
+      const pageloadSpan = envelope[1][0][1].items.find(s => getSpanOp(s) === PAGELOAD)!;
 
       expect(pageloadSpan.attributes[SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE]?.value).toBe(1);
       expect(Number(envelope[0].trace?.sample_rand)).toBeGreaterThanOrEqual(0);
@@ -44,7 +45,6 @@ sentryTest.describe('When `consistentTraceSampling` is `true`', () => {
 
       await page.locator('#btn1').click();
 
-      await page.waitForTimeout(500);
       await hidePage(page);
 
       const clientReport = envelopeRequestParser<ClientReport>(await clientReportPromise);
@@ -65,8 +65,6 @@ sentryTest.describe('When `consistentTraceSampling` is `true`', () => {
       const clientReportPromise = waitForClientReportRequest(page);
 
       await page.goto(`${url}#foo`);
-
-      await page.waitForTimeout(500);
 
       await hidePage(page);
 
@@ -122,13 +120,13 @@ sentryTest.describe('When `consistentTraceSampling` is `true`', () => {
     await sentryTest.step('Navigation trace is sampled positively (inherited from previous trace)', async () => {
       const navigationEnvelopePromise = waitForStreamedSpanEnvelope(
         page,
-        env => env[0].trace?.sampled === 'true' && !!env[1][0][1].items.find(s => getSpanOp(s) === 'navigation'),
+        env => env[0].trace?.sampled === 'true' && !!env[1][0][1].items.find(s => getSpanOp(s) === NAVIGATION),
       );
 
       await page.goto(`${url}#bar`);
 
       const envelope = await navigationEnvelopePromise;
-      const navigationSpan = envelope[1][0][1].items.find(s => getSpanOp(s) === 'navigation')!;
+      const navigationSpan = envelope[1][0][1].items.find(s => getSpanOp(s) === NAVIGATION)!;
 
       expect(navigationSpan.attributes[SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE]?.value).toBe(1);
       expect(navigationSpan.trace_id).not.toEqual(customTrace2Span.trace_id);
