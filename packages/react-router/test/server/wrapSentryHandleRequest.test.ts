@@ -1,6 +1,6 @@
 import { PassThrough } from 'node:stream';
-import { SENTRY_SEGMENT_NAME_SOURCE, HTTP_ROUTE } from '@sentry/conventions/attributes';
-import { getActiveSpan, getRootSpan, getTraceMetaTags, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '@sentry/core';
+import { SENTRY_SEGMENT_NAME_SOURCE, HTTP_ROUTE, SENTRY_ORIGIN } from '@sentry/conventions/attributes';
+import { getActiveSpan, getRootSpan, getTraceMetaTags } from '@sentry/core';
 import { flushIfServerless } from '@sentry/core/server';
 import { beforeEach, describe, expect, test, vi } from 'vitest';
 import { getMetaTagTransformer } from '../../src/server/getMetaTagTransformer';
@@ -70,7 +70,46 @@ describe('wrapSentryHandleRequest', () => {
     expect(mockRootSpan.setAttributes).toHaveBeenCalledWith({
       [HTTP_ROUTE]: '/some-path',
       [SENTRY_SEGMENT_NAME_SOURCE]: 'route',
-      [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.react_router.request_handler',
+      [SENTRY_ORIGIN]: 'auto.http.react_router.request_handler',
+    });
+  });
+
+  test('should name an index route after its nearest ancestor path, or `/`', async () => {
+    const mockRootSpan = { setAttributes: vi.fn() };
+
+    (getActiveSpan as unknown as ReturnType<typeof vi.fn>).mockReturnValue({});
+    (getRootSpan as unknown as ReturnType<typeof vi.fn>).mockReturnValue(mockRootSpan);
+
+    const wrappedHandler = wrapSentryHandleRequest(vi.fn().mockResolvedValue('test'));
+
+    const rootIndexContext = {
+      staticHandlerContext: { matches: [{ route: { path: '' } }, { route: { index: true } }] },
+    } as any;
+    await wrappedHandler(new Request('https://nacho.queso/'), 200, new Headers(), rootIndexContext, {} as any);
+
+    expect(mockRootSpan.setAttributes).toHaveBeenLastCalledWith({
+      [HTTP_ROUTE]: '/',
+      [SENTRY_SEGMENT_NAME_SOURCE]: 'route',
+      [SENTRY_ORIGIN]: 'auto.http.react_router.request_handler',
+    });
+
+    const nestedIndexContext = {
+      staticHandlerContext: {
+        matches: [{ route: { path: '' } }, { route: { path: 'dashboard' } }, { route: { index: true } }],
+      },
+    } as any;
+    await wrappedHandler(
+      new Request('https://nacho.queso/dashboard'),
+      200,
+      new Headers(),
+      nestedIndexContext,
+      {} as any,
+    );
+
+    expect(mockRootSpan.setAttributes).toHaveBeenLastCalledWith({
+      [HTTP_ROUTE]: '/dashboard',
+      [SENTRY_SEGMENT_NAME_SOURCE]: 'route',
+      [SENTRY_ORIGIN]: 'auto.http.react_router.request_handler',
     });
   });
 

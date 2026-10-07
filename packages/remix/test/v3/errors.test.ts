@@ -25,19 +25,22 @@ describe('captureRuntimeErrors', () => {
     instrumentClientRuntime();
   });
 
-  it('reports one error per dispatch, however often instrumentation was set up', () => {
-    captureException.mockClear();
-    const app = fakeApp();
-    tracingChannel('orchestrion:@remix-run/ui:run').end.publish({ result: app });
+  it.each(['orchestrion:@remix-run/ui:run', 'orchestrion:@remix-run/component:run'])(
+    'reports one error per dispatch on %s, however often instrumentation was set up',
+    channelName => {
+      captureException.mockClear();
+      const app = fakeApp();
+      tracingChannel(channelName).end.publish({ result: app });
 
-    const error = new Error('render failed');
-    app.dispatchEvent(errorEvent(error));
+      const error = new Error('render failed');
+      app.dispatchEvent(errorEvent(error));
 
-    expect(captureException).toHaveBeenCalledTimes(1);
-    expect(captureException).toHaveBeenCalledWith(error, {
-      mechanism: { handled: false, type: 'auto.ui.remix_v3' },
-    });
-  });
+      expect(captureException).toHaveBeenCalledTimes(1);
+      expect(captureException).toHaveBeenCalledWith(error, {
+        mechanism: { handled: false, type: 'auto.ui.remix_v3' },
+      });
+    },
+  );
 
   it('attaches only once to the same app', () => {
     captureException.mockClear();

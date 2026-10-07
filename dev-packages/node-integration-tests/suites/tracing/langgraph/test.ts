@@ -1,4 +1,3 @@
-import { SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '@sentry/core';
 import { afterAll, describe, expect } from 'vitest';
 import {
   GEN_AI_AGENT_NAME,
@@ -16,6 +15,8 @@ import {
   GEN_AI_USAGE_INPUT_TOKENS,
   GEN_AI_USAGE_OUTPUT_TOKENS,
   GEN_AI_USAGE_TOTAL_TOKENS,
+  SENTRY_OP,
+  SENTRY_ORIGIN,
 } from '@sentry/conventions/attributes';
 import { getStringAttributeValue } from '../../../utils';
 import { cleanupChildProcesses, createEsmAndCjsTests } from '../../../utils/runner';
@@ -309,8 +310,8 @@ describe('LangGraph integration', () => {
                 status: 'ok',
                 attributes: expect.objectContaining({
                   [GEN_AI_OPERATION_NAME]: expect.objectContaining({ value: 'invoke_agent' }),
-                  [SEMANTIC_ATTRIBUTE_SENTRY_OP]: expect.objectContaining({ value: 'gen_ai.invoke_agent' }),
-                  [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: expect.objectContaining({ value: 'auto.ai.langgraph' }),
+                  [SENTRY_OP]: expect.objectContaining({ value: 'gen_ai.invoke_agent' }),
+                  [SENTRY_ORIGIN]: expect.objectContaining({ value: 'auto.ai.langgraph' }),
                   [GEN_AI_AGENT_NAME]: expect.objectContaining({ value: 'helpful_assistant' }),
                   [GEN_AI_PIPELINE_NAME]: expect.objectContaining({ value: 'helpful_assistant' }),
                 }),
@@ -319,7 +320,7 @@ describe('LangGraph integration', () => {
             expect(spans).toContainEqual(
               expect.objectContaining({
                 attributes: expect.objectContaining({
-                  [SEMANTIC_ATTRIBUTE_SENTRY_OP]: expect.objectContaining({ value: 'gen_ai.chat' }),
+                  [SENTRY_OP]: expect.objectContaining({ value: 'gen_ai.chat' }),
                   [GEN_AI_AGENT_NAME]: expect.objectContaining({ value: 'helpful_assistant' }),
                 }),
               }),
@@ -349,7 +350,7 @@ describe('LangGraph integration', () => {
               expect.objectContaining({
                 status: 'ok',
                 attributes: expect.objectContaining({
-                  [SEMANTIC_ATTRIBUTE_SENTRY_OP]: expect.objectContaining({ value: 'gen_ai.invoke_agent' }),
+                  [SENTRY_OP]: expect.objectContaining({ value: 'gen_ai.invoke_agent' }),
                   [GEN_AI_OPERATION_NAME]: expect.objectContaining({ value: 'invoke_agent' }),
                   [GEN_AI_AGENT_NAME]: expect.objectContaining({ value: 'math_assistant' }),
                 }),
@@ -360,7 +361,7 @@ describe('LangGraph integration', () => {
                 name: 'execute_tool add',
                 status: 'ok',
                 attributes: expect.objectContaining({
-                  [SEMANTIC_ATTRIBUTE_SENTRY_OP]: expect.objectContaining({ value: 'gen_ai.execute_tool' }),
+                  [SENTRY_OP]: expect.objectContaining({ value: 'gen_ai.execute_tool' }),
                   [GEN_AI_OPERATION_NAME]: expect.objectContaining({ value: 'execute_tool' }),
                   [GEN_AI_TOOL_NAME]: expect.objectContaining({ value: 'add' }),
                 }),
@@ -371,15 +372,20 @@ describe('LangGraph integration', () => {
                 name: 'execute_tool multiply',
                 status: 'ok',
                 attributes: expect.objectContaining({
-                  [SEMANTIC_ATTRIBUTE_SENTRY_OP]: expect.objectContaining({ value: 'gen_ai.execute_tool' }),
+                  [SENTRY_OP]: expect.objectContaining({ value: 'gen_ai.execute_tool' }),
                   [GEN_AI_OPERATION_NAME]: expect.objectContaining({ value: 'execute_tool' }),
                   [GEN_AI_TOOL_NAME]: expect.objectContaining({ value: 'multiply' }),
                 }),
               }),
             );
-            expect(
-              spans.filter(span => span.attributes[SEMANTIC_ATTRIBUTE_SENTRY_OP]?.value === 'gen_ai.chat'),
-            ).toHaveLength(3);
+            expect(spans.filter(span => span.attributes[SENTRY_OP]?.value === 'gen_ai.chat')).toHaveLength(3);
+
+            // `thread_id` reaches the agent span and every chat and tool span under it.
+            const genAiSpans = spans.filter(span => String(span.attributes[SENTRY_OP]?.value).startsWith('gen_ai.'));
+            expect(genAiSpans).toHaveLength(6);
+            for (const span of genAiSpans) {
+              expect(span.attributes[GEN_AI_CONVERSATION_ID]?.value).toBe('math_thread');
+            }
           },
         })
         .start()
@@ -397,9 +403,7 @@ describe('LangGraph integration', () => {
         })
         .expect({
           span: container => {
-            const chatSpans = container.items.filter(
-              s => s.attributes[SEMANTIC_ATTRIBUTE_SENTRY_OP]?.value === 'gen_ai.chat',
-            );
+            const chatSpans = container.items.filter(s => s.attributes[SENTRY_OP]?.value === 'gen_ai.chat');
             expect(chatSpans).toHaveLength(1);
             expect(chatSpans[0]?.attributes[GEN_AI_AGENT_NAME]?.value).toBe('plain_assistant');
           },

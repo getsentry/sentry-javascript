@@ -93,3 +93,45 @@ test('Sends a Workers AI gen_ai span to Sentry', async () => {
       'gen_ai.output.messages': expect.stringContaining('"role":"assistant"'),
     });
 });
+
+test('Sends a Workers AI gen_ai.evaluate span for a TypeSafe Jev call to Sentry', async () => {
+  const { traceId }: { traceId: string } = JSON.parse(await fetchFromWorker(`${workerUrl}/test-workers-ai-jev`, 200));
+
+  console.log(`Polling for gen_ai.evaluate span: sentry trace view ${traceTarget(traceId)}`);
+
+  let spanId: string | undefined;
+  await expect
+    .poll(() => (spanId = findSpanInTrace(traceId, 'gen_ai.evaluate')?.event_id), EVENT_POLLING_OPTIONS)
+    .toBeDefined();
+
+  await expect
+    .poll(() => fetchSpanAttributes(traceId, spanId!), EVENT_POLLING_OPTIONS)
+    .toMatchObject({
+      'gen_ai.operation.name': 'evaluate',
+      'gen_ai.request.model': 'typesafe/jev',
+      'gen_ai.response.model': expect.stringMatching(/^jev-/),
+      'gen_ai.input.messages': expect.stringContaining('My payouts have been failing'),
+      'gen_ai.output.messages': expect.stringContaining('"is_urgent"'),
+    });
+});
+
+test('Sends a Workers AI gen_ai.evaluate span for a Clef call to Sentry', async () => {
+  const { traceId }: { traceId: string } = JSON.parse(await fetchFromWorker(`${workerUrl}/test-workers-ai-clef`, 200));
+
+  console.log(`Polling for gen_ai.evaluate span: sentry trace view ${traceTarget(traceId)}`);
+
+  let spanId: string | undefined;
+  await expect
+    .poll(() => (spanId = findSpanInTrace(traceId, 'gen_ai.evaluate')?.event_id), EVENT_POLLING_OPTIONS)
+    .toBeDefined();
+
+  await expect
+    .poll(() => fetchSpanAttributes(traceId, spanId!), EVENT_POLLING_OPTIONS)
+    .toMatchObject({
+      'gen_ai.operation.name': 'evaluate',
+      'gen_ai.request.model': '@cf/cloudflare/clef',
+      'gen_ai.response.model': expect.stringContaining('clef'),
+      'gen_ai.input.messages': expect.stringContaining('Checkout has been failing'),
+      'gen_ai.output.messages': expect.stringContaining('"urgent"'),
+    });
+});

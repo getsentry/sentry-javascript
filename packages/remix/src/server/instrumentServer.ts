@@ -25,7 +25,6 @@ import {
   hasSpanStreamingEnabled,
   HTTP_SPAN_NAME_FALLBACK,
   httpHeadersToSpanAttributes,
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   setHttpStatus,
   spanToJSON,
   startSpan,
@@ -49,6 +48,7 @@ import {
   SENTRY_OP,
   URL_FULL,
   URL_PATH,
+  SENTRY_ORIGIN,
 } from '@sentry/conventions/attributes';
 import { FUNCTION, HTTP_SERVER } from '@sentry/conventions/op';
 
@@ -145,7 +145,7 @@ function makeWrappedDocumentRequestFunction(instrumentTracing?: boolean) {
             attributes: {
               method: request.method,
               [URL_FULL]: filterCollectedUrl(request.url),
-              [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.remix',
+              [SENTRY_ORIGIN]: 'auto.function.remix',
               [SENTRY_OP]: FUNCTION,
               [SENTRY_DESCRIPTION]: description,
               [CODE_FUNCTION_NAME]: 'documentRequest',
@@ -231,7 +231,7 @@ function makeWrappedDataFunction(
           // module id stays on `router.navigation.route.id`.
           name: client && hasSpanStreamingEnabled(client) ? name : id,
           attributes: {
-            [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ui.remix',
+            [SENTRY_ORIGIN]: 'auto.ui.remix',
             [SENTRY_OP]: FUNCTION,
             [SENTRY_DESCRIPTION]: id,
             [CODE_FUNCTION_NAME]: name,
@@ -415,7 +415,7 @@ function wrapRequestHandler<T extends ServerBuild | (() => ServerBuild | Promise
               {
                 name: spanName,
                 attributes: {
-                  [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.remix',
+                  [SENTRY_ORIGIN]: 'auto.http.remix',
                   [SENTRY_SEGMENT_NAME_SOURCE]: source,
                   [SENTRY_OP]: HTTP_SERVER,
                   [URL_FULL]: filterCollectedUrl(url.href),
@@ -553,6 +553,11 @@ export function instrumentServer(options?: { instrumentTracing?: boolean }): voi
   if (!pkg) {
     DEBUG_BUILD && debug.warn('Remix SDK was unable to require `@remix-run/server-runtime` package.');
 
+    return;
+  }
+
+  // `init()` runs this again after `close()`, so skip a handler that is already wrapped.
+  if ((pkg.createRequestHandler as WrappedFunction).__sentry_original__) {
     return;
   }
 

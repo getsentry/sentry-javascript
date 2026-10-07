@@ -18,7 +18,6 @@ import {
   hasSpanStreamingEnabled,
   NAVIGATION_SPAN_NAME_FALLBACK,
   PAGELOAD_SPAN_NAME_FALLBACK,
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   spanToJSON,
 } from '@sentry/core';
 import * as React from 'react';
@@ -49,7 +48,7 @@ import {
   setNavigationContext,
   transactionNameHasWildcard,
 } from './utils';
-import { SENTRY_SEGMENT_NAME_SOURCE, SENTRY_OP, URL_TEMPLATE } from '@sentry/conventions/attributes';
+import { SENTRY_SEGMENT_NAME_SOURCE, SENTRY_OP, URL_TEMPLATE, SENTRY_ORIGIN } from '@sentry/conventions/attributes';
 import { NAVIGATION, PAGELOAD } from '@sentry/conventions/op';
 
 const reactRouterConfigByClient = new WeakMap<Client, ReactRouterConfig>();
@@ -756,7 +755,7 @@ export function createReactRouterV6CompatibleTracingIntegration(
           attributes: {
             [SENTRY_SEGMENT_NAME_SOURCE]: 'url',
             [SENTRY_OP]: PAGELOAD,
-            [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: `auto.pageload.react.reactrouter${version ? `_v${version}` : ''}`,
+            [SENTRY_ORIGIN]: `auto.pageload.react.reactrouter${version ? `_v${version}` : ''}`,
           },
         });
       }
@@ -1078,7 +1077,7 @@ export function handleNavigation(opts: {
         attributes: {
           [SENTRY_SEGMENT_NAME_SOURCE]: source,
           [SENTRY_OP]: NAVIGATION,
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: `auto.navigation.react.reactrouter${version ? `_v${version}` : ''}`,
+          [SENTRY_ORIGIN]: `auto.navigation.react.reactrouter${version ? `_v${version}` : ''}`,
           ...(source === 'route' && { [URL_TEMPLATE]: placeholderEntry.routeName }),
         },
       });

@@ -1,6 +1,6 @@
-import { SENTRY_SEGMENT_NAME_SOURCE } from '@sentry/conventions/attributes';
+import { SENTRY_SEGMENT_NAME_SOURCE, SENTRY_OP } from '@sentry/conventions/attributes';
 import type { Span } from '@sentry/core';
-import { SEMANTIC_ATTRIBUTE_SENTRY_OP, spanToStaticSpanJSON } from '@sentry/core';
+import { spanToStaticSpanJSON } from '@sentry/core';
 import type { MutableRootSpan } from '../../server/enhanceHandleRequestRootSpan';
 
 /**
@@ -24,7 +24,7 @@ export function createLiveRootSpanAdapter(span: Span): MutableRootSpan {
       span.setAttribute(SENTRY_SEGMENT_NAME_SOURCE, source);
     },
     setOp: (op: string) => {
-      span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_OP, op);
+      span.setAttribute(SENTRY_OP, op);
     },
   };
 }

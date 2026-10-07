@@ -1,12 +1,4 @@
-import {
-  SDK_VERSION,
-  SEMANTIC_ATTRIBUTE_SENTRY_ENVIRONMENT,
-  SEMANTIC_ATTRIBUTE_SENTRY_OP,
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  SEMANTIC_ATTRIBUTE_SENTRY_RELEASE,
-  SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE,
-  SEMANTIC_ATTRIBUTE_SENTRY_SDK_INTEGRATIONS,
-} from '@sentry/core';
+import { SDK_VERSION, SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE } from '@sentry/core';
 import {
   SENTRY_SEGMENT_NAME_SOURCE,
   SENTRY_SEGMENT_ID,
@@ -14,6 +6,11 @@ import {
   SENTRY_SDK_NAME,
   SENTRY_SDK_VERSION,
   SENTRY_TRACE_LIFECYCLE,
+  SENTRY_ENVIRONMENT,
+  SENTRY_RELEASE,
+  SENTRY_SDK_INTEGRATIONS,
+  SENTRY_OP,
+  SENTRY_ORIGIN,
 } from '@sentry/conventions/attributes';
 import { expect, test } from 'vitest';
 import { createRunner } from '../../../../utils/runner';
@@ -60,7 +57,7 @@ test('sends a streamed span envelope with correct spans for a manually started s
           attributes: {
             [SENTRY_TRACE_LIFECYCLE]: { type: 'string', value: 'stream' },
             'sentry.is_localhost': { type: 'boolean', value: false },
-            [SEMANTIC_ATTRIBUTE_SENTRY_OP]: {
+            [SENTRY_OP]: {
               type: 'string',
               value: 'test-child',
             },
@@ -68,9 +65,9 @@ test('sends a streamed span envelope with correct spans for a manually started s
             [SENTRY_SDK_VERSION]: { type: 'string', value: SDK_VERSION },
             [SENTRY_SEGMENT_ID]: { type: 'string', value: segmentSpanId },
             [SENTRY_SEGMENT_NAME]: { type: 'string', value: 'test-span' },
-            [SEMANTIC_ATTRIBUTE_SENTRY_RELEASE]: { type: 'string', value: '1.0.0' },
-            [SEMANTIC_ATTRIBUTE_SENTRY_ENVIRONMENT]: { type: 'string', value: 'production' },
-            [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: { type: 'string', value: 'manual' },
+            [SENTRY_RELEASE]: { type: 'string', value: '1.0.0' },
+            [SENTRY_ENVIRONMENT]: { type: 'string', value: 'production' },
+            [SENTRY_ORIGIN]: { type: 'string', value: 'manual' },
           },
           name: 'test-child-span',
           is_segment: false,
@@ -92,9 +89,9 @@ test('sends a streamed span envelope with correct spans for a manually started s
             [SENTRY_SDK_VERSION]: { type: 'string', value: SDK_VERSION },
             [SENTRY_SEGMENT_ID]: { type: 'string', value: segmentSpanId },
             [SENTRY_SEGMENT_NAME]: { type: 'string', value: 'test-span' },
-            [SEMANTIC_ATTRIBUTE_SENTRY_RELEASE]: { type: 'string', value: '1.0.0' },
-            [SEMANTIC_ATTRIBUTE_SENTRY_ENVIRONMENT]: { type: 'string', value: 'production' },
-            [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: { type: 'string', value: 'manual' },
+            [SENTRY_RELEASE]: { type: 'string', value: '1.0.0' },
+            [SENTRY_ENVIRONMENT]: { type: 'string', value: 'production' },
+            [SENTRY_ORIGIN]: { type: 'string', value: 'manual' },
           },
           links: [
             {
@@ -129,9 +126,9 @@ test('sends a streamed span envelope with correct spans for a manually started s
             [SENTRY_SDK_VERSION]: { type: 'string', value: SDK_VERSION },
             [SENTRY_SEGMENT_ID]: { type: 'string', value: segmentSpanId },
             [SENTRY_SEGMENT_NAME]: { type: 'string', value: 'test-span' },
-            [SEMANTIC_ATTRIBUTE_SENTRY_RELEASE]: { type: 'string', value: '1.0.0' },
-            [SEMANTIC_ATTRIBUTE_SENTRY_ENVIRONMENT]: { type: 'string', value: 'production' },
-            [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: { type: 'string', value: 'manual' },
+            [SENTRY_RELEASE]: { type: 'string', value: '1.0.0' },
+            [SENTRY_ENVIRONMENT]: { type: 'string', value: 'production' },
+            [SENTRY_ORIGIN]: { type: 'string', value: 'manual' },
           },
           name: 'test-manual-span',
           is_segment: false,
@@ -146,19 +143,19 @@ test('sends a streamed span envelope with correct spans for a manually started s
         const expectedAttributes: Record<string, unknown> = {
           [SENTRY_TRACE_LIFECYCLE]: { type: 'string', value: 'stream' },
           'sentry.is_localhost': { type: 'boolean', value: false },
-          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: { type: 'string', value: 'test' },
+          [SENTRY_OP]: { type: 'string', value: 'test' },
           [SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE]: { type: 'integer', value: 1 },
           [SENTRY_SDK_NAME]: { type: 'string', value: EXPECTED_SDK_NAME },
           [SENTRY_SDK_VERSION]: { type: 'string', value: SDK_VERSION },
-          [SEMANTIC_ATTRIBUTE_SENTRY_SDK_INTEGRATIONS]: {
+          [SENTRY_SDK_INTEGRATIONS]: {
             type: 'array',
             value: expect.arrayContaining(['SpanStreaming']),
           },
           [SENTRY_SEGMENT_ID]: { type: 'string', value: segmentSpanId },
           [SENTRY_SEGMENT_NAME]: { type: 'string', value: 'test-span' },
-          [SEMANTIC_ATTRIBUTE_SENTRY_RELEASE]: { type: 'string', value: '1.0.0' },
-          [SEMANTIC_ATTRIBUTE_SENTRY_ENVIRONMENT]: { type: 'string', value: 'production' },
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: { type: 'string', value: 'manual' },
+          [SENTRY_RELEASE]: { type: 'string', value: '1.0.0' },
+          [SENTRY_ENVIRONMENT]: { type: 'string', value: 'production' },
+          [SENTRY_ORIGIN]: { type: 'string', value: 'manual' },
           [SENTRY_SEGMENT_NAME_SOURCE]: { type: 'string', value: 'custom' },
           'process.runtime.engine.name': { type: 'string', value: 'v8' },
           'process.runtime.engine.version': { type: 'string', value: expect.any(String) },

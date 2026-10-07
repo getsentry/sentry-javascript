@@ -7,8 +7,6 @@ import {
   getClient,
   getRootSpan,
   hasSpanStreamingEnabled,
-  SEMANTIC_ATTRIBUTE_EXCLUSIVE_TIME,
-  SEMANTIC_ATTRIBUTE_SENTRY_OP,
   spanToJSON,
   timestampInSeconds,
   UI_INTERACTION_CLICK_SPAN_NAME_FALLBACK,
@@ -31,10 +29,12 @@ import {
 } from '../instrumentation/performanceObserver';
 import type { LargestContentfulPaint, LayoutShift } from './emitSpan';
 import {
+  SENTRY_EXCLUSIVE_TIME,
   BROWSER_NAVIGATION_TYPE,
   BROWSER_WEB_VITAL_INP_INTERACTION_TYPE,
   BROWSER_WEB_VITAL_INP_TARGET,
   UI_COMPONENT_NAME,
+  SENTRY_OP,
 } from '@sentry/conventions/attributes';
 import { _emitWebVitalSpan } from './emitSpan';
 import { isValidLcpMetric } from './lcp';
@@ -96,10 +96,7 @@ function trackWebVitalPerNavigation<M extends WebVitalMetric>(
     // `back-forward-cache` navigation type, so matching on that alone lets the first of them replace the
     // navigation span, and every later vital then hangs off a sibling vital instead.
     const attributes = spanToJSON(span).attributes;
-    if (
-      attributes?.[SEMANTIC_ATTRIBUTE_SENTRY_OP] === NAVIGATION &&
-      attributes[BROWSER_NAVIGATION_TYPE] === 'back-forward-cache'
-    ) {
+    if (attributes?.[SENTRY_OP] === NAVIGATION && attributes[BROWSER_NAVIGATION_TYPE] === 'back-forward-cache') {
       bfcacheNavigationSpan = span;
     }
   });
@@ -435,7 +432,7 @@ export function _sendInpSpan(
   const name = hasSpanStreaming ? componentName || fallbackName : (selector ?? 'Interaction to next paint');
 
   const attributes: SpanAttributes = {
-    [SEMANTIC_ATTRIBUTE_EXCLUSIVE_TIME]: entry?.duration ?? inpValue,
+    [SENTRY_EXCLUSIVE_TIME]: entry?.duration ?? inpValue,
   };
 
   // The span's name and op always have a value, even for an INP without an entry, so they can't

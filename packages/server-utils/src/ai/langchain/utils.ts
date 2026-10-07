@@ -1,9 +1,10 @@
 /* eslint-disable max-lines */
 /* eslint-disable typescript-eslint/no-deprecated */
-import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, stringify } from '@sentry/core';
+import { isObjectLike, stringify } from '@sentry/core';
 import type { SpanAttributeValue } from '@sentry/core';
 import {
   GEN_AI_AGENT_NAME,
+  GEN_AI_CONVERSATION_ID,
   GEN_AI_INPUT_MESSAGES,
   GEN_AI_OPERATION_NAME,
   GEN_AI_PROVIDER_NAME,
@@ -21,12 +22,10 @@ import {
   GEN_AI_SYSTEM_INSTRUCTIONS,
   GEN_AI_USAGE_CACHE_CREATION_INPUT_TOKENS,
   GEN_AI_USAGE_CACHE_READ_INPUT_TOKENS,
-  GEN_AI_USAGE_INPUT_TOKENS,
-  GEN_AI_USAGE_OUTPUT_TOKENS,
-  GEN_AI_USAGE_TOTAL_TOKENS,
+  SENTRY_ORIGIN,
 } from '@sentry/conventions/attributes';
 import { GEN_AI_REQUEST_STREAM_ATTRIBUTE, GEN_AI_RESPONSE_STOP_REASON_ATTRIBUTE } from '../core/gen-ai-attributes';
-import { extractSystemInstructions } from '../core/utils';
+import { extractSystemInstructions, getTokenUsageAttributes } from '../core/utils';
 import { LANGCHAIN_ORIGIN, ROLE_MAP } from './constants';
 import type { LangChainLLMResult, LangChainMessage, LangChainSerialized } from './types';
 
@@ -227,7 +226,7 @@ function baseRequestAttributes(
     [GEN_AI_PROVIDER_NAME]: stringify(system ?? 'langchain', String),
     [GEN_AI_OPERATION_NAME]: 'chat',
     [GEN_AI_REQUEST_MODEL]: stringify(modelName, String),
-    [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: LANGCHAIN_ORIGIN,
+    [SENTRY_ORIGIN]: LANGCHAIN_ORIGIN,
     ...extractCommonRequestAttributes(serialized, invocationParams, langSmithMetadata),
   };
 }
@@ -328,16 +327,46 @@ function addToolCallsAttributes(generations: LangChainMessage[][], attrs: Record
   }
 }
 
-/**
- * Adds token usage attributes, supporting both OpenAI (`tokenUsage`) and Anthropic (`usage`) formats.
- * - Preserve zero values (0 tokens) by avoiding truthy checks.
- * - Compute a total for Anthropic when not explicitly provided.
- * - Include cache token metrics when present.
- */
-function addTokenUsageAttributes(
-  llmOutput: LangChainLLMResult['llmOutput'],
-  attrs: Record<string, SpanAttributeValue>,
-): void {
+export function extractMessageTokenUsageAttributes(message: LangChainMessage): Record<string, number> {
+  const usage = message.usage_metadata;
+  if (isObjectLike(usage)) {
+    const details = isObjectLike(usage.input_token_details) ? usage.input_token_details : undefined;
+    return getTokenUsageAttributes(
+      usage.input_tokens,
+      usage.output_tokens,
+      details?.cache_creation,
+      details?.cache_read,
+      usage.total_tokens,
+    );
+  }
+
+  const metadata = message.response_metadata;
+  const tokenUsage = isObjectLike(metadata) && isObjectLike(metadata.tokenUsage) ? metadata.tokenUsage : undefined;
+  return getTokenUsageAttributes(
+    tokenUsage?.promptTokens,
+    tokenUsage?.completionTokens,
+    undefined,
+    undefined,
+    tokenUsage?.totalTokens,
+  );
+}
+
+function addTokenUsageAttributes(llmResult: LangChainLLMResult, attrs: Record<string, SpanAttributeValue>): void {
+  const normalizedUsage: Record<string, number> = {};
+  const legacyMessageUsage: Record<string, number> = {};
+  for (const generations of llmResult.generations ?? []) {
+    // Candidate messages share the usage totals for their prompt.
+    const message = generations[0]?.message;
+    if (message) {
+      const usage = isObjectLike(message.usage_metadata) ? normalizedUsage : legacyMessageUsage;
+      for (const [key, value] of Object.entries(extractMessageTokenUsageAttributes(message))) {
+        usage[key] = (usage[key] ?? 0) + value;
+      }
+    }
+  }
+  Object.assign(attrs, Object.keys(normalizedUsage).length > 0 ? normalizedUsage : legacyMessageUsage);
+
+  const llmOutput = llmResult.llmOutput;
   if (!llmOutput) return;
 
   const tokenUsage = llmOutput.tokenUsage;
@@ -350,25 +379,47 @@ function addTokenUsageAttributes(
       }
     | undefined;
 
-  if (tokenUsage) {
-    setNumberIfDefined(attrs, GEN_AI_USAGE_INPUT_TOKENS, tokenUsage.promptTokens);
-    setNumberIfDefined(attrs, GEN_AI_USAGE_OUTPUT_TOKENS, tokenUsage.completionTokens);
-    setNumberIfDefined(attrs, GEN_AI_USAGE_TOTAL_TOKENS, tokenUsage.totalTokens);
-  } else if (anthropicUsage) {
-    setNumberIfDefined(attrs, GEN_AI_USAGE_INPUT_TOKENS, anthropicUsage.input_tokens);
-    setNumberIfDefined(attrs, GEN_AI_USAGE_OUTPUT_TOKENS, anthropicUsage.output_tokens);
-
-    // Compute total when not provided by the provider.
-    const input = Number(anthropicUsage.input_tokens);
-    const output = Number(anthropicUsage.output_tokens);
-    const total = (Number.isNaN(input) ? 0 : input) + (Number.isNaN(output) ? 0 : output);
-    if (total > 0) setNumberIfDefined(attrs, GEN_AI_USAGE_TOTAL_TOKENS, total);
-
-    // Extra Anthropic cache metrics (present only when caching is enabled)
-    if (anthropicUsage.cache_creation_input_tokens !== undefined)
-      setNumberIfDefined(attrs, GEN_AI_USAGE_CACHE_CREATION_INPUT_TOKENS, anthropicUsage.cache_creation_input_tokens);
-    if (anthropicUsage.cache_read_input_tokens !== undefined)
-      setNumberIfDefined(attrs, GEN_AI_USAGE_CACHE_READ_INPUT_TOKENS, anthropicUsage.cache_read_input_tokens);
+  // llmOutput.tokenUsage can contain only the final stream chunk's counters.
+  if (anthropicUsage && Object.keys(normalizedUsage).length === 0 && Object.keys(legacyMessageUsage).length === 0) {
+    const { input_tokens, output_tokens, cache_creation_input_tokens, cache_read_input_tokens } = anthropicUsage;
+    const hasInput =
+      input_tokens !== undefined || cache_creation_input_tokens !== undefined || cache_read_input_tokens !== undefined;
+    Object.assign(
+      attrs,
+      getTokenUsageAttributes(
+        hasInput
+          ? (input_tokens ?? 0) + (cache_creation_input_tokens ?? 0) + (cache_read_input_tokens ?? 0)
+          : undefined,
+        output_tokens,
+        cache_creation_input_tokens,
+        cache_read_input_tokens,
+      ),
+    );
+  } else if (tokenUsage && Object.keys(normalizedUsage).length === 0 && Object.keys(legacyMessageUsage).length === 0) {
+    Object.assign(
+      attrs,
+      getTokenUsageAttributes(
+        tokenUsage.promptTokens,
+        tokenUsage.completionTokens,
+        undefined,
+        undefined,
+        tokenUsage.totalTokens,
+      ),
+    );
+  }
+  if (anthropicUsage) {
+    if (
+      typeof anthropicUsage.cache_creation_input_tokens === 'number' &&
+      !(GEN_AI_USAGE_CACHE_CREATION_INPUT_TOKENS in attrs)
+    ) {
+      attrs[GEN_AI_USAGE_CACHE_CREATION_INPUT_TOKENS] = anthropicUsage.cache_creation_input_tokens;
+    }
+    if (
+      typeof anthropicUsage.cache_read_input_tokens === 'number' &&
+      !(GEN_AI_USAGE_CACHE_READ_INPUT_TOKENS in attrs)
+    ) {
+      attrs[GEN_AI_USAGE_CACHE_READ_INPUT_TOKENS] = anthropicUsage.cache_read_input_tokens;
+    }
   }
 }
 
@@ -424,7 +475,7 @@ export function extractLlmResponseAttributes(
     }
   }
 
-  addTokenUsageAttributes(llmResult.llmOutput, attrs);
+  addTokenUsageAttributes(llmResult, attrs);
 
   const llmOutput = llmResult.llmOutput;
 
@@ -460,6 +511,41 @@ export function getAgentNameFromMetadata(metadata?: Record<string, unknown>): Re
     attrs[GEN_AI_AGENT_NAME] = agentName;
   }
   return attrs;
+}
+
+/**
+ * Metadata keys under which LangChain apps carry a conversation id, in order of precedence.
+ * `thread_id` is the LangGraph checkpointer key and one of the two keys LangSmith groups threads by,
+ * `session_id` is the other, and `sessionId` is what `RunnableWithMessageHistory` requires in JS.
+ */
+const CONVERSATION_ID_METADATA_KEYS = ['thread_id', 'session_id', 'sessionId'] as const;
+
+function findConversationIdEntry(source?: Record<string, unknown>): [string, string | number] | undefined {
+  for (const key of CONVERSATION_ID_METADATA_KEYS) {
+    const value = source?.[key];
+    if ((typeof value === 'string' && value) || (typeof value === 'number' && Number.isFinite(value))) {
+      return [key, value];
+    }
+  }
+  return undefined;
+}
+
+/**
+ * Derive `gen_ai.conversation.id` from run metadata, which child runs inherit from their parent.
+ * An id from `Sentry.setConversationId()` still wins, since `conversationIdIntegration` applies it on `spanStart`.
+ */
+export function getConversationIdFromMetadata(metadata?: Record<string, unknown>): Record<string, SpanAttributeValue> {
+  const entry = findConversationIdEntry(metadata);
+  return entry ? { [GEN_AI_CONVERSATION_ID]: String(entry[1]) } : {};
+}
+
+/**
+ * The conversation id entry from `config.configurable`, to spread under the run metadata.
+ * `@langchain/core` >= 1.1.40 only copies `configurable` into metadata for LangSmith tracers, not for our handler.
+ */
+export function getConversationIdMetadataFromConfig(config: Record<string, unknown>): Record<string, unknown> {
+  const entry = findConversationIdEntry(config.configurable as Record<string, unknown> | undefined);
+  return entry ? { [entry[0]]: entry[1] } : {};
 }
 
 export function extractToolDefinitions(extraParams?: Record<string, unknown>): string | undefined {

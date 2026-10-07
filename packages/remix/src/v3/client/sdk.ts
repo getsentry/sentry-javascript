@@ -4,13 +4,14 @@ import { applySdkMetadata, type Client, type Integration } from '@sentry/core';
 
 import { browserTracingIntegration } from './browserTracingIntegration';
 import { instrumentClientRuntime } from './errors';
+import { createRemixV3RouteProvider } from './routeProvider';
 
 /**
  * Default integrations for the Remix 3 client SDK.
  *
  * Browser tracing is added here rather than left to the app, because the Navigation API variant is the
  * only one that reports anything in Remix 3. Everything else is plain `@sentry/browser`. Nothing from
- * `@sentry/react` applies: `remix/ui` is its own runtime, with no React and no reconciler to hook.
+ * `@sentry/react` applies: `remix/component` is its own runtime, with no React and no reconciler to hook.
  */
 export function getDefaultIntegrations(options: BrowserOptions): Integration[] {
   return [...getBrowserDefaultIntegrations(options), browserTracingIntegration()];
@@ -19,6 +20,8 @@ export function getDefaultIntegrations(options: BrowserOptions): Integration[] {
 /** Initialize the Sentry Remix 3 SDK in the browser. */
 export function init(options: BrowserOptions): Client | undefined {
   const opts = {
+    // Set at `init` so the page load span can be named from it. An app with its own provider keeps it.
+    routeProvider: createRemixV3RouteProvider(),
     ...options,
     defaultIntegrations: options.defaultIntegrations ?? getDefaultIntegrations(options),
   };

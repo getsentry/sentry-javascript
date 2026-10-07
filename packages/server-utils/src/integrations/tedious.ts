@@ -9,7 +9,6 @@ import {
   defineIntegration,
   getClient,
   hasSpanStreamingEnabled,
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SPAN_STATUS_ERROR,
   startInactiveSpan,
 } from '@sentry/core';
@@ -23,6 +22,7 @@ import {
   SENTRY_OP,
   SERVER_ADDRESS,
   SERVER_PORT,
+  SENTRY_ORIGIN,
 } from '@sentry/conventions/attributes';
 import { DB } from '@sentry/conventions/op';
 import { CHANNELS } from '../orchestrion/channels';
@@ -138,7 +138,7 @@ function subscribeQuery(channelName: string, operation: string): void {
     const attributes: SpanAttributes = {
       [SENTRY_OP]: DB,
       [SENTRY_KIND]: 'client',
-      [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: ORIGIN,
+      [SENTRY_ORIGIN]: ORIGIN,
       [DB_SYSTEM_NAME]: DB_SYSTEM_VALUE_MSSQL,
       [DB_NAMESPACE]: databaseName,
       // `>=4` uses the `authentication` object; older versions expose `userName` directly.

@@ -195,5 +195,6 @@ export function withoutInstrumentedExternals(
 export { nestjsChannels } from './nestjs';
 // This is exported so that the remix package can use it to subscribe to the channels.
 export { remixChannels } from './remix';
-// This is exported so the remix package can subscribe to the Remix 3 channels.
-export { remixV3Channels } from './remix-v3';
+// Exported so the remix package can subscribe to the Remix 3 channels, and hand only these configs to
+// the browser transform.
+export { remixV3Channels, remixV3Config } from './remix-v3';

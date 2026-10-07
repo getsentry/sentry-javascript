@@ -1,7 +1,7 @@
+import { GEN_AI_CONVERSATION_ID } from '@sentry/conventions/attributes';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { getCurrentScope, getIsolationScope, setCurrentClient, startSpan } from '../../../src';
 import { conversationIdIntegration } from '../../../src/integrations/conversationId';
-import { GEN_AI_CONVERSATION_ID_ATTRIBUTE } from '../../../src/semanticAttributes';
 import { spanToStaticSpanJSON } from '../../../src/utils/spanUtils';
 import { getDefaultTestClientOptions, TestClient } from '../../mocks/client';
 
@@ -28,7 +28,7 @@ describe('ConversationId', () => {
 
     startSpan({ name: 'test-span', op: 'gen_ai.chat' }, span => {
       const spanJSON = spanToStaticSpanJSON(span);
-      expect(spanJSON.data[GEN_AI_CONVERSATION_ID_ATTRIBUTE]).toBe('conv_test_123');
+      expect(spanJSON.data[GEN_AI_CONVERSATION_ID]).toBe('conv_test_123');
     });
   });
 
@@ -37,7 +37,7 @@ describe('ConversationId', () => {
 
     startSpan({ name: 'test-span', op: 'gen_ai.chat' }, span => {
       const spanJSON = spanToStaticSpanJSON(span);
-      expect(spanJSON.data[GEN_AI_CONVERSATION_ID_ATTRIBUTE]).toBe('conv_isolation_456');
+      expect(spanJSON.data[GEN_AI_CONVERSATION_ID]).toBe('conv_isolation_456');
     });
   });
 
@@ -47,14 +47,14 @@ describe('ConversationId', () => {
 
     startSpan({ name: 'test-span', op: 'gen_ai.chat' }, span => {
       const spanJSON = spanToStaticSpanJSON(span);
-      expect(spanJSON.data[GEN_AI_CONVERSATION_ID_ATTRIBUTE]).toBe('conv_current_789');
+      expect(spanJSON.data[GEN_AI_CONVERSATION_ID]).toBe('conv_current_789');
     });
   });
 
   it('does not apply conversation ID when not set in scope', () => {
     startSpan({ name: 'test-span', op: 'gen_ai.chat' }, span => {
       const spanJSON = spanToStaticSpanJSON(span);
-      expect(spanJSON.data[GEN_AI_CONVERSATION_ID_ATTRIBUTE]).toBeUndefined();
+      expect(spanJSON.data[GEN_AI_CONVERSATION_ID]).toBeUndefined();
     });
   });
 
@@ -64,7 +64,7 @@ describe('ConversationId', () => {
 
     startSpan({ name: 'test-span', op: 'gen_ai.chat' }, span => {
       const spanJSON = spanToStaticSpanJSON(span);
-      expect(spanJSON.data[GEN_AI_CONVERSATION_ID_ATTRIBUTE]).toBeUndefined();
+      expect(spanJSON.data[GEN_AI_CONVERSATION_ID]).toBeUndefined();
     });
   });
 
@@ -74,7 +74,7 @@ describe('ConversationId', () => {
     startSpan({ name: 'parent-span', op: 'gen_ai.invoke_agent' }, () => {
       startSpan({ name: 'child-span', op: 'gen_ai.chat' }, childSpan => {
         const childJSON = spanToStaticSpanJSON(childSpan);
-        expect(childJSON.data[GEN_AI_CONVERSATION_ID_ATTRIBUTE]).toBe('conv_nested_abc');
+        expect(childJSON.data[GEN_AI_CONVERSATION_ID]).toBe('conv_nested_abc');
       });
     });
   });
@@ -87,12 +87,12 @@ describe('ConversationId', () => {
         name: 'test-span',
         op: 'gen_ai.chat',
         attributes: {
-          [GEN_AI_CONVERSATION_ID_ATTRIBUTE]: 'conv_explicit',
+          [GEN_AI_CONVERSATION_ID]: 'conv_explicit',
         },
       },
       span => {
         const spanJSON = spanToStaticSpanJSON(span);
-        expect(spanJSON.data[GEN_AI_CONVERSATION_ID_ATTRIBUTE]).toBe('conv_from_scope');
+        expect(spanJSON.data[GEN_AI_CONVERSATION_ID]).toBe('conv_from_scope');
       },
     );
   });
@@ -102,7 +102,7 @@ describe('ConversationId', () => {
 
     startSpan({ name: 'db-query', op: 'db.query' }, span => {
       const spanJSON = spanToStaticSpanJSON(span);
-      expect(spanJSON.data[GEN_AI_CONVERSATION_ID_ATTRIBUTE]).toBeUndefined();
+      expect(spanJSON.data[GEN_AI_CONVERSATION_ID]).toBeUndefined();
     });
   });
 });

@@ -6,6 +6,8 @@ import {
   CACHE_OPERATION,
   CACHE_TAGS,
   CACHE_TTL,
+  CODE_FILE_PATH,
+  SENTRY_LINK_TYPE,
   SENTRY_ORIGIN,
 } from '@sentry/conventions/attributes';
 import { CACHE_GET, CACHE_PUT } from '@sentry/conventions/op';
@@ -20,12 +22,12 @@ import {
   hasSpanStreamingEnabled,
   hasSpansEnabled,
   LRUMap,
-  SEMANTIC_LINK_ATTRIBUTE_LINK_TYPE,
   spanIsSampled,
   startSpan,
   timestampInSeconds,
 } from '@sentry/core';
 import { DEBUG_BUILD } from '../common/debug-build';
+import { getCacheFunctionSourceFile } from './useCacheSourceFile';
 
 // Next.js shares its `use cache` handlers across bundles via `globalThis`
 // (`next/src/server/use-cache/handlers.ts`). This module can load once per bundle, so all
@@ -102,7 +104,12 @@ function shouldRecordCacheSpan(): boolean {
   return !!activeSpan && spanIsSampled(activeSpan);
 }
 
-function startCacheSpan<T>(op: typeof CACHE_GET | typeof CACHE_PUT, digest: string, callback: (span: Span) => T): T {
+function startCacheSpan<T>(
+  op: typeof CACHE_GET | typeof CACHE_PUT,
+  digest: string,
+  extraAttributes: Record<string, string>,
+  callback: (span: Span) => T,
+): T {
   const client = getClient();
 
   return startSpan(
@@ -114,6 +121,7 @@ function startCacheSpan<T>(op: typeof CACHE_GET | typeof CACHE_PUT, digest: stri
         [SENTRY_ORIGIN]: CACHE_SPAN_ORIGIN,
         [CACHE_KEY]: [digest],
         [CACHE_OPERATION]: CACHE_OPERATION_NAMES[op],
+        ...extraAttributes,
       },
     },
     callback,
@@ -184,7 +192,7 @@ function linkCacheOrigin(span: Span, originKey: string, entry: unknown): void {
   if (origin && origin.entryTimestamp === timestamp) {
     span.addLink({
       context: origin.context,
-      attributes: { [SEMANTIC_LINK_ATTRIBUTE_LINK_TYPE]: CACHE_ORIGIN_LINK_TYPE },
+      attributes: { [SENTRY_LINK_TYPE]: CACHE_ORIGIN_LINK_TYPE },
     });
   }
 }
@@ -250,7 +258,7 @@ function instrumentHandler(handler: unknown): void {
           return originalGet.call(this, cacheKey, softTags);
         }
         const digest = keyDigest(cacheKey);
-        return startCacheSpan(CACHE_GET, digest, span =>
+        return startCacheSpan(CACHE_GET, digest, {}, span =>
           // `Promise.resolve` because custom handlers may return the entry synchronously.
           Promise.resolve(originalGet.call(this, cacheKey, softTags)).then(entry => {
             try {
@@ -273,9 +281,11 @@ function instrumentHandler(handler: unknown): void {
         }
 
         const digest = keyDigest(cacheKey);
+        const sourceFile = getCacheFunctionSourceFile(cacheKey);
+
         // The handler drains `pendingEntry` (the still-streaming entry) before storing, so this
         // span covers producing and storing the entry, not just the write.
-        return startCacheSpan(CACHE_PUT, digest, span =>
+        return startCacheSpan(CACHE_PUT, digest, sourceFile ? { [CODE_FILE_PATH]: sourceFile } : {}, span =>
           // Only a successful write becomes a fill origin: a failed write leaves no entry or the
           // previous one (whose origin still stands). A dropped span (`ignoreSpans`) never
           // reaches Sentry, so a link to it would be broken.
