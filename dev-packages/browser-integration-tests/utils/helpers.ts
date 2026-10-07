@@ -215,11 +215,11 @@ export function waitForErrorRequest(page: Page, callback?: (event: SentryEvent) 
     }
 
     try {
-      const event = envelopeRequestParser(req);
-
-      if (event.type) {
+      if (getEnvelopeType(req) !== 'event') {
         return false;
       }
+
+      const event = envelopeRequestParser(req);
 
       if (callback) {
         return callback(event);

@@ -1,4 +1,5 @@
 import { expect } from '@playwright/test';
+import type * as SentryBrowser from '@sentry/browser';
 import { sentryTest } from '../../../../utils/fixtures';
 import {
   envelopeRequestParser,
@@ -26,6 +27,15 @@ sentryTest(
     const errorPromise = waitForErrorRequest(page);
 
     await page.goto(url);
+
+    // Force a span envelope to arrive before the error so the error waiter must ignore it.
+    const precedingSpanPromise = waitForStreamedSpan(page, span => span.name === 'preceding_span');
+    await page.evaluate(async () => {
+      const Sentry = (window as typeof window & { Sentry: typeof SentryBrowser }).Sentry;
+      Sentry.startSpan({ name: 'preceding_span' }, () => undefined);
+      await Sentry.flush();
+    });
+    await precedingSpanPromise;
 
     await runScriptInSandbox(page, {
       content: `
