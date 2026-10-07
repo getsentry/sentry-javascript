@@ -473,6 +473,26 @@ conditionalTest({ min: 22 })('pi-durable integration', () => {
 
   createEsmAndCjsTests(
     __dirname,
+    'scenario-retention.mjs',
+    'instrument.mjs',
+    (createRunner, test, mode) => {
+      if (mode === 'cjs') {
+        return;
+      }
+
+      test('does not keep the traces of tool calls alive for subagent conversations that never run', async () => {
+        await createRunner()
+          .ignore('span')
+          .expect({ event: { message: 'pi-durable retention', extra: { toolCalls: 3, alive: 0 } } })
+          .start()
+          .completed();
+      });
+    },
+    PI_DURABLE_DEPENDENCIES,
+  );
+
+  createEsmAndCjsTests(
+    __dirname,
     'scenario-interrupted.mjs',
     'instrument.mjs',
     (createRunner, test, mode) => {
