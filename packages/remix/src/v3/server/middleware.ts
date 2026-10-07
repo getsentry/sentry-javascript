@@ -4,6 +4,7 @@ import {
   getIsolationScope,
   getRootSpan,
   getSpanStatusFromHttpCode,
+  getTraceData,
   INTERNAL_setSegmentNameSourceIfSegment,
   type Scope,
   updateSpanName,
@@ -44,9 +45,7 @@ export function sentryRemixMiddleware(matcher: MatcherLike): MiddlewareLike {
     }
 
     setResponseStatus(response);
-    if (route) {
-      addRouteHeader(response, context.request, route);
-    }
+    addServerTimingHeaders(response, context.request, route);
 
     return response;
   };
@@ -70,18 +69,35 @@ function applyRoute(isolationScope: Scope, route: string, method: string): void 
 }
 
 /**
- * Tells the browser SDK which route served a document, so it can name its page load and navigation
- * spans after the pattern. The browser has no route table of its own. Only HTML responses carry it,
- * which is what document loads and the runtime's frame fetches ask for.
+ * What the browser SDK needs from the server on a document: the trace to continue, so a page load
+ * joins the request's trace, and the route that served it, so spans are named after the pattern.
+ * The browser reads both off the navigation timing entry. Only HTML responses carry them, which is
+ * what document loads and the runtime's frame fetches ask for.
  */
-function addRouteHeader(response: Response, request: Request, route: string): void {
+function addServerTimingHeaders(response: Response, request: Request, route: string | undefined): void {
   if (!request.headers.get('accept')?.includes('text/html')) {
     return;
   }
-  try {
-    response.headers.append('Server-Timing', formatRouteTiming(route));
-  } catch {
-    // Immutable headers, e.g. a response passed through from `fetch()`.
+
+  const entries: string[] = [];
+  const traceData = getTraceData();
+  if (traceData['sentry-trace']) {
+    entries.push(`sentry-trace;desc="${traceData['sentry-trace']}"`);
+  }
+  if (traceData.baggage) {
+    entries.push(`baggage;desc="${traceData.baggage}"`);
+  }
+  if (route) {
+    entries.push(formatRouteTiming(route));
+  }
+
+  for (const entry of entries) {
+    try {
+      response.headers.append('Server-Timing', entry);
+    } catch {
+      // Immutable headers, e.g. a response passed through from `fetch()`.
+      return;
+    }
   }
 }
 
