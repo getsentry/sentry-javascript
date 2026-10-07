@@ -145,6 +145,23 @@ describe('Unit | util | createPerformanceEntries', () => {
         data: { value: 5108.299, rating: 'good', size: 5108.299, nodeIds: undefined, attributions: undefined },
       });
     });
+
+    it('places a soft navigation LCP event at the render', () => {
+      const event = getLargestContentfulPaint({
+        value: 800,
+        rating: 'good',
+        navigationStartTime: 10_000,
+        entries: [{ entryType: 'largest-contentful-paint', startTime: 10_800 }] as PerformanceEntry[],
+      });
+
+      expect(event.start).toBe((TIME_ORIGIN + 10_800) / 1000);
+    });
+
+    it('places a bfcache LCP event after the restore', () => {
+      const event = getLargestContentfulPaint({ value: 50, rating: 'good', navigationStartTime: 10_000, entries: [] });
+
+      expect(event.start).toBe((TIME_ORIGIN + 10_050) / 1000);
+    });
   });
 
   describe('getCumulativeLayoutShift', () => {
@@ -206,6 +223,12 @@ describe('Unit | util | createPerformanceEntries', () => {
         end: TIME_ORIGIN / 1000,
         data: { value: 0, size: 0, rating: 'good', nodeIds: [], attributions: [] },
       });
+    });
+
+    it('places a soft navigation CLS of 0 at the start of the navigation', () => {
+      const event = getCumulativeLayoutShift({ value: 0, rating: 'good', navigationStartTime: 10_000, entries: [] });
+
+      expect(event.start).toBe((TIME_ORIGIN + 10_000) / 1000);
     });
   });
 

@@ -43,6 +43,12 @@ export interface Metric {
    * entries (e.g. a CLS value of 0 given no layout shifts).
    */
   entries: PerformanceEntry[] | LayoutShift[];
+
+  /**
+   * The start time the metric value is relative to.
+   * Non-zero for soft navigations and bfcache restores.
+   */
+  navigationStartTime?: number;
 }
 
 interface LayoutShift extends PerformanceEntry {
@@ -220,10 +226,7 @@ export function getCumulativeLayoutShift(metric: Metric): ReplayPerformanceEntry
     }
   }
 
-  // The CLS value is a score, not a time, so we place the event at the last layout shift. A CLS of 0 has no layout
-  // shift, so it goes at the time origin.
-  const lastEntry = metric.entries[metric.entries.length - 1];
-  return getWebVital(metric, 'cumulative-layout-shift', nodes, layoutShifts, lastEntry?.startTime ?? 0);
+  return getWebVital(metric, 'cumulative-layout-shift', nodes, layoutShifts);
 }
 
 /**
@@ -233,8 +236,7 @@ export function getInteractionToNextPaint(metric: Metric): ReplayPerformanceEntr
   // oxlint-disable-next-line typescript/no-unnecessary-type-assertion -- rule false positive: the cast exposes the entry's `target` field; tsc errors without it
   const lastEntry = metric.entries[metric.entries.length - 1] as (PerformanceEntry & { target?: Node }) | undefined;
   const node = lastEntry?.target ? [lastEntry.target] : undefined;
-  // The INP value is a duration, not a time, so we place the event at the interaction.
-  return getWebVital(metric, 'interaction-to-next-paint', node, undefined, lastEntry?.startTime ?? 0);
+  return getWebVital(metric, 'interaction-to-next-paint', node);
 }
 
 /**
@@ -245,12 +247,16 @@ function getWebVital(
   name: string,
   nodes: Node[] | undefined,
   attributions?: WebVitalData['attributions'],
-  time = metric.value,
 ): ReplayPerformanceEntry<WebVitalData> {
   const value = metric.value;
   const rating = metric.rating;
 
-  const end = getAbsoluteTime(time);
+  // The value is a score for CLS and a duration for INP, so it is not a time. We place the event at the last entry
+  // instead: the render for LCP, the last layout shift for CLS and the interaction for INP. Without entries (a CLS of
+  // 0, a bfcache LCP), we fall back to the start of the navigation the metric belongs to, plus the value. For a soft
+  // navigation, this keeps the event on that navigation instead of at page load.
+  const lastEntry = metric.entries[metric.entries.length - 1];
+  const end = getAbsoluteTime(lastEntry?.startTime ?? (metric.navigationStartTime ?? 0) + value);
 
   return {
     type: 'web-vital',
