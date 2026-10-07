@@ -63,9 +63,6 @@ immediately, including in unordered mode. Keep assertions after collection so in
 failures. A predicate that never matches still fails on scenario exit or timeout. Neither helper waits for spans
 arriving after its condition is satisfied.
 
-Collectors can accompany ordinary expectations such as `.expect({ event: ... })`; completion waits for both.
-They cannot be combined with span expectations, envelope-header expectations, or `ensureNoErrorOutput()`.
-
 ## Other Runtimes
 
 `dev-packages/bun-integration-tests` and `dev-packages/deno-integration-tests` run every suite of this package on Bun
