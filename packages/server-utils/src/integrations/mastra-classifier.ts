@@ -1,7 +1,5 @@
 import { GEN_AI_INPUT_MESSAGES, GEN_AI_OUTPUT_MESSAGES } from '@sentry/conventions/attributes';
 import { isObjectLike } from '@sentry/core';
-import { resolveAIRecordingOptions } from '../ai/core/utils';
-import type { GenAiOptions } from '../ai/core/utils';
 import type { ClassifierEvaluationCall } from '../ai/mastra/classifier-evaluation';
 import { setStartingClassifierEvaluation } from '../ai/mastra/classifier-evaluation';
 import { getEvaluationInputMessages, getEvaluationOutputMessages } from '../ai/typesafe';
@@ -20,7 +18,7 @@ interface ClassifierEvaluateChannelContext {
  * Add the evaluated state, questions and answers of a `Classifier.evaluate()` call to the exporter's
  * `classifier_evaluation` span, which Mastra leaves without input or output.
  */
-export function recordClassifierEvaluations(options: GenAiOptions): void {
+export function recordClassifierEvaluations(): void {
   const channel = diagnosticsChannel.tracingChannel<ClassifierEvaluateChannelContext>(
     CHANNELS.MASTRA_CLASSIFIER_EVALUATE,
   );
@@ -41,24 +39,19 @@ export function recordClassifierEvaluations(options: GenAiOptions): void {
     safeChannelCallback(() => {
       const call = calls.get(message as object);
       if (call) {
-        finishClassifierEvaluation(call, message as ClassifierEvaluateChannelContext, options);
+        finishClassifierEvaluation(call, message as ClassifierEvaluateChannelContext);
       }
     });
   });
 }
 
-function finishClassifierEvaluation(
-  call: ClassifierEvaluationCall,
-  message: ClassifierEvaluateChannelContext,
-  options: GenAiOptions,
-): void {
+function finishClassifierEvaluation(call: ClassifierEvaluationCall, message: ClassifierEvaluateChannelContext): void {
   call.settled = true;
-  const { span } = call;
+  const { span, recordInputs, recordOutputs } = call;
   if (!span) {
     return;
   }
 
-  const { recordInputs, recordOutputs } = resolveAIRecordingOptions(options);
   if (recordInputs) {
     const params = isObjectLike(message.arguments[0]) ? message.arguments[0] : {};
     // Questions given to the constructor take precedence over the ones passed to `evaluate()`, as in Mastra.

@@ -97,7 +97,7 @@ function instrumentExporter(options: MastraOptions): void {
   });
 
   captureExecuteWithContextErrors();
-  recordClassifierEvaluations(options);
+  recordClassifierEvaluations();
 }
 
 /**

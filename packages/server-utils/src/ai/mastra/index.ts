@@ -153,7 +153,8 @@ export class SentryMastraExporter implements MastraObservabilityExporter {
 
     const evaluation = span.type === 'classifier_evaluation' ? takeStartingClassifierEvaluation() : undefined;
     if (evaluation) {
-      evaluation.span = sentrySpan;
+      const { recordInputs, recordOutputs } = resolveAIRecordingOptions(this._options);
+      Object.assign(evaluation, { span: sentrySpan, recordInputs, recordOutputs });
     }
 
     this._trackSpan(span.id, { span: sentrySpan, spanType: span.type, usage: {}, evaluation });

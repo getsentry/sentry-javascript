@@ -190,6 +190,16 @@ describe('SentryMastraExporter', () => {
     expect(spanToStaticSpanJSON(call.span!).description).toBe('evaluate jev-1');
   });
 
+  it('passes its own recording options to the classifier evaluation call', async () => {
+    exporter = new SentryMastraExporter({ recordInputs: false, recordOutputs: false });
+    const call: ClassifierEvaluationCall = {};
+
+    setStartingClassifierEvaluation(call);
+    await run(started(makeSpan({ id: 'eval-1', type: 'classifier_evaluation' })));
+
+    expect(call).toMatchObject({ recordInputs: false, recordOutputs: false });
+  });
+
   it('records the agent-level prompt and response as gen_ai messages', async () => {
     const span = makeSpan({
       entityName: 'agent',

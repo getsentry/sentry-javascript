@@ -8,6 +8,9 @@ import type { Span, SpanTimeInput } from '@sentry/core';
  */
 export interface ClassifierEvaluationCall {
   span?: Span;
+  /** The recording options of the exporter that opened the span, so the call's data follows them. */
+  recordInputs?: boolean;
+  recordOutputs?: boolean;
   /** Mastra's end time, set when Mastra ended its span before the call settled. */
   endTime?: SpanTimeInput;
   settled?: boolean;
