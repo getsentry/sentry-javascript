@@ -1,8 +1,9 @@
 import type { Span } from '@sentry/core';
-import { getMainCarrier, SentrySpan, setCurrentClient, spanToJSON } from '@sentry/core';
+import { getMainCarrier, performanceTimeToSeconds, SentrySpan, setCurrentClient, spanToJSON } from '@sentry/core';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { _addUserTimingSpan, userTimingIntegration } from '../../src/performance/userTiming';
 import * as utils from '../../src/performance/utils';
+import * as webVitalsUtils from '../../src/web-vitals/utils';
 import { getDefaultClientOptions, TestClient } from '../utils/TestClient';
 
 describe('userTimingIntegration', () => {
@@ -124,6 +125,24 @@ describe('userTimingIntegration', () => {
     expect(spans).toHaveLength(1);
     expect(spanToJSON(spans[0]!).name).toBe('current-route');
   });
+
+  it('gives measures starting before the request the exact request span start timestamp', () => {
+    userTimingIntegration().setup?.(client);
+
+    // Many values, because only some of them round differently with the old conversion.
+    for (let i = 0; i < 50; i++) {
+      const requestStart = 10.1 + i * 0.37;
+      vi.spyOn(webVitalsUtils, 'getNavigationEntry').mockReturnValue({
+        startTime: 0,
+        requestStart,
+      } as PerformanceNavigationTiming);
+      performanceEntries.push(createPerformanceEntry('measure', `before-request-${i}`, 0, 1000));
+
+      client.emit('beforeIdleSpanEnd', new SentrySpan({ op: 'pageload', name: '/', sampled: true }));
+
+      expect(spanToJSON(spans[i]!).start_timestamp).toBe(performanceTimeToSeconds(requestStart, 0));
+    }
+  });
 });
 
 describe('_addUserTimingSpan', () => {
@@ -154,7 +173,7 @@ describe('_addUserTimingSpan', () => {
       },
     } as PerformanceMeasure;
 
-    _addUserTimingSpan(parentSpan, entry, 0.012, 0.01, 100, 0, []);
+    _addUserTimingSpan(parentSpan, entry, 100.012, 100.022, 0, []);
 
     expect(spans).toHaveLength(1);
     expect(spanToJSON(spans[0]!).attributes).toEqual({
@@ -175,7 +194,7 @@ describe('_addUserTimingSpan', () => {
       },
     } as PerformanceMeasure;
 
-    _addUserTimingSpan(parentSpan, entry, 0.012, 0.01, 100, 0, []);
+    _addUserTimingSpan(parentSpan, entry, 100.012, 100.022, 0, []);
 
     expect(spans).toHaveLength(0);
   });
@@ -184,10 +203,9 @@ describe('_addUserTimingSpan', () => {
     _addUserTimingSpan(
       parentSpan,
       createPerformanceEntry('measure', 'before-request', 10, 10),
-      0.01,
-      0.01,
-      100,
-      0.05,
+      100.01,
+      100.02,
+      100.05,
       [],
     );
 
