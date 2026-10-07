@@ -1,4 +1,4 @@
-import { createSentryBuildPluginManager, type Options } from '@sentry/bundler-plugin-core';
+import { createSentryBuildPluginManager, type Options } from '@sentry/bundler-plugins/core';
 
 export function withoutSourceMapDeletion(options: Options): Options {
   return {

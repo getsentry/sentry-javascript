@@ -1,4 +1,4 @@
-import type { Options as SentryBuildPluginOptions } from '@sentry/bundler-plugin-core';
+import type { Options as SentryBuildPluginOptions } from '@sentry/bundler-plugins/core';
 import * as fs from 'fs';
 import * as path from 'path';
 import type { SentryBuildOptions } from './types';

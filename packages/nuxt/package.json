@@ -56,14 +56,14 @@
   "dependencies": {
     "@nuxt/kit": "^3.13.2",
     "@sentry/browser": "10.76.1",
-    "@sentry/bundler-plugin-core": "^5.3.0",
+    "@sentry/bundler-plugins": "10.76.1",
     "@sentry/cloudflare": "10.76.1",
     "@sentry/core": "10.76.1",
     "@sentry/node": "10.76.1",
     "@sentry/node-core": "10.76.1",
-    "@sentry/rollup-plugin": "^5.3.0",
+    "@sentry/rollup-plugin": "^5.4.1",
     "@sentry/server-utils": "10.76.1",
-    "@sentry/vite-plugin": "^5.3.0",
+    "@sentry/vite-plugin": "^5.4.1",
     "@sentry/vue": "10.76.1",
     "local-pkg": "^1.1.2"
   },
