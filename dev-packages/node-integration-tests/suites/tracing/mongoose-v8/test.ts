@@ -1,4 +1,11 @@
-import type { SerializedStreamedSpanContainer } from '@sentry/core';
+import {
+  DB_COLLECTION_NAME,
+  DB_OPERATION_NAME,
+  DB_SYSTEM_NAME,
+  SENTRY_OP,
+  SENTRY_ORIGIN,
+  SENTRY_TRACE_LIFECYCLE,
+} from '@sentry/conventions/attributes';
 import { MongoMemoryServer } from 'mongodb-memory-server-global';
 import { afterAll, beforeAll, describe, expect } from 'vitest';
 import { cleanupChildProcesses, createEsmAndCjsTests } from '../../../utils/runner';
@@ -21,54 +28,18 @@ describe('Mongoose v8 Test', () => {
     cleanupChildProcesses();
   });
 
-  const EXPECTED_TRANSACTION = {
-    transaction: 'Test Transaction',
-    spans: expect.arrayContaining([
-      expect.objectContaining({
-        data: expect.objectContaining({
-          'db.collection.name': 'blogposts',
-          'db.operation.name': 'save',
-          'db.system.name': 'mongodb',
-        }),
-        description: 'mongoose.BlogPost.save',
-        op: 'db',
-        origin,
-      }),
-      expect.objectContaining({
-        data: expect.objectContaining({
-          'db.collection.name': 'blogposts',
-          'db.operation.name': 'updateOne',
-          'db.system.name': 'mongodb',
-        }),
-        description: 'mongoose.BlogPost.updateOne',
-        op: 'db',
-        origin,
-      }),
-      expect.objectContaining({
-        data: expect.objectContaining({
-          'db.collection.name': 'blogposts',
-          'db.operation.name': 'deleteOne',
-          'db.system.name': 'mongodb',
-        }),
-        description: 'mongoose.BlogPost.deleteOne',
-        op: 'db',
-        origin,
-      }),
-    ]),
-  };
-
   const expectedStreamedSpan = (operation: string) =>
     expect.objectContaining({
       name: `${operation} blogposts`,
       is_segment: false,
       parent_span_id: expect.stringMatching(/^[\da-f]{16}$/),
       attributes: expect.objectContaining({
-        'db.collection.name': { type: 'string', value: 'blogposts' },
-        'db.operation.name': { type: 'string', value: operation },
-        'db.system.name': { type: 'string', value: 'mongodb' },
-        'sentry.op': { type: 'string', value: 'db' },
-        'sentry.origin': { type: 'string', value: origin },
-        'sentry.trace_lifecycle': { type: 'string', value: 'stream' },
+        [DB_COLLECTION_NAME]: { type: 'string', value: 'blogposts' },
+        [DB_OPERATION_NAME]: { type: 'string', value: operation },
+        [DB_SYSTEM_NAME]: { type: 'string', value: 'mongodb' },
+        [SENTRY_OP]: { type: 'string', value: 'db' },
+        [SENTRY_ORIGIN]: { type: 'string', value: origin },
+        [SENTRY_TRACE_LIFECYCLE]: { type: 'string', value: 'stream' },
       }),
     });
 
@@ -78,14 +49,9 @@ describe('Mongoose v8 Test', () => {
     'instrument.mjs',
     (createTestRunner, test) => {
       test('auto-instruments `mongoose` v8 document methods.', async () => {
-        await createTestRunner().expect({ transaction: EXPECTED_TRANSACTION }).start().completed();
-      });
-
-      test('auto-instruments `mongoose` v8 document methods with span streaming enabled.', async () => {
         await createTestRunner()
-          .withEnv({ STREAMED: 'true' })
           .expect({
-            span: (container: SerializedStreamedSpanContainer) => {
+            span: container => {
               expect(container.items.find(item => item.is_segment)?.name).toBe('Test Transaction');
 
               for (const operation of ['save', 'updateOne', 'deleteOne']) {
