@@ -33,79 +33,69 @@ conditionalTest({ min: 22 })('OpenAI integration (V7)', () => {
     'instrument.mjs',
     (createRunner, test) => {
       test('instruments chat completions, the responses API and streaming on openai v7', async () => {
-        const allSpans: SerializedStreamedSpanContainer['items'] = [];
+        const runner = createRunner().ignore('event');
+        const spansPromise = runner.collectStreamedSpansUntilSegment('main');
 
-        await createRunner()
-          .unordered()
-          .ignore('event')
-          .expect({
-            span: container => {
-              allSpans.push(...container.items);
-              const segment = allSpans.find(span => span.is_segment && span.name === 'main');
-              expect(segment).toBeDefined();
-              const spans = allSpans.filter(span => span.attributes[SENTRY_ORIGIN]?.value === 'auto.ai.openai');
-              expect(spans).toHaveLength(6);
+        await runner.start().completed();
 
-              const chatCompletionSpan = spans.find(
-                span => span.attributes[GEN_AI_RESPONSE_ID]?.value === 'chatcmpl-mock123',
-              );
-              expect(chatCompletionSpan!.name).toBe('chat gpt-3.5-turbo');
-              expect(chatCompletionSpan!.status).toBe('ok');
-              expect(chatCompletionSpan!.attributes[SENTRY_OP]).toEqual({
-                type: 'string',
-                value: 'gen_ai.chat',
-              });
-              expect(chatCompletionSpan!.attributes[SENTRY_ORIGIN]).toEqual({
-                type: 'string',
-                value: 'auto.ai.openai',
-              });
-              expect(chatCompletionSpan!.attributes[GEN_AI_PROVIDER_NAME]).toEqual({ type: 'string', value: 'openai' });
-              expect(chatCompletionSpan!.attributes[GEN_AI_REQUEST_MODEL]).toEqual({
-                type: 'string',
-                value: 'gpt-3.5-turbo',
-              });
-              expect(chatCompletionSpan!.attributes[GEN_AI_RESPONSE_FINISH_REASONS]).toEqual({
-                type: 'string',
-                value: '["stop"]',
-              });
-              expect(chatCompletionSpan!.attributes[GEN_AI_USAGE_INPUT_TOKENS]).toEqual({ type: 'integer', value: 10 });
-              expect(chatCompletionSpan!.attributes[GEN_AI_USAGE_OUTPUT_TOKENS]).toEqual({
-                type: 'integer',
-                value: 15,
-              });
-              expect(chatCompletionSpan!.attributes[GEN_AI_USAGE_TOTAL_TOKENS]).toEqual({ type: 'integer', value: 25 });
+        const allSpans = await spansPromise;
+        const spans = allSpans.filter(span => span.attributes[SENTRY_ORIGIN]?.value === 'auto.ai.openai');
+        expect(spans).toHaveLength(6);
 
-              // The responses API is a separate instrumented resource file from chat completions.
-              const responsesSpan = spans.find(span => span.attributes[GEN_AI_RESPONSE_ID]?.value === 'resp_mock456');
-              expect(responsesSpan!.name).toBe('chat gpt-3.5-turbo');
-              expect(responsesSpan!.status).toBe('ok');
-              expect(responsesSpan!.attributes[GEN_AI_OPERATION_NAME]).toEqual({ type: 'string', value: 'chat' });
-              expect(responsesSpan!.attributes[GEN_AI_RESPONSE_MODEL]).toEqual({
-                type: 'string',
-                value: 'gpt-3.5-turbo',
-              });
+        const chatCompletionSpan = spans.find(
+          span => span.attributes[GEN_AI_RESPONSE_ID]?.value === 'chatcmpl-mock123',
+        );
+        expect(chatCompletionSpan!.name).toBe('chat gpt-3.5-turbo');
+        expect(chatCompletionSpan!.status).toBe('ok');
+        expect(chatCompletionSpan!.attributes[SENTRY_OP]).toEqual({
+          type: 'string',
+          value: 'gen_ai.chat',
+        });
+        expect(chatCompletionSpan!.attributes[SENTRY_ORIGIN]).toEqual({
+          type: 'string',
+          value: 'auto.ai.openai',
+        });
+        expect(chatCompletionSpan!.attributes[GEN_AI_PROVIDER_NAME]).toEqual({ type: 'string', value: 'openai' });
+        expect(chatCompletionSpan!.attributes[GEN_AI_REQUEST_MODEL]).toEqual({
+          type: 'string',
+          value: 'gpt-3.5-turbo',
+        });
+        expect(chatCompletionSpan!.attributes[GEN_AI_RESPONSE_FINISH_REASONS]).toEqual({
+          type: 'string',
+          value: '["stop"]',
+        });
+        expect(chatCompletionSpan!.attributes[GEN_AI_USAGE_INPUT_TOKENS]).toEqual({ type: 'integer', value: 10 });
+        expect(chatCompletionSpan!.attributes[GEN_AI_USAGE_OUTPUT_TOKENS]).toEqual({
+          type: 'integer',
+          value: 15,
+        });
+        expect(chatCompletionSpan!.attributes[GEN_AI_USAGE_TOTAL_TOKENS]).toEqual({ type: 'integer', value: 25 });
 
-              // Streaming goes through the patched async iterator rather than `beforeSpanEnd`, so it
-              // is the part most likely to break if the `Stream` shape changes across a major.
-              const streamingSpan = spans.find(
-                span => span.attributes[GEN_AI_RESPONSE_ID]?.value === 'chatcmpl-stream-123',
-              );
-              expect(streamingSpan!.name).toBe('chat gpt-4');
-              expect(streamingSpan!.status).toBe('ok');
-              expect(streamingSpan!.attributes[GEN_AI_RESPONSE_STREAMING]).toEqual({ type: 'boolean', value: true });
-              expect(streamingSpan!.attributes[GEN_AI_USAGE_INPUT_TOKENS]).toEqual({ type: 'integer', value: 12 });
-              expect(streamingSpan!.attributes[GEN_AI_USAGE_OUTPUT_TOKENS]).toEqual({ type: 'integer', value: 18 });
-              expect(streamingSpan!.attributes[GEN_AI_USAGE_TOTAL_TOKENS]).toEqual({ type: 'integer', value: 30 });
+        // The responses API is a separate instrumented resource file from chat completions.
+        const responsesSpan = spans.find(span => span.attributes[GEN_AI_RESPONSE_ID]?.value === 'resp_mock456');
+        expect(responsesSpan!.name).toBe('chat gpt-3.5-turbo');
+        expect(responsesSpan!.status).toBe('ok');
+        expect(responsesSpan!.attributes[GEN_AI_OPERATION_NAME]).toEqual({ type: 'string', value: 'chat' });
+        expect(responsesSpan!.attributes[GEN_AI_RESPONSE_MODEL]).toEqual({
+          type: 'string',
+          value: 'gpt-3.5-turbo',
+        });
 
-              const errorSpan = spans.find(span => span.name === 'chat error-model' && span.status !== 'ok');
-              expect(errorSpan!.attributes[SENTRY_ORIGIN]).toEqual({
-                type: 'string',
-                value: 'auto.ai.openai',
-              });
-            },
-          })
-          .start()
-          .completed();
+        // Streaming goes through the patched async iterator rather than `beforeSpanEnd`, so it
+        // is the part most likely to break if the `Stream` shape changes across a major.
+        const streamingSpan = spans.find(span => span.attributes[GEN_AI_RESPONSE_ID]?.value === 'chatcmpl-stream-123');
+        expect(streamingSpan!.name).toBe('chat gpt-4');
+        expect(streamingSpan!.status).toBe('ok');
+        expect(streamingSpan!.attributes[GEN_AI_RESPONSE_STREAMING]).toEqual({ type: 'boolean', value: true });
+        expect(streamingSpan!.attributes[GEN_AI_USAGE_INPUT_TOKENS]).toEqual({ type: 'integer', value: 12 });
+        expect(streamingSpan!.attributes[GEN_AI_USAGE_OUTPUT_TOKENS]).toEqual({ type: 'integer', value: 18 });
+        expect(streamingSpan!.attributes[GEN_AI_USAGE_TOTAL_TOKENS]).toEqual({ type: 'integer', value: 30 });
+
+        const errorSpan = spans.find(span => span.name === 'chat error-model' && span.status !== 'ok');
+        expect(errorSpan!.attributes[SENTRY_ORIGIN]).toEqual({
+          type: 'string',
+          value: 'auto.ai.openai',
+        });
       });
     },
     {
