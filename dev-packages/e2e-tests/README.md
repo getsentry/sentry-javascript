@@ -139,7 +139,8 @@ Apps like `cloudflare-workers-send-to-sentry` deploy the built app as a real Wor
 ## Runtime variants (Bun, Deno, Cloudflare)
 
 To test a framework on a runtime other than Node.js, add an `optionalVariants` entry to the existing test app instead of
-creating a new app. `react-router-8-framework` is the reference setup.
+creating a new app. When the variant is green, move it to `variants`, so that it is required. `react-router-8-framework`
+is the reference setup.
 
 - **`runtime`**: set `"runtime": "bun"`, `"deno"` or `"cloudflare"` on the variant. For such a variant, CI installs Bun
   or Deno, and the runner and CI set the `RUNTIME` env var for the build and the assert command. Without `runtime`,

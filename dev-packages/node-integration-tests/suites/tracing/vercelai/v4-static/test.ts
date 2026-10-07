@@ -644,7 +644,7 @@ describe('Vercel AI integration (v4)', () => {
   });
 
   createEsmAndCjsTests(__dirname, 'scenario-conversation-id.mjs', 'instrument.mjs', (createRunner, test) => {
-    test('does not overwrite conversation id set via Sentry.setConversationId with responseId from provider metadata', async () => {
+    test('keeps the conversation id set via Sentry.setConversationId and ignores the provider responseId', async () => {
       await createRunner()
         .expect({ transaction: { transaction: 'main' } })
         .expect({

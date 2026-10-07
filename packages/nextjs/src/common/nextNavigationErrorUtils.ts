@@ -30,6 +30,20 @@ export function isNotFoundNavigationError(subject: unknown): boolean {
 }
 
 /**
+ * Returns the HTTP status of a Next.js `forbidden()` (403) or `unauthorized()` (401) error, if input is one.
+ * https://nextjs.org/docs/app/api-reference/functions/forbidden
+ */
+export function getAuthInterruptStatusCode(subject: unknown): 401 | 403 | undefined {
+  if (hasDigest(subject, digest => digest === 'NEXT_HTTP_ERROR_FALLBACK;403')) {
+    return 403;
+  }
+  if (hasDigest(subject, digest => digest === 'NEXT_HTTP_ERROR_FALLBACK;401')) {
+    return 401;
+  }
+  return undefined;
+}
+
+/**
  * Determines whether input is a Next.js redirect error.
  * https://beta.nextjs.org/docs/api-reference/redirect#redirect
  */
