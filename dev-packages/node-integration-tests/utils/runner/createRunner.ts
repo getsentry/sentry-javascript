@@ -8,6 +8,7 @@ import type {
   SerializedLogContainer,
   SerializedMetricContainer,
   SerializedSession,
+  SerializedStreamedSpan,
   SerializedStreamedSpanContainer,
   SessionAggregates,
   TransactionEvent,
@@ -19,7 +20,7 @@ import { existsSync } from 'fs';
 import { tmpdir } from 'os';
 import { join } from 'path';
 import { inspect } from 'util';
-import { onTestFailed } from 'vitest';
+import { onTestFailed, onTestFinished } from 'vitest';
 import type { DeepPartial } from './../assertions';
 import {
   assertEnvelopeHeader,
@@ -36,6 +37,15 @@ import {
 } from './../assertions';
 
 type VoidFunction = () => void;
+
+type SegmentMatcher = string | ((span: SerializedStreamedSpan) => boolean);
+
+type SpanCollector = {
+  done: boolean;
+  spanCount: number;
+  add(spans: SerializedStreamedSpan[]): void;
+  reject(error: Error): void;
+};
 
 type ExpectedEvent = Partial<Event> | ((event: Event) => void);
 type ExpectedTransaction = DeepPartial<TransactionEvent> | ((event: TransactionEvent) => void);
@@ -158,6 +168,10 @@ export function createRunner(...paths: string[]) {
   }
 
   const expectedEnvelopes: Expected[] = [];
+  const spanCollectors: SpanCollector[] = [];
+  let started = false;
+  let cleanupError: Error | undefined;
+  let stopRunner: ((error: Error) => void) | undefined;
   let expectedEnvelopeHeaders: ExpectedEnvelopeHeader[] | undefined = undefined;
   const flags: string[] = [];
   // By default, we ignore session & sessions
@@ -190,16 +204,85 @@ export function createRunner(...paths: string[]) {
     CLEANUP_STEPS.add(step);
   }
 
+  function cleanup(): void {
+    cleanupError ??= new Error('Test runner cleaned up before collection completed.');
+    stopRunner?.(cleanupError);
+    for (const collector of spanCollectors) {
+      if (!collector.done) collector.reject(cleanupError);
+    }
+    for (const step of runnerCleanupSteps) {
+      step();
+      CLEANUP_STEPS.delete(step);
+    }
+    runnerCleanupSteps.clear();
+  }
+
+  function collectStreamedSpans(
+    isDone: (spansOfTrace: SerializedStreamedSpan[]) => boolean,
+  ): Promise<SerializedStreamedSpan[]> {
+    if (started || cleanupError) {
+      throw new Error('Register span collectors before calling start() or cleanup().');
+    }
+    if (ensureNoErrorOutput || expectedEnvelopeHeaders || expectedEnvelopes.some(expected => 'span' in expected)) {
+      throw new Error('Span collectors cannot be combined with span/header expectations or ensureNoErrorOutput().');
+    }
+
+    const spansByTrace = new Map<string, SerializedStreamedSpan[]>();
+    let resolve!: (spans: SerializedStreamedSpan[]) => void;
+    let reject!: (error: Error) => void;
+    const promise = new Promise<SerializedStreamedSpan[]>((resolvePromise, rejectPromise) => {
+      resolve = resolvePromise;
+      reject = rejectPromise;
+    });
+    // completed() can reject before the caller reaches await spansPromise.
+    promise.catch(() => {});
+
+    const collector: SpanCollector = {
+      done: false,
+      spanCount: 0,
+      reject(error) {
+        spansByTrace.clear();
+        reject(error);
+      },
+      add(spans) {
+        collector.spanCount += spans.length;
+        for (const span of spans) {
+          const traceSpans = spansByTrace.get(span.trace_id);
+          if (traceSpans) {
+            traceSpans.push(span);
+          } else {
+            spansByTrace.set(span.trace_id, [span]);
+          }
+        }
+        for (const traceSpans of spansByTrace.values()) {
+          if (isDone(traceSpans)) {
+            collector.done = true;
+            resolve([...traceSpans]);
+            spansByTrace.clear();
+            return;
+          }
+        }
+      },
+    };
+    spanCollectors.push(collector);
+    return promise;
+  }
+
   return {
     /** Run (and de-register) only the cleanup steps registered by this runner. */
-    cleanup: function (): void {
-      for (const step of runnerCleanupSteps) {
-        step();
-        CLEANUP_STEPS.delete(step);
-      }
-      runnerCleanupSteps.clear();
+    cleanup,
+    /** Register before start(). Collect across envelopes until one trace satisfies the predicate. */
+    collectStreamedSpans,
+    /** Collect until a matching segment arrives; children arriving later are not included. */
+    collectStreamedSpansUntilSegment(segment: SegmentMatcher): Promise<SerializedStreamedSpan[]> {
+      const matchesSegment =
+        typeof segment === 'string' ? (span: SerializedStreamedSpan) => span.name === segment : segment;
+      return collectStreamedSpans(spans => spans.some(span => span.is_segment && matchesSegment(span)));
     },
     expect: function (expected: Expected) {
+      if (spanCollectors.length > 0 && 'span' in expected) {
+        throw new Error('Span collectors cannot be combined with span expectations.');
+      }
       if (ensureNoErrorOutput) {
         throw new Error('You should not use `ensureNoErrorOutput` when using `expect`!');
       }
@@ -208,11 +291,14 @@ export function createRunner(...paths: string[]) {
     },
     expectN: function (n: number, expected: Expected) {
       for (let i = 0; i < n; i++) {
-        expectedEnvelopes.push(expected);
+        this.expect(expected);
       }
       return this;
     },
     expectHeader: function (expected: ExpectedEnvelopeHeader) {
+      if (spanCollectors.length > 0) {
+        throw new Error('Span collectors cannot be combined with header expectations.');
+      }
       if (!expectedEnvelopeHeaders) {
         expectedEnvelopeHeaders = [];
       }
@@ -259,8 +345,8 @@ export function createRunner(...paths: string[]) {
       return this;
     },
     ensureNoErrorOutput: function () {
-      if (expectedEnvelopes.length > 0) {
-        throw new Error('You should not use `ensureNoErrorOutput` when using `expect`!');
+      if (expectedEnvelopes.length > 0 || spanCollectors.length > 0) {
+        throw new Error('ensureNoErrorOutput() cannot be combined with envelope expectations or span collectors.');
       }
       ensureNoErrorOutput = true;
       return this;
@@ -274,10 +360,15 @@ export function createRunner(...paths: string[]) {
       return this;
     },
     start: function (): StartResult {
+      if (started || cleanupError) {
+        throw new Error('A test runner can only be started once, before cleanup().');
+      }
+      started = true;
       let isComplete = false;
       let completeError: Error | undefined;
 
       const expectedEnvelopeCount = Math.max(expectedEnvelopes.length, (expectedEnvelopeHeaders || []).length);
+      const hasExpectations = expectedEnvelopeCount > 0 || spanCollectors.length > 0;
 
       let envelopeCount = 0;
       let scenarioServerPort: number | undefined;
@@ -301,6 +392,10 @@ export function createRunner(...paths: string[]) {
           dumpCapturedLogs();
         }
       });
+      if (spanCollectors.length > 0) {
+        onTestFinished(cleanup);
+      }
+      stopRunner = complete;
 
       function complete(error?: Error): void {
         if (isComplete) {
@@ -309,6 +404,11 @@ export function createRunner(...paths: string[]) {
 
         isComplete = true;
         completeError = error || undefined;
+        if (error) {
+          for (const collector of spanCollectors) {
+            if (!collector.done) collector.reject(error);
+          }
+        }
         stopChild();
         completedDeferred.resolve();
       }
@@ -350,6 +450,7 @@ export function createRunner(...paths: string[]) {
           `pid=${child?.pid ?? 'none'}`,
           hasExited ? `exited (${exitStatus})` : 'running',
           `envelopes=${envelopeCount}/${expectedEnvelopeCount}`,
+          ...(spanCollectors.length > 0 ? [collectorProgress()] : []),
           `ms since spawn=${spawnedAt ? now - spawnedAt : 'not spawned'}`,
           `ms since last output=${lastOutputAt ? now - lastOutputAt : 'no output'}`,
         ].join(', ');
@@ -369,19 +470,47 @@ export function createRunner(...paths: string[]) {
         console.log('--- End of captured child process output ---\n');
       }
 
+      function collectorProgress(): string {
+        const pending = spanCollectors.filter(collector => !collector.done);
+        return `pending span collectors=${pending.length}, received spans=[${pending.map(c => c.spanCount).join(', ')}]`;
+      }
+
+      function checkComplete(): void {
+        if (
+          hasExpectations &&
+          envelopeCount === expectedEnvelopeCount &&
+          spanCollectors.every(collector => collector.done)
+        ) {
+          complete();
+        }
+      }
+
       /** Called after each expect callback to check if we're complete */
       function expectCallbackCalled(): void {
         envelopeCount++;
-        if (envelopeCount === expectedEnvelopeCount) {
-          complete();
-        }
+        checkComplete();
       }
 
       function newEnvelope(envelope: Envelope): void {
         if (process.env.DEBUG) log('newEnvelope', inspect(envelope, false, null, true));
 
         for (const item of envelope[1]) {
+          if (isComplete) return;
           const envelopeItemType = item[0].type;
+
+          if (envelopeItemType === 'span' && spanCollectors.length > 0) {
+            try {
+              const container = item[1] as SerializedStreamedSpanContainer;
+              for (const collector of spanCollectors) {
+                if (!collector.done) collector.add(container.items);
+              }
+            } catch (error) {
+              complete(error instanceof Error ? error : new Error(String(error)));
+              return;
+            }
+            checkComplete();
+            continue;
+          }
 
           if (ignored.has(envelopeItemType)) {
             continue;
@@ -425,6 +554,7 @@ export function createRunner(...paths: string[]) {
             });
 
             if (matchIndex < 0) {
+              if (spanCollectors.length > 0) continue;
               return;
             }
 
@@ -436,6 +566,7 @@ export function createRunner(...paths: string[]) {
             // Catch any error or failed assertions and pass them to done to end the test quickly
             try {
               if (!expected) {
+                if (spanCollectors.length > 0) continue;
                 return;
               }
 
@@ -466,6 +597,10 @@ export function createRunner(...paths: string[]) {
 
       serverStartup
         .then(([mockServerPort, mockServerClose]) => {
+          if (isComplete) {
+            mockServerClose?.();
+            return;
+          }
           if (mockServerClose) {
             registerCleanupStep(() => {
               mockServerClose();
@@ -497,8 +632,7 @@ export function createRunner(...paths: string[]) {
           // `should-exit`, `ensureNoErrorOutput`) verify the child exits
           // naturally and auto-flush would delay that with retrying HTTP
           // requests to the fake DSN.
-          const wantsAutoFlush =
-            !ensureNoErrorOutput && (expectedEnvelopes.length > 0 || (expectedEnvelopeHeaders?.length ?? 0) > 0);
+          const wantsAutoFlush = !ensureNoErrorOutput && hasExpectations;
           const runtime = getRuntime();
           const childFlags = wantsAutoFlush ? [...buildAutoFlushFlags(flags, testPath, runtime), ...flags] : flags;
           const entryPath = buildScenario(runtime, testPath);
@@ -550,12 +684,12 @@ export function createRunner(...paths: string[]) {
             // child output is dumped by `completed()`. In the success path `complete()` has already
             // run (so `isComplete` short-circuits this), server-style tests are killed by `complete()`
             // first, and tests that expect no envelopes drive completion some other way.
-            if (!isComplete && expectedEnvelopeCount > 0) {
+            if (!isComplete && hasExpectations) {
               const how = signal ? `signal ${signal}` : `code ${code ?? 'unknown'}`;
               complete(
                 new Error(
                   `Scenario exited (${how}) after ${envelopeCount}/${expectedEnvelopeCount} expected ` +
-                    'envelope(s), before the test completed.',
+                    `envelope(s), before the test completed.${spanCollectors.length > 0 ? ` ${collectorProgress()}` : ''}`,
                 ),
               );
             }
@@ -616,6 +750,7 @@ export function createRunner(...paths: string[]) {
           try {
             await waitForEvent(completedDeferred.promise, 120_000, 'Timed out waiting for test to complete');
           } catch (e) {
+            complete(e instanceof Error ? e : new Error(String(e)));
             // On timeout, dump the captured child output (same info `DEBUG=1` would have streamed live)
             // so CI failures are diagnosable without re-running locally with DEBUG enabled.
             dumpCapturedLogs();
