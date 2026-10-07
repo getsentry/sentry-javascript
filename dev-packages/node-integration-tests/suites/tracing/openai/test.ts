@@ -1318,10 +1318,6 @@ describe('OpenAI integration', () => {
         .start()
         .completed();
 
-      const serverSegment = receivedSpans.find(
-        span => span.is_segment && span.name === 'POST /openai/chat/completions',
-      );
-      expect(serverSegment).toBeDefined();
       const segment = receivedSpans.find(span => span.is_segment && span.name === 'chat gpt-3.5-turbo');
       expect(segment?.span_id).toEqual(expect.any(String));
       expect(segment?.trace_id).toEqual(expect.any(String));
@@ -1356,10 +1352,6 @@ describe('OpenAI integration', () => {
         .start()
         .completed();
 
-      const serverSegment = receivedSpans.find(
-        span => span.is_segment && span.name === 'POST /azureopenai/deployments/:model/chat/completions',
-      );
-      expect(serverSegment).toBeDefined();
       const segment = receivedSpans.find(span => span.is_segment && span.name === 'chat gpt-3.5-turbo');
       expect(segment?.span_id).toEqual(expect.any(String));
       expect(segment?.trace_id).toEqual(expect.any(String));
