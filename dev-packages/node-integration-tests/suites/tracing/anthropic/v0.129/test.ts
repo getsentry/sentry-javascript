@@ -21,7 +21,6 @@ describe('Anthropic integration (0.129)', () => {
         let receivedSpans: SerializedStreamedSpanContainer['items'] = [];
 
         await createRunner()
-          .unordered()
           .expect({
             span: container => {
               expect(container.items.find(span => span.is_segment && span.name === 'main')).toBeDefined();
@@ -60,7 +59,6 @@ describe('Anthropic integration (0.129)', () => {
         let receivedSpans: SerializedStreamedSpanContainer['items'] = [];
 
         await createRunner()
-          .unordered()
           .expect({
             span: container => {
               expect(container.items.find(span => span.is_segment && span.name === 'main')).toBeDefined();

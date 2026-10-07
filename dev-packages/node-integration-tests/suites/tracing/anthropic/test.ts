@@ -38,7 +38,6 @@ describe('Anthropic integration', () => {
       let receivedSpans: SerializedStreamedSpanContainer['items'] = [];
 
       await createRunner()
-        .unordered()
         .expect({
           span: container => {
             expect(container.items.find(span => span.is_segment && span.name === 'main')).toBeDefined();
@@ -241,7 +240,6 @@ describe('Anthropic integration', () => {
       let receivedSpans: SerializedStreamedSpanContainer['items'] = [];
 
       await createRunner()
-        .unordered()
         .expect({
           span: container => {
             expect(container.items.find(span => span.is_segment && span.name === 'main')).toBeDefined();
@@ -294,7 +292,6 @@ describe('Anthropic integration', () => {
       let receivedSpans: SerializedStreamedSpanContainer['items'] = [];
 
       await createRunner()
-        .unordered()
         .expect({
           span: container => {
             expect(container.items.find(span => span.is_segment && span.name === 'main')).toBeDefined();
@@ -345,7 +342,6 @@ describe('Anthropic integration', () => {
       let receivedSpans: SerializedStreamedSpanContainer['items'] = [];
 
       await createRunner()
-        .unordered()
         .expect({
           span: container => {
             expect(container.items.find(span => span.is_segment && span.name === 'main')).toBeDefined();
@@ -376,7 +372,6 @@ describe('Anthropic integration', () => {
       const EXPECTED_TOOL_CALLS_JSON =
         '[{"type":"tool_use","id":"tool_weather_1","name":"weather","input":{"city":"Paris"}}]';
       await createRunner()
-        .unordered()
         .expect({
           span: container => {
             expect(container.items.find(span => span.is_segment && span.name === 'main')).toBeDefined();
@@ -409,7 +404,6 @@ describe('Anthropic integration', () => {
       const EXPECTED_TOOL_CALLS_JSON =
         '[{"type":"tool_use","id":"tool_weather_2","name":"weather","input":{"city":"Paris"}}]';
       await createRunner()
-        .unordered()
         .expect({
           span: container => {
             expect(container.items.find(span => span.is_segment && span.name === 'main')).toBeDefined();
@@ -445,7 +439,6 @@ describe('Anthropic integration', () => {
       let receivedSpans: SerializedStreamedSpanContainer['items'] = [];
 
       await createRunner()
-        .unordered()
         // Stream errors surface via the MessageStream `error` event; attaching that listener stops it
         // being raised as an unhandled rejection, so the instrumentation captures it. This test only
         // asserts the spans.
@@ -498,7 +491,6 @@ describe('Anthropic integration', () => {
       let receivedSpans: SerializedStreamedSpanContainer['items'] = [];
 
       await createRunner()
-        .unordered()
         .expect({
           span: container => {
             expect(container.items.find(span => span.is_segment && span.name === 'main')).toBeDefined();
@@ -531,7 +523,6 @@ describe('Anthropic integration', () => {
 
         const expectedInstructions = JSON.stringify([{ type: 'text', content: 'You are a helpful assistant' }]);
         await createRunner()
-          .unordered()
           .expect({
             span: container => {
               expect(container.items.find(span => span.is_segment && span.name === 'main')).toBeDefined();
