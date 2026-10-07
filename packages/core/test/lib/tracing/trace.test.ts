@@ -565,6 +565,7 @@ describe('startSpan', () => {
           'sentry.segment.name.source': 'custom',
           'sentry.sample_rate': 1,
           'sentry.origin': 'manual',
+          'sentry.trace_lifecycle': 'static',
         },
         span_id: expect.stringMatching(/[a-f0-9]{16}/),
         trace_id: expect.stringMatching(/[a-f0-9]{32}/),
@@ -590,6 +591,7 @@ describe('startSpan', () => {
         data: {
           'sentry.segment.name.source': 'custom',
           'sentry.origin': 'manual',
+          'sentry.trace_lifecycle': 'static',
         },
         parent_span_id: innerParentSpanId,
         span_id: expect.stringMatching(/[a-f0-9]{16}/),
@@ -1145,6 +1147,7 @@ describe('startSpanManual', () => {
           'sentry.segment.name.source': 'custom',
           'sentry.sample_rate': 1,
           'sentry.origin': 'manual',
+          'sentry.trace_lifecycle': 'static',
         },
         span_id: expect.stringMatching(/[a-f0-9]{16}/),
         trace_id: expect.stringMatching(/[a-f0-9]{32}/),
@@ -1170,6 +1173,7 @@ describe('startSpanManual', () => {
         data: {
           'sentry.segment.name.source': 'custom',
           'sentry.origin': 'manual',
+          'sentry.trace_lifecycle': 'static',
         },
         parent_span_id: innerParentSpanId,
         span_id: expect.stringMatching(/[a-f0-9]{16}/),
@@ -1608,6 +1612,7 @@ describe('startInactiveSpan', () => {
           'sentry.segment.name.source': 'custom',
           'sentry.sample_rate': 1,
           'sentry.origin': 'manual',
+          'sentry.trace_lifecycle': 'static',
         },
         span_id: expect.stringMatching(/[a-f0-9]{16}/),
         trace_id: expect.stringMatching(/[a-f0-9]{32}/),
@@ -1633,6 +1638,7 @@ describe('startInactiveSpan', () => {
         data: {
           'sentry.segment.name.source': 'custom',
           'sentry.origin': 'manual',
+          'sentry.trace_lifecycle': 'static',
         },
         parent_span_id: innerParentSpanId,
         span_id: expect.stringMatching(/[a-f0-9]{16}/),

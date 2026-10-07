@@ -7,6 +7,7 @@ import {
   SENTRY_SEGMENT_NAME_SOURCE,
   SENTRY_OP,
   SENTRY_ORIGIN,
+  SENTRY_TRACE_LIFECYCLE,
 } from '@sentry/conventions/attributes';
 import { SEMANTIC_ATTRIBUTE_SENTRY_CUSTOM_SPAN_NAME } from '../semanticAttributes';
 import type { Client } from '../client';
@@ -456,6 +457,7 @@ export class SentrySpan implements Span {
     let hasGenAiSpans = false;
     spans.forEach(span => {
       delete span.data[SEMANTIC_ATTRIBUTE_SENTRY_CUSTOM_SPAN_NAME];
+      span.data = { ...span.data, [SENTRY_TRACE_LIFECYCLE]: 'static' };
       if (span.op?.startsWith('gen_ai.')) {
         hasGenAiSpans = true;
       }

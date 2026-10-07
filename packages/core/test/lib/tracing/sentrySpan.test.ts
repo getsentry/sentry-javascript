@@ -425,6 +425,7 @@ describe('SentrySpan', () => {
           trace: {
             data: {
               'sentry.origin': 'manual',
+              'sentry.trace_lifecycle': 'static',
             },
             origin: 'manual',
             span_id: expect.stringMatching(/^[a-f0-9]{16}$/),
@@ -449,6 +450,41 @@ describe('SentrySpan', () => {
         transaction: 'test',
         type: 'transaction',
       });
+    });
+
+    test('sets the static trace lifecycle on the transaction and its child spans without mutating them', () => {
+      const client = new TestClient(
+        getDefaultTestClientOptions({
+          dsn: 'https://username@domain/123',
+          tracesSampleRate: 1,
+        }),
+      );
+      setCurrentClient(client);
+
+      const captureEventSpy = vi.spyOn(getCurrentScope(), 'captureEvent').mockImplementation(() => 'testId');
+
+      const rootSpan = new SentrySpan({ name: 'root', startTimestamp: 1, sampled: true });
+      const childSpan = withActiveSpan(rootSpan, () => startInactiveSpan({ name: 'child' }));
+      childSpan.end();
+      rootSpan.end();
+
+      expect(captureEventSpy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          contexts: {
+            trace: expect.objectContaining({
+              data: expect.objectContaining({ 'sentry.trace_lifecycle': 'static' }),
+            }),
+          },
+          spans: [
+            expect.objectContaining({
+              description: 'child',
+              data: expect.objectContaining({ 'sentry.trace_lifecycle': 'static' }),
+            }),
+          ],
+        }),
+      );
+      expect(spanToStaticSpanJSON(rootSpan).data['sentry.trace_lifecycle']).toBeUndefined();
+      expect(spanToStaticSpanJSON(childSpan).data['sentry.trace_lifecycle']).toBeUndefined();
     });
   });
 
