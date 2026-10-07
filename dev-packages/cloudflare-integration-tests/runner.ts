@@ -85,7 +85,7 @@ type RetryOptions = { maxRetries?: number; retryDelayMs?: number };
 async function fetchWithRetry(
   url: string,
   init: RequestInit,
-  { maxRetries = 25, retryDelayMs = 200 }: RetryOptions = {},
+  { maxRetries = 75, retryDelayMs = 200 }: RetryOptions = {},
 ): Promise<Response> {
   for (let attempt = 0; attempt < maxRetries; attempt++) {
     try {
@@ -569,7 +569,12 @@ export function createRunner(...paths: string[]) {
 
             if (!res.ok) {
               if (!expectError) {
-                reject(new Error(`Expected request to "${path}" to succeed, but got a ${res.status} response`));
+                const responseBody = await res.text().catch(() => '');
+                reject(
+                  new Error(
+                    `Expected request to "${path}" to succeed, but got a ${res.status} response: ${responseBody.slice(0, 500)}`,
+                  ),
+                );
               }
 
               return;

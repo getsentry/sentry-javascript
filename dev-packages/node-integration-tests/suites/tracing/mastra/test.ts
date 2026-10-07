@@ -1,4 +1,5 @@
 import {
+  DB_OPERATION_NAME,
   GEN_AI_AGENT_NAME,
   GEN_AI_INPUT_MESSAGES,
   GEN_AI_OPERATION_NAME,
@@ -15,6 +16,9 @@ import {
   GEN_AI_USAGE_INPUT_TOKENS,
   GEN_AI_USAGE_OUTPUT_TOKENS,
   GEN_AI_USAGE_TOTAL_TOKENS,
+  SENTRY_OP,
+  SENTRY_ORIGIN,
+  URL_FULL,
 } from '@sentry/conventions/attributes';
 import { afterAll, expect } from 'vitest';
 import { conditionalTest } from '../../../utils';
@@ -51,18 +55,16 @@ conditionalTest({ min: 22 })('Mastra integration', () => {
     (createRunner, test) => {
       test('creates invoke_agent and chat spans following the gen_ai conventions', async () => {
         await createRunner()
-          .expect({ transaction: { transaction: 'mastra-test' } })
           .expect({
             span: container => {
-              expect(container.items.map(span => span.name).sort()).toEqual([
-                'chat gpt-4o-mini',
-                'invoke_agent weather_agent',
-              ]);
+              expect(container.items.find(span => span.is_segment && span.name === 'mastra-test')).toBeDefined();
+              const spans = container.items.filter(span => span.attributes[SENTRY_ORIGIN]?.value === 'auto.ai.mastra');
+              expect(spans.map(span => span.name).sort()).toEqual(['chat gpt-4o-mini', 'invoke_agent weather_agent']);
 
-              const agentSpan = container.items.find(span => span.name === 'invoke_agent weather_agent')!;
+              const agentSpan = spans.find(span => span.name === 'invoke_agent weather_agent')!;
               expect(agentSpan.status).toBe('ok');
-              expect(agentSpan.attributes['sentry.op'].value).toBe('gen_ai.invoke_agent');
-              expect(agentSpan.attributes['sentry.origin'].value).toBe('auto.ai.mastra');
+              expect(agentSpan.attributes[SENTRY_OP].value).toBe('gen_ai.invoke_agent');
+              expect(agentSpan.attributes[SENTRY_ORIGIN].value).toBe('auto.ai.mastra');
               expect(agentSpan.attributes[GEN_AI_OPERATION_NAME].value).toBe('invoke_agent');
               expect(agentSpan.attributes[GEN_AI_AGENT_NAME].value).toBe('weather_agent');
               expect(agentSpan.attributes[GEN_AI_PIPELINE_NAME].value).toBe('weather_agent');
@@ -71,10 +73,10 @@ conditionalTest({ min: 22 })('Mastra integration', () => {
               expect(agentSpan.attributes[GEN_AI_USAGE_TOTAL_TOKENS].value).toBe(19);
               expect(agentSpan.attributes[GEN_AI_RESPONSE_MODEL].value).toBe('gpt-4o-mini');
 
-              const chatSpan = container.items.find(span => span.name === 'chat gpt-4o-mini')!;
+              const chatSpan = spans.find(span => span.name === 'chat gpt-4o-mini')!;
               expect(chatSpan.status).toBe('ok');
-              expect(chatSpan.attributes['sentry.op'].value).toBe('gen_ai.chat');
-              expect(chatSpan.attributes['sentry.origin'].value).toBe('auto.ai.mastra');
+              expect(chatSpan.attributes[SENTRY_OP].value).toBe('gen_ai.chat');
+              expect(chatSpan.attributes[SENTRY_ORIGIN].value).toBe('auto.ai.mastra');
               expect(chatSpan.attributes[GEN_AI_OPERATION_NAME].value).toBe('chat');
               expect(chatSpan.attributes[GEN_AI_REQUEST_MODEL].value).toBe('gpt-4o-mini');
               expect(chatSpan.attributes[GEN_AI_PROVIDER_NAME].value).toBe('openai');
@@ -89,10 +91,12 @@ conditionalTest({ min: 22 })('Mastra integration', () => {
 
       test('omits prompts and responses when genAI recording is off', async () => {
         await createRunner()
-          .expect({ transaction: { transaction: 'mastra-test' } })
           .expect({
             span: container => {
-              for (const span of container.items) {
+              expect(container.items.find(span => span.is_segment && span.name === 'mastra-test')).toBeDefined();
+              const spans = container.items.filter(span => span.attributes[SENTRY_ORIGIN]?.value === 'auto.ai.mastra');
+              expect(spans).toHaveLength(2);
+              for (const span of spans) {
                 expect(span.attributes[GEN_AI_INPUT_MESSAGES]).toBeUndefined();
                 expect(span.attributes[GEN_AI_OUTPUT_MESSAGES]).toBeUndefined();
                 expect(span.attributes[GEN_AI_SYSTEM_INSTRUCTIONS]).toBeUndefined();
@@ -113,15 +117,16 @@ conditionalTest({ min: 22 })('Mastra integration', () => {
     (createRunner, test) => {
       test('records prompts and responses when genAI recording is on', async () => {
         await createRunner()
-          .expect({ transaction: { transaction: 'mastra-test' } })
           .expect({
             span: container => {
-              const agentSpan = container.items.find(span => span.name === 'invoke_agent weather_agent')!;
+              expect(container.items.find(span => span.is_segment && span.name === 'mastra-test')).toBeDefined();
+              const spans = container.items.filter(span => span.attributes[SENTRY_ORIGIN]?.value === 'auto.ai.mastra');
+              const agentSpan = spans.find(span => span.name === 'invoke_agent weather_agent')!;
               expect(agentSpan.attributes[GEN_AI_SYSTEM_INSTRUCTIONS].value).toBe('You report the weather.');
               expect(agentSpan.attributes[GEN_AI_INPUT_MESSAGES].value).toContain('What is the weather in Berlin?');
               expect(agentSpan.attributes[GEN_AI_OUTPUT_MESSAGES].value).toContain('It is 22C in Berlin.');
 
-              const chatSpan = container.items.find(span => span.name === 'chat gpt-4o-mini')!;
+              const chatSpan = spans.find(span => span.name === 'chat gpt-4o-mini')!;
               expect(chatSpan.attributes[GEN_AI_INPUT_MESSAGES].value).toContain('What is the weather in Berlin?');
               expect(chatSpan.attributes[GEN_AI_OUTPUT_MESSAGES].value).toContain('It is 22C in Berlin.');
             },
@@ -140,28 +145,29 @@ conditionalTest({ min: 22 })('Mastra integration', () => {
     (createRunner, test) => {
       test('creates an execute_tool span parented onto the generation', async () => {
         await createRunner()
-          .expect({ transaction: { transaction: 'mastra-test' } })
           .expect({
             span: container => {
-              expect(container.items.map(span => span.name).sort()).toEqual([
+              expect(container.items.find(span => span.is_segment && span.name === 'mastra-test')).toBeDefined();
+              const spans = container.items.filter(span => span.attributes[SENTRY_ORIGIN]?.value === 'auto.ai.mastra');
+              expect(spans.map(span => span.name).sort()).toEqual([
                 'chat gpt-4o-mini',
                 'execute_tool get_weather',
                 'invoke_agent weather_agent',
               ]);
 
-              const toolSpan = container.items.find(span => span.name === 'execute_tool get_weather')!;
+              const toolSpan = spans.find(span => span.name === 'execute_tool get_weather')!;
               expect(toolSpan.status).toBe('ok');
-              expect(toolSpan.attributes['sentry.op'].value).toBe('gen_ai.execute_tool');
-              expect(toolSpan.attributes['sentry.origin'].value).toBe('auto.ai.mastra');
+              expect(toolSpan.attributes[SENTRY_OP].value).toBe('gen_ai.execute_tool');
+              expect(toolSpan.attributes[SENTRY_ORIGIN].value).toBe('auto.ai.mastra');
               expect(toolSpan.attributes[GEN_AI_OPERATION_NAME].value).toBe('execute_tool');
               expect(toolSpan.attributes[GEN_AI_TOOL_NAME].value).toBe('get_weather');
               expect(toolSpan.attributes[GEN_AI_TOOL_CALL_ARGUMENTS].value).toContain('Berlin');
               expect(toolSpan.attributes[GEN_AI_TOOL_CALL_RESULT].value).toContain('22');
 
-              const chatSpan = container.items.find(span => span.name === 'chat gpt-4o-mini')!;
+              const chatSpan = spans.find(span => span.name === 'chat gpt-4o-mini')!;
               expect(toolSpan.parent_span_id).toBe(chatSpan.span_id);
 
-              const agentSpan = container.items.find(span => span.name === 'invoke_agent weather_agent')!;
+              const agentSpan = spans.find(span => span.name === 'invoke_agent weather_agent')!;
               expect(agentSpan.attributes[GEN_AI_TOOL_DEFINITIONS].value).toContain('get_weather');
               expect(agentSpan.attributes[GEN_AI_USAGE_INPUT_TOKENS].value).toBe(50);
               expect(agentSpan.attributes[GEN_AI_USAGE_OUTPUT_TOKENS].value).toBe(13);
@@ -182,13 +188,15 @@ conditionalTest({ min: 22 })('Mastra integration', () => {
     (createRunner, test) => {
       test('exports the workflow run but drops workflow steps, which have no conventional op', async () => {
         await createRunner()
-          .expect({ transaction: { transaction: 'mastra-test' } })
           .expect({
             span: container => {
-              expect(container.items.map(span => span.name)).toEqual(['invoke_agent math_workflow']);
+              const segment = container.items.find(span => span.is_segment && span.name === 'mastra-test');
+              expect(segment).toBeDefined();
+              const spans = container.items.filter(span => span.attributes[SENTRY_ORIGIN]?.value === 'auto.ai.mastra');
+              expect(spans.map(span => span.name)).toEqual(['invoke_agent math_workflow']);
 
-              const workflowSpan = container.items[0]!;
-              expect(workflowSpan.attributes['sentry.op'].value).toBe('gen_ai.invoke_agent');
+              const workflowSpan = spans[0]!;
+              expect(workflowSpan.attributes[SENTRY_OP].value).toBe('gen_ai.invoke_agent');
               expect(workflowSpan.attributes[GEN_AI_PIPELINE_NAME].value).toBe('math_workflow');
             },
           })
@@ -206,15 +214,13 @@ conditionalTest({ min: 22 })('Mastra integration', () => {
     (createRunner, test) => {
       test('auto-instruments a Mastra app that configured no observability at all', async () => {
         await createRunner()
-          .expect({ transaction: { transaction: 'mastra-test' } })
           .expect({
             span: container => {
-              expect(container.items.map(span => span.name).sort()).toEqual([
-                'chat gpt-4o-mini',
-                'invoke_agent weather_agent',
-              ]);
-              for (const span of container.items) {
-                expect(span.attributes['sentry.origin'].value).toBe('auto.ai.mastra');
+              expect(container.items.find(span => span.is_segment && span.name === 'mastra-test')).toBeDefined();
+              const spans = container.items.filter(span => span.attributes[SENTRY_ORIGIN]?.value === 'auto.ai.mastra');
+              expect(spans.map(span => span.name).sort()).toEqual(['chat gpt-4o-mini', 'invoke_agent weather_agent']);
+              for (const span of spans) {
+                expect(span.attributes[SENTRY_ORIGIN].value).toBe('auto.ai.mastra');
               }
             },
           })
@@ -232,13 +238,11 @@ conditionalTest({ min: 22 })('Mastra integration', () => {
     (createRunner, test) => {
       test('still exports its own spans when the community @mastra/sentry exporter is present', async () => {
         await createRunner()
-          .expect({ transaction: { transaction: 'mastra-test' } })
           .expect({
             span: container => {
-              expect(container.items.map(span => span.name).sort()).toEqual([
-                'chat gpt-4o-mini',
-                'invoke_agent weather_agent',
-              ]);
+              expect(container.items.find(span => span.is_segment && span.name === 'mastra-test')).toBeDefined();
+              const spans = container.items.filter(span => span.attributes[SENTRY_ORIGIN]?.value === 'auto.ai.mastra');
+              expect(spans.map(span => span.name).sort()).toEqual(['chat gpt-4o-mini', 'invoke_agent weather_agent']);
             },
           })
           .start()
@@ -255,9 +259,11 @@ conditionalTest({ min: 22 })('Mastra integration', () => {
       test('leaves an unconfigured app alone when bootstrapObservability is false', async () => {
         await createRunner()
           .expect({
-            transaction: event => {
-              expect(event.transaction).toBe('mastra-test');
-              const genAiSpans = (event.spans ?? []).filter(span => span.op?.startsWith('gen_ai.'));
+            span: container => {
+              expect(container.items.find(span => span.is_segment && span.name === 'mastra-test')).toBeDefined();
+              const genAiSpans = container.items.filter(span =>
+                String(span.attributes[SENTRY_OP]?.value ?? '').startsWith('gen_ai.'),
+              );
               expect(genAiSpans).toEqual([]);
             },
           })
@@ -274,56 +280,48 @@ conditionalTest({ min: 22 })('Mastra integration', () => {
     'instrument.mjs',
     (createRunner, test) => {
       test('nests the model fetch and tool work under the exporter spans', async () => {
-        // The exporter's gen_ai spans stream as their own span items; the `dataloader` and model
-        // `http.client` spans ride in the transaction event. Cross-reference once both have arrived.
-        let chatSpanId: string | undefined;
-        let executeToolSpanId: string | undefined;
-        let modelFetchParentIds: (string | undefined)[] = [];
-        let cacheGetParentIds: (string | undefined)[] = [];
-
         await createRunner()
           .expect({
-            transaction: event => {
-              expect(event.transaction).toBe('mastra-test');
+            span: container => {
+              expect(container.items.find(span => span.is_segment && span.name === 'mastra-test')).toBeDefined();
               // The model-provider requests Mastra makes for each step.
-              const modelFetches = (event.spans ?? []).filter(
-                span => span.op === 'http.client' && (span.description ?? '').includes('/v1/chat/completions'),
+              const modelFetches = container.items.filter(
+                span =>
+                  span.attributes[SENTRY_OP]?.value === 'http.client' &&
+                  String(span.attributes[URL_FULL]?.value ?? '').includes('/v1/chat/completions'),
               );
               expect(modelFetches.length).toBeGreaterThan(0);
-              modelFetchParentIds = modelFetches.map(span => span.parent_span_id);
+              const modelFetchParentIds = modelFetches.map(span => span.parent_span_id);
 
               // The per-key `dataloader.load` spans opened while the tool runs. (dataloader also emits a
               // `dataloader.batch` span nested under a load — its own internal structure.)
-              const loadSpans = (event.spans ?? []).filter(
-                span => span.op === 'cache.get' && span.description === 'dataloader.load',
+              const loadSpans = container.items.filter(
+                span =>
+                  span.attributes[SENTRY_OP]?.value === 'cache.get' &&
+                  span.attributes[DB_OPERATION_NAME]?.value === 'load',
               );
               expect(loadSpans.length).toBeGreaterThan(0);
-              cacheGetParentIds = loadSpans.map(span => span.parent_span_id);
-            },
-          })
-          .expect({
-            span: container => {
-              const chat = container.items.find(span => span.attributes['sentry.op']?.value === 'gen_ai.chat')!;
+              const cacheGetParentIds = loadSpans.map(span => span.parent_span_id);
+              const chat = container.items.find(span => span.attributes[SENTRY_OP]?.value === 'gen_ai.chat')!;
               expect(chat).toBeDefined();
-              chatSpanId = chat.span_id;
+              const chatSpanId = chat.span_id;
 
               const executeTool = container.items.find(
                 span => span.attributes[GEN_AI_TOOL_NAME]?.value === 'count_items',
               )!;
-              expect(executeTool).toBeDefined();
-              expect(executeTool.attributes['sentry.op']?.value).toBe('gen_ai.execute_tool');
-              executeToolSpanId = executeTool.span_id;
+              expect(executeTool.attributes[SENTRY_OP]?.value).toBe('gen_ai.execute_tool');
+              const executeToolSpanId = executeTool.span_id;
+
+              // The `executeWithContext` bridge makes the exporter spans active during the real work, so the
+              // model fetch parents onto the `chat` span and the dataloader loads onto `execute_tool`.
+              expect(chatSpanId).toBeDefined();
+              expect(executeToolSpanId).toBeDefined();
+              expect(new Set(modelFetchParentIds)).toEqual(new Set([chatSpanId]));
+              expect(new Set(cacheGetParentIds)).toEqual(new Set([executeToolSpanId]));
             },
           })
           .start()
           .completed();
-
-        // The `executeWithContext` bridge makes the exporter spans active during the real work, so the
-        // model fetch parents onto the `chat` span and the dataloader loads onto `execute_tool`.
-        expect(chatSpanId).toBeDefined();
-        expect(executeToolSpanId).toBeDefined();
-        expect(new Set(modelFetchParentIds)).toEqual(new Set([chatSpanId]));
-        expect(new Set(cacheGetParentIds)).toEqual(new Set([executeToolSpanId]));
       });
     },
     MASTRA_NESTING_DEPENDENCIES,
@@ -337,49 +335,44 @@ conditionalTest({ min: 22 })('Mastra integration', () => {
       test('nests the model fetch and tool work under the exporter spans when streaming', async () => {
         // Same nesting guarantee as `generate`, but the agent is driven via `stream()` — the model
         // request is a real streaming (SSE) call, and the tool still runs inside `executeWithContext`.
-        let chatSpanId: string | undefined;
-        let executeToolSpanId: string | undefined;
-        let modelFetchParentIds: (string | undefined)[] = [];
-        let cacheGetParentIds: (string | undefined)[] = [];
 
         await createRunner()
           .expect({
-            transaction: event => {
-              expect(event.transaction).toBe('mastra-test');
-              const modelFetches = (event.spans ?? []).filter(
-                span => span.op === 'http.client' && (span.description ?? '').includes('/v1/chat/completions'),
+            span: container => {
+              expect(container.items.find(span => span.is_segment && span.name === 'mastra-test')).toBeDefined();
+              const modelFetches = container.items.filter(
+                span =>
+                  span.attributes[SENTRY_OP]?.value === 'http.client' &&
+                  String(span.attributes[URL_FULL]?.value ?? '').includes('/v1/chat/completions'),
               );
               expect(modelFetches.length).toBeGreaterThan(0);
-              modelFetchParentIds = modelFetches.map(span => span.parent_span_id);
+              const modelFetchParentIds = modelFetches.map(span => span.parent_span_id);
 
-              const loadSpans = (event.spans ?? []).filter(
-                span => span.op === 'cache.get' && span.description === 'dataloader.load',
+              const loadSpans = container.items.filter(
+                span =>
+                  span.attributes[SENTRY_OP]?.value === 'cache.get' &&
+                  span.attributes[DB_OPERATION_NAME]?.value === 'load',
               );
               expect(loadSpans.length).toBeGreaterThan(0);
-              cacheGetParentIds = loadSpans.map(span => span.parent_span_id);
-            },
-          })
-          .expect({
-            span: container => {
-              const chat = container.items.find(span => span.attributes['sentry.op']?.value === 'gen_ai.chat')!;
+              const cacheGetParentIds = loadSpans.map(span => span.parent_span_id);
+              const chat = container.items.find(span => span.attributes[SENTRY_OP]?.value === 'gen_ai.chat')!;
               expect(chat).toBeDefined();
-              chatSpanId = chat.span_id;
+              const chatSpanId = chat.span_id;
 
               const executeTool = container.items.find(
                 span => span.attributes[GEN_AI_TOOL_NAME]?.value === 'count_items',
               )!;
-              expect(executeTool).toBeDefined();
-              expect(executeTool.attributes['sentry.op']?.value).toBe('gen_ai.execute_tool');
-              executeToolSpanId = executeTool.span_id;
+              expect(executeTool.attributes[SENTRY_OP]?.value).toBe('gen_ai.execute_tool');
+              const executeToolSpanId = executeTool.span_id;
+
+              expect(chatSpanId).toBeDefined();
+              expect(executeToolSpanId).toBeDefined();
+              expect(new Set(modelFetchParentIds)).toEqual(new Set([chatSpanId]));
+              expect(new Set(cacheGetParentIds)).toEqual(new Set([executeToolSpanId]));
             },
           })
           .start()
           .completed();
-
-        expect(chatSpanId).toBeDefined();
-        expect(executeToolSpanId).toBeDefined();
-        expect(new Set(modelFetchParentIds)).toEqual(new Set([chatSpanId]));
-        expect(new Set(cacheGetParentIds)).toEqual(new Set([executeToolSpanId]));
       });
     },
     MASTRA_NESTING_DEPENDENCIES,
@@ -394,40 +387,37 @@ conditionalTest({ min: 22 })('Mastra integration', () => {
         // Two instances run concurrently in one trace. Each instance's `dataloader.load` must nest under
         // that instance's own `execute_tool` span — if the registry cross-talked, one tool span would
         // have no dataloader child.
-        const toolSpanIds: Record<string, string> = {};
-        let loadParentIds: (string | undefined)[] = [];
 
         await createRunner()
           .expect({
-            transaction: event => {
-              expect(event.transaction).toBe('mastra-multi');
-              const loadSpans = (event.spans ?? []).filter(
-                span => span.op === 'cache.get' && span.description === 'dataloader.load',
-              );
-              loadParentIds = loadSpans.map(span => span.parent_span_id);
-            },
-          })
-          .expect({
             span: container => {
+              expect(container.items.find(span => span.is_segment && span.name === 'mastra-multi')).toBeDefined();
+              const loadSpans = container.items.filter(
+                span =>
+                  span.attributes[SENTRY_OP]?.value === 'cache.get' &&
+                  span.attributes[DB_OPERATION_NAME]?.value === 'load',
+              );
+              const loadParentIds = loadSpans.map(span => span.parent_span_id);
+              const toolSpanIds: Record<string, string> = {};
               for (const toolName of ['count_a', 'count_b']) {
                 const toolSpan = container.items.find(span => span.attributes[GEN_AI_TOOL_NAME]?.value === toolName)!;
                 expect(toolSpan).toBeDefined();
                 toolSpanIds[toolName] = toolSpan.span_id;
               }
+
+              // Each instance's tool span parents at least one dataloader load — neither is starved.
+              for (const toolName of ['count_a', 'count_b']) {
+                expect(loadParentIds).toContain(toolSpanIds[toolName]);
+              }
+              // And every load parents onto one of the two tool spans (no stray reparenting).
+              const toolIds = new Set(Object.values(toolSpanIds));
+              for (const parent of loadParentIds) {
+                expect(toolIds.has(parent!)).toBe(true);
+              }
             },
           })
           .start()
           .completed();
-
-        // Each instance's tool span parents at least one dataloader load — neither is starved.
-        for (const toolName of ['count_a', 'count_b']) {
-          expect(loadParentIds).toContain(toolSpanIds[toolName]);
-        }
-        // And every load parents onto one of the two tool spans (no stray reparenting).
-        const toolIds = new Set(Object.values(toolSpanIds));
-        for (const parent of loadParentIds) {
-          expect(toolIds.has(parent!)).toBe(true);
-        }
       });
     },
     MASTRA_NESTING_DEPENDENCIES,
@@ -439,10 +429,9 @@ conditionalTest({ min: 22 })('Mastra integration', () => {
     'instrument.mjs',
     (createRunner, test) => {
       test('captures an error thrown in a Mastra tool as a Sentry issue', async () => {
-        // The scenario also emits the `mastra-test` transaction and its streamed gen_ai spans; their
-        // flush order relative to the error event races, so ignore them and match only the issue.
+        // Span containers can arrive before the error event, so match only the issue.
         await createRunner()
-          .ignore('transaction', 'span')
+          .ignore('span')
           .expect({
             event: event => {
               const exception = event.exception?.values?.[0];
