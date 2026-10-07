@@ -7,7 +7,7 @@ afterAll(() => {
 
 test('GrowthBook flags are added to active span attributes on span end', async () => {
   const runner = createRunner(__dirname, 'scenario.ts');
-  const spansPromise = runner.collectStreamedSpansUntilSegment(() => true);
+  const spansPromise = runner.collectStreamedSpansUntilSegment();
 
   await runner.start().completed();
 

@@ -25,7 +25,7 @@ test('records a client report and no error event when tracesSampler throws', asy
 
 test('sends the span when tracesSampler throws but tracesSampleRate is 1', async () => {
   const runner = createRunner(__dirname, 'scenario-fallback.ts');
-  const spansPromise = runner.collectStreamedSpansUntilSegment(() => true);
+  const spansPromise = runner.collectStreamedSpansUntilSegment();
 
   await runner.start().completed();
 

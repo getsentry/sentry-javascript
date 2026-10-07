@@ -257,7 +257,7 @@ export function createRunner(...paths: string[]) {
         for (const traceSpans of spansByTrace.values()) {
           if (isDone(traceSpans)) {
             collector.done = true;
-            resolve([...traceSpans]);
+            resolve(traceSpans);
             spansByTrace.clear();
             return;
           }
@@ -274,7 +274,7 @@ export function createRunner(...paths: string[]) {
     /** Register before start(). Collect across envelopes until one trace satisfies the predicate. */
     collectStreamedSpans,
     /** Collect until a matching segment arrives; children arriving later are not included. */
-    collectStreamedSpansUntilSegment(segment: SegmentMatcher): Promise<SerializedStreamedSpan[]> {
+    collectStreamedSpansUntilSegment(segment: SegmentMatcher = () => true): Promise<SerializedStreamedSpan[]> {
       const matchesSegment =
         typeof segment === 'string' ? (span: SerializedStreamedSpan) => span.name === segment : segment;
       return collectStreamedSpans(spans => spans.some(span => span.is_segment && matchesSegment(span)));
