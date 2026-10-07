@@ -4,6 +4,8 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+Work in this release was contributed by @minwookshin. Thank you for your contribution!
+
 ## 11.4.0
 
 - feat(sveltekit): Support stable SvelteKit 3 ([#25009](https://github.com/getsentry/sentry-javascript/pull/25009))

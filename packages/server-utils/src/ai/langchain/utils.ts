@@ -4,6 +4,7 @@ import { isObjectLike, stringify } from '@sentry/core';
 import type { SpanAttributeValue } from '@sentry/core';
 import {
   GEN_AI_AGENT_NAME,
+  GEN_AI_CONVERSATION_ID,
   GEN_AI_INPUT_MESSAGES,
   GEN_AI_OPERATION_NAME,
   GEN_AI_PROVIDER_NAME,
@@ -510,6 +511,41 @@ export function getAgentNameFromMetadata(metadata?: Record<string, unknown>): Re
     attrs[GEN_AI_AGENT_NAME] = agentName;
   }
   return attrs;
+}
+
+/**
+ * Metadata keys under which LangChain apps carry a conversation id, in order of precedence.
+ * `thread_id` is the LangGraph checkpointer key and one of the two keys LangSmith groups threads by,
+ * `session_id` is the other, and `sessionId` is what `RunnableWithMessageHistory` requires in JS.
+ */
+const CONVERSATION_ID_METADATA_KEYS = ['thread_id', 'session_id', 'sessionId'] as const;
+
+function findConversationIdEntry(source?: Record<string, unknown>): [string, string | number] | undefined {
+  for (const key of CONVERSATION_ID_METADATA_KEYS) {
+    const value = source?.[key];
+    if ((typeof value === 'string' && value) || (typeof value === 'number' && Number.isFinite(value))) {
+      return [key, value];
+    }
+  }
+  return undefined;
+}
+
+/**
+ * Derive `gen_ai.conversation.id` from run metadata, which child runs inherit from their parent.
+ * An id from `Sentry.setConversationId()` still wins, since `conversationIdIntegration` applies it on `spanStart`.
+ */
+export function getConversationIdFromMetadata(metadata?: Record<string, unknown>): Record<string, SpanAttributeValue> {
+  const entry = findConversationIdEntry(metadata);
+  return entry ? { [GEN_AI_CONVERSATION_ID]: String(entry[1]) } : {};
+}
+
+/**
+ * The conversation id entry from `config.configurable`, to spread under the run metadata.
+ * `@langchain/core` >= 1.1.40 only copies `configurable` into metadata for LangSmith tracers, not for our handler.
+ */
+export function getConversationIdMetadataFromConfig(config: Record<string, unknown>): Record<string, unknown> {
+  const entry = findConversationIdEntry(config.configurable as Record<string, unknown> | undefined);
+  return entry ? { [entry[0]]: entry[1] } : {};
 }
 
 export function extractToolDefinitions(extraParams?: Record<string, unknown>): string | undefined {

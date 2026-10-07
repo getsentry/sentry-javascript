@@ -344,6 +344,13 @@ describe('LangGraph integration', () => {
               }),
             );
             expect(spans.filter(span => span.attributes[SENTRY_OP]?.value === 'gen_ai.chat')).toHaveLength(3);
+
+            // `thread_id` reaches the agent span and every chat and tool span under it.
+            const genAiSpans = spans.filter(span => String(span.attributes[SENTRY_OP]?.value).startsWith('gen_ai.'));
+            expect(genAiSpans).toHaveLength(6);
+            for (const span of genAiSpans) {
+              expect(span.attributes[GEN_AI_CONVERSATION_ID]?.value).toBe('math_thread');
+            }
           },
         })
         .start()

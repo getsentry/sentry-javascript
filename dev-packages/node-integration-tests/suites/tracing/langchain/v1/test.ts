@@ -1,5 +1,6 @@
 import { afterAll, describe, expect } from 'vitest';
 import {
+  GEN_AI_CONVERSATION_ID,
   GEN_AI_INPUT_MESSAGES,
   GEN_AI_OPERATION_NAME,
   GEN_AI_PROVIDER_NAME,
@@ -194,6 +195,37 @@ describe('LangChain integration (v1)', () => {
               expect(firstSpan!.attributes[GEN_AI_USAGE_TOTAL_TOKENS].value).toBe(50);
               expect(firstSpan!.attributes[GEN_AI_RESPONSE_STOP_REASON_ATTRIBUTE].value).toBe('tool_use');
               expect(firstSpan!.attributes[GEN_AI_RESPONSE_TOOL_CALLS]).toBeDefined();
+            },
+          })
+          .start()
+          .completed();
+      });
+    },
+    {
+      additionalDependencies: {
+        langchain: '^1.0.0',
+        '@langchain/core': '^1.0.0',
+        '@langchain/anthropic': '^1.0.0',
+      },
+    },
+  );
+
+  createEsmAndCjsTests(
+    __dirname,
+    'scenario-conversation-id.mjs',
+    'instrument.mjs',
+    (createRunner, test) => {
+      test('derives gen_ai.conversation.id from the invoke config and lets a scope id win', async () => {
+        await createRunner()
+          .ignore('event')
+          .expect({ transaction: { transaction: 'main' } })
+          .expect({
+            span: container => {
+              expect(container.items).toHaveLength(4);
+              const ids = container.items
+                .sort((a, b) => a.start_timestamp - b.start_timestamp)
+                .map(span => span.attributes[GEN_AI_CONVERSATION_ID]?.value);
+              expect(ids).toEqual(['thread_from_config', 'session_from_config', 'conversation_from_scope', undefined]);
             },
           })
           .start()

@@ -23,7 +23,11 @@ import {
 import { GEN_AI_EXECUTE_TOOL } from '@sentry/conventions/op';
 import { GEN_AI_TOOL_CALL_ID_ATTRIBUTE } from '../core/gen-ai-attributes';
 import type { BaseChatModel, LangChainMessage } from '../langchain/types';
-import { extractMessageTokenUsageAttributes, normalizeLangChainMessages } from '../langchain/utils';
+import {
+  extractMessageTokenUsageAttributes,
+  getConversationIdFromMetadata,
+  normalizeLangChainMessages,
+} from '../langchain/utils';
 import { LANGGRAPH_ORIGIN } from './constants';
 import type { CompiledGraph, LangGraphOptions, LangGraphTool } from './types';
 
@@ -91,6 +95,7 @@ export function wrapToolsWithSpans(tools: unknown[], options: LangGraphOptions, 
         if (typeof callAgentName === 'string') {
           spanAttributes[GEN_AI_AGENT_NAME] = callAgentName;
         }
+        Object.assign(spanAttributes, getConversationIdFromMetadata(callConfig?.metadata as Record<string, unknown>));
 
         if (toolDescription) {
           spanAttributes[GEN_AI_TOOL_DESCRIPTION] = toolDescription;
