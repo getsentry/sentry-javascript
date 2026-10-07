@@ -1,5 +1,6 @@
 import { afterAll, describe, expect } from 'vitest';
 import {
+  GEN_AI_CONVERSATION_ID,
   GEN_AI_EMBEDDINGS_INPUT,
   GEN_AI_INPUT_MESSAGES,
   GEN_AI_OPERATION_NAME,
@@ -409,6 +410,32 @@ describe('LangChain integration', () => {
             expect(sonnetSpan!.attributes[GEN_AI_PROVIDER_NAME].value).toBe('anthropic');
             expect(sonnetSpan!.attributes[GEN_AI_REQUEST_MODEL].value).toBe('claude-3-5-sonnet-20241022');
             expect(sonnetSpan!.attributes[GEN_AI_INPUT_MESSAGES]).toBeDefined();
+          },
+        })
+        .start()
+        .completed();
+    });
+  });
+
+  createEsmAndCjsTests(__dirname, 'scenario-conversation-id.mjs', 'instrument.mjs', (createRunner, test) => {
+    test('derives gen_ai.conversation.id from the invoke config and lets a scope id win', async () => {
+      await createRunner()
+        .expect({ transaction: { transaction: 'main' } })
+        .expect({
+          span: container => {
+            // Four invocations, each producing the outer chain span, the lambda step span and the chat span.
+            expect(container.items).toHaveLength(12);
+            const idsByName = (name: string): (string | undefined)[] =>
+              container.items
+                .filter(span => span.name === name)
+                .sort((a, b) => a.start_timestamp - b.start_timestamp)
+                .map(span => span.attributes[GEN_AI_CONVERSATION_ID]?.value as string | undefined);
+
+            // The id reaches the chain span, the child lambda span and the child chat span alike.
+            const expected = ['thread_from_config', 'session_from_config', 'conversation_from_scope', undefined];
+            expect(idsByName('chain weather_chain')).toEqual(expected);
+            expect(idsByName('chain format_prompt')).toEqual(expected);
+            expect(idsByName('chat claude-3-5-sonnet-20241022')).toEqual(expected);
           },
         })
         .start()

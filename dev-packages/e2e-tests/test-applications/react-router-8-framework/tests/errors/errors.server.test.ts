@@ -21,17 +21,12 @@ test.describe('server-side errors', () => {
             value: errorMessage,
             mechanism: {
               handled: false,
-              type: 'react-router',
+              type: 'react_router.loader',
             },
           },
         ],
       },
-      // Express names the transaction on Node and Deno. On Bun, where Express is not instrumented under
-      // `bun run`, it stays the request path. On Cloudflare the error has no transaction.
-      // todo: should be 'GET /errors/server-loader' everywhere
-      ...(RUNTIME === 'cloudflare'
-        ? {}
-        : { transaction: RUNTIME === 'bun' ? 'GET /errors/server-loader' : 'GET /{*splat}' }),
+      transaction: 'GET /errors/server-loader',
       request: {
         url: expect.stringContaining('errors/server-loader'),
         headers: expect.any(Object),
@@ -74,17 +69,12 @@ test.describe('server-side errors', () => {
             value: errorMessage,
             mechanism: {
               handled: false,
-              type: 'react-router',
+              type: 'react_router.action',
             },
           },
         ],
       },
-      // Express names the transaction on Node and Deno. On Bun, where Express is not instrumented under
-      // `bun run`, it stays the request path. On Cloudflare the error has no transaction.
-      // todo: should be 'POST /errors/server-action' everywhere
-      ...(RUNTIME === 'cloudflare'
-        ? {}
-        : { transaction: RUNTIME === 'bun' ? 'POST /errors/server-action.data' : 'POST /{*splat}' }),
+      transaction: 'POST /errors/server-action',
       request: {
         url: expect.stringContaining('errors/server-action'),
         headers: expect.any(Object),
