@@ -1,11 +1,11 @@
 /* eslint-disable max-lines */
 import type { Client, ContinuousThreadCpuProfile, DebugImage, ProfileChunk, Span } from '@sentry/core';
 import {
-  browserPerformanceTimeOrigin,
   debug,
   getClient,
   getDebugImagesForResources,
   GLOBAL_OBJ,
+  _INTERNAL_performanceTimeToSeconds,
   uuid4,
 } from '@sentry/core';
 import type { BrowserOptions } from '../client';
@@ -147,19 +147,15 @@ function convertToContinuousProfile(input: {
     stacks[i] = list;
   }
 
-  // Align timestamps to SDK time origin to match span/event timelines
-  const perfOrigin = browserPerformanceTimeOrigin();
-  const origin = typeof performance.timeOrigin === 'number' ? performance.timeOrigin : perfOrigin || 0;
-  const adjustForOriginChange = origin - (perfOrigin || origin);
-
   const samples: ContinuousThreadCpuProfile['samples'] = [];
   for (let i = 0; i < input.samples.length; i++) {
     const sample = input.samples[i];
     if (!sample) {
       continue;
     }
-    // Convert ms to seconds epoch-based timestamp
-    const timestampSeconds = (origin + (sample.timestamp - adjustForOriginChange)) / 1000;
+    // Sample timestamps are relative to `performance.timeOrigin`, so we convert them like performance entries.
+    // The cast is safe: the JS Self-Profiling API only exists if the Performance API does.
+    const timestampSeconds = _INTERNAL_performanceTimeToSeconds(sample.timestamp) as number;
     samples[i] = {
       stack_id: sample.stackId ?? 0,
       thread_id: PROFILER_THREAD_ID_STRING,

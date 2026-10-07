@@ -10,7 +10,7 @@ import type {
 import type { BrowserClientReplayOptions } from '@sentry/core/browser';
 import type { RouteProvider } from '@sentry/browser-utils';
 import { setRouteProvider } from '@sentry/browser-utils';
-import { addAutoIpAddressToSession, applySdkMetadata, Client, getSDKSource } from '@sentry/core';
+import { addAutoIpAddressToSession, applySdkMetadata, Client, getSDKSource, timestampInSeconds } from '@sentry/core';
 import { eventFromException, eventFromMessage } from './eventbuilder';
 import { WINDOW } from './helpers';
 import type { BrowserTransportOptions } from './transports/types';
@@ -144,6 +144,10 @@ export class BrowserClient extends Client<BrowserClientOptions> {
     // Client report outcomes don't listen to the `flush` hook, so we flush them separately.
     if (WINDOW.document) {
       WINDOW.document.addEventListener('visibilitychange', () => {
+        // Devices usually hide the page before they sleep and show it again after they wake up. Checking for drift
+        // at both points makes the time origin correction happen at the sleep, rather than at the next regular timestamp call.
+        timestampInSeconds();
+
         if (WINDOW.document.visibilityState === 'hidden') {
           if (sendClientReports) {
             this._flushOutcomes();
