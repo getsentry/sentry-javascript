@@ -4,6 +4,7 @@ import {
   debug,
   derefWeakRef,
   getDefaultIsolationScope,
+  getRootSpan,
   SPAN_STATUS_ERROR,
   startInactiveSpan,
   startNewTrace,
@@ -49,7 +50,8 @@ export interface PiRuns {
   active: Map<unknown, PiRun>;
   /**
    * Tool calls that created a conversation they own, keyed by that conversation. The child's first
-   * run becomes a child of the call, which is how a subagent's run joins the trace of the run that
+   * run becomes a child of the call while the call's trace is in progress, and otherwise continues
+   * that trace with the call as parent. This is how a subagent's run joins the trace of the run that
    * delegated to it.
    */
   owners: Map<unknown, PiOwner>;
@@ -67,7 +69,7 @@ export interface PiOwner {
    * not keep the trace of the call alive.
    */
   span: MaybeWeakRef<Span>;
-  /** The `sentry-trace` value of the span, used to continue its trace once the span is collected. */
+  /** The `sentry-trace` value of the span, used to continue its trace once that trace has ended. */
   sentryTrace: string;
   /** The `baggage` value of the span, used together with `sentryTrace`. */
   baggage: string | undefined;
@@ -108,13 +110,16 @@ export function startRun(conversationId: unknown, runs: PiRuns): PiRun {
   const owner = runs.owners.get(conversationId);
   runs.owners.delete(conversationId);
   const ownerSpan = derefWeakRef(owner?.span);
+  // Under a trace that has ended, the run would be split into one transaction per span when spans are
+  // not streamed. Continuing the trace instead also gives the same result whether or not GC ran.
+  const parentSpan = ownerSpan && getRootSpan(ownerSpan).isRecording() ? ownerSpan : undefined;
 
   const isolationScope = getDefaultIsolationScope().clone();
   const startRunSpan = (): Span =>
     startInactiveSpan({
       name: 'invoke_agent',
       op: GEN_AI_INVOKE_AGENT,
-      ...(ownerSpan ? { parentSpan: ownerSpan } : {}),
+      ...(parentSpan ? { parentSpan } : {}),
       attributes: {
         [SENTRY_ORIGIN]: PI_DURABLE_ORIGIN,
         [GEN_AI_OPERATION_NAME]: 'invoke_agent',
@@ -122,7 +127,7 @@ export function startRun(conversationId: unknown, runs: PiRuns): PiRun {
       },
     });
   const span = withCleanScopes(isolationScope, () => {
-    if (ownerSpan) {
+    if (parentSpan) {
       return startRunSpan();
     }
     return owner

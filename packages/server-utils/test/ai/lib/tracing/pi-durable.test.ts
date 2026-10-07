@@ -6,6 +6,7 @@ import {
   _INTERNAL_skipAiProviderWrapping,
   getCurrentScope,
   getMainCarrier,
+  getRootSpan,
   setCurrentClient,
   spanToJSON,
   spanToStaticSpanJSON,
@@ -750,6 +751,39 @@ describe('instrumentPiDurableHarnessOptions', () => {
       const [outerCall] = runs.toolCalls.get(7)!;
       expect(outerCall!.span.spanContext().spanId).toBe(spanToJSON(endedSpans[0]!).parent_span_id);
       expect(spanToJSON(startRun(42, runs).span).parent_span_id).toBe(outerCall!.span.spanContext().spanId);
+    });
+
+    it('starts the first run of a conversation as a root once the trace of the call that created it has ended', async () => {
+      const runs = createRuns();
+      const tool = instrumentTool(
+        {
+          name: 'delegate',
+          execute: async (_args, api) => {
+            await api.commit!(
+              tx =>
+                (tx as { createConversation: (...args: unknown[]) => unknown }).createConversation({
+                  ownership: { kind: 'task', taskId: 7 },
+                }),
+              undefined,
+            );
+            return { content: [{ type: 'text', text: 'Subagent created.' }] };
+          },
+        },
+        runs,
+        {},
+      );
+      const api: PiToolExecutionApi = {
+        taskId: 7,
+        callId: 'call_1',
+        commit: async change => change({ createConversation: async () => ({ id: 42 }) }),
+      };
+      await tool.execute({}, api, undefined);
+
+      const run = startRun(42, runs).span;
+
+      const call = spanToJSON(endedSpans[0]!);
+      expect(spanToJSON(run)).toMatchObject({ trace_id: call.trace_id, parent_span_id: call.span_id });
+      expect(getRootSpan(run)).toBe(run);
     });
   });
 
