@@ -1,8 +1,12 @@
 import type { Span } from '@sentry/core';
 import {
   captureException,
+  derefWeakRef,
   isObjectLike,
+  makeWeakRef,
   SPAN_STATUS_ERROR,
+  spanToBaggageHeader,
+  spanToTraceHeader,
   startSpanManual,
   stringify,
   timestampInSeconds,
@@ -208,12 +212,12 @@ function observeToolResultEntries(tx: object, committed: PiToolResultMessage[]):
 }
 
 /**
- * Drop the conversations a failed tool call created for itself, so its span is not kept until a run
- * of them starts, which may never happen.
+ * Drop the conversations a failed tool call created for itself, so their entries are not kept until
+ * a run of them starts, which may never happen.
  */
 function forgetOwnedConversations(span: Span, runs: PiRuns): void {
   for (const [conversationId, owner] of runs.owners) {
-    if (owner === span) {
+    if (derefWeakRef(owner.span) === span) {
       runs.owners.delete(conversationId);
     }
   }
@@ -245,7 +249,11 @@ function trackOwnedConversations(api: PiToolExecutionApi, span: Span, runs: PiRu
             if (runs.owners.size >= MAX_TRACKED_PI_RUNS) {
               runs.owners.delete(runs.owners.keys().next().value);
             }
-            runs.owners.set(record.id, span);
+            runs.owners.set(record.id, {
+              span: makeWeakRef(span),
+              sentryTrace: spanToTraceHeader(span),
+              baggage: spanToBaggageHeader(span),
+            });
           }
           return record;
         };

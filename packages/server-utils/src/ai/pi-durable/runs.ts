@@ -1,6 +1,8 @@
-import type { Scope, Span, SpanStatus } from '@sentry/core';
+import type { MaybeWeakRef, Scope, Span, SpanStatus } from '@sentry/core';
 import {
+  continueTrace,
   debug,
+  derefWeakRef,
   getDefaultIsolationScope,
   SPAN_STATUS_ERROR,
   startInactiveSpan,
@@ -46,16 +48,29 @@ export interface PiRuns {
   harnessId: string;
   active: Map<unknown, PiRun>;
   /**
-   * `execute_tool` spans of tool calls that created a conversation they own, keyed by that
-   * conversation. The child's first run becomes a child of the call, which is how a subagent's run
-   * joins the trace of the run that delegated to it.
+   * Tool calls that created a conversation they own, keyed by that conversation. The child's first
+   * run becomes a child of the call, which is how a subagent's run joins the trace of the run that
+   * delegated to it.
    */
-  owners: Map<unknown, Span>;
+  owners: Map<unknown, PiOwner>;
   /**
    * Tool calls of running `pi.tool` phases, keyed by task id. Their spans end when the phase ends,
    * after it has committed the result the model receives.
    */
   toolCalls: Map<unknown, PiToolCall[]>;
+}
+
+/** A tool call that created a conversation it owns. */
+export interface PiOwner {
+  /**
+   * The call's `execute_tool` span, held weakly: a conversation whose first run never starts must
+   * not keep the trace of the call alive.
+   */
+  span: MaybeWeakRef<Span>;
+  /** The `sentry-trace` value of the span, used to continue its trace once the span is collected. */
+  sentryTrace: string;
+  /** The `baggage` value of the span, used together with `sentryTrace`. */
+  baggage: string | undefined;
 }
 
 /** One `execute()` of a tool. */
@@ -92,20 +107,28 @@ export function startRun(conversationId: unknown, runs: PiRuns): PiRun {
 
   const owner = runs.owners.get(conversationId);
   runs.owners.delete(conversationId);
+  const ownerSpan = derefWeakRef(owner?.span);
 
   const isolationScope = getDefaultIsolationScope().clone();
   const startRunSpan = (): Span =>
     startInactiveSpan({
       name: 'invoke_agent',
       op: GEN_AI_INVOKE_AGENT,
-      ...(owner ? { parentSpan: owner } : {}),
+      ...(ownerSpan ? { parentSpan: ownerSpan } : {}),
       attributes: {
         [SENTRY_ORIGIN]: PI_DURABLE_ORIGIN,
         [GEN_AI_OPERATION_NAME]: 'invoke_agent',
         [GEN_AI_CONVERSATION_ID]: toSentryConversationId(runs, conversationId),
       },
     });
-  const span = withCleanScopes(isolationScope, () => (owner ? startRunSpan() : startNewTrace(startRunSpan)));
+  const span = withCleanScopes(isolationScope, () => {
+    if (ownerSpan) {
+      return startRunSpan();
+    }
+    return owner
+      ? continueTrace({ sentryTrace: owner.sentryTrace, baggage: owner.baggage }, startRunSpan)
+      : startNewTrace(startRunSpan);
+  });
 
   const run: PiRun = { conversationId, span, isolationScope };
   runs.active.set(conversationId, run);
