@@ -1,6 +1,7 @@
+import { SENTRY_OP, SENTRY_ORIGIN } from '@sentry/conventions/attributes';
 import type { Route } from '@playwright/test';
 import { expect } from '@playwright/test';
-import { type Event, SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '@sentry/core';
+import { type Event } from '@sentry/core';
 import { sentryTest } from '../../../../utils/fixtures';
 import { getFirstSentryEnvelopeRequest, shouldSkipTracingTest } from '../../../../utils/helpers';
 
@@ -95,8 +96,8 @@ sentryTest('adds resource spans to pageload transaction', async ({ getLocalTestU
       'http.request.time_to_first_byte': expect.any(Number),
       'network.protocol.name': '',
       'network.protocol.version': 'unknown',
-      [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'resource.img',
-      [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.resource.browser.metrics',
+      [SENTRY_OP]: 'resource.img',
+      [SENTRY_ORIGIN]: 'auto.resource.browser.metrics',
       'server.address': 'sentry-test-site.example',
       'url.domain': 'sentry-test-site.example',
       'http.request.same_origin': false,
@@ -148,8 +149,8 @@ sentryTest('adds resource spans to pageload transaction', async ({ getLocalTestU
       'http.request.time_to_first_byte': expect.any(Number),
       'network.protocol.name': '',
       'network.protocol.version': 'unknown',
-      [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'resource.link',
-      [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.resource.browser.metrics',
+      [SENTRY_OP]: 'resource.link',
+      [SENTRY_ORIGIN]: 'auto.resource.browser.metrics',
       'server.address': 'sentry-test-site.example',
       'url.domain': 'sentry-test-site.example',
       'http.request.same_origin': false,

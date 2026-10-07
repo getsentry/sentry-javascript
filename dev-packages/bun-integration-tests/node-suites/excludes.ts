@@ -2,7 +2,7 @@
 // fails on Bun is skipped with `test.skipIf` on `RUNTIME` in the Node suite, not listed here.
 
 // Node-only features: ANR and native thread watchdogs, child processes, the AWS Lambda Node runtime,
-// and `node:sqlite`, which `flue` needs.
+// `node:sqlite`, which `flue` needs, and the Vercel keep-alive, which needs `http.server.response.finish`.
 const NODE_ONLY = [
   'suites/anr/test.ts',
   'suites/aws-serverless/**',
@@ -10,6 +10,7 @@ const NODE_ONLY = [
   'suites/child-process/test.ts',
   'suites/thread-blocked-native/test.ts',
   'suites/tracing/flue/test.ts',
+  'suites/vercel/keep-alive/test.ts',
 ];
 
 // Bun does not publish `http.server.request.start`, so `@sentry/node` creates no `http.server`
@@ -258,10 +259,8 @@ const BUN_BUILD_NOT_TRIAGED = [
   'suites/tracing/mongoose-v9/test.ts',
   'suites/tracing/mongoose/test.ts',
   'suites/tracing/mysql/test.ts',
-  'suites/tracing/openai/test.ts',
   'suites/tracing/prisma-orm-v8/test.ts',
   'suites/tracing/together-ai/test.ts',
-  'suites/tracing/vercelai/test.ts',
   'suites/tracing/vercelai/v6_v7/test.ts',
 ];
 

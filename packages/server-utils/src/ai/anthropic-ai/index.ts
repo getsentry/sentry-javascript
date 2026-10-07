@@ -1,12 +1,5 @@
 /* eslint-disable typescript-eslint/no-deprecated */
-import {
-  getClient,
-  hasSpanStreamingEnabled,
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  SPAN_STATUS_ERROR,
-  startSpan,
-  startSpanManual,
-} from '@sentry/core';
+import { getClient, hasSpanStreamingEnabled, SPAN_STATUS_ERROR, startSpan, startSpanManual } from '@sentry/core';
 import type { Span, SpanAttributeValue } from '@sentry/core';
 import {
   GEN_AI_OPERATION_NAME,
@@ -22,13 +15,14 @@ import {
   GEN_AI_RESPONSE_TEXT,
   GEN_AI_RESPONSE_TOOL_CALLS,
   GEN_AI_TOOL_DEFINITIONS,
+  SENTRY_ORIGIN,
 } from '@sentry/conventions/attributes';
 import { GEN_AI_REQUEST_STREAM_ATTRIBUTE } from '../core/gen-ai-attributes';
 import type { InstrumentedMethodEntry } from '../core/utils';
 import {
   getGenAiSpanOp,
+  getTokenUsageAttributes,
   resolveAIRecordingOptions,
-  setTokenUsageAttributes,
   wrapPromiseWithMethods,
 } from '../core/utils';
 import { ANTHROPIC_METHOD_REGISTRY } from './constants';
@@ -56,7 +50,7 @@ export function extractRequestAttributes(
   const attributes: Record<string, unknown> = {
     [GEN_AI_PROVIDER_NAME]: 'anthropic',
     [GEN_AI_OPERATION_NAME]: operationName,
-    [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ai.anthropic',
+    [SENTRY_ORIGIN]: 'auto.ai.anthropic',
   };
 
   if (args.length > 0 && typeof args[0] === 'object' && args[0] !== null) {
@@ -131,12 +125,15 @@ function addMetadataAttributes(span: Span, response: AnthropicAiResponse): void 
     });
 
     if ('usage' in response && response.usage) {
-      setTokenUsageAttributes(
-        span,
-        response.usage.input_tokens,
-        response.usage.output_tokens,
-        response.usage.cache_creation_input_tokens,
-        response.usage.cache_read_input_tokens,
+      span.setAttributes(
+        getTokenUsageAttributes(
+          response.usage.input_tokens +
+            (response.usage.cache_creation_input_tokens ?? 0) +
+            (response.usage.cache_read_input_tokens ?? 0),
+          response.usage.output_tokens,
+          response.usage.cache_creation_input_tokens,
+          response.usage.cache_read_input_tokens,
+        ),
       );
     }
   }

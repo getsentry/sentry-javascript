@@ -1,5 +1,6 @@
 import type { Client } from './client';
-import { getCurrentScope } from './currentScopes';
+import { isClientClosed } from './client';
+import { getClient, getCurrentScope } from './currentScopes';
 import { DEBUG_BUILD } from './debug-build';
 import type { ClientOptions } from './types/options';
 import { consoleSandbox, debug } from './utils/debug-logger';
@@ -29,6 +30,8 @@ export function initAndBind<F extends Client, O extends ClientOptions>(
       });
     }
   }
+  warnIfClientIsActive();
+
   const scope = getCurrentScope();
   scope.update(options.initialScope);
 
@@ -36,6 +39,35 @@ export function initAndBind<F extends Client, O extends ClientOptions>(
   setCurrentClient(client);
   client.init();
   return client;
+}
+
+/**
+ * Returns the client bound to the current scope, unless it is closed.
+ *
+ * @hidden
+ */
+export function getActiveClient<C extends Client>(): C | undefined {
+  const client = getClient<C>();
+  return client && !isClientClosed(client) ? client : undefined;
+}
+
+/**
+ * Warns when `init()` runs while a client is still bound. The new client
+ * replaces it, but the old client stays alive, so the two can mix state.
+ *
+ * @hidden
+ */
+export function warnIfClientIsActive(): void {
+  if (getActiveClient()) {
+    consoleSandbox(() => {
+      // TODO(#24883): Point apps that share a page with another app to the
+      // isolated client helper, once that PR settles its name.
+      // eslint-disable-next-line no-console
+      console.warn(
+        '[Sentry] `Sentry.init()` was called more than once. The new client replaces the active client, but the active client is not closed, so state from both can mix. Call `Sentry.init()` only once, or call `await Sentry.close()` before you call it again.',
+      );
+    });
+  }
 }
 
 /**

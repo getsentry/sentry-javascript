@@ -1,4 +1,5 @@
 /* eslint-disable typescript-eslint/no-deprecated */
+import { isObjectLike } from '@sentry/core';
 import type { Span, SpanAttributeValue } from '@sentry/core';
 import {
   GEN_AI_CONVERSATION_ID,
@@ -12,6 +13,8 @@ import {
   GEN_AI_RESPONSE_MODEL,
   GEN_AI_RESPONSE_TEXT,
   GEN_AI_RESPONSE_TOOL_CALLS,
+  GEN_AI_USAGE_CACHE_CREATION_INPUT_TOKENS,
+  GEN_AI_USAGE_CACHE_READ_INPUT_TOKENS,
   GEN_AI_USAGE_INPUT_TOKENS,
   GEN_AI_USAGE_OUTPUT_TOKENS,
   GEN_AI_USAGE_TOTAL_TOKENS,
@@ -89,6 +92,15 @@ export function addResponseAttributes(span: Span, result: unknown, recordOutputs
 
     if (typeof usage.total_tokens === 'number') {
       attrs[GEN_AI_USAGE_TOTAL_TOKENS] = usage.total_tokens;
+    }
+    const inputDetails = usage.prompt_tokens_details ?? usage.input_tokens_details;
+    if (isObjectLike(inputDetails)) {
+      if (typeof inputDetails.cached_tokens === 'number') {
+        attrs[GEN_AI_USAGE_CACHE_READ_INPUT_TOKENS] = inputDetails.cached_tokens;
+      }
+      if (typeof inputDetails.cache_write_tokens === 'number') {
+        attrs[GEN_AI_USAGE_CACHE_CREATION_INPUT_TOKENS] = inputDetails.cache_write_tokens;
+      }
     }
   }
 

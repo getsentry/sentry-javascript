@@ -1,5 +1,5 @@
-import { SENTRY_TRACE_LIFECYCLE } from '@sentry/conventions/attributes';
-import { SEMANTIC_ATTRIBUTE_SENTRY_OP, type SerializedStreamedSpanContainer } from '@sentry/core';
+import { SENTRY_TRACE_LIFECYCLE, SENTRY_OP } from '@sentry/conventions/attributes';
+import { type SerializedStreamedSpanContainer } from '@sentry/core';
 import { afterAll, describe, expect } from 'vitest';
 import { EXPECTED_SDK_NAME } from '../../../utils';
 import { cleanupChildProcesses, createEsmAndCjsTests, describeWithDockerCompose } from '../../../utils/runner';
@@ -136,9 +136,7 @@ describeWithDockerCompose('redis auto instrumentation', { workingDirectory: [__d
               const segmentSpan = container.items.find(item => item.is_segment);
               expect(segmentSpan?.name).toBe('Test Span');
 
-              const dbSpans = container.items.filter(
-                item => item.attributes[SEMANTIC_ATTRIBUTE_SENTRY_OP]?.value === redisSpanOp,
-              );
+              const dbSpans = container.items.filter(item => item.attributes[SENTRY_OP]?.value === redisSpanOp);
 
               expect(dbSpans).toEqual([
                 expectedDbSpan({ operation: 'set', statement: 'set test-key [1 other arguments]' }),

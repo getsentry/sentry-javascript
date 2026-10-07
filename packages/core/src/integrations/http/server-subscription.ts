@@ -39,7 +39,6 @@ import { continueTrace, startSpanManual } from '../../tracing/trace';
 import { getSpanStatusFromHttpCode, SPAN_STATUS_ERROR } from '../../tracing';
 import { hasSpanStreamingEnabled } from '../../tracing/spans/hasSpanStreamingEnabled';
 import { HTTP_SPAN_NAME_FALLBACK } from '../../tracing/spans/spanNames';
-import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '../../semanticAttributes';
 import { safeMathRandom } from '../../utils/randomSafeContext';
 import type { SpanStatus } from '../../types/spanStatus';
 import {
@@ -66,6 +65,7 @@ import {
   URL_QUERY,
   URL_SCHEME,
   USER_AGENT_ORIGINAL,
+  SENTRY_ORIGIN,
 } from '@sentry/conventions/attributes';
 import { HTTP_SERVER } from '@sentry/conventions/op';
 import { filterCollectedUrl, filterCollectedUrlQuery } from '../../utils/data-collection/filterCollectedUrl';
@@ -326,7 +326,7 @@ function buildServerSpanWrap(
           attributes: {
             // Sentry-specific attributes
             [SENTRY_OP]: HTTP_SERVER,
-            [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.server',
+            [SENTRY_ORIGIN]: 'auto.http.server',
             [SENTRY_SEGMENT_NAME_SOURCE]: 'url',
             [SENTRY_KIND]: 'server',
             // Network attributes

@@ -1,4 +1,4 @@
-import { SENTRY_OP } from '@sentry/conventions/attributes';
+import { SENTRY_OP, SENTRY_ORIGIN } from '@sentry/conventions/attributes';
 import { DB_QUERY } from '@sentry/conventions/op';
 import {
   addBreadcrumb,
@@ -7,7 +7,6 @@ import {
   debug,
   getClient,
   hasSpanStreamingEnabled,
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   type Span,
   SPAN_STATUS_ERROR,
   startSpan,
@@ -31,7 +30,7 @@ const patchedStatement = new WeakSet<PreparedStatement>();
 /**
  * The Sentry origin for the database plugin.
  */
-const SENTRY_ORIGIN = 'auto.db.nuxt';
+const NUXT_DATABASE_ORIGIN = 'auto.db.nuxt';
 
 /**
  * Creates the Nitro database plugin setup by instrumenting the configured database instances.
@@ -230,7 +229,7 @@ function handleSpanStart(fn: () => unknown, breadcrumbOpts?: { query: string; di
       captureException(error, {
         mechanism: {
           handled: false,
-          type: SENTRY_ORIGIN,
+          type: NUXT_DATABASE_ORIGIN,
         },
       });
 
@@ -275,7 +274,7 @@ function createStartSpanOptions(
     attributes: {
       [DB_QUERY_TEXT]: queryText,
       [DB_QUERY_SUMMARY]: querySummary,
-      [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: SENTRY_ORIGIN,
+      [SENTRY_ORIGIN]: NUXT_DATABASE_ORIGIN,
       [SENTRY_OP]: DB_QUERY,
       ...data,
     },

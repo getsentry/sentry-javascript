@@ -7,7 +7,7 @@ import { createLangChainCallbackHandler } from '../ai/langchain';
 import { LANGCHAIN_INTEGRATION_NAME } from '../ai/langchain/constants';
 import { _INTERNAL_getLangChainEmbeddingsSpanOptions } from '../ai/langchain/embeddings';
 import type { LangChainOptions } from '../ai/langchain/types';
-import { _INTERNAL_mergeLangChainCallbackHandler } from '../ai/langchain/utils';
+import { getConversationIdMetadataFromConfig, _INTERNAL_mergeLangChainCallbackHandler } from '../ai/langchain/utils';
 import { MISTRAL_INTEGRATION_NAME } from '../ai/mistral/constants';
 import { OPENAI_INTEGRATION_NAME } from '../ai/openai/constants';
 import { GROQ_INTEGRATION_NAME } from './groq';
@@ -91,6 +91,11 @@ function instrumentChatModels(options: LangChainOptions): void {
     }
 
     callOptions.callbacks = _INTERNAL_mergeLangChainCallbackHandler(callOptions.callbacks, sentryHandler);
+
+    const conversationIdMetadata = getConversationIdMetadataFromConfig(callOptions);
+    if (Object.keys(conversationIdMetadata).length) {
+      callOptions.metadata = { ...conversationIdMetadata, ...(callOptions.metadata as Record<string, unknown>) };
+    }
   };
 
   for (const channelName of [CHANNELS.LANGCHAIN_CHAT_MODEL_INVOKE, CHANNELS.LANGCHAIN_CHAT_MODEL_STREAM]) {

@@ -41,3 +41,5 @@ export type {
 } from './integrations/http/types';
 export { createFetchIntegration } from './integrations/fetch';
 export type { FetchIntegrationOptions } from './integrations/fetch';
+export { classifyResponseStreaming } from './utils/responseStreaming';
+export type { StreamingGuess } from './utils/responseStreaming';

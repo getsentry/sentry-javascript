@@ -23,6 +23,8 @@ export {
   findSourceMapFiles,
   findSourceMappingUrlComments,
   findInjectedDebugIds,
+  findFilesWithMultipleDebugIds,
+  findFilesWithForeignSourcemaps,
   bundleReferencesModule,
 } from './build-output';
 export type { OutputScanOptions } from './build-output';
@@ -32,6 +34,8 @@ export type { InstrumentationFixture } from './bundler-instrumentation';
 
 export { hidePage } from './page';
 export { getPlaywrightConfig } from './playwright-config';
+export { getRuntime } from './runtime';
+export type { Runtime } from './runtime';
 export { createBasicSentryServer, createTestServer } from './server';
 
 export { startMockSentryServer } from './mock-sentry-server';
