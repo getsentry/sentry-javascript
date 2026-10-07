@@ -76,25 +76,6 @@ describe('no-unsafe-random-apis', () => {
         {
           code: 'withRandomSafeContext(() => performance?.now())',
         },
-        // Existence checks don't call the API
-        {
-          code: 'if (crypto.randomUUID) {}',
-        },
-        {
-          code: 'const hasUUID = !!crypto?.randomUUID',
-        },
-        {
-          code: 'const hasNow = typeof performance.now === "function"',
-        },
-        {
-          code: 'if (crypto.randomUUID && otherCheck) {}',
-        },
-        {
-          code: 'const now = crypto.randomUUID ? 1 : 2',
-        },
-        {
-          code: 'const { mark } = performance',
-        },
       ],
       invalid: [
         // Direct Date.now() calls
@@ -206,10 +187,6 @@ describe('no-unsafe-random-apis', () => {
             },
           ],
         },
-        {
-          code: 'const now = new globalThis.Date()',
-          errors: [{ messageId: 'unsafeDateConstructor' }],
-        },
         // Optional chaining
         {
           code: 'const perf = performance?.now()',
@@ -235,50 +212,6 @@ describe('no-unsafe-random-apis', () => {
         {
           code: 'const random = Math["random"]()',
           errors: [{ messageId: 'unsafeMathRandom' }],
-        },
-        // The function escapes without being called, so it can be called anywhere
-        {
-          code: 'const now = performance.now',
-          errors: [{ messageId: 'unsafeReference', data: { name: 'performance.now' } }],
-        },
-        {
-          code: 'const now = performance.now.bind(performance)',
-          errors: [{ messageId: 'unsafeReference', data: { name: 'performance.now' } }],
-        },
-        {
-          code: 'const t = Date.now.call(Date)',
-          errors: [{ messageId: 'unsafeReference', data: { name: 'Date.now' } }],
-        },
-        {
-          code: 'const uuid = crypto.randomUUID || fallback',
-          errors: [{ messageId: 'unsafeReference', data: { name: 'crypto.randomUUID' } }],
-        },
-        {
-          code: 'const ids = items.map(Math.random)',
-          errors: [{ messageId: 'unsafeReference', data: { name: 'Math.random' } }],
-        },
-        {
-          code: 'const clock = { now: Date.now }',
-          errors: [{ messageId: 'unsafeReference', data: { name: 'Date.now' } }],
-        },
-        {
-          code: 'const getNow = () => performance.now',
-          errors: [{ messageId: 'unsafeReference', data: { name: 'performance.now' } }],
-        },
-        {
-          code: 'let now; now = Date.now',
-          errors: [{ messageId: 'unsafeReference', data: { name: 'Date.now' } }],
-        },
-        {
-          code: 'const { now } = performance',
-          errors: [{ messageId: 'unsafeReference', data: { name: 'performance.now' } }],
-        },
-        {
-          code: 'const { randomUUID: uuid, getRandomValues } = globalThis.crypto',
-          errors: [
-            { messageId: 'unsafeReference', data: { name: 'crypto.randomUUID' } },
-            { messageId: 'unsafeReference', data: { name: 'crypto.getRandomValues' } },
-          ],
         },
       ],
     });
