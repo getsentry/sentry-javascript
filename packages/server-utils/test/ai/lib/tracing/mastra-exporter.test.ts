@@ -1,4 +1,37 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import {
+  ERROR_TYPE,
+  GEN_AI_AGENT_NAME,
+  GEN_AI_CONVERSATION_ID,
+  GEN_AI_INPUT_MESSAGES,
+  GEN_AI_OPERATION_NAME,
+  GEN_AI_OUTPUT_MESSAGES,
+  GEN_AI_PIPELINE_NAME,
+  GEN_AI_PROVIDER_NAME,
+  GEN_AI_REQUEST_MODEL,
+  GEN_AI_REQUEST_STOP_SEQUENCES,
+  GEN_AI_RESPONSE_MODEL,
+  GEN_AI_RESPONSE_TEXT,
+  GEN_AI_RESPONSE_TOOL_CALLS,
+  GEN_AI_SYSTEM_INSTRUCTIONS,
+  GEN_AI_TOOL_CALL_ARGUMENTS,
+  GEN_AI_TOOL_NAME,
+  GEN_AI_USAGE_CACHE_CREATION_INPUT_TOKENS,
+  GEN_AI_USAGE_CACHE_READ_INPUT_TOKENS,
+  GEN_AI_USAGE_INPUT_TOKENS,
+  GEN_AI_USAGE_OUTPUT_TOKENS,
+  GEN_AI_USAGE_REASONING_OUTPUT_TOKENS,
+  GEN_AI_USAGE_TOTAL_TOKENS,
+  SENTRY_OP,
+  SENTRY_ORIGIN,
+} from '@sentry/conventions/attributes';
+import {
+  GEN_AI_CHAT,
+  GEN_AI_EMBEDDINGS,
+  GEN_AI_EVALUATE,
+  GEN_AI_EXECUTE_TOOL,
+  GEN_AI_INVOKE_AGENT,
+} from '@sentry/conventions/op';
 import type { Span } from '@sentry/core';
 import {
   _INTERNAL_clearAiProviderSkips,
@@ -81,11 +114,11 @@ describe('SentryMastraExporter', () => {
 
     const json = spanToStaticSpanJSON(endedSpans[0]!);
     expect(json.description).toBe('invoke_agent weather_agent');
-    expect(json.data['sentry.op']).toBe('gen_ai.invoke_agent');
-    expect(json.data['sentry.origin']).toBe('auto.ai.mastra');
-    expect(json.data['gen_ai.operation.name']).toBe('invoke_agent');
-    expect(json.data['gen_ai.agent.name']).toBe('weather_agent');
-    expect(json.data['gen_ai.pipeline.name']).toBe('weather_agent');
+    expect(json.data[SENTRY_OP]).toBe(GEN_AI_INVOKE_AGENT);
+    expect(json.data[SENTRY_ORIGIN]).toBe('auto.ai.mastra');
+    expect(json.data[GEN_AI_OPERATION_NAME]).toBe('invoke_agent');
+    expect(json.data[GEN_AI_AGENT_NAME]).toBe('weather_agent');
+    expect(json.data[GEN_AI_PIPELINE_NAME]).toBe('weather_agent');
   });
 
   it('names generation spans `chat {model}` and maps usage to the current conventions', async () => {
@@ -108,17 +141,17 @@ describe('SentryMastraExporter', () => {
 
     const json = spanToStaticSpanJSON(endedSpans[0]!);
     expect(json.description).toBe('chat gpt-5');
-    expect(json.data['sentry.op']).toBe('gen_ai.chat');
-    expect(json.data['gen_ai.provider.name']).toBe('openai');
-    expect(json.data['gen_ai.usage.input_tokens']).toBe(10);
-    expect(json.data['gen_ai.usage.output_tokens']).toBe(4);
-    expect(json.data['gen_ai.usage.total_tokens']).toBe(14);
-    expect(json.data['gen_ai.usage.reasoning.output_tokens']).toBe(3);
-    expect(json.data['gen_ai.usage.cache_read.input_tokens']).toBe(2);
-    expect(json.data['gen_ai.usage.cache_creation.input_tokens']).toBe(5);
+    expect(json.data[SENTRY_OP]).toBe(GEN_AI_CHAT);
+    expect(json.data[GEN_AI_PROVIDER_NAME]).toBe('openai');
+    expect(json.data[GEN_AI_USAGE_INPUT_TOKENS]).toBe(10);
+    expect(json.data[GEN_AI_USAGE_OUTPUT_TOKENS]).toBe(4);
+    expect(json.data[GEN_AI_USAGE_TOTAL_TOKENS]).toBe(14);
+    expect(json.data[GEN_AI_USAGE_REASONING_OUTPUT_TOKENS]).toBe(3);
+    expect(json.data[GEN_AI_USAGE_CACHE_READ_INPUT_TOKENS]).toBe(2);
+    expect(json.data[GEN_AI_USAGE_CACHE_CREATION_INPUT_TOKENS]).toBe(5);
     expect(json.data['gen_ai.usage.reasoning_tokens']).toBeUndefined();
-    expect(json.data['gen_ai.response.text']).toBeUndefined();
-    expect(json.data['gen_ai.response.tool_calls']).toBeUndefined();
+    expect(json.data[GEN_AI_RESPONSE_TEXT]).toBeUndefined();
+    expect(json.data[GEN_AI_RESPONSE_TOOL_CALLS]).toBeUndefined();
   });
 
   it('maps classifier evaluations to `evaluate {model}` spans', async () => {
@@ -132,14 +165,14 @@ describe('SentryMastraExporter', () => {
     const json = spanToStaticSpanJSON(endedSpans[0]!);
     expect(json.description).toBe('evaluate jev-1');
     expect(json.data).toMatchObject({
-      'sentry.op': 'gen_ai.evaluate',
-      'sentry.origin': 'auto.ai.mastra',
-      'gen_ai.operation.name': 'evaluate',
-      'gen_ai.request.model': 'jev-1',
-      'gen_ai.provider.name': 'typesafe.evaluation',
-      'gen_ai.usage.input_tokens': 30,
-      'gen_ai.usage.output_tokens': 2,
-      'gen_ai.usage.total_tokens': 32,
+      [SENTRY_OP]: GEN_AI_EVALUATE,
+      [SENTRY_ORIGIN]: 'auto.ai.mastra',
+      [GEN_AI_OPERATION_NAME]: 'evaluate',
+      [GEN_AI_REQUEST_MODEL]: 'jev-1',
+      [GEN_AI_PROVIDER_NAME]: 'typesafe.evaluation',
+      [GEN_AI_USAGE_INPUT_TOKENS]: 30,
+      [GEN_AI_USAGE_OUTPUT_TOKENS]: 2,
+      [GEN_AI_USAGE_TOTAL_TOKENS]: 32,
     });
   });
 
@@ -153,10 +186,10 @@ describe('SentryMastraExporter', () => {
     await run(started(span), ended(span));
 
     const json = spanToStaticSpanJSON(endedSpans[0]!);
-    expect(json.data['gen_ai.input.messages']).toBe('[{"role":"user","content":"hi"}]');
-    expect(json.data['gen_ai.output.messages']).toBe('{"text":"hello"}');
-    expect(json.data['gen_ai.response.text']).toBe('hello');
-    expect(json.data['gen_ai.system_instructions']).toBe('be brief');
+    expect(json.data[GEN_AI_INPUT_MESSAGES]).toBe('[{"role":"user","content":"hi"}]');
+    expect(json.data[GEN_AI_OUTPUT_MESSAGES]).toBe('{"text":"hello"}');
+    expect(json.data[GEN_AI_RESPONSE_TEXT]).toBe('hello');
+    expect(json.data[GEN_AI_SYSTEM_INSTRUCTIONS]).toBe('be brief');
   });
 
   it.each([
@@ -172,7 +205,7 @@ describe('SentryMastraExporter', () => {
     });
     await run(started(span), ended(span));
 
-    expect(spanToStaticSpanJSON(endedSpans[0]!).data['gen_ai.response.text']).toBe(expected);
+    expect(spanToStaticSpanJSON(endedSpans[0]!).data[GEN_AI_RESPONSE_TEXT]).toBe(expected);
   });
 
   it.each([
@@ -180,28 +213,28 @@ describe('SentryMastraExporter', () => {
       'workflow_run',
       { type: 'workflow_run' as const, entityName: 'math_workflow' },
       'invoke_agent math_workflow',
-      'gen_ai.invoke_agent',
+      GEN_AI_INVOKE_AGENT,
     ],
     [
       'rag_embedding',
       { type: 'rag_embedding' as const, attributes: { model: 'text-embedding-3' } },
       'embeddings text-embedding-3',
-      'gen_ai.embeddings',
+      GEN_AI_EMBEDDINGS,
     ],
     [
       'mcp_tool_call',
       { type: 'mcp_tool_call' as const, entityName: 'search' },
       'execute_tool search',
-      'gen_ai.execute_tool',
+      GEN_AI_EXECUTE_TOOL,
     ],
-    ['entityId when entityName is missing', { entityId: 'agent-42' }, 'invoke_agent agent-42', 'gen_ai.invoke_agent'],
+    ['entityId when entityName is missing', { entityId: 'agent-42' }, 'invoke_agent agent-42', GEN_AI_INVOKE_AGENT],
   ])('names a %s span', async (_label, overrides, description, op) => {
     const span = makeSpan(overrides);
     await run(started(span), ended(span));
 
     const json = spanToStaticSpanJSON(endedSpans[0]!);
     expect(json.description).toBe(description);
-    expect(json.data['sentry.op']).toBe(op);
+    expect(json.data[SENTRY_OP]).toBe(op);
   });
 
   it('omits inputs and outputs when recording is disabled', async () => {
@@ -210,8 +243,8 @@ describe('SentryMastraExporter', () => {
     await run(started(span), ended(span));
 
     const json = spanToStaticSpanJSON(endedSpans[0]!);
-    expect(json.data['gen_ai.input.messages']).toBeUndefined();
-    expect(json.data['gen_ai.output.messages']).toBeUndefined();
+    expect(json.data[GEN_AI_INPUT_MESSAGES]).toBeUndefined();
+    expect(json.data[GEN_AI_OUTPUT_MESSAGES]).toBeUndefined();
     expect(JSON.stringify(json.data)).not.toContain('pii');
   });
 
@@ -248,9 +281,9 @@ describe('SentryMastraExporter', () => {
     const chatJson = json.find(span => span.description === 'chat gpt-5');
     expect(toolJson).toBeDefined();
     expect(chatJson).toBeDefined();
-    expect(toolJson!.data['sentry.op']).toBe('gen_ai.execute_tool');
-    expect(toolJson!.data['gen_ai.tool.name']).toBe('get_weather');
-    expect(toolJson!.data['gen_ai.tool.call.arguments']).toBe('{"city":"Berlin"}');
+    expect(toolJson!.data[SENTRY_OP]).toBe(GEN_AI_EXECUTE_TOOL);
+    expect(toolJson!.data[GEN_AI_TOOL_NAME]).toBe('get_weather');
+    expect(toolJson!.data[GEN_AI_TOOL_CALL_ARGUMENTS]).toBe('{"city":"Berlin"}');
     expect(toolJson!.parent_span_id).toBe(chatJson!.span_id);
   });
 
@@ -273,10 +306,10 @@ describe('SentryMastraExporter', () => {
       .map(span => spanToStaticSpanJSON(span))
       .find(span => span.description === 'invoke_agent agent');
     expect(agentJson).toBeDefined();
-    expect(agentJson!.data['gen_ai.usage.input_tokens']).toBe(10);
-    expect(agentJson!.data['gen_ai.usage.output_tokens']).toBe(4);
-    expect(agentJson!.data['gen_ai.usage.total_tokens']).toBe(14);
-    expect(agentJson!.data['gen_ai.response.model']).toBe('gpt-5-2026');
+    expect(agentJson!.data[GEN_AI_USAGE_INPUT_TOKENS]).toBe(10);
+    expect(agentJson!.data[GEN_AI_USAGE_OUTPUT_TOKENS]).toBe(4);
+    expect(agentJson!.data[GEN_AI_USAGE_TOTAL_TOKENS]).toBe(14);
+    expect(agentJson!.data[GEN_AI_RESPONSE_MODEL]).toBe('gpt-5-2026');
   });
 
   it('sums usage across multiple generations onto the parent agent', async () => {
@@ -307,11 +340,11 @@ describe('SentryMastraExporter', () => {
       .map(span => spanToStaticSpanJSON(span))
       .find(span => span.description === 'invoke_agent agent');
     expect(agentJson).toBeDefined();
-    expect(agentJson!.data['gen_ai.usage.input_tokens']).toBe(40);
-    expect(agentJson!.data['gen_ai.usage.output_tokens']).toBe(12);
-    expect(agentJson!.data['gen_ai.usage.total_tokens']).toBe(52);
-    expect(agentJson!.data['gen_ai.usage.cache_read.input_tokens']).toBe(3);
-    expect(agentJson!.data['gen_ai.response.model']).toBe('gpt-5-2026');
+    expect(agentJson!.data[GEN_AI_USAGE_INPUT_TOKENS]).toBe(40);
+    expect(agentJson!.data[GEN_AI_USAGE_OUTPUT_TOKENS]).toBe(12);
+    expect(agentJson!.data[GEN_AI_USAGE_TOTAL_TOKENS]).toBe(52);
+    expect(agentJson!.data[GEN_AI_USAGE_CACHE_READ_INPUT_TOKENS]).toBe(3);
+    expect(agentJson!.data[GEN_AI_RESPONSE_MODEL]).toBe('gpt-5-2026');
   });
 
   it('marks the span errored without capturing a reconstructed exception', async () => {
@@ -320,7 +353,7 @@ describe('SentryMastraExporter', () => {
 
     const json = spanToStaticSpanJSON(endedSpans[0]!);
     expect(json.status).toBe('internal_error');
-    expect(json.data['error.type']).toBe('ToolError');
+    expect(json.data[ERROR_TYPE]).toBe('ToolError');
   });
 
   it.each([
@@ -356,7 +389,7 @@ describe('SentryMastraExporter', () => {
 
     const json = spanToStaticSpanJSON(endedSpans[0]!);
     expect(Object.keys(json.data).filter(key => key.startsWith('mastra.'))).toEqual([]);
-    expect(json.data['gen_ai.conversation.id']).toBe('thread-9');
+    expect(json.data[GEN_AI_CONVERSATION_ID]).toBe('thread-9');
   });
 
   it.each([
@@ -370,14 +403,14 @@ describe('SentryMastraExporter', () => {
     const span = makeSpan({ entityName: 'agent', ...overrides });
     await run(started(span), ended(span));
 
-    expect(spanToStaticSpanJSON(endedSpans[0]!).data['gen_ai.conversation.id']).toBe(expected);
+    expect(spanToStaticSpanJSON(endedSpans[0]!).data[GEN_AI_CONVERSATION_ID]).toBe(expected);
   });
 
   it('does not use runId as gen_ai.conversation.id', async () => {
     const span = makeSpan({ entityName: 'agent', metadata: { runId: 'run-3' } });
     await run(started(span), ended(span));
 
-    expect(spanToStaticSpanJSON(endedSpans[0]!).data['gen_ai.conversation.id']).toBeUndefined();
+    expect(spanToStaticSpanJSON(endedSpans[0]!).data[GEN_AI_CONVERSATION_ID]).toBeUndefined();
   });
 
   it('falls back to the bare operation name when there is no identifier', async () => {
@@ -433,7 +466,7 @@ describe('SentryMastraExporter', () => {
     });
     await run(started(span), ended(span));
 
-    expect(spanToStaticSpanJSON(endedSpans[0]!).data['gen_ai.request.stop_sequences']).toEqual(['\n\n', 'END']);
+    expect(spanToStaticSpanJSON(endedSpans[0]!).data[GEN_AI_REQUEST_STOP_SEQUENCES]).toEqual(['\n\n', 'END']);
   });
 
   // Parentless dropped spans used to be stored under a falsy sentinel that `LRUMap.remove` never
