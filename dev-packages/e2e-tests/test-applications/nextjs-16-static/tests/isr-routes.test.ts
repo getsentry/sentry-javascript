@@ -1,31 +1,42 @@
 import { expect, test } from '@playwright/test';
 import { waitForTransaction } from '@sentry-internal/test-utils';
 
-test('should remove sentry-trace and baggage meta tags on ISR dynamic route page load', async ({ page }) => {
+const isProductionBuild = process.env.TEST_ENV === 'production' || process.env.TEST_ENV === 'prod-turbopack';
+
+test('does not carry trace meta tags on an ISR dynamic route', async ({ page }) => {
+  // The dev server renders ISR pages for every request, so there the trace tags are fresh and kept.
+  test.skip(!isProductionBuild, 'ISR pages are only prerendered in production builds');
+
   // Navigate to ISR page
   await page.goto('/isr-test/laptop');
 
   // Wait for page to be fully loaded
   await expect(page.locator('#isr-product-id')).toHaveText('laptop');
 
-  // Check that sentry-trace and baggage meta tags are removed for ISR pages
+  // The shell was prerendered, and a prerender writes no trace tags
   await expect(page.locator('meta[name="sentry-trace"]')).toHaveCount(0);
   await expect(page.locator('meta[name="baggage"]')).toHaveCount(0);
 });
 
-test('should remove sentry-trace and baggage meta tags on ISR static route', async ({ page }) => {
+test('does not carry trace meta tags on an ISR static route', async ({ page }) => {
+  // The dev server renders ISR pages for every request, so there the trace tags are fresh and kept.
+  test.skip(!isProductionBuild, 'ISR pages are only prerendered in production builds');
+
   // Navigate to ISR static page
   await page.goto('/isr-test/static');
 
   // Wait for page to be fully loaded
   await expect(page.locator('#isr-static-marker')).toHaveText('static-isr');
 
-  // Check that sentry-trace and baggage meta tags are removed for ISR pages
+  // The shell was prerendered, and a prerender writes no trace tags
   await expect(page.locator('meta[name="sentry-trace"]')).toHaveCount(0);
   await expect(page.locator('meta[name="baggage"]')).toHaveCount(0);
 });
 
-test('should remove meta tags for different ISR dynamic route values', async ({ page }) => {
+test('does not carry trace meta tags for different ISR dynamic route values', async ({ page }) => {
+  // The dev server renders ISR pages for every request, so there the trace tags are fresh and kept.
+  test.skip(!isProductionBuild, 'ISR pages are only prerendered in production builds');
+
   // Test with 'phone' (one of the pre-generated static params)
   await page.goto('/isr-test/phone');
   await expect(page.locator('#isr-product-id')).toHaveText('phone');
@@ -44,7 +55,7 @@ test('should remove meta tags for different ISR dynamic route values', async ({ 
 test('should create unique transactions for ISR pages on each visit', async ({ page }) => {
   const traceIds: string[] = [];
 
-  // Load the same ISR page 5 times to ensure cached HTML meta tags are consistently removed
+  // Load the same ISR page 5 times: the cached HTML carries no trace tag, so every visit starts its own trace
   for (let i = 0; i < 5; i++) {
     const transactionPromise = waitForTransaction('nextjs-16-static', async transactionEvent => {
       return !!(
@@ -66,7 +77,7 @@ test('should create unique transactions for ISR pages on each visit', async ({ p
     traceIds.push(traceId!);
   }
 
-  // Verify all 5 page loads have unique trace IDs (no reuse of cached/stale meta tags)
+  // Verify all 5 page loads have unique trace IDs (no trace replayed from the cached HTML)
   const uniqueTraceIds = new Set(traceIds);
   expect(uniqueTraceIds.size).toBe(5);
 });
