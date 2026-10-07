@@ -113,10 +113,21 @@ describe('cronTriggersIntegration', () => {
     },
   );
 
-  test.each([['15W'], ['LW'], ['?']])('sends check-ins without a schedule for the day of month %s', dayOfMonth => {
-    startCheckIn(`0 9 ${dayOfMonth} * *`);
+  test.each([['15W'], ['LW'], ['L-3'], ['L-3W'], ['?']])(
+    'sends check-ins without a schedule for the day of month %s',
+    dayOfMonth => {
+      startCheckIn(`0 9 ${dayOfMonth} * *`);
 
-    expect(captureCheckInSpy).toHaveBeenCalledWith(expect.objectContaining({ status: 'in_progress' }), undefined);
+      expect(captureCheckInSpy).toHaveBeenCalledWith(expect.objectContaining({ status: 'in_progress' }), undefined);
+    },
+  );
+
+  test('sends the last day of the month as L', () => {
+    startCheckIn('0 9 L * *');
+
+    expect(captureCheckInSpy).toHaveBeenCalledWith(expect.objectContaining({ status: 'in_progress' }), {
+      schedule: { type: 'crontab', value: '0 9 L * *' },
+    });
   });
 
   test.each([

@@ -91,11 +91,11 @@ function convertWeekdayItem(item: string): string | undefined {
 function cloudflareCronToCrontab(cron: string): string | undefined {
   const fields = cron.trim().split(/\s+/);
   const [, , dayOfMonth = '', , dayOfWeek = ''] = fields;
-  // Sentry rejects `W` and `?` in the day of month. When both day fields are set, Cloudflare and Sentry
+  // Sentry rejects `W`, `?` and `L-n` in the day of month. When both day fields are set, Cloudflare and Sentry
   // run on the days that match either field, but Sentry requires both to match when one starts with `*`.
   if (
     fields.length !== 5 ||
-    /[w?]/i.test(dayOfMonth) ||
+    /[w?]|l-/i.test(dayOfMonth) ||
     (dayOfMonth !== '*' && dayOfWeek !== '*' && (dayOfMonth.startsWith('*') || dayOfWeek.startsWith('*')))
   ) {
     return undefined;
