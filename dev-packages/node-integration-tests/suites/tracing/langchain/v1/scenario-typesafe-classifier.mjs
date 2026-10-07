@@ -37,7 +37,6 @@ async function run() {
     await classifier.invoke(new HumanMessage('My card was charged twice.'));
   });
 
-  await Sentry.flush(2000);
   server.close();
 }
 
