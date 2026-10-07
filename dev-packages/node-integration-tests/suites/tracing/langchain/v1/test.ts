@@ -1,5 +1,6 @@
 import { afterAll, describe, expect } from 'vitest';
 import {
+  GEN_AI_AGENT_NAME,
   GEN_AI_CONVERSATION_ID,
   GEN_AI_INPUT_MESSAGES,
   GEN_AI_OPERATION_NAME,
@@ -313,6 +314,54 @@ describe('LangChain integration (v1)', () => {
         '@langchain/core': '^1.0.0',
         '@langchain/typesafe': '^0.0.2',
         '@langchain/langgraph': '^1.0.0',
+      },
+    },
+  );
+
+  createEsmAndCjsTests(
+    __dirname,
+    'scenario-typesafe-model-router.mjs',
+    'instrument-with-pii.mjs',
+    (createRunner, test) => {
+      test('records the Jev model router call inside a createAgent run', async () => {
+        await createRunner()
+          .ignore('event')
+          .expect({ transaction: { transaction: 'main' } })
+          .expect({
+            span: container => {
+              const evaluateSpan = container.items.find(span => span.attributes[SENTRY_OP]?.value === GEN_AI_EVALUATE)!;
+              const chatSpan = container.items.find(span => span.name === 'chat claude-3-5-haiku-20241022')!;
+
+              // The router classifies in `beforeAgent`, inside the agent run, where other chain steps are skipped.
+              expect(evaluateSpan.name).toBe('evaluate jev-latest');
+              expect(evaluateSpan.attributes[SENTRY_ORIGIN].value).toBe('auto.ai.langchain');
+              expect(evaluateSpan.attributes[GEN_AI_AGENT_NAME].value).toBe('support_agent');
+              expect(evaluateSpan.parent_span_id).toBe(chatSpan.parent_span_id);
+              expect(JSON.parse(evaluateSpan.attributes[GEN_AI_OUTPUT_MESSAGES].value)).toEqual([
+                {
+                  type: 'evaluation',
+                  answers: {
+                    model_route: {
+                      type: 'choice',
+                      choice: 'fast',
+                      probabilities: { fast: 0.9, smart: 0.1 },
+                      confidence: 0.8,
+                    },
+                  },
+                },
+              ]);
+            },
+          })
+          .start()
+          .completed();
+      });
+    },
+    {
+      additionalDependencies: {
+        langchain: '^1.0.0',
+        '@langchain/core': '^1.0.0',
+        '@langchain/anthropic': '^1.0.0',
+        '@langchain/typesafe': '0.0.2',
       },
     },
   );
