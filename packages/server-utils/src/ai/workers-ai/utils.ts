@@ -20,7 +20,7 @@ import { GEN_AI_CHAT, GEN_AI_EMBEDDINGS, GEN_AI_EVALUATE } from '@sentry/convent
 import { isObjectLike, stringify } from '@sentry/core';
 import type { Span, SpanAttributeValue } from '@sentry/core';
 import { GEN_AI_REQUEST_STREAM_ATTRIBUTE } from '../core/gen-ai-attributes';
-import { extractSystemInstructions, setOutputMessagesAttribute, setTokenUsageAttributes } from '../core/utils';
+import { extractSystemInstructions, getTokenUsageAttributes, setOutputMessagesAttribute } from '../core/utils';
 import { addResponseAttributes as addEvaluateResponseAttributes, getEvaluationInputMessages } from '../typesafe';
 // Re-exported so `workers-ai/streaming.ts` keeps importing it from this module.
 export { setOutputMessagesAttribute };
@@ -173,7 +173,7 @@ export function addResponseAttributes(
   const response = result as WorkersAiOutput;
 
   if (response.usage) {
-    setTokenUsageAttributes(span, response.usage.prompt_tokens, response.usage.completion_tokens);
+    span.setAttributes(getTokenUsageAttributes(response.usage.prompt_tokens, response.usage.completion_tokens));
   }
 
   if (recordOutputs) {
