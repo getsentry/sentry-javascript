@@ -13,7 +13,7 @@
     "test:prod": "TEST_ENV=production playwright test",
     "test:build": "pnpm install && pnpm cf:build",
     "test:build-canary": "pnpm install && pnpm add next@canary && pnpm cf:build",
-    "test:build-latest": "pnpm install && pnpm add next@latest && pnpm cf:build",
+    "test:build-latest": "pnpm install && pnpm add next@16.3 && pnpm cf:build",
     "test:assert": "pnpm test:prod"
   },
   "dependencies": {
