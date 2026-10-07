@@ -1,3 +1,18 @@
+import {
+  DB_NAMESPACE,
+  DB_OPERATION_NAME,
+  DB_QUERY_SUMMARY,
+  DB_QUERY_TEXT,
+  DB_RESPONSE_STATUS_CODE,
+  DB_SYSTEM_NAME,
+  ERROR_TYPE,
+  SENTRY_OP,
+  SENTRY_ORIGIN,
+  SENTRY_STATUS_MESSAGE,
+  SERVER_ADDRESS,
+  SERVER_PORT,
+} from '@sentry/conventions/attributes';
+import type { Event, SerializedStreamedSpanContainer } from '@sentry/core';
 import { afterAll, describe, expect } from 'vitest';
 import { RUNTIME } from '../../../utils';
 import { cleanupChildProcesses, createEsmAndCjsTests, describeWithDockerCompose } from '../../../utils/runner';
@@ -10,189 +25,224 @@ describeWithDockerCompose('postgresjs auto instrumentation', { workingDirectory:
     cleanupChildProcesses();
   });
 
-  // Under orchestrion (INJECT_ORCHESTRION), the OTel `PostgresJs` integration is
-  // swapped for the diagnostics-channel one, so query spans carry a different
-  // origin. Every other attribute is identical.
   const ORIGIN = 'auto.db.postgresjs';
 
   describe('basic', () => {
-    const EXPECTED_TRANSACTION = {
-      transaction: 'Test Transaction',
-      spans: expect.arrayContaining([
+    const EXPECTED_SPANS = {
+      items: expect.arrayContaining([
+        expect.objectContaining({ name: 'Test Transaction', is_segment: true }),
         expect.objectContaining({
-          data: expect.objectContaining({
-            'db.namespace': 'test_db',
-            'db.system.name': 'postgres',
-            'db.operation.name': 'CREATE TABLE',
-            'db.query.text':
-              'CREATE TABLE "User" ("id" SERIAL NOT NULL,"createdAt" TIMESTAMP(?) NOT NULL DEFAULT CURRENT_TIMESTAMP,"email" TEXT NOT NULL,"name" TEXT,CONSTRAINT "User_pkey" PRIMARY KEY ("id"))',
-            'sentry.op': 'db',
-            'sentry.origin': ORIGIN,
-            'server.address': 'localhost',
-            'server.port': 5444,
+          attributes: expect.objectContaining({
+            [DB_NAMESPACE]: { type: 'string', value: 'test_db' },
+            [DB_SYSTEM_NAME]: { type: 'string', value: 'postgres' },
+            [DB_OPERATION_NAME]: { type: 'string', value: 'CREATE TABLE' },
+            [DB_QUERY_TEXT]: {
+              type: 'string',
+              value:
+                'CREATE TABLE "User" ("id" SERIAL NOT NULL,"createdAt" TIMESTAMP(?) NOT NULL DEFAULT CURRENT_TIMESTAMP,"email" TEXT NOT NULL,"name" TEXT,CONSTRAINT "User_pkey" PRIMARY KEY ("id"))',
+            },
+            [SENTRY_OP]: { type: 'string', value: 'db' },
+            [SENTRY_ORIGIN]: { type: 'string', value: ORIGIN },
+            [SERVER_ADDRESS]: { type: 'string', value: 'localhost' },
+            [SERVER_PORT]: { type: 'integer', value: 5444 },
+            [DB_QUERY_SUMMARY]: { type: 'string', value: 'CREATE TABLE "User"' },
           }),
-          description:
-            'CREATE TABLE "User" ("id" SERIAL NOT NULL,"createdAt" TIMESTAMP(?) NOT NULL DEFAULT CURRENT_TIMESTAMP,"email" TEXT NOT NULL,"name" TEXT,CONSTRAINT "User_pkey" PRIMARY KEY ("id"))',
-          op: 'db',
+          name: 'CREATE TABLE "User"',
           status: 'ok',
-          origin: ORIGIN,
           parent_span_id: expect.any(String),
           span_id: expect.any(String),
           start_timestamp: expect.any(Number),
-          timestamp: expect.any(Number),
+          end_timestamp: expect.any(Number),
           trace_id: expect.any(String),
+          is_segment: false,
         }),
         expect.objectContaining({
-          data: expect.objectContaining({
-            'db.namespace': 'test_db',
-            'db.system.name': 'postgres',
-            'db.operation.name': 'INSERT',
-            'db.query.text': 'INSERT INTO "User" ("email", "name") VALUES ($1, ?)',
-            'sentry.origin': ORIGIN,
-            'sentry.op': 'db',
-            'server.address': 'localhost',
-            'server.port': 5444,
+          attributes: expect.objectContaining({
+            [DB_NAMESPACE]: { type: 'string', value: 'test_db' },
+            [DB_SYSTEM_NAME]: { type: 'string', value: 'postgres' },
+            [DB_OPERATION_NAME]: { type: 'string', value: 'INSERT' },
+            [DB_QUERY_TEXT]: { type: 'string', value: 'INSERT INTO "User" ("email", "name") VALUES ($1, ?)' },
+            [SENTRY_ORIGIN]: { type: 'string', value: ORIGIN },
+            [SENTRY_OP]: { type: 'string', value: 'db' },
+            [SERVER_ADDRESS]: { type: 'string', value: 'localhost' },
+            [SERVER_PORT]: { type: 'integer', value: 5444 },
+            [DB_QUERY_SUMMARY]: { type: 'string', value: 'INSERT "User"' },
           }),
-          description: 'INSERT INTO "User" ("email", "name") VALUES ($1, ?)',
-          op: 'db',
+          name: 'INSERT "User"',
           status: 'ok',
-          origin: ORIGIN,
           parent_span_id: expect.any(String),
           span_id: expect.any(String),
           start_timestamp: expect.any(Number),
-          timestamp: expect.any(Number),
+          end_timestamp: expect.any(Number),
           trace_id: expect.any(String),
+          is_segment: false,
         }),
         expect.objectContaining({
-          data: expect.objectContaining({
-            'db.namespace': 'test_db',
-            'db.system.name': 'postgres',
-            'db.operation.name': 'UPDATE',
-            'db.query.text': 'UPDATE "User" SET "name" = ? WHERE "email" = $1',
-            'sentry.op': 'db',
-            'sentry.origin': ORIGIN,
-            'server.address': 'localhost',
-            'server.port': 5444,
+          attributes: expect.objectContaining({
+            [DB_NAMESPACE]: { type: 'string', value: 'test_db' },
+            [DB_SYSTEM_NAME]: { type: 'string', value: 'postgres' },
+            [DB_OPERATION_NAME]: { type: 'string', value: 'UPDATE' },
+            [DB_QUERY_TEXT]: { type: 'string', value: 'UPDATE "User" SET "name" = ? WHERE "email" = $1' },
+            [SENTRY_OP]: { type: 'string', value: 'db' },
+            [SENTRY_ORIGIN]: { type: 'string', value: ORIGIN },
+            [SERVER_ADDRESS]: { type: 'string', value: 'localhost' },
+            [SERVER_PORT]: { type: 'integer', value: 5444 },
+            [DB_QUERY_SUMMARY]: { type: 'string', value: 'UPDATE "User"' },
           }),
-          description: 'UPDATE "User" SET "name" = ? WHERE "email" = $1',
-          op: 'db',
+          name: 'UPDATE "User"',
           status: 'ok',
-          origin: ORIGIN,
           parent_span_id: expect.any(String),
           span_id: expect.any(String),
           start_timestamp: expect.any(Number),
-          timestamp: expect.any(Number),
+          end_timestamp: expect.any(Number),
           trace_id: expect.any(String),
+          is_segment: false,
         }),
         expect.objectContaining({
-          data: expect.objectContaining({
-            'db.namespace': 'test_db',
-            'db.system.name': 'postgres',
-            'db.operation.name': 'SELECT',
-            'db.query.text': 'SELECT * FROM "User" WHERE "email" = $1',
-            'sentry.op': 'db',
-            'sentry.origin': ORIGIN,
-            'server.address': 'localhost',
-            'server.port': 5444,
+          attributes: expect.objectContaining({
+            [DB_NAMESPACE]: { type: 'string', value: 'test_db' },
+            [DB_SYSTEM_NAME]: { type: 'string', value: 'postgres' },
+            [DB_OPERATION_NAME]: { type: 'string', value: 'SELECT' },
+            [DB_QUERY_TEXT]: { type: 'string', value: 'SELECT * FROM "User" WHERE "email" = $1' },
+            [SENTRY_OP]: { type: 'string', value: 'db' },
+            [SENTRY_ORIGIN]: { type: 'string', value: ORIGIN },
+            [SERVER_ADDRESS]: { type: 'string', value: 'localhost' },
+            [SERVER_PORT]: { type: 'integer', value: 5444 },
+            [DB_QUERY_SUMMARY]: { type: 'string', value: 'SELECT "User"' },
           }),
-          description: 'SELECT * FROM "User" WHERE "email" = $1',
-          op: 'db',
+          name: 'SELECT "User"',
           status: 'ok',
-          origin: ORIGIN,
           parent_span_id: expect.any(String),
           span_id: expect.any(String),
           start_timestamp: expect.any(Number),
-          timestamp: expect.any(Number),
+          end_timestamp: expect.any(Number),
           trace_id: expect.any(String),
+          is_segment: false,
         }),
         // Parameterized query test - verifies that tagged template queries with interpolations
         // are properly reconstructed with $1, $2 placeholders which are PRESERVED per OTEL spec
         // (PostgreSQL $n placeholders indicate parameterized queries that don't leak sensitive data)
         expect.objectContaining({
-          data: expect.objectContaining({
-            'db.namespace': 'test_db',
-            'db.system.name': 'postgres',
-            'db.operation.name': 'SELECT',
-            'db.query.text': 'SELECT * FROM "User" WHERE "email" = $1 AND "name" = $2',
-            'sentry.op': 'db',
-            'sentry.origin': ORIGIN,
-            'server.address': 'localhost',
-            'server.port': 5444,
+          attributes: expect.objectContaining({
+            [DB_NAMESPACE]: { type: 'string', value: 'test_db' },
+            [DB_SYSTEM_NAME]: { type: 'string', value: 'postgres' },
+            [DB_OPERATION_NAME]: { type: 'string', value: 'SELECT' },
+            [DB_QUERY_TEXT]: { type: 'string', value: 'SELECT * FROM "User" WHERE "email" = $1 AND "name" = $2' },
+            [SENTRY_OP]: { type: 'string', value: 'db' },
+            [SENTRY_ORIGIN]: { type: 'string', value: ORIGIN },
+            [SERVER_ADDRESS]: { type: 'string', value: 'localhost' },
+            [SERVER_PORT]: { type: 'integer', value: 5444 },
+            [DB_QUERY_SUMMARY]: { type: 'string', value: 'SELECT "User"' },
           }),
-          description: 'SELECT * FROM "User" WHERE "email" = $1 AND "name" = $2',
-          op: 'db',
+          name: 'SELECT "User"',
           status: 'ok',
-          origin: ORIGIN,
           parent_span_id: expect.any(String),
           span_id: expect.any(String),
           start_timestamp: expect.any(Number),
-          timestamp: expect.any(Number),
+          end_timestamp: expect.any(Number),
           trace_id: expect.any(String),
+          is_segment: false,
         }),
         expect.objectContaining({
-          data: expect.objectContaining({
-            'db.namespace': 'test_db',
-            'db.system.name': 'postgres',
-            'db.operation.name': 'SELECT',
-            'db.query.text': 'SELECT * from generate_series(?,?) as x',
-            'sentry.op': 'db',
-            'sentry.origin': ORIGIN,
-            'server.address': 'localhost',
-            'server.port': 5444,
+          attributes: expect.objectContaining({
+            [DB_NAMESPACE]: { type: 'string', value: 'test_db' },
+            [DB_SYSTEM_NAME]: { type: 'string', value: 'postgres' },
+            [DB_OPERATION_NAME]: { type: 'string', value: 'SELECT' },
+            [DB_QUERY_TEXT]: { type: 'string', value: 'SELECT * from generate_series(?,?) as x' },
+            [SENTRY_OP]: { type: 'string', value: 'db' },
+            [SENTRY_ORIGIN]: { type: 'string', value: ORIGIN },
+            [SERVER_ADDRESS]: { type: 'string', value: 'localhost' },
+            [SERVER_PORT]: { type: 'integer', value: 5444 },
+            [DB_QUERY_SUMMARY]: { type: 'string', value: 'SELECT generate_series' },
           }),
-          description: 'SELECT * from generate_series(?,?) as x',
-          op: 'db',
+          name: 'SELECT generate_series',
           status: 'ok',
-          origin: ORIGIN,
           parent_span_id: expect.any(String),
           span_id: expect.any(String),
           start_timestamp: expect.any(Number),
-          timestamp: expect.any(Number),
+          end_timestamp: expect.any(Number),
           trace_id: expect.any(String),
+          is_segment: false,
         }),
         expect.objectContaining({
-          data: expect.objectContaining({
-            'db.namespace': 'test_db',
-            'db.system.name': 'postgres',
-            'db.operation.name': 'DROP TABLE',
-            'db.query.text': 'DROP TABLE "User"',
-            'sentry.op': 'db',
-            'sentry.origin': ORIGIN,
-            'server.address': 'localhost',
-            'server.port': 5444,
+          attributes: expect.objectContaining({
+            [DB_NAMESPACE]: { type: 'string', value: 'test_db' },
+            [DB_SYSTEM_NAME]: { type: 'string', value: 'postgres' },
+            [DB_OPERATION_NAME]: { type: 'string', value: 'DROP TABLE' },
+            [DB_QUERY_TEXT]: { type: 'string', value: 'DROP TABLE "User"' },
+            [SENTRY_OP]: { type: 'string', value: 'db' },
+            [SENTRY_ORIGIN]: { type: 'string', value: ORIGIN },
+            [SERVER_ADDRESS]: { type: 'string', value: 'localhost' },
+            [SERVER_PORT]: { type: 'integer', value: 5444 },
+            [DB_QUERY_SUMMARY]: { type: 'string', value: 'DROP TABLE "User"' },
           }),
-          description: 'DROP TABLE "User"',
-          op: 'db',
+          name: 'DROP TABLE "User"',
           status: 'ok',
-          origin: ORIGIN,
           parent_span_id: expect.any(String),
           span_id: expect.any(String),
           start_timestamp: expect.any(Number),
-          timestamp: expect.any(Number),
+          end_timestamp: expect.any(Number),
           trace_id: expect.any(String),
+          is_segment: false,
         }),
         expect.objectContaining({
-          data: expect.objectContaining({
-            'db.namespace': 'test_db',
-            'db.system.name': 'postgres',
-            'db.operation.name': 'SELECT',
-            'db.response.status_code': '42P01',
-            'error.type': 'PostgresError',
-            'db.query.text': 'SELECT * FROM "User" WHERE "email" = $1',
-            'sentry.op': 'db',
-            'sentry.origin': ORIGIN,
-            'server.address': 'localhost',
-            'server.port': 5444,
+          attributes: expect.objectContaining({
+            [DB_NAMESPACE]: { type: 'string', value: 'test_db' },
+            [DB_SYSTEM_NAME]: { type: 'string', value: 'postgres' },
+            [DB_OPERATION_NAME]: { type: 'string', value: 'SELECT' },
+            [DB_RESPONSE_STATUS_CODE]: { type: 'string', value: '42P01' },
+            [ERROR_TYPE]: { type: 'string', value: 'PostgresError' },
+            [DB_QUERY_TEXT]: { type: 'string', value: 'SELECT * FROM "User" WHERE "email" = $1' },
+            [SENTRY_OP]: { type: 'string', value: 'db' },
+            [SENTRY_ORIGIN]: { type: 'string', value: ORIGIN },
+            [SERVER_ADDRESS]: { type: 'string', value: 'localhost' },
+            [SERVER_PORT]: { type: 'integer', value: 5444 },
+            [DB_QUERY_SUMMARY]: { type: 'string', value: 'SELECT "User"' },
+            [SENTRY_STATUS_MESSAGE]: { type: 'string', value: 'relation "User" does not exist' },
           }),
-          description: 'SELECT * FROM "User" WHERE "email" = $1',
-          op: 'db',
-          status: 'internal_error',
-          origin: ORIGIN,
+          name: 'SELECT "User"',
+          status: 'error',
           parent_span_id: expect.any(String),
           span_id: expect.any(String),
           start_timestamp: expect.any(Number),
-          timestamp: expect.any(Number),
+          end_timestamp: expect.any(Number),
           trace_id: expect.any(String),
+          is_segment: false,
+        }),
+        expect.objectContaining({
+          name: 'DELETE "User"',
+          is_segment: false,
+          status: 'ok',
+          attributes: expect.objectContaining({
+            [DB_NAMESPACE]: { type: 'string', value: 'test_db' },
+            [DB_SYSTEM_NAME]: { type: 'string', value: 'postgres' },
+            [SENTRY_OP]: { type: 'string', value: 'db' },
+            [SENTRY_ORIGIN]: { type: 'string', value: ORIGIN },
+            [SERVER_ADDRESS]: { type: 'string', value: 'localhost' },
+            [SERVER_PORT]: { type: 'integer', value: 5444 },
+            [DB_OPERATION_NAME]: { type: 'string', value: 'DELETE' },
+            [DB_QUERY_TEXT]: { type: 'string', value: 'DELETE FROM "User" WHERE "email" = $1' },
+            [DB_QUERY_SUMMARY]: { type: 'string', value: 'DELETE "User"' },
+          }),
+        }),
+        expect.objectContaining({
+          name: 'INSERT "User"',
+          is_segment: false,
+          status: 'ok',
+          attributes: expect.objectContaining({
+            [DB_NAMESPACE]: { type: 'string', value: 'test_db' },
+            [DB_SYSTEM_NAME]: { type: 'string', value: 'postgres' },
+            [SENTRY_OP]: { type: 'string', value: 'db' },
+            [SENTRY_ORIGIN]: { type: 'string', value: ORIGIN },
+            [SERVER_ADDRESS]: { type: 'string', value: 'localhost' },
+            [SERVER_PORT]: { type: 'integer', value: 5444 },
+            [DB_OPERATION_NAME]: { type: 'string', value: 'INSERT' },
+            [DB_QUERY_TEXT]: {
+              type: 'string',
+              value: 'INSERT INTO "User" ("email", "name") VALUES ($1, ?) RETURNING *',
+            },
+            [DB_QUERY_SUMMARY]: { type: 'string', value: 'INSERT "User"' },
+          }),
         }),
       ]),
     };
@@ -232,102 +282,135 @@ describeWithDockerCompose('postgresjs auto instrumentation', { workingDirectory:
         'should auto-instrument `postgres` package',
         { timeout: 60_000 },
         async () => {
+          let receivedSpans: SerializedStreamedSpanContainer['items'] = [];
+          let errorEvent: Event | undefined;
           await createTestRunner()
-            .expect({ transaction: EXPECTED_TRANSACTION })
-            .expect({ event: EXPECTED_ERROR_EVENT })
+            .expect({
+              span: container => {
+                expect(container.items.find(span => span.is_segment)?.name).toBe('Test Transaction');
+                receivedSpans = container.items;
+              },
+            })
+            .expect({
+              event: event => {
+                errorEvent = event;
+              },
+            })
             // The error event is captured via an unhandled rejection processed on a later tick than
-            // the transaction, so the two envelopes can reach the transport in either order.
+            // the spans, so the two envelopes can reach the transport in either order.
             .unordered()
             .start()
             .completed();
+          expect({ items: receivedSpans }).toMatchObject(EXPECTED_SPANS);
+          for (const span of receivedSpans.filter(span => span.attributes[SENTRY_OP]?.value === 'db')) {
+            expect(span.name).toBe(span.attributes[DB_QUERY_SUMMARY]?.value);
+          }
+          expect(errorEvent).toMatchObject(EXPECTED_ERROR_EVENT);
         },
       );
     });
   });
 
   describe('requestHook', () => {
-    const EXPECTED_TRANSACTION = {
-      transaction: 'Test Transaction',
-      spans: expect.arrayContaining([
+    const EXPECTED_SPANS = {
+      items: expect.arrayContaining([
+        expect.objectContaining({ name: 'Test Transaction', is_segment: true }),
         expect.objectContaining({
-          data: expect.objectContaining({
-            'db.namespace': 'test_db',
-            'db.system.name': 'postgres',
-            'db.operation.name': 'CREATE TABLE',
-            'db.query.text':
-              'CREATE TABLE "User" ("id" SERIAL NOT NULL,"createdAt" TIMESTAMP(?) NOT NULL DEFAULT CURRENT_TIMESTAMP,"email" TEXT NOT NULL,"name" TEXT,CONSTRAINT "User_pkey" PRIMARY KEY ("id"))',
-            'custom.requestHook': 'called',
-            'sentry.op': 'db',
-            'sentry.origin': ORIGIN,
-            'server.address': 'localhost',
-            'server.port': 5444,
+          attributes: expect.objectContaining({
+            [DB_NAMESPACE]: { type: 'string', value: 'test_db' },
+            [DB_SYSTEM_NAME]: { type: 'string', value: 'postgres' },
+            [DB_OPERATION_NAME]: { type: 'string', value: 'CREATE TABLE' },
+            [DB_QUERY_TEXT]: {
+              type: 'string',
+              value:
+                'CREATE TABLE "User" ("id" SERIAL NOT NULL,"createdAt" TIMESTAMP(?) NOT NULL DEFAULT CURRENT_TIMESTAMP,"email" TEXT NOT NULL,"name" TEXT,CONSTRAINT "User_pkey" PRIMARY KEY ("id"))',
+            },
+            'custom.requestHook': { type: 'string', value: 'called' },
+            [SENTRY_OP]: { type: 'string', value: 'db' },
+            [SENTRY_ORIGIN]: { type: 'string', value: ORIGIN },
+            [SERVER_ADDRESS]: { type: 'string', value: 'localhost' },
+            [SERVER_PORT]: { type: 'integer', value: 5444 },
+            [DB_QUERY_SUMMARY]: { type: 'string', value: 'CREATE TABLE "User"' },
+            'custom.requestHook.query': {
+              type: 'string',
+              value:
+                'CREATE TABLE "User" ("id" SERIAL NOT NULL,"createdAt" TIMESTAMP(?) NOT NULL DEFAULT CURRENT_TIMESTAMP,"email" TEXT NOT NULL,"name" TEXT,CONSTRAINT "User_pkey" PRIMARY KEY ("id"))',
+            },
+            'custom.requestHook.database': { type: 'string', value: 'test_db' },
+            'custom.requestHook.host': { type: 'string', value: 'localhost' },
+            'custom.requestHook.port': { type: 'string', value: '5444' },
           }),
-          description:
-            'CREATE TABLE "User" ("id" SERIAL NOT NULL,"createdAt" TIMESTAMP(?) NOT NULL DEFAULT CURRENT_TIMESTAMP,"email" TEXT NOT NULL,"name" TEXT,CONSTRAINT "User_pkey" PRIMARY KEY ("id"))',
-          op: 'db',
+          name: 'CREATE TABLE "User"',
           status: 'ok',
-          origin: ORIGIN,
+          is_segment: false,
         }),
         expect.objectContaining({
-          data: expect.objectContaining({
-            'db.namespace': 'test_db',
-            'db.system.name': 'postgres',
-            'db.operation.name': 'INSERT',
-            'db.query.text': 'INSERT INTO "User" ("email", "name") VALUES ($1, ?)',
-            'custom.requestHook': 'called',
-            'sentry.op': 'db',
-            'sentry.origin': ORIGIN,
-            'server.address': 'localhost',
-            'server.port': 5444,
+          attributes: expect.objectContaining({
+            [DB_NAMESPACE]: { type: 'string', value: 'test_db' },
+            [DB_SYSTEM_NAME]: { type: 'string', value: 'postgres' },
+            [DB_OPERATION_NAME]: { type: 'string', value: 'INSERT' },
+            [DB_QUERY_TEXT]: { type: 'string', value: 'INSERT INTO "User" ("email", "name") VALUES ($1, ?)' },
+            'custom.requestHook': { type: 'string', value: 'called' },
+            [SENTRY_OP]: { type: 'string', value: 'db' },
+            [SENTRY_ORIGIN]: { type: 'string', value: ORIGIN },
+            [SERVER_ADDRESS]: { type: 'string', value: 'localhost' },
+            [SERVER_PORT]: { type: 'integer', value: 5444 },
+            [DB_QUERY_SUMMARY]: { type: 'string', value: 'INSERT "User"' },
+            'custom.requestHook.query': {
+              type: 'string',
+              value: 'INSERT INTO "User" ("email", "name") VALUES ($1, ?)',
+            },
+            'custom.requestHook.database': { type: 'string', value: 'test_db' },
+            'custom.requestHook.host': { type: 'string', value: 'localhost' },
+            'custom.requestHook.port': { type: 'string', value: '5444' },
           }),
-          description: 'INSERT INTO "User" ("email", "name") VALUES ($1, ?)',
-          op: 'db',
+          name: 'INSERT "User"',
           status: 'ok',
-          origin: ORIGIN,
+          is_segment: false,
         }),
         expect.objectContaining({
-          data: expect.objectContaining({
-            'db.namespace': 'test_db',
-            'db.system.name': 'postgres',
-            'db.operation.name': 'SELECT',
-            'db.query.text': 'SELECT * FROM "User" WHERE "email" = $1',
-            'custom.requestHook': 'called',
-            'sentry.op': 'db',
-            'sentry.origin': ORIGIN,
-            'server.address': 'localhost',
-            'server.port': 5444,
+          attributes: expect.objectContaining({
+            [DB_NAMESPACE]: { type: 'string', value: 'test_db' },
+            [DB_SYSTEM_NAME]: { type: 'string', value: 'postgres' },
+            [DB_OPERATION_NAME]: { type: 'string', value: 'SELECT' },
+            [DB_QUERY_TEXT]: { type: 'string', value: 'SELECT * FROM "User" WHERE "email" = $1' },
+            'custom.requestHook': { type: 'string', value: 'called' },
+            [SENTRY_OP]: { type: 'string', value: 'db' },
+            [SENTRY_ORIGIN]: { type: 'string', value: ORIGIN },
+            [SERVER_ADDRESS]: { type: 'string', value: 'localhost' },
+            [SERVER_PORT]: { type: 'integer', value: 5444 },
+            [DB_QUERY_SUMMARY]: { type: 'string', value: 'SELECT "User"' },
+            'custom.requestHook.query': { type: 'string', value: 'SELECT * FROM "User" WHERE "email" = $1' },
+            'custom.requestHook.database': { type: 'string', value: 'test_db' },
+            'custom.requestHook.host': { type: 'string', value: 'localhost' },
+            'custom.requestHook.port': { type: 'string', value: '5444' },
           }),
-          description: 'SELECT * FROM "User" WHERE "email" = $1',
-          op: 'db',
+          name: 'SELECT "User"',
           status: 'ok',
-          origin: ORIGIN,
+          is_segment: false,
         }),
         expect.objectContaining({
-          data: expect.objectContaining({
-            'db.namespace': 'test_db',
-            'db.system.name': 'postgres',
-            'db.operation.name': 'DROP TABLE',
-            'db.query.text': 'DROP TABLE "User"',
-            'custom.requestHook': 'called',
-            'sentry.op': 'db',
-            'sentry.origin': ORIGIN,
-            'server.address': 'localhost',
-            'server.port': 5444,
+          attributes: expect.objectContaining({
+            [DB_NAMESPACE]: { type: 'string', value: 'test_db' },
+            [DB_SYSTEM_NAME]: { type: 'string', value: 'postgres' },
+            [DB_OPERATION_NAME]: { type: 'string', value: 'DROP TABLE' },
+            [DB_QUERY_TEXT]: { type: 'string', value: 'DROP TABLE "User"' },
+            'custom.requestHook': { type: 'string', value: 'called' },
+            [SENTRY_OP]: { type: 'string', value: 'db' },
+            [SENTRY_ORIGIN]: { type: 'string', value: ORIGIN },
+            [SERVER_ADDRESS]: { type: 'string', value: 'localhost' },
+            [SERVER_PORT]: { type: 'integer', value: 5444 },
+            [DB_QUERY_SUMMARY]: { type: 'string', value: 'DROP TABLE "User"' },
+            'custom.requestHook.query': { type: 'string', value: 'DROP TABLE "User"' },
+            'custom.requestHook.database': { type: 'string', value: 'test_db' },
+            'custom.requestHook.host': { type: 'string', value: 'localhost' },
+            'custom.requestHook.port': { type: 'string', value: '5444' },
           }),
-          description: 'DROP TABLE "User"',
-          op: 'db',
+          name: 'DROP TABLE "User"',
           status: 'ok',
-          origin: ORIGIN,
+          is_segment: false,
         }),
       ]),
-      extra: expect.objectContaining({
-        requestHookCalled: expect.objectContaining({
-          database: 'test_db',
-          host: 'localhost',
-          port: '5444',
-          sanitizedQuery: expect.any(String),
-        }),
-      }),
     };
 
     createEsmAndCjsTests(
@@ -339,7 +422,7 @@ describeWithDockerCompose('postgresjs auto instrumentation', { workingDirectory:
           'should call requestHook when provided',
           { timeout: 60_000 },
           async () => {
-            await createTestRunner().expect({ transaction: EXPECTED_TRANSACTION }).start().completed();
+            await createTestRunner().expect({ span: EXPECTED_SPANS }).start().completed();
           },
         );
       },
@@ -347,74 +430,76 @@ describeWithDockerCompose('postgresjs auto instrumentation', { workingDirectory:
   });
 
   describe('url initialization', () => {
-    const EXPECTED_TRANSACTION = {
-      transaction: 'Test Transaction',
-      spans: expect.arrayContaining([
+    const EXPECTED_SPANS = {
+      items: expect.arrayContaining([
+        expect.objectContaining({ name: 'Test Transaction', is_segment: true }),
         expect.objectContaining({
-          data: expect.objectContaining({
-            'db.namespace': 'test_db',
-            'db.system.name': 'postgres',
-            'db.operation.name': 'CREATE TABLE',
-            'db.query.text':
-              'CREATE TABLE "User" ("id" SERIAL NOT NULL,"createdAt" TIMESTAMP(?) NOT NULL DEFAULT CURRENT_TIMESTAMP,"email" TEXT NOT NULL,"name" TEXT,CONSTRAINT "User_pkey" PRIMARY KEY ("id"))',
-            'sentry.op': 'db',
-            'sentry.origin': ORIGIN,
-            'server.address': 'localhost',
-            'server.port': 5444,
+          attributes: expect.objectContaining({
+            [DB_NAMESPACE]: { type: 'string', value: 'test_db' },
+            [DB_SYSTEM_NAME]: { type: 'string', value: 'postgres' },
+            [DB_OPERATION_NAME]: { type: 'string', value: 'CREATE TABLE' },
+            [DB_QUERY_TEXT]: {
+              type: 'string',
+              value:
+                'CREATE TABLE "User" ("id" SERIAL NOT NULL,"createdAt" TIMESTAMP(?) NOT NULL DEFAULT CURRENT_TIMESTAMP,"email" TEXT NOT NULL,"name" TEXT,CONSTRAINT "User_pkey" PRIMARY KEY ("id"))',
+            },
+            [SENTRY_OP]: { type: 'string', value: 'db' },
+            [SENTRY_ORIGIN]: { type: 'string', value: ORIGIN },
+            [SERVER_ADDRESS]: { type: 'string', value: 'localhost' },
+            [SERVER_PORT]: { type: 'integer', value: 5444 },
+            [DB_QUERY_SUMMARY]: { type: 'string', value: 'CREATE TABLE "User"' },
           }),
-          description:
-            'CREATE TABLE "User" ("id" SERIAL NOT NULL,"createdAt" TIMESTAMP(?) NOT NULL DEFAULT CURRENT_TIMESTAMP,"email" TEXT NOT NULL,"name" TEXT,CONSTRAINT "User_pkey" PRIMARY KEY ("id"))',
-          op: 'db',
+          name: 'CREATE TABLE "User"',
           status: 'ok',
-          origin: ORIGIN,
+          is_segment: false,
         }),
         expect.objectContaining({
-          data: expect.objectContaining({
-            'db.namespace': 'test_db',
-            'db.system.name': 'postgres',
-            'db.operation.name': 'INSERT',
-            'db.query.text': 'INSERT INTO "User" ("email", "name") VALUES ($1, ?)',
-            'sentry.op': 'db',
-            'sentry.origin': ORIGIN,
-            'server.address': 'localhost',
-            'server.port': 5444,
+          attributes: expect.objectContaining({
+            [DB_NAMESPACE]: { type: 'string', value: 'test_db' },
+            [DB_SYSTEM_NAME]: { type: 'string', value: 'postgres' },
+            [DB_OPERATION_NAME]: { type: 'string', value: 'INSERT' },
+            [DB_QUERY_TEXT]: { type: 'string', value: 'INSERT INTO "User" ("email", "name") VALUES ($1, ?)' },
+            [SENTRY_OP]: { type: 'string', value: 'db' },
+            [SENTRY_ORIGIN]: { type: 'string', value: ORIGIN },
+            [SERVER_ADDRESS]: { type: 'string', value: 'localhost' },
+            [SERVER_PORT]: { type: 'integer', value: 5444 },
+            [DB_QUERY_SUMMARY]: { type: 'string', value: 'INSERT "User"' },
           }),
-          description: 'INSERT INTO "User" ("email", "name") VALUES ($1, ?)',
-          op: 'db',
+          name: 'INSERT "User"',
           status: 'ok',
-          origin: ORIGIN,
+          is_segment: false,
         }),
         expect.objectContaining({
-          data: expect.objectContaining({
-            'db.namespace': 'test_db',
-            'db.system.name': 'postgres',
-            'db.operation.name': 'SELECT',
-            'db.query.text': 'SELECT * FROM "User" WHERE "email" = $1',
-            'sentry.op': 'db',
-            'sentry.origin': ORIGIN,
-            'server.address': 'localhost',
-            'server.port': 5444,
+          attributes: expect.objectContaining({
+            [DB_NAMESPACE]: { type: 'string', value: 'test_db' },
+            [DB_SYSTEM_NAME]: { type: 'string', value: 'postgres' },
+            [DB_OPERATION_NAME]: { type: 'string', value: 'SELECT' },
+            [DB_QUERY_TEXT]: { type: 'string', value: 'SELECT * FROM "User" WHERE "email" = $1' },
+            [SENTRY_OP]: { type: 'string', value: 'db' },
+            [SENTRY_ORIGIN]: { type: 'string', value: ORIGIN },
+            [SERVER_ADDRESS]: { type: 'string', value: 'localhost' },
+            [SERVER_PORT]: { type: 'integer', value: 5444 },
+            [DB_QUERY_SUMMARY]: { type: 'string', value: 'SELECT "User"' },
           }),
-          description: 'SELECT * FROM "User" WHERE "email" = $1',
-          op: 'db',
+          name: 'SELECT "User"',
           status: 'ok',
-          origin: ORIGIN,
+          is_segment: false,
         }),
         expect.objectContaining({
-          data: expect.objectContaining({
-            'db.namespace': 'test_db',
-            'db.system.name': 'postgres',
-            'db.operation.name': 'DELETE',
-            'db.query.text': 'DELETE FROM "User" WHERE "email" = $1',
-            'sentry.op': 'db',
-            'sentry.origin': ORIGIN,
-            'server.address': 'localhost',
-            'server.port': 5444,
+          attributes: expect.objectContaining({
+            [DB_NAMESPACE]: { type: 'string', value: 'test_db' },
+            [DB_SYSTEM_NAME]: { type: 'string', value: 'postgres' },
+            [DB_OPERATION_NAME]: { type: 'string', value: 'DELETE' },
+            [DB_QUERY_TEXT]: { type: 'string', value: 'DELETE FROM "User" WHERE "email" = $1' },
+            [SENTRY_OP]: { type: 'string', value: 'db' },
+            [SENTRY_ORIGIN]: { type: 'string', value: ORIGIN },
+            [SERVER_ADDRESS]: { type: 'string', value: 'localhost' },
+            [SERVER_PORT]: { type: 'integer', value: 5444 },
+            [DB_QUERY_SUMMARY]: { type: 'string', value: 'DELETE "User"' },
           }),
-          description: 'DELETE FROM "User" WHERE "email" = $1',
-          op: 'db',
+          name: 'DELETE "User"',
           status: 'ok',
-          origin: ORIGIN,
+          is_segment: false,
         }),
       ]),
     };
@@ -424,80 +509,83 @@ describeWithDockerCompose('postgresjs auto instrumentation', { workingDirectory:
         'should instrument postgres package with URL initialization',
         { timeout: 90_000 },
         async () => {
-          await createTestRunner().expect({ transaction: EXPECTED_TRANSACTION }).start().completed();
+          await createTestRunner().ignore('event').expect({ span: EXPECTED_SPANS }).start().completed();
         },
       );
     });
   });
 
   describe('sql.unsafe()', () => {
-    const EXPECTED_TRANSACTION = {
-      transaction: 'Test Transaction',
-      spans: expect.arrayContaining([
+    const EXPECTED_SPANS = {
+      items: expect.arrayContaining([
+        expect.objectContaining({ name: 'Test Transaction', is_segment: true }),
         expect.objectContaining({
-          data: expect.objectContaining({
-            'db.namespace': 'test_db',
-            'db.system.name': 'postgres',
-            'db.operation.name': 'CREATE TABLE',
-            'db.query.text': 'CREATE TABLE "User" ("id" SERIAL NOT NULL, "email" TEXT NOT NULL, PRIMARY KEY ("id"))',
-            'sentry.op': 'db',
-            'sentry.origin': ORIGIN,
-            'server.address': 'localhost',
-            'server.port': 5444,
+          attributes: expect.objectContaining({
+            [DB_NAMESPACE]: { type: 'string', value: 'test_db' },
+            [DB_SYSTEM_NAME]: { type: 'string', value: 'postgres' },
+            [DB_OPERATION_NAME]: { type: 'string', value: 'CREATE TABLE' },
+            [DB_QUERY_TEXT]: {
+              type: 'string',
+              value: 'CREATE TABLE "User" ("id" SERIAL NOT NULL, "email" TEXT NOT NULL, PRIMARY KEY ("id"))',
+            },
+            [SENTRY_OP]: { type: 'string', value: 'db' },
+            [SENTRY_ORIGIN]: { type: 'string', value: ORIGIN },
+            [SERVER_ADDRESS]: { type: 'string', value: 'localhost' },
+            [SERVER_PORT]: { type: 'integer', value: 5444 },
+            [DB_QUERY_SUMMARY]: { type: 'string', value: 'CREATE TABLE "User"' },
           }),
-          description: 'CREATE TABLE "User" ("id" SERIAL NOT NULL, "email" TEXT NOT NULL, PRIMARY KEY ("id"))',
-          op: 'db',
+          name: 'CREATE TABLE "User"',
           status: 'ok',
-          origin: ORIGIN,
+          is_segment: false,
         }),
         // sql.unsafe() with $1 placeholders - preserved per OTEL spec
         expect.objectContaining({
-          data: expect.objectContaining({
-            'db.namespace': 'test_db',
-            'db.system.name': 'postgres',
-            'db.operation.name': 'INSERT',
-            'db.query.text': 'INSERT INTO "User" ("email") VALUES ($1)',
-            'sentry.op': 'db',
-            'sentry.origin': ORIGIN,
-            'server.address': 'localhost',
-            'server.port': 5444,
+          attributes: expect.objectContaining({
+            [DB_NAMESPACE]: { type: 'string', value: 'test_db' },
+            [DB_SYSTEM_NAME]: { type: 'string', value: 'postgres' },
+            [DB_OPERATION_NAME]: { type: 'string', value: 'INSERT' },
+            [DB_QUERY_TEXT]: { type: 'string', value: 'INSERT INTO "User" ("email") VALUES ($1)' },
+            [SENTRY_OP]: { type: 'string', value: 'db' },
+            [SENTRY_ORIGIN]: { type: 'string', value: ORIGIN },
+            [SERVER_ADDRESS]: { type: 'string', value: 'localhost' },
+            [SERVER_PORT]: { type: 'integer', value: 5444 },
+            [DB_QUERY_SUMMARY]: { type: 'string', value: 'INSERT "User"' },
           }),
-          description: 'INSERT INTO "User" ("email") VALUES ($1)',
-          op: 'db',
+          name: 'INSERT "User"',
           status: 'ok',
-          origin: ORIGIN,
+          is_segment: false,
         }),
         expect.objectContaining({
-          data: expect.objectContaining({
-            'db.namespace': 'test_db',
-            'db.system.name': 'postgres',
-            'db.operation.name': 'SELECT',
-            'db.query.text': 'SELECT * FROM "User" WHERE "email" = $1',
-            'sentry.op': 'db',
-            'sentry.origin': ORIGIN,
-            'server.address': 'localhost',
-            'server.port': 5444,
+          attributes: expect.objectContaining({
+            [DB_NAMESPACE]: { type: 'string', value: 'test_db' },
+            [DB_SYSTEM_NAME]: { type: 'string', value: 'postgres' },
+            [DB_OPERATION_NAME]: { type: 'string', value: 'SELECT' },
+            [DB_QUERY_TEXT]: { type: 'string', value: 'SELECT * FROM "User" WHERE "email" = $1' },
+            [SENTRY_OP]: { type: 'string', value: 'db' },
+            [SENTRY_ORIGIN]: { type: 'string', value: ORIGIN },
+            [SERVER_ADDRESS]: { type: 'string', value: 'localhost' },
+            [SERVER_PORT]: { type: 'integer', value: 5444 },
+            [DB_QUERY_SUMMARY]: { type: 'string', value: 'SELECT "User"' },
           }),
-          description: 'SELECT * FROM "User" WHERE "email" = $1',
-          op: 'db',
+          name: 'SELECT "User"',
           status: 'ok',
-          origin: ORIGIN,
+          is_segment: false,
         }),
         expect.objectContaining({
-          data: expect.objectContaining({
-            'db.namespace': 'test_db',
-            'db.system.name': 'postgres',
-            'db.operation.name': 'DROP TABLE',
-            'db.query.text': 'DROP TABLE "User"',
-            'sentry.op': 'db',
-            'sentry.origin': ORIGIN,
-            'server.address': 'localhost',
-            'server.port': 5444,
+          attributes: expect.objectContaining({
+            [DB_NAMESPACE]: { type: 'string', value: 'test_db' },
+            [DB_SYSTEM_NAME]: { type: 'string', value: 'postgres' },
+            [DB_OPERATION_NAME]: { type: 'string', value: 'DROP TABLE' },
+            [DB_QUERY_TEXT]: { type: 'string', value: 'DROP TABLE "User"' },
+            [SENTRY_OP]: { type: 'string', value: 'db' },
+            [SENTRY_ORIGIN]: { type: 'string', value: ORIGIN },
+            [SERVER_ADDRESS]: { type: 'string', value: 'localhost' },
+            [SERVER_PORT]: { type: 'integer', value: 5444 },
+            [DB_QUERY_SUMMARY]: { type: 'string', value: 'DROP TABLE "User"' },
           }),
-          description: 'DROP TABLE "User"',
-          op: 'db',
+          name: 'DROP TABLE "User"',
           status: 'ok',
-          origin: ORIGIN,
+          is_segment: false,
         }),
       ]),
     };
@@ -509,7 +597,7 @@ describeWithDockerCompose('postgresjs auto instrumentation', { workingDirectory:
         async () => {
           // The last query fails on purpose, and its unhandled rejection also sends an error event, which can
           // arrive before the transaction.
-          await createTestRunner().ignore('event').expect({ transaction: EXPECTED_TRANSACTION }).start().completed();
+          await createTestRunner().ignore('event').expect({ span: EXPECTED_SPANS }).start().completed();
         },
       );
     });
