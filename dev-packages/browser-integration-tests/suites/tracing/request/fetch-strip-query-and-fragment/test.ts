@@ -1,3 +1,4 @@
+import { HTTP_CLIENT } from '@sentry/conventions/op';
 import {
   HTTP_REQUEST_METHOD,
   URL_FULL,
@@ -26,7 +27,7 @@ sentryTest('strips query params in fetch request spans', async ({ getLocalTestUr
   await page.goto(url);
 
   const rootPromise = waitForStreamedSpan(page, span => span.is_segment && span.name === 'rootSpan');
-  const requestPromise = waitForStreamedSpan(page, span => getSpanOp(span) === 'http.client');
+  const requestPromise = waitForStreamedSpan(page, span => getSpanOp(span) === HTTP_CLIENT);
   await page.locator('#btnQuery').click();
   const [rootSpan, requestSpan] = await Promise.all([rootPromise, requestPromise]);
 
@@ -45,14 +46,14 @@ sentryTest('strips query params in fetch request spans', async ({ getLocalTestUr
       [URL_QUERY]: { type: 'string', value: 'id=123;page=5' },
       [HTTP_RESPONSE_STATUS_CODE]: { type: 'integer', value: 200 },
       [HTTP_RESPONSE_BODY_SIZE]: { type: 'integer', value: 2 },
-      [SENTRY_OP]: { type: 'string', value: 'http.client' },
+      [SENTRY_OP]: { type: 'string', value: HTTP_CLIENT },
       [SENTRY_ORIGIN]: { type: 'string', value: 'auto.http.browser' },
       type: { type: 'string', value: 'fetch' },
       [SERVER_ADDRESS]: { type: 'string', value: 'sentry-test-site.example' },
     }),
   });
 
-  expect(requestSpan?.attributes).not.toHaveProperty('url.fragment');
+  expect(requestSpan?.attributes).not.toHaveProperty([URL_FRAGMENT]);
 });
 
 sentryTest('strips hash fragment in fetch request spans', async ({ getLocalTestUrl, page }) => {
@@ -67,7 +68,7 @@ sentryTest('strips hash fragment in fetch request spans', async ({ getLocalTestU
   await page.goto(url);
 
   const rootPromise = waitForStreamedSpan(page, span => span.is_segment && span.name === 'rootSpan');
-  const requestPromise = waitForStreamedSpan(page, span => getSpanOp(span) === 'http.client');
+  const requestPromise = waitForStreamedSpan(page, span => getSpanOp(span) === HTTP_CLIENT);
   await page.locator('#btnFragment').click();
   const [rootSpan, requestSpan] = await Promise.all([rootPromise, requestPromise]);
 
@@ -86,14 +87,14 @@ sentryTest('strips hash fragment in fetch request spans', async ({ getLocalTestU
       [URL_FRAGMENT]: { type: 'string', value: 'fragment' },
       [HTTP_RESPONSE_STATUS_CODE]: { type: 'integer', value: 200 },
       [HTTP_RESPONSE_BODY_SIZE]: { type: 'integer', value: 2 },
-      [SENTRY_OP]: { type: 'string', value: 'http.client' },
+      [SENTRY_OP]: { type: 'string', value: HTTP_CLIENT },
       [SENTRY_ORIGIN]: { type: 'string', value: 'auto.http.browser' },
       type: { type: 'string', value: 'fetch' },
       [SERVER_ADDRESS]: { type: 'string', value: 'sentry-test-site.example' },
     }),
   });
 
-  expect(requestSpan?.attributes).not.toHaveProperty('url.query');
+  expect(requestSpan?.attributes).not.toHaveProperty([URL_QUERY]);
 });
 
 sentryTest('strips hash fragment and query params in fetch request spans', async ({ getLocalTestUrl, page }) => {
@@ -108,7 +109,7 @@ sentryTest('strips hash fragment and query params in fetch request spans', async
   await page.goto(url);
 
   const rootPromise = waitForStreamedSpan(page, span => span.is_segment && span.name === 'rootSpan');
-  const requestPromise = waitForStreamedSpan(page, span => getSpanOp(span) === 'http.client');
+  const requestPromise = waitForStreamedSpan(page, span => getSpanOp(span) === HTTP_CLIENT);
   await page.locator('#btnQueryFragment').click();
   const [rootSpan, requestSpan] = await Promise.all([rootPromise, requestPromise]);
 
@@ -128,7 +129,7 @@ sentryTest('strips hash fragment and query params in fetch request spans', async
       [URL_FRAGMENT]: { type: 'string', value: 'fragment' },
       [HTTP_RESPONSE_STATUS_CODE]: { type: 'integer', value: 200 },
       [HTTP_RESPONSE_BODY_SIZE]: { type: 'integer', value: 2 },
-      [SENTRY_OP]: { type: 'string', value: 'http.client' },
+      [SENTRY_OP]: { type: 'string', value: HTTP_CLIENT },
       [SENTRY_ORIGIN]: { type: 'string', value: 'auto.http.browser' },
       type: { type: 'string', value: 'fetch' },
       [SERVER_ADDRESS]: { type: 'string', value: 'sentry-test-site.example' },
@@ -150,7 +151,7 @@ sentryTest(
     await page.goto(url);
 
     const rootPromise = waitForStreamedSpan(page, span => span.is_segment && span.name === 'rootSpan');
-    const requestPromise = waitForStreamedSpan(page, span => getSpanOp(span) === 'http.client');
+    const requestPromise = waitForStreamedSpan(page, span => getSpanOp(span) === HTTP_CLIENT);
     await page.locator('#btnQueryFragmentSameOrigin').click();
     const [rootSpan, requestSpan] = await Promise.all([rootPromise, requestPromise]);
 
@@ -170,7 +171,7 @@ sentryTest(
         [URL_FRAGMENT]: { type: 'string', value: 'fragment' },
         [HTTP_RESPONSE_STATUS_CODE]: { type: 'integer', value: 200 },
         [HTTP_RESPONSE_BODY_SIZE]: { type: 'integer', value: 2 },
-        [SENTRY_OP]: { type: 'string', value: 'http.client' },
+        [SENTRY_OP]: { type: 'string', value: HTTP_CLIENT },
         [SENTRY_ORIGIN]: { type: 'string', value: 'auto.http.browser' },
         type: { type: 'string', value: 'fetch' },
         [SERVER_ADDRESS]: { type: 'string', value: 'sentry-test.io' },

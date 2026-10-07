@@ -1,3 +1,4 @@
+import { UI_INTERACTION_CLICK } from '@sentry/conventions/op';
 import {
   BROWSER_WEB_VITAL_INP_VALUE,
   SENTRY_IS_LOCALHOST,
@@ -22,7 +23,12 @@ import { expect } from '@playwright/test';
 import { SDK_VERSION } from '@sentry/core';
 import { sentryTest } from '../../../../utils/fixtures';
 import { hidePage, shouldSkipTracingTest } from '../../../../utils/helpers';
-import { getSpanOp, getSpansFromEnvelope, waitForStreamedSpanEnvelope } from '../../../../utils/spanUtils';
+import {
+  collectStreamedSpans,
+  getSpanOp,
+  getSpansFromEnvelope,
+  waitForStreamedSpanEnvelope,
+} from '../../../../utils/spanUtils';
 
 sentryTest(
   'captures an INP click as a streamed span after pageload for a parametrized transaction',
@@ -33,19 +39,17 @@ sentryTest(
       sentryTest.skip();
     }
 
+    const spans = collectStreamedSpans(page);
     const url = await getLocalTestUrl({ testDir: __dirname });
 
-    const spanEnvelopePromise = waitForStreamedSpanEnvelope(
-      page,
-      env => !!getSpansFromEnvelope(env).find(s => getSpanOp(s) === 'ui.interaction.click'),
+    const spanEnvelopePromise = waitForStreamedSpanEnvelope(page, env =>
+      getSpansFromEnvelope(env).some(span => getSpanOp(span) === UI_INTERACTION_CLICK),
     );
 
     await page.goto(url);
 
     await page.locator('[data-test-id=normal-button]').click();
-    await page.locator('.clicked[data-test-id=normal-button]').isVisible();
-
-    await page.waitForTimeout(500);
+    await expect(page.locator('.clicked[data-test-id=normal-button]')).toBeVisible();
 
     // Page hide to trigger INP
     await hidePage(page);
@@ -53,7 +57,10 @@ sentryTest(
     const spanEnvelope = await spanEnvelopePromise;
     const envelopeHeader = spanEnvelope[0];
     const itemHeader = spanEnvelope[1][0][0];
-    const inpSpan = getSpansFromEnvelope(spanEnvelope).find(s => getSpanOp(s) === 'ui.interaction.click')!;
+    await page.evaluate(() => (window as any).Sentry.flush());
+    const inpSpans = spans.filter(span => getSpanOp(span) === UI_INTERACTION_CLICK);
+    expect(inpSpans).toHaveLength(1);
+    const [inpSpan] = inpSpans;
 
     const traceId = envelopeHeader.trace!.trace_id;
     expect(traceId).toMatch(/^[\da-f]{32}$/);
@@ -96,7 +103,7 @@ sentryTest(
       attributes: {
         [SENTRY_IS_LOCALHOST]: { value: false, type: 'boolean' },
         [SENTRY_ORIGIN]: { value: 'auto.http.browser.inp', type: 'string' },
-        [SENTRY_OP]: { value: 'ui.interaction.click', type: 'string' },
+        [SENTRY_OP]: { value: UI_INTERACTION_CLICK, type: 'string' },
         [UI_COMPONENT_NAME]: { value: 'NormalButton', type: 'string' },
         [BROWSER_WEB_VITAL_INP_TARGET]: { value: 'body > NormalButton', type: 'string' },
         [SENTRY_EXCLUSIVE_TIME]: { value: inpValue, type: expect.stringMatching(/^(integer)|(double)$/) },

@@ -1,3 +1,4 @@
+import { PAGELOAD, RESOURCE, RESOURCE_SCRIPT, RESOURCE_LINK, RESOURCE_IMG } from '@sentry/conventions/op';
 import {
   HTTP_REQUEST_SAME_ORIGIN,
   URL_FULL,
@@ -31,7 +32,7 @@ import type { Route } from '@playwright/test';
 import { expect } from '@playwright/test';
 import { type Event } from '@sentry/core';
 import { sentryTest } from '../../../../utils/fixtures';
-import { getFirstSentryEnvelopeRequest, shouldSkipTracingTest } from '../../../../utils/helpers';
+import { envelopeRequestParser, shouldSkipTracingTest, waitForTransactionRequest } from '../../../../utils/helpers';
 
 sentryTest('adds resource spans to pageload transaction', async ({ getLocalTestUrl, page, browserName }) => {
   if (shouldSkipTracingTest()) {
@@ -71,12 +72,14 @@ sentryTest('adds resource spans to pageload transaction', async ({ getLocalTestU
 
   const url = await getLocalTestUrl({ testDir: __dirname });
 
-  const eventData = await getFirstSentryEnvelopeRequest<Event>(page, url);
-  const resourceSpans = eventData.spans?.filter(({ op }) => op?.startsWith('resource'));
+  const pageloadPromise = waitForTransactionRequest(page, event => event.contexts?.trace?.op === PAGELOAD);
+  await page.goto(url);
+  const eventData = envelopeRequestParser<Event>(await pageloadPromise);
+  const resourceSpans = eventData.spans?.filter(({ op }) => op?.startsWith(RESOURCE));
 
-  const scriptSpans = resourceSpans?.filter(({ op }) => op === 'resource.script');
-  const linkSpan = resourceSpans?.filter(({ op }) => op === 'resource.link')[0];
-  const imgSpan = resourceSpans?.filter(({ op }) => op === 'resource.img')[0];
+  const scriptSpans = resourceSpans?.filter(({ op }) => op === RESOURCE_SCRIPT);
+  const linkSpan = resourceSpans?.filter(({ op }) => op === RESOURCE_LINK)[0];
+  const imgSpan = resourceSpans?.filter(({ op }) => op === RESOURCE_IMG)[0];
 
   const spanId = eventData.contexts?.trace?.span_id;
   const traceId = eventData.contexts?.trace?.trace_id;
@@ -124,7 +127,7 @@ sentryTest('adds resource spans to pageload transaction', async ({ getLocalTestU
       [HTTP_REQUEST_TIME_TO_FIRST_BYTE]: expect.any(Number),
       [NETWORK_PROTOCOL_NAME]: '',
       [NETWORK_PROTOCOL_VERSION]: 'unknown',
-      [SENTRY_OP]: 'resource.img',
+      [SENTRY_OP]: RESOURCE_IMG,
       [SENTRY_ORIGIN]: 'auto.resource.browser.metrics',
       [SERVER_ADDRESS]: 'sentry-test-site.example',
       [URL_DOMAIN]: 'sentry-test-site.example',
@@ -140,7 +143,7 @@ sentryTest('adds resource spans to pageload transaction', async ({ getLocalTestU
       }),
     },
     description: 'https://sentry-test-site.example/path/to/image.svg',
-    op: 'resource.img',
+    op: RESOURCE_IMG,
     origin: 'auto.resource.browser.metrics',
     status: 'ok',
     parent_span_id: spanId,
@@ -177,7 +180,7 @@ sentryTest('adds resource spans to pageload transaction', async ({ getLocalTestU
       [HTTP_REQUEST_TIME_TO_FIRST_BYTE]: expect.any(Number),
       [NETWORK_PROTOCOL_NAME]: '',
       [NETWORK_PROTOCOL_VERSION]: 'unknown',
-      [SENTRY_OP]: 'resource.link',
+      [SENTRY_OP]: RESOURCE_LINK,
       [SENTRY_ORIGIN]: 'auto.resource.browser.metrics',
       [SERVER_ADDRESS]: 'sentry-test-site.example',
       [URL_DOMAIN]: 'sentry-test-site.example',
@@ -193,7 +196,7 @@ sentryTest('adds resource spans to pageload transaction', async ({ getLocalTestU
       }),
     },
     description: 'https://sentry-test-site.example/path/to/style.css',
-    op: 'resource.link',
+    op: RESOURCE_LINK,
     origin: 'auto.resource.browser.metrics',
     status: 'ok',
     parent_span_id: spanId,
@@ -223,7 +226,7 @@ sentryTest('adds resource spans to pageload transaction', async ({ getLocalTestU
       [HTTP_REQUEST_TIME_TO_FIRST_BYTE]: expect.any(Number),
       [NETWORK_PROTOCOL_NAME]: '',
       [NETWORK_PROTOCOL_VERSION]: 'unknown',
-      [SENTRY_OP]: 'resource.script',
+      [SENTRY_OP]: RESOURCE_SCRIPT,
       [SENTRY_ORIGIN]: 'auto.resource.browser.metrics',
       [SERVER_ADDRESS]: 'sentry-test-site.example',
       [URL_DOMAIN]: 'sentry-test-site.example',
@@ -239,7 +242,7 @@ sentryTest('adds resource spans to pageload transaction', async ({ getLocalTestU
       }),
     },
     description: 'https://sentry-test-site.example/path/to/script.js',
-    op: 'resource.script',
+    op: RESOURCE_SCRIPT,
     origin: 'auto.resource.browser.metrics',
     status: 'ok',
     parent_span_id: spanId,
