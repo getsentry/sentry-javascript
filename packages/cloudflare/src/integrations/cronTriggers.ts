@@ -164,21 +164,32 @@ const _cronTriggersIntegration = ((options: CronTriggersOptions = {}): CronTrigg
  *
  * @example
  * ```ts
- * const jobs = {
- *   '30 9 * * MON-FRI': { slug: 'daily-report', run: dailyReport },
+ * // src/monitorSlugs.ts
+ * export const monitorSlugs: Record<string, string> = {
+ *   '30 9 * * MON-FRI': 'daily-report',
  * };
  *
- * export default Sentry.withSentry(
- *   (env) => ({
- *     dsn: env.SENTRY_DSN,
- *     integrations: [Sentry.cronTriggersIntegration({ monitorSlug: (cron) => jobs[cron]?.slug })],
- *   }),
- *   {
- *     async scheduled(controller, env) {
- *       await jobs[controller.cron]?.run(env);
- *     },
+ * // src/instrument.server.ts
+ * import { cronTriggersIntegration, defineCloudflareOptions } from '@sentry/cloudflare';
+ * import { monitorSlugs } from './monitorSlugs';
+ *
+ * export default defineCloudflareOptions((env) => ({
+ *   dsn: env.SENTRY_DSN,
+ *   integrations: [cronTriggersIntegration({ monitorSlug: (cron) => monitorSlugs[cron] })],
+ * }));
+ *
+ * // src/index.ts
+ * import { monitorSlugs } from './monitorSlugs';
+ *
+ * export default {
+ *   async scheduled(controller, env) {
+ *     switch (monitorSlugs[controller.cron]) {
+ *       case 'daily-report':
+ *         // ...
+ *         break;
+ *     }
  *   },
- * );
+ * };
  * ```
  */
 export const cronTriggersIntegration = defineIntegration(_cronTriggersIntegration);
