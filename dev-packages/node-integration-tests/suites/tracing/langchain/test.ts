@@ -180,26 +180,23 @@ describe('LangChain integration', () => {
 
   createEsmTests(__dirname, 'scenario-openai-before-langchain.mjs', 'instrument.mjs', (createRunner, test) => {
     test('demonstrates timing issue with duplicate spans', async () => {
-      await createRunner()
-        .expect({
-          span: container => {
-            expect(container.items.find(span => span.is_segment && span.name === 'main')).toBeDefined();
-            const spans = container.items.filter(
-              span =>
-                span.attributes[SENTRY_ORIGIN]?.value === 'auto.ai.langchain' ||
-                span.attributes[SENTRY_ORIGIN]?.value === 'auto.ai.anthropic',
-            );
-            expect(spans).toHaveLength(2);
-            const anthropicSpan = spans.find(span => span.attributes[SENTRY_ORIGIN].value === 'auto.ai.anthropic');
-            expect(anthropicSpan!.name).toBe('chat claude-3-5-sonnet-20241022');
+      const runner = createRunner();
+      const spansPromise = runner.collectStreamedSpansUntilSegment('main');
 
-            // LangChain call is instrumented by LangChain.
-            const langchainSpan = spans.find(span => span.attributes[SENTRY_ORIGIN].value === 'auto.ai.langchain');
-            expect(langchainSpan!.name).toBe('chat claude-3-5-sonnet-20241022');
-          },
-        })
-        .start()
-        .completed();
+      await runner.start().completed();
+
+      const spans = (await spansPromise).filter(
+        span =>
+          span.attributes[SENTRY_ORIGIN]?.value === 'auto.ai.langchain' ||
+          span.attributes[SENTRY_ORIGIN]?.value === 'auto.ai.anthropic',
+      );
+      expect(spans).toHaveLength(2);
+      const anthropicSpan = spans.find(span => span.attributes[SENTRY_ORIGIN].value === 'auto.ai.anthropic');
+      expect(anthropicSpan!.name).toBe('chat claude-3-5-sonnet-20241022');
+
+      // LangChain call is instrumented by LangChain.
+      const langchainSpan = spans.find(span => span.attributes[SENTRY_ORIGIN].value === 'auto.ai.langchain');
+      expect(langchainSpan!.name).toBe('chat claude-3-5-sonnet-20241022');
     });
   });
 

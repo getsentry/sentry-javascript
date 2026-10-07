@@ -255,26 +255,22 @@ describe('LangChain integration (v1)', () => {
     'instrument.mjs',
     (createRunner, test) => {
       test('demonstrates timing issue with duplicate spans', async () => {
-        await createRunner()
-          .ignore('event')
-          .expect({
-            span: container => {
-              expect(container.items.find(span => span.is_segment && span.name === 'main')).toBeDefined();
-              const spans = container.items.filter(
-                span =>
-                  span.attributes[SENTRY_ORIGIN]?.value === 'auto.ai.langchain' ||
-                  span.attributes[SENTRY_ORIGIN]?.value === 'auto.ai.anthropic',
-              );
-              expect(spans).toHaveLength(2);
-              const anthropicSpan = spans.find(span => span.attributes[SENTRY_ORIGIN].value === 'auto.ai.anthropic');
-              expect(anthropicSpan!.name).toBe('chat claude-3-5-sonnet-20241022');
+        const runner = createRunner().ignore('event');
+        const spansPromise = runner.collectStreamedSpansUntilSegment('main');
 
-              const langchainSpan = spans.find(span => span.attributes[SENTRY_ORIGIN].value === 'auto.ai.langchain');
-              expect(langchainSpan!.name).toBe('chat claude-3-5-sonnet-20241022');
-            },
-          })
-          .start()
-          .completed();
+        await runner.start().completed();
+
+        const spans = (await spansPromise).filter(
+          span =>
+            span.attributes[SENTRY_ORIGIN]?.value === 'auto.ai.langchain' ||
+            span.attributes[SENTRY_ORIGIN]?.value === 'auto.ai.anthropic',
+        );
+        expect(spans).toHaveLength(2);
+        const anthropicSpan = spans.find(span => span.attributes[SENTRY_ORIGIN].value === 'auto.ai.anthropic');
+        expect(anthropicSpan!.name).toBe('chat claude-3-5-sonnet-20241022');
+
+        const langchainSpan = spans.find(span => span.attributes[SENTRY_ORIGIN].value === 'auto.ai.langchain');
+        expect(langchainSpan!.name).toBe('chat claude-3-5-sonnet-20241022');
       });
     },
     {
