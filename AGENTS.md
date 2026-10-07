@@ -94,6 +94,7 @@ Uses **Git Flow** (see `docs/gitflow.md`).
 - Only use libraries already in the codebase
 - Never expose secrets or keys
 - When modifying files, cover all occurrences (including `src/` and `test/`)
+- Use the constants from `@sentry/conventions/attributes` (e.g. `SENTRY_ORIGIN`) and `@sentry/conventions/op` instead of string literals for attribute names and span ops, in both source and tests. Use a literal only when no constant exists or the package can't depend on `@sentry/conventions` (e.g. most E2E test apps).
 - **Write few comments; default to none.** Comments explain **why**, never **what** — never add a comment that restates what the code does or narrates the change being made. Only add one when the reasoning isn't clear from the code itself, or to flag a tradeoff or something that would otherwise look surprising to a reader. When in doubt, leave it out.
 - Do not use `expect(someSpy.mock.calls[0]?.[0])` or similar constructs to check what a spy was called with.
   Instead use `expect(someSpy).toHaveBeenCalledWith(...)` or derivatives for a more readable and less brittle test assertion.
