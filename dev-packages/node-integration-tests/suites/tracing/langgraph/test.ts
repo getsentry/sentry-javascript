@@ -233,117 +233,117 @@ describe('LangGraph integration', () => {
   // emits finish order (the `http.client` that the chat span wraps finishes before the chat span itself).
   createEsmAndCjsTests(__dirname, 'agent-scenario.mjs', 'instrument-agent.mjs', (createRunner, test) => {
     test('should instrument createReactAgent with agent and chat spans', { timeout: 30000 }, async () => {
-      const allSpans: SerializedStreamedSpanContainer['items'] = [];
+      let receivedSpans: SerializedStreamedSpanContainer['items'] = [];
 
       await createRunner()
         .unordered()
         .expect({
           span: container => {
-            allSpans.push(...container.items);
-            const segment = allSpans.find(span => span.is_segment && span.name === 'main');
-            expect(segment).toBeDefined();
-            expect(allSpans.find(span => span.attributes[SENTRY_OP]?.value === 'http.client')).toBeDefined();
-            const spans = allSpans;
-            expect(spans).toContainEqual(
-              expect.objectContaining({
-                name: 'invoke_agent helpful_assistant',
-                status: 'ok',
-                attributes: expect.objectContaining({
-                  [GEN_AI_OPERATION_NAME]: expect.objectContaining({ value: 'invoke_agent' }),
-                  [SENTRY_OP]: expect.objectContaining({ value: 'gen_ai.invoke_agent' }),
-                  [SENTRY_ORIGIN]: expect.objectContaining({ value: 'auto.ai.langgraph' }),
-                  [GEN_AI_AGENT_NAME]: expect.objectContaining({ value: 'helpful_assistant' }),
-                  [GEN_AI_PIPELINE_NAME]: expect.objectContaining({ value: 'helpful_assistant' }),
-                }),
-              }),
-            );
-            expect(spans).toContainEqual(
-              expect.objectContaining({
-                attributes: expect.objectContaining({
-                  [SENTRY_OP]: expect.objectContaining({ value: 'gen_ai.chat' }),
-                  [GEN_AI_AGENT_NAME]: expect.objectContaining({ value: 'helpful_assistant' }),
-                }),
-              }),
-            );
+            expect(container.items.find(span => span.is_segment && span.name === 'main')).toBeDefined();
+            receivedSpans = container.items;
           },
         })
         .start()
         .completed();
+
+      expect(receivedSpans.find(span => span.attributes[SENTRY_OP]?.value === 'http.client')).toBeDefined();
+      const spans = receivedSpans;
+      expect(spans).toContainEqual(
+        expect.objectContaining({
+          name: 'invoke_agent helpful_assistant',
+          status: 'ok',
+          attributes: expect.objectContaining({
+            [GEN_AI_OPERATION_NAME]: expect.objectContaining({ value: 'invoke_agent' }),
+            [SENTRY_OP]: expect.objectContaining({ value: 'gen_ai.invoke_agent' }),
+            [SENTRY_ORIGIN]: expect.objectContaining({ value: 'auto.ai.langgraph' }),
+            [GEN_AI_AGENT_NAME]: expect.objectContaining({ value: 'helpful_assistant' }),
+            [GEN_AI_PIPELINE_NAME]: expect.objectContaining({ value: 'helpful_assistant' }),
+          }),
+        }),
+      );
+      expect(spans).toContainEqual(
+        expect.objectContaining({
+          attributes: expect.objectContaining({
+            [SENTRY_OP]: expect.objectContaining({ value: 'gen_ai.chat' }),
+            [GEN_AI_AGENT_NAME]: expect.objectContaining({ value: 'helpful_assistant' }),
+          }),
+        }),
+      );
     });
   });
 
   // createReactAgent with tools - verifies tool execution spans (asserted order-independently, see above).
   createEsmAndCjsTests(__dirname, 'agent-tools-scenario.mjs', 'instrument-agent.mjs', (createRunner, test) => {
     test('should create tool execution spans for createReactAgent with tools', { timeout: 30000 }, async () => {
-      const allSpans: SerializedStreamedSpanContainer['items'] = [];
+      let receivedSpans: SerializedStreamedSpanContainer['items'] = [];
 
       await createRunner()
         .unordered()
         .expect({
           span: container => {
-            allSpans.push(...container.items);
-            const segment = allSpans.find(span => span.is_segment && span.name === 'main');
-            expect(segment).toBeDefined();
-            expect(allSpans.filter(span => span.attributes[SENTRY_OP]?.value === 'http.client')).toHaveLength(3);
-            const spans = allSpans;
-            expect(spans).toContainEqual(
-              expect.objectContaining({
-                status: 'ok',
-                attributes: expect.objectContaining({
-                  [SENTRY_OP]: expect.objectContaining({ value: 'gen_ai.invoke_agent' }),
-                  [GEN_AI_OPERATION_NAME]: expect.objectContaining({ value: 'invoke_agent' }),
-                  [GEN_AI_AGENT_NAME]: expect.objectContaining({ value: 'math_assistant' }),
-                }),
-              }),
-            );
-            expect(spans).toContainEqual(
-              expect.objectContaining({
-                name: 'execute_tool add',
-                status: 'ok',
-                attributes: expect.objectContaining({
-                  [SENTRY_OP]: expect.objectContaining({ value: 'gen_ai.execute_tool' }),
-                  [GEN_AI_OPERATION_NAME]: expect.objectContaining({ value: 'execute_tool' }),
-                  [GEN_AI_TOOL_NAME]: expect.objectContaining({ value: 'add' }),
-                }),
-              }),
-            );
-            expect(spans).toContainEqual(
-              expect.objectContaining({
-                name: 'execute_tool multiply',
-                status: 'ok',
-                attributes: expect.objectContaining({
-                  [SENTRY_OP]: expect.objectContaining({ value: 'gen_ai.execute_tool' }),
-                  [GEN_AI_OPERATION_NAME]: expect.objectContaining({ value: 'execute_tool' }),
-                  [GEN_AI_TOOL_NAME]: expect.objectContaining({ value: 'multiply' }),
-                }),
-              }),
-            );
-            expect(spans.filter(span => span.attributes[SENTRY_OP]?.value === 'gen_ai.chat')).toHaveLength(3);
+            expect(container.items.find(span => span.is_segment && span.name === 'main')).toBeDefined();
+            receivedSpans = container.items;
           },
         })
         .start()
         .completed();
+
+      expect(receivedSpans.filter(span => span.attributes[SENTRY_OP]?.value === 'http.client')).toHaveLength(3);
+      const spans = receivedSpans;
+      expect(spans).toContainEqual(
+        expect.objectContaining({
+          status: 'ok',
+          attributes: expect.objectContaining({
+            [SENTRY_OP]: expect.objectContaining({ value: 'gen_ai.invoke_agent' }),
+            [GEN_AI_OPERATION_NAME]: expect.objectContaining({ value: 'invoke_agent' }),
+            [GEN_AI_AGENT_NAME]: expect.objectContaining({ value: 'math_assistant' }),
+          }),
+        }),
+      );
+      expect(spans).toContainEqual(
+        expect.objectContaining({
+          name: 'execute_tool add',
+          status: 'ok',
+          attributes: expect.objectContaining({
+            [SENTRY_OP]: expect.objectContaining({ value: 'gen_ai.execute_tool' }),
+            [GEN_AI_OPERATION_NAME]: expect.objectContaining({ value: 'execute_tool' }),
+            [GEN_AI_TOOL_NAME]: expect.objectContaining({ value: 'add' }),
+          }),
+        }),
+      );
+      expect(spans).toContainEqual(
+        expect.objectContaining({
+          name: 'execute_tool multiply',
+          status: 'ok',
+          attributes: expect.objectContaining({
+            [SENTRY_OP]: expect.objectContaining({ value: 'gen_ai.execute_tool' }),
+            [GEN_AI_OPERATION_NAME]: expect.objectContaining({ value: 'execute_tool' }),
+            [GEN_AI_TOOL_NAME]: expect.objectContaining({ value: 'multiply' }),
+          }),
+        }),
+      );
+      expect(spans.filter(span => span.attributes[SENTRY_OP]?.value === 'gen_ai.chat')).toHaveLength(3);
     });
   });
 
   createEsmAndCjsTests(__dirname, 'scenario-stategraph-chat.mjs', 'instrument-agent.mjs', (createRunner, test) => {
     test('auto-injects langchain handler for plain StateGraph and emits chat spans', { timeout: 30000 }, async () => {
-      const allSpans: SerializedStreamedSpanContainer['items'] = [];
+      let receivedSpans: SerializedStreamedSpanContainer['items'] = [];
 
       await createRunner()
         .unordered()
         .expect({
           span: container => {
-            allSpans.push(...container.items);
-            const segment = allSpans.find(span => span.is_segment && span.name === 'main');
-            expect(segment).toBeDefined();
-            const chatSpans = allSpans.filter(s => s.attributes[SENTRY_OP]?.value === 'gen_ai.chat');
-            expect(chatSpans).toHaveLength(1);
-            expect(chatSpans[0]?.attributes[GEN_AI_AGENT_NAME]?.value).toBe('plain_assistant');
+            expect(container.items.find(span => span.is_segment && span.name === 'main')).toBeDefined();
+            receivedSpans = container.items;
           },
         })
         .start()
         .completed();
+
+      const chatSpans = receivedSpans.filter(s => s.attributes[SENTRY_OP]?.value === 'gen_ai.chat');
+      expect(chatSpans).toHaveLength(1);
+      expect(chatSpans[0]?.attributes[GEN_AI_AGENT_NAME]?.value).toBe('plain_assistant');
     });
   });
 });
