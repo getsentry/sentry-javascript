@@ -384,6 +384,16 @@ describe('LangGraph integration', () => {
               expect(evaluateSpan.attributes[SENTRY_OP].value).toBe(GEN_AI_EVALUATE);
               expect(evaluateSpan.attributes[SENTRY_ORIGIN].value).toBe('auto.ai.langchain');
               expect(evaluateSpan.attributes[GEN_AI_AGENT_NAME].value).toBe('triage_graph');
+              expect(JSON.parse(evaluateSpan.attributes[GEN_AI_INPUT_MESSAGES].value)).toEqual([
+                {
+                  type: 'evaluation',
+                  state: 'My payouts have been failing.',
+                  questions: { urgent: { type: 'noul', instructions: 'Is this urgent?' } },
+                },
+              ]);
+              expect(JSON.parse(evaluateSpan.attributes[GEN_AI_OUTPUT_MESSAGES].value)).toEqual([
+                { type: 'evaluation', answers: { urgent: { type: 'noul', noul: 0.9 } } },
+              ]);
             },
           })
           .start()

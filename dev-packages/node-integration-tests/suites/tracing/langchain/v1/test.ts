@@ -337,6 +337,23 @@ describe('LangChain integration (v1)', () => {
               expect(evaluateSpan.attributes[SENTRY_ORIGIN].value).toBe('auto.ai.langchain');
               expect(evaluateSpan.attributes[GEN_AI_AGENT_NAME].value).toBe('support_agent');
               expect(evaluateSpan.parent_span_id).toBe(chatSpan.parent_span_id);
+              expect(JSON.parse(evaluateSpan.attributes[GEN_AI_INPUT_MESSAGES].value)).toEqual([
+                {
+                  type: 'evaluation',
+                  // The router passes the latest human message, which LangChain serializes.
+                  state: expect.objectContaining({
+                    id: ['langchain_core', 'messages', 'HumanMessage'],
+                    kwargs: expect.objectContaining({ content: 'Where is my refund?' }),
+                  }),
+                  questions: {
+                    model_route: {
+                      type: 'choice',
+                      instructions: 'Pick the model for this request.',
+                      criteria: { fast: 'Simple requests', smart: 'Complex requests' },
+                    },
+                  },
+                },
+              ]);
               expect(JSON.parse(evaluateSpan.attributes[GEN_AI_OUTPUT_MESSAGES].value)).toEqual([
                 {
                   type: 'evaluation',
