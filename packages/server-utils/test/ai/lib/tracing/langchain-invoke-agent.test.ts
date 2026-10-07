@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { GEN_AI_OPERATION_NAME, GEN_AI_PIPELINE_NAME } from '@sentry/conventions/attributes';
+import { GEN_AI_OPERATION_NAME, GEN_AI_PIPELINE_NAME, SENTRY_OP } from '@sentry/conventions/attributes';
+import { GEN_AI_EVALUATE } from '@sentry/conventions/op';
 import { getMainCarrier, setCurrentClient, spanToStaticSpanJSON } from '@sentry/core';
 import type { Span } from '@sentry/core';
 import { createLangChainCallbackHandler } from '../../../../src/ai/langchain';
@@ -94,5 +95,23 @@ describe('LangChain invoke_agent span names', () => {
     expect(span.description).toBe('invoke_agent');
     expect(span.data?.[GEN_AI_PIPELINE_NAME]).toBeUndefined();
     expect(span.data?.['langchain.chain.name']).toBeUndefined();
+  });
+
+  it('records a TypeSafeClassifier run inside an agent, where other chain steps are skipped', () => {
+    const endedSpans = setupClient('stream');
+    const handler = createLangChainCallbackHandler();
+    const classifier = { id: ['langchain', 'classifiers', 'typesafe', 'TypeSafeClassifier'], kwargs: {} };
+
+    handler.handleChainStart?.(classifier, { input: 'My payouts have been failing.' }, 'run-1', undefined, undefined, {
+      __sentry_langgraph__: true,
+    });
+    handler.handleChainEnd?.({ model: 'jev-1.13', answers: {}, usage: {} }, 'run-1');
+
+    expect(endedSpans.map(span => spanToStaticSpanJSON(span))).toEqual([
+      expect.objectContaining({
+        description: 'evaluate jev-latest',
+        data: expect.objectContaining({ [SENTRY_OP]: GEN_AI_EVALUATE }),
+      }),
+    ]);
   });
 });

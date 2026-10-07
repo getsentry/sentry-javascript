@@ -43,6 +43,7 @@ export const CHANNEL_INTEGRATION_DEFINITIONS = [
       '@langchain/google-common',
       '@langchain/google-genai',
       '@langchain/mistralai',
+      '@langchain/typesafe',
     ],
   },
   { exportName: 'langGraphIntegration', modules: ['@langchain/langgraph'] },

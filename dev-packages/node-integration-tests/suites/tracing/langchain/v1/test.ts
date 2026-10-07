@@ -3,6 +3,7 @@ import {
   GEN_AI_CONVERSATION_ID,
   GEN_AI_INPUT_MESSAGES,
   GEN_AI_OPERATION_NAME,
+  GEN_AI_OUTPUT_MESSAGES,
   GEN_AI_PROVIDER_NAME,
   GEN_AI_REQUEST_MAX_TOKENS,
   GEN_AI_REQUEST_MODEL,
@@ -15,7 +16,10 @@ import {
   GEN_AI_USAGE_INPUT_TOKENS,
   GEN_AI_USAGE_OUTPUT_TOKENS,
   GEN_AI_USAGE_TOTAL_TOKENS,
+  SENTRY_OP,
+  SENTRY_ORIGIN,
 } from '@sentry/conventions/attributes';
+import { GEN_AI_EVALUATE } from '@sentry/conventions/op';
 import { GEN_AI_RESPONSE_STOP_REASON_ATTRIBUTE } from '../../../../../../packages/server-utils/src/ai/core/gen-ai-attributes';
 import { cleanupChildProcesses, createEsmAndCjsTests } from '../../../../utils/runner';
 import { createEsmTests } from '../../../../utils/runner/createEsmAndCjsTests';
@@ -237,6 +241,54 @@ describe('LangChain integration (v1)', () => {
         langchain: '^1.0.0',
         '@langchain/core': '^1.0.0',
         '@langchain/anthropic': '^1.0.0',
+      },
+    },
+  );
+
+  createEsmAndCjsTests(
+    __dirname,
+    'scenario-typesafe-classifier.mjs',
+    'instrument-with-pii.mjs',
+    (createRunner, test) => {
+      test('records a TypeSafeClassifier run as a gen_ai.evaluate span', async () => {
+        await createRunner()
+          .ignore('event')
+          .expect({ transaction: { transaction: 'main' } })
+          .expect({
+            span: container => {
+              expect(container.items.map(span => span.name)).toEqual(['evaluate jev-latest']);
+
+              const evaluateSpan = container.items[0]!;
+              expect(evaluateSpan.attributes[SENTRY_OP].value).toBe(GEN_AI_EVALUATE);
+              expect(evaluateSpan.attributes[SENTRY_ORIGIN].value).toBe('auto.ai.langchain');
+              expect(evaluateSpan.attributes[GEN_AI_OPERATION_NAME].value).toBe('evaluate');
+              expect(evaluateSpan.attributes[GEN_AI_PROVIDER_NAME].value).toBe('typesafe');
+              expect(evaluateSpan.attributes[GEN_AI_REQUEST_MODEL].value).toBe('jev-latest');
+              expect(evaluateSpan.attributes[GEN_AI_RESPONSE_MODEL].value).toBe('jev-1.13');
+              expect(evaluateSpan.attributes[GEN_AI_USAGE_INPUT_TOKENS].value).toBe(30);
+              expect(evaluateSpan.attributes[GEN_AI_USAGE_OUTPUT_TOKENS].value).toBe(2);
+              expect(evaluateSpan.attributes[GEN_AI_USAGE_TOTAL_TOKENS].value).toBe(32);
+              expect(JSON.parse(evaluateSpan.attributes[GEN_AI_INPUT_MESSAGES].value)).toEqual([
+                {
+                  type: 'evaluation',
+                  state: 'My payouts have been failing.',
+                  questions: { urgent: { type: 'noul', instructions: 'Is this urgent?' } },
+                },
+              ]);
+              expect(JSON.parse(evaluateSpan.attributes[GEN_AI_OUTPUT_MESSAGES].value)).toEqual([
+                { type: 'evaluation', answers: { urgent: { type: 'noul', noul: 0.9 } } },
+              ]);
+            },
+          })
+          .start()
+          .completed();
+      });
+    },
+    {
+      additionalDependencies: {
+        langchain: '^1.0.0',
+        '@langchain/core': '^1.0.0',
+        '@langchain/typesafe': '0.0.2',
       },
     },
   );

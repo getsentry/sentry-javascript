@@ -165,7 +165,7 @@ export interface LangChainCallbackHandler {
     extraParams?: Record<string, unknown>,
   ) => Promise<unknown> | unknown;
   handleChainStart?: (
-    chain: { name?: string },
+    chain: LangChainSerialized,
     inputs: Record<string, unknown>,
     runId: string,
     parentRunId?: string,

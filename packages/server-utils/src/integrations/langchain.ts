@@ -77,8 +77,6 @@ function instrumentChatModels(options: LangChainOptions): void {
   // callback dispatch then creates the spans, exactly as in the OTel path, so no span is opened
   // here — a `start` subscriber (which also makes orchestrion wrap the function) is enough.
   const injectHandler = (message: unknown): void => {
-    markProvidersSkipped();
-
     const args = (message as RunnableChannelContext).arguments;
     if (!Array.isArray(args)) {
       return;
@@ -99,8 +97,16 @@ function instrumentChatModels(options: LangChainOptions): void {
   };
 
   for (const channelName of [CHANNELS.LANGCHAIN_CHAT_MODEL_INVOKE, CHANNELS.LANGCHAIN_CHAT_MODEL_STREAM]) {
-    diagnosticsChannel.tracingChannel<RunnableChannelContext>(channelName).start.subscribe(injectHandler);
+    diagnosticsChannel.tracingChannel<RunnableChannelContext>(channelName).start.subscribe(message => {
+      markProvidersSkipped();
+      injectHandler(message);
+    });
   }
+
+  // `TypeSafeClassifier` calls Jev with `fetch`, not through a provider SDK, so nothing needs skipping.
+  diagnosticsChannel
+    .tracingChannel<RunnableChannelContext>(CHANNELS.LANGCHAIN_TYPESAFE_CLASSIFIER_INVOKE)
+    .start.subscribe(injectHandler);
 }
 
 // Embeddings don't use the callback system. Wrap the method in its own span.
