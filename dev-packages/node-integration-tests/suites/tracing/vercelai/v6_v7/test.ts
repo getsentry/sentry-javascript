@@ -537,7 +537,7 @@ describe.each(matrix)('Vercel AI integration (version %s)', (version, vercelAiVe
           .start()
           .completed();
 
-        const segment = receivedSpans.find(span => span.is_segment);
+        const segment = receivedSpans.find(span => span.is_segment && span.name === 'main');
         const spans = receivedSpans.filter(span => span.attributes[SENTRY_ORIGIN]?.value === 'auto.vercelai.channel');
         expect(spans).toHaveLength(3);
         const invokeAgentSpan = spans.find(span => span.name === 'invoke_agent')!;
@@ -580,8 +580,6 @@ describe.each(matrix)('Vercel AI integration (version %s)', (version, vercelAiVe
         expect(toolSpan.status).toBe('error');
         expect(toolSpan.attributes[SENTRY_OP]?.value).toBe('gen_ai.execute_tool');
         expect(toolSpan.attributes[GEN_AI_TOOL_NAME]?.value).toBe('getWeather');
-
-        expect(segment!.name).toBe('main');
 
         expect(errorEvent!.level).toBe('error');
         expect(errorEvent!.tags).toEqual(
@@ -1048,17 +1046,15 @@ describe.each(matrix)('Vercel AI integration (version %s)', (version, vercelAiVe
     (createRunner, test) => {
       test('derives gen_ai.conversation.id from the OpenAI `conversation` provider option', async () => {
         await createRunner()
-          .expect({ transaction: { transaction: 'main' } })
           .expect({
             span: container => {
+              expect(container.items.find(span => span.is_segment && span.name === 'main')).toBeDefined();
               const genAiSpans = container.items.filter(s =>
-                String(s.attributes['sentry.op']?.value ?? '').startsWith('gen_ai.'),
+                String(s.attributes[SENTRY_OP]?.value ?? '').startsWith('gen_ai.'),
               );
               const conversationIdOf = (span: (typeof genAiSpans)[number]) =>
                 span.attributes[GEN_AI_CONVERSATION_ID]?.value;
-              const invokeAgentSpans = genAiSpans.filter(
-                s => s.attributes['sentry.op']?.value === 'gen_ai.invoke_agent',
-              );
+              const invokeAgentSpans = genAiSpans.filter(s => s.attributes[SENTRY_OP]?.value === 'gen_ai.invoke_agent');
               expect(invokeAgentSpans).toHaveLength(4);
               const [firstTurn, secondTurn, chainedTurn, apiTurn] = invokeAgentSpans.sort(
                 (a, b) => a.start_timestamp - b.start_timestamp,
@@ -1077,7 +1073,7 @@ describe.each(matrix)('Vercel AI integration (version %s)', (version, vercelAiVe
               // Model-call and tool spans carry their operation's id, even though their start events
               // do not carry `providerOptions`.
               const modelCallSpans = genAiSpans.filter(
-                s => s.attributes['sentry.op']?.value === 'gen_ai.generate_content',
+                s => s.attributes[SENTRY_OP]?.value === 'gen_ai.generate_content',
               );
               expect(modelCallSpans.map(conversationIdOf).sort()).toEqual([
                 'conv-from-api',
@@ -1085,7 +1081,7 @@ describe.each(matrix)('Vercel AI integration (version %s)', (version, vercelAiVe
                 'conv_azure',
                 undefined,
               ]);
-              const toolSpan = genAiSpans.find(s => s.attributes['sentry.op']?.value === 'gen_ai.execute_tool')!;
+              const toolSpan = genAiSpans.find(s => s.attributes[SENTRY_OP]?.value === 'gen_ai.execute_tool')!;
               expect(toolSpan).toBeDefined();
               expect(conversationIdOf(toolSpan)).toBe('conv_azure');
             },

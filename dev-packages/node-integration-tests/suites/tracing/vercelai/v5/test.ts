@@ -246,7 +246,7 @@ describe('Vercel AI integration (v5)', () => {
           .start()
           .completed();
 
-        const segment = receivedSpans.find(span => span.is_segment);
+        const segment = receivedSpans.find(span => span.is_segment && span.name === 'main');
         const spans = receivedSpans.filter(span => span.attributes[SENTRY_ORIGIN]?.value === 'auto.vercelai.channel');
         expect(spans).toHaveLength(3);
         const invokeAgentSpan = spans.find(span => span.name === 'invoke_agent');
@@ -260,8 +260,6 @@ describe('Vercel AI integration (v5)', () => {
         expect(toolSpan!.status).toBe('error');
         expect(toolSpan!.attributes[SENTRY_OP].value).toBe('gen_ai.execute_tool');
         expect(toolSpan!.attributes[GEN_AI_TOOL_NAME].value).toBe('getWeather');
-
-        expect(segment!.name).toBe('main');
 
         expect(errorEvent!.level).toBe('error');
         expect(errorEvent!.tags).toEqual(
