@@ -160,6 +160,7 @@ const _cronTriggersIntegration = ((options: CronTriggersOptions = {}): CronTrigg
  *
  * Cron Triggers have no names, so map each cron expression to a slug. Without `monitorSlug`, the slug is
  * derived from the expression (`30 9 * * MON-FRI` becomes `cron-30-9-x-x-montofri`) and changes with it.
+ * Workers that send to the same project get the same slug for the same expression, so they share a monitor.
  *
  * @example
  * ```ts
