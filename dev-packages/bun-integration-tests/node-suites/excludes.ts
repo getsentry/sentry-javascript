@@ -100,7 +100,7 @@ export const NO_AUTO_INSTRUMENTATION = [
   'suites/tracing/knex/**',
   'suites/tracing/koa/test.ts',
   'suites/tracing/langchain/**',
-  'suites/tracing/langgraph/test.ts',
+  'suites/tracing/langgraph/**',
   'suites/tracing/lru-memoizer/test.ts',
   'suites/tracing/mastra/test.ts',
   'suites/tracing/mcp-handler-exact-once/test.ts',
