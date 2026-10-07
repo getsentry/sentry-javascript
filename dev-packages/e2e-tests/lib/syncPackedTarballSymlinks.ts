@@ -2,7 +2,7 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import { sync as globSync } from 'glob';
-import { PACKAGE_JSON_GLOB, packedSymlinkFilename, versionedTarballFilename } from './packedTarballUtils';
+import { PACKAGE_DIRS_GLOB, packedSymlinkFilename, versionedTarballFilename } from './packedTarballUtils';
 
 const e2eTestsRoot = path.resolve(__dirname, '..');
 const repositoryRoot = path.resolve(e2eTestsRoot, '../..');
@@ -28,7 +28,7 @@ export function syncPackedTarballSymlinks(): void {
     fs.rmSync(path.join(packedDir, entry.name), { recursive: true, force: true });
   }
 
-  const packageJsonPaths = globSync(PACKAGE_JSON_GLOB, {
+  const packageJsonPaths = globSync(`${PACKAGE_DIRS_GLOB}/package.json`, {
     cwd: repositoryRoot,
     absolute: true,
   });
