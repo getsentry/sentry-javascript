@@ -1,4 +1,4 @@
-import type { Client, Span } from '@sentry/core';
+import type { Client, Span, StartSpanOptions } from '@sentry/core';
 import {
   GLOBAL_OBJ,
   hasSpanStreamingEnabled,
@@ -17,6 +17,8 @@ import {
   resolveRoute,
 } from '@sentry/react';
 import { stripTrailingSlash } from './parameterization';
+import type { TraceMetaTagWait } from './traceMetaTags';
+import { addTraceMetaTagLink, canWaitForTraceMetaTag, readTraceMetaTags, waitForTraceMetaTag } from './traceMetaTags';
 import {
   SENTRY_OP,
   SENTRY_SEGMENT_NAME_SOURCE,
@@ -95,11 +97,28 @@ let navigationRoutingMode: 'router-patch' | 'transition-start-hook' = 'router-pa
 
 const currentRouterPatchingNavigationSpanRef: NavigationSpanRef = { current: undefined };
 
+/**
+ * How long the pageload start may wait for the resumed part of a Cache Components document. The wait
+ * normally ends with `DOMContentLoaded`; the cap only matters for a response the server keeps open.
+ */
+const PAGELOAD_TRACE_META_TAG_TIMEOUT_MS = 10_000;
+
+let pendingPageloadWait: TraceMetaTagWait | undefined;
+
+/**
+ * Starts a pageload that is still waiting for its trace meta tag with a fresh trace. Called when a
+ * navigation starts, before the navigation span is created, so that the navigation is filed as a
+ * redirect of this pageload rather than becoming the only record of the visit.
+ */
+export function settlePendingPageloadWait(): void {
+  pendingPageloadWait?.giveUp();
+}
+
 /** Instruments the Next.js app router for pageloads. */
 export function appRouterInstrumentPageLoad(client: Client): void {
   const pathname = stripTrailingSlash(WINDOW.location.pathname);
   const parameterizedPathname = resolveCurrentRoute(client);
-  startBrowserTracingPageLoadSpan(client, {
+  const spanOptions: StartSpanOptions = {
     // With span streaming, span names have to be low cardinality, so we can't fall back to the URL.
     name: parameterizedPathname ?? (hasSpanStreamingEnabled(client) ? PAGELOAD_SPAN_NAME_FALLBACK : pathname),
     // pageload should always start at timeOrigin (and needs to be in s, not ms)
@@ -109,7 +128,37 @@ export function appRouterInstrumentPageLoad(client: Client): void {
       [SENTRY_SEGMENT_NAME_SOURCE]: parameterizedPathname ? 'route' : 'url',
       ...(parameterizedPathname && { [URL_TEMPLATE]: parameterizedPathname }),
     },
-  });
+  };
+
+  // A tag that is already in the document was rendered for this request and can be continued. A
+  // Cache Components document that resumes a prerendered shell gets its tag with the resumed part,
+  // which usually arrives after the SDK started. Waiting for it lets the pageload continue the server
+  // trace instead of linking it; the span's start is backdated to the time origin either way.
+  const traceMetaTags = readTraceMetaTags();
+  if (traceMetaTags || !canWaitForTraceMetaTag()) {
+    startBrowserTracingPageLoadSpan(client, spanOptions, traceMetaTags);
+    return;
+  }
+
+  pendingPageloadWait = waitForTraceMetaTag(
+    values => {
+      pendingPageloadWait = undefined;
+      startBrowserTracingPageLoadSpan(client, spanOptions, values);
+    },
+    () => {
+      pendingPageloadWait = undefined;
+      const span = startBrowserTracingPageLoadSpan(client, spanOptions);
+      // Only reachable through the cap or a navigation while the document still streams: a tag that
+      // shows up after this can no longer be continued, but the server request can still be linked.
+      if (span) {
+        waitForTraceMetaTag(
+          values => span.isRecording() && addTraceMetaTagLink(span, values),
+          () => undefined,
+        );
+      }
+    },
+    PAGELOAD_TRACE_META_TAG_TIMEOUT_MS,
+  );
 }
 
 interface NavigationSpanRef {
