@@ -340,11 +340,8 @@ describe('LangChain integration (v1)', () => {
               expect(JSON.parse(evaluateSpan.attributes[GEN_AI_INPUT_MESSAGES].value)).toEqual([
                 {
                   type: 'evaluation',
-                  // The router passes the latest human message, which LangChain serializes.
-                  state: expect.objectContaining({
-                    id: ['langchain_core', 'messages', 'HumanMessage'],
-                    kwargs: expect.objectContaining({ content: 'Where is my refund?' }),
-                  }),
+                  // The router passes the latest human message, which the classifier sends as a transcript line.
+                  state: 'user: Where is my refund?',
                   questions: {
                     model_route: {
                       type: 'choice',
