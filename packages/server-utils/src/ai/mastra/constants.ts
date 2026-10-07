@@ -1,5 +1,10 @@
-import { GEN_AI_CHAT, GEN_AI_EMBEDDINGS, GEN_AI_EXECUTE_TOOL, GEN_AI_INVOKE_AGENT } from '@sentry/conventions/op';
-import { getGenAiSpanOp } from '../core/utils';
+import {
+  GEN_AI_CHAT,
+  GEN_AI_EMBEDDINGS,
+  GEN_AI_EVALUATE,
+  GEN_AI_EXECUTE_TOOL,
+  GEN_AI_INVOKE_AGENT,
+} from '@sentry/conventions/op';
 import type { MastraSpanType } from './types';
 
 export const MASTRA_INTEGRATION_NAME = 'Mastra' as const;
@@ -37,7 +42,7 @@ export const SPAN_TYPE_OPS: Readonly<Record<string, { op: string; operationName:
   provider_tool_call: { op: GEN_AI_EXECUTE_TOOL, operationName: 'execute_tool' },
   client_tool_call: { op: GEN_AI_EXECUTE_TOOL, operationName: 'execute_tool' },
   rag_embedding: { op: GEN_AI_EMBEDDINGS, operationName: 'embeddings' },
-  classifier_evaluation: { op: getGenAiSpanOp('evaluate'), operationName: 'evaluate' },
+  classifier_evaluation: { op: GEN_AI_EVALUATE, operationName: 'evaluate' },
 };
 
 export const TOOL_SPAN_TYPES: ReadonlySet<string> = new Set<MastraSpanType>([
