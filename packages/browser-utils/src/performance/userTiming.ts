@@ -39,10 +39,7 @@ const _userTimingIntegration = ((options: UserTimingOptions = {}) => {
           return;
         }
 
-        const navigationEntry = getNavigationEntry(false);
-        const requestTimestamp = navigationEntry
-          ? (performanceTimeToSeconds(navigationEntry.requestStart, navigationEntry.startTime) ?? 0)
-          : 0;
+        const requestStart = getNavigationEntry(false)?.requestStart ?? 0;
         const performanceEntries = performance.getEntries();
 
         for (const entry of performanceEntries.slice(performanceCursor)) {
@@ -63,6 +60,10 @@ const _userTimingIntegration = ((options: UserTimingOptions = {}) => {
             entry.startTime + Math.max(0, entry.duration),
             entry.startTime,
           ) as number;
+
+          // We convert the request start with the entry's time origin, so that the clamp in `_addUserTimingSpan` compares
+          // timestamps on the same timeline, even if the time origin was corrected between the request and the entry.
+          const requestTimestamp = performanceTimeToSeconds(requestStart, entry.startTime) as number;
 
           _addUserTimingSpan(idleSpan, entry, startTimestamp, endTimestamp, requestTimestamp, options.ignore ?? []);
         }

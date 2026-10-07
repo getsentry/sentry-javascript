@@ -1,3 +1,4 @@
+import type * as SentryCore from '@sentry/core';
 import type { Span } from '@sentry/core';
 import { getMainCarrier, performanceTimeToSeconds, SentrySpan, setCurrentClient, spanToJSON } from '@sentry/core';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -6,6 +7,11 @@ import * as utils from '../../src/performance/utils';
 import * as webVitalsUtils from '../../src/web-vitals/utils';
 import { getDefaultClientOptions, TestClient } from '../utils/TestClient';
 
+vi.mock('@sentry/core', async importOriginal => {
+  const actual = await importOriginal<typeof SentryCore>();
+  return { ...actual, performanceTimeToSeconds: vi.fn(actual.performanceTimeToSeconds) };
+});
+
 describe('userTimingIntegration', () => {
   let client: TestClient;
   let performanceEntries: PerformanceEntry[];
@@ -13,6 +19,7 @@ describe('userTimingIntegration', () => {
 
   beforeEach(() => {
     vi.restoreAllMocks();
+    vi.mocked(performanceTimeToSeconds).mockReset();
     getMainCarrier().__SENTRY__ = undefined;
 
     client = new TestClient(getDefaultClientOptions({ tracesSampleRate: 1 }));
@@ -142,6 +149,27 @@ describe('userTimingIntegration', () => {
 
       expect(spanToJSON(spans[i]!).start_timestamp).toBe(performanceTimeToSeconds(requestStart, 0));
     }
+  });
+
+  it('keeps measures recorded after the wall clock was corrected backwards', () => {
+    const timeOrigin = performance.timeOrigin;
+    // The time origin was corrected 60s backwards at 1000ms, e.g. by NTP.
+    vi.mocked(performanceTimeToSeconds).mockImplementation(
+      (monotonicTimeInMs, entryStartTimeInMs = monotonicTimeInMs) =>
+        ((entryStartTimeInMs < 1000 ? timeOrigin : timeOrigin - 60_000) + monotonicTimeInMs) / 1000,
+    );
+    vi.spyOn(webVitalsUtils, 'getNavigationEntry').mockReturnValue({
+      startTime: 0,
+      requestStart: 10,
+    } as PerformanceNavigationTiming);
+
+    userTimingIntegration().setup?.(client);
+    performanceEntries.push(createPerformanceEntry('measure', 'after-correction', 2000, 10));
+    client.emit('beforeIdleSpanEnd', new SentrySpan({ op: 'pageload', name: '/', sampled: true }));
+
+    expect(spans).toHaveLength(1);
+    expect(spanToJSON(spans[0]!).start_timestamp).toBe((timeOrigin - 60_000 + 2000) / 1000);
+    expect(spanToJSON(spans[0]!).attributes['sentry.browser.measure_happened_before_request']).toBeUndefined();
   });
 });
 
