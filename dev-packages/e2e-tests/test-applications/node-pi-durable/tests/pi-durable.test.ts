@@ -110,7 +110,7 @@ test('reports a throwing tool as an error on its execute_tool span', async ({ ba
   expect(tool.attributes['gen_ai.tool.name']?.value).toBe('fail_now');
   expect(tool.status).toBe('error');
   expect(tool.trace_id).toBe(error.contexts?.trace?.trace_id);
-  expect(error.exception?.values?.[0]?.mechanism).toEqual({ type: 'auto.ai.pi_durable', handled: true });
+  expect(error.exception?.values?.[0]?.mechanism).toEqual({ type: 'auto.ai.pi_durable', handled: false });
 });
 
 test('nests a subagent run under the tool call that delegated to it', async ({ baseURL }) => {
