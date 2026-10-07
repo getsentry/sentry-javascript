@@ -34,6 +34,15 @@ export class MockAi {
       };
     }
 
+    // Unwrapped, as in the documented Clef output schema, so this covers the path without `{ state, result }`.
+    if (model === '@cf/cloudflare/clef') {
+      return {
+        model: 'clef',
+        answers: { urgent: { type: 'noul', noul: 0.98 } },
+        usage: { input_tokens: 412, output_tokens: 1 },
+      };
+    }
+
     if (inputs?.stream === true) {
       return createSseStream([
         '{"response":"The capital "}',
