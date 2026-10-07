@@ -223,48 +223,40 @@ export function createRunner(...paths: string[]) {
     if (started || cleanupError) {
       throw new Error('Register span collectors before calling start() or cleanup().');
     }
-    if (ensureNoErrorOutput || expectedEnvelopeHeaders || expectedEnvelopes.some(expected => 'span' in expected)) {
-      throw new Error('Span collectors cannot be combined with span/header expectations or ensureNoErrorOutput().');
-    }
 
-    const spansByTrace = new Map<string, SerializedStreamedSpan[]>();
-    let resolve!: (spans: SerializedStreamedSpan[]) => void;
-    let reject!: (error: Error) => void;
-    const promise = new Promise<SerializedStreamedSpan[]>((resolvePromise, rejectPromise) => {
-      resolve = resolvePromise;
-      reject = rejectPromise;
+    const promise = new Promise<SerializedStreamedSpan[]>((resolve, reject) => {
+      const spansByTrace = new Map<string, SerializedStreamedSpan[]>();
+      const collector: SpanCollector = {
+        done: false,
+        spanCount: 0,
+        reject(error) {
+          spansByTrace.clear();
+          reject(error);
+        },
+        add(spans) {
+          collector.spanCount += spans.length;
+          for (const span of spans) {
+            const traceSpans = spansByTrace.get(span.trace_id);
+            if (traceSpans) {
+              traceSpans.push(span);
+            } else {
+              spansByTrace.set(span.trace_id, [span]);
+            }
+          }
+          for (const traceSpans of spansByTrace.values()) {
+            if (isDone(traceSpans)) {
+              collector.done = true;
+              resolve(traceSpans);
+              spansByTrace.clear();
+              return;
+            }
+          }
+        },
+      };
+      spanCollectors.push(collector);
     });
     // completed() can reject before the caller reaches await spansPromise.
     promise.catch(() => {});
-
-    const collector: SpanCollector = {
-      done: false,
-      spanCount: 0,
-      reject(error) {
-        spansByTrace.clear();
-        reject(error);
-      },
-      add(spans) {
-        collector.spanCount += spans.length;
-        for (const span of spans) {
-          const traceSpans = spansByTrace.get(span.trace_id);
-          if (traceSpans) {
-            traceSpans.push(span);
-          } else {
-            spansByTrace.set(span.trace_id, [span]);
-          }
-        }
-        for (const traceSpans of spansByTrace.values()) {
-          if (isDone(traceSpans)) {
-            collector.done = true;
-            resolve(traceSpans);
-            spansByTrace.clear();
-            return;
-          }
-        }
-      },
-    };
-    spanCollectors.push(collector);
     return promise;
   }
 
@@ -280,9 +272,6 @@ export function createRunner(...paths: string[]) {
       return collectStreamedSpans(spans => spans.some(span => span.is_segment && matchesSegment(span)));
     },
     expect: function (expected: Expected) {
-      if (spanCollectors.length > 0 && 'span' in expected) {
-        throw new Error('Span collectors cannot be combined with span expectations.');
-      }
       if (ensureNoErrorOutput) {
         throw new Error('You should not use `ensureNoErrorOutput` when using `expect`!');
       }
@@ -291,14 +280,11 @@ export function createRunner(...paths: string[]) {
     },
     expectN: function (n: number, expected: Expected) {
       for (let i = 0; i < n; i++) {
-        this.expect(expected);
+        expectedEnvelopes.push(expected);
       }
       return this;
     },
     expectHeader: function (expected: ExpectedEnvelopeHeader) {
-      if (spanCollectors.length > 0) {
-        throw new Error('Span collectors cannot be combined with header expectations.');
-      }
       if (!expectedEnvelopeHeaders) {
         expectedEnvelopeHeaders = [];
       }
@@ -345,8 +331,8 @@ export function createRunner(...paths: string[]) {
       return this;
     },
     ensureNoErrorOutput: function () {
-      if (expectedEnvelopes.length > 0 || spanCollectors.length > 0) {
-        throw new Error('ensureNoErrorOutput() cannot be combined with envelope expectations or span collectors.');
+      if (expectedEnvelopes.length > 0) {
+        throw new Error('You should not use `ensureNoErrorOutput` when using `expect`!');
       }
       ensureNoErrorOutput = true;
       return this;
@@ -362,6 +348,16 @@ export function createRunner(...paths: string[]) {
     start: function (): StartResult {
       if (started || cleanupError) {
         throw new Error('A test runner can only be started once, before cleanup().');
+      }
+      if (
+        spanCollectors.length > 0 &&
+        (ensureNoErrorOutput || expectedEnvelopeHeaders || expectedEnvelopes.some(expected => 'span' in expected))
+      ) {
+        const error = new Error(
+          'Span collectors cannot be combined with span/header expectations or ensureNoErrorOutput().',
+        );
+        for (const collector of spanCollectors) collector.reject(error);
+        throw error;
       }
       started = true;
       let isComplete = false;
