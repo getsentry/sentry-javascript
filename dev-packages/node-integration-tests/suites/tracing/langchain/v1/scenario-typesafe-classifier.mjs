@@ -1,3 +1,4 @@
+import { HumanMessage } from '@langchain/core/messages';
 import { TypeSafeClassifier } from '@langchain/typesafe';
 import * as Sentry from '@sentry/node';
 import express from 'express';
@@ -33,6 +34,7 @@ async function run() {
     });
 
     await classifier.invoke('My payouts have been failing.');
+    await classifier.invoke(new HumanMessage('My card was charged twice.'));
   });
 
   await Sentry.flush(2000);

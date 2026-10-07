@@ -6,6 +6,7 @@ import { GOOGLE_GENAI_INTEGRATION_NAME } from '../ai/google-genai/constants';
 import { createLangChainCallbackHandler } from '../ai/langchain';
 import { LANGCHAIN_INTEGRATION_NAME } from '../ai/langchain/constants';
 import { _INTERNAL_getLangChainEmbeddingsSpanOptions } from '../ai/langchain/embeddings';
+import { recordTypeSafeClassifierState } from '../ai/langchain/typesafe-classifier';
 import type { LangChainOptions } from '../ai/langchain/types';
 import { getConversationIdMetadataFromConfig, _INTERNAL_mergeLangChainCallbackHandler } from '../ai/langchain/utils';
 import { MISTRAL_INTEGRATION_NAME } from '../ai/mistral/constants';
@@ -35,6 +36,7 @@ const SKIPPED_PROVIDERS = [
 // The chat-model channels carry the live args array of `invoke(input, options)` / `_streamIterator(input, options)`.
 interface RunnableChannelContext {
   arguments: unknown[];
+  self?: unknown;
 }
 
 // The embeddings channels carry the instance (`self`) and the `embedQuery(text)` / `embedDocuments(texts)` args.
@@ -106,7 +108,11 @@ function instrumentChatModels(options: LangChainOptions): void {
   // `TypeSafeClassifier` calls Jev with `fetch`, not through a provider SDK, so nothing needs skipping.
   diagnosticsChannel
     .tracingChannel<RunnableChannelContext>(CHANNELS.LANGCHAIN_TYPESAFE_CLASSIFIER_INVOKE)
-    .start.subscribe(injectHandler);
+    .start.subscribe(message => {
+      injectHandler(message);
+      const { self, arguments: args } = message as RunnableChannelContext;
+      recordTypeSafeClassifierState(self, args?.[0]);
+    });
 }
 
 // Embeddings don't use the callback system. Wrap the method in its own span.

@@ -12,6 +12,28 @@ const TYPESAFE_CLASSIFIER_ID = 'langchain/classifiers/typesafe/TypeSafeClassifie
 /** The package's default, used when the classifier is constructed without a `model`. */
 const DEFAULT_TYPESAFE_CLASSIFIER_MODEL = 'jev-latest';
 
+// The `state` the classifier sends to Jev (messages rendered as transcript lines), keyed by the input
+// passed to `invoke()`. LangChain hands that same object to `handleChainStart`, so the span records what
+// Jev received rather than LangChain's serialized messages.
+const wireStates = new WeakMap<object, unknown>();
+
+/** Record the `state` a `TypeSafeClassifier` sends for `input`, using the classifier's own serializer. */
+export function recordTypeSafeClassifierState(classifier: unknown, input: unknown): void {
+  // A string state is sent as is, so there is nothing to record.
+  if (!isObjectLike(input) || !isObjectLike(classifier) || typeof classifier.payload !== 'function') {
+    return;
+  }
+
+  try {
+    const body: unknown = JSON.parse(classifier.payload(input));
+    if (isObjectLike(body)) {
+      wireStates.set(input, body.state);
+    }
+  } catch {
+    // The classifier rejects the same input itself; the span keeps LangChain's form of it.
+  }
+}
+
 // Typed loosely: LangChain's `Serialized` union does not match our handler's chain type.
 export function isTypeSafeClassifier(chain: unknown): boolean {
   return isObjectLike(chain) && Array.isArray(chain.id) && chain.id.join('/') === TYPESAFE_CLASSIFIER_ID;
@@ -52,11 +74,12 @@ export function addTypeSafeClassifierResponseAttributes(span: Span, outputs: unk
   );
 }
 
-/** LangChain hands a string or array input to callbacks wrapped as `{ input }`. */
 function getState(inputs: Record<string, unknown>): unknown {
+  // LangChain hands a string or array input to callbacks wrapped as `{ input }`.
   const keys = Object.keys(inputs);
   const input = inputs.input;
-  return keys.length === 1 && keys[0] === 'input' && (typeof input === 'string' || Array.isArray(input))
-    ? input
-    : inputs;
+  const state =
+    keys.length === 1 && keys[0] === 'input' && (typeof input === 'string' || Array.isArray(input)) ? input : inputs;
+
+  return isObjectLike(state) && wireStates.has(state) ? wireStates.get(state) : state;
 }

@@ -256,9 +256,11 @@ describe('LangChain integration (v1)', () => {
           .expect({ transaction: { transaction: 'main' } })
           .expect({
             span: container => {
-              expect(container.items.map(span => span.name)).toEqual(['evaluate jev-latest']);
+              expect(container.items.map(span => span.name)).toEqual(['evaluate jev-latest', 'evaluate jev-latest']);
 
-              const evaluateSpan = container.items[0]!;
+              const [evaluateSpan, messageEvaluateSpan] = container.items.sort(
+                (a, b) => a.start_timestamp - b.start_timestamp,
+              );
               expect(evaluateSpan.attributes[SENTRY_OP].value).toBe(GEN_AI_EVALUATE);
               expect(evaluateSpan.attributes[SENTRY_ORIGIN].value).toBe('auto.ai.langchain');
               expect(evaluateSpan.attributes[GEN_AI_OPERATION_NAME].value).toBe('evaluate');
@@ -272,6 +274,14 @@ describe('LangChain integration (v1)', () => {
                 {
                   type: 'evaluation',
                   state: 'My payouts have been failing.',
+                  questions: { urgent: { type: 'noul', instructions: 'Is this urgent?' } },
+                },
+              ]);
+              // A message is recorded as the transcript line the classifier sends, not as LangChain's serialized form.
+              expect(JSON.parse(messageEvaluateSpan!.attributes[GEN_AI_INPUT_MESSAGES].value)).toEqual([
+                {
+                  type: 'evaluation',
+                  state: 'user: My card was charged twice.',
                   questions: { urgent: { type: 'noul', instructions: 'Is this urgent?' } },
                 },
               ]);
