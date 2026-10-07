@@ -51,6 +51,17 @@ test('captures a Mastra classifier (Jev) evaluation as a gen_ai.evaluate span', 
   expect(attrValue(evaluateSpan, GEN_AI_REQUEST_MODEL)).toBe('typesafe/jev-1.13');
   expect(attrValue(evaluateSpan, GEN_AI_PROVIDER_NAME)).toBe('openrouter');
   expect(attrValue(evaluateSpan, GEN_AI_USAGE_INPUT_TOKENS)).toBeGreaterThan(0);
-  expect(String(attrValue(evaluateSpan, GEN_AI_INPUT_MESSAGES))).toContain(TICKET);
-  expect(String(attrValue(evaluateSpan, GEN_AI_OUTPUT_MESSAGES))).toContain('"is_bug"');
+  expect(JSON.parse(String(attrValue(evaluateSpan, GEN_AI_INPUT_MESSAGES)))).toEqual([
+    {
+      type: 'evaluation',
+      state: { ticket: TICKET },
+      questions: {
+        is_bug: { type: 'boolean', instructions: 'Is the customer reporting a software defect?' },
+      },
+    },
+  ]);
+  // The probability comes from the live model, so only its shape is stable.
+  expect(JSON.parse(String(attrValue(evaluateSpan, GEN_AI_OUTPUT_MESSAGES)))).toEqual([
+    { type: 'evaluation', answers: { is_bug: { type: 'boolean', probability: expect.any(Number) } } },
+  ]);
 });
