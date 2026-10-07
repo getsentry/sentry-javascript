@@ -1,3 +1,10 @@
+import {
+  DB_QUERY_SUMMARY,
+  DB_QUERY_TEXT,
+  DB_SYSTEM_NAME,
+  SENTRY_OP,
+  SENTRY_ORIGIN,
+} from '@sentry/conventions/attributes';
 import { afterAll, describe, expect } from 'vitest';
 import { cleanupChildProcesses, createEsmAndCjsTests, describeWithDockerCompose } from '../../../utils/runner';
 
@@ -15,34 +22,35 @@ describe('Prisma ORM v7 Tests', () => {
         test('should instrument PostgreSQL queries from Prisma ORM', { timeout: 75_000 }, async () => {
           await createRunner()
             .expect({
-              transaction: transaction => {
-                expect(transaction.transaction).toBe('Test Transaction');
+              span: container => {
+                const segment = container.items.find(span => span.is_segment);
+                expect(segment?.name).toBe('Test Transaction');
 
-                const spans = transaction.spans || [];
+                const spans = container.items.filter(span => !span.is_segment);
                 expect(spans.length).toBeGreaterThanOrEqual(5);
 
                 // Each operation span is a direct child of the transaction; the db query span is a child of its operation span.
-                const rootSpanId = transaction.contexts?.trace?.span_id;
+                const rootSpanId = segment?.span_id;
 
-                const operationSpans = spans.filter(s => s.description === 'prisma:client:operation');
+                const operationSpans = spans.filter(s => s.name === 'prisma:client:operation');
                 expect(operationSpans.length).toBeGreaterThanOrEqual(1);
                 operationSpans.forEach(operation => {
                   expect(operation.parent_span_id).toBe(rootSpanId);
                 });
 
                 const prismaDbQuerySpan = spans.find(
-                  s => s.data?.['sentry.origin'] === 'auto.db.prisma' && s.data?.['db.query.text'],
+                  s => s.attributes[SENTRY_ORIGIN]?.value === 'auto.db.prisma' && s.attributes[DB_QUERY_TEXT],
                 );
                 expect(prismaDbQuerySpan).toBeDefined();
                 const dbQueryParent = spans.find(s => s.span_id === prismaDbQuerySpan?.parent_span_id);
-                expect(dbQueryParent?.description).toBe('prisma:client:operation');
+                expect(dbQueryParent?.name).toBe('prisma:client:operation');
 
                 // Verify Prisma spans have the correct origin
-                const prismaSpans = spans.filter(span => span.data && span.data['sentry.origin'] === 'auto.db.prisma');
+                const prismaSpans = spans.filter(span => span.attributes[SENTRY_ORIGIN]?.value === 'auto.db.prisma');
                 expect(prismaSpans.length).toBeGreaterThanOrEqual(5);
 
                 // Check for key Prisma span descriptions
-                const spanDescriptions = prismaSpans.map(span => span.description);
+                const spanDescriptions = prismaSpans.map(span => span.name);
                 expect(spanDescriptions).toContain('prisma:client:operation');
                 expect(spanDescriptions).toContain('prisma:client:serialize');
                 expect(spanDescriptions).toContain('prisma:client:connect');
@@ -50,90 +58,50 @@ describe('Prisma ORM v7 Tests', () => {
                 // Verify the create operation has correct metadata
                 const createSpan = prismaSpans.find(
                   span =>
-                    span.description === 'prisma:client:operation' &&
-                    span.data?.['method'] === 'create' &&
-                    span.data?.['model'] === 'User',
+                    span.name === 'prisma:client:operation' &&
+                    span.attributes['method']?.value === 'create' &&
+                    span.attributes['model']?.value === 'User',
                 );
                 expect(createSpan).toBeDefined();
 
                 // Verify db_query span has system info and correct op (v7 uses db.system.name).
-                // The SDK should rewrite the span name to the actual SQL text (same as v5/v6
-                // `prisma:engine:db_query`), so we find it via op/origin rather than description.
+                // The SDK should rewrite the span name to the query summary (same as v5/v6
+                // `prisma:engine:db_query`), so we find it via op/origin rather than name.
                 const dbQuerySpan = prismaSpans.find(
-                  span => span.data?.['sentry.op'] === 'db' && span.data?.['db.query.text'],
+                  span => span.attributes[SENTRY_OP]?.value === 'db' && span.attributes[DB_QUERY_TEXT]?.value,
                 );
                 expect(dbQuerySpan).toBeDefined();
-                expect(dbQuerySpan?.data?.['db.system.name']).toBe('postgresql');
-                expect(dbQuerySpan?.op).toBe('db');
-                expect(dbQuerySpan?.description).toBe(dbQuerySpan?.data?.['db.query.text']);
-                expect(dbQuerySpan?.description).not.toBe('prisma:client:db_query');
+                expect(dbQuerySpan?.attributes[DB_SYSTEM_NAME]?.value).toBe('postgresql');
+                expect(dbQuerySpan?.attributes[SENTRY_OP]?.value).toBe('db');
+                expect(dbQuerySpan?.name).toBe(dbQuerySpan?.attributes[DB_QUERY_SUMMARY]?.value);
+                expect(dbQuerySpan?.name).not.toBe('prisma:client:db_query');
 
-                // The db query span name must always be rewritten to the SQL text; the raw client span
+                // The db query span name must always be rewritten to the query summary; the raw client span
                 // name should never leak through.
-                expect(spans.find(span => span.description === 'prisma:client:db_query')).toBeUndefined();
+                expect(spans.find(span => span.name === 'prisma:client:db_query')).toBeUndefined();
+
+                const querySpans = spans.filter(
+                  item => item.attributes[SENTRY_ORIGIN]?.value === 'auto.db.prisma' && item.attributes[DB_QUERY_TEXT],
+                );
+
+                expect(
+                  querySpans.map(span => ({
+                    name: span.name,
+                    summary: span.attributes[DB_QUERY_SUMMARY]?.value,
+                  })),
+                ).toEqual([
+                  { name: 'INSERT "public"."User"', summary: 'INSERT "public"."User"' },
+                  { name: 'SELECT "public"."User"', summary: 'SELECT "public"."User"' },
+                  { name: 'DELETE "public"."User"', summary: 'DELETE "public"."User"' },
+                ]);
+                querySpans.forEach(span => {
+                  expect(span.name).not.toBe(span.attributes[DB_QUERY_TEXT]?.value);
+                });
               },
             })
             .start()
             .completed();
         });
-      },
-      {
-        additionalDependencies: {
-          '@prisma/adapter-pg': '7.2.0',
-          '@prisma/client': '7.2.0',
-          pg: '^8.11.0',
-          prisma: '7.2.0',
-          typescript: '^5.9.0',
-        },
-        afterSetupCommand: 'prisma generate --schema prisma/schema.prisma && tsc -p prisma/tsconfig.json',
-        copyPaths: ['prisma', 'prisma.config.ts'],
-      },
-    );
-
-    createEsmAndCjsTests(
-      __dirname,
-      'scenario.mjs',
-      'instrument-span-streaming.mjs',
-      (createRunner, test) => {
-        test(
-          'should name db query spans after the query summary with span streaming',
-          { timeout: 75_000 },
-          async () => {
-            await createRunner()
-              // Prisma's engine startup can outlast the span buffer's flush interval, so the query spans
-              // are not guaranteed to be in the first span envelope.
-              .unordered()
-              .expect({
-                span: container => {
-                  // v7 runs the queries through the `pg` adapter, whose own spans are named after the full
-                  // statement by a different integration, so they are filtered out here.
-                  const querySpans = container.items.filter(
-                    item =>
-                      item.attributes['sentry.origin']?.value === 'auto.db.prisma' && item.attributes['db.query.text'],
-                  );
-
-                  expect(
-                    querySpans.map(span => ({
-                      name: span.name,
-                      summary: span.attributes['db.query.summary']?.value,
-                    })),
-                  ).toEqual([
-                    { name: 'INSERT "public"."User"', summary: 'INSERT "public"."User"' },
-                    { name: 'SELECT "public"."User"', summary: 'SELECT "public"."User"' },
-                    { name: 'DELETE "public"."User"', summary: 'DELETE "public"."User"' },
-                  ]);
-
-                  // Neither the raw client span name nor the full statement may end up as a span name.
-                  expect(container.items.map(span => span.name)).not.toContain('prisma:client:db_query');
-                  querySpans.forEach(span => {
-                    expect(span.name).not.toBe(span.attributes['db.query.text']?.value);
-                  });
-                },
-              })
-              .start()
-              .completed();
-          },
-        );
       },
       {
         additionalDependencies: {

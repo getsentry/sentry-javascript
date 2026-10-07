@@ -1,4 +1,12 @@
-import type { SpanJSON } from '@sentry/core';
+import {
+  DB_QUERY_SUMMARY,
+  DB_QUERY_TEXT,
+  DB_SYSTEM,
+  SENTRY_KIND,
+  SENTRY_OP,
+  SENTRY_ORIGIN,
+} from '@sentry/conventions/attributes';
+import type { SerializedStreamedSpan } from '@sentry/core';
 import { afterAll, expect } from 'vitest';
 import { cleanupChildProcesses, createEsmAndCjsTests, describeWithDockerCompose } from '../../../utils/runner';
 
@@ -15,142 +23,122 @@ describeWithDockerCompose('Prisma ORM v6 Tests', { workingDirectory: [__dirname]
       test('should instrument PostgreSQL queries from Prisma ORM', { timeout: 75_000 }, async () => {
         await createRunner()
           .expect({
-            transaction: transaction => {
-              expect(transaction.transaction).toBe('Test Transaction');
+            span: container => {
+              const segment = container.items.find(span => span.is_segment);
+              expect(segment?.name).toBe('Test Transaction');
 
-              const spans = transaction.spans || [];
+              const spans = container.items.filter(span => !span.is_segment);
               expect(spans.length).toBeGreaterThanOrEqual(5);
 
               // Each operation span is a direct child of the transaction; the db query span is a child of the engine query span.
-              const rootSpanId = transaction.contexts?.trace?.span_id;
+              const rootSpanId = segment?.span_id;
 
-              const operationSpans = spans.filter(s => s.description === 'prisma:client:operation');
+              const operationSpans = spans.filter(s => s.name === 'prisma:client:operation');
               expect(operationSpans.length).toBeGreaterThanOrEqual(1);
               operationSpans.forEach(operation => {
                 expect(operation.parent_span_id).toBe(rootSpanId);
               });
 
               const dbQuerySpan = spans.find(
-                s => s.data?.['sentry.origin'] === 'auto.db.prisma' && s.data?.['db.query.text'],
+                s => s.attributes[SENTRY_ORIGIN]?.value === 'auto.db.prisma' && s.attributes[DB_QUERY_TEXT],
               );
               expect(dbQuerySpan).toBeDefined();
               const dbQueryParent = spans.find(s => s.span_id === dbQuerySpan?.parent_span_id);
-              expect(dbQueryParent?.description).toBe('prisma:engine:query');
+              expect(dbQueryParent?.name).toBe('prisma:engine:query');
 
-              function expectPrismaSpanToIncludeSpanWith(span: Partial<SpanJSON>) {
+              function expectPrismaSpanToIncludeSpanWith(span: Partial<SerializedStreamedSpan>) {
                 expect(spans).toContainEqual(
                   expect.objectContaining({
                     ...span,
-                    data: {
-                      ...span.data,
-                      'sentry.origin': 'auto.db.prisma',
-                    },
+                    attributes: expect.objectContaining({
+                      ...span.attributes,
+                      [SENTRY_ORIGIN]: { type: 'string', value: 'auto.db.prisma' },
+                    }),
                     status: 'ok',
                   }),
                 );
               }
 
               expectPrismaSpanToIncludeSpanWith({
-                description: 'prisma:client:detect_platform',
+                name: 'prisma:client:detect_platform',
               });
 
               expectPrismaSpanToIncludeSpanWith({
-                description: 'prisma:client:load_engine',
+                name: 'prisma:client:load_engine',
               });
 
               expectPrismaSpanToIncludeSpanWith({
-                description: 'prisma:client:operation',
-                data: {
-                  method: 'create',
-                  model: 'User',
-                  name: 'User.create',
+                name: 'prisma:client:operation',
+                attributes: {
+                  method: { type: 'string', value: 'create' },
+                  model: { type: 'string', value: 'User' },
+                  name: { type: 'string', value: 'User.create' },
                 },
               });
 
               expectPrismaSpanToIncludeSpanWith({
-                description: 'prisma:client:serialize',
+                name: 'prisma:client:serialize',
               });
 
               expectPrismaSpanToIncludeSpanWith({
-                description: 'prisma:client:connect',
+                name: 'prisma:client:connect',
               });
 
               expectPrismaSpanToIncludeSpanWith({
-                description: 'prisma:engine:connect',
+                name: 'prisma:engine:connect',
               });
 
               expectPrismaSpanToIncludeSpanWith({
-                description: 'prisma:engine:query',
+                name: 'prisma:engine:query',
               });
 
               expectPrismaSpanToIncludeSpanWith({
-                data: {
-                  'sentry.op': 'db',
-                  'db.query.text':
-                    'SELECT "public"."User"."id", "public"."User"."createdAt", "public"."User"."email", "public"."User"."name" FROM "public"."User" WHERE 1=1 OFFSET $1',
-                  'db.query.summary': 'SELECT "public"."User"',
-                  'db.system': 'postgresql',
-                  'sentry.kind': 'client',
+                attributes: {
+                  [SENTRY_OP]: { type: 'string', value: 'db' },
+                  [DB_QUERY_TEXT]: {
+                    type: 'string',
+                    value:
+                      'SELECT "public"."User"."id", "public"."User"."createdAt", "public"."User"."email", "public"."User"."name" FROM "public"."User" WHERE 1=1 OFFSET $1',
+                  },
+                  [DB_QUERY_SUMMARY]: { type: 'string', value: 'SELECT "public"."User"' },
+                  [DB_SYSTEM]: { type: 'string', value: 'postgresql' },
+                  [SENTRY_KIND]: { type: 'string', value: 'client' },
                 },
-                description:
-                  'SELECT "public"."User"."id", "public"."User"."createdAt", "public"."User"."email", "public"."User"."name" FROM "public"."User" WHERE 1=1 OFFSET $1',
+                name: 'SELECT "public"."User"',
               });
 
               expectPrismaSpanToIncludeSpanWith({
-                data: {
-                  'sentry.op': 'db',
-                  'db.query.text': 'DELETE FROM "public"."User" WHERE "public"."User"."email"::text LIKE $1',
-                  'db.query.summary': 'DELETE "public"."User"',
-                  'db.system': 'postgresql',
-                  'sentry.kind': 'client',
+                attributes: {
+                  [SENTRY_OP]: { type: 'string', value: 'db' },
+                  [DB_QUERY_TEXT]: {
+                    type: 'string',
+                    value: 'DELETE FROM "public"."User" WHERE "public"."User"."email"::text LIKE $1',
+                  },
+                  [DB_QUERY_SUMMARY]: { type: 'string', value: 'DELETE "public"."User"' },
+                  [DB_SYSTEM]: { type: 'string', value: 'postgresql' },
+                  [SENTRY_KIND]: { type: 'string', value: 'client' },
                 },
-                description: 'DELETE FROM "public"."User" WHERE "public"."User"."email"::text LIKE $1',
+                name: 'DELETE "public"."User"',
               });
 
-              // The db query span name must always be rewritten to the SQL text; the raw engine span
+              // The db query span name must always be rewritten to the query summary; the raw engine span
               // name should never leak through.
-              expect(spans.find(span => span.description === 'prisma:engine:db_query')).toBeUndefined();
-            },
-          })
-          .start()
-          .completed();
-      });
-    },
-    {
-      afterSetupCommand: 'prisma generate --schema prisma/schema.prisma',
-      copyPaths: ['prisma'],
-    },
-  );
+              expect(spans.find(span => span.name === 'prisma:engine:db_query')).toBeUndefined();
 
-  createEsmAndCjsTests(
-    __dirname,
-    'scenario.mjs',
-    'instrument-span-streaming.mjs',
-    (createRunner, test) => {
-      test('should name db query spans after the query summary with span streaming', { timeout: 75_000 }, async () => {
-        await createRunner()
-          // Prisma's engine startup can outlast the span buffer's flush interval, so the query spans
-          // are not guaranteed to be in the first span envelope.
-          .unordered()
-          .expect({
-            span: container => {
-              const querySpans = container.items.filter(item => item.attributes['db.query.text']);
+              const querySpans = spans.filter(item => item.attributes[DB_QUERY_TEXT]);
 
               expect(
                 querySpans.map(span => ({
                   name: span.name,
-                  summary: span.attributes['db.query.summary']?.value,
+                  summary: span.attributes[DB_QUERY_SUMMARY]?.value,
                 })),
               ).toEqual([
                 { name: 'INSERT "public"."User"', summary: 'INSERT "public"."User"' },
                 { name: 'SELECT "public"."User"', summary: 'SELECT "public"."User"' },
                 { name: 'DELETE "public"."User"', summary: 'DELETE "public"."User"' },
               ]);
-
-              // Neither the raw engine span name nor the full statement may end up as a span name.
-              expect(container.items.map(span => span.name)).not.toContain('prisma:engine:db_query');
               querySpans.forEach(span => {
-                expect(span.name).not.toBe(span.attributes['db.query.text']?.value);
+                expect(span.name).not.toBe(span.attributes[DB_QUERY_TEXT]?.value);
               });
             },
           })
