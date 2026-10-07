@@ -1,3 +1,4 @@
+import type { SerializedStreamedSpanContainer } from '@sentry/core';
 import { afterAll, expect } from 'vitest';
 import {
   GEN_AI_OPERATION_NAME,
@@ -32,79 +33,69 @@ conditionalTest({ min: 22 })('OpenAI integration (V7)', () => {
     'instrument.mjs',
     (createRunner, test) => {
       test('instruments chat completions, the responses API and streaming on openai v7', async () => {
-        await createRunner()
-          .ignore('event')
-          .expect({ transaction: { transaction: 'main' } })
-          .expect({
-            span: container => {
-              expect(container.items).toHaveLength(6);
+        const runner = createRunner().ignore('event');
+        const spansPromise = runner.collectStreamedSpansUntilSegment('main');
 
-              const chatCompletionSpan = container.items.find(
-                span => span.attributes[GEN_AI_RESPONSE_ID]?.value === 'chatcmpl-mock123',
-              );
-              expect(chatCompletionSpan).toBeDefined();
-              expect(chatCompletionSpan!.name).toBe('chat gpt-3.5-turbo');
-              expect(chatCompletionSpan!.status).toBe('ok');
-              expect(chatCompletionSpan!.attributes[SENTRY_OP]).toEqual({
-                type: 'string',
-                value: 'gen_ai.chat',
-              });
-              expect(chatCompletionSpan!.attributes[SENTRY_ORIGIN]).toEqual({
-                type: 'string',
-                value: 'auto.ai.openai',
-              });
-              expect(chatCompletionSpan!.attributes[GEN_AI_PROVIDER_NAME]).toEqual({ type: 'string', value: 'openai' });
-              expect(chatCompletionSpan!.attributes[GEN_AI_REQUEST_MODEL]).toEqual({
-                type: 'string',
-                value: 'gpt-3.5-turbo',
-              });
-              expect(chatCompletionSpan!.attributes[GEN_AI_RESPONSE_FINISH_REASONS]).toEqual({
-                type: 'string',
-                value: '["stop"]',
-              });
-              expect(chatCompletionSpan!.attributes[GEN_AI_USAGE_INPUT_TOKENS]).toEqual({ type: 'integer', value: 10 });
-              expect(chatCompletionSpan!.attributes[GEN_AI_USAGE_OUTPUT_TOKENS]).toEqual({
-                type: 'integer',
-                value: 15,
-              });
-              expect(chatCompletionSpan!.attributes[GEN_AI_USAGE_TOTAL_TOKENS]).toEqual({ type: 'integer', value: 25 });
+        await runner.start().completed();
 
-              // The responses API is a separate instrumented resource file from chat completions.
-              const responsesSpan = container.items.find(
-                span => span.attributes[GEN_AI_RESPONSE_ID]?.value === 'resp_mock456',
-              );
-              expect(responsesSpan).toBeDefined();
-              expect(responsesSpan!.name).toBe('chat gpt-3.5-turbo');
-              expect(responsesSpan!.status).toBe('ok');
-              expect(responsesSpan!.attributes[GEN_AI_OPERATION_NAME]).toEqual({ type: 'string', value: 'chat' });
-              expect(responsesSpan!.attributes[GEN_AI_RESPONSE_MODEL]).toEqual({
-                type: 'string',
-                value: 'gpt-3.5-turbo',
-              });
+        const allSpans = await spansPromise;
+        const spans = allSpans.filter(span => span.attributes[SENTRY_ORIGIN]?.value === 'auto.ai.openai');
+        expect(spans).toHaveLength(6);
 
-              // Streaming goes through the patched async iterator rather than `beforeSpanEnd`, so it
-              // is the part most likely to break if the `Stream` shape changes across a major.
-              const streamingSpan = container.items.find(
-                span => span.attributes[GEN_AI_RESPONSE_ID]?.value === 'chatcmpl-stream-123',
-              );
-              expect(streamingSpan).toBeDefined();
-              expect(streamingSpan!.name).toBe('chat gpt-4');
-              expect(streamingSpan!.status).toBe('ok');
-              expect(streamingSpan!.attributes[GEN_AI_RESPONSE_STREAMING]).toEqual({ type: 'boolean', value: true });
-              expect(streamingSpan!.attributes[GEN_AI_USAGE_INPUT_TOKENS]).toEqual({ type: 'integer', value: 12 });
-              expect(streamingSpan!.attributes[GEN_AI_USAGE_OUTPUT_TOKENS]).toEqual({ type: 'integer', value: 18 });
-              expect(streamingSpan!.attributes[GEN_AI_USAGE_TOTAL_TOKENS]).toEqual({ type: 'integer', value: 30 });
+        const chatCompletionSpan = spans.find(
+          span => span.attributes[GEN_AI_RESPONSE_ID]?.value === 'chatcmpl-mock123',
+        );
+        expect(chatCompletionSpan!.name).toBe('chat gpt-3.5-turbo');
+        expect(chatCompletionSpan!.status).toBe('ok');
+        expect(chatCompletionSpan!.attributes[SENTRY_OP]).toEqual({
+          type: 'string',
+          value: 'gen_ai.chat',
+        });
+        expect(chatCompletionSpan!.attributes[SENTRY_ORIGIN]).toEqual({
+          type: 'string',
+          value: 'auto.ai.openai',
+        });
+        expect(chatCompletionSpan!.attributes[GEN_AI_PROVIDER_NAME]).toEqual({ type: 'string', value: 'openai' });
+        expect(chatCompletionSpan!.attributes[GEN_AI_REQUEST_MODEL]).toEqual({
+          type: 'string',
+          value: 'gpt-3.5-turbo',
+        });
+        expect(chatCompletionSpan!.attributes[GEN_AI_RESPONSE_FINISH_REASONS]).toEqual({
+          type: 'string',
+          value: '["stop"]',
+        });
+        expect(chatCompletionSpan!.attributes[GEN_AI_USAGE_INPUT_TOKENS]).toEqual({ type: 'integer', value: 10 });
+        expect(chatCompletionSpan!.attributes[GEN_AI_USAGE_OUTPUT_TOKENS]).toEqual({
+          type: 'integer',
+          value: 15,
+        });
+        expect(chatCompletionSpan!.attributes[GEN_AI_USAGE_TOTAL_TOKENS]).toEqual({ type: 'integer', value: 25 });
 
-              const errorSpan = container.items.find(span => span.name === 'chat error-model' && span.status !== 'ok');
-              expect(errorSpan).toBeDefined();
-              expect(errorSpan!.attributes[SENTRY_ORIGIN]).toEqual({
-                type: 'string',
-                value: 'auto.ai.openai',
-              });
-            },
-          })
-          .start()
-          .completed();
+        // The responses API is a separate instrumented resource file from chat completions.
+        const responsesSpan = spans.find(span => span.attributes[GEN_AI_RESPONSE_ID]?.value === 'resp_mock456');
+        expect(responsesSpan!.name).toBe('chat gpt-3.5-turbo');
+        expect(responsesSpan!.status).toBe('ok');
+        expect(responsesSpan!.attributes[GEN_AI_OPERATION_NAME]).toEqual({ type: 'string', value: 'chat' });
+        expect(responsesSpan!.attributes[GEN_AI_RESPONSE_MODEL]).toEqual({
+          type: 'string',
+          value: 'gpt-3.5-turbo',
+        });
+
+        // Streaming goes through the patched async iterator rather than `beforeSpanEnd`, so it
+        // is the part most likely to break if the `Stream` shape changes across a major.
+        const streamingSpan = spans.find(span => span.attributes[GEN_AI_RESPONSE_ID]?.value === 'chatcmpl-stream-123');
+        expect(streamingSpan!.name).toBe('chat gpt-4');
+        expect(streamingSpan!.status).toBe('ok');
+        expect(streamingSpan!.attributes[GEN_AI_RESPONSE_STREAMING]).toEqual({ type: 'boolean', value: true });
+        expect(streamingSpan!.attributes[GEN_AI_USAGE_INPUT_TOKENS]).toEqual({ type: 'integer', value: 12 });
+        expect(streamingSpan!.attributes[GEN_AI_USAGE_OUTPUT_TOKENS]).toEqual({ type: 'integer', value: 18 });
+        expect(streamingSpan!.attributes[GEN_AI_USAGE_TOTAL_TOKENS]).toEqual({ type: 'integer', value: 30 });
+
+        const errorSpan = spans.find(span => span.name === 'chat error-model' && span.status !== 'ok');
+        expect(errorSpan!.attributes[SENTRY_ORIGIN]).toEqual({
+          type: 'string',
+          value: 'auto.ai.openai',
+        });
       });
     },
     {
@@ -122,82 +113,43 @@ conditionalTest({ min: 22 })('OpenAI integration (V7)', () => {
     'instrument.mjs',
     (createRunner, test) => {
       test('instruments the embeddings API on openai v7', async () => {
+        let receivedSpans: SerializedStreamedSpanContainer['items'] = [];
+
         await createRunner()
+          .unordered()
           .ignore('event')
-          .expect({ transaction: { transaction: 'main' } })
           .expect({
             span: container => {
-              const embeddingSpans = container.items.filter(
-                span => span.attributes[GEN_AI_OPERATION_NAME]?.value === 'embeddings',
-              );
-              expect(embeddingSpans).toHaveLength(3);
-
-              const singleEmbeddingSpan = embeddingSpans.find(
-                span => span.name === 'embeddings text-embedding-3-small' && span.status === 'ok',
-              );
-              expect(singleEmbeddingSpan).toBeDefined();
-              expect(singleEmbeddingSpan!.attributes[SENTRY_OP]).toEqual({
-                type: 'string',
-                value: 'gen_ai.embeddings',
-              });
-              expect(singleEmbeddingSpan!.attributes[SENTRY_ORIGIN]).toEqual({
-                type: 'string',
-                value: 'auto.ai.openai',
-              });
-              expect(singleEmbeddingSpan!.attributes[GEN_AI_PROVIDER_NAME]).toEqual({
-                type: 'string',
-                value: 'openai',
-              });
-
-              const errorEmbeddingSpan = embeddingSpans.find(span => span.name === 'embeddings error-model');
-              expect(errorEmbeddingSpan).toBeDefined();
-              expect(errorEmbeddingSpan!.status).not.toBe('ok');
+              expect(container.items.find(span => span.is_segment && span.name === 'main')).toBeDefined();
+              receivedSpans = container.items;
             },
           })
           .start()
           .completed();
-      });
-    },
-    {
-      additionalDependencies: {
-        openai: '7.5.0',
-      },
-    },
-  );
-  // Span streaming is the default trace lifecycle, so cover it too. The span buffer flushes on a 5s
-  // timer per trace, which splits this scenario's spans across envelopes under CI load, and the
-  // runner asserts against one envelope at a time — so this only asserts on the first call's span,
-  // which is always in the first flush. The exhaustive assertions above stay on the static lifecycle,
-  // where every span arrives in a single envelope.
-  createEsmAndCjsTests(
-    __dirname,
-    'scenario-chat.mjs',
-    'instrument-span-streaming.mjs',
-    (createRunner, test) => {
-      test('instruments chat completions on openai v7 with span streaming enabled', async () => {
-        await createRunner()
-          .ignore('event')
-          .expect({
-            span: container => {
-              const chatCompletionSpan = container.items.find(
-                span => span.attributes[GEN_AI_RESPONSE_ID]?.value === 'chatcmpl-mock123',
-              );
-              expect(chatCompletionSpan).toBeDefined();
-              expect(chatCompletionSpan!.name).toBe('chat gpt-3.5-turbo');
-              expect(chatCompletionSpan!.status).toBe('ok');
-              expect(chatCompletionSpan!.attributes[SENTRY_OP]).toEqual({
-                type: 'string',
-                value: 'gen_ai.chat',
-              });
-              expect(chatCompletionSpan!.attributes[SENTRY_ORIGIN]).toEqual({
-                type: 'string',
-                value: 'auto.ai.openai',
-              });
-              expect(chatCompletionSpan!.attributes[GEN_AI_PROVIDER_NAME]).toEqual({ type: 'string', value: 'openai' });
-            },
-          })
-          .start()
-          .completed();
+
+        const spans = receivedSpans.filter(span => span.attributes[SENTRY_ORIGIN]?.value === 'auto.ai.openai');
+        const embeddingSpans = spans.filter(span => span.attributes[GEN_AI_OPERATION_NAME]?.value === 'embeddings');
+        expect(embeddingSpans).toHaveLength(3);
+
+        const singleEmbeddingSpan = embeddingSpans.find(
+          span => span.name === 'embeddings text-embedding-3-small' && span.status === 'ok',
+        );
+        expect(singleEmbeddingSpan!.attributes[SENTRY_OP]).toEqual({
+          type: 'string',
+          value: 'gen_ai.embeddings',
+        });
+        expect(singleEmbeddingSpan!.attributes[SENTRY_ORIGIN]).toEqual({
+          type: 'string',
+          value: 'auto.ai.openai',
+        });
+        expect(singleEmbeddingSpan!.attributes[GEN_AI_PROVIDER_NAME]).toEqual({
+          type: 'string',
+          value: 'openai',
+        });
+
+        const errorEmbeddingSpan = embeddingSpans.find(span => span.name === 'embeddings error-model');
+        expect(errorEmbeddingSpan).toBeDefined();
+        expect(errorEmbeddingSpan!.status).not.toBe('ok');
       });
     },
     {

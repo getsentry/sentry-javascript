@@ -2,12 +2,6 @@ import { expect, test } from '@playwright/test';
 import { collectStreamedSpans, getSpanOp } from '@sentry-internal/test-utils';
 import { findCacheSpan } from './cacheOriginLinks-utils';
 
-// Webpack lists route handler `use cache` functions in the server-reference manifest, Turbopack
-// (Next.js 16.3) does not. `TEST_BUNDLER` marks the webpack variant's production run (set in
-// `test:assert-webpack`).
-const isWebpackBuild = process.env.TEST_BUNDLER === 'webpack' || process.env.TEST_ENV === 'development-webpack';
-const expectedRouteHandlerFilePath = isWebpackBuild ? 'app/api/use-cache/route.ts' : undefined;
-
 test('uses low-cardinality names for `use cache` spans', async ({ request }) => {
   // A fresh id makes the request a guaranteed cache miss (the id is part of the cache key), so the
   // trace contains both a `cache.get` and a `cache.put` span.
@@ -37,7 +31,7 @@ test('uses low-cardinality names for `use cache` spans', async ({ request }) => 
   expect(putSpan!.name).toBe('cache.put');
   expect(putSpan!.attributes['cache.key']?.value).toEqual(cacheKeyDigest);
 
-  expect(putSpan!.attributes['code.file.path']?.value).toBe(expectedRouteHandlerFilePath);
+  expect(putSpan!.attributes['code.file.path']?.value).toBe('app/api/use-cache/route.ts');
 });
 
 test('sets the source file of the cached component on `cache.put` spans', async ({ request }) => {
