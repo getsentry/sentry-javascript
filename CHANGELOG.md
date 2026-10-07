@@ -4,6 +4,94 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 11.5.0
+
+### Important Changes
+
+- **feat(core): Warn on repeated `Sentry.init()` and unbind the client on `close()` ([#24962](https://github.com/getsentry/sentry-javascript/pull/24962))**
+
+  `Sentry.init()` now warns when it runs while a client is still active. For now, the new client still replaces the active client, but the active client is not closed, so state from both can mix. Call `Sentry.init()` once, or call `await Sentry.close()` before you call it again. `Sentry.close()` now unbinds the client it closes, so after `close()`, `getClient()` returns `undefined`, `isInitialized()` returns `false`, and a later `init()` sets up a new client. In `@sentry/cloudflare`, later requests no longer reuse the isolate's cached client once it is closed or closing. On the server, `@sentry/nextjs` and `@sentry/remix` now return the active client from a repeated `init()` call, not `undefined`.
+
+### Other Changes
+
+- chore(deps): Bump rrweb to 2.44.1 ([#25100](https://github.com/getsentry/sentry-javascript/pull/25100))
+- chore(deps): Bump web-vitals to 6.2.3 ([#25062](https://github.com/getsentry/sentry-javascript/pull/25062))
+- feat(bun): keep server spans open until streaming responses finish ([#25025](https://github.com/getsentry/sentry-javascript/pull/25025))
+- feat(langchain): Derive gen_ai.conversation.id from the invoke config ([#24831](https://github.com/getsentry/sentry-javascript/pull/24831))
+- feat(nextjs): Add `code.file.path` to `use cache` fill spans ([#24988](https://github.com/getsentry/sentry-javascript/pull/24988))
+- feat(react-router): Export createSentryServerInstrumentation from the Cloudflare entry ([#25042](https://github.com/getsentry/sentry-javascript/pull/25042))
+- feat(remix): Parameterize Remix 3 navigation spans ([#25045](https://github.com/getsentry/sentry-javascript/pull/25045))
+- feat(remix): Parameterize Remix 3 page load spans ([#25053](https://github.com/getsentry/sentry-javascript/pull/25053))
+- feat(remix): Report the matched route on Remix 3 HTML responses ([#25052](https://github.com/getsentry/sentry-javascript/pull/25052))
+- fix(ai): Normalize token usage and preserve cache breakdowns ([#25074](https://github.com/getsentry/sentry-javascript/pull/25074))
+- fix(browser-utils): Handle NS_ERROR_NOT_INITIALIZED from setTimeout in Firefox ([#25024](https://github.com/getsentry/sentry-javascript/pull/25024))
+- fix(bun): Add conversationIdIntegration to the default integrations ([#25003](https://github.com/getsentry/sentry-javascript/pull/25003))
+- fix(cloudflare): Detect TypeSafe Jev calls in Workers AI by model ID ([#25033](https://github.com/getsentry/sentry-javascript/pull/25033))
+- fix(cloudflare): Keep an installed OpenTelemetry async context strategy ([#24995](https://github.com/getsentry/sentry-javascript/pull/24995))
+- fix(feedback): Correct overlapping screenshot annotations and drag dimming ([#25040](https://github.com/getsentry/sentry-javascript/pull/25040))
+- fix(nextjs): Don't capture forbidden() and unauthorized() as errors ([#25088](https://github.com/getsentry/sentry-javascript/pull/25088))
+- fix(nextjs): Include basePath in request url of Pages Router errors ([#24985](https://github.com/getsentry/sentry-javascript/pull/24985))
+- fix(nextjs): Skip `init` inside a request of `@sentry/cloudflare` ([#24996](https://github.com/getsentry/sentry-javascript/pull/24996))
+- fix(node): Flush telemetry before Vercel functions are suspended ([#24910](https://github.com/getsentry/sentry-javascript/pull/24910))
+- fix(nuxt): Do not inject debug IDs into the SSR build ([#25080](https://github.com/getsentry/sentry-javascript/pull/25080))
+- fix(react-router): Pass the project when creating a release ([#25089](https://github.com/getsentry/sentry-javascript/pull/25089))
+- fix(remix): Pass the project when creating a release ([#25079](https://github.com/getsentry/sentry-javascript/pull/25079))
+- fix(server-utils): Derive the Vercel AI conversation id from the OpenAI conversation option ([#24979](https://github.com/getsentry/sentry-javascript/pull/24979))
+- fix(server-utils): Instrument the Vercel AI experimental_decide channel event ([#25068](https://github.com/getsentry/sentry-javascript/pull/25068))
+- fix(server-utils): Map Flue messages and token usage to the gen_ai conventions ([#24992](https://github.com/getsentry/sentry-javascript/pull/24992))
+- fix(server-utils): Record Vercel AI `experimental_telemetry.metadata` on gen_ai spans ([#24721](https://github.com/getsentry/sentry-javascript/pull/24721))
+- fix(sveltekit): Export consoleLoggingIntegration from worker entry ([#25061](https://github.com/getsentry/sentry-javascript/pull/25061))
+- fix(tanstackstart-react): Fix server route parametrization gaps ([#25071](https://github.com/getsentry/sentry-javascript/pull/25071))
+- ref(core): Deprecate SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN ([#25039](https://github.com/getsentry/sentry-javascript/pull/25039))
+- ref(core): Remove `beforeSendSpan` null return warning ([#24129](https://github.com/getsentry/sentry-javascript/pull/24129))
+
+<details>
+  <summary> <strong>Internal Changes</strong> </summary>
+
+- chore: Add external contributor to CHANGELOG.md ([#25111](https://github.com/getsentry/sentry-javascript/pull/25111))
+- chore(bugbot): Flag hard-coded attribute names that have a conventions constant ([#25070](https://github.com/getsentry/sentry-javascript/pull/25070))
+- chore(deps-dev): bump nx from 22.7.7 to 22.7.10 ([#25075](https://github.com/getsentry/sentry-javascript/pull/25075))
+- chore(deps): Bump `@sentry/conventions` to 0.26.0 ([#25073](https://github.com/getsentry/sentry-javascript/pull/25073))
+- chore(github): Remove triage-issue workflow ([#25098](https://github.com/getsentry/sentry-javascript/pull/25098))
+- chore(skills): Drop bundler-plugins cross-repo search from triage-issue skill ([#25099](https://github.com/getsentry/sentry-javascript/pull/25099))
+- feat(deps): bump compression from 1.8.1 to 1.8.2 ([#25109](https://github.com/getsentry/sentry-javascript/pull/25109))
+- feat(deps): Bump js-yaml from 3.15.1 to 3.15.2 ([#24236](https://github.com/getsentry/sentry-javascript/pull/24236))
+- feat(deps): bump proxy-addr from 2.0.7 to 2.0.8 ([#25077](https://github.com/getsentry/sentry-javascript/pull/25077))
+- feat(deps): bump shell-quote from 1.10.0 to 1.12.0 ([#25108](https://github.com/getsentry/sentry-javascript/pull/25108))
+- feat(deps): bump source-map-js from 1.2.1 to 1.2.2 ([#25076](https://github.com/getsentry/sentry-javascript/pull/25076))
+- feat(deps): Bump svgo from 4.0.2 to 4.1.0 ([#24220](https://github.com/getsentry/sentry-javascript/pull/24220))
+- fix(deps): Bump seroval to 1.6.8 to fix two Dependabot alerts ([#25104](https://github.com/getsentry/sentry-javascript/pull/25104))
+- ref: Reuse `isObjectLike` for object guards ([#25058](https://github.com/getsentry/sentry-javascript/pull/25058))
+- ref(browser): Use SENTRY_ORIGIN convention constant ([#25037](https://github.com/getsentry/sentry-javascript/pull/25037))
+- ref(core): Use SENTRY_OP convention constant ([#24982](https://github.com/getsentry/sentry-javascript/pull/24982))
+- ref(core): Use SENTRY_ORIGIN convention constant in shared tracing ([#24983](https://github.com/getsentry/sentry-javascript/pull/24983))
+- ref(meta-frameworks): Use SENTRY_ORIGIN convention constant ([#25038](https://github.com/getsentry/sentry-javascript/pull/25038))
+- ref(nextjs): Move the server span hooks into `serverSpanHooks.ts` ([#24997](https://github.com/getsentry/sentry-javascript/pull/24997))
+- ref(server): Use SENTRY_ORIGIN convention constant ([#25036](https://github.com/getsentry/sentry-javascript/pull/25036))
+- test(aws-serverless): Port GraphQL test to span streaming ([#25056](https://github.com/getsentry/sentry-javascript/pull/25056))
+- test(browser): port general browser integration suites to default streaming ([#24876](https://github.com/getsentry/sentry-javascript/pull/24876))
+- test(bun): Port request-body tests to span streaming ([#25021](https://github.com/getsentry/sentry-javascript/pull/25021))
+- test(cloudflare): Add Workers AI tracing tests for Clef ([#25027](https://github.com/getsentry/sentry-javascript/pull/25027))
+- test(e2e): Add Bun, Deno and Cloudflare variants to react-router-8-framework ([#24598](https://github.com/getsentry/sentry-javascript/pull/24598))
+- test(e2e): Add eve test for Jev evaluate calls ([#25034](https://github.com/getsentry/sentry-javascript/pull/25034))
+- test(e2e): Bump bundler plugins to 5.4.1 in e2e test apps ([#25107](https://github.com/getsentry/sentry-javascript/pull/25107))
+- test(e2e): Cover isolation, trace propagation and logs on all react-router-8-framework runtimes ([#25041](https://github.com/getsentry/sentry-javascript/pull/25041))
+- test(e2e): Move react-router-8-cloudflare MySQL tests into react-router-8-framework ([#24599](https://github.com/getsentry/sentry-javascript/pull/24599))
+- test(e2e): Port Astro 5 Cloudflare to span streaming ([#25016](https://github.com/getsentry/sentry-javascript/pull/25016))
+- test(e2e): Raise mock Sentry server chunk size to fit whole bundles ([#25097](https://github.com/getsentry/sentry-javascript/pull/25097))
+- test(ember): Pin embroider packages away from broken releases ([#25066](https://github.com/getsentry/sentry-javascript/pull/25066))
+- test(nextjs): Expect use cache route handler file path on Turbopack ([#25117](https://github.com/getsentry/sentry-javascript/pull/25117))
+- test(nextjs): Pin nextjs-16-cf-workers latest variant to Next.js 16.3 ([#25118](https://github.com/getsentry/sentry-javascript/pull/25118))
+- test(node): Port Apollo GraphQL integration tests to span streaming ([#25030](https://github.com/getsentry/sentry-javascript/pull/25030))
+- test(node): port AWS integration tests to span streaming ([#25018](https://github.com/getsentry/sentry-javascript/pull/25018))
+- test(node): port filesystem integration tests to span streaming ([#25019](https://github.com/getsentry/sentry-javascript/pull/25019))
+- test(node): Port GraphQL tracing-channel tests to span streaming ([#25055](https://github.com/getsentry/sentry-javascript/pull/25055))
+- test(node): port rejection, feature flag, and client-report tests to span streaming ([#25020](https://github.com/getsentry/sentry-javascript/pull/25020))
+- test(node/bun): drop static pins from non-tracing integration suites ([#25017](https://github.com/getsentry/sentry-javascript/pull/25017))
+- test(nuxt): Upgrade to Nuxt 4.6 ; Test imports from `nuxt/server` ([#25093](https://github.com/getsentry/sentry-javascript/pull/25093))
+
+</details>
+
 Work in this release was contributed by @minwookshin. Thank you for your contribution!
 
 ## 11.4.0
@@ -91,8 +179,6 @@ Work in this release was contributed by @minwookshin. Thank you for your contrib
 </details>
 
 Work in this release was contributed by @Shubham-Padkonde and @tobias-schnabel. Thank you for your contributions!
-
-- **feat(core)**: `Sentry.init()` now warns when it runs while a client is still active. For now, the new client still replaces the active client, but the active client is not closed, so state from both can mix. Call `Sentry.init()` once, or call `await Sentry.close()` before you call it again. `Sentry.close()` now unbinds the client it closes, so after `close()`, `getClient()` returns `undefined`, `isInitialized()` returns `false`, and a later `init()` sets up a new client. In `@sentry/cloudflare`, later requests no longer reuse the isolate's cached client once it is closed or closing. On the server, `@sentry/nextjs` and `@sentry/remix` now return the active client from a repeated `init()` call, not `undefined`.
 
 ## 11.2.0
 
