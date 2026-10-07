@@ -616,30 +616,28 @@ describe('SentrySpan', () => {
     });
 
     it('uses the `performance.now()` duration if the wall clock jumps forward while the span runs', () => {
-      const performanceNow = performance.now();
-      const dateNow = Date.now();
+      vi.useFakeTimers();
       const span = new SentrySpan();
       const startTimestamp = spanToStaticSpanJSON(span).start_timestamp;
 
       // The device sleeps for an hour: `Date.now()` moves on, `performance.now()` only moves by 500ms.
-      vi.spyOn(performance, 'now').mockReturnValue(performanceNow + 500);
-      vi.spyOn(Date, 'now').mockReturnValue(dateNow + 3_600_000);
+      vi.setSystemTime(Date.now() + 3_600_000);
+      vi.advanceTimersByTime(500);
       span.end();
-      vi.restoreAllMocks();
+      vi.useRealTimers();
 
       expect(spanToStaticSpanJSON(span).timestamp! - startTimestamp).toBeCloseTo(0.5, 1);
     });
 
     it('never has a negative duration if the wall clock jumps backwards while the span runs', () => {
-      const performanceNow = performance.now();
-      const dateNow = Date.now();
+      vi.useFakeTimers();
       const span = new SentrySpan();
       const startTimestamp = spanToStaticSpanJSON(span).start_timestamp;
 
-      vi.spyOn(performance, 'now').mockReturnValue(performanceNow + 500);
-      vi.spyOn(Date, 'now').mockReturnValue(dateNow - 60_000);
+      vi.setSystemTime(Date.now() - 60_000);
+      vi.advanceTimersByTime(500);
       span.end();
-      vi.restoreAllMocks();
+      vi.useRealTimers();
 
       expect(spanToStaticSpanJSON(span).timestamp! - startTimestamp).toBeCloseTo(0.5, 1);
     });
