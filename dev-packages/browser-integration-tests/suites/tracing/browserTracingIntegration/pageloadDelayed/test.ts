@@ -1,3 +1,4 @@
+import { SENTRY_SEGMENT_NAME_SOURCE } from '@sentry/conventions/attributes';
 import { expect } from '@playwright/test';
 import { sentryTest } from '../../../../utils/fixtures';
 import { shouldSkipTracingTest } from '../../../../utils/helpers';
@@ -27,5 +28,5 @@ sentryTest('should create a pageload span when initialized delayed', async ({ ge
 
   expect(getSpanOp(pageloadSpan)).toBe('pageload');
   expect(spans.filter(span => !span.is_segment).length).toBeGreaterThan(0);
-  expect(pageloadSpan.attributes['sentry.segment.name.source']?.value).toEqual('url');
+  expect(pageloadSpan.attributes[SENTRY_SEGMENT_NAME_SOURCE]?.value).toEqual('url');
 });

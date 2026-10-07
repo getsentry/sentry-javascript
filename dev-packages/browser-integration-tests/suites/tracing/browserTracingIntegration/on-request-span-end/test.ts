@@ -1,3 +1,4 @@
+import { SENTRY_OP } from '@sentry/conventions/attributes';
 import { expect } from '@playwright/test';
 import { sentryTest } from '../../../../utils/fixtures';
 import { shouldSkipTracingTest } from '../../../../utils/helpers';
@@ -42,7 +43,7 @@ sentryTest('should call onRequestSpanEnd hook', async ({ browserName, getLocalTe
   expect(spans).toContainEqual(
     expect.objectContaining({
       attributes: expect.objectContaining({
-        'sentry.op': { type: 'string', value: 'http.client' },
+        [SENTRY_OP]: { type: 'string', value: 'http.client' },
         type: { type: 'string', value: 'xhr' },
         'hook.called.response-type': { type: 'string', value: 'xhr' },
       }),
@@ -52,7 +53,7 @@ sentryTest('should call onRequestSpanEnd hook', async ({ browserName, getLocalTe
   expect(spans).toContainEqual(
     expect.objectContaining({
       attributes: expect.objectContaining({
-        'sentry.op': { type: 'string', value: 'http.client' },
+        [SENTRY_OP]: { type: 'string', value: 'http.client' },
         type: { type: 'string', value: 'fetch' },
         'hook.called.response-type': { type: 'string', value: 'fetch' },
       }),

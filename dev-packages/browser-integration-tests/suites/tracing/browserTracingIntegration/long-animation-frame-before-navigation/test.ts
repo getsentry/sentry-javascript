@@ -1,3 +1,4 @@
+import { SENTRY_SEGMENT_ID } from '@sentry/conventions/attributes';
 import { expect } from '@playwright/test';
 import { sentryTest } from '../../../../utils/fixtures';
 import { shouldSkipTracingTest } from '../../../../utils/helpers';
@@ -21,7 +22,7 @@ sentryTest(
     const navigationRoot = await navigationSpanPromise;
     await page.evaluate(() => (window as any).Sentry.flush());
     expect(getSpanOp(navigationRoot)).toBe('navigation');
-    const spans = allSpans.filter(span => span.attributes['sentry.segment.id']?.value === navigationRoot.span_id);
+    const spans = allSpans.filter(span => span.attributes[SENTRY_SEGMENT_ID]?.value === navigationRoot.span_id);
 
     const loafSpans = spans.filter(s => getSpanOp(s)?.startsWith('ui.long_animation_frame'));
     expect(loafSpans).toHaveLength(0);

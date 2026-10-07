@@ -1,3 +1,4 @@
+import { URL_PATH, SENTRY_SEGMENT_ID, SENTRY_OP } from '@sentry/conventions/attributes';
 import { expect } from '@playwright/test';
 import { sentryTest } from '../../../../../utils/fixtures';
 import { shouldSkipTracingTest } from '../../../../../utils/helpers';
@@ -28,16 +29,16 @@ sentryTest(
 
     expect(getSpanOp(navigationSpan)).toBe('navigation');
     expect(navigationSpan.name).toEqual('Navigation');
-    expect(navigationSpan.attributes['url.path']?.value).toEqual('/sub-page');
+    expect(navigationSpan.attributes[URL_PATH]?.value).toEqual('/sub-page');
 
-    const spans = allSpans.filter(span => span.attributes['sentry.segment.id']?.value === navigationSpan.span_id);
+    const spans = allSpans.filter(span => span.attributes[SENTRY_SEGMENT_ID]?.value === navigationSpan.span_id);
 
     expect(spans).toContainEqual(
       expect.objectContaining({
         name: 'Navigation',
         attributes: expect.objectContaining({
-          'sentry.op': { type: 'string', value: 'navigation.redirect' },
-          'url.path': { type: 'string', value: '/sub-page-redirect' },
+          [SENTRY_OP]: { type: 'string', value: 'navigation.redirect' },
+          [URL_PATH]: { type: 'string', value: '/sub-page-redirect' },
         }),
       }),
     );

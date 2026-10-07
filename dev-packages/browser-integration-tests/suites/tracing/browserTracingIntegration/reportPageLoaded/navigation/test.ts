@@ -1,4 +1,9 @@
-import { SENTRY_SEGMENT_NAME_SOURCE, SENTRY_OP, SENTRY_ORIGIN } from '@sentry/conventions/attributes';
+import {
+  SENTRY_IDLE_SPAN_FINISH_REASON,
+  SENTRY_SEGMENT_NAME_SOURCE,
+  SENTRY_OP,
+  SENTRY_ORIGIN,
+} from '@sentry/conventions/attributes';
 import { expect } from '@playwright/test';
 import { SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE } from '@sentry/browser';
 import { sentryTest } from '../../../../../utils/fixtures';
@@ -25,7 +30,7 @@ sentryTest(
       [SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE]: expect.objectContaining({ value: 1 }),
       [SENTRY_SEGMENT_NAME_SOURCE]: { type: 'string', value: 'url' },
       [SENTRY_OP]: { type: 'string', value: 'pageload' },
-      'sentry.idle_span_finish_reason': { type: 'string', value: 'cancelled' },
+      [SENTRY_IDLE_SPAN_FINISH_REASON]: { type: 'string', value: 'cancelled' },
     });
 
     // ending span after 1s but adding a margin of 0.5s to account for timing weirdness in CI to avoid flakes

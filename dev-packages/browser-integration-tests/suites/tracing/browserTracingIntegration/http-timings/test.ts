@@ -1,3 +1,20 @@
+import {
+  URL_FULL,
+  HTTP_REQUEST_REDIRECT_START,
+  HTTP_REQUEST_REDIRECT_END,
+  HTTP_REQUEST_WORKER_START,
+  HTTP_REQUEST_FETCH_START,
+  HTTP_REQUEST_DOMAIN_LOOKUP_START,
+  HTTP_REQUEST_DOMAIN_LOOKUP_END,
+  HTTP_REQUEST_CONNECT_START,
+  HTTP_REQUEST_SECURE_CONNECTION_START,
+  HTTP_REQUEST_CONNECTION_END,
+  HTTP_REQUEST_REQUEST_START,
+  HTTP_REQUEST_RESPONSE_START,
+  HTTP_REQUEST_RESPONSE_END,
+  HTTP_REQUEST_TIME_TO_FIRST_BYTE,
+  NETWORK_PROTOCOL_VERSION,
+} from '@sentry/conventions/attributes';
 import { expect } from '@playwright/test';
 import { sentryTest } from '../../../../utils/fixtures';
 import { shouldSkipTracingTest } from '../../../../utils/helpers';
@@ -31,7 +48,7 @@ sentryTest(
     await page.evaluate(() => (window as any).Sentry.flush());
     const requestSpans = spans
       .filter(s => getSpanOp(s) === 'http.client')
-      .sort((a, b) => String(a.attributes['url.full']?.value).localeCompare(String(b.attributes['url.full']?.value)));
+      .sort((a, b) => String(a.attributes[URL_FULL]?.value).localeCompare(String(b.attributes[URL_FULL]?.value)));
 
     expect(pageloadSpan).toBeDefined();
     expect(requestSpans).toHaveLength(3);
@@ -46,48 +63,48 @@ sentryTest(
         trace_id: pageloadSpan?.trace_id,
         status: 'ok',
         attributes: expect.objectContaining({
-          'url.full': { type: 'string', value: `http://sentry-test-site.example/${index}` },
-          'http.request.redirect_start': {
+          [URL_FULL]: { type: 'string', value: `http://sentry-test-site.example/${index}` },
+          [HTTP_REQUEST_REDIRECT_START]: {
             type: expect.stringMatching(/^(integer|double)$/),
             value: expect.any(Number),
           },
-          'http.request.redirect_end': { type: expect.stringMatching(/^(integer|double)$/), value: expect.any(Number) },
-          'http.request.worker_start': { type: expect.stringMatching(/^(integer|double)$/), value: expect.any(Number) },
-          'http.request.fetch_start': { type: expect.stringMatching(/^(integer|double)$/), value: expect.any(Number) },
-          'http.request.domain_lookup_start': {
+          [HTTP_REQUEST_REDIRECT_END]: { type: expect.stringMatching(/^(integer|double)$/), value: expect.any(Number) },
+          [HTTP_REQUEST_WORKER_START]: { type: expect.stringMatching(/^(integer|double)$/), value: expect.any(Number) },
+          [HTTP_REQUEST_FETCH_START]: { type: expect.stringMatching(/^(integer|double)$/), value: expect.any(Number) },
+          [HTTP_REQUEST_DOMAIN_LOOKUP_START]: {
             type: expect.stringMatching(/^(integer|double)$/),
             value: expect.any(Number),
           },
-          'http.request.domain_lookup_end': {
+          [HTTP_REQUEST_DOMAIN_LOOKUP_END]: {
             type: expect.stringMatching(/^(integer|double)$/),
             value: expect.any(Number),
           },
-          'http.request.connect_start': {
+          [HTTP_REQUEST_CONNECT_START]: {
             type: expect.stringMatching(/^(integer|double)$/),
             value: expect.any(Number),
           },
-          'http.request.secure_connection_start': {
+          [HTTP_REQUEST_SECURE_CONNECTION_START]: {
             type: expect.stringMatching(/^(integer|double)$/),
             value: expect.any(Number),
           },
-          'http.request.connection_end': {
+          [HTTP_REQUEST_CONNECTION_END]: {
             type: expect.stringMatching(/^(integer|double)$/),
             value: expect.any(Number),
           },
-          'http.request.request_start': {
+          [HTTP_REQUEST_REQUEST_START]: {
             type: expect.stringMatching(/^(integer|double)$/),
             value: expect.any(Number),
           },
-          'http.request.response_start': {
+          [HTTP_REQUEST_RESPONSE_START]: {
             type: expect.stringMatching(/^(integer|double)$/),
             value: expect.any(Number),
           },
-          'http.request.response_end': { type: expect.stringMatching(/^(integer|double)$/), value: expect.any(Number) },
-          'http.request.time_to_first_byte': {
+          [HTTP_REQUEST_RESPONSE_END]: { type: expect.stringMatching(/^(integer|double)$/), value: expect.any(Number) },
+          [HTTP_REQUEST_TIME_TO_FIRST_BYTE]: {
             type: expect.stringMatching(/^(integer|double)$/),
             value: expect.any(Number),
           },
-          'network.protocol.version': { type: 'string', value: expect.any(String) },
+          [NETWORK_PROTOCOL_VERSION]: { type: 'string', value: expect.any(String) },
         }),
       }),
     );

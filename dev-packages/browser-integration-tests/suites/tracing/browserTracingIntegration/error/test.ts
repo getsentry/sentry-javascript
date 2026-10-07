@@ -1,3 +1,4 @@
+import { URL_PATH } from '@sentry/conventions/attributes';
 import { expect } from '@playwright/test';
 import type { Event } from '@sentry/core';
 import { sentryTest } from '../../../../utils/fixtures';
@@ -28,6 +29,6 @@ sentryTest(
     expect(error.exception?.values?.[0]).toBeDefined();
     expect(pageload.name).toBe('Pageload');
     expect(error.transaction).toBe('/index.html');
-    expect(error.transaction).toBe(pageload.attributes['url.path']?.value);
+    expect(error.transaction).toBe(pageload.attributes[URL_PATH]?.value);
   },
 );

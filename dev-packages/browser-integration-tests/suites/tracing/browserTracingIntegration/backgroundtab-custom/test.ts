@@ -1,3 +1,4 @@
+import { SENTRY_STATUS_MESSAGE, SENTRY_CANCELLATION_REASON } from '@sentry/conventions/attributes';
 import { expect } from '@playwright/test';
 import type { StreamedSpanJSON } from '@sentry/core';
 import { sentryTest } from '../../../../utils/fixtures';
@@ -32,6 +33,6 @@ sentryTest('should finish a custom span when the page goes background', async ({
   expect(name_after).toBe(name_before);
   // a cancelled span is reported as `ok`, with the raw status kept as an attribute
   expect(spanJsonAfter.status).toBe('ok');
-  expect(attributes_after['sentry.status.message']).toBeUndefined();
-  expect(attributes_after['sentry.cancellation_reason']).toBe('document.hidden');
+  expect(attributes_after[SENTRY_STATUS_MESSAGE]).toBeUndefined();
+  expect(attributes_after[SENTRY_CANCELLATION_REASON]).toBe('document.hidden');
 });

@@ -40,6 +40,6 @@ sentryTest(
 
     expect(getSpanOp(pageloadSpan)).toBe('pageload');
     expect(spans.filter(span => !span.is_segment).length).toBeGreaterThan(0);
-    expect(pageloadSpan.attributes['sentry.segment.name.source']?.value).toEqual('custom');
+    expect(pageloadSpan.attributes[SENTRY_SEGMENT_NAME_SOURCE]?.value).toEqual('custom');
   },
 );

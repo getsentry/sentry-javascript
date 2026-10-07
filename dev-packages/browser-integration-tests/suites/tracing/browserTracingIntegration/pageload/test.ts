@@ -1,6 +1,18 @@
 import { expect } from '@playwright/test';
 import { SDK_VERSION, SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE } from '@sentry/core';
 import {
+  SENTRY_IS_LOCALHOST,
+  CULTURE_CALENDAR,
+  CULTURE_LOCALE,
+  CULTURE_TIMEZONE,
+  DEVICE_PROCESSOR_COUNT,
+  BROWSER_PERFORMANCE_NAVIGATION_ACTIVATION_START,
+  BROWSER_PERFORMANCE_TIME_ORIGIN,
+  BROWSER_WEB_VITAL_TTFB_REQUEST_TIME,
+  NETWORK_CONNECTION_EFFECTIVE_TYPE,
+  NETWORK_CONNECTION_RTT,
+  BROWSER_WEB_VITAL_TTFB_VALUE,
+  SENTRY_IDLE_SPAN_FINISH_REASON,
   BROWSER_NAVIGATION_TYPE,
   SENTRY_SEGMENT_NAME_SOURCE,
   SENTRY_SEGMENT_ID,
@@ -76,16 +88,16 @@ sentryTest(
 
     expect(pageloadSpan).toEqual({
       attributes: {
-        'sentry.is_localhost': { value: false, type: 'boolean' },
-        'culture.calendar': {
+        [SENTRY_IS_LOCALHOST]: { value: false, type: 'boolean' },
+        [CULTURE_CALENDAR]: {
           type: 'string',
           value: expect.any(String),
         },
-        'culture.locale': {
+        [CULTURE_LOCALE]: {
           type: 'string',
           value: expect.any(String),
         },
-        'culture.timezone': {
+        [CULTURE_TIMEZONE]: {
           type: 'string',
           value: expect.any(String),
         },
@@ -101,32 +113,32 @@ sentryTest(
           type: 'string',
           value: '/index.html',
         },
-        'device.processor_count': {
+        [DEVICE_PROCESSOR_COUNT]: {
           type: expect.stringMatching(/^(integer)|(double)$/),
           value: expect.any(Number),
         },
-        'browser.performance.navigation.activation_start': {
+        [BROWSER_PERFORMANCE_NAVIGATION_ACTIVATION_START]: {
           type: expect.stringMatching(/^(integer)|(double)$/),
           value: expect.any(Number),
         },
-        'browser.performance.time_origin': {
+        [BROWSER_PERFORMANCE_TIME_ORIGIN]: {
           type: expect.stringMatching(/^(integer)|(double)$/),
           value: expect.any(Number),
         },
-        'browser.web_vital.ttfb.request_time': {
+        [BROWSER_WEB_VITAL_TTFB_REQUEST_TIME]: {
           type: expect.stringMatching(/^(integer)|(double)$/),
           value: expect.any(Number),
         },
         ...(browserName !== 'webkit' && {
-          'network.connection.effective_type': {
+          [NETWORK_CONNECTION_EFFECTIVE_TYPE]: {
             type: 'string',
             value: expect.any(String),
           },
-          'network.connection.rtt': {
+          [NETWORK_CONNECTION_RTT]: {
             type: expect.stringMatching(/^(integer)|(double)$/),
             value: expect.any(Number),
           },
-          'browser.web_vital.ttfb.value': {
+          [BROWSER_WEB_VITAL_TTFB_VALUE]: {
             type: expect.stringMatching(/^(integer)|(double)$/),
             value: expect.any(Number),
           },
@@ -135,7 +147,7 @@ sentryTest(
             value: 'navigate',
           },
         }),
-        'sentry.idle_span_finish_reason': {
+        [SENTRY_IDLE_SPAN_FINISH_REASON]: {
           type: 'string',
           value: 'idleTimeout',
         },

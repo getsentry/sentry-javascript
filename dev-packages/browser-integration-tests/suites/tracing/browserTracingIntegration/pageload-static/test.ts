@@ -1,4 +1,9 @@
-import { SENTRY_SEGMENT_NAME_SOURCE, SENTRY_OP, SENTRY_ORIGIN } from '@sentry/conventions/attributes';
+import {
+  SENTRY_IDLE_SPAN_FINISH_REASON,
+  SENTRY_SEGMENT_NAME_SOURCE,
+  SENTRY_OP,
+  SENTRY_ORIGIN,
+} from '@sentry/conventions/attributes';
 import { expect } from '@playwright/test';
 import { SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE } from '@sentry/browser';
 import type { Event } from '@sentry/core';
@@ -26,7 +31,7 @@ sentryTest('creates a pageload transaction with url as source', async ({ getLoca
     [SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE]: 1,
     [SENTRY_SEGMENT_NAME_SOURCE]: 'url',
     [SENTRY_OP]: 'pageload',
-    ['sentry.idle_span_finish_reason']: 'idleTimeout',
+    [SENTRY_IDLE_SPAN_FINISH_REASON]: 'idleTimeout',
   });
 
   expect(eventData.contexts?.trace?.op).toBe('pageload');

@@ -1,3 +1,4 @@
+import { URL_PATH, SENTRY_SEGMENT_ID } from '@sentry/conventions/attributes';
 import { expect } from '@playwright/test';
 import { sentryTest } from '../../../../../utils/fixtures';
 import { shouldSkipTracingTest } from '../../../../../utils/helpers';
@@ -16,11 +17,11 @@ sentryTest(
     const pageloadSpanPromise = waitForStreamedSpan(page, span => getSpanOp(span) === 'pageload');
     const navigationSpanPromise = waitForStreamedSpan(
       page,
-      span => getSpanOp(span) === 'navigation' && span.attributes['url.path']?.value === '/sub-page',
+      span => getSpanOp(span) === 'navigation' && span.attributes[URL_PATH]?.value === '/sub-page',
     );
     const navigation2SpanPromise = waitForStreamedSpan(
       page,
-      span => getSpanOp(span) === 'navigation' && span.attributes['url.path']?.value === '/sub-page-2',
+      span => getSpanOp(span) === 'navigation' && span.attributes[URL_PATH]?.value === '/sub-page-2',
     );
 
     await page.goto(url);
@@ -36,20 +37,20 @@ sentryTest(
 
     expect(getSpanOp(navigationSpan)).toBe('navigation');
     expect(navigationSpan.name).toEqual('Navigation');
-    expect(navigationSpan.attributes['url.path']?.value).toEqual('/sub-page');
+    expect(navigationSpan.attributes[URL_PATH]?.value).toEqual('/sub-page');
 
     const spans = allSpans
-      .filter(span => span.attributes['sentry.segment.id']?.value === navigationSpan.span_id)
+      .filter(span => span.attributes[SENTRY_SEGMENT_ID]?.value === navigationSpan.span_id)
       .filter(s => getSpanOp(s) === 'navigation.redirect');
 
     expect(spans).toHaveLength(0);
 
     expect(getSpanOp(navigation2Span)).toBe('navigation');
     expect(navigation2Span.name).toEqual('Navigation');
-    expect(navigation2Span.attributes['url.path']?.value).toEqual('/sub-page-2');
+    expect(navigation2Span.attributes[URL_PATH]?.value).toEqual('/sub-page-2');
 
     const spans2 = allSpans
-      .filter(span => span.attributes['sentry.segment.id']?.value === navigation2Span.span_id)
+      .filter(span => span.attributes[SENTRY_SEGMENT_ID]?.value === navigation2Span.span_id)
       .filter(s => getSpanOp(s) === 'navigation.redirect');
     expect(spans2).toHaveLength(0);
   },

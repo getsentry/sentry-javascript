@@ -1,3 +1,4 @@
+import { SENTRY_IDLE_SPAN_FINISH_REASON } from '@sentry/conventions/attributes';
 import { expect } from '@playwright/test';
 import { sentryTest } from '../../../../utils/fixtures';
 import { shouldSkipTracingTest } from '../../../../utils/helpers';
@@ -23,7 +24,7 @@ sentryTest('should send a pageload span terminated via child span timeout', asyn
   const testSpan = spans.find(span => span.name === 'pageload-child-span');
   expect(testSpan).toBeDefined();
   expect(testSpan?.status).toBe('ok');
-  expect(pageloadSpan.attributes['sentry.idle_span_finish_reason']?.value).toBe('heartbeatFailed');
+  expect(pageloadSpan.attributes[SENTRY_IDLE_SPAN_FINISH_REASON]?.value).toBe('heartbeatFailed');
   expect(testSpan).toMatchObject({
     parent_span_id: pageloadSpan.span_id,
     trace_id: pageloadSpan.trace_id,

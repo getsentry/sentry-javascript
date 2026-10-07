@@ -1,6 +1,19 @@
 import { expect } from '@playwright/test';
 import { SDK_VERSION, SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE } from '@sentry/core';
 import {
+  SENTRY_IDLE_SPAN_FINISH_REASON,
+  SENTRY_SEGMENT_ID,
+  SENTRY_IS_LOCALHOST,
+  CULTURE_CALENDAR,
+  CULTURE_LOCALE,
+  CULTURE_TIMEZONE,
+  DEVICE_PROCESSOR_COUNT,
+  NETWORK_CONNECTION_EFFECTIVE_TYPE,
+  NETWORK_CONNECTION_RTT,
+  SENTRY_SDK_NAME,
+  SENTRY_SDK_VERSION,
+  SENTRY_SEGMENT_NAME,
+  SENTRY_LINK_TYPE,
   SENTRY_SEGMENT_NAME_SOURCE,
   SENTRY_TRACE_LIFECYCLE,
   URL_FULL,
@@ -78,32 +91,32 @@ sentryTest('starts a streamed navigation span on page navigation', async ({ brow
     [SENTRY_ORIGIN]: { type: 'string', value: 'auto.pageload.browser' },
     [SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE]: { type: 'integer', value: 1 },
     [SENTRY_SEGMENT_NAME_SOURCE]: { type: 'string', value: 'url' },
-    'sentry.idle_span_finish_reason': { type: 'string', value: 'idleTimeout' },
+    [SENTRY_IDLE_SPAN_FINISH_REASON]: { type: 'string', value: 'idleTimeout' },
   });
   expect(pageloadSpan.span_id).not.toBe(navigationSpan.span_id);
   await page.evaluate(() => (window as any).Sentry.flush());
   for (const root of [pageloadSpan, navigationSpan]) {
     collectedSpans
-      .filter(span => !span.is_segment && span.attributes['sentry.segment.id']?.value === root.span_id)
+      .filter(span => !span.is_segment && span.attributes[SENTRY_SEGMENT_ID]?.value === root.span_id)
       .forEach(span => expect(span.parent_span_id).toBe(root.span_id));
   }
 
   expect(navigationSpan).toEqual({
     attributes: {
-      'sentry.is_localhost': { value: false, type: 'boolean' },
+      [SENTRY_IS_LOCALHOST]: { value: false, type: 'boolean' },
       [SENTRY_TRACE_LIFECYCLE]: {
         type: 'string',
         value: 'stream',
       },
-      'culture.calendar': {
+      [CULTURE_CALENDAR]: {
         type: 'string',
         value: expect.any(String),
       },
-      'culture.locale': {
+      [CULTURE_LOCALE]: {
         type: 'string',
         value: expect.any(String),
       },
-      'culture.timezone': {
+      [CULTURE_TIMEZONE]: {
         type: 'string',
         value: expect.any(String),
       },
@@ -119,21 +132,21 @@ sentryTest('starts a streamed navigation span on page navigation', async ({ brow
         type: 'string',
         value: '/index.html',
       },
-      'device.processor_count': {
+      [DEVICE_PROCESSOR_COUNT]: {
         type: expect.stringMatching(/^(integer)|(double)$/),
         value: expect.any(Number),
       },
       ...(browserName !== 'webkit' && {
-        'network.connection.effective_type': {
+        [NETWORK_CONNECTION_EFFECTIVE_TYPE]: {
           type: 'string',
           value: expect.any(String),
         },
-        'network.connection.rtt': {
+        [NETWORK_CONNECTION_RTT]: {
           type: expect.stringMatching(/^(integer)|(double)$/),
           value: expect.any(Number),
         },
       }),
-      'sentry.idle_span_finish_reason': {
+      [SENTRY_IDLE_SPAN_FINISH_REASON]: {
         type: 'string',
         value: 'idleTimeout',
       },
@@ -149,15 +162,15 @@ sentryTest('starts a streamed navigation span on page navigation', async ({ brow
         type: 'string',
         value: `${pageloadTraceId}-${pageloadSpan.span_id}-1`,
       },
-      'sentry.sample_rate': {
+      [SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE]: {
         type: 'integer',
         value: 1,
       },
-      'sentry.sdk.name': {
+      [SENTRY_SDK_NAME]: {
         type: 'string',
         value: 'sentry.javascript.browser',
       },
-      'sentry.sdk.version': {
+      [SENTRY_SDK_VERSION]: {
         type: 'string',
         value: SDK_VERSION,
       },
@@ -165,15 +178,15 @@ sentryTest('starts a streamed navigation span on page navigation', async ({ brow
         type: 'array',
         value: expect.arrayContaining(['BrowserTracing', 'SpanStreaming']),
       },
-      'sentry.segment.id': {
+      [SENTRY_SEGMENT_ID]: {
         type: 'string',
         value: navigationSpan.span_id,
       },
-      'sentry.segment.name': {
+      [SENTRY_SEGMENT_NAME]: {
         type: 'string',
         value: 'Navigation',
       },
-      'sentry.segment.name.source': {
+      [SENTRY_SEGMENT_NAME_SOURCE]: {
         type: 'string',
         value: 'url',
       },
@@ -187,7 +200,7 @@ sentryTest('starts a streamed navigation span on page navigation', async ({ brow
     links: [
       {
         attributes: {
-          'sentry.link.type': {
+          [SENTRY_LINK_TYPE]: {
             type: 'string',
             value: 'previous_trace',
           },
@@ -231,7 +244,7 @@ sentryTest('handles pushState with full URL', async ({ getLocalTestUrl, page }) 
   expect(navigationSpan1.attributes).toMatchObject({
     [URL_FULL]: { type: 'string', value: 'http://sentry-test.io/sub-page' },
     [USER_AGENT_ORIGINAL]: { type: 'string', value: expect.any(String) },
-    'sentry.idle_span_finish_reason': { type: 'string', value: 'idleTimeout' },
+    [SENTRY_IDLE_SPAN_FINISH_REASON]: { type: 'string', value: 'idleTimeout' },
   });
 
   expect(navigationSpan1.attributes).toMatchObject({
@@ -265,7 +278,7 @@ sentryTest('handles pushState with full URL', async ({ getLocalTestUrl, page }) 
   expect(navigationSpan2.attributes).toMatchObject({
     [URL_FULL]: { type: 'string', value: 'http://sentry-test.io/sub-page-2' },
     [USER_AGENT_ORIGINAL]: { type: 'string', value: expect.any(String) },
-    'sentry.idle_span_finish_reason': { type: 'string', value: 'idleTimeout' },
+    [SENTRY_IDLE_SPAN_FINISH_REASON]: { type: 'string', value: 'idleTimeout' },
   });
 
   expect(navigationSpan2.attributes).toMatchObject({
@@ -289,7 +302,7 @@ sentryTest('handles pushState with full URL', async ({ getLocalTestUrl, page }) 
       type: 'string',
       value: 'navigation',
     },
-    ['sentry.idle_span_finish_reason']: {
+    [SENTRY_IDLE_SPAN_FINISH_REASON]: {
       type: 'string',
       value: 'idleTimeout',
     },

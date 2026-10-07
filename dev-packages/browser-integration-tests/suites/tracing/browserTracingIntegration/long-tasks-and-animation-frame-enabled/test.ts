@@ -1,4 +1,11 @@
-import { SENTRY_OP, SENTRY_ORIGIN } from '@sentry/conventions/attributes';
+import {
+  BROWSER_SCRIPT_INVOKER,
+  CODE_FILE_PATH,
+  BROWSER_SCRIPT_SOURCE_CHAR_POSITION,
+  BROWSER_SCRIPT_INVOKER_TYPE,
+  SENTRY_OP,
+  SENTRY_ORIGIN,
+} from '@sentry/conventions/attributes';
 import type { Route } from '@playwright/test';
 import { expect } from '@playwright/test';
 import { sentryTest } from '../../../../utils/fixtures';
@@ -33,7 +40,7 @@ sentryTest(
     expect(uiSpans.length).toBeGreaterThanOrEqual(1);
 
     const topLevelUISpan = uiSpans.find(
-      s => s.attributes['browser.script.invoker']?.value === 'https://sentry-test-site.example/path/to/script.js',
+      s => s.attributes[BROWSER_SCRIPT_INVOKER]?.value === 'https://sentry-test-site.example/path/to/script.js',
     )!;
 
     expect(topLevelUISpan).toEqual(
@@ -41,13 +48,13 @@ sentryTest(
         name: 'Main UI thread blocked',
         parent_span_id: pageloadSpan.span_id,
         attributes: expect.objectContaining({
-          'code.file.path': { type: 'string', value: 'https://sentry-test-site.example/path/to/script.js' },
-          'browser.script.source_char_position': expect.objectContaining({ value: 0 }),
-          'browser.script.invoker': {
+          [CODE_FILE_PATH]: { type: 'string', value: 'https://sentry-test-site.example/path/to/script.js' },
+          [BROWSER_SCRIPT_SOURCE_CHAR_POSITION]: expect.objectContaining({ value: 0 }),
+          [BROWSER_SCRIPT_INVOKER]: {
             type: 'string',
             value: 'https://sentry-test-site.example/path/to/script.js',
           },
-          'browser.script.invoker_type': { type: 'string', value: 'classic-script' },
+          [BROWSER_SCRIPT_INVOKER_TYPE]: { type: 'string', value: 'classic-script' },
           [SENTRY_OP]: { type: 'string', value: 'ui.long_animation_frame' },
           [SENTRY_ORIGIN]: { type: 'string', value: 'auto.ui.browser.metrics' },
         }),
@@ -87,7 +94,7 @@ sentryTest('captures long animation frame span for event listener.', async ({ br
   expect(uiSpans.length).toBeGreaterThanOrEqual(2);
 
   const eventListenerUISpan = uiSpans.find(
-    s => s.attributes['browser.script.invoker']?.value === 'BUTTON#clickme.onclick',
+    s => s.attributes[BROWSER_SCRIPT_INVOKER]?.value === 'BUTTON#clickme.onclick',
   )!;
 
   expect(eventListenerUISpan).toEqual(
@@ -95,9 +102,9 @@ sentryTest('captures long animation frame span for event listener.', async ({ br
       name: 'Main UI thread blocked',
       parent_span_id: pageloadSpan.span_id,
       attributes: expect.objectContaining({
-        'browser.script.invoker': { type: 'string', value: 'BUTTON#clickme.onclick' },
-        'browser.script.invoker_type': { type: 'string', value: 'event-listener' },
-        'code.file.path': { type: 'string', value: 'https://sentry-test-site.example/path/to/script.js' },
+        [BROWSER_SCRIPT_INVOKER]: { type: 'string', value: 'BUTTON#clickme.onclick' },
+        [BROWSER_SCRIPT_INVOKER_TYPE]: { type: 'string', value: 'event-listener' },
+        [CODE_FILE_PATH]: { type: 'string', value: 'https://sentry-test-site.example/path/to/script.js' },
         [SENTRY_OP]: { type: 'string', value: 'ui.long_animation_frame' },
         [SENTRY_ORIGIN]: { type: 'string', value: 'auto.ui.browser.metrics' },
       }),

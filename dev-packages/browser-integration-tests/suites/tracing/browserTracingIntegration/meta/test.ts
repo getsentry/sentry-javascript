@@ -1,3 +1,4 @@
+import { SENTRY_SEGMENT_ID } from '@sentry/conventions/attributes';
 import { expect } from '@playwright/test';
 import { sentryTest } from '../../../../utils/fixtures';
 import { shouldSkipTracingTest } from '../../../../utils/helpers';
@@ -58,7 +59,7 @@ sentryTest("creates a navigation that's not influenced by `sentry-trace` <meta>"
   expect(navigation.span_id).toBeDefined();
   for (const root of [pageload, navigation]) {
     spans
-      .filter(span => !span.is_segment && span.attributes['sentry.segment.id']?.value === root.span_id)
+      .filter(span => !span.is_segment && span.attributes[SENTRY_SEGMENT_ID]?.value === root.span_id)
       .forEach(span => expect(span.parent_span_id).toBe(root.span_id));
   }
 });

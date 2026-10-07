@@ -1,4 +1,11 @@
-import { SENTRY_OP, SENTRY_ORIGIN } from '@sentry/conventions/attributes';
+import {
+  BROWSER_SCRIPT_INVOKER,
+  CODE_FILE_PATH,
+  BROWSER_SCRIPT_SOURCE_CHAR_POSITION,
+  BROWSER_SCRIPT_INVOKER_TYPE,
+  SENTRY_OP,
+  SENTRY_ORIGIN,
+} from '@sentry/conventions/attributes';
 import type { Route } from '@playwright/test';
 import { expect } from '@playwright/test';
 import type { Event } from '@sentry/core';
@@ -34,7 +41,7 @@ sentryTest(
     expect(uiSpans?.length).toBeGreaterThanOrEqual(1);
 
     const topLevelUISpan = (uiSpans || []).find(
-      span => span.data?.['browser.script.invoker'] === 'https://sentry-test-site.example/path/to/script.js',
+      span => span.data?.[BROWSER_SCRIPT_INVOKER] === 'https://sentry-test-site.example/path/to/script.js',
     )!;
     expect(topLevelUISpan).toEqual(
       expect.objectContaining({
@@ -42,10 +49,10 @@ sentryTest(
         description: 'Main UI thread blocked',
         parent_span_id: eventData.contexts?.trace?.span_id,
         data: {
-          'code.file.path': 'https://sentry-test-site.example/path/to/script.js',
-          'browser.script.source_char_position': 0,
-          'browser.script.invoker': 'https://sentry-test-site.example/path/to/script.js',
-          'browser.script.invoker_type': 'classic-script',
+          [CODE_FILE_PATH]: 'https://sentry-test-site.example/path/to/script.js',
+          [BROWSER_SCRIPT_SOURCE_CHAR_POSITION]: 0,
+          [BROWSER_SCRIPT_INVOKER]: 'https://sentry-test-site.example/path/to/script.js',
+          [BROWSER_SCRIPT_INVOKER_TYPE]: 'classic-script',
           [SENTRY_OP]: 'ui.long_animation_frame',
           [SENTRY_ORIGIN]: 'auto.ui.browser.metrics',
         },
@@ -89,7 +96,7 @@ sentryTest(
 
     expect(uiSpans.length).toBeGreaterThanOrEqual(2);
 
-    const eventListenerUISpan = uiSpans.find(span => span.data['browser.script.invoker'] === 'BUTTON#clickme.onclick')!;
+    const eventListenerUISpan = uiSpans.find(span => span.data[BROWSER_SCRIPT_INVOKER] === 'BUTTON#clickme.onclick')!;
 
     expect(eventListenerUISpan).toEqual(
       expect.objectContaining({
@@ -97,9 +104,9 @@ sentryTest(
         description: 'Main UI thread blocked',
         parent_span_id: eventData.contexts?.trace?.span_id,
         data: {
-          'browser.script.invoker': 'BUTTON#clickme.onclick',
-          'browser.script.invoker_type': 'event-listener',
-          'code.file.path': 'https://sentry-test-site.example/path/to/script.js',
+          [BROWSER_SCRIPT_INVOKER]: 'BUTTON#clickme.onclick',
+          [BROWSER_SCRIPT_INVOKER_TYPE]: 'event-listener',
+          [CODE_FILE_PATH]: 'https://sentry-test-site.example/path/to/script.js',
           [SENTRY_OP]: 'ui.long_animation_frame',
           [SENTRY_ORIGIN]: 'auto.ui.browser.metrics',
         },

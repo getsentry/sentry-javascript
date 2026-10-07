@@ -1,6 +1,6 @@
 import { SENTRY_LINK_TYPE } from '@sentry/conventions/attributes';
 import { expect } from '@playwright/test';
-import { extractTraceparentData, parseBaggageHeader } from '@sentry/core';
+import { SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE, extractTraceparentData, parseBaggageHeader } from '@sentry/core';
 import { sentryTest } from '../../../../../../utils/fixtures';
 import { shouldSkipTracingTest, waitForTracingHeadersOnUrl } from '../../../../../../utils/helpers';
 import { getSpanOp, waitForStreamedSpanEnvelope } from '../../../../../../utils/spanUtils';
@@ -22,7 +22,7 @@ sentryTest.describe('When `consistentTraceSampling` is `true`', () => {
       const pageloadSampleRand = Number(envelope[0].trace?.sample_rand);
       const pageloadSpan = envelope[1][0][1].items.find(s => getSpanOp(s) === 'pageload')!;
 
-      expect(pageloadSpan.attributes['sentry.sample_rate']?.value).toBe(1);
+      expect(pageloadSpan.attributes[SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE]?.value).toBe(1);
       expect(Number.isNaN(pageloadSampleRand)).toBe(false);
       expect(pageloadSampleRand).toBeGreaterThanOrEqual(0);
       expect(pageloadSampleRand).toBeLessThanOrEqual(1);
@@ -102,7 +102,7 @@ sentryTest.describe('When `consistentTraceSampling` is `true`', () => {
 
       const pageloadSpan = envelope[1][0][1].items.find(s => getSpanOp(s) === 'pageload')!;
 
-      expect(pageloadSpan.attributes['sentry.sample_rate']?.value).toBe(1);
+      expect(pageloadSpan.attributes[SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE]?.value).toBe(1);
 
       return { pageloadSpan, pageloadSampleRand };
     });
@@ -126,8 +126,8 @@ sentryTest.describe('When `consistentTraceSampling` is `true`', () => {
 
       expect(fetchTraceSampleRand).toBe(pageloadSampleRand);
 
-      expect(fetchTraceSpan.attributes['sentry.sample_rate']?.value).toEqual(
-        pageloadSpan.attributes['sentry.sample_rate']?.value,
+      expect(fetchTraceSpan.attributes[SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE]?.value).toEqual(
+        pageloadSpan.attributes[SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE]?.value,
       );
       expect(fetchTraceSpan.trace_id).not.toEqual(pageloadSpan.trace_id);
 

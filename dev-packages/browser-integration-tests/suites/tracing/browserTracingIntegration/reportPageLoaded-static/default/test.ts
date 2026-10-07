@@ -1,4 +1,9 @@
-import { SENTRY_SEGMENT_NAME_SOURCE, SENTRY_OP, SENTRY_ORIGIN } from '@sentry/conventions/attributes';
+import {
+  SENTRY_IDLE_SPAN_FINISH_REASON,
+  SENTRY_SEGMENT_NAME_SOURCE,
+  SENTRY_OP,
+  SENTRY_ORIGIN,
+} from '@sentry/conventions/attributes';
 import { expect } from '@playwright/test';
 import { SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE } from '@sentry/browser';
 import { sentryTest } from '../../../../../utils/fixtures';
@@ -27,7 +32,7 @@ sentryTest(
       [SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE]: 1,
       [SENTRY_SEGMENT_NAME_SOURCE]: 'url',
       [SENTRY_OP]: 'pageload',
-      ['sentry.idle_span_finish_reason']: 'reportPageLoaded',
+      [SENTRY_IDLE_SPAN_FINISH_REASON]: 'reportPageLoaded',
     });
 
     // We wait for 2.5 seconds before calling Sentry.reportPageLoaded(). The span starts at navigation start,

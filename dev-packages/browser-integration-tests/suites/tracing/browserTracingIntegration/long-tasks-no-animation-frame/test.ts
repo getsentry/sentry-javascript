@@ -1,3 +1,4 @@
+import { SENTRY_OP } from '@sentry/conventions/attributes';
 import type { Route } from '@playwright/test';
 import { expect } from '@playwright/test';
 import { sentryTest } from '../../../../utils/fixtures';
@@ -28,7 +29,7 @@ sentryTest('should capture long task.', async ({ browserName, getLocalTestUrl, p
   const [firstUISpan] = uiSpans;
   expect(firstUISpan).toEqual(
     expect.objectContaining({
-      attributes: expect.objectContaining({ 'sentry.op': { type: 'string', value: 'ui.long_task' } }),
+      attributes: expect.objectContaining({ [SENTRY_OP]: { type: 'string', value: 'ui.long_task' } }),
       name: 'Main UI thread blocked',
       parent_span_id: pageloadSpan.span_id,
     }),

@@ -1,3 +1,4 @@
+import { URL_PATH, SENTRY_SEGMENT_ID } from '@sentry/conventions/attributes';
 import { expect } from '@playwright/test';
 import { sentryTest } from '../../../../../utils/fixtures';
 import { shouldSkipTracingTest } from '../../../../../utils/helpers';
@@ -16,12 +17,12 @@ sentryTest(
     const pageloadSpanPromise = waitForStreamedSpan(page, span => getSpanOp(span) === 'pageload');
     const navigationSpanPromise = waitForStreamedSpan(
       page,
-      span => getSpanOp(span) === 'navigation' && span.attributes['url.path']?.value === '/sub-page',
+      span => getSpanOp(span) === 'navigation' && span.attributes[URL_PATH]?.value === '/sub-page',
     );
 
     const navigationSpan2Promise = waitForStreamedSpan(
       page,
-      span => getSpanOp(span) === 'navigation' && span.attributes['url.path']?.value === '/sub-page-2',
+      span => getSpanOp(span) === 'navigation' && span.attributes[URL_PATH]?.value === '/sub-page-2',
     );
 
     await page.goto(url);
@@ -42,22 +43,22 @@ sentryTest(
 
     expect(getSpanOp(navigationSpan)).toBe('navigation');
     expect(navigationSpan.name).toEqual('Navigation');
-    expect(navigationSpan.attributes['url.path']?.value).toEqual('/sub-page');
+    expect(navigationSpan.attributes[URL_PATH]?.value).toEqual('/sub-page');
 
     const redirectSpans = allSpans
-      .filter(span => span.attributes['sentry.segment.id']?.value === navigationSpan.span_id)
+      .filter(span => span.attributes[SENTRY_SEGMENT_ID]?.value === navigationSpan.span_id)
       .filter(span => getSpanOp(span) === 'navigation.redirect');
     expect(redirectSpans).toHaveLength(1);
 
     expect(redirectSpans[0].name).toBe('Navigation');
-    expect(redirectSpans[0].attributes['url.path']?.value).toBe('/sub-page-redirect');
+    expect(redirectSpans[0].attributes[URL_PATH]?.value).toBe('/sub-page-redirect');
 
     expect(getSpanOp(navigationSpan2)).toBe('navigation');
     expect(navigationSpan2.name).toEqual('Navigation');
-    expect(navigationSpan2.attributes['url.path']?.value).toEqual('/sub-page-2');
+    expect(navigationSpan2.attributes[URL_PATH]?.value).toEqual('/sub-page-2');
 
     const redirectSpans2 = allSpans
-      .filter(span => span.attributes['sentry.segment.id']?.value === navigationSpan2.span_id)
+      .filter(span => span.attributes[SENTRY_SEGMENT_ID]?.value === navigationSpan2.span_id)
       .filter(span => getSpanOp(span) === 'navigation.redirect');
     expect(redirectSpans2).toHaveLength(0);
   },

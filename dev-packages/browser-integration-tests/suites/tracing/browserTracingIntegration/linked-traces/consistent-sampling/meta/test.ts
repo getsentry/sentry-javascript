@@ -1,5 +1,6 @@
 import { expect } from '@playwright/test';
 import {
+  SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE,
   extractTraceparentData,
   parseBaggageHeader,
   SEMANTIC_ATTRIBUTE_SENTRY_PREVIOUS_TRACE_SAMPLE_RATE,
@@ -32,7 +33,7 @@ sentryTest.describe('When `consistentTraceSampling` is `true` and page contains 
       expect(Number(envelope[0].trace?.sample_rate)).toBe(metaTagSampleRate);
 
       // since the local sample rate was not applied, the sample rate attribute shouldn't be set
-      expect(span.attributes['sentry.sample_rate']).toBeUndefined();
+      expect(span.attributes[SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE]).toBeUndefined();
       expect(span.attributes[SEMANTIC_ATTRIBUTE_SENTRY_PREVIOUS_TRACE_SAMPLE_RATE]).toBeUndefined();
 
       return span;
@@ -57,7 +58,7 @@ sentryTest.describe('When `consistentTraceSampling` is `true` and page contains 
       expect(envelope[0].trace?.sampled).toBe('true');
 
       // since the local sample rate was not applied, the sample rate attribute shouldn't be set
-      expect(span.attributes['sentry.sample_rate']).toBeUndefined();
+      expect(span.attributes[SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE]).toBeUndefined();
 
       // but we need to set this attribute to still be able to correctly add the sample rate to the DSC (checked above in trace header)
       expect(span.attributes[SEMANTIC_ATTRIBUTE_SENTRY_PREVIOUS_TRACE_SAMPLE_RATE]?.value).toBe(metaTagSampleRate);
@@ -86,7 +87,7 @@ sentryTest.describe('When `consistentTraceSampling` is `true` and page contains 
       expect(envelope[0].trace?.sampled).toEqual('true');
 
       // since the local sample rate was not applied, the sample rate attribute shouldn't be set
-      expect(navSpan.attributes['sentry.sample_rate']).toBeUndefined();
+      expect(navSpan.attributes[SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE]).toBeUndefined();
 
       // but we need to set this attribute to still be able to correctly add the sample rate to the DSC (checked above in trace header)
       expect(navSpan.attributes[SEMANTIC_ATTRIBUTE_SENTRY_PREVIOUS_TRACE_SAMPLE_RATE]?.value).toBe(metaTagSampleRate);
@@ -115,7 +116,7 @@ sentryTest.describe('When `consistentTraceSampling` is `true` and page contains 
         expect(Number(envelope[0].trace?.sample_rate)).toBe(metaTagSampleRate);
 
         // since the local sample rate was not applied, the sample rate attribute shouldn't be set
-        expect(span.attributes['sentry.sample_rate']).toBeUndefined();
+        expect(span.attributes[SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE]).toBeUndefined();
         expect(span.attributes[SEMANTIC_ATTRIBUTE_SENTRY_PREVIOUS_TRACE_SAMPLE_RATE]).toBeUndefined();
 
         return span;
@@ -140,7 +141,7 @@ sentryTest.describe('When `consistentTraceSampling` is `true` and page contains 
 
         expect(fetchTraceSampleRand).toEqual(metaTagSampleRand);
 
-        expect(fetchTraceSpan.attributes['sentry.sample_rate']).toBeUndefined();
+        expect(fetchTraceSpan.attributes[SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE]).toBeUndefined();
         expect(fetchTraceSpan.attributes[SEMANTIC_ATTRIBUTE_SENTRY_PREVIOUS_TRACE_SAMPLE_RATE]?.value).toBe(
           metaTagSampleRate,
         );

@@ -1,3 +1,4 @@
+import { SENTRY_CANCELLATION_REASON } from '@sentry/conventions/attributes';
 import { expect } from '@playwright/test';
 import type { Event } from '@sentry/core';
 import { sentryTest } from '../../../../utils/fixtures';
@@ -16,5 +17,5 @@ sentryTest('should finish pageload transaction when the page goes background', a
 
   expect(pageloadTransaction.contexts?.trace?.op).toBe('pageload');
   expect(pageloadTransaction.contexts?.trace?.status).toBe('cancelled');
-  expect(pageloadTransaction.contexts?.trace?.data?.['sentry.cancellation_reason']).toBe('document.hidden');
+  expect(pageloadTransaction.contexts?.trace?.data?.[SENTRY_CANCELLATION_REASON]).toBe('document.hidden');
 });

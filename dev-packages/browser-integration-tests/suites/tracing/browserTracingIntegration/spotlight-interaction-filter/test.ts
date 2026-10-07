@@ -1,3 +1,4 @@
+import { BROWSER_WEB_VITAL_INP_TARGET } from '@sentry/conventions/attributes';
 import { expect } from '@playwright/test';
 import { sentryTest } from '../../../../utils/fixtures';
 import { shouldSkipCdnBundleTest, shouldSkipTracingTest } from '../../../../utils/helpers';
@@ -28,7 +29,7 @@ sentryTest('filters spotlight interaction spans via ignoreSpans', async ({ getLo
   );
   const regularInteractionPromise = waitForStreamedSpan(
     page,
-    span => span.attributes['browser.web_vital.inp.target']?.value === REGULAR_BUTTON,
+    span => span.attributes[BROWSER_WEB_VITAL_INP_TARGET]?.value === REGULAR_BUTTON,
   );
   await page.locator('[data-test-id=regular-button]').click();
   await expect(page.locator('.clicked[data-test-id=regular-button]')).toBeVisible();
@@ -38,12 +39,12 @@ sentryTest('filters spotlight interaction spans via ignoreSpans', async ({ getLo
   expect(getSpanOp(interaction)).toBe('ui.interaction.click');
   expect(interaction.parent_span_id).toBe(regular.span_id);
   expect(interaction.trace_id).toBe(regular.trace_id);
-  expect(interaction.attributes['browser.web_vital.inp.target']?.value).not.toContain('#sentry-spotlight');
+  expect(interaction.attributes[BROWSER_WEB_VITAL_INP_TARGET]?.value).not.toContain('#sentry-spotlight');
   expect(
     spans.filter(
       span =>
         getSpanOp(span) === 'ui.interaction.click' &&
-        span.attributes['browser.web_vital.inp.target']?.value === SPOTLIGHT_BUTTON,
+        span.attributes[BROWSER_WEB_VITAL_INP_TARGET]?.value === SPOTLIGHT_BUTTON,
     ),
   ).toHaveLength(0);
 });

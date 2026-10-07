@@ -1,3 +1,4 @@
+import { SENTRY_SEGMENT_ID, SENTRY_OP } from '@sentry/conventions/attributes';
 import { expect } from '@playwright/test';
 import { sentryTest } from '../../../../../utils/fixtures';
 import { shouldSkipTracingTest } from '../../../../../utils/helpers';
@@ -23,11 +24,11 @@ sentryTest(
     // Ensure a navigation span is sent, too
     await navigationSpanPromise;
 
-    const spans = allSpans.filter(span => span.attributes['sentry.segment.id']?.value === pageloadSpan.span_id);
+    const spans = allSpans.filter(span => span.attributes[SENTRY_SEGMENT_ID]?.value === pageloadSpan.span_id);
 
     expect(spans).not.toContainEqual(
       expect.objectContaining({
-        attributes: expect.objectContaining({ 'sentry.op': { type: 'string', value: 'navigation.redirect' } }),
+        attributes: expect.objectContaining({ [SENTRY_OP]: { type: 'string', value: 'navigation.redirect' } }),
       }),
     );
   },

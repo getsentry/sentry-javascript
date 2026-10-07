@@ -1,3 +1,4 @@
+import { SENTRY_CANCELLATION_REASON } from '@sentry/conventions/attributes';
 import { expect } from '@playwright/test';
 import { sentryTest } from '../../../../utils/fixtures';
 import { shouldSkipTracingTest } from '../../../../utils/helpers';
@@ -14,5 +15,5 @@ sentryTest('finishes streamed pageload span when the page goes background', asyn
 
   expect(getSpanOp(pageloadSpan)).toBe('pageload');
   expect(pageloadSpan.status).toBe('ok');
-  expect(pageloadSpan.attributes['sentry.cancellation_reason']?.value).toBe('document.hidden');
+  expect(pageloadSpan.attributes[SENTRY_CANCELLATION_REASON]?.value).toBe('document.hidden');
 });
