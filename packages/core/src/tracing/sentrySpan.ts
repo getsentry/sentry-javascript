@@ -366,8 +366,8 @@ export class SentrySpan implements Span {
    * device slept), and it can never be negative.
    */
   private _getEndTimeFromDuration(): number {
-    const performanceNow = this._startPerformanceNow == null ? undefined : safePerformanceNow();
-    if (performanceNow == null || this._startPerformanceNow == null) {
+    const performanceNow = safePerformanceNow();
+    if (this._startPerformanceNow == null || performanceNow == null) {
       return timestampInSeconds();
     }
     return this._startTime + (performanceNow - this._startPerformanceNow) / 1000;
