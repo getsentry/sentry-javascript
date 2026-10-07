@@ -1,5 +1,10 @@
+import {
+  GEN_AI_USAGE_CACHE_CREATION_INPUT_TOKENS,
+  GEN_AI_USAGE_CACHE_READ_INPUT_TOKENS,
+} from '@sentry/conventions/attributes';
 import type { Span } from '../../types/span';
 import type { SpanAttributeValue } from '../../types/span';
+import { isObjectLike } from '../../utils/is';
 import {
   GEN_AI_CONVERSATION_ID_ATTRIBUTE,
   GEN_AI_REQUEST_DIMENSIONS_ATTRIBUTE,
@@ -87,6 +92,15 @@ export function addResponseAttributes(span: Span, result: unknown, recordOutputs
 
     if (typeof usage.total_tokens === 'number') {
       attrs[GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE] = usage.total_tokens;
+    }
+    const inputDetails = usage.prompt_tokens_details ?? usage.input_tokens_details;
+    if (isObjectLike(inputDetails)) {
+      if (typeof inputDetails.cached_tokens === 'number') {
+        attrs[GEN_AI_USAGE_CACHE_READ_INPUT_TOKENS] = inputDetails.cached_tokens;
+      }
+      if (typeof inputDetails.cache_write_tokens === 'number') {
+        attrs[GEN_AI_USAGE_CACHE_CREATION_INPUT_TOKENS] = inputDetails.cache_write_tokens;
+      }
     }
   }
 

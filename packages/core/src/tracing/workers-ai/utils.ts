@@ -21,7 +21,7 @@ import {
   GEN_AI_RESPONSE_TEXT_ATTRIBUTE,
   GEN_AI_RESPONSE_TOOL_CALLS_ATTRIBUTE,
 } from '../ai/gen-ai-attributes';
-import { extractSystemInstructions, getTruncatedJsonString, setTokenUsageAttributes } from '../ai/utils';
+import { extractSystemInstructions, getTruncatedJsonString, getTokenUsageAttributes } from '../ai/utils';
 import { stringify } from '../../utils/string';
 import { WORKERS_AI_ORIGIN, WORKERS_AI_PROVIDER_NAME } from './constants';
 import type { WorkersAiInput, WorkersAiOutput } from './types';
@@ -201,7 +201,7 @@ export function addResponseAttributes(span: Span, result: unknown, recordOutputs
   const response = result as WorkersAiOutput;
 
   if (response.usage) {
-    setTokenUsageAttributes(span, response.usage.prompt_tokens, response.usage.completion_tokens);
+    span.setAttributes(getTokenUsageAttributes(response.usage.prompt_tokens, response.usage.completion_tokens));
   }
 
   if (recordOutputs) {

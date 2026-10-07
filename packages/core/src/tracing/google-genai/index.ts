@@ -1,4 +1,5 @@
 /* eslint-disable max-lines */
+import { GEN_AI_USAGE_REASONING_OUTPUT_TOKENS } from '@sentry/conventions/attributes';
 import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '../../semanticAttributes';
 import { SPAN_STATUS_ERROR } from '../../tracing';
 import { startSpan, startSpanManual } from '../../tracing/trace';
@@ -22,14 +23,12 @@ import {
   GEN_AI_RESPONSE_TOOL_CALLS_ATTRIBUTE,
   GEN_AI_SYSTEM_ATTRIBUTE,
   GEN_AI_SYSTEM_INSTRUCTIONS_ATTRIBUTE,
-  GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE,
-  GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE,
-  GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE,
 } from '../ai/gen-ai-attributes';
 import type { InstrumentedMethodEntry } from '../ai/utils';
 import { stringify } from '../../utils/string';
 import {
   buildMethodPath,
+  getTokenUsageAttributes,
   extractSystemInstructions,
   getTruncatedJsonString,
   resolveAIRecordingOptions,
@@ -215,20 +214,18 @@ export function addResponseAttributes(span: Span, response: GoogleGenAIResponse,
   // Add usage metadata if present
   if (response.usageMetadata && typeof response.usageMetadata === 'object') {
     const usage = response.usageMetadata;
-    if (typeof usage.promptTokenCount === 'number') {
-      span.setAttributes({
-        [GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE]: usage.promptTokenCount,
-      });
-    }
-    if (typeof usage.candidatesTokenCount === 'number') {
-      span.setAttributes({
-        [GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE]: usage.candidatesTokenCount,
-      });
-    }
-    if (typeof usage.totalTokenCount === 'number') {
-      span.setAttributes({
-        [GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE]: usage.totalTokenCount,
-      });
+    const hasOutput = typeof usage.candidatesTokenCount === 'number' || typeof usage.thoughtsTokenCount === 'number';
+    span.setAttributes(
+      getTokenUsageAttributes(
+        usage.promptTokenCount,
+        hasOutput ? (usage.candidatesTokenCount ?? 0) + (usage.thoughtsTokenCount ?? 0) : undefined,
+        undefined,
+        usage.cachedContentTokenCount,
+        usage.totalTokenCount,
+      ),
+    );
+    if (typeof usage.thoughtsTokenCount === 'number') {
+      span.setAttribute(GEN_AI_USAGE_REASONING_OUTPUT_TOKENS, usage.thoughtsTokenCount);
     }
   }
 

@@ -84,7 +84,12 @@ function handleMessageMetadata(event: AnthropicAiStreamingEvent, state: Streamin
     if (message.model) state.responseModel = message.model;
 
     if (message.usage) {
-      if (typeof message.usage.input_tokens === 'number') state.promptTokens = message.usage.input_tokens;
+      if (typeof message.usage.input_tokens === 'number') {
+        state.promptTokens =
+          message.usage.input_tokens +
+          (message.usage.cache_creation_input_tokens ?? 0) +
+          (message.usage.cache_read_input_tokens ?? 0);
+      }
       if (typeof message.usage.cache_creation_input_tokens === 'number')
         state.cacheCreationInputTokens = message.usage.cache_creation_input_tokens;
       if (typeof message.usage.cache_read_input_tokens === 'number')
