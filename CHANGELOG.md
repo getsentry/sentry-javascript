@@ -4,7 +4,9 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
-- **feat(server-utils)**: The new `piDurableIntegration` traces agents built with [pi-durable](https://github.com/earendil-works/pi/tree/main/packages/durable): each run, with its model requests and tool calls.
+- **feat(server-utils)** Add instrumentation for pi-durable ([#24993](https://github.com/getsentry/sentry-javascript/pull/24993/))
+
+The new `piDurableIntegration` traces agents built with [pi-durable](https://github.com/earendil-works/pi/tree/main/packages/durable): each run, with its model requests and tool calls.
 
 Work in this release was contributed by @zkasuran. Thank you for your contribution!
 
