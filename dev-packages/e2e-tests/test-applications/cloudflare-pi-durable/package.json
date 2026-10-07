@@ -22,6 +22,7 @@
     "@cloudflare/workers-types": "^4.20260426.0",
     "@playwright/test": "~1.63.0",
     "@sentry-internal/test-utils": "link:../../../test-utils",
+    "@sentry/conventions": "0.26.0",
     "typescript": "^5.5.2",
     "vite": "7.3.5",
     "wrangler": "^4.136.2"
