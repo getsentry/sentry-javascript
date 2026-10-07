@@ -2,6 +2,7 @@
 // Although this is not ideal, this is the best we can do until we have a better way to test cloudflare workers.
 
 import type { ExecutionContext, MessageBatch } from '@cloudflare/workers-types';
+import { SENTRY_TRACE_LIFECYCLE } from '@sentry/conventions/attributes';
 import type { Event } from '@sentry/core';
 import * as SentryCore from '@sentry/core';
 import { beforeEach, describe, expect, onTestFinished, test, vi } from 'vitest';
@@ -287,6 +288,7 @@ describe('instrumentQueue', () => {
           'messaging.message.retry.count': batch.messages.reduce((acc, message) => acc + message.attempts - 1, 0),
           'sentry.sample_rate': 1,
           'sentry.segment.name.source': 'task',
+          [SENTRY_TRACE_LIFECYCLE]: 'static',
         },
         op: 'queue.process',
         origin: 'auto.faas.cloudflare.queue',

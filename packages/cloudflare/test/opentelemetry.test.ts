@@ -1,4 +1,5 @@
 import { trace } from '@opentelemetry/api';
+import { SENTRY_TRACE_LIFECYCLE } from '@sentry/conventions/attributes';
 import type { TransactionEvent } from '@sentry/core';
 import { getActiveSpan, spanToJSON, startSpan } from '@sentry/core';
 import { setAsyncLocalStorageAsyncContextStrategy } from '@sentry/server-utils/no-diagnostic-channels';
@@ -81,6 +82,7 @@ describe('opentelemetry compatibility', () => {
       'sentry.origin': 'manual',
       'sentry.sample_rate': 1,
       'sentry.segment.name.source': 'custom',
+      [SENTRY_TRACE_LIFECYCLE]: 'static',
     });
 
     expect(transactionEvent2?.spans?.length).toBe(1);
@@ -90,6 +92,7 @@ describe('opentelemetry compatibility', () => {
       'sentry.sample_rate': 1,
       'sentry.segment.name.source': 'custom',
       'test.attribute': 'test',
+      [SENTRY_TRACE_LIFECYCLE]: 'static',
     });
 
     expect(transactionEvent2?.spans).toEqual([
@@ -98,6 +101,7 @@ describe('opentelemetry compatibility', () => {
         data: {
           'sentry.origin': 'manual',
           'test.attribute': 'test2',
+          [SENTRY_TRACE_LIFECYCLE]: 'static',
         },
       }),
     ]);
@@ -135,6 +139,7 @@ describe('opentelemetry compatibility', () => {
       'sentry.origin': 'manual',
       'sentry.sample_rate': 1,
       'sentry.segment.name.source': 'custom',
+      [SENTRY_TRACE_LIFECYCLE]: 'static',
     });
 
     expect(transactionEvent?.spans).toEqual([
@@ -142,6 +147,7 @@ describe('opentelemetry compatibility', () => {
         description: 'otel span',
         data: {
           'sentry.origin': 'manual',
+          [SENTRY_TRACE_LIFECYCLE]: 'static',
         },
       }),
     ]);

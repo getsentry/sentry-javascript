@@ -1,4 +1,4 @@
-import { SENTRY_OP, SENTRY_ORIGIN } from '@sentry/conventions/attributes';
+import { SENTRY_OP, SENTRY_ORIGIN, SENTRY_TRACE_LIFECYCLE } from '@sentry/conventions/attributes';
 import { expect, test } from '@playwright/test';
 import { waitForTransaction } from '@sentry-internal/test-utils';
 
@@ -267,6 +267,7 @@ test.describe('TraceDirective', () => {
             [SENTRY_OP]: 'ui.mount',
             [SENTRY_ORIGIN]: 'auto.ui.angular.trace_directive',
             'ui.component_name': 'sample-component',
+            [SENTRY_TRACE_LIFECYCLE]: 'static',
           },
           description: '<sample-component>', // custom component name passed to trace directive
           op: 'ui.mount',
@@ -279,6 +280,7 @@ test.describe('TraceDirective', () => {
             [SENTRY_OP]: 'ui.mount',
             [SENTRY_ORIGIN]: 'auto.ui.angular.trace_directive',
             'ui.component_name': 'app-sample-component',
+            [SENTRY_TRACE_LIFECYCLE]: 'static',
           },
           description: '<app-sample-component>', // fallback selector name
           op: 'ui.mount',
@@ -313,6 +315,7 @@ test.describe('TraceClass Decorator', () => {
           [SENTRY_OP]: 'ui.mount',
           [SENTRY_ORIGIN]: 'auto.ui.angular.trace_class_decorator',
           'ui.component_name': 'ComponentTrackingComponent',
+          [SENTRY_TRACE_LIFECYCLE]: 'static',
         },
         description: '<ComponentTrackingComponent>',
         op: 'ui.mount',
@@ -346,6 +349,7 @@ test.describe('TraceMethod Decorator', () => {
           [SENTRY_OP]: 'function',
           [SENTRY_ORIGIN]: 'auto.ui.angular.trace_method_decorator',
           'code.function.name': 'ngOnInit',
+          [SENTRY_TRACE_LIFECYCLE]: 'static',
         },
         description: '<ngOnInit>',
         op: 'function',
@@ -377,6 +381,7 @@ test.describe('TraceMethod Decorator', () => {
           [SENTRY_OP]: 'function',
           [SENTRY_ORIGIN]: 'auto.ui.angular.trace_method_decorator',
           'code.function.name': 'ngAfterViewInit',
+          [SENTRY_TRACE_LIFECYCLE]: 'static',
         },
         description: '<unnamed>',
         op: 'function',

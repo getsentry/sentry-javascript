@@ -1,3 +1,4 @@
+import { SENTRY_TRACE_LIFECYCLE } from '@sentry/conventions/attributes';
 import type { SpanJSON } from '@sentry/core';
 import { afterAll, expect } from 'vitest';
 import { cleanupChildProcesses, createEsmAndCjsTests, describeWithDockerCompose } from '../../../utils/runner';
@@ -44,6 +45,7 @@ describeWithDockerCompose('Prisma ORM v6 Tests', { workingDirectory: [__dirname]
                     data: {
                       ...span.data,
                       'sentry.origin': 'auto.db.prisma',
+                      [SENTRY_TRACE_LIFECYCLE]: 'static',
                     },
                     status: 'ok',
                   }),

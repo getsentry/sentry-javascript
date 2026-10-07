@@ -46,6 +46,7 @@ test('Sends an API route transaction', async ({ baseURL }) => {
       'http.request.header.host': [expect.any(String)],
       'http.request.header.sec-fetch-mode': ['cors'],
       'http.request.header.user-agent': ['node'],
+      'sentry.trace_lifecycle': 'static',
     },
     op: 'http.server',
     span_id: expect.stringMatching(/[a-f0-9]{16}/),
@@ -64,6 +65,7 @@ test('Sends an API route transaction', async ({ baseURL }) => {
             'http.route': '/test-transaction',
             'sentry.origin': 'auto.http.express',
             'sentry.op': 'handler',
+            'sentry.trace_lifecycle': 'static',
           },
           op: 'handler',
           description: '/test-transaction',
@@ -78,6 +80,7 @@ test('Sends an API route transaction', async ({ baseURL }) => {
         {
           data: {
             'sentry.origin': 'manual',
+            'sentry.trace_lifecycle': 'static',
           },
           description: 'test-span',
           parent_span_id: expect.stringMatching(/[a-f0-9]{16}/),
@@ -91,6 +94,7 @@ test('Sends an API route transaction', async ({ baseURL }) => {
         {
           data: {
             'sentry.origin': 'manual',
+            'sentry.trace_lifecycle': 'static',
           },
           description: 'child-span',
           parent_span_id: expect.stringMatching(/[a-f0-9]{16}/),
@@ -111,6 +115,7 @@ test('Sends an API route transaction', async ({ baseURL }) => {
             'nestjs.version': expect.any(String),
             'nestjs.type': 'handler',
             'nestjs.callback': 'testTransaction',
+            'sentry.trace_lifecycle': 'static',
           },
           description: 'testTransaction',
           parent_span_id: expect.stringMatching(/[a-f0-9]{16}/),
@@ -154,6 +159,7 @@ test('API route transaction includes nest middleware span. Spans created in and 
           data: {
             'sentry.op': 'middleware',
             'sentry.origin': 'auto.middleware.nestjs',
+            'sentry.trace_lifecycle': 'static',
           },
           description: 'ExampleMiddleware',
           parent_span_id: expect.stringMatching(/[a-f0-9]{16}/),
@@ -234,6 +240,7 @@ test('API route transaction includes nest guard span and span started in guard i
           data: {
             'sentry.op': 'middleware',
             'sentry.origin': 'auto.middleware.nestjs.guard',
+            'sentry.trace_lifecycle': 'static',
           },
           description: 'ExampleGuard',
           parent_span_id: expect.stringMatching(/[a-f0-9]{16}/),
@@ -298,6 +305,7 @@ test('API route transaction includes nest pipe span for valid request', async ({
           data: {
             'sentry.op': 'middleware',
             'sentry.origin': 'auto.middleware.nestjs.pipe',
+            'sentry.trace_lifecycle': 'static',
           },
           description: 'ParseIntPipe',
           parent_span_id: expect.stringMatching(/[a-f0-9]{16}/),
@@ -335,6 +343,7 @@ test('API route transaction includes nest pipe span for invalid request', async 
           data: {
             'sentry.op': 'middleware',
             'sentry.origin': 'auto.middleware.nestjs.pipe',
+            'sentry.trace_lifecycle': 'static',
           },
           description: 'ParseIntPipe',
           parent_span_id: expect.stringMatching(/[a-f0-9]{16}/),
@@ -374,6 +383,7 @@ test('API route transaction includes nest interceptor spans before route executi
           data: {
             'sentry.op': 'middleware',
             'sentry.origin': 'auto.middleware.nestjs.interceptor',
+            'sentry.trace_lifecycle': 'static',
           },
           description: 'ExampleInterceptor1',
           parent_span_id: expect.stringMatching(/[a-f0-9]{16}/),
@@ -389,6 +399,7 @@ test('API route transaction includes nest interceptor spans before route executi
           data: {
             'sentry.op': 'middleware',
             'sentry.origin': 'auto.middleware.nestjs.interceptor',
+            'sentry.trace_lifecycle': 'static',
           },
           description: 'ExampleInterceptor2',
           parent_span_id: expect.stringMatching(/[a-f0-9]{16}/),
@@ -492,6 +503,7 @@ test('API route transaction includes exactly one nest interceptor span after rou
           data: {
             'sentry.op': 'middleware',
             'sentry.origin': 'auto.middleware.nestjs.interceptor',
+            'sentry.trace_lifecycle': 'static',
           },
           description: 'Interceptors - After Route',
           parent_span_id: expect.stringMatching(/[a-f0-9]{16}/),
@@ -574,6 +586,7 @@ test('API route transaction includes nest async interceptor spans before route e
           data: {
             'sentry.op': 'middleware',
             'sentry.origin': 'auto.middleware.nestjs.interceptor',
+            'sentry.trace_lifecycle': 'static',
           },
           description: 'AsyncInterceptor',
           parent_span_id: expect.stringMatching(/[a-f0-9]{16}/),
@@ -659,6 +672,7 @@ test('API route transaction includes exactly one nest async interceptor span aft
           data: {
             'sentry.op': 'middleware',
             'sentry.origin': 'auto.middleware.nestjs.interceptor',
+            'sentry.trace_lifecycle': 'static',
           },
           description: 'Interceptors - After Route',
           parent_span_id: expect.stringMatching(/[a-f0-9]{16}/),

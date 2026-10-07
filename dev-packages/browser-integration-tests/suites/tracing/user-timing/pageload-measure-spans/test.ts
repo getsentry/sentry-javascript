@@ -1,3 +1,4 @@
+import { SENTRY_TRACE_LIFECYCLE } from '@sentry/conventions/attributes';
 import { expect } from '@playwright/test';
 import type { Event } from '@sentry/core';
 import { sentryTest } from '../../../../utils/fixtures';
@@ -31,5 +32,6 @@ sentryTest('should add browser-related spans to pageload transaction', async ({ 
     'sentry.browser.measure_start_time': expect.any(Number),
     'sentry.op': 'measure',
     'sentry.origin': 'auto.browser.user_timing.measure',
+    [SENTRY_TRACE_LIFECYCLE]: 'static',
   });
 });

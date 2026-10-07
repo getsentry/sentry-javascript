@@ -32,6 +32,7 @@ test('sends a pageload transaction with component tracking init spans', async ({
           'sentry.op': 'ui.mount',
           'sentry.origin': 'auto.ui.svelte',
           'ui.component_name': 'App',
+          'sentry.trace_lifecycle': 'static',
         },
       }),
       expect.objectContaining({
@@ -41,6 +42,7 @@ test('sends a pageload transaction with component tracking init spans', async ({
           'sentry.op': 'ui.mount',
           'sentry.origin': 'auto.ui.svelte',
           'ui.component_name': 'Counter',
+          'sentry.trace_lifecycle': 'static',
         },
       }),
     ]),

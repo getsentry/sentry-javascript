@@ -1,4 +1,9 @@
-import { SENTRY_SEGMENT_NAME_SOURCE, SENTRY_OP, SENTRY_ORIGIN } from '@sentry/conventions/attributes';
+import {
+  SENTRY_SEGMENT_NAME_SOURCE,
+  SENTRY_OP,
+  SENTRY_ORIGIN,
+  SENTRY_TRACE_LIFECYCLE,
+} from '@sentry/conventions/attributes';
 import type { Client, Event } from '@sentry/core';
 import * as SentryCore from '@sentry/core';
 import { NodeClient, setCurrentClient } from '@sentry/node';
@@ -263,6 +268,7 @@ describe('wrapServerLoadWithSentry calls `startSpan`', () => {
         'http.request.method': 'GET',
         'url.path': '/users/123',
         'sentry.sample_rate': 1,
+        [SENTRY_TRACE_LIFECYCLE]: 'static',
       },
       op: 'function',
       span_id: expect.stringMatching(/[a-f0-9]{16}/),

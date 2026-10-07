@@ -15,7 +15,7 @@ import type { Span, SpanJSON } from '../../../src/types/span';
 import { getRootSpan, spanToStaticSpanJSON, TRACE_FLAG_NONE, TRACE_FLAG_SAMPLED } from '../../../src/utils/spanUtils';
 import { timestampInSeconds } from '../../../src/utils/time';
 import { getDefaultTestClientOptions, TestClient } from '../../mocks/client';
-import { SENTRY_SEGMENT_NAME_SOURCE } from '@sentry/conventions/attributes';
+import { SENTRY_SEGMENT_NAME_SOURCE, SENTRY_TRACE_LIFECYCLE } from '@sentry/conventions/attributes';
 
 function childSpansOf(span: Span): Set<Span> {
   return (span as unknown as { _sentryChildSpans?: Set<Span> })._sentryChildSpans ?? new Set();
@@ -425,7 +425,7 @@ describe('SentrySpan', () => {
           trace: {
             data: {
               'sentry.origin': 'manual',
-              'sentry.trace_lifecycle': 'static',
+              [SENTRY_TRACE_LIFECYCLE]: 'static',
             },
             origin: 'manual',
             span_id: expect.stringMatching(/^[a-f0-9]{16}$/),
@@ -472,19 +472,19 @@ describe('SentrySpan', () => {
         expect.objectContaining({
           contexts: {
             trace: expect.objectContaining({
-              data: expect.objectContaining({ 'sentry.trace_lifecycle': 'static' }),
+              data: expect.objectContaining({ [SENTRY_TRACE_LIFECYCLE]: 'static' }),
             }),
           },
           spans: [
             expect.objectContaining({
               description: 'child',
-              data: expect.objectContaining({ 'sentry.trace_lifecycle': 'static' }),
+              data: expect.objectContaining({ [SENTRY_TRACE_LIFECYCLE]: 'static' }),
             }),
           ],
         }),
       );
-      expect(spanToStaticSpanJSON(rootSpan).data['sentry.trace_lifecycle']).toBeUndefined();
-      expect(spanToStaticSpanJSON(childSpan).data['sentry.trace_lifecycle']).toBeUndefined();
+      expect(spanToStaticSpanJSON(rootSpan).data[SENTRY_TRACE_LIFECYCLE]).toBeUndefined();
+      expect(spanToStaticSpanJSON(childSpan).data[SENTRY_TRACE_LIFECYCLE]).toBeUndefined();
     });
   });
 

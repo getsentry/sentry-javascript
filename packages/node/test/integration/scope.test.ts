@@ -1,3 +1,4 @@
+import { SENTRY_TRACE_LIFECYCLE } from '@sentry/conventions/attributes';
 import { getCapturedScopesOnSpan, getCurrentScope, getClient } from '@sentry/core';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import * as Sentry from '../../src/';
@@ -108,6 +109,7 @@ describe('Integration | Scope', () => {
                   'sentry.origin': 'manual',
                   'sentry.segment.name.source': 'custom',
                   'sentry.sample_rate': 1,
+                  [SENTRY_TRACE_LIFECYCLE]: 'static',
                 },
                 span_id: spanId,
                 status: 'ok',

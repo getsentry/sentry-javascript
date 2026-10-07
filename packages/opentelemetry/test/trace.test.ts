@@ -1,7 +1,13 @@
 /* eslint-disable typescript/no-deprecated */
 import type { Span, TimeInput } from '@opentelemetry/api';
 import { context, ROOT_CONTEXT, trace, TraceFlags } from '@opentelemetry/api';
-import { SENTRY_SEGMENT_NAME_SOURCE, SENTRY_KIND, SENTRY_OP, SENTRY_ORIGIN } from '@sentry/conventions/attributes';
+import {
+  SENTRY_SEGMENT_NAME_SOURCE,
+  SENTRY_KIND,
+  SENTRY_OP,
+  SENTRY_ORIGIN,
+  SENTRY_TRACE_LIFECYCLE,
+} from '@sentry/conventions/attributes';
 import type { Event, Scope } from '@sentry/core';
 import {
   getCapturedScopesOnSpan,
@@ -459,6 +465,7 @@ describe('trace', () => {
           'sentry.sample_rate': 1,
           'sentry.origin': 'manual',
           'sentry.segment.name.source': 'custom',
+          [SENTRY_TRACE_LIFECYCLE]: 'static',
         },
         span_id: expect.stringMatching(/[a-f0-9]{16}/),
         trace_id: expect.stringMatching(/[a-f0-9]{32}/),
@@ -483,6 +490,7 @@ describe('trace', () => {
         data: {
           'sentry.origin': 'manual',
           'sentry.segment.name.source': 'custom',
+          [SENTRY_TRACE_LIFECYCLE]: 'static',
         },
         parent_span_id: innerParentSpanId,
         span_id: expect.stringMatching(/[a-f0-9]{16}/),
@@ -787,6 +795,7 @@ describe('trace', () => {
           'sentry.sample_rate': 1,
           'sentry.origin': 'manual',
           'sentry.segment.name.source': 'custom',
+          [SENTRY_TRACE_LIFECYCLE]: 'static',
         },
         span_id: expect.stringMatching(/[a-f0-9]{16}/),
         trace_id: expect.stringMatching(/[a-f0-9]{32}/),
@@ -811,6 +820,7 @@ describe('trace', () => {
         data: {
           'sentry.origin': 'manual',
           'sentry.segment.name.source': 'custom',
+          [SENTRY_TRACE_LIFECYCLE]: 'static',
         },
         parent_span_id: innerParentSpanId,
         span_id: expect.stringMatching(/[a-f0-9]{16}/),
@@ -1172,6 +1182,7 @@ describe('trace', () => {
           'sentry.sample_rate': 1,
           'sentry.origin': 'manual',
           'sentry.segment.name.source': 'custom',
+          [SENTRY_TRACE_LIFECYCLE]: 'static',
         },
         span_id: expect.stringMatching(/[a-f0-9]{16}/),
         trace_id: expect.stringMatching(/[a-f0-9]{32}/),
@@ -1196,6 +1207,7 @@ describe('trace', () => {
         data: {
           'sentry.origin': 'manual',
           'sentry.segment.name.source': 'custom',
+          [SENTRY_TRACE_LIFECYCLE]: 'static',
         },
         parent_span_id: innerParentSpanId,
         span_id: expect.stringMatching(/[a-f0-9]{16}/),

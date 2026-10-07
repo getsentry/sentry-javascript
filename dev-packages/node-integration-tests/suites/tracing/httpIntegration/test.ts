@@ -1,5 +1,5 @@
 import { createTestServer } from '@sentry-internal/test-utils';
-import { URL_FULL, URL_PATH } from '@sentry/conventions/attributes';
+import { SENTRY_TRACE_LIFECYCLE, URL_FULL, URL_PATH } from '@sentry/conventions/attributes';
 import { afterAll, describe, expect, test } from 'vitest';
 import { cleanupChildProcesses, createEsmAndCjsTests, createRunner } from '../../../utils/runner';
 import { RUNTIME } from '../../../utils';
@@ -116,6 +116,7 @@ describe('httpIntegration', () => {
                 'sentry.origin': 'auto.http.http_server',
                 'sentry.sample_rate': 1,
                 'sentry.segment.name.source': 'route',
+                [SENTRY_TRACE_LIFECYCLE]: 'static',
                 [URL_FULL]: `http://localhost:${port}/test?a=1&b=2`,
                 [URL_PATH]: '/test',
                 ...getCommonHttpRequestHeaders(),
@@ -159,6 +160,7 @@ describe('httpIntegration', () => {
                 'sentry.origin': 'auto.http.http_server',
                 'sentry.sample_rate': 1,
                 'sentry.segment.name.source': 'route',
+                [SENTRY_TRACE_LIFECYCLE]: 'static',
                 [URL_FULL]: `http://localhost:${port}/test?a=1&b=2`,
                 [URL_PATH]: '/test',
                 'http.request.header.content-length': ['9'],

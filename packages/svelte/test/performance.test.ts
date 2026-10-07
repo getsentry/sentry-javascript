@@ -2,6 +2,7 @@
  * @vitest-environment jsdom
  */
 
+import { SENTRY_TRACE_LIFECYCLE } from '@sentry/conventions/attributes';
 import type { TransactionEvent } from '@sentry/core';
 import { getMainCarrier, spanToJSON, UI_MOUNT_SPAN_NAME_FALLBACK } from '@sentry/core';
 import { act, render } from '@testing-library/svelte';
@@ -55,6 +56,7 @@ describe('Sentry.trackComponent()', () => {
       data: {
         'sentry.op': 'ui.mount',
         'sentry.origin': 'auto.ui.svelte',
+        [SENTRY_TRACE_LIFECYCLE]: 'static',
       },
       description: '<Svelte Component>',
       exclusive_time: undefined,
@@ -100,6 +102,7 @@ describe('Sentry.trackComponent()', () => {
       data: {
         'sentry.op': 'ui.mount',
         'sentry.origin': 'auto.ui.svelte',
+        [SENTRY_TRACE_LIFECYCLE]: 'static',
       },
       description: '<Svelte Component>',
       exclusive_time: undefined,
@@ -120,6 +123,7 @@ describe('Sentry.trackComponent()', () => {
       data: {
         'sentry.op': 'ui.update',
         'sentry.origin': 'auto.ui.svelte',
+        [SENTRY_TRACE_LIFECYCLE]: 'static',
       },
       description: '<Svelte Component>',
       exclusive_time: undefined,
@@ -140,6 +144,7 @@ describe('Sentry.trackComponent()', () => {
       data: {
         'sentry.op': 'ui.update',
         'sentry.origin': 'auto.ui.svelte',
+        [SENTRY_TRACE_LIFECYCLE]: 'static',
       },
       description: '<Svelte Component>',
       exclusive_time: undefined,

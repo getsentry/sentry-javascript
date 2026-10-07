@@ -2,6 +2,7 @@
 // Although this is not ideal, this is the best we can do until we have a better way to test cloudflare workers.
 
 import type { ExecutionContext } from '@cloudflare/workers-types';
+import { SENTRY_TRACE_LIFECYCLE } from '@sentry/conventions/attributes';
 import type { Event } from '@sentry/core';
 import * as SentryCore from '@sentry/core';
 import { beforeAll, beforeEach, describe, expect, onTestFinished, test, vi } from 'vitest';
@@ -638,6 +639,7 @@ describe('withSentry', () => {
           'http.response.status_code': 200,
           'http.request.body.size': 10,
           'http.request.header.content-length': ['10'],
+          [SENTRY_TRACE_LIFECYCLE]: 'static',
         },
         op: 'http.server',
         origin: 'auto.http.cloudflare',

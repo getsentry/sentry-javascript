@@ -1,4 +1,4 @@
-import { SENTRY_OP, SENTRY_ORIGIN } from '@sentry/conventions/attributes';
+import { SENTRY_OP, SENTRY_ORIGIN, SENTRY_TRACE_LIFECYCLE } from '@sentry/conventions/attributes';
 import type { Route } from '@playwright/test';
 import { expect } from '@playwright/test';
 import { type Event } from '@sentry/core';
@@ -98,6 +98,7 @@ sentryTest('adds resource spans to pageload transaction', async ({ getLocalTestU
       'network.protocol.version': 'unknown',
       [SENTRY_OP]: 'resource.img',
       [SENTRY_ORIGIN]: 'auto.resource.browser.metrics',
+      [SENTRY_TRACE_LIFECYCLE]: 'static',
       'server.address': 'sentry-test-site.example',
       'url.domain': 'sentry-test-site.example',
       'http.request.same_origin': false,
@@ -151,6 +152,7 @@ sentryTest('adds resource spans to pageload transaction', async ({ getLocalTestU
       'network.protocol.version': 'unknown',
       [SENTRY_OP]: 'resource.link',
       [SENTRY_ORIGIN]: 'auto.resource.browser.metrics',
+      [SENTRY_TRACE_LIFECYCLE]: 'static',
       'server.address': 'sentry-test-site.example',
       'url.domain': 'sentry-test-site.example',
       'http.request.same_origin': false,
@@ -197,6 +199,7 @@ sentryTest('adds resource spans to pageload transaction', async ({ getLocalTestU
       'network.protocol.version': 'unknown',
       'sentry.op': 'resource.script',
       'sentry.origin': 'auto.resource.browser.metrics',
+      [SENTRY_TRACE_LIFECYCLE]: 'static',
       'server.address': 'sentry-test-site.example',
       'url.domain': 'sentry-test-site.example',
       'http.request.same_origin': false,

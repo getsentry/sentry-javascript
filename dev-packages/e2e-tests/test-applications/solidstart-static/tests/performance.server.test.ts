@@ -1,4 +1,4 @@
-import { SENTRY_OP, SENTRY_ORIGIN } from '@sentry/conventions/attributes';
+import { SENTRY_OP, SENTRY_ORIGIN, SENTRY_TRACE_LIFECYCLE } from '@sentry/conventions/attributes';
 import { expect, test } from '@playwright/test';
 import { waitForTransaction } from '@sentry-internal/test-utils';
 
@@ -19,6 +19,7 @@ test('sends a server action transaction on pageload', async ({ page }) => {
           [SENTRY_OP]: 'function',
           [SENTRY_ORIGIN]: 'auto.function.solidstart',
           'code.function.name': 'getPrefecture',
+          [SENTRY_TRACE_LIFECYCLE]: 'static',
         },
       }),
     ]),
@@ -44,6 +45,7 @@ test('sends a server action transaction on client navigation', async ({ page }) 
           [SENTRY_OP]: 'function',
           [SENTRY_ORIGIN]: 'auto.function.solidstart',
           'code.function.name': 'getPrefecture',
+          [SENTRY_TRACE_LIFECYCLE]: 'static',
         },
       }),
     ]),

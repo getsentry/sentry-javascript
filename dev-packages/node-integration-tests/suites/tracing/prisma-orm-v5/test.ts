@@ -1,3 +1,4 @@
+import { SENTRY_TRACE_LIFECYCLE } from '@sentry/conventions/attributes';
 import type { TransactionEvent } from '@sentry/core';
 import { afterAll, describe, expect } from 'vitest';
 import { cleanupChildProcesses, createEsmAndCjsTests, describeWithDockerCompose } from '../../../utils/runner';
@@ -41,6 +42,7 @@ function expectPrismaV5Spans(transaction: TransactionEvent): void {
           model: 'User',
           name: 'User.create',
           'sentry.origin': 'auto.db.prisma',
+          [SENTRY_TRACE_LIFECYCLE]: 'static',
         },
         description: 'prisma:client:operation',
         status: 'ok',
@@ -51,6 +53,7 @@ function expectPrismaV5Spans(transaction: TransactionEvent): void {
           model: 'User',
           name: 'User.findMany',
           'sentry.origin': 'auto.db.prisma',
+          [SENTRY_TRACE_LIFECYCLE]: 'static',
         },
         description: 'prisma:client:operation',
         status: 'ok',
@@ -58,6 +61,7 @@ function expectPrismaV5Spans(transaction: TransactionEvent): void {
       expect.objectContaining({
         data: {
           'sentry.origin': 'auto.db.prisma',
+          [SENTRY_TRACE_LIFECYCLE]: 'static',
         },
         description: 'prisma:client:serialize',
         status: 'ok',
@@ -65,6 +69,7 @@ function expectPrismaV5Spans(transaction: TransactionEvent): void {
       expect.objectContaining({
         data: {
           'sentry.origin': 'auto.db.prisma',
+          [SENTRY_TRACE_LIFECYCLE]: 'static',
         },
         description: 'prisma:client:connect',
         status: 'ok',
@@ -77,6 +82,7 @@ function expectPrismaV5Spans(transaction: TransactionEvent): void {
           'sentry.kind': 'client',
           'sentry.op': 'db',
           'sentry.origin': 'auto.db.prisma',
+          [SENTRY_TRACE_LIFECYCLE]: 'static',
         },
         op: 'db',
         description: expect.stringContaining('INSERT INTO'),
@@ -90,6 +96,7 @@ function expectPrismaV5Spans(transaction: TransactionEvent): void {
           'sentry.kind': 'client',
           'sentry.op': 'db',
           'sentry.origin': 'auto.db.prisma',
+          [SENTRY_TRACE_LIFECYCLE]: 'static',
         },
         op: 'db',
         description: expect.stringContaining('SELECT'),
@@ -103,6 +110,7 @@ function expectPrismaV5Spans(transaction: TransactionEvent): void {
           'sentry.kind': 'client',
           'sentry.op': 'db',
           'sentry.origin': 'auto.db.prisma',
+          [SENTRY_TRACE_LIFECYCLE]: 'static',
         },
         op: 'db',
         description: expect.stringContaining('DELETE'),

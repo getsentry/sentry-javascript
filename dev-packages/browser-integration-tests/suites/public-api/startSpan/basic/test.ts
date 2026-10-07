@@ -1,4 +1,4 @@
-import { SENTRY_SEGMENT_NAME_SOURCE, SENTRY_ORIGIN } from '@sentry/conventions/attributes';
+import { SENTRY_SEGMENT_NAME_SOURCE, SENTRY_ORIGIN, SENTRY_TRACE_LIFECYCLE } from '@sentry/conventions/attributes';
 import { expect } from '@playwright/test';
 import { SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE } from '@sentry/browser';
 import { sentryTest } from '../../../../utils/fixtures';
@@ -24,6 +24,7 @@ sentryTest(
       [SENTRY_ORIGIN]: 'manual',
       [SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE]: 1,
       [SENTRY_SEGMENT_NAME_SOURCE]: 'custom',
+      [SENTRY_TRACE_LIFECYCLE]: 'static',
     });
 
     expect(transaction.transaction_info?.source).toBe('custom');

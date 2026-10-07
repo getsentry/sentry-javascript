@@ -1,4 +1,4 @@
-import { SENTRY_OP, SENTRY_ORIGIN } from '@sentry/conventions/attributes';
+import { SENTRY_OP, SENTRY_ORIGIN, SENTRY_TRACE_LIFECYCLE } from '@sentry/conventions/attributes';
 import type { Route } from '@playwright/test';
 import { expect } from '@playwright/test';
 import type { Event } from '@sentry/core';
@@ -46,6 +46,7 @@ sentryTest(
           'browser.script.invoker_type': 'classic-script',
           [SENTRY_OP]: 'ui.long_animation_frame',
           [SENTRY_ORIGIN]: 'auto.ui.browser.metrics',
+          [SENTRY_TRACE_LIFECYCLE]: 'static',
         },
       }),
     );
@@ -100,6 +101,7 @@ sentryTest(
           'code.file.path': 'https://sentry-test-site.example/path/to/script.js',
           [SENTRY_OP]: 'ui.long_animation_frame',
           [SENTRY_ORIGIN]: 'auto.ui.browser.metrics',
+          [SENTRY_TRACE_LIFECYCLE]: 'static',
         },
       }),
     );

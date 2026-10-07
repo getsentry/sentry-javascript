@@ -1,4 +1,4 @@
-import { SENTRY_SEGMENT_NAME_SOURCE, SENTRY_ORIGIN } from '@sentry/conventions/attributes';
+import { SENTRY_SEGMENT_NAME_SOURCE, SENTRY_ORIGIN, SENTRY_TRACE_LIFECYCLE } from '@sentry/conventions/attributes';
 import { context, trace, TraceFlags } from '@opentelemetry/api';
 import type { ErrorEvent, TransactionEvent } from '@sentry/core';
 import { afterEach, describe, expect, it, vi } from 'vitest';
@@ -80,6 +80,7 @@ describe('Integration | Transactions', () => {
         'sentry.segment.name.source': 'task',
         'sentry.sample_rate': 1,
         'test.outer': 'test value',
+        [SENTRY_TRACE_LIFECYCLE]: 'static',
       },
       op: 'test op',
       span_id: expect.stringMatching(/[a-f0-9]{16}/),
@@ -124,6 +125,7 @@ describe('Integration | Transactions', () => {
       {
         data: {
           'sentry.origin': 'manual',
+          [SENTRY_TRACE_LIFECYCLE]: 'static',
         },
         description: 'inner span 1',
         origin: 'manual',
@@ -138,6 +140,7 @@ describe('Integration | Transactions', () => {
         data: {
           'test.inner': 'test value',
           'sentry.origin': 'manual',
+          [SENTRY_TRACE_LIFECYCLE]: 'static',
         },
         description: 'inner span 2',
         origin: 'manual',
@@ -234,6 +237,7 @@ describe('Integration | Transactions', () => {
               'sentry.segment.name.source': 'task',
               'test.outer': 'test value',
               'sentry.sample_rate': 1,
+              [SENTRY_TRACE_LIFECYCLE]: 'static',
             },
             op: 'test op',
             span_id: expect.stringMatching(/[a-f0-9]{16}/),
@@ -272,6 +276,7 @@ describe('Integration | Transactions', () => {
               'sentry.segment.name.source': 'custom',
               'test.outer': 'test value b',
               'sentry.sample_rate': 1,
+              [SENTRY_TRACE_LIFECYCLE]: 'static',
             },
             op: 'test op b',
             span_id: expect.stringMatching(/[a-f0-9]{16}/),
@@ -376,6 +381,7 @@ describe('Integration | Transactions', () => {
               'sentry.segment.name.source': 'custom',
               'test.outer': 'test value',
               'sentry.sample_rate': 1,
+              [SENTRY_TRACE_LIFECYCLE]: 'static',
             },
             span_id: expect.stringMatching(/[a-f0-9]{16}/),
             status: 'ok',
@@ -411,6 +417,7 @@ describe('Integration | Transactions', () => {
               'sentry.segment.name.source': 'custom',
               'test.outer': 'test value b',
               'sentry.sample_rate': 1,
+              [SENTRY_TRACE_LIFECYCLE]: 'static',
             },
             span_id: expect.stringMatching(/[a-f0-9]{16}/),
             status: 'ok',
@@ -482,6 +489,7 @@ describe('Integration | Transactions', () => {
               'sentry.op': 'test op',
               'sentry.origin': 'auto.test',
               'sentry.segment.name.source': 'task',
+              [SENTRY_TRACE_LIFECYCLE]: 'static',
             },
             op: 'test op',
             span_id: expect.stringMatching(/[a-f0-9]{16}/),
@@ -515,6 +523,7 @@ describe('Integration | Transactions', () => {
       {
         data: {
           'sentry.origin': 'manual',
+          [SENTRY_TRACE_LIFECYCLE]: 'static',
         },
         description: 'inner span 1',
         origin: 'manual',
@@ -528,6 +537,7 @@ describe('Integration | Transactions', () => {
       {
         data: {
           'sentry.origin': 'manual',
+          [SENTRY_TRACE_LIFECYCLE]: 'static',
         },
         description: 'inner span 2',
         origin: 'manual',

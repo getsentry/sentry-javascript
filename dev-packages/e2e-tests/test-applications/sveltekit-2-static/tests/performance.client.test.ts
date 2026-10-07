@@ -96,25 +96,45 @@ test.describe('client-specific performance events', () => {
     expect(componentTxnEvent.spans).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
-          data: { 'sentry.op': 'ui.mount', 'sentry.origin': 'auto.ui.svelte', 'ui.component_name': 'components/+page' },
+          data: {
+            'sentry.op': 'ui.mount',
+            'sentry.origin': 'auto.ui.svelte',
+            'sentry.trace_lifecycle': 'static',
+            'ui.component_name': 'components/+page',
+          },
           description: '<components/+page>',
           op: 'ui.mount',
           origin: 'auto.ui.svelte',
         }),
         expect.objectContaining({
-          data: { 'sentry.op': 'ui.mount', 'sentry.origin': 'auto.ui.svelte', 'ui.component_name': 'Component1' },
+          data: {
+            'sentry.op': 'ui.mount',
+            'sentry.origin': 'auto.ui.svelte',
+            'sentry.trace_lifecycle': 'static',
+            'ui.component_name': 'Component1',
+          },
           description: '<Component1>',
           op: 'ui.mount',
           origin: 'auto.ui.svelte',
         }),
         expect.objectContaining({
-          data: { 'sentry.op': 'ui.mount', 'sentry.origin': 'auto.ui.svelte', 'ui.component_name': 'Component2' },
+          data: {
+            'sentry.op': 'ui.mount',
+            'sentry.origin': 'auto.ui.svelte',
+            'sentry.trace_lifecycle': 'static',
+            'ui.component_name': 'Component2',
+          },
           description: '<Component2>',
           op: 'ui.mount',
           origin: 'auto.ui.svelte',
         }),
         expect.objectContaining({
-          data: { 'sentry.op': 'ui.mount', 'sentry.origin': 'auto.ui.svelte', 'ui.component_name': 'Component3' },
+          data: {
+            'sentry.op': 'ui.mount',
+            'sentry.origin': 'auto.ui.svelte',
+            'sentry.trace_lifecycle': 'static',
+            'ui.component_name': 'Component3',
+          },
           description: '<Component3>',
           op: 'ui.mount',
           origin: 'auto.ui.svelte',
@@ -123,6 +143,7 @@ test.describe('client-specific performance events', () => {
           data: {
             'sentry.op': 'ui.update',
             'sentry.origin': 'auto.ui.svelte',
+            'sentry.trace_lifecycle': 'static',
             'ui.component_name': 'components/+page',
           },
           description: '<components/+page>',
@@ -130,19 +151,34 @@ test.describe('client-specific performance events', () => {
           origin: 'auto.ui.svelte',
         }),
         expect.objectContaining({
-          data: { 'sentry.op': 'ui.update', 'sentry.origin': 'auto.ui.svelte', 'ui.component_name': 'Component1' },
+          data: {
+            'sentry.op': 'ui.update',
+            'sentry.origin': 'auto.ui.svelte',
+            'sentry.trace_lifecycle': 'static',
+            'ui.component_name': 'Component1',
+          },
           description: '<Component1>',
           op: 'ui.update',
           origin: 'auto.ui.svelte',
         }),
         expect.objectContaining({
-          data: { 'sentry.op': 'ui.update', 'sentry.origin': 'auto.ui.svelte', 'ui.component_name': 'Component2' },
+          data: {
+            'sentry.op': 'ui.update',
+            'sentry.origin': 'auto.ui.svelte',
+            'sentry.trace_lifecycle': 'static',
+            'ui.component_name': 'Component2',
+          },
           description: '<Component2>',
           op: 'ui.update',
           origin: 'auto.ui.svelte',
         }),
         expect.objectContaining({
-          data: { 'sentry.op': 'ui.update', 'sentry.origin': 'auto.ui.svelte', 'ui.component_name': 'Component3' },
+          data: {
+            'sentry.op': 'ui.update',
+            'sentry.origin': 'auto.ui.svelte',
+            'sentry.trace_lifecycle': 'static',
+            'ui.component_name': 'Component3',
+          },
           description: '<Component3>',
           op: 'ui.update',
           origin: 'auto.ui.svelte',

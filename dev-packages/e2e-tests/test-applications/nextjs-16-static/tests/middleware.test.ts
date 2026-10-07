@@ -125,6 +125,7 @@ test('Should trace outgoing fetch requests inside middleware and create breadcru
         'sentry.kind': 'client',
         'sentry.op': 'http.client',
         'sentry.origin': 'auto.http.node_fetch',
+        'sentry.trace_lifecycle': 'static',
         'server.address': 'localhost',
         'server.port': 3030,
         'url.domain': 'localhost',

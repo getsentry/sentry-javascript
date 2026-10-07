@@ -8,6 +8,7 @@ import {
   URL_PATH,
   SENTRY_OP,
   SENTRY_ORIGIN,
+  SENTRY_TRACE_LIFECYCLE,
 } from '@sentry/conventions/attributes';
 
 sentryTest('creates a pageload root span with navigation.redirect childspan', async ({ getLocalTestUrl, page }) => {
@@ -54,6 +55,7 @@ sentryTest('creates a pageload root span with navigation.redirect childspan', as
     data: {
       'sentry.op': 'navigation.redirect',
       'sentry.origin': 'auto.navigation.browser',
+      [SENTRY_TRACE_LIFECYCLE]: 'static',
       [URL_FULL]: 'http://sentry-test.io/sub-page',
       [URL_PATH]: '/sub-page',
     },

@@ -1,3 +1,4 @@
+import { SENTRY_TRACE_LIFECYCLE } from '@sentry/conventions/attributes';
 import {
   captureException,
   getCapturedScopesOnSpan,
@@ -109,6 +110,7 @@ describe('Integration | Scope', () => {
                   'sentry.origin': 'manual',
                   'sentry.sample_rate': 1,
                   'sentry.segment.name.source': 'custom',
+                  [SENTRY_TRACE_LIFECYCLE]: 'static',
                 },
                 span_id: spanId,
                 status: 'ok',

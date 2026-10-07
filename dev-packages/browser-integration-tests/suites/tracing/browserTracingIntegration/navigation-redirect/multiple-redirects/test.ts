@@ -8,6 +8,7 @@ import {
   URL_PATH,
   SENTRY_OP,
   SENTRY_ORIGIN,
+  SENTRY_TRACE_LIFECYCLE,
 } from '@sentry/conventions/attributes';
 
 sentryTest(
@@ -58,6 +59,7 @@ sentryTest(
         data: {
           'sentry.op': 'navigation.redirect',
           'sentry.origin': 'auto.navigation.browser',
+          [SENTRY_TRACE_LIFECYCLE]: 'static',
           [URL_FULL]: expect.any(String),
           [URL_PATH]: expect.any(String),
         },
