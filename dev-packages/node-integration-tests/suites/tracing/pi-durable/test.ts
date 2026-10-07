@@ -22,7 +22,7 @@ import {
 import { GEN_AI_CHAT, GEN_AI_EXECUTE_TOOL, GEN_AI_INVOKE_AGENT } from '@sentry/conventions/op';
 import { afterAll, expect } from 'vitest';
 import { GEN_AI_TOOL_CALL_ID_ATTRIBUTE } from '../../../../../packages/server-utils/src/ai/core/gen-ai-attributes';
-import { conditionalTest } from '../../../utils';
+import { conditionalTest, RUNTIME } from '../../../utils';
 import { cleanupChildProcesses, createEsmAndCjsTests } from '../../../utils/runner';
 
 // The pi packages declare `engines.node >= 22.19`, so they can't live in the package's root
@@ -480,13 +480,17 @@ conditionalTest({ min: 22 })('pi-durable integration', () => {
         return;
       }
 
-      test('does not keep the traces of tool calls alive for subagent conversations that never run', async () => {
-        await createRunner()
-          .ignore('span')
-          .expect({ event: { message: 'pi-durable retention', extra: { toolCalls: 3, alive: 0 } } })
-          .start()
-          .completed();
-      });
+      // Bun does not implement `v8.setFlagsFromString`, which the scenario needs to force GC.
+      test.skipIf(RUNTIME === 'bun')(
+        'does not keep the traces of tool calls alive for subagent conversations that never run',
+        async () => {
+          await createRunner()
+            .ignore('span')
+            .expect({ event: { message: 'pi-durable retention', extra: { toolCalls: 3, alive: 0 } } })
+            .start()
+            .completed();
+        },
+      );
     },
     PI_DURABLE_DEPENDENCIES,
   );
