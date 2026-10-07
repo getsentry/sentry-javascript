@@ -24,6 +24,7 @@ import type { MastraObservabilityExporter } from '../ai/mastra/types';
 import { DEBUG_BUILD } from '../debug-build';
 import { CHANNELS } from '../orchestrion/channels';
 import { mastraModuleNames } from '../orchestrion/config/mastra';
+import { recordClassifierEvaluations } from './mastra-classifier';
 import { invokeOrchestrionInstrumentation } from '../orchestrion/instrumentation';
 import { bindSpanToChannelStore, safeChannelCallback } from '../tracing-channel';
 
@@ -96,6 +97,7 @@ function instrumentExporter(options: MastraOptions): void {
   });
 
   captureExecuteWithContextErrors();
+  recordClassifierEvaluations(options);
 }
 
 /**

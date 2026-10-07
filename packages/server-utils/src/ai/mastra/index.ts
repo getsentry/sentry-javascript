@@ -7,6 +7,7 @@ import {
   LRUMap,
   SPAN_STATUS_ERROR,
   startInactiveSpan,
+  timestampInSeconds,
 } from '@sentry/core';
 import { GEN_AI_RESPONSE_MODEL, SENTRY_OP, SENTRY_ORIGIN } from '@sentry/conventions/attributes';
 import { DEBUG_BUILD } from '../../debug-build';
@@ -29,6 +30,8 @@ import {
   MAX_TRACKED_MASTRA_SPANS,
   MODEL_SPAN_TYPES,
 } from './constants';
+import type { ClassifierEvaluationCall } from './classifier-evaluation';
+import { takeStartingClassifierEvaluation } from './classifier-evaluation';
 import { registerMastraSpan, unregisterMastraSpan } from './span-registry';
 import type { MastraExportedSpan, MastraObservabilityExporter, MastraSpanType, MastraTracingEvent } from './types';
 
@@ -38,6 +41,7 @@ interface TrackedSpan {
   span: Span;
   spanType: MastraSpanType;
   usage: SpanAttributes;
+  evaluation?: ClassifierEvaluationCall;
 }
 
 const FLUSH_TIMEOUT_MS = 2000;
@@ -147,7 +151,12 @@ export class SentryMastraExporter implements MastraObservabilityExporter {
       },
     });
 
-    this._trackSpan(span.id, { span: sentrySpan, spanType: span.type, usage: {} });
+    const evaluation = span.type === 'classifier_evaluation' ? takeStartingClassifierEvaluation() : undefined;
+    if (evaluation) {
+      evaluation.span = sentrySpan;
+    }
+
+    this._trackSpan(span.id, { span: sentrySpan, spanType: span.type, usage: {}, evaluation });
   }
 
   /** Track a started span, ending any Sentry span that would otherwise be dropped without `end()`. */
@@ -201,7 +210,13 @@ export class SentryMastraExporter implements MastraObservabilityExporter {
       sentrySpan.setStatus({ code: SPAN_STATUS_ERROR, message: span.errorInfo.message });
     }
 
-    sentrySpan.end(span.endTime);
+    const { evaluation } = tracked;
+    if (evaluation && !evaluation.settled) {
+      // The integration adds the call's input and answers once `evaluate()` settles, then ends the span.
+      evaluation.endTime = span.endTime ?? timestampInSeconds();
+    } else {
+      sentrySpan.end(span.endTime);
+    }
     this._removeTracked(span.id);
   }
 

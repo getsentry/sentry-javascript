@@ -41,6 +41,8 @@ import {
   spanToStaticSpanJSON,
 } from '@sentry/core';
 import { SentryMastraExporter } from '../../../../src/ai/mastra';
+import type { ClassifierEvaluationCall } from '../../../../src/ai/mastra/classifier-evaluation';
+import { setStartingClassifierEvaluation } from '../../../../src/ai/mastra/classifier-evaluation';
 import type { MastraExportedSpan, MastraSpanType, MastraTracingEvent } from '../../../../src/ai/mastra/types';
 import { OPENAI_INTEGRATION_NAME } from '../../../../src/ai/openai/constants';
 import { getDefaultTestClientOptions, TestClient } from '../../../mocks/client';
@@ -174,6 +176,18 @@ describe('SentryMastraExporter', () => {
       [GEN_AI_USAGE_OUTPUT_TOKENS]: 2,
       [GEN_AI_USAGE_TOTAL_TOKENS]: 32,
     });
+  });
+
+  it('leaves a classifier evaluation span open for the call to end once it settles', async () => {
+    const call: ClassifierEvaluationCall = {};
+    const span = makeSpan({ id: 'eval-1', type: 'classifier_evaluation', attributes: { modelId: 'jev-1' } });
+
+    setStartingClassifierEvaluation(call);
+    await run(started(span), ended(span));
+
+    expect(endedSpans).toHaveLength(0);
+    expect(call.endTime).toEqual(span.endTime);
+    expect(spanToStaticSpanJSON(call.span!).description).toBe('evaluate jev-1');
   });
 
   it('records the agent-level prompt and response as gen_ai messages', async () => {

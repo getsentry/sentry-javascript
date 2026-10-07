@@ -236,6 +236,40 @@ conditionalTest({ min: 22 })('Mastra integration', () => {
               expect(evaluateSpan.attributes[GEN_AI_USAGE_INPUT_TOKENS].value).toBe(30);
               expect(evaluateSpan.attributes[GEN_AI_USAGE_OUTPUT_TOKENS].value).toBe(2);
               expect(evaluateSpan.attributes[GEN_AI_USAGE_TOTAL_TOKENS].value).toBe(32);
+              expect(evaluateSpan.attributes[GEN_AI_INPUT_MESSAGES]).toBeUndefined();
+              expect(evaluateSpan.attributes[GEN_AI_OUTPUT_MESSAGES]).toBeUndefined();
+            },
+          })
+          .start()
+          .completed();
+      });
+    },
+    MASTRA_CLASSIFIER_DEPENDENCIES,
+  );
+
+  createEsmAndCjsTests(
+    __dirname,
+    'scenario-classifier.mjs',
+    'instrument-with-pii.mjs',
+    (createRunner, test) => {
+      test('records the evaluated state, questions and answers when genAI recording is on', async () => {
+        await createRunner()
+          .expect({ transaction: { transaction: 'mastra-test' } })
+          .expect({
+            span: container => {
+              const evaluateSpan = container.items.find(span => span.name === 'evaluate jev-latest')!;
+              expect(JSON.parse(evaluateSpan.attributes[GEN_AI_INPUT_MESSAGES].value)).toEqual([
+                {
+                  type: 'evaluation',
+                  state: { message: 'I was charged twice.' },
+                  questions: {
+                    urgent: { type: 'boolean', instructions: 'Does this request need an immediate response?' },
+                  },
+                },
+              ]);
+              expect(JSON.parse(evaluateSpan.attributes[GEN_AI_OUTPUT_MESSAGES].value)).toEqual([
+                { type: 'evaluation', answers: { urgent: { type: 'boolean', probability: 0.9 } } },
+              ]);
             },
           })
           .start()

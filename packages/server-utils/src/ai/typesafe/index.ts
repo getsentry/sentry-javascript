@@ -54,7 +54,10 @@ function getRequestAttributes(
   };
 }
 
-/** Serialize the `state` and `questions` of an evaluation request. Also used for TypeSafe models on Workers AI. */
+/**
+ * Serialize the `state` and `questions` of an evaluation request. Also used for TypeSafe models on Workers AI
+ * and for Mastra classifier evaluations.
+ */
 export function getEvaluationInputMessages(request: Record<string, unknown>): string | undefined {
   return stringify([{ type: 'evaluation', state: request.state, questions: request.questions }]);
 }
@@ -86,8 +89,13 @@ export function addResponseAttributes(span: Span, result: unknown, recordOutputs
   }
 
   if (recordOutputs && result.answers !== undefined) {
-    span.setAttribute(GEN_AI_OUTPUT_MESSAGES, stringify([{ type: 'evaluation', answers: result.answers }]));
+    span.setAttribute(GEN_AI_OUTPUT_MESSAGES, getEvaluationOutputMessages(result.answers));
   }
+}
+
+/** Serialize the `answers` of an evaluation result. Also used for Mastra classifier evaluations. */
+export function getEvaluationOutputMessages(answers: unknown): string | undefined {
+  return stringify([{ type: 'evaluation', answers }]);
 }
 
 /**
