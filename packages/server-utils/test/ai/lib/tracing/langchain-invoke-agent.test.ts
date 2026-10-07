@@ -1,7 +1,13 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { GEN_AI_OPERATION_NAME, GEN_AI_PIPELINE_NAME, SENTRY_OP } from '@sentry/conventions/attributes';
+import {
+  GEN_AI_AGENT_NAME,
+  GEN_AI_OPERATION_NAME,
+  GEN_AI_PIPELINE_NAME,
+  SENTRY_OP,
+  SENTRY_ORIGIN,
+} from '@sentry/conventions/attributes';
 import { GEN_AI_EVALUATE } from '@sentry/conventions/op';
-import { getMainCarrier, setCurrentClient, spanToStaticSpanJSON } from '@sentry/core';
+import { getClient, getMainCarrier, setCurrentClient, spanToStaticSpanJSON } from '@sentry/core';
 import type { Span } from '@sentry/core';
 import { createLangChainCallbackHandler } from '../../../../src/ai/langchain';
 import { getDefaultTestClientOptions, TestClient } from '../../../mocks/client';
@@ -97,21 +103,28 @@ describe('LangChain invoke_agent span names', () => {
     expect(span.data?.['langchain.chain.name']).toBeUndefined();
   });
 
-  it('records a TypeSafeClassifier run inside an agent, where other chain steps are skipped', () => {
+  it('records a TypeSafeClassifier run inside an agent, with its attributes set at span start', () => {
     const endedSpans = setupClient('stream');
+    const startAttributes: Record<string, unknown>[] = [];
+    getClient()!.on('spanStart', span => startAttributes.push(spanToStaticSpanJSON(span).data));
+
     const handler = createLangChainCallbackHandler();
-    const classifier = { id: ['langchain', 'classifiers', 'typesafe', 'TypeSafeClassifier'], kwargs: {} };
+    // LangChain passes the classifier serialized as `[...lc_namespace, lc_name()]`.
+    const classifier = { name: undefined, id: ['langchain', 'classifiers', 'typesafe', 'TypeSafeClassifier'] };
 
     handler.handleChainStart?.(classifier, { input: 'My payouts have been failing.' }, 'run-1', undefined, undefined, {
       __sentry_langgraph__: true,
+      lc_agent_name: 'support_agent',
     });
     handler.handleChainEnd?.({ model: 'jev-1.13', answers: {}, usage: {} }, 'run-1');
 
-    expect(endedSpans.map(span => spanToStaticSpanJSON(span))).toEqual([
+    expect(startAttributes).toEqual([
       expect.objectContaining({
-        description: 'evaluate jev-latest',
-        data: expect.objectContaining({ [SENTRY_OP]: GEN_AI_EVALUATE }),
+        [SENTRY_OP]: GEN_AI_EVALUATE,
+        [SENTRY_ORIGIN]: 'auto.ai.langchain',
+        [GEN_AI_AGENT_NAME]: 'support_agent',
       }),
     ]);
+    expect(endedSpans.map(span => spanToStaticSpanJSON(span).description)).toEqual(['evaluate jev-latest']);
   });
 });

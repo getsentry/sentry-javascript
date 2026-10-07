@@ -3,7 +3,7 @@ import type { Span } from '@sentry/core';
 import { isObjectLike } from '@sentry/core';
 import { addResponseAttributes, startEvaluateSpan } from '../typesafe';
 import { LANGCHAIN_ORIGIN } from './constants';
-import type { LangChainSerialized } from './types';
+import { getAgentNameFromMetadata, getConversationIdFromMetadata } from './utils';
 
 // `TypeSafeClassifier` from `@langchain/typesafe` calls Jev with `fetch`, not through `@typesafe-ai/sdk`,
 // so the TypeSafe integration does not see it. Its serialized id is `[...lc_namespace, lc_name()]`.
@@ -12,26 +12,26 @@ const TYPESAFE_CLASSIFIER_ID = 'langchain/classifiers/typesafe/TypeSafeClassifie
 /** The package's default, used when the classifier is constructed without a `model`. */
 const DEFAULT_TYPESAFE_CLASSIFIER_MODEL = 'jev-latest';
 
-export function isTypeSafeClassifier(chain: LangChainSerialized): boolean {
-  return chain.id?.join('/') === TYPESAFE_CLASSIFIER_ID;
+// Typed loosely: LangChain's `Serialized` union does not match our handler's chain type.
+export function isTypeSafeClassifier(chain: unknown): boolean {
+  return isObjectLike(chain) && Array.isArray(chain.id) && chain.id.join('/') === TYPESAFE_CLASSIFIER_ID;
 }
 
 /** Start an `evaluate` span for a `TypeSafeClassifier` run, from its serialized constructor arguments. */
 export function startTypeSafeClassifierSpan(
-  chain: LangChainSerialized,
+  chain: unknown,
   inputs: Record<string, unknown>,
+  metadata: Record<string, unknown> | undefined,
   recordInputs: boolean,
 ): Span {
-  const kwargs = chain.kwargs ?? {};
+  const kwargs = isObjectLike(chain) && isObjectLike(chain.kwargs) ? chain.kwargs : {};
   const model = typeof kwargs.model === 'string' ? kwargs.model : DEFAULT_TYPESAFE_CLASSIFIER_MODEL;
 
-  const span = startEvaluateSpan(
-    { model, state: getState(inputs), questions: kwargs.questions },
-    undefined,
-    recordInputs,
-  );
-  span.setAttribute(SENTRY_ORIGIN, LANGCHAIN_ORIGIN);
-  return span;
+  return startEvaluateSpan({ model, state: getState(inputs), questions: kwargs.questions }, undefined, recordInputs, {
+    [SENTRY_ORIGIN]: LANGCHAIN_ORIGIN,
+    ...getAgentNameFromMetadata(metadata),
+    ...getConversationIdFromMetadata(metadata),
+  });
 }
 
 /** The classifier result reports usage in camelCase, the TypeSafe helpers read the API's snake_case. */

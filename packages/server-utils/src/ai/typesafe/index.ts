@@ -21,7 +21,12 @@ import { TYPESAFE_ORIGIN, TYPESAFE_PROVIDER_NAME } from './constants';
  * Start the span for a `systemOne(request)` call. The request model falls back to the client's
  * `defaultModel`, the same way the SDK resolves it.
  */
-export function startEvaluateSpan(request: unknown, client: unknown, recordInputs: boolean): Span {
+export function startEvaluateSpan(
+  request: unknown,
+  client: unknown,
+  recordInputs: boolean,
+  attributes?: SpanAttributes,
+): Span {
   const params = isObjectLike(request) ? request : {};
   const defaultModel = isObjectLike(client) ? client.defaultModel : undefined;
   const model =
@@ -30,7 +35,8 @@ export function startEvaluateSpan(request: unknown, client: unknown, recordInput
   return startInactiveSpan({
     name: model ? `evaluate ${model}` : 'evaluate',
     op: GEN_AI_EVALUATE,
-    attributes: getRequestAttributes(params, model, recordInputs),
+    // Extra attributes (e.g. another integration's origin) are set at start, so samplers see them.
+    attributes: { ...getRequestAttributes(params, model, recordInputs), ...attributes },
   });
 }
 

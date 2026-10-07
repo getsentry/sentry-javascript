@@ -213,7 +213,7 @@ export function createLangChainCallbackHandler(options: LangChainOptions = {}): 
 
     // Chain Start Handler
     handleChainStart(
-      chain: LangChainSerialized,
+      chain: { name?: string },
       inputs: Record<string, unknown>,
       runId: string,
       _parentRunId?: string,
@@ -224,9 +224,7 @@ export function createLangChainCallbackHandler(options: LangChainOptions = {}): 
     ) {
       // A Jev call is a real model call, so it is recorded inside an agent too.
       if (isTypeSafeClassifier(chain)) {
-        const span = startTypeSafeClassifierSpan(chain, inputs, recordInputs);
-        span.setAttributes({ ...getAgentNameFromMetadata(metadata), ...getConversationIdFromMetadata(metadata) });
-        spanMap.set(runId, span);
+        spanMap.set(runId, startTypeSafeClassifierSpan(chain, inputs, metadata, recordInputs));
         evaluateRunIds.add(runId);
         return;
       }
