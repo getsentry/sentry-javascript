@@ -6,6 +6,7 @@ process.env.VERCEL = '1';
 
 const nextConfig: NextConfig = {
   experimental: {
+    authInterrupts: true,
     sri: {
       algorithm: 'sha256',
     },
