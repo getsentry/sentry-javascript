@@ -285,7 +285,7 @@ describe('LangChain integration (v1)', () => {
       additionalDependencies: {
         langchain: '^1.0.0',
         '@langchain/core': '^1.0.0',
-        '@langchain/typesafe': '0.0.2',
+        '@langchain/typesafe': '^0.0.2',
       },
     },
   );
