@@ -87,6 +87,8 @@ Work in this release was contributed by @Philip-Nwabuwa. Thank you for your cont
 
 Work in this release was contributed by @zkasuran. Thank you for your contribution!
 
+- **feat(nextjs)**: Browser pageloads of apps with `cacheComponents` enabled now connect to the server request again. The SDK stopped emitting `sentry-trace` meta tags for these apps because a cached shell could replay the trace of the request that rendered it to every later visitor. The server SDK now refuses to hand out trace context while Next.js prerenders a document, so cached shells never carry a trace, and a tag that is in the document was always rendered for the current request. This also covers ISR pages, which no longer need the client-side meta tag removal based on `generateStaticParams`; the `isrRoutes` field of the injected route manifest is gone.
+
 ## 11.5.0
 
 ### Important Changes

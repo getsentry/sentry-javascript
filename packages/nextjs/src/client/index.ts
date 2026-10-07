@@ -11,7 +11,6 @@ import { getClientVercelEnv } from '../common/getVercelEnv';
 import { isRedirectNavigationError } from '../common/nextNavigationErrorUtils';
 import { browserTracingIntegration } from './browserTracingIntegration';
 import { nextjsClientStackFrameNormalizationIntegration } from './clientNormalizationIntegration';
-import { removeIsrSsgTraceMetaTags } from './routing/isrRoutingTracing';
 import { createNextRouteProvider } from './routing/routeProvider';
 import { applyTunnelRouteOption } from './tunnelRoute';
 
@@ -42,12 +41,6 @@ export function init(options: BrowserOptions): Client | undefined {
         '[@sentry/nextjs] You have enabled `debug: true`, but Sentry debug logging was removed from your bundle (likely via `webpack.treeshake.removeDebugLogging: true`). Set that option to `false` to see Sentry debug output.',
       );
     });
-  }
-
-  // Remove cached trace meta tags for ISR/SSG pages before initializing
-  // This prevents the browser tracing integration from using stale trace IDs
-  if (typeof __SENTRY_TRACING__ === 'undefined' || __SENTRY_TRACING__) {
-    removeIsrSsgTraceMetaTags();
   }
 
   const opts = {

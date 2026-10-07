@@ -19,7 +19,6 @@ describe('basePath', () => {
           hasOptionalPrefix: false,
         },
       ],
-      isrRoutes: [],
     });
   });
 

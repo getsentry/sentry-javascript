@@ -15,12 +15,10 @@ describe('maybeSetClientTraceMetadataOption', () => {
     expect(config.experimental?.clientTraceMetadata).toEqual(['baggage', 'sentry-trace', 'my-custom-key']);
   });
 
-  it('does NOT enable trace meta tags when Cache Components is enabled', () => {
-    // With Cache Components, the shell is prerendered/detached from the request, so the meta-tag
-    // trace would be stale. The SDK skips enabling `clientTraceMetadata` so the browser pageload
-    // starts a fresh trace instead of stitching onto a stale trace.
+  it('enables trace meta tags when Cache Components is enabled', () => {
+    // The client decides per tag whether it may be continued, see `cacheComponentsTraceMetaTags.ts`.
     const config: NextConfigObject = { cacheComponents: true };
     maybeSetClientTraceMetadataOption(config, '16.0.0');
-    expect(config.experimental?.clientTraceMetadata).toBeUndefined();
+    expect(config.experimental?.clientTraceMetadata).toEqual(['baggage', 'sentry-trace']);
   });
 });
