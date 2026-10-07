@@ -65,6 +65,11 @@ function wrapScheduledHandler(
           finishCheckIn = client
             ?.getIntegrationByName<CronTriggersIntegration>('CronTriggers')
             ?.startCheckIn(controller.cron);
+          // The transport holds envelopes until the flush after the handler, so a run that is longer than
+          // the check-in margin would deliver its in_progress check-in too late and show as missed.
+          if (finishCheckIn) {
+            waitUntil(Promise.resolve(client?.getTransport()?.flush(2000)).catch(() => undefined));
+          }
         } catch (e) {
           DEBUG_BUILD && debug.warn('Failed to send the in_progress cron check-in', e);
         }

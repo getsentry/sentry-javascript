@@ -477,6 +477,31 @@ describe('instrumentScheduled', () => {
 
       expect(sentItemTypes.filter(type => type === 'check_in')).toHaveLength(2);
     });
+
+    test('drains the transport for the in_progress check-in while the handler runs', async () => {
+      const transportFlush = vi.fn(async () => true);
+      let finishHandler: () => void = () => undefined;
+      const wrappedHandler = withSentry(
+        env => ({
+          dsn: env.SENTRY_DSN,
+          integrations: [cronTriggersIntegration()],
+          transport: () => ({ send: async () => ({}), flush: transportFlush }),
+        }),
+        {
+          scheduled: () =>
+            new Promise<void>(resolve => {
+              finishHandler = resolve;
+            }),
+        } satisfies ExportedHandler<typeof MOCK_ENV>,
+      );
+
+      const run = wrappedHandler.scheduled?.(controllerFor('30 9 * * 1-5'), MOCK_ENV, createMockExecutionContext());
+
+      expect(transportFlush).toHaveBeenCalledTimes(1);
+
+      finishHandler();
+      await run;
+    });
   });
 
   test('flush must be called when all waitUntil are done', async () => {
