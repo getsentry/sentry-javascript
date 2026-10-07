@@ -117,8 +117,20 @@ describe('cronTriggersIntegration', () => {
     expect(captureCheckInSpy).toHaveBeenCalledWith(expect.objectContaining({ status: 'in_progress' }), undefined);
   });
 
-  test.each([['0 9 1 * MON'], ['0 9 1-7 * 2'], ['0 9 */2 * MON']])(
-    'sends check-ins without a schedule when both day fields are set in %s',
+  test.each([
+    ['0 9 1 * MON', '0 9 1 * MON'],
+    ['0 9 1-7 * 2', '0 9 1-7 * MON'],
+    ['0 9 1,15 * 2-6', '0 9 1,15 * MON-FRI'],
+  ])('sends the schedule %s as %s when both day fields are set', (cron, expected) => {
+    startCheckIn(cron);
+
+    expect(captureCheckInSpy).toHaveBeenCalledWith(expect.objectContaining({ status: 'in_progress' }), {
+      schedule: { type: 'crontab', value: expected },
+    });
+  });
+
+  test.each([['0 9 */2 * MON'], ['0 9 1 * */2']])(
+    'sends check-ins without a schedule when both day fields are set and one starts with * in %s',
     cron => {
       startCheckIn(cron);
 
