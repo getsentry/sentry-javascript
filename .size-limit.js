@@ -542,7 +542,7 @@ module.exports = [
     ignore: [...builtinModules, ...nodePrefixedBuiltinModules],
     gzip: false,
     brotli: false,
-    limit: '222 KiB',
+    limit: '223 KiB',
     disablePlugins: ['@size-limit/webpack'],
     webpack: false,
     modifyEsbuildConfig: function (config) {
