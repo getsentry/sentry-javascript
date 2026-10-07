@@ -36,11 +36,16 @@ export const WORKERS_AI_OPERATION_SPAN_OPS: Record<WorkersAiOperationName, strin
 };
 
 /**
+ * Model ID prefixes of the evaluation models (TypeSafe Jev and Cloudflare Clef), traced as `evaluate` spans.
+ */
+const EVALUATE_MODEL_PREFIXES = ['typesafe/jev', '@cf/cloudflare/clef'];
+
+/**
  * Determine the gen_ai operation name from the model and inputs passed to `AI.run`.
  * Workers AI exposes a single `run` method, so we infer the operation from the model ID and the input shape.
  */
 export function getOperationName(model: unknown, inputs: unknown): WorkersAiOperationName {
-  if (typeof model === 'string' && model.startsWith('typesafe/jev')) {
+  if (typeof model === 'string' && EVALUATE_MODEL_PREFIXES.some(prefix => model.startsWith(prefix))) {
     return 'evaluate';
   }
   if (inputs && typeof inputs === 'object') {

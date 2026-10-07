@@ -65,6 +65,10 @@ describe('workers-ai utils', () => {
       expect(getOperationName('typesafe/jev-1.13', { state: 'Help!', questions: {} })).toBe('evaluate');
     });
 
+    it('returns "evaluate" for Cloudflare Clef models', () => {
+      expect(getOperationName('@cf/cloudflare/clef', { state: 'Help!', questions: {} })).toBe('evaluate');
+    });
+
     it('does not return "evaluate" for other TypeSafe models', () => {
       expect(getOperationName('typesafe/other', { prompt: 'Hello' })).toBe('chat');
     });
