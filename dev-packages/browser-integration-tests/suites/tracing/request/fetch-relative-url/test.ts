@@ -1,3 +1,4 @@
+import { URL_FULL, HTTP_REQUEST_METHOD, URL_DOMAIN, SERVER_ADDRESS } from '@sentry/conventions/attributes';
 import { expect } from '@playwright/test';
 import { sentryTest, TEST_HOST } from '../../../../utils/fixtures';
 import { shouldSkipTracingTest } from '../../../../utils/helpers';
@@ -17,9 +18,7 @@ sentryTest('names spans for relative fetch requests after the page domain', asyn
   await page.evaluate(() => (window as any).Sentry.flush());
   const requestSpans = spans
     .filter(s => getSpanOp(s) === 'http.client')
-    .sort((a, b) =>
-      (a.attributes!['url.full']!.value as string).localeCompare(b.attributes!['url.full']!.value as string),
-    );
+    .sort((a, b) => (a.attributes![URL_FULL]!.value as string).localeCompare(b.attributes![URL_FULL]!.value as string));
 
   expect(requestSpans).toHaveLength(3);
 
@@ -30,10 +29,10 @@ sentryTest('names spans for relative fetch requests after the page domain', asyn
       parent_span_id: pageloadSpan.span_id,
       trace_id: pageloadSpan.trace_id,
       attributes: expect.objectContaining({
-        'http.request.method': { type: 'string', value: 'GET' },
-        'url.full': { type: 'string', value: `${TEST_HOST}/test-req/${index}` },
-        'url.domain': { type: 'string', value: 'sentry-test.io' },
-        'server.address': { type: 'string', value: 'sentry-test.io' },
+        [HTTP_REQUEST_METHOD]: { type: 'string', value: 'GET' },
+        [URL_FULL]: { type: 'string', value: `${TEST_HOST}/test-req/${index}` },
+        [URL_DOMAIN]: { type: 'string', value: 'sentry-test.io' },
+        [SERVER_ADDRESS]: { type: 'string', value: 'sentry-test.io' },
         type: { type: 'string', value: 'fetch' },
       }),
     }),

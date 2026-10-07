@@ -1,7 +1,15 @@
+import {
+  BROWSER_WEB_VITAL_TTFB_VALUE,
+  BROWSER_WEB_VITAL_LCP_VALUE,
+  BROWSER_WEB_VITAL_FCP_VALUE,
+  BROWSER_WEB_VITAL_FP_VALUE,
+  BROWSER_PERFORMANCE_TIME_ORIGIN,
+  BROWSER_PERFORMANCE_NAVIGATION_ACTIVATION_START,
+} from '@sentry/conventions/attributes';
 import type { Route } from '@playwright/test';
 import { expect } from '@playwright/test';
 import { sentryTest } from '../../../../utils/fixtures';
-import { shouldSkipTracingTest } from '../../../../utils/helpers';
+import { shouldSkipTracingTest, waitForLcpCandidate } from '../../../../utils/helpers';
 import { getSpanOp, waitForStreamedSpan } from '../../../../utils/spanUtils';
 
 /**
@@ -26,12 +34,11 @@ sentryTest('paint web vitals values are greater than TTFB', async ({ browserName
   const pageloadPromise = waitForStreamedSpan(page, span => span.is_segment && getSpanOp(span) === 'pageload');
   const lcpPromise = waitForStreamedSpan(page, span => getSpanOp(span) === 'ui.webvital.lcp');
   await page.goto(url);
-  await page.locator('img').evaluate((img: HTMLImageElement) => img.decode());
-  await page.waitForTimeout(1000);
+  await waitForLcpCandidate(page, 'img');
   await page.locator('button').click();
   const [eventData, lcpSpan] = await Promise.all([pageloadPromise, lcpPromise]);
 
-  const ttfbValue = eventData.attributes['browser.web_vital.ttfb.value']?.value as number | undefined;
+  const ttfbValue = eventData.attributes[BROWSER_WEB_VITAL_TTFB_VALUE]?.value as number | undefined;
 
   if (!ttfbValue) {
     // TTFB is unfortunately quite flaky. Sometimes, the web-vitals library doesn't report TTFB because
@@ -44,9 +51,9 @@ sentryTest('paint web vitals values are greater than TTFB', async ({ browserName
     sentryTest.skip();
   }
 
-  const lcpValue = lcpSpan.attributes['browser.web_vital.lcp.value']?.value;
-  const fcpValue = eventData.attributes['browser.web_vital.fcp.value']?.value;
-  const fpValue = eventData.attributes['browser.web_vital.fp.value']?.value;
+  const lcpValue = lcpSpan.attributes[BROWSER_WEB_VITAL_LCP_VALUE]?.value;
+  const fcpValue = eventData.attributes[BROWSER_WEB_VITAL_FCP_VALUE]?.value;
+  const fpValue = eventData.attributes[BROWSER_WEB_VITAL_FP_VALUE]?.value;
 
   expect(lcpValue).toBeDefined();
   expect(fcpValue).toBeDefined();
@@ -72,8 +79,8 @@ sentryTest(
       page.goto(url),
     ]);
 
-    const timeOriginAttribute = eventData.attributes['browser.performance.time_origin']?.value as number;
-    const activationStart = eventData.attributes['browser.performance.navigation.activation_start']?.value;
+    const timeOriginAttribute = eventData.attributes[BROWSER_PERFORMANCE_TIME_ORIGIN]?.value as number;
+    const activationStart = eventData.attributes[BROWSER_PERFORMANCE_NAVIGATION_ACTIVATION_START]?.value;
 
     const spanStartTimestamp = eventData.start_timestamp;
 

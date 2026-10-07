@@ -548,6 +548,22 @@ export async function getFirstSentryEnvelopeRequest<T>(
   return req;
 }
 
+export async function waitForLcpCandidate(page: Page, selector: string): Promise<void> {
+  await page.locator(selector).evaluate(element => {
+    return new Promise<void>(resolve => {
+      const observer = new PerformanceObserver(list => {
+        if (list.getEntries().some(entry => 'element' in entry && entry.element === element)) {
+          observer.disconnect();
+          resolve();
+        }
+      });
+
+      // The image may already have painted before the test attaches its observer.
+      observer.observe({ type: 'largest-contentful-paint', buffered: true });
+    });
+  });
+}
+
 export async function hidePage(page: Page): Promise<void> {
   // web-vitals processes an interaction's event entries in `requestIdleCallback(..., { timeout:
   // 1000 })`, and Chromium only reaches idle here once that timeout elapses. Hiding before that

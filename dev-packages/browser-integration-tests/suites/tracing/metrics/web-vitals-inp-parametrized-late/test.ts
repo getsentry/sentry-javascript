@@ -1,3 +1,23 @@
+import {
+  BROWSER_WEB_VITAL_INP_VALUE,
+  SENTRY_IS_LOCALHOST,
+  SENTRY_ORIGIN,
+  SENTRY_OP,
+  UI_COMPONENT_NAME,
+  BROWSER_WEB_VITAL_INP_TARGET,
+  SENTRY_EXCLUSIVE_TIME,
+  BROWSER_WEB_VITAL_INP_INTERACTION_TYPE,
+  BROWSER_NAVIGATION_TYPE,
+  SENTRY_TRANSACTION,
+  SENTRY_SEGMENT_NAME,
+  USER_AGENT_ORIGINAL,
+  SENTRY_PAGELOAD_SPAN_ID,
+  SENTRY_TRACE_LIFECYCLE,
+  SENTRY_SEGMENT_ID,
+  SENTRY_SDK_NAME,
+  SENTRY_SDK_VERSION,
+  SENTRY_ENVIRONMENT,
+} from '@sentry/conventions/attributes';
 import { expect } from '@playwright/test';
 import { SDK_VERSION } from '@sentry/core';
 import { sentryTest } from '../../../../utils/fixtures';
@@ -59,7 +79,7 @@ sentryTest(
       content_type: 'application/vnd.sentry.items.span.v2+json',
     });
 
-    const inpValue = inpSpan.attributes['browser.web_vital.inp.value']?.value as number;
+    const inpValue = inpSpan.attributes[BROWSER_WEB_VITAL_INP_VALUE]?.value as number;
     expect(inpValue).toBeGreaterThan(0);
 
     const pageloadSpanId = inpSpan.parent_span_id;
@@ -74,25 +94,25 @@ sentryTest(
       is_segment: false,
       status: 'ok',
       attributes: {
-        'sentry.is_localhost': { value: false, type: 'boolean' },
-        'sentry.origin': { value: 'auto.http.browser.inp', type: 'string' },
-        'sentry.op': { value: 'ui.interaction.click', type: 'string' },
-        'ui.component_name': { value: 'NormalButton', type: 'string' },
-        'browser.web_vital.inp.target': { value: 'body > NormalButton', type: 'string' },
-        'sentry.exclusive_time': { value: inpValue, type: expect.stringMatching(/^(integer)|(double)$/) },
-        'browser.web_vital.inp.value': { value: inpValue, type: expect.stringMatching(/^(integer)|(double)$/) },
-        'browser.web_vital.inp.interaction_type': { value: 'click', type: 'string' },
-        'browser.navigation.type': { value: 'navigate', type: 'string' },
+        [SENTRY_IS_LOCALHOST]: { value: false, type: 'boolean' },
+        [SENTRY_ORIGIN]: { value: 'auto.http.browser.inp', type: 'string' },
+        [SENTRY_OP]: { value: 'ui.interaction.click', type: 'string' },
+        [UI_COMPONENT_NAME]: { value: 'NormalButton', type: 'string' },
+        [BROWSER_WEB_VITAL_INP_TARGET]: { value: 'body > NormalButton', type: 'string' },
+        [SENTRY_EXCLUSIVE_TIME]: { value: inpValue, type: expect.stringMatching(/^(integer)|(double)$/) },
+        [BROWSER_WEB_VITAL_INP_VALUE]: { value: inpValue, type: expect.stringMatching(/^(integer)|(double)$/) },
+        [BROWSER_WEB_VITAL_INP_INTERACTION_TYPE]: { value: 'click', type: 'string' },
+        [BROWSER_NAVIGATION_TYPE]: { value: 'navigate', type: 'string' },
         // the parametrized route name flows onto the INP span
-        'sentry.transaction': { value: 'test-route', type: 'string' },
-        'sentry.segment.name': { value: 'test-route', type: 'string' },
-        'user_agent.original': { value: expect.stringContaining('Chrome'), type: 'string' },
-        'sentry.pageload.span_id': { value: pageloadSpanId, type: 'string' },
-        'sentry.trace_lifecycle': { value: 'stream', type: 'string' },
-        'sentry.segment.id': { value: pageloadSpanId, type: 'string' },
-        'sentry.sdk.name': { value: 'sentry.javascript.browser', type: 'string' },
-        'sentry.sdk.version': { value: SDK_VERSION, type: 'string' },
-        'sentry.environment': { value: 'production', type: 'string' },
+        [SENTRY_TRANSACTION]: { value: 'test-route', type: 'string' },
+        [SENTRY_SEGMENT_NAME]: { value: 'test-route', type: 'string' },
+        [USER_AGENT_ORIGINAL]: { value: expect.stringContaining('Chrome'), type: 'string' },
+        [SENTRY_PAGELOAD_SPAN_ID]: { value: pageloadSpanId, type: 'string' },
+        [SENTRY_TRACE_LIFECYCLE]: { value: 'stream', type: 'string' },
+        [SENTRY_SEGMENT_ID]: { value: pageloadSpanId, type: 'string' },
+        [SENTRY_SDK_NAME]: { value: 'sentry.javascript.browser', type: 'string' },
+        [SENTRY_SDK_VERSION]: { value: SDK_VERSION, type: 'string' },
+        [SENTRY_ENVIRONMENT]: { value: 'production', type: 'string' },
       },
     });
   },

@@ -1,3 +1,4 @@
+import { URL_FULL, SENTRY_OP, SENTRY_ORIGIN } from '@sentry/conventions/attributes';
 import { expect } from '@playwright/test';
 import { sentryTest } from '../../../../utils/fixtures';
 import { shouldSkipTracingTest } from '../../../../utils/helpers';
@@ -16,7 +17,7 @@ sentryTest('clamps pre-SDK measures to the document request start', async ({ get
   expect(browserSpans.length).toBeGreaterThanOrEqual(4);
   const request = browserSpans.find(span => getSpanOp(span) === 'browser.request')!;
   expect(request.name).toBe('Request');
-  expect(request.attributes['url.full']).toEqual({ type: 'string', value: page.url() });
+  expect(request.attributes[URL_FULL]).toEqual({ type: 'string', value: page.url() });
   const measures = spans.filter(span => getSpanOp(span) === 'measure');
   expect(measures).toHaveLength(1);
   const measure = measures[0];
@@ -28,7 +29,7 @@ sentryTest('clamps pre-SDK measures to the document request start', async ({ get
       type: expect.stringMatching(/^(double|integer)$/),
       value: expect.any(Number),
     },
-    'sentry.op': { type: 'string', value: 'measure' },
-    'sentry.origin': { type: 'string', value: 'auto.browser.user_timing.measure' },
+    [SENTRY_OP]: { type: 'string', value: 'measure' },
+    [SENTRY_ORIGIN]: { type: 'string', value: 'auto.browser.user_timing.measure' },
   });
 });

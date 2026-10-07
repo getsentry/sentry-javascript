@@ -1,4 +1,32 @@
-import { SENTRY_OP, SENTRY_ORIGIN } from '@sentry/conventions/attributes';
+import {
+  URL_DOMAIN,
+  URL_FULL,
+  HTTP_REQUEST_SAME_ORIGIN,
+  HTTP_RESPONSE_BODY_DECODED_SIZE,
+  HTTP_RESPONSE_BODY_SIZE,
+  HTTP_RESPONSE_SIZE,
+  HTTP_REQUEST_CONNECT_START,
+  HTTP_REQUEST_CONNECTION_END,
+  HTTP_REQUEST_DOMAIN_LOOKUP_END,
+  HTTP_REQUEST_DOMAIN_LOOKUP_START,
+  HTTP_REQUEST_FETCH_START,
+  HTTP_REQUEST_REDIRECT_END,
+  HTTP_REQUEST_REDIRECT_START,
+  HTTP_REQUEST_REQUEST_START,
+  HTTP_REQUEST_SECURE_CONNECTION_START,
+  HTTP_REQUEST_WORKER_START,
+  HTTP_REQUEST_RESPONSE_END,
+  HTTP_REQUEST_RESPONSE_START,
+  HTTP_REQUEST_TIME_TO_FIRST_BYTE,
+  NETWORK_PROTOCOL_NAME,
+  NETWORK_PROTOCOL_VERSION,
+  SERVER_ADDRESS,
+  URL_SCHEME,
+  HTTP_RESPONSE_STATUS_CODE,
+  RESOURCE_RENDER_BLOCKING_STATUS,
+  SENTRY_OP,
+  SENTRY_ORIGIN,
+} from '@sentry/conventions/attributes';
 import type { Route } from '@playwright/test';
 import { expect } from '@playwright/test';
 import { sentryTest } from '../../../../utils/fixtures';
@@ -47,7 +75,7 @@ sentryTest(
     await page.goto(url);
     const pageload = await pageloadPromise;
     await page.evaluate(() => (window as any).Sentry.flush());
-    const externalResources = spans.filter(span => span.attributes['url.domain']?.value === 'sentry-test-site.example');
+    const externalResources = spans.filter(span => span.attributes[URL_DOMAIN]?.value === 'sentry-test-site.example');
     expect(externalResources).toHaveLength(3);
     externalResources.forEach(span => {
       expect(span.parent_span_id).toBe(pageload.span_id);
@@ -60,10 +88,10 @@ sentryTest(
     const imgSpan = resourceSpans.find(span => getSpanOp(span) === 'resource.img');
     const linkSpan = resourceSpans.find(span => getSpanOp(span) === 'resource.link');
     const customScriptSpan = scriptSpans.find(
-      span => span.attributes['url.domain']?.value === 'sentry-test-site.example',
+      span => span.attributes[URL_DOMAIN]?.value === 'sentry-test-site.example',
     );
     const sameOriginScriptSpan = scriptSpans.find(
-      span => span.attributes['url.full']?.value === new URL('init.bundle.js', url).href,
+      span => span.attributes[URL_FULL]?.value === new URL('init.bundle.js', url).href,
     );
     const spanId = pageload.span_id;
     const traceId = pageload.trace_id;
@@ -71,59 +99,59 @@ sentryTest(
     if ((process.env.PW_BUNDLE || '').startsWith('bundle')) {
       expectedScripts.push(new URL('cdn.bundle.js', url).href);
     }
-    expect(scriptSpans.map(span => span.attributes['url.full']?.value).sort()).toEqual(expectedScripts.sort());
+    expect(scriptSpans.map(span => span.attributes[URL_FULL]?.value).sort()).toEqual(expectedScripts.sort());
     expect(scriptSpans.map(span => span.parent_span_id)).toEqual(expectedScripts.map(() => spanId));
     expect(sameOriginScriptSpan?.name).toBe('sentry-test.io');
-    expect(sameOriginScriptSpan?.attributes['http.request.same_origin']).toEqual({ type: 'boolean', value: true });
+    expect(sameOriginScriptSpan?.attributes[HTTP_REQUEST_SAME_ORIGIN]).toEqual({ type: 'boolean', value: true });
 
     expect(imgSpan).toMatchObject({
       attributes: {
-        'http.response.body.decoded_size': {
+        [HTTP_RESPONSE_BODY_DECODED_SIZE]: {
           type: expect.stringMatching(/^(integer|double)$/),
           value: expect.any(Number),
         },
-        'http.response.body.size': { type: expect.stringMatching(/^(integer|double)$/), value: expect.any(Number) },
-        'http.response.size': { type: expect.stringMatching(/^(integer|double)$/), value: expect.any(Number) },
-        'http.request.connect_start': { type: expect.stringMatching(/^(integer|double)$/), value: expect.any(Number) },
-        'http.request.connection_end': { type: expect.stringMatching(/^(integer|double)$/), value: expect.any(Number) },
-        'http.request.domain_lookup_end': {
+        [HTTP_RESPONSE_BODY_SIZE]: { type: expect.stringMatching(/^(integer|double)$/), value: expect.any(Number) },
+        [HTTP_RESPONSE_SIZE]: { type: expect.stringMatching(/^(integer|double)$/), value: expect.any(Number) },
+        [HTTP_REQUEST_CONNECT_START]: { type: expect.stringMatching(/^(integer|double)$/), value: expect.any(Number) },
+        [HTTP_REQUEST_CONNECTION_END]: { type: expect.stringMatching(/^(integer|double)$/), value: expect.any(Number) },
+        [HTTP_REQUEST_DOMAIN_LOOKUP_END]: {
           type: expect.stringMatching(/^(integer|double)$/),
           value: expect.any(Number),
         },
-        'http.request.domain_lookup_start': {
+        [HTTP_REQUEST_DOMAIN_LOOKUP_START]: {
           type: expect.stringMatching(/^(integer|double)$/),
           value: expect.any(Number),
         },
-        'http.request.fetch_start': { type: expect.stringMatching(/^(integer|double)$/), value: expect.any(Number) },
-        'http.request.redirect_end': { type: expect.stringMatching(/^(integer|double)$/), value: expect.any(Number) },
-        'http.request.redirect_start': { type: expect.stringMatching(/^(integer|double)$/), value: expect.any(Number) },
-        'http.request.request_start': { type: expect.stringMatching(/^(integer|double)$/), value: expect.any(Number) },
-        'http.request.secure_connection_start': {
+        [HTTP_REQUEST_FETCH_START]: { type: expect.stringMatching(/^(integer|double)$/), value: expect.any(Number) },
+        [HTTP_REQUEST_REDIRECT_END]: { type: expect.stringMatching(/^(integer|double)$/), value: expect.any(Number) },
+        [HTTP_REQUEST_REDIRECT_START]: { type: expect.stringMatching(/^(integer|double)$/), value: expect.any(Number) },
+        [HTTP_REQUEST_REQUEST_START]: { type: expect.stringMatching(/^(integer|double)$/), value: expect.any(Number) },
+        [HTTP_REQUEST_SECURE_CONNECTION_START]: {
           type: expect.stringMatching(/^(integer|double)$/),
           value: expect.any(Number),
         },
-        'http.request.worker_start': { type: expect.stringMatching(/^(integer|double)$/), value: expect.any(Number) },
-        'http.request.response_end': { type: expect.stringMatching(/^(integer|double)$/), value: expect.any(Number) },
-        'http.request.response_start': { type: expect.stringMatching(/^(integer|double)$/), value: expect.any(Number) },
-        'http.request.time_to_first_byte': {
+        [HTTP_REQUEST_WORKER_START]: { type: expect.stringMatching(/^(integer|double)$/), value: expect.any(Number) },
+        [HTTP_REQUEST_RESPONSE_END]: { type: expect.stringMatching(/^(integer|double)$/), value: expect.any(Number) },
+        [HTTP_REQUEST_RESPONSE_START]: { type: expect.stringMatching(/^(integer|double)$/), value: expect.any(Number) },
+        [HTTP_REQUEST_TIME_TO_FIRST_BYTE]: {
           type: expect.stringMatching(/^(integer|double)$/),
           value: expect.any(Number),
         },
-        'network.protocol.name': { type: 'string', value: '' },
-        'network.protocol.version': { type: 'string', value: 'unknown' },
+        [NETWORK_PROTOCOL_NAME]: { type: 'string', value: '' },
+        [NETWORK_PROTOCOL_VERSION]: { type: 'string', value: 'unknown' },
         [SENTRY_OP]: { type: 'string', value: 'resource.img' },
         [SENTRY_ORIGIN]: { type: 'string', value: 'auto.resource.browser.metrics' },
-        'server.address': { type: 'string', value: 'sentry-test-site.example' },
-        'url.domain': { type: 'string', value: 'sentry-test-site.example' },
-        'http.request.same_origin': { type: 'boolean', value: false },
-        'url.scheme': { type: 'string', value: 'https' },
-        'url.full': { type: 'string', value: 'https://sentry-test-site.example/path/to/image.svg' },
+        [SERVER_ADDRESS]: { type: 'string', value: 'sentry-test-site.example' },
+        [URL_DOMAIN]: { type: 'string', value: 'sentry-test-site.example' },
+        [HTTP_REQUEST_SAME_ORIGIN]: { type: 'boolean', value: false },
+        [URL_SCHEME]: { type: 'string', value: 'https' },
+        [URL_FULL]: { type: 'string', value: 'https://sentry-test-site.example/path/to/image.svg' },
         // WebKit reports `deliveryType` as of Playwright 1.63's build, but still no response status
         // or render blocking status.
         'http.response_delivery_type': { type: 'string', value: '' },
         ...(!isWebkitRun && {
-          'http.response.status_code': { type: expect.stringMatching(/^(integer|double)$/), value: expect.any(Number) },
-          'resource.render_blocking_status': { type: 'string', value: 'non-blocking' },
+          [HTTP_RESPONSE_STATUS_CODE]: { type: expect.stringMatching(/^(integer|double)$/), value: expect.any(Number) },
+          [RESOURCE_RENDER_BLOCKING_STATUS]: { type: 'string', value: 'non-blocking' },
         }),
       },
       name: 'sentry-test-site.example',
@@ -138,58 +166,58 @@ sentryTest(
     // range check: TTFB is reasonably <10 seconds, which is really a check that we report it in
     // seconds rather than milliseconds. WebKit resolves these intercepted routes without measurable
     // delay, so only the other engines are held to a non-zero value.
-    const imgSpanTtfb = imgSpan?.attributes['http.request.time_to_first_byte']?.value;
+    const imgSpanTtfb = imgSpan?.attributes[HTTP_REQUEST_TIME_TO_FIRST_BYTE]?.value;
     expect(imgSpanTtfb).toBeGreaterThan(isWebkitRun ? -1 : 0);
     expect(imgSpanTtfb).toBeLessThan(10);
 
     expect(linkSpan).toMatchObject({
       attributes: {
-        'http.response.body.decoded_size': {
+        [HTTP_RESPONSE_BODY_DECODED_SIZE]: {
           type: expect.stringMatching(/^(integer|double)$/),
           value: expect.any(Number),
         },
-        'http.response.body.size': { type: expect.stringMatching(/^(integer|double)$/), value: expect.any(Number) },
-        'http.response.size': { type: expect.stringMatching(/^(integer|double)$/), value: expect.any(Number) },
-        'http.request.connect_start': { type: expect.stringMatching(/^(integer|double)$/), value: expect.any(Number) },
-        'http.request.connection_end': { type: expect.stringMatching(/^(integer|double)$/), value: expect.any(Number) },
-        'http.request.domain_lookup_end': {
+        [HTTP_RESPONSE_BODY_SIZE]: { type: expect.stringMatching(/^(integer|double)$/), value: expect.any(Number) },
+        [HTTP_RESPONSE_SIZE]: { type: expect.stringMatching(/^(integer|double)$/), value: expect.any(Number) },
+        [HTTP_REQUEST_CONNECT_START]: { type: expect.stringMatching(/^(integer|double)$/), value: expect.any(Number) },
+        [HTTP_REQUEST_CONNECTION_END]: { type: expect.stringMatching(/^(integer|double)$/), value: expect.any(Number) },
+        [HTTP_REQUEST_DOMAIN_LOOKUP_END]: {
           type: expect.stringMatching(/^(integer|double)$/),
           value: expect.any(Number),
         },
-        'http.request.domain_lookup_start': {
+        [HTTP_REQUEST_DOMAIN_LOOKUP_START]: {
           type: expect.stringMatching(/^(integer|double)$/),
           value: expect.any(Number),
         },
-        'http.request.fetch_start': { type: expect.stringMatching(/^(integer|double)$/), value: expect.any(Number) },
-        'http.request.redirect_end': { type: expect.stringMatching(/^(integer|double)$/), value: expect.any(Number) },
-        'http.request.redirect_start': { type: expect.stringMatching(/^(integer|double)$/), value: expect.any(Number) },
-        'http.request.request_start': { type: expect.stringMatching(/^(integer|double)$/), value: expect.any(Number) },
-        'http.request.secure_connection_start': {
+        [HTTP_REQUEST_FETCH_START]: { type: expect.stringMatching(/^(integer|double)$/), value: expect.any(Number) },
+        [HTTP_REQUEST_REDIRECT_END]: { type: expect.stringMatching(/^(integer|double)$/), value: expect.any(Number) },
+        [HTTP_REQUEST_REDIRECT_START]: { type: expect.stringMatching(/^(integer|double)$/), value: expect.any(Number) },
+        [HTTP_REQUEST_REQUEST_START]: { type: expect.stringMatching(/^(integer|double)$/), value: expect.any(Number) },
+        [HTTP_REQUEST_SECURE_CONNECTION_START]: {
           type: expect.stringMatching(/^(integer|double)$/),
           value: expect.any(Number),
         },
-        'http.request.worker_start': { type: expect.stringMatching(/^(integer|double)$/), value: expect.any(Number) },
-        'http.request.response_end': { type: expect.stringMatching(/^(integer|double)$/), value: expect.any(Number) },
-        'http.request.response_start': { type: expect.stringMatching(/^(integer|double)$/), value: expect.any(Number) },
-        'http.request.time_to_first_byte': {
+        [HTTP_REQUEST_WORKER_START]: { type: expect.stringMatching(/^(integer|double)$/), value: expect.any(Number) },
+        [HTTP_REQUEST_RESPONSE_END]: { type: expect.stringMatching(/^(integer|double)$/), value: expect.any(Number) },
+        [HTTP_REQUEST_RESPONSE_START]: { type: expect.stringMatching(/^(integer|double)$/), value: expect.any(Number) },
+        [HTTP_REQUEST_TIME_TO_FIRST_BYTE]: {
           type: expect.stringMatching(/^(integer|double)$/),
           value: expect.any(Number),
         },
-        'network.protocol.name': { type: 'string', value: '' },
-        'network.protocol.version': { type: 'string', value: 'unknown' },
+        [NETWORK_PROTOCOL_NAME]: { type: 'string', value: '' },
+        [NETWORK_PROTOCOL_VERSION]: { type: 'string', value: 'unknown' },
         [SENTRY_OP]: { type: 'string', value: 'resource.link' },
         [SENTRY_ORIGIN]: { type: 'string', value: 'auto.resource.browser.metrics' },
-        'server.address': { type: 'string', value: 'sentry-test-site.example' },
-        'url.domain': { type: 'string', value: 'sentry-test-site.example' },
-        'http.request.same_origin': { type: 'boolean', value: false },
-        'url.scheme': { type: 'string', value: 'https' },
-        'url.full': { type: 'string', value: 'https://sentry-test-site.example/path/to/style.css' },
+        [SERVER_ADDRESS]: { type: 'string', value: 'sentry-test-site.example' },
+        [URL_DOMAIN]: { type: 'string', value: 'sentry-test-site.example' },
+        [HTTP_REQUEST_SAME_ORIGIN]: { type: 'boolean', value: false },
+        [URL_SCHEME]: { type: 'string', value: 'https' },
+        [URL_FULL]: { type: 'string', value: 'https://sentry-test-site.example/path/to/style.css' },
         // WebKit reports `deliveryType` as of Playwright 1.63's build, but still no response status
         // or render blocking status.
         'http.response_delivery_type': { type: 'string', value: '' },
         ...(!isWebkitRun && {
-          'http.response.status_code': { type: expect.stringMatching(/^(integer|double)$/), value: expect.any(Number) },
-          'resource.render_blocking_status': { type: 'string', value: 'non-blocking' },
+          [HTTP_RESPONSE_STATUS_CODE]: { type: expect.stringMatching(/^(integer|double)$/), value: expect.any(Number) },
+          [RESOURCE_RENDER_BLOCKING_STATUS]: { type: 'string', value: 'non-blocking' },
         }),
       },
       name: 'sentry-test-site.example',
@@ -203,52 +231,52 @@ sentryTest(
 
     expect(customScriptSpan).toMatchObject({
       attributes: {
-        'http.response.body.decoded_size': {
+        [HTTP_RESPONSE_BODY_DECODED_SIZE]: {
           type: expect.stringMatching(/^(integer|double)$/),
           value: expect.any(Number),
         },
-        'http.response.body.size': { type: expect.stringMatching(/^(integer|double)$/), value: expect.any(Number) },
-        'http.response.size': { type: expect.stringMatching(/^(integer|double)$/), value: expect.any(Number) },
-        'http.request.connection_end': { type: expect.stringMatching(/^(integer|double)$/), value: expect.any(Number) },
-        'http.request.connect_start': { type: expect.stringMatching(/^(integer|double)$/), value: expect.any(Number) },
-        'http.request.domain_lookup_end': {
+        [HTTP_RESPONSE_BODY_SIZE]: { type: expect.stringMatching(/^(integer|double)$/), value: expect.any(Number) },
+        [HTTP_RESPONSE_SIZE]: { type: expect.stringMatching(/^(integer|double)$/), value: expect.any(Number) },
+        [HTTP_REQUEST_CONNECTION_END]: { type: expect.stringMatching(/^(integer|double)$/), value: expect.any(Number) },
+        [HTTP_REQUEST_CONNECT_START]: { type: expect.stringMatching(/^(integer|double)$/), value: expect.any(Number) },
+        [HTTP_REQUEST_DOMAIN_LOOKUP_END]: {
           type: expect.stringMatching(/^(integer|double)$/),
           value: expect.any(Number),
         },
-        'http.request.domain_lookup_start': {
+        [HTTP_REQUEST_DOMAIN_LOOKUP_START]: {
           type: expect.stringMatching(/^(integer|double)$/),
           value: expect.any(Number),
         },
-        'http.request.fetch_start': { type: expect.stringMatching(/^(integer|double)$/), value: expect.any(Number) },
-        'http.request.redirect_end': { type: expect.stringMatching(/^(integer|double)$/), value: expect.any(Number) },
-        'http.request.redirect_start': { type: expect.stringMatching(/^(integer|double)$/), value: expect.any(Number) },
-        'http.request.request_start': { type: expect.stringMatching(/^(integer|double)$/), value: expect.any(Number) },
-        'http.request.secure_connection_start': {
+        [HTTP_REQUEST_FETCH_START]: { type: expect.stringMatching(/^(integer|double)$/), value: expect.any(Number) },
+        [HTTP_REQUEST_REDIRECT_END]: { type: expect.stringMatching(/^(integer|double)$/), value: expect.any(Number) },
+        [HTTP_REQUEST_REDIRECT_START]: { type: expect.stringMatching(/^(integer|double)$/), value: expect.any(Number) },
+        [HTTP_REQUEST_REQUEST_START]: { type: expect.stringMatching(/^(integer|double)$/), value: expect.any(Number) },
+        [HTTP_REQUEST_SECURE_CONNECTION_START]: {
           type: expect.stringMatching(/^(integer|double)$/),
           value: expect.any(Number),
         },
-        'http.request.worker_start': { type: expect.stringMatching(/^(integer|double)$/), value: expect.any(Number) },
-        'http.request.response_end': { type: expect.stringMatching(/^(integer|double)$/), value: expect.any(Number) },
-        'http.request.response_start': { type: expect.stringMatching(/^(integer|double)$/), value: expect.any(Number) },
-        'http.request.time_to_first_byte': {
+        [HTTP_REQUEST_WORKER_START]: { type: expect.stringMatching(/^(integer|double)$/), value: expect.any(Number) },
+        [HTTP_REQUEST_RESPONSE_END]: { type: expect.stringMatching(/^(integer|double)$/), value: expect.any(Number) },
+        [HTTP_REQUEST_RESPONSE_START]: { type: expect.stringMatching(/^(integer|double)$/), value: expect.any(Number) },
+        [HTTP_REQUEST_TIME_TO_FIRST_BYTE]: {
           type: expect.stringMatching(/^(integer|double)$/),
           value: expect.any(Number),
         },
-        'network.protocol.name': { type: 'string', value: '' },
-        'network.protocol.version': { type: 'string', value: 'unknown' },
-        'sentry.op': { type: 'string', value: 'resource.script' },
-        'sentry.origin': { type: 'string', value: 'auto.resource.browser.metrics' },
-        'server.address': { type: 'string', value: 'sentry-test-site.example' },
-        'url.domain': { type: 'string', value: 'sentry-test-site.example' },
-        'http.request.same_origin': { type: 'boolean', value: false },
-        'url.scheme': { type: 'string', value: 'https' },
-        'url.full': { type: 'string', value: 'https://sentry-test-site.example/path/to/script.js' },
+        [NETWORK_PROTOCOL_NAME]: { type: 'string', value: '' },
+        [NETWORK_PROTOCOL_VERSION]: { type: 'string', value: 'unknown' },
+        [SENTRY_OP]: { type: 'string', value: 'resource.script' },
+        [SENTRY_ORIGIN]: { type: 'string', value: 'auto.resource.browser.metrics' },
+        [SERVER_ADDRESS]: { type: 'string', value: 'sentry-test-site.example' },
+        [URL_DOMAIN]: { type: 'string', value: 'sentry-test-site.example' },
+        [HTTP_REQUEST_SAME_ORIGIN]: { type: 'boolean', value: false },
+        [URL_SCHEME]: { type: 'string', value: 'https' },
+        [URL_FULL]: { type: 'string', value: 'https://sentry-test-site.example/path/to/script.js' },
         // WebKit reports `deliveryType` as of Playwright 1.63's build, but still no response status
         // or render blocking status.
         'http.response_delivery_type': { type: 'string', value: '' },
         ...(!isWebkitRun && {
-          'http.response.status_code': { type: expect.stringMatching(/^(integer|double)$/), value: expect.any(Number) },
-          'resource.render_blocking_status': { type: 'string', value: 'non-blocking' },
+          [HTTP_RESPONSE_STATUS_CODE]: { type: expect.stringMatching(/^(integer|double)$/), value: expect.any(Number) },
+          [RESOURCE_RENDER_BLOCKING_STATUS]: { type: 'string', value: 'non-blocking' },
         }),
       },
       name: 'sentry-test-site.example',

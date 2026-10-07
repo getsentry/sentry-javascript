@@ -1,3 +1,4 @@
+import { SENTRY_ORIGIN } from '@sentry/conventions/attributes';
 import { expect } from '@playwright/test';
 import { sentryTest } from '../../../../utils/fixtures';
 import { shouldSkipTracingTest } from '../../../../utils/helpers';
@@ -18,7 +19,7 @@ sentryTest(
     expect(measures).toHaveLength(3);
     measures.forEach(span => {
       expect(span.parent_span_id).toBe(pageload.span_id);
-      expect(span.attributes['sentry.origin']).toEqual({ type: 'string', value: 'auto.browser.user_timing.measure' });
+      expect(span.attributes[SENTRY_ORIGIN]).toEqual({ type: 'string', value: 'auto.browser.user_timing.measure' });
     });
     const restricted = measures.find(span => span.name === 'restricted-test-measure')!;
     expect(Object.keys(restricted.attributes).filter(key => key.includes('detail'))).toHaveLength(0);

@@ -1,3 +1,4 @@
+import { BROWSER_WEB_VITAL_TTFB_VALUE, BROWSER_WEB_VITAL_TTFB_REQUEST_TIME } from '@sentry/conventions/attributes';
 import { expect } from '@playwright/test';
 import { sentryTest } from '../../../../utils/fixtures';
 import { hidePage, shouldSkipTracingTest } from '../../../../utils/helpers';
@@ -27,10 +28,10 @@ sentryTest(
     // This seems to happen somewhat randomly, so we handle it.
     const responseStart = await page.evaluate("performance.getEntriesByType('navigation')[0].responseStart;");
     if (responseStart !== 0) {
-      expect(pageloadSpan.attributes['browser.web_vital.ttfb.value']?.type).toMatch(/^(double)|(integer)$/);
-      expect(pageloadSpan.attributes['browser.web_vital.ttfb.value']?.value).toBeGreaterThan(0);
+      expect(pageloadSpan.attributes[BROWSER_WEB_VITAL_TTFB_VALUE]?.type).toMatch(/^(double)|(integer)$/);
+      expect(pageloadSpan.attributes[BROWSER_WEB_VITAL_TTFB_VALUE]?.value).toBeGreaterThan(0);
     }
 
-    expect(pageloadSpan.attributes['browser.web_vital.ttfb.request_time']?.type).toMatch(/^(double)|(integer)$/);
+    expect(pageloadSpan.attributes[BROWSER_WEB_VITAL_TTFB_REQUEST_TIME]?.type).toMatch(/^(double)|(integer)$/);
   },
 );

@@ -1,3 +1,4 @@
+import { HTTP_REQUEST_METHOD, URL_FULL, SERVER_ADDRESS } from '@sentry/conventions/attributes';
 import { expect } from '@playwright/test';
 import type { Event } from '@sentry/core';
 import { sentryTest } from '../../../../utils/fixtures';
@@ -26,9 +27,9 @@ sentryTest('should create spans for XHR requests', async ({ getLocalTestUrl, pag
       timestamp: expect.any(Number),
       trace_id: eventData.contexts?.trace?.trace_id,
       data: {
-        'http.request.method': 'GET',
-        'url.full': `http://sentry-test-site.example/${index}`,
-        'server.address': 'sentry-test-site.example',
+        [HTTP_REQUEST_METHOD]: 'GET',
+        [URL_FULL]: `http://sentry-test-site.example/${index}`,
+        [SERVER_ADDRESS]: 'sentry-test-site.example',
         type: 'xhr',
       },
     }),

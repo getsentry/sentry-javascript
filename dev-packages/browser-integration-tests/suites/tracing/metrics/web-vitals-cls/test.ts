@@ -1,3 +1,12 @@
+import {
+  SENTRY_OP,
+  SENTRY_ORIGIN,
+  SENTRY_EXCLUSIVE_TIME,
+  USER_AGENT_ORIGINAL,
+  SENTRY_SEGMENT_NAME,
+  SENTRY_PAGELOAD_SPAN_ID,
+  BROWSER_WEB_VITAL_CLS_VALUE,
+} from '@sentry/conventions/attributes';
 import type { Page } from '@playwright/test';
 import { expect } from '@playwright/test';
 import { sentryTest } from '../../../../utils/fixtures';
@@ -33,13 +42,13 @@ sentryTest('captures CLS as a streamed span with source attributes', async ({ ge
   const clsSpan = await clsSpanPromise;
   const pageloadSpan = await pageloadSpanPromise;
 
-  expect(clsSpan.attributes['sentry.op']).toEqual({ type: 'string', value: 'ui.webvital.cls' });
-  expect(clsSpan.attributes['sentry.origin']).toEqual({ type: 'string', value: 'auto.http.browser.cls' });
-  expect(clsSpan.attributes['sentry.exclusive_time']).toEqual({ type: 'integer', value: 0 });
-  expect(clsSpan.attributes['user_agent.original']?.value).toEqual(expect.stringContaining('Chrome'));
+  expect(clsSpan.attributes[SENTRY_OP]).toEqual({ type: 'string', value: 'ui.webvital.cls' });
+  expect(clsSpan.attributes[SENTRY_ORIGIN]).toEqual({ type: 'string', value: 'auto.http.browser.cls' });
+  expect(clsSpan.attributes[SENTRY_EXCLUSIVE_TIME]).toEqual({ type: 'integer', value: 0 });
+  expect(clsSpan.attributes[USER_AGENT_ORIGINAL]?.value).toEqual(expect.stringContaining('Chrome'));
 
   // Check the CLS span carries the segment name it belongs to
-  expect(clsSpan.attributes['sentry.segment.name']).toEqual({ type: 'string', value: 'Pageload' });
+  expect(clsSpan.attributes[SENTRY_SEGMENT_NAME]).toEqual({ type: 'string', value: 'Pageload' });
 
   // Check browser.web_vital.cls.source attributes
   expect(clsSpan.attributes['browser.web_vital.cls.source.1']?.value).toEqual(
@@ -47,7 +56,7 @@ sentryTest('captures CLS as a streamed span with source attributes', async ({ ge
   );
 
   // Check pageload span id is present
-  expect(clsSpan.attributes['sentry.pageload.span_id']?.value).toBe(pageloadSpan.span_id);
+  expect(clsSpan.attributes[SENTRY_PAGELOAD_SPAN_ID]?.value).toBe(pageloadSpan.span_id);
 
   // CLS is a point-in-time metric
   expect(clsSpan.start_timestamp).toEqual(clsSpan.end_timestamp);
@@ -72,8 +81,8 @@ sentryTest('captures CLS as a streamed span with source attributes', async ({ ge
     await hidePage(page);
     const span = await clsPromise;
 
-    expect(span.attributes['browser.web_vital.cls.value']?.type).toBe('double');
-    const value = span.attributes['browser.web_vital.cls.value']?.value;
+    expect(span.attributes[BROWSER_WEB_VITAL_CLS_VALUE]?.type).toBe('double');
+    const value = span.attributes[BROWSER_WEB_VITAL_CLS_VALUE]?.value;
     expect(value).toBeGreaterThan(min);
     expect(value).toBeLessThan(max);
     expect(span.attributes['browser.web_vital.cls.source.1']).toEqual({ type: 'string', value: source });

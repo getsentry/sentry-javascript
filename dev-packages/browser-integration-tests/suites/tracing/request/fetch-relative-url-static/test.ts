@@ -1,3 +1,4 @@
+import { HTTP_REQUEST_METHOD, URL_FULL, SERVER_ADDRESS } from '@sentry/conventions/attributes';
 import { expect } from '@playwright/test';
 import { sentryTest, TEST_HOST } from '../../../../utils/fixtures';
 import {
@@ -28,9 +29,9 @@ sentryTest('should create spans for fetch requests', async ({ getLocalTestUrl, p
       timestamp: expect.any(Number),
       trace_id: tracingEvent.contexts?.trace?.trace_id,
       data: {
-        'http.request.method': 'GET',
-        'url.full': `${TEST_HOST}/test-req/${index}`,
-        'server.address': 'sentry-test.io',
+        [HTTP_REQUEST_METHOD]: 'GET',
+        [URL_FULL]: `${TEST_HOST}/test-req/${index}`,
+        [SERVER_ADDRESS]: 'sentry-test.io',
         type: 'fetch',
       },
     }),

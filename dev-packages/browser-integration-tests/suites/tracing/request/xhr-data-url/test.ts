@@ -1,3 +1,4 @@
+import { HTTP_REQUEST_METHOD, URL_FULL } from '@sentry/conventions/attributes';
 import { expect } from '@playwright/test';
 import { sentryTest } from '../../../../utils/fixtures';
 import { shouldSkipTracingTest } from '../../../../utils/helpers';
@@ -18,9 +19,9 @@ sentryTest('sanitizes data URLs in xhr span name and attributes', async ({ getLo
   expect(span.name).toBe('GET');
   expect(span.parent_span_id).toBe(pageload.span_id);
   expect(span.trace_id).toBe(pageload.trace_id);
-  expect(span.attributes['http.request.method']).toEqual({ type: 'string', value: 'GET' });
+  expect(span.attributes[HTTP_REQUEST_METHOD]).toEqual({ type: 'string', value: 'GET' });
   expect(span.attributes.type).toEqual({ type: 'string', value: 'xhr' });
-  expect(span.attributes['url.full']).toEqual({
+  expect(span.attributes[URL_FULL]).toEqual({
     type: 'string',
     value: 'data:text/plain,base64,SGVsbG8gV2... [truncated]',
   });

@@ -1,3 +1,14 @@
+import {
+  SENTRY_OP,
+  SENTRY_ORIGIN,
+  USER_AGENT_ORIGINAL,
+  SENTRY_TRANSACTION,
+  SENTRY_SEGMENT_NAME,
+  BROWSER_WEB_VITAL_INP_VALUE,
+  SENTRY_EXCLUSIVE_TIME,
+  UI_COMPONENT_NAME,
+  BROWSER_WEB_VITAL_INP_TARGET,
+} from '@sentry/conventions/attributes';
 import { expect } from '@playwright/test';
 import { sentryTest } from '../../../../utils/fixtures';
 import { hidePage, shouldSkipTracingTest } from '../../../../utils/helpers';
@@ -27,22 +38,22 @@ sentryTest('captures INP click as a streamed span', async ({ getLocalTestUrl, pa
   const inpSpan = await inpSpanPromise;
   const pageloadSpan = await pageloadSpanPromise;
 
-  expect(inpSpan.attributes['sentry.op']).toEqual({ type: 'string', value: 'ui.interaction.click' });
-  expect(inpSpan.attributes['sentry.origin']).toEqual({ type: 'string', value: 'auto.http.browser.inp' });
-  expect(inpSpan.attributes['user_agent.original']?.value).toEqual(expect.stringContaining('Chrome'));
+  expect(inpSpan.attributes[SENTRY_OP]).toEqual({ type: 'string', value: 'ui.interaction.click' });
+  expect(inpSpan.attributes[SENTRY_ORIGIN]).toEqual({ type: 'string', value: 'auto.http.browser.inp' });
+  expect(inpSpan.attributes[USER_AGENT_ORIGINAL]?.value).toEqual(expect.stringContaining('Chrome'));
 
   // Check the INP span carries the transaction/segment name it belongs to
-  expect(inpSpan.attributes['sentry.transaction']).toEqual({ type: 'string', value: 'Pageload' });
-  expect(inpSpan.attributes['sentry.segment.name']).toEqual({ type: 'string', value: 'Pageload' });
+  expect(inpSpan.attributes[SENTRY_TRANSACTION]).toEqual({ type: 'string', value: 'Pageload' });
+  expect(inpSpan.attributes[SENTRY_SEGMENT_NAME]).toEqual({ type: 'string', value: 'Pageload' });
 
-  const inpValue = inpSpan.attributes['browser.web_vital.inp.value']?.value as number;
+  const inpValue = inpSpan.attributes[BROWSER_WEB_VITAL_INP_VALUE]?.value as number;
   expect(inpValue).toBeGreaterThan(0);
 
-  expect(inpSpan.attributes['sentry.exclusive_time']?.value).toBeGreaterThan(0);
+  expect(inpSpan.attributes[SENTRY_EXCLUSIVE_TIME]?.value).toBeGreaterThan(0);
 
   expect(inpSpan.name).toBe('NormalButton');
-  expect(inpSpan.attributes['ui.component_name']).toEqual({ type: 'string', value: 'NormalButton' });
-  expect(inpSpan.attributes['browser.web_vital.inp.target']).toEqual({ type: 'string', value: 'body > NormalButton' });
+  expect(inpSpan.attributes[UI_COMPONENT_NAME]).toEqual({ type: 'string', value: 'NormalButton' });
+  expect(inpSpan.attributes[BROWSER_WEB_VITAL_INP_TARGET]).toEqual({ type: 'string', value: 'body > NormalButton' });
 
   expect(inpSpan.end_timestamp).toBeGreaterThan(inpSpan.start_timestamp);
 
@@ -78,10 +89,10 @@ sentryTest('captures the slowest interaction as streamed INP span', async ({ get
   const inpSpan = await inpSpanPromise;
 
   expect(inpSpan.name).toBe('SlowButton');
-  expect(inpSpan.attributes['ui.component_name']).toEqual({ type: 'string', value: 'SlowButton' });
-  expect(inpSpan.attributes['browser.web_vital.inp.target']).toEqual({ type: 'string', value: 'body > SlowButton' });
-  expect(inpSpan.attributes['sentry.exclusive_time']?.value).toBeGreaterThan(400);
+  expect(inpSpan.attributes[UI_COMPONENT_NAME]).toEqual({ type: 'string', value: 'SlowButton' });
+  expect(inpSpan.attributes[BROWSER_WEB_VITAL_INP_TARGET]).toEqual({ type: 'string', value: 'body > SlowButton' });
+  expect(inpSpan.attributes[SENTRY_EXCLUSIVE_TIME]?.value).toBeGreaterThan(400);
 
-  const inpValue = inpSpan.attributes['browser.web_vital.inp.value']?.value as number;
+  const inpValue = inpSpan.attributes[BROWSER_WEB_VITAL_INP_VALUE]?.value as number;
   expect(inpValue).toBeGreaterThan(400);
 });

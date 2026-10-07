@@ -1,3 +1,4 @@
+import { TTFB_REQUESTTIME } from '@sentry/conventions/attributes';
 import { expect } from '@playwright/test';
 import type { Event } from '@sentry/core';
 import { sentryTest } from '../../../../utils/fixtures';
@@ -20,5 +21,5 @@ sentryTest('should capture TTFB vital.', async ({ getLocalTestUrl, page }) => {
     expect(eventData.measurements?.ttfb?.value).toBeDefined();
   }
 
-  expect(eventData.measurements?.['ttfb.requestTime']?.value).toBeDefined();
+  expect(eventData.measurements?.[TTFB_REQUESTTIME]?.value).toBeDefined();
 });

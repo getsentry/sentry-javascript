@@ -1,3 +1,4 @@
+import { BROWSER_WEB_VITAL_INP_VALUE } from '@sentry/conventions/attributes';
 import { expect } from '@playwright/test';
 import { sentryTest } from '../../../../utils/fixtures';
 import { hidePage, shouldSkipTracingTest } from '../../../../utils/helpers';
@@ -35,6 +36,6 @@ sentryTest('runs `beforeSendSpan` for the streamed INP span', async ({ browserNa
   expect(inpSpan.attributes['custom.attribute']).toEqual({ value: 'from-before-send-span', type: 'string' });
 
   // The span is still a valid v2 INP span carrying its web vital value.
-  const inpValue = inpSpan.attributes['browser.web_vital.inp.value']?.value as number;
+  const inpValue = inpSpan.attributes[BROWSER_WEB_VITAL_INP_VALUE]?.value as number;
   expect(inpValue).toBeGreaterThan(0);
 });

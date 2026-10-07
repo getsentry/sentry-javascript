@@ -1,6 +1,12 @@
 import { expect } from '@playwright/test';
 import { SDK_VERSION } from '@sentry/core';
 import {
+  SENTRY_IS_LOCALHOST,
+  CULTURE_CALENDAR,
+  CULTURE_LOCALE,
+  CULTURE_TIMEZONE,
+  URL_FULL,
+  BROWSER_WEB_VITAL_INP_TARGET,
   SENTRY_IDLE_SPAN_FINISH_REASON,
   SENTRY_SEGMENT_ID,
   SENTRY_SEGMENT_NAME,
@@ -51,20 +57,20 @@ sentryTest('captures streamed interaction span tree. @firefox', async ({ browser
 
   expect(interactionSegmentSpan).toEqual({
     attributes: {
-      'sentry.is_localhost': { value: false, type: 'boolean' },
+      [SENTRY_IS_LOCALHOST]: { value: false, type: 'boolean' },
       [SENTRY_TRACE_LIFECYCLE]: {
         type: 'string',
         value: 'stream',
       },
-      'culture.calendar': {
+      [CULTURE_CALENDAR]: {
         type: 'string',
         value: expect.any(String),
       },
-      'culture.locale': {
+      [CULTURE_LOCALE]: {
         type: 'string',
         value: expect.any(String),
       },
-      'culture.timezone': {
+      [CULTURE_TIMEZONE]: {
         type: 'string',
         value: expect.any(String),
       },
@@ -72,7 +78,7 @@ sentryTest('captures streamed interaction span tree. @firefox', async ({ browser
         type: 'string',
         value: expect.any(String),
       },
-      'url.full': {
+      [URL_FULL]: {
         type: 'string',
         value: expect.any(String),
       },
@@ -136,7 +142,7 @@ sentryTest('captures streamed interaction span tree. @firefox', async ({ browser
   const interactionSpan = interactionSpanTree.find(span => getSpanOp(span) === 'ui.interaction.click');
   expect(interactionSpan).toEqual({
     attributes: {
-      'sentry.is_localhost': { value: false, type: 'boolean' },
+      [SENTRY_IS_LOCALHOST]: { value: false, type: 'boolean' },
       [SENTRY_TRACE_LIFECYCLE]: {
         type: 'string',
         value: 'stream',
@@ -173,7 +179,7 @@ sentryTest('captures streamed interaction span tree. @firefox', async ({ browser
         type: 'string',
         value: 'production',
       },
-      'browser.web_vital.inp.target': {
+      [BROWSER_WEB_VITAL_INP_TARGET]: {
         type: 'string',
         value: 'body > button.clicked',
       },

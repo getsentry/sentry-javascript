@@ -1,3 +1,8 @@
+import {
+  BROWSER_WEB_VITAL_LCP_VALUE,
+  BROWSER_WEB_VITAL_LCP_ELEMENT,
+  BROWSER_WEB_VITAL_LCP_SIZE,
+} from '@sentry/conventions/attributes';
 import type { Route } from '@playwright/test';
 import { expect } from '@playwright/test';
 import { sentryTest } from '../../../../utils/fixtures';
@@ -26,9 +31,9 @@ sentryTest(
     await page.locator('button').click();
     const lcpSpan = await lcpPromise;
 
-    expect(lcpSpan.attributes['browser.web_vital.lcp.value']?.value).toBeGreaterThan(0);
-    expect(lcpSpan.attributes['browser.web_vital.lcp.element']).toEqual({ type: 'string', value: 'body > img' });
-    expect(lcpSpan.attributes['browser.web_vital.lcp.size']).toEqual({ type: 'integer', value: 107400 });
+    expect(lcpSpan.attributes[BROWSER_WEB_VITAL_LCP_VALUE]?.value).toBeGreaterThan(0);
+    expect(lcpSpan.attributes[BROWSER_WEB_VITAL_LCP_ELEMENT]).toEqual({ type: 'string', value: 'body > img' });
+    expect(lcpSpan.attributes[BROWSER_WEB_VITAL_LCP_SIZE]).toEqual({ type: 'integer', value: 107400 });
     expect(await page.evaluate('window._LCP')).toBe(107400);
     expect(await page.evaluate('window._LCP2')).toBe(107400);
     expect(await page.evaluate('window._LCP3')).toBeUndefined();

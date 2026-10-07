@@ -1,3 +1,4 @@
+import { URL_FULL, HTTP_REQUEST_METHOD, URL_DOMAIN, SERVER_ADDRESS } from '@sentry/conventions/attributes';
 import { expect } from '@playwright/test';
 import { sentryTest } from '../../../../utils/fixtures';
 import { shouldSkipTracingTest } from '../../../../utils/helpers';
@@ -20,9 +21,7 @@ sentryTest('creates spans for XHR requests', async ({ getLocalTestUrl, page }) =
   const allSpans = spans;
   const requestSpans = allSpans
     .filter(s => getSpanOp(s) === 'http.client')
-    .sort((a, b) =>
-      (a.attributes!['url.full']!.value as string).localeCompare(b.attributes!['url.full']!.value as string),
-    );
+    .sort((a, b) => (a.attributes![URL_FULL]!.value as string).localeCompare(b.attributes![URL_FULL]!.value as string));
 
   expect(requestSpans).toHaveLength(3);
 
@@ -36,10 +35,10 @@ sentryTest('creates spans for XHR requests', async ({ getLocalTestUrl, page }) =
       end_timestamp: expect.any(Number),
       trace_id: pageloadSpan?.trace_id,
       attributes: expect.objectContaining({
-        'http.request.method': { type: 'string', value: 'GET' },
-        'url.full': { type: 'string', value: `http://sentry-test-site.example/${index}` },
-        'url.domain': { type: 'string', value: 'sentry-test-site.example' },
-        'server.address': { type: 'string', value: 'sentry-test-site.example' },
+        [HTTP_REQUEST_METHOD]: { type: 'string', value: 'GET' },
+        [URL_FULL]: { type: 'string', value: `http://sentry-test-site.example/${index}` },
+        [URL_DOMAIN]: { type: 'string', value: 'sentry-test-site.example' },
+        [SERVER_ADDRESS]: { type: 'string', value: 'sentry-test-site.example' },
         type: { type: 'string', value: 'xhr' },
       }),
     }),

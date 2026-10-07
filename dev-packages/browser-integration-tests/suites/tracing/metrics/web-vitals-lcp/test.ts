@@ -1,7 +1,21 @@
+import {
+  SENTRY_OP,
+  SENTRY_ORIGIN,
+  SENTRY_EXCLUSIVE_TIME,
+  USER_AGENT_ORIGINAL,
+  SENTRY_SEGMENT_NAME,
+  BROWSER_WEB_VITAL_LCP_ELEMENT,
+  BROWSER_WEB_VITAL_LCP_URL,
+  BROWSER_WEB_VITAL_LCP_SIZE,
+  BROWSER_WEB_VITAL_LCP_VALUE,
+  BROWSER_WEB_VITAL_LCP_RENDER_TIME,
+  BROWSER_WEB_VITAL_LCP_LOAD_TIME,
+  SENTRY_PAGELOAD_SPAN_ID,
+} from '@sentry/conventions/attributes';
 import type { Route } from '@playwright/test';
 import { expect } from '@playwright/test';
 import { sentryTest } from '../../../../utils/fixtures';
-import { shouldSkipTracingTest } from '../../../../utils/helpers';
+import { shouldSkipTracingTest, waitForLcpCandidate } from '../../../../utils/helpers';
 import { getSpanOp, waitForStreamedSpan } from '../../../../utils/spanUtils';
 
 sentryTest.beforeEach(async ({ browserName, page }) => {
@@ -27,8 +41,7 @@ sentryTest('captures LCP as a streamed span with element attributes', async ({ g
 
   await page.goto(url);
 
-  // Wait for LCP to be captured
-  await page.waitForTimeout(1000);
+  await waitForLcpCandidate(page, 'img');
 
   // LCP finalizes on the first trusted input or visibility change, and web-vitals checks
   // `isTrusted`, so a synthetically dispatched `visibilitychange` does not finalize it. Click to
@@ -38,30 +51,30 @@ sentryTest('captures LCP as a streamed span with element attributes', async ({ g
   const lcpSpan = await lcpSpanPromise;
   const pageloadSpan = await pageloadSpanPromise;
 
-  expect(lcpSpan.attributes['sentry.op']).toEqual({ type: 'string', value: 'ui.webvital.lcp' });
-  expect(lcpSpan.attributes['sentry.origin']).toEqual({ type: 'string', value: 'auto.http.browser.lcp' });
-  expect(lcpSpan.attributes['sentry.exclusive_time']).toEqual({ type: 'integer', value: 0 });
-  expect(lcpSpan.attributes['user_agent.original']?.value).toEqual(expect.stringContaining('Chrome'));
+  expect(lcpSpan.attributes[SENTRY_OP]).toEqual({ type: 'string', value: 'ui.webvital.lcp' });
+  expect(lcpSpan.attributes[SENTRY_ORIGIN]).toEqual({ type: 'string', value: 'auto.http.browser.lcp' });
+  expect(lcpSpan.attributes[SENTRY_EXCLUSIVE_TIME]).toEqual({ type: 'integer', value: 0 });
+  expect(lcpSpan.attributes[USER_AGENT_ORIGINAL]?.value).toEqual(expect.stringContaining('Chrome'));
 
   // Check the LCP span carries the segment name it belongs to
-  expect(lcpSpan.attributes['sentry.segment.name']).toEqual({ type: 'string', value: 'Pageload' });
+  expect(lcpSpan.attributes[SENTRY_SEGMENT_NAME]).toEqual({ type: 'string', value: 'Pageload' });
 
   // Check browser.web_vital.lcp.* attributes
-  expect(lcpSpan.attributes['browser.web_vital.lcp.element']?.value).toEqual(expect.stringContaining('body > img'));
-  expect(lcpSpan.attributes['browser.web_vital.lcp.url']?.value).toBe('https://sentry-test-site.example/my/image.png');
-  expect(lcpSpan.attributes['browser.web_vital.lcp.size']?.value).toEqual(expect.any(Number));
+  expect(lcpSpan.attributes[BROWSER_WEB_VITAL_LCP_ELEMENT]?.value).toEqual(expect.stringContaining('body > img'));
+  expect(lcpSpan.attributes[BROWSER_WEB_VITAL_LCP_URL]?.value).toBe('https://sentry-test-site.example/my/image.png');
+  expect(lcpSpan.attributes[BROWSER_WEB_VITAL_LCP_SIZE]?.value).toEqual(expect.any(Number));
 
   // Check web vital value attribute
-  expect(lcpSpan.attributes['browser.web_vital.lcp.value']?.type).toMatch(/^(double)|(integer)$/);
-  expect(lcpSpan.attributes['browser.web_vital.lcp.value']?.value).toBeGreaterThan(0);
+  expect(lcpSpan.attributes[BROWSER_WEB_VITAL_LCP_VALUE]?.type).toMatch(/^(double)|(integer)$/);
+  expect(lcpSpan.attributes[BROWSER_WEB_VITAL_LCP_VALUE]?.value).toBeGreaterThan(0);
 
-  const renderTime = lcpSpan.attributes['browser.web_vital.lcp.render_time']?.value as number;
+  const renderTime = lcpSpan.attributes[BROWSER_WEB_VITAL_LCP_RENDER_TIME]?.value as number;
   expect(renderTime).toBeGreaterThan(0);
-  expect(lcpSpan.attributes['browser.web_vital.lcp.load_time']?.value).toBeGreaterThan(0);
-  expect(lcpSpan.attributes['browser.web_vital.lcp.value']?.value).toBeCloseTo(renderTime);
+  expect(lcpSpan.attributes[BROWSER_WEB_VITAL_LCP_LOAD_TIME]?.value).toBeGreaterThan(0);
+  expect(lcpSpan.attributes[BROWSER_WEB_VITAL_LCP_VALUE]?.value).toBeCloseTo(renderTime);
 
   // Check pageload span id is present
-  expect(lcpSpan.attributes['sentry.pageload.span_id']?.value).toBe(pageloadSpan.span_id);
+  expect(lcpSpan.attributes[SENTRY_PAGELOAD_SPAN_ID]?.value).toBe(pageloadSpan.span_id);
 
   // Span should have meaningful duration (navigation start -> LCP event)
   expect(lcpSpan.end_timestamp).toBeGreaterThan(lcpSpan.start_timestamp);

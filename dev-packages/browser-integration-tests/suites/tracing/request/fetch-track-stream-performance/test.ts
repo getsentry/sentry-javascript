@@ -1,3 +1,4 @@
+import { HTTP_REQUEST_METHOD, URL_FULL, URL_DOMAIN } from '@sentry/conventions/attributes';
 import http from 'http';
 import type { AddressInfo } from 'net';
 import { expect } from '@playwright/test';
@@ -53,9 +54,9 @@ sentryTest(
       expect(streamSpan).toMatchObject({
         name: 'GET sentry-test-site.example',
         attributes: expect.objectContaining({
-          'http.request.method': { type: 'string', value: 'GET' },
-          'url.full': { type: 'string', value: 'http://sentry-test-site.example/delayed' },
-          'url.domain': { type: 'string', value: 'sentry-test-site.example' },
+          [HTTP_REQUEST_METHOD]: { type: 'string', value: 'GET' },
+          [URL_FULL]: { type: 'string', value: 'http://sentry-test-site.example/delayed' },
+          [URL_DOMAIN]: { type: 'string', value: 'sentry-test-site.example' },
           type: { type: 'string', value: 'fetch' },
         }),
       });

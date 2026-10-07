@@ -1,3 +1,4 @@
+import { SENTRY_ORIGIN } from '@sentry/conventions/attributes';
 import { expect } from '@playwright/test';
 import { sentryTest } from '../../../../utils/fixtures';
 import { shouldSkipTracingTest } from '../../../../utils/helpers';
@@ -19,7 +20,7 @@ sentryTest('captures non-ignored mark and measure spans', async ({ getLocalTestU
     .map(span => ({
       name: span.name,
       op: getSpanOp(span),
-      origin: span.attributes['sentry.origin']?.value,
+      origin: span.attributes[SENTRY_ORIGIN]?.value,
     }))
     .sort((a, b) => a.name.localeCompare(b.name));
 

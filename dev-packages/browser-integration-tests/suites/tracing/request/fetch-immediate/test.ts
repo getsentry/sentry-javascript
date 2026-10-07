@@ -1,3 +1,4 @@
+import { HTTP_REQUEST_METHOD, URL_FULL, SERVER_ADDRESS } from '@sentry/conventions/attributes';
 import { collectStreamedSpans, getSpanOp, waitForStreamedSpan } from '../../../../utils/spanUtils';
 import { expect } from '@playwright/test';
 import { sentryTest } from '../../../../utils/fixtures';
@@ -30,9 +31,9 @@ sentryTest('should create spans for fetch requests called directly after init', 
     end_timestamp: expect.any(Number),
     trace_id: pageload.trace_id,
     attributes: expect.objectContaining({
-      'http.request.method': { type: 'string', value: 'GET' },
-      'url.full': { type: 'string', value: 'http://sentry-test-site.example/0' },
-      'server.address': { type: 'string', value: 'sentry-test-site.example' },
+      [HTTP_REQUEST_METHOD]: { type: 'string', value: 'GET' },
+      [URL_FULL]: { type: 'string', value: 'http://sentry-test-site.example/0' },
+      [SERVER_ADDRESS]: { type: 'string', value: 'sentry-test-site.example' },
       type: { type: 'string', value: 'fetch' },
     }),
   });

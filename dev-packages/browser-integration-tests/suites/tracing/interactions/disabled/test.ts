@@ -1,3 +1,4 @@
+import { SENTRY_ORIGIN } from '@sentry/conventions/attributes';
 import { expect } from '@playwright/test';
 import { sentryTest } from '../../../../utils/fixtures';
 import { hidePage, shouldSkipTracingTest } from '../../../../utils/helpers';
@@ -14,5 +15,5 @@ sentryTest('does not capture interaction spans without the integration', async (
   await hidePage(page);
   await page.evaluate(() => (window as any).Sentry.flush());
 
-  expect(spans.filter(span => span.attributes['sentry.origin']?.value === 'auto.browser.interactions')).toHaveLength(0);
+  expect(spans.filter(span => span.attributes[SENTRY_ORIGIN]?.value === 'auto.browser.interactions')).toHaveLength(0);
 });
