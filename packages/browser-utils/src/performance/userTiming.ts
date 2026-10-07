@@ -3,7 +3,7 @@ import type { IntegrationFn, Span, SpanAttributes, SpanAttributeValue } from '@s
 import {
   defineIntegration,
   isPrimitive,
-  performanceTimeToSeconds,
+  _INTERNAL_performanceTimeToSeconds,
   spanToJSON,
   stringMatchesSomePattern,
 } from '@sentry/core';
@@ -47,7 +47,7 @@ const _userTimingIntegration = ((options: UserTimingOptions = {}) => {
             continue;
           }
 
-          const startTimestamp = performanceTimeToSeconds(entry.startTime);
+          const startTimestamp = _INTERNAL_performanceTimeToSeconds(entry.startTime);
           if (!startTimestamp) {
             continue;
           }
@@ -56,14 +56,14 @@ const _userTimingIntegration = ((options: UserTimingOptions = {}) => {
             continue;
           }
 
-          const endTimestamp = performanceTimeToSeconds(
+          const endTimestamp = _INTERNAL_performanceTimeToSeconds(
             entry.startTime + Math.max(0, entry.duration),
             entry.startTime,
           ) as number;
 
           // We convert the request start with the entry's time origin, so that the clamp in `_addUserTimingSpan` compares
           // timestamps on the same timeline, even if the time origin was corrected between the request and the entry.
-          const requestTimestamp = performanceTimeToSeconds(requestStart, entry.startTime) as number;
+          const requestTimestamp = _INTERNAL_performanceTimeToSeconds(requestStart, entry.startTime) as number;
 
           _addUserTimingSpan(idleSpan, entry, startTimestamp, endTimestamp, requestTimestamp, options.ignore ?? []);
         }

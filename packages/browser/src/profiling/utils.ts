@@ -5,7 +5,7 @@ import {
   getClient,
   getDebugImagesForResources,
   GLOBAL_OBJ,
-  performanceTimeToSeconds,
+  _INTERNAL_performanceTimeToSeconds,
   uuid4,
 } from '@sentry/core';
 import type { BrowserOptions } from '../client';
@@ -155,7 +155,7 @@ function convertToContinuousProfile(input: {
     }
     // Sample timestamps are relative to `performance.timeOrigin`, so we convert them like performance entries.
     // The cast is safe: the JS Self-Profiling API only exists if the Performance API does.
-    const timestampSeconds = performanceTimeToSeconds(sample.timestamp) as number;
+    const timestampSeconds = _INTERNAL_performanceTimeToSeconds(sample.timestamp) as number;
     samples[i] = {
       stack_id: sample.stackId ?? 0,
       thread_id: PROFILER_THREAD_ID_STRING,

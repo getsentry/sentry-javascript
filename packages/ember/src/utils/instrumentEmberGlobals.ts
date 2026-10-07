@@ -7,7 +7,7 @@ import type { Span } from '@sentry/core';
 import {
   browserPerformanceTimeOrigin,
   hasSpanStreamingEnabled,
-  performanceTimeToSeconds,
+  _INTERNAL_performanceTimeToSeconds,
   timestampInSeconds,
   UI_MOUNT_SPAN_NAME_FALLBACK,
   UI_TASK_SPAN_NAME_FALLBACK,
@@ -243,7 +243,7 @@ function _instrumentInitialLoad(): void {
   const measure = measures[0]!;
 
   // The cast is safe: we checked above that the time origin is available.
-  const startTime = performanceTimeToSeconds(measure.startTime) as number;
+  const startTime = _INTERNAL_performanceTimeToSeconds(measure.startTime) as number;
   const endTime = startTime + measure.duration / 1000;
 
   const client = getClient();

@@ -4,7 +4,7 @@ import {
   BROWSER_NAVIGATION_TIMING_SPAN_NAMES,
   getActiveSpan,
   parseUrl,
-  performanceTimeToSeconds,
+  _INTERNAL_performanceTimeToSeconds,
   RESOURCE_SPAN_NAME_FALLBACK,
   setMeasurement,
   spanToJSON,
@@ -108,7 +108,7 @@ export function startTrackingLongTasks(): void {
     const { attributes: parentAttributes, start_timestamp: parentStartTimestamp } = spanToJSON(parent);
 
     for (const entry of entries) {
-      const startTime = performanceTimeToSeconds(entry.startTime);
+      const startTime = _INTERNAL_performanceTimeToSeconds(entry.startTime);
       if (!startTime) {
         continue;
       }
@@ -146,7 +146,7 @@ export function startTrackingLongAnimationFrames(): void {
       return;
     }
     for (const entry of list.getEntries() as PerformanceLongAnimationFrameTiming[]) {
-      const startTime = performanceTimeToSeconds(entry.startTime);
+      const startTime = _INTERNAL_performanceTimeToSeconds(entry.startTime);
       if (!startTime || !entry.scripts[0]) {
         continue;
       }
@@ -223,7 +223,7 @@ export function addPerformanceEntries(span: Span, options: AddPerformanceEntries
   const { attributes, start_timestamp: transactionStartTime } = spanToJSON(span);
 
   performanceEntries.slice(_performanceCursor).forEach(entry => {
-    const startTimestamp = performanceTimeToSeconds(entry.startTime);
+    const startTimestamp = _INTERNAL_performanceTimeToSeconds(entry.startTime);
     if (!startTimestamp) {
       return;
     }
@@ -313,7 +313,7 @@ export function _addNavigationSpans(
  */
 function _navigationTimeToSeconds(entry: PerformanceNavigationTiming, time: number): number {
   // The cast is safe: `addPerformanceEntries` only adds navigation spans if the time origin is available.
-  return performanceTimeToSeconds(time, entry.startTime) as number;
+  return _INTERNAL_performanceTimeToSeconds(time, entry.startTime) as number;
 }
 
 type StartEventName =

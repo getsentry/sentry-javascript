@@ -22,7 +22,7 @@ vi.mock('@sentry/core', async () => {
   return {
     ...actual,
     browserPerformanceTimeOrigin: vi.fn(),
-    performanceTimeToSeconds: vi.fn(),
+    _INTERNAL_performanceTimeToSeconds: vi.fn(),
     timestampInSeconds: vi.fn(),
     getCurrentScope: vi.fn(),
     getClient: vi.fn(),
@@ -379,7 +379,7 @@ describe('_sendLcpSpan', () => {
   beforeEach(() => {
     vi.mocked(SentryCore.getCurrentScope).mockReturnValue(mockScope as any);
     vi.mocked(SentryCore.browserPerformanceTimeOrigin).mockReturnValue(1000);
-    vi.mocked(SentryCore.performanceTimeToSeconds).mockImplementation(
+    vi.mocked(SentryCore._INTERNAL_performanceTimeToSeconds).mockImplementation(
       (time, entryStartTime = time) => (SentryCore.browserPerformanceTimeOrigin(entryStartTime)! + time) / 1000,
     );
     vi.mocked(htmlTreeAsString).mockImplementation((node: any) => `<${node?.tagName || 'div'}>`);
@@ -517,7 +517,7 @@ describe('_sendClsSpan', () => {
   beforeEach(() => {
     vi.mocked(SentryCore.getCurrentScope).mockReturnValue(mockScope as any);
     vi.mocked(SentryCore.browserPerformanceTimeOrigin).mockReturnValue(1000);
-    vi.mocked(SentryCore.performanceTimeToSeconds).mockImplementation(time => (1000 + time) / 1000);
+    vi.mocked(SentryCore._INTERNAL_performanceTimeToSeconds).mockImplementation(time => (1000 + time) / 1000);
     vi.mocked(SentryCore.timestampInSeconds).mockReturnValue(1.5);
     vi.mocked(htmlTreeAsString).mockImplementation((node: any) => `<${node?.tagName || 'div'}>`);
     vi.mocked(SentryCoreBrowser.startInactiveSpan).mockReturnValue(mockSpan as any);
@@ -611,7 +611,7 @@ describe('_sendClsSpan', () => {
 
   it('falls back to the current time when there is no performance time origin', () => {
     vi.mocked(SentryCore.browserPerformanceTimeOrigin).mockReturnValue(undefined);
-    vi.mocked(SentryCore.performanceTimeToSeconds).mockReturnValue(undefined);
+    vi.mocked(SentryCore._INTERNAL_performanceTimeToSeconds).mockReturnValue(undefined);
 
     _sendClsSpan(0, undefined);
 
@@ -634,7 +634,7 @@ describe('_sendInpSpan', () => {
   beforeEach(() => {
     vi.mocked(SentryCore.getCurrentScope).mockReturnValue(mockScope as any);
     vi.mocked(SentryCore.browserPerformanceTimeOrigin).mockReturnValue(1000);
-    vi.mocked(SentryCore.performanceTimeToSeconds).mockImplementation(time => (1000 + time) / 1000);
+    vi.mocked(SentryCore._INTERNAL_performanceTimeToSeconds).mockImplementation(time => (1000 + time) / 1000);
     vi.mocked(htmlTreeAsString).mockReturnValue('<button>');
     vi.mocked(SentryCoreBrowser.startInactiveSpan).mockReturnValue(mockSpan as any);
     vi.mocked(SentryCore.getActiveSpan).mockReturnValue(undefined);
@@ -697,7 +697,7 @@ describe('_sendInpSpan', () => {
     // should still use the old one.
     const sleepDurationMs = 3_600_000;
     vi.mocked(SentryCore.browserPerformanceTimeOrigin).mockReturnValue(1000 + sleepDurationMs);
-    vi.mocked(SentryCore.performanceTimeToSeconds).mockImplementation(time =>
+    vi.mocked(SentryCore._INTERNAL_performanceTimeToSeconds).mockImplementation(time =>
       time < 500 ? (1000 + sleepDurationMs + time) / 1000 : (1000 + time) / 1000,
     );
 
@@ -838,7 +838,7 @@ describe('trackInpAsSpan', () => {
 
   beforeEach(() => {
     vi.mocked(SentryCore.browserPerformanceTimeOrigin).mockReturnValue(1000);
-    vi.mocked(SentryCore.performanceTimeToSeconds).mockImplementation(time => (1000 + time) / 1000);
+    vi.mocked(SentryCore._INTERNAL_performanceTimeToSeconds).mockImplementation(time => (1000 + time) / 1000);
     vi.mocked(SentryCore.getCurrentScope).mockReturnValue(mockScope as any);
     vi.mocked(SentryCore.getActiveSpan).mockReturnValue(undefined);
     vi.mocked(SentryCoreBrowser.startInactiveSpan).mockReturnValue({ end: vi.fn() } as any);
@@ -937,7 +937,7 @@ describe('soft navigation web vitals', () => {
       supportedEntryTypes: ['largest-contentful-paint', 'layout-shift', 'soft-navigation'],
     });
     vi.mocked(SentryCore.browserPerformanceTimeOrigin).mockReturnValue(1000);
-    vi.mocked(SentryCore.performanceTimeToSeconds).mockImplementation(time => (1000 + time) / 1000);
+    vi.mocked(SentryCore._INTERNAL_performanceTimeToSeconds).mockImplementation(time => (1000 + time) / 1000);
     vi.mocked(SentryCore.getCurrentScope).mockReturnValue(mockScope as any);
     vi.mocked(SentryCoreBrowser.startInactiveSpan).mockReturnValue({ end: vi.fn() } as any);
     vi.mocked(SentryCore.spanToJSON).mockImplementation(

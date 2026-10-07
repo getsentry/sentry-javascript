@@ -7,7 +7,7 @@ import {
   getClient,
   getRootSpan,
   hasSpanStreamingEnabled,
-  performanceTimeToSeconds,
+  _INTERNAL_performanceTimeToSeconds,
   spanToJSON,
   timestampInSeconds,
   UI_INTERACTION_CLICK_SPAN_NAME_FALLBACK,
@@ -196,11 +196,11 @@ export function _sendLcpSpan(
   // keeps its duration equal to the reported value. The span's end uses the same origin, even if
   // the time origin was corrected in between.
   const navigationStart = navigationStartTime || 0;
-  const startTime = performanceTimeToSeconds(navigationStart) ?? msToSec(navigationStart);
+  const startTime = _INTERNAL_performanceTimeToSeconds(navigationStart) ?? msToSec(navigationStart);
   // Without an entry there is no render time to end at, so the span lasts the value it reports,
   // like an entry-less INP does. Ending at the time origin instead would invert the span.
   const endTime = entry
-    ? (performanceTimeToSeconds(entry.startTime, navigationStart) ?? msToSec(entry.startTime))
+    ? (_INTERNAL_performanceTimeToSeconds(entry.startTime, navigationStart) ?? msToSec(entry.startTime))
     : startTime + msToSec(lcpValue);
   const selector = entry ? htmlTreeAsString(entry.element) : undefined;
   const componentName = entry?.element ? getComponentName(entry.element) : null;
@@ -303,7 +303,7 @@ export function _sendClsSpan(
   // land it outside that navigation, on the route that follows it.
   const offset = entry?.startTime ?? navigationStartTime ?? 0;
   // CLS is only reported on pagehide, so we use the time origin from when the layout shift happened.
-  const startTime = performanceTimeToSeconds(offset) ?? timestampInSeconds();
+  const startTime = _INTERNAL_performanceTimeToSeconds(offset) ?? timestampInSeconds();
   const firstSourceNode = entry?.sources[0]?.node;
   const selector = entry ? htmlTreeAsString(firstSourceNode) : undefined;
   const componentName = firstSourceNode ? getComponentName(firstSourceNode) : null;
@@ -412,7 +412,7 @@ export function _sendInpSpan(
   // at the start of the navigation it belongs to rather than at the interaction.
   // INP is reported on pagehide, often long after the interaction, so we use the time origin from when the
   // interaction happened.
-  const startTime = performanceTimeToSeconds(entry?.startTime ?? metric?.navigationStartTime ?? 0);
+  const startTime = _INTERNAL_performanceTimeToSeconds(entry?.startTime ?? metric?.navigationStartTime ?? 0);
   if (!startTime) {
     return;
   }

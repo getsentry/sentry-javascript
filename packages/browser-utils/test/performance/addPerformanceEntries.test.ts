@@ -13,7 +13,7 @@ vi.mock('@sentry/core', async () => {
   return {
     ...actual,
     browserPerformanceTimeOrigin,
-    performanceTimeToSeconds: (time: number, entryStartTime = time) =>
+    _INTERNAL_performanceTimeToSeconds: (time: number, entryStartTime = time) =>
       (browserPerformanceTimeOrigin(entryStartTime) + time) / 1000,
   };
 });

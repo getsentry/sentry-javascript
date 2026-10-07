@@ -284,7 +284,7 @@ export { SyncPromise, rejectedSyncPromise, resolvedSyncPromise } from './utils/s
 export {
   browserPerformanceTimeOrigin,
   dateTimestampInSeconds,
-  performanceTimeToSeconds,
+  performanceTimeToSeconds as _INTERNAL_performanceTimeToSeconds,
   timestampInSeconds,
 } from './utils/time';
 export {

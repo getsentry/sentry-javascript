@@ -22,7 +22,7 @@ import {
   getActiveSpan,
   getRootSpan,
   hasSpanStreamingEnabled,
-  performanceTimeToSeconds,
+  _INTERNAL_performanceTimeToSeconds,
   spanToJSON,
   UI_ACTION_CLICK_SPAN_NAME_FALLBACK,
   UI_INTERACTION_CLICK_SPAN_NAME_FALLBACK,
@@ -242,7 +242,7 @@ function trackInteractionsAsSpans(client: Client): void {
     }
     for (const entry of entries) {
       if (entry.name === 'click') {
-        const startTime = performanceTimeToSeconds(entry.startTime);
+        const startTime = _INTERNAL_performanceTimeToSeconds(entry.startTime);
         if (!startTime) {
           continue;
         }

@@ -1,6 +1,12 @@
 import type * as SentryCore from '@sentry/core';
 import type { Span } from '@sentry/core';
-import { getMainCarrier, performanceTimeToSeconds, SentrySpan, setCurrentClient, spanToJSON } from '@sentry/core';
+import {
+  getMainCarrier,
+  _INTERNAL_performanceTimeToSeconds,
+  SentrySpan,
+  setCurrentClient,
+  spanToJSON,
+} from '@sentry/core';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { _addUserTimingSpan, userTimingIntegration } from '../../src/performance/userTiming';
 import * as utils from '../../src/performance/utils';
@@ -9,7 +15,7 @@ import { getDefaultClientOptions, TestClient } from '../utils/TestClient';
 
 vi.mock('@sentry/core', async importOriginal => {
   const actual = await importOriginal<typeof SentryCore>();
-  return { ...actual, performanceTimeToSeconds: vi.fn(actual.performanceTimeToSeconds) };
+  return { ...actual, _INTERNAL_performanceTimeToSeconds: vi.fn(actual._INTERNAL_performanceTimeToSeconds) };
 });
 
 describe('userTimingIntegration', () => {
@@ -19,7 +25,7 @@ describe('userTimingIntegration', () => {
 
   beforeEach(() => {
     vi.restoreAllMocks();
-    vi.mocked(performanceTimeToSeconds).mockReset();
+    vi.mocked(_INTERNAL_performanceTimeToSeconds).mockReset();
     getMainCarrier().__SENTRY__ = undefined;
 
     client = new TestClient(getDefaultClientOptions({ tracesSampleRate: 1 }));
@@ -147,14 +153,14 @@ describe('userTimingIntegration', () => {
 
       client.emit('beforeIdleSpanEnd', new SentrySpan({ op: 'pageload', name: '/', sampled: true }));
 
-      expect(spanToJSON(spans[i]!).start_timestamp).toBe(performanceTimeToSeconds(requestStart, 0));
+      expect(spanToJSON(spans[i]!).start_timestamp).toBe(_INTERNAL_performanceTimeToSeconds(requestStart, 0));
     }
   });
 
   it('keeps measures recorded after the wall clock was corrected backwards', () => {
     const timeOrigin = performance.timeOrigin;
     // The time origin was corrected 60s backwards at 1000ms, e.g. by NTP.
-    vi.mocked(performanceTimeToSeconds).mockImplementation(
+    vi.mocked(_INTERNAL_performanceTimeToSeconds).mockImplementation(
       (monotonicTimeInMs, entryStartTimeInMs = monotonicTimeInMs) =>
         ((entryStartTimeInMs < 1000 ? timeOrigin : timeOrigin - 60_000) + monotonicTimeInMs) / 1000,
     );
