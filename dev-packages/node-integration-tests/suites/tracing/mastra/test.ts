@@ -95,6 +95,7 @@ conditionalTest({ min: 22 })('Mastra integration', () => {
             span: container => {
               expect(container.items.find(span => span.is_segment && span.name === 'mastra-test')).toBeDefined();
               const spans = container.items.filter(span => span.attributes[SENTRY_ORIGIN]?.value === 'auto.ai.mastra');
+              expect(spans).toHaveLength(2);
               for (const span of spans) {
                 expect(span.attributes[GEN_AI_INPUT_MESSAGES]).toBeUndefined();
                 expect(span.attributes[GEN_AI_OUTPUT_MESSAGES]).toBeUndefined();
