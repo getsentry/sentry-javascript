@@ -19,6 +19,7 @@
   "devDependencies": {
     "@playwright/test": "~1.63.0",
     "@sentry-internal/test-utils": "link:../../../test-utils",
+    "@sentry/conventions": "0.26.0",
     "@sentry/core": "file:../../packed/sentry-core-packed.tgz",
     "@types/node": "24.x"
   },
