@@ -3,6 +3,7 @@
 /* eslint-disable import/export */
 import {
   applySdkMetadata,
+  debug,
   getGlobalScope,
   getIsolationScope,
   getRootSpan,
@@ -28,7 +29,12 @@ import { dropMiddlewareTunnelRequests } from '../common/utils/dropMiddlewareTunn
 import { maybeForkIsolationScopeForRootSpan } from '../common/utils/forkIsolationScopeForRootSpan';
 import { getNormalizedRequestFromAttributes } from '../common/utils/getNormalizedRequestFromAttributes';
 import { isBuild } from '../common/utils/isBuild';
-import { flushSafelyWithTimeout, isCloudflareWaitUntilAvailable, waitUntil } from '../common/utils/responseEnd';
+import {
+  flushSafelyWithTimeout,
+  isAsyncContextOwnedByCloudflare,
+  isCloudflareWaitUntilAvailable,
+  waitUntil,
+} from '../common/utils/responseEnd';
 import { setUrlProcessingMetadata } from '../common/utils/setUrlProcessingMetadata';
 import { distDirRewriteFramesIntegration } from './distDirRewriteFramesIntegration';
 import { enhanceMiddlewareRootSpan } from '../common/enhanceMiddlewareRootSpan';
@@ -104,6 +110,26 @@ export function init(options: VercelEdgeOptions = {}): void {
     { attributes: { [TRANSACTION_ATTR_SHOULD_DROP_TRANSACTION]: true } },
   ];
   opts.ignoreSpans = [...(opts.ignoreSpans || []), ...nextjsIgnoreSpans];
+
+  // Before the Cloudflare check, so that the events of the client of `withSentry` get the tag too.
+  try {
+    // @ts-expect-error `process.turbopack` is a magic string that will be replaced by Next.js
+    if (process.turbopack) {
+      getGlobalScope().setTag('turbopack', true);
+      getGlobalScope().setAttribute('turbopack', true);
+    }
+  } catch {
+    // Noop
+    // The statement above can throw because process is not defined on the client
+  }
+
+  if (isAsyncContextOwnedByCloudflare()) {
+    DEBUG_BUILD &&
+      debug.log(
+        'The client of `withSentry` handles this Worker, so `init` creates no client. Set the options in `withSentry`.',
+      );
+    return;
+  }
 
   // Use appropriate SDK metadata based on the runtime environment
   if (isRunningOnCloudflare) {
@@ -213,15 +239,4 @@ export function init(options: VercelEdgeOptions = {}): void {
 
     waitUntil(flushSafelyWithTimeout());
   });
-
-  try {
-    // @ts-expect-error `process.turbopack` is a magic string that will be replaced by Next.js
-    if (process.turbopack) {
-      getGlobalScope().setTag('turbopack', true);
-      getGlobalScope().setAttribute('turbopack', true);
-    }
-  } catch {
-    // Noop
-    // The statement above can throw because process is not defined on the client
-  }
 }

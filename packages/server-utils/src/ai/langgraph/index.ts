@@ -2,7 +2,6 @@
 import { SPAN_STATUS_ERROR, startSpan, stringify } from '@sentry/core';
 import {
   GEN_AI_AGENT_NAME,
-  GEN_AI_CONVERSATION_ID,
   GEN_AI_INPUT_MESSAGES,
   GEN_AI_OPERATION_NAME,
   GEN_AI_PIPELINE_NAME,
@@ -26,7 +25,11 @@ import {
   setResponseAttributes,
   wrapToolsWithSpans,
 } from './utils';
-import { _INTERNAL_mergeLangChainCallbackHandler } from '../langchain/utils';
+import {
+  getConversationIdMetadataFromConfig,
+  _INTERNAL_mergeLangChainCallbackHandler,
+  getConversationIdFromMetadata,
+} from '../langchain/utils';
 
 let _insideCreateReactAgent = false;
 
@@ -96,10 +99,13 @@ export function instrumentCompiledGraphInvoke(
   return new Proxy(originalInvoke, {
     apply(target, thisArg, args: unknown[]): Promise<unknown> {
       const modelName = llm?.modelName ?? llm?.model;
+      const config = args.length > 1 ? (args[1] as Record<string, unknown> | undefined) : undefined;
       return startSpan(
         {
           name: 'invoke_agent',
           attributes: {
+            // Set before `spanStart`, so an id from `Sentry.setConversationId()` wins, as on the child spans
+            ...getConversationIdFromMetadata(config?.configurable as Record<string, unknown> | undefined),
             [SENTRY_ORIGIN]: LANGGRAPH_ORIGIN,
             [SENTRY_OP]: GEN_AI_INVOKE_AGENT,
             [GEN_AI_OPERATION_NAME]: 'invoke_agent',
@@ -119,15 +125,6 @@ export function instrumentCompiledGraphInvoke(
               span.setAttribute(GEN_AI_REQUEST_MODEL, modelName);
             }
 
-            // Extract thread_id from the config (second argument)
-            // LangGraph uses config.configurable.thread_id for conversation/session linking
-            const config = args.length > 1 ? (args[1] as Record<string, unknown> | undefined) : undefined;
-            const configurable = config?.configurable as Record<string, unknown> | undefined;
-            const threadId = configurable?.thread_id;
-            if (threadId && typeof threadId === 'string') {
-              span.setAttribute(GEN_AI_CONVERSATION_ID, threadId);
-            }
-
             // Inject callback handler and agent name into invoke config
             if (sentryCallbackHandler) {
               const invokeConfig = (args[1] ?? {}) as Record<string, unknown>;
@@ -135,6 +132,7 @@ export function instrumentCompiledGraphInvoke(
 
               const existingMetadata = (invokeConfig.metadata ?? {}) as Record<string, unknown>;
               invokeConfig.metadata = {
+                ...getConversationIdMetadataFromConfig(invokeConfig),
                 ...existingMetadata,
                 __sentry_langgraph__: true,
                 ...(typeof graphName === 'string' ? { lc_agent_name: graphName } : {}),
