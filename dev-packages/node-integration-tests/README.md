@@ -34,6 +34,35 @@ Nock interceptors are internally used to capture envelope requests by `getEnvelo
 be used inside the test cases to intercept requests but should be removed before the test ends, as not to cause
 flakiness.
 
+### Collecting streamed spans
+
+Register collectors before starting the scenario. `collectStreamedSpansUntilSegment` collects spans across envelopes
+until it sees a segment matching a name or predicate, then returns the collected spans from that trace:
+
+```ts
+const runner = createRunner(__dirname, 'scenario.ts');
+const spansPromise = runner.collectStreamedSpansUntilSegment('main');
+
+await runner.start().completed();
+
+const spans = await spansPromise;
+expect(spans.filter(span => !span.is_segment)).toHaveLength(2);
+```
+
+A segment does not guarantee that all its children have arrived. If a scenario sends children later, use
+`collectStreamedSpans` with a predicate describing which spans must be present:
+
+```ts
+const spansPromise = runner.collectStreamedSpans(
+  spans => spans.some(span => span.is_segment && span.name === 'main') && spans.length >= 3,
+);
+```
+
+The predicate is evaluated separately for each trace. Returning `false` keeps waiting; throwing fails the runner
+immediately, including in unordered mode. Keep assertions after collection so incorrect attributes produce assertion
+failures. A predicate that never matches still fails on scenario exit or timeout. Neither helper waits for spans
+arriving after its condition is satisfied.
+
 ## Other Runtimes
 
 `dev-packages/bun-integration-tests` and `dev-packages/deno-integration-tests` run every suite of this package on Bun
