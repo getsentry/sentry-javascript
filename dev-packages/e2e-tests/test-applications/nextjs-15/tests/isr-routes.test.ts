@@ -1,9 +1,11 @@
 import { expect, test } from '@playwright/test';
 import { getSpanOp, waitForStreamedSpan } from '@sentry-internal/test-utils';
 
+const isProductionBuild = process.env.TEST_ENV === 'production' || process.env.TEST_ENV === 'prod-turbopack';
+
 test('does not carry trace meta tags on an ISR dynamic route', async ({ page }) => {
   // The dev server renders ISR pages for every request, so there the trace tags are fresh and kept.
-  test.skip(!!process.env.TEST_ENV?.includes('development'), 'ISR pages are only prerendered in production builds');
+  test.skip(!isProductionBuild, 'ISR pages are only prerendered in production builds');
 
   // Navigate to ISR page
   await page.goto('/isr-test/laptop');
@@ -18,7 +20,7 @@ test('does not carry trace meta tags on an ISR dynamic route', async ({ page }) 
 
 test('does not carry trace meta tags on an ISR static route', async ({ page }) => {
   // The dev server renders ISR pages for every request, so there the trace tags are fresh and kept.
-  test.skip(!!process.env.TEST_ENV?.includes('development'), 'ISR pages are only prerendered in production builds');
+  test.skip(!isProductionBuild, 'ISR pages are only prerendered in production builds');
 
   // Navigate to ISR static page
   await page.goto('/isr-test/static');
@@ -33,7 +35,7 @@ test('does not carry trace meta tags on an ISR static route', async ({ page }) =
 
 test('does not carry trace meta tags for different ISR dynamic route values', async ({ page }) => {
   // The dev server renders ISR pages for every request, so there the trace tags are fresh and kept.
-  test.skip(!!process.env.TEST_ENV?.includes('development'), 'ISR pages are only prerendered in production builds');
+  test.skip(!isProductionBuild, 'ISR pages are only prerendered in production builds');
 
   // Test with 'phone' (one of the pre-generated static params)
   await page.goto('/isr-test/phone');
