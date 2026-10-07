@@ -7332,7 +7332,7 @@
 
 "@sentry/rollup-plugin@^5.4.1":
   version "5.4.1"
-  resolved "https://sfw.security.sentry.io/npm/@sentry/rollup-plugin/-/rollup-plugin-5.4.1.tgz#788fc19eb43a5da4dc534a07a2a0d0a914dfe613"
+  resolved "https://registry.yarnpkg.com/@sentry/rollup-plugin/-/rollup-plugin-5.4.1.tgz#788fc19eb43a5da4dc534a07a2a0d0a914dfe613"
   integrity sha512-y373KJBO7YTjvQJGxSy5p///tJblSVdup8VD/tlIYZcuAvYdyEffeqTPIjeKWFimhY4V7usi5ZKlvDFg0+phcA==
   dependencies:
     "@sentry/bundler-plugins" "^10.76.0"
@@ -7373,14 +7373,14 @@
 
 "@sentry/vite-plugin@^5.4.1":
   version "5.4.1"
-  resolved "https://sfw.security.sentry.io/npm/@sentry/vite-plugin/-/vite-plugin-5.4.1.tgz#78745cf623f93df2a6be8867e0098f0cf84f66d5"
+  resolved "https://registry.yarnpkg.com/@sentry/vite-plugin/-/vite-plugin-5.4.1.tgz#78745cf623f93df2a6be8867e0098f0cf84f66d5"
   integrity sha512-poFfn3sQbSFaZpXH8CG27D0eNtDD64wFEniQCb853e7huko9vOl4UP3BjT3vsrnmVuRqagnbxItza10MOC7ysA==
   dependencies:
     "@sentry/bundler-plugins" "^10.76.0"
 
 "@sentry/webpack-plugin@^5.4.1":
   version "5.4.1"
-  resolved "https://sfw.security.sentry.io/npm/@sentry/webpack-plugin/-/webpack-plugin-5.4.1.tgz#542d674116a03f5660ddc6924574ca13b27a4778"
+  resolved "https://registry.yarnpkg.com/@sentry/webpack-plugin/-/webpack-plugin-5.4.1.tgz#542d674116a03f5660ddc6924574ca13b27a4778"
   integrity sha512-Gw1cVwDeqjXxcF87yTsB3ysyovKmCyHVOWmsOLTpUxKbTAXf1OYrU+rvqdBgaBC04glG/uDPXlyAEBKIjEmdcQ==
   dependencies:
     "@sentry/bundler-plugins" "^10.76.0"
