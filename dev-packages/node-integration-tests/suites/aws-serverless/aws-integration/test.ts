@@ -1,4 +1,4 @@
-import type { SerializedStreamedSpan } from '@sentry/core';
+import type { SerializedStreamedSpanContainer } from '@sentry/core';
 import { afterAll, describe, expect } from 'vitest';
 import { cleanupChildProcesses, createEsmAndCjsTests } from '../../../utils/runner';
 
@@ -32,11 +32,11 @@ const LEGACY_AWS_SDK_DEPENDENCIES = {
  * Asserts the collected spans include one span per instrumented aws-sdk service. Each service is checked
  * with its own `expect` so a failure points at the specific service rather than the whole trace.
  */
-function assertAwsServiceSpans(spans: SerializedStreamedSpan[]): void {
+function assertAwsServiceSpans(spans: SerializedStreamedSpanContainer['items']): void {
   const expectSpan = (
     label: string,
     expected: Record<string, unknown>,
-    find?: (item: SerializedStreamedSpan) => boolean,
+    find?: (item: SerializedStreamedSpanContainer['items'][number]) => boolean,
   ): void => {
     const matches = spans.filter(item => item.name === expected.name);
     const span = find ? matches.find(find) : matches[0];
