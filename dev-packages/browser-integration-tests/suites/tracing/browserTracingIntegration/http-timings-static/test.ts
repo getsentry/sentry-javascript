@@ -29,7 +29,6 @@ sentryTest('creates fetch spans with http timing', async ({ browserName, getLoca
 
   expect(requestSpans).toHaveLength(3);
 
-  await page.pause();
   requestSpans?.forEach((span, index) =>
     expect(span).toMatchObject({
       description: `GET http://sentry-test-site.example/${index}`,
