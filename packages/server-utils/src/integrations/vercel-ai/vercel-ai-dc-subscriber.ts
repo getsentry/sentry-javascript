@@ -39,6 +39,7 @@ import type { Span, SpanAttributes } from '@sentry/core';
 import {
   _INTERNAL_skipAiProviderWrapping,
   captureException,
+  getActiveSpan,
   getClient,
   isObjectLike,
   SPAN_STATUS_ERROR,
@@ -139,6 +140,31 @@ export function clearOperationCallId(callId: string): void {
   operationIdByCallId.delete(callId);
   toolDescriptionsByCallId.delete(callId);
   invokeAgentSpanByCallId.delete(callId);
+}
+
+/**
+ * The OpenAI Conversations API id from `providerOptions.openai.conversation` (or `azure`): the one
+ * provider-level value that is the same on every turn. A `Sentry.setConversationId()` value still wins,
+ * since `conversationIdIntegration` writes it on `spanStart`, after these start attributes.
+ */
+function getOpenAiConversationId(providerOptions: unknown): string | undefined {
+  if (!isObjectLike(providerOptions)) {
+    return undefined;
+  }
+  for (const key of ['openai', 'azure']) {
+    const options = providerOptions[key];
+    const conversation = isObjectLike(options) ? asString(options.conversation) : undefined;
+    if (conversation) {
+      return conversation;
+    }
+  }
+  return undefined;
+}
+
+/** The `gen_ai.conversation.id` already on the active span, which for a child event is its operation span. */
+function getActiveSpanConversationId(): string | undefined {
+  const active = getActiveSpan();
+  return active ? asString(spanToJSON(active).attributes[GEN_AI_CONVERSATION_ID]) : undefined;
 }
 
 /**
@@ -417,12 +443,20 @@ export function createSpanFromMessage(
     recordToolDescriptions(callId, event.tools);
   }
 
+  // Only an operation's start event carries `providerOptions`; its model-call and tool events start
+  // while the operation span is active, so they inherit the id from it. A root operation never
+  // inherits, so a nested call (e.g. inside a tool's `execute`) is not folded into the outer conversation.
+  const conversationId =
+    getOpenAiConversationId(event.providerOptions) ??
+    (ROOT_OPERATION_TYPES.has(type) ? undefined : getActiveSpanConversationId());
+
   const baseAttributes: SpanAttributes = {
     [SENTRY_ORIGIN]: ORIGIN,
     ...telemetryMetadataAttributes(event.telemetryMetadata),
     ...(provider ? { [GEN_AI_PROVIDER_NAME]: provider, [VERCEL_AI_MODEL_PROVIDER_ATTRIBUTE]: provider } : {}),
     ...(modelId ? { [GEN_AI_REQUEST_MODEL]: modelId } : {}),
     ...(maxRetries !== undefined ? { [VERCEL_AI_SETTINGS_MAX_RETRIES_ATTRIBUTE]: maxRetries } : {}),
+    ...(conversationId ? { [GEN_AI_CONVERSATION_ID]: conversationId } : {}),
   };
 
   switch (type) {
@@ -438,7 +472,7 @@ export function createSpanFromMessage(
 
       return buildModelCallSpan(event, baseAttributes, recordInputs, callId, modelId);
     case 'executeTool':
-      return buildToolSpan(event, recordInputs);
+      return buildToolSpan(event, recordInputs, conversationId);
     case 'embed':
     case 'embedMany': {
       // `embed` carries a single `value`; `embedMany` a `values` array — both map to the embeddings input.
@@ -542,7 +576,11 @@ function buildModelCallSpan(
   });
 }
 
-function buildToolSpan(event: Record<string, unknown>, recordInputs: boolean): Span {
+function buildToolSpan(
+  event: Record<string, unknown>,
+  recordInputs: boolean,
+  conversationId: string | undefined,
+): Span {
   const toolCall = isObjectLike(event.toolCall) ? event.toolCall : {};
   const toolName = asString(toolCall.toolName);
   const toolCallId = asString(event.toolCallId) ?? asString(toolCall.toolCallId);
@@ -557,6 +595,7 @@ function buildToolSpan(event: Record<string, unknown>, recordInputs: boolean): S
     ...(toolCallId ? { [GEN_AI_TOOL_CALL_ID_ATTRIBUTE]: toolCallId } : {}),
     ...(description ? { [GEN_AI_TOOL_DESCRIPTION]: description } : {}),
     ...(recordInputs && toolInput !== undefined ? { [GEN_AI_TOOL_CALL_ARGUMENTS]: stringify(toolInput) } : {}),
+    ...(conversationId ? { [GEN_AI_CONVERSATION_ID]: conversationId } : {}),
   });
 }
 
@@ -628,17 +667,11 @@ export function enrichSpanOnEnd(
     span.setAttribute(GEN_AI_RESPONSE_MODEL, responseModel);
   }
 
-  // Provider-specific cache/reasoning/prediction token breakdowns and `gen_ai.conversation.id`.
-  // The channel exposes `providerMetadata` as an object (the OTel path parses it from a string);
-  // both share `getProviderMetadataAttributes` so the emitted shape is identical.
+  // Provider-specific cache/reasoning/prediction token breakdowns. The channel exposes `providerMetadata`
+  // as an object (the OTel path parses it from a string); both share `getProviderMetadataAttributes` so
+  // the emitted shape is identical.
   const providerMetadata = (result as { providerMetadata?: unknown }).providerMetadata;
   const providerAttributes = getProviderMetadataAttributes(providerMetadata);
-  // Don't overwrite a conversation id already set on span start (e.g. by `conversationIdIntegration`
-  // from a user-set scope value); the provider-derived id is only a fallback. Matches the OTel path.
-  if (GEN_AI_CONVERSATION_ID in providerAttributes && spanToJSON(span).attributes[GEN_AI_CONVERSATION_ID]) {
-    // oxlint-disable-next-line typescript/no-dynamic-delete
-    delete providerAttributes[GEN_AI_CONVERSATION_ID];
-  }
   dropLastStepOnlyUsage(providerAttributes, type);
   span.setAttributes(providerAttributes);
 
