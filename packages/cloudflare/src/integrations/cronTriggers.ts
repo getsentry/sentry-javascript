@@ -7,15 +7,15 @@ const INTEGRATION_NAME = 'CronTriggers' as const;
 /**
  * The monitor slug and settings for a Cron Trigger, see `cronTriggersIntegration`.
  */
-export type CronTriggerMonitorSettings = { slug: string } & Omit<MonitorConfig, 'schedule' | 'timezone'>;
+export type CronTriggerMonitorSettings = { monitorSlug: string } & Omit<MonitorConfig, 'schedule' | 'timezone'>;
 
 export interface CronTriggersOptions {
   /**
-   * Chooses the monitor slug for a cron expression. It can also return an object with the `slug`
+   * Chooses the monitor slug for a cron expression. It can also return an object with the `monitorSlug`
    * and other monitor settings, such as `checkinMargin` or `maxRuntime`. Returning `undefined`
    * sends no check-ins for that trigger, and so does a function that throws.
    */
-  slug?: (cron: string) => string | CronTriggerMonitorSettings | undefined;
+  monitorSlug?: (cron: string) => string | CronTriggerMonitorSettings | undefined;
 }
 
 /** @internal Used by the scheduled handler instrumentation. */
@@ -116,9 +116,9 @@ const _cronTriggersIntegration = ((options: CronTriggersOptions = {}): CronTrigg
 
       let monitor: string | CronTriggerMonitorSettings | undefined;
       try {
-        monitor = options.slug ? options.slug(cron) : cronToMonitorSlug(cron);
+        monitor = options.monitorSlug ? options.monitorSlug(cron) : cronToMonitorSlug(cron);
       } catch (e) {
-        DEBUG_BUILD && debug.warn(`[Cron Triggers] \`slug\` threw for "${cron}", sending no check-ins:`, e);
+        DEBUG_BUILD && debug.warn(`[Cron Triggers] \`monitorSlug\` threw for "${cron}", sending no check-ins:`, e);
         return undefined;
       }
 
@@ -126,7 +126,7 @@ const _cronTriggersIntegration = ((options: CronTriggersOptions = {}): CronTrigg
         return undefined;
       }
 
-      const { slug: monitorSlug, ...monitorSettings } = typeof monitor === 'string' ? { slug: monitor } : monitor;
+      const { monitorSlug, ...monitorSettings } = typeof monitor === 'string' ? { monitorSlug: monitor } : monitor;
       if (!monitorSlug) {
         return undefined;
       }
@@ -158,7 +158,7 @@ const _cronTriggersIntegration = ((options: CronTriggersOptions = {}): CronTrigg
  * Sends cron check-ins for every Cron Trigger run of the `scheduled` handler, with the trigger's
  * schedule, so Sentry creates the monitor on the first run.
  *
- * Cron Triggers have no names, so map each cron expression to a slug. Without `slug`, the slug is
+ * Cron Triggers have no names, so map each cron expression to a slug. Without `monitorSlug`, the slug is
  * derived from the expression (`30 9 * * MON-FRI` becomes `cron-30-9-x-x-montofri`) and changes with it.
  *
  * @example
@@ -170,7 +170,7 @@ const _cronTriggersIntegration = ((options: CronTriggersOptions = {}): CronTrigg
  * export default Sentry.withSentry(
  *   (env) => ({
  *     dsn: env.SENTRY_DSN,
- *     integrations: [Sentry.cronTriggersIntegration({ slug: (cron) => jobs[cron]?.slug })],
+ *     integrations: [Sentry.cronTriggersIntegration({ monitorSlug: (cron) => jobs[cron]?.slug })],
  *   }),
  *   {
  *     async scheduled(controller, env) {

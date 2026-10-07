@@ -36,20 +36,22 @@ describe('cronTriggersIntegration', () => {
     });
   });
 
-  test('uses the slug returned by the slug function', () => {
-    const slug = vi.fn().mockReturnValue('weekday-report');
+  test('uses the slug returned by the monitorSlug function', () => {
+    const monitorSlug = vi.fn().mockReturnValue('weekday-report');
 
-    startCheckIn('30 9 * * MON-FRI', { slug });
+    startCheckIn('30 9 * * MON-FRI', { monitorSlug });
 
-    expect(slug).toHaveBeenCalledWith('30 9 * * MON-FRI');
+    expect(monitorSlug).toHaveBeenCalledWith('30 9 * * MON-FRI');
     expect(captureCheckInSpy).toHaveBeenCalledWith(
       { monitorSlug: 'weekday-report', status: 'in_progress' },
       { schedule: { type: 'crontab', value: '30 9 * * MON-FRI' } },
     );
   });
 
-  test('sends the monitor settings returned by the slug function', () => {
-    startCheckIn('0 0 * * *', { slug: () => ({ slug: 'nightly', checkinMargin: 5, maxRuntime: 30 }) });
+  test('sends the monitor settings returned by the monitorSlug function', () => {
+    startCheckIn('0 0 * * *', {
+      monitorSlug: () => ({ monitorSlug: 'nightly', checkinMargin: 5, maxRuntime: 30 }),
+    });
 
     expect(captureCheckInSpy).toHaveBeenCalledWith(
       { monitorSlug: 'nightly', status: 'in_progress' },
@@ -57,20 +59,20 @@ describe('cronTriggersIntegration', () => {
     );
   });
 
-  test('sends no check-ins when the slug function returns undefined', () => {
-    expect(startCheckIn('0 0 * * *', { slug: () => undefined })).toBeUndefined();
+  test('sends no check-ins when the monitorSlug function returns undefined', () => {
+    expect(startCheckIn('0 0 * * *', { monitorSlug: () => undefined })).toBeUndefined();
     expect(captureCheckInSpy).not.toHaveBeenCalled();
   });
 
-  test('sends no check-ins and warns when the slug function throws', () => {
+  test('sends no check-ins and warns when the monitorSlug function throws', () => {
     const warnSpy = vi.spyOn(SentryCore.debug, 'warn').mockImplementation(() => undefined);
-    const slug = (): string => {
+    const monitorSlug = (): string => {
       throw new Error('slug error');
     };
 
-    expect(startCheckIn('0 0 * * *', { slug })).toBeUndefined();
+    expect(startCheckIn('0 0 * * *', { monitorSlug })).toBeUndefined();
     expect(captureCheckInSpy).not.toHaveBeenCalled();
-    expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('`slug` threw'), expect.any(Error));
+    expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('`monitorSlug` threw'), expect.any(Error));
   });
 
   test('sends no check-ins for a run without a cron expression', () => {
