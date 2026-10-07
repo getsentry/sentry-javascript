@@ -1,3 +1,12 @@
+import {
+  DB_QUERY_TEXT,
+  DB_SYSTEM_NAME,
+  DB_USER,
+  SENTRY_OP,
+  SENTRY_ORIGIN,
+  SERVER_ADDRESS,
+  SERVER_PORT,
+} from '@sentry/conventions/attributes';
 import { afterAll, expect } from 'vitest';
 import { cleanupChildProcesses, createEsmAndCjsTests, describeWithDockerCompose } from '../../../utils/runner';
 
@@ -10,64 +19,64 @@ describeWithDockerCompose('mysql2 auto instrumentation', { workingDirectory: [__
   // records the spans instead of the OTel patcher, so they carry a different `sentry.origin`.
   const ORIGIN = 'auto.db.mysql2';
 
-  const EXPECTED_TRANSACTION = {
-    transaction: 'Test Transaction',
-    spans: expect.arrayContaining([
+  const EXPECTED_SPANS = {
+    items: expect.arrayContaining([
+      expect.objectContaining({ name: 'Test Transaction', is_segment: true }),
       expect.objectContaining({
-        description: 'SELECT ? + ? AS solution',
-        op: 'db',
-        origin: ORIGIN,
-        data: expect.objectContaining({
-          'db.system.name': 'mysql',
-          'db.query.text': 'SELECT ? + ? AS solution',
-          'server.address': 'localhost',
-          'server.port': 3306,
-          'db.user': 'root',
+        attributes: expect.objectContaining({
+          [DB_SYSTEM_NAME]: { type: 'string', value: 'mysql' },
+          [DB_QUERY_TEXT]: { type: 'string', value: 'SELECT ? + ? AS solution' },
+          [SERVER_ADDRESS]: { type: 'string', value: 'localhost' },
+          [SERVER_PORT]: { type: 'integer', value: 3344 },
+          [DB_USER]: { type: 'string', value: 'root' },
+          [SENTRY_OP]: { type: 'string', value: 'db' },
+          [SENTRY_ORIGIN]: { type: 'string', value: ORIGIN },
         }),
+        name: 'SELECT',
       }),
       // bind values are left as `?` placeholders in `db.statement` (not inlined)
       expect.objectContaining({
-        description: 'SELECT ? as a, ? as b, NOW() as c',
-        op: 'db',
-        origin: ORIGIN,
-        data: expect.objectContaining({
-          'db.system.name': 'mysql',
-          'db.query.text': 'SELECT ? as a, ? as b, NOW() as c',
-          'server.address': 'localhost',
-          'server.port': 3306,
-          'db.user': 'root',
+        attributes: expect.objectContaining({
+          [DB_SYSTEM_NAME]: { type: 'string', value: 'mysql' },
+          [DB_QUERY_TEXT]: { type: 'string', value: 'SELECT ? as a, ? as b, NOW() as c' },
+          [SERVER_ADDRESS]: { type: 'string', value: 'localhost' },
+          [SERVER_PORT]: { type: 'integer', value: 3344 },
+          [DB_USER]: { type: 'string', value: 'root' },
+          [SENTRY_OP]: { type: 'string', value: 'db' },
+          [SENTRY_ORIGIN]: { type: 'string', value: ORIGIN },
         }),
+        name: 'SELECT',
       }),
       // a single non-array bind value is also left as a `?` placeholder in `db.statement`
       expect.objectContaining({
-        description: 'SELECT ? AS scalar_value',
-        op: 'db',
-        origin: ORIGIN,
-        data: expect.objectContaining({
-          'db.system.name': 'mysql',
-          'db.query.text': 'SELECT ? AS scalar_value',
+        attributes: expect.objectContaining({
+          [DB_SYSTEM_NAME]: { type: 'string', value: 'mysql' },
+          [DB_QUERY_TEXT]: { type: 'string', value: 'SELECT ? AS scalar_value' },
+          [SENTRY_OP]: { type: 'string', value: 'db' },
+          [SENTRY_ORIGIN]: { type: 'string', value: ORIGIN },
         }),
+        name: 'SELECT',
       }),
       // `execute` is instrumented the same way as `query`
       expect.objectContaining({
-        description: 'SELECT ? AS answer',
-        op: 'db',
-        origin: ORIGIN,
-        data: expect.objectContaining({
-          'db.system.name': 'mysql',
-          'db.query.text': 'SELECT ? AS answer',
+        attributes: expect.objectContaining({
+          [DB_SYSTEM_NAME]: { type: 'string', value: 'mysql' },
+          [DB_QUERY_TEXT]: { type: 'string', value: 'SELECT ? AS answer' },
+          [SENTRY_OP]: { type: 'string', value: 'db' },
+          [SENTRY_ORIGIN]: { type: 'string', value: ORIGIN },
         }),
+        name: 'SELECT',
       }),
       // a failing query produces a span with an error status
       expect.objectContaining({
-        description: 'SELECT * FROM does_not_exist',
-        op: 'db',
-        status: 'internal_error',
-        origin: ORIGIN,
-        data: expect.objectContaining({
-          'db.system.name': 'mysql',
-          'db.query.text': 'SELECT * FROM does_not_exist',
+        attributes: expect.objectContaining({
+          [DB_SYSTEM_NAME]: { type: 'string', value: 'mysql' },
+          [DB_QUERY_TEXT]: { type: 'string', value: 'SELECT * FROM does_not_exist' },
+          [SENTRY_OP]: { type: 'string', value: 'db' },
+          [SENTRY_ORIGIN]: { type: 'string', value: ORIGIN },
         }),
+        name: 'SELECT does_not_exist',
+        status: 'error',
       }),
     ]),
   };
@@ -78,7 +87,7 @@ describeWithDockerCompose('mysql2 auto instrumentation', { workingDirectory: [__
     'instrument.mjs',
     (createTestRunner, test) => {
       test('should auto-instrument `mysql2` package without connection.connect()', { timeout: 75_000 }, async () => {
-        await createTestRunner().expect({ transaction: EXPECTED_TRANSACTION }).start().completed();
+        await createTestRunner().expect({ span: EXPECTED_SPANS }).start().completed();
       });
     },
     // mysql2 >= 3.20.0 publishes its own diagnostics channels, which the SDK subscribes to instead
