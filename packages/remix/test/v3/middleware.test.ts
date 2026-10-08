@@ -71,6 +71,43 @@ describe('sentryRemixMiddleware', () => {
     expect(response.headers.get('server-timing')).toBe('sentry-route;desc="/"');
   });
 
+  it.each([
+    ['stale-while-revalidate after a zero lifetime', { 'cache-control': 'max-age=0, stale-while-revalidate=60' }],
+    ['stale-if-error after a zero shared lifetime', { 'cache-control': 's-maxage=0, stale-if-error=600' }],
+    [
+      'CDN-Cache-Control over a private Cache-Control',
+      { 'cache-control': 'private', 'cdn-cache-control': 'max-age=3600' },
+    ],
+    [
+      'Vercel-CDN-Cache-Control over no-store',
+      { 'cache-control': 'no-store', 'vercel-cdn-cache-control': 's-maxage=3600' },
+    ],
+    ['Cloudflare-CDN-Cache-Control', { 'cloudflare-cdn-cache-control': 'public, max-age=60' }],
+    ['Surrogate-Control', { 'surrogate-control': 'max-age=3600' }],
+  ])('leaves the trace off a response a CDN or stale-serving cache may reuse (%s)', async (_why, headers) => {
+    getTraceData.mockReturnValue({ 'sentry-trace': 'abc-def-1' });
+    const middleware = sentryRemixMiddleware(matcherFor('/'));
+
+    const response = await middleware(
+      contextFor('http://x/', { accept: 'text/html' }),
+      async () => new Response('', { headers }),
+    );
+
+    expect(response.headers.get('server-timing')).toBe('sentry-route;desc="/"');
+  });
+
+  it('propagates the trace when the CDN field forbids caching and nothing else allows it', async () => {
+    getTraceData.mockReturnValue({ 'sentry-trace': 'abc-def-1' });
+    const middleware = sentryRemixMiddleware(matcherFor('/'));
+
+    const response = await middleware(
+      contextFor('http://x/', { accept: 'text/html' }),
+      async () => new Response('', { headers: { 'cdn-cache-control': 'max-age=0' } }),
+    );
+
+    expect(response.headers.get('server-timing')).toContain('sentry-trace;desc="abc-def-1"');
+  });
+
   it('leaves the trace off a response with a future Expires and no Cache-Control', async () => {
     getTraceData.mockReturnValue({ 'sentry-trace': 'abc-def-1' });
     const middleware = sentryRemixMiddleware(matcherFor('/'));

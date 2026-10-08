@@ -105,29 +105,60 @@ function addServerTimingHeaders(response: Response, request: Request, route: str
   }
 }
 
-/** Whether a cache in front of the app may store this response and serve it to other users. */
+// Cache-control fields a CDN reads instead of `Cache-Control`.
+const CDN_CACHE_CONTROL_HEADERS = [
+  'cdn-cache-control',
+  'cloudflare-cdn-cache-control',
+  'vercel-cdn-cache-control',
+  'surrogate-control',
+];
+
+/**
+ * Whether a cache in front of the app may store this response and serve it to other users.
+ *
+ * A CDN that reads a targeted field ignores `Cache-Control`; a cache without targeted support reads
+ * `Cache-Control`. Any of them storing the response is enough.
+ */
 function isSharedCacheable(response: Response): boolean {
-  const cacheControl = response.headers.get('cache-control')?.toLowerCase() ?? '';
-  if (/\b(?:no-store|private)\b/.test(cacheControl)) {
-    return false;
+  for (const name of CDN_CACHE_CONTROL_HEADERS) {
+    const value = response.headers.get(name);
+    if (value !== null && sharedCachingVerdict(value.toLowerCase()) === true) {
+      return true;
+    }
   }
-  // `s-maxage` overrides `max-age` for shared caches. A zero lifetime means the cache revalidates
-  // every time, so it never serves this response to anyone else.
-  const sharedMaxAge = cacheControl.match(/\bs-maxage\s*=\s*(\d+)/)?.[1];
-  if (sharedMaxAge !== undefined) {
-    return Number(sharedMaxAge) > 0;
-  }
-  if (/\bpublic\b/.test(cacheControl)) {
-    return true;
-  }
-  // `max-age` takes precedence over `Expires`, a zero one included.
-  const maxAge = cacheControl.match(/\bmax-age\s*=\s*(\d+)/)?.[1];
-  if (maxAge !== undefined) {
-    return Number(maxAge) > 0;
+
+  const verdict = sharedCachingVerdict(response.headers.get('cache-control')?.toLowerCase() ?? '');
+  if (verdict !== undefined) {
+    return verdict;
   }
   // Without a lifetime in `Cache-Control`, a cache falls back to `Expires`.
   const expires = response.headers.get('expires');
   return expires !== null && Date.parse(expires) > Date.now();
+}
+
+/** Whether these directives let a shared cache reuse the response, or `undefined` when they say nothing. */
+function sharedCachingVerdict(directives: string): boolean | undefined {
+  if (/\b(?:no-store|private)\b/.test(directives)) {
+    return false;
+  }
+  // A stale copy is served even after a zero lifetime.
+  if (/\b(?:stale-while-revalidate|stale-if-error)\s*=\s*[1-9]/.test(directives)) {
+    return true;
+  }
+  // `s-maxage` overrides `max-age` for shared caches. A zero lifetime means the cache revalidates
+  // every time, so it never serves this response to anyone else.
+  const sharedMaxAge = directives.match(/\bs-maxage\s*=\s*(\d+)/)?.[1];
+  if (sharedMaxAge !== undefined) {
+    return Number(sharedMaxAge) > 0;
+  }
+  if (/\bpublic\b/.test(directives)) {
+    return true;
+  }
+  const maxAge = directives.match(/\bmax-age\s*=\s*(\d+)/)?.[1];
+  if (maxAge !== undefined) {
+    return Number(maxAge) > 0;
+  }
+  return undefined;
 }
 
 function setResponseStatus(response: Response): void {
