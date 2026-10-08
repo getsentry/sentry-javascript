@@ -183,13 +183,11 @@ export function init(options: NodeOptions): NodeClient | undefined {
     setCloudflareWorkerRelease(opts.release);
   }
 
-  // Next.js reads the trace meta tags of a document through the global propagator. The Next.js-aware
-  // one refuses to hand out trace context while a shell is prerendered, so no cached shell can replay
-  // a trace to later visitors. The Node SDK only sets `traceProvider` when it registered its own
-  // tracer provider and propagator; when another OpenTelemetry setup (for example `@vercel/otel`)
-  // owns them, theirs stays in place.
+  // Next.js reads the trace meta tags of a document through the global propagator. Only the setup the
+  // Node SDK owns gets the Next.js-aware one; another OpenTelemetry setup (for example `@vercel/otel`)
+  // keeps its own tracer provider and propagator.
   if (client?.traceProvider) {
-    registerNextSentryPropagator();
+    registerNextSentryPropagator(client.traceProvider);
   }
 
   // On the client, not the global scope, so a later `init()` after

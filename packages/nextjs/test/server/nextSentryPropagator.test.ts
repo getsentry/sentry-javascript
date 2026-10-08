@@ -1,97 +1,136 @@
-import { context, propagation } from '@opentelemetry/api';
+import { context, propagation, trace } from '@opentelemetry/api';
 import { getCurrentScope, setCurrentClient, startSpan } from '@sentry/core';
 import { NodeClient, getDefaultIntegrations } from '@sentry/node';
-import { SentryPropagator } from '@sentry/opentelemetry';
+import { SentryPropagator, SentryTracerProvider } from '@sentry/opentelemetry';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ATTR_NEXT_SPAN_NAME, ATTR_NEXT_SPAN_TYPE } from '../../src/common/nextSpanAttributes';
 import {
   NextSentryPropagator,
-  isPrerenderSpan,
+  isPrerenderContext,
+  isPrerenderSpanStart,
   registerNextSentryPropagator,
 } from '../../src/server/nextSentryPropagator';
 
-function injectedKeys(propagator: SentryPropagator): string[] {
+const PRERENDER_SPAN_OPTIONS = {
+  attributes: {
+    [ATTR_NEXT_SPAN_TYPE]: 'AppRender.getBodyResult',
+    [ATTR_NEXT_SPAN_NAME]: 'prerender route (app) /[id]',
+  },
+};
+
+const RENDER_SPAN_OPTIONS = {
+  attributes: {
+    [ATTR_NEXT_SPAN_TYPE]: 'AppRender.getBodyResult',
+    [ATTR_NEXT_SPAN_NAME]: 'render route (app) /blocking',
+  },
+};
+
+function inject(): Record<string, string> {
   const carrier: Record<string, string> = {};
-  propagator.inject(context.active(), carrier, {
+  propagation.inject(context.active(), carrier, {
     set: (c, key, value) => ((c as Record<string, string>)[key] = value),
   });
-  return Object.keys(carrier);
+  return carrier;
+}
+
+function setup(tracesSampleRate: number): void {
+  const client = new NodeClient({
+    dsn: 'https://public@dsn.ingest.sentry.io/1337',
+    tracesSampleRate,
+    enableOpenTelemetrySetup: true,
+    integrations: getDefaultIntegrations({}),
+    stackParser: () => [],
+    transport: () => ({ send: () => Promise.resolve({}), flush: () => Promise.resolve(true) }),
+  });
+  setCurrentClient(client);
+  client.init();
+
+  const provider = new SentryTracerProvider();
+  trace.setGlobalTracerProvider(provider);
+  propagation.setGlobalPropagator(new SentryPropagator());
+  registerNextSentryPropagator(provider);
 }
 
 describe('NextSentryPropagator', () => {
-  beforeEach(() => {
-    const client = new NodeClient({
-      dsn: 'https://public@dsn.ingest.sentry.io/1337',
-      tracesSampleRate: 1,
-      integrations: getDefaultIntegrations({}),
-      stackParser: () => [],
-      transport: () => ({ send: () => Promise.resolve({}), flush: () => Promise.resolve(true) }),
-    });
-    setCurrentClient(client);
-    client.init();
-  });
+  beforeEach(() => setup(1));
 
   afterEach(() => {
     getCurrentScope().setClient(undefined);
+    trace.disable();
+    context.disable();
+    propagation.disable();
     vi.restoreAllMocks();
   });
 
-  it('hands out trace context while a route is rendered for a request', () => {
-    const propagator = new NextSentryPropagator();
+  it('replaces the registered global propagator', () => {
+    const injectSpy = vi.spyOn(NextSentryPropagator.prototype, 'inject');
+    inject();
+    expect(injectSpy).toHaveBeenCalledTimes(1);
+  });
 
-    startSpan(
-      {
-        name: 'render route (app) /blocking',
-        attributes: {
-          [ATTR_NEXT_SPAN_TYPE]: 'AppRender.getBodyResult',
-          [ATTR_NEXT_SPAN_NAME]: 'render route (app) /blocking',
-        },
-      },
-      span => {
-        expect(isPrerenderSpan(span)).toBe(false);
-        expect(injectedKeys(propagator)).toEqual(expect.arrayContaining(['sentry-trace', 'baggage']));
-      },
-    );
+  it('hands out trace context while a route is rendered for a request', () => {
+    trace.getTracer('next.js').startActiveSpan('render route (app) /blocking', RENDER_SPAN_OPTIONS, span => {
+      expect(isPrerenderContext(context.active())).toBe(false);
+      expect(inject()).toEqual({
+        'sentry-trace': `${span.spanContext().traceId}-${span.spanContext().spanId}-1`,
+        baggage: expect.stringContaining('sentry-trace_id='),
+      });
+      span.end();
+    });
   });
 
   it('hands out nothing while a route is prerendered', () => {
-    const propagator = new NextSentryPropagator();
+    trace.getTracer('next.js').startActiveSpan('prerender route (app) /[id]', PRERENDER_SPAN_OPTIONS, span => {
+      expect(isPrerenderContext(context.active())).toBe(true);
+      expect(inject()).toEqual({});
+      span.end();
+    });
+  });
 
-    startSpan(
-      {
-        name: 'prerender route (app) /[id]',
-        attributes: {
-          [ATTR_NEXT_SPAN_TYPE]: 'AppRender.getBodyResult',
-          [ATTR_NEXT_SPAN_NAME]: 'prerender route (app) /[id]',
-        },
-      },
-      span => {
-        expect(isPrerenderSpan(span)).toBe(true);
-        expect(injectedKeys(propagator)).toEqual([]);
-      },
-    );
+  it('hands out nothing inside a span nested in a prerender', () => {
+    trace.getTracer('next.js').startActiveSpan('prerender route (app) /[id]', PRERENDER_SPAN_OPTIONS, span => {
+      startSpan({ name: 'server component' }, () => {
+        expect(inject()).toEqual({});
+      });
+      span.end();
+    });
+  });
+
+  it('hands out nothing while a route is prerendered in an unsampled trace', () => {
+    setup(0);
+
+    trace.getTracer('next.js').startActiveSpan('GET /[id]', span => {
+      expect(span.isRecording()).toBe(false);
+      expect(inject()['sentry-trace']).toMatch(/-0$/);
+
+      trace
+        .getTracer('next.js')
+        .startActiveSpan('prerender route (app) /[id]', PRERENDER_SPAN_OPTIONS, prerenderSpan => {
+          expect(prerenderSpan.isRecording()).toBe(false);
+          expect(inject()).toEqual({});
+          prerenderSpan.end();
+        });
+      span.end();
+    });
+  });
+
+  it('marks an explicitly passed context', () => {
+    trace
+      .getTracer('next.js')
+      .startActiveSpan('prerender route (app) /[id]', PRERENDER_SPAN_OPTIONS, context.active(), span => {
+        expect(isPrerenderContext(context.active())).toBe(true);
+        expect(inject()).toEqual({});
+        span.end();
+      });
   });
 
   it('does not mistake other Next.js spans for a prerender', () => {
-    startSpan(
-      {
-        name: 'prerender route (app) /x',
+    expect(
+      isPrerenderSpanStart('prerender route (app) /x', {
         attributes: { [ATTR_NEXT_SPAN_TYPE]: 'NextNodeServer.getLayoutOrPageModule' },
-      },
-      span => expect(isPrerenderSpan(span)).toBe(false),
-    );
-    expect(isPrerenderSpan(undefined)).toBe(false);
-  });
-
-  it('replaces the registered global propagator', () => {
-    propagation.setGlobalPropagator(new SentryPropagator());
-
-    registerNextSentryPropagator();
-
-    const carrier: Record<string, string> = {};
-    const injectSpy = vi.spyOn(NextSentryPropagator.prototype, 'inject');
-    propagation.inject(context.active(), carrier);
-    expect(injectSpy).toHaveBeenCalledTimes(1);
-    propagation.disable();
+      }),
+    ).toBe(false);
+    expect(isPrerenderSpanStart('prerender route (app) /x', undefined)).toBe(false);
+    expect(isPrerenderSpanStart('prerender route (app) /x', PRERENDER_SPAN_OPTIONS)).toBe(true);
   });
 });
