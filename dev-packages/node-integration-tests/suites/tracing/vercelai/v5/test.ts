@@ -262,12 +262,10 @@ describe('Vercel AI integration (v5)', () => {
         expect(toolSpan!.attributes[GEN_AI_TOOL_NAME].value).toBe('getWeather');
 
         expect(errorEvent!.level).toBe('error');
-        expect(errorEvent!.tags).toEqual(
-          expect.objectContaining({
-            'vercel.ai.tool.name': 'getWeather',
-            'vercel.ai.tool.callId': 'call-1',
-          }),
-        );
+        expect(errorEvent!.tags).toEqual({
+          'vercel.ai.tool.name': 'getWeather',
+          'vercel.ai.tool.callId': 'call-1',
+        });
 
         // Trace id should be the same for the segment and error event
         expect(segment!.trace_id).toBe(errorEvent!.contexts!.trace!.trace_id);
