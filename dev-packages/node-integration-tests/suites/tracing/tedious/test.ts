@@ -145,13 +145,12 @@ describeWithDockerCompose('tedious auto instrumentation', { workingDirectory: [_
                   ]),
                 );
                 expect(dbSpans.find(span => span.name === 'select')?.status).toBe('error');
-                expect(dbSpans[0]?.attributes).toMatchObject({
-                  [DB_SYSTEM_NAME]: { value: 'mssql' },
-                  [DB_NAMESPACE]: { value: 'master' },
-                  [DB_USER]: { value: 'sa' },
-                  [SERVER_ADDRESS]: { value: '127.0.0.1' },
-                  [SERVER_PORT]: { value: 1433 },
-                });
+                const attributes = dbSpans[0]?.attributes;
+                expect(attributes?.[DB_SYSTEM_NAME]).toEqual({ type: 'string', value: 'mssql' });
+                expect(attributes?.[DB_NAMESPACE]).toEqual({ type: 'string', value: 'master' });
+                expect(attributes?.[DB_USER]).toEqual({ type: 'string', value: 'sa' });
+                expect(attributes?.[SERVER_ADDRESS]).toEqual({ type: 'string', value: '127.0.0.1' });
+                expect(attributes?.[SERVER_PORT]).toEqual({ type: 'integer', value: 1433 });
               },
             })
             .start()
