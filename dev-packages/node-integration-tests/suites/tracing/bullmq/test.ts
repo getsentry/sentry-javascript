@@ -141,4 +141,43 @@ describeWithDockerCompose('bullmq', { workingDirectory: [__dirname] }, () => {
         .completed();
     });
   });
+
+  createEsmAndCjsTests(__dirname, 'scenario-failed-job.mjs', 'instrument.mjs', (createRunner, test) => {
+    test('captures an error for a failed job in the trace of the job', { timeout: 90_000 }, async () => {
+      let consumerTraceId: string | undefined;
+      let errorTraceId: string | undefined;
+
+      await createRunner()
+        .ignore('trace_metric')
+        .unordered()
+        .expect({
+          event: event => {
+            expect(event.exception?.values).toEqual([
+              expect.objectContaining({
+                type: 'Error',
+                value: 'Job failed on purpose',
+                mechanism: { type: 'auto.queue.bullmq', handled: false },
+              }),
+            ]);
+
+            errorTraceId = event.contexts?.trace?.trace_id;
+          },
+        })
+        .expect({
+          span: container => {
+            const consumerSegment = container.items.find(
+              item => item.is_segment && item.attributes['sentry.op']?.value === 'queue.process',
+            );
+
+            expect(consumerSegment).toBeDefined();
+
+            consumerTraceId = consumerSegment!.trace_id;
+          },
+        })
+        .start()
+        .completed();
+
+      expect(errorTraceId).toBe(consumerTraceId);
+    });
+  });
 });
