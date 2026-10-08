@@ -6,6 +6,7 @@ import {
   SENTRY_OP,
   SENTRY_ORIGIN,
 } from '@sentry/conventions/attributes';
+import { DB } from '@sentry/conventions/op';
 import type { SerializedStreamedSpan } from '@sentry/core';
 import { afterAll, expect } from 'vitest';
 import { cleanupChildProcesses, createEsmAndCjsTests, describeWithDockerCompose } from '../../../utils/runner';
@@ -94,7 +95,7 @@ describeWithDockerCompose('Prisma ORM v6 Tests', { workingDirectory: [__dirname]
 
               expectPrismaSpanToIncludeSpanWith({
                 attributes: {
-                  [SENTRY_OP]: { type: 'string', value: 'db' },
+                  [SENTRY_OP]: { type: 'string', value: DB },
                   [DB_QUERY_TEXT]: {
                     type: 'string',
                     value:
@@ -109,7 +110,7 @@ describeWithDockerCompose('Prisma ORM v6 Tests', { workingDirectory: [__dirname]
 
               expectPrismaSpanToIncludeSpanWith({
                 attributes: {
-                  [SENTRY_OP]: { type: 'string', value: 'db' },
+                  [SENTRY_OP]: { type: 'string', value: DB },
                   [DB_QUERY_TEXT]: {
                     type: 'string',
                     value: 'DELETE FROM "public"."User" WHERE "public"."User"."email"::text LIKE $1',

@@ -6,6 +6,7 @@ import {
   SENTRY_OP,
   SENTRY_ORIGIN,
 } from '@sentry/conventions/attributes';
+import { DB } from '@sentry/conventions/op';
 import type { SerializedStreamedSpanContainer } from '@sentry/core';
 import { afterAll, describe, expect } from 'vitest';
 import { cleanupChildProcesses, createEsmAndCjsTests, describeWithDockerCompose } from '../../../utils/runner';
@@ -33,7 +34,7 @@ function expectPrismaV5Spans(container: SerializedStreamedSpanContainer): void {
 
   // The db-query spans are materialized from the raw engine event; assert they nest inside the
   // transaction rather than dangling as orphans.
-  const dbSpans = spans.filter(s => s.attributes[SENTRY_OP]?.value === 'db');
+  const dbSpans = spans.filter(s => s.attributes[SENTRY_OP]?.value === DB);
   expect(dbSpans.length).toBeGreaterThanOrEqual(1);
   dbSpans.forEach(dbSpan => {
     expect(validParentIds.has(dbSpan.parent_span_id)).toBe(true);
@@ -84,7 +85,7 @@ function expectPrismaV5Spans(container: SerializedStreamedSpanContainer): void {
           [DB_QUERY_SUMMARY]: { type: 'string', value: 'INSERT "public"."User"' },
           [DB_SYSTEM]: { type: 'string', value: 'postgresql' },
           [SENTRY_KIND]: { type: 'string', value: 'client' },
-          [SENTRY_OP]: { type: 'string', value: 'db' },
+          [SENTRY_OP]: { type: 'string', value: DB },
           [SENTRY_ORIGIN]: { type: 'string', value: 'auto.db.prisma' },
         }),
         name: 'INSERT "public"."User"',
@@ -96,7 +97,7 @@ function expectPrismaV5Spans(container: SerializedStreamedSpanContainer): void {
           [DB_QUERY_SUMMARY]: { type: 'string', value: 'SELECT "public"."User"' },
           [DB_SYSTEM]: { type: 'string', value: 'postgresql' },
           [SENTRY_KIND]: { type: 'string', value: 'client' },
-          [SENTRY_OP]: { type: 'string', value: 'db' },
+          [SENTRY_OP]: { type: 'string', value: DB },
           [SENTRY_ORIGIN]: { type: 'string', value: 'auto.db.prisma' },
         }),
         name: 'SELECT "public"."User"',
@@ -108,7 +109,7 @@ function expectPrismaV5Spans(container: SerializedStreamedSpanContainer): void {
           [DB_QUERY_SUMMARY]: { type: 'string', value: 'DELETE "public"."User"' },
           [DB_SYSTEM]: { type: 'string', value: 'postgresql' },
           [SENTRY_KIND]: { type: 'string', value: 'client' },
-          [SENTRY_OP]: { type: 'string', value: 'db' },
+          [SENTRY_OP]: { type: 'string', value: DB },
           [SENTRY_ORIGIN]: { type: 'string', value: 'auto.db.prisma' },
         }),
         name: 'DELETE "public"."User"',

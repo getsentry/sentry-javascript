@@ -5,6 +5,7 @@ import {
   SENTRY_OP,
   SENTRY_ORIGIN,
 } from '@sentry/conventions/attributes';
+import { DB } from '@sentry/conventions/op';
 import { afterAll, describe, expect } from 'vitest';
 import { cleanupChildProcesses, createEsmAndCjsTests, describeWithDockerCompose } from '../../../utils/runner';
 
@@ -68,11 +69,11 @@ describe('Prisma ORM v7 Tests', () => {
                 // The SDK should rewrite the span name to the query summary (same as v5/v6
                 // `prisma:engine:db_query`), so we find it via op/origin rather than name.
                 const dbQuerySpan = prismaSpans.find(
-                  span => span.attributes[SENTRY_OP]?.value === 'db' && span.attributes[DB_QUERY_TEXT]?.value,
+                  span => span.attributes[SENTRY_OP]?.value === DB && span.attributes[DB_QUERY_TEXT]?.value,
                 );
                 expect(dbQuerySpan).toBeDefined();
                 expect(dbQuerySpan?.attributes[DB_SYSTEM_NAME]?.value).toBe('postgresql');
-                expect(dbQuerySpan?.attributes[SENTRY_OP]?.value).toBe('db');
+                expect(dbQuerySpan?.attributes[SENTRY_OP]?.value).toBe(DB);
                 expect(dbQuerySpan?.name).toBe(dbQuerySpan?.attributes[DB_QUERY_SUMMARY]?.value);
                 expect(dbQuerySpan?.name).not.toBe('prisma:client:db_query');
 
