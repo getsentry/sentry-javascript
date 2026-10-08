@@ -153,7 +153,10 @@ is the reference setup.
 - **SDK per runtime**: each runtime inits its own SDK, the way a user of that runtime would: Node the framework SDK
   (`instrument.mjs`), Bun `@sentry/bun` (`instrument.bun.mjs`), Deno `@sentry/deno` (`instrument.deno.mjs`) and
   Cloudflare `@sentry/cloudflare`. The framework SDK only provides the framework wrappers on the other runtimes, so
-  values that come from its `init()` (`sdk.name`, default integrations) are Node-only.
+  values that come from its `init()` (`sdk.name`, default integrations) are Node-only. Next.js is different: it loads
+  `instrumentation.ts` on every runtime, so `nextjs-16` calls `init()` of `@sentry/nextjs` on Bun and Deno too, and
+  adds the integrations of `@sentry/bun` or `@sentry/deno` that replace the Node instrumentation those runtimes do not
+  trigger.
 - **Start commands**: `playwright.config.mjs` selects the start command with `getRuntime()`. Bun and Deno use the same build
   as Node and only change the start command, for example
   `bun --bun --preload ./instrument.bun.mjs ./node_modules/@react-router/serve/bin.cjs ./build/server/index.js` and
@@ -168,7 +171,9 @@ is the reference setup.
   separate file (for example `workers/app.ts`) and exports a plain handler: the Sentry plugin wraps it with
   `withSentry` and reads the init options from `instrument.server.ts` next to the entry. The start command runs
   `wrangler dev` on the build output. Code at module scope must not do I/O (for example open a database connection),
-  because workerd does not allow it.
+  because workerd does not allow it. `nextjs-16` has no Vite build: its Cloudflare variant builds with
+  `opennextjs-cloudflare build` and wraps the generated Worker in `worker.ts` with `withSentry` from
+  `@sentry/nextjs/cloudflare`.
 - **Runtime-specific files**: a file that has the runtime as a part of its name replaces the existing file without that
   part, for example `app/entry.server.cloudflare.tsx` replaces `app/entry.server.tsx` and `vite.cloudflare.config.ts`
   replaces `vite.config.ts`. For a variant with `runtime`, the runner copies these files over the others in the
