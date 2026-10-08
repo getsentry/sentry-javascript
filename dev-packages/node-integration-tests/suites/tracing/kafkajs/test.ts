@@ -6,6 +6,7 @@ import {
   SENTRY_OP,
   SENTRY_ORIGIN,
 } from '@sentry/conventions/attributes';
+import { QUEUE_PROCESS, QUEUE_PUBLISH } from '@sentry/conventions/op';
 import { afterAll, expect } from 'vitest';
 import { cleanupChildProcesses, createEsmAndCjsTests, describeWithDockerCompose } from '../../../utils/runner';
 
@@ -48,7 +49,7 @@ describeWithDockerCompose('kafkajs', { workingDirectory: [__dirname] }, () => {
                   [MESSAGING_SYSTEM]: { type: 'string', value: 'kafka' },
                   [MESSAGING_DESTINATION_NAME]: { type: 'string', value: 'test-topic' },
                   [SENTRY_KIND]: { type: 'string', value: 'producer' },
-                  [SENTRY_OP]: { type: 'string', value: 'queue.publish' },
+                  [SENTRY_OP]: { type: 'string', value: QUEUE_PUBLISH },
                   [SENTRY_ORIGIN]: { type: 'string', value: producerOrigin },
                 }),
               }),
@@ -61,7 +62,7 @@ describeWithDockerCompose('kafkajs', { workingDirectory: [__dirname] }, () => {
                   [MESSAGING_SYSTEM]: { type: 'string', value: 'kafka' },
                   [MESSAGING_DESTINATION_NAME]: { type: 'string', value: 'test-topic' },
                   [SENTRY_KIND]: { type: 'string', value: 'consumer' },
-                  [SENTRY_OP]: { type: 'string', value: 'queue.process' },
+                  [SENTRY_OP]: { type: 'string', value: QUEUE_PROCESS },
                   [SENTRY_ORIGIN]: { type: 'string', value: consumerOrigin },
                 }),
               }),
@@ -87,7 +88,7 @@ describeWithDockerCompose('kafkajs', { workingDirectory: [__dirname] }, () => {
                   [MESSAGING_SYSTEM]: { type: 'string', value: 'kafka' },
                   [MESSAGING_DESTINATION_NAME]: { type: 'string', value: 'invalid topic name' },
                   [SENTRY_KIND]: { type: 'string', value: 'producer' },
-                  [SENTRY_OP]: { type: 'string', value: 'queue.publish' },
+                  [SENTRY_OP]: { type: 'string', value: QUEUE_PUBLISH },
                   [SENTRY_ORIGIN]: { type: 'string', value: producerOrigin },
                   [ERROR_TYPE]: { type: 'string', value: 'KafkaJSNonRetriableError' },
                 }),

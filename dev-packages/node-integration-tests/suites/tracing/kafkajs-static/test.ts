@@ -1,3 +1,4 @@
+import { QUEUE_PROCESS, QUEUE_PUBLISH } from '@sentry/conventions/op';
 import type { TransactionEvent } from '@sentry/core';
 import { afterAll, expect } from 'vitest';
 import { cleanupChildProcesses, createEsmAndCjsTests, describeWithDockerCompose } from '../../../utils/runner';
@@ -52,13 +53,13 @@ describeWithDockerCompose('kafkajs', { workingDirectory: [__dirname] }, () => {
 
             expect(producer!.contexts?.trace).toMatchObject(
               expect.objectContaining({
-                op: 'queue.publish',
+                op: QUEUE_PUBLISH,
                 status: 'ok',
                 data: expect.objectContaining({
                   'messaging.system': 'kafka',
                   'messaging.destination.name': 'test-topic',
                   'sentry.kind': 'producer',
-                  'sentry.op': 'queue.publish',
+                  'sentry.op': QUEUE_PUBLISH,
                   'sentry.origin': producerOrigin,
                 }),
               }),
@@ -66,13 +67,13 @@ describeWithDockerCompose('kafkajs', { workingDirectory: [__dirname] }, () => {
 
             expect(consumer!.contexts?.trace).toMatchObject(
               expect.objectContaining({
-                op: 'queue.process',
+                op: QUEUE_PROCESS,
                 status: 'ok',
                 data: expect.objectContaining({
                   'messaging.system': 'kafka',
                   'messaging.destination.name': 'test-topic',
                   'sentry.kind': 'consumer',
-                  'sentry.op': 'queue.process',
+                  'sentry.op': QUEUE_PROCESS,
                   'sentry.origin': consumerOrigin,
                 }),
               }),
@@ -92,13 +93,13 @@ describeWithDockerCompose('kafkajs', { workingDirectory: [__dirname] }, () => {
             expect(transaction.transaction).toBe('send invalid topic name');
             expect(transaction.contexts?.trace).toMatchObject(
               expect.objectContaining({
-                op: 'queue.publish',
+                op: QUEUE_PUBLISH,
                 status: 'internal_error',
                 data: expect.objectContaining({
                   'messaging.system': 'kafka',
                   'messaging.destination.name': 'invalid topic name',
                   'sentry.kind': 'producer',
-                  'sentry.op': 'queue.publish',
+                  'sentry.op': QUEUE_PUBLISH,
                   'sentry.origin': producerOrigin,
                   'error.type': 'KafkaJSNonRetriableError',
                 }),
