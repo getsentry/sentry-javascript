@@ -169,7 +169,7 @@ describe('mysql auto instrumentation', () => {
       'streamed query error',
       {
         // The segment span succeeds (status `ok`); only the failing query span is errored.
-        spans: expect.arrayContaining([
+        spans: [
           expect.objectContaining({
             name: 'SELECT does_not_exist',
             // A failing streamed query emits `error`, which marks the span as errored
@@ -181,7 +181,7 @@ describe('mysql auto instrumentation', () => {
               [DB_USER]: { type: 'string', value: 'root' },
             }),
           }),
-        ]),
+        ],
       },
     ],
   ] as const;
