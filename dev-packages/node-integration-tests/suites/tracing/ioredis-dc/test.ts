@@ -21,6 +21,7 @@ import {
   SERVER_ADDRESS,
   SERVER_PORT,
 } from '@sentry/conventions/attributes';
+import { CACHE_GET, CACHE_PUT, type CACHE_REMOVE, DB_QUERY } from '@sentry/conventions/op';
 import { afterAll, describe, expect } from 'vitest';
 import { EXPECTED_SDK_NAME } from '../../../utils';
 import { cleanupChildProcesses, createEsmAndCjsTests, describeWithDockerCompose } from '../../../utils/runner';
@@ -85,7 +86,7 @@ describeWithDockerCompose(
       // A cache span is a db span the cache hook took over: it is renamed to its cache operation
       // and reports the connection it inherited as peer attributes too.
       const cacheSpan = (
-        op: 'cache.get' | 'cache.put' | 'cache.remove',
+        op: typeof CACHE_GET | typeof CACHE_PUT | typeof CACHE_REMOVE,
         attributes: Record<string, unknown>,
       ): unknown => streamedSpan(op, op, { ...PEER, [CACHE_OPERATION]: op.slice('cache.'.length), ...attributes });
 
@@ -109,40 +110,40 @@ describeWithDockerCompose(
                 );
 
                 expect(spans).toEqual([
-                  streamedSpan(`set ${HOST}:${PORT}`, 'db.query', {
+                  streamedSpan(`set ${HOST}:${PORT}`, DB_QUERY, {
                     [DB_OPERATION_NAME]: 'set',
                     [DB_QUERY_TEXT]: 'set dc-test-key ?',
                   }),
-                  cacheSpan('cache.put', {
+                  cacheSpan(CACHE_PUT, {
                     [DB_OPERATION_NAME]: 'set',
                     [DB_QUERY_TEXT]: 'set dc-cache:test-key ?',
                     [CACHE_KEY]: ['dc-cache:test-key'],
                     [CACHE_ITEM_SIZE]: 2,
                   }),
-                  cacheSpan('cache.put', {
+                  cacheSpan(CACHE_PUT, {
                     [DB_OPERATION_NAME]: 'set',
                     [DB_QUERY_TEXT]: 'set dc-cache:test-key-ex ? ? ?',
                     [CACHE_KEY]: ['dc-cache:test-key-ex'],
                     [CACHE_ITEM_SIZE]: 2,
                   }),
-                  streamedSpan(`get ${HOST}:${PORT}`, 'db.query', {
+                  streamedSpan(`get ${HOST}:${PORT}`, DB_QUERY, {
                     [DB_OPERATION_NAME]: 'get',
                     [DB_QUERY_TEXT]: 'get dc-test-key',
                   }),
-                  cacheSpan('cache.get', {
+                  cacheSpan(CACHE_GET, {
                     [DB_OPERATION_NAME]: 'get',
                     [DB_QUERY_TEXT]: 'get dc-cache:test-key',
                     [CACHE_KEY]: ['dc-cache:test-key'],
                     [CACHE_HIT]: true,
                     [CACHE_ITEM_SIZE]: 10,
                   }),
-                  cacheSpan('cache.get', {
+                  cacheSpan(CACHE_GET, {
                     [DB_OPERATION_NAME]: 'get',
                     [DB_QUERY_TEXT]: 'get dc-cache:unavailable-data',
                     [CACHE_KEY]: ['dc-cache:unavailable-data'],
                     [CACHE_HIT]: false,
                   }),
-                  streamedSpan(`mget ${HOST}:${PORT}`, 'db.query', {
+                  streamedSpan(`mget ${HOST}:${PORT}`, DB_QUERY, {
                     [DB_OPERATION_NAME]: 'mget',
                     [DB_QUERY_TEXT]: 'mget ? ? ?',
                   }),

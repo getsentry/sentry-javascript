@@ -18,6 +18,7 @@ import {
   SERVER_ADDRESS,
   SERVER_PORT,
 } from '@sentry/conventions/attributes';
+import { DB_QUERY } from '@sentry/conventions/op';
 import { afterAll, describe, expect } from 'vitest';
 import { EXPECTED_SDK_NAME } from '../../../utils';
 import { cleanupChildProcesses, createEsmAndCjsTests, describeWithDockerCompose } from '../../../utils/runner';
@@ -31,7 +32,7 @@ describeWithDockerCompose('redis auto instrumentation', { workingDirectory: [__d
   // subscriber instead of the OTel monkey-patch, so the span origin differs. All
   // other attributes are identical.
   const origin = 'auto.db.redis';
-  const redisSpanOp = 'db.query';
+  const redisSpanOp = DB_QUERY;
   describe('streamed', () => {
     const COMMON_ATTRIBUTES = {
       [SENTRY_IS_LOCALHOST]: { type: 'boolean', value: false },

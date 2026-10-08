@@ -23,6 +23,7 @@ import {
   SERVER_ADDRESS,
   SERVER_PORT,
 } from '@sentry/conventions/attributes';
+import { CACHE_GET, CACHE_PUT, type CACHE_REMOVE, DB_QUERY } from '@sentry/conventions/op';
 import { afterAll, describe, expect } from 'vitest';
 import { EXPECTED_SDK_NAME } from '../../../utils';
 import { cleanupChildProcesses, createEsmAndCjsTests, describeWithDockerCompose } from '../../../utils/runner';
@@ -48,8 +49,8 @@ describeWithDockerCompose(
           .expect({
             span: container => {
               const names = container.items.map(item => item.name);
-              expect(names).toContain('cache.put');
-              expect(names).not.toContain('cache.get');
+              expect(names).toContain(CACHE_PUT);
+              expect(names).not.toContain(CACHE_GET);
             },
           })
           .expect({
@@ -117,7 +118,7 @@ describeWithDockerCompose(
       // A cache span is a db span whose key matched a cache prefix: it starts named after its
       // cache operation and reports the connection as peer attributes too.
       const cacheSpan = (
-        op: 'cache.get' | 'cache.put' | 'cache.remove',
+        op: typeof CACHE_GET | typeof CACHE_PUT | typeof CACHE_REMOVE,
         attributes: Record<string, unknown>,
       ): unknown => streamedSpan(op, op, { ...PEER, [CACHE_OPERATION]: op.slice('cache.'.length), ...attributes });
 
@@ -138,30 +139,30 @@ describeWithDockerCompose(
                 );
 
                 expect(spans).toEqual([
-                  streamedSpan(`SET ${HOST}:${PORT}`, 'db.query', {
+                  streamedSpan(`SET ${HOST}:${PORT}`, DB_QUERY, {
                     [DB_OPERATION_NAME]: 'SET',
                     [DB_QUERY_TEXT]: 'SET dc-test-key ?',
                   }),
                   // cache SET: starts as a cache span
-                  cacheSpan('cache.put', {
+                  cacheSpan(CACHE_PUT, {
                     [DB_OPERATION_NAME]: 'SET',
                     [DB_QUERY_TEXT]: 'SET dc-cache:test-key ?',
                     [CACHE_KEY]: ['dc-cache:test-key'],
                     [CACHE_ITEM_SIZE]: 2,
                   }),
                   // cache SET with EX option: redis v5 sends SET key value EX 10 as the command
-                  cacheSpan('cache.put', {
+                  cacheSpan(CACHE_PUT, {
                     [DB_OPERATION_NAME]: 'SET',
                     [DB_QUERY_TEXT]: 'SET dc-cache:test-key-ex ? ? ?',
                     [CACHE_KEY]: ['dc-cache:test-key-ex'],
                     [CACHE_ITEM_SIZE]: 2,
                   }),
-                  streamedSpan(`GET ${HOST}:${PORT}`, 'db.query', {
+                  streamedSpan(`GET ${HOST}:${PORT}`, DB_QUERY, {
                     [DB_OPERATION_NAME]: 'GET',
                     [DB_QUERY_TEXT]: 'GET dc-test-key',
                   }),
                   // cache GET (hit)
-                  cacheSpan('cache.get', {
+                  cacheSpan(CACHE_GET, {
                     [DB_OPERATION_NAME]: 'GET',
                     [DB_QUERY_TEXT]: 'GET dc-cache:test-key',
                     [CACHE_KEY]: ['dc-cache:test-key'],
@@ -169,7 +170,7 @@ describeWithDockerCompose(
                     [CACHE_ITEM_SIZE]: 10,
                   }),
                   // cache GET (miss)
-                  cacheSpan('cache.get', {
+                  cacheSpan(CACHE_GET, {
                     [DB_OPERATION_NAME]: 'GET',
                     [DB_QUERY_TEXT]: 'GET dc-cache:unavailable-data',
                     [CACHE_KEY]: ['dc-cache:unavailable-data'],
@@ -177,18 +178,18 @@ describeWithDockerCompose(
                   }),
                   // MGET: node-redis sanitizes args for diagnostics_channel (keys become '?'),
                   // so cache detection cannot match prefixes — remains a plain db.query span.
-                  streamedSpan(`MGET ${HOST}:${PORT}`, 'db.query', {
+                  streamedSpan(`MGET ${HOST}:${PORT}`, DB_QUERY, {
                     [DB_OPERATION_NAME]: 'MGET',
                     [DB_QUERY_TEXT]: 'MGET ? ? ?',
                   }),
-                  streamedSpan(`LPUSH ${HOST}:${PORT}`, 'db.query', {
+                  streamedSpan(`LPUSH ${HOST}:${PORT}`, DB_QUERY, {
                     [DB_OPERATION_NAME]: 'LPUSH',
                     [DB_QUERY_TEXT]: 'LPUSH dc-cache:list-key ?',
                   }),
                   // a failing command on a cache key reports as an errored cache span:
                   // the span starts as a cache span, so the classification survives the error
                   {
-                    ...(cacheSpan('cache.get', {
+                    ...(cacheSpan(CACHE_GET, {
                       [DB_OPERATION_NAME]: 'GET',
                       [DB_QUERY_TEXT]: 'GET dc-cache:list-key',
                       [CACHE_KEY]: ['dc-cache:list-key'],

@@ -1,3 +1,4 @@
+import { CACHE_GET, CACHE_PUT, CACHE_REMOVE } from '@sentry/conventions/op';
 import { afterAll, expect } from 'vitest';
 import { cleanupChildProcesses, createEsmAndCjsTests, describeWithDockerCompose } from '../../../utils/runner';
 
@@ -14,7 +15,7 @@ describeWithDockerCompose('redis cache static instrumentation', { workingDirecto
       // SET
       expect.objectContaining({
         description: 'ioredis-cache:test-key',
-        op: 'cache.put',
+        op: CACHE_PUT,
         origin: redisOrigin,
         data: expect.objectContaining({
           'sentry.origin': redisOrigin,
@@ -29,7 +30,7 @@ describeWithDockerCompose('redis cache static instrumentation', { workingDirecto
       // SET (with EX)
       expect.objectContaining({
         description: 'ioredis-cache:test-key-set-EX',
-        op: 'cache.put',
+        op: CACHE_PUT,
         origin: redisOrigin,
         data: expect.objectContaining({
           'sentry.origin': redisOrigin,
@@ -44,7 +45,7 @@ describeWithDockerCompose('redis cache static instrumentation', { workingDirecto
       // SETEX
       expect.objectContaining({
         description: 'ioredis-cache:test-key-setex',
-        op: 'cache.put',
+        op: CACHE_PUT,
         origin: redisOrigin,
         data: expect.objectContaining({
           'sentry.origin': redisOrigin,
@@ -59,7 +60,7 @@ describeWithDockerCompose('redis cache static instrumentation', { workingDirecto
       // GET
       expect.objectContaining({
         description: 'ioredis-cache:test-key',
-        op: 'cache.get',
+        op: CACHE_GET,
         origin: redisOrigin,
         data: expect.objectContaining({
           'sentry.origin': redisOrigin,
@@ -75,7 +76,7 @@ describeWithDockerCompose('redis cache static instrumentation', { workingDirecto
       // GET (unavailable - no cache hit)
       expect.objectContaining({
         description: 'ioredis-cache:unavailable-data',
-        op: 'cache.get',
+        op: CACHE_GET,
         origin: redisOrigin,
         data: expect.objectContaining({
           'sentry.origin': redisOrigin,
@@ -90,7 +91,7 @@ describeWithDockerCompose('redis cache static instrumentation', { workingDirecto
       // MGET
       expect.objectContaining({
         description: 'test-key, ioredis-cache:test-key, ioredis-cache:unavailable-data',
-        op: 'cache.get',
+        op: CACHE_GET,
         origin: redisOrigin,
         data: expect.objectContaining({
           'sentry.origin': redisOrigin,
@@ -105,7 +106,7 @@ describeWithDockerCompose('redis cache static instrumentation', { workingDirecto
       // DEL
       expect.objectContaining({
         description: 'ioredis-cache:test-key',
-        op: 'cache.remove',
+        op: CACHE_REMOVE,
         origin: redisOrigin,
         data: expect.objectContaining({
           'sentry.origin': redisOrigin,
