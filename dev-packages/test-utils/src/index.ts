@@ -32,7 +32,7 @@ export type { OutputScanOptions } from './build-output';
 export { assertBundlerInstrumentation } from './bundler-instrumentation';
 export type { InstrumentationFixture } from './bundler-instrumentation';
 
-export { hidePage } from './page';
+export { hidePage, waitForSoftNavigation } from './page';
 export { getPlaywrightConfig } from './playwright-config';
 export { getRuntime } from './runtime';
 export type { Runtime } from './runtime';
