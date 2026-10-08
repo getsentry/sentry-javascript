@@ -28,7 +28,7 @@ describeWithDockerCompose('bullmq', { workingDirectory: [__dirname] }, () => {
                 is_segment: false,
                 status: 'ok',
                 attributes: expect.objectContaining({
-                  'sentry.op': { type: 'string', value: 'queue.submit' },
+                  'sentry.op': { type: 'string', value: 'queue.publish' },
                   'messaging.system': { type: 'string', value: 'bullmq' },
                 }),
               }),
@@ -41,7 +41,7 @@ describeWithDockerCompose('bullmq', { workingDirectory: [__dirname] }, () => {
                 is_segment: true,
                 status: 'ok',
                 attributes: expect.objectContaining({
-                  'sentry.op': { type: 'string', value: 'queue.task' },
+                  'sentry.op': { type: 'string', value: 'queue.process' },
                   'messaging.system': { type: 'string', value: 'bullmq' },
                   'sentry.previous_trace': { type: 'string', value: `${producerTraceId}-${producerSpanId}-1` },
                 }),

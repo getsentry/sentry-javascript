@@ -1,33 +1,33 @@
 import { expect, test } from '@playwright/test';
 import { getSpanOp, waitForError, waitForMetric, waitForStreamedSpan } from '@sentry-internal/test-utils';
 
-test('Creates a queue.submit span when adding a job', async ({ baseURL }) => {
-  const submitSpanPromise = waitForStreamedSpan('node-bullmq', span => {
+test('Creates a queue.publish span when adding a job', async ({ baseURL }) => {
+  const publishSpanPromise = waitForStreamedSpan('node-bullmq', span => {
     return (
-      getSpanOp(span) === 'queue.submit' && span.attributes['sentry.segment.name']?.value === 'GET /enqueue/success'
+      getSpanOp(span) === 'queue.publish' && span.attributes['sentry.segment.name']?.value === 'GET /enqueue/success'
     );
   });
 
   await fetch(`${baseURL}/enqueue/success`);
 
-  const submitSpan = await submitSpanPromise;
+  const publishSpan = await publishSpanPromise;
 
-  expect(submitSpan.is_segment).toBe(false);
-  expect(submitSpan.attributes['sentry.origin']?.value).toBe('auto.queue.bullmq.producer');
-  expect(submitSpan.attributes['messaging.system']?.value).toBe('bullmq');
+  expect(publishSpan.is_segment).toBe(false);
+  expect(publishSpan.attributes['sentry.origin']?.value).toBe('auto.queue.bullmq.producer');
+  expect(publishSpan.attributes['messaging.system']?.value).toBe('bullmq');
 });
 
-test('Creates a segment span for queue.task when processing a job', async ({ baseURL }) => {
-  const taskSpanPromise = waitForStreamedSpan('node-bullmq', span => {
-    return span.is_segment && getSpanOp(span) === 'queue.task';
+test('Creates a segment span for queue.process when processing a job', async ({ baseURL }) => {
+  const processSpanPromise = waitForStreamedSpan('node-bullmq', span => {
+    return span.is_segment && getSpanOp(span) === 'queue.process';
   });
 
   await fetch(`${baseURL}/enqueue/success`);
 
-  const taskSpan = await taskSpanPromise;
+  const processSpan = await processSpanPromise;
 
-  expect(taskSpan.attributes['sentry.origin']?.value).toBe('auto.queue.bullmq.consumer');
-  expect(taskSpan.attributes['messaging.system']?.value).toBe('bullmq');
+  expect(processSpan.attributes['sentry.origin']?.value).toBe('auto.queue.bullmq.consumer');
+  expect(processSpan.attributes['messaging.system']?.value).toBe('bullmq');
 });
 
 test('Sends exception to Sentry on error in job processor', async ({ baseURL }) => {
@@ -51,17 +51,17 @@ test('Sends exception to Sentry on error in job processor', async ({ baseURL }) 
 });
 
 test('BullMQ processor breadcrumbs do not leak into subsequent HTTP requests', async ({ baseURL }) => {
-  const taskSpanPromise = waitForStreamedSpan('node-bullmq', span => {
+  const processSpanPromise = waitForStreamedSpan('node-bullmq', span => {
     return (
       span.is_segment &&
-      getSpanOp(span) === 'queue.task' &&
+      getSpanOp(span) === 'queue.process' &&
       span.attributes['bullmq.job.name']?.value === 'breadcrumb-job'
     );
   });
 
   await fetch(`${baseURL}/enqueue/breadcrumb-test`);
 
-  await taskSpanPromise;
+  await processSpanPromise;
 
   const errorEventPromise = waitForError('node-bullmq', event => {
     return event.exception?.values?.[0]?.value === 'Isolation check';
@@ -77,14 +77,14 @@ test('BullMQ processor breadcrumbs do not leak into subsequent HTTP requests', a
   expect(leakedBreadcrumb).toBeUndefined();
 });
 
-test('Links the queue.task segment span to its producer span via sentry.previous_trace', async ({ baseURL }) => {
+test('Links the queue.process segment span to its producer span via sentry.previous_trace', async ({ baseURL }) => {
   const producerSpanPromise = waitForStreamedSpan('node-bullmq', span => {
-    return getSpanOp(span) === 'queue.submit' && span.attributes['bullmq.job.name']?.value === 'link-job';
+    return getSpanOp(span) === 'queue.publish' && span.attributes['bullmq.job.name']?.value === 'link-job';
   });
 
   const consumerSpanPromise = waitForStreamedSpan('node-bullmq', span => {
     return (
-      span.is_segment && getSpanOp(span) === 'queue.task' && span.attributes['bullmq.job.name']?.value === 'link-job'
+      span.is_segment && getSpanOp(span) === 'queue.process' && span.attributes['bullmq.job.name']?.value === 'link-job'
     );
   });
 
