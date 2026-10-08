@@ -290,6 +290,33 @@ describe('LangChain integration (v1)', () => {
     },
   );
 
+  createEsmAndCjsTests(
+    __dirname,
+    'scenario-typesafe-classifier-inherited-callbacks.mjs',
+    'instrument-with-pii.mjs',
+    (createRunner, test) => {
+      test('keeps the parent run callbacks for a TypeSafeClassifier called without config', async () => {
+        const runner = createRunner().ignore('event');
+        const spansPromise = runner.collectStreamedSpansUntilSegment('main');
+
+        await runner.start().completed();
+
+        const spans = await spansPromise;
+        const segment = spans.find(span => span.is_segment && span.name === 'main');
+        expect(segment!.attributes['test.recorded_runs'].value).toBe('RunnableLambda:root,TypeSafeClassifier:child');
+        expect(spans.filter(span => span.attributes[SENTRY_OP]?.value === GEN_AI_EVALUATE)).toHaveLength(1);
+      });
+    },
+    {
+      additionalDependencies: {
+        langchain: '^1.0.0',
+        '@langchain/core': '^1.0.0',
+        '@langchain/typesafe': '^0.0.2',
+        '@langchain/langgraph': '^1.0.0',
+      },
+    },
+  );
+
   createEsmTests(
     __dirname,
     'scenario-openai-before-langchain.mjs',

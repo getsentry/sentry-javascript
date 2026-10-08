@@ -8,7 +8,11 @@ import { LANGCHAIN_INTEGRATION_NAME } from '../ai/langchain/constants';
 import { _INTERNAL_getLangChainEmbeddingsSpanOptions } from '../ai/langchain/embeddings';
 import { recordTypeSafeClassifierState } from '../ai/langchain/typesafe-classifier';
 import type { LangChainOptions } from '../ai/langchain/types';
-import { getConversationIdMetadataFromConfig, _INTERNAL_mergeLangChainCallbackHandler } from '../ai/langchain/utils';
+import {
+  getConversationIdMetadataFromConfig,
+  getInheritedLangChainCallbacks,
+  _INTERNAL_mergeLangChainCallbackHandler,
+} from '../ai/langchain/utils';
 import { MISTRAL_INTEGRATION_NAME } from '../ai/mistral/constants';
 import { OPENAI_INTEGRATION_NAME } from '../ai/openai/constants';
 import { GROQ_INTEGRATION_NAME } from './groq';
@@ -90,7 +94,11 @@ function instrumentChatModels(options: LangChainOptions): void {
       args[1] = callOptions;
     }
 
-    callOptions.callbacks = _INTERNAL_mergeLangChainCallbackHandler(callOptions.callbacks, sentryHandler);
+    // Without callbacks of its own, the call would otherwise lose the parent run and its tracers (e.g. LangSmith).
+    callOptions.callbacks = _INTERNAL_mergeLangChainCallbackHandler(
+      callOptions.callbacks ?? getInheritedLangChainCallbacks(),
+      sentryHandler,
+    );
 
     const conversationIdMetadata = getConversationIdMetadataFromConfig(callOptions);
     if (Object.keys(conversationIdMetadata).length) {
