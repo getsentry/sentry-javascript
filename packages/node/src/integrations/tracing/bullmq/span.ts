@@ -1,14 +1,40 @@
-import type { Attributes, AttributeValue as OtelAttributeValue, Span } from '@opentelemetry/api';
+import type { Attributes, Span } from '@opentelemetry/api';
+import {
+  MESSAGING_DESTINATION_NAME,
+  MESSAGING_MESSAGE_ID,
+  MESSAGING_MESSAGE_RETRY_COUNT,
+} from '@sentry/conventions/attributes';
 import type { Scope } from '@sentry/core';
 import { captureException } from '@sentry/core';
 import type { AttributeValue, TelemetrySpan } from './types';
 
-function toOtelAttributeValue(value: AttributeValue): OtelAttributeValue {
-  return value as OtelAttributeValue;
-}
-
 function toOtelAttributes(attributes: Record<string, AttributeValue>): Attributes {
   return attributes as Attributes;
+}
+
+/**
+ * Returns the BullMQ attributes plus the `messaging.*` attributes that Sentry's Queues module reads.
+ */
+export function toSentryAttributes(attributes: Record<string, AttributeValue>): Attributes {
+  const result = { ...toOtelAttributes(attributes) };
+  const queueName = attributes['bullmq.queue.name'];
+  const jobId = attributes['bullmq.job.id'];
+  const attemptsMade = attributes['bullmq.job.attempts.made'];
+
+  if (typeof queueName === 'string') {
+    result[MESSAGING_DESTINATION_NAME] = queueName;
+  }
+
+  if (jobId !== undefined) {
+    result[MESSAGING_MESSAGE_ID] = String(jobId);
+  }
+
+  // BullMQ counts the attempt that just finished in `attemptsMade`.
+  if (typeof attemptsMade === 'number') {
+    result[MESSAGING_MESSAGE_RETRY_COUNT] = Math.max(attemptsMade - 1, 0);
+  }
+
+  return result;
 }
 
 export class SentryBullMQSpan implements TelemetrySpan {
@@ -21,11 +47,11 @@ export class SentryBullMQSpan implements TelemetrySpan {
   }
 
   public setAttribute(key: string, value: AttributeValue): void {
-    this._span.setAttribute(key, toOtelAttributeValue(value));
+    this.setAttributes({ [key]: value });
   }
 
   public setAttributes(attributes: Record<string, AttributeValue>): void {
-    this._span.setAttributes(toOtelAttributes(attributes));
+    this._span.setAttributes(toSentryAttributes(attributes));
   }
 
   public addEvent(name: string, attributes?: Record<string, AttributeValue>): void {
