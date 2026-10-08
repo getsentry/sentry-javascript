@@ -59,7 +59,9 @@ describe('outgoing traceparent', () => {
       await createRunner()
         .withEnv({ SERVER_URL })
         .expect({
-          span: {},
+          span: {
+            // Span contents are tested elsewhere.
+          },
         })
         .start()
         .completed();
