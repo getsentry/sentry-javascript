@@ -1,7 +1,7 @@
 import { afterAll, describe, expect } from 'vitest';
 import { cleanupChildProcesses, createEsmAndCjsTests } from '../../../utils/runner';
 
-describe('httpServerSpans-streamed (no route)', () => {
+describe('httpServerSpans (no route)', () => {
   afterAll(() => {
     cleanupChildProcesses();
   });
