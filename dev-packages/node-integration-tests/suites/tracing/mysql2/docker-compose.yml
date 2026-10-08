@@ -3,7 +3,7 @@ services:
     image: mysql:8
     restart: always
     ports:
-      - '3344:3306'
+      - '3306:3306'
     environment:
       MYSQL_ROOT_PASSWORD: password
     healthcheck:

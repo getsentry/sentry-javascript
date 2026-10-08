@@ -6,7 +6,7 @@ const CONNECT_CONFIG = {
   user: 'root',
   password: 'password',
   host: 'localhost',
-  port: 3344,
+  port: 3306,
 };
 
 async function run() {
