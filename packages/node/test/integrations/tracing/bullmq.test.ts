@@ -62,7 +62,6 @@ describe('SentryBullMQTracer', () => {
       { name: 'addBulk myQueue', expectedOp: 'queue.publish', expectedOrigin: 'auto.queue.bullmq.producer' },
       { name: 'addFlow myQueue', expectedOp: 'queue.publish', expectedOrigin: 'auto.queue.bullmq.producer' },
       { name: 'addBulkFlows myQueue', expectedOp: 'queue.publish', expectedOrigin: 'auto.queue.bullmq.producer' },
-      { name: 'process myQueue', expectedOp: 'queue.process', expectedOrigin: 'auto.queue.bullmq.consumer' },
       { name: 'pause myQueue', expectedOp: 'queue', expectedOrigin: 'auto.queue.bullmq' },
       { name: 'close myQueue', expectedOp: 'queue', expectedOrigin: 'auto.queue.bullmq' },
       { name: 'drain myQueue', expectedOp: 'queue', expectedOrigin: 'auto.queue.bullmq' },
@@ -77,6 +76,22 @@ describe('SentryBullMQTracer', () => {
         attributes: {
           [SentryCore.SEMANTIC_ATTRIBUTE_SENTRY_OP]: expectedOp,
           [SentryCore.SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: expectedOrigin,
+          'messaging.system': 'bullmq',
+        },
+        onlyIfParent: expectedOp === 'queue',
+      });
+    });
+
+    it('maps "process myQueue" to op=queue.process and origin=auto.queue.bullmq.consumer', () => {
+      const telemetry = new BullMQTelemetry();
+
+      telemetry.tracer.startSpan('process myQueue');
+
+      expect(SentryCore.startInactiveSpan).toHaveBeenCalledWith({
+        name: 'process myQueue',
+        attributes: {
+          [SentryCore.SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'queue.process',
+          [SentryCore.SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.queue.bullmq.consumer',
           'messaging.system': 'bullmq',
         },
       });
@@ -112,6 +127,16 @@ describe('SentryBullMQTracer', () => {
       telemetry.tracer.startSpan('add notifications');
 
       expect(SentryCore.startNewTrace).not.toHaveBeenCalled();
+      expect(SentryCore.startInactiveSpan).toHaveBeenCalledWith(expect.objectContaining({ onlyIfParent: false }));
+    });
+
+    it('only starts spans for internal operations when there is a parent span', () => {
+      const telemetry = new BullMQTelemetry();
+
+      telemetry.tracer.startSpan('moveStalledJobsToWait notifications');
+
+      expect(SentryCore.startNewTrace).not.toHaveBeenCalled();
+      expect(SentryCore.startInactiveSpan).toHaveBeenCalledWith(expect.objectContaining({ onlyIfParent: true }));
     });
 
     it('adds span link to producer when context has producerSpanContext', () => {

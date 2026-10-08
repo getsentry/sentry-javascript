@@ -69,10 +69,11 @@ export class SentryBullMQTracer implements Tracer<SentryContext> {
       Object.assign(attributes, toSentryAttributes(options.attributes));
     }
 
+    // Internal operations such as `moveStalledJobsToWait` run on timers. Without a parent, each tick would start a new root span.
     const span =
       op === QUEUE_PROCESS
         ? startNewTrace(() => startInactiveSpan({ name, attributes }))
-        : startInactiveSpan({ name, attributes });
+        : startInactiveSpan({ name, attributes, onlyIfParent: op === QUEUE });
 
     if (context?.producerSpanContext) {
       const producerSpanCtx = {
