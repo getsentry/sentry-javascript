@@ -328,15 +328,30 @@ describe('SentryBullMQContextManager', () => {
       expect(SentryCore.withActiveSpan).toHaveBeenCalledWith(fakeSpan, fn);
     });
 
-    it('calls only withIsolationScope when context has no span', () => {
+    it('clears the active span inside withIsolationScope when context has no span', () => {
       const telemetry = new BullMQTelemetry();
       const context = { span: undefined, scope: mockScope() };
       const fn = vi.fn(() => 'result');
 
-      telemetry.contextManager.with(context as any, fn);
+      const result = telemetry.contextManager.with(context as any, fn);
 
+      expect(result).toBe('result');
       expect(SentryCore.withIsolationScope).toHaveBeenCalledOnce();
-      expect(SentryCore.withActiveSpan).not.toHaveBeenCalled();
+      expect(SentryCore.withActiveSpan).toHaveBeenCalledWith(null, fn);
+    });
+  });
+
+  describe('root', () => {
+    it('returns a context without a span that runs callbacks without an active span', () => {
+      const telemetry = new BullMQTelemetry();
+      const fn = vi.fn(() => 'result');
+
+      const context = telemetry.contextManager.root!();
+      const result = telemetry.contextManager.with(context, fn);
+
+      expect(context.span).toBeUndefined();
+      expect(result).toBe('result');
+      expect(SentryCore.withActiveSpan).toHaveBeenCalledWith(null, fn);
     });
   });
 

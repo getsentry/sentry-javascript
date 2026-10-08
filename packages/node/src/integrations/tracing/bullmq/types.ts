@@ -35,6 +35,8 @@ export interface Tracer<Context> {
 export interface ContextManager<Context> {
   active(): Context;
   with<A extends (...args: unknown[]) => unknown>(context: Context, fn: A): ReturnType<A>;
+  // Added in bullmq@6.3.11
+  root?(): Context;
   getMetadata(context: Context): string;
   fromMetadata(activeContext: Context, metadata: string): Context;
 }

@@ -23,7 +23,18 @@ export class SentryBullMQContextManager implements ContextManager<SentryContext>
         return withActiveSpan(context.span as Span, fn) as ReturnType<A>;
       });
     }
-    return withIsolationScope(fn) as ReturnType<A>;
+    return withIsolationScope(() => withActiveSpan(null, fn)) as ReturnType<A>;
+  }
+
+  /**
+   * Returns a context without a span. BullMQ 6.3.11+ runs the stalled jobs checker in it, so the
+   * checker does not stay attached to the span that was active when the worker started.
+   */
+  public root(): SentryContext {
+    return {
+      span: undefined,
+      scope: getCurrentScope(),
+    };
   }
 
   public getMetadata(context: SentryContext): string {
