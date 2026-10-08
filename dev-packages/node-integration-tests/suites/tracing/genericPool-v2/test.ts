@@ -1,3 +1,4 @@
+import { ERROR_TYPE, SENTRY_OP, SENTRY_ORIGIN } from '@sentry/conventions/attributes';
 import { afterAll, describe, expect } from 'vitest';
 import { cleanupChildProcesses, createEsmAndCjsTests } from '../../../utils/runner';
 
@@ -12,32 +13,30 @@ describe('genericPool v2 auto instrumentation', () => {
     'instrument.mjs',
     (createRunner, test) => {
       test('should auto-instrument `generic-pool` v2 when calling pool.acquire()', async () => {
-        const EXPECTED_TRANSACTION = {
-          transaction: 'Test Transaction',
-          spans: expect.arrayContaining([
+        const EXPECTED_SPANS = {
+          items: expect.arrayContaining([
+            expect.objectContaining({ name: 'Test Transaction', is_segment: true }),
             expect.objectContaining({
-              description: 'generic-pool.acquire',
-              op: 'db',
-              origin: 'auto.db.generic_pool',
-              data: expect.objectContaining({
-                'sentry.origin': 'auto.db.generic_pool',
+              name: 'generic-pool.acquire',
+              attributes: expect.objectContaining({
+                [SENTRY_OP]: { type: 'string', value: 'db' },
+                [SENTRY_ORIGIN]: { type: 'string', value: 'auto.db.generic_pool' },
               }),
               status: 'ok',
             }),
 
             expect.objectContaining({
-              description: 'generic-pool.acquire',
-              op: 'db',
-              origin: 'auto.db.generic_pool',
-              data: expect.objectContaining({
-                'sentry.origin': 'auto.db.generic_pool',
+              name: 'generic-pool.acquire',
+              attributes: expect.objectContaining({
+                [SENTRY_OP]: { type: 'string', value: 'db' },
+                [SENTRY_ORIGIN]: { type: 'string', value: 'auto.db.generic_pool' },
               }),
               status: 'ok',
             }),
           ]),
         };
 
-        await createRunner().expect({ transaction: EXPECTED_TRANSACTION }).start().completed();
+        await createRunner().expect({ span: EXPECTED_SPANS }).start().completed();
       });
     },
     { additionalDependencies: { 'generic-pool': '^2.5.0' } },
@@ -49,20 +48,22 @@ describe('genericPool v2 auto instrumentation', () => {
     'instrument.mjs',
     (createRunner, test) => {
       test('marks the `generic-pool.acquire` span as errored when acquiring fails', async () => {
-        const EXPECTED_TRANSACTION = {
-          transaction: 'Test Transaction',
-          spans: expect.arrayContaining([
+        const EXPECTED_SPANS = {
+          items: expect.arrayContaining([
+            expect.objectContaining({ name: 'Test Transaction', is_segment: true }),
             expect.objectContaining({
-              description: 'generic-pool.acquire',
-              op: 'db',
-              origin: 'auto.db.generic_pool',
-              data: expect.objectContaining({ 'sentry.origin': 'auto.db.generic_pool', 'error.type': 'Error' }),
-              status: 'internal_error',
+              name: 'generic-pool.acquire',
+              attributes: expect.objectContaining({
+                [SENTRY_OP]: { type: 'string', value: 'db' },
+                [SENTRY_ORIGIN]: { type: 'string', value: 'auto.db.generic_pool' },
+                [ERROR_TYPE]: { type: 'string', value: 'Error' },
+              }),
+              status: 'error',
             }),
           ]),
         };
 
-        await createRunner().expect({ transaction: EXPECTED_TRANSACTION }).start().completed();
+        await createRunner().expect({ span: EXPECTED_SPANS }).start().completed();
       });
     },
     { additionalDependencies: { 'generic-pool': '^2.5.0' } },

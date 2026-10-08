@@ -1,4 +1,12 @@
-import type { SerializedStreamedSpanContainer } from '@sentry/core';
+import {
+  CACHE_KEY,
+  CACHE_OPERATION,
+  DB_COLLECTION_NAME,
+  DB_OPERATION_NAME,
+  SENTRY_KIND,
+  SENTRY_OP,
+  SENTRY_ORIGIN,
+} from '@sentry/conventions/attributes';
 import { afterAll, describe, expect } from 'vitest';
 import { cleanupChildProcesses, createEsmAndCjsTests } from '../../../utils/runner';
 
@@ -18,30 +26,28 @@ describe('dataloader auto-instrumentation', () => {
     test('instruments load, loadMany, batch, prime, clear and clearAll', async () => {
       const runner = createRunner()
         .expect({
-          transaction: event => {
-            expect(event.transaction).toBe('GET /load');
+          span: container => {
+            expect(container.items.find(span => span.is_segment)?.name).toBe('GET /load');
 
-            const spans = event.spans || [];
+            const spans = container.items;
 
-            const loadSpan = spans.find(span => span.description === 'dataloader.load');
+            const loadSpan = spans.find(span => span.attributes[DB_OPERATION_NAME]?.value === 'load');
             expect(loadSpan).toBeDefined();
-            expect(loadSpan?.op).toBe(CACHE_GET_OP);
-            expect(loadSpan?.origin).toBe(ORIGIN);
+            expect(loadSpan?.attributes[SENTRY_OP]?.value).toBe(CACHE_GET_OP);
+            expect(loadSpan?.attributes[SENTRY_ORIGIN]?.value).toBe(ORIGIN);
             expect(loadSpan?.status).toBe('ok');
-            expect(loadSpan?.data?.['sentry.origin']).toBe(ORIGIN);
-            expect(loadSpan?.data?.['sentry.op']).toBe(CACHE_GET_OP);
-            expect(loadSpan?.data?.['cache.key']).toEqual(['user-1']);
-            expect(loadSpan?.data?.['db.operation.name']).toBe('load');
+            expect(loadSpan?.attributes[CACHE_KEY]?.value).toEqual(['user-1']);
+            expect(loadSpan?.attributes[DB_OPERATION_NAME]?.value).toBe('load');
             // A direct operation is a client call; the deferred `batch` below gets no kind
-            expect(loadSpan?.data?.['sentry.kind']).toBe('client');
+            expect(loadSpan?.attributes[SENTRY_KIND]?.value).toBe('client');
 
-            const batchSpan = spans.find(span => span.description === 'dataloader.batch');
+            const batchSpan = spans.find(span => span.attributes[DB_OPERATION_NAME]?.value === 'batch');
             expect(batchSpan).toBeDefined();
-            expect(batchSpan?.op).toBe(CACHE_GET_OP);
-            expect(batchSpan?.origin).toBe(ORIGIN);
+            expect(batchSpan?.attributes[SENTRY_OP]?.value).toBe(CACHE_GET_OP);
+            expect(batchSpan?.attributes[SENTRY_ORIGIN]?.value).toBe(ORIGIN);
             expect(batchSpan?.status).toBe('ok');
-            expect(batchSpan?.data?.['cache.key']).toEqual(['user-1']);
-            expect(batchSpan?.data?.['sentry.kind']).toBeUndefined();
+            expect(batchSpan?.attributes[CACHE_KEY]?.value).toEqual(['user-1']);
+            expect(batchSpan?.attributes[SENTRY_KIND]?.value).toBeUndefined();
 
             // The batch span links back to the load span that triggered it
             expect(batchSpan?.links).toEqual([
@@ -54,57 +60,62 @@ describe('dataloader auto-instrumentation', () => {
             // Locks down the async behavior: `load` encloses the deferred `batch` span
             expect(batchSpan?.parent_span_id).toBe(loadSpan?.span_id);
             expect(loadSpan?.start_timestamp).toBeLessThanOrEqual(batchSpan?.start_timestamp ?? 0);
-            expect(loadSpan?.timestamp).toBeGreaterThanOrEqual(batchSpan?.timestamp ?? 0);
+            expect(loadSpan?.end_timestamp).toBeGreaterThanOrEqual(batchSpan?.end_timestamp ?? 0);
           },
         })
         .expect({
-          transaction: event => {
-            expect(event.transaction).toBe('GET /load-many');
+          span: container => {
+            expect(container.items.find(span => span.is_segment)?.name).toBe('GET /load-many');
 
-            const loadManySpan = (event.spans || []).find(span => span.description === 'dataloader.loadMany');
+            const loadManySpan = container.items.find(span => span.attributes[DB_OPERATION_NAME]?.value === 'loadMany');
             expect(loadManySpan).toBeDefined();
-            expect(loadManySpan?.op).toBe(CACHE_GET_OP);
-            expect(loadManySpan?.origin).toBe(ORIGIN);
+            expect(loadManySpan?.attributes[SENTRY_OP]?.value).toBe(CACHE_GET_OP);
+            expect(loadManySpan?.attributes[SENTRY_ORIGIN]?.value).toBe(ORIGIN);
             expect(loadManySpan?.status).toBe('ok');
-            expect(loadManySpan?.data?.['sentry.origin']).toBe(ORIGIN);
-            expect(loadManySpan?.data?.['sentry.op']).toBe(CACHE_GET_OP);
-            expect(loadManySpan?.data?.['cache.key']).toEqual(['user-1', 'user-2']);
+            expect(loadManySpan?.attributes[CACHE_KEY]?.value).toEqual(['user-1', 'user-2']);
           },
         })
         .expect({
-          transaction: event => {
-            expect(event.transaction).toBe('GET /cache-ops');
+          span: container => {
+            expect(container.items.find(span => span.is_segment)?.name).toBe('GET /cache-ops');
 
-            const spans = event.spans || [];
+            const spans = container.items;
 
             // prime writes to the cache, clear/clearAll remove from it
             for (const [operation, op] of Object.entries(CACHE_MUTATION_OPS)) {
-              const span = spans.find(s => s.description === `dataloader.${operation}`);
+              const span = spans.find(s => s.attributes[DB_OPERATION_NAME]?.value === operation);
               expect(span, `expected a dataloader.${operation} span`).toBeDefined();
-              expect(span?.origin).toBe(ORIGIN);
+              expect(span?.attributes[SENTRY_ORIGIN]?.value).toBe(ORIGIN);
               expect(span?.status).toBe('ok');
-              expect(span?.op).toBe(op);
-              expect(span?.data?.['sentry.origin']).toBe(ORIGIN);
-              expect(span?.data?.['db.operation.name']).toBe(operation);
+              expect(span?.name).toBe(op);
+              expect(span?.attributes[SENTRY_OP]?.value).toBe(op);
+              expect(span?.attributes[DB_OPERATION_NAME]?.value).toBe(operation);
             }
 
             // `clearAll` takes no key, the other two act on a single key
-            expect(spans.find(s => s.description === 'dataloader.prime')?.data?.['cache.key']).toEqual(['user-1']);
-            expect(spans.find(s => s.description === 'dataloader.clear')?.data?.['cache.key']).toEqual(['user-1']);
-            expect(spans.find(s => s.description === 'dataloader.clearAll')?.data?.['cache.key']).toBeUndefined();
+            expect(
+              spans.find(s => s.attributes[DB_OPERATION_NAME]?.value === 'prime')?.attributes[CACHE_KEY]?.value,
+            ).toEqual(['user-1']);
+            expect(
+              spans.find(s => s.attributes[DB_OPERATION_NAME]?.value === 'clear')?.attributes[CACHE_KEY]?.value,
+            ).toEqual(['user-1']);
+            expect(
+              spans.find(s => s.attributes[DB_OPERATION_NAME]?.value === 'clearAll')?.attributes[CACHE_KEY]?.value,
+            ).toBeUndefined();
           },
         })
         .expect({
-          transaction: event => {
-            expect(event.transaction).toBe('GET /named');
+          span: container => {
+            expect(container.items.find(span => span.is_segment)?.name).toBe('GET /named');
 
-            // A named dataloader includes its name in the span description
-            const namedLoadSpan = (event.spans || []).find(span => span.description === 'dataloader.load usersLoader');
+            const namedLoadSpan = container.items.find(span => span.attributes[DB_OPERATION_NAME]?.value === 'load');
             expect(namedLoadSpan).toBeDefined();
-            expect(namedLoadSpan?.op).toBe(CACHE_GET_OP);
-            expect(namedLoadSpan?.origin).toBe(ORIGIN);
+            expect(namedLoadSpan?.attributes[SENTRY_OP]?.value).toBe(CACHE_GET_OP);
+            expect(namedLoadSpan?.attributes[SENTRY_ORIGIN]?.value).toBe(ORIGIN);
             expect(namedLoadSpan?.status).toBe('ok');
-            expect(namedLoadSpan?.data?.['db.collection.name']).toBe('usersLoader');
+            expect(namedLoadSpan?.name).toBe('cache.get');
+            expect(namedLoadSpan?.attributes[CACHE_OPERATION]?.value).toBe('get');
+            expect(namedLoadSpan?.attributes[DB_COLLECTION_NAME]?.value).toBe('usersLoader');
           },
         })
         .start();
@@ -113,38 +124,6 @@ describe('dataloader auto-instrumentation', () => {
       await runner.makeRequest('get', '/load-many');
       await runner.makeRequest('get', '/cache-ops');
       await runner.makeRequest('get', '/named');
-      await runner.completed();
-    }, 30_000);
-
-    test('names spans after the cache operation when streamed', async () => {
-      const runner = createRunner()
-        .withEnv({ STREAMED: 'true' })
-        .expect({
-          span: (container: SerializedStreamedSpanContainer) => {
-            const namedLoadSpan = container.items.find(
-              span => span.attributes?.['db.operation.name']?.value === 'load',
-            );
-            expect(namedLoadSpan?.name).toBe('cache.get');
-            expect(namedLoadSpan?.attributes?.['sentry.op']?.value).toBe(CACHE_GET_OP);
-            expect(namedLoadSpan?.attributes?.['cache.operation']?.value).toBe('get');
-            // The loader name is no longer part of the span name, it moved to `db.collection.name`.
-            expect(namedLoadSpan?.attributes?.['db.collection.name']?.value).toBe('usersLoader');
-          },
-        })
-        .expect({
-          span: (container: SerializedStreamedSpanContainer) => {
-            for (const [operation, op] of Object.entries(CACHE_MUTATION_OPS)) {
-              const span = container.items.find(item => item.attributes?.['db.operation.name']?.value === operation);
-              expect(span, `expected a ${operation} span`).toBeDefined();
-              expect(span?.name).toBe(op);
-              expect(span?.attributes?.['sentry.op']?.value).toBe(op);
-            }
-          },
-        })
-        .start();
-
-      await runner.makeRequest('get', '/named');
-      await runner.makeRequest('get', '/cache-ops');
       await runner.completed();
     }, 30_000);
   });
