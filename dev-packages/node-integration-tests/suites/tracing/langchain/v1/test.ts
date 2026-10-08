@@ -372,7 +372,7 @@ describe('LangChain integration (v1)', () => {
         langchain: '^1.0.0',
         '@langchain/core': '^1.0.0',
         '@langchain/anthropic': '^1.0.0',
-        '@langchain/typesafe': '0.0.2',
+        '@langchain/typesafe': '^0.0.2',
       },
     },
   );

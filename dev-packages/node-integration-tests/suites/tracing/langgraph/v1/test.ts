@@ -52,7 +52,7 @@ describe('LangGraph integration (v1)', () => {
         langchain: '^1.0.0',
         '@langchain/core': '^1.0.0',
         '@langchain/langgraph': '^1.0.0',
-        '@langchain/typesafe': '0.0.2',
+        '@langchain/typesafe': '^0.0.2',
       },
     },
   );
@@ -81,7 +81,7 @@ describe('LangGraph integration (v1)', () => {
         langchain: '^1.0.0',
         '@langchain/core': '^1.0.0',
         '@langchain/langgraph': '^1.0.0',
-        '@langchain/typesafe': '0.0.2',
+        '@langchain/typesafe': '^0.0.2',
       },
     },
   );
