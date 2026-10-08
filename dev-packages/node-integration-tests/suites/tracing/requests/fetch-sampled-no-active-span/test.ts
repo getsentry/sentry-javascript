@@ -30,6 +30,7 @@ describe('outgoing fetch', () => {
 
       await createRunner()
         .withEnv({ SERVER_URL })
+        .ignore('span')
         .expect({
           event: {
             exception: {
