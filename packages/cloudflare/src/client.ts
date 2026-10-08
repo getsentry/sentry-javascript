@@ -475,14 +475,14 @@ interface BaseCloudflareOptions {
    *
    * @example
    * ```ts
-   * export default Sentry.withSentry(
-   *   env => ({
-   *     dsn: env.SENTRY_DSN,
-   *     isStreamingResponse: response =>
-   *       response.headers.get('content-type')?.startsWith('text/html') ? true : undefined,
-   *   }),
-   *   handler,
-   * );
+   * // src/instrument.server.ts
+   * import { defineCloudflareOptions } from '@sentry/cloudflare';
+   *
+   * export default defineCloudflareOptions(env => ({
+   *   dsn: env.SENTRY_DSN,
+   *   isStreamingResponse: response =>
+   *     response.headers.get('content-type')?.startsWith('text/html') ? true : undefined,
+   * }));
    * ```
    */
   isStreamingResponse?: (response: Response) => boolean | undefined;
