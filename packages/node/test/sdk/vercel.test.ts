@@ -5,7 +5,6 @@ import { getActiveSpan } from '@sentry/core';
 import type * as SentryServerUtils from '@sentry/server-utils';
 import { subscribeDiagnosticsChannel } from '@sentry/server-utils';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { setupVercelKeepAlive } from '../../src/sdk/vercel';
 
 vi.mock('@sentry/core', async importOriginal => ({
   ...(await importOriginal<typeof SentryCore>()),
@@ -46,8 +45,12 @@ function finishResponse() {
 
 describe('setupVercelKeepAlive', () => {
   let waitUntil: ReturnType<typeof vi.fn>;
+  let setupVercelKeepAlive: (client: Client) => void;
 
-  beforeEach(() => {
+  beforeEach(async () => {
+    vi.resetModules();
+    vi.mocked(subscribeDiagnosticsChannel).mockClear();
+    ({ setupVercelKeepAlive } = await import('../../src/sdk/vercel'));
     vi.useFakeTimers();
     waitUntil = vi.fn();
     (globalThis as any)[REQUEST_CONTEXT] = { get: () => ({ waitUntil }) };
@@ -166,5 +169,39 @@ describe('setupVercelKeepAlive', () => {
     await (waitUntil.mock.calls[0]![0] as Promise<unknown>);
 
     expect(client.flush).toHaveBeenCalledTimes(1);
+  });
+
+  it('registers the listeners once and flushes the latest client on repeated calls', async () => {
+    const firstClient = createClient();
+    const secondClient = createClient();
+    setupVercelKeepAlive(firstClient as unknown as Client);
+    setupVercelKeepAlive(secondClient as unknown as Client);
+
+    expect(subscribeDiagnosticsChannel).toHaveBeenCalledTimes(1);
+    expect(process.on).toHaveBeenCalledTimes(1);
+
+    const response = finishResponse();
+    expect(waitUntil).toHaveBeenCalledTimes(1);
+    response.emit('close');
+    await (waitUntil.mock.calls[0]![0] as Promise<unknown>);
+
+    expect(firstClient.flush).not.toHaveBeenCalled();
+    expect(secondClient.flush).toHaveBeenCalledTimes(1);
+  });
+
+  it('flushes the latest client once on SIGTERM', async () => {
+    const firstClient = createClient();
+    const secondClient = createClient();
+    setupVercelKeepAlive(firstClient as unknown as Client);
+    setupVercelKeepAlive(secondClient as unknown as Client);
+
+    const sigtermHandlers = vi.mocked(process.on).mock.calls.filter(([event]) => event === 'SIGTERM');
+    expect(sigtermHandlers).toHaveLength(1);
+
+    await (sigtermHandlers[0]![1] as () => Promise<void>)();
+
+    expect(firstClient.flush).not.toHaveBeenCalled();
+    expect(secondClient.flush).toHaveBeenCalledTimes(1);
+    expect(secondClient.flush).toHaveBeenCalledWith(200);
   });
 });

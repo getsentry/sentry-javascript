@@ -1,6 +1,5 @@
-import { browserPerformanceTimeOrigin } from '@sentry/core';
+import { _INTERNAL_performanceTimeToSeconds } from '@sentry/core';
 import { record } from '@sentry/rrweb';
-import { WINDOW } from '../constants';
 import type {
   AllPerformanceEntry,
   AllPerformanceEntryData,
@@ -86,10 +85,11 @@ function createPerformanceEntry(entry: AllPerformanceEntry): ReplayPerformanceEn
   return entryType(entry);
 }
 
-function getAbsoluteTime(time: number): number {
-  // browserPerformanceTimeOrigin can be undefined if `performance` or
-  // `performance.now` doesn't exist, but this is already checked by this integration
-  return ((browserPerformanceTimeOrigin() || WINDOW.performance.timeOrigin) + time) / 1000;
+function getAbsoluteTime(time: number, entryStartTime = time): number {
+  // Entries are only converted on flush, which can be minutes after they were recorded, so we use the time origin
+  // from when the entry started. Pass the entry's start for all its timings, so its duration stays correct.
+  // The cast is safe: this integration only runs if the Performance API exists.
+  return _INTERNAL_performanceTimeToSeconds(time, entryStartTime) as number;
 }
 
 function createPaintEntry(entry: PerformancePaintTiming): ReplayPerformanceEntry<PaintData> {
@@ -132,7 +132,7 @@ function createNavigationEntry(entry: PerformanceNavigationTiming): ReplayPerfor
   return {
     type: `${entryType}.${type}`,
     start: getAbsoluteTime(startTime),
-    end: getAbsoluteTime(domComplete),
+    end: getAbsoluteTime(domComplete, startTime),
     name,
     data: {
       size: transferSize,
@@ -173,7 +173,7 @@ function createResourceEntry(
   return {
     type: `${entryType}.${initiatorType}`,
     start: getAbsoluteTime(startTime),
-    end: getAbsoluteTime(responseEnd),
+    end: getAbsoluteTime(responseEnd, startTime),
     name,
     data: {
       size: transferSize,

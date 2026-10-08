@@ -4,6 +4,8 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+Work in this release was contributed by @zkasuran. Thank you for your contribution!
+
 ### Important Changes
 
 - **feat(bundler-plugins): Release `@sentry/webpack-plugin`, `@sentry/vite-plugin`, `@sentry/rollup-plugin` and `@sentry/esbuild-plugin` from the SDK repository ([#25095](https://github.com/getsentry/sentry-javascript/pull/25095))**

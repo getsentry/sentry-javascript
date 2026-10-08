@@ -281,7 +281,12 @@ export {
   supportsReferrerPolicy,
 } from './utils/supports';
 export { SyncPromise, rejectedSyncPromise, resolvedSyncPromise } from './utils/syncpromise';
-export { browserPerformanceTimeOrigin, dateTimestampInSeconds, timestampInSeconds } from './utils/time';
+export {
+  browserPerformanceTimeOrigin,
+  dateTimestampInSeconds,
+  performanceTimeToSeconds as _INTERNAL_performanceTimeToSeconds,
+  timestampInSeconds,
+} from './utils/time';
 export {
   TRACEPARENT_REGEXP,
   extractTraceparentData,
