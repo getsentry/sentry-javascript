@@ -24,6 +24,7 @@ import { mongodbChannels } from './config/mongodb';
 import { mongooseChannels } from './config/mongoose';
 import { mysql2Channels } from './config/mysql2';
 import { mysqlChannels } from './config/mysql';
+import { neonChannels } from './config/neon';
 import { nestjsChannels } from './config/nestjs';
 import { openaiChannels } from './config/openai';
 import { pgChannels } from './config/pg';
@@ -79,6 +80,7 @@ export const CHANNELS = {
   ...mongooseChannels,
   ...mysql2Channels,
   ...mysqlChannels,
+  ...neonChannels,
   ...nestjsChannels,
   ...openaiChannels,
   ...pgChannels,

@@ -155,6 +155,7 @@ export {
   typesafeIntegration,
   postgresIntegration,
   postgresJsIntegration,
+  neonIntegration,
   tediousIntegration,
   eveConversationHook,
   eveIntegration,

@@ -37,6 +37,7 @@ export {
   typesafeIntegration,
   postgresIntegration,
   postgresJsIntegration,
+  neonIntegration,
   redisIntegration,
   tediousIntegration,
   vercelAIIntegration,
