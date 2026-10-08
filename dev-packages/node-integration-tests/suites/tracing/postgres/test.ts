@@ -167,7 +167,16 @@ describeWithDockerCompose('postgres auto instrumentation', { workingDirectory: [
           .expect({
             span: container => {
               expect(container).toMatchObject(EXPECTED_SPANS);
-              expect(container.items.filter(span => span.attributes[SENTRY_OP]?.value === DB)).toHaveLength(7);
+              const dbSpans = container.items.filter(span => span.attributes[SENTRY_OP]?.value === DB);
+              expect(dbSpans.map(span => span.name)).toEqual([
+                'pg.connect',
+                'CREATE TABLE "User"',
+                'INSERT "User"',
+                'SELECT "User"',
+                'SELECT "User"',
+                'SELECT "does_not_exist_table"',
+                'DROP TABLE "User"',
+              ]);
             },
           })
           .start()
@@ -182,7 +191,15 @@ describeWithDockerCompose('postgres auto instrumentation', { workingDirectory: [
         await createTestRunner()
           .expect({
             span: container => {
-              expect(container.items.filter(span => span.attributes[SENTRY_OP]?.value === DB)).toHaveLength(6);
+              const dbSpans = container.items.filter(span => span.attributes[SENTRY_OP]?.value === DB);
+              expect(dbSpans.map(span => span.name)).toEqual([
+                'CREATE TABLE "User"',
+                'INSERT "User"',
+                'SELECT "User"',
+                'SELECT "User"',
+                'SELECT "does_not_exist_table"',
+                'DROP TABLE "User"',
+              ]);
               const spanNames = container.items.map(span => span.name);
               expect(spanNames?.find(name => name?.includes('connect'))).toBeUndefined();
               expect(container).toMatchObject({
@@ -504,7 +521,14 @@ describeWithDockerCompose('postgres auto instrumentation', { workingDirectory: [
             .expect({
               span: container => {
                 expect(container).toMatchObject(EXPECTED_SPANS);
-                expect(container.items.filter(span => span.attributes[SENTRY_OP]?.value === DB)).toHaveLength(5);
+                const dbSpans = container.items.filter(span => span.attributes[SENTRY_OP]?.value === DB);
+                expect(dbSpans.map(span => span.name)).toEqual([
+                  'pg.connect',
+                  'CREATE TABLE "NativeUser"',
+                  'INSERT "NativeUser"',
+                  'SELECT "NativeUser"',
+                  'DROP TABLE "NativeUser"',
+                ]);
               },
             })
             .start()
