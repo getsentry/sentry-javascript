@@ -148,7 +148,7 @@ export function appRouterInstrumentPageLoad(client: Client): void {
       [SENTRY_ORIGIN]: 'auto.pageload.nextjs.app_router_instrumentation',
       [SENTRY_SEGMENT_NAME_SOURCE]: parameterizedPathname ? 'route' : 'url',
       [URL_PATH]: WINDOW.location.pathname,
-      [URL_FULL]: filterCollectedUrl(documentUrl),
+      [URL_FULL]: filterCollectedUrl(documentUrl, client),
       ...(parameterizedPathname && { [URL_TEMPLATE]: parameterizedPathname }),
     },
   };

@@ -1,4 +1,6 @@
 // @vitest-environment jsdom
+import { SENTRY_OP, URL_FULL, URL_PATH } from '@sentry/conventions/attributes';
+import { PAGELOAD } from '@sentry/conventions/op';
 import type { Client } from '@sentry/core';
 import type * as SentryCore from '@sentry/core';
 import type * as SentryReact from '@sentry/react';
@@ -300,11 +302,11 @@ describe('appRouterInstrumentPageLoad', () => {
     expect(span).not.toBe(spanBeforeSettling);
     const spanJson = core.spanToJSON(span!);
     expect(spanJson.name).toBe('/navigation');
-    expect(spanJson.attributes?.['sentry.op']).toBe('pageload');
+    expect(spanJson.attributes?.[SENTRY_OP]).toBe(PAGELOAD);
     expect(spanJson.attributes).toEqual(
       expect.objectContaining({
-        'url.path': '/navigation',
-        'url.full': 'http://localhost:3000/navigation?from=document',
+        [URL_PATH]: '/navigation',
+        [URL_FULL]: 'http://localhost:3000/navigation?from=document',
       }),
     );
     expect(core.getCurrentScope().getScopeData().sdkProcessingMetadata.normalizedRequest?.url).toBe(
