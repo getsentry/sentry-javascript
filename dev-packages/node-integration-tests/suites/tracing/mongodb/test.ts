@@ -21,6 +21,7 @@ import {
   SERVER_ADDRESS,
   SERVER_PORT,
 } from '@sentry/conventions/attributes';
+import { DB } from '@sentry/conventions/op';
 import { MongoMemoryServer } from 'mongodb-memory-server-global';
 import { afterAll, beforeAll, describe, expect } from 'vitest';
 import { cleanupChildProcesses, createEsmAndCjsTests } from '../../../utils/runner';
@@ -62,7 +63,7 @@ describe('MongoDB auto-instrumentation', () => {
           [DB_SYSTEM_NAME]: 'mongodb',
           [SENTRY_ENVIRONMENT]: 'production',
           [SENTRY_KIND]: 'client',
-          [SENTRY_OP]: 'db',
+          [SENTRY_OP]: DB,
           [SENTRY_ORIGIN]: origin,
           [SENTRY_RELEASE]: '1.0',
           [SENTRY_SDK_NAME]: 'sentry.javascript.node',

@@ -9,6 +9,7 @@ import {
   SENTRY_ORIGIN,
   SENTRY_TRACE_LIFECYCLE,
 } from '@sentry/conventions/attributes';
+import { DB } from '@sentry/conventions/op';
 import { MongoMemoryServer } from 'mongodb-memory-server-global';
 import { afterAll, beforeAll, describe, expect } from 'vitest';
 import { cleanupChildProcesses, createEsmAndCjsTests } from '../../../utils/runner';
@@ -40,7 +41,7 @@ describe('MongoDB v4 auto-instrumentation', () => {
       status: 'ok',
       attributes: expect.objectContaining({
         [SENTRY_ORIGIN]: { type: 'string', value: origin },
-        [SENTRY_OP]: { type: 'string', value: 'db' },
+        [SENTRY_OP]: { type: 'string', value: DB },
         [DB_SYSTEM_NAME]: { type: 'string', value: 'mongodb' },
         [DB_NAMESPACE]: { type: 'string', value: 'admin' },
         [DB_COLLECTION_NAME]: { type: 'string', value: 'movies' },
