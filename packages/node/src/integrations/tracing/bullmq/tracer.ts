@@ -1,3 +1,4 @@
+import { QUEUE, QUEUE_PROCESS, QUEUE_PUBLISH } from '@sentry/conventions/op';
 import type { SpanAttributes } from '@sentry/core';
 import {
   getCurrentScope,
@@ -25,14 +26,14 @@ function getOpFromSpanName(name: string): string {
   const operation = getOperation(name);
 
   if (CONSUMER_OPERATIONS.has(operation)) {
-    return 'queue.task';
+    return QUEUE_PROCESS;
   }
 
   if (PRODUCER_OPERATIONS.has(operation)) {
-    return 'queue.submit';
+    return QUEUE_PUBLISH;
   }
 
-  return 'queue';
+  return QUEUE;
 }
 
 function getOriginFromSpanName(name: string): string {
@@ -69,7 +70,7 @@ export class SentryBullMQTracer implements Tracer<SentryContext> {
     }
 
     const span =
-      op === 'queue.task'
+      op === QUEUE_PROCESS
         ? withActiveSpan(null, () => startInactiveSpan({ name, attributes }))
         : startInactiveSpan({ name, attributes });
 

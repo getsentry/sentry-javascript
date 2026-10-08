@@ -57,11 +57,11 @@ describe('BullMQTelemetry', () => {
 describe('SentryBullMQTracer', () => {
   describe('startSpan', () => {
     it.each([
-      { name: 'add myQueue', expectedOp: 'queue.submit', expectedOrigin: 'auto.queue.bullmq.producer' },
-      { name: 'addBulk myQueue', expectedOp: 'queue.submit', expectedOrigin: 'auto.queue.bullmq.producer' },
-      { name: 'addFlow myQueue', expectedOp: 'queue.submit', expectedOrigin: 'auto.queue.bullmq.producer' },
-      { name: 'addBulkFlows myQueue', expectedOp: 'queue.submit', expectedOrigin: 'auto.queue.bullmq.producer' },
-      { name: 'process myQueue', expectedOp: 'queue.task', expectedOrigin: 'auto.queue.bullmq.consumer' },
+      { name: 'add myQueue', expectedOp: 'queue.publish', expectedOrigin: 'auto.queue.bullmq.producer' },
+      { name: 'addBulk myQueue', expectedOp: 'queue.publish', expectedOrigin: 'auto.queue.bullmq.producer' },
+      { name: 'addFlow myQueue', expectedOp: 'queue.publish', expectedOrigin: 'auto.queue.bullmq.producer' },
+      { name: 'addBulkFlows myQueue', expectedOp: 'queue.publish', expectedOrigin: 'auto.queue.bullmq.producer' },
+      { name: 'process myQueue', expectedOp: 'queue.process', expectedOrigin: 'auto.queue.bullmq.consumer' },
       { name: 'pause myQueue', expectedOp: 'queue', expectedOrigin: 'auto.queue.bullmq' },
       { name: 'close myQueue', expectedOp: 'queue', expectedOrigin: 'auto.queue.bullmq' },
       { name: 'drain myQueue', expectedOp: 'queue', expectedOrigin: 'auto.queue.bullmq' },
@@ -97,7 +97,7 @@ describe('SentryBullMQTracer', () => {
       );
     });
 
-    it('starts queue.task spans as root spans', () => {
+    it('starts queue.process spans as root spans', () => {
       const telemetry = new BullMQTelemetry();
 
       telemetry.tracer.startSpan('process notifications');
@@ -105,7 +105,7 @@ describe('SentryBullMQTracer', () => {
       expect(SentryCore.withActiveSpan).toHaveBeenCalledWith(null, expect.any(Function));
     });
 
-    it('starts queue.submit spans as children of the active span', () => {
+    it('starts queue.publish spans as children of the active span', () => {
       const telemetry = new BullMQTelemetry();
 
       telemetry.tracer.startSpan('add notifications');
