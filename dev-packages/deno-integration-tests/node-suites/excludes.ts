@@ -9,7 +9,7 @@ const NODE_ONLY = ['suites/anr/test.ts', 'suites/breadcrumbs/**', 'suites/thread
 // spans, breadcrumbs or headers of outgoing `fetch` requests.
 const NO_FETCH_INSTRUMENTATION = [
   'suites/tracing/double-baggage/**',
-  'suites/tracing/http-client-span-streamed/test.ts',
+  'suites/tracing/http-client-span/test.ts',
   'suites/tracing/http-client-spans/fetch-basic-streamed/test.ts',
   'suites/tracing/http-client-spans/fetch-basic/test.ts',
   'suites/tracing/http-client-spans/fetch-error/test.ts',

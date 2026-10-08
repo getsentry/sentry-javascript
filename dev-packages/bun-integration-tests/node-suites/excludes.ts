@@ -39,7 +39,7 @@ const NO_HTTP_SERVER_SPANS = [
 // project runs these suites, except the ones in `SENTRY_BUN_EXCLUDE`.
 const NO_FETCH_INSTRUMENTATION = [
   'suites/tracing/double-baggage/**',
-  'suites/tracing/http-client-span-streamed/test.ts',
+  'suites/tracing/http-client-span/test.ts',
   'suites/tracing/http-client-spans/fetch-basic-streamed/test.ts',
   'suites/tracing/http-client-spans/fetch-basic/test.ts',
   'suites/tracing/http-client-spans/fetch-error/test.ts',
