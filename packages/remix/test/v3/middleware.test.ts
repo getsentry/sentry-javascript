@@ -71,6 +71,45 @@ describe('sentryRemixMiddleware', () => {
     expect(response.headers.get('server-timing')).toBe('sentry-route;desc="/"');
   });
 
+  it('leaves the trace off a response with a future Expires and no Cache-Control', async () => {
+    getTraceData.mockReturnValue({ 'sentry-trace': 'abc-def-1' });
+    const middleware = sentryRemixMiddleware(matcherFor('/'));
+
+    const response = await middleware(
+      contextFor('http://x/', { accept: 'text/html' }),
+      async () => new Response('', { headers: { expires: new Date(Date.now() + 60_000).toUTCString() } }),
+    );
+
+    expect(response.headers.get('server-timing')).toBe('sentry-route;desc="/"');
+  });
+
+  it('propagates the trace when max-age=0 overrides a future Expires', async () => {
+    getTraceData.mockReturnValue({ 'sentry-trace': 'abc-def-1' });
+    const middleware = sentryRemixMiddleware(matcherFor('/'));
+
+    const response = await middleware(
+      contextFor('http://x/', { accept: 'text/html' }),
+      async () =>
+        new Response('', {
+          headers: { 'cache-control': 'max-age=0', expires: new Date(Date.now() + 60_000).toUTCString() },
+        }),
+    );
+
+    expect(response.headers.get('server-timing')).toContain('sentry-trace;desc="abc-def-1"');
+  });
+
+  it('propagates the trace when Expires is in the past', async () => {
+    getTraceData.mockReturnValue({ 'sentry-trace': 'abc-def-1' });
+    const middleware = sentryRemixMiddleware(matcherFor('/'));
+
+    const response = await middleware(
+      contextFor('http://x/', { accept: 'text/html' }),
+      async () => new Response('', { headers: { expires: 'Thu, 01 Jan 1970 00:00:00 GMT' } }),
+    );
+
+    expect(response.headers.get('server-timing')).toContain('sentry-trace;desc="abc-def-1"');
+  });
+
   it.each([
     ['private', 'private, max-age=60'],
     ['no-store', 'no-store'],

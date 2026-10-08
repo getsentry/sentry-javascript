@@ -117,7 +117,17 @@ function isSharedCacheable(response: Response): boolean {
   if (sharedMaxAge !== undefined) {
     return Number(sharedMaxAge) > 0;
   }
-  return /\b(?:public|max-age\s*=\s*[1-9])/.test(cacheControl);
+  if (/\bpublic\b/.test(cacheControl)) {
+    return true;
+  }
+  // `max-age` takes precedence over `Expires`, a zero one included.
+  const maxAge = cacheControl.match(/\bmax-age\s*=\s*(\d+)/)?.[1];
+  if (maxAge !== undefined) {
+    return Number(maxAge) > 0;
+  }
+  // Without a lifetime in `Cache-Control`, a cache falls back to `Expires`.
+  const expires = response.headers.get('expires');
+  return expires !== null && Date.parse(expires) > Date.now();
 }
 
 function setResponseStatus(response: Response): void {
