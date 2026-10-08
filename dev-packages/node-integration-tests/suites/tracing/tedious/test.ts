@@ -9,6 +9,7 @@ import {
   SERVER_ADDRESS,
   SERVER_PORT,
 } from '@sentry/conventions/attributes';
+import { DB } from '@sentry/conventions/op';
 import { afterAll, expect } from 'vitest';
 import { conditionalTest } from '../../../utils';
 import { cleanupChildProcesses, createEsmAndCjsTests, describeWithDockerCompose } from '../../../utils/runner';
@@ -26,7 +27,7 @@ describeWithDockerCompose('tedious auto instrumentation', { workingDirectory: [_
       attributes: expect.objectContaining({
         [DB_QUERY_TEXT]: { type: 'string', value: text },
         [SENTRY_ORIGIN]: { type: 'string', value: ORIGIN },
-        [SENTRY_OP]: { type: 'string', value: 'db' },
+        [SENTRY_OP]: { type: 'string', value: DB },
         [DB_SYSTEM_NAME]: { type: 'string', value: 'mssql' },
         [DB_NAMESPACE]: { type: 'string', value: 'master' },
         [DB_USER]: { type: 'string', value: 'sa' },
@@ -47,7 +48,7 @@ describeWithDockerCompose('tedious auto instrumentation', { workingDirectory: [_
         status: 'ok',
         attributes: expect.objectContaining({
           'db.sql.table': { type: 'string', value: 'test_bulk' },
-          [SENTRY_OP]: { type: 'string', value: 'db' },
+          [SENTRY_OP]: { type: 'string', value: DB },
           [SENTRY_ORIGIN]: { type: 'string', value: ORIGIN },
         }),
       }),
