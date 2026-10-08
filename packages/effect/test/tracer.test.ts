@@ -182,7 +182,7 @@ describe.each(VARIANTS)('SentryEffectTracer ($variant)', ({ variant, tracer, spa
   );
 
   /** Captures the attributes the tracer passes to `startInactiveSpan` for a given Effect span name. */
-  const attributesFor = (spanName: string) =>
+  const attributesFor = (spanName: string, kind?: Tracer.SpanKind) =>
     Effect.gen(function* () {
       let capturedAttributes: Record<string, unknown> | undefined;
 
@@ -191,7 +191,7 @@ describe.each(VARIANTS)('SentryEffectTracer ($variant)', ({ variant, tracer, spa
         return mockSpan();
       });
 
-      yield* Effect.withSpan(spanName)(Effect.succeed('ok'));
+      yield* Effect.withSpan(spanName, { kind })(Effect.succeed('ok'));
 
       return capturedAttributes;
     }).pipe(withSentryTracer);
@@ -258,6 +258,33 @@ describe.each(VARIANTS)('SentryEffectTracer ($variant)', ({ variant, tracer, spa
 
       expect(attributes?.[SENTRY_ORIGIN]).toBe('auto.http.effect');
       expect(attributes?.[SENTRY_OP]).toBe('http.client');
+    }),
+  );
+
+  it.effect('sets origin and op for server spans named after the request method', () =>
+    Effect.gen(function* () {
+      const attributes = yield* attributesFor('GET', 'server');
+
+      expect(attributes?.[SENTRY_ORIGIN]).toBe('auto.http.effect');
+      expect(attributes?.[SENTRY_OP]).toBe('http.server');
+    }),
+  );
+
+  it.effect('sets origin and op for client spans named after the request method', () =>
+    Effect.gen(function* () {
+      const attributes = yield* attributesFor('POST', 'client');
+
+      expect(attributes?.[SENTRY_ORIGIN]).toBe('auto.http.effect');
+      expect(attributes?.[SENTRY_OP]).toBe('http.client');
+    }),
+  );
+
+  it.effect('leaves origin and op unset for internal spans named after a request method', () =>
+    Effect.gen(function* () {
+      const attributes = yield* attributesFor('GET');
+
+      expect(attributes).not.toHaveProperty(SENTRY_ORIGIN);
+      expect(attributes).not.toHaveProperty(SENTRY_OP);
     }),
   );
 

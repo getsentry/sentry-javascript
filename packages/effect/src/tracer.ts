@@ -21,14 +21,6 @@ import { succeed as succeedLayer } from 'effect/Layer';
 import * as Option from 'effect/Option';
 import * as EffectTracer from 'effect/Tracer';
 
-function deriveOrigin(name: string): string | undefined {
-  if (name.startsWith('http.server') || name.startsWith('http.client')) {
-    return 'auto.http.effect';
-  }
-
-  return undefined;
-}
-
 const EFFECT_SPAN_SYMBOL = Symbol.for('@sentry/effect.EffectSpan');
 
 function markEffectSpan(span: Span): void {
@@ -43,19 +35,22 @@ function isEffectSpan(span: Span): boolean {
   return (span as { [EFFECT_SPAN_SYMBOL]?: boolean })[EFFECT_SPAN_SYMBOL] === true;
 }
 
+const HTTP_METHODS = new Set(['GET', 'HEAD', 'POST', 'PUT', 'DELETE', 'CONNECT', 'OPTIONS', 'TRACE', 'PATCH']);
+
 /**
- * Effect span names are chosen by whoever calls `Effect.withSpan`, so the name is the only signal
- * available. `@effect/platform` names its HTTP spans `http.server`/`http.client`, which map onto the
- * matching Sentry ops. Every other name comes from user code or a third-party library, whose semantics
- * we cannot infer, so op and origin stay unset and the span keeps the core defaults: no op, and a
- * `manual` origin.
+ * Effect span names are chosen by whoever calls `Effect.withSpan`, so the name and the kind are the only
+ * signals available. Effect names its HTTP spans `http.server <method>`/`http.client <method>` (Effect v3
+ * and v4 before 4.0.2) or only `<method>` with a `server`/`client` kind (Effect 4.0.2 and later), which map
+ * onto the matching Sentry ops. Every other span comes from user code or a third-party library, whose
+ * semantics we cannot infer, so op and origin stay unset and the span keeps the core defaults: no op, and
+ * a `manual` origin.
  */
-function deriveOp(name: string): string | undefined {
-  if (name.startsWith('http.server')) {
+function deriveOp(name: string, kind: EffectTracer.SpanKind): string | undefined {
+  if (name.startsWith('http.server') || (kind === 'server' && HTTP_METHODS.has(name))) {
     return HTTP_SERVER;
   }
 
-  if (name.startsWith('http.client')) {
+  if (name.startsWith('http.client') || (kind === 'client' && HTTP_METHODS.has(name))) {
     return HTTP_CLIENT;
   }
 
@@ -390,8 +385,8 @@ function createSentrySpan(
   startTime: bigint,
   kind: EffectTracer.SpanKind,
 ): SentrySpanLike {
-  const op = deriveOp(name);
-  const origin = deriveOrigin(name);
+  const op = deriveOp(name, kind);
+  const origin = op && 'auto.http.effect';
 
   // Effect calls the tracer when the span starts, so we start it on Sentry's clock and convert later Effect times
   // relative to this (see `_toSentryTime`).
