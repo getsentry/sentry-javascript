@@ -10,7 +10,7 @@
 - fix(v10/ai): Normalize token usage and preserve cache breakdowns ([#25126](https://github.com/getsentry/sentry-javascript/pull/25126))
 - fix(v10/core): Exclude attachments from internal exception events ([(#25167)](https://github.com/getsentry/sentry-javascript/pull/25167))
 - fix(v10/effect): Detect HTTP spans named after the request method ([#25169](https://github.com/getsentry/sentry-javascript/pull/25169))
-- fix(v10/sveltekit): Upload source maps with SvelteKit 3 (([#25172])(https://github.com/getsentry/sentry-javascript/pull/25172))
+- fix(v10/sveltekit): Upload source maps with SvelteKit 3 (([#25172](https://github.com/getsentry/sentry-javascript/pull/25172))
 
 ## 10.76.1
 
