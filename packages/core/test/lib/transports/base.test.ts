@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import { createTransport } from '../../../src/transports/base';
 import type { ClientReport } from '../../../src/types/clientreport';
-import type { AttachmentItem, EventEnvelope, EventItem } from '../../../src/types/envelope';
+import type { AttachmentItem, Envelope, EventEnvelope, EventItem } from '../../../src/types/envelope';
 import type { TransportMakeRequestResponse } from '../../../src/types/transport';
 import { createClientReportEnvelope } from '../../../src/utils/clientreport';
 import { createEnvelope, serializeEnvelope } from '../../../src/utils/envelope';
@@ -388,7 +388,7 @@ describe('createTransport', () => {
         }
 
         // recordDroppedEvent SHOULD be called for regular events
-        expect(mockRecordDroppedEventCallback).toHaveBeenCalledWith('network_error', 'error');
+        expect(mockRecordDroppedEventCallback).toHaveBeenCalledWith('network_error', 'error', 1);
       });
     });
 
@@ -405,7 +405,7 @@ describe('createTransport', () => {
         // Should resolve without throwing
         expect(result).toEqual({ statusCode: 413 });
         // recordDroppedEvent SHOULD be called with send_error reason
-        expect(mockRecordDroppedEventCallback).toHaveBeenCalledWith('send_error', 'error');
+        expect(mockRecordDroppedEventCallback).toHaveBeenCalledWith('send_error', 'error', 1);
       });
 
       it('should record send_error for each item in envelope when receiving 413', async () => {
@@ -415,7 +415,7 @@ describe('createTransport', () => {
           { event_id: 'aa3ff046696b4bc6b609ce6d28fde9e2', sent_at: '123' },
           [
             [{ type: 'event' }, { event_id: 'aa3ff046696b4bc6b609ce6d28fde9e2' }] as EventItem,
-            [{ type: 'transaction' }, { event_id: 'bb3ff046696b4bc6b609ce6d28fde9e2' }] as EventItem,
+            [{ type: 'transaction' }, { event_id: 'bb3ff046696b4bc6b609ce6d28fde9e2', spans: [{}, {}] }] as EventItem,
           ],
         );
 
@@ -425,10 +425,34 @@ describe('createTransport', () => {
 
         await transport.send(multiItemEnvelope);
 
-        // recordDroppedEvent SHOULD be called for each item
-        expect(mockRecordDroppedEventCallback).toHaveBeenCalledTimes(2);
-        expect(mockRecordDroppedEventCallback).toHaveBeenCalledWith('send_error', 'error');
+        expect(mockRecordDroppedEventCallback).toHaveBeenCalledTimes(3);
+        expect(mockRecordDroppedEventCallback).toHaveBeenCalledWith('send_error', 'error', 1);
         expect(mockRecordDroppedEventCallback).toHaveBeenCalledWith('send_error', 'transaction');
+        expect(mockRecordDroppedEventCallback).toHaveBeenCalledWith('send_error', 'span', 3);
+      });
+
+      it('should record send_error with the item count of container items when receiving 413', async () => {
+        const mockRecordDroppedEventCallback = vi.fn();
+
+        const containerEnvelope = createEnvelope<Envelope>({ sent_at: '123' }, [
+          [{ type: 'span', item_count: 5, content_type: 'application/vnd.sentry.items.span.v2+json' }, { items: [] }],
+          [{ type: 'log', item_count: 3, content_type: 'application/vnd.sentry.items.log+json' }, { items: [] }],
+          [
+            { type: 'trace_metric', item_count: 2, content_type: 'application/vnd.sentry.items.trace-metric+json' },
+            { items: [] },
+          ],
+        ] as Envelope[1]);
+
+        const transport = createTransport({ recordDroppedEvent: mockRecordDroppedEventCallback }, () =>
+          resolvedSyncPromise({ statusCode: 413 }),
+        );
+
+        await transport.send(containerEnvelope);
+
+        expect(mockRecordDroppedEventCallback).toHaveBeenCalledTimes(3);
+        expect(mockRecordDroppedEventCallback).toHaveBeenCalledWith('send_error', 'span', 5);
+        expect(mockRecordDroppedEventCallback).toHaveBeenCalledWith('send_error', 'log_item', 3);
+        expect(mockRecordDroppedEventCallback).toHaveBeenCalledWith('send_error', 'metric', 2);
       });
 
       it('should not record outcomes for client reports when receiving 413', async () => {
@@ -455,7 +479,7 @@ describe('createTransport', () => {
         // First request gets 413
         await transport.send(ERROR_ENVELOPE);
         expect(mockRequestExecutor).toHaveBeenCalledTimes(1);
-        expect(mockRecordDroppedEventCallback).toHaveBeenCalledWith('send_error', 'error');
+        expect(mockRecordDroppedEventCallback).toHaveBeenCalledWith('send_error', 'error', 1);
         mockRequestExecutor.mockClear();
         mockRecordDroppedEventCallback.mockClear();
 
