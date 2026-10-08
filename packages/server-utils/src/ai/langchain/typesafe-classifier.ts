@@ -6,8 +6,9 @@ import { LANGCHAIN_ORIGIN } from './constants';
 import { getAgentNameFromMetadata, getConversationIdFromMetadata } from './utils';
 
 // `TypeSafeClassifier` from `@langchain/typesafe` calls Jev with `fetch`, not through `@typesafe-ai/sdk`,
-// so the TypeSafe integration does not see it. Its serialized id is `[...lc_namespace, lc_name()]`.
-const TYPESAFE_CLASSIFIER_ID = 'langchain/classifiers/typesafe/TypeSafeClassifier';
+// so the TypeSafe integration does not see it. Its serialized id is `[...lc_namespace, lc_name()]`; only
+// the class name is matched, as the namespace is the part that changes between versions.
+const TYPESAFE_CLASSIFIER_NAME = 'TypeSafeClassifier';
 
 /** The package's default, used when the classifier is constructed without a `model`. */
 const DEFAULT_TYPESAFE_CLASSIFIER_MODEL = 'jev-latest';
@@ -36,7 +37,7 @@ export function recordTypeSafeClassifierState(classifier: unknown, input: unknow
 
 // Typed loosely: LangChain's `Serialized` union does not match our handler's chain type.
 export function isTypeSafeClassifier(chain: unknown): boolean {
-  return isObjectLike(chain) && Array.isArray(chain.id) && chain.id.join('/') === TYPESAFE_CLASSIFIER_ID;
+  return isObjectLike(chain) && Array.isArray(chain.id) && chain.id[chain.id.length - 1] === TYPESAFE_CLASSIFIER_NAME;
 }
 
 /** Start an `evaluate` span for a `TypeSafeClassifier` run, from its serialized constructor arguments. */

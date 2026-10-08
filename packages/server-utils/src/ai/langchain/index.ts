@@ -57,8 +57,8 @@ export function createLangChainCallbackHandler(options: LangChainOptions = {}): 
     const span = spanMap.get(runId);
     if (span?.isRecording()) {
       span.end();
-      spanMap.delete(runId);
     }
+    spanMap.delete(runId);
     evaluateRunIds.delete(runId);
   };
 
@@ -285,8 +285,9 @@ export function createLangChainCallbackHandler(options: LangChainOptions = {}): 
             'langchain.chain.outputs': JSON.stringify(outputs),
           });
         }
-        exitSpan(runId);
       }
+      // Also for a sampled-out span, which would otherwise stay tracked.
+      exitSpan(runId);
     },
 
     // Chain Error Handler
@@ -296,8 +297,8 @@ export function createLangChainCallbackHandler(options: LangChainOptions = {}): 
       const span = spanMap.get(runId);
       if (span?.isRecording()) {
         span.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
-        exitSpan(runId);
       }
+      exitSpan(runId);
     },
 
     // Tool Start Handler
