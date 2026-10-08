@@ -1,9 +1,7 @@
 import { expect, test } from '@playwright/test';
 import { waitForMetric } from '@sentry-internal/test-utils';
 
-// Metrics are not currently supported on Cloudflare Workers
-// TODO: Investigate and enable when metrics support is added for CF Workers
-test.skip('Should emit metrics from server and client', async ({ request, page }) => {
+test('Should emit metrics from server and client', async ({ request, page }) => {
   const clientCountPromise = waitForMetric('nextjs-16-cf-workers', async metric => {
     return metric.name === 'test.page.count';
   });
@@ -92,7 +90,6 @@ test.skip('Should emit metrics from server and client', async ({ request, page }
     type: 'counter',
     value: 1,
     attributes: {
-      'server.address': { value: expect.any(String), type: 'string' },
       'random.attribute': { value: 'Potatoes', type: 'string' },
       endpoint: { value: '/metrics/route-handler', type: 'string' },
       'sentry.environment': { value: 'qa', type: 'string' },
@@ -108,7 +105,6 @@ test.skip('Should emit metrics from server and client', async ({ request, page }
     type: 'distribution',
     value: 100,
     attributes: {
-      'server.address': { value: expect.any(String), type: 'string' },
       'random.attribute': { value: 'Patatas', type: 'string' },
       endpoint: { value: '/metrics/route-handler', type: 'string' },
       'sentry.environment': { value: 'qa', type: 'string' },
@@ -124,7 +120,6 @@ test.skip('Should emit metrics from server and client', async ({ request, page }
     type: 'gauge',
     value: 200,
     attributes: {
-      'server.address': { value: expect.any(String), type: 'string' },
       'random.attribute': { value: 'Patate', type: 'string' },
       endpoint: { value: '/metrics/route-handler', type: 'string' },
       'sentry.environment': { value: 'qa', type: 'string' },

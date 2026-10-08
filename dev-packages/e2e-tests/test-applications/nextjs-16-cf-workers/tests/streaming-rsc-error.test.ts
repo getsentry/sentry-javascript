@@ -1,10 +1,7 @@
 import { expect, test } from '@playwright/test';
 import { waitForError, waitForStreamedSpan } from '@sentry-internal/test-utils';
 
-// TODO: Under span streaming the Workers runtime emits no server segment span for a request
-// interrupted by a streaming RSC error, so the correlation below cannot be satisfied.
-// See https://github.com/getsentry/sentry-javascript/issues/23932
-test.skip('Should capture errors for crashing streaming promises in server components when `Sentry.captureRequestError` is added to the `onRequestError` hook', async ({
+test('Should capture errors for crashing streaming promises in server components when `Sentry.captureRequestError` is added to the `onRequestError` hook', async ({
   page,
 }) => {
   const errorEventPromise = waitForError('nextjs-16-cf-workers', errorEvent => {

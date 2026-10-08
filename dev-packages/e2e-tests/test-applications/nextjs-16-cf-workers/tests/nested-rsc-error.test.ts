@@ -1,8 +1,7 @@
 import { expect, test } from '@playwright/test';
 import { waitForError, waitForStreamedSpan } from '@sentry-internal/test-utils';
 
-// TODO: Flakey on CI
-test.skip('Should capture errors from nested server components when `Sentry.captureRequestError` is added to the `onRequestError` hook', async ({
+test('Should capture errors from nested server components when `Sentry.captureRequestError` is added to the `onRequestError` hook', async ({
   page,
 }) => {
   const errorEventPromise = waitForError('nextjs-16-cf-workers', errorEvent => {

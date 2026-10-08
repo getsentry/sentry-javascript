@@ -9,8 +9,10 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "next-cf",
-  "main": ".open-next/worker.js",
-  "compatibility_date": "2025-12-01",
+  "main": "./worker.ts",
+  // From 2026-02-19 on, wrangler uses the native `process` of workerd, whose `cwd()` is `/bundle` during a request.
+  // Next.js then misses its router server context and extracts the incoming trace again, see trace-continuation.test.ts.
+  "compatibility_date": "2026-02-19",
   "compatibility_flags": ["nodejs_compat", "global_fetch_strictly_public"],
   "assets": {
     "binding": "ASSETS",
@@ -27,6 +29,13 @@
       // see https://opennext.js.org/cloudflare/caching
       "binding": "WORKER_SELF_REFERENCE",
       "service": "next-cf",
+    },
+  ],
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "e2e",
+      "database_id": "00000000-0000-0000-0000-000000000000",
     },
   ],
   "observability": {

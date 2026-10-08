@@ -1,7 +1,7 @@
 import test, { expect } from '@playwright/test';
 import { getSpanOp, waitForStreamedSpan } from '@sentry-internal/test-utils';
 
-test.skip('Should create a span for node route handlers', async ({ request }) => {
+test('Should create a span for node route handlers', async ({ request }) => {
   const routehandlerSpanPromise = waitForStreamedSpan('nextjs-16-cf-workers', span => {
     return span.name === 'GET /route-handler/[xoxo]/node' && span.is_segment;
   });
@@ -13,15 +13,11 @@ test.skip('Should create a span for node route handlers', async ({ request }) =>
 
   expect(routehandlerSpan.status).toBe('ok');
   expect(getSpanOp(routehandlerSpan)).toBe('http.server');
-
-  // Custom headers are not captured on Cloudflare Workers
-  // This assertion is skipped for CF Workers environment
+  expect(routehandlerSpan.attributes['http.request.header.x-charly']?.value).toEqual(['gomez']);
 });
 
 test('Should create a span for edge route handlers', async ({ request }) => {
-  // This test only works for webpack builds on non-async param extraction
-  // todo: check if we can set request headers for edge on sdkProcessingMetadata
-  test.skip();
+  test.skip(true, 'OpenNext does not support the Edge runtime');
   const routehandlerSpanPromise = waitForStreamedSpan('nextjs-16-cf-workers', span => {
     return span.name === 'GET /route-handler/[xoxo]/edge' && span.is_segment;
   });

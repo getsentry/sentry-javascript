@@ -62,7 +62,7 @@ function isSentryRequestSpan(attrs: RawAttributes<Record<string, unknown>>): boo
 /**
  * Checks if a span's HTTP target matches the tunnel route.
  */
-function isTunnelRouteSpan(spanAttributes: Record<string, unknown>): boolean {
+export function isTunnelRouteSpan(spanAttributes: Record<string, unknown>): boolean {
   const tunnelPath = globalWithInjectedValues._sentryRewritesTunnelPath || process.env._sentryRewritesTunnelPath;
   if (!tunnelPath) {
     return false;

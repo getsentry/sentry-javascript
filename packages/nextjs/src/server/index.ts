@@ -1,7 +1,7 @@
 // import/export got a false positive, and affects most of our index barrel files
 // can be removed once following issue is fixed: https://github.com/import-js/eslint-plugin-import/issues/703
 /* eslint-disable import/export */
-import type { EventProcessor, Scope } from '@sentry/core';
+import type { Scope } from '@sentry/core';
 import {
   _INTERNAL_getActiveClient,
   applySdkMetadata,
@@ -14,9 +14,14 @@ import type { NodeClient, NodeOptions } from '@sentry/node';
 import { getDefaultIntegrations, httpIntegration, init as nodeInit } from '@sentry/node';
 import { DEBUG_BUILD } from '../common/debug-build';
 import { devErrorSymbolicationEventProcessor } from '../common/devErrorSymbolicationEventProcessor';
-import { isPrerenderControlFlowError } from '../common/nextNavigationErrorUtils';
+import { dropReactControlFlowErrorsEventProcessor } from '../common/utils/dropReactControlFlowErrors';
 import { isBuild } from '../common/utils/isBuild';
-import { isAsyncContextOwnedByCloudflare, isCloudflareWaitUntilAvailable } from '../common/utils/responseEnd';
+import {
+  isAsyncContextOwnedByCloudflare,
+  isAsyncContextOwnedByNextjsCloudflare,
+  isCloudflareWaitUntilAvailable,
+  setCloudflareWorkerRelease,
+} from '../common/utils/responseEnd';
 import { distDirRewriteFramesIntegration } from './distDirRewriteFramesIntegration';
 import { addNextjsServerSpanHooks, NEXTJS_SERVER_IGNORE_SPANS } from './serverSpanHooks';
 import { prepareSafeIdGeneratorContext } from './prepareSafeIdGeneratorContext';
@@ -173,6 +178,8 @@ export function init(options: NodeOptions): NodeClient | undefined {
 
   if (client) {
     addNextjsServerSpanHooks(client);
+  } else if (isOwnedByCloudflare) {
+    setCloudflareWorkerRelease(opts.release);
   }
 
   // On the client, not the global scope, so a later `init()` after
@@ -187,47 +194,10 @@ export function init(options: NodeOptions): NodeClient | undefined {
       .eventProcessors.some(processor => processor.id === 'DropReactControlFlowErrors');
     eventProcessorTarget = isAdded ? undefined : globalScope;
   }
-  eventProcessorTarget?.addEventProcessor(
-    Object.assign(
-      ((event, hint) => {
-        if (event.type !== undefined) {
-          return event;
-        }
-
-        const originalException = hint.originalException;
-
-        const isPostponeError =
-          typeof originalException === 'object' &&
-          originalException !== null &&
-          '$$typeof' in originalException &&
-          originalException.$$typeof === Symbol.for('react.postpone');
-
-        if (isPostponeError) {
-          // Postpone errors are used for partial-pre-rendering (PPR)
-          return null;
-        }
-
-        if (isPrerenderControlFlowError(originalException)) {
-          // Next.js aborts prerenders by rejecting the promises it handed out (e.g. `fetch()` under Cache
-          // Components) and throws to bail out of static rendering. These never reach the user, so drop them
-          // here as well - the wrappers cannot cover every path they escape through.
-          return null;
-        }
-
-        // We don't want to capture suspense errors as they are simply used by React/Next.js for control flow
-        const exceptionMessage = event.exception?.values?.[0]?.value;
-        if (
-          exceptionMessage?.includes('Suspense Exception: This is not a real error!') ||
-          exceptionMessage?.includes('Suspense Exception: This is not a real error, and should not leak')
-        ) {
-          return null;
-        }
-
-        return event;
-      }) satisfies EventProcessor,
-      { id: 'DropReactControlFlowErrors' },
-    ),
-  );
+  // Each client of `withSentry` from `@sentry/nextjs/cloudflare` gets the processor from its `Nextjs` integration.
+  if (!isAsyncContextOwnedByNextjsCloudflare()) {
+    eventProcessorTarget?.addEventProcessor(dropReactControlFlowErrorsEventProcessor);
+  }
 
   if (process.env.NODE_ENV === 'development') {
     eventProcessorTarget?.addEventProcessor(devErrorSymbolicationEventProcessor);
@@ -247,7 +217,7 @@ export function init(options: NodeOptions): NodeClient | undefined {
   if (isOwnedByCloudflare) {
     DEBUG_BUILD &&
       debug.log(
-        'The client of `withSentry` handles this Worker, so `init` creates no client. Set the options in `withSentry`.',
+        'The client of `withSentry` handles this Worker, so `init` creates no client and only applies `release`. Set the other options in `withSentry`.',
       );
   } else {
     DEBUG_BUILD && debug.log('SDK successfully initialized');
