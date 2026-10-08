@@ -1,5 +1,5 @@
-import type { Context, SpanOptions, TextMapSetter, Tracer, TracerProvider } from '@opentelemetry/api';
-import { context, createContextKey, propagation } from '@opentelemetry/api';
+import type { Context, Span, SpanOptions, TextMapSetter, Tracer, TracerProvider } from '@opentelemetry/api';
+import { context, createContextKey, propagation, trace } from '@opentelemetry/api';
 import { SentryPropagator } from '@sentry/opentelemetry';
 import { ATTR_NEXT_SPAN_NAME, ATTR_NEXT_SPAN_TYPE } from '../common/nextSpanAttributes';
 
@@ -7,6 +7,9 @@ const APP_RENDER_BODY_SPAN_TYPE = 'AppRender.getBodyResult';
 const PRERENDER_ROUTE_SPAN_NAME_PREFIX = 'prerender route';
 
 const PRERENDER_CONTEXT_KEY = createContextKey('sentry.nextjs.prerender');
+
+// Prerender spans started with `startSpan`, which the caller activates on a context of its own.
+const prerenderSpans = new WeakSet<Span>();
 
 /**
  * Whether these are the start arguments of the span Next.js wraps a prerender in. Next.js computes the
@@ -26,7 +29,11 @@ export function isPrerenderSpanStart(name: string, options: SpanOptions | undefi
 
 /** Whether the context belongs to a prerender started through a tracer of a wrapped provider. */
 export function isPrerenderContext(ctx: Context): boolean {
-  return ctx.getValue(PRERENDER_CONTEXT_KEY) === true;
+  if (ctx.getValue(PRERENDER_CONTEXT_KEY) === true) {
+    return true;
+  }
+  const span = trace.getSpan(ctx);
+  return !!span && prerenderSpans.has(span);
 }
 
 /**
@@ -37,7 +44,13 @@ export function isPrerenderContext(ctx: Context): boolean {
  */
 function wrapTracer(tracer: Tracer): Tracer {
   return {
-    startSpan: (name, options, ctx) => tracer.startSpan(name, options, ctx),
+    startSpan: (name, options, ctx) => {
+      const span = tracer.startSpan(name, options, ctx);
+      if (isPrerenderSpanStart(name, options)) {
+        prerenderSpans.add(span);
+      }
+      return span;
+    },
     startActiveSpan: (name: string, ...args: unknown[]) => {
       const startActiveSpan = tracer.startActiveSpan.bind(tracer) as (name: string, ...args: unknown[]) => unknown;
       const options = typeof args[0] === 'function' ? undefined : (args[0] as SpanOptions | undefined);

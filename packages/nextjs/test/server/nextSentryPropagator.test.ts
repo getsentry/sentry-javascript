@@ -114,6 +114,21 @@ describe('NextSentryPropagator', () => {
     });
   });
 
+  it('recognizes a prerender span that was started inactive and activated by the caller', () => {
+    const span = trace.getTracer('next.js').startSpan('prerender route (app) /[id]', PRERENDER_SPAN_OPTIONS);
+    context.with(trace.setSpan(context.active(), span), () => {
+      expect(isPrerenderContext(context.active())).toBe(true);
+      expect(inject()).toEqual({});
+    });
+    span.end();
+
+    const renderSpan = trace.getTracer('next.js').startSpan('render route (app) /blocking', RENDER_SPAN_OPTIONS);
+    context.with(trace.setSpan(context.active(), renderSpan), () => {
+      expect(inject()['sentry-trace']).toBeDefined();
+    });
+    renderSpan.end();
+  });
+
   it('marks an explicitly passed context', () => {
     trace
       .getTracer('next.js')
