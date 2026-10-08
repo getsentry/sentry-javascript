@@ -72,6 +72,7 @@ export interface MastraSpanAttributes {
 
 export interface MastraExportedSpan {
   id: string;
+  traceId?: string;
   parentSpanId?: string;
   /** Mastra's own name; unused for Sentry span names. */
   name: string;
@@ -92,6 +93,17 @@ export interface MastraExportedSpan {
 export interface MastraTracingEvent {
   type: MastraTracingEventType;
   exportedSpan: MastraExportedSpan;
+}
+
+/** Mastra's `SpanOutputProcessor`, such as its default `SensitiveDataFilter`. */
+export interface MastraSpanOutputProcessor {
+  name: string;
+  process(span: MastraExportedSpan): MastraExportedSpan | undefined;
+}
+
+/** Subset of what Mastra passes to `ObservabilityExporter.init()`. */
+export interface MastraExporterInitOptions {
+  config?: { spanOutputProcessors?: MastraSpanOutputProcessor[] };
 }
 
 /** Subset of Mastra's `ObservabilityExporter`. The rest of that interface is optional. */

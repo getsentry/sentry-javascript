@@ -1,7 +1,7 @@
 import { GEN_AI_INPUT_MESSAGES, GEN_AI_OUTPUT_MESSAGES } from '@sentry/conventions/attributes';
 import { isObjectLike } from '@sentry/core';
 import type { ClassifierEvaluationCall } from '../ai/mastra/classifier-evaluation';
-import { setStartingClassifierEvaluation } from '../ai/mastra/classifier-evaluation';
+import { processClassifierEvaluationData, setStartingClassifierEvaluation } from '../ai/mastra/classifier-evaluation';
 import { getEvaluationInputMessages, getEvaluationOutputMessages } from '../ai/typesafe';
 import { CHANNELS } from '../orchestrion/channels';
 import { safeChannelCallback } from '../tracing-channel';
@@ -52,14 +52,19 @@ function finishClassifierEvaluation(call: ClassifierEvaluationCall, message: Cla
     return;
   }
 
-  if (recordInputs) {
-    const params = isObjectLike(message.arguments[0]) ? message.arguments[0] : {};
-    // Questions given to the constructor take precedence over the ones passed to `evaluate()`, as in Mastra.
-    const questions = (isObjectLike(message.self) ? message.self.questions : undefined) ?? params.questions;
-    span.setAttribute(GEN_AI_INPUT_MESSAGES, getEvaluationInputMessages({ state: params.state, questions }));
+  const params = isObjectLike(message.arguments[0]) ? message.arguments[0] : {};
+  // Questions given to the constructor take precedence over the ones passed to `evaluate()`, as in Mastra.
+  const questions = (isObjectLike(message.self) ? message.self.questions : undefined) ?? params.questions;
+  const data = processClassifierEvaluationData(call, {
+    input: recordInputs ? { state: params.state, questions } : undefined,
+    output: recordOutputs && isObjectLike(message.result) ? message.result.answers : undefined,
+  });
+
+  if (isObjectLike(data?.input)) {
+    span.setAttribute(GEN_AI_INPUT_MESSAGES, getEvaluationInputMessages(data.input));
   }
-  if (recordOutputs && isObjectLike(message.result)) {
-    span.setAttribute(GEN_AI_OUTPUT_MESSAGES, getEvaluationOutputMessages(message.result.answers));
+  if (data?.output !== undefined) {
+    span.setAttribute(GEN_AI_OUTPUT_MESSAGES, getEvaluationOutputMessages(data.output));
   }
 
   if (call.endTime) {

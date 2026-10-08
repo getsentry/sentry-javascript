@@ -33,7 +33,14 @@ import {
 import type { ClassifierEvaluationCall } from './classifier-evaluation';
 import { takeStartingClassifierEvaluation } from './classifier-evaluation';
 import { registerMastraSpan, unregisterMastraSpan } from './span-registry';
-import type { MastraExportedSpan, MastraObservabilityExporter, MastraSpanType, MastraTracingEvent } from './types';
+import type {
+  MastraExportedSpan,
+  MastraExporterInitOptions,
+  MastraObservabilityExporter,
+  MastraSpanOutputProcessor,
+  MastraSpanType,
+  MastraTracingEvent,
+} from './types';
 
 export type MastraExporterOptions = GenAiOptions;
 
@@ -68,9 +75,15 @@ export class SentryMastraExporter implements MastraObservabilityExporter {
    */
   private readonly _skipped = new LRUMap<string, string>(MAX_TRACKED_MASTRA_SPANS);
   private readonly _options: MastraExporterOptions;
+  private _spanOutputProcessors: MastraSpanOutputProcessor[] = [];
 
   public constructor(options: MastraExporterOptions = {}) {
     this._options = options;
+  }
+
+  /** Called by Mastra with the config of the observability instance this exporter belongs to. */
+  public init(options: MastraExporterInitOptions): void {
+    this._spanOutputProcessors = options.config?.spanOutputProcessors ?? [];
   }
 
   /** Mastra's interface is async; the work is synchronous. */
@@ -154,7 +167,13 @@ export class SentryMastraExporter implements MastraObservabilityExporter {
     const evaluation = span.type === 'classifier_evaluation' ? takeStartingClassifierEvaluation() : undefined;
     if (evaluation) {
       const { recordInputs, recordOutputs } = resolveAIRecordingOptions(this._options);
-      Object.assign(evaluation, { span: sentrySpan, recordInputs, recordOutputs });
+      Object.assign(evaluation, {
+        span: sentrySpan,
+        mastraSpan: span,
+        spanOutputProcessors: this._spanOutputProcessors,
+        recordInputs,
+        recordOutputs,
+      });
     }
 
     this._trackSpan(span.id, { span: sentrySpan, spanType: span.type, usage: {}, evaluation });

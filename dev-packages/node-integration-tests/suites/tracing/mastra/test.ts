@@ -262,7 +262,7 @@ conditionalTest({ min: 22 })('Mastra integration', () => {
               expect(JSON.parse(evaluateSpan.attributes[GEN_AI_INPUT_MESSAGES].value)).toEqual([
                 {
                   type: 'evaluation',
-                  state: { message: 'I was charged twice.' },
+                  state: { message: 'I was charged twice.', apiKey: '[REDACTED]' },
                   questions: {
                     urgent: { type: 'boolean', instructions: 'Does this request need an immediate response?' },
                   },

@@ -40,7 +40,9 @@ async function run() {
   });
 
   await Sentry.startSpan({ op: 'function', name: 'mastra-test' }, async () => {
-    await mastra.getClassifier('classifier').evaluate({ state: { message: 'I was charged twice.' } });
+    await mastra
+      .getClassifier('classifier')
+      .evaluate({ state: { message: 'I was charged twice.', apiKey: 'sk-test-123' } });
   });
 
   await mastra.observability.shutdown();
