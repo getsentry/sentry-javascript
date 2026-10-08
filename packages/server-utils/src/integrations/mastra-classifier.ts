@@ -2,7 +2,7 @@ import { GEN_AI_INPUT_MESSAGES, GEN_AI_OUTPUT_MESSAGES } from '@sentry/conventio
 import { isObjectLike } from '@sentry/core';
 import type { ClassifierEvaluationCall } from '../ai/mastra/classifier-evaluation';
 import { processClassifierEvaluationData, setStartingClassifierEvaluation } from '../ai/mastra/classifier-evaluation';
-import { getEvaluationInputMessages, getEvaluationOutputMessages } from '../ai/typesafe';
+import { getEvaluationInputMessages, getEvaluationOutputMessages } from '../ai/core/utils';
 import { CHANNELS } from '../orchestrion/channels';
 import { safeChannelCallback } from '../tracing-channel';
 import * as diagnosticsChannel from '../utils/diagnosticsChannel';
