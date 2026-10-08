@@ -1,11 +1,10 @@
-import { MESSAGING_SYSTEM } from '@sentry/conventions/attributes';
+import { MESSAGING_SYSTEM, SENTRY_LINK_TYPE } from '@sentry/conventions/attributes';
 import { QUEUE, QUEUE_PROCESS, QUEUE_PUBLISH } from '@sentry/conventions/op';
 import type { SpanAttributes } from '@sentry/core';
 import {
   getCurrentScope,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  SEMANTIC_LINK_ATTRIBUTE_LINK_TYPE,
   startInactiveSpan,
   startNewTrace,
 } from '@sentry/core';
@@ -77,7 +76,7 @@ export class SentryBullMQTracer implements Tracer<SentryContext> {
       span.addLink({
         context: producerSpanCtx,
         attributes: {
-          [SEMANTIC_LINK_ATTRIBUTE_LINK_TYPE]: 'previous_trace',
+          [SENTRY_LINK_TYPE]: 'previous_trace',
         },
       });
     }
