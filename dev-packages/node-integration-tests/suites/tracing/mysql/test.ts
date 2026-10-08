@@ -168,7 +168,7 @@ describe('mysql auto instrumentation', () => {
       'scenario-streamError.mjs',
       'streamed query error',
       {
-        // The transaction itself succeeds (status `ok`); only the failing query's child span is errored.
+        // The segment span succeeds (status `ok`); only the failing query span is errored.
         spans: expect.arrayContaining([
           expect.objectContaining({
             name: 'SELECT does_not_exist',
