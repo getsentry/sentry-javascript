@@ -8,8 +8,8 @@ export type StreamingGuess = {
  * Heuristics:
  * - No body → not streaming
  * - Known streaming Content-Types → streaming (SSE, NDJSON, JSON streaming)
- * - text/plain, text/html or text/x-component without Content-Length → streaming (some AI APIs, streamed SSR and RSC)
- * - Otherwise → not streaming (conservative default)
+ * - text/plain or text/x-component without Content-Length → streaming (some AI APIs, streamed RSC)
+ * - Otherwise → not streaming (conservative default, including HTML/SSR)
  *
  * We avoid probing the stream to prevent blocking on transform streams (like injectTraceMetaTags)
  * or SSR streams that may not have data ready immediately.
@@ -27,14 +27,14 @@ export function classifyResponseStreaming(res: Response): StreamingGuess {
   // - application/x-ndjson, application/ndjson: Newline-delimited JSON
   // - application/stream+json: JSON streaming
   // - text/plain (without Content-Length): Some AI APIs use this for streaming text
-  // - text/html (without Content-Length): Streamed SSR, which renders the body after the handler returns
   // - text/x-component (without Content-Length): Streamed React Server Components payloads.
   //   Prerendered payloads are sent as one buffer with a Content-Length.
+  // HTML is left out: a buffered `new Response(html)` has no Content-Length header either.
   if (
     /^text\/event-stream\b/i.test(contentType) ||
     /^application\/(x-)?ndjson\b/i.test(contentType) ||
     /^application\/stream\+json\b/i.test(contentType) ||
-    (/^text\/(plain|html|x-component)\b/i.test(contentType) && !contentLength)
+    (/^text\/(plain|x-component)\b/i.test(contentType) && !contentLength)
   ) {
     return { isStreaming: true };
   }

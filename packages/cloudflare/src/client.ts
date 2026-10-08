@@ -469,17 +469,17 @@ interface BaseCloudflareOptions {
    * created while the body streams stay inside the request. It does this by passing the body through
    * a `TransformStream`. For `false`, the SDK ends the span when the handler returns and sends the
    * response unchanged. For `undefined`, the SDK decides: Server-Sent Events, NDJSON and
-   * `application/stream+json` responses, and `text/plain`, `text/html` and `text/x-component`
-   * responses without a `Content-Length` header count as streamed.
+   * `application/stream+json` responses, and `text/plain` and `text/x-component` responses without a
+   * `Content-Length` header count as streamed. HTML does not, so return `true` for pages that are
+   * rendered with streamed SSR.
    *
    * @example
    * ```ts
    * export default Sentry.withSentry(
    *   env => ({
    *     dsn: env.SENTRY_DSN,
-   *     // React Router single fetch streams deferred data as `text/x-script`.
    *     isStreamingResponse: response =>
-   *       response.headers.get('content-type')?.startsWith('text/x-script') ? true : undefined,
+   *       response.headers.get('content-type')?.startsWith('text/html') ? true : undefined,
    *   }),
    *   handler,
    * );

@@ -6,7 +6,7 @@ interface Env {
 
 export default {
   async fetch(request, env, ctx) {
-    const contentType = new URL(request.url).searchParams.get('content-type') ?? 'text/html';
+    const contentType = new URL(request.url).searchParams.get('content-type') ?? 'text/x-component';
 
     return wrapRequestHandler(
       {

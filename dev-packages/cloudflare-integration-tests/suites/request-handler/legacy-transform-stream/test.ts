@@ -2,7 +2,7 @@ import { expect, it } from 'vitest';
 import { createRunner } from '../../../runner';
 import { getSpanOp, getSpansFromEnvelope } from '../../../spanUtils';
 
-it.for(['text/html;charset=utf-8', 'text/event-stream'])(
+it.for(['text/x-component;charset=utf-8', 'text/event-stream'])(
   'sends the http.server span of a streamed %s response when TransformStream ignores the transformer',
   async (contentType, { signal }) => {
     const runner = createRunner(__dirname)
