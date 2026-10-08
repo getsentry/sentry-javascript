@@ -55,7 +55,7 @@ Uses **Git Flow** (see `docs/gitflow.md`).
 1. `yarn format`
 2. `yarn build:dev`
 3. `yarn lint`
-4. `yarn test`
+4. Run tests for the affected files or integration suites. For broader changes, run the affected packages' tests. Run repository-wide `yarn test` only when cross-package impact requires it.
 5. NEVER push on `develop`
 
 ## Pull Requests
