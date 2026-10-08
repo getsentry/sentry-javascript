@@ -102,7 +102,13 @@ export { handleCallbackErrors } from './utils/handleCallbackErrors';
 export { safeCallback } from './utils/safeCallback';
 export { parameterize, fmt } from './utils/parameterize';
 export type { HandleTunnelRequestOptions } from './utils/tunnel';
-export { handleTunnelRequest } from './utils/tunnel';
+export {
+  getTunnelPath,
+  handleTunnelRequest,
+  handleTunnelRequestIfMatched,
+  isTunnelRequest,
+  resolveServerTunnelOption,
+} from './utils/tunnel';
 export { addAutoIpAddressToSession } from './utils/ipAddress';
 export {
   convertSpanLinksForEnvelope,
@@ -415,7 +421,7 @@ export type {
   HttpHeadersCollection,
   ResolvedDataCollection,
 } from './types/datacollection';
-export type { ClientOptions, CoreOptions as Options } from './types/options';
+export type { ClientOptions, CoreOptions as Options, TunnelOptions } from './types/options';
 export type { Package } from './types/package';
 export type { PolymorphicEvent, PolymorphicRequest } from './types/polymorphics';
 export type {
