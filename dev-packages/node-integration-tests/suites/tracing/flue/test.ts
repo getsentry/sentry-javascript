@@ -14,8 +14,8 @@ import {
   GEN_AI_USAGE_OUTPUT_TOKENS,
   GEN_AI_USAGE_TOTAL_TOKENS,
 } from '@sentry/conventions/attributes';
-import { afterAll, expect } from 'vitest';
-import { conditionalTest } from '../../../utils';
+import { afterAll, describe, expect } from 'vitest';
+import { supports } from '../../../utils';
 import { cleanupChildProcesses, createEsmAndCjsTests } from '../../../utils/runner';
 
 // `@flue/runtime` declares `engines.node >= 22.19`, so it can't live in the package's root
@@ -29,7 +29,7 @@ const FLUE_DEPENDENCIES = {
   },
 };
 
-conditionalTest({ min: 22 })('Flue integration', () => {
+describe.runIf(supports({ min: 22 }))('Flue integration', () => {
   afterAll(() => {
     cleanupChildProcesses();
   });

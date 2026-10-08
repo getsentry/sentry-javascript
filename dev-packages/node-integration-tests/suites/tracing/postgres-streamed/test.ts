@@ -1,7 +1,7 @@
 import type { SerializedStreamedSpanContainer } from '@sentry/core';
 import { SENTRY_TRACE_LIFECYCLE, SENTRY_OP } from '@sentry/conventions/attributes';
 import { afterAll, describe, expect } from 'vitest';
-import { conditionalTest, EXPECTED_SDK_NAME } from '../../../utils';
+import { EXPECTED_SDK_NAME, supports } from '../../../utils';
 import { cleanupChildProcesses, createEsmAndCjsTests, describeWithDockerCompose } from '../../../utils/runner';
 
 // Query-span origin depends on which instrumentation is active. Blocks driving the SDK's default
@@ -228,7 +228,7 @@ describeWithDockerCompose('postgres auto instrumentation (streamed)', { workingD
 
   // Deno: with a module load hook installed, Deno compiles a native addon (`libpq`) as JavaScript.
   // Bun: the `libpq` addon needs the Node symbol `node::EmitAsyncInit`, which Bun does not provide.
-  conditionalTest({ max: 25, skipRuntimes: ['bun', 'deno'] })('pg-native', () => {
+  describe.runIf(supports({ max: 25, runtimes: ['node'] }))('pg-native', () => {
     createEsmAndCjsTests(
       __dirname,
       'scenario-native.mjs',

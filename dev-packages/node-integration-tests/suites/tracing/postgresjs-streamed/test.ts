@@ -1,6 +1,6 @@
 import type { SerializedStreamedSpanContainer } from '@sentry/core';
 import { afterAll, describe, expect } from 'vitest';
-import { RUNTIME } from '../../../utils';
+import { supports } from '../../../utils';
 import { cleanupChildProcesses, createEsmAndCjsTests, describeWithDockerCompose } from '../../../utils/runner';
 
 // On Bun, `postgres` resolves to its ESM build through the `bun` export condition, so
@@ -173,7 +173,7 @@ describeWithDockerCompose('postgresjs auto instrumentation (streamed)', { workin
     };
 
     createEsmAndCjsTests(__dirname, 'scenario.mjs', 'instrument.mjs', (createTestRunner, test, mode) => {
-      test.skipIf(RUNTIME === 'bun' && mode === 'cjs')(
+      test.runIf(mode === 'esm' || supports({ runtimes: ['node', 'deno'] }))(
         'should auto-instrument `postgres` package',
         { timeout: 90_000 },
         async () => {
@@ -237,7 +237,7 @@ describeWithDockerCompose('postgresjs auto instrumentation (streamed)', { workin
       'scenario-requestHook.mjs',
       'instrument-requestHook.mjs',
       (createTestRunner, test, mode) => {
-        test.skipIf(RUNTIME === 'bun' && mode === 'cjs')(
+        test.runIf(mode === 'esm' || supports({ runtimes: ['node', 'deno'] }))(
           'should call requestHook when provided',
           { timeout: 90_000 },
           async () => {
@@ -275,7 +275,7 @@ describeWithDockerCompose('postgresjs auto instrumentation (streamed)', { workin
     };
 
     createEsmAndCjsTests(__dirname, 'scenario-url.mjs', 'instrument.mjs', (createTestRunner, test, mode) => {
-      test.skipIf(RUNTIME === 'bun' && mode === 'cjs')(
+      test.runIf(mode === 'esm' || supports({ runtimes: ['node', 'deno'] }))(
         'should instrument postgres package with URL initialization',
         { timeout: 90_000 },
         async () => {
@@ -313,7 +313,7 @@ describeWithDockerCompose('postgresjs auto instrumentation (streamed)', { workin
     };
 
     createEsmAndCjsTests(__dirname, 'scenario-unsafe.mjs', 'instrument.mjs', (createTestRunner, test, mode) => {
-      test.skipIf(RUNTIME === 'bun' && mode === 'cjs')(
+      test.runIf(mode === 'esm' || supports({ runtimes: ['node', 'deno'] }))(
         'should instrument sql.unsafe() queries',
         { timeout: 90_000 },
         async () => {

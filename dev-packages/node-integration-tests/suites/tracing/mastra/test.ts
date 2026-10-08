@@ -21,8 +21,8 @@ import {
   URL_FULL,
 } from '@sentry/conventions/attributes';
 import { GEN_AI_CHAT, GEN_AI_EVALUATE, GEN_AI_EXECUTE_TOOL, GEN_AI_INVOKE_AGENT } from '@sentry/conventions/op';
-import { afterAll, expect } from 'vitest';
-import { conditionalTest } from '../../../utils';
+import { afterAll, describe, expect } from 'vitest';
+import { supports } from '../../../utils';
 import { cleanupChildProcesses, createEsmAndCjsTests } from '../../../utils/runner';
 
 // `@mastra/core` declares `engines.node >= 22.13`, so it can't live in the package's root
@@ -52,7 +52,7 @@ const MASTRA_CLASSIFIER_DEPENDENCIES = {
   },
 };
 
-conditionalTest({ min: 22 })('Mastra integration', () => {
+describe.runIf(supports({ min: 22 }))('Mastra integration', () => {
   afterAll(() => {
     cleanupChildProcesses();
   });
