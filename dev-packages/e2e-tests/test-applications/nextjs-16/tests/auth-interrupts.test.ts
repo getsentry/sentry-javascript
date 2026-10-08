@@ -1,5 +1,6 @@
 import { expect, test } from '@playwright/test';
 import { collectStreamedSpansUntilSegment, waitForError, waitForStreamedSpan } from '@sentry-internal/test-utils';
+import { isVinext } from './isVinext';
 
 const cases = [
   { kind: 'forbidden', label: 'Forbidden', status: 403, statusMessage: 'permission_denied' },
@@ -35,7 +36,8 @@ for (const { kind, label, status, statusMessage } of cases) {
     expect(segmentSpan.attributes['http.response.status_code']?.value).toBe(status);
 
     // Server components are only wrapped by our webpack loader, so only webpack builds set a status on the render span.
-    if (!segmentSpan.attributes['turbopack']) {
+    // vinext builds with neither webpack nor Turbopack.
+    if (!segmentSpan.attributes['turbopack'] && !isVinext) {
       expect(spans).toContainEqual(
         expect.objectContaining({
           name: `render route (app) /auth-interrupts/${kind}`,
@@ -51,6 +53,8 @@ for (const { kind, label, status, statusMessage } of cases) {
   });
 
   test(`Does not capture ${kind}() in a server action and marks the action span`, async ({ page }) => {
+    test.skip(isVinext, `vinext rethrows ${kind}() of a server action in the browser, where it is an uncaught error`);
+
     const errorPromise = waitForAuthInterruptError(status);
     const spanPromise = waitForStreamedSpan('nextjs-16', span => {
       return span.name === `${kind}ServerAction` && span.is_segment;
