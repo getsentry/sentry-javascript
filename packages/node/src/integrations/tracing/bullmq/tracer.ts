@@ -1,13 +1,7 @@
-import { MESSAGING_SYSTEM, SENTRY_LINK_TYPE } from '@sentry/conventions/attributes';
+import { MESSAGING_SYSTEM, SENTRY_LINK_TYPE, SENTRY_OP, SENTRY_ORIGIN } from '@sentry/conventions/attributes';
 import { QUEUE, QUEUE_PROCESS, QUEUE_PUBLISH } from '@sentry/conventions/op';
 import type { SpanAttributes } from '@sentry/core';
-import {
-  getCurrentScope,
-  SEMANTIC_ATTRIBUTE_SENTRY_OP,
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  startInactiveSpan,
-  startNewTrace,
-} from '@sentry/core';
+import { getCurrentScope, startInactiveSpan, startNewTrace } from '@sentry/core';
 import { SentryBullMQSpan, toSentryAttributes } from './span';
 import type { SpanOptions, TelemetrySpan, Tracer, SentryContext } from './types';
 
@@ -54,8 +48,8 @@ export class SentryBullMQTracer implements Tracer<SentryContext> {
     const origin = getOriginFromSpanName(name);
 
     const attributes: SpanAttributes = {
-      [SEMANTIC_ATTRIBUTE_SENTRY_OP]: op,
-      [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: origin,
+      [SENTRY_OP]: op,
+      [SENTRY_ORIGIN]: origin,
       [MESSAGING_SYSTEM]: 'bullmq',
       ...(options?.attributes && toSentryAttributes(options.attributes)),
     };

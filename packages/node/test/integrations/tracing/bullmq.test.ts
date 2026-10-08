@@ -74,8 +74,8 @@ describe('SentryBullMQTracer', () => {
       expect(SentryCore.startInactiveSpan).toHaveBeenCalledWith({
         name,
         attributes: {
-          [SentryCore.SEMANTIC_ATTRIBUTE_SENTRY_OP]: expectedOp,
-          [SentryCore.SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: expectedOrigin,
+          'sentry.op': expectedOp,
+          'sentry.origin': expectedOrigin,
           'messaging.system': 'bullmq',
         },
         onlyIfParent: expectedOp === 'queue',
@@ -90,8 +90,8 @@ describe('SentryBullMQTracer', () => {
       expect(SentryCore.startInactiveSpan).toHaveBeenCalledWith({
         name: 'process myQueue',
         attributes: {
-          [SentryCore.SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'queue.process',
-          [SentryCore.SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.queue.bullmq.consumer',
+          'sentry.op': 'queue.process',
+          'sentry.origin': 'auto.queue.bullmq.consumer',
           'messaging.system': 'bullmq',
         },
       });
