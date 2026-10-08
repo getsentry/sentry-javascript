@@ -1,5 +1,11 @@
 import type { Integration } from '@sentry/core';
-import { _INTERNAL_isClientClosed, debug, getCurrentScope, setCurrentClient } from '@sentry/core';
+import {
+  _INTERNAL_isClientClosed,
+  debug,
+  getCurrentScope,
+  resolveServerTunnelOption,
+  setCurrentClient,
+} from '@sentry/core';
 import {
   consoleIntegration,
   conversationIdIntegration,
@@ -120,6 +126,7 @@ export function initWithDefaultIntegrations(
 
   const clientOptions: CloudflareClientOptions = {
     ...options,
+    ...resolveServerTunnelOption(options.tunnel),
     cacheClient: cacheEnabled,
     stackParser: stackParserFromStackParserOptions(options.stackParser || defaultStackParser),
     integrations: getIntegrationsToSetup(options),

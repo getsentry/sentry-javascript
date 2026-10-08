@@ -12,6 +12,7 @@ import {
   initAndBind,
   linkedErrorsIntegration,
   requestDataIntegration,
+  resolveServerTunnelOption,
   stackParserFromStackParserOptions,
 } from '@sentry/core';
 import { getTracingIntegrations, getErrorIntegrations } from '@sentry/server-utils';
@@ -110,6 +111,7 @@ export function init(options: DenoOptions = {}): Client {
 
   const clientOptions: ServerRuntimeClientOptions = {
     ...options,
+    ...resolveServerTunnelOption(options.tunnel),
     stackParser: stackParserFromStackParserOptions(options.stackParser || defaultStackParser),
     integrations: getIntegrationsToSetup({ integrations: options.integrations, defaultIntegrations }),
     transport: options.transport || makeFetchTransport,
