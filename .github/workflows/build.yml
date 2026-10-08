@@ -1078,6 +1078,15 @@ jobs:
         with:
           dependency_cache_key: ${{ needs.job_build.outputs.dependency_cache_key }}
 
+      # Installs the root workspace's Playwright version while the app builds. Most apps use the same version.
+      # The app's own version is only known after its build, so it gets installed then if it differs.
+      - name: Install Playwright
+        id: install-playwright
+        background: true
+        uses: ./.github/actions/install-playwright
+        with:
+          browsers: chromium
+
       - name: Restore tarball artifacts
         uses: actions/download-artifact@v8
         with:
@@ -1116,11 +1125,14 @@ jobs:
         env:
           SENTRY_E2E_WORKSPACE_ROOT: ${{ github.workspace }}
 
-      - name: Install Playwright
+      - wait: [install-playwright]
+
+      - name: Install Playwright for the app's version
         uses: ./.github/actions/install-playwright
         with:
           browsers: chromium
           cwd: ${{ runner.temp }}/test-application
+          installed-version: ${{ steps.install-playwright.outputs.version }}
 
       - name: Run E2E test
         working-directory: ${{ runner.temp }}/test-application
@@ -1214,6 +1226,15 @@ jobs:
         with:
           dependency_cache_key: ${{ needs.job_build.outputs.dependency_cache_key }}
 
+      # Installs the root workspace's Playwright version while the app builds. Most apps use the same version.
+      # The app's own version is only known after its build, so it gets installed then if it differs.
+      - name: Install Playwright
+        id: install-playwright
+        background: true
+        uses: ./.github/actions/install-playwright
+        with:
+          browsers: chromium
+
       - name: Restore tarball artifacts
         uses: actions/download-artifact@v8
         with:
@@ -1243,11 +1264,14 @@ jobs:
         timeout-minutes: 7
         run: ${{ matrix.build-command || 'pnpm test:build' }}
 
-      - name: Install Playwright
+      - wait: [install-playwright]
+
+      - name: Install Playwright for the app's version
         uses: ./.github/actions/install-playwright
         with:
           browsers: chromium
           cwd: ${{ runner.temp }}/test-application
+          installed-version: ${{ steps.install-playwright.outputs.version }}
 
       - name: Run E2E test
         working-directory: ${{ runner.temp }}/test-application
