@@ -55,6 +55,40 @@ describe('sentryRemixMiddleware', () => {
     expect(response.headers.get('server-timing')).toBe('sentry-trace;desc="abc-def-1"');
   });
 
+  it.each([
+    ['public', 'public, max-age=60'],
+    ['s-maxage', 's-maxage=300'],
+    ['max-age', 'max-age=60'],
+  ])('leaves the trace off a response a shared cache may store (%s), keeping the route', async (_why, cacheControl) => {
+    traceData = { 'sentry-trace': 'abc-def-1', baggage: 'sentry-trace_id=abc' };
+    const middleware = sentryRemixMiddleware(matcherFor('/'));
+
+    const response = await middleware(
+      contextFor('http://x/', { accept: 'text/html' }),
+      async () => new Response('', { headers: { 'cache-control': cacheControl } }),
+    );
+
+    expect(response.headers.get('server-timing')).toBe('sentry-route;desc="/"');
+  });
+
+  it.each([
+    ['private', 'private, max-age=60'],
+    ['no-store', 'no-store'],
+    ['max-age=0', 'max-age=0, must-revalidate'],
+    ['s-maxage=0', 'max-age=3600, s-maxage=0'],
+    ['no cache header', undefined],
+  ])('propagates the trace on a response only this user can get back (%s)', async (_why, cacheControl) => {
+    traceData = { 'sentry-trace': 'abc-def-1' };
+    const middleware = sentryRemixMiddleware(matcherFor('/'));
+
+    const response = await middleware(
+      contextFor('http://x/', { accept: 'text/html' }),
+      async () => new Response('', { headers: cacheControl ? { 'cache-control': cacheControl } : {} }),
+    );
+
+    expect(response.headers.get('server-timing')).toContain('sentry-trace;desc="abc-def-1"');
+  });
+
   it('reports the route on HTML responses through Server-Timing', async () => {
     const middleware = sentryRemixMiddleware(matcherFor('/users/:id'));
 

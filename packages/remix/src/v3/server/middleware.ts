@@ -80,12 +80,16 @@ function addServerTimingHeaders(response: Response, request: Request, route: str
   }
 
   const entries: string[] = [];
-  const traceData = getTraceData();
-  if (traceData['sentry-trace']) {
-    entries.push(`sentry-trace;desc="${traceData['sentry-trace']}"`);
-  }
-  if (traceData.baggage) {
-    entries.push(`baggage;desc="${traceData.baggage}"`);
+  // A shared cache would hand this request's trace to every later page load, so a cacheable response
+  // carries the route only. The route is the same for every request to it.
+  if (!isSharedCacheable(response)) {
+    const traceData = getTraceData();
+    if (traceData['sentry-trace']) {
+      entries.push(`sentry-trace;desc="${traceData['sentry-trace']}"`);
+    }
+    if (traceData.baggage) {
+      entries.push(`baggage;desc="${traceData.baggage}"`);
+    }
   }
   if (route) {
     entries.push(formatRouteTiming(route));
@@ -99,6 +103,21 @@ function addServerTimingHeaders(response: Response, request: Request, route: str
       return;
     }
   }
+}
+
+/** Whether a cache in front of the app may store this response and serve it to other users. */
+function isSharedCacheable(response: Response): boolean {
+  const cacheControl = response.headers.get('cache-control')?.toLowerCase() ?? '';
+  if (/\b(?:no-store|private)\b/.test(cacheControl)) {
+    return false;
+  }
+  // `s-maxage` overrides `max-age` for shared caches. A zero lifetime means the cache revalidates
+  // every time, so it never serves this response to anyone else.
+  const sharedMaxAge = cacheControl.match(/\bs-maxage\s*=\s*(\d+)/)?.[1];
+  if (sharedMaxAge !== undefined) {
+    return Number(sharedMaxAge) > 0;
+  }
+  return /\b(?:public|max-age\s*=\s*[1-9])/.test(cacheControl);
 }
 
 function setResponseStatus(response: Response): void {
