@@ -1,4 +1,11 @@
-import type { TransactionEvent } from '@sentry/core';
+import {
+  ERROR_TYPE,
+  MESSAGING_DESTINATION_NAME,
+  MESSAGING_SYSTEM,
+  SENTRY_KIND,
+  SENTRY_OP,
+  SENTRY_ORIGIN,
+} from '@sentry/conventions/attributes';
 import { afterAll, expect } from 'vitest';
 import { cleanupChildProcesses, createEsmAndCjsTests, describeWithDockerCompose } from '../../../utils/runner';
 
@@ -12,26 +19,11 @@ describeWithDockerCompose('kafkajs', { workingDirectory: [__dirname] }, () => {
 
   createEsmAndCjsTests(__dirname, 'scenario.mjs', 'instrument.mjs', (createRunner, test) => {
     test('traces producers and consumers', { timeout: 90_000 }, async () => {
-      // The producer and consumer transactions can arrive in any order,
-      // so we collect them and assert after both have been received.
-      const receivedTransactions: TransactionEvent[] = [];
-
       await createRunner()
         .expect({
-          transaction: (transaction: TransactionEvent) => {
-            receivedTransactions.push(transaction);
-          },
-        })
-        .expect({
-          transaction: (transaction: TransactionEvent) => {
-            receivedTransactions.push(transaction);
-
-            const producer = receivedTransactions.find(
-              t => t.contexts?.trace?.data?.['sentry.origin'] === producerOrigin,
-            );
-            const consumer = receivedTransactions.find(
-              t => t.contexts?.trace?.data?.['sentry.origin'] === consumerOrigin,
-            );
+          span: container => {
+            const producer = container.items.find(t => t.attributes[SENTRY_ORIGIN]?.value === producerOrigin);
+            const consumer = container.items.find(t => t.attributes[SENTRY_ORIGIN]?.value === consumerOrigin);
 
             expect(producer).toBeDefined();
             expect(consumer).toBeDefined();
@@ -39,41 +31,38 @@ describeWithDockerCompose('kafkajs', { workingDirectory: [__dirname] }, () => {
             for (const t of [producer, consumer]) {
               // just to assert on the basic shape (for more straight-forward tests, this is usually done by the runner)
               expect(t).toMatchObject({
-                event_id: expect.any(String),
-                timestamp: expect.anything(),
+                span_id: expect.any(String),
+                end_timestamp: expect.anything(),
                 start_timestamp: expect.anything(),
-                spans: expect.any(Array),
-                type: 'transaction',
+                is_segment: true,
               });
             }
 
-            expect(producer!.transaction).toBe('send test-topic');
-            expect(consumer!.transaction).toBe('process test-topic');
+            expect(producer!.name).toBe('send test-topic');
+            expect(consumer!.name).toBe('process test-topic');
 
-            expect(producer!.contexts?.trace).toMatchObject(
+            expect(producer!).toMatchObject(
               expect.objectContaining({
-                op: 'queue.publish',
                 status: 'ok',
-                data: expect.objectContaining({
-                  'messaging.system': 'kafka',
-                  'messaging.destination.name': 'test-topic',
-                  'sentry.kind': 'producer',
-                  'sentry.op': 'queue.publish',
-                  'sentry.origin': producerOrigin,
+                attributes: expect.objectContaining({
+                  [MESSAGING_SYSTEM]: { type: 'string', value: 'kafka' },
+                  [MESSAGING_DESTINATION_NAME]: { type: 'string', value: 'test-topic' },
+                  [SENTRY_KIND]: { type: 'string', value: 'producer' },
+                  [SENTRY_OP]: { type: 'string', value: 'queue.publish' },
+                  [SENTRY_ORIGIN]: { type: 'string', value: producerOrigin },
                 }),
               }),
             );
 
-            expect(consumer!.contexts?.trace).toMatchObject(
+            expect(consumer!).toMatchObject(
               expect.objectContaining({
-                op: 'queue.process',
                 status: 'ok',
-                data: expect.objectContaining({
-                  'messaging.system': 'kafka',
-                  'messaging.destination.name': 'test-topic',
-                  'sentry.kind': 'consumer',
-                  'sentry.op': 'queue.process',
-                  'sentry.origin': consumerOrigin,
+                attributes: expect.objectContaining({
+                  [MESSAGING_SYSTEM]: { type: 'string', value: 'kafka' },
+                  [MESSAGING_DESTINATION_NAME]: { type: 'string', value: 'test-topic' },
+                  [SENTRY_KIND]: { type: 'string', value: 'consumer' },
+                  [SENTRY_OP]: { type: 'string', value: 'queue.process' },
+                  [SENTRY_ORIGIN]: { type: 'string', value: consumerOrigin },
                 }),
               }),
             );
@@ -88,19 +77,19 @@ describeWithDockerCompose('kafkajs', { workingDirectory: [__dirname] }, () => {
     test('marks the producer span as errored when a send fails', { timeout: 90_000 }, async () => {
       await createRunner()
         .expect({
-          transaction: (transaction: TransactionEvent) => {
-            expect(transaction.transaction).toBe('send invalid topic name');
-            expect(transaction.contexts?.trace).toMatchObject(
+          span: container => {
+            const segment = container.items.find(span => span.is_segment);
+            expect(segment?.name).toBe('send invalid topic name');
+            expect(segment).toMatchObject(
               expect.objectContaining({
-                op: 'queue.publish',
-                status: 'internal_error',
-                data: expect.objectContaining({
-                  'messaging.system': 'kafka',
-                  'messaging.destination.name': 'invalid topic name',
-                  'sentry.kind': 'producer',
-                  'sentry.op': 'queue.publish',
-                  'sentry.origin': producerOrigin,
-                  'error.type': 'KafkaJSNonRetriableError',
+                status: 'error',
+                attributes: expect.objectContaining({
+                  [MESSAGING_SYSTEM]: { type: 'string', value: 'kafka' },
+                  [MESSAGING_DESTINATION_NAME]: { type: 'string', value: 'invalid topic name' },
+                  [SENTRY_KIND]: { type: 'string', value: 'producer' },
+                  [SENTRY_OP]: { type: 'string', value: 'queue.publish' },
+                  [SENTRY_ORIGIN]: { type: 'string', value: producerOrigin },
+                  [ERROR_TYPE]: { type: 'string', value: 'KafkaJSNonRetriableError' },
                 }),
               }),
             );

@@ -97,6 +97,7 @@ export const NO_AUTO_INSTRUMENTATION = [
   'suites/tracing/hapi/test.ts',
   'suites/tracing/ioredis-dc/test.ts',
   'suites/tracing/kafkajs/test.ts',
+  'suites/tracing/kafkajs-static/test.ts',
   'suites/tracing/knex/**',
   'suites/tracing/koa/test.ts',
   'suites/tracing/langchain/**',
