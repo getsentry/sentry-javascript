@@ -374,6 +374,14 @@ export interface ClientOptions<TO extends BaseTransportOptions = BaseTransportOp
   tunnel?: string;
 
   /**
+   * Set by server SDKs when the managed tunnel is enabled. Server request handlers check it to decide whether to
+   * serve the managed tunnel.
+   *
+   * @internal This option is not part of the public API and is subject to change at any time.
+   */
+  _managedTunnel?: TunnelOptions;
+
+  /**
    * Controls what data the SDK collects and sends to Sentry.
    * All fields are optional — omitted fields use the documented defaults.
    *
@@ -644,6 +652,21 @@ export type BeforeSendStreamedSpanCallback = (span: StreamedSpanJSON) => Streame
  * @see {@link SpanJSON} for the static span format used with `traceLifecycle: 'static'`
  */
 export type BeforeSendStaticSpanCallback = (span: SpanJSON) => SpanJSON;
+
+/** Options for the managed tunnel, see `tunnel`. */
+export interface TunnelOptions {
+  /**
+   * Server only. DSNs whose envelopes the tunnel forwards. Defaults to the server's own DSN, so list the browser DSN
+   * here when the browser uses a different one.
+   */
+  allowedDsns?: string[];
+
+  /** Path prefix the app is served under, e.g. `/docs`. Set the same value in the browser and the server `init`. */
+  basePath?: string;
+
+  /** Browser only. Append a trailing slash to the tunnel path, for servers that redirect paths without one. */
+  trailingSlash?: boolean;
+}
 
 /** Base configuration options for every SDK. */
 export interface CoreOptions<TO extends BaseTransportOptions = BaseTransportOptions> extends Omit<
