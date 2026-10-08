@@ -13,6 +13,7 @@ import {
   SERVER_PORT,
   URL_FULL,
 } from '@sentry/conventions/attributes';
+import { QUEUE_PROCESS, QUEUE_PUBLISH } from '@sentry/conventions/op';
 import { afterAll, describe, expect } from 'vitest';
 import { cleanupChildProcesses, createEsmAndCjsTests, describeWithDockerCompose } from '../../../utils/runner';
 
@@ -34,7 +35,7 @@ const expectedProducerSpan = (routingKey: string) =>
       [SERVER_PORT]: { type: 'integer', value: 5672 },
       [URL_FULL]: { type: 'string', value: 'amqp://sentry:***@localhost:5672/' },
       [SENTRY_KIND]: { type: 'string', value: 'producer' },
-      [SENTRY_OP]: { type: 'string', value: 'queue.publish' },
+      [SENTRY_OP]: { type: 'string', value: QUEUE_PUBLISH },
       [SENTRY_ORIGIN]: { type: 'string', value: 'auto.amqplib.publisher' },
     }),
     status: 'ok',
@@ -49,7 +50,7 @@ const EXPECTED_MESSAGE_SPAN_CONSUMER = expect.objectContaining({
     [MESSAGING_OPERATION_NAME]: { type: 'string', value: 'process' },
     [MESSAGING_OPERATION_TYPE]: { type: 'string', value: 'process' },
     [SENTRY_KIND]: { type: 'string', value: 'consumer' },
-    [SENTRY_OP]: { type: 'string', value: 'queue.process' },
+    [SENTRY_OP]: { type: 'string', value: QUEUE_PROCESS },
     [SENTRY_ORIGIN]: { type: 'string', value: 'auto.amqplib.consumer' },
   }),
   status: 'ok',
@@ -122,7 +123,7 @@ describeWithDockerCompose('amqplib auto-instrumentation', { workingDirectory: [_
                     attributes: expect.objectContaining({
                       [MESSAGING_SYSTEM]: { type: 'string', value: 'rabbitmq' },
                       [SENTRY_KIND]: { type: 'string', value: 'consumer' },
-                      [SENTRY_OP]: { type: 'string', value: 'queue.process' },
+                      [SENTRY_OP]: { type: 'string', value: QUEUE_PROCESS },
                       [SENTRY_ORIGIN]: { type: 'string', value: 'auto.amqplib.consumer' },
                     }),
                   }),
