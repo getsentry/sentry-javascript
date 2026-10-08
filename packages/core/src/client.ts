@@ -593,8 +593,11 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
 
     let env = createEventEnvelope(event, this._dsn, this._options._metadata, this._options.tunnel);
 
-    for (const attachment of hint.attachments || []) {
-      env = addItemToEnvelope(env, createAttachmentEnvelopeItem(attachment));
+    const isInternalException = (hint.data as { __sentry__: boolean })?.__sentry__ === true;
+    if (!isInternalException) {
+      for (const attachment of hint.attachments || []) {
+        env = addItemToEnvelope(env, createAttachmentEnvelopeItem(attachment));
+      }
     }
 
     if (genAiSpanItem) {
