@@ -19,6 +19,7 @@ import {
   SERVER_ADDRESS,
   SERVER_PORT,
 } from '@sentry/conventions/attributes';
+import { DB } from '@sentry/conventions/op';
 import { afterAll, describe, expect } from 'vitest';
 import { conditionalTest, EXPECTED_SDK_NAME } from '../../../utils';
 import { cleanupChildProcesses, createEsmAndCjsTests, describeWithDockerCompose } from '../../../utils/runner';
@@ -33,7 +34,7 @@ const COMMON_DB_ATTRIBUTES = {
   [SERVER_PORT]: { type: 'integer', value: expect.any(Number) },
   [SENTRY_KIND]: { type: 'string', value: 'client' },
   [SENTRY_ENVIRONMENT]: { type: 'string', value: 'production' },
-  [SENTRY_OP]: { type: 'string', value: 'db' },
+  [SENTRY_OP]: { type: 'string', value: DB },
   [SENTRY_RELEASE]: { type: 'string', value: '1.0' },
   [SENTRY_SDK_NAME]: { type: 'string', value: EXPECTED_SDK_NAME },
   [SENTRY_SDK_VERSION]: { type: 'string', value: expect.any(String) },
@@ -71,7 +72,7 @@ describeWithDockerCompose('postgres auto instrumentation', { workingDirectory: [
             [DB_SYSTEM_NAME]: { type: 'string', value: 'postgresql' },
             [DB_NAMESPACE]: { type: 'string', value: 'tests' },
             [SENTRY_ORIGIN]: { type: 'string', value: 'manual' },
-            [SENTRY_OP]: { type: 'string', value: 'db' },
+            [SENTRY_OP]: { type: 'string', value: DB },
           },
           name: 'pg.connect',
           status: 'ok',
@@ -84,7 +85,7 @@ describeWithDockerCompose('postgres auto instrumentation', { workingDirectory: [
             [DB_NAMESPACE]: { type: 'string', value: 'tests' },
             [DB_QUERY_TEXT]: { type: 'string', value: 'INSERT INTO "User" ("email", "name") VALUES ($1, $2)' },
             [SENTRY_ORIGIN]: { type: 'string', value: QUERY_ORIGIN },
-            [SENTRY_OP]: { type: 'string', value: 'db' },
+            [SENTRY_OP]: { type: 'string', value: DB },
             [DB_QUERY_SUMMARY]: { type: 'string', value: 'INSERT "User"' },
           },
           name: 'INSERT "User"',
@@ -98,7 +99,7 @@ describeWithDockerCompose('postgres auto instrumentation', { workingDirectory: [
             [DB_NAMESPACE]: { type: 'string', value: 'tests' },
             [DB_QUERY_TEXT]: { type: 'string', value: 'SELECT * FROM "User"' },
             [SENTRY_ORIGIN]: { type: 'string', value: QUERY_ORIGIN },
-            [SENTRY_OP]: { type: 'string', value: 'db' },
+            [SENTRY_OP]: { type: 'string', value: DB },
             [DB_QUERY_SUMMARY]: { type: 'string', value: 'SELECT "User"' },
           },
           name: 'SELECT "User"',
@@ -111,7 +112,7 @@ describeWithDockerCompose('postgres auto instrumentation', { workingDirectory: [
             [DB_QUERY_TEXT]: { type: 'string', value: 'SELECT * FROM "User" WHERE "email" = $1' },
             'db.postgresql.plan': { type: 'string', value: 'select-user-by-email' },
             [SENTRY_ORIGIN]: { type: 'string', value: QUERY_ORIGIN },
-            [SENTRY_OP]: { type: 'string', value: 'db' },
+            [SENTRY_OP]: { type: 'string', value: DB },
             [DB_QUERY_SUMMARY]: { type: 'string', value: 'SELECT "User"' },
           }),
           name: 'SELECT "User"',
@@ -123,7 +124,7 @@ describeWithDockerCompose('postgres auto instrumentation', { workingDirectory: [
             [DB_NAMESPACE]: { type: 'string', value: 'tests' },
             [DB_QUERY_TEXT]: { type: 'string', value: 'SELECT * FROM "does_not_exist_table"' },
             [SENTRY_ORIGIN]: { type: 'string', value: QUERY_ORIGIN },
-            [SENTRY_OP]: { type: 'string', value: 'db' },
+            [SENTRY_OP]: { type: 'string', value: DB },
             [DB_QUERY_SUMMARY]: { type: 'string', value: 'SELECT "does_not_exist_table"' },
           }),
           name: 'SELECT "does_not_exist_table"',
@@ -166,7 +167,7 @@ describeWithDockerCompose('postgres auto instrumentation', { workingDirectory: [
           .expect({
             span: container => {
               expect(container).toMatchObject(EXPECTED_SPANS);
-              expect(container.items.filter(span => span.attributes[SENTRY_OP]?.value === 'db')).toHaveLength(7);
+              expect(container.items.filter(span => span.attributes[SENTRY_OP]?.value === DB)).toHaveLength(7);
             },
           })
           .start()
@@ -181,7 +182,7 @@ describeWithDockerCompose('postgres auto instrumentation', { workingDirectory: [
         await createTestRunner()
           .expect({
             span: container => {
-              expect(container.items.filter(span => span.attributes[SENTRY_OP]?.value === 'db')).toHaveLength(6);
+              expect(container.items.filter(span => span.attributes[SENTRY_OP]?.value === DB)).toHaveLength(6);
               const spanNames = container.items.map(span => span.name);
               expect(spanNames?.find(name => name?.includes('connect'))).toBeUndefined();
               expect(container).toMatchObject({
@@ -198,7 +199,7 @@ describeWithDockerCompose('postgres auto instrumentation', { workingDirectory: [
                         value: 'INSERT INTO "User" ("email", "name") VALUES ($1, $2)',
                       },
                       [SENTRY_ORIGIN]: { type: 'string', value: QUERY_ORIGIN },
-                      [SENTRY_OP]: { type: 'string', value: 'db' },
+                      [SENTRY_OP]: { type: 'string', value: DB },
                       [DB_QUERY_SUMMARY]: { type: 'string', value: 'INSERT "User"' },
                     },
                     name: 'INSERT "User"',
@@ -212,7 +213,7 @@ describeWithDockerCompose('postgres auto instrumentation', { workingDirectory: [
                       [DB_NAMESPACE]: { type: 'string', value: 'tests' },
                       [DB_QUERY_TEXT]: { type: 'string', value: 'SELECT * FROM "User"' },
                       [SENTRY_ORIGIN]: { type: 'string', value: QUERY_ORIGIN },
-                      [SENTRY_OP]: { type: 'string', value: 'db' },
+                      [SENTRY_OP]: { type: 'string', value: DB },
                       [DB_QUERY_SUMMARY]: { type: 'string', value: 'SELECT "User"' },
                     },
                     name: 'SELECT "User"',
@@ -267,7 +268,7 @@ describeWithDockerCompose('postgres auto instrumentation', { workingDirectory: [
             [DB_SYSTEM_NAME]: { type: 'string', value: 'postgresql' },
             [DB_NAMESPACE]: { type: 'string', value: 'tests' },
             [DB_CONNECTION_STRING]: { type: 'string', value: 'postgresql://localhost:5494/tests' },
-            [SENTRY_OP]: { type: 'string', value: 'db' },
+            [SENTRY_OP]: { type: 'string', value: DB },
             [SENTRY_ORIGIN]: { type: 'string', value: 'manual' },
           }),
           name: 'pg-pool.connect',
@@ -280,7 +281,7 @@ describeWithDockerCompose('postgres auto instrumentation', { workingDirectory: [
             [DB_NAMESPACE]: { type: 'string', value: 'tests' },
             [DB_QUERY_TEXT]: { type: 'string', value: 'SELECT ? AS foo' },
             [SENTRY_ORIGIN]: { type: 'string', value: QUERY_ORIGIN },
-            [SENTRY_OP]: { type: 'string', value: 'db' },
+            [SENTRY_OP]: { type: 'string', value: DB },
             [DB_QUERY_SUMMARY]: { type: 'string', value: 'SELECT' },
           }),
           name: 'SELECT',
@@ -308,7 +309,7 @@ describeWithDockerCompose('postgres auto instrumentation', { workingDirectory: [
           attributes: expect.objectContaining({
             [DB_SYSTEM_NAME]: { type: 'string', value: 'postgresql' },
             [DB_NAMESPACE]: { type: 'string', value: 'tests' },
-            [SENTRY_OP]: { type: 'string', value: 'db' },
+            [SENTRY_OP]: { type: 'string', value: DB },
             [SENTRY_ORIGIN]: { type: 'string', value: 'manual' },
           }),
           name: 'pg.connect',
@@ -339,7 +340,7 @@ describeWithDockerCompose('postgres auto instrumentation', { workingDirectory: [
             [DB_NAMESPACE]: { type: 'string', value: 'tests' },
             [DB_QUERY_TEXT]: { type: 'string', value: 'SELECT ? AS connect_then' },
             [SENTRY_ORIGIN]: { type: 'string', value: QUERY_ORIGIN },
-            [SENTRY_OP]: { type: 'string', value: 'db' },
+            [SENTRY_OP]: { type: 'string', value: DB },
             [DB_QUERY_SUMMARY]: { type: 'string', value: 'SELECT' },
           }),
           name: 'SELECT',
@@ -377,7 +378,7 @@ describeWithDockerCompose('postgres auto instrumentation', { workingDirectory: [
                       [DB_NAMESPACE]: { type: 'string', value: 'tests' },
                       [DB_QUERY_TEXT]: { type: 'string', value: 'SELECT ? AS parented' },
                       [SENTRY_ORIGIN]: { type: 'string', value: QUERY_ORIGIN },
-                      [SENTRY_OP]: { type: 'string', value: 'db' },
+                      [SENTRY_OP]: { type: 'string', value: DB },
                       [DB_QUERY_SUMMARY]: { type: 'string', value: 'SELECT' },
                     }),
                     name: 'SELECT',
@@ -406,7 +407,7 @@ describeWithDockerCompose('postgres auto instrumentation', { workingDirectory: [
             [DB_SYSTEM_NAME]: { type: 'string', value: 'postgresql' },
             [DB_NAMESPACE]: { type: 'string', value: 'tests' },
             [SENTRY_ORIGIN]: { type: 'string', value: 'manual' },
-            [SENTRY_OP]: { type: 'string', value: 'db' },
+            [SENTRY_OP]: { type: 'string', value: DB },
             [SERVER_ADDRESS]: { type: 'string', value: '127.0.0.1' },
             [DB_CONNECTION_STRING]: {
               type: 'string',
@@ -424,7 +425,7 @@ describeWithDockerCompose('postgres auto instrumentation', { workingDirectory: [
             [DB_NAMESPACE]: { type: 'string', value: 'tests' },
             [DB_QUERY_TEXT]: { type: 'string', value: 'INSERT INTO "NativeUser" ("email", "name") VALUES ($1, $2)' },
             [SENTRY_ORIGIN]: { type: 'string', value: QUERY_ORIGIN },
-            [SENTRY_OP]: { type: 'string', value: 'db' },
+            [SENTRY_OP]: { type: 'string', value: DB },
             [DB_QUERY_SUMMARY]: { type: 'string', value: 'INSERT "NativeUser"' },
             [SERVER_ADDRESS]: { type: 'string', value: '127.0.0.1' },
             [DB_CONNECTION_STRING]: {
@@ -443,7 +444,7 @@ describeWithDockerCompose('postgres auto instrumentation', { workingDirectory: [
             [DB_NAMESPACE]: { type: 'string', value: 'tests' },
             [DB_QUERY_TEXT]: { type: 'string', value: 'SELECT * FROM "NativeUser"' },
             [SENTRY_ORIGIN]: { type: 'string', value: QUERY_ORIGIN },
-            [SENTRY_OP]: { type: 'string', value: 'db' },
+            [SENTRY_OP]: { type: 'string', value: DB },
             [DB_QUERY_SUMMARY]: { type: 'string', value: 'SELECT "NativeUser"' },
             [SERVER_ADDRESS]: { type: 'string', value: '127.0.0.1' },
             [DB_CONNECTION_STRING]: {
@@ -503,7 +504,7 @@ describeWithDockerCompose('postgres auto instrumentation', { workingDirectory: [
             .expect({
               span: container => {
                 expect(container).toMatchObject(EXPECTED_SPANS);
-                expect(container.items.filter(span => span.attributes[SENTRY_OP]?.value === 'db')).toHaveLength(5);
+                expect(container.items.filter(span => span.attributes[SENTRY_OP]?.value === DB)).toHaveLength(5);
               },
             })
             .start()
@@ -530,7 +531,7 @@ describeWithDockerCompose('postgres auto instrumentation', { workingDirectory: [
               [DB_SYSTEM_NAME]: { type: 'string', value: 'postgresql' },
               [DB_NAMESPACE]: { type: 'string', value: 'tests' },
               [SENTRY_ORIGIN]: { type: 'string', value: 'manual' },
-              [SENTRY_OP]: { type: 'string', value: 'db' },
+              [SENTRY_OP]: { type: 'string', value: DB },
             }),
             name: 'pg.connect',
             status: 'ok',
@@ -541,7 +542,7 @@ describeWithDockerCompose('postgres auto instrumentation', { workingDirectory: [
               [DB_NAMESPACE]: { type: 'string', value: 'tests' },
               [DB_QUERY_TEXT]: { type: 'string', value: 'INSERT INTO "User" ("email", "name") VALUES ($1, $2)' },
               [SENTRY_ORIGIN]: { type: 'string', value: ORIGIN },
-              [SENTRY_OP]: { type: 'string', value: 'db' },
+              [SENTRY_OP]: { type: 'string', value: DB },
               [DB_QUERY_SUMMARY]: { type: 'string', value: 'INSERT "User"' },
             }),
             name: 'INSERT "User"',
@@ -554,7 +555,7 @@ describeWithDockerCompose('postgres auto instrumentation', { workingDirectory: [
               [DB_QUERY_TEXT]: { type: 'string', value: 'SELECT * FROM "User" WHERE "email" = $1' },
               'db.postgresql.plan': { type: 'string', value: 'select-user-by-email' },
               [SENTRY_ORIGIN]: { type: 'string', value: ORIGIN },
-              [SENTRY_OP]: { type: 'string', value: 'db' },
+              [SENTRY_OP]: { type: 'string', value: DB },
               [DB_QUERY_SUMMARY]: { type: 'string', value: 'SELECT "User"' },
             }),
             name: 'SELECT "User"',
@@ -565,7 +566,7 @@ describeWithDockerCompose('postgres auto instrumentation', { workingDirectory: [
               [DB_SYSTEM_NAME]: { type: 'string', value: 'postgresql' },
               [DB_QUERY_TEXT]: { type: 'string', value: 'SELECT * FROM "does_not_exist_table"' },
               [SENTRY_ORIGIN]: { type: 'string', value: ORIGIN },
-              [SENTRY_OP]: { type: 'string', value: 'db' },
+              [SENTRY_OP]: { type: 'string', value: DB },
               [DB_QUERY_SUMMARY]: { type: 'string', value: 'SELECT "does_not_exist_table"' },
             }),
             name: 'SELECT "does_not_exist_table"',
@@ -590,7 +591,7 @@ describeWithDockerCompose('postgres auto instrumentation', { workingDirectory: [
               [DB_SYSTEM_NAME]: { type: 'string', value: 'postgresql' },
               [DB_NAMESPACE]: { type: 'string', value: 'tests' },
               [DB_CONNECTION_STRING]: { type: 'string', value: 'postgresql://localhost:5494/tests' },
-              [SENTRY_OP]: { type: 'string', value: 'db' },
+              [SENTRY_OP]: { type: 'string', value: DB },
               [SENTRY_ORIGIN]: { type: 'string', value: 'manual' },
             }),
             name: 'pg-pool.connect',
@@ -602,7 +603,7 @@ describeWithDockerCompose('postgres auto instrumentation', { workingDirectory: [
               [DB_NAMESPACE]: { type: 'string', value: 'tests' },
               [DB_QUERY_TEXT]: { type: 'string', value: 'SELECT ? AS foo' },
               [SENTRY_ORIGIN]: { type: 'string', value: ORIGIN },
-              [SENTRY_OP]: { type: 'string', value: 'db' },
+              [SENTRY_OP]: { type: 'string', value: DB },
               [DB_QUERY_SUMMARY]: { type: 'string', value: 'SELECT' },
             }),
             name: 'SELECT',
@@ -626,7 +627,7 @@ describeWithDockerCompose('postgres auto instrumentation', { workingDirectory: [
             attributes: expect.objectContaining({
               [DB_SYSTEM_NAME]: { type: 'string', value: 'postgresql' },
               [DB_NAMESPACE]: { type: 'string', value: 'tests' },
-              [SENTRY_OP]: { type: 'string', value: 'db' },
+              [SENTRY_OP]: { type: 'string', value: DB },
               [SENTRY_ORIGIN]: { type: 'string', value: 'manual' },
             }),
             name: 'pg.connect',
@@ -673,7 +674,7 @@ describeWithDockerCompose('postgres auto instrumentation', { workingDirectory: [
                             [DB_SYSTEM_NAME]: { type: 'string', value: 'postgresql' },
                             [DB_QUERY_TEXT]: { type: 'string', value: 'SELECT ? AS parented' },
                             [SENTRY_ORIGIN]: { type: 'string', value: ORIGIN },
-                            [SENTRY_OP]: { type: 'string', value: 'db' },
+                            [SENTRY_OP]: { type: 'string', value: DB },
                             [DB_QUERY_SUMMARY]: { type: 'string', value: 'SELECT' },
                           }),
                           name: 'SELECT',
@@ -720,7 +721,7 @@ describeWithDockerCompose('postgres auto instrumentation', { workingDirectory: [
                               value: 'INSERT INTO "User" ("email", "name") VALUES ($1, $2)',
                             },
                             [SENTRY_ORIGIN]: { type: 'string', value: ORIGIN },
-                            [SENTRY_OP]: { type: 'string', value: 'db' },
+                            [SENTRY_OP]: { type: 'string', value: DB },
                             [DB_QUERY_SUMMARY]: { type: 'string', value: 'INSERT "User"' },
                           }),
                           name: 'INSERT "User"',
@@ -732,7 +733,7 @@ describeWithDockerCompose('postgres auto instrumentation', { workingDirectory: [
                             [DB_NAMESPACE]: { type: 'string', value: 'tests' },
                             [DB_QUERY_TEXT]: { type: 'string', value: 'SELECT * FROM "User"' },
                             [SENTRY_ORIGIN]: { type: 'string', value: ORIGIN },
-                            [SENTRY_OP]: { type: 'string', value: 'db' },
+                            [SENTRY_OP]: { type: 'string', value: DB },
                             [DB_QUERY_SUMMARY]: { type: 'string', value: 'SELECT "User"' },
                           }),
                           name: 'SELECT "User"',
