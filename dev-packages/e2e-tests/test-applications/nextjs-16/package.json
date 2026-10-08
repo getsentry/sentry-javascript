@@ -20,10 +20,16 @@
     "test:build-latest-webpack": "pnpm install && pnpm add next@latest && pnpm build-webpack",
     "test:build-canary-webpack": "pnpm install && pnpm add next@canary && pnpm build-webpack",
     "test:assert": "pnpm test:prod && pnpm test:dev",
-    "test:assert-webpack": "pnpm test:prod && pnpm test:dev-webpack"
+    "test:assert-webpack": "pnpm test:prod && pnpm test:dev-webpack",
+    "test:build:cloudflare": "pnpm install && opennextjs-cloudflare build",
+    "test:build-latest:cloudflare": "pnpm install && pnpm add next@16.3 && opennextjs-cloudflare build",
+    "start:cloudflare": "opennextjs-cloudflare preview --var \"E2E_TEST_DSN:$E2E_TEST_DSN\""
   },
   "//": "Pin `ioredis` to 5.10.1: it's the last version before the driver publishes its own native diagnostics channels; orchestrion's config covers `ioredis <5.11.0`.",
   "dependencies": {
+    "@opennextjs/cloudflare": "^1.14.9",
+    "@sentry/bun": "file:../../packed/sentry-bun-packed.tgz",
+    "@sentry/deno": "file:../../packed/sentry-deno-packed.tgz",
     "@sentry/nextjs": "file:../../packed/sentry-nextjs-packed.tgz",
     "@sentry/core": "file:../../packed/sentry-core-packed.tgz",
     "@vercel/queue": "^0.1.3",
@@ -47,7 +53,8 @@
     "@types/react-dom": "^19",
     "eslint": "^9",
     "eslint-config-next": "^16",
-    "typescript": "^5"
+    "typescript": "^5",
+    "wrangler": "^4.61.0"
   },
   "volta": {
     "extends": "../../package.json"
@@ -67,6 +74,17 @@
       {
         "build-command": "pnpm test:build-latest",
         "label": "nextjs-16 (latest, turbopack)"
+      },
+      {
+        "runtime": "bun",
+        "assert-command": "pnpm test:prod",
+        "label": "nextjs-16 (bun)"
+      },
+      {
+        "runtime": "cloudflare",
+        "build-command": "pnpm test:build:cloudflare",
+        "assert-command": "pnpm test:prod",
+        "label": "nextjs-16 (cloudflare)"
       }
     ],
     "optionalVariants": [
@@ -79,6 +97,18 @@
         "build-command": "pnpm test:build-canary-webpack",
         "label": "nextjs-16 (canary, webpack)",
         "assert-command": "pnpm test:assert-webpack"
+      },
+      {
+        "runtime": "cloudflare",
+        "build-command": "pnpm test:build-latest:cloudflare",
+        "assert-command": "pnpm test:prod",
+        "label": "nextjs-16 (cloudflare, latest)"
+      },
+      {
+        "runtime": "deno",
+        "assert-command": "pnpm test:prod",
+        "deno-version": "v2.9.0",
+        "label": "nextjs-16 (deno)"
       }
     ]
   }

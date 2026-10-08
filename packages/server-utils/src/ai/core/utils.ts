@@ -136,6 +136,16 @@ export function getTokenUsageAttributes(
   return attributes;
 }
 
+/** Serialize the `state` and `questions` of an evaluation request (TypeSafe, Workers AI, Mastra classifiers). */
+export function getEvaluationInputMessages(request: Record<string, unknown>): string | undefined {
+  return stringify([{ type: 'evaluation', state: request.state, questions: request.questions }]);
+}
+
+/** Serialize the `answers` of an evaluation result (TypeSafe, Workers AI, Mastra classifiers). */
+export function getEvaluationOutputMessages(answers: unknown): string | undefined {
+  return stringify([{ type: 'evaluation', answers }]);
+}
+
 /** One assistant turn for {@link setOutputMessagesAttribute}. */
 export interface GenAiOutputMessage {
   /** The message's text content, already flattened out of any content-part array. */

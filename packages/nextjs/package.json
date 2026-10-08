@@ -46,6 +46,11 @@
       "node": "./build/cjs/index.server.js",
       "import": "./build/esm/index.server.js"
     },
+    "./cloudflare": {
+      "types": "./build/types/cloudflare/index.d.ts",
+      "import": "./build/esm/cloudflare/index.js",
+      "require": "./build/cjs/cloudflare/index.js"
+    },
     "./config": {
       "types": "./build/types/config/index.d.ts",
       "default": "./build/cjs/config/index.js"
@@ -76,6 +81,7 @@
     "@rollup/plugin-commonjs": "28.0.1",
     "@sentry/browser-utils": "11.5.0",
     "@sentry/bundler-plugins": "11.5.0",
+    "@sentry/cloudflare": "11.5.0",
     "@sentry/conventions": "^0.26.0",
     "@sentry/core": "11.5.0",
     "@sentry/node": "11.5.0",
@@ -88,7 +94,7 @@
     "stacktrace-parser": "^0.1.11"
   },
   "devDependencies": {
-    "next": "15.5.24",
+    "next": "15.5.27",
     "react": "^18.3.1",
     "react-dom": "^18.3.1"
   },

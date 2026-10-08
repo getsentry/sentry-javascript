@@ -564,6 +564,22 @@ export function extractToolDefinitions(extraParams?: Record<string, unknown>): s
   return JSON.stringify(toolDefs);
 }
 
+// A run started without config inherits the parent run's config, which LangChain keeps in a global
+// AsyncLocalStorage. `ensureConfig` lets an explicit `callbacks` key replace the inherited one.
+const LANGCHAIN_ALS_KEY = Symbol.for('ls:tracing_async_local_storage');
+const LANGCHAIN_CHILD_CONFIG_KEY = Symbol.for('lc:child_config');
+
+/** The callbacks LangChain gives a run started without config: the ones of the parent run, if any. */
+export function getInheritedLangChainCallbacks(): unknown {
+  const storage = (globalThis as Record<symbol, unknown>)[LANGCHAIN_ALS_KEY] as
+    | { getStore?: () => unknown }
+    | undefined;
+  const store = typeof storage?.getStore === 'function' ? storage.getStore() : undefined;
+  const extra = isObjectLike(store) ? (store.extra as Record<symbol, unknown> | undefined) : undefined;
+  const config = isObjectLike(extra) ? extra[LANGCHAIN_CHILD_CONFIG_KEY] : undefined;
+  return isObjectLike(config) ? config.callbacks : undefined;
+}
+
 /** Duck-types a LangChain `CallbackManager` (avoids coupling to a specific `@langchain/core` resolution). */
 function isCallbackManager(value: unknown): value is {
   addHandler: (handler: unknown, inherit?: boolean) => void;

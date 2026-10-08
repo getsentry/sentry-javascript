@@ -1,9 +1,16 @@
-import { getPlaywrightConfig } from '@sentry-internal/test-utils';
+import { getPlaywrightConfig, getRuntime } from '@sentry-internal/test-utils';
 const testEnv = process.env.TEST_ENV;
 
 if (!testEnv) {
   throw new Error('No test env defined');
 }
+
+const productionStartCommands = {
+  node: 'pnpm next start -p 3030',
+  bun: 'bun --bun ./node_modules/next/dist/bin/next start -p 3030',
+  deno: 'deno run -A ./node_modules/next/dist/bin/next start -p 3030',
+  cloudflare: 'pnpm start:cloudflare --port 3030',
+};
 
 const getStartCommand = () => {
   if (testEnv === 'development-webpack') {
@@ -15,7 +22,7 @@ const getStartCommand = () => {
   }
 
   if (testEnv === 'production') {
-    return 'pnpm next start -p 3030';
+    return productionStartCommands[getRuntime()];
   }
 
   throw new Error(`Unknown test env: ${testEnv}`);

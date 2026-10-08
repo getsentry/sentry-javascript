@@ -23,6 +23,7 @@ import { langgraphConfig } from './langgraph';
 import { lruMemoizerConfig } from './lru-memoizer';
 import { flueConfig } from './flue';
 import { mastraConfig } from './mastra';
+import { piDurableConfig } from './pi-durable';
 import { mcpServerConfig } from './mcp-server';
 import { mistralConfig } from './mistral';
 import { mongodbConfig } from './mongodb';
@@ -88,6 +89,7 @@ export const SENTRY_INSTRUMENTATIONS: InstrumentationConfig[] = [
   ...nestjsConfig,
   ...openaiConfig,
   ...pgConfig,
+  ...piDurableConfig,
   ...postgresJsConfig,
   ...prismaConfig,
   ...redisConfig,
