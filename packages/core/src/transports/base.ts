@@ -1,6 +1,6 @@
 import { DEBUG_BUILD } from '../debug-build';
 import type { EventDropReason } from '../types/clientreport';
-import type { Envelope, EnvelopeItem } from '../types/envelope';
+import type { Envelope, EnvelopeItem, EnvelopeItemType } from '../types/envelope';
 import type { Event } from '../types/event';
 import type {
   InternalBaseTransportOptions,
@@ -37,14 +37,24 @@ export function createTransport(
   let rateLimits: RateLimits = {};
   const flush = (timeout?: number): PromiseLike<boolean> => buffer.drain(timeout);
 
+  function recordItemLoss(reason: EventDropReason, [headers, payload]: EnvelopeItem, type: EnvelopeItemType): void {
+    const dataCategory = envelopeItemTypeToDataCategory(type);
+    if (type === 'transaction') {
+      options.recordDroppedEvent(reason, dataCategory);
+      // The transaction itself counts as a span, too
+      options.recordDroppedEvent(reason, 'span', ((payload as Event).spans?.length ?? 0) + 1);
+    } else {
+      options.recordDroppedEvent(reason, dataCategory, typeof headers.item_count === 'number' ? headers.item_count : 1);
+    }
+  }
+
   function send(envelope: Envelope): PromiseLike<TransportMakeRequestResponse> {
     const filteredEnvelopeItems: EnvelopeItem[] = [];
 
     // Drop rate limited items from envelope
     forEachEnvelopeItem(envelope, (item, type) => {
-      const dataCategory = envelopeItemTypeToDataCategory(type);
-      if (isRateLimited(rateLimits, dataCategory)) {
-        options.recordDroppedEvent('ratelimit_backoff', dataCategory);
+      if (isRateLimited(rateLimits, envelopeItemTypeToDataCategory(type))) {
+        recordItemLoss('ratelimit_backoff', item, type);
       } else {
         filteredEnvelopeItems.push(item);
       }
@@ -64,19 +74,8 @@ export function createTransport(
         DEBUG_BUILD && debug.warn(`Dropping client report. Will not send outcomes (reason: ${reason}).`);
         return;
       }
-      forEachEnvelopeItem(filteredEnvelope, ([headers, payload], type) => {
-        const dataCategory = envelopeItemTypeToDataCategory(type);
-        if (type === 'transaction') {
-          options.recordDroppedEvent(reason, dataCategory);
-          // The transaction itself counts as a span, too
-          options.recordDroppedEvent(reason, 'span', ((payload as Event).spans?.length ?? 0) + 1);
-        } else {
-          options.recordDroppedEvent(
-            reason,
-            dataCategory,
-            typeof headers.item_count === 'number' ? headers.item_count : 1,
-          );
-        }
+      forEachEnvelopeItem(filteredEnvelope, (item, type) => {
+        recordItemLoss(reason, item, type);
       });
     };
 

@@ -157,7 +157,7 @@ describe('createTransport', () => {
 
         await transport.send(ERROR_ENVELOPE);
         expect(requestExecutor).not.toHaveBeenCalled();
-        expect(recordDroppedEventCallback).toHaveBeenCalledWith('ratelimit_backoff', 'error');
+        expect(recordDroppedEventCallback).toHaveBeenCalledWith('ratelimit_backoff', 'error', 1);
         requestExecutor.mockClear();
         recordDroppedEventCallback.mockClear();
 
@@ -199,7 +199,7 @@ describe('createTransport', () => {
 
         await transport.send(ERROR_ENVELOPE); // Error envelope should not be sent because of pending rate limit
         expect(requestExecutor).not.toHaveBeenCalled();
-        expect(recordDroppedEventCallback).toHaveBeenCalledWith('ratelimit_backoff', 'error');
+        expect(recordDroppedEventCallback).toHaveBeenCalledWith('ratelimit_backoff', 'error', 1);
         requestExecutor.mockClear();
         recordDroppedEventCallback.mockClear();
 
@@ -242,18 +242,19 @@ describe('createTransport', () => {
         await transport.send(TRANSACTION_ENVELOPE); // Transaction envelope should not be sent because of pending rate limit
         expect(requestExecutor).not.toHaveBeenCalled();
         expect(recordDroppedEventCallback).toHaveBeenCalledWith('ratelimit_backoff', 'transaction');
+        expect(recordDroppedEventCallback).toHaveBeenCalledWith('ratelimit_backoff', 'span', 1);
         requestExecutor.mockClear();
         recordDroppedEventCallback.mockClear();
 
         await transport.send(ERROR_ENVELOPE); // Error envelope should not be sent because of pending rate limit
         expect(requestExecutor).not.toHaveBeenCalled();
-        expect(recordDroppedEventCallback).toHaveBeenCalledWith('ratelimit_backoff', 'error');
+        expect(recordDroppedEventCallback).toHaveBeenCalledWith('ratelimit_backoff', 'error', 1);
         requestExecutor.mockClear();
         recordDroppedEventCallback.mockClear();
 
         await transport.send(ATTACHMENT_ENVELOPE); // Attachment envelope should not be sent because of pending rate limit
         expect(requestExecutor).not.toHaveBeenCalled();
-        expect(recordDroppedEventCallback).toHaveBeenCalledWith('ratelimit_backoff', 'attachment');
+        expect(recordDroppedEventCallback).toHaveBeenCalledWith('ratelimit_backoff', 'attachment', 1);
         requestExecutor.mockClear();
         recordDroppedEventCallback.mockClear();
 
@@ -302,12 +303,13 @@ describe('createTransport', () => {
         await transport.send(TRANSACTION_ENVELOPE); // Transaction envelope should not be sent because of pending rate limit
         expect(requestExecutor).not.toHaveBeenCalled();
         expect(recordDroppedEventCallback).toHaveBeenCalledWith('ratelimit_backoff', 'transaction');
+        expect(recordDroppedEventCallback).toHaveBeenCalledWith('ratelimit_backoff', 'span', 1);
         requestExecutor.mockClear();
         recordDroppedEventCallback.mockClear();
 
         await transport.send(ERROR_ENVELOPE); // Error envelope should not be sent because of pending rate limit
         expect(requestExecutor).not.toHaveBeenCalled();
-        expect(recordDroppedEventCallback).toHaveBeenCalledWith('ratelimit_backoff', 'error');
+        expect(recordDroppedEventCallback).toHaveBeenCalledWith('ratelimit_backoff', 'error', 1);
         requestExecutor.mockClear();
         recordDroppedEventCallback.mockClear();
 
@@ -324,10 +326,35 @@ describe('createTransport', () => {
         expect(requestExecutor).toHaveBeenCalledTimes(1);
         expect(recordDroppedEventCallback).not.toHaveBeenCalled();
       });
+
+      it('records the item count of rate limited container items', async () => {
+        const { retryAfterSeconds, beforeLimit, withinLimit } = setRateLimitTimes();
+        const [transport, , requestExecutor, recordDroppedEventCallback] = createTestTransport({
+          headers: {
+            'x-sentry-rate-limits': `${retryAfterSeconds}:log_item:scope`,
+            'retry-after': null,
+          },
+        });
+
+        const dateNowSpy = vi.spyOn(Date, 'now').mockImplementation(() => beforeLimit);
+
+        await transport.send(ERROR_ENVELOPE);
+        requestExecutor.mockClear();
+
+        dateNowSpy.mockImplementation(() => withinLimit);
+
+        await transport.send(
+          createEnvelope<Envelope>({ sent_at: '123' }, [
+            [{ type: 'log', item_count: 3, content_type: 'application/vnd.sentry.items.log+json' }, { items: [] }],
+          ] as Envelope[1]),
+        );
+        expect(requestExecutor).not.toHaveBeenCalled();
+        expect(recordDroppedEventCallback).toHaveBeenCalledWith('ratelimit_backoff', 'log_item', 3);
+      });
     });
 
     describe('Client Reports', () => {
-      it('should not record outcomes when client reports fail to send', async () => {
+      it('does not record outcomes when client reports fail to send', async () => {
         expect.assertions(2);
 
         const mockRecordDroppedEventCallback = vi.fn();
@@ -347,7 +374,7 @@ describe('createTransport', () => {
         expect(mockRecordDroppedEventCallback).not.toHaveBeenCalled();
       });
 
-      it('should not record outcomes when client reports fail due to buffer overflow', async () => {
+      it('does not record outcomes when client reports fail due to buffer overflow', async () => {
         expect.assertions(2);
 
         const mockRecordDroppedEventCallback = vi.fn();
@@ -371,7 +398,7 @@ describe('createTransport', () => {
         expect(mockRecordDroppedEventCallback).not.toHaveBeenCalled();
       });
 
-      it('should record outcomes when regular events fail to send', async () => {
+      it('records outcomes when regular events fail to send', async () => {
         expect.assertions(2);
 
         const mockRecordDroppedEventCallback = vi.fn();
@@ -393,7 +420,7 @@ describe('createTransport', () => {
     });
 
     describe('HTTP 413 Content Too Large', () => {
-      it('should record send_error outcome when receiving 413 response', async () => {
+      it('records send_error outcome when receiving 413 response', async () => {
         const mockRecordDroppedEventCallback = vi.fn();
 
         const transport = createTransport({ recordDroppedEvent: mockRecordDroppedEventCallback }, () =>
@@ -408,7 +435,7 @@ describe('createTransport', () => {
         expect(mockRecordDroppedEventCallback).toHaveBeenCalledWith('send_error', 'error', 1);
       });
 
-      it('should record send_error for each item in envelope when receiving 413', async () => {
+      it('records send_error for each item in envelope when receiving 413', async () => {
         const mockRecordDroppedEventCallback = vi.fn();
 
         const multiItemEnvelope = createEnvelope<EventEnvelope>(
@@ -431,7 +458,7 @@ describe('createTransport', () => {
         expect(mockRecordDroppedEventCallback).toHaveBeenCalledWith('send_error', 'span', 3);
       });
 
-      it('should record send_error with the item count of container items when receiving 413', async () => {
+      it('records send_error with the item count of container items when receiving 413', async () => {
         const mockRecordDroppedEventCallback = vi.fn();
 
         const containerEnvelope = createEnvelope<Envelope>({ sent_at: '123' }, [
@@ -455,7 +482,7 @@ describe('createTransport', () => {
         expect(mockRecordDroppedEventCallback).toHaveBeenCalledWith('send_error', 'metric', 2);
       });
 
-      it('should not record outcomes for client reports when receiving 413', async () => {
+      it('does not record outcomes for client reports when receiving 413', async () => {
         const mockRecordDroppedEventCallback = vi.fn();
 
         const transport = createTransport({ recordDroppedEvent: mockRecordDroppedEventCallback }, () =>
@@ -470,7 +497,7 @@ describe('createTransport', () => {
         expect(mockRecordDroppedEventCallback).not.toHaveBeenCalled();
       });
 
-      it('should not apply rate limits after receiving 413', async () => {
+      it('does not apply rate limits after receiving 413', async () => {
         const mockRecordDroppedEventCallback = vi.fn();
         const mockRequestExecutor = vi.fn(() => resolvedSyncPromise({ statusCode: 413 }));
 
