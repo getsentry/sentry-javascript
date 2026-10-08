@@ -15,15 +15,22 @@ async function run() {
     { connection, telemetry },
   );
 
-  const jobProcessed = new Promise(resolve => {
-    worker.on('completed', () => resolve());
+  const jobsProcessed = new Promise(resolve => {
+    let completed = 0;
+    worker.on('completed', () => {
+      completed++;
+      if (completed === 2) {
+        resolve();
+      }
+    });
   });
 
-  await Sentry.startSpan({ name: 'enqueue test-job' }, async () => {
-    await queue.add('test-job', { data: 'test-data' });
+  await Sentry.startSpan({ name: 'enqueue test-jobs' }, async () => {
+    await queue.add('test-job-1', { data: 'test-data' });
+    await queue.add('test-job-2', { data: 'test-data' });
   });
 
-  await jobProcessed;
+  await jobsProcessed;
   await worker.close();
   await queue.close();
   await Sentry.flush();
