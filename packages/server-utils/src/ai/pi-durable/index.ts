@@ -131,7 +131,7 @@ function instrumentRegistry(registry: PiRegistryReader, options: PiDurableOption
       // pi-durable calls a phase on the `phases` object and `abort` on the definition; keep that
       // receiver, so handlers that use `this` work.
       const wrapPhase =
-        (phase: PiPhaseHandler, receiver: unknown): PiPhaseHandler =>
+        (phase: PiPhaseHandler, receiver: unknown, isAbort = false): PiPhaseHandler =>
         (taskRecord, runtime, context) =>
           runPhase(
             definition.name,
@@ -139,6 +139,7 @@ function instrumentRegistry(registry: PiRegistryReader, options: PiDurableOption
             runtime,
             runs,
             wrapTool,
+            isAbort,
           );
       const phases: Record<string, PiPhaseHandler> = {};
       for (const [name, phase] of Object.entries(definition.phases)) {
@@ -149,7 +150,7 @@ function instrumentRegistry(registry: PiRegistryReader, options: PiDurableOption
         definition: {
           ...definition,
           phases,
-          ...(typeof definition.abort === 'function' ? { abort: wrapPhase(definition.abort, definition) } : {}),
+          ...(typeof definition.abort === 'function' ? { abort: wrapPhase(definition.abort, definition, true) } : {}),
         },
       };
       tasks.set(task, wrapped);
@@ -192,14 +193,16 @@ function runPhase(
   runtime: PiTaskRuntime,
   runs: PiRuns,
   wrapTool: (tool: PiTool) => PiTool,
+  isAbort: boolean,
 ): Promise<unknown> {
   const { conversationId } = runtime;
   const isRunWork = kind === PI_TASK.GENERATION || kind === PI_TASK.TOOL;
   // A compaction joins the run it was started for. One started while idle has no run, and its
-  // `chat` span becomes the root of a trace of its own. Tasks of extensions never join a run.
+  // `chat` span becomes the root of a trace of its own. An abort handler ends the run of its task,
+  // so it joins that run but never starts one. Tasks of extensions never join a run.
   const run =
     isRunWork || kind === PI_TASK.COMPACTION
-      ? (runs.active.get(conversationId) ?? (isRunWork ? startRun(conversationId, runs) : undefined))
+      ? (runs.active.get(conversationId) ?? (isRunWork && !isAbort ? startRun(conversationId, runs) : undefined))
       : undefined;
 
   let observed = runtime;

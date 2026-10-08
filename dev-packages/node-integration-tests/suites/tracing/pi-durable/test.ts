@@ -497,6 +497,31 @@ conditionalTest({ min: 22 })('pi-durable integration', () => {
 
   createEsmAndCjsTests(
     __dirname,
+    'scenario-restart-abort.mjs',
+    'instrument.mjs',
+    (createRunner, test, mode) => {
+      if (mode === 'cjs') {
+        return;
+      }
+
+      test('starts no run for an abort handler in a Harness that never saw the run', async () => {
+        await createRunner()
+          .ignore('span')
+          .expect({
+            event: {
+              message: 'pi-durable restart abort',
+              extra: { status: 'unanswered', reason: 'aborted', runsStarted: 0 },
+            },
+          })
+          .start()
+          .completed();
+      });
+    },
+    PI_DURABLE_DEPENDENCIES,
+  );
+
+  createEsmAndCjsTests(
+    __dirname,
     'scenario-interrupted.mjs',
     'instrument.mjs',
     (createRunner, test, mode) => {

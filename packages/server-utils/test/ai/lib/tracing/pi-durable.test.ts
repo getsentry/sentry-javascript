@@ -895,6 +895,34 @@ describe('instrumentPiDurableHarnessOptions', () => {
       expect(runs[0]!.status).toBe('ok');
     });
 
+    it('starts no run for an abort handler whose task has no run', async () => {
+      const task: PiTask = {
+        definition: {
+          name: 'pi.generation',
+          phases: {},
+          abort: async (_task, runtime) =>
+            runtime.commit(async tx => {
+              await (tx as { doc: (...args: unknown[]) => Promise<PiLiveState> }).doc(LIVE_DOC, 1);
+              return undefined;
+            }, undefined),
+        },
+      };
+      const harness = harnessFor(task);
+      const runtime: PiTaskRuntime = {
+        taskId: 3,
+        conversationId: 1,
+        agent: async () => ({}),
+        commit: async (change: PiCommitChange) => {
+          await change({ doc: async () => ({}) }, undefined);
+        },
+      };
+
+      await harness.registry!.snapshot().task('pi.generation')!.definition.abort!(undefined, runtime, undefined);
+
+      expect(runSpans()).toEqual([]);
+      expect((harness as unknown as Record<symbol, PiRuns>)[Symbol.for('sentry.pi-durable.runs')]!.active.size).toBe(0);
+    });
+
     it('gives every Harness its own conversation id prefix', async () => {
       const phase = generationPhase([{ run: { inputs: [5] } }, { settle: { status: 'done' } }]);
       const first = harnessFor(phase);
