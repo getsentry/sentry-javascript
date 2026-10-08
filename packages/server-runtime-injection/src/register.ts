@@ -300,8 +300,9 @@ export function registerDiagnosticsChannelInjection(): void {
     }
   } catch (error) {
     marker.runtimeUnavailable = true;
+    const reason = error instanceof Error ? error.message : String(error);
     warnRuntimeUnavailable(
-      'Failed to register diagnostics-channel injection hooks, so channel-based integrations will not record spans.',
+      `Failed to register diagnostics-channel injection hooks (${reason}), so channel-based integrations will not record spans.`,
     );
     debug.warn('Diagnostics-channel injection registration error:', error);
     return;
