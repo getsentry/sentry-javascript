@@ -20,31 +20,31 @@ describe('LangGraph integration (v1)', () => {
     'instrument-with-pii.mjs',
     (createRunner, test) => {
       test('records a TypeSafeClassifier call made inside a StateGraph node', async () => {
-        await createRunner()
-          .expect({ transaction: { transaction: 'main' } })
-          .expect({
-            span: container => {
-              const agentSpan = container.items.find(span => span.name === 'invoke_agent triage_graph')!;
-              const evaluateSpan = container.items.find(span => span.name === 'evaluate jev-latest')!;
+        const runner = createRunner();
+        const spansPromise = runner.collectStreamedSpansUntilSegment('main');
 
-              expect(evaluateSpan.parent_span_id).toBe(agentSpan.span_id);
-              expect(evaluateSpan.attributes[SENTRY_OP].value).toBe(GEN_AI_EVALUATE);
-              expect(evaluateSpan.attributes[SENTRY_ORIGIN].value).toBe('auto.ai.langchain');
-              expect(evaluateSpan.attributes[GEN_AI_AGENT_NAME].value).toBe('triage_graph');
-              expect(JSON.parse(evaluateSpan.attributes[GEN_AI_INPUT_MESSAGES].value)).toEqual([
-                {
-                  type: 'evaluation',
-                  state: 'My payouts have been failing.',
-                  questions: { urgent: { type: 'noul', instructions: 'Is this urgent?' } },
-                },
-              ]);
-              expect(JSON.parse(evaluateSpan.attributes[GEN_AI_OUTPUT_MESSAGES].value)).toEqual([
-                { type: 'evaluation', answers: { urgent: { type: 'noul', noul: 0.9 } } },
-              ]);
-            },
-          })
-          .start()
-          .completed();
+        await runner.start().completed();
+
+        const spans = await spansPromise;
+        const rootSpan = spans.find(span => span.is_segment && span.name === 'main')!;
+        const agentSpan = spans.find(span => span.name === 'invoke_agent triage_graph')!;
+        const evaluateSpan = spans.find(span => span.name === 'evaluate jev-latest')!;
+
+        expect(agentSpan.parent_span_id).toBe(rootSpan.span_id);
+        expect(evaluateSpan.parent_span_id).toBe(agentSpan.span_id);
+        expect(evaluateSpan.attributes[SENTRY_OP].value).toBe(GEN_AI_EVALUATE);
+        expect(evaluateSpan.attributes[SENTRY_ORIGIN].value).toBe('auto.ai.langchain');
+        expect(evaluateSpan.attributes[GEN_AI_AGENT_NAME].value).toBe('triage_graph');
+        expect(JSON.parse(evaluateSpan.attributes[GEN_AI_INPUT_MESSAGES].value)).toEqual([
+          {
+            type: 'evaluation',
+            state: 'My payouts have been failing.',
+            questions: { urgent: { type: 'noul', instructions: 'Is this urgent?' } },
+          },
+        ]);
+        expect(JSON.parse(evaluateSpan.attributes[GEN_AI_OUTPUT_MESSAGES].value)).toEqual([
+          { type: 'evaluation', answers: { urgent: { type: 'noul', noul: 0.9 } } },
+        ]);
       });
     },
     {

@@ -324,50 +324,47 @@ describe('LangChain integration (v1)', () => {
     'instrument-with-pii.mjs',
     (createRunner, test) => {
       test('records the Jev model router call inside a createAgent run', async () => {
-        await createRunner()
-          .ignore('event')
-          .expect({ transaction: { transaction: 'main' } })
-          .expect({
-            span: container => {
-              const evaluateSpan = container.items.find(span => span.attributes[SENTRY_OP]?.value === GEN_AI_EVALUATE)!;
-              const chatSpan = container.items.find(span => span.name === 'chat claude-3-5-haiku-20241022')!;
+        const runner = createRunner().ignore('event');
+        const spansPromise = runner.collectStreamedSpansUntilSegment('main');
 
-              // The router classifies in `beforeAgent`, inside the agent run, where other chain steps are skipped.
-              expect(evaluateSpan.name).toBe('evaluate jev-latest');
-              expect(evaluateSpan.attributes[SENTRY_ORIGIN].value).toBe('auto.ai.langchain');
-              expect(evaluateSpan.attributes[GEN_AI_AGENT_NAME].value).toBe('support_agent');
-              expect(evaluateSpan.parent_span_id).toBe(chatSpan.parent_span_id);
-              expect(JSON.parse(evaluateSpan.attributes[GEN_AI_INPUT_MESSAGES].value)).toEqual([
-                {
-                  type: 'evaluation',
-                  // The router passes the latest human message, which the classifier sends as a transcript line.
-                  state: 'user: Where is my refund?',
-                  questions: {
-                    model_route: {
-                      type: 'choice',
-                      instructions: 'Pick the model for this request.',
-                      criteria: { fast: 'Simple requests', smart: 'Complex requests' },
-                    },
-                  },
-                },
-              ]);
-              expect(JSON.parse(evaluateSpan.attributes[GEN_AI_OUTPUT_MESSAGES].value)).toEqual([
-                {
-                  type: 'evaluation',
-                  answers: {
-                    model_route: {
-                      type: 'choice',
-                      choice: 'fast',
-                      probabilities: { fast: 0.9, smart: 0.1 },
-                      confidence: 0.8,
-                    },
-                  },
-                },
-              ]);
+        await runner.start().completed();
+
+        const spans = await spansPromise;
+        const evaluateSpan = spans.find(span => span.attributes[SENTRY_OP]?.value === GEN_AI_EVALUATE)!;
+        const chatSpan = spans.find(span => span.name === 'chat claude-3-5-haiku-20241022')!;
+
+        // The router classifies in `beforeAgent`, inside the agent run, where other chain steps are skipped.
+        expect(evaluateSpan.name).toBe('evaluate jev-latest');
+        expect(evaluateSpan.attributes[SENTRY_ORIGIN].value).toBe('auto.ai.langchain');
+        expect(evaluateSpan.attributes[GEN_AI_AGENT_NAME].value).toBe('support_agent');
+        expect(evaluateSpan.parent_span_id).toBe(chatSpan.parent_span_id);
+        expect(JSON.parse(evaluateSpan.attributes[GEN_AI_INPUT_MESSAGES].value)).toEqual([
+          {
+            type: 'evaluation',
+            // The router passes the latest human message, which the classifier sends as a transcript line.
+            state: 'user: Where is my refund?',
+            questions: {
+              model_route: {
+                type: 'choice',
+                instructions: 'Pick the model for this request.',
+                criteria: { fast: 'Simple requests', smart: 'Complex requests' },
+              },
             },
-          })
-          .start()
-          .completed();
+          },
+        ]);
+        expect(JSON.parse(evaluateSpan.attributes[GEN_AI_OUTPUT_MESSAGES].value)).toEqual([
+          {
+            type: 'evaluation',
+            answers: {
+              model_route: {
+                type: 'choice',
+                choice: 'fast',
+                probabilities: { fast: 0.9, smart: 0.1 },
+                confidence: 0.8,
+              },
+            },
+          },
+        ]);
       });
     },
     {
