@@ -6,7 +6,10 @@
 
 import {
   MCP_PROMPT_RESULT_DESCRIPTION,
+  MCP_PROMPT_RESULT_MESSAGE_CONTENT,
   MCP_PROMPT_RESULT_MESSAGE_COUNT,
+  MCP_PROMPT_RESULT_MESSAGE_ROLE,
+  MCP_TOOL_RESULT_CONTENT,
   MCP_TOOL_RESULT_CONTENT_COUNT,
   MCP_TOOL_RESULT_IS_ERROR,
 } from '@sentry/conventions/attributes';
@@ -50,7 +53,9 @@ function buildAllContentItemAttributes(
       safeSet('name', item.name);
 
       if (typeof item.text === 'string') {
-        attributes[`${prefix}.content`] = item.text;
+        // oxlint-disable-next-line typescript/no-deprecated -- Preserve the legacy content attribute for existing consumers.
+        const attrName = content.length === 1 ? MCP_TOOL_RESULT_CONTENT : `${prefix}.content`;
+        attributes[attrName] = item.text;
       }
 
       if (typeof item.data === 'string') {
@@ -123,19 +128,15 @@ export function extractPromptResultAttributes(
 
         const prefix = messages.length === 1 ? MCP_PROMPT_RESULT_PREFIX : `${MCP_PROMPT_RESULT_PREFIX}.${i}`;
 
-        const safeSet = (key: string, value: unknown): void => {
-          if (typeof value === 'string') {
-            const attrName = messages.length === 1 ? `${prefix}.message_${key}` : `${prefix}.${key}`;
-            attributes[attrName] = value;
-          }
-        };
-
-        safeSet('role', message.role);
+        if (typeof message.role === 'string') {
+          const attrName = messages.length === 1 ? MCP_PROMPT_RESULT_MESSAGE_ROLE : `${prefix}.role`;
+          attributes[attrName] = message.role;
+        }
 
         if (isValidContentItem(message.content)) {
           const content = message.content;
           if (typeof content.text === 'string') {
-            const attrName = messages.length === 1 ? `${prefix}.message_content` : `${prefix}.content`;
+            const attrName = messages.length === 1 ? MCP_PROMPT_RESULT_MESSAGE_CONTENT : `${prefix}.content`;
             attributes[attrName] = content.text;
           }
         }
