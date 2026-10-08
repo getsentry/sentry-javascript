@@ -8,8 +8,9 @@
 
 - feat(v10/deps): Bump bundler plugins to 5.4.1 ([#25147](https://github.com/getsentry/sentry-javascript/pull/25147))
 - fix(v10/ai): Normalize token usage and preserve cache breakdowns ([#25126](https://github.com/getsentry/sentry-javascript/pull/25126))
+- fix(v10/core): Exclude attachments from internal exception events ([(#25167)](https://github.com/getsentry/sentry-javascript/pull/25167))
 - fix(v10/effect): Detect HTTP spans named after the request method ([#25169](https://github.com/getsentry/sentry-javascript/pull/25169))
-- test(v10/nextjs): Pin nextjs-16-cf-workers latest variant to Next.js 16.3 ([#25130](https://github.com/getsentry/sentry-javascript/pull/25130))
+- fix(v10/sveltekit): Upload source maps with SvelteKit 3 (([#25172])(https://github.com/getsentry/sentry-javascript/pull/25172))
 
 ## 10.76.1
 
