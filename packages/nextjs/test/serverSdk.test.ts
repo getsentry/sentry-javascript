@@ -72,15 +72,16 @@ describe('Server init()', () => {
 
   describe('trace propagator', () => {
     it('replaces the propagator when the Node SDK set up OpenTelemetry itself', () => {
+      const traceProvider = {};
       nodeInit.mockReturnValueOnce({
         on: vi.fn(),
         addEventProcessor: vi.fn(),
-        traceProvider: {},
+        traceProvider,
       } as unknown as ReturnType<typeof SentryNode.init>);
 
       init({});
 
-      expect(registerNextSentryPropagator).toHaveBeenCalledTimes(1);
+      expect(registerNextSentryPropagator).toHaveBeenCalledWith(traceProvider);
     });
 
     it('leaves a foreign OpenTelemetry setup alone', () => {
