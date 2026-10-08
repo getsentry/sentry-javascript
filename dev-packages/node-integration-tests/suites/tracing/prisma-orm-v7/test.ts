@@ -72,8 +72,8 @@ describe('Prisma ORM v7 Tests', () => {
                   span => span.attributes[SENTRY_OP]?.value === DB && span.attributes[DB_QUERY_TEXT]?.value,
                 );
                 expect(dbQuerySpan).toBeDefined();
-                expect(dbQuerySpan?.attributes[DB_SYSTEM_NAME]?.value).toBe('postgresql');
-                expect(dbQuerySpan?.attributes[SENTRY_OP]?.value).toBe(DB);
+                expect(dbQuerySpan?.attributes[DB_SYSTEM_NAME]).toEqual({ type: 'string', value: 'postgresql' });
+                expect(dbQuerySpan?.attributes[SENTRY_OP]).toEqual({ type: 'string', value: DB });
                 expect(dbQuerySpan?.name).toBe(dbQuerySpan?.attributes[DB_QUERY_SUMMARY]?.value);
                 expect(dbQuerySpan?.name).not.toBe('prisma:client:db_query');
 
