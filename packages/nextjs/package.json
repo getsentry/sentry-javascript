@@ -94,7 +94,7 @@
     "stacktrace-parser": "^0.1.11"
   },
   "devDependencies": {
-    "next": "15.5.24",
+    "next": "15.5.27",
     "react": "^18.3.1",
     "react-dom": "^18.3.1"
   },
