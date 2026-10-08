@@ -223,12 +223,13 @@ conditionalTest({ min: 22 })('Mastra integration', () => {
     (createRunner, test) => {
       test('maps a classifier evaluation to a gen_ai.evaluate span', async () => {
         await createRunner()
-          .expect({ transaction: { transaction: 'mastra-test' } })
           .expect({
             span: container => {
-              expect(container.items.map(span => span.name)).toEqual(['evaluate jev-latest']);
+              expect(container.items.find(span => span.is_segment && span.name === 'mastra-test')).toBeDefined();
+              const spans = container.items.filter(span => span.attributes[SENTRY_ORIGIN]?.value === 'auto.ai.mastra');
+              expect(spans.map(span => span.name)).toEqual(['evaluate jev-latest']);
 
-              const evaluateSpan = container.items[0]!;
+              const evaluateSpan = spans[0]!;
               expect(evaluateSpan.attributes[SENTRY_OP].value).toBe(GEN_AI_EVALUATE);
               expect(evaluateSpan.attributes[SENTRY_ORIGIN].value).toBe('auto.ai.mastra');
               expect(evaluateSpan.attributes[GEN_AI_OPERATION_NAME].value).toBe('evaluate');
@@ -255,9 +256,9 @@ conditionalTest({ min: 22 })('Mastra integration', () => {
     (createRunner, test) => {
       test('records the evaluated state, questions and answers when genAI recording is on', async () => {
         await createRunner()
-          .expect({ transaction: { transaction: 'mastra-test' } })
           .expect({
             span: container => {
+              expect(container.items.find(span => span.is_segment && span.name === 'mastra-test')).toBeDefined();
               const evaluateSpan = container.items.find(span => span.name === 'evaluate jev-latest')!;
               expect(JSON.parse(evaluateSpan.attributes[GEN_AI_INPUT_MESSAGES].value)).toEqual([
                 {
@@ -288,12 +289,13 @@ conditionalTest({ min: 22 })('Mastra integration', () => {
       test('ends a failed classifier evaluation span with an error status', async () => {
         await createRunner()
           .ignore('event')
-          .expect({ transaction: { transaction: 'mastra-test' } })
           .expect({
             span: container => {
-              expect(container.items.map(span => span.name)).toEqual(['evaluate jev-latest']);
+              expect(container.items.find(span => span.is_segment && span.name === 'mastra-test')).toBeDefined();
+              const spans = container.items.filter(span => span.attributes[SENTRY_ORIGIN]?.value === 'auto.ai.mastra');
+              expect(spans.map(span => span.name)).toEqual(['evaluate jev-latest']);
 
-              const evaluateSpan = container.items[0]!;
+              const evaluateSpan = spans[0]!;
               expect(evaluateSpan.status).toBe('error');
               expect(evaluateSpan.attributes[GEN_AI_INPUT_MESSAGES].value).toContain('I was charged twice.');
               expect(evaluateSpan.attributes[GEN_AI_OUTPUT_MESSAGES]).toBeUndefined();
