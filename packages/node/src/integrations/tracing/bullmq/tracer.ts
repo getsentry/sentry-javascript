@@ -6,7 +6,7 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_LINK_ATTRIBUTE_LINK_TYPE,
   startInactiveSpan,
-  withActiveSpan,
+  startNewTrace,
 } from '@sentry/core';
 import { SentryBullMQSpan } from './span';
 import type { AttributeValue, SpanOptions, TelemetrySpan, Tracer, SentryContext } from './types';
@@ -71,7 +71,7 @@ export class SentryBullMQTracer implements Tracer<SentryContext> {
 
     const span =
       op === QUEUE_PROCESS
-        ? withActiveSpan(null, () => startInactiveSpan({ name, attributes }))
+        ? startNewTrace(() => startInactiveSpan({ name, attributes }))
         : startInactiveSpan({ name, attributes });
 
     if (context?.producerSpanContext) {

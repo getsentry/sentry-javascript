@@ -9,56 +9,104 @@ describeWithDockerCompose('bullmq', { workingDirectory: [__dirname] }, () => {
 
   createEsmAndCjsTests(__dirname, 'scenario.mjs', 'instrument.mjs', (createRunner, test) => {
     test('traces producer and consumer operations with queue attributes', { timeout: 90_000 }, async () => {
+      const producerSpans: Record<string, { trace_id: string; span_id: string }> = {};
+      const consumerSpans: Record<string, { trace_id: string; link: unknown }> = {};
+
       await createRunner()
         .ignore('trace_metric')
+        .unordered()
         .expect({
           span: container => {
-            const producerSegment = container.items.find(item => item.is_segment && item.name === 'enqueue test-job');
-            const producerSpan = container.items.find(
+            const producerSegment = container.items.find(item => item.is_segment && item.name === 'enqueue test-jobs');
+            const publishSpans = container.items.filter(
               item => item.attributes['sentry.origin']?.value === 'auto.queue.bullmq.producer',
-            );
-            const consumerSpan = container.items.find(
-              item => item.attributes['sentry.origin']?.value === 'auto.queue.bullmq.consumer',
             );
 
             expect(producerSegment).toBeDefined();
-            expect(producerSpan).toEqual(
-              expect.objectContaining({
-                parent_span_id: producerSegment!.span_id,
-                is_segment: false,
-                status: 'ok',
-                attributes: expect.objectContaining({
-                  'sentry.op': { type: 'string', value: 'queue.publish' },
-                  'messaging.system': { type: 'string', value: 'bullmq' },
+            expect(publishSpans).toHaveLength(2);
+
+            for (const publishSpan of publishSpans) {
+              expect(publishSpan).toEqual(
+                expect.objectContaining({
+                  parent_span_id: producerSegment!.span_id,
+                  is_segment: false,
+                  status: 'ok',
+                  attributes: expect.objectContaining({
+                    'sentry.op': { type: 'string', value: 'queue.publish' },
+                    'messaging.system': { type: 'string', value: 'bullmq' },
+                  }),
                 }),
-              }),
+              );
+
+              producerSpans[publishSpan.attributes['bullmq.job.name']!.value as string] = {
+                trace_id: publishSpan.trace_id,
+                span_id: publishSpan.span_id,
+              };
+            }
+          },
+        })
+        .expect({
+          span: container => {
+            const consumerSegment = container.items.find(
+              item => item.is_segment && item.attributes['bullmq.job.name']?.value === 'test-job-1',
             );
 
-            const { trace_id: producerTraceId, span_id: producerSpanId } = producerSpan!;
-
-            expect(consumerSpan).toEqual(
+            expect(consumerSegment).toEqual(
               expect.objectContaining({
-                is_segment: true,
                 status: 'ok',
                 attributes: expect.objectContaining({
                   'sentry.op': { type: 'string', value: 'queue.process' },
+                  'sentry.origin': { type: 'string', value: 'auto.queue.bullmq.consumer' },
                   'messaging.system': { type: 'string', value: 'bullmq' },
                 }),
-                links: [
-                  {
-                    trace_id: producerTraceId,
-                    span_id: producerSpanId,
-                    sampled: true,
-                    attributes: { 'sentry.link.type': { type: 'string', value: 'previous_trace' } },
-                  },
-                ],
               }),
             );
-            expect(consumerSpan!.attributes['sentry.previous_trace']).toBeUndefined();
+            expect(consumerSegment!.attributes['sentry.previous_trace']).toBeUndefined();
+
+            consumerSpans['test-job-1'] = {
+              trace_id: consumerSegment!.trace_id,
+              link: consumerSegment!.links?.[0],
+            };
+          },
+        })
+        .expect({
+          span: container => {
+            const consumerSegment = container.items.find(
+              item => item.is_segment && item.attributes['bullmq.job.name']?.value === 'test-job-2',
+            );
+
+            expect(consumerSegment).toEqual(
+              expect.objectContaining({
+                status: 'ok',
+                attributes: expect.objectContaining({
+                  'sentry.op': { type: 'string', value: 'queue.process' },
+                }),
+              }),
+            );
+
+            consumerSpans['test-job-2'] = {
+              trace_id: consumerSegment!.trace_id,
+              link: consumerSegment!.links?.[0],
+            };
           },
         })
         .start()
         .completed();
+
+      for (const jobName of ['test-job-1', 'test-job-2']) {
+        const producer = producerSpans[jobName]!;
+        const consumer = consumerSpans[jobName]!;
+
+        expect(consumer.trace_id).not.toBe(producer.trace_id);
+        expect(consumer.link).toEqual({
+          trace_id: producer.trace_id,
+          span_id: producer.span_id,
+          sampled: true,
+          attributes: { 'sentry.link.type': { type: 'string', value: 'previous_trace' } },
+        });
+      }
+
+      expect(consumerSpans['test-job-1']!.trace_id).not.toBe(consumerSpans['test-job-2']!.trace_id);
     });
 
     test('emits completion counter and duration histogram for processed jobs', { timeout: 90_000 }, async () => {
@@ -68,22 +116,15 @@ describeWithDockerCompose('bullmq', { workingDirectory: [__dirname] }, () => {
           trace_metric: (metrics: SerializedMetricContainer) => {
             const items = metrics.items || [];
 
-            expect(items).toHaveLength(2);
-            expect(items).toEqual(
-              expect.arrayContaining([
-                expect.objectContaining({
-                  name: 'bullmq.jobs.completed',
-                  type: 'counter',
-                  value: expect.any(Number),
-                }),
-                expect.objectContaining({
-                  name: 'bullmq.job.duration',
-                  type: 'distribution',
-                  unit: 'ms',
-                  value: expect.any(Number),
-                }),
-              ]),
-            );
+            expect(items).toHaveLength(4);
+            expect(items.filter(item => item.name === 'bullmq.jobs.completed')).toEqual([
+              expect.objectContaining({ type: 'counter', value: expect.any(Number) }),
+              expect.objectContaining({ type: 'counter', value: expect.any(Number) }),
+            ]);
+            expect(items.filter(item => item.name === 'bullmq.job.duration')).toEqual([
+              expect.objectContaining({ type: 'distribution', unit: 'ms', value: expect.any(Number) }),
+              expect.objectContaining({ type: 'distribution', unit: 'ms', value: expect.any(Number) }),
+            ]);
           },
         })
         .start()

@@ -10,6 +10,7 @@ vi.mock('@sentry/core', async importOriginal => {
     getActiveSpan: vi.fn(() => undefined),
     getCurrentScope: vi.fn(() => mockScope()),
     withActiveSpan: vi.fn((_span, fn) => fn()),
+    startNewTrace: vi.fn(fn => fn()),
     withIsolationScope: vi.fn(fn => fn()),
     spanToTraceHeader: vi.fn(() => '00-traceid-spanid-01'),
     captureException: vi.fn(),
@@ -97,12 +98,12 @@ describe('SentryBullMQTracer', () => {
       );
     });
 
-    it('starts queue.process spans as root spans', () => {
+    it('starts each queue.process span in a new trace', () => {
       const telemetry = new BullMQTelemetry();
 
       telemetry.tracer.startSpan('process notifications');
 
-      expect(SentryCore.withActiveSpan).toHaveBeenCalledWith(null, expect.any(Function));
+      expect(SentryCore.startNewTrace).toHaveBeenCalledWith(expect.any(Function));
     });
 
     it('starts queue.publish spans as children of the active span', () => {
@@ -110,7 +111,7 @@ describe('SentryBullMQTracer', () => {
 
       telemetry.tracer.startSpan('add notifications');
 
-      expect(SentryCore.withActiveSpan).not.toHaveBeenCalled();
+      expect(SentryCore.startNewTrace).not.toHaveBeenCalled();
     });
 
     it('adds span link to producer when context has producerSpanContext', () => {
