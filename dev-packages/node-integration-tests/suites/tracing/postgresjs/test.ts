@@ -304,7 +304,7 @@ describeWithDockerCompose('postgresjs auto instrumentation', { workingDirectory:
             .completed();
           expect({ items: receivedSpans }).toMatchObject(EXPECTED_SPANS);
           for (const span of receivedSpans.filter(span => span.attributes[SENTRY_OP]?.value === DB)) {
-            expect(span.name).toBe(span.attributes[DB_QUERY_SUMMARY]?.value);
+            expect(span.attributes[DB_QUERY_SUMMARY]).toEqual({ type: 'string', value: span.name });
           }
           expect(errorEvent).toMatchObject(EXPECTED_ERROR_EVENT);
         },
