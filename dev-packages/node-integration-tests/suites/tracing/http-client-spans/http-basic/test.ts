@@ -1,8 +1,11 @@
 import { createTestServer } from '@sentry-internal/test-utils';
 import { afterAll, describe, expect } from 'vitest';
 import { cleanupChildProcesses, createCjsTests } from '../../../../utils/runner';
+import { supports } from '../../../../utils';
 
-describe('outgoing http spans', () => {
+// Bun before 1.4 does not instrument outgoing `node:http` requests.
+// See https://github.com/getsentry/sentry-javascript/issues/23881
+describe.runIf(supports({ bunMin: '1.4.0' }))('outgoing http spans', () => {
   afterAll(() => {
     cleanupChildProcesses();
   });
