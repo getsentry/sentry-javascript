@@ -2,6 +2,8 @@ import { isString } from '@sentry/core';
 
 const DEFAULT_MAX_STRING_LENGTH = 80;
 
+type MaskAttributeFn = (key: string, value: string, el: HTMLElement) => string;
+
 type SimpleNode = {
   parentNode: SimpleNode;
 } | null;
@@ -54,7 +56,7 @@ function _safeRead<T>(el: unknown, prop: AccessorKey, arg?: string): T {
  */
 export function htmlTreeAsString(
   elem: unknown,
-  options: string[] | { keyAttrs?: string[]; maxStringLength?: number } = {},
+  options: string[] | { keyAttrs?: string[]; maxStringLength?: number; maskAttributeFn?: MaskAttributeFn } = {},
 ): string {
   if (!elem) {
     return '<unknown>';
@@ -74,10 +76,11 @@ export function htmlTreeAsString(
     const sepLength = separator.length;
     let nextStr;
     const keyAttrs = Array.isArray(options) ? options : options.keyAttrs;
+    const maskAttributeFn = Array.isArray(options) ? undefined : options.maskAttributeFn;
     const maxStringLength = (!Array.isArray(options) && options.maxStringLength) || DEFAULT_MAX_STRING_LENGTH;
 
     while (currentElem && height++ < MAX_TRAVERSE_HEIGHT) {
-      nextStr = _htmlElementAsString(currentElem, keyAttrs);
+      nextStr = _htmlElementAsString(currentElem, keyAttrs, maskAttributeFn);
       // bail out if
       // - nextStr is the 'html' element
       // - the length of the string that would be created exceeds maxStringLength
@@ -103,7 +106,7 @@ export function htmlTreeAsString(
  * e.g. [HTMLElement] => input#foo.btn[name=baz]
  * @returns generated DOM path
  */
-function _htmlElementAsString(el: unknown, keyAttrs?: string[]): string {
+function _htmlElementAsString(el: unknown, keyAttrs?: string[], maskAttributeFn?: MaskAttributeFn): string {
   const out = [];
 
   const tagName = _safeRead<string | undefined>(el, 'tagName');
@@ -132,22 +135,24 @@ function _htmlElementAsString(el: unknown, keyAttrs?: string[]): string {
   const keyAttrPairs = keyAttrs?.length
     ? keyAttrs
         .filter(keyAttr => _safeRead<string | null>(el, 'getAttribute', keyAttr))
-        .map(keyAttr => [keyAttr, _safeRead<string | null>(el, 'getAttribute', keyAttr)])
+        .map(keyAttr => [keyAttr, _safeRead<string | null>(el, 'getAttribute', keyAttr)] as const)
     : null;
 
   if (keyAttrPairs?.length) {
-    keyAttrPairs.forEach(keyAttrPair => {
-      out.push(`[${keyAttrPair[0]}="${keyAttrPair[1]}"]`);
+    keyAttrPairs.forEach(([key, value]) => {
+      out.push(`[${key}="${maskAttributeFn && value ? maskAttributeFn(key, value, el as HTMLElement) : value}"]`);
     });
   } else {
     const id = _safeRead<string | undefined>(el, 'id');
     if (id) {
-      out.push(`#${id}`);
+      out.push(`#${maskAttributeFn ? maskAttributeFn('id', id, el as HTMLElement) : id}`);
     }
 
     const className = _safeRead<string | undefined>(el, 'className');
     if (className && isString(className)) {
-      const classes = className.split(/\s+/);
+      const classes = (maskAttributeFn ? maskAttributeFn('class', className, el as HTMLElement) : className).split(
+        /\s+/,
+      );
       for (const c of classes) {
         out.push(`.${c}`);
       }
@@ -156,7 +161,7 @@ function _htmlElementAsString(el: unknown, keyAttrs?: string[]): string {
   for (const k of ['aria-label', 'type', 'name', 'title', 'alt']) {
     const attr = _safeRead<string | null>(el, 'getAttribute', k);
     if (attr) {
-      out.push(`[${k}="${attr}"]`);
+      out.push(`[${k}="${maskAttributeFn ? maskAttributeFn(k, attr, el as HTMLElement) : attr}"]`);
     }
   }
 
