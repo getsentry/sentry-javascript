@@ -1,3 +1,4 @@
+import { MESSAGING_SYSTEM } from '@sentry/conventions/attributes';
 import { QUEUE, QUEUE_PROCESS, QUEUE_PUBLISH } from '@sentry/conventions/op';
 import type { SpanAttributes } from '@sentry/core';
 import {
@@ -8,10 +9,8 @@ import {
   startInactiveSpan,
   startNewTrace,
 } from '@sentry/core';
-import { SentryBullMQSpan } from './span';
-import type { AttributeValue, SpanOptions, TelemetrySpan, Tracer, SentryContext } from './types';
-
-const MESSAGING_SYSTEM = 'bullmq';
+import { SentryBullMQSpan, toSentryAttributes } from './span';
+import type { SpanOptions, TelemetrySpan, Tracer, SentryContext } from './types';
 
 // BullMQ span names follow OTel messaging semconv: "{operation} {destination}"
 // e.g. "add myQueue", "addBulk myQueue", "process myQueue", "addFlow myQueue"
@@ -50,10 +49,6 @@ function getOriginFromSpanName(name: string): string {
   return 'auto.queue.bullmq';
 }
 
-function toSentryAttributes(attributes: Record<string, AttributeValue>): SpanAttributes {
-  return attributes as SpanAttributes;
-}
-
 export class SentryBullMQTracer implements Tracer<SentryContext> {
   public startSpan(name: string, options?: SpanOptions, context?: SentryContext): TelemetrySpan {
     const op = getOpFromSpanName(name);
@@ -62,12 +57,9 @@ export class SentryBullMQTracer implements Tracer<SentryContext> {
     const attributes: SpanAttributes = {
       [SEMANTIC_ATTRIBUTE_SENTRY_OP]: op,
       [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: origin,
-      'messaging.system': MESSAGING_SYSTEM,
+      [MESSAGING_SYSTEM]: 'bullmq',
+      ...(options?.attributes && toSentryAttributes(options.attributes)),
     };
-
-    if (options?.attributes) {
-      Object.assign(attributes, toSentryAttributes(options.attributes));
-    }
 
     // Internal operations such as `moveStalledJobsToWait` run on timers. Without a parent, each tick would start a new root span.
     const span =

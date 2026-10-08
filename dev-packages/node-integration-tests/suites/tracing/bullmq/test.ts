@@ -9,8 +9,8 @@ describeWithDockerCompose('bullmq', { workingDirectory: [__dirname] }, () => {
 
   createEsmAndCjsTests(__dirname, 'scenario.mjs', 'instrument.mjs', (createRunner, test) => {
     test('traces producer and consumer operations with queue attributes', { timeout: 90_000 }, async () => {
-      const producerSpans: Record<string, { trace_id: string; span_id: string }> = {};
-      const consumerSpans: Record<string, { trace_id: string; link: unknown }> = {};
+      const producerSpans: Record<string, { trace_id: string; span_id: string; messageId: unknown }> = {};
+      const consumerSpans: Record<string, { trace_id: string; link: unknown; messageId: unknown }> = {};
 
       await createRunner()
         .ignore('trace_metric')
@@ -34,6 +34,8 @@ describeWithDockerCompose('bullmq', { workingDirectory: [__dirname] }, () => {
                   attributes: expect.objectContaining({
                     'sentry.op': { type: 'string', value: 'queue.publish' },
                     'messaging.system': { type: 'string', value: 'bullmq' },
+                    'messaging.destination.name': { type: 'string', value: 'test-queue' },
+                    'messaging.message.id': { type: 'string', value: expect.any(String) },
                   }),
                 }),
               );
@@ -41,6 +43,7 @@ describeWithDockerCompose('bullmq', { workingDirectory: [__dirname] }, () => {
               producerSpans[publishSpan.attributes['bullmq.job.name']!.value as string] = {
                 trace_id: publishSpan.trace_id,
                 span_id: publishSpan.span_id,
+                messageId: publishSpan.attributes['messaging.message.id']!.value,
               };
             }
           },
@@ -58,6 +61,9 @@ describeWithDockerCompose('bullmq', { workingDirectory: [__dirname] }, () => {
                   'sentry.op': { type: 'string', value: 'queue.process' },
                   'sentry.origin': { type: 'string', value: 'auto.queue.bullmq.consumer' },
                   'messaging.system': { type: 'string', value: 'bullmq' },
+                  'messaging.destination.name': { type: 'string', value: 'test-queue' },
+                  'messaging.message.id': { type: 'string', value: expect.any(String) },
+                  'messaging.message.retry.count': { type: 'integer', value: 0 },
                 }),
               }),
             );
@@ -66,6 +72,7 @@ describeWithDockerCompose('bullmq', { workingDirectory: [__dirname] }, () => {
             consumerSpans['test-job-1'] = {
               trace_id: consumerSegment!.trace_id,
               link: consumerSegment!.links?.[0],
+              messageId: consumerSegment!.attributes['messaging.message.id']!.value,
             };
           },
         })
@@ -80,6 +87,7 @@ describeWithDockerCompose('bullmq', { workingDirectory: [__dirname] }, () => {
                 status: 'ok',
                 attributes: expect.objectContaining({
                   'sentry.op': { type: 'string', value: 'queue.process' },
+                  'messaging.destination.name': { type: 'string', value: 'test-queue' },
                 }),
               }),
             );
@@ -87,6 +95,7 @@ describeWithDockerCompose('bullmq', { workingDirectory: [__dirname] }, () => {
             consumerSpans['test-job-2'] = {
               trace_id: consumerSegment!.trace_id,
               link: consumerSegment!.links?.[0],
+              messageId: consumerSegment!.attributes['messaging.message.id']!.value,
             };
           },
         })
@@ -98,6 +107,7 @@ describeWithDockerCompose('bullmq', { workingDirectory: [__dirname] }, () => {
         const consumer = consumerSpans[jobName]!;
 
         expect(consumer.trace_id).not.toBe(producer.trace_id);
+        expect(consumer.messageId).toBe(producer.messageId);
         expect(consumer.link).toEqual({
           trace_id: producer.trace_id,
           span_id: producer.span_id,

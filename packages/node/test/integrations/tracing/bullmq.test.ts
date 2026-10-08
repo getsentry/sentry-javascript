@@ -97,16 +97,17 @@ describe('SentryBullMQTracer', () => {
       });
     });
 
-    it('merges user-provided attributes from SpanOptions', () => {
+    it('merges attributes from SpanOptions and adds the matching messaging attributes', () => {
       const telemetry = new BullMQTelemetry();
 
       telemetry.tracer.startSpan('add emails', {
-        attributes: { 'messaging.destination.name': 'emails' },
+        attributes: { 'bullmq.queue.name': 'emails' },
       });
 
       expect(SentryCore.startInactiveSpan).toHaveBeenCalledWith(
         expect.objectContaining({
           attributes: expect.objectContaining({
+            'bullmq.queue.name': 'emails',
             'messaging.destination.name': 'emails',
           }),
         }),
@@ -191,19 +192,56 @@ describe('SentryBullMQSpan', () => {
   it('delegates setAttribute to the underlying OTel span', () => {
     const { span, otelSpan } = createSpan();
 
-    span.setAttribute('messaging.destination.name', 'emails');
+    span.setAttribute('bullmq.job.name', 'welcome-email');
 
-    expect(otelSpan.setAttribute).toHaveBeenCalledWith('messaging.destination.name', 'emails');
+    expect(otelSpan.setAttributes).toHaveBeenCalledWith({ 'bullmq.job.name': 'welcome-email' });
   });
 
   it('delegates setAttributes to the underlying OTel span', () => {
     const { span, otelSpan } = createSpan();
 
-    span.setAttributes({ 'messaging.destination.name': 'emails', 'messaging.message.id': '42' });
+    span.setAttributes({ 'bullmq.job.name': 'welcome-email', 'bullmq.worker.name': 'mailer' });
 
     expect(otelSpan.setAttributes).toHaveBeenCalledWith({
+      'bullmq.job.name': 'welcome-email',
+      'bullmq.worker.name': 'mailer',
+    });
+  });
+
+  it('adds messaging attributes for the BullMQ queue name, job id and attempts', () => {
+    const { span, otelSpan } = createSpan();
+
+    span.setAttributes({ 'bullmq.queue.name': 'emails', 'bullmq.job.id': '42', 'bullmq.job.attempts.made': 3 });
+
+    expect(otelSpan.setAttributes).toHaveBeenCalledWith({
+      'bullmq.queue.name': 'emails',
+      'bullmq.job.id': '42',
+      'bullmq.job.attempts.made': 3,
       'messaging.destination.name': 'emails',
       'messaging.message.id': '42',
+      'messaging.message.retry.count': 2,
+    });
+  });
+
+  it('adds the messaging destination when BullMQ sets the queue name with setAttribute', () => {
+    const { span, otelSpan } = createSpan();
+
+    span.setAttribute('bullmq.queue.name', 'emails');
+
+    expect(otelSpan.setAttributes).toHaveBeenCalledWith({
+      'bullmq.queue.name': 'emails',
+      'messaging.destination.name': 'emails',
+    });
+  });
+
+  it('sets a retry count of 0 for the first attempt', () => {
+    const { span, otelSpan } = createSpan();
+
+    span.setAttributes({ 'bullmq.job.attempts.made': 1 });
+
+    expect(otelSpan.setAttributes).toHaveBeenCalledWith({
+      'bullmq.job.attempts.made': 1,
+      'messaging.message.retry.count': 0,
     });
   });
 
