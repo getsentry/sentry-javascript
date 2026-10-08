@@ -129,6 +129,7 @@ export {
   tediousIntegration,
   postgresIntegration,
   postgresJsIntegration,
+  neonIntegration,
   prismaIntegration,
   processSessionIntegration,
   hapiIntegration,

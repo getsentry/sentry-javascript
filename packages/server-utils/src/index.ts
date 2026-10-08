@@ -68,6 +68,7 @@ export { mysql2Integration } from './integrations/mysql2';
 export { openAIIntegration } from './integrations/openai';
 export { postgresIntegration } from './integrations/postgres';
 export { postgresJsIntegration } from './integrations/postgres-js';
+export { neonIntegration } from './integrations/neon';
 export { tediousIntegration } from './integrations/tedious';
 export { vercelAIIntegration } from './integrations/vercel-ai';
 export { expressIntegration } from './integrations/express';
