@@ -278,6 +278,81 @@ describe('SentryEffectTracer', () => {
     }).pipe(withSentryTracer),
   );
 
+  it.effect('sets origin to auto.http.effect for server spans named after the request method', () =>
+    Effect.gen(function* () {
+      let capturedAttributes: Record<string, unknown> | undefined;
+
+      const mockStartInactiveSpan = vi.spyOn(sentryCore, 'startInactiveSpan').mockImplementation(options => {
+        capturedAttributes = options.attributes;
+        return {
+          spanContext: () => ({ spanId: 'test-span-id', traceId: 'test-trace-id' }),
+          isRecording: () => true,
+          setAttribute: vi.fn(),
+          setStatus: vi.fn(),
+          addEvent: vi.fn(),
+          end: vi.fn(),
+        } as unknown as sentryCore.Span;
+      });
+
+      yield* Effect.withSpan('GET', { kind: 'server' })(Effect.succeed('ok'));
+
+      expect(capturedAttributes).toBeDefined();
+      expect(capturedAttributes?.[SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]).toBe('auto.http.effect');
+
+      mockStartInactiveSpan.mockRestore();
+    }).pipe(withSentryTracer),
+  );
+
+  it.effect('sets origin to auto.http.effect for client spans named after the request method', () =>
+    Effect.gen(function* () {
+      let capturedAttributes: Record<string, unknown> | undefined;
+
+      const mockStartInactiveSpan = vi.spyOn(sentryCore, 'startInactiveSpan').mockImplementation(options => {
+        capturedAttributes = options.attributes;
+        return {
+          spanContext: () => ({ spanId: 'test-span-id', traceId: 'test-trace-id' }),
+          isRecording: () => true,
+          setAttribute: vi.fn(),
+          setStatus: vi.fn(),
+          addEvent: vi.fn(),
+          end: vi.fn(),
+        } as unknown as sentryCore.Span;
+      });
+
+      yield* Effect.withSpan('POST', { kind: 'client' })(Effect.succeed('ok'));
+
+      expect(capturedAttributes).toBeDefined();
+      expect(capturedAttributes?.[SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]).toBe('auto.http.effect');
+
+      mockStartInactiveSpan.mockRestore();
+    }).pipe(withSentryTracer),
+  );
+
+  it.effect('sets origin to auto.function.effect for internal spans named after a request method', () =>
+    Effect.gen(function* () {
+      let capturedAttributes: Record<string, unknown> | undefined;
+
+      const mockStartInactiveSpan = vi.spyOn(sentryCore, 'startInactiveSpan').mockImplementation(options => {
+        capturedAttributes = options.attributes;
+        return {
+          spanContext: () => ({ spanId: 'test-span-id', traceId: 'test-trace-id' }),
+          isRecording: () => true,
+          setAttribute: vi.fn(),
+          setStatus: vi.fn(),
+          addEvent: vi.fn(),
+          end: vi.fn(),
+        } as unknown as sentryCore.Span;
+      });
+
+      yield* Effect.withSpan('GET')(Effect.succeed('ok'));
+
+      expect(capturedAttributes).toBeDefined();
+      expect(capturedAttributes?.[SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]).toBe('auto.function.effect');
+
+      mockStartInactiveSpan.mockRestore();
+    }).pipe(withSentryTracer),
+  );
+
   it.effect('can be used with Effect.withTracer', () =>
     Effect.gen(function* () {
       const result = yield* Effect.withSpan('inline-tracer-span')(Effect.succeed('with-tracer'));

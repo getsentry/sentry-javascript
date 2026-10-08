@@ -11,8 +11,18 @@ import * as Exit from 'effect/Exit';
 import * as Option from 'effect/Option';
 import * as EffectTracer from 'effect/Tracer';
 
-function deriveOrigin(name: string): string {
-  if (name.startsWith('http.server') || name.startsWith('http.client')) {
+const HTTP_METHODS = new Set(['GET', 'HEAD', 'POST', 'PUT', 'DELETE', 'CONNECT', 'OPTIONS', 'TRACE', 'PATCH']);
+
+/**
+ * Effect names its HTTP spans `http.server <method>`/`http.client <method>` (Effect v3 and v4 before 4.0.2)
+ * or only `<method>` with a `server`/`client` kind (Effect 4.0.2 and later).
+ */
+function deriveOrigin(name: string, kind: EffectTracer.SpanKind): string {
+  if (
+    name.startsWith('http.server') ||
+    name.startsWith('http.client') ||
+    ((kind === 'server' || kind === 'client') && HTTP_METHODS.has(name))
+  ) {
     return 'auto.http.effect';
   }
 
@@ -172,7 +182,7 @@ function createSentrySpan(
     name,
     startTime: nanosToHrTime(startTime),
     attributes: {
-      [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: deriveOrigin(name),
+      [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: deriveOrigin(name, kind),
     },
     ...(parentSentrySpan ? { parentSpan: parentSentrySpan } : {}),
   });
