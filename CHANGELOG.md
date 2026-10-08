@@ -4,6 +4,14 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 10.76.2
+
+- feat(v10/deps): Bump bundler plugins to 5.4.1 ([#25147](https://github.com/getsentry/sentry-javascript/pull/25147))
+- fix(v10/ai): Normalize token usage and preserve cache breakdowns ([#25126](https://github.com/getsentry/sentry-javascript/pull/25126))
+- fix(v10/core): Exclude attachments from internal exception events ([(#25167)](https://github.com/getsentry/sentry-javascript/pull/25167))
+- fix(v10/effect): Detect HTTP spans named after the request method ([#25169](https://github.com/getsentry/sentry-javascript/pull/25169))
+- fix(v10/sveltekit): Upload source maps with SvelteKit 3 (([#25172])(https://github.com/getsentry/sentry-javascript/pull/25172))
+
 ## 10.76.1
 
 - chore(v10/deps): Bump rrweb to 2.44.1 ([#25101](https://github.com/getsentry/sentry-javascript/pull/25101))
@@ -3564,6 +3572,7 @@ await compiled.invoke({
   <summary> <strong>Internal Changes</strong> </summary>
 
 - chore(build): Fix incorrect versions after merge ([#18154](https://github.com/getsentry/sentry-javascript/pull/18154))
+
 </details>
 
 ## 10.24.0
@@ -3592,6 +3601,7 @@ await compiled.invoke({
 - chore(eslint): Add eslint-plugin-regexp rule (dev-packages) ([#18063](https://github.com/getsentry/sentry-javascript/pull/18063))
 - test(next): fix flakey tests ([#18100](https://github.com/getsentry/sentry-javascript/pull/18100))
 - test(node-core): Proof that withMonitor doesn't create a new trace ([#18057](https://github.com/getsentry/sentry-javascript/pull/18057))
+
 </details>
 
 ## 10.23.0
