@@ -1,6 +1,5 @@
 import type { Integration, Options } from '@sentry/core';
 import {
-  _INTERNAL_warnIfClientIsActive,
   applySdkMetadata,
   consoleSandbox,
   conversationIdIntegration,
@@ -12,9 +11,11 @@ import {
   getCurrentScope,
   getIntegrationsToSetup,
   hasSpansEnabled,
+  _INTERNAL_warnIfClientIsActive,
   linkedErrorsIntegration,
   propagationContextFromHeaders,
   requestDataIntegration,
+  resolveServerTunnelOption,
   stackParserFromStackParserOptions,
 } from '@sentry/core';
 import { isMainThread, parentPort } from 'node:worker_threads';
@@ -249,6 +250,7 @@ function getClientOptions(
 
   return {
     ...mergedOptions,
+    ...resolveServerTunnelOption(mergedOptions.tunnel),
     integrations: resolvedIntegrations,
   };
 }
