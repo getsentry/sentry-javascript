@@ -21,9 +21,7 @@ describe('outgoing http with maxed-out agent sockets', () => {
       await createRunner()
         .withEnv({ SERVER_URL })
         .expect({
-          transaction: {
-            // we're not too concerned with the actual transaction here since this is tested elsewhere
-          },
+          span: {},
         })
         .start()
         .completed();
