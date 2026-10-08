@@ -145,14 +145,34 @@ describe('Unit | util | createPerformanceEntries', () => {
         data: { value: 5108.299, rating: 'good', size: 5108.299, nodeIds: undefined, attributions: undefined },
       });
     });
+
+    it('places a soft navigation LCP event at the render', () => {
+      const event = getLargestContentfulPaint({
+        value: 800,
+        rating: 'good',
+        navigationStartTime: 10_000,
+        entries: [{ entryType: 'largest-contentful-paint', startTime: 10_800 }] as PerformanceEntry[],
+      });
+
+      expect(event.start).toBe((TIME_ORIGIN + 10_800) / 1000);
+    });
+
+    it('places a bfcache LCP event after the restore', () => {
+      const event = getLargestContentfulPaint({ value: 50, rating: 'good', navigationStartTime: 10_000, entries: [] });
+
+      expect(event.start).toBe((TIME_ORIGIN + 10_050) / 1000);
+    });
   });
 
   describe('getCumulativeLayoutShift', () => {
-    it('works with a CLS metric', async () => {
+    it('places the CLS event at the last layout shift', async () => {
       const metric = {
-        value: 5108.299,
-        rating: 'good' as const,
-        entries: [],
+        value: 0.15,
+        rating: 'needs-improvement' as const,
+        entries: [
+          { entryType: 'layout-shift', startTime: 1000, value: 0.05, sources: [], hadRecentInput: false },
+          { entryType: 'layout-shift', startTime: 5108.299, value: 0.1, sources: [], hadRecentInput: false },
+        ] as unknown as PerformanceEntry[],
       };
 
       const event = getCumulativeLayoutShift(metric);
@@ -162,17 +182,62 @@ describe('Unit | util | createPerformanceEntries', () => {
         name: 'cumulative-layout-shift',
         start: 1672531205.108299,
         end: 1672531205.108299,
-        data: { value: 5108.299, size: 5108.299, rating: 'good', nodeIds: [], attributions: [] },
+        data: {
+          value: 0.15,
+          size: 0.15,
+          rating: 'needs-improvement',
+          nodeIds: [],
+          attributions: [
+            { value: 0.05, nodeIds: undefined },
+            { value: 0.1, nodeIds: undefined },
+          ],
+        },
       });
+    });
+
+    it('uses the time origin from when the last layout shift happened', () => {
+      const driftPointMs = 200_000;
+      const sleepDurationMs = 3_600_000;
+      vi.mocked(browserPerformanceTimeOrigin).mockImplementation((time = 0) =>
+        time < driftPointMs ? TIME_ORIGIN : TIME_ORIGIN + sleepDurationMs,
+      );
+
+      const event = getCumulativeLayoutShift({
+        value: 0.1,
+        rating: 'good',
+        entries: [
+          { entryType: 'layout-shift', startTime: driftPointMs + 1000, value: 0.1, sources: [], hadRecentInput: false },
+        ] as unknown as PerformanceEntry[],
+      });
+
+      expect(event.start).toBe((TIME_ORIGIN + sleepDurationMs + driftPointMs + 1000) / 1000);
+    });
+
+    it('places a CLS of 0 at the time origin', async () => {
+      const event = getCumulativeLayoutShift({ value: 0, rating: 'good', entries: [] });
+
+      expect(event).toEqual({
+        type: 'web-vital',
+        name: 'cumulative-layout-shift',
+        start: TIME_ORIGIN / 1000,
+        end: TIME_ORIGIN / 1000,
+        data: { value: 0, size: 0, rating: 'good', nodeIds: [], attributions: [] },
+      });
+    });
+
+    it('places a soft navigation CLS of 0 at the start of the navigation', () => {
+      const event = getCumulativeLayoutShift({ value: 0, rating: 'good', navigationStartTime: 10_000, entries: [] });
+
+      expect(event.start).toBe((TIME_ORIGIN + 10_000) / 1000);
     });
   });
 
   describe('getInteractionToNextPaint', () => {
-    it('works with an INP metric', async () => {
+    it('places the INP event at the interaction', async () => {
       const metric = {
-        value: 5108.299,
+        value: 120,
         rating: 'good' as const,
-        entries: [],
+        entries: [{ name: 'click', entryType: 'event', startTime: 5108.299, duration: 120 }] as PerformanceEntry[],
       };
 
       const event = getInteractionToNextPaint(metric);
@@ -182,8 +247,26 @@ describe('Unit | util | createPerformanceEntries', () => {
         name: 'interaction-to-next-paint',
         start: 1672531205.108299,
         end: 1672531205.108299,
-        data: { value: 5108.299, size: 5108.299, rating: 'good', nodeIds: undefined, attributions: undefined },
+        data: { value: 120, size: 120, rating: 'good', nodeIds: undefined, attributions: undefined },
       });
+    });
+
+    it('uses the time origin from when the interaction happened', () => {
+      const driftPointMs = 200_000;
+      const sleepDurationMs = 3_600_000;
+      vi.mocked(browserPerformanceTimeOrigin).mockImplementation((time = 0) =>
+        time < driftPointMs ? TIME_ORIGIN : TIME_ORIGIN + sleepDurationMs,
+      );
+
+      const event = getInteractionToNextPaint({
+        value: 120,
+        rating: 'good',
+        entries: [
+          { name: 'click', entryType: 'event', startTime: driftPointMs + 1000, duration: 120 },
+        ] as PerformanceEntry[],
+      });
+
+      expect(event.start).toBe((TIME_ORIGIN + sleepDurationMs + driftPointMs + 1000) / 1000);
     });
   });
 });
