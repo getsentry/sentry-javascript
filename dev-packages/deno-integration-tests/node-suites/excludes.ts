@@ -1,5 +1,6 @@
 // Node suites that do not run on Deno, relative to `node-integration-tests`. A single test that
-// fails on Deno is skipped with `test.skipIf` on `RUNTIME` in the Node suite, not listed here.
+// fails on Deno runs only on the other runtimes, with `test.runIf(supports({ runtimes }))` in the
+// Node suite, and is not listed here.
 
 // Node-only features: ANR and native thread watchdogs, child process and worker thread breadcrumbs.
 const NODE_ONLY = ['suites/anr/test.ts', 'suites/breadcrumbs/**', 'suites/thread-blocked-native/test.ts'];
