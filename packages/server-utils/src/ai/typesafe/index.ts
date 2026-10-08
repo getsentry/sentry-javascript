@@ -12,9 +12,9 @@ import {
 } from '@sentry/conventions/attributes';
 import { GEN_AI_EVALUATE } from '@sentry/conventions/op';
 import type { Span, SpanAttributes } from '@sentry/core';
-import { isObjectLike, SPAN_STATUS_ERROR, startInactiveSpan, stringify, withActiveSpan } from '@sentry/core';
+import { isObjectLike, SPAN_STATUS_ERROR, startInactiveSpan, withActiveSpan } from '@sentry/core';
 import type { GenAiOptions } from '../core/utils';
-import { resolveAIRecordingOptions } from '../core/utils';
+import { getEvaluationInputMessages, getEvaluationOutputMessages, resolveAIRecordingOptions } from '../core/utils';
 import { TYPESAFE_ORIGIN, TYPESAFE_PROVIDER_NAME } from './constants';
 
 /**
@@ -54,11 +54,6 @@ function getRequestAttributes(
   };
 }
 
-/** Serialize the `state` and `questions` of an evaluation request. Also used for TypeSafe models on Workers AI. */
-export function getEvaluationInputMessages(request: Record<string, unknown>): string | undefined {
-  return stringify([{ type: 'evaluation', state: request.state, questions: request.questions }]);
-}
-
 /**
  * Add the response model, token usage and (optionally) the answers of a `systemOne` result.
  * Also used for TypeSafe models on Workers AI.
@@ -86,7 +81,7 @@ export function addResponseAttributes(span: Span, result: unknown, recordOutputs
   }
 
   if (recordOutputs && result.answers !== undefined) {
-    span.setAttribute(GEN_AI_OUTPUT_MESSAGES, stringify([{ type: 'evaluation', answers: result.answers }]));
+    span.setAttribute(GEN_AI_OUTPUT_MESSAGES, getEvaluationOutputMessages(result.answers));
   }
 }
 
