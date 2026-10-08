@@ -2,14 +2,14 @@ import type * as SentryCore from '@sentry/core';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 // Trace data as the SDK would produce it for the active request; empty when nothing is active.
-let traceData: { 'sentry-trace'?: string; baggage?: string } = {};
+const getTraceData = vi.hoisted(() => vi.fn<() => { 'sentry-trace'?: string; baggage?: string }>(() => ({})));
 
 vi.mock('@sentry/core', async importOriginal => ({
   ...(await importOriginal<typeof SentryCore>()),
-  getTraceData: () => traceData,
+  getTraceData,
 }));
 
-const { sentryRemixMiddleware } = await import('../../src/v3/server/middleware');
+import { sentryRemixMiddleware } from '../../src/v3/server/middleware';
 import type { MatcherLike, RequestContextLike } from '../../src/v3/types';
 
 /** A matcher that resolves every URL to the one pattern, or to nothing. */
@@ -26,11 +26,11 @@ function contextFor(url: string, headers: Record<string, string> = {}): RequestC
 
 describe('sentryRemixMiddleware', () => {
   beforeEach(() => {
-    traceData = {};
+    getTraceData.mockReturnValue({});
   });
 
   it('propagates the trace to HTML responses through Server-Timing, ahead of the route', async () => {
-    traceData = { 'sentry-trace': 'abc-def-1', baggage: 'sentry-trace_id=abc' };
+    getTraceData.mockReturnValue({ 'sentry-trace': 'abc-def-1', baggage: 'sentry-trace_id=abc' });
     const middleware = sentryRemixMiddleware(matcherFor('/users/:id'));
 
     const response = await middleware(
@@ -44,7 +44,7 @@ describe('sentryRemixMiddleware', () => {
   });
 
   it('propagates the trace even when no route matched', async () => {
-    traceData = { 'sentry-trace': 'abc-def-1' };
+    getTraceData.mockReturnValue({ 'sentry-trace': 'abc-def-1' });
     const middleware = sentryRemixMiddleware(matcherFor(undefined));
 
     const response = await middleware(
@@ -60,7 +60,7 @@ describe('sentryRemixMiddleware', () => {
     ['s-maxage', 's-maxage=300'],
     ['max-age', 'max-age=60'],
   ])('leaves the trace off a response a shared cache may store (%s), keeping the route', async (_why, cacheControl) => {
-    traceData = { 'sentry-trace': 'abc-def-1', baggage: 'sentry-trace_id=abc' };
+    getTraceData.mockReturnValue({ 'sentry-trace': 'abc-def-1', baggage: 'sentry-trace_id=abc' });
     const middleware = sentryRemixMiddleware(matcherFor('/'));
 
     const response = await middleware(
@@ -78,7 +78,7 @@ describe('sentryRemixMiddleware', () => {
     ['s-maxage=0', 'max-age=3600, s-maxage=0'],
     ['no cache header', undefined],
   ])('propagates the trace on a response only this user can get back (%s)', async (_why, cacheControl) => {
-    traceData = { 'sentry-trace': 'abc-def-1' };
+    getTraceData.mockReturnValue({ 'sentry-trace': 'abc-def-1' });
     const middleware = sentryRemixMiddleware(matcherFor('/'));
 
     const response = await middleware(
