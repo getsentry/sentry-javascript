@@ -11,6 +11,7 @@ import {
   SERVER_ADDRESS,
   SERVER_PORT,
 } from '@sentry/conventions/attributes';
+import { DB } from '@sentry/conventions/op';
 import { MongoMemoryServer } from 'mongodb-memory-server-global';
 import { afterAll, beforeAll, describe, expect } from 'vitest';
 import { cleanupChildProcesses, createEsmAndCjsTests } from '../../../utils/runner';
@@ -46,7 +47,7 @@ describe('Mongoose tracing channel Test', () => {
         [DB_NAMESPACE]: { type: 'string', value: 'test' },
         [DB_OPERATION_NAME]: { type: 'string', value: operation },
         [DB_SYSTEM_NAME]: { type: 'string', value: 'mongodb' },
-        [SENTRY_OP]: { type: 'string', value: 'db' },
+        [SENTRY_OP]: { type: 'string', value: DB },
         [SENTRY_ORIGIN]: { type: 'string', value: 'auto.db.mongoose.diagnostic_channel' },
         [SENTRY_TRACE_LIFECYCLE]: { type: 'string', value: 'stream' },
         [SERVER_ADDRESS]: { type: 'string', value: expect.any(String) },

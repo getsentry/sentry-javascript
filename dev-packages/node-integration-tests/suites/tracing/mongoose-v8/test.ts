@@ -6,6 +6,7 @@ import {
   SENTRY_ORIGIN,
   SENTRY_TRACE_LIFECYCLE,
 } from '@sentry/conventions/attributes';
+import { DB } from '@sentry/conventions/op';
 import { MongoMemoryServer } from 'mongodb-memory-server-global';
 import { afterAll, beforeAll, describe, expect } from 'vitest';
 import { cleanupChildProcesses, createEsmAndCjsTests } from '../../../utils/runner';
@@ -37,7 +38,7 @@ describe('Mongoose v8 Test', () => {
         [DB_COLLECTION_NAME]: { type: 'string', value: 'blogposts' },
         [DB_OPERATION_NAME]: { type: 'string', value: operation },
         [DB_SYSTEM_NAME]: { type: 'string', value: 'mongodb' },
-        [SENTRY_OP]: { type: 'string', value: 'db' },
+        [SENTRY_OP]: { type: 'string', value: DB },
         [SENTRY_ORIGIN]: { type: 'string', value: origin },
         [SENTRY_TRACE_LIFECYCLE]: { type: 'string', value: 'stream' },
       }),
