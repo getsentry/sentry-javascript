@@ -32,8 +32,6 @@ async function run() {
 
     await graph.invoke({ ticket: 'My payouts have been failing.' });
   });
-
-  await Sentry.flush(2000);
 }
 
 run();

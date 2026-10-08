@@ -63,7 +63,6 @@ async function run() {
     await agent.invoke({ messages: [{ role: 'user', content: 'Where is my refund?' }] });
   });
 
-  await Sentry.flush(2000);
   server.close();
 }
 
