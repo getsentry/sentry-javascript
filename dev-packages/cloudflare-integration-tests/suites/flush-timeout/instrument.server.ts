@@ -17,7 +17,6 @@ export default defineCloudflareOptions((env: Env) => ({
     fetch: (input, init) => {
       init?.signal?.addEventListener('abort', () => {
         lastSend.aborted = true;
-        lastSend.onAbort?.();
       });
       return fetch(input, init);
     },
