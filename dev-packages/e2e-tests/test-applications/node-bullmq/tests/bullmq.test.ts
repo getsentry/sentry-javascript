@@ -77,7 +77,7 @@ test('BullMQ processor breadcrumbs do not leak into subsequent HTTP requests', a
   expect(leakedBreadcrumb).toBeUndefined();
 });
 
-test('Links the queue.process segment span to its producer span via sentry.previous_trace', async ({ baseURL }) => {
+test('Links the queue.process segment span to its producer span', async ({ baseURL }) => {
   const producerSpanPromise = waitForStreamedSpan('node-bullmq', span => {
     return getSpanOp(span) === 'queue.publish' && span.attributes['bullmq.job.name']?.value === 'link-job';
   });
@@ -94,9 +94,7 @@ test('Links the queue.process segment span to its producer span via sentry.previ
   const consumerSpan = await consumerSpanPromise;
 
   expect(producerSpan.attributes['sentry.segment.name']?.value).toBe('GET /enqueue/link-test');
-  expect(consumerSpan.attributes['sentry.previous_trace']?.value).toBe(
-    `${producerSpan.trace_id}-${producerSpan.span_id}-1`,
-  );
+  expect(consumerSpan.attributes['sentry.previous_trace']).toBeUndefined();
   expect(consumerSpan.links).toEqual([
     {
       trace_id: producerSpan.trace_id,
