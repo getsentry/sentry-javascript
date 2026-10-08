@@ -16,8 +16,8 @@ sentryTest(
 
     const url = await getLocalTestUrl({ testDir: __dirname });
 
-    const [pageloadEvent] = await waitForStreamedSpanAndTraceHeaderOnUrl(page, url);
-    const pageloadTraceId = pageloadEvent?.trace_id;
+    const [pageloadSpan] = await waitForStreamedSpanAndTraceHeaderOnUrl(page, url);
+    const pageloadTraceId = pageloadSpan?.trace_id;
     expect(pageloadTraceId).toMatch(/^[\da-f]{32}$/);
 
     const spanPromises = Promise.all(

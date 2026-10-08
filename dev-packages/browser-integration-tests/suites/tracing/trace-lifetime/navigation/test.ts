@@ -1,3 +1,15 @@
+import { expect } from '@playwright/test';
+import type { Event } from '@sentry/core';
+import { sentryTest } from '../../../../utils/fixtures';
+import {
+  eventAndTraceHeaderRequestParser,
+  getMultipleSentryEnvelopeRequests,
+  shouldSkipFeedbackTest,
+  shouldSkipTracingTest,
+  waitForErrorRequest,
+} from '../../../../utils/helpers';
+import { getSpanOp, waitForStreamedSpan, waitForStreamedSpanEnvelope } from '../../../../utils/spanUtils';
+
 sentryTest('creates a new trace and sample_rand on each navigation', async ({ getLocalTestUrl, page }) => {
   sentryTest.skip(shouldSkipTracingTest());
 
@@ -61,17 +73,6 @@ sentryTest('creates a new trace and sample_rand on each navigation', async ({ ge
   expect(navigation1TraceId).not.toEqual(navigation2TraceId);
   expect(navigation1SampleRand).not.toEqual(navigation2SampleRand);
 });
-import { expect } from '@playwright/test';
-import type { Event } from '@sentry/core';
-import { sentryTest } from '../../../../utils/fixtures';
-import {
-  eventAndTraceHeaderRequestParser,
-  getMultipleSentryEnvelopeRequests,
-  shouldSkipFeedbackTest,
-  shouldSkipTracingTest,
-  waitForErrorRequest,
-} from '../../../../utils/helpers';
-import { getSpanOp, waitForStreamedSpan, waitForStreamedSpanEnvelope } from '../../../../utils/spanUtils';
 
 sentryTest('error after navigation has navigation traceId', async ({ getLocalTestUrl, page }) => {
   sentryTest.skip(shouldSkipTracingTest());

@@ -1,3 +1,15 @@
+import { expect } from '@playwright/test';
+import type { Event } from '@sentry/core';
+import { sentryTest } from '../../../../utils/fixtures';
+import {
+  eventAndTraceHeaderRequestParser,
+  getMultipleSentryEnvelopeRequests,
+  shouldSkipFeedbackTest,
+  shouldSkipTracingTest,
+  waitForErrorRequest,
+} from '../../../../utils/helpers';
+import { getSpanOp, waitForStreamedSpan, waitForStreamedSpanEnvelope } from '../../../../utils/spanUtils';
+
 sentryTest('creates a new trace for a navigation after the initial pageload', async ({ getLocalTestUrl, page }) => {
   sentryTest.skip(shouldSkipTracingTest());
 
@@ -9,7 +21,7 @@ sentryTest('creates a new trace for a navigation after the initial pageload', as
 
   const pageloadSpan = await pageloadSpanPromise;
 
-  page.goto(`${url}#foo`);
+  await page.goto(`${url}#foo`);
 
   const navigationSpan = await navigationSpanPromise;
 
@@ -26,17 +38,6 @@ sentryTest('creates a new trace for a navigation after the initial pageload', as
   expect(pageloadSpan.span_id).not.toEqual(navigationSpan.span_id);
   expect(pageloadSpan.trace_id).not.toEqual(navigationSpan.trace_id);
 });
-import { expect } from '@playwright/test';
-import type { Event } from '@sentry/core';
-import { sentryTest } from '../../../../utils/fixtures';
-import {
-  eventAndTraceHeaderRequestParser,
-  getMultipleSentryEnvelopeRequests,
-  shouldSkipFeedbackTest,
-  shouldSkipTracingTest,
-  waitForErrorRequest,
-} from '../../../../utils/helpers';
-import { getSpanOp, waitForStreamedSpan, waitForStreamedSpanEnvelope } from '../../../../utils/spanUtils';
 
 sentryTest('error after pageload has pageload traceId', async ({ getLocalTestUrl, page }) => {
   sentryTest.skip(shouldSkipTracingTest());

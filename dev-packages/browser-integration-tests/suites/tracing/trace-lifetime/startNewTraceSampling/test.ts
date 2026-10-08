@@ -22,13 +22,11 @@ sentryTest(
       });
     });
 
-    const [pageloadEvent, pageloadTraceHeaders] = await waitForStreamedSpanAndTraceHeaderOnUrl(page, url);
+    const [pageloadSpan, pageloadTraceHeaders] = await waitForStreamedSpanAndTraceHeaderOnUrl(page, url);
 
-    const pageloadTraceContext = pageloadEvent;
+    expect(pageloadSpan.is_segment).toBe(true);
 
-    expect(pageloadEvent.is_segment).toBe(true);
-
-    expect(pageloadTraceContext).toMatchObject({
+    expect(pageloadSpan).toMatchObject({
       is_segment: true,
       attributes: expect.objectContaining({
         [SENTRY_OP]: { type: 'string', value: 'pageload' },
@@ -37,14 +35,14 @@ sentryTest(
       trace_id: expect.stringMatching(/^[\da-f]{32}$/),
       span_id: expect.stringMatching(/^[\da-f]{16}$/),
     });
-    expect(pageloadTraceContext).not.toHaveProperty('parent_span_id');
+    expect(pageloadSpan).not.toHaveProperty('parent_span_id');
 
     expect(pageloadTraceHeaders).toEqual({
       environment: 'production',
       public_key: 'public',
       sample_rate: '0.5',
       sampled: 'true',
-      trace_id: pageloadTraceContext?.trace_id,
+      trace_id: pageloadSpan?.trace_id,
       sample_rand: '0.45',
     });
 
@@ -54,8 +52,7 @@ sentryTest(
 
     const [newTraceSpan, newTraceHeaders] = await spanPromise;
 
-    const newTraceSpanContext = newTraceSpan;
-    expect(newTraceSpanContext).toMatchObject({
+    expect(newTraceSpan).toMatchObject({
       is_segment: true,
       attributes: expect.objectContaining({
         [SENTRY_OP]: { type: 'string', value: 'ui.interaction.click' },
@@ -70,11 +67,11 @@ sentryTest(
       public_key: 'public',
       sample_rate: '0.9',
       sampled: 'true',
-      trace_id: newTraceSpanContext?.trace_id,
+      trace_id: newTraceSpan?.trace_id,
       transaction: 'new-trace',
       sample_rand: '0.85',
     });
 
-    expect(newTraceSpanContext?.trace_id).not.toEqual(pageloadTraceContext?.trace_id);
+    expect(newTraceSpan?.trace_id).not.toEqual(pageloadSpan?.trace_id);
   },
 );

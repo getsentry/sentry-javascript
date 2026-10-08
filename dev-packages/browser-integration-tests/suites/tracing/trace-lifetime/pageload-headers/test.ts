@@ -25,14 +25,11 @@ sentryTest(
       },
     });
 
-    const [pageloadEvent, pageloadTraceHeader] = await waitForStreamedSpanAndTraceHeaderOnUrl(page, url);
-    const [navigationEvent, navigationTraceHeader] = await waitForStreamedSpanAndTraceHeaderOnUrl(page, `${url}#foo`);
+    const [pageloadSpan, pageloadTraceHeader] = await waitForStreamedSpanAndTraceHeaderOnUrl(page, url);
+    const [navigationSpan, navigationTraceHeader] = await waitForStreamedSpanAndTraceHeaderOnUrl(page, `${url}#foo`);
 
-    const pageloadTraceContext = pageloadEvent;
-    const navigationTraceContext = navigationEvent;
-
-    expect(pageloadEvent.is_segment).toBe(true);
-    expect(pageloadTraceContext).toMatchObject({
+    expect(pageloadSpan.is_segment).toBe(true);
+    expect(pageloadSpan).toMatchObject({
       is_segment: true,
       attributes: expect.objectContaining({ [SENTRY_OP]: { type: 'string', value: 'pageload' } }),
       trace_id: META_TAG_TRACE_ID,
@@ -51,26 +48,26 @@ sentryTest(
       sample_rand: '0.42',
     });
 
-    expect(navigationEvent.is_segment).toBe(true);
-    expect(navigationTraceContext).toMatchObject({
+    expect(navigationSpan.is_segment).toBe(true);
+    expect(navigationSpan).toMatchObject({
       is_segment: true,
       attributes: expect.objectContaining({ [SENTRY_OP]: { type: 'string', value: 'navigation' } }),
       trace_id: expect.stringMatching(/^[\da-f]{32}$/),
       span_id: expect.stringMatching(/^[\da-f]{16}$/),
     });
     // navigation span is head of trace, so there's no parent span:
-    expect(navigationTraceContext).not.toHaveProperty('parent_span_id');
+    expect(navigationSpan).not.toHaveProperty('parent_span_id');
 
     expect(navigationTraceHeader).toEqual({
       environment: 'production',
       public_key: 'public',
       sample_rate: '1',
       sampled: 'true',
-      trace_id: navigationTraceContext?.trace_id,
+      trace_id: navigationSpan?.trace_id,
       sample_rand: expect.any(String),
     });
 
-    expect(pageloadTraceContext?.trace_id).not.toEqual(navigationTraceContext?.trace_id);
+    expect(pageloadSpan?.trace_id).not.toEqual(navigationSpan?.trace_id);
     expect(pageloadTraceHeader?.sample_rand).not.toEqual(navigationTraceHeader?.sample_rand);
   },
 );
