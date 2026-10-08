@@ -23,6 +23,15 @@ describe('init', () => {
     expect(client).toBeInstanceOf(CloudflareClient);
   });
 
+  test('enables the managed tunnel for `tunnel: { allowedDsns }`', () => {
+    const browserDsn = 'https://browser@o1.ingest.sentry.io/42';
+    init({ dsn: 'https://public@dsn.ingest.sentry.io/1337', tunnel: { allowedDsns: [browserDsn] } });
+
+    const options = getClient()?.getOptions();
+    expect(options?.tunnel).toBeUndefined();
+    expect(options?._managedTunnel).toEqual({ allowedDsns: [browserDsn] });
+  });
+
   test('installs SpanStreaming integration by default', () => {
     init({
       dsn: 'https://public@dsn.ingest.sentry.io/1337',
