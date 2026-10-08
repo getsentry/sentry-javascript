@@ -1,4 +1,4 @@
-import type { createSentryBuildPluginManager as createSentryBuildPluginManagerType } from '@sentry/bundler-plugin-core';
+import type { createSentryBuildPluginManager as createSentryBuildPluginManagerType } from '@sentry/bundler-plugins/core';
 import { loadModule } from '@sentry/core';
 import * as fs from 'fs';
 import * as path from 'path';
@@ -32,7 +32,7 @@ export async function handleRunAfterProductionCompile(
 
   const { createSentryBuildPluginManager } =
     loadModule<{ createSentryBuildPluginManager: typeof createSentryBuildPluginManagerType }>(
-      '@sentry/bundler-plugin-core',
+      '@sentry/bundler-plugins/core',
       module,
     ) ?? {};
 

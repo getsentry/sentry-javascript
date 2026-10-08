@@ -10,7 +10,8 @@ import {
   validateNitroSourceMapSettings,
 } from '../../src/vite/sourceMaps';
 
-vi.mock('@sentry/core', () => ({
+vi.mock('@sentry/core', async importOriginal => ({
+  ...(await importOriginal()),
   consoleSandbox: (callback: () => void) => callback(),
 }));
 
