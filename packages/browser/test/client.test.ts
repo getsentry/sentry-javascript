@@ -29,9 +29,10 @@ function setDocumentHidden(): void {
 describe('BrowserClient', () => {
   let client: BrowserClient;
 
-  afterEach(() => {
+  afterEach(async () => {
     vi.useRealTimers();
     vi.clearAllMocks();
+    await client?.close();
   });
 
   it('flushes the client (spans, logs, metrics) when the page becomes hidden', async () => {
@@ -75,6 +76,23 @@ describe('BrowserClient', () => {
     getTarget().dispatchEvent(new Event(eventName));
 
     expect(SentryCore.timestampInSeconds).toHaveBeenCalled();
+  });
+
+  it('removes its page lifecycle listeners when closed', async () => {
+    client = new BrowserClient(getDefaultBrowserClientOptions());
+    await client.close();
+    const flushSpy = vi.spyOn(client, 'flush');
+    vi.mocked(SentryCore.timestampInSeconds).mockClear();
+
+    setDocumentHidden();
+    WINDOW.document.dispatchEvent(new Event('freeze'));
+    WINDOW.document.dispatchEvent(new Event('resume'));
+    WINDOW.dispatchEvent(new Event('pagehide'));
+    WINDOW.dispatchEvent(new Event('pageshow'));
+    await Promise.resolve();
+
+    expect(SentryCore.timestampInSeconds).not.toHaveBeenCalled();
+    expect(flushSpy).not.toHaveBeenCalled();
   });
 
   it('does not flush outcomes when sendClientReports is disabled but still flushes the client', async () => {
