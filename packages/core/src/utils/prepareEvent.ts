@@ -7,6 +7,7 @@ import type { Event, EventHint } from '../types/event';
 import type { ClientOptions } from '../types/options';
 import type { StackParser } from '../types/stacktrace';
 import { getFilenameToDebugIdMap } from './debug-ids';
+import { isInternalException } from './eventUtils';
 import { addExceptionMechanism, uuid4 } from './misc';
 import { normalize } from './normalize';
 import { applyScopeDataToEvent, getCombinedScopeData } from './scopeData';
@@ -95,9 +96,7 @@ export function prepareEvent(
   ];
 
   // Skip event processors for internal exceptions to prevent recursion
-  // oxlint-disable-next-line typescript/prefer-optional-chain
-  const isInternalException = hint.data && (hint.data as { __sentry__: boolean }).__sentry__ === true;
-  const result = isInternalException
+  const result: PromiseLike<Event | null> = isInternalException(hint)
     ? resolvedSyncPromise(prepared)
     : notifyEventProcessors(eventProcessors, prepared, hint);
 
