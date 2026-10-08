@@ -1,6 +1,7 @@
 // Node suites that do not run on Bun, relative to `node-integration-tests`. A single test that
 // fails on Bun runs only on the other runtimes, with `test.runIf(supports({ runtimes }))` in the
-// Node suite, and is not listed here.
+// Node suite, and a suite or test that fails only on older Bun versions runs with
+// `supports({ bunMin })`. Neither is listed here.
 
 // Node-only features: ANR and native thread watchdogs, child processes, the AWS Lambda Node runtime,
 // `node:sqlite`, which `flue` needs, and the Vercel keep-alive, which needs `http.server.response.finish`.
@@ -55,23 +56,6 @@ const NO_FETCH_INSTRUMENTATION = [
   'suites/tracing/requests/fetch-sampled-no-active-span/test.ts',
   'suites/tracing/requests/fetch-unsampled/test.ts',
   'suites/tracing/requests/traceparent/test.ts',
-];
-
-// Bun 1.3.14 (the CI version) does not instrument outgoing `node:http` requests. These suites pass
-// on Bun 1.4.2. See https://github.com/getsentry/sentry-javascript/issues/23881
-const NO_OUTGOING_HTTP_INSTRUMENTATION = [
-  'suites/tracing/dsc-txn-name-update/test.ts',
-  'suites/tracing/http-client-spans/http-basic/test.ts',
-  'suites/tracing/http-client-spans/http-strip-query/test.ts',
-  'suites/tracing/requests/http-breadcrumbs/test.ts',
-  'suites/tracing/requests/http-maxed-out-sockets/test.ts',
-  'suites/tracing/requests/http-no-trace-propagation/test.ts',
-  'suites/tracing/requests/http-no-tracing-no-spans/test.ts',
-  'suites/tracing/requests/http-no-tracing/test.ts',
-  'suites/tracing/requests/http-sampled-no-active-span/test.ts',
-  'suites/tracing/requests/http-sampled/test.ts',
-  'suites/tracing/requests/http-unsampled/test.ts',
-  'suites/tracing/tracePropagationTargets/**',
 ];
 
 // `bun run` cannot inject the diagnostics channels into libraries, so framework, database and AI
@@ -143,16 +127,15 @@ export const NO_AUTO_INSTRUMENTATION = [
   'suites/tracing/vercelai/**',
 ];
 
-// Fail on Bun, cause not investigated yet. `system-error` and `tracer-start-active-span-error`
-// fail on Bun 1.3.14 and pass on Bun 1.4.2. With the `@sentry/bun` alias, `system-error` also
-// fails because `@sentry/bun` does not include `nodeSystemErrorIntegration`.
+// Fail on Bun, cause not investigated yet.
 const NOT_TRIAGED = [
   'suites/contextLines/filename-with-spaces/test.ts',
   'suites/modules/test.ts',
   'suites/proxy/test.ts',
-  'suites/system-error/test.ts',
-  'suites/tracing/tracer-start-active-span-error/test.ts',
 ];
+
+// The suite expects the events of `nodeSystemErrorIntegration`, which `@sentry/bun` does not include.
+const NO_SYSTEM_ERROR_INTEGRATION = ['suites/system-error/test.ts'];
 
 // The scenario configures `nativeNodeFetchIntegration`, which `@sentry/bun` does not export.
 const NO_NATIVE_NODE_FETCH_INTEGRATION = [
@@ -203,13 +186,7 @@ const NO_EXPRESS_INSTRUMENTATION = [
   'suites/tracing/traceid-recycling-with-spans/test.ts',
 ];
 
-export const NODE_SUITES_EXCLUDE = [
-  '**/node_modules/**',
-  ...NODE_ONLY,
-  ...NO_OUTGOING_HTTP_INSTRUMENTATION,
-  ...NO_AUTO_INSTRUMENTATION,
-  ...NOT_TRIAGED,
-];
+export const NODE_SUITES_EXCLUDE = ['**/node_modules/**', ...NODE_ONLY, ...NO_AUTO_INSTRUMENTATION, ...NOT_TRIAGED];
 
 // Excluded only in the `node-suites` project, which runs the suites with `@sentry/node`.
 export const SENTRY_NODE_EXCLUDE = [...NO_HTTP_SERVER_SPANS, ...NO_FETCH_INSTRUMENTATION];
@@ -218,6 +195,7 @@ export const SENTRY_NODE_EXCLUDE = [...NO_HTTP_SERVER_SPANS, ...NO_FETCH_INSTRUM
 export const SENTRY_BUN_EXCLUDE = [
   ...HTTP_SERVER_OPTIONS_IGNORED,
   ...NO_EXPRESS_INSTRUMENTATION,
+  ...NO_SYSTEM_ERROR_INTEGRATION,
   ...NO_NATIVE_NODE_FETCH_INTEGRATION,
   ...FETCH_INTEGRATION_DIFFERS,
 ];

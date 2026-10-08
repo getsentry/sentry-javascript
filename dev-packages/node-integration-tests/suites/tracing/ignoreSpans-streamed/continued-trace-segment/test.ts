@@ -41,9 +41,9 @@ describe('ignoring a continued server segment (streaming)', () => {
     };
 
     test('propagates a negative sampling decision to outgoing fetch requests', () => testPropagation('/ignored'));
-    // Bun 1.3.14 does not instrument outgoing `node:http` requests.
+    // Bun before 1.4 does not instrument outgoing `node:http` requests.
     // See https://github.com/getsentry/sentry-javascript/issues/23881
-    test.runIf(supports({ runtimes: ['node', 'deno'] }))(
+    test.runIf(supports({ bunMin: '1.4.0' }))(
       'propagates a negative sampling decision to outgoing node:http requests',
       () => testPropagation('/ignored-http'),
     );
