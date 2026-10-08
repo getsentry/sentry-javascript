@@ -1,5 +1,6 @@
 import type { Client, Span, StartSpanOptions } from '@sentry/core';
 import {
+  getCurrentScope,
   GLOBAL_OBJ,
   hasSpanStreamingEnabled,
   isObjectLike,
@@ -17,7 +18,7 @@ import {
   resolveRoute,
 } from '@sentry/react';
 import { stripTrailingSlash } from './parameterization';
-import type { TraceMetaTagWait } from './traceMetaTags';
+import type { TraceMetaTagValues, TraceMetaTagWait } from './traceMetaTags';
 import { addTraceMetaTagLink, canWaitForTraceMetaTag, readTraceMetaTags, waitForTraceMetaTag } from './traceMetaTags';
 import {
   SENTRY_OP,
@@ -114,8 +115,28 @@ export function settlePendingPageloadWait(): void {
   pendingPageloadWait?.giveUp();
 }
 
+/**
+ * Starts the pageload span with the request data of the document. The span may start after a
+ * navigation already changed the location, so the browser SDK would otherwise read the new one.
+ */
+function startPageloadSpan(
+  client: Client,
+  spanOptions: StartSpanOptions,
+  documentUrl: string,
+  traceMetaTags?: TraceMetaTagValues,
+): Span | undefined {
+  const span = startBrowserTracingPageLoadSpan(client, spanOptions, traceMetaTags);
+  const scope = getCurrentScope();
+  const { normalizedRequest } = scope.getScopeData().sdkProcessingMetadata;
+  if (normalizedRequest) {
+    scope.setSDKProcessingMetadata({ normalizedRequest: { ...normalizedRequest, url: documentUrl } });
+  }
+  return span;
+}
+
 /** Instruments the Next.js app router for pageloads. */
 export function appRouterInstrumentPageLoad(client: Client): void {
+  const documentUrl = WINDOW.location.href;
   const pathname = stripTrailingSlash(WINDOW.location.pathname);
   const parameterizedPathname = resolveCurrentRoute(client);
   const spanOptions: StartSpanOptions = {
@@ -126,6 +147,8 @@ export function appRouterInstrumentPageLoad(client: Client): void {
       [SENTRY_OP]: PAGELOAD,
       [SENTRY_ORIGIN]: 'auto.pageload.nextjs.app_router_instrumentation',
       [SENTRY_SEGMENT_NAME_SOURCE]: parameterizedPathname ? 'route' : 'url',
+      [URL_PATH]: WINDOW.location.pathname,
+      [URL_FULL]: filterCollectedUrl(documentUrl),
       ...(parameterizedPathname && { [URL_TEMPLATE]: parameterizedPathname }),
     },
   };
@@ -136,18 +159,18 @@ export function appRouterInstrumentPageLoad(client: Client): void {
   // trace instead of linking it; the span's start is backdated to the time origin either way.
   const traceMetaTags = readTraceMetaTags();
   if (traceMetaTags || !canWaitForTraceMetaTag()) {
-    startBrowserTracingPageLoadSpan(client, spanOptions, traceMetaTags);
+    startPageloadSpan(client, spanOptions, documentUrl, traceMetaTags);
     return;
   }
 
   pendingPageloadWait = waitForTraceMetaTag(
     values => {
       pendingPageloadWait = undefined;
-      startBrowserTracingPageLoadSpan(client, spanOptions, values);
+      startPageloadSpan(client, spanOptions, documentUrl, values);
     },
     () => {
       pendingPageloadWait = undefined;
-      const span = startBrowserTracingPageLoadSpan(client, spanOptions);
+      const span = startPageloadSpan(client, spanOptions, documentUrl);
       // Only reachable through the cap or a navigation while the document still streams: a tag that
       // shows up after this can no longer be continued, but the server request can still be linked.
       if (span) {

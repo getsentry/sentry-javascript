@@ -264,3 +264,51 @@ describe('appRouterInstrumentNavigation with basePath', () => {
     expect(core.spanToJSON(span!).name).toBe('/my-app/navigation/:param/router-push');
   });
 });
+
+describe('appRouterInstrumentPageLoad', () => {
+  const originalReadyState = Object.getOwnPropertyDescriptor(Document.prototype, 'readyState');
+
+  beforeEach(() => {
+    globalWithNext._sentryRouteManifest = JSON.stringify(manifest);
+    window.history.replaceState({}, '', '/navigation?from=document');
+    Object.defineProperty(document, 'readyState', { value: 'loading', configurable: true });
+    vi.spyOn(performance, 'getEntriesByType').mockReturnValue([]);
+  });
+
+  afterEach(() => {
+    delete globalWithNext.next;
+    delete globalWithNext._sentryRouteManifest;
+    // @ts-expect-error deleting the instance override restores the prototype getter
+    delete document.readyState;
+    if (originalReadyState) {
+      Object.defineProperty(Document.prototype, 'readyState', originalReadyState);
+    }
+    vi.restoreAllMocks();
+  });
+
+  it('records the URL of the document when the pageload starts after a navigation changed it', async () => {
+    const { core, instrumentation } = await setup('static');
+
+    instrumentation.appRouterInstrumentPageLoad(core.getClient()!);
+    const spanBeforeSettling = core.getActiveSpan();
+
+    window.history.replaceState({}, '', '/navigation/42/router-back');
+    instrumentation.settlePendingPageloadWait();
+
+    const span = core.getActiveSpan();
+    expect(span).toBeDefined();
+    expect(span).not.toBe(spanBeforeSettling);
+    const spanJson = core.spanToJSON(span!);
+    expect(spanJson.name).toBe('/navigation');
+    expect(spanJson.attributes?.['sentry.op']).toBe('pageload');
+    expect(spanJson.attributes).toEqual(
+      expect.objectContaining({
+        'url.path': '/navigation',
+        'url.full': 'http://localhost:3000/navigation?from=document',
+      }),
+    );
+    expect(core.getCurrentScope().getScopeData().sdkProcessingMetadata.normalizedRequest?.url).toBe(
+      'http://localhost:3000/navigation?from=document',
+    );
+  });
+});
