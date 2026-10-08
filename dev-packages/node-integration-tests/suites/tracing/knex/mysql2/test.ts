@@ -10,6 +10,7 @@ import {
   SERVER_ADDRESS,
   SERVER_PORT,
 } from '@sentry/conventions/attributes';
+import { DB } from '@sentry/conventions/op';
 import { describe, expect } from 'vitest';
 import { createEsmAndCjsTests, describeWithDockerCompose } from '../../../../utils/runner';
 
@@ -29,7 +30,7 @@ describeWithDockerCompose('knex auto instrumentation', { workingDirectory: [__di
               [DB_NAMESPACE]: { type: 'string', value: 'tests' },
               [DB_USER]: { type: 'string', value: 'root' },
               [SENTRY_ORIGIN]: { type: 'string', value: ORIGIN },
-              [SENTRY_OP]: { type: 'string', value: 'db' },
+              [SENTRY_OP]: { type: 'string', value: DB },
               [SERVER_ADDRESS]: { type: 'string', value: 'localhost' },
               [SERVER_PORT]: { type: 'integer', value: 3307 },
               [DB_QUERY_TEXT]: {
@@ -49,7 +50,7 @@ describeWithDockerCompose('knex auto instrumentation', { workingDirectory: [__di
               [DB_NAMESPACE]: { type: 'string', value: 'tests' },
               [DB_USER]: { type: 'string', value: 'root' },
               [SENTRY_ORIGIN]: { type: 'string', value: ORIGIN },
-              [SENTRY_OP]: { type: 'string', value: 'db' },
+              [SENTRY_OP]: { type: 'string', value: DB },
               [SERVER_ADDRESS]: { type: 'string', value: 'localhost' },
               [SERVER_PORT]: { type: 'integer', value: 3307 },
               [DB_QUERY_TEXT]: { type: 'string', value: 'insert into `User` (`email`, `name`) values (?, ?)' },
@@ -69,7 +70,7 @@ describeWithDockerCompose('knex auto instrumentation', { workingDirectory: [__di
               [DB_QUERY_TEXT]: { type: 'string', value: 'select * from `User`' },
               [DB_USER]: { type: 'string', value: 'root' },
               [SENTRY_ORIGIN]: { type: 'string', value: ORIGIN },
-              [SENTRY_OP]: { type: 'string', value: 'db' },
+              [SENTRY_OP]: { type: 'string', value: DB },
               [DB_QUERY_SUMMARY]: { type: 'string', value: 'select `User`' },
             }),
             status: 'ok',

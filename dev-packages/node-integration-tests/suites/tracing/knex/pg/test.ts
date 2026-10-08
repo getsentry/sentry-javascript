@@ -9,6 +9,7 @@ import {
   SERVER_ADDRESS,
   SERVER_PORT,
 } from '@sentry/conventions/attributes';
+import { DB } from '@sentry/conventions/op';
 import { describe, expect } from 'vitest';
 import { createEsmAndCjsTests, describeWithDockerCompose } from '../../../../utils/runner';
 
@@ -27,7 +28,7 @@ describe('knex auto instrumentation', () => {
               [DB_SYSTEM_NAME]: { type: 'string', value: 'postgresql' },
               [DB_NAMESPACE]: { type: 'string', value: 'tests' },
               [SENTRY_ORIGIN]: { type: 'string', value: ORIGIN },
-              [SENTRY_OP]: { type: 'string', value: 'db' },
+              [SENTRY_OP]: { type: 'string', value: DB },
               [SERVER_ADDRESS]: { type: 'string', value: 'localhost' },
               [SERVER_PORT]: { type: 'integer', value: 5445 },
               [DB_QUERY_TEXT]: {
@@ -46,7 +47,7 @@ describe('knex auto instrumentation', () => {
               [DB_SYSTEM_NAME]: { type: 'string', value: 'postgresql' },
               [DB_NAMESPACE]: { type: 'string', value: 'tests' },
               [SENTRY_ORIGIN]: { type: 'string', value: ORIGIN },
-              [SENTRY_OP]: { type: 'string', value: 'db' },
+              [SENTRY_OP]: { type: 'string', value: DB },
               [SERVER_ADDRESS]: { type: 'string', value: 'localhost' },
               [SERVER_PORT]: { type: 'integer', value: 5445 },
               [DB_QUERY_TEXT]: { type: 'string', value: 'insert into "User" ("email", "name") values (?, ?)' },
@@ -66,7 +67,7 @@ describe('knex auto instrumentation', () => {
               [DB_NAMESPACE]: { type: 'string', value: 'tests' },
               [DB_QUERY_TEXT]: { type: 'string', value: 'select * from "User"' },
               [SENTRY_ORIGIN]: { type: 'string', value: ORIGIN },
-              [SENTRY_OP]: { type: 'string', value: 'db' },
+              [SENTRY_OP]: { type: 'string', value: DB },
               [DB_QUERY_SUMMARY]: { type: 'string', value: 'select "User"' },
             }),
             status: 'ok',
@@ -82,7 +83,7 @@ describe('knex auto instrumentation', () => {
               [DB_NAMESPACE]: { type: 'string', value: 'tests' },
               [DB_QUERY_TEXT]: { type: 'string', value: 'select * from "DoesNotExist"' },
               [SENTRY_ORIGIN]: { type: 'string', value: ORIGIN },
-              [SENTRY_OP]: { type: 'string', value: 'db' },
+              [SENTRY_OP]: { type: 'string', value: DB },
               [DB_QUERY_SUMMARY]: { type: 'string', value: 'select "DoesNotExist"' },
             }),
             status: 'error',
