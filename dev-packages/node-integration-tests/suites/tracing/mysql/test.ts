@@ -188,7 +188,7 @@ describe('mysql auto instrumentation', () => {
 
   for (const { label, env, flags, origin, failsOnEsm } of CASES) {
     describe(label, () => {
-      for (const [scenario, description, transactionOverride] of SCENARIOS) {
+      for (const [scenario, description, spanOverride] of SCENARIOS) {
         createEsmAndCjsTests(
           __dirname,
           scenario,
@@ -202,7 +202,7 @@ describe('mysql auto instrumentation', () => {
                   span: container => {
                     expect(container.items.find(span => span.is_segment)?.name).toBe('Test Transaction');
                     const spans = container.items.filter(span => span.attributes[SENTRY_OP]?.value === DB);
-                    expect(spans).toEqual(expectedSpans(mysqlPort, origin, transactionOverride));
+                    expect(spans).toEqual(expectedSpans(mysqlPort, origin, spanOverride));
                   },
                 })
                 .start()
