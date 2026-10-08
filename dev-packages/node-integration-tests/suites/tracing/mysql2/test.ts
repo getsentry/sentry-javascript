@@ -7,6 +7,7 @@ import {
   SERVER_ADDRESS,
   SERVER_PORT,
 } from '@sentry/conventions/attributes';
+import { DB } from '@sentry/conventions/op';
 import { afterAll, expect } from 'vitest';
 import { cleanupChildProcesses, createEsmAndCjsTests, describeWithDockerCompose } from '../../../utils/runner';
 
@@ -29,7 +30,7 @@ describeWithDockerCompose('mysql2 auto instrumentation', { workingDirectory: [__
           [SERVER_ADDRESS]: { type: 'string', value: 'localhost' },
           [SERVER_PORT]: { type: 'integer', value: 3344 },
           [DB_USER]: { type: 'string', value: 'root' },
-          [SENTRY_OP]: { type: 'string', value: 'db' },
+          [SENTRY_OP]: { type: 'string', value: DB },
           [SENTRY_ORIGIN]: { type: 'string', value: ORIGIN },
         }),
         name: 'SELECT',
@@ -42,7 +43,7 @@ describeWithDockerCompose('mysql2 auto instrumentation', { workingDirectory: [__
           [SERVER_ADDRESS]: { type: 'string', value: 'localhost' },
           [SERVER_PORT]: { type: 'integer', value: 3344 },
           [DB_USER]: { type: 'string', value: 'root' },
-          [SENTRY_OP]: { type: 'string', value: 'db' },
+          [SENTRY_OP]: { type: 'string', value: DB },
           [SENTRY_ORIGIN]: { type: 'string', value: ORIGIN },
         }),
         name: 'SELECT',
@@ -52,7 +53,7 @@ describeWithDockerCompose('mysql2 auto instrumentation', { workingDirectory: [__
         attributes: expect.objectContaining({
           [DB_SYSTEM_NAME]: { type: 'string', value: 'mysql' },
           [DB_QUERY_TEXT]: { type: 'string', value: 'SELECT ? AS scalar_value' },
-          [SENTRY_OP]: { type: 'string', value: 'db' },
+          [SENTRY_OP]: { type: 'string', value: DB },
           [SENTRY_ORIGIN]: { type: 'string', value: ORIGIN },
         }),
         name: 'SELECT',
@@ -62,7 +63,7 @@ describeWithDockerCompose('mysql2 auto instrumentation', { workingDirectory: [__
         attributes: expect.objectContaining({
           [DB_SYSTEM_NAME]: { type: 'string', value: 'mysql' },
           [DB_QUERY_TEXT]: { type: 'string', value: 'SELECT ? AS answer' },
-          [SENTRY_OP]: { type: 'string', value: 'db' },
+          [SENTRY_OP]: { type: 'string', value: DB },
           [SENTRY_ORIGIN]: { type: 'string', value: ORIGIN },
         }),
         name: 'SELECT',
@@ -72,7 +73,7 @@ describeWithDockerCompose('mysql2 auto instrumentation', { workingDirectory: [__
         attributes: expect.objectContaining({
           [DB_SYSTEM_NAME]: { type: 'string', value: 'mysql' },
           [DB_QUERY_TEXT]: { type: 'string', value: 'SELECT * FROM does_not_exist' },
-          [SENTRY_OP]: { type: 'string', value: 'db' },
+          [SENTRY_OP]: { type: 'string', value: DB },
           [SENTRY_ORIGIN]: { type: 'string', value: ORIGIN },
         }),
         name: 'SELECT does_not_exist',

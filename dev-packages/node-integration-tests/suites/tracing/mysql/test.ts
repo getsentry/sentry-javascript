@@ -18,6 +18,7 @@ import {
   SERVER_ADDRESS,
   SERVER_PORT,
 } from '@sentry/conventions/attributes';
+import { DB } from '@sentry/conventions/op';
 import type { AddressInfo, Server } from 'node:net';
 import { afterAll, beforeAll, describe, expect } from 'vitest';
 import { cleanupChildProcesses, createEsmAndCjsTests } from '../../../utils/runner';
@@ -80,7 +81,7 @@ describe('mysql auto instrumentation', () => {
       },
       [SENTRY_OP]: {
         type: 'string',
-        value: 'db',
+        value: DB,
       },
       [SENTRY_ORIGIN]: {
         type: 'string',
@@ -174,7 +175,7 @@ describe('mysql auto instrumentation', () => {
             // A failing streamed query emits `error`, which marks the span as errored
             status: 'error',
             attributes: expect.objectContaining({
-              [SENTRY_OP]: { type: 'string', value: 'db' },
+              [SENTRY_OP]: { type: 'string', value: DB },
               [DB_QUERY_TEXT]: { type: 'string', value: 'SELECT * FROM does_not_exist' },
               [DB_SYSTEM_NAME]: { type: 'string', value: 'mysql' },
               [DB_USER]: { type: 'string', value: 'root' },
@@ -200,7 +201,7 @@ describe('mysql auto instrumentation', () => {
                 .expect({
                   span: container => {
                     expect(container.items.find(span => span.is_segment)?.name).toBe('Test Transaction');
-                    const spans = container.items.filter(span => span.attributes[SENTRY_OP]?.value === 'db');
+                    const spans = container.items.filter(span => span.attributes[SENTRY_OP]?.value === DB);
                     expect(spans).toEqual(expectedSpans(mysqlPort, origin, transactionOverride));
                   },
                 })

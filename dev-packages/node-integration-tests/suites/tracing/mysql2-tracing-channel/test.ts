@@ -7,6 +7,7 @@ import {
   SERVER_ADDRESS,
   SERVER_PORT,
 } from '@sentry/conventions/attributes';
+import { DB } from '@sentry/conventions/op';
 import { afterAll, describe, expect } from 'vitest';
 import { cleanupChildProcesses, createEsmAndCjsTests, describeWithDockerCompose } from '../../../utils/runner';
 
@@ -29,7 +30,7 @@ describe('mysql2 tracing channel Test', () => {
         [DB_QUERY_TEXT]: { type: 'string', value: queryText },
         [SERVER_ADDRESS]: { type: 'string', value: 'localhost' },
         [SERVER_PORT]: { type: 'integer', value: 3308 },
-        [SENTRY_OP]: { type: 'string', value: 'db' },
+        [SENTRY_OP]: { type: 'string', value: DB },
       }),
       name: 'SELECT',
     });
@@ -45,7 +46,7 @@ describe('mysql2 tracing channel Test', () => {
       // a failing query produces a span with an error status
       expect.objectContaining({
         attributes: expect.objectContaining({
-          [SENTRY_OP]: { type: 'string', value: 'db' },
+          [SENTRY_OP]: { type: 'string', value: DB },
           [SENTRY_ORIGIN]: { type: 'string', value: 'auto.db.mysql2.diagnostic_channel' },
           [DB_QUERY_TEXT]: { type: 'string', value: 'SELECT * FROM does_not_exist' },
         }),
