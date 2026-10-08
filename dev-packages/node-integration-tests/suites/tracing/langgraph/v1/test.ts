@@ -56,4 +56,33 @@ describe('LangGraph integration (v1)', () => {
       },
     },
   );
+
+  createEsmAndCjsTests(
+    __dirname,
+    'scenario-typesafe-classifier-node.mjs',
+    'instrument.mjs',
+    (createRunner, test) => {
+      test('omits the classifier input and output when genAI recording is off', async () => {
+        const runner = createRunner();
+        const spansPromise = runner.collectStreamedSpansUntilSegment('main');
+
+        await runner.start().completed();
+
+        const spans = await spansPromise;
+        const evaluateSpan = spans.find(span => span.name === 'evaluate jev-latest')!;
+
+        expect(evaluateSpan.attributes[SENTRY_OP].value).toBe(GEN_AI_EVALUATE);
+        expect(evaluateSpan.attributes[GEN_AI_INPUT_MESSAGES]).toBeUndefined();
+        expect(evaluateSpan.attributes[GEN_AI_OUTPUT_MESSAGES]).toBeUndefined();
+      });
+    },
+    {
+      additionalDependencies: {
+        langchain: '^1.0.0',
+        '@langchain/core': '^1.0.0',
+        '@langchain/langgraph': '^1.0.0',
+        '@langchain/typesafe': '0.0.2',
+      },
+    },
+  );
 });
