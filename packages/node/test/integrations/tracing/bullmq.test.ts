@@ -137,10 +137,7 @@ describe('SentryBullMQTracer', () => {
           'sentry.link.type': 'previous_trace',
         },
       });
-      expect(span.setAttribute).toHaveBeenCalledWith(
-        'sentry.previous_trace',
-        'aabbccddaabbccddaabbccddaabbccdd-1122334455667788-1',
-      );
+      expect(span.setAttribute).not.toHaveBeenCalled();
     });
 
     it('does not add span link when context has no producerSpanContext', () => {

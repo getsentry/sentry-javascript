@@ -87,14 +87,6 @@ export class SentryBullMQTracer implements Tracer<SentryContext> {
           [SEMANTIC_LINK_ATTRIBUTE_LINK_TYPE]: 'previous_trace',
         },
       });
-
-      // TODO(v11): Remove this once EAP can store span links. We currently only set this attribute so that we
-      // can obtain the previous trace information from the EAP store. Long-term, EAP will handle
-      // span links and then we should remove this again.
-      span.setAttribute(
-        'sentry.previous_trace',
-        `${producerSpanCtx.traceId}-${producerSpanCtx.spanId}-${producerSpanCtx.traceFlags}`,
-      );
     }
 
     return new SentryBullMQSpan(span, getCurrentScope());

@@ -43,7 +43,6 @@ describeWithDockerCompose('bullmq', { workingDirectory: [__dirname] }, () => {
                 attributes: expect.objectContaining({
                   'sentry.op': { type: 'string', value: 'queue.process' },
                   'messaging.system': { type: 'string', value: 'bullmq' },
-                  'sentry.previous_trace': { type: 'string', value: `${producerTraceId}-${producerSpanId}-1` },
                 }),
                 links: [
                   {
@@ -55,6 +54,7 @@ describeWithDockerCompose('bullmq', { workingDirectory: [__dirname] }, () => {
                 ],
               }),
             );
+            expect(consumerSpan!.attributes['sentry.previous_trace']).toBeUndefined();
           },
         })
         .start()
