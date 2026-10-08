@@ -7,6 +7,7 @@ import {
   SENTRY_OP,
   SENTRY_ORIGIN,
 } from '@sentry/conventions/attributes';
+import { CACHE_GET, CACHE_PUT, CACHE_REMOVE } from '@sentry/conventions/op';
 import { afterAll, describe, expect } from 'vitest';
 import { cleanupChildProcesses, createEsmAndCjsTests } from '../../../utils/runner';
 
@@ -14,8 +15,7 @@ import { cleanupChildProcesses, createEsmAndCjsTests } from '../../../utils/runn
 // enabled (via INJECT_ORCHESTRION) the OTel `Dataloader` integration is swapped for the
 // diagnostics-channel one, which stamps a different origin.
 const ORIGIN = 'auto.db.dataloader';
-const CACHE_GET_OP = 'cache.get';
-const CACHE_MUTATION_OPS = { prime: 'cache.put', clear: 'cache.remove', clearAll: 'cache.remove' } as const;
+const CACHE_MUTATION_OPS = { prime: CACHE_PUT, clear: CACHE_REMOVE, clearAll: CACHE_REMOVE } as const;
 
 describe('dataloader auto-instrumentation', () => {
   afterAll(() => {
@@ -33,7 +33,7 @@ describe('dataloader auto-instrumentation', () => {
 
             const loadSpan = spans.find(span => span.attributes[DB_OPERATION_NAME]?.value === 'load');
             expect(loadSpan).toBeDefined();
-            expect(loadSpan?.attributes[SENTRY_OP]?.value).toBe(CACHE_GET_OP);
+            expect(loadSpan?.attributes[SENTRY_OP]?.value).toBe(CACHE_GET);
             expect(loadSpan?.attributes[SENTRY_ORIGIN]?.value).toBe(ORIGIN);
             expect(loadSpan?.status).toBe('ok');
             expect(loadSpan?.attributes[CACHE_KEY]?.value).toEqual(['user-1']);
@@ -43,7 +43,7 @@ describe('dataloader auto-instrumentation', () => {
 
             const batchSpan = spans.find(span => span.attributes[DB_OPERATION_NAME]?.value === 'batch');
             expect(batchSpan).toBeDefined();
-            expect(batchSpan?.attributes[SENTRY_OP]?.value).toBe(CACHE_GET_OP);
+            expect(batchSpan?.attributes[SENTRY_OP]?.value).toBe(CACHE_GET);
             expect(batchSpan?.attributes[SENTRY_ORIGIN]?.value).toBe(ORIGIN);
             expect(batchSpan?.status).toBe('ok');
             expect(batchSpan?.attributes[CACHE_KEY]?.value).toEqual(['user-1']);
@@ -69,7 +69,7 @@ describe('dataloader auto-instrumentation', () => {
 
             const loadManySpan = container.items.find(span => span.attributes[DB_OPERATION_NAME]?.value === 'loadMany');
             expect(loadManySpan).toBeDefined();
-            expect(loadManySpan?.attributes[SENTRY_OP]?.value).toBe(CACHE_GET_OP);
+            expect(loadManySpan?.attributes[SENTRY_OP]?.value).toBe(CACHE_GET);
             expect(loadManySpan?.attributes[SENTRY_ORIGIN]?.value).toBe(ORIGIN);
             expect(loadManySpan?.status).toBe('ok');
             expect(loadManySpan?.attributes[CACHE_KEY]?.value).toEqual(['user-1', 'user-2']);
@@ -110,10 +110,10 @@ describe('dataloader auto-instrumentation', () => {
 
             const namedLoadSpan = container.items.find(span => span.attributes[DB_OPERATION_NAME]?.value === 'load');
             expect(namedLoadSpan).toBeDefined();
-            expect(namedLoadSpan?.attributes[SENTRY_OP]?.value).toBe(CACHE_GET_OP);
+            expect(namedLoadSpan?.attributes[SENTRY_OP]?.value).toBe(CACHE_GET);
             expect(namedLoadSpan?.attributes[SENTRY_ORIGIN]?.value).toBe(ORIGIN);
             expect(namedLoadSpan?.status).toBe('ok');
-            expect(namedLoadSpan?.name).toBe('cache.get');
+            expect(namedLoadSpan?.name).toBe(CACHE_GET);
             expect(namedLoadSpan?.attributes[CACHE_OPERATION]?.value).toBe('get');
             expect(namedLoadSpan?.attributes[DB_COLLECTION_NAME]?.value).toBe('usersLoader');
           },

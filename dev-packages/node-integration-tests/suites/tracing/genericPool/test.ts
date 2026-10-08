@@ -1,4 +1,5 @@
 import { ERROR_TYPE, SENTRY_OP, SENTRY_ORIGIN } from '@sentry/conventions/attributes';
+import { DB } from '@sentry/conventions/op';
 import { afterAll, describe, expect } from 'vitest';
 import { cleanupChildProcesses, createEsmAndCjsTests } from '../../../utils/runner';
 
@@ -15,7 +16,7 @@ describe('genericPool auto instrumentation', () => {
           expect.objectContaining({
             name: 'generic-pool.acquire',
             attributes: expect.objectContaining({
-              [SENTRY_OP]: { type: 'string', value: 'db' },
+              [SENTRY_OP]: { type: 'string', value: DB },
               [SENTRY_ORIGIN]: { type: 'string', value: 'auto.db.generic_pool' },
             }),
             status: 'ok',
@@ -24,7 +25,7 @@ describe('genericPool auto instrumentation', () => {
           expect.objectContaining({
             name: 'generic-pool.acquire',
             attributes: expect.objectContaining({
-              [SENTRY_OP]: { type: 'string', value: 'db' },
+              [SENTRY_OP]: { type: 'string', value: DB },
               [SENTRY_ORIGIN]: { type: 'string', value: 'auto.db.generic_pool' },
             }),
             status: 'ok',
@@ -44,7 +45,7 @@ describe('genericPool auto instrumentation', () => {
           expect.objectContaining({
             name: 'generic-pool.acquire',
             attributes: expect.objectContaining({
-              [SENTRY_OP]: { type: 'string', value: 'db' },
+              [SENTRY_OP]: { type: 'string', value: DB },
               [SENTRY_ORIGIN]: { type: 'string', value: 'auto.db.generic_pool' },
               [ERROR_TYPE]: { type: 'string', value: 'TimeoutError' },
             }),
