@@ -40,6 +40,24 @@ describe('init()', () => {
     vi.clearAllMocks();
   });
 
+  describe('tunnel', () => {
+    it('enables the managed tunnel for `tunnel: true` and sends its own envelopes directly', () => {
+      init({ dsn: PUBLIC_DSN, tunnel: true });
+
+      const options = getClient<NodeClient>()?.getOptions();
+      expect(options?.tunnel).toBeUndefined();
+      expect(options?._managedTunnel).toEqual({});
+    });
+
+    it('keeps a URL tunnel for its own envelopes', () => {
+      init({ dsn: PUBLIC_DSN, tunnel: 'https://example.com/tunnel' });
+
+      const options = getClient<NodeClient>()?.getOptions();
+      expect(options?.tunnel).toBe('https://example.com/tunnel');
+      expect(options?._managedTunnel).toBeUndefined();
+    });
+  });
+
   describe('metadata', () => {
     it('has the correct metadata', () => {
       init({ dsn: PUBLIC_DSN });

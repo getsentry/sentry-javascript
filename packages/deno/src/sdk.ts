@@ -12,6 +12,7 @@ import {
   initAndBind,
   linkedErrorsIntegration,
   requestDataIntegration,
+  resolveServerTunnelOption,
   stackParserFromStackParserOptions,
 } from '@sentry/core';
 import { detectOrchestrionSetup, getTracingIntegrations, getErrorIntegrations } from '@sentry/server-utils';
@@ -125,6 +126,7 @@ function _init(options: DenoOptions, getDefaultIntegrationsImpl: (options: Optio
 
   const clientOptions: ServerRuntimeClientOptions = {
     ...options,
+    ...resolveServerTunnelOption(options.tunnel),
     stackParser: stackParserFromStackParserOptions(options.stackParser || defaultStackParser),
     integrations: getIntegrationsToSetup({ integrations: options.integrations, defaultIntegrations }),
     transport: options.transport || makeFetchTransport,
