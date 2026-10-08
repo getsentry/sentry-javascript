@@ -20,6 +20,7 @@ import {
   getUsageAttributes,
   isExportedSpanType,
   mergeUsageAttributes,
+  type AttributeRecordingOptions,
   type SpanAttributes,
 } from './utils';
 import {
@@ -134,20 +135,22 @@ export class SentryMastraExporter implements MastraObservabilityExporter {
       return;
     }
 
+    // Per event: the exporter can be constructed before `Sentry.init()`, when `dataCollection.genAI` does not exist yet.
+    const recordingOptions = resolveAIRecordingOptions(this._options);
     switch (event.type) {
       case 'span_started':
-        this._onSpanStarted(span);
+        this._onSpanStarted(span, recordingOptions);
         break;
       case 'span_updated':
-        this._onSpanUpdated(span);
+        this._onSpanUpdated(span, recordingOptions);
         break;
       case 'span_ended':
-        this._onSpanEnded(span);
+        this._onSpanEnded(span, recordingOptions);
         break;
     }
   }
 
-  private _onSpanStarted(span: MastraExportedSpan): void {
+  private _onSpanStarted(span: MastraExportedSpan, recordingOptions: AttributeRecordingOptions): void {
     const parentId = this._resolveParentId(span.parentSpanId);
     const parentSpan = parentId ? this._spans.get(parentId)?.span : undefined;
     const activeSpan = getActiveSpan();
@@ -158,7 +161,7 @@ export class SentryMastraExporter implements MastraObservabilityExporter {
       // Prefer the Mastra parent so the tree stays together; else the active request span.
       parentSpan: parentSpan ?? activeSpan,
       attributes: {
-        ...this._attributesFor(span),
+        ...getSpanAttributes(span, recordingOptions),
         [SENTRY_OP]: getOperation(span.type)?.op,
         [SENTRY_ORIGIN]: MASTRA_ORIGIN,
       },
@@ -166,13 +169,12 @@ export class SentryMastraExporter implements MastraObservabilityExporter {
 
     const evaluation = span.type === 'classifier_evaluation' ? takeStartingClassifierEvaluation() : undefined;
     if (evaluation) {
-      const { recordInputs, recordOutputs } = resolveAIRecordingOptions(this._options);
       Object.assign(evaluation, {
         span: sentrySpan,
         mastraSpan: span,
         spanOutputProcessors: this._spanOutputProcessors,
-        recordInputs,
-        recordOutputs,
+        recordInputs: recordingOptions.recordInputs,
+        recordOutputs: recordingOptions.recordOutputs,
       });
     }
 
@@ -203,14 +205,14 @@ export class SentryMastraExporter implements MastraObservabilityExporter {
     return this._spans.remove(id);
   }
 
-  private _onSpanUpdated(span: MastraExportedSpan): void {
+  private _onSpanUpdated(span: MastraExportedSpan, recordingOptions: AttributeRecordingOptions): void {
     const tracked = this._spans.get(span.id);
     if (tracked) {
-      tracked.span.setAttributes(this._attributesFor(span));
+      tracked.span.setAttributes(getSpanAttributes(span, recordingOptions));
     }
   }
 
-  private _onSpanEnded(span: MastraExportedSpan): void {
+  private _onSpanEnded(span: MastraExportedSpan, recordingOptions: AttributeRecordingOptions): void {
     const tracked = this._spans.get(span.id);
     if (!tracked) {
       DEBUG_BUILD && debug.warn(`[Mastra] no Sentry span open for ended span ${span.id} (${span.name})`);
@@ -218,7 +220,7 @@ export class SentryMastraExporter implements MastraObservabilityExporter {
     }
 
     const { span: sentrySpan } = tracked;
-    sentrySpan.setAttributes(this._attributesFor(span));
+    sentrySpan.setAttributes(getSpanAttributes(span, recordingOptions));
     sentrySpan.updateName(getSpanName(span));
 
     if (MODEL_SPAN_TYPES.has(span.type)) {
@@ -274,10 +276,5 @@ export class SentryMastraExporter implements MastraObservabilityExporter {
       current = parentOfSkipped === current ? undefined : parentOfSkipped;
     }
     return undefined;
-  }
-
-  private _attributesFor(span: MastraExportedSpan): ReturnType<typeof getSpanAttributes> {
-    // Per event: the exporter can be constructed before `Sentry.init()`, when `dataCollection.genAI` does not exist yet.
-    return getSpanAttributes(span, resolveAIRecordingOptions(this._options));
   }
 }
