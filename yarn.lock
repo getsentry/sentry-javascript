@@ -5664,6 +5664,11 @@
     "@emnapi/runtime" "^1.1.0"
     "@tybys/wasm-util" "^0.9.0"
 
+"@neondatabase/serverless@1.2.0":
+  version "1.2.0"
+  resolved "https://registry.yarnpkg.com/@neondatabase/serverless/-/serverless-1.2.0.tgz#d58553f0804eb9ddacb09662d607756b7dc74b77"
+  integrity sha512-tnaqgixUengZQNd9ZrS3ytQfamJzLKY8QxgqWQTNHHtB+KrFQWk77JTbbpg4RD+J3qE4eO2lVytvGDX5Kj6FdQ==
+
 "@nestjs/common@^10.0.0":
   version "10.4.15"
   resolved "https://registry.yarnpkg.com/@nestjs/common/-/common-10.4.15.tgz#27c291466d9100eb86fdbe6f7bbb4d1a6ad55f70"
