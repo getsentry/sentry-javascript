@@ -53,7 +53,7 @@
     }
   },
   "dependencies": {
-    "@nuxt/kit": "^4.5.2",
+    "@nuxt/kit": "^4.6.0",
     "@sentry/browser": "11.6.0",
     "@sentry/cloudflare": "11.6.0",
     "@sentry/conventions": "^0.26.0",
@@ -62,8 +62,7 @@
     "@sentry/bundler-plugins": "11.6.0",
     "@sentry/server-runtime-injection": "11.6.0",
     "@sentry/server-utils": "11.6.0",
-    "@sentry/vue": "11.6.0",
-    "local-pkg": "^1.1.2"
+    "@sentry/vue": "11.6.0"
   },
   "devDependencies": {
     "@nuxt/nitro-server": "^3.21.11",
