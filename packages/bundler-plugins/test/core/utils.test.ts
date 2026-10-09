@@ -300,4 +300,17 @@ describe('determineReleaseName', () => {
       execSyncSpy.mockRestore();
     }
   });
+  it('ignores a commit env var whose value is its own name', () => {
+    const originalEnv = process.env;
+    process.env = { VERCEL_GIT_COMMIT_SHA: 'VERCEL_GIT_COMMIT_SHA', COMMIT_REF: 'abc123' };
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+
+    try {
+      expect(determineReleaseName()).toBe('abc123');
+      expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('VERCEL_GIT_COMMIT_SHA'));
+    } finally {
+      process.env = originalEnv;
+      warnSpy.mockRestore();
+    }
+  });
 });

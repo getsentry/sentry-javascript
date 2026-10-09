@@ -41,4 +41,21 @@ describe('getSentryRelease', () => {
 
     expect(getSentryRelease()).toBe('heroku-build-commit-sha');
   });
+
+  it('ignores a commit env var whose value is its own name', () => {
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    vi.stubEnv('VERCEL_GIT_COMMIT_SHA', 'VERCEL_GIT_COMMIT_SHA');
+    vi.stubEnv('COMMIT_REF', 'netlify-commit-ref');
+
+    expect(getSentryRelease()).toBe('netlify-commit-ref');
+    expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('VERCEL_GIT_COMMIT_SHA'));
+    warnSpy.mockRestore();
+  });
+
+  it('falls back when the only commit env var is its own name', () => {
+    vi.spyOn(console, 'warn').mockImplementation(() => {});
+    vi.stubEnv('VERCEL_GIT_COMMIT_SHA', 'VERCEL_GIT_COMMIT_SHA');
+
+    expect(getSentryRelease('fallback')).toBe('fallback');
+  });
 });
