@@ -69,6 +69,7 @@ export {
   langGraphIntegration,
   createFlueInstrumentation,
   mastraIntegration,
+  piDurableIntegration,
   mcpServerIntegration,
   SentryMastraExporter,
   modulesIntegration,

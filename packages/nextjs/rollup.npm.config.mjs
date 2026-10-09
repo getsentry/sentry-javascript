@@ -11,6 +11,7 @@ export default [
         'src/client/index.ts',
         'src/server/index.ts',
         'src/edge/index.ts',
+        'src/cloudflare/index.ts',
         'src/config/index.ts',
       ],
 

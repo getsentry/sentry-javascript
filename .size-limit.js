@@ -465,7 +465,7 @@ module.exports = [
     path: 'packages/node/build/esm/index.js',
     import: createImport('init'),
     gzip: true,
-    limit: '129 KB',
+    limit: '130 KB',
     disablePlugins: ['@size-limit/esbuild'],
     ignore: [...builtinModules, ...nodePrefixedBuiltinModules],
     modifyWebpackConfig: function (config) {
@@ -525,6 +525,27 @@ module.exports = [
       config.minifyIdentifiers = false;
       config.minifySyntax = false;
       config.minifyWhitespace = false;
+      config.keepNames = true;
+      // Match wrangler's build settings
+      config.conditions = ['workerd', 'worker', 'browser'];
+      config.platform = 'browser';
+      config.format = 'esm';
+      return config;
+    },
+  },
+  // Next.js on Cloudflare Workers (ESM) - minified to match `wrangler deploy --dry-run --minify` output. An import of
+  // `@sentry/node` in this entry more than doubles its size.
+  {
+    name: '@sentry/nextjs/cloudflare (withSentry) - minified',
+    path: 'packages/nextjs/build/esm/cloudflare/index.js',
+    import: createImport('withSentry'),
+    ignore: [...builtinModules, ...nodePrefixedBuiltinModules],
+    gzip: false,
+    brotli: false,
+    limit: '223 KiB',
+    disablePlugins: ['@size-limit/webpack'],
+    webpack: false,
+    modifyEsbuildConfig: function (config) {
       config.keepNames = true;
       // Match wrangler's build settings
       config.conditions = ['workerd', 'worker', 'browser'];

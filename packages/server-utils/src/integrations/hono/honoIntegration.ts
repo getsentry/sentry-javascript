@@ -6,6 +6,7 @@ import type { IntegrationFn } from '@sentry/core';
 import { debug, defineIntegration, startInactiveSpan } from '@sentry/core';
 import { DEBUG_BUILD } from '../../debug-build';
 import type { Env, GetConnInfo, Hono, MiddlewareHandler } from './honoTypes';
+import type { OrchestrionChannelContext } from '../../orchestrion/types';
 import { CHANNELS } from '../../orchestrion/channels';
 import { honoModuleNames } from '../../orchestrion/config/hono';
 import { invokeOrchestrionInstrumentation } from '../../orchestrion/instrumentation';
@@ -82,8 +83,6 @@ export function honoMiddleware<E extends Env>(app: Hono<E>, options: HonoIntegra
   });
 }
 
-type ChannelArgs = { arguments: unknown[] };
-
 // A Hono `matchResult[0]` entry: `[[handler, routeMeta], paramIndexMap]` — `compose` runs the
 // handler (`entry[0][0]`) and the `matchedRoutes` getter reads `routeMeta` (`entry[0][1]`).
 // oxlint-disable-next-line typescript/no-explicit-any
@@ -100,7 +99,7 @@ type MatchedHandlerEntry = [[any, any], any];
  * Running per request (no module-scope state) is what lets this work on Cloudflare.
  */
 function injectHonoInstrumentation(
-  message: ChannelArgs,
+  message: OrchestrionChannelContext,
   requestMiddleware: MiddlewareHandler,
   injectedHandlerLists: WeakSet<object>,
 ): void {
@@ -155,7 +154,7 @@ function injectHonoInstrumentation(
  */
 function instrumentInternalRequests(): void {
   bindTracingChannelToSpan(
-    diagnosticsChannel.tracingChannel<ChannelArgs>(CHANNELS.HONO_REQUEST),
+    diagnosticsChannel.tracingChannel<OrchestrionChannelContext>(CHANNELS.HONO_REQUEST),
     data => {
       // Alongside the manual middleware, the instance `app.request` Proxy has already opened this
       // span and is calling through — returning `undefined` (no span) avoids nesting a duplicate.
@@ -202,9 +201,9 @@ function instrumentHono(options: HonoIntegrationOptions): void {
 
   // The Context constructor's `end` fires synchronously inside `new Context()`, before `#dispatch`
   // reads `matchResult[0].length`, so the injected middleware is in place for the same request.
-  diagnosticsChannel.tracingChannel<ChannelArgs>(CHANNELS.HONO_CONTEXT).end.subscribe(message => {
+  diagnosticsChannel.tracingChannel<OrchestrionChannelContext>(CHANNELS.HONO_CONTEXT).end.subscribe(message => {
     safeChannelCallback(() =>
-      injectHonoInstrumentation(message as ChannelArgs, requestMiddleware, injectedHandlerLists),
+      injectHonoInstrumentation(message as OrchestrionChannelContext, requestMiddleware, injectedHandlerLists),
     );
   });
 

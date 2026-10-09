@@ -6,11 +6,17 @@ import { GOOGLE_GENAI_INTEGRATION_NAME } from '../ai/google-genai/constants';
 import { createLangChainCallbackHandler } from '../ai/langchain';
 import { LANGCHAIN_INTEGRATION_NAME } from '../ai/langchain/constants';
 import { _INTERNAL_getLangChainEmbeddingsSpanOptions } from '../ai/langchain/embeddings';
+import { recordTypeSafeClassifierState } from '../ai/langchain/typesafe-classifier';
 import type { LangChainOptions } from '../ai/langchain/types';
-import { getConversationIdMetadataFromConfig, _INTERNAL_mergeLangChainCallbackHandler } from '../ai/langchain/utils';
+import {
+  getConversationIdMetadataFromConfig,
+  getInheritedLangChainCallbacks,
+  _INTERNAL_mergeLangChainCallbackHandler,
+} from '../ai/langchain/utils';
 import { MISTRAL_INTEGRATION_NAME } from '../ai/mistral/constants';
 import { OPENAI_INTEGRATION_NAME } from '../ai/openai/constants';
 import { GROQ_INTEGRATION_NAME } from './groq';
+import type { OrchestrionChannelContext } from '../orchestrion/types';
 import { CHANNELS } from '../orchestrion/channels';
 import { langchainEmbeddingsChannels } from '../orchestrion/config/langchain';
 import { bindTracingChannelToSpan } from '../tracing-channel';
@@ -33,16 +39,7 @@ const SKIPPED_PROVIDERS = [
 ];
 
 // The chat-model channels carry the live args array of `invoke(input, options)` / `_streamIterator(input, options)`.
-interface RunnableChannelContext {
-  arguments: unknown[];
-}
-
 // The embeddings channels carry the instance (`self`) and the `embedQuery(text)` / `embedDocuments(texts)` args.
-interface EmbeddingsChannelContext {
-  self?: unknown;
-  arguments: unknown[];
-}
-
 // Registered lazily on the first LangChain call (not at `setupOnce`) so a direct provider call made
 // before any LangChain call still gets its own span — matches the OTel patch-on-import timing. It
 // also stops the underlying SDK from double-instrumenting embeddings, whose `embedQuery`/
@@ -77,9 +74,7 @@ function instrumentChatModels(options: LangChainOptions): void {
   // callback dispatch then creates the spans, exactly as in the OTel path, so no span is opened
   // here — a `start` subscriber (which also makes orchestrion wrap the function) is enough.
   const injectHandler = (message: unknown): void => {
-    markProvidersSkipped();
-
-    const args = (message as RunnableChannelContext).arguments;
+    const args = (message as OrchestrionChannelContext).arguments;
     if (!Array.isArray(args)) {
       return;
     }
@@ -90,7 +85,11 @@ function instrumentChatModels(options: LangChainOptions): void {
       args[1] = callOptions;
     }
 
-    callOptions.callbacks = _INTERNAL_mergeLangChainCallbackHandler(callOptions.callbacks, sentryHandler);
+    // Without callbacks of its own, the call would otherwise lose the parent run and its tracers (e.g. LangSmith).
+    callOptions.callbacks = _INTERNAL_mergeLangChainCallbackHandler(
+      callOptions.callbacks ?? getInheritedLangChainCallbacks(),
+      sentryHandler,
+    );
 
     const conversationIdMetadata = getConversationIdMetadataFromConfig(callOptions);
     if (Object.keys(conversationIdMetadata).length) {
@@ -99,8 +98,20 @@ function instrumentChatModels(options: LangChainOptions): void {
   };
 
   for (const channelName of [CHANNELS.LANGCHAIN_CHAT_MODEL_INVOKE, CHANNELS.LANGCHAIN_CHAT_MODEL_STREAM]) {
-    diagnosticsChannel.tracingChannel<RunnableChannelContext>(channelName).start.subscribe(injectHandler);
+    diagnosticsChannel.tracingChannel<OrchestrionChannelContext>(channelName).start.subscribe(message => {
+      markProvidersSkipped();
+      injectHandler(message);
+    });
   }
+
+  // `TypeSafeClassifier` calls Jev with `fetch`, not through a provider SDK, so nothing needs skipping.
+  diagnosticsChannel
+    .tracingChannel<OrchestrionChannelContext>(CHANNELS.LANGCHAIN_TYPESAFE_CLASSIFIER_INVOKE)
+    .start.subscribe(message => {
+      injectHandler(message);
+      const { self, arguments: args } = message as OrchestrionChannelContext;
+      recordTypeSafeClassifierState(self, args?.[0]);
+    });
 }
 
 // Embeddings don't use the callback system. Wrap the method in its own span.
@@ -108,13 +119,13 @@ function instrumentChatModels(options: LangChainOptions): void {
 // still marks failed on error) and do not capture them.
 function instrumentEmbeddings(options: LangChainOptions): void {
   for (const channelName of langchainEmbeddingsChannels) {
-    bindTracingChannelToSpan(diagnosticsChannel.tracingChannel<EmbeddingsChannelContext>(channelName), data =>
+    bindTracingChannelToSpan(diagnosticsChannel.tracingChannel<OrchestrionChannelContext>(channelName), data =>
       createEmbeddingsSpan(data, options),
     );
   }
 }
 
-function createEmbeddingsSpan(data: EmbeddingsChannelContext, options: LangChainOptions): Span {
+function createEmbeddingsSpan(data: OrchestrionChannelContext, options: LangChainOptions): Span {
   // `embedQuery`/`embedDocuments` call the provider SDK internally, so skip that SDK's own
   // instrumentation before its channel fires (the producer runs at the embeddings channel's `start`).
   markProvidersSkipped();

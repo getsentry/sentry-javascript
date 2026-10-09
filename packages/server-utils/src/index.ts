@@ -8,6 +8,7 @@ import { attachHapiErrorHandler as _attachHapiErrorHandler } from './integration
 export { bindTracingChannelToSpan } from './tracing-channel';
 export type { TracingChannelPayloadWithSpan } from './tracing-channel';
 export type { InstrumentationConfig } from './orchestrion/apmTypes';
+export type { OrchestrionChannelContext } from './orchestrion/types';
 // Runtime target of the bundler-injected module snippet. The snippet imports it
 // from this entry alongside the module's subscriber factory (see
 // `orchestrion/bundler/moduleInjectedTransform.ts`); it is a plain runtime
@@ -50,6 +51,7 @@ export { langChainIntegration } from './integrations/langchain';
 export { langGraphIntegration } from './integrations/langgraph';
 export { createFlueInstrumentation } from './ai/flue';
 export { flueIntegration } from './integrations/flue';
+export { piDurableIntegration } from './integrations/pi-durable';
 export type { FlueOptions } from './ai/flue';
 export { mastraIntegration } from './integrations/mastra';
 export { mcpServerIntegration } from './integrations/mcp-server';
