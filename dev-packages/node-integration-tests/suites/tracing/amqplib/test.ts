@@ -174,28 +174,19 @@ describeWithDockerCompose('amqplib auto-instrumentation', { workingDirectory: [_
       'scenario-topic-noack.mjs',
       'instrument.mjs',
       (createTestRunner, test) => {
-        test('names a noAck consumer span after its queue and ends it as ok', { timeout: 60_000 }, async () => {
-          const receivedTransactions: TransactionEvent[] = [];
-
+        test('ends a noAck consumer span as ok', { timeout: 60_000 }, async () => {
           await createTestRunner()
             .expect({
-              transaction: (transaction: TransactionEvent) => {
-                receivedTransactions.push(transaction);
-              },
-            })
-            .expect({
-              transaction: (transaction: TransactionEvent) => {
-                receivedTransactions.push(transaction);
-
-                const consumer = receivedTransactions.find(
-                  t => t.contexts?.trace?.data?.['sentry.origin'] === 'auto.amqplib.consumer',
+              span: container => {
+                const consumer = container.items.find(
+                  span => span.attributes[SENTRY_ORIGIN]?.value === 'auto.amqplib.consumer',
                 );
 
                 expect(consumer).toBeDefined();
-                expect(consumer!.transaction).toBe('orders-worker process');
-                expect(consumer!.contexts?.trace?.status).toBe('ok');
-                expect(consumer!.contexts?.trace?.data?.['messaging.destination.name']).toBe('orders');
-                expect(consumer!.contexts?.trace?.data?.['messaging.rabbitmq.destination.routing_key']).toBe(
+                expect(consumer!.name).toBe('process orders');
+                expect(consumer!.status).toBe('ok');
+                expect(consumer!.attributes[MESSAGING_DESTINATION_NAME]?.value).toBe('orders');
+                expect(consumer!.attributes[MESSAGING_RABBITMQ_DESTINATION_ROUTING_KEY]?.value).toBe(
                   'order.created.12345',
                 );
               },
@@ -208,87 +199,25 @@ describeWithDockerCompose('amqplib auto-instrumentation', { workingDirectory: [_
     );
   });
 
-  createEsmAndCjsTests(
-    __dirname,
-    'scenario-topic-noack.mjs',
-    'instrument-span-streaming.mjs',
-    (createTestRunner, test) => {
-      test('ends a streamed noAck consumer span as ok', { timeout: 60_000 }, async () => {
-        await createTestRunner()
-          .ignore('event')
-          .expect({
-            span: container => {
-              const consumerSpan = container.items.find(
-                span => span.attributes['sentry.origin']?.value === 'auto.amqplib.consumer',
-              );
-              expect(consumerSpan).toBeDefined();
-              expect(consumerSpan!.status).toBe('ok');
-              expect(consumerSpan!.name).toBe('process orders');
-              expect(consumerSpan!.attributes['messaging.destination.name']?.value).toBe('orders');
-            },
-          })
-          .start()
-          .completed();
-      });
-    },
-  );
-
-  createEsmAndCjsTests(__dirname, 'scenario.mjs', 'instrument-span-streaming.mjs', (createTestRunner, test) => {
-    test('names streamed spans after the messaging conventions', { timeout: 60_000 }, async () => {
+  createEsmAndCjsTests(__dirname, 'scenario-callback-api.mjs', 'instrument.mjs', (createTestRunner, test) => {
+    test('instruments publish and noAck consume on the callback API', { timeout: 60_000 }, async () => {
       await createTestRunner()
-        .ignore('event')
         .expect({
           span: container => {
-            // `sendToQueue` publishes to the default exchange, which has no name. Its routing key is the
-            // queue name, so it is the destination rather than per-message data.
-            for (const origin of ['auto.amqplib.publisher', 'auto.amqplib.consumer']) {
-              const span = container.items.find(item => item.attributes['sentry.origin']?.value === origin);
-              expect(span).toBeDefined();
-              expect(span!.attributes['messaging.destination.name']?.value).toBe('queue1');
-              expect(span!.attributes['messaging.rabbitmq.destination.routing_key']?.value).toBe('queue1');
-            }
-
             const producerSpan = container.items.find(
-              span => span.attributes['sentry.origin']?.value === 'auto.amqplib.publisher',
+              span => span.attributes[SENTRY_ORIGIN]?.value === 'auto.amqplib.publisher',
             );
-            expect(producerSpan!.name).toBe('send queue1');
+            expect(producerSpan?.name).toBe('send callback-queue');
 
             const consumerSpan = container.items.find(
-              span => span.attributes['sentry.origin']?.value === 'auto.amqplib.consumer',
+              span => span.attributes[SENTRY_ORIGIN]?.value === 'auto.amqplib.consumer',
             );
-            expect(consumerSpan!.name).toBe('process queue1');
+            expect(consumerSpan?.name).toBe('process callback-queue');
+            expect(consumerSpan?.status).toBe('ok');
           },
         })
         .start()
         .completed();
     });
   });
-
-  createEsmAndCjsTests(
-    __dirname,
-    'scenario-callback-api.mjs',
-    'instrument-span-streaming.mjs',
-    (createTestRunner, test) => {
-      test('instruments publish and noAck consume on the callback API', { timeout: 60_000 }, async () => {
-        await createTestRunner()
-          .ignore('event')
-          .expect({
-            span: container => {
-              const producerSpan = container.items.find(
-                span => span.attributes['sentry.origin']?.value === 'auto.amqplib.publisher',
-              );
-              expect(producerSpan?.name).toBe('send callback-queue');
-
-              const consumerSpan = container.items.find(
-                span => span.attributes['sentry.origin']?.value === 'auto.amqplib.consumer',
-              );
-              expect(consumerSpan?.name).toBe('process callback-queue');
-              expect(consumerSpan?.status).toBe('ok');
-            },
-          })
-          .start()
-          .completed();
-      });
-    },
-  );
 });
