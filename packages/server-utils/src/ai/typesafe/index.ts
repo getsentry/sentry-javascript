@@ -12,16 +12,21 @@ import {
 } from '@sentry/conventions/attributes';
 import { GEN_AI_EVALUATE } from '@sentry/conventions/op';
 import type { Span, SpanAttributes } from '@sentry/core';
-import { isObjectLike, SPAN_STATUS_ERROR, startInactiveSpan, stringify, withActiveSpan } from '@sentry/core';
+import { isObjectLike, SPAN_STATUS_ERROR, startInactiveSpan, withActiveSpan } from '@sentry/core';
 import type { GenAiOptions } from '../core/utils';
-import { resolveAIRecordingOptions } from '../core/utils';
+import { getEvaluationInputMessages, getEvaluationOutputMessages, resolveAIRecordingOptions } from '../core/utils';
 import { TYPESAFE_ORIGIN, TYPESAFE_PROVIDER_NAME } from './constants';
 
 /**
  * Start the span for a `systemOne(request)` call. The request model falls back to the client's
  * `defaultModel`, the same way the SDK resolves it.
  */
-export function startEvaluateSpan(request: unknown, client: unknown, recordInputs: boolean): Span {
+export function startEvaluateSpan(
+  request: unknown,
+  client: unknown,
+  recordInputs: boolean,
+  attributes?: SpanAttributes,
+): Span {
   const params = isObjectLike(request) ? request : {};
   const defaultModel = isObjectLike(client) ? client.defaultModel : undefined;
   const model =
@@ -30,7 +35,8 @@ export function startEvaluateSpan(request: unknown, client: unknown, recordInput
   return startInactiveSpan({
     name: model ? `evaluate ${model}` : 'evaluate',
     op: GEN_AI_EVALUATE,
-    attributes: getRequestAttributes(params, model, recordInputs),
+    // Extra attributes (e.g. another integration's origin) are set at start, so samplers see them.
+    attributes: { ...getRequestAttributes(params, model, recordInputs), ...attributes },
   });
 }
 
@@ -46,11 +52,6 @@ function getRequestAttributes(
     ...(model ? { [GEN_AI_REQUEST_MODEL]: model } : {}),
     ...(recordInputs ? { [GEN_AI_INPUT_MESSAGES]: getEvaluationInputMessages(request) } : {}),
   };
-}
-
-/** Serialize the `state` and `questions` of an evaluation request. Also used for TypeSafe models on Workers AI. */
-export function getEvaluationInputMessages(request: Record<string, unknown>): string | undefined {
-  return stringify([{ type: 'evaluation', state: request.state, questions: request.questions }]);
 }
 
 /**
@@ -80,7 +81,7 @@ export function addResponseAttributes(span: Span, result: unknown, recordOutputs
   }
 
   if (recordOutputs && result.answers !== undefined) {
-    span.setAttribute(GEN_AI_OUTPUT_MESSAGES, stringify([{ type: 'evaluation', answers: result.answers }]));
+    span.setAttribute(GEN_AI_OUTPUT_MESSAGES, getEvaluationOutputMessages(result.answers));
   }
 }
 

@@ -1,4 +1,13 @@
-import { describe, expect, it } from 'vitest';
+import type * as SentryCore from '@sentry/core';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+
+// Trace data as the SDK would produce it for the active request; empty when nothing is active.
+const getTraceData = vi.hoisted(() => vi.fn<() => { 'sentry-trace'?: string; baggage?: string }>(() => ({})));
+
+vi.mock('@sentry/core', async importOriginal => ({
+  ...(await importOriginal<typeof SentryCore>()),
+  getTraceData,
+}));
 
 import { sentryRemixMiddleware } from '../../src/v3/server/middleware';
 import type { MatcherLike, RequestContextLike } from '../../src/v3/types';
@@ -16,6 +25,146 @@ function contextFor(url: string, headers: Record<string, string> = {}): RequestC
 }
 
 describe('sentryRemixMiddleware', () => {
+  beforeEach(() => {
+    getTraceData.mockReturnValue({});
+  });
+
+  it('propagates the trace to HTML responses through Server-Timing, ahead of the route', async () => {
+    getTraceData.mockReturnValue({ 'sentry-trace': 'abc-def-1', baggage: 'sentry-trace_id=abc' });
+    const middleware = sentryRemixMiddleware(matcherFor('/users/:id'));
+
+    const response = await middleware(
+      contextFor('http://x/users/1', { accept: 'text/html' }),
+      async () => new Response(''),
+    );
+
+    expect(response.headers.get('server-timing')).toBe(
+      'sentry-trace;desc="abc-def-1", baggage;desc="sentry-trace_id=abc", sentry-route;desc="/users/:id"',
+    );
+  });
+
+  it('propagates the trace even when no route matched', async () => {
+    getTraceData.mockReturnValue({ 'sentry-trace': 'abc-def-1' });
+    const middleware = sentryRemixMiddleware(matcherFor(undefined));
+
+    const response = await middleware(
+      contextFor('http://x/nope', { accept: 'text/html' }),
+      async () => new Response(''),
+    );
+
+    expect(response.headers.get('server-timing')).toBe('sentry-trace;desc="abc-def-1"');
+  });
+
+  it.each([
+    ['public', 'public, max-age=60'],
+    ['s-maxage', 's-maxage=300'],
+    ['max-age', 'max-age=60'],
+  ])('leaves the trace off a response a shared cache may store (%s), keeping the route', async (_why, cacheControl) => {
+    getTraceData.mockReturnValue({ 'sentry-trace': 'abc-def-1', baggage: 'sentry-trace_id=abc' });
+    const middleware = sentryRemixMiddleware(matcherFor('/'));
+
+    const response = await middleware(
+      contextFor('http://x/', { accept: 'text/html' }),
+      async () => new Response('', { headers: { 'cache-control': cacheControl } }),
+    );
+
+    expect(response.headers.get('server-timing')).toBe('sentry-route;desc="/"');
+  });
+
+  it.each([
+    ['stale-while-revalidate after a zero lifetime', { 'cache-control': 'max-age=0, stale-while-revalidate=60' }],
+    ['stale-if-error after a zero shared lifetime', { 'cache-control': 's-maxage=0, stale-if-error=600' }],
+    [
+      'CDN-Cache-Control over a private Cache-Control',
+      { 'cache-control': 'private', 'cdn-cache-control': 'max-age=3600' },
+    ],
+    [
+      'Vercel-CDN-Cache-Control over no-store',
+      { 'cache-control': 'no-store', 'vercel-cdn-cache-control': 's-maxage=3600' },
+    ],
+    ['Cloudflare-CDN-Cache-Control', { 'cloudflare-cdn-cache-control': 'public, max-age=60' }],
+    ['Surrogate-Control', { 'surrogate-control': 'max-age=3600' }],
+  ])('leaves the trace off a response a CDN or stale-serving cache may reuse (%s)', async (_why, headers) => {
+    getTraceData.mockReturnValue({ 'sentry-trace': 'abc-def-1' });
+    const middleware = sentryRemixMiddleware(matcherFor('/'));
+
+    const response = await middleware(
+      contextFor('http://x/', { accept: 'text/html' }),
+      async () => new Response('', { headers }),
+    );
+
+    expect(response.headers.get('server-timing')).toBe('sentry-route;desc="/"');
+  });
+
+  it('propagates the trace when the CDN field forbids caching and nothing else allows it', async () => {
+    getTraceData.mockReturnValue({ 'sentry-trace': 'abc-def-1' });
+    const middleware = sentryRemixMiddleware(matcherFor('/'));
+
+    const response = await middleware(
+      contextFor('http://x/', { accept: 'text/html' }),
+      async () => new Response('', { headers: { 'cdn-cache-control': 'max-age=0' } }),
+    );
+
+    expect(response.headers.get('server-timing')).toContain('sentry-trace;desc="abc-def-1"');
+  });
+
+  it('leaves the trace off a response with a future Expires and no Cache-Control', async () => {
+    getTraceData.mockReturnValue({ 'sentry-trace': 'abc-def-1' });
+    const middleware = sentryRemixMiddleware(matcherFor('/'));
+
+    const response = await middleware(
+      contextFor('http://x/', { accept: 'text/html' }),
+      async () => new Response('', { headers: { expires: new Date(Date.now() + 60_000).toUTCString() } }),
+    );
+
+    expect(response.headers.get('server-timing')).toBe('sentry-route;desc="/"');
+  });
+
+  it('propagates the trace when max-age=0 overrides a future Expires', async () => {
+    getTraceData.mockReturnValue({ 'sentry-trace': 'abc-def-1' });
+    const middleware = sentryRemixMiddleware(matcherFor('/'));
+
+    const response = await middleware(
+      contextFor('http://x/', { accept: 'text/html' }),
+      async () =>
+        new Response('', {
+          headers: { 'cache-control': 'max-age=0', expires: new Date(Date.now() + 60_000).toUTCString() },
+        }),
+    );
+
+    expect(response.headers.get('server-timing')).toContain('sentry-trace;desc="abc-def-1"');
+  });
+
+  it('propagates the trace when Expires is in the past', async () => {
+    getTraceData.mockReturnValue({ 'sentry-trace': 'abc-def-1' });
+    const middleware = sentryRemixMiddleware(matcherFor('/'));
+
+    const response = await middleware(
+      contextFor('http://x/', { accept: 'text/html' }),
+      async () => new Response('', { headers: { expires: 'Thu, 01 Jan 1970 00:00:00 GMT' } }),
+    );
+
+    expect(response.headers.get('server-timing')).toContain('sentry-trace;desc="abc-def-1"');
+  });
+
+  it.each([
+    ['private', 'private, max-age=60'],
+    ['no-store', 'no-store'],
+    ['max-age=0', 'max-age=0, must-revalidate'],
+    ['s-maxage=0', 'max-age=3600, s-maxage=0'],
+    ['no cache header', undefined],
+  ])('propagates the trace on a response only this user can get back (%s)', async (_why, cacheControl) => {
+    getTraceData.mockReturnValue({ 'sentry-trace': 'abc-def-1' });
+    const middleware = sentryRemixMiddleware(matcherFor('/'));
+
+    const response = await middleware(
+      contextFor('http://x/', { accept: 'text/html' }),
+      async () => new Response('', { headers: cacheControl ? { 'cache-control': cacheControl } : {} }),
+    );
+
+    expect(response.headers.get('server-timing')).toContain('sentry-trace;desc="abc-def-1"');
+  });
+
   it('reports the route on HTML responses through Server-Timing', async () => {
     const middleware = sentryRemixMiddleware(matcherFor('/users/:id'));
 
@@ -60,7 +209,7 @@ describe('sentryRemixMiddleware', () => {
     expect(response.headers.has('server-timing')).toBe(false);
   });
 
-  it('adds nothing when no route matched', async () => {
+  it('adds nothing when no route matched and no trace is active', async () => {
     const middleware = sentryRemixMiddleware(matcherFor(undefined));
 
     const response = await middleware(

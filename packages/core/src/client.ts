@@ -42,7 +42,7 @@ import { createClientReportEnvelope } from './utils/clientreport';
 import { consoleSandbox, debug } from './utils/debug-logger';
 import { dsnToString, makeDsn } from './utils/dsn';
 import { addItemToEnvelope, createAttachmentEnvelopeItem, getDataCategoryByType } from './utils/envelope';
-import { getPossibleEventMessages } from './utils/eventUtils';
+import { getPossibleEventMessages, isInternalException } from './utils/eventUtils';
 import { isObjectLike, isParameterizedString, isPlainObject, isPrimitive, isThenable } from './utils/is';
 import { merge } from './utils/merge';
 import { checkOrSetAlreadyCaught, uuid4 } from './utils/misc';
@@ -593,8 +593,10 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
 
     let env = createEventEnvelope(event, this._dsn, this._options._metadata, this._options.tunnel);
 
-    for (const attachment of hint.attachments || []) {
-      env = addItemToEnvelope(env, createAttachmentEnvelopeItem(attachment));
+    if (!isInternalException(hint)) {
+      for (const attachment of hint.attachments || []) {
+        env = addItemToEnvelope(env, createAttachmentEnvelopeItem(attachment));
+      }
     }
 
     if (genAiSpanItem) {
@@ -1544,8 +1546,7 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
           throw _makeDoNotSendEventError('An event processor returned `null`, will not send event.');
         }
 
-        const isInternalException = (hint.data as { __sentry__: boolean })?.__sentry__ === true;
-        if (isInternalException) {
+        if (isInternalException(hint)) {
           return prepared;
         }
 

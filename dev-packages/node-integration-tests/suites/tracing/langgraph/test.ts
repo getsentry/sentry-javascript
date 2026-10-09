@@ -4,6 +4,7 @@ import {
   GEN_AI_CONVERSATION_ID,
   GEN_AI_INPUT_MESSAGES,
   GEN_AI_OPERATION_NAME,
+  GEN_AI_OUTPUT_MESSAGES,
   GEN_AI_PIPELINE_NAME,
   GEN_AI_RESPONSE_MODEL,
   GEN_AI_RESPONSE_TEXT,
@@ -219,6 +220,33 @@ describe('LangGraph integration', () => {
             expect(invokeAgentSpan!.attributes[SENTRY_ORIGIN].value).toBe('auto.ai.langgraph');
             expect(invokeAgentSpan!.attributes[GEN_AI_AGENT_NAME].value).toBe('resume_agent');
             expect(invokeAgentSpan!.attributes[GEN_AI_PIPELINE_NAME].value).toBe('resume_agent');
+          },
+        })
+        .start()
+        .completed();
+    });
+  });
+
+  // Custom `Annotation.Root` state has no `messages` channel, so the whole state object is recorded on
+  // both the input and the output side of the invoke_agent span.
+  createEsmAndCjsTests(__dirname, 'scenario-custom-state.mjs', 'instrument-with-pii.mjs', (createRunner, test) => {
+    test('records custom Annotation.Root state as input and output on the invoke_agent span', async () => {
+      await createRunner()
+        .expect({
+          span: container => {
+            const invokeAgentSpan = container.items.find(span => span.name === 'invoke_agent custom_state_agent');
+            expect(invokeAgentSpan).toBeDefined();
+            expect(invokeAgentSpan!.status).toBe('ok');
+            expect(invokeAgentSpan!.attributes[SENTRY_OP].value).toBe('gen_ai.invoke_agent');
+            expect(invokeAgentSpan!.attributes[SENTRY_ORIGIN].value).toBe('auto.ai.langgraph');
+
+            const inputMessages = getStringAttributeValue(invokeAgentSpan!.attributes[GEN_AI_INPUT_MESSAGES]?.value);
+            expect(inputMessages).toContain('"role":"user"');
+            expect(inputMessages).toContain('weather');
+
+            const outputMessages = getStringAttributeValue(invokeAgentSpan!.attributes[GEN_AI_OUTPUT_MESSAGES]?.value);
+            expect(outputMessages).toContain('"role":"assistant"');
+            expect(outputMessages).toContain('Summary of weather');
           },
         })
         .start()

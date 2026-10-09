@@ -114,6 +114,8 @@ export interface TransformContext {
   optionsFn: string;
   /** Import statement prepended when `optionsFn` references a separate module. */
   optionsImport?: string;
+  /** Module the generated code imports `withSentry` and the class wrappers from. Defaults to `@sentry/cloudflare`. */
+  sentryModule?: string;
   /** @see {@link import('./wranglerConfig').WranglerConfig.sameWorkerBindings} */
   sameWorkerBindings?: readonly SameWorkerBinding[];
 }
@@ -198,7 +200,7 @@ export function applyAutoInstrumentTransforms(
     ms.prepend(buildMergedOptionsDeclaration(sameWorkerBindings, ctx.optionsFn, state));
   }
   if (ctx.optionsImport) ms.prepend(ctx.optionsImport);
-  ms.prepend("import * as __SENTRY__ from '@sentry/cloudflare';\n");
+  ms.prepend(`import * as __SENTRY__ from '${ctx.sentryModule ?? '@sentry/cloudflare'}';\n`);
 
   return {
     code: ms.toString(),

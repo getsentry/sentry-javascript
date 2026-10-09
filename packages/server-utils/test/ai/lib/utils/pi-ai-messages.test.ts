@@ -4,6 +4,8 @@ import {
   piAiContentToString,
   piAiFinishReason,
   piAiMessagesToGenAiMessages,
+  piAiSystemInstructions,
+  piAiToolDefinitions,
 } from '../../../../src/ai/pi-ai/messages';
 
 describe('convert pi-ai messages to gen_ai messages', () => {
@@ -134,6 +136,28 @@ describe('convert pi-ai messages to gen_ai messages', () => {
       finish_reason: 'tool_call',
     });
     expect(piAiAssistantMessageToGenAiMessage({ role: 'assistant', content: [] }, 'stop')).toBeUndefined();
+  });
+
+  it('replays positional system messages into the current system prompt and tools', () => {
+    const context = {
+      systemPrompt: 'Base prompt.',
+      tools: [{ name: 'read' }],
+      messages: [
+        {
+          role: 'system',
+          content: '',
+          sections: { preamble: 'You help.', mode: 'Edit.' },
+          toolsAdded: [{ name: 'bash' }],
+        },
+        { role: 'user', content: 'Hi.' },
+        { role: 'system', content: '', sections: { mode: null }, toolsRemoved: [{ name: 'read' }] },
+        { role: 'system', content: 'Appended.', sections: { mode: 'Plan only.' } },
+      ],
+    };
+
+    expect(piAiSystemInstructions(context)).toBe('Base prompt.\n\nAppended.\n\nYou help.\n\nPlan only.');
+    expect(piAiToolDefinitions(context)).toStrictEqual([{ name: 'bash' }]);
+    expect(piAiSystemInstructions({ messages: [{ role: 'user', content: 'Hi.' }] })).toBeUndefined();
   });
 
   it('renders text-only content as text and other content as mapped parts', () => {

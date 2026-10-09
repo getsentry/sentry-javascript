@@ -1,5 +1,7 @@
 import { expect, test } from '@playwright/test';
-import { waitForMetric } from '@sentry-internal/test-utils';
+import { getRuntime, waitForMetric } from '@sentry-internal/test-utils';
+
+test.skip(getRuntime() === 'cloudflare', 'Node.js runtime metrics do not exist on Workers');
 
 const EXPECTED_ATTRIBUTES = {
   'sentry.environment': { value: 'qa', type: 'string' },

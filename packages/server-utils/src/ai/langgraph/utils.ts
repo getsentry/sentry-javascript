@@ -1,5 +1,5 @@
 /* eslint-disable typescript-eslint/no-deprecated */
-import { SPAN_STATUS_ERROR, startSpan } from '@sentry/core';
+import { SPAN_STATUS_ERROR, startSpan, stringify } from '@sentry/core';
 import type { Span, SpanAttributes } from '@sentry/core';
 import {
   GEN_AI_AGENT_NAME,
@@ -22,6 +22,7 @@ import {
 } from '@sentry/conventions/attributes';
 import { GEN_AI_EXECUTE_TOOL } from '@sentry/conventions/op';
 import { GEN_AI_TOOL_CALL_ID_ATTRIBUTE } from '../core/gen-ai-attributes';
+import { setOutputMessagesAttribute } from '../core/utils';
 import type { BaseChatModel, LangChainMessage } from '../langchain/types';
 import {
   extractMessageTokenUsageAttributes,
@@ -256,6 +257,14 @@ export function setResponseAttributes(span: Span, inputMessages: LangChainMessag
   const outputMessages = resultObj?.messages;
 
   if (!outputMessages || !Array.isArray(outputMessages)) {
+    // Custom state annotations have no `messages` array, the whole state is recorded instead.
+    if (result && typeof result === 'object') {
+      const serializedState = stringify(result);
+      // `gen_ai.output.messages` is what the product reads first; `gen_ai.response.text` is kept for
+      // back-compat (Relay still migrates it).
+      setOutputMessagesAttribute(span, { responseText: serializedState });
+      span.setAttribute(GEN_AI_RESPONSE_TEXT, stringify([{ role: 'assistant', content: serializedState }]));
+    }
     return;
   }
 
