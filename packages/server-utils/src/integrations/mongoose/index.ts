@@ -4,6 +4,7 @@ import { defineIntegration, getActiveSpan, waitForTracingChannelBinding } from '
 import { subscribeMongooseDiagnosticChannels } from './mongoose-dc-subscriber';
 import type { MongooseLegacyCollection } from './mongoose-legacy-span';
 import { startMongooseLegacySpan } from './mongoose-legacy-span';
+import type { OrchestrionChannelContext } from '../../orchestrion/types';
 import { CHANNELS } from '../../orchestrion/channels';
 import { MONGOOSE_CONTEXT_CAPTURE_CHANNELS } from '../../orchestrion/config/mongoose';
 import type { SentryTracingChannel } from '../../tracing-channel';
@@ -38,12 +39,8 @@ interface MongooseDocument {
  * The shape orchestrion's transform attaches to the tracing-channel context
  * object. `self` is the `this` of the traced method
  */
-interface MongooseChannelContext {
+interface MongooseChannelContext extends OrchestrionChannelContext {
   self?: object;
-  arguments?: unknown[];
-  result?: unknown;
-  error?: unknown;
-  moduleVersion?: string;
 }
 
 // The active span captured when a query/aggregate was *built*, keyed by the

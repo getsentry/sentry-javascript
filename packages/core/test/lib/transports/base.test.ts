@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import { createTransport } from '../../../src/transports/base';
 import type { ClientReport } from '../../../src/types/clientreport';
-import type { AttachmentItem, EventEnvelope, EventItem } from '../../../src/types/envelope';
+import type { AttachmentItem, Envelope, EventEnvelope, EventItem } from '../../../src/types/envelope';
 import type { TransportMakeRequestResponse } from '../../../src/types/transport';
 import { createClientReportEnvelope } from '../../../src/utils/clientreport';
 import { createEnvelope, serializeEnvelope } from '../../../src/utils/envelope';
@@ -157,7 +157,7 @@ describe('createTransport', () => {
 
         await transport.send(ERROR_ENVELOPE);
         expect(requestExecutor).not.toHaveBeenCalled();
-        expect(recordDroppedEventCallback).toHaveBeenCalledWith('ratelimit_backoff', 'error');
+        expect(recordDroppedEventCallback).toHaveBeenCalledWith('ratelimit_backoff', 'error', 1);
         requestExecutor.mockClear();
         recordDroppedEventCallback.mockClear();
 
@@ -199,7 +199,7 @@ describe('createTransport', () => {
 
         await transport.send(ERROR_ENVELOPE); // Error envelope should not be sent because of pending rate limit
         expect(requestExecutor).not.toHaveBeenCalled();
-        expect(recordDroppedEventCallback).toHaveBeenCalledWith('ratelimit_backoff', 'error');
+        expect(recordDroppedEventCallback).toHaveBeenCalledWith('ratelimit_backoff', 'error', 1);
         requestExecutor.mockClear();
         recordDroppedEventCallback.mockClear();
 
@@ -242,18 +242,19 @@ describe('createTransport', () => {
         await transport.send(TRANSACTION_ENVELOPE); // Transaction envelope should not be sent because of pending rate limit
         expect(requestExecutor).not.toHaveBeenCalled();
         expect(recordDroppedEventCallback).toHaveBeenCalledWith('ratelimit_backoff', 'transaction');
+        expect(recordDroppedEventCallback).toHaveBeenCalledWith('ratelimit_backoff', 'span', 1);
         requestExecutor.mockClear();
         recordDroppedEventCallback.mockClear();
 
         await transport.send(ERROR_ENVELOPE); // Error envelope should not be sent because of pending rate limit
         expect(requestExecutor).not.toHaveBeenCalled();
-        expect(recordDroppedEventCallback).toHaveBeenCalledWith('ratelimit_backoff', 'error');
+        expect(recordDroppedEventCallback).toHaveBeenCalledWith('ratelimit_backoff', 'error', 1);
         requestExecutor.mockClear();
         recordDroppedEventCallback.mockClear();
 
         await transport.send(ATTACHMENT_ENVELOPE); // Attachment envelope should not be sent because of pending rate limit
         expect(requestExecutor).not.toHaveBeenCalled();
-        expect(recordDroppedEventCallback).toHaveBeenCalledWith('ratelimit_backoff', 'attachment');
+        expect(recordDroppedEventCallback).toHaveBeenCalledWith('ratelimit_backoff', 'attachment', 1);
         requestExecutor.mockClear();
         recordDroppedEventCallback.mockClear();
 
@@ -302,12 +303,13 @@ describe('createTransport', () => {
         await transport.send(TRANSACTION_ENVELOPE); // Transaction envelope should not be sent because of pending rate limit
         expect(requestExecutor).not.toHaveBeenCalled();
         expect(recordDroppedEventCallback).toHaveBeenCalledWith('ratelimit_backoff', 'transaction');
+        expect(recordDroppedEventCallback).toHaveBeenCalledWith('ratelimit_backoff', 'span', 1);
         requestExecutor.mockClear();
         recordDroppedEventCallback.mockClear();
 
         await transport.send(ERROR_ENVELOPE); // Error envelope should not be sent because of pending rate limit
         expect(requestExecutor).not.toHaveBeenCalled();
-        expect(recordDroppedEventCallback).toHaveBeenCalledWith('ratelimit_backoff', 'error');
+        expect(recordDroppedEventCallback).toHaveBeenCalledWith('ratelimit_backoff', 'error', 1);
         requestExecutor.mockClear();
         recordDroppedEventCallback.mockClear();
 
@@ -324,10 +326,35 @@ describe('createTransport', () => {
         expect(requestExecutor).toHaveBeenCalledTimes(1);
         expect(recordDroppedEventCallback).not.toHaveBeenCalled();
       });
+
+      it('records the item count of rate limited container items', async () => {
+        const { retryAfterSeconds, beforeLimit, withinLimit } = setRateLimitTimes();
+        const [transport, , requestExecutor, recordDroppedEventCallback] = createTestTransport({
+          headers: {
+            'x-sentry-rate-limits': `${retryAfterSeconds}:log_item:scope`,
+            'retry-after': null,
+          },
+        });
+
+        const dateNowSpy = vi.spyOn(Date, 'now').mockImplementation(() => beforeLimit);
+
+        await transport.send(ERROR_ENVELOPE);
+        requestExecutor.mockClear();
+
+        dateNowSpy.mockImplementation(() => withinLimit);
+
+        await transport.send(
+          createEnvelope<Envelope>({ sent_at: '123' }, [
+            [{ type: 'log', item_count: 3, content_type: 'application/vnd.sentry.items.log+json' }, { items: [] }],
+          ] as Envelope[1]),
+        );
+        expect(requestExecutor).not.toHaveBeenCalled();
+        expect(recordDroppedEventCallback).toHaveBeenCalledWith('ratelimit_backoff', 'log_item', 3);
+      });
     });
 
     describe('Client Reports', () => {
-      it('should not record outcomes when client reports fail to send', async () => {
+      it('does not record outcomes when client reports fail to send', async () => {
         expect.assertions(2);
 
         const mockRecordDroppedEventCallback = vi.fn();
@@ -347,7 +374,7 @@ describe('createTransport', () => {
         expect(mockRecordDroppedEventCallback).not.toHaveBeenCalled();
       });
 
-      it('should not record outcomes when client reports fail due to buffer overflow', async () => {
+      it('does not record outcomes when client reports fail due to buffer overflow', async () => {
         expect.assertions(2);
 
         const mockRecordDroppedEventCallback = vi.fn();
@@ -371,7 +398,7 @@ describe('createTransport', () => {
         expect(mockRecordDroppedEventCallback).not.toHaveBeenCalled();
       });
 
-      it('should record outcomes when regular events fail to send', async () => {
+      it('records outcomes when regular events fail to send', async () => {
         expect.assertions(2);
 
         const mockRecordDroppedEventCallback = vi.fn();
@@ -388,12 +415,12 @@ describe('createTransport', () => {
         }
 
         // recordDroppedEvent SHOULD be called for regular events
-        expect(mockRecordDroppedEventCallback).toHaveBeenCalledWith('network_error', 'error');
+        expect(mockRecordDroppedEventCallback).toHaveBeenCalledWith('network_error', 'error', 1);
       });
     });
 
     describe('HTTP 413 Content Too Large', () => {
-      it('should record send_error outcome when receiving 413 response', async () => {
+      it('records send_error outcome when receiving 413 response', async () => {
         const mockRecordDroppedEventCallback = vi.fn();
 
         const transport = createTransport({ recordDroppedEvent: mockRecordDroppedEventCallback }, () =>
@@ -405,17 +432,17 @@ describe('createTransport', () => {
         // Should resolve without throwing
         expect(result).toEqual({ statusCode: 413 });
         // recordDroppedEvent SHOULD be called with send_error reason
-        expect(mockRecordDroppedEventCallback).toHaveBeenCalledWith('send_error', 'error');
+        expect(mockRecordDroppedEventCallback).toHaveBeenCalledWith('send_error', 'error', 1);
       });
 
-      it('should record send_error for each item in envelope when receiving 413', async () => {
+      it('records send_error for each item in envelope when receiving 413', async () => {
         const mockRecordDroppedEventCallback = vi.fn();
 
         const multiItemEnvelope = createEnvelope<EventEnvelope>(
           { event_id: 'aa3ff046696b4bc6b609ce6d28fde9e2', sent_at: '123' },
           [
             [{ type: 'event' }, { event_id: 'aa3ff046696b4bc6b609ce6d28fde9e2' }] as EventItem,
-            [{ type: 'transaction' }, { event_id: 'bb3ff046696b4bc6b609ce6d28fde9e2' }] as EventItem,
+            [{ type: 'transaction' }, { event_id: 'bb3ff046696b4bc6b609ce6d28fde9e2', spans: [{}, {}] }] as EventItem,
           ],
         );
 
@@ -425,13 +452,37 @@ describe('createTransport', () => {
 
         await transport.send(multiItemEnvelope);
 
-        // recordDroppedEvent SHOULD be called for each item
-        expect(mockRecordDroppedEventCallback).toHaveBeenCalledTimes(2);
-        expect(mockRecordDroppedEventCallback).toHaveBeenCalledWith('send_error', 'error');
+        expect(mockRecordDroppedEventCallback).toHaveBeenCalledTimes(3);
+        expect(mockRecordDroppedEventCallback).toHaveBeenCalledWith('send_error', 'error', 1);
         expect(mockRecordDroppedEventCallback).toHaveBeenCalledWith('send_error', 'transaction');
+        expect(mockRecordDroppedEventCallback).toHaveBeenCalledWith('send_error', 'span', 3);
       });
 
-      it('should not record outcomes for client reports when receiving 413', async () => {
+      it('records send_error with the item count of container items when receiving 413', async () => {
+        const mockRecordDroppedEventCallback = vi.fn();
+
+        const containerEnvelope = createEnvelope<Envelope>({ sent_at: '123' }, [
+          [{ type: 'span', item_count: 5, content_type: 'application/vnd.sentry.items.span.v2+json' }, { items: [] }],
+          [{ type: 'log', item_count: 3, content_type: 'application/vnd.sentry.items.log+json' }, { items: [] }],
+          [
+            { type: 'trace_metric', item_count: 2, content_type: 'application/vnd.sentry.items.trace-metric+json' },
+            { items: [] },
+          ],
+        ] as Envelope[1]);
+
+        const transport = createTransport({ recordDroppedEvent: mockRecordDroppedEventCallback }, () =>
+          resolvedSyncPromise({ statusCode: 413 }),
+        );
+
+        await transport.send(containerEnvelope);
+
+        expect(mockRecordDroppedEventCallback).toHaveBeenCalledTimes(3);
+        expect(mockRecordDroppedEventCallback).toHaveBeenCalledWith('send_error', 'span', 5);
+        expect(mockRecordDroppedEventCallback).toHaveBeenCalledWith('send_error', 'log_item', 3);
+        expect(mockRecordDroppedEventCallback).toHaveBeenCalledWith('send_error', 'metric', 2);
+      });
+
+      it('does not record outcomes for client reports when receiving 413', async () => {
         const mockRecordDroppedEventCallback = vi.fn();
 
         const transport = createTransport({ recordDroppedEvent: mockRecordDroppedEventCallback }, () =>
@@ -446,7 +497,7 @@ describe('createTransport', () => {
         expect(mockRecordDroppedEventCallback).not.toHaveBeenCalled();
       });
 
-      it('should not apply rate limits after receiving 413', async () => {
+      it('does not apply rate limits after receiving 413', async () => {
         const mockRecordDroppedEventCallback = vi.fn();
         const mockRequestExecutor = vi.fn(() => resolvedSyncPromise({ statusCode: 413 }));
 
@@ -455,7 +506,7 @@ describe('createTransport', () => {
         // First request gets 413
         await transport.send(ERROR_ENVELOPE);
         expect(mockRequestExecutor).toHaveBeenCalledTimes(1);
-        expect(mockRecordDroppedEventCallback).toHaveBeenCalledWith('send_error', 'error');
+        expect(mockRecordDroppedEventCallback).toHaveBeenCalledWith('send_error', 'error', 1);
         mockRequestExecutor.mockClear();
         mockRecordDroppedEventCallback.mockClear();
 

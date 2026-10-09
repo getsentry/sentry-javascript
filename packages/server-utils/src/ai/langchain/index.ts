@@ -15,6 +15,11 @@ import {
 import { GEN_AI_CHAT, GEN_AI_EXECUTE_TOOL, GEN_AI_INVOKE_AGENT } from '@sentry/conventions/op';
 import { resolveAIRecordingOptions } from '../core/utils';
 import { LANGCHAIN_ORIGIN } from './constants';
+import {
+  addTypeSafeClassifierResponseAttributes,
+  isTypeSafeClassifier,
+  startTypeSafeClassifierSpan,
+} from './typesafe-classifier';
 import type {
   LangChainCallbackHandler,
   LangChainLLMResult,
@@ -43,6 +48,7 @@ export function createLangChainCallbackHandler(options: LangChainOptions = {}): 
 
   // Internal state - single instance tracks all spans
   const spanMap = new Map<string, Span>();
+  const evaluateRunIds = new Set<string>();
 
   /**
    * Exit a span and clean up
@@ -51,8 +57,9 @@ export function createLangChainCallbackHandler(options: LangChainOptions = {}): 
     const span = spanMap.get(runId);
     if (span?.isRecording()) {
       span.end();
-      spanMap.delete(runId);
     }
+    spanMap.delete(runId);
+    evaluateRunIds.delete(runId);
   };
 
   /**
@@ -215,6 +222,13 @@ export function createLangChainCallbackHandler(options: LangChainOptions = {}): 
       _runType?: string,
       runName?: string,
     ) {
+      // A Jev call is a real model call, so it is recorded inside an agent too.
+      if (isTypeSafeClassifier(chain)) {
+        spanMap.set(runId, startTypeSafeClassifierSpan(chain, inputs, metadata, recordInputs));
+        evaluateRunIds.add(runId);
+        return;
+      }
+
       // Skip chain spans when inside an agent context (createReactAgent).
       // The agent already creates an invoke_agent span; internal chain steps
       // (ChannelWrite, Branch, prompt, etc.) are noise.
@@ -264,14 +278,16 @@ export function createLangChainCallbackHandler(options: LangChainOptions = {}): 
     handleChainEnd(outputs: unknown, runId: string) {
       const span = spanMap.get(runId);
       if (span?.isRecording()) {
-        // Add outputs if recordOutputs is enabled
-        if (recordOutputs) {
+        if (evaluateRunIds.has(runId)) {
+          addTypeSafeClassifierResponseAttributes(span, outputs, recordOutputs);
+        } else if (recordOutputs) {
           span.setAttributes({
             'langchain.chain.outputs': JSON.stringify(outputs),
           });
         }
-        exitSpan(runId);
       }
+      // Also for a sampled-out span, which would otherwise stay tracked.
+      exitSpan(runId);
     },
 
     // Chain Error Handler
@@ -281,8 +297,8 @@ export function createLangChainCallbackHandler(options: LangChainOptions = {}): 
       const span = spanMap.get(runId);
       if (span?.isRecording()) {
         span.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
-        exitSpan(runId);
       }
+      exitSpan(runId);
     },
 
     // Tool Start Handler

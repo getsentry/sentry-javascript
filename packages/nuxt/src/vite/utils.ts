@@ -4,45 +4,19 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { fileURLToPath } from 'node:url';
 import type { SentryNuxtModuleOptions } from '../common/types';
-import { resolvePath } from '@nuxt/kit';
+import { resolvePath, resolveServerVariant } from '@nuxt/kit';
+
+const SERVER_API_VARIANTS = { nitro2: 'nitro2', nitro3: 'nitro3', nuxt: 'nuxt' } as const;
+
+/** The upstream server API the host runs. `nuxt` means the host runs no Nitro, for example the Vite server. */
+export type ServerApi = keyof typeof SERVER_API_VARIANTS;
 
 /**
- * Gets the major version of the Nitro package used by the app's Nuxt installation.
- * Returns 2 as the default if the version cannot be determined.
- *
- * Nitro v2 is published as `nitropack`, v3 as `nitro`. Resolving `nitro` directly is
- * unreliable: module resolution walks up the directory tree, so in a monorepo an
- * unrelated `nitro` v3 above the app wins even when the app's Nuxt uses `nitropack` v2.
- * Instead, follow the dependency chain Nuxt itself imports Nitro through:
- * `nuxt` -> (`@nuxt/nitro-server` ->) `nitro` | `nitropack`.
+ * Resolves the server API of the current Nuxt host. Call it once in the module setup and pass the result on.
  */
-export async function getNitroMajorVersion(rootDir: string): Promise<number> {
-  try {
-    const { getPackageInfo } = await import('local-pkg');
-
-    // `paths` entries must point at a file: for a bare directory, resolution starts at the
-    // directory's parent and skips the directory's own `node_modules`, so a hoisted copy higher
-    // up the tree (e.g. a monorepo root) wins over the app's actual dependency.
-    const fromPackage = (dir: string): { paths: string[] } => ({ paths: [path.join(dir, 'package.json')] });
-
-    // The package that declares the Nitro dependency: `nuxt` itself, or `@nuxt/nitro-server` (Nuxt >= 3.21) when nuxt delegates to it
-    let provider = await getPackageInfo('nuxt', fromPackage(rootDir));
-    if (provider?.packageJson.dependencies?.['@nuxt/nitro-server']) {
-      provider = (await getPackageInfo('@nuxt/nitro-server', fromPackage(provider.rootPath))) ?? provider;
-    }
-
-    if (!provider?.packageJson.dependencies?.nitro) {
-      return 2;
-    }
-
-    const info = await getPackageInfo('nitro', fromPackage(provider.rootPath));
-    const major = parseInt(info?.version?.split('.')[0] ?? '', 10);
-    // The provider imports `nitro` (not `nitropack`), so it is at least v3 even if the version is unreadable
-    return isNaN(major) ? 3 : major;
-  } catch {
-    // If local-pkg is unavailable or resolution fails, default to v2
-    return 2;
-  }
+export function resolveServerApi(): ServerApi {
+  // Kit returns `undefined` only when the host runs none of the given keys, and every host runs one of these.
+  return resolveServerVariant(SERVER_API_VARIANTS) ?? 'nitro2';
 }
 
 /**
@@ -248,29 +222,5 @@ export function toResolvablePath(source: string): { path: string; wasFileUrl: bo
     return { path: filePath, wasFileUrl: true };
   } catch {
     return undefined;
-  }
-}
-
-/**
- * Sets up alias to work around OpenTelemetry's incomplete ESM imports.
- * https://github.com/getsentry/sentry-javascript/issues/15204
- *
- * OpenTelemetry's @opentelemetry/resources package has incomplete imports missing
- * the .js file extensions (like execAsync for machine-id detection). This causes module resolution
- * errors in certain Nuxt configurations, particularly when local Nuxt modules in Nuxt 4 are present.
- *
- * @see https://nuxt.com/docs/guide/concepts/esm#aliasing-libraries
- */
-export function addOTelCommonJSImportAlias(nuxt: Nuxt, isNitroV3 = false): void {
-  if (!nuxt.options.dev || isNitroV3) {
-    return;
-  }
-
-  if (!nuxt.options.alias) {
-    nuxt.options.alias = {};
-  }
-
-  if (!nuxt.options.alias['@opentelemetry/resources']) {
-    nuxt.options.alias['@opentelemetry/resources'] = '@opentelemetry/resources/build/src/index.js';
   }
 }

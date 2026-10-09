@@ -1,39 +1,28 @@
 import { expect } from '@playwright/test';
 import { sentryTest } from '../../../../utils/fixtures';
-import { envelopeRequestParser, shouldSkipTracingTest, waitForTransactionRequest } from '../../../../utils/helpers';
+import { shouldSkipTracingTest } from '../../../../utils/helpers';
+import { collectStreamedSpans, getSpanOp, waitForStreamedSpan } from '../../../../utils/spanUtils';
 
-sentryTest(
-  'click-triggered navigation should produce a root navigation transaction',
-  async ({ getLocalTestUrl, page }) => {
-    if (shouldSkipTracingTest()) {
-      sentryTest.skip();
-    }
+sentryTest('starts a root navigation segment when a click triggers navigation', async ({ getLocalTestUrl, page }) => {
+  sentryTest.skip(shouldSkipTracingTest());
+  const spans = collectStreamedSpans(page);
+  const pageloadPromise = waitForStreamedSpan(page, span => span.is_segment && getSpanOp(span) === 'pageload');
+  const url = await getLocalTestUrl({ testDir: __dirname });
+  await page.goto(url);
+  await pageloadPromise;
 
-    const url = await getLocalTestUrl({ testDir: __dirname });
+  const interactionPromise = waitForStreamedSpan(
+    page,
+    span => span.is_segment && getSpanOp(span) === 'ui.action.click',
+  );
+  const navigationPromise = waitForStreamedSpan(page, span => span.is_segment && getSpanOp(span) === 'navigation');
+  await page.locator('[data-test-id=navigate-button]').click();
+  const [interaction, navigation] = await Promise.all([interactionPromise, navigationPromise]);
+  await page.evaluate(() => (window as any).Sentry.flush());
 
-    await page.goto(url);
-    await waitForTransactionRequest(page); // "pageload" root span
-
-    const interactionRequestPromise = waitForTransactionRequest(
-      page,
-      evt => evt.contexts?.trace?.op === 'ui.action.click',
-    );
-    const navigationRequestPromise = waitForTransactionRequest(page, evt => evt.contexts?.trace?.op === 'navigation');
-
-    await page.locator('[data-test-id=navigate-button]').click();
-
-    const interactionEvent = envelopeRequestParser(await interactionRequestPromise);
-    const navigationEvent = envelopeRequestParser(await navigationRequestPromise);
-
-    // Navigation is root span, not a child span on the interaction
-    expect(interactionEvent.contexts?.trace?.op).toBe('ui.action.click');
-    expect(navigationEvent.contexts?.trace?.op).toBe('navigation');
-
-    expect(interactionEvent.contexts?.trace?.trace_id).not.toEqual(navigationEvent.contexts?.trace?.trace_id);
-
-    // does not contain a child navigation span
-    const interactionSpans = interactionEvent.spans || [];
-    const hasNavigationChild = interactionSpans.some(span => span.op === 'navigation' || span.op === 'http.server');
-    expect(hasNavigationChild).toBeFalsy();
-  },
-);
+  expect(navigation.is_segment).toBe(true);
+  expect(navigation).not.toHaveProperty('parent_span_id');
+  expect(navigation.trace_id).not.toBe(interaction.trace_id);
+  const children = spans.filter(span => span.parent_span_id === interaction.span_id);
+  expect(children.filter(span => ['navigation', 'http.server'].includes(getSpanOp(span) ?? ''))).toHaveLength(0);
+});

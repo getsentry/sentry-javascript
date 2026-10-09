@@ -1,41 +1,28 @@
+import { PAGELOAD, BROWSER_PAINT } from '@sentry/conventions/op';
+import { BROWSER_WEB_VITAL_FP_VALUE, BROWSER_WEB_VITAL_FCP_VALUE } from '@sentry/conventions/attributes';
 import { expect } from '@playwright/test';
-import type { Event } from '@sentry/core';
 import { sentryTest } from '../../../../utils/fixtures';
-import { getFirstSentryEnvelopeRequest, shouldSkipTracingTest } from '../../../../utils/helpers';
+import { shouldSkipTracingTest } from '../../../../utils/helpers';
+import { collectStreamedSpans, getSpanOp, waitForStreamedSpan } from '../../../../utils/spanUtils';
 
-sentryTest('should capture FP vital.', async ({ browserName, getLocalTestUrl, page }) => {
-  // FP is not generated on webkit or firefox
-  if (shouldSkipTracingTest() || browserName !== 'chromium') {
-    sentryTest.skip();
-  }
+[
+  { vital: 'fp', attribute: BROWSER_WEB_VITAL_FP_VALUE, name: 'first-paint', chromiumOnly: true },
+  { vital: 'fcp', attribute: BROWSER_WEB_VITAL_FCP_VALUE, name: 'first-contentful-paint', chromiumOnly: false },
+].forEach(({ vital, attribute, name, chromiumOnly }) => {
+  sentryTest(`captures ${vital.toUpperCase()} and its paint span`, async ({ getLocalTestUrl, page, browserName }) => {
+    sentryTest.skip(shouldSkipTracingTest() || (chromiumOnly && browserName !== 'chromium'));
+    const spans = collectStreamedSpans(page);
+    const pageloadPromise = waitForStreamedSpan(page, span => span.is_segment && getSpanOp(span) === PAGELOAD);
+    const url = await getLocalTestUrl({ testDir: __dirname });
+    await page.goto(url);
+    const pageload = await pageloadPromise;
+    await page.evaluate(() => (window as any).Sentry.flush());
 
-  const url = await getLocalTestUrl({ testDir: __dirname });
-  const eventData = await getFirstSentryEnvelopeRequest<Event>(page, url);
-
-  expect(eventData.measurements).toBeDefined();
-  expect(eventData.measurements?.fp?.value).toBeDefined();
-
-  const fpSpan = eventData.spans?.filter(({ description }) => description === 'first-paint')[0];
-
-  expect(fpSpan).toBeDefined();
-  expect(fpSpan?.op).toBe('browser.paint');
-  expect(fpSpan?.parent_span_id).toBe(eventData.contexts?.trace?.span_id);
-});
-
-sentryTest('should capture FCP vital.', async ({ getLocalTestUrl, page }) => {
-  if (shouldSkipTracingTest()) {
-    sentryTest.skip();
-  }
-
-  const url = await getLocalTestUrl({ testDir: __dirname });
-  const eventData = await getFirstSentryEnvelopeRequest<Event>(page, url);
-
-  expect(eventData.measurements).toBeDefined();
-  expect(eventData.measurements?.fcp?.value).toBeDefined();
-
-  const fcpSpan = eventData.spans?.filter(({ description }) => description === 'first-contentful-paint')[0];
-
-  expect(fcpSpan).toBeDefined();
-  expect(fcpSpan?.op).toBe('browser.paint');
-  expect(fcpSpan?.parent_span_id).toBe(eventData.contexts?.trace?.span_id);
+    expect(pageload.attributes[attribute]?.value).toBeGreaterThan(0);
+    const paintSpans = spans.filter(span => span.name === name);
+    expect(paintSpans).toHaveLength(1);
+    expect(getSpanOp(paintSpans[0])).toBe(BROWSER_PAINT);
+    expect(paintSpans[0].parent_span_id).toBe(pageload.span_id);
+    expect(paintSpans[0].trace_id).toBe(pageload.trace_id);
+  });
 });
