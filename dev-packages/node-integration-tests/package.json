@@ -99,7 +99,7 @@
     "redis-4": "npm:redis@^4.6.14",
     "redis-5": "npm:redis@~5.11.0",
     "redis-5-tracing": "npm:redis@^5.12.0",
-    "reflect-metadata": "0.2.1",
+    "reflect-metadata": "0.2.2",
     "together-ai": "0.54.0",
     "rxjs": "^7.8.2",
     "tedious": "^19.2.1",
