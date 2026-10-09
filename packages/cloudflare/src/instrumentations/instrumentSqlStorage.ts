@@ -37,7 +37,7 @@ export function instrumentSqlStorage(sql: SqlStorage): SqlStorage {
         if (childSpanWillNotBeRecorded() && !mayTargetCloudflareInternalTable(query)) {
           // This span is never sent, so skip the costly sanitize and summary
           // steps. We still start the span so it records its dropped span
-          // outcome. A query that may target a `cf_` table takes the full path,
+          // outcome. A query that may target a `cf_` or `pi_` table takes the full path,
           // because an internal query must start no span.
           return startSpan({ name: 'exec', attributes: SPAN_ATTRIBUTES }, callOriginal);
         }

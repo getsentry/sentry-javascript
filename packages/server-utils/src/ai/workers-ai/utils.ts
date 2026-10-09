@@ -20,8 +20,13 @@ import { GEN_AI_CHAT, GEN_AI_EMBEDDINGS, GEN_AI_EVALUATE } from '@sentry/convent
 import { isObjectLike, stringify } from '@sentry/core';
 import type { Span, SpanAttributeValue } from '@sentry/core';
 import { GEN_AI_REQUEST_STREAM_ATTRIBUTE } from '../core/gen-ai-attributes';
-import { extractSystemInstructions, setOutputMessagesAttribute, setTokenUsageAttributes } from '../core/utils';
-import { addResponseAttributes as addEvaluateResponseAttributes, getEvaluationInputMessages } from '../typesafe';
+import {
+  extractSystemInstructions,
+  getEvaluationInputMessages,
+  getTokenUsageAttributes,
+  setOutputMessagesAttribute,
+} from '../core/utils';
+import { addResponseAttributes as addEvaluateResponseAttributes } from '../typesafe';
 // Re-exported so `workers-ai/streaming.ts` keeps importing it from this module.
 export { setOutputMessagesAttribute };
 import { WORKERS_AI_ORIGIN, WORKERS_AI_PROVIDER_NAME } from './constants';
@@ -36,11 +41,16 @@ export const WORKERS_AI_OPERATION_SPAN_OPS: Record<WorkersAiOperationName, strin
 };
 
 /**
+ * Model ID prefixes of the evaluation models (TypeSafe Jev and Cloudflare Clef), traced as `evaluate` spans.
+ */
+const EVALUATE_MODEL_PREFIXES = ['typesafe/jev', '@cf/cloudflare/clef'];
+
+/**
  * Determine the gen_ai operation name from the model and inputs passed to `AI.run`.
  * Workers AI exposes a single `run` method, so we infer the operation from the model ID and the input shape.
  */
 export function getOperationName(model: unknown, inputs: unknown): WorkersAiOperationName {
-  if (typeof model === 'string' && model.startsWith('typesafe/jev')) {
+  if (typeof model === 'string' && EVALUATE_MODEL_PREFIXES.some(prefix => model.startsWith(prefix))) {
     return 'evaluate';
   }
   if (inputs && typeof inputs === 'object') {
@@ -168,7 +178,7 @@ export function addResponseAttributes(
   const response = result as WorkersAiOutput;
 
   if (response.usage) {
-    setTokenUsageAttributes(span, response.usage.prompt_tokens, response.usage.completion_tokens);
+    span.setAttributes(getTokenUsageAttributes(response.usage.prompt_tokens, response.usage.completion_tokens));
   }
 
   if (recordOutputs) {

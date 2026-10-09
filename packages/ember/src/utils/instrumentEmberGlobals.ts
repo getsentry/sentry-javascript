@@ -7,6 +7,7 @@ import type { Span } from '@sentry/core';
 import {
   browserPerformanceTimeOrigin,
   hasSpanStreamingEnabled,
+  _INTERNAL_performanceTimeToSeconds,
   timestampInSeconds,
   UI_MOUNT_SPAN_NAME_FALLBACK,
   UI_TASK_SPAN_NAME_FALLBACK,
@@ -224,9 +225,8 @@ function _instrumentInitialLoad(): void {
 
   const { performance } = window;
 
-  const origin = browserPerformanceTimeOrigin();
   // Split performance check in two so clearMarks still happens even if timeOrigin isn't available.
-  if (!HAS_PERFORMANCE_TIMING || origin === undefined) {
+  if (!HAS_PERFORMANCE_TIMING || browserPerformanceTimeOrigin() === undefined) {
     return;
   }
   const measureName = '@sentry/ember:initial-load';
@@ -242,7 +242,8 @@ function _instrumentInitialLoad(): void {
   // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
   const measure = measures[0]!;
 
-  const startTime = (measure.startTime + origin) / 1000;
+  // The cast is safe: we checked above that the time origin is available.
+  const startTime = _INTERNAL_performanceTimeToSeconds(measure.startTime) as number;
   const endTime = startTime + measure.duration / 1000;
 
   const client = getClient();

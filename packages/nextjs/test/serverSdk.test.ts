@@ -1,5 +1,6 @@
 import type { Integration } from '@sentry/core';
-import { GLOBAL_OBJ, getMainCarrier } from '@sentry/core';
+import { GLOBAL_OBJ, getMainCarrier, withIsolationScope } from '@sentry/core';
+import { setAsyncLocalStorageAsyncContextStrategy } from '@sentry/server-utils';
 import { close, getCurrentScope, getGlobalScope } from '@sentry/node';
 import * as SentryNode from '@sentry/node';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -18,10 +19,13 @@ function findIntegrationByName(integrations: Integration[] = [], name: string): 
 describe('Server init()', () => {
   afterEach(() => {
     vi.clearAllMocks();
+    vi.unstubAllGlobals();
 
     getMainCarrier().__SENTRY__ = undefined;
 
     delete process.env.VERCEL;
+    delete (process as { turbopack?: boolean }).turbopack;
+    delete (GLOBAL_OBJ as typeof GLOBAL_OBJ & { _sentryRelease?: string })._sentryRelease;
   });
 
   it('inits the Node SDK', () => {
@@ -89,6 +93,100 @@ describe('Server init()', () => {
 
     expect(first).toBeDefined();
     expect(second).toBe(first);
+  });
+
+  it('skips init on Cloudflare Workers in a request of `withSentry` from `@sentry/cloudflare`', () => {
+    vi.stubGlobal('navigator', { userAgent: 'Cloudflare-Workers' });
+    setAsyncLocalStorageAsyncContextStrategy();
+
+    withIsolationScope(() => init({}));
+
+    expect(nodeInit).not.toHaveBeenCalled();
+  });
+
+  it('sets the `turbopack` tag on Cloudflare Workers in a request of `withSentry` from `@sentry/cloudflare`', () => {
+    vi.stubGlobal('navigator', { userAgent: 'Cloudflare-Workers' });
+    setAsyncLocalStorageAsyncContextStrategy();
+    (process as { turbopack?: boolean }).turbopack = true;
+
+    withIsolationScope(() => init({}));
+
+    expect(getGlobalScope().getScopeData().tags.turbopack).toBe(true);
+  });
+
+  it('adds its event processors to the global scope once on Cloudflare Workers in a request of `withSentry` from `@sentry/cloudflare`', () => {
+    vi.stubGlobal('navigator', { userAgent: 'Cloudflare-Workers' });
+    setAsyncLocalStorageAsyncContextStrategy();
+
+    withIsolationScope(() => {
+      init({});
+      init({});
+    });
+
+    expect(
+      getGlobalScope()
+        .getScopeData()
+        .eventProcessors.filter(processor => processor.id === 'DropReactControlFlowErrors'),
+    ).toHaveLength(1);
+  });
+
+  it('inits on Cloudflare Workers outside of a request of `withSentry` from `@sentry/cloudflare`', () => {
+    vi.stubGlobal('navigator', { userAgent: 'Cloudflare-Workers' });
+    setAsyncLocalStorageAsyncContextStrategy();
+
+    init({});
+
+    expect(nodeInit).toHaveBeenCalledTimes(1);
+  });
+
+  it('inits outside of Cloudflare Workers when an AsyncLocalStorage strategy is installed', () => {
+    setAsyncLocalStorageAsyncContextStrategy();
+
+    withIsolationScope(() => init({}));
+
+    expect(nodeInit).toHaveBeenCalledTimes(1);
+  });
+
+  it('sets the release on the client of `@sentry/cloudflare` when it has none', () => {
+    vi.stubGlobal('navigator', { userAgent: 'Cloudflare-Workers' });
+    const client = SentryNode.init({
+      dsn: 'https://public@dsn.ingest.sentry.io/1337',
+      enableOpenTelemetrySetup: false,
+    });
+    // `init` of `@sentry/node` takes a release from CI env vars like `GITHUB_SHA`.
+    client!.getOptions().release = undefined;
+
+    withIsolationScope(() => init({ release: '1.2.3' }));
+
+    expect(client!.getOptions().release).toBe('1.2.3');
+    expect((GLOBAL_OBJ as typeof GLOBAL_OBJ & { _sentryRelease?: string })._sentryRelease).toBe('1.2.3');
+  });
+
+  it('keeps the release of the client of `@sentry/cloudflare`', () => {
+    vi.stubGlobal('navigator', { userAgent: 'Cloudflare-Workers' });
+    const client = SentryNode.init({
+      dsn: 'https://public@dsn.ingest.sentry.io/1337',
+      enableOpenTelemetrySetup: false,
+      release: 'worker@2.0.0',
+    });
+
+    withIsolationScope(() => init({ release: '1.2.3' }));
+
+    expect(client!.getOptions().release).toBe('worker@2.0.0');
+  });
+
+  it('adds its event processors to the global scope when the client of `@sentry/cloudflare` exists', () => {
+    vi.stubGlobal('navigator', { userAgent: 'Cloudflare-Workers' });
+    SentryNode.init({ dsn: 'https://public@dsn.ingest.sentry.io/1337', enableOpenTelemetrySetup: false });
+
+    withIsolationScope(() => init({}));
+
+    // With `cacheClient: false`, each request has a new client, so only the global scope reaches all of them.
+    expect(
+      getGlobalScope()
+        .getScopeData()
+        .eventProcessors.filter(processor => processor.id === 'DropReactControlFlowErrors'),
+    ).toHaveLength(1);
   });
 
   // TODO: test `vercel` tag when running on Vercel

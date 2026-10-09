@@ -2,9 +2,9 @@
 import type { Span, SpanAttributes } from '@sentry/core';
 import {
   BROWSER_NAVIGATION_TIMING_SPAN_NAMES,
-  browserPerformanceTimeOrigin,
   getActiveSpan,
   parseUrl,
+  _INTERNAL_performanceTimeToSeconds,
   RESOURCE_SPAN_NAME_FALLBACK,
   setMeasurement,
   spanToJSON,
@@ -108,7 +108,10 @@ export function startTrackingLongTasks(): void {
     const { attributes: parentAttributes, start_timestamp: parentStartTimestamp } = spanToJSON(parent);
 
     for (const entry of entries) {
-      const startTime = msToSec((browserPerformanceTimeOrigin() as number) + entry.startTime);
+      const startTime = _INTERNAL_performanceTimeToSeconds(entry.startTime);
+      if (!startTime) {
+        continue;
+      }
       const duration = msToSec(entry.duration);
 
       if (parentAttributes[SENTRY_OP] === 'navigation' && parentStartTimestamp && startTime < parentStartTimestamp) {
@@ -143,11 +146,10 @@ export function startTrackingLongAnimationFrames(): void {
       return;
     }
     for (const entry of list.getEntries() as PerformanceLongAnimationFrameTiming[]) {
-      if (!entry.scripts[0]) {
+      const startTime = _INTERNAL_performanceTimeToSeconds(entry.startTime);
+      if (!startTime || !entry.scripts[0]) {
         continue;
       }
-
-      const startTime = msToSec((browserPerformanceTimeOrigin() as number) + entry.startTime);
 
       const {
         start_timestamp: parentStartTimestamp,
@@ -209,22 +211,22 @@ interface AddPerformanceEntriesOptions {
 /** Add performance related spans to a transaction */
 export function addPerformanceEntries(span: Span, options: AddPerformanceEntriesOptions): void {
   const performance = getBrowserPerformanceAPI();
-  const origin = browserPerformanceTimeOrigin();
-  if (!performance?.getEntries || !origin) {
+  if (!performance?.getEntries) {
     // Gatekeeper if performance API not available
     return;
   }
 
   const { spanStreamingEnabled, ignoreResourceSpans } = options;
 
-  const timeOrigin = msToSec(origin);
-
   const performanceEntries = performance.getEntries();
 
   const { attributes, start_timestamp: transactionStartTime } = spanToJSON(span);
 
   performanceEntries.slice(_performanceCursor).forEach(entry => {
-    const startTime = msToSec(entry.startTime);
+    const startTimestamp = _INTERNAL_performanceTimeToSeconds(entry.startTime);
+    if (!startTimestamp) {
+      return;
+    }
     const duration = msToSec(
       // Inexplicably, Chrome sometimes emits a negative duration. We need to work around this.
       // There is a SO post attempting to explain this, but it leaves one with open questions: https://stackoverflow.com/questions/23191918/peformance-getentries-and-negative-duration-display
@@ -233,21 +235,17 @@ export function addPerformanceEntries(span: Span, options: AddPerformanceEntries
       Math.max(0, entry.duration),
     );
 
-    if (
-      attributes[SENTRY_OP] === 'navigation' &&
-      transactionStartTime &&
-      timeOrigin + startTime < transactionStartTime
-    ) {
+    if (attributes[SENTRY_OP] === 'navigation' && transactionStartTime && startTimestamp < transactionStartTime) {
       return;
     }
 
     switch (entry.entryType) {
       case 'navigation': {
-        _addNavigationSpans(span, entry as PerformanceNavigationTiming, timeOrigin, spanStreamingEnabled);
+        _addNavigationSpans(span, entry as PerformanceNavigationTiming, spanStreamingEnabled);
         break;
       }
       case 'paint': {
-        _addPaintSpan(span, entry, startTime, duration, timeOrigin);
+        _addPaintSpan(span, entry, startTimestamp, duration);
         break;
       }
       case 'resource': {
@@ -255,9 +253,8 @@ export function addPerformanceEntries(span: Span, options: AddPerformanceEntries
           span,
           entry as PerformanceResourceTiming,
           entry.name,
-          startTime,
+          startTimestamp,
           duration,
-          timeOrigin,
           ignoreResourceSpans,
           spanStreamingEnabled,
         );
@@ -276,15 +273,7 @@ export function addPerformanceEntries(span: Span, options: AddPerformanceEntries
  * Create a span for a browser paint performance entry.
  * Exported only for tests.
  */
-export function _addPaintSpan(
-  span: Span,
-  entry: PerformanceEntry,
-  startTime: number,
-  duration: number,
-  timeOrigin: number,
-): void {
-  const startTimestamp = timeOrigin + startTime;
-
+export function _addPaintSpan(span: Span, entry: PerformanceEntry, startTimestamp: number, duration: number): void {
   startAndEndSpan(span, startTimestamp, startTimestamp + duration, {
     // The entry name (`first-paint`, `first-contentful-paint`) is already the low-cardinality name
     // the conventions ask for, so only the attribute backing it has to be added.
@@ -304,19 +293,27 @@ export function _addPaintSpan(
 export function _addNavigationSpans(
   span: Span,
   entry: PerformanceNavigationTiming,
-  timeOrigin: number,
   spanStreamingEnabled?: boolean,
 ): void {
-  _addPerformanceNavigationTiming(span, entry, 'unloadEvent', timeOrigin, spanStreamingEnabled);
-  _addPerformanceNavigationTiming(span, entry, 'redirect', timeOrigin, spanStreamingEnabled);
-  _addPerformanceNavigationTiming(span, entry, 'domContentLoadedEvent', timeOrigin, spanStreamingEnabled);
-  _addPerformanceNavigationTiming(span, entry, 'loadEvent', timeOrigin, spanStreamingEnabled);
-  _addPerformanceNavigationTiming(span, entry, 'connect', timeOrigin, spanStreamingEnabled);
-  _addPerformanceNavigationTiming(span, entry, 'secureConnection', timeOrigin, spanStreamingEnabled);
-  _addPerformanceNavigationTiming(span, entry, 'fetch', timeOrigin, spanStreamingEnabled);
-  _addPerformanceNavigationTiming(span, entry, 'domainLookup', timeOrigin, spanStreamingEnabled);
+  _addPerformanceNavigationTiming(span, entry, 'unloadEvent', spanStreamingEnabled);
+  _addPerformanceNavigationTiming(span, entry, 'redirect', spanStreamingEnabled);
+  _addPerformanceNavigationTiming(span, entry, 'domContentLoadedEvent', spanStreamingEnabled);
+  _addPerformanceNavigationTiming(span, entry, 'loadEvent', spanStreamingEnabled);
+  _addPerformanceNavigationTiming(span, entry, 'connect', spanStreamingEnabled);
+  _addPerformanceNavigationTiming(span, entry, 'secureConnection', spanStreamingEnabled);
+  _addPerformanceNavigationTiming(span, entry, 'fetch', spanStreamingEnabled);
+  _addPerformanceNavigationTiming(span, entry, 'domainLookup', spanStreamingEnabled);
 
-  _addRequest(span, entry, timeOrigin, spanStreamingEnabled);
+  _addRequest(span, entry, spanStreamingEnabled);
+}
+
+/**
+ * Navigations can happen long after page load, after the time origin was corrected for drift. We use the origin from
+ * the entry's start for all its timings, so its duration stays correct.
+ */
+function _navigationTimeToSeconds(entry: PerformanceNavigationTiming, time: number): number {
+  // The cast is safe: `addPerformanceEntries` only adds navigation spans if the time origin is available.
+  return _INTERNAL_performanceTimeToSeconds(time, entry.startTime) as number;
 }
 
 type StartEventName =
@@ -354,7 +351,6 @@ function _addPerformanceNavigationTiming(
   span: Span,
   entry: PerformanceNavigationTiming,
   event: StartEventName,
-  timeOrigin: number,
   spanStreamingEnabled: boolean | undefined,
 ): void {
   const eventEnd = _getEndPropertyNameForNavigationTiming(event) satisfies keyof PerformanceNavigationTiming;
@@ -364,7 +360,7 @@ function _addPerformanceNavigationTiming(
     return;
   }
   const op = NAVIGATION_TIMING_SPAN_OPS[event];
-  startAndEndSpan(span, timeOrigin + msToSec(start), timeOrigin + msToSec(end), {
+  startAndEndSpan(span, _navigationTimeToSeconds(entry, start), _navigationTimeToSeconds(entry, end), {
     // With span streaming, span names have to be low cardinality, so we can't fall back to the
     // document URL. `url.full` keeps it, and is what Relay derives the description from.
     name: spanStreamingEnabled ? BROWSER_NAVIGATION_TIMING_SPAN_NAMES[op] : entry.name,
@@ -388,15 +384,10 @@ function _getEndPropertyNameForNavigationTiming(event: StartEventName): EndEvent
 }
 
 /** Create request and response related spans */
-function _addRequest(
-  span: Span,
-  entry: PerformanceNavigationTiming,
-  timeOrigin: number,
-  spanStreamingEnabled: boolean | undefined,
-): void {
-  const requestStartTimestamp = timeOrigin + msToSec(entry.requestStart);
-  const responseEndTimestamp = timeOrigin + msToSec(entry.responseEnd);
-  const responseStartTimestamp = timeOrigin + msToSec(entry.responseStart);
+function _addRequest(span: Span, entry: PerformanceNavigationTiming, spanStreamingEnabled: boolean | undefined): void {
+  const requestStartTimestamp = _navigationTimeToSeconds(entry, entry.requestStart);
+  const responseEndTimestamp = _navigationTimeToSeconds(entry, entry.responseEnd);
+  const responseStartTimestamp = _navigationTimeToSeconds(entry, entry.responseStart);
   if (entry.responseEnd) {
     // It is possible that we are collecting these metrics when the page hasn't finished loading yet, for example when the HTML slowly streams in.
     // In this case, ie. when the document request hasn't finished yet, `entry.responseEnd` will be 0.
@@ -435,9 +426,8 @@ export function _addResourceSpans(
   span: Span,
   entry: PerformanceResourceTiming,
   resourceUrl: string,
-  startTime: number,
+  startTimestamp: number,
   duration: number,
-  timeOrigin: number,
   ignoredResourceSpanOps?: Array<string>,
   spanStreamingEnabled?: boolean,
 ): void {
@@ -497,7 +487,6 @@ export function _addResourceSpans(
 
   const attributesWithResourceTiming: SpanAttributes = { ...attributes, ...resourceTimingToSpanAttributes(entry) };
 
-  const startTimestamp = timeOrigin + startTime;
   const endTimestamp = startTimestamp + duration;
 
   startAndEndSpan(span, startTimestamp, endTimestamp, {
