@@ -6,7 +6,7 @@ IMPORT_SURFACES.forEach(({ name, apiPrefix }) => {
   test.describe(`server-side errors (${name})`, () => {
     test('captures api fetch error (fetched on click)', async ({ page }) => {
       const errorPromise = waitForError('nuxt-5', async errorEvent => {
-        return errorEvent?.exception?.values?.[0]?.value === 'Nuxt 4 Server error';
+        return errorEvent?.exception?.values?.[0]?.value === 'Nuxt 5 Server error';
       });
 
       await page.goto(`/fetch-server-routes?apiPrefix=${apiPrefix}`);
@@ -20,7 +20,7 @@ IMPORT_SURFACES.forEach(({ name, apiPrefix }) => {
       const exception1 = error.exception.values[1];
 
       expect(exception0.type).toEqual('Error');
-      expect(exception0.value).toEqual('Nuxt 4 Server error');
+      expect(exception0.value).toEqual('Nuxt 5 Server error');
       expect(exception0.mechanism).toEqual({
         handled: true,
         type: 'chained',
@@ -30,7 +30,7 @@ IMPORT_SURFACES.forEach(({ name, apiPrefix }) => {
       });
 
       expect(exception1.type).toEqual('HTTPError');
-      expect(exception1.value).toEqual('Nuxt 4 Server error');
+      expect(exception1.value).toEqual('Nuxt 5 Server error');
       expect(exception1.mechanism).toEqual({
         handled: false,
         type: 'auto.function.nuxt.nitro',
@@ -40,7 +40,7 @@ IMPORT_SURFACES.forEach(({ name, apiPrefix }) => {
 
     test('captures api fetch error (fetched on click) with parametrized route', async ({ page }) => {
       const errorPromise = waitForError('nuxt-5', async errorEvent => {
-        return errorEvent?.exception?.values?.[0]?.value === 'Nuxt 4 Param Server error';
+        return errorEvent?.exception?.values?.[0]?.value === 'Nuxt 5 Param Server error';
       });
 
       await page.goto(`/test-param/1234?apiPrefix=${apiPrefix}`);
@@ -54,7 +54,7 @@ IMPORT_SURFACES.forEach(({ name, apiPrefix }) => {
       const exception1 = error.exception.values[1];
 
       expect(exception0.type).toEqual('Error');
-      expect(exception0.value).toEqual('Nuxt 4 Param Server error');
+      expect(exception0.value).toEqual('Nuxt 5 Param Server error');
       expect(exception0.mechanism).toEqual({
         handled: true,
         type: 'chained',
@@ -64,7 +64,7 @@ IMPORT_SURFACES.forEach(({ name, apiPrefix }) => {
       });
 
       expect(exception1.type).toEqual('HTTPError');
-      expect(exception1.value).toEqual('Nuxt 4 Param Server error');
+      expect(exception1.value).toEqual('Nuxt 5 Param Server error');
       expect(exception1.mechanism).toEqual({
         handled: false,
         type: 'auto.function.nuxt.nitro',
