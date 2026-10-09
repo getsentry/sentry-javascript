@@ -6,7 +6,7 @@ import {
 import type { Route } from '@playwright/test';
 import { expect } from '@playwright/test';
 import { sentryTest } from '../../../../utils/fixtures';
-import { shouldSkipTracingTest } from '../../../../utils/helpers';
+import { shouldSkipTracingTest, waitForLcpCandidate } from '../../../../utils/helpers';
 import { getSpanOp, waitForStreamedSpan } from '../../../../utils/spanUtils';
 
 const bundle = process.env.PW_BUNDLE || '';
@@ -27,7 +27,7 @@ sentryTest(
 
     const lcpPromise = waitForStreamedSpan(page, span => getSpanOp(span) === 'ui.webvital.lcp');
     await page.goto(url);
-    await page.waitForFunction('window._LCP === 107400 && window._LCP2 === 107400');
+    await waitForLcpCandidate(page, 'img');
     await page.locator('button').click();
     const lcpSpan = await lcpPromise;
 
