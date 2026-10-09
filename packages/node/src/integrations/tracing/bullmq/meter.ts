@@ -1,4 +1,5 @@
 import { metrics } from '@sentry/core';
+import { toSentryAttributes } from './span';
 import type { AttributeValue, Counter, Gauge, Histogram, Meter, MetricOptions } from './types';
 
 function toMetricAttributes(
@@ -8,7 +9,7 @@ function toMetricAttributes(
     return undefined;
   }
   const result: Record<string, string | number | boolean> = {};
-  for (const [key, value] of Object.entries(attributes)) {
+  for (const [key, value] of Object.entries(toSentryAttributes(attributes))) {
     if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') {
       result[key] = value;
     }
