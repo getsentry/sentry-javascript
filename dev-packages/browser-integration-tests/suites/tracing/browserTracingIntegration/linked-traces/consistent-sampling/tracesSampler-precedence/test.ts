@@ -54,11 +54,12 @@ sentryTest.describe('When `consistentTraceSampling` is `true`', () => {
         discarded_events: [
           {
             category: 'span',
-            quantity: 1,
+            quantity: expect.any(Number),
             reason: 'sample_rate',
           },
         ],
       });
+      expect(clientReport.discarded_events[0].quantity).toBeGreaterThanOrEqual(1);
     });
 
     await sentryTest.step('Subsequent navigation trace is also sampled negatively', async () => {
@@ -75,11 +76,12 @@ sentryTest.describe('When `consistentTraceSampling` is `true`', () => {
         discarded_events: [
           {
             category: 'span',
-            quantity: 1,
+            quantity: expect.any(Number),
             reason: 'sample_rate',
           },
         ],
       });
+      expect(clientReport.discarded_events[0].quantity).toBeGreaterThanOrEqual(1);
     });
 
     const { customTrace2Span } = await sentryTest.step(

@@ -20,7 +20,7 @@ sentryTest('should send a pageload span terminated via child span timeout', asyn
 
   expect(getSpanOp(pageloadSpan)).toBe('pageload');
   expect(pageloadSpan.attributes['sentry.idle_span_discarded_spans']).toBeUndefined();
-  expect(spans.length).toBeGreaterThanOrEqual(1);
+  expect(spans.length).toBeGreaterThanOrEqual(2);
   const testSpan = spans.find(span => span.name === 'pageload-child-span');
   expect(testSpan).toBeDefined();
   expect(testSpan?.status).toBe('ok');

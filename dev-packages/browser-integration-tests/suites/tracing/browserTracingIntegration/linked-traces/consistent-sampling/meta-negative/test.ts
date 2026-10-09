@@ -91,6 +91,7 @@ sentryTest.describe('When `consistentTraceSampling` is `true` and page contains 
         expect(clientReport.discarded_events[0].quantity).toBeGreaterThanOrEqual(10);
       });
 
+      await page.evaluate(() => (window as any).Sentry.flush());
       expect(spansReceived).toHaveLength(0);
     },
   );
