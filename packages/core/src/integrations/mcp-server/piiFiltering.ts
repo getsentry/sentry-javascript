@@ -5,14 +5,14 @@
  * Input/output data (request arguments, tool/prompt results) is controlled
  * separately via recordInputs/recordOutputs options.
  */
+import { CLIENT_ADDRESS, CLIENT_PORT, MCP_RESOURCE_URI } from '@sentry/conventions/attributes';
 import type { SpanAttributeValue } from '../../types/span';
-import { CLIENT_ADDRESS_ATTRIBUTE, CLIENT_PORT_ATTRIBUTE, MCP_RESOURCE_URI_ATTRIBUTE } from './attributes';
 
 /**
  * Network PII attributes that should be removed when dataCollection.userInfo is false
  * @internal
  */
-const NETWORK_PII_ATTRIBUTES = new Set([CLIENT_ADDRESS_ATTRIBUTE, CLIENT_PORT_ATTRIBUTE, MCP_RESOURCE_URI_ATTRIBUTE]);
+const NETWORK_PII_ATTRIBUTES = new Set<string>([CLIENT_ADDRESS, CLIENT_PORT, MCP_RESOURCE_URI]);
 
 /**
  * Checks if an attribute key should be considered network PII.

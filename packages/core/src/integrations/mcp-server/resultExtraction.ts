@@ -5,11 +5,12 @@
  */
 
 import {
-  MCP_PROMPT_RESULT_DESCRIPTION_ATTRIBUTE,
-  MCP_PROMPT_RESULT_MESSAGE_COUNT_ATTRIBUTE,
-  MCP_TOOL_RESULT_CONTENT_COUNT_ATTRIBUTE,
-  MCP_TOOL_RESULT_IS_ERROR_ATTRIBUTE,
-} from './attributes';
+  MCP_PROMPT_RESULT_DESCRIPTION,
+  MCP_PROMPT_RESULT_MESSAGE_COUNT,
+  MCP_TOOL_RESULT_CONTENT_COUNT,
+  MCP_TOOL_RESULT_IS_ERROR,
+} from '@sentry/conventions/attributes';
+import { MCP_TOOL_RESULT_PREFIX, MCP_PROMPT_RESULT_PREFIX } from './attributes';
 import { isValidContentItem } from './validation';
 
 /**
@@ -23,7 +24,7 @@ function buildAllContentItemAttributes(
   includeContent: boolean,
 ): Record<string, string | number | boolean> {
   const attributes: Record<string, string | number> = {
-    [MCP_TOOL_RESULT_CONTENT_COUNT_ATTRIBUTE]: content.length,
+    [MCP_TOOL_RESULT_CONTENT_COUNT]: content.length,
   };
 
   for (const [i, item] of content.entries()) {
@@ -31,7 +32,7 @@ function buildAllContentItemAttributes(
       continue;
     }
 
-    const prefix = content.length === 1 ? 'mcp.tool.result' : `mcp.tool.result.${i}`;
+    const prefix = content.length === 1 ? MCP_TOOL_RESULT_PREFIX : `${MCP_TOOL_RESULT_PREFIX}.${i}`;
 
     if (typeof item.type === 'string') {
       attributes[`${prefix}.content_type`] = item.type;
@@ -84,7 +85,8 @@ export function extractToolResultAttributes(
   const attributes = Array.isArray(result.content) ? buildAllContentItemAttributes(result.content, recordOutputs) : {};
 
   if (typeof result.isError === 'boolean') {
-    attributes[MCP_TOOL_RESULT_IS_ERROR_ATTRIBUTE] = result.isError;
+    // oxlint-disable-next-line typescript/no-deprecated -- Preserve the legacy tool result attribute for existing consumers.
+    attributes[MCP_TOOL_RESULT_IS_ERROR] = result.isError;
   }
 
   return attributes;
@@ -106,11 +108,11 @@ export function extractPromptResultAttributes(
   }
 
   if (recordOutputs && typeof result.description === 'string') {
-    attributes[MCP_PROMPT_RESULT_DESCRIPTION_ATTRIBUTE] = result.description;
+    attributes[MCP_PROMPT_RESULT_DESCRIPTION] = result.description;
   }
 
   if (Array.isArray(result.messages)) {
-    attributes[MCP_PROMPT_RESULT_MESSAGE_COUNT_ATTRIBUTE] = result.messages.length;
+    attributes[MCP_PROMPT_RESULT_MESSAGE_COUNT] = result.messages.length;
 
     if (recordOutputs) {
       const messages = result.messages;
@@ -119,7 +121,7 @@ export function extractPromptResultAttributes(
           continue;
         }
 
-        const prefix = messages.length === 1 ? 'mcp.prompt.result' : `mcp.prompt.result.${i}`;
+        const prefix = messages.length === 1 ? MCP_PROMPT_RESULT_PREFIX : `${MCP_PROMPT_RESULT_PREFIX}.${i}`;
 
         const safeSet = (key: string, value: unknown): void => {
           if (typeof value === 'string') {
