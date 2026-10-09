@@ -9,7 +9,7 @@ on:
 jobs:
   check-merge-conflicts:
     name: Detect merge conflicts in gitflow PRs
-    runs-on: namespace-profile-default-arm64
+    runs-on: namespace-profile-sentry-javascript
     if: |
       ${{ contains(github.event.pull_request.labels.*.name, 'Dev: Gitflow') }}
     permissions:

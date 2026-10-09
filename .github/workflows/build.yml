@@ -72,7 +72,7 @@ jobs:
   job_build:
     name: Build
     needs: job_get_metadata
-    runs-on: namespace-profile-default-arm64
+    runs-on: namespace-profile-sentry-javascript
     timeout-minutes: 15
     if: |
       needs.job_get_metadata.outputs.changed_any_code == 'true' ||
@@ -195,7 +195,7 @@ jobs:
       needs.job_build.outputs.changed_aws_serverless == 'true' || contains(needs.job_build.outputs.e2e-matrix,
       'aws-serverless') || github.event_name != 'pull_request'
     timeout-minutes: 10
-    runs-on: namespace-profile-default-arm64
+    runs-on: namespace-profile-sentry-javascript
     steps:
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
         uses: actions/checkout@v7
@@ -234,7 +234,7 @@ jobs:
     name: Build bundles
     needs: [job_get_metadata, job_build]
     timeout-minutes: 10
-    runs-on: namespace-profile-default-arm64
+    runs-on: namespace-profile-sentry-javascript
     steps:
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
         uses: actions/checkout@v7
@@ -272,7 +272,7 @@ jobs:
   job_check_branches:
     name: Check PR branches
     needs: job_get_metadata
-    runs-on: namespace-profile-default-arm64
+    runs-on: namespace-profile-sentry-javascript
     if: github.event_name == 'pull_request'
     permissions:
       pull-requests: write
@@ -288,7 +288,7 @@ jobs:
     name: Size Check
     needs: [job_get_metadata, job_build, job_build_bundles]
     timeout-minutes: 15
-    runs-on: namespace-profile-default-arm64
+    runs-on: namespace-profile-sentry-javascript
     if:
       github.event_name == 'pull_request' || needs.job_get_metadata.outputs.is_base_branch == 'true' ||
       needs.job_get_metadata.outputs.is_release == 'true'
@@ -323,7 +323,7 @@ jobs:
     # inter-package dependencies resolve cleanly.
     needs: [job_get_metadata, job_build]
     timeout-minutes: 10
-    runs-on: namespace-profile-default-arm64
+    runs-on: namespace-profile-sentry-javascript
     steps:
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
         uses: actions/checkout@v7
@@ -349,7 +349,7 @@ jobs:
     name: Check lockfile
     needs: [job_get_metadata]
     timeout-minutes: 10
-    runs-on: namespace-profile-default-arm64
+    runs-on: namespace-profile-sentry-javascript
     if: |
       needs.job_get_metadata.outputs.changed_deps == 'true' ||
       needs.job_get_metadata.outputs.is_base_branch == 'true' ||
@@ -378,7 +378,7 @@ jobs:
     name: Check file formatting
     needs: [job_get_metadata]
     timeout-minutes: 10
-    runs-on: namespace-profile-default-arm64
+    runs-on: namespace-profile-sentry-javascript
     steps:
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
         uses: actions/checkout@v7
@@ -401,7 +401,7 @@ jobs:
     name: Circular Dependency Check
     needs: [job_get_metadata, job_build]
     timeout-minutes: 10
-    runs-on: namespace-profile-default-arm64
+    runs-on: namespace-profile-sentry-javascript
     steps:
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
         uses: actions/checkout@v7
@@ -421,7 +421,7 @@ jobs:
   job_artifacts:
     name: Upload Artifacts
     needs: [job_get_metadata, job_build, job_build_layer, job_build_bundles, job_build_tarballs]
-    runs-on: namespace-profile-default-arm64
+    runs-on: namespace-profile-sentry-javascript
     # Build artifacts are only needed for releasing workflow.
     if: needs.job_get_metadata.outputs.is_release == 'true'
     steps:
@@ -473,7 +473,7 @@ jobs:
     name: Browser Unit Tests
     needs: [job_get_metadata, job_build]
     timeout-minutes: 10
-    runs-on: namespace-profile-default-arm64
+    runs-on: namespace-profile-sentry-javascript
     steps:
       - name: Check out base commit (${{ github.event.pull_request.base.sha }})
         uses: actions/checkout@v7
@@ -507,7 +507,7 @@ jobs:
     needs: [job_get_metadata, job_build]
     if: needs.job_build.outputs.changed_bun == 'true' || github.event_name != 'pull_request'
     timeout-minutes: 10
-    runs-on: namespace-profile-default-arm64
+    runs-on: namespace-profile-sentry-javascript
     steps:
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
         uses: actions/checkout@v7
@@ -534,7 +534,7 @@ jobs:
     needs: [job_get_metadata, job_build]
     if: needs.job_build.outputs.changed_deno == 'true' || github.event_name != 'pull_request'
     timeout-minutes: 10
-    runs-on: namespace-profile-default-arm64
+    runs-on: namespace-profile-sentry-javascript
     steps:
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
         uses: actions/checkout@v7
@@ -562,7 +562,7 @@ jobs:
     name: Node (${{ matrix.node }}) Unit Tests
     needs: [job_get_metadata, job_build]
     timeout-minutes: 10
-    runs-on: namespace-profile-default-arm64
+    runs-on: namespace-profile-sentry-javascript
     strategy:
       fail-fast: false
       matrix:
@@ -604,7 +604,7 @@ jobs:
       matrix.project) || ''}}${{ matrix.shard && format(' ({0}/{1})', matrix.shard, matrix.shards) || ''}} Tests
     needs: [job_get_metadata, job_build, job_build_bundles]
     if: needs.job_build.outputs.changed_browser_integration == 'true' || github.event_name != 'pull_request'
-    runs-on: namespace-profile-default-arm64
+    runs-on: namespace-profile-sentry-javascript
     timeout-minutes: 25
     strategy:
       fail-fast: false
@@ -701,7 +701,7 @@ jobs:
     name: PW ${{ matrix.bundle }} Tests
     needs: [job_get_metadata, job_build, job_build_bundles]
     if: needs.job_build.outputs.changed_browser_integration == 'true' || github.event_name != 'pull_request'
-    runs-on: namespace-profile-default-arm64
+    runs-on: namespace-profile-sentry-javascript
     timeout-minutes: 15
     strategy:
       fail-fast: false
@@ -759,7 +759,7 @@ jobs:
   job_check_for_faulty_dts:
     name: Check for faulty .d.ts files
     needs: [job_get_metadata, job_build]
-    runs-on: namespace-profile-default-arm64
+    runs-on: namespace-profile-sentry-javascript
     timeout-minutes: 5
     steps:
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
@@ -848,7 +848,7 @@ jobs:
     name: Cloudflare Integration Tests (${{ matrix.shard }}/2)
     needs: [job_get_metadata, job_build]
     if: needs.job_build.outputs.changed_cloudflare_integration == 'true' || github.event_name != 'pull_request'
-    runs-on: namespace-profile-default-arm64
+    runs-on: namespace-profile-sentry-javascript
     timeout-minutes: 15
     strategy:
       fail-fast: false
@@ -876,7 +876,7 @@ jobs:
     name: Bundler Plugin Integration Tests (Node ${{ matrix.node }})
     needs: [job_get_metadata, job_build]
     if: needs.job_build.outputs.changed_bundler_plugin_integration == 'true' || github.event_name != 'pull_request'
-    runs-on: namespace-profile-default-arm64
+    runs-on: namespace-profile-sentry-javascript
     timeout-minutes: 15
     strategy:
       fail-fast: false
@@ -908,7 +908,7 @@ jobs:
     name: Bun Integration Tests (${{ matrix.shard }}/2)
     needs: [job_get_metadata, job_build]
     if: needs.job_build.outputs.changed_bun_integration == 'true' || github.event_name != 'pull_request'
-    runs-on: namespace-profile-default-arm64
+    runs-on: namespace-profile-sentry-javascript
     timeout-minutes: 15
     strategy:
       fail-fast: false
@@ -986,7 +986,7 @@ jobs:
       always() &&
       needs.job_build.result == 'success'
     needs: [job_get_metadata, job_build]
-    runs-on: namespace-profile-default-arm64
+    runs-on: namespace-profile-sentry-javascript
     timeout-minutes: 15
     steps:
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
@@ -1030,7 +1030,7 @@ jobs:
     if:
       always() && needs.job_build_tarballs.result == 'success' && needs.job_build.outputs.e2e-matrix !='{"include":[]}'
     needs: [job_get_metadata, job_build, job_build_layer, job_build_tarballs]
-    runs-on: namespace-profile-default-arm64
+    runs-on: namespace-profile-sentry-javascript
     timeout-minutes: 15
     env:
       # We just use a dummy DSN here, only send to the tunnel anyhow
@@ -1180,7 +1180,7 @@ jobs:
       needs.job_build.outputs.e2e-matrix-optional != '{"include":[]}' && (github.event_name != 'pull_request' ||
       github.event.pull_request.head.repo.full_name == github.repository) && github.actor != 'dependabot[bot]'
     needs: [job_get_metadata, job_build, job_build_tarballs]
-    runs-on: namespace-profile-default-arm64
+    runs-on: namespace-profile-sentry-javascript
     timeout-minutes: 15
     env:
       E2E_TEST_AUTH_TOKEN: ${{ secrets.E2E_TEST_AUTH_TOKEN }}
@@ -1327,7 +1327,7 @@ jobs:
       ]
     # Always run this, even if a dependent job failed
     if: always()
-    runs-on: namespace-profile-default-arm64
+    runs-on: namespace-profile-sentry-javascript
     permissions: {}
     steps:
       - name: Check for failures

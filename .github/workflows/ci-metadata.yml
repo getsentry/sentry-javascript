@@ -38,7 +38,7 @@ on:
 jobs:
   get_metadata:
     name: Get Metadata
-    runs-on: namespace-profile-default-arm64
+    runs-on: namespace-profile-sentry-javascript
     permissions:
       pull-requests: read
     steps:

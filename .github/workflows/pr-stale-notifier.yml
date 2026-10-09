@@ -15,7 +15,7 @@ concurrency:
 
 jobs:
   stale:
-    runs-on: namespace-profile-default-arm64
+    runs-on: namespace-profile-sentry-javascript
     steps:
       - name: Warn and close stale PRs
         uses: actions/stale@v11

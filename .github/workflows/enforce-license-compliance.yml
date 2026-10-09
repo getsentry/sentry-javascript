@@ -19,7 +19,7 @@ on:
 
 jobs:
   enforce-license-compliance:
-    runs-on: namespace-profile-default-arm64
+    runs-on: namespace-profile-sentry-javascript
     steps:
       - name: 'Enforce License Compliance'
         uses: getsentry/action-enforce-license-compliance@main

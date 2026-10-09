@@ -48,7 +48,7 @@ concurrency:
 jobs:
   classify:
     name: Classify alerts & auto-dismiss noise
-    runs-on: namespace-profile-default-arm64
+    runs-on: namespace-profile-sentry-javascript
     timeout-minutes: 20
     outputs:
       runtime_alerts: ${{ steps.select.outputs.runtime_alerts }}
@@ -129,7 +129,7 @@ jobs:
     if:
       (github.event_name == 'schedule' || github.event.inputs.mode == 'full') && needs.classify.outputs.runtime_alerts
       != ''
-    runs-on: namespace-profile-default-arm64
+    runs-on: namespace-profile-sentry-javascript
     timeout-minutes: 40
     environment: ci-triage
     steps:
@@ -218,7 +218,7 @@ jobs:
     needs: classify
     if:
       (github.event_name == 'schedule' || github.event.inputs.mode == 'full') && needs.classify.outputs.dev_alerts != ''
-    runs-on: namespace-profile-default-arm64
+    runs-on: namespace-profile-sentry-javascript
     timeout-minutes: 40
     environment: ci-triage
     steps:

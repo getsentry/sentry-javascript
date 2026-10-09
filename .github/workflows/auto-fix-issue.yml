@@ -23,7 +23,7 @@ concurrency:
 
 jobs:
   auto-fix-issue:
-    runs-on: namespace-profile-default-arm64
+    runs-on: namespace-profile-sentry-javascript
     environment: ci-triage
     permissions:
       # Required to create a new branch and commit the fix

@@ -11,7 +11,7 @@ on:
 jobs:
   build-and-upload:
     name: Bundle and upload Lighthouse cells
-    runs-on: namespace-profile-default-arm64
+    runs-on: namespace-profile-sentry-javascript
     timeout-minutes: 30
     env:
       LIGHTHOUSE_LAB_URL: ${{ secrets.LIGHTHOUSE_LAB_URL }}

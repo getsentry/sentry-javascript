@@ -21,7 +21,7 @@ on:
 jobs:
   clear-caches:
     name: Delete all caches
-    runs-on: namespace-profile-default-arm64
+    runs-on: namespace-profile-sentry-javascript
     steps:
       - uses: actions/checkout@v7
 

@@ -18,7 +18,7 @@ concurrency:
 
 jobs:
   flaky-detector:
-    runs-on: namespace-profile-default-arm64
+    runs-on: namespace-profile-sentry-javascript
     timeout-minutes: 60
     name: 'Check tests for flakiness'
     # Also skip if PR is from master -> develop

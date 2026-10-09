@@ -12,7 +12,7 @@ jobs:
     permissions:
       pull-requests: write
       contents: write
-    runs-on: namespace-profile-default-arm64
+    runs-on: namespace-profile-sentry-javascript
     if: |
       github.event.pull_request.merged == true
       && github.event.pull_request.author_association != 'COLLABORATOR'

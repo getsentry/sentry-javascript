@@ -8,7 +8,7 @@ jobs:
   cleanup:
     # The optional E2E job deploys only for PRs from this repository, so forks never have a worker to delete.
     if: github.event.pull_request.head.repo.full_name == github.repository
-    runs-on: namespace-profile-default-arm64
+    runs-on: namespace-profile-sentry-javascript
     permissions: {}
     timeout-minutes: 5
     env:

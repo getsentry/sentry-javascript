@@ -18,7 +18,7 @@ permissions:
 
 jobs:
   release:
-    runs-on: namespace-profile-default-arm64
+    runs-on: namespace-profile-sentry-javascript
     name: 'Release a new version'
     steps:
       - name: Get auth token
