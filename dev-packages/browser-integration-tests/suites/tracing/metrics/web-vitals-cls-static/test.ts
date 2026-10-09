@@ -1,7 +1,8 @@
+import { PAGELOAD } from '@sentry/conventions/op';
 import { expect } from '@playwright/test';
 import type { Event } from '@sentry/core';
 import { sentryTest } from '../../../../utils/fixtures';
-import { getFirstSentryEnvelopeRequest, shouldSkipTracingTest } from '../../../../utils/helpers';
+import { envelopeRequestParser, shouldSkipTracingTest, waitForTransactionRequest } from '../../../../utils/helpers';
 
 sentryTest.beforeEach(async ({ browserName, page }) => {
   if (shouldSkipTracingTest() || browserName !== 'chromium') {
@@ -13,7 +14,9 @@ sentryTest.beforeEach(async ({ browserName, page }) => {
 
 sentryTest('records CLS as a pageload measurement with its source', async ({ getLocalTestUrl, page }) => {
   const url = await getLocalTestUrl({ testDir: __dirname });
-  const eventData = await getFirstSentryEnvelopeRequest<Event>(page, `${url}#0.05`);
+  const pageloadPromise = waitForTransactionRequest(page, event => event.contexts?.trace?.op === PAGELOAD);
+  await page.goto(`${url}#0.05`);
+  const eventData = envelopeRequestParser<Event>(await pageloadPromise);
 
   expect(eventData.measurements).toBeDefined();
   expect(eventData.measurements?.cls?.value).toBeDefined();

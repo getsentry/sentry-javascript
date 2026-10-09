@@ -1,7 +1,8 @@
+import { PAGELOAD } from '@sentry/conventions/op';
 import { expect } from '@playwright/test';
 import type { Event } from '@sentry/core';
 import { sentryTest } from '../../../../utils/fixtures';
-import { getFirstSentryEnvelopeRequest, shouldSkipTracingTest } from '../../../../utils/helpers';
+import { envelopeRequestParser, shouldSkipTracingTest, waitForTransactionRequest } from '../../../../utils/helpers';
 
 sentryTest('should capture FP vital.', async ({ browserName, getLocalTestUrl, page }) => {
   // FP is not generated on webkit or firefox
@@ -10,7 +11,9 @@ sentryTest('should capture FP vital.', async ({ browserName, getLocalTestUrl, pa
   }
 
   const url = await getLocalTestUrl({ testDir: __dirname });
-  const eventData = await getFirstSentryEnvelopeRequest<Event>(page, url);
+  const pageloadPromise = waitForTransactionRequest(page, event => event.contexts?.trace?.op === PAGELOAD);
+  await page.goto(url);
+  const eventData = envelopeRequestParser<Event>(await pageloadPromise);
 
   expect(eventData.measurements).toBeDefined();
   expect(eventData.measurements?.fp?.value).toBeDefined();
@@ -28,7 +31,9 @@ sentryTest('should capture FCP vital.', async ({ getLocalTestUrl, page }) => {
   }
 
   const url = await getLocalTestUrl({ testDir: __dirname });
-  const eventData = await getFirstSentryEnvelopeRequest<Event>(page, url);
+  const pageloadPromise = waitForTransactionRequest(page, event => event.contexts?.trace?.op === PAGELOAD);
+  await page.goto(url);
+  const eventData = envelopeRequestParser<Event>(await pageloadPromise);
 
   expect(eventData.measurements).toBeDefined();
   expect(eventData.measurements?.fcp?.value).toBeDefined();

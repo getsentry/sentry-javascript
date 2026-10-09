@@ -1,8 +1,14 @@
+import { PAGELOAD } from '@sentry/conventions/op';
 import type { Route } from '@playwright/test';
 import { expect } from '@playwright/test';
 import type { Event } from '@sentry/core';
 import { sentryTest } from '../../../../utils/fixtures';
-import { getFirstSentryEnvelopeRequest, shouldSkipTracingTest, waitForLcpCandidate } from '../../../../utils/helpers';
+import {
+  envelopeRequestParser,
+  shouldSkipTracingTest,
+  waitForLcpCandidate,
+  waitForTransactionRequest,
+} from '../../../../utils/helpers';
 
 sentryTest('captures LCP vitals with element details', async ({ browserName, getLocalTestUrl, page }) => {
   if (shouldSkipTracingTest() || browserName !== 'chromium') {
@@ -17,11 +23,11 @@ sentryTest('captures LCP vitals with element details', async ({ browserName, get
   });
 
   const url = await getLocalTestUrl({ testDir: __dirname });
-  const eventPromise = getFirstSentryEnvelopeRequest<Event>(page);
+  const eventPromise = waitForTransactionRequest(page, event => event.contexts?.trace?.op === PAGELOAD);
   await page.goto(url);
   await waitForLcpCandidate(page, 'img');
   await page.click('body');
-  const eventData = await eventPromise;
+  const eventData = envelopeRequestParser<Event>(await eventPromise);
 
   expect(eventData.measurements).toBeDefined();
   expect(eventData.measurements?.lcp?.value).toBeDefined();
