@@ -69,10 +69,10 @@ describe('httpIntegration', () => {
             expect(clientSpans).toHaveLength(1);
 
             // All three hooks run before the span ends, so every attribute has to survive to the envelope.
-            const data = clientSpans[0]?.attributes;
-            expect(data?.['outgoingRequestHook']).toEqual({ type: 'string', value: 'GET' });
-            expect(data?.['outgoingResponseHook']).toEqual({ type: 'integer', value: 200 });
-            expect(data?.['outgoingRequestApplyCustomAttributes']).toEqual({ type: 'string', value: 'GET 200' });
+            const attributes = clientSpans[0]?.attributes;
+            expect(attributes?.['outgoingRequestHook']).toEqual({ type: 'string', value: 'GET' });
+            expect(attributes?.['outgoingResponseHook']).toEqual({ type: 'integer', value: 200 });
+            expect(attributes?.['outgoingRequestApplyCustomAttributes']).toEqual({ type: 'string', value: 'GET 200' });
           },
         })
         .start();
