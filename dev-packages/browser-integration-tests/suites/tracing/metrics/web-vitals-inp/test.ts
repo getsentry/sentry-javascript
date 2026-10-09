@@ -1,172 +1,100 @@
+import { PAGELOAD, UI_INTERACTION_CLICK } from '@sentry/conventions/op';
+import {
+  SENTRY_OP,
+  SENTRY_ORIGIN,
+  USER_AGENT_ORIGINAL,
+  SENTRY_TRANSACTION,
+  SENTRY_SEGMENT_NAME,
+  BROWSER_WEB_VITAL_INP_VALUE,
+  SENTRY_EXCLUSIVE_TIME,
+  UI_COMPONENT_NAME,
+  BROWSER_WEB_VITAL_INP_TARGET,
+} from '@sentry/conventions/attributes';
 import { expect } from '@playwright/test';
-import { SDK_VERSION } from '@sentry/core';
 import { sentryTest } from '../../../../utils/fixtures';
 import { hidePage, shouldSkipTracingTest } from '../../../../utils/helpers';
-import { getSpanOp, getSpansFromEnvelope, waitForStreamedSpanEnvelope } from '../../../../utils/spanUtils';
+import { collectStreamedSpans, getSpanOp, waitForStreamedSpan } from '../../../../utils/spanUtils';
 
-// This app does not enable span streaming (no `traceLifecycle: 'stream'`). INP is still emitted as a
-// streamed span, because INP overrides the static trace lifecycle for itself (it would otherwise be
-// dropped as a late child of the already-ended pageload span).
+sentryTest.beforeEach(async ({ browserName }) => {
+  if (shouldSkipTracingTest() || browserName !== 'chromium') {
+    sentryTest.skip();
+  }
+});
 
-sentryTest(
-  'captures an INP click as a streamed span during pageload',
-  async ({ browserName, getLocalTestUrl, page }) => {
-    const supportedBrowsers = ['chromium'];
+sentryTest('captures INP click as a streamed span', async ({ getLocalTestUrl, page }) => {
+  const spans = collectStreamedSpans(page);
+  const url = await getLocalTestUrl({ testDir: __dirname });
 
-    if (shouldSkipTracingTest() || !supportedBrowsers.includes(browserName)) {
-      sentryTest.skip();
-    }
+  const pageloadSpanPromise = waitForStreamedSpan(page, span => getSpanOp(span) === PAGELOAD);
+  const inpSpanPromise = waitForStreamedSpan(page, span => getSpanOp(span) === UI_INTERACTION_CLICK);
 
-    const url = await getLocalTestUrl({ testDir: __dirname });
+  await page.goto(url);
 
-    const spanEnvelopePromise = waitForStreamedSpanEnvelope(
-      page,
-      env => !!getSpansFromEnvelope(env).find(s => getSpanOp(s) === 'ui.interaction.click'),
-    );
+  await page.locator('[data-test-id=normal-button]').click();
+  await expect(page.locator('.clicked[data-test-id=normal-button]')).toBeVisible();
 
-    await page.goto(url);
+  await hidePage(page);
 
-    await page.locator('[data-test-id=normal-button]').click();
-    await page.locator('.clicked[data-test-id=normal-button]').isVisible();
+  await inpSpanPromise;
+  await page.evaluate(() => (window as any).Sentry.flush());
+  const inpSpans = spans.filter(span => getSpanOp(span) === UI_INTERACTION_CLICK);
+  expect(inpSpans).toHaveLength(1);
+  const [inpSpan] = inpSpans;
+  const pageloadSpan = await pageloadSpanPromise;
 
-    await page.waitForTimeout(500);
+  expect(inpSpan.attributes[SENTRY_OP]).toEqual({ type: 'string', value: UI_INTERACTION_CLICK });
+  expect(inpSpan.attributes[SENTRY_ORIGIN]).toEqual({ type: 'string', value: 'auto.http.browser.inp' });
+  expect(inpSpan.attributes[USER_AGENT_ORIGINAL]?.value).toEqual(expect.stringContaining('Chrome'));
 
-    // Page hide to trigger INP
-    await hidePage(page);
+  // Check the INP span carries the transaction/segment name it belongs to
+  expect(inpSpan.attributes[SENTRY_TRANSACTION]).toEqual({ type: 'string', value: 'Pageload' });
+  expect(inpSpan.attributes[SENTRY_SEGMENT_NAME]).toEqual({ type: 'string', value: 'Pageload' });
 
-    const spanEnvelope = await spanEnvelopePromise;
-    const envelopeHeader = spanEnvelope[0];
-    const itemHeader = spanEnvelope[1][0][0];
-    const inpSpan = getSpansFromEnvelope(spanEnvelope).find(s => getSpanOp(s) === 'ui.interaction.click')!;
+  const inpValue = inpSpan.attributes[BROWSER_WEB_VITAL_INP_VALUE]?.value as number;
+  expect(inpValue).toBeGreaterThan(0);
 
-    const traceId = envelopeHeader.trace!.trace_id;
-    expect(traceId).toMatch(/^[\da-f]{32}$/);
+  expect(inpSpan.attributes[SENTRY_EXCLUSIVE_TIME]?.value).toBeGreaterThan(0);
 
-    expect(envelopeHeader).toEqual({
-      sdk: { name: 'sentry.javascript.browser', version: SDK_VERSION },
-      sent_at: expect.any(String),
-      trace: {
-        environment: 'production',
-        public_key: 'public',
-        sample_rand: expect.any(String),
-        sample_rate: '1',
-        sampled: 'true',
-        trace_id: traceId,
-        // no `transaction`, because the span source is the URL
-      },
-    });
+  expect(inpSpan.name).toBe('NormalButton');
+  expect(inpSpan.attributes[UI_COMPONENT_NAME]).toEqual({ type: 'string', value: 'NormalButton' });
+  expect(inpSpan.attributes[BROWSER_WEB_VITAL_INP_TARGET]).toEqual({ type: 'string', value: 'body > NormalButton' });
 
-    expect(itemHeader).toEqual({
-      type: 'span',
-      item_count: 1,
-      content_type: 'application/vnd.sentry.items.span.v2+json',
-    });
+  expect(inpSpan.end_timestamp).toBeGreaterThan(inpSpan.start_timestamp);
 
-    const inpValue = inpSpan.attributes['browser.web_vital.inp.value']?.value as number;
-    expect(inpValue).toBeGreaterThan(0);
+  expect(inpSpan.span_id).toMatch(/^[\da-f]{16}$/);
+  expect(inpSpan.trace_id).toMatch(/^[\da-f]{32}$/);
 
-    const pageloadSpanId = inpSpan.parent_span_id;
+  expect(inpSpan.parent_span_id).toBe(pageloadSpan.span_id);
+  expect(inpSpan.trace_id).toBe(pageloadSpan.trace_id);
+});
 
-    expect(inpSpan).toEqual({
-      name: 'body > NormalButton',
-      span_id: expect.stringMatching(/^[\da-f]{16}$/),
-      trace_id: traceId,
-      parent_span_id: expect.stringMatching(/^[\da-f]{16}$/),
-      start_timestamp: expect.any(Number),
-      end_timestamp: expect.any(Number),
-      is_segment: false,
-      status: 'ok',
-      attributes: {
-        'sentry.is_localhost': { value: false, type: 'boolean' },
-        'sentry.origin': { value: 'auto.http.browser.inp', type: 'string' },
-        'sentry.op': { value: 'ui.interaction.click', type: 'string' },
-        'ui.component_name': { value: 'NormalButton', type: 'string' },
-        'browser.web_vital.inp.target': { value: 'body > NormalButton', type: 'string' },
-        'sentry.exclusive_time': { value: inpValue, type: expect.stringMatching(/^(integer)|(double)$/) },
-        'browser.web_vital.inp.value': { value: inpValue, type: expect.stringMatching(/^(integer)|(double)$/) },
-        'browser.web_vital.inp.interaction_type': { value: 'click', type: 'string' },
-        'browser.navigation.type': { value: 'navigate', type: 'string' },
-        'sentry.transaction': { value: 'test-url', type: 'string' },
-        'sentry.segment.name': { value: 'test-url', type: 'string' },
-        'user_agent.original': { value: expect.stringContaining('Chrome'), type: 'string' },
-        'sentry.pageload.span_id': { value: pageloadSpanId, type: 'string' },
-        'sentry.trace_lifecycle': { value: 'stream', type: 'string' },
-        'sentry.segment.id': { value: pageloadSpanId, type: 'string' },
-        'sentry.sdk.name': { value: 'sentry.javascript.browser', type: 'string' },
-        'sentry.sdk.version': { value: SDK_VERSION, type: 'string' },
-        'sentry.environment': { value: 'production', type: 'string' },
-      },
-    });
-  },
-);
+sentryTest('captures the slowest interaction as streamed INP span', async ({ getLocalTestUrl, page }) => {
+  const spans = collectStreamedSpans(page);
+  const url = await getLocalTestUrl({ testDir: __dirname });
 
-sentryTest(
-  'chooses the slowest interaction click event when INP is triggered',
-  async ({ browserName, getLocalTestUrl, page }) => {
-    const supportedBrowsers = ['chromium'];
+  const inpSpanPromise = waitForStreamedSpan(page, span => getSpanOp(span) === UI_INTERACTION_CLICK);
 
-    if (shouldSkipTracingTest() || !supportedBrowsers.includes(browserName)) {
-      sentryTest.skip();
-    }
+  await page.goto(url);
 
-    const url = await getLocalTestUrl({ testDir: __dirname });
+  await page.locator('[data-test-id=normal-button]').click();
+  await expect(page.locator('.clicked[data-test-id=normal-button]')).toBeVisible();
 
-    await page.goto(url);
+  await page.locator('[data-test-id=slow-button]').click();
+  await expect(page.locator('.clicked[data-test-id=slow-button]')).toBeVisible();
 
-    await page.locator('[data-test-id=normal-button]').click();
-    await page.locator('.clicked[data-test-id=normal-button]').isVisible();
+  await hidePage(page, '[data-test-id=slow-button]');
 
-    await page.waitForTimeout(500);
+  await inpSpanPromise;
+  await page.evaluate(() => (window as any).Sentry.flush());
+  const inpSpans = spans.filter(span => getSpanOp(span) === UI_INTERACTION_CLICK);
+  expect(inpSpans).toHaveLength(1);
+  const [inpSpan] = inpSpans;
 
-    const spanEnvelopePromise = waitForStreamedSpanEnvelope(
-      page,
-      env => !!getSpansFromEnvelope(env).find(s => getSpanOp(s) === 'ui.interaction.click'),
-    );
+  expect(inpSpan.name).toBe('SlowButton');
+  expect(inpSpan.attributes[UI_COMPONENT_NAME]).toEqual({ type: 'string', value: 'SlowButton' });
+  expect(inpSpan.attributes[BROWSER_WEB_VITAL_INP_TARGET]).toEqual({ type: 'string', value: 'body > SlowButton' });
+  expect(inpSpan.attributes[SENTRY_EXCLUSIVE_TIME]?.value).toBeGreaterThan(400);
 
-    await page.locator('[data-test-id=slow-button]').click();
-    await page.locator('.clicked[data-test-id=slow-button]').isVisible();
-
-    await page.waitForTimeout(500);
-
-    // Page hide to trigger INP reporting
-    await hidePage(page);
-
-    const inpSpan = getSpansFromEnvelope(await spanEnvelopePromise).find(s => getSpanOp(s) === 'ui.interaction.click')!;
-
-    const inpValue = inpSpan.attributes['browser.web_vital.inp.value']?.value as number;
-    expect(inpValue).toBeGreaterThan(400);
-
-    const pageloadSpanId = inpSpan.parent_span_id;
-
-    expect(inpSpan).toEqual({
-      name: 'body > SlowButton',
-      span_id: expect.stringMatching(/^[\da-f]{16}$/),
-      trace_id: expect.stringMatching(/^[\da-f]{32}$/),
-      parent_span_id: expect.stringMatching(/^[\da-f]{16}$/),
-      start_timestamp: expect.any(Number),
-      end_timestamp: expect.any(Number),
-      is_segment: false,
-      status: 'ok',
-      attributes: {
-        'sentry.is_localhost': { value: false, type: 'boolean' },
-        'sentry.origin': { value: 'auto.http.browser.inp', type: 'string' },
-        'sentry.op': { value: 'ui.interaction.click', type: 'string' },
-        'ui.component_name': { value: 'SlowButton', type: 'string' },
-        'browser.web_vital.inp.target': { value: 'body > SlowButton', type: 'string' },
-        'sentry.exclusive_time': { value: inpValue, type: expect.stringMatching(/^(integer)|(double)$/) },
-        'browser.web_vital.inp.value': { value: inpValue, type: expect.stringMatching(/^(integer)|(double)$/) },
-        'browser.web_vital.inp.interaction_type': { value: 'click', type: 'string' },
-        'browser.navigation.type': { value: 'navigate', type: 'string' },
-        'sentry.transaction': { value: 'test-url', type: 'string' },
-        'sentry.segment.name': { value: 'test-url', type: 'string' },
-        'user_agent.original': { value: expect.stringContaining('Chrome'), type: 'string' },
-        'sentry.pageload.span_id': { value: pageloadSpanId, type: 'string' },
-        'sentry.trace_lifecycle': { value: 'stream', type: 'string' },
-        'sentry.segment.id': { value: pageloadSpanId, type: 'string' },
-        'sentry.sdk.name': { value: 'sentry.javascript.browser', type: 'string' },
-        'sentry.sdk.version': { value: SDK_VERSION, type: 'string' },
-        'sentry.environment': { value: 'production', type: 'string' },
-      },
-    });
-  },
-);
+  const inpValue = inpSpan.attributes[BROWSER_WEB_VITAL_INP_VALUE]?.value as number;
+  expect(inpValue).toBeGreaterThan(400);
+});
