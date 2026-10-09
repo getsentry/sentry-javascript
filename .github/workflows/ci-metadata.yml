@@ -38,7 +38,7 @@ on:
 jobs:
   get_metadata:
     name: Get Metadata
-    runs-on: ubuntu-24.04
+    runs-on: namespace-profile-default-arm64
     permissions:
       pull-requests: read
     steps:

@@ -14,7 +14,8 @@ runs:
       uses: actions/cache/restore@v6.1.0
       with:
         path: ${{ env.CACHED_DEPENDENCY_PATHS }}
-        key: ${{ inputs.dependency_cache_key }}
+        # node_modules contains native binaries, so each CPU architecture needs its own cache
+        key: ${{ inputs.dependency_cache_key }}-${{ runner.arch }}
 
     - name: Restore build artifacts
       uses: actions/download-artifact@v7

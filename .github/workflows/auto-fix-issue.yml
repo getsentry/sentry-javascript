@@ -23,7 +23,7 @@ concurrency:
 
 jobs:
   auto-fix-issue:
-    runs-on: ubuntu-latest
+    runs-on: namespace-profile-default-arm64
     environment: ci-triage
     permissions:
       # Required to create a new branch and commit the fix

@@ -18,7 +18,7 @@ permissions:
 
 jobs:
   release:
-    runs-on: ubuntu-24.04
+    runs-on: namespace-profile-default-arm64
     name: 'Release a new version'
     steps:
       - name: Get auth token

@@ -22,7 +22,7 @@ jobs:
   remind-reviewers:
     # `schedule` has no `repository` on github.event; forks must be skipped only for workflow_dispatch.
     if: github.event_name == 'schedule' || github.event.repository.fork != true
-    runs-on: ubuntu-latest
+    runs-on: namespace-profile-default-arm64
     steps:
       - name: Checkout repository
         uses: actions/checkout@v7

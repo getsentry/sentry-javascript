@@ -18,7 +18,7 @@ concurrency:
 
 jobs:
   track-updates:
-    runs-on: ubuntu-latest
+    runs-on: namespace-profile-default-arm64
     environment: ci-triage
     permissions:
       contents: read

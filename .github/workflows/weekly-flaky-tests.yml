@@ -18,7 +18,7 @@ concurrency:
 jobs:
   report:
     name: Weekly flaky test report
-    runs-on: ubuntu-24.04
+    runs-on: namespace-profile-default-arm64
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v7

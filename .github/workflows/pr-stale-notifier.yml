@@ -15,7 +15,7 @@ concurrency:
 
 jobs:
   stale:
-    runs-on: ubuntu-latest
+    runs-on: namespace-profile-default-arm64
     steps:
       - name: Warn and close stale PRs
         uses: actions/stale@v11
