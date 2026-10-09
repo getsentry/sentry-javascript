@@ -4,7 +4,7 @@ import * as Sentry from '@sentry/node';
 import type { NodeClientOptions } from '@sentry/node/build/types/types';
 import { CpuProfilerBindings } from '@sentry/node-cpu-profiler';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { _nodeProfilingIntegration } from '../src/integration';
+import { _nodeProfilingIntegration, MAX_ROOT_SPAN_PROFILE_MS } from '../src/integration';
 import { NODE_VERSION } from '../src/nodeVersion';
 
 function makeSpanProfilingClient(options: Partial<NodeClientOptions> = {}): [Sentry.NodeClient, Transport] {
@@ -405,6 +405,77 @@ describe('ProfilingIntegration', () => {
       expect(stopProfilingSpy).toHaveBeenCalledTimes(1);
     });
 
+    it('stops the profiler when the root span ends, even if a child span is still open', () => {
+      const [client] = makeSpanProfilingClient({
+        profileLifecycle: 'trace',
+        profileSessionSampleRate: 1,
+      });
+
+      Sentry.setCurrentClient(client);
+      client.init();
+
+      const stopProfilingSpy = vi.spyOn(CpuProfilerBindings, 'stopProfiling');
+      const rootSpan = Sentry.startInactiveSpan({ name: 'GET /users/:id' });
+      Sentry.startInactiveSpan({ name: 'SELECT * FROM users', parentSpan: rootSpan });
+
+      rootSpan.end();
+
+      expect(stopProfilingSpy).toHaveBeenCalledTimes(1);
+    });
+
+    describe('root span time limit', () => {
+      beforeEach(() => {
+        vi.useFakeTimers();
+      });
+
+      afterEach(() => {
+        vi.useRealTimers();
+      });
+
+      it('stops the profiler when a root span is still open after the time limit', () => {
+        const [client] = makeSpanProfilingClient({
+          profileLifecycle: 'trace',
+          profileSessionSampleRate: 1,
+        });
+
+        Sentry.setCurrentClient(client);
+        client.init();
+
+        const startProfilingSpy = vi.spyOn(CpuProfilerBindings, 'startProfiling');
+        const debugLogSpy = vi.spyOn(debug, 'log');
+        const span = Sentry.startInactiveSpan({ name: 'GET /users/:id' });
+        vi.advanceTimersByTime(MAX_ROOT_SPAN_PROFILE_MS);
+        startProfilingSpy.mockClear();
+
+        vi.advanceTimersByTime(MAX_ROOT_SPAN_PROFILE_MS);
+
+        expect(startProfilingSpy).not.toHaveBeenCalled();
+        expect(debugLogSpy).toHaveBeenCalledWith(
+          `[Profiling] Reached 5-minute timeout for root span ${span.spanContext().spanId}. You likely started a manual root span that never called \`.end()\`.`,
+        );
+      });
+
+      it('does not report a timeout for a root span that ended in time', () => {
+        const [client] = makeSpanProfilingClient({
+          profileLifecycle: 'trace',
+          profileSessionSampleRate: 1,
+        });
+
+        Sentry.setCurrentClient(client);
+        client.init();
+
+        const debugLogSpy = vi.spyOn(debug, 'log');
+        const span = Sentry.startInactiveSpan({ name: 'GET /users/:id' });
+        span.end();
+
+        vi.advanceTimersByTime(MAX_ROOT_SPAN_PROFILE_MS);
+
+        expect(debugLogSpy).not.toHaveBeenCalledWith(
+          `[Profiling] Reached 5-minute timeout for root span ${span.spanContext().spanId}. You likely started a manual root span that never called \`.end()\`.`,
+        );
+      });
+    });
+
     describe('envelope', () => {
       beforeEach(() => {
         vi.useRealTimers();
@@ -524,7 +595,7 @@ describe('ProfilingIntegration', () => {
         const debugLogSpy = vi.spyOn(debug, 'log');
         const stopProfiling = startProfiling();
         vi.advanceTimersToNextTimer();
-        vi.runOnlyPendingTimers();
+        vi.advanceTimersToNextTimer();
         expect(startProfilingSpy).toHaveBeenCalledTimes(2);
 
         stopProfiling();
