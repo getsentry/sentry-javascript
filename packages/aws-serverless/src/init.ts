@@ -76,7 +76,8 @@ export function init(options: AwsServerlessOptions = {}): NodeClient | undefined
   // 2. Environment variable SENTRY_LAYER_EXTENSION (if set)
   // 3. Default logic based on sdkSource, tunnel, and proxy settings
   const useLayerExtensionFromEnv = envToBool(process.env.SENTRY_LAYER_EXTENSION, { strict: true });
-  const defaultUseLayerExtension = sdkSource === 'aws-lambda-layer' && !options.tunnel && !proxyWouldInterfere;
+  const defaultUseLayerExtension =
+    sdkSource === 'aws-lambda-layer' && typeof options.tunnel !== 'string' && !proxyWouldInterfere;
   const useLayerExtension = options.useLayerExtension ?? useLayerExtensionFromEnv ?? defaultUseLayerExtension;
 
   const opts = {
@@ -88,8 +89,8 @@ export function init(options: AwsServerlessOptions = {}): NodeClient | undefined
   if (opts.useLayerExtension) {
     if (sdkSource !== 'aws-lambda-layer') {
       DEBUG_BUILD && debug.warn('The Sentry Lambda extension is only supported when using the AWS Lambda layer.');
-    } else if (opts.tunnel || proxyWouldInterfere) {
-      if (opts.tunnel) {
+    } else if (typeof opts.tunnel === 'string' || proxyWouldInterfere) {
+      if (typeof opts.tunnel === 'string') {
         DEBUG_BUILD &&
           debug.warn(
             `Using a custom tunnel with the Sentry Lambda extension is not supported. Events will be tunnelled to ${opts.tunnel} and not through the extension.`,

@@ -1,7 +1,6 @@
 import { diag, DiagLogLevel, propagation, trace } from '@opentelemetry/api';
 import type { Client, Integration } from '@sentry/core';
 import {
-  _INTERNAL_warnIfClientIsActive,
   consoleIntegration,
   conversationIdIntegration,
   createStackParser,
@@ -13,8 +12,10 @@ import {
   getIntegrationsToSetup,
   getVercelEnv,
   GLOBAL_OBJ,
+  _INTERNAL_warnIfClientIsActive,
   linkedErrorsIntegration,
   requestDataIntegration,
+  resolveServerTunnelOption,
   stackParserFromStackParserOptions,
 } from '@sentry/core';
 import { nodeStackLineParser } from '@sentry/core/server';
@@ -85,6 +86,7 @@ export function init(options: VercelEdgeOptions = {}): Client {
 
   const client = new VercelEdgeClient({
     ...options,
+    ...resolveServerTunnelOption(options.tunnel),
     stackParser: stackParserFromStackParserOptions(options.stackParser || nodeStackParser),
     integrations: getIntegrationsToSetup(options),
     transport: options.transport || makeEdgeTransport,
