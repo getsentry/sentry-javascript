@@ -1,5 +1,5 @@
 import { afterAll, describe, expect } from 'vitest';
-import { conditionalTest } from '../../../utils';
+import { supports } from '../../../utils';
 import { cleanupChildProcesses, createEsmAndCjsTests, describeWithDockerCompose } from '../../../utils/runner';
 
 describeWithDockerCompose('postgres auto instrumentation', { workingDirectory: [__dirname] }, () => {
@@ -278,7 +278,7 @@ describeWithDockerCompose('postgres auto instrumentation', { workingDirectory: [
 
   // Deno: with a module load hook installed, Deno compiles a native addon (`libpq`) as JavaScript.
   // Bun: the `libpq` addon needs the Node symbol `node::EmitAsyncInit`, which Bun does not provide.
-  conditionalTest({ max: 25, skipRuntimes: ['bun', 'deno'] })('pg-native', () => {
+  describe.runIf(supports({ max: 25, runtimes: ['node'] }))('pg-native', () => {
     const EXPECTED_TRANSACTION = {
       transaction: 'Test Transaction',
       spans: expect.arrayContaining([

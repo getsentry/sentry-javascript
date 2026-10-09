@@ -1,5 +1,6 @@
 // Node suites that do not run on Bun, relative to `node-integration-tests`. A single test that
-// fails on Bun is skipped with `test.skipIf` on `RUNTIME` in the Node suite, not listed here.
+// fails on Bun runs only on the other runtimes, with `test.runIf(supports({ runtimes }))` in the
+// Node suite, and is not listed here.
 
 // Node-only features: ANR and native thread watchdogs, child processes, the AWS Lambda Node runtime,
 // `node:sqlite`, which `flue` needs, and the Vercel keep-alive, which needs `http.server.response.finish`.

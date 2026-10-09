@@ -1,6 +1,6 @@
 import { createTestServer } from '@sentry-internal/test-utils';
 import { afterAll, describe, expect } from 'vitest';
-import { RUNTIME } from '../../../../utils';
+import { supports } from '../../../../utils';
 import { cleanupChildProcesses, createEsmAndCjsTests } from '../../../../utils/runner';
 
 describe('ignoring a continued server segment (streaming)', () => {
@@ -43,8 +43,9 @@ describe('ignoring a continued server segment (streaming)', () => {
     test('propagates a negative sampling decision to outgoing fetch requests', () => testPropagation('/ignored'));
     // Bun 1.3.14 does not instrument outgoing `node:http` requests.
     // See https://github.com/getsentry/sentry-javascript/issues/23881
-    test.skipIf(RUNTIME === 'bun')('propagates a negative sampling decision to outgoing node:http requests', () =>
-      testPropagation('/ignored-http'),
+    test.runIf(supports({ runtimes: ['node', 'deno'] }))(
+      'propagates a negative sampling decision to outgoing node:http requests',
+      () => testPropagation('/ignored-http'),
     );
   });
 });
