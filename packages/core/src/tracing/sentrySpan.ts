@@ -392,8 +392,6 @@ export class SentrySpan implements Span {
       }
 
       DEBUG_BUILD && debug.log('[Tracing] Discarding standalone span because its trace was not chosen to be sampled.');
-      client.recordDroppedEvent('sample_rate', 'span');
-
       return;
     }
 
