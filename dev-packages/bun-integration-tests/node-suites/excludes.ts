@@ -120,6 +120,7 @@ export const NO_AUTO_INSTRUMENTATION = [
   'suites/tracing/mysql/test.ts',
   'suites/tracing/mysql2-tracing-channel/test.ts',
   'suites/tracing/mysql2/test.ts',
+  'suites/tracing/neon/test.ts',
   'suites/tracing/openai/test.ts',
   'suites/tracing/openai/v6/test.ts',
   'suites/tracing/openai/v7/test.ts',

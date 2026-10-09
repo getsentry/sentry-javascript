@@ -104,9 +104,11 @@
     "rxjs": "^7.8.2",
     "tedious": "^19.2.1",
     "winston": "^3.17.0",
+    "ws": "^8.20.1",
     "yargs": "^16.2.0"
   },
   "devDependencies": {
+    "@neondatabase/serverless": "1.2.0",
     "@opentelemetry/instrumentation-http": "0.220.0",
     "@sentry/conventions": "0.26.0",
     "@sentry-internal/test-utils": "11.6.0",
