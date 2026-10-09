@@ -29,7 +29,9 @@ test('HttpIntegration should instrument correct requests when tracePropagationTa
   await createRunner(__dirname, 'scenario.ts')
     .withEnv({ SERVER_URL })
     .expect({
-      span: {},
+      span: {
+        // Span contents are tested elsewhere.
+      },
     })
     .start()
     .completed();
