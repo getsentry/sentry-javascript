@@ -12,7 +12,13 @@ import { markSpanAsTracerProviderSpan } from '../../../src/tracing/utils';
 import { withStaticSpan } from '../../../src/tracing/spans/beforeSendSpan';
 import type { Envelope } from '../../../src/types/envelope';
 import type { Span, SpanJSON } from '../../../src/types/span';
-import { getRootSpan, spanToStaticSpanJSON, TRACE_FLAG_NONE, TRACE_FLAG_SAMPLED } from '../../../src/utils/spanUtils';
+import {
+  getRootSpan,
+  spanToJSON,
+  spanToStaticSpanJSON,
+  TRACE_FLAG_NONE,
+  TRACE_FLAG_SAMPLED,
+} from '../../../src/utils/spanUtils';
 import { timestampInSeconds } from '../../../src/utils/time';
 import { getDefaultTestClientOptions, TestClient } from '../../mocks/client';
 import { SENTRY_SEGMENT_NAME_SOURCE } from '@sentry/conventions/attributes';
@@ -588,9 +594,9 @@ describe('SentrySpan', () => {
       const now = timestampInSeconds();
       span.end();
 
-      const { start_timestamp, timestamp } = spanToStaticSpanJSON(span);
-      expect(timestamp).toBeGreaterThanOrEqual(start_timestamp);
-      expect(timestamp).toBeCloseTo(now, 2);
+      const { start_timestamp, end_timestamp } = spanToJSON(span);
+      expect(end_timestamp).toBeGreaterThanOrEqual(start_timestamp);
+      expect(end_timestamp).toBeCloseTo(now, 2);
     });
 
     it('works with endTimestamp in seconds', () => {
