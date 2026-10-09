@@ -3,7 +3,7 @@ import { afterAll, describe, expect } from 'vitest';
 import { cleanupChildProcesses, createEsmAndCjsTests } from '../../../../utils/runner';
 import { SENTRY_OP } from '@sentry/conventions/attributes';
 
-describe('ignoring a child of a continued server segment (streaming)', () => {
+describe('ignoring an HTTP client child of a continued server segment', () => {
   afterAll(() => {
     cleanupChildProcesses();
   });
@@ -12,13 +12,16 @@ describe('ignoring a child of a continued server segment (streaming)', () => {
     const testPropagation = async (path: string): Promise<void> => {
       const [SERVER_URL, closeTestServer] = await createTestServer()
         .get('/outgoing', headers => {
-          expect(headers['sentry-trace']).toMatch(/^12345678901234567890123456789012-[\da-f]{16}-1$/);
+          expect
+            .soft(headers['sentry-trace'])
+            .toEqual(expect.stringMatching(/^12345678901234567890123456789012-[\da-f]{16}-1$/));
 
           expect(headers['baggage']).toBe(
             'sentry-trace_id=12345678901234567890123456789012,sentry-sample_rate=1,sentry-sampled=true,sentry-public_key=public,sentry-sample_rand=0.5',
           );
         })
         .start();
+
       const runner = createRunner()
         .withEnv({ SERVER_URL })
         .unignore('client_report')
@@ -33,7 +36,8 @@ describe('ignoring a child of a continued server segment (streaming)', () => {
 
             expect(httpServerSpan?.is_segment).toBe(true);
             expect(httpServerSpan?.trace_id).toBe('12345678901234567890123456789012');
-            expect(container.items.some(item => item.name === 'ignoredMiddleware')).toBe(false);
+
+            expect(container.items.some(item => item.attributes[SENTRY_OP]?.value === 'http.client')).toBe(false);
           },
         })
         .start();
@@ -54,10 +58,10 @@ describe('ignoring a child of a continued server segment (streaming)', () => {
       }
     };
 
-    test('preserves the positive sampling decision on outgoing fetch requests', () =>
-      testPropagation('/ignored-child'));
+    test('preserves the positive sampling decision on the outgoing fetch request', () =>
+      testPropagation('/ignored-http-client'));
 
-    test('preserves the positive sampling decision on outgoing node:http requests', () =>
-      testPropagation('/ignored-child-http'));
+    test('preserves the positive sampling decision on the outgoing node:http request', () =>
+      testPropagation('/ignored-node-http-client'));
   });
 });

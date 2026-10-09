@@ -3,10 +3,12 @@ import { loggingTransport } from '@sentry-internal/node-integration-tests';
 
 Sentry.init({
   dsn: 'https://public@dsn.ingest.sentry.io/1337',
-  release: '1.0',
   tracesSampleRate: 1.0,
   transport: loggingTransport,
-  traceLifecycle: 'stream',
-  ignoreSpans: [{ attributes: { 'http.request.method': 'POST' } }],
-  clientReportFlushInterval: 1_000,
 });
+
+Sentry.startSpan({ name: 'test-span' }, () => {
+  // noop
+});
+
+void Sentry.flush();

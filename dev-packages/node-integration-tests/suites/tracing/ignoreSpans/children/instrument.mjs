@@ -3,10 +3,9 @@ import { loggingTransport } from '@sentry-internal/node-integration-tests';
 
 Sentry.init({
   dsn: 'https://public@dsn.ingest.sentry.io/1337',
-  tracesSampleRate: 0,
+  release: '1.0',
+  tracesSampleRate: 1.0,
   transport: loggingTransport,
-  traceLifecycle: 'stream',
-  ignoreSpans: [{ attributes: { 'url.path': '/outgoing' } }],
-  tracePropagationTargets: [process.env.SERVER_URL],
+  ignoreSpans: ['expressInit', /custom-to-drop/, { op: 'ignored-op' }],
   clientReportFlushInterval: 1_000,
 });

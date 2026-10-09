@@ -6,7 +6,6 @@ Sentry.init({
   release: '1.0',
   tracesSampleRate: 1.0,
   transport: loggingTransport,
-  traceLifecycle: 'stream',
-  ignoreSpans: ['expressInit', /custom-to-drop/, { op: 'ignored-op' }],
+  ignoreSpans: [{ attributes: { 'http.request.method': 'POST' } }],
   clientReportFlushInterval: 1_000,
 });
