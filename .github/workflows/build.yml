@@ -1078,15 +1078,6 @@ jobs:
         with:
           dependency_cache_key: ${{ needs.job_build.outputs.dependency_cache_key }}
 
-      # Installs the root workspace's Playwright version while the app builds. Most apps use the same version.
-      # The app's own version is only known after its build, so it gets installed then if it differs.
-      - name: Install Playwright
-        id: install-playwright
-        background: true
-        uses: ./.github/actions/install-playwright
-        with:
-          browsers: chromium
-
       - name: Restore tarball artifacts
         uses: actions/download-artifact@v8
         with:
@@ -1099,6 +1090,16 @@ jobs:
         with:
           name: build-layer-output
           path: ${{ env.BUILD_LAYER_PATH }}
+
+      # Installs the root workspace's Playwright version while the app builds. Most apps use the same version.
+      # The app's own version is only known after its build, so it gets installed then if it differs.
+      # Started after the artifact downloads: starting next to them made `download-artifact` fail to read the event file.
+      - name: Install Playwright
+        id: install-playwright
+        background: true
+        uses: ./.github/actions/install-playwright
+        with:
+          browsers: chromium
 
       - name: Prepare e2e tests
         run: yarn test:prepare
@@ -1226,20 +1227,21 @@ jobs:
         with:
           dependency_cache_key: ${{ needs.job_build.outputs.dependency_cache_key }}
 
+      - name: Restore tarball artifacts
+        uses: actions/download-artifact@v8
+        with:
+          name: build-tarball-output
+          path: ${{ env.TARBALL_ARTIFACT_DOWNLOAD_PATH }}
+
       # Installs the root workspace's Playwright version while the app builds. Most apps use the same version.
       # The app's own version is only known after its build, so it gets installed then if it differs.
+      # Started after the artifact downloads: starting next to them made `download-artifact` fail to read the event file.
       - name: Install Playwright
         id: install-playwright
         background: true
         uses: ./.github/actions/install-playwright
         with:
           browsers: chromium
-
-      - name: Restore tarball artifacts
-        uses: actions/download-artifact@v8
-        with:
-          name: build-tarball-output
-          path: ${{ env.TARBALL_ARTIFACT_DOWNLOAD_PATH }}
 
       - name: Prepare E2E tests
         run: yarn test:prepare
