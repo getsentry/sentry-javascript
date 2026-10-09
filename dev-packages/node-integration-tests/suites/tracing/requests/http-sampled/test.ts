@@ -32,7 +32,7 @@ describe('outgoing http', () => {
         .withEnv({ SERVER_URL })
         .expect({
           span: {
-            // Span contents are tested elsewhere.
+            // Span contents are tested elsewhere, we just want to know that a span envelope was sent
           },
         })
         .start()
