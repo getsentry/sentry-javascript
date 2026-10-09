@@ -2,15 +2,25 @@
  * Core attribute extraction and building functions for MCP server instrumentation
  */
 
-import { isURLObjectRelative, parseStringToURLObject } from '../../utils/url';
 import {
-  MCP_LOGGING_DATA_TYPE_ATTRIBUTE,
-  MCP_LOGGING_LEVEL_ATTRIBUTE,
-  MCP_LOGGING_LOGGER_ATTRIBUTE,
-  MCP_LOGGING_MESSAGE_ATTRIBUTE,
-  MCP_REQUEST_ID_ATTRIBUTE,
-  MCP_RESOURCE_URI_ATTRIBUTE,
-} from './attributes';
+  MCP_CANCELLED_REASON,
+  MCP_CANCELLED_REQUEST_ID,
+  MCP_LIFECYCLE_PHASE,
+  MCP_LOGGING_DATA_TYPE,
+  MCP_LOGGING_LEVEL,
+  MCP_LOGGING_LOGGER,
+  MCP_LOGGING_MESSAGE,
+  MCP_PROGRESS_CURRENT,
+  MCP_PROGRESS_MESSAGE,
+  MCP_PROGRESS_PERCENTAGE,
+  MCP_PROGRESS_TOKEN,
+  MCP_PROGRESS_TOTAL,
+  MCP_PROTOCOL_READY,
+  MCP_REQUEST_ID,
+  MCP_RESOURCE_PROTOCOL,
+  MCP_RESOURCE_URI,
+} from '@sentry/conventions/attributes';
+import { isURLObjectRelative, parseStringToURLObject } from '../../utils/url';
 import { extractTargetInfo, getRequestArguments } from './methodConfig';
 import type { JsonRpcNotification, JsonRpcRequest, McpSpanType } from './types';
 
@@ -39,59 +49,60 @@ export function getNotificationAttributes(
   switch (method) {
     case 'notifications/cancelled':
       if (params?.requestId) {
-        attributes['mcp.cancelled.request_id'] = String(params.requestId);
+        attributes[MCP_CANCELLED_REQUEST_ID] = String(params.requestId);
       }
       if (params?.reason) {
-        attributes['mcp.cancelled.reason'] = String(params.reason);
+        attributes[MCP_CANCELLED_REASON] = String(params.reason);
       }
       break;
 
     case 'notifications/message':
       if (params?.level) {
-        attributes[MCP_LOGGING_LEVEL_ATTRIBUTE] = String(params.level);
+        attributes[MCP_LOGGING_LEVEL] = String(params.level);
       }
       if (params?.logger) {
-        attributes[MCP_LOGGING_LOGGER_ATTRIBUTE] = String(params.logger);
+        attributes[MCP_LOGGING_LOGGER] = String(params.logger);
       }
       if (params?.data !== undefined) {
-        attributes[MCP_LOGGING_DATA_TYPE_ATTRIBUTE] = typeof params.data;
+        attributes[MCP_LOGGING_DATA_TYPE] = typeof params.data;
         if (recordInputs) {
-          attributes[MCP_LOGGING_MESSAGE_ATTRIBUTE] = formatLoggingData(params.data);
+          attributes[MCP_LOGGING_MESSAGE] = formatLoggingData(params.data);
         }
       }
       break;
 
     case 'notifications/progress':
       if (params?.progressToken) {
-        attributes['mcp.progress.token'] = String(params.progressToken);
+        attributes[MCP_PROGRESS_TOKEN] = String(params.progressToken);
       }
       if (typeof params?.progress === 'number') {
-        attributes['mcp.progress.current'] = params.progress;
+        attributes[MCP_PROGRESS_CURRENT] = params.progress;
       }
       if (typeof params?.total === 'number') {
-        attributes['mcp.progress.total'] = params.total;
+        attributes[MCP_PROGRESS_TOTAL] = params.total;
         if (typeof params?.progress === 'number') {
-          attributes['mcp.progress.percentage'] = (params.progress / params.total) * 100;
+          attributes[MCP_PROGRESS_PERCENTAGE] = (params.progress / params.total) * 100;
         }
       }
       if (params?.message) {
-        attributes['mcp.progress.message'] = String(params.message);
+        attributes[MCP_PROGRESS_MESSAGE] = String(params.message);
       }
       break;
 
     case 'notifications/resources/updated':
       if (params?.uri) {
-        attributes[MCP_RESOURCE_URI_ATTRIBUTE] = String(params.uri);
+        attributes[MCP_RESOURCE_URI] = String(params.uri);
         const urlObject = parseStringToURLObject(String(params.uri));
         if (urlObject && !isURLObjectRelative(urlObject)) {
-          attributes['mcp.resource.protocol'] = urlObject.protocol.replace(':', '');
+          // oxlint-disable-next-line typescript/no-deprecated -- Keep the resource URI scheme distinct from the network protocol.
+          attributes[MCP_RESOURCE_PROTOCOL] = urlObject.protocol.replace(':', '');
         }
       }
       break;
 
     case 'notifications/initialized':
-      attributes['mcp.lifecycle.phase'] = 'initialization_complete';
-      attributes['mcp.protocol.ready'] = 1;
+      attributes[MCP_LIFECYCLE_PHASE] = 'initialization_complete';
+      attributes[MCP_PROTOCOL_READY] = 1;
       break;
   }
 
@@ -117,7 +128,8 @@ export function buildTypeSpecificAttributes(
     const targetInfo = extractTargetInfo(request.method, params || {});
 
     return {
-      ...(request.id !== undefined && { [MCP_REQUEST_ID_ATTRIBUTE]: String(request.id) }),
+      // oxlint-disable-next-line typescript/no-deprecated -- Preserve the legacy request ID attribute for existing consumers.
+      ...(request.id !== undefined && { [MCP_REQUEST_ID]: String(request.id) }),
       ...targetInfo.attributes,
       ...(recordInputs ? getRequestArguments(request.method, params || {}) : {}),
     };

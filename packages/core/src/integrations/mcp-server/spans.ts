@@ -5,23 +5,18 @@
  * Handles both request and notification spans with attribute extraction.
  */
 
-import { getClient } from '../../currentScopes';
-import { SENTRY_OP, SENTRY_SEGMENT_NAME_SOURCE, SENTRY_ORIGIN } from '@sentry/conventions/attributes';
+import { MCP_METHOD_NAME, SENTRY_OP, SENTRY_ORIGIN, SENTRY_SEGMENT_NAME_SOURCE } from '@sentry/conventions/attributes';
 import {
   MCP_NOTIFICATION_CLIENT_TO_SERVER,
   MCP_NOTIFICATION_SERVER_TO_CLIENT,
   MCP_SERVER,
 } from '@sentry/conventions/op';
+import { getClient } from '../../currentScopes';
 import { hasSpanStreamingEnabled } from '../../tracing/spans/hasSpanStreamingEnabled';
 import { MCP_NOTIFICATION_SPAN_NAME_FALLBACK, MCP_SERVER_SPAN_NAME_FALLBACK } from '../../tracing/spans/spanNames';
 import { startSpan } from '../../tracing/trace';
 import { buildTransportAttributes, buildTypeSpecificAttributes } from './attributeExtraction';
-import {
-  MCP_FUNCTION_ORIGIN_VALUE,
-  MCP_METHOD_NAME_ATTRIBUTE,
-  MCP_NOTIFICATION_ORIGIN_VALUE,
-  MCP_ROUTE_SOURCE_VALUE,
-} from './attributes';
+import { MCP_FUNCTION_ORIGIN_VALUE, MCP_NOTIFICATION_ORIGIN_VALUE, MCP_ROUTE_SOURCE_VALUE } from './attributes';
 import { extractTargetInfo } from './methodConfig';
 import { filterMcpPiiFromSpanData } from './piiFiltering';
 import type {
@@ -103,7 +98,7 @@ function createMcpSpan(config: McpSpanConfig): unknown {
 
   const rawAttributes: Record<string, string | number> = {
     ...buildTransportAttributes(transport, extra, message),
-    [MCP_METHOD_NAME_ATTRIBUTE]: method,
+    [MCP_METHOD_NAME]: method,
     ...buildTypeSpecificAttributes(type, message, params, options?.recordInputs),
     ...buildSentryAttributes(type),
   };
@@ -201,7 +196,7 @@ export function buildMcpServerSpanConfig(
 
   const rawAttributes: Record<string, string | number> = {
     ...buildTransportAttributes(transport, extra, jsonRpcMessage),
-    [MCP_METHOD_NAME_ATTRIBUTE]: method,
+    [MCP_METHOD_NAME]: method,
     ...buildTypeSpecificAttributes('request', jsonRpcMessage, params, options?.recordInputs),
     ...buildSentryAttributes('request'),
   };
