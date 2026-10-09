@@ -588,8 +588,6 @@ describe('SentrySpan', () => {
       const now = timestampInSeconds();
       span.end();
 
-      // The end time is the start time plus the `performance.now()` duration, so it can differ from `now` by
-      // fractions of a microsecond in either direction.
       const { start_timestamp, timestamp } = spanToStaticSpanJSON(span);
       expect(timestamp).toBeGreaterThanOrEqual(start_timestamp);
       expect(timestamp).toBeCloseTo(now, 2);
