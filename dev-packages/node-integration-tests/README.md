@@ -68,7 +68,8 @@ arriving after its condition is satisfied.
 `dev-packages/bun-integration-tests` and `dev-packages/deno-integration-tests` run every suite of this package on Bun
 and Deno as well. When you add a suite, check that it passes on both. If it cannot, add it to
 `node-suites/excludes.ts` of the runtime's package with the reason, or run the single tests that fail only on the
-other runtimes, for example `test.runIf(supports({ runtimes: ['node', 'deno'] }))` for a test that fails on Bun.
+other runtimes, for example `test.runIf(supports({ runtimes: ['node', 'deno'] }))` for a test that fails on Bun. A
+suite or test that fails only on Bun versions older than a given one runs with `supports({ bunMin: '1.4.0' })`.
 
 ## Running Tests Locally
 

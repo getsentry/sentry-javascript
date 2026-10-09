@@ -8,9 +8,9 @@ describe('no_parent_span client report', () => {
   });
 
   createEsmAndCjsTests(__dirname, 'scenario.mjs', 'instrument.mjs', (createRunner, test) => {
-    // Bun 1.3.14 does not instrument outgoing `node:http` requests.
+    // Bun before 1.4 does not instrument outgoing `node:http` requests.
     // See https://github.com/getsentry/sentry-javascript/issues/23881
-    test.runIf(supports({ runtimes: ['node', 'deno'] }))(
+    test.runIf(supports({ bunMin: '1.4.0' }))(
       'records no_parent_span outcome for an outgoing http request without a local parent',
       async () => {
         const runner = createRunner()

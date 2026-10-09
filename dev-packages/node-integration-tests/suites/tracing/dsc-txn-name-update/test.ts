@@ -1,64 +1,70 @@
 import { createTestServer } from '@sentry-internal/test-utils';
 import { expect, test } from 'vitest';
 import { createRunner } from '../../../utils/runner';
+import { supports } from '../../../utils';
 
-test('adds current transaction name to baggage when the txn name is high-quality', async () => {
-  expect.assertions(5);
+// Bun before 1.4 does not instrument outgoing `node:http` requests.
+// See https://github.com/getsentry/sentry-javascript/issues/23881
+test.runIf(supports({ bunMin: '1.4.0' }))(
+  'adds current transaction name to baggage when the txn name is high-quality',
+  async () => {
+    expect.assertions(5);
 
-  let traceId: string | undefined;
+    let traceId: string | undefined;
 
-  const [SERVER_URL, closeTestServer] = await createTestServer()
-    .get('/api/v0', headers => {
-      const baggageItems = getBaggageHeaderItems(headers);
-      traceId = baggageItems.find(item => item.startsWith('sentry-trace_id='))?.split('=')[1] as string;
+    const [SERVER_URL, closeTestServer] = await createTestServer()
+      .get('/api/v0', headers => {
+        const baggageItems = getBaggageHeaderItems(headers);
+        traceId = baggageItems.find(item => item.startsWith('sentry-trace_id='))?.split('=')[1] as string;
 
-      expect(traceId).toMatch(/^[\da-f]{32}$/);
+        expect(traceId).toMatch(/^[\da-f]{32}$/);
 
-      expect(baggageItems).toEqual([
-        'sentry-environment=production',
-        'sentry-public_key=public',
-        'sentry-release=1.0',
-        expect.stringMatching(/sentry-sample_rand=0\.\d+/),
-        'sentry-sample_rate=1',
-        'sentry-sampled=true',
-        `sentry-trace_id=${traceId}`,
-      ]);
-    })
-    .get('/api/v1', headers => {
-      expect(getBaggageHeaderItems(headers)).toEqual([
-        'sentry-environment=production',
-        'sentry-public_key=public',
-        'sentry-release=1.0',
-        expect.stringMatching(/sentry-sample_rand=0\.\d+/),
-        'sentry-sample_rate=1',
-        'sentry-sampled=true',
-        `sentry-trace_id=${traceId}`,
-        'sentry-transaction=updated-name-1',
-      ]);
-    })
-    .get('/api/v2', headers => {
-      expect(getBaggageHeaderItems(headers)).toEqual([
-        'sentry-environment=production',
-        'sentry-public_key=public',
-        'sentry-release=1.0',
-        expect.stringMatching(/sentry-sample_rand=0\.\d+/),
-        'sentry-sample_rate=1',
-        'sentry-sampled=true',
-        `sentry-trace_id=${traceId}`,
-        'sentry-transaction=updated-name-2',
-      ]);
-    })
-    .start();
+        expect(baggageItems).toEqual([
+          'sentry-environment=production',
+          'sentry-public_key=public',
+          'sentry-release=1.0',
+          expect.stringMatching(/sentry-sample_rand=0\.\d+/),
+          'sentry-sample_rate=1',
+          'sentry-sampled=true',
+          `sentry-trace_id=${traceId}`,
+        ]);
+      })
+      .get('/api/v1', headers => {
+        expect(getBaggageHeaderItems(headers)).toEqual([
+          'sentry-environment=production',
+          'sentry-public_key=public',
+          'sentry-release=1.0',
+          expect.stringMatching(/sentry-sample_rand=0\.\d+/),
+          'sentry-sample_rate=1',
+          'sentry-sampled=true',
+          `sentry-trace_id=${traceId}`,
+          'sentry-transaction=updated-name-1',
+        ]);
+      })
+      .get('/api/v2', headers => {
+        expect(getBaggageHeaderItems(headers)).toEqual([
+          'sentry-environment=production',
+          'sentry-public_key=public',
+          'sentry-release=1.0',
+          expect.stringMatching(/sentry-sample_rand=0\.\d+/),
+          'sentry-sample_rate=1',
+          'sentry-sampled=true',
+          `sentry-trace_id=${traceId}`,
+          'sentry-transaction=updated-name-2',
+        ]);
+      })
+      .start();
 
-  await createRunner(__dirname, 'scenario-headers.ts')
-    .withEnv({ SERVER_URL })
-    .expect({
-      transaction: {},
-    })
-    .start()
-    .completed();
-  closeTestServer();
-});
+    await createRunner(__dirname, 'scenario-headers.ts')
+      .withEnv({ SERVER_URL })
+      .expect({
+        transaction: {},
+      })
+      .start()
+      .completed();
+    closeTestServer();
+  },
+);
 
 test('adds current transaction name to trace envelope header when the txn name is high-quality', async () => {
   expect.assertions(4);
