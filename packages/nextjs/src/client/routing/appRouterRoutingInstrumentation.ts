@@ -108,8 +108,8 @@ let pendingPageloadWait: TraceMetaTagWait | undefined;
 
 /**
  * Starts a pageload that is still waiting for its trace meta tag with a fresh trace. Called when a
- * navigation starts, before the navigation span is created, so that the navigation is filed as a
- * redirect of this pageload rather than becoming the only record of the visit.
+ * navigation starts, before the navigation span is created, so the navigation ends the pageload like
+ * any pageload it interrupts, and the pageload is still recorded.
  */
 export function settlePendingPageloadWait(): void {
   pendingPageloadWait?.giveUp();

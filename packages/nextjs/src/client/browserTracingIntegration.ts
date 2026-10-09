@@ -43,8 +43,9 @@ export function browserTracingIntegration(
       }
 
       // Registered before the browser tracing integration's own handler, which creates the navigation
-      // span: a pageload that is still waiting for its trace meta tag has to exist by then so the
-      // navigation can be filed as its redirect.
+      // span: a pageload that is still waiting for its trace meta tag has to exist by then, so the
+      // handler ends it like any pageload a navigation interrupts. Started later, the pageload would
+      // end the navigation span instead.
       if (instrumentPageLoad) {
         client.on('startNavigationSpan', settlePendingPageloadWait);
       }
