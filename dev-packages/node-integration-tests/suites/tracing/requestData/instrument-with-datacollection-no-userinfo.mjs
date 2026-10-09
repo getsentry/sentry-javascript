@@ -6,6 +6,7 @@ Sentry.init({
   release: '1.0',
   tracesSampleRate: 1.0,
   transport: loggingTransport,
-  traceLifecycle: 'stream',
-  integrations: defaults => defaults.filter(i => i.name !== 'RequestData'),
+  dataCollection: {
+    userInfo: false,
+  },
 });
