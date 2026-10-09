@@ -34,7 +34,7 @@ sentryTest(
       [SENTRY_OP]: { type: 'string', value: 'pageload' },
     });
 
-    expect(attributes[SEMANTIC_ATTRIBUTE_SENTRY_CUSTOM_SPAN_NAME]).toEqual({ type: 'string', value: 'new name' });
+    expect(attributes[SEMANTIC_ATTRIBUTE_SENTRY_CUSTOM_SPAN_NAME]).toBeUndefined();
 
     expect(pageloadSpan.name).toBe('new name');
 

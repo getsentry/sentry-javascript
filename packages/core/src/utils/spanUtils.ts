@@ -270,12 +270,16 @@ function getOtelParentSpanId(span: OpenTelemetrySdkTraceBaseSpan): string | unde
  * The returned serilaized spans must not be consumed by users or SDK integrations.
  */
 export function streamedSpanJsonToSerializedSpan(spanJson: StreamedSpanJSON): SerializedStreamedSpan {
+  const attributes = serializeAttributes(spanJson.attributes);
+  // oxlint-disable-next-line typescript/no-dynamic-delete
+  delete attributes[SEMANTIC_ATTRIBUTE_SENTRY_CUSTOM_SPAN_NAME];
+
   return {
     ...spanJson,
     // We only ever send ended spans, but fall back to the start time (i.e. duration 0) so that
     // sent spans always carry an end timestamp.
     end_timestamp: spanJson.end_timestamp ?? spanJson.start_timestamp,
-    attributes: serializeAttributes(spanJson.attributes),
+    attributes,
     links: spanJson.links?.map(link => ({
       ...link,
       attributes: serializeAttributes(link.attributes),
