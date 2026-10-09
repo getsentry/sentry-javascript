@@ -10,6 +10,7 @@ import {
 } from '@sentry/core';
 import { sanitizeSqlQueryWithSummary } from '../../utils/sql';
 import { subscribeMysql2DiagnosticChannels } from './mysql2-dc-subscriber';
+import type { OrchestrionChannelContext } from '../../orchestrion/types';
 import type { ChannelName } from '../../orchestrion/channels';
 import { CHANNELS } from '../../orchestrion/channels';
 import { bindTracingChannelToSpan } from '../../tracing-channel';
@@ -38,14 +39,8 @@ const DB_SYSTEM_VALUE_MYSQL = 'mysql';
  * object. Documented here rather than imported because orchestrion's runtime
  * doesn't export it.
  */
-interface Mysql2QueryChannelContext {
-  // The live args array passed to the wrapped `query`/`execute` call:
-  // `arguments[0]` is the SQL (a string, `Query`, or `{ sql, values }`),
-  // `arguments[1]` is the values array or a callback.
-  arguments: unknown[];
+interface Mysql2QueryChannelContext extends OrchestrionChannelContext {
   self?: Mysql2Connection;
-  result?: unknown;
-  error?: unknown;
 }
 
 interface Mysql2ConnectionConfig {

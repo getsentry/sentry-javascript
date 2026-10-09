@@ -1,6 +1,7 @@
 import * as diagnosticsChannel from 'node:diagnostics_channel';
 import { createMultiMatcher } from 'remix/route-pattern/match';
 import { consoleSandbox } from '@sentry/core';
+import type { OrchestrionChannelContext } from '@sentry/server-utils';
 import { remixV3Channels } from '@sentry/server-utils/orchestrion/config';
 
 import type { MatcherLike, RequestListenerOptionsLike, RouterOptionsLike } from '../types';
@@ -8,11 +9,6 @@ import { captureRequestError } from './errorFilter';
 import { sentryRemixMiddleware } from './middleware';
 
 const NOOP = (): void => {};
-
-/** The call's arguments, as orchestrion's transform attaches them to a tracing channel context. */
-interface ChannelContext {
-  arguments: unknown[];
-}
 
 // Marks an options object already injected into, so the same mutation cannot be applied twice.
 const INJECTED = Symbol.for('SentryRemixV3Injected');
@@ -41,22 +37,24 @@ export function instrumentRemixV3(): void {
 }
 
 function subscribeToCreateRouter(): void {
-  diagnosticsChannel.tracingChannel<ChannelContext, ChannelContext>(remixV3Channels.REMIX_V3_CREATE_ROUTER).subscribe({
-    start(data) {
-      // Node rethrows anything this handler throws as an uncaught exception, which would kill an app
-      // that runs fine without Sentry. Frozen options, a non-writable property and a `route-pattern`
-      // copy that cannot build a matcher all reach here, so the router is left uninstrumented instead.
-      try {
-        injectRouterMiddleware(ensureOptions(data.arguments));
-      } catch {
-        // Ignored on purpose.
-      }
-    },
-    end: NOOP,
-    asyncStart: NOOP,
-    asyncEnd: NOOP,
-    error: NOOP,
-  });
+  diagnosticsChannel
+    .tracingChannel<OrchestrionChannelContext, OrchestrionChannelContext>(remixV3Channels.REMIX_V3_CREATE_ROUTER)
+    .subscribe({
+      start(data) {
+        // Node rethrows anything this handler throws as an uncaught exception, which would kill an app
+        // that runs fine without Sentry. Frozen options, a non-writable property and a `route-pattern`
+        // copy that cannot build a matcher all reach here, so the router is left uninstrumented instead.
+        try {
+          injectRouterMiddleware(ensureOptions(data.arguments));
+        } catch {
+          // Ignored on purpose.
+        }
+      },
+      end: NOOP,
+      asyncStart: NOOP,
+      asyncEnd: NOOP,
+      error: NOOP,
+    });
 }
 
 /**
@@ -66,7 +64,9 @@ function subscribeToCreateRouter(): void {
  */
 function subscribeToCreateRequestListener(): void {
   diagnosticsChannel
-    .tracingChannel<ChannelContext, ChannelContext>(remixV3Channels.REMIX_V3_CREATE_REQUEST_LISTENER)
+    .tracingChannel<OrchestrionChannelContext, OrchestrionChannelContext>(
+      remixV3Channels.REMIX_V3_CREATE_REQUEST_LISTENER,
+    )
     .subscribe({
       start(data) {
         try {
