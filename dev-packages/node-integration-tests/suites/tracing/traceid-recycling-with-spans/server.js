@@ -6,7 +6,8 @@ const app = express();
 
 app.get('/test', async (_req, res) => {
   Sentry.captureException(new Error('test error'));
-  // Flush the error before the request ends and its root span is sent.
+  // calling Sentry.flush() here to ensure that the order in which we send root spans and errors
+  // is guaranteed to be 1. error, 2. root span (repeated 3x in test)
   await Sentry.flush();
   res.json({ success: true });
 });
