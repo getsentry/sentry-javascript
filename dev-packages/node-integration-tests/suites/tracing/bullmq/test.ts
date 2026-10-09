@@ -183,4 +183,80 @@ describeWithDockerCompose('bullmq', { workingDirectory: [__dirname] }, () => {
       expect(errorTraceId).toBe(consumerTraceId);
     });
   });
+
+  createEsmAndCjsTests(__dirname, 'scenario-attributes.mjs', 'instrument.mjs', (createRunner, test) => {
+    test('sends the BullMQ attributes that are registered in the conventions', { timeout: 90_000 }, async () => {
+      const attributeKeys = new Set<string>();
+
+      await createRunner()
+        .unordered()
+        .expect({
+          span: container => {
+            expect(container.items.find(item => item.is_segment && item.name === 'bullmq attributes')).toBeDefined();
+
+            for (const item of container.items) {
+              Object.keys(item.attributes).forEach(key => attributeKeys.add(key));
+            }
+          },
+        })
+        .expect({
+          span: container => {
+            expect(
+              container.items.find(item => item.is_segment && item.attributes['sentry.op']?.value === 'queue.process'),
+            ).toBeDefined();
+
+            for (const item of container.items) {
+              Object.keys(item.attributes).forEach(key => attributeKeys.add(key));
+            }
+          },
+        })
+        .expect({
+          trace_metric: (metrics: SerializedMetricContainer) => {
+            expect(metrics.items.find(item => item.name === 'bullmq.jobs.completed')).toBeDefined();
+            expect(metrics.items.find(item => item.name === 'bullmq.queue.jobs')).toBeDefined();
+
+            for (const item of metrics.items) {
+              Object.keys(item.attributes || {}).forEach(key => attributeKeys.add(key));
+            }
+          },
+        })
+        .start()
+        .completed();
+
+      // `bullmq.job.state` and `bullmq.queue.clean.count` are only set by BullMQ 6.
+      expect([...attributeKeys]).toEqual(
+        expect.arrayContaining([
+          'bullmq.flow.name',
+          'bullmq.job.attempt_finished_timestamp',
+          'bullmq.job.bulk.names',
+          'bullmq.job.deduplication.key',
+          'bullmq.job.finished.timestamp',
+          'bullmq.job.ids',
+          'bullmq.job.key',
+          'bullmq.job.name',
+          'bullmq.job.options',
+          'bullmq.job.processed.timestamp',
+          'bullmq.job.progress',
+          'bullmq.job.scheduler.id',
+          'bullmq.job.status',
+          'bullmq.job.type',
+          'bullmq.queue.clean.limit',
+          'bullmq.queue.drain.delay',
+          'bullmq.queue.event.max.length',
+          'bullmq.queue.grace',
+          'bullmq.queue.jobs.state',
+          'bullmq.queue.options',
+          'bullmq.queue.rate.limit',
+          'bullmq.worker.do.not.wait.active',
+          'bullmq.worker.force.close',
+          'bullmq.worker.id',
+          'bullmq.worker.jobs.to.extend.locks',
+          'bullmq.worker.name',
+          'bullmq.worker.options',
+          'bullmq.worker.rate.limit',
+          'bullmq.worker.stalled.jobs',
+        ]),
+      );
+    });
+  });
 });
