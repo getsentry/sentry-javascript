@@ -1,28 +1,13 @@
 name: 'Restore dependency & build cache'
-description: 'Restore the dependency & build cache.'
-
-inputs:
-  dependency_cache_key:
-    description: 'The dependency cache key'
-    required: true
+description: 'Installs dependencies from the Namespace cache volume and restores the build output.'
 
 runs:
   using: 'composite'
   steps:
-    - name: Check dependency cache
-      id: dep-cache
-      uses: actions/cache/restore@v6.1.0
-      with:
-        path: ${{ env.CACHED_DEPENDENCY_PATHS }}
-        # node_modules contains native binaries, so each CPU architecture needs its own cache
-        key: ${{ inputs.dependency_cache_key }}-${{ runner.arch }}
-
     - name: Restore build artifacts
       uses: actions/download-artifact@v7
       with:
         name: build-output
 
     - name: Install dependencies
-      if: steps.dep-cache.outputs.cache-hit != 'true'
-      run: yarn install --ignore-engines --frozen-lockfile
-      shell: bash
+      uses: ./.github/actions/install-dependencies

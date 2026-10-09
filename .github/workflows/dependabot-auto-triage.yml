@@ -35,11 +35,6 @@ env:
   FIX_CAP_DEV: '3'
   # ⬇️ debatable but let's start off with this
   PR_REVIEWERS: 'getsentry/team-javascript-sdks-framework'
-  CACHED_DEPENDENCY_PATHS: |
-    ${{ github.workspace }}/node_modules
-    ${{ github.workspace }}/packages/*/node_modules
-    ${{ github.workspace }}/dev-packages/*/node_modules
-    ~/.cache/mongodb-binaries/
 
 concurrency:
   group: dependabot-auto-triage

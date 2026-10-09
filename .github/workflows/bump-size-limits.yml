@@ -11,11 +11,6 @@ permissions:
   issues: write
 
 env:
-  CACHED_DEPENDENCY_PATHS: |
-    ${{ github.workspace }}/node_modules
-    ${{ github.workspace }}/packages/*/node_modules
-    ${{ github.workspace }}/dev-packages/*/node_modules
-    ~/.cache/mongodb-binaries/
 
 concurrency:
   group: bump-size-limits

@@ -1,28 +1,27 @@
 name: 'Install yarn dependencies'
-description: 'Installs yarn dependencies and caches them.'
-
-outputs:
-  cache_key:
-    description: 'The dependency cache key'
-    value: ${{ steps.compute_lockfile_hash.outputs.hash }}
+description: 'Installs yarn dependencies into node_modules folders on the Namespace cache volume.'
 
 runs:
   using: 'composite'
   steps:
-    - name: Compute dependency cache key
-      id: compute_lockfile_hash
-      run: node ./scripts/dependency-hash-key.js >> "$GITHUB_OUTPUT"
+    - name: List dependency paths
+      id: paths
+      run: |
+        {
+          echo 'paths<<EOF'
+          node -e 'const { workspaces } = require("./package.json"); for (const dir of [".", ...workspaces]) console.log(require("path").resolve(dir, "node_modules"))'
+          echo '~/.cache/mongodb-binaries'
+          echo 'EOF'
+        } >> "$GITHUB_OUTPUT"
       shell: bash
 
-    - name: Check dependency cache
-      uses: actions/cache@v6.1.0
-      id: cache_dependencies
+    - name: Mount dependency cache
+      uses: namespacelabs/nscloud-cache-action@v1.7.0
       with:
-        path: ${{ env.CACHED_DEPENDENCY_PATHS }}
-        # node_modules contains native binaries, so each CPU architecture needs its own cache
-        key: ${{ steps.compute_lockfile_hash.outputs.hash }}-${{ runner.arch }}
+        cache: yarn
+        path: ${{ steps.paths.outputs.paths }}
 
+    # The cache volume can hold node_modules of another commit or branch. This is a no-op when they match yarn.lock.
     - name: Install dependencies
-      if: steps.cache_dependencies.outputs.cache-hit != 'true'
       run: yarn install --ignore-engines --frozen-lockfile
       shell: bash

@@ -29,14 +29,6 @@ concurrency:
 env:
   HEAD_COMMIT: ${{ github.event.inputs.commit || github.sha }}
 
-  CACHED_DEPENDENCY_PATHS: |
-    ${{ github.workspace }}/node_modules
-    ${{ github.workspace }}/packages/*/node_modules
-    ${{ github.workspace }}/dev-packages/*/node_modules
-    ~/.cache/mongodb-binaries/
-
-  # DEPENDENCY_CACHE_KEY: can't be set here because we don't have access to yarn.lock
-
   # build-output artifact paths are computed in job_build (step output from
   # yarn ci:print-build-artifact-paths — Nx merged outputs for build:transpile, and build:types).
 
@@ -98,7 +90,6 @@ jobs:
 
       - name: Install Dependencies
         uses: ./.github/actions/install-dependencies
-        id: install_dependencies
 
       - name: Check for Affected Nx Projects
         uses: ./.github/actions/nx-affected-list
@@ -154,7 +145,6 @@ jobs:
         working-directory: dev-packages/e2e-tests
 
     outputs:
-      dependency_cache_key: ${{ steps.install_dependencies.outputs.cache_key }}
       changed_node_integration:
         ${{ needs.job_get_metadata.outputs.changed_ci == 'true' || contains(steps.checkForAffected.outputs.affected,
         '@sentry-internal/node-integration-tests') }}
@@ -215,8 +205,6 @@ jobs:
 
       - name: Restore caches
         uses: ./.github/actions/restore-cache
-        with:
-          dependency_cache_key: ${{ needs.job_build.outputs.dependency_cache_key }}
 
       - name: Build Lambda layer
         run: yarn build:layer
@@ -254,8 +242,6 @@ jobs:
 
       - name: Restore caches
         uses: ./.github/actions/restore-cache
-        with:
-          dependency_cache_key: ${{ needs.job_build.outputs.dependency_cache_key }}
 
       - name: Build bundles
         run: yarn build:bundle
@@ -303,8 +289,6 @@ jobs:
           node-version-file: 'package.json'
       - name: Restore caches
         uses: ./.github/actions/restore-cache
-        with:
-          dependency_cache_key: ${{ needs.job_build.outputs.dependency_cache_key }}
       - name: Restore build bundle artifacts
         uses: actions/download-artifact@v8
         with:
@@ -335,8 +319,6 @@ jobs:
           node-version-file: 'package.json'
       - name: Restore caches
         uses: ./.github/actions/restore-cache
-        with:
-          dependency_cache_key: ${{ needs.job_build.outputs.dependency_cache_key }}
       - parallel:
           - name: Lint source files
             run: yarn lint
@@ -392,7 +374,6 @@ jobs:
 
       - name: Install Dependencies
         uses: ./.github/actions/install-dependencies
-        id: install_dependencies
 
       - name: Check file formatting
         run: yarn format:check
@@ -413,8 +394,6 @@ jobs:
           node-version-file: 'package.json'
       - name: Restore caches
         uses: ./.github/actions/restore-cache
-        with:
-          dependency_cache_key: ${{ needs.job_build.outputs.dependency_cache_key }}
       - name: Run madge
         run: yarn circularDepCheck
 
@@ -435,8 +414,6 @@ jobs:
           node-version-file: 'package.json'
       - name: Restore caches
         uses: ./.github/actions/restore-cache
-        with:
-          dependency_cache_key: ${{ needs.job_build.outputs.dependency_cache_key }}
 
       - name: Restore tarball artifacts
         uses: actions/download-artifact@v8
@@ -491,8 +468,6 @@ jobs:
           node-version-file: 'package.json'
       - name: Restore caches
         uses: ./.github/actions/restore-cache
-        with:
-          dependency_cache_key: ${{ needs.job_build.outputs.dependency_cache_key }}
 
       - name: Run affected tests
         run: yarn test:pr:browser --base=${{ github.event.pull_request.base.sha }}
@@ -523,8 +498,6 @@ jobs:
           bun-version: '1.3.14'
       - name: Restore caches
         uses: ./.github/actions/restore-cache
-        with:
-          dependency_cache_key: ${{ needs.job_build.outputs.dependency_cache_key }}
       - name: Run tests
         run: |
           yarn test:ci:bun
@@ -550,8 +523,6 @@ jobs:
           deno-version: ${{ matrix.deno-version || 'v2.8.3' }}
       - name: Restore caches
         uses: ./.github/actions/restore-cache
-        with:
-          dependency_cache_key: ${{ needs.job_build.outputs.dependency_cache_key }}
       - name: Run tests
         run: |
           cd packages/deno
@@ -583,8 +554,6 @@ jobs:
           node-version: ${{ matrix.node }}
       - name: Restore caches
         uses: ./.github/actions/restore-cache
-        with:
-          dependency_cache_key: ${{ needs.job_build.outputs.dependency_cache_key }}
 
       - name: Run affected tests
         run: yarn test:pr:node --base=${{ github.event.pull_request.base.sha }}
@@ -664,8 +633,6 @@ jobs:
           node-version-file: 'package.json'
       - name: Restore caches
         uses: ./.github/actions/restore-cache
-        with:
-          dependency_cache_key: ${{ needs.job_build.outputs.dependency_cache_key }}
 
       - name: Restore build bundle artifacts
         uses: actions/download-artifact@v8
@@ -726,8 +693,6 @@ jobs:
           node-version-file: 'package.json'
       - name: Restore caches
         uses: ./.github/actions/restore-cache
-        with:
-          dependency_cache_key: ${{ needs.job_build.outputs.dependency_cache_key }}
 
       - name: Restore build bundle artifacts
         uses: actions/download-artifact@v8
@@ -772,8 +737,6 @@ jobs:
           node-version-file: 'package.json'
       - name: Restore caches
         uses: ./.github/actions/restore-cache
-        with:
-          dependency_cache_key: ${{ needs.job_build.outputs.dependency_cache_key }}
       - name: Check for dts files that reference stuff in the temporary build folder
         run: |
           if grep -r --include "*.d.ts" --exclude-dir ".nx" 'import("@sentry(-internal)?/[^/]*/build' .; then
@@ -787,8 +750,7 @@ jobs:
       Tests (${{ matrix.shard }}/3)
     needs: [job_get_metadata, job_build]
     if: needs.job_build.outputs.changed_node_integration == 'true' || github.event_name != 'pull_request'
-    # The tedious suite needs the mssql Docker image, which has no arm64 build
-    runs-on: ubuntu-24.04
+    runs-on: namespace-profile-sentry-javascript
     timeout-minutes: 20
     strategy:
       fail-fast: false
@@ -832,8 +794,6 @@ jobs:
           node-version: ${{ matrix.node }}
       - name: Restore caches
         uses: ./.github/actions/restore-cache
-        with:
-          dependency_cache_key: ${{ needs.job_build.outputs.dependency_cache_key }}
 
       - name: Overwrite typescript version
         if: matrix.typescript == '5.0'
@@ -865,8 +825,6 @@ jobs:
           node-version-file: 'package.json'
       - name: Restore caches
         uses: ./.github/actions/restore-cache
-        with:
-          dependency_cache_key: ${{ needs.job_build.outputs.dependency_cache_key }}
 
       - name: Run integration tests
         working-directory: dev-packages/cloudflare-integration-tests
@@ -897,8 +855,6 @@ jobs:
           node-version: ${{ matrix.node }}
       - name: Restore caches
         uses: ./.github/actions/restore-cache
-        with:
-          dependency_cache_key: ${{ needs.job_build.outputs.dependency_cache_key }}
 
       - name: Run integration tests
         working-directory: dev-packages/bundler-plugin-integration-tests
@@ -929,8 +885,6 @@ jobs:
           bun-version: '1.3.14'
       - name: Restore caches
         uses: ./.github/actions/restore-cache
-        with:
-          dependency_cache_key: ${{ needs.job_build.outputs.dependency_cache_key }}
 
       - name: Run integration tests
         working-directory: dev-packages/bun-integration-tests
@@ -940,8 +894,7 @@ jobs:
     name: Deno Integration Tests (${{ matrix.shard }}/2)
     needs: [job_get_metadata, job_build]
     if: needs.job_build.outputs.changed_deno_integration == 'true' || github.event_name != 'pull_request'
-    # Runs the Node suites, and the tedious suite needs the mssql Docker image, which has no arm64 build
-    runs-on: ubuntu-24.04
+    runs-on: namespace-profile-sentry-javascript
     timeout-minutes: 15
     strategy:
       fail-fast: false
@@ -962,8 +915,6 @@ jobs:
           deno-version: 'v2.8.3'
       - name: Restore caches
         uses: ./.github/actions/restore-cache
-        with:
-          dependency_cache_key: ${{ needs.job_build.outputs.dependency_cache_key }}
       - name: Build @sentry/deno
         working-directory: packages/deno
         run: yarn build
@@ -1007,8 +958,6 @@ jobs:
 
       - name: Restore caches
         uses: ./.github/actions/restore-cache
-        with:
-          dependency_cache_key: ${{ needs.job_build.outputs.dependency_cache_key }}
 
       - name: Build tarballs
         run: yarn build:tarball
@@ -1078,8 +1027,6 @@ jobs:
           deno-version: ${{ matrix.deno-version || 'v2.8.3' }}
       - name: Restore caches
         uses: ./.github/actions/restore-cache
-        with:
-          dependency_cache_key: ${{ needs.job_build.outputs.dependency_cache_key }}
 
       - name: Restore tarball artifacts
         uses: actions/download-artifact@v8
@@ -1227,8 +1174,6 @@ jobs:
           deno-version: ${{ matrix.deno-version || 'v2.8.3' }}
       - name: Restore caches
         uses: ./.github/actions/restore-cache
-        with:
-          dependency_cache_key: ${{ needs.job_build.outputs.dependency_cache_key }}
 
       - name: Restore tarball artifacts
         uses: actions/download-artifact@v8

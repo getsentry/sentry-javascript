@@ -42,7 +42,7 @@ runs:
         path: |
           ~/.cache/ms-playwright
         # Bump the iteration when bumping runner images to use a new cache
-        key: playwright-${{ runner.os }}-${{ runner.arch }}-iteration-1-${{ steps.playwright-version.outputs.version }}
+        key: playwright-${{ runner.os }}-iteration-1-${{ steps.playwright-version.outputs.version }}
 
     # We always install all browsers, if uncached
     - name: Install Playwright dependencies (uncached)
@@ -69,4 +69,4 @@ runs:
         path: |
           ~/.cache/ms-playwright
         # Bump the iteration when bumping runner images to use a new cache
-        key: playwright-${{ runner.os }}-${{ runner.arch }}-iteration-1-${{ steps.playwright-version.outputs.version }}
+        key: playwright-${{ runner.os }}-iteration-1-${{ steps.playwright-version.outputs.version }}
