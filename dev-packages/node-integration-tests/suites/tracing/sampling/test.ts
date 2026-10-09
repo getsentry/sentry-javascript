@@ -1,7 +1,7 @@
 import { afterAll, describe, expect } from 'vitest';
 import { cleanupChildProcesses, createEsmAndCjsTests } from '../../../utils/runner';
 
-describe('negative sampling (streaming)', () => {
+describe('negative sampling', () => {
   afterAll(() => {
     cleanupChildProcesses();
   });

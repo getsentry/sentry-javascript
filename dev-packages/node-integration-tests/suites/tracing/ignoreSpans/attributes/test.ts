@@ -1,7 +1,7 @@
 import { afterAll, describe, expect } from 'vitest';
 import { cleanupChildProcesses, createEsmAndCjsTests } from '../../../../utils/runner';
 
-describe('filtering segment spans by attribute with ignoreSpans (streaming)', () => {
+describe('filtering segment spans by attribute with ignoreSpans', () => {
   afterAll(() => {
     cleanupChildProcesses();
   });

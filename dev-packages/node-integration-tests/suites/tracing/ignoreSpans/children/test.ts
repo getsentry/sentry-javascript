@@ -2,7 +2,7 @@ import { SENTRY_OP } from '@sentry/conventions/attributes';
 import { afterAll, describe, expect } from 'vitest';
 import { cleanupChildProcesses, createEsmAndCjsTests } from '../../../../utils/runner';
 
-describe('filtering child spans with ignoreSpans (streaming)', () => {
+describe('filtering child spans with ignoreSpans', () => {
   afterAll(() => {
     cleanupChildProcesses();
   });

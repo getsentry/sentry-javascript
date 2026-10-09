@@ -12,6 +12,5 @@ Sentry.init({
     return inheritOrSampleWith(1);
   },
   transport: loggingTransport,
-  traceLifecycle: 'stream',
   clientReportFlushInterval: 1_000,
 });

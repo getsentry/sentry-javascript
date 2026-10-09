@@ -3,7 +3,7 @@ import { afterAll, describe, expect } from 'vitest';
 import { RUNTIME } from '../../../../utils';
 import { cleanupChildProcesses, createEsmAndCjsTests } from '../../../../utils/runner';
 
-describe('ignoring a continued server segment (streaming)', () => {
+describe('ignoring a continued server segment', () => {
   afterAll(() => {
     cleanupChildProcesses();
   });
