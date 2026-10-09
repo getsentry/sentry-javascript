@@ -168,5 +168,56 @@ describeWithDockerCompose('amqplib auto-instrumentation', { workingDirectory: [_
       },
       { additionalDependencies },
     );
+
+    createEsmAndCjsTests(
+      __dirname,
+      'scenario-topic-noack.mjs',
+      'instrument.mjs',
+      (createTestRunner, test) => {
+        test('ends a noAck consumer span as ok', { timeout: 60_000 }, async () => {
+          await createTestRunner()
+            .expect({
+              span: container => {
+                const consumer = container.items.find(
+                  span => span.attributes[SENTRY_ORIGIN]?.value === 'auto.amqplib.consumer',
+                );
+
+                expect(consumer).toBeDefined();
+                expect(consumer!.name).toBe('process orders');
+                expect(consumer!.status).toBe('ok');
+                expect(consumer!.attributes[MESSAGING_DESTINATION_NAME]?.value).toBe('orders');
+                expect(consumer!.attributes[MESSAGING_RABBITMQ_DESTINATION_ROUTING_KEY]?.value).toBe(
+                  'order.created.12345',
+                );
+              },
+            })
+            .start()
+            .completed();
+        });
+      },
+      { additionalDependencies },
+    );
+  });
+
+  createEsmAndCjsTests(__dirname, 'scenario-callback-api.mjs', 'instrument.mjs', (createTestRunner, test) => {
+    test('instruments publish and noAck consume on the callback API', { timeout: 60_000 }, async () => {
+      await createTestRunner()
+        .expect({
+          span: container => {
+            const producerSpan = container.items.find(
+              span => span.attributes[SENTRY_ORIGIN]?.value === 'auto.amqplib.publisher',
+            );
+            expect(producerSpan?.name).toBe('send callback-queue');
+
+            const consumerSpan = container.items.find(
+              span => span.attributes[SENTRY_ORIGIN]?.value === 'auto.amqplib.consumer',
+            );
+            expect(consumerSpan?.name).toBe('process callback-queue');
+            expect(consumerSpan?.status).toBe('ok');
+          },
+        })
+        .start()
+        .completed();
+    });
   });
 });

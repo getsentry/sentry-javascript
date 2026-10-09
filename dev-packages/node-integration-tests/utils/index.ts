@@ -98,3 +98,11 @@ export const parseEnvelope = (body: string): Array<Record<string, unknown>> => {
 export function getStringAttributeValue(value: unknown): string | undefined {
   return typeof value === 'string' ? value : undefined;
 }
+
+/**
+ * A serialized streamed-span attribute (`{ type, value }`), for strict `toEqual` assertions on
+ * `attributes` of a streamed span. Defaults to a string attribute.
+ */
+export function streamedAttribute(value: unknown, type = 'string'): { type: string; value: unknown } {
+  return { type, value };
+}

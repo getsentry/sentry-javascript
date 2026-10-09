@@ -1,17 +1,22 @@
-import { SENTRY_OP, SENTRY_ORIGIN } from '@sentry/conventions/attributes';
+import {
+  BROWSER_SCRIPT_INVOKER,
+  CODE_FILE_PATH,
+  BROWSER_SCRIPT_SOURCE_CHAR_POSITION,
+  BROWSER_SCRIPT_INVOKER_TYPE,
+  SENTRY_OP,
+  SENTRY_ORIGIN,
+} from '@sentry/conventions/attributes';
 import type { Route } from '@playwright/test';
 import { expect } from '@playwright/test';
-import type { Event } from '@sentry/core';
 import { sentryTest } from '../../../../utils/fixtures';
-import { getFirstSentryEnvelopeRequest, shouldSkipTracingTest } from '../../../../utils/helpers';
+import { shouldSkipTracingTest } from '../../../../utils/helpers';
+import { collectStreamedSpans, getSpanOp, waitForStreamedSpan } from '../../../../utils/spanUtils';
 
 sentryTest(
-  'should capture long animation frame for top-level script.',
+  'captures long animation frame span for top-level script.',
   async ({ browserName, getLocalTestUrl, page }) => {
     // Long animation frames only work on chrome
-    if (shouldSkipTracingTest() || browserName !== 'chromium') {
-      sentryTest.skip();
-    }
+    sentryTest.skip(shouldSkipTracingTest() || browserName !== 'chromium');
 
     await page.route('**/path/to/script.js', (route: Route) =>
       route.fulfill({ path: `${__dirname}/assets/script.js` }),
@@ -19,38 +24,43 @@ sentryTest(
 
     const url = await getLocalTestUrl({ testDir: __dirname });
 
-    const promise = getFirstSentryEnvelopeRequest<Event>(page);
+    const spans = collectStreamedSpans(page);
+    const pageloadSpanPromise = waitForStreamedSpan(page, span => getSpanOp(span) === 'pageload');
 
     await page.goto(url);
 
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    await pageloadSpanPromise;
+    await page.evaluate(() => (window as any).Sentry.flush());
+    const pageloadSpan = spans.find(s => getSpanOp(s) === 'pageload')!;
 
-    const eventData = await promise;
+    const uiSpans = spans.filter(s => getSpanOp(s)?.startsWith('ui.long_animation_frame'));
 
-    const uiSpans = eventData.spans?.filter(({ op }) => op?.startsWith('ui.long_animation_frame'));
+    expect(uiSpans.length).toBeGreaterThanOrEqual(1);
 
-    expect(uiSpans?.length).toBeGreaterThanOrEqual(1);
-
-    const topLevelUISpan = (uiSpans || []).find(
-      span => span.data?.['browser.script.invoker'] === 'https://sentry-test-site.example/path/to/script.js',
+    const topLevelUISpan = uiSpans.find(
+      s => s.attributes[BROWSER_SCRIPT_INVOKER]?.value === 'https://sentry-test-site.example/path/to/script.js',
     )!;
+
     expect(topLevelUISpan).toEqual(
       expect.objectContaining({
-        op: 'ui.long_animation_frame',
-        description: 'Main UI thread blocked',
-        parent_span_id: eventData.contexts?.trace?.span_id,
-        data: {
-          'code.file.path': 'https://sentry-test-site.example/path/to/script.js',
-          'browser.script.source_char_position': 0,
-          'browser.script.invoker': 'https://sentry-test-site.example/path/to/script.js',
-          'browser.script.invoker_type': 'classic-script',
-          [SENTRY_OP]: 'ui.long_animation_frame',
-          [SENTRY_ORIGIN]: 'auto.ui.browser.metrics',
-        },
+        name: 'Main UI thread blocked',
+        parent_span_id: pageloadSpan.span_id,
+        attributes: expect.objectContaining({
+          [CODE_FILE_PATH]: { type: 'string', value: 'https://sentry-test-site.example/path/to/script.js' },
+          [BROWSER_SCRIPT_SOURCE_CHAR_POSITION]: expect.objectContaining({ value: 0 }),
+          [BROWSER_SCRIPT_INVOKER]: {
+            type: 'string',
+            value: 'https://sentry-test-site.example/path/to/script.js',
+          },
+          [BROWSER_SCRIPT_INVOKER_TYPE]: { type: 'string', value: 'classic-script' },
+          [SENTRY_OP]: { type: 'string', value: 'ui.long_animation_frame' },
+          [SENTRY_ORIGIN]: { type: 'string', value: 'auto.ui.browser.metrics' },
+        }),
       }),
     );
+
     const start = topLevelUISpan.start_timestamp ?? 0;
-    const end = topLevelUISpan.timestamp ?? 0;
+    const end = topLevelUISpan.end_timestamp ?? 0;
     const duration = end - start;
 
     expect(duration).toBeGreaterThanOrEqual(0.1);
@@ -58,56 +68,51 @@ sentryTest(
   },
 );
 
-sentryTest(
-  'should capture long animation frame for event listener.',
-  async ({ browserName, getLocalTestUrl, page }) => {
-    // Long animation frames only work on chrome
-    if (shouldSkipTracingTest() || browserName !== 'chromium') {
-      sentryTest.skip();
-    }
+sentryTest('captures long animation frame span for event listener.', async ({ browserName, getLocalTestUrl, page }) => {
+  // Long animation frames only work on chrome
+  sentryTest.skip(shouldSkipTracingTest() || browserName !== 'chromium');
 
-    await page.route('**/path/to/script.js', (route: Route) =>
-      route.fulfill({ path: `${__dirname}/assets/script.js` }),
-    );
+  await page.route('**/path/to/script.js', (route: Route) => route.fulfill({ path: `${__dirname}/assets/script.js` }));
 
-    const url = await getLocalTestUrl({ testDir: __dirname });
+  const url = await getLocalTestUrl({ testDir: __dirname });
 
-    const promise = getFirstSentryEnvelopeRequest<Event>(page);
+  const spans = collectStreamedSpans(page);
+  const pageloadSpanPromise = waitForStreamedSpan(page, span => getSpanOp(span) === 'pageload');
 
-    await page.goto(url);
+  await page.goto(url);
 
-    // trigger long animation frame function
-    await page.getByRole('button').click();
+  // trigger long animation frame function
+  await page.getByRole('button').click();
 
-    await new Promise(resolve => setTimeout(resolve, 1000));
+  const pageloadSpan = await pageloadSpanPromise;
+  await page.evaluate(() => (window as any).Sentry.flush());
 
-    const eventData = await promise;
+  const uiSpans = spans.filter(s => getSpanOp(s)?.startsWith('ui.long_animation_frame'));
 
-    const uiSpans = eventData.spans?.filter(({ op }) => op?.startsWith('ui.long_animation_frame')) || [];
+  expect(uiSpans.length).toBeGreaterThanOrEqual(2);
 
-    expect(uiSpans.length).toBeGreaterThanOrEqual(2);
+  const eventListenerUISpan = uiSpans.find(
+    s => s.attributes[BROWSER_SCRIPT_INVOKER]?.value === 'BUTTON#clickme.onclick',
+  )!;
 
-    const eventListenerUISpan = uiSpans.find(span => span.data['browser.script.invoker'] === 'BUTTON#clickme.onclick')!;
-
-    expect(eventListenerUISpan).toEqual(
-      expect.objectContaining({
-        op: 'ui.long_animation_frame',
-        description: 'Main UI thread blocked',
-        parent_span_id: eventData.contexts?.trace?.span_id,
-        data: {
-          'browser.script.invoker': 'BUTTON#clickme.onclick',
-          'browser.script.invoker_type': 'event-listener',
-          'code.file.path': 'https://sentry-test-site.example/path/to/script.js',
-          [SENTRY_OP]: 'ui.long_animation_frame',
-          [SENTRY_ORIGIN]: 'auto.ui.browser.metrics',
-        },
+  expect(eventListenerUISpan).toEqual(
+    expect.objectContaining({
+      name: 'Main UI thread blocked',
+      parent_span_id: pageloadSpan.span_id,
+      attributes: expect.objectContaining({
+        [BROWSER_SCRIPT_INVOKER]: { type: 'string', value: 'BUTTON#clickme.onclick' },
+        [BROWSER_SCRIPT_INVOKER_TYPE]: { type: 'string', value: 'event-listener' },
+        [CODE_FILE_PATH]: { type: 'string', value: 'https://sentry-test-site.example/path/to/script.js' },
+        [SENTRY_OP]: { type: 'string', value: 'ui.long_animation_frame' },
+        [SENTRY_ORIGIN]: { type: 'string', value: 'auto.ui.browser.metrics' },
       }),
-    );
-    const start = eventListenerUISpan.start_timestamp ?? 0;
-    const end = eventListenerUISpan.timestamp ?? 0;
-    const duration = end - start;
+    }),
+  );
 
-    expect(duration).toBeGreaterThanOrEqual(0.1);
-    expect(duration).toBeLessThanOrEqual(0.15);
-  },
-);
+  const start = eventListenerUISpan.start_timestamp ?? 0;
+  const end = eventListenerUISpan.end_timestamp ?? 0;
+  const duration = end - start;
+
+  expect(duration).toBeGreaterThanOrEqual(0.1);
+  expect(duration).toBeLessThanOrEqual(0.15);
+});

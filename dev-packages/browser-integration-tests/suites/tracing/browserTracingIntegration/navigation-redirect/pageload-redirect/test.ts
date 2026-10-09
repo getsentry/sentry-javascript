@@ -1,8 +1,13 @@
 import { expect } from '@playwright/test';
 import { SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE } from '@sentry/core';
 import { sentryTest } from '../../../../../utils/fixtures';
-import { envelopeRequestParser, shouldSkipTracingTest, waitForTransactionRequest } from '../../../../../utils/helpers';
+import { shouldSkipTracingTest } from '../../../../../utils/helpers';
+import { collectStreamedSpans, getSpanOp, waitForStreamedSpan } from '../../../../../utils/spanUtils';
 import {
+  SENTRY_IDLE_SPAN_FINISH_REASON,
+  USER_AGENT_ORIGINAL,
+  SENTRY_SEGMENT_ID,
+  SENTRY_SEGMENT_NAME,
   SENTRY_SEGMENT_NAME_SOURCE,
   URL_FULL,
   URL_PATH,
@@ -15,56 +20,57 @@ sentryTest('creates a pageload root span with navigation.redirect childspan', as
     sentryTest.skip();
   }
 
+  const allSpans = collectStreamedSpans(page);
   const url = await getLocalTestUrl({ testDir: __dirname });
 
-  const pageloadRequestPromise = waitForTransactionRequest(page, event => event.contexts?.trace?.op === 'pageload');
+  const pageloadSpanPromise = waitForStreamedSpan(page, span => getSpanOp(span) === 'pageload');
 
   await page.goto(url);
 
-  const pageloadRequest = envelopeRequestParser(await pageloadRequestPromise);
+  const pageloadSpan = await pageloadSpanPromise;
+  await page.evaluate(() => (window as any).Sentry.flush());
 
-  expect(pageloadRequest.contexts?.trace?.op).toBe('pageload');
+  expect(getSpanOp(pageloadSpan)).toBe('pageload');
 
-  expect(pageloadRequest.contexts?.trace?.data).toMatchObject({
-    [SENTRY_ORIGIN]: 'auto.pageload.browser',
-    [SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE]: 1,
-    [SENTRY_SEGMENT_NAME_SOURCE]: 'url',
-    [SENTRY_OP]: 'pageload',
-    ['sentry.idle_span_finish_reason']: 'idleTimeout',
+  expect(pageloadSpan.attributes).toMatchObject({
+    [SENTRY_ORIGIN]: { type: 'string', value: 'auto.pageload.browser' },
+    [SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE]: { type: 'integer', value: 1 },
+    [SENTRY_SEGMENT_NAME_SOURCE]: { type: 'string', value: 'url' },
+    [SENTRY_OP]: { type: 'string', value: 'pageload' },
+    [SENTRY_IDLE_SPAN_FINISH_REASON]: { type: 'string', value: 'idleTimeout' },
   });
 
-  expect(pageloadRequest.request).toEqual({
-    headers: {
-      'User-Agent': expect.any(String),
-    },
-    url: 'http://sentry-test.io/index.html',
+  expect(pageloadSpan.attributes).toMatchObject({
+    [USER_AGENT_ORIGINAL]: { type: 'string', value: expect.any(String) },
+    [URL_FULL]: { type: 'string', value: 'http://sentry-test.io/index.html' },
   });
 
-  const spans = pageloadRequest.spans || [];
+  const spans = allSpans.filter(span => span.attributes[SENTRY_SEGMENT_ID]?.value === pageloadSpan.span_id);
 
   expect(spans).toContainEqual(
     expect.objectContaining({
-      op: 'navigation.redirect',
+      attributes: expect.objectContaining({ [SENTRY_OP]: { type: 'string', value: 'navigation.redirect' } }),
     }),
   );
 
-  const redirectSpan = spans.find(span => span.op === 'navigation.redirect');
-  expect(redirectSpan?.timestamp).toEqual(redirectSpan?.start_timestamp);
-  expect(redirectSpan).toEqual({
-    data: {
-      'sentry.op': 'navigation.redirect',
-      'sentry.origin': 'auto.navigation.browser',
-      [URL_FULL]: 'http://sentry-test.io/sub-page',
-      [URL_PATH]: '/sub-page',
+  const redirectSpan = spans.find(span => getSpanOp(span) === 'navigation.redirect');
+  expect(redirectSpan?.end_timestamp).toEqual(redirectSpan?.start_timestamp);
+  expect(redirectSpan).toMatchObject({
+    attributes: {
+      [SENTRY_OP]: { type: 'string', value: 'navigation.redirect' },
+      [SENTRY_ORIGIN]: { type: 'string', value: 'auto.navigation.browser' },
+      [SENTRY_SEGMENT_ID]: { type: 'string', value: pageloadSpan.span_id },
+      [SENTRY_SEGMENT_NAME]: { type: 'string', value: 'Pageload' },
+      [URL_FULL]: { type: 'string', value: 'http://sentry-test.io/sub-page' },
+      [URL_PATH]: { type: 'string', value: '/sub-page' },
     },
-    description: '/sub-page',
-    op: 'navigation.redirect',
-    origin: 'auto.navigation.browser',
+    name: 'Navigation',
+    is_segment: false,
     status: 'ok',
-    parent_span_id: pageloadRequest.contexts!.trace!.span_id,
+    parent_span_id: pageloadSpan.span_id,
     span_id: expect.any(String),
     start_timestamp: expect.any(Number),
-    timestamp: expect.any(Number),
+    end_timestamp: expect.any(Number),
     trace_id: expect.any(String),
   });
 });

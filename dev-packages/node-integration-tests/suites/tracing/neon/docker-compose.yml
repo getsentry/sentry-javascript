@@ -1,0 +1,43 @@
+version: '3.9'
+
+services:
+  db:
+    image: postgres:16
+    restart: always
+    ports:
+      - '5496:5432'
+    environment:
+      POSTGRES_USER: test
+      POSTGRES_PASSWORD: test
+      POSTGRES_DB: tests
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U test -d tests']
+      interval: 2s
+      timeout: 3s
+      retries: 30
+      start_period: 5s
+
+  # Neon's own proxy binary in front of the local Postgres. It serves the HTTP driver on `/sql`
+  # and the WebSocket driver on `/v2`, both on port 4444, so the scenarios run the real
+  # `@neondatabase/serverless` wire protocols against a throwaway database.
+  neon-proxy:
+    image: ghcr.io/timowilhelm/local-neon-http-proxy:main
+    restart: always
+    ports:
+      - '4494:4444'
+    environment:
+      PG_CONNECTION_STRING: postgres://test:test@db:5432/tests
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test:
+        [
+          'CMD-SHELL',
+          'curl -sf -X POST http://localhost:4444/sql -H "Neon-Connection-String:
+          postgres://test:test@db.localtest.me:5432/tests" -d ''{"query":"SELECT 1","params":[]}''',
+        ]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+      start_period: 5s

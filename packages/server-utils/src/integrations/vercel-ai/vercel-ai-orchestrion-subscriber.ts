@@ -9,6 +9,7 @@ import {
   withActiveSpan,
 } from '@sentry/core';
 import { DEBUG_BUILD } from '../../debug-build';
+import type { OrchestrionChannelContext } from '../../orchestrion/types';
 import { CHANNELS } from '../../orchestrion/channels';
 import { bindTracingChannelToSpan, type TracingChannelPayloadWithSpan } from '../../tracing-channel';
 import {
@@ -55,13 +56,6 @@ import { asString, isReadableStream, tapModelCallStream } from './util';
  * the enclosing `invoke_agent` span) emit the patched span, so v6 never
  * double-counts tool spans.
  */
-
-/** Shape orchestrion's transform attaches to the tracing-channel context. */
-interface OrchestrionContext {
-  arguments: unknown[];
-  result?: unknown;
-  error?: unknown;
-}
 
 /** Builds the normalized message for a channel from the wrapped call's first-arg options. */
 type MessageBuilder = (options: Record<string, unknown>, telemetry: Record<string, unknown>) => VercelAiChannelMessage;
@@ -227,13 +221,13 @@ function bindOperation(
   build: MessageBuilder,
   options: VercelAiChannelOptions,
 ): void {
-  const channel = tracingChannel<OrchestrionContext>(channelName);
+  const channel = tracingChannel<OrchestrionChannelContext>(channelName);
 
   // Build the operation span from the wrapped call's first argument and track it (so a model call can
   // resolve it as its parent). `bindTracingChannelToSpan` calls this once at channel `start` and makes
   // the returned span the active async context for the operation's duration — that active span is what
   // `resolveModelCallParent` reads. It also sets `data._sentrySpan`, so we don't here.
-  const buildOperationSpan = (data: TracingChannelPayloadWithSpan<OrchestrionContext>): Span | undefined => {
+  const buildOperationSpan = (data: TracingChannelPayloadWithSpan<OrchestrionChannelContext>): Span | undefined => {
     const callOptions = isObjectLike(data.arguments[0]) ? data.arguments[0] : {};
     const telemetry = isObjectLike(callOptions.experimental_telemetry) ? callOptions.experimental_telemetry : {};
     // `isEnabled === false` means the user opted out — emit no span. But `isEnabled` is also `false` on
@@ -288,7 +282,7 @@ function bindOperation(
 
   bindTracingChannelToSpan(
     channel,
-    (data: TracingChannelPayloadWithSpan<OrchestrionContext>) => buildOperationSpan(data),
+    (data: TracingChannelPayloadWithSpan<OrchestrionChannelContext>) => buildOperationSpan(data),
     {
       beforeSpanEnd: (span, data) => {
         const message = messages.get(data);
@@ -334,7 +328,7 @@ function bindOperation(
  * anything that isn't a streamed `streamText` result, so the helper ends the span as usual.
  */
 function deferStreamTextOperationEnd(
-  data: TracingChannelPayloadWithSpan<OrchestrionContext>,
+  data: TracingChannelPayloadWithSpan<OrchestrionChannelContext>,
   end: (error?: unknown) => void,
 ): boolean {
   if (messages.get(data)?.type !== 'streamText' || 'error' in data || !isStreamingResult(data.result)) {
@@ -404,7 +398,7 @@ function subscribeResolveLanguageModel(
   channelName: string,
   options: VercelAiChannelOptions,
 ): void {
-  tracingChannel<OrchestrionContext>(channelName).subscribe({
+  tracingChannel<OrchestrionChannelContext>(channelName).subscribe({
     end(rawCtx) {
       const ctx = rawCtx;
       if (!isObjectLike(ctx.result)) {
