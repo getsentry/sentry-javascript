@@ -471,8 +471,10 @@ describe('httpIntegration', () => {
         })
         .start();
 
-      runner.makeRequest('get', '/liveness'); // should be ignored
-      runner.makeRequest('get', '/test');
+      await runner.makeRequest('get', '/liveness'); // should be ignored
+      // Flush so any span from the ignored request fails the expectation before /test runs.
+      await runner.makeRequest('get', '/flush');
+      await runner.makeRequest('get', '/test');
       await runner.completed();
     });
 
@@ -498,8 +500,10 @@ describe('httpIntegration', () => {
         })
         .start();
 
-      runner.makeRequest('post', '/readiness'); // should be ignored
-      runner.makeRequest('get', '/test');
+      await runner.makeRequest('post', '/readiness'); // should be ignored
+      // Flush so any span from the ignored request fails the expectation before /test runs.
+      await runner.makeRequest('get', '/flush');
+      await runner.makeRequest('get', '/test');
       await runner.completed();
     });
   });
