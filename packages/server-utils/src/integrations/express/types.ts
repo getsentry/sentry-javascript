@@ -1,3 +1,4 @@
+import type { OrchestrionChannelContext } from '../../orchestrion/types';
 import type { Span } from '@sentry/core';
 
 export type ExpressLayerType = 'router' | 'middleware' | 'request_handler';
@@ -40,13 +41,11 @@ export interface ExpressResponse {
  * for this layer by `bindTracingChannelToSpan`, and `error` is present on the
  * channel's `error` event.
  */
-export interface HandleChannelContext {
+export interface HandleChannelContext extends OrchestrionChannelContext {
   self?: ExpressLayer;
-  arguments?: unknown[];
   _sentryCleanup?: () => void;
   _sentryStoredLayer?: boolean;
   _sentrySpan?: Span;
-  error?: unknown;
 }
 
 /**
@@ -55,9 +54,8 @@ export interface HandleChannelContext {
  * the last entry in `stack`) and `arguments` are the registration args (the
  * first of which is the path pattern).
  */
-export interface RegistrationChannelContext {
+export interface RegistrationChannelContext extends OrchestrionChannelContext {
   self?: { stack?: ExpressLayer[] };
-  arguments?: unknown[];
 }
 
 /** An Express error carrying an optional HTTP status, in the various shapes middleware use. */
