@@ -496,6 +496,23 @@ describe('ProfilingIntegration', () => {
       },
     );
 
+    it('does not start a second chunk when manual profiling starts between two chunks', () => {
+      const [client] = makeSpanProfilingClient({ profileLifecycle: 'manual', profileSessionSampleRate: 1 });
+      Sentry.setCurrentClient(client);
+      client.init();
+
+      const startProfilingSpy = vi.spyOn(CpuProfilerBindings, 'startProfiling');
+      const stopProfilingSpy = vi.spyOn(CpuProfilerBindings, 'stopProfiling');
+      Sentry.profiler.startProfiler();
+      vi.advanceTimersToNextTimer();
+
+      Sentry.profiler.startProfiler();
+      vi.runOnlyPendingTimers();
+
+      expect(startProfilingSpy).toHaveBeenCalledTimes(2);
+      expect(stopProfilingSpy).toHaveBeenCalledTimes(1);
+    });
+
     it.each(lifecycles)(
       'does not report a cancelled chunk when $profileLifecycle profiling stops after the restart',
       ({ profileLifecycle, startProfiling }) => {

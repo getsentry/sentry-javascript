@@ -105,7 +105,7 @@ class ContinuousProfiler {
   }
 
   private _startProfiler(): void {
-    if (this._chunkData !== undefined) {
+    if (this._isSessionRunning()) {
       DEBUG_BUILD && debug.log('[Profiling] Profile session already running, no-op.');
       return;
     }
@@ -135,7 +135,7 @@ class ContinuousProfiler {
       return;
     }
 
-    if (!this._chunkData && !this._pendingChunkRestart) {
+    if (!this._isSessionRunning()) {
       DEBUG_BUILD && debug.log('[Profiling] No profile session running, no-op.');
       return;
     }
@@ -282,10 +282,6 @@ class ContinuousProfiler {
     }
 
     this._flush(chunk);
-    // Depending on the profile and stack sizes, stopping the profile and converting
-    // the format may negatively impact the performance of the application. To avoid
-    // blocking for too long, enqueue the next chunk start inside the next macrotask.
-    // clear current chunk
     this._resetChunkData();
   }
 
@@ -330,6 +326,9 @@ class ContinuousProfiler {
       DEBUG_BUILD && debug.log(`[Profiling] Stopping profiling chunk: ${chunk.id}`);
       this._stopChunkProfiling();
       DEBUG_BUILD && debug.log('[Profiling] Starting new profiling chunk.');
+      // Depending on the profile and stack sizes, stopping the profile and converting
+      // the format may negatively impact the performance of the application. To avoid
+      // blocking for too long, enqueue the next chunk start inside the next macrotask.
       this._pendingChunkRestart = setImmediate(() => {
         this._pendingChunkRestart = undefined;
         this._restartChunkProfiling();
@@ -338,6 +337,13 @@ class ContinuousProfiler {
 
     // Unref timeout so it doesn't keep the process alive.
     chunk.timer.unref();
+  }
+
+  /**
+   * A session is also running in the gap after the chunk timer stopped one chunk and before the next one starts.
+   */
+  private _isSessionRunning(): boolean {
+    return this._chunkData !== undefined || this._pendingChunkRestart !== undefined;
   }
 
   /**
