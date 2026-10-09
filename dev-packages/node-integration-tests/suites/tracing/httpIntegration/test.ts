@@ -591,6 +591,9 @@ describe('httpIntegration', () => {
     await runner.makeRequest('get', '/robots.txt');
     await runner.makeRequest('get', '/assets/app.js');
 
+    // Flush so any static-asset span fails the expectation before /test runs.
+    await runner.makeRequest('get', '/flush');
+
     // This one should be traced
     await runner.makeRequest('get', '/test');
 

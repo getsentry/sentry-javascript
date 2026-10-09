@@ -7,7 +7,11 @@ Sentry.init({
   tracesSampleRate: 1.0,
   transport: loggingTransport,
   // Test default for ignoreStaticAssets: true
-  integrations: [Sentry.httpIntegration()],
+  integrations: [
+    Sentry.httpIntegration({
+      ignoreIncomingRequests: (_url, request) => request.url === '/flush',
+    }),
+  ],
 });
 
 const express = require('express');
@@ -17,6 +21,11 @@ const { startExpressServerAndSendPortToRunner } = require('@sentry-internal/node
 const app = express();
 
 app.use(cors());
+
+app.get('/flush', async (_req, res) => {
+  await Sentry.flush();
+  res.send({ response: 'flushed' });
+});
 
 app.get('/test', (_req, res) => {
   res.send({ response: 'ok' });
