@@ -1,4 +1,5 @@
 import { afterAll, describe, expect } from 'vitest';
+import { RUNTIME } from '../../../utils';
 import { cleanupChildProcesses, createEsmAndCjsTests } from '../../../utils/runner';
 
 describe('express client abort', () => {
@@ -7,7 +8,9 @@ describe('express client abort', () => {
   });
 
   createEsmAndCjsTests(__dirname, 'scenario.mjs', 'instrument.mjs', (createRunner, test) => {
-    test('ends the request handler span when the client aborts', async () => {
+    // Bun 1.3.14 emits no `close` on the response when the client aborts, so the `http.server`
+    // span never ends either. Bun 1.4.0 emits it.
+    test.skipIf(RUNTIME === 'bun')('ends the request handler span when the client aborts', async () => {
       const runner = createRunner()
         .unordered()
         .expect({
