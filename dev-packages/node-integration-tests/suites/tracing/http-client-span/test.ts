@@ -18,6 +18,7 @@ describe('http.client span without a local parent', () => {
             );
 
             expect(httpClientSpan).toBeDefined();
+            expect(httpClientSpan?.is_segment).toBe(true);
             // The URL path is high cardinality, so a streamed span name keeps only the domain.
             expect(httpClientSpan?.name).toBe('GET localhost');
             expect(httpClientSpan?.attributes['url.domain']?.value).toBe('localhost');
