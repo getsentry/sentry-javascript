@@ -1,3 +1,4 @@
+import { PAGELOAD } from '@sentry/conventions/op';
 import { SENTRY_CANCELLATION_REASON } from '@sentry/conventions/attributes';
 import { expect } from '@playwright/test';
 import { sentryTest } from '../../../../utils/fixtures';
@@ -7,13 +8,13 @@ import { getSpanOp, waitForStreamedSpan } from '../../../../utils/spanUtils';
 sentryTest('finishes streamed pageload span when the page goes background', async ({ getLocalTestUrl, page }) => {
   sentryTest.skip(shouldSkipTracingTest());
   const url = await getLocalTestUrl({ testDir: __dirname });
-  const pageloadSpanPromise = waitForStreamedSpan(page, span => getSpanOp(span) === 'pageload');
+  const pageloadSpanPromise = waitForStreamedSpan(page, span => getSpanOp(span) === PAGELOAD);
 
   await page.goto(url);
   await page.locator('#go-background').click();
   const pageloadSpan = await pageloadSpanPromise;
 
-  expect(getSpanOp(pageloadSpan)).toBe('pageload');
+  expect(getSpanOp(pageloadSpan)).toBe(PAGELOAD);
   expect(pageloadSpan.status).toBe('ok');
   expect(pageloadSpan.attributes[SENTRY_CANCELLATION_REASON]?.value).toBe('document.hidden');
 });

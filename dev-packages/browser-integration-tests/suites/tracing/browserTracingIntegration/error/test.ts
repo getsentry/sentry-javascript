@@ -1,3 +1,4 @@
+import { PAGELOAD } from '@sentry/conventions/op';
 import { URL_PATH } from '@sentry/conventions/attributes';
 import { expect } from '@playwright/test';
 import type { Event } from '@sentry/core';
@@ -17,13 +18,13 @@ sentryTest(
     sentryTest.skip(shouldSkipTracingTest() || browserName === 'webkit');
     const url = await getLocalTestUrl({ testDir: __dirname });
     const spans = collectStreamedSpans(page);
-    const pageloadPromise = waitForStreamedSpan(page, span => getSpanOp(span) === 'pageload');
+    const pageloadPromise = waitForStreamedSpan(page, span => getSpanOp(span) === PAGELOAD);
     const errorPromise = waitForErrorRequest(page);
     await page.goto(url);
     await runScriptInSandbox(page, { content: "throw new Error('Error during pageload');" });
     const [pageload, errorRequest] = await Promise.all([pageloadPromise, errorPromise]);
     await page.evaluate(() => (window as any).Sentry.flush());
-    expect(getSpanOp(pageload)).toBe('pageload');
+    expect(getSpanOp(pageload)).toBe(PAGELOAD);
     expect(spans.filter(span => !span.is_segment)).not.toHaveLength(0);
     const error = envelopeRequestParser<Event>(errorRequest);
     expect(error.exception?.values?.[0]).toBeDefined();

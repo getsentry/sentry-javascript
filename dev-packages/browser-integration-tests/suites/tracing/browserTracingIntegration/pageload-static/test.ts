@@ -1,3 +1,4 @@
+import { PAGELOAD } from '@sentry/conventions/op';
 import {
   SENTRY_IDLE_SPAN_FINISH_REASON,
   SENTRY_SEGMENT_NAME_SOURCE,
@@ -8,7 +9,7 @@ import { expect } from '@playwright/test';
 import { SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE } from '@sentry/browser';
 import type { Event } from '@sentry/core';
 import { sentryTest } from '../../../../utils/fixtures';
-import { getFirstSentryEnvelopeRequest, shouldSkipTracingTest } from '../../../../utils/helpers';
+import { envelopeRequestParser, shouldSkipTracingTest, waitForTransactionRequest } from '../../../../utils/helpers';
 
 sentryTest('creates a pageload transaction with url as source', async ({ getLocalTestUrl, page }) => {
   if (shouldSkipTracingTest()) {
@@ -17,7 +18,9 @@ sentryTest('creates a pageload transaction with url as source', async ({ getLoca
 
   const url = await getLocalTestUrl({ testDir: __dirname });
 
-  const eventData = await getFirstSentryEnvelopeRequest<Event>(page, url);
+  const pageloadRequestPromise = waitForTransactionRequest(page, event => event.contexts?.trace?.op === PAGELOAD);
+  await page.goto(url);
+  const eventData = envelopeRequestParser<Event>(await pageloadRequestPromise);
   const timeOrigin = await page.evaluate<number>('window._testBaseTimestamp');
 
   const { start_timestamp: startTimestamp } = eventData;
@@ -30,11 +33,11 @@ sentryTest('creates a pageload transaction with url as source', async ({ getLoca
     [SENTRY_ORIGIN]: 'auto.pageload.browser',
     [SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE]: 1,
     [SENTRY_SEGMENT_NAME_SOURCE]: 'url',
-    [SENTRY_OP]: 'pageload',
+    [SENTRY_OP]: PAGELOAD,
     [SENTRY_IDLE_SPAN_FINISH_REASON]: 'idleTimeout',
   });
 
-  expect(eventData.contexts?.trace?.op).toBe('pageload');
+  expect(eventData.contexts?.trace?.op).toBe(PAGELOAD);
   expect(eventData.spans?.length).toBeGreaterThan(0);
   expect(eventData.transaction_info?.source).toEqual('url');
 });

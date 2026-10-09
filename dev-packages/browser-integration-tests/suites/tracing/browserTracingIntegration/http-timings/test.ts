@@ -1,3 +1,4 @@
+import { PAGELOAD, HTTP_CLIENT } from '@sentry/conventions/op';
 import {
   URL_FULL,
   HTTP_REQUEST_REDIRECT_START,
@@ -41,13 +42,13 @@ sentryTest(
     const url = await getLocalTestUrl({ testDir: __dirname });
 
     const spans = collectStreamedSpans(page);
-    const pageloadSpanPromise = waitForStreamedSpan(page, span => getSpanOp(span) === 'pageload');
+    const pageloadSpanPromise = waitForStreamedSpan(page, span => getSpanOp(span) === PAGELOAD);
     await page.goto(url);
 
     const pageloadSpan = await pageloadSpanPromise;
     await page.evaluate(() => (window as any).Sentry.flush());
     const requestSpans = spans
-      .filter(s => getSpanOp(s) === 'http.client')
+      .filter(s => getSpanOp(s) === HTTP_CLIENT)
       .sort((a, b) => String(a.attributes[URL_FULL]?.value).localeCompare(String(b.attributes[URL_FULL]?.value)));
 
     expect(pageloadSpan).toBeDefined();

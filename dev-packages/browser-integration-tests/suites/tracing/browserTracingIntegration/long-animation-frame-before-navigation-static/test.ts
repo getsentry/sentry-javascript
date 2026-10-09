@@ -1,7 +1,8 @@
+import { NAVIGATION } from '@sentry/conventions/op';
 import { expect } from '@playwright/test';
 import type { Event } from '@sentry/core';
 import { sentryTest } from '../../../../utils/fixtures';
-import { getFirstSentryEnvelopeRequest, shouldSkipTracingTest } from '../../../../utils/helpers';
+import { envelopeRequestParser, shouldSkipTracingTest, waitForTransactionRequest } from '../../../../utils/helpers';
 
 sentryTest(
   "doesn't capture long animation frame that starts before a navigation.",
@@ -15,13 +16,16 @@ sentryTest(
 
     await page.goto(url);
 
-    const navigationTransactionEventPromise = getFirstSentryEnvelopeRequest<Event>(page);
+    const navigationTransactionEventPromise = waitForTransactionRequest(
+      page,
+      event => event.contexts?.trace?.op === NAVIGATION,
+    );
 
     await page.locator('#clickme').click();
 
-    const navigationTransactionEvent = await navigationTransactionEventPromise;
+    const navigationTransactionEvent = envelopeRequestParser<Event>(await navigationTransactionEventPromise);
 
-    expect(navigationTransactionEvent.contexts?.trace?.op).toBe('navigation');
+    expect(navigationTransactionEvent.contexts?.trace?.op).toBe(NAVIGATION);
 
     const loafSpans = navigationTransactionEvent.spans?.filter(s => s.op?.startsWith('ui.long_animation_frame'));
 

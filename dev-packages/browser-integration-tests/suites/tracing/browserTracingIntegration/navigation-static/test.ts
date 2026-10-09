@@ -1,3 +1,4 @@
+import { PAGELOAD, NAVIGATION } from '@sentry/conventions/op';
 import {
   SENTRY_IDLE_SPAN_FINISH_REASON,
   SENTRY_SEGMENT_NAME_SOURCE,
@@ -8,12 +9,7 @@ import { expect } from '@playwright/test';
 import type { Event } from '@sentry/core';
 import { SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE } from '@sentry/core';
 import { sentryTest } from '../../../../utils/fixtures';
-import {
-  envelopeRequestParser,
-  getFirstSentryEnvelopeRequest,
-  shouldSkipTracingTest,
-  waitForTransactionRequest,
-} from '../../../../utils/helpers';
+import { envelopeRequestParser, shouldSkipTracingTest, waitForTransactionRequest } from '../../../../utils/helpers';
 
 sentryTest('should create a navigation transaction on page navigation', async ({ getLocalTestUrl, page }) => {
   if (shouldSkipTracingTest()) {
@@ -22,11 +18,16 @@ sentryTest('should create a navigation transaction on page navigation', async ({
 
   const url = await getLocalTestUrl({ testDir: __dirname });
 
-  const pageloadRequest = await getFirstSentryEnvelopeRequest<Event>(page, url);
-  const navigationRequest = await getFirstSentryEnvelopeRequest<Event>(page, `${url}#foo`);
+  const pageloadRequestPromise = waitForTransactionRequest(page, event => event.contexts?.trace?.op === PAGELOAD);
+  await page.goto(url);
+  const pageloadRequest = envelopeRequestParser<Event>(await pageloadRequestPromise);
 
-  expect(pageloadRequest.contexts?.trace?.op).toBe('pageload');
-  expect(navigationRequest.contexts?.trace?.op).toBe('navigation');
+  const navigationRequestPromise = waitForTransactionRequest(page, event => event.contexts?.trace?.op === NAVIGATION);
+  await page.goto(`${url}#foo`);
+  const navigationRequest = envelopeRequestParser<Event>(await navigationRequestPromise);
+
+  expect(pageloadRequest.contexts?.trace?.op).toBe(PAGELOAD);
+  expect(navigationRequest.contexts?.trace?.op).toBe(NAVIGATION);
 
   expect(navigationRequest.transaction_info?.source).toEqual('url');
 
@@ -45,14 +46,14 @@ sentryTest('should create a navigation transaction on page navigation', async ({
     [SENTRY_ORIGIN]: 'auto.pageload.browser',
     [SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE]: 1,
     [SENTRY_SEGMENT_NAME_SOURCE]: 'url',
-    [SENTRY_OP]: 'pageload',
+    [SENTRY_OP]: PAGELOAD,
     [SENTRY_IDLE_SPAN_FINISH_REASON]: 'idleTimeout',
   });
   expect(navigationRequest.contexts?.trace?.data).toMatchObject({
     [SENTRY_ORIGIN]: 'auto.navigation.browser',
     [SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE]: 1,
     [SENTRY_SEGMENT_NAME_SOURCE]: 'url',
-    [SENTRY_OP]: 'navigation',
+    [SENTRY_OP]: NAVIGATION,
     [SENTRY_IDLE_SPAN_FINISH_REASON]: 'idleTimeout',
   });
   expect(pageloadRequest.request).toEqual({
@@ -100,14 +101,14 @@ sentryTest('should handle pushState with full URL', async ({ getLocalTestUrl, pa
 
   const url = await getLocalTestUrl({ testDir: __dirname });
 
-  const pageloadRequestPromise = waitForTransactionRequest(page, event => event.contexts?.trace?.op === 'pageload');
+  const pageloadRequestPromise = waitForTransactionRequest(page, event => event.contexts?.trace?.op === PAGELOAD);
   const navigationRequestPromise = waitForTransactionRequest(
     page,
-    event => event.contexts?.trace?.op === 'navigation' && event.transaction === '/sub-page',
+    event => event.contexts?.trace?.op === NAVIGATION && event.transaction === '/sub-page',
   );
   const navigationRequestPromise2 = waitForTransactionRequest(
     page,
-    event => event.contexts?.trace?.op === 'navigation' && event.transaction === '/sub-page-2',
+    event => event.contexts?.trace?.op === NAVIGATION && event.transaction === '/sub-page-2',
   );
 
   await page.goto(url);
@@ -123,7 +124,7 @@ sentryTest('should handle pushState with full URL', async ({ getLocalTestUrl, pa
     [SENTRY_ORIGIN]: 'auto.navigation.browser',
     [SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE]: 1,
     [SENTRY_SEGMENT_NAME_SOURCE]: 'url',
-    [SENTRY_OP]: 'navigation',
+    [SENTRY_OP]: NAVIGATION,
     [SENTRY_IDLE_SPAN_FINISH_REASON]: 'idleTimeout',
   });
   expect(navigationRequest.request).toEqual({
@@ -143,7 +144,7 @@ sentryTest('should handle pushState with full URL', async ({ getLocalTestUrl, pa
     [SENTRY_ORIGIN]: 'auto.navigation.browser',
     [SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE]: 1,
     [SENTRY_SEGMENT_NAME_SOURCE]: 'url',
-    [SENTRY_OP]: 'navigation',
+    [SENTRY_OP]: NAVIGATION,
     [SENTRY_IDLE_SPAN_FINISH_REASON]: 'idleTimeout',
   });
   expect(navigationRequest2.request).toEqual({

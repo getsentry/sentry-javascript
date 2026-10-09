@@ -95,7 +95,6 @@ sentryTest.describe('When `consistentTraceSampling` is `true`', () => {
       const envelope = await pageloadEnvelopePromise;
       const pageloadSampleRand = Number(envelope[0].trace?.sample_rand);
 
-      expect(Number(envelope[0].trace?.sample_rand)).toBe(pageloadSampleRand);
       expect(pageloadSampleRand).toBeGreaterThanOrEqual(0);
       expect(pageloadSampleRand).toBeLessThanOrEqual(1);
       expect(Number.isNaN(pageloadSampleRand)).toBe(false);
