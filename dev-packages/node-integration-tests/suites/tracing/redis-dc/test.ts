@@ -1,6 +1,30 @@
-import { SENTRY_TRACE_LIFECYCLE } from '@sentry/conventions/attributes';
-import type { SerializedStreamedSpanContainer } from '@sentry/core';
-import { afterAll, describe, expect } from 'vitest';
+import {
+  CACHE_HIT,
+  CACHE_ITEM_SIZE,
+  CACHE_KEY,
+  CACHE_OPERATION,
+  DB_OPERATION_NAME,
+  DB_QUERY_TEXT,
+  DB_SYSTEM_NAME,
+  ERROR_TYPE,
+  NETWORK_PEER_ADDRESS,
+  NETWORK_PEER_PORT,
+  SENTRY_ENVIRONMENT,
+  SENTRY_IS_LOCALHOST,
+  SENTRY_OP,
+  SENTRY_ORIGIN,
+  SENTRY_RELEASE,
+  SENTRY_SDK_NAME,
+  SENTRY_SDK_VERSION,
+  SENTRY_SEGMENT_ID,
+  SENTRY_SEGMENT_NAME,
+  SENTRY_STATUS_MESSAGE,
+  SENTRY_TRACE_LIFECYCLE,
+  SERVER_ADDRESS,
+  SERVER_PORT,
+} from '@sentry/conventions/attributes';
+import { CACHE_GET, CACHE_PUT, type CACHE_REMOVE, DB_QUERY } from '@sentry/conventions/op';
+import { afterAll, expect } from 'vitest';
 import { EXPECTED_SDK_NAME } from '../../../utils';
 import { cleanupChildProcesses, createEsmAndCjsTests, describeWithDockerCompose } from '../../../utils/runner';
 
@@ -12,134 +36,21 @@ describeWithDockerCompose(
       cleanupChildProcesses();
     });
 
-    const EXPECTED_TRANSACTION = {
-      transaction: 'Test Span Redis 5 DC',
-      spans: expect.arrayContaining([
-        expect.objectContaining({
-          op: 'db.query',
-          origin: 'auto.db.redis.diagnostic_channel',
-          data: expect.objectContaining({
-            'sentry.op': 'db.query',
-            'sentry.origin': 'auto.db.redis.diagnostic_channel',
-            'db.system.name': 'redis',
-            'db.query.text': 'SET dc-test-key ?',
-          }),
-        }),
-        // cache SET: starts as a cache span, named by its key in the static lifecycle
-        expect.objectContaining({
-          description: 'dc-cache:test-key',
-          op: 'cache.put',
-          origin: 'auto.db.redis.diagnostic_channel',
-          data: expect.objectContaining({
-            'sentry.origin': 'auto.db.redis.diagnostic_channel',
-            'db.query.text': 'SET dc-cache:test-key ?',
-            'cache.key': ['dc-cache:test-key'],
-            'cache.item_size': 2,
-          }),
-        }),
-        // cache SET with EX option: redis v5 sends SET key value EX 10 as the command
-        expect.objectContaining({
-          description: 'dc-cache:test-key-ex',
-          op: 'cache.put',
-          origin: 'auto.db.redis.diagnostic_channel',
-          data: expect.objectContaining({
-            'sentry.origin': 'auto.db.redis.diagnostic_channel',
-            'db.query.text': 'SET dc-cache:test-key-ex ? ? ?',
-            'cache.key': ['dc-cache:test-key-ex'],
-            'cache.item_size': 2,
-          }),
-        }),
-        expect.objectContaining({
-          op: 'db.query',
-          origin: 'auto.db.redis.diagnostic_channel',
-          data: expect.objectContaining({
-            'sentry.op': 'db.query',
-            'sentry.origin': 'auto.db.redis.diagnostic_channel',
-            'db.system.name': 'redis',
-            'db.query.text': 'GET dc-test-key',
-          }),
-        }),
-        // cache GET (hit)
-        expect.objectContaining({
-          description: 'dc-cache:test-key',
-          op: 'cache.get',
-          origin: 'auto.db.redis.diagnostic_channel',
-          data: expect.objectContaining({
-            'sentry.origin': 'auto.db.redis.diagnostic_channel',
-            'db.query.text': 'GET dc-cache:test-key',
-            'cache.hit': true,
-            'cache.key': ['dc-cache:test-key'],
-            'cache.item_size': 10,
-          }),
-        }),
-        // cache GET (miss)
-        expect.objectContaining({
-          description: 'dc-cache:unavailable-data',
-          op: 'cache.get',
-          origin: 'auto.db.redis.diagnostic_channel',
-          data: expect.objectContaining({
-            'sentry.origin': 'auto.db.redis.diagnostic_channel',
-            'db.query.text': 'GET dc-cache:unavailable-data',
-            'cache.hit': false,
-            'cache.key': ['dc-cache:unavailable-data'],
-          }),
-        }),
-        // MGET: node-redis sanitizes args for diagnostics_channel (keys become '?'),
-        // so cache detection cannot match prefixes — remains a plain db.query span.
-        expect.objectContaining({
-          op: 'db.query',
-          origin: 'auto.db.redis.diagnostic_channel',
-          data: expect.objectContaining({
-            'sentry.op': 'db.query',
-            'sentry.origin': 'auto.db.redis.diagnostic_channel',
-            'db.system.name': 'redis',
-            'db.query.text': 'MGET ? ? ?',
-          }),
-        }),
-        // a failing command on a cache key reports as an errored cache span:
-        // the span starts as a cache span, so the classification survives the error
-        expect.objectContaining({
-          description: 'dc-cache:list-key',
-          op: 'cache.get',
-          status: 'internal_error',
-          origin: 'auto.db.redis.diagnostic_channel',
-          data: expect.objectContaining({
-            'cache.operation': 'get',
-            'cache.key': ['dc-cache:list-key'],
-          }),
-        }),
-      ]),
-    };
-
-    // node-redis emits a node-redis:connect DC event for the initial connection.
-    // That fires before startSpan so it arrives as the first envelope.
-    const EXPECTED_CONNECT = {
-      transaction: 'redis-connect',
-    };
-
     createEsmAndCjsTests(__dirname, 'scenario-redis-5-tracing.mjs', 'instrument.mjs', (createTestRunner, test) => {
-      test('should create spans for redis v5 commands via diagnostics_channel', { timeout: 60_000 }, async () => {
-        await createTestRunner()
-          .expect({ transaction: EXPECTED_CONNECT })
-          .expect({ transaction: EXPECTED_TRANSACTION })
-          .start()
-          .completed();
-      });
-
       // `ignoreSpans` is evaluated at span start under streaming, so this only passes because the
       // span starts as a cache span — a db span renamed at response time would slip through.
       test('drops cache spans matching an ignoreSpans op filter at span start', { timeout: 60_000 }, async () => {
         await createTestRunner()
-          .withEnv({ STREAMED: 'true', IGNORE_CACHE_GET: 'true' })
+          .withEnv({ IGNORE_CACHE_GET: 'true' })
           .unignore('client_report')
           // The span container and the client report flush on independent timers, so they can
           // arrive in either order.
           .unordered()
           .expect({
-            span: (container: SerializedStreamedSpanContainer) => {
+            span: container => {
               const names = container.items.map(item => item.name);
-              expect(names).toContain('cache.put');
-              expect(names).not.toContain('cache.get');
+              expect(names).toContain(CACHE_PUT);
+              expect(names).not.toContain(CACHE_GET);
             },
           })
           .expect({
@@ -155,148 +66,142 @@ describeWithDockerCompose(
       });
     });
 
-    // The same commands as above, asserted on the streamed span container. With span streaming the
-    // db spans are named `{db.operation.name} {server.address}:{server.port}` instead of
-    // `redis-{command}`.
-    describe('streamed', () => {
-      const ORIGIN = 'auto.db.redis.diagnostic_channel';
-      const SEGMENT_NAME = 'Test Span Redis 5 DC';
-      const HOST = '127.0.0.1';
-      const PORT = 6381;
+    const ORIGIN = 'auto.db.redis.diagnostic_channel';
+    const SEGMENT_NAME = 'Test Span Redis 5 DC';
+    const HOST = '127.0.0.1';
+    const PORT = 6381;
 
-      const streamAttribute = (value: unknown): { type: string; value: unknown } => ({
-        type: Array.isArray(value) ? 'array' : Number.isInteger(value) ? 'integer' : typeof value,
-        value,
-      });
+    const streamAttribute = (value: unknown): { type: string; value: unknown } => ({
+      type: Array.isArray(value) ? 'array' : Number.isInteger(value) ? 'integer' : typeof value,
+      value,
+    });
 
-      // Streamed spans carry `{ type, value }` attribute pairs; the expectations below are written
-      // as plain values and wrapped here.
-      const streamAttributes = (values: Record<string, unknown>): Record<string, unknown> =>
-        Object.fromEntries(Object.entries(values).map(([key, value]) => [key, streamAttribute(value)]));
+    // Streamed spans carry `{ type, value }` attribute pairs; the expectations below are written
+    // as plain values and wrapped here.
+    const streamAttributes = (values: Record<string, unknown>): Record<string, unknown> =>
+      Object.fromEntries(Object.entries(values).map(([key, value]) => [key, streamAttribute(value)]));
 
-      function streamedSpan(name: string, op: string, attributes: Record<string, unknown>): unknown {
-        return {
-          name,
-          attributes: {
-            ...streamAttributes({
-              'db.system.name': 'redis',
-              'sentry.environment': 'production',
-              'sentry.op': op,
-              'sentry.origin': ORIGIN,
-              'sentry.release': '1.0',
-              'sentry.sdk.name': EXPECTED_SDK_NAME,
-              'sentry.segment.name': SEGMENT_NAME,
-              'server.address': HOST,
-              'server.port': PORT,
-              [SENTRY_TRACE_LIFECYCLE]: 'stream',
-              ...attributes,
-            }),
-            'sentry.sdk.version': { type: 'string', value: expect.any(String) },
-            'sentry.segment.id': { type: 'string', value: expect.stringMatching(/^[\da-f]{16}$/) },
-            'sentry.is_localhost': { type: 'boolean', value: false },
-          },
-          end_timestamp: expect.any(Number),
-          is_segment: false,
-          parent_span_id: expect.stringMatching(/^[\da-f]{16}$/),
-          span_id: expect.stringMatching(/^[\da-f]{16}$/),
-          start_timestamp: expect.any(Number),
-          status: 'ok',
-          trace_id: expect.stringMatching(/^[\da-f]{32}$/),
-        };
-      }
+    function streamedSpan(name: string, op: string, attributes: Record<string, unknown>): unknown {
+      return {
+        name,
+        attributes: {
+          ...streamAttributes({
+            [DB_SYSTEM_NAME]: 'redis',
+            [SENTRY_ENVIRONMENT]: 'production',
+            [SENTRY_OP]: op,
+            [SENTRY_ORIGIN]: ORIGIN,
+            [SENTRY_RELEASE]: '1.0',
+            [SENTRY_SDK_NAME]: EXPECTED_SDK_NAME,
+            [SENTRY_SEGMENT_NAME]: SEGMENT_NAME,
+            [SERVER_ADDRESS]: HOST,
+            [SERVER_PORT]: PORT,
+            [SENTRY_TRACE_LIFECYCLE]: 'stream',
+            ...attributes,
+          }),
+          [SENTRY_SDK_VERSION]: { type: 'string', value: expect.any(String) },
+          [SENTRY_SEGMENT_ID]: { type: 'string', value: expect.stringMatching(/^[\da-f]{16}$/) },
+          [SENTRY_IS_LOCALHOST]: { type: 'boolean', value: false },
+        },
+        end_timestamp: expect.any(Number),
+        is_segment: false,
+        parent_span_id: expect.stringMatching(/^[\da-f]{16}$/),
+        span_id: expect.stringMatching(/^[\da-f]{16}$/),
+        start_timestamp: expect.any(Number),
+        status: 'ok',
+        trace_id: expect.stringMatching(/^[\da-f]{32}$/),
+      };
+    }
 
-      const PEER = { 'network.peer.address': HOST, 'network.peer.port': PORT };
+    const PEER = { [NETWORK_PEER_ADDRESS]: HOST, [NETWORK_PEER_PORT]: PORT };
 
-      // A cache span is a db span whose key matched a cache prefix: it starts named after its
-      // cache operation and reports the connection as peer attributes too.
-      const cacheSpan = (
-        op: 'cache.get' | 'cache.put' | 'cache.remove',
-        attributes: Record<string, unknown>,
-      ): unknown => streamedSpan(op, op, { ...PEER, 'cache.operation': op.slice('cache.'.length), ...attributes });
+    // A cache span is a db span whose key matched a cache prefix: it starts named after its
+    // cache operation and reports the connection as peer attributes too.
+    const cacheSpan = (
+      op: typeof CACHE_GET | typeof CACHE_PUT | typeof CACHE_REMOVE,
+      attributes: Record<string, unknown>,
+    ): unknown => streamedSpan(op, op, { ...PEER, [CACHE_OPERATION]: op.slice('cache.'.length), ...attributes });
 
-      createEsmAndCjsTests(__dirname, 'scenario-redis-5-tracing.mjs', 'instrument.mjs', (createTestRunner, test) => {
-        test('creates streamed spans for redis v5 commands via diagnostics_channel', { timeout: 60_000 }, async () => {
-          await createTestRunner()
-            .withEnv({ STREAMED: 'true' })
-            .expect({
-              span: (container: SerializedStreamedSpanContainer) => {
-                // The connect span opens its own segment but shares the trace with the test span,
-                // so both segments arrive in the same container.
-                expect(container.items.filter(item => item.is_segment).map(item => item.name)).toEqual([
-                  'redis-connect',
-                  SEGMENT_NAME,
-                ]);
+    createEsmAndCjsTests(__dirname, 'scenario-redis-5-tracing.mjs', 'instrument.mjs', (createTestRunner, test) => {
+      test('should create spans for redis v5 commands via diagnostics_channel', { timeout: 60_000 }, async () => {
+        await createTestRunner()
+          .expect({
+            span: container => {
+              // The connect span opens its own segment but shares the trace with the test span,
+              // so both segments arrive in the same container.
+              expect(container.items.filter(item => item.is_segment).map(item => item.name)).toEqual([
+                'redis-connect',
+                SEGMENT_NAME,
+              ]);
 
-                const spans = container.items.filter(
-                  item => !item.is_segment && item.attributes['sentry.segment.name']?.value === SEGMENT_NAME,
-                );
+              const spans = container.items.filter(
+                item => !item.is_segment && item.attributes[SENTRY_SEGMENT_NAME]?.value === SEGMENT_NAME,
+              );
 
-                expect(spans).toEqual([
-                  streamedSpan(`SET ${HOST}:${PORT}`, 'db.query', {
-                    'db.operation.name': 'SET',
-                    'db.query.text': 'SET dc-test-key ?',
-                  }),
-                  // cache SET: starts as a cache span
-                  cacheSpan('cache.put', {
-                    'db.operation.name': 'SET',
-                    'db.query.text': 'SET dc-cache:test-key ?',
-                    'cache.key': ['dc-cache:test-key'],
-                    'cache.item_size': 2,
-                  }),
-                  // cache SET with EX option: redis v5 sends SET key value EX 10 as the command
-                  cacheSpan('cache.put', {
-                    'db.operation.name': 'SET',
-                    'db.query.text': 'SET dc-cache:test-key-ex ? ? ?',
-                    'cache.key': ['dc-cache:test-key-ex'],
-                    'cache.item_size': 2,
-                  }),
-                  streamedSpan(`GET ${HOST}:${PORT}`, 'db.query', {
-                    'db.operation.name': 'GET',
-                    'db.query.text': 'GET dc-test-key',
-                  }),
-                  // cache GET (hit)
-                  cacheSpan('cache.get', {
-                    'db.operation.name': 'GET',
-                    'db.query.text': 'GET dc-cache:test-key',
-                    'cache.key': ['dc-cache:test-key'],
-                    'cache.hit': true,
-                    'cache.item_size': 10,
-                  }),
-                  // cache GET (miss)
-                  cacheSpan('cache.get', {
-                    'db.operation.name': 'GET',
-                    'db.query.text': 'GET dc-cache:unavailable-data',
-                    'cache.key': ['dc-cache:unavailable-data'],
-                    'cache.hit': false,
-                  }),
-                  // MGET: node-redis sanitizes args for diagnostics_channel (keys become '?'),
-                  // so cache detection cannot match prefixes — remains a plain db.query span.
-                  streamedSpan(`MGET ${HOST}:${PORT}`, 'db.query', {
-                    'db.operation.name': 'MGET',
-                    'db.query.text': 'MGET ? ? ?',
-                  }),
-                  streamedSpan(`LPUSH ${HOST}:${PORT}`, 'db.query', {
-                    'db.operation.name': 'LPUSH',
-                    'db.query.text': 'LPUSH dc-cache:list-key ?',
-                  }),
-                  // a failing command on a cache key reports as an errored cache span:
-                  // the span starts as a cache span, so the classification survives the error
-                  {
-                    ...(cacheSpan('cache.get', {
-                      'db.operation.name': 'GET',
-                      'db.query.text': 'GET dc-cache:list-key',
-                      'cache.key': ['dc-cache:list-key'],
-                      'error.type': 'Error',
-                      'sentry.status.message': 'WRONGTYPE Operation against a key holding the wrong kind of value',
-                    }) as Record<string, unknown>),
-                    status: 'error',
-                  },
-                ]);
-              },
-            })
-            .start()
-            .completed();
-        });
+              expect(spans).toEqual([
+                streamedSpan(`SET ${HOST}:${PORT}`, DB_QUERY, {
+                  [DB_OPERATION_NAME]: 'SET',
+                  [DB_QUERY_TEXT]: 'SET dc-test-key ?',
+                }),
+                // cache SET: starts as a cache span
+                cacheSpan(CACHE_PUT, {
+                  [DB_OPERATION_NAME]: 'SET',
+                  [DB_QUERY_TEXT]: 'SET dc-cache:test-key ?',
+                  [CACHE_KEY]: ['dc-cache:test-key'],
+                  [CACHE_ITEM_SIZE]: 2,
+                }),
+                // cache SET with EX option: redis v5 sends SET key value EX 10 as the command
+                cacheSpan(CACHE_PUT, {
+                  [DB_OPERATION_NAME]: 'SET',
+                  [DB_QUERY_TEXT]: 'SET dc-cache:test-key-ex ? ? ?',
+                  [CACHE_KEY]: ['dc-cache:test-key-ex'],
+                  [CACHE_ITEM_SIZE]: 2,
+                }),
+                streamedSpan(`GET ${HOST}:${PORT}`, DB_QUERY, {
+                  [DB_OPERATION_NAME]: 'GET',
+                  [DB_QUERY_TEXT]: 'GET dc-test-key',
+                }),
+                // cache GET (hit)
+                cacheSpan(CACHE_GET, {
+                  [DB_OPERATION_NAME]: 'GET',
+                  [DB_QUERY_TEXT]: 'GET dc-cache:test-key',
+                  [CACHE_KEY]: ['dc-cache:test-key'],
+                  [CACHE_HIT]: true,
+                  [CACHE_ITEM_SIZE]: 10,
+                }),
+                // cache GET (miss)
+                cacheSpan(CACHE_GET, {
+                  [DB_OPERATION_NAME]: 'GET',
+                  [DB_QUERY_TEXT]: 'GET dc-cache:unavailable-data',
+                  [CACHE_KEY]: ['dc-cache:unavailable-data'],
+                  [CACHE_HIT]: false,
+                }),
+                // MGET: node-redis sanitizes args for diagnostics_channel (keys become '?'),
+                // so cache detection cannot match prefixes — remains a plain db.query span.
+                streamedSpan(`MGET ${HOST}:${PORT}`, DB_QUERY, {
+                  [DB_OPERATION_NAME]: 'MGET',
+                  [DB_QUERY_TEXT]: 'MGET ? ? ?',
+                }),
+                streamedSpan(`LPUSH ${HOST}:${PORT}`, DB_QUERY, {
+                  [DB_OPERATION_NAME]: 'LPUSH',
+                  [DB_QUERY_TEXT]: 'LPUSH dc-cache:list-key ?',
+                }),
+                // a failing command on a cache key reports as an errored cache span:
+                // the span starts as a cache span, so the classification survives the error
+                {
+                  ...(cacheSpan(CACHE_GET, {
+                    [DB_OPERATION_NAME]: 'GET',
+                    [DB_QUERY_TEXT]: 'GET dc-cache:list-key',
+                    [CACHE_KEY]: ['dc-cache:list-key'],
+                    [ERROR_TYPE]: 'Error',
+                    [SENTRY_STATUS_MESSAGE]: 'WRONGTYPE Operation against a key holding the wrong kind of value',
+                  }) as Record<string, unknown>),
+                  status: 'error',
+                },
+              ]);
+            },
+          })
+          .start()
+          .completed();
       });
     });
   },
