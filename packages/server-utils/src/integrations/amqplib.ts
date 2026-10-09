@@ -28,6 +28,7 @@ import {
   SENTRY_ORIGIN,
 } from '@sentry/conventions/attributes';
 import { QUEUE_PROCESS, QUEUE_PUBLISH } from '@sentry/conventions/op';
+import type { OrchestrionChannelContext } from '../orchestrion/types';
 import { amqplibModuleNames } from '../orchestrion/config/amqplib';
 import { invokeOrchestrionInstrumentation } from '../orchestrion/instrumentation';
 import { CHANNELS } from '../orchestrion/channels';
@@ -125,16 +126,8 @@ interface ChannelLike {
   [CHANNEL_IS_CONFIRM_PUBLISHING]?: boolean;
 }
 
-/**
- * The shape orchestrion's transform attaches to the tracing-channel `context`. Documented here rather
- * than imported because orchestrion's runtime doesn't export it.
- */
-interface AmqpChannelContext {
-  // The live args array passed to the wrapped call.
-  arguments: unknown[];
+interface AmqpChannelContext extends OrchestrionChannelContext {
   self?: ChannelLike;
-  result?: unknown;
-  error?: unknown;
 }
 
 interface AmqpDispatchContext extends AmqpChannelContext {
@@ -146,11 +139,6 @@ interface AmqpDispatchContext extends AmqpChannelContext {
 interface AmqpConsumeContext extends AmqpChannelContext {
   // The entry this call queued, so the error hook can drop it.
   _sentryPendingConsumer?: PendingConsumer;
-}
-
-interface AmqpConnectContext {
-  arguments?: unknown[];
-  result?: unknown;
 }
 
 const NOOP = (): void => {};
@@ -352,11 +340,11 @@ function subscribeSettle(): void {
 
 /** Captures connection attributes on the connection object for span-time reads via `channel.connection`. */
 function subscribeConnect(): void {
-  const channel = diagnosticsChannel.tracingChannel<AmqpConnectContext>(CHANNELS.AMQPLIB_CONNECT);
+  const channel = diagnosticsChannel.tracingChannel<OrchestrionChannelContext>(CHANNELS.AMQPLIB_CONNECT);
   // A `start` subscriber is required for orchestrion to wrap the callback-style `connect` at all.
   channel.start.subscribe(NOOP);
   channel.asyncEnd.subscribe(message => {
-    const data = message as AmqpConnectContext;
+    const data = message as OrchestrionChannelContext;
     const conn = data.result as ConnectionLike | undefined;
     if (!conn || typeof conn !== 'object') {
       return;

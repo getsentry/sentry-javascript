@@ -23,6 +23,7 @@ import {
   startInactiveSpan,
 } from '@sentry/core';
 import { sanitizeSqlQueryWithSummary } from '../utils/sql';
+import type { OrchestrionChannelContext } from '../orchestrion/types';
 import { CHANNELS } from '../orchestrion/channels';
 import { bindTracingChannelToSpan } from '../tracing-channel';
 import { pgModuleNames } from '../orchestrion/config/pg';
@@ -59,12 +60,7 @@ const SPAN_POOL_CONNECT = 'pg-pool.connect';
  * The shape orchestrion's transform attaches to the tracing-channel `context`. Documented here rather
  * than imported because orchestrion's runtime doesn't export it.
  */
-interface PgChannelContext {
-  // The live args array passed to the wrapped `query`/`connect` call.
-  arguments: unknown[];
-  self?: unknown;
-  result?: unknown;
-  error?: unknown;
+interface PgChannelContext extends OrchestrionChannelContext {
   // The caller's scope, captured at `start` and replayed onto a streamed `Submittable` emitter (see below).
   _sentryCallerScope?: Scope;
 }

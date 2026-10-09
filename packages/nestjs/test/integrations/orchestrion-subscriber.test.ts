@@ -15,6 +15,7 @@ import {
   spanToJSON,
 } from '@sentry/core';
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import type { OrchestrionChannelContext } from '@sentry/server-utils';
 import { nestjsChannels as CHANNELS } from '@sentry/server-utils/orchestrion/config';
 import { subscribeToNestChannels } from '../../src/integrations/orchestrion-subscriber';
 
@@ -94,13 +95,6 @@ function installTestAsyncContextStrategy(): void {
   });
 }
 
-interface NestFactoryCreateData {
-  arguments: unknown[];
-  moduleVersion?: string;
-  result?: unknown;
-  error?: unknown;
-}
-
 describe('NestJS orchestrion subscriber: app_creation', () => {
   afterEach(() => {
     setAsyncContextStrategy(undefined);
@@ -112,12 +106,12 @@ describe('NestJS orchestrion subscriber: app_creation', () => {
   // `data._sentrySpan`
   function captureSpan(): { getSpan: () => Span | undefined } {
     let span: Span | undefined;
-    const grab = (data: NestFactoryCreateData): void => {
+    const grab = (data: OrchestrionChannelContext): void => {
       span ??= (data as { _sentrySpan?: Span })._sentrySpan;
     };
     // The raw node `tracingChannel` type wants all five handlers; only
     // `end`/`asyncEnd` carry the bound span by the time it settles.
-    tracingChannel<NestFactoryCreateData>(CHANNELS.NESTJS_APP_CREATION).subscribe({
+    tracingChannel<OrchestrionChannelContext>(CHANNELS.NESTJS_APP_CREATION).subscribe({
       start: () => undefined,
       asyncStart: () => undefined,
       asyncEnd: grab,
@@ -133,7 +127,7 @@ describe('NestJS orchestrion subscriber: app_creation', () => {
     subscribeToNestChannels();
 
     const { getSpan } = captureSpan();
-    const channel = tracingChannel<NestFactoryCreateData>(CHANNELS.NESTJS_APP_CREATION);
+    const channel = tracingChannel<OrchestrionChannelContext>(CHANNELS.NESTJS_APP_CREATION);
 
     class AppModule {}
     await channel.tracePromise(async () => ({ app: true }), { arguments: [AppModule], moduleVersion: '10.4.1' });
@@ -160,7 +154,7 @@ describe('NestJS orchestrion subscriber: app_creation', () => {
     subscribeToNestChannels();
 
     const { getSpan } = captureSpan();
-    const channel = tracingChannel<NestFactoryCreateData>(CHANNELS.NESTJS_APP_CREATION);
+    const channel = tracingChannel<OrchestrionChannelContext>(CHANNELS.NESTJS_APP_CREATION);
 
     await channel.tracePromise(async () => ({ app: true }), { arguments: [] });
 
@@ -172,13 +166,6 @@ describe('NestJS orchestrion subscriber: app_creation', () => {
 });
 
 type AnyFn = (this: unknown, ...args: unknown[]) => unknown;
-
-interface RouterCreateData {
-  arguments: unknown[];
-  moduleVersion?: string;
-  result?: unknown;
-  error?: unknown;
-}
 
 describe('NestJS orchestrion subscriber: request_context / request_handler', () => {
   afterEach(() => {
@@ -195,10 +182,10 @@ describe('NestJS orchestrion subscriber: request_context / request_handler', () 
     instance: object,
     callback: AnyFn,
     moduleVersion: string | undefined,
-    makeHandler: (data: RouterCreateData) => AnyFn,
+    makeHandler: (data: OrchestrionChannelContext) => AnyFn,
   ): { effectiveHandler: AnyFn; wrappedCallback: AnyFn } {
-    const channel = tracingChannel<RouterCreateData>(CHANNELS.NESTJS_ROUTER_CONTEXT);
-    const data: RouterCreateData = { arguments: [instance, callback], moduleVersion };
+    const channel = tracingChannel<OrchestrionChannelContext>(CHANNELS.NESTJS_ROUTER_CONTEXT);
+    const data: OrchestrionChannelContext = { arguments: [instance, callback], moduleVersion };
     channel.traceSync(() => makeHandler(data), data);
     return { effectiveHandler: data.result as AnyFn, wrappedCallback: data.arguments[1] as AnyFn };
   }
@@ -340,7 +327,7 @@ describe('NestJS orchestrion subscriber: @Injectable (middleware/guard/pipe/inte
   // Fire the @Injectable channel against `target` (as if its decorator arrow
   // ran), so the subscriber's `start` patches `target.prototype`.
   function applyInjectable(target: object): void {
-    tracingChannel<{ arguments: unknown[] }>(CHANNELS.NESTJS_INJECTABLE).traceSync(() => undefined, {
+    tracingChannel<OrchestrionChannelContext>(CHANNELS.NESTJS_INJECTABLE).traceSync(() => undefined, {
       arguments: [target],
     });
   }
@@ -643,7 +630,7 @@ describe('NestJS orchestrion subscriber: @Catch (exception filter)', () => {
   });
 
   function applyCatch(target: object): void {
-    tracingChannel<{ arguments: unknown[] }>(CHANNELS.NESTJS_CATCH).traceSync(() => undefined, {
+    tracingChannel<OrchestrionChannelContext>(CHANNELS.NESTJS_CATCH).traceSync(() => undefined, {
       arguments: [target],
     });
   }
@@ -697,7 +684,7 @@ describe('NestJS orchestrion subscriber: @Catch (exception filter)', () => {
   // @Catch first. Because the two passes use separate patched-flags, both
   // must wrap their own methods regardless of which channel fires first.
   function fireInjectable(target: object): void {
-    tracingChannel<{ arguments: unknown[] }>(CHANNELS.NESTJS_INJECTABLE).traceSync(() => undefined, {
+    tracingChannel<OrchestrionChannelContext>(CHANNELS.NESTJS_INJECTABLE).traceSync(() => undefined, {
       arguments: [target],
     });
   }
@@ -801,8 +788,8 @@ describe('NestJS orchestrion subscriber: schedule / event / bullmq', () => {
   // to the factory's return (our `originalDecorator`), then the subscriber's
   // `end` reassigns `data.result`. Returns effective (wrapped) decorator.
   function driveFactory(channelName: string, factoryArgs: unknown[], originalDecorator: AnyFn): AnyFn {
-    const data: { arguments: unknown[]; result?: unknown } = { arguments: factoryArgs };
-    tracingChannel<{ arguments: unknown[]; result?: unknown }>(channelName).traceSync(() => originalDecorator, data);
+    const data: OrchestrionChannelContext = { arguments: factoryArgs };
+    tracingChannel<OrchestrionChannelContext>(channelName).traceSync(() => originalDecorator, data);
     return data.result as AnyFn;
   }
 
