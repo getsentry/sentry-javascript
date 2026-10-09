@@ -208,51 +208,51 @@ describe('httpIntegration', () => {
               .expect({
                 span: {
                   items: [
-                    expect.objectContaining({
+                    {
                       name: 'GET',
                       is_segment: true,
                       span_id: expect.stringMatching(/[a-f\d]{16}/),
                       trace_id: expect.stringMatching(/[a-f\d]{32}/),
-                      attributes: expect.objectContaining({
+                      attributes: {
                         [HTTP_RESPONSE_STATUS_CODE]: { type: 'integer', value: 200 },
                         [SENTRY_OP]: { type: 'string', value: HTTP_SERVER },
                         [URL_PATH]: { type: 'string', value: '/test1' },
-                      }),
-                    }),
+                      },
+                    },
                   ],
                 },
               })
               .expect({
                 span: {
                   items: [
-                    expect.objectContaining({
+                    {
                       name: 'GET',
                       is_segment: true,
                       span_id: expect.stringMatching(/[a-f\d]{16}/),
                       trace_id: expect.stringMatching(/[a-f\d]{32}/),
-                      attributes: expect.objectContaining({
+                      attributes: {
                         [HTTP_RESPONSE_STATUS_CODE]: { type: 'integer', value: 200 },
                         [SENTRY_OP]: { type: 'string', value: HTTP_SERVER },
                         [URL_PATH]: { type: 'string', value: '/test2' },
-                      }),
-                    }),
+                      },
+                    },
                   ],
                 },
               })
               .expect({
                 span: {
                   items: [
-                    expect.objectContaining({
+                    {
                       name: 'GET',
                       is_segment: true,
                       span_id: expect.stringMatching(/[a-f\d]{16}/),
                       trace_id: expect.stringMatching(/[a-f\d]{32}/),
-                      attributes: expect.objectContaining({
+                      attributes: {
                         [HTTP_RESPONSE_STATUS_CODE]: { type: 'integer', value: 200 },
                         [SENTRY_OP]: { type: 'string', value: HTTP_SERVER },
                         [URL_PATH]: { type: 'string', value: '/test3' },
-                      }),
-                    }),
+                      },
+                    },
                   ],
                 },
               })
@@ -269,34 +269,34 @@ describe('httpIntegration', () => {
               .expect({
                 span: {
                   items: [
-                    expect.objectContaining({
+                    {
                       name: 'GET',
                       is_segment: true,
                       span_id: expect.stringMatching(/[a-f\d]{16}/),
                       trace_id: expect.stringMatching(/[a-f\d]{32}/),
-                      attributes: expect.objectContaining({
+                      attributes: {
                         [HTTP_RESPONSE_STATUS_CODE]: { type: 'integer', value: 200 },
                         [SENTRY_OP]: { type: 'string', value: HTTP_SERVER },
                         [URL_PATH]: { type: 'string', value: '/test1-proxy' },
-                      }),
-                    }),
+                      },
+                    },
                   ],
                 },
               })
               .expect({
                 span: {
                   items: [
-                    expect.objectContaining({
+                    {
                       name: 'GET',
                       is_segment: true,
                       span_id: expect.stringMatching(/[a-f\d]{16}/),
                       trace_id: expect.stringMatching(/[a-f\d]{32}/),
-                      attributes: expect.objectContaining({
+                      attributes: {
                         [HTTP_RESPONSE_STATUS_CODE]: { type: 'integer', value: 200 },
                         [SENTRY_OP]: { type: 'string', value: HTTP_SERVER },
                         [URL_PATH]: { type: 'string', value: '/test2-proxy' },
-                      }),
-                    }),
+                      },
+                    },
                   ],
                 },
               })
@@ -330,51 +330,51 @@ describe('httpIntegration', () => {
               .expect({
                 span: {
                   items: [
-                    expect.objectContaining({
+                    {
                       name: 'GET',
                       is_segment: true,
                       span_id: expect.stringMatching(/[a-f\d]{16}/),
                       trace_id: expect.stringMatching(/[a-f\d]{32}/),
-                      attributes: expect.objectContaining({
+                      attributes: {
                         [HTTP_RESPONSE_STATUS_CODE]: { type: 'integer', value: 200 },
                         [SENTRY_OP]: { type: 'string', value: HTTP_SERVER },
                         [URL_PATH]: { type: 'string', value: '/test1-original' },
-                      }),
-                    }),
+                      },
+                    },
                   ],
                 },
               })
               .expect({
                 span: {
                   items: [
-                    expect.objectContaining({
+                    {
                       name: 'GET',
                       is_segment: true,
                       span_id: expect.stringMatching(/[a-f\d]{16}/),
                       trace_id: expect.stringMatching(/[a-f\d]{32}/),
-                      attributes: expect.objectContaining({
+                      attributes: {
                         [HTTP_RESPONSE_STATUS_CODE]: { type: 'integer', value: 200 },
                         [SENTRY_OP]: { type: 'string', value: HTTP_SERVER },
                         [URL_PATH]: { type: 'string', value: '/test2-original' },
-                      }),
-                    }),
+                      },
+                    },
                   ],
                 },
               })
               .expect({
                 span: {
                   items: [
-                    expect.objectContaining({
+                    {
                       name: 'GET',
                       is_segment: true,
                       span_id: expect.stringMatching(/[a-f\d]{16}/),
                       trace_id: expect.stringMatching(/[a-f\d]{32}/),
-                      attributes: expect.objectContaining({
+                      attributes: {
                         [HTTP_RESPONSE_STATUS_CODE]: { type: 'integer', value: 200 },
                         [SENTRY_OP]: { type: 'string', value: HTTP_SERVER },
                         [URL_PATH]: { type: 'string', value: '/test3-original' },
-                      }),
-                    }),
+                      },
+                    },
                   ],
                 },
               })
@@ -391,51 +391,51 @@ describe('httpIntegration', () => {
               .expect({
                 span: {
                   items: [
-                    expect.objectContaining({
+                    {
                       name: 'GET',
                       is_segment: true,
                       span_id: expect.stringMatching(/[a-f\d]{16}/),
                       trace_id: expect.stringMatching(/[a-f\d]{32}/),
-                      attributes: expect.objectContaining({
+                      attributes: {
                         [HTTP_RESPONSE_STATUS_CODE]: { type: 'integer', value: 200 },
                         [SENTRY_OP]: { type: 'string', value: HTTP_SERVER },
                         [URL_PATH]: { type: 'string', value: '/test1-proxy-original' },
-                      }),
-                    }),
+                      },
+                    },
                   ],
                 },
               })
               .expect({
                 span: {
                   items: [
-                    expect.objectContaining({
+                    {
                       name: 'GET',
                       is_segment: true,
                       span_id: expect.stringMatching(/[a-f\d]{16}/),
                       trace_id: expect.stringMatching(/[a-f\d]{32}/),
-                      attributes: expect.objectContaining({
+                      attributes: {
                         [HTTP_RESPONSE_STATUS_CODE]: { type: 'integer', value: 200 },
                         [SENTRY_OP]: { type: 'string', value: HTTP_SERVER },
                         [URL_PATH]: { type: 'string', value: '/test2-proxy-original' },
-                      }),
-                    }),
+                      },
+                    },
                   ],
                 },
               })
               .expect({
                 span: {
                   items: [
-                    expect.objectContaining({
+                    {
                       name: 'GET',
                       is_segment: true,
                       span_id: expect.stringMatching(/[a-f\d]{16}/),
                       trace_id: expect.stringMatching(/[a-f\d]{32}/),
-                      attributes: expect.objectContaining({
+                      attributes: {
                         [HTTP_RESPONSE_STATUS_CODE]: { type: 'integer', value: 200 },
                         [SENTRY_OP]: { type: 'string', value: HTTP_SERVER },
                         [URL_PATH]: { type: 'string', value: '/test3-proxy-original' },
-                      }),
-                    }),
+                      },
+                    },
                   ],
                 },
               })
