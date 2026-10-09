@@ -1,4 +1,4 @@
-import { SENTRY_SEGMENT_NAME_SOURCE, SENTRY_OP, SENTRY_ORIGIN } from '@sentry/conventions/attributes';
+import { SENTRY_SEGMENT_NAME_SOURCE, SENTRY_OP, SENTRY_ORIGIN, URL_PATH } from '@sentry/conventions/attributes';
 import type { Client } from '@sentry/core';
 import * as SentryCore from '@sentry/core';
 import * as SentrySvelte from '@sentry/svelte';
@@ -191,7 +191,7 @@ describe('wrapLoadWithSentry', () => {
       expect(mockStartSpan).toHaveBeenCalledWith(
         expect.objectContaining({
           name: '/users/[id]',
-          attributes: expect.objectContaining({ 'url.path': '/users/123' }),
+          attributes: expect.objectContaining({ [URL_PATH]: '/users/123' }),
         }),
         expect.any(Function),
       );
