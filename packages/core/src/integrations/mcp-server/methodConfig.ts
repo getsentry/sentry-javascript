@@ -2,13 +2,21 @@
  * Method configuration and request processing for MCP server instrumentation
  */
 
-import { isObjectLike } from '../../utils/is';
 import {
-  MCP_PROMPT_NAME_ATTRIBUTE,
-  MCP_REQUEST_ARGUMENT,
-  MCP_RESOURCE_URI_ATTRIBUTE,
-  MCP_TOOL_NAME_ATTRIBUTE,
-} from './attributes';
+  GEN_AI_OPERATION_NAME,
+  GEN_AI_PROMPT_NAME,
+  GEN_AI_PROMPT_VARIABLE_KEY_BASE,
+  GEN_AI_TOOL_CALL_ARGUMENTS,
+  GEN_AI_TOOL_NAME,
+  MCP_PROMPT_NAME,
+  MCP_REQUEST_ARGUMENT_KEY_BASE,
+  MCP_REQUEST_ARGUMENT_NAME,
+  MCP_REQUEST_ARGUMENT_URI,
+  MCP_RESOURCE_URI,
+  MCP_TOOL_NAME,
+} from '@sentry/conventions/attributes';
+import { isObjectLike } from '../../utils/is';
+import { MAX_MCP_CONTENT_LENGTH, serializeMcpContent } from './serialization';
 import type { MethodConfig } from './types';
 
 /**
@@ -18,27 +26,29 @@ import type { MethodConfig } from './types';
 const METHOD_CONFIGS: Record<string, MethodConfig> = {
   'tools/call': {
     targetField: 'name',
-    targetAttribute: MCP_TOOL_NAME_ATTRIBUTE,
+    // oxlint-disable-next-line typescript/no-deprecated -- Preserve the legacy tool name attribute for existing consumers.
+    targetAttribute: MCP_TOOL_NAME,
     targetIsLowCardinality: true,
     captureArguments: true,
     argumentsField: 'arguments',
   },
   'resources/read': {
     targetField: 'uri',
-    targetAttribute: MCP_RESOURCE_URI_ATTRIBUTE,
+    targetAttribute: MCP_RESOURCE_URI,
     captureUri: true,
   },
   'resources/subscribe': {
     targetField: 'uri',
-    targetAttribute: MCP_RESOURCE_URI_ATTRIBUTE,
+    targetAttribute: MCP_RESOURCE_URI,
   },
   'resources/unsubscribe': {
     targetField: 'uri',
-    targetAttribute: MCP_RESOURCE_URI_ATTRIBUTE,
+    targetAttribute: MCP_RESOURCE_URI,
   },
   'prompts/get': {
     targetField: 'name',
-    targetAttribute: MCP_PROMPT_NAME_ATTRIBUTE,
+    // oxlint-disable-next-line typescript/no-deprecated -- Preserve the legacy prompt name attribute for existing consumers.
+    targetAttribute: MCP_PROMPT_NAME,
     targetIsLowCardinality: true,
     captureName: true,
     captureArguments: true,
@@ -73,7 +83,14 @@ export function extractTargetInfo(
   return {
     target,
     targetIsLowCardinality: !!config.targetIsLowCardinality,
-    attributes: target && config.targetAttribute ? { [config.targetAttribute]: target } : {},
+    attributes: {
+      ...(target && config.targetAttribute ? { [config.targetAttribute]: target } : {}),
+      ...(method === 'tools/call' && {
+        [GEN_AI_OPERATION_NAME]: 'execute_tool',
+        ...(target && { [GEN_AI_TOOL_NAME]: target }),
+      }),
+      ...(method === 'prompts/get' && target && { [GEN_AI_PROMPT_NAME]: target }),
+    },
   };
 }
 
@@ -81,7 +98,7 @@ export function extractTargetInfo(
  * Extracts request arguments based on method type
  * @param method - MCP method name
  * @param params - Method parameters
- * @returns Arguments as span attributes with mcp.request.argument prefix
+ * @returns Canonical input attributes alongside legacy request arguments
  */
 export function getRequestArguments(method: string, params: Record<string, unknown>): Record<string, string> {
   const args: Record<string, string> = {};
@@ -94,18 +111,31 @@ export function getRequestArguments(method: string, params: Record<string, unkno
   if (config.captureArguments && config.argumentsField && params?.[config.argumentsField]) {
     const argumentsObj = params[config.argumentsField];
     if (isObjectLike(argumentsObj)) {
+      if (method === 'tools/call') {
+        const serialized = serializeMcpContent(argumentsObj);
+        if (serialized !== undefined) {
+          args[GEN_AI_TOOL_CALL_ARGUMENTS] = serialized;
+        }
+      }
+      let promptContentLength = 0;
       for (const [key, value] of Object.entries(argumentsObj as Record<string, unknown>)) {
-        args[`${MCP_REQUEST_ARGUMENT}.${key.toLowerCase()}`] = JSON.stringify(value);
+        args[`${MCP_REQUEST_ARGUMENT_KEY_BASE}.${key.toLowerCase()}`] = JSON.stringify(value);
+        if (method === 'prompts/get' && typeof value === 'string') {
+          promptContentLength += key.length + value.length;
+          if (promptContentLength <= MAX_MCP_CONTENT_LENGTH) {
+            args[`${GEN_AI_PROMPT_VARIABLE_KEY_BASE}.${key}`] = value;
+          }
+        }
       }
     }
   }
 
   if (config.captureUri && params?.uri) {
-    args[`${MCP_REQUEST_ARGUMENT}.uri`] = JSON.stringify(params.uri);
+    args[MCP_REQUEST_ARGUMENT_URI] = JSON.stringify(params.uri);
   }
 
   if (config.captureName && params?.name) {
-    args[`${MCP_REQUEST_ARGUMENT}.name`] = JSON.stringify(params.name);
+    args[MCP_REQUEST_ARGUMENT_NAME] = JSON.stringify(params.name);
   }
 
   return args;

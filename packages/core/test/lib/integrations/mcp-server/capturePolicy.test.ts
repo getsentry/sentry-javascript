@@ -101,12 +101,16 @@ describe('MCP Server Capture Policy', () => {
       attributes: {
         'mcp.method.name': 'tools/call',
         'mcp.tool.name': name,
+        'gen_ai.tool.name': name,
+        'gen_ai.operation.name': 'execute_tool',
         'mcp.request.id': id,
+        'jsonrpc.request.id': id,
         'mcp.session.id': sessionId,
         'mcp.transport': 'StreamableHTTPServerTransport',
         'network.transport': 'tcp',
         'network.protocol.version': '2.0',
         ...(location !== undefined && { 'mcp.request.argument.location': JSON.stringify(location) }),
+        ...(location !== undefined && { 'gen_ai.tool.call.arguments': JSON.stringify({ location }) }),
         'sentry.op': 'mcp.server',
         'sentry.origin': 'auto.function.mcp_server',
         'sentry.segment.name.source': 'route',
@@ -120,6 +124,9 @@ describe('MCP Server Capture Policy', () => {
       'mcp.tool.result.content_count': 1,
       'mcp.tool.result.content_type': 'text',
       ...(content !== undefined && { 'mcp.tool.result.content': content }),
+      ...(content !== undefined && {
+        'gen_ai.tool.call.result': JSON.stringify({ content: [{ type: 'text', text: content }] }),
+      }),
       'mcp.tool.result.is_error': false,
     });
   }

@@ -5,11 +5,14 @@
  */
 
 import {
-  MCP_PROMPT_RESULT_DESCRIPTION_ATTRIBUTE,
-  MCP_PROMPT_RESULT_MESSAGE_COUNT_ATTRIBUTE,
-  MCP_TOOL_RESULT_CONTENT_COUNT_ATTRIBUTE,
-  MCP_TOOL_RESULT_IS_ERROR_ATTRIBUTE,
-} from './attributes';
+  GEN_AI_TOOL_CALL_RESULT,
+  MCP_PROMPT_RESULT_DESCRIPTION,
+  MCP_PROMPT_RESULT_MESSAGE_COUNT,
+  MCP_TOOL_RESULT_CONTENT_COUNT,
+  MCP_TOOL_RESULT_IS_ERROR,
+} from '@sentry/conventions/attributes';
+import { serializeMcpContent } from './serialization';
+import { MCP_TOOL_RESULT_PREFIX, MCP_PROMPT_RESULT_PREFIX } from './attributes';
 import { isValidContentItem } from './validation';
 
 /**
@@ -23,7 +26,7 @@ function buildAllContentItemAttributes(
   includeContent: boolean,
 ): Record<string, string | number | boolean> {
   const attributes: Record<string, string | number> = {
-    [MCP_TOOL_RESULT_CONTENT_COUNT_ATTRIBUTE]: content.length,
+    [MCP_TOOL_RESULT_CONTENT_COUNT]: content.length,
   };
 
   for (const [i, item] of content.entries()) {
@@ -31,7 +34,7 @@ function buildAllContentItemAttributes(
       continue;
     }
 
-    const prefix = content.length === 1 ? 'mcp.tool.result' : `mcp.tool.result.${i}`;
+    const prefix = content.length === 1 ? MCP_TOOL_RESULT_PREFIX : `${MCP_TOOL_RESULT_PREFIX}.${i}`;
 
     if (typeof item.type === 'string') {
       attributes[`${prefix}.content_type`] = item.type;
@@ -68,6 +71,25 @@ function buildAllContentItemAttributes(
 }
 
 /**
+ * Omit protocol metadata without stripping similarly named fields from user data.
+ * @param item - A tool result content block
+ * @returns Content with protocol metadata removed from the block and embedded resource
+ */
+function removeContentMetadata(item: unknown): unknown {
+  if (!isValidContentItem(item)) {
+    return item;
+  }
+  const content = { ...item };
+  delete content._meta;
+  if (content.type === 'resource' && isValidContentItem(content.resource)) {
+    const resource = { ...content.resource };
+    delete resource._meta;
+    content.resource = resource;
+  }
+  return content;
+}
+
+/**
  * Extract tool result attributes for span instrumentation
  * @param result - Tool execution result
  * @param recordOutputs - Whether to include actual content or just metadata (counts, error status)
@@ -84,7 +106,27 @@ export function extractToolResultAttributes(
   const attributes = Array.isArray(result.content) ? buildAllContentItemAttributes(result.content, recordOutputs) : {};
 
   if (typeof result.isError === 'boolean') {
-    attributes[MCP_TOOL_RESULT_IS_ERROR_ATTRIBUTE] = result.isError;
+    // oxlint-disable-next-line typescript/no-deprecated -- Preserve the legacy tool result attribute for existing consumers.
+    attributes[MCP_TOOL_RESULT_IS_ERROR] = result.isError;
+  }
+
+  if (recordOutputs && result.isError !== true) {
+    try {
+      if (result.resultType !== undefined && result.resultType !== 'complete') {
+        return attributes;
+      }
+      // Select tool output only: response _meta and opaque continuation state are not content.
+      const output = {
+        ...(Array.isArray(result.content) && { content: result.content.map(removeContentMetadata) }),
+        ...(result.structuredContent !== undefined && { structuredContent: result.structuredContent }),
+      };
+      const serialized = Object.keys(output).length > 0 ? serializeMcpContent(output) : undefined;
+      if (serialized !== undefined) {
+        attributes[GEN_AI_TOOL_CALL_RESULT] = serialized;
+      }
+    } catch {
+      // Optional content extraction must not interfere with the tool response.
+    }
   }
 
   return attributes;
@@ -106,11 +148,11 @@ export function extractPromptResultAttributes(
   }
 
   if (recordOutputs && typeof result.description === 'string') {
-    attributes[MCP_PROMPT_RESULT_DESCRIPTION_ATTRIBUTE] = result.description;
+    attributes[MCP_PROMPT_RESULT_DESCRIPTION] = result.description;
   }
 
   if (Array.isArray(result.messages)) {
-    attributes[MCP_PROMPT_RESULT_MESSAGE_COUNT_ATTRIBUTE] = result.messages.length;
+    attributes[MCP_PROMPT_RESULT_MESSAGE_COUNT] = result.messages.length;
 
     if (recordOutputs) {
       const messages = result.messages;
@@ -119,7 +161,7 @@ export function extractPromptResultAttributes(
           continue;
         }
 
-        const prefix = messages.length === 1 ? 'mcp.prompt.result' : `mcp.prompt.result.${i}`;
+        const prefix = messages.length === 1 ? MCP_PROMPT_RESULT_PREFIX : `${MCP_PROMPT_RESULT_PREFIX}.${i}`;
 
         const safeSet = (key: string, value: unknown): void => {
           if (typeof value === 'string') {
