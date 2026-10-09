@@ -23,6 +23,7 @@ import {
   setCloudflareWorkerRelease,
 } from '../common/utils/responseEnd';
 import { distDirRewriteFramesIntegration } from './distDirRewriteFramesIntegration';
+import { registerNextSentryPropagator } from './nextSentryPropagator';
 import { addNextjsServerSpanHooks, NEXTJS_SERVER_IGNORE_SPANS } from './serverSpanHooks';
 import { prepareSafeIdGeneratorContext } from './prepareSafeIdGeneratorContext';
 import { nextjsUseCacheIntegration } from './useCacheInstrumentation';
@@ -180,6 +181,14 @@ export function init(options: NodeOptions): NodeClient | undefined {
     addNextjsServerSpanHooks(client);
   } else if (isOwnedByCloudflare) {
     setCloudflareWorkerRelease(opts.release);
+  }
+
+  // Next.js reads the trace meta tags of a document through the global propagator. Only the setup the
+  // Node SDK owns gets the Next.js-aware one here; `withSentry` of `@sentry/nextjs/cloudflare` applies it
+  // to its own setup, and another OpenTelemetry setup (for example `@vercel/otel`) keeps its own tracer
+  // provider and propagator.
+  if (client?.traceProvider) {
+    registerNextSentryPropagator(client.traceProvider);
   }
 
   // On the client, not the global scope, so a later `init()` after

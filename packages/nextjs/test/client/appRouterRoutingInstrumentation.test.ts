@@ -48,7 +48,6 @@ const manifest: RouteManifest = {
       hasOptionalPrefix: false,
     },
   ],
-  isrRoutes: [],
 };
 
 function sleep(ms: number): Promise<void> {

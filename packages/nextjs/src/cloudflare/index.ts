@@ -5,21 +5,22 @@ import type { CloudflareOptions } from '@sentry/cloudflare';
 import { withSentry as withSentryCloudflare } from '@sentry/cloudflare';
 import type { Integration } from '@sentry/core';
 import { applySdkMetadata, extractTraceparentData, getRootSpan, GLOBAL_OBJ, spanToJSON } from '@sentry/core';
-import {
-  registerPrepareSpanScope,
-  SentryPropagator,
-  setOpenTelemetryContextAsyncContextStrategy,
-} from '@sentry/opentelemetry';
+import { registerPrepareSpanScope, setOpenTelemetryContextAsyncContextStrategy } from '@sentry/opentelemetry';
 import { ATTR_NEXT_SPAN_TYPE } from '../common/nextSpanAttributes';
 import { isTunnelRouteSpan } from '../common/utils/dropMiddlewareTunnelRequests';
 import { dropReactControlFlowErrorsEventProcessor } from '../common/utils/dropReactControlFlowErrors';
 import { markAsyncContextOwnedByNextjsCloudflare } from '../common/utils/responseEnd';
+import {
+  getGlobalTracerProvider,
+  markPrerendersOnTracerProvider,
+  NextSentryPropagator,
+} from '../server/nextSentryPropagator';
 import { addNextjsServerSpanHooks, NEXTJS_SERVER_IGNORE_SPANS } from '../server/serverSpanHooks';
 import { nextjsUseCacheIntegration } from '../server/useCacheInstrumentation';
 
 export * from '@sentry/cloudflare';
 
-class NextjsCloudflarePropagator extends SentryPropagator {
+class NextjsCloudflarePropagator extends NextSentryPropagator {
   /** @inheritDoc */
   public extract(ctx: Context, carrier: unknown, getter: TextMapGetter): Context {
     // Next.js extracts the request headers again from the root context when it misses its router server context, e.g.
@@ -43,6 +44,9 @@ const nextjsIntegration = (): Integration => ({
   name: 'Nextjs',
   setup: client => {
     if ((client.getOptions() as CloudflareOptions).enableOpenTelemetrySetup) {
+      // ISR pages revalidate inside a request of the Worker, so the prerender guard has to cover the tracer
+      // provider `@sentry/cloudflare` registered as well.
+      markPrerendersOnTracerProvider(getGlobalTracerProvider());
       propagation.setGlobalPropagator(new NextjsCloudflarePropagator());
     }
     client.getOptions().release ??= (GLOBAL_OBJ as { _sentryRelease?: string })._sentryRelease;

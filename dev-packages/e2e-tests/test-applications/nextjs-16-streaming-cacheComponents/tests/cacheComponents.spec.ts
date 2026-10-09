@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { getSpanOp, waitForError, waitForStreamedSpan, waitForStreamedSpans } from '@sentry-internal/test-utils';
+import { getSpanOp, waitForError, waitForStreamedSpans } from '@sentry-internal/test-utils';
 
 test('Should render cached component', async ({ page }) => {
   const spansPromise = waitForStreamedSpans('nextjs-16-streaming-cacheComponents', spans => {
@@ -91,38 +91,6 @@ test('Should generate metadata async', async ({ page }) => {
   expect(spans.filter(span => getSpanOp(span) === 'get.todos')).toHaveLength(0);
   await expect(page.locator('#todos-fetched')).toHaveText('Todos fetched: 5');
   await expect(page).toHaveTitle('Product: 1');
-});
-
-test('Prerendered shell does not stitch the pageload onto a stale trace', async ({ page }) => {
-  const serverSpanPromise = waitForStreamedSpan('nextjs-16-streaming-cacheComponents', span => {
-    return span.name === 'GET /pageload-tracing' && getSpanOp(span) === 'http.server' && span.is_segment;
-  });
-
-  const pageloadSpanPromise = waitForStreamedSpan('nextjs-16-streaming-cacheComponents', span => {
-    return span.name === '/pageload-tracing' && getSpanOp(span) === 'pageload' && span.is_segment;
-  });
-
-  await page.goto('/pageload-tracing');
-
-  await expect(page.locator('#todos-fetched')).toHaveText('Todos fetched: 5');
-
-  const [serverSpan, pageloadSpan] = await Promise.all([serverSpanPromise, pageloadSpanPromise]);
-
-  expect(pageloadSpan.attributes).toMatchObject({
-    ['sentry.segment.name.source']: { value: 'route', type: 'string' },
-    ['url.path']: { value: '/pageload-tracing', type: 'string' },
-    ['url.template']: { value: '/pageload-tracing', type: 'string' },
-  });
-  // Under Cache Components the can be prerendered and rendered in a context detached from the
-  // runtime server request, so a `sentry-trace` meta tag would carry a stale/unrelated trace. The
-  // SDK therefore does not enable the trace meta tags, and the browser pageload starts a fresh trace
-  // instead of stitching onto a trace that doesn't match the server request.
-  expect(pageloadSpan.trace_id).toBeTruthy();
-  expect(serverSpan.trace_id).not.toBe(pageloadSpan.trace_id);
-
-  // No trace meta tags should be injected when Cache Components is enabled.
-  expect(await page.locator('meta[name="sentry-trace"]').count()).toBe(0);
-  expect(await page.locator('meta[name="baggage"]').count()).toBe(0);
 });
 
 test('Should prerender a page that captures an exception in generateMetadata', async ({ page }) => {
