@@ -261,7 +261,7 @@ describeWithDockerCompose('postgresjs auto instrumentation', { workingDirectory:
           {
             type: 'PostgresError',
             value: 'relation "User" does not exist',
-            stacktrace: expect.objectContaining({
+            stacktrace: {
               frames: expect.arrayContaining([
                 expect.objectContaining({
                   function: 'handle',
@@ -272,7 +272,7 @@ describeWithDockerCompose('postgresjs auto instrumentation', { workingDirectory:
                   colno: expect.any(Number),
                 }),
               ]),
-            }),
+            },
           },
         ],
       },
