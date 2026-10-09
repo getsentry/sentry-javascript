@@ -2,13 +2,14 @@ import * as assert from 'assert';
 import * as fs from 'fs';
 import { sync as globSync } from 'glob';
 import * as path from 'path';
+import { PACKAGE_DIRS_GLOB } from './lib/packedTarballUtils';
 
 const repositoryRoot = path.resolve(__dirname, '../..');
 
 const e2ePkg = JSON.parse(fs.readFileSync(path.join(__dirname, 'package.json'), 'utf8')) as { version: string };
 const version = e2ePkg.version;
 
-const tarballPaths = globSync(`packages/*/sentry-*-${version}.tgz`, {
+const tarballPaths = globSync(`${PACKAGE_DIRS_GLOB}/sentry-*-${version}.tgz`, {
   cwd: repositoryRoot,
   absolute: true,
 });

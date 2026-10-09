@@ -43,7 +43,9 @@ env:
   # upload-artifact globs drop the path through the first `*` (see upload-artifact
   # README). Tarballs therefore land in the artifact as <pkg>/*.tgz; download
   # build-tarball-output into packages/ so they resolve to packages/<pkg>/*.tgz.
-  TARBALL_ARTIFACT_GLOB: packages/*/*.tgz
+  TARBALL_ARTIFACT_GLOB: |
+    packages/*/*.tgz
+    packages/legacy/*/*.tgz
   TARBALL_ARTIFACT_DOWNLOAD_PATH: ${{ github.workspace }}/packages
 
   BUILD_LAYER_PATH: ${{ github.workspace }}/packages/aws-serverless/build/aws/dist-serverless

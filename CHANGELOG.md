@@ -85,6 +85,17 @@
 
 Work in this release was contributed by @zkasuran. Thank you for your contribution!
 
+### Important Changes
+
+- **feat(bundler-plugins): Release `@sentry/webpack-plugin`, `@sentry/vite-plugin`, `@sentry/rollup-plugin` and `@sentry/esbuild-plugin` from the SDK repository ([#25095](https://github.com/getsentry/sentry-javascript/pull/25095))**
+
+  The four standalone bundler plugins now release together with the SDK, so their version jumps from 5.4.1 to the SDK version. Each package re-exports the matching `@sentry/bundler-plugins` entry point, which we recommend for new projects. The plugin options do not change, but the update brings these breaking changes:
+
+  - Node.js 20.19.0 or higher is required.
+  - `@sentry/webpack-plugin` requires webpack 5.1 or higher. The `@sentry/webpack-plugin/webpack5` entry point still works and exports the same plugin as `@sentry/webpack-plugin`.
+  - The plugins use the `sentry` CLI SDK instead of `@sentry/cli`. Sentry self-hosted 26.4.2 or higher is supported. Lower versions may continue to work.
+  - Deploys that the plugins create on Vercel use the value of `VERCEL_TARGET_ENV` (`production`, `preview` or a custom name) as their environment, instead of `vercel-production` or `vercel-preview`. To keep the old value, set `release.deploy.env`.
+
 ## 11.5.0
 
 ### Important Changes

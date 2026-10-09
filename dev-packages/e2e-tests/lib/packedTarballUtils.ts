@@ -5,6 +5,8 @@ import { sync as globSync } from 'glob';
 const E2E_TESTS_ROOT = path.resolve(__dirname, '..');
 const REPOSITORY_ROOT = path.resolve(E2E_TESTS_ROOT, '../..');
 
+export const PACKAGE_DIRS_GLOB = '{packages/*,packages/legacy/*}';
+
 /**
  * Workspace @sentry and @sentry-internal packages that have a built tarball for the E2E version.
  * @returns The names of the published Sentry tarball packages.
@@ -13,7 +15,7 @@ export function getPublishedSentryTarballPackageNames(): string[] {
   const version = getE2eTestsPackageVersion();
   const names: string[] = [];
 
-  for (const packageJsonPath of globSync('packages/*/package.json', {
+  for (const packageJsonPath of globSync(`${PACKAGE_DIRS_GLOB}/package.json`, {
     cwd: REPOSITORY_ROOT,
     absolute: true,
   })) {
