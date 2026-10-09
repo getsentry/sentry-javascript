@@ -538,6 +538,7 @@ export interface ReplayContainer {
   updateUserActivity(): void;
   addUpdate(cb: AddUpdateCallback): void;
   getOptions(): ReplayPluginOptions;
+  getMaskAttributeFn(): RecordingOptions['maskAttributeFn'];
   getSessionId(): string | undefined;
   checkAndHandleExpiredSession(): boolean | void;
   setInitialState(): void;
