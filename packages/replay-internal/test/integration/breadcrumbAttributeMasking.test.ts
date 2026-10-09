@@ -23,6 +23,55 @@ describe('Integration | breadcrumb attribute masking', () => {
     vi.restoreAllMocks();
   });
 
+  describe.each(['data-sentry-component', 'data-sentry-element'])('%s', attribute => {
+    it.each([
+      {
+        label: 'configured masking',
+        options: { maskAttributes: [attribute] },
+        expected: '******* *** > *** *****',
+      },
+      {
+        label: 'explicit unmasking',
+        options: { maskAttributes: [attribute], unmask: ['.sentry-unmask'] },
+        expected: 'Account PIN > Pay Alice',
+      },
+      {
+        label: 'default masking',
+        options: {},
+        expected: 'Account PIN > Pay Alice',
+      },
+    ])('honors $label for annotated target and ancestor breadcrumbs', async ({ options, expected }) => {
+      const breadcrumbs: Breadcrumb[] = [];
+      const sdk = await resetSdkMock({
+        replayOptions: {
+          ...options,
+          beforeAddRecordingEvent: event => {
+            if (event.data.tag === 'breadcrumb') {
+              breadcrumbs.push(event.data.payload);
+            }
+            return event;
+          },
+        },
+      });
+      integration = sdk.integration;
+      const parent = document.createElement('div');
+      parent.className = 'sentry-unmask';
+      parent.setAttribute(attribute, 'Account PIN');
+      const target = document.createElement('button');
+      target.className = 'sentry-unmask';
+      target.setAttribute(attribute, 'Pay Alice');
+      parent.appendChild(target);
+      const event = new Event('click');
+      target.dispatchEvent(event);
+
+      sdk.domHandler({ name: 'click', event });
+      await vi.runAllTimersAsync();
+
+      expect(breadcrumbs).toHaveLength(1);
+      expect(breadcrumbs[0]?.message).toBe(expected);
+    });
+  });
+
   it.each(['click', 'keypress', 'keydown'])('masks target and ancestor attributes in %s breadcrumbs', async name => {
     const breadcrumbs: Breadcrumb[] = [];
     const sdk = await resetSdkMock({

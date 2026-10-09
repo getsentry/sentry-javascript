@@ -120,10 +120,14 @@ function _htmlElementAsString(el: unknown, keyAttrs?: string[], maskAttributeFn?
       const dataset = _safeRead<DOMStringMap | undefined>(el, 'dataset');
       if (dataset) {
         if (dataset['sentryComponent']) {
-          return dataset['sentryComponent'];
+          return maskAttributeFn
+            ? maskAttributeFn('data-sentry-component', dataset['sentryComponent'], el)
+            : dataset['sentryComponent'];
         }
         if (dataset['sentryElement']) {
-          return dataset['sentryElement'];
+          return maskAttributeFn
+            ? maskAttributeFn('data-sentry-element', dataset['sentryElement'], el)
+            : dataset['sentryElement'];
         }
       }
     }
