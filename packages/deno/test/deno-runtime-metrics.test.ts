@@ -45,7 +45,7 @@ async function collectMetrics(
   await client.flush(2000);
 
   // Stop the collection interval so Deno's leak detector doesn't flag it.
-  metricsIntegration.teardown?.();
+  (metricsIntegration as { teardown?: () => void }).teardown?.();
 
   const items: MetricItem[] = [];
   for (const envelope of envelopes) {

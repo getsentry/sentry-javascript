@@ -49,7 +49,8 @@
     "lint:fix": "oxlint . --fix --type-aware",
     "lint:es-compatibility": "es-check es2022 ./build/esm/*.js --module",
     "install:deno": "node ./scripts/install-deno.mjs",
-    "test": "run-s install:deno deno-types test:unit",
+    "test": "run-s install:deno deno-types test:types test:unit",
+    "test:types": "deno check --unstable-sloppy-imports test",
     "test:unit": "deno test --allow-net --allow-read --allow-run --allow-env --no-check",
     "test:unit:update": "deno test --allow-net --allow-read --allow-run --allow-env --no-check --allow-write -- --update",
     "yalc:publish": "yalc publish --push --sig"
