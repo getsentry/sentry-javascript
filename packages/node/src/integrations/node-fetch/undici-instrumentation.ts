@@ -414,13 +414,25 @@ function onDone({ request }: RequestTrailersMessage): void {
 // This is the event we get when something is wrong in the request like
 // - invalid options when calling `fetch` global API or any undici method for request
 // - connectivity errors such as unreachable host
-// - requests aborted through an `AbortController.signal`
+// - requests aborted through an `AbortController.signal`, or a response body cancelled by the caller
 // NOTE: server errors are considered valid responses and it's the lib consumer
-// who should deal with that.
+// who should deal with that. Aborts initiated by the caller are not errors either, so they end the
+// span without an error status.
 function onError({ request, error }: RequestErrorMessage): void {
   const span = spanFromReq.get(request);
 
   if (!span) {
+    return;
+  }
+
+  // An intentional cancellation (`AbortController.abort()` or cancelling the response body) is not
+  // a failure of the request, so don't flip the span (which may already carry a 2xx status) to error.
+  const isAbort =
+    error.name === 'AbortError' ||
+    (typeof DOMException !== 'undefined' && error instanceof DOMException && error.code === DOMException.ABORT_ERR);
+  if (isAbort) {
+    span.end();
+    spanFromReq.delete(request);
     return;
   }
 
