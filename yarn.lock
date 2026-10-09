@@ -5509,12 +5509,30 @@
     zod "^3.25.32"
     zod-to-json-schema "^3.22.3"
 
+"@langchain/core@^1.2.17":
+  version "1.2.17"
+  resolved "https://sfw.security.sentry.io/npm/@langchain/core/-/core-1.2.17.tgz#f889484a5eb8a32b493748a6f68ce26c70218445"
+  integrity sha512-aLQLSed6oLCMLtJHrINhnFmsu79G2UiDlRslbOx+TSN9NmU+WuDv1OtVxrLpYglhXNy53elSduMVk3XBPG9ulw==
+  dependencies:
+    "@cfworker/json-schema" "^4.0.2"
+    "@standard-schema/spec" "^1.1.0"
+    js-tiktoken "^1.0.12"
+    langsmith ">=0.5.0 <1.0.0"
+    mustache "^4.2.0"
+    p-queue "^6.6.2"
+    zod "^3.25.76 || ^4"
+
 "@langchain/langgraph-checkpoint@^1.0.0":
   version "1.0.0"
   resolved "https://registry.yarnpkg.com/@langchain/langgraph-checkpoint/-/langgraph-checkpoint-1.0.0.tgz#ece2ede439d0d0b0b532c4be7817fd5029afe4f8"
   integrity sha512-xrclBGvNCXDmi0Nz28t3vjpxSH6UYx6w5XAXSiiB1WEdc2xD2iY/a913I3x3a31XpInUW/GGfXXfePfaghV54A==
   dependencies:
     uuid "^10.0.0"
+
+"@langchain/langgraph-checkpoint@^1.1.5", "@langchain/langgraph-checkpoint@^1.1.6":
+  version "1.1.6"
+  resolved "https://sfw.security.sentry.io/npm/@langchain/langgraph-checkpoint/-/langgraph-checkpoint-1.1.6.tgz#df833a5f3a4f42b969cc9f7682c193c274f481c5"
+  integrity sha512-CpDMGTY4Y6qzoGewMoL8MS9Ej35vyrrchbRpKCtUDWnHhrf4lbHp7wnu9dsHaavB3Z+M6aVRl+9GNQbIJVV1dg==
 
 "@langchain/langgraph-checkpoint@~0.0.17":
   version "0.0.18"
@@ -5542,6 +5560,16 @@
     p-retry "4"
     uuid "^9.0.0"
 
+"@langchain/langgraph-sdk@~1.12.3":
+  version "1.12.3"
+  resolved "https://sfw.security.sentry.io/npm/@langchain/langgraph-sdk/-/langgraph-sdk-1.12.3.tgz#a30d94308f40971f2f31cf027f26d12ed7072afd"
+  integrity sha512-o5Qd1pepsJKHmHGIcWhOlZe2fvlPs2AEkVOxqzbL3R8IiMBPH2gNG8/kwK36czEnagiJtu4RUn02mKbGRwd5dQ==
+  dependencies:
+    "@langchain/protocol" "^0.0.19"
+    "@types/json-schema" "^7.0.15"
+    p-queue "^9.0.1"
+    p-retry "^7.1.1"
+
 "@langchain/langgraph@^0.2.32":
   version "0.2.74"
   resolved "https://registry.yarnpkg.com/@langchain/langgraph/-/langgraph-0.2.74.tgz#37367a1e8bafda3548037a91449a69a84f285def"
@@ -5561,6 +5589,16 @@
     "@langchain/langgraph-sdk" "~1.0.0"
     uuid "^10.0.0"
 
+"@langchain/langgraph@^1.4.18":
+  version "1.4.21"
+  resolved "https://sfw.security.sentry.io/npm/@langchain/langgraph/-/langgraph-1.4.21.tgz#390a2c36901b403faa7f5dae2064d18942300d12"
+  integrity sha512-0LRyRw594IO98etnnBCM6nhckVjWGNnObpdaQij1e+u+GsUwGvn9P4/P42UAJG56WFF72A9n93WwCOW7Mq9yug==
+  dependencies:
+    "@langchain/langgraph-checkpoint" "^1.1.6"
+    "@langchain/langgraph-sdk" "~1.12.3"
+    "@langchain/protocol" "^0.0.19"
+    "@standard-schema/spec" "1.1.0"
+
 "@langchain/openai@^0.5.0":
   version "0.5.18"
   resolved "https://registry.yarnpkg.com/@langchain/openai/-/openai-0.5.18.tgz#59ebbf48044d711ce9503d3b9854a3533cb54683"
@@ -5569,6 +5607,27 @@
     js-tiktoken "^1.0.12"
     openai "^5.3.0"
     zod "^3.25.32"
+
+"@langchain/openai@^1.6.2":
+  version "1.6.2"
+  resolved "https://sfw.security.sentry.io/npm/@langchain/openai/-/openai-1.6.2.tgz#1a70df67e11680e9d38c2bb4214c753ce13a1ed9"
+  integrity sha512-KaXc3zjdM2/E24FdBlsk5NTT2Dyxh46vzCS2by78ehN6G5zdx+4OfVnPvyLl8r2tv2TqQCHpEhImVXgnAZaOvg==
+  dependencies:
+    js-tiktoken "^1.0.12"
+    openai "^7.10.0"
+    zod "^3.25.76 || ^4"
+
+"@langchain/protocol@^0.0.19":
+  version "0.0.19"
+  resolved "https://sfw.security.sentry.io/npm/@langchain/protocol/-/protocol-0.0.19.tgz#7fe43fed115dc34b3b4c246e8d5283fbcbfab7b0"
+  integrity sha512-9hKcRrH7cBX6gfutdfXPoft1OCchHe4FEpALoDJMl5Qu+n/YG5ynZmyu8+8cxORlPwHBoKTxggvXz+76M1yX1Q==
+
+"@langchain/typesafe@^0.0.2":
+  version "0.0.2"
+  resolved "https://sfw.security.sentry.io/npm/@langchain/typesafe/-/typesafe-0.0.2.tgz#c4bef22fd8509d9650ef91d255df8f9925678f30"
+  integrity sha512-FwNQ5ZzKRvguO4zGhwRsOxumH7zNQjfGdlfdla7KUUGCGfXbGpqXtFmxw+4DRdTCVxgsJQ3NIpke9WICukWlnQ==
+  dependencies:
+    zod "^4"
 
 "@leichtgewicht/ip-codec@^2.0.1":
   version "2.0.4"
@@ -8693,7 +8752,7 @@
   resolved "https://registry.yarnpkg.com/@speed-highlight/core/-/core-1.2.15.tgz#88c45609a2b5c2293a2e1935417c507f98f39d0b"
   integrity sha512-BMq1K3DsElxDWawkX6eLg9+CKJrTVGCBAWVuHXVUV2u0s2711qiChLSId6ikYPfxhdYocLNt3wWwSvDiTvFabw==
 
-"@standard-schema/spec@^1.0.0", "@standard-schema/spec@^1.1.0":
+"@standard-schema/spec@1.1.0", "@standard-schema/spec@^1.0.0", "@standard-schema/spec@^1.1.0":
   version "1.1.0"
   resolved "https://registry.yarnpkg.com/@standard-schema/spec/-/spec-1.1.0.tgz#a79b55dbaf8604812f52d140b2c9ab41bc150bb8"
   integrity sha512-l2aFy5jALhniG5HgqrD6jXLi/rUWrKvqN/qJx6yoJsgKhblVd+iqqU4RCXavm/jPityDo5TCvKMnpjKnOriy0w==
@@ -15394,6 +15453,11 @@ eventemitter3@^5.0.1:
   resolved "https://registry.yarnpkg.com/eventemitter3/-/eventemitter3-5.0.1.tgz#53f5ffd0a492ac800721bb42c66b841de96423c4"
   integrity sha512-GWkBvjiSZK87ELrYOSESUYeVIc9mvLLf/nXalMOS5dYrgZq9o5OVkbZAVM06CVxYsCwH9BDZFPlQTlPA1j4ahA==
 
+eventemitter3@^5.0.4:
+  version "5.0.4"
+  resolved "https://sfw.security.sentry.io/npm/eventemitter3/-/eventemitter3-5.0.4.tgz#a86d66170433712dde814707ac52b5271ceb1feb"
+  integrity sha512-mlsTRyGaPBjPedk6Bvw+aqbsXDtoAyAzm5MO7JgU+yVRyMQ5O8bD4Kcci7BS85f93veegeCPkL8R4GLClnjLFw==
+
 events@^3.0.0, events@^3.2.0, events@^3.3.0:
   version "3.3.0"
   resolved "https://registry.yarnpkg.com/events/-/events-3.3.0.tgz#31a95ad0a924e2d2c419a813aeb2c4e878ea7400"
@@ -17840,6 +17904,11 @@ is-negative-zero@^2.0.3:
   resolved "https://registry.yarnpkg.com/is-negative-zero/-/is-negative-zero-2.0.3.tgz#ced903a027aca6381b777a5743069d7376a49747"
   integrity sha512-5KoIu2Ngpyek75jXodFvnafB6DJgr3u8uuK0LEZJjrU19DrMD3EVERaR8sjz8CCGgpZvxPl9SuE1GMVPFHx1mw==
 
+is-network-error@^1.1.0:
+  version "1.3.2"
+  resolved "https://sfw.security.sentry.io/npm/is-network-error/-/is-network-error-1.3.2.tgz#9460bc30f8419a4bca77114f4de88a3ee5e0c519"
+  integrity sha512-PhBY86zaxNZUuWP6h13Vu5oFe0XY6/UlKzQnYFELzGVHygP3MxmvTfYSG7GN3aIab/iWudSMgjSnG9Dq+nHrgA==
+
 is-node-process@^1.2.0:
   version "1.2.0"
   resolved "https://registry.yarnpkg.com/is-node-process/-/is-node-process-1.2.0.tgz#ea02a1b90ddb3934a19aea414e88edef7e11d134"
@@ -18662,6 +18731,23 @@ ky@1.7.5:
   version "1.7.5"
   resolved "https://registry.yarnpkg.com/ky/-/ky-1.7.5.tgz#69c9b70ff818fd6108fc04a89c1454412c11dfce"
   integrity sha512-HzhziW6sc5m0pwi5M196+7cEBtbt0lCYi67wNsiwMUmz833wloE0gbzJPWKs1gliFKQb34huItDQX97LyOdPdA==
+
+langchain@^1.5.16:
+  version "1.5.16"
+  resolved "https://sfw.security.sentry.io/npm/langchain/-/langchain-1.5.16.tgz#eb1549a885d67d2f7fe429ed2625bc89d1409d21"
+  integrity sha512-t5DvkNvySgkNAjWLJ5lIvg2R2WJJ/uF7hHtaSIwUEUUv/YzynzbtJLovwhIw0W1HdOnBbao6dkWOZthKjwBUPQ==
+  dependencies:
+    "@langchain/langgraph" "^1.4.18"
+    "@langchain/langgraph-checkpoint" "^1.1.5"
+    langsmith ">=0.5.0 <1.0.0"
+    zod "^3.25.76 || ^4"
+
+"langsmith@>=0.5.0 <1.0.0":
+  version "0.10.10"
+  resolved "https://sfw.security.sentry.io/npm/langsmith/-/langsmith-0.10.10.tgz#cc12ce1aa24e30b20770181cfe98eec2d52683e0"
+  integrity sha512-I83MmN/tqU662yHfv7DCMlJh8eFuRdY2Ri9rlvM61DGEsVdnVkOa0eyv9DpsstBM5dS877o5GDn+qHwZWfSgRg==
+  dependencies:
+    p-queue "6.6.2"
 
 langsmith@^0.3.67:
   version "0.3.74"
@@ -21436,6 +21522,11 @@ openai@^5.3.0:
   resolved "https://registry.yarnpkg.com/openai/-/openai-5.23.2.tgz#f13e2dc2ef6b88aab6a9b97cdc68d41a1d083c68"
   integrity sha512-MQBzmTulj+MM5O8SKEk/gL8a7s5mktS9zUtAkU257WjvobGc9nKcBuVwjyEEcb9SI8a8Y2G/mzn3vm9n1Jlleg==
 
+openai@^7.10.0:
+  version "7.31.0"
+  resolved "https://sfw.security.sentry.io/npm/openai/-/openai-7.31.0.tgz#af4cc2326673ba1ec8b27ccc854e8171eaee7ea3"
+  integrity sha512-ZGAzauuYb0DdB53qVbIR+X8rdmNtWgiElrrMthbZCVreLcIsQJBwzAIWUbpB2FkQu2Cj6OJ9zJR1EKMUYn4/SQ==
+
 optional-require@^1.1.8:
   version "1.1.8"
   resolved "https://registry.yarnpkg.com/optional-require/-/optional-require-1.1.8.tgz#16364d76261b75d964c482b2406cb824d8ec44b7"
@@ -21774,7 +21865,7 @@ p-map@^7.0.3:
   resolved "https://sfw.security.sentry.io/npm/p-map/-/p-map-7.0.7.tgz#a82175dd690468a930b9ae45c2b9829c5bf60fa3"
   integrity sha512-VaWRu2i4FJNRtiRWCuuQRgfQ1B7a6+gMSrO+3j0EQi/k0ULfS9kosRxGoiqwzIjZTDI02tGfk5mXXltLg6QtfQ==
 
-p-queue@^6.6.2:
+p-queue@6.6.2, p-queue@^6.6.2:
   version "6.6.2"
   resolved "https://registry.yarnpkg.com/p-queue/-/p-queue-6.6.2.tgz#2068a9dcf8e67dd0ec3e7a2bcb76810faa85e426"
   integrity sha512-RwFpb72c/BhQLEXIZ5K2e+AhgNVmIejGlTgiB9MzZ0e93GRvqZ7uSi0dvRF7/XIXDeNkra2fNHBxTyPDGySpjQ==
@@ -21790,6 +21881,14 @@ p-queue@^8.0.1:
     eventemitter3 "^5.0.1"
     p-timeout "^6.1.2"
 
+p-queue@^9.0.1:
+  version "9.3.3"
+  resolved "https://sfw.security.sentry.io/npm/p-queue/-/p-queue-9.3.3.tgz#c5e528c7eb361b7ba8eb5a9406902f7f2e75fc8f"
+  integrity sha512-NXAOdnEe5FsZJfT4oK84lE1Y5cFFdWlRuOo5tww8DyNMxyRXwn39fIkUtNLKppcPC+UYU/bXujNCUGDv01y7CA==
+  dependencies:
+    eventemitter3 "^5.0.4"
+    p-timeout "^7.0.0"
+
 p-retry@4, p-retry@^4.5.0:
   version "4.6.2"
   resolved "https://registry.yarnpkg.com/p-retry/-/p-retry-4.6.2.tgz#9baae7184057edd4e17231cee04264106e092a16"
@@ -21797,6 +21896,13 @@ p-retry@4, p-retry@^4.5.0:
   dependencies:
     "@types/retry" "0.12.0"
     retry "^0.13.1"
+
+p-retry@^7.1.1:
+  version "7.1.1"
+  resolved "https://sfw.security.sentry.io/npm/p-retry/-/p-retry-7.1.1.tgz#7470fdecb1152ba50f1334e48378c9e401330e24"
+  integrity sha512-J5ApzjyRkkf601HpEeykoiCvzHQjWxPAHhyjFcEUP2SWq0+35NKh8TLhpLw+Dkq5TZBFvUM6UigdE9hIVYTl5w==
+  dependencies:
+    is-network-error "^1.1.0"
 
 p-timeout@^3.0.0, p-timeout@^3.1.0, p-timeout@^3.2.0:
   version "3.2.0"
@@ -21809,6 +21915,11 @@ p-timeout@^6.1.2:
   version "6.1.4"
   resolved "https://registry.yarnpkg.com/p-timeout/-/p-timeout-6.1.4.tgz#418e1f4dd833fa96a2e3f532547dd2abdb08dbc2"
   integrity sha512-MyIV3ZA/PmyBN/ud8vV9XzwTrNtR4jFrObymZYnZqMmW0zA8Z17vnT0rBgFE/TlohB+YCHqXMgZzb3Csp49vqg==
+
+p-timeout@^7.0.0:
+  version "7.0.2"
+  resolved "https://sfw.security.sentry.io/npm/p-timeout/-/p-timeout-7.0.2.tgz#6b5c8c8eb99ea96fa775508fb1604e7ea094dd47"
+  integrity sha512-prbX4Z3YszrFNgH+MW5Zoeq3baXrMtP/MQnFeET90UB/GtGcGDQ5Usg9OCy6ETjTTntOw1SL2z9fMPUppN3Guw==
 
 p-try@^2.0.0:
   version "2.2.0"
@@ -28585,6 +28696,11 @@ zod@^3.23.8, zod@^3.24.1, zod@^3.25.32:
   version "4.5.4"
   resolved "https://sfw.security.sentry.io/npm/zod/-/zod-4.5.4.tgz#e215c62420c528dd7951e31fb52c5438f1fd184a"
   integrity sha512-sC95tT5iHHH9gtpj6A81kh+NEaRAUFN+qlUPDUbRfOMvNf5QCBqsb3WgvnpVtK5Y+4UfA6KqufotuTvMGiTlsA==
+
+"zod@^3.25.76 || ^4", zod@^4:
+  version "4.6.5"
+  resolved "https://sfw.security.sentry.io/npm/zod/-/zod-4.6.5.tgz#e3af3edbdc260239c52f73caad05dbbffe6e82cd"
+  integrity sha512-v5l/aFXZQeai4awLbOpSoHecE9UiMrnfx75tEXLjNonXVARxQ5mOeipTjROUchszUNCqnE+hqAMujRsRHsut2Q==
 
 zone.js@^0.12.0:
   version "0.12.0"
