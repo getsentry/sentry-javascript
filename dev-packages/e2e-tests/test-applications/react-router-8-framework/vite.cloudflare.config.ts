@@ -10,8 +10,7 @@ export default defineConfig(async config => ({
     reactRouter(),
     sentryCloudflareVitePlugin(),
     ...((await sentryReactRouter(
-      // Both Sentry plugins inject the orchestrion snippet, and injecting it twice fails the build.
-      { sourcemaps: { disable: true }, buildTimeInstrumentation: false },
+      { sourcemaps: { disable: true } },
       config,
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
     )) as any[]),
