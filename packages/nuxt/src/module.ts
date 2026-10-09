@@ -7,7 +7,7 @@ import type { SentryNuxtModuleOptions } from './common/types';
 import { setupNitroServer } from './vite/nitroServer';
 import { setupOrchestrion } from './vite/orchestrion';
 import { setupSourceMaps } from './vite/sourceMaps';
-import { addOTelCommonJSImportAlias, findDefaultSdkInitFile, resolveServerApi } from './vite/utils';
+import { findDefaultSdkInitFile, resolveServerApi } from './vite/utils';
 
 export type ModuleOptions = SentryNuxtModuleOptions;
 type NuxtPageSubset = { file?: string; path: string };
@@ -96,8 +96,6 @@ export default defineNuxtModule<ModuleOptions>({
     if (clientConfigFile || serverConfigFile) {
       setupSourceMaps(moduleOptions, nuxt, addVitePlugin);
     }
-
-    addOTelCommonJSImportAlias(nuxt, serverApi === 'nitro3');
 
     let pagesData: NuxtPageSubset[] = [];
 
