@@ -14,11 +14,13 @@ import {
   httpHeadersToSpanAttributes,
   HTTP_SPAN_NAME_FALLBACK,
   parseStringToURLObject,
+  safeCallback,
   setHttpStatus,
   startSpanManual,
   winterCGHeadersToDict,
 } from '@sentry/core';
 import { classifyResponseStreaming } from '@sentry/core/server';
+import { DEBUG_BUILD } from './debug-build';
 import { captureIncomingRequestBody } from './integrations/httpServer';
 import { flushDeferredChannelEvents } from './orchestrion-deferred-channels';
 import type { CloudflareClient, CloudflareOptions } from './client';
@@ -180,12 +182,17 @@ export function wrapRequestHandlerWithInit(
             throw e;
           }
 
-          // Classify response to detect actual streaming
-          const classification = classifyResponseStreaming(res);
+          const isStreaming =
+            safeCallback(
+              DEBUG_BUILD ? 'Error in `isStreamingResponse`, using the default classification:' : '',
+              () => options.isStreamingResponse?.(res),
+              () => undefined,
+            ) ?? classifyResponseStreaming(res).isStreaming;
 
-          if (classification.isStreaming && res.body) {
+          if (isStreaming && res.body) {
             try {
               let ended = false;
+              let transformerUsed = false;
 
               const endSpanOnce = (): void => {
                 if (ended) return;
@@ -195,7 +202,14 @@ export function wrapRequestHandlerWithInit(
                 waitUntil?.(flushAndDispose(client));
               };
 
+              // Workers with a compatibility date before 2022-11-30 and without the
+              // `transformstream_enable_standard_constructor` flag (for example under older mini-oxygen
+              // releases) ignore the transformer, so `flush` and `cancel` would never end the span. Only a
+              // used transformer runs `start`.
               const transform = new TransformStream({
+                start() {
+                  transformerUsed = true;
+                },
                 flush() {
                   // Source stream completed normally.
                   endSpanOnce();
@@ -208,15 +222,14 @@ export function wrapRequestHandlerWithInit(
                 },
               });
 
-              return new Response(res.body.pipeThrough(transform), {
-                status: res.status,
-                statusText: res.statusText,
-                headers: res.headers,
-              });
+              if (transformerUsed) {
+                // Passing the original response as the init keeps `encodeBody: 'manual'`, which a
+                // Response does not expose as a property. Without it, workerd compresses a
+                // pre-compressed body a second time.
+                return new Response(res.body.pipeThrough(transform), res);
+              }
             } catch {
-              span.end();
-              waitUntil?.(flushAndDispose(client));
-              return res;
+              // Falls back to ending the span at handler return.
             }
           }
 
