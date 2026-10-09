@@ -1,8 +1,10 @@
 import type { Attributes, Span } from '@opentelemetry/api';
 import {
+  MESSAGING_BATCH_MESSAGE_COUNT,
   MESSAGING_DESTINATION_NAME,
   MESSAGING_MESSAGE_ID,
   MESSAGING_MESSAGE_RETRY_COUNT,
+  MESSAGING_OPERATION_NAME,
 } from '@sentry/conventions/attributes';
 import type { Scope } from '@sentry/core';
 import { captureException } from '@sentry/core';
@@ -13,16 +15,25 @@ function toOtelAttributes(attributes: Record<string, AttributeValue>): Attribute
 }
 
 /**
- * Returns the BullMQ attributes plus the `messaging.*` attributes that Sentry's Queues module reads.
+ * Returns the BullMQ attributes, with each attribute that has a `messaging.*` convention replaced by that convention.
  */
 export function toSentryAttributes(attributes: Record<string, AttributeValue>): Attributes {
-  const result = { ...toOtelAttributes(attributes) };
-  const queueName = attributes['bullmq.queue.name'];
-  const jobId = attributes['bullmq.job.id'];
-  const attemptsMade = attributes['bullmq.job.attempts.made'];
+  const {
+    'bullmq.queue.name': queueName,
+    'bullmq.queue.operation': operation,
+    'bullmq.job.id': jobId,
+    'bullmq.job.attempts.made': attemptsMade,
+    'bullmq.job.bulk.count': bulkCount,
+    ...rest
+  } = attributes;
+  const result = toOtelAttributes(rest);
 
   if (typeof queueName === 'string') {
     result[MESSAGING_DESTINATION_NAME] = queueName;
+  }
+
+  if (typeof operation === 'string') {
+    result[MESSAGING_OPERATION_NAME] = operation;
   }
 
   if (jobId !== undefined) {
@@ -32,6 +43,10 @@ export function toSentryAttributes(attributes: Record<string, AttributeValue>): 
   // BullMQ counts the attempt that just finished in `attemptsMade`.
   if (typeof attemptsMade === 'number') {
     result[MESSAGING_MESSAGE_RETRY_COUNT] = Math.max(attemptsMade - 1, 0);
+  }
+
+  if (typeof bulkCount === 'number') {
+    result[MESSAGING_BATCH_MESSAGE_COUNT] = bulkCount;
   }
 
   return result;

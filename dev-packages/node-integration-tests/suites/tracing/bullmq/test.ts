@@ -36,6 +36,7 @@ describeWithDockerCompose('bullmq', { workingDirectory: [__dirname] }, () => {
                     'messaging.system': { type: 'string', value: 'bullmq' },
                     'messaging.destination.name': { type: 'string', value: 'test-queue' },
                     'messaging.message.id': { type: 'string', value: expect.any(String) },
+                    'messaging.operation.name': { type: 'string', value: 'add' },
                   }),
                 }),
               );
@@ -64,10 +65,12 @@ describeWithDockerCompose('bullmq', { workingDirectory: [__dirname] }, () => {
                   'messaging.destination.name': { type: 'string', value: 'test-queue' },
                   'messaging.message.id': { type: 'string', value: expect.any(String) },
                   'messaging.message.retry.count': { type: 'integer', value: 0 },
+                  'messaging.operation.name': { type: 'string', value: 'process' },
                 }),
               }),
             );
             expect(consumerSegment!.attributes['sentry.previous_trace']).toBeUndefined();
+            expect(consumerSegment!.attributes['bullmq.queue.name']).toBeUndefined();
 
             consumerSpans['test-job-1'] = {
               trace_id: consumerSegment!.trace_id,
