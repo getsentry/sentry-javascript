@@ -124,6 +124,8 @@ export { httpServerIntegration } from './integrations/httpServer';
 export { fetchIntegration } from './integrations/fetch';
 export type { FetchIntegrationOptions } from '@sentry/core';
 export { spotlightIntegration } from './integrations/spotlight';
+export { cronTriggersIntegration } from './integrations/cronTriggers';
+export type { CronTriggerMonitorSettings, CronTriggersOptions } from './integrations/cronTriggers';
 export {
   openTelemetryIntegration,
   getOtlpTracesEndpoint,

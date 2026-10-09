@@ -12,10 +12,12 @@ import {
   SENTRY_ORIGIN,
 } from '@sentry/conventions/attributes';
 import { FUNCTION } from '@sentry/conventions/op';
-import { captureException, hasSpanStreamingEnabled, startSpan, withIsolationScope } from '@sentry/core';
+import { captureException, debug, hasSpanStreamingEnabled, startSpan, withIsolationScope } from '@sentry/core';
 import type { CloudflareOptions } from '../../client';
+import { DEBUG_BUILD } from '../../debug-build';
 import { flushAndDispose } from '../../flush';
 import { ensureInstrumented } from '../../instrument';
+import type { CronTriggersIntegration } from '../../integrations/cronTriggers';
 import { getFinalOptions } from '../../options';
 import { addCloudResourceContext } from '../../scope-utils';
 import { init } from '../../sdk';
@@ -58,9 +60,34 @@ function wrapScheduledHandler(
         },
       },
       async () => {
+        let finishCheckIn: ReturnType<CronTriggersIntegration['startCheckIn']>;
         try {
-          return await fn();
+          finishCheckIn = client
+            ?.getIntegrationByName<CronTriggersIntegration>('CronTriggers')
+            ?.startCheckIn(controller.cron);
+          // The transport holds envelopes until the flush after the handler, so a run that is longer than
+          // the check-in margin would deliver its in_progress check-in too late and show as missed.
+          if (finishCheckIn) {
+            waitUntil(Promise.resolve(client?.getTransport()?.flush(2000)).catch(() => undefined));
+          }
         } catch (e) {
+          DEBUG_BUILD && debug.warn('Failed to send the in_progress cron check-in', e);
+        }
+
+        const finish = (status: 'ok' | 'error'): void => {
+          try {
+            finishCheckIn?.(status);
+          } catch (e) {
+            DEBUG_BUILD && debug.warn(`Failed to send the ${status} cron check-in`, e);
+          }
+        };
+
+        try {
+          const result = await fn();
+          finish('ok');
+          return result;
+        } catch (e) {
+          finish('error');
           captureException(e, { mechanism: { handled: false, type: 'auto.faas.cloudflare.scheduled' } });
           throw e;
         } finally {
