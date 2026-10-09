@@ -62,7 +62,7 @@
     "@sentry/bundler-plugins": "11.6.0",
     "@sentry/server-runtime-injection": "11.6.0",
     "@sentry/server-utils": "11.6.0",
-    "@sentry/vue": "11.6.0",
+    "@sentry/vue": "11.6.0"
   },
   "devDependencies": {
     "@nuxt/nitro-server": "^3.21.11",
