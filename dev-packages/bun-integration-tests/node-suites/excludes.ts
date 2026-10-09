@@ -127,7 +127,7 @@ export const NO_AUTO_INSTRUMENTATION = [
   'suites/tracing/vercelai/**',
 ];
 
-// Fail on Bun, cause not investigated yet.
+// Fail on Bun. The cause is not investigated yet.
 const NOT_TRIAGED = [
   'suites/contextLines/filename-with-spaces/test.ts',
   'suites/modules/test.ts',
@@ -212,7 +212,7 @@ const BUN_BUILD_EAGER_SUBSCRIPTION = ['suites/tracing/orchestrion-lazy-registrat
 // `http.server.request.start`.
 const BUN_BUILD_NO_HTTP_SERVER_INTEGRATION = ['suites/express/multiple-init/test.ts'];
 
-// Some or all tests fail with the bundled scenarios, cause not investigated yet. In
+// Some or all tests fail with the bundled scenarios. The cause is not investigated yet. In
 // `express/tracing` only the request data tests fail: they set `httpIntegration` options, and with
 // `@sentry/bun` the request body comes from `bunHttpServerIntegration`.
 const BUN_BUILD_NOT_TRIAGED = [

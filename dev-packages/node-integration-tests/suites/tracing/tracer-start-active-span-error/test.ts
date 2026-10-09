@@ -2,7 +2,7 @@ import { afterAll, describe } from 'vitest';
 import { cleanupChildProcesses, createEsmAndCjsTests } from '../../../utils/runner';
 import { supports } from '../../../utils';
 
-// Fails on Bun before 1.4, cause not investigated yet.
+// Fails on Bun before 1.4. The cause is not investigated yet.
 describe.runIf(supports({ bunMin: '1.4.0' }))('tracer.startActiveSpan errors', () => {
   afterAll(() => {
     cleanupChildProcesses();
