@@ -82,11 +82,18 @@ export class NextSentryPropagator extends SentryPropagator {
   }
 }
 
+const markedProviders = new WeakSet<TracerProvider>();
+
 /**
- * Makes the tracer provider the Node SDK registered mark prerenders on the OpenTelemetry context, and
- * replaces the propagator it registered with one that hands out nothing on a marked context.
+ * Makes a tracer provider mark prerenders on the OpenTelemetry context, by wrapping the tracers it hands
+ * out. Safe to call repeatedly with the same provider, which the per-request `init` on Cloudflare does.
  */
-export function registerNextSentryPropagator(provider: TracerProvider): void {
+export function markPrerendersOnTracerProvider(provider: TracerProvider): void {
+  if (markedProviders.has(provider)) {
+    return;
+  }
+  markedProviders.add(provider);
+
   const wrappedTracers = new WeakMap<Tracer, Tracer>();
   const getTracer = provider.getTracer.bind(provider);
   provider.getTracer = (...args) => {
@@ -98,6 +105,22 @@ export function registerNextSentryPropagator(provider: TracerProvider): void {
     }
     return wrapped;
   };
+}
+
+/**
+ * The tracer provider behind the global OpenTelemetry API, which is a proxy around the registered one.
+ */
+export function getGlobalTracerProvider(): TracerProvider {
+  const provider = trace.getTracerProvider();
+  return 'getDelegate' in provider ? (provider as { getDelegate(): TracerProvider }).getDelegate() : provider;
+}
+
+/**
+ * Makes the tracer provider the Node SDK registered mark prerenders on the OpenTelemetry context, and
+ * replaces the propagator it registered with one that hands out nothing on a marked context.
+ */
+export function registerNextSentryPropagator(provider: TracerProvider): void {
+  markPrerendersOnTracerProvider(provider);
 
   // The OpenTelemetry API refuses a second global propagator, so the one from the Node SDK setup has
   // to be unregistered first.

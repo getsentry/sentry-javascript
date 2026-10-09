@@ -184,8 +184,9 @@ export function init(options: NodeOptions): NodeClient | undefined {
   }
 
   // Next.js reads the trace meta tags of a document through the global propagator. Only the setup the
-  // Node SDK owns gets the Next.js-aware one; another OpenTelemetry setup (for example `@vercel/otel`)
-  // keeps its own tracer provider and propagator.
+  // Node SDK owns gets the Next.js-aware one here; `withSentry` of `@sentry/nextjs/cloudflare` applies it
+  // to its own setup, and another OpenTelemetry setup (for example `@vercel/otel`) keeps its own tracer
+  // provider and propagator.
   if (client?.traceProvider) {
     registerNextSentryPropagator(client.traceProvider);
   }

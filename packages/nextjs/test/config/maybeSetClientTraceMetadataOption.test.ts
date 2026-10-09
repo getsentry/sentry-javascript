@@ -16,7 +16,7 @@ describe('maybeSetClientTraceMetadataOption', () => {
   });
 
   it('enables trace meta tags when Cache Components is enabled', () => {
-    // The client decides per tag whether it may be continued, see `cacheComponentsTraceMetaTags.ts`.
+    // The server withholds the tags while it prerenders, see `nextSentryPropagator.ts`.
     const config: NextConfigObject = { cacheComponents: true };
     maybeSetClientTraceMetadataOption(config, '16.0.0');
     expect(config.experimental?.clientTraceMetadata).toEqual(['baggage', 'sentry-trace']);
