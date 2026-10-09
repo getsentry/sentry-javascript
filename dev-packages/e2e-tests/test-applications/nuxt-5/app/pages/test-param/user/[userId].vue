@@ -3,8 +3,9 @@ import { useFetch, useRoute } from '#imports';
 
 const route = useRoute();
 const userId = route.params.userId as string;
+const apiPrefix = route.query.apiPrefix ?? '/api';
 
-const { data } = await useFetch(`/api/user/${userId}`, {
+const { data } = await useFetch(`${apiPrefix}/user/${userId}`, {
   server: false, // Don't fetch during SSR, only client-side
 });
 </script>
