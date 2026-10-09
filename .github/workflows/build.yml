@@ -502,11 +502,16 @@ jobs:
         if: github.event_name != 'pull_request'
 
   job_bun_unit_tests:
-    name: Bun Unit Tests
+    name: Bun (${{ matrix.bun }}) Unit Tests
     needs: [job_get_metadata, job_build]
     if: needs.job_build.outputs.changed_bun == 'true' || github.event_name != 'pull_request'
     timeout-minutes: 10
     runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        # 1.3.14 is the oldest supported Bun version
+        bun: ['1.3.14', '1.4']
     steps:
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
         uses: actions/checkout@v7
@@ -519,7 +524,7 @@ jobs:
       - name: Set up Bun
         uses: oven-sh/setup-bun@v2
         with:
-          bun-version: '1.3.14'
+          bun-version: ${{ matrix.bun }}
       - name: Restore caches
         uses: ./.github/actions/restore-cache
         with:
@@ -903,7 +908,7 @@ jobs:
         run: yarn test
 
   job_bun_integration_tests:
-    name: Bun Integration Tests (${{ matrix.shard }}/2)
+    name: Bun (${{ matrix.bun }}) Integration Tests (${{ matrix.shard }}/2)
     needs: [job_get_metadata, job_build]
     if: needs.job_build.outputs.changed_bun_integration == 'true' || github.event_name != 'pull_request'
     runs-on: ubuntu-24.04
@@ -911,6 +916,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
+        # 1.3.14 is the oldest supported Bun version
+        bun: ['1.3.14', '1.4']
         shard: [1, 2]
     steps:
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
@@ -924,7 +931,7 @@ jobs:
       - name: Set up Bun
         uses: oven-sh/setup-bun@v2
         with:
-          bun-version: '1.3.14'
+          bun-version: ${{ matrix.bun }}
       - name: Restore caches
         uses: ./.github/actions/restore-cache
         with:
