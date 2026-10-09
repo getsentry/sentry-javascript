@@ -183,6 +183,7 @@ const FETCH_INTEGRATION_DIFFERS = [
 // that sets `emit` back to the `emit` it had before its first request gets no spans after that.
 const HTTP_SERVER_OPTIONS_IGNORED = [
   'suites/sessions/exited-session-aggregate/test.ts',
+  'suites/sessions/server-without-process-session/test.ts',
   'suites/tracing/httpIntegration/test.ts',
 ];
 

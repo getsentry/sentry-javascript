@@ -33,9 +33,13 @@ export function recordRequestSession(
     sessionFlushingDelayMS?: number;
   },
 ): void {
+  // Errors in this request are counted by the request session aggregate, so they must not also
+  // update a process session inherited from the parent isolation scope.
+  requestIsolationScope.setSession();
   requestIsolationScope.setSDKProcessingMetadata({
     requestSession: { status: 'ok' },
   });
+  client.emit('startRequestSession');
 
   response.once('close', () => {
     const requestSession = requestIsolationScope.getScopeData().sdkProcessingMetadata.requestSession;

@@ -1,5 +1,5 @@
 import type { Client } from '@sentry/core';
-import { createTransport, Scope, withScope } from '@sentry/core';
+import { createTransport, makeSession, Scope, withScope } from '@sentry/core';
 import { ServerRuntimeClient } from '@sentry/core/server';
 import { EventEmitter } from 'stream';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -124,6 +124,27 @@ describe('recordRequestSession()', () => {
         },
       ],
     });
+  });
+
+  it('removes a session inherited from the parent isolation scope', () => {
+    const client = createTestClient();
+    const requestIsolationScope = new Scope();
+    requestIsolationScope.setSession(makeSession());
+
+    recordRequestSession(client, { requestIsolationScope, response: new EventEmitter() });
+
+    expect(requestIsolationScope.getSession()).toBeUndefined();
+  });
+
+  it('emits the "startRequestSession" hook for every recorded request', () => {
+    const client = createTestClient();
+    const onStartRequestSession = vi.fn();
+    client.on('startRequestSession', onStartRequestSession);
+
+    simulateRequest(client, 'ok');
+    simulateRequest(client, 'ok');
+
+    expect(onStartRequestSession).toHaveBeenCalledTimes(2);
   });
 });
 
