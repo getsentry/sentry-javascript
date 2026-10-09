@@ -1,4 +1,5 @@
 import type { Transport } from '@sentry/core';
+import { debug } from '@sentry/core';
 import * as Sentry from '@sentry/node';
 import type { NodeClientOptions } from '@sentry/node/build/types/types';
 import { CpuProfilerBindings } from '@sentry/node-cpu-profiler';
@@ -52,6 +53,21 @@ describe('ProfilingIntegration', () => {
 
       expect(startProfilingSpy).toHaveBeenCalled();
       expect(stopProfilingSpy).toHaveBeenCalled();
+    });
+
+    it('logs a no-op when stopping without a running profile session', () => {
+      const [client] = makeSpanProfilingClient({
+        profileLifecycle: 'manual',
+        profileSessionSampleRate: 1,
+      });
+      Sentry.setCurrentClient(client);
+      client.init();
+
+      const debugLogSpy = vi.spyOn(debug, 'log');
+
+      Sentry.profiler.stopProfiler();
+
+      expect(debugLogSpy).toHaveBeenCalledWith('[Profiling] No profile session running, no-op.');
     });
 
     it('calling start and stop while profile session is running does nothing', () => {
@@ -305,6 +321,90 @@ describe('ProfilingIntegration', () => {
       expect(stopProfilingSpy).toHaveBeenCalled();
     });
 
+    it('logs when it skips a trace because the root span is not sampled', () => {
+      const [client] = makeSpanProfilingClient({
+        profileLifecycle: 'trace',
+        profileSessionSampleRate: 1,
+        tracesSampleRate: 0,
+      });
+
+      Sentry.setCurrentClient(client);
+      client.init();
+
+      const debugLogSpy = vi.spyOn(debug, 'log');
+
+      Sentry.startInactiveSpan({ name: 'GET /users/:id' });
+
+      expect(debugLogSpy).toHaveBeenCalledWith(
+        '[Profiling] Not profiling trace because its root span was not sampled.',
+      );
+    });
+
+    it('does not log skipped unsampled child spans', () => {
+      const [client] = makeSpanProfilingClient({
+        profileLifecycle: 'trace',
+        profileSessionSampleRate: 1,
+        tracesSampleRate: 0,
+      });
+
+      Sentry.setCurrentClient(client);
+      client.init();
+
+      const rootSpan = Sentry.startInactiveSpan({ name: 'GET /users/:id' });
+      const debugLogSpy = vi.spyOn(debug, 'log');
+
+      Sentry.startInactiveSpan({ name: 'SELECT * FROM users', parentSpan: rootSpan });
+
+      expect(debugLogSpy).not.toHaveBeenCalledWith(
+        '[Profiling] Not profiling trace because its root span was not sampled.',
+      );
+    });
+
+    it('does not start the profiler for unsampled spans', () => {
+      const [client] = makeSpanProfilingClient({
+        profileLifecycle: 'trace',
+        profileSessionSampleRate: 1,
+        tracesSampleRate: 0,
+      });
+
+      Sentry.setCurrentClient(client);
+      client.init();
+
+      const startProfilingSpy = vi.spyOn(CpuProfilerBindings, 'startProfiling');
+
+      Sentry.startSpan({ name: 'root' }, () => {
+        Sentry.startSpan({ name: 'child' }, () => {});
+      });
+
+      expect(startProfilingSpy).not.toHaveBeenCalled();
+    });
+
+    it('stops the profiler after the last sampled span ends, ignoring unsampled spans', () => {
+      const [client] = makeSpanProfilingClient({
+        profileLifecycle: 'trace',
+        profileSessionSampleRate: 1,
+        tracesSampler: ({ name }) => (name === 'sampled' ? 1 : 0),
+      });
+
+      Sentry.setCurrentClient(client);
+      client.init();
+
+      const startProfilingSpy = vi.spyOn(CpuProfilerBindings, 'startProfiling');
+      const stopProfilingSpy = vi.spyOn(CpuProfilerBindings, 'stopProfiling');
+
+      Sentry.startSpan({ name: 'unsampled' }, () => {
+        Sentry.startSpan({ name: 'unsampled-child' }, () => {});
+      });
+
+      Sentry.startSpan({ name: 'sampled' }, () => {
+        Sentry.startSpan({ name: 'sampled-child' }, () => {});
+        expect(startProfilingSpy).toHaveBeenCalledTimes(1);
+        expect(stopProfilingSpy).not.toHaveBeenCalled();
+      });
+
+      expect(stopProfilingSpy).toHaveBeenCalledTimes(1);
+    });
+
     describe('envelope', () => {
       beforeEach(() => {
         vi.useRealTimers();
@@ -344,6 +444,79 @@ describe('ProfilingIntegration', () => {
         });
       });
     });
+  });
+
+  describe('chunk restart', () => {
+    const lifecycles = [
+      {
+        profileLifecycle: 'manual',
+        startProfiling: () => {
+          Sentry.profiler.startProfiler();
+          return () => Sentry.profiler.stopProfiler();
+        },
+      },
+      {
+        profileLifecycle: 'trace',
+        startProfiling: () => {
+          const span = Sentry.startInactiveSpan({ name: 'GET /users/:id' });
+          return () => span.end();
+        },
+      },
+    ] as const;
+
+    beforeEach(() => {
+      vi.useFakeTimers();
+    });
+
+    afterEach(() => {
+      vi.useRealTimers();
+    });
+
+    it.each(lifecycles)(
+      'does not start a new chunk when $profileLifecycle profiling stops before the scheduled restart',
+      ({ profileLifecycle, startProfiling }) => {
+        const [client] = makeSpanProfilingClient({ profileLifecycle, profileSessionSampleRate: 1 });
+        Sentry.setCurrentClient(client);
+        client.init();
+
+        const startProfilingSpy = vi.spyOn(CpuProfilerBindings, 'startProfiling');
+        const stopProfilingSpy = vi.spyOn(CpuProfilerBindings, 'stopProfiling');
+        const debugLogSpy = vi.spyOn(debug, 'log');
+        const stopProfiling = startProfiling();
+        vi.advanceTimersToNextTimer();
+        expect(stopProfilingSpy).toHaveBeenCalledTimes(1);
+
+        stopProfiling();
+        vi.runOnlyPendingTimers();
+
+        expect(startProfilingSpy).toHaveBeenCalledTimes(1);
+        expect(debugLogSpy).toHaveBeenCalledWith(
+          '[Profiling] Profiling stopped before the next chunk started, cancelled the scheduled chunk.',
+        );
+      },
+    );
+
+    it.each(lifecycles)(
+      'does not report a cancelled chunk when $profileLifecycle profiling stops after the restart',
+      ({ profileLifecycle, startProfiling }) => {
+        const [client] = makeSpanProfilingClient({ profileLifecycle, profileSessionSampleRate: 1 });
+        Sentry.setCurrentClient(client);
+        client.init();
+
+        const startProfilingSpy = vi.spyOn(CpuProfilerBindings, 'startProfiling');
+        const debugLogSpy = vi.spyOn(debug, 'log');
+        const stopProfiling = startProfiling();
+        vi.advanceTimersToNextTimer();
+        vi.runOnlyPendingTimers();
+        expect(startProfilingSpy).toHaveBeenCalledTimes(2);
+
+        stopProfiling();
+
+        expect(debugLogSpy).not.toHaveBeenCalledWith(
+          '[Profiling] Profiling stopped before the next chunk started, cancelled the scheduled chunk.',
+        );
+      },
+    );
   });
 });
 
