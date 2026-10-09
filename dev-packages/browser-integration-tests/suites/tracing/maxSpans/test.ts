@@ -1,20 +1,20 @@
 import { expect } from '@playwright/test';
 import { sentryTest } from '../../../utils/fixtures';
-import { envelopeRequestParser, shouldSkipTracingTest, waitForTransactionRequestOnUrl } from '../../../utils/helpers';
+import { shouldSkipTracingTest } from '../../../utils/helpers';
+import { collectStreamedSpans, waitForStreamedSpan } from '../../../utils/spanUtils';
 
-sentryTest('it limits spans to 1000', async ({ getLocalTestUrl, page }) => {
-  if (shouldSkipTracingTest()) {
-    sentryTest.skip();
-  }
-
+sentryTest('streams all children without the static 1000-span limit', async ({ getLocalTestUrl, page }) => {
+  sentryTest.skip(shouldSkipTracingTest());
+  const spans = collectStreamedSpans(page);
+  const rootPromise = waitForStreamedSpan(page, span => span.name === 'parent');
   const url = await getLocalTestUrl({ testDir: __dirname });
   await page.goto(url);
+  const root = await rootPromise;
+  await page.evaluate(() => (window as any).Sentry.flush());
 
-  const req = await waitForTransactionRequestOnUrl(page, url);
-  const transaction = envelopeRequestParser(req);
-
-  expect(transaction.spans).toHaveLength(1000);
-  expect(transaction.spans).toContainEqual(expect.objectContaining({ description: 'child 0' }));
-  expect(transaction.spans).toContainEqual(expect.objectContaining({ description: 'child 999' }));
-  expect(transaction.spans).not.toContainEqual(expect.objectContaining({ description: 'child 1000' }));
+  const children = spans.filter(span => span.parent_span_id === root.span_id);
+  expect(children).toHaveLength(5000);
+  expect(children).toContainEqual(expect.objectContaining({ name: 'child 0' }));
+  expect(children).toContainEqual(expect.objectContaining({ name: 'child 999' }));
+  expect(children).toContainEqual(expect.objectContaining({ name: 'child 4999' }));
 });
