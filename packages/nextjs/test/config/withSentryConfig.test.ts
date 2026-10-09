@@ -506,7 +506,7 @@ describe('withSentryConfig', () => {
       });
     });
 
-    it('supports the deprecated webpack.treeshake option', () => {
+    it('supports the webpack.treeshake option', () => {
       process.env.TURBOPACK = '1';
       vi.spyOn(util, 'getNextjsVersion').mockReturnValue('16.0.0');
 
@@ -517,7 +517,7 @@ describe('withSentryConfig', () => {
       expect(finalConfig.compiler?.define).toEqual({ __SENTRY_TRACING__: false });
     });
 
-    it('prefers bundleSizeOptimizations over the deprecated webpack.treeshake option', () => {
+    it('prefers bundleSizeOptimizations over the webpack.treeshake option', () => {
       process.env.TURBOPACK = '1';
       vi.spyOn(util, 'getNextjsVersion').mockReturnValue('16.0.0');
 

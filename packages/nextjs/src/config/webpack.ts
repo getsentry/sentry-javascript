@@ -892,7 +892,6 @@ function prependOrchestrionRuntimeExternals(newConfig: WebpackConfigObjectWithMo
 export function getTreeshakeDefines(userSentryOptions: SentryBuildOptions): Record<string, boolean> {
   const defines: Record<string, boolean> = {};
   const bundleSizeOptimizations = userSentryOptions.bundleSizeOptimizations;
-  // eslint-disable-next-line typescript/no-deprecated
   const treeshake = userSentryOptions.webpack?.treeshake;
 
   if (bundleSizeOptimizations?.excludeDebugStatements ?? treeshake?.removeDebugLogging) {
