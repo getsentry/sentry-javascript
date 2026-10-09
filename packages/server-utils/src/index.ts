@@ -8,6 +8,7 @@ import { attachHapiErrorHandler as _attachHapiErrorHandler } from './integration
 export { bindTracingChannelToSpan } from './tracing-channel';
 export type { TracingChannelPayloadWithSpan } from './tracing-channel';
 export type { InstrumentationConfig } from './orchestrion/apmTypes';
+export type { OrchestrionChannelContext } from './orchestrion/types';
 // Runtime target of the bundler-injected module snippet. The snippet imports it
 // from this entry alongside the module's subscriber factory (see
 // `orchestrion/bundler/moduleInjectedTransform.ts`); it is a plain runtime
@@ -67,6 +68,7 @@ export { mysql2Integration } from './integrations/mysql2';
 export { openAIIntegration } from './integrations/openai';
 export { postgresIntegration } from './integrations/postgres';
 export { postgresJsIntegration } from './integrations/postgres-js';
+export { neonIntegration } from './integrations/neon';
 export { tediousIntegration } from './integrations/tedious';
 export { vercelAIIntegration } from './integrations/vercel-ai';
 export { expressIntegration } from './integrations/express';

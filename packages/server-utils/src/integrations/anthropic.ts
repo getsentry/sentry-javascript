@@ -14,6 +14,7 @@ import { wrapApiPromiseResponse } from '../ai/core/apiPromise';
 import { addPrivateRequestAttributes, addResponseAttributes, extractRequestAttributes } from '../ai/anthropic-ai';
 import { instrumentAsyncIterableStream, instrumentMessageStream } from '../ai/anthropic-ai/streaming';
 import type { AnthropicAiOptions, AnthropicAiResponse } from '../ai/anthropic-ai/types';
+import type { OrchestrionChannelContext } from '../orchestrion/types';
 import { CHANNELS } from '../orchestrion/channels';
 import { bindTracingChannelToSpan } from '../tracing-channel';
 import { anthropicAiModuleNames } from '../orchestrion/config/anthropic-ai';
@@ -37,11 +38,6 @@ const INSTRUMENTED_CHANNELS = [
 
 type StreamMode = (typeof INSTRUMENTED_CHANNELS)[number]['stream'];
 
-interface AnthropicChannelContext {
-  arguments: unknown[];
-  result?: unknown;
-}
-
 const _anthropicAIIntegration = ((options: AnthropicAiOptions = {}) => {
   return {
     name: INTEGRATION_NAME,
@@ -54,7 +50,7 @@ const _anthropicAIIntegration = ((options: AnthropicAiOptions = {}) => {
 function instrumentAnthropic(options: AnthropicAiOptions): void {
   for (const { channel, operation, stream } of INSTRUMENTED_CHANNELS) {
     bindTracingChannelToSpan(
-      diagnosticsChannel.tracingChannel<AnthropicChannelContext>(channel),
+      diagnosticsChannel.tracingChannel<OrchestrionChannelContext>(channel),
       data => createGenAiSpan(data, operation, options, stream),
       {
         beforeSpanEnd: (span, data) => {
@@ -85,7 +81,7 @@ function instrumentAnthropic(options: AnthropicAiOptions): void {
  * Returning `undefined` opts the payload out so no span is opened.
  */
 function createGenAiSpan(
-  data: AnthropicChannelContext,
+  data: OrchestrionChannelContext,
   operation: string,
   options: AnthropicAiOptions,
   stream: StreamMode,
@@ -191,7 +187,7 @@ function isMessageStream(value: unknown): value is MessageStreamEmitter {
  */
 function wrapStreamResult(
   span: Span,
-  data: AnthropicChannelContext,
+  data: OrchestrionChannelContext,
   stream: StreamMode,
   options: AnthropicAiOptions,
 ): boolean {

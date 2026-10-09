@@ -4,9 +4,86 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
-- **feat(server-utils)** Add instrumentation for pi-durable ([#24993](https://github.com/getsentry/sentry-javascript/pull/24993/))
+Work in this release was contributed by @Philip-Nwabuwa. Thank you for your contribution!
 
-The new `piDurableIntegration` traces agents built with [pi-durable](https://github.com/earendil-works/pi/tree/main/packages/durable): each run, with its model requests and tool calls.
+## 11.6.0
+
+### Important Changes
+
+- **feat(nextjs): Add `@sentry/nextjs/cloudflare` ([#24998](https://github.com/getsentry/sentry-javascript/pull/24998))**
+
+  The new `@sentry/nextjs/cloudflare` entry point exports `withSentry` for the Worker entry of a Next.js app on Cloudflare Workers, for example `.open-next/worker.js` of OpenNext. It is `withSentry` of `@sentry/cloudflare` with the Next.js server handling added, so a Next.js app on Workers gets the same spans as on Node.js.
+
+  ```ts
+  import * as Sentry from '@sentry/nextjs/cloudflare';
+  import handler from './.open-next/worker.js';
+
+  export default Sentry.withSentry(
+    env => ({
+      dsn: env.SENTRY_DSN,
+      tracesSampleRate: 1.0,
+    }),
+    handler,
+  );
+  ```
+
+- **feat(server-utils): Add instrumentation for pi-durable ([#24993](https://github.com/getsentry/sentry-javascript/pull/24993))**
+
+  The new `piDurableIntegration` traces agents built with [pi-durable](https://github.com/earendil-works/pi/tree/main/packages/durable): each run, with its model requests and tool calls.
+
+- **fix(core): Correct sleep clock drift on telemetry timestamps ([#23054](https://github.com/getsentry/sentry-javascript/pull/23054))**
+
+  When a device sleeps, the `performance.now()` clock of the browser stops. Before this change, timestamps of spans and other telemetry recorded after the sleep could be too early. The SDK now detects this drift and corrects its time origin, also for spans created from performance entries. Span end times are now computed from the `performance.now()` duration since the span start, like in OpenTelemetry ([#24903](https://github.com/getsentry/sentry-javascript/pull/24903)).
+
+### Other Changes
+
+- feat(cloudflare): Skip spans for the pi_ tables of PiHarness ([#25028](https://github.com/getsentry/sentry-javascript/pull/25028))
+- feat(remix): Propagate the server trace to Remix 3 page loads ([#25145](https://github.com/getsentry/sentry-javascript/pull/25145))
+- feat(server-utils): Map Mastra classifier evaluations to gen_ai.evaluate spans ([#25044](https://github.com/getsentry/sentry-javascript/pull/25044))
+- feat(server-utils): Record LangChain TypeSafeClassifier runs as gen_ai.evaluate spans ([#25120](https://github.com/getsentry/sentry-javascript/pull/25120))
+- fix(browser): Check for clock drift on page lifecycle events ([#25091](https://github.com/getsentry/sentry-javascript/pull/25091))
+- fix(core): Exclude attachments from internal exception events ([#25160](https://github.com/getsentry/sentry-javascript/pull/25160))
+- fix(effect): Convert Effect span times to the Sentry clock ([#24972](https://github.com/getsentry/sentry-javascript/pull/24972))
+- fix(effect): Detect HTTP spans named after the request method ([#25159](https://github.com/getsentry/sentry-javascript/pull/25159))
+- fix(node): Register Vercel keep-alive listeners once ([#25146](https://github.com/getsentry/sentry-javascript/pull/25146))
+- fix(replay): Place CLS and INP web vitals at the right time ([#24990](https://github.com/getsentry/sentry-javascript/pull/24990))
+- fix(server-utils): Record LangGraph span I/O for non-MessagesAnnotation state ([#23315](https://github.com/getsentry/sentry-javascript/pull/23315))
+- fix(sveltekit): Upload source maps with SvelteKit 3 ([#25139](https://github.com/getsentry/sentry-javascript/pull/25139))
+
+<details>
+  <summary> <strong>Internal Changes</strong> </summary>
+
+- chore: Add external contributor to CHANGELOG.md ([#25136](https://github.com/getsentry/sentry-javascript/pull/25136))
+- chore(deps-dev): Bump next from 15.5.24 to 15.5.27 ([#25171](https://github.com/getsentry/sentry-javascript/pull/25171))
+- chore(nitro): Remove stale bundler-plugin-core rollup external ([#25149](https://github.com/getsentry/sentry-javascript/pull/25149))
+- feat(cloudflare): Wrap vinext Worker entries with `@sentry/nextjs/cloudflare` ([#25000](https://github.com/getsentry/sentry-javascript/pull/25000))
+- feat(deps): Bump next from 16.2.11 to 16.3.8 in /dev-packages/e2e-tests/test-applications/nextjs-sourcemaps ([#25170](https://github.com/getsentry/sentry-javascript/pull/25170))
+- fix(deps): Bump @graphql-tools/utils to 12.0.3 ([#25162](https://github.com/getsentry/sentry-javascript/pull/25162))
+- ref(eslint-plugin-sdk): Improve `no-unsafe-random-apis` rule ([#25123](https://github.com/getsentry/sentry-javascript/pull/25123))
+- test(cloudflare): Port the remaining static suites to span streaming ([#25112](https://github.com/getsentry/sentry-javascript/pull/25112))
+- test(cloudflare): Widen the wrangler readiness retry window in integration tests ([#24925](https://github.com/getsentry/sentry-javascript/pull/24925))
+- test(e2e): Add a cloudflare-pi-durable end-to-end application ([#25022](https://github.com/getsentry/sentry-javascript/pull/25022))
+- test(e2e): Add a node-pi-durable end-to-end application ([#24994](https://github.com/getsentry/sentry-javascript/pull/24994))
+- test(e2e): Add Mastra Jev classifier test to node-mastra ([#25115](https://github.com/getsentry/sentry-javascript/pull/25115))
+- test(e2e): Wait for the soft navigation entry before hiding the page ([#25127](https://github.com/getsentry/sentry-javascript/pull/25127))
+- test(nextjs): Run nextjs-16 on Bun, Deno and Cloudflare ([#24999](https://github.com/getsentry/sentry-javascript/pull/24999))
+- test(node): Add streamed span collection helpers ([#25131](https://github.com/getsentry/sentry-javascript/pull/25131))
+- test(node): Cover Jev calls inside createAgent and LangGraph ([#25132](https://github.com/getsentry/sentry-javascript/pull/25132))
+- test(node): Port AMQP integration tests to span streaming ([#25158](https://github.com/getsentry/sentry-javascript/pull/25158))
+- test(node): Port Anthropic integration tests to span streaming ([#25082](https://github.com/getsentry/sentry-javascript/pull/25082))
+- test(node): Port Bedrock tests to span streaming ([#25086](https://github.com/getsentry/sentry-javascript/pull/25086))
+- test(node): Port Google GenAI tests to span streaming ([#25083](https://github.com/getsentry/sentry-javascript/pull/25083))
+- test(node): Port Knex integration tests to span streaming ([#25154](https://github.com/getsentry/sentry-javascript/pull/25154))
+- test(node): Port LangChain tests to span streaming ([#25084](https://github.com/getsentry/sentry-javascript/pull/25084))
+- test(node): Port LangGraph tests to span streaming ([#25085](https://github.com/getsentry/sentry-javascript/pull/25085))
+- test(node): Port Mastra tests to span streaming ([#25087](https://github.com/getsentry/sentry-javascript/pull/25087))
+- test(node): Port MySQL integration tests to span streaming ([#25148](https://github.com/getsentry/sentry-javascript/pull/25148))
+- test(node): Port OpenAI integration tests to span streaming ([#25081](https://github.com/getsentry/sentry-javascript/pull/25081))
+- test(node): Port pool and DataLoader integration tests to span streaming ([#25156](https://github.com/getsentry/sentry-javascript/pull/25156))
+- test(node): Port Tedious integration tests to span streaming ([#25155](https://github.com/getsentry/sentry-javascript/pull/25155))
+- test(node): Port Vercel AI v5-v7 tests to span streaming ([#25090](https://github.com/getsentry/sentry-javascript/pull/25090))
+
+</details>
 
 Work in this release was contributed by @zkasuran. Thank you for your contribution!
 

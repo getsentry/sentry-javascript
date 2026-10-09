@@ -6,22 +6,22 @@ afterAll(() => {
 });
 
 test('should send manually started parallel root spans outside of root context', async () => {
-  expect.assertions(6);
-
   await createRunner(__dirname, 'scenario.ts')
-    .expect({ transaction: { transaction: 'test_span_1' } })
     .expect({
-      transaction: transaction => {
-        expect(transaction).toBeDefined();
-        const traceId = transaction.contexts?.trace?.trace_id;
-        expect(traceId).toBeDefined();
-        expect(transaction.contexts?.trace?.parent_span_id).toBeUndefined();
+      span: container => {
+        const span1 = container.items.find(span => span.name === 'test_span_1');
+        const span2 = container.items.find(span => span.name === 'test_span_2');
+        expect(span1?.is_segment).toBe(true);
+        expect(span2?.is_segment).toBe(true);
+        expect(span1?.start_timestamp).toEqual(expect.any(Number));
+        expect(span1?.end_timestamp).toEqual(expect.any(Number));
 
-        const trace1Id = transaction.contexts?.trace?.data?.spanIdTraceId;
-        expect(trace1Id).toBeDefined();
+        expect(span1?.trace_id).toMatch(/^[0-9a-f]{32}$/);
+        expect(span1?.parent_span_id).toBeUndefined();
+        expect(span2?.parent_span_id).toBeUndefined();
 
-        // Same trace ID as the first span - both root spans share the scope's propagation context
-        expect(trace1Id).toBe(traceId);
+        expect(span2?.trace_id).toBe(span1?.trace_id);
+        expect(span2?.attributes.spanIdTraceId).toEqual({ type: 'string', value: span1?.trace_id });
       },
     })
     .start()

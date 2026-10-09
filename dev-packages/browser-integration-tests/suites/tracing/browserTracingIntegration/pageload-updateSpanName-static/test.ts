@@ -1,0 +1,38 @@
+import { SENTRY_SEGMENT_NAME_SOURCE, SENTRY_OP, SENTRY_ORIGIN } from '@sentry/conventions/attributes';
+import { expect } from '@playwright/test';
+import { SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE } from '@sentry/browser';
+import { type Event, SEMANTIC_ATTRIBUTE_SENTRY_CUSTOM_SPAN_NAME } from '@sentry/core';
+import { sentryTest } from '../../../../utils/fixtures';
+import { getFirstSentryEnvelopeRequest, shouldSkipTracingTest } from '../../../../utils/helpers';
+
+sentryTest(
+  'sets the source to custom when updating the transaction name with Sentry.updateSpanName',
+  async ({ getLocalTestUrl, page }) => {
+    if (shouldSkipTracingTest()) {
+      sentryTest.skip();
+    }
+
+    const url = await getLocalTestUrl({ testDir: __dirname });
+
+    const eventData = await getFirstSentryEnvelopeRequest<Event>(page, url);
+
+    const traceContextData = eventData.contexts?.trace?.data;
+
+    expect(traceContextData).toBeDefined();
+
+    expect(traceContextData).toMatchObject({
+      [SENTRY_ORIGIN]: 'auto.pageload.browser',
+      [SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE]: 1,
+      [SENTRY_SEGMENT_NAME_SOURCE]: 'custom',
+      [SENTRY_OP]: 'pageload',
+    });
+
+    expect(traceContextData![SEMANTIC_ATTRIBUTE_SENTRY_CUSTOM_SPAN_NAME]).toBeUndefined();
+
+    expect(eventData.transaction).toBe('new name');
+
+    expect(eventData.contexts?.trace?.op).toBe('pageload');
+    expect(eventData.spans?.length).toBeGreaterThan(0);
+    expect(eventData.transaction_info?.source).toEqual('custom');
+  },
+);
