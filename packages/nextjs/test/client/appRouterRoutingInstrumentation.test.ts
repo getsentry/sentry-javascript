@@ -1,4 +1,6 @@
 // @vitest-environment jsdom
+import { SENTRY_OP, URL_FULL, URL_PATH } from '@sentry/conventions/attributes';
+import { PAGELOAD } from '@sentry/conventions/op';
 import type { Client } from '@sentry/core';
 import type * as SentryCore from '@sentry/core';
 import type * as SentryReact from '@sentry/react';
@@ -262,5 +264,53 @@ describe('appRouterInstrumentNavigation with basePath', () => {
     const span = core.getActiveSpan();
     expect(span).toBeDefined();
     expect(core.spanToJSON(span!).name).toBe('/my-app/navigation/:param/router-push');
+  });
+});
+
+describe('appRouterInstrumentPageLoad', () => {
+  const originalReadyState = Object.getOwnPropertyDescriptor(Document.prototype, 'readyState');
+
+  beforeEach(() => {
+    globalWithNext._sentryRouteManifest = JSON.stringify(manifest);
+    window.history.replaceState({}, '', '/navigation?from=document');
+    Object.defineProperty(document, 'readyState', { value: 'loading', configurable: true });
+    vi.spyOn(performance, 'getEntriesByType').mockReturnValue([]);
+  });
+
+  afterEach(() => {
+    delete globalWithNext.next;
+    delete globalWithNext._sentryRouteManifest;
+    // @ts-expect-error deleting the instance override restores the prototype getter
+    delete document.readyState;
+    if (originalReadyState) {
+      Object.defineProperty(Document.prototype, 'readyState', originalReadyState);
+    }
+    vi.restoreAllMocks();
+  });
+
+  it('records the URL of the document when the pageload starts after a navigation changed it', async () => {
+    const { core, instrumentation } = await setup('static');
+
+    instrumentation.appRouterInstrumentPageLoad(core.getClient()!);
+    const spanBeforeSettling = core.getActiveSpan();
+
+    window.history.replaceState({}, '', '/navigation/42/router-back');
+    instrumentation.settlePendingPageloadWait();
+
+    const span = core.getActiveSpan();
+    expect(span).toBeDefined();
+    expect(span).not.toBe(spanBeforeSettling);
+    const spanJson = core.spanToJSON(span!);
+    expect(spanJson.name).toBe('/navigation');
+    expect(spanJson.attributes?.[SENTRY_OP]).toBe(PAGELOAD);
+    expect(spanJson.attributes).toEqual(
+      expect.objectContaining({
+        [URL_PATH]: '/navigation',
+        [URL_FULL]: 'http://localhost:3000/navigation?from=document',
+      }),
+    );
+    expect(core.getCurrentScope().getScopeData().sdkProcessingMetadata.normalizedRequest?.url).toBe(
+      'http://localhost:3000/navigation?from=document',
+    );
   });
 });
