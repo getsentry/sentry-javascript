@@ -40,12 +40,10 @@ export function createTransport(
   function recordItemLoss(reason: EventDropReason, [headers, payload]: EnvelopeItem, type: EnvelopeItemType): void {
     const dataCategory = envelopeItemTypeToDataCategory(type);
     if (type === 'transaction') {
-      options.recordDroppedEvent(reason, dataCategory);
       // The transaction itself counts as a span, too
       options.recordDroppedEvent(reason, 'span', ((payload as Event).spans?.length ?? 0) + 1);
-    } else {
-      options.recordDroppedEvent(reason, dataCategory, typeof headers.item_count === 'number' ? headers.item_count : 1);
     }
+    options.recordDroppedEvent(reason, dataCategory, typeof headers.item_count === 'number' ? headers.item_count : 1);
   }
 
   function send(envelope: Envelope): PromiseLike<TransportMakeRequestResponse> {
