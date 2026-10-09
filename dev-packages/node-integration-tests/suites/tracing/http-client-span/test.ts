@@ -1,7 +1,7 @@
 import { afterAll, describe, expect } from 'vitest';
 import { cleanupChildProcesses, createEsmAndCjsTests } from '../../../utils/runner';
 
-describe('http.client span with streaming enabled', () => {
+describe('http.client span without a local parent', () => {
   afterAll(() => {
     cleanupChildProcesses();
   });
@@ -18,6 +18,7 @@ describe('http.client span with streaming enabled', () => {
             );
 
             expect(httpClientSpan).toBeDefined();
+            expect(httpClientSpan?.is_segment).toBe(true);
             // The URL path is high cardinality, so a streamed span name keeps only the domain.
             expect(httpClientSpan?.name).toBe('GET localhost');
             expect(httpClientSpan?.attributes['url.domain']?.value).toBe('localhost');
