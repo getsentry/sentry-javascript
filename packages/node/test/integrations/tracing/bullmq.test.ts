@@ -479,7 +479,7 @@ describe('SentryBullMQMeter', () => {
       counter.add(5, { 'queue.name': 'emails' });
 
       expect(SentryCore.metrics.count).toHaveBeenCalledWith('bullmq.jobs.completed', 5, {
-        unit: '1',
+        unit: 'none',
         attributes: { 'queue.name': 'emails' },
       });
     });
@@ -505,8 +505,20 @@ describe('SentryBullMQMeter', () => {
       histogram.record(142.5, { 'queue.name': 'notifications' });
 
       expect(SentryCore.metrics.distribution).toHaveBeenCalledWith('bullmq.job.duration', 142.5, {
-        unit: 'ms',
+        unit: 'millisecond',
         attributes: { 'queue.name': 'notifications' },
+      });
+    });
+
+    it('keeps a unit that is already a Sentry unit', () => {
+      const telemetry = new BullMQTelemetry({ enableMetrics: true });
+      const histogram = telemetry.meter!.createHistogram('bullmq.job.payload', { unit: 'byte' });
+
+      histogram.record(512);
+
+      expect(SentryCore.metrics.distribution).toHaveBeenCalledWith('bullmq.job.payload', 512, {
+        unit: 'byte',
+        attributes: undefined,
       });
     });
   });
@@ -514,12 +526,12 @@ describe('SentryBullMQMeter', () => {
   describe('gauge', () => {
     it('delegates record to metrics.gauge', () => {
       const telemetry = new BullMQTelemetry({ enableMetrics: true });
-      const gauge = telemetry.meter!.createGauge!('bullmq.queue.size', { unit: '1' });
+      const gauge = telemetry.meter!.createGauge!('bullmq.queue.jobs', { unit: '{jobs}' });
 
       gauge.record(37, { 'queue.name': 'reports' });
 
-      expect(SentryCore.metrics.gauge).toHaveBeenCalledWith('bullmq.queue.size', 37, {
-        unit: '1',
+      expect(SentryCore.metrics.gauge).toHaveBeenCalledWith('bullmq.queue.jobs', 37, {
+        unit: 'none',
         attributes: { 'queue.name': 'reports' },
       });
     });

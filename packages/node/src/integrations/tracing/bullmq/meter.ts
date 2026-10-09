@@ -17,6 +17,22 @@ function toMetricAttributes(
   return result;
 }
 
+/**
+ * Converts the OpenTelemetry (UCUM) unit that BullMQ passes to the matching Sentry unit.
+ */
+function toSentryUnit(unit?: string): string | undefined {
+  if (unit === 'ms') {
+    return 'millisecond';
+  }
+
+  // In UCUM, `1` and annotations such as `{jobs}` mark a value without a unit.
+  if (unit === '1' || unit?.startsWith('{')) {
+    return 'none';
+  }
+
+  return unit;
+}
+
 class SentryBullMQCounter implements Counter {
   private _name: string;
   private _unit?: string;
@@ -70,14 +86,14 @@ class SentryBullMQGauge implements Gauge {
 
 export class SentryBullMQMeter implements Meter {
   public createCounter(name: string, options?: MetricOptions): Counter {
-    return new SentryBullMQCounter(name, options?.unit);
+    return new SentryBullMQCounter(name, toSentryUnit(options?.unit));
   }
 
   public createHistogram(name: string, options?: MetricOptions): Histogram {
-    return new SentryBullMQHistogram(name, options?.unit);
+    return new SentryBullMQHistogram(name, toSentryUnit(options?.unit));
   }
 
   public createGauge(name: string, options?: MetricOptions): Gauge {
-    return new SentryBullMQGauge(name, options?.unit);
+    return new SentryBullMQGauge(name, toSentryUnit(options?.unit));
   }
 }
