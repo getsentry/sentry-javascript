@@ -7,8 +7,7 @@ const baggage = process.env.INCOMING_BAGGAGE || undefined;
 
 Sentry.continueTrace({ sentryTrace, baggage }, () => {
   Sentry.startSpan({ name: 'continued-root-span' }, () => {
-    // Captured while the root span is active. The error is emitted before the span ends, so the
-    // error envelope always precedes the transaction envelope (ordered assertions rely on this).
+    // Capture while the root span is active so the error carries its trace context.
     Sentry.captureException(new Error('continued-trace-error'));
   });
 });
