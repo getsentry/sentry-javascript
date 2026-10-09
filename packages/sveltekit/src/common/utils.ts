@@ -15,6 +15,7 @@ interface EventLike {
   route?: {
     id?: string | null;
   };
+  url: URL;
   untrack<T>(fn: () => T): T;
 }
 
@@ -41,6 +42,18 @@ export function getRouteId(event: EventLike): string | void {
   }
 
   return;
+}
+
+/**
+ * Get url.pathname from a load event without making the load depend on the URL.
+ * Without `untrack`, calls the native getter to skip SvelteKit's tracking getter on `event.url`.
+ */
+export function getPathname(event: EventLike): string {
+  if (typeof event.untrack === 'function') {
+    return event.untrack(() => event.url.pathname);
+  }
+
+  return Reflect.get(URL.prototype, 'pathname', event.url);
 }
 
 /**
