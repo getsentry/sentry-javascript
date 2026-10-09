@@ -8,7 +8,7 @@ const app = express();
 const port = 3030;
 
 const connection = { host: '127.0.0.1', port: 6379 };
-const telemetry = new Sentry.BullMQTelemetry();
+const telemetry = new Sentry.BullMQTelemetry({ enableMetrics: true });
 
 const testQueue = new Queue('test-queue', { connection, telemetry });
 

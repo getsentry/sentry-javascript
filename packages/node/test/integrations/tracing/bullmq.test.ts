@@ -46,11 +46,17 @@ beforeEach(() => {
 });
 
 describe('BullMQTelemetry', () => {
-  it('exposes tracer, contextManager, and meter', () => {
+  it('exposes tracer and contextManager without a meter by default', () => {
     const telemetry = new BullMQTelemetry();
 
     expect(telemetry.tracer).toBeDefined();
     expect(telemetry.contextManager).toBeDefined();
+    expect(telemetry.meter).toBeUndefined();
+  });
+
+  it('exposes a meter when enableMetrics is true', () => {
+    const telemetry = new BullMQTelemetry({ enableMetrics: true });
+
     expect(telemetry.meter).toBeDefined();
   });
 });
@@ -459,7 +465,7 @@ describe('SentryBullMQContextManager', () => {
 describe('SentryBullMQMeter', () => {
   describe('counter', () => {
     it('delegates add to metrics.count with name and unit', () => {
-      const telemetry = new BullMQTelemetry();
+      const telemetry = new BullMQTelemetry({ enableMetrics: true });
       const counter = telemetry.meter!.createCounter('bullmq.jobs.completed', { unit: '1' });
 
       counter.add(5, { 'queue.name': 'emails' });
@@ -471,7 +477,7 @@ describe('SentryBullMQMeter', () => {
     });
 
     it('passes undefined attributes when none provided', () => {
-      const telemetry = new BullMQTelemetry();
+      const telemetry = new BullMQTelemetry({ enableMetrics: true });
       const counter = telemetry.meter!.createCounter('bullmq.jobs.failed');
 
       counter.add(1);
@@ -485,7 +491,7 @@ describe('SentryBullMQMeter', () => {
 
   describe('histogram', () => {
     it('delegates record to metrics.distribution', () => {
-      const telemetry = new BullMQTelemetry();
+      const telemetry = new BullMQTelemetry({ enableMetrics: true });
       const histogram = telemetry.meter!.createHistogram('bullmq.job.duration', { unit: 'ms' });
 
       histogram.record(142.5, { 'queue.name': 'notifications' });
@@ -499,7 +505,7 @@ describe('SentryBullMQMeter', () => {
 
   describe('gauge', () => {
     it('delegates record to metrics.gauge', () => {
-      const telemetry = new BullMQTelemetry();
+      const telemetry = new BullMQTelemetry({ enableMetrics: true });
       const gauge = telemetry.meter!.createGauge!('bullmq.queue.size', { unit: '1' });
 
       gauge.record(37, { 'queue.name': 'reports' });
@@ -513,7 +519,7 @@ describe('SentryBullMQMeter', () => {
 
   describe('attribute filtering', () => {
     it('filters out array attribute values', () => {
-      const telemetry = new BullMQTelemetry();
+      const telemetry = new BullMQTelemetry({ enableMetrics: true });
       const counter = telemetry.meter!.createCounter('bullmq.jobs.completed');
 
       counter.add(1, {
@@ -534,7 +540,7 @@ describe('SentryBullMQMeter', () => {
     });
 
     it('returns empty object when all attributes are arrays', () => {
-      const telemetry = new BullMQTelemetry();
+      const telemetry = new BullMQTelemetry({ enableMetrics: true });
       const counter = telemetry.meter!.createCounter('bullmq.jobs.completed');
 
       counter.add(1, { tags: ['a', 'b'] });

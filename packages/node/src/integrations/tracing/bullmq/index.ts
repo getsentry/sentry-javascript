@@ -29,16 +29,28 @@ import type { ContextManager, Meter, Telemetry, Tracer, SentryContext } from './
  * });
  * ```
  *
+ * To also send BullMQ's job metrics to Sentry, use `new Sentry.BullMQTelemetry({ enableMetrics: true })`.
+ *
  * @see https://docs.bullmq.io/guide/telemetry
  */
 export class BullMQTelemetry implements Telemetry<SentryContext> {
   public tracer: Tracer<SentryContext>;
   public contextManager: ContextManager<SentryContext>;
-  public meter: Meter;
+  public meter?: Meter;
 
-  public constructor() {
+  public constructor(
+    options: {
+      /**
+       * Sends BullMQ's job metrics, such as `bullmq.jobs.completed` and `bullmq.job.duration`, to Sentry. Defaults to `false`.
+       */
+      enableMetrics?: boolean;
+    } = {},
+  ) {
     this.tracer = new SentryBullMQTracer();
     this.contextManager = new SentryBullMQContextManager();
-    this.meter = new SentryBullMQMeter();
+
+    if (options.enableMetrics) {
+      this.meter = new SentryBullMQMeter();
+    }
   }
 }
