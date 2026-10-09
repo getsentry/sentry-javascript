@@ -1,7 +1,7 @@
 import { afterAll, describe, expect } from 'vitest';
 import { cleanupChildProcesses, createEsmAndCjsTests } from '../../../utils/runner';
 
-describe('requestData-streamed', () => {
+describe('requestData', () => {
   afterAll(() => {
     cleanupChildProcesses();
   });
