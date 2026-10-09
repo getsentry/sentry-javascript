@@ -10,6 +10,7 @@ import {
   SENTRY_ORIGIN,
 } from '@sentry/conventions/attributes';
 import { RPC } from '@sentry/conventions/op';
+import type { OrchestrionChannelContext } from '../../orchestrion/types';
 import { CHANNELS } from '../../orchestrion/channels';
 import { awsSdkModuleNames } from '../../orchestrion/config/aws-sdk';
 import { invokeOrchestrionInstrumentation } from '../../orchestrion/instrumentation';
@@ -26,11 +27,8 @@ const INTEGRATION_NAME = 'Aws' as const;
 // The context orchestrion's transform attaches to the channel: `arguments` is the live args of the
 // wrapped `Client.prototype.send` call (`[command, ...]`), `self` the client, `result`/`error` the
 // settled value. The `_sentry*` fields are stashed by us across the call's lifecycle.
-interface AwsSendChannelContext {
-  arguments: unknown[];
+interface AwsSendChannelContext extends OrchestrionChannelContext {
   self?: { config?: AwsClientConfig; constructor?: { name?: string } };
-  result?: unknown;
-  error?: unknown;
   _sentryNormalizedRequest?: NormalizedRequest;
   _sentryRequestMetadata?: RequestMetadata;
   _sentryRegion?: { settled: boolean; promise: Promise<void> };
