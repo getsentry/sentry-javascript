@@ -150,6 +150,7 @@ export {
   tediousIntegration,
   postgresIntegration,
   postgresJsIntegration,
+  neonIntegration,
   prismaIntegration,
   openTelemetryIntegration,
   getOtlpTracesEndpoint,

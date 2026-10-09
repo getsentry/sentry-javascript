@@ -6,7 +6,9 @@ import { dirname, join } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { tracingChannel } from 'node:diagnostics_channel';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { neonChannels, neonConfig } from '../../src/orchestrion/config/neon';
+import { SENTRY_INSTRUMENTATIONS } from '../../src/orchestrion/config';
+import { neonChannels } from '../../src/orchestrion/config/neon';
+import { orchestrionTransformOptions } from '../../src/orchestrion/bundler/options';
 
 // The selectors key on internals of Neon's minified bundles, so this runs the bundler plugins'
 // code transformer over the real published files and executes the result: a release that
@@ -63,11 +65,21 @@ describe('neon orchestrion config on the published bundles', () => {
 
   afterAll(() => rmSync(outDir, { recursive: true, force: true }));
 
+  it('injects the subscriber snippet for the neon integration', () => {
+    const transformer = createCodeTransformer(orchestrionTransformOptions({}));
+    const result = transformer.transform(
+      readFileSync(join(packageDir, 'index.js'), 'utf8'),
+      join(packageDir, 'index.js'),
+    );
+
+    expect(result?.code).toContain('orchestrionModuleInjected("@neondatabase/serverless", () => neonIntegration())');
+  });
+
   it.each([
     ['index.js', 'cjs'],
     ['index.mjs', 'esm'],
   ])('instruments both drivers in %s', async (file, format) => {
-    const transformer = createCodeTransformer({ instrumentations: neonConfig });
+    const transformer = createCodeTransformer({ instrumentations: SENTRY_INSTRUMENTATIONS });
     const source = join(packageDir, file);
     const result = transformer.transform(readFileSync(source, 'utf8'), source);
     expect(result).not.toBeNull();

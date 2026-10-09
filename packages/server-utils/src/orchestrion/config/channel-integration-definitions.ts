@@ -18,6 +18,7 @@
 export const CHANNEL_INTEGRATION_DEFINITIONS = [
   { exportName: 'postgresIntegration', modules: ['pg', 'pg-pool'] },
   { exportName: 'postgresJsIntegration', modules: ['postgres'] },
+  { exportName: 'neonIntegration', modules: ['@neondatabase/serverless'] },
   { exportName: 'prismaIntegration', modules: ['@prisma/orm-family-sql'] },
   { exportName: 'mysqlIntegration', modules: ['mysql'] },
   { exportName: 'mysql2Integration', modules: ['mysql2'] },
