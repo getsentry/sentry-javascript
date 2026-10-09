@@ -1,4 +1,4 @@
-import { SENTRY_SEGMENT_ID } from '@sentry/conventions/attributes';
+import { SENTRY_LINK_TYPE, SENTRY_SEGMENT_ID } from '@sentry/conventions/attributes';
 import { describe, expect, test } from 'vitest';
 import { createRunner } from '../../../utils/runner';
 
@@ -18,7 +18,7 @@ describe('span links', () => {
               trace_id: parent1?.trace_id,
               span_id: parent1?.span_id,
               sampled: true,
-              attributes: { 'sentry.link.type': { type: 'string', value: 'previous_trace' } },
+              attributes: { [SENTRY_LINK_TYPE]: { type: 'string', value: 'previous_trace' } },
             },
           ]);
         },
@@ -49,7 +49,7 @@ describe('span links', () => {
               span_id: span1?.span_id,
               sampled: true,
               attributes: {
-                'sentry.link.type': { type: 'string', value: 'previous_trace' },
+                [SENTRY_LINK_TYPE]: { type: 'string', value: 'previous_trace' },
               },
             },
           ]);
@@ -96,7 +96,7 @@ describe('span links', () => {
               span_id: span2?.span_id,
               sampled: true,
               attributes: {
-                'sentry.link.type': { type: 'string', value: 'previous_trace' },
+                [SENTRY_LINK_TYPE]: { type: 'string', value: 'previous_trace' },
               },
             },
           ]);
@@ -124,7 +124,7 @@ describe('span links', () => {
               span_id: parent1?.span_id,
               sampled: true,
               attributes: {
-                'sentry.link.type': { type: 'string', value: 'previous_trace' },
+                [SENTRY_LINK_TYPE]: { type: 'string', value: 'previous_trace' },
               },
             },
           ]);
@@ -136,7 +136,7 @@ describe('span links', () => {
               span_id: parent1?.span_id,
               sampled: true,
               attributes: {
-                'sentry.link.type': { type: 'string', value: 'previous_trace' },
+                [SENTRY_LINK_TYPE]: { type: 'string', value: 'previous_trace' },
               },
             },
           ]);
@@ -173,7 +173,7 @@ describe('span links', () => {
               span_id: child1_1?.span_id,
               sampled: true,
               attributes: {
-                'sentry.link.type': { type: 'string', value: 'previous_trace' },
+                [SENTRY_LINK_TYPE]: { type: 'string', value: 'previous_trace' },
               },
             },
           ]);

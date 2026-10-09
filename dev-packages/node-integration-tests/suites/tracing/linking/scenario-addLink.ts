@@ -1,3 +1,4 @@
+import { SENTRY_LINK_TYPE } from '@sentry/conventions/attributes';
 import * as Sentry from '@sentry/node';
 import { loggingTransport } from '@sentry-internal/node-integration-tests';
 
@@ -15,6 +16,6 @@ span1.end();
 Sentry.startSpan({ name: 'rootSpan' }, rootSpan => {
   rootSpan.addLink({
     context: span1.spanContext(),
-    attributes: { 'sentry.link.type': 'previous_trace' },
+    attributes: { [SENTRY_LINK_TYPE]: 'previous_trace' },
   });
 });
