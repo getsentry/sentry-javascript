@@ -63,7 +63,7 @@ sentryTest(
 
       expect(streamSpan.parent_span_id).toBe(requestSpan.parent_span_id);
       expect(streamSpan.trace_id).toBe(requestSpan.trace_id);
-      expect(streamSpan.end_timestamp).toBeGreaterThanOrEqual(streamSpan.start_timestamp);
+      expect(streamSpan.end_timestamp).toBeGreaterThan(streamSpan.start_timestamp);
     } finally {
       server.close();
     }

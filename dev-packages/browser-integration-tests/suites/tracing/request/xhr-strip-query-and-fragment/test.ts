@@ -50,7 +50,7 @@ sentryTest('strips query params in XHR request spans', async ({ getLocalTestUrl,
     }),
   });
 
-  expect(requestSpan?.attributes).not.toHaveProperty('url.fragment');
+  expect(requestSpan?.attributes).not.toHaveProperty([URL_FRAGMENT]);
 });
 
 sentryTest('strips hash fragment in XHR request spans', async ({ getLocalTestUrl, page }) => {
@@ -90,7 +90,7 @@ sentryTest('strips hash fragment in XHR request spans', async ({ getLocalTestUrl
     }),
   });
 
-  expect(requestSpan?.attributes).not.toHaveProperty('url.query');
+  expect(requestSpan?.attributes).not.toHaveProperty([URL_QUERY]);
 });
 
 sentryTest('strips hash fragment and query params in XHR request spans', async ({ getLocalTestUrl, page }) => {
