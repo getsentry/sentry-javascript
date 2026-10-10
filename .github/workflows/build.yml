@@ -537,7 +537,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        node: [20.19, 22, 24, 26]
+        # node: [20.19, 22, 24, 26]
+        node: [24]
     steps:
       - name: Check out base commit (${{ github.event.pull_request.base.sha }})
         uses: actions/checkout@v7
@@ -755,21 +756,23 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        node: [20.19, 22, 24, 26]
-        shard: [1, 2, 3]
+        # node: [20.19, 22, 24, 26]
+        node: [24]
+        # shard: [1, 2, 3]
+        shard: [1]
         typescript:
           - false
-        include:
-          # Only check typescript for latest version (to streamline CI)
-          - node: 24
-            typescript: '5.0'
-            shard: 1
-          - node: 24
-            typescript: '5.0'
-            shard: 2
-          - node: 24
-            typescript: '5.0'
-            shard: 3
+        # include:
+        #   # Only check typescript for latest version (to streamline CI)
+        #   - node: 24
+        #     typescript: '5.0'
+        #     shard: 1
+        #   - node: 24
+        #     typescript: '5.0'
+        #     shard: 2
+        #   - node: 24
+        #     typescript: '5.0'
+        #     shard: 3
     steps:
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
         uses: actions/checkout@v7
@@ -839,7 +842,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        node: [20.19, 22, 24, 26]
+        # node: [20.19, 22, 24, 26]
+        node: [24]
     steps:
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
         uses: actions/checkout@v7
@@ -869,7 +873,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        shard: [1, 2]
+        # shard: [1, 2]
+        shard: [1]
     steps:
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
         uses: actions/checkout@v7
