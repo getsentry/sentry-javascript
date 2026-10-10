@@ -6,7 +6,7 @@ on:
 
 jobs:
   validate-pr:
-    runs-on: namespace-profile-sentry-javascript
+    runs-on: namespace-profile-sentry-javascript-small
     permissions:
       pull-requests: write
     steps:

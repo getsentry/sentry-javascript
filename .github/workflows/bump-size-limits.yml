@@ -17,7 +17,7 @@ concurrency:
 jobs:
   bump:
     name: Bump size-limit thresholds
-    runs-on: namespace-profile-sentry-javascript
+    runs-on: namespace-profile-sentry-javascript-large
     timeout-minutes: 25
     steps:
       - name: Generate GitHub App token

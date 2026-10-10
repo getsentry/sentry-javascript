@@ -13,7 +13,7 @@ permissions:
 
 jobs:
   release:
-    runs-on: namespace-profile-sentry-javascript
+    runs-on: namespace-profile-sentry-javascript-small
     name: 'Prepare a new version'
 
     steps:

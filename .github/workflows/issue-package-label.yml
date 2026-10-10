@@ -7,7 +7,7 @@ on:
 jobs:
   add_labels:
     name: Add package label
-    runs-on: namespace-profile-sentry-javascript
+    runs-on: namespace-profile-sentry-javascript-small
     if: ${{ !github.event.issue.pull_request }}
     steps:
       - name: Get used package from issue body

@@ -12,7 +12,7 @@ on:
 # This workflow is triggered when a release is published
 jobs:
   release-comment-issues:
-    runs-on: namespace-profile-sentry-javascript
+    runs-on: namespace-profile-sentry-javascript-small
     name: 'Notify issues'
     steps:
       - name: Get version

@@ -64,7 +64,7 @@ jobs:
   job_build:
     name: Build
     needs: job_get_metadata
-    runs-on: namespace-profile-sentry-javascript
+    runs-on: namespace-profile-sentry-javascript-large
     timeout-minutes: 15
     if: |
       needs.job_get_metadata.outputs.changed_any_code == 'true' ||
@@ -258,7 +258,7 @@ jobs:
   job_check_branches:
     name: Check PR branches
     needs: job_get_metadata
-    runs-on: namespace-profile-sentry-javascript
+    runs-on: namespace-profile-sentry-javascript-small
     if: github.event_name == 'pull_request'
     permissions:
       pull-requests: write
@@ -307,7 +307,7 @@ jobs:
     # inter-package dependencies resolve cleanly.
     needs: [job_get_metadata, job_build]
     timeout-minutes: 10
-    runs-on: namespace-profile-sentry-javascript
+    runs-on: namespace-profile-sentry-javascript-large
     steps:
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
         uses: actions/checkout@v7
@@ -450,7 +450,7 @@ jobs:
     name: Browser Unit Tests
     needs: [job_get_metadata, job_build]
     timeout-minutes: 10
-    runs-on: namespace-profile-sentry-javascript
+    runs-on: namespace-profile-sentry-javascript-large
     steps:
       - name: Check out base commit (${{ github.event.pull_request.base.sha }})
         uses: actions/checkout@v7
@@ -533,7 +533,7 @@ jobs:
     name: Node (${{ matrix.node }}) Unit Tests
     needs: [job_get_metadata, job_build]
     timeout-minutes: 10
-    runs-on: namespace-profile-sentry-javascript
+    runs-on: namespace-profile-sentry-javascript-large
     strategy:
       fail-fast: false
       matrix:
@@ -573,7 +573,7 @@ jobs:
       matrix.project) || ''}}${{ matrix.shard && format(' ({0}/{1})', matrix.shard, matrix.shards) || ''}} Tests
     needs: [job_get_metadata, job_build, job_build_bundles]
     if: needs.job_build.outputs.changed_browser_integration == 'true' || github.event_name != 'pull_request'
-    runs-on: namespace-profile-sentry-javascript
+    runs-on: namespace-profile-sentry-javascript-large
     timeout-minutes: 25
     strategy:
       fail-fast: false
@@ -750,7 +750,7 @@ jobs:
       Tests (${{ matrix.shard }}/3)
     needs: [job_get_metadata, job_build]
     if: needs.job_build.outputs.changed_node_integration == 'true' || github.event_name != 'pull_request'
-    runs-on: namespace-profile-sentry-javascript
+    runs-on: namespace-profile-sentry-javascript-large
     timeout-minutes: 20
     strategy:
       fail-fast: false
@@ -834,7 +834,7 @@ jobs:
     name: Bundler Plugin Integration Tests (Node ${{ matrix.node }})
     needs: [job_get_metadata, job_build]
     if: needs.job_build.outputs.changed_bundler_plugin_integration == 'true' || github.event_name != 'pull_request'
-    runs-on: namespace-profile-sentry-javascript
+    runs-on: namespace-profile-sentry-javascript-large
     timeout-minutes: 15
     strategy:
       fail-fast: false
@@ -864,7 +864,7 @@ jobs:
     name: Bun Integration Tests (${{ matrix.shard }}/2)
     needs: [job_get_metadata, job_build]
     if: needs.job_build.outputs.changed_bun_integration == 'true' || github.event_name != 'pull_request'
-    runs-on: namespace-profile-sentry-javascript
+    runs-on: namespace-profile-sentry-javascript-large
     timeout-minutes: 15
     strategy:
       fail-fast: false
@@ -894,7 +894,7 @@ jobs:
     name: Deno Integration Tests (${{ matrix.shard }}/2)
     needs: [job_get_metadata, job_build]
     if: needs.job_build.outputs.changed_deno_integration == 'true' || github.event_name != 'pull_request'
-    runs-on: namespace-profile-sentry-javascript
+    runs-on: namespace-profile-sentry-javascript-large
     timeout-minutes: 15
     strategy:
       fail-fast: false
@@ -937,7 +937,7 @@ jobs:
       always() &&
       needs.job_build.result == 'success'
     needs: [job_get_metadata, job_build]
-    runs-on: namespace-profile-sentry-javascript
+    runs-on: namespace-profile-sentry-javascript-large
     timeout-minutes: 15
     steps:
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
@@ -1282,7 +1282,7 @@ jobs:
       ]
     # Always run this, even if a dependent job failed
     if: always()
-    runs-on: namespace-profile-sentry-javascript
+    runs-on: namespace-profile-sentry-javascript-small
     permissions: {}
     steps:
       - name: Check for failures

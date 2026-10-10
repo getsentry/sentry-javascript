@@ -32,7 +32,7 @@ concurrency:
 jobs:
   analyze:
     name: Analyze
-    runs-on: namespace-profile-sentry-javascript
+    runs-on: namespace-profile-sentry-javascript-large
     # Skip for pushes from dependabot, which is not supported
     if: github.event_name == 'pull_request' || github.actor != 'dependabot[bot]'
 

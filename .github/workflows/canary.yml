@@ -27,7 +27,7 @@ permissions:
 jobs:
   job_e2e_prepare:
     name: Prepare E2E Canary tests
-    runs-on: namespace-profile-sentry-javascript
+    runs-on: namespace-profile-sentry-javascript-large
     timeout-minutes: 30
     steps:
       - name: Check out current commit

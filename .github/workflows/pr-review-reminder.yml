@@ -22,7 +22,7 @@ jobs:
   remind-reviewers:
     # `schedule` has no `repository` on github.event; forks must be skipped only for workflow_dispatch.
     if: github.event_name == 'schedule' || github.event.repository.fork != true
-    runs-on: namespace-profile-sentry-javascript
+    runs-on: namespace-profile-sentry-javascript-small
     steps:
       - name: Checkout repository
         uses: actions/checkout@v7
