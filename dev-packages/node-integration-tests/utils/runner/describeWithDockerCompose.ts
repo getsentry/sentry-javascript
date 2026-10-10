@@ -6,6 +6,8 @@ import { afterAll, beforeAll, describe } from 'vitest';
 
 type DefineTests = () => void;
 
+const SLOW_START_MS = 60_000;
+
 interface DockerOptions {
   /**
    * The working directory to run docker compose in
@@ -53,10 +55,11 @@ export function describeWithDockerCompose(
     let dockerDown: (() => void) | undefined;
 
     // Bring the container up once for the whole group. The generous timeout covers image pulls and
-    // slow healthchecks on the first run.
+    // slow healthchecks on the first run. On a runner without cached images, pulling the ~1.5 GB
+    // mssql image and starting SQL Server took longer than 120s.
     beforeAll(async () => {
       dockerDown = await runDockerCompose(dockerOptions);
-    }, 120_000);
+    }, 300_000);
 
     afterAll(() => {
       dockerDown?.();
@@ -94,8 +97,27 @@ async function runDockerCompose(options: DockerOptions): Promise<VoidFunction> {
     });
   };
 
+  const output = (result: ReturnType<typeof spawnSync>): string =>
+    `${result.stderr?.toString() ?? ''}${result.stdout?.toString() ?? ''}`;
+  // Surface container logs to make healthcheck failures easier to diagnose in CI
+  const containerLogs = (): string => spawnSync('docker', composeArgs('logs'), { cwd }).stdout?.toString() ?? '';
+
   // ensure we're starting fresh
   close();
+
+  // Pull on its own, so a slow image pull on a runner without cached images can be told apart from
+  // a slow container start.
+  const pullStartedAt = Date.now();
+  const pull = spawnSync('docker', composeArgs('pull', '--policy', 'missing', '--quiet'), {
+    cwd,
+    stdio: process.env.DEBUG ? 'inherit' : 'pipe',
+  });
+  const pullMs = Date.now() - pullStartedAt;
+  if (pull.status !== 0) {
+    // `up` pulls missing images too, so only report this
+    // eslint-disable-next-line no-console
+    console.warn(`[docker compose] pull failed after ${pullMs}ms (exit ${pull.status}) in ${cwd}\n${output(pull)}`);
+  }
 
   const composeUp = (): ReturnType<typeof spawnSync> =>
     spawnSync('docker', composeArgs('up', '-d', '--wait'), {
@@ -108,21 +130,32 @@ async function runDockerCompose(options: DockerOptions): Promise<VoidFunction> {
   // found" right after the network was created). A clean teardown plus retry
   // clears these, while genuine healthcheck failures stay red on every attempt.
   const maxAttempts = 3;
+  const upStartedAt = Date.now();
+  let attemptStartedAt = upStartedAt;
   let result = composeUp();
   for (let attempt = 1; attempt < maxAttempts && result.status !== 0; attempt++) {
+    // eslint-disable-next-line no-console
+    console.warn(
+      `[docker compose] up --wait attempt ${attempt} failed after ${Date.now() - attemptStartedAt}ms ` +
+        `(exit ${result.status}) in ${cwd}\n${output(result)}\n--- container logs ---\n${containerLogs()}`,
+    );
     close();
+    attemptStartedAt = Date.now();
     result = composeUp();
   }
+  const upMs = Date.now() - upStartedAt;
 
   if (result.status !== 0) {
-    const stderr = result.stderr?.toString() ?? '';
-    const stdout = result.stdout?.toString() ?? '';
-    // Surface container logs to make healthcheck failures easier to diagnose in CI
-    const logs = spawnSync('docker', composeArgs('logs'), { cwd }).stdout?.toString() ?? '';
+    const logs = containerLogs();
     close();
     throw new Error(
-      `docker compose up --wait failed (exit ${result.status})\n${stderr}${stdout}\n--- container logs ---\n${logs}`,
+      `docker compose up --wait failed (exit ${result.status})\n${output(result)}\n--- container logs ---\n${logs}`,
     );
+  }
+
+  if (pullMs + upMs > SLOW_START_MS) {
+    // eslint-disable-next-line no-console
+    console.warn(`[docker compose] slow start in ${cwd}: pull ${pullMs}ms, up --wait ${upMs}ms`);
   }
 
   return close;
