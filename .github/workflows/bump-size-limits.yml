@@ -10,8 +10,6 @@ permissions:
   pull-requests: write
   issues: write
 
-env:
-
 concurrency:
   group: bump-size-limits
   cancel-in-progress: false
