@@ -1,5 +1,6 @@
 import { expect, test } from '@playwright/test';
 import { collectStreamedSpansUntilSegment, getRuntime } from '@sentry-internal/test-utils';
+import { isVinext } from './isVinext';
 
 // pg is externalized, so the runtime module hook instruments it.
 test('Instruments pg calls made during server-side rendering of a page', async ({ page }) => {
@@ -29,6 +30,8 @@ test('Instruments pg calls made during server-side rendering of a page', async (
 
 // ioredis is bundle-safe and allowlisted, so the build-time loader instruments it.
 test('Instruments ioredis calls made during server-side rendering of a page', async ({ page }) => {
+  test.skip(isVinext, 'vinext does not run the build-time loader of webpack or Turbopack');
+
   // The db spans are children of the segment span, which ends last.
   const spansPromise = collectStreamedSpansUntilSegment('nextjs-16', 'GET /db-page');
 
