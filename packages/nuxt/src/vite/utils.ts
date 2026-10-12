@@ -224,3 +224,19 @@ export function toResolvablePath(source: string): { path: string; wasFileUrl: bo
     return undefined;
   }
 }
+
+/**
+ * Nitro v3 bundles every dependency by default, but `@sentry/server-runtime-injection` must load
+ * from `node_modules`: on Node versions without `Module.registerHooks` it registers its ESM loader
+ * hook by file, and that file does not exist next to a bundled copy. Nitro v2 already keeps
+ * dependencies external.
+ */
+export function addRuntimeInjectionTraceDep(nuxt: Nuxt, isNitroV3: boolean): void {
+  if (!isNitroV3) {
+    return;
+  }
+
+  // Nuxt types `nitro` against Nitro v2, which has no `traceDeps`.
+  const nitroOptions = nuxt.options.nitro as { traceDeps?: (string | RegExp)[] };
+  nitroOptions.traceDeps = [...(nitroOptions.traceDeps ?? []), '@sentry/server-runtime-injection'];
+}
