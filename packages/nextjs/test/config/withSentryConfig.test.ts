@@ -398,7 +398,7 @@ describe('withSentryConfig', () => {
           disableLogger: true,
         };
 
-        materializeFinalNextConfig(exportedNextConfig, undefined, sentryOptions);
+        materializeFinalNextConfig({ ...exportedNextConfig }, undefined, sentryOptions);
 
         expect(consoleWarnSpy).toHaveBeenCalledWith(
           expect.stringContaining('Use webpack.treeshake.removeDebugLogging instead. (Not supported with Turbopack.)'),
@@ -620,6 +620,65 @@ describe('withSentryConfig', () => {
 
         expect(consoleWarnSpy).not.toHaveBeenCalled();
       });
+    });
+  });
+
+  describe('turbopack treeshake configuration', () => {
+    const originalTurbopack = process.env.TURBOPACK;
+
+    afterEach(() => {
+      vi.restoreAllMocks();
+      process.env.TURBOPACK = originalTurbopack;
+    });
+
+    it('sets treeshake flags as boolean defines and keeps user defines', () => {
+      process.env.TURBOPACK = '1';
+      vi.spyOn(util, 'getNextjsVersion').mockReturnValue('16.0.0');
+
+      const finalConfig = materializeFinalNextConfig(
+        { ...exportedNextConfig, compiler: { define: { __SENTRY_DEBUG__: true, USER_FLAG: 'x' } } },
+        undefined,
+        { bundleSizeOptimizations: { excludeTracing: true, excludeDebugStatements: true } },
+      );
+
+      expect(finalConfig.compiler?.define).toEqual({
+        __SENTRY_TRACING__: false,
+        __SENTRY_DEBUG__: true,
+        USER_FLAG: 'x',
+      });
+    });
+
+    it('supports the webpack.treeshake option', () => {
+      process.env.TURBOPACK = '1';
+      vi.spyOn(util, 'getNextjsVersion').mockReturnValue('16.0.0');
+
+      const finalConfig = materializeFinalNextConfig({ ...exportedNextConfig }, undefined, {
+        webpack: { treeshake: { removeTracing: true } },
+      });
+
+      expect(finalConfig.compiler?.define).toEqual({ __SENTRY_TRACING__: false });
+    });
+
+    it('prefers bundleSizeOptimizations over the webpack.treeshake option', () => {
+      process.env.TURBOPACK = '1';
+      vi.spyOn(util, 'getNextjsVersion').mockReturnValue('16.0.0');
+
+      const finalConfig = materializeFinalNextConfig({ ...exportedNextConfig }, undefined, {
+        bundleSizeOptimizations: { excludeTracing: false },
+        webpack: { treeshake: { removeTracing: true } },
+      });
+
+      expect(finalConfig.compiler?.define).toBeUndefined();
+    });
+
+    it('does not set defines on webpack builds', () => {
+      delete process.env.TURBOPACK;
+
+      const finalConfig = materializeFinalNextConfig({ ...exportedNextConfig }, undefined, {
+        bundleSizeOptimizations: { excludeTracing: true },
+      });
+
+      expect(finalConfig.compiler?.define).toBeUndefined();
     });
   });
 

@@ -9,6 +9,7 @@ import {
   getWebpackPatch,
   maybeConstructTurbopackConfig,
   maybeEnableTurbopackSourcemaps,
+  maybeSetTurbopackTreeshakeDefines,
   maybeSetUpRunAfterProductionCompileHook,
   maybeWarnAboutUnsupportedRunAfterProductionCompileHook,
   maybeWarnAboutUnsupportedTurbopack,
@@ -84,6 +85,7 @@ export function getFinalConfigObject(
   });
 
   maybeEnableTurbopackSourcemaps(incomingUserNextConfigObject, userSentryOptions, bundlerInfo);
+  maybeSetTurbopackTreeshakeDefines(incomingUserNextConfigObject, userSentryOptions, bundlerInfo);
 
   const useDiagnosticsChannelInjection = userSentryOptions._experimental?.useDiagnosticsChannelInjection ?? false;
 
