@@ -360,15 +360,15 @@ function _addPerformanceNavigationTiming(
     return;
   }
   const op = NAVIGATION_TIMING_SPAN_OPS[event];
-  const url = filterCollectedUrl(entry.name);
+  const filteredUrl = filterCollectedUrl(entry.name);
   startAndEndSpan(span, _navigationTimeToSeconds(entry, start), _navigationTimeToSeconds(entry, end), {
     // With span streaming, span names have to be low cardinality, so we can't fall back to the
     // document URL. `url.full` keeps it, and is what Relay derives the description from.
-    name: spanStreamingEnabled ? BROWSER_NAVIGATION_TIMING_SPAN_NAMES[op] : url,
+    name: spanStreamingEnabled ? BROWSER_NAVIGATION_TIMING_SPAN_NAMES[op] : filteredUrl,
     attributes: {
       [SENTRY_OP]: op,
       [SENTRY_ORIGIN]: 'auto.ui.browser.metrics',
-      [URL_FULL]: url,
+      [URL_FULL]: filteredUrl,
       ...(event === 'redirect' && entry.redirectCount != null ? { 'http.redirect_count': entry.redirectCount } : {}),
     },
   });
@@ -397,23 +397,23 @@ function _addRequest(span: Span, entry: PerformanceNavigationTiming, spanStreami
 
     // With span streaming, span names have to be low cardinality, so we can't fall back to the
     // document URL. `url.full` keeps it, and is what Relay derives the description from.
-    const url = filterCollectedUrl(entry.name);
+    const filteredUrl = filterCollectedUrl(entry.name);
 
     startAndEndSpan(span, requestStartTimestamp, responseEndTimestamp, {
-      name: spanStreamingEnabled ? BROWSER_NAVIGATION_TIMING_SPAN_NAMES[BROWSER_REQUEST] : url,
+      name: spanStreamingEnabled ? BROWSER_NAVIGATION_TIMING_SPAN_NAMES[BROWSER_REQUEST] : filteredUrl,
       attributes: {
         [SENTRY_OP]: BROWSER_REQUEST,
         [SENTRY_ORIGIN]: 'auto.ui.browser.metrics',
-        [URL_FULL]: url,
+        [URL_FULL]: filteredUrl,
       },
     });
 
     startAndEndSpan(span, responseStartTimestamp, responseEndTimestamp, {
-      name: spanStreamingEnabled ? BROWSER_NAVIGATION_TIMING_SPAN_NAMES[BROWSER_RESPONSE] : url,
+      name: spanStreamingEnabled ? BROWSER_NAVIGATION_TIMING_SPAN_NAMES[BROWSER_RESPONSE] : filteredUrl,
       attributes: {
         [SENTRY_OP]: BROWSER_RESPONSE,
         [SENTRY_ORIGIN]: 'auto.ui.browser.metrics',
-        [URL_FULL]: url,
+        [URL_FULL]: filteredUrl,
       },
     });
   }
