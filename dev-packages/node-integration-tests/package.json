@@ -110,7 +110,7 @@
   "devDependencies": {
     "@neondatabase/serverless": "1.2.0",
     "@opentelemetry/instrumentation-http": "0.220.0",
-    "@sentry/conventions": "0.26.0",
+    "@sentry/conventions": "0.27.0",
     "@sentry-internal/test-utils": "11.6.0",
     "@types/amqplib": "^0.10.5",
     "@types/node-cron": "^3.0.11",

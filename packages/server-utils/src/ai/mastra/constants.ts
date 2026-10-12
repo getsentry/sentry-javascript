@@ -42,6 +42,7 @@ export const SPAN_TYPE_OPS: Readonly<Record<string, { op: string; operationName:
   provider_tool_call: { op: GEN_AI_EXECUTE_TOOL, operationName: 'execute_tool' },
   client_tool_call: { op: GEN_AI_EXECUTE_TOOL, operationName: 'execute_tool' },
   rag_embedding: { op: GEN_AI_EMBEDDINGS, operationName: 'embeddings' },
+  // oxlint-disable-next-line typescript/no-deprecated -- the rename to `gen_ai.decide` comes in a follow-up
   classifier_evaluation: { op: GEN_AI_EVALUATE, operationName: 'evaluate' },
 };
 

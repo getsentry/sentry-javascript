@@ -28,7 +28,7 @@
   "devDependencies": {
     "@playwright/test": "~1.56.0",
     "@sentry-internal/test-utils": "link:../../../test-utils",
-    "@sentry/conventions": "0.26.0",
+    "@sentry/conventions": "0.27.0",
     "@types/node": "24.x",
     "mastra": "~1.28.0",
     "typescript": "~5.9.0"
