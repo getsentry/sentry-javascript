@@ -3,53 +3,49 @@ import { waitForTransaction } from '@sentry-internal/test-utils';
 
 const isProductionBuild = process.env.TEST_ENV === 'production' || process.env.TEST_ENV === 'prod-turbopack';
 
-test('does not carry trace meta tags on an ISR dynamic route', async ({ page }) => {
+test.describe('prerendered ISR pages', () => {
   // The dev server renders ISR pages for every request, so there the trace tags are fresh and kept.
   test.skip(!isProductionBuild, 'ISR pages are only prerendered in production builds');
 
-  // Navigate to ISR page
-  await page.goto('/isr-test/laptop');
+  test('does not carry trace meta tags on an ISR dynamic route', async ({ page }) => {
+    // Navigate to ISR page
+    await page.goto('/isr-test/laptop');
 
-  // Wait for page to be fully loaded
-  await expect(page.locator('#isr-product-id')).toHaveText('laptop');
+    // Wait for page to be fully loaded
+    await expect(page.locator('#isr-product-id')).toHaveText('laptop');
 
-  // The shell was prerendered, and a prerender writes no trace tags
-  await expect(page.locator('meta[name="sentry-trace"]')).toHaveCount(0);
-  await expect(page.locator('meta[name="baggage"]')).toHaveCount(0);
-});
+    // The shell was prerendered, and a prerender writes no trace tags
+    await expect(page.locator('meta[name="sentry-trace"]')).toHaveCount(0);
+    await expect(page.locator('meta[name="baggage"]')).toHaveCount(0);
+  });
 
-test('does not carry trace meta tags on an ISR static route', async ({ page }) => {
-  // The dev server renders ISR pages for every request, so there the trace tags are fresh and kept.
-  test.skip(!isProductionBuild, 'ISR pages are only prerendered in production builds');
+  test('does not carry trace meta tags on an ISR static route', async ({ page }) => {
+    // Navigate to ISR static page
+    await page.goto('/isr-test/static');
 
-  // Navigate to ISR static page
-  await page.goto('/isr-test/static');
+    // Wait for page to be fully loaded
+    await expect(page.locator('#isr-static-marker')).toHaveText('static-isr');
 
-  // Wait for page to be fully loaded
-  await expect(page.locator('#isr-static-marker')).toHaveText('static-isr');
+    // The shell was prerendered, and a prerender writes no trace tags
+    await expect(page.locator('meta[name="sentry-trace"]')).toHaveCount(0);
+    await expect(page.locator('meta[name="baggage"]')).toHaveCount(0);
+  });
 
-  // The shell was prerendered, and a prerender writes no trace tags
-  await expect(page.locator('meta[name="sentry-trace"]')).toHaveCount(0);
-  await expect(page.locator('meta[name="baggage"]')).toHaveCount(0);
-});
+  test('does not carry trace meta tags for different ISR dynamic route values', async ({ page }) => {
+    // Test with 'phone' (one of the pre-generated static params)
+    await page.goto('/isr-test/phone');
+    await expect(page.locator('#isr-product-id')).toHaveText('phone');
 
-test('does not carry trace meta tags for different ISR dynamic route values', async ({ page }) => {
-  // The dev server renders ISR pages for every request, so there the trace tags are fresh and kept.
-  test.skip(!isProductionBuild, 'ISR pages are only prerendered in production builds');
+    await expect(page.locator('meta[name="sentry-trace"]')).toHaveCount(0);
+    await expect(page.locator('meta[name="baggage"]')).toHaveCount(0);
 
-  // Test with 'phone' (one of the pre-generated static params)
-  await page.goto('/isr-test/phone');
-  await expect(page.locator('#isr-product-id')).toHaveText('phone');
+    // Test with 'tablet'
+    await page.goto('/isr-test/tablet');
+    await expect(page.locator('#isr-product-id')).toHaveText('tablet');
 
-  await expect(page.locator('meta[name="sentry-trace"]')).toHaveCount(0);
-  await expect(page.locator('meta[name="baggage"]')).toHaveCount(0);
-
-  // Test with 'tablet'
-  await page.goto('/isr-test/tablet');
-  await expect(page.locator('#isr-product-id')).toHaveText('tablet');
-
-  await expect(page.locator('meta[name="sentry-trace"]')).toHaveCount(0);
-  await expect(page.locator('meta[name="baggage"]')).toHaveCount(0);
+    await expect(page.locator('meta[name="sentry-trace"]')).toHaveCount(0);
+    await expect(page.locator('meta[name="baggage"]')).toHaveCount(0);
+  });
 });
 
 test('should create unique transactions for ISR pages on each visit', async ({ page }) => {
