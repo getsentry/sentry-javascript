@@ -1,12 +1,12 @@
 import { expect, test } from '@playwright/test';
-import type { TraceItem } from './utils/sentry-api';
+import type { TraceItem } from '@sentry-internal/test-utils/cli';
 import {
   EVENT_POLLING_OPTIONS,
   fetchSpanAttributes,
   fetchTrace,
   findSpanInTrace,
   flattenTrace,
-} from './utils/sentry-api';
+} from '@sentry-internal/test-utils/cli';
 
 // Mirrors src/app.ts.
 const CHAT_MODEL = 'openai/gpt-4o-mini';
@@ -36,9 +36,9 @@ async function waitForSpan(traceId: string, op: string): Promise<{ span: TraceIt
   let found: { span: TraceItem; attributes: Attributes } | undefined;
 
   await expect
-    .poll(async () => {
-      const span = await findSpanInTrace(traceId, op);
-      const attributes = span?.event_id ? await fetchSpanAttributes(traceId, span.event_id) : undefined;
+    .poll(() => {
+      const span = findSpanInTrace(traceId, op);
+      const attributes = span?.event_id ? fetchSpanAttributes(traceId, span.event_id) : undefined;
       found = span && attributes ? { span, attributes } : undefined;
       return found;
     }, EVENT_POLLING_OPTIONS)
@@ -48,8 +48,8 @@ async function waitForSpan(traceId: string, op: string): Promise<{ span: TraceIt
 }
 
 /** The ids of the spans with `op` below the request span (`http.server`) of the trace. */
-async function spanIdsUnderRequestSpan(traceId: string, op: string): Promise<string[]> {
-  const requestSpan = flattenTrace(await fetchTrace(traceId)).find(item => item.op === 'http.server');
+function spanIdsUnderRequestSpan(traceId: string, op: string): string[] {
+  const requestSpan = flattenTrace(fetchTrace(traceId)).find(item => item.op === 'http.server');
   return flattenTrace(requestSpan?.children ?? [])
     .filter(item => item.op === op)
     .map(item => item.event_id!);
@@ -80,8 +80,9 @@ function expectModelCallAttributes(attributes: Attributes, operation: 'chat' | '
   });
   expect(typeof attributes['gen_ai.response.id']).toBe('string');
   expect(typeof attributes['gen_ai.response.model']).toBe('string');
-  expect(attributes['gen_ai.usage.input_tokens']).toBeGreaterThan(0);
-  expect(attributes['gen_ai.usage.total_tokens']).toBeGreaterThan(0);
+  // The Sentry API returns int attributes as strings.
+  expect(Number(attributes['gen_ai.usage.input_tokens'])).toBeGreaterThan(0);
+  expect(Number(attributes['gen_ai.usage.total_tokens'])).toBeGreaterThan(0);
 }
 
 /** `gen_ai.response.finish_reasons` is a JSON array; a streamed answer can repeat the reason per chunk. */
@@ -96,7 +97,7 @@ test('Sends a chat completion to Sentry as a gen_ai.chat span under the request 
 
   expect(span.description).toBe(`chat ${CHAT_MODEL}`);
   expectModelCallAttributes(attributes, 'chat', CHAT_MODEL);
-  expect(attributes['gen_ai.usage.output_tokens']).toBeGreaterThan(0);
+  expect(Number(attributes['gen_ai.usage.output_tokens'])).toBeGreaterThan(0);
   expect(finishReasons(attributes)).toEqual(['stop']);
   expect(attributes['gen_ai.response.streaming']).toBeUndefined();
 
@@ -118,7 +119,7 @@ test('Sends a streamed chat completion to Sentry with its token usage', async ({
   expectModelCallAttributes(attributes, 'chat', CHAT_MODEL);
   expect(attributes['gen_ai.response.streaming']).toBe(true);
   // The usage only arrives in the final chunk, which the streaming instrumentation has to pick up.
-  expect(attributes['gen_ai.usage.output_tokens']).toBeGreaterThan(0);
+  expect(Number(attributes['gen_ai.usage.output_tokens'])).toBeGreaterThan(0);
   expect(finishReasons(attributes)).toContain('stop');
   expect(attributes['gen_ai.output.messages']).toMatch(/paris/i);
 
@@ -147,7 +148,7 @@ test('Sends a Responses API call to Sentry as a gen_ai.chat span', async ({ base
 
   expect(span.description).toBe(`chat ${CHAT_MODEL}`);
   expectModelCallAttributes(attributes, 'chat', CHAT_MODEL);
-  expect(attributes['gen_ai.usage.output_tokens']).toBeGreaterThan(0);
+  expect(Number(attributes['gen_ai.usage.output_tokens'])).toBeGreaterThan(0);
   expect(finishReasons(attributes)).toEqual(['completed']);
   expect(attributes['gen_ai.input.messages']).toContain('capital of France');
   expect(attributes['gen_ai.output.messages']).toMatch(/paris/i);
