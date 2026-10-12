@@ -4,12 +4,8 @@ import { NodeClient, getDefaultIntegrations } from '@sentry/node';
 import { SentryPropagator, SentryTracerProvider } from '@sentry/opentelemetry';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ATTR_NEXT_SPAN_NAME, ATTR_NEXT_SPAN_TYPE } from '../../src/common/nextSpanAttributes';
-import {
-  NextSentryPropagator,
-  isPrerenderContext,
-  isPrerenderSpanStart,
-  registerNextSentryPropagator,
-} from '../../src/server/nextSentryPropagator';
+import { NextSentryPropagator, registerNextSentryPropagator } from '../../src/server/nextSentryPropagator';
+import { isPrerenderContext, isPrerenderSpanStart } from '../../src/server/prerenderContext';
 
 const PRERENDER_SPAN_OPTIONS = {
   attributes: {
@@ -25,12 +21,19 @@ const RENDER_SPAN_OPTIONS = {
   },
 };
 
+// Next.js collects the meta tag values with an array carrier, see `getTracePropagationData` of its tracer.
 function inject(): Record<string, string> {
-  const carrier: Record<string, string> = {};
-  propagation.inject(context.active(), carrier, {
-    set: (c, key, value) => ((c as Record<string, string>)[key] = value),
+  const entries: Array<{ key: string; value: string }> = [];
+  propagation.inject(context.active(), entries, {
+    set: (c, key, value) => (c as typeof entries).push({ key, value }),
   });
-  return carrier;
+  return Object.fromEntries(entries.map(({ key, value }) => [key, value]));
+}
+
+function injectHeaders(): Record<string, string> {
+  const headers: Record<string, string> = {};
+  propagation.inject(context.active(), headers);
+  return headers;
 }
 
 function setup(tracesSampleRate: number): void {
@@ -83,6 +86,14 @@ describe('NextSentryPropagator', () => {
     trace.getTracer('next.js').startActiveSpan('prerender route (app) /[id]', PRERENDER_SPAN_OPTIONS, span => {
       expect(isPrerenderContext(context.active())).toBe(true);
       expect(inject()).toEqual({});
+      span.end();
+    });
+  });
+
+  it('keeps propagating to outgoing requests while a route is prerendered', () => {
+    trace.getTracer('next.js').startActiveSpan('prerender route (app) /[id]', PRERENDER_SPAN_OPTIONS, span => {
+      expect(inject()).toEqual({});
+      expect(injectHeaders()['sentry-trace']).toBe(`${span.spanContext().traceId}-${span.spanContext().spanId}-1`);
       span.end();
     });
   });

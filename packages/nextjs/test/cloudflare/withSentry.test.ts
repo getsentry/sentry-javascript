@@ -257,8 +257,9 @@ describe('withSentry', () => {
     expect(carrier['sentry-trace']).toBe(`${activeSpan?.spanContext().traceId}-${activeSpan?.spanContext().spanId}-1`);
   });
 
-  it('injects nothing while Next.js prerenders a page in a request', async () => {
-    const carrier: Record<string, string> = {};
+  it('injects no meta tags while Next.js prerenders a page in a request', async () => {
+    // Next.js collects the meta tag values with an array carrier.
+    const carrier: Array<{ key: string; value: string }> = [];
     const requestCarrier: Record<string, string> = {};
     const handler = withSentry(() => ({ dsn: DSN, tracesSampleRate: 1 }), {
       fetch: () => {
@@ -271,7 +272,7 @@ describe('withSentry', () => {
             },
           },
           span => {
-            propagation.inject(context.active(), carrier);
+            propagation.inject(context.active(), carrier, { set: (c, key, value) => c.push({ key, value }) });
             span.end();
           },
         );
@@ -286,7 +287,7 @@ describe('withSentry', () => {
       props: {},
     } as never);
 
-    expect(carrier).toEqual({});
+    expect(carrier).toEqual([]);
     expect(requestCarrier['sentry-trace']).toMatch(/^[0-9a-f]{32}-[0-9a-f]{16}-1$/);
   });
 

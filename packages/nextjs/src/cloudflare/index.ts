@@ -10,11 +10,8 @@ import { ATTR_NEXT_SPAN_TYPE } from '../common/nextSpanAttributes';
 import { isTunnelRouteSpan } from '../common/utils/dropMiddlewareTunnelRequests';
 import { dropReactControlFlowErrorsEventProcessor } from '../common/utils/dropReactControlFlowErrors';
 import { markAsyncContextOwnedByNextjsCloudflare } from '../common/utils/responseEnd';
-import {
-  getGlobalTracerProvider,
-  markPrerendersOnTracerProvider,
-  NextSentryPropagator,
-} from '../server/nextSentryPropagator';
+import { NextSentryPropagator } from '../server/nextSentryPropagator';
+import { getGlobalTracerProvider, markPrerendersOnTracerProvider } from '../server/prerenderContext';
 import { addNextjsServerSpanHooks, NEXTJS_SERVER_IGNORE_SPANS } from '../server/serverSpanHooks';
 import { nextjsUseCacheIntegration } from '../server/useCacheInstrumentation';
 
