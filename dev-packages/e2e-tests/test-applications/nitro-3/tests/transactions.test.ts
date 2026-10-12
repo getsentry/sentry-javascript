@@ -10,17 +10,19 @@ test('Sends a segment span for a successful route', async ({ request }) => {
 
   const spans = await spansPromise;
 
-  // The node http server integration creates the segment span; srvx and h3 spans nest below it
+  // The node http server integration creates the segment span, and the only http.server span
   const segmentSpan = spans.find(span => span.is_segment && span.name === 'GET /api/test-transaction');
   expect(segmentSpan).toBeDefined();
   expect(segmentSpan?.attributes['sentry.origin']?.value).toBe('auto.http.http_server');
   expect(getSpanOp(segmentSpan!)).toBe('http.server');
 
+  expect(spans.filter(span => getSpanOp(span) === 'http.server')).toHaveLength(1);
+
   // h3 creates a child span for the route handler
-  const h3Spans = spans.filter(
-    span => span.trace_id === segmentSpan?.trace_id && span.attributes['sentry.origin']?.value === 'auto.http.nitro.h3',
+  const h3HandlerSpan = spans.find(
+    span => span.attributes['sentry.origin']?.value === 'auto.http.nitro.h3' && getSpanOp(span) === 'handler',
   );
-  expect(h3Spans.length).toBeGreaterThanOrEqual(1);
+  expect(h3HandlerSpan?.parent_span_id).toBe(segmentSpan?.span_id);
 });
 
 test('Sets correct HTTP status code on the segment span', async ({ request }) => {
