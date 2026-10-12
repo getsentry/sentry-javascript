@@ -31,7 +31,7 @@ import {
 import { OPENAI_METHOD_REGISTRY } from './constants';
 import { instrumentStream } from './streaming';
 import type { ChatCompletionChunk, OpenAiOptions, OpenAIStream, ResponseStreamingEvent } from './types';
-import { addResponseAttributes, extractRequestParameters } from './utils';
+import { addResponseAttributes, extractRequestParameters, getDecisionInputMessages } from './utils';
 
 /**
  * Extract available tools from request parameters
@@ -88,6 +88,14 @@ export function extractRequestAttributes(
 
 // Extract and record AI request inputs, if present. This is intentionally separate from response attributes.
 export function addRequestAttributes(span: Span, params: Record<string, unknown>, operationName: string): void {
+  if (operationName === 'decide') {
+    const inputMessages = getDecisionInputMessages(params);
+    if (inputMessages) {
+      span.setAttribute(GEN_AI_INPUT_MESSAGES, inputMessages);
+    }
+    return;
+  }
+
   // Store embeddings input on a separate attribute
   if (operationName === 'embeddings' && 'input' in params) {
     const input = params.input;

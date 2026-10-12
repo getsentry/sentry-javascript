@@ -1,4 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { GEN_AI_OUTPUT_MESSAGES } from '@sentry/conventions/attributes';
+import { GEN_AI_DECIDE } from '@sentry/conventions/op';
 import { getMainCarrier, setCurrentClient, spanToStaticSpanJSON } from '@sentry/core';
 import type { Span } from '@sentry/core';
 import { instrumentOpenAiClient } from '../../../../src/ai/openai';
@@ -89,5 +91,24 @@ describe('instrumentOpenAiClient span names', () => {
     });
 
     expect(spanToStaticSpanJSON(endedSpans[0]!).description).toBe('chat');
+  });
+
+  it('records `decisions.create` as a decide span', async () => {
+    const endedSpans = setupClient('stream');
+    const answers = [{ type: 'predicate', name: 'wants_refund', probability: 0.97 }];
+    const instrumented = instrumentOpenAiClient({
+      decisions: { create: vi.fn().mockResolvedValue({ model: 'gpt-6-luna', answers }) },
+    });
+
+    await instrumented.decisions.create({
+      model: 'gpt-6-luna',
+      input: 'I want a refund',
+      questions: [{ type: 'predicate', name: 'wants_refund', instructions: 'Is a refund requested?' }],
+    });
+
+    const json = spanToStaticSpanJSON(endedSpans[0]!);
+    expect(json.description).toBe('decide gpt-6-luna');
+    expect(json.op).toBe(GEN_AI_DECIDE);
+    expect(JSON.parse(json.data[GEN_AI_OUTPUT_MESSAGES] as string)).toEqual([{ type: 'evaluation', answers }]);
   });
 });
