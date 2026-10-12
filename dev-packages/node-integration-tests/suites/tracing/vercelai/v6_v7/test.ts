@@ -26,6 +26,7 @@ import {
   SENTRY_OP,
   SENTRY_ORIGIN,
 } from '@sentry/conventions/attributes';
+import { GEN_AI_DECIDE } from '@sentry/conventions/op';
 import { GEN_AI_TOOL_CALL_ID_ATTRIBUTE } from '../../../../../../packages/server-utils/src/ai/core/gen-ai-attributes';
 import { cleanupChildProcesses, createEsmAndCjsTests, createEsmTests } from '../../../../utils/runner';
 
@@ -1275,34 +1276,32 @@ describe.each(matrix)('Vercel AI integration (version %s)', (version, vercelAiVe
   );
 });
 
-describe('Vercel AI integration experimental_evaluate', () => {
+describe('Vercel AI integration experimental_decide', () => {
   afterAll(() => {
     cleanupChildProcesses();
   });
 
   createEsmTests(
     __dirname,
-    'scenario-evaluate.mjs',
-    'instrument-evaluate.mjs',
+    'scenario-decide.mjs',
+    'instrument-decide.mjs',
     (createRunner, test) => {
-      test('creates an evaluate span', async () => {
+      test('creates a decide span', async () => {
         await createRunner()
           .expect({
             span: container => {
-              const evaluateSpan = container.items.find(
-                span => span.attributes[SENTRY_OP]?.value === 'gen_ai.evaluate',
-              )!;
-              expect(evaluateSpan.name).toBe('evaluate typesafe-ai/jev');
-              expect(evaluateSpan.status).toBe('ok');
-              expect(evaluateSpan.attributes[SENTRY_ORIGIN]?.value).toBe('auto.vercelai.channel');
-              expect(evaluateSpan.attributes[GEN_AI_OPERATION_NAME]?.value).toBe('evaluate');
-              expect(evaluateSpan.attributes[GEN_AI_PROVIDER_NAME]?.value).toBe('gateway');
-              expect(evaluateSpan.attributes[GEN_AI_REQUEST_MODEL]?.value).toBe('typesafe-ai/jev');
-              expect(evaluateSpan.attributes[GEN_AI_RESPONSE_MODEL]?.value).toBe('typesafe-ai/jev');
-              expect(evaluateSpan.attributes[GEN_AI_USAGE_INPUT_TOKENS]?.value).toBe(275);
-              expect(evaluateSpan.attributes[GEN_AI_USAGE_OUTPUT_TOKENS]?.value).toBe(20);
-              expect(evaluateSpan.attributes[GEN_AI_USAGE_TOTAL_TOKENS]?.value).toBe(295);
-              expect(JSON.parse(evaluateSpan.attributes[GEN_AI_INPUT_MESSAGES]?.value as string)).toEqual([
+              const decideSpan = container.items.find(span => span.attributes[SENTRY_OP]?.value === GEN_AI_DECIDE)!;
+              expect(decideSpan.name).toBe('decide typesafe-ai/jev');
+              expect(decideSpan.status).toBe('ok');
+              expect(decideSpan.attributes[SENTRY_ORIGIN]?.value).toBe('auto.vercelai.channel');
+              expect(decideSpan.attributes[GEN_AI_OPERATION_NAME]?.value).toBe('decide');
+              expect(decideSpan.attributes[GEN_AI_PROVIDER_NAME]?.value).toBe('gateway');
+              expect(decideSpan.attributes[GEN_AI_REQUEST_MODEL]?.value).toBe('typesafe-ai/jev');
+              expect(decideSpan.attributes[GEN_AI_RESPONSE_MODEL]?.value).toBe('typesafe-ai/jev');
+              expect(decideSpan.attributes[GEN_AI_USAGE_INPUT_TOKENS]?.value).toBe(275);
+              expect(decideSpan.attributes[GEN_AI_USAGE_OUTPUT_TOKENS]?.value).toBe(20);
+              expect(decideSpan.attributes[GEN_AI_USAGE_TOTAL_TOKENS]?.value).toBe(295);
+              expect(JSON.parse(decideSpan.attributes[GEN_AI_INPUT_MESSAGES]?.value as string)).toEqual([
                 {
                   type: 'evaluation',
                   state: 'I cannot log in, and I also want a refund for last month.',
@@ -1322,7 +1321,7 @@ describe('Vercel AI integration experimental_evaluate', () => {
                   },
                 },
               ]);
-              expect(JSON.parse(evaluateSpan.attributes[GEN_AI_OUTPUT_MESSAGES]?.value as string)).toEqual([
+              expect(JSON.parse(decideSpan.attributes[GEN_AI_OUTPUT_MESSAGES]?.value as string)).toEqual([
                 {
                   type: 'evaluation',
                   answers: {
@@ -1346,28 +1345,26 @@ describe('Vercel AI integration experimental_evaluate', () => {
     },
     {
       additionalDependencies: {
-        ai: '^7.0.111',
+        ai: '^7.0.128',
       },
     },
   );
 
   createEsmTests(
     __dirname,
-    'scenario-evaluate.mjs',
-    'instrument-evaluate-no-recording.mjs',
+    'scenario-decide.mjs',
+    'instrument-decide-no-recording.mjs',
     (createRunner, test) => {
       test('does not record inputs or outputs when recording is off', async () => {
         await createRunner()
           .expect({
             span: container => {
-              const evaluateSpan = container.items.find(
-                span => span.attributes[SENTRY_OP]?.value === 'gen_ai.evaluate',
-              )!;
-              expect(evaluateSpan.attributes[GEN_AI_INPUT_MESSAGES]).toBeUndefined();
-              expect(evaluateSpan.attributes[GEN_AI_OUTPUT_MESSAGES]).toBeUndefined();
+              const decideSpan = container.items.find(span => span.attributes[SENTRY_OP]?.value === GEN_AI_DECIDE)!;
+              expect(decideSpan.attributes[GEN_AI_INPUT_MESSAGES]).toBeUndefined();
+              expect(decideSpan.attributes[GEN_AI_OUTPUT_MESSAGES]).toBeUndefined();
               // State, questions and answers must not come back through another attribute. Only the attributes
               // are checked (timestamps could match a number), and `probabilities` only occurs in answers.
-              expect(JSON.stringify(evaluateSpan.attributes)).not.toMatch(
+              expect(JSON.stringify(decideSpan.attributes)).not.toMatch(
                 /cannot log in|Charges and refunds|probabilities/,
               );
             },
@@ -1378,7 +1375,7 @@ describe('Vercel AI integration experimental_evaluate', () => {
     },
     {
       additionalDependencies: {
-        ai: '^7.0.111',
+        ai: '^7.0.128',
       },
     },
   );
