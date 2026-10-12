@@ -2759,6 +2759,113 @@ describe('Client', () => {
       );
     });
 
+    test('drops the transaction and its non-ignored spans when `beforeSendTransaction` rejects', async () => {
+      vi.useFakeTimers();
+
+      const exception = new Error('beforeSendTransaction failed');
+      const beforeSendTransaction = vi.fn(() => Promise.reject(exception));
+      const options = getDefaultTestClientOptions({
+        dsn: PUBLIC_DSN,
+        beforeSendTransaction,
+        ignoreSpans: ['ignored span'],
+      });
+      const client = new TestClient(options);
+      const captureExceptionSpy = vi.spyOn(client, 'captureException');
+      const recordDroppedEventSpy = vi.spyOn(client, 'recordDroppedEvent');
+      const debugErrorSpy = vi.spyOn(debugLoggerModule.debug, 'error');
+
+      client.captureEvent({
+        transaction: '/dogs/are/great',
+        type: 'transaction',
+        spans: ['first span', 'ignored span', 'second span'].map((description, i) => ({
+          description,
+          span_id: `${i}`.padStart(16, '0'),
+          start_timestamp: 1591603196.637835,
+          trace_id: '86f39e84263a4de99c326acab3bfe3bd',
+          data: {},
+          status: 'ok',
+        })),
+      });
+      await vi.runOnlyPendingTimersAsync();
+
+      expect(TestClient.instance!.event).toBeUndefined();
+      expect(captureExceptionSpy).not.toHaveBeenCalled();
+      expect(recordDroppedEventSpy).toHaveBeenCalledTimes(3);
+      expect(recordDroppedEventSpy).toHaveBeenCalledWith('ignored', 'span', 1);
+      expect(recordDroppedEventSpy).toHaveBeenCalledWith('callback_error', 'transaction');
+      expect(recordDroppedEventSpy).toHaveBeenCalledWith('callback_error', 'span', 3);
+      expect(debugErrorSpy).toHaveBeenCalledWith(
+        'The `beforeSendTransaction` callback threw an error, dropping the event:',
+        exception,
+      );
+    });
+
+    test.each([
+      ['sync', () => undefined],
+      ['async', () => Promise.resolve(undefined)],
+    ])('records a `before_send` outcome when `beforeSend` returns an invalid value (%s)', async (_, beforeSend) => {
+      vi.useFakeTimers();
+
+      // @ts-expect-error we need to test regular-js behavior
+      const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, beforeSend });
+      const client = new TestClient(options);
+      const captureExceptionSpy = vi.spyOn(client, 'captureException');
+      const recordDroppedEventSpy = vi.spyOn(client, 'recordDroppedEvent');
+      const loggerWarnSpy = vi.spyOn(debugLoggerModule.debug, 'warn');
+
+      client.captureEvent({ message: 'hello' });
+      await vi.runOnlyPendingTimersAsync();
+
+      expect(TestClient.instance!.event).toBeUndefined();
+      expect(captureExceptionSpy).not.toHaveBeenCalled();
+      expect(recordDroppedEventSpy).toHaveBeenCalledTimes(1);
+      expect(recordDroppedEventSpy).toHaveBeenCalledWith('before_send', 'error');
+      expect(loggerWarnSpy).toHaveBeenCalledWith('before send for type `error` must return `null` or a valid event.');
+    });
+
+    test.each([
+      ['sync', () => undefined],
+      ['async', () => Promise.resolve(undefined)],
+    ])(
+      'records `before_send` outcomes for the transaction and its spans when `beforeSendTransaction` returns an invalid value (%s)',
+      async (_, beforeSendTransaction) => {
+        vi.useFakeTimers();
+
+        const options = getDefaultTestClientOptions({
+          dsn: PUBLIC_DSN,
+          // @ts-expect-error we need to test regular-js behavior
+          beforeSendTransaction,
+          ignoreSpans: ['ignored span'],
+        });
+        const client = new TestClient(options);
+        const recordDroppedEventSpy = vi.spyOn(client, 'recordDroppedEvent');
+        const loggerWarnSpy = vi.spyOn(debugLoggerModule.debug, 'warn');
+
+        client.captureEvent({
+          transaction: '/dogs/are/great',
+          type: 'transaction',
+          spans: ['first span', 'ignored span'].map((description, i) => ({
+            description,
+            span_id: `${i}`.padStart(16, '0'),
+            start_timestamp: 1591603196.637835,
+            trace_id: '86f39e84263a4de99c326acab3bfe3bd',
+            data: {},
+            status: 'ok',
+          })),
+        });
+        await vi.runOnlyPendingTimersAsync();
+
+        expect(TestClient.instance!.event).toBeUndefined();
+        expect(recordDroppedEventSpy).toHaveBeenCalledTimes(3);
+        expect(recordDroppedEventSpy).toHaveBeenCalledWith('ignored', 'span', 1);
+        expect(recordDroppedEventSpy).toHaveBeenCalledWith('before_send', 'transaction');
+        expect(recordDroppedEventSpy).toHaveBeenCalledWith('before_send', 'span', 2);
+        expect(loggerWarnSpy).toHaveBeenCalledWith(
+          'before send for type `transaction` must return `null` or a valid event.',
+        );
+      },
+    );
+
     test('captures an internal event when the event processing pipeline itself throws', async () => {
       vi.useFakeTimers();
 
