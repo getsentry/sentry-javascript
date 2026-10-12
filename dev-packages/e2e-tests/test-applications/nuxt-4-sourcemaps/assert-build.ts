@@ -15,6 +15,7 @@ import {
   getSourcemapSources,
   getSourcemaps,
   loadMockServerResults,
+  startNodeServer,
 } from '@sentry-internal/test-utils';
 
 /** This variant omits `sourcemaps.filesToDeleteAfterUpload`, so Sentry must upload but not delete. */
@@ -170,6 +171,11 @@ const debugIdsWithoutSourceMap = debugIdsOfChunksWithoutSourceMap(CLIENT_BUILD_O
 for (const outputDir of isStaticBuild ? [CLIENT_OUTPUT] : [CLIENT_OUTPUT, SERVER_OUTPUT]) {
   const injectedDebugIds = findInjectedDebugIds({ outputDir });
   assert.ok(injectedDebugIds.length > 0, `Expected debug IDs to be injected into ${outputDir}`);
+  // The exemption for chunks without a source map must not let a build without any uploaded map pass.
+  assert.ok(
+    injectedDebugIds.some(debugId => uploadedDebugIds.has(debugId)),
+    `Expected at least one debug ID in ${outputDir} to have an uploaded sourcemap`,
+  );
 
   const unuploaded = injectedDebugIds.filter(
     debugId => !uploadedDebugIds.has(debugId) && !debugIdsWithoutSourceMap.has(debugId),
@@ -230,6 +236,50 @@ if (keepClientSourceMaps) {
   assert.deepEqual(leakedSource, [], `Expected no original client source under ${CLIENT_OUTPUT}`);
 
   console.log(`  ${CLIENT_OUTPUT} is free of source maps, sourceMappingURL comments and original source\n`);
+}
+
+// --- What the built server answers for the client source maps ---
+
+// `nuxt generate` emits no server, and a static host serves only the files that exist.
+if (!isStaticBuild) {
+  const clientChunkUrls = fs
+    .readdirSync(CLIENT_OUTPUT, { recursive: true, withFileTypes: true })
+    .filter(entry => entry.isFile() && entry.name.endsWith('.js'))
+    .map(
+      entry => `/${path.relative(CLIENT_OUTPUT, path.join(entry.parentPath, entry.name)).split(path.sep).join('/')}`,
+    );
+  assert.ok(clientChunkUrls.length > 0, `Expected client chunks in ${CLIENT_OUTPUT}`);
+
+  const server = await startNodeServer({ entry: path.join(SERVER_OUTPUT, 'index.mjs'), port: 3030 });
+
+  try {
+    // Without this, a server that serves no public files at all would pass the 404 checks.
+    const chunkStatus = (await fetch(`${server.baseUrl}${clientChunkUrls[0]}`)).status;
+    assert.equal(chunkStatus, 200, `Expected the server to serve the client chunk ${clientChunkUrls[0]}`);
+
+    // Nitro serves public files from a list it writes into the server bundle. A map deleted after that
+    // stays on the list, and Nitro answers its request with a 500 instead of a 404.
+    const responses = await Promise.all(
+      clientChunkUrls.map(async chunkUrl => {
+        const mapUrl = `${chunkUrl}.map`;
+        const expectedStatus = fs.existsSync(path.join(CLIENT_OUTPUT, mapUrl)) ? 200 : 404;
+        const { status } = await fetch(`${server.baseUrl}${mapUrl}`);
+        return { mapUrl, status, expectedStatus };
+      }),
+    );
+    const unexpectedStatuses = responses
+      .filter(({ status, expectedStatus }) => status !== expectedStatus)
+      .map(({ mapUrl, status, expectedStatus }) => `${mapUrl} → ${status}, expected ${expectedStatus}`);
+    assert.deepEqual(
+      unexpectedStatuses,
+      [],
+      'Expected the server to answer each client source map URL with 200 if the map is in the output, else 404',
+    );
+
+    console.log(`  The server answers all ${clientChunkUrls.length} client source map URL(s) as expected\n`);
+  } finally {
+    await server.close();
+  }
 }
 
 console.log('All sourcemap assertions passed!');
