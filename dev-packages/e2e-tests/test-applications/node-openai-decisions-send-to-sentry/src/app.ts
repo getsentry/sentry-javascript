@@ -20,11 +20,6 @@ const RED_PIXEL =
 
 const app = express();
 
-/** The trace this request is recorded under, so the test can look its spans up in Sentry. */
-function currentTraceId(): string | undefined {
-  return Sentry.getActiveSpan()?.spanContext().traceId;
-}
-
 // Each route makes one `decisions.create` call and answers with the trace id, so the test can find
 // the request's spans in Sentry.
 
@@ -52,7 +47,7 @@ app.get('/decide', async (_req, res, next) => {
         },
       ],
     });
-    res.send({ traceId: currentTraceId(), answers: decision.answers });
+    res.send({ traceId: Sentry.getActiveSpan()?.spanContext().traceId, answers: decision.answers });
   } catch (error) {
     next(error);
   }
@@ -73,7 +68,7 @@ app.get('/decide-image', async (_req, res, next) => {
       ],
       questions: [{ type: 'predicate', name: 'is_red', instructions: 'Is the image mostly red?' }],
     });
-    res.send({ traceId: currentTraceId(), answers: decision.answers });
+    res.send({ traceId: Sentry.getActiveSpan()?.spanContext().traceId, answers: decision.answers });
   } catch (error) {
     next(error);
   }
