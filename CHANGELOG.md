@@ -153,7 +153,7 @@
 
 </details>
 
-- feat(nextjs): Connect pageloads to the server request under `cacheComponents` and ISR by never emitting trace meta tags from a prerender ([#25141](https://github.com/getsentry/sentry-javascript/pull/25141))
+- feat(nextjs): Browser pageloads of apps with `cacheComponents` enabled are connected to their server request again ([#25141](https://github.com/getsentry/sentry-javascript/pull/25141))
 
 Work in this release was contributed by @Philip-Nwabuwa and @4ktLuffy. Thank you for your contributions!
 
