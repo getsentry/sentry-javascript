@@ -39,7 +39,7 @@
   },
   "dependencies": {
     "@sentry/browser-utils": "11.6.0",
-    "@sentry/conventions": "^0.26.0",
+    "@sentry/conventions": "^0.27.0",
     "@sentry/feedback": "11.6.0",
     "@sentry/replay": "11.6.0",
     "@sentry/replay-canvas": "11.6.0",

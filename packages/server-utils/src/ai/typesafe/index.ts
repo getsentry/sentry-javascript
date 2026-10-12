@@ -34,6 +34,7 @@ export function startEvaluateSpan(
 
   return startInactiveSpan({
     name: model ? `evaluate ${model}` : 'evaluate',
+    // oxlint-disable-next-line typescript/no-deprecated -- the rename to `gen_ai.decide` comes in a follow-up
     op: GEN_AI_EVALUATE,
     // Extra attributes (e.g. another integration's origin) are set at start, so samplers see them.
     attributes: { ...getRequestAttributes(params, model, recordInputs), ...attributes },
