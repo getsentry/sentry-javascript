@@ -239,3 +239,8 @@ export function init(options: NodeOptions): NodeClient | undefined {
 export * from '../common';
 
 export { wrapApiHandlerWithSentry } from '../common/pages-router-instrumentation/wrapApiHandlerWithSentry';
+
+// For apps that set up OpenTelemetry themselves (`enableOpenTelemetrySetup: false`), which otherwise
+// write the trace meta tags of a prerendered shell with the propagator they registered.
+export { NextSentryPropagator } from './nextSentryPropagator';
+export { markPrerendersOnTracerProvider } from './prerenderContext';

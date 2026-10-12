@@ -7,6 +7,10 @@ import { isPrerenderContext, markPrerendersOnTracerProvider } from './prerenderC
  * A `SentryPropagator` that does not hand out the trace meta tags of a document while Next.js
  * prerenders it. Trace context baked into a prerendered shell would be replayed to every visitor the
  * shell is served to, so the browser could continue a trace that never handled its request.
+ *
+ * The SDK registers it when it sets up OpenTelemetry. An app that sets up OpenTelemetry itself
+ * registers it in place of `SentryPropagator` and calls `markPrerendersOnTracerProvider` with its
+ * tracer provider, which this propagator relies on to recognize a prerender.
  */
 export class NextSentryPropagator extends SentryPropagator {
   /** @inheritDoc */

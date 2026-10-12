@@ -74,8 +74,10 @@ function wrapTracer(tracer: Tracer): Tracer {
 const markedProviders = new WeakSet<TracerProvider>();
 
 /**
- * Makes a tracer provider mark prerenders on the OpenTelemetry context, by wrapping the tracers it hands
- * out. Safe to call repeatedly with the same provider, which the per-request `init` on Cloudflare does.
+ * Makes a tracer provider mark prerenders of Next.js on the OpenTelemetry context, by wrapping the
+ * tracers it hands out. `NextSentryPropagator` relies on the mark. The SDK calls this for the provider it
+ * registers; an app that sets up OpenTelemetry itself calls it with its own provider. Safe to call
+ * repeatedly with the same provider, which the per-request `init` on Cloudflare does.
  */
 export function markPrerendersOnTracerProvider(provider: TracerProvider): void {
   if (markedProviders.has(provider)) {
