@@ -20,7 +20,7 @@ import {
   SENTRY_ORIGIN,
   URL_FULL,
 } from '@sentry/conventions/attributes';
-import { GEN_AI_CHAT, GEN_AI_EVALUATE, GEN_AI_EXECUTE_TOOL, GEN_AI_INVOKE_AGENT } from '@sentry/conventions/op';
+import { GEN_AI_CHAT, GEN_AI_DECIDE, GEN_AI_EXECUTE_TOOL, GEN_AI_INVOKE_AGENT } from '@sentry/conventions/op';
 import { afterAll, expect } from 'vitest';
 import { conditionalTest } from '../../../utils';
 import { cleanupChildProcesses, createEsmAndCjsTests } from '../../../utils/runner';
@@ -221,25 +221,25 @@ conditionalTest({ min: 22 })('Mastra integration', () => {
     'scenario-classifier.mjs',
     'instrument.mjs',
     (createRunner, test) => {
-      test('maps a classifier evaluation to a gen_ai.evaluate span', async () => {
+      test('maps a classifier evaluation to a gen_ai.decide span', async () => {
         await createRunner()
           .expect({
             span: container => {
               expect(container.items.find(span => span.is_segment && span.name === 'mastra-test')).toBeDefined();
               const spans = container.items.filter(span => span.attributes[SENTRY_ORIGIN]?.value === 'auto.ai.mastra');
-              expect(spans.map(span => span.name)).toEqual(['evaluate jev-latest']);
+              expect(spans.map(span => span.name)).toEqual(['decide jev-latest']);
 
-              const evaluateSpan = spans[0]!;
-              expect(evaluateSpan.attributes[SENTRY_OP].value).toBe(GEN_AI_EVALUATE);
-              expect(evaluateSpan.attributes[SENTRY_ORIGIN].value).toBe('auto.ai.mastra');
-              expect(evaluateSpan.attributes[GEN_AI_OPERATION_NAME].value).toBe('evaluate');
-              expect(evaluateSpan.attributes[GEN_AI_REQUEST_MODEL].value).toBe('jev-latest');
-              expect(evaluateSpan.attributes[GEN_AI_PROVIDER_NAME].value).toBe('typesafe-ai.evaluation');
-              expect(evaluateSpan.attributes[GEN_AI_USAGE_INPUT_TOKENS].value).toBe(30);
-              expect(evaluateSpan.attributes[GEN_AI_USAGE_OUTPUT_TOKENS].value).toBe(2);
-              expect(evaluateSpan.attributes[GEN_AI_USAGE_TOTAL_TOKENS].value).toBe(32);
-              expect(evaluateSpan.attributes[GEN_AI_INPUT_MESSAGES]).toBeUndefined();
-              expect(evaluateSpan.attributes[GEN_AI_OUTPUT_MESSAGES]).toBeUndefined();
+              const decideSpan = spans[0]!;
+              expect(decideSpan.attributes[SENTRY_OP].value).toBe(GEN_AI_DECIDE);
+              expect(decideSpan.attributes[SENTRY_ORIGIN].value).toBe('auto.ai.mastra');
+              expect(decideSpan.attributes[GEN_AI_OPERATION_NAME].value).toBe('decide');
+              expect(decideSpan.attributes[GEN_AI_REQUEST_MODEL].value).toBe('jev-latest');
+              expect(decideSpan.attributes[GEN_AI_PROVIDER_NAME].value).toBe('typesafe-ai.evaluation');
+              expect(decideSpan.attributes[GEN_AI_USAGE_INPUT_TOKENS].value).toBe(30);
+              expect(decideSpan.attributes[GEN_AI_USAGE_OUTPUT_TOKENS].value).toBe(2);
+              expect(decideSpan.attributes[GEN_AI_USAGE_TOTAL_TOKENS].value).toBe(32);
+              expect(decideSpan.attributes[GEN_AI_INPUT_MESSAGES]).toBeUndefined();
+              expect(decideSpan.attributes[GEN_AI_OUTPUT_MESSAGES]).toBeUndefined();
             },
           })
           .start()
@@ -259,8 +259,8 @@ conditionalTest({ min: 22 })('Mastra integration', () => {
           .expect({
             span: container => {
               expect(container.items.find(span => span.is_segment && span.name === 'mastra-test')).toBeDefined();
-              const evaluateSpan = container.items.find(span => span.name === 'evaluate jev-latest')!;
-              expect(JSON.parse(evaluateSpan.attributes[GEN_AI_INPUT_MESSAGES].value)).toEqual([
+              const decideSpan = container.items.find(span => span.name === 'decide jev-latest')!;
+              expect(JSON.parse(decideSpan.attributes[GEN_AI_INPUT_MESSAGES].value)).toEqual([
                 {
                   type: 'evaluation',
                   state: { message: 'I was charged twice.', apiKey: '[REDACTED]' },
@@ -269,7 +269,7 @@ conditionalTest({ min: 22 })('Mastra integration', () => {
                   },
                 },
               ]);
-              expect(JSON.parse(evaluateSpan.attributes[GEN_AI_OUTPUT_MESSAGES].value)).toEqual([
+              expect(JSON.parse(decideSpan.attributes[GEN_AI_OUTPUT_MESSAGES].value)).toEqual([
                 { type: 'evaluation', answers: { urgent: { type: 'boolean', probability: 0.9 } } },
               ]);
             },
@@ -293,12 +293,12 @@ conditionalTest({ min: 22 })('Mastra integration', () => {
             span: container => {
               expect(container.items.find(span => span.is_segment && span.name === 'mastra-test')).toBeDefined();
               const spans = container.items.filter(span => span.attributes[SENTRY_ORIGIN]?.value === 'auto.ai.mastra');
-              expect(spans.map(span => span.name)).toEqual(['evaluate jev-latest']);
+              expect(spans.map(span => span.name)).toEqual(['decide jev-latest']);
 
-              const evaluateSpan = spans[0]!;
-              expect(evaluateSpan.status).toBe('error');
-              expect(evaluateSpan.attributes[GEN_AI_INPUT_MESSAGES].value).toContain('I was charged twice.');
-              expect(evaluateSpan.attributes[GEN_AI_OUTPUT_MESSAGES]).toBeUndefined();
+              const decideSpan = spans[0]!;
+              expect(decideSpan.status).toBe('error');
+              expect(decideSpan.attributes[GEN_AI_INPUT_MESSAGES].value).toContain('I was charged twice.');
+              expect(decideSpan.attributes[GEN_AI_OUTPUT_MESSAGES]).toBeUndefined();
             },
           })
           .start()
