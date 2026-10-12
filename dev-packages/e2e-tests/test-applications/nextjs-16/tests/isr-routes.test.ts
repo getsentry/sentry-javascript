@@ -4,8 +4,12 @@ import { getSpanOp, waitForStreamedSpan } from '@sentry-internal/test-utils';
 const isProductionBuild = process.env.TEST_ENV === 'production' || process.env.TEST_ENV === 'prod-turbopack';
 
 test.describe('prerendered ISR pages', () => {
-  // The dev server renders ISR pages for every request, so there the trace tags are fresh and kept.
-  test.skip(!isProductionBuild, 'ISR pages are only prerendered in production builds');
+  // The dev server and vinext render ISR pages for every request, so there the trace tags are fresh
+  // and kept.
+  test.skip(
+    !isProductionBuild || !!process.env.VINEXT,
+    'ISR pages are only prerendered by a production build of Next.js',
+  );
 
   test('does not carry trace meta tags on an ISR dynamic route', async ({ page }) => {
     // Navigate to ISR page
