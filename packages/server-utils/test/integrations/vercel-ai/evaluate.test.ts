@@ -27,8 +27,7 @@ describe('Vercel AI evaluate spans', () => {
     getMainCarrier().__SENTRY__ = undefined;
   });
 
-  // `ai` 7.0.128 renamed the channel event from `experimental_evaluate` to `experimental_decide`.
-  it.each(['experimental_evaluate', 'experimental_decide'] as const)('creates an evaluate span for `%s`', type => {
+  it('creates a decide span for `experimental_decide`', () => {
     const message = {
       type,
       event: {
@@ -49,7 +48,7 @@ describe('Vercel AI evaluate spans', () => {
 
     const json = spanToStaticSpanJSON(endedSpans[0]!);
     expect(json.description).toBe('evaluate typesafe-ai/jev');
-    expect(json.op).toBe('gen_ai.evaluate');
+    expect(json.op).toBe('gen_ai.decide');
     expect(JSON.parse(json.data?.['gen_ai.output.messages'] as string)).toEqual([
       { type: 'evaluation', answers: { wantsRefund: { type: 'boolean', probability: 0.99 } } },
     ]);

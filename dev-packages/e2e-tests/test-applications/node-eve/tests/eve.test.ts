@@ -135,9 +135,9 @@ test('captures errors thrown inside an eve tool', async ({ baseURL }) => {
   });
 });
 
-test('captures a gen_ai.evaluate span for a Jev call inside an eve tool', async ({ baseURL }) => {
+test('captures a gen_ai.decide span for a Jev call inside an eve tool', async ({ baseURL }) => {
   const traceSpansPromise = collectStreamedSpans(APP, spansOfTrace =>
-    ['gen_ai.execute_tool', 'gen_ai.evaluate'].every(op => spansOfTrace.some(span => getSpanOp(span) === op)),
+    ['gen_ai.execute_tool', 'gen_ai.decide'].every(op => spansOfTrace.some(span => getSpanOp(span) === op)),
   );
 
   const sessionId = await runAgentTurn(
@@ -148,7 +148,7 @@ test('captures a gen_ai.evaluate span for a Jev call inside an eve tool', async 
   const traceSpans = await traceSpansPromise;
 
   const executeTool = traceSpans.find(span => getSpanOp(span) === 'gen_ai.execute_tool');
-  const evaluate = traceSpans.find(span => getSpanOp(span) === 'gen_ai.evaluate');
+  const evaluate = traceSpans.find(span => getSpanOp(span) === 'gen_ai.decide');
 
   expect(executeTool?.attributes?.['gen_ai.tool.name']?.value).toBe('classify_ticket');
 

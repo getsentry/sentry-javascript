@@ -188,7 +188,7 @@ describe('instrumentWorkersAiClient', () => {
     expect(span.description).toBe('evaluate typesafe/jev');
     expect(span.data).toEqual({
       [SENTRY_ORIGIN]: 'auto.ai.cloudflare.workers_ai',
-      [SENTRY_OP]: 'gen_ai.evaluate',
+      [SENTRY_OP]: 'gen_ai.decide',
       [SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE]: 1,
       [SENTRY_SEGMENT_NAME_SOURCE]: 'custom',
       [GEN_AI_PROVIDER_NAME]: 'cloudflare.workers_ai',

@@ -94,14 +94,14 @@ test('Sends a Workers AI gen_ai span to Sentry', async () => {
     });
 });
 
-test('Sends a Workers AI gen_ai.evaluate span for a TypeSafe Jev call to Sentry', async () => {
+test('Sends a Workers AI gen_ai.decide span for a TypeSafe Jev call to Sentry', async () => {
   const { traceId }: { traceId: string } = JSON.parse(await fetchFromWorker(`${workerUrl}/test-workers-ai-jev`, 200));
 
-  console.log(`Polling for gen_ai.evaluate span: sentry trace view ${traceTarget(traceId)}`);
+  console.log(`Polling for gen_ai.decide span: sentry trace view ${traceTarget(traceId)}`);
 
   let spanId: string | undefined;
   await expect
-    .poll(() => (spanId = findSpanInTrace(traceId, 'gen_ai.evaluate')?.event_id), EVENT_POLLING_OPTIONS)
+    .poll(() => (spanId = findSpanInTrace(traceId, 'gen_ai.decide')?.event_id), EVENT_POLLING_OPTIONS)
     .toBeDefined();
 
   await expect
@@ -115,14 +115,14 @@ test('Sends a Workers AI gen_ai.evaluate span for a TypeSafe Jev call to Sentry'
     });
 });
 
-test('Sends a Workers AI gen_ai.evaluate span for a Clef call to Sentry', async () => {
+test('Sends a Workers AI gen_ai.decide span for a Clef call to Sentry', async () => {
   const { traceId }: { traceId: string } = JSON.parse(await fetchFromWorker(`${workerUrl}/test-workers-ai-clef`, 200));
 
-  console.log(`Polling for gen_ai.evaluate span: sentry trace view ${traceTarget(traceId)}`);
+  console.log(`Polling for gen_ai.decide span: sentry trace view ${traceTarget(traceId)}`);
 
   let spanId: string | undefined;
   await expect
-    .poll(() => (spanId = findSpanInTrace(traceId, 'gen_ai.evaluate')?.event_id), EVENT_POLLING_OPTIONS)
+    .poll(() => (spanId = findSpanInTrace(traceId, 'gen_ai.decide')?.event_id), EVENT_POLLING_OPTIONS)
     .toBeDefined();
 
   await expect

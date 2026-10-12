@@ -221,7 +221,7 @@ conditionalTest({ min: 22 })('Mastra integration', () => {
     'scenario-classifier.mjs',
     'instrument.mjs',
     (createRunner, test) => {
-      test('maps a classifier evaluation to a gen_ai.evaluate span', async () => {
+      test('maps a classifier evaluation to a gen_ai.decide span', async () => {
         await createRunner()
           .expect({
             span: container => {

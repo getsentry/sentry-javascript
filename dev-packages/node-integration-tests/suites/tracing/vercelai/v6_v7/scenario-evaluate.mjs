@@ -1,10 +1,10 @@
 import * as Sentry from '@sentry/node';
-import { experimental_evaluate } from 'ai';
+import { experimental_decide } from 'ai';
 import { Experimental_EvaluationMockModelV4 } from 'ai/test';
 
 async function run() {
   await Sentry.startSpan({ op: 'function', name: 'main' }, async () => {
-    await experimental_evaluate({
+    await experimental_decide({
       model: new Experimental_EvaluationMockModelV4({
         provider: 'gateway',
         modelId: 'typesafe-ai/jev',

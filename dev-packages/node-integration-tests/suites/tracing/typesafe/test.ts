@@ -34,7 +34,7 @@ describe('TypeSafe integration', () => {
             .expect({
               span: container => {
                 const evaluateSpans = container.items.filter(
-                  span => span.attributes[SENTRY_OP]?.value === 'gen_ai.evaluate',
+                  span => span.attributes[SENTRY_OP]?.value === 'gen_ai.decide',
                 );
                 expect(evaluateSpans).toHaveLength(4);
                 for (const span of evaluateSpans) {
@@ -131,7 +131,7 @@ describe('TypeSafe integration', () => {
             .expect({
               span: container => {
                 const evaluateSpans = container.items.filter(
-                  span => span.attributes[SENTRY_OP]?.value === 'gen_ai.evaluate',
+                  span => span.attributes[SENTRY_OP]?.value === 'gen_ai.decide',
                 );
                 expect(evaluateSpans).toHaveLength(4);
                 expect(evaluateSpans.filter(span => span.status === 'error')).toHaveLength(2);

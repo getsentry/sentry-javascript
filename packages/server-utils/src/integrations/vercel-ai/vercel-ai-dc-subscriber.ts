@@ -241,7 +241,6 @@ export type ChannelEventType =
   | 'embed'
   | 'embedMany'
   | 'rerank'
-  | 'experimental_evaluate'
   | 'experimental_decide';
 
 /**
@@ -484,8 +483,6 @@ export function createSpanFromMessage(
     }
     case 'rerank':
       return startGenAiSpan('rerank', modelId, baseAttributes);
-    // `ai` 7.0.128 renamed `experimental_evaluate` to `experimental_decide`; older 7.x still publishes the old name.
-    case 'experimental_evaluate':
     case 'experimental_decide':
       return startGenAiSpan('evaluate', modelId, {
         ...baseAttributes,
@@ -688,7 +685,7 @@ function getOutputMessages(
   result: Record<string, unknown>,
   finishReason: string | undefined,
 ): string | undefined {
-  if (type === 'experimental_evaluate' || type === 'experimental_decide') {
+  if (type === 'experimental_decide') {
     return stringify([{ type: 'evaluation', answers: withProviderConfidence(result) }]);
   }
   // `languageModelCall` exposes the response as a `content` parts array; top-level results expose

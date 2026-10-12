@@ -1275,7 +1275,7 @@ describe.each(matrix)('Vercel AI integration (version %s)', (version, vercelAiVe
   );
 });
 
-describe('Vercel AI integration experimental_evaluate', () => {
+describe('Vercel AI integration experimental_decide', () => {
   afterAll(() => {
     cleanupChildProcesses();
   });
@@ -1290,7 +1290,7 @@ describe('Vercel AI integration experimental_evaluate', () => {
           .expect({
             span: container => {
               const evaluateSpan = container.items.find(
-                span => span.attributes[SENTRY_OP]?.value === 'gen_ai.evaluate',
+                span => span.attributes[SENTRY_OP]?.value === 'gen_ai.decide',
               )!;
               expect(evaluateSpan.name).toBe('evaluate typesafe-ai/jev');
               expect(evaluateSpan.status).toBe('ok');
@@ -1361,7 +1361,7 @@ describe('Vercel AI integration experimental_evaluate', () => {
           .expect({
             span: container => {
               const evaluateSpan = container.items.find(
-                span => span.attributes[SENTRY_OP]?.value === 'gen_ai.evaluate',
+                span => span.attributes[SENTRY_OP]?.value === 'gen_ai.decide',
               )!;
               expect(evaluateSpan.attributes[GEN_AI_INPUT_MESSAGES]).toBeUndefined();
               expect(evaluateSpan.attributes[GEN_AI_OUTPUT_MESSAGES]).toBeUndefined();

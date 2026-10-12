@@ -241,7 +241,7 @@ describe('LangChain integration (v1)', () => {
     'scenario-typesafe-classifier.mjs',
     'instrument-with-pii.mjs',
     (createRunner, test) => {
-      test('records a TypeSafeClassifier run as a gen_ai.evaluate span', async () => {
+      test('records a TypeSafeClassifier run as a gen_ai.decide span', async () => {
         const runner = createRunner().ignore('event');
         const spansPromise = runner.collectStreamedSpansUntilSegment('main');
 

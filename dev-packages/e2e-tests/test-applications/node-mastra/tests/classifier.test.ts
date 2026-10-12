@@ -19,7 +19,7 @@ const isEvaluateSpan = (span: SerializedStreamedSpan): boolean => getSpanOp(span
 const isClassifyServerSpan = (span: SerializedStreamedSpan): boolean =>
   getSpanOp(span) === HTTP_SERVER && String(span.attributes?.[URL_FULL]?.value ?? '').includes('/classify');
 
-test('captures a Mastra classifier (Jev) evaluation as a gen_ai.evaluate span', async ({ baseURL }) => {
+test('captures a Mastra classifier (Jev) evaluation as a gen_ai.decide span', async ({ baseURL }) => {
   const spansPromise = collectStreamedSpans(
     APP,
     spansOfTrace => spansOfTrace.some(isEvaluateSpan) && spansOfTrace.some(isClassifyServerSpan),
