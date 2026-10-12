@@ -3,7 +3,7 @@ import * as SentryCore from '@sentry/core';
 import { SDK_VERSION } from '@sentry/core';
 import { Hono } from 'hono';
 import { beforeEach, describe, expect, it, type Mock, vi } from 'vitest';
-import { sentry } from '../../src/cloudflare/middleware';
+import { sentry, type HonoCloudflareOptions } from '../../src/cloudflare/middleware';
 import { LOW_QUALITY_TRANSACTION_PATTERNS } from '../../src/shared/lowQualityTransactionPatterns';
 
 vi.mock('@sentry/cloudflare', { spy: true });
@@ -82,7 +82,9 @@ describe('Hono Cloudflare Middleware', () => {
         sampleRate: 0.5,
         tracesSampleRate: 1.0,
         debug: true,
-      };
+        skipOpenTelemetrySetup: false,
+        rpcTracePropagationBindings: ['ORDERS'],
+      } satisfies HonoCloudflareOptions;
 
       sentry(app, options);
 
@@ -95,6 +97,8 @@ describe('Hono Cloudflare Middleware', () => {
         sampleRate: 0.5,
         tracesSampleRate: 1.0,
         debug: true,
+        skipOpenTelemetrySetup: false,
+        rpcTracePropagationBindings: ['ORDERS'],
       });
     });
 
