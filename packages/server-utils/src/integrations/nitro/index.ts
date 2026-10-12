@@ -4,7 +4,7 @@ import { captureStorageEvents } from './captureStorageEvents';
 import { captureTracingEvents } from './captureTracingEvents';
 import { captureServerTimingHeaders } from './setServerTimingHeaders';
 
-const INTEGRATION_NAME = 'Nitro';
+const INTEGRATION_NAME = 'Nitro' as const;
 
 const _nitroIntegration = (() => {
   return {
@@ -27,7 +27,7 @@ const _nitroIntegration = (() => {
  */
 export const nitroIntegration = defineIntegration(_nitroIntegration);
 
-const SERVER_TIMING_INTEGRATION_NAME = 'NitroServerTiming';
+const SERVER_TIMING_INTEGRATION_NAME = 'NitroServerTiming' as const;
 
 const _nitroServerTimingIntegration = (() => {
   return {
