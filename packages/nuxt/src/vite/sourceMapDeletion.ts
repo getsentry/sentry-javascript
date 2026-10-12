@@ -1,4 +1,5 @@
 import { createSentryBuildPluginManager, globFiles, type Options } from '@sentry/bundler-plugins/core';
+import type { Nitro } from 'nitropack';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 
@@ -33,6 +34,25 @@ export async function deleteSourceMapsAfterBuild(options: Options): Promise<void
   });
 
   await sentryBuildPluginManager.deleteArtifacts();
+}
+
+/**
+ * Adds a plugin to Nitro's build that deletes the matching files in Nitro's public dir with `deletePublicSourceMaps`.
+ */
+export function addPublicSourceMapDeletionPlugin(nitro: Nitro, getOptions: () => Options): void {
+  const publicDir = nitro.options.output.publicDir;
+  const rollupConfig = (nitro.options.rollupConfig ??= { output: {} });
+
+  rollupConfig.plugins = [
+    rollupConfig.plugins,
+    {
+      name: 'sentry-nuxt-public-source-map-deletion',
+      // By now the client build is in the public dir, and Nitro has not yet listed its files.
+      async buildStart() {
+        await deletePublicSourceMaps(getOptions(), publicDir);
+      },
+    },
+  ];
 }
 
 /**

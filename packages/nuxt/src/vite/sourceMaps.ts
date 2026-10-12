@@ -4,7 +4,11 @@ import { sentryVitePlugin, type SentryVitePluginOptions } from '@sentry/vite-plu
 import type { NitroConfig } from 'nitropack';
 import type { Plugin } from 'vite';
 import type { SentryNuxtModuleOptions } from '../common/types';
-import { deletePublicSourceMaps, deleteSourceMapsAfterBuild, withoutSourceMapDeletion } from './sourceMapDeletion';
+import {
+  addPublicSourceMapDeletionPlugin,
+  deleteSourceMapsAfterBuild,
+  withoutSourceMapDeletion,
+} from './sourceMapDeletion';
 import { validateSourceMapsOptionsPlugin } from './sentryVitePlugin';
 
 /**
@@ -124,19 +128,7 @@ export function setupSourceMaps(
 
   nuxt.hook('nitro:init', nitro => {
     if (sourceMapsEnabled && !nitro.options.dev && !nuxt.options?._prepare) {
-      const publicDir = nitro.options.output.publicDir;
-      const rollupConfig = (nitro.options.rollupConfig ??= { output: {} });
-
-      rollupConfig.plugins = [
-        rollupConfig.plugins,
-        {
-          name: 'sentry-nuxt-public-source-map-deletion',
-          // By now the client build is in the public dir, and Nitro has not yet listed its files.
-          async buildStart() {
-            await deletePublicSourceMaps(getPluginOptions(moduleOptions, shouldDeleteFilesFallback), publicDir);
-          },
-        },
-      ];
+      addPublicSourceMapDeletionPlugin(nitro, () => getPluginOptions(moduleOptions, shouldDeleteFilesFallback));
     }
   });
 
