@@ -11,6 +11,7 @@ import {
   SENTRY_OP,
   SENTRY_ORIGIN,
 } from '@sentry/conventions/attributes';
+import { GEN_AI_DECIDE } from '@sentry/conventions/op';
 import { afterAll, describe, expect } from 'vitest';
 import { cleanupChildProcesses, createEsmAndCjsTests } from '../../../utils/runner';
 
@@ -33,9 +34,7 @@ describe('TypeSafe integration', () => {
             .unordered()
             .expect({
               span: container => {
-                const decideSpans = container.items.filter(
-                  span => span.attributes[SENTRY_OP]?.value === 'gen_ai.decide',
-                );
+                const decideSpans = container.items.filter(span => span.attributes[SENTRY_OP]?.value === GEN_AI_DECIDE);
                 expect(decideSpans).toHaveLength(4);
                 for (const span of decideSpans) {
                   expect(span.attributes[SENTRY_ORIGIN]?.value).toBe('auto.ai.typesafe');
@@ -130,9 +129,7 @@ describe('TypeSafe integration', () => {
             .unordered()
             .expect({
               span: container => {
-                const decideSpans = container.items.filter(
-                  span => span.attributes[SENTRY_OP]?.value === 'gen_ai.decide',
-                );
+                const decideSpans = container.items.filter(span => span.attributes[SENTRY_OP]?.value === GEN_AI_DECIDE);
                 expect(decideSpans).toHaveLength(4);
                 expect(decideSpans.filter(span => span.status === 'error')).toHaveLength(2);
                 for (const span of decideSpans) {
