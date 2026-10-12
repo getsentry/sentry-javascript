@@ -1532,13 +1532,17 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
     const isError = isErrorEvent(event);
     const eventType = event.type || 'error';
     const beforeSendLabel = `before send for type \`${eventType}\``;
-    let beforeSendDropReason: 'before_send' | 'callback_error' = 'before_send';
+    let beforeSendDropReason: BeforeSendDropReason = 'before_send';
+    let ignoredSpanCount = 0;
 
     // 1.0 === 100% events are sent
     // 0.0 === 0% events are sent
     // Sampling for transaction happens somewhere else
     const parsedSampleRate = typeof sampleRate === 'undefined' ? undefined : parseSampleRate(sampleRate);
     const dataCategory = getDataCategoryByType(event.type);
+    // Spans that event processors removed are already recorded in `prepareEvent`, so all later
+    // span outcomes are relative to the span count of the prepared event.
+    let preparedSpanCount = 0;
 
     return this._prepareEvent(event, hint, currentScope, isolationScope)
       .then(prepared => {
@@ -1546,25 +1550,41 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
           throw _makeDoNotSendEventError('An event processor returned `null`, will not send event.');
         }
 
+        preparedSpanCount = prepared.spans?.length || 0;
+
         if (isInternalException(hint)) {
           return prepared;
         }
 
-        const result = processBeforeSend(this, options, prepared, hint, () => {
-          beforeSendDropReason = 'callback_error';
-        });
+        const result = processBeforeSend(
+          options,
+          prepared,
+          hint,
+          reason => {
+            beforeSendDropReason = reason;
+          },
+          count => {
+            ignoredSpanCount = count;
+          },
+        );
         return _validateBeforeSendResult(result, beforeSendLabel);
       })
       .then(processedEvent => {
+        if (ignoredSpanCount) {
+          this.recordDroppedEvent('ignored', 'span', ignoredSpanCount);
+        }
+
         if (processedEvent === null) {
           this.recordDroppedEvent(beforeSendDropReason, dataCategory);
           if (isTransaction) {
-            const spans = event.spans || [];
-            // the transaction itself counts as one span, plus all the child spans that are added
-            this.recordDroppedEvent(beforeSendDropReason, 'span', 1 + spans.length);
+            // the transaction itself counts as one span, plus all the child spans that weren't ignored before
+            this.recordDroppedEvent(beforeSendDropReason, 'span', 1 + preparedSpanCount - ignoredSpanCount);
           }
-          const dropMessage = beforeSendDropReason === 'callback_error' ? 'threw an error' : 'returned `null`';
-          throw _makeDoNotSendEventError(`${beforeSendLabel} ${dropMessage}, will not send event.`);
+          const dropMessage =
+            beforeSendDropReason === 'ignored'
+              ? 'Transaction matched `ignoreSpans`'
+              : `${beforeSendLabel} ${beforeSendDropReason === 'callback_error' ? 'threw an error' : 'returned `null`'}`;
+          throw _makeDoNotSendEventError(`${dropMessage}, will not send event.`);
         }
 
         const session = currentScope.getSession() || isolationScope.getSession();
@@ -1580,10 +1600,7 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
         }
 
         if (isTransaction) {
-          const spanCountBefore = processedEvent.sdkProcessingMetadata?.spanCountBeforeProcessing || 0;
-          const spanCountAfter = processedEvent.spans ? processedEvent.spans.length : 0;
-
-          const droppedSpanCount = spanCountBefore - spanCountAfter;
+          const droppedSpanCount = preparedSpanCount - ignoredSpanCount - (processedEvent.spans?.length || 0);
           if (droppedSpanCount > 0) {
             this.recordDroppedEvent('before_send', 'span', droppedSpanCount);
           }
@@ -1733,15 +1750,17 @@ function _validateBeforeSendResult(
   return beforeSendResult;
 }
 
+type BeforeSendDropReason = 'before_send' | 'callback_error' | 'ignored';
+
 /**
  * Process the matching `beforeSendXXX` callback.
  */
 function processBeforeSend(
-  client: Client,
   options: ClientOptions,
   event: Event,
   hint: EventHint,
-  onCallbackError: () => void,
+  onDrop: (reason: Exclude<BeforeSendDropReason, 'before_send'>) => void,
+  onIgnoredSpans: (count: number) => void,
 ): PromiseLike<Event | null> | Event | null {
   const {
     beforeSend,
@@ -1759,7 +1778,7 @@ function processBeforeSend(
       DEBUG_BUILD ? 'The `beforeSend` callback threw an error, dropping the event:' : '',
       () => beforeSend(errorEvent, hint),
       () => {
-        onCallbackError();
+        onDrop('callback_error');
         return null;
       },
     );
@@ -1779,7 +1798,7 @@ function processBeforeSend(
           ignoreSpans,
         )
       ) {
-        // dropping the whole transaction!
+        onDrop('ignored');
         return null;
       }
 
@@ -1814,30 +1833,17 @@ function processBeforeSend(
           }
         }
 
-        const droppedSpans = processedEvent.spans.length - processedSpans.length;
-        if (droppedSpans) {
-          client.recordDroppedEvent('before_send', 'span', droppedSpans);
-        }
-
+        onIgnoredSpans(initialSpans.length - processedSpans.length);
         processedEvent.spans = processedSpans;
       }
     }
 
     if (beforeSendTransaction) {
-      if (processedEvent.spans) {
-        // We store the # of spans before processing in SDK metadata,
-        // so we can compare it afterwards to determine how many spans were dropped
-        const spanCountBefore = processedEvent.spans.length;
-        processedEvent.sdkProcessingMetadata = {
-          ...event.sdkProcessingMetadata,
-          spanCountBeforeProcessing: spanCountBefore,
-        };
-      }
       return safeCallback(
         DEBUG_BUILD ? 'The `beforeSendTransaction` callback threw an error, dropping the event:' : '',
         () => beforeSendTransaction(processedEvent as TransactionEvent, hint),
         () => {
-          onCallbackError();
+          onDrop('callback_error');
           return null;
         },
       );
