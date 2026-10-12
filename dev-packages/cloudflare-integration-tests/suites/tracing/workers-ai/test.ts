@@ -21,6 +21,7 @@ import {
   SENTRY_OP,
   SENTRY_ORIGIN,
 } from '@sentry/conventions/attributes';
+import { GEN_AI_DECIDE } from '@sentry/conventions/op';
 import { SDK_VERSION } from '@sentry/core';
 import { expect, it } from 'vitest';
 import { GEN_AI_REQUEST_STREAM_ATTRIBUTE } from '../../../../../packages/server-utils/src/ai/core/gen-ai-attributes';
@@ -154,7 +155,7 @@ it('traces a TypeSafe Jev evaluation like the TypeSafe integration', async ({ si
           is_segment: false,
           attributes: {
             [SENTRY_ORIGIN]: { value: 'auto.ai.cloudflare.workers_ai', type: 'string' },
-            [SENTRY_OP]: { value: 'gen_ai.decide', type: 'string' },
+            [SENTRY_OP]: { value: GEN_AI_DECIDE, type: 'string' },
             [GEN_AI_PROVIDER_NAME]: { value: 'cloudflare.workers_ai', type: 'string' },
             [GEN_AI_OPERATION_NAME]: { value: 'decide', type: 'string' },
             [GEN_AI_REQUEST_MODEL]: { value: 'typesafe/jev', type: 'string' },
@@ -200,7 +201,7 @@ it('traces a Clef evaluation like a TypeSafe Jev evaluation', async ({ signal })
           is_segment: false,
           attributes: {
             [SENTRY_ORIGIN]: { value: 'auto.ai.cloudflare.workers_ai', type: 'string' },
-            [SENTRY_OP]: { value: 'gen_ai.decide', type: 'string' },
+            [SENTRY_OP]: { value: GEN_AI_DECIDE, type: 'string' },
             [GEN_AI_PROVIDER_NAME]: { value: 'cloudflare.workers_ai', type: 'string' },
             [GEN_AI_OPERATION_NAME]: { value: 'decide', type: 'string' },
             [GEN_AI_REQUEST_MODEL]: { value: '@cf/cloudflare/clef', type: 'string' },

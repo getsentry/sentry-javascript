@@ -14,6 +14,7 @@ import {
   SENTRY_OP,
   SENTRY_ORIGIN,
 } from '@sentry/conventions/attributes';
+import { GEN_AI_DECIDE } from '@sentry/conventions/op';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   getMainCarrier,
@@ -188,7 +189,7 @@ describe('instrumentWorkersAiClient', () => {
     expect(span.description).toBe('decide typesafe/jev');
     expect(span.data).toEqual({
       [SENTRY_ORIGIN]: 'auto.ai.cloudflare.workers_ai',
-      [SENTRY_OP]: 'gen_ai.decide',
+      [SENTRY_OP]: GEN_AI_DECIDE,
       [SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE]: 1,
       [SENTRY_SEGMENT_NAME_SOURCE]: 'custom',
       [GEN_AI_PROVIDER_NAME]: 'cloudflare.workers_ai',
