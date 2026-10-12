@@ -47,10 +47,20 @@ async function waitForSpan(traceId: string, op: string): Promise<{ span: TraceIt
   return found!;
 }
 
-/** Whether the model-call span sits somewhere below the request span (`http.server`) of the trace. */
-async function isModelSpanUnderRequestSpan(traceId: string, modelSpanId: string): Promise<boolean> {
+/** The ids of the spans with `op` below the request span (`http.server`) of the trace. */
+async function spanIdsUnderRequestSpan(traceId: string, op: string): Promise<string[]> {
   const requestSpan = flattenTrace(await fetchTrace(traceId)).find(item => item.op === 'http.server');
-  return flattenTrace(requestSpan?.children ?? []).some(item => item.event_id === modelSpanId);
+  return flattenTrace(requestSpan?.children ?? [])
+    .filter(item => item.op === op)
+    .map(item => item.event_id!);
+}
+
+/**
+ * The request span is the segment; it ends last, so it can land after its children. Expecting exactly
+ * one span also catches the call being instrumented twice.
+ */
+async function expectOnlySpanUnderRequestSpan(traceId: string, op: string, span: TraceItem): Promise<void> {
+  await expect.poll(() => spanIdsUnderRequestSpan(traceId, op), EVENT_POLLING_OPTIONS).toEqual([span.event_id]);
 }
 
 /**
@@ -94,10 +104,9 @@ test('Sends a chat completion to Sentry as a gen_ai.chat span under the request 
   // answer is sent as `gen_ai.response.text` and stored as `gen_ai.output.messages`.
   expect(attributes['gen_ai.system_instructions']).toContain('automated test');
   expect(attributes['gen_ai.input.messages']).toContain('capital of France');
-  expect(typeof attributes['gen_ai.output.messages']).toBe('string');
+  expect(attributes['gen_ai.output.messages']).toMatch(/paris/i);
 
-  // The request span is the segment; it ends last, so it can land after its children.
-  await expect.poll(() => isModelSpanUnderRequestSpan(traceId, span.event_id!), EVENT_POLLING_OPTIONS).toBe(true);
+  await expectOnlySpanUnderRequestSpan(traceId, 'gen_ai.chat', span);
 });
 
 test('Sends a streamed chat completion to Sentry with its token usage', async ({ baseURL }) => {
@@ -111,19 +120,24 @@ test('Sends a streamed chat completion to Sentry with its token usage', async ({
   // The usage only arrives in the final chunk, which the streaming instrumentation has to pick up.
   expect(attributes['gen_ai.usage.output_tokens']).toBeGreaterThan(0);
   expect(finishReasons(attributes)).toContain('stop');
-  expect(typeof attributes['gen_ai.output.messages']).toBe('string');
+  expect(attributes['gen_ai.output.messages']).toMatch(/paris/i);
+
+  await expectOnlySpanUnderRequestSpan(traceId, 'gen_ai.chat', span);
 });
 
 test('Sends a chat completion that returned a tool call to Sentry', async ({ baseURL }) => {
   const traceId = await requestTrace(baseURL, '/tools');
 
-  const { attributes } = await waitForSpan(traceId, 'gen_ai.chat');
+  const { span, attributes } = await waitForSpan(traceId, 'gen_ai.chat');
 
   expectModelCallAttributes(attributes, 'chat', CHAT_MODEL);
   expect(finishReasons(attributes)).toEqual(['tool_calls']);
   expect(attributes['gen_ai.tool.definitions']).toContain('get_weather');
   // The SDK also sends the returned call as `gen_ai.response.tool_calls`, but that attribute is not
   // stored as such, so the finish reason is what proves the tool call made it.
+  // TODO: Assert the call in `gen_ai.output.messages` once the OpenAI integration records it there.
+
+  await expectOnlySpanUnderRequestSpan(traceId, 'gen_ai.chat', span);
 });
 
 test('Sends a Responses API call to Sentry as a gen_ai.chat span', async ({ baseURL }) => {
@@ -136,7 +150,9 @@ test('Sends a Responses API call to Sentry as a gen_ai.chat span', async ({ base
   expect(attributes['gen_ai.usage.output_tokens']).toBeGreaterThan(0);
   expect(finishReasons(attributes)).toEqual(['completed']);
   expect(attributes['gen_ai.input.messages']).toContain('capital of France');
-  expect(typeof attributes['gen_ai.output.messages']).toBe('string');
+  expect(attributes['gen_ai.output.messages']).toMatch(/paris/i);
+
+  await expectOnlySpanUnderRequestSpan(traceId, 'gen_ai.chat', span);
 });
 
 test('Sends an embeddings call to Sentry as a gen_ai.embeddings span', async ({ baseURL }) => {
@@ -147,4 +163,6 @@ test('Sends an embeddings call to Sentry as a gen_ai.embeddings span', async ({ 
   expect(span.description).toBe(`embeddings ${EMBEDDINGS_MODEL}`);
   expectModelCallAttributes(attributes, 'embeddings', EMBEDDINGS_MODEL);
   expect(attributes['gen_ai.embeddings.input']).toContain('Paris');
+
+  await expectOnlySpanUnderRequestSpan(traceId, 'gen_ai.embeddings', span);
 });
