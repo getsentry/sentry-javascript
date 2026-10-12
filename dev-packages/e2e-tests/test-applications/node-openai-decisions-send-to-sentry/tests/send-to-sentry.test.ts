@@ -92,20 +92,59 @@ test('records a text decision with its state, questions and answers', async ({ b
   const traceId = await requestTrace(baseURL, '/decide');
   const attributes = await expectDecideSpan(traceId);
 
-  const [input] = JSON.parse(attributes[GEN_AI_INPUT_MESSAGES] as string);
-  expect(input).toMatchObject({ type: 'evaluation', state: expect.stringContaining('refund') });
-  expect(input.questions.map((question: { name: string }) => question.name)).toEqual([
-    'wants_refund',
-    'department',
-    'urgency',
+  expect(JSON.parse(attributes[GEN_AI_INPUT_MESSAGES] as string)).toEqual([
+    {
+      type: 'evaluation',
+      state: 'I was charged twice this month and want a refund.',
+      questions: [
+        { type: 'predicate', name: 'wants_refund', instructions: 'Is a refund requested?' },
+        {
+          type: 'choice',
+          name: 'department',
+          instructions: 'Which team should handle this?',
+          choices: [
+            { value: 'billing', description: 'Charges and refunds' },
+            { value: 'other', description: 'Anything else' },
+          ],
+        },
+        {
+          type: 'score',
+          name: 'urgency',
+          instructions: 'How urgent is this ticket?',
+          levels: [{ label: 'low' }, { label: 'high' }],
+        },
+      ],
+    },
   ]);
 
-  const [output] = JSON.parse(attributes[GEN_AI_OUTPUT_MESSAGES] as string);
-  expect(output.type).toBe('evaluation');
-  expect(output.answers.map((answer: { type: string; name: string }) => [answer.type, answer.name])).toEqual([
-    ['predicate', 'wants_refund'],
-    ['choice', 'department'],
-    ['score', 'urgency'],
+  // The probabilities depend on the model, the shape does not.
+  expect(JSON.parse(attributes[GEN_AI_OUTPUT_MESSAGES] as string)).toEqual([
+    {
+      type: 'evaluation',
+      answers: [
+        { type: 'predicate', name: 'wants_refund', probability: expect.any(Number) },
+        {
+          type: 'choice',
+          name: 'department',
+          choice: 'billing',
+          probabilities: [
+            { value: 'billing', probability: expect.any(Number) },
+            { value: 'other', probability: expect.any(Number) },
+          ],
+          confidence: expect.any(Number),
+        },
+        {
+          type: 'score',
+          name: 'urgency',
+          score: expect.any(Number),
+          probabilities: [
+            { value: 0, label: 'low', probability: expect.any(Number) },
+            { value: 1, label: 'high', probability: expect.any(Number) },
+          ],
+          confidence: expect.any(Number),
+        },
+      ],
+    },
   ]);
 });
 
@@ -113,15 +152,23 @@ test('records an image decision by media type only', async ({ baseURL }) => {
   const traceId = await requestTrace(baseURL, '/decide-image');
   const attributes = await expectDecideSpan(traceId);
 
-  expect(attributes[GEN_AI_INPUT_MESSAGES]).not.toContain('base64');
-  const [input] = JSON.parse(attributes[GEN_AI_INPUT_MESSAGES] as string);
-  expect(input.state).toEqual([
+  expect(JSON.parse(attributes[GEN_AI_INPUT_MESSAGES] as string)).toEqual([
     {
-      role: 'user',
-      content: [
-        { type: 'input_text', text: 'Is this image mostly red?' },
-        { type: 'input_image', mime_type: 'image/png' },
+      type: 'evaluation',
+      state: [
+        {
+          role: 'user',
+          content: [
+            { type: 'input_text', text: 'Is this image mostly red?' },
+            { type: 'input_image', mime_type: 'image/png' },
+          ],
+        },
       ],
+      questions: [{ type: 'predicate', name: 'is_red', instructions: 'Is the image mostly red?' }],
     },
+  ]);
+
+  expect(JSON.parse(attributes[GEN_AI_OUTPUT_MESSAGES] as string)).toEqual([
+    { type: 'evaluation', answers: [{ type: 'predicate', name: 'is_red', probability: expect.any(Number) }] },
   ]);
 });
