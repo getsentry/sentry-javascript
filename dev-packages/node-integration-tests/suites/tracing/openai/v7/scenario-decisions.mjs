@@ -14,28 +14,38 @@ function startMockServer() {
       return;
     }
 
+    // Shaped like a real `gpt-6-luna` response. Decisions bills input tokens only.
     res.send({
-      model: 'gpt-6-luna-2026-09-01',
+      model: 'gpt-6-luna',
       answers: [
         { type: 'predicate', name: 'wants_refund', probability: 0.97 },
         {
           type: 'choice',
           name: 'department',
           choice: 'billing',
-          confidence: 0.82,
           probabilities: [
             { value: 'billing', probability: 0.82 },
             { value: 'other', probability: 0.18 },
           ],
+          confidence: 0.82,
         },
-        { type: 'refusal', name: 'urgency' },
+        {
+          type: 'score',
+          name: 'urgency',
+          score: 0.95,
+          probabilities: [
+            { value: 0, label: 'low', probability: 0.05 },
+            { value: 1, label: 'high', probability: 0.95 },
+          ],
+          confidence: 0.93,
+        },
       ],
       usage: {
-        input_tokens: 120,
-        input_tokens_details: { cached_tokens: 40, cache_write_tokens: 0 },
-        output_tokens: 3,
+        input_tokens: 382,
+        input_tokens_details: { cached_tokens: 0, cache_write_tokens: 0 },
+        output_tokens: 0,
         output_tokens_details: { reasoning_tokens: 0 },
-        total_tokens: 123,
+        total_tokens: 382,
       },
     });
   });

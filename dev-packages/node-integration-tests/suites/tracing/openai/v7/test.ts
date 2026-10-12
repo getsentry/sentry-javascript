@@ -186,12 +186,12 @@ conditionalTest({ min: 22 })('OpenAI integration (V7)', () => {
           [GEN_AI_OPERATION_NAME]: { value: 'decide' },
           [GEN_AI_PROVIDER_NAME]: { value: 'openai' },
           [GEN_AI_REQUEST_MODEL]: { value: 'gpt-6-luna' },
-          [GEN_AI_RESPONSE_MODEL]: { value: 'gpt-6-luna-2026-09-01' },
-          [GEN_AI_USAGE_INPUT_TOKENS]: { value: 120 },
-          [GEN_AI_USAGE_CACHE_READ_INPUT_TOKENS]: { value: 40 },
-          [GEN_AI_USAGE_OUTPUT_TOKENS]: { value: 3 },
+          [GEN_AI_RESPONSE_MODEL]: { value: 'gpt-6-luna' },
+          [GEN_AI_USAGE_INPUT_TOKENS]: { value: 382 },
+          [GEN_AI_USAGE_CACHE_READ_INPUT_TOKENS]: { value: 0 },
+          [GEN_AI_USAGE_OUTPUT_TOKENS]: { value: 0 },
           [GEN_AI_USAGE_REASONING_OUTPUT_TOKENS]: { value: 0 },
-          [GEN_AI_USAGE_TOTAL_TOKENS]: { value: 123 },
+          [GEN_AI_USAGE_TOTAL_TOKENS]: { value: 382 },
         });
         expect(JSON.parse(textSpan!.attributes[GEN_AI_INPUT_MESSAGES]!.value as string)).toEqual([
           {
@@ -223,13 +223,22 @@ conditionalTest({ min: 22 })('OpenAI integration (V7)', () => {
                 type: 'choice',
                 name: 'department',
                 choice: 'billing',
-                confidence: 0.82,
                 probabilities: [
                   { value: 'billing', probability: 0.82 },
                   { value: 'other', probability: 0.18 },
                 ],
+                confidence: 0.82,
               },
-              { type: 'refusal', name: 'urgency' },
+              {
+                type: 'score',
+                name: 'urgency',
+                score: 0.95,
+                probabilities: [
+                  { value: 0, label: 'low', probability: 0.05 },
+                  { value: 1, label: 'high', probability: 0.95 },
+                ],
+                confidence: 0.93,
+              },
             ],
           },
         ]);
