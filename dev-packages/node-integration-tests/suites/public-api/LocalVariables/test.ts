@@ -2,7 +2,7 @@ import { mkdirSync, rmdirSync, unlinkSync, writeFileSync } from 'fs';
 import * as path from 'path';
 import { afterAll, beforeAll, describe, expect, test } from 'vitest';
 import { cleanupChildProcesses, createRunner } from '../../../utils/runner';
-import { RUNTIME } from '../../../utils';
+import { supports } from '../../../utils';
 
 const EXPECTED_LOCAL_VARIABLES_EVENT = {
   exception: {
@@ -81,24 +81,27 @@ module.exports = { out_of_app_function };`,
   });
 
   // Bun and Deno: the error events have no local variables.
-  test.skipIf(RUNTIME !== 'node')('Should include local variables when enabled', async () => {
+  test.runIf(supports({ runtimes: ['node'] }))('Should include local variables when enabled', async () => {
     await createRunner(__dirname, 'local-variables.js')
       .expect({ event: EXPECTED_LOCAL_VARIABLES_EVENT })
       .start()
       .completed();
   });
 
-  test.skipIf(RUNTIME !== 'node')('Should include local variables when instrumenting via --import', async () => {
-    const instrumentPath = path.resolve(__dirname, 'local-variables-instrument.cjs');
+  test.runIf(supports({ runtimes: ['node'] }))(
+    'Should include local variables when instrumenting via --import',
+    async () => {
+      const instrumentPath = path.resolve(__dirname, 'local-variables-instrument.cjs');
 
-    await createRunner(__dirname, 'local-variables-no-sentry.js')
-      .withFlags(`--import=${instrumentPath}`)
-      .expect({ event: EXPECTED_LOCAL_VARIABLES_EVENT })
-      .start()
-      .completed();
-  });
+      await createRunner(__dirname, 'local-variables-no-sentry.js')
+        .withFlags(`--import=${instrumentPath}`)
+        .expect({ event: EXPECTED_LOCAL_VARIABLES_EVENT })
+        .start()
+        .completed();
+    },
+  );
 
-  test.skipIf(RUNTIME !== 'node')('Should include local variables with ESM', async () => {
+  test.runIf(supports({ runtimes: ['node'] }))('Should include local variables with ESM', async () => {
     await createRunner(__dirname, 'local-variables-caught.mjs')
       .expect({ event: EXPECTED_LOCAL_VARIABLES_EVENT })
       .start()
@@ -109,21 +112,27 @@ module.exports = { out_of_app_function };`,
     await createRunner(__dirname, 'deny-inspector.mjs').ensureNoErrorOutput().start().completed();
   });
 
-  test.skipIf(RUNTIME !== 'node')('Should retain original local variables when error is re-thrown', async () => {
-    await createRunner(__dirname, 'local-variables-rethrow.js')
-      .expect({ event: EXPECTED_LOCAL_VARIABLES_EVENT })
-      .start()
-      .completed();
-  });
+  test.runIf(supports({ runtimes: ['node'] }))(
+    'Should retain original local variables when error is re-thrown',
+    async () => {
+      await createRunner(__dirname, 'local-variables-rethrow.js')
+        .expect({ event: EXPECTED_LOCAL_VARIABLES_EVENT })
+        .start()
+        .completed();
+    },
+  );
 
-  test.skipIf(RUNTIME !== 'node')('Includes local variables for caught exceptions when enabled', async () => {
-    await createRunner(__dirname, 'local-variables-caught.js')
-      .expect({ event: EXPECTED_LOCAL_VARIABLES_EVENT })
-      .start()
-      .completed();
-  });
+  test.runIf(supports({ runtimes: ['node'] }))(
+    'Includes local variables for caught exceptions when enabled',
+    async () => {
+      await createRunner(__dirname, 'local-variables-caught.js')
+        .expect({ event: EXPECTED_LOCAL_VARIABLES_EVENT })
+        .start()
+        .completed();
+    },
+  );
 
-  test.skipIf(RUNTIME !== 'node')(
+  test.runIf(supports({ runtimes: ['node'] }))(
     'Filters local variables by name via dataCollection.stackFrameVariables',
     async () => {
       await createRunner(__dirname, 'local-variables-filtered.js')
@@ -156,7 +165,7 @@ module.exports = { out_of_app_function };`,
       .completed();
   });
 
-  test.skipIf(RUNTIME !== 'node')('Should handle different function name formats', async () => {
+  test.runIf(supports({ runtimes: ['node'] }))('Should handle different function name formats', async () => {
     await createRunner(__dirname, 'local-variables-name-matching.js')
       .expect({
         event: {
@@ -182,7 +191,7 @@ module.exports = { out_of_app_function };`,
       .completed();
   });
 
-  test.skipIf(RUNTIME !== 'node')(
+  test.runIf(supports({ runtimes: ['node'] }))(
     'adds local variables to out of app frames when includeOutOfAppFrames is true',
     async () => {
       await createRunner(__dirname, 'local-variables-out-of-app.js')
@@ -208,23 +217,26 @@ module.exports = { out_of_app_function };`,
     },
   );
 
-  test.skipIf(RUNTIME !== 'node')('does not add local variables to out of app frames by default', async () => {
-    await createRunner(__dirname, 'local-variables-out-of-app-default.js')
-      .expect({
-        event: event => {
-          const frames = event.exception?.values?.[0]?.stacktrace?.frames || [];
+  test.runIf(supports({ runtimes: ['node'] }))(
+    'does not add local variables to out of app frames by default',
+    async () => {
+      await createRunner(__dirname, 'local-variables-out-of-app-default.js')
+        .expect({
+          event: event => {
+            const frames = event.exception?.values?.[0]?.stacktrace?.frames || [];
 
-          const inAppFrame = frames.find(frame => frame.function === 'in_app_function');
-          const outOfAppFrame = frames.find(frame => frame.function === 'out_of_app_function');
+            const inAppFrame = frames.find(frame => frame.function === 'in_app_function');
+            const outOfAppFrame = frames.find(frame => frame.function === 'out_of_app_function');
 
-          expect(inAppFrame?.vars).toEqual({ inAppVar: 'in app value' });
-          expect(inAppFrame?.in_app).toEqual(true);
+            expect(inAppFrame?.vars).toEqual({ inAppVar: 'in app value' });
+            expect(inAppFrame?.in_app).toEqual(true);
 
-          expect(outOfAppFrame?.vars).toBeUndefined();
-          expect(outOfAppFrame?.in_app).toEqual(false);
-        },
-      })
-      .start()
-      .completed();
-  });
+            expect(outOfAppFrame?.vars).toBeUndefined();
+            expect(outOfAppFrame?.in_app).toEqual(false);
+          },
+        })
+        .start()
+        .completed();
+    },
+  );
 });

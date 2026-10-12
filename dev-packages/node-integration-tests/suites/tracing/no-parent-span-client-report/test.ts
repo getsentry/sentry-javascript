@@ -1,5 +1,5 @@
 import { afterAll, describe, expect } from 'vitest';
-import { RUNTIME } from '../../../utils';
+import { supports } from '../../../utils';
 import { cleanupChildProcesses, createEsmAndCjsTests } from '../../../utils/runner';
 
 describe('no_parent_span client report', () => {
@@ -10,7 +10,7 @@ describe('no_parent_span client report', () => {
   createEsmAndCjsTests(__dirname, 'scenario.mjs', 'instrument.mjs', (createRunner, test) => {
     // Bun 1.3.14 does not instrument outgoing `node:http` requests.
     // See https://github.com/getsentry/sentry-javascript/issues/23881
-    test.skipIf(RUNTIME === 'bun')(
+    test.runIf(supports({ runtimes: ['node', 'deno'] }))(
       'records no_parent_span outcome for an outgoing http request without a local parent',
       async () => {
         const runner = createRunner()

@@ -1,6 +1,6 @@
 import type { SerializedStreamedSpan, SerializedStreamedSpanContainer } from '@sentry/core';
 import { afterAll, describe, expect } from 'vitest';
-import { conditionalTest } from '../../../utils';
+import { supports } from '../../../utils';
 import { cleanupChildProcesses, createEsmAndCjsTests, describeWithDockerCompose } from '../../../utils/runner';
 
 afterAll(() => {
@@ -103,9 +103,12 @@ describe('Prisma ORM v8 Tests', () => {
 
         // The CJS scenario loads the ESM-only package via `require(esm)`, which Node's module hooks only see
         // from Node 22 on; on Node 20 the ORM terminals load uninstrumented.
-        conditionalTest({ min: 22 })('with require(esm) reaching the module hooks', testInstrumentedOperations);
+        describe.runIf(supports({ min: 22 }))(
+          'with require(esm) reaching the module hooks',
+          testInstrumentedOperations,
+        );
 
-        conditionalTest({ max: 21 })('with require(esm) bypassing the module hooks', () => {
+        describe.runIf(supports({ max: 21 }))('with require(esm) bypassing the module hooks', () => {
           test('should keep the pg spans on the transaction', { timeout: 75_000 }, async () => {
             await createRunner()
               .unordered()
