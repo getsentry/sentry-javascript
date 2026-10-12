@@ -3,7 +3,7 @@ import mysql from 'mysql';
 // The `@sentry/astro` orchestrion transform injects the `orchestrion:mysql:query` diagnostics
 // channel into the bundled `mysql` package at build time. On Cloudflare Workers the transform also
 // registers the matching subscriber factory on the global marker, which `@sentry/cloudflare` reads
-// in the `withSentry` wrap — so these queries produce `db` spans with no OTel require-hook, which
+// in the `withSentry` wrap, so these queries produce `db` spans with no OTel require-hook, which
 // wouldn't work in workerd anyway.
 export async function GET() {
   // The connection is created inside the handler: workerd forbids I/O in global scope, and mysql

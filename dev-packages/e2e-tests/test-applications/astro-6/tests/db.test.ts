@@ -1,7 +1,6 @@
 import { expect, test } from '@playwright/test';
 import { collectStreamedSpansUntilSegment, getSpanOp } from '@sentry-internal/test-utils';
-
-const APP_NAME = 'astro-6-cf-workers';
+import { APP_NAME } from './constants';
 
 test('a real mysql query emits a db span with orchestrion-channel attributes', async ({ request }) => {
   const spansPromise = collectStreamedSpansUntilSegment(APP_NAME, 'GET /db-mysql');
