@@ -1,5 +1,5 @@
 import type { Integration } from '@sentry/core';
-import { debug, getCurrentScope, setCurrentClient } from '@sentry/core';
+import { _INTERNAL_isClientClosed, debug, getCurrentScope, setCurrentClient } from '@sentry/core';
 import {
   consoleIntegration,
   conversationIdIntegration,
@@ -94,7 +94,9 @@ export function initWithDefaultIntegrations(
   const cached = getCachedClient();
   const cacheEnabled = options.cacheClient !== false;
 
-  if (cacheEnabled && cached) {
+  // A closed client drops all data. `close()` marks the client before it
+  // flushes, so this also skips a client that is still closing.
+  if (cacheEnabled && cached && !_INTERNAL_isClientClosed(cached)) {
     if (DEBUG_BUILD && cached.getOptions().dsn !== options.dsn) {
       debug.warn(
         '[Sentry] init() was called with a different DSN than the cached client of this isolate; the cached client keeps its DSN. Pass `cacheClient: false` for per-invocation options.',
@@ -134,6 +136,12 @@ export function initWithDefaultIntegrations(
     );
   }
   /*! rollup-include-development-only-end */
+
+  if (!cacheEnabled) {
+    // `cacheClient: false` asks for a new client on each call, so replacing
+    // the bound client is expected here and must not warn.
+    getCurrentScope().setClient(undefined);
+  }
 
   const client = initAndBind(CloudflareClient, clientOptions) as CloudflareClient;
 

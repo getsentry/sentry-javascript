@@ -7,17 +7,17 @@ export const anthropicAiConfig = [
   ...['resources/messages/messages.js', 'resources/messages/messages.mjs'].map(filePath => ({
     channelName: 'chat',
     module: { name: '@anthropic-ai/sdk', versionRange: '>=0.19.2 <1', filePath },
-    functionQuery: { className: 'Messages', methodName: 'create', kind: 'Auto' as const },
+    functionQuery: { className: 'Messages', methodName: 'create', kind: 'Sync' as const },
   })),
   ...['resources/completions.js', 'resources/completions.mjs'].map(filePath => ({
     channelName: 'chat',
     module: { name: '@anthropic-ai/sdk', versionRange: '>=0.19.2 <1', filePath },
-    functionQuery: { className: 'Completions', methodName: 'create', kind: 'Auto' as const },
+    functionQuery: { className: 'Completions', methodName: 'create', kind: 'Sync' as const },
   })),
   ...['resources/beta/messages/messages.js', 'resources/beta/messages/messages.mjs'].map(filePath => ({
     channelName: 'chat',
     module: { name: '@anthropic-ai/sdk', versionRange: '>=0.19.2 <1', filePath },
-    functionQuery: { className: 'Messages', methodName: 'create', kind: 'Auto' as const },
+    functionQuery: { className: 'Messages', methodName: 'create', kind: 'Sync' as const },
   })),
   // `messages.stream()` returns a synchronous emitter, not a promise, so `kind: 'Sync'` is required:
   // `Auto`'s promise wrapper never publishes `end` for a non-thenable return, so the span would never end.

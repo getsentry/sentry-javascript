@@ -27,6 +27,25 @@ export default {
       }
       case '/test-unhandled-error':
         throw new Error('E2E test unhandled error');
+      case '/test-workers-ai': {
+        await env.AI.run('@cf/meta/llama-3.2-1b-instruct', { prompt: 'Say hi', max_tokens: 5 });
+        return Response.json({ traceId: spanContext?.traceId });
+      }
+      case '/test-workers-ai-jev': {
+        await env.AI.run('typesafe/jev', {
+          state: 'Help! My payouts have been failing for 3 days.',
+          questions: { is_urgent: { type: 'noul', instructions: 'Does this convey urgency?' } },
+        });
+        return Response.json({ traceId: spanContext?.traceId });
+      }
+      case '/test-workers-ai-clef': {
+        await env.AI.run('@cf/cloudflare/clef', {
+          model: 'clef',
+          state: 'Checkout has been failing for every customer for the last hour.',
+          questions: { urgent: { type: 'noul', instructions: 'Is this support request urgent?' } },
+        });
+        return Response.json({ traceId: spanContext?.traceId });
+      }
       case '/test-span':
         return Response.json({ spanId: spanContext?.spanId, traceId: spanContext?.traceId });
       case '/test-workflow-sleep': {

@@ -1,8 +1,9 @@
 import type { Page } from '@playwright/test';
 import { expect } from '@playwright/test';
-import type { Event } from '@sentry/core';
 import { sentryTest } from '../../../../utils/fixtures';
-import { getFirstSentryEnvelopeRequest, shouldSkipTracingTest } from '../../../../utils/helpers';
+import { shouldSkipTracingTest } from '../../../../utils/helpers';
+import { waitForStreamedSpanAndTraceHeaderOnUrl } from '../../../../utils/spanUtils';
+import { NETWORK_CONNECTION_RTT } from '@sentry/conventions/attributes';
 
 sentryTest.beforeEach(({ browserName }) => {
   if (shouldSkipTracingTest() || browserName !== 'chromium') {
@@ -22,55 +23,42 @@ async function createSessionWithLatency(page: Page, latency: number) {
   return session;
 }
 
-sentryTest('should capture a `connection.rtt` metric. xxx', async ({ getLocalTestUrl, page }) => {
+sentryTest('captures connection RTT without emulation', async ({ getLocalTestUrl, page }) => {
   const url = await getLocalTestUrl({ testDir: __dirname });
-  const eventData = await getFirstSentryEnvelopeRequest<Event>(page, url);
+  const eventData = await waitForStreamedSpanAndTraceHeaderOnUrl(page, url).then(([span]) => span);
 
-  expect(eventData.measurements).toBeDefined();
-  expect(eventData.measurements?.['connection.rtt']?.value).toBe(0);
+  expect(eventData.attributes[NETWORK_CONNECTION_RTT]?.value).toBe(0);
 });
 
-sentryTest(
-  'should capture a `connection.rtt` metric with emulated value 200ms on Chromium.',
-  async ({ getLocalTestUrl, page }) => {
-    const session = await createSessionWithLatency(page, 200);
+sentryTest('captures connection RTT with emulated value 200ms on Chromium.', async ({ getLocalTestUrl, page }) => {
+  const session = await createSessionWithLatency(page, 200);
 
-    const url = await getLocalTestUrl({ testDir: __dirname });
-    const eventData = await getFirstSentryEnvelopeRequest<Event>(page, url);
+  const url = await getLocalTestUrl({ testDir: __dirname });
+  const eventData = await waitForStreamedSpanAndTraceHeaderOnUrl(page, url).then(([span]) => span);
 
-    await session.detach();
+  await session.detach();
 
-    expect(eventData.measurements).toBeDefined();
-    expect(eventData.measurements?.['connection.rtt']?.value).toBe(200);
-  },
-);
+  expect(eventData.attributes[NETWORK_CONNECTION_RTT]?.value).toBe(200);
+});
 
-sentryTest(
-  'should capture a `connection.rtt` metric with emulated value 100ms on Chromium.',
-  async ({ getLocalTestUrl, page }) => {
-    const session = await createSessionWithLatency(page, 100);
+sentryTest('captures connection RTT with emulated value 100ms on Chromium.', async ({ getLocalTestUrl, page }) => {
+  const session = await createSessionWithLatency(page, 100);
 
-    const url = await getLocalTestUrl({ testDir: __dirname });
-    const eventData = await getFirstSentryEnvelopeRequest<Event>(page, url);
+  const url = await getLocalTestUrl({ testDir: __dirname });
+  const eventData = await waitForStreamedSpanAndTraceHeaderOnUrl(page, url).then(([span]) => span);
 
-    await session.detach();
+  await session.detach();
 
-    expect(eventData.measurements).toBeDefined();
-    expect(eventData.measurements?.['connection.rtt']?.value).toBe(100);
-  },
-);
+  expect(eventData.attributes[NETWORK_CONNECTION_RTT]?.value).toBe(100);
+});
 
-sentryTest(
-  'should capture a `connection.rtt` metric with emulated value 50ms on Chromium.',
-  async ({ getLocalTestUrl, page }) => {
-    const session = await createSessionWithLatency(page, 50);
+sentryTest('captures connection RTT with emulated value 50ms on Chromium.', async ({ getLocalTestUrl, page }) => {
+  const session = await createSessionWithLatency(page, 50);
 
-    const url = await getLocalTestUrl({ testDir: __dirname });
-    const eventData = await getFirstSentryEnvelopeRequest<Event>(page, url);
+  const url = await getLocalTestUrl({ testDir: __dirname });
+  const eventData = await waitForStreamedSpanAndTraceHeaderOnUrl(page, url).then(([span]) => span);
 
-    await session.detach();
+  await session.detach();
 
-    expect(eventData.measurements).toBeDefined();
-    expect(eventData.measurements?.['connection.rtt']?.value).toBe(50);
-  },
-);
+  expect(eventData.attributes[NETWORK_CONNECTION_RTT]?.value).toBe(50);
+});

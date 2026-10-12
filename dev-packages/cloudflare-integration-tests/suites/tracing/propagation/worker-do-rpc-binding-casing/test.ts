@@ -1,13 +1,15 @@
 import { expect, it } from 'vitest';
-import type { Envelope, Event } from '@sentry/core';
+import type { Envelope, SerializedStreamedSpan } from '@sentry/core';
 import { createRunner } from '../../../../runner';
+import { getSpanOp, getSpansFromEnvelope } from '../../../../spanUtils';
 
 it('propagates trace over RPC when the binding casing differs from rpcTracePropagationBindings', async ({ signal }) => {
-  const transactionsByName = new Map<string, Event>();
+  const segmentSpansByName = new Map<string, SerializedStreamedSpan>();
 
   const collect = (envelope: Envelope): void => {
-    const transactionEvent = envelope[1]?.[0]?.[1] as Event;
-    transactionsByName.set(transactionEvent.transaction as string, transactionEvent);
+    const segmentSpan = getSpansFromEnvelope(envelope).find(span => span.is_segment);
+    expect(segmentSpan).toBeDefined();
+    segmentSpansByName.set(segmentSpan!.name, segmentSpan!);
   };
 
   const runner = createRunner(__dirname)
@@ -23,16 +25,18 @@ it('propagates trace over RPC when the binding casing differs from rpcTracePropa
 
   await runner.completed();
 
-  const worker = transactionsByName.get('GET /rpc/all');
-  expect(worker?.contexts?.trace?.op).toBe('http.server');
+  // `/rpc/all` is a raw URL, so the streamed segment name keeps the method only.
+  const worker = segmentSpansByName.get('GET');
+  expect(getSpanOp(worker!)).toBe('http.server');
+  expect(worker?.attributes['url.path']).toEqual({ type: 'string', value: '/rpc/all' });
 
   // `sayHello` comes from the string target, `alpha` and `beta` from the regex target. `beta` is the
   // one a stateful `g` regex would miss, because `alpha` already advanced its `lastIndex`.
   for (const methodName of ['sayHello', 'alpha', 'beta']) {
-    const durableObject = transactionsByName.get(methodName);
+    const durableObject = segmentSpansByName.get(methodName);
 
-    expect(durableObject?.contexts?.trace?.op).toBe('rpc');
-    expect(durableObject?.contexts?.trace?.trace_id).toBe(worker?.contexts?.trace?.trace_id);
-    expect(durableObject?.contexts?.trace?.parent_span_id).toBe(worker?.contexts?.trace?.span_id);
+    expect(getSpanOp(durableObject!)).toBe('rpc');
+    expect(durableObject?.trace_id).toBe(worker?.trace_id);
+    expect(durableObject?.parent_span_id).toBe(worker?.span_id);
   }
 });

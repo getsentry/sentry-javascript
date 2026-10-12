@@ -17,6 +17,22 @@ services:
       retries: 30
       start_period: 10s
 
+  mongo:
+    image: mongo:8
+    restart: always
+    container_name: e2e-tests-nuxt-4-mongo
+    ports:
+      - '27017:27017'
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: root
+      MONGO_INITDB_ROOT_PASSWORD: docker
+    healthcheck:
+      test: ['CMD-SHELL', 'mongosh --quiet --eval "db.adminCommand(''ping'').ok"']
+      interval: 2s
+      timeout: 3s
+      retries: 30
+      start_period: 10s
+
   redis:
     image: redis:7
     restart: always

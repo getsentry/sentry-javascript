@@ -1,7 +1,7 @@
 import type { DurableObjectStorage, SyncKvStorage, SqlStorage } from '@cloudflare/workers-types';
-import { SENTRY_OP } from '@sentry/conventions/attributes';
+import { SENTRY_OP, SENTRY_ORIGIN } from '@sentry/conventions/attributes';
 import { DB } from '@sentry/conventions/op';
-import { getClient, isThenable, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, startSpan } from '@sentry/core';
+import { getClient, isThenable, startSpan } from '@sentry/core';
 import type { CloudflareClientOptions } from '../client';
 import { getStorageKeys, targetsCloudflareInternalKey } from '../utils/internalStorageKey';
 import { storeSpanContext } from '../utils/traceLinks';
@@ -75,7 +75,7 @@ export function instrumentDurableObjectStorage(
             name: `durable_object_storage_${methodName}`,
             attributes: {
               [SENTRY_OP]: DB,
-              [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.db.cloudflare.durable_object',
+              [SENTRY_ORIGIN]: 'auto.db.cloudflare.durable_object',
               'db.system.name': 'cloudflare.durable_object.storage',
               'db.operation.name': methodName,
             },

@@ -1,5 +1,5 @@
-import { SENTRY_OP } from '@sentry/conventions/attributes';
-import { createTransport, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, setCurrentClient } from '@sentry/core';
+import { SENTRY_OP, SENTRY_ORIGIN } from '@sentry/conventions/attributes';
+import { createTransport, setCurrentClient } from '@sentry/core';
 import { NodeClient } from '@sentry/node';
 import { beforeEach, describe, expect, test, vi } from 'vitest';
 import type { GrpcFunction, GrpcFunctionObject, Stub } from '../../src/integrations/google-cloud-grpc';
@@ -145,7 +145,7 @@ describe('GoogleCloudGrpc tracing', () => {
         onlyIfParent: true,
         attributes: {
           [SENTRY_OP]: 'grpc',
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.grpc.serverless',
+          [SENTRY_ORIGIN]: 'auto.grpc.serverless',
           'rpc.system.name': 'grpc',
           'rpc.service': 'test-service',
           'rpc.method': 'unaryMethod',

@@ -63,7 +63,7 @@ test("Request processed by DurableObject's fetch is recorded", async ({ baseURL 
 
 test('Websocket.webSocketMessage', async ({ baseURL }) => {
   const eventWaiter = waitForError('cloudflare-workersentrypoint', event => {
-    return !!event.exception?.values?.[0];
+    return event.exception?.values?.[0]?.value === 'Should be recorded in Sentry: webSocketMessage';
   });
   const url = new URL('/pass-to-object/ws', baseURL);
   url.protocol = url.protocol.replace('http', 'ws');
@@ -79,7 +79,7 @@ test('Websocket.webSocketMessage', async ({ baseURL }) => {
 
 test('Websocket.webSocketClose', async ({ baseURL }) => {
   const eventWaiter = waitForError('cloudflare-workersentrypoint', event => {
-    return !!event.exception?.values?.[0];
+    return event.exception?.values?.[0]?.value === 'Should be recorded in Sentry: webSocketClose';
   });
   const url = new URL('/pass-to-object/ws', baseURL);
   url.protocol = url.protocol.replace('http', 'ws');

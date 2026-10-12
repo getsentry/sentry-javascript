@@ -5,6 +5,7 @@ import type { SentryRemixVitePluginOptions } from './types';
 type AnyHook = (this: unknown, ...args: never[]) => unknown;
 type ObjectHook<T> = T | { order?: 'pre' | 'post' | null; handler: T };
 type ConfigHook = (this: unknown, config: UserConfig, env: ConfigEnv) => unknown;
+type ConfigResolvedHook = (this: unknown, config: ResolvedConfig) => unknown;
 
 const WORKER_RESOLVE_CONDITIONS = ['workerd', 'worker'];
 
@@ -55,7 +56,7 @@ export function makeOrchestrionPlugin(options: Pick<SentryRemixVitePluginOptions
   const orchestrion = sentryOrchestrionPlugin({ buildTimeInstrumentation: options.buildTimeInstrumentation });
   const { renderChunk } = orchestrion as Plugin & { renderChunk?: ObjectHook<AnyHook> };
   const config = hookHandler(orchestrion.config as ObjectHook<ConfigHook> | undefined);
-  const configResolved = hookHandler(orchestrion.configResolved);
+  const configResolved = hookHandler(orchestrion.configResolved as ObjectHook<ConfigResolvedHook> | undefined);
 
   let isWorkerConfig = false;
   let isWorkerBuild = false;

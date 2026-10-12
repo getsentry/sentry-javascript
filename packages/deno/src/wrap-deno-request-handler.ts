@@ -24,6 +24,7 @@ import {
   winterCGRequestToRequestData,
   withIsolationScope,
 } from '@sentry/core';
+import { getClientIPAddress } from '@sentry/core/server';
 import { streamResponse } from './utils/streaming';
 
 export type RequestHandlerWrapperOptions<Addr extends Deno.Addr> = {
@@ -93,24 +94,32 @@ export const wrapDenoRequestHandler = <Addr extends Deno.Addr = Deno.Addr>(
     assignIfSet(attributes, 'http.request.body.size', contentLength && parseInt(contentLength, 10));
     assignIfSet(attributes, 'user_agent.original', request.headers.get('user-agent'));
 
+    const headers = winterCGHeadersToDict(request.headers);
+    const socketIp = (info?.remoteAddr as Deno.NetAddr)?.hostname;
     const dataCollection = client.getDataCollectionOptions();
     if (dataCollection.userInfo) {
       // `client.address` is the originating client, so a forwarding header wins over the socket, which
-      // behind a proxy holds the proxy's address.
-      const forwardedFor = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim();
-      const socketAddress = (info?.remoteAddr as Deno.NetAddr)?.hostname ?? (info?.remoteAddr as Deno.UnixAddr)?.path;
-      const clientPort = (info?.remoteAddr as Deno.NetAddr)?.port;
-      assignIfSet(attributes, CLIENT_ADDRESS, forwardedFor || socketAddress);
-      assignIfSet(attributes, CLIENT_PORT, clientPort);
+      // behind a proxy holds the proxy's address. The socket port is the proxy's too, so `client.port`
+      // stays unset then.
+      const forwardedAddress = getClientIPAddress(headers);
+      assignIfSet(
+        attributes,
+        CLIENT_ADDRESS,
+        forwardedAddress || socketIp || (info?.remoteAddr as Deno.UnixAddr)?.path,
+      );
+      if (!forwardedAddress) {
+        assignIfSet(attributes, CLIENT_PORT, (info?.remoteAddr as Deno.NetAddr)?.port);
+      }
     }
 
     // describes the OSI application-layer protocol (http), not the scheme (might be https)
     attributes[NETWORK_PROTOCOL_NAME] = 'http';
 
-    Object.assign(attributes, httpHeadersToSpanAttributes(winterCGHeadersToDict(request.headers), dataCollection));
+    Object.assign(attributes, httpHeadersToSpanAttributes(headers, dataCollection));
     attributes[SENTRY_OP] = HTTP_SERVER;
     isolationScope.setSDKProcessingMetadata({
       normalizedRequest: winterCGRequestToRequestData(request),
+      ipAddress: socketIp,
     });
 
     const configuredBodySize = client.getIntegrationByName<Integration & { maxRequestBodySize?: MaxRequestBodySize }>(

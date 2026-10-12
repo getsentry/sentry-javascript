@@ -3,6 +3,7 @@ import type { IntegrationFn } from '@sentry/core';
 import { defineIntegration } from '@sentry/core';
 import type { MongodbNamespace, MongoV3Topology } from './mongodb-span';
 import { getV3CommandOperation, getV3SpanAttributes, getV4SpanAttributes, startMongoSpan } from './mongodb-span';
+import type { OrchestrionChannelContext } from '../../orchestrion/types';
 import { CHANNELS } from '../../orchestrion/channels';
 import { bindTracingChannelToSpan } from '../../tracing-channel';
 import { mongodbModuleNames } from '../../orchestrion/config/mongodb';
@@ -16,9 +17,8 @@ const ORIGIN = 'auto.db.mongo';
  * what orchestrion's transform attaches to a channel context:
  * `self` is the `this`, plus args.
  */
-interface MongoChannelContext {
+interface MongoChannelContext extends OrchestrionChannelContext {
   self?: { address?: string };
-  arguments?: unknown[];
 }
 
 // Details extracted from a v3 wireprotocol call's arguments to build its span.

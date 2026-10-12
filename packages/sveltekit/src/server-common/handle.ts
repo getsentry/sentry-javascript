@@ -10,7 +10,6 @@ import {
   hasSpanStreamingEnabled,
   httpHeadersToSpanAttributes,
   HTTP_SPAN_NAME_FALLBACK,
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   setHttpStatus,
   spanToJSON,
   startSpan,
@@ -31,6 +30,7 @@ import {
   SENTRY_SEGMENT_NAME_SOURCE,
   URL_FULL,
   URL_PATH,
+  SENTRY_ORIGIN,
 } from '@sentry/conventions/attributes';
 import { HTTP_SERVER } from '@sentry/conventions/op';
 
@@ -77,7 +77,7 @@ export function addSentryCodeToPage(options: {
   injectFetchProxyScript: boolean;
 }): NonNullable<ResolveOptions['transformPageChunk']> {
   return ({ html }) => {
-    const metaTags = getTraceMetaTags();
+    const metaTags = isSvelteKitBuilding() ? '' : getTraceMetaTags();
     const headWithMetaTags = metaTags ? `<head>\n${metaTags}` : '<head>';
 
     const headWithFetchScript = options.injectFetchProxyScript ? `\n<script>${FETCH_PROXY_SCRIPT}</script>` : '';
@@ -86,6 +86,19 @@ export function addSentryCodeToPage(options: {
 
     return html.replace('<head>', modifiedHead);
   };
+}
+
+/**
+ * Prerendered pages would bake one trace id and sampling decision into the HTML for every visitor.
+ *
+ * `building` from `$app/environment` isn't available here (the SDK is loaded from node_modules at
+ * runtime), so we rely on `_SENTRY_SVELTEKIT_BUILDING`, which our Vite plugin sets during `vite build`
+ * and SvelteKit copies into the worker it prerenders in.
+ */
+function isSvelteKitBuilding(): boolean {
+  // `process` doesn't exist in every runtime (e.g. Cloudflare Workers without `nodejs_compat`)
+  const env = typeof process !== 'undefined' && typeof process.env === 'object' ? process.env : undefined;
+  return !!env?._SENTRY_SVELTEKIT_BUILDING;
 }
 
 /**
@@ -192,7 +205,7 @@ async function instrumentHandle(
 
         kitRootSpan.setAttributes({
           [SENTRY_OP]: HTTP_SERVER,
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.sveltekit',
+          [SENTRY_ORIGIN]: 'auto.http.sveltekit',
           [SENTRY_SEGMENT_NAME_SOURCE]: routeName ? 'route' : 'url',
           'sveltekit.tracing.original_name': originalName,
           [URL_FULL]: (kitRootSpanAttributes[URL_FULL] as string | undefined) ?? filterCollectedUrl(event.url.href),
@@ -225,7 +238,7 @@ async function instrumentHandle(
           {
             attributes: {
               [SENTRY_OP]: HTTP_SERVER,
-              [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.sveltekit',
+              [SENTRY_ORIGIN]: 'auto.http.sveltekit',
               [SENTRY_SEGMENT_NAME_SOURCE]: routeId ? 'route' : 'url',
               [HTTP_REQUEST_METHOD]: event.request.method,
               [URL_FULL]: filterCollectedUrl(event.url.href),

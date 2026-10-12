@@ -20,21 +20,17 @@
   "devDependencies": {
     "@playwright/test": "~1.63.0",
     "@sentry-internal/test-utils": "link:../../../test-utils",
-    "@sveltejs/adapter-auto": "next",
-    "@sveltejs/adapter-node": "next",
-    "@sveltejs/kit": "next",
-    "@sveltejs/vite-plugin-svelte": "^7.1.2",
-    "svelte": "^5.48.0",
+    "@sveltejs/adapter-node": "^6.0.0",
+    "@sveltejs/kit": "^3.0.0",
+    "@sveltejs/vite-plugin-svelte": "^7.3.1",
+    "svelte": "^5.57.1",
     "svelte-check": "^4.6.0",
     "typescript": "^6.0.0",
-    "vite": "^8.0.0"
+    "vite": "^8.0.12"
   },
   "volta": {
     "node": "22.20.0",
     "extends": "../../package.json"
-  },
-  "sentryTest": {
-    "optional": true
   },
   "type": "module"
 }

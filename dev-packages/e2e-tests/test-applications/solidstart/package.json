@@ -32,11 +32,9 @@
     "typescript": "^5.4.5",
     "vinxi": "^0.4.0",
     "vite": "^5.4.11",
-    "vite-plugin-solid": "^2.11.6",
-    "vitest": "^3.2.7"
+    "vite-plugin-solid": "^2.11.6"
   },
   "volta": {
-    "node": "20.19.5",
     "extends": "../../package.json"
   }
 }

@@ -3,15 +3,12 @@ import { waitForTransaction } from '@sentry-internal/test-utils';
 
 // Origin links (`sentry.link.type: 'cache_origin'` on `cache.get` hit spans, pointing at the
 // filling `cache.put`) for `use cache` in nested layout trees under `app/(cached-nesting)/`.
-// Not implemented yet — every test is `test.fail()` with the final expected assertions.
 
 // A `use cache` layout between dynamic segments. The layout entry is keyed by the awaited [id]
-// param. If Next serves the entry from the prerendered shell (Resume Data Cache) instead of the
-// cache handlers, there is no `cache.get` span at all — then this stays failing until Next
-// exposes RDC reads.
+// param. These runtime-filled entries are read through the cache handlers here; entries served
+// from the prerendered shell (Resume Data Cache) would produce no `cache.get` span at all until
+// Next exposes RDC reads.
 test('links a cached layout hit to the trace that filled the layout entry', async ({ request }) => {
-  test.fail();
-
   const id = crypto.randomUUID();
 
   const missTxPromise = waitForTransaction('nextjs-16-cacheComponents', transactionEvent => {
@@ -38,6 +35,8 @@ test('links a cached layout hit to the trace that filled the layout entry', asyn
   const putSpans = (missTx.spans ?? []).filter(span => span.op === 'cache.put');
   expect(new Set(putSpans.map(span => span.description)).size).toBe(1);
 
+  expect(putSpans[0]!.data?.['code.file.path']).toBe('app/(cached-nesting)/cached-mid-layout/[id]/layout.tsx');
+
   const hitGetSpan = hitTx.spans?.find(span => span.op === 'cache.get' && span.data?.['cache.hit'] === true);
   expect(hitGetSpan).toBeDefined();
   expect(hitGetSpan?.description).toBe(putSpans[0]!.description);
@@ -56,8 +55,6 @@ test('links a cached layout hit to the trace that filled the layout entry', asyn
 test('links a cached leaf component under dynamic layouts to the trace that filled the leaf entry', async ({
   request,
 }) => {
-  test.fail();
-
   const id = crypto.randomUUID();
 
   const missTxPromise = waitForTransaction('nextjs-16-cacheComponents', transactionEvent => {
@@ -101,7 +98,6 @@ test('links a cached leaf component under dynamic layouts to the trace that fill
 // spans point at two different origin traces.
 test('links two cached levels to different origin traces after the layout expires', async ({ request }) => {
   test.skip(process.env.TEST_ENV !== 'production', 'Entries are only discarded at `expire` in production');
-  test.fail();
 
   const id = crypto.randomUUID();
 
@@ -180,8 +176,6 @@ test('links two cached levels to different origin traces after the layout expire
 test('links a shared layout hit on a sibling route to the trace of the route that filled the entry', async ({
   request,
 }) => {
-  test.fail();
-
   const id = crypto.randomUUID();
 
   const fillTxPromise = waitForTransaction('nextjs-16-cacheComponents', transactionEvent => {

@@ -39,7 +39,7 @@ function getEnvVar<T extends Record<string, unknown>>(env: unknown, varName: key
  * @returns The final options.
  */
 export function getFinalOptions(userOptions: CloudflareOptions = {}, env: unknown): CloudflareOptions {
-  if (typeof env !== 'object' || env === null) {
+  if (!isObjectLike(env)) {
     return userOptions;
   }
 

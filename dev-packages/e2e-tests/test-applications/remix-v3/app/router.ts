@@ -19,3 +19,9 @@ export const router = createRouter<AppContext>({
 });
 
 router.map(routes, controller);
+
+// Mounted rather than added to the route map, so the tests cover a route whose pattern carries a mount
+// prefix.
+router.mount('/api', api => {
+  api.get('/items/:itemId', context => Response.json({ itemId: context.params.itemId }));
+});

@@ -67,6 +67,7 @@ export {
   langChainIntegration,
   langGraphIntegration,
   mastraIntegration,
+  piDurableIntegration,
   mcpServerIntegration,
   SentryMastraExporter,
   createFlueInstrumentation,
@@ -96,7 +97,9 @@ export {
   getAutoPerformanceIntegrations,
   cron,
   parameterize,
+  // oxlint-disable-next-line typescript/no-deprecated
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
+  // oxlint-disable-next-line typescript/no-deprecated
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE,
   dataloaderIntegration,
@@ -105,6 +108,8 @@ export {
   expressErrorHandler,
   // oxlint-disable-next-line typescript/no-deprecated
   setupExpressErrorHandler,
+  honoIntegration,
+  honoMiddleware,
   koaIntegration,
   // oxlint-disable-next-line typescript/no-deprecated
   setupKoaErrorHandler,
@@ -124,6 +129,7 @@ export {
   pinoIntegration,
   postgresIntegration,
   postgresJsIntegration,
+  neonIntegration,
   prismaIntegration,
   openTelemetryIntegration,
   getOtlpTracesEndpoint,

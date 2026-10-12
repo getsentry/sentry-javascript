@@ -8,16 +8,11 @@ import {
   SENTRY_OP,
   SERVER_ADDRESS,
   SERVER_PORT,
+  SENTRY_ORIGIN,
 } from '@sentry/conventions/attributes';
 import { DB } from '@sentry/conventions/op';
 import type { Span, SpanAttributes } from '@sentry/core';
-import {
-  getClient,
-  hasSpanStreamingEnabled,
-  isObjectLike,
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  startInactiveSpan,
-} from '@sentry/core';
+import { getClient, hasSpanStreamingEnabled, isObjectLike, startInactiveSpan } from '@sentry/core';
 
 // `db.connection_string` is not part of `@sentry/conventions`, so it stays inlined to match
 // what `@opentelemetry/instrumentation-mongodb` emitted.
@@ -127,7 +122,7 @@ export function getSpanAttributes(
   origin: string,
 ): SpanAttributes {
   const attributes: SpanAttributes = {
-    [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: origin,
+    [SENTRY_ORIGIN]: origin,
     [DB_SYSTEM_NAME]: DB_SYSTEM_VALUE_MONGODB,
     [DB_NAMESPACE]: dbName,
     [DB_COLLECTION_NAME]: dbCollection,

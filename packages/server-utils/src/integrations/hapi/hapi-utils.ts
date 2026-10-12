@@ -16,10 +16,9 @@ import {
   isObjectLike,
   REQUEST_HANDLER_SPAN_NAME_FALLBACK,
   ROUTER_SPAN_NAME_FALLBACK,
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   startSpan,
 } from '@sentry/core';
-import { SENTRY_OP } from '@sentry/conventions/attributes';
+import { SENTRY_OP, SENTRY_ORIGIN } from '@sentry/conventions/attributes';
 import { HANDLER, MIDDLEWARE, ROUTER } from '@sentry/conventions/op';
 import type {
   HapiRequest,
@@ -179,7 +178,7 @@ function startMetadataSpan(metadata: SpanMetadata, original: () => unknown): unk
       attributes: {
         ...metadata.attributes,
         [SENTRY_OP]: op,
-        [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.hapi',
+        [SENTRY_ORIGIN]: 'auto.http.hapi',
       },
     },
     original,

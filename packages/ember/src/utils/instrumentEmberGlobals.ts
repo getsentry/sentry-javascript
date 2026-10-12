@@ -1,12 +1,13 @@
 import { subscribe } from '@ember/instrumentation';
 import { scheduleOnce } from '@ember/runloop';
-import { SENTRY_DESCRIPTION, SENTRY_OP, UI_COMPONENT_NAME } from '@sentry/conventions/attributes';
+import { SENTRY_DESCRIPTION, SENTRY_OP, UI_COMPONENT_NAME, SENTRY_ORIGIN } from '@sentry/conventions/attributes';
 import { UI_MOUNT, UI_RENDER, UI_RESOLVE, UI_TASK } from '@sentry/conventions/op';
-import { getActiveSpan, getClient, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, startInactiveSpan } from '@sentry/browser';
+import { getActiveSpan, getClient, startInactiveSpan } from '@sentry/browser';
 import type { Span } from '@sentry/core';
 import {
   browserPerformanceTimeOrigin,
   hasSpanStreamingEnabled,
+  _INTERNAL_performanceTimeToSeconds,
   timestampInSeconds,
   UI_MOUNT_SPAN_NAME_FALLBACK,
   UI_TASK_SPAN_NAME_FALLBACK,
@@ -101,7 +102,7 @@ function _instrumentEmberRunloop(config: { minimumRunloopQueueDuration?: number 
           startInactiveSpan({
             attributes: {
               [SENTRY_OP]: UI_TASK,
-              [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ui.ember',
+              [SENTRY_ORIGIN]: 'auto.ui.ember',
               'ember.runloop.queue': queue,
               ...(hasSpanStreaming && { [SENTRY_DESCRIPTION]: description }),
             },
@@ -168,7 +169,7 @@ export function _processComponentRenderAfter(
       startTime: begin.now,
       attributes: {
         [SENTRY_OP]: op,
-        [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ui.ember',
+        [SENTRY_ORIGIN]: 'auto.ui.ember',
         [UI_COMPONENT_NAME]: name,
       },
       onlyIfParent: true,
@@ -224,9 +225,8 @@ function _instrumentInitialLoad(): void {
 
   const { performance } = window;
 
-  const origin = browserPerformanceTimeOrigin();
   // Split performance check in two so clearMarks still happens even if timeOrigin isn't available.
-  if (!HAS_PERFORMANCE_TIMING || origin === undefined) {
+  if (!HAS_PERFORMANCE_TIMING || browserPerformanceTimeOrigin() === undefined) {
     return;
   }
   const measureName = '@sentry/ember:initial-load';
@@ -242,7 +242,8 @@ function _instrumentInitialLoad(): void {
   // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
   const measure = measures[0]!;
 
-  const startTime = (measure.startTime + origin) / 1000;
+  // The cast is safe: we checked above that the time origin is available.
+  const startTime = _INTERNAL_performanceTimeToSeconds(measure.startTime) as number;
   const endTime = startTime + measure.duration / 1000;
 
   const client = getClient();
@@ -253,7 +254,7 @@ function _instrumentInitialLoad(): void {
     name: hasSpanStreaming ? UI_MOUNT_SPAN_NAME_FALLBACK : description,
     attributes: {
       [SENTRY_OP]: UI_MOUNT,
-      [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ui.ember',
+      [SENTRY_ORIGIN]: 'auto.ui.ember',
       ...(hasSpanStreaming && { [SENTRY_DESCRIPTION]: description }),
     },
     startTime,

@@ -12,7 +12,6 @@ const myClickListener = () => {
 btn.addEventListener('click', myClickListener);
 
 Sentry.init({
-  traceLifecycle: 'static',
   dsn: 'https://public@dsn.ingest.sentry.io/1337',
 });
 

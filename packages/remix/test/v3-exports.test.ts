@@ -63,4 +63,13 @@ describe('Remix 3 exports', () => {
       expect(packageJson.peerDependenciesMeta, `${name} should be optional`).toHaveProperty([name, 'optional'], true);
     }
   });
+
+  it('ships the browser channel shim with the default export the transform imports', () => {
+    // Only the explicit rollup entry keeps the default export the injected import needs. Losing it
+    // fails silently: the build stays green and the browser gets no instrumentation.
+    const shim = fs.readFileSync(path.join(packageRoot, 'build/esm/v3/client/diagnosticsChannelShim.js'), 'utf8');
+
+    // Either spelling rollup may pick for a default export.
+    expect(shim).toMatch(/^export (?:default |\{[^}]*\bas default\b)/m);
+  });
 });

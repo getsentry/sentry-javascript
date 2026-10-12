@@ -5,16 +5,11 @@ import {
   MESSAGING_SYSTEM,
   SENTRY_DESCRIPTION,
   SENTRY_OP,
+  SENTRY_ORIGIN,
 } from '@sentry/conventions/attributes';
 import { FUNCTION, MIDDLEWARE, QUEUE_PROCESS } from '@sentry/conventions/op';
 import type { Span } from '@sentry/core';
-import {
-  addNonEnumerableProperty,
-  getClient,
-  hasSpanStreamingEnabled,
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  withActiveSpan,
-} from '@sentry/core';
+import { addNonEnumerableProperty, getClient, hasSpanStreamingEnabled, withActiveSpan } from '@sentry/core';
 import type { CatchTarget, InjectableTarget, NextFunction, Observable, Subscription } from './types';
 
 /** A function of unknown signature, matching the methods/handlers we wrap. */
@@ -100,7 +95,7 @@ export function getMiddlewareSpanOptions(
     name: name ?? target.name ?? 'unknown',
     attributes: {
       [SENTRY_OP]: MIDDLEWARE,
-      [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: middlewareOrigin(componentType),
+      [SENTRY_ORIGIN]: middlewareOrigin(componentType),
     },
   };
 }
@@ -124,7 +119,7 @@ export function getEventSpanOptions(event: string): {
     attributes: {
       [SENTRY_OP]: FUNCTION,
       [CODE_FUNCTION_NAME]: event,
-      [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.event.nestjs',
+      [SENTRY_ORIGIN]: 'auto.event.nestjs',
       // Relay infers a `function` span's description from `code.function.name` alone, which drops the prefix.
       ...(isStreamed && { [SENTRY_DESCRIPTION]: description }),
     },
@@ -157,7 +152,7 @@ export function getBullMQProcessSpanOptions(queueName: string | undefined): {
     name,
     attributes: {
       [SENTRY_OP]: QUEUE_PROCESS,
-      [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.queue.nestjs.bullmq',
+      [SENTRY_ORIGIN]: 'auto.queue.nestjs.bullmq',
       [MESSAGING_SYSTEM]: 'bullmq',
       [MESSAGING_OPERATION_TYPE]: PROCESS_OPERATION,
       [MESSAGING_DESTINATION_NAME]: queueName,

@@ -1,0 +1,22 @@
+name: 'Automation: Label external PRs'
+on:
+  pull_request_target:
+    types:
+      - opened
+
+jobs:
+  label_external_pr:
+    name: Add external label
+    permissions:
+      pull-requests: write
+    runs-on: ubuntu-24.04
+    if: |
+      github.event.pull_request.author_association != 'COLLABORATOR'
+      && github.event.pull_request.author_association != 'MEMBER'
+      && github.event.pull_request.author_association != 'OWNER'
+      && endsWith(github.event.pull_request.user.login, '[bot]') == false
+    steps:
+      - name: Add external label
+        uses: actions-ecosystem/action-add-labels@18f1af5e3544586314bbe15c0273249c770b2daf # v1.1.3
+        with:
+          labels: external

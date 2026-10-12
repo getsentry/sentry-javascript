@@ -2,8 +2,13 @@ import {
   GEN_AI_AGENT_NAME,
   GEN_AI_CONVERSATION_ID,
   GEN_AI_COST_TOTAL_TOKENS,
+  GEN_AI_INPUT_MESSAGES,
   GEN_AI_OPERATION_NAME,
+  GEN_AI_OUTPUT_MESSAGES,
   GEN_AI_RESPONSE_FINISH_REASONS,
+  GEN_AI_SYSTEM_INSTRUCTIONS,
+  GEN_AI_TOOL_CALL_ARGUMENTS,
+  GEN_AI_TOOL_CALL_RESULT,
   GEN_AI_TOOL_NAME,
   GEN_AI_USAGE_INPUT_TOKENS,
   GEN_AI_USAGE_OUTPUT_TOKENS,
@@ -87,9 +92,10 @@ conditionalTest({ min: 22 })('Flue integration', () => {
                 expect(chat.attributes[GEN_AI_COST_TOTAL_TOKENS]?.value).toEqual(expect.any(Number));
               }
 
+              // pi-ai's `toolUse` is reported as the conventions' `tool_call`.
               expect(chats.map(chat => chat.attributes[GEN_AI_RESPONSE_FINISH_REASONS]?.value).sort()).toEqual([
                 '["stop"]',
-                '["toolUse"]',
+                '["tool_call"]',
               ]);
 
               const tool = tools[0]!;
@@ -103,6 +109,64 @@ conditionalTest({ min: 22 })('Flue integration', () => {
               // Tool spans are siblings of `chat` under the agent invocation, matching how Flue's
               // own OpenTelemetry adapter projects them.
               expect(tool.parent_span_id).toBe(agent.span_id);
+            },
+          })
+          .start()
+          .completed();
+      });
+    },
+    FLUE_DEPENDENCIES,
+  );
+
+  createEsmAndCjsTests(
+    __dirname,
+    'scenario.mjs',
+    'instrument-with-pii.mjs',
+    (createRunner, test, mode) => {
+      if (mode === 'cjs') {
+        return;
+      }
+
+      test('records the messages of the turns in the gen_ai conventions shape', async () => {
+        await createRunner()
+          .expect({
+            span: container => {
+              const chats = container.items
+                .filter(span => span.name === 'chat faux-model')
+                .sort((a, b) => a.start_timestamp - b.start_timestamp);
+              expect(chats).toHaveLength(2);
+
+              // Flue sends pi-ai's shape (`toolResult`, `toolCall`); Sentry renders the conventions.
+              expect(JSON.parse(String(chats[0]!.attributes[GEN_AI_INPUT_MESSAGES]?.value))).toEqual([
+                { role: 'user', parts: [{ type: 'text', content: 'What is the weather in Berlin?' }] },
+              ]);
+              expect(JSON.parse(String(chats[0]!.attributes[GEN_AI_OUTPUT_MESSAGES]?.value))).toEqual([
+                {
+                  role: 'assistant',
+                  parts: [{ type: 'tool_call', id: 'call_1', name: 'get_weather', arguments: '{"city":"Berlin"}' }],
+                  finish_reason: 'tool_call',
+                },
+              ]);
+
+              const answerInput = JSON.parse(String(chats[1]!.attributes[GEN_AI_INPUT_MESSAGES]?.value));
+              expect(answerInput.map((message: { role: string }) => message.role)).toEqual([
+                'user',
+                'assistant',
+                'tool',
+              ]);
+              expect(answerInput[2].parts[0]).toMatchObject({
+                type: 'tool_call_response',
+                id: 'call_1',
+                name: 'get_weather',
+              });
+              expect(answerInput[2].parts[0].result).toContain('sunny in Berlin');
+              expect(chats[1]!.attributes[GEN_AI_SYSTEM_INSTRUCTIONS]?.value).toContain('You are a helpful assistant.');
+
+              // The tool span records the result the model receives, not Flue's internal wrapper.
+              const tool = container.items.find(span => span.name === 'execute_tool get_weather')!;
+              expect(tool.attributes[GEN_AI_TOOL_CALL_ARGUMENTS]?.value).toBe('{"city":"Berlin"}');
+              expect(tool.attributes[GEN_AI_TOOL_CALL_RESULT]?.value).toContain('sunny in Berlin');
+              expect(tool.attributes[GEN_AI_TOOL_CALL_RESULT]?.value).not.toContain('details');
             },
           })
           .start()

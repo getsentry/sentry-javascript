@@ -1,8 +1,9 @@
-import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '@sentry/core';
+import { SENTRY_ORIGIN } from '@sentry/conventions/attributes';
 import * as sentryCore from '@sentry/core';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { instrumentDurableObjectStorage } from '../src/instrumentations/instrumentDurableObjectStorage';
 import * as traceLinks from '../src/utils/traceLinks';
+import { initTestClient, resetSdk } from './testUtils';
 
 vi.mock('../src/utils/traceLinks', async importOriginal => {
   const actual = await importOriginal<typeof traceLinks>();
@@ -15,6 +16,7 @@ vi.mock('../src/utils/traceLinks', async importOriginal => {
 describe('instrumentDurableObjectStorage', () => {
   afterEach(() => {
     vi.restoreAllMocks();
+    resetSdk();
   });
 
   describe('get', () => {
@@ -30,7 +32,7 @@ describe('instrumentDurableObjectStorage', () => {
           name: 'durable_object_storage_get',
           attributes: {
             'sentry.op': 'db',
-            [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.db.cloudflare.durable_object',
+            [SENTRY_ORIGIN]: 'auto.db.cloudflare.durable_object',
             'db.system.name': 'cloudflare.durable_object.storage',
             'db.operation.name': 'get',
           },
@@ -51,7 +53,7 @@ describe('instrumentDurableObjectStorage', () => {
           name: 'durable_object_storage_get',
           attributes: {
             'sentry.op': 'db',
-            [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.db.cloudflare.durable_object',
+            [SENTRY_ORIGIN]: 'auto.db.cloudflare.durable_object',
             'db.system.name': 'cloudflare.durable_object.storage',
             'db.operation.name': 'get',
           },
@@ -74,7 +76,7 @@ describe('instrumentDurableObjectStorage', () => {
           name: 'durable_object_storage_put',
           attributes: {
             'sentry.op': 'db',
-            [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.db.cloudflare.durable_object',
+            [SENTRY_ORIGIN]: 'auto.db.cloudflare.durable_object',
             'db.system.name': 'cloudflare.durable_object.storage',
             'db.operation.name': 'put',
           },
@@ -95,7 +97,7 @@ describe('instrumentDurableObjectStorage', () => {
           name: 'durable_object_storage_put',
           attributes: {
             'sentry.op': 'db',
-            [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.db.cloudflare.durable_object',
+            [SENTRY_ORIGIN]: 'auto.db.cloudflare.durable_object',
             'db.system.name': 'cloudflare.durable_object.storage',
             'db.operation.name': 'put',
           },
@@ -118,7 +120,7 @@ describe('instrumentDurableObjectStorage', () => {
           name: 'durable_object_storage_delete',
           attributes: {
             'sentry.op': 'db',
-            [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.db.cloudflare.durable_object',
+            [SENTRY_ORIGIN]: 'auto.db.cloudflare.durable_object',
             'db.system.name': 'cloudflare.durable_object.storage',
             'db.operation.name': 'delete',
           },
@@ -139,7 +141,7 @@ describe('instrumentDurableObjectStorage', () => {
           name: 'durable_object_storage_delete',
           attributes: {
             'sentry.op': 'db',
-            [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.db.cloudflare.durable_object',
+            [SENTRY_ORIGIN]: 'auto.db.cloudflare.durable_object',
             'db.system.name': 'cloudflare.durable_object.storage',
             'db.operation.name': 'delete',
           },
@@ -162,7 +164,7 @@ describe('instrumentDurableObjectStorage', () => {
           name: 'durable_object_storage_list',
           attributes: {
             'sentry.op': 'db',
-            [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.db.cloudflare.durable_object',
+            [SENTRY_ORIGIN]: 'auto.db.cloudflare.durable_object',
             'db.system.name': 'cloudflare.durable_object.storage',
             'db.operation.name': 'list',
           },
@@ -185,7 +187,7 @@ describe('instrumentDurableObjectStorage', () => {
           name: 'durable_object_storage_setAlarm',
           attributes: {
             'sentry.op': 'db',
-            [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.db.cloudflare.durable_object',
+            [SENTRY_ORIGIN]: 'auto.db.cloudflare.durable_object',
             'db.system.name': 'cloudflare.durable_object.storage',
             'db.operation.name': 'setAlarm',
           },
@@ -269,7 +271,7 @@ describe('instrumentDurableObjectStorage', () => {
           name: 'durable_object_storage_getAlarm',
           attributes: {
             'sentry.op': 'db',
-            [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.db.cloudflare.durable_object',
+            [SENTRY_ORIGIN]: 'auto.db.cloudflare.durable_object',
             'db.system.name': 'cloudflare.durable_object.storage',
             'db.operation.name': 'getAlarm',
           },
@@ -290,7 +292,7 @@ describe('instrumentDurableObjectStorage', () => {
           name: 'durable_object_storage_deleteAlarm',
           attributes: {
             'sentry.op': 'db',
-            [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.db.cloudflare.durable_object',
+            [SENTRY_ORIGIN]: 'auto.db.cloudflare.durable_object',
             'db.system.name': 'cloudflare.durable_object.storage',
             'db.operation.name': 'deleteAlarm',
           },
@@ -301,6 +303,7 @@ describe('instrumentDurableObjectStorage', () => {
   });
 
   it('instruments sql exec', () => {
+    initTestClient({ tracesSampleRate: 1 });
     const startSpanSpy = vi.spyOn(sentryCore, 'startSpan');
     const mockStorage = createMockStorage();
     const instrumented = instrumentDurableObjectStorage(mockStorage);
@@ -312,7 +315,7 @@ describe('instrumentDurableObjectStorage', () => {
         name: 'SELECT',
         attributes: {
           'sentry.op': 'db.query',
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.db.cloudflare.durable_object.sql',
+          [SENTRY_ORIGIN]: 'auto.db.cloudflare.durable_object.sql',
           'db.system.name': 'cloudflare-durable-object-sql',
           'db.operation.name': 'exec',
           'db.query.text': 'SELECT ?',
@@ -436,7 +439,7 @@ describe('instrumentDurableObjectStorage', () => {
           name: 'durable_object_storage_kv_get',
           attributes: {
             'sentry.op': 'db',
-            [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.db.cloudflare.durable_object',
+            [SENTRY_ORIGIN]: 'auto.db.cloudflare.durable_object',
             'db.system.name': 'cloudflare-durable-object-sql',
             'db.operation.name': 'get',
           },

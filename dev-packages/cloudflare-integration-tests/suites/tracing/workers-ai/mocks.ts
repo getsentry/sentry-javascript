@@ -23,6 +23,26 @@ export class MockAi {
       throw error;
     }
 
+    if (model === 'typesafe/jev') {
+      return {
+        state: 'Completed',
+        result: {
+          model: 'jev-1.13.0',
+          answers: { is_urgent: { type: 'noul', noul: 0.97 } },
+          usage: { input_tokens: 426, output_tokens: 73 },
+        },
+      };
+    }
+
+    // Unwrapped, as in the documented Clef output schema, so this covers the path without `{ state, result }`.
+    if (model === '@cf/cloudflare/clef') {
+      return {
+        model: 'clef',
+        answers: { urgent: { type: 'noul', noul: 0.98 } },
+        usage: { input_tokens: 412, output_tokens: 1 },
+      };
+    }
+
     if (inputs?.stream === true) {
       return createSseStream([
         '{"response":"The capital "}',

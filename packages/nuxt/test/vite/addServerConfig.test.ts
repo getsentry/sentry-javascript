@@ -114,11 +114,11 @@ describe('wrapEntryWithDynamicImport', () => {
 });
 
 const addTemplateMock = vi.hoisted(() => vi.fn());
-const addServerPluginMock = vi.hoisted(() => vi.fn());
+const addNitroPluginMock = vi.hoisted(() => vi.fn());
 
 vi.mock('@nuxt/kit', () => ({
   addTemplate: addTemplateMock,
-  addServerPlugin: addServerPluginMock,
+  addNitroPlugin: addNitroPluginMock,
   // `@nuxt/kit` resolves rather than joins, which is what lets an absolute layer path win over the base.
   createResolver: (base: string) => ({ resolve: (input: string) => path.resolve(base, input) }),
 }));
@@ -167,7 +167,7 @@ describe('addServerConfigPlugin', () => {
     expect(templateContents('sentry-server-config-plugin.mjs')).toBe(
       `import ${JSON.stringify(flagsDst)};\nimport ${JSON.stringify(APP_CONFIG)};\nexport default () => {};\n`,
     );
-    expect(addServerPluginMock).toHaveBeenCalledWith(pluginDst);
+    expect(addNitroPluginMock).toHaveBeenCalledWith(pluginDst);
   });
 
   it('derives the runtime flags from the build-time `import.meta` values', () => {
@@ -253,6 +253,23 @@ describe('addServerConfigPlugin', () => {
 
     expect(nitro.options.plugins).toEqual(['other-plugin.mjs']);
     expect(consoleWarnSpy).toHaveBeenCalledWith(expect.stringContaining('sentryCloudflareNitroPlugin'));
+    consoleWarnSpy.mockRestore();
+  });
+
+  it('removes the plugin on `nitro:init` when Nuxt adds the server plugins after `nitro:config` (Nuxt >= 4.6)', () => {
+    const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const { nuxt, hooks } = createFakeNuxt();
+    const serverPlugins: string[] = [];
+    addNitroPluginMock.mockImplementationOnce((plugin: string) => serverPlugins.push(plugin));
+    addServerConfigPlugin(nuxt, APP_CONFIG, true);
+    const nitroConfig: NitroConfig = { preset: 'cloudflare_module', plugins: ['other-plugin.mjs'] };
+
+    hooks['nitro:config']!(nitroConfig);
+    // Nuxt's `collectServerRegistrations` runs after `nitro:config`, so the early filter cannot see the plugin
+    const nitro = { options: { preset: 'cloudflare_module', plugins: [...nitroConfig.plugins!, ...serverPlugins] } };
+    hooks['nitro:init']!(nitro as never);
+
+    expect(nitro.options.plugins).toEqual(['other-plugin.mjs']);
     consoleWarnSpy.mockRestore();
   });
 

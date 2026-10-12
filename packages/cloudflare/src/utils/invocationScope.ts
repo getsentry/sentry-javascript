@@ -2,6 +2,27 @@ import { getDefaultIsolationScope, getIsolationScope, type Scope, withIsolationS
 import type { ExecutionContextCompat } from '../executionContext';
 import { setInvocationState } from './invocationContext';
 
+const constructionScopes = new WeakSet<Scope>();
+
+/**
+ * Runs a Durable Object constructor on a forked isolation scope.
+ *
+ * Async work the constructor starts, such as a `blockConcurrencyWhile` callback, runs after the RPC
+ * wrappers are installed and inherits this scope, so the calls it makes to the instance's own methods
+ * are not treated as incoming RPC calls. The scope is not an invocation: it has no invocation state,
+ * and an instrumented handler that this work calls still forks a scope of its own.
+ */
+export function withConstructionIsolationScope<T>(callback: () => T): T {
+  if (getIsolationScope() !== getDefaultIsolationScope()) {
+    return callback();
+  }
+
+  return withIsolationScope(scope => {
+    constructionScopes.add(scope);
+    return callback();
+  });
+}
+
 /**
  * Runs `callback` on the isolation scope for the current invocation.
  *
@@ -19,14 +40,15 @@ import { setInvocationState } from './invocationContext';
  *
  * The AsyncLocalStorage strategy hands the default isolation scope back whenever no invocation is in
  * flight, and a forked one while inside `withIsolationScope`. Reference-comparing against the default
- * is therefore enough to tell the two cases apart. The stack fallback does not fork, so it reports the
- * default scope even inside an invocation; there the fork degrades to a no-op, which the stack strategy
- * tolerates. This matches the approach used by `patchEventHandler` in Nuxt.
+ * and the construction scopes (see {@link withConstructionIsolationScope}) is therefore enough to tell
+ * the two cases apart. The stack fallback does not fork, so it reports the default scope even inside an
+ * invocation; there the fork degrades to a no-op, which the stack strategy tolerates. This matches the
+ * approach used by `patchEventHandler` in Nuxt.
  */
 export function withInvocationIsolationScope<T>(callback: (scope: Scope) => T, context?: ExecutionContextCompat): T {
   const isolationScope = getIsolationScope();
 
-  const isEntryPoint = isolationScope === getDefaultIsolationScope();
+  const isEntryPoint = isolationScope === getDefaultIsolationScope() || constructionScopes.has(isolationScope);
   const newIsolationScope = isEntryPoint ? isolationScope.clone() : isolationScope;
 
   if (isEntryPoint) {

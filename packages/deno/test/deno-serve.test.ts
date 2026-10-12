@@ -2,9 +2,11 @@
 
 import type { ErrorEvent, TransactionEvent } from '@sentry/core';
 import { getMainCarrier } from '@sentry/core';
-import { assertEquals, assertExists, assertNotEquals } from 'https://deno.land/std@0.212.0/assert/mod.ts';
+import { assertEquals, assertExists, assertMatch, assertNotEquals } from 'https://deno.land/std@0.212.0/assert/mod.ts';
 import type { DenoClient } from '../build/esm/index.js';
 import { captureException, captureMessage, init, denoServeIntegration, setTag, setUser } from '../build/esm/index.js';
+
+const LOOPBACK_ADDRESS = /^(127\.0\.0\.1|::1|::ffff:127\.0\.0\.1)$/;
 
 function resetGlobals(): void {
   getMainCarrier().__SENTRY__ = undefined;
@@ -550,6 +552,113 @@ Deno.test('Deno.serve should capture client address and port by default', async 
 
   assertExists(transaction?.contexts?.trace?.data?.['client.address']);
   assertExists(transaction?.contexts?.trace?.data?.['client.port']);
+});
+
+Deno.test('Deno.serve should prefer the forwarded client address, without the socket port', async () => {
+  resetGlobals();
+  const transactionEvents: TransactionEvent[] = [];
+
+  init({
+    dsn: 'https://username@domain/123',
+    tracesSampleRate: 1,
+    traceLifecycle: 'static',
+    beforeSendTransaction: (event: TransactionEvent) => {
+      transactionEvents.push(event);
+      return null;
+    },
+  }) as DenoClient;
+
+  const abortController = new AbortController();
+  let onListen: ((_: unknown) => void) | undefined = undefined;
+  const p = new Promise(resolve => (onListen = resolve));
+  const server = Deno.serve({ port: 0, signal: abortController.signal, onListen }, () => {
+    return new Response('OK');
+  });
+  await p;
+
+  const res = await fetch(`http://localhost:${server.addr.port}/test`, {
+    headers: { 'X-Forwarded-For': '203.0.113.7, 10.0.0.1' },
+  });
+  assertEquals(await res.text(), 'OK');
+
+  abortController.abort();
+  await server.finished;
+
+  assertEquals(transactionEvents.length, 1);
+  const [transaction] = transactionEvents;
+
+  assertEquals(transaction?.contexts?.trace?.data?.['client.address'], '203.0.113.7');
+  assertEquals(transaction?.contexts?.trace?.data?.['client.port'], undefined);
+});
+
+Deno.test('Deno.serve should fall back to the socket address when the forwarding header is not an IP', async () => {
+  resetGlobals();
+  const transactionEvents: TransactionEvent[] = [];
+
+  init({
+    dsn: 'https://username@domain/123',
+    tracesSampleRate: 1,
+    traceLifecycle: 'static',
+    beforeSendTransaction: (event: TransactionEvent) => {
+      transactionEvents.push(event);
+      return null;
+    },
+  }) as DenoClient;
+
+  const abortController = new AbortController();
+  let onListen: ((_: unknown) => void) | undefined = undefined;
+  const p = new Promise(resolve => (onListen = resolve));
+  const server = Deno.serve({ port: 0, signal: abortController.signal, onListen }, () => {
+    return new Response('OK');
+  });
+  await p;
+
+  const res = await fetch(`http://localhost:${server.addr.port}/test`, {
+    headers: { 'X-Forwarded-For': 'unknown' },
+  });
+  assertEquals(await res.text(), 'OK');
+
+  abortController.abort();
+  await server.finished;
+
+  assertEquals(transactionEvents.length, 1);
+  const [transaction] = transactionEvents;
+
+  assertMatch(String(transaction?.contexts?.trace?.data?.['client.address']), LOOPBACK_ADDRESS);
+  assertEquals(typeof transaction?.contexts?.trace?.data?.['client.port'], 'number');
+});
+
+Deno.test('Deno.serve should set the socket address as the user IP on error events', async () => {
+  resetGlobals();
+  const errorEvents: ErrorEvent[] = [];
+
+  init({
+    dsn: 'https://username@domain/123',
+    tracesSampleRate: 1,
+    traceLifecycle: 'static',
+    beforeSend: (event: ErrorEvent) => {
+      errorEvents.push(event);
+      return null;
+    },
+  }) as DenoClient;
+
+  const abortController = new AbortController();
+  let onListen: ((_: unknown) => void) | undefined = undefined;
+  const p = new Promise(resolve => (onListen = resolve));
+  const server = Deno.serve({ port: 0, signal: abortController.signal, onListen }, () => {
+    captureException(new Error('Boom'));
+    return new Response('OK');
+  });
+  await p;
+
+  const res = await fetch(`http://localhost:${server.addr.port}/test`);
+  assertEquals(await res.text(), 'OK');
+
+  abortController.abort();
+  await server.finished;
+
+  assertEquals(errorEvents.length, 1);
+  assertMatch(String(errorEvents[0]?.user?.ip_address), LOOPBACK_ADDRESS);
 });
 
 Deno.test('Deno.serve should not capture client address when userInfo collection is disabled', async () => {

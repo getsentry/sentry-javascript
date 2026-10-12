@@ -65,7 +65,7 @@ describe('orchestrion webpack/Turbopack loader', () => {
     expect(code).toMatch(
       /const\s*\{\s*orchestrionModuleInjected,\s*mysqlIntegration\s*\}\s*=\s*require\(["']@sentry\/server-utils["']\)/,
     );
-    expect(code).toContain('orchestrionModuleInjected("mysql", mysqlIntegration)');
+    expect(code).toContain('orchestrionModuleInjected("mysql", () => mysqlIntegration())');
   });
 
   it('honors a fixed importSpecifier option', () => {
@@ -116,7 +116,7 @@ describe('orchestrion webpack/Turbopack loader', () => {
     expect(error).toBeNull();
     expect(code).toContain('orchestrion:@mastra/core:mastraConstructor');
     expect(code).toContain('import {orchestrionModuleInjected, mastraIntegration} from "@sentry/server-utils"');
-    expect(code).toContain('orchestrionModuleInjected("@mastra/core", mastraIntegration)');
+    expect(code).toContain('orchestrionModuleInjected("@mastra/core", () => mastraIntegration())');
   });
 
   it('transforms a hashed `.mjs` `@mastra/core` chunk that contains `class Mastra`', () => {
@@ -127,7 +127,7 @@ describe('orchestrion webpack/Turbopack loader', () => {
     expect(error).toBeNull();
     expect(code).toContain('orchestrion:@mastra/core:mastraConstructor');
     expect(code).toContain('import {orchestrionModuleInjected, mastraIntegration} from "@sentry/server-utils"');
-    expect(code).toContain('orchestrionModuleInjected("@mastra/core", mastraIntegration)');
+    expect(code).toContain('orchestrionModuleInjected("@mastra/core", () => mastraIntegration())');
   });
 
   it('does not transform the stable Mastra re-export that does not contain the class', () => {

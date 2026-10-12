@@ -277,6 +277,33 @@ test('a hit carries the parameterized route that was on the scope before the fre
   expect(attr(hit, 'sentry.segment.name')).toBe('/users/:id');
 });
 
+// A registered route provider is preferred over the scope, which is what lets a framework SDK name the
+// segment even when nothing stamped a route on the scope. The scope holds a different name here to prove it.
+test('a hit carries the route resolved by a registered route provider', async ({ page }) => {
+  const hitPromise = waitForMetric(PROXY_SERVER_NAME, metric => isNavigation(metric, 'hit'));
+
+  await page.goto('/');
+  await page.waitForFunction(() => document.title === 'BFCache E2E - Page 1');
+
+  await page.evaluate(() => {
+    const { Sentry } = window as unknown as { Sentry: typeof import('@sentry/browser') };
+    Sentry.getCurrentScope().setTransactionName('/from-scope');
+    Sentry.setRouteProvider({ resolveRoute: () => '/users/:id', resolveCurrentRoute: () => '/users/:id' });
+  });
+
+  await page.click('#to-page-2');
+  await page.waitForFunction(() => document.title === 'BFCache E2E - Page 2');
+  await page.waitForTimeout(500);
+
+  await page.evaluate(() => history.back());
+  await page.waitForFunction(() => (window as unknown as { __bfcacheRestored?: boolean }).__bfcacheRestored === true, {
+    timeout: 5000,
+  });
+
+  const hit = await hitPromise;
+  expect(attr(hit, 'sentry.segment.name')).toBe('/users/:id');
+});
+
 // Without a routing integration the scope has no transaction name, so the segment name falls back to
 // `location.pathname` (page 1 is served at '/'). This matches how browserTracing names an unrouted pageload.
 test('a hit falls back to the raw pathname when no route is on the scope', async ({ page }) => {

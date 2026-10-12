@@ -2,6 +2,9 @@ import * as assert from 'assert/strict';
 import * as fs from 'fs';
 import * as path from 'path';
 import {
+  findDebugIdsWithConflictingSourcemaps,
+  findFilesWithForeignSourcemaps,
+  findFilesWithMultipleDebugIds,
   findInjectedDebugIds,
   findSourceMapFiles,
   findSourceMappingUrlComments,
@@ -9,8 +12,10 @@ import {
   getAssembleRequests,
   getChunkUploadPosts,
   getDebugIdPairs,
+  getSourcemapSources,
   getSourcemaps,
   loadMockServerResults,
+  startNodeServer,
 } from '@sentry-internal/test-utils';
 
 /** This variant omits `sourcemaps.filesToDeleteAfterUpload`, so Sentry must upload but not delete. */
@@ -20,6 +25,8 @@ const keepClientSourceMaps = process.env.E2E_KEEP_CLIENT_SOURCEMAPS === 'true';
 const isStaticBuild = process.env.NUXT_COMMAND === 'generate';
 
 const CLIENT_OUTPUT = path.join('.output', 'public');
+/** Vite's own output directory. Nitro copies it to `CLIENT_OUTPUT`, and Sentry deletes no maps here. */
+const CLIENT_BUILD_OUTPUT = path.join('.nuxt', 'dist', 'client');
 const SERVER_OUTPUT = path.join('.output', 'server');
 
 /** Both markers sit in comments, so bundlers strip them from the code but keep them in `sourcesContent`. */
@@ -34,6 +41,26 @@ function filesContaining(dir: string, needle: string): string[] {
     .filter(entry => entry.isFile())
     .map(entry => path.join(entry.parentPath, entry.name))
     .filter(file => fs.readFileSync(file, 'utf8').includes(needle));
+}
+
+/**
+ * Rolldown emits no source map for a chunk without mappable source, such as Vue's export helper.
+ * Such a chunk still gets a debug ID, but there is no map to upload for it.
+ */
+function debugIdsOfChunksWithoutSourceMap(dir: string): Set<string> {
+  const debugIds = new Set<string>();
+
+  for (const file of filesContaining(dir, 'sentry-dbid-')) {
+    if (file.endsWith('.map') || fs.existsSync(`${file}.map`)) {
+      continue;
+    }
+
+    for (const match of fs.readFileSync(file, 'utf8').matchAll(/sentry-dbid-([\da-f-]{36})/gi)) {
+      debugIds.add((match[1] as string).toLowerCase());
+    }
+  }
+
+  return debugIds;
 }
 
 console.log(
@@ -139,14 +166,53 @@ assert.deepEqual(malformedDebugIds, [], 'Expected every uploaded debug ID to be 
 
 // An uploaded map is only reachable at runtime if the shipped bundle claims the same ID. Inspecting
 // the upload alone cannot show this.
+const debugIdsWithoutSourceMap = debugIdsOfChunksWithoutSourceMap(CLIENT_BUILD_OUTPUT);
+
 for (const outputDir of isStaticBuild ? [CLIENT_OUTPUT] : [CLIENT_OUTPUT, SERVER_OUTPUT]) {
   const injectedDebugIds = findInjectedDebugIds({ outputDir });
   assert.ok(injectedDebugIds.length > 0, `Expected debug IDs to be injected into ${outputDir}`);
+  // The exemption for chunks without a source map must not let a build without any uploaded map pass.
+  assert.ok(
+    injectedDebugIds.some(debugId => uploadedDebugIds.has(debugId)),
+    `Expected at least one debug ID in ${outputDir} to have an uploaded sourcemap`,
+  );
 
-  const unuploaded = injectedDebugIds.filter(debugId => !uploadedDebugIds.has(debugId));
+  const unuploaded = injectedDebugIds.filter(
+    debugId => !uploadedDebugIds.has(debugId) && !debugIdsWithoutSourceMap.has(debugId),
+  );
   assert.deepEqual(unuploaded, [], `Expected every debug ID in ${outputDir} to have an uploaded sourcemap`);
 
   console.log(`  ${outputDir}: ${injectedDebugIds.length} injected debug ID(s), all uploaded`);
+
+  // Nitro bundles the SSR build again, so its debug IDs can end up next to Nitro's own.
+  // Reference issue: https://github.com/getsentry/sentry-javascript/issues/18519
+  const filesWithMultipleDebugIds = findFilesWithMultipleDebugIds({ outputDir });
+  assert.deepEqual(filesWithMultipleDebugIds, [], `Expected at most one debug ID per file in ${outputDir}`);
+
+  // A server file can borrow the debug ID of its SSR build chunk. Then the upload check above passes on
+  // Vite's map even if Nitro uploaded nothing.
+  const filesWithForeignSourcemaps = findFilesWithForeignSourcemaps({ outputDir }, sourcemaps);
+  assert.deepEqual(
+    filesWithForeignSourcemaps,
+    [],
+    `Expected the source map uploaded for each file in ${outputDir} to be generated for that file`,
+  );
+}
+
+// If both builds upload a map under a borrowed debug ID, Sentry can resolve with the wrong one.
+const conflictingDebugIds = findDebugIdsWithConflictingSourcemaps(sourcemaps);
+assert.deepEqual(conflictingDebugIds, [], 'Expected every uploaded debug ID to resolve to exactly one source map');
+
+if (!isStaticBuild) {
+  // Nitro bundles Vite's SSR output, so server frames reach `.vue` files only through the maps of that build.
+  const serverDebugIds = new Set(findInjectedDebugIds({ outputDir: SERVER_OUTPUT }));
+  const serverSources = sourcemaps
+    .filter(map => map.debugId && serverDebugIds.has(map.debugId))
+    .flatMap(map => getSourcemapSources(map.sourcemap));
+  assert.ok(
+    serverSources.some(source => source.endsWith('app/pages/index.vue')),
+    `Expected the server source maps to resolve to app/pages/index.vue, got: ${serverSources.join(', ')}`,
+  );
 }
 console.log('');
 
@@ -170,6 +236,50 @@ if (keepClientSourceMaps) {
   assert.deepEqual(leakedSource, [], `Expected no original client source under ${CLIENT_OUTPUT}`);
 
   console.log(`  ${CLIENT_OUTPUT} is free of source maps, sourceMappingURL comments and original source\n`);
+}
+
+// --- What the built server answers for the client source maps ---
+
+// `nuxt generate` emits no server, and a static host serves only the files that exist.
+if (!isStaticBuild) {
+  const clientChunkUrls = fs
+    .readdirSync(CLIENT_OUTPUT, { recursive: true, withFileTypes: true })
+    .filter(entry => entry.isFile() && entry.name.endsWith('.js'))
+    .map(
+      entry => `/${path.relative(CLIENT_OUTPUT, path.join(entry.parentPath, entry.name)).split(path.sep).join('/')}`,
+    );
+  assert.ok(clientChunkUrls.length > 0, `Expected client chunks in ${CLIENT_OUTPUT}`);
+
+  const server = await startNodeServer({ entry: path.join(SERVER_OUTPUT, 'index.mjs'), port: 3030 });
+
+  try {
+    // Without this, a server that serves no public files at all would pass the 404 checks.
+    const chunkStatus = (await fetch(`${server.baseUrl}${clientChunkUrls[0]}`)).status;
+    assert.equal(chunkStatus, 200, `Expected the server to serve the client chunk ${clientChunkUrls[0]}`);
+
+    // Nitro serves public files from a list it writes into the server bundle. A map deleted after that
+    // stays on the list, and Nitro answers its request with a 500 instead of a 404.
+    const responses = await Promise.all(
+      clientChunkUrls.map(async chunkUrl => {
+        const mapUrl = `${chunkUrl}.map`;
+        const expectedStatus = fs.existsSync(path.join(CLIENT_OUTPUT, mapUrl)) ? 200 : 404;
+        const { status } = await fetch(`${server.baseUrl}${mapUrl}`);
+        return { mapUrl, status, expectedStatus };
+      }),
+    );
+    const unexpectedStatuses = responses
+      .filter(({ status, expectedStatus }) => status !== expectedStatus)
+      .map(({ mapUrl, status, expectedStatus }) => `${mapUrl} → ${status}, expected ${expectedStatus}`);
+    assert.deepEqual(
+      unexpectedStatuses,
+      [],
+      'Expected the server to answer each client source map URL with 200 if the map is in the output, else 404',
+    );
+
+    console.log(`  The server answers all ${clientChunkUrls.length} client source map URL(s) as expected\n`);
+  } finally {
+    await server.close();
+  }
 }
 
 console.log('All sourcemap assertions passed!');

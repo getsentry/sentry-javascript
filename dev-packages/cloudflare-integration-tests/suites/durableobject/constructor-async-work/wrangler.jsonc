@@ -1,0 +1,14 @@
+{
+  "$schema": "../../../node_modules/wrangler/config-schema.json",
+  "name": "durableobject-constructor-async-work-worker",
+  "main": "index.ts",
+  "compatibility_date": "2025-06-17",
+  "compatibility_flags": ["nodejs_compat"],
+  "durable_objects": {
+    "bindings": [
+      { "name": "BLOCK_CONCURRENCY_DURABLE_OBJECT", "class_name": "BlockConcurrencyDurableObject" },
+      { "name": "ASYNC_METHOD_DURABLE_OBJECT", "class_name": "AsyncMethodDurableObject" },
+    ],
+  },
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["BlockConcurrencyDurableObject", "AsyncMethodDurableObject"] }],
+}

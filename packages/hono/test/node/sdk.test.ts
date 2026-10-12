@@ -26,7 +26,7 @@ const applySdkMetadataMock = SentryCore.applySdkMetadata as Mock;
 describe('Hono Node SDK – init()', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.spyOn(SentryCore, 'getClient').mockReturnValue(undefined);
+    vi.spyOn(SentryCore, '_INTERNAL_getActiveClient').mockReturnValue(undefined);
   });
 
   // ─── Happy path ───────────────────────────────────────────────────────────
@@ -136,7 +136,7 @@ describe('Hono Node SDK – init()', () => {
 
   it('returns the existing client without re-initializing when already set up', () => {
     const existingClient = { getOptions: () => ({ debug: false }) };
-    vi.spyOn(SentryCore, 'getClient').mockReturnValue(existingClient as unknown as SentryCore.Client);
+    vi.spyOn(SentryCore, '_INTERNAL_getActiveClient').mockReturnValue(existingClient as unknown as SentryCore.Client);
 
     const result = init({ dsn: 'https://public@dsn.ingest.sentry.io/1337' });
 
@@ -148,7 +148,7 @@ describe('Hono Node SDK – init()', () => {
   it('logs a debug message when skipping re-initialization', () => {
     const logSpy = vi.spyOn(SentryCore.debug, 'log');
     const existingClient = { getOptions: () => ({ debug: true }) };
-    vi.spyOn(SentryCore, 'getClient').mockReturnValue(existingClient as unknown as SentryCore.Client);
+    vi.spyOn(SentryCore, '_INTERNAL_getActiveClient').mockReturnValue(existingClient as unknown as SentryCore.Client);
 
     init({ dsn: 'https://public@dsn.ingest.sentry.io/1337' });
 
@@ -158,7 +158,7 @@ describe('Hono Node SDK – init()', () => {
   it('does not log when debug is false and skipping re-initialization', () => {
     const logSpy = vi.spyOn(SentryCore.debug, 'log');
     const existingClient = { getOptions: () => ({ debug: false }) };
-    vi.spyOn(SentryCore, 'getClient').mockReturnValue(existingClient as unknown as SentryCore.Client);
+    vi.spyOn(SentryCore, '_INTERNAL_getActiveClient').mockReturnValue(existingClient as unknown as SentryCore.Client);
 
     init({ dsn: 'https://public@dsn.ingest.sentry.io/1337' });
 

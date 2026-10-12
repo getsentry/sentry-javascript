@@ -72,6 +72,11 @@ export function transactionSink(): {
   };
 }
 
+export function getSpanOp(span: SerializedStreamedSpan): string | undefined {
+  const attribute = span.attributes['sentry.op'];
+  return attribute?.type === 'string' ? attribute.value : undefined;
+}
+
 /**
  * A `beforeSend` hook that records every error and lets a test
  * `await` the first one matching a predicate. `waitFor` resolves immediately if
@@ -98,18 +103,22 @@ export function withTimeout<T>(p: Promise<T>, ms: number, what: string): Promise
  * (returning null is disallowed), so intercepting them needs a transport rather than a hook.
  */
 export function spanSink(): {
+  spans: SerializedStreamedSpan[];
   waitFor: (predicate: (span: SerializedStreamedSpan) => boolean) => Promise<SerializedStreamedSpan>;
   transport: () => Transport;
 } {
+  const spans: SerializedStreamedSpan[] = [];
   const sink = eventSink<SerializedStreamedSpan>();
 
   return {
+    spans,
     waitFor: sink.waitFor,
     transport: () => ({
       send: (envelope: Envelope) => {
         for (const [header, payload] of envelope[1]) {
           if (header.type === 'span') {
             for (const span of (payload as SerializedStreamedSpanContainer).items) {
+              spans.push(span);
               sink.beforeSend(span);
             }
           }

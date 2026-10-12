@@ -44,7 +44,6 @@ class MySubWorkerEntrypointBase extends BaseEntrypoint {
 export const BindingEntrypoint = Sentry.withSentry(
   (env: Env) => ({
     dsn: env.SENTRY_DSN,
-    traceLifecycle: 'static',
     tracesSampleRate: 1.0,
     initialScope: { tags: { initial_scope: 'applied' } },
     beforeSend(event) {
@@ -61,7 +60,6 @@ export const BindingEntrypoint = Sentry.withSentry(
 export const NoPropagationEntrypoint = Sentry.withSentry(
   (env: Env) => ({
     dsn: env.SENTRY_DSN,
-    traceLifecycle: 'static',
     tracesSampleRate: 1.0,
     transportOptions: { fetch: fetch.bind(globalThis) },
   }),

@@ -85,9 +85,17 @@ function addIncludesForTestApp(testApp, includes, { optionalMode }) {
   }
 
   variants.forEach(variant => {
+    // Allow skipping an individual variant (e.g. one blocked by an upstream bug) while keeping the
+    // others. `sentryTest.skip` above skips the whole app; this is the per-variant equivalent.
+    if (variant.skip) {
+      return;
+    }
+
+    // Don't leak the `skip` flag into the matrix include.
+    const { skip: _skip, ...variantConfig } = variant;
     includes.push({
       'test-application': testApp,
-      ...variant,
+      ...variantConfig,
     });
   });
 }

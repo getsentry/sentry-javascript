@@ -15,7 +15,6 @@ import {
   getClient,
   getCurrentScope,
   getRootSpan,
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   spanToJSON,
   startBrowserTracingNavigationSpan,
   startInactiveSpan,
@@ -30,6 +29,7 @@ import {
   URL_TEMPLATE,
   SENTRY_DESCRIPTION,
   UI_COMPONENT_NAME,
+  SENTRY_ORIGIN,
 } from '@sentry/conventions/attributes';
 import { FUNCTION, ROUTER } from '@sentry/conventions/op';
 import type { Integration, Span } from '@sentry/core';
@@ -90,7 +90,7 @@ export function _updateSpanAttributesForParametrizedUrl(route: string, url: stri
     const absoluteUrl = getAbsoluteUrl(url);
 
     span.setAttributes({
-      [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: `auto.${attributes[SENTRY_OP]}.angular`,
+      [SENTRY_ORIGIN]: `auto.${attributes[SENTRY_OP]}.angular`,
       [SENTRY_SEGMENT_NAME_SOURCE]: 'route',
       [URL_FULL]: filterCollectedUrl(absoluteUrl),
       [URL_PATH]: parseStringToURLObject(absoluteUrl)?.pathname,
@@ -133,7 +133,7 @@ export class TraceService implements OnDestroy {
                 // is only known on `ResolveEnd`, which updates the span name then.
                 name: hasSpanStreamingEnabled(client) ? NAVIGATION_SPAN_NAME_FALLBACK : strippedUrl,
                 attributes: {
-                  [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.angular',
+                  [SENTRY_ORIGIN]: 'auto.navigation.angular',
                   [SENTRY_SEGMENT_NAME_SOURCE]: 'url',
                 },
               },
@@ -157,7 +157,7 @@ export class TraceService implements OnDestroy {
               name: hasSpanStreamingEnabled(client) ? ROUTER_SPAN_NAME_FALLBACK : `${navigationEvent.url}`,
               attributes: {
                 [SENTRY_OP]: ROUTER,
-                [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ui.angular',
+                [SENTRY_ORIGIN]: 'auto.ui.angular',
                 [URL_FULL]: strippedUrl,
                 ...(navigationEvent.navigationTrigger && {
                   navigationTrigger: navigationEvent.navigationTrigger,
@@ -324,7 +324,7 @@ export class TraceDirective implements OnInit, AfterViewInit {
           name: hasSpanStreaming ? componentName : description,
           attributes: {
             [SENTRY_OP]: UI_MOUNT,
-            [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ui.angular.trace_directive',
+            [SENTRY_ORIGIN]: 'auto.ui.angular.trace_directive',
             [UI_COMPONENT_NAME]: componentName,
             ...(hasSpanStreaming && { [SENTRY_DESCRIPTION]: description }),
           },
@@ -382,7 +382,7 @@ export function TraceClass(options?: TraceClassOptions): ClassDecorator {
           name: hasSpanStreaming ? componentName || UI_MOUNT_SPAN_NAME_FALLBACK : description,
           attributes: {
             [SENTRY_OP]: UI_MOUNT,
-            [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ui.angular.trace_class_decorator',
+            [SENTRY_ORIGIN]: 'auto.ui.angular.trace_class_decorator',
             ...(componentName && { [UI_COMPONENT_NAME]: componentName }),
             ...(hasSpanStreaming && { [SENTRY_DESCRIPTION]: description }),
           },
@@ -440,7 +440,7 @@ export function TraceMethod(options?: TraceMethodOptions): MethodDecorator {
           startTime: now,
           attributes: {
             [SENTRY_OP]: FUNCTION,
-            [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ui.angular.trace_method_decorator',
+            [SENTRY_ORIGIN]: 'auto.ui.angular.trace_method_decorator',
             // override description inference by Relay to preserve the original (transaction-based) description.
             // sentry-conventions can't map the special case with the angle brackets.
             ...(hasSpanStreaming && { [SENTRY_DESCRIPTION]: description }),

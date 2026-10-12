@@ -10,4 +10,6 @@ Sentry.init({
     // We expect the app to send a lot of events in a short time
     bufferSize: 1000,
   },
+  // The cron job throws the same error on every run, which Dedupe would drop after the first run.
+  integrations: integrations => integrations.filter(integration => integration.name !== 'Dedupe'),
 });

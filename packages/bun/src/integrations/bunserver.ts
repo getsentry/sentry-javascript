@@ -12,19 +12,20 @@ import {
   HTTP_SPAN_NAME_FALLBACK,
   isURLObjectRelative,
   parseStringToURLObject,
-  SEMANTIC_ATTRIBUTE_HTTP_REQUEST_METHOD,
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   setHttpStatus,
-  startSpan,
+  SPAN_STATUS_ERROR,
+  startSpanManual,
   winterCGRequestToRequestData,
   withIsolationScope,
   filterCollectedUrl,
   filterCollectedUrlQuery,
 } from '@sentry/core';
+import { classifyResponseStreaming, getClientIPAddress } from '@sentry/core/server';
 import type { Server, ServeOptions } from 'bun';
 import {
   CLIENT_ADDRESS,
   CLIENT_PORT,
+  HTTP_REQUEST_METHOD,
   NETWORK_PROTOCOL_NAME,
   SENTRY_OP,
   SENTRY_SEGMENT_NAME_SOURCE,
@@ -35,8 +36,10 @@ import {
   URL_PORT,
   URL_QUERY,
   URL_SCHEME,
+  SENTRY_ORIGIN,
 } from '@sentry/conventions/attributes';
 import { HTTP_SERVER } from '@sentry/conventions/op';
+import { monitorStream } from '../utils/streaming';
 
 const INTEGRATION_NAME = 'BunServer' as const;
 
@@ -245,30 +248,35 @@ function wrapRequestHandler<T extends RouteHandler = RouteHandler>(
     const client = getClient();
     const dataCollection = client?.getDataCollectionOptions();
 
-    if (dataCollection?.userInfo) {
-      // `client.address` is the originating client, so a forwarding header wins over the socket, which
-      // behind a proxy holds the proxy's address.
-      const forwardedFor = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim();
+    let socketAddress: { address: string; port: number } | undefined;
+    if (dataCollection) {
+      const headers = request.headers.toJSON();
       // Bun passes the `Server` as the second argument to both `fetch` and route handlers, except
       // when the handler runs through `server.fetch()`.
-      const socketAddress = getRequestIP(args[1], request);
-      if (forwardedFor || socketAddress?.address) {
-        attributes[CLIENT_ADDRESS] = forwardedFor || socketAddress?.address;
+      socketAddress = getRequestIP(args[1], request);
+
+      if (dataCollection.userInfo) {
+        // `client.address` is the originating client, so a forwarding header wins over the socket, which
+        // behind a proxy holds the proxy's address. The socket port is the proxy's too, so `client.port`
+        // stays unset then.
+        const forwardedAddress = getClientIPAddress(headers);
+        if (forwardedAddress) {
+          attributes[CLIENT_ADDRESS] = forwardedAddress;
+        } else if (socketAddress) {
+          attributes[CLIENT_ADDRESS] = socketAddress.address;
+          attributes[CLIENT_PORT] = socketAddress.port;
+        }
       }
-      if (socketAddress?.port) {
-        attributes[CLIENT_PORT] = socketAddress.port;
-      }
+
+      Object.assign(attributes, httpHeadersToSpanAttributes(headers, dataCollection));
     }
 
     // describes the OSI application-layer protocol (http), not the scheme (might be https)
     attributes[NETWORK_PROTOCOL_NAME] = 'http';
 
-    if (dataCollection) {
-      Object.assign(attributes, httpHeadersToSpanAttributes(request.headers.toJSON(), dataCollection));
-    }
-
     isolationScope.setSDKProcessingMetadata({
       normalizedRequest: winterCGRequestToRequestData(request),
+      ipAddress: socketAddress?.address,
     });
 
     if (client && dataCollection) {
@@ -288,7 +296,7 @@ function wrapRequestHandler<T extends RouteHandler = RouteHandler>(
         baggage: request.headers.get('baggage'),
       },
       () =>
-        startSpan(
+        startSpanManual(
           {
             attributes: { ...attributes, [SENTRY_OP]: HTTP_SERVER },
             // With span streaming, span names have to be low cardinality, so we can't fall back to the URL path.
@@ -297,7 +305,7 @@ function wrapRequestHandler<T extends RouteHandler = RouteHandler>(
                 ? `${request.method} ${routeName}`
                 : request.method?.toUpperCase() || HTTP_SPAN_NAME_FALLBACK,
           },
-          async span => {
+          async (span, endSpan) => {
             try {
               const response = (await target.apply(thisArg, args)) as Response | undefined;
               if (response?.status) {
@@ -313,14 +321,28 @@ function wrapRequestHandler<T extends RouteHandler = RouteHandler>(
                   );
                 }
               }
+              if (response?.body && !response.body.locked && classifyResponseStreaming(response).isStreaming) {
+                const body = monitorStream(response.body, endSpan, error => {
+                  span.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
+                  captureException(error, { mechanism: { type: 'auto.http.bun.serve', handled: false } });
+                });
+                return new Response(body, {
+                  status: response.status,
+                  statusText: response.statusText,
+                  headers: response.headers,
+                });
+              }
+              endSpan();
               return response;
             } catch (e) {
+              span.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
               captureException(e, {
                 mechanism: {
                   type: 'auto.http.bun.serve',
                   handled: false,
                 },
               });
+              endSpan();
               throw e;
             }
           },
@@ -329,12 +351,15 @@ function wrapRequestHandler<T extends RouteHandler = RouteHandler>(
   });
 }
 
-function getRequestIP(server: unknown, request: Request): { address: string; port: number } | undefined {
-  if (typeof (server as Partial<Server> | undefined)?.requestIP !== 'function') {
+function getRequestIP(
+  server: Partial<Pick<Server, 'requestIP'>> | undefined,
+  request: Request,
+): { address: string; port: number } | undefined {
+  if (typeof server?.requestIP !== 'function') {
     return undefined;
   }
   try {
-    return (server as Server).requestIP(request) ?? undefined;
+    return server.requestIP(request) ?? undefined;
   } catch {
     // Defensive: never let a failed lookup break the user's handler.
     return undefined;
@@ -346,8 +371,8 @@ function getSpanAttributesFromParsedUrl(
   request: Request,
 ): SpanAttributes {
   const attributes: SpanAttributes = {
-    [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.bun.serve',
-    [SEMANTIC_ATTRIBUTE_HTTP_REQUEST_METHOD]: request.method || 'GET',
+    [SENTRY_ORIGIN]: 'auto.http.bun.serve',
+    [HTTP_REQUEST_METHOD]: request.method || 'GET',
     [SENTRY_SEGMENT_NAME_SOURCE]: 'url',
   };
 

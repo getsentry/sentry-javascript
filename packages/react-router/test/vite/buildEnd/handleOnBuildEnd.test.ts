@@ -85,7 +85,10 @@ describe('sentryOnBuildEnd', () => {
     // @ts-expect-error - mocking the React config
     await sentryOnBuildEnd(config);
 
-    expect(mockSentrySdkInstance.release.create).toHaveBeenCalledWith({ orgVersion: 'v1.0.0' });
+    expect(mockSentrySdkInstance.release.create).toHaveBeenCalledWith({
+      orgVersion: 'v1.0.0',
+      project: 'test-project',
+    });
   });
 
   it('resolves root-level BuildTimeOptionsBase options for release creation and source map upload', async () => {
@@ -115,7 +118,7 @@ describe('sentryOnBuildEnd', () => {
       url: undefined,
       headers: undefined,
     });
-    expect(mockSentrySdkInstance.release.create).toHaveBeenCalledWith({ orgVersion: '1.2.3' });
+    expect(mockSentrySdkInstance.release.create).toHaveBeenCalledWith({ orgVersion: '1.2.3', project: 'my-project' });
     expect(mockSentrySdkInstance.sourcemap.upload).toHaveBeenCalledWith({
       directory: '/build',
       release: '1.2.3',

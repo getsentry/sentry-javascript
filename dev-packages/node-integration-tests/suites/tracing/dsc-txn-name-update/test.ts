@@ -53,7 +53,7 @@ test('adds current transaction name to baggage when the txn name is high-quality
   await createRunner(__dirname, 'scenario-headers.ts')
     .withEnv({ SERVER_URL })
     .expect({
-      transaction: {},
+      span: {},
     })
     .start()
     .completed();
@@ -106,7 +106,7 @@ test('adds current transaction name to trace envelope header when the txn name i
       },
     })
     .expectHeader({
-      transaction: {
+      span: {
         trace: {
           environment: 'production',
           public_key: 'public',

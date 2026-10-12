@@ -69,6 +69,7 @@ export {
   langGraphIntegration,
   createFlueInstrumentation,
   mastraIntegration,
+  piDurableIntegration,
   mcpServerIntegration,
   SentryMastraExporter,
   modulesIntegration,
@@ -95,7 +96,9 @@ export {
   getAutoPerformanceIntegrations,
   cron,
   parameterize,
+  // oxlint-disable-next-line typescript/no-deprecated
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
+  // oxlint-disable-next-line typescript/no-deprecated
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE,
   dataloaderIntegration,
@@ -108,6 +111,8 @@ export {
   // oxlint-disable-next-line typescript/no-deprecated
   setupFastifyErrorHandler,
   firebaseIntegration,
+  honoIntegration,
+  honoMiddleware,
   koaIntegration,
   // oxlint-disable-next-line typescript/no-deprecated
   setupKoaErrorHandler,
@@ -124,6 +129,7 @@ export {
   tediousIntegration,
   postgresIntegration,
   postgresJsIntegration,
+  neonIntegration,
   prismaIntegration,
   processSessionIntegration,
   hapiIntegration,
@@ -171,6 +177,8 @@ export {
   // oxlint-disable-next-line typescript/no-deprecated
   withStreamedSpan,
   bunServerIntegration,
+  bunRuntimeMetricsIntegration,
+  type BunRuntimeMetricsOptions,
   makeFetchTransport,
 } from '@sentry/bun';
 

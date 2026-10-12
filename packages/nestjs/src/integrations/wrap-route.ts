@@ -4,6 +4,7 @@ import {
   HTTP_ROUTE,
   SENTRY_OP,
   URL_FULL,
+  SENTRY_ORIGIN,
 } from '@sentry/conventions/attributes';
 import { FUNCTION, HANDLER } from '@sentry/conventions/op';
 import type { SpanAttributes } from '@sentry/core';
@@ -11,7 +12,6 @@ import {
   getClient,
   hasSpanStreamingEnabled,
   REQUEST_HANDLER_SPAN_NAME_FALLBACK,
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   startSpan,
   filterCollectedUrl,
 } from '@sentry/core';
@@ -47,7 +47,7 @@ export function getAppCreationSpanOptions(
     attributes: {
       component: NESTJS_COMPONENT,
       [SENTRY_OP]: FUNCTION,
-      [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: HTTP_ORIGIN,
+      [SENTRY_ORIGIN]: HTTP_ORIGIN,
       [AttributeNames.TYPE]: NestType.APP_CREATION,
       [AttributeNames.VERSION]: moduleVersion || undefined,
       [AttributeNames.MODULE]: moduleName || undefined,
@@ -68,7 +68,7 @@ export function wrapRouteHandler(callback: AnyFn, moduleVersion?: string): AnyFn
   const attributes: SpanAttributes = {
     component: NESTJS_COMPONENT,
     [SENTRY_OP]: HANDLER,
-    [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: HTTP_ORIGIN,
+    [SENTRY_ORIGIN]: HTTP_ORIGIN,
     [AttributeNames.TYPE]: NestType.REQUEST_HANDLER,
     [AttributeNames.CALLBACK]: callback.name,
     [AttributeNames.VERSION]: moduleVersion || undefined,
@@ -111,7 +111,7 @@ export function wrapRequestContextHandler(
     const httpRoute = req.route?.path || req.routeOptions?.url || req.routerPath;
     const attributes: SpanAttributes = {
       component: NESTJS_COMPONENT,
-      [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: HTTP_ORIGIN,
+      [SENTRY_ORIGIN]: HTTP_ORIGIN,
       [SENTRY_OP]: FUNCTION,
       [CODE_FUNCTION_NAME]: spanName,
       [AttributeNames.TYPE]: NestType.REQUEST_CONTEXT,

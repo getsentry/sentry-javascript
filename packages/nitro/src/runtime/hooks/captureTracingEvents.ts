@@ -1,5 +1,5 @@
 import * as dc from 'node:diagnostics_channel';
-import { SENTRY_OP, SENTRY_SEGMENT_NAME_SOURCE } from '@sentry/conventions/attributes';
+import { SENTRY_OP, SENTRY_SEGMENT_NAME_SOURCE, SENTRY_ORIGIN } from '@sentry/conventions/attributes';
 import { HTTP_SERVER, MIDDLEWARE } from '@sentry/conventions/op';
 import {
   isObjectLike,
@@ -12,7 +12,6 @@ import {
   httpHeadersToSpanAttributes,
   HTTP_SPAN_NAME_FALLBACK,
   parseStringToURLObject,
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   setHttpStatus,
   type Span,
   startInactiveSpan,
@@ -121,7 +120,7 @@ function setupH3TracingChannels(): void {
           : spanName,
         attributes: {
           ...urlAttributes,
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.nitro.h3',
+          [SENTRY_ORIGIN]: 'auto.http.nitro.h3',
           [SENTRY_OP]: data?.type === 'middleware' ? MIDDLEWARE : HTTP_SERVER,
         },
       });
@@ -131,12 +130,6 @@ function setupH3TracingChannels(): void {
       return span;
     },
     {
-      captureError: () => ({
-        mechanism: {
-          handled: false,
-          type: 'auto.http.nitro.onTraceError',
-        },
-      }),
       beforeSpanEnd(span, data) {
         applyResponseStatus(span, data);
 
@@ -205,7 +198,7 @@ function setupSrvxTracingChannels(): void {
         attributes: {
           ...urlAttributes,
           ...headerAttributes,
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.nitro.srvx',
+          [SENTRY_ORIGIN]: 'auto.http.nitro.srvx',
           [SENTRY_OP]: data.middleware ? MIDDLEWARE : HTTP_SERVER,
           'server.port': data.server.options.port,
         },
@@ -244,7 +237,7 @@ function setupSrvxTracingChannels(): void {
         name: `${data.middleware?.handler.name ?? 'unknown'} - ${data.request.method} ${data.request._url?.pathname}`,
         attributes: {
           ...urlAttributes,
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.nitro.srvx',
+          [SENTRY_ORIGIN]: 'auto.http.nitro.srvx',
           [SENTRY_OP]: MIDDLEWARE,
         },
         parentSpan: requestParentSpans.get(data.request) || undefined,

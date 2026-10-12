@@ -1,14 +1,16 @@
 import * as diagnosticsChannel from '../../utils/diagnosticsChannel';
 import type { IntegrationFn, Span } from '@sentry/core';
-import { defineIntegration, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, startInactiveSpan } from '@sentry/core';
+import { defineIntegration, startInactiveSpan } from '@sentry/core';
 import {
   _AWS_REQUEST_ID as AWS_REQUEST_ID,
   AWS_REQUEST_EXTENDED_ID,
   CLOUD_REGION,
   SENTRY_KIND,
   HTTP_RESPONSE_STATUS_CODE,
+  SENTRY_ORIGIN,
 } from '@sentry/conventions/attributes';
 import { RPC } from '@sentry/conventions/op';
+import type { OrchestrionChannelContext } from '../../orchestrion/types';
 import { CHANNELS } from '../../orchestrion/channels';
 import { awsSdkModuleNames } from '../../orchestrion/config/aws-sdk';
 import { invokeOrchestrionInstrumentation } from '../../orchestrion/instrumentation';
@@ -25,11 +27,8 @@ const INTEGRATION_NAME = 'Aws' as const;
 // The context orchestrion's transform attaches to the channel: `arguments` is the live args of the
 // wrapped `Client.prototype.send` call (`[command, ...]`), `self` the client, `result`/`error` the
 // settled value. The `_sentry*` fields are stashed by us across the call's lifecycle.
-interface AwsSendChannelContext {
-  arguments: unknown[];
+interface AwsSendChannelContext extends OrchestrionChannelContext {
   self?: { config?: AwsClientConfig; constructor?: { name?: string } };
-  result?: unknown;
-  error?: unknown;
   _sentryNormalizedRequest?: NormalizedRequest;
   _sentryRequestMetadata?: RequestMetadata;
   _sentryRegion?: { settled: boolean; promise: Promise<void> };
@@ -111,7 +110,7 @@ function instrumentAwsSdk(servicesExtensions: ServicesExtensions): void {
         op: requestMetadata.spanOp || RPC,
         attributes: {
           [SENTRY_KIND]: 'client',
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: AWS_SDK_ORIGIN,
+          [SENTRY_ORIGIN]: AWS_SDK_ORIGIN,
           ...extractAttributesFromNormalizedRequest(normalizedRequest),
           ...requestMetadata.spanAttributes,
         },

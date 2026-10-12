@@ -8,12 +8,16 @@ import { instrumentBunServe } from '../../src/integrations/bunserver';
 describe('Bun Serve Integration', () => {
   const mockSpan = SentryCore.startInactiveSpan({ name: 'test span' });
   const setAttributesSpy = spyOn(mockSpan, 'setAttributes');
+  const setStatusSpy = spyOn(mockSpan, 'setStatus');
+  const captureExceptionSpy = spyOn(SentryCore, 'captureException');
   const continueTraceSpy = spyOn(SentryCore, 'continueTrace');
-  const startSpanSpy = spyOn(SentryCore, 'startSpan').mockImplementation((_opts, cb) => {
-    return cb(mockSpan as unknown as SentryCore.Span);
+  const endSpanSpy = spyOn(mockSpan, 'end');
+  const startSpanSpy = spyOn(SentryCore, 'startSpanManual').mockImplementation((_opts, cb) => {
+    return cb(mockSpan as unknown as SentryCore.Span, () => mockSpan.end());
   });
 
   const setupClient = (options?: BunOptions): void => {
+    SentryCore.getCurrentScope().setClient(undefined);
     init({
       dsn: 'https://username@domain/123',
       defaultIntegrations: false,
@@ -29,8 +33,11 @@ describe('Bun Serve Integration', () => {
 
   beforeEach(() => {
     startSpanSpy.mockClear();
+    endSpanSpy.mockReset();
     continueTraceSpy.mockClear();
     setAttributesSpy.mockClear();
+    setStatusSpy.mockClear();
+    captureExceptionSpy.mockClear();
     // Header attributes are only collected while a client is active, so every test sets up its own instead of
     // relying on one leaking in from whichever test file `bun test` happened to run first.
     setupClient();
@@ -44,6 +51,149 @@ describe('Bun Serve Integration', () => {
     // Don't reuse the port; Bun server stops lazily so tests may accidentally hit a server still closing from a
     // previous test
     port += 1;
+  });
+
+  test.each(['fetch', 'route'])(
+    'keeps a streaming %s response span open until the last chunk is consumed',
+    async mode => {
+      let controller: ReadableStreamDefaultController<Uint8Array>;
+      const source = new ReadableStream<Uint8Array>({
+        start(value) {
+          controller = value;
+        },
+      });
+      const ended = new Promise<void>(resolve => endSpanSpy.mockImplementation(() => resolve()));
+      const handler = () =>
+        new Response(source, { status: 201, headers: { 'content-type': 'text/event-stream', 'x-stream': 'events' } });
+      const server = Bun.serve({
+        port,
+        ...(mode === 'fetch' ? { fetch: handler } : { routes: { '/events': { GET: handler } } }),
+      });
+      try {
+        controller!.enqueue(new TextEncoder().encode('data: first\n\n'));
+        const response = await fetch(`http://localhost:${port}/events`);
+        const reader = response.body!.getReader();
+        expect(response.status).toBe(201);
+        expect(response.headers.get('x-stream')).toBe('events');
+        expect(new TextDecoder().decode((await reader.read()).value)).toBe('data: first\n\n');
+        expect(endSpanSpy).toHaveBeenCalledTimes(0);
+
+        controller!.enqueue(new TextEncoder().encode('data: last\n\n'));
+        controller!.close();
+        expect(new TextDecoder().decode((await reader.read()).value)).toBe('data: last\n\n');
+        expect((await reader.read()).done).toBe(true);
+        await ended;
+        expect(endSpanSpy).toHaveBeenCalledTimes(1);
+      } finally {
+        await server.stop(true);
+      }
+    },
+  );
+
+  test.each(['client disconnected', new Error('client disconnected')])(
+    'ends the span without capturing a cancelled stream: %s',
+    async reason => {
+      let cancelled: unknown;
+      const ended = new Promise<void>(resolve => endSpanSpy.mockImplementation(() => resolve()));
+      const source = new ReadableStream<Uint8Array>({
+        cancel(reason) {
+          cancelled = reason;
+        },
+      });
+      const server = Bun.serve({
+        port,
+        fetch: () => new Response(source, { headers: { 'content-type': 'text/event-stream' } }),
+      });
+      try {
+        const response = await server.fetch(new Request(`http://localhost:${port}/events`));
+        const reader = response.body!.getReader();
+        const pendingRead = reader.read();
+        await reader.cancel(reason);
+        expect(await pendingRead).toEqual({ done: true, value: undefined });
+        await ended;
+        expect(cancelled).toBe(reason);
+        expect(endSpanSpy).toHaveBeenCalledTimes(1);
+        expect(captureExceptionSpy).not.toHaveBeenCalled();
+        expect(setStatusSpy).not.toHaveBeenCalledWith({
+          code: SentryCore.SPAN_STATUS_ERROR,
+          message: 'internal_error',
+        });
+      } finally {
+        await server.stop(true);
+      }
+    },
+  );
+
+  test('preserves backpressure instead of reading ahead of the response consumer', async () => {
+    let pulls = 0;
+    const source = new ReadableStream<Uint8Array>(
+      {
+        pull(controller) {
+          pulls += 1;
+          controller.enqueue(new TextEncoder().encode(`data: ${pulls}\n\n`));
+        },
+      },
+      { highWaterMark: 0 },
+    );
+    const server = Bun.serve({
+      port,
+      fetch: () => new Response(source, { headers: { 'content-type': 'text/event-stream' } }),
+    });
+    try {
+      const response = await server.fetch(new Request(`http://localhost:${port}/events`));
+      expect(pulls).toBe(0);
+      const reader = response.body!.getReader();
+      expect(new TextDecoder().decode((await reader.read()).value)).toBe('data: 1\n\n');
+      expect(pulls).toBe(1);
+      expect(endSpanSpy).not.toHaveBeenCalled();
+
+      await reader.cancel();
+      expect(endSpanSpy).toHaveBeenCalledTimes(1);
+      expect(captureExceptionSpy).not.toHaveBeenCalled();
+    } finally {
+      await server.stop(true);
+    }
+  });
+
+  test('captures a response stream error and marks its span as failed', async () => {
+    let controller: ReadableStreamDefaultController<Uint8Array>;
+    const ended = new Promise<void>(resolve => endSpanSpy.mockImplementation(() => resolve()));
+    const source = new ReadableStream<Uint8Array>({
+      start(value) {
+        controller = value;
+      },
+    });
+    const server = Bun.serve({
+      port,
+      fetch: () => new Response(source, { headers: { 'content-type': 'application/x-ndjson' } }),
+    });
+    try {
+      const response = await server.fetch(new Request(`http://localhost:${port}/events`));
+      const error = new Error('stream interrupted');
+      controller!.error(error);
+      await ended;
+      await expect(response.text()).rejects.toBe(error);
+      expect(captureExceptionSpy).toHaveBeenCalledTimes(1);
+      expect(captureExceptionSpy).toHaveBeenCalledWith(error, {
+        mechanism: { type: 'auto.http.bun.serve', handled: false },
+      });
+      expect(setStatusSpy).toHaveBeenCalledWith({ code: SentryCore.SPAN_STATUS_ERROR, message: 'internal_error' });
+      expect(endSpanSpy).toHaveBeenCalledTimes(1);
+    } finally {
+      await server.stop(true);
+    }
+  });
+
+  test('ends a non-streaming response span before the body is consumed', async () => {
+    const server = Bun.serve({ port, fetch: () => Response.json({ ok: true }) });
+    try {
+      const response = await server.fetch(new Request(`http://localhost:${port}/status`));
+      expect(endSpanSpy).toHaveBeenCalledTimes(1);
+      expect(await response.json()).toEqual({ ok: true });
+      expect(endSpanSpy).toHaveBeenCalledTimes(1);
+    } finally {
+      await server.stop(true);
+    }
   });
 
   test('generates a transaction around a request', async () => {
@@ -371,6 +521,7 @@ describe('Bun Serve Integration', () => {
     expect(await initialResponse.text()).toBe('Initial handler');
     expect(startSpanSpy).toHaveBeenCalledTimes(1);
     startSpanSpy.mockClear();
+    endSpanSpy.mockReset();
 
     // Reload server with new handler
     server.reload({
@@ -570,7 +721,7 @@ describe('Bun Serve Integration', () => {
       );
     });
 
-    test('prefers the first x-forwarded-for address over the socket address', async () => {
+    test('prefers the first x-forwarded-for address over the socket address, without the socket port', async () => {
       const server = Bun.serve({
         async fetch(_req) {
           return new Response('Bun!');
@@ -593,6 +744,97 @@ describe('Bun Serve Integration', () => {
         }),
         expect.any(Function),
       );
+      expect(startSpanSpy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          attributes: expect.not.objectContaining({
+            'client.port': expect.anything(),
+          }),
+        }),
+        expect.any(Function),
+      );
+    });
+
+    test('reads the client address from other forwarding headers', async () => {
+      const server = Bun.serve({
+        async fetch(_req) {
+          return new Response('Bun!');
+        },
+        port,
+      });
+
+      await fetch(`http://localhost:${port}/`, {
+        headers: { 'X-Real-IP': '203.0.113.8' },
+      });
+
+      await server.stop();
+
+      expect(startSpanSpy).toHaveBeenCalledTimes(1);
+      expect(startSpanSpy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          attributes: expect.objectContaining({
+            'client.address': '203.0.113.8',
+          }),
+        }),
+        expect.any(Function),
+      );
+    });
+
+    test('falls back to the socket address when the forwarding header is not an IP', async () => {
+      const server = Bun.serve({
+        async fetch(_req) {
+          return new Response('Bun!');
+        },
+        port,
+      });
+
+      await fetch(`http://localhost:${port}/`, {
+        headers: { 'X-Forwarded-For': 'unknown' },
+      });
+
+      await server.stop();
+
+      expect(startSpanSpy).toHaveBeenCalledTimes(1);
+      expect(startSpanSpy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          attributes: expect.objectContaining({
+            'client.address': expect.stringMatching(/^(127\.0\.0\.1|::1|::ffff:127\.0\.0\.1)$/),
+            'client.port': expect.any(Number),
+          }),
+        }),
+        expect.any(Function),
+      );
+    });
+
+    test('sets the socket address as the user IP on error events', async () => {
+      const events: SentryCore.Event[] = [];
+      setupClient({
+        integrations: [SentryCore.requestDataIntegration()],
+        beforeSend: event => {
+          events.push(event);
+          return null;
+        },
+      });
+
+      const server = Bun.serve({
+        async fetch(_req) {
+          SentryCore.captureException(new Error('Boom'));
+          return new Response('Bun!');
+        },
+        port,
+      });
+
+      await fetch(`http://localhost:${port}/`);
+
+      await server.stop();
+      await SentryCore.flush();
+
+      expect(events).toEqual([
+        expect.objectContaining({
+          user: expect.objectContaining({
+            ip_address: expect.stringMatching(/^(127\.0\.0\.1|::1|::ffff:127\.0\.0\.1)$/),
+          }),
+        }),
+      ]);
     });
 
     test('does not capture client address when userInfo collection is disabled', async () => {
@@ -680,8 +922,14 @@ describe('Bun Serve Integration', () => {
       await server.stop();
 
       expect(startSpanSpy).toHaveBeenCalledTimes(1);
-      const attributes = startSpanSpy.mock.calls[0]?.[0]?.attributes;
-      expect(attributes?.['http.request.header.x-forwarded-for']).toEqual(['203.0.113.7']);
+      expect(startSpanSpy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          attributes: expect.objectContaining({
+            'http.request.header.x-forwarded-for': ['203.0.113.7'],
+          }),
+        }),
+        expect.any(Function),
+      );
     });
 
     test('filters request headers according to the dataCollection deny list', async () => {
@@ -703,9 +951,15 @@ describe('Bun Serve Integration', () => {
       await server.stop();
 
       expect(startSpanSpy).toHaveBeenCalledTimes(1);
-      const attributes = startSpanSpy.mock.calls[0]?.[0]?.attributes;
-      expect(attributes?.['http.request.header.x-internal']).toEqual(['[Filtered]']);
-      expect(attributes?.['http.request.header.x-public']).toEqual(['public-value']);
+      expect(startSpanSpy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          attributes: expect.objectContaining({
+            'http.request.header.x-internal': ['[Filtered]'],
+            'http.request.header.x-public': ['public-value'],
+          }),
+        }),
+        expect.any(Function),
+      );
     });
 
     test('filters always-sensitive request headers even when collection is permissive', async () => {
@@ -725,8 +979,14 @@ describe('Bun Serve Integration', () => {
       await server.stop();
 
       expect(startSpanSpy).toHaveBeenCalledTimes(1);
-      const attributes = startSpanSpy.mock.calls[0]?.[0]?.attributes;
-      expect(attributes?.['http.request.header.authorization']).toEqual(['[Filtered]']);
+      expect(startSpanSpy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          attributes: expect.objectContaining({
+            'http.request.header.authorization': ['[Filtered]'],
+          }),
+        }),
+        expect.any(Function),
+      );
     });
 
     test('applies the dataCollection response header collection behavior', async () => {
@@ -746,9 +1006,12 @@ describe('Bun Serve Integration', () => {
       await server.stop();
 
       expect(setAttributesSpy).toHaveBeenCalledTimes(1);
-      const responseAttributes = setAttributesSpy.mock.calls[0]?.[0];
-      expect(responseAttributes?.['http.response.header.x-internal']).toEqual(['[Filtered]']);
-      expect(responseAttributes?.['http.response.header.x-public']).toEqual(['public-value']);
+      expect(setAttributesSpy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          'http.response.header.x-internal': ['[Filtered]'],
+          'http.response.header.x-public': ['public-value'],
+        }),
+      );
     });
   });
 

@@ -130,6 +130,31 @@ async function run() {
       model: 'nomic-embed-text-v1_5',
       input: 'Embedding test!',
     });
+
+    const rawChatResponse = await client.chat.completions
+      .create({
+        model: 'llama-3.3-70b-versatile',
+        messages: [{ role: 'user', content: 'Raw response test!' }],
+      })
+      .asResponse();
+    await rawChatResponse.json();
+
+    const rawStreamResponse = await client.chat.completions
+      .create({
+        model: 'llama-3.1-8b-instant',
+        messages: [{ role: 'user', content: 'Raw stream test!' }],
+        stream: true,
+      })
+      .asResponse();
+    await rawStreamResponse.text();
+
+    const rawEmbeddingsResponse = await client.embeddings
+      .create({
+        model: 'nomic-embed-text-v1_5',
+        input: 'Raw embedding test!',
+      })
+      .asResponse();
+    await rawEmbeddingsResponse.json();
   });
 
   await Sentry.flush(2000);

@@ -37,7 +37,7 @@ function instrumentRun(
 
     const [model, inputs, runOptions] = args as [unknown, unknown, Record<string, unknown> | undefined];
 
-    const operationName = getOperationName(inputs);
+    const operationName = getOperationName(model, inputs);
     const requestAttributes = extractRequestAttributes(model, inputs, operationName);
     const modelName = typeof model === 'string' && model ? model : 'unknown';
     const client = getClient();
@@ -89,7 +89,7 @@ function instrumentRun(
           }
 
           // The model did not actually return a stream — finalize the span eagerly.
-          addResponseAttributes(span, result, options.recordOutputs);
+          addResponseAttributes(span, result, options.recordOutputs, operationName);
           span.end();
           return result;
         }, handleError);
@@ -105,7 +105,7 @@ function instrumentRun(
 
       return originalResult.then(result => {
         if (!returnsRawResponse) {
-          addResponseAttributes(span, result, options.recordOutputs);
+          addResponseAttributes(span, result, options.recordOutputs, operationName);
         }
         return result;
       });

@@ -1,26 +1,18 @@
 import { expect, it } from 'vitest';
-import type { Event } from '@sentry/core';
 import { createRunner } from '../../../runner';
+import { getSpanOp, getSpansFromEnvelope } from '../../../spanUtils';
 
 it('traces a durable object method', async ({ signal }) => {
   const runner = createRunner(__dirname)
     .expect(envelope => {
-      const transactionEvent = envelope[1]?.[0]?.[1];
-      expect(transactionEvent).toEqual(
-        expect.objectContaining({
-          contexts: expect.objectContaining({
-            trace: expect.objectContaining({
-              op: 'rpc',
-              data: expect.objectContaining({
-                'sentry.op': 'rpc',
-                'sentry.origin': 'auto.faas.cloudflare.durable_object',
-              }),
-              origin: 'auto.faas.cloudflare.durable_object',
-            }),
-          }),
-          transaction: 'sayHello',
-        }),
-      );
+      const segmentSpan = getSpansFromEnvelope(envelope).find(span => span.is_segment);
+
+      expect(segmentSpan?.name).toBe('sayHello');
+      expect(getSpanOp(segmentSpan!)).toBe('rpc');
+      expect(segmentSpan?.attributes['sentry.origin']).toEqual({
+        type: 'string',
+        value: 'auto.faas.cloudflare.durable_object',
+      });
     })
     .unordered()
     .start(signal);
@@ -34,21 +26,9 @@ it('handles consecutive RPC calls without throwing "RPC receiver does not implem
   signal,
 }) => {
   const runner = createRunner(__dirname)
-    .expect(envelope => {
-      const transactionEvent = envelope[1]?.[0]?.[1];
-      expect(transactionEvent).toEqual(
-        expect.objectContaining({
-          transaction: 'sayHello',
-        }),
-      );
-    })
-    .expect(envelope => {
-      const transactionEvent = envelope[1]?.[0]?.[1];
-      expect(transactionEvent).toEqual(
-        expect.objectContaining({
-          transaction: 'sayHello',
-        }),
-      );
+    .expectN(2, envelope => {
+      const segmentSpan = getSpansFromEnvelope(envelope).find(span => span.is_segment);
+      expect(segmentSpan?.name).toBe('sayHello');
     })
     .unordered()
     .start(signal);
@@ -73,20 +53,12 @@ it('handles consecutive RPC calls without throwing "RPC receiver does not implem
 it('allows RPC methods to access private class fields', async ({ signal }) => {
   const runner = createRunner(__dirname)
     .expect(envelope => {
-      const transactionEvent = envelope[1]?.[0]?.[1] as Event;
-      expect(transactionEvent).toEqual(
-        expect.objectContaining({
-          transaction: 'setGreeting',
-        }),
-      );
+      const segmentSpan = getSpansFromEnvelope(envelope).find(span => span.is_segment);
+      expect(segmentSpan?.name).toBe('setGreeting');
     })
     .expect(envelope => {
-      const transactionEvent = envelope[1]?.[0]?.[1] as Event;
-      expect(transactionEvent).toEqual(
-        expect.objectContaining({
-          transaction: 'sayHello',
-        }),
-      );
+      const segmentSpan = getSpansFromEnvelope(envelope).find(span => span.is_segment);
+      expect(segmentSpan?.name).toBe('sayHello');
     })
     .unordered()
     .start(signal);

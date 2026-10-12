@@ -8,6 +8,7 @@ import {
   getWebpackPatch,
   maybeConstructTurbopackConfig,
   maybeEnableTurbopackSourcemaps,
+  maybeSetTurbopackTreeshakeDefines,
   maybeSetUpRunAfterProductionCompileHook,
   maybeWarnAboutUnsupportedRunAfterProductionCompileHook,
   maybeWarnAboutTurbopackModuleMetadata,
@@ -85,6 +86,7 @@ export function getFinalConfigObject(
   });
 
   maybeEnableTurbopackSourcemaps(incomingUserNextConfigObject, userSentryOptions, bundlerInfo);
+  maybeSetTurbopackTreeshakeDefines(incomingUserNextConfigObject, userSentryOptions, bundlerInfo);
 
   const buildTimeInstrumentation = resolveBuildTimeInstrumentationOption(userSentryOptions, bundlerInfo, nextJsVersion);
 

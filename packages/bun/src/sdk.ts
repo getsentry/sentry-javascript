@@ -2,6 +2,8 @@ import * as os from 'node:os';
 import type { Integration, Options } from '@sentry/core';
 import {
   applySdkMetadata,
+  conversationIdIntegration,
+  dedupeIntegration,
   eventFiltersIntegration,
   functionToStringIntegration,
   hasSpansEnabled,
@@ -48,7 +50,9 @@ export function getDefaultIntegrationsWithoutPerformance(): Integration[] {
     eventFiltersIntegration(),
     functionToStringIntegration(),
     linkedErrorsIntegration(),
+    dedupeIntegration(),
     requestDataIntegration(),
+    conversationIdIntegration(),
     // Native Wrappers
     consoleIntegration(),
     httpIntegration(),

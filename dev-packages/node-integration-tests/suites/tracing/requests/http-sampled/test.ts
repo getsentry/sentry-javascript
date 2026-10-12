@@ -31,8 +31,8 @@ describe('outgoing http', () => {
       await createRunner()
         .withEnv({ SERVER_URL })
         .expect({
-          transaction: {
-            // we're not too concerned with the actual transaction here since this is tested elsewhere
+          span: {
+            // Span contents are tested elsewhere, we just want to know that a span envelope was sent
           },
         })
         .start()

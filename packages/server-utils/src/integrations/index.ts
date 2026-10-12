@@ -15,6 +15,7 @@ import { mongooseIntegration } from './mongoose';
 import { lruMemoizerIntegration } from './lru-memoizer';
 import { langChainIntegration } from './langchain';
 import { langGraphIntegration } from './langgraph';
+import { piDurableIntegration } from './pi-durable';
 import { mastraIntegration } from './mastra';
 import { mcpServerIntegration } from './mcp-server';
 import { vercelAIIntegration } from './vercel-ai';
@@ -26,10 +27,12 @@ import { groqIntegration } from './groq';
 import { togetherAIIntegration } from './together-ai';
 import { typesafeIntegration } from './typesafe';
 import { postgresJsIntegration } from './postgres-js';
+import { neonIntegration } from './neon';
 import { firebaseIntegration } from './firebase';
 import { expressIntegration } from './express';
 import { fastifyIntegration } from './fastify';
 import { hapiIntegration } from './hapi';
+import { honoIntegration } from './hono';
 import { koaIntegration } from './koa';
 import type { Integration } from '@sentry/core';
 import { awsIntegration } from './aws-sdk';
@@ -58,6 +61,7 @@ export function getTracingIntegrations(): Integration[] {
     langChainIntegration(),
     langGraphIntegration(),
     mastraIntegration(),
+    piDurableIntegration(),
     vercelAIIntegration(),
     openAIIntegration(),
     anthropicAIIntegration(),
@@ -67,6 +71,7 @@ export function getTracingIntegrations(): Integration[] {
     togetherAIIntegration(),
     typesafeIntegration(),
     postgresJsIntegration(),
+    neonIntegration(),
     firebaseIntegration(),
     mcpServerIntegration(),
   ];
@@ -74,5 +79,5 @@ export function getTracingIntegrations(): Integration[] {
 
 /** These are integrations that cover error capture, in addition to tracing. */
 export function getErrorIntegrations(): Integration[] {
-  return [expressIntegration(), fastifyIntegration(), hapiIntegration(), koaIntegration()];
+  return [expressIntegration(), fastifyIntegration(), hapiIntegration(), honoIntegration(), koaIntegration()];
 }

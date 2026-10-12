@@ -1,3 +1,5 @@
+import { isBuiltin } from 'node:module';
+
 import codeTransformer from '@apm-js-collab/code-transformer-bundler-plugins/rollup';
 import type {
   ExternalOption,
@@ -28,6 +30,53 @@ function rawExternalMatchesModule(external: ExternalOption, name: string): boole
   return entries.some(entry =>
     typeof entry === 'string' ? externalEntryMatchesModule(entry, name) : entry.test(name),
   );
+}
+
+/**
+ * Structural subset of `@rollup/plugin-commonjs` options, so this package needs no dependency on
+ * the plugin for its types.
+ */
+export interface CommonJSInteropOptions {
+  requireReturnsDefault: (id: string) => boolean | 'auto' | 'preferred' | 'namespace';
+  ignoreTryCatch: (id: string) => boolean;
+}
+
+/**
+ * `@rollup/plugin-commonjs` options for builds that bundle CommonJS packages while their
+ * dependencies stay external. Builtin `require()`s unwrap to the module (a namespace breaks
+ * direct calls) and convert inside `try` blocks (a bare `require` throws in ESM output).
+ * Externals keep `'auto'`, which {@link sentryCommonJSInteropPlugin} fixes for Node >= 23.
+ */
+export function commonJSInteropOptions(): CommonJSInteropOptions {
+  return {
+    requireReturnsDefault: id => (isBuiltin(id) ? true : 'auto'),
+    ignoreTryCatch: id => !isBuiltin(id),
+  };
+}
+
+const COMMONJS_HELPERS_ID = '\0commonjsHelpers.js';
+
+// The plugin's `'auto'` helper unwraps a required external module only when `default` is the
+// sole key on its namespace. Node >= 23 adds a `'module.exports'` key to every CommonJS
+// namespace (nodejs/node#53848), so the check never passes. Ignoring that key restores it.
+const BROKEN_NAMESPACE_CHECK = 'Object.keys(n).length === 1';
+const FIXED_NAMESPACE_CHECK = "Object.keys(n).filter(k => k !== 'module.exports').length === 1";
+
+/**
+ * Fixes `@rollup/plugin-commonjs`' `'auto'` interop for Node >= 23 by patching the broken
+ * namespace check in its helpers module. The patch applies only while the exact broken
+ * expression exists, so it retires itself once the plugin is fixed upstream.
+ */
+export function sentryCommonJSInteropPlugin(): Plugin {
+  return {
+    name: 'sentry-commonjs-interop',
+    transform(code: string, id: string) {
+      if (id !== COMMONJS_HELPERS_ID || !code.includes(BROKEN_NAMESPACE_CHECK)) {
+        return null;
+      }
+      return { code: code.replace(BROKEN_NAMESPACE_CHECK, FIXED_NAMESPACE_CHECK), map: null };
+    },
+  };
 }
 
 /**

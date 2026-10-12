@@ -55,7 +55,7 @@ describe('injectTracePropagationHeaders', () => {
   });
 
   afterEach(() => {
-    vi.restoreAllMocks();
+    vi.resetAllMocks();
   });
 
   it('injects sentry-trace, traceparent, and baggage headers', () => {

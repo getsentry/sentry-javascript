@@ -12,7 +12,6 @@ function in_app_function() {
 }
 
 Sentry.init({
-  traceLifecycle: 'static',
   dsn: 'https://public@dsn.ingest.sentry.io/1337',
   transport: loggingTransport,
   includeLocalVariables: true,

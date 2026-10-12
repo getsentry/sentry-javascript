@@ -9,7 +9,6 @@ import {
   defineIntegration,
   getClient,
   hasSpanStreamingEnabled,
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SPAN_STATUS_ERROR,
   startInactiveSpan,
 } from '@sentry/core';
@@ -23,8 +22,10 @@ import {
   SENTRY_OP,
   SERVER_ADDRESS,
   SERVER_PORT,
+  SENTRY_ORIGIN,
 } from '@sentry/conventions/attributes';
 import { DB } from '@sentry/conventions/op';
+import type { OrchestrionChannelContext } from '../orchestrion/types';
 import { CHANNELS } from '../orchestrion/channels';
 import { tediousModuleNames } from '../orchestrion/config/tedious';
 import { invokeOrchestrionInstrumentation } from '../orchestrion/instrumentation';
@@ -66,16 +67,14 @@ interface TediousRequest extends EventEmitter {
 }
 
 /** Context orchestrion attaches to the query channels (wrapping the `Connection` request methods). */
-interface TediousQueryChannelContext {
+interface TediousQueryChannelContext extends OrchestrionChannelContext {
   // `arguments[0]` is the `Request` (or `BulkLoad` for `execBulkLoad`), both `EventEmitter`s.
   arguments: [TediousRequest?, ...unknown[]];
   self?: TediousConnection;
-  moduleVersion?: string;
 }
 
 /** Context orchestrion attaches to the `Connection.connect` channel. */
-interface TediousConnectChannelContext {
-  arguments: unknown[];
+interface TediousConnectChannelContext extends OrchestrionChannelContext {
   self?: TediousConnection;
 }
 
@@ -138,7 +137,7 @@ function subscribeQuery(channelName: string, operation: string): void {
     const attributes: SpanAttributes = {
       [SENTRY_OP]: DB,
       [SENTRY_KIND]: 'client',
-      [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: ORIGIN,
+      [SENTRY_ORIGIN]: ORIGIN,
       [DB_SYSTEM_NAME]: DB_SYSTEM_VALUE_MSSQL,
       [DB_NAMESPACE]: databaseName,
       // `>=4` uses the `authentication` object; older versions expose `userName` directly.

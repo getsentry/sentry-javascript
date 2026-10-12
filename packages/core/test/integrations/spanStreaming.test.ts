@@ -11,7 +11,9 @@ const mockSpanBufferInstance = vi.hoisted(() => ({
 }));
 
 const MockSpanBuffer = vi.hoisted(() => {
-  return vi.fn(() => mockSpanBufferInstance);
+  return vi.fn(function () {
+    return mockSpanBufferInstance;
+  });
 });
 
 vi.mock('../../src/tracing/spans/spanBuffer', async () => {

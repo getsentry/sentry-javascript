@@ -9,7 +9,6 @@ import {
   hasSpanStreamingEnabled,
   isThenable,
   NAVIGATION_SPAN_NAME_FALLBACK,
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   spanToJSON,
 } from '@sentry/core';
 import type { DataRouter } from 'react-router';
@@ -22,7 +21,13 @@ import {
   resolveNavigateArg,
   updateSpanWithParameterizedRoute,
 } from './utils';
-import { SENTRY_SEGMENT_NAME_SOURCE, SENTRY_OP, URL_PATH, URL_TEMPLATE } from '@sentry/conventions/attributes';
+import {
+  SENTRY_SEGMENT_NAME_SOURCE,
+  SENTRY_OP,
+  URL_PATH,
+  URL_TEMPLATE,
+  SENTRY_ORIGIN,
+} from '@sentry/conventions/attributes';
 import { NAVIGATION } from '@sentry/conventions/op';
 
 const GLOBAL_OBJ_WITH_DATA_ROUTER = GLOBAL_OBJ as typeof GLOBAL_OBJ & {
@@ -58,7 +63,7 @@ export function instrumentHydratedRouter(): void {
           // this event is for the currently active pageload
           normalizePathname(router.state.location.pathname) === normalizePathname(pageloadPath)
         ) {
-          pageloadSpan.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, 'auto.pageload.react_router');
+          pageloadSpan.setAttribute(SENTRY_ORIGIN, 'auto.pageload.react_router');
           updateSpanWithParameterizedRoute(pageloadSpan, router.state);
         }
       }
@@ -187,7 +192,7 @@ function maybeCreateNavigationTransaction(name: string, url: string, source: 'ur
       attributes: {
         [SENTRY_SEGMENT_NAME_SOURCE]: source,
         [SENTRY_OP]: NAVIGATION,
-        [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.react_router',
+        [SENTRY_ORIGIN]: 'auto.navigation.react_router',
         ...(source === 'route' ? { [URL_TEMPLATE]: name } : {}),
       },
     },

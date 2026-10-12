@@ -1,5 +1,5 @@
 import type { Span } from '@sentry/core';
-import { Client, createTransport, initAndBind, resolvedSyncPromise, spanToJSON } from '@sentry/core';
+import { Client, createTransport, getCurrentScope, initAndBind, resolvedSyncPromise, spanToJSON } from '@sentry/core';
 import { afterEach, describe, expect, it } from 'vitest';
 import { instrumentPrisma } from '../../src/integrations/prisma';
 import type { TracingHelper } from '../../src/integrations/prisma/types';
@@ -23,6 +23,7 @@ class TestClient extends Client<any> {
 }
 
 function initTestClient(): void {
+  getCurrentScope().setClient(undefined);
   initAndBind(TestClient, {
     dsn: 'https://username@domain/123',
     integrations: [],

@@ -183,6 +183,24 @@ test.describe('multi-fetch: internal .request() calls between sub-apps', () => {
     });
   });
 
+  test.describe('error inside internal fetch (degraded response)', () => {
+    test('reports the inner-route error to Sentry even though the outer handler returns 200', async ({ baseURL }) => {
+      const errorPromise = waitForError(APP_NAME, event => {
+        return !!event.exception?.values?.[0]?.value?.startsWith('inventory db is down');
+      });
+
+      const response = await fetch(`${baseURL}${STOREFRONT}/product/self-watering-plant/degraded`);
+      expect(response.status).toBe(200);
+      await expect(response.json()).resolves.toEqual({ product: null, degraded: true });
+
+      const errorEvent = await errorPromise;
+      expect(errorEvent.exception?.values?.[0]?.value).toMatch(/^inventory db is down/);
+      expect(errorEvent.exception?.values?.[0]?.mechanism).toEqual(
+        expect.objectContaining({ handled: false, type: 'auto.http.hono.context_error' }),
+      );
+    });
+  });
+
   test.describe('inventory sub-app direct access', () => {
     test('creates its own span when accessed directly via HTTP', async ({ baseURL }) => {
       const segmentPromise = waitForStreamedSpan(
@@ -347,8 +365,11 @@ test.describe('multi-fetch: internal .request() calls between sub-apps', () => {
     });
 
     test('error from failed internal fetch is correlated with the storefront trace', async ({ baseURL }) => {
+      // Use a param unique to this test: the `no error status` test above fetches `/ghost` too, and its
+      // identical `Failed to fetch product: ghost` error would otherwise be dropped by the Dedupe
+      // integration, so this test's `waitForError` would never fire.
       const errorPromise = waitForError(APP_NAME, event => {
-        return event.exception?.values?.[0]?.value === 'Failed to fetch product: ghost';
+        return event.exception?.values?.[0]?.value === 'Failed to fetch product: phantom';
       });
 
       const segmentPromise = waitForStreamedSpan(
@@ -359,7 +380,7 @@ test.describe('multi-fetch: internal .request() calls between sub-apps', () => {
           segment.name === `GET ${STOREFRONT}/product-or-throw/:productId`,
       );
 
-      await fetch(`${baseURL}${STOREFRONT}/product-or-throw/ghost`);
+      await fetch(`${baseURL}${STOREFRONT}/product-or-throw/phantom`);
 
       const [errorEvent, segment] = await Promise.all([errorPromise, segmentPromise]);
 

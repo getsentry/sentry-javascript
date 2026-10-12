@@ -39,6 +39,7 @@ export function sentryOrchestrionPlugin(options: PluginOptions = {}): UnknownPlu
   // Route through the shared assembly point so any future option reaches Bun too, but opt out of
   // the transformer's own `injectDiagnostics` — Bun injects the marker banner via its native
   // `banner` config below (which, unlike the upstream path, needs no `outdir`).
+  //
   // Typed upstream as an esbuild `Plugin`, but Bun passes its own `PluginBuilder` (which has the
   // `onLoad` the transform uses) to `setup`. Cast to the Bun-compatible shape so we can forward
   // Bun's builder to its `setup`.

@@ -2,7 +2,6 @@ import * as Sentry from '@sentry/browser';
 
 // Initialize Sentry with webWorker integration
 Sentry.init({
-  traceLifecycle: 'static',
   dsn: 'https://public@dsn.ingest.sentry.io/1337',
 });
 

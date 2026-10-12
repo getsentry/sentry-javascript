@@ -16,6 +16,7 @@ async function assertParseSpan(channelName: string): Promise<void> {
   resetGlobals();
   const sink = transactionSink();
   init({
+    // Keep one integration suite on the static lifecycle as a regression guard.
     traceLifecycle: 'static',
     dsn: 'https://username@domain/123',
     tracesSampleRate: 1,
@@ -49,7 +50,6 @@ async function assertParseSpan(channelName: string): Promise<void> {
 Deno.test('graphql instrumentation: included in default integrations (Deno 2.8.0+)', () => {
   resetGlobals();
   const client = init({
-    traceLifecycle: 'static',
     dsn: 'https://username@domain/123',
     tracesSampleRate: 1,
   }) as DenoClient;

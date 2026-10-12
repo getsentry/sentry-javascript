@@ -103,6 +103,7 @@ export default [
         'src/orchestrion/bundler/rollup.ts',
         'src/orchestrion/bundler/webpack.ts',
         'src/orchestrion/bundler/webpack-loader.ts',
+        'src/orchestrion/bundler/load-hook.ts',
         'src/orchestrion/bundler/esbuild.ts',
         'src/orchestrion/bundler/bun.ts',
       ],

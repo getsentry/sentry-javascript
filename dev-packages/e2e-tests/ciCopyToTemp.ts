@@ -1,6 +1,7 @@
 /* eslint-disable no-console */
 
 import { copyToTemp } from './lib/copyToTemp';
+import { applyRuntimeFiles } from './lib/runtimeFiles';
 
 async function run(): Promise<void> {
   const originalPath = process.argv[2];
@@ -13,6 +14,10 @@ async function run(): Promise<void> {
   console.log(`Copying ${originalPath} to ${tmpDirPath}...`);
 
   await copyToTemp(originalPath, tmpDirPath);
+
+  if (process.env.RUNTIME) {
+    applyRuntimeFiles(tmpDirPath, process.env.RUNTIME);
+  }
 }
 
 run().catch(error => {

@@ -55,7 +55,7 @@ Uses **Git Flow** (see `docs/gitflow.md`).
 1. `yarn format`
 2. `yarn build:dev`
 3. `yarn lint`
-4. `yarn test`
+4. Run the unit and integration/E2E tests for the affected packages.
 5. NEVER push on `develop`
 
 ## Pull Requests
@@ -75,6 +75,9 @@ Uses **Git Flow** (see `docs/gitflow.md`).
   `src/integrations/{provider}.ts`, registered in `getTracingIntegrations()`.
   Runtime packages (`node`, `cloudflare`, ...) re-export from
   `@sentry/server-utils` rather than defining their own.
+
+- `Sentry.init()` follows one rule for repeated calls: the first call wins. See
+  `docs/repeated-init.md` before you add or change an `init()`.
 
 ## Linting & Formatting
 

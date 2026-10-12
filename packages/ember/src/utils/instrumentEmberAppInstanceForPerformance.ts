@@ -5,7 +5,7 @@ import type {
   startBrowserTracingNavigationSpan as startBrowserTracingNavigationSpanType,
   startBrowserTracingPageLoadSpan as startBrowserTracingPageLoadSpanType,
 } from '@sentry/browser';
-import { getAbsoluteUrl, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, startInactiveSpan, WINDOW } from '@sentry/browser';
+import { getAbsoluteUrl, startInactiveSpan, WINDOW } from '@sentry/browser';
 import {
   ROUTER_NAVIGATION_ROUTE_ID,
   SENTRY_SEGMENT_NAME_SOURCE,
@@ -13,6 +13,7 @@ import {
   URL_FULL,
   URL_PATH,
   URL_TEMPLATE,
+  SENTRY_ORIGIN,
 } from '@sentry/conventions/attributes';
 import { ROUTER } from '@sentry/conventions/op';
 import {
@@ -77,7 +78,7 @@ export function instrumentEmberAppInstanceForPerformance(
           : url || WINDOW.location.pathname,
       attributes: {
         [SENTRY_SEGMENT_NAME_SOURCE]: routeInfo ? 'route' : 'url',
-        [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.pageload.ember',
+        [SENTRY_ORIGIN]: 'auto.pageload.ember',
         ...(routeInfo?.name && { [ROUTER_NAVIGATION_ROUTE_ID]: routeInfo.name }),
         ...(url ? _getRouteUrlAttributes(client, url, routeInfo?.params) : {}),
         toRoute: routeInfo?.name,
@@ -121,7 +122,7 @@ export function instrumentEmberAppInstanceForPerformance(
           name: transactionName,
           attributes: {
             [SENTRY_SEGMENT_NAME_SOURCE]: 'route',
-            [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.ember',
+            [SENTRY_ORIGIN]: 'auto.navigation.ember',
             ...(toRoute && { [ROUTER_NAVIGATION_ROUTE_ID]: toRoute }),
             ...urlAttributes,
             fromRoute,
@@ -154,7 +155,7 @@ export function instrumentEmberAppInstanceForPerformance(
     transitionSpan = startInactiveSpan({
       attributes: {
         [SENTRY_OP]: ROUTER,
-        [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ui.ember',
+        [SENTRY_ORIGIN]: 'auto.ui.ember',
       },
       // With span streaming, span names have to be low cardinality, and Ember gives us no route
       // template for the transition itself, so it's the fallback.

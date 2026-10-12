@@ -76,6 +76,7 @@ Keep reviews high-signal. Prefer actionable, high-confidence findings over specu
 - Flag usage of the following APIs: `getCurrentScope()`, `getIsolationScope()`, `getClient()` if they are avoidable. Flag it with severity Low and acknowledge from the start that this is more a "is this necessary" check, rather than a rule violation.
   - Reason for flagging: Usage of these APIs is problematic for multi-client setups where either there is no "current" client/scope, or the wrong client might be used. Calling these APIs would create a current scope, thereby misleading any future calls to these APIs.
   - What to do instead: Use an existing reference to the scope or client. For example, this is possible in most `Integration` hooks.
+- Flag hard-coded attribute names and span ops (e.g. `'sentry.origin'`, `'sentry.op'`, `'http.request.method'`, `'db.system.name'`) when `@sentry/conventions` exports a constant for them. Use the constant from `@sentry/conventions/attributes` (e.g. `SENTRY_ORIGIN`, `SENTRY_OP`) or `@sentry/conventions/op` instead. Do not flag values that have no constant in `@sentry/conventions`.
 - Flag unnecessary `span.setAttribute(s)` calls: If data is already available at span start, it must be set via the `attributes` option of `startSpan`, `startSpanManual`, `startInactiveSpan` or `startIdleSpan` calls. This ensures that as much context as possible is available when `tracesSampler` or `ignoreSpans` SDK options are applied. If a `span.setAttribute(s)` call happens at a later time than right after span start and the attribute value can only be computed at that time, do not flag it.
 
 ### Code quality
@@ -92,6 +93,7 @@ Keep reviews high-signal. Prefer actionable, high-confidence findings over specu
 - Flag usage of `expect.objectContaining` and other relaxed assertions, when a test expects something NOT to be included in a payload but there's no respective assertion.
 - Flag usage of conditionals in one test and recommend splitting up the test for the different paths.
 - Flag usage of loops testing multiple scenarios in one test and recommend using `(it)|(test).each` instead.
+- Apply the `@sentry/conventions` constants rule from above to test files too. Test assertions on span attributes and ops must use the constants, not string literals.
 - Flag tests that are likely to introduce flakes. In our case this usually means we wait for some telemetry requests sent from an SDK. Patterns to look out for:
   - Only waiting for a request, after an action is performed. Instead, start waiting, perform action, await request promise.
   - Race conditions when waiting on multiple requests. Ensure that waiting checks are unique enough and don't depend on a hard order when there's a chance that telemetry can be sent in arbitrary order.

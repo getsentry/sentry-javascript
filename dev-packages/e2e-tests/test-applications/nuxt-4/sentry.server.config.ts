@@ -7,4 +7,6 @@ Sentry.init({
   // Opt into the Sentry OpenTelemetry tracer provider in the "(tracer provider)" e2e variant.
   // Leaving it `undefined` otherwise keeps the SDK's default (no provider).
   enableOpenTelemetrySetup: process.env.E2E_TEST_OTEL_SETUP === 'true' ? true : undefined,
+  // Several tests trigger the same server error one after another, which Dedupe would drop.
+  integrations: integrations => integrations.filter(integration => integration.name !== 'Dedupe'),
 });

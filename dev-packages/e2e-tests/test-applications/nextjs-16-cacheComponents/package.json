@@ -20,7 +20,7 @@
     "test:build-latest-webpack": "pnpm install && pnpm add next@latest && pnpm build-webpack",
     "test:build-canary-webpack": "pnpm install && pnpm add next@canary && pnpm build-webpack",
     "test:assert": "pnpm test:prod && pnpm test:dev",
-    "test:assert-webpack": "pnpm test:prod && pnpm test:dev-webpack"
+    "test:assert-webpack": "TEST_BUNDLER=webpack pnpm test:prod && pnpm test:dev-webpack"
   },
   "dependencies": {
     "@sentry/nextjs": "file:../../packed/sentry-nextjs-packed.tgz",

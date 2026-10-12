@@ -1,8 +1,9 @@
+import { SENTRY_OP } from '@sentry/conventions/attributes';
 import type { Route } from '@playwright/test';
 import { expect } from '@playwright/test';
-import type { Event } from '@sentry/core';
 import { sentryTest } from '../../../../utils/fixtures';
-import { getFirstSentryEnvelopeRequest, shouldSkipTracingTest } from '../../../../utils/helpers';
+import { shouldSkipTracingTest } from '../../../../utils/helpers';
+import { collectStreamedSpans, getSpanOp, waitForStreamedSpanAndTraceHeaderOnUrl } from '../../../../utils/spanUtils';
 
 sentryTest('should capture long task.', async ({ browserName, getLocalTestUrl, page }) => {
   // Long tasks only work on chrome
@@ -14,21 +15,27 @@ sentryTest('should capture long task.', async ({ browserName, getLocalTestUrl, p
 
   const url = await getLocalTestUrl({ testDir: __dirname });
 
-  const eventData = await getFirstSentryEnvelopeRequest<Event>(page, url);
-  const uiSpans = eventData.spans?.filter(({ op }) => op?.startsWith('ui'));
+  const spans = collectStreamedSpans(page);
+  const [pageloadSpan] = await waitForStreamedSpanAndTraceHeaderOnUrl(
+    page,
+    url,
+    span => getSpanOp(span) === 'pageload',
+  );
+  await page.evaluate(() => (window as any).Sentry.flush());
+  const uiSpans = spans.filter(span => getSpanOp(span)?.startsWith('ui'));
 
-  expect(uiSpans?.length).toBeGreaterThan(0);
+  expect(uiSpans.length).toBeGreaterThan(0);
 
-  const [firstUISpan] = uiSpans || [];
+  const [firstUISpan] = uiSpans;
   expect(firstUISpan).toEqual(
     expect.objectContaining({
-      op: 'ui.long_task',
-      description: 'Main UI thread blocked',
-      parent_span_id: eventData.contexts?.trace?.span_id,
+      attributes: expect.objectContaining({ [SENTRY_OP]: { type: 'string', value: 'ui.long_task' } }),
+      name: 'Main UI thread blocked',
+      parent_span_id: pageloadSpan.span_id,
     }),
   );
   const start = firstUISpan.start_timestamp ?? 0;
-  const end = firstUISpan.timestamp ?? 0;
+  const end = firstUISpan.end_timestamp ?? 0;
   const duration = end - start;
 
   expect(duration).toBeGreaterThanOrEqual(0.1);

@@ -13,12 +13,13 @@ Sentry.init({
 const port = process.env.PORT ? Number.parseInt(process.env.PORT, 10) : 3060;
 
 const server = http.createServer(
-  createRequestListener(async request => {
-    try {
-      return await router.fetch(request);
-    } catch {
-      return new Response('Internal Server Error', { status: 500 });
+  createRequestListener(request => {
+    // Handled outside the router on purpose: the only hook that can see this is the listener's
+    // `onError`, which is the case the router middleware cannot cover.
+    if (new URL(request.url).pathname === '/plain-throw') {
+      throw new Error('Plain handler failed');
     }
+    return router.fetch(request);
   }),
 );
 

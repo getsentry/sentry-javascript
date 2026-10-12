@@ -1,53 +1,32 @@
 import { expect, it } from 'vitest';
-import type { Event } from '@sentry/core';
+import type { SerializedStreamedSpan } from '@sentry/core';
 import { createRunner } from '../../../../runner';
+import { getSpanOp, getSpansFromEnvelope } from '../../../../spanUtils';
 
 it('propagates trace from WorkerEntrypoint to durable object via this.env RPC call', async ({ signal }) => {
-  let workerTraceId: string | undefined;
-  let workerSpanId: string | undefined;
-  let doTraceId: string | undefined;
-  let doParentSpanId: string | undefined;
+  let workerSpan: SerializedStreamedSpan | undefined;
+  let doSpan: SerializedStreamedSpan | undefined;
 
   const runner = createRunner(__dirname)
     .expect(envelope => {
-      const transactionEvent = envelope[1]?.[0]?.[1] as Event;
+      const segmentSpan = getSpansFromEnvelope(envelope).find(span => span.is_segment);
 
-      expect(transactionEvent).toEqual(
-        expect.objectContaining({
-          contexts: expect.objectContaining({
-            trace: expect.objectContaining({
-              op: 'rpc',
-              data: expect.objectContaining({
-                'sentry.origin': 'auto.faas.cloudflare.durable_object',
-              }),
-              origin: 'auto.faas.cloudflare.durable_object',
-            }),
-          }),
-          transaction: 'sayHello',
-        }),
-      );
-      doTraceId = transactionEvent.contexts?.trace?.trace_id as string;
-      doParentSpanId = transactionEvent.contexts?.trace?.parent_span_id as string;
+      expect(segmentSpan?.name).toBe('sayHello');
+      expect(getSpanOp(segmentSpan!)).toBe('rpc');
+      expect(segmentSpan?.attributes['sentry.origin']).toEqual({
+        type: 'string',
+        value: 'auto.faas.cloudflare.durable_object',
+      });
+      doSpan = segmentSpan;
     })
     .expect(envelope => {
-      const transactionEvent = envelope[1]?.[0]?.[1] as Event;
+      const segmentSpan = getSpansFromEnvelope(envelope).find(span => span.is_segment);
 
-      expect(transactionEvent).toEqual(
-        expect.objectContaining({
-          contexts: expect.objectContaining({
-            trace: expect.objectContaining({
-              op: 'http.server',
-              data: expect.objectContaining({
-                'sentry.origin': 'auto.http.cloudflare',
-              }),
-              origin: 'auto.http.cloudflare',
-            }),
-          }),
-          transaction: 'GET /rpc/hello',
-        }),
-      );
-      workerTraceId = transactionEvent.contexts?.trace?.trace_id as string;
-      workerSpanId = transactionEvent.contexts?.trace?.span_id as string;
+      expect(getSpanOp(segmentSpan!)).toBe('http.server');
+      expect(segmentSpan?.attributes['sentry.origin']).toEqual({ type: 'string', value: 'auto.http.cloudflare' });
+      // `/rpc/hello` is a raw URL, so the streamed segment name keeps the method only.
+      expect(segmentSpan?.attributes['url.path']).toEqual({ type: 'string', value: '/rpc/hello' });
+      workerSpan = segmentSpan;
     })
     .unordered()
     .start(signal);
@@ -57,53 +36,29 @@ it('propagates trace from WorkerEntrypoint to durable object via this.env RPC ca
 
   await runner.completed();
 
-  expect(workerTraceId).toBeDefined();
-  expect(doTraceId).toBeDefined();
-  expect(workerTraceId).toBe(doTraceId);
-
-  expect(workerSpanId).toBeDefined();
-  expect(doParentSpanId).toBeDefined();
-  expect(doParentSpanId).toBe(workerSpanId);
+  expect(workerSpan?.trace_id).toBeDefined();
+  expect(doSpan?.trace_id).toBe(workerSpan?.trace_id);
+  expect(doSpan?.parent_span_id).toBe(workerSpan?.span_id);
 });
 
 it('propagates trace for RPC method with multiple arguments via this.env', async ({ signal }) => {
-  let workerTraceId: string | undefined;
-  let workerSpanId: string | undefined;
-  let doTraceId: string | undefined;
-  let doParentSpanId: string | undefined;
+  let workerSpan: SerializedStreamedSpan | undefined;
+  let doSpan: SerializedStreamedSpan | undefined;
 
   const runner = createRunner(__dirname)
     .expect(envelope => {
-      const transactionEvent = envelope[1]?.[0]?.[1] as Event;
+      const segmentSpan = getSpansFromEnvelope(envelope).find(span => span.is_segment);
 
-      expect(transactionEvent).toEqual(
-        expect.objectContaining({
-          contexts: expect.objectContaining({
-            trace: expect.objectContaining({
-              op: 'rpc',
-            }),
-          }),
-          transaction: 'multiply',
-        }),
-      );
-      doTraceId = transactionEvent.contexts?.trace?.trace_id as string;
-      doParentSpanId = transactionEvent.contexts?.trace?.parent_span_id as string;
+      expect(segmentSpan?.name).toBe('multiply');
+      expect(getSpanOp(segmentSpan!)).toBe('rpc');
+      doSpan = segmentSpan;
     })
     .expect(envelope => {
-      const transactionEvent = envelope[1]?.[0]?.[1] as Event;
+      const segmentSpan = getSpansFromEnvelope(envelope).find(span => span.is_segment);
 
-      expect(transactionEvent).toEqual(
-        expect.objectContaining({
-          contexts: expect.objectContaining({
-            trace: expect.objectContaining({
-              op: 'http.server',
-            }),
-          }),
-          transaction: 'GET /rpc/multiply',
-        }),
-      );
-      workerTraceId = transactionEvent.contexts?.trace?.trace_id as string;
-      workerSpanId = transactionEvent.contexts?.trace?.span_id as string;
+      expect(getSpanOp(segmentSpan!)).toBe('http.server');
+      expect(segmentSpan?.attributes['url.path']).toEqual({ type: 'string', value: '/rpc/multiply' });
+      workerSpan = segmentSpan;
     })
     .unordered()
     .start(signal);
@@ -113,11 +68,7 @@ it('propagates trace for RPC method with multiple arguments via this.env', async
 
   await runner.completed();
 
-  expect(workerTraceId).toBeDefined();
-  expect(doTraceId).toBeDefined();
-  expect(workerTraceId).toBe(doTraceId);
-
-  expect(workerSpanId).toBeDefined();
-  expect(doParentSpanId).toBeDefined();
-  expect(doParentSpanId).toBe(workerSpanId);
+  expect(workerSpan?.trace_id).toBeDefined();
+  expect(doSpan?.trace_id).toBe(workerSpan?.trace_id);
+  expect(doSpan?.parent_span_id).toBe(workerSpan?.span_id);
 });

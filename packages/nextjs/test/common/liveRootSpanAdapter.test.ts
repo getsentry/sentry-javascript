@@ -1,5 +1,5 @@
-import { SENTRY_SEGMENT_NAME_SOURCE } from '@sentry/conventions/attributes';
-import { SEMANTIC_ATTRIBUTE_SENTRY_OP, SentrySpan, spanToStaticSpanJSON } from '@sentry/core';
+import { SENTRY_SEGMENT_NAME_SOURCE, SENTRY_OP } from '@sentry/conventions/attributes';
+import { SentrySpan, spanToStaticSpanJSON } from '@sentry/core';
 import { describe, expect, it } from 'vitest';
 import { createLiveRootSpanAdapter } from '../../src/common/utils/liveRootSpanAdapter';
 
@@ -12,7 +12,7 @@ describe('createLiveRootSpanAdapter', () => {
     expect(adapter.attributes.foo).toBe('bar');
 
     adapter.setOp('http.server');
-    expect(spanToStaticSpanJSON(span).data[SEMANTIC_ATTRIBUTE_SENTRY_OP]).toBe('http.server');
+    expect(spanToStaticSpanJSON(span).data[SENTRY_OP]).toBe('http.server');
   });
 
   it('renames the span without stamping source=custom (preserves an existing source)', () => {

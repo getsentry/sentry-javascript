@@ -2,19 +2,8 @@ import * as Sentry from '@sentry/browser';
 
 window.Sentry = Sentry;
 
-const integrations = Sentry.getDefaultIntegrations({}).filter(
-  defaultIntegration => defaultIntegration.name === 'HttpContext',
-);
-
-const client = new Sentry.BrowserClient({
+Sentry.init({
   dsn: 'https://public@dsn.ingest.sentry.io/1337',
-  transport: Sentry.makeFetchTransport,
-  stackParser: Sentry.defaultStackParser,
-  integrations: integrations,
+  integrations: [Sentry.browserTracingIntegration()],
+  tracesSampleRate: 1.0,
 });
-
-const scope = new Sentry.Scope();
-scope.setClient(client);
-client.init();
-
-window._sentryScope = scope;

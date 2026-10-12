@@ -2,13 +2,14 @@ import { randomBytes } from 'node:crypto';
 import { expect, test } from '@playwright/test';
 import {
   EVENT_POLLING_OPTIONS,
+  fetchSpanAttributes,
   fetchTrace,
   findErrorInTrace,
   findSpanInTrace,
   flattenTrace,
   traceTarget,
 } from '@sentry-internal/test-utils/cli';
-import { fetchFromWorker } from '../deployed-worker';
+import { fetchFromWorker } from '@sentry-internal/test-utils/cloudflare';
 
 // Set by global-setup.ts once the worker for this run is deployed.
 const workerUrl = process.env.E2E_TEST_WORKER_URL;
@@ -72,4 +73,65 @@ test('Sends the spans of Workflow steps before the Workflow goes to sleep', asyn
     await fetchFromWorker(`${workerUrl}/test-workflow-status?id=${instanceId}`, 200),
   );
   expect(['running', 'waiting']).toContain(status);
+});
+
+test('Sends a Workers AI gen_ai span to Sentry', async () => {
+  const { traceId }: { traceId: string } = JSON.parse(await fetchFromWorker(`${workerUrl}/test-workers-ai`, 200));
+
+  console.log(`Polling for gen_ai.chat span: sentry trace view ${traceTarget(traceId)}`);
+
+  let spanId: string | undefined;
+  await expect
+    .poll(() => (spanId = findSpanInTrace(traceId, 'gen_ai.chat')?.event_id), EVENT_POLLING_OPTIONS)
+    .toBeDefined();
+
+  // Sentry stores `gen_ai.response.text` as `gen_ai.output.messages`.
+  await expect
+    .poll(() => fetchSpanAttributes(traceId, spanId!), EVENT_POLLING_OPTIONS)
+    .toMatchObject({
+      'gen_ai.input.messages': expect.stringContaining('Say hi'),
+      'gen_ai.output.messages': expect.stringContaining('"role":"assistant"'),
+    });
+});
+
+test('Sends a Workers AI gen_ai.decide span for a TypeSafe Jev call to Sentry', async () => {
+  const { traceId }: { traceId: string } = JSON.parse(await fetchFromWorker(`${workerUrl}/test-workers-ai-jev`, 200));
+
+  console.log(`Polling for gen_ai.decide span: sentry trace view ${traceTarget(traceId)}`);
+
+  let spanId: string | undefined;
+  await expect
+    .poll(() => (spanId = findSpanInTrace(traceId, 'gen_ai.decide')?.event_id), EVENT_POLLING_OPTIONS)
+    .toBeDefined();
+
+  await expect
+    .poll(() => fetchSpanAttributes(traceId, spanId!), EVENT_POLLING_OPTIONS)
+    .toMatchObject({
+      'gen_ai.operation.name': 'decide',
+      'gen_ai.request.model': 'typesafe/jev',
+      'gen_ai.response.model': expect.stringMatching(/^jev-/),
+      'gen_ai.input.messages': expect.stringContaining('My payouts have been failing'),
+      'gen_ai.output.messages': expect.stringContaining('"is_urgent"'),
+    });
+});
+
+test('Sends a Workers AI gen_ai.decide span for a Clef call to Sentry', async () => {
+  const { traceId }: { traceId: string } = JSON.parse(await fetchFromWorker(`${workerUrl}/test-workers-ai-clef`, 200));
+
+  console.log(`Polling for gen_ai.decide span: sentry trace view ${traceTarget(traceId)}`);
+
+  let spanId: string | undefined;
+  await expect
+    .poll(() => (spanId = findSpanInTrace(traceId, 'gen_ai.decide')?.event_id), EVENT_POLLING_OPTIONS)
+    .toBeDefined();
+
+  await expect
+    .poll(() => fetchSpanAttributes(traceId, spanId!), EVENT_POLLING_OPTIONS)
+    .toMatchObject({
+      'gen_ai.operation.name': 'decide',
+      'gen_ai.request.model': '@cf/cloudflare/clef',
+      'gen_ai.response.model': expect.stringContaining('clef'),
+      'gen_ai.input.messages': expect.stringContaining('Checkout has been failing'),
+      'gen_ai.output.messages': expect.stringContaining('"urgent"'),
+    });
 });
