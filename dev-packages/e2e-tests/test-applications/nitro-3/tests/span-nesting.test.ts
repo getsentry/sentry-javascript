@@ -24,49 +24,56 @@ test('Span nesting: all spans share the same trace_id', async ({ request }) => {
   }
 });
 
-test('Span nesting: h3 middleware spans are children of the srvx request span', async ({ request }) => {
+test('Span nesting: the segment is the only http.server span', async ({ request }) => {
   const spansPromise = collectNestingSpans();
 
   await request.get('/api/test-nesting');
 
   const spans = await spansPromise;
 
-  // The srvx request span nests below the http_server segment span of the request
-  const segmentSpan = spans.find(span => span.is_segment && span.name === 'GET /api/test-nesting');
-  const srvxSpan = spans.find(
-    span => span.attributes['sentry.origin']?.value === 'auto.http.nitro.srvx' && getSpanOp(span) === 'http.server',
-  );
-  expect(srvxSpan).toBeDefined();
-  expect(srvxSpan?.parent_span_id).toBe(segmentSpan!.span_id);
+  const httpServerSpans = spans.filter(span => getSpanOp(span) === 'http.server');
+  expect(httpServerSpans).toHaveLength(1);
+  expect(httpServerSpans[0]).toMatchObject({
+    is_segment: true,
+    attributes: expect.objectContaining({
+      'sentry.origin': { type: 'string', value: 'auto.http.http_server' },
+    }),
+  });
+});
 
-  // All h3 middleware spans should be children of the srvx span
+test('Span nesting: h3 middleware spans are children of the segment span', async ({ request }) => {
+  const spansPromise = collectNestingSpans();
+
+  await request.get('/api/test-nesting');
+
+  const spans = await spansPromise;
+
+  const segmentSpan = spans.find(span => span.is_segment && span.name === 'GET /api/test-nesting');
   const h3MiddlewareSpans = spans.filter(
     span => span.attributes['sentry.origin']?.value === 'auto.http.nitro.h3' && getSpanOp(span) === 'middleware',
   );
   expect(h3MiddlewareSpans.length).toBeGreaterThanOrEqual(1);
 
   for (const span of h3MiddlewareSpans) {
-    expect(span.parent_span_id).toBe(srvxSpan!.span_id);
+    expect(span.parent_span_id).toBe(segmentSpan!.span_id);
   }
 });
 
-test('Span nesting: h3 route handler span is a child of the srvx request span', async ({ request }) => {
+test('Span nesting: h3 route handler span is a child of the segment span', async ({ request }) => {
   const spansPromise = collectNestingSpans();
 
   await request.get('/api/test-nesting');
 
   const spans = await spansPromise;
 
-  const srvxSpan = spans.find(
-    span => span.attributes['sentry.origin']?.value === 'auto.http.nitro.srvx' && getSpanOp(span) === 'http.server',
-  );
-  expect(srvxSpan).toBeDefined();
-
+  const segmentSpan = spans.find(span => span.is_segment && span.name === 'GET /api/test-nesting');
   const h3HandlerSpan = spans.find(
-    span => span.attributes['sentry.origin']?.value === 'auto.http.nitro.h3' && getSpanOp(span) === 'http.server',
+    span => span.attributes['sentry.origin']?.value === 'auto.http.nitro.h3' && getSpanOp(span) === 'handler',
   );
-  expect(h3HandlerSpan).toBeDefined();
-  expect(h3HandlerSpan!.parent_span_id).toBe(srvxSpan!.span_id);
+  expect(h3HandlerSpan).toMatchObject({
+    name: 'GET /api/test-nesting',
+    parent_span_id: segmentSpan!.span_id,
+  });
 });
 
 test('Span nesting: manual startSpan calls inside route handler are children of the h3 route handler span', async ({
@@ -80,7 +87,7 @@ test('Span nesting: manual startSpan calls inside route handler are children of 
 
   // Find the h3 route handler span
   const h3HandlerSpan = spans.find(
-    span => span.attributes['sentry.origin']?.value === 'auto.http.nitro.h3' && getSpanOp(span) === 'http.server',
+    span => span.attributes['sentry.origin']?.value === 'auto.http.nitro.h3' && getSpanOp(span) === 'handler',
   );
   expect(h3HandlerSpan).toBeDefined();
 

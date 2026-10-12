@@ -7,8 +7,9 @@ import {
   HTTP_ROUTE,
   SENTRY_OP,
   SENTRY_ORIGIN,
+  URL_PATH_PARAMETER_KEY_BASE,
 } from '@sentry/conventions/attributes';
-import { CACHE_GET, CACHE_PUT, HTTP_SERVER } from '@sentry/conventions/op';
+import { CACHE_GET, CACHE_PUT, HANDLER, HTTP_SERVER } from '@sentry/conventions/op';
 import { afterAll, describe, expect, vi } from 'vitest';
 import { supports } from '../../../utils';
 import { cleanupChildProcesses, createEsmTests } from '../../../utils/runner';
@@ -20,39 +21,39 @@ describe.runIf(supports({ min: 20 }))('nitro integrations', () => {
   });
 
   createEsmTests(__dirname, 'scenario.mjs', 'instrument.mjs', (createRunner, test) => {
-    test('creates h3 and srvx spans and sets Server-Timing headers', async () => {
+    test('creates a single http.server span with a request handler span and sets Server-Timing headers', async () => {
       let traceId: string | undefined;
 
       const runner = createRunner()
         .expect({
           span: container => {
             const segment = container.items.find(span => span.is_segment);
-            const srvxSpan = container.items.find(
-              span => span.attributes[SENTRY_ORIGIN]?.value === 'auto.http.nitro.srvx',
-            );
-            const h3Span = container.items.find(span => span.attributes[SENTRY_ORIGIN]?.value === 'auto.http.nitro.h3');
+            const children = container.items.filter(span => !span.is_segment);
+            const handlerSpan = children.find(span => span.attributes[SENTRY_ORIGIN]?.value === 'auto.http.nitro.h3');
 
             traceId = segment?.trace_id;
 
-            expect(segment?.name).toBe('GET /hello/:name');
-            expect(segment?.attributes[HTTP_ROUTE]).toEqual({ type: 'string', value: '/hello/:name' });
-
-            // Bun publishes no `http.server.request.start`, so there the srvx span is the segment itself.
-            expect(srvxSpan).toMatchObject({
-              status: 'ok',
-              attributes: expect.objectContaining({
-                [SENTRY_OP]: { type: 'string', value: HTTP_SERVER },
-                [HTTP_RESPONSE_STATUS_CODE]: { type: 'integer', value: 200 },
-              }),
-            });
-
-            expect(h3Span).toMatchObject({
+            // On Node the runtime's http instrumentation creates the segment. Bun publishes no
+            // `http.server.request.start`, so there srvx creates it instead.
+            expect(segment).toMatchObject({
               name: 'GET /hello/:name',
-              parent_span_id: srvxSpan?.span_id,
               status: 'ok',
               attributes: expect.objectContaining({
                 [SENTRY_OP]: { type: 'string', value: HTTP_SERVER },
                 [HTTP_ROUTE]: { type: 'string', value: '/hello/:name' },
+                [HTTP_RESPONSE_STATUS_CODE]: { type: 'integer', value: 200 },
+                [`${URL_PATH_PARAMETER_KEY_BASE}.name`]: { type: 'string', value: 'world' },
+              }),
+            });
+
+            expect(children.filter(span => span.attributes[SENTRY_OP]?.value === HTTP_SERVER)).toEqual([]);
+
+            expect(handlerSpan).toMatchObject({
+              name: 'GET /hello/:name',
+              parent_span_id: segment?.span_id,
+              status: 'ok',
+              attributes: expect.objectContaining({
+                [SENTRY_OP]: { type: 'string', value: HANDLER },
               }),
             });
           },
