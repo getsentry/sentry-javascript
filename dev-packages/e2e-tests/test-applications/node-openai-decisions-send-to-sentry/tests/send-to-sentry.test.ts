@@ -11,14 +11,15 @@ import {
   GEN_AI_USAGE_TOTAL_TOKENS,
 } from '@sentry/conventions/attributes';
 import { GEN_AI_DECIDE, HTTP_SERVER } from '@sentry/conventions/op';
-import type { TraceItem } from './utils/sentry-api';
+import type { TraceItem } from '@sentry-internal/test-utils/cli';
 import {
   EVENT_POLLING_OPTIONS,
   fetchSpanAttributes,
   fetchTrace,
   findSpanInTrace,
   flattenTrace,
-} from './utils/sentry-api';
+  traceTarget,
+} from '@sentry-internal/test-utils/cli';
 
 // Mirrors src/app.ts.
 const MODEL = 'gpt-6-luna';
@@ -34,7 +35,7 @@ async function requestTrace(baseURL: string | undefined, path: string): Promise<
   const { traceId } = JSON.parse(body) as { traceId?: string };
   expect(traceId, `${path} did not report a trace id: ${body}`).toMatch(/^[0-9a-f]{32}$/);
 
-  console.log(`${path}: https://${process.env.E2E_TEST_SENTRY_ORG_SLUG}.sentry.io/explore/traces/trace/${traceId}/`);
+  console.log(`${path}: sentry trace view ${traceTarget(traceId!)}`);
   return traceId!;
 }
 
@@ -47,9 +48,9 @@ async function waitForSpan(traceId: string, op: string): Promise<{ span: TraceIt
   let found: { span: TraceItem; attributes: Attributes } | undefined;
 
   await expect
-    .poll(async () => {
-      const span = await findSpanInTrace(traceId, op);
-      const attributes = span?.event_id ? await fetchSpanAttributes(traceId, span.event_id) : undefined;
+    .poll(() => {
+      const span = findSpanInTrace(traceId, op);
+      const attributes = span?.event_id ? fetchSpanAttributes(traceId, span.event_id) : undefined;
       found = span && attributes ? { span, attributes } : undefined;
       return found;
     }, EVENT_POLLING_OPTIONS)
@@ -61,7 +62,8 @@ async function waitForSpan(traceId: string, op: string): Promise<{ span: TraceIt
 /**
  * The attributes every decide span carries once Sentry has stored it, whatever the model answers.
  * Note the names are the stored ones: `span.op`, `span.status` and `origin` rather than the `sentry.*`
- * attributes the SDK sends. Decisions bills input tokens only, so there are no output tokens.
+ * attributes the SDK sends. Integers come back as strings. Decisions bills input tokens only, so there
+ * are no output tokens.
  */
 async function expectDecideSpan(traceId: string): Promise<Attributes> {
   const { span, attributes } = await waitForSpan(traceId, GEN_AI_DECIDE);
@@ -75,12 +77,12 @@ async function expectDecideSpan(traceId: string): Promise<Attributes> {
     [GEN_AI_PROVIDER_NAME]: 'openai',
     [GEN_AI_REQUEST_MODEL]: MODEL,
     [GEN_AI_RESPONSE_MODEL]: MODEL,
-    [GEN_AI_USAGE_OUTPUT_TOKENS]: 0,
   });
-  expect(attributes[GEN_AI_USAGE_INPUT_TOKENS]).toBeGreaterThan(0);
-  expect(attributes[GEN_AI_USAGE_TOTAL_TOKENS]).toBe(attributes[GEN_AI_USAGE_INPUT_TOKENS]);
+  expect(Number(attributes[GEN_AI_USAGE_OUTPUT_TOKENS])).toBe(0);
+  expect(Number(attributes[GEN_AI_USAGE_INPUT_TOKENS])).toBeGreaterThan(0);
+  expect(Number(attributes[GEN_AI_USAGE_TOTAL_TOKENS])).toBe(Number(attributes[GEN_AI_USAGE_INPUT_TOKENS]));
 
-  const requestSpan = flattenTrace(await fetchTrace(traceId)).find(item => item.op === HTTP_SERVER);
+  const requestSpan = flattenTrace(fetchTrace(traceId)).find(item => item.op === HTTP_SERVER);
   expect(flattenTrace(requestSpan?.children ?? []).some(item => item.event_id === span.event_id)).toBe(true);
 
   return attributes;
