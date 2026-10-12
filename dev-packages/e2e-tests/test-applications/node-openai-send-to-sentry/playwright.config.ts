@@ -4,8 +4,8 @@ const port = 3030;
 
 export default defineConfig({
   testDir: './tests',
-  /* Spans take ~2min to become queryable via the trace endpoint. */
-  timeout: 210_000,
+  /* Each test runs two Sentry polls of up to 180s each, after a live model call. */
+  timeout: 400_000,
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
   retries: 0,

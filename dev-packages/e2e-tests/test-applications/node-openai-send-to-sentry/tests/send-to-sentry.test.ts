@@ -78,7 +78,10 @@ function expectModelCallAttributes(attributes: Attributes, operation: 'chat' | '
     'gen_ai.provider.name': 'openai',
     'gen_ai.request.model': model,
   });
-  expect(typeof attributes['gen_ai.response.id']).toBe('string');
+  // OpenAI embeddings responses carry no id, so only chat calls are guaranteed one.
+  if (operation === 'chat') {
+    expect(typeof attributes['gen_ai.response.id']).toBe('string');
+  }
   expect(typeof attributes['gen_ai.response.model']).toBe('string');
   // The Sentry API returns int attributes as strings.
   expect(Number(attributes['gen_ai.usage.input_tokens'])).toBeGreaterThan(0);
