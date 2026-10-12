@@ -161,10 +161,26 @@ export function patchLayer(
         span.end();
         spanHasEnded = true;
       }
-      // listener for response.on('finish')
+      // listeners for response.on('finish') and response.on('close')
+      const removeResponseListeners = () => {
+        res.removeListener('finish', onResponseFinish);
+        res.removeListener('close', onResponseClose);
+      };
       const onResponseFinish = () => {
+        removeResponseListeners();
         if (!spanHasEnded) {
           spanHasEnded = true;
+          span.end();
+        }
+      };
+      // `finish` never fires when the client aborts, so also end on `close`,
+      // which is when the `http.server` span ends. Otherwise the span and its
+      // subtree would be dropped from the transaction.
+      const onResponseClose = () => {
+        removeResponseListeners();
+        if (!spanHasEnded) {
+          spanHasEnded = true;
+          span.setStatus({ code: SPAN_STATUS_ERROR, message: 'cancelled' });
           span.end();
         }
       };
@@ -197,7 +213,7 @@ export function patchLayer(
 
           if (!spanHasEnded) {
             spanHasEnded = true;
-            res.removeListener('finish', onResponseFinish);
+            removeResponseListeners();
             span.end();
           }
           if (!(req.route && isError) && isLayerPathStored) {
@@ -230,9 +246,11 @@ export function patchLayer(
         // either the layer is asynchronous (so it will call the
         // callback later on) or that the layer directly ends the
         // http response, so we'll hook into the "finish" event to
-        // handle the later case.
+        // handle the later case. We also hook into "close", which fires
+        // instead of "finish" when the client aborts the request.
         if (!spanHasEnded) {
           res.once('finish', onResponseFinish);
+          res.once('close', onResponseClose);
         }
       }
     });

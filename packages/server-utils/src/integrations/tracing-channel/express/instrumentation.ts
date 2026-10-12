@@ -9,6 +9,7 @@ import {
   getRootSpan,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
+  SPAN_STATUS_ERROR,
   spanToJSON,
   startInactiveSpan,
   stringMatchesSomePattern,
@@ -230,13 +231,27 @@ function getSpanForLayer(data: HandleChannelContext, options: ExpressIntegration
   // A layer that sends the response (route handlers, typically) never calls
   // `next`, so the channel's `asyncEnd` never fires. End on the response's
   // `finish` in that case. When `next` *is* called, the helper ends the span
-  // (via `asyncEnd`) and `beforeSpanEnd` removes this now-redundant listener.
+  // (via `asyncEnd`) and `beforeSpanEnd` removes these now-redundant listeners.
+  // `finish` never fires when the client aborts, so also end on `close`, which
+  // is when the `http.server` span ends. Otherwise the span and its subtree
+  // would be dropped from the transaction.
   if (res && typeof res.once === 'function') {
+    const cleanup = (): void => {
+      res.removeListener('finish', onFinish);
+      res.removeListener('close', onClose);
+    };
     const onFinish = (): void => {
+      cleanup();
+      span.end();
+    };
+    const onClose = (): void => {
+      cleanup();
+      span.setStatus({ code: SPAN_STATUS_ERROR, message: 'cancelled' });
       span.end();
     };
     res.once('finish', onFinish);
-    data._sentryCleanup = () => res.removeListener('finish', onFinish);
+    res.once('close', onClose);
+    data._sentryCleanup = cleanup;
   }
 
   return span;

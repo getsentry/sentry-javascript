@@ -94,7 +94,7 @@ type StartResult = {
   makeRequest<T>(
     method: 'get' | 'post' | 'put' | 'delete' | 'patch',
     path: string,
-    options?: { headers?: Record<string, string>; data?: BodyInit; expectError?: boolean },
+    options?: { headers?: Record<string, string>; data?: BodyInit; expectError?: boolean; timeout?: number },
   ): Promise<T | undefined>;
 };
 
@@ -565,7 +565,12 @@ export function createRunner(...paths: string[]) {
         makeRequest: async function <T>(
           method: 'get' | 'post' | 'put' | 'delete' | 'patch',
           path: string,
-          options: { headers?: Record<string, string>; data?: BodyInit; expectError?: boolean } = {},
+          options: {
+            headers?: Record<string, string>;
+            data?: BodyInit;
+            expectError?: boolean;
+            timeout?: number;
+          } = {},
         ): Promise<T | undefined> {
           try {
             await waitForEvent(portReady.promise, 10_000, 'Timed out waiting for server port');
@@ -582,7 +587,12 @@ export function createRunner(...paths: string[]) {
           if (process.env.DEBUG) log('making request', method, url, headers, body);
 
           try {
-            const res = await fetch(url, { headers, method: method.toUpperCase(), body });
+            const res = await fetch(url, {
+              headers,
+              method: method.toUpperCase(),
+              body,
+              signal: options.timeout !== undefined ? AbortSignal.timeout(options.timeout) : undefined,
+            });
 
             if (!res.ok) {
               if (!expectError) {
