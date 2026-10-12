@@ -869,6 +869,9 @@ importers:
       groq-sdk:
         specifier: 1.6.0
         version: 1.6.0
+      h3:
+        specifier: 2.0.1-rc.22
+        version: 2.0.1-rc.22(crossws@0.4.10(srvx@0.11.22))
       hono:
         specifier: ^4.13.7
         version: 4.13.7
@@ -956,12 +959,18 @@ importers:
       rxjs:
         specifier: ^7.8.2
         version: 7.8.2
+      srvx:
+        specifier: ^0.11.22
+        version: 0.11.22
       tedious:
         specifier: ^19.2.1
         version: 19.2.1(supports-color@10.0.0)
       together-ai:
         specifier: 0.54.0
         version: 0.54.0
+      unstorage:
+        specifier: 2.0.0-alpha.7
+        version: 2.0.0-alpha.7(@azure/storage-blob@12.31.0(supports-color@10.0.0))(chokidar@5.0.0)(db0@0.3.4(mysql2@3.23.3(@types/node@18.19.130)))(ioredis@5.10.1(supports-color@10.0.0))(lru-cache@11.4.0)(mongodb@3.7.4)(ofetch@1.5.1)
       winston:
         specifier: ^3.17.0
         version: 3.19.0
@@ -39507,6 +39516,16 @@ snapshots:
       '@azure/storage-blob': 12.31.0(supports-color@10.0.0)
       db0: 0.3.4(mysql2@3.23.3(@types/node@20.19.43))
       ioredis: 5.11.0(supports-color@10.0.0)
+
+  unstorage@2.0.0-alpha.7(@azure/storage-blob@12.31.0(supports-color@10.0.0))(chokidar@5.0.0)(db0@0.3.4(mysql2@3.23.3(@types/node@18.19.130)))(ioredis@5.10.1(supports-color@10.0.0))(lru-cache@11.4.0)(mongodb@3.7.4)(ofetch@1.5.1):
+    optionalDependencies:
+      '@azure/storage-blob': 12.31.0(supports-color@10.0.0)
+      chokidar: 5.0.0
+      db0: 0.3.4(mysql2@3.23.3(@types/node@18.19.130))
+      ioredis: 5.10.1(supports-color@10.0.0)
+      lru-cache: 11.4.0
+      mongodb: 3.7.4
+      ofetch: 1.5.1
 
   unstorage@2.0.0-alpha.7(@azure/storage-blob@12.31.0(supports-color@10.0.0))(chokidar@5.0.0)(db0@0.3.4(mysql2@3.23.3(@types/node@18.19.130)))(ioredis@5.11.0(supports-color@10.0.0))(lru-cache@11.4.0)(mongodb@7.1.0(@aws-sdk/credential-providers@3.983.0)(socks@2.8.7))(ofetch@1.5.1):
     optionalDependencies:
