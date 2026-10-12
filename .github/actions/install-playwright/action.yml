@@ -7,6 +7,15 @@ inputs:
   cwd:
     description: 'The working directory to run Playwright in.'
     default: '.'
+  installed-version:
+    description:
+      'A Playwright version that an earlier run of this action already installed. Skips the install if it matches.'
+    default: ''
+
+outputs:
+  version:
+    description: 'The resolved Playwright version, empty if Playwright is not installed or the install was skipped.'
+    value: ${{ steps.playwright-version.outputs.version }}
 
 runs:
   using: 'composite'
@@ -18,8 +27,11 @@ runs:
       id: playwright-version
       run: |
         version=$(node -e "let v = ''; try { v = require('@playwright/test/package.json').version; } catch {} process.stdout.write(String(v));")
+        if [ "$version" = "$INSTALLED_VERSION" ]; then version=''; fi
         echo "version=$version" >> "$GITHUB_OUTPUT"
       shell: bash
+      env:
+        INSTALLED_VERSION: ${{ inputs.installed-version }}
       working-directory: ${{ inputs.cwd }}
 
     - name: Restore cached playwright binaries

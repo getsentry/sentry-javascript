@@ -15,6 +15,6 @@ class MyWorkflowImpl extends WorkflowEntrypoint<Env> {
 // Manually instrumented here, in a module separate from the worker entry, which
 // only imports and re-exports the wrapped class.
 export const MyWorkflow = Sentry.instrumentWorkflowWithSentry(
-  (env: Env) => ({ dsn: env.SENTRY_DSN, traceLifecycle: 'static', tracesSampleRate: 1.0 }),
+  (env: Env) => ({ dsn: env.SENTRY_DSN, tracesSampleRate: 1.0 }),
   MyWorkflowImpl,
 );

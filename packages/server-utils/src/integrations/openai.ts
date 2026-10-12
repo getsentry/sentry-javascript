@@ -14,6 +14,7 @@ import { wrapApiPromiseResponse } from '../ai/core/apiPromise';
 import { instrumentStream } from '../ai/openai/streaming';
 import type { OpenAiOptions } from '../ai/openai/types';
 import { addResponseAttributes } from '../ai/openai/utils';
+import type { OrchestrionChannelContext } from '../orchestrion/types';
 import { CHANNELS } from '../orchestrion/channels';
 import { bindTracingChannelToSpan } from '../tracing-channel';
 import { openaiModuleNames } from '../orchestrion/config/openai';
@@ -31,16 +32,6 @@ const INSTRUMENTED_CHANNELS = [
   { channel: CHANNELS.OPENAI_EMBEDDINGS, operation: 'embeddings' },
 ] as const;
 
-/**
- * The context object orchestrion shares across the tracing-channel lifecycle hooks: `arguments` is the
- * live args array passed to `Completions.create(body, options)`. `result` holds the returned
- * `APIPromise` for sync instrumentation.
- */
-interface OpenAiChatChannelContext {
-  arguments: unknown[];
-  result?: unknown;
-}
-
 const _openAIIntegration = ((options: OpenAiOptions = {}) => {
   return {
     name: INTEGRATION_NAME,
@@ -53,7 +44,7 @@ const _openAIIntegration = ((options: OpenAiOptions = {}) => {
 function instrumentOpenai(options: OpenAiOptions): void {
   for (const { channel, operation } of INSTRUMENTED_CHANNELS) {
     bindTracingChannelToSpan(
-      diagnosticsChannel.tracingChannel<OpenAiChatChannelContext>(channel),
+      diagnosticsChannel.tracingChannel<OrchestrionChannelContext>(channel),
       data => createGenAiSpan(data, operation, options),
       {
         beforeSpanEnd: (span, data) => {
@@ -80,7 +71,7 @@ function instrumentOpenai(options: OpenAiOptions): void {
  * Build the span for an instrumented `create` call.
  * Returning `undefined` opts the payload out so no span is opened.
  */
-function createGenAiSpan(data: OpenAiChatChannelContext, operation: string, options: OpenAiOptions): Span | undefined {
+function createGenAiSpan(data: OrchestrionChannelContext, operation: string, options: OpenAiOptions): Span | undefined {
   // When another provider (e.g. LangChain) is driving the SDK, it records the spans itself and marks this
   // provider as skipped; skip here to avoid double spans.
   if (_INTERNAL_shouldSkipAiProviderWrapping(INTEGRATION_NAME)) {
@@ -126,7 +117,7 @@ function isAsyncIterable(value: unknown): value is AsyncIterableStream {
  * to hand span-ending ownership to `instrumentStream`; `false` for non-streaming/errored results, which end
  * via the normal `beforeSpanEnd` path.
  */
-function wrapStreamResult(span: Span, data: OpenAiChatChannelContext, options: OpenAiOptions): boolean {
+function wrapStreamResult(span: Span, data: OrchestrionChannelContext, options: OpenAiOptions): boolean {
   const result = data.result;
   if (!isAsyncIterable(result)) {
     return false;

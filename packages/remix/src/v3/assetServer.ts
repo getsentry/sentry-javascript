@@ -1,5 +1,6 @@
 import * as diagnosticsChannel from 'node:diagnostics_channel';
 import { consoleSandbox } from '@sentry/core';
+import type { OrchestrionChannelContext } from '@sentry/server-utils';
 import { remixV3Channels } from '@sentry/server-utils/orchestrion/config';
 import { addDebugIdToSourceMap, findDebugId, getDebugId, injectDebugIdSnippet } from './debugId';
 import { getShimUrl, isOrchestrionLoader, orchestrionLoader, resolveShimPath } from './orchestrionLoader';
@@ -39,9 +40,7 @@ interface AssetServer {
   fetch: (request: Request) => Promise<Response | null>;
 }
 
-interface CreateAssetServerContext {
-  arguments: unknown[];
-  result?: unknown;
+interface CreateAssetServerContext extends OrchestrionChannelContext {
   _sentryHideSourceMaps?: boolean;
 }
 

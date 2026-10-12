@@ -28,6 +28,8 @@ describe('Edge init()', () => {
     getMainCarrier().__SENTRY__ = undefined;
 
     delete (process as { turbopack?: boolean }).turbopack;
+
+    delete (GLOBAL_OBJ as typeof GLOBAL_OBJ & { _sentryRelease?: string })._sentryRelease;
   });
 
   it('inits the Vercel Edge SDK', () => {
@@ -66,6 +68,15 @@ describe('Edge init()', () => {
     withIsolationScope(() => init({}));
 
     expect(vercelEdgeInit).not.toHaveBeenCalled();
+  });
+
+  it('stores the release on Cloudflare Workers in a request of `withSentry` from `@sentry/cloudflare`', () => {
+    vi.stubGlobal('navigator', { userAgent: 'Cloudflare-Workers' });
+    setAsyncLocalStorageAsyncContextStrategy();
+
+    withIsolationScope(() => init({ release: '1.2.3' }));
+
+    expect((GLOBAL_OBJ as typeof GLOBAL_OBJ & { _sentryRelease?: string })._sentryRelease).toBe('1.2.3');
   });
 
   it('sets the `turbopack` tag on Cloudflare Workers in a request of `withSentry` from `@sentry/cloudflare`', () => {

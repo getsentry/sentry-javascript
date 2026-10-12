@@ -1,6 +1,6 @@
 {
   "name": "@sentry/tanstackstart-react",
-  "version": "11.4.0",
+  "version": "11.6.0",
   "description": "Official Sentry SDK for TanStack Start React",
   "repository": "git://github.com/getsentry/sentry-javascript.git",
   "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/tanstackstart-react",
@@ -52,14 +52,14 @@
   },
   "dependencies": {
     "@opentelemetry/api": "^1.9.1",
-    "@sentry/browser-utils": "11.4.0",
+    "@sentry/browser-utils": "11.6.0",
     "@sentry/conventions": "^0.26.0",
-    "@sentry/core": "11.4.0",
-    "@sentry/node": "11.4.0",
-    "@sentry/react": "11.4.0",
-    "@sentry/server-runtime-injection": "11.4.0",
-    "@sentry/server-utils": "11.4.0",
-    "@sentry/bundler-plugins": "11.4.0"
+    "@sentry/core": "11.6.0",
+    "@sentry/node": "11.6.0",
+    "@sentry/react": "11.6.0",
+    "@sentry/server-runtime-injection": "11.6.0",
+    "@sentry/server-utils": "11.6.0",
+    "@sentry/bundler-plugins": "11.6.0"
   },
   "devDependencies": {
     "vite": "^8.3.1"

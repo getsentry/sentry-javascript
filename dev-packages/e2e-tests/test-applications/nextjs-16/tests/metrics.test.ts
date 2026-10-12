@@ -1,7 +1,11 @@
 import { expect, test } from '@playwright/test';
-import { waitForMetric } from '@sentry-internal/test-utils';
+import { getRuntime, waitForMetric } from '@sentry-internal/test-utils';
 
 test('Should emit metrics from server and client', async ({ request, page }) => {
+  // Workers have no hostname, so the client of `@sentry/cloudflare` has no `serverName` and its metrics no
+  // `server.address`. The other runtimes take `os.hostname()`.
+  const serverAddressType = getRuntime() === 'cloudflare' ? undefined : 'string';
+
   const clientCountPromise = waitForMetric('nextjs-16', async metric => {
     return metric.name === 'test.page.count';
   });
@@ -90,7 +94,6 @@ test('Should emit metrics from server and client', async ({ request, page }) => 
     type: 'counter',
     value: 1,
     attributes: {
-      'server.address': { value: expect.any(String), type: 'string' },
       'random.attribute': { value: 'Potatoes', type: 'string' },
       endpoint: { value: '/metrics/route-handler', type: 'string' },
       'sentry.environment': { value: 'qa', type: 'string' },
@@ -106,7 +109,6 @@ test('Should emit metrics from server and client', async ({ request, page }) => 
     type: 'distribution',
     value: 100,
     attributes: {
-      'server.address': { value: expect.any(String), type: 'string' },
       'random.attribute': { value: 'Patatas', type: 'string' },
       endpoint: { value: '/metrics/route-handler', type: 'string' },
       'sentry.environment': { value: 'qa', type: 'string' },
@@ -122,7 +124,6 @@ test('Should emit metrics from server and client', async ({ request, page }) => 
     type: 'gauge',
     value: 200,
     attributes: {
-      'server.address': { value: expect.any(String), type: 'string' },
       'random.attribute': { value: 'Patate', type: 'string' },
       endpoint: { value: '/metrics/route-handler', type: 'string' },
       'sentry.environment': { value: 'qa', type: 'string' },
@@ -130,4 +131,7 @@ test('Should emit metrics from server and client', async ({ request, page }) => 
       'sentry.sdk.version': { value: expect.any(String), type: 'string' },
     },
   });
+  expect(serverCount.attributes?.['server.address']?.type).toBe(serverAddressType);
+  expect(serverDistribution.attributes?.['server.address']?.type).toBe(serverAddressType);
+  expect(serverGauge.attributes?.['server.address']?.type).toBe(serverAddressType);
 });

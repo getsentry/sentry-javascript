@@ -1,0 +1,42 @@
+{
+  "name": "node-pi-durable",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "node src/start.mjs",
+    "clean": "npx rimraf node_modules .data pnpm-lock.yaml",
+    "test:build": "pnpm install",
+    "test:build-latest": "pnpm install && pnpm add @earendil-works/pi-durable@latest @earendil-works/pi-ai@latest @earendil-works/chord@latest",
+    "test:assert": "OPENROUTER_API_KEY=$E2E_OPENROUTER_API_KEY playwright test"
+  },
+  "dependencies": {
+    "@earendil-works/chord": "1.0.0",
+    "@earendil-works/pi-ai": "1.0.0",
+    "@earendil-works/pi-durable": "1.0.0",
+    "@sentry/node": "file:../../packed/sentry-node-packed.tgz"
+  },
+  "devDependencies": {
+    "@playwright/test": "~1.63.0",
+    "@sentry-internal/test-utils": "link:../../../test-utils",
+    "@sentry/conventions": "0.26.0",
+    "@sentry/core": "file:../../packed/sentry-core-packed.tgz",
+    "@types/node": "24.x"
+  },
+  "engines": {
+    "node": "24.x"
+  },
+  "volta": {
+    "node": "24.15.0",
+    "extends": "../../package.json"
+  },
+  "sentryTest": {
+    "optional": true,
+    "optionalVariants": [
+      {
+        "build-command": "pnpm test:build-latest",
+        "label": "node-pi-durable (latest)"
+      }
+    ]
+  }
+}

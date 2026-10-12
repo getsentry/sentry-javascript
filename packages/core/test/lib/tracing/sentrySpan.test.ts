@@ -12,7 +12,13 @@ import { markSpanAsTracerProviderSpan } from '../../../src/tracing/utils';
 import { withStaticSpan } from '../../../src/tracing/spans/beforeSendSpan';
 import type { Envelope } from '../../../src/types/envelope';
 import type { Span, SpanJSON } from '../../../src/types/span';
-import { getRootSpan, spanToStaticSpanJSON, TRACE_FLAG_NONE, TRACE_FLAG_SAMPLED } from '../../../src/utils/spanUtils';
+import {
+  getRootSpan,
+  spanToJSON,
+  spanToStaticSpanJSON,
+  TRACE_FLAG_NONE,
+  TRACE_FLAG_SAMPLED,
+} from '../../../src/utils/spanUtils';
 import { timestampInSeconds } from '../../../src/utils/time';
 import { getDefaultTestClientOptions, TestClient } from '../../mocks/client';
 import { SENTRY_SEGMENT_NAME_SOURCE } from '@sentry/conventions/attributes';
@@ -588,7 +594,9 @@ describe('SentrySpan', () => {
       const now = timestampInSeconds();
       span.end();
 
-      expect(spanToStaticSpanJSON(span).timestamp).toBeGreaterThanOrEqual(now);
+      const { start_timestamp, end_timestamp } = spanToJSON(span);
+      expect(end_timestamp).toBeGreaterThanOrEqual(start_timestamp);
+      expect(end_timestamp).toBeCloseTo(now, 2);
     });
 
     it('works with endTimestamp in seconds', () => {
@@ -613,6 +621,50 @@ describe('SentrySpan', () => {
       span.end([seconds, 0]);
 
       expect(spanToStaticSpanJSON(span).timestamp).toEqual(seconds);
+    });
+
+    it('uses the `performance.now()` duration if the wall clock jumps forward while the span runs', () => {
+      vi.useFakeTimers();
+      const span = new SentrySpan();
+      const startTimestamp = spanToStaticSpanJSON(span).start_timestamp;
+
+      // The device sleeps for an hour: `Date.now()` moves on, `performance.now()` only moves by 500ms.
+      vi.setSystemTime(Date.now() + 3_600_000);
+      vi.advanceTimersByTime(500);
+      span.end();
+      vi.useRealTimers();
+
+      expect(spanToStaticSpanJSON(span).timestamp! - startTimestamp).toBeCloseTo(0.5, 1);
+    });
+
+    it('never has a negative duration if the wall clock jumps backwards while the span runs', () => {
+      vi.useFakeTimers();
+      const span = new SentrySpan();
+      const startTimestamp = spanToStaticSpanJSON(span).start_timestamp;
+
+      vi.setSystemTime(Date.now() - 60_000);
+      vi.advanceTimersByTime(500);
+      span.end();
+      vi.useRealTimers();
+
+      expect(spanToStaticSpanJSON(span).timestamp! - startTimestamp).toBeCloseTo(0.5, 1);
+    });
+
+    it('uses the current time as end if the span was started with a start time', () => {
+      const startTimestamp = timestampInSeconds() - 10;
+      const span = new SentrySpan({ startTimestamp });
+      span.end();
+
+      expect(spanToStaticSpanJSON(span).timestamp! - startTimestamp).toBeCloseTo(10, 1);
+    });
+
+    it('uses the current time as end if the start time was updated', () => {
+      const span = new SentrySpan();
+      const startTimestamp = timestampInSeconds() - 10;
+      span.updateStartTime(startTimestamp);
+      span.end();
+
+      expect(spanToStaticSpanJSON(span).timestamp! - startTimestamp).toBeCloseTo(10, 1);
     });
 
     it('skips if span is already ended', () => {

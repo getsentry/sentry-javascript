@@ -1,31 +1,13 @@
-import {
-  addPlugin,
-  addPluginTemplate,
-  addServerPlugin,
-  addTemplate,
-  addVitePlugin,
-  createResolver,
-  defineNuxtModule,
-} from '@nuxt/kit';
+import { addPlugin, addPluginTemplate, addTemplate, addVitePlugin, createResolver, defineNuxtModule } from '@nuxt/kit';
 // Needed to make TS evaluate the augmentation of Nitro types (https://github.com/nuxt/nuxt/pull/34039)
 import type {} from '@nuxt/nitro-server';
 
-import { consoleSandbox } from '@sentry/core';
 import * as path from 'path';
 import type { SentryNuxtModuleOptions } from './common/types';
-import {
-  addDynamicImportEntryFileWrapper,
-  addServerConfigShimWithWarning,
-  addSentryTopImport,
-  addServerConfigPlugin,
-  addServerConfigToBuild,
-} from './vite/addServerConfig';
-import { addDatabaseInstrumentation } from './vite/databaseConfig';
-import { addMiddlewareImports, addMiddlewareInstrumentation } from './vite/middlewareConfig';
+import { setupNitroServer } from './vite/nitroServer';
 import { setupOrchestrion } from './vite/orchestrion';
 import { setupSourceMaps } from './vite/sourceMaps';
-import { addStorageInstrumentation } from './vite/storageConfig';
-import { addOTelCommonJSImportAlias, findDefaultSdkInitFile, getNitroMajorVersion } from './vite/utils';
+import { findDefaultSdkInitFile, resolveServerApi } from './vite/utils';
 
 export type ModuleOptions = SentryNuxtModuleOptions;
 type NuxtPageSubset = { file?: string; path: string };
@@ -43,6 +25,8 @@ export default defineNuxtModule<ModuleOptions>({
     if (moduleOptionsParam?.enabled === false) {
       return;
     }
+
+    const serverApi = resolveServerApi();
 
     const moduleOptions = {
       ...moduleOptionsParam,
@@ -91,7 +75,6 @@ export default defineNuxtModule<ModuleOptions>({
     }
 
     const serverConfigFile = await findDefaultSdkInitFile('server', nuxt, moduleOptions);
-    const isNitroV3 = (await getNitroMajorVersion(nuxt.options.rootDir)) >= 3;
     const nuxtMajor = parseInt((nuxt as unknown as { _version: string })._version?.split('.')[0] ?? '3', 10);
     const isMinNuxtV4 = nuxtMajor >= 4;
 
@@ -100,43 +83,19 @@ export default defineNuxtModule<ModuleOptions>({
     // Cloudflare detection happens inside, keyed off the resolved Nitro preset.
     setupOrchestrion(nuxt, !!serverConfigFile, moduleOptions.buildTimeInstrumentation);
 
-    // The deprecated inject modes replace the default in-bundle initialization until their removal
-    const usesDeprecatedInjectMode =
-      moduleOptions.autoInjectServerSentry === 'top-level-import' ||
-      moduleOptions.autoInjectServerSentry === 'experimental_dynamic-import';
-
     if (serverConfigFile) {
-      if (!usesDeprecatedInjectMode) {
-        addServerConfigPlugin(nuxt, serverConfigFile, !isNitroV3);
-      }
-
-      if (isNitroV3) {
-        addServerPlugin(moduleDirResolver.resolve('./runtime/plugins/handler.server'));
-        addServerPlugin(moduleDirResolver.resolve('./runtime/plugins/update-route-name.server'));
-      } else {
-        addServerPlugin(moduleDirResolver.resolve('./runtime/plugins/handler-legacy.server'));
-        addServerPlugin(moduleDirResolver.resolve('./runtime/plugins/update-route-name-legacy.server'));
-      }
-
-      addServerPlugin(moduleDirResolver.resolve('./runtime/plugins/sentry.server'));
+      setupNitroServer(nuxt, serverApi, serverConfigFile, moduleOptions);
 
       if (isMinNuxtV4) {
         addPlugin({ src: moduleDirResolver.resolve('./runtime/plugins/route-detector.server'), mode: 'server' });
       } else {
         addPlugin({ src: moduleDirResolver.resolve('./runtime/plugins/route-detector-legacy.server'), mode: 'server' });
       }
-
-      // Preps the middleware instrumentation module.
-      addMiddlewareImports();
-      addStorageInstrumentation(nuxt, !isNitroV3);
-      addDatabaseInstrumentation(nuxt.options.nitro, !isNitroV3, moduleOptions);
     }
 
     if (clientConfigFile || serverConfigFile) {
       setupSourceMaps(moduleOptions, nuxt, addVitePlugin);
     }
-
-    addOTelCommonJSImportAlias(nuxt, isNitroV3);
 
     let pagesData: NuxtPageSubset[] = [];
 
@@ -155,8 +114,8 @@ export default defineNuxtModule<ModuleOptions>({
       // Vite virtual plugin (for the Vite SSR build, where addPlugin mode:'server' plugins are bundled)
       addVitePlugin({
         name: 'sentry-nuxt-pages-data-virtual',
-        resolveId: id => (id === pagesDataVirtualModuleId ? `\0${pagesDataVirtualModuleId}` : null),
-        load: id =>
+        resolveId: (id: string) => (id === pagesDataVirtualModuleId ? `\0${pagesDataVirtualModuleId}` : null),
+        load: (id: string) =>
           id === `\0${pagesDataVirtualModuleId}` ? `export default ${JSON.stringify(pagesData, null, 2)};` : undefined,
       });
     } else {
@@ -184,57 +143,6 @@ export default defineNuxtModule<ModuleOptions>({
       if (serverConfigFile) {
         const relativePath = path.relative(nuxt.options.buildDir, serverConfigFile);
         tsConfig.include.push(relativePath);
-      }
-    });
-
-    nuxt.hooks.hook('nitro:init', nitro => {
-      if (nuxt.options?._prepare) {
-        return;
-      }
-
-      if (serverConfigFile) {
-        addMiddlewareInstrumentation(nitro, isNitroV3);
-
-        if (!usesDeprecatedInjectMode) {
-          addServerConfigShimWithWarning(nitro);
-
-          if (moduleOptions.debug) {
-            consoleSandbox(() => {
-              // eslint-disable-next-line no-console
-              console.log(
-                `[Sentry] Bundled \`${serverConfigFile}\` into the Nitro server build. The SDK initializes itself at server startup — no \`node --import\` preload needed.`,
-              );
-            });
-          }
-        } else {
-          consoleSandbox(() => {
-            // eslint-disable-next-line no-console
-            console.warn(
-              `[Sentry] \`autoInjectServerSentry: '${moduleOptions.autoInjectServerSentry}'\` is deprecated and will be removed in a future major version. The Sentry server config is bundled into the Nitro server build by default now. Remove the option to use the default behavior.`,
-            );
-          });
-
-          if (moduleOptions.autoInjectServerSentry === 'top-level-import') {
-            // Nitro 3 (in Nuxt 5) is not bundled in dev mode, so there is no build to emit into.
-            if (!(isNitroV3 && nitro.options.dev)) {
-              addServerConfigToBuild(moduleOptions, nitro, serverConfigFile);
-            }
-            addSentryTopImport(moduleOptions, nitro);
-          }
-
-          if (moduleOptions.autoInjectServerSentry === 'experimental_dynamic-import') {
-            addDynamicImportEntryFileWrapper(nitro, serverConfigFile, moduleOptions);
-
-            if (moduleOptions.debug) {
-              consoleSandbox(() => {
-                // eslint-disable-next-line no-console
-                console.log(
-                  '[Sentry] Wrapping the server entry file with a dynamic `import()`, so Sentry can be preloaded before the server initializes.',
-                );
-              });
-            }
-          }
-        }
       }
     });
   },

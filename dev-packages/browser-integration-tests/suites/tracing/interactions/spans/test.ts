@@ -1,6 +1,12 @@
 import { expect } from '@playwright/test';
 import { SDK_VERSION } from '@sentry/core';
 import {
+  SENTRY_IS_LOCALHOST,
+  CULTURE_CALENDAR,
+  CULTURE_LOCALE,
+  CULTURE_TIMEZONE,
+  URL_FULL,
+  BROWSER_WEB_VITAL_INP_TARGET,
   SENTRY_IDLE_SPAN_FINISH_REASON,
   SENTRY_SEGMENT_ID,
   SENTRY_SEGMENT_NAME,
@@ -17,7 +23,7 @@ import {
 } from '@sentry/conventions/attributes';
 import { sentryTest } from '../../../../utils/fixtures';
 import { shouldSkipTracingTest } from '../../../../utils/helpers';
-import { getSpanOp, waitForStreamedSpan, waitForStreamedSpans } from '../../../../utils/spanUtils';
+import { collectStreamedSpans, getSpanOp, waitForStreamedSpan } from '../../../../utils/spanUtils';
 
 sentryTest('captures streamed interaction span tree. @firefox', async ({ browserName, getLocalTestUrl, page }) => {
   const supportedBrowsers = ['chromium', 'firefox'];
@@ -25,8 +31,10 @@ sentryTest('captures streamed interaction span tree. @firefox', async ({ browser
   sentryTest.skip(shouldSkipTracingTest() || !supportedBrowsers.includes(browserName));
   const url = await getLocalTestUrl({ testDir: __dirname });
 
-  const interactionSpansPromise = waitForStreamedSpans(page, spans =>
-    spans.some(span => getSpanOp(span) === 'ui.action.click'),
+  const spans = collectStreamedSpans(page);
+  const interactionPromise = waitForStreamedSpan(
+    page,
+    span => span.is_segment && getSpanOp(span) === 'ui.action.click',
   );
 
   const pageloadSpanPromise = waitForStreamedSpan(page, span => getSpanOp(span) === 'pageload');
@@ -39,26 +47,30 @@ sentryTest('captures streamed interaction span tree. @firefox', async ({ browser
   await page.locator('[data-test-id=interaction-button]').click();
   await page.locator('.clicked[data-test-id=interaction-button]').isVisible();
 
-  const interactionSpanTree = await interactionSpansPromise;
-
-  const interactionSegmentSpan = interactionSpanTree.find(span => !!span.is_segment);
+  const interactionSegmentSpan = await interactionPromise;
+  await page.evaluate(() => (window as any).Sentry.flush());
+  const interactionSpanTree = spans.filter(
+    span =>
+      span.span_id === interactionSegmentSpan.span_id ||
+      span.attributes[SENTRY_SEGMENT_ID]?.value === interactionSegmentSpan.span_id,
+  );
 
   expect(interactionSegmentSpan).toEqual({
     attributes: {
-      'sentry.is_localhost': { value: false, type: 'boolean' },
+      [SENTRY_IS_LOCALHOST]: { value: false, type: 'boolean' },
       [SENTRY_TRACE_LIFECYCLE]: {
         type: 'string',
         value: 'stream',
       },
-      'culture.calendar': {
+      [CULTURE_CALENDAR]: {
         type: 'string',
         value: expect.any(String),
       },
-      'culture.locale': {
+      [CULTURE_LOCALE]: {
         type: 'string',
         value: expect.any(String),
       },
-      'culture.timezone': {
+      [CULTURE_TIMEZONE]: {
         type: 'string',
         value: expect.any(String),
       },
@@ -66,7 +78,7 @@ sentryTest('captures streamed interaction span tree. @firefox', async ({ browser
         type: 'string',
         value: expect.any(String),
       },
-      'url.full': {
+      [URL_FULL]: {
         type: 'string',
         value: expect.any(String),
       },
@@ -130,7 +142,7 @@ sentryTest('captures streamed interaction span tree. @firefox', async ({ browser
   const interactionSpan = interactionSpanTree.find(span => getSpanOp(span) === 'ui.interaction.click');
   expect(interactionSpan).toEqual({
     attributes: {
-      'sentry.is_localhost': { value: false, type: 'boolean' },
+      [SENTRY_IS_LOCALHOST]: { value: false, type: 'boolean' },
       [SENTRY_TRACE_LIFECYCLE]: {
         type: 'string',
         value: 'stream',
@@ -167,7 +179,7 @@ sentryTest('captures streamed interaction span tree. @firefox', async ({ browser
         type: 'string',
         value: 'production',
       },
-      'browser.web_vital.inp.target': {
+      [BROWSER_WEB_VITAL_INP_TARGET]: {
         type: 'string',
         value: 'body > button.clicked',
       },

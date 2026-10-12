@@ -218,6 +218,26 @@ describe('instrumentSqlStorage', () => {
       });
     });
 
+    // The Agents SDK `PiHarness` keeps the state of pi-durable in its own tables, all with the `pi_`
+    // prefix of its session store.
+    describe('pi-durable tables (pi_ prefix) are skipped', () => {
+      it.each([
+        ['SELECT', 'SELECT record FROM pi_conversations WHERE id = ?'],
+        [
+          'upsert',
+          `INSERT INTO pi_tasks (id, conversation_id, kind, status, record) VALUES (?, ?, ?, ?, ?)
+            ON CONFLICT(id) DO UPDATE SET status = excluded.status, record = excluded.record`,
+        ],
+        ['INSERT OR IGNORE', 'INSERT OR IGNORE INTO pi_record_ids (id, record_type) VALUES (?, ?)'],
+        ['UPDATE', 'UPDATE pi_durable_metadata SET next_id = ?, next_seq = ? WHERE singleton = ?'],
+        ['DELETE', 'DELETE FROM pi_document_revisions WHERE document_id = ?'],
+        ['CREATE TABLE', 'CREATE TABLE pi_durable_schema (version INTEGER NOT NULL) STRICT'],
+        ['CREATE INDEX', 'CREATE INDEX pi_tasks_by_status ON pi_tasks (status, id)'],
+      ])('skips %s', (_label, query) => {
+        expect(execCreatesSpan(query)).toBe(false);
+      });
+    });
+
     describe('user queries stay instrumented', () => {
       it.each([
         ['SELECT', 'SELECT * FROM users WHERE id = ?'],
@@ -228,6 +248,8 @@ describe('instrumentSqlStorage', () => {
         ['CREATE INDEX', 'CREATE INDEX idx_name ON users (name)'],
         ['table with cf in the middle', 'SELECT * FROM my_cf_table'],
         ['table starting with cfg', 'SELECT * FROM cfg_settings'],
+        ['table with pi_ in the middle', 'SELECT * FROM api_keys'],
+        ['table starting with pi', 'SELECT * FROM pipelines'],
         ['INSERT OR REPLACE', 'INSERT OR REPLACE INTO users (id, name) VALUES (?, ?)'],
         ['REPLACE INTO', 'REPLACE INTO sessions (id, token) VALUES (?, ?)'],
         ['UPDATE OR IGNORE', 'UPDATE OR IGNORE products SET price = ? WHERE id = ?'],
@@ -241,10 +263,11 @@ describe('instrumentSqlStorage', () => {
       });
     });
 
-    describe('durableObjectSqlSpanAllowlist (opt a cf_ table back into instrumentation)', () => {
+    describe('durableObjectSqlSpanAllowlist (opt a cf_ or pi_ table back into instrumentation)', () => {
       it.each([
         ['exact string', 'SELECT * FROM cf_my_table', ['cf_my_table']],
         ['regex', 'SELECT * FROM cf_reports_daily', [/^cf_reports_/]],
+        ['regex for the pi-durable tables', 'SELECT record FROM pi_conversations WHERE id = ?', [/^pi_/]],
         ['upsert target', 'INSERT OR REPLACE INTO cf_my_table (id) VALUES (?)', ['cf_my_table']],
         ['CREATE INDEX target', 'CREATE INDEX idx_mine ON cf_my_table (id)', ['cf_my_table']],
       ])('instruments an allowlisted table matched by %s', (_label, query, allowlist) => {

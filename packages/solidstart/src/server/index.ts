@@ -82,6 +82,7 @@ export {
   parameterize,
   postgresIntegration,
   postgresJsIntegration,
+  neonIntegration,
   prismaIntegration,
   redisIntegration,
   requestDataIntegration,

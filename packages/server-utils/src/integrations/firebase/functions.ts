@@ -1,3 +1,4 @@
+import type { OrchestrionChannelContext } from '../../orchestrion/types';
 import {
   FAAS_NAME,
   FAAS_TRIGGER,
@@ -26,14 +27,6 @@ const WRAPPED = '__sentryFirebaseWrapped';
 
 type Handler = (this: unknown, ...args: unknown[]) => unknown;
 
-interface FunctionsChannelContext {
-  // The live args of the `onX(...)` registration call. firebase-functions accepts either
-  // `onX(handler)` or `onX(documentOrOptions, handler)`, so the handler is `arguments[0]` when it's a
-  // function, otherwise `arguments[1]`. Mutating the entry here swaps in the wrapped handler.
-  arguments: unknown[];
-  self?: unknown;
-}
-
 /**
  * Rewrap the handler argument of a firebase-functions `onX(...)` registration so the returned cloud
  * function opens a `SERVER` span (and error boundary) each time it's invoked. Runs as the tracing
@@ -42,7 +35,7 @@ interface FunctionsChannelContext {
  * The registration call itself is trivial and synchronous, so — unlike the firestore path — this does
  * not bind a span to the channel; it only uses the channel as an injection point.
  */
-export function wrapFunctionsRegistration(data: FunctionsChannelContext, triggerType: string): void {
+export function wrapFunctionsRegistration(data: OrchestrionChannelContext, triggerType: string): void {
   const args = data.arguments;
   if (!Array.isArray(args) || args.length === 0) {
     return;

@@ -22,8 +22,10 @@ import type { MastraExporterOptions } from '../ai/mastra';
 import { getSentrySpanForMastraId } from '../ai/mastra/span-registry';
 import type { MastraObservabilityExporter } from '../ai/mastra/types';
 import { DEBUG_BUILD } from '../debug-build';
+import type { OrchestrionChannelContext } from '../orchestrion/types';
 import { CHANNELS } from '../orchestrion/channels';
 import { mastraModuleNames } from '../orchestrion/config/mastra';
+import { recordClassifierEvaluations } from './mastra-classifier';
 import { invokeOrchestrionInstrumentation } from '../orchestrion/instrumentation';
 import { bindSpanToChannelStore, safeChannelCallback } from '../tracing-channel';
 
@@ -42,16 +44,6 @@ interface MastraObservabilityInstance {
 interface MastraInstance {
   registerExporter?: (exporter: unknown, instance: unknown, entrypoint: unknown) => void;
   observability?: { getDefaultInstance?: () => MastraObservabilityInstance | undefined };
-}
-
-interface ConstructorChannelContext {
-  arguments: unknown[];
-  self?: unknown;
-}
-
-interface ExecuteWithContextChannelContext {
-  // `executeWithContext({ span, fn })` — the first arg carries the Mastra AISpan.
-  arguments: unknown[];
 }
 
 /** Mastra AISpan → the id the exporter keys its Sentry span on. */
@@ -88,14 +80,15 @@ const _mastraIntegration = ((options: MastraOptions = {}) => {
 }) satisfies IntegrationFn;
 
 function instrumentExporter(options: MastraOptions): void {
-  diagnosticsChannel.tracingChannel<ConstructorChannelContext>(CHANNELS.MASTRA_CONSTRUCTOR).end.subscribe(message => {
+  diagnosticsChannel.tracingChannel<OrchestrionChannelContext>(CHANNELS.MASTRA_CONSTRUCTOR).end.subscribe(message => {
     safeChannelCallback(() => {
-      const { self } = message as ConstructorChannelContext;
+      const { self } = message as OrchestrionChannelContext;
       attachExporter(self, options);
     });
   });
 
   captureExecuteWithContextErrors();
+  recordClassifierEvaluations();
 }
 
 /**
@@ -107,10 +100,10 @@ function instrumentExporter(options: MastraOptions): void {
  */
 function captureExecuteWithContextErrors(): void {
   diagnosticsChannel
-    .tracingChannel<ExecuteWithContextChannelContext>(CHANNELS.MASTRA_EXECUTE_WITH_CONTEXT)
+    .tracingChannel<OrchestrionChannelContext>(CHANNELS.MASTRA_EXECUTE_WITH_CONTEXT)
     .error.subscribe(message => {
       safeChannelCallback(() => {
-        const data = message as ExecuteWithContextChannelContext & { error: unknown };
+        const data = message as OrchestrionChannelContext;
         captureMastraError(data.error, (data.arguments as unknown[] | undefined)?.[0]);
       });
     });
@@ -166,7 +159,7 @@ function captureMastraError(error: unknown, params: unknown): void {
  */
 function instrumentExecuteWithContext(): void {
   bindSpanToChannelStore(
-    diagnosticsChannel.tracingChannel<ExecuteWithContextChannelContext>(CHANNELS.MASTRA_EXECUTE_WITH_CONTEXT),
+    diagnosticsChannel.tracingChannel<OrchestrionChannelContext>(CHANNELS.MASTRA_EXECUTE_WITH_CONTEXT),
     data => {
       const params = (data.arguments as unknown[] | undefined)?.[0];
       const id = isObjectLike(params) ? mastraSpanId(params.span) : undefined;

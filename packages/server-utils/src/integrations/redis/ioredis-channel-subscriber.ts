@@ -12,6 +12,7 @@ import {
 import { DB_QUERY, DB } from '@sentry/conventions/op';
 import type { Span, SpanAttributes } from '@sentry/core';
 import { startInactiveSpan } from '@sentry/core';
+import type { OrchestrionChannelContext } from '../../orchestrion/types';
 import { CHANNELS } from '../../orchestrion/channels';
 import { bindTracingChannelToSpan } from '../../tracing-channel';
 import type { RedisCacheOptions } from './redis-cache';
@@ -33,14 +34,9 @@ interface RedisClientLike {
   options?: { host?: string; port?: number };
 }
 
-interface IORedisCommandContext {
-  arguments?: unknown[];
+interface IORedisCommandContext extends OrchestrionChannelContext {
   self?: RedisClientLike;
-  result?: unknown;
-  error?: unknown;
 }
-
-type IORedisConnectContext = Omit<IORedisCommandContext, 'arguments'>;
 
 function getConnectionOptions(self: RedisClientLike | undefined): { host?: string; port?: number } {
   return { host: self?.options?.host, port: self?.options?.port };
@@ -111,7 +107,7 @@ export function instrumentIoredis(options: RedisCacheOptions): void {
   const commandChannel = diagnosticsChannel.tracingChannel<IORedisCommandContext, IORedisCommandContext>(
     CHANNELS.IOREDIS_COMMAND,
   );
-  const connectChannel = diagnosticsChannel.tracingChannel<IORedisConnectContext, IORedisConnectContext>(
+  const connectChannel = diagnosticsChannel.tracingChannel<IORedisCommandContext, IORedisCommandContext>(
     CHANNELS.IOREDIS_CONNECT,
   );
 

@@ -371,12 +371,14 @@ interface BaseCloudflareOptions {
   rpcTracePropagationBindings?: TracePropagationTargets;
 
   /**
-   * Table names that should stay instrumented even though they match the reserved `cf_` prefix used
-   * by Durable Object frameworks (`agents`, `partyserver`, ...) for their internal SQLite tables.
+   * Table names that should stay instrumented even though they match a reserved prefix used by
+   * Durable Object frameworks for their internal SQLite tables: `cf_` (`agents`, `partyserver`, ...)
+   * and `pi_` (pi-durable in the `PiHarness` of `agents`).
    *
-   * By default, `exec` queries against `cf_`-prefixed tables are treated as framework noise and no
-   * `db.query` span is created for them. If one of your own tables happens to use this prefix, add it
-   * here to opt it back into instrumentation. Entries are matched against each table name in the
+   * By default, `exec` queries against tables with these prefixes are treated as framework noise and
+   * no `db.query` span is created for them. If one of your own tables happens to use such a prefix,
+   * add it here to opt it back into instrumentation, or add `/^pi_/` to see the statements of
+   * pi-durable. Entries are matched against each table name in the
    * query summary — strings must match exactly, while regular expressions give you prefix/pattern
    * matching.
    *

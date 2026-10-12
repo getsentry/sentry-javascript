@@ -5,6 +5,7 @@ import {
   eventAndTraceHeaderRequestParser,
   getFirstSentryEnvelopeRequest,
   shouldSkipTracingTest,
+  waitForErrorRequest,
 } from '../../../../utils/helpers';
 
 const META_TAG_TRACE_ID = '12345678901234567890123456789012';
@@ -20,11 +21,7 @@ sentryTest('error on initial page has traceId from meta tag', async ({ getLocalT
   const url = await getLocalTestUrl({ testDir: __dirname });
   await page.goto(url);
 
-  const errorEventPromise = getFirstSentryEnvelopeRequest<EventAndTraceHeader>(
-    page,
-    undefined,
-    eventAndTraceHeaderRequestParser,
-  );
+  const errorEventPromise = waitForErrorRequest(page).then(eventAndTraceHeaderRequestParser);
 
   await page.locator('#errorBtn').click();
   const [errorEvent, errorTraceHeader] = await errorEventPromise;
@@ -53,11 +50,7 @@ sentryTest('error has new traceId after navigation', async ({ getLocalTestUrl, p
   const url = await getLocalTestUrl({ testDir: __dirname });
   await page.goto(url);
 
-  const errorEventPromise = getFirstSentryEnvelopeRequest<EventAndTraceHeader>(
-    page,
-    undefined,
-    eventAndTraceHeaderRequestParser,
-  );
+  const errorEventPromise = waitForErrorRequest(page).then(eventAndTraceHeaderRequestParser);
   await page.locator('#errorBtn').click();
   const [errorEvent, errorTraceHeader] = await errorEventPromise;
 
