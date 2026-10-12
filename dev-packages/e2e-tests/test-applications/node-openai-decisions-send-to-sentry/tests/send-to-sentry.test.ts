@@ -82,8 +82,13 @@ async function expectDecideSpan(traceId: string): Promise<Attributes> {
   expect(Number(attributes[GEN_AI_USAGE_INPUT_TOKENS])).toBeGreaterThan(0);
   expect(Number(attributes[GEN_AI_USAGE_TOTAL_TOKENS])).toBe(Number(attributes[GEN_AI_USAGE_INPUT_TOKENS]));
 
-  const requestSpan = flattenTrace(fetchTrace(traceId)).find(item => item.op === HTTP_SERVER);
-  expect(flattenTrace(requestSpan?.children ?? []).some(item => item.event_id === span.event_id)).toBe(true);
+  // The request span is the segment; it ends last, so it can land after the decide span.
+  await expect
+    .poll(() => {
+      const requestSpan = flattenTrace(fetchTrace(traceId)).find(item => item.op === HTTP_SERVER);
+      return flattenTrace(requestSpan?.children ?? []).some(item => item.event_id === span.event_id);
+    }, EVENT_POLLING_OPTIONS)
+    .toBe(true);
 
   return attributes;
 }
