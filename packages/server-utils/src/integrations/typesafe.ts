@@ -3,7 +3,7 @@ import type { IntegrationFn } from '@sentry/core';
 import { defineIntegration } from '@sentry/core';
 import type { GenAiOptions } from '../ai/core/utils';
 import { resolveAIRecordingOptions } from '../ai/core/utils';
-import { addResponseAttributes, onSystemOneResponse, startEvaluateSpan } from '../ai/typesafe';
+import { addResponseAttributes, onSystemOneResponse, startDecideSpan } from '../ai/typesafe';
 import { TYPESAFE_INTEGRATION_NAME } from '../ai/typesafe/constants';
 import type { OrchestrionChannelContext } from '../orchestrion/types';
 import { CHANNELS } from '../orchestrion/channels';
@@ -23,7 +23,7 @@ const _typesafeIntegration = ((options: GenAiOptions = {}) => {
 function instrumentTypeSafe(options: GenAiOptions): void {
   bindTracingChannelToSpan(
     diagnosticsChannel.tracingChannel<OrchestrionChannelContext>(CHANNELS.TYPESAFE_SYSTEM_ONE),
-    data => startEvaluateSpan(data.arguments?.[0], data.self, resolveAIRecordingOptions(options).recordInputs),
+    data => startDecideSpan(data.arguments?.[0], data.self, resolveAIRecordingOptions(options).recordInputs),
     {
       beforeSpanEnd: (span, data) => {
         if (!('error' in data)) {

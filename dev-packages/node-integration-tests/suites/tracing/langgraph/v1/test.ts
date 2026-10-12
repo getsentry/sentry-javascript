@@ -6,7 +6,7 @@ import {
   SENTRY_OP,
   SENTRY_ORIGIN,
 } from '@sentry/conventions/attributes';
-import { GEN_AI_EVALUATE } from '@sentry/conventions/op';
+import { GEN_AI_DECIDE } from '@sentry/conventions/op';
 import { cleanupChildProcesses, createEsmAndCjsTests } from '../../../../utils/runner';
 
 describe('LangGraph integration (v1)', () => {
@@ -28,21 +28,21 @@ describe('LangGraph integration (v1)', () => {
         const spans = await spansPromise;
         const rootSpan = spans.find(span => span.is_segment && span.name === 'main')!;
         const agentSpan = spans.find(span => span.name === 'invoke_agent triage_graph')!;
-        const evaluateSpan = spans.find(span => span.name === 'evaluate jev-latest')!;
+        const decideSpan = spans.find(span => span.name === 'decide jev-latest')!;
 
         expect(agentSpan.parent_span_id).toBe(rootSpan.span_id);
-        expect(evaluateSpan.parent_span_id).toBe(agentSpan.span_id);
-        expect(evaluateSpan.attributes[SENTRY_OP].value).toBe(GEN_AI_EVALUATE);
-        expect(evaluateSpan.attributes[SENTRY_ORIGIN].value).toBe('auto.ai.langchain');
-        expect(evaluateSpan.attributes[GEN_AI_AGENT_NAME].value).toBe('triage_graph');
-        expect(JSON.parse(evaluateSpan.attributes[GEN_AI_INPUT_MESSAGES].value)).toEqual([
+        expect(decideSpan.parent_span_id).toBe(agentSpan.span_id);
+        expect(decideSpan.attributes[SENTRY_OP].value).toBe(GEN_AI_DECIDE);
+        expect(decideSpan.attributes[SENTRY_ORIGIN].value).toBe('auto.ai.langchain');
+        expect(decideSpan.attributes[GEN_AI_AGENT_NAME].value).toBe('triage_graph');
+        expect(JSON.parse(decideSpan.attributes[GEN_AI_INPUT_MESSAGES].value)).toEqual([
           {
             type: 'evaluation',
             state: 'My payouts have been failing.',
             questions: { urgent: { type: 'noul', instructions: 'Is this urgent?' } },
           },
         ]);
-        expect(JSON.parse(evaluateSpan.attributes[GEN_AI_OUTPUT_MESSAGES].value)).toEqual([
+        expect(JSON.parse(decideSpan.attributes[GEN_AI_OUTPUT_MESSAGES].value)).toEqual([
           { type: 'evaluation', answers: { urgent: { type: 'noul', noul: 0.9 } } },
         ]);
       });
@@ -69,11 +69,11 @@ describe('LangGraph integration (v1)', () => {
         await runner.start().completed();
 
         const spans = await spansPromise;
-        const evaluateSpan = spans.find(span => span.name === 'evaluate jev-latest')!;
+        const decideSpan = spans.find(span => span.name === 'decide jev-latest')!;
 
-        expect(evaluateSpan.attributes[SENTRY_OP].value).toBe(GEN_AI_EVALUATE);
-        expect(evaluateSpan.attributes[GEN_AI_INPUT_MESSAGES]).toBeUndefined();
-        expect(evaluateSpan.attributes[GEN_AI_OUTPUT_MESSAGES]).toBeUndefined();
+        expect(decideSpan.attributes[SENTRY_OP].value).toBe(GEN_AI_DECIDE);
+        expect(decideSpan.attributes[GEN_AI_INPUT_MESSAGES]).toBeUndefined();
+        expect(decideSpan.attributes[GEN_AI_OUTPUT_MESSAGES]).toBeUndefined();
       });
     },
     {
