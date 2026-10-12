@@ -11,8 +11,10 @@ import {
 
 import childProcess from 'child_process';
 import fs from 'fs';
-import { describe, it, expect, test, vi } from 'vitest';
+import { afterEach, describe, it, expect, test, vi } from 'vitest';
 import path from 'node:path';
+import { runInNewContext } from 'node:vm';
+import { JSDOM } from 'jsdom';
 
 type PackageJson = Record<string, unknown>;
 
@@ -281,6 +283,49 @@ describe('generateModuleMetadataInjectorCode', () => {
       },
     });
     expect(generatedCode.code()).toMatchSnapshot();
+  });
+});
+
+describe('code injection in HTML', () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it.each([
+    '</script><script>globalThis.injected = true</script>',
+    '</ScRiPt \n><script>globalThis.injected = true</script>',
+    '<!--<script>',
+    'quotes "\' and backslashes \\u003c with whitespace \n\r\t\u2028\u2029 and <>&',
+  ])('preserves injected values containing %j inside one script element', value => {
+    vi.spyOn(fs, 'readFileSync').mockReturnValueOnce(
+      JSON.stringify({ name: 'test-app', dependencies: { [value]: '1.0.0' } }),
+    );
+    const metadata = { [value]: { values: [value] } };
+    const injection = generateReleaseInjectorCode({ release: value, injectBuildInformation: true });
+    injection.append(generateModuleMetadataInjectorCode(metadata));
+    const code = injection.code();
+    const context: {
+      SENTRY_RELEASE?: { id: string };
+      SENTRY_BUILD_INFO?: { deps: string[]; depsVersions: Record<string, number>; nodeVersion: number };
+      _sentryModuleMetadata?: Record<string, unknown>;
+    } = {};
+
+    const dom = new JSDOM(`<script>${code}</script>`);
+    const scripts = dom.window.document.querySelectorAll('script');
+    dom.window.close();
+
+    expect(scripts).toHaveLength(1);
+    expect(scripts[0]?.textContent).toBe(code);
+
+    runInNewContext(code, context);
+
+    expect(context.SENTRY_RELEASE).toEqual({ id: value });
+    expect(context.SENTRY_BUILD_INFO).toEqual({
+      deps: [value],
+      depsVersions: {},
+      nodeVersion: Number(process.versions.node.split('.')[0]),
+    });
+    expect(Object.values(context._sentryModuleMetadata ?? {})).toEqual([metadata]);
   });
 });
 
