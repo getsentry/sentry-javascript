@@ -105,8 +105,8 @@ export function makeAutoInstrumentMiddlewarePlugin(options: AutoInstrumentMiddle
         return null;
       }
 
-      // Skip if not a TS/JS file
-      if (!/\.(ts|tsx|js|jsx|mjs|mts)$/.test(id)) {
+      // Skip if not a TS/JS file. The id can end in a query, e.g. the server function module `foo.tsx?tss-serverfn-split`.
+      if (!/\.(ts|tsx|js|jsx|mjs|mts)$/.test(id.split('?')[0] ?? id)) {
         return null;
       }
 

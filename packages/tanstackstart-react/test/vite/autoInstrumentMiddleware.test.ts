@@ -71,6 +71,25 @@ createStart(() => ({ requestMiddleware: wrapMiddlewaresWithSentry({ myMiddleware
     expect(result!.code).toContain("import { wrapMiddlewaresWithSentry } from '@sentry/tanstackstart-react'");
   });
 
+  it('instruments server function middlewares in a module whose id ends in a query', () => {
+    const plugin = makeAutoInstrumentMiddlewarePlugin() as PluginWithTransform;
+    const code = `
+import { createServerFn } from '@tanstack/react-start';
+const serverFn = createServerFn().middleware([authMiddleware]).handler(async () => ({}));
+`;
+    const result = plugin.transform(code, '/app/routes/foo.tsx?tss-serverfn-split');
+
+    expect(result).not.toBeNull();
+    expect(result!.code).toContain('.middleware(wrapMiddlewaresWithSentry({ authMiddleware }))');
+  });
+
+  it('does not instrument non-TS/JS files whose id ends in a query', () => {
+    const plugin = makeAutoInstrumentMiddlewarePlugin() as PluginWithTransform;
+    const result = plugin.transform(createStartFile, '/app/start.css?direct');
+
+    expect(result).toBeNull();
+  });
+
   it('instruments both start files and route files', () => {
     const plugin = makeAutoInstrumentMiddlewarePlugin() as PluginWithTransform;
 
