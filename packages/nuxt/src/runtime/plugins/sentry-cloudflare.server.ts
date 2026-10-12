@@ -1,13 +1,19 @@
 import type { CloudflareOptions } from '@sentry/cloudflare';
 import { getDefaultIntegrations, setAsyncLocalStorageAsyncContextStrategy } from '@sentry/cloudflare';
 import { wrapRequestHandler } from '@sentry/cloudflare/request';
-import { debug, getDefaultIsolationScope, getIsolationScope, getTraceData } from '@sentry/core';
+import {
+  debug,
+  getDefaultIsolationScope,
+  getIsolationScope,
+  getTraceData,
+  stripUrlQueryAndFragment,
+} from '@sentry/core';
 import type { H3Event } from 'h3';
 import type { NitroApp, NitroAppPlugin } from 'nitropack';
 import type { NuxtRenderHTMLContext } from 'nuxt/app';
 import { sentryCaptureErrorHook } from '../hooks/captureErrorHook';
 import { updateRouteBeforeResponse } from '../hooks/updateRouteBeforeResponse';
-import { addSentryTracingMetaTags } from '../utils';
+import { addSentryTracingMetaTags, shouldAddTracingMetaTags } from '../utils';
 import { getCfProperties, getCloudflareProperties, hasCfProperty, isEventType } from '../utils/event-type-check';
 
 /**
@@ -81,6 +87,10 @@ export const sentryCloudflareNitroPlugin =
             const newIsolationScope =
               isolationScope === getDefaultIsolationScope() ? isolationScope.clone() : isolationScope;
 
+            // `wrapRequestHandler` sets no transaction name, so errors captured during the request would have none.
+            // This is the same best-effort name the Node SDK sets when a request starts.
+            isolationScope.setTransactionName(`${event.method} ${stripUrlQueryAndFragment(pathname)}`);
+
             const traceData = getTraceData();
             if (traceData && Object.keys(traceData).length > 0) {
               // Storing trace data in the WeakMap using event.context.cf as key for later use in HTML meta-tags
@@ -103,6 +113,10 @@ export const sentryCloudflareNitroPlugin =
     nitroApp.hooks.hook('beforeResponse', updateRouteBeforeResponse);
 
     nitroApp.hooks.hook('render:html', (html: NuxtRenderHTMLContext, { event }: { event: H3Event }) => {
+      if (!shouldAddTracingMetaTags(event)) {
+        return;
+      }
+
       let storedTraceData: ReturnType<typeof getTraceData> | undefined = undefined;
 
       if (

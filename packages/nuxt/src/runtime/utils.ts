@@ -1,5 +1,6 @@
 import type { ClientOptions, Context, SerializedTraceData } from '@sentry/core';
 import { captureException, debug, getClient, getTraceMetaTags, isObjectLike } from '@sentry/core';
+import type { H3Event } from 'h3';
 import type { CapturedErrorContext } from 'nitropack/types';
 import type { NuxtRenderHTMLContext } from 'nuxt/app';
 import type { ComponentPublicInstance } from 'vue';
@@ -68,6 +69,36 @@ export function addSentryTracingMetaTags(head: NuxtRenderHTMLContext['head'], tr
     debug.log('Adding Sentry tracing meta tags to HTML page:', metaTags);
     head.push(metaTags);
   }
+}
+
+/**
+ * Whether the rendered HTML can carry the tracing meta tags of its request. Pre-rendered and SWR-cached HTML is served
+ * to many requests, so its meta tags would connect unrelated page loads to one server trace.
+ */
+export function shouldAddTracingMetaTags(event: H3Event): boolean {
+  // h3 v1 (Nuxt 4): event.node.res.getHeaders(); h3 v2 (Nuxt 5): event.node is undefined
+  const nodeResHeadersH3v1 = event.node?.res?.getHeaders() || {};
+
+  // h3 v2 (Nuxt 5): response headers are on event.res.headers
+  const isPreRenderedPage =
+    Object.keys(nodeResHeadersH3v1).includes('x-nitro-prerender') ||
+    // oxlint-disable-next-line typescript/no-explicit-any,typescript-oxlint/no-unsafe-member-access
+    !!(event as any).res?.headers?.has?.('x-nitro-prerender');
+
+  // oxlint-disable-next-line typescript-oxlint/no-unsafe-member-access
+  const isSWRCachedPage = /* Nitro v2 */ (event?.context?.cache?.options?.swr ||
+    // oxlint-disable-next-line typescript-oxlint/no-unsafe-member-access
+    /* Nitro v3 */ event?.context?.routeRules?.swr) as boolean;
+
+  if (!isPreRenderedPage && !isSWRCachedPage) {
+    return true;
+  }
+
+  const reason = isPreRenderedPage ? 'the page was pre-rendered' : 'SWR caching is enabled for the route';
+  debug.log(
+    `Not adding Sentry tracing meta tags to HTML for ${event.path} because ${reason}. This will disable distributed tracing and prevent connecting multiple client page loads to the same server request.`,
+  );
+  return false;
 }
 
 /**

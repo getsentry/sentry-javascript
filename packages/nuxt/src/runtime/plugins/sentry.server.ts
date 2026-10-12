@@ -1,36 +1,15 @@
-import { debug } from '@sentry/core';
 import type { H3Event } from 'h3';
 import type { NitroAppPlugin } from 'nitropack';
 import type { NuxtRenderHTMLContext } from 'nuxt/app';
 import { sentryCaptureErrorHook } from '../hooks/captureErrorHook';
-import { addSentryTracingMetaTags } from '../utils';
+import { addSentryTracingMetaTags, shouldAddTracingMetaTags } from '../utils';
 
 export default (nitroApp => {
   nitroApp.hooks.hook('error', sentryCaptureErrorHook);
 
   nitroApp.hooks.hook('render:html', (html: NuxtRenderHTMLContext, { event }: { event: H3Event }) => {
-    // h3 v1 (Nuxt 4): event.node.res.getHeaders(); h3 v2 (Nuxt 5): event.node is undefined
-    const nodeResHeadersH3v1 = event.node?.res?.getHeaders() || {};
-
-    // h3 v2 (Nuxt 5): response headers are on event.res.headers
-    const isPreRenderedPage =
-      Object.keys(nodeResHeadersH3v1).includes('x-nitro-prerender') ||
-      // fix   × typescript-eslint(no-unsafe-member-access): Unsafe member access .res on an `any` value.
-      // oxlint-disable-next-line typescript/no-explicit-any,typescript-oxlint/no-unsafe-member-access
-      !!(event as any).res?.headers?.has?.('x-nitro-prerender');
-
-    // oxlint-disable-next-line typescript-oxlint/no-unsafe-member-access
-    const isSWRCachedPage = /* Nitro v2 */ (event?.context?.cache?.options?.swr ||
-      // oxlint-disable-next-line typescript-oxlint/no-unsafe-member-access
-      /* Nitro v3 */ event?.context?.routeRules?.swr) as boolean;
-
-    if (!isPreRenderedPage && !isSWRCachedPage) {
+    if (shouldAddTracingMetaTags(event)) {
       addSentryTracingMetaTags(html.head);
-    } else {
-      const reason = isPreRenderedPage ? 'the page was pre-rendered' : 'SWR caching is enabled for the route';
-      debug.log(
-        `Not adding Sentry tracing meta tags to HTML for ${event.path} because ${reason}. This will disable distributed tracing and prevent connecting multiple client page loads to the same server request.`,
-      );
     }
   });
 }) satisfies NitroAppPlugin;

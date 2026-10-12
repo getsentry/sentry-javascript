@@ -1,7 +1,8 @@
 import { captureException, getClient } from '@sentry/core';
 import { afterEach, beforeEach, describe, expect, it, type Mock, test, vi } from 'vitest';
+import type { H3Event } from 'h3';
 import type { ComponentPublicInstance } from 'vue';
-import { extractErrorContext, reportNuxtError } from '../../src/runtime/utils';
+import { extractErrorContext, reportNuxtError, shouldAddTracingMetaTags } from '../../src/runtime/utils';
 
 describe('extractErrorContext', () => {
   it('returns empty object for undefined or empty context', () => {
@@ -89,6 +90,41 @@ describe('extractErrorContext', () => {
     // eslint-disable-next-line @typescript-eslint/ban-ts-comment
     // @ts-ignore
     expect(() => extractErrorContext(weirdContext3)).not.toThrow();
+  });
+});
+
+describe('shouldAddTracingMetaTags', () => {
+  it('returns true for a page rendered per request', () => {
+    const event = { node: { res: { getHeaders: () => ({}) } }, context: {} } as unknown as H3Event;
+
+    expect(shouldAddTracingMetaTags(event)).toBe(true);
+  });
+
+  it('returns false for a pre-rendered page (h3 v1)', () => {
+    const event = {
+      node: { res: { getHeaders: () => ({ 'x-nitro-prerender': '1' }) } },
+      context: {},
+    } as unknown as H3Event;
+
+    expect(shouldAddTracingMetaTags(event)).toBe(false);
+  });
+
+  it('returns false for a pre-rendered page (h3 v2)', () => {
+    const event = { res: { headers: new Headers({ 'x-nitro-prerender': '1' }) }, context: {} } as unknown as H3Event;
+
+    expect(shouldAddTracingMetaTags(event)).toBe(false);
+  });
+
+  it('returns false for an SWR-cached page (Nitro v2)', () => {
+    const event = { context: { cache: { options: { swr: true } } } } as unknown as H3Event;
+
+    expect(shouldAddTracingMetaTags(event)).toBe(false);
+  });
+
+  it('returns false for an SWR-cached page (Nitro v3)', () => {
+    const event = { context: { routeRules: { swr: 3600 } } } as unknown as H3Event;
+
+    expect(shouldAddTracingMetaTags(event)).toBe(false);
   });
 });
 
