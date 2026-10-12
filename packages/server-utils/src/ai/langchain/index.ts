@@ -48,7 +48,7 @@ export function createLangChainCallbackHandler(options: LangChainOptions = {}): 
 
   // Internal state - single instance tracks all spans
   const spanMap = new Map<string, Span>();
-  const evaluateRunIds = new Set<string>();
+  const decideRunIds = new Set<string>();
 
   /**
    * Exit a span and clean up
@@ -59,7 +59,7 @@ export function createLangChainCallbackHandler(options: LangChainOptions = {}): 
       span.end();
     }
     spanMap.delete(runId);
-    evaluateRunIds.delete(runId);
+    decideRunIds.delete(runId);
   };
 
   /**
@@ -225,7 +225,7 @@ export function createLangChainCallbackHandler(options: LangChainOptions = {}): 
       // A Jev call is a real model call, so it is recorded inside an agent too.
       if (isTypeSafeClassifier(chain)) {
         spanMap.set(runId, startTypeSafeClassifierSpan(chain, inputs, metadata, recordInputs));
-        evaluateRunIds.add(runId);
+        decideRunIds.add(runId);
         return;
       }
 
@@ -278,7 +278,7 @@ export function createLangChainCallbackHandler(options: LangChainOptions = {}): 
     handleChainEnd(outputs: unknown, runId: string) {
       const span = spanMap.get(runId);
       if (span?.isRecording()) {
-        if (evaluateRunIds.has(runId)) {
+        if (decideRunIds.has(runId)) {
           addTypeSafeClassifierResponseAttributes(span, outputs, recordOutputs);
         } else if (recordOutputs) {
           span.setAttributes({
