@@ -57,6 +57,7 @@ export type NextConfigObject = {
   outputFileTracingIncludes?: Record<string, string[]>; // next >= v15.0.0
   turbopack?: TurbopackOptions;
   compiler?: {
+    define?: Record<string, string | boolean>;
     runAfterProductionCompile?: (context: { distDir: string; projectDir: string }) => Promise<void> | void;
   };
 };
@@ -110,6 +111,9 @@ export type SentryBuildWebpackOptions = {
 
   /**
    * Tree-shaking options to help reduce the size of the Sentry SDK bundle.
+   *
+   * Prefer the top-level `bundleSizeOptimizations` option, which works for both webpack and Turbopack builds.
+   * If both are set, `bundleSizeOptimizations` takes precedence.
    */
   treeshake?: {
     /**
@@ -146,7 +150,7 @@ export type SentryBuildWebpackOptions = {
      * This has no effect if you did not add `replayIntegration`.
      */
     excludeReplayCompressionWorker?: boolean;
-  };
+  }; // TODO: Deprecate this option and its nested options in favor of `bundleSizeOptimizations` closer to v12
 
   /**
    * Options to be passed directly to the Sentry Webpack Plugin (`@sentry/webpack-plugin`) that ships with the Sentry SDK.
