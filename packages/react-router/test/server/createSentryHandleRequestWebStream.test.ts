@@ -104,6 +104,27 @@ describe('createSentryHandleRequestWebStream', () => {
     expect(resolved).toBe(true);
   });
 
+  it.each([
+    ['a bot', makeRequest('Googlebot/2.1'), makeRouterContext()],
+    ['SPA mode', makeRequest(), makeRouterContext(true)],
+  ])('rejects when allReady rejects for %s', async (_name, request, routerContext) => {
+    const allReady = createDeferred();
+    mockRenderToReadableStream.mockResolvedValue(createBody(allReady.promise));
+
+    const handleRequest = createSentryHandleRequestWebStream({
+      renderToReadableStream: mockRenderToReadableStream,
+      ServerRouter: mockServerRouter,
+    });
+
+    const promise = handleRequest(request, 200, headers, routerContext, {});
+    const assertion = expect(promise).rejects.toThrow('fatal stream error');
+
+    await vi.advanceTimersByTimeAsync(0);
+    allReady.reject(new Error('fatal stream error'));
+
+    await assertion;
+  });
+
   it('resolves without waiting for allReady for regular browsers', async () => {
     const allReady = createDeferred();
     mockRenderToReadableStream.mockResolvedValue(createBody(allReady.promise));
