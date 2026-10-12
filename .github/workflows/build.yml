@@ -339,12 +339,13 @@ jobs:
         uses: ./.github/actions/restore-cache
         with:
           dependency_cache_key: ${{ needs.job_build.outputs.dependency_cache_key }}
-      - name: Lint source files
-        run: yarn lint
-      - name: Lint for ES compatibility
-        run: yarn lint:es-compatibility
-      - name: Lint types
-        run: yarn lint:types
+      - parallel:
+          - name: Lint source files
+            run: yarn lint
+          - name: Lint for ES compatibility
+            run: yarn lint:es-compatibility
+          - name: Lint types
+            run: yarn lint:types
 
   job_check_lockfile:
     name: Check lockfile
@@ -504,11 +505,16 @@ jobs:
         if: github.event_name != 'pull_request'
 
   job_bun_unit_tests:
-    name: Bun Unit Tests
+    name: Bun (${{ matrix.bun }}) Unit Tests
     needs: [job_get_metadata, job_build]
     if: needs.job_build.outputs.changed_bun == 'true' || github.event_name != 'pull_request'
     timeout-minutes: 10
     runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        # 1.3.14 is the oldest supported Bun version
+        bun: ['1.3.14', '1.4']
     steps:
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
         uses: actions/checkout@v7
@@ -521,7 +527,7 @@ jobs:
       - name: Set up Bun
         uses: oven-sh/setup-bun@v2
         with:
-          bun-version: '1.3.14'
+          bun-version: ${{ matrix.bun }}
       - name: Restore caches
         uses: ./.github/actions/restore-cache
         with:
@@ -905,7 +911,7 @@ jobs:
         run: yarn test
 
   job_bun_integration_tests:
-    name: Bun Integration Tests (${{ matrix.shard }}/2)
+    name: Bun (${{ matrix.bun }}) Integration Tests (${{ matrix.shard }}/2)
     needs: [job_get_metadata, job_build]
     if: needs.job_build.outputs.changed_bun_integration == 'true' || github.event_name != 'pull_request'
     runs-on: ubuntu-24.04
@@ -913,6 +919,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
+        # 1.3.14 is the oldest supported Bun version
+        bun: ['1.3.14', '1.4']
         shard: [1, 2]
     steps:
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
@@ -926,7 +934,7 @@ jobs:
       - name: Set up Bun
         uses: oven-sh/setup-bun@v2
         with:
-          bun-version: '1.3.14'
+          bun-version: ${{ matrix.bun }}
       - name: Restore caches
         uses: ./.github/actions/restore-cache
         with:
@@ -1093,6 +1101,16 @@ jobs:
           name: build-layer-output
           path: ${{ env.BUILD_LAYER_PATH }}
 
+      # Installs the root workspace's Playwright version while the app builds. Most apps use the same version.
+      # The app's own version is only known after its build, so it gets installed then if it differs.
+      # Started after the artifact downloads: starting next to them made `download-artifact` fail to read the event file.
+      - name: Install Playwright
+        id: install-playwright
+        background: true
+        uses: ./.github/actions/install-playwright
+        with:
+          browsers: chromium
+
       - name: Prepare e2e tests
         run: yarn test:prepare
         working-directory: dev-packages/e2e-tests
@@ -1118,11 +1136,14 @@ jobs:
         env:
           SENTRY_E2E_WORKSPACE_ROOT: ${{ github.workspace }}
 
-      - name: Install Playwright
+      - wait: [install-playwright]
+
+      - name: Install Playwright for the app's version
         uses: ./.github/actions/install-playwright
         with:
           browsers: chromium
           cwd: ${{ runner.temp }}/test-application
+          installed-version: ${{ steps.install-playwright.outputs.version }}
 
       - name: Run E2E test
         working-directory: ${{ runner.temp }}/test-application
@@ -1222,6 +1243,16 @@ jobs:
           name: build-tarball-output
           path: ${{ env.TARBALL_ARTIFACT_DOWNLOAD_PATH }}
 
+      # Installs the root workspace's Playwright version while the app builds. Most apps use the same version.
+      # The app's own version is only known after its build, so it gets installed then if it differs.
+      # Started after the artifact downloads: starting next to them made `download-artifact` fail to read the event file.
+      - name: Install Playwright
+        id: install-playwright
+        background: true
+        uses: ./.github/actions/install-playwright
+        with:
+          browsers: chromium
+
       - name: Prepare E2E tests
         run: yarn test:prepare
         working-directory: dev-packages/e2e-tests
@@ -1245,11 +1276,14 @@ jobs:
         timeout-minutes: 7
         run: ${{ matrix.build-command || 'pnpm test:build' }}
 
-      - name: Install Playwright
+      - wait: [install-playwright]
+
+      - name: Install Playwright for the app's version
         uses: ./.github/actions/install-playwright
         with:
           browsers: chromium
           cwd: ${{ runner.temp }}/test-application
+          installed-version: ${{ steps.install-playwright.outputs.version }}
 
       - name: Run E2E test
         working-directory: ${{ runner.temp }}/test-application

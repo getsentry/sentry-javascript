@@ -15,6 +15,25 @@ test('sends a pageload span', async ({ page }) => {
   expect(span.attributes?.['sentry.segment.name.source']?.value).toBe('route');
 });
 
+test('continues the server trace on a page load', async ({ page }) => {
+  const serverSpanPromise = waitForStreamedSpan(
+    APP_NAME,
+    span =>
+      getSpanOp(span) === 'http.server' && span.is_segment === true && span.attributes?.['http.route']?.value === '/',
+  );
+  const pageloadPromise = waitForStreamedSpan(
+    APP_NAME,
+    span => getSpanOp(span) === 'pageload' && span.is_segment === true,
+  );
+
+  await page.goto('/');
+
+  const [serverSpan, pageload] = await Promise.all([serverSpanPromise, pageloadPromise]);
+  // The document's response carried the trace in `Server-Timing`, which the browser SDK picks up.
+  expect(pageload.trace_id).toBe(serverSpan.trace_id);
+  expect(pageload.parent_span_id).toBe(serverSpan.span_id);
+});
+
 test('parameterizes a page load on a route with params', async ({ page }) => {
   const spanPromise = waitForStreamedSpan(APP_NAME, span => getSpanOp(span) === 'pageload' && span.is_segment === true);
 

@@ -1,30 +1,30 @@
+import { SENTRY_SEGMENT_ID } from '@sentry/conventions/attributes';
 import { expect } from '@playwright/test';
-import type { Event } from '@sentry/core';
 import { sentryTest } from '../../../../utils/fixtures';
-import { getFirstSentryEnvelopeRequest, shouldSkipTracingTest } from '../../../../utils/helpers';
+import { shouldSkipTracingTest } from '../../../../utils/helpers';
+import { collectStreamedSpans, getSpanOp, waitForStreamedSpan } from '../../../../utils/spanUtils';
 
 sentryTest(
   "doesn't capture long animation frame that starts before a navigation.",
   async ({ browserName, getLocalTestUrl, page }) => {
     // Long animation frames only work on chrome
-    if (shouldSkipTracingTest() || browserName !== 'chromium') {
-      sentryTest.skip();
-    }
+    sentryTest.skip(shouldSkipTracingTest() || browserName !== 'chromium');
 
     const url = await getLocalTestUrl({ testDir: __dirname });
 
-    await page.goto(url);
+    const allSpans = collectStreamedSpans(page);
+    const navigationSpanPromise = waitForStreamedSpan(page, span => getSpanOp(span) === 'navigation');
 
-    const navigationTransactionEventPromise = getFirstSentryEnvelopeRequest<Event>(page);
+    await page.goto(url);
 
     await page.locator('#clickme').click();
 
-    const navigationTransactionEvent = await navigationTransactionEventPromise;
+    const navigationRoot = await navigationSpanPromise;
+    await page.evaluate(() => (window as any).Sentry.flush());
+    expect(getSpanOp(navigationRoot)).toBe('navigation');
+    const spans = allSpans.filter(span => span.attributes[SENTRY_SEGMENT_ID]?.value === navigationRoot.span_id);
 
-    expect(navigationTransactionEvent.contexts?.trace?.op).toBe('navigation');
-
-    const loafSpans = navigationTransactionEvent.spans?.filter(s => s.op?.startsWith('ui.long_animation_frame'));
-
-    expect(loafSpans?.length).toEqual(0);
+    const loafSpans = spans.filter(s => getSpanOp(s)?.startsWith('ui.long_animation_frame'));
+    expect(loafSpans).toHaveLength(0);
   },
 );

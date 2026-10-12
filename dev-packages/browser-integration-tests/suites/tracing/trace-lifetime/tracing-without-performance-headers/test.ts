@@ -1,10 +1,9 @@
 import { expect } from '@playwright/test';
 import { sentryTest } from '../../../../utils/fixtures';
-import type { EventAndTraceHeader } from '../../../../utils/helpers';
 import {
   eventAndTraceHeaderRequestParser,
-  getFirstSentryEnvelopeRequest,
   shouldSkipTracingTest,
+  waitForErrorRequest,
 } from '../../../../utils/helpers';
 
 const META_TAG_TRACE_ID = '12345678901234567890123456789012';
@@ -25,11 +24,7 @@ sentryTest('error on initial page has traceId from server timing headers', async
   });
   await page.goto(url);
 
-  const errorEventPromise = getFirstSentryEnvelopeRequest<EventAndTraceHeader>(
-    page,
-    undefined,
-    eventAndTraceHeaderRequestParser,
-  );
+  const errorEventPromise = waitForErrorRequest(page).then(eventAndTraceHeaderRequestParser);
 
   await page.locator('#errorBtn').click();
   const [errorEvent, errorTraceHeader] = await errorEventPromise;

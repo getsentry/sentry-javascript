@@ -1,9 +1,9 @@
-import { afterAll, expect } from 'vitest';
-import { conditionalTest } from '../../../utils';
+import { afterAll, describe, expect } from 'vitest';
+import { supports } from '../../../utils';
 import { cleanupChildProcesses, createEsmAndCjsTests } from '../../../utils/runner';
 
 // GraphQL 17 requires Node >= 22, so this suite is skipped on older Node.
-conditionalTest({ min: 22 })('GraphQL tracing channel Test', () => {
+describe.runIf(supports({ min: 22 }))('GraphQL tracing channel Test', () => {
   afterAll(() => {
     cleanupChildProcesses();
   });

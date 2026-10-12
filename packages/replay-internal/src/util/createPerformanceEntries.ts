@@ -43,6 +43,12 @@ export interface Metric {
    * entries (e.g. a CLS value of 0 given no layout shifts).
    */
   entries: PerformanceEntry[] | LayoutShift[];
+
+  /**
+   * The start time the metric value is relative to.
+   * Non-zero for soft navigations and bfcache restores.
+   */
+  navigationStartTime?: number;
 }
 
 interface LayoutShift extends PerformanceEntry {
@@ -245,7 +251,12 @@ function getWebVital(
   const value = metric.value;
   const rating = metric.rating;
 
-  const end = getAbsoluteTime(value);
+  // The value is a score for CLS and a duration for INP, so it is not a time. We place the event at the last entry
+  // instead: the render for LCP, the last layout shift for CLS and the interaction for INP. Without entries (a CLS of
+  // 0, a bfcache LCP), we fall back to the start of the navigation the metric belongs to, plus the value. For a soft
+  // navigation, this keeps the event on that navigation instead of at page load.
+  const lastEntry = metric.entries[metric.entries.length - 1];
+  const end = getAbsoluteTime(lastEntry?.startTime ?? (metric.navigationStartTime ?? 0) + value);
 
   return {
     type: 'web-vital',

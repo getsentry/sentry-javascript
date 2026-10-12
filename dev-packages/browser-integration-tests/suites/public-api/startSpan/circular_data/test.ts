@@ -1,29 +1,23 @@
 import { expect } from '@playwright/test';
-import type { Event } from '@sentry/core';
 import { sentryTest } from '../../../../utils/fixtures';
-import { getFirstSentryEnvelopeRequest, shouldSkipTracingTest } from '../../../../utils/helpers';
+import { shouldSkipTracingTest } from '../../../../utils/helpers';
+import { getSpanOp, waitForStreamedSpan } from '../../../../utils/spanUtils';
 
-sentryTest('should be able to handle circular data', async ({ getLocalTestUrl, page }) => {
-  if (shouldSkipTracingTest()) {
-    sentryTest.skip();
-  }
+sentryTest(
+  'drops circular object attributes while preserving supported attributes on root and child spans',
+  async ({ getLocalTestUrl, page }) => {
+    sentryTest.skip(shouldSkipTracingTest());
+    const url = await getLocalTestUrl({ testDir: __dirname });
+    const rootPromise = waitForStreamedSpan(page, span => span.name === 'circular_object_test_transaction');
+    const childPromise = waitForStreamedSpan(page, span => getSpanOp(span) === 'circular_object_test_span');
+    await page.goto(url);
 
-  const url = await getLocalTestUrl({ testDir: __dirname });
-  const eventData = await getFirstSentryEnvelopeRequest<Event>(page, url);
-
-  expect(eventData.type).toBe('transaction');
-  expect(eventData.transaction).toBe('circular_object_test_transaction');
-
-  expect(eventData.contexts).toMatchObject({
-    trace: {
-      data: { chicken: { lays: { contains: '[Circular ~]' } } },
-    },
-  });
-
-  expect(eventData?.spans?.[0]).toMatchObject({
-    data: { chicken: { lays: { contains: '[Circular ~]' } } },
-    op: 'circular_object_test_span',
-  });
-
-  await new Promise(resolve => setTimeout(resolve, 2000));
-});
+    const [rootSpan, childSpan] = await Promise.all([rootPromise, childPromise]);
+    expect(rootSpan.is_segment).toBe(true);
+    expect(childSpan.parent_span_id).toBe(rootSpan.span_id);
+    expect(rootSpan.attributes.count).toEqual({ type: 'integer', value: 42 });
+    expect(childSpan.attributes.count).toEqual({ type: 'integer', value: 42 });
+    expect(rootSpan.attributes.chicken).toBeUndefined();
+    expect(childSpan.attributes.chicken).toBeUndefined();
+  },
+);

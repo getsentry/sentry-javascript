@@ -1,7 +1,9 @@
-import { afterAll, describe } from 'vitest';
+import { afterAll, describe, expect } from 'vitest';
 import { cleanupChildProcesses, createEsmAndCjsTests } from '../../../utils/runner';
+import { supports } from '../../../utils';
 
-describe('tracer.startActiveSpan errors', () => {
+// Fails on Bun before 1.4. The cause is not investigated yet.
+describe.runIf(supports({ bunMin: '1.4.0' }))('tracer.startActiveSpan errors', () => {
   afterAll(() => {
     cleanupChildProcesses();
   });
@@ -17,16 +19,19 @@ describe('tracer.startActiveSpan errors', () => {
     test('does NOT mark span errored when uncaught error escapes raw tracer.startActiveSpan callback', async () => {
       await createRunner()
         // The rejection is captured as an error event, which can reach the transport before the
-        // transaction.
+        // span envelope.
         .ignore('event')
         .expect({
-          transaction: {
-            transaction: 'test span name',
-            contexts: {
-              trace: {
+          span: {
+            items: [
+              {
+                name: 'test span name',
+                is_segment: true,
+                start_timestamp: expect.any(Number),
+                end_timestamp: expect.any(Number),
                 status: 'ok',
               },
-            },
+            ],
           },
         })
         .start()

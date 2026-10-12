@@ -2,15 +2,18 @@ import { _INTERNAL_shouldSkipAiProviderWrapping, _INTERNAL_skipAiProviderWrappin
 import { ANTHROPIC_AI_INTEGRATION_NAME } from '../anthropic-ai/constants';
 import { GOOGLE_GENAI_INTEGRATION_NAME } from '../google-genai/constants';
 import { OPENAI_INTEGRATION_NAME } from '../openai/constants';
+import { WORKERS_AI_INTEGRATION_NAME } from '../workers-ai/constants';
 
-// pi-ai sends its requests through the `openai`, `@anthropic-ai/sdk` and `@google/genai` clients.
-// Left alone, those integrations report the same request a second time beside the `chat` span of
-// the framework that sent it. Bedrock requests go through `@aws-sdk/client-bedrock-runtime`, which
-// `awsIntegration` still reports; that one has no skip yet.
+// pi-ai sends its requests through the `openai`, `@anthropic-ai/sdk` and `@google/genai` clients, and
+// on Cloudflare through the Workers AI binding (`createAI()` of `agents/models/pi-ai`). Left alone,
+// those integrations report the same request a second time beside the `chat` span of the framework
+// that sent it. Bedrock requests go through `@aws-sdk/client-bedrock-runtime`, which `awsIntegration`
+// still reports; that one has no skip yet.
 const PI_AI_PROVIDER_INTEGRATIONS = [
   OPENAI_INTEGRATION_NAME,
   ANTHROPIC_AI_INTEGRATION_NAME,
   GOOGLE_GENAI_INTEGRATION_NAME,
+  WORKERS_AI_INTEGRATION_NAME,
 ];
 
 /**

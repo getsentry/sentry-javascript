@@ -23,6 +23,7 @@ import {
   startInactiveSpan,
 } from '@sentry/core';
 import { sanitizeSqlQueryWithSummary } from '../utils/sql';
+import type { OrchestrionChannelContext } from '../orchestrion/types';
 import { CHANNELS } from '../orchestrion/channels';
 import { bindTracingChannelToSpan } from '../tracing-channel';
 import { mysqlModuleNames } from '../orchestrion/config/mysql';
@@ -42,13 +43,8 @@ const DB_SYSTEM_NAME_VALUE_MYSQL = 'mysql' as const;
  * The shape orchestrion's transform attaches to the tracing-channel `context` object. Documented here
  * rather than imported because orchestrion's runtime doesn't export it.
  */
-interface MysqlQueryChannelContext {
-  // The live args array passed to the wrapped `connection.query` call; `arguments[0]` is the SQL.
-  arguments: unknown[];
+interface MysqlQueryChannelContext extends OrchestrionChannelContext {
   self?: MysqlConnection;
-  moduleVersion?: string;
-  result?: unknown;
-  error?: unknown;
   // The caller's scope, captured at `start` and replayed onto the streamed `Query` emitter (see below).
   _sentryCallerScope?: Scope;
 }

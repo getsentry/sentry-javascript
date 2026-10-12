@@ -37,6 +37,8 @@ Version 11 of the Sentry SDK has new compatibility ranges for runtimes and frame
 
 **Deno:** The minimum supported Deno version is now **2.8.3**.
 
+**Bun:** The minimum supported Bun version is now **1.3.14**.
+
 **Browsers:** Support for **Safari 14** was dropped. Sentry now requires Safari 15 or higher. For the rest of the browser support matrix, refer to the [Sentry docs](https://docs.sentry.io/platforms/javascript/#browser-support).
 
 ### TypeScript Version Policy

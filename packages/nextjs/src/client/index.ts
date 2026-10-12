@@ -37,9 +37,10 @@ declare const __SENTRY_TRACING__: boolean;
 export function init(options: BrowserOptions): Client | undefined {
   if (!DEBUG_BUILD && options.debug) {
     consoleSandbox(() => {
+      // TODO(v12): Remove the `webpack.treeshake` mention together with that option
       // eslint-disable-next-line no-console
       console.warn(
-        '[@sentry/nextjs] You have enabled `debug: true`, but Sentry debug logging was removed from your bundle (likely via `webpack.treeshake.removeDebugLogging: true`). Set that option to `false` to see Sentry debug output.',
+        '[@sentry/nextjs] You have enabled `debug: true`, but Sentry debug logging was removed from your bundle (likely via `bundleSizeOptimizations.excludeDebugStatements: true` or `webpack.treeshake.removeDebugLogging: true`). Set that option to `false` to see Sentry debug output.',
       );
     });
   }

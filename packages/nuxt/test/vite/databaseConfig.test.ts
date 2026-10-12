@@ -8,7 +8,7 @@ vi.mock('@sentry/core', () => ({
 }));
 
 vi.mock('@nuxt/kit', () => ({
-  addServerPlugin: vi.fn(),
+  addNitroPlugin: vi.fn(),
   createResolver: vi.fn(() => ({
     resolve: vi.fn((path: string) => path),
   })),

@@ -28,7 +28,7 @@ const UPDATE_RE = new RegExp(
 );
 const DELETE_RE = new RegExp(`^\\s*(?<operation>DELETE)\\s+FROM\\s+(?<table>${TABLE_NAME})`, 'i');
 
-const SELECT_RE = /^\s*\(?\s*(?<operation>SELECT)\b/i;
+const SELECT_RE = /^\s*(?:\(\s*)?(?<operation>SELECT)\b/i;
 
 const PRAGMA_RE = /^\s*(?<operation>PRAGMA)\s+(?<command>\S+)/i;
 

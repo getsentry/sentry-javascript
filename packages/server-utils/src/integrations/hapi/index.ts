@@ -1,6 +1,7 @@
 import * as diagnosticsChannel from '../../utils/diagnosticsChannel';
 import type { IntegrationFn } from '@sentry/core';
 import { defineIntegration } from '@sentry/core';
+import type { OrchestrionChannelContext } from '../../orchestrion/types';
 import { CHANNELS } from '../../orchestrion/channels';
 import { hapiModuleNames } from '../../orchestrion/config/hapi';
 import { invokeOrchestrionInstrumentation } from '../../orchestrion/instrumentation';
@@ -46,8 +47,7 @@ interface HapiIntegrationOptions {
  * the hapi server instance: the root server has `self.realm.plugin === undefined`,
  * while a plugin's clone server exposes the registering plugin's name there.
  */
-interface HapiChannelContext {
-  arguments: unknown[];
+interface HapiChannelContext extends OrchestrionChannelContext {
   self?: { realm?: { plugin?: string } };
 }
 
@@ -55,7 +55,7 @@ interface HapiChannelContext {
  * The `start`/`initialize` channel `context` shape: `self` is the live server
  * we attach the auto-registered error listener to.
  */
-interface HapiServerContext {
+interface HapiServerContext extends OrchestrionChannelContext {
   self?: HapiServer;
 }
 

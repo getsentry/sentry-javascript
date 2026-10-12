@@ -543,6 +543,41 @@ describe('constructWebpackConfigFunction()', () => {
       expect(treeshakePlugin.definitions.__SENTRY_EXCLUDE_REPLAY_WORKER__).toBe(true);
     });
 
+    it('adds flags from the top-level bundleSizeOptimizations option', async () => {
+      vi.spyOn(coreServer, 'loadModule').mockImplementation(() => ({
+        sentryWebpackPlugin: () => ({
+          _name: 'sentry-webpack-plugin',
+        }),
+      }));
+
+      const finalWebpackConfig = await materializeFinalWebpackConfig({
+        exportedNextConfig,
+        incomingWebpackConfig: serverWebpackConfig,
+        incomingWebpackBuildContext: serverBuildContext,
+        sentryBuildTimeOptions: {
+          bundleSizeOptimizations: {
+            excludeDebugStatements: true,
+            excludeTracing: true,
+            excludeReplayIframe: true,
+            excludeReplayShadowDom: true,
+            excludeReplayWorker: true,
+          },
+        },
+      });
+
+      const definePlugin = finalWebpackConfig.plugins?.find(
+        plugin => plugin.constructor.name === 'DefinePlugin' && plugin.definitions?.__SENTRY_TRACING__ !== undefined,
+      ) as any;
+
+      expect(definePlugin.definitions).toEqual({
+        __SENTRY_DEBUG__: false,
+        __SENTRY_TRACING__: false,
+        __RRWEB_EXCLUDE_IFRAME__: true,
+        __RRWEB_EXCLUDE_SHADOW_DOM__: true,
+        __SENTRY_EXCLUDE_REPLAY_WORKER__: true,
+      });
+    });
+
     it('does not add flags when treeshake options are false', async () => {
       vi.spyOn(coreServer, 'loadModule').mockImplementation(() => ({
         sentryWebpackPlugin: () => ({

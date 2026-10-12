@@ -3,9 +3,10 @@ import { useRoute, useFetch } from '#imports';
 
 const route = useRoute();
 const param = route.params.param;
+const apiPrefix = route.query.apiPrefix ?? '/api';
 
 const fetchError = async () => {
-  await useFetch(`/api/param-error/${param}`);
+  await useFetch(`${apiPrefix}/param-error/${param}`);
 };
 
 const fetchData = async () => {
