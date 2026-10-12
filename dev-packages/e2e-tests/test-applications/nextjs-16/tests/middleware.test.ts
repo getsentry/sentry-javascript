@@ -7,6 +7,7 @@ import {
   waitForStreamedSpan,
 } from '@sentry-internal/test-utils';
 import { isDevMode } from './isDevMode';
+import { isVinext } from './isVinext';
 
 test('Should create a span for middleware', async ({ request }) => {
   test.skip(getRuntime() === 'cloudflare', 'On Workers the middleware span is a child of the request span');
@@ -121,6 +122,10 @@ test('Faulty middlewares inside the request segment of the Worker', async ({ req
 
 test('Should trace outgoing fetch requests inside middleware', async ({ request }) => {
   test.skip(isDevMode, 'The fetch requests ends up in a separate tx in dev atm');
+  test.skip(
+    isVinext && getRuntime() === 'bun',
+    'vinext replaces `globalThis.fetch` with a wrapper of the `fetch` from before `Sentry.init`, so `@sentry/bun` creates no fetch spans',
+  );
 
   // Only Node.js has the undici diagnostics channel. On the other runtimes the fetch integration of the runtime
   // SDK creates this span, which has no `sentry.kind`, `url.path` and `url.scheme`.

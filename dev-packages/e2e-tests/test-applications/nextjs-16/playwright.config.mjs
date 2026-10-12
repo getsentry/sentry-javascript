@@ -12,6 +12,12 @@ const productionStartCommands = {
   cloudflare: 'pnpm start:cloudflare --port 3030',
 };
 
+// The `nextjs-16 (vinext)` variants build the app with vinext instead of Next.js.
+const vinextStartCommands = {
+  node: 'node ./node_modules/vinext/dist/cli.js start --port 3030',
+  bun: 'bun --bun ./node_modules/vinext/dist/cli.js start --port 3030',
+};
+
 const getStartCommand = () => {
   if (testEnv === 'development-webpack') {
     return 'pnpm next dev -p 3030 --webpack 2>&1 | tee .tmp_dev_server_logs';
@@ -22,7 +28,7 @@ const getStartCommand = () => {
   }
 
   if (testEnv === 'production') {
-    return productionStartCommands[getRuntime()];
+    return (process.env.VINEXT ? vinextStartCommands : productionStartCommands)[getRuntime()];
   }
 
   throw new Error(`Unknown test env: ${testEnv}`);
