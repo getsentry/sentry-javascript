@@ -7,18 +7,10 @@ import { PI_DURABLE_INTEGRATION_NAME } from '../ai/pi-durable/constants';
 import { markBuiltInTool } from '../ai/pi-durable/tools';
 import type { PiHarnessOptions } from '../ai/pi-durable/types';
 import { DEBUG_BUILD } from '../debug-build';
+import type { OrchestrionChannelContext } from '../orchestrion/types';
 import { CHANNELS } from '../orchestrion/channels';
 import { piDurableModuleNames } from '../orchestrion/config/pi-durable';
 import { invokeOrchestrionInstrumentation } from '../orchestrion/instrumentation';
-
-interface HarnessOpenChannelContext {
-  arguments: unknown[];
-  result?: unknown;
-}
-
-interface CodingToolChannelContext {
-  result?: unknown;
-}
 
 const _piDurableIntegration = ((options: PiDurableOptions = {}) => {
   return {
@@ -33,10 +25,10 @@ const _piDurableIntegration = ((options: PiDurableOptions = {}) => {
 }) satisfies IntegrationFn;
 
 function instrumentPiDurable(options: PiDurableOptions): void {
-  const harnessOpen = diagnosticsChannel.tracingChannel<HarnessOpenChannelContext>(CHANNELS.PI_DURABLE_HARNESS_OPEN);
+  const harnessOpen = diagnosticsChannel.tracingChannel<OrchestrionChannelContext>(CHANNELS.PI_DURABLE_HARNESS_OPEN);
 
   harnessOpen.start.subscribe(message => {
-    const args = (message as HarnessOpenChannelContext).arguments;
+    const args = (message as OrchestrionChannelContext).arguments;
     try {
       if (args && isObjectLike(args[1])) {
         args[1] = instrumentPiDurableHarnessOptions(args[1] as PiHarnessOptions, options);
@@ -47,7 +39,7 @@ function instrumentPiDurable(options: PiDurableOptions): void {
   });
 
   harnessOpen.asyncEnd.subscribe(message => {
-    const { arguments: args, result } = message as HarnessOpenChannelContext;
+    const { arguments: args, result } = message as OrchestrionChannelContext;
     try {
       if (args && isObjectLike(args[1])) {
         endRunsOnClose(args[1], result);
@@ -58,8 +50,8 @@ function instrumentPiDurable(options: PiDurableOptions): void {
   });
 
   diagnosticsChannel
-    .tracingChannel<CodingToolChannelContext>(CHANNELS.PI_DURABLE_CODING_TOOL)
-    .end.subscribe(message => markBuiltInTool((message as CodingToolChannelContext).result));
+    .tracingChannel<OrchestrionChannelContext>(CHANNELS.PI_DURABLE_CODING_TOOL)
+    .end.subscribe(message => markBuiltInTool((message as OrchestrionChannelContext).result));
 }
 
 /**

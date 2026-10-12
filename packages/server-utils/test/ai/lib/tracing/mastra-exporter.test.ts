@@ -27,8 +27,8 @@ import {
 } from '@sentry/conventions/attributes';
 import {
   GEN_AI_CHAT,
+  GEN_AI_DECIDE,
   GEN_AI_EMBEDDINGS,
-  GEN_AI_EVALUATE,
   GEN_AI_EXECUTE_TOOL,
   GEN_AI_INVOKE_AGENT,
 } from '@sentry/conventions/op';
@@ -165,11 +165,11 @@ describe('SentryMastraExporter', () => {
     );
 
     const json = spanToStaticSpanJSON(endedSpans[0]!);
-    expect(json.description).toBe('evaluate jev-1');
+    expect(json.description).toBe('decide jev-1');
     expect(json.data).toMatchObject({
-      [SENTRY_OP]: GEN_AI_EVALUATE,
+      [SENTRY_OP]: GEN_AI_DECIDE,
       [SENTRY_ORIGIN]: 'auto.ai.mastra',
-      [GEN_AI_OPERATION_NAME]: 'evaluate',
+      [GEN_AI_OPERATION_NAME]: 'decide',
       [GEN_AI_REQUEST_MODEL]: 'jev-1',
       [GEN_AI_PROVIDER_NAME]: 'typesafe.evaluation',
       [GEN_AI_USAGE_INPUT_TOKENS]: 30,
@@ -187,7 +187,7 @@ describe('SentryMastraExporter', () => {
 
     expect(endedSpans).toHaveLength(0);
     expect(call.endTime).toEqual(span.endTime);
-    expect(spanToStaticSpanJSON(call.span!).description).toBe('evaluate jev-1');
+    expect(spanToStaticSpanJSON(call.span!).description).toBe('decide jev-1');
   });
 
   it('passes its own recording options to the classifier evaluation call', async () => {

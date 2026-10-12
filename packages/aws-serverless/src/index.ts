@@ -129,6 +129,7 @@ export {
   pinoIntegration,
   postgresIntegration,
   postgresJsIntegration,
+  neonIntegration,
   processSessionIntegration,
   prismaIntegration,
   openTelemetryIntegration,

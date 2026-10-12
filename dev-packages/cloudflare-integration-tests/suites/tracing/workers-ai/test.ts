@@ -21,6 +21,7 @@ import {
   SENTRY_OP,
   SENTRY_ORIGIN,
 } from '@sentry/conventions/attributes';
+import { GEN_AI_DECIDE } from '@sentry/conventions/op';
 import { SDK_VERSION } from '@sentry/core';
 import { expect, it } from 'vitest';
 import { GEN_AI_REQUEST_STREAM_ATTRIBUTE } from '../../../../../packages/server-utils/src/ai/core/gen-ai-attributes';
@@ -149,14 +150,14 @@ it('traces a TypeSafe Jev evaluation like the TypeSafe integration', async ({ si
 
       expect(genAiSpans[0]).toEqual(
         expect.objectContaining({
-          name: 'evaluate typesafe/jev',
+          name: 'decide typesafe/jev',
           status: 'ok',
           is_segment: false,
           attributes: {
             [SENTRY_ORIGIN]: { value: 'auto.ai.cloudflare.workers_ai', type: 'string' },
-            [SENTRY_OP]: { value: 'gen_ai.evaluate', type: 'string' },
+            [SENTRY_OP]: { value: GEN_AI_DECIDE, type: 'string' },
             [GEN_AI_PROVIDER_NAME]: { value: 'cloudflare.workers_ai', type: 'string' },
-            [GEN_AI_OPERATION_NAME]: { value: 'evaluate', type: 'string' },
+            [GEN_AI_OPERATION_NAME]: { value: 'decide', type: 'string' },
             [GEN_AI_REQUEST_MODEL]: { value: 'typesafe/jev', type: 'string' },
             [GEN_AI_RESPONSE_MODEL]: { value: 'jev-1.13.0', type: 'string' },
             [GEN_AI_USAGE_INPUT_TOKENS]: { value: 426, type: 'integer' },
@@ -195,14 +196,14 @@ it('traces a Clef evaluation like a TypeSafe Jev evaluation', async ({ signal })
 
       expect(genAiSpans[0]).toEqual(
         expect.objectContaining({
-          name: 'evaluate @cf/cloudflare/clef',
+          name: 'decide @cf/cloudflare/clef',
           status: 'ok',
           is_segment: false,
           attributes: {
             [SENTRY_ORIGIN]: { value: 'auto.ai.cloudflare.workers_ai', type: 'string' },
-            [SENTRY_OP]: { value: 'gen_ai.evaluate', type: 'string' },
+            [SENTRY_OP]: { value: GEN_AI_DECIDE, type: 'string' },
             [GEN_AI_PROVIDER_NAME]: { value: 'cloudflare.workers_ai', type: 'string' },
-            [GEN_AI_OPERATION_NAME]: { value: 'evaluate', type: 'string' },
+            [GEN_AI_OPERATION_NAME]: { value: 'decide', type: 'string' },
             [GEN_AI_REQUEST_MODEL]: { value: '@cf/cloudflare/clef', type: 'string' },
             [GEN_AI_RESPONSE_MODEL]: { value: 'clef', type: 'string' },
             [GEN_AI_USAGE_INPUT_TOKENS]: { value: 412, type: 'integer' },

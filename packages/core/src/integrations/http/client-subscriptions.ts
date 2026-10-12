@@ -25,6 +25,7 @@ import {
 } from '../../tracing';
 import { startInactiveSpan } from '../../tracing/trace';
 import { debug } from '../../utils/debug-logger';
+import { isError } from '../../utils/is';
 import { LRUMap } from '../../utils/lru';
 import { getOutgoingRequestSpanData, setIncomingResponseSpanData } from './get-outgoing-span-data';
 import { getRequestUrlFromClientRequest } from './get-request-url';
@@ -141,18 +142,31 @@ export function getHttpClientSubscriptions(options: HttpInstrumentationOptions):
     const requestOnClose = () => endSpan({ code: SPAN_STATUS_UNSET });
     request.on('close', requestOnClose);
 
+    let responseStatusCode: number | undefined;
+
     request.on(errorMonitor, error => {
       DEBUG_BUILD && debug.log(LOG_PREFIX, 'outgoingRequest on request error()', error);
       if (breadcrumbs) {
         addBreadcrumbs(request, undefined);
       }
-      endSpan({ code: SPAN_STATUS_ERROR });
+      // An abort by the caller (e.g. `AbortController.abort()`) is not a failure of the request,
+      // so keep the status of the response if one arrived already.
+      if (isError(error) && error.name === 'AbortError') {
+        endSpan(
+          typeof responseStatusCode === 'number'
+            ? getSpanStatusFromHttpCode(responseStatusCode)
+            : { code: SPAN_STATUS_UNSET },
+        );
+      } else {
+        endSpan({ code: SPAN_STATUS_ERROR });
+      }
     });
 
     request.prependListener('response', response => {
       // no longer need this, listen on response now.
       // do not end the span until the response finishes
       request.removeListener('close', requestOnClose);
+      responseStatusCode = response.statusCode;
       if (request.listenerCount('response') <= 1) {
         response.resume();
       }

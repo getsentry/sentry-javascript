@@ -1,6 +1,7 @@
 import { expect } from '@playwright/test';
 import { sentryTest } from '../../../utils/fixtures';
-import { envelopeRequestParser, shouldSkipTracingTest, waitForTransactionRequest } from '../../../utils/helpers';
+import { shouldSkipTracingTest } from '../../../utils/helpers';
+import { collectStreamedSpans, getSpanOp, waitForStreamedSpan } from '../../../utils/spanUtils';
 
 sentryTest(
   'adjusts the end timestamp of the root idle span if child spans are ignored',
@@ -9,21 +10,22 @@ sentryTest(
       sentryTest.skip();
     }
 
-    const pageloadRequestPromise = waitForTransactionRequest(page, event => event.contexts?.trace?.op === 'pageload');
+    const spans = collectStreamedSpans(page);
+    const pageloadRequestPromise = waitForStreamedSpan(page, span => span.is_segment && getSpanOp(span) === 'pageload');
     const url = await getLocalTestUrl({ testDir: __dirname });
     await page.goto(url);
 
-    const eventData = envelopeRequestParser(await pageloadRequestPromise);
+    const eventData = await pageloadRequestPromise;
 
-    const { start_timestamp: startTimestamp, timestamp: endTimestamp } = eventData;
+    const { start_timestamp: startTimestamp, end_timestamp: endTimestamp } = eventData;
     const durationSeconds = endTimestamp! - startTimestamp!;
 
-    const spans = eventData.spans || [];
+    await page.evaluate(() => (window as any).Sentry.flush());
 
     expect(durationSeconds).toBeGreaterThan(0);
     expect(durationSeconds).toBeLessThan(1.5);
 
-    expect(spans.some(span => span.description === 'take-me')).toBe(true);
-    expect(spans.some(span => span.description?.includes('ignore-me'))).toBe(false);
+    expect(spans.some(span => span.name === 'take-me')).toBe(true);
+    expect(spans.some(span => span.name?.includes('ignore-me'))).toBe(false);
   },
 );

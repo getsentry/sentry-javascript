@@ -1,26 +1,28 @@
 import { expect } from '@playwright/test';
 import { sentryTest } from '../../../../utils/fixtures';
-import { envelopeRequestParser, shouldSkipTracingTest, waitForTransactionRequest } from '../../../../utils/helpers';
+import { shouldSkipTracingTest } from '../../../../utils/helpers';
+import { collectStreamedSpans, waitForStreamedSpan } from '../../../../utils/spanUtils';
 
 sentryTest('sets an inactive span active and adds child spans to it', async ({ getLocalTestUrl, page }) => {
-  if (shouldSkipTracingTest()) {
-    sentryTest.skip();
-  }
+  sentryTest.skip(shouldSkipTracingTest());
 
-  const req = waitForTransactionRequest(page, e => e.transaction === 'checkout-flow');
+  const spans = collectStreamedSpans(page);
+  const rootPromise = waitForStreamedSpan(page, span => span.name === 'checkout-flow' && span.is_segment);
 
   const url = await getLocalTestUrl({ testDir: __dirname });
   await page.goto(url);
 
-  const checkoutEvent = envelopeRequestParser(await req);
-  const checkoutSpanId = checkoutEvent.contexts?.trace?.span_id;
+  await rootPromise;
+  await page.evaluate(() => (window as any).Sentry.flush());
+  const checkoutSpan = spans.find(s => s.name === 'checkout-flow');
+  const checkoutSpanId = checkoutSpan?.span_id;
   expect(checkoutSpanId).toMatch(/[a-f\d]{16}/);
 
-  expect(checkoutEvent.spans).toHaveLength(3);
+  expect(spans.filter(s => !s.is_segment)).toHaveLength(3);
 
-  const checkoutStep1 = checkoutEvent.spans?.find(s => s.description === 'checkout-step-1');
-  const checkoutStep11 = checkoutEvent.spans?.find(s => s.description === 'checkout-step-1-1');
-  const checkoutStep2 = checkoutEvent.spans?.find(s => s.description === 'checkout-step-2');
+  const checkoutStep1 = spans.find(s => s.name === 'checkout-step-1');
+  const checkoutStep11 = spans.find(s => s.name === 'checkout-step-1-1');
+  const checkoutStep2 = spans.find(s => s.name === 'checkout-step-2');
 
   expect(checkoutStep1).toBeDefined();
   expect(checkoutStep11).toBeDefined();

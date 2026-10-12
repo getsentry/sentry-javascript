@@ -30,6 +30,7 @@ import { mongodbConfig } from './mongodb';
 import { mongooseConfig } from './mongoose';
 import { mysql2Config } from './mysql2';
 import { mysqlConfig } from './mysql';
+import { neonConfig } from './neon';
 import { nestjsConfig } from './nestjs';
 import { openaiConfig } from './openai';
 import { pgConfig } from './pg';
@@ -86,6 +87,7 @@ export const SENTRY_INSTRUMENTATIONS: InstrumentationConfig[] = [
   ...mongooseConfig,
   ...mysql2Config,
   ...mysqlConfig,
+  ...neonConfig,
   ...nestjsConfig,
   ...openaiConfig,
   ...pgConfig,

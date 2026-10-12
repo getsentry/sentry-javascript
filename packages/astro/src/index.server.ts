@@ -109,6 +109,7 @@ export {
   pinoIntegration,
   postgresIntegration,
   postgresJsIntegration,
+  neonIntegration,
   prismaIntegration,
   openTelemetryIntegration,
   getOtlpTracesEndpoint,

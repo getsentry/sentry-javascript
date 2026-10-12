@@ -2,17 +2,13 @@ import * as diagnosticsChannel from '../utils/diagnosticsChannel';
 import type { IntegrationFn } from '@sentry/core';
 import { defineIntegration } from '@sentry/core';
 import { wrapMcpServerWithSentry } from '@sentry/core/server';
+import type { OrchestrionChannelContext } from '../orchestrion/types';
 import { CHANNELS } from '../orchestrion/channels';
 import { mcpServerModuleNames } from '../orchestrion/config/mcp-server';
 import { invokeOrchestrionInstrumentation } from '../orchestrion/instrumentation';
 import { safeChannelCallback } from '../tracing-channel';
 
 const INTEGRATION_NAME = 'McpServer';
-
-interface ConstructorChannelContext {
-  arguments: unknown[];
-  self?: unknown;
-}
 
 const _mcpServerIntegration = (() => {
   return {
@@ -34,9 +30,9 @@ function subscribe(): void {
   // wrap's own `WeakSet` guard makes a later manual call on the same instance a no-op, so the two
   // paths coexist safely.
   for (const channel of [CHANNELS.MCP_SERVER_V2_CONSTRUCTOR, CHANNELS.MCP_SERVER_V1_CONSTRUCTOR]) {
-    diagnosticsChannel.tracingChannel<ConstructorChannelContext>(channel).end.subscribe(message => {
+    diagnosticsChannel.tracingChannel<OrchestrionChannelContext>(channel).end.subscribe(message => {
       safeChannelCallback(() => {
-        const { self } = message as ConstructorChannelContext;
+        const { self } = message as OrchestrionChannelContext;
         if (self) {
           wrapMcpServerWithSentry(self);
         }

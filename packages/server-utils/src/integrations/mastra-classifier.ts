@@ -3,25 +3,17 @@ import { isObjectLike } from '@sentry/core';
 import type { ClassifierEvaluationCall } from '../ai/mastra/classifier-evaluation';
 import { processClassifierEvaluationData, setStartingClassifierEvaluation } from '../ai/mastra/classifier-evaluation';
 import { getEvaluationInputMessages, getEvaluationOutputMessages } from '../ai/core/utils';
+import type { OrchestrionChannelContext } from '../orchestrion/types';
 import { CHANNELS } from '../orchestrion/channels';
 import { safeChannelCallback } from '../tracing-channel';
 import * as diagnosticsChannel from '../utils/diagnosticsChannel';
-
-interface ClassifierEvaluateChannelContext {
-  // `evaluate({ state, questions? })`; `self` is the `Classifier`.
-  arguments: unknown[];
-  self?: unknown;
-  result?: unknown;
-}
 
 /**
  * Add the evaluated state, questions and answers of a `Classifier.evaluate()` call to the exporter's
  * `classifier_evaluation` span, which Mastra leaves without input or output.
  */
 export function recordClassifierEvaluations(): void {
-  const channel = diagnosticsChannel.tracingChannel<ClassifierEvaluateChannelContext>(
-    CHANNELS.MASTRA_CLASSIFIER_EVALUATE,
-  );
+  const channel = diagnosticsChannel.tracingChannel<OrchestrionChannelContext>(CHANNELS.MASTRA_CLASSIFIER_EVALUATE);
   const calls = new WeakMap<object, ClassifierEvaluationCall>();
 
   channel.start.subscribe(message => {
@@ -39,13 +31,13 @@ export function recordClassifierEvaluations(): void {
     safeChannelCallback(() => {
       const call = calls.get(message as object);
       if (call) {
-        finishClassifierEvaluation(call, message as ClassifierEvaluateChannelContext);
+        finishClassifierEvaluation(call, message as OrchestrionChannelContext);
       }
     });
   });
 }
 
-function finishClassifierEvaluation(call: ClassifierEvaluationCall, message: ClassifierEvaluateChannelContext): void {
+function finishClassifierEvaluation(call: ClassifierEvaluationCall, message: OrchestrionChannelContext): void {
   call.settled = true;
   const { span, recordInputs, recordOutputs } = call;
   if (!span) {

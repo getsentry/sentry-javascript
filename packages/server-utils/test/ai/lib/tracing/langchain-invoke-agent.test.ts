@@ -6,7 +6,7 @@ import {
   SENTRY_OP,
   SENTRY_ORIGIN,
 } from '@sentry/conventions/attributes';
-import { GEN_AI_EVALUATE } from '@sentry/conventions/op';
+import { GEN_AI_DECIDE } from '@sentry/conventions/op';
 import { getClient, getMainCarrier, setCurrentClient, spanToStaticSpanJSON } from '@sentry/core';
 import type { Span } from '@sentry/core';
 import { createLangChainCallbackHandler } from '../../../../src/ai/langchain';
@@ -120,11 +120,11 @@ describe('LangChain invoke_agent span names', () => {
 
     expect(startAttributes).toEqual([
       expect.objectContaining({
-        [SENTRY_OP]: GEN_AI_EVALUATE,
+        [SENTRY_OP]: GEN_AI_DECIDE,
         [SENTRY_ORIGIN]: 'auto.ai.langchain',
         [GEN_AI_AGENT_NAME]: 'support_agent',
       }),
     ]);
-    expect(endedSpans.map(span => spanToStaticSpanJSON(span).description)).toEqual(['evaluate jev-latest']);
+    expect(endedSpans.map(span => spanToStaticSpanJSON(span).description)).toEqual(['decide jev-latest']);
   });
 });

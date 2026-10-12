@@ -10,8 +10,8 @@ import {
   SERVER_PORT,
 } from '@sentry/conventions/attributes';
 import { DB } from '@sentry/conventions/op';
-import { afterAll, expect } from 'vitest';
-import { conditionalTest } from '../../../utils';
+import { afterAll, describe, expect } from 'vitest';
+import { supports } from '../../../utils';
 import { cleanupChildProcesses, createEsmAndCjsTests, describeWithDockerCompose } from '../../../utils/runner';
 
 describeWithDockerCompose('tedious auto instrumentation', { workingDirectory: [__dirname] }, () => {
@@ -123,7 +123,7 @@ describeWithDockerCompose('tedious auto instrumentation', { workingDirectory: [_
   });
 
   // tedious 20 requires Node >= 22.
-  conditionalTest({ min: 22 })('tedious v20', () => {
+  describe.runIf(supports({ min: 22 }))('tedious v20', () => {
     createEsmAndCjsTests(
       __dirname,
       'scenario.mjs',

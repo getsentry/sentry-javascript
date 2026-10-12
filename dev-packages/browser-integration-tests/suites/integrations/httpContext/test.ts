@@ -25,6 +25,18 @@ sentryTest('httpContextIntegration captures user-agent and referrer', async ({ g
   });
 });
 
+sentryTest('httpContextIntegration filters sensitive query params in the URL', async ({ getLocalTestUrl, page }) => {
+  const url = await getLocalTestUrl({ testDir: __dirname });
+
+  const errorEventPromise = waitForErrorRequest(page);
+
+  await page.goto(`${url}?jwt=sensitive-jwt-value&page=1`);
+
+  const errorEvent = envelopeRequestParser(await errorEventPromise);
+
+  expect(errorEvent.request?.url).toBe(`${url}?jwt=[Filtered]&page=1`);
+});
+
 sentryTest('httpContextIntegration captures url, user-agent, and referer', async ({ getLocalTestUrl, page }) => {
   sentryTest.skip(shouldSkipTracingTest());
   const url = await getLocalTestUrl({ testDir: __dirname });

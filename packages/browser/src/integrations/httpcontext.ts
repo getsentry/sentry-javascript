@@ -35,8 +35,7 @@ export const httpContextIntegration = defineIntegration(() => {
       };
 
       event.request = {
-        // The URL isn't gated by `dataCollection`, same as on the server.
-        url,
+        url: filterCollectedUrl(url, client),
         ...event.request,
         ...(Object.keys(headers).length > 0 ? { headers } : { headers: undefined }),
       };
