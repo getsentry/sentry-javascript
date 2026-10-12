@@ -4,12 +4,12 @@ import React from 'react';
 import type { AppLoadContext, EntryContext, RouterContextProvider, ServerRouter } from 'react-router';
 import { PassThrough } from 'stream';
 import { getMetaTagTransformer } from './getMetaTagTransformer';
+import { createSentryHandleRequestWebStream } from './createSentryHandleRequestWebStream';
 import type {
   HandleRequestWithMiddleware,
   HandleRequestWithoutMiddleware,
   SentryWebStreamHandleRequestOptions,
-} from './createSentryHandleRequestWebStream';
-import { createSentryHandleRequestWebStream } from './createSentryHandleRequestWebStream';
+} from './handleRequestTypes';
 import { wrapSentryHandleRequest } from './wrapSentryHandleRequest';
 
 type RenderToPipeableStreamOptions = {
