@@ -1,5 +1,6 @@
 import type { EnvelopeItemType } from '@sentry/core';
 import { parseSemver } from '@sentry/core';
+import { execFileSync } from 'child_process';
 import type * as http from 'http';
 
 export const NODE_VERSION = parseSemver(process.versions.node).major || 0;
@@ -9,6 +10,9 @@ export const NODE_VERSION = parseSemver(process.versions.node).major || 0;
  */
 export type Runtime = 'cloudflare' | 'node' | 'bun' | 'deno';
 export const RUNTIME = (process.env.RUNTIME || 'node') as Runtime;
+
+// Vitest runs on Node, so it cannot read `Bun.version` of the `bun` binary that runs the scenarios.
+const BUN_VERSION = RUNTIME === 'bun' ? execFileSync('bun', ['--version'], { encoding: 'utf8' }).trim() : undefined;
 
 /**
  * The `sdk.name` the scenarios send. It is `sentry.javascript.node`, unless a runtime package
@@ -44,13 +48,15 @@ export type Requirements = {
   min?: number;
   /** Highest Node major version that runs the tests. */
   max?: number;
+  /** Lowest Bun version that runs the tests, for tests that fail on the oldest Bun version in CI. */
+  bunMin?: string;
   /** Runtimes that run the tests. All runtimes run them when this is not set. */
   runtimes?: Runtime[];
 };
 
 /**
- * Whether the Node version and the runtime that runs the scenarios meet the requirements of the
- * tests, for use in `test.runIf` and `describe.runIf`.
+ * Whether the Node version, the runtime and the Bun version that run the scenarios meet the
+ * requirements of the tests, for use in `test.runIf` and `describe.runIf`.
  *
  * On Bun and Deno the Node version requirement does not apply. A suite that cannot run on a Node
  * version must also be excluded for these runtimes, in
@@ -60,6 +66,9 @@ export type Requirements = {
 export function supports(requirements: Requirements): boolean {
   if (requirements.runtimes && !requirements.runtimes.includes(RUNTIME)) {
     return false;
+  }
+  if (RUNTIME === 'bun') {
+    return !requirements.bunMin || !isBunOlderThan(requirements.bunMin);
   }
   // Vitest always runs on Node, so its Node version says nothing about Bun or Deno running the
   // scenario. Those runtimes list the suites they cannot run in their own exclude lists.
@@ -75,6 +84,21 @@ function matchesNodeVersion({ min, max }: { min?: number; max?: number }): boole
   }
 
   return !(NODE_VERSION < (min || -Infinity) || NODE_VERSION > (max || Infinity));
+}
+
+function isBunOlderThan(version: string): boolean {
+  if (!BUN_VERSION) {
+    return false;
+  }
+
+  const current = parseSemver(BUN_VERSION);
+  const required = parseSemver(version);
+  const difference =
+    (current.major || 0) - (required.major || 0) ||
+    (current.minor || 0) - (required.minor || 0) ||
+    (current.patch || 0) - (required.patch || 0);
+
+  return difference < 0;
 }
 
 /**

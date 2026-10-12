@@ -45,7 +45,7 @@ const REQUIRE_OF_ESM_ONLY_DEPENDENCY = [
   'suites/tracing/prisma-orm-v8/test.ts',
 ];
 
-// Some or all tests fail on Deno, cause not investigated yet. In most AI suites the span
+// Some or all tests fail on Deno. The cause is not investigated yet. In most AI suites the span
 // streaming test fails. `apollo-graphql` (CJS tests only) and `mongodb` fail on Deno 2.8.3 (the CI
 // version) and pass on Deno 2.9.0.
 const NOT_TRIAGED = [
