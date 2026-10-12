@@ -6,7 +6,7 @@ export * from '@sentry/node';
 export { init } from './sdk';
 export { wrapSentryHandleRequest } from './wrapSentryHandleRequest';
 export { createSentryHandleRequest, type SentryHandleRequestOptions } from './createSentryHandleRequest';
-export type { SentryWebStreamHandleRequestOptions } from './createSentryHandleRequestWebStream';
+export type { SentryWebStreamHandleRequestOptions } from './handleRequestTypes';
 export { createSentryHandleError, type SentryHandleErrorOptions } from './createSentryHandleError';
 export { getMetaTagTransformer } from './getMetaTagTransformer';
 

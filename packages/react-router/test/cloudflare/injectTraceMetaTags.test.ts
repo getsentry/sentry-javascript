@@ -129,6 +129,16 @@ describe('injectTraceMetaTags', () => {
     const output = new TextDecoder().decode(await readAll(injectTraceMetaTags(input)));
 
     expect(output).toBe('<html><body></he');
-    expect(getTraceMetaTags).not.toHaveBeenCalled();
+  });
+
+  test('resolves the trace meta tags synchronously, before the stream is read', async () => {
+    const encoder = new TextEncoder();
+    const input = streamFromChunks([encoder.encode('<html><head></head></html>')]);
+
+    const output = injectTraceMetaTags(input);
+
+    expect(getTraceMetaTags).toHaveBeenCalledTimes(1);
+    expect(new TextDecoder().decode(await readAll(output))).toContain('<meta name="sentry-trace"');
+    expect(getTraceMetaTags).toHaveBeenCalledTimes(1);
   });
 });

@@ -5,8 +5,6 @@ export {
   createSentryServerInstrumentation,
   type CreateSentryServerInstrumentationOptions,
 } from '../server/createServerInstrumentation';
-export {
-  createSentryHandleRequestWebStream as createSentryHandleRequest,
-  type SentryWebStreamHandleRequestOptions,
-} from '../server/createSentryHandleRequestWebStream';
+export { createSentryHandleRequestWebStream as createSentryHandleRequest } from '../server/createSentryHandleRequestWebStream';
+export type { SentryWebStreamHandleRequestOptions } from '../server/handleRequestTypes';
 export { injectTraceMetaTags } from '../server/injectTraceMetaTags';

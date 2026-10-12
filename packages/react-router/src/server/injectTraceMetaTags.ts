@@ -18,7 +18,10 @@ export function injectTraceMetaTags(body: ReadableStream): ReadableStream {
   // boundaries. A fresh, non-streaming decoder per chunk would flush a split character
   // as U+FFFD, corrupting the response (see https://github.com/whatwg/encoding/issues/184).
   const decoder = new TextDecoder();
-  const injector = createHeadTagInjector(getTraceMetaTags);
+  // Resolved now, while the request's async context is still active. Runtimes like workerd run
+  // stream transforms outside of it, where there is no client and no trace data.
+  const traceMetaTags = getTraceMetaTags();
+  const injector = createHeadTagInjector(() => traceMetaTags);
 
   return body.pipeThrough(
     new TransformStream<unknown, Uint8Array>({
