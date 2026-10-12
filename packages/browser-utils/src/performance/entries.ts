@@ -360,14 +360,15 @@ function _addPerformanceNavigationTiming(
     return;
   }
   const op = NAVIGATION_TIMING_SPAN_OPS[event];
+  const url = filterCollectedUrl(entry.name);
   startAndEndSpan(span, _navigationTimeToSeconds(entry, start), _navigationTimeToSeconds(entry, end), {
     // With span streaming, span names have to be low cardinality, so we can't fall back to the
     // document URL. `url.full` keeps it, and is what Relay derives the description from.
-    name: spanStreamingEnabled ? BROWSER_NAVIGATION_TIMING_SPAN_NAMES[op] : entry.name,
+    name: spanStreamingEnabled ? BROWSER_NAVIGATION_TIMING_SPAN_NAMES[op] : url,
     attributes: {
       [SENTRY_OP]: op,
       [SENTRY_ORIGIN]: 'auto.ui.browser.metrics',
-      [URL_FULL]: filterCollectedUrl(entry.name),
+      [URL_FULL]: url,
       ...(event === 'redirect' && entry.redirectCount != null ? { 'http.redirect_count': entry.redirectCount } : {}),
     },
   });
@@ -399,7 +400,7 @@ function _addRequest(span: Span, entry: PerformanceNavigationTiming, spanStreami
     const url = filterCollectedUrl(entry.name);
 
     startAndEndSpan(span, requestStartTimestamp, responseEndTimestamp, {
-      name: spanStreamingEnabled ? BROWSER_NAVIGATION_TIMING_SPAN_NAMES[BROWSER_REQUEST] : entry.name,
+      name: spanStreamingEnabled ? BROWSER_NAVIGATION_TIMING_SPAN_NAMES[BROWSER_REQUEST] : url,
       attributes: {
         [SENTRY_OP]: BROWSER_REQUEST,
         [SENTRY_ORIGIN]: 'auto.ui.browser.metrics',
@@ -408,7 +409,7 @@ function _addRequest(span: Span, entry: PerformanceNavigationTiming, spanStreami
     });
 
     startAndEndSpan(span, responseStartTimestamp, responseEndTimestamp, {
-      name: spanStreamingEnabled ? BROWSER_NAVIGATION_TIMING_SPAN_NAMES[BROWSER_RESPONSE] : entry.name,
+      name: spanStreamingEnabled ? BROWSER_NAVIGATION_TIMING_SPAN_NAMES[BROWSER_RESPONSE] : url,
       attributes: {
         [SENTRY_OP]: BROWSER_RESPONSE,
         [SENTRY_ORIGIN]: 'auto.ui.browser.metrics',
@@ -468,7 +469,8 @@ export function _addResourceSpans(
 
   attributes[HTTP_REQUEST_SAME_ORIGIN] = resourceUrl.includes(WINDOW.location.origin);
 
-  attributes[URL_FULL] = filterCollectedUrl(resourceUrl);
+  const filteredUrl = filterCollectedUrl(resourceUrl);
+  attributes[URL_FULL] = filteredUrl;
 
   _setResourceRequestAttributes(entry, attributes, [
     // https://developer.mozilla.org/en-US/docs/Web/API/PerformanceResourceTiming/responseStatus
@@ -493,7 +495,7 @@ export function _addResourceSpans(
     // With span streaming, span names have to be low cardinality, so we can't fall back to the URL.
     name: spanStreamingEnabled
       ? domain || RESOURCE_SPAN_NAME_FALLBACK
-      : resourceUrl.replace(WINDOW.location.origin, ''),
+      : filteredUrl.replace(WINDOW.location.origin, ''),
     op,
     attributes: attributesWithResourceTiming,
   });
