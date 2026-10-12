@@ -32,7 +32,7 @@ export function init(options: RemixOptions): NodeClient | undefined {
     return existingClient;
   }
 
-  options.defaultIntegrations = getRemixDefaultIntegrations(options);
+  options.defaultIntegrations ??= getRemixDefaultIntegrations(options);
 
   const client = nodeInit(options);
 

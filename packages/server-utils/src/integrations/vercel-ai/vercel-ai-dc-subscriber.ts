@@ -28,8 +28,8 @@ import {
   SENTRY_ORIGIN,
 } from '@sentry/conventions/attributes';
 import {
+  GEN_AI_DECIDE,
   GEN_AI_EMBEDDINGS,
-  GEN_AI_EVALUATE,
   GEN_AI_EXECUTE_TOOL,
   GEN_AI_GENERATE_CONTENT,
   GEN_AI_INVOKE_AGENT,
@@ -71,7 +71,7 @@ const ORIGIN = 'auto.vercelai.channel';
 const GEN_AI_OPERATION_SPAN_OPS = {
   embeddings: GEN_AI_EMBEDDINGS,
   rerank: GEN_AI_RERANK,
-  evaluate: GEN_AI_EVALUATE,
+  decide: GEN_AI_DECIDE,
   invoke_agent: GEN_AI_INVOKE_AGENT,
   execute_tool: GEN_AI_EXECUTE_TOOL,
   // The model-call op matches the Vercel AI OTel integration (`gen_ai.generate_content`) rather than
@@ -487,7 +487,7 @@ export function createSpanFromMessage(
     // `ai` 7.0.128 renamed `experimental_evaluate` to `experimental_decide`; older 7.x still publishes the old name.
     case 'experimental_evaluate':
     case 'experimental_decide':
-      return startGenAiSpan('evaluate', modelId, {
+      return startGenAiSpan('decide', modelId, {
         ...baseAttributes,
         ...(recordInputs
           ? {
@@ -702,7 +702,7 @@ function getOutputMessages(
 
 /**
  * The AI SDK TypeSafe provider moves each answer's `confidence` out of the answers into
- * `providerMetadata.typesafe.confidence` (keyed by question id). Put it back so evaluate answers keep it.
+ * `providerMetadata.typesafe.confidence` (keyed by question id). Put it back so decide answers keep it.
  */
 function withProviderConfidence(result: Record<string, unknown>): unknown {
   const { answers, providerMetadata } = result;

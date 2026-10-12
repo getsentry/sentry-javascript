@@ -59,6 +59,11 @@ sentryTest.describe('When `consistentTraceSampling` is `true`', () => {
             quantity: 1,
             reason: 'sample_rate',
           },
+          {
+            category: 'span',
+            quantity: expect.any(Number),
+            reason: 'sample_rate',
+          },
         ],
       });
     });
@@ -78,6 +83,11 @@ sentryTest.describe('When `consistentTraceSampling` is `true`', () => {
           {
             category: 'transaction',
             quantity: 1,
+            reason: 'sample_rate',
+          },
+          {
+            category: 'span',
+            quantity: expect.any(Number),
             reason: 'sample_rate',
           },
         ],

@@ -3,6 +3,7 @@ import type { Client, Span, SpanAttributes } from '@sentry/core';
 import {
   browserPerformanceTimeOrigin,
   debug,
+  filterCollectedUrl,
   getActiveSpan,
   getClient,
   getRootSpan,
@@ -219,7 +220,7 @@ export function _sendLcpSpan(
     attributes[UI_COMPONENT_NAME] = componentName;
   }
   entry?.id && (attributes['browser.web_vital.lcp.id'] = entry.id);
-  entry?.url && (attributes['browser.web_vital.lcp.url'] = entry.url);
+  entry?.url && (attributes['browser.web_vital.lcp.url'] = filterCollectedUrl(entry.url, client));
   entry?.loadTime != null && (attributes['browser.web_vital.lcp.load_time'] = entry.loadTime);
   entry?.renderTime != null && (attributes['browser.web_vital.lcp.render_time'] = entry.renderTime);
   entry?.size != null && (attributes['browser.web_vital.lcp.size'] = entry.size);

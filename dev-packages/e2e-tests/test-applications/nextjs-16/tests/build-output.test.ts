@@ -3,6 +3,9 @@ import { findAbsolutePathImports } from '@sentry-internal/test-utils';
 import * as fs from 'fs';
 import * as path from 'path';
 import { isDevMode } from './isDevMode';
+import { isVinext } from './isVinext';
+
+test.skip(isVinext, 'Checks the build output of Next.js');
 
 test('emits no absolute-path imports into the server output', () => {
   const leaks = findAbsolutePathImports({ outputDir: path.join(process.cwd(), '.next', 'server') });

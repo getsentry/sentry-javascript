@@ -456,6 +456,77 @@ describe('SentrySpan', () => {
         type: 'transaction',
       });
     });
+
+    test('records an `invalid` span outcome for unfinished child spans', () => {
+      const client = new TestClient(getDefaultTestClientOptions({ tracesSampleRate: 1 }));
+      setCurrentClient(client);
+      const recordDroppedEventSpy = vi.spyOn(client, 'recordDroppedEvent');
+      const captureEventSpy = vi.spyOn(getCurrentScope(), 'captureEvent').mockImplementation(() => 'testId');
+
+      const root = startInactiveSpan({ name: 'root' });
+      withActiveSpan(root, () => {
+        startInactiveSpan({ name: 'unfinished-1' });
+        startInactiveSpan({ name: 'unfinished-2' });
+        startInactiveSpan({ name: 'finished' }).end();
+      });
+      root.end();
+
+      expect(captureEventSpy).toHaveBeenCalledWith(
+        expect.objectContaining({ spans: [expect.objectContaining({ description: 'finished' })] }),
+      );
+      expect(recordDroppedEventSpy).toHaveBeenCalledTimes(1);
+      expect(recordDroppedEventSpy).toHaveBeenCalledWith('invalid', 'span', 2);
+    });
+
+    test('records a `buffer_overflow` span outcome for spans beyond the 1000 span limit', () => {
+      const client = new TestClient(getDefaultTestClientOptions({ tracesSampleRate: 1 }));
+      setCurrentClient(client);
+      const recordDroppedEventSpy = vi.spyOn(client, 'recordDroppedEvent');
+      const captureEventSpy = vi.spyOn(getCurrentScope(), 'captureEvent').mockImplementation(() => 'testId');
+
+      const root = startInactiveSpan({ name: 'root' });
+      withActiveSpan(root, () => {
+        for (let i = 0; i < 1005; i++) {
+          startInactiveSpan({ name: `child-${i}` }).end();
+        }
+      });
+      root.end();
+
+      expect(captureEventSpy).toHaveBeenCalledWith(
+        expect.objectContaining({ spans: expect.objectContaining({ length: 1000 }) }),
+      );
+      expect(recordDroppedEventSpy).toHaveBeenCalledTimes(1);
+      expect(recordDroppedEventSpy).toHaveBeenCalledWith('buffer_overflow', 'span', 5);
+    });
+
+    test('does not record span outcomes for an unsampled root span', () => {
+      const client = new TestClient(getDefaultTestClientOptions({ tracesSampleRate: 1 }));
+      setCurrentClient(client);
+      const recordDroppedEventSpy = vi.spyOn(client, 'recordDroppedEvent');
+
+      const root = new SentrySpan({ name: 'root', sampled: false });
+      withActiveSpan(root, () => {
+        startInactiveSpan({ name: 'unfinished' });
+      });
+      root.end();
+
+      expect(recordDroppedEventSpy).not.toHaveBeenCalledWith('invalid', 'span', expect.anything());
+    });
+
+    test('does not record span outcomes for unfinished standalone child spans', () => {
+      const client = new TestClient(getDefaultTestClientOptions({ tracesSampleRate: 1 }));
+      setCurrentClient(client);
+      const recordDroppedEventSpy = vi.spyOn(client, 'recordDroppedEvent');
+      vi.spyOn(getCurrentScope(), 'captureEvent').mockImplementation(() => 'testId');
+
+      const root = startInactiveSpan({ name: 'root' });
+      withActiveSpan(root, () => {
+        startInactiveSpan({ name: 'inp', experimental: { standalone: true } });
+      });
+      root.end();
+
+      expect(recordDroppedEventSpy).not.toHaveBeenCalled();
+    });
   });
 
   describe('setAttribute', () => {

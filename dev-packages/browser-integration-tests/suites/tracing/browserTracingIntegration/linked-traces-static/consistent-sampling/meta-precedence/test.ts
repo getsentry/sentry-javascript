@@ -75,6 +75,11 @@ sentryTest.describe('When `consistentTraceSampling` is `true` and page contains 
               quantity: 2,
               reason: 'sample_rate',
             },
+            {
+              category: 'span',
+              quantity: expect.any(Number),
+              reason: 'sample_rate',
+            },
           ],
         });
       });
