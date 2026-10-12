@@ -371,4 +371,23 @@ describe('createSentryHandleRequest', () => {
       handleRequest(mockRequest, 200, mockResponseHeaders, mockRouterContext, mockLoadContext),
     ).rejects.toThrow(testError);
   });
+
+  it('routes to the Web Streams handler when renderToReadableStream is provided', async () => {
+    const mockRenderToReadableStream = vi
+      .fn()
+      .mockResolvedValue(Object.assign(new ReadableStream(), { allReady: Promise.resolve() }));
+
+    const handleRequest = createSentryHandleRequest({
+      renderToReadableStream: mockRenderToReadableStream,
+      ServerRouter: mockServerRouter,
+    });
+
+    expect(handleRequest).toBeDefined();
+    expect(wrapSentryHandleRequestModule.wrapSentryHandleRequest).toHaveBeenCalled();
+
+    await handleRequest(mockRequest, 200, mockResponseHeaders, mockRouterContext, mockLoadContext);
+
+    expect(mockRenderToReadableStream).toHaveBeenCalled();
+    expect(mockRenderToPipeableStream).not.toHaveBeenCalled();
+  });
 });
