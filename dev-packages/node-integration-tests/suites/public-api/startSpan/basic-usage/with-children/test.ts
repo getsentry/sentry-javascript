@@ -13,8 +13,8 @@ import {
   SENTRY_ORIGIN,
 } from '@sentry/conventions/attributes';
 import { expect, test } from 'vitest';
-import { createRunner } from '../../../../utils/runner';
-import { EXPECTED_SDK_NAME } from '../../../../utils';
+import { createRunner } from '../../../../../utils/runner';
+import { EXPECTED_SDK_NAME } from '../../../../../utils';
 
 test('sends a streamed span envelope with correct envelope header', async () => {
   await createRunner(__dirname, 'scenario.ts')

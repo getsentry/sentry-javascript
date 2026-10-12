@@ -71,6 +71,7 @@ const ORIGIN = 'auto.vercelai.channel';
 const GEN_AI_OPERATION_SPAN_OPS = {
   embeddings: GEN_AI_EMBEDDINGS,
   rerank: GEN_AI_RERANK,
+  // oxlint-disable-next-line typescript/no-deprecated -- the rename to `gen_ai.decide` comes in a follow-up
   evaluate: GEN_AI_EVALUATE,
   invoke_agent: GEN_AI_INVOKE_AGENT,
   execute_tool: GEN_AI_EXECUTE_TOOL,

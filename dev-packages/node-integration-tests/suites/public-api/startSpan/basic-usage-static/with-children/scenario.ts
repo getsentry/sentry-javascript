@@ -1,11 +1,11 @@
 import * as Sentry from '@sentry/node';
+import { SENTRY_LINK_TYPE } from '@sentry/conventions/attributes';
 import { loggingTransport } from '@sentry-internal/node-integration-tests';
 
 Sentry.init({
+  traceLifecycle: 'static',
   dsn: 'https://public@dsn.ingest.sentry.io/1337',
   tracesSampleRate: 1.0,
-  traceLifecycle: 'stream',
-  integrations: [Sentry.spanStreamingIntegration()],
   transport: loggingTransport,
   release: '1.0.0',
 });
@@ -17,7 +17,7 @@ Sentry.startSpan({ name: 'test-span', op: 'test' }, segmentSpan => {
 
   const inactiveSpan = Sentry.startInactiveSpan({
     name: 'test-inactive-span',
-    links: [{ context: segmentSpan.spanContext(), attributes: { 'sentry.link.type': 'some_relation' } }],
+    links: [{ context: segmentSpan.spanContext(), attributes: { [SENTRY_LINK_TYPE]: 'some_relation' } }],
   });
   inactiveSpan.end();
 

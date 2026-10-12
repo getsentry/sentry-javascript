@@ -34,7 +34,7 @@ export interface ExpressResponse {
  * object for `Layer.prototype.handle_request`/`handleRequest`: `self` is the
  * Layer the method was invoked on and `arguments` are `[req, res, next]`.
  *
- * `_sentryCleanup` is ours: a teardown for the `res.on('finish')` listener we
+ * `_sentryCleanup` is ours: a teardown for the `res` `finish`/`close` listeners we
  * register, invoked from `beforeSpanEnd` when the span ends via `next()`.
  * `_sentryStoredLayer` marks that this invocation pushed a layer path (so the
  * matching pop on `asyncStart` stays symmetric). `_sentrySpan` is the span bound
