@@ -1,5 +1,6 @@
 import type { Span } from '@sentry/core';
 import { extractTraceparentData } from '@sentry/core';
+import { GLOBAL_OBJ } from '@sentry/core';
 import { WINDOW } from '@sentry/react';
 
 // `@opentelemetry/api` `TraceFlags`, inlined because core does not export its copies.
@@ -13,6 +14,13 @@ export interface TraceMetaTagValues {
 
 function getDocument(): Document | undefined {
   return WINDOW.document;
+}
+
+const globalWithInjectedValues = GLOBAL_OBJ as typeof GLOBAL_OBJ & { _sentryCacheComponents?: string };
+
+/** Whether the build enabled `cacheComponents`, so a document can resume a prerendered shell. */
+function hasCacheComponents(): boolean {
+  return (process.env._sentryCacheComponents ?? globalWithInjectedValues._sentryCacheComponents) === 'true';
 }
 
 function lastMetaContent(document: Document, name: string): string | undefined {
@@ -44,12 +52,18 @@ export function hasServerTimingTraceContext(): boolean {
 }
 
 /**
- * Whether the SDK can still expect a `sentry-trace` meta tag to arrive: the document is streaming
- * and nothing else already carries the trace.
+ * Whether the SDK can still expect a `sentry-trace` meta tag to arrive: the app has `cacheComponents`
+ * enabled, so a document can resume a prerendered shell and get its tag with the resumed part, the
+ * document is still streaming, and nothing else already carries the trace. Without `cacheComponents`
+ * a tag is either in `<head>` from the start or never comes, so waiting would only hold the pageload
+ * back.
  */
 export function canWaitForTraceMetaTag(): boolean {
   return (
-    getDocument()?.readyState === 'loading' && typeof MutationObserver !== 'undefined' && !hasServerTimingTraceContext()
+    hasCacheComponents() &&
+    getDocument()?.readyState === 'loading' &&
+    typeof MutationObserver !== 'undefined' &&
+    !hasServerTimingTraceContext()
   );
 }
 

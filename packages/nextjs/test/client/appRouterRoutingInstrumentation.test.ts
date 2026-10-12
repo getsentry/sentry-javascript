@@ -275,6 +275,7 @@ describe('appRouterInstrumentPageLoad', () => {
     window.history.replaceState({}, '', '/navigation?from=document');
     Object.defineProperty(document, 'readyState', { value: 'loading', configurable: true });
     vi.spyOn(performance, 'getEntriesByType').mockReturnValue([]);
+    vi.stubEnv('_sentryCacheComponents', 'true');
   });
 
   afterEach(() => {
@@ -286,6 +287,7 @@ describe('appRouterInstrumentPageLoad', () => {
       Object.defineProperty(Document.prototype, 'readyState', originalReadyState);
     }
     vi.restoreAllMocks();
+    vi.unstubAllEnvs();
   });
 
   it('records the URL of the document when the pageload starts after a navigation changed it', async () => {
