@@ -153,7 +153,9 @@
 
 </details>
 
-- feat(nextjs): Browser pageloads of apps with `cacheComponents` enabled are connected to their server request again ([#25141](https://github.com/getsentry/sentry-javascript/pull/25141))
+- **feat(nextjs): Never emit trace meta tags from a prerender ([#25141](https://github.com/getsentry/sentry-javascript/pull/25141))**
+
+  Apps with `cacheComponents` enabled get the `sentry-trace` and `baggage` meta tags again, so a pageload joins the trace of the server request that rendered the page. The server SDK no longer writes these tags while Next.js prerenders a page, so a cached shell never carries the trace of another visitor. This also covers ISR pages, which no longer need the client-side removal of the tags.
 
 Work in this release was contributed by @Philip-Nwabuwa and @4ktLuffy. Thank you for your contributions!
 
