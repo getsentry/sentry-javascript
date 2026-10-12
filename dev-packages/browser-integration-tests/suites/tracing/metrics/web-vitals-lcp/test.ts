@@ -10,7 +10,7 @@ sentryTest('captures LCP vitals with element details', async ({ browserName, get
   }
 
   page.route('**', route => route.continue());
-  page.route('**/my/image.png', async (route: Route) => {
+  page.route('**/my/image.png?*', async (route: Route) => {
     return route.fulfill({
       path: `${__dirname}/assets/sentry-logo-600x179.png`,
     });
@@ -26,6 +26,9 @@ sentryTest('captures LCP vitals with element details', async ({ browserName, get
   expect(eventData.contexts?.trace?.data?.['lcp.size']).toBeGreaterThan(0);
   expect(eventData.contexts?.trace?.data?.['lcp.loadTime']).toBeGreaterThan(0);
   expect(eventData.contexts?.trace?.data?.['lcp.renderTime']).toBeGreaterThan(0);
+  expect(eventData.contexts?.trace?.data?.['lcp.url']).toBe(
+    'https://sentry-test-site.example/my/image.png?token=[Filtered]&v=1',
+  );
 
   // The LCP value should be the renderTime because the renderTime is set
   expect(eventData.measurements?.lcp?.value).toBeCloseTo(eventData.contexts?.trace?.data?.['lcp.renderTime']);

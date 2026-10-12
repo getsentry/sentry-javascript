@@ -9,7 +9,7 @@ import { HTTP_REQUEST_HEADER_KEY_BASE, SENTRY_OP, URL_FULL, USER_AGENT_ORIGINAL 
 export const httpContextIntegration = defineIntegration(() => {
   return {
     name: 'HttpContext' as const,
-    preprocessEvent(event) {
+    preprocessEvent(event, _hint, client) {
       // if none of the information we want exists, don't bother
       if (!WINDOW.navigator && !WINDOW.location && !WINDOW.document) {
         return;
@@ -23,6 +23,7 @@ export const httpContextIntegration = defineIntegration(() => {
 
       event.request = {
         ...reqData,
+        url: filterCollectedUrl(reqData.url, client),
         ...event.request,
         headers,
       };
