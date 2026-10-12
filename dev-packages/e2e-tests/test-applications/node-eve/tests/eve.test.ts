@@ -1,4 +1,15 @@
 import { expect, test } from '@playwright/test';
+import {
+  GEN_AI_CONVERSATION_ID,
+  GEN_AI_INPUT_MESSAGES,
+  GEN_AI_OPERATION_NAME,
+  GEN_AI_REQUEST_MODEL,
+  GEN_AI_TOOL_NAME,
+  GEN_AI_USAGE_INPUT_TOKENS,
+  GEN_AI_USAGE_OUTPUT_TOKENS,
+  SENTRY_ORIGIN,
+} from '@sentry/conventions/attributes';
+import { GEN_AI_DECIDE, GEN_AI_EXECUTE_TOOL } from '@sentry/conventions/op';
 import { collectStreamedSpans, getSpanOp, waitForError } from '@sentry-internal/test-utils';
 import { runAgentTurn } from './utils';
 
@@ -137,7 +148,7 @@ test('captures errors thrown inside an eve tool', async ({ baseURL }) => {
 
 test('captures a gen_ai.decide span for a Jev call inside an eve tool', async ({ baseURL }) => {
   const traceSpansPromise = collectStreamedSpans(APP, spansOfTrace =>
-    ['gen_ai.execute_tool', 'gen_ai.decide'].every(op => spansOfTrace.some(span => getSpanOp(span) === op)),
+    [GEN_AI_EXECUTE_TOOL, GEN_AI_DECIDE].every(op => spansOfTrace.some(span => getSpanOp(span) === op)),
   );
 
   const sessionId = await runAgentTurn(
@@ -147,20 +158,20 @@ test('captures a gen_ai.decide span for a Jev call inside an eve tool', async ({
 
   const traceSpans = await traceSpansPromise;
 
-  const executeTool = traceSpans.find(span => getSpanOp(span) === 'gen_ai.execute_tool');
-  const decide = traceSpans.find(span => getSpanOp(span) === 'gen_ai.decide');
+  const executeTool = traceSpans.find(span => getSpanOp(span) === GEN_AI_EXECUTE_TOOL);
+  const decide = traceSpans.find(span => getSpanOp(span) === GEN_AI_DECIDE);
 
-  expect(executeTool?.attributes?.['gen_ai.tool.name']?.value).toBe('classify_ticket');
+  expect(executeTool?.attributes?.[GEN_AI_TOOL_NAME]?.value).toBe('classify_ticket');
 
   expect(decide?.name).toBe('decide typesafe-ai/jev');
   expect(decide?.status).toBe('ok');
-  expect(decide?.attributes?.['sentry.origin']?.value).toBe('auto.vercelai.channel');
-  expect(decide?.attributes?.['gen_ai.operation.name']?.value).toBe('decide');
-  expect(decide?.attributes?.['gen_ai.request.model']?.value).toBe('typesafe-ai/jev');
-  expect(decide?.attributes?.['gen_ai.usage.input_tokens']?.value).toBe(275);
-  expect(decide?.attributes?.['gen_ai.usage.output_tokens']?.value).toBe(20);
-  expect(decide?.attributes?.['gen_ai.input.messages']?.value).toContain('refund for last month');
-  expect(decide?.attributes?.['gen_ai.conversation.id']?.value).toBe(sessionId);
+  expect(decide?.attributes?.[SENTRY_ORIGIN]?.value).toBe('auto.vercelai.channel');
+  expect(decide?.attributes?.[GEN_AI_OPERATION_NAME]?.value).toBe('decide');
+  expect(decide?.attributes?.[GEN_AI_REQUEST_MODEL]?.value).toBe('typesafe-ai/jev');
+  expect(decide?.attributes?.[GEN_AI_USAGE_INPUT_TOKENS]?.value).toBe(275);
+  expect(decide?.attributes?.[GEN_AI_USAGE_OUTPUT_TOKENS]?.value).toBe(20);
+  expect(decide?.attributes?.[GEN_AI_INPUT_MESSAGES]?.value).toContain('refund for last month');
+  expect(decide?.attributes?.[GEN_AI_CONVERSATION_ID]?.value).toBe(sessionId);
 
   expect(decide?.trace_id).toBe(executeTool?.trace_id);
   expect(decide?.parent_span_id).toBe(executeTool?.span_id);
