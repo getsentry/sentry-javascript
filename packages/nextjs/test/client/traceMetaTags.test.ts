@@ -28,6 +28,7 @@ function setReadyState(value: DocumentReadyState): void {
 beforeEach(() => {
   document.head.innerHTML = '';
   document.body.innerHTML = '';
+  vi.stubEnv('_sentryCacheComponents', 'true');
 });
 
 afterEach(() => {
@@ -37,6 +38,7 @@ afterEach(() => {
     Object.defineProperty(Document.prototype, 'readyState', originalReadyState);
   }
   vi.restoreAllMocks();
+  vi.unstubAllEnvs();
   vi.useRealTimers();
 });
 
@@ -75,6 +77,14 @@ describe('canWaitForTraceMetaTag', () => {
     vi.spyOn(performance, 'getEntriesByType').mockReturnValue([]);
 
     expect(canWaitForTraceMetaTag()).toBe(true);
+  });
+
+  it('is false when the build did not enable cacheComponents', () => {
+    vi.stubEnv('_sentryCacheComponents', '');
+    setReadyState('loading');
+    vi.spyOn(performance, 'getEntriesByType').mockReturnValue([]);
+
+    expect(canWaitForTraceMetaTag()).toBe(false);
   });
 
   it('is false once the document finished parsing', () => {
