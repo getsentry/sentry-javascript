@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { collectStreamedSpans, getSpanOp } from '@sentry-internal/test-utils';
+import { collectStreamedSpans, getSpanOp, waitForStreamedSpan } from '@sentry-internal/test-utils';
 
 const usesManagedTunnelRoute =
   (process.env.E2E_TEST_TUNNEL_ROUTE_MODE ?? 'off') !== 'off' || process.env.E2E_TEST_CUSTOM_TUNNEL_ROUTE === '1';
@@ -48,5 +48,49 @@ test.describe('Trace propagation', () => {
     expect(serverSpan).toBeDefined();
     expect(clientSpan).toBeDefined();
     expect(clientSpan?.trace_id).toBe(serverSpan?.trace_id);
+  });
+
+  test('continues an incoming trace', async ({ request }) => {
+    const traceId = crypto.randomUUID().replace(/-/g, '');
+    const parentSpanId = traceId.slice(0, 16);
+
+    const segmentSpanPromise = waitForStreamedSpan(
+      'tanstackstart-react',
+      span => span.trace_id === traceId && span.is_segment,
+    );
+
+    await request.get('/api/user/1', {
+      headers: {
+        'sentry-trace': `${traceId}-${parentSpanId}-1`,
+        baggage: `sentry-trace_id=${traceId},sentry-sample_rate=1,sentry-sampled=true`,
+      },
+    });
+
+    const segmentSpan = await segmentSpanPromise;
+
+    expect(getSpanOp(segmentSpan)).toBe('http.server');
+    expect(segmentSpan.name).toBe('GET /api/user/$id');
+    expect(segmentSpan.parent_span_id).toBe(parentSpanId);
+  });
+
+  test('adds sentry-trace and baggage headers to an outgoing fetch', async ({ request }) => {
+    const segmentSpanPromise = waitForStreamedSpan(
+      'tanstackstart-react',
+      span => span.is_segment && getSpanOp(span) === 'http.server' && span.name === 'GET /api/outgoing-fetch',
+    );
+    const fetchSpanPromise = waitForStreamedSpan(
+      'tanstackstart-react',
+      span => getSpanOp(span) === 'http.client' && String(span.attributes['url.full']?.value).endsWith('/api/headers'),
+    );
+
+    const receivedHeaders = await (await request.get('/api/outgoing-fetch')).json();
+
+    const segmentSpan = await segmentSpanPromise;
+    const fetchSpan = await fetchSpanPromise;
+
+    expect(fetchSpan.trace_id).toBe(segmentSpan.trace_id);
+    expect(fetchSpan.parent_span_id).toBe(segmentSpan.span_id);
+    expect(receivedHeaders.sentryTrace).toBe(`${segmentSpan.trace_id}-${fetchSpan.span_id}-1`);
+    expect(receivedHeaders.baggage).toContain(`sentry-trace_id=${segmentSpan.trace_id}`);
   });
 });

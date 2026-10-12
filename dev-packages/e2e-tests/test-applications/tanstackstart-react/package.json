@@ -7,9 +7,13 @@
     "build": "vite build && cp instrument.server.mjs .output/server",
     "dev": "vite dev",
     "start": "node --import ./.output/server/instrument.server.mjs .output/server/index.mjs",
+    "start:bun": "bun --preload ./instrument.bun.mjs .output/server/index.mjs",
+    "start:deno": "deno run -A --config ./deno.json --preload=@sentry/deno/import --preload=./instrument.deno.mjs .output/server/index.mjs",
+    "start:cloudflare": "wrangler dev --config ./dist/server/wrangler.json --port 3000",
     "test": "playwright test",
     "clean": "npx rimraf node_modules pnpm-lock.yaml",
     "test:build": "pnpm install && pnpm build",
+    "test:build:cloudflare": "pnpm install && vite build",
     "test:build:tunnel-generated": "pnpm install && E2E_TEST_TUNNEL_ROUTE_MODE=dynamic E2E_TEST_DSN=http://public@localhost:3031/1337 pnpm build",
     "test:build:tunnel-static": "pnpm install && E2E_TEST_TUNNEL_ROUTE_MODE=static E2E_TEST_DSN=http://public@localhost:3031/1337 pnpm build",
     "test:build:tunnel-custom": "pnpm install && E2E_TEST_CUSTOM_TUNNEL_ROUTE=1 pnpm build",
@@ -24,6 +28,9 @@
   },
   "//": "Need to use ioredis 5.10.1 because that's the last version before they support tracing channels",
   "dependencies": {
+    "@sentry/bun": "file:../../packed/sentry-bun-packed.tgz",
+    "@sentry/cloudflare": "file:../../packed/sentry-cloudflare-packed.tgz",
+    "@sentry/deno": "file:../../packed/sentry-deno-packed.tgz",
     "@sentry/tanstackstart-react": "file:../../packed/sentry-tanstackstart-react-packed.tgz",
     "@tanstack/react-start": "1.168.35",
     "@tanstack/react-router": "1.170.18",
@@ -34,6 +41,7 @@
     "mysql": "^2.18.1"
   },
   "devDependencies": {
+    "@cloudflare/vite-plugin": "^1.35.0",
     "@types/react": "^19.2.0",
     "@types/react-dom": "^19.2.0",
     "@types/node": "^24.10.0",
@@ -44,7 +52,8 @@
     "vite": "7.3.2",
     "vite-tsconfig-paths": "^5.1.4",
     "@playwright/test": "~1.63.0",
-    "@sentry-internal/test-utils": "link:../../../test-utils"
+    "@sentry-internal/test-utils": "link:../../../test-utils",
+    "wrangler": "^4.120.0"
   },
   "volta": {
     "extends": "../../package.json"
@@ -70,6 +79,25 @@
         "label": "tanstackstart-react (tunnel-object)",
         "build-command": "pnpm test:build:tunnel-object",
         "assert-command": "pnpm test:assert:tunnel-object"
+      }
+    ],
+    "optionalVariants": [
+      {
+        "runtime": "bun",
+        "assert-command": "pnpm test",
+        "label": "tanstackstart-react (bun)"
+      },
+      {
+        "runtime": "deno",
+        "deno-version": "v2.9.0",
+        "assert-command": "pnpm test",
+        "label": "tanstackstart-react (deno)"
+      },
+      {
+        "runtime": "cloudflare",
+        "build-command": "pnpm test:build:cloudflare",
+        "assert-command": "pnpm test",
+        "label": "tanstackstart-react (cloudflare)"
       }
     ]
   }

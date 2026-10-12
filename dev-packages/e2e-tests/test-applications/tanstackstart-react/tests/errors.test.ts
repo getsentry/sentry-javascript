@@ -1,5 +1,6 @@
 import { expect, test } from '@playwright/test';
 import { getSpanOp, waitForError, waitForStreamedSpan } from '@sentry-internal/test-utils';
+import { RUNTIME } from './constants';
 
 const usesManagedTunnelRoute =
   (process.env.E2E_TEST_TUNNEL_ROUTE_MODE ?? 'off') !== 'off' || process.env.E2E_TEST_CUSTOM_TUNNEL_ROUTE === '1';
@@ -75,7 +76,12 @@ test('Sends server-side function error to Sentry with auto-instrumentation', asy
     },
   });
 
-  expect(errorEvent.transaction).toEqual(expect.stringContaining('GET /_serverFn/'));
+  // On Deno, the server function request starts with the scopes of the page request before it on the same
+  // connection, so the error gets the transaction name of the page (see isolation.test.ts). On Cloudflare, the SDK
+  // sets no transaction name for a request, and only the route parametrization names one.
+  if (RUNTIME === 'node' || RUNTIME === 'bun') {
+    expect(errorEvent.transaction).toEqual(expect.stringContaining('GET /_serverFn/'));
+  }
 });
 
 test('Sends API route error to Sentry with auto-instrumentation', async ({ page }) => {

@@ -165,7 +165,9 @@ is the reference setup.
   `bun --bun --preload ./instrument.bun.mjs ./node_modules/@react-router/serve/bin.cjs ./build/server/index.js` and
   `deno run -A --preload=@sentry/deno/import --preload=./instrument.deno.mjs ./node_modules/@react-router/serve/bin.cjs ./build/server/index.js`.
   The app's `deno.json` maps `@sentry/deno/import` to `node_modules`, because the e2e dependencies are `file:` tarballs
-  that `npm:@sentry/deno/import` does not resolve.
+  that `npm:@sentry/deno/import` does not resolve. When the server entry is in a folder with its own `package.json`
+  (for example the Nitro output `.output/server`), Deno reads its config from that folder, so pass
+  `--config ./deno.json`.
 - **Cloudflare**: the app has the Cloudflare dependencies installed all the time. The Cloudflare build has its own
   `vite.cloudflare.config.ts` with `@cloudflare/vite-plugin` and `sentryCloudflareVitePlugin` from
   `@sentry/cloudflare/vite`, which the runner uses in place of `vite.config.ts` (see runtime-specific files). List the
