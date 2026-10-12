@@ -45,7 +45,7 @@ export interface CommonJSInteropOptions {
  * `@rollup/plugin-commonjs` options for builds that bundle CommonJS packages while their
  * dependencies stay external. Builtin `require()`s unwrap to the module (a namespace breaks
  * direct calls) and convert inside `try` blocks (a bare `require` throws in ESM output).
- * Externals keep `'auto'`, which {@link sentryCommonJSInteropPlugin} fixes for Node >= 23.
+ * Externals keep `'auto'`, which {@link sentryCommonJSInteropPlugin} fixes for Node >= 23 and Bun.
  */
 export function commonJSInteropOptions(): CommonJSInteropOptions {
   return {
@@ -59,11 +59,17 @@ const COMMONJS_HELPERS_ID = '\0commonjsHelpers.js';
 // The plugin's `'auto'` helper unwraps a required external module only when `default` is the
 // sole key on its namespace. Node >= 23 adds a `'module.exports'` key to every CommonJS
 // namespace (nodejs/node#53848), so the check never passes. Ignoring that key restores it.
+// Bun also lists the own properties of a function `module.exports` (`length`, `name`, static
+// members) as named exports. Only such a namespace has a `length` key, so it unwraps when all
+// its keys mirror `default`.
 const BROKEN_NAMESPACE_CHECK = 'Object.keys(n).length === 1';
-const FIXED_NAMESPACE_CHECK = "Object.keys(n).filter(k => k !== 'module.exports').length === 1";
+const FIXED_NAMESPACE_CHECK =
+  "(Object.keys(n).filter(k => k !== 'module.exports').length === 1 || " +
+  "(typeof n['default'] === 'function' && Object.prototype.hasOwnProperty.call(n, 'length') && " +
+  "Object.keys(n).every(k => k === 'default' || n[k] === n['default'][k])))";
 
 /**
- * Fixes `@rollup/plugin-commonjs`' `'auto'` interop for Node >= 23 by patching the broken
+ * Fixes `@rollup/plugin-commonjs`' `'auto'` interop for Node >= 23 and Bun by patching the broken
  * namespace check in its helpers module. The patch applies only while the exact broken
  * expression exists, so it retires itself once the plugin is fixed upstream.
  */

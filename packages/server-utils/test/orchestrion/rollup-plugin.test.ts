@@ -102,4 +102,46 @@ describe('sentryCommonJSInteropPlugin', () => {
 
     expect(transform(fixedHelper, '\0commonjsHelpers.js')).toBeNull();
   });
+
+  describe('patched helper', () => {
+    const patchedHelper = transform(brokenHelper, '\0commonjsHelpers.js')!.code.replace(
+      'export function',
+      'return function',
+    );
+    // oxlint-disable-next-line typescript/no-implied-eval -- executing the patched helper is the behavior under test
+    const getDefaultExportFromNamespaceIfNotNamed = new Function(patchedHelper)() as (namespace: object) => unknown;
+
+    function exportedFunction() {}
+    exportedFunction.helper = () => 'helper';
+
+    it('unwraps a CommonJS namespace with a `module.exports` key (Node >= 23)', () => {
+      const namespace = { default: exportedFunction, 'module.exports': exportedFunction };
+
+      expect(getDefaultExportFromNamespaceIfNotNamed(namespace)).toBe(exportedFunction);
+    });
+
+    it('unwraps a CommonJS namespace that lists the properties of the exported function (Bun)', () => {
+      const namespace = {
+        default: exportedFunction,
+        helper: exportedFunction.helper,
+        length: exportedFunction.length,
+        name: exportedFunction.name,
+        prototype: exportedFunction.prototype,
+      };
+
+      expect(getDefaultExportFromNamespaceIfNotNamed(namespace)).toBe(exportedFunction);
+    });
+
+    it('keeps the namespace of an ES module that re-exports properties of its default export', () => {
+      const namespace = { default: exportedFunction, helper: exportedFunction.helper };
+
+      expect(getDefaultExportFromNamespaceIfNotNamed(namespace)).toBe(namespace);
+    });
+
+    it('keeps the namespace of a CommonJS module that exports an object', () => {
+      const namespace = { a: 1, default: { a: 1 } };
+
+      expect(getDefaultExportFromNamespaceIfNotNamed(namespace)).toBe(namespace);
+    });
+  });
 });
