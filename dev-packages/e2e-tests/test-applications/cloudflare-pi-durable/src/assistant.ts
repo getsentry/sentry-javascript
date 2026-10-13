@@ -6,15 +6,6 @@ import * as Sentry from '@sentry/cloudflare';
 import { Agent } from 'agents';
 import { PiHarness } from 'agents/harness/pi';
 
-type TextBlock = { type: 'text'; text: string };
-
-// pi-durable 1.2.0 renamed the tool result field `content` to `output`. The app runs on 1.0.0 and on the
-// latest version, so its tool results set both.
-function textResult(text: string): { output: TextBlock[]; content: TextBlock[] } {
-  const blocks: TextBlock[] = [{ type: 'text', text }];
-  return { output: blocks, content: blocks };
-}
-
 /**
  * pi-durable hosted by the Agents SDK `PiHarness`: pi keeps its state in this object's SQLite
  * database, and the harness reopens pi when the object restarts. Nothing wires Sentry into
@@ -55,9 +46,9 @@ export class Assistant extends Agent<Env> {
             parameters: Type.Object({ city: Type.String() }),
             // The manual span should nest under the SDK's `execute_tool` span.
             execute: async args =>
-              Sentry.startSpan({ name: 'resolve-weather', attributes: { 'weather.city': args.city } }, () =>
-                textResult(`It is 21 degrees and sunny in ${args.city}.`),
-              ),
+              Sentry.startSpan({ name: 'resolve-weather', attributes: { 'weather.city': args.city } }, () => ({
+                output: [{ type: 'text', text: `It is 21 degrees and sunny in ${args.city}.` }],
+              })),
           }),
           defineTool({
             name: 'fail_now',
@@ -76,7 +67,7 @@ export class Assistant extends Agent<Env> {
             execute: async args => {
               const marker = `crashed:${args.job}`;
               if (await this.ctx.storage.get(marker)) {
-                return textResult(`Step of job ${args.job} completed.`);
+                return { output: [{ type: 'text', text: `Step of job ${args.job} completed.` }] };
               }
               await this.ctx.storage.put(marker, true);
               await this.ctx.storage.sync();
