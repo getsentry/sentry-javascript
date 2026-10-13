@@ -57,6 +57,7 @@ export async function addPnpmOverrides(tmpDirPath: string, packedDirPath: string
   console.log(`Added ${packageNames.length} internal Sentry package overrides`);
 }
 
+// Keep in sync with `.github/actions/install-pnpm`, which installs the version this finds in CI.
 async function getPnpmMajor(
   packageJsonPath: string,
   packageJson: { volta?: { extends?: string; pnpm?: string } },
