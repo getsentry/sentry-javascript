@@ -325,7 +325,7 @@ describe('appRouterInstrumentPageLoad', () => {
     const { core, pageload } = await setup('static');
     Object.defineProperty(document, 'readyState', { value: 'complete', configurable: true });
     const meta = document.createElement('meta');
-    meta.name = 'sentry-shell';
+    meta.name = 'sentry-prerender';
     meta.content = '11111111111111111111111111111111-1111111111111111-1';
     document.head.appendChild(meta);
 
@@ -335,7 +335,7 @@ describe('appRouterInstrumentPageLoad', () => {
     expect(span).toBeDefined();
     const spanJson = core.spanToJSON(span!);
     expect(spanJson.attributes?.[SENTRY_OP]).toBe(PAGELOAD);
-    expect(spanJson.attributes?.['sentry.nextjs.cached_shell']).toBe(true);
+    expect(spanJson.attributes?.['document.cached']).toBe(true);
     expect(spanJson.trace_id).not.toBe('11111111111111111111111111111111');
     expect(spanJson.links).toEqual([
       expect.objectContaining({

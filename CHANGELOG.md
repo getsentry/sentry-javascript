@@ -10,7 +10,7 @@
 
 - **feat(nextjs): Mark pageloads that were served from a cached shell**
 
-  A pageload whose document is a shell that Next.js prerendered at runtime, for example an ISR page or a `cacheComponents` page generated on first visit, now carries the `sentry.nextjs.cached_shell` attribute and a `cache_origin` span link to the request that generated the shell. That tells apart "nothing ran on the server for this visit" from missing server instrumentation. The link is never continued as a parent, so pageloads keep their own traces and sampling decisions.
+  A pageload whose document was served from a cache, for example an ISR page or a `cacheComponents` page generated on first visit, now carries the `document.cached` attribute and a `cache_origin` span link to the request that prerendered the page. That tells apart "nothing ran on the server for this visit" from missing server instrumentation. The link is never continued as a parent, so pageloads keep their own traces and sampling decisions.
 
 ## 11.7.0
 

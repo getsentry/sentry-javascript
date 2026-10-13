@@ -1,4 +1,4 @@
-import { SHELL_META_TAG_NAME } from '../../common/traceMetaTags';
+import { PRERENDER_META_TAG_NAME } from '../../common/traceMetaTags';
 import { debug, isMatchingPattern, parseSemver } from '@sentry/core';
 import { getSentryRelease } from '@sentry/node';
 import * as fs from 'fs';
@@ -149,7 +149,7 @@ export function maybeSetClientTraceMetadataOption(
       incomingUserNextConfigObject.experimental.clientTraceMetadata = [
         'baggage',
         'sentry-trace',
-        SHELL_META_TAG_NAME,
+        PRERENDER_META_TAG_NAME,
         ...(incomingUserNextConfigObject.experimental?.clientTraceMetadata || []),
       ];
     }

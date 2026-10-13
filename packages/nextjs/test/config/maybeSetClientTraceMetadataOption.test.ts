@@ -6,7 +6,7 @@ describe('maybeSetClientTraceMetadataOption', () => {
   it('adds sentry-trace and baggage to clientTraceMetadata on supported Next.js versions', () => {
     const config: NextConfigObject = {};
     maybeSetClientTraceMetadataOption(config, '15.0.0');
-    expect(config.experimental?.clientTraceMetadata).toEqual(['baggage', 'sentry-trace', 'sentry-shell']);
+    expect(config.experimental?.clientTraceMetadata).toEqual(['baggage', 'sentry-trace', 'sentry-prerender']);
   });
 
   it('preserves user-provided clientTraceMetadata entries', () => {
@@ -15,7 +15,7 @@ describe('maybeSetClientTraceMetadataOption', () => {
     expect(config.experimental?.clientTraceMetadata).toEqual([
       'baggage',
       'sentry-trace',
-      'sentry-shell',
+      'sentry-prerender',
       'my-custom-key',
     ]);
   });
@@ -24,6 +24,6 @@ describe('maybeSetClientTraceMetadataOption', () => {
     // The server withholds the tags while it prerenders, see `nextSentryPropagator.ts`.
     const config: NextConfigObject = { cacheComponents: true };
     maybeSetClientTraceMetadataOption(config, '16.0.0');
-    expect(config.experimental?.clientTraceMetadata).toEqual(['baggage', 'sentry-trace', 'sentry-shell']);
+    expect(config.experimental?.clientTraceMetadata).toEqual(['baggage', 'sentry-trace', 'sentry-prerender']);
   });
 });
