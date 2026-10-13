@@ -69,6 +69,11 @@ export function setUpBuildTimeVariables(
     buildTimeVariables._sentryRelease = releaseName;
   }
 
+  // The client only waits for a late trace meta tag when a document can resume a prerendered shell.
+  if (userNextConfig.cacheComponents) {
+    buildTimeVariables._sentryCacheComponents = 'true';
+  }
+
   // See `client/routing/nextRoutingInstrumentation.ts`.
   if (hasOnlyAppRouterPages(projectDir)) {
     buildTimeVariables._sentryHasPagesRouter = 'false';

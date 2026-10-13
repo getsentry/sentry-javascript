@@ -58,3 +58,17 @@ describe('setUpBuildTimeVariables', () => {
     });
   });
 });
+
+describe('_sentryCacheComponents', () => {
+  it('is set when the Next.js config enables cacheComponents', () => {
+    const config: NextConfigObject = { cacheComponents: true };
+    setUpBuildTimeVariables(config, {}, undefined);
+    expect(config.env?._sentryCacheComponents).toBe('true');
+  });
+
+  it('is left unset otherwise', () => {
+    const config: NextConfigObject = {};
+    setUpBuildTimeVariables(config, {}, undefined);
+    expect(config.env?._sentryCacheComponents).toBeUndefined();
+  });
+});
