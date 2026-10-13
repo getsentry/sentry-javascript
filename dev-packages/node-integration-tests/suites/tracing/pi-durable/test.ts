@@ -30,9 +30,9 @@ import { cleanupChildProcesses, createEsmAndCjsTests } from '../../../utils/runn
 // instead, guarded by the `min: 22` skip below.
 const PI_DURABLE_DEPENDENCIES = {
   additionalDependencies: {
-    '@earendil-works/pi-durable': '^1.0.0',
-    '@earendil-works/pi-ai': '^1.0.0',
-    '@earendil-works/chord': '^1.0.0',
+    '@earendil-works/pi-durable': '^1.2.0',
+    '@earendil-works/pi-ai': '^1.2.0',
+    '@earendil-works/chord': '^1.2.0',
   },
 };
 
