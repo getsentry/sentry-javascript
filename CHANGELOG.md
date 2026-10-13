@@ -4,6 +4,10 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+- **feat(nextjs): Never emit trace meta tags from a prerender ([#25141](https://github.com/getsentry/sentry-javascript/pull/25141))**
+
+  Pageloads of apps with `cacheComponents` enabled are connected to their server request again. Pages that Next.js prerenders no longer carry trace information, so a cached page can no longer connect visitors to a request that was not theirs. This also applies to ISR pages.
+
 ## 11.7.0
 
 ### Important Changes

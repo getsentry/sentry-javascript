@@ -23,6 +23,7 @@ import {
   setCloudflareWorkerRelease,
 } from '../common/utils/responseEnd';
 import { distDirRewriteFramesIntegration } from './distDirRewriteFramesIntegration';
+import { registerNextSentryPropagator } from './nextSentryPropagator';
 import { addNextjsServerSpanHooks, NEXTJS_SERVER_IGNORE_SPANS } from './serverSpanHooks';
 import { prepareSafeIdGeneratorContext } from './prepareSafeIdGeneratorContext';
 import { nextjsUseCacheIntegration } from './useCacheInstrumentation';
@@ -183,6 +184,14 @@ export function init(options: NodeOptions): NodeClient | undefined {
     setCloudflareWorkerRelease(opts.release);
   }
 
+  // Next.js reads the trace meta tags of a document through the global propagator. Only the setup the
+  // Node SDK owns gets the Next.js-aware one here; `withSentry` of `@sentry/nextjs/cloudflare` applies it
+  // to its own setup, and another OpenTelemetry setup (for example `@vercel/otel`) keeps its own tracer
+  // provider and propagator.
+  if (client?.traceProvider) {
+    registerNextSentryPropagator(client.traceProvider);
+  }
+
   // On the client, not the global scope, so a later `init()` after
   // `close()` does not stack another copy. In a request of `withSentry` on
   // Workers, `init` creates no client, so the global scope gets them, which
@@ -230,3 +239,8 @@ export function init(options: NodeOptions): NodeClient | undefined {
 export * from '../common';
 
 export { wrapApiHandlerWithSentry } from '../common/pages-router-instrumentation/wrapApiHandlerWithSentry';
+
+// For apps that set up OpenTelemetry themselves (`enableOpenTelemetrySetup: false`), which otherwise
+// write the trace meta tags of a prerendered shell with the propagator they registered.
+export { NextSentryPropagator } from './nextSentryPropagator';
+export { markPrerendersOnTracerProvider } from './prerenderContext';
