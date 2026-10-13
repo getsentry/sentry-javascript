@@ -109,7 +109,7 @@ export const sentryAstro = (options: SentryOptions = {}): AstroIntegration => {
                   release,
                   sourcemaps: {
                     ...sourcemaps,
-                    assets: sourcemaps?.assets ?? [getSourcemapsAssetsGlob(config)],
+                    assets: sourcemaps?.assets ?? getSourcemapsAssetsGlobs(config),
                     filesToDeleteAfterUpload: sourcemaps?.filesToDeleteAfterUpload ?? updatedFilesToDeleteAfterUpload,
                   },
                   bundleSizeOptimizations: {
@@ -273,7 +273,14 @@ function isCloudflarePages(): boolean {
   return false;
 }
 
-function getSourcemapsAssetsGlob(config: AstroConfig): string {
+function getSourcemapsAssetsGlobs(config: AstroConfig): string[] {
+  const outDirGlob = getOutDirGlob(config);
+  // Astro 7 writes the prerender build to a hidden `.prerender` folder, which `**` does not enter.
+  // Its chunks only run at build time to render static pages, but we still upload them for errors captured then.
+  return [`${outDirGlob}/**/*`, `${outDirGlob}/**/.prerender/**/*`];
+}
+
+function getOutDirGlob(config: AstroConfig): string {
   // The vercel adapter puts the output into its .vercel directory
   // However, the way this adapter is written, the config.outDir value is update too late for
   // us to reliably detect it. Also, server files are first temporarily written to <root>/dist and then
@@ -281,7 +288,7 @@ function getSourcemapsAssetsGlob(config: AstroConfig): string {
   // So we glob on both of these directories.
   // Another case of "it ain't pretty but it works":(
   if (config.adapter?.name?.startsWith('@astrojs/vercel')) {
-    return '{.vercel,dist}/**/*';
+    return '{.vercel,dist}';
   }
 
   // paths are stored as "file://" URLs
@@ -289,12 +296,11 @@ function getSourcemapsAssetsGlob(config: AstroConfig): string {
   const rootDirName = path.resolve(config.root?.pathname || process.cwd());
 
   if (outDirPathname) {
-    const relativePath = path.relative(rootDirName, outDirPathname);
-    return `${relativePath}/**/*`;
+    return path.relative(rootDirName, outDirPathname);
   }
 
   // fallback to default output dir
-  return 'dist/**/*';
+  return 'dist';
 }
 
 /**

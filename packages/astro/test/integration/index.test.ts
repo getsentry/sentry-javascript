@@ -111,7 +111,7 @@ describe('sentryAstro integration', () => {
         debug: false,
         bundleSizeOptimizations: {},
         sourcemaps: {
-          assets: ['out/**/*'],
+          assets: ['out/**/*', 'out/**/.prerender/**/*'],
           filesToDeleteAfterUpload: ['./dist/**/client/**/*.map', './dist/**/server/**/*.map'],
         },
         _metaOptions: {
@@ -142,7 +142,7 @@ describe('sentryAstro integration', () => {
         debug: false,
         bundleSizeOptimizations: {},
         sourcemaps: {
-          assets: ['dist/**/*'],
+          assets: ['dist/**/*', 'dist/**/.prerender/**/*'],
           filesToDeleteAfterUpload: ['./dist/**/client/**/*.map', './dist/**/server/**/*.map'],
         },
         _metaOptions: {
@@ -181,7 +181,7 @@ describe('sentryAstro integration', () => {
         debug: false,
         bundleSizeOptimizations: {},
         sourcemaps: {
-          assets: ['{.vercel,dist}/**/*'],
+          assets: ['{.vercel,dist}/**/*', '{.vercel,dist}/**/.prerender/**/*'],
           filesToDeleteAfterUpload: ['./dist/**/client/**/*.map', './dist/**/server/**/*.map'],
         },
         _metaOptions: {
