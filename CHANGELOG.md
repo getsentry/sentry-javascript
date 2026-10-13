@@ -4,6 +4,155 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 11.7.0
+
+### Important Changes
+
+- **feat(cloudflare): Add opt-in cron monitoring for Cron Triggers ([#25014](https://github.com/getsentry/sentry-javascript/pull/25014))**
+
+  The new `cronTriggersIntegration` sends check-ins for Cron Triggers. Each check-in includes the schedule from `controller.cron`, so Sentry creates the monitor on the first run. The integration is opt-in, because monitors are billed.
+
+  Cron Triggers have no names, so map each cron expression of your wrangler config to a monitor slug. With the Sentry Cloudflare Vite plugin, add the integration to `src/instrument.server.ts`:
+
+  ```ts
+  // src/monitorSlugs.ts
+  export const monitorSlugs: Record<string, string> = {
+    '30 9 * * MON-FRI': 'daily-report',
+  };
+
+  // src/instrument.server.ts
+  import * as Sentry from '@sentry/cloudflare';
+  import { monitorSlugs } from './monitorSlugs';
+
+  export default Sentry.defineCloudflareOptions(env => ({
+    dsn: env.SENTRY_DSN,
+    integrations: [Sentry.cronTriggersIntegration({ monitorSlug: cron => monitorSlugs[cron] })],
+  }));
+
+  // src/index.ts
+  import { monitorSlugs } from './monitorSlugs';
+
+  export default {
+    async scheduled(controller, env) {
+      switch (monitorSlugs[controller.cron]) {
+        case 'daily-report':
+          // Your daily report job
+          break;
+      }
+    },
+  };
+  ```
+
+  The `monitorSlug` function can also return monitor settings, for example `{ monitorSlug: 'daily-report', maxRuntime: 30 }`, or `undefined` to send no check-ins for a trigger. Without `monitorSlug`, the SDK derives the slug from the cron expression. If you deploy with `wrangler` directly, pass the same integration to `Sentry.withSentry`.
+
+- **feat(node): Add neonIntegration for @neondatabase/serverless ([#25164](https://github.com/getsentry/sentry-javascript/pull/25164), [#25176](https://github.com/getsentry/sentry-javascript/pull/25176))**
+
+  The new `neonIntegration` creates `db` spans for queries of the `@neondatabase/serverless` driver: for the WebSocket `Client` and `Pool`, and for the HTTP `neon()` function. This includes the `neon-http` and `neon-serverless` adapters of Drizzle. The integration is on by default when tracing is enabled.
+
+- **feat(node): Stop sending the process session once request sessions are tracked ([#24915](https://github.com/getsentry/sentry-javascript/pull/24915))**
+
+  Node servers sent release health data two times: as request session aggregates, and as the process session of `processSessionIntegration`. An error in a request also marked the process session as errored, so the SDK counted the error two times. Now the SDK drops the process session when it tracks the first request session. Scripts, CLIs and workers that do not serve requests keep the process session, and so do servers with `httpServerIntegration({ sessions: false })`. This changes the release health numbers of Node servers, because they no longer send the errored or crashed update of the process session.
+
+- **feat(server-utils): Record decide calls as `gen_ai.decide` spans ([#25270](https://github.com/getsentry/sentry-javascript/pull/25270), [#25272](https://github.com/getsentry/sentry-javascript/pull/25272), [#25274](https://github.com/getsentry/sentry-javascript/pull/25274), [#25281](https://github.com/getsentry/sentry-javascript/pull/25281))**
+
+  Vercel AI `experimental_decide` calls, Mastra classifier evaluations, TypeSafe and LangChain Jev calls, and Workers AI calls to TypeSafe Jev and Cloudflare Clef models now create `decide <model>` spans with the op `gen_ai.decide`. Before, these spans had the op `gen_ai.evaluate`, which is now deprecated in the Sentry conventions. If you use `gen_ai.evaluate` in queries, alerts or dashboards, change it to `gen_ai.decide`.
+
+- **fix(browser): Apply `urlQueryParams` to more URLs ([#25262](https://github.com/getsentry/sentry-javascript/pull/25262), [#25289](https://github.com/getsentry/sentry-javascript/pull/25289))**
+
+  The `dataCollection.urlQueryParams` option now also filters the query parameters of these URLs:
+  - the page URL in `event.request.url`
+  - the `browser.*` and `resource.*` span names with `traceLifecycle: 'static'`
+  - the LCP URL attributes `lcp.url` and `browser.web_vital.lcp.url`
+  - the URLs in fetch, XHR and navigation breadcrumbs
+  - the `ui.element.url` attribute of `elementTimingIntegration`
+
+  Before this fix, these URLs could send sensitive query values, for example `?jwt=...`, to Sentry.
+
+- **fix(nextjs): Apply top-level `bundleSizeOptimizations` to webpack and Turbopack builds ([#24818](https://github.com/getsentry/sentry-javascript/pull/24818))**
+
+  The top-level `bundleSizeOptimizations` option now removes unused SDK code in webpack and in Turbopack builds. Before, the tree-shaking options had no effect on Turbopack. The `webpack.treeshake` option is deprecated. It still works, but when you set both options, `bundleSizeOptimizations` takes precedence.
+
+### Other Changes
+
+- feat(nuxt): Detect the server API with `@nuxt/kit` 4.6 ([#25138](https://github.com/getsentry/sentry-javascript/pull/25138))
+- fix(bundler-plugins): Escape JSON in generated injection code ([#25265](https://github.com/getsentry/sentry-javascript/pull/25265))
+- fix(core): Don't mark http client spans as errors when the caller aborts ([#25260](https://github.com/getsentry/sentry-javascript/pull/25260))
+- fix(core): Record `span` client report outcomes when discarding transactions ([#25006](https://github.com/getsentry/sentry-javascript/pull/25006))
+- fix(core): Record client outcomes when beforeSend callbacks return invalid values ([#25049](https://github.com/getsentry/sentry-javascript/pull/25049))
+- fix(core): Record span outcomes for spans dropped when building a transaction ([#25048](https://github.com/getsentry/sentry-javascript/pull/25048))
+- fix(core): Report actual item count in client reports of envelope send failures ([#25185](https://github.com/getsentry/sentry-javascript/pull/25185))
+- fix(core): Strip internal custom span name from streamed spans ([#25212](https://github.com/getsentry/sentry-javascript/pull/25212))
+- fix(nextjs): Filter query parameters in request error context ([#25233](https://github.com/getsentry/sentry-javascript/pull/25233))
+- fix(node): Don't mark fetch spans as errors when the caller aborts ([#25129](https://github.com/getsentry/sentry-javascript/pull/25129))
+- fix(nuxt): Delete public source maps before Nitro lists its public assets ([#25267](https://github.com/getsentry/sentry-javascript/pull/25267))
+- fix(nuxt): Keep `@sentry/server-runtime-injection` external on Nitro v3 ([#24901](https://github.com/getsentry/sentry-javascript/pull/24901))
+- fix(nuxt): Remove @opentelemetry/resources dev alias ([#25216](https://github.com/getsentry/sentry-javascript/pull/25216))
+- fix(profiling-node): Stop the trace lifecycle profiler when spans are unsampled ([#25210](https://github.com/getsentry/sentry-javascript/pull/25210))
+- fix(react-router): Respect custom default integrations ([#25259](https://github.com/getsentry/sentry-javascript/pull/25259))
+- fix(remix): Respect custom default integrations ([#25258](https://github.com/getsentry/sentry-javascript/pull/25258))
+- fix(server-utils): avoid quadratic SQL summary regex backtracking ([#25255](https://github.com/getsentry/sentry-javascript/pull/25255))
+- fix(server-utils): End Express layer spans when the client aborts ([#25209](https://github.com/getsentry/sentry-javascript/pull/25209))
+- fix(server-utils): Record amqplib consumer info before the first delivery and instrument the callback API ([#25047](https://github.com/getsentry/sentry-javascript/pull/25047))
+- fix(server-utils): Stop treating previous_response_id as the OpenAI conversation id ([#25269](https://github.com/getsentry/sentry-javascript/pull/25269))
+- fix(sveltekit): Read load event pathname untracked ([#25235](https://github.com/getsentry/sentry-javascript/pull/25235))
+- fix(sveltekit): Stop adapter-node 6 output dir probe from deleting the build ([#25193](https://github.com/getsentry/sentry-javascript/pull/25193))
+
+<details>
+  <summary> <strong>Internal Changes</strong> </summary>
+
+- chore: Add external contributor to CHANGELOG.md ([#25230](https://github.com/getsentry/sentry-javascript/pull/25230))
+- chore: Add external contributor to CHANGELOG.md ([#25271](https://github.com/getsentry/sentry-javascript/pull/25271))
+- chore(deps-dev): Bump oxlint-tsgolint from 7.0.2001 to 7.0.2003 ([#25237](https://github.com/getsentry/sentry-javascript/pull/25237))
+- chore(deps-dev): Bump rimraf from 5.0.10 to 6.1.3 ([#25241](https://github.com/getsentry/sentry-javascript/pull/25241))
+- chore(deps): Bump `@sentry/conventions` to 0.27.0 ([#25264](https://github.com/getsentry/sentry-javascript/pull/25264))
+- chore(deps): Bump next from 16.2.11 to 16.3.8 in /dev-packages/e2e-tests/test-applications/nextjs-16 ([#25179](https://github.com/getsentry/sentry-javascript/pull/25179))
+- chore(deps): Bump next from 16.2.11 to 16.3.8 in /dev-packages/e2e-tests/test-applications/nextjs-16-tunnel ([#25190](https://github.com/getsentry/sentry-javascript/pull/25190))
+- chore(size-limit): weekly auto-bump ([#25213](https://github.com/getsentry/sentry-javascript/pull/25213))
+- ci: Install Playwright in the background during E2E app builds ([#25207](https://github.com/getsentry/sentry-javascript/pull/25207))
+- ci: Run lint steps in parallel ([#25187](https://github.com/getsentry/sentry-javascript/pull/25187))
+- ci(bun): Test the oldest supported Bun version and the newest 1.4 ([#25203](https://github.com/getsentry/sentry-javascript/pull/25203))
+- docs: Scope pre-PR tests to affected suites ([#25198](https://github.com/getsentry/sentry-javascript/pull/25198))
+- feat(deps): Bump @aws-sdk/client-kinesis from 3.1068.0 to 3.1146.0 ([#25240](https://github.com/getsentry/sentry-javascript/pull/25240))
+- feat(deps): Bump handlebars from 4.7.9 to 4.7.10 ([#25206](https://github.com/getsentry/sentry-javascript/pull/25206))
+- feat(deps): Bump pino from 9.10.0 to 10.4.0 ([#25238](https://github.com/getsentry/sentry-javascript/pull/25238))
+- feat(deps): Bump reflect-metadata from 0.2.1 to 0.2.2 ([#25239](https://github.com/getsentry/sentry-javascript/pull/25239))
+- ref(core): Simplify transport item loss recording ([#25224](https://github.com/getsentry/sentry-javascript/pull/25224))
+- ref(server-utils): Export the pg query span helpers ([#25163](https://github.com/getsentry/sentry-javascript/pull/25163))
+- ref(server-utils): Share Orchestrion channel context ([#25208](https://github.com/getsentry/sentry-javascript/pull/25208))
+- test(browser): migrate trace lifecycle and span API tests to streaming ([#24881](https://github.com/getsentry/sentry-javascript/pull/24881))
+- test(browser): port browser tracing suites to span streaming ([#24888](https://github.com/getsentry/sentry-javascript/pull/24888))
+- test(browser): port requests and web vitals to span streaming ([#24886](https://github.com/getsentry/sentry-javascript/pull/24886))
+- test(browser): Register the LCP handlers in the bundle of the SDK ([#25263](https://github.com/getsentry/sentry-javascript/pull/25263))
+- test(bun): Run the Node suites that need Bun 1.4 on the Bun 1.4 job ([#25204](https://github.com/getsentry/sentry-javascript/pull/25204))
+- test(cloudflare): Add LangChain TypeSafeClassifier integration test ([#25234](https://github.com/getsentry/sentry-javascript/pull/25234))
+- test(core): Fix flaky span end timestamp test ([#25211](https://github.com/getsentry/sentry-javascript/pull/25211))
+- test(deno): Type-check Deno unit tests ([#25227](https://github.com/getsentry/sentry-javascript/pull/25227))
+- test(nextjs): Add vinext e2e tests ([#25001](https://github.com/getsentry/sentry-javascript/pull/25001))
+- test(node-integration): Replace `conditionalTest` with a `supports` helper ([#25202](https://github.com/getsentry/sentry-javascript/pull/25202))
+- test(node-integration): Stop exporting `NODE_VERSION` and `RUNTIME` from the test utils ([#25292](https://github.com/getsentry/sentry-javascript/pull/25292))
+- test(node): Add integration tests for the Neon serverless driver ([#25177](https://github.com/getsentry/sentry-javascript/pull/25177))
+- test(node): Port baggage and metadata tests to span streaming ([#25220](https://github.com/getsentry/sentry-javascript/pull/25220))
+- test(node): Port basic and nested startSpan tests to streaming ([#25214](https://github.com/getsentry/sentry-javascript/pull/25214))
+- test(node): Port fetch request suites to span streaming ([#25189](https://github.com/getsentry/sentry-javascript/pull/25189))
+- test(node): Port HTTP options and hooks to span streaming ([#25195](https://github.com/getsentry/sentry-javascript/pull/25195))
+- test(node): Port HTTP propagation and transport suites to streaming ([#25197](https://github.com/getsentry/sentry-javascript/pull/25197))
+- test(node): Port HTTP request suites to span streaming ([#25191](https://github.com/getsentry/sentry-javascript/pull/25191))
+- test(node): Port incoming HTTP behavior to span streaming ([#25194](https://github.com/getsentry/sentry-javascript/pull/25194))
+- test(node): Port MongoDB integration tests to span streaming ([#25150](https://github.com/getsentry/sentry-javascript/pull/25150))
+- test(node): Port Mongoose integration tests to span streaming ([#25151](https://github.com/getsentry/sentry-javascript/pull/25151))
+- test(node): Port outgoing HTTP client spans to streaming ([#25192](https://github.com/getsentry/sentry-javascript/pull/25192))
+- test(node): Port parallel span and naming tests to streaming ([#25217](https://github.com/getsentry/sentry-javascript/pull/25217))
+- test(node): Port Postgres integration tests to span streaming ([#25140](https://github.com/getsentry/sentry-javascript/pull/25140))
+- test(node): Port Prisma integration tests to span streaming ([#25152](https://github.com/getsentry/sentry-javascript/pull/25152))
+- test(node): Port Redis integration tests to span streaming ([#25153](https://github.com/getsentry/sentry-javascript/pull/25153))
+- test(node): Port span linking and raw OTel tests to streaming ([#25219](https://github.com/getsentry/sentry-javascript/pull/25219))
+- test(node): Port trace context tests to span streaming ([#25218](https://github.com/getsentry/sentry-javascript/pull/25218))
+- test(node): Run sampling propagation tests with default streaming ([#25221](https://github.com/getsentry/sentry-javascript/pull/25221))
+- test(node): Use default streaming in scope and span suites ([#25222](https://github.com/getsentry/sentry-javascript/pull/25222))
+- test(nuxt): Test imports from `nuxt/server` in the nuxt-5 E2E app ([#25232](https://github.com/getsentry/sentry-javascript/pull/25232))
+
+</details>
+
 Work in this release was contributed by @Philip-Nwabuwa and @4ktLuffy. Thank you for your contributions!
 
 ## 11.6.0

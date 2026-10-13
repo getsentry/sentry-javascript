@@ -13,7 +13,7 @@ import {
 import { addDatabaseInstrumentation } from './databaseConfig';
 import { addMiddlewareImports, addMiddlewareInstrumentation } from './middlewareConfig';
 import { addStorageInstrumentation } from './storageConfig';
-import type { ServerApi } from './utils';
+import { addRuntimeInjectionTraceDep, type ServerApi } from './utils';
 
 type NitroModuleOptions = Omit<SentryNuxtModuleOptions, 'experimental_entrypointWrappedFunctions'> &
   Required<Pick<SentryNuxtModuleOptions, 'experimental_entrypointWrappedFunctions'>>;
@@ -61,6 +61,7 @@ export function setupNitroServer(
   addMiddlewareImports();
   addStorageInstrumentation(nuxt, !isNitroV3);
   addDatabaseInstrumentation(nuxt.options.nitro, !isNitroV3, moduleOptions);
+  addRuntimeInjectionTraceDep(nuxt, isNitroV3);
 
   nuxt.hooks.hook('nitro:init', nitro => {
     if (nuxt.options?._prepare) {

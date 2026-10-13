@@ -96,6 +96,25 @@ describe('registerDiagnosticsChannelInjection - bundled/tree-shaken detection', 
     warnSpy.mockRestore();
   });
 
+  it('includes the underlying error when registering the hooks fails', () => {
+    // Deno always takes the `Module.registerHooks` path, independent of the Node version running the tests.
+    (globalThis as { Deno?: unknown }).Deno = { version: { deno: '2.8.3' } };
+    registerHooksMock.mockImplementationOnce(() => {
+      throw new Error('boom');
+    });
+
+    try {
+      registerDiagnosticsChannelInjection();
+    } finally {
+      delete (globalThis as { Deno?: unknown }).Deno;
+    }
+
+    expect(warnSpy).toHaveBeenCalledWith(
+      expect.stringContaining('Failed to register diagnostics-channel injection hooks (boom)'),
+    );
+    expect(GLOBAL_OBJ.__SENTRY_ORCHESTRION__?.runtimeUnavailable).toBe(true);
+  });
+
   it('warns once when a module fails to transform because the transformer was tree-shaken', () => {
     registerDiagnosticsChannelInjection();
     const onDiagnostics = diagnosticsCallback();
