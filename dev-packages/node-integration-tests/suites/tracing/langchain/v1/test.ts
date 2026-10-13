@@ -238,6 +238,61 @@ describe('LangChain integration (v1)', () => {
 
   createEsmAndCjsTests(
     __dirname,
+    'scenario-nested-runtime-context.mjs',
+    'instrument.mjs',
+    (createRunner, test) => {
+      test('keeps the conversation id and trace for a model called from a tool without config', async () => {
+        const runner = createRunner().ignore('event');
+        const spansPromise = runner.collectStreamedSpansUntilSegment('main');
+
+        await runner.start().completed();
+
+        const spans = await spansPromise;
+        const byId = new Map(spans.map(span => [span.span_id, span]));
+        const ancestorNames = (span: (typeof spans)[number]): string[] => {
+          const names: string[] = [];
+          for (let p = byId.get(span.parent_span_id ?? ''); p; p = byId.get(p.parent_span_id ?? '')) {
+            names.push(p.name);
+          }
+          return names;
+        };
+        const chatSpans = spans.filter(span => span.attributes[SENTRY_OP]?.value === 'gen_ai.chat');
+
+        expect(chatSpans).toHaveLength(2);
+        expect(
+          chatSpans.map(span => [span.attributes[GEN_AI_CONVERSATION_ID]?.value, ancestorNames(span)[0]]).sort(),
+        ).toEqual([
+          ['thread_auto', 'auto'],
+          ['thread_handler', 'handler'],
+        ]);
+
+        const handlerRunSpans = spans.filter(
+          span =>
+            span.attributes[SENTRY_ORIGIN]?.value === 'auto.ai.langchain' &&
+            span.attributes[SENTRY_OP]?.value !== 'gen_ai.chat',
+        );
+        expect(handlerRunSpans.map(span => span.name).sort()).toEqual([
+          'execute_tool lookup_weather',
+          'invoke_agent RunnableLambda',
+          'invoke_agent nested_chain',
+          'invoke_agent outer',
+        ]);
+        for (const span of handlerRunSpans) {
+          expect(ancestorNames(span)).toContain('handler');
+        }
+      });
+    },
+    {
+      additionalDependencies: {
+        langchain: '^1.0.0',
+        '@langchain/core': '^1.0.0',
+        '@langchain/anthropic': '^1.0.0',
+      },
+    },
+  );
+
+  createEsmAndCjsTests(
+    __dirname,
     'scenario-typesafe-classifier.mjs',
     'instrument-with-pii.mjs',
     (createRunner, test) => {
