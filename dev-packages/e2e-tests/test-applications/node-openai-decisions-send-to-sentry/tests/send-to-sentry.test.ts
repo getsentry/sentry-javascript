@@ -89,7 +89,7 @@ test('records a text decision with its state, questions and answers', async ({ b
     },
   ]);
 
-  // The probabilities depend on the model, the shape does not.
+  // The answers depend on the model, the shape does not.
   expect(JSON.parse(attributes![GEN_AI_OUTPUT_MESSAGES] as string)).toEqual([
     {
       type: 'evaluation',
@@ -97,7 +97,7 @@ test('records a text decision with its state, questions and answers', async ({ b
         wants_refund: { type: 'predicate', probability: expect.any(Number) },
         department: {
           type: 'choice',
-          choice: 'billing',
+          choice: expect.stringMatching(/^(billing|other)$/),
           probabilities: { billing: expect.any(Number), other: expect.any(Number) },
           confidence: expect.any(Number),
         },
