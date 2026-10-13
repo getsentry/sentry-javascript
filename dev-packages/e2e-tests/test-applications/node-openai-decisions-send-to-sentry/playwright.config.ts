@@ -5,9 +5,8 @@ const port = 3030;
 export default defineConfig({
   testDir: './tests',
   /*
-   * Spans take ~2min to become queryable via the trace endpoint, and each poll has its own 180s
-   * budget. The first test polls twice in a row (the model span, then its parent), so the ceiling
-   * has to hold two polls back to back.
+   * Each Sentry poll can take up to 180s. The first poll also waits the ~2min until the span can be
+   * queried, so the later polls usually pass at once. This leaves room for two full polls.
    */
   timeout: 400_000,
   fullyParallel: true,
