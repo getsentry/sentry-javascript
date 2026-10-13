@@ -116,6 +116,7 @@ describe('sentryAstro integration', () => {
             './dist/**/client/**/*.map',
             './dist/**/server/**/*.map',
             './dist/**/_astro/**/*.map',
+            './dist/**/.prerender/**/*.map',
           ],
         },
         _metaOptions: {
@@ -151,6 +152,7 @@ describe('sentryAstro integration', () => {
             './dist/**/client/**/*.map',
             './dist/**/server/**/*.map',
             './dist/**/_astro/**/*.map',
+            './dist/**/.prerender/**/*.map',
           ],
         },
         _metaOptions: {
@@ -194,6 +196,7 @@ describe('sentryAstro integration', () => {
             './dist/**/client/**/*.map',
             './dist/**/server/**/*.map',
             './dist/**/_astro/**/*.map',
+            './dist/**/.prerender/**/*.map',
           ],
         },
         _metaOptions: {
@@ -237,6 +240,7 @@ describe('sentryAstro integration', () => {
             './dist/**/client/**/*.map',
             './dist/**/server/**/*.map',
             './dist/**/_astro/**/*.map',
+            './dist/**/.prerender/**/*.map',
           ],
         },
         _metaOptions: {
