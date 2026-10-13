@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { GEN_AI_DECIDE } from '@sentry/conventions/op';
 import { getMainCarrier, setCurrentClient, spanToStaticSpanJSON } from '@sentry/core';
 import type { Span } from '@sentry/core';
 import { createSpanFromMessage, enrichSpanOnEnd } from '../../../src/integrations/vercel-ai/vercel-ai-dc-subscriber';
@@ -6,7 +7,7 @@ import { getDefaultTestClientOptions, TestClient } from '../../mocks/client';
 
 type Message = Parameters<typeof createSpanFromMessage>[0];
 
-describe('Vercel AI evaluate spans', () => {
+describe('Vercel AI decide spans', () => {
   let endedSpans: Span[];
 
   beforeEach(() => {
@@ -28,7 +29,7 @@ describe('Vercel AI evaluate spans', () => {
   });
 
   // `ai` 7.0.128 renamed the channel event from `experimental_evaluate` to `experimental_decide`.
-  it.each(['experimental_evaluate', 'experimental_decide'] as const)('creates an evaluate span for `%s`', type => {
+  it.each(['experimental_evaluate', 'experimental_decide'] as const)('creates a decide span for `%s`', type => {
     const message = {
       type,
       event: {
@@ -48,8 +49,8 @@ describe('Vercel AI evaluate spans', () => {
     span.end();
 
     const json = spanToStaticSpanJSON(endedSpans[0]!);
-    expect(json.description).toBe('evaluate typesafe-ai/jev');
-    expect(json.op).toBe('gen_ai.evaluate');
+    expect(json.description).toBe('decide typesafe-ai/jev');
+    expect(json.op).toBe(GEN_AI_DECIDE);
     expect(JSON.parse(json.data?.['gen_ai.output.messages'] as string)).toEqual([
       { type: 'evaluation', answers: { wantsRefund: { type: 'boolean', probability: 0.99 } } },
     ]);

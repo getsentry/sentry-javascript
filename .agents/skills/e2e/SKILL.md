@@ -118,6 +118,7 @@ All tests completed successfully. Your SDK changes work correctly with this test
 - **Test app not found**: List available apps and ask user to clarify
 - **Packed tarballs missing**: Run `yarn build:tarball` at the repo root, then `yarn test:prepare` in `dev-packages/e2e-tests`
 - **Build failures**: Fix build errors before running tests
+- **pnpm errors such as `packages field missing or empty`**: The app needs the pnpm version in its `volta.pnpm`. Run with Volta, which installs that version
 
 ## Common Test Applications
 

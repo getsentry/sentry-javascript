@@ -12,7 +12,7 @@
     "test:assert": "pnpm test"
   },
   "dependencies": {
-    "@prisma/orm-postgres": "8.0.0-rc.8",
+    "@prisma/orm-postgres": "8.0.0-rc.17",
     "@sentry/node": "file:../../packed/sentry-node-packed.tgz",
     "@types/express": "^4.17.21",
     "@types/node": "^20.19.0",

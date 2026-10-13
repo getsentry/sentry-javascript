@@ -1,5 +1,5 @@
 import type { IntegrationFn } from '@sentry/core';
-import { browserPerformanceTimeOrigin, defineIntegration, metrics } from '@sentry/core';
+import { browserPerformanceTimeOrigin, defineIntegration, filterCollectedUrl, metrics } from '@sentry/core';
 import { addPerformanceInstrumentationHandler } from '../instrumentation/performanceObserver';
 import { getBrowserPerformanceAPI } from './utils';
 
@@ -58,7 +58,7 @@ const _elementTimingIntegration = (() => {
           }
 
           if (elementEntry.url) {
-            metricAttributes['ui.element.url'] = elementEntry.url;
+            metricAttributes['ui.element.url'] = filterCollectedUrl(elementEntry.url);
           }
 
           if (elementEntry.naturalWidth) {

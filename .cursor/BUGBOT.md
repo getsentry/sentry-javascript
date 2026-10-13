@@ -93,6 +93,7 @@ Keep reviews high-signal. Prefer actionable, high-confidence findings over specu
 - Flag usage of `expect.objectContaining` and other relaxed assertions, when a test expects something NOT to be included in a payload but there's no respective assertion.
 - Flag usage of conditionals in one test and recommend splitting up the test for the different paths.
 - Flag usage of loops testing multiple scenarios in one test and recommend using `(it)|(test).each` instead.
+- In `dev-packages/node-integration-tests/suites/`, flag tests that check the Node version or the runtime themselves, for example with `process.versions`, `process.env.RUNTIME`, `ctx.skip()`, or a version or runtime condition in `skipIf` / `runIf`. Recommend `test.runIf(supports({ ... }))` or `describe.runIf(supports({ ... }))` from `utils/index.ts` instead.
 - Apply the `@sentry/conventions` constants rule from above to test files too. Test assertions on span attributes and ops must use the constants, not string literals.
 - Flag tests that are likely to introduce flakes. In our case this usually means we wait for some telemetry requests sent from an SDK. Patterns to look out for:
   - Only waiting for a request, after an action is performed. Instead, start waiting, perform action, await request promise.

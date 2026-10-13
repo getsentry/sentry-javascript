@@ -142,6 +142,29 @@ describe('httpContextIntegration', () => {
       });
     });
 
+    it('filters sensitive query params in the URL attached to events', () => {
+      const client = new BrowserClient(getDefaultBrowserClientOptions());
+      const event: Event = {};
+
+      document.location.href = 'https://example.com/?jwt=baz&page=1';
+      try {
+        httpContextIntegration().preprocessEvent!(event, {}, client);
+      } finally {
+        document.location.href = 'https://example.com';
+      }
+
+      expect(event.request?.url).toBe('https://example.com/?jwt=[Filtered]&page=1');
+    });
+
+    it('leaves a user-supplied event URL untouched', () => {
+      const client = new BrowserClient(getDefaultBrowserClientOptions());
+      const event: Event = { request: { url: 'https://example.com/?jwt=user-set' } };
+
+      httpContextIntegration().preprocessEvent!(event, {}, client);
+
+      expect(event.request?.url).toBe('https://example.com/?jwt=user-set');
+    });
+
     it('applies an allowlist to event headers', () => {
       const client = new BrowserClient(
         getDefaultBrowserClientOptions({ dataCollection: { httpHeaders: { request: { allow: ['user-agent'] } } } }),

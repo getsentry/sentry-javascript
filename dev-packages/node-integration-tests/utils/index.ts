@@ -3,13 +3,13 @@ import { parseSemver } from '@sentry/core';
 import { execFileSync } from 'child_process';
 import type * as http from 'http';
 
-export const NODE_VERSION = parseSemver(process.versions.node).major || 0;
+const NODE_VERSION = parseSemver(process.versions.node).major || 0;
 
 /**
  * The runtime that runs the scenarios (`node`, `bun` or `deno`), from the `RUNTIME` env var.
  */
 export type Runtime = 'cloudflare' | 'node' | 'bun' | 'deno';
-export const RUNTIME = (process.env.RUNTIME || 'node') as Runtime;
+const RUNTIME = (process.env.RUNTIME || 'node') as Runtime;
 
 // Vitest runs on Node, so it cannot read `Bun.version` of the `bun` binary that runs the scenarios.
 const BUN_VERSION = RUNTIME === 'bun' ? execFileSync('bun', ['--version'], { encoding: 'utf8' }).trim() : undefined;
