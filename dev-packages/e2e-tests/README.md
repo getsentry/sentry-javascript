@@ -98,7 +98,7 @@ A variant runs its `build-command` and `assert-command`. Without them, it runs t
 
 We build our packages, pack them into tarballs (`yarn build:tarball`), and create symlinks in the `packed/` directory
 that point to the versioned tarballs. When a test application is run, pnpm overrides are injected into its
-`package.json` to pin all `@sentry/*` and `@sentry-internal/*` packages to those local tarballs. This means test apps
+`pnpm-workspace.yaml` to pin all `@sentry/*` and `@sentry-internal/*` packages to those local tarballs. This means test apps
 install the packages as if they were published, but from the local build output instead of a registry.
 
 The E2E test script looks for test applications in the `test-applications` folder. These are standalone apps that use
@@ -118,8 +118,15 @@ Make sure to add a `test:build` and `test:assert` command to the new app's `pack
 Sentry packages are automatically resolved to the local build via pnpm overrides injected at test time, so no manual
 registry configuration is needed.
 
-Apps use the root pnpm version. To use another one, set `volta.pnpm` in the app's `package.json`. Volta (locally) and
-CI (`.github/actions/install-pnpm`) both install that version.
+Each app has a `pnpm-workspace.yaml` for its pnpm settings, because pnpm ignores the `pnpm` field in `package.json`.
+Copy it from a similar app. It needs `minimumReleaseAge: 0` and an `allowBuilds` entry for each dependency with a build
+script: `true` if the app needs the script, `false` if the script only prints a message. pnpm fails the install
+(`ERR_PNPM_IGNORED_BUILDS`) for a build script that `allowBuilds` does not list.
+
+Apps use the pnpm version from the root `devDependencies`. To use another version, set `packageManager` in the app's
+`package.json` (for example `"packageManager": "pnpm@10.34.6"`), and use the settings of that version in its
+`pnpm-workspace.yaml`. pnpm then switches to that version, locally and in CI. The lowest supported version is pnpm 10,
+because pnpm 9 does not read overrides from `pnpm-workspace.yaml`.
 
 ### Test apps that deploy a real Cloudflare Worker
 

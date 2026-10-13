@@ -19,12 +19,12 @@ jobs:
       VITE_E2E_TEST_DSN: 'https://username@domain/123'
     steps:
       - uses: actions/checkout@v7
-      - name: Install pnpm
-        uses: ./.github/actions/install-pnpm
       - uses: actions/setup-node@v7
         with:
           node-version-file: 'package.json'
       - run: yarn install --frozen-lockfile --ignore-engines
+      - name: Install pnpm
+        uses: ./.github/actions/install-pnpm
       - run: yarn build:ci
       - run: yarn build:tarball
       - run: yarn test:prepare

@@ -90,14 +90,13 @@ export class LocalLambdaStack extends Stack {
         fs.rmSync(nodeModulesPath, { recursive: true, force: true });
       }
 
-      const packageJson = {
-        dependencies,
-        pnpm: {
-          overrides: dependencies,
-        },
-      };
-
-      fs.writeFileSync(path.join(lambdaPath, 'package.json'), JSON.stringify(packageJson, null, 2));
+      fs.writeFileSync(path.join(lambdaPath, 'package.json'), JSON.stringify({ dependencies }, null, 2));
+      // JSON is valid YAML. pnpm reads overrides only from pnpm-workspace.yaml, and this file also keeps
+      // pnpm from treating the app's own pnpm-workspace.yaml as the workspace root.
+      fs.writeFileSync(
+        path.join(lambdaPath, 'pnpm-workspace.yaml'),
+        JSON.stringify({ minimumReleaseAge: 0, overrides: dependencies }, null, 2),
+      );
       execFileSync(
         'pnpm',
         ['install', '--offline', '--prod', '--ignore-scripts', '--no-frozen-lockfile', '--config.node-linker=hoisted'],

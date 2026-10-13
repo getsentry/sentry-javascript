@@ -27,11 +27,6 @@
     "@types/node": "^18.19.1",
     "typescript": "~5.0.0"
   },
-  "pnpm": {
-    "overrides": {
-      "minimatch": "10.0.1"
-    }
-  },
   "volta": {
     "extends": "../../package.json"
   }
