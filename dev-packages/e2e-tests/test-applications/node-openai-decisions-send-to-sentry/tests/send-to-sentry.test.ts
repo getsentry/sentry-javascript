@@ -107,15 +107,12 @@ test('records a text decision with its state, questions and answers', async ({ b
         department: {
           type: 'choice',
           instructions: 'Which team should handle this?',
-          choices: [
-            { value: 'billing', description: 'Charges and refunds' },
-            { value: 'other', description: 'Anything else' },
-          ],
+          criteria: { billing: 'Charges and refunds', other: 'Anything else' },
         },
         urgency: {
           type: 'score',
           instructions: 'How urgent is this ticket?',
-          levels: [{ label: 'low' }, { label: 'high' }],
+          criteria: ['low', 'high'],
         },
       },
     },

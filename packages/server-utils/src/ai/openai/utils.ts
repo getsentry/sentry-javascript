@@ -232,7 +232,36 @@ export function extractRequestParameters(params: Record<string, unknown>): Recor
  * so both render the same. Images are base64 data URLs, so they are reported by media type only.
  */
 export function getDecisionInputMessages(params: Record<string, unknown>): string | undefined {
-  return getEvaluationInputMessages({ state: withoutImageData(params.input), questions: keyByName(params.questions) });
+  const questions = Array.isArray(params.questions) ? params.questions.map(toJevQuestionFormat) : params.questions;
+  return getEvaluationInputMessages({ state: withoutImageData(params.input), questions: keyByName(questions) });
+}
+
+/**
+ * Lay out a decisions question like a Jev question, with its options in `criteria`: choices as
+ * `{ [value]: description }` (undescribed choices are left out), and score levels as their labels,
+ * indexed by score value.
+ */
+function toJevQuestionFormat(question: unknown): unknown {
+  if (!isObjectLike(question)) {
+    return question;
+  }
+
+  if (question.type === 'choice' && Array.isArray(question.choices)) {
+    const { choices, ...rest } = question;
+    const described = choices.filter(
+      (choice): choice is Record<string, unknown> => isObjectLike(choice) && typeof choice.description === 'string',
+    );
+    return described.length
+      ? { ...rest, criteria: Object.fromEntries(described.map(choice => [String(choice.value), choice.description])) }
+      : rest;
+  }
+
+  if (question.type === 'score' && Array.isArray(question.levels)) {
+    const { levels, ...rest } = question;
+    return { ...rest, criteria: levels.map(level => (isObjectLike(level) ? level.label : level)) };
+  }
+
+  return question;
 }
 
 /**

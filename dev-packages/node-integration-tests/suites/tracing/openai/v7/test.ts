@@ -205,12 +205,13 @@ conditionalTest({ min: 22 })('OpenAI integration (V7)', () => {
               department: {
                 type: 'choice',
                 instructions: 'Which team should handle this?',
-                choices: [{ value: 'billing' }, { value: 'other' }],
+                // `other` has no description, so it is left out of the criteria.
+                criteria: { billing: 'Charges and refunds' },
               },
               urgency: {
                 type: 'score',
                 instructions: 'How urgent is this ticket?',
-                levels: [{ label: 'low' }, { label: 'high' }],
+                criteria: ['low', 'high'],
               },
             },
           },

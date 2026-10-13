@@ -63,7 +63,7 @@ const questions = [
     type: 'choice',
     name: 'department',
     instructions: 'Which team should handle this?',
-    choices: [{ value: 'billing' }, { value: 'other' }],
+    choices: [{ value: 'billing', description: 'Charges and refunds' }, { value: 'other' }],
   },
   {
     type: 'score',
