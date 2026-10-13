@@ -19,8 +19,8 @@ import { stripTrailingSlash } from './parameterization';
 import type { TraceMetaTagValues, TraceMetaTagWait } from './traceMetaTags';
 import {
   addTraceMetaTagLink,
+  cachedShellSpanOptions,
   canWaitForTraceMetaTag,
-  markCachedShell,
   readShellMarker,
   readTraceMetaTags,
   waitForTraceMetaTag,
@@ -53,15 +53,23 @@ function startPageloadSpan(
   documentUrl: string,
   traceMetaTags?: TraceMetaTagValues,
 ): Span | undefined {
-  const span = startBrowserTracingPageLoadSpan(client, spanOptions, traceMetaTags);
+  const shellMarker = readShellMarker();
+  const shellOptions = shellMarker ? cachedShellSpanOptions(shellMarker) : undefined;
+  const span = startBrowserTracingPageLoadSpan(
+    client,
+    shellOptions
+      ? {
+          ...spanOptions,
+          attributes: { ...spanOptions.attributes, ...shellOptions.attributes },
+          links: shellOptions.links,
+        }
+      : spanOptions,
+    traceMetaTags,
+  );
   const scope = getCurrentScope();
   const { normalizedRequest } = scope.getScopeData().sdkProcessingMetadata;
   if (normalizedRequest) {
     scope.setSDKProcessingMetadata({ normalizedRequest: { ...normalizedRequest, url: documentUrl } });
-  }
-  const shellMarker = readShellMarker();
-  if (span?.isRecording() && shellMarker) {
-    markCachedShell(span, shellMarker);
   }
   return span;
 }
