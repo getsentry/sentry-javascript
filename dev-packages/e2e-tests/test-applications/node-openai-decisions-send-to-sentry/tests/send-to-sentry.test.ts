@@ -1,15 +1,18 @@
 import { expect, test } from '@playwright/test';
 import {
-  GEN_AI_INPUT_MESSAGES,
-  GEN_AI_OPERATION_NAME,
-  GEN_AI_OUTPUT_MESSAGES,
-  GEN_AI_PROVIDER_NAME,
-  GEN_AI_REQUEST_MODEL,
-  GEN_AI_RESPONSE_MODEL,
-  GEN_AI_USAGE_INPUT_TOKENS,
-  GEN_AI_USAGE_OUTPUT_TOKENS,
-  GEN_AI_USAGE_TOTAL_TOKENS,
-} from '@sentry/conventions/attributes';
+  SEARCH_GEN_AI__INPUT__MESSAGES,
+  SEARCH_GEN_AI__OPERATION__NAME,
+  SEARCH_GEN_AI__OUTPUT__MESSAGES,
+  SEARCH_GEN_AI__PROVIDER__NAME,
+  SEARCH_GEN_AI__REQUEST__MODEL,
+  SEARCH_GEN_AI__RESPONSE__MODEL,
+  SEARCH_GEN_AI__USAGE__INPUT_TOKENS,
+  SEARCH_GEN_AI__USAGE__OUTPUT_TOKENS,
+  SEARCH_GEN_AI__USAGE__TOTAL_TOKENS,
+  SEARCH_ORIGIN,
+  SEARCH_SPAN__OP,
+  SEARCH_SPAN__STATUS,
+} from '@sentry/conventions/attributes/search';
 import { GEN_AI_DECIDE, HTTP_SERVER } from '@sentry/conventions/op';
 import {
   EVENT_POLLING_OPTIONS,
@@ -24,19 +27,19 @@ import {
 const MODEL = 'gpt-6-luna';
 
 /**
- * What every decide span carries once Sentry has stored it, whatever the model answers. The names are the
- * stored ones: `span.op`, `span.status` and `origin` rather than the `sentry.*` attributes the SDK sends.
+ * What every decide span carries once Sentry has stored it, whatever the model answers. The keys are the
+ * search names, e.g. `span.op` and `origin` rather than the `sentry.*` attributes the SDK sends.
  * `span.description` stays empty: ingest only derives it for ops it knows, and `gen_ai.decide` is new.
  */
 const DECIDE_SPAN_ATTRIBUTES = {
   'span.name': `decide ${MODEL}`,
-  'span.op': GEN_AI_DECIDE,
-  'span.status': 'ok',
-  origin: 'auto.ai.openai',
-  [GEN_AI_OPERATION_NAME]: 'decide',
-  [GEN_AI_PROVIDER_NAME]: 'openai',
-  [GEN_AI_REQUEST_MODEL]: MODEL,
-  [GEN_AI_RESPONSE_MODEL]: MODEL,
+  [SEARCH_SPAN__OP]: GEN_AI_DECIDE,
+  [SEARCH_SPAN__STATUS]: 'ok',
+  [SEARCH_ORIGIN]: 'auto.ai.openai',
+  [SEARCH_GEN_AI__OPERATION__NAME]: 'decide',
+  [SEARCH_GEN_AI__PROVIDER__NAME]: 'openai',
+  [SEARCH_GEN_AI__REQUEST__MODEL]: MODEL,
+  [SEARCH_GEN_AI__RESPONSE__MODEL]: MODEL,
 };
 
 test('records a text decision with its state, questions and answers', async ({ baseURL }) => {
@@ -57,9 +60,11 @@ test('records a text decision with its state, questions and answers', async ({ b
     .toMatchObject(DECIDE_SPAN_ATTRIBUTES);
 
   // Integers come back as strings. Decisions bills input tokens only, so there are no output tokens.
-  expect(Number(attributes![GEN_AI_USAGE_OUTPUT_TOKENS])).toBe(0);
-  expect(Number(attributes![GEN_AI_USAGE_INPUT_TOKENS])).toBeGreaterThan(0);
-  expect(Number(attributes![GEN_AI_USAGE_TOTAL_TOKENS])).toBe(Number(attributes![GEN_AI_USAGE_INPUT_TOKENS]));
+  expect(Number(attributes![SEARCH_GEN_AI__USAGE__OUTPUT_TOKENS])).toBe(0);
+  expect(Number(attributes![SEARCH_GEN_AI__USAGE__INPUT_TOKENS])).toBeGreaterThan(0);
+  expect(Number(attributes![SEARCH_GEN_AI__USAGE__TOTAL_TOKENS])).toBe(
+    Number(attributes![SEARCH_GEN_AI__USAGE__INPUT_TOKENS]),
+  );
 
   // The request span is the segment; it ends last, so it can land after the decide span.
   await expect
@@ -69,7 +74,7 @@ test('records a text decision with its state, questions and answers', async ({ b
     }, EVENT_POLLING_OPTIONS)
     .toBe(true);
 
-  expect(JSON.parse(attributes![GEN_AI_INPUT_MESSAGES] as string)).toEqual([
+  expect(JSON.parse(attributes![SEARCH_GEN_AI__INPUT__MESSAGES] as string)).toEqual([
     {
       type: 'evaluation',
       state: 'I was charged twice this month and want a refund.',
@@ -90,7 +95,7 @@ test('records a text decision with its state, questions and answers', async ({ b
   ]);
 
   // The answers depend on the model, the shape does not.
-  expect(JSON.parse(attributes![GEN_AI_OUTPUT_MESSAGES] as string)).toEqual([
+  expect(JSON.parse(attributes![SEARCH_GEN_AI__OUTPUT__MESSAGES] as string)).toEqual([
     {
       type: 'evaluation',
       answers: {
@@ -130,7 +135,7 @@ test('records an image decision by media type only', async ({ baseURL }) => {
     .poll(() => (attributes = fetchSpanAttributes(traceId, spanId!)), EVENT_POLLING_OPTIONS)
     .toMatchObject(DECIDE_SPAN_ATTRIBUTES);
 
-  expect(JSON.parse(attributes![GEN_AI_INPUT_MESSAGES] as string)).toEqual([
+  expect(JSON.parse(attributes![SEARCH_GEN_AI__INPUT__MESSAGES] as string)).toEqual([
     {
       type: 'evaluation',
       state: [
@@ -146,7 +151,7 @@ test('records an image decision by media type only', async ({ baseURL }) => {
     },
   ]);
 
-  expect(JSON.parse(attributes![GEN_AI_OUTPUT_MESSAGES] as string)).toEqual([
+  expect(JSON.parse(attributes![SEARCH_GEN_AI__OUTPUT__MESSAGES] as string)).toEqual([
     { type: 'evaluation', answers: { is_red: { type: 'predicate', probability: expect.any(Number) } } },
   ]);
 });
