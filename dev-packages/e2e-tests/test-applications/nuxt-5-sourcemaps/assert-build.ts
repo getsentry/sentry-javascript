@@ -162,9 +162,9 @@ const containsMarker = (marker: string): boolean =>
 // Vite builds the client and Nitro builds the server. Counting bundles would still pass with either
 // plugin dropped, so each side is pinned to a marker only that side's source supplies.
 assert.ok(containsMarker(CLIENT_MARKER), 'Expected an uploaded sourcemap carrying the client source (Vite plugin)');
-// TODO: Nitro 3 builds the server with Rolldown, and the uploaded server maps carry no `sourcesContent`: the
-// module's `sourcemapExcludeSources: false` does not reach that build. Assert the server marker when that is fixed:
-// assert.ok(containsMarker(SERVER_MARKER), 'Expected an uploaded sourcemap carrying the server source (Rollup plugin)');
+// Nitro 3 deletes `sourcesContent` from the server maps unless `experimental.sourcemapMinify` is `false`. The module
+// sets it to `false`, which is the only reason this marker survives into `sourcesContent`.
+assert.ok(containsMarker(SERVER_MARKER), 'Expected an uploaded sourcemap carrying the server source (Rollup plugin)');
 
 // `rewriteSources` normalizes `../../../foo` to `./foo` so paths stay resolvable in Sentry.
 const unnormalizedSources = [...new Set(sourcemaps.flatMap(map => map.sourcemap.sources ?? []))].filter(
