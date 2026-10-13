@@ -30,7 +30,7 @@ export const openaiConfig = [
   // OpenAI decisions API (`openai` >= 7.30.0), which returns typed answers rather than generated text.
   ...['resources/decisions.js', 'resources/decisions.mjs'].map(filePath => ({
     channelName: 'decide',
-    module: { name: 'openai', versionRange: '>=4.0.0 <8', filePath },
+    module: { name: 'openai', versionRange: '>=7.30.0 <8', filePath },
     functionQuery: { className: 'Decisions', methodName: 'create', kind: 'Sync' as const },
   })),
 ] satisfies InstrumentationConfig[];
