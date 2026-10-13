@@ -1,6 +1,7 @@
-import type { Span } from '@sentry/core';
-import { extractTraceparentData } from '@sentry/core';
-import { GLOBAL_OBJ } from '@sentry/core';
+import { SENTRY_LINK_TYPE } from '@sentry/conventions/attributes';
+import type { Span, SpanLink, StartSpanOptions } from '@sentry/core';
+import { extractTraceparentData, GLOBAL_OBJ } from '@sentry/core';
+import { PRERENDER_META_TAG_NAME } from '../../common/traceMetaTags';
 import { WINDOW } from '@sentry/react';
 
 // `@opentelemetry/api` `TraceFlags`, inlined because core does not export its copies.
@@ -11,6 +12,9 @@ export interface TraceMetaTagValues {
   sentryTrace: string;
   baggage: string | undefined;
 }
+
+/** Set on a pageload whose document was served from a cache, so no server render ran for the request. */
+export const DOCUMENT_CACHED_ATTRIBUTE = 'document.cached';
 
 function getDocument(): Document | undefined {
   return WINDOW.document;
@@ -128,21 +132,46 @@ export function waitForTraceMetaTag(
   return { giveUp: () => settle(onGiveUp) };
 }
 
-/**
- * Adds a span link to the span described by a `sentry-trace` value. Used when the tag arrives after
- * the pageload span exists, which can only link the server request, not continue it.
- */
-export function addTraceMetaTagLink(span: Span, { sentryTrace }: TraceMetaTagValues): void {
+/** The span link to the span a `sentry-trace` value describes, if the value is one. */
+function traceMetaTagLink(sentryTrace: string, linkType?: string): SpanLink | undefined {
   const traceparent = extractTraceparentData(sentryTrace);
   if (!traceparent?.traceId || !traceparent.parentSpanId) {
-    return;
+    return undefined;
   }
-
-  span.addLink({
+  return {
     context: {
       traceId: traceparent.traceId,
       spanId: traceparent.parentSpanId,
       traceFlags: traceparent.parentSampled ? TRACE_FLAG_SAMPLED : TRACE_FLAG_NONE,
     },
-  });
+    ...(linkType && { attributes: { [SENTRY_LINK_TYPE]: linkType } }),
+  };
+}
+
+/**
+ * Adds a span link to the span described by a `sentry-trace` value. Used when the tag arrives after
+ * the pageload span exists, which can only link the server request, not continue it.
+ */
+export function addTraceMetaTagLink(span: Span, { sentryTrace }: TraceMetaTagValues): void {
+  const link = traceMetaTagLink(sentryTrace);
+  if (link) {
+    span.addLink(link);
+  }
+}
+
+/** Reads the marker the server writes into a document while it prerenders it, see `nextSentryPropagator.ts`. */
+export function readPrerenderMarker(): string | undefined {
+  const document = getDocument();
+  return document && lastMetaContent(document, PRERENDER_META_TAG_NAME);
+}
+
+/**
+ * The start options that mark a pageload whose document was served from a cache and link the request
+ * that prerendered it. Applied at span start, so `tracesSampler` and `ignoreSpans` see the attribute.
+ * The marker is never continued: the document is served to every later visitor, and the request behind
+ * it handled none of their visits.
+ */
+export function cachedDocumentSpanOptions(marker: string): Pick<StartSpanOptions, 'attributes' | 'links'> {
+  const link = traceMetaTagLink(marker, 'cache_origin');
+  return { attributes: { [DOCUMENT_CACHED_ATTRIBUTE]: true }, ...(link && { links: [link] }) };
 }

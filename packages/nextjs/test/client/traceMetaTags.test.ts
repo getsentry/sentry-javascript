@@ -1,8 +1,11 @@
 // @vitest-environment jsdom
+import { SENTRY_LINK_TYPE } from '@sentry/conventions/attributes';
 import type { Span } from '@sentry/core';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   addTraceMetaTagLink,
+  cachedDocumentSpanOptions,
+  readPrerenderMarker,
   canWaitForTraceMetaTag,
   readTraceMetaTags,
   waitForTraceMetaTag,
@@ -214,5 +217,36 @@ describe('addTraceMetaTagLink', () => {
     addTraceMetaTagLink(span, { sentryTrace: 'not-a-trace', baggage: undefined });
 
     expect(span.addLink).not.toHaveBeenCalled();
+  });
+});
+
+describe('readPrerenderMarker', () => {
+  it('returns nothing without a sentry-prerender tag', () => {
+    expect(readPrerenderMarker()).toBeUndefined();
+  });
+
+  it('reads the last sentry-prerender tag', () => {
+    appendMeta(document.head, 'sentry-prerender', HEAD_TRACE);
+    appendMeta(document.body, 'sentry-prerender', BODY_TRACE);
+
+    expect(readPrerenderMarker()).toBe(BODY_TRACE);
+  });
+});
+
+describe('cachedDocumentSpanOptions', () => {
+  it('marks the span and links the prerender as cache origin', () => {
+    expect(cachedDocumentSpanOptions(HEAD_TRACE)).toEqual({
+      attributes: { 'document.cached': true },
+      links: [
+        {
+          context: { traceId: '11111111111111111111111111111111', spanId: '1111111111111111', traceFlags: 1 },
+          attributes: { [SENTRY_LINK_TYPE]: 'cache_origin' },
+        },
+      ],
+    });
+  });
+
+  it('marks the span even when the marker is not a sentry-trace value', () => {
+    expect(cachedDocumentSpanOptions('prerendered')).toEqual({ attributes: { 'document.cached': true } });
   });
 });
