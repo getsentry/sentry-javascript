@@ -18,7 +18,7 @@ function getQuerySpans(container: SerializedStreamedSpanContainer): SerializedSt
     item => item.attributes['sentry.origin']?.value === 'auto.db.postgres' && item.attributes['db.query.text']?.value,
   );
   expect(querySpans.map(span => span.name)).toEqual(
-    expect.arrayContaining(['INSERT "public"."user"', 'SELECT "public"."user"', 'DELETE "public"."user"']),
+    expect.arrayContaining(['INSERT "public"."User"', 'SELECT "public"."User"', 'DELETE "public"."User"']),
   );
   querySpans.forEach(span => {
     expect(span.attributes['sentry.op']?.value).toBe('db');
@@ -67,7 +67,7 @@ describe('Prisma ORM v8 Tests', () => {
                       'sentry.origin': { value: 'auto.db.prisma', type: 'string' },
                       'sentry.op': { value: 'db', type: 'string' },
                       'db.operation.name': { value: method, type: 'string' },
-                      'db.collection.name': { value: 'user', type: 'string' },
+                      'db.collection.name': { value: 'User', type: 'string' },
                       model: { value: 'User', type: 'string' },
                       name: { value: `User.${method}`, type: 'string' },
                     });
@@ -80,13 +80,13 @@ describe('Prisma ORM v8 Tests', () => {
                       .map(span => span.attributes['db.query.text']?.value);
                   };
                   expect(queriesByOperation('create')).toEqual(
-                    expect.arrayContaining([expect.stringMatching(/^INSERT INTO "public"\."user" /)]),
+                    expect.arrayContaining([expect.stringMatching(/^INSERT INTO "public"\."User" /)]),
                   );
                   expect(queriesByOperation('all')).toEqual([
-                    expect.stringMatching(/^SELECT .* FROM "public"\."user"$/),
+                    expect.stringMatching(/^SELECT .* FROM "public"\."User"$/),
                   ]);
                   expect(queriesByOperation('delete')).toEqual(
-                    expect.arrayContaining([expect.stringMatching(/^DELETE FROM "public"\."user" /)]),
+                    expect.arrayContaining([expect.stringMatching(/^DELETE FROM "public"\."User" /)]),
                   );
                   expect(querySpans.filter(span => span.parent_span_id === segment.span_id)).toEqual([]);
                 },
@@ -126,7 +126,7 @@ describe('Prisma ORM v8 Tests', () => {
       },
       {
         additionalDependencies: {
-          '@prisma/orm-postgres': '8.0.0-rc.8',
+          '@prisma/orm-postgres': '8.0.0-rc.17',
         },
         copyPaths: ['prisma'],
       },

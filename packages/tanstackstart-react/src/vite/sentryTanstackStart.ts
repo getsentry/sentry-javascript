@@ -1,4 +1,4 @@
-import type { BuildTimeOptionsBase } from '@sentry/core';
+import type { BuildTimeOptionsBase, ReactComponentAnnotationOptions } from '@sentry/core';
 import { sentryOrchestrionPlugin } from '@sentry/server-utils/orchestrion/vite';
 import type { Plugin } from 'vite';
 import { makeAutoInstrumentMiddlewarePlugin } from './autoInstrumentMiddleware';
@@ -31,17 +31,7 @@ export interface SentryTanstackStartOptions extends BuildTimeOptionsBase {
    * This will unlock the capability to search for Replays in Sentry by component name, as well as see component names in breadcrumbs and performance monitoring.
    * Please note that this feature is not currently supported by the esbuild bundler plugins, and will only annotate React components
    */
-  reactComponentAnnotation?: {
-    /**
-     * Whether the component name annotate plugin should be enabled or not.
-     */
-    enabled?: boolean;
-
-    /**
-     * A list of strings representing the names of components to ignore. The plugin will not apply `data-sentry` annotations on the DOM element for these components.
-     */
-    ignoredComponents?: string[];
-  };
+  reactComponentAnnotation?: ReactComponentAnnotationOptions;
 
   /**
    * Configures a framework-managed same-origin tunnel route for Sentry envelopes.

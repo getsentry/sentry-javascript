@@ -11,9 +11,9 @@
     "test:assert": "OPENROUTER_API_KEY=$E2E_OPENROUTER_API_KEY playwright test"
   },
   "dependencies": {
-    "@earendil-works/chord": "1.0.0",
-    "@earendil-works/pi-ai": "1.0.0",
-    "@earendil-works/pi-durable": "1.0.0",
+    "@earendil-works/chord": "1.2.0",
+    "@earendil-works/pi-ai": "1.2.0",
+    "@earendil-works/pi-durable": "1.2.0",
     "@sentry/node": "file:../../packed/sentry-node-packed.tgz"
   },
   "devDependencies": {
