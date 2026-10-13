@@ -1,5 +1,5 @@
 import { SENTRY_LINK_TYPE } from '@sentry/conventions/attributes';
-import type { Span } from '@sentry/core';
+import type { Span, SpanLink, StartSpanOptions } from '@sentry/core';
 import { extractTraceparentData, GLOBAL_OBJ } from '@sentry/core';
 import { SHELL_META_TAG_NAME } from '../../common/traceMetaTags';
 import { WINDOW } from '@sentry/react';
@@ -134,24 +134,31 @@ export function waitForTraceMetaTag(
   return { giveUp: () => settle(onGiveUp) };
 }
 
-/**
- * Adds a span link to the span described by a `sentry-trace` value. Used when the tag arrives after
- * the pageload span exists, which can only link the server request, not continue it.
- */
-export function addTraceMetaTagLink(span: Span, { sentryTrace }: TraceMetaTagValues, linkType?: string): void {
+/** The span link to the span a `sentry-trace` value describes, if the value is one. */
+function traceMetaTagLink(sentryTrace: string, linkType: string): SpanLink | undefined {
   const traceparent = extractTraceparentData(sentryTrace);
   if (!traceparent?.traceId || !traceparent.parentSpanId) {
-    return;
+    return undefined;
   }
-
-  span.addLink({
+  return {
     context: {
       traceId: traceparent.traceId,
       spanId: traceparent.parentSpanId,
       traceFlags: traceparent.parentSampled ? TRACE_FLAG_SAMPLED : TRACE_FLAG_NONE,
     },
-    attributes: { [SENTRY_LINK_TYPE]: linkType ?? SERVER_REQUEST_LINK_TYPE },
-  });
+    attributes: { [SENTRY_LINK_TYPE]: linkType },
+  };
+}
+
+/**
+ * Adds a span link to the span described by a `sentry-trace` value. Used when the tag arrives after
+ * the pageload span exists, which can only link the server request, not continue it.
+ */
+export function addTraceMetaTagLink(span: Span, { sentryTrace }: TraceMetaTagValues): void {
+  const link = traceMetaTagLink(sentryTrace, SERVER_REQUEST_LINK_TYPE);
+  if (link) {
+    span.addLink(link);
+  }
 }
 
 /** Reads the marker the server writes into a shell while it prerenders it, see `nextSentryPropagator.ts`. */
@@ -161,11 +168,12 @@ export function readShellMarker(): string | undefined {
 }
 
 /**
- * Marks a pageload whose document is a cached shell and links the request that prerendered the shell.
+ * The start options that mark a pageload whose document is a cached shell and link the request that
+ * prerendered the shell. Applied at span start, so `tracesSampler` and `ignoreSpans` see the attribute.
  * The marker is never continued: the shell is served to every later visitor, and the request behind it
  * handled none of their visits.
  */
-export function markCachedShell(span: Span, marker: string): void {
-  span.setAttribute(CACHED_SHELL_ATTRIBUTE, true);
-  addTraceMetaTagLink(span, { sentryTrace: marker, baggage: undefined }, 'cache_origin');
+export function cachedShellSpanOptions(marker: string): Pick<StartSpanOptions, 'attributes' | 'links'> {
+  const link = traceMetaTagLink(marker, 'cache_origin');
+  return { attributes: { [CACHED_SHELL_ATTRIBUTE]: true }, ...(link && { links: [link] }) };
 }

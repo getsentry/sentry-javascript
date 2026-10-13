@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { SENTRY_OP, URL_FULL, URL_PATH } from '@sentry/conventions/attributes';
+import { SENTRY_LINK_TYPE, SENTRY_OP, URL_FULL, URL_PATH } from '@sentry/conventions/attributes';
 import { PAGELOAD } from '@sentry/conventions/op';
 import type { Client } from '@sentry/core';
 import type * as SentryCore from '@sentry/core';
@@ -361,7 +361,7 @@ describe('appRouterInstrumentPageLoad', () => {
       expect.objectContaining({
         trace_id: '11111111111111111111111111111111',
         span_id: '1111111111111111',
-        attributes: expect.objectContaining({ 'sentry.link.type': 'cache_origin' }),
+        attributes: expect.objectContaining({ [SENTRY_LINK_TYPE]: 'cache_origin' }),
       }),
     ]);
     meta.remove();

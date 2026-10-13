@@ -4,7 +4,7 @@ import type { Span } from '@sentry/core';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   addTraceMetaTagLink,
-  markCachedShell,
+  cachedShellSpanOptions,
   readShellMarker,
   canWaitForTraceMetaTag,
   readTraceMetaTags,
@@ -235,25 +235,20 @@ describe('readShellMarker', () => {
   });
 });
 
-describe('markCachedShell', () => {
-  it('sets the attribute and links the prerender as cache origin', () => {
-    const span = { setAttribute: vi.fn(), addLink: vi.fn() } as unknown as Span;
-
-    markCachedShell(span, HEAD_TRACE);
-
-    expect(span.setAttribute).toHaveBeenCalledWith('sentry.nextjs.cached_shell', true);
-    expect(span.addLink).toHaveBeenCalledWith({
-      context: { traceId: '11111111111111111111111111111111', spanId: '1111111111111111', traceFlags: 1 },
-      attributes: { 'sentry.link.type': 'cache_origin' },
+describe('cachedShellSpanOptions', () => {
+  it('marks the span and links the prerender as cache origin', () => {
+    expect(cachedShellSpanOptions(HEAD_TRACE)).toEqual({
+      attributes: { 'sentry.nextjs.cached_shell': true },
+      links: [
+        {
+          context: { traceId: '11111111111111111111111111111111', spanId: '1111111111111111', traceFlags: 1 },
+          attributes: { [SENTRY_LINK_TYPE]: 'cache_origin' },
+        },
+      ],
     });
   });
 
-  it('sets the attribute even when the marker is not a sentry-trace value', () => {
-    const span = { setAttribute: vi.fn(), addLink: vi.fn() } as unknown as Span;
-
-    markCachedShell(span, 'prerendered');
-
-    expect(span.setAttribute).toHaveBeenCalledWith('sentry.nextjs.cached_shell', true);
-    expect(span.addLink).not.toHaveBeenCalled();
+  it('marks the span even when the marker is not a sentry-trace value', () => {
+    expect(cachedShellSpanOptions('prerendered')).toEqual({ attributes: { 'sentry.nextjs.cached_shell': true } });
   });
 });
