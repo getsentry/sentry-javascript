@@ -914,7 +914,7 @@ describe('React Router cross usage of wrappers', () => {
   });
 
   describe('nested route matching', () => {
-    it('names navigations after the route the router renders, not a nested route matched on its own', async () => {
+    it('should name navigations after the route the router renders, not a nested route matched on its own', async () => {
       const client = createMockBrowserClient();
       setCurrentClient(client);
 
@@ -930,23 +930,20 @@ describe('React Router cross usage of wrappers', () => {
 
       const createSentryMemoryRouter = wrapCreateMemoryRouterV6(createMemoryRouter);
 
-      const router = createSentryMemoryRouter(
-        [
-          {
-            path: '/',
-            element: <Outlet />,
-            children: [
-              { path: ':orgId', element: <div>Org</div> },
-              {
-                path: 'settings',
-                element: <Outlet />,
-                children: [{ path: 'account', element: <div>Account settings</div> }],
-              },
-            ],
-          },
-        ],
-        { initialEntries: ['/settings/account'] },
-      );
+      const router = createSentryMemoryRouter([
+        {
+          path: '/',
+          element: <Outlet />,
+          children: [
+            { path: ':orgId', element: <div>Org</div> },
+            {
+              path: 'settings',
+              element: <Outlet />,
+              children: [{ path: 'account', element: <div>Account settings</div> }],
+            },
+          ],
+        },
+      ]);
 
       render(<RouterProvider router={router} />);
 

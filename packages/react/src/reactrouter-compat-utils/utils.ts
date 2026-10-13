@@ -233,19 +233,11 @@ function reconstructNameFromDescendantParent(
 
 /**
  * Returns the routes that aren't a child of another route in the list.
- * `allRoutes` holds every nested route alongside its ancestors, and `matchRoutes` flattens each
- * entry's children again, so matching the full list multiplies the branches it ranks and tests.
+ * `matchRoutes` already walks each route's children, so also passing those children multiplies its work.
  */
 export function getRootRoutes(routes: RouteObject[]): RouteObject[] {
-  const nestedRoutes = new Set<RouteObject>();
-  for (const route of routes) {
-    if (route.children && !route.index) {
-      for (const child of route.children) {
-        nestedRoutes.add(child);
-      }
-    }
-  }
-  return nestedRoutes.size ? routes.filter(route => !nestedRoutes.has(route)) : routes;
+  const nestedRoutes = new Set(routes.flatMap(route => route.children ?? []));
+  return routes.filter(route => !nestedRoutes.has(route));
 }
 
 /**

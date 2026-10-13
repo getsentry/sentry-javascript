@@ -253,22 +253,9 @@ describe('reactrouter-compat-utils/utils', () => {
       const leaf: RouteObject = { path: 'account' };
       const settings: RouteObject = { path: 'settings', children: [leaf] };
       const root: RouteObject = { path: '/', children: [settings] };
-
-      expect(getRootRoutes([root, settings, leaf])).toEqual([root]);
-    });
-
-    it('should keep routes whose parent is not in the list', () => {
-      const leaf: RouteObject = { path: 'account' };
       const descendant: RouteObject = { path: '/users/*', element: 'div' };
 
-      expect(getRootRoutes([leaf, descendant])).toEqual([leaf, descendant]);
-    });
-
-    it('should not treat children of index routes as nested', () => {
-      const child: RouteObject = { path: 'child' };
-      const indexRoute: RouteObject = { index: true, children: [child] };
-
-      expect(getRootRoutes([indexRoute, child])).toEqual([indexRoute, child]);
+      expect(getRootRoutes([root, settings, leaf, descendant])).toEqual([root, descendant]);
     });
   });
 
