@@ -94,7 +94,6 @@ export function getNotificationAttributes(
         attributes[MCP_RESOURCE_URI] = String(params.uri);
         const urlObject = parseStringToURLObject(String(params.uri));
         if (urlObject && !isURLObjectRelative(urlObject)) {
-          // oxlint-disable-next-line typescript/no-deprecated -- Keep the resource URI scheme distinct from the network protocol.
           attributes[MCP_RESOURCE_PROTOCOL] = urlObject.protocol.replace(':', '');
         }
       }

@@ -6,16 +6,33 @@
 
 import {
   MCP_PROMPT_RESULT_DESCRIPTION,
+  MCP_PROMPT_RESULT_KEY_CONTENT,
+  MCP_PROMPT_RESULT_KEY_ROLE,
   MCP_PROMPT_RESULT_MESSAGE_CONTENT,
   MCP_PROMPT_RESULT_MESSAGE_COUNT,
   MCP_PROMPT_RESULT_MESSAGE_ROLE,
   MCP_TOOL_RESULT_CONTENT,
   MCP_TOOL_RESULT_CONTENT_COUNT,
+  MCP_TOOL_RESULT_CONTENT_TYPE,
+  MCP_TOOL_RESULT_DATA_SIZE,
   MCP_TOOL_RESULT_IS_ERROR,
+  MCP_TOOL_RESULT_KEY_CONTENT,
+  MCP_TOOL_RESULT_KEY_CONTENT_TYPE,
+  MCP_TOOL_RESULT_KEY_DATA_SIZE,
+  MCP_TOOL_RESULT_KEY_MIME_TYPE,
+  MCP_TOOL_RESULT_KEY_NAME,
+  MCP_TOOL_RESULT_KEY_RESOURCE_MIME_TYPE,
+  MCP_TOOL_RESULT_KEY_RESOURCE_URI,
+  MCP_TOOL_RESULT_KEY_URI,
+  MCP_TOOL_RESULT_MIME_TYPE,
+  MCP_TOOL_RESULT_NAME,
+  MCP_TOOL_RESULT_RESOURCE_MIME_TYPE,
+  MCP_TOOL_RESULT_RESOURCE_URI,
+  MCP_TOOL_RESULT_URI,
 } from '@sentry/conventions/attributes';
-import { MCP_TOOL_RESULT_PREFIX, MCP_PROMPT_RESULT_PREFIX } from './attributes';
 import { isValidContentItem } from './validation';
 
+/* oxlint-disable typescript/no-deprecated -- Preserve the legacy result attributes for existing consumers. */
 /**
  * Build attributes for tool result content items
  * @param content - Array of content items from tool result
@@ -35,43 +52,55 @@ function buildAllContentItemAttributes(
       continue;
     }
 
-    const prefix = content.length === 1 ? MCP_TOOL_RESULT_PREFIX : `${MCP_TOOL_RESULT_PREFIX}.${i}`;
+    const single = content.length === 1;
+    const index = String(i);
 
     if (typeof item.type === 'string') {
-      attributes[`${prefix}.content_type`] = item.type;
+      const key = single ? MCP_TOOL_RESULT_CONTENT_TYPE : MCP_TOOL_RESULT_KEY_CONTENT_TYPE.replace('<key>', index);
+      attributes[key] = item.type;
     }
 
     if (includeContent) {
       const safeSet = (key: string, value: unknown): void => {
         if (typeof value === 'string') {
-          attributes[`${prefix}.${key}`] = value;
+          attributes[key] = value;
         }
       };
 
-      safeSet('mime_type', item.mimeType);
-      safeSet('uri', item.uri);
-      safeSet('name', item.name);
+      safeSet(
+        single ? MCP_TOOL_RESULT_MIME_TYPE : MCP_TOOL_RESULT_KEY_MIME_TYPE.replace('<key>', index),
+        item.mimeType,
+      );
+      safeSet(single ? MCP_TOOL_RESULT_URI : MCP_TOOL_RESULT_KEY_URI.replace('<key>', index), item.uri);
+      safeSet(single ? MCP_TOOL_RESULT_NAME : MCP_TOOL_RESULT_KEY_NAME.replace('<key>', index), item.name);
 
       if (typeof item.text === 'string') {
-        // oxlint-disable-next-line typescript/no-deprecated -- Preserve the legacy content attribute for existing consumers.
-        const attrName = content.length === 1 ? MCP_TOOL_RESULT_CONTENT : `${prefix}.content`;
+        const attrName = single ? MCP_TOOL_RESULT_CONTENT : MCP_TOOL_RESULT_KEY_CONTENT.replace('<key>', index);
         attributes[attrName] = item.text;
       }
 
       if (typeof item.data === 'string') {
-        attributes[`${prefix}.data_size`] = item.data.length;
+        const key = single ? MCP_TOOL_RESULT_DATA_SIZE : MCP_TOOL_RESULT_KEY_DATA_SIZE.replace('<key>', index);
+        attributes[key] = item.data.length;
       }
 
       const resource = item.resource;
       if (isValidContentItem(resource)) {
-        safeSet('resource_uri', resource.uri);
-        safeSet('resource_mime_type', resource.mimeType);
+        safeSet(
+          single ? MCP_TOOL_RESULT_RESOURCE_URI : MCP_TOOL_RESULT_KEY_RESOURCE_URI.replace('<key>', index),
+          resource.uri,
+        );
+        safeSet(
+          single ? MCP_TOOL_RESULT_RESOURCE_MIME_TYPE : MCP_TOOL_RESULT_KEY_RESOURCE_MIME_TYPE.replace('<key>', index),
+          resource.mimeType,
+        );
       }
     }
   }
 
   return attributes;
 }
+/* oxlint-enable typescript/no-deprecated */
 
 /**
  * Extract tool result attributes for span instrumentation
@@ -126,17 +155,21 @@ export function extractPromptResultAttributes(
           continue;
         }
 
-        const prefix = messages.length === 1 ? MCP_PROMPT_RESULT_PREFIX : `${MCP_PROMPT_RESULT_PREFIX}.${i}`;
-
         if (typeof message.role === 'string') {
-          const attrName = messages.length === 1 ? MCP_PROMPT_RESULT_MESSAGE_ROLE : `${prefix}.role`;
+          const attrName =
+            messages.length === 1
+              ? MCP_PROMPT_RESULT_MESSAGE_ROLE
+              : MCP_PROMPT_RESULT_KEY_ROLE.replace('<key>', String(i));
           attributes[attrName] = message.role;
         }
 
         if (isValidContentItem(message.content)) {
           const content = message.content;
           if (typeof content.text === 'string') {
-            const attrName = messages.length === 1 ? MCP_PROMPT_RESULT_MESSAGE_CONTENT : `${prefix}.content`;
+            const attrName =
+              messages.length === 1
+                ? MCP_PROMPT_RESULT_MESSAGE_CONTENT
+                : MCP_PROMPT_RESULT_KEY_CONTENT.replace('<key>', String(i));
             attributes[attrName] = content.text;
           }
         }

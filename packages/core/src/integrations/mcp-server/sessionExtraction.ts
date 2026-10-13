@@ -294,7 +294,6 @@ export function buildTransportAttributes(
     ...(sessionId && { [MCP_SESSION_ID]: sessionId }),
     ...(clientInfo.address && { [CLIENT_ADDRESS]: clientInfo.address }),
     ...(clientInfo.port && { [CLIENT_PORT]: clientInfo.port }),
-    // oxlint-disable-next-line typescript/no-deprecated -- Keep the transport implementation name distinct from the network transport.
     [MCP_TRANSPORT]: mcpTransport,
     [NETWORK_TRANSPORT]: networkTransport,
     [NETWORK_PROTOCOL_VERSION]: '2.0',

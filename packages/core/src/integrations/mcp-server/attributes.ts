@@ -1,9 +1,3 @@
-/** Prefix for tool result attributes that contain sensitive content */
-export const MCP_TOOL_RESULT_PREFIX = 'mcp.tool.result';
-
-/** Prefix for prompt result attributes that contain sensitive content */
-export const MCP_PROMPT_RESULT_PREFIX = 'mcp.prompt.result';
-
 /** Sentry origin value for MCP function spans */
 export const MCP_FUNCTION_ORIGIN_VALUE = 'auto.function.mcp_server';
 
