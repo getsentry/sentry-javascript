@@ -953,7 +953,7 @@ describe('React Router cross usage of wrappers', () => {
 
       await waitFor(() => expect(mockStartBrowserTracingNavigationSpan).toHaveBeenCalledTimes(1));
 
-      expect(router.state.matches.at(-1)?.route.path).toBe(':orgId');
+      expect(router.state.matches.map(match => match.route.path)).toEqual(['/', ':orgId']);
       expect(mockStartBrowserTracingNavigationSpan).toHaveBeenLastCalledWith(expect.any(BrowserClient), {
         name: '/:orgId',
         attributes: {

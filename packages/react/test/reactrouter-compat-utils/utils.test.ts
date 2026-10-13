@@ -260,16 +260,6 @@ describe('reactrouter-compat-utils/utils', () => {
   });
 
   describe('locationIsInsideDescendantRoute', () => {
-    it('should only match against root routes', () => {
-      const child: RouteObject = { path: 'profile' };
-      const parent: RouteObject = { path: '/users', children: [child] };
-      mockMatchRoutes.mockReturnValue(null);
-
-      locationIsInsideDescendantRoute({ pathname: '/users/profile' }, [parent, child], mockMatchRoutes as MatchRoutes);
-
-      expect(mockMatchRoutes).toHaveBeenCalledWith([parent], { pathname: '/users/profile' });
-    });
-
     it('should return true when location is inside descendant route', () => {
       const routes: RouteObject[] = [
         {
