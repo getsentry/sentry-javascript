@@ -44,8 +44,9 @@ const DECIDE_SPAN_ATTRIBUTES = {
 
 test('records a text decision with its state, questions and answers', async ({ baseURL }) => {
   const response = await fetch(`${baseURL}/decide`);
-  expect(response.status).toBe(200);
-  const { traceId }: { traceId: string } = await response.json();
+  const body = await response.json();
+  expect(response.status, JSON.stringify(body)).toBe(200);
+  const { traceId }: { traceId: string } = body;
 
   console.log(`Polling for gen_ai.decide span: sentry trace view ${traceTarget(traceId)}`);
 
@@ -120,8 +121,9 @@ test('records a text decision with its state, questions and answers', async ({ b
 
 test('records an image decision by media type only', async ({ baseURL }) => {
   const response = await fetch(`${baseURL}/decide-image`);
-  expect(response.status).toBe(200);
-  const { traceId }: { traceId: string } = await response.json();
+  const body = await response.json();
+  expect(response.status, JSON.stringify(body)).toBe(200);
+  const { traceId }: { traceId: string } = body;
 
   console.log(`Polling for gen_ai.decide span: sentry trace view ${traceTarget(traceId)}`);
 
