@@ -200,49 +200,40 @@ conditionalTest({ min: 22 })('OpenAI integration (V7)', () => {
           {
             type: 'evaluation',
             state: 'I was charged twice and want a refund.',
-            questions: [
-              { type: 'predicate', name: 'wants_refund', instructions: 'Is a refund requested?' },
-              {
+            questions: {
+              wants_refund: { type: 'predicate', instructions: 'Is a refund requested?' },
+              department: {
                 type: 'choice',
-                name: 'department',
                 instructions: 'Which team should handle this?',
                 choices: [{ value: 'billing' }, { value: 'other' }],
               },
-              {
+              urgency: {
                 type: 'score',
-                name: 'urgency',
                 instructions: 'How urgent is this ticket?',
                 levels: [{ label: 'low' }, { label: 'high' }],
               },
-            ],
+            },
           },
         ]);
         expect(JSON.parse(textSpan!.attributes[GEN_AI_OUTPUT_MESSAGES]!.value as string)).toEqual([
           {
             type: 'evaluation',
-            answers: [
-              { type: 'predicate', name: 'wants_refund', probability: 0.97 },
-              {
+            answers: {
+              wants_refund: { type: 'predicate', probability: 0.97 },
+              department: {
                 type: 'choice',
-                name: 'department',
                 choice: 'billing',
-                probabilities: [
-                  { value: 'billing', probability: 0.82 },
-                  { value: 'other', probability: 0.18 },
-                ],
+                probabilities: { billing: 0.82, other: 0.18 },
                 confidence: 0.82,
               },
-              {
+              urgency: {
                 type: 'score',
-                name: 'urgency',
                 score: 0.95,
-                probabilities: [
-                  { value: 0, label: 'low', probability: 0.05 },
-                  { value: 1, label: 'high', probability: 0.95 },
-                ],
+                probabilities: { 0: 0.05, 1: 0.95 },
+                legend: { 0: 'low', 1: 'high' },
                 confidence: 0.93,
               },
-            ],
+            },
           },
         ]);
 

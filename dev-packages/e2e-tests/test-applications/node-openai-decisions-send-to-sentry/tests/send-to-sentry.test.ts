@@ -102,24 +102,22 @@ test('records a text decision with its state, questions and answers', async ({ b
     {
       type: 'evaluation',
       state: 'I was charged twice this month and want a refund.',
-      questions: [
-        { type: 'predicate', name: 'wants_refund', instructions: 'Is a refund requested?' },
-        {
+      questions: {
+        wants_refund: { type: 'predicate', instructions: 'Is a refund requested?' },
+        department: {
           type: 'choice',
-          name: 'department',
           instructions: 'Which team should handle this?',
           choices: [
             { value: 'billing', description: 'Charges and refunds' },
             { value: 'other', description: 'Anything else' },
           ],
         },
-        {
+        urgency: {
           type: 'score',
-          name: 'urgency',
           instructions: 'How urgent is this ticket?',
           levels: [{ label: 'low' }, { label: 'high' }],
         },
-      ],
+      },
     },
   ]);
 
@@ -127,29 +125,22 @@ test('records a text decision with its state, questions and answers', async ({ b
   expect(JSON.parse(attributes[GEN_AI_OUTPUT_MESSAGES] as string)).toEqual([
     {
       type: 'evaluation',
-      answers: [
-        { type: 'predicate', name: 'wants_refund', probability: expect.any(Number) },
-        {
+      answers: {
+        wants_refund: { type: 'predicate', probability: expect.any(Number) },
+        department: {
           type: 'choice',
-          name: 'department',
           choice: 'billing',
-          probabilities: [
-            { value: 'billing', probability: expect.any(Number) },
-            { value: 'other', probability: expect.any(Number) },
-          ],
+          probabilities: { billing: expect.any(Number), other: expect.any(Number) },
           confidence: expect.any(Number),
         },
-        {
+        urgency: {
           type: 'score',
-          name: 'urgency',
           score: expect.any(Number),
-          probabilities: [
-            { value: 0, label: 'low', probability: expect.any(Number) },
-            { value: 1, label: 'high', probability: expect.any(Number) },
-          ],
+          probabilities: { 0: expect.any(Number), 1: expect.any(Number) },
+          legend: { 0: 'low', 1: 'high' },
           confidence: expect.any(Number),
         },
-      ],
+      },
     },
   ]);
 });
@@ -170,11 +161,11 @@ test('records an image decision by media type only', async ({ baseURL }) => {
           ],
         },
       ],
-      questions: [{ type: 'predicate', name: 'is_red', instructions: 'Is the image mostly red?' }],
+      questions: { is_red: { type: 'predicate', instructions: 'Is the image mostly red?' } },
     },
   ]);
 
   expect(JSON.parse(attributes[GEN_AI_OUTPUT_MESSAGES] as string)).toEqual([
-    { type: 'evaluation', answers: [{ type: 'predicate', name: 'is_red', probability: expect.any(Number) }] },
+    { type: 'evaluation', answers: { is_red: { type: 'predicate', probability: expect.any(Number) } } },
   ]);
 });

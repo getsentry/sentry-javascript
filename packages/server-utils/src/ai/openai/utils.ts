@@ -132,7 +132,7 @@ export function addResponseAttributes(span: Span, result: unknown, recordOutputs
 
     // Typed answers (decisions API)
     if (Array.isArray(response.answers)) {
-      const outputMessages = getEvaluationOutputMessages(response.answers);
+      const outputMessages = getEvaluationOutputMessages(keyByName(response.answers.map(toJevAnswerFormat)));
       if (outputMessages) {
         attrs[GEN_AI_OUTPUT_MESSAGES] = outputMessages;
       }
@@ -232,7 +232,52 @@ export function extractRequestParameters(params: Record<string, unknown>): Recor
  * so both render the same. Images are base64 data URLs, so they are reported by media type only.
  */
 export function getDecisionInputMessages(params: Record<string, unknown>): string | undefined {
-  return getEvaluationInputMessages({ state: withoutImageData(params.input), questions: params.questions });
+  return getEvaluationInputMessages({ state: withoutImageData(params.input), questions: keyByName(params.questions) });
+}
+
+/**
+ * Lay out choice and score answers like Jev answers: probabilities keyed by option or score value, with
+ * score labels in a `legend`. Predicate answers are already in the shape Sentry renders.
+ */
+function toJevAnswerFormat(answer: unknown): unknown {
+  if (
+    !isObjectLike(answer) ||
+    (answer.type !== 'choice' && answer.type !== 'score') ||
+    !Array.isArray(answer.probabilities)
+  ) {
+    return answer;
+  }
+
+  const options = answer.probabilities.filter(isObjectLike);
+  const probabilities = Object.fromEntries(options.map(option => [String(option.value), option.probability]));
+  if (answer.type === 'choice') {
+    return { ...answer, probabilities };
+  }
+
+  const legend = Object.fromEntries(
+    options.filter(option => typeof option.label === 'string').map(option => [String(option.value), option.label]),
+  );
+  return { ...answer, probabilities, legend };
+}
+
+/**
+ * The decisions API lists questions and answers as arrays with an optional `name`, where the conventions
+ * key them by question name. An unnamed item is keyed by its position.
+ */
+function keyByName(items: unknown): unknown {
+  if (!Array.isArray(items)) {
+    return items;
+  }
+
+  return Object.fromEntries(
+    items.map((item, index) => {
+      if (!isObjectLike(item)) {
+        return [String(index), item];
+      }
+      const { name, ...rest } = item;
+      return [typeof name === 'string' ? name : String(index), rest];
+    }),
+  );
 }
 
 function withoutImageData(input: unknown): unknown {

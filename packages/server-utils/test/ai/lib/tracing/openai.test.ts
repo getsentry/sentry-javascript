@@ -95,9 +95,13 @@ describe('instrumentOpenAiClient span names', () => {
 
   it('records `decisions.create` as a decide span', async () => {
     const endedSpans = setupClient('stream');
-    const answers = [{ type: 'predicate', name: 'wants_refund', probability: 0.97 }];
     const instrumented = instrumentOpenAiClient({
-      decisions: { create: vi.fn().mockResolvedValue({ model: 'gpt-6-luna', answers }) },
+      decisions: {
+        create: vi.fn().mockResolvedValue({
+          model: 'gpt-6-luna',
+          answers: [{ type: 'predicate', name: 'wants_refund', probability: 0.97 }],
+        }),
+      },
     });
 
     await instrumented.decisions.create({
@@ -109,6 +113,9 @@ describe('instrumentOpenAiClient span names', () => {
     const json = spanToStaticSpanJSON(endedSpans[0]!);
     expect(json.description).toBe('decide gpt-6-luna');
     expect(json.op).toBe(GEN_AI_DECIDE);
-    expect(JSON.parse(json.data[GEN_AI_OUTPUT_MESSAGES] as string)).toEqual([{ type: 'evaluation', answers }]);
+    expect(JSON.parse(json.data[GEN_AI_OUTPUT_MESSAGES] as string)).toEqual([
+      // Keyed by question name, as the conventions define it.
+      { type: 'evaluation', answers: { wants_refund: { type: 'predicate', probability: 0.97 } } },
+    ]);
   });
 });
