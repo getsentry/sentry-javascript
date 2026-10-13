@@ -24,6 +24,13 @@ if (!process.env.OPENROUTER_API_KEY) {
   throw new Error('OPENROUTER_API_KEY is not set (E2E_OPENROUTER_API_KEY in the e2e-tests .env)');
 }
 
+// pi-durable 1.2.0 renamed the tool result field `content` to `output`. The app runs on 1.0.0 and on the
+// latest version, so its tool results set both.
+const textResult = text => {
+  const blocks = [{ type: 'text', text }];
+  return { output: blocks, content: blocks };
+};
+
 const dataDir = fileURLToPath(new URL('../.data/', import.meta.url));
 mkdirSync(dataDir, { recursive: true });
 
@@ -37,9 +44,9 @@ const tools = [
     parameters: Type.Object({ city: Type.String() }),
     // The manual span should nest under the SDK's `execute_tool` span.
     execute: async args =>
-      Sentry.startSpan({ name: 'resolve-weather', attributes: { 'weather.city': args.city } }, () => ({
-        content: [{ type: 'text', text: `It is 21 degrees and sunny in ${args.city}.` }],
-      })),
+      Sentry.startSpan({ name: 'resolve-weather', attributes: { 'weather.city': args.city } }, () =>
+        textResult(`It is 21 degrees and sunny in ${args.city}.`),
+      ),
   }),
   defineTool({
     name: 'fail_now',
@@ -60,7 +67,7 @@ const tools = [
       try {
         writeFileSync(`${dataDir}crashed-${args.job}`, 'crashed once', { flag: 'wx' });
       } catch {
-        return { content: [{ type: 'text', text: `Step of job ${args.job} completed.` }] };
+        return textResult(`Step of job ${args.job} completed.`);
       }
       process.exit(CRASH_EXIT_CODE);
     },
@@ -80,14 +87,14 @@ const tools = [
       const request = { type: 'input', content: args.task, requestId: `delegate:${api.taskId}` };
       const settled = await (await child.submit(request, toolContext)).wait(toolContext);
       if (settled.status !== 'done') {
-        return { isError: true, content: [{ type: 'text', text: `Subagent ended: ${settled.reason}` }] };
+        return { isError: true, ...textResult(`Subagent ended: ${settled.reason}`) };
       }
       const answer = await api.commit(tx => tx.entry(AssistantEntry, settled.answer), toolContext);
       const text = (answer?.model?.[0]?.content ?? [])
         .filter(part => part.type === 'text')
         .map(part => part.text)
         .join('');
-      return { content: [{ type: 'text', text }] };
+      return textResult(text);
     },
   }),
 ];

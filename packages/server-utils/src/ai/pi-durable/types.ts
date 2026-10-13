@@ -50,6 +50,9 @@ export interface PiModels {
 }
 
 export interface PiToolExecutionResult {
+  /** The content blocks the tool returns for the model, in pi-durable 1.2.0 and later. */
+  output?: unknown[];
+  /** The content blocks the tool returns for the model, in pi-durable versions before 1.2.0. */
   content?: unknown[];
   isError?: boolean;
 }
