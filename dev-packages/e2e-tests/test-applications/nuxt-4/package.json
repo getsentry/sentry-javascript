@@ -8,6 +8,9 @@
     "generate": "nuxt generate",
     "preview": "nuxt preview",
     "start": "node .output/server/index.mjs",
+    "start:bun": "bun --bun .output/server/index.mjs",
+    "start:deno": "deno run -A .output/server/index.mjs",
+    "start:cloudflare": "wrangler dev --port 3030",
     "start:import": "node --import ./.output/server/sentry.server.config.mjs .output/server/index.mjs",
     "clean": "npx nuxi cleanup",
     "test": "playwright test",
@@ -21,6 +24,9 @@
   "//": "Pin ioredis to 5.10.1 because that's the last version before it publishes its own diagnostics channels",
   "dependencies": {
     "@pinia/nuxt": "^0.5.5",
+    "@sentry/bun": "file:../../packed/sentry-bun-packed.tgz",
+    "@sentry/cloudflare": "file:../../packed/sentry-cloudflare-packed.tgz",
+    "@sentry/deno": "file:../../packed/sentry-deno-packed.tgz",
     "@sentry/nuxt": "file:../../packed/sentry-nuxt-packed.tgz",
     "ioredis": "5.10.1",
     "mongoose": "^9.10.2",
@@ -29,7 +35,8 @@
   },
   "devDependencies": {
     "@playwright/test": "~1.63.0",
-    "@sentry-internal/test-utils": "link:../../../test-utils"
+    "@sentry-internal/test-utils": "link:../../../test-utils",
+    "wrangler": "^4.72.0"
   },
   "volta": {
     "extends": "../../package.json"
@@ -51,6 +58,22 @@
       {
         "build-command": "pnpm test:build-canary",
         "label": "nuxt-4 (canary)"
+      },
+      {
+        "runtime": "bun",
+        "assert-command": "pnpm test:prod",
+        "label": "nuxt-4 (bun)"
+      },
+      {
+        "runtime": "deno",
+        "deno-version": "v2.9.0",
+        "assert-command": "pnpm test:prod",
+        "label": "nuxt-4 (deno)"
+      },
+      {
+        "runtime": "cloudflare",
+        "assert-command": "pnpm test:prod",
+        "label": "nuxt-4 (cloudflare)"
       }
     ]
   }

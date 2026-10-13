@@ -1,5 +1,6 @@
 import { expect, test } from '@playwright/test';
 import { collectStreamedSpans, getSpanOp, waitForStreamedSpan } from '@sentry-internal/test-utils';
+import { HTTP_SERVER_ORIGIN } from './constants';
 import { IMPORT_SURFACES } from './importSurfaces';
 
 test.describe('distributed tracing', () => {
@@ -51,7 +52,7 @@ test.describe('distributed tracing', () => {
       is_segment: true,
       attributes: expect.objectContaining({
         'sentry.op': { type: 'string', value: 'http.server' },
-        'sentry.origin': { type: 'string', value: 'auto.http.http_server' },
+        'sentry.origin': { type: 'string', value: HTTP_SERVER_ORIGIN },
         'sentry.segment.name.source': { type: 'string', value: 'route' },
       }),
     });
@@ -129,7 +130,7 @@ test.describe('distributed tracing', () => {
         is_segment: true,
         attributes: expect.objectContaining({
           'sentry.op': { type: 'string', value: 'http.server' },
-          'sentry.origin': { type: 'string', value: 'auto.http.http_server' },
+          'sentry.origin': { type: 'string', value: HTTP_SERVER_ORIGIN },
           'sentry.segment.name.source': { type: 'string', value: 'route' },
         }),
       });
@@ -140,7 +141,7 @@ test.describe('distributed tracing', () => {
         parent_span_id: httpClientSpan?.span_id, // http.client span is parent
         attributes: expect.objectContaining({
           'sentry.op': { type: 'string', value: 'http.server' },
-          'sentry.origin': { type: 'string', value: 'auto.http.http_server' },
+          'sentry.origin': { type: 'string', value: HTTP_SERVER_ORIGIN },
         }),
       });
 

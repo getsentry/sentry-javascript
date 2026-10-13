@@ -1,0 +1,28 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "nuxt-4",
+  "main": "./.output/server/index.mjs",
+  "compatibility_date": "2026-06-29",
+  "compatibility_flags": ["nodejs_compat"],
+  "assets": {
+    "directory": "./.output/public",
+    "binding": "ASSETS",
+    // Serves pre-rendered pages at the same URL as Nitro on Node, without a redirect to a trailing slash.
+    "html_handling": "drop-trailing-slash",
+  },
+  // `wrangler dev` keeps local D1 databases, so the IDs only have to be unique.
+  "d1_databases": [
+    { "binding": "DB", "database_name": "db", "database_id": "00000000-0000-0000-0000-000000000001" },
+    { "binding": "USERS_DB", "database_name": "users_db", "database_id": "00000000-0000-0000-0000-000000000002" },
+    {
+      "binding": "ANALYTICS_DB",
+      "database_name": "analytics_db",
+      "database_id": "00000000-0000-0000-0000-000000000003",
+    },
+  ],
+  // The binding name and the class that the `cloudflare_durable` preset of Nitro use.
+  "durable_objects": {
+    "bindings": [{ "name": "$DurableObject", "class_name": "$DurableObject" }],
+  },
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["$DurableObject"] }],
+}

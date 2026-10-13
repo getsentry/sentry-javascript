@@ -1,5 +1,9 @@
 import { expect, test } from '@playwright/test';
 import { collectStreamedSpansUntilSegment, getSpanOp, waitForError } from '@sentry-internal/test-utils';
+import { DB_ORIGIN, DB_SYSTEM_NAME, RUNTIME } from './constants';
+
+// `@sentry/cloudflare` does not capture D1 errors, so the error handler of Nitro captures them on Cloudflare.
+const DB_ERROR_MECHANISM = RUNTIME === 'cloudflare' ? 'auto.function.nuxt.nitro' : 'auto.db.nuxt';
 
 async function collectDbSpans() {
   const spans = await collectStreamedSpansUntilSegment(
@@ -17,17 +21,21 @@ test.describe('database integration', () => {
 
     await request.get('/api/db-test?method=prepare-get');
 
-    const dbSpan = (await dbSpansPromise).find(span => span.name === 'SELECT users');
+    const dbSpans = await dbSpansPromise;
+    const dbSpan = dbSpans.find(span => span.name === 'SELECT users');
 
+    // On Cloudflare, only `@sentry/cloudflare` creates the spans of D1 queries.
+    expect(dbSpans.filter(span => span.name === 'SELECT users')).toHaveLength(1);
     expect(dbSpan).toBeDefined();
     expect(dbSpan?.status).toBe('ok');
     expect(dbSpan?.attributes).toMatchObject({
       'db.query.summary': { type: 'string', value: 'SELECT users' },
       'db.query.text': { type: 'string', value: 'SELECT * FROM users WHERE id = ?' },
-      'db.system.name': { type: 'string', value: 'sqlite' },
-      'db.namespace': { type: 'string', value: 'db.sqlite' },
+      'db.system.name': { type: 'string', value: DB_SYSTEM_NAME },
+      // D1 spans have no `db.namespace`.
+      ...(RUNTIME !== 'cloudflare' && { 'db.namespace': { type: 'string', value: 'db.sqlite' } }),
       'sentry.op': { type: 'string', value: 'db.query' },
-      'sentry.origin': { type: 'string', value: 'auto.db.nuxt' },
+      'sentry.origin': { type: 'string', value: DB_ORIGIN },
     });
   });
 
@@ -42,8 +50,8 @@ test.describe('database integration', () => {
     expect(dbSpan?.attributes).toMatchObject({
       'db.query.summary': { type: 'string', value: 'SELECT products' },
       'db.query.text': { type: 'string', value: 'SELECT * FROM products WHERE price > ?' },
-      'db.system.name': { type: 'string', value: 'sqlite' },
-      'sentry.origin': { type: 'string', value: 'auto.db.nuxt' },
+      'db.system.name': { type: 'string', value: DB_SYSTEM_NAME },
+      'sentry.origin': { type: 'string', value: DB_ORIGIN },
     });
   });
 
@@ -58,8 +66,8 @@ test.describe('database integration', () => {
     expect(dbSpan?.attributes).toMatchObject({
       'db.query.summary': { type: 'string', value: 'INSERT orders' },
       'db.query.text': { type: 'string', value: 'INSERT INTO orders (customer, amount) VALUES (?, ?)' },
-      'db.system.name': { type: 'string', value: 'sqlite' },
-      'sentry.origin': { type: 'string', value: 'auto.db.nuxt' },
+      'db.system.name': { type: 'string', value: DB_SYSTEM_NAME },
+      'sentry.origin': { type: 'string', value: DB_ORIGIN },
     });
   });
 
@@ -74,8 +82,8 @@ test.describe('database integration', () => {
     expect(dbSpan?.attributes).toMatchObject({
       'db.query.summary': { type: 'string', value: 'SELECT items' },
       'db.query.text': { type: 'string', value: 'SELECT * FROM items WHERE category = ?' },
-      'db.system.name': { type: 'string', value: 'sqlite' },
-      'sentry.origin': { type: 'string', value: 'auto.db.nuxt' },
+      'db.system.name': { type: 'string', value: DB_SYSTEM_NAME },
+      'sentry.origin': { type: 'string', value: DB_ORIGIN },
     });
   });
 
@@ -93,8 +101,8 @@ test.describe('database integration', () => {
         type: 'string',
         value: 'INSERT INTO messages (content, created_at) VALUES (?, ?)',
       },
-      'db.system.name': { type: 'string', value: 'sqlite' },
-      'sentry.origin': { type: 'string', value: 'auto.db.nuxt' },
+      'db.system.name': { type: 'string', value: DB_SYSTEM_NAME },
+      'sentry.origin': { type: 'string', value: DB_ORIGIN },
     });
   });
 
@@ -110,8 +118,8 @@ test.describe('database integration', () => {
     expect(insertSpan?.attributes).toMatchObject({
       'db.query.summary': { type: 'string', value: 'INSERT logs' },
       'db.query.text': { type: 'string', value: `INSERT INTO logs (message, level) VALUES (?, ?)` },
-      'db.system.name': { type: 'string', value: 'sqlite' },
-      'sentry.origin': { type: 'string', value: 'auto.db.nuxt' },
+      'db.system.name': { type: 'string', value: DB_SYSTEM_NAME },
+      'sentry.origin': { type: 'string', value: DB_ORIGIN },
     });
 
     // DDL statements are summarized as `{operation} {table}` as well, with the statement on the attribute
@@ -129,7 +137,7 @@ test.describe('database integration', () => {
   test('captures database error and marks span as failed', async ({ request }) => {
     const errorPromise = waitForError('nuxt-4', errorEvent => {
       return !!errorEvent?.exception?.values?.some(
-        value => value.mechanism?.type === 'auto.db.nuxt' && value.value?.includes('no such table'),
+        value => value.mechanism?.type === DB_ERROR_MECHANISM && value.value?.includes('no such table'),
       );
     });
 
@@ -141,13 +149,13 @@ test.describe('database integration', () => {
 
     const [error, dbSpans] = await Promise.all([errorPromise, dbSpansPromise]);
 
-    const dbException = error.exception?.values?.find(value => value.mechanism?.type === 'auto.db.nuxt');
+    const dbException = error.exception?.values?.find(value => value.mechanism?.type === DB_ERROR_MECHANISM);
 
     expect(dbException).toBeDefined();
     expect(dbException?.value).toContain('no such table');
-    expect(dbException?.mechanism).toEqual({
+    expect(dbException?.mechanism).toMatchObject({
       handled: false,
-      type: 'auto.db.nuxt',
+      type: DB_ERROR_MECHANISM,
     });
 
     const dbSpan = dbSpans.find(span => span.name === 'SELECT nonexistent_table');
@@ -157,14 +165,16 @@ test.describe('database integration', () => {
     expect(dbSpan?.attributes).toMatchObject({
       'db.query.summary': { type: 'string', value: 'SELECT nonexistent_table' },
       'db.query.text': { type: 'string', value: 'SELECT * FROM nonexistent_table WHERE invalid_column = ?' },
-      'db.system.name': { type: 'string', value: 'sqlite' },
-      'sentry.origin': { type: 'string', value: 'auto.db.nuxt' },
+      'db.system.name': { type: 'string', value: DB_SYSTEM_NAME },
+      'sentry.origin': { type: 'string', value: DB_ORIGIN },
     });
   });
 
   test('captures breadcrumb for db.exec() queries', async ({ request }) => {
     const errorPromise = waitForError('nuxt-4', errorEvent => {
-      return !!errorEvent?.exception?.values?.some(value => value.mechanism?.type === 'auto.db.nuxt');
+      return !!errorEvent?.exception?.values?.some(
+        value => value.mechanism?.type === DB_ERROR_MECHANISM && value.value?.includes('no such table'),
+      );
     });
 
     await request.get('/api/db-test?method=error').catch(() => {
@@ -179,7 +189,11 @@ test.describe('database integration', () => {
 
     expect(dbBreadcrumb).toBeDefined();
     expect(dbBreadcrumb?.message).toBe(`INSERT INTO logs (message, level) VALUES (?, ?)`);
-    expect(dbBreadcrumb?.data?.['db.query.text']).toBe(`INSERT INTO logs (message, level) VALUES (?, ?)`);
+    expect(dbBreadcrumb?.data).toMatchObject(
+      RUNTIME === 'cloudflare'
+        ? { 'db.operation.name': 'exec' }
+        : { 'db.query.text': `INSERT INTO logs (message, level) VALUES (?, ?)` },
+    );
   });
 
   test('multiple database operations in single request create multiple spans', async ({ request }) => {

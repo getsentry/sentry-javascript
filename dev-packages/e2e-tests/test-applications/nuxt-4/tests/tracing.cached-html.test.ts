@@ -1,5 +1,6 @@
 import { expect, test, type Page } from '@playwright/test';
 import { getSpanOp, waitForStreamedSpan } from '@sentry-internal/test-utils';
+import { RUNTIME } from './constants';
 
 test.describe('Rendering Modes with Cached HTML', () => {
   test('changes tracing meta tags with multiple requests on Client-Side only page', async ({ page }) => {
@@ -23,7 +24,13 @@ test.describe('Rendering Modes with Cached HTML', () => {
   });
 
   test('exclude tracing meta tags on pre-rendered page', async ({ page }) => {
-    await testExcludeTracingMetaTagsOnCachedPage(page, '/rendering-modes/pre-rendered-page', 'Pre-Rendered Page');
+    // Cloudflare serves a pre-rendered page from the static assets, without running the Worker.
+    await testExcludeTracingMetaTagsOnCachedPage(
+      page,
+      '/rendering-modes/pre-rendered-page',
+      'Pre-Rendered Page',
+      RUNTIME !== 'cloudflare',
+    );
   });
 });
 
@@ -126,17 +133,19 @@ export async function testChangingTracingMetaTagsOnISRPage(
  * @param page - Playwright page object
  * @param routePath - The route path to test (e.g., '/rendering-modes/swr-cached-page')
  * @param expectedPageText - The text to verify is visible on the page (e.g., 'SWR Cached Page')
+ * @param hasServerSpan - Whether the first request runs the server, which then creates a server root span
  */
 export async function testExcludeTracingMetaTagsOnCachedPage(
   page: Page,
   routePath: string,
   expectedPageText: string,
+  hasServerSpan = true,
 ): Promise<void> {
   // === 1. Request ===
   const clientSpanPromise1 = waitForPageloadSegment(routePath);
 
   // Only the 1. request creates a server root span
-  const serverSpanPromise1 = waitForServerSegment(routePath);
+  const serverSpanPromise1 = hasServerSpan ? waitForServerSegment(routePath) : undefined;
 
   const [_1, clientSpan1, serverSpan1] = await Promise.all([
     page.goto(routePath),
@@ -162,7 +171,7 @@ export async function testExcludeTracingMetaTagsOnCachedPage(
   const clientSpan1TraceId = clientSpan1.trace_id;
   const clientSpan2TraceId = clientSpan2.trace_id;
 
-  const serverSpan1TraceId = serverSpan1.trace_id;
+  const serverSpan1TraceId = serverSpan1?.trace_id;
 
   await test.step('No baggage and sentry-trace meta-tags are present on second request', async () => {
     expect(await page.locator('meta[name="baggage"]').count()).toBe(0);
@@ -170,7 +179,9 @@ export async function testExcludeTracingMetaTagsOnCachedPage(
   });
 
   await test.step('1. server root span and all client root spans are defined', () => {
-    expect(serverSpan1TraceId).toBeDefined();
+    if (hasServerSpan) {
+      expect(serverSpan1TraceId).toBeDefined();
+    }
     expect(clientSpan1TraceId).toBeDefined();
     expect(clientSpan2TraceId).toBeDefined();
   });

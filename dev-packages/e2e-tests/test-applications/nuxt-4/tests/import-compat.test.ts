@@ -2,10 +2,13 @@ import type { ChildProcess } from 'node:child_process';
 import { spawn } from 'node:child_process';
 import { expect, test } from '@playwright/test';
 import { getSpanOp, waitForStreamedSpan } from '@sentry-internal/test-utils';
+import { RUNTIME } from './constants';
 
-// `node --import` start commands must keep working now that the config is bundled: the emitted
-// config file is a shim that only prints a removal hint, and a preload that really initializes
-// the SDK must not cause a second init. Each test spawns its own server on a dedicated port.
+// Start commands with a preload (`--import` of Node.js and Bun, `--preload` of Deno) must keep working now that the
+// config is bundled: the emitted config file is a shim that only prints a removal hint, and a preload that really
+// initializes the SDK must not cause a second init. Each test spawns its own server on a dedicated port.
+
+test.skip(RUNTIME === 'cloudflare', 'A Worker has no server process to start with a preload');
 
 interface PreloadedServer {
   child: ChildProcess;
@@ -13,7 +16,13 @@ interface PreloadedServer {
 }
 
 async function startServerWithPreload(preloadPath: string, port: string): Promise<PreloadedServer> {
-  const child = spawn('node', ['--import', preloadPath, '.output/server/index.mjs'], {
+  const commands: Record<string, [string, ...string[]]> = {
+    node: ['node', '--import', preloadPath, '.output/server/index.mjs'],
+    bun: ['bun', '--bun', '--import', preloadPath, '.output/server/index.mjs'],
+    deno: ['deno', 'run', '-A', '--preload', preloadPath, '.output/server/index.mjs'],
+  };
+  const [command, ...args] = commands[RUNTIME]!;
+  const child = spawn(command, args, {
     env: { ...process.env, PORT: port },
   });
 

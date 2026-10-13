@@ -1,6 +1,7 @@
 import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import path from 'node:path';
 import { expect, test } from '@playwright/test';
+import { RUNTIME } from './constants';
 
 function readServerBundle(): string {
   const serverDir = path.join(process.cwd(), '.output/server');
@@ -33,9 +34,10 @@ test.describe('Orchestrion build-time injection', () => {
     // Each transformed module carries the module-injected snippet that records it
     // on the global marker (and registers its subscriber factory) when evaluated.
     expect(serverBundle).toContain('orchestrionModuleInjected');
-    expect(serverBundle).toMatch(/tracingChannel\(["']orchestrion:mysql:query["']\)/);
-    expect(serverBundle).toMatch(/tracingChannel\(["']orchestrion:ioredis:command["']\)/);
-    expect(serverBundle).toMatch(/tracingChannel\(["']orchestrion:ioredis:connect["']\)/);
+    // The Cloudflare build is minified, so `tracingChannel` can have another name there.
+    expect(serverBundle).toMatch(/\w\(["']orchestrion:mysql:query["']\)/);
+    expect(serverBundle).toMatch(/\w\(["']orchestrion:ioredis:command["']\)/);
+    expect(serverBundle).toMatch(/\w\(["']orchestrion:ioredis:connect["']\)/);
   });
 
   test('does not inject diagnostics-channel publishers into the client build', () => {
@@ -46,6 +48,8 @@ test.describe('Orchestrion build-time injection', () => {
 
 test.describe('Sentry server config injection', () => {
   test('evaluates Sentry.init before nitro runs its plugins', () => {
+    test.skip(RUNTIME === 'cloudflare', 'Cloudflare sets up the SDK with `withSentry` and `instrument.server.ts`');
+
     const nitroChunk = readFileSync(path.join(process.cwd(), '.output/server/chunks/nitro/nitro.mjs'), 'utf8');
 
     // The app DSN only appears in the transpiled `Sentry.init` options object, so it marks where
@@ -59,6 +63,8 @@ test.describe('Sentry server config injection', () => {
   });
 
   test('emits the `--import` compatibility shim at the former config path', () => {
+    test.skip(RUNTIME === 'cloudflare', 'Cloudflare sets up the SDK with `withSentry` and `instrument.server.ts`');
+
     const shimPath = path.join(process.cwd(), '.output/server/sentry.server.config.mjs');
 
     expect(existsSync(shimPath)).toBe(true);

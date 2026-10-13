@@ -1,5 +1,6 @@
 import { expect, test } from '@playwright/test';
 import { collectStreamedSpans, getSpanOp, waitForStreamedSpan } from '@sentry-internal/test-utils';
+import { HTTP_SERVER_ORIGIN } from './constants';
 import { IMPORT_SURFACES } from './importSurfaces';
 
 test('sends a server root span on pageload', async ({ page }) => {
@@ -12,7 +13,7 @@ test('sends a server root span on pageload', async ({ page }) => {
   const serverSpan = await serverSpanPromise;
 
   expect(getSpanOp(serverSpan)).toBe('http.server');
-  expect(serverSpan.attributes['sentry.origin']?.value).toBe('auto.http.http_server');
+  expect(serverSpan.attributes['sentry.origin']?.value).toBe(HTTP_SERVER_ORIGIN);
 });
 
 test('does not send spans for build asset folder "_nuxt"', async ({ page }) => {

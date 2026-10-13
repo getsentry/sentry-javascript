@@ -1,10 +1,17 @@
-import { getPlaywrightConfig } from '@sentry-internal/test-utils';
+import { getPlaywrightConfig, getRuntime } from '@sentry-internal/test-utils';
 
 const testEnv = process.env.TEST_ENV;
 
 if (!testEnv) {
   throw new Error('No test env defined');
 }
+
+const productionStartCommands = {
+  node: 'pnpm start',
+  bun: 'pnpm start:bun',
+  deno: 'pnpm start:deno',
+  cloudflare: 'pnpm start:cloudflare',
+};
 
 const getStartCommand = () => {
   if (testEnv === 'development') {
@@ -13,7 +20,7 @@ const getStartCommand = () => {
   }
 
   if (testEnv === 'production') {
-    return 'pnpm start';
+    return productionStartCommands[getRuntime()];
   }
 
   // Runs the suite with the compat shim preloaded, like existing `--import` deploy commands do.

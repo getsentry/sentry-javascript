@@ -1,5 +1,6 @@
 import { expect, test } from '@playwright/test';
 import { collectStreamedSpansUntilSegment, getSpanOp } from '@sentry-internal/test-utils';
+import { RUNTIME } from './constants';
 
 // The Nuxt module auto-wires the orchestrion build-time transform, which injects
 // `diagnostics_channel` publishers into these drivers as Nitro bundles them. `nuxt dev`

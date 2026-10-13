@@ -156,7 +156,8 @@ is the reference setup.
   values that come from its `init()` (`sdk.name`, default integrations) are Node-only. Next.js is different: it loads
   `instrumentation.ts` on every runtime, so `nextjs-16` calls `init()` of `@sentry/nextjs` on Bun and Deno too, and
   adds the integrations of `@sentry/bun` or `@sentry/deno` that replace the Node instrumentation those runtimes do not
-  trigger.
+  trigger. Nuxt is the same: the Nuxt module bundles `sentry.server.config.ts` into the Nitro build, so `nuxt-4` calls
+  `init()` of `@sentry/nuxt` on Bun and Deno too and starts `.output/server/index.mjs` with `bun --bun` or `deno run -A`.
 - **Start commands**: `playwright.config.mjs` selects the start command with `getRuntime()`. Bun and Deno use the same build
   as Node and only change the start command, for example
   `bun --bun --preload ./instrument.bun.mjs ./node_modules/@react-router/serve/bin.cjs ./build/server/index.js` and
@@ -173,7 +174,9 @@ is the reference setup.
   `wrangler dev` on the build output. Code at module scope must not do I/O (for example open a database connection),
   because workerd does not allow it. `nextjs-16` has no Vite build: its Cloudflare variant builds with
   `opennextjs-cloudflare build --config wrangler.opennext.jsonc` and wraps the generated Worker in `worker.ts` with
-  `withSentry` from `@sentry/nextjs/cloudflare`.
+  `withSentry` from `@sentry/nextjs/cloudflare`. `nuxt-4` replaces `nuxt.config.ts` with `nuxt.config.cloudflare.ts`
+  (`cloudflare_durable` preset). There, the Sentry Nuxt module wraps the Nitro Worker entry with `withSentry` and the
+  options of `instrument.server.ts`.
 - **Build flavors**: a variant can also build the same app with another tool, for example `nextjs-16 (vinext)` builds
   `nextjs-16` with vinext. A build flavor is not a runtime: its assert script sets its own env var (`VINEXT=1`, read by
   `tests/isVinext.ts`). It sets `runtime` only to run on another runtime, for example `nextjs-16 (vinext, bun)`.
