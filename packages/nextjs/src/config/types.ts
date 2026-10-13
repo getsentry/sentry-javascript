@@ -55,6 +55,7 @@ export type NextConfigObject = {
     clientTraceMetadata?: string[];
     serverComponentsExternalPackages?: string[]; // next < v15.0.0
     sri?: { algorithm?: string };
+    turbopackPluginRuntimeStrategy?: 'workerThreads' | 'childProcesses'; // next >= v16.2.0
   };
   productionBrowserSourceMaps?: boolean;
   // https://nextjs.org/docs/pages/api-reference/next-config-js/env

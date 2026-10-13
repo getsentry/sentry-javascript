@@ -24,6 +24,7 @@ import {
   maybeGetVercelCronsConfig,
   maybeSetClientTraceMetadataOption,
   maybeSetInstrumentationHookOption,
+  maybeSetTurbopackPluginRuntimeStrategyOption,
   maybeSetUpTunnelRouteRewriteRules,
   resolveReleaseName,
   shouldReturnEarlyInExperimentalBuildMode,
@@ -61,6 +62,7 @@ export function getFinalConfigObject(
   warnIfMissingInstrumentationFile(incomingUserNextConfigObject, userSentryOptions);
 
   const bundlerInfo = getBundlerInfo(nextJsVersion);
+  maybeSetTurbopackPluginRuntimeStrategyOption(incomingUserNextConfigObject, nextJsVersion, bundlerInfo.isTurbopack);
   maybeWarnAboutUnsupportedTurbopack(nextJsVersion, bundlerInfo, userSentryOptions.silent);
   maybeWarnAboutTurbopackModuleMetadata(userSentryOptions, bundlerInfo);
   maybeWarnAboutApplicationKeyExcludeDependencies(userSentryOptions, bundlerInfo);
