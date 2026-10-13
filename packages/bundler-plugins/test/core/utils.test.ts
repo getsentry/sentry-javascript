@@ -313,4 +313,32 @@ describe('determineReleaseName', () => {
       warnSpy.mockRestore();
     }
   });
+  it('does not warn about a placeholder checked after the variable that supplies the release', () => {
+    const originalEnv = process.env;
+    process.env = { VERCEL_GIT_COMMIT_SHA: 'abc123', COMMIT_REF: 'COMMIT_REF' };
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+
+    try {
+      expect(determineReleaseName()).toBe('abc123');
+      expect(warnSpy).not.toHaveBeenCalled();
+    } finally {
+      process.env = originalEnv;
+      warnSpy.mockRestore();
+    }
+  });
+  it('warns once about a CI_COMMIT_SHA placeholder', () => {
+    const originalEnv = process.env;
+    process.env = { CI_COMMIT_SHA: 'CI_COMMIT_SHA' };
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+    const execSyncSpy = vi.spyOn(childProcess, 'execSync').mockReturnValue(Buffer.from('0'.repeat(40)));
+
+    try {
+      expect(determineReleaseName()).toBe('0'.repeat(40));
+      expect(warnSpy).toHaveBeenCalledTimes(1);
+    } finally {
+      process.env = originalEnv;
+      warnSpy.mockRestore();
+      execSyncSpy.mockRestore();
+    }
+  });
 });

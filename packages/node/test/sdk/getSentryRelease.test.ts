@@ -20,6 +20,7 @@ beforeEach(() => {
 
 afterEach(() => {
   vi.unstubAllEnvs();
+  vi.restoreAllMocks();
 });
 
 describe('getSentryRelease', () => {
@@ -57,5 +58,24 @@ describe('getSentryRelease', () => {
     vi.stubEnv('VERCEL_GIT_COMMIT_SHA', 'VERCEL_GIT_COMMIT_SHA');
 
     expect(getSentryRelease('fallback')).toBe('fallback');
+  });
+
+  it('does not warn about a placeholder checked after the variable that supplies the release', () => {
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    vi.stubEnv('HEROKU_BUILD_COMMIT', 'heroku-build-commit-sha');
+    vi.stubEnv('COMMIT_REF', 'COMMIT_REF');
+
+    expect(getSentryRelease()).toBe('heroku-build-commit-sha');
+    expect(warnSpy).not.toHaveBeenCalled();
+    warnSpy.mockRestore();
+  });
+
+  it('warns once about a CI_COMMIT_SHA placeholder', () => {
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    vi.stubEnv('CI_COMMIT_SHA', 'CI_COMMIT_SHA');
+
+    expect(getSentryRelease('fallback')).toBe('fallback');
+    expect(warnSpy).toHaveBeenCalledTimes(1);
+    warnSpy.mockRestore();
   });
 });

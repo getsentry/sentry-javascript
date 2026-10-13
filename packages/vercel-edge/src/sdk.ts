@@ -156,8 +156,10 @@ export function getSentryRelease(fallback?: string): string | undefined {
   // 1. Git providers
   // 2. CI providers with specific environment variables (has the provider name in the variable name)
   // 3. CI providers with generic environment variables (checked for last to prevent possible false positives)
+  // Each group is only read if the earlier ones found nothing, so a placeholder value is only
+  // warned about when it would otherwise have become the release.
 
-  const possibleReleaseNameOfGitProvider =
+  const possibleReleaseNameOfGitProvider = (): string | undefined =>
     // GitHub Actions - https://help.github.com/en/actions/configuring-and-managing-workflows/using-environment-variables#default-environment-variables
     readCommitEnvVar('GITHUB_SHA') ||
     // GitLab CI - https://docs.gitlab.com/ee/ci/variables/predefined_variables.html
@@ -167,7 +169,7 @@ export function getSentryRelease(fallback?: string): string | undefined {
     // Bitbucket - https://support.atlassian.com/bitbucket-cloud/docs/variables-and-secrets/
     readCommitEnvVar('BITBUCKET_COMMIT');
 
-  const possibleReleaseNameOfCiProvidersWithSpecificEnvVar =
+  const possibleReleaseNameOfCiProvidersWithSpecificEnvVar = (): string | undefined =>
     // AppVeyor - https://www.appveyor.com/docs/environment-variables/
     readCommitEnvVar('APPVEYOR_PULL_REQUEST_HEAD_COMMIT') ||
     readCommitEnvVar('APPVEYOR_REPO_COMMIT') ||
@@ -221,7 +223,7 @@ export function getSentryRelease(fallback?: string): string | undefined {
     readCommitEnvVar('ZEIT_GITLAB_COMMIT_SHA') ||
     readCommitEnvVar('ZEIT_BITBUCKET_COMMIT_SHA');
 
-  const possibleReleaseNameOfCiProvidersWithGenericEnvVar =
+  const possibleReleaseNameOfCiProvidersWithGenericEnvVar = (): string | undefined =>
     // CloudBees CodeShip - https://docs.cloudbees.com/docs/cloudbees-codeship/latest/pro-builds-and-configuration/environment-variables
     readCommitEnvVar('CI_COMMIT_ID') ||
     // Coolify - https://coolify.io/docs/knowledge-base/environment-variables
@@ -233,14 +235,14 @@ export function getSentryRelease(fallback?: string): string | undefined {
     // Netlify - https://docs.netlify.com/configure-builds/environment-variables/#build-metadata
     readCommitEnvVar('COMMIT_REF') ||
     // TeamCity - https://www.jetbrains.com/help/teamcity/predefined-build-parameters.html
-    readCommitEnvVar('BUILD_VCS_NUMBER') ||
-    // Woodpecker CI - https://woodpecker-ci.org/docs/usage/environment
-    readCommitEnvVar('CI_COMMIT_SHA');
+    readCommitEnvVar('BUILD_VCS_NUMBER');
+  // Woodpecker CI (https://woodpecker-ci.org/docs/usage/environment) sets CI_COMMIT_SHA, which the
+  // GitLab check above already reads.
 
   return (
-    possibleReleaseNameOfGitProvider ||
-    possibleReleaseNameOfCiProvidersWithSpecificEnvVar ||
-    possibleReleaseNameOfCiProvidersWithGenericEnvVar ||
+    possibleReleaseNameOfGitProvider() ||
+    possibleReleaseNameOfCiProvidersWithSpecificEnvVar() ||
+    possibleReleaseNameOfCiProvidersWithGenericEnvVar() ||
     fallback
   );
 }

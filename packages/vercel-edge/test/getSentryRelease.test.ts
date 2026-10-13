@@ -11,6 +11,12 @@ const HIGHER_PRIORITY_ENV_VARS = [
   'BITBUCKET_COMMIT',
 ];
 
+function clearHigherPriorityEnvVars(): void {
+  for (const key of HIGHER_PRIORITY_ENV_VARS) {
+    vi.stubEnv(key, '');
+  }
+}
+
 afterEach(() => {
   vi.unstubAllEnvs();
   vi.restoreAllMocks();
@@ -18,13 +24,30 @@ afterEach(() => {
 
 describe('getSentryRelease', () => {
   it('ignores a commit env var whose value is its own name', () => {
-    for (const key of HIGHER_PRIORITY_ENV_VARS) {
-      vi.stubEnv(key, '');
-    }
+    clearHigherPriorityEnvVars();
     const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
     vi.stubEnv('VERCEL_GIT_COMMIT_SHA', 'VERCEL_GIT_COMMIT_SHA');
 
     expect(getSentryRelease('fallback')).toBe('fallback');
     expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('VERCEL_GIT_COMMIT_SHA'));
+  });
+
+  it('does not warn about a placeholder checked after the variable that supplies the release', () => {
+    clearHigherPriorityEnvVars();
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    vi.stubEnv('VERCEL_GIT_COMMIT_SHA', 'vercel-commit-sha');
+    vi.stubEnv('COMMIT_REF', 'COMMIT_REF');
+
+    expect(getSentryRelease('fallback')).toBe('vercel-commit-sha');
+    expect(warnSpy).not.toHaveBeenCalled();
+  });
+
+  it('warns once about a CI_COMMIT_SHA placeholder', () => {
+    clearHigherPriorityEnvVars();
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    vi.stubEnv('CI_COMMIT_SHA', 'CI_COMMIT_SHA');
+
+    expect(getSentryRelease('fallback')).toBe('fallback');
+    expect(warnSpy).toHaveBeenCalledTimes(1);
   });
 });
