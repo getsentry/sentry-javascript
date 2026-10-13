@@ -86,6 +86,23 @@ describe('setupNitroServer', () => {
     expect(addNitroPluginMock).toHaveBeenNthCalledWith(5, `./runtime/plugins/${storage}`);
   });
 
+  it('registers the server plugins without the server config plugin when there is no server config file', () => {
+    const { nuxt, callHook } = createFakeNuxt();
+    const nitro = { options: { preset: 'cloudflare-module', plugins: [] }, hooks: { hook: vi.fn() } };
+
+    setupNitroServer(nuxt, 'nitro2', undefined, MODULE_OPTIONS);
+    callHook('nitro:init', nitro);
+
+    expect(addNitroPluginMock).toHaveBeenCalledTimes(4);
+    expect(addNitroPluginMock).toHaveBeenNthCalledWith(1, './runtime/plugins/handler-legacy.server');
+    expect(addNitroPluginMock).toHaveBeenNthCalledWith(2, './runtime/plugins/update-route-name-legacy.server');
+    expect(addNitroPluginMock).toHaveBeenNthCalledWith(3, './runtime/plugins/sentry.server');
+    expect(addNitroPluginMock).toHaveBeenNthCalledWith(4, './runtime/plugins/storage-legacy.server');
+    expect(addTemplateMock).not.toHaveBeenCalled();
+    expect(nitro.hooks.hook).toHaveBeenCalledTimes(1);
+    expect(nitro.hooks.hook).toHaveBeenCalledWith('rollup:before', expect.any(Function));
+  });
+
   it('instruments the middleware and adds the config shim once Nitro initializes', () => {
     const { nuxt, callHook } = createFakeNuxt();
     const nitro = { options: { preset: 'node-server', plugins: [] }, hooks: { hook: vi.fn() } };

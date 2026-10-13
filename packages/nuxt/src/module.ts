@@ -4,10 +4,11 @@ import type {} from '@nuxt/nitro-server';
 
 import * as path from 'path';
 import type { SentryNuxtModuleOptions } from './common/types';
+import { setupCloudflareEntry } from './vite/cloudflare';
 import { setupNitroServer } from './vite/nitroServer';
 import { setupOrchestrion } from './vite/orchestrion';
 import { setupSourceMaps } from './vite/sourceMaps';
-import { findDefaultSdkInitFile, resolveServerApi } from './vite/utils';
+import { findCloudflareOptionsFile, findDefaultSdkInitFile, resolveServerApi } from './vite/utils';
 
 export type ModuleOptions = SentryNuxtModuleOptions;
 type NuxtPageSubset = { file?: string; path: string };
@@ -75,15 +76,20 @@ export default defineNuxtModule<ModuleOptions>({
     }
 
     const serverConfigFile = await findDefaultSdkInitFile('server', nuxt, moduleOptions);
+    const cloudflareOptionsFile = await findCloudflareOptionsFile(nuxt, moduleOptions);
     const nuxtMajor = parseInt((nuxt as unknown as { _version: string })._version?.split('.')[0] ?? '3', 10);
     const isMinNuxtV4 = nuxtMajor >= 4;
 
     // Orchestrion runs on both the Node path (gated on a server config file) and the Cloudflare path
-    // (which has no server config file — the SDK is set up via `sentryCloudflareNitroPlugin`). The
+    // (which has no server config file, the SDK is set up via `withSentry` or `sentryCloudflareNitroPlugin`). The
     // Cloudflare detection happens inside, keyed off the resolved Nitro preset.
     setupOrchestrion(nuxt, !!serverConfigFile, moduleOptions.buildTimeInstrumentation);
 
-    if (serverConfigFile) {
+    if (cloudflareOptionsFile) {
+      setupCloudflareEntry(nuxt, serverApi, cloudflareOptionsFile);
+    }
+
+    if (serverConfigFile || cloudflareOptionsFile) {
       setupNitroServer(nuxt, serverApi, serverConfigFile, moduleOptions);
 
       if (isMinNuxtV4) {
@@ -93,7 +99,7 @@ export default defineNuxtModule<ModuleOptions>({
       }
     }
 
-    if (clientConfigFile || serverConfigFile) {
+    if (clientConfigFile || serverConfigFile || cloudflareOptionsFile) {
       setupSourceMaps(moduleOptions, nuxt, addVitePlugin);
     }
 
@@ -142,6 +148,10 @@ export default defineNuxtModule<ModuleOptions>({
       }
       if (serverConfigFile) {
         const relativePath = path.relative(nuxt.options.buildDir, serverConfigFile);
+        tsConfig.include.push(relativePath);
+      }
+      if (cloudflareOptionsFile) {
+        const relativePath = path.relative(nuxt.options.buildDir, cloudflareOptionsFile);
         tsConfig.include.push(relativePath);
       }
     });

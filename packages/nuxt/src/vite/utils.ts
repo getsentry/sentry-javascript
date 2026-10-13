@@ -27,8 +27,26 @@ export async function findDefaultSdkInitFile(
   nuxt?: Nuxt,
   options?: SentryNuxtModuleOptions,
 ): Promise<string | undefined> {
+  return findConfigFile(`sentry.${type}.config`, nuxt, options);
+}
+
+/**
+ * Find the `instrument.server` file, whose default export returns the options of `@sentry/cloudflare`.
+ */
+export async function findCloudflareOptionsFile(
+  nuxt?: Nuxt,
+  options?: SentryNuxtModuleOptions,
+): Promise<string | undefined> {
+  return findConfigFile('instrument.server', nuxt, options);
+}
+
+async function findConfigFile(
+  basename: string,
+  nuxt?: Nuxt,
+  options?: SentryNuxtModuleOptions,
+): Promise<string | undefined> {
   const possibleFileExtensions = ['ts', 'js', 'mjs', 'cjs', 'mts', 'cts'];
-  const relativePaths = possibleFileExtensions.map(ext => `sentry.${type}.config.${ext}`);
+  const relativePaths = possibleFileExtensions.map(ext => `${basename}.${ext}`);
 
   // Get layers from highest priority to lowest
   const layers = [...(nuxt?.options._layers ?? [])].reverse();

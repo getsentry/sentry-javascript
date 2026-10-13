@@ -252,7 +252,7 @@ describe('addServerConfigPlugin', () => {
     hooks['nitro:init']!(nitro as never);
 
     expect(nitro.options.plugins).toEqual(['other-plugin.mjs']);
-    expect(consoleWarnSpy).toHaveBeenCalledWith(expect.stringContaining('sentryCloudflareNitroPlugin'));
+    expect(consoleWarnSpy).toHaveBeenCalledWith(expect.stringContaining('instrument.server.ts'));
     consoleWarnSpy.mockRestore();
   });
 

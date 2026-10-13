@@ -1,8 +1,11 @@
 import { addNitroPlugin, createResolver } from '@nuxt/kit';
 import { consoleSandbox } from '@sentry/core';
-import type { NitroConfig } from 'nitropack/types';
+import type { ConnectorName } from 'db0';
+import type { Nitro, NitroConfig } from 'nitropack/types';
 import type { SentryNuxtModuleOptions } from '../common/types';
 import { addServerTemplate } from '../vendor/server-template';
+
+const DATABASE_CONFIG_TEMPLATE = '#sentry/database-config.mjs';
 
 /**
  * Sets up the database instrumentation.
@@ -36,10 +39,8 @@ export function addDatabaseInstrumentation(
 
   // Create a virtual module to pass this data to runtime
   addServerTemplate({
-    filename: '#sentry/database-config.mjs',
-    getContents: () => {
-      return `export const databaseConfig = ${JSON.stringify(databaseConfig)};`;
-    },
+    filename: DATABASE_CONFIG_TEMPLATE,
+    getContents: () => getDatabaseConfigModule(databaseConfig),
   });
 
   if (isLegacyNitro) {
@@ -47,4 +48,22 @@ export function addDatabaseInstrumentation(
   } else {
     addNitroPlugin(createResolver(import.meta.url).resolve('./runtime/plugins/database.server'));
   }
+}
+
+/**
+ * Leaves the databases with the given db0 connector out of the database instrumentation of this Nitro build.
+ */
+export function skipDatabaseInstrumentation(nitro: Nitro, connector: ConnectorName): void {
+  if (!nitro.options.virtual[DATABASE_CONFIG_TEMPLATE]) {
+    return;
+  }
+
+  const databaseConfig = Object.fromEntries(
+    Object.entries(nitro.options.database ?? {}).filter(([, config]) => config.connector !== connector),
+  );
+  nitro.options.virtual[DATABASE_CONFIG_TEMPLATE] = () => getDatabaseConfigModule(databaseConfig);
+}
+
+function getDatabaseConfigModule(databaseConfig: object): string {
+  return `export const databaseConfig = ${JSON.stringify(databaseConfig)};`;
 }

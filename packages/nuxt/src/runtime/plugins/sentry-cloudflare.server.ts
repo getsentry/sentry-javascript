@@ -47,6 +47,18 @@ import { getCfProperties, getCloudflareProperties, hasCfProperty, isEventType } 
  *   debug: nitroApp.h3App.options.debug
  * })));
  * ```
+ *
+ * @deprecated Add an `instrument.server.ts` file to the root of the Nuxt app instead. Its default export returns the
+ * options of `@sentry/cloudflare`, and the Sentry Nuxt module wraps the Worker with `withSentry`:
+ *
+ * ```ts
+ * // instrument.server.ts
+ * import { defineCloudflareOptions } from '@sentry/cloudflare';
+ *
+ * export default defineCloudflareOptions(env => ({
+ *   dsn: env.SENTRY_DSN,
+ * }));
+ * ```
  */
 export const sentryCloudflareNitroPlugin =
   (optionsOrFn: CloudflareOptions | ((nitroApp: NitroApp) => CloudflareOptions)): NitroAppPlugin =>

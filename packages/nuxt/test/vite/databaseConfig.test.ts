@@ -1,7 +1,7 @@
-import type { NitroConfig } from 'nitropack/types';
+import type { Nitro, NitroConfig } from 'nitropack/types';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { SentryNuxtModuleOptions } from '../../src/common/types';
-import { addDatabaseInstrumentation } from '../../src/vite/databaseConfig';
+import { addDatabaseInstrumentation, skipDatabaseInstrumentation } from '../../src/vite/databaseConfig';
 
 vi.mock('@sentry/core', () => ({
   consoleSandbox: (callback: () => void) => callback(),
@@ -77,5 +77,36 @@ describe('addDatabaseInstrumentation', () => {
         '[Sentry] [Nitro Database Plugin]: No database configuration found. Skipping database instrumentation.',
       );
     });
+  });
+});
+
+describe('skipDatabaseInstrumentation', () => {
+  it('replaces the database config of the instrumentation with one without the databases of the connector', () => {
+    const nitro = {
+      options: {
+        virtual: { '#sentry/database-config.mjs': () => 'export const databaseConfig = {};' },
+        database: {
+          default: { connector: 'cloudflare-d1', options: { bindingName: 'DB' } },
+          users: { connector: 'cloudflare-d1', options: { bindingName: 'USERS_DB' } },
+          analytics: { connector: 'postgresql', options: { url: 'postgresql://localhost' } },
+        },
+      },
+    };
+
+    skipDatabaseInstrumentation(nitro as unknown as Nitro, 'cloudflare-d1');
+
+    expect(nitro.options.virtual['#sentry/database-config.mjs']()).toBe(
+      'export const databaseConfig = {"analytics":{"connector":"postgresql","options":{"url":"postgresql://localhost"}}};',
+    );
+  });
+
+  it('does nothing when the database instrumentation is not set up', () => {
+    const nitro = {
+      options: { virtual: {}, database: { default: { connector: 'cloudflare-d1', options: { bindingName: 'DB' } } } },
+    };
+
+    skipDatabaseInstrumentation(nitro as unknown as Nitro, 'cloudflare-d1');
+
+    expect(nitro.options.virtual).toEqual({});
   });
 });
