@@ -20,7 +20,7 @@ import {
   SENTRY_OP,
   SENTRY_ORIGIN,
 } from '@sentry/conventions/attributes';
-import { GEN_AI_DECIDE } from '@sentry/conventions/op';
+import { GEN_AI_CHAT, GEN_AI_DECIDE } from '@sentry/conventions/op';
 import { GEN_AI_RESPONSE_STOP_REASON_ATTRIBUTE } from '../../../../../../packages/server-utils/src/ai/core/gen-ai-attributes';
 import { cleanupChildProcesses, createEsmAndCjsTests } from '../../../../utils/runner';
 import { createEsmTests } from '../../../../utils/runner/createEsmAndCjsTests';
@@ -256,7 +256,7 @@ describe('LangChain integration (v1)', () => {
           }
           return names;
         };
-        const chatSpans = spans.filter(span => span.attributes[SENTRY_OP]?.value === 'gen_ai.chat');
+        const chatSpans = spans.filter(span => span.attributes[SENTRY_OP]?.value === GEN_AI_CHAT);
 
         expect(chatSpans).toHaveLength(2);
         expect(
@@ -269,7 +269,7 @@ describe('LangChain integration (v1)', () => {
         const handlerRunSpans = spans.filter(
           span =>
             span.attributes[SENTRY_ORIGIN]?.value === 'auto.ai.langchain' &&
-            span.attributes[SENTRY_OP]?.value !== 'gen_ai.chat',
+            span.attributes[SENTRY_OP]?.value !== GEN_AI_CHAT,
         );
         expect(handlerRunSpans.map(span => span.name).sort()).toEqual([
           'execute_tool lookup_weather',
