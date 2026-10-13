@@ -1,5 +1,28 @@
 import { describe, expect, it } from 'vitest';
-import { extractRoutePatterns } from '../../src/vite/routePatterns';
+import { extractRoutePatterns, makeRoutePatternPlugin } from '../../src/vite/routePatterns';
+
+describe('makeRoutePatternPlugin', () => {
+  const configEnvironment = makeRoutePatternPlugin().configEnvironment as (
+    name: string,
+    config: { consumer?: 'client' | 'server' },
+    env: { command: 'build' | 'serve'; mode: string },
+  ) => { resolve: { noExternal: string[] } } | null;
+
+  it('bundles the SDK into server environments of a build', () => {
+    const build = { command: 'build', mode: 'production' } as const;
+
+    expect(configEnvironment('ssr', {}, build)).toEqual({ resolve: { noExternal: ['@sentry/tanstackstart-react'] } });
+    expect(configEnvironment('nitro', { consumer: 'server' }, build)).toEqual({
+      resolve: { noExternal: ['@sentry/tanstackstart-react'] },
+    });
+  });
+
+  it('does not change client environments or the dev server', () => {
+    expect(configEnvironment('client', {}, { command: 'build', mode: 'production' })).toBeNull();
+    expect(configEnvironment('ssr', { consumer: 'client' }, { command: 'build', mode: 'production' })).toBeNull();
+    expect(configEnvironment('ssr', {}, { command: 'serve', mode: 'development' })).toBeNull();
+  });
+});
 
 describe('extractRoutePatterns', () => {
   it('extracts full path patterns from single-line fullPaths union', () => {
