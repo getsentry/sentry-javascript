@@ -124,7 +124,7 @@ describe('Anthropic integration (0.129)', () => {
         expect(explode).toMatchObject({ name: 'execute_tool explode', parent_span_id: main.span_id, status: 'error' });
         expect(receivedEvent).toMatchObject({
           exception: {
-            values: [{ value: 'Tool exploded', mechanism: { type: 'auto.ai.anthropic.tool_error', handled: false } }],
+            values: [{ value: 'Tool exploded', mechanism: { type: 'auto.ai.anthropic', handled: false } }],
           },
         });
       });

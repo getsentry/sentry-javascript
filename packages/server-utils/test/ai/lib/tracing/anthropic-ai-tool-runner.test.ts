@@ -138,7 +138,7 @@ describe('instrumentAnthropicAiClient tool runner', () => {
     await vi.waitFor(() => expect(events).toHaveLength(1));
     expect(events[0]!.exception?.values?.[0]).toMatchObject({
       value: 'boom',
-      mechanism: { type: 'auto.ai.anthropic.tool_error', handled: false },
+      mechanism: { type: 'auto.ai.anthropic', handled: false },
     });
   });
 

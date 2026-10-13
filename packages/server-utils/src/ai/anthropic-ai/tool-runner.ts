@@ -132,6 +132,6 @@ function handleToolError(span: Span, error: unknown, context: RunContext): void 
   // The runner turns the throw into an error result for the model, so the app never sees it.
   // A `ToolError` is the SDK's way to send that result on purpose.
   if ((error as Error | undefined)?.name !== 'ToolError') {
-    captureException(error, { mechanism: { handled: false, type: `${ANTHROPIC_AI_ORIGIN}.tool_error` } });
+    captureException(error, { mechanism: { handled: false, type: ANTHROPIC_AI_ORIGIN } });
   }
 }
