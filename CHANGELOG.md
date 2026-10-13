@@ -8,6 +8,10 @@
 
   Pageloads of apps with `cacheComponents` enabled are connected to their server request again. Pages that Next.js prerenders no longer carry trace information, so a cached page can no longer connect visitors to a request that was not theirs. This also applies to ISR pages. The pageload waits for the trace information when it arrives with the part of the page that streams in after a cached shell.
 
+- **feat(nextjs): Mark pageloads that were served from a cached shell**
+
+  A pageload whose document is a shell that Next.js prerendered at runtime, for example an ISR page or a `cacheComponents` page generated on first visit, now carries the `sentry.nextjs.cached_shell` attribute and a `cache_origin` span link to the request that generated the shell. That tells apart "nothing ran on the server for this visit" from missing server instrumentation. The link is never continued as a parent, so pageloads keep their own traces and sampling decisions.
+
 ## 11.7.0
 
 ### Important Changes

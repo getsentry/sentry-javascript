@@ -12,13 +12,16 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import '@sentry/core';
 import '@sentry/react';
 import '../../src/client/routing/appRouterRoutingInstrumentation';
+import '../../src/client/routing/appRouterPageloadInstrumentation';
 import type * as AppRouterInstrumentation from '../../src/client/routing/appRouterRoutingInstrumentation';
+import type * as AppRouterPageload from '../../src/client/routing/appRouterPageloadInstrumentation';
 import type * as RouteProvider from '../../src/client/routing/routeProvider';
 import type { RouteManifest } from '../../src/config/manifest/types';
 
 type Core = typeof SentryCore;
 type React = typeof SentryReact;
 type Instrumentation = typeof AppRouterInstrumentation;
+type PageloadInstrumentation = typeof AppRouterPageload;
 type RouteProviderModule = typeof RouteProvider;
 
 interface NextRouter {
@@ -67,11 +70,13 @@ async function setup(traceLifecycle: 'stream' | 'static'): Promise<{
   router: NextRouter;
   client: Client;
   instrumentation: Instrumentation;
+  pageload: PageloadInstrumentation;
 }> {
   vi.resetModules();
   const core: Core = await import('@sentry/core');
   const react: React = await import('@sentry/react');
   const instrumentation: Instrumentation = await import('../../src/client/routing/appRouterRoutingInstrumentation');
+  const pageload: PageloadInstrumentation = await import('../../src/client/routing/appRouterPageloadInstrumentation');
   const routeProvider: RouteProviderModule = await import('../../src/client/routing/routeProvider');
 
   const client = new react.BrowserClient({
@@ -93,7 +98,7 @@ async function setup(traceLifecycle: 'stream' | 'static'): Promise<{
   instrumentation.appRouterInstrumentNavigation(client);
   await vi.waitFor(() => expect(router.back).not.toBe(originalBack));
 
-  return { core, router, client, instrumentation };
+  return { core, router, client, instrumentation, pageload };
 }
 
 describe('appRouterInstrumentNavigation (router-patch mode)', () => {
@@ -291,13 +296,13 @@ describe('appRouterInstrumentPageLoad', () => {
   });
 
   it('records the URL of the document when the pageload starts after a navigation changed it', async () => {
-    const { core, instrumentation } = await setup('static');
+    const { core, pageload } = await setup('static');
 
-    instrumentation.appRouterInstrumentPageLoad(core.getClient()!);
+    pageload.appRouterInstrumentPageLoad(core.getClient()!);
     const spanBeforeSettling = core.getActiveSpan();
 
     window.history.replaceState({}, '', '/navigation/42/router-back');
-    instrumentation.settlePendingPageloadWait();
+    pageload.settlePendingPageloadWait();
 
     const span = core.getActiveSpan();
     expect(span).toBeDefined();
@@ -314,5 +319,31 @@ describe('appRouterInstrumentPageLoad', () => {
     expect(core.getCurrentScope().getScopeData().sdkProcessingMetadata.normalizedRequest?.url).toBe(
       'http://localhost:3000/navigation?from=document',
     );
+  });
+
+  it('marks a pageload whose document is a cached shell and links the prerender', async () => {
+    const { core, pageload } = await setup('static');
+    Object.defineProperty(document, 'readyState', { value: 'complete', configurable: true });
+    const meta = document.createElement('meta');
+    meta.name = 'sentry-shell';
+    meta.content = '11111111111111111111111111111111-1111111111111111-1';
+    document.head.appendChild(meta);
+
+    pageload.appRouterInstrumentPageLoad(core.getClient()!);
+
+    const span = core.getActiveSpan();
+    expect(span).toBeDefined();
+    const spanJson = core.spanToJSON(span!);
+    expect(spanJson.attributes?.[SENTRY_OP]).toBe(PAGELOAD);
+    expect(spanJson.attributes?.['sentry.nextjs.cached_shell']).toBe(true);
+    expect(spanJson.trace_id).not.toBe('11111111111111111111111111111111');
+    expect(spanJson.links).toEqual([
+      expect.objectContaining({
+        trace_id: '11111111111111111111111111111111',
+        span_id: '1111111111111111',
+        attributes: expect.objectContaining({ 'sentry.link.type': 'cache_origin' }),
+      }),
+    ]);
+    meta.remove();
   });
 });
