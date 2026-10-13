@@ -21,7 +21,7 @@ import {
 } from '@sentry/conventions/attributes';
 import { DB } from '@sentry/conventions/op';
 import { afterAll, describe, expect } from 'vitest';
-import { conditionalTest, EXPECTED_SDK_NAME } from '../../../utils';
+import { EXPECTED_SDK_NAME, supports } from '../../../utils';
 import { cleanupChildProcesses, createEsmAndCjsTests, describeWithDockerCompose } from '../../../utils/runner';
 
 const COMMON_DB_ATTRIBUTES = {
@@ -413,7 +413,7 @@ describeWithDockerCompose('postgres auto instrumentation', { workingDirectory: [
 
   // Deno: with a module load hook installed, Deno compiles a native addon (`libpq`) as JavaScript.
   // Bun: the `libpq` addon needs the Node symbol `node::EmitAsyncInit`, which Bun does not provide.
-  conditionalTest({ max: 25, skipRuntimes: ['bun', 'deno'] })('pg-native', () => {
+  describe.runIf(supports({ max: 25, runtimes: ['node'] }))('pg-native', () => {
     const EXPECTED_SPANS = {
       items: expect.arrayContaining([
         expect.objectContaining({ name: 'Test Transaction', is_segment: true }),

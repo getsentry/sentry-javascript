@@ -617,6 +617,17 @@ describe('instrumentPiDurableHarnessOptions', () => {
       });
     });
 
+    it('reads the result of a call outside a tool phase from `output`', async () => {
+      const tool: PiTool = {
+        name: 'get_weather',
+        execute: async () => ({ output: [{ type: 'text', text: 'sunny' }] }),
+      };
+
+      await instrumentTool(tool, createRuns(), {}).execute({}, { callId: 'call_1' }, undefined);
+
+      expect(spanToJSON(endedSpans[0]!).attributes[GEN_AI_TOOL_CALL_RESULT]).toBe('sunny');
+    });
+
     it.each([
       ['no content blocks', []],
       ['an empty text block', [{ type: 'text', text: '' }]],

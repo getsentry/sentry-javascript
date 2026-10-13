@@ -47,7 +47,7 @@ export class Assistant extends Agent<Env> {
             // The manual span should nest under the SDK's `execute_tool` span.
             execute: async args =>
               Sentry.startSpan({ name: 'resolve-weather', attributes: { 'weather.city': args.city } }, () => ({
-                content: [{ type: 'text', text: `It is 21 degrees and sunny in ${args.city}.` }],
+                output: [{ type: 'text', text: `It is 21 degrees and sunny in ${args.city}.` }],
               })),
           }),
           defineTool({
@@ -67,7 +67,7 @@ export class Assistant extends Agent<Env> {
             execute: async args => {
               const marker = `crashed:${args.job}`;
               if (await this.ctx.storage.get(marker)) {
-                return { content: [{ type: 'text', text: `Step of job ${args.job} completed.` }] };
+                return { output: [{ type: 'text', text: `Step of job ${args.job} completed.` }] };
               }
               await this.ctx.storage.put(marker, true);
               await this.ctx.storage.sync();

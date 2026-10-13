@@ -1,5 +1,5 @@
 import type { SerializedStreamedSpanContainer } from '@sentry/core';
-import { afterAll, expect } from 'vitest';
+import { afterAll, describe, expect } from 'vitest';
 import {
   GEN_AI_INPUT_MESSAGES,
   GEN_AI_OPERATION_NAME,
@@ -20,11 +20,11 @@ import {
 } from '@sentry/conventions/attributes';
 import { GEN_AI_DECIDE } from '@sentry/conventions/op';
 import { cleanupChildProcesses, createEsmAndCjsTests } from '../../../../utils/runner';
-import { conditionalTest } from '../../../../utils/index';
+import { supports } from '../../../../utils/index';
 
 // openai 7 requires Node.js 22 — its only breaking change over v6 — so this suite is skipped on the
 // Node 20 CI leg rather than pinning the whole matrix to the newer runtime.
-conditionalTest({ min: 22 })('OpenAI integration (V7)', () => {
+describe.runIf(supports({ min: 22 }))('OpenAI integration (V7)', () => {
   afterAll(() => {
     cleanupChildProcesses();
   });

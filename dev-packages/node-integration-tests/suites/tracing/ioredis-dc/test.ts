@@ -27,7 +27,7 @@ import { EXPECTED_SDK_NAME } from '../../../utils';
 import { cleanupChildProcesses, createEsmAndCjsTests, describeWithDockerCompose } from '../../../utils/runner';
 
 describeWithDockerCompose(
-  'ioredis v5.11 diagnostics_channel auto instrumentation',
+  'ioredis >=5.11 diagnostics_channel auto instrumentation',
   { workingDirectory: [__dirname] },
   () => {
     afterAll(() => {
@@ -35,7 +35,7 @@ describeWithDockerCompose(
     });
 
     const ORIGIN = 'auto.db.redis.diagnostic_channel';
-    const SEGMENT_NAME = 'Test Span IORedis 5.11 DC';
+    const SEGMENT_NAME = 'Test Span IORedis DC';
     const HOST = '127.0.0.1';
     const PORT = 6382;
 
@@ -89,69 +89,77 @@ describeWithDockerCompose(
       attributes: Record<string, unknown>,
     ): unknown => streamedSpan(op, op, { ...PEER, [CACHE_OPERATION]: op.slice('cache.'.length), ...attributes });
 
-    createEsmAndCjsTests(__dirname, 'scenario-ioredis-5-11.mjs', 'instrument.mjs', (createTestRunner, test) => {
-      test('creates spans for ioredis v5.11 commands via diagnostics_channel', { timeout: 75_000 }, async () => {
-        await createTestRunner()
-          .expect({
-            span: container => {
-              // The connect span opens its own segment but shares the trace with the test span,
-              // so both segments arrive in the same container.
-              expect(container.items.filter(item => item.is_segment).map(item => item.name)).toEqual([
-                'redis-connect',
-                SEGMENT_NAME,
-              ]);
+    const clients = [
+      { label: 'v5.11', scenario: 'scenario-ioredis-5-11.mjs' },
+      // v6 defaults to RESP3 and adds a `hello` handshake; the channel payload is unchanged.
+      { label: 'v6', scenario: 'scenario-ioredis-6.mjs' },
+    ];
 
-              // ioredis' own handshake commands (`client SETINFO`, `info`) are emitted on the
-              // channel too, but belong to the connect segment — the test span's children are the
-              // commands the scenario issues.
-              const spans = container.items.filter(
-                item => !item.is_segment && item.attributes[SENTRY_SEGMENT_NAME]?.value === SEGMENT_NAME,
-              );
+    for (const { label, scenario } of clients) {
+      createEsmAndCjsTests(__dirname, scenario, 'instrument.mjs', (createTestRunner, test) => {
+        test(`creates spans for ioredis ${label} commands via diagnostics_channel`, { timeout: 75_000 }, async () => {
+          await createTestRunner()
+            .expect({
+              span: container => {
+                // The connect span opens its own segment but shares the trace with the test span,
+                // so both segments arrive in the same container.
+                expect(container.items.filter(item => item.is_segment).map(item => item.name)).toEqual([
+                  'redis-connect',
+                  SEGMENT_NAME,
+                ]);
 
-              expect(spans).toEqual([
-                streamedSpan(`set ${HOST}:${PORT}`, DB_QUERY, {
-                  [DB_OPERATION_NAME]: 'set',
-                  [DB_QUERY_TEXT]: 'set dc-test-key ?',
-                }),
-                cacheSpan(CACHE_PUT, {
-                  [DB_OPERATION_NAME]: 'set',
-                  [DB_QUERY_TEXT]: 'set dc-cache:test-key ?',
-                  [CACHE_KEY]: ['dc-cache:test-key'],
-                  [CACHE_ITEM_SIZE]: 2,
-                }),
-                cacheSpan(CACHE_PUT, {
-                  [DB_OPERATION_NAME]: 'set',
-                  [DB_QUERY_TEXT]: 'set dc-cache:test-key-ex ? ? ?',
-                  [CACHE_KEY]: ['dc-cache:test-key-ex'],
-                  [CACHE_ITEM_SIZE]: 2,
-                }),
-                streamedSpan(`get ${HOST}:${PORT}`, DB_QUERY, {
-                  [DB_OPERATION_NAME]: 'get',
-                  [DB_QUERY_TEXT]: 'get dc-test-key',
-                }),
-                cacheSpan(CACHE_GET, {
-                  [DB_OPERATION_NAME]: 'get',
-                  [DB_QUERY_TEXT]: 'get dc-cache:test-key',
-                  [CACHE_KEY]: ['dc-cache:test-key'],
-                  [CACHE_HIT]: true,
-                  [CACHE_ITEM_SIZE]: 10,
-                }),
-                cacheSpan(CACHE_GET, {
-                  [DB_OPERATION_NAME]: 'get',
-                  [DB_QUERY_TEXT]: 'get dc-cache:unavailable-data',
-                  [CACHE_KEY]: ['dc-cache:unavailable-data'],
-                  [CACHE_HIT]: false,
-                }),
-                streamedSpan(`mget ${HOST}:${PORT}`, DB_QUERY, {
-                  [DB_OPERATION_NAME]: 'mget',
-                  [DB_QUERY_TEXT]: 'mget ? ? ?',
-                }),
-              ]);
-            },
-          })
-          .start()
-          .completed();
+                // ioredis' own handshake commands (`client SETINFO`, `info`) are emitted on the
+                // channel too, but belong to the connect segment — the test span's children are the
+                // commands the scenario issues.
+                const spans = container.items.filter(
+                  item => !item.is_segment && item.attributes[SENTRY_SEGMENT_NAME]?.value === SEGMENT_NAME,
+                );
+
+                expect(spans).toEqual([
+                  streamedSpan(`set ${HOST}:${PORT}`, DB_QUERY, {
+                    [DB_OPERATION_NAME]: 'set',
+                    [DB_QUERY_TEXT]: 'set dc-test-key ?',
+                  }),
+                  cacheSpan(CACHE_PUT, {
+                    [DB_OPERATION_NAME]: 'set',
+                    [DB_QUERY_TEXT]: 'set dc-cache:test-key ?',
+                    [CACHE_KEY]: ['dc-cache:test-key'],
+                    [CACHE_ITEM_SIZE]: 2,
+                  }),
+                  cacheSpan(CACHE_PUT, {
+                    [DB_OPERATION_NAME]: 'set',
+                    [DB_QUERY_TEXT]: 'set dc-cache:test-key-ex ? ? ?',
+                    [CACHE_KEY]: ['dc-cache:test-key-ex'],
+                    [CACHE_ITEM_SIZE]: 2,
+                  }),
+                  streamedSpan(`get ${HOST}:${PORT}`, DB_QUERY, {
+                    [DB_OPERATION_NAME]: 'get',
+                    [DB_QUERY_TEXT]: 'get dc-test-key',
+                  }),
+                  cacheSpan(CACHE_GET, {
+                    [DB_OPERATION_NAME]: 'get',
+                    [DB_QUERY_TEXT]: 'get dc-cache:test-key',
+                    [CACHE_KEY]: ['dc-cache:test-key'],
+                    [CACHE_HIT]: true,
+                    [CACHE_ITEM_SIZE]: 10,
+                  }),
+                  cacheSpan(CACHE_GET, {
+                    [DB_OPERATION_NAME]: 'get',
+                    [DB_QUERY_TEXT]: 'get dc-cache:unavailable-data',
+                    [CACHE_KEY]: ['dc-cache:unavailable-data'],
+                    [CACHE_HIT]: false,
+                  }),
+                  streamedSpan(`mget ${HOST}:${PORT}`, DB_QUERY, {
+                    [DB_OPERATION_NAME]: 'mget',
+                    [DB_QUERY_TEXT]: 'mget ? ? ?',
+                  }),
+                ]);
+              },
+            })
+            .start()
+            .completed();
+        });
       });
-    });
+    }
   },
 );

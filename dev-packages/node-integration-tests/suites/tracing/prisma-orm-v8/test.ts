@@ -1,6 +1,6 @@
 import type { SerializedStreamedSpan, SerializedStreamedSpanContainer } from '@sentry/core';
 import { afterAll, describe, expect } from 'vitest';
-import { conditionalTest } from '../../../utils';
+import { supports } from '../../../utils';
 import { cleanupChildProcesses, createEsmAndCjsTests, describeWithDockerCompose } from '../../../utils/runner';
 
 afterAll(() => {
@@ -18,7 +18,7 @@ function getQuerySpans(container: SerializedStreamedSpanContainer): SerializedSt
     item => item.attributes['sentry.origin']?.value === 'auto.db.postgres' && item.attributes['db.query.text']?.value,
   );
   expect(querySpans.map(span => span.name)).toEqual(
-    expect.arrayContaining(['INSERT "public"."user"', 'SELECT "public"."user"', 'DELETE "public"."user"']),
+    expect.arrayContaining(['INSERT "public"."User"', 'SELECT "public"."User"', 'DELETE "public"."User"']),
   );
   querySpans.forEach(span => {
     expect(span.attributes['sentry.op']?.value).toBe('db');
@@ -67,7 +67,7 @@ describe('Prisma ORM v8 Tests', () => {
                       'sentry.origin': { value: 'auto.db.prisma', type: 'string' },
                       'sentry.op': { value: 'db', type: 'string' },
                       'db.operation.name': { value: method, type: 'string' },
-                      'db.collection.name': { value: 'user', type: 'string' },
+                      'db.collection.name': { value: 'User', type: 'string' },
                       model: { value: 'User', type: 'string' },
                       name: { value: `User.${method}`, type: 'string' },
                     });
@@ -80,13 +80,13 @@ describe('Prisma ORM v8 Tests', () => {
                       .map(span => span.attributes['db.query.text']?.value);
                   };
                   expect(queriesByOperation('create')).toEqual(
-                    expect.arrayContaining([expect.stringMatching(/^INSERT INTO "public"\."user" /)]),
+                    expect.arrayContaining([expect.stringMatching(/^INSERT INTO "public"\."User" /)]),
                   );
                   expect(queriesByOperation('all')).toEqual([
-                    expect.stringMatching(/^SELECT .* FROM "public"\."user"$/),
+                    expect.stringMatching(/^SELECT .* FROM "public"\."User"$/),
                   ]);
                   expect(queriesByOperation('delete')).toEqual(
-                    expect.arrayContaining([expect.stringMatching(/^DELETE FROM "public"\."user" /)]),
+                    expect.arrayContaining([expect.stringMatching(/^DELETE FROM "public"\."User" /)]),
                   );
                   expect(querySpans.filter(span => span.parent_span_id === segment.span_id)).toEqual([]);
                 },
@@ -103,9 +103,12 @@ describe('Prisma ORM v8 Tests', () => {
 
         // The CJS scenario loads the ESM-only package via `require(esm)`, which Node's module hooks only see
         // from Node 22 on; on Node 20 the ORM terminals load uninstrumented.
-        conditionalTest({ min: 22 })('with require(esm) reaching the module hooks', testInstrumentedOperations);
+        describe.runIf(supports({ min: 22 }))(
+          'with require(esm) reaching the module hooks',
+          testInstrumentedOperations,
+        );
 
-        conditionalTest({ max: 21 })('with require(esm) bypassing the module hooks', () => {
+        describe.runIf(supports({ max: 21 }))('with require(esm) bypassing the module hooks', () => {
           test('should keep the pg spans on the transaction', { timeout: 75_000 }, async () => {
             await createRunner()
               .unordered()
@@ -123,7 +126,7 @@ describe('Prisma ORM v8 Tests', () => {
       },
       {
         additionalDependencies: {
-          '@prisma/orm-postgres': '8.0.0-rc.8',
+          '@prisma/orm-postgres': '8.0.0-rc.17',
         },
         copyPaths: ['prisma'],
       },
