@@ -5,12 +5,23 @@ import {
   startBrowserTracingPageLoadSpan,
   WINDOW,
 } from '@sentry/browser';
-import { PARAMS_KEY, URL_FULL, URL_PATH, URL_PATH_PARAMETER_KEY, URL_TEMPLATE } from '@sentry/conventions/attributes';
+import {
+  PARAMS_KEY_BASE,
+  SENTRY_OP,
+  SENTRY_SEGMENT_NAME_SOURCE,
+  URL_FULL,
+  URL_PATH,
+  URL_PATH_PARAMETER_KEY_BASE,
+  URL_TEMPLATE,
+  SENTRY_ORIGIN,
+} from '@sentry/conventions/attributes';
+import { NAVIGATION, PAGELOAD } from '@sentry/conventions/op';
 import type { Integration } from '@sentry/core';
 import {
-  SEMANTIC_ATTRIBUTE_SENTRY_OP,
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
+  hasSpanStreamingEnabled,
+  NAVIGATION_SPAN_NAME_FALLBACK,
+  PAGELOAD_SPAN_NAME_FALLBACK,
+  filterCollectedUrl,
 } from '@sentry/core';
 import type { AnyRouter } from '@tanstack/vue-router';
 
@@ -68,7 +79,7 @@ export function tanstackRouterBrowserTracingIntegration<R extends AnyRouter>(
         fallbackName: string,
       ): void => {
         span.updateName(match ? match.routeId : fallbackName);
-        span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, match ? 'route' : 'url');
+        span.setAttribute(SENTRY_SEGMENT_NAME_SOURCE, match ? 'route' : 'url');
         span.setAttributes({
           [URL_TEMPLATE]: match?.routeId,
           ...locationToSpanUrlAttributes(router, toLocation),
@@ -84,11 +95,16 @@ export function tanstackRouterBrowserTracingIntegration<R extends AnyRouter>(
         );
 
         const pageloadSpan = startBrowserTracingPageLoadSpan(client, {
-          name: routeMatch ? routeMatch.routeId : initialWindowLocation.pathname,
+          // With span streaming, span names have to be low cardinality, so we can't fall back to the URL.
+          name: routeMatch
+            ? routeMatch.routeId
+            : hasSpanStreamingEnabled(client)
+              ? PAGELOAD_SPAN_NAME_FALLBACK
+              : initialWindowLocation.pathname,
           attributes: {
-            [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'pageload',
-            [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.pageload.vue.tanstack_router',
-            [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: routeMatch ? 'route' : 'url',
+            [SENTRY_OP]: PAGELOAD,
+            [SENTRY_ORIGIN]: 'auto.pageload.vue.tanstack_router',
+            [SENTRY_SEGMENT_NAME_SOURCE]: routeMatch ? 'route' : 'url',
             ...(routeMatch && { [URL_TEMPLATE]: routeMatch.routeId }),
             ...routeMatchToParamSpanAttributes(routeMatch),
           },
@@ -104,7 +120,12 @@ export function tanstackRouterBrowserTracingIntegration<R extends AnyRouter>(
           }
           const { toLocation } = onResolvedArgs as TanstackRouterSubscribeArgs;
           const resolvedMatch = resolveRouteMatch(toLocation.pathname, toLocation.search);
-          applyRouteMatch(pageloadSpan, resolvedMatch, toLocation, toLocation.pathname);
+          applyRouteMatch(
+            pageloadSpan,
+            resolvedMatch,
+            toLocation,
+            hasSpanStreamingEnabled(client) ? PAGELOAD_SPAN_NAME_FALLBACK : toLocation.pathname,
+          );
         });
       }
 
@@ -125,7 +146,10 @@ export function tanstackRouterBrowserTracingIntegration<R extends AnyRouter>(
 
           const routeMatch = resolveRouteMatch(toLocation.pathname, toLocation.search);
           // In SSR/non-browser contexts, WINDOW.location may be undefined, so fall back to the router's location.
-          const fallbackName = WINDOW.location?.pathname || toLocation.pathname;
+          // With span streaming, span names have to be low cardinality, so we can't fall back to the URL.
+          const fallbackName = hasSpanStreamingEnabled(client)
+            ? NAVIGATION_SPAN_NAME_FALLBACK
+            : WINDOW.location?.pathname || toLocation.pathname;
 
           if (inFlightNavigationSpan) {
             // Redirect continuation within the same navigation: keep the span, update the target.
@@ -138,9 +162,9 @@ export function tanstackRouterBrowserTracingIntegration<R extends AnyRouter>(
             {
               name: routeMatch ? routeMatch.routeId : fallbackName,
               attributes: {
-                [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'navigation',
-                [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.vue.tanstack_router',
-                [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: routeMatch ? 'route' : 'url',
+                [SENTRY_OP]: NAVIGATION,
+                [SENTRY_ORIGIN]: 'auto.navigation.vue.tanstack_router',
+                [SENTRY_SEGMENT_NAME_SOURCE]: routeMatch ? 'route' : 'url',
                 ...(routeMatch && { [URL_TEMPLATE]: routeMatch.routeId }),
                 ...routeMatchToParamSpanAttributes(routeMatch),
               },
@@ -158,7 +182,14 @@ export function tanstackRouterBrowserTracingIntegration<R extends AnyRouter>(
           }
           const { toLocation } = onResolvedArgs as TanstackRouterSubscribeArgs;
           const resolvedMatch = resolveRouteMatch(toLocation.pathname, toLocation.search);
-          applyRouteMatch(span, resolvedMatch, toLocation, WINDOW.location?.pathname || toLocation.pathname);
+          applyRouteMatch(
+            span,
+            resolvedMatch,
+            toLocation,
+            hasSpanStreamingEnabled(client)
+              ? NAVIGATION_SPAN_NAME_FALLBACK
+              : WINDOW.location?.pathname || toLocation.pathname,
+          );
         });
       }
     },
@@ -180,7 +211,7 @@ function locationToSpanUrlAttributes<R extends AnyRouter>(
 
   return {
     [URL_PATH]: location.pathname,
-    [URL_FULL]: absoluteUrl,
+    [URL_FULL]: filterCollectedUrl(absoluteUrl),
   };
 }
 
@@ -191,8 +222,8 @@ function routeMatchToParamSpanAttributes(match: RouteMatch | undefined): Record<
 
   const paramAttributes: Record<string, string> = {};
   Object.entries(match.params as Record<string, string>).forEach(([key, value]) => {
-    paramAttributes[URL_PATH_PARAMETER_KEY.replace('<key>', key)] = value;
-    paramAttributes[PARAMS_KEY.replace('<key>', key)] = value; // params.[key] is an alias
+    paramAttributes[`${URL_PATH_PARAMETER_KEY_BASE}.${key}`] = value;
+    paramAttributes[`${PARAMS_KEY_BASE}.${key}`] = value; // params.[key] is an alias
   });
 
   return paramAttributes;

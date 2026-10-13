@@ -1,7 +1,14 @@
 import { getAbsoluteUrl } from '@sentry/browser';
 import type { Span } from '@sentry/core';
-import { GLOBAL_OBJ, SEMANTIC_ATTRIBUTE_SENTRY_SOURCE } from '@sentry/core';
-import { URL_FULL, URL_PATH, URL_TEMPLATE } from '@sentry/conventions/attributes';
+import {
+  getClient,
+  GLOBAL_OBJ,
+  hasSpanStreamingEnabled,
+  isObjectLike,
+  NAVIGATION_SPAN_NAME_FALLBACK,
+  filterCollectedUrl,
+} from '@sentry/core';
+import { SENTRY_SEGMENT_NAME_SOURCE, URL_FULL, URL_PATH, URL_TEMPLATE } from '@sentry/conventions/attributes';
 import type { DataRouter, RouterState } from 'react-router';
 
 const WINDOW = GLOBAL_OBJ as typeof GLOBAL_OBJ & Window;
@@ -18,13 +25,13 @@ const GLOBAL_OBJ_WITH_DATA_ROUTER = GLOBAL_OBJ as typeof GLOBAL_OBJ & {
  * to avoid "[object Object]" transaction names.
  */
 export function resolveNavigateArg(target: unknown): string {
-  if (typeof target !== 'object' || target === null) {
+  if (!isObjectLike(target)) {
     // string or number
     return String(target);
   }
 
   // Object `to` with pathname
-  const pathname = (target as Record<string, unknown>).pathname;
+  const pathname = target.pathname;
   if (typeof pathname === 'string') {
     return pathname || '/';
   }
@@ -40,12 +47,12 @@ export function resolveNavigateArg(target: unknown): string {
  * destination the user is navigating to, including any query string.
  */
 export function resolveNavigateUrl(target: unknown): string {
-  if (typeof target !== 'object' || target === null) {
+  if (!isObjectLike(target)) {
     // string or number
     return String(target);
   }
 
-  const { pathname, search, hash } = target as Record<string, unknown>;
+  const { pathname, search, hash } = target;
   const path = typeof pathname === 'string' && pathname !== '' ? pathname : WINDOW.location?.pathname || '/';
 
   return `${path}${typeof search === 'string' ? search : ''}${typeof hash === 'string' ? hash : ''}`;
@@ -102,10 +109,13 @@ export function updateNavigationSpanUrlFromLocation(span: Span): void {
   const { pathname, search = '', hash = '' } = WINDOW.location;
   const destinationUrl = getAbsoluteUrl(`${pathname}${search}${hash}`);
 
-  span.updateName(pathname);
+  // With span streaming, span names have to be low cardinality, so we can't fall back to the URL.
+  const client = getClient();
+  span.updateName(client && hasSpanStreamingEnabled(client) ? NAVIGATION_SPAN_NAME_FALLBACK : pathname);
   span.setAttributes({
+    [SENTRY_SEGMENT_NAME_SOURCE]: 'url',
     [URL_PATH]: pathname,
-    [URL_FULL]: destinationUrl,
+    [URL_FULL]: filterCollectedUrl(destinationUrl),
   });
 }
 
@@ -117,9 +127,55 @@ export function normalizePathname(pathname: string): string {
   return normalized;
 }
 
-export function getParameterizedRoute(routerState: RouterState): string {
-  const lastMatch = routerState.matches[routerState.matches.length - 1];
-  return normalizePathname(lastMatch?.route.path || routerState.location.pathname);
+/**
+ * The route template for the current match, or `undefined` when nothing matched.
+ *
+ * Built from the whole matched chain rather than the leaf alone: nested routes carry paths
+ * relative to their parent, and index and layout routes carry none at all, so the leaf on its own
+ * is either a fragment of the route (`edit`) or missing entirely.
+ */
+function getRouteTemplate(routerState: RouterState): string | undefined {
+  const { matches } = routerState;
+
+  if (!matches.length) {
+    return undefined;
+  }
+
+  let template = '';
+  for (const match of matches) {
+    const routePath = match.route.path;
+    if (!routePath) {
+      continue;
+    }
+
+    template = routePath.startsWith('/') ? routePath : `${template.replace(/\/$/, '')}/${routePath}`;
+  }
+
+  // A chain without any path only ever matches the root.
+  return normalizePathname(template);
+}
+
+/**
+ * Names a root span after the route the router matched.
+ *
+ * With span streaming there is nothing low cardinality to fall back to when nothing matched, so
+ * the span keeps the name it started with rather than taking on the raw URL.
+ */
+export function updateSpanWithParameterizedRoute(span: Span, routerState: RouterState): void {
+  const routeTemplate = getRouteTemplate(routerState);
+  const client = getClient();
+
+  if (!routeTemplate && client && hasSpanStreamingEnabled(client)) {
+    return;
+  }
+
+  const parameterizedRoute = routeTemplate || normalizePathname(routerState.location.pathname);
+
+  span.updateName(parameterizedRoute);
+  span.setAttributes({
+    [SENTRY_SEGMENT_NAME_SOURCE]: 'route',
+    [URL_TEMPLATE]: parameterizedRoute,
+  });
 }
 
 /**
@@ -143,9 +199,7 @@ export function finalizeNavigationSpanFromRouterState(span: Span, routerState: R
     routerState.navigation?.state === 'idle' &&
     normalizePathname(routerState.location.pathname) === normalizePathname(pathname)
   ) {
-    const parameterizedRoute = getParameterizedRoute(routerState);
-    span.updateName(parameterizedRoute);
-    span.setAttributes({ [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route', [URL_TEMPLATE]: parameterizedRoute });
+    updateSpanWithParameterizedRoute(span, routerState);
   }
 }
 

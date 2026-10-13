@@ -1,4 +1,4 @@
-import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '@sentry/core';
+import { SENTRY_ORIGIN } from '@sentry/conventions/attributes';
 import * as sentryCore from '@sentry/core';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { instrumentDurableObjectSyncKvStorage } from '../src/instrumentations/instrumentDurableObjectSyncKvStorage';
@@ -19,9 +19,9 @@ describe('instrumentDurableObjectSyncKvStorage', () => {
       expect(startSpanSpy).toHaveBeenCalledWith(
         {
           name: 'durable_object_storage_kv_get',
-          op: 'db',
           attributes: {
-            [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.db.cloudflare.durable_object',
+            'sentry.op': 'db',
+            [SENTRY_ORIGIN]: 'auto.db.cloudflare.durable_object',
             'db.system.name': 'cloudflare-durable-object-sql',
             'db.operation.name': 'get',
           },
@@ -62,9 +62,9 @@ describe('instrumentDurableObjectSyncKvStorage', () => {
       expect(startSpanSpy).toHaveBeenCalledWith(
         {
           name: 'durable_object_storage_kv_put',
-          op: 'db',
           attributes: {
-            [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.db.cloudflare.durable_object',
+            'sentry.op': 'db',
+            [SENTRY_ORIGIN]: 'auto.db.cloudflare.durable_object',
             'db.system.name': 'cloudflare-durable-object-sql',
             'db.operation.name': 'put',
           },
@@ -94,9 +94,9 @@ describe('instrumentDurableObjectSyncKvStorage', () => {
       expect(startSpanSpy).toHaveBeenCalledWith(
         {
           name: 'durable_object_storage_kv_delete',
-          op: 'db',
           attributes: {
-            [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.db.cloudflare.durable_object',
+            'sentry.op': 'db',
+            [SENTRY_ORIGIN]: 'auto.db.cloudflare.durable_object',
             'db.system.name': 'cloudflare-durable-object-sql',
             'db.operation.name': 'delete',
           },
@@ -127,9 +127,9 @@ describe('instrumentDurableObjectSyncKvStorage', () => {
       expect(startSpanSpy).toHaveBeenCalledWith(
         {
           name: 'durable_object_storage_kv_list',
-          op: 'db',
           attributes: {
-            [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.db.cloudflare.durable_object',
+            'sentry.op': 'db',
+            [SENTRY_ORIGIN]: 'auto.db.cloudflare.durable_object',
             'db.system.name': 'cloudflare-durable-object-sql',
             'db.operation.name': 'list',
           },

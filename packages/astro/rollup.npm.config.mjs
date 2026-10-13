@@ -1,4 +1,4 @@
-import { makeBaseNPMConfig, makeNPMConfigVariants, makeOtelLoaders } from '@sentry-internal/rollup-utils';
+import { makeBaseNPMConfig, makeNPMConfigVariants, makeOrchestrionLoader } from '@sentry-internal/rollup-utils';
 
 const variants = makeNPMConfigVariants(
   makeBaseNPMConfig({
@@ -14,4 +14,4 @@ const variants = makeNPMConfigVariants(
   }),
 );
 
-export default [...variants, ...makeOtelLoaders('./build', 'sentry-node')];
+export default [...variants, ...makeOrchestrionLoader('./build')];

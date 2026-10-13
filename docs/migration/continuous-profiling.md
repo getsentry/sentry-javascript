@@ -22,7 +22,7 @@ We've introduced `profileSessionSampleRate` to control what percentage of SDK in
 - Controlling profiling costs across distributed services
 - Managing profiling in serverless environments where you may only want to profile a subset of instances
 
-### Deprecations
+### Removed Legacy Options
 
-The `profilesSampleRate` option has been deprecated in favor of the new sampling controls.
-The `profilesSampler` option hsa been deprecated in favor of manual profiler control.
+The `profilesSampleRate` option has been removed in favor of the new sampling controls.
+The `profilesSampler` option hsa been removed in favor of manual profiler control.

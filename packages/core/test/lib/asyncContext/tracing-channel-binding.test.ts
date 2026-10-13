@@ -6,7 +6,6 @@ import { getMainCarrier } from '../../../src/carrier';
 
 const FAKE_BINDING: TracingChannelBinding = {
   asyncLocalStorage: {},
-  getStoreWithActiveSpan: () => ({}),
 };
 
 /** Install an async context strategy whose `getTracingChannelBinding` is driven by `provider`. */
@@ -44,7 +43,7 @@ describe('waitForTracingChannelBinding', () => {
   });
 
   it('retries on the next tick and runs the callback once the binding becomes available', () => {
-    const getBinding = vi.fn<[], TracingChannelBinding | undefined>(() => FAKE_BINDING);
+    const getBinding = vi.fn((): undefined | TracingChannelBinding => FAKE_BINDING);
     getBinding.mockReturnValueOnce(undefined);
     setBindingProvider(getBinding);
 
@@ -95,7 +94,7 @@ describe('waitForTracingChannelBinding', () => {
   });
 
   it('honors a custom retry count', () => {
-    const getBinding = vi.fn<[], TracingChannelBinding | undefined>(() => FAKE_BINDING);
+    const getBinding = vi.fn((): undefined | TracingChannelBinding => FAKE_BINDING);
     getBinding.mockReturnValueOnce(undefined).mockReturnValueOnce(undefined).mockReturnValue(FAKE_BINDING);
     setBindingProvider(getBinding);
 

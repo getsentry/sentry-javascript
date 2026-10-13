@@ -1,16 +1,19 @@
+import { HTTP_CLIENT, HTTP_SERVER } from '@sentry/conventions/op';
 import { createTestServer } from '@sentry-internal/test-utils';
+import { HTTP_RESPONSE_STATUS_CODE, SENTRY_OP, URL_FULL, URL_PATH } from '@sentry/conventions/attributes';
 import { afterAll, describe, expect, test } from 'vitest';
 import { cleanupChildProcesses, createEsmAndCjsTests, createRunner } from '../../../utils/runner';
+import { supports } from '../../../utils';
 
 function getCommonHttpRequestHeaders(): Record<string, unknown> {
   return {
-    'http.request.header.accept': '*/*',
-    'http.request.header.accept_encoding': 'gzip, deflate',
-    'http.request.header.accept_language': '*',
-    'http.request.header.connection': 'keep-alive',
-    'http.request.header.host': expect.any(String),
-    'http.request.header.sec_fetch_mode': 'cors',
-    'http.request.header.user_agent': 'node',
+    'http.request.header.accept': ['*/*'],
+    'http.request.header.accept-encoding': ['gzip, deflate'],
+    'http.request.header.accept-language': ['*'],
+    'http.request.header.connection': ['keep-alive'],
+    'http.request.header.host': [expect.any(String)],
+    'http.request.header.sec-fetch-mode': ['cors'],
+    'http.request.header.user-agent': ['node'],
   };
 }
 
@@ -19,81 +22,63 @@ describe('httpIntegration', () => {
     cleanupChildProcesses();
   });
 
-  describe('instrumentation options', () => {
+  describe('onSpanCreated option', () => {
     createEsmAndCjsTests(__dirname, 'server.mjs', 'instrument-options.mjs', (createRunner, test) => {
-      test('allows to pass instrumentation options to integration', async () => {
+      test('allows to configure onSpanCreated', async () => {
         const runner = createRunner()
           .expect({
-            transaction: {
-              contexts: {
-                trace: {
+            span: {
+              items: expect.arrayContaining([
+                expect.objectContaining({
+                  is_segment: true,
                   span_id: expect.stringMatching(/[a-f\d]{16}/),
                   trace_id: expect.stringMatching(/[a-f\d]{32}/),
-                  data: {
-                    url: expect.stringMatching(/\/test$/),
-                    'http.response.status_code': 200,
-                    attr1: 'yes',
-                    attr2: 'yes',
-                    attr3: 'yes',
-                  },
-                  op: 'http.server',
                   status: 'ok',
-                },
-              },
-              extra: {
-                requestHookCalled: {
-                  url: expect.stringMatching(/\/test$/),
-                  method: 'GET',
-                },
-                responseHookCalled: {
-                  url: expect.stringMatching(/\/test$/),
-                  method: 'GET',
-                },
-                applyCustomAttributesOnSpanCalled: {
-                  reqUrl: expect.stringMatching(/\/test$/),
-                  reqMethod: 'GET',
-                  resUrl: expect.stringMatching(/\/test$/),
-                  resMethod: 'GET',
-                },
-              },
+                  attributes: expect.objectContaining({
+                    [URL_FULL]: { type: 'string', value: expect.stringMatching(/\/test$/) },
+                    [HTTP_RESPONSE_STATUS_CODE]: { type: 'integer', value: 200 },
+                    [SENTRY_OP]: { type: 'string', value: HTTP_SERVER },
+                    onSpanCreated: { type: 'string', value: 'yes' },
+                    'onSpanCreated.reqUrl': { type: 'string', value: expect.stringMatching(/\/test$/) },
+                    'onSpanCreated.reqMethod': { type: 'string', value: 'GET' },
+                    'onSpanCreated.resUrl': { type: 'string', value: expect.stringMatching(/\/test$/) },
+                    'onSpanCreated.resMethod': { type: 'string', value: 'GET' },
+                  }),
+                }),
+              ]),
             },
           })
           .start();
         runner.makeRequest('get', '/test');
         await runner.completed();
       });
+    });
+  });
 
-      test('allows to configure incomingRequestSpanHook', async () => {
-        const runner = createRunner()
-          .expect({
-            transaction: {
-              contexts: {
-                trace: {
-                  span_id: expect.stringMatching(/[a-f\d]{16}/),
-                  trace_id: expect.stringMatching(/[a-f\d]{32}/),
-                  data: {
-                    url: expect.stringMatching(/\/test$/),
-                    'http.response.status_code': 200,
-                    incomingRequestSpanHook: 'yes',
-                  },
-                  op: 'http.server',
-                  status: 'ok',
-                },
-              },
-              extra: expect.objectContaining({
-                incomingRequestSpanHookCalled: {
-                  reqUrl: expect.stringMatching(/\/test$/),
-                  reqMethod: 'GET',
-                  resUrl: expect.stringMatching(/\/test$/),
-                  resMethod: 'GET',
-                },
-              }),
-            },
-          })
-          .start();
-        runner.makeRequest('get', '/test');
-        await runner.completed();
-      });
+  describe('outgoing request span hooks', () => {
+    test('runs outgoingRequestHook, outgoingResponseHook and outgoingRequestApplyCustomAttributes', async () => {
+      const [SERVER_URL, closeTestServer] = await createTestServer()
+        .get('/api/users/42', () => {}, 200)
+        .start();
+
+      const runner = createRunner(__dirname, 'server-outgoingHooks.js')
+        .withEnv({ SERVER_URL })
+        .expect({
+          span: container => {
+            const clientSpans = container.items.filter(span => span.attributes[SENTRY_OP]?.value === HTTP_CLIENT);
+            expect(clientSpans).toHaveLength(1);
+
+            // All three hooks run before the span ends, so every attribute has to survive to the envelope.
+            const attributes = clientSpans[0]?.attributes;
+            expect(attributes?.['outgoingRequestHook']).toEqual({ type: 'string', value: 'GET' });
+            expect(attributes?.['outgoingResponseHook']).toEqual({ type: 'integer', value: 200 });
+            expect(attributes?.['outgoingRequestApplyCustomAttributes']).toEqual({ type: 'string', value: 'GET 200' });
+          },
+        })
+        .start();
+      runner.makeRequest('get', '/testOutgoing');
+      await runner.completed();
+      closeTestServer();
     });
   });
 
@@ -106,30 +91,31 @@ describe('httpIntegration', () => {
               const port = runner.getPort();
               expect(transaction.transaction).toBe('GET /test');
               expect(transaction.contexts?.trace?.data).toEqual({
-                'http.flavor': '1.1',
-                'http.host': `localhost:${port}`,
-                'http.method': 'GET',
-                'http.query': 'a=1&b=2',
+                'http.request.method': 'GET',
+                'url.query': 'a=1&b=2',
                 'http.response.status_code': 200,
                 'http.route': '/test',
-                'http.scheme': 'http',
-                'http.status_code': 200,
-                'http.status_text': 'OK',
-                'http.target': '/test?a=1&b=2',
-                'http.url': `http://localhost:${port}/test?a=1&b=2`,
-                'http.user_agent': 'node',
-                'net.host.ip': '::1',
-                'net.host.name': 'localhost',
-                'net.host.port': port,
-                'net.peer.ip': '::1',
-                'net.peer.port': expect.any(Number),
-                'net.transport': 'ip_tcp',
-                'otel.kind': 'SERVER',
+                'url.scheme': 'http',
+                'http.response.status_text': 'OK',
+                'user_agent.original': 'node',
+                'client.address': '::1',
+                'client.port': expect.any(Number),
+                'network.local.address': '::1',
+                'server.address': 'localhost',
+                'server.port': port,
+                'network.local.port': port,
+                'network.peer.address': '::1',
+                'network.peer.port': expect.any(Number),
+                'network.protocol.name': 'http',
+                'network.protocol.version': '1.1',
+                'network.transport': 'tcp',
+                'sentry.kind': 'server',
                 'sentry.op': 'http.server',
-                'sentry.origin': 'auto.http.otel.http',
+                'sentry.origin': 'auto.http.http_server',
                 'sentry.sample_rate': 1,
-                'sentry.source': 'route',
-                url: `http://localhost:${port}/test`,
+                'sentry.segment.name.source': 'route',
+                [URL_FULL]: `http://localhost:${port}/test?a=1&b=2`,
+                [URL_PATH]: '/test',
                 ...getCommonHttpRequestHeaders(),
               });
             },
@@ -147,33 +133,34 @@ describe('httpIntegration', () => {
               const port = runner.getPort();
               expect(transaction.transaction).toBe('POST /test');
               expect(transaction.contexts?.trace?.data).toEqual({
-                'http.flavor': '1.1',
-                'http.host': `localhost:${port}`,
-                'http.method': 'POST',
-                'http.query': 'a=1&b=2',
-                'http.request_content_length_uncompressed': 9,
+                'http.request.method': 'POST',
+                'url.query': 'a=1&b=2',
+                'http.request.body.size': 9,
                 'http.response.status_code': 200,
                 'http.route': '/test',
-                'http.scheme': 'http',
-                'http.status_code': 200,
-                'http.status_text': 'OK',
-                'http.target': '/test?a=1&b=2',
-                'http.url': `http://localhost:${port}/test?a=1&b=2`,
-                'http.user_agent': 'node',
-                'net.host.ip': '::1',
-                'net.host.name': 'localhost',
-                'net.host.port': port,
-                'net.peer.ip': '::1',
-                'net.peer.port': expect.any(Number),
-                'net.transport': 'ip_tcp',
-                'otel.kind': 'SERVER',
+                'url.scheme': 'http',
+                'http.response.status_text': 'OK',
+                'user_agent.original': 'node',
+                'client.address': '::1',
+                'client.port': expect.any(Number),
+                'network.local.address': '::1',
+                'server.address': 'localhost',
+                'server.port': port,
+                'network.local.port': port,
+                'network.peer.address': '::1',
+                'network.peer.port': expect.any(Number),
+                'network.protocol.name': 'http',
+                'network.protocol.version': '1.1',
+                'network.transport': 'tcp',
+                'sentry.kind': 'server',
                 'sentry.op': 'http.server',
-                'sentry.origin': 'auto.http.otel.http',
+                'sentry.origin': 'auto.http.http_server',
                 'sentry.sample_rate': 1,
-                'sentry.source': 'route',
-                url: `http://localhost:${port}/test`,
-                'http.request.header.content_length': '9',
-                'http.request.header.content_type': 'text/plain;charset=UTF-8',
+                'sentry.segment.name.source': 'route',
+                [URL_FULL]: `http://localhost:${port}/test?a=1&b=2`,
+                [URL_PATH]: '/test',
+                'http.request.header.content-length': ['9'],
+                'http.request.header.content-type': ['text/plain;charset=UTF-8'],
                 ...getCommonHttpRequestHeaders(),
               });
             },
@@ -183,9 +170,31 @@ describe('httpIntegration', () => {
         runner.makeRequest('post', '/test?a=1&b=2#hash', { data: 'test body' });
         await runner.completed();
       });
+
+      test('prefers the forwarded client address, without the socket port', async () => {
+        const runner = createRunner()
+          .expect({
+            transaction: transaction => {
+              const data = transaction.contexts?.trace?.data;
+              expect(data).toEqual(
+                expect.objectContaining({
+                  'client.address': '203.0.113.7',
+                  'network.peer.address': '::1',
+                  'network.peer.port': expect.any(Number),
+                }),
+              );
+              expect(data).not.toHaveProperty('client.port');
+            },
+          })
+          .start();
+
+        runner.makeRequest('get', '/test', { headers: { 'X-Forwarded-For': '203.0.113.7, 10.0.0.1' } });
+        await runner.completed();
+      });
     });
 
-    describe('custom server.emit', () => {
+    // Deno: the requests sometimes get a 500 response when `server.emit` is overwritten.
+    describe.runIf(supports({ runtimes: ['node', 'bun'] }))('custom server.emit', () => {
       createEsmAndCjsTests(
         __dirname,
         'scenario-overwrite-server-emit.mjs',
@@ -194,51 +203,54 @@ describe('httpIntegration', () => {
           test('handles server.emit being overwritten via classic monkey patching', async () => {
             const runner = createRunner()
               .expect({
-                transaction: {
-                  transaction: 'GET /test1',
-                  contexts: {
-                    trace: {
+                span: {
+                  items: [
+                    {
+                      name: 'GET',
+                      is_segment: true,
                       span_id: expect.stringMatching(/[a-f\d]{16}/),
                       trace_id: expect.stringMatching(/[a-f\d]{32}/),
-                      data: {
-                        'http.response.status_code': 200,
-                        'sentry.op': 'http.server',
+                      attributes: {
+                        [HTTP_RESPONSE_STATUS_CODE]: { type: 'integer', value: 200 },
+                        [SENTRY_OP]: { type: 'string', value: HTTP_SERVER },
+                        [URL_PATH]: { type: 'string', value: '/test1' },
                       },
                     },
-                  },
-                  spans: [],
+                  ],
                 },
               })
               .expect({
-                transaction: {
-                  transaction: 'GET /test2',
-                  contexts: {
-                    trace: {
+                span: {
+                  items: [
+                    {
+                      name: 'GET',
+                      is_segment: true,
                       span_id: expect.stringMatching(/[a-f\d]{16}/),
                       trace_id: expect.stringMatching(/[a-f\d]{32}/),
-                      data: {
-                        'http.response.status_code': 200,
-                        'sentry.op': 'http.server',
+                      attributes: {
+                        [HTTP_RESPONSE_STATUS_CODE]: { type: 'integer', value: 200 },
+                        [SENTRY_OP]: { type: 'string', value: HTTP_SERVER },
+                        [URL_PATH]: { type: 'string', value: '/test2' },
                       },
                     },
-                  },
-                  spans: [],
+                  ],
                 },
               })
               .expect({
-                transaction: {
-                  transaction: 'GET /test3',
-                  contexts: {
-                    trace: {
+                span: {
+                  items: [
+                    {
+                      name: 'GET',
+                      is_segment: true,
                       span_id: expect.stringMatching(/[a-f\d]{16}/),
                       trace_id: expect.stringMatching(/[a-f\d]{32}/),
-                      data: {
-                        'http.response.status_code': 200,
-                        'sentry.op': 'http.server',
+                      attributes: {
+                        [HTTP_RESPONSE_STATUS_CODE]: { type: 'integer', value: 200 },
+                        [SENTRY_OP]: { type: 'string', value: HTTP_SERVER },
+                        [URL_PATH]: { type: 'string', value: '/test3' },
                       },
                     },
-                  },
-                  spans: [],
+                  ],
                 },
               })
               .start();
@@ -252,50 +264,54 @@ describe('httpIntegration', () => {
           test('handles server.emit being overwritten via proxy', async () => {
             const runner = createRunner()
               .expect({
-                transaction: {
-                  transaction: 'GET /test1-proxy',
-                  contexts: {
-                    trace: {
+                span: {
+                  items: [
+                    {
+                      name: 'GET',
+                      is_segment: true,
                       span_id: expect.stringMatching(/[a-f\d]{16}/),
                       trace_id: expect.stringMatching(/[a-f\d]{32}/),
-                      data: {
-                        'http.response.status_code': 200,
-                        'sentry.op': 'http.server',
+                      attributes: {
+                        [HTTP_RESPONSE_STATUS_CODE]: { type: 'integer', value: 200 },
+                        [SENTRY_OP]: { type: 'string', value: HTTP_SERVER },
+                        [URL_PATH]: { type: 'string', value: '/test1-proxy' },
                       },
                     },
-                  },
-                  spans: [],
+                  ],
                 },
               })
               .expect({
-                transaction: {
-                  transaction: 'GET /test2-proxy',
-                  contexts: {
-                    trace: {
+                span: {
+                  items: [
+                    {
+                      name: 'GET',
+                      is_segment: true,
                       span_id: expect.stringMatching(/[a-f\d]{16}/),
                       trace_id: expect.stringMatching(/[a-f\d]{32}/),
-                      data: {
-                        'http.response.status_code': 200,
-                        'sentry.op': 'http.server',
+                      attributes: {
+                        [HTTP_RESPONSE_STATUS_CODE]: { type: 'integer', value: 200 },
+                        [SENTRY_OP]: { type: 'string', value: HTTP_SERVER },
+                        [URL_PATH]: { type: 'string', value: '/test2-proxy' },
                       },
                     },
-                  },
-                  spans: [],
+                  ],
                 },
               })
               .expect({
-                transaction: {
-                  transaction: 'GET /test3-proxy',
-                  contexts: {
-                    trace: {
+                span: {
+                  items: expect.arrayContaining([
+                    expect.objectContaining({
+                      name: 'GET',
+                      is_segment: true,
                       span_id: expect.stringMatching(/[a-f\d]{16}/),
                       trace_id: expect.stringMatching(/[a-f\d]{32}/),
-                      data: {
-                        'http.response.status_code': 200,
-                        'sentry.op': 'http.server',
-                      },
-                    },
-                  },
+                      attributes: expect.objectContaining({
+                        [HTTP_RESPONSE_STATUS_CODE]: { type: 'integer', value: 200 },
+                        [SENTRY_OP]: { type: 'string', value: HTTP_SERVER },
+                        [URL_PATH]: { type: 'string', value: '/test3-proxy' },
+                      }),
+                    }),
+                  ]),
                 },
               })
               .start();
@@ -309,51 +325,54 @@ describe('httpIntegration', () => {
           test('handles server.emit being overwritten via classic monkey patching, using initial server.emit', async () => {
             const runner = createRunner()
               .expect({
-                transaction: {
-                  transaction: 'GET /test1-original',
-                  contexts: {
-                    trace: {
+                span: {
+                  items: [
+                    {
+                      name: 'GET',
+                      is_segment: true,
                       span_id: expect.stringMatching(/[a-f\d]{16}/),
                       trace_id: expect.stringMatching(/[a-f\d]{32}/),
-                      data: {
-                        'http.response.status_code': 200,
-                        'sentry.op': 'http.server',
+                      attributes: {
+                        [HTTP_RESPONSE_STATUS_CODE]: { type: 'integer', value: 200 },
+                        [SENTRY_OP]: { type: 'string', value: HTTP_SERVER },
+                        [URL_PATH]: { type: 'string', value: '/test1-original' },
                       },
                     },
-                  },
-                  spans: [],
+                  ],
                 },
               })
               .expect({
-                transaction: {
-                  transaction: 'GET /test2-original',
-                  contexts: {
-                    trace: {
+                span: {
+                  items: [
+                    {
+                      name: 'GET',
+                      is_segment: true,
                       span_id: expect.stringMatching(/[a-f\d]{16}/),
                       trace_id: expect.stringMatching(/[a-f\d]{32}/),
-                      data: {
-                        'http.response.status_code': 200,
-                        'sentry.op': 'http.server',
+                      attributes: {
+                        [HTTP_RESPONSE_STATUS_CODE]: { type: 'integer', value: 200 },
+                        [SENTRY_OP]: { type: 'string', value: HTTP_SERVER },
+                        [URL_PATH]: { type: 'string', value: '/test2-original' },
                       },
                     },
-                  },
-                  spans: [],
+                  ],
                 },
               })
               .expect({
-                transaction: {
-                  transaction: 'GET /test3-original',
-                  contexts: {
-                    trace: {
+                span: {
+                  items: [
+                    {
+                      name: 'GET',
+                      is_segment: true,
                       span_id: expect.stringMatching(/[a-f\d]{16}/),
                       trace_id: expect.stringMatching(/[a-f\d]{32}/),
-                      data: {
-                        'http.response.status_code': 200,
-                        'sentry.op': 'http.server',
+                      attributes: {
+                        [HTTP_RESPONSE_STATUS_CODE]: { type: 'integer', value: 200 },
+                        [SENTRY_OP]: { type: 'string', value: HTTP_SERVER },
+                        [URL_PATH]: { type: 'string', value: '/test3-original' },
                       },
                     },
-                  },
-                  spans: [],
+                  ],
                 },
               })
               .start();
@@ -367,51 +386,54 @@ describe('httpIntegration', () => {
           test('handles server.emit being overwritten via proxy, using initial server.emit', async () => {
             const runner = createRunner()
               .expect({
-                transaction: {
-                  transaction: 'GET /test1-proxy-original',
-                  contexts: {
-                    trace: {
+                span: {
+                  items: [
+                    {
+                      name: 'GET',
+                      is_segment: true,
                       span_id: expect.stringMatching(/[a-f\d]{16}/),
                       trace_id: expect.stringMatching(/[a-f\d]{32}/),
-                      data: {
-                        'http.response.status_code': 200,
-                        'sentry.op': 'http.server',
+                      attributes: {
+                        [HTTP_RESPONSE_STATUS_CODE]: { type: 'integer', value: 200 },
+                        [SENTRY_OP]: { type: 'string', value: HTTP_SERVER },
+                        [URL_PATH]: { type: 'string', value: '/test1-proxy-original' },
                       },
                     },
-                  },
-                  spans: [],
+                  ],
                 },
               })
               .expect({
-                transaction: {
-                  transaction: 'GET /test2-proxy-original',
-                  contexts: {
-                    trace: {
+                span: {
+                  items: [
+                    {
+                      name: 'GET',
+                      is_segment: true,
                       span_id: expect.stringMatching(/[a-f\d]{16}/),
                       trace_id: expect.stringMatching(/[a-f\d]{32}/),
-                      data: {
-                        'http.response.status_code': 200,
-                        'sentry.op': 'http.server',
+                      attributes: {
+                        [HTTP_RESPONSE_STATUS_CODE]: { type: 'integer', value: 200 },
+                        [SENTRY_OP]: { type: 'string', value: HTTP_SERVER },
+                        [URL_PATH]: { type: 'string', value: '/test2-proxy-original' },
                       },
                     },
-                  },
-                  spans: [],
+                  ],
                 },
               })
               .expect({
-                transaction: {
-                  transaction: 'GET /test3-proxy-original',
-                  contexts: {
-                    trace: {
+                span: {
+                  items: [
+                    {
+                      name: 'GET',
+                      is_segment: true,
                       span_id: expect.stringMatching(/[a-f\d]{16}/),
                       trace_id: expect.stringMatching(/[a-f\d]{32}/),
-                      data: {
-                        'http.response.status_code': 200,
-                        'sentry.op': 'http.server',
+                      attributes: {
+                        [HTTP_RESPONSE_STATUS_CODE]: { type: 'integer', value: 200 },
+                        [SENTRY_OP]: { type: 'string', value: HTTP_SERVER },
+                        [URL_PATH]: { type: 'string', value: '/test3-proxy-original' },
                       },
                     },
-                  },
-                  spans: [],
+                  ],
                 },
               })
               .start();
@@ -430,52 +452,58 @@ describe('httpIntegration', () => {
     test('via the url param', async () => {
       const runner = createRunner(__dirname, 'server-ignoreIncomingRequests.js')
         .expect({
-          transaction: {
-            contexts: {
-              trace: {
+          span: {
+            items: expect.arrayContaining([
+              expect.objectContaining({
+                name: 'GET /test',
+                is_segment: true,
                 span_id: expect.stringMatching(/[a-f\d]{16}/),
                 trace_id: expect.stringMatching(/[a-f\d]{32}/),
-                data: {
-                  url: expect.stringMatching(/\/test$/),
-                  'http.response.status_code': 200,
-                },
-                op: 'http.server',
                 status: 'ok',
-              },
-            },
-            transaction: 'GET /test',
+                attributes: expect.objectContaining({
+                  [URL_FULL]: { type: 'string', value: expect.stringMatching(/\/test$/) },
+                  [HTTP_RESPONSE_STATUS_CODE]: { type: 'integer', value: 200 },
+                  [SENTRY_OP]: { type: 'string', value: HTTP_SERVER },
+                }),
+              }),
+            ]),
           },
         })
         .start();
 
-      runner.makeRequest('get', '/liveness'); // should be ignored
-      runner.makeRequest('get', '/test');
+      await runner.makeRequest('get', '/liveness'); // should be ignored
+      // Flush so any span from the ignored request fails the expectation before /test runs.
+      await runner.makeRequest('get', '/flush');
+      await runner.makeRequest('get', '/test');
       await runner.completed();
     });
 
     test('via the request param', async () => {
       const runner = createRunner(__dirname, 'server-ignoreIncomingRequests.js')
         .expect({
-          transaction: {
-            contexts: {
-              trace: {
+          span: {
+            items: expect.arrayContaining([
+              expect.objectContaining({
+                name: 'GET /test',
+                is_segment: true,
                 span_id: expect.stringMatching(/[a-f\d]{16}/),
                 trace_id: expect.stringMatching(/[a-f\d]{32}/),
-                data: {
-                  url: expect.stringMatching(/\/test$/),
-                  'http.response.status_code': 200,
-                },
-                op: 'http.server',
                 status: 'ok',
-              },
-            },
-            transaction: 'GET /test',
+                attributes: expect.objectContaining({
+                  [URL_FULL]: { type: 'string', value: expect.stringMatching(/\/test$/) },
+                  [HTTP_RESPONSE_STATUS_CODE]: { type: 'integer', value: 200 },
+                  [SENTRY_OP]: { type: 'string', value: HTTP_SERVER },
+                }),
+              }),
+            ]),
           },
         })
         .start();
 
-      runner.makeRequest('post', '/readiness'); // should be ignored
-      runner.makeRequest('get', '/test');
+      await runner.makeRequest('post', '/readiness'); // should be ignored
+      // Flush so any span from the ignored request fails the expectation before /test runs.
+      await runner.makeRequest('get', '/flush');
+      await runner.makeRequest('get', '/test');
       await runner.completed();
     });
   });
@@ -490,16 +518,20 @@ describe('httpIntegration', () => {
       const runner = createRunner(__dirname, 'server-ignoreOutgoingRequests.js')
         .withEnv({ SERVER_URL })
         .expect({
-          transaction: event => {
-            expect(event.transaction).toBe('GET /testUrl');
-
-            const requestSpans = event.spans?.filter(span => span.op === 'http.client');
-            expect(requestSpans).toHaveLength(1);
-            expect(requestSpans![0]?.description).toBe(`GET ${SERVER_URL}/pass`);
-
+          event: event => {
             const breadcrumbs = event.breadcrumbs?.filter(b => b.category === 'http');
             expect(breadcrumbs).toHaveLength(1);
             expect(breadcrumbs![0]?.data?.url).toEqual(`${SERVER_URL}/pass`);
+          },
+        })
+        .expect({
+          span: container => {
+            expect(container.items.find(span => span.is_segment)?.name).toBe('GET /testUrl');
+
+            const requestSpans = container.items.filter(span => span.attributes[SENTRY_OP]?.value === HTTP_CLIENT);
+            expect(requestSpans).toHaveLength(1);
+            expect(requestSpans[0]?.name).toBe('GET localhost');
+            expect(requestSpans[0]?.attributes[URL_FULL]).toEqual({ type: 'string', value: `${SERVER_URL}/pass` });
           },
         })
         .start();
@@ -517,16 +549,20 @@ describe('httpIntegration', () => {
       const runner = createRunner(__dirname, 'server-ignoreOutgoingRequests.js')
         .withEnv({ SERVER_URL })
         .expect({
-          transaction: event => {
-            expect(event.transaction).toBe('GET /testRequest');
-
-            const requestSpans = event.spans?.filter(span => span.op === 'http.client');
-            expect(requestSpans).toHaveLength(1);
-            expect(requestSpans![0]?.description).toBe(`GET ${SERVER_URL}/pass`);
-
+          event: event => {
             const breadcrumbs = event.breadcrumbs?.filter(b => b.category === 'http');
             expect(breadcrumbs).toHaveLength(1);
             expect(breadcrumbs![0]?.data?.url).toEqual(`${SERVER_URL}/pass`);
+          },
+        })
+        .expect({
+          span: container => {
+            expect(container.items.find(span => span.is_segment)?.name).toBe('GET /testRequest');
+
+            const requestSpans = container.items.filter(span => span.attributes[SENTRY_OP]?.value === HTTP_CLIENT);
+            expect(requestSpans).toHaveLength(1);
+            expect(requestSpans[0]?.name).toBe('GET localhost');
+            expect(requestSpans[0]?.attributes[URL_FULL]).toEqual({ type: 'string', value: `${SERVER_URL}/pass` });
           },
         })
         .start();
@@ -540,11 +576,12 @@ describe('httpIntegration', () => {
   test('ignores static asset requests by default', async () => {
     const runner = createRunner(__dirname, 'server-ignoreStaticAssets.js')
       .expect({
-        transaction: event => {
-          expect(event.transaction).toBe('GET /test');
-          expect(event.contexts?.trace?.data?.url).toMatch(/\/test$/);
-          expect(event.contexts?.trace?.op).toBe('http.server');
-          expect(event.contexts?.trace?.status).toBe('ok');
+        span: container => {
+          const segment = container.items.find(span => span.is_segment);
+          expect(segment?.name).toBe('GET /test');
+          expect(segment?.attributes[URL_FULL]?.value).toMatch(/\/test$/);
+          expect(segment?.attributes[SENTRY_OP]).toEqual({ type: 'string', value: HTTP_SERVER });
+          expect(segment?.status).toBe('ok');
         },
       })
       .start();
@@ -553,6 +590,9 @@ describe('httpIntegration', () => {
     await runner.makeRequest('get', '/favicon.ico');
     await runner.makeRequest('get', '/robots.txt');
     await runner.makeRequest('get', '/assets/app.js');
+
+    // Flush so any static-asset span fails the expectation before /test runs.
+    await runner.makeRequest('get', '/flush');
 
     // This one should be traced
     await runner.makeRequest('get', '/test');
@@ -563,11 +603,12 @@ describe('httpIntegration', () => {
   test('traces static asset requests when ignoreStaticAssets is false', async () => {
     const runner = createRunner(__dirname, 'server-traceStaticAssets.js')
       .expect({
-        transaction: event => {
-          expect(event.transaction).toBe('GET /favicon.ico');
-          expect(event.contexts?.trace?.data?.url).toMatch(/\/favicon.ico$/);
-          expect(event.contexts?.trace?.op).toBe('http.server');
-          expect(event.contexts?.trace?.status).toBe('ok');
+        span: container => {
+          const segment = container.items.find(span => span.is_segment);
+          expect(segment?.name).toBe('GET /favicon.ico');
+          expect(segment?.attributes[URL_FULL]?.value).toMatch(/\/favicon.ico$/);
+          expect(segment?.attributes[SENTRY_OP]).toEqual({ type: 'string', value: HTTP_SERVER });
+          expect(segment?.status).toBe('ok');
         },
       })
       .start();

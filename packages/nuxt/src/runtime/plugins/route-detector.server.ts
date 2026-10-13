@@ -1,7 +1,8 @@
-import { debug, getActiveSpan, getRootSpan, SEMANTIC_ATTRIBUTE_SENTRY_SOURCE } from '@sentry/core';
+import { debug } from '@sentry/core';
 import { defineNuxtPlugin } from 'nuxt/app';
 import type { NuxtPageSubset } from '../utils/route-extraction';
 import { extractParametrizedRouteFromContext } from '../utils/route-extraction';
+import { setHttpServerSpanRouteAttribute } from '@sentry/server-utils';
 
 export default defineNuxtPlugin(nuxtApp => {
   nuxtApp.hooks.hook('app:rendered', async renderContext => {
@@ -29,21 +30,6 @@ export default defineNuxtPlugin(nuxtApp => {
       return;
     }
 
-    const activeSpan = getActiveSpan(); // In development mode, getActiveSpan() is always undefined
-
-    if (activeSpan && routeInfo.parametrizedRoute) {
-      const rootSpan = getRootSpan(activeSpan);
-
-      if (!rootSpan) {
-        return;
-      }
-
-      debug.log('Matched parametrized server route:', routeInfo.parametrizedRoute);
-
-      rootSpan.setAttributes({
-        [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
-        'http.route': routeInfo.parametrizedRoute,
-      });
-    }
+    setHttpServerSpanRouteAttribute(routeInfo.parametrizedRoute);
   });
 });

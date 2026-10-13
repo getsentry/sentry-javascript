@@ -1,10 +1,11 @@
+import { URL_PATH } from '@sentry/conventions/attributes';
 import { dsnToString, escapeStringForRegex, getClient, handleTunnelRequest } from '@sentry/core';
 
 const registeredTunnelRoutePaths = new Set<string>();
 
 /**
  * Drops the incoming `http.server` transaction for a tunnel route by matching its request path (the
- * `http.target` attribute, set at span creation, so it works for static and streamed lifecycles).
+ * `url.path` attribute, set at span creation, so it works for static and streamed lifecycles).
  * Called at server startup for the managed route and from the handler (self-registration) otherwise.
  */
 export function registerSentryServerTunnelRoute(path: string): void {
@@ -23,7 +24,7 @@ export function registerSentryServerTunnelRoute(path: string): void {
   const options = client.getOptions();
   options.ignoreSpans = [
     ...(options.ignoreSpans ?? []),
-    { attributes: { 'http.target': new RegExp(`^${escapeStringForRegex(path)}(?:[/?#]|$)`) } },
+    { attributes: { [URL_PATH]: new RegExp(`^${escapeStringForRegex(path)}(?:[/?#]|$)`) } },
   ];
 }
 

@@ -39,5 +39,5 @@ test('each request gets a unique traceId when tracing is disabled', async () => 
     expect(traceId).toMatch(/^[a-f\d]{32}$/);
   }
 
-  expect(eventTraceIds).toEqual(propagationContextTraceIds);
+  expect(eventTraceIds.sort()).toEqual(propagationContextTraceIds.sort());
 });

@@ -1,16 +1,12 @@
-import type { Event } from '@sentry/core';
-import {
-  SEMANTIC_ATTRIBUTE_SENTRY_OP,
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
-} from '@sentry/core';
+import { SENTRY_SEGMENT_NAME_SOURCE, SENTRY_OP, SENTRY_ORIGIN, URL_PATH } from '@sentry/conventions/attributes';
+import type { Client, Event } from '@sentry/core';
 import * as SentryCore from '@sentry/core';
-import { getCurrentScope, getIsolationScope, NodeClient, setCurrentClient } from '@sentry/node';
+import { NodeClient, setCurrentClient } from '@sentry/node';
 import type { Load, ServerLoad } from '@sveltejs/kit';
 import { error, redirect } from '@sveltejs/kit';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { wrapLoadWithSentry, wrapServerLoadWithSentry } from '../../src/server-common/load';
-import { getDefaultNodeClientOptions } from '../utils';
+import { createTrackedLoadEvent, getDefaultNodeClientOptions } from '../utils';
 
 const mockCaptureException = vi.spyOn(SentryCore, 'captureException').mockImplementation(() => 'xx');
 
@@ -169,10 +165,13 @@ describe('wrapLoadWithSentry calls `startSpan`', () => {
     expect(mockStartSpan).toHaveBeenCalledWith(
       {
         attributes: {
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.sveltekit',
-          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
+          [SENTRY_OP]: 'function',
+          'code.function.name': 'load',
+          [SENTRY_ORIGIN]: 'auto.function.sveltekit',
+          [SENTRY_SEGMENT_NAME_SOURCE]: 'route',
+          'url.path': '/users/123',
+          'http.route': '/users/[id]',
         },
-        op: 'function.sveltekit.load',
         name: '/users/[id]',
       },
       expect.any(Function),
@@ -187,10 +186,12 @@ describe('wrapLoadWithSentry calls `startSpan`', () => {
     expect(mockStartSpan).toHaveBeenCalledWith(
       {
         attributes: {
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.sveltekit',
-          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
+          [SENTRY_OP]: 'function',
+          'code.function.name': 'load',
+          [SENTRY_ORIGIN]: 'auto.function.sveltekit',
+          [SENTRY_SEGMENT_NAME_SOURCE]: 'url',
+          'url.path': '/users/123',
         },
-        op: 'function.sveltekit.load',
         name: '/users/123',
       },
       expect.any(Function),
@@ -213,8 +214,7 @@ describe('wrapServerLoadWithSentry calls `startSpan`', () => {
   }
 
   beforeEach(() => {
-    getCurrentScope().clear();
-    getIsolationScope().clear();
+    SentryCore.getMainCarrier().__SENTRY__ = undefined;
   });
 
   let client: NodeClient;
@@ -256,16 +256,19 @@ describe('wrapServerLoadWithSentry calls `startSpan`', () => {
 
     expect(transaction.contexts?.trace).toEqual({
       data: {
-        [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.sveltekit',
-        [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
-        [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'function.sveltekit.server.load',
-        'http.method': 'GET',
+        [SENTRY_ORIGIN]: 'auto.function.sveltekit.server',
+        [SENTRY_SEGMENT_NAME_SOURCE]: 'url',
+        [SENTRY_OP]: 'function',
+        'code.function.name': 'load',
+        'http.request.method': 'GET',
+        'url.path': '/users/123',
         'sentry.sample_rate': 1,
       },
-      op: 'function.sveltekit.server.load',
+      op: 'function',
       span_id: expect.stringMatching(/[a-f0-9]{16}/),
       trace_id: expect.stringMatching(/[a-f0-9]{32}/),
-      origin: 'auto.function.sveltekit',
+      origin: 'auto.function.sveltekit.server',
+      status: 'ok',
     });
     expect(transaction.transaction).toEqual('/users/123');
   });
@@ -296,7 +299,9 @@ describe('wrapServerLoadWithSentry calls `startSpan`', () => {
     expect(mockStartSpan).toHaveBeenCalledTimes(1);
     expect(mockStartSpan).toHaveBeenCalledWith(
       expect.objectContaining({
-        op: 'function.sveltekit.server.load',
+        attributes: expect.objectContaining({
+          [SENTRY_OP]: 'function',
+        }),
         name: '/users/[id]', // <-- this shows that the route was still accessed
       }),
       expect.any(Function),
@@ -315,14 +320,123 @@ describe('wrapServerLoadWithSentry calls `startSpan`', () => {
     const wrappedLoad = wrapServerLoadWithSentry(serverLoad);
     await wrappedLoad(eventWithUntrack);
 
-    expect(untrack).toHaveBeenCalledTimes(1);
+    expect(untrack).toHaveBeenCalledTimes(2);
     expect(mockStartSpan).toHaveBeenCalledWith(
       expect.objectContaining({
         name: '/users/[id]',
         attributes: expect.objectContaining({
-          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
+          [SENTRY_SEGMENT_NAME_SOURCE]: 'route',
         }),
       }),
+      expect.any(Function),
+    );
+  });
+});
+
+describe.each([
+  ['wrapLoadWithSentry', wrapLoadWithSentry],
+  ['wrapServerLoadWithSentry', wrapServerLoadWithSentry],
+])('%s with untrack (SvelteKit 2+)', (_, sentryLoadWrapperFn) => {
+  it("doesn't add route or url dependencies to the load function", async () => {
+    const { event, trackedReads } = createTrackedLoadEvent(getServerOnlyArgs());
+
+    const wrappedLoad = sentryLoadWrapperFn(() => ({}));
+    await wrappedLoad(event);
+
+    expect(trackedReads).toEqual([]);
+    expect(mockStartSpan).toHaveBeenCalledWith(
+      expect.objectContaining({
+        name: '/users/[id]',
+        attributes: expect.objectContaining({ [URL_PATH]: '/users/123' }),
+      }),
+      expect.any(Function),
+    );
+  });
+
+  it('still tracks url reads made by the load function itself', async () => {
+    const { event, trackedReads } = createTrackedLoadEvent(getServerOnlyArgs());
+
+    const wrappedLoad = sentryLoadWrapperFn(({ url }: { url: URL }) => ({ path: url.pathname }));
+    await wrappedLoad(event);
+
+    expect(trackedReads).toEqual(['url.pathname']);
+  });
+});
+
+describe('with span streaming enabled', () => {
+  beforeEach(() => {
+    vi.spyOn(SentryCore, 'getClient').mockImplementation(
+      () => ({ getOptions: () => ({ traceLifecycle: 'stream' }) }) as unknown as Client,
+    );
+  });
+
+  afterEach(() => {
+    vi.mocked(SentryCore.getClient).mockRestore();
+  });
+
+  async function load({ params }): Promise<ReturnType<Load>> {
+    return { post: params.id };
+  }
+
+  it('names the universal load span after the load function and keeps the route in the description', async () => {
+    const wrappedLoad = wrapLoadWithSentry(load);
+    await wrappedLoad(getLoadArgs());
+
+    expect(mockStartSpan).toHaveBeenCalledWith(
+      {
+        attributes: {
+          [SENTRY_OP]: 'function',
+          'code.function.name': 'load',
+          [SENTRY_ORIGIN]: 'auto.function.sveltekit',
+          [SENTRY_SEGMENT_NAME_SOURCE]: 'route',
+          'url.path': '/users/123',
+          'http.route': '/users/[id]',
+          'sentry.description': '/users/[id]',
+        },
+        name: 'load',
+      },
+      expect.any(Function),
+    );
+  });
+
+  it('keeps the raw url as description if `event.route.id` is not available', async () => {
+    const wrappedLoad = wrapLoadWithSentry(load);
+    await wrappedLoad(getLoadArgsWithoutRoute());
+
+    expect(mockStartSpan).toHaveBeenCalledWith(
+      {
+        attributes: {
+          [SENTRY_OP]: 'function',
+          'code.function.name': 'load',
+          [SENTRY_ORIGIN]: 'auto.function.sveltekit',
+          [SENTRY_SEGMENT_NAME_SOURCE]: 'url',
+          'url.path': '/users/123',
+          'sentry.description': '/users/123',
+        },
+        name: 'load',
+      },
+      expect.any(Function),
+    );
+  });
+
+  it('names the server load span after the load function and keeps the route in the description', async () => {
+    const wrappedLoad = wrapServerLoadWithSentry(load);
+    await wrappedLoad(getServerOnlyArgs());
+
+    expect(mockStartSpan).toHaveBeenCalledWith(
+      {
+        attributes: {
+          [SENTRY_OP]: 'function',
+          'code.function.name': 'load',
+          [SENTRY_ORIGIN]: 'auto.function.sveltekit.server',
+          [SENTRY_SEGMENT_NAME_SOURCE]: 'route',
+          'http.request.method': 'GET',
+          'url.path': '/users/123',
+          'http.route': '/users/[id]',
+          'sentry.description': '/users/[id]',
+        },
+        name: 'load',
+      },
       expect.any(Function),
     );
   });

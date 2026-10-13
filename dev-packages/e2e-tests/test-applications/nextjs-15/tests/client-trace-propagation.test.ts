@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { waitForTransaction } from '@sentry-internal/test-utils';
+import { getSpanOp, waitForStreamedSpan } from '@sentry-internal/test-utils';
 import { parseSemver } from '@sentry/core';
 
 const packageJson = require('../package.json');
@@ -12,29 +12,33 @@ test('Should propagate traces from server to client in pages router', async ({ p
     'Next.js version does not support clientside instrumentation',
   );
 
-  const serverTransactionPromise = waitForTransaction('nextjs-15', async transactionEvent => {
-    return transactionEvent?.transaction === 'GET /[locale]/pages-router-client-trace-propagation';
+  const serverSpanPromise = waitForStreamedSpan('nextjs-15', span => {
+    return span.name === 'GET /[locale]/pages-router-client-trace-propagation' && span.is_segment;
   });
 
-  const pageloadTransactionPromise = waitForTransaction('nextjs-15', async transactionEvent => {
-    return transactionEvent?.transaction === '/[locale]/pages-router-client-trace-propagation';
+  const pageloadSpanPromise = waitForStreamedSpan('nextjs-15', span => {
+    return (
+      span.name === '/[locale]/pages-router-client-trace-propagation' &&
+      getSpanOp(span) === 'pageload' &&
+      span.is_segment
+    );
   });
 
   await page.goto(`/123/pages-router-client-trace-propagation`);
 
-  const serverTransaction = await serverTransactionPromise;
-  const pageloadTransaction = await pageloadTransactionPromise;
+  const serverSpan = await serverSpanPromise;
+  const pageloadSpan = await pageloadSpanPromise;
 
-  expect(serverTransaction.contexts?.trace?.trace_id).toBeDefined();
-  expect(pageloadTransaction.contexts?.trace?.trace_id).toBe(serverTransaction.contexts?.trace?.trace_id);
+  expect(serverSpan.trace_id).toBeDefined();
+  expect(pageloadSpan.trace_id).toBe(serverSpan.trace_id);
 
   await test.step('release was successfully injected on the serverside', () => {
     // Release as defined in next.config.js
-    expect(serverTransaction.release).toBe('foobar123');
+    expect(serverSpan.attributes['sentry.release']?.value).toBe('foobar123');
   });
 
   await test.step('release was successfully injected on the clientside', () => {
     // Release as defined in next.config.js
-    expect(pageloadTransaction.release).toBe('foobar123');
+    expect(pageloadSpan.attributes['sentry.release']?.value).toBe('foobar123');
   });
 });

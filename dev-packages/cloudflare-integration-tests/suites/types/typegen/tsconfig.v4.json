@@ -1,0 +1,18 @@
+{
+  "extends": "../../../tsconfig.json",
+
+  // Separate program: the global `Cloudflare.Env` augmentation in this folder simulates
+  // a project that ran `wrangler types`. It must not leak into the main program, where
+  // the no-typegen fallback (`env` resolves to `any`) is under test. Runs once per
+  // supported `@cloudflare/workers-types` major (see `./tsconfig.v5.json` for v5).
+  "include": ["./**/*.ts"],
+
+  // The extended config excludes this folder (to keep the augmentation out of the main
+  // program); since this program is exactly that folder, the inherited exclude must be
+  // cleared or no inputs remain.
+  "exclude": [],
+
+  "compilerOptions": {
+    "types": ["@cloudflare/workers-types"]
+  }
+}

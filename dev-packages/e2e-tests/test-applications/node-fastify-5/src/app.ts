@@ -19,14 +19,13 @@ Sentry.init({
   dsn: process.env.E2E_TEST_DSN,
   integrations: [
     Sentry.fastifyIntegration({
-      shouldHandleError: (error, _request, _reply) => {
-        if (_request.routeOptions?.url?.includes('/test-error-not-captured')) {
+      shouldHandleError: (_error, request, _reply) => {
+        if (request.routeOptions?.url?.includes('/test-error-not-captured')) {
           // Errors from this path will not be captured by Sentry
           return false;
         }
 
-        // @ts-ignore // Fastify V5 is not typed correctly
-        if (_request.routeOptions?.url?.includes('/test-error-ignored') && _reply.statusCode === 500) {
+        if (request.routeOptions?.url?.includes('/test-error-ignored') && _reply.statusCode === 500) {
           return false;
         }
 
@@ -37,6 +36,9 @@ Sentry.init({
   tracesSampleRate: 1,
   tunnel: 'http://localhost:3031/', // proxy server
   tracePropagationTargets: ['http://localhost:3030', '/external-allowed'],
+  // Opt into the Sentry OpenTelemetry tracer provider in the "(tracer provider)" e2e variant.
+  // Leaving it `undefined` otherwise keeps the SDK's default (no provider).
+  enableOpenTelemetrySetup: process.env.E2E_TEST_OTEL_SETUP === 'true' ? true : undefined,
 });
 
 import type * as H from 'http';

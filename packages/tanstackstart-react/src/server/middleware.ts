@@ -82,7 +82,7 @@ function wrapMiddlewareWithSentry<T extends TanStackMiddlewareBase>(
     });
 
     // mark as instrumented
-    addNonEnumerableProperty(middleware as unknown as Record<string, unknown>, SENTRY_WRAPPED, true);
+    addNonEnumerableProperty(middleware, SENTRY_WRAPPED, true);
   }
 
   return middleware;

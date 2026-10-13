@@ -15,7 +15,7 @@ export const PROMISE_FUNCTIONS: FPMember[] = [
   'chmod',
   'chown',
   'copyFile',
-  'cp' as FPMember, // added in v16
+  'cp', // added in v16
   'lchown',
   'link',
   'lstat',
@@ -46,7 +46,7 @@ export const CALLBACK_FUNCTIONS: FMember[] = [
   'chmod',
   'chown',
   'copyFile',
-  'cp' as FMember, // added in v16
+  'cp', // added in v16
   'exists', // deprecated, inconsistent cb signature, handling separately when patching
   'lchown',
   'link',
@@ -91,7 +91,7 @@ export const SYNC_FUNCTIONS: FMember[] = [
   'chmodSync',
   'chownSync',
   'copyFileSync',
-  'cpSync' as FMember, // added in v16
+  'cpSync', // added in v16
   'existsSync',
   'lchownSync',
   'linkSync',

@@ -1,10 +1,8 @@
 import type { AttributeObject, RawAttribute, RawAttributes } from './attributes';
-import { getClient, getCurrentScope, getIsolationScope, withIsolationScope } from './currentScopes';
+import { getClient, getCurrentScope, getIsolationScope } from './currentScopes';
 import { DEBUG_BUILD } from './debug-build';
 import type { CaptureContext } from './scope';
 import { closeSession, makeSession, updateSession } from './session';
-import { startNewTrace } from './tracing/trace';
-import type { CheckIn, FinishedCheckIn, MonitorConfig } from './types/checkin';
 import type { Event, EventHint } from './types/event';
 import type { EventProcessor } from './types/eventprocessor';
 import type { Extra, Extras } from './types/extra';
@@ -13,12 +11,9 @@ import type { Session, SessionContext } from './types/session';
 import type { SeverityLevel } from './types/severity';
 import type { User } from './types/user';
 import { debug } from './utils/debug-logger';
-import { isThenable } from './utils/is';
-import { uuid4 } from './utils/misc';
 import type { ExclusiveEventHintOrCaptureContext } from './utils/prepareEvent';
 import { parseEventHintOrCaptureContext } from './utils/prepareEvent';
 import { getCombinedScopeData } from './utils/scopeData';
-import { timestampInSeconds } from './utils/time';
 import { GLOBAL_OBJ } from './utils/worldwide';
 
 /**
@@ -144,7 +139,7 @@ export function setAttributes<T extends Record<string, unknown>>(attributes: Raw
  */
 export function setAttribute<
   // oxlint-disable-next-line typescript-eslint/no-explicit-any
-  T extends RawAttribute<T> extends { value: any } | { unit: any } ? AttributeObject : unknown,
+  T extends (RawAttribute<T> extends { value: any } | { unit: any } ? AttributeObject : unknown),
 >(key: string, value: RawAttribute<T>): void {
   getIsolationScope().setAttribute(key, value);
 }
@@ -174,82 +169,12 @@ export function setConversationId(conversationId: string | null | undefined): vo
  * isolation scope. If you call this function after handling a certain error and another error
  * is captured in between, the last one is returned instead of the one you might expect.
  * Also, ids of events that were never sent to Sentry (for example because
- * they were dropped in `beforeSend`) could be returned.
+ * they were dropped by sampling or `beforeSend`) could be returned.
  *
  * @returns The last event id of the isolation scope.
  */
 export function lastEventId(): string | undefined {
   return getIsolationScope().lastEventId();
-}
-
-/**
- * Create a cron monitor check in and send it to Sentry.
- *
- * @param checkIn An object that describes a check in.
- * @param upsertMonitorConfig An optional object that describes a monitor config. Use this if you want
- * to create a monitor automatically when sending a check in.
- */
-export function captureCheckIn(checkIn: CheckIn, upsertMonitorConfig?: MonitorConfig): string {
-  const scope = getCurrentScope();
-  const client = getClient();
-  if (!client) {
-    DEBUG_BUILD && debug.warn('Cannot capture check-in. No client defined.');
-  } else if (!client.captureCheckIn) {
-    DEBUG_BUILD && debug.warn('Cannot capture check-in. Client does not support sending check-ins.');
-  } else {
-    return client.captureCheckIn(checkIn, upsertMonitorConfig, scope);
-  }
-
-  return uuid4();
-}
-
-/**
- * Wraps a callback with a cron monitor check in. The check in will be sent to Sentry when the callback finishes.
- *
- * @param monitorSlug The distinct slug of the monitor.
- * @param callback Callback to be monitored
- * @param upsertMonitorConfig An optional object that describes a monitor config. Use this if you want
- * to create a monitor automatically when sending a check in.
- */
-export function withMonitor<T>(
-  monitorSlug: CheckIn['monitorSlug'],
-  callback: () => T,
-  upsertMonitorConfig?: MonitorConfig,
-): T {
-  function runCallback(): T {
-    const checkInId = captureCheckIn({ monitorSlug, status: 'in_progress' }, upsertMonitorConfig);
-    const now = timestampInSeconds();
-
-    function finishCheckIn(status: FinishedCheckIn['status']): void {
-      captureCheckIn({ monitorSlug, status, checkInId, duration: timestampInSeconds() - now });
-    }
-    // Default behavior without isolateTrace
-    let maybePromiseResult: T;
-    try {
-      maybePromiseResult = callback();
-    } catch (e) {
-      finishCheckIn('error');
-      throw e;
-    }
-
-    if (isThenable(maybePromiseResult)) {
-      return maybePromiseResult.then(
-        r => {
-          finishCheckIn('ok');
-          return r;
-        },
-        e => {
-          finishCheckIn('error');
-          throw e;
-        },
-      ) as T;
-    }
-    finishCheckIn('ok');
-
-    return maybePromiseResult;
-  }
-
-  return withIsolationScope(() => (upsertMonitorConfig?.isolateTrace ? startNewTrace(runCallback) : runCallback()));
 }
 
 /**
@@ -270,7 +195,8 @@ export async function flush(timeout?: number): Promise<boolean> {
 }
 
 /**
- * Call `close()` on the current client, if there is one. See {@link Client.close}.
+ * Call `close()` on the current client, if there is one, and unbind it from the current scope.
+ * See {@link Client.close}.
  *
  * @param timeout Maximum time in ms the client should wait to flush its event queue before shutting down. Omitting this
  * parameter will cause the client to wait until all events are sent before disabling itself.
@@ -278,9 +204,15 @@ export async function flush(timeout?: number): Promise<boolean> {
  * doesn't (or if there's no client defined).
  */
 export async function close(timeout?: number): Promise<boolean> {
-  const client = getClient();
+  const scope = getCurrentScope();
+  const client = scope.getClient();
   if (client) {
-    return client.close(timeout);
+    const result = await client.close(timeout);
+    // Unbind the client, so a later `init()` sets up a new one.
+    if (scope.getClient() === client) {
+      scope.setClient(undefined);
+    }
+    return result;
   }
   DEBUG_BUILD && debug.warn('Cannot flush events and disable SDK. No client defined.');
   return Promise.resolve(false);

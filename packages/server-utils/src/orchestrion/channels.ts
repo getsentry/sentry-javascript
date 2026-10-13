@@ -1,31 +1,41 @@
 import { amqplibChannels } from './config/amqplib';
 import { anthropicAiChannels } from './config/anthropic-ai';
+import { awsSdkChannels } from './config/aws-sdk';
 import { dataloaderChannels } from './config/dataloader';
 import { expressChannels } from './config/express';
 import { firebaseChannels } from './config/firebase';
 import { genericPoolChannels } from './config/generic-pool';
 import { googleGenAiChannels } from './config/google-genai';
 import { graphqlChannels } from './config/graphql';
+import { groqChannels } from './config/groq';
 import { hapiChannels } from './config/hapi';
+import { honoChannels } from './config/hono';
 import { ioredisChannels } from './config/ioredis';
 import { kafkajsChannels } from './config/kafkajs';
 import { knexChannels } from './config/knex';
+import { koaChannels } from './config/koa';
 import { langchainChannels } from './config/langchain';
 import { langgraphChannels } from './config/langgraph';
 import { lruMemoizerChannels } from './config/lru-memoizer';
+import { mastraChannels } from './config/mastra';
+import { mcpServerChannels } from './config/mcp-server';
+import { mistralChannels } from './config/mistral';
 import { mongodbChannels } from './config/mongodb';
 import { mongooseChannels } from './config/mongoose';
 import { mysql2Channels } from './config/mysql2';
 import { mysqlChannels } from './config/mysql';
+import { neonChannels } from './config/neon';
 import { nestjsChannels } from './config/nestjs';
 import { openaiChannels } from './config/openai';
 import { pgChannels } from './config/pg';
+import { piDurableChannels } from './config/pi-durable';
 import { postgresJsChannels } from './config/postgres';
 import { prismaChannels } from './config/prisma';
-import { reactRouterChannels } from './config/react-router';
 import { redisChannels } from './config/redis';
 import { remixChannels } from './config/remix';
 import { tediousChannels } from './config/tedious';
+import { togetherAiChannels } from './config/together-ai';
+import { typesafeChannels } from './config/typesafe';
 import { vercelAiChannels } from './config/vercel-ai';
 
 /**
@@ -47,32 +57,42 @@ import { vercelAiChannels } from './config/vercel-ai';
 export const CHANNELS = {
   ...amqplibChannels,
   ...anthropicAiChannels,
+  ...awsSdkChannels,
   ...dataloaderChannels,
   ...expressChannels,
   ...firebaseChannels,
   ...genericPoolChannels,
   ...googleGenAiChannels,
   ...graphqlChannels,
+  ...groqChannels,
   ...hapiChannels,
+  ...honoChannels,
   ...ioredisChannels,
   ...kafkajsChannels,
   ...knexChannels,
+  ...koaChannels,
   ...langchainChannels,
   ...langgraphChannels,
   ...lruMemoizerChannels,
+  ...mastraChannels,
+  ...mcpServerChannels,
+  ...mistralChannels,
   ...mongodbChannels,
   ...mongooseChannels,
   ...mysql2Channels,
   ...mysqlChannels,
+  ...neonChannels,
   ...nestjsChannels,
   ...openaiChannels,
   ...pgChannels,
+  ...piDurableChannels,
   ...postgresJsChannels,
   ...prismaChannels,
-  ...reactRouterChannels,
   ...redisChannels,
   ...remixChannels,
   ...tediousChannels,
+  ...togetherAiChannels,
+  ...typesafeChannels,
   ...vercelAiChannels,
 } as const;
 

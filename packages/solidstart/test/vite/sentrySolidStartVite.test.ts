@@ -33,7 +33,7 @@ describe('sentrySolidStartVite()', () => {
   });
 
   it("returns only build-instrumentation-file plugin if source maps upload isn't enabled", () => {
-    const plugins = getSentrySolidStartVitePlugins({ sourceMapsUploadOptions: { enabled: false } });
+    const plugins = getSentrySolidStartVitePlugins({ sourcemaps: { disable: true } });
     const names = plugins.map(plugin => plugin.name);
     expect(names).toEqual(['sentry-solidstart-build-instrumentation-file']);
   });
@@ -42,7 +42,7 @@ describe('sentrySolidStartVite()', () => {
     const previousEnv = process.env.NODE_ENV;
     process.env.NODE_ENV = 'development';
 
-    const plugins = getSentrySolidStartVitePlugins({ sourceMapsUploadOptions: { enabled: true } });
+    const plugins = getSentrySolidStartVitePlugins({ sourcemaps: { disable: false } });
     const names = plugins.map(plugin => plugin.name);
     expect(names).toEqual(['sentry-solidstart-build-instrumentation-file']);
 

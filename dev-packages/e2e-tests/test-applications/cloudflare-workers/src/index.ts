@@ -80,12 +80,10 @@ export const MyDurableObject = Sentry.instrumentDurableObjectWithSentry(
     environment: 'qa', // dynamic sampling bias to keep transactions
     tunnel: `http://localhost:3031/`, // proxy server
     tracesSampleRate: 1.0,
-    dataCollection: { userInfo: true },
     transportOptions: {
       // We are doing a lot of events at once in this test
       bufferSize: 1000,
     },
-    enableRpcTracePropagation: true,
   }),
   MyDurableObjectBase,
 );
@@ -96,12 +94,11 @@ export default Sentry.withSentry(
     environment: 'qa', // dynamic sampling bias to keep transactions
     tunnel: `http://localhost:3031/`, // proxy server
     tracesSampleRate: 1.0,
-    dataCollection: { userInfo: true },
     transportOptions: {
       // We are doing a lot of events at once in this test
       bufferSize: 1000,
     },
-    enableRpcTracePropagation: true,
+    rpcTracePropagationBindings: ['MY_DURABLE_OBJECT'],
   }),
   {
     async fetch(request, env) {

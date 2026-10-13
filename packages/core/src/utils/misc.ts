@@ -112,13 +112,34 @@ export function addExceptionMechanism(event: Event, newMechanism?: Partial<Mecha
     return;
   }
 
+  applyExceptionMechanism(firstException, newMechanism);
+}
+
+/**
+ * Adds exception mechanism data to the originally captured (root) exception of a given event.
+ *
+ * @hidden
+ */
+export function addExceptionMechanismToCapturedException(event: Event, newMechanism?: Partial<Mechanism>): void {
+  const exceptions = event.exception?.values;
+
+  // Exception groups identify the originally captured (root) exception with exception_id 0.
+  const capturedException = exceptions?.find(exception => exception.mechanism?.exception_id === 0) ?? exceptions?.[0];
+
+  if (!capturedException) {
+    return;
+  }
+
+  applyExceptionMechanism(capturedException, newMechanism);
+}
+
+function applyExceptionMechanism(exception: Exception, newMechanism?: Partial<Mechanism>): void {
   const defaultMechanism = { type: 'generic', handled: true };
-  const currentMechanism = firstException.mechanism;
-  firstException.mechanism = { ...defaultMechanism, ...currentMechanism, ...newMechanism };
+  const currentMechanism = exception.mechanism;
+  exception.mechanism = { ...defaultMechanism, ...currentMechanism, ...newMechanism };
 
   if (newMechanism && 'data' in newMechanism) {
-    const mergedData = { ...currentMechanism?.data, ...newMechanism.data };
-    firstException.mechanism.data = mergedData;
+    exception.mechanism.data = { ...currentMechanism?.data, ...newMechanism.data };
   }
 }
 
@@ -201,6 +222,9 @@ export function addContextToFrame(lines: string[], frame: StackFrame, linesOfCon
  * caught after that, it will bubble all the way up to the global handlers (which of course we also instrument). This
  * function helps us ensure that even if we encounter the same error more than once, we only record it the first time we
  * see it.
+ *
+ * The client runs this check for every captured exception, also when `dedupeIntegration` is not active.
+ * `dedupeIntegration` drops equal events that come from different error objects.
  *
  * Note: It will ignore primitives (always return `false` and not mark them as seen), as properties can't be set on
  * them. {@link: Object.objectify} can be used on exceptions to convert any that are primitives into their equivalent

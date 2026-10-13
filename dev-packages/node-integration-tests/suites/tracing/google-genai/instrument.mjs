@@ -7,12 +7,4 @@ Sentry.init({
   tracesSampleRate: 1.0,
   dataCollection: { genAI: { inputs: false, outputs: false } },
   transport: loggingTransport,
-  beforeSendTransaction: event => {
-    // Filter out mock express server transactions
-    if (event.transaction.includes('/v1beta')) {
-      return null;
-    }
-    return event;
-  },
-  streamGenAiSpans: true,
 });

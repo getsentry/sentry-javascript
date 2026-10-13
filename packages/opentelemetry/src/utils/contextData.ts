@@ -1,14 +1,10 @@
 import type { Context } from '@opentelemetry/api';
 import type { Scope } from '@sentry/core';
-import { addNonEnumerableProperty, derefWeakRef, makeWeakRef, type MaybeWeakRef } from '@sentry/core';
+import { derefWeakRef, makeWeakRef, type MaybeWeakRef } from '@sentry/core';
 import { SENTRY_SCOPES_CONTEXT_KEY } from '../constants';
 import type { CurrentScopes } from '../types';
 
-const SCOPE_CONTEXT_FIELD = '_scopeContext';
-
-type ScopeWithContext = Scope & {
-  [SCOPE_CONTEXT_FIELD]?: MaybeWeakRef<Context>;
-};
+const SCOPE_CONTEXT_FIELD = 'context';
 
 /**
  * Try to get the current scopes from the given OTEL context.
@@ -37,7 +33,7 @@ export function setScopesOnContext(context: Context, scopes: CurrentScopes): Con
  * request completes but pooled connections retain patched callbacks).
  */
 export function setContextOnScope(scope: Scope, context: Context): void {
-  addNonEnumerableProperty(scope, SCOPE_CONTEXT_FIELD, makeWeakRef(context));
+  scope.refs[SCOPE_CONTEXT_FIELD] = makeWeakRef(context);
 }
 
 /**
@@ -45,5 +41,5 @@ export function setContextOnScope(scope: Scope, context: Context): void {
  * Returns undefined if the context has been garbage collected (when WeakRef is used).
  */
 export function getContextFromScope(scope: Scope): Context | undefined {
-  return derefWeakRef((scope as ScopeWithContext)[SCOPE_CONTEXT_FIELD]);
+  return derefWeakRef(scope.refs[SCOPE_CONTEXT_FIELD] as MaybeWeakRef<Context> | undefined);
 }

@@ -1,73 +1,76 @@
 import { expect, it } from 'vitest';
-import type { SerializedStreamedSpan } from '@sentry/core';
 import {
-  GEN_AI_OPERATION_NAME_ATTRIBUTE,
-  GEN_AI_REQUEST_MAX_TOKENS_ATTRIBUTE,
-  GEN_AI_REQUEST_MODEL_ATTRIBUTE,
-  GEN_AI_REQUEST_TEMPERATURE_ATTRIBUTE,
-  GEN_AI_SYSTEM_ATTRIBUTE,
-  GEN_AI_TOOL_NAME_ATTRIBUTE,
-  GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE,
-  GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE,
-  GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE,
-} from '../../../../../packages/core/src/tracing/ai/gen-ai-attributes';
+  GEN_AI_OPERATION_NAME,
+  GEN_AI_PROVIDER_NAME,
+  GEN_AI_REQUEST_MAX_TOKENS,
+  GEN_AI_REQUEST_MODEL,
+  GEN_AI_REQUEST_TEMPERATURE,
+  GEN_AI_RESPONSE_FINISH_REASONS,
+  GEN_AI_RESPONSE_ID,
+  GEN_AI_RESPONSE_MODEL,
+  GEN_AI_USAGE_INPUT_TOKENS,
+  GEN_AI_USAGE_OUTPUT_TOKENS,
+  GEN_AI_USAGE_TOTAL_TOKENS,
+  SENTRY_SDK_NAME,
+  SENTRY_SDK_VERSION,
+  SENTRY_SEGMENT_ID,
+  SENTRY_SEGMENT_NAME,
+  SENTRY_TRACE_LIFECYCLE,
+  SENTRY_ENVIRONMENT,
+} from '@sentry/conventions/attributes';
+import { SDK_VERSION } from '@sentry/core';
+import { GEN_AI_RESPONSE_STOP_REASON_ATTRIBUTE } from '../../../../../packages/server-utils/src/ai/core/gen-ai-attributes';
 import { createRunner } from '../../../runner';
+import { getSpanOp, getSpansFromEnvelope } from '../../../spanUtils';
 
-// These tests are not exhaustive because the instrumentation is
-// already tested in the node integration tests and we merely
-// want to test that the instrumentation does not break in our
-// cloudflare SDK.
+// This test runs the `@langchain/openai` model (backed by the
+// `openai` SDK, with a canned fetch) on the Workers runtime to verify the
+// LangChain callback instrumentation works end-to-end on Cloudflare.
 
-it('traces langchain chat model, chain, and tool invocations', async ({ signal }) => {
+it('traces a LangChain chat model invocation', async ({ signal }) => {
   const runner = createRunner(__dirname)
     .ignore('event')
     .expect(envelope => {
-      // Transaction item (first item in envelope)
-      const transactionEvent = envelope[1]?.[0]?.[1] as any;
-      expect(transactionEvent.transaction).toBe('GET /');
+      const spans = getSpansFromEnvelope(envelope);
+      const segmentSpan = spans.find(span => span.is_segment);
+      expect(segmentSpan?.name).toBe('GET /');
 
-      // Span container item (second item in same envelope)
-      const container = envelope[1]?.[1]?.[1] as any;
-      expect(container).toBeDefined();
-      expect(container.items).toHaveLength(3);
-      expect(container.items.map((span: SerializedStreamedSpan) => span.name).sort()).toEqual([
-        'chain my_test_chain',
-        'chat claude-3-5-sonnet-20241022',
-        'execute_tool search_tool',
-      ]);
+      const genAiSpans = spans.filter(span => getSpanOp(span)?.startsWith('gen_ai.'));
+      expect(genAiSpans).toHaveLength(1);
 
-      const chatSpan = container.items.find(
-        (span: SerializedStreamedSpan) => span.name === 'chat claude-3-5-sonnet-20241022',
-      );
-      expect(chatSpan).toBeDefined();
-      expect(chatSpan!.status).toBe('ok');
-      expect(chatSpan!.attributes[GEN_AI_OPERATION_NAME_ATTRIBUTE]).toEqual({ type: 'string', value: 'chat' });
-      expect(chatSpan!.attributes['sentry.op']).toEqual({ type: 'string', value: 'gen_ai.chat' });
-      expect(chatSpan!.attributes['sentry.origin']).toEqual({ type: 'string', value: 'auto.ai.langchain' });
-      expect(chatSpan!.attributes[GEN_AI_SYSTEM_ATTRIBUTE]).toEqual({ type: 'string', value: 'anthropic' });
-      expect(chatSpan!.attributes[GEN_AI_REQUEST_MODEL_ATTRIBUTE]).toEqual({
-        type: 'string',
-        value: 'claude-3-5-sonnet-20241022',
+      expect(genAiSpans[0]).toEqual({
+        trace_id: expect.any(String),
+        span_id: expect.any(String),
+        parent_span_id: expect.any(String),
+        name: 'chat gpt-3.5-turbo',
+        start_timestamp: expect.any(Number),
+        end_timestamp: expect.any(Number),
+        status: 'ok',
+        is_segment: false,
+        attributes: {
+          'sentry.origin': { value: 'auto.ai.langchain', type: 'string' },
+          'sentry.op': { value: 'gen_ai.chat', type: 'string' },
+          [GEN_AI_PROVIDER_NAME]: { value: 'openai', type: 'string' },
+          [GEN_AI_OPERATION_NAME]: { value: 'chat', type: 'string' },
+          [GEN_AI_REQUEST_MODEL]: { value: 'gpt-3.5-turbo', type: 'string' },
+          [GEN_AI_REQUEST_TEMPERATURE]: { value: 0.7, type: 'double' },
+          [GEN_AI_REQUEST_MAX_TOKENS]: { value: 100, type: 'integer' },
+          [GEN_AI_RESPONSE_FINISH_REASONS]: { value: '["stop"]', type: 'string' },
+          [GEN_AI_USAGE_INPUT_TOKENS]: { value: 10, type: 'integer' },
+          [GEN_AI_USAGE_OUTPUT_TOKENS]: { value: 15, type: 'integer' },
+          [GEN_AI_USAGE_TOTAL_TOKENS]: { value: 25, type: 'integer' },
+          [GEN_AI_RESPONSE_MODEL]: { value: 'gpt-3.5-turbo', type: 'string' },
+          [GEN_AI_RESPONSE_ID]: { value: 'chatcmpl-mock123', type: 'string' },
+          [GEN_AI_RESPONSE_STOP_REASON_ATTRIBUTE]: { value: 'stop', type: 'string' },
+          'sentry.is_localhost': { value: true, type: 'boolean' },
+          [SENTRY_TRACE_LIFECYCLE]: { value: 'stream', type: 'string' },
+          [SENTRY_SEGMENT_NAME]: { value: segmentSpan!.name, type: 'string' },
+          [SENTRY_SEGMENT_ID]: { value: segmentSpan!.span_id, type: 'string' },
+          [SENTRY_SDK_NAME]: { value: 'sentry.javascript.cloudflare', type: 'string' },
+          [SENTRY_SDK_VERSION]: { value: SDK_VERSION, type: 'string' },
+          [SENTRY_ENVIRONMENT]: { value: 'production', type: 'string' },
+        },
       });
-      expect(chatSpan!.attributes[GEN_AI_REQUEST_TEMPERATURE_ATTRIBUTE]).toEqual({ type: 'double', value: 0.7 });
-      expect(chatSpan!.attributes[GEN_AI_REQUEST_MAX_TOKENS_ATTRIBUTE]).toEqual({ type: 'integer', value: 100 });
-      expect(chatSpan!.attributes[GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE]).toEqual({ type: 'integer', value: 10 });
-      expect(chatSpan!.attributes[GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE]).toEqual({ type: 'integer', value: 15 });
-      expect(chatSpan!.attributes[GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE]).toEqual({ type: 'integer', value: 25 });
-
-      const chainSpan = container.items.find((span: SerializedStreamedSpan) => span.name === 'chain my_test_chain');
-      expect(chainSpan).toBeDefined();
-      expect(chainSpan!.status).toBe('ok');
-      expect(chainSpan!.attributes['sentry.origin']).toEqual({ type: 'string', value: 'auto.ai.langchain' });
-      expect(chainSpan!.attributes['sentry.op']).toEqual({ type: 'string', value: 'gen_ai.invoke_agent' });
-      expect(chainSpan!.attributes['langchain.chain.name']).toEqual({ type: 'string', value: 'my_test_chain' });
-
-      const toolSpan = container.items.find((span: SerializedStreamedSpan) => span.name === 'execute_tool search_tool');
-      expect(toolSpan).toBeDefined();
-      expect(toolSpan!.status).toBe('ok');
-      expect(toolSpan!.attributes['sentry.origin']).toEqual({ type: 'string', value: 'auto.ai.langchain' });
-      expect(toolSpan!.attributes['sentry.op']).toEqual({ type: 'string', value: 'gen_ai.execute_tool' });
-      expect(toolSpan!.attributes[GEN_AI_TOOL_NAME_ATTRIBUTE]).toEqual({ type: 'string', value: 'search_tool' });
     })
     .start(signal);
   await runner.makeRequest('get', '/');

@@ -67,7 +67,7 @@ sentryTest('should capture feedback', async ({ getLocalTestUrl, page }) => {
       name: 'sentry.javascript.browser',
       packages: expect.anything(),
       settings: {
-        infer_ip: 'never',
+        infer_ip: 'auto',
       },
     },
     request: {

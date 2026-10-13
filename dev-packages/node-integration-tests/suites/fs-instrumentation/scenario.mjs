@@ -1,4 +1,3 @@
-import * as Sentry from '@sentry/node';
 import { startExpressServerAndSendPortToRunner } from '@sentry-internal/node-integration-tests';
 import express from 'express';
 import * as fs from 'fs';
@@ -126,7 +125,5 @@ app.get('/symlink', async (_, res) => {
 
   res.send('done');
 });
-
-Sentry.setupExpressErrorHandler(app);
 
 startExpressServerAndSendPortToRunner(app);

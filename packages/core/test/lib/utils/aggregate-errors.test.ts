@@ -1,9 +1,11 @@
+import { runInNewContext } from 'node:vm';
 import { describe, expect, test } from 'vitest';
 import type { ExtendedError } from '../../../src/types/error';
 import type { Event, EventHint } from '../../../src/types/event';
 import type { Exception } from '../../../src/types/exception';
 import type { StackParser } from '../../../src/types/stacktrace';
 import { applyAggregateErrorsToEvent } from '../../../src/utils/aggregate-errors';
+import { addExceptionMechanismToCapturedException } from '../../../src/utils/misc';
 import { createStackParser } from '../../../src/utils/stacktrace';
 
 const stackParser = createStackParser([0, line => ({ filename: line })]);
@@ -113,6 +115,108 @@ describe('applyAggregateErrorsToEvent()', () => {
         ],
       },
     });
+  });
+
+  test('keeps a capture mechanism on the captured error instead of its causes', () => {
+    const cause = new Error('Failure 1');
+    const errorCause = Object.assign(new Error('Failure 2'), { cause });
+    const error = Object.assign(new Error('Failure 3'), { cause: errorCause });
+    const event: Event = { exception: { values: [exceptionFromError(stackParser, error)] } };
+    const eventHint: EventHint = {
+      originalException: error,
+      mechanism: { handled: false, type: 'auto.http.example' },
+    };
+
+    applyAggregateErrorsToEvent(exceptionFromError, stackParser, 'cause', 100, event, eventHint);
+    addExceptionMechanismToCapturedException(event, eventHint.mechanism);
+
+    expect(event.exception?.values).toStrictEqual([
+      {
+        type: 'Error',
+        value: 'Failure 1',
+        mechanism: {
+          exception_id: 2,
+          handled: true,
+          parent_id: 1,
+          source: 'cause',
+          type: 'chained',
+        },
+      },
+      {
+        type: 'Error',
+        value: 'Failure 2',
+        mechanism: {
+          exception_id: 1,
+          handled: true,
+          parent_id: 0,
+          source: 'cause',
+          type: 'chained',
+        },
+      },
+      {
+        type: 'Error',
+        value: 'Failure 3',
+        mechanism: {
+          exception_id: 0,
+          handled: false,
+          type: 'auto.http.example',
+        },
+      },
+    ]);
+  });
+
+  test('keeps exception group metadata when applying a capture mechanism to an AggregateError', () => {
+    const error = new FakeAggregateError([new Error('Child Error')], 'Aggregate Error');
+    const event: Event = { exception: { values: [exceptionFromError(stackParser, error)] } };
+    const eventHint: EventHint = {
+      originalException: error,
+      mechanism: { handled: false, type: 'auto.http.example' },
+    };
+
+    applyAggregateErrorsToEvent(exceptionFromError, stackParser, 'cause', 100, event, eventHint);
+    addExceptionMechanismToCapturedException(event, eventHint.mechanism);
+
+    expect(event.exception?.values).toStrictEqual([
+      {
+        type: 'Error',
+        value: 'Child Error',
+        mechanism: {
+          exception_id: 1,
+          handled: true,
+          parent_id: 0,
+          source: 'errors[0]',
+          type: 'chained',
+        },
+      },
+      {
+        type: 'AggregateError',
+        value: 'Aggregate Error',
+        mechanism: {
+          exception_id: 0,
+          handled: false,
+          is_exception_group: true,
+          type: 'auto.http.example',
+        },
+      },
+    ]);
+  });
+
+  test('recursively walks errors created in another realm', () => {
+    const originalException = runInNewContext(
+      `new AggregateError([new Error('Aggregate child')], 'Root Error', { cause: new Error('Cause') })`,
+    ) as ExtendedError;
+    expect(originalException).not.toBeInstanceOf(Error);
+
+    const event: Event = { exception: { values: [exceptionFromError(stackParser, originalException)] } };
+    const eventHint: EventHint = { originalException };
+
+    applyAggregateErrorsToEvent(exceptionFromError, stackParser, 'cause', 100, event, eventHint);
+
+    expect(event.exception?.values?.map(exception => exception.value)).toStrictEqual([
+      'Aggregate child',
+      'Cause',
+      'Root Error',
+    ]);
   });
 
   test('should not modify event if there are no attached errors', () => {

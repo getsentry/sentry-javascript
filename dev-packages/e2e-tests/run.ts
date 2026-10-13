@@ -1,11 +1,12 @@
 /* eslint-disable no-console */
 import { spawn } from 'child_process';
 import * as dotenv from 'dotenv';
-import { mkdtemp, readFile, rm } from 'fs/promises';
+import { mkdir, mkdtemp, readFile, rm } from 'fs/promises';
 import { sync as globSync } from 'glob';
 import { tmpdir } from 'os';
 import { join, resolve } from 'path';
 import { copyToTemp } from './lib/copyToTemp';
+import { applyRuntimeFiles } from './lib/runtimeFiles';
 import { syncPackedTarballSymlinks } from './lib/syncPackedTarballSymlinks';
 import { addPnpmOverrides } from './lib/pnpmOverrides';
 
@@ -13,6 +14,9 @@ interface SentryTestVariant {
   'build-command': string;
   'assert-command'?: string;
   label?: string;
+  skip?: boolean;
+  /** Runtime of the variant (`bun`, `deno` or `cloudflare`). Sets `RUNTIME` and selects the runtime-specific files. */
+  runtime?: string;
 }
 
 interface PackageJson {
@@ -82,7 +86,14 @@ async function getVariantBuildCommand(
   packageJsonPath: string,
   variantLabel: string,
   testAppPath: string,
-): Promise<{ buildCommand: string; assertCommand: string; testLabel: string; matchedVariantLabel?: string }> {
+): Promise<{
+  buildCommand: string;
+  assertCommand: string;
+  testLabel: string;
+  matchedVariantLabel?: string;
+  skip?: boolean;
+  runtime?: string;
+}> {
   try {
     const packageJsonContent = await readFile(packageJsonPath, 'utf-8');
     const packageJson: PackageJson = JSON.parse(packageJsonContent);
@@ -100,6 +111,8 @@ async function getVariantBuildCommand(
         assertCommand: matchingVariant['assert-command'] || 'pnpm test:assert',
         testLabel: matchingVariant.label || testAppPath,
         matchedVariantLabel: matchingVariant.label,
+        skip: matchingVariant.skip,
+        runtime: matchingVariant.runtime,
       };
     }
 
@@ -183,6 +196,13 @@ async function run(): Promise<void> {
   const env = {
     ...process.env,
     ...envVarsToInject,
+    // Volta applies a project's node pin only to commands it manages, and it
+    // manages pnpm only when this is set. Without it, the `volta run pnpm`
+    // calls below build each app on whatever node is already on PATH rather
+    // than the version its package.json pins. CI reads that pin directly
+    // (see `node-version-file` in .github/workflows/build.yml), so leaving
+    // this unset makes local runs fail on apps CI passes.
+    VOLTA_FEATURE_PNPM: '1',
   };
 
   console.log('Syncing packed tarball symlinks...');
@@ -210,14 +230,23 @@ async function run(): Promise<void> {
     await copyToTemp(originalPath, tmpDirPath);
     await addPnpmOverrides(tmpDirPath, packedDirPath);
 
+    // The Sentry CLI keeps its config and a SQLite cache in `~/.sentry`, so without this every
+    // build reads and writes the machine's global CLI state. That leaks a developer's real auth
+    // config into the run, and any state the natively installed CLI leaves behind - notably a
+    // `cli.db` it has switched to WAL journal mode, which the CLI's wasm SQLite build cannot open
+    // at all - breaks the build with `unable to open database file`. Give each app its own.
+    const sentryConfigDir = join(tmpDirPath, '.tmp_sentry_home');
+    await mkdir(sentryConfigDir, { recursive: true });
+
     const cwd = tmpDirPath;
     // Resolve variant if needed
-    const { buildCommand, assertCommand, testLabel, matchedVariantLabel } = variantLabel
+    const { buildCommand, assertCommand, testLabel, matchedVariantLabel, runtime } = variantLabel
       ? await getVariantBuildCommand(join(tmpDirPath, 'package.json'), variantLabel, testAppPath)
       : {
           buildCommand: 'pnpm test:build',
           assertCommand: 'pnpm test:assert',
           testLabel: testAppPath,
+          runtime: undefined,
         };
 
     // Print which variant we're using if found
@@ -225,8 +254,14 @@ async function run(): Promise<void> {
       console.log(`\n\nUsing variant: "${matchedVariantLabel}"\n\n`);
     }
 
+    if (runtime) {
+      applyRuntimeFiles(tmpDirPath, runtime);
+    }
+
+    const appEnv = { ...env, SENTRY_CONFIG_DIR: sentryConfigDir, ...(runtime ? { RUNTIME: runtime } : {}) };
+
     console.log(`Building ${testLabel} in ${tmpDirPath}...`);
-    await asyncExec(`volta run ${buildCommand}`, { env, cwd });
+    await asyncExec(`volta run ${buildCommand}`, { env: appEnv, cwd });
 
     console.log(`Testing ${testLabel}...`);
     // Pass command as a string to support shell features (env vars, operators like &&)
@@ -241,10 +276,10 @@ async function run(): Promise<void> {
       return flag;
     });
     const testCommand = `volta run ${assertCommand}${quotedTestFlags.length > 0 ? ` ${quotedTestFlags.join(' ')}` : ''}`;
-    await asyncExec(testCommand, { env, cwd });
+    await asyncExec(testCommand, { env: appEnv, cwd });
 
     // clean up (although this is tmp, still nice to do)
-    await rm(tmpDirPath, { recursive: true });
+    await rm(tmpDirPath, { recursive: true, force: true, maxRetries: 5, retryDelay: 300 });
   }
 }
 

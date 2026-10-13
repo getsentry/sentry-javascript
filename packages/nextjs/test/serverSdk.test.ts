@@ -1,6 +1,7 @@
 import type { Integration } from '@sentry/core';
-import { GLOBAL_OBJ } from '@sentry/core';
-import { getCurrentScope } from '@sentry/node';
+import { GLOBAL_OBJ, getMainCarrier, withIsolationScope } from '@sentry/core';
+import { setAsyncLocalStorageAsyncContextStrategy } from '@sentry/server-utils';
+import { close, getCurrentScope, getGlobalScope } from '@sentry/node';
 import * as SentryNode from '@sentry/node';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { TRANSACTION_ATTR_SHOULD_DROP_TRANSACTION } from '../src/common/span-attributes-with-logic-attached';
@@ -18,13 +19,13 @@ function findIntegrationByName(integrations: Integration[] = [], name: string): 
 describe('Server init()', () => {
   afterEach(() => {
     vi.clearAllMocks();
+    vi.unstubAllGlobals();
 
-    SentryNode.getGlobalScope().clear();
-    SentryNode.getIsolationScope().clear();
-    SentryNode.getCurrentScope().clear();
-    SentryNode.getCurrentScope().setClient(undefined);
+    getMainCarrier().__SENTRY__ = undefined;
 
     delete process.env.VERCEL;
+    delete (process as { turbopack?: boolean }).turbopack;
+    delete (GLOBAL_OBJ as typeof GLOBAL_OBJ & { _sentryRelease?: string })._sentryRelease;
   });
 
   it('inits the Node SDK', () => {
@@ -70,6 +71,124 @@ describe('Server init()', () => {
     expect(nodeInit).toHaveBeenCalledTimes(1);
   });
 
+  it('registers its event processors on the client', () => {
+    const client = init({});
+
+    expect(client?.getEventProcessors().map(processor => processor.id)).toContain('DropReactControlFlowErrors');
+  });
+
+  it('does not add event processors to the global scope after close()', async () => {
+    const globalProcessorCount = getGlobalScope().getScopeData().eventProcessors.length;
+
+    init({});
+    await close();
+    init({});
+
+    expect(getGlobalScope().getScopeData().eventProcessors.length).toBe(globalProcessorCount);
+  });
+
+  it('returns the existing client if already initialized', () => {
+    const first = init({});
+    const second = init({});
+
+    expect(first).toBeDefined();
+    expect(second).toBe(first);
+  });
+
+  it('skips init on Cloudflare Workers in a request of `withSentry` from `@sentry/cloudflare`', () => {
+    vi.stubGlobal('navigator', { userAgent: 'Cloudflare-Workers' });
+    setAsyncLocalStorageAsyncContextStrategy();
+
+    withIsolationScope(() => init({}));
+
+    expect(nodeInit).not.toHaveBeenCalled();
+  });
+
+  it('sets the `turbopack` tag on Cloudflare Workers in a request of `withSentry` from `@sentry/cloudflare`', () => {
+    vi.stubGlobal('navigator', { userAgent: 'Cloudflare-Workers' });
+    setAsyncLocalStorageAsyncContextStrategy();
+    (process as { turbopack?: boolean }).turbopack = true;
+
+    withIsolationScope(() => init({}));
+
+    expect(getGlobalScope().getScopeData().tags.turbopack).toBe(true);
+  });
+
+  it('adds its event processors to the global scope once on Cloudflare Workers in a request of `withSentry` from `@sentry/cloudflare`', () => {
+    vi.stubGlobal('navigator', { userAgent: 'Cloudflare-Workers' });
+    setAsyncLocalStorageAsyncContextStrategy();
+
+    withIsolationScope(() => {
+      init({});
+      init({});
+    });
+
+    expect(
+      getGlobalScope()
+        .getScopeData()
+        .eventProcessors.filter(processor => processor.id === 'DropReactControlFlowErrors'),
+    ).toHaveLength(1);
+  });
+
+  it('inits on Cloudflare Workers outside of a request of `withSentry` from `@sentry/cloudflare`', () => {
+    vi.stubGlobal('navigator', { userAgent: 'Cloudflare-Workers' });
+    setAsyncLocalStorageAsyncContextStrategy();
+
+    init({});
+
+    expect(nodeInit).toHaveBeenCalledTimes(1);
+  });
+
+  it('inits outside of Cloudflare Workers when an AsyncLocalStorage strategy is installed', () => {
+    setAsyncLocalStorageAsyncContextStrategy();
+
+    withIsolationScope(() => init({}));
+
+    expect(nodeInit).toHaveBeenCalledTimes(1);
+  });
+
+  it('sets the release on the client of `@sentry/cloudflare` when it has none', () => {
+    vi.stubGlobal('navigator', { userAgent: 'Cloudflare-Workers' });
+    const client = SentryNode.init({
+      dsn: 'https://public@dsn.ingest.sentry.io/1337',
+      enableOpenTelemetrySetup: false,
+    });
+    // `init` of `@sentry/node` takes a release from CI env vars like `GITHUB_SHA`.
+    client!.getOptions().release = undefined;
+
+    withIsolationScope(() => init({ release: '1.2.3' }));
+
+    expect(client!.getOptions().release).toBe('1.2.3');
+    expect((GLOBAL_OBJ as typeof GLOBAL_OBJ & { _sentryRelease?: string })._sentryRelease).toBe('1.2.3');
+  });
+
+  it('keeps the release of the client of `@sentry/cloudflare`', () => {
+    vi.stubGlobal('navigator', { userAgent: 'Cloudflare-Workers' });
+    const client = SentryNode.init({
+      dsn: 'https://public@dsn.ingest.sentry.io/1337',
+      enableOpenTelemetrySetup: false,
+      release: 'worker@2.0.0',
+    });
+
+    withIsolationScope(() => init({ release: '1.2.3' }));
+
+    expect(client!.getOptions().release).toBe('worker@2.0.0');
+  });
+
+  it('adds its event processors to the global scope when the client of `@sentry/cloudflare` exists', () => {
+    vi.stubGlobal('navigator', { userAgent: 'Cloudflare-Workers' });
+    SentryNode.init({ dsn: 'https://public@dsn.ingest.sentry.io/1337', enableOpenTelemetrySetup: false });
+
+    withIsolationScope(() => init({}));
+
+    // With `cacheClient: false`, each request has a new client, so only the global scope reaches all of them.
+    expect(
+      getGlobalScope()
+        .getScopeData()
+        .eventProcessors.filter(processor => processor.id === 'DropReactControlFlowErrors'),
+    ).toHaveLength(1);
+  });
+
   // TODO: test `vercel` tag when running on Vercel
   // Can't just add the test and set env variables, since the value in `index.server.ts`
   // is resolved when importing.
@@ -103,6 +222,50 @@ describe('Server init()', () => {
       expect(onUncaughtExceptionIntegration).toBeDefined();
     });
 
+    describe('`use cache` integration', () => {
+      const CACHE_HANDLERS_INSTRUMENTED = Symbol.for('sentry.nextjs.cacheHandlersInstrumented');
+      const DSN = 'https://public@dsn.ingest.sentry.io/1337';
+
+      function isUseCacheInstrumented(): boolean {
+        return (globalThis as Record<symbol, unknown>)[CACHE_HANDLERS_INSTRUMENTED] === true;
+      }
+
+      afterEach(() => {
+        vi.unstubAllEnvs();
+        Reflect.deleteProperty(globalThis, CACHE_HANDLERS_INSTRUMENTED);
+      });
+
+      it('adds the integration to the default integrations', () => {
+        init({});
+
+        expect(nodeInit).toHaveBeenLastCalledWith(
+          expect.objectContaining({
+            defaultIntegrations: expect.arrayContaining([expect.objectContaining({ name: 'NextjsUseCache' })]),
+          }),
+        );
+      });
+
+      it('instruments the cache handlers when tracing is enabled', () => {
+        init({ dsn: DSN, tracesSampleRate: 1 });
+
+        expect(isUseCacheInstrumented()).toBe(true);
+      });
+
+      it('instruments the cache handlers when tracing is enabled via `SENTRY_TRACES_SAMPLE_RATE`', () => {
+        vi.stubEnv('SENTRY_TRACES_SAMPLE_RATE', '1');
+
+        init({ dsn: DSN });
+
+        expect(isUseCacheInstrumented()).toBe(true);
+      });
+
+      it('does not instrument the cache handlers when tracing is disabled', () => {
+        init({ dsn: DSN });
+
+        expect(isUseCacheInstrumented()).toBe(false);
+      });
+    });
+
     it('supports passing unrelated integrations through options', () => {
       init({ integrations: [SentryNode.consoleIntegration()] });
 
@@ -111,6 +274,16 @@ describe('Server init()', () => {
 
       expect(consoleIntegration).toBeDefined();
     });
+  });
+
+  it('initializes again after the existing client is closed', async () => {
+    const first = init({});
+    await first?.close();
+    const second = init({});
+
+    expect(nodeInit).toHaveBeenCalledTimes(2);
+    expect(second).toBeDefined();
+    expect(second).not.toBe(first);
   });
 
   it('returns client from init', () => {
@@ -156,10 +329,7 @@ describe('Server init()', () => {
 
     beforeEach(() => {
       // Reset the global scope to allow re-initialization
-      SentryNode.getGlobalScope().clear();
-      SentryNode.getIsolationScope().clear();
-      SentryNode.getCurrentScope().clear();
-      SentryNode.getCurrentScope().setClient(undefined);
+      getMainCarrier().__SENTRY__ = undefined;
     });
 
     afterEach(() => {
@@ -231,10 +401,7 @@ describe('Server init()', () => {
 
     beforeEach(() => {
       // Reset the global scope to allow re-initialization
-      SentryNode.getGlobalScope().clear();
-      SentryNode.getIsolationScope().clear();
-      SentryNode.getCurrentScope().clear();
-      SentryNode.getCurrentScope().setClient(undefined);
+      getMainCarrier().__SENTRY__ = undefined;
     });
 
     afterEach(() => {

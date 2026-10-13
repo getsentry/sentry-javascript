@@ -1,13 +1,19 @@
+import { addNonEnumerableProperty, getClient, hasSpanStreamingEnabled, startSpan } from '@sentry/core';
+import { flushIfServerless } from '@sentry/core/server';
 import {
-  addNonEnumerableProperty,
-  flushIfServerless,
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
-  startSpan,
-} from '@sentry/core';
+  SENTRY_SEGMENT_NAME_SOURCE,
+  CODE_FUNCTION_NAME,
+  HTTP_REQUEST_METHOD,
+  HTTP_ROUTE,
+  SENTRY_DESCRIPTION,
+  SENTRY_OP,
+  URL_PATH,
+  SENTRY_ORIGIN,
+} from '@sentry/conventions/attributes';
+import { FUNCTION } from '@sentry/conventions/op';
 import type { LoadEvent, ServerLoadEvent } from '@sveltejs/kit';
 import type { SentryWrappedFlag } from '../common/utils';
-import { getRouteId } from '../common/utils';
+import { getPathname, getRouteId } from '../common/utils';
 import { sendErrorToSentry } from './utils';
 
 type PatchedLoadEvent = LoadEvent & SentryWrappedFlag;
@@ -32,20 +38,30 @@ export function wrapLoadWithSentry<T extends (...args: any) => any>(origLoad: T)
         return wrappingTarget.apply(thisArg, args);
       }
 
-      addNonEnumerableProperty(event as unknown as Record<string, unknown>, '__sentry_wrapped__', true);
+      addNonEnumerableProperty(event, '__sentry_wrapped__', true);
 
-      const routeId = getRouteId(event);
+      const routeId = getRouteId(event) ?? undefined;
+      const pathname = getPathname(event);
+      const routeOrPathname = routeId ? routeId : pathname;
+
+      const client = getClient();
+      const hasSpanStreaming = !!client && hasSpanStreamingEnabled(client);
 
       try {
         // We need to await before returning, otherwise we won't catch any errors thrown by the load function
         return await startSpan(
           {
-            op: 'function.sveltekit.load',
+            name: hasSpanStreaming ? 'load' : routeOrPathname,
             attributes: {
-              [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.sveltekit',
-              [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: routeId ? 'route' : 'url',
+              [SENTRY_OP]: FUNCTION,
+              [CODE_FUNCTION_NAME]: 'load',
+              [SENTRY_ORIGIN]: 'auto.function.sveltekit',
+              [SENTRY_SEGMENT_NAME_SOURCE]: routeId ? 'route' : 'url',
+              [URL_PATH]: pathname,
+              [HTTP_ROUTE]: routeId,
+              // Relay infers the description from `code.function.name`, which would drop the route.
+              ...(hasSpanStreaming && { [SENTRY_DESCRIPTION]: routeOrPathname }),
             },
-            name: routeId ? routeId : event.url.pathname,
           },
           () => wrappingTarget.apply(thisArg, args),
         );
@@ -92,24 +108,35 @@ export function wrapServerLoadWithSentry<T extends (...args: any) => any>(origSe
         return wrappingTarget.apply(thisArg, args);
       }
 
-      addNonEnumerableProperty(event as unknown as Record<string, unknown>, '__sentry_wrapped__', true);
+      addNonEnumerableProperty(event, '__sentry_wrapped__', true);
 
       // Accessing any member of `event.route` causes SvelteKit to invalidate the
       // server `load` function's data on every route change. We use `getRouteId` which uses
       // SvelteKit 2's `untrack` when available, otherwise getOwnPropertyDescriptor for 1.x.
-      const routeId = getRouteId(event);
+      const routeId = getRouteId(event) ?? undefined;
+      const pathname = getPathname(event);
+      const routeOrPathname = routeId ? routeId : pathname;
+
+      const client = getClient();
+      const hasSpanStreaming = !!client && hasSpanStreamingEnabled(client);
 
       try {
         // We need to await before returning, otherwise we won't catch any errors thrown by the load function
         return await startSpan(
           {
-            op: 'function.sveltekit.server.load',
             attributes: {
-              [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.sveltekit',
-              [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: routeId ? 'route' : 'url',
-              'http.method': event.request.method,
+              [SENTRY_OP]: FUNCTION,
+              [CODE_FUNCTION_NAME]: 'load',
+              [SENTRY_ORIGIN]: 'auto.function.sveltekit.server',
+              [SENTRY_SEGMENT_NAME_SOURCE]: routeId ? 'route' : 'url',
+              [HTTP_REQUEST_METHOD]: event.request.method,
+              [URL_PATH]: pathname,
+              [HTTP_ROUTE]: routeId,
+              // Relay infers the description from `code.function.name`, which would drop the route.
+              ...(hasSpanStreaming && { [SENTRY_DESCRIPTION]: routeOrPathname }),
             },
-            name: routeId ? routeId : event.url.pathname,
+            // With span streaming, span names have to be low cardinality, so we use the function name.
+            name: hasSpanStreaming ? 'load' : routeOrPathname,
           },
           () => wrappingTarget.apply(thisArg, args),
         );

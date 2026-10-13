@@ -1,3 +1,6 @@
+import type * as FsModule from 'fs';
+import * as os from 'os';
+import * as path from 'path';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { SupportedSvelteKitAdapters } from '../../src/vite/detectAdapter';
 import { getAdapterOutputDir, getHooksFileName, loadSvelteConfig } from '../../src/vite/svelteConfig';
@@ -5,8 +8,10 @@ import { getAdapterOutputDir, getHooksFileName, loadSvelteConfig } from '../../s
 let existsFile: any;
 
 describe('loadSvelteConfig', () => {
-  vi.mock('fs', () => {
+  vi.mock('fs', async importOriginal => {
+    const actual = await importOriginal<typeof FsModule>();
     return {
+      ...actual,
       existsSync: () => existsFile,
     };
   });
@@ -63,25 +68,54 @@ describe('getAdapterOutputDir', () => {
   };
 
   it('returns the output directory of the Node adapter', async () => {
-    const outputDir = await getAdapterOutputDir({ kit: { adapter: mockedAdapter } }, 'node');
+    const outputDir = await getAdapterOutputDir({ adapter: mockedAdapter }, 'node');
     expect(outputDir).toEqual('customBuildDir');
   });
 
+  it("doesn't let the Node adapter delete the real output directory", async () => {
+    const actualFs = await vi.importActual<typeof FsModule>('fs');
+    const originalCwd = process.cwd();
+    const projectDir = actualFs.mkdtempSync(path.join(os.tmpdir(), 'sentry-sveltekit-test-'));
+    actualFs.mkdirSync(path.join(projectDir, 'customOut'));
+    actualFs.writeFileSync(path.join(projectDir, 'customOut', 'index.js'), '');
+
+    // Like `@sveltejs/adapter-node` v6, which removes its output dir itself instead of via `builder.rimraf`
+    const nodeAdapter = {
+      name: '@sveltejs/adapter-node',
+      async adapt(builder: any) {
+        actualFs.rmSync('customOut', { force: true, recursive: true });
+        builder.writeClient(`customOut/client${builder.config.paths.base}`);
+      },
+    };
+
+    process.chdir(projectDir);
+    try {
+      const outputDir = await getAdapterOutputDir({ adapter: nodeAdapter }, 'node');
+
+      expect(outputDir).toEqual('customOut');
+      expect(process.cwd()).toEqual(actualFs.realpathSync(projectDir));
+      expect(actualFs.readdirSync(path.join(projectDir, 'customOut'))).toEqual(['index.js']);
+    } finally {
+      process.chdir(originalCwd);
+      actualFs.rmSync(projectDir, { force: true, recursive: true });
+    }
+  });
+
   it('returns the output directory of the Cloudflare adapter', async () => {
-    const outputDir = await getAdapterOutputDir({ kit: { outDir: 'customOutDir' } }, 'cloudflare');
+    const outputDir = await getAdapterOutputDir({ outDir: 'customOutDir' }, 'cloudflare');
     expect(outputDir).toEqual('customOutDir/cloudflare');
   });
 
   it.each(['vercel', 'auto', 'other'] as SupportedSvelteKitAdapters[])(
     'returns the config.kit.outdir directory for adapter-%s',
     async adapter => {
-      const outputDir = await getAdapterOutputDir({ kit: { outDir: 'customOutDir' } }, adapter);
+      const outputDir = await getAdapterOutputDir({ outDir: 'customOutDir' }, adapter);
       expect(outputDir).toEqual('customOutDir/output');
     },
   );
 
   it('falls back to the default out dir for all other adapters if outdir is not specified in the config', async () => {
-    const outputDir = await getAdapterOutputDir({ kit: {} }, 'vercel');
+    const outputDir = await getAdapterOutputDir({}, 'vercel');
     expect(outputDir).toEqual('.svelte-kit/output');
   });
 });
@@ -93,7 +127,7 @@ describe('getHooksFileName', () => {
   });
 
   it('returns the custom hooks file name if specified in the config', () => {
-    const hooksFileName = getHooksFileName({ kit: { files: { hooks: { server: 'serverhooks' } } } }, 'server');
+    const hooksFileName = getHooksFileName({ files: { hooks: { server: 'serverhooks' } } }, 'server');
     expect(hooksFileName).toEqual('serverhooks');
   });
 });

@@ -270,6 +270,17 @@ async function run() {
     } catch {
       // Error is expected and handled
     }
+
+    // scenario: parse responses
+    await client.chat.completions.parse({
+      model: 'gpt-4o',
+      messages: [{ role: 'user', content: 'What is the capital of France?' }],
+    });
+
+    await client.responses.parse({
+      model: 'gpt-4o',
+      input: 'What is the capital of France?',
+    });
   });
 
   server.close();

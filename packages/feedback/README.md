@@ -6,6 +6,8 @@
 
 # Sentry Integration for Feedback
 
+Sentry SDK integration for user feedback.
+
 > [!NOTE]
 > This package is an internal library published for use by Sentry-owned JavaScript SDK packages. It is not part of the
 > public API contract and may change in any release. Do not rely on SemVer compatibility if you depend on it directly.
@@ -17,13 +19,12 @@ any feedback/concerns.
 To view Feedback in Sentry, your
 [Sentry organization must be an early adopter](https://docs.sentry.io/product/accounts/early-adopter-features/).
 
-## Installation
+## Documentation
 
-Please read the [official integration documentation](https://docs.sentry.io/platforms/javascript/user-feedback/) for
-installation instructions.
+- [Getting started](https://docs.sentry.io/platforms/javascript/user-feedback/)
+- [Configuration](https://docs.sentry.io/platforms/javascript/user-feedback/configuration/)
 
-## Configuration
+## Support
 
-The Feedback integration is highly customizable, please read the
-[official integration documentation](https://docs.sentry.io/platforms/javascript/user-feedback/configuration/) for the
-most up-to-date configuration options.
+- [Report a bug](https://github.com/getsentry/sentry-javascript/issues/new/choose)
+- [Contributing](https://github.com/getsentry/sentry-javascript/blob/develop/CONTRIBUTING.md)

@@ -2,12 +2,8 @@ import { expect } from '@playwright/test';
 import type * as Sentry from '@sentry/browser';
 import type { EventEnvelopeHeaders } from '@sentry/core';
 import { sentryTest } from '../../../utils/fixtures';
-import {
-  envelopeRequestParser,
-  shouldSkipTracingTest,
-  waitForErrorRequest,
-  waitForTransactionRequest,
-} from '../../../utils/helpers';
+import { envelopeRequestParser, shouldSkipTracingTest, waitForErrorRequest } from '../../../utils/helpers';
+import { getSpanOp, waitForStreamedSpanEnvelope } from '../../../utils/spanUtils';
 import { getReplaySnapshot, shouldSkipReplayTest, waitForReplayRunning } from '../../../utils/replayHelpers';
 
 type TestWindow = Window & {
@@ -16,7 +12,7 @@ type TestWindow = Window & {
 };
 
 sentryTest(
-  'should add replay_id to dsc of transactions when in session mode',
+  'should add replay_id to dsc of streamed spans when in session mode',
   async ({ getLocalTestUrl, page, browserName }) => {
     // This is flaky on webkit, so skipping there...
     if (shouldSkipReplayTest() || shouldSkipTracingTest() || browserName === 'webkit') {
@@ -26,7 +22,9 @@ sentryTest(
     const url = await getLocalTestUrl({ testDir: __dirname });
     await page.goto(url);
 
-    const transactionReq = waitForTransactionRequest(page);
+    const spanEnvelopePromise = waitForStreamedSpanEnvelope(page, envelope =>
+      envelope[1][0][1].items.some(span => span.is_segment && getSpanOp(span) === 'pageload'),
+    );
 
     // Wait for this to be available
     await page.waitForFunction('!!window.Replay');
@@ -40,15 +38,9 @@ sentryTest(
     await page.evaluate(() => {
       const scope = (window as unknown as TestWindow).Sentry.getCurrentScope();
       scope.setUser({ id: 'user123' });
-      scope.addEventProcessor(event => {
-        event.transaction = 'testTransactionDSC';
-        return event;
-      });
     });
 
-    const req0 = await transactionReq;
-
-    const envHeader = envelopeRequestParser<EventEnvelopeHeaders>(req0, 0);
+    const [envHeader] = await spanEnvelopePromise;
     const replay = await getReplaySnapshot(page);
 
     expect(replay.session?.id).toBeDefined();
@@ -67,7 +59,7 @@ sentryTest(
 );
 
 sentryTest(
-  'should not add replay_id to dsc of transactions when in buffer mode',
+  'should not add replay_id to dsc of streamed spans when in buffer mode',
   async ({ getLocalTestUrl, page, browserName }) => {
     // This is flaky on webkit, so skipping there...
     if (shouldSkipReplayTest() || shouldSkipTracingTest() || browserName === 'webkit') {
@@ -77,7 +69,9 @@ sentryTest(
     const url = await getLocalTestUrl({ testDir: __dirname });
     await page.goto(url);
 
-    const transactionReq = waitForTransactionRequest(page);
+    const spanEnvelopePromise = waitForStreamedSpanEnvelope(page, envelope =>
+      envelope[1][0][1].items.some(span => span.is_segment && getSpanOp(span) === 'pageload'),
+    );
 
     await page.evaluate(() => {
       (window as unknown as TestWindow).Replay.startBuffering();
@@ -88,15 +82,9 @@ sentryTest(
     await page.evaluate(() => {
       const scope = (window as unknown as TestWindow).Sentry.getCurrentScope();
       scope.setUser({ id: 'user123' });
-      scope.addEventProcessor(event => {
-        event.transaction = 'testTransactionDSC';
-        return event;
-      });
     });
 
-    const req0 = await transactionReq;
-
-    const envHeader = envelopeRequestParser<EventEnvelopeHeaders>(req0, 0);
+    const [envHeader] = await spanEnvelopePromise;
     const replay = await getReplaySnapshot(page);
 
     expect(replay.session?.id).toBeDefined();
@@ -114,7 +102,7 @@ sentryTest(
 );
 
 sentryTest(
-  'should add replay_id to dsc of transactions when switching from buffer to session mode',
+  'should add replay_id to dsc of streamed spans when switching from buffer to session mode',
   async ({ getLocalTestUrl, page, browserName }) => {
     // This is flaky on webkit, so skipping there...
     if (shouldSkipReplayTest() || shouldSkipTracingTest() || browserName === 'webkit') {
@@ -124,7 +112,9 @@ sentryTest(
     const url = await getLocalTestUrl({ testDir: __dirname });
     await page.goto(url);
 
-    const transactionReq = waitForTransactionRequest(page);
+    const spanEnvelopePromise = waitForStreamedSpanEnvelope(page, envelope =>
+      envelope[1][0][1].items.some(span => span.is_segment && getSpanOp(span) === 'pageload'),
+    );
 
     await page.evaluate(() => {
       (window as unknown as TestWindow).Replay.startBuffering();
@@ -140,15 +130,9 @@ sentryTest(
     await page.evaluate(() => {
       const scope = (window as unknown as TestWindow).Sentry.getCurrentScope();
       scope.setUser({ id: 'user123' });
-      scope.addEventProcessor(event => {
-        event.transaction = 'testTransactionDSC';
-        return event;
-      });
     });
 
-    const req0 = await transactionReq;
-
-    const envHeader = envelopeRequestParser<EventEnvelopeHeaders>(req0, 0);
+    const [envHeader] = await spanEnvelopePromise;
     const replay = await getReplaySnapshot(page);
 
     expect(replay.session?.id).toBeDefined();
@@ -168,7 +152,7 @@ sentryTest(
 );
 
 sentryTest(
-  'should not add replay_id to dsc of transactions if replay is not enabled',
+  'should not add replay_id to dsc of streamed spans if replay is not enabled',
   async ({ getLocalTestUrl, page, browserName }) => {
     // This is flaky on webkit, so skipping there...
     if (shouldSkipReplayTest() || shouldSkipTracingTest() || browserName === 'webkit') {
@@ -178,20 +162,16 @@ sentryTest(
     const url = await getLocalTestUrl({ testDir: __dirname });
     await page.goto(url);
 
-    const transactionReq = waitForTransactionRequest(page);
+    const spanEnvelopePromise = waitForStreamedSpanEnvelope(page, envelope =>
+      envelope[1][0][1].items.some(span => span.is_segment && getSpanOp(span) === 'pageload'),
+    );
 
     await page.evaluate(async () => {
       const scope = (window as unknown as TestWindow).Sentry.getCurrentScope();
       scope.setUser({ id: 'user123' });
-      scope.addEventProcessor(event => {
-        event.transaction = 'testTransactionDSC';
-        return event;
-      });
     });
 
-    const req0 = await transactionReq;
-
-    const envHeader = envelopeRequestParser<EventEnvelopeHeaders>(req0, 0);
+    const [envHeader] = await spanEnvelopePromise;
 
     const replay = await getReplaySnapshot(page);
 
@@ -222,16 +202,20 @@ sentryTest('should add replay_id to error DSC while replay is active', async ({ 
   const error1Req = waitForErrorRequest(page, event => event.exception?.values?.[0].value === 'This is error #1');
   const error2Req = waitForErrorRequest(page, event => event.exception?.values?.[0].value === 'This is error #2');
 
-  // We want to wait for the transaction to be done, to ensure we have a consistent test
-  const transactionReq = hasTracing ? waitForTransactionRequest(page) : Promise.resolve();
+  // We want to wait for the pageload span to end, to ensure we have a consistent test
+  const spanEnvelopePromise = hasTracing
+    ? waitForStreamedSpanEnvelope(page, envelope =>
+        envelope[1][0][1].items.some(span => span.is_segment && getSpanOp(span) === 'pageload'),
+      )
+    : Promise.resolve();
 
   // Wait for this to be available
   await page.waitForFunction('!!window.Replay');
 
-  // We have to start replay before we finish the transaction, otherwise the DSC will not be frozen with the Replay ID
+  // We have to start replay before we finish the pageload span, otherwise the DSC will not be frozen with the Replay ID
   await page.evaluate('window.Replay.start();');
   await waitForReplayRunning(page);
-  await transactionReq;
+  await spanEnvelopePromise;
 
   await page.evaluate('window._triggerError(1)');
 

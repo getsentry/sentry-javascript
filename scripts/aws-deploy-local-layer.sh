@@ -32,7 +32,7 @@ aws lambda publish-layer-version \
   --region "eu-central-1" \
   --zip-file "fileb://build/aws/dist-serverless/$ZIP" \
   --description "Local test build of SentryNodeServerlessSDK (can be deleted)" \
-  --compatible-runtimes nodejs10.x nodejs12.x nodejs14.x nodejs16.x nodejs18.x
+  --compatible-runtimes nodejs20.x nodejs22.x nodejs24.x
 
 echo "Done deploying zipped Lambda layer to AWS as 'SentryNodeServerlessSDK-local-dev'."
 

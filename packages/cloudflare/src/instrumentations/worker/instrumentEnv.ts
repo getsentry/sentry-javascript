@@ -1,9 +1,17 @@
 import { isObjectLike } from '@sentry/core';
+import { instrumentWorkersAiClient } from '@sentry/server-utils';
 import type { CloudflareOptions } from '../../client';
-import { isD1Database, isDurableObjectNamespace, isJSRPC, isQueue, isR2Bucket } from '../../utils/isBinding';
+import {
+  isAiBinding,
+  isD1Database,
+  isDurableObjectNamespace,
+  isJSRPC,
+  isQueue,
+  isR2Bucket,
+} from '../../utils/isBinding';
 import { instrumentD1 } from './instrumentD1';
 import { appendRpcMeta } from '../../utils/rpcMeta';
-import { getEffectiveRpcPropagation } from '../../utils/rpcOptions';
+import { createBindingPropagationResolver, createRpcPropagationResolver } from '../../utils/rpcPropagation';
 import { instrumentDurableObjectNamespace, STUB_NON_RPC_METHODS } from '../instrumentDurableObjectNamespace';
 import { instrumentFetcher } from './instrumentFetcher';
 import { instrumentQueueProducer } from './instrumentQueueProducer';
@@ -25,16 +33,18 @@ const instrumentedQueueBindings = new WeakMap<object, Map<string, unknown>>();
  * - Service bindings / JSRPC proxies
  * - Queue producers (via `send` + `sendBatch` duck-typing)
  * - R2 Buckets (via `head` + `put` + `createMultipartUpload` duck-typing)
+ * - Workers AI (via `run` + `gateway` + `toMarkdown` duck-typing)
  *
  * @param env - The Cloudflare env object to instrument
- * @param options - Optional CloudflareOptions to control RPC trace propagation
+ * @param options - Optional CloudflareOptions to control RPC and Queue trace propagation
  */
 export function instrumentEnv<Env extends Record<string, unknown>>(env: Env, options?: CloudflareOptions): Env {
   if (!env || typeof env !== 'object') {
     return env;
   }
 
-  const rpcPropagation = options ? getEffectiveRpcPropagation(options) : false;
+  const shouldPropagateRpcTrace = createRpcPropagationResolver(options);
+  const shouldPropagateQueueTrace = createBindingPropagationResolver(options?.queueTracePropagationBindings);
 
   return new Proxy(env, {
     get(target, prop, receiver) {
@@ -46,7 +56,7 @@ export function instrumentEnv<Env extends Record<string, unknown>>(env: Env, opt
 
       if (isQueue(item)) {
         const bindingName = typeof prop === 'string' ? prop : String(prop);
-        const enableTracePropagation = options?.enableQueueTracePropagation === true;
+        const enableTracePropagation = shouldPropagateQueueTrace(bindingName);
         const cacheKey = `${bindingName}:${enableTracePropagation}`;
         const cached = instrumentedQueueBindings.get(item)?.get(cacheKey);
         if (cached) {
@@ -79,12 +89,16 @@ export function instrumentEnv<Env extends Record<string, unknown>>(env: Env, opt
         return instrumented;
       }
 
-      if (!rpcPropagation) {
-        return item;
+      if (isAiBinding(item)) {
+        const instrumented = instrumentWorkersAiClient(item);
+        instrumentedBindings.set(item, instrumented);
+        return instrumented;
       }
 
+      const propagateRpcTrace = shouldPropagateRpcTrace(String(prop));
+
       if (isDurableObjectNamespace(item)) {
-        const instrumented = instrumentDurableObjectNamespace(item);
+        const instrumented = instrumentDurableObjectNamespace(item, propagateRpcTrace);
         instrumentedBindings.set(item, instrumented);
         return instrumented;
       }
@@ -98,7 +112,16 @@ export function instrumentEnv<Env extends Record<string, unknown>>(env: Env, opt
               return instrumentFetcher((...args) => Reflect.apply(value, target, args));
             }
 
-            if (typeof value === 'function' && typeof p === 'string' && !STUB_NON_RPC_METHODS.has(p)) {
+            if (p === 'connect' && typeof value === 'function') {
+              return (...args: unknown[]) => Reflect.apply(value, target, args);
+            }
+
+            if (
+              propagateRpcTrace &&
+              typeof value === 'function' &&
+              typeof p === 'string' &&
+              !STUB_NON_RPC_METHODS.has(p)
+            ) {
               return (...args: unknown[]) => Reflect.apply(value, target, appendRpcMeta(args));
             }
 

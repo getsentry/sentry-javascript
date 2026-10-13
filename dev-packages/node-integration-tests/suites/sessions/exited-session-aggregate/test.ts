@@ -1,4 +1,5 @@
 import { afterAll, expect, test } from 'vitest';
+import { join } from 'path';
 import { cleanupChildProcesses, createRunner } from '../../../utils/runner';
 
 afterAll(() => {
@@ -6,8 +7,9 @@ afterAll(() => {
 });
 
 test('should aggregate successful sessions', async () => {
-  const runner = createRunner(__dirname, '..', 'server.ts')
-    .ignore('transaction', 'event')
+  const runner = createRunner(__dirname, '..', 'server.mjs')
+    .withInstrument(join(__dirname, '..', 'instrument.mjs'))
+    .ignore('span', 'event')
     .unignore('sessions')
     .expect({
       sessions: agg => {

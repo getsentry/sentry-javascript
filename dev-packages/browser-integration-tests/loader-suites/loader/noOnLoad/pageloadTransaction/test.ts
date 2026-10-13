@@ -1,27 +1,21 @@
 import { expect } from '@playwright/test';
 import { sentryTest } from '../../../../utils/fixtures';
-import {
-  envelopeRequestParser,
-  shouldSkipTracingTest,
-  waitForTransactionRequestOnUrl,
-} from '../../../../utils/helpers';
+import { shouldSkipTracingTest } from '../../../../utils/helpers';
+import { getSpanOp, waitForStreamedSpan } from '../../../../utils/spanUtils';
 
-sentryTest('should create a pageload transaction', async ({ getLocalTestUrl, page }) => {
+sentryTest('should create a pageload span', async ({ getLocalTestUrl, page }) => {
   if (shouldSkipTracingTest()) {
     sentryTest.skip();
   }
 
+  const spanPromise = waitForStreamedSpan(page, s => getSpanOp(s) === 'pageload');
   const url = await getLocalTestUrl({ testDir: __dirname });
-  const req = await waitForTransactionRequestOnUrl(page, url);
+  await page.goto(url);
+  const pageloadSpan = await spanPromise;
 
-  const eventData = envelopeRequestParser(req);
   const timeOrigin = await page.evaluate<number>('window._testBaseTimestamp');
 
-  const { start_timestamp: startTimestamp } = eventData;
+  expect(pageloadSpan.start_timestamp).toBeCloseTo(timeOrigin, 1);
 
-  expect(startTimestamp).toBeCloseTo(timeOrigin, 1);
-
-  expect(eventData.contexts?.trace?.op).toBe('pageload');
-  expect(eventData.spans?.length).toBeGreaterThan(0);
-  expect(eventData.transaction_info?.source).toEqual('url');
+  expect(pageloadSpan.attributes?.['sentry.segment.name.source'].value).toEqual('url');
 });

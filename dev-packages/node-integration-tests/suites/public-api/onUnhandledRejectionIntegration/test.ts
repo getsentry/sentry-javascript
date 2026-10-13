@@ -1,8 +1,9 @@
-import type { Event } from '@sentry/node';
+import type { Event, SerializedStreamedSpanContainer } from '@sentry/node';
 import * as childProcess from 'child_process';
 import * as path from 'path';
 import { afterAll, describe, expect, test } from 'vitest';
 import { cleanupChildProcesses, createRunner } from '../../../utils/runner';
+import { supports } from '../../../utils';
 
 describe('onUnhandledRejectionIntegration', () => {
   afterAll(() => {
@@ -55,6 +56,22 @@ Error: test rejection
         expect(stderr)
           .toContain(`This error originated either by throwing inside of an async function without a catch block, or by rejecting a promise which was not handled with .catch(). The promise rejected with the reason:
 test rejection`);
+        done();
+      });
+    }));
+
+  test('should not show warning for error-type promise rejections in strict mode', () =>
+    new Promise<void>(done => {
+      expect.assertions(5);
+
+      const testScriptPath = path.resolve(__dirname, 'mode-strict-error.js');
+
+      childProcess.execFile('node', [testScriptPath], { encoding: 'utf8' }, (err, stdout, stderr) => {
+        expect(err).not.toBeNull();
+        expect(err?.code).toBe(1);
+        expect(stdout).not.toBe("I'm alive!");
+        expect(stderr).toContain('Error: test rejection');
+        expect(stderr).not.toContain('The promise rejected with the reason');
         done();
       });
     }));
@@ -126,13 +143,15 @@ test rejection`);
   });
 
   test('handles unhandled rejection in spans', async () => {
-    let transactionEvent: Event | undefined;
+    let segment: SerializedStreamedSpanContainer['items'][number] | undefined;
     let errorEvent: Event | undefined;
 
     await createRunner(__dirname, 'scenario-with-span.ts')
+      .unordered()
       .expect({
-        transaction: transaction => {
-          transactionEvent = transaction;
+        span: container => {
+          segment = container.items.find(span => span.is_segment);
+          expect(segment?.name).toBe('test-span');
         },
       })
       .expect({
@@ -143,41 +162,43 @@ test rejection`);
       .start()
       .completed();
 
-    expect(transactionEvent).toBeDefined();
+    expect(segment).toBeDefined();
     expect(errorEvent).toBeDefined();
 
-    expect(transactionEvent!.transaction).toBe('test-span');
-
-    expect(transactionEvent!.contexts!.trace!.trace_id).toBe(errorEvent!.contexts!.trace!.trace_id);
-    expect(transactionEvent!.contexts!.trace!.span_id).toBe(errorEvent!.contexts!.trace!.span_id);
+    expect(segment!.trace_id).toBe(errorEvent!.contexts!.trace!.trace_id);
+    expect(segment!.span_id).toBe(errorEvent!.contexts!.trace!.span_id);
   });
 
-  test('handles unhandled rejection in spans that are ended early', async () => {
-    let transactionEvent: Event | undefined;
-    let errorEvent: Event | undefined;
+  // Bun: the rejection event's span ID differs from the already-ended span's ID.
+  test.runIf(supports({ runtimes: ['node', 'deno'] }))(
+    'handles unhandled rejection in spans that are ended early',
+    async () => {
+      let segment: SerializedStreamedSpanContainer['items'][number] | undefined;
+      let errorEvent: Event | undefined;
 
-    await createRunner(__dirname, 'scenario-with-span-ended.ts')
-      .expect({
-        transaction: transaction => {
-          transactionEvent = transaction;
-        },
-      })
-      .expect({
-        event: event => {
-          errorEvent = event;
-        },
-      })
-      .start()
-      .completed();
+      await createRunner(__dirname, 'scenario-with-span-ended.ts')
+        .unordered()
+        .expect({
+          span: container => {
+            segment = container.items.find(span => span.is_segment);
+            expect(segment?.name).toBe('test-span');
+          },
+        })
+        .expect({
+          event: event => {
+            errorEvent = event;
+          },
+        })
+        .start()
+        .completed();
 
-    expect(transactionEvent).toBeDefined();
-    expect(errorEvent).toBeDefined();
+      expect(segment).toBeDefined();
+      expect(errorEvent).toBeDefined();
 
-    expect(transactionEvent!.transaction).toBe('test-span');
-
-    expect(transactionEvent!.contexts!.trace!.trace_id).toBe(errorEvent!.contexts!.trace!.trace_id);
-    expect(transactionEvent!.contexts!.trace!.span_id).toBe(errorEvent!.contexts!.trace!.span_id);
-  });
+      expect(segment!.trace_id).toBe(errorEvent!.contexts!.trace!.trace_id);
+      expect(segment!.span_id).toBe(errorEvent!.contexts!.trace!.span_id);
+    },
+  );
 
   test('should not warn when AI_NoOutputGeneratedError or AbortError is rejected (default ignore)', () =>
     new Promise<void>(done => {

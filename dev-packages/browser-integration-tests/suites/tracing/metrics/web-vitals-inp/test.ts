@@ -1,141 +1,100 @@
-import { expect } from '@playwright/test';
-import type { Event as SentryEvent, SpanEnvelope, SpanJSON } from '@sentry/core';
-import { sentryTest } from '../../../../utils/fixtures';
+import { PAGELOAD, UI_INTERACTION_CLICK } from '@sentry/conventions/op';
 import {
-  getFirstSentryEnvelopeRequest,
-  getMultipleSentryEnvelopeRequests,
-  hidePage,
-  properFullEnvelopeRequestParser,
-  shouldSkipTracingTest,
-} from '../../../../utils/helpers';
+  SENTRY_OP,
+  SENTRY_ORIGIN,
+  USER_AGENT_ORIGINAL,
+  SENTRY_TRANSACTION,
+  SENTRY_SEGMENT_NAME,
+  BROWSER_WEB_VITAL_INP_VALUE,
+  SENTRY_EXCLUSIVE_TIME,
+  UI_COMPONENT_NAME,
+  BROWSER_WEB_VITAL_INP_TARGET,
+} from '@sentry/conventions/attributes';
+import { expect } from '@playwright/test';
+import { sentryTest } from '../../../../utils/fixtures';
+import { hidePage, shouldSkipTracingTest } from '../../../../utils/helpers';
+import { collectStreamedSpans, getSpanOp, waitForStreamedSpan } from '../../../../utils/spanUtils';
 
-sentryTest('should capture an INP click event span during pageload', async ({ browserName, getLocalTestUrl, page }) => {
-  const supportedBrowsers = ['chromium'];
-
-  if (shouldSkipTracingTest() || !supportedBrowsers.includes(browserName)) {
+sentryTest.beforeEach(async ({ browserName }) => {
+  if (shouldSkipTracingTest() || browserName !== 'chromium') {
     sentryTest.skip();
   }
+});
 
+sentryTest('captures INP click as a streamed span', async ({ getLocalTestUrl, page }) => {
+  const spans = collectStreamedSpans(page);
   const url = await getLocalTestUrl({ testDir: __dirname });
+
+  const pageloadSpanPromise = waitForStreamedSpan(page, span => getSpanOp(span) === PAGELOAD);
+  const inpSpanPromise = waitForStreamedSpan(page, span => getSpanOp(span) === UI_INTERACTION_CLICK);
 
   await page.goto(url);
 
-  const spanEnvelopePromise = getMultipleSentryEnvelopeRequests<SpanEnvelope>(
-    page,
-    1,
-    { envelopeType: 'span' },
-    properFullEnvelopeRequestParser,
-  );
-
   await page.locator('[data-test-id=normal-button]').click();
-  await page.locator('.clicked[data-test-id=normal-button]').isVisible();
+  await expect(page.locator('.clicked[data-test-id=normal-button]')).toBeVisible();
 
-  await page.waitForTimeout(500);
-
-  // Page hide to trigger INP
   await hidePage(page);
 
-  // Get the INP span envelope
-  const spanEnvelope = (await spanEnvelopePromise)[0];
+  await inpSpanPromise;
+  await page.evaluate(() => (window as any).Sentry.flush());
+  const inpSpans = spans.filter(span => getSpanOp(span) === UI_INTERACTION_CLICK);
+  expect(inpSpans).toHaveLength(1);
+  const [inpSpan] = inpSpans;
+  const pageloadSpan = await pageloadSpanPromise;
 
-  const spanEnvelopeHeaders = spanEnvelope[0];
-  const spanEnvelopeItem = spanEnvelope[1][0][1];
+  expect(inpSpan.attributes[SENTRY_OP]).toEqual({ type: 'string', value: UI_INTERACTION_CLICK });
+  expect(inpSpan.attributes[SENTRY_ORIGIN]).toEqual({ type: 'string', value: 'auto.http.browser.inp' });
+  expect(inpSpan.attributes[USER_AGENT_ORIGINAL]?.value).toEqual(expect.stringContaining('Chrome'));
 
-  const traceId = spanEnvelopeHeaders.trace!.trace_id;
-  expect(traceId).toMatch(/[a-f\d]{32}/);
+  // Check the INP span carries the transaction/segment name it belongs to
+  expect(inpSpan.attributes[SENTRY_TRANSACTION]).toEqual({ type: 'string', value: 'Pageload' });
+  expect(inpSpan.attributes[SENTRY_SEGMENT_NAME]).toEqual({ type: 'string', value: 'Pageload' });
 
-  expect(spanEnvelopeHeaders).toEqual({
-    sent_at: expect.any(String),
-    trace: {
-      environment: 'production',
-      public_key: 'public',
-      sample_rate: '1',
-      sampled: 'true',
-      trace_id: traceId,
-      sample_rand: expect.any(String),
-      // no transaction, because span source is URL
-    },
-  });
-
-  const inpValue = spanEnvelopeItem.measurements?.inp.value;
+  const inpValue = inpSpan.attributes[BROWSER_WEB_VITAL_INP_VALUE]?.value as number;
   expect(inpValue).toBeGreaterThan(0);
 
-  expect(spanEnvelopeItem).toEqual({
-    data: {
-      'sentry.exclusive_time': inpValue,
-      'sentry.op': 'ui.interaction.click',
-      'sentry.origin': 'auto.http.browser.inp',
-      transaction: 'test-url',
-      'user_agent.original': expect.stringContaining('Chrome'),
-    },
-    measurements: {
-      inp: {
-        unit: 'millisecond',
-        value: inpValue,
-      },
-    },
-    description: 'body > NormalButton',
-    exclusive_time: inpValue,
-    op: 'ui.interaction.click',
-    origin: 'auto.http.browser.inp',
-    segment_id: expect.not.stringMatching(spanEnvelopeItem.span_id!),
-    // Parent is the pageload span
-    parent_span_id: expect.stringMatching(/[a-f\d]{16}/),
-    span_id: expect.stringMatching(/[a-f\d]{16}/),
-    start_timestamp: expect.any(Number),
-    timestamp: expect.any(Number),
-    trace_id: traceId,
-  });
+  expect(inpSpan.attributes[SENTRY_EXCLUSIVE_TIME]?.value).toBeGreaterThan(0);
+
+  expect(inpSpan.name).toBe('NormalButton');
+  expect(inpSpan.attributes[UI_COMPONENT_NAME]).toEqual({ type: 'string', value: 'NormalButton' });
+  expect(inpSpan.attributes[BROWSER_WEB_VITAL_INP_TARGET]).toEqual({ type: 'string', value: 'body > NormalButton' });
+
+  expect(inpSpan.end_timestamp).toBeGreaterThan(inpSpan.start_timestamp);
+
+  expect(inpSpan.span_id).toMatch(/^[\da-f]{16}$/);
+  expect(inpSpan.trace_id).toMatch(/^[\da-f]{32}$/);
+
+  expect(inpSpan.parent_span_id).toBe(pageloadSpan.span_id);
+  expect(inpSpan.trace_id).toBe(pageloadSpan.trace_id);
 });
 
-sentryTest(
-  'should choose the slowest interaction click event when INP is triggered.',
-  async ({ browserName, getLocalTestUrl, page }) => {
-    const supportedBrowsers = ['chromium'];
+sentryTest('captures the slowest interaction as streamed INP span', async ({ getLocalTestUrl, page }) => {
+  const spans = collectStreamedSpans(page);
+  const url = await getLocalTestUrl({ testDir: __dirname });
 
-    if (shouldSkipTracingTest() || !supportedBrowsers.includes(browserName)) {
-      sentryTest.skip();
-    }
+  const inpSpanPromise = waitForStreamedSpan(page, span => getSpanOp(span) === UI_INTERACTION_CLICK);
 
-    const url = await getLocalTestUrl({ testDir: __dirname });
+  await page.goto(url);
 
-    await page.goto(url);
-    await getFirstSentryEnvelopeRequest<SentryEvent>(page);
+  await page.locator('[data-test-id=normal-button]').click();
+  await expect(page.locator('.clicked[data-test-id=normal-button]')).toBeVisible();
 
-    await page.locator('[data-test-id=normal-button]').click();
-    await page.locator('.clicked[data-test-id=normal-button]').isVisible();
+  await page.locator('[data-test-id=slow-button]').click();
+  await expect(page.locator('.clicked[data-test-id=slow-button]')).toBeVisible();
 
-    await page.waitForTimeout(500);
+  await hidePage(page, '[data-test-id=slow-button]');
 
-    await page.locator('[data-test-id=slow-button]').click();
-    await page.locator('.clicked[data-test-id=slow-button]').isVisible();
+  await inpSpanPromise;
+  await page.evaluate(() => (window as any).Sentry.flush());
+  const inpSpans = spans.filter(span => getSpanOp(span) === UI_INTERACTION_CLICK);
+  expect(inpSpans).toHaveLength(1);
+  const [inpSpan] = inpSpans;
 
-    await page.waitForTimeout(500);
+  expect(inpSpan.name).toBe('SlowButton');
+  expect(inpSpan.attributes[UI_COMPONENT_NAME]).toEqual({ type: 'string', value: 'SlowButton' });
+  expect(inpSpan.attributes[BROWSER_WEB_VITAL_INP_TARGET]).toEqual({ type: 'string', value: 'body > SlowButton' });
+  expect(inpSpan.attributes[SENTRY_EXCLUSIVE_TIME]?.value).toBeGreaterThan(400);
 
-    const spanPromise = getMultipleSentryEnvelopeRequests<SpanJSON>(page, 1, {
-      envelopeType: 'span',
-    });
-
-    // Page hide to trigger INP
-
-    // Important: Purposefully not using hidePage() here to test the hidden state
-    // via the `pagehide` event. This is necessary because iOS Safari 14.4
-    // still doesn't fully emit the `visibilitychange` events but it's the lower
-    // bound for Safari on iOS that we support.
-    // If this test times out or fails, it's likely because we tried updating
-    // the web-vitals library which officially already dropped support for
-    // this iOS version
-    await page.evaluate(() => {
-      window.dispatchEvent(new Event('pagehide'));
-    });
-
-    // Get the INP span envelope
-    const span = (await spanPromise)[0];
-
-    expect(span.op).toBe('ui.interaction.click');
-    expect(span.description).toBe('body > SlowButton');
-    expect(span.exclusive_time).toBeGreaterThan(400);
-    expect(span.measurements?.inp.value).toBeGreaterThan(400);
-    expect(span.measurements?.inp.unit).toBe('millisecond');
-  },
-);
+  const inpValue = inpSpan.attributes[BROWSER_WEB_VITAL_INP_VALUE]?.value as number;
+  expect(inpValue).toBeGreaterThan(400);
+});

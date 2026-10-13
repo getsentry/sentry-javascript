@@ -10,12 +10,14 @@
  *   and the configurable `createHook`/`endHook`/`requireParentSpan` options were removed in favor of inlined,
  *   Sentry-specific span attributes.
  * - Completely reworked to no longer reference OpenTelemetry.
+ * - The upstream `fs_error` span attribute (the error message) was replaced with the conventions-backed
+ *   `error.type` (the syscall error code, e.g. `ENOENT`).
  */
 
+import { ERROR_TYPE, SENTRY_OP, SENTRY_ORIGIN } from '@sentry/conventions/attributes';
+import { FILE } from '@sentry/conventions/op';
 import type { Span, SpanAttributes } from '@sentry/core';
 import {
-  SEMANTIC_ATTRIBUTE_SENTRY_OP,
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SPAN_STATUS_ERROR,
   getActiveSpan,
   startInactiveSpan,
@@ -30,7 +32,7 @@ import type { FMember, FPMember, FsInstrumentationConfig, GenericFunction } from
 import { indexFs } from './utils';
 
 const SPAN_ORIGIN = 'auto.file.fs';
-const SPAN_OP = 'file';
+const SPAN_OP = FILE;
 
 // The following lists categorize `fs` functions by the shape of their leading path arguments, so we can
 // record meaningful span attributes for them. These are Sentry-specific additions (not part of upstream).
@@ -97,8 +99,8 @@ function getSpanAttributes(
   config: FsInstrumentationConfig,
 ): SpanAttributes {
   const attributes: SpanAttributes = {
-    [SEMANTIC_ATTRIBUTE_SENTRY_OP]: SPAN_OP,
-    [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: SPAN_ORIGIN,
+    [SENTRY_OP]: SPAN_OP,
+    [SENTRY_ORIGIN]: SPAN_ORIGIN,
   };
 
   if (!config.recordFilePaths) {
@@ -305,11 +307,11 @@ export function enableFsInstrumentation(config: FsInstrumentationConfig = {}): v
 }
 
 /**
- * Sets the error status on the span and, if configured, records the error message as a span attribute.
+ * Sets the error status on the span and, if configured, records the error type as a span attribute.
  */
 function recordError(span: Span, error: unknown, config: FsInstrumentationConfig): void {
   span.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
   if (config.recordErrorMessagesAsSpanAttributes && error instanceof Error) {
-    span.setAttribute('fs_error', error.message);
+    span.setAttribute(ERROR_TYPE, (error as NodeJS.ErrnoException).code ?? error.name);
   }
 }

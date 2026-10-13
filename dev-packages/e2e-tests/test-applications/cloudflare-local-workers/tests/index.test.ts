@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { waitForTransaction } from '@sentry-internal/test-utils';
+import { collectStreamedSpans, getSpanOp } from '@sentry-internal/test-utils';
 
 /**
  * This must be the only test in here.
@@ -10,24 +10,43 @@ import { waitForTransaction } from '@sentry-internal/test-utils';
  * and masks bugs in our instrumentation - causing this test to pass when it
  * should fail.
  */
-test('Worker and Durable Object both send transactions when worker calls DO', async ({ baseURL }) => {
-  const workerTransactionPromise = waitForTransaction('cloudflare-local-workers', event => {
-    return event.transaction === 'GET /pass-to-object/storage/get' && event.contexts?.trace?.op === 'http.server';
-  });
-
-  const doTransactionPromise = waitForTransaction('cloudflare-local-workers', event => {
-    return event.transaction === 'GET /storage/get' && event.contexts?.trace?.op === 'http.server';
+test('Worker and Durable Object both send segment spans when worker calls DO', async ({ baseURL }) => {
+  // With span streaming, URL-sourced `http.server` spans are named by method only, so the worker
+  // and the Durable Object segment can only be told apart by `url.path`.
+  const spansPromise = collectStreamedSpans('cloudflare-local-workers', spans => {
+    return (
+      spans.some(
+        span =>
+          getSpanOp(span) === 'http.server' &&
+          span.is_segment &&
+          span.attributes['url.path']?.value === '/pass-to-object/storage/get',
+      ) &&
+      spans.some(
+        span =>
+          getSpanOp(span) === 'http.server' && span.is_segment && span.attributes['url.path']?.value === '/storage/get',
+      )
+    );
   });
 
   const response = await fetch(`${baseURL}/pass-to-object/storage/get`);
   expect(response.status).toBe(200);
 
-  const [workerTransaction, doTransaction] = await Promise.all([workerTransactionPromise, doTransactionPromise]);
+  const spans = await spansPromise;
+  const workerSpan = spans.find(
+    span =>
+      getSpanOp(span) === 'http.server' &&
+      span.is_segment &&
+      span.attributes['url.path']?.value === '/pass-to-object/storage/get',
+  )!;
+  const doSpan = spans.find(
+    span =>
+      getSpanOp(span) === 'http.server' && span.is_segment && span.attributes['url.path']?.value === '/storage/get',
+  )!;
 
-  expect(workerTransaction.transaction).toBe('GET /pass-to-object/storage/get');
-  expect(workerTransaction.contexts?.trace?.op).toBe('http.server');
+  expect(workerSpan.name).toBe('GET');
+  expect(workerSpan.attributes['sentry.segment.name.source']?.value).toBe('url');
 
-  expect(doTransaction.transaction).toBe('GET /storage/get');
-  expect(doTransaction.contexts?.trace?.op).toBe('http.server');
-  expect(doTransaction.spans?.some(span => span.op === 'db')).toBe(true);
+  expect(doSpan.name).toBe('GET');
+  expect(doSpan.attributes['sentry.segment.name.source']?.value).toBe('url');
+  expect(spans.some(span => getSpanOp(span) === 'db' && span.parent_span_id === doSpan.span_id)).toBe(true);
 });

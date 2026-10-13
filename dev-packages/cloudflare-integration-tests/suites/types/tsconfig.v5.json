@@ -1,0 +1,9 @@
+{
+  "extends": "./tsconfig.v4.json",
+
+  // Same files as `./tsconfig.v4.json`, against `@cloudflare/workers-types` v5 (installed
+  // under the `@cloudflare/workers-types-v5` alias).
+  "compilerOptions": {
+    "types": ["@cloudflare/workers-types-v5"]
+  }
+}

@@ -1,19 +1,10 @@
-import {
-  SEMANTIC_ATTRIBUTE_EXCLUSIVE_TIME,
-  SEMANTIC_ATTRIBUTE_SENTRY_MEASUREMENT_UNIT,
-  SEMANTIC_ATTRIBUTE_SENTRY_MEASUREMENT_VALUE,
-  SentrySpan,
-  spanToJSON,
-} from '@sentry/core';
 import { afterEach, describe, expect, it, test, vi } from 'vitest';
 import { getSentryCarrier } from '../../../src/carrier';
 import type { EventEnvelope } from '../../../src/types/envelope';
 import type { Event } from '../../../src/types/event';
-import type { SpanAttributes } from '../../../src/types/span';
 import {
   addItemToEnvelope,
   createEnvelope,
-  createSpanEnvelopeItem,
   forEachEnvelopeItem,
   parseEnvelope,
   serializeEnvelope,
@@ -22,63 +13,6 @@ import type { InternalGlobal } from '../../../src/utils/worldwide';
 import { GLOBAL_OBJ } from '../../../src/utils/worldwide';
 
 describe('envelope', () => {
-  describe('createSpanEnvelope()', () => {
-    it('span-envelope-item of INP event has the correct object structure', () => {
-      const attributes: SpanAttributes = {
-        release: 'releaseString',
-        environment: 'dev',
-        transaction: '/test-route',
-        [SEMANTIC_ATTRIBUTE_EXCLUSIVE_TIME]: 80,
-        user: 10,
-        profile_id: 'test-profile-id',
-        replay_id: 'test-replay-id',
-      };
-
-      const startTime = 1713365480;
-
-      const span = new SentrySpan({
-        startTimestamp: startTime,
-        endTimestamp: startTime + 2,
-        op: 'ui.interaction.click',
-        name: '<unknown>',
-        attributes,
-      });
-
-      span.addEvent('inp', {
-        [SEMANTIC_ATTRIBUTE_SENTRY_MEASUREMENT_UNIT]: 'millisecond',
-        [SEMANTIC_ATTRIBUTE_SENTRY_MEASUREMENT_VALUE]: 100,
-      });
-
-      const spanEnvelopeItem = createSpanEnvelopeItem(spanToJSON(span));
-
-      const expectedObj = {
-        data: {
-          'sentry.origin': expect.any(String),
-          'sentry.op': expect.any(String),
-          release: expect.any(String),
-          environment: expect.any(String),
-          transaction: expect.any(String),
-          'sentry.exclusive_time': expect.any(Number),
-          user: expect.any(Number),
-          profile_id: expect.any(String),
-          replay_id: expect.any(String),
-        },
-        description: expect.any(String),
-        op: expect.any(String),
-        span_id: expect.stringMatching(/[a-f0-9]{16}/),
-        start_timestamp: expect.any(Number),
-        timestamp: expect.any(Number),
-        trace_id: expect.stringMatching(/[a-f0-9]{32}/),
-        origin: expect.any(String),
-        exclusive_time: expect.any(Number),
-        measurements: { inp: { value: expect.any(Number), unit: expect.any(String) } },
-      };
-
-      expect(spanEnvelopeItem[0].type).toBe('span');
-      expect(spanEnvelopeItem[1]).toMatchObject(expectedObj);
-    });
-  });
-
   describe('createEnvelope()', () => {
     const testTable: Array<[string, Parameters<typeof createEnvelope>[0], Parameters<typeof createEnvelope>[1]]> = [
       ['creates an empty envelope', {}, []],

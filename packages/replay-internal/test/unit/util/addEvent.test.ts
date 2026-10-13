@@ -97,7 +97,7 @@ describe('Unit | util | addEvent', () => {
     expect(recordDroppedEventSpy).not.toHaveBeenCalled();
   });
 
-  it('stops when exceeding buffer size limit', async function () {
+  it('stops when exceeding buffer size limit', { timeout: 10_000 }, async function () {
     vi.setSystemTime(BASE_TIMESTAMP);
 
     const replay = setupReplayContainer({

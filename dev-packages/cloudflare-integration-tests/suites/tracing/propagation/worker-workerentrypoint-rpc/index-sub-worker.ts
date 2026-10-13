@@ -5,7 +5,17 @@ interface Env {
   SENTRY_DSN: string;
 }
 
-class MySubWorkerEntrypointBase extends WorkerEntrypoint {
+interface Props {
+  accountId: string;
+}
+
+class BaseEntrypoint extends WorkerEntrypoint<Env, Props> {
+  inherited(value: string): string {
+    return value;
+  }
+}
+
+class MySubWorkerEntrypointBase extends BaseEntrypoint {
   async fetch(request: Request): Promise<Response> {
     const url = new URL(request.url);
 
@@ -20,13 +30,48 @@ class MySubWorkerEntrypointBase extends WorkerEntrypoint {
 
     return new Response('Not found', { status: 404 });
   }
+
+  get(key: string): { argumentCount: number; key: string } {
+    Sentry.setTag('key', key);
+    return { argumentCount: arguments.length, key };
+  }
+
+  throwError(): never {
+    throw new Error('custom RPC receiver failed');
+  }
 }
 
-export default Sentry.withSentry(
+export const BindingEntrypoint = Sentry.withSentry(
   (env: Env) => ({
     dsn: env.SENTRY_DSN,
     tracesSampleRate: 1.0,
-    enableRpcTracePropagation: true,
+    initialScope: { tags: { initial_scope: 'applied' } },
+    beforeSend(event) {
+      event.tags = { ...event.tags, before_send: 'applied' };
+      return event;
+    },
+    transportOptions: { fetch: fetch.bind(globalThis) },
   }),
   MySubWorkerEntrypointBase,
 );
+
+// Instrumented like any other receiver. It is the caller that leaves this binding out of its
+// targets, which is now the only way to opt a binding out of trace propagation.
+export const NoPropagationEntrypoint = Sentry.withSentry(
+  (env: Env) => ({
+    dsn: env.SENTRY_DSN,
+    tracesSampleRate: 1.0,
+    transportOptions: { fetch: fetch.bind(globalThis) },
+  }),
+  MySubWorkerEntrypointBase,
+);
+
+// Deliberately not wrapped with Sentry: nothing strips a trailing RPC metadata argument here, so
+// this is what a caller corrupts if it propagates to a receiver it has no guarantees about.
+export class UninstrumentedEntrypoint extends WorkerEntrypoint<Env> {
+  get(key: string): { argumentCount: number; key: string } {
+    return { argumentCount: arguments.length, key };
+  }
+}
+
+export default BindingEntrypoint;

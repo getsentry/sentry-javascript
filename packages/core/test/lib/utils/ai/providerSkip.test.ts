@@ -3,10 +3,11 @@ import {
   _INTERNAL_clearAiProviderSkips,
   _INTERNAL_shouldSkipAiProviderWrapping,
   _INTERNAL_skipAiProviderWrapping,
-  ANTHROPIC_AI_INTEGRATION_NAME,
-  GOOGLE_GENAI_INTEGRATION_NAME,
-  OPENAI_INTEGRATION_NAME,
 } from '../../../../src/index';
+
+const OPENAI_INTEGRATION_NAME = 'OpenAI';
+const ANTHROPIC_AI_INTEGRATION_NAME = 'Anthropic_AI';
+const GOOGLE_GENAI_INTEGRATION_NAME = 'Google_GenAI';
 
 describe('AI Provider Skip', () => {
   beforeEach(() => {

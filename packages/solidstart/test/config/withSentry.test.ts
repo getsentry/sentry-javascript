@@ -13,6 +13,23 @@ vi.mock('../../src/config/addInstrumentation', () => ({
   addSentryTopImport: (...args: unknown[]) => addSentryTopImportMock(...args),
 }));
 
+// Mirror the real plugin's contract: `buildTimeInstrumentation: false` yields the inert variant.
+const orchestrionRollupMock = vi.fn((options?: { buildTimeInstrumentation?: boolean }) => ({
+  name: options?.buildTimeInstrumentation === false ? 'sentry-orchestrion-disabled' : 'sentry-orchestrion-plugin',
+}));
+const commonJSInteropOptionsMock = {
+  requireReturnsDefault: vi.fn(),
+  ignoreTryCatch: vi.fn(),
+};
+vi.mock('@sentry/server-utils/orchestrion/rollup', () => ({
+  sentryOrchestrionPlugin: (options?: { buildTimeInstrumentation?: boolean }) => orchestrionRollupMock(options),
+  sentryCommonJSInteropPlugin: () => ({ name: 'sentry-commonjs-interop' }),
+  commonJSInteropOptions: () => commonJSInteropOptionsMock,
+}));
+vi.mock('@sentry/server-utils/orchestrion/config', () => ({
+  INSTRUMENTED_MODULE_NAMES: ['mysql', 'ioredis'],
+}));
+
 beforeEach(() => {
   vi.clearAllMocks();
 });
@@ -172,5 +189,75 @@ describe('withSentry()', () => {
     expect(modules).toHaveLength(2);
     expect(modules[0]).toBe(existingModule);
     expect(typeof modules[1]).toBe('function');
+  });
+
+  describe('orchestrion build-time instrumentation', () => {
+    it('pushes the orchestrion plugin into the rollup config by default', async () => {
+      const config = withSentry(solidStartConfig, {});
+      const { hookFn } = callSentryNitroModule(config);
+      const plugins: Array<{ name: string }> = [];
+      await hookFn(nitroOptions, { plugins });
+      expect(orchestrionRollupMock).toHaveBeenCalledWith({ buildTimeInstrumentation: undefined });
+      expect(plugins.map(plugin => plugin.name)).toEqual(['sentry-orchestrion-plugin', 'sentry-commonjs-interop']);
+    });
+
+    it('force-inlines the instrumented modules into server.externals by default', () => {
+      const config = withSentry(solidStartConfig, {});
+      const externals = (config?.server as { externals?: { inline?: string[] } })?.externals;
+      expect(externals?.inline).toEqual(['mysql', 'ioredis', 'standard-as-callback']);
+    });
+
+    it('preserves and dedupes existing inline externals', () => {
+      const config = withSentry(
+        {
+          ...solidStartConfig,
+          server: {
+            ...solidStartConfig.server,
+            externals: { inline: ['ioredis', 'custom-dependency'] },
+          },
+        } as Parameters<typeof withSentry>[0],
+        {},
+      );
+      const externals = (config?.server as { externals?: { inline?: string[] } })?.externals;
+      expect(externals?.inline).toEqual(['ioredis', 'custom-dependency', 'mysql', 'standard-as-callback']);
+    });
+
+    it('sets the CommonJS interop options for the inlined drivers by default', () => {
+      const config = withSentry(solidStartConfig, {});
+      const commonJS = (config?.server as { commonJS?: Record<string, unknown> })?.commonJS;
+      expect(commonJS).toEqual(commonJSInteropOptionsMock);
+    });
+
+    it('preserves user-provided CommonJS options', () => {
+      const userRequireReturnsDefault = vi.fn();
+      const config = withSentry(
+        {
+          ...solidStartConfig,
+          server: {
+            ...solidStartConfig.server,
+            commonJS: { requireReturnsDefault: userRequireReturnsDefault },
+          },
+        } as Parameters<typeof withSentry>[0],
+        {},
+      );
+      const commonJS = (config?.server as { commonJS?: Record<string, unknown> })?.commonJS;
+      expect(commonJS).toEqual({
+        requireReturnsDefault: userRequireReturnsDefault,
+        ignoreTryCatch: commonJSInteropOptionsMock.ignoreTryCatch,
+      });
+    });
+
+    it('adds an inert orchestrion plugin and skips externals when buildTimeInstrumentation is false', async () => {
+      const config = withSentry(solidStartConfig, { buildTimeInstrumentation: false });
+      const { hookFn } = callSentryNitroModule(config);
+      const plugins: Array<{ name: string }> = [];
+      await hookFn(nitroOptions, { plugins });
+      expect(orchestrionRollupMock).not.toHaveBeenCalled();
+      expect(plugins).toHaveLength(0);
+      const externals = (config?.server as { externals?: { inline?: string[] } })?.externals;
+      expect(externals).toBeUndefined();
+      const commonJS = (config?.server as { commonJS?: Record<string, unknown> })?.commonJS;
+      expect(commonJS).toBeUndefined();
+    });
   });
 });

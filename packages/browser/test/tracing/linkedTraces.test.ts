@@ -1,4 +1,4 @@
-import type { PropagationContext, Span } from '@sentry/core/browser';
+import type { PropagationContext, Span } from '@sentry/core';
 import {
   addChildSpanToSpan,
   debug,
@@ -6,7 +6,7 @@ import {
   SentrySpan,
   spanToJSON,
   timestampInSeconds,
-} from '@sentry/core/browser';
+} from '@sentry/core';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { BrowserClient } from '../../src';
 import type { PreviousTraceInfo } from '../../src/tracing/linkedTraces';
@@ -196,7 +196,7 @@ describe('addPreviousTraceSpanLink', () => {
       },
     ]);
 
-    expect(spanJson.data).toMatchObject({
+    expect(spanJson.attributes).toMatchObject({
       [PREVIOUS_TRACE_TMP_SPAN_ATTRIBUTE]: '123-456-1',
     });
 
@@ -398,7 +398,7 @@ describe('addPreviousTraceSpanLink', () => {
 
     expect(spanJson.links).toBeUndefined();
 
-    expect(Object.keys(spanJson.data)).not.toContain(PREVIOUS_TRACE_TMP_SPAN_ATTRIBUTE);
+    expect(Object.keys(spanJson.attributes)).not.toContain(PREVIOUS_TRACE_TMP_SPAN_ATTRIBUTE);
 
     // but still updates the previousTraceInfo to the current span
     expect(updatedPreviousTraceInfo).toEqual({
@@ -491,7 +491,7 @@ describe('addPreviousTraceSpanLink', () => {
 
     const spanJson = spanToJSON(currentSpan);
     expect(spanJson.links).toBeUndefined();
-    expect(Object.keys(spanJson.data)).not.toContain(PREVIOUS_TRACE_TMP_SPAN_ATTRIBUTE);
+    expect(Object.keys(spanJson.attributes)).not.toContain(PREVIOUS_TRACE_TMP_SPAN_ATTRIBUTE);
 
     expect(updatedPreviousTraceInfo).toEqual({
       sampleRand: 0.0126,
@@ -532,7 +532,7 @@ describe('addPreviousTraceSpanLink', () => {
 
     const spanJson = spanToJSON(currentSpan);
     expect(spanJson.links).toBeUndefined();
-    expect(Object.keys(spanJson.data)).not.toContain(PREVIOUS_TRACE_TMP_SPAN_ATTRIBUTE);
+    expect(Object.keys(spanJson.attributes)).not.toContain(PREVIOUS_TRACE_TMP_SPAN_ATTRIBUTE);
 
     expect(updatedPreviousTraceInfo).toBe(previousTraceInfo);
   });

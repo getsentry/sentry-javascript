@@ -8,7 +8,6 @@ import { addSentryTracingMetaTags } from '../utils';
 export default (nitroApp => {
   nitroApp.hooks.hook('error', sentryCaptureErrorHook);
 
-  // @ts-expect-error - 'render:html' is a valid hook name in the Nuxt context
   nitroApp.hooks.hook('render:html', (html: NuxtRenderHTMLContext, { event }: { event: H3Event }) => {
     // h3 v1 (Nuxt 4): event.node.res.getHeaders(); h3 v2 (Nuxt 5): event.node is undefined
     const nodeResHeadersH3v1 = event.node?.res?.getHeaders() || {};

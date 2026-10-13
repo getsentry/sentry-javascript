@@ -1,10 +1,9 @@
 import { expect } from '@playwright/test';
-import type { ContinuousThreadCpuProfile, ProfileChunk, ThreadCpuProfile } from '@sentry/core';
+import type { ContinuousThreadCpuProfile, ProfileChunk } from '@sentry/core';
 
 interface ValidateProfileOptions {
   expectedFunctionNames?: string[];
   minSampleDurationMs?: number;
-  isChunkFormat?: boolean;
 }
 
 /** Seconds — consecutive chunk timestamps can jitter slightly below float precision (see profiling flakes). */
@@ -37,11 +36,8 @@ export function validateProfilePayloadMetadata(profileChunk: ProfileChunk): void
 /**
  * Validates the basic structure and content of a Sentry profile.
  */
-export function validateProfile(
-  profile: ThreadCpuProfile | ContinuousThreadCpuProfile,
-  options: ValidateProfileOptions = {},
-): void {
-  const { expectedFunctionNames, minSampleDurationMs, isChunkFormat = false } = options;
+export function validateProfile(profile: ContinuousThreadCpuProfile, options: ValidateProfileOptions = {}): void {
+  const { expectedFunctionNames, minSampleDurationMs } = options;
 
   // Basic profile structure
   expect(profile.samples).toBeDefined();
@@ -60,26 +56,12 @@ export function validateProfile(
 
     expect(sample.thread_id).toBe('0'); // Should be main thread
 
-    // Timestamp validation - differs between chunk format (v2) and legacy format
-    if (isChunkFormat) {
-      const chunkProfileSample = sample as ContinuousThreadCpuProfile['samples'][number];
-
-      // Chunk format uses numeric timestamps (UNIX timestamp in seconds with microseconds precision)
-      expect(typeof chunkProfileSample.timestamp).toBe('number');
-      const ts = chunkProfileSample.timestamp;
-      expect(Number.isFinite(ts)).toBe(true);
-      expect(ts).toBeGreaterThan(0);
-      // Monotonic non-decreasing timestamps (epsilon: jitter / IEEE754 around ~1e9 epoch seconds)
-      expect(ts).toBeGreaterThanOrEqual(previousTimestamp - CHUNK_SAMPLE_TIMESTAMP_EPSILON_SEC);
-      previousTimestamp = Math.max(previousTimestamp, ts);
-    } else {
-      // Legacy format uses elapsed_since_start_ns as a string
-      const legacyProfileSample = sample as ThreadCpuProfile['samples'][number];
-
-      expect(typeof legacyProfileSample.elapsed_since_start_ns).toBe('string');
-      expect(legacyProfileSample.elapsed_since_start_ns).toMatch(/^\d+$/); // Numeric string
-      expect(parseInt(legacyProfileSample.elapsed_since_start_ns, 10)).toBeGreaterThanOrEqual(0);
-    }
+    expect(typeof sample.timestamp).toBe('number');
+    const ts = sample.timestamp;
+    expect(Number.isFinite(ts)).toBe(true);
+    expect(ts).toBeGreaterThan(0);
+    expect(ts).toBeGreaterThanOrEqual(previousTimestamp - CHUNK_SAMPLE_TIMESTAMP_EPSILON_SEC);
+    previousTimestamp = Math.max(previousTimestamp, ts);
   }
 
   // STACKS
@@ -132,23 +114,9 @@ export function validateProfile(
 
   // DURATION
   if (minSampleDurationMs !== undefined) {
-    let durationMs: number;
-
-    if (isChunkFormat) {
-      // Chunk format: timestamps are in seconds
-      const chunkProfile = profile as ContinuousThreadCpuProfile;
-
-      const startTimeSec = chunkProfile.samples[0].timestamp;
-      const endTimeSec = chunkProfile.samples[chunkProfile.samples.length - 1].timestamp;
-      durationMs = (endTimeSec - startTimeSec) * 1000; // Convert to ms
-    } else {
-      // Legacy format: elapsed_since_start_ns is in nanoseconds
-      const legacyProfile = profile as ThreadCpuProfile;
-
-      const startTimeNs = parseInt(legacyProfile.samples[0].elapsed_since_start_ns, 10);
-      const endTimeNs = parseInt(legacyProfile.samples[legacyProfile.samples.length - 1].elapsed_since_start_ns, 10);
-      durationMs = (endTimeNs - startTimeNs) / 1_000_000; // Convert ns to ms
-    }
+    const startTimeSec = profile.samples[0].timestamp;
+    const endTimeSec = profile.samples[profile.samples.length - 1].timestamp;
+    const durationMs = (endTimeSec - startTimeSec) * 1000;
 
     expect(durationMs).toBeGreaterThan(minSampleDurationMs);
   }

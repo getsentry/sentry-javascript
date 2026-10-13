@@ -1,8 +1,0 @@
-{
-  "extends": "./tsconfig.json",
-  "include": ["test/**/*", "vite.config.ts"],
-  "compilerOptions": {
-    "types": ["node"],
-    "lib": ["DOM", "ESNext"]
-  }
-}

@@ -20,7 +20,6 @@ export {
   captureMessage,
   captureSession,
   close,
-  connectIntegration,
   consoleIntegration,
   contextLinesIntegration,
   continueTrace,
@@ -30,13 +29,13 @@ export {
   dedupeIntegration,
   defaultStackParser,
   endSession,
+  // oxlint-disable-next-line typescript/no-deprecated
   expressErrorHandler,
   expressIntegration,
   extraErrorDataIntegration,
   fastifyIntegration,
   flush,
   functionToStringIntegration,
-  generateInstrumentOnce,
   genericPoolIntegration,
   getActiveSpan,
   getAutoPerformanceIntegrations,
@@ -54,14 +53,14 @@ export {
   httpIntegration,
   httpServerIntegration,
   httpServerSpansIntegration,
-  // eslint-disable-next-line typescript/no-deprecated
-  inboundFiltersIntegration,
   eventFiltersIntegration,
   initOpenTelemetry,
   isInitialized,
   isEnabled,
   knexIntegration,
   kafkaIntegration,
+  honoIntegration,
+  honoMiddleware,
   koaIntegration,
   lastEventId,
   linkedErrorsIntegration,
@@ -85,10 +84,11 @@ export {
   rewriteFramesIntegration,
   Scope,
   SDK_VERSION,
+  // oxlint-disable-next-line typescript/no-deprecated
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
+  // oxlint-disable-next-line typescript/no-deprecated
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE,
-  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   setContext,
   setCurrentClient,
   setExtra,
@@ -99,12 +99,15 @@ export {
   setTags,
   setAttribute,
   setAttributes,
-  setupConnectErrorHandler,
+  // oxlint-disable-next-line typescript/no-deprecated
   setupExpressErrorHandler,
+  // oxlint-disable-next-line typescript/no-deprecated
   setupHapiErrorHandler,
+  // oxlint-disable-next-line typescript/no-deprecated
   setupKoaErrorHandler,
   setUser,
   spanToBaggageHeader,
+  spanToStaticSpanJSON,
   spanToJSON,
   spanToTraceHeader,
   spotlightIntegration,
@@ -127,7 +130,9 @@ export {
   instrumentOpenAiClient,
   instrumentAnthropicAiClient,
   instrumentGoogleGenAIClient,
-  instrumentLangGraph,
+  instrumentMistralAiClient,
+  instrumentTypeSafeClient,
+  instrumentStateGraph,
   instrumentStateGraphCompile,
   zodErrorsIntegration,
   logger,
@@ -135,6 +140,8 @@ export {
   createConsolaReporter,
   createSentryWinstonTransport,
   spanStreamingIntegration,
+  withStaticSpan,
+  // oxlint-disable-next-line typescript/no-deprecated
   withStreamedSpan,
 } from '@sentry/node';
 
@@ -145,3 +152,4 @@ export { init, getRemixDefaultIntegrations } from './sdk';
 export { captureRemixServerException } from './errors';
 export { sentryHandleError, wrapHandleErrorWithSentry, instrumentBuild } from './instrumentServer';
 export { generateSentryServerTimingHeader } from './serverTimingTracePropagation';
+export { remixIntegration } from './integrations/RemixIntegration';

@@ -3,7 +3,6 @@ import { defineIntegration } from '../integration';
 import type { Event } from '../types/event';
 import type { Exception } from '../types/exception';
 import type { IntegrationFn } from '../types/integration';
-import type { StackFrame } from '../types/stackframe';
 import { debug } from '../utils/debug-logger';
 import { getFramesFromEvent } from '../utils/stacktrace';
 
@@ -35,7 +34,12 @@ const _dedupeIntegration = (() => {
 }) satisfies IntegrationFn;
 
 /**
- * Deduplication filter.
+ * Drops an error or message event if it is equal to the previous error or message event.
+ * Two events are equal if they have the same message (or the same exception type and value),
+ * the same stack trace and the same fingerprint.
+ *
+ * A repeated `captureException` of the same error object is dropped by the client, also without
+ * this integration (see `checkOrSetAlreadyCaught`).
  */
 export const dedupeIntegration = defineIntegration(_dedupeIntegration);
 
@@ -109,21 +113,13 @@ function _isSameExceptionEvent(currentEvent: Event, previousEvent: Event): boole
 }
 
 function _isSameStacktrace(currentEvent: Event, previousEvent: Event): boolean {
-  let currentFrames = getFramesFromEvent(currentEvent);
-  let previousFrames = getFramesFromEvent(previousEvent);
+  const currentFrames = getFramesFromEvent(currentEvent);
+  const previousFrames = getFramesFromEvent(previousEvent);
 
-  // If neither event has a stacktrace, they are assumed to be the same
-  if (!currentFrames && !previousFrames) {
-    return true;
+  // If either event is missing a stacktrace, they are the same only if neither has one
+  if (!currentFrames || !previousFrames) {
+    return !currentFrames && !previousFrames;
   }
-
-  // If only one event has a stacktrace, but not the other one, they are not the same
-  if ((currentFrames && !previousFrames) || (!currentFrames && previousFrames)) {
-    return false;
-  }
-
-  currentFrames = currentFrames as StackFrame[];
-  previousFrames = previousFrames as StackFrame[];
 
   // If number of frames differ, they are not the same
   if (previousFrames.length !== currentFrames.length) {
@@ -151,21 +147,13 @@ function _isSameStacktrace(currentEvent: Event, previousEvent: Event): boolean {
 }
 
 function _isSameFingerprint(currentEvent: Event, previousEvent: Event): boolean {
-  let currentFingerprint = currentEvent.fingerprint;
-  let previousFingerprint = previousEvent.fingerprint;
+  const currentFingerprint = currentEvent.fingerprint;
+  const previousFingerprint = previousEvent.fingerprint;
 
-  // If neither event has a fingerprint, they are assumed to be the same
-  if (!currentFingerprint && !previousFingerprint) {
-    return true;
+  // If either event is missing a fingerprint, they are the same only if neither has one
+  if (!currentFingerprint || !previousFingerprint) {
+    return !currentFingerprint && !previousFingerprint;
   }
-
-  // If only one event has a fingerprint, but not the other one, they are not the same
-  if ((currentFingerprint && !previousFingerprint) || (!currentFingerprint && previousFingerprint)) {
-    return false;
-  }
-
-  currentFingerprint = currentFingerprint as string[];
-  previousFingerprint = previousFingerprint as string[];
 
   // Otherwise, compare the two
   try {

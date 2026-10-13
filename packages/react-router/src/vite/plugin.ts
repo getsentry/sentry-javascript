@@ -1,3 +1,4 @@
+import { sentryOrchestrionPlugin } from '@sentry/server-utils/orchestrion/vite';
 import type { ConfigEnv, Plugin } from 'vite';
 import { makeConfigInjectorPlugin } from './makeConfigInjectorPlugin';
 import { makeCustomSentryVitePlugins } from './makeCustomSentryVitePlugins';
@@ -22,6 +23,7 @@ export async function sentryReactRouter(
   plugins.push(makeServerBuildCapturePlugin());
 
   if (process.env.NODE_ENV !== 'development' && viteConfig.command === 'build' && viteConfig.mode !== 'development') {
+    plugins.push(sentryOrchestrionPlugin({ buildTimeInstrumentation: options.buildTimeInstrumentation }));
     plugins.push(makeEnableSourceMapsPlugin(options));
     plugins.push(...(await makeCustomSentryVitePlugins(options)));
   }

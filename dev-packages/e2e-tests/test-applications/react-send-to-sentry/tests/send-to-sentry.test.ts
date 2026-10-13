@@ -1,5 +1,6 @@
 import { expect, test } from '@playwright/test';
 import { ReplayRecordingData } from './fixtures/ReplayRecordingData';
+import { EVENT_POLLING_OPTIONS, findErrorInTrace, findSpanInTrace } from './utils/sentry-api';
 
 const EVENT_POLLING_TIMEOUT = 90_000;
 
@@ -13,133 +14,62 @@ test('Sends an exception to Sentry', async ({ page }) => {
   const exceptionButton = page.locator('id=exception-button');
   await exceptionButton.click();
 
-  const exceptionIdHandle = await page.waitForFunction(() => window.capturedExceptionId);
-  const exceptionEventId = await exceptionIdHandle.jsonValue();
+  const capturedExceptionHandle = await page.waitForFunction(() => window.capturedException);
+  const capturedException = await capturedExceptionHandle.jsonValue();
 
-  console.log(`Polling for error eventId: ${exceptionEventId}`);
-
-  await expect
-    .poll(
-      async () => {
-        const response = await fetch(
-          `https://sentry.io/api/0/projects/${sentryTestOrgSlug}/${sentryTestProject}/events/${exceptionEventId}/`,
-          { headers: { Authorization: `Bearer ${authToken}` } },
-        );
-
-        return response.status;
-      },
-      {
-        timeout: EVENT_POLLING_TIMEOUT,
-      },
-    )
-    .toBe(200);
-});
-
-test('Sends a pageload transaction to Sentry', async ({ page }) => {
-  await page.goto('/');
-
-  const recordedTransactionsHandle = await page.waitForFunction(() => {
-    if (window.recordedTransactions && window.recordedTransactions?.length >= 1) {
-      return window.recordedTransactions;
-    } else {
-      return undefined;
-    }
-  });
-  const recordedTransactionEventIds = await recordedTransactionsHandle.jsonValue();
-
-  if (recordedTransactionEventIds === undefined) {
-    throw new Error("Application didn't record any transaction event IDs.");
+  if (capturedException === undefined) {
+    throw new Error("Application didn't record the captured exception.");
   }
 
-  let hadPageLoadTransaction = false;
+  const { eventId, traceId } = capturedException;
 
-  console.log(`Polling for transaction eventIds: ${JSON.stringify(recordedTransactionEventIds)}`);
+  console.log(`Polling for error eventId: ${eventId} in trace: ${traceId}`);
 
-  await Promise.all(
-    recordedTransactionEventIds.map(async transactionEventId => {
-      await expect
-        .poll(
-          async () => {
-            const response = await fetch(
-              `https://sentry.io/api/0/projects/${sentryTestOrgSlug}/${sentryTestProject}/events/${transactionEventId}/`,
-              { headers: { Authorization: `Bearer ${authToken}` } },
-            );
-
-            if (response.ok) {
-              const data = await response.json();
-
-              if (data.contexts.trace.op === 'pageload') {
-                hadPageLoadTransaction = true;
-              }
-            }
-
-            return response.status;
-          },
-          {
-            timeout: EVENT_POLLING_TIMEOUT,
-          },
-        )
-        .toBe(200);
-    }),
-  );
-
-  expect(hadPageLoadTransaction).toBe(true);
+  await expect.poll(() => findErrorInTrace(traceId, eventId), EVENT_POLLING_OPTIONS).toBeDefined();
 });
 
-test('Sends a navigation transaction to Sentry', async ({ page }) => {
+test('Sends a pageload span to Sentry', async ({ page }) => {
   await page.goto('/');
 
-  // Give pageload transaction time to finish
+  const spanHandle = await page.waitForFunction(() =>
+    window.recordedSegmentSpans?.find(span => span.op === 'pageload'),
+  );
+  const pageloadSpan = await spanHandle.jsonValue();
+
+  if (pageloadSpan === undefined) {
+    throw new Error("Application didn't record a pageload span.");
+  }
+
+  const { spanId, traceId } = pageloadSpan;
+
+  console.log(`Polling for pageload spanId: ${spanId} in trace: ${traceId}`);
+
+  await expect.poll(() => findSpanInTrace(traceId, 'pageload'), EVENT_POLLING_OPTIONS).toBeDefined();
+});
+
+test('Sends a navigation span to Sentry', async ({ page }) => {
+  await page.goto('/');
+
+  // Give the pageload span time to finish
   await page.waitForTimeout(4000);
 
   const linkElement = page.locator('id=navigation');
   await linkElement.click();
 
-  const recordedTransactionsHandle = await page.waitForFunction(() => {
-    if (window.recordedTransactions && window.recordedTransactions?.length >= 2) {
-      return window.recordedTransactions;
-    } else {
-      return undefined;
-    }
-  });
-  const recordedTransactionEventIds = await recordedTransactionsHandle.jsonValue();
+  const spanHandle = await page.waitForFunction(() =>
+    window.recordedSegmentSpans?.find(span => span.op === 'navigation'),
+  );
+  const navigationSpan = await spanHandle.jsonValue();
 
-  if (recordedTransactionEventIds === undefined) {
-    throw new Error("Application didn't record any transaction event IDs.");
+  if (navigationSpan === undefined) {
+    throw new Error("Application didn't record a navigation span.");
   }
 
-  let hadPageNavigationTransaction = false;
+  const { spanId, traceId } = navigationSpan;
 
-  console.log(`Polling for transaction eventIds: ${JSON.stringify(recordedTransactionEventIds)}`);
+  console.log(`Polling for navigation spanId: ${spanId} in trace: ${traceId}`);
 
-  await Promise.all(
-    recordedTransactionEventIds.map(async transactionEventId => {
-      await expect
-        .poll(
-          async () => {
-            const response = await fetch(
-              `https://sentry.io/api/0/projects/${sentryTestOrgSlug}/${sentryTestProject}/events/${transactionEventId}/`,
-              { headers: { Authorization: `Bearer ${authToken}` } },
-            );
-
-            if (response.ok) {
-              const data = await response.json();
-              if (data.contexts.trace.op === 'navigation') {
-                hadPageNavigationTransaction = true;
-              }
-            }
-
-            return response.status;
-          },
-          {
-            timeout: EVENT_POLLING_TIMEOUT,
-          },
-        )
-        .toBe(200);
-    }),
-  );
-
-  expect(hadPageNavigationTransaction).toBe(true);
+  await expect.poll(() => findSpanInTrace(traceId, 'navigation'), EVENT_POLLING_OPTIONS).toBeDefined();
 });
 
 test('Sends a Replay recording to Sentry', async ({ browser }) => {

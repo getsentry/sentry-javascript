@@ -19,7 +19,8 @@
       "files": ["**/src/**"],
       "rules": {
         "sdk/no-class-field-initializers": "error",
-        "sdk/no-regexp-constructor": "error"
+        "sdk/no-regexp-constructor": "error",
+        "sdk/no-unfiltered-url-attributes": "error"
       }
     }
   ],

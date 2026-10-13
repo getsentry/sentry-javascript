@@ -1,3 +1,12 @@
+import type { ModuleMetadata, ModuleMetadataCallback, ResolveSourceMapHook } from '@sentry/core';
+
+export type {
+  ModuleMetadata,
+  ModuleMetadataCallback,
+  ModuleMetadataCallbackArgs,
+  ResolveSourceMapHook,
+} from '@sentry/core';
+
 export interface Options {
   /**
    * The slug of the Sentry organization associated with the app.
@@ -105,8 +114,13 @@ export interface Options {
     /**
      * Disables all functionality related to sourcemaps if set to `true`.
      *
-     * If set to `"disable-upload"`, the plugin will not upload sourcemaps to Sentry, but will inject debug IDs into the build artifacts.
-     * This is useful if you want to manually upload sourcemaps to Sentry at a later point in time.
+     * If set to `"disable-upload"`, the plugin will not upload sourcemaps to Sentry, but will still inject debug IDs
+     * into the build artifacts: the bundles receive the runtime debug ID snippet and a `//# debugId=` comment, and the
+     * emitted source maps receive the matching `debug_id` field. This happens inside the bundler's build pipeline, so
+     * hashes computed by later build steps (e.g. for subresource integrity) include the debug IDs.
+     *
+     * This is useful if you want to manually upload sourcemaps to Sentry at a later point in time, e.g. with
+     * `sentry sourcemap upload`. The artifacts already carry their debug IDs, so no `inject` step is needed.
      *
      * @default false
      */
@@ -295,6 +309,21 @@ export interface Options {
     excludeTracing?: boolean;
 
     /**
+     * Exclude the Node SDK's runtime diagnostics-channel injection from the bundle.
+     *
+     * If set to `true`, the plugin will attempt to tree-shake (remove) code that installs the Node SDK's
+     * runtime module hooks (e.g. for Express instrumentation) at load time. Note that the success of this
+     * depends on tree-shaking being enabled in your build tooling.
+     *
+     * Only enable this when the diagnostics channels are injected at build time (via the bundler plugin) or
+     * when you otherwise do not rely on the runtime channel injection. This is equivalent to setting
+     * `enableRuntimeChannelInjection: false` in the SDK's `init` options.
+     *
+     * @default false
+     */
+    excludeChannelInjection?: boolean;
+
+    /**
      * If set to `true`, the plugin will attempt to tree-shake (remove) code related to the Sentry SDK's Session Replay Canvas recording functionality.
      * Note that the success of this depends on tree-shaking being enabled in your build tooling.
      *
@@ -432,25 +461,6 @@ export interface Options {
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export type RewriteSourcesHook = (source: string, map: any, context?: { mapDir: string }) => string;
 
-export type ResolveSourceMapHook = (
-  artifactPath: string,
-  sourceMappingUrl: string | undefined,
-) => string | undefined | Promise<string | undefined>;
-
-export interface ModuleMetadata {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  [key: string]: any;
-}
-
-export interface ModuleMetadataCallbackArgs {
-  org?: string;
-  project?: string;
-  projects?: string[];
-  release?: string;
-}
-
-export type ModuleMetadataCallback = (args: ModuleMetadataCallbackArgs) => ModuleMetadata;
-
 export type IncludeEntry = {
   /**
    * One or more paths to scan for files to upload.
@@ -536,6 +546,7 @@ export type IncludeEntry = {
 export interface SentrySDKBuildFlags extends Record<string, boolean | undefined> {
   __SENTRY_DEBUG__?: boolean;
   __SENTRY_TRACING__?: boolean;
+  __SENTRY_CHANNEL_INJECTION__?: boolean;
   __RRWEB_EXCLUDE_CANVAS__?: boolean;
   __RRWEB_EXCLUDE_IFRAME__?: boolean;
   __RRWEB_EXCLUDE_SHADOW_DOM__?: boolean;

@@ -17,5 +17,6 @@ Sentry.init({
     }),
   ],
   tracesSampleRate: 1.0,
-  profilesSampleRate: 1,
+  profileSessionSampleRate: 1,
+  profileLifecycle: 'trace',
 });

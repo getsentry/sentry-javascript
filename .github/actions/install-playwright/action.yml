@@ -7,19 +7,37 @@ inputs:
   cwd:
     description: 'The working directory to run Playwright in.'
     default: '.'
+  installed-version:
+    description:
+      'A Playwright version that an earlier run of this action already installed. Skips the install if it matches.'
+    default: ''
+
+outputs:
+  version:
+    description: 'The resolved Playwright version, empty if Playwright is not installed or the install was skipped.'
+    value: ${{ steps.playwright-version.outputs.version }}
 
 runs:
   using: 'composite'
   steps:
+    # Resolve the app's @playwright/test version. Some apps (e.g. the node bundler apps) assert via a
+    # plain node script and don't depend on Playwright — emit an empty version instead of failing, so
+    # the steps below skip the (wasted) browser install rather than erroring on the missing package.
     - name: Get Playwright version
       id: playwright-version
-      run: echo "version=$(node -p "require('@playwright/test/package.json').version")" >> $GITHUB_OUTPUT
+      run: |
+        version=$(node -e "let v = ''; try { v = require('@playwright/test/package.json').version; } catch {} process.stdout.write(String(v));")
+        if [ "$version" = "$INSTALLED_VERSION" ]; then version=''; fi
+        echo "version=$version" >> "$GITHUB_OUTPUT"
       shell: bash
+      env:
+        INSTALLED_VERSION: ${{ inputs.installed-version }}
       working-directory: ${{ inputs.cwd }}
 
     - name: Restore cached playwright binaries
-      uses: actions/cache/restore@v5
+      uses: actions/cache/restore@v6.1.0
       id: playwright-cache
+      if: steps.playwright-version.outputs.version != ''
       with:
         path: |
           ~/.cache/ms-playwright
@@ -29,7 +47,7 @@ runs:
     # We always install all browsers, if uncached
     - name: Install Playwright dependencies (uncached)
       run: npx playwright install chromium webkit firefox --with-deps
-      if: steps.playwright-cache.outputs.cache-hit != 'true'
+      if: steps.playwright-version.outputs.version != '' && steps.playwright-cache.outputs.cache-hit != 'true'
       shell: bash
       working-directory: ${{ inputs.cwd }}
 
@@ -37,14 +55,16 @@ runs:
       env:
         PLAYWRIGHT_BROWSERS: ${{ inputs.browsers || 'chromium webkit firefox' }}
       run: npx playwright install-deps "$PLAYWRIGHT_BROWSERS"
-      if: steps.playwright-cache.outputs.cache-hit == 'true'
+      if: steps.playwright-version.outputs.version != '' && steps.playwright-cache.outputs.cache-hit == 'true'
       shell: bash
       working-directory: ${{ inputs.cwd }}
 
     # Only store cache on develop branch
     - name: Store cached playwright binaries
-      uses: actions/cache/save@v5
-      if: github.event_name == 'push' && github.ref == 'refs/heads/develop'
+      uses: actions/cache/save@v6.1.0
+      if:
+        steps.playwright-version.outputs.version != '' && github.event_name == 'push' && github.ref ==
+        'refs/heads/develop'
       with:
         path: |
           ~/.cache/ms-playwright

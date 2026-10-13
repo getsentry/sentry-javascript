@@ -14,11 +14,4 @@ Sentry.init({
     }),
   ],
   debug: true,
-  beforeSendTransaction: event => {
-    if (event.transaction.includes('/openai/')) {
-      return null;
-    }
-    return event;
-  },
-  streamGenAiSpans: true,
 });

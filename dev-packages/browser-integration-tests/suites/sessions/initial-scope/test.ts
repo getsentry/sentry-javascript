@@ -13,6 +13,7 @@ sentryTest('starts a new session on pageload.', async ({ getLocalTestUrl, page }
   expect(session).toEqual({
     attrs: {
       environment: 'production',
+      ip_address: '{{auto}}',
       release: '0.1',
       user_agent: expect.any(String),
     },

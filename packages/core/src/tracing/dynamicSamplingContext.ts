@@ -1,12 +1,11 @@
-import { SENTRY_SPAN_SOURCE } from '@sentry/conventions/attributes';
 import type { Client } from '../client';
 import { DEFAULT_ENVIRONMENT } from '../constants';
-import { getClient } from '../currentScopes';
+import { getClient, getExternalPropagationContext } from '../currentScopes';
 import type { Scope } from '../scope';
+import { SENTRY_SEGMENT_NAME_SOURCE } from '@sentry/conventions/attributes';
 import {
   SEMANTIC_ATTRIBUTE_SENTRY_PREVIOUS_TRACE_SAMPLE_RATE,
   SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE,
-  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
 } from '../semanticAttributes';
 import type { DynamicSamplingContext } from '../types/envelope';
 import type { Span } from '../types/span';
@@ -14,7 +13,7 @@ import { baggageHeaderToDynamicSamplingContext, dynamicSamplingContextToSentryBa
 import { extractOrgIdFromClient } from '../utils/dsn';
 import { hasSpansEnabled } from '../utils/hasSpansEnabled';
 import { addNonEnumerableProperty } from '../utils/object';
-import { getRootSpan, spanIsSampled, spanToJSON } from '../utils/spanUtils';
+import { getRootSpan, spanIsSampled, spanToStaticSpanJSON } from '../utils/spanUtils';
 import { spanIsNonRecordingSpan } from './sentryNonRecordingSpan';
 import { getCapturedScopesOnSpan } from './utils';
 
@@ -64,7 +63,18 @@ export function getDynamicSamplingContextFromClient(trace_id: string, client: Cl
 /**
  * Get the dynamic sampling context for the currently active scopes.
  */
-export function getDynamicSamplingContextFromScope(client: Client, scope: Scope): Partial<DynamicSamplingContext> {
+export function getDynamicSamplingContextFromScope(
+  client: Client,
+  scope: Scope,
+): Partial<DynamicSamplingContext> | undefined {
+  // While an external propagation context is active (e.g. the OTLP integration riding along on an
+  // OpenTelemetry span), the SDK lacks most of the DSC information, like sampled, sample_rate,
+  // sample_rand and transaction. The scope's own DSC would also name a different trace than the one
+  // stamped on the event, so send none at all. Matches sentry-python.
+  if (getExternalPropagationContext()) {
+    return undefined;
+  }
+
   const propagationContext = scope.getPropagationContext();
   return propagationContext.dsc || getDynamicSamplingContextFromClient(propagationContext.traceId, client);
 }
@@ -83,7 +93,7 @@ export function getDynamicSamplingContextFromSpan(span: Span): Readonly<Partial<
   }
 
   const rootSpan = getRootSpan(span);
-  const rootSpanJson = spanToJSON(rootSpan);
+  const rootSpanJson = spanToStaticSpanJSON(rootSpan);
   const rootSpanAttributes = rootSpanJson.data;
   const traceState = rootSpan.spanContext().traceState;
 
@@ -107,20 +117,30 @@ export function getDynamicSamplingContextFromSpan(span: Span): Readonly<Partial<
     return applyLocalSampleRateToDsc(frozenDsc);
   }
 
-  // For a non-recording placeholder in Tracing without Performance (TwP) mode, the DSC is not
-  // carried on the span; the scope is the source of truth. Resolve it from the span's captured
-  // scope: continued traces keep the incoming DSC, new traces derive it from the client.
+  // For a non-recording placeholder in Tracing without Performance (TwP) mode or an ignored segment,
+  // the DSC is not carried on the span; the scope is the source of truth. Resolve it from the span's
+  // captured scope so continued traces keep their incoming DSC.
   //
   // We gate this on `!hasSpansEnabled()` so it mirrors the `sentry-trace` source in `getTraceData`:
-  // with tracing enabled, a non-recording span (e.g. an `onlyIfParent` placeholder) keeps deriving
-  // its DSC from the span/client so the baggage agrees with the `-0` decision that `spanToTraceHeader`
-  // encodes for `sentry-trace`. Without this guard the two headers can disagree.
+  // with tracing enabled, other non-recording spans (e.g. an `onlyIfParent` placeholder) keep deriving
+  // their DSC from the span/client. Ignored segments are an explicit exception: they preserve the
+  // incoming DSC but override its sampling decision to agree with the propagated `sentry-trace`.
   //
   // We spread into a new object so applying the local sample rate can't mutate the scope's DSC.
-  if (spanIsNonRecordingSpan(rootSpan) && !hasSpansEnabled(client.getOptions())) {
+  const isNonRecordingRoot = spanIsNonRecordingSpan(rootSpan);
+  const isIgnoredRoot = isNonRecordingRoot && rootSpan.dropReason === 'ignored';
+  if (isNonRecordingRoot && (!hasSpansEnabled(client.getOptions()) || isIgnoredRoot)) {
     const capturedScope = getCapturedScopesOnSpan(rootSpan).scope;
-    if (capturedScope) {
-      return applyLocalSampleRateToDsc({ ...getDynamicSamplingContextFromScope(client, capturedScope) });
+    // The scope yields no DSC while an external propagation context is active. We do have a Sentry
+    // span here though, so we are head of *its* trace: fall through and derive the DSC from the span
+    // rather than emitting an empty one.
+    const scopeDsc = capturedScope && getDynamicSamplingContextFromScope(client, capturedScope);
+    if (scopeDsc) {
+      const dsc = { ...scopeDsc };
+      if (isIgnoredRoot) {
+        dsc.sampled = 'false';
+      }
+      return applyLocalSampleRateToDsc(dsc);
     }
   }
 
@@ -138,8 +158,7 @@ export function getDynamicSamplingContextFromSpan(span: Span): Readonly<Partial<
   const dsc = getDynamicSamplingContextFromClient(span.spanContext().traceId, client);
 
   // We don't want to have a transaction name in the DSC if the source is "url" because URLs might contain PII
-  // TODO(v11): Only read `SENTRY_SPAN_SOURCE` once we removed `SEMANTIC_ATTRIBUTE_SENTRY_SOURCE`
-  const source = rootSpanAttributes[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE] ?? rootSpanAttributes[SENTRY_SPAN_SOURCE];
+  const source = rootSpanAttributes[SENTRY_SEGMENT_NAME_SOURCE];
 
   // after JSON conversion, txn.name becomes jsonSpan.description
   const name = rootSpanJson.description;

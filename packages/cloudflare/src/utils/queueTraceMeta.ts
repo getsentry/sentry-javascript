@@ -22,9 +22,8 @@ export function addQueueTraceContext(body: unknown, sentryTrace: string | undefi
     return body;
   }
 
-  // Queue messages are capped at 128 KB, but size is not the main reason to keep this minimal: span links only need
-  // sentry-trace, so baggage would be unused even when typical JSON payloads have ample headroom.
-  // Avoid mutating application-owned values; callers may reuse a payload after enqueueing it.
+  // Span links only need `sentry-trace`, so baggage would only cost message size. Copy instead of
+  // mutating, because callers may reuse a payload after enqueueing it.
   return { ...body, [SENTRY_QUEUE_TRACE_KEY]: sentryTrace };
 }
 
@@ -41,8 +40,9 @@ export function extractQueueTraceContext(
 
   const sentryTrace = body[SENTRY_QUEUE_TRACE_KEY];
 
-  // Once propagation is enabled this key is reserved transport metadata, even if its value was corrupted in transit.
-  delete body.__sentry_queue_trace__;
+  // The key is reserved transport metadata, so strip it even if its value is not a valid trace.
+  // Unlike `delete`, this returns false instead of throwing on frozen bodies, which keep the field.
+  Reflect.deleteProperty(body, SENTRY_QUEUE_TRACE_KEY);
 
   if (typeof sentryTrace !== 'string') {
     return undefined;

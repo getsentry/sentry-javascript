@@ -1,5 +1,10 @@
 {
-  "extends": "./.svelte-kit/tsconfig.json",
+  // Kit 3 generates the parent config at `node_modules/$app/tsconfig`
+  // and never writes `.svelte-kit/tsconfig.json`. `svelte-kit sync`
+  // creates a placeholder there before it loads `src/env.ts`, so the
+  // transform no longer races the generated file.
+  "extends": "$app/tsconfig",
+  "include": ["src"],
   "compilerOptions": {
     "allowJs": true,
     "esModuleInterop": true,
@@ -11,7 +16,4 @@
     "allowImportingTsExtensions": true
   }
   // Path aliases are handled by https://kit.svelte.dev/docs/configuration#alias
-  //
-  // If you want to overwrite includes/excludes, make sure to copy over the relevant includes/excludes
-  // from the referenced tsconfig.json - TypeScript does not merge them in
 }

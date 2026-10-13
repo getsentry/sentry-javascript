@@ -40,16 +40,16 @@ exports[`valueInjectionLoader > should correctly insert values with a misplaced 
 
 exports[`valueInjectionLoader > should correctly insert values with directive 1`] = `
 "
-      "use client";globalThis["foo"] = "bar";
-      import * as Sentry from '@sentry/nextjs';
+      "use client"
+      ;globalThis["foo"] = "bar";import * as Sentry from '@sentry/nextjs';
       Sentry.init();
     "
 `;
 
 exports[`valueInjectionLoader > should correctly insert values with directive 2`] = `
 "
-      "use client";globalThis["foo"] = "bar";
-      import * as Sentry from '@sentry/nextjs';
+      "use client"
+      ;globalThis["foo"] = "bar";import * as Sentry from '@sentry/nextjs';
       Sentry.init();
     "
 `;
@@ -57,8 +57,8 @@ exports[`valueInjectionLoader > should correctly insert values with directive 2`
 exports[`valueInjectionLoader > should correctly insert values with directive and block comments 1`] = `
 "
       /* test */
-      "use client";;globalThis["foo"] = "bar";
-      import * as Sentry from '@sentry/nextjs';
+      "use client";
+      ;globalThis["foo"] = "bar";import * as Sentry from '@sentry/nextjs';
       Sentry.init();
     "
 `;
@@ -66,8 +66,8 @@ exports[`valueInjectionLoader > should correctly insert values with directive an
 exports[`valueInjectionLoader > should correctly insert values with directive and block comments 2`] = `
 "
       /* test */
-      "use client";;globalThis["foo"] = "bar";
-      import * as Sentry from '@sentry/nextjs';
+      "use client";
+      ;globalThis["foo"] = "bar";import * as Sentry from '@sentry/nextjs';
       Sentry.init();
     "
 `;
@@ -75,8 +75,8 @@ exports[`valueInjectionLoader > should correctly insert values with directive an
 exports[`valueInjectionLoader > should correctly insert values with directive and inline comments 1`] = `
 "
       // test
-      "use client";;globalThis["foo"] = "bar";
-      import * as Sentry from '@sentry/nextjs';
+      "use client";
+      ;globalThis["foo"] = "bar";import * as Sentry from '@sentry/nextjs';
       Sentry.init();
     "
 `;
@@ -84,8 +84,8 @@ exports[`valueInjectionLoader > should correctly insert values with directive an
 exports[`valueInjectionLoader > should correctly insert values with directive and inline comments 2`] = `
 "
       // test
-      "use client";;globalThis["foo"] = "bar";
-      import * as Sentry from '@sentry/nextjs';
+      "use client";
+      ;globalThis["foo"] = "bar";import * as Sentry from '@sentry/nextjs';
       Sentry.init();
     "
 `;
@@ -95,8 +95,8 @@ exports[`valueInjectionLoader > should correctly insert values with directive an
       /*
         test
       */
-      "use client";;globalThis["foo"] = "bar";
-      import * as Sentry from '@sentry/nextjs';
+      "use client";
+      ;globalThis["foo"] = "bar";import * as Sentry from '@sentry/nextjs';
       Sentry.init();
     "
 `;
@@ -106,8 +106,8 @@ exports[`valueInjectionLoader > should correctly insert values with directive an
       /*
         test
       */
-      "use client";;globalThis["foo"] = "bar";
-      import * as Sentry from '@sentry/nextjs';
+      "use client";
+      ;globalThis["foo"] = "bar";import * as Sentry from '@sentry/nextjs';
       Sentry.init();
     "
 `;
@@ -121,11 +121,11 @@ exports[`valueInjectionLoader > should correctly insert values with directive an
 
 
 
-      "use client";;globalThis["foo"] = "bar";
+      "use client";
 
 
 
-      import * as Sentry from '@sentry/nextjs';
+      ;globalThis["foo"] = "bar";import * as Sentry from '@sentry/nextjs';
       Sentry.init();
     "
 `;
@@ -139,27 +139,27 @@ exports[`valueInjectionLoader > should correctly insert values with directive an
 
 
 
-      "use client";;globalThis["foo"] = "bar";
+      "use client";
 
 
 
-      import * as Sentry from '@sentry/nextjs';
+      ;globalThis["foo"] = "bar";import * as Sentry from '@sentry/nextjs';
       Sentry.init();
     "
 `;
 
 exports[`valueInjectionLoader > should correctly insert values with directive and semicolon 1`] = `
 "
-      "use client";;globalThis["foo"] = "bar";
-      import * as Sentry from '@sentry/nextjs';
+      "use client";
+      ;globalThis["foo"] = "bar";import * as Sentry from '@sentry/nextjs';
       Sentry.init();
     "
 `;
 
 exports[`valueInjectionLoader > should correctly insert values with directive and semicolon 2`] = `
 "
-      "use client";;globalThis["foo"] = "bar";
-      import * as Sentry from '@sentry/nextjs';
+      "use client";
+      ;globalThis["foo"] = "bar";import * as Sentry from '@sentry/nextjs';
       Sentry.init();
     "
 `;

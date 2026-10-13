@@ -7,18 +7,15 @@ const SERVER_BUILD_MODULE_ID = 'virtual:react-router/server-build';
  * A Sentry plugin for React Router to capture the server build for middleware name resolution.
  */
 export function makeServerBuildCapturePlugin(): Plugin {
-  let isSsrBuild = false;
-
   return {
     name: 'sentry-react-router-server-build-capture',
     enforce: 'post',
 
-    configResolved(config) {
-      isSsrBuild = !!config.build.ssr;
-    },
-
-    transform(code, id) {
-      if (!isSsrBuild) {
+    transform(code, id, options) {
+      // Only inject into the server build module when transforming for the SSR environment.
+      // `options.ssr` is set for the SSR module in both dev (`react-router dev`) and production
+      // builds, so this covers both - unlike `config.build.ssr`, which is only true during a build.
+      if (!options?.ssr) {
         return null;
       }
 
@@ -26,10 +23,11 @@ export function makeServerBuildCapturePlugin(): Plugin {
         return null;
       }
 
-      // `routes` is a module-scope export in the virtual:react-router/server-build module
+      // `routes` and `prerender` are module-scope exports in the virtual:react-router/server-build
+      // module. `prerender` is guarded with `typeof` because older React Router versions don't declare it.
       const injectedCode = `${code}
 if (typeof globalThis !== 'undefined' && typeof globalThis["${GLOBAL_KEY}"] === 'function') {
-  globalThis["${GLOBAL_KEY}"]({ routes });
+  globalThis["${GLOBAL_KEY}"]({ routes, prerender: typeof prerender !== 'undefined' ? prerender : undefined });
 }
 `;
 

@@ -16,6 +16,7 @@ export default [
     route('error-middleware', 'routes/performance/error-middleware.tsx'),
     route('lazy-route', 'routes/performance/lazy-route.tsx'),
     route('fetcher-test', 'routes/performance/fetcher-test.tsx'),
-    route('redis', 'routes/performance/redis.tsx'),
+    route('db-ioredis', 'routes/performance/db-ioredis.tsx'),
+    route('db-mysql', 'routes/performance/db-mysql.tsx'),
   ]),
 ] satisfies RouteConfig;

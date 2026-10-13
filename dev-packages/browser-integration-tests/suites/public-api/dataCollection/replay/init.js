@@ -16,5 +16,4 @@ Sentry.init({
   replaysSessionSampleRate: 1.0,
   replaysOnErrorSampleRate: 0.0,
   integrations: [window.Replay],
-  dataCollection: { userInfo: true },
 });

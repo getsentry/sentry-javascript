@@ -16,6 +16,9 @@ updates:
       - dependency-name: '@opentelemetry/instrumentation'
       - dependency-name: '@opentelemetry/instrumentation-*'
       - dependency-name: 'typescript'
+      # 2.110.0 raised the engine requirement to Node >=22, while this repo runs Node 20.
+      - dependency-name: '@supabase/supabase-js'
+        versions: ['>=2.110.0']
     groups:
       opentelemetry:
         patterns:

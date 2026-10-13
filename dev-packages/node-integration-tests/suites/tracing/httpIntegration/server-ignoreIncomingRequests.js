@@ -10,6 +10,9 @@ Sentry.init({
   integrations: [
     Sentry.httpIntegration({
       ignoreIncomingRequests: (url, request) => {
+        if (request.url === '/flush') {
+          return true;
+        }
         if (url.includes('/liveness')) {
           return true;
         }
@@ -31,6 +34,11 @@ const app = express();
 
 app.use(cors());
 
+app.get('/flush', async (_req, res) => {
+  await Sentry.flush();
+  res.send({ response: 'flushed' });
+});
+
 app.get('/test', (_req, res) => {
   res.send({ response: 'response 1' });
 });
@@ -42,7 +50,5 @@ app.get('/liveness', (_req, res) => {
 app.post('/readiness', (_req, res) => {
   res.send({ response: 'readiness' });
 });
-
-Sentry.setupExpressErrorHandler(app);
 
 startExpressServerAndSendPortToRunner(app);

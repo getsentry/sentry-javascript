@@ -1,7 +1,7 @@
 import { DEBUG_BUILD } from '../debug-build';
 import type { Span } from '../types/span';
 import { debug } from '../utils/debug-logger';
-import { getRootSpan, spanIsSampled, spanToJSON } from '../utils/spanUtils';
+import { getRootSpan, spanIsSampled, spanToStaticSpanJSON } from '../utils/spanUtils';
 
 /**
  * Print a log message for a started span.
@@ -9,7 +9,11 @@ import { getRootSpan, spanIsSampled, spanToJSON } from '../utils/spanUtils';
 export function logSpanStart(span: Span): void {
   if (!DEBUG_BUILD) return;
 
-  const { description = '< unknown name >', op = '< unknown op >', parent_span_id: parentSpanId } = spanToJSON(span);
+  const {
+    description = '< unknown name >',
+    op = '< unknown op >',
+    parent_span_id: parentSpanId,
+  } = spanToStaticSpanJSON(span);
   const { spanId } = span.spanContext();
 
   const sampled = spanIsSampled(span);
@@ -25,7 +29,7 @@ export function logSpanStart(span: Span): void {
   }
 
   if (!isRootSpan) {
-    const { op, description } = spanToJSON(rootSpan);
+    const { op, description } = spanToStaticSpanJSON(rootSpan);
     infoParts.push(`root ID: ${rootSpan.spanContext().spanId}`);
     if (op) {
       infoParts.push(`root op: ${op}`);
@@ -45,7 +49,7 @@ export function logSpanStart(span: Span): void {
 export function logSpanEnd(span: Span): void {
   if (!DEBUG_BUILD) return;
 
-  const { description = '< unknown name >', op = '< unknown op >' } = spanToJSON(span);
+  const { description = '< unknown name >', op = '< unknown op >' } = spanToStaticSpanJSON(span);
   const { spanId } = span.spanContext();
   const rootSpan = getRootSpan(span);
   const isRootSpan = rootSpan === span;

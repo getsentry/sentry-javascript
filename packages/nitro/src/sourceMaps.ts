@@ -1,5 +1,5 @@
-import type { Options as BundlerPluginOptions } from '@sentry/bundler-plugin-core';
-import { createSentryBuildPluginManager } from '@sentry/bundler-plugin-core';
+import type { Options as BundlerPluginOptions } from '@sentry/bundler-plugins/core';
+import { createSentryBuildPluginManager } from '@sentry/bundler-plugins/core';
 import type { Nitro, NitroConfig } from 'nitro/types';
 import type { SentryNitroOptions } from './config';
 

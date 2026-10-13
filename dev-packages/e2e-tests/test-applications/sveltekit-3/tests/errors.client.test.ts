@@ -2,8 +2,7 @@ import { expect, test } from '@playwright/test';
 import { waitForError } from '@sentry-internal/test-utils';
 import { waitForInitialPageload } from './utils';
 
-// TODO(sveltekit-3): Unskip once SvelteKit 3 browser support lands (#22264).
-test.describe.skip('client-side errors', () => {
+test.describe('client-side errors', () => {
   test('captures error thrown on click', async ({ page }) => {
     await waitForInitialPageload(page, { route: '/client-error' });
 

@@ -362,7 +362,7 @@ describe('ThirdPartyErrorFilter', () => {
     });
   });
 
-  describe('experimentalExcludeSentryInternalFrames', () => {
+  describe('ignoreSentryInternalFrames', () => {
     describe('drop-error-if-exclusively-contains-third-party-frames', () => {
       it('drops event with only third-party + Sentry internal frames when option is enabled', async () => {
         const integration = thirdPartyErrorFilterIntegration({
@@ -404,12 +404,10 @@ describe('ThirdPartyErrorFilter', () => {
         const integration = thirdPartyErrorFilterIntegration({
           behaviour: 'drop-error-if-exclusively-contains-third-party-frames',
           filterKeys: ['some-key'],
-          // experimentalExcludeSentryInternalFrames not set, should default to false
         });
 
         const event = clone(eventWithThirdPartyAndSentryInternalFrames);
         const result = await integration.processEvent?.(event, {}, MOCK_CLIENT);
-        // Should not drop because option defaults to false
         expect(result).toBeDefined();
       });
     });

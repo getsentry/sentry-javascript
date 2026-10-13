@@ -1,0 +1,15 @@
+{
+  "$schema": "../../../node_modules/wrangler/config-schema.json",
+  "name": "cloudflare-vite-dc-client-build",
+  // `main` points at the source entry; the runner detects `vite.config.mts`, runs
+  // `vite build`, and serves the built output (so the orchestrion transform runs).
+  "main": "index.ts",
+  "compatibility_date": "2026-04-26",
+  "compatibility_flags": ["nodejs_compat"],
+  // Giving the worker assets makes the Cloudflare Vite plugin produce a browser
+  // (`client`) bundle next to the server (worker) bundle — the setup where the
+  // orchestrion plugin must not touch the client output.
+  "assets": {
+    "directory": "./dist/client",
+  },
+}

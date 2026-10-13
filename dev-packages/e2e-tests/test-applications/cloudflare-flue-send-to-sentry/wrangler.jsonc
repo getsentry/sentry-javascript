@@ -1,0 +1,12 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  // Placeholder only: every test run deploys under a unique name, see global-setup.ts.
+  "name": "cloudflare-flue-send-to-sentry",
+  "compatibility_date": "2026-06-01",
+  "compatibility_flags": ["nodejs_compat"],
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["FlueHelloAgent"] }],
+  "workers_dev": true,
+  // Workers Logs keep the invocations of the last 7 days, so a failed CI run can still be inspected.
+  "observability": { "enabled": true },
+  "secrets": { "required": ["E2E_TEST_DSN", "OPENROUTER_API_KEY", "E2E_TEST_WORKER_TOKEN"] },
+}

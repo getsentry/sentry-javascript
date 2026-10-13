@@ -27,7 +27,7 @@ function isRouteFile(filename: string): boolean {
  * Convert Remix route file paths to parameterized paths at build time.
  *
  * Examples:
- *   - index.tsx -> /
+ *   - _index.tsx -> /
  *   - users.tsx -> /users
  *   - users.$id.tsx -> /users/:id
  *   - users.$id.posts.$postId.tsx -> /users/:id/posts/:postId
@@ -35,7 +35,8 @@ function isRouteFile(filename: string): boolean {
  *   - docs.$.tsx -> /docs/:*
  *   - users/$id.tsx (nested folder) -> /users/:id
  *   - users/$id/posts.tsx (nested folder) -> /users/:id/posts
- *   - users/index.tsx (nested folder) -> /users
+ *   - users/_index.tsx (nested folder) -> /users
+ *   - concerts_.mine.tsx -> /concerts/mine (trailing underscore opts out of layout nesting only)
  *   - _layout.tsx -> null (pathless layout route, not URL-addressable)
  *   - _auth.tsx -> null (pathless layout route, not URL-addressable)
  *
@@ -48,7 +49,7 @@ export function convertRemixRouteToPath(filename: string): { path: string; isDyn
   const basename = filename.replace(/\.(tsx?|jsx?)$/, '');
 
   // Handle root index route
-  if (basename === 'index' || basename === '_index') {
+  if (basename === '_index') {
     return { path: '/', isDynamic: false };
   }
 
@@ -75,25 +76,22 @@ export function convertRemixRouteToPath(filename: string): { path: string; isDyn
       continue;
     }
 
-    // Handle 'index' segments at the end (skip only if there are path segments,
-    // otherwise root index is handled by the early return above)
-    if (segment === 'index' && i === segments.length - 1 && pathSegments.length > 0) {
-      isIndexRoute = true;
-      continue;
-    }
+    // A trailing underscore opts a segment out of layout nesting without appearing in the URL,
+    // so it has to be dropped before the segment is turned into a path segment.
+    const pathSegment = segment.endsWith('_') ? segment.slice(0, -1) : segment;
 
-    if (segment === '$') {
+    if (pathSegment === '$') {
       pathSegments.push(':*');
       isDynamic = true;
       continue;
     }
 
-    if (segment.startsWith('$')) {
-      const paramName = segment.substring(1);
+    if (pathSegment.startsWith('$')) {
+      const paramName = pathSegment.substring(1);
       pathSegments.push(`:${paramName}`);
       isDynamic = true;
-    } else if (segment !== 'index') {
-      pathSegments.push(segment);
+    } else {
+      pathSegments.push(pathSegment);
     }
   }
 

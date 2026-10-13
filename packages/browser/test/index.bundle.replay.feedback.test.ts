@@ -2,6 +2,7 @@ import {
   browserTracingIntegrationShim,
   consoleLoggingIntegrationShim,
   loggerShim,
+  metricsShim,
   spanStreamingIntegrationShim,
 } from '@sentry-internal/integration-shims';
 import { describe, expect, it } from 'vitest';
@@ -18,5 +19,6 @@ describe('index.bundle.replay.feedback', () => {
 
     expect(ReplayFeedbackBundle.logger).toBe(loggerShim);
     expect(ReplayFeedbackBundle.consoleLoggingIntegration).toBe(consoleLoggingIntegrationShim);
+    expect(ReplayFeedbackBundle.metrics).toBe(metricsShim);
   });
 });

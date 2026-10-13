@@ -13,11 +13,11 @@ import type { Event } from '../../src/types/event';
 import { uuid4 } from '../../src/utils/misc';
 import { applyScopeDataToEvent } from '../../src/utils/scopeData';
 import { getDefaultTestClientOptions, TestClient } from '../mocks/client';
-import { clearGlobalScope } from '../testutils';
+import { resetGlobals } from '../testutils';
 
 describe('Scope', () => {
   beforeEach(() => {
-    clearGlobalScope();
+    resetGlobals();
   });
 
   it('allows to create & update a scope', () => {
@@ -483,31 +483,6 @@ describe('Scope', () => {
     });
   });
 
-  test('clear', () => {
-    const scope = new Scope();
-    const oldPropagationContext = scope.getScopeData().propagationContext;
-    scope.setExtra('a', 2);
-    scope.setTag('a', 'b');
-    scope.setAttribute('c', 'd');
-    scope.setUser({ id: '1' });
-    scope.setFingerprint(['abcd']);
-    scope.addBreadcrumb({ message: 'test' });
-
-    expect(scope['_attributes']).toEqual({ c: 'd' });
-    expect(scope['_extra']).toEqual({ a: 2 });
-
-    scope.clear();
-
-    expect(scope['_extra']).toEqual({});
-    expect(scope['_attributes']).toEqual({});
-    expect(scope['_propagationContext']).toEqual({
-      traceId: expect.any(String),
-      sampled: undefined,
-      sampleRand: expect.any(Number),
-    });
-    expect(scope['_propagationContext']).not.toEqual(oldPropagationContext);
-  });
-
   test('clearBreadcrumbs', () => {
     const scope = new Scope();
     scope.addBreadcrumb({ message: 'test' });
@@ -666,7 +641,7 @@ describe('Scope', () => {
 
   describe('global scope', () => {
     beforeEach(() => {
-      clearGlobalScope();
+      resetGlobals();
     });
 
     it('works', () => {
@@ -1093,14 +1068,6 @@ describe('Scope', () => {
       expect(listener).toHaveBeenCalledWith(scope);
     });
 
-    test('clears conversation ID when scope is cleared', () => {
-      const scope = new Scope();
-      scope.setConversationId('conv_to_clear');
-      expect(scope.getScopeData().conversationId).toEqual('conv_to_clear');
-      scope.clear();
-      expect(scope.getScopeData().conversationId).toBeUndefined();
-    });
-
     test('updates conversation ID when scope is updated with ScopeContext', () => {
       const scope = new Scope();
       scope.setConversationId('conv_old');
@@ -1152,9 +1119,7 @@ describe('Scope', () => {
 
 describe('withScope()', () => {
   beforeEach(() => {
-    getIsolationScope().clear();
-    getCurrentScope().clear();
-    getGlobalScope().clear();
+    resetGlobals();
   });
 
   it('will make the passed scope the active scope within the callback', () =>
@@ -1228,9 +1193,7 @@ describe('withScope()', () => {
 
 describe('withIsolationScope()', () => {
   beforeEach(() => {
-    getIsolationScope().clear();
-    getCurrentScope().clear();
-    getGlobalScope().clear();
+    resetGlobals();
   });
 
   it('will make the passed isolation scope the active isolation scope within the callback', () =>

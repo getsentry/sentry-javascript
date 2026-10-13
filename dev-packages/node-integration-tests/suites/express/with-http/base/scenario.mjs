@@ -1,4 +1,3 @@
-import * as Sentry from '@sentry/node';
 import { startExpressServerAndSendPortToRunner } from '@sentry-internal/node-integration-tests';
 import express from 'express';
 import http from 'http';
@@ -22,7 +21,5 @@ app.get('/test2', (_req, res) => {
 app.get('/test3', (_req, res) => {
   res.send({ response: 'response 3' });
 });
-
-Sentry.setupExpressErrorHandler(app);
 
 startExpressServerAndSendPortToRunner(app);

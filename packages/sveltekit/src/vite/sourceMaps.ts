@@ -1,14 +1,12 @@
 import { escapeStringForRegex, uuid4 } from '@sentry/core';
 import { getSentryRelease } from '@sentry/node';
-import type { SentryVitePluginOptions } from '@sentry/vite-plugin';
-import { sentryVitePlugin } from '@sentry/vite-plugin';
+import type { SentryVitePluginOptions } from '@sentry/bundler-plugins/vite';
+import { sentryVitePlugin } from '@sentry/bundler-plugins/vite';
 import * as child_process from 'child_process';
 import * as fs from 'fs';
 import * as path from 'path';
 import type { Plugin, UserConfig } from 'vite';
 import { WRAPPED_MODULE_SUFFIX } from '../common/utils';
-import type { BackwardsForwardsCompatibleSvelteConfig } from './svelteConfig';
-import { getAdapterOutputDir } from './svelteConfig';
 import type { CustomSentryVitePluginOptions } from './types';
 
 // sorcery has no types, so these are some basic type definitions:
@@ -44,10 +42,12 @@ type FilesToDeleteAfterUpload = string | string[] | undefined;
  */
 export async function makeCustomSentryVitePlugins(
   options: CustomSentryVitePluginOptions,
-  svelteConfig: BackwardsForwardsCompatibleSvelteConfig,
+  deps: {
+    /** Resolved once and shared with the other Sentry plugins - see the note in `sentrySvelteKit()` */
+    getAdapterOutputDir: () => Promise<string>;
+  },
 ): Promise<Plugin[]> {
-  const usedAdapter = options?.adapter || 'other';
-  const adapterOutputDir = await getAdapterOutputDir(svelteConfig, usedAdapter);
+  const { getAdapterOutputDir } = deps;
 
   const defaultPluginOptions: SentryVitePluginOptions = {
     release: {
@@ -93,7 +93,7 @@ export async function makeCustomSentryVitePlugins(
     debug &&
       // eslint-disable-next-line no-console
       console.warn(
-        'sentry-vite-plugin not found in sentryPlugins! Cannot modify plugin - returning default Sentry Vite plugins',
+        '@sentry/bundler-plugins/vite not found in sentryPlugins! Cannot modify plugin - returning default Sentry Vite plugins',
       );
 
     _resolveFilesToDeleteAfterUpload?.(undefined);
@@ -111,10 +111,14 @@ export async function makeCustomSentryVitePlugins(
 
   let isSSRBuild = true;
 
+  // Recorded before `sourceMapSettingsPlugin` overrides `build.sourcemap`
+  let sourcemapSettingAlreadySet = false;
+
   const sourceMapSettingsPlugin: Plugin = {
     name: 'sentry-sveltekit-update-source-map-setting-plugin',
     apply: 'build', // only apply this plugin at build time
     config: async (config: UserConfig) => {
+      sourcemapSettingAlreadySet = typeof config.build?.sourcemap !== 'undefined';
       return {
         ...config,
         build: {
@@ -128,10 +132,14 @@ export async function makeCustomSentryVitePlugins(
   const filesToDeleteAfterUploadConfigPlugin: Plugin = {
     name: 'sentry-sveltekit-files-to-delete-after-upload-setting-plugin',
     apply: 'build', // only apply this plugin at build time
-    config: (config: UserConfig) => {
+    configResolved: async () => {
+      // Resolved here (not in `closeBundle`) so the adapter is invoked before the build writes its
+      // output - see the note on the adapter output dir in `sentrySvelteKit()`.
+      const adapterOutputDir = await getAdapterOutputDir();
+
       const originalFilesToDeleteAfterUpload = options?.sourcemaps?.filesToDeleteAfterUpload;
 
-      if (typeof originalFilesToDeleteAfterUpload === 'undefined' && typeof config.build?.sourcemap === 'undefined') {
+      if (typeof originalFilesToDeleteAfterUpload === 'undefined' && !sourcemapSettingAlreadySet) {
         // Including all hidden (`.*`) directories by default so that folders like .vercel,
         // .netlify, etc are also cleaned up. Additionally, we include the adapter output
         // dir which could be a non-hidden directory, like `build` for the Node adapter.
@@ -140,7 +148,7 @@ export async function makeCustomSentryVitePlugins(
         debug &&
           // eslint-disable-next-line no-console
           console.info(
-            `[Sentry] Automatically setting \`sourceMapsUploadOptions.sourcemaps.filesToDeleteAfterUpload: [${defaultFileDeletionGlob
+            `[Sentry] Automatically setting \`sourcemaps.filesToDeleteAfterUpload: [${defaultFileDeletionGlob
               .map(file => `"${file}"`)
               .join(', ')}]\` to delete generated source maps after they were uploaded to Sentry.`,
           );
@@ -149,9 +157,87 @@ export async function makeCustomSentryVitePlugins(
       } else {
         _resolveFilesToDeleteAfterUpload?.(originalFilesToDeleteAfterUpload);
       }
-
-      return config;
     },
+  };
+
+  let sourceMapsUploaded = false;
+
+  // We need to start uploading source maps later than in the original plugin
+  // because SvelteKit is invoking the adapter after its builds.
+  // This means that we need to wait until the adapter is done before we start uploading.
+  const uploadSourceMaps = async (): Promise<void> => {
+    sourceMapsUploaded = true;
+
+    const outDir = path.resolve(process.cwd(), await getAdapterOutputDir());
+    // eslint-disable-next-line no-console
+    debug && console.log('[Source Maps Plugin] Looking up source maps in', outDir);
+
+    const jsFiles = getFiles(outDir).filter(file => file.endsWith('.js'));
+    // eslint-disable-next-line no-console
+    debug && console.log('[Source Maps Plugin] Flattening source maps');
+
+    // @ts-expect-error - we're using dynamic import here and TS complains about that. It works though.
+    const sorcery = await import('sorcery');
+
+    for (const file of jsFiles) {
+      try {
+        await (sorcery as Sorcery).load(file).then(async chain => {
+          if (!chain) {
+            // We end up here, if we don't have a source map for the file.
+            // This is fine, as we're not interested in files w/o source maps.
+            return;
+          }
+          // This flattens the source map
+          await chain.apply();
+          // Write it back to the original file
+          await chain.write();
+        });
+      } catch (e) {
+        // Sometimes sorcery fails to flatten the source map. While this isn't ideal, it seems to be mostly
+        // happening in Kit-internal files which is fine as they're not in-app.
+        // This mostly happens when sorcery tries to resolve a source map while flattening that doesn't exist.
+        const isKnownError = e instanceof Error && e.message.includes('ENOENT: no such file or directory, open');
+        if (debug && !isKnownError) {
+          // eslint-disable-next-line no-console
+          console.error('[Source Maps Plugin] error while flattening', file, e);
+        }
+      }
+
+      // We need to remove the query string from the source map files that our auto-instrument plugin added
+      // to proxy the load functions during building.
+      const mapFile = `${file}.map`;
+      try {
+        const mapContent = (await fs.promises.readFile(mapFile, 'utf-8')).toString();
+        const cleanedMapContent = mapContent.replace(
+          // oxlint-disable-next-line sdk/no-regexp-constructor -- no user input + escaped anyway
+          new RegExp(escapeStringForRegex(WRAPPED_MODULE_SUFFIX), 'gm'),
+          '',
+        );
+        await fs.promises.writeFile(mapFile, cleanedMapContent);
+      } catch {
+        // Map file doesn't exist, nothing to clean
+      }
+    }
+
+    try {
+      // Call the original plugin's writeBundle to upload source maps, manage releases, and delete files.
+      // We pass in the `outDir` we determined earlier as output options.
+      if (typeof originalWriteBundle === 'function') {
+        // @ts-expect-error - calling writeBundle with only outputOptions, without the full bundle arg
+        await originalWriteBundle({ dir: outDir });
+      }
+    } catch {
+      // eslint-disable-next-line no-console
+      console.warn('[Source Maps Plugin] Failed to upload source maps!');
+      // eslint-disable-next-line no-console
+      console.log(
+        '[Source Maps Plugin] Please make sure you specified a valid Sentry auth token, as well as your org and project slugs.',
+      );
+      // eslint-disable-next-line no-console
+      console.log(
+        '[Source Maps Plugin] Further information: https://github.com/getsentry/sentry-javascript/blob/develop/packages/sveltekit/README.md#uploading-source-maps',
+      );
+    }
   };
 
   const customDebugIdUploadPlugin: Plugin = {
@@ -168,84 +254,24 @@ export async function makeCustomSentryVitePlugins(
       }
     },
 
-    // We need to start uploading source maps later than in the original plugin
-    // because SvelteKit is invoking the adapter at closeBundle.
-    // This means that we need to wait until the adapter is done before we start uploading.
+    // SvelteKit 2 invokes the adapter in `closeBundle` of the SSR build.
     closeBundle: async () => {
       if (!isSSRBuild) {
         return;
       }
+      await uploadSourceMaps();
+    },
 
-      const outDir = path.resolve(process.cwd(), adapterOutputDir);
-      // eslint-disable-next-line no-console
-      debug && console.log('[Source Maps Plugin] Looking up source maps in', outDir);
-
-      const jsFiles = getFiles(outDir).filter(file => file.endsWith('.js'));
-      // eslint-disable-next-line no-console
-      debug && console.log('[Source Maps Plugin] Flattening source maps');
-
-      // @ts-expect-error - we're using dynamic import here and TS complains about that. It works though.
-      const sorcery = await import('sorcery');
-
-      for (const file of jsFiles) {
-        try {
-          await (sorcery as Sorcery).load(file).then(async chain => {
-            if (!chain) {
-              // We end up here, if we don't have a source map for the file.
-              // This is fine, as we're not interested in files w/o source maps.
-              return;
-            }
-            // This flattens the source map
-            await chain.apply();
-            // Write it back to the original file
-            await chain.write();
-          });
-        } catch (e) {
-          // Sometimes sorcery fails to flatten the source map. While this isn't ideal, it seems to be mostly
-          // happening in Kit-internal files which is fine as they're not in-app.
-          // This mostly happens when sorcery tries to resolve a source map while flattening that doesn't exist.
-          const isKnownError = e instanceof Error && e.message.includes('ENOENT: no such file or directory, open');
-          if (debug && !isKnownError) {
-            // eslint-disable-next-line no-console
-            console.error('[Source Maps Plugin] error while flattening', file, e);
-          }
+    // SvelteKit 3 invokes the adapter in its post `buildApp` hook, which runs before ours (`enforce: 'post'`).
+    // With SvelteKit 2, nothing is built yet when this runs, so `closeBundle` uploads instead.
+    buildApp: {
+      order: 'post',
+      handler: async builder => {
+        if (sourceMapsUploaded || !Object.values(builder.environments).some(environment => environment.isBuilt)) {
+          return;
         }
-
-        // We need to remove the query string from the source map files that our auto-instrument plugin added
-        // to proxy the load functions during building.
-        const mapFile = `${file}.map`;
-        try {
-          const mapContent = (await fs.promises.readFile(mapFile, 'utf-8')).toString();
-          const cleanedMapContent = mapContent.replace(
-            // oxlint-disable-next-line sdk/no-regexp-constructor -- no user input + escaped anyway
-            new RegExp(escapeStringForRegex(WRAPPED_MODULE_SUFFIX), 'gm'),
-            '',
-          );
-          await fs.promises.writeFile(mapFile, cleanedMapContent);
-        } catch {
-          // Map file doesn't exist, nothing to clean
-        }
-      }
-
-      try {
-        // Call the original plugin's writeBundle to upload source maps, manage releases, and delete files.
-        // We pass in the `outDir` we determined earlier as output options.
-        if (typeof originalWriteBundle === 'function') {
-          // @ts-expect-error - calling writeBundle with only outputOptions, without the full bundle arg
-          await originalWriteBundle({ dir: outDir });
-        }
-      } catch {
-        // eslint-disable-next-line no-console
-        console.warn('[Source Maps Plugin] Failed to upload source maps!');
-        // eslint-disable-next-line no-console
-        console.log(
-          '[Source Maps Plugin] Please make sure you specified a valid Sentry auth token, as well as your org and project slugs.',
-        );
-        // eslint-disable-next-line no-console
-        console.log(
-          '[Source Maps Plugin] Further information: https://github.com/getsentry/sentry-javascript/blob/develop/packages/sveltekit/README.md#uploading-source-maps',
-        );
-      }
+        await uploadSourceMaps();
+      },
     },
   };
 

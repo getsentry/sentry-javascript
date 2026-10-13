@@ -1,43 +1,36 @@
 // import/export got a false positive, and affects most of our index barrel files
 // can be removed once following issue is fixed: https://github.com/import-js/eslint-plugin-import/issues/703
 /* eslint-disable import/export */
-import { HTTP_TARGET, URL_QUERY } from '@sentry/conventions/attributes';
-import type { EventProcessor } from '@sentry/core';
+import type { Scope } from '@sentry/core';
 import {
+  _INTERNAL_getActiveClient,
   applySdkMetadata,
   debug,
-  getClient,
   getGlobalScope,
+  getVercelEnv,
   GLOBAL_OBJ,
-  SEMANTIC_ATTRIBUTE_SENTRY_OP,
 } from '@sentry/core';
 import type { NodeClient, NodeOptions } from '@sentry/node';
-import {
-  experimentalUseDiagnosticsChannelInjection as nodeExperimentalUseDiagnosticsChannelInjection,
-  getDefaultIntegrations,
-  httpIntegration,
-  init as nodeInit,
-  isDiagnosticsChannelInjectionEnabled,
-} from '@sentry/node';
+import { getDefaultIntegrations, httpIntegration, init as nodeInit } from '@sentry/node';
 import { DEBUG_BUILD } from '../common/debug-build';
 import { devErrorSymbolicationEventProcessor } from '../common/devErrorSymbolicationEventProcessor';
-import { getVercelEnv } from '../common/getVercelEnv';
-import { TRANSACTION_ATTR_SHOULD_DROP_TRANSACTION } from '../common/span-attributes-with-logic-attached';
+import { dropReactControlFlowErrorsEventProcessor } from '../common/utils/dropReactControlFlowErrors';
 import { isBuild } from '../common/utils/isBuild';
-import { isCloudflareWaitUntilAvailable } from '../common/utils/responseEnd';
-import { setUrlProcessingMetadata } from '../common/utils/setUrlProcessingMetadata';
+import {
+  isAsyncContextOwnedByCloudflare,
+  isAsyncContextOwnedByNextjsCloudflare,
+  isCloudflareWaitUntilAvailable,
+  setCloudflareWorkerRelease,
+} from '../common/utils/responseEnd';
 import { distDirRewriteFramesIntegration } from './distDirRewriteFramesIntegration';
-import { enhanceMiddlewareRootSpan } from '../common/enhanceMiddlewareRootSpan';
-import { enhanceHandleRequestRootSpan } from './enhanceHandleRequestRootSpan';
-import { handleOnSpanStart } from './handleOnSpanStart';
+import { addNextjsServerSpanHooks, NEXTJS_SERVER_IGNORE_SPANS } from './serverSpanHooks';
 import { prepareSafeIdGeneratorContext } from './prepareSafeIdGeneratorContext';
-import { maybeCompleteCronCheckIn } from './vercelCronsMonitoring';
-import { maybeCleanupQueueSpan } from './vercelQueuesMonitoring';
+import { nextjsUseCacheIntegration } from './useCacheInstrumentation';
 
 export * from '@sentry/node';
 
-// Explicitly re-export so it is statically detectable by turbopack
-export { pinoIntegration } from '@sentry/node';
+// Explicitly re-export so these are statically detectable by turbopack
+export { pinoIntegration, vercelAIIntegration } from '@sentry/node';
 
 export { captureUnderscoreErrorException } from '../common/pages-router-instrumentation/_error';
 
@@ -47,25 +40,7 @@ export { startSpan, startSpanManual, startInactiveSpan } from '../common/utils/n
 const globalWithInjectedValues = GLOBAL_OBJ as typeof GLOBAL_OBJ & {
   _sentryRewriteFramesDistDir?: string;
   _sentryRelease?: string;
-  _sentryUseDiagnosticsChannelInjection?: string;
-  _sentryOrchestrionTracingHooksDir?: string;
 };
-
-/**
- * EXPERIMENTAL: Next.js-aware variant of `Sentry.experimentalUseDiagnosticsChannelInjection()`
- * from `@sentry/node` (see its docs for behavior and caveats).
- *
- * Next.js bundles the SDK into the server build, from where the runtime module hook can't resolve
- * the `@apm-js-collab/tracing-hooks` bare specifier under isolated installs (pnpm). This variant
- * points the hook at the package location that `withSentryConfig` resolved at build time.
- *
- * @experimental May change or be removed in any release.
- */
-export function experimentalUseDiagnosticsChannelInjection(): void {
-  const tracingHooksDir =
-    process.env._sentryOrchestrionTracingHooksDir || globalWithInjectedValues._sentryOrchestrionTracingHooksDir;
-  nodeExperimentalUseDiagnosticsChannelInjection(tracingHooksDir ? { tracingHooksDir } : undefined);
-}
 
 // Call at module level so `next build` prerender workers still register the runner without `init`
 prepareSafeIdGeneratorContext();
@@ -133,9 +108,10 @@ export function init(options: NodeOptions): NodeClient | undefined {
   }
 
   if (!DEBUG_BUILD && options.debug) {
+    // TODO(v12): Remove the `webpack.treeshake` mention together with that option
     // eslint-disable-next-line no-console
     console.warn(
-      '[@sentry/nextjs] You have enabled `debug: true`, but Sentry debug logging was removed from your bundle (likely via `withSentryConfig({ disableLogger: true })` / `webpack.treeshake.removeDebugLogging: true`). Set that option to `false` to see Sentry debug output.',
+      '[@sentry/nextjs] You have enabled `debug: true`, but Sentry debug logging was removed from your bundle (likely via `bundleSizeOptimizations.excludeDebugStatements: true` or `webpack.treeshake.removeDebugLogging: true`). Set that option to `false` to see Sentry debug output.',
     );
   }
 
@@ -151,7 +127,7 @@ export function init(options: NodeOptions): NodeClient | undefined {
   // Turn off Next.js' own fetch instrumentation (only when we manage OTEL)
   // https://github.com/lforst/nextjs-fork/blob/1994fd186defda77ad971c36dc3163db263c993f/packages/next/src/server/lib/patch-fetch.ts#L245
   // Enable with custom OTel setup: https://github.com/getsentry/sentry-javascript/issues/17581
-  if (!options.skipOpenTelemetrySetup) {
+  if (options.enableOpenTelemetrySetup ?? true) {
     process.env.NEXT_OTEL_FETCH_DISABLED = '1';
   }
 
@@ -162,45 +138,24 @@ export function init(options: NodeOptions): NodeClient | undefined {
     customDefaultIntegrations.push(distDirRewriteFramesIntegration({ distDirName }));
   }
 
-  // The build wired the orchestrion loader but the runtime opt-in is missing → no DB spans.
-  const useDiagnosticsChannelInjection =
-    process.env._sentryUseDiagnosticsChannelInjection || globalWithInjectedValues._sentryUseDiagnosticsChannelInjection;
-  if (DEBUG_BUILD && useDiagnosticsChannelInjection && !isDiagnosticsChannelInjectionEnabled()) {
-    debug.warn(
-      '[@sentry/nextjs] `useDiagnosticsChannelInjection` is enabled in `withSentryConfig`, but ' +
-        '`Sentry.experimentalUseDiagnosticsChannelInjection()` was not called before `Sentry.init()`. ' +
-        'Server DB spans will not be recorded.',
-    );
-  }
+  customDefaultIntegrations.push(nextjsUseCacheIntegration());
 
   // Detect if running on OpenNext/Cloudflare and get runtime config
   const cloudflareConfig = getCloudflareRuntimeConfig();
 
   const opts: NodeOptions = {
-    environment: options.environment || process.env.SENTRY_ENVIRONMENT || getVercelEnv(false) || process.env.NODE_ENV,
+    environment: options.environment || process.env.SENTRY_ENVIRONMENT || getVercelEnv() || process.env.NODE_ENV,
     release: process.env._sentryRelease || globalWithInjectedValues._sentryRelease,
     defaultIntegrations: customDefaultIntegrations,
+    // Next.js emits its own OpenTelemetry spans, so it defaults to registering the Sentry tracer
+    // provider (unlike most Node-based SDKs). A user-provided value still overrides this via `...options`.
+    enableOpenTelemetrySetup: true,
     ...options,
     // Override runtime to 'cloudflare' when running on OpenNext/Cloudflare
     ...cloudflareConfig,
   };
 
-  const nextjsIgnoreSpans: NonNullable<NodeOptions['ignoreSpans']> = [
-    // Static assets (matches `_next/static` anywhere in the name to handle custom basePath)
-    /^GET (\/.*)?\/_next\/static\//,
-    // Dev source-map fetch endpoints
-    /\/__nextjs_original-stack-frame/,
-    // Pages router /404
-    /^\/404$/,
-    // App router /404 and /_not-found segments (any HTTP method)
-    /^(GET|HEAD|POST|PUT|DELETE|CONNECT|OPTIONS|TRACE|PATCH) \/(404|_not-found)$/,
-    // Next.js 13 root transactions named "NextServer.getRequestHandler" containing useless tracing
-    /^NextServer\.getRequestHandler$/,
-    // Spans flagged via TRANSACTION_ATTR_SHOULD_DROP_TRANSACTION
-    // (set in `dropMiddlewareTunnelRequests` during `spanStart`)
-    { attributes: { [TRANSACTION_ATTR_SHOULD_DROP_TRANSACTION]: true } },
-  ];
-  opts.ignoreSpans = [...(opts.ignoreSpans || []), ...nextjsIgnoreSpans];
+  opts.ignoreSpans = [...(opts.ignoreSpans || []), ...NEXTJS_SERVER_IGNORE_SPANS];
 
   if (DEBUG_BUILD && opts.debug) {
     debug.enable();
@@ -208,122 +163,45 @@ export function init(options: NodeOptions): NodeClient | undefined {
 
   DEBUG_BUILD && debug.log('Initializing SDK...');
 
-  if (sdkAlreadyInitialized()) {
+  // The client of `withSentry` from `@sentry/cloudflare` handles this request, so `init` creates none. The global
+  // parts below still apply.
+  const isOwnedByCloudflare = isAsyncContextOwnedByCloudflare();
+  const existingClient = _INTERNAL_getActiveClient<NodeClient>();
+  if (existingClient && !isOwnedByCloudflare) {
     DEBUG_BUILD && debug.log('SDK already initialized');
-    return;
+    return existingClient;
   }
 
   // Use appropriate SDK metadata based on the runtime environment
   applySdkMetadata(opts, 'nextjs', ['nextjs', cloudflareConfig ? 'cloudflare' : 'node']);
 
-  const client = nodeInit(opts);
+  const client = isOwnedByCloudflare ? undefined : nodeInit(opts);
 
-  client?.on('beforeSampling', ({ spanAttributes }, samplingDecision) => {
-    // There are situations where the Next.js Node.js server forwards requests for the Edge Runtime server (e.g. in
-    // middleware) and this causes spans for Sentry ingest requests to be created. These are not exempt from our tracing
-    // because we didn't get the chance to do `suppressTracing`, since this happens outside of userland.
-    // We need to drop these spans.
-    if (
-      // eslint-disable-next-line typescript/no-deprecated
-      (typeof spanAttributes[HTTP_TARGET] === 'string' &&
-        // eslint-disable-next-line typescript/no-deprecated
-        spanAttributes[HTTP_TARGET].includes('sentry_key') &&
-        // eslint-disable-next-line typescript/no-deprecated
-        spanAttributes[HTTP_TARGET].includes('sentry_client')) ||
-      (typeof spanAttributes[URL_QUERY] === 'string' &&
-        spanAttributes[URL_QUERY].includes('sentry_key') &&
-        spanAttributes[URL_QUERY].includes('sentry_client'))
-    ) {
-      samplingDecision.decision = false;
-    }
-  });
+  if (client) {
+    addNextjsServerSpanHooks(client);
+  } else if (isOwnedByCloudflare) {
+    setCloudflareWorkerRelease(opts.release);
+  }
 
-  client?.on('spanStart', handleOnSpanStart);
-  client?.on('spanEnd', maybeCompleteCronCheckIn);
-  client?.on('spanEnd', maybeCleanupQueueSpan);
-
-  getGlobalScope().addEventProcessor(
-    Object.assign(
-      ((event, hint) => {
-        if (event.type !== undefined) {
-          return event;
-        }
-
-        const originalException = hint.originalException;
-
-        const isPostponeError =
-          typeof originalException === 'object' &&
-          originalException !== null &&
-          '$$typeof' in originalException &&
-          originalException.$$typeof === Symbol.for('react.postpone');
-
-        if (isPostponeError) {
-          // Postpone errors are used for partial-pre-rendering (PPR)
-          return null;
-        }
-
-        // We don't want to capture suspense errors as they are simply used by React/Next.js for control flow
-        const exceptionMessage = event.exception?.values?.[0]?.value;
-        if (
-          exceptionMessage?.includes('Suspense Exception: This is not a real error!') ||
-          exceptionMessage?.includes('Suspense Exception: This is not a real error, and should not leak')
-        ) {
-          return null;
-        }
-
-        return event;
-      }) satisfies EventProcessor,
-      { id: 'DropReactControlFlowErrors' },
-    ),
-  );
-
-  // Use the preprocessEvent hook instead of an event processor, so that the users event processors receive the most
-  // up-to-date value, but also so that the logic that detects changes to the transaction names to set the source to
-  // "custom", doesn't trigger.
-  // This handles the legacy (non-streamed) path where the segment span is emitted as a transaction event;
-  // `enhanceHandleRequestRootSpan` is adapted to operate on the event's trace context, which is the segment span's data.
-  // Span streaming bypasses event processors entirely - see the `processSegmentSpan` hook below for that path.
-  client?.on('preprocessEvent', event => {
-    if (event.type === 'transaction' && event.contexts?.trace?.data) {
-      const mutableRootSpan = {
-        attributes: event.contexts.trace.data,
-        getName: () => event.transaction,
-        setName: (name: string) => {
-          event.transaction = name;
-        },
-        setOp: (op: string) => {
-          event.contexts!.trace!.op = op;
-        },
-      };
-      enhanceHandleRequestRootSpan(mutableRootSpan);
-      enhanceMiddlewareRootSpan(mutableRootSpan);
-    }
-
-    setUrlProcessingMetadata(event);
-  });
-
-  // Streamed-span counterpart of the `preprocessEvent` hook above. Streamed segment spans never become
-  // transaction events, so the same enhancement has to be applied here directly on the span JSON.
-  client?.on('processSegmentSpan', span => {
-    const attributes = (span.attributes ??= {});
-    const mutableRootSpan = {
-      attributes,
-      getName: () => span.name,
-      setName: (name: string) => {
-        span.name = name;
-      },
-      // For streamed spans, op lives in `attributes['sentry.op']` - mirror it there so middleware
-      // overrides land somewhere readable (the legacy path uses a separate `event.contexts.trace.op`).
-      setOp: (op: string) => {
-        attributes[SEMANTIC_ATTRIBUTE_SENTRY_OP] = op;
-      },
-    };
-    enhanceHandleRequestRootSpan(mutableRootSpan);
-    enhanceMiddlewareRootSpan(mutableRootSpan);
-  });
+  // On the client, not the global scope, so a later `init()` after
+  // `close()` does not stack another copy. In a request of `withSentry` on
+  // Workers, `init` creates no client, so the global scope gets them, which
+  // reaches every client of `withSentry`, unless an earlier `init` added them.
+  let eventProcessorTarget: NodeClient | Scope | undefined = client;
+  if (isOwnedByCloudflare) {
+    const globalScope = getGlobalScope();
+    const isAdded = globalScope
+      .getScopeData()
+      .eventProcessors.some(processor => processor.id === 'DropReactControlFlowErrors');
+    eventProcessorTarget = isAdded ? undefined : globalScope;
+  }
+  // Each client of `withSentry` from `@sentry/nextjs/cloudflare` gets the processor from its `Nextjs` integration.
+  if (!isAsyncContextOwnedByNextjsCloudflare()) {
+    eventProcessorTarget?.addEventProcessor(dropReactControlFlowErrorsEventProcessor);
+  }
 
   if (process.env.NODE_ENV === 'development') {
-    getGlobalScope().addEventProcessor(devErrorSymbolicationEventProcessor);
+    eventProcessorTarget?.addEventProcessor(devErrorSymbolicationEventProcessor);
   }
 
   try {
@@ -337,13 +215,16 @@ export function init(options: NodeOptions): NodeClient | undefined {
     // The statement above can throw because process is not defined on the client
   }
 
-  DEBUG_BUILD && debug.log('SDK successfully initialized');
+  if (isOwnedByCloudflare) {
+    DEBUG_BUILD &&
+      debug.log(
+        'The client of `withSentry` handles this Worker, so `init` creates no client and only applies `release`. Set the other options in `withSentry`.',
+      );
+  } else {
+    DEBUG_BUILD && debug.log('SDK successfully initialized');
+  }
 
   return client;
-}
-
-function sdkAlreadyInitialized(): boolean {
-  return !!getClient();
 }
 
 export * from '../common';

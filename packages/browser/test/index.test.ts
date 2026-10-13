@@ -4,13 +4,12 @@
 
 import {
   eventFiltersIntegration,
-  getGlobalScope,
-  getIsolationScope,
+  getMainCarrier,
   getReportDialogEndpoint,
   lastEventId,
   SDK_VERSION,
-} from '@sentry/core/browser';
-import * as utils from '@sentry/core/browser';
+} from '@sentry/core';
+import * as utils from '@sentry/core';
 import type { Mock } from 'vitest';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
@@ -19,6 +18,7 @@ import {
   captureEvent,
   captureException,
   captureMessage,
+  defaultStackParser,
   flush,
   getClient,
   getCurrentScope,
@@ -37,7 +37,7 @@ const dsn = 'https://53039209a22b4ec1bcc296a3c9fdecd6@sentry.io/4291';
 // eslint-disable-next-line no-var
 declare var global: any;
 
-vi.mock('@sentry/core/browser', async requireActual => {
+vi.mock('@sentry/core', async requireActual => {
   return {
     ...((await requireActual()) as any),
     getReportDialogEndpoint: vi.fn(),
@@ -48,10 +48,7 @@ describe('SentryBrowser', () => {
   const beforeSend = vi.fn(event => event);
 
   beforeEach(() => {
-    getGlobalScope().clear();
-    getIsolationScope().clear();
-    getCurrentScope().clear();
-    getCurrentScope().setClient(undefined);
+    getMainCarrier().__SENTRY__ = undefined;
 
     init({
       beforeSend,
@@ -100,7 +97,7 @@ describe('SentryBrowser', () => {
         getCurrentScope().setUser(EX_USER);
         setCurrentClient(client);
 
-        showReportDialog();
+        showReportDialog({ eventId: 'foobar' });
 
         expect(getReportDialogEndpoint).toHaveBeenCalledTimes(1);
         expect(getReportDialogEndpoint).toHaveBeenCalledWith(
@@ -139,7 +136,7 @@ describe('SentryBrowser', () => {
         setCurrentClient(client);
 
         const DIALOG_OPTION_USER = { email: 'option@example.com' };
-        showReportDialog({ user: DIALOG_OPTION_USER });
+        showReportDialog({ eventId: 'foobar', user: DIALOG_OPTION_USER });
 
         expect(getReportDialogEndpoint).toHaveBeenCalledTimes(1);
         expect(getReportDialogEndpoint).toHaveBeenCalledWith(
@@ -173,7 +170,7 @@ describe('SentryBrowser', () => {
       it('should call `onClose` when receiving `__sentry_reportdialog_closed__` MessageEvent', async () => {
         const onClose = vi.fn();
 
-        showReportDialog({ onClose });
+        showReportDialog({ eventId: 'foobar', onClose });
 
         await waitForPostMessage('__sentry_reportdialog_closed__');
         expect(onClose).toHaveBeenCalledTimes(1);
@@ -188,7 +185,7 @@ describe('SentryBrowser', () => {
           throw new Error();
         });
 
-        showReportDialog({ onClose });
+        showReportDialog({ eventId: 'foobar', onClose });
 
         await waitForPostMessage('__sentry_reportdialog_closed__');
         expect(onClose).toHaveBeenCalledTimes(1);
@@ -201,13 +198,52 @@ describe('SentryBrowser', () => {
       it('should not call `onClose` for other MessageEvents', async () => {
         const onClose = vi.fn();
 
-        showReportDialog({ onClose });
+        showReportDialog({ eventId: 'foobar', onClose });
 
         await waitForPostMessage('some_message');
         expect(onClose).not.toHaveBeenCalled();
 
         await waitForPostMessage('__sentry_reportdialog_closed__');
         expect(onClose).toHaveBeenCalledTimes(1);
+      });
+
+      it('should remove the `onClose` listener when the script fails to load', async () => {
+        const onClose = vi.fn();
+
+        showReportDialog({ eventId: 'foobar', onClose });
+
+        const script = WINDOW.document.head.lastElementChild as HTMLScriptElement;
+        script.dispatchEvent(new Event('error'));
+
+        await waitForPostMessage('__sentry_reportdialog_closed__');
+        expect(onClose).not.toHaveBeenCalled();
+      });
+    });
+
+    describe('onError', () => {
+      it('should call `onError` when the script fails to load', () => {
+        const onError = vi.fn();
+
+        showReportDialog({ eventId: 'foobar', onError });
+
+        const script = WINDOW.document.head.lastElementChild as HTMLScriptElement;
+        script.dispatchEvent(new Event('error'));
+
+        expect(onError).toHaveBeenCalledTimes(1);
+        expect(onError).toHaveBeenCalledWith(new Error('Failed to load the report dialog script'));
+      });
+
+      it('should call `onError` and not inject the script without an event ID', () => {
+        const onError = vi.fn();
+        const appendChildSpy = vi.spyOn(WINDOW.document.head, 'appendChild');
+
+        showReportDialog({ onError });
+
+        expect(onError).toHaveBeenCalledTimes(1);
+        expect(onError).toHaveBeenCalledWith(new Error('No event ID to show the report dialog for'));
+        expect(appendChildSpy).not.toHaveBeenCalled();
+
+        appendChildSpy.mockRestore();
       });
     });
   });
@@ -245,10 +281,28 @@ describe('SentryBrowser', () => {
     it('should capture an message', () =>
       new Promise<void>(resolve => {
         const options = getDefaultBrowserClientOptions({
+          attachStacktrace: false,
           beforeSend: event => {
             expect(event.level).toBe('info');
             expect(event.message).toBe('test');
             expect(event.exception).toBeUndefined();
+            resolve();
+            return event;
+          },
+          dsn,
+        });
+        setCurrentClient(new BrowserClient(options));
+        captureMessage('test');
+      }));
+
+    it('attaches a synthetic stacktrace to messages by default', () =>
+      new Promise<void>(resolve => {
+        const options = getDefaultBrowserClientOptions({
+          stackParser: defaultStackParser,
+          beforeSend: event => {
+            expect(event.message).toBe('test');
+            expect(event.exception?.values?.[0]?.stacktrace?.frames?.length).toBeGreaterThan(0);
+            expect(event.exception?.values?.[0]?.mechanism?.synthetic).toBe(true);
             resolve();
             return event;
           },
@@ -337,6 +391,10 @@ describe('SentryBrowser', () => {
 });
 
 describe('SentryBrowser initialization', () => {
+  beforeEach(() => {
+    getCurrentScope().setClient(undefined);
+  });
+
   it('should use window.SENTRY_RELEASE to set release on initialization if available', () => {
     global.SENTRY_RELEASE = { id: 'foobar' };
     init({ dsn });

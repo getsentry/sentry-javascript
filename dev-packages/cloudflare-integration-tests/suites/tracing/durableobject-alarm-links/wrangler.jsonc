@@ -16,5 +16,5 @@
       },
     ],
   },
-  "compatibility_flags": ["nodejs_als"],
+  "compatibility_flags": ["nodejs_compat"],
 }

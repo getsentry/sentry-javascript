@@ -141,21 +141,6 @@ export const CLIENT_PORT_ATTRIBUTE = 'client.port';
 // SENTRY-SPECIFIC MCP ATTRIBUTE VALUES
 // =============================================================================
 
-/** Sentry operation value for MCP server spans */
-export const MCP_SERVER_OP_VALUE = 'mcp.server';
-
-/**
- * Sentry operation value for client-to-server notifications
- * Following OpenTelemetry MCP semantic conventions
- */
-export const MCP_NOTIFICATION_CLIENT_TO_SERVER_OP_VALUE = 'mcp.notification.client_to_server';
-
-/**
- * Sentry operation value for server-to-client notifications
- * Following OpenTelemetry MCP semantic conventions
- */
-export const MCP_NOTIFICATION_SERVER_TO_CLIENT_OP_VALUE = 'mcp.notification.server_to_client';
-
 /** Sentry origin value for MCP function spans */
 export const MCP_FUNCTION_ORIGIN_VALUE = 'auto.function.mcp_server';
 

@@ -35,6 +35,11 @@ const serverComponentWrapperTemplateCode = fs.readFileSync(serverComponentWrappe
 const routeHandlerWrapperTemplatePath = path.resolve(__dirname, '..', 'templates', 'routeHandlerWrapperTemplate.js');
 const routeHandlerWrapperTemplateCode = fs.readFileSync(routeHandlerWrapperTemplatePath, { encoding: 'utf8' });
 
+// NOTE: This file must not import anything from outside `src/config/loaders`. The loaders are their
+// own rollup entry point built with `preserveModules`, so emitted paths are relative to the module
+// graph's common root - an outside import moves that root up and nests every loader one directory
+// deeper, breaking the `path.resolve(__dirname, 'loaders', ...)` lookups in `webpack.ts`. That is why
+// `silent` is checked inline here rather than via the shared `getBuildLogger` helper.
 export type WrappingLoaderOptions = {
   pagesDir: string | undefined;
   appDir: string | undefined;
@@ -44,6 +49,7 @@ export type WrappingLoaderOptions = {
   vercelCronsConfig?: VercelCronsConfig;
   nextjsRequestAsyncStorageModulePath?: string;
   isDev?: boolean;
+  silent?: boolean;
 };
 
 /**
@@ -68,6 +74,7 @@ export default function wrappingLoader(
     vercelCronsConfig,
     nextjsRequestAsyncStorageModulePath,
     isDev,
+    silent,
   } = 'getOptions' in this ? this.getOptions() : this.query;
 
   this.async();
@@ -163,7 +170,7 @@ export default function wrappingLoader(
         nextjsRequestAsyncStorageModulePath,
       );
     } else {
-      if (!showedMissingAsyncStorageModuleWarning) {
+      if (!showedMissingAsyncStorageModuleWarning && !silent) {
         // eslint-disable-next-line no-console
         console.warn(
           "[@sentry/nextjs] The Sentry SDK could not access the 'RequestAsyncStorage' module. Certain features may not work. There is nothing you can do to fix this yourself, but future SDK updates may resolve this.",
@@ -227,10 +234,12 @@ export default function wrappingLoader(
       this.callback(null, wrappedCode, wrappedCodeSourceMap);
     })
     .catch(err => {
-      // eslint-disable-next-line no-console
-      console.warn(
-        `[@sentry/nextjs] Could not instrument ${this.resourcePath}. An error occurred while auto-wrapping:\n${err}`,
-      );
+      if (!silent) {
+        // eslint-disable-next-line no-console
+        console.warn(
+          `[@sentry/nextjs] Could not instrument ${this.resourcePath}. An error occurred while auto-wrapping:\n${err}`,
+        );
+      }
       this.callback(null, userCode, userModuleSourceMap);
     });
 }

@@ -1,4 +1,17 @@
-/* eslint-disable max-lines */
+/**
+ * Browser-specific utilities for Sentry SDKs
+ *
+ * @module
+ */
 
-export * from './shared-exports';
-export * from './browser-exports';
+export {
+  startSpan,
+  startInactiveSpan,
+  startSpanManual,
+  _INTERNAL_ensureBrowserSpanStreaming,
+} from './tracing/browserSpanApi';
+
+export { startIdleSpan } from './tracing/idleSpan';
+
+export type { XhrBreadcrumbData, XhrBreadcrumbHint } from './types/breadcrumb';
+export type { BrowserClientReplayOptions } from './types/browseroptions';

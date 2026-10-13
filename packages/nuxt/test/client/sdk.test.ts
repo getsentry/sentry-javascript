@@ -9,6 +9,7 @@ describe('Nuxt Client SDK', () => {
   describe('init', () => {
     beforeEach(() => {
       vi.clearAllMocks();
+      SentryBrowser.getCurrentScope().setClient(undefined);
     });
 
     it('Adds Nuxt metadata to the SDK options', () => {
@@ -28,7 +29,7 @@ describe('Nuxt Client SDK', () => {
               { name: 'npm:@sentry/vue', version: SDK_VERSION },
             ],
             settings: {
-              infer_ip: 'never',
+              infer_ip: 'auto',
             },
           },
         },

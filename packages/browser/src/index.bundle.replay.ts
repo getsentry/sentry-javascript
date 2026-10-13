@@ -4,14 +4,14 @@ import {
   elementTimingIntegrationShim,
   feedbackIntegrationShim,
   loggerShim,
+  metricsShim,
   spanStreamingIntegrationShim,
   fetchStreamPerformanceIntegrationShim,
 } from '@sentry-internal/integration-shims';
 
 export * from './index.bundle.base';
 
-// TODO(v11): Export metricsShim here once we remove metrics from the base bundle.
-export { consoleLoggingIntegrationShim as consoleLoggingIntegration, loggerShim as logger };
+export { consoleLoggingIntegrationShim as consoleLoggingIntegration, loggerShim as logger, metricsShim as metrics };
 
 export { replayIntegration, getReplay } from '@sentry/replay';
 

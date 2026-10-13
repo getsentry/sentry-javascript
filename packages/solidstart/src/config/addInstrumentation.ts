@@ -143,7 +143,7 @@ export async function addSentryTopImport(nitro: Nitro): Promise<void> {
  * This function modifies the Rollup configuration to include a plugin that wraps the entry file with a dynamic import (`import()`)
  * and adds the Sentry server config with the static `import` declaration.
  *
- * With this, the Sentry server config can be loaded before all other modules of the application (which is needed for import-in-the-middle).
+ * With this, the Sentry server config can be loaded before all other modules of the application.
  * See: https://nodejs.org/api/module.html#enabling
  */
 export async function addDynamicImportEntryFileWrapper({
@@ -177,7 +177,6 @@ export async function addDynamicImportEntryFileWrapper({
       serverEntrypointFileName: sentryPluginOptions.serverEntrypointFileName || nitro.options.preset,
       resolvedServerConfigPath: serverInstrumentationPath,
       entrypointWrappedFunctions: sentryPluginOptions.experimental_entrypointWrappedFunctions,
-      additionalImports: ['import-in-the-middle/hook.mjs'],
       debug: sentryPluginOptions.debug,
     }),
   );

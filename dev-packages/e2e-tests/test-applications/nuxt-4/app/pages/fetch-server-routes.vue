@@ -2,17 +2,24 @@
   <div>
     <button @click="fetchError">Fetch Server API Error</button>
     <button @click="fetchNitroFetch">Fetch Nitro $fetch</button>
+    <button @click="fetchThirdPartyHttpError">Fetch Third-Party HTTPError</button>
   </div>
 </template>
 
 <script setup lang="ts">
-import { useFetch } from '#imports';
+import { useFetch, useRoute } from '#imports';
+
+const apiPrefix = useRoute().query.apiPrefix ?? '/api';
 
 const fetchError = async () => {
-  await useFetch('/api/server-error');
+  await useFetch(`${apiPrefix}/server-error`);
 };
 
 const fetchNitroFetch = async () => {
-  await useFetch('/api/nitro-fetch');
+  await useFetch(`${apiPrefix}/nitro-fetch`);
+};
+
+const fetchThirdPartyHttpError = async () => {
+  await useFetch(`${apiPrefix}/third-party-http-error`);
 };
 </script>

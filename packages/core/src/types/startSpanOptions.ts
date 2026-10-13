@@ -1,5 +1,4 @@
 import type { Scope } from '../scope';
-import type { SpanKindValue } from '../spanKind';
 import type { SpanLink } from './link';
 import type { Span, SpanAttributes, SpanTimeInput } from './span';
 
@@ -30,20 +29,6 @@ export interface StartSpanOptions {
   op?: string;
 
   /**
-   * The kind of the span, following OpenTelemetry's SpanKind enum.
-   * - 0 = INTERNAL (default)
-   * - 1 = SERVER
-   * - 2 = CLIENT
-   * - 3 = PRODUCER
-   * - 4 = CONSUMER
-   *
-   * This is used by OpenTelemetry-based SDK implementations to set the correct
-   * span kind on the underlying OTel span, which affects how the span is
-   * displayed and sampled.
-   */
-  kind?: SpanKindValue;
-
-  /**
    * If provided, make the new span a child of this span.
    * If this is not provided, the new span will be a child of the currently active span.
    * If this is set to `null`, the new span will have no parent span.
@@ -54,6 +39,32 @@ export interface StartSpanOptions {
    * If set to true, this span will be forced to be treated as a transaction in the Sentry UI, if possible and applicable.
    * Note that it is up to the SDK to decide how exactly the span will be sent, which may change in future SDK versions.
    * It is not guaranteed that a span started with this flag set to `true` will be sent as a transaction.
+   *
+   * @deprecated This option will be removed in the next major version of the SDK. There is no longer a concrete use
+   * case for it: all spans are indexed and searchable in Sentry, so a span no longer needs to be a transaction to be
+   * queried, filtered or aggregated on. In most cases, simply drop the option. The span is still sent, just as a child
+   * of its parent span, if a parent span is active.
+   * If you do need the span to be a segment (root) span, follow the examples below:.
+   *
+   * @example Making a span a root span:
+   * ```js
+   * Sentry.withActiveSpan(null, () => {
+   *   Sentry.startSpan({ name: 'span-that-should-be-a-root' }, () => {
+   *     // ...
+   *   });
+   * });
+   * ```
+   *
+   * @example Keeping the root span attached to a specific trace:
+   * ```js
+   * Sentry.continueTrace({ sentryTrace, baggage }, () =>
+   *   Sentry.withActiveSpan(null, () =>
+   *     Sentry.startSpan({ name: 'span-that-should-be-a-root' }, () => {
+   *       // ...
+   *     }),
+   *   ),
+   * );
+   * ```
    */
   forceTransaction?: boolean;
 
@@ -71,15 +82,17 @@ export interface StartSpanOptions {
    */
   experimental?: {
     /**
-     * If set to true, always start a standalone span which will be sent as a
-     * standalone segment span envelope instead of a transaction envelope.
+     * If set to true, the span is sent on its own as a v2 streamed span instead of being folded
+     * into a transaction. Used internally for late web vital spans (INP) when span streaming is
+     * disabled.
      *
-     * @internal this option is currently experimental and should only be
-     * used within SDK code. It might be removed or changed in the future.
-     * The payload ("envelope") of the resulting request sending the span to
-     * Sentry might change at any time.
-     *
+     * @internal this option is currently experimental and should only be used within SDK code. It
+     * might be removed or changed in the future.
      * @hidden
+     *
+     * @deprecated This option is deprecated and will be removed in the future.
+     *
+     * TODO(standalone): remove once the static (transaction) trace lifecycle is dropped.
      */
     standalone?: boolean;
   };

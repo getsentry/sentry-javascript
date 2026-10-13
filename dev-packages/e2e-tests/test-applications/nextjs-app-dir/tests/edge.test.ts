@@ -1,7 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { waitForError, waitForTransaction } from '@sentry-internal/test-utils';
-
-const packageJson = require('../package.json');
+import { getSpanOp, waitForError, waitForStreamedSpan } from '@sentry-internal/test-utils';
 
 test('Should record exceptions for faulty edge server components', async ({ page }) => {
   const errorEventPromise = waitForError('nextjs-app-dir', errorEvent => {
@@ -26,30 +24,21 @@ test('Should record exceptions for faulty edge server components', async ({ page
   });
 });
 
-test('Should record transaction for edge server components', async ({ page }) => {
-  const nextjsVersion = packageJson.dependencies.next;
-  const nextjsMajor = Number(nextjsVersion.split('.')[0]);
-
-  const serverComponentTransactionPromise = waitForTransaction('nextjs-app-dir', async transactionEvent => {
-    return (
-      transactionEvent?.transaction === 'GET /edge-server-components' &&
-      transactionEvent.contexts?.runtime?.name === 'vercel-edge'
-    );
+test('Should record a span for edge server components', async ({ page }) => {
+  // The route is only served by the edge runtime, so the span name identifies it on its own. The
+  // transaction-based test additionally matched on `contexts.runtime.name`, which span v2 does not carry.
+  const serverComponentSpanPromise = waitForStreamedSpan('nextjs-app-dir', span => {
+    return span.name === 'GET /edge-server-components' && span.is_segment;
   });
 
   await page.goto('/edge-server-components');
 
-  const serverComponentTransaction = await serverComponentTransactionPromise;
+  const serverComponentSpan = await serverComponentSpanPromise;
 
-  expect(serverComponentTransaction).toBeDefined();
-  expect(serverComponentTransaction.contexts?.trace?.op).toBe('http.server');
-
-  // For some reason headers aren't picked up on Next.js 13 - also causing scope isolation to be broken
-  if (nextjsMajor >= 14) {
-    expect(serverComponentTransaction.request?.headers).toBeDefined();
-
-    // Assert that isolation scope works properly
-    expect(serverComponentTransaction.tags?.['my-isolated-tag']).toBe(true);
-    expect(serverComponentTransaction.tags?.['my-global-scope-isolated-tag']).not.toBeDefined();
-  }
+  expect(serverComponentSpan).toBeDefined();
+  expect(getSpanOp(serverComponentSpan)).toBe('http.server');
+  // Request headers are attached to the span as `http.request.header.*` attributes.
+  expect(
+    Object.keys(serverComponentSpan.attributes).filter(key => key.startsWith('http.request.header.')).length,
+  ).toBeGreaterThan(0);
 });

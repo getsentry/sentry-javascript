@@ -87,9 +87,25 @@ const redirectRoute = createRoute({
   },
 });
 
-const routeTree = rootRoute.addChildren([indexRoute, redirectRoute, postsRoute.addChildren([postIdRoute])]);
+// Dynamic enough to absorb basepath segments if they ever leak into route matching (see #23253).
+const catchAllRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '$a/$b/$c',
+  component: function CatchAll() {
+    return <div>Catch all</div>;
+  },
+});
 
-const router = createRouter({ routeTree });
+const routeTree = rootRoute.addChildren([
+  indexRoute,
+  redirectRoute,
+  catchAllRoute,
+  postsRoute.addChildren([postIdRoute]),
+]);
+
+declare const __APP_BASEPATH__: string;
+
+const router = createRouter({ routeTree, ...(__APP_BASEPATH__ ? { basepath: __APP_BASEPATH__ } : {}) });
 
 declare const __APP_DSN__: string;
 

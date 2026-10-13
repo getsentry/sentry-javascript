@@ -1,42 +1,42 @@
-import { expect } from '@playwright/test';
 import {
-  SEMANTIC_ATTRIBUTE_SENTRY_OP,
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE,
-  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
-} from '@sentry/browser';
+  SENTRY_SEGMENT_NAME_SOURCE,
+  SENTRY_IDLE_SPAN_FINISH_REASON,
+  SENTRY_OP,
+  SENTRY_ORIGIN,
+} from '@sentry/conventions/attributes';
+import { expect } from '@playwright/test';
+import { SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE } from '@sentry/browser';
+
 import { sentryTest } from '../../../../../utils/fixtures';
-import { envelopeRequestParser, shouldSkipTracingTest, waitForTransactionRequest } from '../../../../../utils/helpers';
+import { shouldSkipTracingTest } from '../../../../../utils/helpers';
+import { getSpanOp, waitForStreamedSpan } from '../../../../../utils/spanUtils';
 
 sentryTest(
   'waits for Sentry.reportPageLoaded() to be called when `enableReportPageLoaded` is true',
   async ({ getLocalTestUrl, page }) => {
-    if (shouldSkipTracingTest()) {
-      sentryTest.skip();
-    }
-
-    const pageloadEventPromise = waitForTransactionRequest(page, event => event.contexts?.trace?.op === 'pageload');
+    sentryTest.skip(shouldSkipTracingTest());
 
     const url = await getLocalTestUrl({ testDir: __dirname });
 
+    const pageloadSpanPromise = waitForStreamedSpan(page, span => getSpanOp(span) === 'pageload');
+
     await page.goto(url);
 
-    const eventData = envelopeRequestParser(await pageloadEventPromise);
+    const pageloadSpan = await pageloadSpanPromise;
 
-    const traceContextData = eventData.contexts?.trace?.data;
-    const spanDurationSeconds = eventData.timestamp! - eventData.start_timestamp!;
+    const spanDurationSeconds = pageloadSpan.end_timestamp - pageloadSpan.start_timestamp;
 
-    expect(traceContextData).toMatchObject({
-      [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.pageload.browser',
-      [SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE]: 1,
-      [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
-      [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'pageload',
-      ['sentry.idle_span_finish_reason']: 'reportPageLoaded',
+    expect(pageloadSpan.attributes).toMatchObject({
+      [SENTRY_ORIGIN]: { type: 'string', value: 'auto.pageload.browser' },
+      [SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE]: expect.objectContaining({ value: 1 }),
+      [SENTRY_SEGMENT_NAME_SOURCE]: { type: 'string', value: 'url' },
+      [SENTRY_OP]: { type: 'string', value: 'pageload' },
+      [SENTRY_IDLE_SPAN_FINISH_REASON]: { type: 'string', value: 'reportPageLoaded' },
     });
 
-    // We wait for 2.5 seconds before calling Sentry.reportPageLoaded()
-    // the margins are to account for timing weirdness in CI to avoid flakes
+    // We wait for 2.5 seconds before calling Sentry.reportPageLoaded(). The span starts at navigation start,
+    // but the timeout only starts once the bundle has executed, so allow generous upper headroom for slow CI.
     expect(spanDurationSeconds).toBeGreaterThan(2);
-    expect(spanDurationSeconds).toBeLessThan(3);
+    expect(spanDurationSeconds).toBeLessThan(4);
   },
 );

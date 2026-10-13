@@ -1,6 +1,8 @@
-import type { InstrumentationConfig } from '@apm-js-collab/code-transformer';
+import type { InstrumentationConfig } from '../apmTypes';
+
 import { uniq } from '@sentry/core';
 
+import { awsSdkConfig } from './aws-sdk';
 import { amqplibConfig } from './amqplib';
 import { anthropicAiConfig } from './anthropic-ai';
 import { dataloaderConfig } from './dataloader';
@@ -9,26 +11,37 @@ import { firebaseConfig } from './firebase';
 import { genericPoolConfig } from './generic-pool';
 import { googleGenAiConfig } from './google-genai';
 import { graphqlConfig } from './graphql';
+import { groqConfig } from './groq';
 import { hapiConfig } from './hapi';
+import { honoConfig } from './hono';
 import { ioredisConfig } from './ioredis';
 import { kafkajsConfig } from './kafkajs';
 import { knexConfig } from './knex';
+import { koaConfig } from './koa';
 import { langchainConfig } from './langchain';
 import { langgraphConfig } from './langgraph';
 import { lruMemoizerConfig } from './lru-memoizer';
+import { flueConfig } from './flue';
+import { mastraConfig } from './mastra';
+import { piDurableConfig } from './pi-durable';
+import { mcpServerConfig } from './mcp-server';
+import { mistralConfig } from './mistral';
 import { mongodbConfig } from './mongodb';
 import { mongooseConfig } from './mongoose';
 import { mysql2Config } from './mysql2';
 import { mysqlConfig } from './mysql';
+import { neonConfig } from './neon';
 import { nestjsConfig } from './nestjs';
 import { openaiConfig } from './openai';
 import { pgConfig } from './pg';
 import { postgresJsConfig } from './postgres';
 import { prismaConfig } from './prisma';
-import { reactRouterConfig } from './react-router';
 import { redisConfig } from './redis';
 import { remixConfig } from './remix';
+import { remixV3Config } from './remix-v3';
 import { tediousConfig } from './tedious';
+import { togetherAiConfig } from './together-ai';
+import { typesafeConfig } from './typesafe';
 import { vercelAiConfig } from './vercel-ai';
 // Kept sorted alphabetically by module so concurrent additions insert at different
 // points rather than all appending to the end (fewer merge conflicts).
@@ -39,38 +52,88 @@ import { vercelAiConfig } from './vercel-ai';
  * these are injected. The channel LISTENERS may live elsewhere (e.g. the NestJS
  * one lives in `@sentry/nestjs`), but the config that decides what gets
  * transformed is centralized here.
+ *
+ * This module MUST stay pure, stateless data. It is loaded in more than one realm
+ * at once — the build-time bundler plugin inlines it into the server chunk, while
+ * `@sentry/server-runtime-injection`'s external `register` loads its own copy from
+ * `node_modules` at runtime. Two identical, side-effect-free arrays are harmless;
+ * any module-level mutable state here would silently diverge between those copies.
  */
 export const SENTRY_INSTRUMENTATIONS: InstrumentationConfig[] = [
   ...amqplibConfig,
   ...anthropicAiConfig,
+  ...awsSdkConfig,
   ...dataloaderConfig,
   ...expressConfig,
   ...firebaseConfig,
   ...genericPoolConfig,
   ...googleGenAiConfig,
   ...graphqlConfig,
+  ...groqConfig,
   ...hapiConfig,
+  ...honoConfig,
   ...ioredisConfig,
   ...kafkajsConfig,
   ...knexConfig,
+  ...koaConfig,
   ...langchainConfig,
   ...langgraphConfig,
   ...lruMemoizerConfig,
+  ...flueConfig,
+  ...mastraConfig,
+  ...mcpServerConfig,
+  ...mistralConfig,
   ...mongodbConfig,
   ...mongooseConfig,
   ...mysql2Config,
   ...mysqlConfig,
+  ...neonConfig,
   ...nestjsConfig,
   ...openaiConfig,
   ...pgConfig,
+  ...piDurableConfig,
   ...postgresJsConfig,
   ...prismaConfig,
-  ...reactRouterConfig,
   ...redisConfig,
   ...remixConfig,
+  ...remixV3Config,
   ...tediousConfig,
+  ...togetherAiConfig,
+  ...typesafeConfig,
   ...vercelAiConfig,
 ];
+
+/**
+ * The subset of {@link SENTRY_INSTRUMENTATIONS} the RUNTIME loader
+ * (`@sentry/server-runtime-injection`'s `register`, reached via `--import` or
+ * `Sentry.init()`) can actually apply.
+ *
+ * Registration-only configs (native-channel libraries such as `ai` v7,
+ * `ioredis`, `@redis/client`, `mysql2`, `mongoose`) carry the custom
+ * `MODULE_REGISTRATION_TRANSFORM` operator. That operator is wired into the
+ * BUNDLER plugins only (see `orchestrion/bundler/moduleInjectedTransform.ts`,
+ * applied via `bundler/options.ts`'s `customTransforms`); the runtime loader's
+ * `initialize()` receives no custom transforms. Attempting one of these at
+ * runtime therefore throws `TypeError: transform is not a function`, which the
+ * loader misreports as the always-on "`@sentry/server-runtime-injection` was
+ * bundled ... loads uninstrumented" warning even though nothing is wrong.
+ *
+ * Excluding them at runtime is correct, not just a way to silence the warning:
+ * these libraries publish their own tracing channels, and their integrations
+ * subscribe through `setupOnce()` / `waitForTracingChannelBinding`,
+ * independently of the module-injected snippet. That snippet only fires
+ * `orchestrion.module-injected`, which drives the `setup()` /
+ * `invokeOrchestrionInstrumentation` path; for a native-channel version that
+ * path subscribes to the injected `orchestrion:*` channels the library never
+ * publishes — a no-op. So running these at runtime would add no spans. The
+ * snippet earns its keep only on the BUNDLER path — notably bundler-only SDKs
+ * (e.g. `@sentry/cloudflare`) that discover a loaded module via that event to
+ * instantiate its integration factory. `@sentry/node` registers its
+ * integrations statically, so it does not need it.
+ */
+export const SENTRY_RUNTIME_INSTRUMENTATIONS: InstrumentationConfig[] = SENTRY_INSTRUMENTATIONS.filter(
+  config => !config.transform,
+);
 
 /**
  * The unique set of package names instrumented by `SENTRY_INSTRUMENTATIONS`
@@ -84,11 +147,31 @@ export const SENTRY_INSTRUMENTATIONS: InstrumentationConfig[] = [
  * externalized and their transform never runs.
  */
 export function instrumentedModuleNames(instrumentations: InstrumentationConfig[] = []): string[] {
-  return uniq([...SENTRY_INSTRUMENTATIONS, ...instrumentations].map(i => i.module.name));
+  return [
+    ...uniq([...SENTRY_INSTRUMENTATIONS, ...instrumentations].map(i => i.module.name)),
+    // Additional things that need to be bundled but are not covered by the above
+    // Remix needs to bundle this so @remix-run/server-runtime is _also_ bundled
+    '@remix-run/node',
+  ];
 }
 
 /** The instrumented module names from the default Sentry config, with no custom additions. */
 export const INSTRUMENTED_MODULE_NAMES: string[] = instrumentedModuleNames();
+
+/**
+ * The package names the SDK instruments through the orchestrion module transform (its
+ * diagnostics-channel injection). Pass these to a server bundler's "keep external" option so the
+ * packages load through Node's module loader — the only path the transform can hook — instead of
+ * being inlined into the server bundle. A framework that has no Sentry bundler plugin (e.g. eve, via
+ * `build.externalDependencies`) is the main caller; a listed package the app doesn't use is simply
+ * ignored by the bundler.
+ *
+ * Unlike {@link INSTRUMENTED_MODULE_NAMES}, this is the plain instrumented set with no bundler-only
+ * additions — those force a helper package to be *bundled*, the opposite of keeping it external.
+ */
+export function getInstrumentedModuleNames(): string[] {
+  return uniq(SENTRY_INSTRUMENTATIONS.map(instrumentation => instrumentation.module.name));
+}
 
 /**
  * Returns `external` with any instrumented packages removed, so a bundler that
@@ -111,3 +194,11 @@ export function withoutInstrumentedExternals(
   }
   return external.filter(entry => !moduleNames.some(name => entry === name || entry.startsWith(`${name}/`)));
 }
+
+// This is exported so that the nestjs package can use it to subscribe to the channels.
+export { nestjsChannels } from './nestjs';
+// This is exported so that the remix package can use it to subscribe to the channels.
+export { remixChannels } from './remix';
+// Exported so the remix package can subscribe to the Remix 3 channels, and hand only these configs to
+// the browser transform.
+export { remixV3Channels, remixV3Config } from './remix-v3';

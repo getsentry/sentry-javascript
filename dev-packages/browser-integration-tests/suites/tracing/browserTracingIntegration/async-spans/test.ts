@@ -1,7 +1,6 @@
 import { expect } from '@playwright/test';
-import type { Event } from '@sentry/core';
 import { sentryTest } from '../../../../utils/fixtures';
-import { getFirstSentryEnvelopeRequest, shouldSkipTracingTest } from '../../../../utils/helpers';
+import { shouldSkipTracingTest } from '../../../../utils/helpers';
 
 type WindowWithSpan = Window & {
   firstWaitingSpan: any;
@@ -19,18 +18,15 @@ sentryTest(
     const url = await getLocalTestUrl({ testDir: __dirname });
     await page.goto(url);
 
-    const envelope = await getFirstSentryEnvelopeRequest<Event>(page);
-    expect(envelope).toBeDefined();
+    await page.waitForFunction(() => !!(window as unknown as WindowWithSpan).secondWaitingSpan);
 
     const firstWaitingSpanValue = await page.evaluate(
-      () => (window as unknown as WindowWithSpan).firstWaitingSpan.description,
+      () => (window as unknown as WindowWithSpan).firstWaitingSpan.name,
     );
     const secondWaitingSpanName = await page.evaluate(
-      () => (window as unknown as WindowWithSpan).secondWaitingSpan.description,
+      () => (window as unknown as WindowWithSpan).secondWaitingSpan.name,
     );
-    const thirdWaitingSpanName = await page.evaluate(
-      () => (window as unknown as WindowWithSpan).thirdWaitingSpan.description,
-    );
+    const thirdWaitingSpanName = await page.evaluate(() => (window as unknown as WindowWithSpan).thirdWaitingSpan.name);
 
     expect(firstWaitingSpanValue).toBe('span 2');
     expect(secondWaitingSpanName).toBe('span 1');

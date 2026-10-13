@@ -1,7 +1,8 @@
 // <reference lib="deno.ns" />
 
 import type { Envelope } from '@sentry/core';
-import { createStackParser, forEachEnvelopeItem, nodeStackLineParser } from '@sentry/core';
+import { createStackParser, forEachEnvelopeItem } from '@sentry/core';
+import { nodeStackLineParser } from '@sentry/core/server';
 import { assertEquals, assertNotEquals, assertStringIncludes } from 'https://deno.land/std@0.212.0/assert/mod.ts';
 import {
   DenoClient,
@@ -44,7 +45,7 @@ async function collectMetrics(
   await client.flush(2000);
 
   // Stop the collection interval so Deno's leak detector doesn't flag it.
-  metricsIntegration.teardown?.();
+  (metricsIntegration as { teardown?: () => void }).teardown?.();
 
   const items: MetricItem[] = [];
   for (const envelope of envelopes) {

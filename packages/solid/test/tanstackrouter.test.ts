@@ -1,6 +1,5 @@
 import * as SentryBrowser from '@sentry/browser';
-import { URL_TEMPLATE } from '@sentry/conventions/attributes';
-import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, SEMANTIC_ATTRIBUTE_SENTRY_SOURCE } from '@sentry/core';
+import { SENTRY_SEGMENT_NAME_SOURCE, URL_TEMPLATE, SENTRY_ORIGIN } from '@sentry/conventions/attributes';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { tanstackRouterBrowserTracingIntegration } from '../src/tanstackrouter';
 
@@ -91,8 +90,8 @@ describe('tanstackRouterBrowserTracingIntegration', () => {
     expect(startBrowserTracingPageLoadSpanSpy).toHaveBeenCalledWith(mockClient, {
       name: '/posts/$postId',
       attributes: expect.objectContaining({
-        [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.pageload.solid.tanstack_router',
-        [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
+        [SENTRY_ORIGIN]: 'auto.pageload.solid.tanstack_router',
+        [SENTRY_SEGMENT_NAME_SOURCE]: 'route',
         [URL_TEMPLATE]: '/posts/$postId',
         'url.path.parameter.postId': '999',
       }),
@@ -186,7 +185,7 @@ describe('tanstackRouterBrowserTracingIntegration', () => {
       fromLocation: { pathname: '/posts/456', search: {}, state: 'state-1' },
     });
 
-    expect(mockNavigationSpan.setAttribute).toHaveBeenLastCalledWith(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, 'url');
+    expect(mockNavigationSpan.setAttribute).toHaveBeenLastCalledWith(SENTRY_SEGMENT_NAME_SOURCE, 'url');
     expect(mockNavigationSpan.setAttributes).toHaveBeenLastCalledWith(
       expect.objectContaining({
         [URL_TEMPLATE]: undefined,

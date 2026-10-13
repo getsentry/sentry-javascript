@@ -6,14 +6,15 @@ import {
   getPackageJson,
   parseMajorVersion,
   replaceBooleanFlagsInCode,
-  serializeIgnoreOptions,
   stringToUUID,
 } from '../../src/core/utils';
 
 import childProcess from 'child_process';
 import fs from 'fs';
-import { describe, it, expect, test, vi } from 'vitest';
+import { afterEach, describe, it, expect, test, vi } from 'vitest';
 import path from 'node:path';
+import { runInNewContext } from 'node:vm';
+import { JSDOM } from 'jsdom';
 
 type PackageJson = Record<string, unknown>;
 
@@ -61,6 +62,21 @@ describe('getPackageJson', () => {
     });
 
     expect(packageJson).toBeUndefined();
+  });
+
+  test('it stops at the file system root when `stopAt` is never reached', () => {
+    const existsSyncSpy = vi.spyOn(fs, 'existsSync').mockReturnValue(false);
+
+    try {
+      const packageJson = getPackageJson({
+        cwd: getCwdFor('/fixtures/no-valid-package/deeply/nested'),
+        stopAt: getCwdFor('/fixtures/this-directory-is-not-an-ancestor'),
+      });
+
+      expect(packageJson).toBeUndefined();
+    } finally {
+      existsSyncSpy.mockRestore();
+    }
   });
 });
 
@@ -270,25 +286,46 @@ describe('generateModuleMetadataInjectorCode', () => {
   });
 });
 
-describe('serializeIgnoreOptions', () => {
-  it('returns default ignore options when undefined', () => {
-    const result = serializeIgnoreOptions(undefined);
-    expect(result).toEqual(['--ignore', 'node_modules']);
+describe('code injection in HTML', () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
   });
 
-  it('handles array of ignore patterns', () => {
-    const result = serializeIgnoreOptions(['dist', '**/build/**', '*.log']);
-    expect(result).toEqual(['--ignore', 'dist', '--ignore', '**/build/**', '--ignore', '*.log']);
-  });
+  it.each([
+    '</script><script>globalThis.injected = true</script>',
+    '</ScRiPt \n><script>globalThis.injected = true</script>',
+    '<!--<script>',
+    'quotes "\' and backslashes \\u003c with whitespace \n\r\t\u2028\u2029 and <>&',
+  ])('preserves injected values containing %j inside one script element', value => {
+    vi.spyOn(fs, 'readFileSync').mockReturnValueOnce(
+      JSON.stringify({ name: 'test-app', dependencies: { [value]: '1.0.0' } }),
+    );
+    const metadata = { [value]: { values: [value] } };
+    const injection = generateReleaseInjectorCode({ release: value, injectBuildInformation: true });
+    injection.append(generateModuleMetadataInjectorCode(metadata));
+    const code = injection.code();
+    const context: {
+      SENTRY_RELEASE?: { id: string };
+      SENTRY_BUILD_INFO?: { deps: string[]; depsVersions: Record<string, number>; nodeVersion: number };
+      _sentryModuleMetadata?: Record<string, unknown>;
+    } = {};
 
-  it('handles single string pattern', () => {
-    const result = serializeIgnoreOptions('dist');
-    expect(result).toEqual(['--ignore', 'dist']);
-  });
+    const dom = new JSDOM(`<script>${code}</script>`);
+    const scripts = dom.window.document.querySelectorAll('script');
+    dom.window.close();
 
-  it('handles empty array', () => {
-    const result = serializeIgnoreOptions([]);
-    expect(result).toEqual([]);
+    expect(scripts).toHaveLength(1);
+    expect(scripts[0]?.textContent).toBe(code);
+
+    runInNewContext(code, context);
+
+    expect(context.SENTRY_RELEASE).toEqual({ id: value });
+    expect(context.SENTRY_BUILD_INFO).toEqual({
+      deps: [value],
+      depsVersions: {},
+      nodeVersion: Number(process.versions.node.split('.')[0]),
+    });
+    expect(Object.values(context._sentryModuleMetadata ?? {})).toEqual([metadata]);
   });
 });
 

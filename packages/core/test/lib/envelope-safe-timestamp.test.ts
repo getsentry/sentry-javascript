@@ -1,7 +1,6 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import { createCheckInEnvelope } from '../../src/checkin';
-import { createEventEnvelope, createSessionEnvelope, createSpanEnvelope } from '../../src/envelope';
-import { SentrySpan } from '../../src/tracing/sentrySpan';
+import { createEventEnvelope, createSessionEnvelope } from '../../src/envelope';
 import type { Event } from '../../src/types/event';
 import { GLOBAL_OBJ } from '../../src/utils/worldwide';
 
@@ -73,11 +72,6 @@ describe('envelope sent_at uses the safe time context', () => {
 
   it('createSessionEnvelope does not read the ambient clock directly', () => {
     expect(() => runWithGuardedClock(() => createSessionEnvelope({ aggregates: [] }))).not.toThrow();
-  });
-
-  it('createSpanEnvelope does not read the ambient clock directly', () => {
-    const span = new SentrySpan({ name: 'test-span', sampled: true });
-    expect(() => runWithGuardedClock(() => createSpanEnvelope([span]))).not.toThrow();
   });
 
   it('createCheckInEnvelope does not read the ambient clock directly', () => {

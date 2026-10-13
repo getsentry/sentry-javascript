@@ -319,14 +319,7 @@ All exports and APIs of `@sentry/utils` and `@sentry/types` (except for the ones
   import { withSentry } from '@sentry/solidstart';
 
   export default defineConfig(
-    withSentry(
-      {
-        /* SolidStart config */
-      },
-      {
-        /* Sentry build-time config (like project and org) */
-      },
-    ),
+    withSentry({/* SolidStart config */}, {/* Sentry build-time config (like project and org) */}),
   );
   ```
 

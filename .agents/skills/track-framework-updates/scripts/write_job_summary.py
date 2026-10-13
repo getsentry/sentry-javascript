@@ -11,6 +11,7 @@ Usage:
 from __future__ import annotations
 
 import json
+import os
 import sys
 
 
@@ -85,8 +86,20 @@ def main() -> int:
                 digest = f.read().strip()
             if digest:
                 lines.append(digest)
-        except OSError:
-            lines.append("_Digest file not found._")
+        except OSError as e:
+            lines.append(f"_Digest file not found: `{digest_path}` ({e})_")
+            lines.append("")
+            # List what is actually in the output dir to help diagnose path mismatches
+            output_dir = os.path.dirname(os.path.abspath(digest_path))
+            try:
+                found = os.listdir(output_dir)
+                if found:
+                    lines.append(f"Files present in `{output_dir}`:")
+                    lines.extend(f"- `{name}`" for name in sorted(found))
+                else:
+                    lines.append(f"`{output_dir}` exists but is empty.")
+            except OSError:
+                lines.append(f"Output directory not found: `{output_dir}`")
 
     # Run metrics at the bottom
     cost_str = (

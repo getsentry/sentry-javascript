@@ -1,3 +1,12 @@
+import {
+  DB_COLLECTION_NAME,
+  DB_OPERATION_NAME,
+  DB_SYSTEM_NAME,
+  SENTRY_OP,
+  SENTRY_ORIGIN,
+  SENTRY_TRACE_LIFECYCLE,
+} from '@sentry/conventions/attributes';
+import { DB } from '@sentry/conventions/op';
 import { MongoMemoryServer } from 'mongodb-memory-server-global';
 import { afterAll, beforeAll, describe, expect } from 'vitest';
 import { cleanupChildProcesses, createEsmAndCjsTests } from '../../../utils/runner';
@@ -5,6 +14,7 @@ import { cleanupChildProcesses, createEsmAndCjsTests } from '../../../utils/runn
 // Pins mongoose 8 (>= 8.21) so the document `updateOne`/`deleteOne` lazy-Query path is exercised
 // against a real mongoose, guarding the thenable trap that mongoose 6 (the workspace version) can't hit.
 describe('Mongoose v8 Test', () => {
+  const origin = 'auto.db.mongoose';
   let mongoServer: MongoMemoryServer;
 
   beforeAll(async () => {
@@ -19,41 +29,20 @@ describe('Mongoose v8 Test', () => {
     cleanupChildProcesses();
   });
 
-  const EXPECTED_TRANSACTION = {
-    transaction: 'Test Transaction',
-    spans: expect.arrayContaining([
-      expect.objectContaining({
-        data: expect.objectContaining({
-          'db.mongodb.collection': 'blogposts',
-          'db.operation': 'save',
-          'db.system': 'mongoose',
-        }),
-        description: 'mongoose.BlogPost.save',
-        op: 'db',
-        origin: 'auto.db.otel.mongoose',
+  const expectedStreamedSpan = (operation: string) =>
+    expect.objectContaining({
+      name: `${operation} blogposts`,
+      is_segment: false,
+      parent_span_id: expect.stringMatching(/^[\da-f]{16}$/),
+      attributes: expect.objectContaining({
+        [DB_COLLECTION_NAME]: { type: 'string', value: 'blogposts' },
+        [DB_OPERATION_NAME]: { type: 'string', value: operation },
+        [DB_SYSTEM_NAME]: { type: 'string', value: 'mongodb' },
+        [SENTRY_OP]: { type: 'string', value: DB },
+        [SENTRY_ORIGIN]: { type: 'string', value: origin },
+        [SENTRY_TRACE_LIFECYCLE]: { type: 'string', value: 'stream' },
       }),
-      expect.objectContaining({
-        data: expect.objectContaining({
-          'db.mongodb.collection': 'blogposts',
-          'db.operation': 'updateOne',
-          'db.system': 'mongoose',
-        }),
-        description: 'mongoose.BlogPost.updateOne',
-        op: 'db',
-        origin: 'auto.db.otel.mongoose',
-      }),
-      expect.objectContaining({
-        data: expect.objectContaining({
-          'db.mongodb.collection': 'blogposts',
-          'db.operation': 'deleteOne',
-          'db.system': 'mongoose',
-        }),
-        description: 'mongoose.BlogPost.deleteOne',
-        op: 'db',
-        origin: 'auto.db.otel.mongoose',
-      }),
-    ]),
-  };
+    });
 
   createEsmAndCjsTests(
     __dirname,
@@ -61,7 +50,18 @@ describe('Mongoose v8 Test', () => {
     'instrument.mjs',
     (createTestRunner, test) => {
       test('auto-instruments `mongoose` v8 document methods.', async () => {
-        await createTestRunner().expect({ transaction: EXPECTED_TRANSACTION }).start().completed();
+        await createTestRunner()
+          .expect({
+            span: container => {
+              expect(container.items.find(item => item.is_segment)?.name).toBe('Test Transaction');
+
+              for (const operation of ['save', 'updateOne', 'deleteOne']) {
+                expect(container.items).toContainEqual(expectedStreamedSpan(operation));
+              }
+            },
+          })
+          .start()
+          .completed();
       });
     },
     { additionalDependencies: { mongoose: '^8' } },

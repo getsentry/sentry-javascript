@@ -1,15 +1,25 @@
 import {
   addNonEnumerableProperty,
+  getClient,
   handleCallbackErrors,
+  hasSpanStreamingEnabled,
   objectify,
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
-  startSpan,
 } from '@sentry/core';
+import { startSpan } from '@sentry/core/browser';
+import {
+  SENTRY_SEGMENT_NAME_SOURCE,
+  CODE_FUNCTION_NAME,
+  SENTRY_DESCRIPTION,
+  SENTRY_OP,
+  URL_PATH,
+  URL_TEMPLATE,
+  SENTRY_ORIGIN,
+} from '@sentry/conventions/attributes';
+import { FUNCTION } from '@sentry/conventions/op';
 import { captureException } from '@sentry/svelte';
 import type { LoadEvent } from '@sveltejs/kit';
 import type { SentryWrappedFlag } from '../common/utils';
-import { getRouteId, isHttpError, isRedirect } from '../common/utils';
+import { getPathname, getRouteId, isHttpError, isRedirect } from '../common/utils';
 
 type PatchedLoadEvent = LoadEvent & Partial<SentryWrappedFlag>;
 
@@ -70,18 +80,29 @@ export function wrapLoadWithSentry<T extends (...args: any) => any>(origLoad: T)
         ...event,
       };
 
-      addNonEnumerableProperty(patchedEvent as unknown as Record<string, unknown>, '__sentry_wrapped__', true);
+      addNonEnumerableProperty(patchedEvent, '__sentry_wrapped__', true);
 
       const routeId = getRouteId(event);
+      const pathname = getPathname(event);
+      const routeOrPathname = routeId ? routeId : pathname;
+
+      const client = getClient();
+      const hasSpanStreaming = !!client && hasSpanStreamingEnabled(client);
 
       return startSpan(
         {
-          op: 'function.sveltekit.load',
+          // With span streaming, span names have to be low cardinality, so we use the function name.
+          name: hasSpanStreaming ? 'load' : routeOrPathname,
           attributes: {
-            [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.sveltekit',
-            [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: routeId ? 'route' : 'url',
+            [SENTRY_OP]: FUNCTION,
+            [CODE_FUNCTION_NAME]: 'load',
+            [SENTRY_ORIGIN]: 'auto.function.sveltekit',
+            [SENTRY_SEGMENT_NAME_SOURCE]: routeId ? 'route' : 'url',
+            [URL_PATH]: pathname,
+            ...(routeId && { [URL_TEMPLATE]: routeId }),
+            // Relay infers the description from `code.function.name`, which would drop the route.
+            ...(hasSpanStreaming && { [SENTRY_DESCRIPTION]: routeOrPathname }),
           },
-          name: routeId ? routeId : event.url.pathname,
         },
         () => handleCallbackErrors(() => wrappingTarget.apply(thisArg, [patchedEvent]), sendErrorToSentry),
       );

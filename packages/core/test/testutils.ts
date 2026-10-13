@@ -1,6 +1,5 @@
 import { it } from 'vitest';
-import { getSentryCarrier } from '../src/carrier';
-import { GLOBAL_OBJ } from '../src/utils/worldwide';
+import { getMainCarrier } from '../src/carrier';
 
 // eslint-disable-next-line @typescript-eslint/ban-types
 export const testOnlyIfNodeVersionAtLeast = (minVersion: number): Function => {
@@ -17,7 +16,6 @@ export const testOnlyIfNodeVersionAtLeast = (minVersion: number): Function => {
   return it;
 };
 
-export function clearGlobalScope() {
-  const carrier = getSentryCarrier(GLOBAL_OBJ);
-  carrier.globalScope = undefined;
+export function resetGlobals(): void {
+  getMainCarrier().__SENTRY__ = undefined;
 }

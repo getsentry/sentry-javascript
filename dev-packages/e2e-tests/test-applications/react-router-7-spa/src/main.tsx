@@ -27,7 +27,6 @@ Sentry.init({
       useNavigationType,
       createRoutesFromChildren,
       matchRoutes,
-      trackFetchStreamPerformance: true,
     }),
     replay,
   ],
@@ -40,7 +39,6 @@ Sentry.init({
   replaysSessionSampleRate: 1.0,
   replaysOnErrorSampleRate: 0.0,
   tunnel: 'http://localhost:3031',
-  dataCollection: { userInfo: true },
 });
 
 const SentryRoutes = Sentry.wrapReactRouterRouting(Routes);

@@ -1,14 +1,17 @@
-import type { Client, IntegrationFn } from '@sentry/core/browser';
-import {
-  captureMessage,
-  defineIntegration,
-  getClient,
-  GLOBAL_OBJ,
-  supportsReportingObserver,
-  withScope,
-} from '@sentry/core/browser';
+import type { Client, IntegrationFn } from '@sentry/core';
+import { captureMessage, defineIntegration, getClient, GLOBAL_OBJ, withScope } from '@sentry/core';
 
 const WINDOW = GLOBAL_OBJ as typeof GLOBAL_OBJ & Window;
+
+/**
+ * Tells whether current environment supports ReportingObserver API
+ * {@link supportsReportingObserver}.
+ *
+ * @returns Answer to the given question.
+ */
+function supportsReportingObserver(): boolean {
+  return 'ReportingObserver' in WINDOW;
+}
 
 const INTEGRATION_NAME = 'ReportingObserver' as const;
 

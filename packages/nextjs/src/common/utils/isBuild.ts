@@ -1,4 +1,4 @@
-import { PHASE_PRODUCTION_BUILD } from 'next/constants';
+import { PHASE_PRODUCTION_BUILD } from 'next/constants.js';
 
 /**
  * Decide if the currently running process is part of the build phase or happening at runtime.

@@ -1,5 +1,10 @@
+import type { AstroConfig } from 'astro';
 import { builtinModules } from 'module';
-import type { Plugin } from 'vite';
+
+// Derived from Astro's own config type rather than imported from `vite` directly: Astro bundles its
+// own Vite version, which differs across the Astro majors we support. A plugin typed against any
+// single Vite version is not assignable to `updateConfig({ vite: { plugins } })` for the others.
+export type VitePlugin = Extract<NonNullable<NonNullable<AstroConfig['vite']>['plugins']>[number], { name: string }>;
 
 // Build a set of all Node.js built-in module names, including both
 // bare names (e.g. "fs") and "node:" prefixed names (e.g. "node:fs").
@@ -14,7 +19,7 @@ const NODE_BUILTINS = new Set(builtinModules.flatMap(m => [m, `node:${m}`]));
  * modules. Vite correctly externalizes them, but warns about it. These warnings are
  * harmless since Cloudflare Workers support Node.js built-ins under the `node:` prefix.
  */
-export function sentryCloudflareNodeWarningPlugin(): Plugin {
+export function sentryCloudflareNodeWarningPlugin(): VitePlugin {
   return {
     name: 'sentry-astro-cloudflare-suppress-node-warnings',
     enforce: 'pre',
@@ -46,7 +51,7 @@ export function sentryCloudflareNodeWarningPlugin(): Plugin {
  * - Per-request isolation scopes via `wrapRequestHandler`
  * - Trace context propagation
  */
-export function sentryCloudflareVitePlugin(): Plugin {
+export function sentryCloudflareVitePlugin(): VitePlugin {
   return {
     name: 'sentry-astro-cloudflare',
     enforce: 'post',

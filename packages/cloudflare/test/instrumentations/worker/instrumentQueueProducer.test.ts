@@ -1,4 +1,4 @@
-import type { MessageSendRequest, Queue } from '@cloudflare/workers-types';
+import type { Queue } from '@cloudflare/workers-types';
 import * as SentryCore from '@sentry/core';
 import { beforeEach, describe, expect, test, vi } from 'vitest';
 import { instrumentQueueProducer } from '../../../src/instrumentations/worker/instrumentQueueProducer';
@@ -75,9 +75,12 @@ describe('instrumentQueueProducer', () => {
 
       await wrapped.send({ invoiceId: 'inv_123' });
 
-      const sentBody = vi.mocked(queue.send).mock.calls[0]![0];
-      expect(setAttribute).toHaveBeenCalledTimes(1);
-      expect(setAttribute).toHaveBeenCalledWith(
+      const sentBody = {
+        invoiceId: 'inv_123',
+        __sentry_queue_trace__: '1234567890abcdef1234567890abcdef-1234567890abcdef-1',
+      };
+      expect(queue.send).toHaveBeenCalledExactlyOnceWith(sentBody, undefined);
+      expect(setAttribute).toHaveBeenCalledExactlyOnceWith(
         'messaging.message.body.size',
         new TextEncoder().encode(JSON.stringify(sentBody)).byteLength,
       );
@@ -138,7 +141,6 @@ describe('instrumentQueueProducer', () => {
       expect(startSpanSpy).toHaveBeenCalledTimes(1);
       const [spanCtx] = startSpanSpy.mock.calls[0]!;
       expect(spanCtx).toMatchObject({
-        op: 'queue.publish',
         name: 'send MY_QUEUE',
         attributes: {
           'messaging.system': 'cloudflare',
@@ -250,13 +252,17 @@ describe('instrumentQueueProducer', () => {
 
       await wrapped.sendBatch([{ body: { invoiceId: 'inv_123' } }, { body: { invoiceId: 'inv_456' } }]);
 
-      const sentMessages = vi.mocked(queue.sendBatch).mock.calls[0]![0] as MessageSendRequest[];
+      const sentTrace = 'abcdefabcdefabcdefabcdefabcdefab-fedcbafedcbafedc-1';
+      const sentMessages = [
+        { body: { invoiceId: 'inv_123', __sentry_queue_trace__: sentTrace } },
+        { body: { invoiceId: 'inv_456', __sentry_queue_trace__: sentTrace } },
+      ];
       const expectedSize = sentMessages.reduce(
         (total, message) => total + new TextEncoder().encode(JSON.stringify(message.body)).byteLength,
         0,
       );
-      expect(setAttribute).toHaveBeenCalledTimes(1);
-      expect(setAttribute).toHaveBeenCalledWith('messaging.message.body.size', expectedSize);
+      expect(queue.sendBatch).toHaveBeenCalledExactlyOnceWith(sentMessages, undefined);
+      expect(setAttribute).toHaveBeenCalledExactlyOnceWith('messaging.message.body.size', expectedSize);
     });
 
     test('starts a queue.publish span with batch attributes', async () => {
@@ -269,7 +275,6 @@ describe('instrumentQueueProducer', () => {
       expect(startSpanSpy).toHaveBeenCalledTimes(1);
       const [spanCtx] = startSpanSpy.mock.calls[0]!;
       expect(spanCtx).toMatchObject({
-        op: 'queue.publish',
         name: 'send MY_QUEUE',
         attributes: {
           'messaging.system': 'cloudflare',
@@ -340,5 +345,20 @@ describe('instrumentQueueProducer', () => {
     };
     const wrapped = instrumentQueueProducer(queue, 'MY_QUEUE') as Queue & { customMethod: () => string };
     expect(wrapped.customMethod()).toBe('hi');
+  });
+
+  test('calls pass-through methods with the underlying queue as `this`', async () => {
+    const metrics = { backlogCount: 3, backlogBytes: 42 };
+    const queue = Object.assign(createMockQueue(), {
+      metrics(this: unknown) {
+        if (this !== queue) {
+          throw new TypeError('Illegal invocation: function called with incorrect `this` reference.');
+        }
+        return Promise.resolve(metrics);
+      },
+    }) as unknown as Queue & { metrics: () => Promise<typeof metrics> };
+    const wrapped = instrumentQueueProducer(queue, 'MY_QUEUE') as typeof queue;
+
+    await expect(wrapped.metrics()).resolves.toEqual(metrics);
   });
 });

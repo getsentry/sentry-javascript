@@ -1,13 +1,9 @@
 import type { Scope } from '../scope';
-import type { Span } from '../types/span';
 import type { getTraceData } from '../utils/traceData';
 import type {
   continueTrace,
   isTracingSuppressed,
-  startInactiveSpan,
   startNewTrace,
-  startSpan,
-  startSpanManual,
   suppressTracing,
   withActiveSpan,
 } from './../tracing/trace';
@@ -23,11 +19,6 @@ export interface TracingChannelBinding {
    * The ALS instance that will be bound to the channel.
    */
   asyncLocalStorage: NonNullable<unknown>;
-
-  /**
-   * Activates a span for the tracing channels nested invocations, the return value must be the same type as the `asyncLocalStorage` inner value.
-   */
-  getStoreWithActiveSpan: (span: Span) => unknown;
 }
 
 /**
@@ -68,15 +59,6 @@ export interface AsyncContextStrategy {
 
   // OPTIONAL: Custom tracing methods
   // These are used so that we can provide OTEL-based implementations
-
-  /** Start an active span. */
-  startSpan?: typeof startSpan;
-
-  /** Start an inactive span. */
-  startInactiveSpan?: typeof startInactiveSpan;
-
-  /** Start an active manual span. */
-  startSpanManual?: typeof startSpanManual;
 
   /** Get the currently active span. */
   getActiveSpan?: typeof getActiveSpan;

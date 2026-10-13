@@ -307,15 +307,30 @@ it.each([
 ### Test isolation
 
 Tests must never depend on execution order or share mutable state. For this codebase, many tests
-need to reset global Sentry state:
+need to reset global Sentry state. Use whatever reset the existing tests in your package use (many
+packages have a `resetSdk()` or `cleanupOtel()` helper). Otherwise, pick one:
 
 ```typescript
-beforeEach(() => {
-  clearGlobalScope();
-  getCurrentScope().clear();
-  getIsolationScope().clear();
-});
+// Unbind the client. Cheap, and enough for most tests that call `init()`.
+getCurrentScope().setClient(undefined);
+
+// Reset the global, isolation, and current scopes, and the client bound to them.
+// `setupOnce` still does not run again, because installed integrations are tracked
+// outside the carrier.
+getMainCarrier().__SENTRY__ = undefined;
+
+// Close and unbind the client. Also flushes, so it is slower.
+await Sentry.close();
 ```
+
+**Reset the client in every test that calls `init()`.** A second `init()` while a client is bound
+prints a "`Sentry.init()` was called more than once" warning. After the next major version, it will
+return the bound client instead of a new one, so a test without a reset gets the previous test's
+client and options. See `docs/repeated-init.md`.
+
+To assert on that warning (or any `consoleSandbox` output), stub `originalConsoleMethods.warn` from
+`@sentry/core`. `consoleSandbox` calls the stored original method, so a spy on `console.warn` misses
+it once the console integration is set up.
 
 ### Grouping
 
@@ -336,6 +351,9 @@ describe('patchRoute', () => {
 
 Node integration tests (`dev-packages/node-integration-tests/`) use `createEsmAndCjsTests` to
 run a real Node scenario file and assert on captured Sentry envelopes.
+
+Other runtimes run these suites too. A new suite must pass there or be excluded; see "Other
+Runtimes" in `dev-packages/node-integration-tests/README.md`.
 
 ### Minimize `test()` calls — each one spawns a separate Node process
 
@@ -523,6 +541,7 @@ Before you're done, verify each test against these criteria:
 - [ ] Description reads as a behavior specification (no "should", no "works correctly")
 - [ ] No dependency on other tests' execution or state
 - [ ] Mocks and spies are restored (via `beforeEach`)
+- [ ] Tests that call `init()` reset the bound client between tests
 - [ ] Edge cases covered: empty inputs, boundaries, error paths, null/undefined
 - [ ] Realistic test data (not `"foo"`, `"test"`, `123`)
 - [ ] No try/catch for error testing — `toThrow` / `rejects.toThrow` only

@@ -7,11 +7,4 @@ Sentry.init({
   tracesSampleRate: 1.0,
   dataCollection: { genAI: { inputs: false, outputs: false } },
   transport: loggingTransport,
-  beforeSendTransaction: event => {
-    if (event.transaction.includes('/openai/')) {
-      return null;
-    }
-    return event;
-  },
-  streamGenAiSpans: true,
 });

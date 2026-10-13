@@ -1,14 +1,20 @@
 import { expect, test } from '@playwright/test';
-import { waitForError } from '@sentry-internal/test-utils';
+import { waitForError, collectStreamedSpansUntilSegment } from '@sentry-internal/test-utils';
 
 test('Sends correct error event', async ({ baseURL }) => {
   const errorEventPromise = waitForError('node-koa', event => {
     return !event.type && event.exception?.values?.[0]?.value === 'This is an exception with id 123';
   });
 
+  const segmentEventPromise = collectStreamedSpansUntilSegment('node-koa', 'GET /test-exception/:id');
+
   await fetch(`${baseURL}/test-exception/123`);
 
   const errorEvent = await errorEventPromise;
+  const segmentEventSpans = await segmentEventPromise;
+  const segmentEvent = segmentEventSpans.find(
+    segment => segment.is_segment && segment.name === 'GET /test-exception/:id',
+  )!;
 
   expect(errorEvent.exception?.values).toHaveLength(1);
   const exception = errorEvent.exception?.values?.[0];
@@ -33,4 +39,17 @@ test('Sends correct error event', async ({ baseURL }) => {
     span_id: expect.stringMatching(/[a-f0-9]{16}/),
     parent_span_id: expect.stringMatching(/[a-f0-9]{16}/),
   });
+
+  // The error is attached to the same trace as the request segment, and to a
+  // span in that segment.
+  const segmentTrace = segmentEvent;
+  expect(errorEvent.contexts?.trace?.trace_id).toBe(segmentTrace?.trace_id);
+
+  const segmentSpanIds = [
+    segmentTrace?.span_id,
+    ...segmentEventSpans
+      .filter(span => !span.is_segment && span.attributes['sentry.segment.id']?.value === segmentEvent.span_id)
+      .map(span => span.span_id),
+  ];
+  expect(segmentSpanIds).toContain(errorEvent.contexts?.trace?.span_id);
 });

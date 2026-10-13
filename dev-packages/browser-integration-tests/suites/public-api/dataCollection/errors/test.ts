@@ -2,11 +2,8 @@ import { expect } from '@playwright/test';
 import { sentryTest } from '../../../../utils/fixtures';
 import { envelopeRequestParser, waitForErrorRequestOnUrl } from '../../../../utils/helpers';
 
-sentryTest(
-  'sets sdk.settings.infer_ip to "auto" on errors when dataCollection.userInfo: true',
-  async ({ getLocalTestUrl, page }) => {
-    const url = await getLocalTestUrl({ testDir: __dirname });
-    const eventData = await envelopeRequestParser(await waitForErrorRequestOnUrl(page, url));
-    expect(eventData.sdk?.settings?.infer_ip).toBe('auto');
-  },
-);
+sentryTest('sets sdk.settings.infer_ip to "auto" on errors by default', async ({ getLocalTestUrl, page }) => {
+  const url = await getLocalTestUrl({ testDir: __dirname });
+  const eventData = await envelopeRequestParser(await waitForErrorRequestOnUrl(page, url));
+  expect(eventData.sdk?.settings?.infer_ip).toBe('auto');
+});

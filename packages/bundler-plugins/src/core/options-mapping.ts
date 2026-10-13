@@ -1,3 +1,4 @@
+import { getVercelEnv } from '@sentry/core';
 import type { Logger } from './logger';
 import type {
   Options as UserOptions,
@@ -60,6 +61,7 @@ export type NormalizedOptions = {
     | {
         excludeDebugStatements?: boolean;
         excludeTracing?: boolean;
+        excludeChannelInjection?: boolean;
         excludeReplayCanvas?: boolean;
         excludeReplayShadowDom?: boolean;
         excludeReplayIframe?: boolean;
@@ -113,6 +115,7 @@ export function normalizeUserOptions(userOptions: UserOptions): NormalizedOption
       create: userOptions.release?.create ?? true,
       finalize: userOptions.release?.finalize ?? true,
       vcsRemote: userOptions.release?.vcsRemote ?? process.env['SENTRY_VSC_REMOTE'] ?? 'origin',
+      // oxlint-disable-next-line typescript/no-unnecessary-type-assertion -- rule false positive: the cast carries the internal `shouldNotThrowOnFailure` field; tsc errors without it
       setCommits: userOptions.release?.setCommits as
         | (SetCommitsOptions & { shouldNotThrowOnFailure?: boolean })
         | false
@@ -160,9 +163,10 @@ export function normalizeUserOptions(userOptions: UserOptions): NormalizedOption
     }
   }
 
-  if (options.release.deploy === undefined && process.env['VERCEL'] && process.env['VERCEL_TARGET_ENV']) {
+  const vercelEnv = getVercelEnv();
+  if (options.release.deploy === undefined && process.env['VERCEL'] && vercelEnv) {
     options.release.deploy = {
-      env: `vercel-${process.env['VERCEL_TARGET_ENV']}`,
+      env: vercelEnv,
       url: process.env['VERCEL_URL'] ? `https://${process.env['VERCEL_URL']}` : undefined,
     };
   }

@@ -1,69 +1,25 @@
 // <reference lib="deno.ns" />
 
 import { tracingChannel } from 'node:diagnostics_channel';
-import type { TransactionEvent } from '@sentry/core';
 import type { DenoClient } from '@sentry/deno';
-import { getCurrentScope, getGlobalScope, getIsolationScope, init, startSpan } from '@sentry/deno';
+import { flush, init, startSpan } from '@sentry/deno';
 import { assert } from 'https://deno.land/std@0.212.0/assert/assert.ts';
 import { assertEquals } from 'https://deno.land/std@0.212.0/assert/assert_equals.ts';
 import { assertExists } from 'https://deno.land/std@0.212.0/assert/assert_exists.ts';
+import { getSpanOp, resetGlobals, spanSink, withTimeout } from '../../src/index.ts';
 
-function resetGlobals(): void {
-  getCurrentScope().clear();
-  getCurrentScope().setClient(undefined);
-  getIsolationScope().clear();
-  getGlobalScope().clear();
-}
-
-/** See deno-redis.test.ts — same sink shape, deduped for clarity. */
-function transactionSink(): {
-  beforeSendTransaction: (event: TransactionEvent) => null;
-  waitFor: (predicate: (event: TransactionEvent) => boolean) => Promise<TransactionEvent>;
-} {
-  const transactions: TransactionEvent[] = [];
-  const waiters: { predicate: (e: TransactionEvent) => boolean; resolve: (e: TransactionEvent) => void }[] = [];
-  return {
-    beforeSendTransaction(event) {
-      transactions.push(event);
-      for (let i = waiters.length - 1; i >= 0; i--) {
-        const w = waiters[i]!;
-        if (w.predicate(event)) {
-          waiters.splice(i, 1);
-          w.resolve(event);
-        }
-      }
-      return null;
-    },
-    waitFor(predicate) {
-      const already = transactions.find(predicate);
-      if (already) return Promise.resolve(already);
-      return new Promise<TransactionEvent>(resolve => {
-        waiters.push({ predicate, resolve });
-      });
-    },
-  };
-}
-
-function withTimeout<T>(p: Promise<T>, ms: number, what: string): Promise<T> {
-  let timer: ReturnType<typeof setTimeout> | undefined;
-  const timeout = new Promise<T>((_, reject) => {
-    timer = setTimeout(() => reject(new Error(`Timed out waiting for ${what} after ${ms}ms`)), ms);
-  });
-  return Promise.race([p, timeout]).finally(() => {
-    if (timer !== undefined) clearTimeout(timer);
-  });
-}
-
-Deno.test('denoPostgresIntegration: included in default integrations (Deno 2.8.0+)', () => {
+Deno.test('pg instrumentation: included in default integrations (Deno 2.8.0+)', () => {
   resetGlobals();
-  const client = init({ dsn: 'https://username@domain/123' }) as DenoClient;
+  const client = init({
+    dsn: 'https://username@domain/123',
+    tracesSampleRate: 1,
+  }) as DenoClient;
   const names = client.getOptions().integrations.map(i => i.name);
-  assert(names.includes('DenoPostgres'), `DenoPostgres should be in defaults, got ${names.join(', ')}`);
+  assert(names.includes('Postgres'), `Postgres should be in defaults, got ${names.join(', ')}`);
 });
 
-// The orchestrion runtime hook (`@sentry/deno/import`) only works as a FIRST
-// import inside the entry graph in Deno 2.8.0 through 2.8.2.
-// TODO: revisit a `--import` or `--preload` approach once Deno 2.8.3 ships.
+// Covers the import form of the hook. The `--preload` form the README
+// documents is covered by the `deno` E2E app.
 Deno.test('@sentry/deno/import: transforms pg so it publishes the orchestrion channel', async () => {
   const scenario = new URL('./scenario.mjs', import.meta.url);
 
@@ -95,19 +51,13 @@ Deno.test('@sentry/deno/import: transforms pg so it publishes the orchestrion ch
   assert(line.includes('"runtime":["pg","pg-pool"]'), `expected runtime marker, got: ${line}`);
 });
 
-// Exercises the SDK path end-to-end: `init()` wires `denoPostgresIntegration`
-// (which installs the AsyncLocalStorage context strategy and subscribes to the
-// channel), and we drive the `orchestrion:pg:query` channel manually — the
-// same events the orchestrion transform publishes around `client.query()` —
-// so no live database is needed. Asserting a nested `db` span proves the
-// subscriber, the emitted attributes, AND the context-strategy wiring all work.
-Deno.test('denoPostgresIntegration: orchestrion:pg:query channel produces a nested db span', async () => {
+Deno.test('pg instrumentation: orchestrion:pg:query channel produces a nested db span', async () => {
   resetGlobals();
-  const sink = transactionSink();
+  const sink = spanSink();
   init({
     dsn: 'https://username@domain/123',
     tracesSampleRate: 1,
-    beforeSendTransaction: sink.beforeSendTransaction,
+    transport: sink.transport,
   });
 
   const channel = tracingChannel('orchestrion:pg:query');
@@ -132,19 +82,25 @@ Deno.test('denoPostgresIntegration: orchestrion:pg:query channel produces a nest
     });
   });
 
-  const parent = await withTimeout(
-    sink.waitFor(t => t.transaction === 'parent'),
-    5000,
-    "'parent' transaction",
-  );
+  await flush();
 
-  const pgSpan = parent.spans?.find(s => s.op === 'db');
-  assertExists(pgSpan, `expected a db child span, got ops: ${parent.spans?.map(s => s.op).join(', ')}`);
-  assertEquals(pgSpan!.description, 'SELECT 1 AS solution');
-  assertEquals(pgSpan!.data?.['db.system'], 'postgresql');
-  assertEquals(pgSpan!.data?.['db.statement'], 'SELECT 1 AS solution');
-  assertEquals(pgSpan!.data?.['net.peer.name'], '127.0.0.1');
-  assertEquals(pgSpan!.data?.['net.peer.port'], 5432);
-  assertEquals(pgSpan!.data?.['db.user'], 'root');
-  assertEquals(pgSpan!.data?.['sentry.origin'], 'auto.db.orchestrion.postgres');
+  const parent = await withTimeout(
+    sink.waitFor(span => span.is_segment && span.name === 'parent'),
+    5000,
+    "'parent' segment span",
+  );
+  const children = sink.spans.filter(span => span.parent_span_id === parent.span_id);
+  assertEquals(children.length, 1);
+  assertEquals(children[0]!.trace_id, parent.trace_id);
+  assertEquals(children[0]!.is_segment, false);
+
+  const pgSpan = children.find(s => getSpanOp(s) === 'db');
+  assertExists(pgSpan, `expected a db child span, got ops: ${children.map(s => getSpanOp(s)).join(', ')}`);
+  assertEquals(pgSpan.name, 'SELECT');
+  assertEquals(pgSpan.attributes['db.system.name']?.value, 'postgresql');
+  assertEquals(pgSpan.attributes['db.query.text']?.value, 'SELECT ? AS solution');
+  assertEquals(pgSpan.attributes['server.address']?.value, '127.0.0.1');
+  assertEquals(pgSpan.attributes['server.port']?.value, 5432);
+  assertEquals(pgSpan.attributes['db.user']?.value, 'root');
+  assertEquals(pgSpan.attributes['sentry.origin']?.value, 'auto.db.postgres');
 });

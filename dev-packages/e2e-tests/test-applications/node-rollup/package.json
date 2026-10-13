@@ -1,0 +1,27 @@
+{
+  "name": "node-rollup",
+  "description": "ensure the Sentry rollup plugin build-time instruments a bundled graphql at runtime",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "clean": "npx rimraf node_modules dist pnpm-lock.yaml",
+    "test:build": "pnpm install && node ./build.mjs",
+    "test:assert": "node ./assert.mjs"
+  },
+  "dependencies": {
+    "@sentry/node": "file:../../packed/sentry-node-packed.tgz",
+    "@sentry/server-utils": "file:../../packed/sentry-server-utils-packed.tgz",
+    "@sentry/bundler-plugins": "file:../../packed/sentry-bundler-plugins-packed.tgz"
+  },
+  "devDependencies": {
+    "@sentry-internal/test-utils": "link:../../../test-utils",
+    "graphql": "16.9.0",
+    "rollup": "4.62.3",
+    "@rollup/plugin-node-resolve": "^16.0.0",
+    "@rollup/plugin-commonjs": "^28.0.0"
+  },
+  "volta": {
+    "extends": "../../package.json"
+  }
+}

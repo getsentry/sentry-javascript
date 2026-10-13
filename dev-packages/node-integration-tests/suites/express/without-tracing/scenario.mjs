@@ -27,6 +27,4 @@ app.post('/test-post', function (req, res) {
   res.send({ status: 'ok', body: req.body });
 });
 
-Sentry.setupExpressErrorHandler(app);
-
 startExpressServerAndSendPortToRunner(app);

@@ -30,7 +30,7 @@ describe('createRemixRouteManifest', () => {
       const { tempDir, routesDir } = createTestDir();
 
       // Create test route files
-      fs.writeFileSync(path.join(routesDir, 'index.tsx'), '// index route');
+      fs.writeFileSync(path.join(routesDir, '_index.tsx'), '// index route');
       fs.writeFileSync(path.join(routesDir, 'about.tsx'), '// about route');
       fs.writeFileSync(path.join(routesDir, 'users.$id.tsx'), '// users dynamic route');
 
@@ -48,7 +48,7 @@ describe('createRemixRouteManifest', () => {
       });
 
       // Clean up
-      fs.unlinkSync(path.join(routesDir, 'index.tsx'));
+      fs.unlinkSync(path.join(routesDir, '_index.tsx'));
       fs.unlinkSync(path.join(routesDir, 'about.tsx'));
       fs.unlinkSync(path.join(routesDir, 'users.$id.tsx'));
     });
@@ -60,9 +60,9 @@ describe('createRemixRouteManifest', () => {
       const usersDir = path.join(routesDir, 'users');
       fs.mkdirSync(usersDir, { recursive: true });
 
-      fs.writeFileSync(path.join(routesDir, 'index.tsx'), '// root index');
+      fs.writeFileSync(path.join(routesDir, '_index.tsx'), '// root index');
       fs.writeFileSync(path.join(usersDir, '$id.tsx'), '// user id');
-      fs.writeFileSync(path.join(usersDir, 'index.tsx'), '// users index');
+      fs.writeFileSync(path.join(usersDir, '_index.tsx'), '// users index');
 
       const manifest = createRemixRouteManifest({ rootDir: tempDir });
 
@@ -86,12 +86,12 @@ describe('createRemixRouteManifest', () => {
 
       fs.mkdirSync(postsDir, { recursive: true });
 
-      fs.writeFileSync(path.join(userIdDir, 'index.tsx'), '// user index');
+      fs.writeFileSync(path.join(userIdDir, '_index.tsx'), '// user index');
       fs.writeFileSync(path.join(postsDir, '$postId.tsx'), '// post id');
 
       const manifest = createRemixRouteManifest({ rootDir: tempDir });
 
-      // users/$id/index.tsx should map to /users/:id (dynamic route)
+      // users/$id/_index.tsx should map to /users/:id (dynamic route)
       expect(manifest.dynamicRoutes).toContainEqual(
         expect.objectContaining({
           path: '/users/:id',
@@ -115,7 +115,7 @@ describe('createRemixRouteManifest', () => {
       const usersDir = path.join(routesDir, 'users');
       fs.mkdirSync(usersDir, { recursive: true });
 
-      fs.writeFileSync(path.join(routesDir, 'index.tsx'), '// root');
+      fs.writeFileSync(path.join(routesDir, '_index.tsx'), '// root');
       fs.writeFileSync(path.join(routesDir, 'about.tsx'), '// about');
       fs.writeFileSync(path.join(usersDir, '$id.tsx'), '// user');
 

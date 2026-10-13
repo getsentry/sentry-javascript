@@ -1,4 +1,4 @@
-import { consoleSandbox, defineIntegration } from '@sentry/core/browser';
+import { consoleSandbox, defineIntegration } from '@sentry/core';
 
 /**
  * This is a shim for the SpanStreaming integration.

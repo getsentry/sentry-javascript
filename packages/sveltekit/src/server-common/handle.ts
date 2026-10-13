@@ -2,16 +2,14 @@ import type { Span } from '@sentry/core';
 import {
   continueTrace,
   debug,
-  flushIfServerless,
   getClient,
   getCurrentScope,
   getDefaultIsolationScope,
   getIsolationScope,
   getTraceMetaTags,
+  hasSpanStreamingEnabled,
   httpHeadersToSpanAttributes,
-  SEMANTIC_ATTRIBUTE_SENTRY_OP,
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
+  HTTP_SPAN_NAME_FALLBACK,
   setHttpStatus,
   spanToJSON,
   startSpan,
@@ -19,10 +17,22 @@ import {
   winterCGHeadersToDict,
   winterCGRequestToRequestData,
   withIsolationScope,
+  filterCollectedUrl,
 } from '@sentry/core';
+import { flushIfServerless } from '@sentry/core/server';
 import type { Handle, ResolveOptions } from '@sveltejs/kit';
 import { DEBUG_BUILD } from '../common/debug-build';
 import { getTracePropagationData, sendErrorToSentry } from './utils';
+import {
+  HTTP_REQUEST_METHOD,
+  HTTP_ROUTE,
+  SENTRY_OP,
+  SENTRY_SEGMENT_NAME_SOURCE,
+  URL_FULL,
+  URL_PATH,
+  SENTRY_ORIGIN,
+} from '@sentry/conventions/attributes';
+import { HTTP_SERVER } from '@sentry/conventions/op';
 
 export type SentryHandleOptions = {
   /**
@@ -67,7 +77,7 @@ export function addSentryCodeToPage(options: {
   injectFetchProxyScript: boolean;
 }): NonNullable<ResolveOptions['transformPageChunk']> {
   return ({ html }) => {
-    const metaTags = getTraceMetaTags();
+    const metaTags = isSvelteKitBuilding() ? '' : getTraceMetaTags();
     const headWithMetaTags = metaTags ? `<head>\n${metaTags}` : '<head>';
 
     const headWithFetchScript = options.injectFetchProxyScript ? `\n<script>${FETCH_PROXY_SCRIPT}</script>` : '';
@@ -76,6 +86,19 @@ export function addSentryCodeToPage(options: {
 
     return html.replace('<head>', modifiedHead);
   };
+}
+
+/**
+ * Prerendered pages would bake one trace id and sampling decision into the HTML for every visitor.
+ *
+ * `building` from `$app/environment` isn't available here (the SDK is loaded from node_modules at
+ * runtime), so we rely on `_SENTRY_SVELTEKIT_BUILDING`, which our Vite plugin sets during `vite build`
+ * and SvelteKit copies into the worker it prerenders in.
+ */
+function isSvelteKitBuilding(): boolean {
+  // `process` doesn't exist in every runtime (e.g. Cloudflare Workers without `nodejs_compat`)
+  const env = typeof process !== 'undefined' && typeof process.env === 'object' ? process.env : undefined;
+  return !!env?._SENTRY_SVELTEKIT_BUILDING;
 }
 
 /**
@@ -147,6 +170,8 @@ async function instrumentHandle(
   // - Used Kit version doesn't yet support tracing
   // - Users didn't enable tracing
   const kitTracingEnabled = event.tracing?.enabled;
+  const client = getClient();
+  const dataCollectionOptions = client?.getDataCollectionOptions();
 
   try {
     const resolveWithSentry: (sentrySpan?: Span) => Promise<Response> = async (sentrySpan?: Span) => {
@@ -165,23 +190,32 @@ async function instrumentHandle(
         // span name as early as possible (for dynamic sampling, et al.)
         // Other spans are enhanced in the `processKitSpans` integration.
         const spanJson = spanToJSON(kitRootSpan);
-        const kitRootSpanAttributes = spanJson.data;
-        const originalName = spanJson.description;
+        const kitRootSpanAttributes = spanJson.attributes;
+        const originalName = spanJson.name;
 
-        const routeName = kitRootSpanAttributes['http.route'];
+        const kitRoute = kitRootSpanAttributes[HTTP_ROUTE] as string | undefined;
+        const routeName = typeof kitRoute === 'string' ? kitRoute : routeId;
         if (routeName && typeof routeName === 'string') {
           updateSpanName(kitRootSpan, `${event.request.method ?? 'GET'} ${routeName}`);
+        } else if (client && hasSpanStreamingEnabled(client)) {
+          // Without a route, SvelteKit's own span name holds the raw URL, which is too high
+          // cardinality to stream.
+          updateSpanName(kitRootSpan, event.request.method?.toUpperCase() || HTTP_SPAN_NAME_FALLBACK);
         }
 
         kitRootSpan.setAttributes({
-          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'http.server',
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.sveltekit',
-          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: routeName ? 'route' : 'url',
+          [SENTRY_OP]: HTTP_SERVER,
+          [SENTRY_ORIGIN]: 'auto.http.sveltekit',
+          [SENTRY_SEGMENT_NAME_SOURCE]: routeName ? 'route' : 'url',
           'sveltekit.tracing.original_name': originalName,
-          ...httpHeadersToSpanAttributes(
-            winterCGHeadersToDict(event.request.headers),
-            getClient()?.getDataCollectionOptions() ?? false,
-          ),
+          [URL_FULL]: (kitRootSpanAttributes[URL_FULL] as string | undefined) ?? filterCollectedUrl(event.url.href),
+          [URL_PATH]: (kitRootSpanAttributes[URL_PATH] as string | undefined) ?? event.url.pathname,
+          ...(routeName && {
+            [HTTP_ROUTE]: routeName,
+          }),
+          ...(dataCollectionOptions
+            ? httpHeadersToSpanAttributes(winterCGHeadersToDict(event.request.headers), dataCollectionOptions)
+            : {}),
         });
       }
 
@@ -202,17 +236,25 @@ async function instrumentHandle(
       ? await resolveWithSentry()
       : await startSpan(
           {
-            op: 'http.server',
             attributes: {
-              [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.sveltekit',
-              [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: routeId ? 'route' : 'url',
-              'http.method': event.request.method,
-              ...httpHeadersToSpanAttributes(
-                winterCGHeadersToDict(event.request.headers),
-                getClient()?.getDataCollectionOptions() ?? false,
-              ),
+              [SENTRY_OP]: HTTP_SERVER,
+              [SENTRY_ORIGIN]: 'auto.http.sveltekit',
+              [SENTRY_SEGMENT_NAME_SOURCE]: routeId ? 'route' : 'url',
+              [HTTP_REQUEST_METHOD]: event.request.method,
+              [URL_FULL]: filterCollectedUrl(event.url.href),
+              [URL_PATH]: event.url.pathname,
+              ...(routeId && {
+                [HTTP_ROUTE]: routeId,
+              }),
+              ...(dataCollectionOptions
+                ? httpHeadersToSpanAttributes(winterCGHeadersToDict(event.request.headers), dataCollectionOptions)
+                : {}),
             },
-            name: routeName,
+            // With span streaming, span names have to be low cardinality, so we can't fall back to the URL path.
+            name:
+              routeId || !client || !hasSpanStreamingEnabled(client)
+                ? routeName
+                : event.request.method?.toUpperCase() || HTTP_SPAN_NAME_FALLBACK,
           },
           resolveWithSentry,
         );

@@ -1,12 +1,7 @@
 import { expect, test } from '@playwright/test';
 import { waitForError } from '@sentry-internal/test-utils';
 
-// FIXME(sveltekit-3): server-side error capture works, but stack-frame function names are
-// `load$1` (not `load`) and the request URL scheme is `https` (not `http`). Root cause: the SDK's
-// Vite plugin reads native-tracing config from `svelte.config.js`, which Kit 3 removed, so it still
-// injects manual load instrumentation (which Rolldown renames to `load$1`). Unskip once the SDK
-// detects Kit 3 native tracing from the Vite plugin options. See repros + tracking notes.
-test.describe.skip('server-side errors', () => {
+test.describe('server-side errors', () => {
   test('captures universal load error', async ({ page }) => {
     const errorEventPromise = waitForError('sveltekit-3', errorEvent => {
       return errorEvent?.exception?.values?.[0]?.value === 'Universal Load Error (server)';
@@ -31,8 +26,7 @@ test.describe.skip('server-side errors', () => {
         'user-agent': expect.any(String),
       }),
       method: 'GET',
-      // SvelteKit's node adapter defaults to https in the protocol even if served on http
-      url: 'http://localhost:3030/universal-load-error',
+      url: 'https://localhost:3030/universal-load-error',
     });
   });
 
@@ -60,7 +54,7 @@ test.describe.skip('server-side errors', () => {
         'user-agent': expect.any(String),
       }),
       method: 'GET',
-      url: 'http://localhost:3030/server-load-error',
+      url: 'https://localhost:3030/server-load-error',
     });
   });
 
@@ -76,7 +70,7 @@ test.describe.skip('server-side errors', () => {
 
     expect(errorEventFrames?.[errorEventFrames?.length - 1]).toEqual(
       expect.objectContaining({
-        filename: expect.stringMatching(/app:\/\/\/_server.ts-.+.js/),
+        filename: 'app:///src/routes/server-route-error/+server.ts',
         function: 'GET',
         in_app: true,
       }),
@@ -90,7 +84,52 @@ test.describe.skip('server-side errors', () => {
         accept: expect.any(String),
       }),
       method: 'GET',
-      url: 'http://localhost:3030/server-route-error',
+      url: 'https://localhost:3030/server-route-error',
     });
+  });
+});
+
+test.describe('expected errors thrown with `error()`', () => {
+  // SvelteKit 3 passes *every* error to `handleError`, discriminated by `kind` — including
+  // expected ones thrown with `error()`, which never reached the hook on SvelteKit 2.
+  // The SDK applies the same rule as everywhere else: 4xx are expected, 5xx are reported.
+  //
+  // These match on the request URL rather than the exception value: SvelteKit hands `handleError`
+  // the error *body* (a plain object), so the captured exception gets a synthesized message
+  // ("Object captured as exception with keys: ...") rather than the message passed to `error()`.
+  test("doesn't capture a 4xx error", async ({ page }) => {
+    let captured4xxError = false;
+    // Deliberately floating: this must never resolve, so it can't be awaited
+    void waitForError('sveltekit-3', errorEvent => {
+      return !!errorEvent?.request?.url?.endsWith('/expected-error-4xx');
+    }).then(() => {
+      captured4xxError = true;
+    });
+
+    // The 5xx route *is* captured, so its error event is a concrete signal that the preceding
+    // 4xx request was fully processed - no sleeping on a timeout to prove a negative.
+    const signalErrorPromise = waitForError('sveltekit-3', errorEvent => {
+      return !!errorEvent?.request?.url?.endsWith('/expected-error-5xx');
+    });
+
+    await page.goto('/expected-error-4xx');
+    await page.goto('/expected-error-5xx');
+    await signalErrorPromise;
+
+    expect(captured4xxError).toBe(false);
+  });
+
+  test('captures a 5xx error', async ({ page }) => {
+    const errorEventPromise = waitForError('sveltekit-3', errorEvent => {
+      return !!errorEvent?.request?.url?.endsWith('/expected-error-5xx');
+    });
+
+    await page.goto('/expected-error-5xx');
+
+    const errorEvent = await errorEventPromise;
+
+    expect(errorEvent.exception?.values?.[0]?.mechanism).toEqual(
+      expect.objectContaining({ type: 'auto.function.sveltekit.handle_error' }),
+    );
   });
 });

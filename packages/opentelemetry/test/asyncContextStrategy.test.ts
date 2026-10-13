@@ -1,34 +1,32 @@
-import type { BasicTracerProvider } from '@opentelemetry/sdk-trace-base';
 import type { Scope } from '@sentry/core';
 import {
+  getAsyncContextStrategy,
   getCurrentScope,
   getIsolationScope,
+  getMainCarrier,
   Scope as ScopeClass,
   setAsyncContextStrategy,
   withIsolationScope,
   withScope,
 } from '@sentry/core';
-import { afterAll, afterEach, beforeEach, describe, expect, it, test } from 'vitest';
+import { afterAll, beforeEach, describe, expect, it, test } from 'vitest';
 import { setOpenTelemetryContextAsyncContextStrategy } from '../src/asyncContextStrategy';
-import { setupOtel } from './helpers/initOtel';
-import { cleanupOtel } from './helpers/mockSdkInit';
-import { getDefaultTestClientOptions, TestClient } from './helpers/TestClient';
+import { mockSdkInit } from './helpers/mockSdkInit';
 
 describe('asyncContextStrategy', () => {
-  let provider: BasicTracerProvider | undefined;
+  // `withIsolationScope` gives the forked current scope a fresh propagation context (unless it is
+  // continuing an incoming trace), so scope data is expected to match apart from that context.
+  function scopeDataWithoutPropagationContext(
+    scope: Scope,
+  ): Omit<ReturnType<Scope['getScopeData']>, 'propagationContext'> {
+    const { propagationContext: _propagationContext, ...rest } = scope.getScopeData();
+    return rest;
+  }
 
   beforeEach(() => {
-    getCurrentScope().clear();
-    getIsolationScope().clear();
+    getMainCarrier().__SENTRY__ = undefined;
 
-    const options = getDefaultTestClientOptions();
-    const client = new TestClient(options);
-    [provider] = setupOtel(client);
-    setOpenTelemetryContextAsyncContextStrategy();
-  });
-
-  afterEach(() => {
-    cleanupOtel(provider);
+    mockSdkInit();
   });
 
   afterAll(() => {
@@ -50,7 +48,8 @@ describe('asyncContextStrategy', () => {
       expect(scope1).not.toBe(initialScope);
       expect(isolationScope1).not.toBe(initialIsolationScope);
 
-      expect(scope1.getScopeData()).toEqual(initialScope.getScopeData());
+      expect(scopeDataWithoutPropagationContext(scope1)).toEqual(scopeDataWithoutPropagationContext(initialScope));
+      expect(scope1.getPropagationContext().traceId).not.toBe(initialScope.getPropagationContext().traceId);
       expect(isolationScope1.getScopeData()).toEqual(initialIsolationScope.getScopeData());
 
       scope1.setExtra('b', 'b');
@@ -100,7 +99,8 @@ describe('asyncContextStrategy', () => {
       expect(scope1).not.toBe(initialScope);
       expect(isolationScope1).not.toBe(initialIsolationScope);
 
-      expect(scope1.getScopeData()).toEqual(initialScope.getScopeData());
+      expect(scopeDataWithoutPropagationContext(scope1)).toEqual(scopeDataWithoutPropagationContext(initialScope));
+      expect(scope1.getPropagationContext().traceId).not.toBe(initialScope.getPropagationContext().traceId);
       expect(isolationScope1.getScopeData()).toEqual(initialIsolationScope.getScopeData());
 
       await asyncSetExtra(scope1, 'b', 'b');
@@ -145,7 +145,8 @@ describe('asyncContextStrategy', () => {
       expect(scope1).not.toBe(initialScope);
       expect(isolationScope1).not.toBe(initialIsolationScope);
 
-      expect(scope1.getScopeData()).toEqual(initialScope.getScopeData());
+      expect(scopeDataWithoutPropagationContext(scope1)).toEqual(scopeDataWithoutPropagationContext(initialScope));
+      expect(scope1.getPropagationContext().traceId).not.toBe(initialScope.getPropagationContext().traceId);
       expect(isolationScope1.getScopeData()).toEqual(initialIsolationScope.getScopeData());
 
       scope1.setExtra('b', 'b');
@@ -182,7 +183,8 @@ describe('asyncContextStrategy', () => {
       expect(scope1).not.toBe(initialScope);
       expect(isolationScope1).not.toBe(initialIsolationScope);
 
-      expect(scope1.getScopeData()).toEqual(initialScope.getScopeData());
+      expect(scopeDataWithoutPropagationContext(scope1)).toEqual(scopeDataWithoutPropagationContext(initialScope));
+      expect(scope1.getPropagationContext().traceId).not.toBe(initialScope.getPropagationContext().traceId);
       expect(isolationScope1.getScopeData()).toEqual(initialIsolationScope.getScopeData());
 
       scope1.setExtra('b2', 'b');
@@ -232,7 +234,8 @@ describe('asyncContextStrategy', () => {
       expect(scope1).not.toBe(initialScope);
       expect(isolationScope1).not.toBe(initialIsolationScope);
 
-      expect(scope1.getScopeData()).toEqual(initialScope.getScopeData());
+      expect(scopeDataWithoutPropagationContext(scope1)).toEqual(scopeDataWithoutPropagationContext(initialScope));
+      expect(scope1.getPropagationContext().traceId).not.toBe(initialScope.getPropagationContext().traceId);
       expect(isolationScope1.getScopeData()).toEqual(initialIsolationScope.getScopeData());
 
       await asyncSetExtra(scope1, 'b', 'b');
@@ -269,7 +272,8 @@ describe('asyncContextStrategy', () => {
       expect(scope1).not.toBe(initialScope);
       expect(isolationScope1).not.toBe(initialIsolationScope);
 
-      expect(scope1.getScopeData()).toEqual(initialScope.getScopeData());
+      expect(scopeDataWithoutPropagationContext(scope1)).toEqual(scopeDataWithoutPropagationContext(initialScope));
+      expect(scope1.getPropagationContext().traceId).not.toBe(initialScope.getPropagationContext().traceId);
       expect(isolationScope1.getScopeData()).toEqual(initialIsolationScope.getScopeData());
 
       scope1.setExtra('b2', 'b');
@@ -297,6 +301,31 @@ describe('asyncContextStrategy', () => {
           bb2: 'bb',
         });
       });
+    });
+  });
+
+  describe('AsyncLocalStorage re-use', () => {
+    it('re-uses the AsyncLocalStorage of an already-installed strategy on repeated setup', () => {
+      setOpenTelemetryContextAsyncContextStrategy();
+      const firstStorage = getAsyncContextStrategy(getMainCarrier()).getTracingChannelBinding?.()?.asyncLocalStorage;
+      expect(firstStorage).toBeDefined();
+
+      setOpenTelemetryContextAsyncContextStrategy();
+      const secondStorage = getAsyncContextStrategy(getMainCarrier()).getTracingChannelBinding?.()?.asyncLocalStorage;
+
+      expect(secondStorage).toBe(firstStorage);
+    });
+
+    it('returns a context manager backed by the re-used AsyncLocalStorage', () => {
+      const firstLookup = setOpenTelemetryContextAsyncContextStrategy();
+      const secondLookup = setOpenTelemetryContextAsyncContextStrategy();
+
+      // The context manager returned on the second setup wraps the same AsyncLocalStorage instance,
+      // so consumers that captured the lookup from the first setup keep observing the active context.
+      expect(secondLookup.asyncLocalStorage).toBe(firstLookup.asyncLocalStorage);
+      expect(getAsyncContextStrategy(getMainCarrier()).getTracingChannelBinding?.()?.asyncLocalStorage).toBe(
+        firstLookup.asyncLocalStorage,
+      );
     });
   });
 
@@ -438,5 +467,50 @@ describe('asyncContextStrategy', () => {
           done();
         });
       }));
+
+    // A trace-id-only `sentry-trace` header yields a propagation context with
+    // a `dsc` but no `parentSpanId`, because the span id is optional in the
+    // header. Such a trace is still being continued, so its trace id must
+    // survive the fork.
+    it('keeps the trace id when continuing an incoming trace without a span id (dsc set)', () => {
+      const incomingTraceId = 'cafecafecafecafecafecafecafecafe';
+      getCurrentScope().setPropagationContext({
+        traceId: incomingTraceId,
+        sampleRand: 0.42,
+        dsc: { trace_id: incomingTraceId, sample_rate: '1' },
+      });
+
+      withIsolationScope(() => {
+        const propagationContext = getCurrentScope().getPropagationContext();
+
+        expect(propagationContext.traceId).toBe(incomingTraceId);
+        expect(propagationContext.dsc).toEqual({ trace_id: incomingTraceId, sample_rate: '1' });
+      });
+    });
+
+    // A new trace must not inherit the previous trace's sampling decision or
+    // propagation span id. Keeping them would apply the old trace's sampling
+    // decision to the new one and propagate a span id belonging to a
+    // different trace.
+    it('drops the previous trace data when giving a forked isolation scope its own trace', () => {
+      const oldTraceId = 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa';
+      getCurrentScope().setPropagationContext({
+        traceId: oldTraceId,
+        sampleRand: 0.1,
+        sampled: true,
+        propagationSpanId: 'bbbbbbbbbbbbbbbb',
+      });
+
+      withIsolationScope(() => {
+        const propagationContext = getCurrentScope().getPropagationContext();
+
+        expect(propagationContext.traceId).toMatch(/^[a-f0-9]{32}$/);
+        expect(propagationContext.traceId).not.toBe(oldTraceId);
+        expect(propagationContext.sampleRand).toEqual(expect.any(Number));
+        expect(propagationContext.sampled).toBeUndefined();
+        expect(propagationContext.propagationSpanId).toBeUndefined();
+        expect(propagationContext.dsc).toBeUndefined();
+      });
+    });
   });
 });

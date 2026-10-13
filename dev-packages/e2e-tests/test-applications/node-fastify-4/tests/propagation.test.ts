@@ -1,38 +1,46 @@
 import crypto from 'crypto';
 import { expect, test } from '@playwright/test';
-import { waitForTransaction } from '@sentry-internal/test-utils';
+import { waitForStreamedSpan, getSpanOp, collectStreamedSpansUntilSegment } from '@sentry-internal/test-utils';
 
 test('Propagates trace for outgoing http requests', async ({ baseURL }) => {
   const id = crypto.randomUUID();
 
-  const inboundTransactionPromise = waitForTransaction('node-fastify-4', transactionEvent => {
-    return (
-      transactionEvent.contexts?.trace?.op === 'http.server' &&
-      transactionEvent.contexts?.trace?.data?.['http.target'] === `/test-inbound-headers/${id}`
-    );
-  });
+  const inboundSegmentPromise = waitForStreamedSpan(
+    'node-fastify-4',
+    segment =>
+      segment.is_segment &&
+      getSpanOp(segment) === 'http.server' &&
+      segment.attributes?.['url.path']?.value === `/test-inbound-headers/${id}`,
+  );
 
-  const outboundTransactionPromise = waitForTransaction('node-fastify-4', transactionEvent => {
-    return (
-      transactionEvent.contexts?.trace?.op === 'http.server' &&
-      transactionEvent.contexts?.trace?.data?.['http.target'] === `/test-outgoing-http/${id}`
-    );
-  });
+  const outboundSegmentPromise = collectStreamedSpansUntilSegment(
+    'node-fastify-4',
+    segment =>
+      getSpanOp(segment) === 'http.server' && segment.attributes?.['url.path']?.value === `/test-outgoing-http/${id}`,
+  );
 
   const response = await fetch(`${baseURL}/test-outgoing-http/${id}`);
   const data = await response.json();
 
-  const inboundTransaction = await inboundTransactionPromise;
-  const outboundTransaction = await outboundTransactionPromise;
+  const inboundSegment = await inboundSegmentPromise;
+  const outboundSegmentSpans = await outboundSegmentPromise;
+  const outboundSegment = outboundSegmentSpans.find(
+    segment =>
+      segment.is_segment &&
+      getSpanOp(segment) === 'http.server' &&
+      segment.attributes?.['url.path']?.value === `/test-outgoing-http/${id}`,
+  )!;
 
-  const traceId = outboundTransaction?.contexts?.trace?.trace_id;
-  const outgoingHttpSpan = outboundTransaction?.spans?.find(span => span.op === 'http.client');
+  const traceId = outboundSegment?.trace_id;
+  const outgoingHttpSpan = outboundSegmentSpans
+    .filter(span => !span.is_segment)
+    ?.find(span => getSpanOp(span) === 'http.client');
 
   expect(outgoingHttpSpan).toBeDefined();
 
   const outgoingHttpSpanId = outgoingHttpSpan?.span_id;
 
-  const outgoingHttpSpanData = outgoingHttpSpan?.data || {};
+  const outgoingHttpSpanData = outgoingHttpSpan?.attributes || {};
   // Outgoing span (`http.client`) does not include headers as attributes
   expect(Object.keys(outgoingHttpSpanData).some(key => key.startsWith('http.request.header.'))).toBe(false);
 
@@ -54,114 +62,127 @@ test('Propagates trace for outgoing http requests', async ({ baseURL }) => {
     ]),
   );
 
-  expect(outboundTransaction.contexts?.trace).toEqual({
-    data: {
-      'sentry.source': 'route',
-      'sentry.origin': 'auto.http.otel.http',
-      'sentry.op': 'http.server',
-      'sentry.sample_rate': 1,
-      url: `http://localhost:3030/test-outgoing-http/${id}`,
-      'otel.kind': 'SERVER',
-      'http.response.status_code': 200,
-      'http.url': `http://localhost:3030/test-outgoing-http/${id}`,
-      'http.host': 'localhost:3030',
-      'net.host.name': 'localhost',
-      'http.method': 'GET',
-      'http.scheme': 'http',
-      'http.target': `/test-outgoing-http/${id}`,
-      'http.user_agent': 'node',
-      'http.flavor': '1.1',
-      'net.transport': 'ip_tcp',
-      'net.host.ip': expect.any(String),
-      'net.host.port': expect.any(Number),
-      'net.peer.ip': expect.any(String),
-      'net.peer.port': expect.any(Number),
-      'http.status_code': 200,
-      'http.status_text': 'OK',
-      'http.route': '/test-outgoing-http/:id',
-      'http.request.header.accept': '*/*',
-      'http.request.header.accept_encoding': 'gzip, deflate',
-      'http.request.header.accept_language': '*',
-      'http.request.header.connection': 'keep-alive',
-      'http.request.header.host': expect.any(String),
-      'http.request.header.sec_fetch_mode': 'cors',
-      'http.request.header.user_agent': 'node',
-    },
-    op: 'http.server',
-    span_id: expect.stringMatching(/[a-f0-9]{16}/),
-    status: 'ok',
-    trace_id: traceId,
-    origin: 'auto.http.otel.http',
-  });
+  expect(outboundSegment).toEqual(
+    expect.objectContaining({
+      span_id: expect.stringMatching(/[a-f0-9]{16}/),
+      status: 'ok',
+      trace_id: traceId,
+      attributes: expect.objectContaining({
+        'sentry.segment.name.source': { value: 'route', type: 'string' },
+        'sentry.origin': { value: 'auto.http.http_server', type: 'string' },
+        'sentry.op': { value: 'http.server', type: 'string' },
+        'sentry.sample_rate': { value: 1, type: 'integer' },
+        'sentry.kind': { value: 'server', type: 'string' },
+        'http.response.status_code': { value: 200, type: 'integer' },
+        'url.full': { value: `http://localhost:3030/test-outgoing-http/${id}`, type: 'string' },
+        'url.path': { value: `/test-outgoing-http/${id}`, type: 'string' },
+        'server.address': { value: 'localhost', type: 'string' },
+        'http.request.method': { value: 'GET', type: 'string' },
+        'url.scheme': { value: 'http', type: 'string' },
+        'user_agent.original': { value: 'node', type: 'string' },
+        'client.address': { value: '::1', type: 'string' },
+        'client.port': { value: expect.any(Number), type: 'integer' },
+        'network.transport': { value: 'tcp', type: 'string' },
+        'network.local.address': { value: expect.any(String), type: 'string' },
+        'network.local.port': { value: expect.any(Number), type: 'integer' },
+        'network.peer.address': { value: expect.any(String), type: 'string' },
+        'network.peer.port': { value: expect.any(Number), type: 'integer' },
+        'network.protocol.name': { value: 'http', type: 'string' },
+        'network.protocol.version': { value: '1.1', type: 'string' },
+        'server.port': { value: 3030, type: 'integer' },
+        'http.response.status_text': { value: 'OK', type: 'string' },
+        'http.route': { value: '/test-outgoing-http/:id', type: 'string' },
+        'http.request.header.accept': { value: ['*/*'], type: 'array' },
+        'http.request.header.accept-encoding': { value: ['gzip, deflate'], type: 'array' },
+        'http.request.header.accept-language': { value: ['*'], type: 'array' },
+        'http.request.header.connection': { value: ['keep-alive'], type: 'array' },
+        'http.request.header.host': { value: [expect.any(String)], type: 'array' },
+        'http.request.header.sec-fetch-mode': { value: ['cors'], type: 'array' },
+        'http.request.header.user-agent': { value: ['node'], type: 'array' },
+      }),
+    }),
+  );
 
-  expect(inboundTransaction.contexts?.trace).toEqual({
-    data: {
-      'sentry.source': 'route',
-      'sentry.origin': 'auto.http.otel.http',
-      'sentry.op': 'http.server',
-      url: `http://localhost:3030/test-inbound-headers/${id}`,
-      'otel.kind': 'SERVER',
-      'http.response.status_code': 200,
-      'http.url': `http://localhost:3030/test-inbound-headers/${id}`,
-      'http.host': 'localhost:3030',
-      'net.host.name': 'localhost',
-      'http.method': 'GET',
-      'http.scheme': 'http',
-      'http.target': `/test-inbound-headers/${id}`,
-      'http.flavor': '1.1',
-      'net.transport': 'ip_tcp',
-      'net.host.ip': expect.any(String),
-      'net.host.port': expect.any(Number),
-      'net.peer.ip': expect.any(String),
-      'net.peer.port': expect.any(Number),
-      'http.status_code': 200,
-      'http.status_text': 'OK',
-      'http.route': '/test-inbound-headers/:id',
-      'http.request.header.baggage': expect.any(String),
-      'http.request.header.connection': 'keep-alive',
-      'http.request.header.host': expect.any(String),
-      'http.request.header.sentry_trace': expect.stringMatching(/[a-f0-9]{32}-[a-f0-9]{16}-1/),
-    },
-    op: 'http.server',
-    parent_span_id: outgoingHttpSpanId,
-    span_id: expect.stringMatching(/[a-f0-9]{16}/),
-    status: 'ok',
-    trace_id: traceId,
-    origin: 'auto.http.otel.http',
-  });
+  expect(inboundSegment).toEqual(
+    expect.objectContaining({
+      parent_span_id: outgoingHttpSpanId,
+      span_id: expect.stringMatching(/[a-f0-9]{16}/),
+      status: 'ok',
+      trace_id: traceId,
+      attributes: expect.objectContaining({
+        'sentry.segment.name.source': { value: 'route', type: 'string' },
+        'sentry.origin': { value: 'auto.http.http_server', type: 'string' },
+        'sentry.op': { value: 'http.server', type: 'string' },
+        'sentry.kind': { value: 'server', type: 'string' },
+        'http.response.status_code': { value: 200, type: 'integer' },
+        'url.full': { value: `http://localhost:3030/test-inbound-headers/${id}`, type: 'string' },
+        'url.path': { value: `/test-inbound-headers/${id}`, type: 'string' },
+        'server.address': { value: 'localhost', type: 'string' },
+        'http.request.method': { value: 'GET', type: 'string' },
+        'url.scheme': { value: 'http', type: 'string' },
+        'client.address': { value: '::1', type: 'string' },
+        'client.port': { value: expect.any(Number), type: 'integer' },
+        'network.transport': { value: 'tcp', type: 'string' },
+        'network.local.address': { value: expect.any(String), type: 'string' },
+        'network.local.port': { value: expect.any(Number), type: 'integer' },
+        'network.peer.address': { value: expect.any(String), type: 'string' },
+        'network.peer.port': { value: expect.any(Number), type: 'integer' },
+        'network.protocol.name': { value: 'http', type: 'string' },
+        'network.protocol.version': { value: '1.1', type: 'string' },
+        'server.port': { value: 3030, type: 'integer' },
+        'http.response.status_text': { value: 'OK', type: 'string' },
+        'http.route': { value: '/test-inbound-headers/:id', type: 'string' },
+        'http.request.header.baggage': { value: [expect.any(String)], type: 'array' },
+        'http.request.header.connection': { value: ['keep-alive'], type: 'array' },
+        'http.request.header.host': { value: [expect.any(String)], type: 'array' },
+        'http.request.header.sentry-trace': {
+          value: [expect.stringMatching(/[a-f0-9]{32}-[a-f0-9]{16}-1/)],
+          type: 'array',
+        },
+      }),
+    }),
+  );
 });
 
 test('Propagates trace for outgoing fetch requests', async ({ baseURL }) => {
   const id = crypto.randomUUID();
 
-  const inboundTransactionPromise = waitForTransaction('node-fastify-4', transactionEvent => {
-    return (
-      transactionEvent?.contexts?.trace?.op === 'http.server' &&
-      transactionEvent.contexts?.trace?.data?.['http.target'] === `/test-inbound-headers/${id}`
-    );
-  });
+  const inboundSegmentPromise = waitForStreamedSpan(
+    'node-fastify-4',
+    segment =>
+      segment.is_segment &&
+      getSpanOp(segment) === 'http.server' &&
+      segment.attributes?.['url.path']?.value === `/test-inbound-headers/${id}`,
+  );
 
-  const outboundTransactionPromise = waitForTransaction('node-fastify-4', transactionEvent => {
-    return (
-      transactionEvent?.contexts?.trace?.op === 'http.server' &&
-      transactionEvent.contexts?.trace?.data?.['http.target'] === `/test-outgoing-fetch/${id}`
-    );
-  });
+  const outboundSegmentPromise = collectStreamedSpansUntilSegment(
+    'node-fastify-4',
+    segment =>
+      getSpanOp(segment) === 'http.server' && segment.attributes?.['url.path']?.value === `/test-outgoing-fetch/${id}`,
+  );
 
   const response = await fetch(`${baseURL}/test-outgoing-fetch/${id}`);
   const data = await response.json();
 
-  const inboundTransaction = await inboundTransactionPromise;
-  const outboundTransaction = await outboundTransactionPromise;
+  const inboundSegment = await inboundSegmentPromise;
+  const outboundSegmentSpans = await outboundSegmentPromise;
+  const outboundSegment = outboundSegmentSpans.find(
+    segment =>
+      segment.is_segment &&
+      getSpanOp(segment) === 'http.server' &&
+      segment.attributes?.['url.path']?.value === `/test-outgoing-fetch/${id}`,
+  )!;
 
-  const traceId = outboundTransaction?.contexts?.trace?.trace_id;
-  const outgoingHttpSpan = outboundTransaction?.spans?.find(span => span.op === 'http.client');
+  const traceId = outboundSegment?.trace_id;
+  const outgoingHttpSpan = outboundSegmentSpans
+    .filter(span => !span.is_segment)
+    ?.find(span => getSpanOp(span) === 'http.client');
 
   expect(outgoingHttpSpan).toBeDefined();
 
   const outgoingHttpSpanId = outgoingHttpSpan?.span_id;
 
-  const outgoingHttpSpanData = outgoingHttpSpan?.data || {};
+  const outgoingHttpSpanData = outgoingHttpSpan?.attributes || {};
   // Outgoing span (`http.client`) does not include headers as attributes
   expect(Object.keys(outgoingHttpSpanData).some(key => key.startsWith('http.request.header.'))).toBe(false);
 
@@ -183,104 +204,117 @@ test('Propagates trace for outgoing fetch requests', async ({ baseURL }) => {
     ]),
   );
 
-  expect(outboundTransaction.contexts?.trace).toEqual({
-    data: {
-      'sentry.source': 'route',
-      'sentry.origin': 'auto.http.otel.http',
-      'sentry.op': 'http.server',
-      'sentry.sample_rate': 1,
-      url: `http://localhost:3030/test-outgoing-fetch/${id}`,
-      'otel.kind': 'SERVER',
-      'http.response.status_code': 200,
-      'http.url': `http://localhost:3030/test-outgoing-fetch/${id}`,
-      'http.host': 'localhost:3030',
-      'net.host.name': 'localhost',
-      'http.method': 'GET',
-      'http.scheme': 'http',
-      'http.target': `/test-outgoing-fetch/${id}`,
-      'http.user_agent': 'node',
-      'http.flavor': '1.1',
-      'net.transport': 'ip_tcp',
-      'net.host.ip': expect.any(String),
-      'net.host.port': expect.any(Number),
-      'net.peer.ip': expect.any(String),
-      'net.peer.port': expect.any(Number),
-      'http.status_code': 200,
-      'http.status_text': 'OK',
-      'http.route': '/test-outgoing-fetch/:id',
-      'http.request.header.accept': '*/*',
-      'http.request.header.accept_encoding': 'gzip, deflate',
-      'http.request.header.accept_language': '*',
-      'http.request.header.connection': 'keep-alive',
-      'http.request.header.host': expect.any(String),
-      'http.request.header.sec_fetch_mode': 'cors',
-      'http.request.header.user_agent': 'node',
-    },
-    op: 'http.server',
-    span_id: expect.stringMatching(/[a-f0-9]{16}/),
-    status: 'ok',
-    trace_id: traceId,
-    origin: 'auto.http.otel.http',
-  });
+  expect(outboundSegment).toEqual(
+    expect.objectContaining({
+      span_id: expect.stringMatching(/[a-f0-9]{16}/),
+      status: 'ok',
+      trace_id: traceId,
+      attributes: expect.objectContaining({
+        'sentry.segment.name.source': { value: 'route', type: 'string' },
+        'sentry.origin': { value: 'auto.http.http_server', type: 'string' },
+        'sentry.op': { value: 'http.server', type: 'string' },
+        'sentry.sample_rate': { value: 1, type: 'integer' },
+        'sentry.kind': { value: 'server', type: 'string' },
+        'http.response.status_code': { value: 200, type: 'integer' },
+        'url.full': { value: `http://localhost:3030/test-outgoing-fetch/${id}`, type: 'string' },
+        'url.path': { value: `/test-outgoing-fetch/${id}`, type: 'string' },
+        'server.address': { value: 'localhost', type: 'string' },
+        'http.request.method': { value: 'GET', type: 'string' },
+        'url.scheme': { value: 'http', type: 'string' },
+        'user_agent.original': { value: 'node', type: 'string' },
+        'client.address': { value: '::1', type: 'string' },
+        'client.port': { value: expect.any(Number), type: 'integer' },
+        'network.transport': { value: 'tcp', type: 'string' },
+        'network.local.address': { value: expect.any(String), type: 'string' },
+        'network.local.port': { value: expect.any(Number), type: 'integer' },
+        'network.peer.address': { value: expect.any(String), type: 'string' },
+        'network.peer.port': { value: expect.any(Number), type: 'integer' },
+        'network.protocol.name': { value: 'http', type: 'string' },
+        'network.protocol.version': { value: '1.1', type: 'string' },
+        'server.port': { value: 3030, type: 'integer' },
+        'http.response.status_text': { value: 'OK', type: 'string' },
+        'http.route': { value: '/test-outgoing-fetch/:id', type: 'string' },
+        'http.request.header.accept': { value: ['*/*'], type: 'array' },
+        'http.request.header.accept-encoding': { value: ['gzip, deflate'], type: 'array' },
+        'http.request.header.accept-language': { value: ['*'], type: 'array' },
+        'http.request.header.connection': { value: ['keep-alive'], type: 'array' },
+        'http.request.header.host': { value: [expect.any(String)], type: 'array' },
+        'http.request.header.sec-fetch-mode': { value: ['cors'], type: 'array' },
+        'http.request.header.user-agent': { value: ['node'], type: 'array' },
+      }),
+    }),
+  );
 
-  expect(inboundTransaction.contexts?.trace).toEqual({
-    data: {
-      'sentry.source': 'route',
-      'sentry.origin': 'auto.http.otel.http',
-      'sentry.op': 'http.server',
-      url: `http://localhost:3030/test-inbound-headers/${id}`,
-      'otel.kind': 'SERVER',
-      'http.response.status_code': 200,
-      'http.url': `http://localhost:3030/test-inbound-headers/${id}`,
-      'http.host': 'localhost:3030',
-      'net.host.name': 'localhost',
-      'http.method': 'GET',
-      'http.scheme': 'http',
-      'http.target': `/test-inbound-headers/${id}`,
-      'http.flavor': '1.1',
-      'net.transport': 'ip_tcp',
-      'net.host.ip': expect.any(String),
-      'net.host.port': expect.any(Number),
-      'net.peer.ip': expect.any(String),
-      'net.peer.port': expect.any(Number),
-      'http.status_code': 200,
-      'http.status_text': 'OK',
-      'http.route': '/test-inbound-headers/:id',
-      'http.user_agent': 'node',
-      'http.request.header.accept': '*/*',
-      'http.request.header.accept_encoding': 'gzip, deflate',
-      'http.request.header.accept_language': '*',
-      'http.request.header.baggage': expect.any(String),
-      'http.request.header.connection': 'keep-alive',
-      'http.request.header.host': expect.any(String),
-      'http.request.header.sec_fetch_mode': 'cors',
-      'http.request.header.sentry_trace': expect.stringMatching(/[a-f0-9]{32}-[a-f0-9]{16}-1/),
-      'http.request.header.user_agent': 'node',
-    },
-    op: 'http.server',
-    parent_span_id: outgoingHttpSpanId,
-    span_id: expect.stringMatching(/[a-f0-9]{16}/),
-    status: 'ok',
-    trace_id: traceId,
-    origin: 'auto.http.otel.http',
-  });
+  expect(inboundSegment).toEqual(
+    expect.objectContaining({
+      parent_span_id: outgoingHttpSpanId,
+      span_id: expect.stringMatching(/[a-f0-9]{16}/),
+      status: 'ok',
+      trace_id: traceId,
+      attributes: expect.objectContaining({
+        'sentry.segment.name.source': { value: 'route', type: 'string' },
+        'sentry.origin': { value: 'auto.http.http_server', type: 'string' },
+        'sentry.op': { value: 'http.server', type: 'string' },
+        'sentry.kind': { value: 'server', type: 'string' },
+        'http.response.status_code': { value: 200, type: 'integer' },
+        'url.full': { value: `http://localhost:3030/test-inbound-headers/${id}`, type: 'string' },
+        'url.path': { value: `/test-inbound-headers/${id}`, type: 'string' },
+        'server.address': { value: 'localhost', type: 'string' },
+        'http.request.method': { value: 'GET', type: 'string' },
+        'url.scheme': { value: 'http', type: 'string' },
+        'client.address': { value: '::1', type: 'string' },
+        'client.port': { value: expect.any(Number), type: 'integer' },
+        'network.transport': { value: 'tcp', type: 'string' },
+        'network.local.address': { value: expect.any(String), type: 'string' },
+        'network.local.port': { value: expect.any(Number), type: 'integer' },
+        'network.peer.address': { value: expect.any(String), type: 'string' },
+        'network.peer.port': { value: expect.any(Number), type: 'integer' },
+        'network.protocol.name': { value: 'http', type: 'string' },
+        'network.protocol.version': { value: '1.1', type: 'string' },
+        'server.port': { value: 3030, type: 'integer' },
+        'http.response.status_text': { value: 'OK', type: 'string' },
+        'http.route': { value: '/test-inbound-headers/:id', type: 'string' },
+        'user_agent.original': { value: 'node', type: 'string' },
+        'http.request.header.accept': { value: ['*/*'], type: 'array' },
+        'http.request.header.accept-encoding': { value: ['gzip, deflate'], type: 'array' },
+        'http.request.header.accept-language': { value: ['*'], type: 'array' },
+        'http.request.header.baggage': { value: [expect.any(String)], type: 'array' },
+        'http.request.header.connection': { value: ['keep-alive'], type: 'array' },
+        'http.request.header.host': { value: [expect.any(String)], type: 'array' },
+        'http.request.header.sec-fetch-mode': { value: ['cors'], type: 'array' },
+        'http.request.header.sentry-trace': {
+          value: [expect.stringMatching(/[a-f0-9]{32}-[a-f0-9]{16}-1/)],
+          type: 'array',
+        },
+        'http.request.header.user-agent': { value: ['node'], type: 'array' },
+      }),
+    }),
+  );
 });
 
 test('Propagates trace for outgoing external http requests', async ({ baseURL }) => {
-  const inboundTransactionPromise = waitForTransaction('node-fastify-4', transactionEvent => {
-    return (
-      transactionEvent?.contexts?.trace?.op === 'http.server' &&
-      transactionEvent.contexts?.trace?.data?.['http.target'] === `/test-outgoing-http-external-allowed`
-    );
-  });
+  const inboundSegmentPromise = collectStreamedSpansUntilSegment(
+    'node-fastify-4',
+    segment =>
+      getSpanOp(segment) === 'http.server' &&
+      segment.attributes?.['url.path']?.value === `/test-outgoing-http-external-allowed`,
+  );
 
   const response = await fetch(`${baseURL}/test-outgoing-http-external-allowed`);
   const data = await response.json();
 
-  const inboundTransaction = await inboundTransactionPromise;
+  const inboundSegmentSpans = await inboundSegmentPromise;
+  const inboundSegment = inboundSegmentSpans.find(
+    segment =>
+      segment.is_segment &&
+      getSpanOp(segment) === 'http.server' &&
+      segment.attributes?.['url.path']?.value === `/test-outgoing-http-external-allowed`,
+  )!;
 
-  const traceId = inboundTransaction?.contexts?.trace?.trace_id;
-  const spanId = inboundTransaction?.spans?.find(span => span.op === 'http.client')?.span_id;
+  const traceId = inboundSegment?.trace_id;
+  const spanId = inboundSegmentSpans
+    .filter(span => !span.is_segment)
+    ?.find(span => getSpanOp(span) === 'http.client')?.span_id;
 
   expect(traceId).toEqual(expect.any(String));
   expect(spanId).toEqual(expect.any(String));
@@ -304,20 +338,28 @@ test('Propagates trace for outgoing external http requests', async ({ baseURL })
 });
 
 test('Does not propagate outgoing http requests not covered by tracePropagationTargets', async ({ baseURL }) => {
-  const inboundTransactionPromise = waitForTransaction('node-fastify-4', transactionEvent => {
-    return (
-      transactionEvent?.contexts?.trace?.op === 'http.server' &&
-      transactionEvent.contexts?.trace?.data?.['http.target'] === `/test-outgoing-http-external-disallowed`
-    );
-  });
+  const inboundSegmentPromise = collectStreamedSpansUntilSegment(
+    'node-fastify-4',
+    segment =>
+      getSpanOp(segment) === 'http.server' &&
+      segment.attributes?.['url.path']?.value === `/test-outgoing-http-external-disallowed`,
+  );
 
   const response = await fetch(`${baseURL}/test-outgoing-http-external-disallowed`);
   const data = await response.json();
 
-  const inboundTransaction = await inboundTransactionPromise;
+  const inboundSegmentSpans = await inboundSegmentPromise;
+  const inboundSegment = inboundSegmentSpans.find(
+    segment =>
+      segment.is_segment &&
+      getSpanOp(segment) === 'http.server' &&
+      segment.attributes?.['url.path']?.value === `/test-outgoing-http-external-disallowed`,
+  )!;
 
-  const traceId = inboundTransaction?.contexts?.trace?.trace_id;
-  const spanId = inboundTransaction?.spans?.find(span => span.op === 'http.client')?.span_id;
+  const traceId = inboundSegment?.trace_id;
+  const spanId = inboundSegmentSpans
+    .filter(span => !span.is_segment)
+    ?.find(span => getSpanOp(span) === 'http.client')?.span_id;
 
   expect(traceId).toEqual(expect.any(String));
   expect(spanId).toEqual(expect.any(String));
@@ -328,20 +370,28 @@ test('Does not propagate outgoing http requests not covered by tracePropagationT
 });
 
 test('Propagates trace for outgoing external fetch requests', async ({ baseURL }) => {
-  const inboundTransactionPromise = waitForTransaction('node-fastify-4', transactionEvent => {
-    return (
-      transactionEvent?.contexts?.trace?.op === 'http.server' &&
-      transactionEvent.contexts?.trace?.data?.['http.target'] === `/test-outgoing-fetch-external-allowed`
-    );
-  });
+  const inboundSegmentPromise = collectStreamedSpansUntilSegment(
+    'node-fastify-4',
+    segment =>
+      getSpanOp(segment) === 'http.server' &&
+      segment.attributes?.['url.path']?.value === `/test-outgoing-fetch-external-allowed`,
+  );
 
   const response = await fetch(`${baseURL}/test-outgoing-fetch-external-allowed`);
   const data = await response.json();
 
-  const inboundTransaction = await inboundTransactionPromise;
+  const inboundSegmentSpans = await inboundSegmentPromise;
+  const inboundSegment = inboundSegmentSpans.find(
+    segment =>
+      segment.is_segment &&
+      getSpanOp(segment) === 'http.server' &&
+      segment.attributes?.['url.path']?.value === `/test-outgoing-fetch-external-allowed`,
+  )!;
 
-  const traceId = inboundTransaction?.contexts?.trace?.trace_id;
-  const spanId = inboundTransaction?.spans?.find(span => span.op === 'http.client')?.span_id;
+  const traceId = inboundSegment?.trace_id;
+  const spanId = inboundSegmentSpans
+    .filter(span => !span.is_segment)
+    ?.find(span => getSpanOp(span) === 'http.client')?.span_id;
 
   expect(traceId).toEqual(expect.any(String));
   expect(spanId).toEqual(expect.any(String));
@@ -365,20 +415,28 @@ test('Propagates trace for outgoing external fetch requests', async ({ baseURL }
 });
 
 test('Does not propagate outgoing fetch requests not covered by tracePropagationTargets', async ({ baseURL }) => {
-  const inboundTransactionPromise = waitForTransaction('node-fastify-4', transactionEvent => {
-    return (
-      transactionEvent?.contexts?.trace?.op === 'http.server' &&
-      transactionEvent.contexts?.trace?.data?.['http.target'] === `/test-outgoing-fetch-external-disallowed`
-    );
-  });
+  const inboundSegmentPromise = collectStreamedSpansUntilSegment(
+    'node-fastify-4',
+    segment =>
+      getSpanOp(segment) === 'http.server' &&
+      segment.attributes?.['url.path']?.value === `/test-outgoing-fetch-external-disallowed`,
+  );
 
   const response = await fetch(`${baseURL}/test-outgoing-fetch-external-disallowed`);
   const data = await response.json();
 
-  const inboundTransaction = await inboundTransactionPromise;
+  const inboundSegmentSpans = await inboundSegmentPromise;
+  const inboundSegment = inboundSegmentSpans.find(
+    segment =>
+      segment.is_segment &&
+      getSpanOp(segment) === 'http.server' &&
+      segment.attributes?.['url.path']?.value === `/test-outgoing-fetch-external-disallowed`,
+  )!;
 
-  const traceId = inboundTransaction?.contexts?.trace?.trace_id;
-  const spanId = inboundTransaction?.spans?.find(span => span.op === 'http.client')?.span_id;
+  const traceId = inboundSegment?.trace_id;
+  const spanId = inboundSegmentSpans
+    .filter(span => !span.is_segment)
+    ?.find(span => getSpanOp(span) === 'http.client')?.span_id;
 
   expect(traceId).toEqual(expect.any(String));
   expect(spanId).toEqual(expect.any(String));

@@ -1,7 +1,18 @@
-import { HTTP_METHOD, HTTP_REQUEST_METHOD, HTTP_ROUTE, HTTP_TARGET } from '@sentry/conventions/attributes';
-import { SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, stripUrlQueryAndFragment } from '@sentry/core';
+import {
+  HTTP_METHOD,
+  HTTP_REQUEST_METHOD,
+  HTTP_ROUTE,
+  HTTP_TARGET,
+  SENTRY_OP,
+  SENTRY_ORIGIN,
+  SENTRY_SEGMENT_NAME_SOURCE,
+  URL_PATH,
+} from '@sentry/conventions/attributes';
+import { HTTP_SERVER, MIDDLEWARE } from '@sentry/conventions/op';
+import { stripUrlQueryAndFragment } from '@sentry/core';
 import { ATTR_NEXT_ROUTE, ATTR_NEXT_SPAN_NAME, ATTR_NEXT_SPAN_TYPE } from '../common/nextSpanAttributes';
 import { TRANSACTION_ATTR_SENTRY_ROUTE_BACKFILL } from '../common/span-attributes-with-logic-attached';
+import { backfillHttpResponseStatusCode } from '../common/utils/backfillHttpResponseStatusCode';
 
 export interface MutableRootSpan {
   attributes: Record<string, unknown>;
@@ -24,12 +35,18 @@ export interface MutableRootSpan {
 export function enhanceHandleRequestRootSpan(span: MutableRootSpan): void {
   const { attributes } = span;
 
-  if (attributes[ATTR_NEXT_SPAN_TYPE] !== 'BaseServer.handleRequest') {
+  // On Cloudflare Workers, the `http.server` span of `withSentry` from `@sentry/cloudflare` is the request root span.
+  if (
+    attributes[ATTR_NEXT_SPAN_TYPE] !== 'BaseServer.handleRequest' &&
+    attributes[SENTRY_ORIGIN] !== 'auto.http.cloudflare'
+  ) {
     return;
   }
 
-  attributes[SEMANTIC_ATTRIBUTE_SENTRY_OP] = 'http.server';
-  span.setOp('http.server');
+  attributes[SENTRY_OP] = HTTP_SERVER;
+  span.setOp(HTTP_SERVER);
+
+  backfillHttpResponseStatusCode(attributes);
 
   const currentName = span.getName();
   if (currentName) {
@@ -37,16 +54,19 @@ export function enhanceHandleRequestRootSpan(span: MutableRootSpan): void {
   }
 
   // eslint-disable-next-line typescript/no-deprecated
-  const method = attributes[HTTP_METHOD] ?? attributes[HTTP_REQUEST_METHOD];
+  const method = attributes[HTTP_REQUEST_METHOD] ?? attributes[HTTP_METHOD];
+  // `http.target` is only read for spans from a user's own OpenTelemetry instrumentation, which
+  // still emits the old semantic conventions; the SDK sets `url.path`.
   // eslint-disable-next-line typescript/no-deprecated
-  const target = attributes[HTTP_TARGET];
+  const target = attributes[URL_PATH] ?? attributes[HTTP_TARGET];
   const route = attributes[HTTP_ROUTE] || attributes[ATTR_NEXT_ROUTE];
   const spanName = attributes[ATTR_NEXT_SPAN_NAME];
 
   if (typeof method === 'string' && typeof route === 'string' && !route.startsWith('middleware')) {
     const cleanRoute = route.replace(/\/route$/, '');
     span.setName(`${method} ${cleanRoute}`);
-    attributes[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE] = 'route';
+    attributes[SENTRY_SEGMENT_NAME_SOURCE] = 'route';
+    attributes[HTTP_ROUTE] = cleanRoute;
     // Preserve next.route in case it did not get hoisted
     attributes[ATTR_NEXT_ROUTE] = cleanRoute;
   }
@@ -55,6 +75,8 @@ export function enhanceHandleRequestRootSpan(span: MutableRootSpan): void {
   const routeBackfill = attributes[TRANSACTION_ATTR_SENTRY_ROUTE_BACKFILL];
   if (typeof routeBackfill === 'string' && span.getName() !== 'GET /_app') {
     span.setName(`${typeof method === 'string' ? method : 'GET'} ${routeBackfill}`);
+    attributes[SENTRY_SEGMENT_NAME_SOURCE] = 'route';
+    attributes[HTTP_ROUTE] = attributes[HTTP_ROUTE] ?? routeBackfill;
   }
 
   const middlewareMatch =
@@ -62,7 +84,8 @@ export function enhanceHandleRequestRootSpan(span: MutableRootSpan): void {
 
   if (middlewareMatch) {
     span.setName(`middleware ${middlewareMatch[1]}`);
-    span.setOp('http.server.middleware');
+    span.setOp(MIDDLEWARE);
+    attributes[SENTRY_SEGMENT_NAME_SOURCE] = 'route';
   }
 
   // Next.js overrides transaction names for page loads that throw an error

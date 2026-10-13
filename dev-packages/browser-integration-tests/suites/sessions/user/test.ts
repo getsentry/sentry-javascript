@@ -15,6 +15,7 @@ sentryTest('updates the session when the user is set after the initial session',
   expect(initialSession).toEqual({
     attrs: {
       environment: 'production',
+      ip_address: '{{auto}}',
       release: '0.1',
       user_agent: expect.any(String),
     },
@@ -78,6 +79,7 @@ sentryTest('includes the user id in the subsequent session', async ({ getLocalTe
   expect(initialSession).toEqual({
     attrs: {
       environment: 'production',
+      ip_address: '{{auto}}',
       release: '0.1',
       user_agent: expect.any(String),
     },

@@ -1,10 +1,17 @@
 import type { DebugImage } from '@sentry/core';
+import { parseNameSectionModuleName } from './wasmNameSection';
 
-export const IMAGES: Array<DebugImage> = [];
+export type RegisteredWasmImage = Extract<DebugImage, { type: 'wasm' }> & {
+  /** Internal: wasm `name` section. Used to link `wasm://` stacks; stripped before the event is sent. */
+  moduleName?: string;
+};
+
+export const IMAGES: Array<RegisteredWasmImage> = [];
 
 export interface ModuleInfo {
   buildId: string | null;
   debugFile: string | null;
+  moduleName: string | null;
 }
 
 /**
@@ -34,14 +41,25 @@ export function getModuleInfo(module: WebAssembly.Module): ModuleInfo {
     debugFile = decoder.decode(firstExternalDebugInfo);
   }
 
-  return { buildId, debugFile };
+  let moduleName = null;
+  try {
+    const nameSections = WebAssembly.Module.customSections(module, 'name');
+    const nameSection0 = nameSections[0];
+    if (nameSection0) {
+      moduleName = parseNameSectionModuleName(nameSection0);
+    }
+  } catch {
+    moduleName = null;
+  }
+
+  return { buildId, debugFile, moduleName };
 }
 
 /**
  * Records a module and returns the created debug image.
  */
-export function registerModule(module: WebAssembly.Module, url: string): DebugImage | null {
-  const { buildId, debugFile } = getModuleInfo(module);
+export function registerModule(module: WebAssembly.Module, url: string): RegisteredWasmImage | null {
+  const { buildId, debugFile, moduleName } = getModuleInfo(module);
   if (!buildId) {
     return null;
   }
@@ -61,13 +79,16 @@ export function registerModule(module: WebAssembly.Module, url: string): DebugIm
     }
   }
 
-  const image: DebugImage = {
+  const image: RegisteredWasmImage = {
     type: 'wasm',
     code_id: buildId,
     code_file: url,
     debug_file: debugFileUrl,
     debug_id: `${buildId.padEnd(32, '0').slice(0, 32)}0`,
   };
+  if (moduleName) {
+    image.moduleName = moduleName;
+  }
 
   IMAGES.push(image);
   return image;
@@ -76,8 +97,16 @@ export function registerModule(module: WebAssembly.Module, url: string): DebugIm
 /**
  * Returns all known images.
  */
-export function getImages(): Array<DebugImage> {
+export function getImages(): Array<RegisteredWasmImage> {
   return IMAGES;
+}
+
+/**
+ * Debug image payload for Sentry: protocol fields only (no internal `moduleName`).
+ */
+export function toProtocolDebugImage(image: RegisteredWasmImage): DebugImage {
+  const { moduleName: _moduleName, ...protocol } = image;
+  return protocol;
 }
 
 /**

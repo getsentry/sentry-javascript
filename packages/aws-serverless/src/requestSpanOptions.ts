@@ -16,11 +16,29 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import { CLOUD_ACCOUNT_ID, FAAS_COLDSTART, URL_FULL } from '@sentry/conventions/attributes';
+import {
+  CLOUD_ACCOUNT_ID,
+  CLOUD_PLATFORM,
+  CLOUD_PROVIDER,
+  CLOUD_RESOURCE_ID,
+  FAAS_COLDSTART,
+  FAAS_INVOCATION_ID,
+  FAAS_NAME,
+  SENTRY_KIND,
+  SENTRY_OP,
+  SENTRY_ORIGIN,
+  SENTRY_SEGMENT_NAME_SOURCE,
+  URL_FULL,
+} from '@sentry/conventions/attributes';
+import { FUNCTION_AWS } from '@sentry/conventions/op';
 import type { SpanAttributes, StartSpanOptions } from '@sentry/core';
-import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, SPAN_KIND } from '@sentry/core';
+import {
+  getClient,
+  hasSpanStreamingEnabled,
+  SERVERLESS_FUNCTION_SPAN_NAME_FALLBACK,
+  filterCollectedUrl,
+} from '@sentry/core';
 import type { Context } from 'aws-lambda';
-import { ATTR_FAAS_EXECUTION, ATTR_FAAS_ID } from './semconv';
 
 interface ApiGatewayLikeEvent {
   headers?: Record<string, string | undefined>;
@@ -30,24 +48,44 @@ interface ApiGatewayLikeEvent {
 }
 
 /**
- * Builds the options for the `function.aws.lambda` transaction started for each invocation.
+ * Builds the options for the `function.aws` transaction started for each invocation.
  */
 export function getRequestSpanOptions(event: unknown, context: Context, requestIsColdStart: boolean): StartSpanOptions {
+  const client = getClient();
+
+  const functionName = getFunctionName(context);
+
   // The span is started within the surrounding `continueTrace`, so it continues the incoming trace.
   return {
-    name: context.functionName,
-    op: 'function.aws.lambda',
-    forceTransaction: true,
-    kind: SPAN_KIND.SERVER,
+    name:
+      client && hasSpanStreamingEnabled(client)
+        ? functionName || SERVERLESS_FUNCTION_SPAN_NAME_FALLBACK
+        : context.functionName,
     attributes: {
-      [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.otel.aws_lambda',
-      [ATTR_FAAS_EXECUTION]: context.awsRequestId,
-      [ATTR_FAAS_ID]: context.invokedFunctionArn,
+      [SENTRY_OP]: FUNCTION_AWS,
+      [SENTRY_ORIGIN]: 'auto.aws_lambda',
+      [SENTRY_SEGMENT_NAME_SOURCE]: 'component',
+      [SENTRY_KIND]: 'server',
+      [FAAS_INVOCATION_ID]: context.awsRequestId,
+      [CLOUD_RESOURCE_ID]: context.invokedFunctionArn,
       [CLOUD_ACCOUNT_ID]: extractAccountId(context.invokedFunctionArn),
+      [CLOUD_PROVIDER]: 'aws',
+      [CLOUD_PLATFORM]: 'aws_lambda',
+      [FAAS_NAME]: functionName,
       [FAAS_COLDSTART]: requestIsColdStart,
       ...extractOtherEventFields(event),
     },
   };
+}
+
+/**
+ * Resolves the name of the currently executing Lambda function.
+ *
+ * The runtime always populates `context.functionName`; `AWS_LAMBDA_FUNCTION_NAME` covers custom
+ * runtimes and local emulators that only partially fill in the invocation context.
+ */
+function getFunctionName(context: Context): string | undefined {
+  return context.functionName || process.env.AWS_LAMBDA_FUNCTION_NAME || undefined;
 }
 
 function extractAccountId(arn: string): string | undefined {
@@ -62,7 +100,7 @@ function extractOtherEventFields(event: unknown): SpanAttributes {
   const answer: SpanAttributes = {};
   const fullUrl = extractFullUrl(event as ApiGatewayLikeEvent);
   if (fullUrl) {
-    answer[URL_FULL] = fullUrl;
+    answer[URL_FULL] = filterCollectedUrl(fullUrl);
   }
   return answer;
 }

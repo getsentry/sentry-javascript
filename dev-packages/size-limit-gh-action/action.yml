@@ -13,5 +13,5 @@ inputs:
     default: '0.0125'
     description: 'The percentage threshold for size changes before posting a comment'
 runs:
-  using: 'node20'
+  using: 'node24'
   main: 'index.mjs'

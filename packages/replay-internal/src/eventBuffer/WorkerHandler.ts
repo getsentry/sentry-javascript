@@ -1,6 +1,7 @@
 import { DEBUG_BUILD } from '../debug-build';
 import type { WorkerRequest, WorkerResponse } from '../types';
 import { debug } from '../util/logger';
+import { WorkerDestroyedError } from './error';
 
 interface PendingRequest {
   method: WorkerRequest['method'];
@@ -75,7 +76,7 @@ export class WorkerHandler {
   public destroy(): void {
     DEBUG_BUILD && debug.log('Destroying compression worker');
     this._worker.removeEventListener('message', this._onMessage);
-    this._pending.forEach(pending => pending.reject(new Error('Worker destroyed')));
+    this._pending.forEach(pending => pending.reject(new WorkerDestroyedError()));
     this._pending.clear();
     this._worker.terminate();
   }

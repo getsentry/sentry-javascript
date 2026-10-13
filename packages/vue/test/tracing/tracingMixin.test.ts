@@ -1,12 +1,22 @@
 import { getActiveSpan, startInactiveSpan } from '@sentry/browser';
+import type * as SentryCore from '@sentry/core';
 import type { Mock } from 'vitest';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { DEFAULT_HOOKS } from '../../src/constants';
 import { createTracingMixins } from '../../src/tracing';
 
+const clock = vi.hoisted(() => ({ now: 0 }));
+vi.mock('@sentry/core', async importOriginal => {
+  return {
+    ...(await importOriginal<typeof SentryCore>()),
+    timestampInSeconds: () => clock.now,
+  };
+});
+
 vi.mock('@sentry/browser', () => {
   return {
     getActiveSpan: vi.fn(),
+    getClient: vi.fn(),
     startInactiveSpan: vi.fn().mockImplementation(({ name, op }) => {
       return {
         end: vi.fn(),
@@ -41,6 +51,7 @@ describe('Vue Tracing Mixins', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    clock.now = 0;
 
     mockRootInstance = {
       $root: null,
@@ -121,7 +132,7 @@ describe('Vue Tracing Mixins', () => {
       expect(startInactiveSpan).toHaveBeenCalledWith(
         expect.objectContaining({
           name: 'Application Render',
-          op: 'ui.vue.render',
+          attributes: expect.objectContaining({ 'sentry.op': 'ui.render' }),
         }),
       );
     });
@@ -147,6 +158,53 @@ describe('Vue Tracing Mixins', () => {
     );
   });
 
+  describe('Root Span Debounce', () => {
+    it('arms a single shared timer on the root for any number of untracked components', () => {
+      const mixins = createTracingMixins({ trackComponents: false, timeout: 1000 });
+
+      mixins.beforeMount.call(mockRootInstance);
+      for (let i = 0; i < 100; i++) {
+        const child = { $root: mockRootInstance, componentName: `ChildComponent${i}` };
+        mixins.beforeMount.call(child);
+        mixins.mounted.call(child);
+      }
+
+      expect(vi.getTimerCount()).toBe(1);
+    });
+
+    it('ends the root span at the last recorded activity, pushing the deadline out for late activity', () => {
+      const mixins = createTracingMixins({ trackComponents: false, timeout: 1000 });
+      clock.now = 10;
+      mixins.beforeMount.call(mockRootInstance);
+      const rootSpan = mockRootInstance.$_sentryRootComponentSpan;
+
+      clock.now = 10.8;
+      mixins.mounted.call(mockVueInstance);
+
+      vi.advanceTimersByTime(1000);
+      expect(rootSpan.end).not.toHaveBeenCalled();
+
+      vi.advanceTimersByTime(800);
+      expect(rootSpan.end).toHaveBeenCalledWith(10.8);
+    });
+
+    it('records no span when a component mounts after the root span already ended', () => {
+      const mixins = createTracingMixins({ trackComponents: false, timeout: 1000 });
+      mixins.beforeMount.call(mockRootInstance);
+      const rootSpan = mockRootInstance.$_sentryRootComponentSpan;
+      vi.advanceTimersByTime(1001);
+      expect(rootSpan.end).toHaveBeenCalledTimes(1);
+
+      clock.now = 5;
+      mixins.beforeMount.call(mockVueInstance);
+      mixins.mounted.call(mockVueInstance);
+      vi.advanceTimersByTime(1001);
+
+      expect(rootSpan.end).toHaveBeenCalledTimes(1);
+      expect(mockRootInstance.$_sentryRootComponentSpan).toBeUndefined();
+    });
+  });
+
   describe('Component Span Lifecycle', () => {
     it('should create and end spans correctly through lifecycle hooks', () => {
       const mixins = createTracingMixins({ trackComponents: true });
@@ -158,7 +216,7 @@ describe('Vue Tracing Mixins', () => {
       expect(startInactiveSpan).toHaveBeenCalledWith(
         expect.objectContaining({
           name: 'Vue TestComponent',
-          op: 'ui.vue.mount',
+          attributes: expect.objectContaining({ 'sentry.op': 'ui.mount' }),
         }),
       );
       expect(mockVueInstance.$_sentryComponentSpans.mount).toBeDefined();
@@ -227,7 +285,7 @@ describe('Vue Tracing Mixins', () => {
       expect(startInactiveSpan).toHaveBeenCalledWith(
         expect.objectContaining({
           name: 'Vue TestComponent',
-          op: 'ui.vue.mount',
+          attributes: expect.objectContaining({ 'sentry.op': 'ui.mount' }),
         }),
       );
     });

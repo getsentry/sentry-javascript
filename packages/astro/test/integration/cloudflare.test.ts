@@ -25,7 +25,7 @@ vi.mock('fs', async requireActual => {
   };
 });
 
-vi.mock('@sentry/vite-plugin', () => ({
+vi.mock('@sentry/bundler-plugins/vite', () => ({
   sentryVitePlugin: vi.fn(() => 'sentryVitePlugin'),
 }));
 
@@ -38,6 +38,7 @@ const baseConfigHookObject = vi.hoisted(() => ({
   logger: { warn: vi.fn(), info: vi.fn(), error: vi.fn() },
   injectScript: vi.fn(),
   updateConfig: vi.fn(),
+  addMiddleware: vi.fn(),
 }));
 
 describe('Cloudflare Pages vs Workers detection', () => {

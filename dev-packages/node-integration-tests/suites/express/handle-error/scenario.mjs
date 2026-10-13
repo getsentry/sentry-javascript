@@ -29,6 +29,4 @@ app.get('/test/withIsolationScope', () => {
   });
 });
 
-Sentry.setupExpressErrorHandler(app);
-
 startExpressServerAndSendPortToRunner(app);

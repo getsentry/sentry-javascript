@@ -1,18 +1,106 @@
-import { setAsyncLocalStorageAsyncContextStrategy } from '../async';
-import type { env as cloudflareEnv, WorkerEntrypoint } from 'cloudflare:workers';
+import type { RpcStub, WorkerEntrypoint } from 'cloudflare:workers';
+import { RPC } from '@sentry/conventions/op';
+import { setAsyncLocalStorageAsyncContextStrategyForWorker } from '../utils/asyncContextStrategy';
 import type { CloudflareOptions } from '../client';
+import { markAsInstrumented } from '../instrument';
+import { getFinalOptions } from '../options';
+import type { DefaultEnv, ResolveEnv, StrictCloudflareOptions } from '../types';
+import { instrumentContext } from '../utils/instrumentContext';
+import { type UncheckedMethod, wrapMethodWithSentry } from '../wrapMethodWithSentry';
+import { instrumentEnv } from './worker/instrumentEnv';
 import { instrumentWorkerEntrypointFetch } from './worker/instrumentFetch';
 import { instrumentWorkerEntrypointQueue } from './worker/instrumentQueue';
 import { instrumentWorkerEntrypointScheduled } from './worker/instrumentScheduled';
 import { instrumentWorkerEntrypointTail } from './worker/instrumentTail';
-import { getFinalOptions } from '../options';
-import { instrumentContext } from '../utils/instrumentContext';
-import { instrumentEnv } from './worker/instrumentEnv';
 
-export type WorkerEntrypointConstructor<Env = typeof cloudflareEnv, Props = {}> = new (
+const WORKER_ENTRYPOINT_ORIGIN = 'auto.faas.cloudflare.worker_entrypoint';
+
+type ReservedMethod =
+  | Exclude<Extract<keyof WorkerEntrypoint, string>, '__WORKER_ENTRYPOINT_BRAND'>
+  | Extract<keyof ExportedHandler, string>
+  | Exclude<Extract<keyof RpcStub<(...args: unknown[]) => unknown>, string>, '__RPC_STUB_BRAND'>
+  | 'constructor';
+
+const RESERVED_METHODS = new Set<string>([
+  'connect',
+  'constructor',
+  'dup',
+  'email',
+  'fetch',
+  'queue',
+  'scheduled',
+  'tail',
+  'tailStream',
+  'test',
+  'trace',
+] satisfies ReservedMethod[]);
+
+interface CachedMethod {
+  source: UncheckedMethod;
+  wrapped: UncheckedMethod;
+}
+
+export type WorkerEntrypointConstructor<Env = unknown, Props = {}> = new (
   ctx: ExecutionContext,
-  env: typeof cloudflareEnv,
+  // WorkerEntrypoint subclasses can define different `env` shapes, so this constructor must accept all of them.
+  // oxlint-disable-next-line typescript/no-explicit-any
+  env: any,
 ) => InstanceType<typeof WorkerEntrypoint<Env, Props>>;
+
+function isPrototypeMethod(instance: object, prop: string, method: UncheckedMethod): boolean {
+  let prototype = Object.getPrototypeOf(instance);
+
+  while (prototype && prototype !== Object.prototype) {
+    const descriptor = Object.getOwnPropertyDescriptor(prototype, prop);
+    if (descriptor) {
+      return descriptor.value === method;
+    }
+    prototype = Object.getPrototypeOf(prototype);
+  }
+
+  return false;
+}
+
+function bindToInstance(instance: object, proxy: object, method: UncheckedMethod): UncheckedMethod {
+  return new Proxy(method, {
+    apply(target, thisArg, args) {
+      return Reflect.apply(target, thisArg === proxy ? instance : thisArg, args);
+    },
+  });
+}
+
+function instrumentMethod(
+  instance: object,
+  proxy: object,
+  prop: PropertyKey,
+  method: UncheckedMethod,
+  options: CloudflareOptions,
+  context: ExecutionContext,
+): UncheckedMethod {
+  const ownDescriptor = Object.getOwnPropertyDescriptor(instance, prop);
+  if (ownDescriptor && 'value' in ownDescriptor && !ownDescriptor.configurable && !ownDescriptor.writable) {
+    return method;
+  }
+
+  const boundMethod = bindToInstance(instance, proxy, method);
+
+  if (typeof prop !== 'string' || RESERVED_METHODS.has(prop) || !isPrototypeMethod(instance, prop, method)) {
+    return boundMethod;
+  }
+
+  return wrapMethodWithSentry(
+    {
+      options,
+      context,
+      spanName: rpcMeta => (rpcMeta ? prop : undefined),
+      spanOp: RPC,
+      origin: WORKER_ENTRYPOINT_ORIGIN,
+    },
+    boundMethod,
+    undefined,
+    true,
+  );
+}
 
 /**
  * Instruments a WorkerEntrypoint class to capture errors and performance data.
@@ -51,16 +139,21 @@ export type WorkerEntrypointConstructor<Env = typeof cloudflareEnv, Props = {}> 
  * );
  * ```
  */
-export function instrumentWorkerEntrypoint<T extends WorkerEntrypointConstructor>(
-  optionsCallback: (env: typeof cloudflareEnv) => CloudflareOptions | undefined,
-  WorkerEntrypointClass: T,
-): T {
+export function instrumentWorkerEntrypoint<
+  Env = DefaultEnv,
+  Props = {},
+  // oxlint-disable-next-line typescript/no-explicit-any
+  T extends WorkerEntrypoint<any, any> = WorkerEntrypoint<Env, Props>,
+  // oxlint-disable-next-line typescript/no-explicit-any
+  C extends new (ctx: ExecutionContext, env: any) => T = new (ctx: ExecutionContext, env: any) => T,
+  O = unknown,
+>(optionsCallback: (env: ResolveEnv<C, Env>) => StrictCloudflareOptions<O> | undefined, WorkerEntrypointClass: C): C {
   // Set up AsyncLocalStorage strategy ONCE at instrumentation time, not per-request
   // This is critical - calling this per-request would create a new AsyncLocalStorage
   // each time, breaking scope isolation for concurrent requests
-  setAsyncLocalStorageAsyncContextStrategy();
+  setAsyncLocalStorageAsyncContextStrategyForWorker();
 
-  return new Proxy(WorkerEntrypointClass, {
+  const InstrumentedClass = new Proxy(WorkerEntrypointClass, {
     construct(target, [ctx, env]) {
       const context = instrumentContext(ctx);
       const options = getFinalOptions(optionsCallback(env), env);
@@ -103,12 +196,40 @@ export function instrumentWorkerEntrypoint<T extends WorkerEntrypointConstructor
         configurable: false,
       });
 
-      instrumentWorkerEntrypointFetch(obj, options, context);
-      instrumentWorkerEntrypointScheduled(obj, options, context);
-      instrumentWorkerEntrypointQueue(obj, options, context);
-      instrumentWorkerEntrypointTail(obj, options, context);
+      const entrypoint = obj as WorkerEntrypoint;
+      instrumentWorkerEntrypointFetch(entrypoint, options, context);
+      instrumentWorkerEntrypointScheduled(entrypoint, options, context);
+      instrumentWorkerEntrypointQueue(entrypoint, options, context);
+      instrumentWorkerEntrypointTail(entrypoint, options, context);
 
-      return obj;
+      // workerd resolves RPC methods through property access.
+      const methodCache = new Map<PropertyKey, CachedMethod>();
+
+      const proxy: typeof obj = new Proxy(obj, {
+        get(instance, prop) {
+          const value = Reflect.get(instance, prop, instance);
+
+          if (typeof value !== 'function') {
+            return value;
+          }
+
+          const method = value as UncheckedMethod;
+
+          const cached = methodCache.get(prop);
+          if (cached?.source === method) {
+            return cached.wrapped;
+          }
+
+          const wrapped = instrumentMethod(instance, proxy, prop, method, options, context);
+          methodCache.set(prop, { source: method, wrapped });
+          return wrapped;
+        },
+      });
+
+      return proxy;
     },
   });
+  // Recognizable for `_INTERNAL_wrapUnlessInstrumented`, so auto-instrumentation never nests wrappers.
+  markAsInstrumented(InstrumentedClass);
+  return InstrumentedClass;
 }

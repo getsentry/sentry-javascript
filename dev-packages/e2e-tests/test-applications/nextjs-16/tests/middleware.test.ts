@@ -1,152 +1,160 @@
 import { expect, test } from '@playwright/test';
-import { waitForError, waitForTransaction } from '@sentry-internal/test-utils';
+import {
+  collectStreamedSpans,
+  collectStreamedSpansUntilSegment,
+  getRuntime,
+  getSpanOp,
+  waitForStreamedSpan,
+} from '@sentry-internal/test-utils';
 import { isDevMode } from './isDevMode';
+import { isVinext } from './isVinext';
 
-test('Should create a transaction for middleware', async ({ request }) => {
-  const middlewareTransactionPromise = waitForTransaction('nextjs-16', async transactionEvent => {
-    return transactionEvent?.transaction === 'middleware GET';
-  });
+test('Should create a span for middleware', async ({ request }) => {
+  test.skip(getRuntime() === 'cloudflare', 'On Workers the middleware span is a child of the request span');
 
-  const routeTransactionPromise = waitForTransaction('nextjs-16', async transactionEvent => {
-    return transactionEvent?.transaction === 'GET /api/endpoint-behind-middleware';
+  const spansPromise = collectStreamedSpansUntilSegment('nextjs-16', 'middleware GET');
+
+  const routeSpanPromise = waitForStreamedSpan('nextjs-16', span => {
+    return span.name === 'GET /api/endpoint-behind-middleware' && span.is_segment;
   });
 
   const response = await request.get('/api/endpoint-behind-middleware');
   expect(await response.json()).toStrictEqual({ name: 'John Doe' });
 
-  const middlewareTransaction = await middlewareTransactionPromise;
+  const spans = await spansPromise;
+  const middlewareSpan = spans.find(span => span.name === 'middleware GET' && span.is_segment)!;
 
-  expect(middlewareTransaction.contexts?.trace?.status).toBe('ok');
-  expect(middlewareTransaction.contexts?.trace?.op).toBe('http.server.middleware');
-  expect(middlewareTransaction.contexts?.runtime?.name).toBe('node');
-  expect(middlewareTransaction.transaction_info?.source).toBe('route');
+  expect(middlewareSpan.status).toBe('ok');
+  expect(getSpanOp(middlewareSpan)).toBe('middleware');
+  expect(middlewareSpan.attributes['sentry.segment.name.source']?.value).toBe('route');
+
+  expect(middlewareSpan.attributes['http.request.method']?.value).toBe('GET');
+  expect(String(middlewareSpan.attributes['http.target']?.value)).toContain('/api/endpoint-behind-middleware');
+
+  // The `Middleware.execute` OTEL root span is the only `middleware` span. The build-time
+  // `wrapMiddlewareWithSentry` wrapper used to start a second, redundant one nested inside it.
+  const nestedMiddlewareSpans = spans.filter(span => getSpanOp(span) === 'middleware' && !span.is_segment);
+  expect(nestedMiddlewareSpans).toHaveLength(0);
 
   // Assert that isolation scope works properly
-  expect(middlewareTransaction.tags?.['my-isolated-tag']).toBe(true);
-  expect(middlewareTransaction.tags?.['my-global-scope-isolated-tag']).not.toBeDefined();
+  expect(middlewareSpan.attributes['isolation_scope.is_default']).toEqual({ value: false, type: 'boolean' });
+  expect(middlewareSpan.attributes['isolation_scope.has_proxy_marker']).toEqual({ value: true, type: 'boolean' });
 
-  // Tags set in middleware must not leak into other requests' events (e.g. via a shared scope when the middleware
-  // runs in a detached context - https://github.com/vercel/next.js/pull/95306)
-  const routeTransaction = await routeTransactionPromise;
-  expect(routeTransaction.tags?.['my-isolated-tag']).not.toBeDefined();
-  expect(routeTransaction.tags?.['my-global-scope-isolated-tag']).not.toBeDefined();
+  // Scope data set in middleware must not leak into other requests (e.g. via a shared scope when the middleware
+  // runs in a detached context - https://github.com/vercel/next.js/pull/95306). The route handler exposes it
+  // via the same attributes.
+  const routeSpan = await routeSpanPromise;
+  expect(routeSpan.attributes['isolation_scope.is_default']).toEqual({ value: false, type: 'boolean' });
+  expect(routeSpan.attributes['isolation_scope.has_proxy_marker']).toEqual({ value: false, type: 'boolean' });
+});
+
+// `withSentry` from `@sentry/nextjs/cloudflare` wraps the Worker entry, so middleware runs inside the request's
+// `http.server` segment and its span is a child of it rather than a segment of its own.
+test('Should create a span for middleware inside the request segment of the Worker', async ({ request }) => {
+  test.skip(getRuntime() !== 'cloudflare', 'Only on Workers the request span of `withSentry` is the segment');
+
+  const spansPromise = collectStreamedSpansUntilSegment('nextjs-16', 'GET /api/endpoint-behind-middleware');
+
+  const response = await request.get('/api/endpoint-behind-middleware');
+  expect(await response.json()).toStrictEqual({ name: 'John Doe' });
+
+  const spans = await spansPromise;
+  const segmentSpan = spans.find(span => span.is_segment)!;
+  const middlewareSpan = spans.find(span => span.name === 'middleware GET')!;
+
+  expect(spans.filter(span => getSpanOp(span) === 'middleware')).toEqual([middlewareSpan]);
+  expect(segmentSpan.attributes['url.path']?.value).toBe('/api/endpoint-behind-middleware');
+  expect(segmentSpan.attributes['sentry.segment.name.source']?.value).toBe('route');
+  expect(segmentSpan.attributes['isolation_scope.is_default']).toEqual({ value: false, type: 'boolean' });
+  expect(middlewareSpan.is_segment).toBe(false);
+  expect(middlewareSpan.parent_span_id).toBe(segmentSpan.span_id);
+  expect(middlewareSpan.status).toBe('ok');
+  expect(getSpanOp(middlewareSpan)).toBe('middleware');
 });
 
 test('Faulty middlewares', async ({ request }) => {
   test.skip(isDevMode, 'Throwing crashes the dev server atm'); // https://github.com/vercel/next.js/issues/85261
-  const middlewareTransactionPromise = waitForTransaction('nextjs-16', async transactionEvent => {
-    return transactionEvent?.transaction === 'middleware GET';
-  });
-
-  const errorEventPromise = waitForError('nextjs-16', errorEvent => {
-    return errorEvent?.exception?.values?.[0]?.value === 'Middleware Error';
+  test.skip(getRuntime() === 'cloudflare', 'On Workers the middleware span is a child of the request span');
+  const middlewareSpanPromise = waitForStreamedSpan('nextjs-16', span => {
+    return span.name === 'middleware GET' && span.is_segment;
   });
 
   request.get('/api/endpoint-behind-middleware', { headers: { 'x-should-throw': '1' } }).catch(() => {
     // Noop
   });
 
-  await test.step('should record transactions', async () => {
-    const middlewareTransaction = await middlewareTransactionPromise;
-    expect(middlewareTransaction.contexts?.trace?.status).toBe('internal_error');
-    expect(middlewareTransaction.contexts?.trace?.op).toBe('http.server.middleware');
-    expect(middlewareTransaction.contexts?.runtime?.name).toBe('node');
-    expect(middlewareTransaction.transaction_info?.source).toBe('route');
+  await test.step('should record spans', async () => {
+    const middlewareSpan = await middlewareSpanPromise;
+    expect(middlewareSpan.status).toBe('error');
+    expect(getSpanOp(middlewareSpan)).toBe('middleware');
+    expect(middlewareSpan.attributes['sentry.segment.name.source']?.value).toBe('route');
   });
 
   // TODO: proxy errors currently not reported via onRequestError
-  // await test.step('should record exceptions', async () => {
-  //   const errorEvent = await errorEventPromise;
-
-  //   // Assert that isolation scope works properly
-  //   expect(errorEvent.tags?.['my-isolated-tag']).toBe(true);
-  //   expect(errorEvent.tags?.['my-global-scope-isolated-tag']).not.toBeDefined();
-  //   expect([
-  //     'middleware GET', // non-otel webpack versions
-  //     '/middleware', // middleware file
-  //     '/proxy', // proxy file
-  //   ]).toContain(errorEvent.transaction);
-  // });
+  // await test.step('should record exceptions', async () => { ... });
 });
 
-test('Should trace outgoing fetch requests inside middleware and create breadcrumbs for it', async ({ request }) => {
-  test.skip(isDevMode, 'The fetch requests ends up in a separate tx in dev atm');
-  const middlewareTransactionPromise = waitForTransaction('nextjs-16', async transactionEvent => {
-    return transactionEvent?.transaction === 'middleware GET';
+test('Faulty middlewares inside the request segment of the Worker', async ({ request }) => {
+  test.skip(getRuntime() !== 'cloudflare', 'Only on Workers the request span of `withSentry` is the segment');
+  // The middleware throws, so the request span of `withSentry` keeps the middleware name, like the middleware segment
+  // of Node.js.
+  const spansPromise = collectStreamedSpans(
+    'nextjs-16',
+    spans =>
+      spans.some(span => span.is_segment && span.name === 'middleware GET') &&
+      spans.some(span => !span.is_segment && span.name === 'middleware GET'),
+  );
+
+  request.get('/api/endpoint-behind-middleware', { headers: { 'x-should-throw': '1' } }).catch(() => {
+    // Noop
   });
 
-  // In some builds (especially webpack), fetch spans may end up in a separate transaction instead of as child spans
-  // This test validates that the fetch is traced either way
-  const fetchTransactionPromise = waitForTransaction('nextjs-16', async transactionEvent => {
-    return (
-      transactionEvent?.transaction === 'GET http://localhost:3030/' ||
-      transactionEvent?.contexts?.trace?.description === 'GET http://localhost:3030/'
-    );
-  });
+  const spans = await spansPromise;
+  const segmentSpan = spans.find(span => span.is_segment)!;
+  const middlewareSpan = spans.find(span => !span.is_segment && span.name === 'middleware GET')!;
+
+  expect(segmentSpan.status).toBe('error');
+  expect(segmentSpan.attributes['sentry.segment.name.source']?.value).toBe('route');
+  expect(middlewareSpan.parent_span_id).toBe(segmentSpan.span_id);
+  expect(middlewareSpan.status).toBe('error');
+  expect(getSpanOp(middlewareSpan)).toBe('middleware');
+});
+
+test('Should trace outgoing fetch requests inside middleware', async ({ request }) => {
+  test.skip(isDevMode, 'The fetch requests ends up in a separate tx in dev atm');
+  test.skip(
+    isVinext && getRuntime() === 'bun',
+    'vinext replaces `globalThis.fetch` with a wrapper of the `fetch` from before `Sentry.init`, so `@sentry/bun` creates no fetch spans',
+  );
+
+  // Only Node.js has the undici diagnostics channel. On the other runtimes the fetch integration of the runtime
+  // SDK creates this span, which has no `sentry.kind`, `url.path` and `url.scheme`.
+  const isNode = getRuntime() === 'node';
+
+  // In some builds (especially webpack) the fetch span is not a child of the middleware segment but a
+  // segment of its own, so this waits for either. `http.client` span names are low cardinality under
+  // span streaming, hence `GET localhost` rather than the full URL.
+  const spansPromise = collectStreamedSpans('nextjs-16', spans =>
+    spans.some(span => getSpanOp(span) === 'http.client' && span.name === 'GET localhost'),
+  );
 
   request.get('/api/endpoint-behind-middleware', { headers: { 'x-should-make-request': '1' } }).catch(() => {
     // Noop
   });
 
-  const middlewareTransaction = await middlewareTransactionPromise;
+  const spans = await spansPromise;
+  const fetchSpan = spans.find(span => getSpanOp(span) === 'http.client' && span.name === 'GET localhost')!;
 
-  // Breadcrumbs should always be created for the fetch request
-  expect(middlewareTransaction.breadcrumbs).toEqual(
-    expect.arrayContaining([
-      {
-        category: 'http',
-        data: { 'http.method': 'GET', status_code: 200, url: 'http://localhost:3030/' },
-        timestamp: expect.any(Number),
-        type: 'http',
-      },
-    ]),
-  );
-
-  // Check if http.client span exists as a child of the middleware transaction
-  const hasHttpClientSpan = !!middlewareTransaction.spans?.find(span => span.op === 'http.client');
-
-  if (hasHttpClientSpan) {
-    // Check if fetch is traced as a child span of the middleware transaction
-    expect(middlewareTransaction.spans).toEqual(
-      expect.arrayContaining([
-        {
-          data: {
-            'http.request.method': 'GET',
-            'http.request.method_original': 'GET',
-            'http.response.status_code': 200,
-            'network.peer.address': '::1',
-            'network.peer.port': 3030,
-            'otel.kind': 'CLIENT',
-            'sentry.op': 'http.client',
-            'sentry.origin': 'auto.http.otel.node_fetch',
-            'server.address': 'localhost',
-            'server.port': 3030,
-            url: 'http://localhost:3030/',
-            'url.full': 'http://localhost:3030/',
-            'url.path': '/',
-            'url.query': '',
-            'url.scheme': 'http',
-            'user_agent.original': 'node',
-          },
-          description: 'GET http://localhost:3030/',
-          op: 'http.client',
-          origin: 'auto.http.otel.node_fetch',
-          parent_span_id: expect.stringMatching(/[a-f0-9]{16}/),
-          span_id: expect.stringMatching(/[a-f0-9]{16}/),
-          start_timestamp: expect.any(Number),
-          status: 'ok',
-          timestamp: expect.any(Number),
-          trace_id: expect.stringMatching(/[a-f0-9]{32}/),
-        },
-      ]),
-    );
-  } else {
-    // Alternatively, fetch is traced as a separate transaction, similar to Dev builds
-    const fetchTransaction = await fetchTransactionPromise;
-
-    expect(fetchTransaction.contexts?.trace?.op).toBe('http.client');
-    expect(fetchTransaction.contexts?.trace?.status).toBe('ok');
-    expect(fetchTransaction.contexts?.trace?.data?.['http.request.method']).toBe('GET');
-    expect(fetchTransaction.contexts?.trace?.data?.['url.full']).toBe('http://localhost:3030/');
-  }
+  expect(fetchSpan.status).toBe('ok');
+  expect(fetchSpan.attributes['http.request.method']?.value).toBe('GET');
+  expect(fetchSpan.attributes['http.response.status_code']?.value).toBe(200);
+  expect(fetchSpan.attributes['sentry.op']?.value).toBe('http.client');
+  expect(fetchSpan.attributes['sentry.origin']?.value).toBe(isNode ? 'auto.http.node_fetch' : 'auto.http.fetch');
+  expect(fetchSpan.attributes['server.address']?.value).toBe('localhost');
+  expect(fetchSpan.attributes['server.port']?.value).toBe(3030);
+  expect(fetchSpan.attributes['url.domain']?.value).toBe('localhost');
+  expect(fetchSpan.attributes['url.full']?.value).toBe('http://localhost:3030/');
+  expect(fetchSpan.attributes['sentry.kind']?.value).toBe(isNode ? 'client' : undefined);
+  expect(fetchSpan.attributes['url.path']?.value).toBe(isNode ? '/' : undefined);
+  expect(fetchSpan.attributes['url.scheme']?.value).toBe(isNode ? 'http' : undefined);
 });

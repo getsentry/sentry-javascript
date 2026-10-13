@@ -1,35 +1,43 @@
-import { afterAll, expect } from 'vitest';
-import { conditionalTest } from '../../../utils';
+import {
+  DB_OPERATION_NAME,
+  DB_QUERY_TEXT,
+  DB_SYSTEM_NAME,
+  SENTRY_OP,
+  SENTRY_ORIGIN,
+  SERVER_ADDRESS,
+  SERVER_PORT,
+} from '@sentry/conventions/attributes';
+import { DB } from '@sentry/conventions/op';
+import { afterAll, describe, expect } from 'vitest';
 import { cleanupChildProcesses, createEsmAndCjsTests, describeWithDockerCompose } from '../../../utils/runner';
 
 // mysql2 >= 3.20.0 publishes its operations via `node:diagnostics_channel`, so the SDK subscribes
 // to those channels (`subscribeMysql2DiagnosticChannels`) instead of monkey-patching. This suite
-// pins `^3.20.0` and asserts the diagnostics-channel path: stable OTel DB semconv attributes,
-// redacted query text, and that the legacy IITM patcher (gated to `< 3.20.0`) does NOT also fire.
-// `TracingChannel` is only reliable on Node >= 20, so this suite is skipped on older Node.
-conditionalTest({ min: 20 })('mysql2 tracing channel Test', () => {
+// runs against the workspace version and asserts the diagnostics-channel path: stable OTel DB
+// semconv attributes, redacted query text, and that the legacy IITM patcher (gated to `< 3.20.0`)
+// does NOT also fire. A workspace downgrade below 3.20.0 fails the double-instrumentation test.
+describe('mysql2 tracing channel Test', () => {
   afterAll(() => {
     cleanupChildProcesses();
   });
 
   const expectedQuerySpan = (queryText: string) =>
     expect.objectContaining({
-      description: queryText,
-      op: 'db',
-      origin: 'auto.db.mysql2.diagnostic_channel',
-      data: expect.objectContaining({
-        'sentry.origin': 'auto.db.mysql2.diagnostic_channel',
-        'db.system.name': 'mysql',
-        'db.operation.name': 'SELECT',
-        'db.query.text': queryText,
-        'server.address': 'localhost',
-        'server.port': 3308,
+      attributes: expect.objectContaining({
+        [SENTRY_ORIGIN]: { type: 'string', value: 'auto.db.mysql2.diagnostic_channel' },
+        [DB_SYSTEM_NAME]: { type: 'string', value: 'mysql' },
+        [DB_OPERATION_NAME]: { type: 'string', value: 'SELECT' },
+        [DB_QUERY_TEXT]: { type: 'string', value: queryText },
+        [SERVER_ADDRESS]: { type: 'string', value: 'localhost' },
+        [SERVER_PORT]: { type: 'integer', value: 3308 },
+        [SENTRY_OP]: { type: 'string', value: DB },
       }),
+      name: 'SELECT',
     });
 
-  const EXPECTED_TRANSACTION = {
-    transaction: 'Test Transaction',
-    spans: expect.arrayContaining([
+  const EXPECTED_SPANS = {
+    items: expect.arrayContaining([
+      expect.objectContaining({ name: 'Test Transaction', is_segment: true }),
       expectedQuerySpan('SELECT ? + ? AS solution'),
       // the inlined literal is redacted out of `db.query.text`
       expectedQuerySpan('SELECT ? AS leaked'),
@@ -37,59 +45,58 @@ conditionalTest({ min: 20 })('mysql2 tracing channel Test', () => {
       expectedQuerySpan('SELECT ? AS answer'),
       // a failing query produces a span with an error status
       expect.objectContaining({
-        description: 'SELECT * FROM does_not_exist',
-        op: 'db',
-        status: 'internal_error',
-        origin: 'auto.db.mysql2.diagnostic_channel',
+        attributes: expect.objectContaining({
+          [SENTRY_OP]: { type: 'string', value: DB },
+          [SENTRY_ORIGIN]: { type: 'string', value: 'auto.db.mysql2.diagnostic_channel' },
+          [DB_QUERY_TEXT]: { type: 'string', value: 'SELECT * FROM does_not_exist' },
+        }),
+        name: 'SELECT does_not_exist',
+        status: 'error',
       }),
     ]),
   };
 
   describeWithDockerCompose('with pg docker compose', { workingDirectory: [__dirname] }, () => {
-    createEsmAndCjsTests(
-      __dirname,
-      'scenario.mjs',
-      'instrument.mjs',
-      (createTestRunner, test) => {
-        test('subscribes to mysql2 >= 3.20.0 diagnostics channels with stable semconv attributes', async () => {
-          await createTestRunner().expect({ transaction: EXPECTED_TRANSACTION }).start().completed();
-        }, 30_000);
+    createEsmAndCjsTests(__dirname, 'scenario.mjs', 'instrument.mjs', (createTestRunner, test) => {
+      test('subscribes to mysql2 >= 3.20.0 diagnostics channels with stable semconv attributes', async () => {
+        await createTestRunner().expect({ span: EXPECTED_SPANS }).start().completed();
+      }, 30_000);
 
-        test('does not double-instrument: the legacy IITM mysql2 patcher does not fire on 3.20.0+', async () => {
-          await createTestRunner()
-            .expect({
-              transaction: event => {
-                expect(event.transaction).toBe('Test Transaction');
-                const spans = event.spans || [];
-                // The monkey-patch path (origin `auto.db.otel.mysql2`) must be inactive on 3.20.0+.
-                expect(spans.find(span => span.origin === 'auto.db.otel.mysql2')).toBeUndefined();
-                // ...while the diagnostics-channel path is active.
-                expect(spans.find(span => span.origin === 'auto.db.mysql2.diagnostic_channel')).toBeDefined();
-              },
-            })
-            .start()
-            .completed();
-        }, 30_000);
+      test('does not double-instrument: the legacy IITM mysql2 patcher does not fire on 3.20.0+', async () => {
+        await createTestRunner()
+          .expect({
+            span: container => {
+              expect(container.items.find(span => span.is_segment)?.name).toBe('Test Transaction');
+              const spans = container.items.filter(span => !span.is_segment);
+              // The monkey-patch path (origin `auto.db.mysql2`) must be inactive on 3.20.0+.
+              expect(spans.find(span => span.attributes[SENTRY_ORIGIN]?.value === 'auto.db.mysql2')).toBeUndefined();
+              // ...while the diagnostics-channel path is active.
+              expect(
+                spans.find(span => span.attributes[SENTRY_ORIGIN]?.value === 'auto.db.mysql2.diagnostic_channel'),
+              ).toBeDefined();
+            },
+          })
+          .start()
+          .completed();
+      }, 30_000);
 
-        test('never leaks raw values into db.query.text', async () => {
-          await createTestRunner()
-            .expect({
-              transaction: event => {
-                expect(event.transaction).toBe('Test Transaction');
-                const spans = event.spans || [];
-                for (const span of spans) {
-                  const queryText = span.data?.['db.query.text'];
-                  if (typeof queryText === 'string') {
-                    expect(queryText).not.toContain('super-secret');
-                  }
+      test('never leaks raw values into db.query.text', async () => {
+        await createTestRunner()
+          .expect({
+            span: container => {
+              expect(container.items.find(span => span.is_segment)?.name).toBe('Test Transaction');
+              const spans = container.items.filter(span => !span.is_segment);
+              for (const span of spans) {
+                const queryText = span.attributes[DB_QUERY_TEXT]?.value;
+                if (typeof queryText === 'string') {
+                  expect(queryText).not.toContain('super-secret');
                 }
-              },
-            })
-            .start()
-            .completed();
-        }, 30_000);
-      },
-      { additionalDependencies: { mysql2: '^3.20.0' } },
-    );
+              }
+            },
+          })
+          .start()
+          .completed();
+      }, 30_000);
+    });
   });
 });

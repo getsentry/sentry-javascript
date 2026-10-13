@@ -1,6 +1,6 @@
 const fs = require('fs');
 
-const { sentryWebpackPlugin } = require('@sentry/webpack-plugin');
+const { sentryWebpackPlugin } = require('@sentry/bundler-plugins/webpack');
 
 const SENTRY_USER_CONFIG = ['./sentry.config.js', './sentry.config.ts'];
 

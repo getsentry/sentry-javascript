@@ -1,5 +1,0 @@
-#:schema node_modules/wrangler/config-schema.json
-name = "cloudflare-vercelai-v7-als"
-main = "src/index.ts"
-compatibility_date = "2026-04-26"
-compatibility_flags = ["nodejs_als"]

@@ -1,20 +1,35 @@
+import {
+  DB_CONNECTION_STRING,
+  DB_QUERY_SUMMARY,
+  DB_QUERY_TEXT,
+  DB_SYSTEM_NAME,
+  DB_USER,
+  SENTRY_ENVIRONMENT,
+  SENTRY_IS_LOCALHOST,
+  SENTRY_KIND,
+  SENTRY_OP,
+  SENTRY_ORIGIN,
+  SENTRY_RELEASE,
+  SENTRY_SDK_NAME,
+  SENTRY_SDK_VERSION,
+  SENTRY_SEGMENT_ID,
+  SENTRY_SEGMENT_NAME,
+  SENTRY_TRACE_LIFECYCLE,
+  SERVER_ADDRESS,
+  SERVER_PORT,
+} from '@sentry/conventions/attributes';
+import { DB } from '@sentry/conventions/op';
 import type { AddressInfo, Server } from 'node:net';
 import { afterAll, beforeAll, describe, expect } from 'vitest';
-import { cleanupChildProcesses, createCjsTests, createEsmAndCjsTests } from '../../../utils/runner';
+import { cleanupChildProcesses, createEsmAndCjsTests } from '../../../utils/runner';
 import { startMysqlTestServer } from './mysql-test-server';
-import type { SerializedStreamedSpanContainer } from '@sentry/core';
-import { SEMANTIC_ATTRIBUTE_SENTRY_OP } from '@sentry/core';
-import { isOrchestrionEnabled } from '../../../utils';
-import { SENTRY_TRACE_LIFECYCLE } from '@sentry/conventions/attributes';
 
 describe('mysql auto instrumentation', () => {
   // A minimal in-process MySQL server (on a random free port) so the client's
   // connection handshake succeeds. Without it, `createPool()` queries fail at
   // connection acquisition — before `connection.query` runs — so the
   // diagnostics-channel instrumentation (which hooks `connection.query`) never
-  // sees them. Queries still error (the server rejects them), so spans keep
-  // `status: internal_error` as the assertions expect. The port is passed to
-  // each scenario via the `MYSQL_PORT` env var.
+  // sees them. The port is passed to each scenario via the `MYSQL_PORT` env var.
   let mysqlServer: Server;
   let mysqlPort: number;
   beforeAll(async () => {
@@ -28,73 +43,119 @@ describe('mysql auto instrumentation', () => {
     cleanupChildProcesses();
   });
 
-  // Builds the expected transaction. When `origin` is given, the spans must also
-  // carry that `sentry.origin`, which is how we assert that the
-  // diagnostics-channel instrumentation (not the OTel one) produced them. A
-  // scenario can pass `override` to replace the default transaction expectation
-  // (e.g. the streamed-error scenario, which runs a different, failing query).
-  function expectedTransaction(
+  function expectedSpans(
     port: number,
     origin: string | undefined,
     override: Record<string, unknown> | undefined,
-  ): Record<string, unknown> {
-    const span = (description: string): ReturnType<typeof expect.objectContaining> =>
-      expect.objectContaining({
-        description,
-        op: 'db',
-        ...(origin ? { origin } : {}),
-        data: expect.objectContaining({
-          ...(origin ? { 'sentry.origin': origin } : {}),
-          'db.system': 'mysql',
-          'net.peer.name': 'localhost',
-          'net.peer.port': port,
-          'db.user': 'root',
-        }),
-        status: 'ok',
-      });
-
-    return {
-      transaction: 'Test Transaction',
-      spans: expect.arrayContaining([span('SELECT 1 + 1 AS solution'), span('SELECT NOW()')]),
-      ...(override ?? {}),
+  ): unknown {
+    const COMMON_ATTRIBUTES = {
+      // These spans belong to a script with no incoming request, so there is nothing to judge.
+      [SENTRY_IS_LOCALHOST]: { type: 'boolean', value: false },
+      [DB_CONNECTION_STRING]: {
+        type: 'string',
+        value: expect.stringMatching(/^jdbc:mysql:\/\/localhost:.*/),
+      },
+      [DB_SYSTEM_NAME]: {
+        type: 'string',
+        value: 'mysql',
+      },
+      [DB_USER]: {
+        type: 'string',
+        value: 'root',
+      },
+      [SERVER_ADDRESS]: {
+        type: 'string',
+        value: 'localhost',
+      },
+      [SERVER_PORT]: {
+        type: 'integer',
+        value: port,
+      },
+      [SENTRY_KIND]: {
+        type: 'string',
+        value: 'client',
+      },
+      [SENTRY_ENVIRONMENT]: {
+        type: 'string',
+        value: 'production',
+      },
+      [SENTRY_OP]: {
+        type: 'string',
+        value: DB,
+      },
+      [SENTRY_ORIGIN]: {
+        type: 'string',
+        value: origin,
+      },
+      [SENTRY_RELEASE]: {
+        type: 'string',
+        value: '1.0',
+      },
+      [SENTRY_SDK_NAME]: {
+        type: 'string',
+        value: 'sentry.javascript.node',
+      },
+      [SENTRY_SDK_VERSION]: {
+        type: 'string',
+        value: expect.any(String),
+      },
+      [SENTRY_SEGMENT_ID]: {
+        type: 'string',
+        value: expect.stringMatching(/^[\da-f]{16}$/),
+      },
+      [SENTRY_SEGMENT_NAME]: {
+        type: 'string',
+        value: 'Test Transaction',
+      },
+      [SENTRY_TRACE_LIFECYCLE]: {
+        type: 'string',
+        value: 'stream',
+      },
     };
+
+    const COMMON_SPAN_PROPS = {
+      end_timestamp: expect.any(Number),
+      is_segment: false,
+      parent_span_id: expect.stringMatching(/^[\da-f]{16}$/),
+      span_id: expect.stringMatching(/^[\da-f]{16}$/),
+      start_timestamp: expect.any(Number),
+      status: 'ok',
+      trace_id: expect.stringMatching(/^[\da-f]{32}$/),
+    };
+
+    const span = (queryText: string) => ({
+      name: 'SELECT',
+      attributes: {
+        ...COMMON_ATTRIBUTES,
+        [DB_QUERY_TEXT]: { type: 'string', value: queryText },
+        [DB_QUERY_SUMMARY]: { type: 'string', value: 'SELECT' },
+      },
+      ...COMMON_SPAN_PROPS,
+    });
+
+    return override?.spans ?? [span('SELECT ? + ? AS solution'), span('SELECT NOW()')];
   }
 
-  // Note: here specifically, we want to ignore the generic orchestrion testing define via INJECT_ORCHESTRION,
-  // but instead test various different ways to run orchestrion manually
-  const CHANNEL_ORIGIN = 'auto.db.orchestrion.mysql';
+  const CHANNEL_ORIGIN = 'auto.db.mysql';
 
-  // Each case maps to one of the two documented use cases, in opt-in and
-  // non-opt-in form. `flags` are extra Node CLI flags; the instrument file is
-  // always loaded via `--import` (esm) / `--require` (cjs) by the runner.
+  // Channel-based (orchestrion diagnostics-channel) instrumentation is the default: `Sentry.init()`
+  // injects and subscribes to the channels synchronously. We test it both with the channels installed
+  // purely from `init()` and via the `node --import @sentry/node/import` preload. `flags` are extra
+  // Node CLI flags; the instrument file is always loaded via `--import` by the runner.
   const CASES = [
-    // OpenTelemetry default — no opt-in, no injection. (OTel does not support ESM.)
-    { label: 'opentelemetry (default)', env: {}, flags: [], origin: undefined, failsOnEsm: true },
-    // Opt-in via init only. `Sentry.init()` injects the channels synchronously.
     {
-      label: 'diagnostics-channel (init opt-in)',
-      env: { ORCHESTRION: 'true' },
+      label: 'diagnostics-channel (init)',
+      env: {},
       flags: [],
       origin: CHANNEL_ORIGIN,
       failsOnEsm: false,
     },
-    // Opt-in and rely on `node --import @sentry/node/import`.
     {
-      label: 'diagnostics-channel (--import @sentry/node/import opt-in)',
-      env: { ORCHESTRION: 'true' },
+      label: 'diagnostics-channel (--import @sentry/node/import)',
+      env: {},
       flags: ['--import', '@sentry/node/import'],
       origin: CHANNEL_ORIGIN,
       failsOnEsm: false,
-    },
-    // Without opt-in: channels are injected unconditionally but not subscribed
-    // to, so the OTel instrumentation records the spans — proves injecting the
-    // channels has no downside. (OTel does not support ESM.)
-    {
-      label: 'opentelemetry (channels injected, no opt-in)',
-      env: {},
-      flags: ['--import', '@sentry/node/import'],
-      origin: undefined,
-      failsOnEsm: true,
     },
   ] as const;
 
@@ -107,26 +168,27 @@ describe('mysql auto instrumentation', () => {
       'scenario-streamError.mjs',
       'streamed query error',
       {
-        // The transaction itself succeeds (status `ok`); only the failing query's child span is errored.
-        spans: expect.arrayContaining([
+        // The segment span succeeds (status `ok`); only the failing query span is errored.
+        spans: [
           expect.objectContaining({
-            description: 'SELECT * FROM does_not_exist',
-            op: 'db',
+            name: 'SELECT does_not_exist',
             // A failing streamed query emits `error`, which marks the span as errored
-            status: 'internal_error',
-            data: expect.objectContaining({
-              'db.system': 'mysql',
-              'db.user': 'root',
+            status: 'error',
+            attributes: expect.objectContaining({
+              [SENTRY_OP]: { type: 'string', value: DB },
+              [DB_QUERY_TEXT]: { type: 'string', value: 'SELECT * FROM does_not_exist' },
+              [DB_SYSTEM_NAME]: { type: 'string', value: 'mysql' },
+              [DB_USER]: { type: 'string', value: 'root' },
             }),
           }),
-        ]),
+        ],
       },
     ],
   ] as const;
 
   for (const { label, env, flags, origin, failsOnEsm } of CASES) {
     describe(label, () => {
-      for (const [scenario, description, transactionOverride] of SCENARIOS) {
+      for (const [scenario, description, spanOverride] of SCENARIOS) {
         createEsmAndCjsTests(
           __dirname,
           scenario,
@@ -136,15 +198,19 @@ describe('mysql auto instrumentation', () => {
               await createRunner()
                 .withEnv({ ...env, MYSQL_PORT: String(mysqlPort) })
                 .withFlags(...flags)
-                .expect({ transaction: expectedTransaction(mysqlPort, origin, transactionOverride) })
+                .expect({
+                  span: container => {
+                    expect(container.items.find(span => span.is_segment)?.name).toBe('Test Transaction');
+                    const spans = container.items.filter(span => span.attributes[SENTRY_OP]?.value === DB);
+                    expect(spans).toEqual(expectedSpans(mysqlPort, origin, spanOverride));
+                  },
+                })
                 .start()
                 .completed();
             });
           },
           {
             failsOnEsm,
-            // We handle injection ourselves here
-            injectOrchestrion: false,
           },
         );
       }
@@ -159,12 +225,14 @@ describe('mysql auto instrumentation', () => {
               .withFlags(...flags)
               .withEnv({ ...env, MYSQL_PORT: String(mysqlPort) })
               .expect({
-                transaction: (transaction): void => {
-                  const transactionSpanId = transaction.contexts?.trace?.span_id;
-                  const spans = transaction.spans ?? [];
-                  const mysqlSpan = spans.find(span => span.description === 'SELECT 1 + 1 AS solution');
-                  const listenerSpan = spans.find(span => span.description === 'listener-child');
-                  const innerSpan = spans.find(span => span.description === 'inner-span');
+                span: (container): void => {
+                  const transactionSpanId = container.items.find(span => span.is_segment)?.span_id;
+                  const spans = container.items;
+                  const mysqlSpan = spans.find(
+                    span => span.attributes[DB_QUERY_TEXT]?.value === 'SELECT ? + ? AS solution',
+                  );
+                  const listenerSpan = spans.find(span => span.name === 'listener-child');
+                  const innerSpan = spans.find(span => span.name === 'inner-span');
 
                   expect(transactionSpanId).toBeDefined();
                   expect(mysqlSpan).toBeDefined();
@@ -184,169 +252,8 @@ describe('mysql auto instrumentation', () => {
         },
         {
           failsOnEsm,
-          // We handle injection ourselves here
-          injectOrchestrion: false,
         },
       );
     });
   }
-
-  describe('streamed', () => {
-    const assertMysqlSpans = (container: SerializedStreamedSpanContainer): void => {
-      const segmentSpan = container.items.find(item => item.is_segment);
-      expect(segmentSpan?.name).toBe('Test Transaction');
-
-      const dbSpans = container.items.filter(
-        spanItem => spanItem.attributes[SEMANTIC_ATTRIBUTE_SENTRY_OP]?.value === 'db',
-      );
-
-      expect(dbSpans.length).toBe(2);
-
-      const COMMON_ATTRIBUTES = {
-        'db.connection_string': {
-          type: 'string',
-          value: expect.stringMatching(/^jdbc:mysql:\/\/localhost:.*/),
-        },
-        'db.system': {
-          type: 'string',
-          value: 'mysql',
-        },
-        'db.user': {
-          type: 'string',
-          value: 'root',
-        },
-        'net.peer.name': {
-          type: 'string',
-          value: 'localhost',
-        },
-        'net.peer.port': {
-          type: 'integer',
-          value: expect.any(Number),
-        },
-        'otel.kind': {
-          type: 'string',
-          value: 'CLIENT',
-        },
-        'sentry.environment': {
-          type: 'string',
-          value: 'production',
-        },
-        'sentry.op': {
-          type: 'string',
-          value: 'db',
-        },
-        'sentry.origin': {
-          type: 'string',
-          value: isOrchestrionEnabled() ? 'auto.db.orchestrion.mysql' : 'auto.db.otel.mysql',
-        },
-        'sentry.release': {
-          type: 'string',
-          value: '1.0',
-        },
-        'sentry.sdk.name': {
-          type: 'string',
-          value: 'sentry.javascript.node',
-        },
-        'sentry.sdk.version': {
-          type: 'string',
-          value: expect.any(String),
-        },
-        'sentry.segment.id': {
-          type: 'string',
-          value: expect.stringMatching(/^[\da-f]{16}$/),
-        },
-        'sentry.segment.name': {
-          type: 'string',
-          value: 'Test Transaction',
-        },
-        'sentry.source': {
-          type: 'string',
-          value: 'task',
-        },
-        'sentry.span.source': {
-          type: 'string',
-          value: 'task',
-        },
-        [SENTRY_TRACE_LIFECYCLE]: {
-          type: 'string',
-          value: 'stream',
-        },
-      };
-
-      const COMMON_SPAN_PROPS = {
-        end_timestamp: expect.any(Number),
-        is_segment: false,
-        parent_span_id: expect.stringMatching(/^[\da-f]{16}$/),
-        span_id: expect.stringMatching(/^[\da-f]{16}$/),
-        start_timestamp: expect.any(Number),
-        status: 'ok',
-        trace_id: expect.stringMatching(/^[\da-f]{32}$/),
-      };
-
-      expect(dbSpans).toEqual([
-        {
-          attributes: {
-            ...COMMON_ATTRIBUTES,
-            'db.statement': {
-              type: 'string',
-              value: 'SELECT 1 + 1 AS solution',
-            },
-          },
-          name: 'SELECT 1 + 1 AS solution',
-          ...COMMON_SPAN_PROPS,
-        },
-        {
-          attributes: {
-            ...COMMON_ATTRIBUTES,
-            'db.statement': {
-              type: 'string',
-              value: 'SELECT NOW()',
-            },
-          },
-          name: 'SELECT NOW()',
-          ...COMMON_SPAN_PROPS,
-        },
-      ]);
-    };
-
-    describe('with connection.connect()', () => {
-      createCjsTests(__dirname, 'scenario-withConnect.mjs', 'instrument.mjs', (createTestRunner, test) => {
-        test('should auto-instrument `mysql` package when using connection.connect()', async () => {
-          await createTestRunner()
-            .withEnv({ STREAMED: 'true', MYSQL_PORT: String(mysqlPort) })
-            .expect({
-              span: assertMysqlSpans,
-            })
-            .start()
-            .completed();
-        });
-      });
-    });
-
-    describe('query without callback', () => {
-      createCjsTests(__dirname, 'scenario-withoutCallback.mjs', 'instrument.mjs', (createTestRunner, test) => {
-        test('should auto-instrument `mysql` package when using query without callback', async () => {
-          await createTestRunner()
-            .withEnv({ STREAMED: 'true', MYSQL_PORT: String(mysqlPort) })
-            .expect({ span: assertMysqlSpans })
-            .start()
-            .completed();
-        });
-      });
-    });
-
-    describe('without connection.connect()', () => {
-      createCjsTests(__dirname, 'scenario-withoutConnect.mjs', 'instrument.mjs', (createTestRunner, test) => {
-        test('should auto-instrument `mysql` package without connection.connect()', async () => {
-          await createTestRunner()
-            .withEnv({ STREAMED: 'true', MYSQL_PORT: String(mysqlPort) })
-            .expect({
-              span: assertMysqlSpans,
-            })
-            .start()
-            .completed();
-        });
-      });
-    });
-  });
 });

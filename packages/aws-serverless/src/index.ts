@@ -15,7 +15,6 @@ export {
   getClient,
   isInitialized,
   isEnabled,
-  generateInstrumentOnce,
   getCurrentScope,
   getGlobalScope,
   getIsolationScope,
@@ -60,9 +59,18 @@ export {
   nativeNodeFetchIntegration,
   onUncaughtExceptionIntegration,
   onUnhandledRejectionIntegration,
+  mistralAIIntegration,
   openAIIntegration,
+  groqIntegration,
+  togetherAIIntegration,
+  typesafeIntegration,
   langChainIntegration,
   langGraphIntegration,
+  mastraIntegration,
+  piDurableIntegration,
+  mcpServerIntegration,
+  SentryMastraExporter,
+  createFlueInstrumentation,
   modulesIntegration,
   nodeRuntimeMetricsIntegration,
   type NodeRuntimeMetricsOptions,
@@ -71,8 +79,6 @@ export {
   localVariablesIntegration,
   requestDataIntegration,
   functionToStringIntegration,
-  // eslint-disable-next-line typescript/no-deprecated
-  inboundFiltersIntegration,
   eventFiltersIntegration,
   linkedErrorsIntegration,
   setMeasurement,
@@ -90,18 +96,22 @@ export {
   getAutoPerformanceIntegrations,
   cron,
   parameterize,
+  // oxlint-disable-next-line typescript/no-deprecated
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
+  // oxlint-disable-next-line typescript/no-deprecated
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE,
   dataloaderIntegration,
   expressIntegration,
+  // oxlint-disable-next-line typescript/no-deprecated
   expressErrorHandler,
+  // oxlint-disable-next-line typescript/no-deprecated
   setupExpressErrorHandler,
+  honoIntegration,
+  honoMiddleware,
   koaIntegration,
+  // oxlint-disable-next-line typescript/no-deprecated
   setupKoaErrorHandler,
-  connectIntegration,
-  setupConnectErrorHandler,
   fastifyIntegration,
   firebaseIntegration,
   fsIntegration,
@@ -119,18 +129,20 @@ export {
   pinoIntegration,
   postgresIntegration,
   postgresJsIntegration,
+  neonIntegration,
   processSessionIntegration,
   prismaIntegration,
+  openTelemetryIntegration,
+  getOtlpTracesEndpoint,
   childProcessIntegration,
+  workerThreadsIntegration,
   createSentryWinstonTransport,
   hapiIntegration,
+  // oxlint-disable-next-line typescript/no-deprecated
   setupHapiErrorHandler,
-  // eslint-disable-next-line typescript/no-deprecated
-  honoIntegration,
-  // eslint-disable-next-line typescript/no-deprecated
-  setupHonoErrorHandler,
   spotlightIntegration,
   initOpenTelemetry,
+  spanToStaticSpanJSON,
   spanToJSON,
   spanToTraceHeader,
   spanToBaggageHeader,
@@ -139,10 +151,12 @@ export {
   updateSpanName,
   supabaseIntegration,
   instrumentSupabaseClient,
+  instrumentMistralAiClient,
+  instrumentTypeSafeClient,
   instrumentOpenAiClient,
   instrumentAnthropicAiClient,
   instrumentGoogleGenAIClient,
-  instrumentLangGraph,
+  instrumentStateGraph,
   instrumentStateGraphCompile,
   zodErrorsIntegration,
   profiler,
@@ -166,7 +180,13 @@ export {
   growthbookIntegration,
   metrics,
   spanStreamingIntegration,
+  withStaticSpan,
+  // oxlint-disable-next-line typescript/no-deprecated
   withStreamedSpan,
+  eveConversationHook,
+  eveInstrumentation,
+  eveIntegration,
+  getInstrumentedModuleNames,
 } from '@sentry/node';
 
 export {
@@ -176,10 +196,10 @@ export {
   rewriteFramesIntegration,
 } from '@sentry/core';
 
-export { awsIntegration } from './integration/aws';
+export { awsIntegration } from '@sentry/server-utils';
 export { awsLambdaIntegration } from './integration/awslambda';
 
 export { getDefaultIntegrations, init } from './init';
 // eslint-disable-next-line typescript/no-deprecated
-export { tryPatchHandler, wrapHandler } from './sdk';
+export { wrapHandler } from './sdk';
 export type { WrapperOptions } from './sdk';

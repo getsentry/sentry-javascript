@@ -1,4 +1,5 @@
-import type { ExportedHandler, TraceItem } from '@cloudflare/workers-types';
+import type { TraceItem } from '@cloudflare/workers-types';
+import type { AnyExportedHandler } from '../../types';
 import type { env as cloudflareEnv, WorkerEntrypoint } from 'cloudflare:workers';
 import { captureException, withIsolationScope } from '@sentry/core';
 import type { CloudflareOptions } from '../../client';
@@ -8,6 +9,7 @@ import { getFinalOptions } from '../../options';
 import { addCloudResourceContext } from '../../scope-utils';
 import { init } from '../../sdk';
 import { instrumentContext } from '../../utils/instrumentContext';
+import { setInvocationState } from '../../utils/invocationContext';
 import { instrumentEnv } from './instrumentEnv';
 
 /**
@@ -17,6 +19,8 @@ import { instrumentEnv } from './instrumentEnv';
 function wrapTailHandler(options: CloudflareOptions, context: ExecutionContext, fn: () => unknown): unknown {
   return withIsolationScope(async isolationScope => {
     const waitUntil = context.waitUntil.bind(context);
+
+    setInvocationState(isolationScope, { ctx: context });
 
     const client = init({ ...options, ctx: context });
     isolationScope.setClient(client);
@@ -37,8 +41,7 @@ function wrapTailHandler(options: CloudflareOptions, context: ExecutionContext, 
 /**
  * Instruments a tail handler for ExportedHandler (env/ctx come from args).
  */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function instrumentExportedHandlerTail<T extends ExportedHandler<any, any, any>>(
+export function instrumentExportedHandlerTail<T extends AnyExportedHandler>(
   handler: T,
   optionsCallback: (env: typeof cloudflareEnv) => CloudflareOptions | undefined,
 ): void {

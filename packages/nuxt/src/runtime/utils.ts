@@ -1,8 +1,29 @@
 import type { ClientOptions, Context, SerializedTraceData } from '@sentry/core';
-import { captureException, debug, getClient, getTraceMetaTags } from '@sentry/core';
+import { captureException, debug, getClient, getTraceMetaTags, isObjectLike } from '@sentry/core';
 import type { CapturedErrorContext } from 'nitropack/types';
 import type { NuxtRenderHTMLContext } from 'nuxt/app';
 import type { ComponentPublicInstance } from 'vue';
+
+/**
+ * Reads the request method and path off the event Nitro passes to its `error` hook.
+ *
+ * h3 v1 (Nitro v2) exposes `method` and `path` getters. h3 v2 (Nitro v3) has neither: the method lives
+ * on the web `Request` in `req`, and the path on the parsed `url`.
+ */
+export function getEventRequestInfo(event: unknown): { method?: string; path?: string } {
+  if (!isObjectLike(event)) {
+    return {};
+  }
+
+  const { method, path, req, url } = event as {
+    method?: string;
+    path?: string;
+    req?: { method?: string };
+    url?: { pathname?: string };
+  };
+
+  return { method: method ?? req?.method, path: path ?? url?.pathname };
+}
 
 /**
  *  Extracts the relevant context information from the error context (H3Event in Nitro Error)
@@ -16,8 +37,9 @@ export function extractErrorContext(errorContext: CapturedErrorContext | undefin
   }
 
   if (errorContext.event) {
-    ctx.method = errorContext.event._method;
-    ctx.path = errorContext.event._path;
+    const { method, path } = getEventRequestInfo(errorContext.event);
+    ctx.method = method;
+    ctx.path = path;
   }
 
   if (Array.isArray(errorContext.tags)) {

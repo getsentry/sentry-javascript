@@ -1,10 +1,11 @@
 import { GLOBAL_OBJ } from '@sentry/core';
 import { afterEach, describe, expect, it } from 'vitest';
-import { maybeParameterizeRoute } from '../../src/client/routing/parameterization';
+import { maybeParameterizeRoute, stripBasePath } from '../../src/client/routing/parameterization';
 import type { RouteManifest } from '../../src/config/manifest/types';
 
 const globalWithInjectedManifest = GLOBAL_OBJ as typeof GLOBAL_OBJ & {
   _sentryRouteManifest: string | undefined;
+  _sentryBasePath?: string;
 };
 
 describe('maybeParameterizeRoute', () => {
@@ -25,17 +26,17 @@ describe('maybeParameterizeRoute', () => {
   });
 
   describe('when manifest has static routes', () => {
-    it('should return undefined for static routes', () => {
+    it('returns the route itself for static routes', () => {
       const manifest: RouteManifest = {
         staticRoutes: [{ path: '/' }, { path: '/some/nested' }, { path: '/user' }, { path: '/users' }],
         dynamicRoutes: [],
       };
       globalWithInjectedManifest._sentryRouteManifest = JSON.stringify(manifest);
 
-      expect(maybeParameterizeRoute('/')).toBeUndefined();
-      expect(maybeParameterizeRoute('/some/nested')).toBeUndefined();
-      expect(maybeParameterizeRoute('/user')).toBeUndefined();
-      expect(maybeParameterizeRoute('/users')).toBeUndefined();
+      expect(maybeParameterizeRoute('/')).toBe('/');
+      expect(maybeParameterizeRoute('/some/nested')).toBe('/some/nested');
+      expect(maybeParameterizeRoute('/user')).toBe('/user');
+      expect(maybeParameterizeRoute('/users')).toBe('/users');
     });
   });
 
@@ -78,7 +79,7 @@ describe('maybeParameterizeRoute', () => {
       expect(maybeParameterizeRoute('/users/john-doe/settings')).toBe('/users/:id/settings');
     });
 
-    it('should return undefined for static routes even when dynamic routes exist', () => {
+    it('returns the route itself for static routes even when dynamic routes exist', () => {
       const manifest: RouteManifest = {
         staticRoutes: [{ path: '/' }, { path: '/dynamic/static' }, { path: '/static/nested' }],
         dynamicRoutes: [
@@ -91,9 +92,9 @@ describe('maybeParameterizeRoute', () => {
       };
       globalWithInjectedManifest._sentryRouteManifest = JSON.stringify(manifest);
 
-      expect(maybeParameterizeRoute('/')).toBeUndefined();
-      expect(maybeParameterizeRoute('/dynamic/static')).toBeUndefined();
-      expect(maybeParameterizeRoute('/static/nested')).toBeUndefined();
+      expect(maybeParameterizeRoute('/')).toBe('/');
+      expect(maybeParameterizeRoute('/dynamic/static')).toBe('/dynamic/static');
+      expect(maybeParameterizeRoute('/static/nested')).toBe('/static/nested');
     });
 
     it('should handle catchall routes', () => {
@@ -137,11 +138,11 @@ describe('maybeParameterizeRoute', () => {
       };
       globalWithInjectedManifest._sentryRouteManifest = JSON.stringify(manifest);
 
-      expect(maybeParameterizeRoute('/(auth)/login')).toBeUndefined();
-      expect(maybeParameterizeRoute('/(auth)/signup')).toBeUndefined();
-      expect(maybeParameterizeRoute('/(dashboard)/dashboard')).toBeUndefined();
-      expect(maybeParameterizeRoute('/(dashboard)/settings/profile')).toBeUndefined();
-      expect(maybeParameterizeRoute('/(marketing)/public/about')).toBeUndefined();
+      expect(maybeParameterizeRoute('/(auth)/login')).toBe('/(auth)/login');
+      expect(maybeParameterizeRoute('/(auth)/signup')).toBe('/(auth)/signup');
+      expect(maybeParameterizeRoute('/(dashboard)/dashboard')).toBe('/(dashboard)/dashboard');
+      expect(maybeParameterizeRoute('/(dashboard)/settings/profile')).toBe('/(dashboard)/settings/profile');
+      expect(maybeParameterizeRoute('/(marketing)/public/about')).toBe('/(marketing)/public/about');
       expect(maybeParameterizeRoute('/(dashboard)/dashboard/123')).toBe('/(dashboard)/dashboard/:id');
     });
 
@@ -165,11 +166,11 @@ describe('maybeParameterizeRoute', () => {
       };
       globalWithInjectedManifest._sentryRouteManifest = JSON.stringify(manifest);
 
-      expect(maybeParameterizeRoute('/login')).toBeUndefined();
-      expect(maybeParameterizeRoute('/signup')).toBeUndefined();
-      expect(maybeParameterizeRoute('/dashboard')).toBeUndefined();
-      expect(maybeParameterizeRoute('/settings/profile')).toBeUndefined();
-      expect(maybeParameterizeRoute('/public/about')).toBeUndefined();
+      expect(maybeParameterizeRoute('/login')).toBe('/login');
+      expect(maybeParameterizeRoute('/signup')).toBe('/signup');
+      expect(maybeParameterizeRoute('/dashboard')).toBe('/dashboard');
+      expect(maybeParameterizeRoute('/settings/profile')).toBe('/settings/profile');
+      expect(maybeParameterizeRoute('/public/about')).toBe('/public/about');
       expect(maybeParameterizeRoute('/dashboard/123')).toBe('/dashboard/:id');
     });
 
@@ -283,7 +284,7 @@ describe('maybeParameterizeRoute', () => {
       };
       globalWithInjectedManifest._sentryRouteManifest = JSON.stringify(manifest);
 
-      expect(maybeParameterizeRoute('/')).toBeUndefined();
+      expect(maybeParameterizeRoute('/')).toBe('/');
     });
 
     it('should handle complex nested dynamic routes', () => {
@@ -307,17 +308,17 @@ describe('maybeParameterizeRoute', () => {
 
   describe('realistic Next.js App Router patterns', () => {
     it.each([
-      ['/', undefined],
-      ['/some/nested', undefined],
-      ['/user', undefined],
-      ['/users', undefined],
-      ['/dynamic/static', undefined],
-      ['/static/nested', undefined],
-      ['/login', undefined],
-      ['/signup', undefined],
-      ['/dashboard', undefined],
-      ['/settings/profile', undefined],
-      ['/public/about', undefined],
+      ['/', '/'],
+      ['/some/nested', '/some/nested'],
+      ['/user', '/user'],
+      ['/users', '/users'],
+      ['/dynamic/static', '/dynamic/static'],
+      ['/static/nested', '/static/nested'],
+      ['/login', '/login'],
+      ['/signup', '/signup'],
+      ['/dashboard', '/dashboard'],
+      ['/settings/profile', '/settings/profile'],
+      ['/public/about', '/public/about'],
 
       ['/dynamic/123', '/dynamic/:id'],
       ['/dynamic/abc', '/dynamic/:id'],
@@ -472,8 +473,8 @@ describe('maybeParameterizeRoute', () => {
       };
       globalWithInjectedManifest._sentryRouteManifest = JSON.stringify(manifest);
 
-      // Static route should take precedence (no parameterization)
-      expect(maybeParameterizeRoute('/static')).toBeUndefined();
+      // Static route should take precedence over the catch-alls
+      expect(maybeParameterizeRoute('/static')).toBe('/static');
 
       // Single segment should match regular dynamic route
       expect(maybeParameterizeRoute('/dynamic')).toBe('/:param');
@@ -515,10 +516,10 @@ describe('maybeParameterizeRoute', () => {
       };
       globalWithInjectedManifest._sentryRouteManifest = JSON.stringify(manifest);
 
-      // Static routes should not be parameterized
-      expect(maybeParameterizeRoute('/')).toBeUndefined();
-      expect(maybeParameterizeRoute('/about')).toBeUndefined();
-      expect(maybeParameterizeRoute('/contact')).toBeUndefined();
+      // Static routes should resolve to themselves rather than falling through to a catch-all
+      expect(maybeParameterizeRoute('/')).toBe('/');
+      expect(maybeParameterizeRoute('/about')).toBe('/about');
+      expect(maybeParameterizeRoute('/contact')).toBe('/contact');
 
       // Specific dynamic routes should take precedence over catch-all
       expect(maybeParameterizeRoute('/blog/my-post')).toBe('/blog/:slug');
@@ -642,6 +643,55 @@ describe('maybeParameterizeRoute', () => {
 
       // Catch-all should be used when no more specific routes match
       expect(maybeParameterizeRoute('/some/random/path')).toBe('/:catchall*');
+    });
+
+    it('should prefer a longer route over a shorter catch-all that also matches', () => {
+      const manifest: RouteManifest = {
+        staticRoutes: [],
+        dynamicRoutes: [
+          {
+            path: '/:locale/:notFound*',
+            regex: '^/([^/]+)/(.+)$',
+            paramNames: ['locale', 'notFound'],
+          },
+          {
+            path: '/:locale/guides/:category/:rest*',
+            regex: '^/([^/]+)/guides/([^/]+)/(.+)$',
+            paramNames: ['locale', 'category', 'rest'],
+          },
+        ],
+      };
+      globalWithInjectedManifest._sentryRouteManifest = JSON.stringify(manifest);
+
+      expect(maybeParameterizeRoute('/fr/guides/renting/foo')).toBe('/:locale/guides/:category/:rest*');
+
+      // The catch-all still wins where nothing narrower matches
+      expect(maybeParameterizeRoute('/fr/anything/else')).toBe('/:locale/:notFound*');
+    });
+
+    it('should prefer a route that ends over one that continues into a catch-all', () => {
+      const manifest: RouteManifest = {
+        staticRoutes: [],
+        dynamicRoutes: [
+          {
+            path: '/:locale/:notFound*',
+            regex: '^/([^/]+)/(.+)$',
+            paramNames: ['locale', 'notFound'],
+            hasOptionalPrefix: true,
+          },
+          {
+            path: '/:locale',
+            regex: '^/([^/]+)$',
+            paramNames: ['locale'],
+            hasOptionalPrefix: true,
+          },
+        ],
+      };
+      globalWithInjectedManifest._sentryRouteManifest = JSON.stringify(manifest);
+
+      // '/fr' matches '/:locale' directly, and '/:locale/:notFound*' only via the optional prefix
+      expect(maybeParameterizeRoute('/fr')).toBe('/:locale');
+      expect(maybeParameterizeRoute('/')).toBe('/:locale');
     });
   });
 
@@ -827,8 +877,8 @@ describe('maybeParameterizeRoute', () => {
       };
       globalWithInjectedManifest._sentryRouteManifest = JSON.stringify(manifest);
 
-      // Root should not be parameterized (it's a static route)
-      expect(maybeParameterizeRoute('/')).toBeUndefined();
+      // Root is a static route, so it wins over the locale-prefixed patterns
+      expect(maybeParameterizeRoute('/')).toBe('/');
 
       // Default locale (English, no prefix) - this was the bug
       expect(maybeParameterizeRoute('/hola')).toBe('/:locale/hola');
@@ -942,10 +992,10 @@ describe('maybeParameterizeRoute', () => {
       };
       globalWithInjectedManifest._sentryRouteManifest = JSON.stringify(manifest);
 
-      expect(maybeParameterizeRoute('/about/')).toBeUndefined();
-      expect(maybeParameterizeRoute('/settings/profile/')).toBeUndefined();
+      expect(maybeParameterizeRoute('/about/')).toBe('/about');
+      expect(maybeParameterizeRoute('/settings/profile/')).toBe('/settings/profile');
       // Root path should still work
-      expect(maybeParameterizeRoute('/')).toBeUndefined();
+      expect(maybeParameterizeRoute('/')).toBe('/');
     });
 
     it('should match dynamic routes when path has a trailing slash', () => {
@@ -994,8 +1044,8 @@ describe('maybeParameterizeRoute', () => {
       globalWithInjectedManifest._sentryRouteManifest = JSON.stringify(manifest);
 
       // Static routes with trailing slash should NOT fall through to catch-all
-      expect(maybeParameterizeRoute('/about/')).toBeUndefined();
-      expect(maybeParameterizeRoute('/contact/')).toBeUndefined();
+      expect(maybeParameterizeRoute('/about/')).toBe('/about');
+      expect(maybeParameterizeRoute('/contact/')).toBe('/contact');
 
       // Dynamic routes with trailing slash should match correctly, not catch-all
       expect(maybeParameterizeRoute('/blog/my-post/')).toBe('/blog/:slug');
@@ -1025,13 +1075,13 @@ describe('maybeParameterizeRoute', () => {
       globalWithInjectedManifest._sentryRouteManifest = JSON.stringify(manifest);
 
       // Static route with trailing slash should not match the optional catch-all
-      expect(maybeParameterizeRoute('/static-page/')).toBeUndefined();
+      expect(maybeParameterizeRoute('/static-page/')).toBe('/static-page');
 
       // Dynamic route with trailing slash should not match the optional catch-all
       expect(maybeParameterizeRoute('/parameterized/value/')).toBe('/parameterized/:param');
 
       // Root with trailing slash is just '/' - should match static
-      expect(maybeParameterizeRoute('/')).toBeUndefined();
+      expect(maybeParameterizeRoute('/')).toBe('/');
     });
 
     it('should produce the same result for paths with and without trailing slashes', () => {
@@ -1061,5 +1111,28 @@ describe('maybeParameterizeRoute', () => {
       // Root
       expect(maybeParameterizeRoute('/')).toBe(maybeParameterizeRoute('/'));
     });
+  });
+});
+
+describe('stripBasePath', () => {
+  afterEach(() => {
+    delete globalWithInjectedManifest._sentryBasePath;
+  });
+
+  it('strips the base path from paths under it', () => {
+    globalWithInjectedManifest._sentryBasePath = '/docs';
+
+    expect(stripBasePath('/docs/posts/hello')).toBe('/posts/hello');
+    expect(stripBasePath('/docs')).toBe('/');
+  });
+
+  it('leaves paths that only share a prefix with the base path alone', () => {
+    globalWithInjectedManifest._sentryBasePath = '/docs';
+
+    expect(stripBasePath('/documentation')).toBe('/documentation');
+  });
+
+  it('leaves paths alone without a base path', () => {
+    expect(stripBasePath('/docs/posts/hello')).toBe('/docs/posts/hello');
   });
 });

@@ -1,13 +1,21 @@
+import {
+  DB_COLLECTION_NAME,
+  DB_OPERATION_NAME,
+  DB_SYSTEM_NAME,
+  SENTRY_OP,
+  SENTRY_ORIGIN,
+  SENTRY_TRACE_LIFECYCLE,
+} from '@sentry/conventions/attributes';
+import { DB } from '@sentry/conventions/op';
 import { MongoMemoryServer } from 'mongodb-memory-server-global';
-import { afterAll, beforeAll, expect } from 'vitest';
-import { conditionalTest } from '../../../utils';
+import { afterAll, beforeAll, describe, expect } from 'vitest';
 import { cleanupChildProcesses, createEsmAndCjsTests } from '../../../utils/runner';
 
 // Pins the highest mongoose 9 below 9.7, the top of the IITM patcher's `>=5.9.7 <9.7.0` range, so the
 // monkey-patch path is exercised against a real mongoose 9. mongoose >= 9.7 publishes via
 // diagnostics_channel and is covered by the `mongoose-tracing-channel` suite instead.
-// mongoose 9 requires Node >=20.19, so this suite is skipped on older Node.
-conditionalTest({ min: 20 })('Mongoose v9 Test', () => {
+describe('Mongoose v9 Test', () => {
+  const origin = 'auto.db.mongoose';
   let mongoServer: MongoMemoryServer;
 
   beforeAll(async () => {
@@ -22,31 +30,22 @@ conditionalTest({ min: 20 })('Mongoose v9 Test', () => {
     cleanupChildProcesses();
   });
 
-  const expectedSpan = (operation: string) =>
+  const expectedStreamedSpan = (operation: string) =>
     expect.objectContaining({
-      data: expect.objectContaining({
-        'db.mongodb.collection': 'blogposts',
-        'db.operation': operation,
-        'db.system': 'mongoose',
+      name: `${operation} blogposts`,
+      is_segment: false,
+      parent_span_id: expect.stringMatching(/^[\da-f]{16}$/),
+      attributes: expect.objectContaining({
+        [DB_COLLECTION_NAME]: { type: 'string', value: 'blogposts' },
+        [DB_OPERATION_NAME]: { type: 'string', value: operation },
+        [DB_SYSTEM_NAME]: { type: 'string', value: 'mongodb' },
+        [SENTRY_OP]: { type: 'string', value: DB },
+        [SENTRY_ORIGIN]: { type: 'string', value: origin },
+        [SENTRY_TRACE_LIFECYCLE]: { type: 'string', value: 'stream' },
       }),
-      description: `mongoose.BlogPost.${operation}`,
-      op: 'db',
-      origin: 'auto.db.otel.mongoose',
     });
 
-  const EXPECTED_TRANSACTION = {
-    transaction: 'Test Transaction',
-    spans: expect.arrayContaining([
-      expectedSpan('save'),
-      expectedSpan('findOne'),
-      expectedSpan('aggregate'),
-      expectedSpan('insertMany'),
-      expectedSpan('bulkWrite'),
-      // Document instance methods are instrumented via Query.exec on v9 (no doc-method patch).
-      expectedSpan('updateOne'),
-      expectedSpan('deleteOne'),
-    ]),
-  };
+  const STREAMED_OPERATIONS = ['save', 'findOne', 'aggregate', 'insertMany', 'bulkWrite', 'updateOne', 'deleteOne'];
 
   createEsmAndCjsTests(
     __dirname,
@@ -54,7 +53,18 @@ conditionalTest({ min: 20 })('Mongoose v9 Test', () => {
     'instrument.mjs',
     (createTestRunner, test) => {
       test('auto-instruments `mongoose` v9.', async () => {
-        await createTestRunner().expect({ transaction: EXPECTED_TRANSACTION }).start().completed();
+        await createTestRunner()
+          .expect({
+            span: container => {
+              expect(container.items.find(item => item.is_segment)?.name).toBe('Test Transaction');
+
+              for (const operation of STREAMED_OPERATIONS) {
+                expect(container.items).toContainEqual(expectedStreamedSpan(operation));
+              }
+            },
+          })
+          .start()
+          .completed();
       });
     },
     { additionalDependencies: { mongoose: '>=9 <9.7' } },

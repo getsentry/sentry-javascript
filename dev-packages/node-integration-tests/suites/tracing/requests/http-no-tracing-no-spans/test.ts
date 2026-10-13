@@ -1,8 +1,11 @@
 import { createTestServer } from '@sentry-internal/test-utils';
 import { describe, expect } from 'vitest';
 import { createEsmAndCjsTests } from '../../../../utils/runner';
+import { supports } from '../../../../utils';
 
-describe('outgoing http requests with tracing & spans disabled', () => {
+// Bun before 1.4 does not instrument outgoing `node:http` requests.
+// See https://github.com/getsentry/sentry-javascript/issues/23881
+describe.runIf(supports({ bunMin: '1.4.0' }))('outgoing http requests with tracing & spans disabled', () => {
   createEsmAndCjsTests(__dirname, 'scenario.mjs', 'instrument.mjs', (createRunner, test) => {
     test('outgoing http requests are correctly instrumented with tracing & spans disabled', async () => {
       expect.assertions(11);
@@ -48,7 +51,7 @@ describe('outgoing http requests with tracing & spans disabled', () => {
               {
                 category: 'http',
                 data: {
-                  'http.method': 'GET',
+                  'http.request.method': 'GET',
                   url: `${SERVER_URL}/api/v0`,
                   status_code: 200,
                   ADDED_PATH: '/api/v0',
@@ -59,7 +62,7 @@ describe('outgoing http requests with tracing & spans disabled', () => {
               {
                 category: 'http',
                 data: {
-                  'http.method': 'GET',
+                  'http.request.method': 'GET',
                   url: `${SERVER_URL}/api/v1`,
                   status_code: 200,
                   ADDED_PATH: '/api/v1',
@@ -70,7 +73,7 @@ describe('outgoing http requests with tracing & spans disabled', () => {
               {
                 category: 'http',
                 data: {
-                  'http.method': 'GET',
+                  'http.request.method': 'GET',
                   url: `${SERVER_URL}/api/v2`,
                   status_code: 200,
                   ADDED_PATH: '/api/v2',
@@ -81,7 +84,7 @@ describe('outgoing http requests with tracing & spans disabled', () => {
               {
                 category: 'http',
                 data: {
-                  'http.method': 'GET',
+                  'http.request.method': 'GET',
                   url: `${SERVER_URL}/api/v3`,
                   status_code: 200,
                   ADDED_PATH: '/api/v3',

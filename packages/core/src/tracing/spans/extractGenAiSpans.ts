@@ -1,7 +1,7 @@
 import type { Client } from '../../client';
 import type { SpanContainerItem } from '../../types/envelope';
 import type { Event } from '../../types/event';
-import { isBrowser } from '../../utils/isBrowser';
+import { createSpanContainerItem } from './envelope';
 import { hasSpanStreamingEnabled } from './hasSpanStreamingEnabled';
 import { spanJsonToSerializedStreamedSpan } from './spanJsonToStreamedSpan';
 
@@ -20,7 +20,6 @@ export function extractGenAiSpansFromEvent(event: Event, client: Client): SpanCo
     event.type !== 'transaction' ||
     !event.spans?.length ||
     !event.sdkProcessingMetadata?.hasGenAiSpans ||
-    client.getOptions().streamGenAiSpans === false ||
     hasSpanStreamingEnabled(client)
   ) {
     return undefined;
@@ -43,16 +42,5 @@ export function extractGenAiSpansFromEvent(event: Event, client: Client): SpanCo
 
   event.spans = remainingSpans;
 
-  const inferSetting = client.getDataCollectionOptions().userInfo ? 'auto' : 'never';
-
-  return [
-    { type: 'span', item_count: genAiSpans.length, content_type: 'application/vnd.sentry.items.span.v2+json' },
-    {
-      version: 2,
-      ...(isBrowser() && {
-        ingest_settings: { infer_ip: inferSetting, infer_user_agent: inferSetting },
-      }),
-      items: genAiSpans,
-    },
-  ];
+  return createSpanContainerItem(genAiSpans, client);
 }

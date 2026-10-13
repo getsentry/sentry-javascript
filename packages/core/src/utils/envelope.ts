@@ -9,12 +9,10 @@ import type {
   Envelope,
   EnvelopeItemType,
   EventEnvelopeHeaders,
-  SpanItem,
 } from '../types/envelope';
-import type { Event } from '../types/event';
+import type { Event, EventType } from '../types/event';
 import type { SdkInfo } from '../types/sdkinfo';
 import type { SdkMetadata } from '../types/sdkmetadata';
-import type { SpanJSON } from '../types/span';
 import { dsnToString } from './dsn';
 import { normalize } from './normalize';
 import { safeDateNow } from './randomSafeContext';
@@ -177,17 +175,6 @@ export function parseEnvelope(env: string | Uint8Array): Envelope {
 }
 
 /**
- * Creates envelope item for a single span
- */
-export function createSpanEnvelopeItem(spanJson: Partial<SpanJSON>): SpanItem {
-  const spanHeaders: SpanItem[0] = {
-    type: 'span',
-  };
-
-  return [spanHeaders, spanJson];
-}
-
-/**
  * Creates attachment envelope items
  */
 export function createAttachmentEnvelopeItem(attachment: Attachment): AttachmentItem {
@@ -263,4 +250,11 @@ export function createEventEnvelopeHeaders(
       trace: dynamicSamplingContext,
     }),
   };
+}
+
+/**
+ * Maps an event type to the data category used for client reports.
+ */
+export function getDataCategoryByType(type: EventType): DataCategory {
+  return type === 'replay_event' ? 'replay' : type || 'error';
 }

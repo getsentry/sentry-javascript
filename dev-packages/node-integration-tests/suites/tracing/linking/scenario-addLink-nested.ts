@@ -1,3 +1,4 @@
+import { SENTRY_LINK_TYPE } from '@sentry/conventions/attributes';
 import * as Sentry from '@sentry/node';
 import { loggingTransport } from '@sentry-internal/node-integration-tests';
 
@@ -15,7 +16,7 @@ Sentry.startSpan({ name: 'parent1' }, async parentSpan1 => {
   Sentry.startSpan({ name: 'child1.1' }, async childSpan1 => {
     childSpan1.addLink({
       context: parentSpan1.spanContext(),
-      attributes: { 'sentry.link.type': 'previous_trace' },
+      attributes: { [SENTRY_LINK_TYPE]: 'previous_trace' },
     });
 
     childSpan1.end();
@@ -25,7 +26,7 @@ Sentry.startSpan({ name: 'parent1' }, async parentSpan1 => {
   Sentry.startSpan({ name: 'child1.2' }, async childSpan2 => {
     childSpan2.addLink({
       context: parentSpan1.spanContext(),
-      attributes: { 'sentry.link.type': 'previous_trace' },
+      attributes: { [SENTRY_LINK_TYPE]: 'previous_trace' },
     });
 
     childSpan2.end();

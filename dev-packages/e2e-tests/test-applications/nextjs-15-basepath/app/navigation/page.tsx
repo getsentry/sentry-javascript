@@ -18,6 +18,15 @@ export default function Page() {
         </button>
       </li>
       <li>
+        <button
+          onClick={() => {
+            router.push(`${window.location.origin}/my-app/navigation/42/router-push`);
+          }}
+        >
+          Absolute URL push
+        </button>
+      </li>
+      <li>
         <Link href="/navigation/42/link">Normal Link</Link>
       </li>
     </ul>

@@ -20,7 +20,7 @@ export type {
   ExclusiveEventHintOrCaptureContext,
   Log,
   LogSeverityLevel,
-} from '@sentry/core/browser';
+} from '@sentry/core';
 
 export type { BrowserOptions } from './client';
 
@@ -60,28 +60,30 @@ export {
   withScope,
   withIsolationScope,
   functionToStringIntegration,
-  // eslint-disable-next-line typescript/no-deprecated
-  inboundFiltersIntegration,
   eventFiltersIntegration,
   dedupeIntegration,
+  consoleIntegration,
   parameterize,
   startSession,
   captureSession,
   endSession,
+  spanToStaticSpanJSON,
   spanToJSON,
   spanToTraceHeader,
   spanToBaggageHeader,
   updateSpanName,
+  withStaticSpan,
+  // oxlint-disable-next-line typescript/no-deprecated
   withStreamedSpan,
-  metrics,
-} from '@sentry/core/browser';
+} from '@sentry/core';
 
 export {
+  // oxlint-disable-next-line typescript/no-deprecated
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
+  // oxlint-disable-next-line typescript/no-deprecated
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE,
-} from '@sentry/core/browser';
+} from '@sentry/core';
 
 export { WINDOW } from './helpers';
 export { BrowserClient } from './client';

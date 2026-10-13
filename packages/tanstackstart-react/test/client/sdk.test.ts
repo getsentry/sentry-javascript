@@ -10,6 +10,7 @@ describe('TanStack Start React Client SDK', () => {
     beforeEach(() => {
       vi.clearAllMocks();
       vi.unstubAllGlobals();
+      SentryReact.getCurrentScope().setClient(undefined);
     });
 
     it('Adds TanStack Start React client metadata to the SDK options', () => {
@@ -29,7 +30,7 @@ describe('TanStack Start React Client SDK', () => {
               { name: 'npm:@sentry/react', version: SDK_VERSION },
             ],
             settings: {
-              infer_ip: 'never',
+              infer_ip: 'auto',
             },
           },
         },

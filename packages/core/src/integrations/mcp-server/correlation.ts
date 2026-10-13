@@ -10,12 +10,19 @@
  * Falls back to WeakMap by transport instance for stateless transports (no sessionId).
  */
 
+import { ERROR_TYPE, RPC_RESPONSE_STATUS_CODE } from '@sentry/conventions/attributes';
 import { SPAN_STATUS_ERROR } from '../../tracing';
 import type { Span } from '../../types/span';
-import { MCP_PROTOCOL_VERSION_ATTRIBUTE } from './attributes';
+import { MCP_PROTOCOL_VERSION_ATTRIBUTE, MCP_TOOL_RESULT_IS_ERROR_ATTRIBUTE } from './attributes';
+import { isJsonRpcServerError } from './errorCapture';
 import { extractPromptResultAttributes, extractToolResultAttributes } from './resultExtraction';
-import { buildServerAttributesFromInfo, extractSessionDataFromInitializeResponse } from './sessionExtraction';
-import type { MCPTransport, RequestId, RequestSpanMapValue, ResolvedMcpOptions } from './types';
+import {
+  buildServerAttributesFromInfo,
+  extractSessionDataFromInitializeResponse,
+  extractSessionDataFromResponse,
+} from './sessionExtraction';
+import { updateSessionDataForTransport } from './sessionManagement';
+import type { JsonRpcError, MCPTransport, RequestId, RequestSpanMapValue, ResolvedMcpOptions } from './types';
 
 /**
  * Session-scoped correlation for stateful transports (with sessionId)
@@ -64,12 +71,20 @@ function getOrCreateSpanMap(transport: MCPTransport): Map<RequestId, RequestSpan
  * @param requestId - Request identifier
  * @param span - Active span to correlate
  * @param method - MCP method name
+ * @param capturePolicy - Capture policy resolved when the request began
  */
-export function storeSpanForRequest(transport: MCPTransport, requestId: RequestId, span: Span, method: string): void {
+export function storeSpanForRequest(
+  transport: MCPTransport,
+  requestId: RequestId,
+  span: Span,
+  method: string,
+  capturePolicy: ResolvedMcpOptions,
+): void {
   const spanMap = getOrCreateSpanMap(transport);
   spanMap.set(requestId, {
     span,
     method,
+    capturePolicy,
     // oxlint-disable-next-line sdk/no-unsafe-random-apis
     startTime: Date.now(),
   });
@@ -80,40 +95,50 @@ export function storeSpanForRequest(transport: MCPTransport, requestId: RequestI
  * @param transport - MCP transport instance
  * @param requestId - Request identifier
  * @param result - Execution result for attribute extraction
- * @param options - Resolved MCP options
- * @param hasError - Whether the JSON-RPC response contained an error
+ * @param error - The JSON-RPC error response, if any
  */
 export function completeSpanWithResults(
   transport: MCPTransport,
   requestId: RequestId,
   result: unknown,
-  options: ResolvedMcpOptions,
-  hasError = false,
+  error?: JsonRpcError,
 ): void {
   const spanMap = getOrCreateSpanMap(transport);
   const spanData = spanMap.get(requestId);
   if (spanData) {
     const { span, method } = spanData;
+    const responseSessionData =
+      method === 'initialize'
+        ? extractSessionDataFromInitializeResponse(result)
+        : extractSessionDataFromResponse(result);
+    if (method === 'initialize' && (responseSessionData.protocolVersion || responseSessionData.serverInfo)) {
+      updateSessionDataForTransport(transport, responseSessionData);
+    }
+    const responseAttributes: Record<string, string | number> = {
+      ...buildServerAttributesFromInfo(responseSessionData.serverInfo),
+    };
+    if (responseSessionData.protocolVersion) {
+      responseAttributes[MCP_PROTOCOL_VERSION_ATTRIBUTE] = responseSessionData.protocolVersion;
+    }
+    if (Object.keys(responseAttributes).length > 0) {
+      span.setAttributes(responseAttributes);
+    }
 
-    if (hasError) {
-      span.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
-    } else if (method === 'initialize') {
-      const sessionData = extractSessionDataFromInitializeResponse(result);
-      const serverAttributes = buildServerAttributesFromInfo(sessionData.serverInfo);
-
-      const initAttributes: Record<string, string | number> = {
-        ...serverAttributes,
-      };
-      if (sessionData.protocolVersion) {
-        initAttributes[MCP_PROTOCOL_VERSION_ATTRIBUTE] = sessionData.protocolVersion;
+    if (error) {
+      span.setAttributes({ [RPC_RESPONSE_STATUS_CODE]: String(error.code) });
+      if (isJsonRpcServerError(error.code)) {
+        span.setAttributes({ [ERROR_TYPE]: String(error.code) });
+        span.setStatus({ code: SPAN_STATUS_ERROR, message: error.message });
       }
-
-      span.setAttributes(initAttributes);
     } else if (method === 'tools/call') {
-      const toolAttributes = extractToolResultAttributes(result, options.recordOutputs);
+      const toolAttributes = extractToolResultAttributes(result, spanData.capturePolicy.recordOutputs);
       span.setAttributes(toolAttributes);
+      if (toolAttributes[MCP_TOOL_RESULT_IS_ERROR_ATTRIBUTE] === true) {
+        span.setAttributes({ [ERROR_TYPE]: 'tool_error' });
+        span.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
+      }
     } else if (method === 'prompts/get') {
-      const promptAttributes = extractPromptResultAttributes(result, options.recordOutputs);
+      const promptAttributes = extractPromptResultAttributes(result, spanData.capturePolicy.recordOutputs);
       span.setAttributes(promptAttributes);
     }
 

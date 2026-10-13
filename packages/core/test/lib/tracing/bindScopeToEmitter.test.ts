@@ -1,17 +1,16 @@
 import { EventEmitter } from 'node:events';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { getCurrentScope, getGlobalScope, getIsolationScope, setCurrentClient, withScope } from '../../../src';
+import { getCurrentScope, setCurrentClient, withScope } from '../../../src';
 import { Scope } from '../../../src/scope';
 import { bindScopeToEmitter } from '../../../src/tracing/bindScopeToEmitter';
 import { startInactiveSpan, withActiveSpan } from '../../../src/tracing/trace';
 import { getActiveSpan } from '../../../src/utils/spanUtils';
 import { getDefaultTestClientOptions, TestClient } from '../../mocks/client';
+import { resetGlobals } from '../../testutils';
 
 describe('bindScopeToEmitter', () => {
   beforeEach(() => {
-    getCurrentScope().clear();
-    getIsolationScope().clear();
-    getGlobalScope().clear();
+    resetGlobals();
 
     const client = new TestClient(getDefaultTestClientOptions({ tracesSampleRate: 1 }));
     setCurrentClient(client);

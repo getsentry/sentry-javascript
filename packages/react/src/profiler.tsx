@@ -1,8 +1,17 @@
-import { startInactiveSpan } from '@sentry/browser';
+import { getClient, startInactiveSpan } from '@sentry/browser';
 import type { Span } from '@sentry/core';
-import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, spanToJSON, timestampInSeconds, withActiveSpan } from '@sentry/core';
+import {
+  hasSpanStreamingEnabled,
+  spanToJSON,
+  timestampInSeconds,
+  UI_MOUNT_SPAN_NAME_FALLBACK,
+  UI_RENDER_SPAN_NAME_FALLBACK,
+  UI_UPDATE_SPAN_NAME_FALLBACK,
+  withActiveSpan,
+} from '@sentry/core';
+import { SENTRY_DESCRIPTION, SENTRY_OP, UI_COMPONENT_NAME, SENTRY_ORIGIN } from '@sentry/conventions/attributes';
+import { UI_MOUNT, UI_RENDER, UI_UPDATE } from '@sentry/conventions/op';
 import * as React from 'react';
-import { REACT_MOUNT_OP, REACT_RENDER_OP, REACT_UPDATE_OP } from './constants';
 import { hoistNonReactStatics } from './hoist-non-react-statics';
 
 export const UNKNOWN_COMPONENT = 'unknown';
@@ -46,13 +55,19 @@ class Profiler extends React.Component<ProfilerProps> {
       return;
     }
 
+    const client = getClient();
+    const hasSpanStreaming = !!client && hasSpanStreamingEnabled(client);
+    const description = `<${name}>`;
+    const componentName = name === UNKNOWN_COMPONENT ? undefined : name;
+
     this._mountSpan = startInactiveSpan({
-      name: `<${name}>`,
+      name: hasSpanStreaming ? componentName || UI_MOUNT_SPAN_NAME_FALLBACK : description,
       onlyIfParent: true,
-      op: REACT_MOUNT_OP,
       attributes: {
-        [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ui.react.profiler',
-        'ui.component_name': name,
+        [SENTRY_OP]: UI_MOUNT,
+        [SENTRY_ORIGIN]: 'auto.ui.react.profiler',
+        ...(componentName && { [UI_COMPONENT_NAME]: componentName }),
+        ...(hasSpanStreaming && { [SENTRY_DESCRIPTION]: description }),
       },
     });
   }
@@ -75,15 +90,21 @@ class Profiler extends React.Component<ProfilerProps> {
       if (changedProps.length > 0) {
         const now = timestampInSeconds();
         this._updateSpan = withActiveSpan(this._mountSpan, () => {
+          const client = getClient();
+          const hasSpanStreaming = !!client && hasSpanStreamingEnabled(client);
+          const description = `<${this.props.name}>`;
+          const componentName = this.props.name === UNKNOWN_COMPONENT ? undefined : this.props.name;
+
           return startInactiveSpan({
-            name: `<${this.props.name}>`,
+            name: hasSpanStreaming ? componentName || UI_UPDATE_SPAN_NAME_FALLBACK : description,
             onlyIfParent: true,
-            op: REACT_UPDATE_OP,
             startTime: now,
             attributes: {
-              [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ui.react.profiler',
-              'ui.component_name': this.props.name,
+              [SENTRY_OP]: UI_UPDATE,
+              [SENTRY_ORIGIN]: 'auto.ui.react.profiler',
+              ...(componentName && { [UI_COMPONENT_NAME]: componentName }),
               'ui.react.changed_props': changedProps,
+              ...(hasSpanStreaming && { [SENTRY_DESCRIPTION]: description }),
             },
           });
         });
@@ -107,16 +128,22 @@ class Profiler extends React.Component<ProfilerProps> {
     const { name, includeRender = true } = this.props;
 
     if (this._mountSpan && includeRender) {
-      const startTime = spanToJSON(this._mountSpan).timestamp;
+      const startTime = spanToJSON(this._mountSpan).end_timestamp;
       withActiveSpan(this._mountSpan, () => {
+        const client = getClient();
+        const hasSpanStreaming = !!client && hasSpanStreamingEnabled(client);
+        const description = `<${name}>`;
+        const componentName = name === UNKNOWN_COMPONENT ? undefined : name;
+
         const renderSpan = startInactiveSpan({
           onlyIfParent: true,
-          name: `<${name}>`,
-          op: REACT_RENDER_OP,
+          name: hasSpanStreaming ? componentName || UI_RENDER_SPAN_NAME_FALLBACK : description,
           startTime,
           attributes: {
-            [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ui.react.profiler',
-            'ui.component_name': name,
+            [SENTRY_OP]: UI_RENDER,
+            [SENTRY_ORIGIN]: 'auto.ui.react.profiler',
+            ...(componentName && { [UI_COMPONENT_NAME]: componentName }),
+            ...(hasSpanStreaming && { [SENTRY_DESCRIPTION]: description }),
           },
         });
         if (renderSpan) {
@@ -177,7 +204,6 @@ function withProfiler<P extends Record<string, any>>(
  *
  * `useProfiler` is a React hook that profiles a React component.
  *
- * Requires React 16.8 or above.
  * @param name displayName of component being profiled
  */
 function useProfiler(
@@ -192,13 +218,19 @@ function useProfiler(
       return undefined;
     }
 
+    const client = getClient();
+    const hasSpanStreaming = !!client && hasSpanStreamingEnabled(client);
+    const description = `<${name}>`;
+    const componentName = name === UNKNOWN_COMPONENT ? undefined : name;
+
     return startInactiveSpan({
-      name: `<${name}>`,
+      name: hasSpanStreaming ? componentName || UI_MOUNT_SPAN_NAME_FALLBACK : description,
       onlyIfParent: true,
-      op: REACT_MOUNT_OP,
       attributes: {
-        [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ui.react.profiler',
-        'ui.component_name': name,
+        [SENTRY_OP]: UI_MOUNT,
+        [SENTRY_ORIGIN]: 'auto.ui.react.profiler',
+        ...(componentName && { [UI_COMPONENT_NAME]: componentName }),
+        ...(hasSpanStreaming && { [SENTRY_DESCRIPTION]: description }),
       },
     });
   });
@@ -210,17 +242,23 @@ function useProfiler(
 
     return (): void => {
       if (mountSpan && options.hasRenderSpan) {
-        const startTime = spanToJSON(mountSpan).timestamp;
+        const startTime = spanToJSON(mountSpan).end_timestamp;
         const endTimestamp = timestampInSeconds();
 
+        const client = getClient();
+        const hasSpanStreaming = !!client && hasSpanStreamingEnabled(client);
+        const description = `<${name}>`;
+        const componentName = name === UNKNOWN_COMPONENT ? undefined : name;
+
         const renderSpan = startInactiveSpan({
-          name: `<${name}>`,
+          name: hasSpanStreaming ? componentName || UI_RENDER_SPAN_NAME_FALLBACK : description,
           onlyIfParent: true,
-          op: REACT_RENDER_OP,
           startTime,
           attributes: {
-            [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ui.react.profiler',
-            'ui.component_name': name,
+            [SENTRY_OP]: UI_RENDER,
+            [SENTRY_ORIGIN]: 'auto.ui.react.profiler',
+            ...(componentName && { [UI_COMPONENT_NAME]: componentName }),
+            ...(hasSpanStreaming && { [SENTRY_DESCRIPTION]: description }),
           },
         });
         if (renderSpan) {

@@ -47,7 +47,6 @@ EXCLUDED_PACKAGES: set[str] = {
     "@sentry/core",
     "@sentry/types",
     "@sentry/browser",
-    "@sentry/node-core",
     "@sentry/node-native",
     "@sentry/opentelemetry",
     "@sentry/profiling-node",

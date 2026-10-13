@@ -1,6 +1,6 @@
 import type { D1Database } from '@cloudflare/workers-types';
 import { PrismaD1 } from '@prisma/adapter-d1';
-import * as Sentry from '@sentry/cloudflare/nodejs_compat';
+import * as Sentry from '@sentry/cloudflare';
 import { PrismaClient } from './generated';
 
 interface Env {

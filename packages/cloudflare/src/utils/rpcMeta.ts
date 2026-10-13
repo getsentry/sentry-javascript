@@ -33,6 +33,17 @@ export function appendRpcMeta(args: unknown[]): unknown[] {
 }
 
 /**
+ * Whether the trailing argument carries Sentry RPC metadata.
+ *
+ * Separate from {@link extractRpcMeta} because the RPC method wrappers run this check on every
+ * call — including the instance's own internal method calls, which never carry metadata — and
+ * must not allocate on that path.
+ */
+export function hasRpcMeta(args: unknown[]): boolean {
+  return args.length > 0 && isSentryRpcMeta(args[args.length - 1]);
+}
+
+/**
  * Extracts Sentry RPC metadata from the trailing argument of an args array.
  * Returns cleaned args (without meta) and the extracted trace data if found.
  */

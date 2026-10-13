@@ -1,10 +1,10 @@
 /* eslint-disable no-console */
-const SentryCli = require('@sentry/cli');
+const { createSentrySDK } = require('sentry');
 
 const { deleteSourcemaps } = require('./deleteSourcemaps');
 
 async function createRelease(argv, URL_PREFIX, BUILD_PATH) {
-  const sentry = new SentryCli(null, {
+  const sentry = createSentrySDK({
     url: argv.url,
     org: argv.org,
     project: argv.project,
@@ -14,7 +14,7 @@ async function createRelease(argv, URL_PREFIX, BUILD_PATH) {
 
   if (!argv.release) {
     try {
-      release = await sentry.releases.proposeVersion();
+      release = (await sentry.release['propose-version']()).version;
     } catch (error) {
       console.warn('[sentry] Failed to propose a release version.');
       console.warn('[sentry] You can specify a release version with `--release` flag.');
@@ -25,21 +25,28 @@ async function createRelease(argv, URL_PREFIX, BUILD_PATH) {
     release = argv.release;
   }
 
-  await sentry.releases.new(release);
+  // The release API requires a project, and the one given to the SDK does not reach this call.
+  const project = argv.project ?? process.env.SENTRY_PROJECT;
+  if (!project) {
+    throw new Error(
+      '[sentry] A project is required to create a release. Pass `--project` or set `SENTRY_PROJECT` as environment variable.',
+    );
+  }
+  await sentry.release.create({ orgVersion: release, project });
 
   try {
-    await sentry.releases.uploadSourceMaps(release, {
+    await sentry.sourcemap.upload({
+      directory: BUILD_PATH,
+      release,
       urlPrefix: URL_PREFIX,
-      include: [BUILD_PATH],
-      useArtifactBundle: !argv.disableDebugIds,
-      live: 'rejectOnError',
+      noRewrite: argv.disableDebugIds,
     });
   } catch {
     console.warn('[sentry] Failed to upload sourcemaps.');
   }
 
   try {
-    await sentry.releases.finalize(release);
+    await sentry.release.finalize({ orgVersion: release });
   } catch {
     console.warn('[sentry] Failed to finalize release.');
   }

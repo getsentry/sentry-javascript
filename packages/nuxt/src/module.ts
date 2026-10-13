@@ -1,21 +1,13 @@
-import {
-  addPlugin,
-  addPluginTemplate,
-  addServerPlugin,
-  addTemplate,
-  addVitePlugin,
-  createResolver,
-  defineNuxtModule,
-} from '@nuxt/kit';
-import { consoleSandbox } from '@sentry/core';
+import { addPlugin, addPluginTemplate, addTemplate, addVitePlugin, createResolver, defineNuxtModule } from '@nuxt/kit';
+// Needed to make TS evaluate the augmentation of Nitro types (https://github.com/nuxt/nuxt/pull/34039)
+import type {} from '@nuxt/nitro-server';
+
 import * as path from 'path';
 import type { SentryNuxtModuleOptions } from './common/types';
-import { addDynamicImportEntryFileWrapper, addSentryTopImport, addServerConfigToBuild } from './vite/addServerConfig';
-import { addDatabaseInstrumentation } from './vite/databaseConfig';
-import { addMiddlewareImports, addMiddlewareInstrumentation } from './vite/middlewareConfig';
+import { setupNitroServer } from './vite/nitroServer';
+import { setupOrchestrion } from './vite/orchestrion';
 import { setupSourceMaps } from './vite/sourceMaps';
-import { addStorageInstrumentation } from './vite/storageConfig';
-import { addOTelCommonJSImportAlias, findDefaultSdkInitFile, getNitroMajorVersion } from './vite/utils';
+import { findDefaultSdkInitFile, resolveServerApi } from './vite/utils';
 
 export type ModuleOptions = SentryNuxtModuleOptions;
 type NuxtPageSubset = { file?: string; path: string };
@@ -34,9 +26,13 @@ export default defineNuxtModule<ModuleOptions>({
       return;
     }
 
+    const serverApi = resolveServerApi();
+
     const moduleOptions = {
       ...moduleOptionsParam,
+      // oxlint-disable-next-line typescript/no-deprecated -- supported until removal
       autoInjectServerSentry: moduleOptionsParam.autoInjectServerSentry,
+      // oxlint-disable-next-line typescript/no-deprecated -- supported until removal
       experimental_entrypointWrappedFunctions: moduleOptionsParam.experimental_entrypointWrappedFunctions || [
         'default',
         'handler',
@@ -79,38 +75,27 @@ export default defineNuxtModule<ModuleOptions>({
     }
 
     const serverConfigFile = await findDefaultSdkInitFile('server', nuxt, moduleOptions);
-    const isNitroV3 = (await getNitroMajorVersion()) >= 3;
     const nuxtMajor = parseInt((nuxt as unknown as { _version: string })._version?.split('.')[0] ?? '3', 10);
     const isMinNuxtV4 = nuxtMajor >= 4;
 
-    if (serverConfigFile) {
-      if (isNitroV3) {
-        addServerPlugin(moduleDirResolver.resolve('./runtime/plugins/handler.server'));
-        addServerPlugin(moduleDirResolver.resolve('./runtime/plugins/update-route-name.server'));
-      } else {
-        addServerPlugin(moduleDirResolver.resolve('./runtime/plugins/handler-legacy.server'));
-        addServerPlugin(moduleDirResolver.resolve('./runtime/plugins/update-route-name-legacy.server'));
-      }
+    // Orchestrion runs on both the Node path (gated on a server config file) and the Cloudflare path
+    // (which has no server config file — the SDK is set up via `sentryCloudflareNitroPlugin`). The
+    // Cloudflare detection happens inside, keyed off the resolved Nitro preset.
+    setupOrchestrion(nuxt, !!serverConfigFile, moduleOptions.buildTimeInstrumentation);
 
-      addServerPlugin(moduleDirResolver.resolve('./runtime/plugins/sentry.server'));
+    if (serverConfigFile) {
+      setupNitroServer(nuxt, serverApi, serverConfigFile, moduleOptions);
 
       if (isMinNuxtV4) {
         addPlugin({ src: moduleDirResolver.resolve('./runtime/plugins/route-detector.server'), mode: 'server' });
       } else {
         addPlugin({ src: moduleDirResolver.resolve('./runtime/plugins/route-detector-legacy.server'), mode: 'server' });
       }
-
-      // Preps the middleware instrumentation module.
-      addMiddlewareImports();
-      addStorageInstrumentation(nuxt, !isNitroV3);
-      addDatabaseInstrumentation(nuxt.options.nitro, !isNitroV3, moduleOptions);
     }
 
     if (clientConfigFile || serverConfigFile) {
       setupSourceMaps(moduleOptions, nuxt, addVitePlugin);
     }
-
-    addOTelCommonJSImportAlias(nuxt, isNitroV3);
 
     let pagesData: NuxtPageSubset[] = [];
 
@@ -129,8 +114,8 @@ export default defineNuxtModule<ModuleOptions>({
       // Vite virtual plugin (for the Vite SSR build, where addPlugin mode:'server' plugins are bundled)
       addVitePlugin({
         name: 'sentry-nuxt-pages-data-virtual',
-        resolveId: id => (id === pagesDataVirtualModuleId ? `\0${pagesDataVirtualModuleId}` : null),
-        load: id =>
+        resolveId: (id: string) => (id === pagesDataVirtualModuleId ? `\0${pagesDataVirtualModuleId}` : null),
+        load: (id: string) =>
           id === `\0${pagesDataVirtualModuleId}` ? `export default ${JSON.stringify(pagesData, null, 2)};` : undefined,
       });
     } else {
@@ -158,86 +143,6 @@ export default defineNuxtModule<ModuleOptions>({
       if (serverConfigFile) {
         const relativePath = path.relative(nuxt.options.buildDir, serverConfigFile);
         tsConfig.include.push(relativePath);
-      }
-    });
-
-    nuxt.hooks.hook('nitro:init', nitro => {
-      if (nuxt.options?._prepare) {
-        return;
-      }
-
-      if (serverConfigFile) {
-        addMiddlewareInstrumentation(nitro);
-      }
-
-      if (serverConfigFile?.includes('.server.config')) {
-        consoleSandbox(() => {
-          const serverDir = nitro.options.output.serverDir;
-
-          // Netlify env: https://docs.netlify.com/configure-builds/environment-variables/#build-metadata
-          if (serverDir.includes('.netlify') || !!process.env.NETLIFY) {
-            // eslint-disable-next-line no-console
-            console.warn(
-              '[Sentry] Warning: The Sentry SDK detected a Netlify build. Server-side support for the Sentry Nuxt SDK on Netlify is currently unreliable due to technical limitations of serverless functions. Traces are not collected, and errors may occasionally not be reported. For more information on setting up Sentry on the Nuxt server-side, please refer to the documentation: https://docs.sentry.io/platforms/javascript/guides/nuxt/install/',
-            );
-          }
-
-          // Vercel env: https://vercel.com/docs/projects/environment-variables/system-environment-variables#VERCEL
-          if (serverDir.includes('.vercel') || !!process.env.VERCEL) {
-            // eslint-disable-next-line no-console
-            console.warn(
-              '[Sentry] Warning: The Sentry SDK detected a Vercel build. The Sentry Nuxt SDK currently does not support tracing on Vercel. For more information on setting up Sentry on the Nuxt server-side, please refer to the documentation: https://docs.sentry.io/platforms/javascript/guides/nuxt/install/',
-            );
-          }
-        });
-
-        if (moduleOptions.autoInjectServerSentry !== 'experimental_dynamic-import') {
-          addServerConfigToBuild(moduleOptions, nitro, serverConfigFile);
-
-          if (moduleOptions.debug) {
-            const serverDirResolver = createResolver(nitro.options.output.serverDir);
-            const serverConfigPath = serverDirResolver.resolve('sentry.server.config.mjs');
-
-            // For the default nitro node-preset build output this relative path would be: ./.output/server/sentry.server.config.mjs
-            const serverConfigRelativePath = `.${path.sep}${path.relative(nitro.options.rootDir, serverConfigPath)}`;
-
-            consoleSandbox(() => {
-              // eslint-disable-next-line no-console
-              console.log(
-                `[Sentry] Using \`${serverConfigFile}\` for server-side Sentry configuration. To activate Sentry on the Nuxt server-side, this file must be preloaded when starting your application. Make sure to add this where you deploy and/or run your application. Read more here: https://docs.sentry.io/platforms/javascript/guides/nuxt/install/.`,
-              );
-
-              if (nitro.options.dev) {
-                // eslint-disable-next-line no-console
-                console.log(
-                  `[Sentry] During development, preload Sentry with the NODE_OPTIONS environment variable: \`NODE_OPTIONS='--import ${serverConfigRelativePath}' nuxt dev\`. The file is generated in the build directory (usually '.nuxt'). If you delete the build directory, run \`nuxt dev\` to regenerate it.`,
-                );
-              } else {
-                // eslint-disable-next-line no-console
-                console.log(
-                  `[Sentry] When running your built application, preload Sentry via a command-line flag (\`node --import ${serverConfigRelativePath} [...]\`) or via an environment variable (\`NODE_OPTIONS='--import ${serverConfigRelativePath}' node [...]\`).`,
-                );
-              }
-            });
-          }
-        }
-
-        if (moduleOptions.autoInjectServerSentry === 'top-level-import') {
-          addSentryTopImport(moduleOptions, nitro);
-        }
-
-        if (moduleOptions.autoInjectServerSentry === 'experimental_dynamic-import') {
-          addDynamicImportEntryFileWrapper(nitro, serverConfigFile, moduleOptions);
-
-          if (moduleOptions.debug) {
-            consoleSandbox(() => {
-              // eslint-disable-next-line no-console
-              console.log(
-                '[Sentry] Wrapping the server entry file with a dynamic `import()`, so Sentry can be preloaded before the server initializes.',
-              );
-            });
-          }
-        }
       }
     });
   },

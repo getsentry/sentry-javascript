@@ -1,8 +1,9 @@
 import type { Nuxt } from '@nuxt/schema';
 import * as fs from 'fs';
+import * as path from 'path';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
-  addOTelCommonJSImportAlias,
+  addRuntimeInjectionTraceDep,
   constructFunctionReExport,
   constructWrappedFunctionExportQuery,
   extractFunctionReexportQueryParameters,
@@ -13,6 +14,7 @@ import {
   SENTRY_REEXPORTED_FUNCTIONS,
   SENTRY_WRAPPED_ENTRY,
   SENTRY_WRAPPED_FUNCTIONS,
+  toImportSpecifier,
 } from '../../src/vite/utils';
 
 const resolvePathMock = vi.hoisted(() => vi.fn());
@@ -21,7 +23,10 @@ vi.mock('@nuxt/kit', () => ({
   resolvePath: resolvePathMock,
 }));
 
-vi.mock('fs');
+vi.mock('fs', async importOriginal => ({
+  ...(await importOriginal<typeof fs>()),
+  existsSync: vi.fn(),
+}));
 
 describe('findDefaultSdkInitFile', () => {
   afterEach(() => {
@@ -31,31 +36,31 @@ describe('findDefaultSdkInitFile', () => {
   it.each(['ts', 'js', 'mjs', 'cjs', 'mts', 'cts'])(
     'should return the server file path with .%s extension if it exists',
     async ext => {
-      vi.spyOn(fs, 'existsSync').mockImplementation(filePath => {
+      vi.mocked(fs.existsSync).mockImplementation(filePath => {
         return !(filePath instanceof URL) && filePath.toString().includes(`sentry.server.config.${ext}`);
       });
 
       const result = await findDefaultSdkInitFile('server');
-      expect(result).toMatch(`packages/nuxt/sentry.server.config.${ext}`);
+      expect(result).toMatch(path.join('packages', 'nuxt', `sentry.server.config.${ext}`));
     },
   );
 
   it.each(['ts', 'js', 'mjs', 'cjs', 'mts', 'cts'])(
     'should return the client file path with .%s extension if it exists',
     async ext => {
-      vi.spyOn(fs, 'existsSync').mockImplementation(filePath => {
+      vi.mocked(fs.existsSync).mockImplementation(filePath => {
         return !(filePath instanceof URL) && filePath.toString().includes(`sentry.client.config.${ext}`);
       });
 
       const result = await findDefaultSdkInitFile('client');
-      expect(result).toMatch(`packages/nuxt/sentry.client.config.${ext}`);
+      expect(result).toMatch(path.join('packages', 'nuxt', `sentry.client.config.${ext}`));
     },
   );
 
   it.each(['ts', 'js', 'mjs', 'cjs', 'mts', 'cts'])(
     'should return a client config from a custom config root dir if it exists with .%s extension',
     async ext => {
-      vi.spyOn(fs, 'existsSync').mockImplementation(filePath => {
+      vi.mocked(fs.existsSync).mockImplementation(filePath => {
         return !(filePath instanceof URL) && filePath.toString().includes(`sentry.client.config.${ext}`);
       });
 
@@ -67,7 +72,7 @@ describe('findDefaultSdkInitFile', () => {
         configDir: '~/config',
       });
 
-      expect(result).toBe(`${baseDir}/sentry.client.config.${ext}`);
+      expect(result).toBe(path.resolve(baseDir, `sentry.client.config.${ext}`));
       expect(resolvePathMock).toHaveBeenCalledWith('~/config', { type: 'dir' });
     },
   );
@@ -75,7 +80,7 @@ describe('findDefaultSdkInitFile', () => {
   it.each(['ts', 'js', 'mjs', 'cjs', 'mts', 'cts'])(
     'should return a server config from a custom config root dir if it exists with .%s extension',
     async ext => {
-      vi.spyOn(fs, 'existsSync').mockImplementation(filePath => {
+      vi.mocked(fs.existsSync).mockImplementation(filePath => {
         return !(filePath instanceof URL) && filePath.toString().includes(`sentry.server.config.${ext}`);
       });
 
@@ -87,40 +92,36 @@ describe('findDefaultSdkInitFile', () => {
         configDir: '~/config',
       });
 
-      expect(result).toBe(`${baseDir}/sentry.server.config.${ext}`);
+      expect(result).toBe(path.resolve(baseDir, `sentry.server.config.${ext}`));
       expect(resolvePathMock).toHaveBeenCalledWith('~/config', { type: 'dir' });
     },
   );
 
   it('should return undefined if no file with specified extensions exists', async () => {
-    vi.spyOn(fs, 'existsSync').mockReturnValue(false);
+    vi.mocked(fs.existsSync).mockReturnValue(false);
 
     const result = await findDefaultSdkInitFile('server');
     expect(result).toBeUndefined();
   });
 
   it('should return undefined if no file exists', async () => {
-    vi.spyOn(fs, 'existsSync').mockReturnValue(false);
+    vi.mocked(fs.existsSync).mockReturnValue(false);
 
     const result = await findDefaultSdkInitFile('server');
     expect(result).toBeUndefined();
   });
 
-  it('should return the server config file path if server.config and instrument exist', async () => {
-    vi.spyOn(fs, 'existsSync').mockImplementation(filePath => {
-      return (
-        !(filePath instanceof URL) &&
-        (filePath.toString().includes('sentry.server.config.js') ||
-          filePath.toString().includes('instrument.server.js'))
-      );
+  it('ignores a public/instrument.server file', async () => {
+    vi.mocked(fs.existsSync).mockImplementation(filePath => {
+      return !(filePath instanceof URL) && filePath.toString().includes('instrument.server.js');
     });
 
     const result = await findDefaultSdkInitFile('server');
-    expect(result).toMatch('packages/nuxt/sentry.server.config.js');
+    expect(result).toBeUndefined();
   });
 
   it('should return the latest layer config file path if client config exists', async () => {
-    vi.spyOn(fs, 'existsSync').mockImplementation(filePath => {
+    vi.mocked(fs.existsSync).mockImplementation(filePath => {
       return !(filePath instanceof URL) && filePath.toString().includes('sentry.client.config.ts');
     });
 
@@ -138,16 +139,12 @@ describe('findDefaultSdkInitFile', () => {
     } as unknown as Nuxt;
 
     const result = await findDefaultSdkInitFile('client', nuxtMock);
-    expect(result).toMatch('packages/nuxt/sentry.client.config.ts');
+    expect(result).toMatch(path.join('packages', 'nuxt', 'sentry.client.config.ts'));
   });
 
   it('should return the latest layer config file path if server config exists', async () => {
-    vi.spyOn(fs, 'existsSync').mockImplementation(filePath => {
-      return (
-        !(filePath instanceof URL) &&
-        (filePath.toString().includes('sentry.server.config.ts') ||
-          filePath.toString().includes('instrument.server.ts'))
-      );
+    vi.mocked(fs.existsSync).mockImplementation(filePath => {
+      return !(filePath instanceof URL) && filePath.toString().includes('sentry.server.config.ts');
     });
 
     const nuxtMock = {
@@ -164,12 +161,15 @@ describe('findDefaultSdkInitFile', () => {
     } as unknown as Nuxt;
 
     const result = await findDefaultSdkInitFile('server', nuxtMock);
-    expect(result).toMatch('packages/nuxt/sentry.server.config.ts');
+    expect(result).toMatch(path.join('packages', 'nuxt', 'sentry.server.config.ts'));
   });
 
   it('should return the latest layer config file path if client config exists in former layer', async () => {
-    vi.spyOn(fs, 'existsSync').mockImplementation(filePath => {
-      return !(filePath instanceof URL) && filePath.toString().includes('nuxt/sentry.client.config.ts');
+    vi.mocked(fs.existsSync).mockImplementation(filePath => {
+      return (
+        !(filePath instanceof URL) &&
+        filePath.toString().includes(path.join('nuxt', 'module', 'sentry.client.config.ts'))
+      );
     });
 
     const nuxtMock = {
@@ -186,7 +186,20 @@ describe('findDefaultSdkInitFile', () => {
     } as unknown as Nuxt;
 
     const result = await findDefaultSdkInitFile('client', nuxtMock);
-    expect(result).toMatch('packages/nuxt/sentry.client.config.ts');
+    expect(result).toMatch(path.join('packages', 'nuxt', 'module', 'sentry.client.config.ts'));
+  });
+});
+
+describe('toImportSpecifier', () => {
+  it('builds a relative specifier Node accepts', () => {
+    expect(toImportSpecifier(path.join('/my', 'app'), path.join('/my', 'app', '.nuxt', 'dev', 'config.mjs'))).toBe(
+      './.nuxt/dev/config.mjs',
+    );
+  });
+
+  // On Windows `path.relative` returns backslashes, which Node rejects in an import specifier.
+  it('rewrites backslash separators to forward slashes', () => {
+    expect(toImportSpecifier('/my/app', '/my/app/.nuxt\\dev\\config.mjs')).toBe('./.nuxt/dev/config.mjs');
   });
 });
 
@@ -416,71 +429,20 @@ export { foo_sentryWrapped as foo };
   });
 });
 
-describe('addOTelCommonJSImportAlias', () => {
-  it('adds alias for @opentelemetry/resources when options.alias does not exist', () => {
-    const nuxtMock: Nuxt = {
-      options: { dev: true },
-    } as unknown as Nuxt;
+describe('addRuntimeInjectionTraceDep', () => {
+  it('keeps `@sentry/server-runtime-injection` out of the Nitro v3 bundle', () => {
+    const nuxtMock = { options: { nitro: { traceDeps: ['sharp'] } } } as unknown as Nuxt;
 
-    addOTelCommonJSImportAlias(nuxtMock);
+    addRuntimeInjectionTraceDep(nuxtMock, true);
 
-    expect(nuxtMock.options.alias).toEqual({
-      '@opentelemetry/resources': '@opentelemetry/resources/build/src/index.js',
-    });
+    expect(nuxtMock.options.nitro).toEqual({ traceDeps: ['sharp', '@sentry/server-runtime-injection'] });
   });
 
-  it('adds alias for @opentelemetry/resources when options.alias already exists', () => {
-    const nuxtMock: Nuxt = {
-      options: {
-        dev: true,
-        alias: {
-          'existing-alias': 'some-path',
-        },
-      },
-    } as unknown as Nuxt;
+  it('does not touch the Nitro v2 config', () => {
+    const nuxtMock = { options: { nitro: {} } } as unknown as Nuxt;
 
-    addOTelCommonJSImportAlias(nuxtMock);
+    addRuntimeInjectionTraceDep(nuxtMock, false);
 
-    expect(nuxtMock.options.alias).toEqual({
-      'existing-alias': 'some-path',
-      '@opentelemetry/resources': '@opentelemetry/resources/build/src/index.js',
-    });
-  });
-
-  it('does not override existing alias for @opentelemetry/resources', () => {
-    const nuxtMock: Nuxt = {
-      options: {
-        dev: true,
-        alias: {
-          '@opentelemetry/resources': 'some-other-path',
-        },
-      },
-    } as unknown as Nuxt;
-
-    addOTelCommonJSImportAlias(nuxtMock);
-
-    expect(nuxtMock.options.alias).toEqual({
-      '@opentelemetry/resources': 'some-other-path',
-    });
-  });
-
-  it('does not add alias when not development mode', () => {
-    const nuxtMock: Nuxt = {
-      options: {},
-    } as unknown as Nuxt;
-
-    addOTelCommonJSImportAlias(nuxtMock);
-
-    expect(nuxtMock.options.alias).toBeUndefined();
-  });
-
-  it('does not add alias when in Nitro v3+ (Rolldown incompatibility)', () => {
-    const nuxtMock: Nuxt = {
-      options: { dev: true },
-    } as unknown as Nuxt;
-
-    addOTelCommonJSImportAlias(nuxtMock, true);
-
-    expect(nuxtMock.options.alias).toBeUndefined();
+    expect(nuxtMock.options.nitro).toEqual({});
   });
 });

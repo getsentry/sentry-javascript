@@ -39,6 +39,7 @@ app.use(cors());
 app.get('/testUrl', (_req, response) => {
   makeHttpRequest(`${url}/blockUrl`).then(() => {
     makeHttpRequest(`${url}/pass`).then(() => {
+      Sentry.captureMessage('outgoing requests completed');
       response.send({ response: 'done' });
     });
   });
@@ -47,12 +48,11 @@ app.get('/testUrl', (_req, response) => {
 app.get('/testRequest', (_req, response) => {
   makeHttpRequest(`${url}/blockRequest`).then(() => {
     makeHttpRequest(`${url}/pass`).then(() => {
+      Sentry.captureMessage('outgoing requests completed');
       response.send({ response: 'done' });
     });
   });
 });
-
-Sentry.setupExpressErrorHandler(app);
 
 startExpressServerAndSendPortToRunner(app);
 

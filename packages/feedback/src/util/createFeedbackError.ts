@@ -15,7 +15,7 @@ const DEFAULT_MESSAGES: Record<FeedbackErrorCode, string> = {
   ERROR_GENERIC: ERROR_GENERIC_TEXT,
 };
 
-export function resolveFeedbackErrorMessage(code: FeedbackErrorCode, messages?: FeedbackErrorMessages): string {
+function resolveFeedbackErrorMessage(code: FeedbackErrorCode, messages?: FeedbackErrorMessages): string {
   return messages?.[code] ?? DEFAULT_MESSAGES[code];
 }
 

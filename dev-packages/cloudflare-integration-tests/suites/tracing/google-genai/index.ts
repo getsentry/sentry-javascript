@@ -1,32 +1,86 @@
+import { GoogleGenAI } from '@google/genai';
 import * as Sentry from '@sentry/cloudflare';
-import type { GoogleGenAIClient } from '@sentry/core';
-import { MockGoogleGenAI } from './mocks';
 
 interface Env {
   SENTRY_DSN: string;
 }
 
-const mockClient = new MockGoogleGenAI({
-  apiKey: 'mock-api-key',
-});
+// `@google/genai` has no per-client fetch option — it calls the global `fetch`
+// directly. Override it (gated to the Gemini host) so the SDK runs on
+// workerd without hitting the network, while Sentry envelope delivery still
+// uses the original fetch.
+const originalFetch = globalThis.fetch;
+globalThis.fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
+  const url = typeof input === 'string' ? input : input instanceof URL ? input.href : input.url;
 
-const client: GoogleGenAIClient = Sentry.instrumentGoogleGenAIClient(mockClient);
+  if (!url.includes('generativelanguage.googleapis.com')) {
+    return originalFetch(input, init);
+  }
+
+  if (url.includes(':embedContent') || url.includes(':batchEmbedContents')) {
+    return new Response(JSON.stringify({ embeddings: [{ values: [0.1, 0.2, 0.3, 0.4, 0.5] }] }), {
+      status: 200,
+      headers: { 'content-type': 'application/json' },
+    });
+  }
+
+  return new Response(
+    JSON.stringify({
+      candidates: [
+        {
+          content: { parts: [{ text: 'Hello from Google GenAI!' }], role: 'model' },
+          finishReason: 'stop',
+          index: 0,
+        },
+      ],
+      usageMetadata: { promptTokenCount: 8, candidatesTokenCount: 12, totalTokenCount: 20 },
+    }),
+    { status: 200, headers: { 'content-type': 'application/json' } },
+  );
+}) as typeof fetch;
 
 export default Sentry.withSentry(
   (env: Env) => ({
     dsn: env.SENTRY_DSN,
     tracesSampleRate: 1.0,
-    streamGenAiSpans: true,
+    dataCollection: { genAI: { inputs: true } },
   }),
   {
     async fetch(_request, _env, _ctx) {
+      // Wrapped in-request so the SDK is initialized when recording options are resolved, which is
+      // also the only place a real Worker can read its API key from `env`.
+      const client = Sentry.instrumentGoogleGenAIClient(new GoogleGenAI({ apiKey: 'mock-api-key' }));
+
       // Test 1: chats.create and sendMessage flow
+      // Every field here is read back off the chat instance for each message the chat sends, so
+      // the create config covers all of them at once.
       const chat = client.chats.create({
         model: 'gemini-1.5-pro',
         config: {
           temperature: 0.8,
           topP: 0.9,
+          topK: 40,
           maxOutputTokens: 150,
+          frequencyPenalty: 0.5,
+          presencePenalty: 0.3,
+          systemInstruction: 'You are a friendly robot.',
+          tools: [
+            {
+              functionDeclarations: [
+                {
+                  name: 'controlLight',
+                  parametersJsonSchema: {
+                    type: 'object',
+                    properties: {
+                      brightness: { type: 'number' },
+                      colorTemperature: { type: 'string' },
+                    },
+                    required: ['brightness', 'colorTemperature'],
+                  },
+                },
+              ],
+            },
+          ],
         },
         history: [
           {
@@ -36,12 +90,10 @@ export default Sentry.withSentry(
         ],
       });
 
-      const chatResponse = await chat.sendMessage({
-        message: 'Tell me a joke',
-      });
+      await chat.sendMessage({ message: 'Tell me a joke' });
 
       // Test 2: models.generateContent
-      const modelResponse = await client.models.generateContent({
+      await client.models.generateContent({
         model: 'gemini-1.5-flash',
         config: {
           temperature: 0.7,
@@ -57,12 +109,12 @@ export default Sentry.withSentry(
       });
 
       // Test 3: models.embedContent
-      const embedResponse = await client.models.embedContent({
+      await client.models.embedContent({
         model: 'text-embedding-004',
         contents: 'Hello world',
       });
 
-      return new Response(JSON.stringify({ chatResponse, modelResponse, embedResponse }));
+      return new Response(JSON.stringify({ success: true }));
     },
   },
 );

@@ -1,10 +1,16 @@
+import { consoleSandbox, warnOnRemovedBuildOptions } from '@sentry/core';
+import { sentryOrchestrionPlugin } from '@sentry/server-utils/orchestrion/vite';
+import * as fs from 'fs';
+import * as path from 'path';
 import type { Plugin } from 'vite';
 import type { AutoInstrumentSelection } from './autoInstrument';
 import { makeAutoInstrumentationPlugin } from './autoInstrument';
+import type { SupportedSvelteKitAdapters } from './detectAdapter';
 import { detectAdapter } from './detectAdapter';
 import { makeGlobalValuesInjectionPlugin } from './injectGlobalValues';
+import { createKitConfigResolver } from './kitConfig';
 import { makeCustomSentryVitePlugins } from './sourceMaps';
-import { loadSvelteConfig } from './svelteConfig';
+import { getAdapterOutputDir } from './svelteConfig';
 import type { CustomSentryVitePluginOptions, SentrySvelteKitPluginOptions } from './types';
 
 const DEFAULT_PLUGIN_OPTIONS: SentrySvelteKitPluginOptions = {
@@ -21,20 +27,38 @@ const DEFAULT_PLUGIN_OPTIONS: SentrySvelteKitPluginOptions = {
  * Make sure, it is registered before the SvelteKit plugin.
  */
 export async function sentrySvelteKit(options: SentrySvelteKitPluginOptions = {}): Promise<Plugin[]> {
-  const svelteConfig = await loadSvelteConfig();
+  warnOnRemovedBuildOptions(options, ['unstable_sentryVitePluginOptions']);
+
+  const kitConfigResolver = createKitConfigResolver();
+  const getKitConfig = kitConfigResolver.get;
+
+  // The adapter can only be detected once the SvelteKit config is available, so it's resolved
+  // lazily (but only once) by the plugins that need it.
+  let adapterPromise: Promise<SupportedSvelteKitAdapters> | undefined;
+  const getAdapter = (): Promise<SupportedSvelteKitAdapters> =>
+    (adapterPromise ??= (async () => options.adapter || detectAdapter(await getKitConfig(), options.debug))());
+
+  // For the Node adapter we invoke `adapter.adapt()` to learn the output directory. It runs from a temp
+  // cwd so it can't wipe the real output, but it's still resolved once and before the build writes
+  // anything, never from a late hook like `closeBundle`, in case an adapter deletes an absolute `out`.
+  let adapterOutputDirPromise: Promise<string> | undefined;
+  const getAdapterOutputDirOnce = (): Promise<string> =>
+    (adapterOutputDirPromise ??= (async () => getAdapterOutputDir(await getKitConfig(), await getAdapter()))());
 
   const mergedOptions = {
     ...DEFAULT_PLUGIN_OPTIONS,
     ...options,
-    adapter: options.adapter || (await detectAdapter(svelteConfig, options.debug)),
   };
 
-  const sentryPlugins: Plugin[] = [];
+  // First so the config settles as early as possible. The plugins below read it in `configResolved`,
+  // which Vite runs concurrently, so their order relative to the resolver doesn't matter.
+  const sentryPlugins: Plugin[] = [
+    kitConfigResolver.plugin,
+    makeBrowserTracingVariantResolverPlugin(),
+    makeOpenTelemetryApiResolverPlugin(),
+  ];
 
   if (mergedOptions.autoInstrument) {
-    // TODO: Once tracing is promoted stable, we need to adjust this check!
-    const kitTracingEnabled = !!svelteConfig.kit?.experimental?.tracing?.server;
-
     const pluginOptions: AutoInstrumentSelection = {
       load: true,
       serverLoad: true,
@@ -45,11 +69,17 @@ export async function sentrySvelteKit(options: SentrySvelteKitPluginOptions = {}
       makeAutoInstrumentationPlugin({
         ...pluginOptions,
         debug: options.debug || false,
-        // if kit-internal tracing is enabled, we only want to wrap and instrument client-side code.
-        onlyInstrumentClient: kitTracingEnabled,
+        getKitConfig,
       }),
     );
   }
+
+  sentryPlugins.push(
+    sentryOrchestrionPlugin({
+      buildTimeInstrumentation: mergedOptions.buildTimeInstrumentation,
+    }),
+    makeBuildFlagPlugin(),
+  );
 
   const sentryVitePluginsOptions = generateVitePluginOptions(mergedOptions);
 
@@ -60,11 +90,19 @@ export async function sentrySvelteKit(options: SentrySvelteKitPluginOptions = {}
     // TODO: I don't think this is technically correct. Either we always or never inject the output directory.
     // Stack traces shouldn't be different, depending on source maps config. With debugIds, we might not even
     // need to rewrite frames anymore.
-    sentryPlugins.push(await makeGlobalValuesInjectionPlugin(svelteConfig, mergedOptions));
+    sentryPlugins.push(
+      makeGlobalValuesInjectionPlugin({
+        getKitConfig,
+        getAdapterOutputDir: getAdapterOutputDirOnce,
+        debug: mergedOptions.debug,
+      }),
+    );
   }
 
   if (sentryVitePluginsOptions) {
-    const sentryVitePlugins = await makeCustomSentryVitePlugins(sentryVitePluginsOptions, svelteConfig);
+    const sentryVitePlugins = await makeCustomSentryVitePlugins(sentryVitePluginsOptions, {
+      getAdapterOutputDir: getAdapterOutputDirOnce,
+    });
     sentryPlugins.push(...sentryVitePlugins);
   }
 
@@ -72,8 +110,192 @@ export async function sentrySvelteKit(options: SentrySvelteKitPluginOptions = {}
 }
 
 /**
+ * Flags `vite build` so `sentryHandle` can skip trace meta tags on pages SvelteKit renders at build time
+ * (prerendered and adapter fallback pages). Kit renders them in workers that inherit `process.env`, so the
+ * flag must stay set until the adapter ran. Afterwards we remove it again, so it doesn't leak into e.g. a
+ * server started in the same process after a programmatic build.
+ *
+ * When that point is reached depends on the Kit version:
+ * - Kit 2 renders from the SSR build's `writeBundle` and `closeBundle` hooks. In between, it runs a nested
+ *   client build, whose `closeBundle` fires before any page was rendered.
+ * - Kit 3 builds all environments via Vite's app builder and renders from `buildApp` hooks afterwards.
+ *   Every `closeBundle` fires before that.
+ */
+function makeBuildFlagPlugin(): Plugin {
+  let usesAppBuilder = false;
+  let isServerBuild = false;
+  let isWatchMode = false;
+
+  const clearFlag = (): void => {
+    delete process.env._SENTRY_SVELTEKIT_BUILDING;
+  };
+
+  // `buildApp` only exists as a plugin hook in Vite 7+
+  const plugin: Plugin & { buildApp?: { order: 'post'; handler: () => void } } = {
+    name: 'sentry-sveltekit-build-flag',
+    apply: 'build',
+    // Together with `order: 'post'`, this makes our hooks run after Kit's (including its adapter's)
+    enforce: 'post',
+    config() {
+      process.env._SENTRY_SVELTEKIT_BUILDING = 'true';
+    },
+    configResolved(config) {
+      usesAppBuilder = !!config.builder;
+      isServerBuild = !!config.build.ssr;
+      // Kit re-renders pages on every rebuild in watch mode
+      isWatchMode = !!config.build.watch;
+    },
+    closeBundle: {
+      order: 'post',
+      sequential: true,
+      handler() {
+        if (!usesAppBuilder && isServerBuild && !isWatchMode) {
+          clearFlag();
+        }
+      },
+    },
+    buildApp: {
+      order: 'post',
+      handler: async () => {
+        // Without an app builder config, Vite 7+ calls `buildApp` hooks *before* the actual (legacy) build
+        if (usesAppBuilder && !isWatchMode) {
+          clearFlag();
+        }
+      },
+    },
+  };
+
+  return plugin;
+}
+
+// A bare subpath (not a relative import) so this plugin's `resolveId` can intercept it.
+const BROWSER_TRACING_VARIANT_ID = '@sentry/sveltekit/browser-tracing-variant';
+
+/**
+ * Redirects the browser-tracing variant import to the Svelte 4 (`$app/stores`) or Svelte 5
+ * (`$app/state`) variant per installed SvelteKit version, so only the matching one is bundled and
+ * instrumentation runs eagerly (no dynamic import).
+ */
+function makeBrowserTracingVariantResolverPlugin(): Plugin {
+  return {
+    name: 'sentry-sveltekit-browser-tracing-variant',
+    enforce: 'pre',
+    // Dev only: esbuild pre-bundles deps before `resolveId` runs, so exclude the SDK to let us
+    // redirect the import (not needed for build).
+    config(_config, { command }) {
+      if (command === 'serve') {
+        return { optimizeDeps: { exclude: ['@sentry/sveltekit'] } };
+      }
+      return undefined;
+    },
+    async resolveId(id) {
+      if (id !== BROWSER_TRACING_VARIANT_ID) {
+        return null;
+      }
+
+      const variantModule = (await isSvelteKit3(id => this.resolve(id, undefined, { skipSelf: true })))
+        ? 'svelte5BrowserTracing'
+        : 'svelte4BrowserTracing';
+
+      // Point at the variant file next to the SDK's resolved entry (absolute path, so it stays internal).
+      const sdkEntry = await this.resolve('@sentry/sveltekit', undefined, { skipSelf: true });
+      if (!sdkEntry) {
+        return null;
+      }
+
+      return path.join(path.dirname(sdkEntry.id), 'client', `${variantModule}.js`);
+    },
+  };
+}
+
+const OTEL_API_ID = '@opentelemetry/api';
+const OTEL_API_REEXPORT_ID = '@sentry/sveltekit/opentelemetry-api';
+const OTEL_API_REEXPORT_FILE_REGEX = /[\\/]opentelemetryApi\.js$/;
+
+/**
+ * SvelteKit 3 externalizes `@opentelemetry/api` in server builds, so its runtime imports it at runtime
+ * from the app root. That only resolves if the app depends on it directly: under pnpm (or Yarn PnP),
+ * the copy installed through `@sentry/sveltekit` isn't reachable, and Kit fails every request once
+ * `tracing.server` is enabled.
+ *
+ * We redirect the import to our re-export instead, which resolves because the app always depends on
+ * `@sentry/sveltekit` directly. It stays external, so the Kit runtime and `instrumentation.server.js`
+ * still share a single module instance, which is why Kit externalizes it in the first place.
+ */
+function makeOpenTelemetryApiResolverPlugin(): Plugin {
+  let isKit3Promise: Promise<boolean> | undefined;
+
+  return {
+    name: 'sentry-sveltekit-opentelemetry-api',
+    enforce: 'pre',
+    // In dev, Kit's import resolves from Kit's own install location, where pnpm links the peer dep.
+    apply: 'build',
+    async resolveId(id, importer, options) {
+      // Skip our own re-export, in case it gets bundled, so it doesn't re-export itself.
+      if (id !== OTEL_API_ID || !options?.ssr || (importer && OTEL_API_REEXPORT_FILE_REGEX.test(importer))) {
+        return null;
+      }
+
+      isKit3Promise ??= isSvelteKit3(id => this.resolve(id, undefined, { skipSelf: true }));
+      if (!(await isKit3Promise)) {
+        return null;
+      }
+
+      return { id: OTEL_API_REEXPORT_ID, external: true };
+    },
+  };
+}
+
+/**
+ * Whether to use the SvelteKit 3 (`$app/state`) variant, from the installed `@sveltejs/kit` version
+ * (resolved via the bundler, not `process.cwd()`).
+ *
+ * If the Kit version can't be read, fall back to the Svelte major and warn (never throw): Svelte < 5
+ * can't be Kit 3 (use `$app/stores`); on Svelte 5 use `$app/state`, which works on both Kit 2.12+ and
+ * Kit 3 — the safe direction, since `$app/stores` hard-breaks on Kit 3.
+ */
+async function isSvelteKit3(resolve: (id: string) => Promise<{ id: string } | null>): Promise<boolean> {
+  const kitMajor = await readPackageMajor(resolve, '@sveltejs/kit/package.json');
+  if (kitMajor !== undefined) {
+    return kitMajor >= 3;
+  }
+
+  const svelteMajor = await readPackageMajor(resolve, 'svelte/package.json');
+  const useKit3Variant = svelteMajor === undefined || svelteMajor >= 5;
+  consoleSandbox(() => {
+    // eslint-disable-next-line no-console
+    console.warn(
+      "[@sentry/sveltekit] Couldn't read the installed `@sveltejs/kit` version to set up browser " +
+        `tracing; falling back to the Svelte ${svelteMajor ?? '?'} based variant ` +
+        `(${useKit3Variant ? '`$app/state`' : '`$app/stores`'}). ` +
+        'If browser tracing misbehaves, please report this to the Sentry SDK team.',
+    );
+  });
+  return useKit3Variant;
+}
+
+async function readPackageMajor(
+  resolve: (id: string) => Promise<{ id: string } | null>,
+  packageJsonId: string,
+): Promise<number | undefined> {
+  try {
+    const resolved = await resolve(packageJsonId);
+    if (resolved) {
+      const { version } = JSON.parse(fs.readFileSync(resolved.id, 'utf8')) as { version: string };
+      const major = parseInt(version.split('.')[0] || '', 10);
+      if (!Number.isNaN(major)) {
+        return major;
+      }
+    }
+  } catch {
+    // ignore — caller handles the `undefined` case
+  }
+  return undefined;
+}
+
+/**
  * This function creates the options for the custom Sentry Vite plugin.
- * The options are derived from the Sentry SvelteKit plugin options, where the `_unstable` options take precedence.
+ * The options are derived from the Sentry SvelteKit plugin options.
  *
  * only exported for testing
  */
@@ -91,81 +313,40 @@ export function generateVitePluginOptions(
     };
   }
 
-  // todo(v11): remove deprecated options (Also from options type)
-
   // Source Maps
   if (svelteKitPluginOptions.autoUploadSourceMaps && process.env.NODE_ENV !== 'development') {
     const {
-      // eslint-disable-next-line typescript/no-deprecated
-      unstable_sentryVitePluginOptions: deprecated_unstableSourceMapUploadOptions,
-      ...deprecatedSourceMapUploadOptions
-      // eslint-disable-next-line typescript/no-deprecated
-    } = svelteKitPluginOptions.sourceMapsUploadOptions || {};
-
-    const {
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars,typescript/no-deprecated
-      sourceMapsUploadOptions: _filtered1,
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      unstable_sentryVitePluginOptions: _filtered2,
+      autoUploadSourceMaps: _filtered1,
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      autoUploadSourceMaps: _filtered3,
+      autoInstrument: _filtered2,
+      // Consumed by `sentrySvelteKit()` for adapter detection, not by the Vite plugin
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      autoInstrument: _filtered4,
+      adapter: _filtered3,
       sentryUrl,
       ...newSvelteKitPluginOptions
     } = svelteKitPluginOptions;
 
-    const { unstable_sentryVitePluginOptions } = svelteKitPluginOptions;
-
     sentryVitePluginsOptions = {
       ...(sentryVitePluginsOptions ? sentryVitePluginsOptions : {}),
 
-      ...deprecatedSourceMapUploadOptions,
       ...newSvelteKitPluginOptions,
 
       url: sentryUrl,
 
-      ...deprecated_unstableSourceMapUploadOptions,
-      ...unstable_sentryVitePluginOptions,
-
-      adapter: svelteKitPluginOptions.adapter,
       // override the plugin's debug flag with the one from the top-level options
       debug: svelteKitPluginOptions.debug,
     };
 
-    // Handle sourcemaps options - merge deprecated and new, with new taking precedence
-    if (
-      // eslint-disable-next-line typescript/no-deprecated
-      deprecatedSourceMapUploadOptions.sourcemaps ||
-      svelteKitPluginOptions.sourcemaps ||
-      deprecated_unstableSourceMapUploadOptions?.sourcemaps ||
-      unstable_sentryVitePluginOptions?.sourcemaps
-    ) {
+    if (svelteKitPluginOptions.sourcemaps) {
       sentryVitePluginsOptions.sourcemaps = {
-        // eslint-disable-next-line typescript/no-deprecated
-        ...deprecatedSourceMapUploadOptions.sourcemaps,
         ...svelteKitPluginOptions.sourcemaps,
-        // Also handle nested deprecated options from unstable plugin options
-        ...deprecated_unstableSourceMapUploadOptions?.sourcemaps,
-        ...unstable_sentryVitePluginOptions?.sourcemaps,
       };
     }
 
-    // Handle release options - merge deprecated and new, with new taking precedence
-    if (
-      // eslint-disable-next-line typescript/no-deprecated
-      deprecatedSourceMapUploadOptions.release ||
-      svelteKitPluginOptions.release ||
-      deprecated_unstableSourceMapUploadOptions?.release ||
-      unstable_sentryVitePluginOptions?.release
-    ) {
+    if (svelteKitPluginOptions.release) {
       sentryVitePluginsOptions.release = {
-        // eslint-disable-next-line typescript/no-deprecated
-        ...deprecatedSourceMapUploadOptions.release,
         ...svelteKitPluginOptions.release,
-        // Also handle nested deprecated options from unstable plugin options
-        ...deprecated_unstableSourceMapUploadOptions?.release,
-        ...unstable_sentryVitePluginOptions?.release,
       };
     }
   }

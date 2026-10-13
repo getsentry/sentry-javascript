@@ -67,9 +67,9 @@ order**. Note that you can prepare the PRs at any time but the **merging oder** 
 
 ### Before the Release:
 
-- [ ] 1.  If not yet done, be sure to remove the `private: true` property from your SDK’s `package.json`. Additionally,
+- [ ] 1. If not yet done, be sure to remove the `private: true` property from your SDK’s `package.json`. Additionally,
       ensure that `"publishConfig": {"access": "public"}` is set.
-- [ ] 2.  Add an `npm` target in `craft.yml` for the new package. Make sure to insert it in the right place, after all
+- [ ] 2. Add an `npm` target in `craft.yml` for the new package. Make sure to insert it in the right place, after all
       the Sentry dependencies of your package but before packages that depend on your new package (if applicable).
   ```yml
   - name: npm
@@ -77,7 +77,7 @@ order**. Note that you can prepare the PRs at any time but the **merging oder** 
     includeNames: /^sentry-[yourPackage]-\d.*\.tgz$/
   ```
 - [ ] 3. Add a `registry` target in `craft.yml` for the new package.
-     For new packages, Craft will automatically create the required directory structure and initial manifest in the Sentry Release Registry ([Craft Docs](https://craft.sentry.dev/targets/registry/#creating-new-packages)).
+      For new packages, Craft will automatically create the required directory structure and initial manifest in the Sentry Release Registry ([Craft Docs](https://craft.sentry.dev/targets/registry/#creating-new-packages)).
   ```yml
   name: 'Sentry [Package] SDK'
   sdkName: 'sentry.javascript.[package]'
@@ -86,14 +86,14 @@ order**. Note that you can prepare the PRs at any time but the **merging oder** 
   onlyIfPresent: /^sentry-[package]-\d.*\.tgz$/
   ```
 - [ ] 4. Cut a new release (as usual, see
-     [Publishing Release](https://github.com/getsentry/sentry-javascript/blob/develop/docs/publishing-a-release.md))
+      [Publishing Release](https://github.com/getsentry/sentry-javascript/blob/develop/docs/publishing-a-release.md))
 
 ### After the Release
 
 - [ ] 1. Check that the package was in fact published to NPM
 - [ ] 2. Check that the SDK is added to the Sentry Release Registry [npm packages](https://github.com/getsentry/sentry-release-registry/tree/master/packages/npm/%40sentry) and [SDK symlinks](https://github.com/getsentry/sentry-release-registry/tree/master/sdks)
 - [ ] 3. In case the package is missing anywhere, add the missing content. Instructions on how to do this can be found [here](https://github.com/getsentry/sentry-release-registry#adding-new-sdks)
-     [Example PR](https://github.com/getsentry/sentry-release-registry/pull/80) from the Svelte SDK.
+      [Example PR](https://github.com/getsentry/sentry-release-registry/pull/80) from the Svelte SDK.
 
 ## Follow-up Tasks
 

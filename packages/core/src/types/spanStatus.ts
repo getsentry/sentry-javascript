@@ -1,38 +1,41 @@
-export type SpanStatusType =
+export const SPAN_STATUS_TYPES = [
   /** The operation completed successfully. */
-  | 'ok'
+  'ok',
   /** Deadline expired before operation could complete. */
-  | 'deadline_exceeded'
+  'deadline_exceeded',
   /** 401 Unauthorized (actually does mean unauthenticated according to RFC 7235) */
-  | 'unauthenticated'
+  'unauthenticated',
   /** 403 Forbidden */
-  | 'permission_denied'
+  'permission_denied',
   /** 404 Not Found. Some requested entity (file or directory) was not found. */
-  | 'not_found'
+  'not_found',
   /** 429 Too Many Requests */
-  | 'resource_exhausted'
+  'resource_exhausted',
   /** Client specified an invalid argument. 4xx. */
-  | 'invalid_argument'
+  'invalid_argument',
   /** 501 Not Implemented */
-  | 'unimplemented'
+  'unimplemented',
   /** 503 Service Unavailable */
-  | 'unavailable'
+  'unavailable',
   /** Other/generic 5xx. */
-  | 'internal_error'
+  'internal_error',
   /** Unknown. Any non-standard HTTP status code. */
-  | 'unknown_error'
+  'unknown_error',
   /** The operation was cancelled (typically by the user). */
-  | 'cancelled'
+  'cancelled',
   /** Already exists (409) */
-  | 'already_exists'
+  'already_exists',
   /** Operation was rejected because the system is not in a state required for the operation's */
-  | 'failed_precondition'
+  'failed_precondition',
   /** The operation was aborted, typically due to a concurrency issue. */
-  | 'aborted'
+  'aborted',
   /** Operation was attempted past the valid range. */
-  | 'out_of_range'
+  'out_of_range',
   /** Unrecoverable data loss or corruption */
-  | 'data_loss';
+  'data_loss',
+] as const;
+
+export type SpanStatusType = (typeof SPAN_STATUS_TYPES)[number];
 
 // These are aligned with OpenTelemetry span status codes
 const SPAN_STATUS_UNSET = 0;

@@ -14,14 +14,6 @@ describe('Route Conversion Consistency', () => {
       expect(buildTime?.path).toBe('/about');
     });
 
-    it('should produce identical results for index routes', () => {
-      const buildTime = convertRemixRouteToPath('index.tsx');
-      const runtime = convertRemixRouteIdToPath('routes/index');
-
-      expect(buildTime?.path).toBe(runtime);
-      expect(buildTime?.path).toBe('/');
-    });
-
     it('should produce identical results for dynamic parameter routes', () => {
       const buildTime = convertRemixRouteToPath('users.$id.tsx');
       const runtime = convertRemixRouteIdToPath('routes/users.$id');
@@ -62,9 +54,9 @@ describe('Route Conversion Consistency', () => {
       expect(buildTime?.path).toBe('/users/:id');
     });
 
-    it('should produce identical results for nested folder with index', () => {
-      const buildTime = convertRemixRouteToPath('users/index.tsx');
-      const runtime = convertRemixRouteIdToPath('routes/users.index');
+    it('should produce identical results for nested folder with _index', () => {
+      const buildTime = convertRemixRouteToPath('users/_index.tsx');
+      const runtime = convertRemixRouteIdToPath('routes/users._index');
 
       expect(buildTime?.path).toBe(runtime);
       expect(buildTime?.path).toBe('/users');
@@ -137,9 +129,9 @@ describe('Route Conversion Consistency', () => {
       expect(buildTime?.path).toBe(runtime);
     });
 
-    it('should handle trailing index segments', () => {
-      const buildTime = convertRemixRouteToPath('users.profile.index.tsx');
-      const runtime = convertRemixRouteIdToPath('routes/users.profile.index');
+    it('should handle trailing _index segments', () => {
+      const buildTime = convertRemixRouteToPath('users.profile._index.tsx');
+      const runtime = convertRemixRouteIdToPath('routes/users.profile._index');
 
       expect(buildTime?.path).toBe(runtime);
       expect(buildTime?.path).toBe('/users/profile');
@@ -151,6 +143,25 @@ describe('Route Conversion Consistency', () => {
 
       expect(withSlash?.path).toBe(withDots?.path);
       expect(withSlash?.path).toBe('/users/:id/posts');
+    });
+  });
+
+  describe('Trailing underscore routes', () => {
+    it('should strip a trailing underscore at build time and at runtime', () => {
+      const buildTime = convertRemixRouteToPath('concerts_.mine.tsx');
+      const runtime = convertRemixRouteIdToPath('routes/concerts_.mine');
+
+      expect(buildTime?.path).toBe('/concerts/mine');
+      expect(runtime).toBe('/concerts/mine');
+    });
+
+    it('should strip a trailing underscore from dynamic segments', () => {
+      const buildTime = convertRemixRouteToPath('app.projects.$id_.roadmap.tsx');
+      const runtime = convertRemixRouteIdToPath('routes/app.projects.$id_.roadmap');
+
+      expect(buildTime?.path).toBe('/app/projects/:id/roadmap');
+      expect(buildTime?.isDynamic).toBe(true);
+      expect(runtime).toBe('/app/projects/:id/roadmap');
     });
   });
 

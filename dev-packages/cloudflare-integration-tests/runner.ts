@@ -1,11 +1,12 @@
-import type { Envelope, EnvelopeItemType } from '@sentry/core';
+import type { Envelope, EnvelopeItemType, SerializedStreamedSpan } from '@sentry/core';
 import { normalize } from '@sentry/core';
 import { createBasicSentryServer } from '@sentry-internal/test-utils';
-import { spawn } from 'child_process';
-import { existsSync } from 'fs';
+import { spawn, spawnSync } from 'child_process';
+import { existsSync, readdirSync, readFileSync } from 'fs';
 import { join } from 'path';
 import { inspect } from 'util';
-import { expect } from 'vitest';
+import { expect, onTestFinished } from 'vitest';
+import { getSpansFromEnvelope } from './spanUtils';
 
 const CLEANUP_STEPS = new Set<() => void>();
 
@@ -18,11 +19,74 @@ export function cleanupChildProcesses(): void {
 
 process.on('exit', cleanupChildProcesses);
 
+/**
+ * Resolve the wrangler config `wrangler dev` should serve for a worker.
+ *
+ * Most suites run straight from source (`wrangler dev --config <name>.jsonc`).
+ * A suite that opts into the Sentry Vite plugin instead ships a `vite.config.*`
+ * (and no top-level `main` in its wrangler config): for those we run `vite build`
+ * first — so the plugin's build-time auto-instrumentation transform runs — and
+ * point wrangler at the generated config under `dist/<worker>/wrangler.json`.
+ *
+ * `wranglerConfigName` selects which source config the Vite build corresponds to
+ * (`wrangler.jsonc` for the main worker, `wrangler-sub-worker.jsonc` for a sub),
+ * so a Vite suite's generated output is matched to the right worker.
+ */
+function resolveWorkerConfig(testPath: string, wranglerConfigName: string): string {
+  const sourceConfig = join(testPath, wranglerConfigName);
+  const viteConfig = ['vite.config.ts', 'vite.config.mts', 'vite.config.js', 'vite.config.mjs']
+    .map(name => join(testPath, name))
+    .find(existsSync);
+
+  // No Vite config → serve the source wrangler config unchanged (existing path).
+  if (!viteConfig) {
+    return sourceConfig;
+  }
+
+  const result = spawnSync('vite', ['build'], { cwd: testPath, stdio: process.env.DEBUG ? 'inherit' : 'ignore' });
+  if (result.status !== 0) {
+    throw new Error(`vite build failed for ${testPath} (exit code ${result.status})`);
+  }
+
+  // `@cloudflare/vite-plugin` emits one directory per worker under `dist/`, each
+  // containing a resolved `wrangler.json`. Match the one whose original config is
+  // this worker's source config so multi-worker suites map correctly.
+  const distDir = join(testPath, 'dist');
+  const builtConfig = readdirSync(distDir, { withFileTypes: true })
+    .filter(entry => entry.isDirectory())
+    .map(entry => join(distDir, entry.name, 'wrangler.json'))
+    .find(configPath => existsSync(configPath) && builtFromSource(configPath, sourceConfig));
+
+  if (!builtConfig) {
+    throw new Error(`Could not locate a Vite-built wrangler config for ${sourceConfig} under ${distDir}`);
+  }
+  return builtConfig;
+}
+
+/** Whether a generated `wrangler.json` was built from the given source config. */
+function builtFromSource(builtConfigPath: string, sourceConfigPath: string): boolean {
+  try {
+    const built = JSON.parse(readFileSync(builtConfigPath, 'utf8')) as { userConfigPath?: string; configPath?: string };
+    return built.userConfigPath === sourceConfigPath || built.configPath === sourceConfigPath;
+  } catch {
+    return false;
+  }
+}
+
+type RetryOptions = { maxRetries?: number; retryDelayMs?: number };
+
 // Wrangler can report "Ready" before it can actually handle requests.
 // This retries fetch on connection errors and transient 500 responses to handle this race condition.
 // The budget (maxRetries * retryDelayMs) must cover the "ready-but-not-serving" window, which can be
 // several seconds on a loaded CI runner — hence a generous default.
-async function fetchWithRetry(url: string, init: RequestInit, maxRetries = 25, retryDelayMs = 200): Promise<Response> {
+//
+// Requests expected to fail must disable retries (`maxRetries: 1`), because their 500 or connection
+// reset is indistinguishable from a transient startup failure and retrying only repeats the exception.
+async function fetchWithRetry(
+  url: string,
+  init: RequestInit,
+  { maxRetries = 75, retryDelayMs = 200 }: RetryOptions = {},
+): Promise<Response> {
   for (let attempt = 0; attempt < maxRetries; attempt++) {
     try {
       const res = await fetch(url, init);
@@ -51,9 +115,11 @@ async function fetchWithRetry(url: string, init: RequestInit, maxRetries = 25, r
   throw new Error('fetchWithRetry: unreachable');
 }
 
-function deferredPromise<T = void>(
-  done?: () => void,
-): { resolve: (val: T) => void; reject: (reason?: unknown) => void; promise: Promise<T> } {
+function deferredPromise<T = void>(): {
+  resolve: (val: T) => void;
+  reject: (reason?: unknown) => void;
+  promise: Promise<T>;
+} {
   let resolve;
   let reject;
   const promise = new Promise<T>((res, rej) => {
@@ -70,14 +136,19 @@ function deferredPromise<T = void>(
   return {
     resolve,
     reject,
-    promise: promise.finally(() => done?.()),
+    promise,
   };
 }
 
 type Expected = Envelope | ((envelope: Envelope) => void);
 
+/** Either the name of the segment span, or a predicate over it. */
+type SegmentMatcher = string | ((segmentSpan: SerializedStreamedSpan) => boolean);
+
 type StartResult = {
   completed(): Promise<void>;
+  /** Every non-ignored envelope received so far, matched or not, for count assertions. */
+  getReceivedEnvelopes(): Envelope[];
   makeRequest<T>(
     method: 'get' | 'post',
     path: string,
@@ -89,6 +160,25 @@ type StartResult = {
     expected: Expected | Expected[],
     options?: { headers?: Record<string, string>; data?: BodyInit; expectError?: boolean },
   ): Promise<T | undefined>;
+  /**
+   * Accumulates spans across envelopes, grouped by trace, and resolves with the spans of the first
+   * trace that satisfies `isDone`.
+   *
+   * A trace reaches the mock server in more than one envelope: the span buffer flushes on a timer, so
+   * a segment that is still open when its children flush arrives separately, and a Durable Object or a
+   * service binding sends its own spans from its own isolate. Anything asserting on a whole trace has
+   * to accumulate rather than read a single envelope.
+   */
+  collectStreamedSpans(isDone: (spansOfTrace: SerializedStreamedSpan[]) => boolean): Promise<SerializedStreamedSpan[]>;
+  /**
+   * Accumulates the spans of a trace until its segment span has arrived.
+   *
+   * Only use this to assert on the segment span itself. The segment span ends last, but each
+   * envelope is its own request to the mock server, so the segment can still be *received* before
+   * the envelope carrying its children. A suite that asserts on the children has to wait for those
+   * children by name or by count through `collectStreamedSpans`.
+   */
+  collectStreamedSpansUntilSegment(segment: SegmentMatcher): Promise<SerializedStreamedSpan[]>;
 };
 
 /** Creates a test runner */
@@ -98,6 +188,7 @@ export function createRunner(...paths: string[]) {
 
   // controls whether envelopes are expected in predefined order or not
   let unordered = false;
+  let failOnUnexpected = false;
 
   if (!existsSync(testPath)) {
     throw new Error(`Test scenario not found: ${testPath}`);
@@ -132,6 +223,10 @@ export function createRunner(...paths: string[]) {
       unordered = true;
       return this;
     },
+    failOnUnexpected: function () {
+      failOnUnexpected = true;
+      return this;
+    },
     ignore: function (...types: EnvelopeItemType[]) {
       types.forEach(t => ignored.add(t));
       return this;
@@ -143,22 +238,61 @@ export function createRunner(...paths: string[]) {
       return this;
     },
     start: function (signal?: AbortSignal): StartResult {
-      const { resolve, reject, promise: isComplete } = deferredPromise(cleanupChildProcesses);
+      let child: ReturnType<typeof spawn> | undefined;
+      let childSubWorker: ReturnType<typeof spawn> | undefined;
+      let closeMockServer: (() => void) | undefined;
+      // True after `cleanupThisRunner` ran. The async startup below checks it, so a mock server that
+      // comes up after the teardown is closed and no `wrangler dev` is spawned.
+      let disposed = false;
+
+      function cleanupThisRunner(): void {
+        disposed = true;
+        CLEANUP_STEPS.delete(cleanupThisRunner);
+        child?.kill();
+        childSubWorker?.kill();
+        closeMockServer?.();
+        closeMockServer = undefined;
+      }
+
+      // A suite that asserts on streamed spans never calls `completed()`, so `isComplete` never
+      // settles and its worker would stay alive until the vitest process exits. With one such suite
+      // per file, a full run ends up with dozens of `wrangler dev` processes competing for the
+      // machine, and the later suites time out. Tie the teardown to the test instead.
+      onTestFinished(cleanupThisRunner);
+      CLEANUP_STEPS.add(cleanupThisRunner);
+
+      const { resolve, reject, promise: isComplete } = deferredPromise();
+
+      const spanWaiters: {
+        onSpans: (spans: SerializedStreamedSpan[]) => boolean;
+        resolve: () => void;
+        reject: (e: unknown) => void;
+      }[] = [];
+      let failure: unknown;
 
       // `reject` is called from background event handlers (child process `error`/`exit`, mock server
       // callbacks) that fire at arbitrary times relative to the test's `await` points. If `reject` runs
       // while nothing is awaiting `isComplete` yet (e.g. a child transiently exits while the test is
       // parked in `makeRequest`), the rejection has no handler attached and surfaces as an unhandled
       // promise rejection — which Vitest reports as a spurious "Unhandled error" that fails the whole
-      // suite. Attaching a no-op catch keeps the promise "handled"; the real rejection is still delivered
+      // suite. Attaching a catch keeps the promise "handled"; the real rejection is still delivered
       // to callers via `completed()`, so genuine failures still fail the test.
-      isComplete.catch(() => {
-        // handled in `completed()`
+      //
+      // A test that only asserts on streamed spans never calls `completed()`, so the same rejection is
+      // handed to the span waiters as well. Without it, a worker that fails to boot would surface as a
+      // Vitest timeout instead of the actual error.
+      isComplete.catch(e => {
+        failure = e;
+        for (const waiter of spanWaiters.splice(0)) {
+          waiter.reject(e);
+        }
       });
 
       const expectedEnvelopeCount = expectedEnvelopes.length;
+      const receivedEnvelopes: Envelope[] = [];
 
       let envelopeCount = 0;
+      let unexpectedEnvelopeError: Error | undefined;
       const envelopeWaiters: { expected: Expected; resolve: () => void; reject: (e: unknown) => void }[] = [];
       const {
         resolve: setWorkerPort,
@@ -168,8 +302,6 @@ export function createRunner(...paths: string[]) {
       workerPortPromise.catch(() => {
         // handled in `makeRequest`
       });
-      let child: ReturnType<typeof spawn> | undefined;
-      let childSubWorker: ReturnType<typeof spawn> | undefined;
 
       /** Called after each expect callback to check if we're complete */
       function expectCallbackCalled(): void {
@@ -185,6 +317,44 @@ export function createRunner(...paths: string[]) {
         });
       }
 
+      /** Resolves once `onSpans` returns true for the spans of an arriving span envelope. */
+      function waitForSpans(onSpans: (spans: SerializedStreamedSpan[]) => boolean): Promise<void> {
+        return new Promise((resolveWaiter, rejectWaiter) => {
+          if (failure) {
+            rejectWaiter(failure);
+            return;
+          }
+          spanWaiters.push({ onSpans, resolve: resolveWaiter, reject: rejectWaiter });
+        });
+      }
+
+      /**
+       * Span waiters observe the envelope stream, they never consume from it: a suite can assert on
+       * streamed spans and on error envelopes at the same time.
+       */
+      function notifySpanWaiters(envelope: Envelope): void {
+        const spans = getSpansFromEnvelope(envelope);
+        if (!spans.length) {
+          return;
+        }
+
+        for (const waiter of spanWaiters.slice()) {
+          let done: boolean;
+          try {
+            done = waiter.onSpans(spans);
+          } catch (e) {
+            spanWaiters.splice(spanWaiters.indexOf(waiter), 1);
+            waiter.reject(e);
+            continue;
+          }
+
+          if (done) {
+            spanWaiters.splice(spanWaiters.indexOf(waiter), 1);
+            waiter.resolve();
+          }
+        }
+      }
+
       function assertEnvelopeMatches(expected: Expected, envelope: Envelope): void {
         if (typeof expected === 'function') {
           expected(envelope);
@@ -196,22 +366,32 @@ export function createRunner(...paths: string[]) {
       function newEnvelope(envelope: Envelope): void {
         if (process.env.DEBUG) log('newEnvelope', inspect(envelope, false, null, true));
 
+        notifySpanWaiters(envelope);
+
         const envelopeItemType = envelope[1][0][0].type;
 
         if (ignored.has(envelopeItemType)) {
           return;
         }
 
-        // Check per-request waiters first (FIFO order)
+        receivedEnvelopes.push(envelope);
+
+        // Resolve per-request waiters first, matching in any order so a request
+        // expecting multiple envelopes isn't sensitive to their arrival order.
         if (envelopeWaiters.length > 0) {
-          const waiter = envelopeWaiters.shift()!;
-          try {
-            assertEnvelopeMatches(waiter.expected, envelope);
-            waiter.resolve();
-          } catch (e) {
-            waiter.reject(e);
+          const waiterIndex = envelopeWaiters.findIndex(waiter => {
+            try {
+              assertEnvelopeMatches(waiter.expected, envelope);
+              return true;
+            } catch {
+              return false;
+            }
+          });
+
+          if (waiterIndex >= 0) {
+            envelopeWaiters.splice(waiterIndex, 1)[0]!.resolve();
+            return;
           }
-          return;
         }
 
         try {
@@ -228,6 +408,10 @@ export function createRunner(...paths: string[]) {
 
             // no match found
             if (matchIndex < 0) {
+              if (failOnUnexpected) {
+                unexpectedEnvelopeError ??= new Error('Received an unexpected envelope');
+                reject(unexpectedEnvelopeError);
+              }
               return;
             }
 
@@ -252,11 +436,12 @@ export function createRunner(...paths: string[]) {
 
       createBasicSentryServer(newEnvelope)
         .then(async ([mockServerPort, mockServerClose]) => {
-          if (mockServerClose) {
-            CLEANUP_STEPS.add(() => {
-              mockServerClose();
-            });
+          // The test can end before the mock server is up, e.g. when it throws right after `start()`.
+          if (disposed) {
+            mockServerClose();
+            return;
           }
+          closeMockServer = mockServerClose;
 
           if (process.env.DEBUG) log('Starting scenario', testPath);
 
@@ -299,7 +484,7 @@ export function createRunner(...paths: string[]) {
               [
                 'dev',
                 '--config',
-                join(testPath, 'wrangler-sub-worker.jsonc'),
+                resolveWorkerConfig(testPath, 'wrangler-sub-worker.jsonc'),
                 '--show-interactive-dev-session',
                 'false',
                 '--var',
@@ -318,6 +503,10 @@ export function createRunner(...paths: string[]) {
             });
 
             await waitForReady(childSubWorker);
+
+            if (disposed) {
+              return;
+            }
           }
 
           child = spawn(
@@ -325,7 +514,7 @@ export function createRunner(...paths: string[]) {
             [
               'dev',
               '--config',
-              join(testPath, 'wrangler.jsonc'),
+              resolveWorkerConfig(testPath, 'wrangler.jsonc'),
               '--show-interactive-dev-session',
               'false',
               '--var',
@@ -341,11 +530,6 @@ export function createRunner(...paths: string[]) {
             { stdio: ['ignore', 'pipe', 'inherit'], signal },
           );
 
-          CLEANUP_STEPS.add(() => {
-            child?.kill();
-            childSubWorker?.kill();
-          });
-
           childSubWorker?.on('error', onChildError);
           child.on('error', onChildError);
 
@@ -360,7 +544,13 @@ export function createRunner(...paths: string[]) {
 
       return {
         completed: async function (): Promise<void> {
-          return isComplete;
+          await isComplete;
+          if (unexpectedEnvelopeError) {
+            throw unexpectedEnvelopeError;
+          }
+        },
+        getReceivedEnvelopes: function (): Envelope[] {
+          return receivedEnvelopes;
         },
         makeRequest: async function <T>(
           method: 'get' | 'post',
@@ -375,11 +565,16 @@ export function createRunner(...paths: string[]) {
           if (process.env.DEBUG) log('making request', method, url, headers, body);
 
           try {
-            const res = await fetchWithRetry(url, { headers, method, body });
+            const res = await fetchWithRetry(url, { headers, method, body }, expectError ? { maxRetries: 1 } : {});
 
             if (!res.ok) {
               if (!expectError) {
-                reject(new Error(`Expected request to "${path}" to succeed, but got a ${res.status} response`));
+                const responseBody = await res.text().catch(() => '');
+                reject(
+                  new Error(
+                    `Expected request to "${path}" to succeed, but got a ${res.status} response: ${responseBody.slice(0, 500)}`,
+                  ),
+                );
               }
 
               return;
@@ -418,6 +613,44 @@ export function createRunner(...paths: string[]) {
           const result = await this.makeRequest<T>(method, path, options);
           await Promise.all(envelopePromises);
           return result;
+        },
+        collectStreamedSpans: async function (
+          isDone: (spansOfTrace: SerializedStreamedSpan[]) => boolean,
+        ): Promise<SerializedStreamedSpan[]> {
+          const spansByTrace = new Map<string, SerializedStreamedSpan[]>();
+          let matched: SerializedStreamedSpan[] = [];
+
+          await waitForSpans(spans => {
+            for (const span of spans) {
+              const spansOfTrace = spansByTrace.get(span.trace_id);
+              if (spansOfTrace) {
+                spansOfTrace.push(span);
+              } else {
+                spansByTrace.set(span.trace_id, [span]);
+              }
+            }
+
+            // Every trace is a candidate, so a trace that never satisfies `isDone` cannot hold up the
+            // one that does. Insertion order means the earliest-arriving trace wins a tie.
+            for (const spansOfTrace of spansByTrace.values()) {
+              if (isDone(spansOfTrace)) {
+                matched = spansOfTrace;
+                return true;
+              }
+            }
+
+            return false;
+          });
+
+          return matched;
+        },
+        collectStreamedSpansUntilSegment: function (segment: SegmentMatcher): Promise<SerializedStreamedSpan[]> {
+          const matchesSegment =
+            typeof segment === 'string' ? (span: SerializedStreamedSpan) => span.name === segment : segment;
+
+          return this.collectStreamedSpans(spansOfTrace =>
+            spansOfTrace.some(span => span.is_segment && matchesSegment(span)),
+          );
         },
       };
     },

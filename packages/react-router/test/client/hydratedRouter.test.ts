@@ -1,8 +1,8 @@
+import { SENTRY_SEGMENT_NAME_SOURCE } from '@sentry/conventions/attributes';
 import * as browser from '@sentry/browser';
 import * as core from '@sentry/core';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { instrumentHydratedRouter } from '../../src/client/hydratedRouter';
-import { SEMANTIC_ATTRIBUTE_SENTRY_SOURCE } from '@sentry/core';
 
 vi.mock('@sentry/core', async () => {
   const actual = await vi.importActual<any>('@sentry/core');
@@ -15,9 +15,9 @@ vi.mock('@sentry/core', async () => {
     debug: {
       warn: vi.fn(),
     },
-    SEMANTIC_ATTRIBUTE_SENTRY_OP: 'op',
-    SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN: 'origin',
-    SEMANTIC_ATTRIBUTE_SENTRY_SOURCE: 'source',
+    SEMANTIC_ATTRIBUTE_SENTRY_OP: 'sentry.op',
+    SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN: 'sentry.origin',
+
     GLOBAL_OBJ: globalThis,
   };
 });
@@ -63,11 +63,14 @@ describe('instrumentHydratedRouter', () => {
     (core.getActiveSpan as any).mockReturnValue(mockPageloadSpan);
     (core.getRootSpan as any).mockImplementation((span: any) => span);
     (core.spanToJSON as any).mockImplementation((span: any) => ({
-      description: '/foo/bar',
-      // Distinguish so the subscribe callback can branch on op (pageload vs. navigation).
-      op: span === mockNavigationSpan ? 'navigation' : 'pageload',
+      name: '/foo/bar',
+      attributes: {
+        // Distinguish so the subscribe callback can branch on op (pageload vs. navigation).
+        'sentry.op': span === mockNavigationSpan ? 'navigation' : 'pageload',
+        'url.path': '/foo/bar',
+      },
     }));
-    (core.getClient as any).mockReturnValue({});
+    (core.getClient as any).mockReturnValue({ getOptions: () => ({ traceLifecycle: 'stream' }) });
     (browser.startBrowserTracingNavigationSpan as any).mockReturnValue(mockNavigationSpan);
   });
 
@@ -109,7 +112,7 @@ describe('instrumentHydratedRouter', () => {
     callback(newState);
     expect(mockNavigationSpan.updateName).toHaveBeenCalledWith('/foo/:id');
     expect(mockNavigationSpan.setAttributes).toHaveBeenCalledWith({
-      [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
+      [SENTRY_SEGMENT_NAME_SOURCE]: 'route',
       'url.template': '/foo/:id',
     });
   });
@@ -134,34 +137,9 @@ describe('instrumentHydratedRouter', () => {
     expect(mockNavigationSpan.setAttribute).not.toHaveBeenCalled();
     expect(mockNavigationSpan.setAttributes).not.toHaveBeenCalled();
     expect(mockPageloadSpan.setAttributes).toHaveBeenLastCalledWith({
-      [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
+      [SENTRY_SEGMENT_NAME_SOURCE]: 'route',
       'url.template': '/foo/:id',
     });
-  });
-
-  it('skips the subscribe heuristic when the API is active and a route hook already set source:route', () => {
-    // When a native route hook has parameterized the navigation root (source:route), the legacy
-    // heuristic must not re-rename it.
-    (globalThis as any).__sentryReactRouterClientInstrumentationUsed = true;
-    (core.spanToJSON as any).mockImplementation((span: any) => ({
-      description: '/foo/bar',
-      op: span === mockNavigationSpan ? 'navigation' : 'pageload',
-      data: { source: 'route' },
-    }));
-
-    instrumentHydratedRouter();
-    const callback = mockRouter.subscribe.mock.calls[0][0];
-    const newState = {
-      location: { pathname: '/foo/bar' },
-      matches: [{ route: { path: '/foo/:id' } }],
-      navigation: { state: 'idle' },
-    };
-    (core.getActiveSpan as any).mockReturnValue(mockNavigationSpan);
-    callback(newState);
-
-    expect(mockNavigationSpan.updateName).not.toHaveBeenCalled();
-
-    delete (globalThis as any).__sentryReactRouterClientInstrumentationUsed;
   });
 
   it('still parameterizes a navigation root via subscribe (backstop) when the API is active but the route had no hook (source:url)', () => {
@@ -169,9 +147,8 @@ describe('instrumentHydratedRouter', () => {
     // source:url. The heuristic must still parameterize it instead of leaving the raw URL.
     (globalThis as any).__sentryReactRouterClientInstrumentationUsed = true;
     (core.spanToJSON as any).mockImplementation((span: any) => ({
-      description: '/foo/bar',
-      op: span === mockNavigationSpan ? 'navigation' : 'pageload',
-      data: { source: 'url' },
+      name: '/foo/bar',
+      attributes: { 'sentry.op': span === mockNavigationSpan ? 'navigation' : 'pageload', source: 'url' },
     }));
 
     instrumentHydratedRouter();
@@ -186,7 +163,7 @@ describe('instrumentHydratedRouter', () => {
 
     expect(mockNavigationSpan.updateName).toHaveBeenCalledWith('/foo/:id');
     expect(mockNavigationSpan.setAttributes).toHaveBeenCalledWith({
-      [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
+      [SENTRY_SEGMENT_NAME_SOURCE]: 'route',
       'url.template': '/foo/:id',
     });
 
@@ -231,7 +208,7 @@ describe('instrumentHydratedRouter', () => {
     expect(browser.startBrowserTracingNavigationSpan).toHaveBeenCalledWith(
       expect.anything(),
       expect.objectContaining({
-        name: '/items/123',
+        name: 'Navigation',
       }),
       // the destination URL keeps the query string, even though the span name doesn't
       { url: 'https://example.com/items/123?foo=bar' },
@@ -244,7 +221,7 @@ describe('instrumentHydratedRouter', () => {
     expect(browser.startBrowserTracingNavigationSpan).toHaveBeenCalledWith(
       expect.anything(),
       expect.objectContaining({
-        name: 'settings',
+        name: 'Navigation',
       }),
       { url: 'https://example.com/foo/bar/settings' },
     );
@@ -256,9 +233,11 @@ describe('instrumentHydratedRouter', () => {
 
     (core.getActiveSpan as any).mockReturnValue(mockNavigationSpan);
     (core.spanToJSON as any).mockImplementation((span: any) => ({
-      description: 'settings',
-      op: span === mockNavigationSpan ? 'navigation' : 'pageload',
-      data: { 'url.path': '/foo/bar/settings' },
+      name: 'settings',
+      attributes: {
+        'sentry.op': span === mockNavigationSpan ? 'navigation' : 'pageload',
+        'url.path': '/foo/bar/settings',
+      },
     }));
 
     const callback = mockRouter.subscribe.mock.calls[0][0];
@@ -270,7 +249,7 @@ describe('instrumentHydratedRouter', () => {
 
     expect(mockNavigationSpan.updateName).toHaveBeenCalledWith('/foo/bar/settings');
     expect(mockNavigationSpan.setAttributes).toHaveBeenCalledWith({
-      [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
+      [SENTRY_SEGMENT_NAME_SOURCE]: 'route',
       'url.template': '/foo/bar/settings',
     });
   });
@@ -281,7 +260,7 @@ describe('instrumentHydratedRouter', () => {
     expect(browser.startBrowserTracingNavigationSpan).toHaveBeenCalledWith(
       expect.anything(),
       expect.objectContaining({
-        name: '/foo/bar',
+        name: 'Navigation',
       }),
       { url: 'https://example.com/foo/bar' },
     );
@@ -304,14 +283,16 @@ describe('instrumentHydratedRouter', () => {
 
     await navigateResult;
 
-    expect(mockNavigationSpan.updateName).toHaveBeenCalledWith('/foo');
+    // The destination stays on the URL attributes, the span name is low cardinality.
+    expect(mockNavigationSpan.updateName).toHaveBeenCalledWith('Navigation');
     expect(mockNavigationSpan.setAttributes).toHaveBeenCalledWith({
+      'sentry.segment.name.source': 'url',
       'url.path': '/foo',
       'url.full': 'https://example.com/foo',
     });
     expect(mockNavigationSpan.updateName).toHaveBeenLastCalledWith('/foo/:id');
     expect(mockNavigationSpan.setAttributes).toHaveBeenLastCalledWith({
-      [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
+      [SENTRY_SEGMENT_NAME_SOURCE]: 'route',
       'url.template': '/foo/:id',
     });
   });
@@ -338,6 +319,7 @@ describe('instrumentHydratedRouter', () => {
     await navigateResult.catch(() => undefined);
 
     expect(mockNavigationSpan.setAttributes).toHaveBeenCalledWith({
+      'sentry.segment.name.source': 'url',
       'url.path': '/foo',
       'url.full': 'https://example.com/foo',
     });
@@ -353,18 +335,18 @@ describe('instrumentHydratedRouter', () => {
     instrumentHydratedRouter();
     mockRouter.navigate(-1);
 
-    expect(mockNavigationSpan.updateName).toHaveBeenCalledWith('/foo');
+    expect(mockNavigationSpan.updateName).toHaveBeenCalledWith('Navigation');
     expect(mockNavigationSpan.updateName).toHaveBeenCalledTimes(1);
     expect(mockNavigationSpan.setAttributes).toHaveBeenCalledWith({
+      'sentry.segment.name.source': 'url',
       'url.path': '/foo',
       'url.full': 'https://example.com/foo',
     });
 
     (core.getActiveSpan as any).mockReturnValue(mockNavigationSpan);
     (core.spanToJSON as any).mockImplementation((span: any) => ({
-      description: '/foo/bar',
-      op: span === mockNavigationSpan ? 'navigation' : 'pageload',
-      data: { 'url.path': '/foo' },
+      name: '/foo/bar',
+      attributes: { 'sentry.op': span === mockNavigationSpan ? 'navigation' : 'pageload', 'url.path': '/foo' },
     }));
 
     const callback = mockRouter.subscribe.mock.calls[0][0];
@@ -376,7 +358,7 @@ describe('instrumentHydratedRouter', () => {
 
     expect(mockNavigationSpan.updateName).toHaveBeenCalledWith('/foo/:id');
     expect(mockNavigationSpan.setAttributes).toHaveBeenLastCalledWith({
-      [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
+      [SENTRY_SEGMENT_NAME_SOURCE]: 'route',
       'url.template': '/foo/:id',
     });
   });

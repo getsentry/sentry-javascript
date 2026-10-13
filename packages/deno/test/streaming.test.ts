@@ -1,6 +1,34 @@
 // <reference lib="deno.ns" />
 
-import { assertEquals } from 'https://deno.land/std@0.212.0/assert/mod.ts';
+import { assertEquals, assertStrictEquals } from 'https://deno.land/std@0.212.0/assert/mod.ts';
+
+import { streamResponse } from '../src/utils/streaming.ts';
+
+Deno.test('cancels the source when the response reader is cancelled', async () => {
+  let sourceCancelReason: unknown;
+
+  const source = new ReadableStream<Uint8Array>({
+    start(controller) {
+      controller.enqueue(new TextEncoder().encode('first event'));
+    },
+    cancel(reason) {
+      sourceCancelReason = reason;
+    },
+  });
+
+  const span = { end() {} } as Parameters<typeof streamResponse>[0];
+  const response = await streamResponse(
+    span,
+    new Response(source, { headers: { 'content-type': 'text/event-stream' } }),
+  );
+  const reader = response.body!.getReader();
+  const reason = new Error('client disconnected');
+
+  await reader.read();
+  await reader.cancel(reason);
+
+  assertStrictEquals(sourceCancelReason, reason);
+});
 
 Deno.test('reader.closed.then(f, f) suppresses rejection when releaseLock is called on an open stream', async () => {
   // Reproduces the bug from GitHub issue #20177:

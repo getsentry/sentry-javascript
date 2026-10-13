@@ -20,12 +20,23 @@ const getTraceMetaTagsSpy = vi
     '<meta name="sentry-trace" content="abc123-def456-1"/><meta name="baggage" content="sentry-trace_id=abc123"/>',
   );
 
+// Span streaming is the default trace lifecycle; `undefined` stands for a not-yet-initialized SDK.
+const getClientSpy = vi.fn<() => { getOptions: () => { traceLifecycle: string } } | undefined>(() => undefined);
+
 vi.mock('@sentry/core', async importOriginal => {
   const original = await importOriginal();
   return {
     ...original,
-    flushIfServerless: (...args: unknown[]) => flushIfServerlessSpy(...args),
     getTraceMetaTags: () => getTraceMetaTagsSpy(),
+    getClient: () => getClientSpy(),
+  };
+});
+
+vi.mock('@sentry/core/server', async importOriginal => {
+  const original = await importOriginal();
+  return {
+    ...original,
+    flushIfServerless: (...args: unknown[]) => flushIfServerlessSpy(...args),
   };
 });
 
@@ -35,6 +46,8 @@ const { wrapFetchWithSentry } = await import('../../src/server/wrapFetchWithSent
 describe('wrapFetchWithSentry', () => {
   afterEach(() => {
     vi.clearAllMocks();
+    // `vi.clearAllMocks()` clears calls but not implementations, so this would leak into later tests.
+    getClientSpy.mockReturnValue(undefined);
   });
 
   it('calls flushIfServerless after a regular request', async () => {
@@ -50,7 +63,7 @@ describe('wrapFetchWithSentry', () => {
     expect(flushIfServerlessSpy).toHaveBeenCalledTimes(1);
   });
 
-  it('creates a function.tanstackstart span for server function requests', async () => {
+  it('creates a function span for server function requests', async () => {
     const mockResponse = new Response('ok');
     const fetchFn = vi.fn().mockResolvedValue(mockResponse);
 
@@ -61,12 +74,35 @@ describe('wrapFetchWithSentry', () => {
 
     expect(startSpanSpy).toHaveBeenCalledWith(
       expect.objectContaining({
-        op: 'function.tanstackstart',
         name: 'GET /_serverFn/abc123',
+        attributes: expect.objectContaining({
+          'sentry.op': 'function',
+        }),
       }),
       expect.any(Function),
     );
     expect(flushIfServerlessSpy).toHaveBeenCalledTimes(1);
+  });
+
+  it('keeps the server function path out of the span name with span streaming', async () => {
+    getClientSpy.mockReturnValue({ getOptions: () => ({ traceLifecycle: 'stream' }) });
+
+    const fetchFn = vi.fn().mockResolvedValue(new Response('ok'));
+    const serverEntry = wrapFetchWithSentry({ fetch: fetchFn });
+
+    await serverEntry.fetch(new Request('http://localhost:3000/_serverFn/abc123'));
+
+    expect(startSpanSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        name: 'serverFn',
+        attributes: expect.objectContaining({
+          'sentry.op': 'function',
+          'code.function.name': 'serverFn',
+          'sentry.description': 'GET /_serverFn/abc123',
+        }),
+      }),
+      expect.any(Function),
+    );
   });
 
   it('injects meta tags into HTML responses', async () => {

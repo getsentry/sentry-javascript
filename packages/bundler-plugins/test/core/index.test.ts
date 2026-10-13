@@ -1,6 +1,45 @@
-import { getDebugIdSnippet } from '../../src/core';
+import { createComponentNameAnnotateHooks, getDebugIdSnippet } from '../../src/core';
+import { getOxcParseAstAsync } from '../../src/core/component-annotation-oxc';
 import { containsOnlyImports } from '../../src/core/utils';
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
+
+describe('createComponentNameAnnotateHooks', () => {
+  it.each([
+    ['.tsx', '/project/src/shared/providers/AppProviders.tsx'],
+    ['.jsx', '/project/src/shared/providers/AppProviders.jsx'],
+  ])('preserves the full file path in the emitted source map (%s)', async (_ext, id) => {
+    const { transform } = createComponentNameAnnotateHooks([], false);
+    const code = 'export function AppProviders() {\n  return <div>hello</div>;\n}\n';
+
+    const result = await transform(code, id);
+
+    expect(result?.map).toMatchObject({ sources: [id] });
+  });
+
+  it('uses the given parser', async () => {
+    const getParseAstAsync = vi.fn(getOxcParseAstAsync);
+    const { transform } = createComponentNameAnnotateHooks([], false, { getParseAstAsync });
+
+    const result = await transform('export const App = () => <div />;', '/src/app.jsx');
+
+    expect(getParseAstAsync).toHaveBeenCalled();
+    expect(result?.code).toContain('data-sentry-component="App"');
+  });
+
+  it('falls back to oxc-parser when the given parser is unavailable', async () => {
+    const { transform } = createComponentNameAnnotateHooks([], false, { getParseAstAsync: async () => null });
+
+    const result = await transform('export const App = () => <div />;', '/src/app.jsx');
+
+    expect(result?.code).toContain('data-sentry-component="App"');
+  });
+
+  it('leaves files with syntax errors unchanged', async () => {
+    const { transform } = createComponentNameAnnotateHooks([], false);
+
+    await expect(transform('export const App = () => <div>;', '/src/app.jsx')).resolves.toBeNull();
+  });
+});
 
 describe('getDebugIdSnippet', () => {
   it('returns the debugId injection snippet for a passed debugId', () => {

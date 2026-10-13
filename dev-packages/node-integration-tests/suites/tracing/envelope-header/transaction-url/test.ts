@@ -1,10 +1,10 @@
 import { expect, test } from 'vitest';
 import { createRunner } from '../../../../utils/runner';
 
-test('envelope header for transaction event with source=url correct', async () => {
+test('omits the URL-sourced name from the streamed span envelope header', async () => {
   await createRunner(__dirname, 'scenario.ts')
     .expectHeader({
-      transaction: {
+      span: {
         trace: {
           trace_id: expect.stringMatching(/[a-f\d]{32}/),
           public_key: 'public',

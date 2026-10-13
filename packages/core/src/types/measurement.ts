@@ -43,3 +43,7 @@ type LiteralUnion<T extends string> = T | Omit<T, T>;
 export type MeasurementUnit = LiteralUnion<DurationUnit | InformationUnit | FractionUnit | NoneUnit>;
 
 export type Measurements = Record<string, { value: number; unit: MeasurementUnit }>;
+
+// Unlike MeasurementUnit, metric units have no NoneUnit: a unitless metric omits the unit field
+// rather than sending 'none'. See https://develop.sentry.dev/sdk/telemetry/attributes/#units
+export type MetricUnit = LiteralUnion<DurationUnit | InformationUnit | FractionUnit>;

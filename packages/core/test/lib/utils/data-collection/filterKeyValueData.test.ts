@@ -108,6 +108,33 @@ describe('filterKeyValueData', () => {
     });
   });
 
+  describe('non-string values', () => {
+    const mixedData: Record<string, unknown> = {
+      count: 42,
+      enabled: true,
+      nested: { a: 1 },
+      password: 'hunter2',
+    };
+
+    it('preserves non-string values verbatim when kept', () => {
+      const result = filterKeyValueData(mixedData, true);
+
+      expect(result.count).toBe(42);
+      expect(result.enabled).toBe(true);
+      expect(result.nested).toEqual({ a: 1 });
+      // "password" matches the built-in sensitive denylist
+      expect(result.password).toBe('[Filtered]');
+    });
+
+    it('replaces filtered non-string values with the string placeholder', () => {
+      const result = filterKeyValueData(mixedData, { allow: ['count'] });
+
+      expect(result.count).toBe(42);
+      expect(result.enabled).toBe('[Filtered]');
+      expect(result.nested).toBe('[Filtered]');
+    });
+  });
+
   describe('edge cases', () => {
     it('handles empty record', () => {
       expect(filterKeyValueData({}, true)).toEqual({});

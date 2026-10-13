@@ -1,13 +1,6 @@
 import type { BrowserClient } from '@sentry/browser';
-import {
-  browserTracingIntegration,
-  getActiveSpan,
-  getClient,
-  getCurrentScope,
-  getGlobalScope,
-  getIsolationScope,
-  SDK_VERSION,
-} from '@sentry/browser';
+import { browserTracingIntegration, getActiveSpan, getClient, SDK_VERSION } from '@sentry/browser';
+import { getMainCarrier } from '@sentry/core';
 import * as SentryBrowser from '@sentry/browser';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { init } from '../../src/client/sdk';
@@ -19,10 +12,7 @@ describe('Sentry client SDK', () => {
     afterEach(() => {
       vi.clearAllMocks();
 
-      getCurrentScope().clear();
-      getCurrentScope().setClient(undefined);
-      getIsolationScope().clear();
-      getGlobalScope().clear();
+      getMainCarrier().__SENTRY__ = undefined;
     });
 
     it('adds Astro metadata to the SDK options', () => {
@@ -42,7 +32,7 @@ describe('Sentry client SDK', () => {
                 { name: 'npm:@sentry/browser', version: SDK_VERSION },
               ],
               settings: {
-                infer_ip: 'never',
+                infer_ip: 'auto',
               },
             },
           },
@@ -100,6 +90,18 @@ describe('Sentry client SDK', () => {
         // no active span means the settings were respected
         expect(getActiveSpan()).toBeUndefined();
       });
+    });
+
+    it('passes the Astro route provider unless the user passed one', () => {
+      init({ dsn: 'https://public@dsn.ingest.sentry.io/1337' });
+      expect(browserInit).toHaveBeenLastCalledWith(
+        expect.objectContaining({ routeProvider: expect.objectContaining({ resolveRoute: expect.any(Function) }) }),
+      );
+
+      getMainCarrier().__SENTRY__ = undefined;
+      const routeProvider = { resolveRoute: () => '/custom', resolveCurrentRoute: () => '/custom' };
+      init({ dsn: 'https://public@dsn.ingest.sentry.io/1337', routeProvider });
+      expect(browserInit).toHaveBeenLastCalledWith(expect.objectContaining({ routeProvider }));
     });
 
     it('returns client from init', () => {

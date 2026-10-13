@@ -1,4 +1,4 @@
-import type { Client, Event, EventHint, IntegrationFn } from '@sentry/core/browser';
+import type { Client, Event, EventHint, IntegrationFn } from '@sentry/core';
 import {
   _INTERNAL_addFeatureFlagToActiveSpan,
   _INTERNAL_copyFlagsFromScopeToEvent,
@@ -6,7 +6,7 @@ import {
   debug,
   defineIntegration,
   fill,
-} from '@sentry/core/browser';
+} from '@sentry/core';
 import { DEBUG_BUILD } from '../../../debug-build';
 import type { UnleashClient, UnleashClientClass } from './types';
 

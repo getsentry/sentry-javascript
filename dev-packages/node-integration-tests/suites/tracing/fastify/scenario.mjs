@@ -26,6 +26,15 @@ app.get('/test-exception/:id', async request => {
   throw new Error(`This is an exception with id ${request.params.id}`);
 });
 
+app.post('/test-body', async () => {
+  return {};
+});
+
+app.get('/flush', async () => {
+  await Sentry.flush();
+  return {};
+});
+
 app.get('/test-inbound-headers/:id', async request => {
   return { headers: request.headers, id: request.params.id };
 });
@@ -33,6 +42,12 @@ app.get('/test-inbound-headers/:id', async request => {
 app.get('/test-outgoing-fetch/:id', async request => {
   const response = await fetch(`http://localhost:${port}/test-inbound-headers/${request.params.id}`);
   return response.json();
+});
+
+// A hook added synchronously before `listen()` must still be instrumented (regression test: the
+// integration has to patch `addHook` synchronously, before user code runs).
+app.addHook('onRequest', (_request, _reply, done) => {
+  done();
 });
 
 const run = async () => {

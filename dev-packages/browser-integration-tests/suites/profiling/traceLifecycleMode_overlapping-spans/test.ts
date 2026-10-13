@@ -73,7 +73,6 @@ sentryTest(
       ],
       // Test that profile duration makes sense (should be > 20ms based on test setup
       minSampleDurationMs: 20,
-      isChunkFormat: true,
     });
   },
 );

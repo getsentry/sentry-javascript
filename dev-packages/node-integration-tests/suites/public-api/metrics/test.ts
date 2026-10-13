@@ -1,5 +1,6 @@
 import { afterAll, describe, expect, test } from 'vitest';
 import { cleanupChildProcesses, createRunner } from '../../../utils/runner';
+import { EXPECTED_SDK_NAME } from '../../../utils';
 
 describe('metrics', () => {
   afterAll(() => {
@@ -22,7 +23,7 @@ describe('metrics', () => {
                 endpoint: { value: '/api/test', type: 'string' },
                 'sentry.release': { value: '1.0.0', type: 'string' },
                 'sentry.environment': { value: 'test', type: 'string' },
-                'sentry.sdk.name': { value: 'sentry.javascript.node', type: 'string' },
+                'sentry.sdk.name': { value: EXPECTED_SDK_NAME, type: 'string' },
                 'sentry.sdk.version': { value: expect.any(String), type: 'string' },
               },
             },
@@ -37,7 +38,7 @@ describe('metrics', () => {
                 server: { value: 'test-1', type: 'string' },
                 'sentry.release': { value: '1.0.0', type: 'string' },
                 'sentry.environment': { value: 'test', type: 'string' },
-                'sentry.sdk.name': { value: 'sentry.javascript.node', type: 'string' },
+                'sentry.sdk.name': { value: EXPECTED_SDK_NAME, type: 'string' },
                 'sentry.sdk.version': { value: expect.any(String), type: 'string' },
               },
             },
@@ -52,7 +53,7 @@ describe('metrics', () => {
                 priority: { value: 'high', type: 'string' },
                 'sentry.release': { value: '1.0.0', type: 'string' },
                 'sentry.environment': { value: 'test', type: 'string' },
-                'sentry.sdk.name': { value: 'sentry.javascript.node', type: 'string' },
+                'sentry.sdk.name': { value: EXPECTED_SDK_NAME, type: 'string' },
                 'sentry.sdk.version': { value: expect.any(String), type: 'string' },
               },
             },
@@ -66,7 +67,7 @@ describe('metrics', () => {
                 operation: { value: 'test', type: 'string' },
                 'sentry.release': { value: '1.0.0', type: 'string' },
                 'sentry.environment': { value: 'test', type: 'string' },
-                'sentry.sdk.name': { value: 'sentry.javascript.node', type: 'string' },
+                'sentry.sdk.name': { value: EXPECTED_SDK_NAME, type: 'string' },
                 'sentry.sdk.version': { value: expect.any(String), type: 'string' },
               },
             },
@@ -83,7 +84,7 @@ describe('metrics', () => {
                 'user.name': { value: 'testuser', type: 'string' },
                 'sentry.release': { value: '1.0.0', type: 'string' },
                 'sentry.environment': { value: 'test', type: 'string' },
-                'sentry.sdk.name': { value: 'sentry.javascript.node', type: 'string' },
+                'sentry.sdk.name': { value: EXPECTED_SDK_NAME, type: 'string' },
                 'sentry.sdk.version': { value: expect.any(String), type: 'string' },
               },
             },
@@ -121,7 +122,7 @@ describe('metrics', () => {
                 },
                 'sentry.sdk.name': {
                   type: 'string',
-                  value: 'sentry.javascript.node',
+                  value: EXPECTED_SDK_NAME,
                 },
                 'sentry.sdk.version': {
                   type: 'string',

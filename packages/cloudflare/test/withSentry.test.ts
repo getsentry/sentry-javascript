@@ -1,126 +1,73 @@
-// Note: These tests run the handler in Node.js, which has some differences to the cloudflare workers runtime.
-// Although this is not ideal, this is the best we can do until we have a better way to test cloudflare workers.
-
-import * as SentryCore from '@sentry/core';
-import { beforeEach, describe, expect, test, vi } from 'vitest';
+import type { ExecutionContext } from '@cloudflare/workers-types';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { withSentry } from '../src/withSentry';
-import { markAsInstrumented } from '../src/instrument';
-import * as HonoIntegration from '../src/integrations/hono';
+import { resetSdk } from './testUtils';
 
-declare global {
-  namespace Cloudflare {
-    interface Env {
-      SENTRY_DSN: string;
-    }
-  }
-}
-
-type HonoLikeApp<Env = Cloudflare.Env, QueueHandlerMessage = unknown, CfHostMetadata = unknown> = ExportedHandler<
-  Env,
-  QueueHandlerMessage,
-  CfHostMetadata
-> & {
-  onError?: () => void;
-  errorHandler?: (err: Error) => Response;
+const MOCK_ENV = {
+  SENTRY_DSN: 'https://public@dsn.ingest.sentry.io/1337',
 };
 
+function createMockExecutionContext(): ExecutionContext {
+  return {
+    waitUntil: vi.fn(),
+    passThroughOnException: vi.fn(),
+    props: {},
+  } as unknown as ExecutionContext;
+}
+
+class WorkerEntrypoint {
+  public constructor(
+    public ctx: ExecutionContext,
+    public env: unknown,
+  ) {}
+}
+
 describe('withSentry', () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
+  afterEach(() => {
+    vi.restoreAllMocks();
+    resetSdk();
   });
 
-  describe('hono errorHandler', () => {
-    test('calls Hono Integration to handle error captured by the errorHandler', async () => {
-      const error = new Error('test hono error');
+  it('returns the same handler object with its methods wrapped', () => {
+    const fetch = vi.fn();
+    const handler = { fetch };
 
-      const handleHonoException = vi.fn();
-      vi.spyOn(HonoIntegration, 'getHonoIntegration').mockReturnValue({ handleHonoException } as any);
+    const wrapped = withSentry(() => ({}), handler);
 
-      const honoApp: HonoLikeApp = {
-        fetch(_request, _env, _context) {
-          return new Response('test');
-        },
-        onError() {},
-        errorHandler(err: Error) {
-          return new Response(`Error: ${err.message}`, { status: 500 });
-        },
-      };
+    expect(wrapped).toBe(handler);
+    expect(wrapped.fetch).not.toBe(fetch);
+  });
 
-      withSentry(env => ({ dsn: env.SENTRY_DSN }), honoApp);
+  it('instruments a WorkerEntrypoint class instead of treating it as a handler object', () => {
+    class MyEntrypoint extends WorkerEntrypoint {
+      public ping(): string {
+        return 'pong';
+      }
+    }
 
-      const errorHandlerResponse = honoApp.errorHandler?.(error);
+    const optionsCallback = vi.fn().mockReturnValue({ dsn: MOCK_ENV.SENTRY_DSN });
+    const context = createMockExecutionContext();
 
-      expect(handleHonoException).toHaveBeenCalledTimes(1);
-      expect(handleHonoException).toHaveBeenLastCalledWith(error, undefined);
-      expect(errorHandlerResponse?.status).toBe(500);
-    });
+    const Wrapped = withSentry(optionsCallback, MyEntrypoint as never) as unknown as typeof MyEntrypoint;
+    const instance = new Wrapped(context, MOCK_ENV);
 
-    test('preserves the original errorHandler functionality', async () => {
-      const originalErrorHandlerSpy = vi.fn().mockImplementation((err: Error) => {
-        return new Response(`Error: ${err.message}`, { status: 500 });
-      });
+    expect(Wrapped).not.toBe(MyEntrypoint);
+    expect(optionsCallback).toHaveBeenCalledWith(MOCK_ENV);
+    expect(instance).toBeInstanceOf(MyEntrypoint);
+    expect(instance.ctx).not.toBe(context);
+    expect(instance.ping()).toBe('pong');
+  });
 
-      const error = new Error('test hono error');
+  it('returns a handler it cannot instrument unchanged instead of throwing', () => {
+    const fetch = vi.fn();
+    const handler = Object.freeze({ fetch });
 
-      const honoApp: HonoLikeApp = {
-        fetch(_request, _env, _context) {
-          return new Response('test');
-        },
-        onError() {},
-        errorHandler: originalErrorHandlerSpy,
-      };
+    let wrapped: typeof handler | undefined;
+    expect(() => {
+      wrapped = withSentry(() => ({}), handler);
+    }).not.toThrow();
 
-      withSentry(env => ({ dsn: env.SENTRY_DSN }), honoApp);
-
-      const errorHandlerResponse = honoApp.errorHandler?.(error);
-
-      expect(originalErrorHandlerSpy).toHaveBeenCalledTimes(1);
-      expect(originalErrorHandlerSpy).toHaveBeenLastCalledWith(error);
-      expect(errorHandlerResponse?.status).toBe(500);
-    });
-
-    test('does not instrument an already instrumented errorHandler', async () => {
-      const captureExceptionSpy = vi.spyOn(SentryCore, 'captureException');
-      const error = new Error('test hono error');
-
-      const originalErrorHandler = (err: Error) => {
-        return new Response(`Error: ${err.message}`, { status: 500 });
-      };
-
-      markAsInstrumented(originalErrorHandler);
-
-      const honoApp: HonoLikeApp = {
-        fetch(_request, _env, _context) {
-          return new Response('test');
-        },
-        onError() {},
-        errorHandler: originalErrorHandler,
-      };
-
-      withSentry(env => ({ dsn: env.SENTRY_DSN }), honoApp);
-
-      honoApp.errorHandler?.(error);
-      expect(captureExceptionSpy).not.toHaveBeenCalled();
-    });
-
-    test('does not double-wrap errorHandler when withSentry is called twice', async () => {
-      const honoApp: HonoLikeApp = {
-        fetch(_request, _env, _context) {
-          return new Response('test');
-        },
-        onError() {},
-        errorHandler(err: Error) {
-          return new Response(`Error: ${err.message}`, { status: 500 });
-        },
-      };
-
-      withSentry(env => ({ dsn: env.SENTRY_DSN }), honoApp);
-      const firstErrorHandler = honoApp.errorHandler;
-
-      withSentry(env => ({ dsn: env.SENTRY_DSN }), honoApp);
-      const secondErrorHandler = honoApp.errorHandler;
-
-      expect(firstErrorHandler).toBe(secondErrorHandler);
-    });
+    expect(wrapped).toBe(handler);
+    expect(wrapped?.fetch).toBe(fetch);
   });
 });

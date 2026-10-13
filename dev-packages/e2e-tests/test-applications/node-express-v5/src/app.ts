@@ -13,15 +13,21 @@ Sentry.init({
   debug: !!process.env.DEBUG,
   tunnel: `http://localhost:3031/`, // proxy server
   tracesSampleRate: 1,
-  enableLogs: true,
   integrations: [Sentry.nodeRuntimeMetricsIntegration({ collectionIntervalMs: 1_000 })],
 });
 
 import { TRPCError, initTRPC } from '@trpc/server';
 import * as trpcExpress from '@trpc/server/adapters/express';
 import express from 'express';
+// @ts-ignore -- `mysql` ships no type declarations; only needed at runtime.
+import mysql from 'mysql';
 import { z } from 'zod';
 import { mcpRouter } from './mcp';
+
+const connection = mysql.createConnection({
+  user: 'root',
+  password: 'docker',
+});
 
 const app = express();
 const port = 3030;
@@ -51,6 +57,14 @@ app.get('/test-log', function (req, res) {
 
 app.get('/test-param/:param', function (req, res) {
   res.send({ paramWas: req.params.param });
+});
+
+app.get('/test-mysql', function (req, res) {
+  connection.query('SELECT 1 + 1 AS solution', function () {
+    connection.query('SELECT NOW()', ['1', '2'], () => {
+      res.send({ status: 'ok' });
+    });
+  });
 });
 
 app.get('/test-transaction', function (_req, res) {
@@ -88,8 +102,6 @@ app.get('/test-local-variables-caught', function (req, res) {
 
   res.send({ exceptionId, randomVariableToRecord });
 });
-
-Sentry.setupExpressErrorHandler(app);
 
 // @ts-ignore
 app.use(function onError(err, req, res, next) {

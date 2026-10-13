@@ -6,42 +6,34 @@ import type {
   Event as SentryEvent,
   FetchBreadcrumbData,
   FetchBreadcrumbHint,
-  HandlerDataConsole,
-  HandlerDataDom,
   HandlerDataFetch,
-  HandlerDataHistory,
-  HandlerDataXhr,
   IntegrationFn,
-  XhrBreadcrumbData,
-  XhrBreadcrumbHint,
-} from '@sentry/core/browser';
+} from '@sentry/core';
 import {
   addBreadcrumb,
-  addConsoleInstrumentationHandler,
   addFetchInstrumentationHandler,
   debug,
   defineIntegration,
+  filterCollectedUrl,
   getBreadcrumbLogLevelFromHttpStatusCode,
   getClient,
-  getComponentName,
   getEventDescription,
   parseUrl,
-  safeJoin,
-  severityLevelFromString,
-} from '@sentry/core/browser';
-import type { FetchHint, XhrHint } from '@sentry/browser-utils';
+} from '@sentry/core';
+import type { FetchHint, HandlerDataDom, HandlerDataHistory, HandlerDataXhr } from '@sentry/browser-utils';
 import {
   addClickKeypressInstrumentationHandler,
   addHistoryInstrumentationHandler,
   addXhrInstrumentationHandler,
   htmlTreeAsString,
+  getComponentName,
   SENTRY_XHR_DATA_KEY,
 } from '@sentry/browser-utils';
+import type { XhrBreadcrumbData, XhrBreadcrumbHint } from '@sentry/core/browser';
 import { DEBUG_BUILD } from '../debug-build';
 import { WINDOW } from '../helpers';
 
 interface BreadcrumbsOptions {
-  console: boolean;
   dom:
     | boolean
     | {
@@ -61,7 +53,6 @@ const INTEGRATION_NAME = 'Breadcrumbs' as const;
 
 const _breadcrumbsIntegration = ((options: Partial<BreadcrumbsOptions> = {}) => {
   const _options = {
-    console: true,
     dom: true,
     fetch: true,
     history: true,
@@ -73,10 +64,6 @@ const _breadcrumbsIntegration = ((options: Partial<BreadcrumbsOptions> = {}) => 
   return {
     name: INTEGRATION_NAME,
     setup(client) {
-      // TODO(v11): Remove this functionality and use `consoleIntegration` from @sentry/core instead.
-      if (_options.console) {
-        addConsoleInstrumentationHandler(_getConsoleBreadcrumbHandler(client));
-      }
       if (_options.dom) {
         addClickKeypressInstrumentationHandler(_getDomBreadcrumbHandler(client, _options.dom));
       }
@@ -185,42 +172,6 @@ function _getDomBreadcrumbHandler(
 }
 
 /**
- * Creates breadcrumbs from console API calls
- */
-function _getConsoleBreadcrumbHandler(client: Client): (handlerData: HandlerDataConsole) => void {
-  return function _consoleBreadcrumb(handlerData: HandlerDataConsole): void {
-    if (getClient() !== client) {
-      return;
-    }
-
-    const breadcrumb = {
-      category: 'console',
-      data: {
-        arguments: handlerData.args,
-        logger: 'console',
-      },
-      level: severityLevelFromString(handlerData.level),
-      message: safeJoin(handlerData.args, ' '),
-    };
-
-    if (handlerData.level === 'assert') {
-      if (handlerData.args[0] === false) {
-        breadcrumb.message = `Assertion failed: ${safeJoin(handlerData.args.slice(1), ' ') || 'console.assert'}`;
-        breadcrumb.data.arguments = handlerData.args.slice(1);
-      } else {
-        // Don't capture a breadcrumb for passed assertions
-        return;
-      }
-    }
-
-    addBreadcrumb(breadcrumb, {
-      input: handlerData.args,
-      level: handlerData.level,
-    });
-  };
-}
-
-/**
  * Creates breadcrumbs from XHR API calls
  */
 function _getXhrBreadcrumbHandler(client: Client): (handlerData: HandlerDataXhr) => void {
@@ -242,7 +193,7 @@ function _getXhrBreadcrumbHandler(client: Client): (handlerData: HandlerDataXhr)
 
     const data: XhrBreadcrumbData = {
       method,
-      url,
+      url: filterCollectedUrl(url),
       status_code,
     };
 
@@ -260,7 +211,7 @@ function _getXhrBreadcrumbHandler(client: Client): (handlerData: HandlerDataXhr)
       level: getBreadcrumbLogLevelFromHttpStatusCode(status_code),
     };
 
-    client.emit('beforeOutgoingRequestBreadcrumb', breadcrumb, hint as XhrHint);
+    client.emit('beforeOutgoingRequestBreadcrumb', breadcrumb, hint);
 
     addBreadcrumb(breadcrumb, hint);
   };
@@ -297,7 +248,7 @@ function _getFetchBreadcrumbHandler(client: Client): (handlerData: HandlerDataFe
 
       const breadcrumb = {
         category: 'fetch',
-        data: handlerData.fetchData,
+        data: { ...handlerData.fetchData, url: filterCollectedUrl(handlerData.fetchData.url) },
         level: 'error',
         type: 'http',
       } satisfies Breadcrumb;
@@ -309,6 +260,7 @@ function _getFetchBreadcrumbHandler(client: Client): (handlerData: HandlerDataFe
       const response = handlerData.response as Response | undefined;
       const data: FetchBreadcrumbData = {
         ...handlerData.fetchData,
+        url: filterCollectedUrl(handlerData.fetchData.url),
         status_code: response?.status,
       };
 
@@ -365,8 +317,8 @@ function _getHistoryBreadcrumbHandler(client: Client): (handlerData: HandlerData
     addBreadcrumb({
       category: 'navigation',
       data: {
-        from,
-        to,
+        from: filterCollectedUrl(from),
+        to: filterCollectedUrl(to),
       },
     });
   };

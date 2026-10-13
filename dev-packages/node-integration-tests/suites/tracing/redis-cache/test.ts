@@ -1,5 +1,34 @@
+import {
+  CACHE_HIT,
+  CACHE_ITEM_SIZE,
+  CACHE_KEY,
+  CACHE_OPERATION,
+  DB_OPERATION_BATCH_SIZE,
+  DB_OPERATION_NAME,
+  DB_QUERY_TEXT,
+  DB_SYSTEM_NAME,
+  ERROR_TYPE,
+  NETWORK_PEER_ADDRESS,
+  NETWORK_PEER_PORT,
+  SENTRY_ENVIRONMENT,
+  SENTRY_IS_LOCALHOST,
+  SENTRY_KIND,
+  SENTRY_OP,
+  SENTRY_ORIGIN,
+  SENTRY_RELEASE,
+  SENTRY_SDK_NAME,
+  SENTRY_SDK_VERSION,
+  SENTRY_SEGMENT_ID,
+  SENTRY_SEGMENT_NAME,
+  SENTRY_STATUS_MESSAGE,
+  SENTRY_TRACE_LIFECYCLE,
+  SERVER_ADDRESS,
+  SERVER_PORT,
+} from '@sentry/conventions/attributes';
+import { CACHE_GET, CACHE_PUT, CACHE_REMOVE, DB_QUERY } from '@sentry/conventions/op';
+import type { SerializedStreamedSpanContainer } from '@sentry/core';
 import { afterAll, describe, expect } from 'vitest';
-import { isOrchestrionEnabled } from '../../../utils';
+import { EXPECTED_SDK_NAME } from '../../../utils';
 import { cleanupChildProcesses, createEsmAndCjsTests, describeWithDockerCompose } from '../../../utils/runner';
 
 describeWithDockerCompose('redis cache auto instrumentation', { workingDirectory: [__dirname] }, () => {
@@ -7,45 +36,8 @@ describeWithDockerCompose('redis cache auto instrumentation', { workingDirectory
     cleanupChildProcesses();
   });
 
-  const redisOrigin = isOrchestrionEnabled() ? 'auto.db.orchestrion.redis' : 'auto.db.otel.redis';
-
-  describe('ioredis non-cache keys', () => {
-    const EXPECTED_TRANSACTION = {
-      transaction: 'Test Span',
-      spans: expect.arrayContaining([
-        expect.objectContaining({
-          description: 'set test-key [1 other arguments]',
-          op: 'db',
-          origin: redisOrigin,
-          data: expect.objectContaining({
-            'sentry.op': 'db',
-            'db.system': 'redis',
-            'net.peer.name': 'localhost',
-            'net.peer.port': 6383,
-            'db.statement': 'set test-key [1 other arguments]',
-          }),
-        }),
-        expect.objectContaining({
-          description: 'get test-key',
-          op: 'db',
-          origin: redisOrigin,
-          data: expect.objectContaining({
-            'sentry.op': 'db',
-            'db.system': 'redis',
-            'net.peer.name': 'localhost',
-            'net.peer.port': 6383,
-            'db.statement': 'get test-key',
-          }),
-        }),
-      ]),
-    };
-
-    createEsmAndCjsTests(__dirname, 'scenario-ioredis.mjs', 'instrument-ioredis.mjs', (createTestRunner, test) => {
-      test('should not add cache spans when key is not prefixed', { timeout: 60_000 }, async () => {
-        await createTestRunner().expect({ transaction: EXPECTED_TRANSACTION }).start().completed();
-      });
-    });
-  });
+  const redisOrigin = 'auto.db.redis';
+  const redisSpanOp = DB_QUERY;
 
   describe('ioredis cache keys', () => {
     const EXPECTED_TRANSACTION = {
@@ -54,11 +46,12 @@ describeWithDockerCompose('redis cache auto instrumentation', { workingDirectory
         // SET
         expect.objectContaining({
           description: 'ioredis-cache:test-key',
-          op: 'cache.put',
+          op: CACHE_PUT,
           origin: redisOrigin,
           data: expect.objectContaining({
             'sentry.origin': redisOrigin,
-            'db.statement': 'set ioredis-cache:test-key [1 other arguments]',
+            'db.query.text': 'set ioredis-cache:test-key [1 other arguments]',
+            'cache.operation': 'put',
             'cache.key': ['ioredis-cache:test-key'],
             'cache.item_size': 2,
             'network.peer.address': 'localhost',
@@ -68,11 +61,12 @@ describeWithDockerCompose('redis cache auto instrumentation', { workingDirectory
         // SET (with EX)
         expect.objectContaining({
           description: 'ioredis-cache:test-key-set-EX',
-          op: 'cache.put',
+          op: CACHE_PUT,
           origin: redisOrigin,
           data: expect.objectContaining({
             'sentry.origin': redisOrigin,
-            'db.statement': 'set ioredis-cache:test-key-set-EX [3 other arguments]',
+            'db.query.text': 'set ioredis-cache:test-key-set-EX [3 other arguments]',
+            'cache.operation': 'put',
             'cache.key': ['ioredis-cache:test-key-set-EX'],
             'cache.item_size': 2,
             'network.peer.address': 'localhost',
@@ -82,11 +76,12 @@ describeWithDockerCompose('redis cache auto instrumentation', { workingDirectory
         // SETEX
         expect.objectContaining({
           description: 'ioredis-cache:test-key-setex',
-          op: 'cache.put',
+          op: CACHE_PUT,
           origin: redisOrigin,
           data: expect.objectContaining({
             'sentry.origin': redisOrigin,
-            'db.statement': 'setex ioredis-cache:test-key-setex [2 other arguments]',
+            'db.query.text': 'setex ioredis-cache:test-key-setex [2 other arguments]',
+            'cache.operation': 'put',
             'cache.key': ['ioredis-cache:test-key-setex'],
             'cache.item_size': 2,
             'network.peer.address': 'localhost',
@@ -96,11 +91,12 @@ describeWithDockerCompose('redis cache auto instrumentation', { workingDirectory
         // GET
         expect.objectContaining({
           description: 'ioredis-cache:test-key',
-          op: 'cache.get',
+          op: CACHE_GET,
           origin: redisOrigin,
           data: expect.objectContaining({
             'sentry.origin': redisOrigin,
-            'db.statement': 'get ioredis-cache:test-key',
+            'db.query.text': 'get ioredis-cache:test-key',
+            'cache.operation': 'get',
             'cache.hit': true,
             'cache.key': ['ioredis-cache:test-key'],
             'cache.item_size': 10,
@@ -111,11 +107,12 @@ describeWithDockerCompose('redis cache auto instrumentation', { workingDirectory
         // GET (unavailable - no cache hit)
         expect.objectContaining({
           description: 'ioredis-cache:unavailable-data',
-          op: 'cache.get',
+          op: CACHE_GET,
           origin: redisOrigin,
           data: expect.objectContaining({
             'sentry.origin': redisOrigin,
-            'db.statement': 'get ioredis-cache:unavailable-data',
+            'db.query.text': 'get ioredis-cache:unavailable-data',
+            'cache.operation': 'get',
             'cache.hit': false,
             'cache.key': ['ioredis-cache:unavailable-data'],
             'network.peer.address': 'localhost',
@@ -125,13 +122,28 @@ describeWithDockerCompose('redis cache auto instrumentation', { workingDirectory
         // MGET
         expect.objectContaining({
           description: 'test-key, ioredis-cache:test-key, ioredis-cache:unavailable-data',
-          op: 'cache.get',
+          op: CACHE_GET,
           origin: redisOrigin,
           data: expect.objectContaining({
             'sentry.origin': redisOrigin,
-            'db.statement': 'mget [3 other arguments]',
+            'db.query.text': 'mget [3 other arguments]',
+            'cache.operation': 'get',
             'cache.hit': true,
             'cache.key': ['test-key', 'ioredis-cache:test-key', 'ioredis-cache:unavailable-data'],
+            'network.peer.address': 'localhost',
+            'network.peer.port': 6383,
+          }),
+        }),
+        // DEL
+        expect.objectContaining({
+          description: 'ioredis-cache:test-key',
+          op: CACHE_REMOVE,
+          origin: redisOrigin,
+          data: expect.objectContaining({
+            'sentry.origin': redisOrigin,
+            'db.query.text': 'del ioredis-cache:test-key',
+            'cache.operation': 'remove',
+            'cache.key': ['ioredis-cache:test-key'],
             'network.peer.address': 'localhost',
             'network.peer.port': 6383,
           }),
@@ -146,283 +158,350 @@ describeWithDockerCompose('redis cache auto instrumentation', { workingDirectory
     });
   });
 
-  describe('redis-4 cache keys', () => {
-    const EXPECTED_REDIS_CONNECT = {
-      transaction: 'redis-connect',
-    };
+  describe('streamed', () => {
+    const streamAttribute = (value: unknown): { type: string; value: unknown } => ({
+      type: Array.isArray(value) ? 'array' : Number.isInteger(value) ? 'integer' : typeof value,
+      value,
+    });
 
-    const batchSpans = isOrchestrionEnabled()
-      ? [
-          expect.objectContaining({
-            description: 'MULTI',
-            op: 'db.redis',
-            origin: redisOrigin,
-            data: expect.objectContaining({
-              'sentry.origin': redisOrigin,
-              'db.system.name': 'redis',
-              'db.operation.batch.size': 2,
-            }),
-          }),
-        ]
-      : [
-          expect.objectContaining({
-            description: 'SET redis-multi-key [1 other arguments]',
-            op: 'db',
-            origin: 'auto.db.otel.redis',
-            data: expect.objectContaining({
-              'db.system': 'redis',
-              'db.statement': 'SET redis-multi-key [1 other arguments]',
-            }),
-          }),
-          expect.objectContaining({
-            description: 'GET redis-multi-key',
-            op: 'db',
-            origin: 'auto.db.otel.redis',
-            data: expect.objectContaining({ 'db.system': 'redis', 'db.statement': 'GET redis-multi-key' }),
-          }),
-        ];
+    // Streamed spans carry `{ type, value }` attribute pairs; the expectations below are written
+    // as plain values and wrapped here.
+    const streamAttributes = (values: Record<string, unknown>): Record<string, unknown> =>
+      Object.fromEntries(Object.entries(values).map(([key, value]) => [key, streamAttribute(value)]));
 
-    const EXPECTED_TRANSACTION = {
-      transaction: 'Test Span Redis 4',
-      spans: expect.arrayContaining([
-        // SET
-        expect.objectContaining({
-          description: 'redis-cache:test-key',
-          op: 'cache.put',
-          origin: redisOrigin,
-          data: expect.objectContaining({
-            'sentry.origin': redisOrigin,
-            'db.statement': 'SET redis-cache:test-key [1 other arguments]',
-            'cache.key': ['redis-cache:test-key'],
-            'cache.item_size': 2,
-          }),
-        }),
-        // SET (with EX)
-        expect.objectContaining({
-          description: 'redis-cache:test-key-set-EX',
-          op: 'cache.put',
-          origin: redisOrigin,
-          data: expect.objectContaining({
-            'sentry.origin': redisOrigin,
-            'db.statement': 'SET redis-cache:test-key-set-EX [3 other arguments]',
-            'cache.key': ['redis-cache:test-key-set-EX'],
-            'cache.item_size': 2,
-          }),
-        }),
-        // SETEX
-        expect.objectContaining({
-          description: 'redis-cache:test-key-setex',
-          op: 'cache.put',
-          origin: redisOrigin,
-          data: expect.objectContaining({
-            'sentry.origin': redisOrigin,
-            'db.statement': 'SETEX redis-cache:test-key-setex [2 other arguments]',
-            'cache.key': ['redis-cache:test-key-setex'],
-            'cache.item_size': 2,
-          }),
-        }),
-        // GET
-        expect.objectContaining({
-          description: 'redis-cache:test-key',
-          op: 'cache.get',
-          origin: redisOrigin,
-          data: expect.objectContaining({
-            'sentry.origin': redisOrigin,
-            'db.statement': 'GET redis-cache:test-key',
-            'cache.hit': true,
-            'cache.key': ['redis-cache:test-key'],
-            'cache.item_size': 10,
-          }),
-        }),
-        // GET (unavailable - no cache hit)
-        expect.objectContaining({
-          description: 'redis-cache:unavailable-data',
-          op: 'cache.get',
-          origin: redisOrigin,
-          data: expect.objectContaining({
-            'sentry.origin': redisOrigin,
-            'db.statement': 'GET redis-cache:unavailable-data',
-            'cache.hit': false,
-            'cache.key': ['redis-cache:unavailable-data'],
-          }),
-        }),
-        // MGET
-        expect.objectContaining({
-          description: 'redis-test-key, redis-cache:test-key, redis-cache:unavailable-data',
-          op: 'cache.get',
-          origin: redisOrigin,
-          data: expect.objectContaining({
-            'sentry.origin': redisOrigin,
-            'db.statement': 'MGET [3 other arguments]',
-            'cache.hit': true,
-            'cache.key': ['redis-test-key', 'redis-cache:test-key', 'redis-cache:unavailable-data'],
-          }),
-        }),
-        ...batchSpans,
-        // a failing command produces a span with an error status
-        expect.objectContaining({
-          description: 'INCR redis-test-key',
-          op: 'db',
-          status: 'internal_error',
-          origin: redisOrigin,
-          data: expect.objectContaining({
-            'sentry.origin': redisOrigin,
-            'db.system': 'redis',
-            'db.statement': 'INCR redis-test-key',
-          }),
-        }),
-      ]),
-    };
+    const commonAttributes = (segmentName: string): Record<string, unknown> => ({
+      ...streamAttributes({
+        [DB_SYSTEM_NAME]: 'redis',
+        [SENTRY_ENVIRONMENT]: 'production',
+        [SENTRY_KIND]: 'client',
+        [SENTRY_ORIGIN]: redisOrigin,
+        [SENTRY_RELEASE]: '1.0',
+        [SENTRY_SDK_NAME]: EXPECTED_SDK_NAME,
+        [SENTRY_SEGMENT_NAME]: segmentName,
+        [SENTRY_TRACE_LIFECYCLE]: 'stream',
+      }),
+      [SENTRY_SDK_VERSION]: { type: 'string', value: expect.any(String) },
+      [SENTRY_IS_LOCALHOST]: { type: 'boolean', value: false },
+      [SENTRY_SEGMENT_ID]: { type: 'string', value: expect.stringMatching(/^[\da-f]{16}$/) },
+    });
 
-    createEsmAndCjsTests(__dirname, 'scenario-redis-4.mjs', 'instrument-redis-4.mjs', (createTestRunner, test) => {
-      test('should create cache spans for prefixed keys (redis-4)', async () => {
-        await createTestRunner()
-          .expect({ transaction: EXPECTED_REDIS_CONNECT })
-          .expect({ transaction: EXPECTED_TRANSACTION })
-          .start()
-          .completed();
+    function streamedSpan({
+      name,
+      op,
+      segmentName,
+      status = 'ok',
+      attributes,
+    }: {
+      name: string;
+      op: string;
+      segmentName: string;
+      status?: string;
+      attributes: Record<string, unknown>;
+    }): unknown {
+      return {
+        name,
+        attributes: {
+          ...commonAttributes(segmentName),
+          ...streamAttributes({ [SENTRY_OP]: op, ...attributes }),
+        },
+        end_timestamp: expect.any(Number),
+        is_segment: false,
+        parent_span_id: expect.stringMatching(/^[\da-f]{16}$/),
+        span_id: expect.stringMatching(/^[\da-f]{16}$/),
+        start_timestamp: expect.any(Number),
+        status,
+        trace_id: expect.stringMatching(/^[\da-f]{32}$/),
+      };
+    }
+
+    const childSpans = (container: SerializedStreamedSpanContainer): SerializedStreamedSpanContainer['items'] =>
+      container.items.filter(item => !item.is_segment);
+
+    describe('ioredis', () => {
+      const segmentName = 'Test Span';
+      const connection = { [SERVER_ADDRESS]: 'localhost', [SERVER_PORT]: 6383 };
+      const peer = { [NETWORK_PEER_ADDRESS]: 'localhost', [NETWORK_PEER_PORT]: 6383 };
+
+      const span = (name: string, op: string, attributes: Record<string, unknown>, status?: string): unknown =>
+        streamedSpan({ name, op, segmentName, status, attributes: { ...connection, ...attributes } });
+
+      // A cache span is a db span the cache hook took over: it is renamed to its cache operation
+      // and reports the connection it inherited as peer attributes too.
+      const cacheSpan = (
+        op: typeof CACHE_GET | typeof CACHE_PUT | typeof CACHE_REMOVE,
+        attributes: Record<string, unknown>,
+      ): unknown => span(op, op, { ...peer, [CACHE_OPERATION]: op.slice('cache.'.length), ...attributes });
+
+      createEsmAndCjsTests(__dirname, 'scenario-ioredis.mjs', 'instrument-ioredis.mjs', (createTestRunner, test) => {
+        test('should create cache spans for prefixed keys (ioredis)', { timeout: 60_000 }, async () => {
+          await createTestRunner()
+            .withEnv({ STREAMED: 'true' })
+            .expect({
+              span: container => {
+                expect(container.items.find(item => item.is_segment)?.name).toBe(segmentName);
+
+                expect(childSpans(container)).toEqual([
+                  span('set localhost:6383', redisSpanOp, {
+                    [DB_OPERATION_NAME]: 'set',
+                    [DB_QUERY_TEXT]: 'set test-key [1 other arguments]',
+                  }),
+                  cacheSpan(CACHE_PUT, {
+                    [DB_OPERATION_NAME]: 'set',
+                    [DB_QUERY_TEXT]: 'set ioredis-cache:test-key [1 other arguments]',
+                    [CACHE_KEY]: ['ioredis-cache:test-key'],
+                    [CACHE_ITEM_SIZE]: 2,
+                  }),
+                  cacheSpan(CACHE_PUT, {
+                    [DB_OPERATION_NAME]: 'set',
+                    [DB_QUERY_TEXT]: 'set ioredis-cache:test-key-set-EX [3 other arguments]',
+                    [CACHE_KEY]: ['ioredis-cache:test-key-set-EX'],
+                    [CACHE_ITEM_SIZE]: 2,
+                  }),
+                  cacheSpan(CACHE_PUT, {
+                    [DB_OPERATION_NAME]: 'setex',
+                    [DB_QUERY_TEXT]: 'setex ioredis-cache:test-key-setex [2 other arguments]',
+                    [CACHE_KEY]: ['ioredis-cache:test-key-setex'],
+                    [CACHE_ITEM_SIZE]: 2,
+                  }),
+                  span('get localhost:6383', redisSpanOp, {
+                    [DB_OPERATION_NAME]: 'get',
+                    [DB_QUERY_TEXT]: 'get test-key',
+                  }),
+                  cacheSpan(CACHE_GET, {
+                    [DB_OPERATION_NAME]: 'get',
+                    [DB_QUERY_TEXT]: 'get ioredis-cache:test-key',
+                    [CACHE_KEY]: ['ioredis-cache:test-key'],
+                    [CACHE_HIT]: true,
+                    [CACHE_ITEM_SIZE]: 10,
+                  }),
+                  cacheSpan(CACHE_GET, {
+                    [DB_OPERATION_NAME]: 'get',
+                    [DB_QUERY_TEXT]: 'get ioredis-cache:unavailable-data',
+                    [CACHE_KEY]: ['ioredis-cache:unavailable-data'],
+                    [CACHE_HIT]: false,
+                  }),
+                  cacheSpan(CACHE_GET, {
+                    [DB_OPERATION_NAME]: 'mget',
+                    [DB_QUERY_TEXT]: 'mget [3 other arguments]',
+                    [CACHE_KEY]: ['test-key', 'ioredis-cache:test-key', 'ioredis-cache:unavailable-data'],
+                    [CACHE_HIT]: true,
+                    [CACHE_ITEM_SIZE]: 20,
+                  }),
+                  cacheSpan(CACHE_REMOVE, {
+                    [DB_OPERATION_NAME]: 'del',
+                    [DB_QUERY_TEXT]: 'del ioredis-cache:test-key',
+                    [CACHE_KEY]: ['ioredis-cache:test-key'],
+                  }),
+                ]);
+              },
+            })
+            .start()
+            .completed();
+        });
       });
     });
-  });
 
-  // node-redis 5.0-5.11 still flows through the vendored monkey-patch
-  // instrumentation (diagnostics_channel was only added in 5.12.0), so this
-  // exercises the `>=5.0.0 <5.12.0` branch of the vendored RedisInstrumentation.
-  describe('redis-5 cache keys', () => {
-    const EXPECTED_REDIS_CONNECT = {
-      transaction: 'redis-connect',
-    };
+    // node-redis v4 fills in `socket.host`, so its `db.query` spans get the
+    // `{db.operation.name} {server.address}:{server.port}` name.
+    describe('redis-4', () => {
+      const segmentName = 'Test Span Redis 4';
+      const connection = { [SERVER_ADDRESS]: 'localhost', [SERVER_PORT]: 6383 };
+      const peer = { [NETWORK_PEER_ADDRESS]: 'localhost', [NETWORK_PEER_PORT]: 6383 };
 
-    const batchSpans = isOrchestrionEnabled()
-      ? [
-          expect.objectContaining({
-            description: 'MULTI',
-            op: 'db.redis',
-            origin: redisOrigin,
-            data: expect.objectContaining({
-              'sentry.origin': redisOrigin,
-              'db.system.name': 'redis',
-              'db.operation.batch.size': 2,
-            }),
-          }),
-        ]
-      : [
-          expect.objectContaining({
-            description: 'SET redis-5-multi-key [1 other arguments]',
-            op: 'db',
-            origin: 'auto.db.otel.redis',
-            data: expect.objectContaining({
-              'db.system': 'redis',
-              'db.statement': 'SET redis-5-multi-key [1 other arguments]',
-            }),
-          }),
-          expect.objectContaining({
-            description: 'GET redis-5-multi-key',
-            op: 'db',
-            origin: 'auto.db.otel.redis',
-            data: expect.objectContaining({ 'db.system': 'redis', 'db.statement': 'GET redis-5-multi-key' }),
-          }),
-        ];
+      const span = (name: string, op: string, attributes: Record<string, unknown>, status?: string): unknown =>
+        streamedSpan({ name, op, segmentName, status, attributes: { ...connection, ...attributes } });
 
-    const EXPECTED_TRANSACTION = {
-      transaction: 'Test Span Redis 5',
-      spans: expect.arrayContaining([
-        // SET
-        expect.objectContaining({
-          description: 'redis-5-cache:test-key',
-          op: 'cache.put',
-          origin: redisOrigin,
-          data: expect.objectContaining({
-            'sentry.origin': redisOrigin,
-            'db.statement': 'SET redis-5-cache:test-key [1 other arguments]',
-            'cache.key': ['redis-5-cache:test-key'],
-            'cache.item_size': 2,
-          }),
-        }),
-        // SET (with EX)
-        expect.objectContaining({
-          description: 'redis-5-cache:test-key-set-EX',
-          op: 'cache.put',
-          origin: redisOrigin,
-          data: expect.objectContaining({
-            'sentry.origin': redisOrigin,
-            'db.statement': 'SET redis-5-cache:test-key-set-EX [3 other arguments]',
-            'cache.key': ['redis-5-cache:test-key-set-EX'],
-            'cache.item_size': 2,
-          }),
-        }),
-        // SETEX
-        expect.objectContaining({
-          description: 'redis-5-cache:test-key-setex',
-          op: 'cache.put',
-          origin: redisOrigin,
-          data: expect.objectContaining({
-            'sentry.origin': redisOrigin,
-            'db.statement': 'SETEX redis-5-cache:test-key-setex [2 other arguments]',
-            'cache.key': ['redis-5-cache:test-key-setex'],
-            'cache.item_size': 2,
-          }),
-        }),
-        // GET
-        expect.objectContaining({
-          description: 'redis-5-cache:test-key',
-          op: 'cache.get',
-          origin: redisOrigin,
-          data: expect.objectContaining({
-            'sentry.origin': redisOrigin,
-            'db.statement': 'GET redis-5-cache:test-key',
-            'cache.hit': true,
-            'cache.key': ['redis-5-cache:test-key'],
-            'cache.item_size': 10,
-          }),
-        }),
-        // GET (unavailable - no cache hit)
-        expect.objectContaining({
-          description: 'redis-5-cache:unavailable-data',
-          op: 'cache.get',
-          origin: redisOrigin,
-          data: expect.objectContaining({
-            'sentry.origin': redisOrigin,
-            'db.statement': 'GET redis-5-cache:unavailable-data',
-            'cache.hit': false,
-            'cache.key': ['redis-5-cache:unavailable-data'],
-          }),
-        }),
-        // MGET
-        expect.objectContaining({
-          description: 'redis-5-test-key, redis-5-cache:test-key, redis-5-cache:unavailable-data',
-          op: 'cache.get',
-          origin: redisOrigin,
-          data: expect.objectContaining({
-            'sentry.origin': redisOrigin,
-            'db.statement': 'MGET [3 other arguments]',
-            'cache.hit': true,
-            'cache.key': ['redis-5-test-key', 'redis-5-cache:test-key', 'redis-5-cache:unavailable-data'],
-          }),
-        }),
-        ...batchSpans,
-        // a failing command produces a span with an error status
-        expect.objectContaining({
-          description: 'INCR redis-5-test-key',
-          op: 'db',
-          status: 'internal_error',
-          origin: redisOrigin,
-          data: expect.objectContaining({
-            'sentry.origin': redisOrigin,
-            'db.system': 'redis',
-            'db.statement': 'INCR redis-5-test-key',
-          }),
-        }),
-      ]),
-    };
+      // A cache span is a db span the cache hook took over: it is renamed to its cache operation
+      // and reports the connection it inherited as peer attributes too.
+      const cacheSpan = (
+        op: typeof CACHE_GET | typeof CACHE_PUT | typeof CACHE_REMOVE,
+        attributes: Record<string, unknown>,
+      ): unknown => span(op, op, { ...peer, [CACHE_OPERATION]: op.slice('cache.'.length), ...attributes });
 
-    createEsmAndCjsTests(__dirname, 'scenario-redis-5.mjs', 'instrument-redis-5.mjs', (createTestRunner, test) => {
-      test('should create cache spans for prefixed keys (redis-5)', async () => {
-        await createTestRunner()
-          .expect({ transaction: EXPECTED_REDIS_CONNECT })
-          .expect({ transaction: EXPECTED_TRANSACTION })
-          .start()
-          .completed();
+      createEsmAndCjsTests(__dirname, 'scenario-redis-4.mjs', 'instrument-redis-4.mjs', (createTestRunner, test) => {
+        test('should create cache spans for prefixed keys (redis-4)', { timeout: 60_000 }, async () => {
+          await createTestRunner()
+            .expect({
+              span: container => {
+                // The connect span opens its own segment, but shares the trace with the test span,
+                // so both segments arrive in the same container.
+                expect(container.items.filter(item => item.is_segment).map(item => item.name)).toEqual([
+                  'redis-connect',
+                  segmentName,
+                ]);
+
+                expect(childSpans(container)).toEqual([
+                  span('SET localhost:6383', redisSpanOp, {
+                    [DB_OPERATION_NAME]: 'SET',
+                    [DB_QUERY_TEXT]: 'SET redis-test-key [1 other arguments]',
+                  }),
+                  cacheSpan(CACHE_PUT, {
+                    [DB_OPERATION_NAME]: 'SET',
+                    [DB_QUERY_TEXT]: 'SET redis-cache:test-key [1 other arguments]',
+                    [CACHE_KEY]: ['redis-cache:test-key'],
+                    [CACHE_ITEM_SIZE]: 2,
+                  }),
+                  cacheSpan(CACHE_PUT, {
+                    [DB_OPERATION_NAME]: 'SET',
+                    [DB_QUERY_TEXT]: 'SET redis-cache:test-key-set-EX [3 other arguments]',
+                    [CACHE_KEY]: ['redis-cache:test-key-set-EX'],
+                    [CACHE_ITEM_SIZE]: 2,
+                  }),
+                  cacheSpan(CACHE_PUT, {
+                    [DB_OPERATION_NAME]: 'SETEX',
+                    [DB_QUERY_TEXT]: 'SETEX redis-cache:test-key-setex [2 other arguments]',
+                    [CACHE_KEY]: ['redis-cache:test-key-setex'],
+                    [CACHE_ITEM_SIZE]: 2,
+                  }),
+                  span('GET localhost:6383', redisSpanOp, {
+                    [DB_OPERATION_NAME]: 'GET',
+                    [DB_QUERY_TEXT]: 'GET redis-test-key',
+                  }),
+                  cacheSpan(CACHE_GET, {
+                    [DB_OPERATION_NAME]: 'GET',
+                    [DB_QUERY_TEXT]: 'GET redis-cache:test-key',
+                    [CACHE_KEY]: ['redis-cache:test-key'],
+                    [CACHE_HIT]: true,
+                    [CACHE_ITEM_SIZE]: 10,
+                  }),
+                  cacheSpan(CACHE_GET, {
+                    [DB_OPERATION_NAME]: 'GET',
+                    [DB_QUERY_TEXT]: 'GET redis-cache:unavailable-data',
+                    [CACHE_KEY]: ['redis-cache:unavailable-data'],
+                    [CACHE_HIT]: false,
+                  }),
+                  cacheSpan(CACHE_GET, {
+                    [DB_OPERATION_NAME]: 'MGET',
+                    [DB_QUERY_TEXT]: 'MGET [3 other arguments]',
+                    [CACHE_KEY]: ['redis-test-key', 'redis-cache:test-key', 'redis-cache:unavailable-data'],
+                    [CACHE_HIT]: true,
+                    [CACHE_ITEM_SIZE]: 20,
+                  }),
+                  cacheSpan(CACHE_REMOVE, {
+                    [DB_OPERATION_NAME]: 'DEL',
+                    [DB_QUERY_TEXT]: 'DEL redis-cache:test-key',
+                    [CACHE_KEY]: ['redis-cache:test-key'],
+                  }),
+                  // Batch spans are named after the batch operation, which is already low cardinality.
+                  span('MULTI', redisSpanOp, { [DB_OPERATION_NAME]: 'MULTI', [DB_OPERATION_BATCH_SIZE]: 2 }),
+                  span(
+                    'INCR localhost:6383',
+                    redisSpanOp,
+                    {
+                      [DB_OPERATION_NAME]: 'INCR',
+                      [DB_QUERY_TEXT]: 'INCR redis-test-key',
+                      [ERROR_TYPE]: 'Error',
+                      [SENTRY_STATUS_MESSAGE]: 'ERR value is not an integer or out of range',
+                    },
+                    'error',
+                  ),
+                ]);
+              },
+            })
+            .start()
+            .completed();
+        });
+      });
+    });
+
+    // node-redis v5 leaves `socket.host` unset when only a port is passed, unlike v4. The
+    // integration fills in the library's own `localhost` default, so both report the same
+    // connection and get the same span name.
+    describe('redis-5', () => {
+      const segmentName = 'Test Span Redis 5';
+      const connection = { [SERVER_ADDRESS]: 'localhost', [SERVER_PORT]: 6383 };
+      const peer = { [NETWORK_PEER_ADDRESS]: 'localhost', [NETWORK_PEER_PORT]: 6383 };
+
+      const span = (name: string, op: string, attributes: Record<string, unknown>, status?: string): unknown =>
+        streamedSpan({ name, op, segmentName, status, attributes: { ...connection, ...attributes } });
+
+      // A cache span is a db span the cache hook took over: it is renamed to its cache operation
+      // and reports the connection it inherited as peer attributes too.
+      const cacheSpan = (
+        op: typeof CACHE_GET | typeof CACHE_PUT | typeof CACHE_REMOVE,
+        attributes: Record<string, unknown>,
+      ): unknown => span(op, op, { ...peer, [CACHE_OPERATION]: op.slice('cache.'.length), ...attributes });
+
+      createEsmAndCjsTests(__dirname, 'scenario-redis-5.mjs', 'instrument-redis-5.mjs', (createTestRunner, test) => {
+        test('should create cache spans for prefixed keys (redis-5)', { timeout: 60_000 }, async () => {
+          await createTestRunner()
+            .expect({
+              span: container => {
+                expect(container.items.filter(item => item.is_segment).map(item => item.name)).toEqual([
+                  'redis-connect',
+                  segmentName,
+                ]);
+
+                expect(childSpans(container)).toEqual([
+                  span('SET localhost:6383', redisSpanOp, {
+                    [DB_OPERATION_NAME]: 'SET',
+                    [DB_QUERY_TEXT]: 'SET redis-5-test-key [1 other arguments]',
+                  }),
+                  cacheSpan(CACHE_PUT, {
+                    [DB_OPERATION_NAME]: 'SET',
+                    [DB_QUERY_TEXT]: 'SET redis-5-cache:test-key [1 other arguments]',
+                    [CACHE_KEY]: ['redis-5-cache:test-key'],
+                    [CACHE_ITEM_SIZE]: 2,
+                  }),
+                  cacheSpan(CACHE_PUT, {
+                    [DB_OPERATION_NAME]: 'SET',
+                    [DB_QUERY_TEXT]: 'SET redis-5-cache:test-key-set-EX [3 other arguments]',
+                    [CACHE_KEY]: ['redis-5-cache:test-key-set-EX'],
+                    [CACHE_ITEM_SIZE]: 2,
+                  }),
+                  cacheSpan(CACHE_PUT, {
+                    [DB_OPERATION_NAME]: 'SETEX',
+                    [DB_QUERY_TEXT]: 'SETEX redis-5-cache:test-key-setex [2 other arguments]',
+                    [CACHE_KEY]: ['redis-5-cache:test-key-setex'],
+                    [CACHE_ITEM_SIZE]: 2,
+                  }),
+                  span('GET localhost:6383', redisSpanOp, {
+                    [DB_OPERATION_NAME]: 'GET',
+                    [DB_QUERY_TEXT]: 'GET redis-5-test-key',
+                  }),
+                  cacheSpan(CACHE_GET, {
+                    [DB_OPERATION_NAME]: 'GET',
+                    [DB_QUERY_TEXT]: 'GET redis-5-cache:test-key',
+                    [CACHE_KEY]: ['redis-5-cache:test-key'],
+                    [CACHE_HIT]: true,
+                    [CACHE_ITEM_SIZE]: 10,
+                  }),
+                  cacheSpan(CACHE_GET, {
+                    [DB_OPERATION_NAME]: 'GET',
+                    [DB_QUERY_TEXT]: 'GET redis-5-cache:unavailable-data',
+                    [CACHE_KEY]: ['redis-5-cache:unavailable-data'],
+                    [CACHE_HIT]: false,
+                  }),
+                  cacheSpan(CACHE_GET, {
+                    [DB_OPERATION_NAME]: 'MGET',
+                    [DB_QUERY_TEXT]: 'MGET [3 other arguments]',
+                    [CACHE_KEY]: ['redis-5-test-key', 'redis-5-cache:test-key', 'redis-5-cache:unavailable-data'],
+                    [CACHE_HIT]: true,
+                    [CACHE_ITEM_SIZE]: 20,
+                  }),
+                  cacheSpan(CACHE_REMOVE, {
+                    [DB_OPERATION_NAME]: 'DEL',
+                    [DB_QUERY_TEXT]: 'DEL redis-5-cache:test-key',
+                    [CACHE_KEY]: ['redis-5-cache:test-key'],
+                  }),
+                  span('MULTI', redisSpanOp, { [DB_OPERATION_NAME]: 'MULTI', [DB_OPERATION_BATCH_SIZE]: 2 }),
+                  span(
+                    'INCR localhost:6383',
+                    redisSpanOp,
+                    {
+                      [DB_OPERATION_NAME]: 'INCR',
+                      [DB_QUERY_TEXT]: 'INCR redis-5-test-key',
+                      [ERROR_TYPE]: 'Error',
+                      [SENTRY_STATUS_MESSAGE]: 'ERR value is not an integer or out of range',
+                    },
+                    'error',
+                  ),
+                ]);
+              },
+            })
+            .start()
+            .completed();
+        });
       });
     });
   });

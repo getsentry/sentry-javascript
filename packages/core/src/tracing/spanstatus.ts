@@ -1,9 +1,14 @@
 import type { Span } from '../types/span';
-import type { SpanStatus } from '../types/spanStatus';
+import type { SpanStatusType } from '../types/spanStatus';
+import { SPAN_STATUS_TYPES, type SpanStatus } from '../types/spanStatus';
 
 export const SPAN_STATUS_UNSET = 0;
 export const SPAN_STATUS_OK = 1;
 export const SPAN_STATUS_ERROR = 2;
+
+export function isStatusErrorMessageValid(message: string): boolean {
+  return message !== 'ok' && SPAN_STATUS_TYPES.includes(message as SpanStatusType);
+}
 
 /**
  * Converts a HTTP status code into a sentry status with a message.

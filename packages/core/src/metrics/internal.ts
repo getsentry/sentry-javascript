@@ -8,8 +8,9 @@ import type { Integration } from '../types/integration';
 import type { Metric, SerializedMetric } from '../types/metric';
 import type { User } from '../types/user';
 import { debug } from '../utils/debug-logger';
+import { CALLBACK_ERROR, safeCallback } from '../utils/safeCallback';
 import { getCombinedScopeData } from '../utils/scopeData';
-import { _getSpanForScope } from '../utils/spanOnScope';
+import { getActiveSpan } from '../utils/spanUtils';
 import { timestampInSeconds } from '../utils/time';
 import { getSequenceAttribute } from '../utils/timestampSequence';
 import { _getTraceInfoFromScope } from '../utils/trace-info';
@@ -128,11 +129,11 @@ function _buildSerializedMetric(
   metric: Metric,
   client: Client,
   currentScope: Scope,
-  scopeAttributes: RawAttributes<Record<string, unknown>> | undefined,
+  scopeAttributes: RawAttributes<Record<string, unknown>>,
 ): SerializedMetric {
   // Get trace context
   const [, traceContext] = _getTraceInfoFromScope(client, currentScope);
-  const span = _getSpanForScope(currentScope);
+  const span = getActiveSpan(currentScope);
   const traceId = span ? span.spanContext().traceId : traceContext?.trace_id;
   const spanId = span ? span.spanContext().spanId : undefined;
 
@@ -173,16 +174,7 @@ export function _INTERNAL_captureMetric(beforeMetric: Metric, options?: Internal
     return;
   }
 
-  const { _experiments, enableMetrics, beforeSendMetric } = client.getOptions();
-
-  // todo(v11): Remove the experimental flag
-  // eslint-disable-next-line typescript/no-deprecated
-  const metricsEnabled = enableMetrics ?? _experiments?.enableMetrics ?? true;
-
-  if (!metricsEnabled) {
-    DEBUG_BUILD && debug.warn('metrics option not enabled, metric will not be captured.');
-    return;
-  }
+  const { beforeSendMetric } = client.getOptions();
 
   // Enrich metric with contextual attributes
   const { user, attributes: scopeAttributes } = getCombinedScopeData(getIsolationScope(), currentScope);
@@ -190,12 +182,21 @@ export function _INTERNAL_captureMetric(beforeMetric: Metric, options?: Internal
 
   client.emit('processMetric', enrichedMetric);
 
-  // todo(v11): Remove the experimental `beforeSendMetric`
-  // eslint-disable-next-line typescript/no-deprecated
-  const beforeSendCallback = beforeSendMetric || _experiments?.beforeSendMetric;
-  const processedMetric = beforeSendCallback ? beforeSendCallback(enrichedMetric) : enrichedMetric;
+  const processedMetric = beforeSendMetric
+    ? safeCallback<Metric | null | typeof CALLBACK_ERROR>(
+        DEBUG_BUILD ? 'The `beforeSendMetric` callback threw an error, dropping the metric:' : '',
+        () => beforeSendMetric(enrichedMetric),
+        () => CALLBACK_ERROR,
+      )
+    : enrichedMetric;
+
+  if (processedMetric === CALLBACK_ERROR) {
+    client.recordDroppedEvent('callback_error', 'metric', 1);
+    return;
+  }
 
   if (!processedMetric) {
+    client.recordDroppedEvent('before_send', 'metric', 1);
     DEBUG_BUILD && debug.log('`beforeSendMetric` returned `null`, will not send metric.');
     return;
   }

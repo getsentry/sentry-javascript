@@ -101,7 +101,7 @@ sentryTest('should capture feedback', async ({ forceFlushReplay, getLocalTestUrl
       name: 'sentry.javascript.browser',
       packages: expect.anything(),
       settings: {
-        infer_ip: 'never',
+        infer_ip: 'auto',
       },
     },
     request: {

@@ -1,41 +1,39 @@
-import { registerSpanErrorInstrumentation } from '@sentry/core/browser';
+import { registerSpanErrorInstrumentation } from '@sentry/core';
 import {
   consoleLoggingIntegrationShim,
   elementTimingIntegrationShim,
   feedbackIntegrationShim,
   loggerShim,
+  metricsShim,
 } from '@sentry-internal/integration-shims';
 
 registerSpanErrorInstrumentation();
 
 export * from './index.bundle.base';
 
-// TODO(v11): Export metricsShim here once we remove metrics from the base bundle.
-export { consoleLoggingIntegrationShim as consoleLoggingIntegration, loggerShim as logger };
+export { consoleLoggingIntegrationShim as consoleLoggingIntegration, loggerShim as logger, metricsShim as metrics };
 
 export {
   getActiveSpan,
   getRootSpan,
-  startSpan,
-  startInactiveSpan,
-  startSpanManual,
   startNewTrace,
   withActiveSpan,
   getSpanDescendants,
   setMeasurement,
-} from '@sentry/core/browser';
+  spanStreamingIntegration,
+} from '@sentry/core';
+export { startSpan, startInactiveSpan, startSpanManual } from '@sentry/core/browser';
 
 export {
   browserTracingIntegration,
-  isBotUserAgent,
   startBrowserTracingNavigationSpan,
   startBrowserTracingPageLoadSpan,
 } from './tracing/browserTracingIntegration';
+export { isBotUserAgent } from '@sentry/browser-utils';
 export { elementTimingIntegrationShim as elementTimingIntegration };
 export { reportPageLoaded } from './tracing/reportPageLoaded';
 export { setActiveSpanInBrowser } from './tracing/setActiveSpan';
 
-export { spanStreamingIntegration } from './integrations/spanstreaming';
 export { fetchStreamPerformanceIntegration } from './integrations/fetchStreamPerformance';
 export { webVitalsIntegration } from './integrations/webVitals';
 

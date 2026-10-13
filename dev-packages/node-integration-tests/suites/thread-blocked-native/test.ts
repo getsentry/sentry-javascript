@@ -1,7 +1,7 @@
 import { join } from 'node:path';
 import type { Event } from '@sentry/core';
 import { afterAll, describe, expect, test } from 'vitest';
-import { NODE_VERSION } from '../../utils/index';
+import { supports } from '../../utils/index';
 import { cleanupChildProcesses, createRunner } from '../../utils/runner';
 
 function EXCEPTION(thread_id = '0', fn = 'longWork') {
@@ -105,7 +105,20 @@ describe('Thread Blocked Native', { timeout: 30_000 }, () => {
   test('ESM', async () => {
     await createRunner(__dirname, 'basic.mjs')
       .withMockSentryServer()
-      .expect({ event: ANR_EVENT_WITH_DEBUG_META('basic') })
+      .expect({
+        event: {
+          ...ANR_EVENT_WITH_DEBUG_META('basic'),
+          // Ensures breadcrumbs make it through the poll state rather than via AsyncLocalStorage
+          breadcrumbs: [
+            {
+              timestamp: expect.any(Number),
+              category: 'test',
+              message: 'blocking event loop soon',
+              level: 'info',
+            },
+          ],
+        },
+      })
       .start()
       .completed();
   });
@@ -227,12 +240,7 @@ describe('Thread Blocked Native', { timeout: 30_000 }, () => {
       .completed();
   });
 
-  test('Capture scope via AsyncLocalStorage', async ctx => {
-    if (NODE_VERSION < 24) {
-      ctx.skip();
-      return;
-    }
-
+  test.runIf(supports({ min: 24 }))('Capture scope via AsyncLocalStorage', async () => {
     const instrument = join(__dirname, 'instrument.mjs');
     await createRunner(__dirname, 'isolated.mjs')
       .withMockSentryServer()

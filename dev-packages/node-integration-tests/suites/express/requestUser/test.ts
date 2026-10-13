@@ -7,13 +7,13 @@ describe('express user handling', () => {
   });
 
   createCjsTests(__dirname, 'scenario.mjs', 'instrument.mjs', (createRunner, test) => {
-    test('ignores user from request', async () => {
+    test('collects the request IP address by default', async () => {
       expect.assertions(2);
 
       const runner = createRunner()
         .expect({
           event: event => {
-            expect(event.user).toBeUndefined();
+            expect(event.user).toEqual({ ip_address: '::1' });
             expect(event.exception?.values?.[0]?.value).toBe('error_1');
           },
         })

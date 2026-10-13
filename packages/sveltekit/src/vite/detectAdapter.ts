@@ -1,7 +1,7 @@
 import type { Package } from '@sentry/core';
 import * as fs from 'fs';
 import * as path from 'path';
-import type { BackwardsForwardsCompatibleSvelteConfig } from './svelteConfig';
+import type { ResolvedKitConfig } from './kitConfig';
 
 /**
  * Supported @sveltejs/adapters-[adapter] SvelteKit adapters
@@ -21,33 +21,33 @@ const ADAPTER_NAME_MAP: Record<string, SupportedSvelteKitAdapters> = {
 
 /**
  * Tries to detect the used adapter for SvelteKit.
- * 1. If svelteConfig is provided and has kit.adapter.name, uses that (source of truth from svelte.config.js).
+ * 1. If kitConfig is provided and has adapter.name, uses that (source of truth from SvelteKit itself).
  * 2. Otherwise falls back to inferring from package.json dependencies.
  * Returns the name of the adapter or 'other' if no supported adapter was found.
  *
- * @param svelteConfig - Loaded svelte config (e.g. from loadSvelteConfig()). Pass `undefined` to skip config-based detection.
+ * @param kitConfig - Resolved SvelteKit config (e.g. from the kit config resolver). Pass `undefined` to skip config-based detection.
  * @param debug - Whether to log detection result. Pass `undefined` for false.
  */
 export async function detectAdapter(
-  svelteConfig: BackwardsForwardsCompatibleSvelteConfig | undefined,
+  kitConfig: ResolvedKitConfig | undefined,
   debug: boolean | undefined,
 ): Promise<SupportedSvelteKitAdapters> {
-  const adapterName = svelteConfig?.kit?.adapter?.name;
+  const adapterName = kitConfig?.adapter?.name;
   if (adapterName && typeof adapterName === 'string') {
     const mapped = ADAPTER_NAME_MAP[adapterName];
     if (mapped) {
       if (debug) {
         // eslint-disable-next-line no-console
-        console.log(`[Sentry SvelteKit Plugin] Detected SvelteKit ${mapped} adapter from \`svelte.config.js\``);
+        console.log(`[Sentry SvelteKit Plugin] Detected SvelteKit ${mapped} adapter from your SvelteKit config`);
       }
       return mapped;
     }
     // We found an adapter name but it's not in our supported list -> return 'other'
-    // svelte.config.js is the source of truth, so we don't need to fall back to package.json.
+    // The SvelteKit config is the source of truth, so we don't need to fall back to package.json.
     if (debug) {
       // eslint-disable-next-line no-console
       console.warn(
-        `[Sentry SvelteKit Plugin] Detected unsupported adapter name ${adapterName} in \`svelte.config.js\`. Please set the 'adapter' option manually`,
+        `[Sentry SvelteKit Plugin] Detected unsupported adapter name ${adapterName} in your SvelteKit config. Please set the 'adapter' option manually`,
       );
     }
     return 'other';

@@ -1,5 +1,7 @@
 import type { SyncKvStorage } from '@cloudflare/workers-types';
-import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, startSpan } from '@sentry/core';
+import { SENTRY_OP, SENTRY_ORIGIN } from '@sentry/conventions/attributes';
+import { DB } from '@sentry/conventions/op';
+import { startSpan } from '@sentry/core';
 
 const SYNC_KV_METHODS_TO_INSTRUMENT = ['get', 'put', 'delete', 'list'] as const;
 
@@ -24,9 +26,9 @@ export function instrumentDurableObjectSyncKvStorage(syncKv: SyncKvStorage): Syn
         return startSpan(
           {
             name: `durable_object_storage_kv_${methodName}`,
-            op: 'db',
             attributes: {
-              [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.db.cloudflare.durable_object',
+              [SENTRY_OP]: DB,
+              [SENTRY_ORIGIN]: 'auto.db.cloudflare.durable_object',
               // keeping the value as close as possible to the Cloudflare Worker KV instrumentation
               // https://github.com/cloudflare/workerd/blob/6b8b11787e2b2a800ab0edd0690bfab3857b0529/src/workerd/api/sync-kv.c%2B%2B#L19
               'db.system.name': 'cloudflare-durable-object-sql',

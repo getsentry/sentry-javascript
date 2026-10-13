@@ -13,12 +13,4 @@ Sentry.init({
       recordOutputs: true,
     }),
   ],
-  beforeSendTransaction: event => {
-    // Filter out mock express server transactions
-    if (event.transaction.includes('/anthropic/v1/')) {
-      return null;
-    }
-    return event;
-  },
-  streamGenAiSpans: true,
 });

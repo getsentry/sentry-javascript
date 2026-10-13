@@ -21,8 +21,19 @@ import {
   getProtocolVersionForTransport,
   getSessionDataForTransport,
 } from './sessionManagement';
-import type { ExtraHandlerData, JsonRpcRequest, MCPTransport, PartyInfo, SessionData } from './types';
+import type {
+  ExtraHandlerData,
+  JsonRpcNotification,
+  JsonRpcRequest,
+  MCPTransport,
+  PartyInfo,
+  SessionData,
+} from './types';
 import { isValidContentItem } from './validation';
+
+const MCP_PROTOCOL_VERSION_META_KEY = 'io.modelcontextprotocol/protocolVersion';
+const MCP_CLIENT_INFO_META_KEY = 'io.modelcontextprotocol/clientInfo';
+const MCP_SERVER_INFO_META_KEY = 'io.modelcontextprotocol/serverInfo';
 
 /**
  * Extracts and validates PartyInfo from an unknown object
@@ -62,6 +73,29 @@ export function extractSessionDataFromInitializeRequest(request: JsonRpcRequest)
       sessionData.clientInfo = extractPartyInfo(request.params.clientInfo);
     }
   }
+
+  return sessionData;
+}
+
+/**
+ * Extracts session data from an MCP 2026-07-28 request or notification envelope.
+ * @param message - JSON-RPC message containing modern request metadata
+ * @returns Session data extracted from the message
+ */
+export function extractSessionDataFromMessage(message: JsonRpcRequest | JsonRpcNotification): SessionData {
+  const sessionData: SessionData = {};
+  if (isValidContentItem(message.params)) {
+    if (isValidContentItem(message.params._meta)) {
+      const meta = message.params._meta;
+      if (typeof meta[MCP_PROTOCOL_VERSION_META_KEY] === 'string') {
+        sessionData.protocolVersion = meta[MCP_PROTOCOL_VERSION_META_KEY];
+      }
+      if (meta[MCP_CLIENT_INFO_META_KEY]) {
+        sessionData.clientInfo = extractPartyInfo(meta[MCP_CLIENT_INFO_META_KEY]);
+      }
+    }
+  }
+
   return sessionData;
 }
 
@@ -78,6 +112,22 @@ export function extractSessionDataFromInitializeResponse(result: unknown): Parti
     }
     if (result.serverInfo) {
       sessionData.serverInfo = extractPartyInfo(result.serverInfo);
+    }
+  }
+
+  return sessionData;
+}
+
+/**
+ * Extracts session data from MCP 2026-07-28 result metadata.
+ * @param result - JSON-RPC result containing modern response metadata
+ * @returns Session data extracted from the result
+ */
+export function extractSessionDataFromResponse(result: unknown): Partial<SessionData> {
+  const sessionData: Partial<SessionData> = {};
+  if (isValidContentItem(result)) {
+    if (isValidContentItem(result._meta) && result._meta[MCP_SERVER_INFO_META_KEY]) {
+      sessionData.serverInfo = extractPartyInfo(result._meta[MCP_SERVER_INFO_META_KEY]);
     }
   }
   return sessionData;
@@ -217,19 +267,25 @@ export function getTransportTypes(transport: MCPTransport): { mcpTransport: stri
  * Build transport and network attributes
  * @param transport - MCP transport instance
  * @param extra - Optional extra handler data
+ * @param message - Current message carrying request-scoped protocol metadata
  * @returns Transport attributes for span instrumentation
  * @note sessionId may be undefined during initial setup - session should be established by client during initialize flow
  */
 export function buildTransportAttributes(
   transport: MCPTransport,
   extra?: ExtraHandlerData,
+  message?: JsonRpcRequest | JsonRpcNotification,
 ): Record<string, string | number> {
-  const sessionId = transport && 'sessionId' in transport ? transport.sessionId : undefined;
+  const messageData = message && extractSessionDataFromMessage(message);
+  const hasRequestMetadata = messageData?.protocolVersion !== undefined || messageData?.clientInfo !== undefined;
+  const sessionId = !hasRequestMetadata && transport && 'sessionId' in transport ? transport.sessionId : undefined;
   const clientInfo = extra ? extractClientInfo(extra) : {};
   const { mcpTransport, networkTransport } = getTransportTypes(transport);
-  const clientAttributes = getClientAttributes(transport);
-  const serverAttributes = getServerAttributes(transport);
-  const protocolVersion = getProtocolVersionForTransport(transport);
+  const clientAttributes = hasRequestMetadata
+    ? buildClientAttributesFromInfo(messageData?.clientInfo)
+    : getClientAttributes(transport);
+  const serverAttributes = hasRequestMetadata ? {} : getServerAttributes(transport);
+  const protocolVersion = hasRequestMetadata ? messageData?.protocolVersion : getProtocolVersionForTransport(transport);
 
   const attributes = {
     ...(sessionId && { [MCP_SESSION_ID_ATTRIBUTE]: sessionId }),

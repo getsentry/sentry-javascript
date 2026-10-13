@@ -1,4 +1,5 @@
 import type { Integration } from '@sentry/core';
+import { getMainCarrier } from '@sentry/core';
 import type { NodeClient } from '@sentry/node';
 import * as SentryNode from '@sentry/node';
 import { SDK_VERSION } from '@sentry/node';
@@ -13,10 +14,7 @@ describe('React Router server SDK', () => {
     afterEach(() => {
       vi.clearAllMocks();
 
-      SentryNode.getGlobalScope().clear();
-      SentryNode.getIsolationScope().clear();
-      SentryNode.getCurrentScope().clear();
-      SentryNode.getCurrentScope().setClient(undefined);
+      getMainCarrier().__SENTRY__ = undefined;
     });
 
     it('adds React Router metadata to the SDK options', () => {
@@ -46,6 +44,26 @@ describe('React Router server SDK', () => {
         dsn: 'https://public@dsn.ingest.sentry.io/1337',
       }) as NodeClient;
       expect(client).not.toBeUndefined();
+    });
+
+    it.each([
+      { value: 'false', defaultIntegrations: false as const },
+      { value: 'an empty array', defaultIntegrations: [] },
+    ])('disables default integrations when set to $value', ({ defaultIntegrations }) => {
+      const client = reactRouterInit({ defaultIntegrations });
+
+      expect(client?.getOptions().integrations.map(integration => integration.name)).toEqual(['SpanStreaming']);
+    });
+
+    it('replaces default integrations with a custom array', () => {
+      const integration = { name: 'CustomIntegration' };
+
+      const client = reactRouterInit({ defaultIntegrations: [integration] });
+
+      expect(client?.getOptions().integrations.map(integration => integration.name)).toEqual([
+        'CustomIntegration',
+        'SpanStreaming',
+      ]);
     });
 
     it('adds the low quality transactions filter integration by default', () => {

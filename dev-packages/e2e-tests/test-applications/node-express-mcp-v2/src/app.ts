@@ -12,8 +12,6 @@ app.get('/test-success', function (_req, res) {
   res.send({ version: 'v1' });
 });
 
-Sentry.setupExpressErrorHandler(app);
-
 app.listen(port, () => {
   console.log(`Example app listening on port ${port}`);
 });

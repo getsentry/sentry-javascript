@@ -1,0 +1,9 @@
+node_modules
+dist
+.wrangler
+.dev.vars
+pnpm-lock.yaml
+*.tsbuildinfo
+results.junit.xml
+test-results
+playwright-report

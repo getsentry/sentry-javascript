@@ -1,9 +1,9 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-const newMock = vi.fn();
+const createMock = vi.fn();
 const uploadSourceMapsMock = vi.fn();
 const finalizeMock = vi.fn();
-const proposeVersionMock = vi.fn(() => '0.1.2.3.4');
+const proposeVersionMock = vi.fn(() => ({ version: '0.1.2.3.4' }));
 
 const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
 
@@ -22,64 +22,69 @@ async function mock(mockedUri: string, stub: any) {
 }
 
 await vi.hoisted(async () =>
-  mock(
-    '@sentry/cli',
-    vi.fn().mockImplementation(() => {
+  mock('sentry', {
+    createSentrySDK: vi.fn().mockImplementation(() => {
       return {
-        execute: vi.fn(),
-        releases: {
-          new: newMock,
-          uploadSourceMaps: uploadSourceMapsMock,
+        release: {
+          create: createMock,
           finalize: finalizeMock,
-          proposeVersion: proposeVersionMock,
+          'propose-version': proposeVersionMock,
+        },
+        sourcemap: {
+          upload: uploadSourceMapsMock,
         },
       };
     }),
-  ),
+  }),
 );
 
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const { createRelease } = require('../../scripts/createRelease');
 
 beforeEach(() => {
-  newMock.mockClear();
+  createMock.mockClear();
   uploadSourceMapsMock.mockClear();
   finalizeMock.mockClear();
   proposeVersionMock.mockClear();
 });
 
+afterEach(() => {
+  vi.unstubAllEnvs();
+});
+
 describe('createRelease', () => {
   it('should use release param when given', async () => {
-    await createRelease({ release: '0.1.2.3' }, '~/build/', 'public/build');
+    await createRelease({ release: '0.1.2.3', project: 'my-project' }, '~/build/', 'public/build');
 
     expect(proposeVersionMock).not.toHaveBeenCalled();
-    expect(newMock).toHaveBeenCalledWith('0.1.2.3');
-    expect(uploadSourceMapsMock).toHaveBeenCalledWith('0.1.2.3', {
+    expect(createMock).toHaveBeenCalledWith({ orgVersion: '0.1.2.3', project: 'my-project' });
+    expect(uploadSourceMapsMock).toHaveBeenCalledWith({
+      directory: 'public/build',
+      release: '0.1.2.3',
       urlPrefix: '~/build/',
-      include: ['public/build'],
-      useArtifactBundle: true,
-      live: 'rejectOnError',
+      noRewrite: undefined,
     });
-    expect(finalizeMock).toHaveBeenCalledWith('0.1.2.3');
+    expect(finalizeMock).toHaveBeenCalledWith({ orgVersion: '0.1.2.3' });
   });
 
   it('should call `proposeVersion` when release param is not given.', async () => {
-    await createRelease({}, '~/build/', 'public/build');
+    await createRelease({ project: 'my-project' }, '~/build/', 'public/build');
 
     expect(proposeVersionMock).toHaveBeenCalled();
-    expect(newMock).toHaveBeenCalledWith('0.1.2.3.4');
-    expect(uploadSourceMapsMock).toHaveBeenCalledWith('0.1.2.3.4', {
+    expect(createMock).toHaveBeenCalledWith({ orgVersion: '0.1.2.3.4', project: 'my-project' });
+    expect(uploadSourceMapsMock).toHaveBeenCalledWith({
+      directory: 'public/build',
+      release: '0.1.2.3.4',
       urlPrefix: '~/build/',
-      include: ['public/build'],
-      useArtifactBundle: true,
-      live: 'rejectOnError',
+      noRewrite: undefined,
     });
-    expect(finalizeMock).toHaveBeenCalledWith('0.1.2.3.4');
+    expect(finalizeMock).toHaveBeenCalledWith({ orgVersion: '0.1.2.3.4' });
   });
 
   it('should use given buildPath and urlPrefix over the defaults when given.', async () => {
     await createRelease(
       {
+        project: 'my-project',
         urlPrefix: '~/build/',
         buildPath: 'public/build',
       },
@@ -88,39 +93,55 @@ describe('createRelease', () => {
     );
 
     expect(proposeVersionMock).toHaveBeenCalled();
-    expect(newMock).toHaveBeenCalledWith('0.1.2.3.4');
-    expect(uploadSourceMapsMock).toHaveBeenCalledWith('0.1.2.3.4', {
+    expect(createMock).toHaveBeenCalledWith({ orgVersion: '0.1.2.3.4', project: 'my-project' });
+    expect(uploadSourceMapsMock).toHaveBeenCalledWith({
+      directory: 'public/build',
+      release: '0.1.2.3.4',
       urlPrefix: '~/build/',
-      include: ['public/build'],
-      useArtifactBundle: true,
-      live: 'rejectOnError',
+      noRewrite: undefined,
     });
-    expect(finalizeMock).toHaveBeenCalledWith('0.1.2.3.4');
+    expect(finalizeMock).toHaveBeenCalledWith({ orgVersion: '0.1.2.3.4' });
   });
 
   it('logs an error when uploadSourceMaps fails', async () => {
     uploadSourceMapsMock.mockRejectedValue(new Error('Failed to upload sourcemaps'));
 
-    await createRelease({}, '~/build/', 'public/build');
+    await createRelease({ project: 'my-project' }, '~/build/', 'public/build');
 
-    expect(uploadSourceMapsMock).toHaveBeenCalledWith('0.1.2.3.4', {
+    expect(uploadSourceMapsMock).toHaveBeenCalledWith({
+      directory: 'public/build',
+      release: '0.1.2.3.4',
       urlPrefix: '~/build/',
-      include: ['public/build'],
-      useArtifactBundle: true,
-      live: 'rejectOnError',
+      noRewrite: undefined,
     });
 
     expect(consoleWarnSpy).toHaveBeenCalledWith('[sentry] Failed to upload sourcemaps.');
 
-    expect(finalizeMock).toHaveBeenCalledWith('0.1.2.3.4');
+    expect(finalizeMock).toHaveBeenCalledWith({ orgVersion: '0.1.2.3.4' });
   });
 
   it('logs an error when finalize fails', async () => {
     finalizeMock.mockRejectedValue(new Error('Failed to finalize release'));
 
-    await createRelease({}, '~/build/', 'public/build');
+    await createRelease({ project: 'my-project' }, '~/build/', 'public/build');
 
     expect(consoleWarnSpy).toHaveBeenCalledWith('[sentry] Failed to finalize release.');
+  });
+
+  it('falls back to SENTRY_PROJECT for the release project', async () => {
+    vi.stubEnv('SENTRY_PROJECT', 'env-project');
+
+    await createRelease({ release: '0.1.2.3' }, '~/build/', 'public/build');
+
+    expect(createMock).toHaveBeenCalledWith({ orgVersion: '0.1.2.3', project: 'env-project' });
+  });
+
+  it('fails before creating a release when no project is known', async () => {
+    vi.stubEnv('SENTRY_PROJECT', '');
+
+    await expect(createRelease({ release: '0.1.2.3' }, '~/build/', 'public/build')).rejects.toThrow('--project');
+
+    expect(createMock).not.toHaveBeenCalled();
   });
 });
 

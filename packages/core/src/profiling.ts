@@ -14,9 +14,10 @@ function isProfilingIntegrationWithProfiler(
   );
 }
 /**
- * Starts the Sentry continuous profiler.
- * This mode is exclusive with the transaction profiler and will only work if the profilesSampleRate is set to a falsy value.
- * In continuous profiling mode, the profiler will keep reporting profile chunks to Sentry until it is stopped, which allows for continuous profiling of the application.
+ * Starts a manually controlled Sentry profiling session.
+ *
+ * Profiling starts only when the profiling integration sampled the current session and `profileLifecycle` is set to `manual`.
+ * While running, the profiler periodically sends profile chunks to Sentry until `stopProfiler()` is called.
  */
 function startProfiler(): void {
   const client = getClient();
@@ -41,8 +42,10 @@ function startProfiler(): void {
 }
 
 /**
- * Stops the Sentry continuous profiler.
- * Calls to stop will stop the profiler and flush the currently collected profile data to Sentry.
+ * Stops a manually controlled Sentry profiling session.
+ *
+ * If a manual profiling session is running, stops the profiler and sends the currently collected profile chunk to Sentry.
+ * Calls are ignored when using the trace lifecycle or when no profiling session is running.
  */
 function stopProfiler(): void {
   const client = getClient();

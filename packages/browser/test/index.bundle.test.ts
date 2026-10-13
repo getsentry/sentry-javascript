@@ -3,6 +3,7 @@ import {
   consoleLoggingIntegrationShim,
   feedbackIntegrationShim,
   loggerShim,
+  metricsShim,
   replayIntegrationShim,
   spanStreamingIntegrationShim,
 } from '@sentry-internal/integration-shims';
@@ -19,5 +20,6 @@ describe('index.bundle', () => {
 
     expect(Bundle.logger).toBe(loggerShim);
     expect(Bundle.consoleLoggingIntegration).toBe(consoleLoggingIntegrationShim);
+    expect(Bundle.metrics).toBe(metricsShim);
   });
 });

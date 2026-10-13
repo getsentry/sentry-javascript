@@ -10,33 +10,14 @@
 [![npm dm](https://img.shields.io/npm/dm/@sentry/sveltekit.svg)](https://www.npmjs.com/package/@sentry/sveltekit)
 [![npm dt](https://img.shields.io/npm/dt/@sentry/sveltekit.svg)](https://www.npmjs.com/package/@sentry/sveltekit)
 
-## Compatibility
+The official Sentry SDK for monitoring SvelteKit applications.
 
-The minimum supported version of SvelteKit is `2.0.0`. The SDK works best with Vite 4.2 and newer. Older Vite versions
-might not generate source maps correctly.
+## Documentation
 
-Check our docs for [SvelteKit adapter](https://docs.sentry.io/platforms/javascript/guides/sveltekit/#prerequisites) compatibility.
+- [Getting started](https://docs.sentry.io/platforms/javascript/guides/sveltekit/)
+- [Configuration](https://docs.sentry.io/platforms/javascript/guides/sveltekit/configuration/)
 
-## General
+## Support
 
-This package is a wrapper around `@sentry/node` for the server and `@sentry/svelte` for the client side, with added
-functionality related to SvelteKit.
-
-## Installation
-
-To get started installing the SDK, use the Sentry Next.js Wizard by running the following command in your terminal or
-read the [Getting Started Docs](https://docs.sentry.io/platforms/javascript/guides/sveltekit/):
-
-```sh
-npx @sentry/wizard@latest -i sveltekit
-```
-
-The wizard will guide you throuhg logging in to Sentry and setting up the SDK. After the wizard setup is completed, the SDK will automatically capture
-unhandled errors, and optionally, traces and replays.
-
-## Links
-
-- [Official SDK Docs](https://docs.sentry.io/platforms/javascript/guides/sveltekit/)
-- [Sentry.io](https://sentry.io/?utm_source=github&utm_medium=npm_sveltekit)
-- [Sentry Discord Server](https://discord.gg/Ww9hbqr)
-- [Stack Overflow](https://stackoverflow.com/questions/tagged/sentry)
+- [Report a bug](https://github.com/getsentry/sentry-javascript/issues/new/choose)
+- [Contributing](https://github.com/getsentry/sentry-javascript/blob/develop/CONTRIBUTING.md)

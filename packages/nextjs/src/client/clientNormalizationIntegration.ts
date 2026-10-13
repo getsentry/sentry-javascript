@@ -1,6 +1,9 @@
 import { defineIntegration } from '@sentry/core';
 import { rewriteFramesIntegration } from '@sentry/react';
 
+const NEXTJS_INTERNAL_CHUNK_REGEX =
+  /\/_next\/static\/chunks\/(main-|main-app-|polyfills-|webpack-|framework-|framework\.)[0-9a-f]+\.js(:\d+)*$/;
+
 export const nextjsClientStackFrameNormalizationIntegration = defineIntegration(
   ({
     assetPrefix,
@@ -58,28 +61,13 @@ export const nextjsClientStackFrameNormalizationIntegration = defineIntegration(
           if (frame.filename?.includes('/_next')) {
             frame.filename = decodeURI(frame.filename);
           }
+        } else if (frame.filename?.startsWith('app:///_next')) {
+          frame.filename = decodeURI(frame.filename);
+        }
 
-          if (
-            frame.filename?.match(
-              /\/_next\/static\/chunks\/(main-|main-app-|polyfills-|webpack-|framework-|framework\.)[0-9a-f]+\.js$/,
-            )
-          ) {
-            // We don't care about these frames. It's Next.js internal code.
-            frame.in_app = false;
-          }
-        } else {
-          if (frame.filename?.startsWith('app:///_next')) {
-            frame.filename = decodeURI(frame.filename);
-          }
-
-          if (
-            frame.filename?.match(
-              /^app:\/\/\/_next\/static\/chunks\/(main-|main-app-|polyfills-|webpack-|framework-|framework\.)[0-9a-f]+\.js$/,
-            )
-          ) {
-            // We don't care about these frames. It's Next.js internal code.
-            frame.in_app = false;
-          }
+        if (frame.filename?.match(NEXTJS_INTERNAL_CHUNK_REGEX)) {
+          // We don't care about these frames. It's Next.js internal code.
+          frame.in_app = false;
         }
 
         return frame;

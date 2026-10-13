@@ -101,6 +101,21 @@ async function sns() {
       { 'content-type': 'text/xml' },
     );
   await client.send(new PublishCommand({ TopicArn: 'arn:aws:sns:us-east-1:123456789012:my-topic', Message: 'Hello' }));
+
+  // Publish to a platform endpoint, whose ARN ends in a per-device id.
+  nock(`https://sns.${region}.amazonaws.com`)
+    .post('/')
+    .reply(
+      200,
+      '<PublishResponse xmlns="http://sns.amazonaws.com/doc/2010-03-31/"><PublishResult><MessageId>message-id-2</MessageId></PublishResult><ResponseMetadata><RequestId>request-id-2</RequestId></ResponseMetadata></PublishResponse>',
+      { 'content-type': 'text/xml' },
+    );
+  await client.send(
+    new PublishCommand({
+      TargetArn: 'arn:aws:sns:us-east-1:123456789012:endpoint/GCM/myapp/5e3e9847-3183-3f18-a7e8-671c3a57d4b3',
+      Message: 'Hello',
+    }),
+  );
 }
 
 async function lambda() {

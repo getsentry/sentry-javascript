@@ -5,6 +5,7 @@ setTimeout(() => {
     window.__hadSentry = window.sentryIsLoaded();
 
     Sentry.init({
+      traceLifecycle: 'static',
       sampleRate: 0.5,
     });
 

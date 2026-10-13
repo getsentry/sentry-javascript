@@ -70,7 +70,7 @@ function ensureMetadataStacksAreParsed(parser: StackParser): void {
 /**
  * Retrieve metadata for a specific JavaScript file URL.
  *
- * Metadata is injected by the Sentry bundler plugins using the `_experiments.moduleMetadata` config option.
+ * Metadata is injected by the Sentry bundler plugins using the `moduleMetadata` config option.
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function getMetadataForUrl(parser: StackParser, filename: string): any | undefined {
@@ -81,7 +81,7 @@ export function getMetadataForUrl(parser: StackParser, filename: string): any | 
 /**
  * Adds metadata to stack frames.
  *
- * Metadata is injected by the Sentry bundler plugins using the `_experiments.moduleMetadata` config option.
+ * Metadata is injected by the Sentry bundler plugins using the `moduleMetadata` config option.
  */
 export function addMetadataToStackFrames(parser: StackParser, event: Event): void {
   event.exception?.values?.forEach(exception => {

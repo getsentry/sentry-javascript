@@ -14,14 +14,13 @@
     "@sentry/cloudflare": "file:../../packed/sentry-cloudflare-packed.tgz"
   },
   "devDependencies": {
-    "@playwright/test": "~1.56.0",
+    "@playwright/test": "~1.63.0",
     "@cloudflare/workers-types": "^4.20260303.0",
     "@sentry-internal/test-utils": "link:../../../test-utils",
     "typescript": "^5.5.2",
     "wrangler": "4.70.0"
   },
   "volta": {
-    "node": "24.15.0",
     "extends": "../../package.json"
   }
 }

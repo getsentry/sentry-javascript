@@ -1,12 +1,23 @@
 import { captureException, getAbsoluteUrl } from '@sentry/browser';
-import { PARAMS_KEY, URL_PATH_PARAMETER_KEY, URL_TEMPLATE } from '@sentry/conventions/attributes';
+import {
+  SENTRY_SEGMENT_NAME_SOURCE,
+  ROUTER_NAVIGATION_ROUTE_ID,
+  PARAMS_KEY_BASE,
+  SENTRY_OP,
+  URL_PATH_PARAMETER_KEY_BASE,
+  URL_TEMPLATE,
+  SENTRY_ORIGIN,
+} from '@sentry/conventions/attributes';
+import { NAVIGATION } from '@sentry/conventions/op';
 import type { Span, SpanAttributes, StartSpanOptions, TransactionSource } from '@sentry/core';
 import {
   getActiveSpan,
+  getClient,
   getCurrentScope,
   getRootSpan,
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
+  hasSpanStreamingEnabled,
+  NAVIGATION_SPAN_NAME_FALLBACK,
+  PAGELOAD_SPAN_NAME_FALLBACK,
   spanToJSON,
 } from '@sentry/core';
 
@@ -74,8 +85,8 @@ export function instrumentVueRouter(
     const attributes: SpanAttributes = {};
 
     for (const key of Object.keys(to.params)) {
-      attributes[URL_PATH_PARAMETER_KEY.replace('<key>', key)] = to.params[key];
-      attributes[PARAMS_KEY.replace('<key>', key)] = to.params[key]; // params.[key] is an alias
+      attributes[`${URL_PATH_PARAMETER_KEY_BASE}.${key}`] = to.params[key];
+      attributes[`${PARAMS_KEY_BASE}.${key}`] = to.params[key]; // params.[key] is an alias
     }
     for (const key of Object.keys(to.query)) {
       const value = to.query[key];
@@ -101,35 +112,49 @@ export function instrumentVueRouter(
       attributes[URL_TEMPLATE] = spanName;
     }
 
+    if (to.name) {
+      attributes[ROUTER_NAVIGATION_ROUTE_ID] = to.name.toString();
+    }
+
     getCurrentScope().setTransactionName(spanName);
 
     // Update the existing page load span with parametrized route information
     if (options.instrumentPageLoad && activePageLoadSpan) {
-      const existingAttributes = spanToJSON(activePageLoadSpan).data;
-      if (existingAttributes[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE] !== 'custom') {
-        activePageLoadSpan.updateName(spanName);
-        activePageLoadSpan.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, transactionSource);
+      const existingAttributes = spanToJSON(activePageLoadSpan).attributes;
+      if (existingAttributes[SENTRY_SEGMENT_NAME_SOURCE] !== 'custom') {
+        // With span streaming, span names have to be low cardinality, so we can't fall back to the URL.
+        const client = getClient();
+        const isUnparameterizedStreamedPageload =
+          transactionSource === 'url' && !!client && hasSpanStreamingEnabled(client);
+        activePageLoadSpan.updateName(isUnparameterizedStreamedPageload ? PAGELOAD_SPAN_NAME_FALLBACK : spanName);
+        activePageLoadSpan.setAttribute(SENTRY_SEGMENT_NAME_SOURCE, transactionSource);
       }
 
       // Set router attributes on the existing pageload transaction
       // This will override the origin, and add params & query attributes
       activePageLoadSpan.setAttributes({
         ...attributes,
-        [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.pageload.vue',
+        [SENTRY_ORIGIN]: 'auto.pageload.vue',
       });
 
       hasHandledFirstPageLoad = true;
     }
 
     if (options.instrumentNavigation && !activePageLoadSpan) {
+      // With span streaming, span names have to be low cardinality, so we can't fall back to the URL.
+      // A route name (`custom`) or matched route path (`route`) is low cardinality, a raw path is not.
+      const client = getClient();
+      const isUnparameterizedStreamedNavigation =
+        transactionSource === 'url' && !!client && hasSpanStreamingEnabled(client);
+
       startNavigationSpanFn(
         {
-          name: spanName,
-          op: 'navigation',
+          name: isUnparameterizedStreamedNavigation ? NAVIGATION_SPAN_NAME_FALLBACK : spanName,
           attributes: {
             ...attributes,
-            [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.vue',
-            [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: transactionSource,
+            [SENTRY_OP]: NAVIGATION,
+            [SENTRY_ORIGIN]: 'auto.navigation.vue',
+            [SENTRY_SEGMENT_NAME_SOURCE]: transactionSource,
           },
         },
         getAbsoluteUrl(to.fullPath ?? to.path),
@@ -158,7 +183,7 @@ function getActivePageLoadSpan(): Span | undefined {
     return undefined;
   }
 
-  const op = spanToJSON(rootSpan).op;
+  const op = spanToJSON(rootSpan).attributes[SENTRY_OP];
 
   return op === 'pageload' ? rootSpan : undefined;
 }

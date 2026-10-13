@@ -5,8 +5,10 @@ const STRIP_ESM_MARKERS = /[ \t]*\/\*! rollup-include-esm-only(?:-end)? \*\/[ \t
 
 // Mirrors the ESM path of makeEsmCjsReplacePlugin from rollup-utils. Vitest
 // transforms TypeScript source to ESM so tests see only the ESM branch.
+// Runs before TS transpilation, which can move the marker comments.
 const esmOnlyPlugin = {
   name: 'vitest-esm-only',
+  enforce: 'pre' as const,
   transform(code: string) {
     if (!code.includes('rollup-include-')) return null;
     return { code: code.replace(REMOVE_CJS_BLOCK, '').replace(STRIP_ESM_MARKERS, '') };

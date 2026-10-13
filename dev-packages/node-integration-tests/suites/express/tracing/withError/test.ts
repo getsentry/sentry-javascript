@@ -9,7 +9,7 @@ describe('express tracing with error', () => {
   createCjsTests(__dirname, 'scenario.mjs', 'instrument.mjs', (createRunner, test) => {
     test('should apply the scope transactionName to error events', async () => {
       const runner = createRunner()
-        .ignore('transaction')
+        .ignore('span')
         .expect({
           event: {
             exception: {
@@ -24,6 +24,22 @@ describe('express tracing with error', () => {
         })
         .start();
       runner.makeRequest('get', '/test/123/abc?q=1');
+      await runner.completed();
+    });
+
+    test('preserves encoded query parameters while filtering sensitive values on events', async () => {
+      const runner = createRunner()
+        .ignore('span')
+        .expect({
+          event: {
+            request: {
+              query_string: 'q=hello%20world&token=[Filtered]',
+            },
+          },
+        })
+        .start();
+
+      await runner.makeRequest('get', '/test/123/abc?q=hello%20world&token=secret');
       await runner.completed();
     });
   });

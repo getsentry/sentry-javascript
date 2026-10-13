@@ -191,7 +191,7 @@ export interface ConsolaLogObject {
 const DEFAULT_CAPTURED_LEVELS: Array<LogSeverityLevel> = ['trace', 'debug', 'info', 'warn', 'error', 'fatal'];
 
 /**
- * Creates a new Sentry reporter for Consola that forwards logs to Sentry. Requires the `enableLogs` option to be enabled.
+ * Creates a new Sentry reporter for Consola that forwards logs to Sentry.
  *
  * **Note: This integration supports Consola v3.x only.** The reporter interface and log object structure
  * may differ in other versions of Consola.
@@ -205,7 +205,7 @@ const DEFAULT_CAPTURED_LEVELS: Array<LogSeverityLevel> = ['trace', 'debug', 'inf
  * import { consola } from 'consola';
  *
  * Sentry.init({
- *   enableLogs: true,
+ *   dsn: '__DSN__',
  * });
  *
  * const sentryReporter = Sentry.createConsolaReporter({

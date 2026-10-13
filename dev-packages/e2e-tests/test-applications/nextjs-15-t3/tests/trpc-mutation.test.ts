@@ -1,16 +1,16 @@
 import { expect, test } from '@playwright/test';
-import { waitForTransaction } from '@sentry-internal/test-utils';
+import { getSpanOp, waitForStreamedSpan } from '@sentry-internal/test-utils';
 
-test('should create transaction with trpc input for mutation', async ({ page }) => {
-  const trpcTransactionPromise = waitForTransaction('nextjs-15-t3', async transactionEvent => {
-    return transactionEvent?.transaction === 'POST /api/trpc/[trpc]';
+test('should create span with trpc input for mutation', async ({ page }) => {
+  const trpcSpanPromise = waitForStreamedSpan('nextjs-15-t3', span => {
+    return span.name === 'POST /api/trpc/[trpc]' && getSpanOp(span) === 'http.server' && span.is_segment;
   });
 
   await page.goto('/');
   await page.locator('#createInput').fill('I love dogs');
   await page.click('#createButton');
 
-  const trpcTransaction = await trpcTransactionPromise;
+  const trpcSpan = await trpcSpanPromise;
 
-  expect(trpcTransaction).toBeDefined();
+  expect(trpcSpan).toBeDefined();
 });

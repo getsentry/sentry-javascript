@@ -1,16 +1,24 @@
 import { afterEach, beforeEach, describe, expect, it, test, vi } from 'vitest';
 import {
   getClient,
+  registerExternalPropagationContext,
   SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE,
-  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   setCurrentClient,
 } from '../../../src';
 import { DEFAULT_ENVIRONMENT } from '../../../src/constants';
-import { getDynamicSamplingContextFromSpan, SentrySpan, startInactiveSpan } from '../../../src/tracing';
+import { Scope } from '../../../src/scope';
+import {
+  getDynamicSamplingContextFromSpan,
+  SentryNonRecordingSpan,
+  SentrySpan,
+  setCapturedScopesOnSpan,
+} from '../../../src/tracing';
+import { startInactiveSpan } from '../../../src/tracing/trace';
 import { freezeDscOnSpan, getDynamicSamplingContextFromClient } from '../../../src/tracing/dynamicSamplingContext';
 import type { Span, SpanContextData } from '../../../src/types/span';
 import type { TransactionSource } from '../../../src/types/transaction';
 import { getDefaultTestClientOptions, TestClient } from '../../mocks/client';
+import { SENTRY_SEGMENT_NAME_SOURCE } from '@sentry/conventions/attributes';
 
 describe('getDynamicSamplingContextFromSpan', () => {
   beforeEach(() => {
@@ -62,12 +70,42 @@ describe('getDynamicSamplingContextFromSpan', () => {
     expect(dynamicSamplingContext).toStrictEqual({ environment: 'myEnv2' });
   });
 
+  test('preserves incoming DSC for ignored segment spans with a negative sampling decision', () => {
+    const traceId = '12345678901234567890123456789012';
+    const scope = new Scope();
+    scope.setPropagationContext({
+      traceId,
+      parentSpanId: '1234567890123456',
+      sampled: true,
+      dsc: {
+        trace_id: traceId,
+        sample_rate: '1',
+        sampled: 'true',
+        public_key: 'public',
+        sample_rand: '0.5',
+      },
+      sampleRand: 0.5,
+    });
+    const rootSpan = new SentryNonRecordingSpan({ dropReason: 'ignored', traceId });
+    setCapturedScopesOnSpan(rootSpan, scope, scope);
+
+    const dynamicSamplingContext = getDynamicSamplingContextFromSpan(rootSpan);
+
+    expect(dynamicSamplingContext).toEqual({
+      trace_id: traceId,
+      sample_rate: '1',
+      sampled: 'false',
+      public_key: 'public',
+      sample_rand: '0.5',
+    });
+  });
+
   test('returns a new DSC, if no DSC was provided during rootSpan creation (via attributes)', () => {
     const rootSpan = startInactiveSpan({ name: 'tx' });
 
     // Setting the attribute should overwrite the computed values
     rootSpan.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE, 0.56);
-    rootSpan.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, 'route');
+    rootSpan.setAttribute(SENTRY_SEGMENT_NAME_SOURCE, 'route');
 
     const dynamicSamplingContext = getDynamicSamplingContextFromSpan(rootSpan);
 
@@ -109,7 +147,7 @@ describe('getDynamicSamplingContextFromSpan', () => {
       name: 'tx',
       attributes: {
         [SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE]: 0.56,
-        [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
+        [SENTRY_SEGMENT_NAME_SOURCE]: 'route',
       },
       sampled: true,
     });
@@ -134,7 +172,7 @@ describe('getDynamicSamplingContextFromSpan', () => {
       const rootSpan = new SentrySpan({
         name: 'tx',
         attributes: {
-          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
+          [SENTRY_SEGMENT_NAME_SOURCE]: 'url',
           [SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE]: 0.56,
         },
       });
@@ -150,11 +188,11 @@ describe('getDynamicSamplingContextFromSpan', () => {
       const rootSpan = startInactiveSpan({
         name: 'tx',
         attributes: {
-          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: source,
+          [SENTRY_SEGMENT_NAME_SOURCE]: source,
         },
       });
 
-      rootSpan.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, source);
+      rootSpan.setAttribute(SENTRY_SEGMENT_NAME_SOURCE, source);
 
       const dsc = getDynamicSamplingContextFromSpan(rootSpan);
 
@@ -181,6 +219,31 @@ describe('getDynamicSamplingContextFromSpan', () => {
       trace_id: expect.stringMatching(/^[a-f0-9]{32}$/),
       transaction: 'tx',
     });
+  });
+
+  it('derives the DSC from the span when an external propagation context is active', () => {
+    const options = getDefaultTestClientOptions({ tracesSampleRate: undefined, release: '1.0.1' });
+    const client = new TestClient(options);
+    setCurrentClient(client);
+    client.init();
+
+    // The scope yields no DSC while riding an external (e.g. OpenTelemetry) trace, but a Sentry span
+    // means we are head of its trace, so the DSC comes from the span rather than being left empty.
+    registerExternalPropagationContext(() => ({
+      traceId: 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
+      spanId: 'bbbbbbbbbbbbbbbb',
+    }));
+
+    try {
+      const rootSpan = new SentryNonRecordingSpan({ traceId: 'cccccccccccccccccccccccccccccccc' });
+      setCapturedScopesOnSpan(rootSpan, new Scope(), new Scope());
+
+      expect(getDynamicSamplingContextFromSpan(rootSpan)).toMatchObject({
+        trace_id: 'cccccccccccccccccccccccccccccccc',
+      });
+    } finally {
+      registerExternalPropagationContext(() => undefined);
+    }
   });
 });
 

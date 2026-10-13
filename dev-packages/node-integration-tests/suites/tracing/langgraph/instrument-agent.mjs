@@ -6,14 +6,5 @@ Sentry.init({
   release: '1.0',
   tracesSampleRate: 1.0,
   dataCollection: { genAI: { inputs: true, outputs: true } },
-  // This suite asserts on gen_ai spans embedded in the transaction, so opt out of span streaming.
-  streamGenAiSpans: false,
   transport: loggingTransport,
-  beforeSendTransaction: event => {
-    // Filter out mock express server transactions
-    if (event.transaction && event.transaction.includes('/v1/messages')) {
-      return null;
-    }
-    return event;
-  },
 });

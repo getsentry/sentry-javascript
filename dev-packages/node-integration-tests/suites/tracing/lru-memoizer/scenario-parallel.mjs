@@ -18,7 +18,7 @@ const run = async () => {
   // Concurrent calls with the same key share one in-flight load, so each span's callback is queued
   // against it. We record on each transaction whether its callback kept its own span's context.
   const first = Sentry.startSpan(
-    { op: 'first' },
+    { name: 'test-name', op: 'first' },
     firstSpan =>
       new Promise(resolve => {
         memoizedFoo({ foo: 'bar' }, () => {
@@ -32,7 +32,7 @@ const run = async () => {
   );
 
   const second = Sentry.startSpan(
-    { op: 'second' },
+    { name: 'test-name', op: 'second' },
     secondSpan =>
       new Promise(resolve => {
         memoizedFoo({ foo: 'bar' }, () => {

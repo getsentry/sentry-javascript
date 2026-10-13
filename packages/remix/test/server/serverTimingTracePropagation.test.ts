@@ -1,4 +1,5 @@
-import { getActiveSpan, getTraceData, isNodeEnv } from '@sentry/core';
+import { getActiveSpan, getTraceData } from '@sentry/core';
+import { isNodeEnv } from '@sentry/core/server';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   generateSentryServerTimingHeader,
@@ -28,6 +29,9 @@ vi.mock('@sentry/core', () => ({
   })),
   spanToTraceHeader: vi.fn(() => '12345678901234567890123456789012-1234567890123456-1'),
   spanToBaggageHeader: vi.fn(() => 'sentry-environment=production,sentry-release=1.0.0'),
+}));
+
+vi.mock('@sentry/core/server', () => ({
   isNodeEnv: vi.fn(() => true),
 }));
 

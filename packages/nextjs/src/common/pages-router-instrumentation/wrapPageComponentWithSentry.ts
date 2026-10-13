@@ -20,7 +20,7 @@ interface ClassComponent {
 
 function storeCapturedEventIdOnError(error: unknown, eventId: string | undefined): void {
   if (isObjectLike(error)) {
-    addNonEnumerableProperty(error as Record<string, unknown>, '__sentry_event_id__', eventId);
+    addNonEnumerableProperty(error, '__sentry_event_id__', eventId);
   }
 }
 

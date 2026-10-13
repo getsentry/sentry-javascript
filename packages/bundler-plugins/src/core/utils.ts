@@ -1,5 +1,4 @@
 /* oxlint-disable max-lines */
-import findUp from 'find-up';
 import path from 'path';
 import fs from 'fs';
 import os from 'os';
@@ -138,18 +137,32 @@ export function getDependencies(packageJson: PackageJson): {
   return { deps, depsVersions };
 }
 
-function lookupPackageJson(cwd: string, stopAt: string): PackageJson | undefined {
-  const jsonPath = findUp.sync(
-    dirName => {
-      // Stop if we reach this dir
-      if (path.normalize(dirName) === stopAt) {
-        return findUp.stop;
-      }
+function findPackageJson(cwd: string, stopAt: string): string | undefined {
+  let dirName = path.resolve(cwd);
 
-      return findUp.sync.exists(`${dirName}/package.json`) ? 'package.json' : undefined;
-    },
-    { cwd },
-  );
+  for (;;) {
+    // Stop if we reach this dir
+    if (path.normalize(dirName) === stopAt) {
+      return undefined;
+    }
+
+    const jsonPath = path.join(dirName, 'package.json');
+    if (fs.existsSync(jsonPath)) {
+      return jsonPath;
+    }
+
+    const parentDirName = path.dirname(dirName);
+    // We reached the file system root
+    if (parentDirName === dirName) {
+      return undefined;
+    }
+
+    dirName = parentDirName;
+  }
+}
+
+function lookupPackageJson(cwd: string, stopAt: string): PackageJson | undefined {
+  const jsonPath = findPackageJson(cwd, stopAt);
 
   if (!jsonPath) {
     return undefined;
@@ -295,6 +308,11 @@ export function determineReleaseName(): string | undefined {
   );
 }
 
+function stringifyForCodeInjection(value: unknown): string | undefined {
+  // Bundles may be inlined in HTML, where JSON quoting does not escape script tags or HTML comments.
+  return JSON.stringify(value)?.replace(/</g, '\\u003c');
+}
+
 /**
  * Generates code for the global injector which is responsible for setting the global
  * `SENTRY_RELEASE` & `SENTRY_BUILD_INFO` variables.
@@ -306,12 +324,12 @@ export function generateReleaseInjectorCode({
   release: string;
   injectBuildInformation: boolean;
 }): CodeInjection {
-  let code = `e.SENTRY_RELEASE={id:${JSON.stringify(release)}};`;
+  let code = `e.SENTRY_RELEASE={id:${stringifyForCodeInjection(release)}};`;
 
   if (injectBuildInformation) {
     const buildInfo = getBuildInformation();
 
-    code += `e.SENTRY_BUILD_INFO=${JSON.stringify(buildInfo)};`;
+    code += `e.SENTRY_BUILD_INFO=${stringifyForCodeInjection(buildInfo)};`;
   }
 
   return new CodeInjection(code);
@@ -322,7 +340,7 @@ export function generateModuleMetadataInjectorCode(metadata: any): CodeInjection
   // We are merging the metadata objects in case modules are bundled twice with the plugin
   // Use try-catch to avoid issues when bundlers rename global variables like 'window' to 'k'
   return new CodeInjection(
-    `e._sentryModuleMetadata=e._sentryModuleMetadata||{},e._sentryModuleMetadata[(new e.Error).stack]=function(e){for(var n=1;n<arguments.length;n++){var a=arguments[n];if(null!=a)for(var t in a)a.hasOwnProperty(t)&&(e[t]=a[t])}return e}({},e._sentryModuleMetadata[(new e.Error).stack],${JSON.stringify(
+    `e._sentryModuleMetadata=e._sentryModuleMetadata||{},e._sentryModuleMetadata[(new e.Error).stack]=function(e){for(var n=1;n<arguments.length;n++){var a=arguments[n];if(null!=a)for(var t in a)a.hasOwnProperty(t)&&(e[t]=a[t])}return e}({},e._sentryModuleMetadata[(new e.Error).stack],${stringifyForCodeInjection(
       metadata,
     )});`,
   );
@@ -393,23 +411,6 @@ export function getProjects(project: string | string[] | undefined): string[] | 
   }
 
   return undefined;
-}
-
-/**
- * Inlined functionality from @sentry/cli helper code to add `--ignore` options.
- *
- * Temporary workaround until we expose a function for injecting debug IDs. Currently, we directly call `execute` with CLI args to inject them.
- */
-export function serializeIgnoreOptions(ignoreValue: string | string[] | undefined): string[] {
-  const DEFAULT_IGNORE = ['node_modules'];
-
-  const ignoreOptions: string[] = Array.isArray(ignoreValue)
-    ? ignoreValue
-    : typeof ignoreValue === 'string'
-      ? [ignoreValue]
-      : DEFAULT_IGNORE;
-
-  return ignoreOptions.reduce((acc, value) => acc.concat(['--ignore', String(value)]), [] as string[]);
 }
 
 /**

@@ -1,8 +1,12 @@
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { getTraceMetaTags } from '../../../src/utils/meta';
 import * as TraceDataModule from '../../../src/utils/traceData';
 
 describe('getTraceMetaTags', () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
   it('renders baggage and sentry-trace values to stringified Html meta tags', () => {
     vi.spyOn(TraceDataModule, 'getTraceData').mockReturnValueOnce({
       'sentry-trace': '12345678901234567890123456789012-1234567890123456-1',

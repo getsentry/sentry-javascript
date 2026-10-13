@@ -4,6 +4,7 @@ import {
   getArtifactBundles,
   getDebugIdPairs,
   getSourcemaps,
+  getSourcemapSources,
   getChunkUploadPosts,
   getAssembleRequests,
 } from '@sentry-internal/test-utils';
@@ -57,9 +58,13 @@ assert.ok(
   'Expected at least one sourcemap with non-empty mappings',
 );
 
-// At least one sourcemap references app source files
+// At least one sourcemap references app source files.
+//
+// Via `getSourcemapSources`, because Turbopack emits indexed source maps: the app's paths sit in
+// `sections[].map.sources` and the top-level `sources` is empty, so reading the latter finds
+// nothing however well the upload worked.
 assert.ok(
-  sourcemaps.some(s => s.sourcemap.sources?.some(src => /client-page|page\.tsx/.test(src))),
+  sourcemaps.some(s => getSourcemapSources(s.sourcemap).some(src => /client-page|page\.tsx/.test(src))),
   'Expected at least one sourcemap referencing app source files',
 );
 

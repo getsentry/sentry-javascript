@@ -1,13 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import {
-  getCurrentScope,
-  getGlobalScope,
-  getIsolationScope,
-  setCurrentClient,
-  startInactiveSpan,
-  withActiveSpan,
-  withScope,
-} from '../../../src';
+import { getCurrentScope, setCurrentClient, startInactiveSpan, withActiveSpan, withScope } from '../../../src';
 import { _INTERNAL_setDeferSegmentSpanCapture } from '../../../src/tracing/deferSegmentSpanCapture';
 import {
   getSegmentSpanCaptureStrategy,
@@ -15,6 +7,7 @@ import {
 } from '../../../src/tracing/segmentSpanCaptureStrategy';
 import type { Event } from '../../../src/types/event';
 import { getDefaultTestClientOptions, TestClient } from '../../mocks/client';
+import { resetGlobals } from '../../testutils';
 
 const dsn = 'https://123@sentry.io/42';
 
@@ -49,9 +42,7 @@ describe('deferred segment-span capture', () => {
   beforeEach(() => {
     vi.useFakeTimers();
 
-    getCurrentScope().clear();
-    getIsolationScope().clear();
-    getGlobalScope().clear();
+    resetGlobals();
 
     transactions = [];
     const options = getDefaultTestClientOptions({
@@ -107,6 +98,39 @@ describe('deferred segment-span capture', () => {
     expect(transactions).toHaveLength(2);
     expect(transactions[1]!.transaction).toBe('child');
     expect(transactions[1]!.contexts?.trace?.data?.['sentry.parent_span_already_sent']).toBe(true);
+  });
+
+  it('does not record a span outcome for a child that is later sent as an orphan transaction', () => {
+    const recordDroppedEventSpy = vi.spyOn(client, 'recordDroppedEvent');
+
+    const root = startInactiveSpan({ name: 'root' });
+    const child = withActiveSpan(root, () => startInactiveSpan({ name: 'child' }));
+
+    root.end();
+    vi.advanceTimersByTime(100);
+    child.end();
+    vi.advanceTimersByTime(100);
+
+    expect(transactions).toHaveLength(2);
+    expect(recordDroppedEventSpy).not.toHaveBeenCalledWith('invalid', 'span', expect.anything());
+  });
+
+  it('records a `buffer_overflow` span outcome for spans beyond the 1000 span limit once', () => {
+    const recordDroppedEventSpy = vi.spyOn(client, 'recordDroppedEvent');
+
+    const root = startInactiveSpan({ name: 'root' });
+    withActiveSpan(root, () => {
+      for (let i = 0; i < 1003; i++) {
+        startInactiveSpan({ name: `child-${i}` }).end();
+      }
+    });
+    root.end();
+    vi.advanceTimersByTime(100);
+
+    expect(transactions).toHaveLength(1);
+    expect(transactions[0]!.spans).toHaveLength(1000);
+    expect(recordDroppedEventSpy).toHaveBeenCalledWith('buffer_overflow', 'span', 3);
+    expect(recordDroppedEventSpy).not.toHaveBeenCalledWith('invalid', 'span', expect.anything());
   });
 
   it('drains pending captures synchronously on flush', () => {

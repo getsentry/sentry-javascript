@@ -8,14 +8,15 @@ Sentry.pinoIntegration.untrackLogger(ignoredLogger);
 
 ignoredLogger.info('this will not be tracked');
 
-Sentry.withIsolationScope(() => {
+// Each operation runs in its own trace, so logs emitted within them carry distinct trace ids.
+Sentry.startNewTrace(() => {
   Sentry.startSpan({ name: 'startup' }, () => {
     logger.info({ user: 'user-id', something: { more: 3, complex: 'nope' } }, 'hello world');
   });
 });
 
 setTimeout(() => {
-  Sentry.withIsolationScope(() => {
+  Sentry.startNewTrace(() => {
     Sentry.startSpan({ name: 'later' }, () => {
       const child = logger.child({ module: 'authentication' });
       child.error(new Error('oh no'));

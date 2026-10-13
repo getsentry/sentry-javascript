@@ -1,7 +1,7 @@
 import * as SentryCore from '@sentry/core';
 import { Hono } from 'hono';
 import { afterAll, beforeEach, describe, expect, it, vi } from 'vitest';
-import { applyPatches } from '../../src/shared/applyPatches';
+import { applyHonoPatches as applyPatches } from '@sentry/server-utils';
 
 vi.mock('@sentry/core', async () => {
   const actual = await vi.importActual('@sentry/core');
@@ -583,9 +583,8 @@ describe('applyPatches', () => {
       expect(startSpanMock).toHaveBeenCalledWith(
         expect.objectContaining({
           name: 'GET /hello',
-          op: 'hono.request',
           attributes: expect.objectContaining({
-            'sentry.op': 'hono.request',
+            'sentry.op': 'http.server',
             'sentry.origin': 'auto.http.hono.internal_request',
           }),
         }),

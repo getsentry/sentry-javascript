@@ -1,35 +1,28 @@
-import type { Builder, Config } from '@sveltejs/kit';
+import type { Builder } from '@sveltejs/kit';
 import * as fs from 'fs';
+import * as os from 'os';
 import * as path from 'path';
 import * as url from 'url';
 import type { SupportedSvelteKitAdapters } from './detectAdapter';
-
-export type SvelteKitTracingConfig = {
-  tracing?: {
-    server: boolean;
-  };
-  // TODO: Once instrumentation is promoted stable, this will be removed!
-  instrumentation?: {
-    server: boolean;
-  };
-};
+import type { ResolvedKitConfig } from './kitConfig';
 
 /**
- * Experimental tracing and instrumentation config is available @since 2.31.0
- * // TODO: Once instrumentation and tracing is promoted stable, adjust this type!s
+ * The contents of a `svelte.config.js` file. SvelteKit 3 removed this file; it only exists in
+ * SvelteKit 1 and 2, where all SvelteKit options are nested under `kit`.
  */
-type BackwardsForwardsCompatibleKitConfig = Config['kit'] & { experimental?: SvelteKitTracingConfig };
-
-export interface BackwardsForwardsCompatibleSvelteConfig extends Config {
-  kit?: BackwardsForwardsCompatibleKitConfig;
-}
+export type SvelteConfigFileContents = {
+  kit?: ResolvedKitConfig;
+};
 
 /**
  * Imports the svelte.config.js file and returns the config object.
  * The sveltekit plugins import the config in the same way.
  * See: https://github.com/sveltejs/kit/blob/master/packages/kit/src/core/config/index.js#L63
+ *
+ * Only a fallback now - the config is read from the SvelteKit Vite plugin instead, and SvelteKit 3
+ * removed this file entirely (see `kitConfig.ts`).
  */
-export async function loadSvelteConfig(): Promise<BackwardsForwardsCompatibleSvelteConfig> {
+export async function loadSvelteConfig(): Promise<SvelteConfigFileContents> {
   // This can only be .js (see https://github.com/sveltejs/kit/pull/4031#issuecomment-1049475388)
   const SVELTE_CONFIG_FILE = 'svelte.config.js';
 
@@ -42,7 +35,7 @@ export async function loadSvelteConfig(): Promise<BackwardsForwardsCompatibleSve
     const svelteConfigModule = await import(`${url.pathToFileURL(configFile).href}`);
 
     // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-    return (svelteConfigModule?.default as BackwardsForwardsCompatibleSvelteConfig) || {};
+    return (svelteConfigModule?.default as SvelteConfigFileContents) || {};
   } catch (e) {
     // eslint-disable-next-line no-console
     console.warn("[Source Maps Plugin] Couldn't load svelte.config.js:");
@@ -57,12 +50,8 @@ export async function loadSvelteConfig(): Promise<BackwardsForwardsCompatibleSve
  * Reads a custom hooks directory from the SvelteKit config. In case no custom hooks
  * directory is specified, the default directory is returned.
  */
-export function getHooksFileName(svelteConfig: Config, hookType: 'client' | 'server'): string {
-  // `files` is deprecated in favour of unchangeable file names. Once it is removed, only the
-  // fallback will be necessary. We can remove the curstom files path once we drop support
-  // for that version range (presumably sveltekit 2).
-  // eslint-disable-next-line typescript/no-deprecated
-  return svelteConfig.kit?.files?.hooks?.[hookType] || `src/hooks.${hookType}`;
+export function getHooksFileName(kitConfig: ResolvedKitConfig, hookType: 'client' | 'server'): string {
+  return kitConfig.files?.hooks?.[hookType] || `src/hooks.${hookType}`;
 }
 
 /**
@@ -70,18 +59,21 @@ export function getHooksFileName(svelteConfig: Config, hookType: 'client' | 'ser
  * of a SvelteKit adapter. If no custom output directory is specified, the default
  * directory is returned.
  */
-export async function getAdapterOutputDir(svelteConfig: Config, adapter: SupportedSvelteKitAdapters): Promise<string> {
+export async function getAdapterOutputDir(
+  kitConfig: ResolvedKitConfig,
+  adapter: SupportedSvelteKitAdapters,
+): Promise<string> {
   if (adapter === 'node') {
-    return getNodeAdapterOutputDir(svelteConfig);
+    return getNodeAdapterOutputDir(kitConfig);
   }
   if (adapter === 'cloudflare') {
     // Cloudflare outputs to outDir\cloudflare as the output dir
-    return path.join(svelteConfig.kit?.outDir || '.svelte-kit', 'cloudflare');
+    return path.join(kitConfig.outDir || '.svelte-kit', 'cloudflare');
   }
 
   // Auto and Vercel adapters simply use config.kit.outDir
   // Let's also use this directory for the 'other' case
-  return path.join(svelteConfig.kit?.outDir || '.svelte-kit', 'output');
+  return path.join(kitConfig.outDir || '.svelte-kit', 'output');
 }
 
 /**
@@ -92,15 +84,15 @@ export async function getAdapterOutputDir(svelteConfig: Config, adapter: Support
  *
  * see: https://github.com/sveltejs/kit/blob/master/packages/adapter-node/index.js#L17
  */
-async function getNodeAdapterOutputDir(svelteConfig: Config): Promise<string> {
+async function getNodeAdapterOutputDir(kitConfig: ResolvedKitConfig): Promise<string> {
   // 'build' is the default output dir for the node adapter
   let outputDir = 'build';
 
-  if (!svelteConfig.kit?.adapter) {
+  if (!kitConfig.adapter) {
     return outputDir;
   }
 
-  const nodeAdapter = svelteConfig.kit.adapter;
+  const nodeAdapter = kitConfig.adapter;
 
   const adapterBuilder: Builder = {
     writeClient(dest: string) {
@@ -115,20 +107,47 @@ async function getNodeAdapterOutputDir(svelteConfig: Config): Promise<string> {
     rimraf: () => {},
     mkdirp: () => {},
 
+    // SvelteKit 3 passes the kit config directly (`config.paths`), SvelteKit 2 nests it (`config.kit.paths`)
     config: {
+      paths: {
+        base: kitConfig.paths?.base || '',
+      },
       kit: {
         // @ts-expect-error - the builder expects a validated config but for our purpose it's fine to just pass this partial config
         paths: {
-          base: svelteConfig.kit?.paths?.base || '',
+          base: kitConfig.paths?.base || '',
         },
       },
     },
   };
 
+  // `@sveltejs/adapter-node` v6 deletes its (relative) output dir with `fs.rmSync` before it touches the
+  // builder, so our no-op `rimraf` doesn't help. Running `adapt()` from an empty temp cwd keeps it from
+  // wiping the user's real build output. The rm and `writeClient` both run synchronously, so the cwd is
+  // only changed for the synchronous part of the call and no other code observes it.
+  const originalCwd = process.cwd();
+  let sandboxDir: string | undefined;
+  let adaptResult: unknown;
   try {
-    await nodeAdapter.adapt(adapterBuilder);
+    sandboxDir = fs.mkdtempSync(path.join(os.tmpdir(), 'sentry-sveltekit-'));
+    process.chdir(sandboxDir);
+    adaptResult = nodeAdapter.adapt(adapterBuilder);
   } catch {
     // We expect the adapter to throw in writeClient!
+  } finally {
+    if (process.cwd() !== originalCwd) {
+      process.chdir(originalCwd);
+    }
+  }
+
+  try {
+    await adaptResult;
+  } catch {
+    // We expect the adapter to throw in writeClient!
+  }
+
+  if (sandboxDir) {
+    fs.rmSync(sandboxDir, { recursive: true, force: true });
   }
 
   return outputDir;

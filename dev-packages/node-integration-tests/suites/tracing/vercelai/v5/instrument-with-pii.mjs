@@ -8,5 +8,4 @@ Sentry.init({
   // inputs and outputs are enabeld by default when opting into dataCollection
   dataCollection: {},
   transport: loggingTransport,
-  streamGenAiSpans: true,
 });

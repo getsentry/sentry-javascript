@@ -23,19 +23,16 @@ export function instrumentContext<T extends ContextType>(ctx: T): T {
   const prototypeMethodNames = Object.getOwnPropertyNames(contextPrototype) as unknown as (keyof T)[];
   const ownPropertyNames = Object.getOwnPropertyNames(ctx) as unknown as (keyof T)[];
   const instrumented = new Set<unknown>(['constructor']);
-  const descriptors: PropertyDescriptorMap = [...ownPropertyNames, ...prototypeMethodNames].reduce(
-    (prevDescriptors, methodName) => {
-      if (instrumented.has(methodName)) return prevDescriptors;
-      if (typeof ctx[methodName] !== 'function') return prevDescriptors;
-      instrumented.add(methodName);
-      const overridableDescriptor = makeOverridableDescriptor(overrides, ctx, methodName);
-      return {
-        ...prevDescriptors,
-        [methodName]: overridableDescriptor,
-      };
-    },
-    {} as PropertyDescriptorMap,
-  );
+  const descriptors: PropertyDescriptorMap = {};
+
+  for (const methodName of [...ownPropertyNames, ...prototypeMethodNames]) {
+    if (instrumented.has(methodName) || typeof ctx[methodName] !== 'function') {
+      continue;
+    }
+
+    instrumented.add(methodName);
+    descriptors[methodName as string] = makeOverridableDescriptor(overrides, ctx, methodName);
+  }
 
   // Check if this is a DurableObjectState context with a storage property
   // If so, wrap the storage with instrumentation

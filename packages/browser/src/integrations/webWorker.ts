@@ -1,11 +1,27 @@
-import type { DebugImage, Integration, IntegrationFn } from '@sentry/core/browser';
-import { captureEvent, debug, defineIntegration, getClient, isPlainObject, isPrimitive } from '@sentry/core/browser';
+import type { DebugImage, Integration, IntegrationFn } from '@sentry/core';
+import {
+  addNonEnumerableProperty,
+  captureEvent,
+  debug,
+  defineIntegration,
+  getClient,
+  isError,
+  isPlainObject,
+  isPrimitive,
+  normalize,
+} from '@sentry/core';
 import { DEBUG_BUILD } from '../debug-build';
-import { eventFromUnknownInput } from '../eventbuilder';
-import { WINDOW } from '../helpers';
-import { _eventFromRejectionWithPrimitive, _getUnhandledRejectionError } from './globalhandlers';
+import { eventFromUnknownInput, extractMessage, extractType } from '../eventbuilder';
+import { ignoreNextOnErrorMatching, WINDOW } from '../helpers';
+import {
+  _enhanceEventWithInitialFrame,
+  _eventFromRejectionWithPrimitive,
+  _getUnhandledRejectionError,
+} from './globalhandlers';
 
 export const INTEGRATION_NAME = 'WebWorker' as const;
+
+const MAX_FORWARDED_ERRORS = 20;
 
 interface WebWorkerMessage {
   _sentryMessage: boolean;
@@ -15,9 +31,23 @@ interface WebWorkerMessage {
   _sentryWasmImages?: Array<DebugImage>;
 }
 
+type WorkerErrorKind = 'error' | 'unhandledrejection';
+
 interface SerializedWorkerError {
   reason: unknown;
   filename?: string;
+  /** Absent on workers registered by an SDK version that only forwarded rejections. */
+  kind?: WorkerErrorKind;
+  /** Structured clone resets any name outside the built-in set to `Error`. */
+  name?: string;
+  /** The `ErrorEvent` message, matched against the copy that bubbles to `window.onerror`. */
+  message?: string;
+  /** Script the error was thrown in, which can differ from the worker script. */
+  url?: string;
+  lineno?: number;
+  colno?: number;
+  /** Set when `reason` is a plain `{ message, stack }` copy of an error that did not clone. */
+  plainError?: boolean;
 }
 
 interface WebWorkerIntegrationOptions {
@@ -110,6 +140,23 @@ export const webWorkerIntegration = defineIntegration(({ worker }: WebWorkerInte
 })) as IntegrationFn<WebWorkerIntegration>;
 
 function listenForSentryMessages(worker: Worker): void {
+  // Forwarded errors whose message-only copy has yet to bubble to the page.
+  const forwardedErrors: Array<Pick<SerializedWorkerError, 'message' | 'url' | 'lineno' | 'colno'>> = [];
+
+  // The bubbled copy fires `error` on the worker object and then `window.onerror` in the same task, after the
+  // forward arrived. Skipping only copies of errors we actually received means a missing forward can at worst
+  // cause a duplicate, never a lost error.
+  worker.addEventListener('error', ({ message, filename, lineno, colno }) => {
+    const index = forwardedErrors.findIndex(
+      e => e.message === message && e.url === filename && e.lineno === lineno && e.colno === colno,
+    );
+    if (index !== -1) {
+      // Earlier entries were cancelled inside the worker and will never bubble.
+      forwardedErrors.splice(0, index + 1);
+      ignoreNextOnErrorMatching({ msg: message, url: filename, line: lineno, column: colno });
+    }
+  });
+
   worker.addEventListener('message', event => {
     if (isSentryMessage(event.data)) {
       event.stopImmediatePropagation(); // other listeners should not receive this message
@@ -153,40 +200,60 @@ function listenForSentryMessages(worker: Worker): void {
         ];
       }
 
-      // Handle unhandled rejections forwarded from worker
+      // Handle errors and unhandled rejections forwarded from worker
       if (event.data._sentryWorkerError) {
-        DEBUG_BUILD && debug.log('Sentry worker rejection message received', event.data._sentryWorkerError);
-        handleForwardedWorkerRejection(event.data._sentryWorkerError);
+        DEBUG_BUILD && debug.log('Sentry worker error message received', event.data._sentryWorkerError);
+        const { kind, message, url, lineno, colno } = event.data._sentryWorkerError;
+        if (kind === 'error') {
+          // Bounded because a worker that cancels its own errors never bubbles them.
+          if (forwardedErrors.push({ message, url, lineno, colno }) > MAX_FORWARDED_ERRORS) {
+            forwardedErrors.shift();
+          }
+        }
+        handleForwardedWorkerError(event.data._sentryWorkerError);
       }
     }
   });
 }
 
-function handleForwardedWorkerRejection(workerError: SerializedWorkerError): void {
+function handleForwardedWorkerError(workerError: SerializedWorkerError): void {
+  const { reason, kind, name, filename, url, lineno, colno, plainError } = workerError;
+  // Older workers only ever forwarded rejections and send no `kind`.
+  const isUnhandledRejection = kind !== 'error';
+
+  const error = plainError && isPlainObject(reason) ? errorFromPlain(reason) : reason;
+
+  if (name && isError(error) && error.name !== name) {
+    addNonEnumerableProperty(error, 'name', name);
+  }
+
   const client = getClient();
   if (!client) {
     return;
   }
 
-  const stackParser = client.getOptions().stackParser;
-  const attachStacktrace = client.getOptions().attachStacktrace;
+  const { stackParser, attachStacktrace } = client.getOptions();
 
-  const error = workerError.reason;
+  // Follow same pattern as globalHandlers for each source.
+  // A thrown primitive is not a rejection, so the rejection-specific wording must not apply to it.
+  const event =
+    isUnhandledRejection && isPrimitive(error)
+      ? _eventFromRejectionWithPrimitive(error)
+      : eventFromUnknownInput(stackParser, error, undefined, attachStacktrace, isUnhandledRejection);
 
-  // Follow same pattern as globalHandlers for unhandledrejection
-  // Handle both primitives and errors the same way
-  const event = isPrimitive(error)
-    ? _eventFromRejectionWithPrimitive(error)
-    : eventFromUnknownInput(stackParser, error, undefined, attachStacktrace, true);
+  if (!isUnhandledRejection) {
+    // An ErrorEvent reports an unknown script as an empty string.
+    _enhanceEventWithInitialFrame(event, url || filename, lineno, colno);
+  }
 
   event.level = 'error';
 
   // Add worker-specific context
-  if (workerError.filename) {
+  if (filename) {
     event.contexts = {
       ...event.contexts,
       worker: {
-        filename: workerError.filename,
+        filename,
       },
     };
   }
@@ -195,11 +262,11 @@ function handleForwardedWorkerRejection(workerError: SerializedWorkerError): voi
     originalException: error,
     mechanism: {
       handled: false,
-      type: 'auto.browser.web_worker.onunhandledrejection',
+      type: isUnhandledRejection ? 'auto.browser.web_worker.onunhandledrejection' : 'auto.browser.web_worker.onerror',
     },
   });
 
-  DEBUG_BUILD && debug.log('Captured worker unhandled rejection', error);
+  DEBUG_BUILD && debug.log(`Captured worker ${isUnhandledRejection ? 'unhandled rejection' : 'error'}`, error);
 }
 
 /**
@@ -230,11 +297,12 @@ interface RegisterWebWorkerOptions {
  * This function will:
  * - Send debug IDs to the parent thread
  * - Send module metadata to the parent thread (for thirdPartyErrorFilterIntegration)
- * - Set up a handler for unhandled rejections in the worker
- * - Forward unhandled rejections to the parent thread for capture
+ * - Set up handlers for uncaught errors and unhandled rejections in the worker
+ * - Forward both to the parent thread for capture
  *
- * Note: Synchronous errors in workers are already captured by globalHandlers.
- * This only handles unhandled promise rejections which don't bubble to the parent.
+ * Note: uncaught errors do bubble to the parent, but the propagated `ErrorEvent` carries
+ * no `error` object, so globalHandlers can only build an event from the message string.
+ * Forwarding them here preserves the real stack, which matters most for wasm frames.
  *
  * @example
  * ```ts filename={worker.js}
@@ -250,6 +318,10 @@ interface RegisterWebWorkerOptions {
  *   - `self`: The worker instance you're calling this function from (self).
  */
 export function registerWebWorker({ self }: RegisterWebWorkerOptions): void {
+  // Mirrors globalHandlersIntegration. The worker has no client of its own, so without this
+  // V8's default of 10 truncates stacks before this code forwards them.
+  Error.stackTraceLimit = 50;
+
   // Send debug IDs and raw module metadata to parent thread
   // The metadata will be parsed lazily on the main thread when needed
   self.postMessage({
@@ -258,29 +330,78 @@ export function registerWebWorker({ self }: RegisterWebWorkerOptions): void {
     _sentryModuleMetadata: self._sentryModuleMetadata ?? undefined,
   });
 
-  // Set up unhandledrejection handler inside the worker
-  // Following the same pattern as globalHandlers
-  // unhandled rejections don't bubble to the parent thread, so we need to handle them here
-  self.addEventListener('unhandledrejection', (event: unknown) => {
-    const reason = _getUnhandledRejectionError(event);
+  const forward = (serializedError: Omit<SerializedWorkerError, 'filename' | 'name'>): void => {
+    const { reason } = serializedError;
 
-    // Forward the raw reason to parent thread
-    // The parent will handle primitives vs errors the same way globalHandlers does
-    const serializedError: SerializedWorkerError = {
-      reason: reason,
+    DEBUG_BUILD && debug.log(`[Sentry Worker] Forwarding ${serializedError.kind} to parent`, serializedError);
+
+    postSerializedWorkerError(self, {
+      ...serializedError,
       filename: self.location?.href,
+      name: isError(reason) ? extractType(reason) : undefined,
+    });
+  };
+
+  // Uncaught errors bubble to the parent, but the propagated ErrorEvent
+  // carries no error object. Forwarding the object keeps the real stack.
+  self.addEventListener('error', (event: unknown) => {
+    const { error, message, filename, lineno, colno } = event as {
+      error?: unknown;
+      message?: string;
+      filename?: string;
+      lineno?: number;
+      colno?: number;
     };
 
-    // Forward to parent thread
+    forward({ kind: 'error', reason: error ?? message, message, url: filename, lineno, colno });
+  });
+
+  // Unhandled rejections do not bubble to the parent thread at all.
+  self.addEventListener('unhandledrejection', (event: unknown) => {
+    forward({ kind: 'unhandledrejection', reason: _getUnhandledRejectionError(event) });
+  });
+
+  DEBUG_BUILD && debug.log('[Sentry Worker] Registered worker with error and unhandled rejection handling');
+}
+
+/**
+ * `postMessage` structured-clones the reason. A `DataCloneError` must never
+ * escape the worker's own error handler, so the forward is retried with
+ * plain data that clones in every browser, including ones that cannot clone
+ * `Error` at all.
+ */
+function postSerializedWorkerError(
+  self: MinimalDedicatedWorkerGlobalScope,
+  serializedError: SerializedWorkerError,
+): void {
+  try {
     self.postMessage({
       _sentryMessage: true,
       _sentryWorkerError: serializedError,
     });
+    return;
+  } catch {
+    // Not cloneable, fall through and send plain data instead.
+  }
 
-    DEBUG_BUILD && debug.log('[Sentry Worker] Forwarding unhandled rejection to parent', serializedError);
-  });
+  const { reason } = serializedError;
+  const plainError = isError(reason);
+  const plainReason = plainError ? { message: extractMessage(reason), stack: reason.stack } : normalize(reason);
 
-  DEBUG_BUILD && debug.log('[Sentry Worker] Registered worker with unhandled rejection handling');
+  try {
+    self.postMessage({
+      _sentryMessage: true,
+      _sentryWorkerError: { ...serializedError, reason: plainReason, plainError },
+    });
+  } catch {
+    // Dropping the forward is better than throwing out of the worker's error handler.
+  }
+}
+
+function errorFromPlain(plain: Record<string, unknown>): Error {
+  const error = new Error(String(plain.message));
+  error.stack = typeof plain.stack === 'string' ? plain.stack : undefined;
+  return error;
 }
 
 function isSentryMessage(eventData: unknown): eventData is WebWorkerMessage {

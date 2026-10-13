@@ -1,9 +1,10 @@
+import { SENTRY_STATUS_MESSAGE, SENTRY_CANCELLATION_REASON } from '@sentry/conventions/attributes';
 import { expect } from '@playwright/test';
-import type { SpanJSON } from '@sentry/core';
+import type { StreamedSpanJSON } from '@sentry/core';
 import { sentryTest } from '../../../../utils/fixtures';
 import { shouldSkipTracingTest } from '../../../../utils/helpers';
 
-sentryTest('should finish a custom transaction when the page goes background', async ({ getLocalTestUrl, page }) => {
+sentryTest('should finish a custom span when the page goes background', async ({ getLocalTestUrl, page }) => {
   if (shouldSkipTracingTest()) {
     sentryTest.skip();
   }
@@ -12,25 +13,26 @@ sentryTest('should finish a custom transaction when the page goes background', a
   await page.goto(url);
 
   await page.locator('#start-span').click();
-  const spanJsonBefore: SpanJSON = await page.evaluate('window.getSpanJson()');
+  const spanJsonBefore: StreamedSpanJSON = await page.evaluate('window.getSpanJson()');
 
   const id_before = spanJsonBefore.span_id;
-  const description_before = spanJsonBefore.description;
+  const name_before = spanJsonBefore.name;
   const status_before = spanJsonBefore.status;
 
-  expect(description_before).toBe('test-span');
-  expect(status_before).toBeUndefined();
+  expect(name_before).toBe('test-span');
+  expect(status_before).toBe('ok');
 
   await page.locator('#go-background').click();
-  const spanJsonAfter: SpanJSON = await page.evaluate('window.getSpanJson()');
+  const spanJsonAfter: StreamedSpanJSON = await page.evaluate('window.getSpanJson()');
 
   const id_after = spanJsonAfter.span_id;
-  const description_after = spanJsonAfter.description;
-  const status_after = spanJsonAfter.status;
-  const data_after = spanJsonAfter.data;
+  const name_after = spanJsonAfter.name;
+  const attributes_after = spanJsonAfter.attributes;
 
   expect(id_before).toBe(id_after);
-  expect(description_after).toBe(description_before);
-  expect(status_after).toBe('cancelled');
-  expect(data_after?.['sentry.cancellation_reason']).toBe('document.hidden');
+  expect(name_after).toBe(name_before);
+  // a cancelled span is reported as `ok`, with the raw status kept as an attribute
+  expect(spanJsonAfter.status).toBe('ok');
+  expect(attributes_after[SENTRY_STATUS_MESSAGE]).toBeUndefined();
+  expect(attributes_after[SENTRY_CANCELLATION_REASON]).toBe('document.hidden');
 });

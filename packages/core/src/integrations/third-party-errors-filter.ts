@@ -36,9 +36,12 @@ interface Options {
     | 'apply-tag-if-exclusively-contains-third-party-frames';
 
   /**
-   * @experimental
-   * If set to true, the integration will ignore frames that are internal to the Sentry SDK from the third-party frame detection.
-   * Note that enabling this option might lead to errors being misclassified as third-party errors.
+   * Whether frames that are internal to the Sentry SDK are excluded from the third-party frame detection.
+   *
+   * In minified bundles the SDK wrapper frame is detected heuristically, so an application frame can be
+   * mistaken for an SDK frame — with a `drop-*` behaviour, that error is dropped.
+   *
+   * @default false
    */
   ignoreSentryInternalFrames?: boolean;
 }
@@ -47,6 +50,8 @@ interface Options {
  * This integration allows you to filter out, or tag error events that do not come from user code marked with a bundle key via the Sentry bundler plugins.
  */
 export const thirdPartyErrorFilterIntegration = defineIntegration((options: Options) => {
+  const ignoreSentryInternalFrames = options.ignoreSentryInternalFrames ?? false;
+
   return {
     name: 'ThirdPartyErrorsFilter' as const,
     setup(client) {
@@ -79,7 +84,7 @@ export const thirdPartyErrorFilterIntegration = defineIntegration((options: Opti
       // Snapshot the depth counter onto the event before any event processors run.
       // This is necessary because async event processors could cause the finally block
       // in sentryWrapped to decrement the counter before processEvent reads it.
-      if (options.ignoreSentryInternalFrames && (GLOBAL_OBJ._sentryWrappedDepth ?? 0) > 0) {
+      if (ignoreSentryInternalFrames && (GLOBAL_OBJ._sentryWrappedDepth ?? 0) > 0) {
         event.sdkProcessingMetadata = {
           ...event.sdkProcessingMetadata,
           insideSentryWrapped: true,
@@ -88,14 +93,10 @@ export const thirdPartyErrorFilterIntegration = defineIntegration((options: Opti
     },
 
     processEvent(event) {
-      const insideSentryWrapped = options.ignoreSentryInternalFrames
+      const insideSentryWrapped = ignoreSentryInternalFrames
         ? event.sdkProcessingMetadata?.insideSentryWrapped === true && event.exception?.values?.length === 1
         : false;
-      const frameKeys = getBundleKeysForAllFramesWithFilenames(
-        event,
-        options.ignoreSentryInternalFrames,
-        insideSentryWrapped,
-      );
+      const frameKeys = getBundleKeysForAllFramesWithFilenames(event, ignoreSentryInternalFrames, insideSentryWrapped);
 
       if (frameKeys) {
         const arrayMethod =

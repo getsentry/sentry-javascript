@@ -44,7 +44,6 @@ describe('consoleLoggingIntegration', () => {
 
     client = new TestClient({
       ...getDefaultTestClientOptions({ dsn: 'https://username@domain/123' }),
-      enableLogs: true,
       normalizeDepth: 3,
       normalizeMaxBreadth: 1000,
     });
@@ -418,7 +417,6 @@ describe('consoleLoggingIntegration', () => {
     it('only captures configured levels', () => {
       const filteredClient = new TestClient({
         ...getDefaultTestClientOptions({ dsn: 'https://username@domain/123' }),
-        enableLogs: true,
       });
       vi.mocked(getClient).mockReturnValue(filteredClient);
 

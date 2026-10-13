@@ -12,7 +12,7 @@ const MAX_GENERAL = 1024 * 1024; // 1MB
 const MAX_MEDIUM = 10_000;
 const MAX_SMALL = 1000;
 
-describe('express with httpIntegration and not defined maxIncomingRequestBodySize', () => {
+describe('express with httpIntegration and not defined maxRequestBodySize', () => {
   afterAll(() => {
     cleanupChildProcesses();
   });
@@ -21,11 +21,13 @@ describe('express with httpIntegration and not defined maxIncomingRequestBodySiz
     test('captures medium request bodies with default setting (medium)', async () => {
       const runner = createRunner()
         .expect({
-          transaction: {
-            transaction: 'POST /test-body-size',
-            request: {
-              data: JSON.stringify(generatePayload(MAX_MEDIUM)),
-            },
+          span: container => {
+            expect(container.items.find(item => item.is_segment)).toMatchObject({
+              name: 'POST /test-body-size',
+              attributes: expect.objectContaining({
+                'http.request.body.data': { type: 'string', value: JSON.stringify(generatePayload(MAX_MEDIUM)) },
+              }),
+            });
           },
         })
         .start();
@@ -41,11 +43,13 @@ describe('express with httpIntegration and not defined maxIncomingRequestBodySiz
     test('truncates large request bodies with default setting (medium)', async () => {
       const runner = createRunner()
         .expect({
-          transaction: {
-            transaction: 'POST /test-body-size',
-            request: {
-              data: generatePayloadString(MAX_MEDIUM, true),
-            },
+          span: container => {
+            expect(container.items.find(item => item.is_segment)).toMatchObject({
+              name: 'POST /test-body-size',
+              attributes: expect.objectContaining({
+                'http.request.body.data': { type: 'string', value: generatePayloadString(MAX_MEDIUM, true) },
+              }),
+            });
           },
         })
         .start();
@@ -60,7 +64,37 @@ describe('express with httpIntegration and not defined maxIncomingRequestBodySiz
   });
 });
 
-describe('express with httpIntegration and maxIncomingRequestBodySize: "none"', () => {
+describe('express with httpIntegration, disabled httpBodies, and explicit maxRequestBodySize', () => {
+  afterAll(() => {
+    cleanupChildProcesses();
+  });
+
+  createEsmAndCjsTests(__dirname, 'scenario.mjs', 'instrument-small.mjs', (createRunner, test) => {
+    test('captures request bodies because the explicit size overrides dataCollection.httpBodies', async () => {
+      const runner = createRunner()
+        .expect({
+          span: container => {
+            expect(container.items.find(item => item.is_segment)).toMatchObject({
+              name: 'POST /test-body-size',
+              attributes: expect.objectContaining({
+                'http.request.body.data': { type: 'string', value: JSON.stringify(generatePayload(MAX_SMALL)) },
+              }),
+            });
+          },
+        })
+        .start();
+
+      await runner.makeRequest('post', '/test-body-size', {
+        headers: { 'Content-Type': 'application/json' },
+        data: JSON.stringify(generatePayload(MAX_SMALL)),
+      });
+
+      await runner.completed();
+    });
+  });
+});
+
+describe('express with httpIntegration and maxRequestBodySize: "none"', () => {
   afterAll(() => {
     cleanupChildProcesses();
   });
@@ -69,11 +103,10 @@ describe('express with httpIntegration and maxIncomingRequestBodySize: "none"', 
     test('does not capture any request bodies with "none" setting', async () => {
       const runner = createRunner()
         .expect({
-          transaction: {
-            transaction: 'POST /test-body-size',
-            request: expect.not.objectContaining({
-              data: expect.any(String),
-            }),
+          span: container => {
+            const serverSpan = container.items.find(item => item.is_segment);
+            expect(serverSpan?.name).toBe('POST /test-body-size');
+            expect(serverSpan?.attributes['http.request.body.data']).toBeUndefined();
           },
         })
         .start();
@@ -86,22 +119,20 @@ describe('express with httpIntegration and maxIncomingRequestBodySize: "none"', 
       await runner.completed();
     });
 
-    test('does not capture any request bodies with "none" setting and "ignoreIncomingRequestBody"', async () => {
+    test('does not capture any request bodies with "none" setting and "ignoreRequestBody"', async () => {
       const runner = createRunner()
         .expect({
-          transaction: {
-            transaction: 'POST /test-body-size',
-            request: expect.not.objectContaining({
-              data: expect.any(String),
-            }),
+          span: container => {
+            const serverSpan = container.items.find(item => item.is_segment);
+            expect(serverSpan?.name).toBe('POST /test-body-size');
+            expect(serverSpan?.attributes['http.request.body.data']).toBeUndefined();
           },
         })
         .expect({
-          transaction: {
-            transaction: 'POST /ignore-request-body',
-            request: expect.not.objectContaining({
-              data: expect.any(String),
-            }),
+          span: container => {
+            const serverSpan = container.items.find(item => item.is_segment);
+            expect(serverSpan?.name).toBe('POST /ignore-request-body');
+            expect(serverSpan?.attributes['http.request.body.data']).toBeUndefined();
           },
         })
         .start();
@@ -121,7 +152,7 @@ describe('express with httpIntegration and maxIncomingRequestBodySize: "none"', 
   });
 });
 
-describe('express with httpIntegration and maxIncomingRequestBodySize: "always"', () => {
+describe('express with httpIntegration and maxRequestBodySize: "always"', () => {
   afterAll(() => {
     cleanupChildProcesses();
   });
@@ -130,11 +161,13 @@ describe('express with httpIntegration and maxIncomingRequestBodySize: "always"'
     test('captures maximum allowed request body length with "always" setting', async () => {
       const runner = createRunner()
         .expect({
-          transaction: {
-            transaction: 'POST /test-body-size',
-            request: {
-              data: JSON.stringify(generatePayload(MAX_GENERAL)),
-            },
+          span: container => {
+            expect(container.items.find(item => item.is_segment)).toMatchObject({
+              name: 'POST /test-body-size',
+              attributes: expect.objectContaining({
+                'http.request.body.data': { type: 'string', value: JSON.stringify(generatePayload(MAX_GENERAL)) },
+              }),
+            });
           },
         })
         .start();
@@ -150,11 +183,13 @@ describe('express with httpIntegration and maxIncomingRequestBodySize: "always"'
     test('captures large request bodies with "always" setting but respects maximum size limit', async () => {
       const runner = createRunner()
         .expect({
-          transaction: {
-            transaction: 'POST /test-body-size',
-            request: {
-              data: generatePayloadString(MAX_GENERAL, true),
-            },
+          span: container => {
+            expect(container.items.find(item => item.is_segment)).toMatchObject({
+              name: 'POST /test-body-size',
+              attributes: expect.objectContaining({
+                'http.request.body.data': { type: 'string', value: generatePayloadString(MAX_GENERAL, true) },
+              }),
+            });
           },
         })
         .start();
@@ -169,7 +204,7 @@ describe('express with httpIntegration and maxIncomingRequestBodySize: "always"'
   });
 });
 
-describe('express with httpIntegration and maxIncomingRequestBodySize: "small"', () => {
+describe('express with httpIntegration and maxRequestBodySize: "small"', () => {
   afterAll(() => {
     cleanupChildProcesses();
   });
@@ -178,11 +213,13 @@ describe('express with httpIntegration and maxIncomingRequestBodySize: "small"',
     test('keeps small request bodies with "small" setting', async () => {
       const runner = createRunner()
         .expect({
-          transaction: {
-            transaction: 'POST /test-body-size',
-            request: {
-              data: JSON.stringify(generatePayload(MAX_SMALL)),
-            },
+          span: container => {
+            expect(container.items.find(item => item.is_segment)).toMatchObject({
+              name: 'POST /test-body-size',
+              attributes: expect.objectContaining({
+                'http.request.body.data': { type: 'string', value: JSON.stringify(generatePayload(MAX_SMALL)) },
+              }),
+            });
           },
         })
         .start();
@@ -198,11 +235,13 @@ describe('express with httpIntegration and maxIncomingRequestBodySize: "small"',
     test('truncates too large request bodies with "small" setting', async () => {
       const runner = createRunner()
         .expect({
-          transaction: {
-            transaction: 'POST /test-body-size',
-            request: {
-              data: generatePayloadString(MAX_SMALL, true),
-            },
+          span: container => {
+            expect(container.items.find(item => item.is_segment)).toMatchObject({
+              name: 'POST /test-body-size',
+              attributes: expect.objectContaining({
+                'http.request.body.data': { type: 'string', value: generatePayloadString(MAX_SMALL, true) },
+              }),
+            });
           },
         })
         .start();
@@ -218,12 +257,14 @@ describe('express with httpIntegration and maxIncomingRequestBodySize: "small"',
     test('truncates too large non-ASCII request bodies with "small" setting', async () => {
       const runner = createRunner()
         .expect({
-          transaction: {
-            transaction: 'POST /test-body-size',
-            request: {
-              // 250 emojis, each 4 bytes in UTF-8 (resulting in 1000 bytes --> MAX_SMALL)
-              data: generateEmojiPayloadString(250, true),
-            },
+          span: container => {
+            expect(container.items.find(item => item.is_segment)).toMatchObject({
+              name: 'POST /test-body-size',
+              attributes: expect.objectContaining({
+                // 250 emojis, each 4 bytes in UTF-8 (resulting in 1000 bytes --> MAX_SMALL)
+                'http.request.body.data': { type: 'string', value: generateEmojiPayloadString(250, true) },
+              }),
+            });
           },
         })
         .start();
@@ -238,7 +279,7 @@ describe('express with httpIntegration and maxIncomingRequestBodySize: "small"',
   });
 });
 
-describe('express with httpIntegration and maxIncomingRequestBodySize: "medium"', () => {
+describe('express with httpIntegration and maxRequestBodySize: "medium"', () => {
   afterAll(() => {
     cleanupChildProcesses();
   });
@@ -247,11 +288,13 @@ describe('express with httpIntegration and maxIncomingRequestBodySize: "medium"'
     test('keeps medium request bodies with "medium" setting', async () => {
       const runner = createRunner()
         .expect({
-          transaction: {
-            transaction: 'POST /test-body-size',
-            request: {
-              data: JSON.stringify(generatePayload(MAX_MEDIUM)),
-            },
+          span: container => {
+            expect(container.items.find(item => item.is_segment)).toMatchObject({
+              name: 'POST /test-body-size',
+              attributes: expect.objectContaining({
+                'http.request.body.data': { type: 'string', value: JSON.stringify(generatePayload(MAX_MEDIUM)) },
+              }),
+            });
           },
         })
         .start();
@@ -267,11 +310,13 @@ describe('express with httpIntegration and maxIncomingRequestBodySize: "medium"'
     test('truncates large request bodies with "medium" setting', async () => {
       const runner = createRunner()
         .expect({
-          transaction: {
-            transaction: 'POST /test-body-size',
-            request: {
-              data: generatePayloadString(MAX_MEDIUM, true),
-            },
+          span: container => {
+            expect(container.items.find(item => item.is_segment)).toMatchObject({
+              name: 'POST /test-body-size',
+              attributes: expect.objectContaining({
+                'http.request.body.data': { type: 'string', value: generatePayloadString(MAX_MEDIUM, true) },
+              }),
+            });
           },
         })
         .start();

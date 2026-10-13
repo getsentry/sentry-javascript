@@ -1,136 +1,134 @@
 import { describe, expect, it, vi } from 'vitest';
-import type { Contexts, StreamedSpanJSON } from '../../../../src';
+import type { Contexts, Span, StreamedSpanJSON } from '../../../../src';
 import {
   captureSpan,
-  SEMANTIC_ATTRIBUTE_SENTRY_ENVIRONMENT,
-  SEMANTIC_ATTRIBUTE_SENTRY_OP,
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  SEMANTIC_ATTRIBUTE_SENTRY_RELEASE,
+  debug,
   SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE,
-  SEMANTIC_ATTRIBUTE_SENTRY_SDK_INTEGRATIONS,
-  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
-  SEMANTIC_ATTRIBUTE_USER_EMAIL,
-  SEMANTIC_ATTRIBUTE_USER_ID,
-  SEMANTIC_ATTRIBUTE_USER_IP_ADDRESS,
-  SEMANTIC_ATTRIBUTE_USER_USERNAME,
+  spanStreamingIntegration,
   startInactiveSpan,
   startSpan,
+  withStaticSpan,
   withScope,
-  withStreamedSpan,
 } from '../../../../src';
-import { safeSetSpanJSONAttributes } from '../../../../src/tracing/spans/captureSpan';
+import {
+  captureStandaloneSpanWithStaticCallback,
+  safeSetSpanJSONAttributes,
+} from '../../../../src/tracing/spans/captureSpan';
 import { scopeContextsToSpanAttributes } from '../../../../src/tracing/spans/scopeContextAttributes';
+import type { TestClientOptions } from '../../../mocks/client';
 import { getDefaultTestClientOptions, TestClient } from '../../../mocks/client';
 import {
-  SENTRY_SEGMENT_ID,
-  SENTRY_SEGMENT_NAME,
-  SENTRY_SPAN_SOURCE,
   SENTRY_SDK_NAME,
   SENTRY_SDK_VERSION,
+  SENTRY_SEGMENT_ID,
+  SENTRY_SEGMENT_NAME,
+  SENTRY_SEGMENT_NAME_SOURCE,
   SENTRY_TRACE_LIFECYCLE,
+  USER_EMAIL,
+  USER_ID,
+  USER_IP_ADDRESS,
+  USER_NAME,
+  SENTRY_ENVIRONMENT,
+  SENTRY_RELEASE,
+  SENTRY_SDK_INTEGRATIONS,
+  SENTRY_OP,
+  SENTRY_ORIGIN,
 } from '@sentry/conventions/attributes';
 
 describe('captureSpan', () => {
-  it.each([true, false, undefined])(
-    'always applies scope user attributes to spans (sendDefaultPii: %s)',
-    sendDefaultPii => {
-      const client = new TestClient(
-        getDefaultTestClientOptions({
-          dsn: 'https://dsn@ingest.f00.f00/1',
-          tracesSampleRate: 1,
-          release: '1.0.0',
-          environment: 'staging',
-          sendDefaultPii,
-        }),
-      );
+  // User attributes are gated with dataCollection.userInfo, but could me manually set on the scope (and we send it)
+  it('always applies scope user attributes to spans', () => {
+    const client = new TestClient(
+      getDefaultTestClientOptions({
+        dsn: 'https://dsn@ingest.f00.f00/1',
+        tracesSampleRate: 1,
+        release: '1.0.0',
+        environment: 'staging',
+      }),
+    );
 
-      const span = withScope(scope => {
-        scope.setClient(client);
-        scope.setUser({
-          id: '123',
-          email: 'user@example.com',
-          username: 'testuser',
-          ip_address: '127.0.0.1',
-        });
-
-        const span = startInactiveSpan({ name: 'my-span', attributes: { 'sentry.op': 'http.client' } });
-        span.end();
-
-        return span;
+    const span = withScope(scope => {
+      scope.setClient(client);
+      scope.setUser({
+        id: '123',
+        email: 'user@example.com',
+        username: 'testuser',
+        ip_address: '127.0.0.1',
       });
 
-      expect(captureSpan(span, client)).toStrictEqual({
-        span_id: expect.stringMatching(/^[\da-f]{16}$/),
-        trace_id: expect.stringMatching(/^[\da-f]{32}$/),
-        parent_span_id: undefined,
-        links: undefined,
-        start_timestamp: expect.any(Number),
-        name: 'my-span',
-        end_timestamp: expect.any(Number),
-        status: 'ok',
-        is_segment: true,
-        attributes: {
-          [SENTRY_TRACE_LIFECYCLE]: {
-            type: 'string',
-            value: 'stream',
-          },
-          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: {
-            type: 'string',
-            value: 'http.client',
-          },
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: {
-            type: 'string',
-            value: 'manual',
-          },
-          [SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE]: {
-            type: 'integer',
-            value: 1,
-          },
-          [SENTRY_SEGMENT_NAME]: {
-            value: 'my-span',
-            type: 'string',
-          },
-          [SENTRY_SEGMENT_ID]: {
-            value: span.spanContext().spanId,
-            type: 'string',
-          },
-          [SENTRY_SPAN_SOURCE]: {
-            value: 'custom',
-            type: 'string',
-          },
-          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: {
-            value: 'custom',
-            type: 'string',
-          },
-          [SEMANTIC_ATTRIBUTE_SENTRY_RELEASE]: {
-            value: '1.0.0',
-            type: 'string',
-          },
-          [SEMANTIC_ATTRIBUTE_SENTRY_ENVIRONMENT]: {
-            value: 'staging',
-            type: 'string',
-          },
-          [SEMANTIC_ATTRIBUTE_USER_ID]: {
-            value: '123',
-            type: 'string',
-          },
-          [SEMANTIC_ATTRIBUTE_USER_EMAIL]: {
-            value: 'user@example.com',
-            type: 'string',
-          },
-          [SEMANTIC_ATTRIBUTE_USER_USERNAME]: {
-            value: 'testuser',
-            type: 'string',
-          },
-          [SEMANTIC_ATTRIBUTE_USER_IP_ADDRESS]: {
-            value: '127.0.0.1',
-            type: 'string',
-          },
+      const span = startInactiveSpan({ name: 'my-span', attributes: { 'sentry.op': 'http.client' } });
+      span.end();
+
+      return span;
+    });
+
+    expect(captureSpan(span, client)).toStrictEqual({
+      span_id: expect.stringMatching(/^[\da-f]{16}$/),
+      trace_id: expect.stringMatching(/^[\da-f]{32}$/),
+      parent_span_id: undefined,
+      links: undefined,
+      start_timestamp: expect.any(Number),
+      name: 'my-span',
+      end_timestamp: expect.any(Number),
+      status: 'ok',
+      is_segment: true,
+      attributes: {
+        [SENTRY_TRACE_LIFECYCLE]: {
+          type: 'string',
+          value: 'stream',
         },
-        _segmentSpan: span,
-      });
-    },
-  );
+        [SENTRY_OP]: {
+          type: 'string',
+          value: 'http.client',
+        },
+        [SENTRY_ORIGIN]: {
+          type: 'string',
+          value: 'manual',
+        },
+        [SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE]: {
+          type: 'integer',
+          value: 1,
+        },
+        [SENTRY_SEGMENT_NAME]: {
+          value: 'my-span',
+          type: 'string',
+        },
+        [SENTRY_SEGMENT_ID]: {
+          value: span.spanContext().spanId,
+          type: 'string',
+        },
+        [SENTRY_SEGMENT_NAME_SOURCE]: {
+          value: 'custom',
+          type: 'string',
+        },
+        [SENTRY_RELEASE]: {
+          value: '1.0.0',
+          type: 'string',
+        },
+        [SENTRY_ENVIRONMENT]: {
+          value: 'staging',
+          type: 'string',
+        },
+        [USER_ID]: {
+          value: '123',
+          type: 'string',
+        },
+        [USER_EMAIL]: {
+          value: 'user@example.com',
+          type: 'string',
+        },
+        [USER_NAME]: {
+          value: 'testuser',
+          type: 'string',
+        },
+        [USER_IP_ADDRESS]: {
+          value: '127.0.0.1',
+          type: 'string',
+        },
+      },
+      _segmentSpan: span,
+    });
+  });
 
   it('captures sdk name and version if available', () => {
     const client = new TestClient(
@@ -175,11 +173,11 @@ describe('captureSpan', () => {
       status: 'ok',
       is_segment: true,
       attributes: {
-        [SEMANTIC_ATTRIBUTE_SENTRY_OP]: {
+        [SENTRY_OP]: {
           type: 'string',
           value: 'http.client',
         },
-        [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: {
+        [SENTRY_ORIGIN]: {
           type: 'string',
           value: 'manual',
         },
@@ -195,19 +193,15 @@ describe('captureSpan', () => {
           value: span.spanContext().spanId,
           type: 'string',
         },
-        [SENTRY_SPAN_SOURCE]: {
+        [SENTRY_SEGMENT_NAME_SOURCE]: {
           value: 'custom',
           type: 'string',
         },
-        [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: {
-          value: 'custom',
-          type: 'string',
-        },
-        [SEMANTIC_ATTRIBUTE_SENTRY_RELEASE]: {
+        [SENTRY_RELEASE]: {
           value: '1.0.0',
           type: 'string',
         },
-        [SEMANTIC_ATTRIBUTE_SENTRY_ENVIRONMENT]: {
+        [SENTRY_ENVIRONMENT]: {
           value: 'staging',
           type: 'string',
         },
@@ -223,19 +217,19 @@ describe('captureSpan', () => {
           value: '1.0.0',
           type: 'string',
         },
-        [SEMANTIC_ATTRIBUTE_USER_ID]: {
+        [USER_ID]: {
           value: '123',
           type: 'string',
         },
-        [SEMANTIC_ATTRIBUTE_USER_EMAIL]: {
+        [USER_EMAIL]: {
           value: 'user@example.com',
           type: 'string',
         },
-        [SEMANTIC_ATTRIBUTE_USER_USERNAME]: {
+        [USER_NAME]: {
           value: 'testuser',
           type: 'string',
         },
-        [SEMANTIC_ATTRIBUTE_USER_IP_ADDRESS]: {
+        [USER_IP_ADDRESS]: {
           value: '127.0.0.1',
           type: 'string',
         },
@@ -275,11 +269,11 @@ describe('captureSpan', () => {
       status: 'ok',
       is_segment: true,
       attributes: {
-        [SEMANTIC_ATTRIBUTE_SENTRY_OP]: {
+        [SENTRY_OP]: {
           type: 'string',
           value: 'http.client',
         },
-        [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: {
+        [SENTRY_ORIGIN]: {
           type: 'string',
           value: 'manual',
         },
@@ -295,19 +289,15 @@ describe('captureSpan', () => {
           value: span.spanContext().spanId,
           type: 'string',
         },
-        [SENTRY_SPAN_SOURCE]: {
+        [SENTRY_SEGMENT_NAME_SOURCE]: {
           value: 'custom',
           type: 'string',
         },
-        [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: {
-          value: 'custom',
-          type: 'string',
-        },
-        [SEMANTIC_ATTRIBUTE_SENTRY_RELEASE]: {
+        [SENTRY_RELEASE]: {
           value: '1.0.0',
           type: 'string',
         },
-        [SEMANTIC_ATTRIBUTE_SENTRY_ENVIRONMENT]: {
+        [SENTRY_ENVIRONMENT]: {
           value: 'production',
           type: 'string',
         },
@@ -328,7 +318,7 @@ describe('captureSpan', () => {
         release: '1.0.0',
         environment: 'staging',
         integrations: [
-          { name: 'InboundFilters', setupOnce: () => {} },
+          { name: 'EventFilters', setupOnce: () => {} },
           { name: 'BrowserTracing', setupOnce: () => {} },
         ],
         _metadata: {
@@ -360,20 +350,19 @@ describe('captureSpan', () => {
       is_segment: true,
       attributes: {
         [SENTRY_TRACE_LIFECYCLE]: { type: 'string', value: 'stream' },
-        [SEMANTIC_ATTRIBUTE_SENTRY_OP]: { type: 'string', value: 'http.client' },
-        [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: { type: 'string', value: 'manual' },
+        [SENTRY_OP]: { type: 'string', value: 'http.client' },
+        [SENTRY_ORIGIN]: { type: 'string', value: 'manual' },
         [SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE]: { type: 'integer', value: 1 },
         [SENTRY_SEGMENT_NAME]: { value: 'my-span', type: 'string' },
         [SENTRY_SEGMENT_ID]: { value: span.spanContext().spanId, type: 'string' },
-        [SENTRY_SPAN_SOURCE]: { value: 'custom', type: 'string' },
-        [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: { value: 'custom', type: 'string' },
-        [SEMANTIC_ATTRIBUTE_SENTRY_RELEASE]: { value: '1.0.0', type: 'string' },
-        [SEMANTIC_ATTRIBUTE_SENTRY_ENVIRONMENT]: { value: 'staging', type: 'string' },
+        [SENTRY_SEGMENT_NAME_SOURCE]: { value: 'custom', type: 'string' },
+        [SENTRY_RELEASE]: { value: '1.0.0', type: 'string' },
+        [SENTRY_ENVIRONMENT]: { value: 'staging', type: 'string' },
         [SENTRY_SDK_NAME]: { value: 'sentry.javascript.browser', type: 'string' },
         [SENTRY_SDK_VERSION]: { value: '9.0.0', type: 'string' },
-        [SEMANTIC_ATTRIBUTE_SENTRY_SDK_INTEGRATIONS]: {
+        [SENTRY_SDK_INTEGRATIONS]: {
           type: 'array',
-          value: ['InboundFilters', 'BrowserTracing'],
+          value: ['EventFilters', 'BrowserTracing'],
         },
       },
       _segmentSpan: span,
@@ -385,7 +374,7 @@ describe('captureSpan', () => {
       getDefaultTestClientOptions({
         dsn: 'https://dsn@ingest.f00.f00/1',
         tracesSampleRate: 1,
-        integrations: [{ name: 'InboundFilters', setupOnce: () => {} }],
+        integrations: [{ name: 'EventFilters', setupOnce: () => {} }],
       }),
     );
     client.init();
@@ -400,7 +389,7 @@ describe('captureSpan', () => {
     });
 
     expect(serializedChild.is_segment).toBe(false);
-    expect(serializedChild.attributes[SEMANTIC_ATTRIBUTE_SENTRY_SDK_INTEGRATIONS]).toBeUndefined();
+    expect(serializedChild.attributes[SENTRY_SDK_INTEGRATIONS]).toBeUndefined();
   });
 
   describe('client hooks', () => {
@@ -425,10 +414,7 @@ describe('captureSpan', () => {
 
       captureSpan(span, client);
 
-      expect(preprocessSpanFn).toHaveBeenCalledWith(
-        expect.objectContaining({ span_id: span.spanContext().spanId }),
-        expect.objectContaining({ spanKind: undefined }),
-      );
+      expect(preprocessSpanFn).toHaveBeenCalledWith(expect.objectContaining({ span_id: span.spanContext().spanId }));
       expect(processSpanFn).toHaveBeenCalledWith(expect.objectContaining({ span_id: span.spanContext().spanId }));
       expect(processSegmentSpanFn).toHaveBeenCalledWith(
         expect.objectContaining({ span_id: span.spanContext().spanId }),
@@ -442,7 +428,6 @@ describe('captureSpan', () => {
           tracesSampleRate: 1,
           release: '1.0.0',
           environment: 'staging',
-          sendDefaultPii: true,
         }),
       );
 
@@ -472,18 +457,15 @@ describe('captureSpan', () => {
       expect(serializedChildSpan?.name).toBe('child');
       expect(serializedChildSpan?.is_segment).toBe(false);
 
-      expect(preprocessSpanFn).toHaveBeenCalledWith(
-        expect.objectContaining({ span_id: serializedChildSpan?.span_id }),
-        expect.objectContaining({ spanKind: undefined }),
-      );
+      expect(preprocessSpanFn).toHaveBeenCalledWith(expect.objectContaining({ span_id: serializedChildSpan?.span_id }));
       expect(processSpanFn).toHaveBeenCalledWith(expect.objectContaining({ span_id: serializedChildSpan?.span_id }));
       expect(processSegmentSpanFn).not.toHaveBeenCalled();
     });
   });
 
   describe('beforeSendSpan', () => {
-    it('applies beforeSendSpan if it is a span streaming compatible callback', () => {
-      const beforeSendSpan = withStreamedSpan(vi.fn(span => span));
+    it('applies a default beforeSendSpan callback', () => {
+      const beforeSendSpan = vi.fn(span => span);
 
       const client = new TestClient(
         getDefaultTestClientOptions({
@@ -491,6 +473,7 @@ describe('captureSpan', () => {
           tracesSampleRate: 1,
           release: '1.0.0',
           environment: 'staging',
+          traceLifecycle: 'stream',
           beforeSendSpan,
         }),
       );
@@ -503,8 +486,8 @@ describe('captureSpan', () => {
       expect(beforeSendSpan).toHaveBeenCalledWith(expect.objectContaining({ span_id: span.spanContext().spanId }));
     });
 
-    it("doesn't apply beforeSendSpan if it is not a span streaming compatible callback", () => {
-      const beforeSendSpan = vi.fn(span => span);
+    it("doesn't apply beforeSendSpan if it is marked as static", () => {
+      const beforeSendSpan = withStaticSpan(vi.fn(span => span));
 
       const client = new TestClient(
         getDefaultTestClientOptions({
@@ -524,10 +507,8 @@ describe('captureSpan', () => {
       expect(beforeSendSpan).not.toHaveBeenCalled();
     });
 
-    it('logs a warning if the beforeSendSpan callback returns null', () => {
-      const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
-      // @ts-expect-error - the types dissallow returning null but this is javascript, so we need to test it
-      const beforeSendSpan = withStreamedSpan(() => null);
+    it('keeps the span if the beforeSendSpan callback returns null', () => {
+      const beforeSendSpan = vi.fn(() => null as unknown as StreamedSpanJSON);
 
       const client = new TestClient(
         getDefaultTestClientOptions({
@@ -535,21 +516,154 @@ describe('captureSpan', () => {
           tracesSampleRate: 1,
           release: '1.0.0',
           environment: 'staging',
+          traceLifecycle: 'stream',
           beforeSendSpan,
         }),
       );
 
-      const span = startInactiveSpan({ name: 'my-span', attributes: { 'sentry.op': 'http.client' } });
-      span.end();
+      const span = withScope(scope => {
+        scope.setClient(client);
+        const span = startInactiveSpan({ name: 'my-span', attributes: { 'sentry.op': 'http.client' } });
+        span.end();
+        return span;
+      });
 
-      captureSpan(span, client);
+      const serialized = captureSpan(span, client);
 
-      expect(consoleWarnSpy).toHaveBeenCalledWith(
-        '[Sentry] Returning null from `beforeSendSpan` is disallowed. To drop certain spans, configure the respective integrations directly or use `ignoreSpans`.',
+      expect(serialized.span_id).toBe(span.spanContext().spanId);
+      expect(serialized.name).toBe('my-span');
+    });
+
+    it('keeps the span and logs an error if the beforeSendSpan callback throws', () => {
+      const debugErrorSpy = vi.spyOn(debug, 'error').mockImplementation(() => undefined);
+      const error = new Error('beforeSendSpan is broken');
+      // A v10 callback that was not migrated to the streamed format throws like this, because
+      // `data` doesn't exist on a `StreamedSpanJSON`.
+      const beforeSendSpan = vi.fn(() => {
+        throw error;
+      });
+
+      const client = new TestClient(
+        getDefaultTestClientOptions({
+          dsn: 'https://dsn@ingest.f00.f00/1',
+          tracesSampleRate: 1,
+          traceLifecycle: 'stream',
+          beforeSendSpan: beforeSendSpan as unknown as TestClientOptions['beforeSendSpan'],
+        }),
       );
 
-      consoleWarnSpy.mockRestore();
+      const span = withScope(scope => {
+        scope.setClient(client);
+        const span = startInactiveSpan({ name: 'my-span', attributes: { 'sentry.op': 'http.client' } });
+        span.end();
+        return span;
+      });
+
+      const serialized = captureSpan(span, client);
+
+      expect(serialized.name).toBe('my-span');
+      expect(serialized.attributes['sentry.op']).toEqual({ type: 'string', value: 'http.client' });
+      expect(debugErrorSpy).toHaveBeenCalledWith(
+        'The `beforeSendSpan` callback threw an error, sending the span unmodified:',
+        error,
+      );
+
+      debugErrorSpy.mockRestore();
     });
+
+    it("doesn't let a throwing beforeSendSpan callback propagate out of span.end()", () => {
+      const debugErrorSpy = vi.spyOn(debug, 'error').mockImplementation(() => undefined);
+      const client = new TestClient(
+        getDefaultTestClientOptions({
+          dsn: 'https://dsn@ingest.f00.f00/1',
+          tracesSampleRate: 1,
+          traceLifecycle: 'stream',
+          integrations: [spanStreamingIntegration()],
+          beforeSendSpan: (() => {
+            throw new Error('beforeSendSpan is broken');
+          }) as unknown as TestClientOptions['beforeSendSpan'],
+        }),
+      );
+
+      // Spans are captured synchronously from the `afterSpanEnd` hook, so a throwing callback
+      // would otherwise surface in user code that ended the span.
+      expect(() =>
+        withScope(scope => {
+          scope.setClient(client);
+          client.init();
+          startSpan({ name: 'my-span' }, () => undefined);
+        }),
+      ).not.toThrow();
+
+      debugErrorSpy.mockRestore();
+    });
+  });
+});
+
+describe('captureStandaloneSpanWithStaticCallback', () => {
+  it('applies a static beforeSendSpan callback', () => {
+    const beforeSendSpan = withStaticSpan(vi.fn(span => span));
+
+    const client = new TestClient(
+      getDefaultTestClientOptions({
+        dsn: 'https://dsn@ingest.f00.f00/1',
+        tracesSampleRate: 1,
+        release: '1.0.0',
+        environment: 'staging',
+        traceLifecycle: 'static',
+        beforeSendSpan,
+      }),
+    );
+
+    const span = withScope(scope => {
+      scope.setClient(client);
+      const span = startInactiveSpan({ name: 'my-span', attributes: { 'sentry.op': 'http.client' } });
+      span.end();
+      return span;
+    });
+
+    // @ts-expect-error - this is fine because withStaticSpan intentionally lies about its return type
+    const serialized = captureStandaloneSpanWithStaticCallback(span, client, beforeSendSpan);
+
+    expect(beforeSendSpan).toHaveBeenCalledWith(expect.objectContaining({ span_id: span.spanContext().spanId }));
+
+    expect(serialized.name).toBe('my-span');
+    expect(serialized.attributes['sentry.op']).toEqual({ type: 'string', value: 'http.client' });
+  });
+
+  it("doesn't throw if the beforeSendSpan callback throws", () => {
+    const debugErrorSpy = vi.spyOn(debug, 'error').mockImplementation(() => undefined);
+
+    const error = new Error('beforeSendSpan is broken');
+    const beforeSendSpan = vi.fn(() => {
+      throw error;
+    });
+
+    const client = new TestClient(
+      getDefaultTestClientOptions({
+        dsn: 'https://dsn@ingest.f00.f00/1',
+      }),
+    );
+
+    const span = withScope(scope => {
+      let span: Span | undefined;
+
+      expect(() => {
+        scope.setClient(client);
+        span = startInactiveSpan({ name: 'my-span', attributes: { 'sentry.op': 'http.client' } });
+        span.end();
+      }).not.toThrow();
+
+      return span;
+    });
+
+    expect(() => captureStandaloneSpanWithStaticCallback(span!, client, beforeSendSpan)).not.toThrow();
+    expect(debugErrorSpy).toHaveBeenCalledWith(
+      'The `beforeSendSpan` callback threw an error, sending the span unmodified:',
+      error,
+    );
+
+    debugErrorSpy.mockRestore();
   });
 });
 
@@ -803,5 +917,43 @@ describe('applyScopeToSegmentSpan integration', () => {
 
     expect(serializedChild?.is_segment).toBe(false);
     expect(serializedChild?.attributes).not.toHaveProperty('http.response.status_code');
+  });
+
+  // `dataCollection` only gates automatically collected data. URL attributes the SDK collects are
+  // filtered at their write sites (see `filterCollectedUrl`), so anything reaching a span here is
+  // either already filtered or was set by the user and must be left alone.
+  describe('dataCollection.urlQueryParams', () => {
+    function captureUserSetUrl(attributeValue: unknown, dataCollection?: object): unknown {
+      const client = new TestClient(
+        getDefaultTestClientOptions({
+          dsn: 'https://dsn@ingest.f00.f00/1',
+          tracesSampleRate: 1,
+          ...(dataCollection ? { dataCollection } : {}),
+        }),
+      );
+
+      const span = withScope(scope => {
+        scope.setClient(client);
+        const span = startInactiveSpan({ name: 'my-span' });
+        span.setAttribute('url.full', attributeValue as string);
+        span.end();
+        return span;
+      });
+
+      const attributes = captureSpan(span, client).attributes as Record<string, { value: unknown }> | undefined;
+      return attributes?.['url.full']?.value;
+    }
+
+    it('does not filter a `url.full` the user set themselves', () => {
+      expect(captureUserSetUrl('https://example.com/api?token=abc123&page=5')).toBe(
+        'https://example.com/api?token=abc123&page=5',
+      );
+    });
+
+    it('does not strip a user-set query even when collection is off', () => {
+      expect(captureUserSetUrl('https://example.com/api?token=abc123', { urlQueryParams: false })).toBe(
+        'https://example.com/api?token=abc123',
+      );
+    });
   });
 });

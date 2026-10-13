@@ -10,7 +10,7 @@ Sentry.init({
   transport: loggingTransport,
   integrations: [
     Sentry.httpIntegration({
-      ignoreIncomingRequestBody: url => {
+      ignoreRequestBody: url => {
         if (url.includes('/test-post-ignore-body')) {
           return true;
         }

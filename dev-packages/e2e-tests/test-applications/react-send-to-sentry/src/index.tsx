@@ -36,6 +36,19 @@ Sentry.init({
   // Always capture replays, so we can test this properly
   replaysSessionSampleRate: 1.0,
   replaysOnErrorSampleRate: 0.0,
+
+  // Streamed spans never become transaction events, so the pageload and navigation segments are
+  // recorded here instead of in the event processor below. They are looked up by span id.
+  beforeSendSpan(span) {
+    const op = span.attributes['sentry.op'];
+
+    if (span.is_segment && typeof op === 'string' && (op === 'pageload' || op === 'navigation')) {
+      window.recordedSegmentSpans = window.recordedSegmentSpans || [];
+      window.recordedSegmentSpans.push({ spanId: span.span_id, traceId: span.trace_id, op });
+    }
+
+    return span;
+  },
 });
 
 Object.defineProperty(window, 'sentryReplayId', {
@@ -44,16 +57,14 @@ Object.defineProperty(window, 'sentryReplayId', {
   },
 });
 
+// The trace id is recorded alongside the event id because events are looked up through the
+// organization trace endpoint, which is keyed by trace rather than by event.
 Sentry.addEventProcessor(event => {
-  if (
-    event.type === 'transaction' &&
-    (event.contexts?.trace?.op === 'pageload' || event.contexts?.trace?.op === 'navigation')
-  ) {
-    const eventId = event.event_id;
-    if (eventId) {
-      window.recordedTransactions = window.recordedTransactions || [];
-      window.recordedTransactions.push(eventId);
-    }
+  const eventId = event.event_id;
+  const traceId = event.contexts?.trace?.trace_id;
+
+  if (eventId && traceId && !event.type && event.exception) {
+    window.capturedException = { eventId, traceId };
   }
 
   return event;

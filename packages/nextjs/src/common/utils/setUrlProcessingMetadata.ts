@@ -1,3 +1,4 @@
+import { HTTP_ROUTE, HTTP_TARGET, URL_PATH } from '@sentry/conventions/attributes';
 import type { Event } from '@sentry/core';
 import { getClient } from '@sentry/core';
 import { getSanitizedRequestUrl } from './urls';
@@ -19,8 +20,11 @@ export function setUrlProcessingMetadata(event: Event): void {
   const traceData = event.contexts.trace.data;
 
   // Get the route from trace data
-  const componentRoute = traceData['next.route'] || traceData['http.route'];
-  const httpTarget = traceData['http.target'] as string | undefined;
+  const componentRoute = traceData['next.route'] || traceData[HTTP_ROUTE];
+  // `http.target` is only read for spans from a user's own OpenTelemetry instrumentation, which
+  // still emits the old semantic conventions; the SDK sets `url.path`.
+  // eslint-disable-next-line typescript/no-deprecated
+  const httpTarget = (traceData[URL_PATH] ?? traceData[HTTP_TARGET]) as string | undefined;
 
   if (!componentRoute) {
     return;

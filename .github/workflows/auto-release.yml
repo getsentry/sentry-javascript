@@ -46,12 +46,12 @@ jobs:
           echo "version=$version" >> $GITHUB_OUTPUT
 
       - name: Set up Node
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@v7
         with:
           node-version-file: 'package.json'
 
       - name: Prepare release
-        uses: getsentry/craft@cdb657d4bbc70cd497876ad158984b4d345a48ae # v2.26.14
+        uses: getsentry/craft@25028d0646040cc0a669ae3314cbf884f4c4347a # v2.31.2
         if:
           github.event.pull_request.merged == true && steps.version-regex.outputs.match != '' &&
           steps.get_version.outputs.version != ''

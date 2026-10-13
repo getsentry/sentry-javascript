@@ -1,4 +1,4 @@
-import { SEMANTIC_ATTRIBUTE_SENTRY_SOURCE } from '@sentry/node';
+import { SENTRY_SEGMENT_NAME_SOURCE } from '@sentry/conventions/attributes';
 import { afterAll, expect, test } from 'vitest';
 import { cleanupChildProcesses, createRunner } from '../../../../utils/runner';
 
@@ -9,16 +9,20 @@ afterAll(() => {
 test('updates the span name and source when calling `updateSpanName`', async () => {
   await createRunner(__dirname, 'scenario.ts')
     .expect({
-      transaction: {
-        transaction: 'new name',
-        transaction_info: { source: 'custom' },
-        contexts: {
-          trace: {
+      span: {
+        items: [
+          {
+            name: 'new name',
+            is_segment: true,
             span_id: expect.any(String),
             trace_id: expect.any(String),
-            data: { [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'custom' },
+            start_timestamp: expect.any(Number),
+            end_timestamp: expect.any(Number),
+            attributes: {
+              [SENTRY_SEGMENT_NAME_SOURCE]: { type: 'string', value: 'custom' },
+            },
           },
-        },
+        ],
       },
     })
     .start()

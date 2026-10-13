@@ -1,4 +1,3 @@
-import * as Sentry from '@sentry/node';
 import { startExpressServerAndSendPortToRunner } from '@sentry-internal/node-integration-tests';
 import cors from 'cors';
 import express from 'express';
@@ -15,10 +14,7 @@ app.get('/test2', (_req, _res) => {
   throw new Error('error_2');
 });
 
-Sentry.setupExpressErrorHandler(app, {
-  shouldHandleError: error => {
-    return error.message === 'error_2';
-  },
-});
+// `shouldHandleError` is configured on `expressIntegration` (see the instrument file); no
+// error handler needs to be registered on the app anymore.
 
 startExpressServerAndSendPortToRunner(app);

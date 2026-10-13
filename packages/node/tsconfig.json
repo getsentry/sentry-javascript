@@ -3,5 +3,7 @@
 
   "include": ["src/**/*"],
 
-  "compilerOptions": {}
+  "compilerOptions": {
+    "lib": ["ES2020", "ES2021.WeakRef"]
+  }
 }

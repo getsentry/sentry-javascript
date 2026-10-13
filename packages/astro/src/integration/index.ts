@@ -1,8 +1,11 @@
-import { sentryVitePlugin } from '@sentry/vite-plugin';
+import { sentryVitePlugin } from '@sentry/bundler-plugins/vite';
+import { warnOnRemovedBuildOptions } from '@sentry/core';
+import { sentryOrchestrionPlugin } from '@sentry/server-utils/orchestrion/vite';
 import type { AstroConfig, AstroIntegration, AstroIntegrationLogger } from 'astro';
 import * as fs from 'fs';
 import { createRequire } from 'module';
 import * as path from 'path';
+import type { VitePlugin } from './cloudflare';
 import { sentryCloudflareNodeWarningPlugin, sentryCloudflareVitePlugin } from './cloudflare';
 import { buildClientSnippet, buildSdkInitFileImportSnippet, buildServerSnippet } from './snippets';
 import type { SentryOptions } from './types';
@@ -29,14 +32,12 @@ export const sentryAstro = (options: SentryOptions = {}): AstroIntegration => {
           clientInitPath,
           serverInitPath,
           autoInstrumentation,
-          // eslint-disable-next-line typescript/no-deprecated
-          sourceMapsUploadOptions,
           sourcemaps,
-          // todo(v11): Extract `release` build time option here - cannot be done currently, because it conflicts with the `DeprecatedRuntimeOptions` type
-          // release,
+          release,
+          buildTimeInstrumentation,
           bundleSizeOptimizations,
           applicationKey,
-          unstable_sentryVitePluginOptions,
+          moduleMetadata,
           debug,
           org,
           project,
@@ -46,17 +47,11 @@ export const sentryAstro = (options: SentryOptions = {}): AstroIntegration => {
           telemetry,
           silent,
           errorHandler,
-          ...deprecatedOptions
         } = options;
 
-        const deprecatedOptionsKeys = Object.keys(deprecatedOptions);
-        if (deprecatedOptionsKeys.length > 0) {
-          logger.warn(
-            `You passed in additional options (${deprecatedOptionsKeys.join(
-              ', ',
-            )}) to the Sentry integration. This is deprecated and will stop working in a future version. Instead, configure the Sentry SDK in your \`sentry.client.config.(js|ts)\` or \`sentry.server.config.(js|ts)\` files.`,
-          );
-        }
+        warnOnRemovedBuildOptions(options, ['unstable_sentryVitePluginOptions', 'sourceMapsUploadOptions'], message =>
+          logger.warn(message),
+        );
 
         const sdkEnabled = {
           client: typeof enabled === 'boolean' ? enabled : (enabled?.client ?? true),
@@ -64,21 +59,7 @@ export const sentryAstro = (options: SentryOptions = {}): AstroIntegration => {
         };
 
         const sourceMapsNeeded = sdkEnabled.client || sdkEnabled.server;
-        // eslint-disable-next-line typescript/no-deprecated
-        const { unstable_sentryVitePluginOptions: deprecatedVitePluginOptions, ...uploadOptions } =
-          sourceMapsUploadOptions || {};
-
-        const unstableMerged_sentryVitePluginOptions = {
-          ...deprecatedVitePluginOptions,
-          ...unstable_sentryVitePluginOptions,
-        };
-
-        const shouldUploadSourcemaps =
-          (sourceMapsNeeded &&
-            sourcemaps?.disable !== true &&
-            // eslint-disable-next-line typescript/no-deprecated
-            uploadOptions?.enabled) ??
-          true;
+        const shouldUploadSourcemaps = sourceMapsNeeded && sourcemaps?.disable !== true;
 
         // We don't need to check for AUTH_TOKEN here, because the plugin will pick it up from the env
         if (shouldUploadSourcemaps && command !== 'dev') {
@@ -87,8 +68,6 @@ export const sentryAstro = (options: SentryOptions = {}): AstroIntegration => {
           let updatedFilesToDeleteAfterUpload: string[] | undefined = undefined;
 
           if (
-            // eslint-disable-next-line typescript/no-deprecated
-            typeof uploadOptions?.filesToDeleteAfterUpload === 'undefined' &&
             typeof sourcemaps?.filesToDeleteAfterUpload === 'undefined' &&
             computedSourceMapSettings.previousUserSourceMapSetting === 'unset'
           ) {
@@ -97,7 +76,7 @@ export const sentryAstro = (options: SentryOptions = {}): AstroIntegration => {
 
             debug &&
               logger.info(
-                `Automatically setting \`sourceMapsUploadOptions.filesToDeleteAfterUpload: ${JSON.stringify(
+                `Automatically setting \`sourcemaps.filesToDeleteAfterUpload: ${JSON.stringify(
                   updatedFilesToDeleteAfterUpload,
                 )}\` to delete generated source maps after they were uploaded to Sentry.`,
               );
@@ -111,17 +90,14 @@ export const sentryAstro = (options: SentryOptions = {}): AstroIntegration => {
               plugins: [
                 sentryVitePlugin({
                   applicationKey,
-                  // Priority: top-level options > deprecated options > env vars
-                  // eslint-disable-next-line typescript/no-deprecated
-                  org: org ?? uploadOptions.org ?? env.SENTRY_ORG,
-                  // eslint-disable-next-line typescript/no-deprecated
-                  project: project ?? uploadOptions.project ?? env.SENTRY_PROJECT,
-                  // eslint-disable-next-line typescript/no-deprecated
-                  authToken: authToken ?? uploadOptions.authToken ?? env.SENTRY_AUTH_TOKEN,
+                  moduleMetadata,
+                  // Priority: top-level options > env vars
+                  org: org ?? env.SENTRY_ORG,
+                  project: project ?? env.SENTRY_PROJECT,
+                  authToken: authToken ?? env.SENTRY_AUTH_TOKEN,
                   url: sentryUrl ?? env.SENTRY_URL,
                   headers,
-                  // eslint-disable-next-line typescript/no-deprecated
-                  telemetry: telemetry ?? uploadOptions.telemetry ?? true,
+                  telemetry: telemetry ?? true,
                   silent: silent ?? false,
                   errorHandler,
                   _metaOptions: {
@@ -129,22 +105,15 @@ export const sentryAstro = (options: SentryOptions = {}): AstroIntegration => {
                       metaFramework: 'astro',
                     },
                   },
-                  ...unstableMerged_sentryVitePluginOptions,
                   debug: debug ?? false,
+                  release,
                   sourcemaps: {
                     ...sourcemaps,
-                    // eslint-disable-next-line typescript/no-deprecated
-                    assets: sourcemaps?.assets ?? uploadOptions.assets ?? [getSourcemapsAssetsGlob(config)],
-                    filesToDeleteAfterUpload:
-                      sourcemaps?.filesToDeleteAfterUpload ??
-                      // eslint-disable-next-line typescript/no-deprecated
-                      uploadOptions?.filesToDeleteAfterUpload ??
-                      updatedFilesToDeleteAfterUpload,
-                    ...unstableMerged_sentryVitePluginOptions?.sourcemaps,
+                    assets: sourcemaps?.assets ?? [getSourcemapsAssetsGlob(config)],
+                    filesToDeleteAfterUpload: sourcemaps?.filesToDeleteAfterUpload ?? updatedFilesToDeleteAfterUpload,
                   },
                   bundleSizeOptimizations: {
                     ...bundleSizeOptimizations,
-                    ...unstableMerged_sentryVitePluginOptions?.bundleSizeOptimizations,
                   },
                 }),
               ],
@@ -166,6 +135,20 @@ export const sentryAstro = (options: SentryOptions = {}): AstroIntegration => {
 
         const isCloudflare = config?.adapter?.name?.startsWith('@astrojs/cloudflare');
         const isCloudflareWorkers = isCloudflare && !isCloudflarePages();
+
+        // Wire up the orchestrion code transform so instrumented server-side dependencies (e.g.
+        // `mysql`, `ioredis`) get `diagnostics_channel` publishers injected into the SSR bundle at
+        // build time, with no manual plugin setup. The plugin opts out internally when
+        // `buildTimeInstrumentation` is `false`. Cloudflare Pages is skipped: it gets no
+        // `withSentry` wrap, so nothing would read the marker the injected snippets write, and
+        // keeping the transform off avoids bundling dead subscriber code.
+        if (sdkEnabled.server && (!isCloudflare || isCloudflareWorkers)) {
+          updateConfig({
+            vite: {
+              plugins: [sentryOrchestrionPlugin({ buildTimeInstrumentation }) as VitePlugin],
+            },
+          });
+        }
 
         if (isCloudflare) {
           try {
@@ -235,11 +218,7 @@ export const sentryAstro = (options: SentryOptions = {}): AstroIntegration => {
         const isSSR = config && (config.output === 'server' || config.output === 'hybrid' || !!config.adapter);
         const shouldAddMiddleware = sdkEnabled.server && autoInstrumentation?.requestHandler !== false;
 
-        // Guarding calling the addMiddleware function because it was only introduced in astro@3.5.0
-        // Users on older versions of astro will need to add the middleware manually.
-        const supportsAddMiddleware = typeof addMiddleware === 'function';
-
-        if (supportsAddMiddleware && isSSR && shouldAddMiddleware) {
+        if (isSSR && shouldAddMiddleware) {
           addMiddleware({
             order: 'pre',
             entrypoint: '@sentry/astro/middleware',

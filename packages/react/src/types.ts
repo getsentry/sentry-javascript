@@ -77,6 +77,24 @@ export type MatchRoutes = (
   basename?: string,
 ) => RouteMatchAlias[] | null;
 
+/**
+ * The resolved React Router instrumentation config for a given client, captured during `Sentry.init()`.
+ * Stored per-client and threaded through the instrumentation so nothing depends on module-scope state.
+ */
+export interface ReactRouterConfig {
+  useLocation: UseLocation;
+  useNavigationType: UseNavigationType;
+  createRoutesFromChildren: CreateRoutesFromChildren;
+  matchRoutes: MatchRoutes;
+  stripBasename: boolean;
+  enableAsyncRouteHandlers: boolean;
+  instrumentNavigation: boolean;
+  lazyRouteTimeout: number;
+  lazyRouteManifest?: string[];
+  // The active router's basename. Unknown at setup time; filled in by the data-router wrappers.
+  basename: string;
+}
+
 // Types for react-router >= 6.4.2
 export type ShouldRevalidateFunction = (args: any) => boolean;
 

@@ -5,6 +5,7 @@
     <script>
       window.sentryOnLoad = function () {
         Sentry.init({
+          traceLifecycle: 'static',
           tracesSampleRate: 0.123,
         });
       };

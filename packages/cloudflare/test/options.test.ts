@@ -189,4 +189,54 @@ describe('getFinalOptions', () => {
       expect(result).toEqual(expect.objectContaining({ dsn: 'test-dsn', release: undefined }));
     });
   });
+
+  describe('SENTRY_SPOTLIGHT', () => {
+    it('reads SENTRY_SPOTLIGHT boolean "true" from env', () => {
+      const result = getFinalOptions({}, { SENTRY_SPOTLIGHT: 'true' });
+      expect(result.spotlight).toBe(true);
+    });
+
+    it('reads SENTRY_SPOTLIGHT boolean "false" from env', () => {
+      const result = getFinalOptions({}, { SENTRY_SPOTLIGHT: 'false' });
+      expect(result.spotlight).toBe(false);
+    });
+
+    it('reads SENTRY_SPOTLIGHT URL string from env', () => {
+      const result = getFinalOptions({}, { SENTRY_SPOTLIGHT: 'http://localhost:9999/stream' });
+      expect(result.spotlight).toBe('http://localhost:9999/stream');
+    });
+
+    it('user option takes precedence over env', () => {
+      const result = getFinalOptions({ spotlight: false }, { SENTRY_SPOTLIGHT: 'true' });
+      expect(result.spotlight).toBe(false);
+    });
+
+    it('user option string takes precedence over env', () => {
+      const result = getFinalOptions(
+        { spotlight: 'http://custom:1234/stream' },
+        { SENTRY_SPOTLIGHT: 'http://other:5678/stream' },
+      );
+      expect(result.spotlight).toBe('http://custom:1234/stream');
+    });
+
+    it('returns undefined when SENTRY_SPOTLIGHT is not set', () => {
+      const result = getFinalOptions({}, { SENTRY_DSN: 'test-dsn' });
+      expect(result.spotlight).toBeUndefined();
+    });
+
+    it('spotlight: true prefers env URL over boolean true', () => {
+      const result = getFinalOptions({ spotlight: true }, { SENTRY_SPOTLIGHT: 'http://custom:1234/stream' });
+      expect(result.spotlight).toBe('http://custom:1234/stream');
+    });
+
+    it('spotlight: true stays true when env is boolean "true"', () => {
+      const result = getFinalOptions({ spotlight: true }, { SENTRY_SPOTLIGHT: 'true' });
+      expect(result.spotlight).toBe(true);
+    });
+
+    it('spotlight: true stays true when env is not set', () => {
+      const result = getFinalOptions({ spotlight: true }, {});
+      expect(result.spotlight).toBe(true);
+    });
+  });
 });

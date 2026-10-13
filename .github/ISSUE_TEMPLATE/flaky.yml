@@ -12,13 +12,14 @@ body:
         - Timeout
         - Assertion failure
         - Other / Unknown
+      default: 1
     validations:
       required: true
   - type: input
     id: job-name
     attributes:
       label: Name of Job
-      placeholder: 'CI: Build & Test / Nextjs (Node 18) Tests'
+      placeholder: 'CI: Build & Test / Nextjs (Node 20) Tests'
       description: name of job as reported in the status report
     validations:
       required: true

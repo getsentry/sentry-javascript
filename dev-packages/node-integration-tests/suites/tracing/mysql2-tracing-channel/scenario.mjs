@@ -10,10 +10,6 @@ const CONNECT_CONFIG = {
 };
 
 async function run() {
-  // Yield a microtick so the DC subscriber (deferred via Promise.resolve().then)
-  // is registered before mysql2 publishes on its native TracingChannels.
-  await Promise.resolve();
-
   // Gate on the DB actually accepting a connection before opening the span (see `waitForConnection`).
   // MySQL keeps finalizing for a short window after the healthcheck passes and drops early handshakes,
   // so this retries a real connect. It runs outside an active span, so the connect stays uninstrumented.

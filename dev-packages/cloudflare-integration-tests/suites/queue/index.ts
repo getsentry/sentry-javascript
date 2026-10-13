@@ -10,7 +10,7 @@ export default Sentry.withSentry(
   (env: Env) => ({
     dsn: env.SENTRY_DSN,
     tracesSampleRate: 1,
-    enableQueueTracePropagation: true,
+    queueTracePropagationBindings: ['MY_QUEUE'],
   }),
   {
     async fetch(request, env) {
@@ -33,6 +33,10 @@ export default Sentry.withSentry(
           { body: { payload: 'three' } },
         ]);
         return new Response('enqueued batch');
+      }
+
+      if (url.pathname === '/metrics') {
+        return Response.json(await env.MY_QUEUE.metrics());
       }
 
       return new Response('not found', { status: 404 });

@@ -1,13 +1,13 @@
 {
   "name": "@sentry/sveltekit",
-  "version": "10.65.0",
+  "version": "11.7.0",
   "description": "Official Sentry SDK for SvelteKit",
   "repository": "git://github.com/getsentry/sentry-javascript.git",
   "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/sveltekit",
   "author": "Sentry",
   "license": "MIT",
   "engines": {
-    "node": ">=18"
+    "node": ">=20.19.0 <22.0.0 || >=22.12.0 <23.0.0 || >=23.2.0"
   },
   "files": [
     "/build"
@@ -18,8 +18,17 @@
   "types": "build/types/index.types.d.ts",
   "exports": {
     "./package.json": "./package.json",
+    "./browser-tracing-variant": {
+      "types": "./build/types/client/svelte4BrowserTracing.d.ts",
+      "import": "./build/esm/client/svelte4BrowserTracing.js",
+      "require": "./build/cjs/client/svelte4BrowserTracing.js"
+    },
     ".": {
       "types": "./build/types/index.types.d.ts",
+      "workerd": {
+        "import": "./build/esm/index.workerd.js",
+        "require": "./build/cjs/index.workerd.js"
+      },
       "worker": {
         "import": "./build/esm/index.worker.js",
         "require": "./build/cjs/index.worker.js"
@@ -36,13 +45,23 @@
         "import": "./build/esm/index.server.js",
         "require": "./build/cjs/index.server.js"
       }
+    },
+    "./opentelemetry-api": {
+      "types": "./build/types/opentelemetryApi.d.ts",
+      "import": "./build/esm/opentelemetryApi.js",
+      "require": "./build/cjs/opentelemetryApi.js"
+    },
+    "./vite": {
+      "types": "./build/types/vite/index.d.ts",
+      "import": "./build/esm/vite/index.js",
+      "require": "./build/cjs/vite/index.js"
     }
   },
   "publishConfig": {
     "access": "public"
   },
   "peerDependencies": {
-    "@sveltejs/kit": "2.x",
+    "@sveltejs/kit": "2.x || 3.x",
     "vite": "*"
   },
   "peerDependenciesMeta": {
@@ -51,22 +70,25 @@
     }
   },
   "dependencies": {
-    "@sentry/cloudflare": "10.65.0",
-    "@sentry/core": "10.65.0",
-    "@sentry/conventions": "^0.16.0",
-    "@sentry/node": "10.65.0",
-    "@sentry/svelte": "10.65.0",
-    "@sentry/vite-plugin": "^5.3.0",
+    "@opentelemetry/api": "^1.9.1",
+    "@sentry/cloudflare": "11.7.0",
+    "@sentry/core": "11.7.0",
+    "@sentry/conventions": "^0.27.0",
+    "@sentry/node": "11.7.0",
+    "@sentry/server-runtime-injection": "11.7.0",
+    "@sentry/server-utils": "11.7.0",
+    "@sentry/svelte": "11.7.0",
+    "@sentry/bundler-plugins": "11.7.0",
     "@sveltejs/acorn-typescript": "^1.0.9",
     "acorn": "^8.14.0",
     "magic-string": "~0.30.0",
     "sorcery": "1.0.0"
   },
   "devDependencies": {
-    "@sveltejs/kit": "^2.60.1",
+    "@sveltejs/kit": "^2.70.2",
     "@sveltejs/vite-plugin-svelte": "^3.0.0",
     "svelte": "^4.2.8",
-    "vite": "^6.4.3"
+    "vite": "^8.3.1"
   },
   "scripts": {
     "build": "run-p build:transpile build:types",
@@ -79,8 +101,9 @@
     "build:tarball": "npm pack",
     "circularDepCheck": "madge --circular src/index.client.ts && madge --circular src/index.server.ts && madge --circular src/index.types.ts",
     "clean": "rimraf build coverage sentry-sveltekit-*.tgz",
-    "lint:fix": "OXLINT_TSGOLINT_DANGEROUSLY_SUPPRESS_PROGRAM_DIAGNOSTICS=true oxlint . --fix --type-aware",
-    "lint": "OXLINT_TSGOLINT_DANGEROUSLY_SUPPRESS_PROGRAM_DIAGNOSTICS=true oxlint . --type-aware",
+    "lint:fix": "oxlint . --fix --type-aware",
+    "lint": "oxlint . --type-aware",
+    "lint:types": "oxlint src --type-aware --type-check",
     "lint:es-compatibility": "es-check es2020 ./build/cjs/*.js && es-check es2020 ./build/esm/*.js --module",
     "test": "yarn test:unit",
     "test:unit": "vitest run",

@@ -42,7 +42,7 @@ sentryTest('allows to setup a client manually & capture exceptions', async ({ ge
       version: expect.any(String),
       packages: [{ name: expect.any(String), version: expect.any(String) }],
       settings: {
-        infer_ip: 'never',
+        infer_ip: 'auto',
       },
     },
     contexts: {

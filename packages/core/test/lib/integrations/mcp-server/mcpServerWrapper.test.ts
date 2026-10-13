@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import * as currentScopes from '../../../../src/currentScopes';
 import { wrapMcpServerWithSentry } from '../../../../src/integrations/mcp-server';
-import * as tracingModule from '../../../../src/tracing';
+import * as tracingModule from '../../../../src/tracing/trace';
 import {
   createMockClient,
   createMockMcpServer,
@@ -62,9 +62,13 @@ describe('wrapMcpServerWithSentry', () => {
     const mockMcpServer = createMockMcpServer();
 
     const wrappedOnce = wrapMcpServerWithSentry(mockMcpServer);
+    const connectAfterFirstWrap = wrappedOnce.connect;
     const wrappedTwice = wrapMcpServerWithSentry(wrappedOnce);
 
     expect(wrappedTwice).toBe(wrappedOnce);
+    // A second call (e.g. a manual `wrapMcpServerWithSentry` after auto-instrumentation
+    // already wrapped the instance at construction) must be a no-op, not re-patch `connect`.
+    expect(wrappedTwice.connect).toBe(connectAfterFirstWrap);
   });
 
   it('should wrap the connect method to intercept transport', () => {

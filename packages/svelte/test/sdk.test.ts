@@ -12,6 +12,7 @@ const browserInit = vi.spyOn(SentryBrowser, 'init');
 describe('Initialize Svelte SDk', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    SentryBrowser.getCurrentScope().setClient(undefined);
   });
 
   it('has the correct metadata', () => {
@@ -26,7 +27,7 @@ describe('Initialize Svelte SDk', () => {
           packages: [{ name: 'npm:@sentry/svelte', version: SDK_VERSION }],
           version: SDK_VERSION,
           settings: {
-            infer_ip: 'never',
+            infer_ip: 'auto',
           },
         },
       },

@@ -63,7 +63,7 @@ function getErrorPropertyFromObject(obj: Record<string, unknown>): Error | undef
   for (const prop in obj) {
     if (Object.prototype.hasOwnProperty.call(obj, prop)) {
       const value = obj[prop];
-      if (value instanceof Error) {
+      if (isError(value)) {
         return value;
       }
     }

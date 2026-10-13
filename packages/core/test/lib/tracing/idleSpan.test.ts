@@ -5,11 +5,8 @@ import {
   getClient,
   getCurrentScope,
   getDynamicSamplingContextFromSpan,
-  getGlobalScope,
   getIsolationScope,
   getTraceData,
-  SEMANTIC_ATTRIBUTE_SENTRY_IDLE_SPAN_FINISH_REASON,
-  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   SentryNonRecordingSpan,
   SentrySpan,
   setCurrentClient,
@@ -23,6 +20,12 @@ import { startIdleSpan, TRACING_DEFAULTS } from '../../../src/tracing/idleSpan';
 import type { Event } from '../../../src/types/event';
 import type { Span } from '../../../src/types/span';
 import { getDefaultTestClientOptions, TestClient } from '../../mocks/client';
+import { resetGlobals } from '../../testutils';
+import {
+  SENTRY_IDLE_SPAN_FINISH_REASON,
+  SENTRY_SEGMENT_NAME_SOURCE,
+  SENTRY_STATUS_MESSAGE,
+} from '@sentry/conventions/attributes';
 
 const dsn = 'https://123@sentry.io/42';
 
@@ -30,9 +33,7 @@ describe('startIdleSpan', () => {
   beforeEach(() => {
     vi.useFakeTimers();
 
-    getCurrentScope().clear();
-    getIsolationScope().clear();
-    getGlobalScope().clear();
+    resetGlobals();
 
     const options = getDefaultTestClientOptions({ dsn, tracesSampleRate: 1 });
     const client = new TestClient(options);
@@ -180,7 +181,7 @@ describe('startIdleSpan', () => {
     // Mirrors a browser pageload/navigation span, whose name is the URL path.
     const idleSpan = startIdleSpan({
       name: '/users/123e4567-e89b-12d3-a456-426614174000',
-      attributes: { [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url' },
+      attributes: { [SENTRY_SEGMENT_NAME_SOURCE]: 'url' },
     });
 
     expect(idleSpan).toBeInstanceOf(SentryNonRecordingSpan);
@@ -214,21 +215,23 @@ describe('startIdleSpan', () => {
     });
   });
 
-  it('calls beforeSpanEnd callback before finishing', () => {
-    const beforeSpanEnd = vi.fn();
-    const idleSpan = startIdleSpan({ name: 'foo' }, { beforeSpanEnd });
+  it('emits beforeIdleSpanEnd hook before finishing', () => {
+    const beforeIdleSpanEnd = vi.fn();
+    getClient()!.on('beforeIdleSpanEnd', beforeIdleSpanEnd);
+
+    const idleSpan = startIdleSpan({ name: 'foo' });
     expect(idleSpan).toBeDefined();
 
-    expect(beforeSpanEnd).not.toHaveBeenCalled();
+    expect(beforeIdleSpanEnd).not.toHaveBeenCalled();
 
     startSpan({ name: 'inner' }, () => {});
 
     vi.runOnlyPendingTimers();
-    expect(beforeSpanEnd).toHaveBeenCalledTimes(1);
-    expect(beforeSpanEnd).toHaveBeenLastCalledWith(idleSpan);
+    expect(beforeIdleSpanEnd).toHaveBeenCalledTimes(1);
+    expect(beforeIdleSpanEnd).toHaveBeenLastCalledWith(idleSpan);
   });
 
-  it('allows to mutate idle span in beforeSpanEnd before it is sent', () => {
+  it('allows to mutate idle span in beforeIdleSpanEnd before it is sent', () => {
     const transactions: Event[] = [];
     const beforeSendTransaction = vi.fn(event => {
       transactions.push(event);
@@ -246,21 +249,23 @@ describe('startIdleSpan', () => {
     // We want to accommodate a bit of drift there, so we ensure this starts earlier...
     const baseTimeInSeconds = Math.floor(Date.now() / 1000) - 9999;
 
-    const beforeSpanEnd = vi.fn((span: Span) => {
+    const beforeIdleSpanEnd = vi.fn((span: Span) => {
       span.setAttribute('foo', 'bar');
       // Try adding a child here - we do this in browser tracing...
-      const inner = startInactiveSpan({ name: 'from beforeSpanEnd', startTime: baseTimeInSeconds });
+      const inner = startInactiveSpan({ name: 'from beforeIdleSpanEnd', startTime: baseTimeInSeconds });
       inner.end(baseTimeInSeconds + 1);
     });
-    const idleSpan = startIdleSpan({ name: 'idle span', startTime: baseTimeInSeconds }, { beforeSpanEnd });
+    client.on('beforeIdleSpanEnd', beforeIdleSpanEnd);
+
+    const idleSpan = startIdleSpan({ name: 'idle span', startTime: baseTimeInSeconds });
     expect(idleSpan).toBeDefined();
 
-    expect(beforeSpanEnd).not.toHaveBeenCalled();
+    expect(beforeIdleSpanEnd).not.toHaveBeenCalled();
 
     vi.advanceTimersByTime(TRACING_DEFAULTS.idleTimeout + 1);
     vi.runOnlyPendingTimers();
 
-    expect(spanToJSON(idleSpan).data).toEqual(
+    expect(spanToJSON(idleSpan).attributes).toEqual(
       expect.objectContaining({
         foo: 'bar',
       }),
@@ -270,7 +275,7 @@ describe('startIdleSpan', () => {
     const transaction = transactions[0]!;
 
     expect(transaction.start_timestamp).toBe(baseTimeInSeconds);
-    // It considers the end time of the span we added in beforeSpanEnd
+    // It considers the end time of the span we added in beforeIdleSpanEnd
     expect(transaction.timestamp).toBe(baseTimeInSeconds + 1);
 
     expect(transaction.contexts?.trace?.data).toEqual(
@@ -279,7 +284,25 @@ describe('startIdleSpan', () => {
       }),
     );
     expect(transaction.spans).toHaveLength(1);
-    expect(transaction.spans).toEqual([expect.objectContaining({ description: 'from beforeSpanEnd' })]);
+    expect(transaction.spans).toEqual([expect.objectContaining({ description: 'from beforeIdleSpanEnd' })]);
+  });
+
+  it('runs beforeIdleSpanEnd before trimming the idle span', () => {
+    const baseTimeInSeconds = Math.floor(Date.now() / 1000) - 9999;
+    const beforeIdleSpanEnd = vi.fn((span: Span) => {
+      expect(spanToJSON(span).end_timestamp).toBeUndefined();
+      const childSpan = startInactiveSpan({ name: 'last-moment child', startTime: baseTimeInSeconds });
+      childSpan.end(baseTimeInSeconds + 1);
+    });
+    getClient()!.on('beforeIdleSpanEnd', beforeIdleSpanEnd);
+
+    const idleSpan = startIdleSpan({ name: 'idle span', startTime: baseTimeInSeconds });
+    vi.advanceTimersByTime(TRACING_DEFAULTS.idleTimeout + 1);
+    vi.runOnlyPendingTimers();
+
+    expect(beforeIdleSpanEnd).toHaveBeenCalledOnce();
+    expect(beforeIdleSpanEnd).toHaveBeenCalledWith(idleSpan);
+    expect(spanToJSON(idleSpan).end_timestamp).toBe(baseTimeInSeconds + 1);
   });
 
   it('filters spans on end', () => {
@@ -454,7 +477,7 @@ describe('startIdleSpan', () => {
     expect(hookSpans).toEqual([{ span: idleSpan, hook: 'spanStart' }]);
 
     vi.advanceTimersByTime(TRACING_DEFAULTS.idleTimeout);
-    expect(spanToJSON(idleSpan).timestamp).toBeDefined();
+    expect(spanToJSON(idleSpan).end_timestamp).toBeDefined();
 
     expect(hookSpans).toEqual([
       { span: idleSpan, hook: 'spanStart' },
@@ -478,7 +501,9 @@ describe('startIdleSpan', () => {
 
     idleSpan.end();
 
+    expect(recordDroppedEventSpy).toHaveBeenCalledTimes(2);
     expect(recordDroppedEventSpy).toHaveBeenCalledWith('sample_rate', 'transaction');
+    expect(recordDroppedEventSpy).toHaveBeenCalledWith('sample_rate', 'span');
   });
 
   it('sets finish reason when span is ended manually', () => {
@@ -497,9 +522,7 @@ describe('startIdleSpan', () => {
     vi.runOnlyPendingTimers();
 
     expect(beforeSendTransaction).toHaveBeenCalledTimes(1);
-    expect(transaction?.contexts?.trace?.data?.[SEMANTIC_ATTRIBUTE_SENTRY_IDLE_SPAN_FINISH_REASON]).toEqual(
-      'externalFinish',
-    );
+    expect(transaction?.contexts?.trace?.data?.[SENTRY_IDLE_SPAN_FINISH_REASON]).toEqual('externalFinish');
   });
 
   it('sets finish reason when span ends', () => {
@@ -518,9 +541,7 @@ describe('startIdleSpan', () => {
     vi.runOnlyPendingTimers();
 
     expect(beforeSendTransaction).toHaveBeenCalledTimes(1);
-    expect(transaction?.contexts?.trace?.data?.[SEMANTIC_ATTRIBUTE_SENTRY_IDLE_SPAN_FINISH_REASON]).toEqual(
-      'idleTimeout',
-    );
+    expect(transaction?.contexts?.trace?.data?.[SENTRY_IDLE_SPAN_FINISH_REASON]).toEqual('idleTimeout');
   });
 
   it('sets finish reason when span ends via expired heartbeat timeout', () => {
@@ -539,9 +560,7 @@ describe('startIdleSpan', () => {
     vi.runOnlyPendingTimers();
 
     expect(beforeSendTransaction).toHaveBeenCalledTimes(1);
-    expect(transaction?.contexts?.trace?.data?.[SEMANTIC_ATTRIBUTE_SENTRY_IDLE_SPAN_FINISH_REASON]).toEqual(
-      'heartbeatFailed',
-    );
+    expect(transaction?.contexts?.trace?.data?.[SENTRY_IDLE_SPAN_FINISH_REASON]).toEqual('heartbeatFailed');
   });
 
   it('sets finish reason when span ends via final timeout', () => {
@@ -569,9 +588,7 @@ describe('startIdleSpan', () => {
     vi.runOnlyPendingTimers();
 
     expect(beforeSendTransaction).toHaveBeenCalledTimes(1);
-    expect(transaction?.contexts?.trace?.data?.[SEMANTIC_ATTRIBUTE_SENTRY_IDLE_SPAN_FINISH_REASON]).toEqual(
-      'finalTimeout',
-    );
+    expect(transaction?.contexts?.trace?.data?.[SENTRY_IDLE_SPAN_FINISH_REASON]).toEqual('finalTimeout');
   });
 
   it('uses finish reason set outside when span ends', () => {
@@ -586,14 +603,12 @@ describe('startIdleSpan', () => {
     client.init();
 
     const span = startIdleSpan({ name: 'foo' });
-    span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_IDLE_SPAN_FINISH_REASON, 'custom reason');
+    span.setAttribute(SENTRY_IDLE_SPAN_FINISH_REASON, 'custom reason');
     startSpan({ name: 'inner' }, () => {});
     vi.runOnlyPendingTimers();
 
     expect(beforeSendTransaction).toHaveBeenCalledTimes(1);
-    expect(transaction?.contexts?.trace?.data?.[SEMANTIC_ATTRIBUTE_SENTRY_IDLE_SPAN_FINISH_REASON]).toEqual(
-      'custom reason',
-    );
+    expect(transaction?.contexts?.trace?.data?.[SENTRY_IDLE_SPAN_FINISH_REASON]).toEqual('custom reason');
   });
 
   describe('idleTimeout', () => {
@@ -602,7 +617,7 @@ describe('startIdleSpan', () => {
       expect(idleSpan).toBeDefined();
 
       vi.advanceTimersByTime(TRACING_DEFAULTS.idleTimeout);
-      expect(spanToJSON(idleSpan).timestamp).toBeDefined();
+      expect(spanToJSON(idleSpan).end_timestamp).toBeDefined();
     });
 
     it('does not finish if a activity is started', () => {
@@ -612,7 +627,7 @@ describe('startIdleSpan', () => {
       startInactiveSpan({ name: 'span' });
 
       vi.advanceTimersByTime(TRACING_DEFAULTS.idleTimeout);
-      expect(spanToJSON(idleSpan).timestamp).toBeUndefined();
+      expect(spanToJSON(idleSpan).end_timestamp).toBeUndefined();
     });
 
     it('does not finish when idleTimeout is not exceed after last activity finished', () => {
@@ -628,7 +643,7 @@ describe('startIdleSpan', () => {
 
       vi.advanceTimersByTime(8);
 
-      expect(spanToJSON(idleSpan).timestamp).toBeUndefined();
+      expect(spanToJSON(idleSpan).end_timestamp).toBeUndefined();
     });
 
     it('finish when idleTimeout is exceeded after last activity finished', () => {
@@ -644,7 +659,7 @@ describe('startIdleSpan', () => {
 
       vi.advanceTimersByTime(10);
 
-      expect(spanToJSON(idleSpan).timestamp).toBeDefined();
+      expect(spanToJSON(idleSpan).end_timestamp).toBeDefined();
     });
   });
 
@@ -656,18 +671,18 @@ describe('startIdleSpan', () => {
       // Start any span to cancel idle timeout
       startInactiveSpan({ name: 'span' });
 
-      expect(spanToJSON(idleSpan).status).not.toEqual('deadline_exceeded');
-      expect(spanToJSON(idleSpan).timestamp).toBeUndefined();
+      expect(spanToJSON(idleSpan).attributes[SENTRY_STATUS_MESSAGE]).not.toEqual('deadline_exceeded');
+      expect(spanToJSON(idleSpan).end_timestamp).toBeUndefined();
 
       // Wait some time
       vi.advanceTimersByTime(TRACING_DEFAULTS.childSpanTimeout - 1000);
-      expect(spanToJSON(idleSpan).status).not.toEqual('deadline_exceeded');
-      expect(spanToJSON(idleSpan).timestamp).toBeUndefined();
+      expect(spanToJSON(idleSpan).attributes[SENTRY_STATUS_MESSAGE]).not.toEqual('deadline_exceeded');
+      expect(spanToJSON(idleSpan).end_timestamp).toBeUndefined();
 
       // Wait for timeout to exceed
       vi.advanceTimersByTime(1000);
-      expect(spanToJSON(idleSpan).status).not.toEqual('deadline_exceeded');
-      expect(spanToJSON(idleSpan).timestamp).toBeDefined();
+      expect(spanToJSON(idleSpan).attributes[SENTRY_STATUS_MESSAGE]).not.toEqual('deadline_exceeded');
+      expect(spanToJSON(idleSpan).end_timestamp).toBeDefined();
     });
 
     it('resets after new activities are added', () => {
@@ -677,32 +692,32 @@ describe('startIdleSpan', () => {
       // Start any span to cancel idle timeout
       startInactiveSpan({ name: 'span' });
 
-      expect(spanToJSON(idleSpan).status).not.toEqual('deadline_exceeded');
-      expect(spanToJSON(idleSpan).timestamp).toBeUndefined();
+      expect(spanToJSON(idleSpan).attributes[SENTRY_STATUS_MESSAGE]).not.toEqual('deadline_exceeded');
+      expect(spanToJSON(idleSpan).end_timestamp).toBeUndefined();
 
       // Wait some time
       vi.advanceTimersByTime(TRACING_DEFAULTS.childSpanTimeout - 1000);
-      expect(spanToJSON(idleSpan).status).not.toEqual('deadline_exceeded');
-      expect(spanToJSON(idleSpan).timestamp).toBeUndefined();
+      expect(spanToJSON(idleSpan).attributes[SENTRY_STATUS_MESSAGE]).not.toEqual('deadline_exceeded');
+      expect(spanToJSON(idleSpan).end_timestamp).toBeUndefined();
 
       // New span resets the timeout
       startInactiveSpan({ name: 'span' });
 
       vi.advanceTimersByTime(TRACING_DEFAULTS.childSpanTimeout - 1000);
-      expect(spanToJSON(idleSpan).status).not.toEqual('deadline_exceeded');
-      expect(spanToJSON(idleSpan).timestamp).toBeUndefined();
+      expect(spanToJSON(idleSpan).attributes[SENTRY_STATUS_MESSAGE]).not.toEqual('deadline_exceeded');
+      expect(spanToJSON(idleSpan).end_timestamp).toBeUndefined();
 
       // New span resets the timeout
       startInactiveSpan({ name: 'span' });
 
       vi.advanceTimersByTime(TRACING_DEFAULTS.childSpanTimeout - 1000);
-      expect(spanToJSON(idleSpan).status).not.toEqual('deadline_exceeded');
-      expect(spanToJSON(idleSpan).timestamp).toBeUndefined();
+      expect(spanToJSON(idleSpan).attributes[SENTRY_STATUS_MESSAGE]).not.toEqual('deadline_exceeded');
+      expect(spanToJSON(idleSpan).end_timestamp).toBeUndefined();
 
       // Wait for timeout to exceed
       vi.advanceTimersByTime(1000);
-      expect(spanToJSON(idleSpan).status).not.toEqual('deadline_exceeded');
-      expect(spanToJSON(idleSpan).timestamp).toBeDefined();
+      expect(spanToJSON(idleSpan).attributes[SENTRY_STATUS_MESSAGE]).not.toEqual('deadline_exceeded');
+      expect(spanToJSON(idleSpan).end_timestamp).toBeDefined();
     });
 
     it("doesn't reset the timeout for standalone spans", () => {
@@ -714,8 +729,8 @@ describe('startIdleSpan', () => {
 
       // Wait some time
       vi.advanceTimersByTime(TRACING_DEFAULTS.childSpanTimeout - 1000);
-      expect(spanToJSON(idleSpan).status).not.toEqual('deadline_exceeded');
-      expect(spanToJSON(idleSpan).timestamp).toBeUndefined();
+      expect(spanToJSON(idleSpan).attributes[SENTRY_STATUS_MESSAGE]).not.toEqual('deadline_exceeded');
+      expect(spanToJSON(idleSpan).end_timestamp).toBeUndefined();
 
       // new standalone span should not reset the timeout
       const standaloneSpan = startInactiveSpan({ name: 'standalone span', experimental: { standalone: true } });
@@ -723,8 +738,8 @@ describe('startIdleSpan', () => {
 
       // Wait for timeout to exceed
       vi.advanceTimersByTime(1001);
-      expect(spanToJSON(idleSpan).status).not.toEqual('deadline_exceeded');
-      expect(spanToJSON(idleSpan).timestamp).toBeDefined();
+      expect(spanToJSON(idleSpan).attributes[SENTRY_STATUS_MESSAGE]).not.toEqual('deadline_exceeded');
+      expect(spanToJSON(idleSpan).end_timestamp).toBeDefined();
     });
   });
 
@@ -734,16 +749,16 @@ describe('startIdleSpan', () => {
       expect(idleSpan).toBeDefined();
 
       vi.advanceTimersByTime(TRACING_DEFAULTS.idleTimeout);
-      expect(spanToJSON(idleSpan).timestamp).toBeUndefined();
+      expect(spanToJSON(idleSpan).end_timestamp).toBeUndefined();
 
       vi.advanceTimersByTime(TRACING_DEFAULTS.idleTimeout);
-      expect(spanToJSON(idleSpan).timestamp).toBeUndefined();
+      expect(spanToJSON(idleSpan).end_timestamp).toBeUndefined();
 
       // Now emit a signal
       getClient()!.emit('idleSpanEnableAutoFinish', idleSpan);
 
       vi.advanceTimersByTime(TRACING_DEFAULTS.idleTimeout);
-      expect(spanToJSON(idleSpan).timestamp).toBeDefined();
+      expect(spanToJSON(idleSpan).end_timestamp).toBeDefined();
     });
 
     it('skips span timeout if disableAutoFinish=true', () => {
@@ -753,16 +768,39 @@ describe('startIdleSpan', () => {
       startInactiveSpan({ name: 'inner' });
 
       vi.advanceTimersByTime(TRACING_DEFAULTS.childSpanTimeout);
-      expect(spanToJSON(idleSpan).timestamp).toBeUndefined();
+      expect(spanToJSON(idleSpan).end_timestamp).toBeUndefined();
 
       vi.advanceTimersByTime(TRACING_DEFAULTS.childSpanTimeout);
-      expect(spanToJSON(idleSpan).timestamp).toBeUndefined();
+      expect(spanToJSON(idleSpan).end_timestamp).toBeUndefined();
 
       // Now emit a signal
       getClient()!.emit('idleSpanEnableAutoFinish', idleSpan);
 
       vi.advanceTimersByTime(TRACING_DEFAULTS.childSpanTimeout);
-      expect(spanToJSON(idleSpan).timestamp).toBeDefined();
+      expect(spanToJSON(idleSpan).end_timestamp).toBeDefined();
+    });
+
+    it('measures the idle timeout from the last child end, not from the auto-finish signal', () => {
+      const idleSpan = startIdleSpan({ name: 'idle span' }, { disableAutoFinish: true, finalTimeout: 99_999 });
+      const idleSpanId = idleSpan.spanContext().spanId;
+
+      const child = startInactiveSpan({ name: 'inner' });
+
+      vi.advanceTimersByTime(500);
+      getClient()!.emit('idleSpanEnableAutoFinish', idleSpan);
+
+      vi.advanceTimersByTime(700);
+      child!.end();
+
+      vi.advanceTimersByTime(TRACING_DEFAULTS.idleTimeout - 199);
+      expect(spanToJSON(idleSpan).end_timestamp).toBeUndefined();
+
+      const lateChild = startInactiveSpan({ name: 'late' });
+      expect(spanToJSON(lateChild!).parent_span_id).toBe(idleSpanId);
+
+      lateChild!.end();
+      vi.advanceTimersByTime(TRACING_DEFAULTS.idleTimeout);
+      expect(spanToJSON(idleSpan).end_timestamp).toBeDefined();
     });
 
     it('times out at final timeout if disableAutoFinish=true', () => {
@@ -770,7 +808,7 @@ describe('startIdleSpan', () => {
       expect(idleSpan).toBeDefined();
 
       vi.advanceTimersByTime(TRACING_DEFAULTS.finalTimeout);
-      expect(spanToJSON(idleSpan).timestamp).toBeDefined();
+      expect(spanToJSON(idleSpan).end_timestamp).toBeDefined();
     });
 
     it('ignores it if hook is emitted with other span', () => {
@@ -779,17 +817,17 @@ describe('startIdleSpan', () => {
       expect(idleSpan).toBeDefined();
 
       vi.advanceTimersByTime(TRACING_DEFAULTS.idleTimeout);
-      expect(spanToJSON(idleSpan).timestamp).toBeUndefined();
+      expect(spanToJSON(idleSpan).end_timestamp).toBeUndefined();
 
       vi.advanceTimersByTime(TRACING_DEFAULTS.idleTimeout);
-      expect(spanToJSON(idleSpan).timestamp).toBeUndefined();
+      expect(spanToJSON(idleSpan).end_timestamp).toBeUndefined();
 
       // Now emit a signal, but with a different span
       getClient()!.emit('idleSpanEnableAutoFinish', span);
 
       // This doesn't affect us!
       vi.advanceTimersByTime(TRACING_DEFAULTS.idleTimeout);
-      expect(spanToJSON(idleSpan).timestamp).toBeUndefined();
+      expect(spanToJSON(idleSpan).end_timestamp).toBeUndefined();
     });
   });
 
@@ -811,7 +849,7 @@ describe('startIdleSpan', () => {
 
       vi.runAllTimers();
 
-      expect(spanToJSON(idleSpan).timestamp).toBe(1100);
+      expect(spanToJSON(idleSpan).end_timestamp).toBe(1100);
     });
 
     it('trims end to final timeout', () => {
@@ -831,7 +869,7 @@ describe('startIdleSpan', () => {
 
       vi.runAllTimers();
 
-      expect(spanToJSON(idleSpan).timestamp).toBe(1030);
+      expect(spanToJSON(idleSpan).end_timestamp).toBe(1030);
     });
 
     it('keeps lower span endTime than highest child span end', () => {
@@ -851,8 +889,8 @@ describe('startIdleSpan', () => {
 
       vi.runAllTimers();
 
-      expect(spanToJSON(idleSpan).timestamp).toBeLessThan(999_999_999);
-      expect(spanToJSON(idleSpan).timestamp).toBeGreaterThan(1060);
+      expect(spanToJSON(idleSpan).end_timestamp).toBeLessThan(999_999_999);
+      expect(spanToJSON(idleSpan).end_timestamp).toBeGreaterThan(1060);
     });
   });
 });

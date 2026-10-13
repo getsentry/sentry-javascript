@@ -1,1 +1,0 @@
-export { instrumentAnthropicAiClient } from '@sentry/core/browser';

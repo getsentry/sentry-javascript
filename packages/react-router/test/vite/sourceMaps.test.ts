@@ -1,4 +1,7 @@
-import type { SentryVitePluginOptions } from '@sentry/vite-plugin';
+// @vitest-environment node
+import type { SentryVitePluginOptions } from '@sentry/bundler-plugins/vite';
+import type { UserConfig } from 'vite';
+import { mergeConfig } from 'vite';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { getUpdatedSourceMapSettings, makeEnableSourceMapsPlugin } from '../../src/vite/makeEnableSourceMapsPlugin';
 
@@ -9,8 +12,8 @@ const mockedSentryVitePlugin = {
 
 const sentryVitePluginSpy = vi.fn((_options: SentryVitePluginOptions) => [mockedSentryVitePlugin]);
 
-vi.mock('@sentry/vite-plugin', async () => {
-  const original = (await vi.importActual('@sentry/vite-plugin')) as any;
+vi.mock('@sentry/bundler-plugins/vite', async () => {
+  const original = (await vi.importActual('@sentry/bundler-plugins/vite')) as any;
 
   return {
     ...original,
@@ -31,6 +34,34 @@ describe('makeEnableSourceMapsPlugin()', () => {
     expect(enableSourceMapPlugin?.enforce).toEqual('post');
     expect(enableSourceMapPlugin?.config).toEqual(expect.any(Function));
   });
+
+  it.each([undefined, false, true, 'hidden', 'inline'] as const)(
+    'preserves user config without duplicating arrays when sourcemap is %s',
+    sourcemap => {
+      const plugin = makeEnableSourceMapsPlugin({});
+      const configHook = plugin.config as (config: UserConfig) => UserConfig;
+      const userConfig: UserConfig = {
+        optimizeDeps: { include: ['react'] },
+        build: {
+          sourcemap,
+          outDir: 'custom-dist',
+          rollupOptions: { plugins: [{ name: 'asset-transform' }] },
+        },
+      };
+
+      const merged = mergeConfig(userConfig, configHook(userConfig));
+
+      expect(merged).toEqual({
+        optimizeDeps: { include: ['react'] },
+        build: {
+          sourcemap: sourcemap ?? 'hidden',
+          outDir: 'custom-dist',
+          rollupOptions: { plugins: [{ name: 'asset-transform' }] },
+          rolldownOptions: { plugins: [{ name: 'asset-transform' }] },
+        },
+      });
+    },
+  );
 });
 
 describe('getUpdatedSourceMapSettings', () => {

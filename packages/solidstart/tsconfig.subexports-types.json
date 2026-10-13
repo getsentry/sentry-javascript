@@ -5,7 +5,8 @@
     "declaration": true,
     "declarationMap": true,
     "emitDeclarationOnly": true,
-    "outDir": "./"
+    "outDir": "./",
+    "rootDir": "./src"
   },
 
   // These types are built separately because they are for a subpath export, which has problems if they are not in the root

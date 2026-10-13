@@ -1,21 +1,14 @@
 /**
  * @vitest-environment jsdom
  */
-import {
-  createTransport,
-  getCurrentScope,
-  SEMANTIC_ATTRIBUTE_SENTRY_OP,
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
-  setCurrentClient,
-} from '@sentry/core';
+import { createTransport, getCurrentScope, setCurrentClient } from '@sentry/core';
 import { render } from '@testing-library/react';
 import { createMemoryHistory } from 'history-4';
 import * as React from 'react';
 import { act } from 'react';
 import { matchPath, Route, Router, Switch } from 'react-router-5';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { URL_TEMPLATE } from '@sentry/conventions/attributes';
+import { SENTRY_SEGMENT_NAME_SOURCE, URL_TEMPLATE, SENTRY_OP, SENTRY_ORIGIN } from '@sentry/conventions/attributes';
 import { BrowserClient, reactRouterV5BrowserTracingIntegration, withSentryRouting } from '../src';
 import type { RouteConfig } from '../src/reactrouter';
 
@@ -27,6 +20,9 @@ const mockRootSpan = {
   setAttribute: vi.fn(),
   setAttributes: vi.fn(),
   getSpanJSON() {
+    return { attributes: { 'sentry.op': 'pageload' } };
+  },
+  getStaticSpanJSON() {
     return { op: 'pageload' };
   },
 };
@@ -81,11 +77,11 @@ describe('browserTracingReactRouterV5', () => {
 
     expect(mockStartBrowserTracingPageLoadSpan).toHaveBeenCalledTimes(1);
     expect(mockStartBrowserTracingPageLoadSpan).toHaveBeenLastCalledWith(expect.any(BrowserClient), {
-      name: '/',
+      name: 'Pageload',
       attributes: {
-        [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
-        [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.pageload.react.reactrouter_v5',
-        [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'pageload',
+        [SENTRY_SEGMENT_NAME_SOURCE]: 'url',
+        [SENTRY_ORIGIN]: 'auto.pageload.react.reactrouter_v5',
+        [SENTRY_OP]: 'pageload',
       },
     });
   });
@@ -126,11 +122,11 @@ describe('browserTracingReactRouterV5', () => {
     });
     expect(mockStartBrowserTracingNavigationSpan).toHaveBeenCalledTimes(1);
     expect(mockStartBrowserTracingNavigationSpan).toHaveBeenLastCalledWith(expect.any(BrowserClient), {
-      name: '/about',
+      name: 'Navigation',
       attributes: {
-        [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
-        [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.react.reactrouter_v5',
-        [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'navigation',
+        [SENTRY_SEGMENT_NAME_SOURCE]: 'url',
+        [SENTRY_ORIGIN]: 'auto.navigation.react.reactrouter_v5',
+        [SENTRY_OP]: 'navigation',
       },
     });
 
@@ -139,11 +135,11 @@ describe('browserTracingReactRouterV5', () => {
     });
     expect(mockStartBrowserTracingNavigationSpan).toHaveBeenCalledTimes(2);
     expect(mockStartBrowserTracingNavigationSpan).toHaveBeenLastCalledWith(expect.any(BrowserClient), {
-      name: '/features',
+      name: 'Navigation',
       attributes: {
-        [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
-        [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.react.reactrouter_v5',
-        [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'navigation',
+        [SENTRY_SEGMENT_NAME_SOURCE]: 'url',
+        [SENTRY_ORIGIN]: 'auto.navigation.react.reactrouter_v5',
+        [SENTRY_OP]: 'navigation',
       },
     });
   });
@@ -198,11 +194,11 @@ describe('browserTracingReactRouterV5', () => {
 
     expect(mockStartBrowserTracingNavigationSpan).toHaveBeenCalledTimes(1);
     expect(mockStartBrowserTracingNavigationSpan).toHaveBeenLastCalledWith(expect.any(BrowserClient), {
-      name: '/users/123',
+      name: 'Navigation',
       attributes: {
-        [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
-        [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.react.reactrouter_v5',
-        [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'navigation',
+        [SENTRY_SEGMENT_NAME_SOURCE]: 'url',
+        [SENTRY_ORIGIN]: 'auto.navigation.react.reactrouter_v5',
+        [SENTRY_OP]: 'navigation',
       },
     });
   });
@@ -235,18 +231,18 @@ describe('browserTracingReactRouterV5', () => {
 
     expect(mockStartBrowserTracingNavigationSpan).toHaveBeenCalledTimes(1);
     expect(mockStartBrowserTracingNavigationSpan).toHaveBeenLastCalledWith(expect.any(BrowserClient), {
-      name: '/users/123',
+      name: 'Navigation',
       attributes: {
-        [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
-        [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.react.reactrouter_v5',
-        [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'navigation',
+        [SENTRY_SEGMENT_NAME_SOURCE]: 'url',
+        [SENTRY_ORIGIN]: 'auto.navigation.react.reactrouter_v5',
+        [SENTRY_OP]: 'navigation',
       },
     });
     expect(mockRootSpan.updateName).toHaveBeenCalledTimes(2);
     expect(mockRootSpan.updateName).toHaveBeenLastCalledWith('/users/:userid');
     expect(mockRootSpan.setAttributes).toHaveBeenCalledWith(
       expect.objectContaining({
-        [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
+        [SENTRY_SEGMENT_NAME_SOURCE]: 'route',
         [URL_TEMPLATE]: '/users/:userid',
       }),
     );
@@ -280,18 +276,18 @@ describe('browserTracingReactRouterV5', () => {
 
     expect(mockStartBrowserTracingNavigationSpan).toHaveBeenCalledTimes(1);
     expect(mockStartBrowserTracingNavigationSpan).toHaveBeenLastCalledWith(expect.any(BrowserClient), {
-      name: '/organizations/1234/v1/758',
+      name: 'Navigation',
       attributes: {
-        [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
-        [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.react.reactrouter_v5',
-        [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'navigation',
+        [SENTRY_SEGMENT_NAME_SOURCE]: 'url',
+        [SENTRY_ORIGIN]: 'auto.navigation.react.reactrouter_v5',
+        [SENTRY_OP]: 'navigation',
       },
     });
     expect(mockRootSpan.updateName).toHaveBeenCalledTimes(2);
     expect(mockRootSpan.updateName).toHaveBeenLastCalledWith('/organizations/:orgid/v1/:teamid');
     expect(mockRootSpan.setAttributes).toHaveBeenCalledWith(
       expect.objectContaining({
-        [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
+        [SENTRY_SEGMENT_NAME_SOURCE]: 'route',
         [URL_TEMPLATE]: '/organizations/:orgid/v1/:teamid',
       }),
     );
@@ -303,18 +299,18 @@ describe('browserTracingReactRouterV5', () => {
 
     expect(mockStartBrowserTracingNavigationSpan).toHaveBeenCalledTimes(2);
     expect(mockStartBrowserTracingNavigationSpan).toHaveBeenLastCalledWith(expect.any(BrowserClient), {
-      name: '/organizations/543',
+      name: 'Navigation',
       attributes: {
-        [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
-        [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.react.reactrouter_v5',
-        [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'navigation',
+        [SENTRY_SEGMENT_NAME_SOURCE]: 'url',
+        [SENTRY_ORIGIN]: 'auto.navigation.react.reactrouter_v5',
+        [SENTRY_OP]: 'navigation',
       },
     });
     expect(mockRootSpan.updateName).toHaveBeenCalledTimes(3);
     expect(mockRootSpan.updateName).toHaveBeenLastCalledWith('/organizations/:orgid');
     expect(mockRootSpan.setAttributes).toHaveBeenCalledWith(
       expect.objectContaining({
-        [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
+        [SENTRY_SEGMENT_NAME_SOURCE]: 'route',
         [URL_TEMPLATE]: '/organizations/:orgid',
       }),
     );
@@ -353,9 +349,9 @@ describe('browserTracingReactRouterV5', () => {
     expect(mockStartBrowserTracingNavigationSpan).toHaveBeenLastCalledWith(expect.any(BrowserClient), {
       name: '/organizations/:orgid/v1/:teamid',
       attributes: {
-        [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
-        [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.react.reactrouter_v5',
-        [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'navigation',
+        [SENTRY_SEGMENT_NAME_SOURCE]: 'route',
+        [SENTRY_ORIGIN]: 'auto.navigation.react.reactrouter_v5',
+        [SENTRY_OP]: 'navigation',
         [URL_TEMPLATE]: '/organizations/:orgid/v1/:teamid',
       },
     });
@@ -367,9 +363,9 @@ describe('browserTracingReactRouterV5', () => {
     expect(mockStartBrowserTracingNavigationSpan).toHaveBeenLastCalledWith(expect.any(BrowserClient), {
       name: '/organizations/:orgid',
       attributes: {
-        [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
-        [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.react.reactrouter_v5',
-        [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'navigation',
+        [SENTRY_SEGMENT_NAME_SOURCE]: 'route',
+        [SENTRY_ORIGIN]: 'auto.navigation.react.reactrouter_v5',
+        [SENTRY_OP]: 'navigation',
         [URL_TEMPLATE]: '/organizations/:orgid',
       },
     });

@@ -16,12 +16,17 @@
     "@sentry/nitro": "latest || *"
   },
   "devDependencies": {
-    "@playwright/test": "~1.56.0",
+    "@playwright/test": "~1.63.0",
     "@sentry-internal/test-utils": "link:../../../test-utils",
     "@sentry/core": "latest || *",
     "nitro": "^3.0.260522-beta",
     "rolldown": "latest",
     "vite": "latest"
+  },
+  "pnpm": {
+    "overrides": {
+      "unstorage": "2.0.0-alpha.7"
+    }
   },
   "volta": {
     "extends": "../../package.json"

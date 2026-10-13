@@ -1,3 +1,4 @@
+// oxlint-disable max-lines
 /**
  * Provide the `http.server.request.start` subscription function that we use
  * to instrument incoming HTTP requests that use the `node:http` module.
@@ -24,22 +25,51 @@ import { DEBUG_BUILD } from '../../debug-build';
 import { debug } from '../../utils/debug-logger';
 import { getClient, getCurrentScope, getIsolationScope, withIsolationScope } from '../../currentScopes';
 import { hasSpansEnabled } from '../../utils/hasSpansEnabled';
-import { headersToDict, httpHeadersToSpanAttributes, httpRequestToRequestData } from '../../utils/request';
+import {
+  getContentLengthFromHeaders,
+  headersToDict,
+  httpHeadersToSpanAttributes,
+  httpRequestToRequestData,
+} from '../../utils/request';
 import { patchRequestToCaptureBody } from './patch-request-to-capture-body';
-import { parseStringToURLObject, stripUrlQueryAndFragment } from '../../utils/url';
+import { getUrlFragment, getUrlQuery, parseStringToURLObject, stripUrlQueryAndFragment } from '../../utils/url';
 import { recordRequestSession } from './record-request-session';
 import { generateSpanId, generateTraceId } from '../../utils/propagationContext';
-import { continueTrace } from '../../tracing/trace';
-import { getSpanStatusFromHttpCode, SPAN_STATUS_ERROR, startSpanManual } from '../../tracing';
-import {
-  SEMANTIC_ATTRIBUTE_SENTRY_OP,
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
-} from '../../semanticAttributes';
+import { continueTrace, startSpanManual } from '../../tracing/trace';
+import { getSpanStatusFromHttpCode, SPAN_STATUS_ERROR } from '../../tracing';
+import { hasSpanStreamingEnabled } from '../../tracing/spans/hasSpanStreamingEnabled';
+import { HTTP_SPAN_NAME_FALLBACK } from '../../tracing/spans/spanNames';
 import { safeMathRandom } from '../../utils/randomSafeContext';
-import { SPAN_KIND } from '../../spanKind';
-import type { SpanAttributes } from '../../types/span';
 import type { SpanStatus } from '../../types/spanStatus';
+import {
+  CLIENT_ADDRESS,
+  CLIENT_PORT,
+  HTTP_REQUEST_METHOD,
+  HTTP_RESPONSE_STATUS_CODE,
+  NETWORK_LOCAL_ADDRESS,
+  NETWORK_LOCAL_PORT,
+  NETWORK_PEER_ADDRESS,
+  NETWORK_PEER_PORT,
+  NETWORK_PROTOCOL_NAME,
+  NETWORK_PROTOCOL_VERSION,
+  NETWORK_TRANSPORT,
+  SENTRY_HTTP_PREFETCH,
+  SENTRY_KIND,
+  SENTRY_OP,
+  SENTRY_SEGMENT_NAME_SOURCE,
+  SERVER_ADDRESS,
+  SERVER_PORT,
+  URL_FRAGMENT,
+  URL_FULL,
+  URL_PATH,
+  URL_QUERY,
+  URL_SCHEME,
+  USER_AGENT_ORIGINAL,
+  SENTRY_ORIGIN,
+} from '@sentry/conventions/attributes';
+import { HTTP_SERVER } from '@sentry/conventions/op';
+import { filterCollectedUrl, filterCollectedUrlQuery } from '../../utils/data-collection/filterCollectedUrl';
+import { getClientIPAddress } from '../../utils/clientIPAddress';
 
 // Tree-shakable guard to remove all code related to tracing
 declare const __SENTRY_TRACING__: boolean;
@@ -107,14 +137,18 @@ export function instrumentServer(options: HttpInstrumentationOptions, server: Ht
       const url = request.url || '/';
       const normalizedRequest = httpRequestToRequestData(request);
       const {
-        maxRequestBodySize = 'medium',
+        maxRequestBodySize: configuredBodySize,
         ignoreRequestBody,
         sessions = true,
         sessionFlushingDelayMS = 60_000,
       } = options;
 
-      if (maxRequestBodySize !== 'none' && !ignoreRequestBody?.(url, request)) {
-        patchRequestToCaptureBody(request, isolationScope, maxRequestBodySize, INTEGRATION_NAME);
+      const effectiveBodySize =
+        configuredBodySize ??
+        (client.getDataCollectionOptions().httpBodies.includes('incomingRequest') ? 'medium' : 'none');
+
+      if (effectiveBodySize !== 'none' && !ignoreRequestBody?.(url, request)) {
+        patchRequestToCaptureBody(request, isolationScope, effectiveBodySize, INTEGRATION_NAME);
       }
 
       // Update the isolation scope, isolate this request
@@ -250,6 +284,8 @@ function buildServerSpanWrap(
         return next();
       }
 
+      const dataCollectionOptions = client.getDataCollectionOptions();
+
       if (
         shouldIgnoreSpansForIncomingRequest(request, {
           ignoreStaticAssets,
@@ -264,52 +300,57 @@ function buildServerSpanWrap(
       const urlObj = parseStringToURLObject(fullUrl);
       const httpTargetWithoutQueryFragment = urlObj ? urlObj.pathname : stripUrlQueryAndFragment(fullUrl);
       const method = (request.method || 'GET').toUpperCase();
-      const name = `${method} ${httpTargetWithoutQueryFragment}`;
+      // With span streaming, span names have to be low cardinality, so we can't fall back to the URL path.
+      // Route instrumentations rename the span to `${method} ${route}` once a route is known.
+      const name = hasSpanStreamingEnabled(client)
+        ? request.method?.toUpperCase() || HTTP_SPAN_NAME_FALLBACK
+        : `${method} ${httpTargetWithoutQueryFragment}`;
       const headers = request.headers;
       const userAgent = headers['user-agent'];
-      const ips = headers['x-forwarded-for'];
       const httpVersion = request.httpVersion;
       const host = headers.host as undefined | string;
       const hostname = host?.replace(/^(.*)(:[0-9]{1,5})/, '$1') || 'localhost';
       const scheme = fullUrl.startsWith('https') ? 'https' : 'http';
       const { socket } = request;
       const { localAddress, localPort, remoteAddress, remotePort } = socket ?? {};
+      const collectClientAddress = client.getDataCollectionOptions().userInfo;
+      // `client.address` is the originating client, so a forwarding header wins over the socket, which
+      // behind a proxy holds the proxy's address. The socket port is the proxy's too, so `client.port`
+      // stays unset then. `network.peer.*` keeps the socket values.
+      const forwardedAddress = getClientIPAddress(headers);
+      const clientAddress = forwardedAddress || remoteAddress;
 
       return startSpanManual(
         {
           name,
-          // Pass SERVER so the OTel sampler infers op='http.server' rather than
-          // 'http', which it does for the INTERNAL default.
-          kind: SPAN_KIND.SERVER,
           attributes: {
             // Sentry-specific attributes
-            [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'http.server',
-            [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.server',
-            [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
-            // Set http.route to the URL path as a best-effort route name.
-            // Framework integrations (Express, etc.) update this via onSpanEnd.
-            'http.route': httpTargetWithoutQueryFragment,
-            // OTel kind (explicit attribute so it appears in span data)
-            'otel.kind': 'SERVER',
+            [SENTRY_OP]: HTTP_SERVER,
+            [SENTRY_ORIGIN]: 'auto.http.server',
+            [SENTRY_SEGMENT_NAME_SOURCE]: 'url',
+            [SENTRY_KIND]: 'server',
             // Network attributes
-            'net.host.ip': localAddress,
-            'net.host.port': localPort,
-            'net.peer.ip': remoteAddress,
-            'net.peer.port': remotePort,
-            'sentry.http.prefetch': isKnownPrefetchRequest(request) || undefined,
-            // Old Semantic Conventions attributes for compatibility
-            'http.url': fullUrl,
-            'http.method': method,
-            'http.target': urlObj ? `${urlObj.pathname}${urlObj.search}` : httpTargetWithoutQueryFragment,
-            'http.host': host,
-            'net.host.name': hostname,
-            'http.client_ip': typeof ips === 'string' ? ips.split(',')[0] : undefined,
-            'http.user_agent': userAgent,
-            'http.scheme': scheme,
-            'http.flavor': httpVersion,
-            'net.transport': httpVersion?.toUpperCase() === 'QUIC' ? 'ip_udp' : 'ip_tcp',
-            ...getRequestContentLengthAttribute(request),
-            ...httpHeadersToSpanAttributes(normalizedRequest.headers || {}, client.getDataCollectionOptions()),
+            [SERVER_ADDRESS]: hostname,
+            [SERVER_PORT]: localPort,
+            [NETWORK_LOCAL_ADDRESS]: localAddress,
+            [NETWORK_LOCAL_PORT]: localPort,
+            [CLIENT_ADDRESS]: collectClientAddress ? clientAddress : undefined,
+            [CLIENT_PORT]: forwardedAddress ? undefined : remotePort,
+            [NETWORK_PEER_ADDRESS]: collectClientAddress ? remoteAddress : undefined,
+            [NETWORK_PEER_PORT]: remotePort,
+            [SENTRY_HTTP_PREFETCH]: isKnownPrefetchRequest(request) || undefined,
+            [URL_FULL]: filterCollectedUrl(fullUrl, client),
+            [URL_PATH]: urlObj?.pathname ?? httpTargetWithoutQueryFragment,
+            [URL_QUERY]: filterCollectedUrlQuery(getUrlQuery(urlObj?.search), client),
+            [URL_FRAGMENT]: getUrlFragment(urlObj?.hash),
+            [HTTP_REQUEST_METHOD]: method,
+            [NETWORK_PROTOCOL_NAME]: 'http',
+            [NETWORK_PROTOCOL_VERSION]: httpVersion,
+            [USER_AGENT_ORIGINAL]: userAgent,
+            [URL_SCHEME]: scheme,
+            [NETWORK_TRANSPORT]: httpVersion?.toUpperCase() === 'QUIC' ? 'udp' : 'tcp',
+            'http.request.body.size': getContentLengthFromHeaders(request.headers),
+            ...httpHeadersToSpanAttributes(normalizedRequest.headers || {}, dataCollectionOptions),
           },
         },
         span => {
@@ -326,14 +367,9 @@ function buildServerSpanWrap(
             isEnded = true;
             // set attributes that come from the response
             span.setAttributes({
-              'http.status_text': response.statusMessage?.toUpperCase(),
-              'http.response.status_code': response.statusCode,
-              'http.status_code': response.statusCode,
-              ...httpHeadersToSpanAttributes(
-                headersToDict(response.headers),
-                client?.getDataCollectionOptions() ?? false,
-                'response',
-              ),
+              'http.response.status_text': response.statusMessage?.toUpperCase(),
+              [HTTP_RESPONSE_STATUS_CODE]: response.statusCode,
+              ...httpHeadersToSpanAttributes(headersToDict(response.headers), dataCollectionOptions, 'response'),
             });
             span.setStatus(status);
             onSpanEnd?.(span, request, response);
@@ -408,16 +444,4 @@ export function isStaticAssetRequest(urlPath: string): boolean {
 function isKnownPrefetchRequest(req: HttpIncomingMessage): boolean {
   // Currently only handles Next.js prefetch requests but may check other frameworks in the future.
   return req.headers['next-router-prefetch'] === '1';
-}
-
-function getRequestContentLengthAttribute(request: HttpIncomingMessage): SpanAttributes {
-  const { headers } = request;
-  const contentLengthHeader = headers['content-length'];
-  const length = contentLengthHeader ? parseInt(String(contentLengthHeader), 10) : -1;
-  const encoding = headers['content-encoding'];
-  return length >= 0
-    ? encoding && encoding !== 'identity'
-      ? { 'http.request_content_length': length }
-      : { 'http.request_content_length_uncompressed': length }
-    : {};
 }

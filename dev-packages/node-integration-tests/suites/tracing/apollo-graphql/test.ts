@@ -1,38 +1,5 @@
 import { afterAll, describe, expect } from 'vitest';
-import { isOrchestrionEnabled } from '../../../utils';
 import { cleanupChildProcesses, createEsmAndCjsTests } from '../../../utils/runner';
-
-// Server start transaction (Apollo Server v5 no longer runs introspection query on start)
-const EXPECTED_START_SERVER_TRANSACTION = {
-  transaction: 'Test Server Start',
-};
-
-// apollo uses graphql v16, so the default run instruments it via the vendored OTel patcher and the
-// orchestrion run (auto-injected on CI) via the diagnostics-channel path. Both emit the same span
-// name/status; the origin and the document attribute (`graphql.source` vs `graphql.document`) differ.
-const orchestrion = isOrchestrionEnabled();
-const ORIGIN = orchestrion ? 'auto.graphql.diagnostic_channel' : 'auto.graphql.otel.graphql';
-
-function graphqlExecuteSpan(opts: {
-  description: string;
-  operationType: string;
-  operationName?: string;
-  document: unknown;
-  status?: string;
-}): ReturnType<typeof expect.objectContaining> {
-  const { description, operationType, operationName, document, status = 'ok' } = opts;
-  return expect.objectContaining({
-    description,
-    status,
-    origin: ORIGIN,
-    data: expect.objectContaining({
-      'graphql.operation.type': operationType,
-      ...(operationName ? { 'graphql.operation.name': operationName } : {}),
-      [orchestrion ? 'graphql.document' : 'graphql.source']: document,
-      'sentry.origin': ORIGIN,
-    }),
-  });
-}
 
 describe('GraphQL/Apollo Tests', () => {
   afterAll(() => {
@@ -40,13 +7,6 @@ describe('GraphQL/Apollo Tests', () => {
   });
 
   describe('query', () => {
-    const EXPECTED_TRANSACTION = {
-      transaction: 'Test Transaction (query)',
-      spans: expect.arrayContaining([
-        graphqlExecuteSpan({ description: 'query', operationType: 'query', document: '{hello}' }),
-      ]),
-    };
-
     createEsmAndCjsTests(
       __dirname,
       'scenario-query.mjs',
@@ -54,9 +14,30 @@ describe('GraphQL/Apollo Tests', () => {
       (createTestRunner, test) => {
         test('should instrument GraphQL queries used from Apollo Server.', async () => {
           await createTestRunner()
-            .expect({ transaction: EXPECTED_START_SERVER_TRANSACTION })
-            .expect({ transaction: EXPECTED_TRANSACTION })
-            .unordered()
+            .expect({
+              span: container => {
+                expect(
+                  container.items.find(span => span.is_segment && span.name === 'Test Server Start'),
+                ).toBeDefined();
+                const segment = container.items.find(span => span.is_segment && span.name === 'Test Transaction');
+                const children = container.items.filter(
+                  span => !span.is_segment && span.attributes['sentry.segment.id']?.value === segment?.span_id,
+                );
+
+                expect(segment?.attributes['sentry.graphql.operation']).toEqual({ value: 'query', type: 'string' });
+                const executeSpan = children.find(
+                  span => span.attributes['graphql.processing.type']?.value === 'execute',
+                );
+                expect(executeSpan?.name).toBe('GraphQL query');
+                expect(executeSpan?.status).toBe('ok');
+                expect(executeSpan?.attributes['graphql.operation.type']).toEqual({ value: 'query', type: 'string' });
+                expect(executeSpan?.attributes['graphql.document']).toEqual({ value: '{hello}', type: 'string' });
+                expect(executeSpan?.attributes['sentry.origin']).toEqual({
+                  value: 'auto.graphql.diagnostic_channel',
+                  type: 'string',
+                });
+              },
+            })
             .start()
             .completed();
         });
@@ -66,18 +47,6 @@ describe('GraphQL/Apollo Tests', () => {
   });
 
   describe('mutation', () => {
-    const EXPECTED_TRANSACTION = {
-      transaction: 'Test Transaction (mutation Mutation)',
-      spans: expect.arrayContaining([
-        graphqlExecuteSpan({
-          description: 'mutation Mutation',
-          operationType: 'mutation',
-          operationName: 'Mutation',
-          document: 'mutation Mutation($email: String) {\n  login(email: $email)\n}',
-        }),
-      ]),
-    };
-
     createEsmAndCjsTests(
       __dirname,
       'scenario-mutation.mjs',
@@ -85,9 +54,45 @@ describe('GraphQL/Apollo Tests', () => {
       (createTestRunner, test) => {
         test('should instrument GraphQL mutations used from Apollo Server.', async () => {
           await createTestRunner()
-            .expect({ transaction: EXPECTED_START_SERVER_TRANSACTION })
-            .expect({ transaction: EXPECTED_TRANSACTION })
-            .unordered()
+            .expect({
+              span: container => {
+                expect(
+                  container.items.find(span => span.is_segment && span.name === 'Test Server Start'),
+                ).toBeDefined();
+                const segment = container.items.find(span => span.is_segment && span.name === 'Test Transaction');
+                const children = container.items.filter(
+                  span => !span.is_segment && span.attributes['sentry.segment.id']?.value === segment?.span_id,
+                );
+
+                expect(segment?.attributes['sentry.graphql.operation']).toEqual({
+                  value: 'mutation Mutation',
+                  type: 'string',
+                });
+                const mutationSpan = children.find(
+                  span =>
+                    span.attributes['graphql.processing.type']?.value === 'execute' &&
+                    span.attributes['graphql.operation.name']?.value === 'Mutation',
+                );
+                expect(mutationSpan?.name).toBe('GraphQL mutation');
+                expect(mutationSpan?.status).toBe('ok');
+                expect(mutationSpan?.attributes['graphql.operation.type']).toEqual({
+                  value: 'mutation',
+                  type: 'string',
+                });
+                expect(mutationSpan?.attributes['graphql.operation.name']).toEqual({
+                  value: 'Mutation',
+                  type: 'string',
+                });
+                expect(mutationSpan?.attributes['graphql.document']).toEqual({
+                  value: 'mutation Mutation($email: String) {\n  login(email: $email)\n}',
+                  type: 'string',
+                });
+                expect(mutationSpan?.attributes['sentry.origin']).toEqual({
+                  value: 'auto.graphql.diagnostic_channel',
+                  type: 'string',
+                });
+              },
+            })
             .start()
             .completed();
         });
@@ -97,18 +102,6 @@ describe('GraphQL/Apollo Tests', () => {
   });
 
   describe('redaction', () => {
-    const EXPECTED_TRANSACTION = {
-      transaction: 'Test Transaction (mutation)',
-      spans: expect.arrayContaining([
-        // The inline email literal must be redacted to `"*"`, so the raw value never reaches the span.
-        graphqlExecuteSpan({
-          description: 'mutation',
-          operationType: 'mutation',
-          document: expect.stringContaining('login(email: "*")'),
-        }),
-      ]),
-    };
-
     createEsmAndCjsTests(
       __dirname,
       'scenario-redaction.mjs',
@@ -116,9 +109,36 @@ describe('GraphQL/Apollo Tests', () => {
       (createTestRunner, test) => {
         test('redacts inline literal values from the graphql document.', async () => {
           await createTestRunner()
-            .expect({ transaction: EXPECTED_START_SERVER_TRANSACTION })
-            .expect({ transaction: EXPECTED_TRANSACTION })
-            .unordered()
+            .expect({
+              span: container => {
+                expect(
+                  container.items.find(span => span.is_segment && span.name === 'Test Server Start'),
+                ).toBeDefined();
+                const segment = container.items.find(span => span.is_segment && span.name === 'Test Transaction');
+                const children = container.items.filter(
+                  span => !span.is_segment && span.attributes['sentry.segment.id']?.value === segment?.span_id,
+                );
+
+                expect(segment?.attributes['sentry.graphql.operation']).toEqual({ value: 'mutation', type: 'string' });
+                const executeSpan = children.find(
+                  span => span.attributes['graphql.processing.type']?.value === 'execute',
+                );
+                expect(executeSpan?.name).toBe('GraphQL mutation');
+                expect(executeSpan?.status).toBe('ok');
+                expect(executeSpan?.attributes['graphql.operation.type']).toEqual({
+                  value: 'mutation',
+                  type: 'string',
+                });
+                expect(executeSpan?.attributes['graphql.document']).toEqual({
+                  value: expect.stringContaining('login(email: "*")'),
+                  type: 'string',
+                });
+                expect(executeSpan?.attributes['sentry.origin']).toEqual({
+                  value: 'auto.graphql.diagnostic_channel',
+                  type: 'string',
+                });
+              },
+            })
             .start()
             .completed();
         });
@@ -128,19 +148,6 @@ describe('GraphQL/Apollo Tests', () => {
   });
 
   describe('error', () => {
-    const EXPECTED_TRANSACTION = {
-      transaction: 'Test Transaction (mutation Mutation)',
-      spans: expect.arrayContaining([
-        graphqlExecuteSpan({
-          description: 'mutation Mutation',
-          operationType: 'mutation',
-          operationName: 'Mutation',
-          document: 'mutation Mutation($email: String) {\n  login(email: $email)\n}',
-          status: 'internal_error',
-        }),
-      ]),
-    };
-
     createEsmAndCjsTests(
       __dirname,
       'scenario-error.mjs',
@@ -148,9 +155,49 @@ describe('GraphQL/Apollo Tests', () => {
       (createTestRunner, test) => {
         test('should handle GraphQL errors.', async () => {
           await createTestRunner()
-            .expect({ transaction: EXPECTED_START_SERVER_TRANSACTION })
-            .expect({ transaction: EXPECTED_TRANSACTION })
-            .unordered()
+            .expect({
+              span: container => {
+                expect(
+                  container.items.find(span => span.is_segment && span.name === 'Test Server Start'),
+                ).toBeDefined();
+                const segment = container.items.find(span => span.is_segment && span.name === 'Test Transaction');
+                const children = container.items.filter(
+                  span => !span.is_segment && span.attributes['sentry.segment.id']?.value === segment?.span_id,
+                );
+
+                expect(segment?.attributes['sentry.graphql.operation']).toEqual({
+                  value: 'mutation Mutation',
+                  type: 'string',
+                });
+                const mutationSpan = children.find(
+                  span =>
+                    span.attributes['graphql.processing.type']?.value === 'execute' &&
+                    span.attributes['graphql.operation.name']?.value === 'Mutation',
+                );
+                expect(mutationSpan?.name).toBe('GraphQL mutation');
+                expect(mutationSpan?.status).toBe('error');
+                expect(mutationSpan?.attributes['sentry.status.message']).toEqual({
+                  value: 'internal_error',
+                  type: 'string',
+                });
+                expect(mutationSpan?.attributes['graphql.operation.type']).toEqual({
+                  value: 'mutation',
+                  type: 'string',
+                });
+                expect(mutationSpan?.attributes['graphql.operation.name']).toEqual({
+                  value: 'Mutation',
+                  type: 'string',
+                });
+                expect(mutationSpan?.attributes['graphql.document']).toEqual({
+                  value: 'mutation Mutation($email: String) {\n  login(email: $email)\n}',
+                  type: 'string',
+                });
+                expect(mutationSpan?.attributes['sentry.origin']).toEqual({
+                  value: 'auto.graphql.diagnostic_channel',
+                  type: 'string',
+                });
+              },
+            })
             .start()
             .completed();
         });

@@ -4,13 +4,11 @@
   "private": true,
   "scripts": {
     "start": "ts-node src/app.ts",
-    "start:override": "ts-node src/app-handle-error-override.ts",
     "test": "playwright test",
-    "test:override": "playwright test --config playwright.override.config.mjs",
     "clean": "npx rimraf node_modules pnpm-lock.yaml",
     "typecheck": "tsc",
     "test:build": "pnpm install && pnpm run typecheck",
-    "test:assert": "pnpm test && pnpm test:override"
+    "test:assert": "pnpm test"
   },
   "dependencies": {
     "@sentry/node": "file:../../packed/sentry-node-packed.tgz",
@@ -20,10 +18,19 @@
     "ts-node": "10.9.2"
   },
   "devDependencies": {
-    "@playwright/test": "~1.56.0",
+    "@playwright/test": "~1.63.0",
     "@sentry-internal/test-utils": "link:../../../test-utils"
   },
   "volta": {
     "extends": "../../package.json"
+  },
+  "sentryTest": {
+    "variants": [
+      {
+        "build-command": "E2E_TEST_OTEL_SETUP=true pnpm test:build",
+        "assert-command": "E2E_TEST_OTEL_SETUP=true pnpm test:assert",
+        "label": "node-fastify-5 (tracer provider)"
+      }
+    ]
   }
 }

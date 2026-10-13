@@ -1,0 +1,36 @@
+import * as Sentry from '@sentry/browser';
+
+window.Sentry = Sentry;
+
+Sentry.init({
+  dsn: 'https://public@dsn.ingest.sentry.io/1337',
+  integrations: [
+    Sentry.browserTracingIntegration({
+      idleTimeout: 4000,
+      enableLongTask: false,
+      enableInp: true,
+      instrumentPageLoad: false,
+      instrumentNavigation: false,
+    }),
+  ],
+  tracesSampleRate: 1,
+  beforeSendSpan: span => {
+    if (span.attributes['sentry.op'] === 'ui.interaction.click') {
+      span.name = 'scrubbed';
+      span.attributes['custom.attribute'] = 'from-before-send-span';
+    }
+
+    return span;
+  },
+  debug: true,
+});
+
+const client = Sentry.getClient();
+
+// Force page load transaction name to a testable value
+Sentry.startBrowserTracingPageLoadSpan(client, {
+  name: 'test-url',
+  attributes: {
+    ['sentry.segment.name.source']: 'url',
+  },
+});

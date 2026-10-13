@@ -5,6 +5,7 @@ on:
     branches:
       - develop
       - master
+      - v10
       - v9
       - v8
       - release/**
@@ -12,6 +13,7 @@ on:
     branches:
       - develop
       - master
+      - v10
       - v9
       - v8
 

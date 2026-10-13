@@ -1,16 +1,11 @@
-import type { ExportedHandler, MessageBatch } from '@cloudflare/workers-types';
+import type { MessageBatch } from '@cloudflare/workers-types';
+import type { AnyExportedHandler } from '../../types';
 import { TraceFlags } from '@opentelemetry/api';
 import type { env as cloudflareEnv, WorkerEntrypoint } from 'cloudflare:workers';
+import { SENTRY_SEGMENT_NAME_SOURCE, SENTRY_OP, SENTRY_ORIGIN } from '@sentry/conventions/attributes';
+import { QUEUE_PROCESS } from '@sentry/conventions/op';
 import type { SpanLink } from '@sentry/core';
-import {
-  captureException,
-  SEMANTIC_LINK_ATTRIBUTE_LINK_TYPE,
-  SEMANTIC_ATTRIBUTE_SENTRY_OP,
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
-  startSpan,
-  withIsolationScope,
-} from '@sentry/core';
+import { captureException, startSpan, withIsolationScope } from '@sentry/core';
 import type { CloudflareOptions } from '../../client';
 import { flushAndDispose } from '../../flush';
 import { ensureInstrumented } from '../../instrument';
@@ -18,36 +13,38 @@ import { getFinalOptions } from '../../options';
 import { addCloudResourceContext } from '../../scope-utils';
 import { init } from '../../sdk';
 import { instrumentContext } from '../../utils/instrumentContext';
+import { setInvocationState } from '../../utils/invocationContext';
 import { extractQueueTraceContext } from '../../utils/queueTraceMeta';
 import { instrumentEnv } from './instrumentEnv';
 
 function extractQueueTraceLinks(batch: MessageBatch): SpanLink[] {
   const linkedSpans = new Set<string>();
+  const links: SpanLink[] = [];
 
-  return batch.messages.flatMap(message => {
+  for (const message of batch.messages) {
     const producerContext = extractQueueTraceContext(message.body);
     if (!producerContext) {
-      return [];
+      continue;
     }
 
-    const spanKey = `${producerContext.traceId}:${producerContext.spanId}`;
+    // `sendBatch` stamps every message with the same publish span, so link each producer only once.
+    const spanKey = `${producerContext.traceId}-${producerContext.spanId}`;
     if (linkedSpans.has(spanKey)) {
-      return [];
+      continue;
     }
     linkedSpans.add(spanKey);
 
-    return [
-      {
-        context: {
-          traceId: producerContext.traceId,
-          spanId: producerContext.spanId,
-          traceFlags: producerContext.sampled ? TraceFlags.SAMPLED : TraceFlags.NONE,
-          isRemote: true,
-        },
-        attributes: { [SEMANTIC_LINK_ATTRIBUTE_LINK_TYPE]: 'previous_trace' },
+    links.push({
+      context: {
+        traceId: producerContext.traceId,
+        spanId: producerContext.spanId,
+        traceFlags: producerContext.sampled ? TraceFlags.SAMPLED : TraceFlags.NONE,
+        isRemote: true,
       },
-    ];
-  });
+    });
+  }
+
+  return links;
 }
 
 /**
@@ -62,21 +59,21 @@ function wrapQueueHandler(
   return withIsolationScope(isolationScope => {
     const waitUntil = context.waitUntil.bind(context);
 
+    setInvocationState(isolationScope, { ctx: context });
+
     const client = init({ ...options, ctx: context });
     isolationScope.setClient(client);
 
     addCloudResourceContext(isolationScope);
 
-    const links = options.enableQueueTracePropagation ? extractQueueTraceLinks(batch) : [];
-
     return startSpan(
       {
-        op: 'faas.queue',
         name: `process ${batch.queue}`,
-        // A queue batch can fan in unrelated traces, so continuing one trace would invent false parentage.
-        // Keep queue.process as a root and link every producer instead: https://github.com/getsentry/sentry-javascript/issues/22298
-        links,
+        // A batch can mix messages from unrelated traces, so continuing any one of them would invent
+        // a false parent. Keep queue.process as a root span and link every producer instead.
+        links: extractQueueTraceLinks(batch),
         attributes: {
+          [SENTRY_OP]: QUEUE_PROCESS,
           'faas.trigger': 'pubsub',
           'messaging.destination.name': batch.queue,
           'messaging.system': 'cloudflare',
@@ -84,9 +81,8 @@ function wrapQueueHandler(
           'messaging.operation.name': 'process',
           'messaging.batch.message_count': batch.messages.length,
           'messaging.message.retry.count': batch.messages.reduce((acc, message) => acc + message.attempts - 1, 0),
-          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'queue.process',
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.faas.cloudflare.queue',
-          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'task',
+          [SENTRY_ORIGIN]: 'auto.faas.cloudflare.queue',
+          [SENTRY_SEGMENT_NAME_SOURCE]: 'task',
         },
       },
       async () => {
@@ -106,8 +102,7 @@ function wrapQueueHandler(
 /**
  * Instruments a queue handler for ExportedHandler (env/ctx come from args).
  */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function instrumentExportedHandlerQueue<T extends ExportedHandler<any, any, any>>(
+export function instrumentExportedHandlerQueue<T extends AnyExportedHandler>(
   handler: T,
   optionsCallback: (env: typeof cloudflareEnv) => CloudflareOptions | undefined,
 ): void {

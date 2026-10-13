@@ -1,17 +1,30 @@
 import {
+  CLIENT_ADDRESS,
+  CLIENT_PORT,
+  NETWORK_PROTOCOL_NAME,
+  SENTRY_OP,
+  SENTRY_SEGMENT_NAME_SOURCE,
+} from '@sentry/conventions/attributes';
+import { HTTP_SERVER } from '@sentry/conventions/op';
+import type { Integration, MaxRequestBodySize } from '@sentry/core';
+import {
+  captureBodyFromWinterCGRequest,
   captureException,
   continueTrace,
+  debug,
   getClient,
   getHttpSpanDetailsFromUrlObject,
+  hasSpanStreamingEnabled,
   httpHeadersToSpanAttributes,
+  HTTP_SPAN_NAME_FALLBACK,
   parseStringToURLObject,
-  SEMANTIC_ATTRIBUTE_SENTRY_OP,
   setHttpStatus,
   startSpanManual,
   winterCGHeadersToDict,
   winterCGRequestToRequestData,
   withIsolationScope,
 } from '@sentry/core';
+import { getClientIPAddress } from '@sentry/core/server';
 import { streamResponse } from './utils/streaming';
 
 export type RequestHandlerWrapperOptions<Addr extends Deno.Addr> = {
@@ -37,7 +50,12 @@ export const wrapDenoRequestHandler = <Addr extends Deno.Addr = Deno.Addr>(
 
     const client = getClient();
     if (!client) {
-      throw new Error('could not get Deno client. Did you run Sentry.init?');
+      // `denoServeIntegration` patches `Deno.serve` from `Client.init()`, which a
+      // directly-constructed client also runs — that path never calls
+      // `setCurrentClient`, so the patch can be live with no client bound. Keep
+      // requests flowing to the user's handler, uninstrumented.
+      debug.warn('Cannot instrument Deno.serve request. No client defined.');
+      return handler();
     }
     isolationScope.setClient(client);
 
@@ -57,27 +75,61 @@ export const wrapDenoRequestHandler = <Addr extends Deno.Addr = Deno.Addr>(
     }
 
     const urlObject = parseStringToURLObject(request.url);
-    const [name, attributes] = getHttpSpanDetailsFromUrlObject(urlObject, 'server', 'auto.http.deno', request);
+    const [rawName, attributes] = getHttpSpanDetailsFromUrlObject(
+      urlObject,
+      'server',
+      'auto.http.deno',
+      request,
+      undefined,
+      client,
+    );
+    // With span streaming, span names have to be low cardinality, so we can't fall back to the URL.
+    // A `route` source means the name already is (e.g. the `/` path), so it is kept as-is.
+    const name =
+      attributes[SENTRY_SEGMENT_NAME_SOURCE] === 'route' || !hasSpanStreamingEnabled(client)
+        ? rawName
+        : request.method?.toUpperCase() || HTTP_SPAN_NAME_FALLBACK;
 
     const contentLength = request.headers.get('content-length');
     assignIfSet(attributes, 'http.request.body.size', contentLength && parseInt(contentLength, 10));
     assignIfSet(attributes, 'user_agent.original', request.headers.get('user-agent'));
 
+    const headers = winterCGHeadersToDict(request.headers);
+    const socketIp = (info?.remoteAddr as Deno.NetAddr)?.hostname;
     const dataCollection = client.getDataCollectionOptions();
     if (dataCollection.userInfo) {
+      // `client.address` is the originating client, so a forwarding header wins over the socket, which
+      // behind a proxy holds the proxy's address. The socket port is the proxy's too, so `client.port`
+      // stays unset then.
+      const forwardedAddress = getClientIPAddress(headers);
       assignIfSet(
         attributes,
-        'client.address',
-        (info?.remoteAddr as Deno.NetAddr)?.hostname ?? (info?.remoteAddr as Deno.UnixAddr)?.path,
+        CLIENT_ADDRESS,
+        forwardedAddress || socketIp || (info?.remoteAddr as Deno.UnixAddr)?.path,
       );
-      assignIfSet(attributes, 'client.port', (info?.remoteAddr as Deno.NetAddr)?.port);
+      if (!forwardedAddress) {
+        assignIfSet(attributes, CLIENT_PORT, (info?.remoteAddr as Deno.NetAddr)?.port);
+      }
     }
 
-    Object.assign(attributes, httpHeadersToSpanAttributes(winterCGHeadersToDict(request.headers), dataCollection));
-    attributes[SEMANTIC_ATTRIBUTE_SENTRY_OP] = 'http.server';
+    // describes the OSI application-layer protocol (http), not the scheme (might be https)
+    attributes[NETWORK_PROTOCOL_NAME] = 'http';
+
+    Object.assign(attributes, httpHeadersToSpanAttributes(headers, dataCollection));
+    attributes[SENTRY_OP] = HTTP_SERVER;
     isolationScope.setSDKProcessingMetadata({
       normalizedRequest: winterCGRequestToRequestData(request),
+      ipAddress: socketIp,
     });
+
+    const configuredBodySize = client.getIntegrationByName<Integration & { maxRequestBodySize?: MaxRequestBodySize }>(
+      'DenoServe',
+    )?.maxRequestBodySize;
+    const effectiveBodySize =
+      configuredBodySize ?? (dataCollection.httpBodies.includes('incomingRequest') ? 'medium' : 'none');
+    if (request.method !== 'GET' && effectiveBodySize !== 'none') {
+      await captureBodyFromWinterCGRequest(request, isolationScope, effectiveBodySize);
+    }
 
     return continueTrace(
       {

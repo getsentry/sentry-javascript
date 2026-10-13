@@ -1,6 +1,6 @@
 {
   "name": "@sentry/deno",
-  "version": "10.65.0",
+  "version": "11.7.0",
   "description": "Official Sentry SDK for Deno",
   "repository": "git://github.com/getsentry/sentry-javascript.git",
   "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/deno",
@@ -28,8 +28,10 @@
   ],
   "dependencies": {
     "@opentelemetry/api": "^1.9.1",
-    "@sentry/core": "10.65.0",
-    "@sentry/server-utils": "10.65.0"
+    "@sentry/conventions": "^0.27.0",
+    "@sentry/core": "11.7.0",
+    "@sentry/server-runtime-injection": "11.7.0",
+    "@sentry/server-utils": "11.7.0"
   },
   "scripts": {
     "deno-types": "node ./scripts/download-deno-types.mjs",
@@ -42,11 +44,13 @@
     "clean": "rimraf build build-types build-test coverage node_modules/.deno sentry-deno-*.tgz",
     "prefix": "yarn deno-types",
     "prelint": "yarn deno-types",
-    "lint": "OXLINT_TSGOLINT_DANGEROUSLY_SUPPRESS_PROGRAM_DIAGNOSTICS=true oxlint . --type-aware",
-    "lint:fix": "OXLINT_TSGOLINT_DANGEROUSLY_SUPPRESS_PROGRAM_DIAGNOSTICS=true oxlint . --fix --type-aware",
+    "lint": "oxlint . --type-aware",
+    "lint:types": "oxlint src --type-aware --type-check",
+    "lint:fix": "oxlint . --fix --type-aware",
     "lint:es-compatibility": "es-check es2022 ./build/esm/*.js --module",
     "install:deno": "node ./scripts/install-deno.mjs",
-    "test": "run-s install:deno deno-types test:unit",
+    "test": "run-s install:deno deno-types test:types test:unit",
+    "test:types": "deno check --unstable-sloppy-imports test",
     "test:unit": "deno test --allow-net --allow-read --allow-run --allow-env --no-check",
     "test:unit:update": "deno test --allow-net --allow-read --allow-run --allow-env --no-check --allow-write -- --update",
     "yalc:publish": "yalc publish --push --sig"
@@ -61,12 +65,13 @@
     "targets": {
       "build:transpile": {
         "outputs": [
-          "{projectRoot}/build"
+          "{projectRoot}/build",
+          "!{projectRoot}/build/esm/**/*.d.ts"
         ]
       },
       "build:types": {
         "outputs": [
-          "{projectRoot}/build-types"
+          "{projectRoot}/build/esm/**/*.d.ts"
         ]
       }
     }

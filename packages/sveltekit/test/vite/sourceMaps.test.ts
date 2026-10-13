@@ -1,4 +1,4 @@
-import { sentryVitePlugin } from '@sentry/vite-plugin';
+import { sentryVitePlugin } from '@sentry/bundler-plugins/vite';
 import type { Plugin } from 'vite';
 import * as vite from 'vite';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -10,8 +10,8 @@ const mockedMainPlugin = {
   writeBundle: vi.fn(),
 };
 
-vi.mock('@sentry/vite-plugin', async () => {
-  const original = (await vi.importActual('@sentry/vite-plugin')) as any;
+vi.mock('@sentry/bundler-plugins/vite', async () => {
+  const original = (await vi.importActual('@sentry/bundler-plugins/vite')) as any;
 
   return {
     ...original,
@@ -47,9 +47,8 @@ async function getSentryViteSubPlugin(name: string): Promise<Plugin | undefined>
       authToken: 'token',
       org: 'org',
       project: 'project',
-      adapter: 'other',
     },
-    { kit: {} },
+    { getAdapterOutputDir: async () => '.svelte-kit/output' },
   );
 
   return plugins.find(plugin => plugin.name === name);
@@ -189,6 +188,61 @@ describe('makeCustomSentryVitePlugins()', () => {
       await plugin.closeBundle();
       expect(mockedMainPlugin.writeBundle).not.toHaveBeenCalled();
     });
+
+    it('uploads source maps in the post `buildApp` hook when there is no separate SSR build (SvelteKit 3)', async () => {
+      const plugin = await getSentryViteSubPlugin('sentry-sveltekit-debug-id-upload-plugin');
+
+      // @ts-expect-error this function exists!
+      plugin.configResolved({ build: { ssr: false } });
+      // @ts-expect-error this function exists!
+      await plugin.closeBundle();
+      expect(mockedMainPlugin.writeBundle).not.toHaveBeenCalled();
+
+      expect(plugin?.buildApp).toEqual({ order: 'post', handler: expect.any(Function) });
+      // @ts-expect-error this function exists!
+      await plugin.buildApp.handler({ environments: { ssr: { isBuilt: true }, client: { isBuilt: true } } });
+      expect(mockedMainPlugin.writeBundle).toHaveBeenCalledTimes(1);
+    });
+
+    it("doesn't upload source maps in the post `buildApp` hook before any environment was built (SvelteKit 2 on Vite 7+)", async () => {
+      const plugin = await getSentryViteSubPlugin('sentry-sveltekit-debug-id-upload-plugin');
+
+      // @ts-expect-error this function exists!
+      await plugin.buildApp.handler({ environments: { ssr: { isBuilt: false } } });
+      expect(mockedMainPlugin.writeBundle).not.toHaveBeenCalled();
+
+      // @ts-expect-error this function exists!
+      plugin.configResolved({ build: { ssr: true } });
+      // @ts-expect-error this function exists!
+      await plugin.closeBundle();
+      expect(mockedMainPlugin.writeBundle).toHaveBeenCalledTimes(1);
+    });
+
+    it('uploads source maps only once when both `closeBundle` and `buildApp` run (SvelteKit 2 on Vite 7+)', async () => {
+      const plugin = await getSentryViteSubPlugin('sentry-sveltekit-debug-id-upload-plugin');
+
+      // @ts-expect-error this function exists!
+      plugin.configResolved({ build: { ssr: true } });
+      // @ts-expect-error this function exists!
+      await plugin.closeBundle();
+      // @ts-expect-error this function exists!
+      await plugin.buildApp.handler({ environments: { ssr: { isBuilt: true } } });
+
+      expect(mockedMainPlugin.writeBundle).toHaveBeenCalledTimes(1);
+    });
+
+    it('uploads source maps on every SSR rebuild in watch mode', async () => {
+      const plugin = await getSentryViteSubPlugin('sentry-sveltekit-debug-id-upload-plugin');
+
+      // @ts-expect-error this function exists!
+      plugin.configResolved({ build: { ssr: true } });
+      // @ts-expect-error this function exists!
+      await plugin.closeBundle();
+      // @ts-expect-error this function exists!
+      await plugin.closeBundle();
+
+      expect(mockedMainPlugin.writeBundle).toHaveBeenCalledTimes(2);
+    });
   });
 
   it('catches errors while uploading source maps', async () => {
@@ -202,12 +256,9 @@ describe('makeCustomSentryVitePlugins()', () => {
     const plugin = await getSentryViteSubPlugin('sentry-sveltekit-debug-id-upload-plugin');
 
     // @ts-expect-error this function exists!
-    expect(plugin.closeBundle).not.toThrow();
-
-    // @ts-expect-error this function exists!
     plugin.configResolved({ build: { ssr: true } });
     // @ts-expect-error this function exists!
-    await plugin.closeBundle();
+    await expect(plugin.closeBundle()).resolves.toBeUndefined();
 
     expect(consoleWarnSpy).toHaveBeenCalledWith(expect.stringContaining('Failed to upload source maps'));
     expect(consoleLogSpy).toHaveBeenCalled();
@@ -299,8 +350,8 @@ describe('deleteFilesAfterUpload', () => {
   it('works with defauts', async () => {
     const viteConfig: ViteUserConfig = {};
 
-    vi.mock('@sentry/vite-plugin', async () => {
-      const original = (await vi.importActual('@sentry/vite-plugin')) as any;
+    vi.mock('@sentry/bundler-plugins/vite', async () => {
+      const original = (await vi.importActual('@sentry/bundler-plugins/vite')) as any;
 
       return {
         ...original,
@@ -313,9 +364,8 @@ describe('deleteFilesAfterUpload', () => {
         authToken: 'token',
         org: 'org',
         project: 'project',
-        adapter: 'other',
       },
-      { kit: {} },
+      { getAdapterOutputDir: async () => '.svelte-kit/output' },
     );
 
     // @ts-expect-error this function exists!
@@ -330,7 +380,6 @@ describe('deleteFilesAfterUpload', () => {
       authToken: 'token',
       org: 'org',
       project: 'project',
-      adapter: 'other',
       release: {
         name: expect.any(String),
       },
@@ -351,9 +400,8 @@ describe('deleteFilesAfterUpload', () => {
       plugin => plugin.name === 'sentry-sveltekit-files-to-delete-after-upload-setting-plugin',
     )!;
 
-    // call this to ensure the filesToDeleteAfterUpload setting is resolved
     // @ts-expect-error this function exists!
-    await filesToDeleteAfterUploadSettingPlugin.config(viteConfig);
+    await filesToDeleteAfterUploadSettingPlugin.configResolved();
 
     await expect(mergedOptions.sourcemaps.filesToDeleteAfterUpload).resolves.toEqual([
       './.*/**/*.map',
@@ -377,8 +425,8 @@ describe('deleteFilesAfterUpload', () => {
         },
       };
 
-      vi.mock('@sentry/vite-plugin', async () => {
-        const original = (await vi.importActual('@sentry/vite-plugin')) as any;
+      vi.mock('@sentry/bundler-plugins/vite', async () => {
+        const original = (await vi.importActual('@sentry/bundler-plugins/vite')) as any;
 
         return {
           ...original,
@@ -391,12 +439,11 @@ describe('deleteFilesAfterUpload', () => {
           authToken: 'token',
           org: 'org',
           project: 'project',
-          adapter: 'other',
           sourcemaps: {
             filesToDeleteAfterUpload,
           },
         },
-        { kit: {} },
+        { getAdapterOutputDir: async () => '.svelte-kit/output' },
       );
 
       // @ts-expect-error this function exists!
@@ -411,7 +458,6 @@ describe('deleteFilesAfterUpload', () => {
         authToken: 'token',
         org: 'org',
         project: 'project',
-        adapter: 'other',
         release: {
           name: expect.any(String),
         },
@@ -432,9 +478,8 @@ describe('deleteFilesAfterUpload', () => {
         plugin => plugin.name === 'sentry-sveltekit-files-to-delete-after-upload-setting-plugin',
       )!;
 
-      // call this to ensure the filesToDeleteAfterUpload setting is resolved
       // @ts-expect-error this function exists!
-      await filesToDeleteAfterUploadSettingPlugin.config(viteConfig);
+      await filesToDeleteAfterUploadSettingPlugin.configResolved();
 
       await expect(mergedOptions.sourcemaps.filesToDeleteAfterUpload).resolves.toEqual(
         filesToDeleteAfterUploadExpected,

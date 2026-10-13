@@ -4,6 +4,8 @@ import * as fs from 'fs';
 import * as path from 'path';
 import type { Plugin } from 'vite';
 import { WRAPPED_MODULE_SUFFIX } from '../common/utils';
+import type { ResolvedKitConfig } from './kitConfig';
+import { isNativeServerTracingEnabled } from './kitConfig';
 
 const AcornParser = acorn.Parser.extend(tsPlugin());
 
@@ -28,7 +30,7 @@ export type AutoInstrumentSelection = {
 
 type AutoInstrumentPluginOptions = AutoInstrumentSelection & {
   debug: boolean;
-  onlyInstrumentClient: boolean;
+  getKitConfig: () => Promise<ResolvedKitConfig>;
 };
 
 /**
@@ -41,9 +43,15 @@ type AutoInstrumentPluginOptions = AutoInstrumentSelection & {
  * @returns the plugin
  */
 export function makeAutoInstrumentationPlugin(options: AutoInstrumentPluginOptions): Plugin {
-  const { load: wrapLoadEnabled, serverLoad: wrapServerLoadEnabled, debug } = options;
+  const { load: wrapLoadEnabled, serverLoad: wrapServerLoadEnabled, debug, getKitConfig } = options;
 
   let isServerBuild: boolean | undefined = undefined;
+
+  // Whether we should skip server-side load instrumentation because SvelteKit's native server
+  // tracing is enabled. If it is, adding our own wrapper on top would emit duplicate spans.
+  let onlyInstrumentClientPromise: Promise<boolean> | undefined;
+  const shouldOnlyInstrumentClient = (): Promise<boolean> =>
+    (onlyInstrumentClientPromise ??= getKitConfig().then(isNativeServerTracingEnabled));
 
   return {
     name: 'sentry-auto-instrumentation',
@@ -59,7 +67,13 @@ export function makeAutoInstrumentationPlugin(options: AutoInstrumentPluginOptio
     },
 
     async load(id) {
-      if (options.onlyInstrumentClient && isServerBuild) {
+      // On Vite 6+ `config.build.ssr` captured in `configResolved` no longer reliably reflects the per-environment build.
+      // Prefer the environment of the current build (`this.environment.name === 'ssr'`) and fall back to
+      // `isServerBuild` for older Vite versions that don't expose environments.
+      const environmentName = (this as { environment?: { name?: string } }).environment?.name;
+      const isServerEnvironment = environmentName != null ? environmentName === 'ssr' : !!isServerBuild;
+
+      if (isServerEnvironment && (await shouldOnlyInstrumentClient())) {
         return null;
       }
 
@@ -74,9 +88,9 @@ export function makeAutoInstrumentationPlugin(options: AutoInstrumentPluginOptio
         return getWrapperCode('wrapLoadWithSentry', `${id}${WRAPPED_MODULE_SUFFIX}`);
       }
 
-      if (options.onlyInstrumentClient) {
+      if (await shouldOnlyInstrumentClient()) {
         // Now that we've checked universal files, we can early return and avoid further
-        // regexp checks below for server-only files, in case `onlyInstrumentClient` is `true`.
+        // regexp checks below for server-only files.
         return null;
       }
 

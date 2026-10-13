@@ -17,7 +17,7 @@ interface MemoryInfo {
 export async function addMemoryEntry(replay: ReplayContainer): Promise<Array<AddEventResult | null>> {
   // window.performance.memory is a non-standard API and doesn't work on all browsers, so we try-catch this
   try {
-    return Promise.all(
+    return await Promise.all(
       createPerformanceSpans(replay, [
         // @ts-expect-error memory doesn't exist on type Performance as the API is non-standard (we check that it exists above)
         createMemoryEntry(WINDOW.performance.memory),

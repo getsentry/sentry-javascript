@@ -4,7 +4,7 @@
 
 import '../utils/mock-internal-setTimeout';
 import type { Event } from '@sentry/core';
-import { getClient, getCurrentScope } from '@sentry/core';
+import { getClient, getCurrentScope, getMainCarrier } from '@sentry/core';
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { BASE_TIMESTAMP } from '..';
 import { resetSdkMock } from '../mocks/resetSdkMock';
@@ -16,8 +16,7 @@ describe('Integration | eventProcessors', () => {
   });
 
   beforeEach(() => {
-    getCurrentScope().clear();
-    getCurrentScope().setClient(undefined);
+    getMainCarrier().__SENTRY__ = undefined;
   });
 
   afterEach(() => {

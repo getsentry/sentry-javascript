@@ -18,8 +18,8 @@ test('Sends streamed spans for an API route', async ({ baseURL }) => {
   expect(getSpanOp(rootSpan!)).toBe('http.server');
   expect(rootSpan!.status).toBe('ok');
   expect(rootSpan!.trace_id).toMatch(/[a-f0-9]{32}/);
-  expect(rootSpan!.attributes['sentry.source']?.value).toBe('route');
-  expect(rootSpan!.attributes['sentry.origin']?.value).toBe('auto.http.otel.http');
+  expect(rootSpan!.attributes['sentry.segment.name.source']?.value).toBe('route');
+  expect(rootSpan!.attributes['sentry.origin']?.value).toBe('auto.http.http_server');
   expect(rootSpan!.attributes['http.response.status_code']?.value).toBe(200);
 
   const childSpans = spans.filter(span => !span.is_segment);
@@ -74,12 +74,18 @@ test('Sends streamed spans for an errored route', async ({ baseURL }) => {
   expect(rootSpan.name).toBe('GET /test-exception/:id');
   expect(getSpanOp(rootSpan)).toBe('http.server');
   expect(rootSpan.status).toBe('error');
-  expect(rootSpan.attributes['http.status_code']?.value).toBe(500);
+  expect(rootSpan.attributes['http.response.status_code']?.value).toBe(500);
 });
 
 test('Outgoing fetch spans are streamed', async ({ baseURL }) => {
   const fetchSpanPromise = waitForStreamedSpan('node-express-streaming', span => {
-    return getSpanOp(span) === 'http.client' && !span.is_segment && span.name.includes('localhost:3030/test-success');
+    // A streamed name keeps only the domain, which every outgoing span here shares, so select on
+    // `url.full` and assert the name below.
+    return (
+      getSpanOp(span) === 'http.client' &&
+      !span.is_segment &&
+      String(span.attributes['url.full']?.value ?? '').includes('localhost:3030/test-success')
+    );
   });
 
   await fetch(`${baseURL}/test-outgoing-fetch`);
@@ -87,6 +93,8 @@ test('Outgoing fetch spans are streamed', async ({ baseURL }) => {
   const fetchSpan = await fetchSpanPromise;
 
   expect(fetchSpan).toBeDefined();
+  expect(fetchSpan.name).toBe('GET localhost');
+  expect(fetchSpan.attributes['url.domain']?.value).toBe('localhost');
   expect(fetchSpan.status).toBe('ok');
 });
 
@@ -96,7 +104,13 @@ test.skip('Outgoing fetch spans include response headers when headersToSpanAttri
   baseURL,
 }) => {
   const fetchSpanPromise = waitForStreamedSpan('node-express-streaming', span => {
-    return getSpanOp(span) === 'http.client' && !span.is_segment && span.name.includes('localhost:3030/test-success');
+    // A streamed name keeps only the domain, which every outgoing span here shares, so select on
+    // `url.full` and assert the name below.
+    return (
+      getSpanOp(span) === 'http.client' &&
+      !span.is_segment &&
+      String(span.attributes['url.full']?.value ?? '').includes('localhost:3030/test-success')
+    );
   });
 
   await fetch(`${baseURL}/test-outgoing-fetch`);
@@ -104,16 +118,19 @@ test.skip('Outgoing fetch spans include response headers when headersToSpanAttri
   const fetchSpan = await fetchSpanPromise;
 
   expect(fetchSpan).toBeDefined();
+  expect(fetchSpan.name).toBe('GET localhost');
   expect(fetchSpan.attributes['http.response.header.content-length']).toBeDefined();
 });
 
 test('Extracts HTTP request headers as streamed span attributes', async ({ baseURL }) => {
   const rootSpanPromise = waitForStreamedSpan('node-express-streaming', span => {
+    const userAgent = span.attributes['http.request.header.user-agent'];
     return (
       span.name === 'GET /test-transaction' &&
       getSpanOp(span) === 'http.server' &&
       span.is_segment &&
-      span.attributes['http.request.header.user_agent']?.value === 'Custom-Agent/1.0 (Test)'
+      userAgent?.type === 'array' &&
+      userAgent.value[0] === 'Custom-Agent/1.0 (Test)'
     );
   });
 
@@ -129,9 +146,9 @@ test('Extracts HTTP request headers as streamed span attributes', async ({ baseU
 
   const rootSpan = await rootSpanPromise;
 
-  expect(rootSpan.attributes['http.request.header.user_agent']?.value).toBe('Custom-Agent/1.0 (Test)');
-  expect(rootSpan.attributes['http.request.header.content_type']?.value).toBe('application/json');
-  expect(rootSpan.attributes['http.request.header.x_custom_header']?.value).toBe('test-value');
-  expect(rootSpan.attributes['http.request.header.accept']?.value).toBe('application/json, text/plain');
-  expect(rootSpan.attributes['http.request.header.x_request_id']?.value).toBe('req-123');
+  expect(rootSpan.attributes['http.request.header.user-agent']?.value).toEqual(['Custom-Agent/1.0 (Test)']);
+  expect(rootSpan.attributes['http.request.header.content-type']?.value).toEqual(['application/json']);
+  expect(rootSpan.attributes['http.request.header.x-custom-header']?.value).toEqual(['test-value']);
+  expect(rootSpan.attributes['http.request.header.accept']?.value).toEqual(['application/json, text/plain']);
+  expect(rootSpan.attributes['http.request.header.x-request-id']?.value).toEqual(['req-123']);
 });

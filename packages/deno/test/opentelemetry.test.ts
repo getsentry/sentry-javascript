@@ -1,13 +1,12 @@
+import { getMainCarrier } from '@sentry/core';
 import { assertEquals, assertNotEquals } from 'https://deno.land/std@0.212.0/assert/mod.ts';
+import type { TracerProvider } from 'npm:@opentelemetry/api@1';
 import { context, propagation, trace } from 'npm:@opentelemetry/api@1';
 import type { DenoClient } from '../build/esm/index.js';
-import { getCurrentScope, getGlobalScope, getIsolationScope, init, startSpan } from '../build/esm/index.js';
+import { init, startSpan } from '../build/esm/index.js';
 
 function resetGlobals(): void {
-  getCurrentScope().clear();
-  getCurrentScope().setClient(undefined);
-  getIsolationScope().clear();
-  getGlobalScope().clear();
+  getMainCarrier().__SENTRY__ = undefined;
 }
 
 function cleanupOtel(): void {
@@ -22,14 +21,15 @@ function resetSdk(): void {
   cleanupOtel();
 }
 
-Deno.test('should not capture spans emitted via @opentelemetry/api when skipOpenTelemetrySetup is true', async () => {
+Deno.test('should not capture spans emitted via @opentelemetry/api when enableOpenTelemetrySetup is false', async () => {
   resetSdk();
   const transactionEvents: any[] = [];
 
   const client = init({
     dsn: 'https://username@domain/123',
     tracesSampleRate: 1,
-    skipOpenTelemetrySetup: true,
+    traceLifecycle: 'static',
+    enableOpenTelemetrySetup: false,
     beforeSendTransaction: event => {
       transactionEvents.push(event);
       return null;
@@ -60,6 +60,7 @@ Deno.test('should capture spans emitted via @opentelemetry/api', async () => {
   const client = init({
     dsn: 'https://username@domain/123',
     tracesSampleRate: 1,
+    traceLifecycle: 'static',
     beforeSendTransaction: event => {
       transactionEvents.push(event);
       return null;
@@ -88,14 +89,14 @@ Deno.test('should capture spans emitted via @opentelemetry/api', async () => {
   assertEquals(transactionEvent?.contexts?.trace?.data?.['sentry.deno_tracer'], true);
   assertEquals(transactionEvent?.contexts?.trace?.data?.['sentry.origin'], 'manual');
   assertEquals(transactionEvent?.contexts?.trace?.data?.['sentry.sample_rate'], 1);
-  assertEquals(transactionEvent?.contexts?.trace?.data?.['sentry.source'], 'custom');
+  assertEquals(transactionEvent?.contexts?.trace?.data?.['sentry.segment.name.source'], 'custom');
 
   assertEquals(transactionEvent2?.spans?.length, 1);
   assertEquals(transactionEvent2?.transaction, 'test 2');
   assertEquals(transactionEvent2?.contexts?.trace?.data?.['sentry.deno_tracer'], true);
   assertEquals(transactionEvent2?.contexts?.trace?.data?.['sentry.origin'], 'manual');
   assertEquals(transactionEvent2?.contexts?.trace?.data?.['sentry.sample_rate'], 1);
-  assertEquals(transactionEvent2?.contexts?.trace?.data?.['sentry.source'], 'custom');
+  assertEquals(transactionEvent2?.contexts?.trace?.data?.['sentry.segment.name.source'], 'custom');
   assertEquals(transactionEvent2?.contexts?.trace?.data?.['test.attribute'], 'test');
 
   const childSpan = transactionEvent2?.spans?.[0];
@@ -112,6 +113,7 @@ Deno.test('opentelemetry spans should interop with Sentry spans', async () => {
   const client = init({
     dsn: 'https://username@domain/123',
     tracesSampleRate: 1,
+    traceLifecycle: 'static',
     beforeSendTransaction: event => {
       transactionEvents.push(event);
       return null;
@@ -134,7 +136,7 @@ Deno.test('opentelemetry spans should interop with Sentry spans', async () => {
   assertEquals(transactionEvent?.transaction, 'sentry span');
   assertEquals(transactionEvent?.contexts?.trace?.data?.['sentry.origin'], 'manual');
   assertEquals(transactionEvent?.contexts?.trace?.data?.['sentry.sample_rate'], 1);
-  assertEquals(transactionEvent?.contexts?.trace?.data?.['sentry.source'], 'custom');
+  assertEquals(transactionEvent?.contexts?.trace?.data?.['sentry.segment.name.source'], 'custom');
   // Note: Sentry-created spans don't have the deno_tracer marker
   assertEquals(transactionEvent?.contexts?.trace?.data?.['sentry.deno_tracer'], undefined);
 
@@ -148,14 +150,15 @@ Deno.test('should override pre-existing OTel provider with Sentry provider', asy
   resetSdk();
 
   // Simulate a pre-existing OTel registration (e.g. from Supabase Edge Runtime)
-  const fakeProvider = { getTracer: () => ({}) };
-  trace.setGlobalTracerProvider(fakeProvider as any);
+  const fakeProvider = { getTracer: () => ({}) } as unknown as TracerProvider;
+  trace.setGlobalTracerProvider(fakeProvider);
 
   const transactionEvents: any[] = [];
 
   const client = init({
     dsn: 'https://username@domain/123',
     tracesSampleRate: 1,
+    traceLifecycle: 'static',
     beforeSendTransaction: event => {
       transactionEvents.push(event);
       return null;
@@ -187,6 +190,7 @@ Deno.test('name parameter should take precedence over options.name in startSpan'
   const client = init({
     dsn: 'https://username@domain/123',
     tracesSampleRate: 1,
+    traceLifecycle: 'static',
     beforeSendTransaction: event => {
       transactionEvents.push(event);
       return null;
@@ -216,6 +220,7 @@ Deno.test('name parameter should take precedence over options.name in startActiv
   const client = init({
     dsn: 'https://username@domain/123',
     tracesSampleRate: 1,
+    traceLifecycle: 'static',
     beforeSendTransaction: event => {
       transactionEvents.push(event);
       return null;
@@ -252,6 +257,7 @@ Deno.test('should override native Deno OpenTelemetry when enabled', async () => 
     const client = init({
       dsn: 'https://username@domain/123',
       tracesSampleRate: 1,
+      traceLifecycle: 'static',
       beforeSendTransaction: event => {
         transactionEvents.push(event);
         return null;

@@ -1,37 +1,13 @@
-import type { Client, TransactionSource } from '@sentry/core';
-import {
-  browserPerformanceTimeOrigin,
-  debug,
-  parseBaggageHeader,
-  SEMANTIC_ATTRIBUTE_SENTRY_OP,
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
-  stripUrlQueryAndFragment,
-} from '@sentry/core';
-import {
-  getAbsoluteUrl,
-  startBrowserTracingNavigationSpan,
-  startBrowserTracingPageLoadSpan,
-  WINDOW,
-} from '@sentry/react';
+import type { Client } from '@sentry/core';
+import { debug, hasSpanStreamingEnabled, PAGELOAD_SPAN_NAME_FALLBACK, parseBaggageHeader } from '@sentry/core';
+import { startBrowserTracingPageLoadSpan, WINDOW } from '@sentry/react';
 import type { NEXT_DATA } from 'next/dist/shared/lib/utils';
-import RouterImport from 'next/router';
 import type { ParsedUrlQuery } from 'querystring';
 import { DEBUG_BUILD } from '../../common/debug-build';
-import { URL_TEMPLATE } from '@sentry/conventions/attributes';
+import { SENTRY_OP, SENTRY_SEGMENT_NAME_SOURCE, URL_TEMPLATE, SENTRY_ORIGIN } from '@sentry/conventions/attributes';
+import { PAGELOAD } from '@sentry/conventions/op';
 
-// next/router v10 is CJS
-//
-// For ESM/CJS interoperability 'reasons', depending on how this file is loaded, Router might be on the default export
-const Router: typeof RouterImport = RouterImport.events
-  ? RouterImport
-  : (RouterImport as unknown as { default: typeof RouterImport }).default;
-
-const globalObject = WINDOW as typeof WINDOW & {
-  __BUILD_MANIFEST?: {
-    sortedPages?: string[];
-  };
-};
+const globalObject = WINDOW;
 
 /**
  * Describes data located in the __NEXT_DATA__ script tag. This tag is present on every page of a Next.js app.
@@ -115,7 +91,8 @@ function extractNextDataTagInformation(): NextDataTagInfo {
 export function pagesRouterInstrumentPageLoad(client: Client): void {
   const { route, params, sentryTrace, baggage } = extractNextDataTagInformation();
   const parsedBaggage = parseBaggageHeader(baggage);
-  let name = route || globalObject.location.pathname;
+  // With span streaming, span names have to be low cardinality, so we can't fall back to the URL.
+  let name = route || (hasSpanStreamingEnabled(client) ? PAGELOAD_SPAN_NAME_FALLBACK : globalObject.location.pathname);
 
   // /_error is the fallback page for all errors. If there is a transaction name for /_error, use that instead
   if (parsedBaggage?.['sentry-transaction'] && name === '/_error') {
@@ -124,17 +101,14 @@ export function pagesRouterInstrumentPageLoad(client: Client): void {
     name = name.replace(/^(GET|POST|PUT|DELETE|PATCH|HEAD|OPTIONS|TRACE|CONNECT)\s+/i, '');
   }
 
-  const origin = browserPerformanceTimeOrigin();
   startBrowserTracingPageLoadSpan(
     client,
     {
       name,
-      // pageload should always start at timeOrigin (and needs to be in s, not ms)
-      startTime: origin ? origin / 1000 : undefined,
       attributes: {
-        [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'pageload',
-        [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.pageload.nextjs.pages_router_instrumentation',
-        [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: route ? 'route' : 'url',
+        [SENTRY_OP]: PAGELOAD,
+        [SENTRY_ORIGIN]: 'auto.pageload.nextjs.pages_router_instrumentation',
+        [SENTRY_SEGMENT_NAME_SOURCE]: route ? 'route' : 'url',
         ...(route && { [URL_TEMPLATE]: route }),
         ...(params && { ...params }),
       },
@@ -144,46 +118,11 @@ export function pagesRouterInstrumentPageLoad(client: Client): void {
 }
 
 /**
- * Instruments the Next.js pages router for navigation.
- * Only supported for client side routing. Works for Next >= 10.
+ * Matches a pathname against the Pages Router build manifest, e.g. `/users/1` -> `/users/[id]`.
  *
- * Leverages the SingletonRouter from the `next/router` to
- * generate pageload/navigation transactions and parameterize
- * transaction names.
+ * Expects a pathname without `basePath`, which is what Next reports internally.
  */
-export function pagesRouterInstrumentNavigation(client: Client): void {
-  Router.events.on('routeChangeStart', (navigationTarget: string) => {
-    const strippedNavigationTarget = stripUrlQueryAndFragment(navigationTarget);
-    const matchedRoute = getNextRouteFromPathname(strippedNavigationTarget);
-
-    let newLocation: string;
-    let spanSource: TransactionSource;
-
-    if (matchedRoute) {
-      newLocation = matchedRoute;
-      spanSource = 'route';
-    } else {
-      newLocation = strippedNavigationTarget;
-      spanSource = 'url';
-    }
-
-    startBrowserTracingNavigationSpan(
-      client,
-      {
-        name: newLocation,
-        attributes: {
-          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'navigation',
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.nextjs.pages_router_instrumentation',
-          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: spanSource,
-          ...(spanSource === 'route' && { [URL_TEMPLATE]: newLocation }),
-        },
-      },
-      { url: getAbsoluteUrl(navigationTarget) },
-    );
-  });
-}
-
-function getNextRouteFromPathname(pathname: string): string | undefined {
+export function getNextRouteFromPathname(pathname: string): string | undefined {
   const pageRoutes = globalObject.__BUILD_MANIFEST?.sortedPages;
 
   // Page route should in 99.999% of the cases be defined by now but just to be sure we make a check here

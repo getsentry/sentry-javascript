@@ -1,7 +1,7 @@
 import * as SentryCore from '@sentry/core';
 import { Hono } from 'hono';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { patchAppUse, patchHttpMethodHandlers } from '../../src/shared/patchAppUse';
+import { applyHonoPatches } from '@sentry/server-utils';
 
 vi.mock('@sentry/core', async () => {
   const actual = await vi.importActual('@sentry/core');
@@ -23,7 +23,7 @@ describe('patchAppUse (middleware spans)', () => {
 
   it('wraps handlers in app.use(handler) so startInactiveSpan is called when middleware runs', async () => {
     const app = new Hono();
-    patchAppUse(app);
+    applyHonoPatches(app);
 
     const userHandler = vi.fn(async (_c: unknown, next: () => Promise<void>) => {
       await next();
@@ -39,10 +39,9 @@ describe('patchAppUse (middleware spans)', () => {
     expect(startInactiveSpanMock).toHaveBeenCalledTimes(1);
     expect(startInactiveSpanMock).toHaveBeenCalledWith(
       expect.objectContaining({
-        op: 'middleware.hono',
         onlyIfParent: true,
         attributes: expect.objectContaining({
-          'sentry.op': 'middleware.hono',
+          'sentry.op': 'middleware',
           'sentry.origin': 'auto.middleware.hono',
         }),
       }),
@@ -53,7 +52,7 @@ describe('patchAppUse (middleware spans)', () => {
   describe('span naming', () => {
     it('uses handler.name for span when handler has a name', async () => {
       const app = new Hono();
-      patchAppUse(app);
+      applyHonoPatches(app);
 
       async function myNamedMiddleware(_c: unknown, next: () => Promise<void>) {
         await next();
@@ -67,7 +66,7 @@ describe('patchAppUse (middleware spans)', () => {
 
     it('uses <anonymous.index> for span when handler is anonymous', async () => {
       const app = new Hono();
-      patchAppUse(app);
+      applyHonoPatches(app);
 
       app.use(async (_c: unknown, next: () => Promise<void>) => next());
 
@@ -81,7 +80,7 @@ describe('patchAppUse (middleware spans)', () => {
 
   it('wraps each handler in app.use(path, ...handlers) and passes path through', async () => {
     const app = new Hono();
-    patchAppUse(app);
+    applyHonoPatches(app);
 
     const handler = async (_c: unknown, next: () => Promise<void>) => next();
     app.use('/api', handler);
@@ -94,7 +93,7 @@ describe('patchAppUse (middleware spans)', () => {
 
   it('sets span error status when middleware throws a 5xx-like error', async () => {
     const app = new Hono();
-    patchAppUse(app);
+    applyHonoPatches(app);
 
     const err = new Error('middleware error');
     app.use(async () => {
@@ -110,7 +109,7 @@ describe('patchAppUse (middleware spans)', () => {
 
   it('creates sibling spans for multiple middlewares (onion order, not parent-child)', async () => {
     const app = new Hono();
-    patchAppUse(app);
+    applyHonoPatches(app);
 
     app.use(
       async (_c: unknown, next: () => Promise<void>) => next(),
@@ -124,8 +123,8 @@ describe('patchAppUse (middleware spans)', () => {
 
     expect(startInactiveSpanMock).toHaveBeenCalledTimes(3);
     const [firstCall, secondCall, thirdCall] = startInactiveSpanMock.mock.calls;
-    expect(firstCall![0]).toMatchObject({ op: 'middleware.hono' });
-    expect(secondCall![0]).toMatchObject({ op: 'middleware.hono' });
+    expect(firstCall![0]).toMatchObject({ attributes: { 'sentry.op': 'middleware' } });
+    expect(secondCall![0]).toMatchObject({ attributes: { 'sentry.op': 'middleware' } });
     expect(firstCall![0].name).toMatch('<anonymous>');
     expect(secondCall![0].name).toBe('namedMiddleware');
     expect(thirdCall![0].name).toBe('<anonymous>');
@@ -134,10 +133,10 @@ describe('patchAppUse (middleware spans)', () => {
 
   it('does not stack proxies when called twice on the same instance', () => {
     const app = new Hono();
-    patchAppUse(app);
+    applyHonoPatches(app);
     const firstUse = app.use;
 
-    patchAppUse(app);
+    applyHonoPatches(app);
     expect(app.use).toBe(firstUse);
   });
 
@@ -145,15 +144,15 @@ describe('patchAppUse (middleware spans)', () => {
     const app1 = new Hono();
     const app2 = new Hono();
 
-    patchAppUse(app1);
-    patchAppUse(app2);
+    applyHonoPatches(app1);
+    applyHonoPatches(app2);
 
     expect(app1.use).not.toBe(app2.use);
   });
 
   it('preserves symbol-keyed and string-keyed properties on wrapped handlers', async () => {
     const app = new Hono();
-    patchAppUse(app);
+    applyHonoPatches(app);
 
     const META = Symbol('test-meta');
     const OPENAPI = Symbol('openapi');
@@ -177,27 +176,6 @@ describe('patchAppUse (middleware spans)', () => {
     expect((route!.handler as any)[OPENAPI]).toEqual({ responses: { 200: {} } });
     expect((route!.handler as any).customProp).toBe('hello');
   });
-
-  it('preserves this context when calling the original use (Proxy forwards thisArg)', () => {
-    type FakeApp = {
-      _capturedThis: unknown;
-      use: (...args: unknown[]) => FakeApp;
-    };
-    const fakeApp: FakeApp = {
-      _capturedThis: null,
-      use(this: FakeApp, ..._args: unknown[]) {
-        this._capturedThis = this;
-        return this;
-      },
-    };
-
-    patchAppUse(fakeApp as unknown as Parameters<typeof patchAppUse>[0]);
-
-    const noop = async (_c: unknown, next: () => Promise<void>) => next();
-    fakeApp.use(noop);
-
-    expect(fakeApp._capturedThis).toBe(fakeApp);
-  });
 });
 
 describe('patchHttpMethodHandlers (inline middleware spans on main app)', () => {
@@ -209,7 +187,7 @@ describe('patchHttpMethodHandlers (inline middleware spans on main app)', () => 
     'wraps inline middleware in app.%s(path, mw, handler)',
     async method => {
       const app = new Hono();
-      patchHttpMethodHandlers(app);
+      applyHonoPatches(app);
 
       app[method](
         '/test',
@@ -225,11 +203,10 @@ describe('patchHttpMethodHandlers (inline middleware spans on main app)', () => 
       expect(startInactiveSpanMock).toHaveBeenCalledTimes(1);
       expect(startInactiveSpanMock).toHaveBeenCalledWith({
         name: 'inlineMw',
-        op: 'middleware.hono',
         onlyIfParent: true,
         parentSpan: undefined,
         attributes: {
-          'sentry.op': 'middleware.hono',
+          'sentry.op': 'middleware',
           'sentry.origin': 'auto.middleware.hono',
         },
       });
@@ -238,7 +215,7 @@ describe('patchHttpMethodHandlers (inline middleware spans on main app)', () => 
 
   it('does not wrap the sole handler when only one handler is passed', async () => {
     const app = new Hono();
-    patchHttpMethodHandlers(app);
+    applyHonoPatches(app);
 
     app.get('/test', async function onlyHandler() {
       return new Response('ok');
@@ -251,7 +228,7 @@ describe('patchHttpMethodHandlers (inline middleware spans on main app)', () => 
 
   it('wraps all handlers except the last when multiple handlers are passed', async () => {
     const app = new Hono();
-    patchHttpMethodHandlers(app);
+    applyHonoPatches(app);
 
     app.get(
       '/test',
@@ -277,10 +254,10 @@ describe('patchHttpMethodHandlers (inline middleware spans on main app)', () => 
 
   it('wraps inline middleware in app.on(method, path, mw, handler)', async () => {
     const app = new Hono();
-    patchHttpMethodHandlers(app);
+    applyHonoPatches(app);
 
     app.on(
-      'GET',
+      'QUERY',
       '/test',
       async function onMw(_c: unknown, next: () => Promise<void>) {
         await next();
@@ -290,7 +267,7 @@ describe('patchHttpMethodHandlers (inline middleware spans on main app)', () => 
       },
     );
 
-    await app.fetch(new Request('http://localhost/test'));
+    await app.fetch(new Request('http://localhost/test', { method: 'QUERY' }));
 
     const spanNames = startInactiveSpanMock.mock.calls.map((c: unknown[]) => (c[0] as { name: string }).name);
     expect(spanNames).toHaveLength(1);
@@ -298,9 +275,15 @@ describe('patchHttpMethodHandlers (inline middleware spans on main app)', () => 
     expect(spanNames).not.toContain('onHandler');
   });
 
+  it('patches apps without app.query', () => {
+    const app = new Hono();
+
+    expect(() => applyHonoPatches(app)).not.toThrow();
+  });
+
   it('does not wrap sole handler in app.on(method, path, handler)', async () => {
     const app = new Hono();
-    patchHttpMethodHandlers(app);
+    applyHonoPatches(app);
 
     app.on('GET', '/test', async function soleHandler() {
       return new Response('ok');
@@ -313,8 +296,8 @@ describe('patchHttpMethodHandlers (inline middleware spans on main app)', () => 
 
   it('does not double-wrap handlers already wrapped by patchAppUse', async () => {
     const app = new Hono();
-    patchAppUse(app);
-    patchHttpMethodHandlers(app);
+    applyHonoPatches(app);
+    applyHonoPatches(app);
 
     app.use(async function useMw(_c: unknown, next: () => Promise<void>) {
       await next();
@@ -329,15 +312,15 @@ describe('patchHttpMethodHandlers (inline middleware spans on main app)', () => 
 
   it('produces exactly one span per middleware and does not stack Proxy layers when called multiple times on the same instance', async () => {
     const app = new Hono();
-    patchHttpMethodHandlers(app);
+    applyHonoPatches(app);
     const firstGet = app.get;
     const firstOn = app.on;
 
-    patchHttpMethodHandlers(app);
+    applyHonoPatches(app);
     expect(app.get).toBe(firstGet);
     expect(app.on).toBe(firstOn);
 
-    patchHttpMethodHandlers(app);
+    applyHonoPatches(app);
     expect(app.get).toBe(firstGet);
     expect(app.on).toBe(firstOn);
 
@@ -360,8 +343,8 @@ describe('patchHttpMethodHandlers (inline middleware spans on main app)', () => 
 
   it('creates spans for both app.use middleware and inline middleware in app.get', async () => {
     const app = new Hono();
-    patchAppUse(app);
-    patchHttpMethodHandlers(app);
+    applyHonoPatches(app);
+    applyHonoPatches(app);
 
     app.use('/test', async function globalMw(_c: unknown, next: () => Promise<void>) {
       await next();
@@ -384,36 +367,10 @@ describe('patchHttpMethodHandlers (inline middleware spans on main app)', () => 
 
   it('preserves return value and chaining', () => {
     const app = new Hono();
-    patchHttpMethodHandlers(app);
+    applyHonoPatches(app);
 
     const result = app.get('/test', () => new Response('ok'));
 
     expect(result).toBe(app);
-  });
-
-  it('forwards thisArg to the original method', () => {
-    let capturedThis: unknown = null;
-    const fakeMethod = function (this: unknown) {
-      // oxlint-disable-next-line @typescript-eslint/no-this-alias
-      capturedThis = this;
-      return this;
-    };
-    const fakeApp = {
-      get: fakeMethod,
-      post: fakeMethod,
-      put: fakeMethod,
-      delete: fakeMethod,
-      options: fakeMethod,
-      patch: fakeMethod,
-      all: fakeMethod,
-      on: fakeMethod,
-    };
-
-    patchHttpMethodHandlers(fakeApp as unknown as Parameters<typeof patchHttpMethodHandlers>[0]);
-
-    // @ts-expect-error - we're only testing that thisArg is forwarded, so the args don't need to be correct
-    fakeApp.get('/test', () => new Response('ok'));
-
-    expect(capturedThis).toBe(fakeApp);
   });
 });
