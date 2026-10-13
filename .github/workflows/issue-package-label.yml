@@ -122,6 +122,18 @@ jobs:
               "@sentry.wasm": {
                 "label": "WASM"
               },
+              "@sentry.esbuild-plugin": {
+                "label": "Feature: Source Maps"
+              },
+              "@sentry.rollup-plugin": {
+                "label": "Feature: Source Maps"
+              },
+              "@sentry.vite-plugin": {
+                "label": "Feature: Source Maps"
+              },
+              "@sentry.webpack-plugin": {
+                "label": "Feature: Source Maps"
+              },
               "Sentry.Browser.Loader": {
                 "label": "Browser"
               },
