@@ -34,6 +34,8 @@ jobs:
         uses: actions/checkout@v7
         with:
           ref: ${{ env.HEAD_COMMIT }}
+      - name: Install pnpm
+        uses: ./.github/actions/install-pnpm
       - name: Set up Node
         uses: actions/setup-node@v7
         with:
@@ -44,12 +46,12 @@ jobs:
           path: ${{ env.CACHED_BUILD_PATHS }}
           key: canary-${{ env.HEAD_COMMIT }}
       - name: Install dependencies
-        run: yarn install
+        run: pnpm install
       - name: Build packages
-        run: yarn build
+        run: pnpm build
 
       - name: Build tarballs
-        run: yarn build:tarball
+        run: pnpm build:tarball
 
   job_e2e_tests:
     name: E2E ${{ matrix.label }} Test
@@ -119,8 +121,6 @@ jobs:
           ref: ${{ env.HEAD_COMMIT }}
       - name: Install pnpm
         uses: ./.github/actions/install-pnpm
-        with:
-          package-json: 'dev-packages/e2e-tests/test-applications/${{ matrix.test-application }}/package.json'
       - name: Set up Node
         uses: actions/setup-node@v7
         with:
@@ -133,27 +133,32 @@ jobs:
           key: canary-${{ env.HEAD_COMMIT }}
 
       - name: Prepare e2e tests
-        run: yarn test:prepare
+        run: pnpm test:prepare
         working-directory: dev-packages/e2e-tests
 
       - name: Validate test setup
-        run: yarn test:validate
+        run: pnpm test:validate
         working-directory: dev-packages/e2e-tests
 
       - name: Copy to temp
-        run: yarn ci:copy-to-temp ./test-applications/${{ matrix.test-application }} ${{ runner.temp }}/test-application
+        run: pnpm ci:copy-to-temp ./test-applications/${{ matrix.test-application }} ${{ runner.temp }}/test-application
         working-directory: dev-packages/e2e-tests
 
       - name: Add pnpm overrides
         run:
-          yarn ci:pnpm-overrides ${{ runner.temp }}/test-application ${{ github.workspace
+          pnpm ci:pnpm-overrides ${{ runner.temp }}/test-application ${{ github.workspace
           }}/dev-packages/e2e-tests/packed
         working-directory: dev-packages/e2e-tests
 
+      # The root workspace steps above need the root pnpm. The app needs the pnpm version that it pins.
+      - name: Install pnpm for the app
+        uses: ./.github/actions/install-pnpm
+        with:
+          package-json: 'dev-packages/e2e-tests/test-applications/${{ matrix.test-application }}/package.json'
       - name: Build E2E app
         working-directory: ${{ runner.temp }}/test-application
         timeout-minutes: 7
-        run: yarn ${{ matrix.build-command }}
+        run: pnpm ${{ matrix.build-command }}
 
       - name: Install Playwright
         uses: ./.github/actions/install-playwright
@@ -164,7 +169,7 @@ jobs:
       - name: Run E2E test
         working-directory: ${{ runner.temp }}/test-application
         timeout-minutes: 15
-        run: yarn test:assert
+        run: pnpm test:assert
 
       - name: Create Issue
         if: failure() && github.event_name == 'schedule'

@@ -90,11 +90,11 @@
   },
   "scripts": {
     "build": "run-p build:transpile build:types",
-    "build:dev": "yarn build",
+    "build:dev": "pnpm build",
     "build:transpile": "rollup -c rollup.npm.config.mjs",
     "build:types": "tsc -p tsconfig.types.json",
     "build:watch": "run-p build:transpile:watch",
-    "build:dev:watch": "yarn build:watch",
+    "build:dev:watch": "pnpm build:watch",
     "build:transpile:watch": "rollup -c rollup.npm.config.mjs --watch",
     "build:tarball": "npm pack",
     "circularDepCheck": "madge --circular src/index.ts",
@@ -103,7 +103,7 @@
     "lint": "oxlint . --type-aware",
     "lint:types": "oxlint src --type-aware --type-check",
     "lint:es-compatibility": "es-check es2022 ./build/cjs/*.js && es-check es2022 ./build/esm/*.js --module",
-    "test": "yarn test:unit",
+    "test": "pnpm test:unit",
     "test:unit": "vitest run",
     "test:watch": "vitest --watch",
     "yalc:publish": "yalc publish --push --sig"

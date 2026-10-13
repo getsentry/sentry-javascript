@@ -24,9 +24,9 @@ jobs:
       - uses: actions/setup-node@v7
         with:
           node-version-file: 'package.json'
-      - run: yarn install --frozen-lockfile --ignore-engines
-      - run: yarn build:ci
-      - run: yarn build:tarball
-      - run: yarn test:prepare
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm build:ci
+      - run: pnpm build:tarball
+      - run: pnpm test:prepare
         working-directory: dev-packages/e2e-tests
       - run: node scripts/lighthouse-bundle-and-upload.mjs

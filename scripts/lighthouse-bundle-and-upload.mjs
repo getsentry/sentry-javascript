@@ -88,13 +88,13 @@ async function prepareCell(mode, fieldName) {
   await rm(tempApp, { recursive: true, force: true });
 
   // Copy app to temp (fixes file:/link: deps to workspace-absolute paths)
-  execFileSync('yarn', ['ci:copy-to-temp', `./test-applications/${APP_DIR}`, tempApp], {
+  execFileSync('pnpm', ['ci:copy-to-temp', `./test-applications/${APP_DIR}`, tempApp], {
     cwd: E2E_DIR,
     stdio: 'inherit',
   });
 
   // Add pnpm overrides (workspace-absolute paths pointing at packed dir)
-  execFileSync('yarn', ['ci:pnpm-overrides', tempApp, PACKED_DIR], {
+  execFileSync('pnpm', ['ci:pnpm-overrides', tempApp, PACKED_DIR], {
     cwd: E2E_DIR,
     stdio: 'inherit',
   });

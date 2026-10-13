@@ -106,11 +106,11 @@
   },
   "scripts": {
     "build": "run-p build:transpile build:types",
-    "build:dev": "yarn build",
+    "build:dev": "pnpm build",
     "build:transpile": "rollup -c rollup.npm.config.mjs",
     "build:types": "tsc -p tsconfig.types.json",
     "build:watch": "run-p build:transpile:watch",
-    "build:dev:watch": "yarn build:watch",
+    "build:dev:watch": "pnpm build:watch",
     "build:transpile:watch": "rollup -c rollup.npm.config.mjs --watch",
     "build:tarball": "npm pack",
     "circularDepCheck": "madge --circular src/index.server.ts && madge --circular src/index.client.ts",
@@ -119,7 +119,7 @@
     "lint": "oxlint . --type-aware",
     "lint:types": "oxlint src --type-aware --type-check",
     "lint:es-compatibility": "es-check es2020 ./build/cjs/*.js && es-check es2020 ./build/esm/*.js --module",
-    "test": "yarn test:unit",
+    "test": "pnpm test:unit",
     "test:unit": "vitest run --config vitest.config.unit.ts",
     "test:watch": "vitest --watch --config vitest.config.unit.ts",
     "yalc:publish": "yalc publish --push --sig"

@@ -12,7 +12,7 @@
  * safe. The lone path segment "build" is never turned into a broad glob (that would match
  * every package); several projects with a top-level build output each get their own path.
  *
- * Usage: GITHUB_WORKSPACE=<abs repo> yarn ci:print-build-artifact-paths
+ * Usage: GITHUB_WORKSPACE=<abs repo> pnpm ci:print-build-artifact-paths
  * (defaults to cwd when GITHUB_WORKSPACE is unset)
  */
 import { execSync } from 'node:child_process';
@@ -27,7 +27,7 @@ const graphPath = path.join(workspaceRoot, '.nx', 'ci-print-build-artifact-paths
 const TARGETS = ['build:transpile', 'build:types'];
 
 fs.mkdirSync(path.dirname(graphPath), { recursive: true });
-execSync(`yarn nx graph --file="${graphPath}"`, {
+execSync(`pnpm nx graph --file="${graphPath}"`, {
   cwd: workspaceRoot,
   stdio: ['ignore', 'pipe', 'inherit'],
 });

@@ -14,17 +14,17 @@ Developer Documentation.
 
 ## Setting up an Environment
 
-We use [Volta](https://volta.sh/) to ensure we use consistent versions of node, yarn and pnpm.
+We use [Volta](https://volta.sh/) to ensure we use consistent versions of node, pnpm and pnpm.
 
 Make sure to also enable [pnpm support in Volta](https://docs.volta.sh/advanced/pnpm) if you want to run the E2E tests
 locally.
 
-`sentry-javascript` is a monorepo containing several packages, managed with Yarn workspaces and Nx. To get started,
+`sentry-javascript` is a monorepo containing several packages, managed with pnpm workspaces and Nx. To get started,
 install all dependencies, and then perform an initial build, so TypeScript can read all of the linked type definitions.
 
 ```
-$ yarn
-$ yarn build
+$ pnpm install
+$ pnpm build
 ```
 
 With that, the repo is fully set up and you are ready to run all commands.
@@ -34,16 +34,16 @@ With that, the repo is fully set up and you are ready to run all commands.
 Since we are using [`TypeScript`](https://www.typescriptlang.org/), you need to transpile the code to JavaScript to be
 able to use it. From the top level of the repo, there are three commands available:
 
-- `yarn build:dev`, which runs a one-time build of every package
-- `yarn build:dev:filter <name of npm package>`, which runs `yarn build:dev` only in projects relevant to the given
-  package (so, for example, running `yarn build:dev:filter @sentry/react` will build the `react` package, all of its
+- `pnpm build:dev`, which runs a one-time build of every package
+- `pnpm build:dev:filter <name of npm package>`, which runs `pnpm build:dev` only in projects relevant to the given
+  package (so, for example, running `pnpm build:dev:filter @sentry/react` will build the `react` package, all of its
   dependencies (`utils`, `core`, `browser`, etc), and all packages which depend on it (currently `gatsby` and `nextjs`))
-- `yarn build:dev:watch`, which runs `yarn build:dev` in watch mode (recommended)
+- `pnpm build:dev:watch`, which runs `pnpm build:dev` in watch mode (recommended)
 
 Note: Due to package incompatibilities between Python versions, building native binaries currently requires a Python
 version <3.12.
 
-You can also run a production build via `yarn build`, which will build everything except for the tarballs for publishing
+You can also run a production build via `pnpm build`, which will build everything except for the tarballs for publishing
 to NPM. You can use this if you want to bundle Sentry yourself. The build output can be found in the packages `build/`
 folder, e.g. `packages/browser/build`. Bundled files can be found in `packages/browser/build/bundles`. Note that there
 are no guarantees about the produced file names etc., so make sure to double check which files are generated after
@@ -53,9 +53,9 @@ upgrading.
 
 To test local versions of SDK packages, for instance in test projects, you have a couple of options:
 
-- Use [`yarn link`](https://classic.yarnpkg.com/lang/en/docs/cli/link/) to symlink your package to the test project.
+- Use [`pnpm link`](https://pnpm.io/cli/link) to symlink your package to the test project.
 - Use [`yalc` to install SDK packages](./docs/using-yalc.md) as if they were already published.
-- Run `build:tarball` in the repo and `yarn add ./path/to/tarball.tgz` in the project.
+- Run `build:tarball` in the repo and `pnpm add ./path/to/tarball.tgz` in the project.
 
 ## Adding Tests
 
@@ -67,11 +67,11 @@ integration tests can be added in `dev-packages/node-integration-tests`. Finally
 
 ## Running Tests
 
-Running tests works the same way as building - running `yarn test` at the project root will run tests for all packages,
-and running `yarn test` in a specific package will run tests for that package. There are also commands to run subsets of
+Running tests works the same way as building - running `pnpm test` at the project root will run tests for all packages,
+and running `pnpm test` in a specific package will run tests for that package. There are also commands to run subsets of
 the tests in each location. Check out the `scripts` entry of the corresponding `package.json` for details.
 
-Note: you must run `yarn build` before `yarn test` will work.
+Note: you must run `pnpm build` before `pnpm test` will work.
 
 ## Running E2E Tests Locally
 
@@ -87,11 +87,11 @@ E2E tests verify SDK behavior in real-world framework scenarios.
 1. **Build the SDK packages and create tarballs:**
 
    ```bash
-   yarn build
-   yarn build:tarball
+   pnpm build
+   pnpm build:tarball
    ```
 
-   Note: You must re-run `yarn build:tarball` after any changes to packages.
+   Note: You must re-run `pnpm build:tarball` after any changes to packages.
 
 2. **Set up environment (optional):**
 
@@ -104,20 +104,20 @@ E2E tests verify SDK behavior in real-world framework scenarios.
 3. **Run all E2E tests:**
 
    ```bash
-   yarn test:e2e
+   pnpm test:e2e
    ```
 
 4. **Or run a specific test application:**
 
    ```bash
-   yarn test:run <app-name>
-   # Example: yarn test:run nextjs-app-dir
+   pnpm test:run <app-name>
+   # Example: pnpm test:run nextjs-app-dir
    ```
 
 5. **Run with a specific variant:**
    ```bash
-   yarn test:run <app-name> --variant <variant-name>
-   # Example: yarn test:run nextjs-pages-dir --variant 15
+   pnpm test:run <app-name> --variant <variant-name>
+   # Example: pnpm test:run nextjs-pages-dir --variant 15
    ```
 
 ### Common Issues and Troubleshooting
@@ -127,8 +127,8 @@ E2E tests verify SDK behavior in real-world framework scenarios.
 Make sure to rebuild tarballs:
 
 ```bash
-yarn build
-yarn build:tarball
+pnpm build
+pnpm build:tarball
 ```
 
 #### Docker-related issues
@@ -161,9 +161,9 @@ replacement (as would happen if we reused `__DEBUG_BUILD__`).
 ## Linting
 
 Similar to building and testing, linting can be done in the project root or in individual packages by calling
-`yarn lint`.
+`pnpm lint`.
 
-Note: you must run `yarn build` before `yarn lint` will work.
+Note: you must run `pnpm build` before `pnpm lint` will work.
 
 ## External Contributors
 

@@ -1,5 +1,6 @@
 import { builtinModules } from 'node:module';
 import commonjs from '@rollup/plugin-commonjs';
+import { nodeResolve } from '@rollup/plugin-node-resolve';
 import license from 'rollup-plugin-license';
 import { defineConfig } from 'rollup';
 import { makeBaseNPMConfig, makeNPMConfigVariants } from '@sentry-internal/rollup-utils';
@@ -53,6 +54,17 @@ const debugNodeAlias = {
   },
 };
 
+// The vendored dependencies run only on Node, so resolve them with the `node` export condition. Without it, a
+// package whose `exports` map has `node` and `default` entries resolves to its browser build, for example
+// `supports-color` 8, which `debug` finds when the package manager hoists that version. `order: 'pre'` because
+// the base config's node-resolve plugin would otherwise resolve first.
+const nodeConditionResolvePlugin = nodeResolve({ exportConditions: ['node'] });
+const nodeConditionResolve = {
+  ...nodeConditionResolvePlugin,
+  name: 'node-condition-resolve',
+  resolveId: { order: 'pre', handler: nodeConditionResolvePlugin.resolveId.handler },
+};
+
 // Bundling files from the repo-root `node_modules` moves rollup's common source ancestor up to the
 // repo root, so `preserveModules` names our own files `packages/server-runtime-injection/src/...` —
 // strip that prefix to keep the `build/cjs/register.js` layout the `exports` map points at. And npm
@@ -97,7 +109,7 @@ export default [
       // `import` condition, so the `build/cjs` copy is unused.
       entrypoints: ['src/register.ts', 'src/hook.mjs'],
       packageSpecificConfig: {
-        plugins: [debugNodeAlias, commonJSPlugin, thirdPartyLicensePlugin],
+        plugins: [debugNodeAlias, nodeConditionResolve, commonJSPlugin, thirdPartyLicensePlugin],
         output: {
           exports: 'named',
           preserveModules: true,

@@ -7,7 +7,7 @@ function ensurePluginTypes(): void {
     console.warn(
       '\nWARNING: Missing types for gatsby plugin files. Types will be created before running gatsby tests.',
     );
-    execSync('yarn build:plugin');
+    execSync('pnpm build:plugin');
   }
 }
 

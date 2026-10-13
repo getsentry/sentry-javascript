@@ -22,25 +22,25 @@ current state.
   Cloudflare Worker (e.g. `cloudflare-workers-send-to-sentry`). A local run deploys a throwaway worker and deletes it
   again afterwards; set `E2E_KEEP_WORKER=1` to keep it for debugging. CI keeps one worker per branch or PR instead, and
   PR workers are deleted by the `cleanup-e2e-workers` workflow when the PR closes.
-- Run `yarn build:tarball` in the root of the repository (needs to be rerun after every update in /packages for the
+- Run `pnpm build:tarball` in the root of the repository (needs to be rerun after every update in /packages for the
   changes to have effect on the tests).
 
 To finally run all of the tests:
 
 ```bash
-yarn test:e2e
+pnpm test:e2e
 ```
 
 Or run only a single E2E test app:
 
 ```bash
-yarn test:run <app-name>
+pnpm test:run <app-name>
 ```
 
 Or you can run a single E2E test app with a specific variant:
 
 ```bash
-yarn test:run <app-name> --variant <variant-name>
+pnpm test:run <app-name> --variant <variant-name>
 ```
 
 Variant name matching is case-insensitive and partial. For example, `--variant 13` will match `nextjs-pages-dir (next@13)` if a matching variant is present in the test app's `package.json`.
@@ -90,13 +90,13 @@ For example, if you have the following variants in your test app's `package.json
 }
 ```
 
-If you run `yarn test:run nextjs-pages-dir --variant 13`, it will match against the very first matching variant, which is `nextjs-pages-dir (next@13)`. If you need to target the second variant in the example, you need to be more specific and use `--variant 13-canary`.
+If you run `pnpm test:run nextjs-pages-dir --variant 13`, it will match against the very first matching variant, which is `nextjs-pages-dir (next@13)`. If you need to target the second variant in the example, you need to be more specific and use `--variant 13-canary`.
 
 A variant runs its `build-command` and `assert-command`. Without them, it runs the app's `test:build` and `test:assert` scripts, like the app's default job.
 
 ## How they work
 
-We build our packages, pack them into tarballs (`yarn build:tarball`), and create symlinks in the `packed/` directory
+We build our packages, pack them into tarballs (`pnpm build:tarball`), and create symlinks in the `packed/` directory
 that point to the versioned tarballs. When a test application is run, pnpm overrides are injected into its
 `package.json` to pin all `@sentry/*` and `@sentry-internal/*` packages to those local tarballs. This means test apps
 install the packages as if they were published, but from the local build output instead of a registry.
@@ -184,7 +184,7 @@ is the reference setup.
   part, for example `app/entry.server.cloudflare.tsx` replaces `app/entry.server.tsx` and `vite.cloudflare.config.ts`
   replaces `vite.config.ts`. For a variant with `runtime`, the runner copies these files over the others in the
   temporary copy of the app, before the build. This needs no framework or bundler config. A build in the app folder
-  itself does not get these files, so run a variant with `yarn test:run <app> --variant <runtime>`.
+  itself does not get these files, so run a variant with `pnpm test:run <app> --variant <runtime>`.
 - **Deno version**: a variant can pin the Deno version, for example `"deno-version": "v2.9.0"`.
 - **Bun**: under `bun run` the SDK cannot inject diagnostics channels into packages that stay outside the build (for
   example Express behind `react-router-serve`), so those produce no spans on Bun. Where a test depends on them, branch
@@ -206,8 +206,8 @@ is the reference setup.
 
 #### Tests fail with "Cannot find module '@sentry/...'" or use wrong package version
 
-1. Rebuild tarballs: `yarn build && yarn build:tarball`
-2. Re-run `yarn test:prepare` to refresh symlinks
+1. Rebuild tarballs: `pnpm build && pnpm build:tarball`
+2. Re-run `pnpm test:prepare` to refresh symlinks
 3. Delete `node_modules` in the test application and re-run the test
 
 #### Tests pass locally but fail in CI (or vice versa)
@@ -290,7 +290,7 @@ for it to work with both regular and prerelease versions:
 }
 ```
 
-All that is left for you to do now is to create a test app and run `yarn test:e2e`.
+All that is left for you to do now is to create a test app and run `pnpm test:e2e`.
 
 ## Standardized Test Apps
 

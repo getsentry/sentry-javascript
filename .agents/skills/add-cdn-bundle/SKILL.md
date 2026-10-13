@@ -50,7 +50,7 @@ Given a feature combination, derive these variants:
 After making changes:
 
 ```bash
-yarn lint
-cd packages/browser && yarn build:dev
-cd packages/browser && yarn test
+pnpm lint
+cd packages/browser && pnpm build:dev
+cd packages/browser && pnpm test
 ```

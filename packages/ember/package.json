@@ -27,7 +27,7 @@
   ],
   "scripts": {
     "build": "rollup --config",
-    "build:dev": "yarn build",
+    "build:dev": "pnpm build",
     "build:tarball": "npm pack",
     "build:watch": "rollup --config --watch",
     "circularDepCheck": "madge --circular src/index.ts",
@@ -36,7 +36,7 @@
     "lint": "oxlint . --type-aware",
     "lint:types": "oxlint src --type-aware --type-check",
     "prepack": "rollup --config",
-    "test": "yarn test:unit",
+    "test": "pnpm test:unit",
     "test:unit": "vitest run",
     "test:unit:watch": "vitest --watch",
     "yalc:publish": "yalc publish --push --sig"

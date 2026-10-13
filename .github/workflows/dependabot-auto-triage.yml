@@ -186,7 +186,7 @@ jobs:
             Do NOT write to `/tmp/` or any directory outside the repo workspace.
             Do NOT use Bash redirection (> file).
           claude_args: |
-            --max-turns 80 --allowedTools "Write,Bash(gh pr list *),Bash(gh pr create *),Bash(git checkout *),Bash(git pull *),Bash(git add *),Bash(git commit *),Bash(git push --force -u origin bot/dependabot-fixes-*),Bash(npx yarn-update-dependency@0.7.1 *),Bash(yarn dedupe-deps:check),Bash(yarn dedupe-deps:fix),Bash(yarn why *),Bash(npm view *)"
+            --max-turns 80 --allowedTools "Write,Bash(gh pr list *),Bash(gh pr create *),Bash(git checkout *),Bash(git pull *),Bash(git add *),Bash(git commit *),Bash(git push --force -u origin bot/dependabot-fixes-*),Bash(pnpm update -r --include-workspace-root --latest *),Bash(pnpm dedupe-deps:check),Bash(pnpm dedupe-deps:fix),Bash(pnpm why *),Bash(npm view *)"
 
       - name: Ensure runtime PR is ready for review and has reviewers
         if: always()
@@ -275,7 +275,7 @@ jobs:
             Do NOT write to `/tmp/` or any directory outside the repo workspace.
             Do NOT use Bash redirection (> file).
           claude_args: |
-            --max-turns 80 --allowedTools "Write,Bash(gh pr list *),Bash(gh pr create *),Bash(git checkout *),Bash(git pull *),Bash(git add *),Bash(git commit *),Bash(git push --force -u origin bot/dependabot-fixes-*),Bash(npx yarn-update-dependency@0.7.1 *),Bash(yarn dedupe-deps:check),Bash(yarn dedupe-deps:fix),Bash(yarn why *),Bash(npm view *)"
+            --max-turns 80 --allowedTools "Write,Bash(gh pr list *),Bash(gh pr create *),Bash(git checkout *),Bash(git pull *),Bash(git add *),Bash(git commit *),Bash(git push --force -u origin bot/dependabot-fixes-*),Bash(pnpm update -r --include-workspace-root --latest *),Bash(pnpm dedupe-deps:check),Bash(pnpm dedupe-deps:fix),Bash(pnpm why *),Bash(npm view *)"
 
       - name: Ensure dev PR is ready for review and has reviewers
         if: always()

@@ -4,7 +4,7 @@
     "sharedGlobals": [
       "{workspaceRoot}/*.js",
       "{workspaceRoot}/*.json",
-      "{workspaceRoot}/yarn.lock",
+      "{workspaceRoot}/pnpm-lock.yaml",
       "{workspaceRoot}/dev-packages/rollup-utils/**",
       "{workspaceRoot}/packages/typescript/**"
     ],

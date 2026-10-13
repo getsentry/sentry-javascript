@@ -24,19 +24,19 @@ async function buildLambdaLayer(): Promise<void> {
   console.log('Building Lambda layer.');
   buildPackageJson();
   console.log('Installing local @sentry/aws-serverless into build/aws/dist-serverless/nodejs.');
-  // Use a temporary cache folder to avoid stale cache references to local file: packages.
-  // Yarn's global cache can contain outdated references to build artifacts from other
-  // @sentry/* packages (e.g., build/node_modules paths that no longer exist), causing
-  // ENOENT errors during file copying.
-  // The cache folder must be outside the monorepo to avoid recursive nesting when Yarn
+  // Use a temporary store directory to avoid stale cache references to local file: packages.
+  // The store must be outside the monorepo to avoid recursive nesting when pnpm
   // follows file: links and copies package directories.
-  const cacheFolder = path.join(os.tmpdir(), `sentry-lambda-build-cache-${Date.now()}`);
-  run(`yarn install --prod --cwd ./build/aws/dist-serverless/nodejs --cache-folder "${cacheFolder}"`);
+  // `--node-linker=hoisted` gives a flat node_modules folder without symlinks, which `pruneNodeModules` expects.
+  const storeDir = path.join(os.tmpdir(), `sentry-lambda-build-store-${Date.now()}`);
+  run(`pnpm install --prod --ignore-workspace --node-linker=hoisted --store-dir "${storeDir}"`, {
+    cwd: './build/aws/dist-serverless/nodejs',
+  });
 
   await pruneNodeModules();
   fs.rmSync('./build/aws/dist-serverless/nodejs/package.json', { force: true });
-  fs.rmSync('./build/aws/dist-serverless/nodejs/yarn.lock', { force: true });
-  fs.rmSync(cacheFolder, { recursive: true, force: true });
+  fs.rmSync('./build/aws/dist-serverless/nodejs/pnpm-lock.yaml', { force: true });
+  fs.rmSync(storeDir, { recursive: true, force: true });
 
   // The layer also includes `awslambda-auto.js`, a helper file which calls `Sentry.init()` and wraps the lambda
   // handler. It gets run when Node is launched inside the lambda, using the environment variable
@@ -206,6 +206,8 @@ function buildPackageJson(): void {
       '@sentry/aws-serverless': 'file:../../../../../../packages/aws-serverless',
     },
     resolutions,
+    // Lets Volta run the pnpm version of the monorepo for the install in this folder.
+    volta: { extends: '../../../../../../package.json' },
   };
 
   fsForceMkdirSync('./build/aws/dist-serverless/nodejs');
@@ -241,6 +243,9 @@ function replaceSDKSource(): void {
       );
     }
 
+    // pnpm hard-links the files of `file:` dependencies to the monorepo packages. Removing the file first makes
+    // sure that the write does not also change `packages/core/build`.
+    fs.rmSync(envFile);
     fs.writeFileSync(envFile, content.replace(pattern, replacement));
     console.log(`Updated SDK source in ${envFile}`);
   }

@@ -132,7 +132,7 @@ async function run(): Promise<void> {
   // Load environment variables from .env file locally
   dotenv.config();
 
-  // Allow to run a single app only via `yarn test:run <app-name>`
+  // Allow to run a single app only via `pnpm test:run <app-name>`
   const appName = process.argv[2] || '';
   // Forward any additional flags to the test command
   const allTestFlags = process.argv.slice(3);
@@ -194,7 +194,9 @@ async function run(): Promise<void> {
   };
 
   const env = {
-    ...process.env,
+    // `pnpm test:run` passes the settings of the root .npmrc (for example its hoisted node_modules folder) to this
+    // script as `npm_config_*` variables. Remove them, so that the test applications install like in CI.
+    ...Object.fromEntries(Object.entries(process.env).filter(([key]) => !/^npm_config_/i.test(key))),
     ...envVarsToInject,
     // Volta applies a project's node pin only to commands it manages, and it
     // manages pnpm only when this is set. Without it, the `volta run pnpm`

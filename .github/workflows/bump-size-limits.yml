@@ -49,7 +49,7 @@ jobs:
         uses: ./.github/actions/install-dependencies
 
       - name: Build packages
-        run: yarn build
+        run: pnpm build
 
       - name: Run bumper
         # Capture stdout AND exit code without failing the step on exit-2 (no-op).
