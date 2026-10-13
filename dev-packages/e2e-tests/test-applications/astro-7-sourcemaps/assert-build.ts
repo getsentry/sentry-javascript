@@ -92,9 +92,6 @@ for (const outputDir of OUTPUT_DIRS) {
 }
 
 // The app does not set `build.sourcemap`, so the SDK enables hidden maps and must delete them after upload.
-// TODO: The default `filesToDeleteAfterUpload` globs miss static output, which writes maps to `dist/_astro`.
-if (!isStatic) {
-  assert.deepEqual(findSourceMapFiles({ outputDir: BUILD_OUTPUT }), [], `Expected no source maps in ${BUILD_OUTPUT}`);
-}
+assert.deepEqual(findSourceMapFiles({ outputDir: BUILD_OUTPUT }), [], `Expected no source maps in ${BUILD_OUTPUT}`);
 
 console.log('All sourcemap assertions passed!');

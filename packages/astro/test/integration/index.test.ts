@@ -112,7 +112,11 @@ describe('sentryAstro integration', () => {
         bundleSizeOptimizations: {},
         sourcemaps: {
           assets: ['out/**/*', 'out/**/.prerender/**/*'],
-          filesToDeleteAfterUpload: ['./dist/**/client/**/*.map', './dist/**/server/**/*.map'],
+          filesToDeleteAfterUpload: [
+            './dist/**/client/**/*.map',
+            './dist/**/server/**/*.map',
+            './dist/**/_astro/**/*.map',
+          ],
         },
         _metaOptions: {
           telemetry: {
@@ -143,7 +147,11 @@ describe('sentryAstro integration', () => {
         bundleSizeOptimizations: {},
         sourcemaps: {
           assets: ['dist/**/*', 'dist/**/.prerender/**/*'],
-          filesToDeleteAfterUpload: ['./dist/**/client/**/*.map', './dist/**/server/**/*.map'],
+          filesToDeleteAfterUpload: [
+            './dist/**/client/**/*.map',
+            './dist/**/server/**/*.map',
+            './dist/**/_astro/**/*.map',
+          ],
         },
         _metaOptions: {
           telemetry: {
@@ -182,7 +190,11 @@ describe('sentryAstro integration', () => {
         bundleSizeOptimizations: {},
         sourcemaps: {
           assets: ['{.vercel,dist}/**/*', '{.vercel,dist}/**/.prerender/**/*'],
-          filesToDeleteAfterUpload: ['./dist/**/client/**/*.map', './dist/**/server/**/*.map'],
+          filesToDeleteAfterUpload: [
+            './dist/**/client/**/*.map',
+            './dist/**/server/**/*.map',
+            './dist/**/_astro/**/*.map',
+          ],
         },
         _metaOptions: {
           telemetry: {
@@ -221,7 +233,11 @@ describe('sentryAstro integration', () => {
         bundleSizeOptimizations: {},
         sourcemaps: {
           assets: ['dist/server/**/*, dist/client/**/*'],
-          filesToDeleteAfterUpload: ['./dist/**/client/**/*.map', './dist/**/server/**/*.map'],
+          filesToDeleteAfterUpload: [
+            './dist/**/client/**/*.map',
+            './dist/**/server/**/*.map',
+            './dist/**/_astro/**/*.map',
+          ],
         },
         _metaOptions: {
           telemetry: {
