@@ -1,7 +1,16 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { ErrorEvent, Span } from '@sentry/core';
 import { getMainCarrier, setCurrentClient, spanToStaticSpanJSON, startSpan } from '@sentry/core';
+import {
+  GEN_AI_OPERATION_NAME,
+  GEN_AI_TOOL_CALL_ARGUMENTS,
+  GEN_AI_TOOL_CALL_RESULT,
+  GEN_AI_TOOL_DESCRIPTION,
+  GEN_AI_TOOL_NAME,
+} from '@sentry/conventions/attributes';
+import { GEN_AI_EXECUTE_TOOL } from '@sentry/conventions/op';
 import { instrumentAnthropicAiClient } from '../../../../src/ai/anthropic-ai';
+import { GEN_AI_TOOL_CALL_ID_ATTRIBUTE } from '../../../../src/ai/core/gen-ai-attributes';
 import { getDefaultTestClientOptions, TestClient } from '../../../mocks/client';
 
 type Tool = { name: string; description?: string; input_schema: object; run: (...args: unknown[]) => unknown };
@@ -67,7 +76,7 @@ describe('instrumentAnthropicAiClient tool runner', () => {
   });
 
   function toolSpans() {
-    return endedSpans.map(span => spanToStaticSpanJSON(span)).filter(span => span.op === 'gen_ai.execute_tool');
+    return endedSpans.map(span => spanToStaticSpanJSON(span)).filter(span => span.op === GEN_AI_EXECUTE_TOOL);
   }
 
   it('wraps each tool call of the runner in an execute_tool span under the active span', async () => {
@@ -88,12 +97,12 @@ describe('instrumentAnthropicAiClient tool runner', () => {
         parent_span_id: parent.span_id,
         origin: 'auto.ai.anthropic',
         data: expect.objectContaining({
-          'gen_ai.operation.name': 'execute_tool',
-          'gen_ai.tool.name': 'weather',
-          'gen_ai.tool.description': 'weather tool',
-          'gen_ai.tool.call.id': 'toolu_1',
-          'gen_ai.tool.call.arguments': '{"city":"Vienna"}',
-          'gen_ai.tool.call.result': 'sunny',
+          [GEN_AI_OPERATION_NAME]: 'execute_tool',
+          [GEN_AI_TOOL_NAME]: 'weather',
+          [GEN_AI_TOOL_DESCRIPTION]: 'weather tool',
+          [GEN_AI_TOOL_CALL_ID_ATTRIBUTE]: 'toolu_1',
+          [GEN_AI_TOOL_CALL_ARGUMENTS]: '{"city":"Vienna"}',
+          [GEN_AI_TOOL_CALL_RESULT]: 'sunny',
         }),
       }),
     ]);
@@ -106,7 +115,7 @@ describe('instrumentAnthropicAiClient tool runner', () => {
     bare.run({});
 
     const { data } = toolSpans()[0]!;
-    for (const key of ['gen_ai.tool.description', 'gen_ai.tool.call.id', 'gen_ai.tool.call.result']) {
+    for (const key of [GEN_AI_TOOL_DESCRIPTION, GEN_AI_TOOL_CALL_ID_ATTRIBUTE, GEN_AI_TOOL_CALL_RESULT]) {
       expect(data).not.toHaveProperty([key]);
     }
   });

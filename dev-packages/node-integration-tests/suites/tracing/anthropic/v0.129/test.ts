@@ -5,7 +5,9 @@ import {
   GEN_AI_TOOL_NAME,
   SENTRY_OP,
 } from '@sentry/conventions/attributes';
+import { GEN_AI_EXECUTE_TOOL } from '@sentry/conventions/op';
 import { afterAll, describe, expect } from 'vitest';
+import { GEN_AI_TOOL_CALL_ID_ATTRIBUTE } from '../../../../../../packages/server-utils/src/ai/core/gen-ai-attributes';
 import { cleanupChildProcesses, createEsmAndCjsTests } from '../../../../utils/runner';
 
 // The attribute extraction is version-independent and covered by the suite pinned to 0.63. What a
@@ -114,8 +116,8 @@ describe('Anthropic integration (0.129)', () => {
           parent_span_id: main.span_id,
           status: 'ok',
           attributes: expect.objectContaining({
-            [SENTRY_OP]: { type: 'string', value: 'gen_ai.execute_tool' },
-            'gen_ai.tool.call.id': { type: 'string', value: 'toolu_weather' },
+            [SENTRY_OP]: { type: 'string', value: GEN_AI_EXECUTE_TOOL },
+            [GEN_AI_TOOL_CALL_ID_ATTRIBUTE]: { type: 'string', value: 'toolu_weather' },
           }),
         });
         // The eager runner starts the first tool while the reply that called it is still streaming.
