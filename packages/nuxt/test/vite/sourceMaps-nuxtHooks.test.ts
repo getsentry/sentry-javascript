@@ -54,6 +54,7 @@ function createMockNuxt(options: {
       _prepare: options._prepare ?? false,
       dev: options.dev ?? false,
       sourcemap: options.sourcemap ?? { server: undefined, client: undefined },
+      buildDir: path.join(os.tmpdir(), '.nuxt'),
     },
     hook: (name: string, callback: HookCallback) => {
       hooks[name] = hooks[name] || [];
@@ -353,6 +354,22 @@ describe('setupSourceMaps hooks', () => {
 
       expect(mockSentryRollupPlugin).toHaveBeenCalled();
       expect(nitroConfig.rollupConfig.plugins.length).toBeGreaterThan(0);
+    });
+
+    it('loads the source maps of the Vite service output in the Nitro build', async () => {
+      const mockNuxt = createMockNuxt({ _prepare: false, dev: false });
+      const { mockAddVitePlugin } = createMockAddVitePlugin();
+
+      setupSourceMaps({}, mockNuxt as unknown as Nuxt, mockAddVitePlugin);
+      await mockNuxt.triggerHook('modules:done');
+
+      const nitroConfig = { rollupConfig: { plugins: [] as { name: string }[], output: {} }, dev: false };
+      await mockNuxt.triggerHook('nitro:config', nitroConfig);
+
+      expect(nitroConfig.rollupConfig.plugins.map(plugin => plugin.name)).toEqual([
+        'sentry-nuxt-service-source-maps',
+        'sentry-rollup-plugin',
+      ]);
     });
 
     it.each([

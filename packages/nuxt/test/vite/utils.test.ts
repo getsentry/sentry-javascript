@@ -9,6 +9,7 @@ import {
   extractFunctionReexportQueryParameters,
   findDefaultSdkInitFile,
   getFilenameFromNodeStartCommand,
+  isInDirectory,
   QUERY_END_INDICATOR,
   removeSentryQueryFromPath,
   SENTRY_REEXPORTED_FUNCTIONS,
@@ -200,6 +201,23 @@ describe('toImportSpecifier', () => {
   // On Windows `path.relative` returns backslashes, which Node rejects in an import specifier.
   it('rewrites backslash separators to forward slashes', () => {
     expect(toImportSpecifier('/my/app', '/my/app/.nuxt\\dev\\config.mjs')).toBe('./.nuxt/dev/config.mjs');
+  });
+});
+
+describe('isInDirectory', () => {
+  const directory = path.join('/my', 'app', '.nuxt', 'vite', 'services');
+
+  it.each([
+    { label: 'a file in a subdirectory', file: path.join(directory, 'ssr', 'index.mjs'), expected: true },
+    { label: 'the directory itself', file: directory, expected: false },
+    {
+      label: 'a sibling directory with the same prefix',
+      file: `${directory}-old${path.sep}index.mjs`,
+      expected: false,
+    },
+    { label: 'the parent directory', file: path.dirname(directory), expected: false },
+  ])('returns $expected for $label', ({ file, expected }) => {
+    expect(isInDirectory(file, directory)).toBe(expected);
   });
 });
 

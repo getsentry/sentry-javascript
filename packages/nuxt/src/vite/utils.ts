@@ -66,6 +66,17 @@ export function toImportSpecifier(fromDir: string, filePath: string): string {
   return `./${path.relative(fromDir, filePath).split(/[\\/]/).join('/')}`;
 }
 
+/** Whether `file` is inside `directory`. `directory` itself does not count. */
+export function isInDirectory(file: string, directory: string): boolean {
+  const relativePath = path.relative(directory, file);
+  return (
+    relativePath !== '' &&
+    relativePath !== '..' &&
+    !relativePath.startsWith(`..${path.sep}`) &&
+    !path.isAbsolute(relativePath)
+  );
+}
+
 /**
  *  Extracts the filename from a node command with a path.
  */
