@@ -4,6 +4,7 @@ import {
   getNavigationContext,
   getNormalizedName,
   getNumberOfUrlSegments,
+  getRootRoutes,
   locationIsInsideDescendantRoute,
   pathEndsWithWildcard,
   pathIsWildcardAndHasChildren,
@@ -247,7 +248,41 @@ describe('reactrouter-compat-utils/utils', () => {
     });
   });
 
+  describe('getRootRoutes', () => {
+    it('should drop routes whose parent is also in the list', () => {
+      const leaf: RouteObject = { path: 'account' };
+      const settings: RouteObject = { path: 'settings', children: [leaf] };
+      const root: RouteObject = { path: '/', children: [settings] };
+
+      expect(getRootRoutes([root, settings, leaf])).toEqual([root]);
+    });
+
+    it('should keep routes whose parent is not in the list', () => {
+      const leaf: RouteObject = { path: 'account' };
+      const descendant: RouteObject = { path: '/users/*', element: 'div' };
+
+      expect(getRootRoutes([leaf, descendant])).toEqual([leaf, descendant]);
+    });
+
+    it('should not treat children of index routes as nested', () => {
+      const child: RouteObject = { path: 'child' };
+      const indexRoute: RouteObject = { index: true, children: [child] };
+
+      expect(getRootRoutes([indexRoute, child])).toEqual([indexRoute, child]);
+    });
+  });
+
   describe('locationIsInsideDescendantRoute', () => {
+    it('should only match against root routes', () => {
+      const child: RouteObject = { path: 'profile' };
+      const parent: RouteObject = { path: '/users', children: [child] };
+      mockMatchRoutes.mockReturnValue(null);
+
+      locationIsInsideDescendantRoute({ pathname: '/users/profile' }, [parent, child], mockMatchRoutes as MatchRoutes);
+
+      expect(mockMatchRoutes).toHaveBeenCalledWith([parent], { pathname: '/users/profile' });
+    });
+
     it('should return true when location is inside descendant route', () => {
       const routes: RouteObject[] = [
         {

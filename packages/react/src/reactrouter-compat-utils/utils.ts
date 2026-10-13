@@ -232,6 +232,23 @@ function reconstructNameFromDescendantParent(
 }
 
 /**
+ * Returns the routes that aren't a child of another route in the list.
+ * `allRoutes` holds every nested route alongside its ancestors, and `matchRoutes` flattens each
+ * entry's children again, so matching the full list multiplies the branches it ranks and tests.
+ */
+export function getRootRoutes(routes: RouteObject[]): RouteObject[] {
+  const nestedRoutes = new Set<RouteObject>();
+  for (const route of routes) {
+    if (route.children && !route.index) {
+      for (const child of route.children) {
+        nestedRoutes.add(child);
+      }
+    }
+  }
+  return nestedRoutes.size ? routes.filter(route => !nestedRoutes.has(route)) : routes;
+}
+
+/**
  * Checks if the current location is inside a descendant route (route with splat parameter).
  */
 export function locationIsInsideDescendantRoute(
@@ -239,7 +256,7 @@ export function locationIsInsideDescendantRoute(
   routes: RouteObject[],
   matchRoutes: MatchRoutes,
 ): boolean {
-  const matchedRoutes = matchRoutes(routes, location) as RouteMatch[];
+  const matchedRoutes = matchRoutes(getRootRoutes(routes), location) as RouteMatch[];
 
   if (matchedRoutes) {
     for (const match of matchedRoutes) {
