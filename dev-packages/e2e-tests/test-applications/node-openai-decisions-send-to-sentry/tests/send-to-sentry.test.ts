@@ -11,7 +11,6 @@ import {
   GEN_AI_USAGE_TOTAL_TOKENS,
 } from '@sentry/conventions/attributes';
 import { GEN_AI_DECIDE, HTTP_SERVER } from '@sentry/conventions/op';
-import type { TraceItem } from '@sentry-internal/test-utils/cli';
 import {
   EVENT_POLLING_OPTIONS,
   fetchSpanAttributes,
@@ -24,81 +23,53 @@ import {
 // Mirrors src/app.ts.
 const MODEL = 'gpt-6-luna';
 
-type Attributes = Record<string, unknown>;
-
-/** Sends one request to the app and returns the trace its request span was recorded under. */
-async function requestTrace(baseURL: string | undefined, path: string): Promise<string> {
-  const response = await fetch(`${baseURL}${path}`);
-  const body = await response.text();
-  expect(response.status, `${path} answered ${response.status}: ${body}`).toBe(200);
-
-  const { traceId } = JSON.parse(body) as { traceId?: string };
-  expect(traceId, `${path} did not report a trace id: ${body}`).toMatch(/^[0-9a-f]{32}$/);
-
-  console.log(`${path}: sentry trace view ${traceTarget(traceId!)}`);
-  return traceId!;
-}
-
 /**
- * Polls Sentry until the trace holds a span with `op`, then returns that span and its attributes. The
- * trace endpoint only carries the span's op, name and place in the tree; the attributes need a second
- * lookup, which is polled as well since the two can land apart.
+ * What every decide span carries once Sentry has stored it, whatever the model answers. The names are the
+ * stored ones: `span.op`, `span.status` and `origin` rather than the `sentry.*` attributes the SDK sends.
+ * `span.description` stays empty: ingest only derives it for ops it knows, and `gen_ai.decide` is new.
  */
-async function waitForSpan(traceId: string, op: string): Promise<{ span: TraceItem; attributes: Attributes }> {
-  let found: { span: TraceItem; attributes: Attributes } | undefined;
+const DECIDE_SPAN_ATTRIBUTES = {
+  'span.name': `decide ${MODEL}`,
+  'span.op': GEN_AI_DECIDE,
+  'span.status': 'ok',
+  origin: 'auto.ai.openai',
+  [GEN_AI_OPERATION_NAME]: 'decide',
+  [GEN_AI_PROVIDER_NAME]: 'openai',
+  [GEN_AI_REQUEST_MODEL]: MODEL,
+  [GEN_AI_RESPONSE_MODEL]: MODEL,
+};
 
+test('records a text decision with its state, questions and answers', async ({ baseURL }) => {
+  const response = await fetch(`${baseURL}/decide`);
+  expect(response.status).toBe(200);
+  const { traceId }: { traceId: string } = await response.json();
+
+  console.log(`Polling for gen_ai.decide span: sentry trace view ${traceTarget(traceId)}`);
+
+  let spanId: string | undefined;
   await expect
-    .poll(() => {
-      const span = findSpanInTrace(traceId, op);
-      const attributes = span?.event_id ? fetchSpanAttributes(traceId, span.event_id) : undefined;
-      found = span && attributes ? { span, attributes } : undefined;
-      return found;
-    }, EVENT_POLLING_OPTIONS)
+    .poll(() => (spanId = findSpanInTrace(traceId, GEN_AI_DECIDE)?.event_id), EVENT_POLLING_OPTIONS)
     .toBeDefined();
 
-  return found!;
-}
+  let attributes: Record<string, unknown> | undefined;
+  await expect
+    .poll(() => (attributes = fetchSpanAttributes(traceId, spanId!)), EVENT_POLLING_OPTIONS)
+    .toMatchObject(DECIDE_SPAN_ATTRIBUTES);
 
-/**
- * The attributes every decide span carries once Sentry has stored it, whatever the model answers.
- * Note the names are the stored ones: `span.op`, `span.status` and `origin` rather than the `sentry.*`
- * attributes the SDK sends. Integers come back as strings. Decisions bills input tokens only, so there
- * are no output tokens.
- */
-async function expectDecideSpan(traceId: string): Promise<Attributes> {
-  const { span, attributes } = await waitForSpan(traceId, GEN_AI_DECIDE);
-
-  // `span.description` stays empty: ingest only derives it for ops it knows, and `gen_ai.decide` is new.
-  expect(attributes).toMatchObject({
-    'span.name': `decide ${MODEL}`,
-    'span.op': GEN_AI_DECIDE,
-    'span.status': 'ok',
-    origin: 'auto.ai.openai',
-    [GEN_AI_OPERATION_NAME]: 'decide',
-    [GEN_AI_PROVIDER_NAME]: 'openai',
-    [GEN_AI_REQUEST_MODEL]: MODEL,
-    [GEN_AI_RESPONSE_MODEL]: MODEL,
-  });
-  expect(Number(attributes[GEN_AI_USAGE_OUTPUT_TOKENS])).toBe(0);
-  expect(Number(attributes[GEN_AI_USAGE_INPUT_TOKENS])).toBeGreaterThan(0);
-  expect(Number(attributes[GEN_AI_USAGE_TOTAL_TOKENS])).toBe(Number(attributes[GEN_AI_USAGE_INPUT_TOKENS]));
+  // Integers come back as strings. Decisions bills input tokens only, so there are no output tokens.
+  expect(Number(attributes![GEN_AI_USAGE_OUTPUT_TOKENS])).toBe(0);
+  expect(Number(attributes![GEN_AI_USAGE_INPUT_TOKENS])).toBeGreaterThan(0);
+  expect(Number(attributes![GEN_AI_USAGE_TOTAL_TOKENS])).toBe(Number(attributes![GEN_AI_USAGE_INPUT_TOKENS]));
 
   // The request span is the segment; it ends last, so it can land after the decide span.
   await expect
     .poll(() => {
       const requestSpan = flattenTrace(fetchTrace(traceId)).find(item => item.op === HTTP_SERVER);
-      return flattenTrace(requestSpan?.children ?? []).some(item => item.event_id === span.event_id);
+      return flattenTrace(requestSpan?.children ?? []).some(item => item.event_id === spanId);
     }, EVENT_POLLING_OPTIONS)
     .toBe(true);
 
-  return attributes;
-}
-
-test('records a text decision with its state, questions and answers', async ({ baseURL }) => {
-  const traceId = await requestTrace(baseURL, '/decide');
-  const attributes = await expectDecideSpan(traceId);
-
-  expect(JSON.parse(attributes[GEN_AI_INPUT_MESSAGES] as string)).toEqual([
+  expect(JSON.parse(attributes![GEN_AI_INPUT_MESSAGES] as string)).toEqual([
     {
       type: 'evaluation',
       state: 'I was charged twice this month and want a refund.',
@@ -119,7 +90,7 @@ test('records a text decision with its state, questions and answers', async ({ b
   ]);
 
   // The probabilities depend on the model, the shape does not.
-  expect(JSON.parse(attributes[GEN_AI_OUTPUT_MESSAGES] as string)).toEqual([
+  expect(JSON.parse(attributes![GEN_AI_OUTPUT_MESSAGES] as string)).toEqual([
     {
       type: 'evaluation',
       answers: {
@@ -143,10 +114,23 @@ test('records a text decision with its state, questions and answers', async ({ b
 });
 
 test('records an image decision by media type only', async ({ baseURL }) => {
-  const traceId = await requestTrace(baseURL, '/decide-image');
-  const attributes = await expectDecideSpan(traceId);
+  const response = await fetch(`${baseURL}/decide-image`);
+  expect(response.status).toBe(200);
+  const { traceId }: { traceId: string } = await response.json();
 
-  expect(JSON.parse(attributes[GEN_AI_INPUT_MESSAGES] as string)).toEqual([
+  console.log(`Polling for gen_ai.decide span: sentry trace view ${traceTarget(traceId)}`);
+
+  let spanId: string | undefined;
+  await expect
+    .poll(() => (spanId = findSpanInTrace(traceId, GEN_AI_DECIDE)?.event_id), EVENT_POLLING_OPTIONS)
+    .toBeDefined();
+
+  let attributes: Record<string, unknown> | undefined;
+  await expect
+    .poll(() => (attributes = fetchSpanAttributes(traceId, spanId!)), EVENT_POLLING_OPTIONS)
+    .toMatchObject(DECIDE_SPAN_ATTRIBUTES);
+
+  expect(JSON.parse(attributes![GEN_AI_INPUT_MESSAGES] as string)).toEqual([
     {
       type: 'evaluation',
       state: [
@@ -162,7 +146,7 @@ test('records an image decision by media type only', async ({ baseURL }) => {
     },
   ]);
 
-  expect(JSON.parse(attributes[GEN_AI_OUTPUT_MESSAGES] as string)).toEqual([
+  expect(JSON.parse(attributes![GEN_AI_OUTPUT_MESSAGES] as string)).toEqual([
     { type: 'evaluation', answers: { is_red: { type: 'predicate', probability: expect.any(Number) } } },
   ]);
 });
