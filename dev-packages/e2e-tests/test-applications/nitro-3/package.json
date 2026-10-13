@@ -18,6 +18,7 @@
   "devDependencies": {
     "@playwright/test": "~1.63.0",
     "@sentry-internal/test-utils": "link:../../../test-utils",
+    "@sentry/conventions": "0.27.0",
     "@sentry/core": "latest || *",
     "nitro": "^3.0.260522-beta",
     "rolldown": "latest",

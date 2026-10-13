@@ -1,5 +1,7 @@
 import { expect, test } from '@playwright/test';
 import { collectStreamedSpansUntilSegment, getSpanOp } from '@sentry-internal/test-utils';
+import { SENTRY_ORIGIN } from '@sentry/conventions/attributes';
+import { HANDLER, HTTP_SERVER, MIDDLEWARE } from '@sentry/conventions/op';
 
 function collectNestingSpans() {
   return collectStreamedSpansUntilSegment('nitro-3', 'GET /api/test-nesting');
@@ -31,12 +33,12 @@ test('Span nesting: the segment is the only http.server span', async ({ request 
 
   const spans = await spansPromise;
 
-  const httpServerSpans = spans.filter(span => getSpanOp(span) === 'http.server');
+  const httpServerSpans = spans.filter(span => getSpanOp(span) === HTTP_SERVER);
   expect(httpServerSpans).toHaveLength(1);
   expect(httpServerSpans[0]).toMatchObject({
     is_segment: true,
     attributes: expect.objectContaining({
-      'sentry.origin': { type: 'string', value: 'auto.http.http_server' },
+      [SENTRY_ORIGIN]: { type: 'string', value: 'auto.http.http_server' },
     }),
   });
 });
@@ -50,7 +52,7 @@ test('Span nesting: h3 middleware spans are children of the segment span', async
 
   const segmentSpan = spans.find(span => span.is_segment && span.name === 'GET /api/test-nesting');
   const h3MiddlewareSpans = spans.filter(
-    span => span.attributes['sentry.origin']?.value === 'auto.http.nitro.h3' && getSpanOp(span) === 'middleware',
+    span => span.attributes[SENTRY_ORIGIN]?.value === 'auto.http.nitro.h3' && getSpanOp(span) === MIDDLEWARE,
   );
   expect(h3MiddlewareSpans.length).toBeGreaterThanOrEqual(1);
 
@@ -68,7 +70,7 @@ test('Span nesting: h3 route handler span is a child of the segment span', async
 
   const segmentSpan = spans.find(span => span.is_segment && span.name === 'GET /api/test-nesting');
   const h3HandlerSpan = spans.find(
-    span => span.attributes['sentry.origin']?.value === 'auto.http.nitro.h3' && getSpanOp(span) === 'handler',
+    span => span.attributes[SENTRY_ORIGIN]?.value === 'auto.http.nitro.h3' && getSpanOp(span) === HANDLER,
   );
   expect(h3HandlerSpan).toMatchObject({
     name: 'GET /api/test-nesting',
@@ -87,7 +89,7 @@ test('Span nesting: manual startSpan calls inside route handler are children of 
 
   // Find the h3 route handler span
   const h3HandlerSpan = spans.find(
-    span => span.attributes['sentry.origin']?.value === 'auto.http.nitro.h3' && getSpanOp(span) === 'handler',
+    span => span.attributes[SENTRY_ORIGIN]?.value === 'auto.http.nitro.h3' && getSpanOp(span) === HANDLER,
   );
   expect(h3HandlerSpan).toBeDefined();
 
