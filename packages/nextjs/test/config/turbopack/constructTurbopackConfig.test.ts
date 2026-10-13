@@ -54,6 +54,38 @@ describe('constructTurbopackConfig', () => {
                 options: {
                   values: {
                     __SENTRY_SERVER_MODULES__: expect.any(Object),
+                    _sentryTurbopack: true,
+                    _sentryRewriteFramesDistDir: '.next',
+                  },
+                },
+              },
+            ],
+          },
+        },
+      });
+    });
+
+    it('injects the release and dist dir into the server instrumentation file', () => {
+      const userNextConfig: NextConfigObject = { distDir: 'build' };
+
+      const result = constructTurbopackConfig({
+        userNextConfig,
+        userSentryOptions: mockSentryOptions,
+        releaseName: 'my-app@1.2.3',
+      });
+
+      expect(result).toEqual({
+        rules: {
+          '**/instrumentation.*': {
+            loaders: [
+              {
+                loader: '/mocked/path/to/valueInjectionLoader.js',
+                options: {
+                  values: {
+                    __SENTRY_SERVER_MODULES__: expect.any(Object),
+                    _sentryTurbopack: true,
+                    _sentryRelease: 'my-app@1.2.3',
+                    _sentryRewriteFramesDistDir: 'build',
                   },
                 },
               },
@@ -92,6 +124,8 @@ describe('constructTurbopackConfig', () => {
                 options: {
                   values: {
                     __SENTRY_SERVER_MODULES__: expect.any(Object),
+                    _sentryTurbopack: true,
+                    _sentryRewriteFramesDistDir: '.next',
                   },
                 },
               },
@@ -178,6 +212,8 @@ describe('constructTurbopackConfig', () => {
                 options: {
                   values: {
                     __SENTRY_SERVER_MODULES__: expect.any(Object),
+                    _sentryTurbopack: true,
+                    _sentryRewriteFramesDistDir: '.next',
                   },
                 },
               },
@@ -229,6 +265,8 @@ describe('constructTurbopackConfig', () => {
                 options: {
                   values: {
                     __SENTRY_SERVER_MODULES__: expect.any(Object),
+                    _sentryTurbopack: true,
+                    _sentryRewriteFramesDistDir: '.next',
                   },
                 },
               },
@@ -312,6 +350,8 @@ describe('constructTurbopackConfig', () => {
                 options: {
                   values: {
                     __SENTRY_SERVER_MODULES__: expect.any(Object),
+                    _sentryTurbopack: true,
+                    _sentryRewriteFramesDistDir: '.next',
                   },
                 },
               },
@@ -357,6 +397,8 @@ describe('constructTurbopackConfig', () => {
                 options: {
                   values: {
                     __SENTRY_SERVER_MODULES__: expect.any(Object),
+                    _sentryTurbopack: true,
+                    _sentryRewriteFramesDistDir: '.next',
                   },
                 },
               },
@@ -399,6 +441,8 @@ describe('constructTurbopackConfig', () => {
                 options: {
                   values: {
                     __SENTRY_SERVER_MODULES__: expect.any(Object),
+                    _sentryTurbopack: true,
+                    _sentryRewriteFramesDistDir: '.next',
                   },
                 },
               },
@@ -439,6 +483,8 @@ describe('constructTurbopackConfig', () => {
                 options: {
                   values: {
                     __SENTRY_SERVER_MODULES__: expect.any(Object),
+                    _sentryTurbopack: true,
+                    _sentryRewriteFramesDistDir: '.next',
                     _sentryNextJsVersion: '15.0.0',
                   },
                 },
@@ -495,6 +541,8 @@ describe('constructTurbopackConfig', () => {
                 options: {
                   values: {
                     __SENTRY_SERVER_MODULES__: expect.any(Object),
+                    _sentryTurbopack: true,
+                    _sentryRewriteFramesDistDir: '.next',
                     _sentryNextJsVersion: '14.0.0',
                   },
                 },
@@ -538,6 +586,8 @@ describe('constructTurbopackConfig', () => {
                 options: {
                   values: {
                     __SENTRY_SERVER_MODULES__: expect.any(Object),
+                    _sentryTurbopack: true,
+                    _sentryRewriteFramesDistDir: '.next',
                   },
                 },
               },
@@ -604,6 +654,8 @@ describe('constructTurbopackConfig', () => {
                 options: {
                   values: {
                     __SENTRY_SERVER_MODULES__: expect.any(Object),
+                    _sentryTurbopack: true,
+                    _sentryRewriteFramesDistDir: '.next',
                     _sentryNextJsVersion: nextJsVersion,
                   },
                 },
@@ -646,6 +698,8 @@ describe('constructTurbopackConfig', () => {
                 options: {
                   values: {
                     __SENTRY_SERVER_MODULES__: expect.any(Object),
+                    _sentryTurbopack: true,
+                    _sentryRewriteFramesDistDir: '.next',
                     _sentryNextJsVersion: nextJsVersion,
                   },
                 },
@@ -699,6 +753,8 @@ describe('constructTurbopackConfig', () => {
                 options: {
                   values: {
                     __SENTRY_SERVER_MODULES__: expect.any(Object),
+                    _sentryTurbopack: true,
+                    _sentryRewriteFramesDistDir: '.next',
                     _sentryNextJsVersion: nextJsVersion,
                   },
                 },
@@ -746,6 +802,8 @@ describe('constructTurbopackConfig', () => {
                 options: {
                   values: {
                     __SENTRY_SERVER_MODULES__: expect.any(Object),
+                    _sentryTurbopack: true,
+                    _sentryRewriteFramesDistDir: '.next',
                   },
                 },
               },
@@ -772,6 +830,8 @@ describe('constructTurbopackConfig', () => {
                 options: {
                   values: {
                     __SENTRY_SERVER_MODULES__: expect.any(Object),
+                    _sentryTurbopack: true,
+                    _sentryRewriteFramesDistDir: '.next',
                   },
                 },
               },
@@ -869,6 +929,8 @@ describe('constructTurbopackConfig', () => {
                 options: {
                   values: {
                     __SENTRY_SERVER_MODULES__: expect.any(Object),
+                    _sentryTurbopack: true,
+                    _sentryRewriteFramesDistDir: '.next',
                     _sentryNextJsVersion: nextJsVersion,
                   },
                 },

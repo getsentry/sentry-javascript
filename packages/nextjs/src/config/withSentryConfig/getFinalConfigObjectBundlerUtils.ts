@@ -107,6 +107,7 @@ export function maybeConstructTurbopackConfig(
   nextJsVersion: string | undefined,
   bundlerInfo: BundlerInfo,
   vercelCronsConfigResult: VercelCronsConfigResult,
+  releaseName: string | undefined,
 ): TurbopackOptions | undefined {
   if (!bundlerInfo.isTurbopack) {
     return undefined;
@@ -121,6 +122,7 @@ export function maybeConstructTurbopackConfig(
     routeManifest,
     nextJsVersion,
     vercelCronsConfig,
+    releaseName,
   });
 }
 
