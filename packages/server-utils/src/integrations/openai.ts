@@ -49,7 +49,7 @@ function instrumentOpenai(options: OpenAiOptions): void {
       data => createGenAiSpan(data, operation, options),
       {
         beforeSpanEnd: (span, data) => {
-          addResponseAttributes(span, data.result, resolveAIRecordingOptions(options).recordOutputs);
+          addResponseAttributes(span, data.result, resolveAIRecordingOptions(options).recordOutputs, operation);
         },
         deferSpanEnd: ({ span, data, end }) =>
           wrapApiPromiseResponse(

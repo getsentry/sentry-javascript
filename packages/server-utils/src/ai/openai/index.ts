@@ -31,7 +31,8 @@ import {
 import { OPENAI_METHOD_REGISTRY } from './constants';
 import { instrumentStream } from './streaming';
 import type { ChatCompletionChunk, OpenAiOptions, OpenAIStream, ResponseStreamingEvent } from './types';
-import { addResponseAttributes, extractRequestParameters, getDecisionInputMessages } from './utils';
+import { getDecisionInputMessages } from './mapping';
+import { addResponseAttributes, extractRequestParameters } from './utils';
 
 /**
  * Extract available tools from request parameters
@@ -213,7 +214,7 @@ function instrumentMethod<T extends unknown[], R>(
       }
 
       return originalResult.then(result => {
-        addResponseAttributes(span, result, options.recordOutputs);
+        addResponseAttributes(span, result, options.recordOutputs, operationName);
         return result;
       });
     });
