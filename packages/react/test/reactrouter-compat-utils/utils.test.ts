@@ -554,16 +554,6 @@ describe('reactrouter-compat-utils/utils', () => {
       ];
       const branches: RouteMatch[] = [
         {
-          route: { path: '/users', element: null },
-          params: {},
-          pathname: '/users',
-          pathnameBase: '',
-        },
-      ];
-
-      // Mock for descendant route check
-      const descendantMatches: RouteMatch[] = [
-        {
           route: { path: '/users/*', element: 'div' },
           params: { '*': '123/profile' },
           pathname: '/users/123/profile',
@@ -581,9 +571,7 @@ describe('reactrouter-compat-utils/utils', () => {
         },
       ];
 
-      mockMatchRoutes
-        .mockReturnValueOnce(descendantMatches) // First call for descendant check
-        .mockReturnValueOnce(rebuildMatches); // Second call for path rebuild
+      mockMatchRoutes.mockReturnValueOnce(rebuildMatches);
 
       const result = resolveRouteNameAndSource(location, routes, allRoutes, branches, makeConfig());
       // Since locationIsInsideDescendantRoute returns true, it uses route source
