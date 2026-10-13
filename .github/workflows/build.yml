@@ -43,9 +43,7 @@ env:
   # upload-artifact globs drop the path through the first `*` (see upload-artifact
   # README). Tarballs therefore land in the artifact as <pkg>/*.tgz; download
   # build-tarball-output into packages/ so they resolve to packages/<pkg>/*.tgz.
-  TARBALL_ARTIFACT_GLOB: |
-    packages/*/*.tgz
-    packages/legacy/*/*.tgz
+  TARBALL_ARTIFACT_GLOB: packages/*/*.tgz
   TARBALL_ARTIFACT_DOWNLOAD_PATH: ${{ github.workspace }}/packages
 
   BUILD_LAYER_PATH: ${{ github.workspace }}/packages/aws-serverless/build/aws/dist-serverless
@@ -894,9 +892,8 @@ jobs:
         with:
           ref: ${{ env.HEAD_COMMIT }}
       # The fixtures install the locally-packed `@sentry/bundler-plugins` tarball with pnpm.
-      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
-        with:
-          version: 9.15.9
+      - name: Install pnpm
+        uses: ./.github/actions/install-pnpm
       - name: Set up Node
         uses: actions/setup-node@v7
         with:
@@ -1058,9 +1055,10 @@ jobs:
         uses: actions/checkout@v7
         with:
           ref: ${{ env.HEAD_COMMIT }}
-      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+      - name: Install pnpm
+        uses: ./.github/actions/install-pnpm
         with:
-          version: ${{ matrix.test-application == 'nuxt-5' && '11.10.0' || '9.15.9' }}
+          package-json: 'dev-packages/e2e-tests/test-applications/${{ matrix.test-application }}/package.json'
       - name: Set up Node
         uses: actions/setup-node@v7
         with:
@@ -1213,9 +1211,10 @@ jobs:
         uses: actions/checkout@v7
         with:
           ref: ${{ env.HEAD_COMMIT }}
-      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+      - name: Install pnpm
+        uses: ./.github/actions/install-pnpm
         with:
-          version: ${{ matrix.test-application == 'nuxt-5' && '11.10.0' || '9.15.9' }}
+          package-json: 'dev-packages/e2e-tests/test-applications/${{ matrix.test-application }}/package.json'
       - name: Set up Node
         uses: actions/setup-node@v7
         with:

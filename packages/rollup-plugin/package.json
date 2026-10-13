@@ -1,14 +1,15 @@
 {
-  "name": "@sentry/vite-plugin",
+  "name": "@sentry/rollup-plugin",
   "version": "11.6.0",
-  "description": "Official Sentry Vite plugin",
+  "description": "Official Sentry Rollup plugin",
   "repository": "git://github.com/getsentry/sentry-javascript.git",
-  "homepage": "https://github.com/getsentry/sentry-javascript/tree/develop/packages/legacy/vite-plugin",
+  "homepage": "https://github.com/getsentry/sentry-javascript/tree/develop/packages/rollup-plugin",
   "author": "Sentry",
   "license": "MIT",
   "keywords": [
     "Sentry",
-    "Vite",
+    "rollup-plugin",
+    "Rollup",
     "bundler",
     "plugin"
   ],
@@ -41,7 +42,7 @@
     "build:dev:watch": "yarn build:watch",
     "build:transpile:watch": "rollup -c rollup.npm.config.mjs --watch",
     "build:tarball": "npm pack",
-    "clean": "rimraf build coverage sentry-vite-plugin-*.tgz",
+    "clean": "rimraf build coverage sentry-rollup-plugin-*.tgz",
     "lint": "oxlint . --type-aware",
     "lint:fix": "oxlint . --fix --type-aware",
     "test": "vitest run",
@@ -50,7 +51,15 @@
   "dependencies": {
     "@sentry/bundler-plugins": "11.6.0"
   },
+  "peerDependencies": {
+    "rollup": ">=3.2.0"
+  },
+  "peerDependenciesMeta": {
+    "rollup": {
+      "optional": true
+    }
+  },
   "volta": {
-    "extends": "../../../package.json"
+    "extends": "../../package.json"
   }
 }
