@@ -901,6 +901,12 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
   ): () => void;
 
   /**
+   * A hook that is called when an incoming request starts being tracked as a request session.
+   * @returns {() => void} A function that, when executed, removes the registered callback.
+   */
+  public on(hook: 'startRequestSession', callback: () => void): () => void;
+
+  /**
    * A hook that is called when the client is flushing
    * @returns {() => void} A function that, when executed, removes the registered callback.
    */
@@ -1210,6 +1216,11 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
     breadcrumb: Breadcrumb,
     hint: XhrBreadcrumbHint | FetchBreadcrumbHint,
   ): void;
+
+  /**
+   * Emit a hook event when an incoming request starts being tracked as a request session.
+   */
+  public emit(hook: 'startRequestSession'): void;
 
   /**
    * Emit a hook event for client flush

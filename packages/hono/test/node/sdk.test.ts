@@ -82,6 +82,8 @@ describe('Hono Node SDK – init()', () => {
       sampleRate: 0.5,
       tracesSampleRate: 1.0,
       debug: true,
+      enableOpenTelemetrySetup: true,
+      transportOptions: { proxy: 'http://proxy.example.com:8080' },
     });
 
     expect(initNodeMock).toHaveBeenCalledWith(
@@ -90,6 +92,8 @@ describe('Hono Node SDK – init()', () => {
         sampleRate: 0.5,
         tracesSampleRate: 1.0,
         debug: true,
+        enableOpenTelemetrySetup: true,
+        transportOptions: { proxy: 'http://proxy.example.com:8080' },
       }),
     );
   });

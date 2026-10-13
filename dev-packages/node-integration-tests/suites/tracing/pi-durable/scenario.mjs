@@ -38,7 +38,7 @@ registry.install(
         name: 'get_weather',
         description: 'Get the current weather for a city.',
         parameters: Type.Object({ city: Type.String() }),
-        execute: async args => ({ content: [{ type: 'text', text: `It is 21 degrees and sunny in ${args.city}.` }] }),
+        execute: async args => ({ output: [{ type: 'text', text: `It is 21 degrees and sunny in ${args.city}.` }] }),
       }),
       defineTool({
         name: 'broken',
