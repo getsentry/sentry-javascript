@@ -106,9 +106,9 @@ function runWithSpan(
         [SENTRY_ORIGIN]: ANTHROPIC_AI_ORIGIN,
         [GEN_AI_OPERATION_NAME]: 'execute_tool',
         [GEN_AI_TOOL_NAME]: name,
-        [GEN_AI_TOOL_DESCRIPTION]: typeof tool.description === 'string' ? tool.description : undefined,
-        [GEN_AI_TOOL_CALL_ID_ATTRIBUTE]: typeof callId === 'string' ? callId : undefined,
-        [GEN_AI_TOOL_CALL_ARGUMENTS]: recordInputs ? stringify(input) : undefined,
+        ...(typeof tool.description === 'string' ? { [GEN_AI_TOOL_DESCRIPTION]: tool.description } : {}),
+        ...(typeof callId === 'string' ? { [GEN_AI_TOOL_CALL_ID_ATTRIBUTE]: callId } : {}),
+        ...(recordInputs ? { [GEN_AI_TOOL_CALL_ARGUMENTS]: stringify(input) } : {}),
       },
     },
     span =>
