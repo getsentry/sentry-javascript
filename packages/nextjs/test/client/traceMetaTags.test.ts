@@ -4,8 +4,8 @@ import type { Span } from '@sentry/core';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   addTraceMetaTagLink,
-  cachedShellSpanOptions,
-  readShellMarker,
+  cachedDocumentSpanOptions,
+  readPrerenderMarker,
   canWaitForTraceMetaTag,
   readTraceMetaTags,
   waitForTraceMetaTag,
@@ -222,23 +222,23 @@ describe('addTraceMetaTagLink', () => {
   });
 });
 
-describe('readShellMarker', () => {
-  it('returns nothing without a sentry-shell tag', () => {
-    expect(readShellMarker()).toBeUndefined();
+describe('readPrerenderMarker', () => {
+  it('returns nothing without a sentry-prerender tag', () => {
+    expect(readPrerenderMarker()).toBeUndefined();
   });
 
-  it('reads the last sentry-shell tag', () => {
-    appendMeta(document.head, 'sentry-shell', HEAD_TRACE);
-    appendMeta(document.body, 'sentry-shell', BODY_TRACE);
+  it('reads the last sentry-prerender tag', () => {
+    appendMeta(document.head, 'sentry-prerender', HEAD_TRACE);
+    appendMeta(document.body, 'sentry-prerender', BODY_TRACE);
 
-    expect(readShellMarker()).toBe(BODY_TRACE);
+    expect(readPrerenderMarker()).toBe(BODY_TRACE);
   });
 });
 
-describe('cachedShellSpanOptions', () => {
+describe('cachedDocumentSpanOptions', () => {
   it('marks the span and links the prerender as cache origin', () => {
-    expect(cachedShellSpanOptions(HEAD_TRACE)).toEqual({
-      attributes: { 'sentry.nextjs.cached_shell': true },
+    expect(cachedDocumentSpanOptions(HEAD_TRACE)).toEqual({
+      attributes: { 'document.cached': true },
       links: [
         {
           context: { traceId: '11111111111111111111111111111111', spanId: '1111111111111111', traceFlags: 1 },
@@ -249,6 +249,6 @@ describe('cachedShellSpanOptions', () => {
   });
 
   it('marks the span even when the marker is not a sentry-trace value', () => {
-    expect(cachedShellSpanOptions('prerendered')).toEqual({ attributes: { 'sentry.nextjs.cached_shell': true } });
+    expect(cachedDocumentSpanOptions('prerendered')).toEqual({ attributes: { 'document.cached': true } });
   });
 });

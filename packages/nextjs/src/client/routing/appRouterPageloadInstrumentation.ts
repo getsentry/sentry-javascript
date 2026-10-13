@@ -19,9 +19,9 @@ import { stripTrailingSlash } from './parameterization';
 import type { TraceMetaTagValues, TraceMetaTagWait } from './traceMetaTags';
 import {
   addTraceMetaTagLink,
-  cachedShellSpanOptions,
+  cachedDocumentSpanOptions,
   canWaitForTraceMetaTag,
-  readShellMarker,
+  readPrerenderMarker,
   readTraceMetaTags,
   waitForTraceMetaTag,
 } from './traceMetaTags';
@@ -53,15 +53,15 @@ function startPageloadSpan(
   documentUrl: string,
   traceMetaTags?: TraceMetaTagValues,
 ): Span | undefined {
-  const shellMarker = readShellMarker();
-  const shellOptions = shellMarker ? cachedShellSpanOptions(shellMarker) : undefined;
+  const prerenderMarker = readPrerenderMarker();
+  const prerenderOptions = prerenderMarker ? cachedDocumentSpanOptions(prerenderMarker) : undefined;
   const span = startBrowserTracingPageLoadSpan(
     client,
-    shellOptions
+    prerenderOptions
       ? {
           ...spanOptions,
-          attributes: { ...spanOptions.attributes, ...shellOptions.attributes },
-          links: shellOptions.links,
+          attributes: { ...spanOptions.attributes, ...prerenderOptions.attributes },
+          links: prerenderOptions.links,
         }
       : spanOptions,
     traceMetaTags,

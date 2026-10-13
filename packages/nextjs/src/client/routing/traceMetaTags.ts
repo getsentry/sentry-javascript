@@ -1,7 +1,7 @@
 import { SENTRY_LINK_TYPE } from '@sentry/conventions/attributes';
 import type { Span, SpanLink, StartSpanOptions } from '@sentry/core';
 import { extractTraceparentData, GLOBAL_OBJ } from '@sentry/core';
-import { SHELL_META_TAG_NAME } from '../../common/traceMetaTags';
+import { PRERENDER_META_TAG_NAME } from '../../common/traceMetaTags';
 import { WINDOW } from '@sentry/react';
 
 // `@opentelemetry/api` `TraceFlags`, inlined because core does not export its copies.
@@ -15,8 +15,8 @@ export interface TraceMetaTagValues {
   baggage: string | undefined;
 }
 
-/** Set on a pageload whose document is a shell that Next.js prerendered and served from its cache. */
-export const CACHED_SHELL_ATTRIBUTE = 'sentry.nextjs.cached_shell';
+/** Set on a pageload whose document was served from a cache, so no server render ran for the request. */
+export const DOCUMENT_CACHED_ATTRIBUTE = 'document.cached';
 
 function getDocument(): Document | undefined {
   return WINDOW.document;
@@ -161,19 +161,19 @@ export function addTraceMetaTagLink(span: Span, { sentryTrace }: TraceMetaTagVal
   }
 }
 
-/** Reads the marker the server writes into a shell while it prerenders it, see `nextSentryPropagator.ts`. */
-export function readShellMarker(): string | undefined {
+/** Reads the marker the server writes into a document while it prerenders it, see `nextSentryPropagator.ts`. */
+export function readPrerenderMarker(): string | undefined {
   const document = getDocument();
-  return document && lastMetaContent(document, SHELL_META_TAG_NAME);
+  return document && lastMetaContent(document, PRERENDER_META_TAG_NAME);
 }
 
 /**
- * The start options that mark a pageload whose document is a cached shell and link the request that
- * prerendered the shell. Applied at span start, so `tracesSampler` and `ignoreSpans` see the attribute.
- * The marker is never continued: the shell is served to every later visitor, and the request behind it
- * handled none of their visits.
+ * The start options that mark a pageload whose document was served from a cache and link the request
+ * that prerendered it. Applied at span start, so `tracesSampler` and `ignoreSpans` see the attribute.
+ * The marker is never continued: the document is served to every later visitor, and the request behind
+ * it handled none of their visits.
  */
-export function cachedShellSpanOptions(marker: string): Pick<StartSpanOptions, 'attributes' | 'links'> {
+export function cachedDocumentSpanOptions(marker: string): Pick<StartSpanOptions, 'attributes' | 'links'> {
   const link = traceMetaTagLink(marker, 'cache_origin');
-  return { attributes: { [CACHED_SHELL_ATTRIBUTE]: true }, ...(link && { links: [link] }) };
+  return { attributes: { [DOCUMENT_CACHED_ATTRIBUTE]: true }, ...(link && { links: [link] }) };
 }

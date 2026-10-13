@@ -86,7 +86,7 @@ describe('NextSentryPropagator', () => {
     trace.getTracer('next.js').startActiveSpan('prerender route (app) /[id]', PRERENDER_SPAN_OPTIONS, span => {
       expect(isPrerenderContext(context.active())).toBe(true);
       expect(inject()).toEqual({
-        'sentry-shell': `${span.spanContext().traceId}-${span.spanContext().spanId}-1`,
+        'sentry-prerender': `${span.spanContext().traceId}-${span.spanContext().spanId}-1`,
       });
       span.end();
     });
@@ -94,7 +94,7 @@ describe('NextSentryPropagator', () => {
 
   it('keeps propagating to outgoing requests while a route is prerendered', () => {
     trace.getTracer('next.js').startActiveSpan('prerender route (app) /[id]', PRERENDER_SPAN_OPTIONS, span => {
-      expect(inject()).toEqual({ 'sentry-shell': expect.stringMatching(/-1$/) });
+      expect(inject()).toEqual({ 'sentry-prerender': expect.stringMatching(/-1$/) });
       expect(injectHeaders()['sentry-trace']).toBe(`${span.spanContext().traceId}-${span.spanContext().spanId}-1`);
       span.end();
     });
@@ -103,7 +103,7 @@ describe('NextSentryPropagator', () => {
   it('hands out nothing inside a span nested in a prerender', () => {
     trace.getTracer('next.js').startActiveSpan('prerender route (app) /[id]', PRERENDER_SPAN_OPTIONS, span => {
       startSpan({ name: 'server component' }, () => {
-        expect(Object.keys(inject())).toEqual(['sentry-shell']);
+        expect(Object.keys(inject())).toEqual(['sentry-prerender']);
       });
       span.end();
     });
@@ -120,7 +120,7 @@ describe('NextSentryPropagator', () => {
         .getTracer('next.js')
         .startActiveSpan('prerender route (app) /[id]', PRERENDER_SPAN_OPTIONS, prerenderSpan => {
           expect(prerenderSpan.isRecording()).toBe(false);
-          expect(inject()).toEqual({ 'sentry-shell': expect.stringMatching(/-0$/) });
+          expect(inject()).toEqual({ 'sentry-prerender': expect.stringMatching(/-0$/) });
           prerenderSpan.end();
         });
       span.end();
@@ -131,7 +131,7 @@ describe('NextSentryPropagator', () => {
     const span = trace.getTracer('next.js').startSpan('prerender route (app) /[id]', PRERENDER_SPAN_OPTIONS);
     context.with(trace.setSpan(context.active(), span), () => {
       expect(isPrerenderContext(context.active())).toBe(true);
-      expect(Object.keys(inject())).toEqual(['sentry-shell']);
+      expect(Object.keys(inject())).toEqual(['sentry-prerender']);
     });
     span.end();
 
@@ -147,7 +147,7 @@ describe('NextSentryPropagator', () => {
       .getTracer('next.js')
       .startActiveSpan('prerender route (app) /[id]', PRERENDER_SPAN_OPTIONS, context.active(), span => {
         expect(isPrerenderContext(context.active())).toBe(true);
-        expect(Object.keys(inject())).toEqual(['sentry-shell']);
+        expect(Object.keys(inject())).toEqual(['sentry-prerender']);
         span.end();
       });
   });
