@@ -73,7 +73,7 @@ registry.install(
         name: 'secret',
         description: 'Returns a secret.',
         parameters: Type.Object({}),
-        execute: async () => ({ content: [{ type: 'text', text: 'original secret value' }] }),
+        execute: async () => ({ output: [{ type: 'text', text: 'original secret value' }] }),
       }),
       defineTool({
         name: 'fail_now',
@@ -87,9 +87,7 @@ registry.install(
     hooks: [
       hook(ToolTask, {
         afterTool: (call, result) =>
-          call.name === 'secret'
-            ? { ...result, content: [{ type: 'text', text: 'redacted by afterTool' }] }
-            : undefined,
+          call.name === 'secret' ? { ...result, output: [{ type: 'text', text: 'redacted by afterTool' }] } : undefined,
       }),
     ],
   }),

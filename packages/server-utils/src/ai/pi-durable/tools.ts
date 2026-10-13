@@ -138,7 +138,7 @@ export function instrumentTool(tool: PiTool, runs: PiRuns, options: GenAiOptions
           call.endTimestamp = timestampInSeconds();
           if (!calls) {
             // No result entry follows a call outside a tool task phase, nor a nested call.
-            finishToolCall(call, { content: result?.content, isError: result?.isError });
+            finishToolCall(call, { content: result?.output ?? result?.content, isError: result?.isError });
           }
           return result;
         } catch (error) {
