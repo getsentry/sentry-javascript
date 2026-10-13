@@ -39,6 +39,10 @@ Work in this release was contributed by @4ktLuffy, @rubas, and @dasilvaluis. Tha
 
   If you set up OpenTelemetry yourself and register `SentryPropagator`, register `NextSentryPropagator` instead and pass your tracer provider to `markPrerendersOnTracerProvider`, so that your prerendered pages carry no trace information either.
 
+- **feat(nextjs): Mark pageloads that were served from a cached shell**
+
+  A pageload whose document is a shell that Next.js prerendered at runtime, for example an ISR page or a `cacheComponents` page generated on first visit, now carries the `sentry.nextjs.cached_shell` attribute and a `cache_origin` span link to the request that generated the shell. That tells apart "nothing ran on the server for this visit" from missing server instrumentation. The link is never continued as a parent, so pageloads keep their own traces and sampling decisions.
+
 Work in this release was contributed by @adityareddy-dev, @jpdefo, @Jxxunnn, @philipatkinson, @Shubham-Padkonde, @mikamikasuki, and @mketiku. Thank you for your contributions!
 
 - **feat(deno): Add incoming request options to `denoServeIntegration`**

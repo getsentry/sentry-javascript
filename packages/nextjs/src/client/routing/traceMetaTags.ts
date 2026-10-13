@@ -1,7 +1,7 @@
 import { SENTRY_LINK_TYPE } from '@sentry/conventions/attributes';
 import type { Span } from '@sentry/core';
-import { extractTraceparentData } from '@sentry/core';
-import { GLOBAL_OBJ } from '@sentry/core';
+import { extractTraceparentData, GLOBAL_OBJ } from '@sentry/core';
+import { SHELL_META_TAG_NAME } from '../../common/traceMetaTags';
 import { WINDOW } from '@sentry/react';
 
 // `@opentelemetry/api` `TraceFlags`, inlined because core does not export its copies.
@@ -14,6 +14,9 @@ export interface TraceMetaTagValues {
   sentryTrace: string;
   baggage: string | undefined;
 }
+
+/** Set on a pageload whose document is a shell that Next.js prerendered and served from its cache. */
+export const CACHED_SHELL_ATTRIBUTE = 'sentry.nextjs.cached_shell';
 
 function getDocument(): Document | undefined {
   return WINDOW.document;
@@ -135,7 +138,7 @@ export function waitForTraceMetaTag(
  * Adds a span link to the span described by a `sentry-trace` value. Used when the tag arrives after
  * the pageload span exists, which can only link the server request, not continue it.
  */
-export function addTraceMetaTagLink(span: Span, { sentryTrace }: TraceMetaTagValues): void {
+export function addTraceMetaTagLink(span: Span, { sentryTrace }: TraceMetaTagValues, linkType?: string): void {
   const traceparent = extractTraceparentData(sentryTrace);
   if (!traceparent?.traceId || !traceparent.parentSpanId) {
     return;
@@ -147,6 +150,22 @@ export function addTraceMetaTagLink(span: Span, { sentryTrace }: TraceMetaTagVal
       spanId: traceparent.parentSpanId,
       traceFlags: traceparent.parentSampled ? TRACE_FLAG_SAMPLED : TRACE_FLAG_NONE,
     },
-    attributes: { [SENTRY_LINK_TYPE]: SERVER_REQUEST_LINK_TYPE },
+    attributes: { [SENTRY_LINK_TYPE]: linkType ?? SERVER_REQUEST_LINK_TYPE },
   });
+}
+
+/** Reads the marker the server writes into a shell while it prerenders it, see `nextSentryPropagator.ts`. */
+export function readShellMarker(): string | undefined {
+  const document = getDocument();
+  return document && lastMetaContent(document, SHELL_META_TAG_NAME);
+}
+
+/**
+ * Marks a pageload whose document is a cached shell and links the request that prerendered the shell.
+ * The marker is never continued: the shell is served to every later visitor, and the request behind it
+ * handled none of their visits.
+ */
+export function markCachedShell(span: Span, marker: string): void {
+  span.setAttribute(CACHED_SHELL_ATTRIBUTE, true);
+  addTraceMetaTagLink(span, { sentryTrace: marker, baggage: undefined }, 'cache_origin');
 }
