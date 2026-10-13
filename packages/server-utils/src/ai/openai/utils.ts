@@ -307,10 +307,11 @@ function withoutImageData(input: unknown): unknown {
     return input;
   }
 
-  return input.map(message =>
-    isObjectLike(message) && Array.isArray(message.content)
-      ? { ...message, content: message.content.map(withoutImageDataPart) }
-      : message,
+  // Parts are also handled at the top level, in case a flat list of parts is passed instead of messages.
+  return input.map(item =>
+    isObjectLike(item) && Array.isArray(item.content)
+      ? { ...item, content: item.content.map(withoutImageDataPart) }
+      : withoutImageDataPart(item),
   );
 }
 
