@@ -79,6 +79,11 @@ export function extractRequestAttributes(
     }
 
     Object.assign(attributes, extractRequestParameters(params));
+
+    const decisionInput = recordInputs && operationName === 'decide' ? getDecisionInputMessages(params) : undefined;
+    if (decisionInput) {
+      attributes[GEN_AI_INPUT_MESSAGES] = decisionInput;
+    }
   } else {
     attributes[GEN_AI_REQUEST_MODEL] = 'unknown';
   }
@@ -88,11 +93,8 @@ export function extractRequestAttributes(
 
 // Extract and record AI request inputs, if present. This is intentionally separate from response attributes.
 export function addRequestAttributes(span: Span, params: Record<string, unknown>, operationName: string): void {
+  // A decision's input is recorded when its span starts, in `extractRequestAttributes`.
   if (operationName === 'decide') {
-    const inputMessages = getDecisionInputMessages(params);
-    if (inputMessages) {
-      span.setAttribute(GEN_AI_INPUT_MESSAGES, inputMessages);
-    }
     return;
   }
 
