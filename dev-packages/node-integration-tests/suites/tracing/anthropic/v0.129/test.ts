@@ -1,4 +1,10 @@
-import { GEN_AI_RESPONSE_ID, GEN_AI_RESPONSE_STREAMING, SENTRY_OP } from '@sentry/conventions/attributes';
+import type { Event, SerializedStreamedSpanContainer } from '@sentry/core';
+import {
+  GEN_AI_RESPONSE_ID,
+  GEN_AI_RESPONSE_STREAMING,
+  GEN_AI_TOOL_NAME,
+  SENTRY_OP,
+} from '@sentry/conventions/attributes';
 import { afterAll, describe, expect } from 'vitest';
 import { cleanupChildProcesses, createEsmAndCjsTests } from '../../../../utils/runner';
 
@@ -64,6 +70,63 @@ describe('Anthropic integration (0.129)', () => {
           })
           .start()
           .completed();
+      });
+    },
+    {
+      additionalDependencies: {
+        '@anthropic-ai/sdk': '0.129.0',
+      },
+    },
+  );
+
+  createEsmAndCjsTests(
+    __dirname,
+    'scenario-tool-runner.mjs',
+    'instrument.mjs',
+    (createRunner, test) => {
+      test('emits an execute_tool span for each tool the eager runner starts', async () => {
+        let receivedEvent: Event | undefined;
+        let receivedSpans: SerializedStreamedSpanContainer['items'] = [];
+
+        await createRunner()
+          .unordered()
+          .expect({
+            span: container => {
+              expect(container.items.find(span => span.is_segment && span.name === 'main')).toBeDefined();
+              receivedSpans = container.items;
+            },
+          })
+          .expect({
+            event: event => {
+              receivedEvent = event;
+            },
+          })
+          .start()
+          .completed();
+
+        const main = receivedSpans.find(span => span.is_segment && span.name === 'main')!;
+        const chat = receivedSpans.find(span => span.attributes[GEN_AI_RESPONSE_ID]?.value === 'msg_tools')!;
+        const weather = receivedSpans.find(span => span.attributes[GEN_AI_TOOL_NAME]?.value === 'weather')!;
+        const explode = receivedSpans.find(span => span.attributes[GEN_AI_TOOL_NAME]?.value === 'explode')!;
+
+        expect(weather).toMatchObject({
+          name: 'execute_tool weather',
+          parent_span_id: main.span_id,
+          status: 'ok',
+          attributes: expect.objectContaining({
+            [SENTRY_OP]: { type: 'string', value: 'gen_ai.execute_tool' },
+            'gen_ai.tool.call.id': { type: 'string', value: 'toolu_weather' },
+          }),
+        });
+        // The eager runner starts the first tool while the reply that called it is still streaming.
+        expect(weather.start_timestamp).toBeLessThan(chat.end_timestamp);
+
+        expect(explode).toMatchObject({ name: 'execute_tool explode', parent_span_id: main.span_id, status: 'error' });
+        expect(receivedEvent).toMatchObject({
+          exception: {
+            values: [{ value: 'Tool exploded', mechanism: { type: 'auto.ai.anthropic.tool_error', handled: false } }],
+          },
+        });
       });
     },
     {

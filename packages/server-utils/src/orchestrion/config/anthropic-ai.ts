@@ -26,6 +26,11 @@ export const anthropicAiConfig = [
     module: { name: '@anthropic-ai/sdk', versionRange: '>=0.19.2 <1', filePath },
     functionQuery: { className: 'Messages', methodName: 'stream', kind: 'Sync' as const },
   })),
+  ...['resources/beta/messages/messages.js', 'resources/beta/messages/messages.mjs'].map(filePath => ({
+    channelName: 'tool-runner',
+    module: { name: '@anthropic-ai/sdk', versionRange: '>=0.19.2 <1', filePath },
+    functionQuery: { className: 'Messages', methodName: 'toolRunner', kind: 'Sync' as const },
+  })),
 ] satisfies InstrumentationConfig[];
 
 export const anthropicAiModuleNames = getModuleNames(anthropicAiConfig);
@@ -33,4 +38,5 @@ export const anthropicAiModuleNames = getModuleNames(anthropicAiConfig);
 export const anthropicAiChannels = {
   ANTHROPIC_CHAT: 'orchestrion:@anthropic-ai/sdk:chat',
   ANTHROPIC_MESSAGES_STREAM: 'orchestrion:@anthropic-ai/sdk:messages-stream',
+  ANTHROPIC_TOOL_RUNNER: 'orchestrion:@anthropic-ai/sdk:tool-runner',
 } as const;

@@ -1,0 +1,208 @@
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import type { ErrorEvent, Span } from '@sentry/core';
+import { getMainCarrier, setCurrentClient, spanToStaticSpanJSON, startSpan } from '@sentry/core';
+import { instrumentAnthropicAiClient } from '../../../../src/ai/anthropic-ai';
+import { getDefaultTestClientOptions, TestClient } from '../../../mocks/client';
+
+type Tool = { name: string; description?: string; input_schema: object; run: (...args: unknown[]) => unknown };
+type Params = { tools?: unknown[] };
+
+function tool(name: string, run: (...args: unknown[]) => unknown): Tool {
+  return { name, description: `${name} tool`, input_schema: { type: 'object' }, run };
+}
+
+// Mirrors the SDK runner: `params` reads the live params, `addTools()` keeps its tools out of them.
+class FakeRunner {
+  public added: unknown[] = [];
+  public constructor(public params: Params) {}
+  public addTools(...tools: unknown[]): void {
+    this.added.push(...tools);
+  }
+  public setMessagesParams(paramsOrMutator: Params | ((prev: Params) => Params)): void {
+    this.params = typeof paramsOrMutator === 'function' ? paramsOrMutator(this.params) : paramsOrMutator;
+  }
+}
+
+function fakeClient() {
+  return {
+    beta: {
+      messages: {
+        create: vi.fn(),
+        toolRunner: vi.fn((params: Params) => {
+          if (!params) {
+            throw new TypeError('params required');
+          }
+          return new FakeRunner(params);
+        }),
+      },
+    },
+  };
+}
+
+describe('instrumentAnthropicAiClient tool runner', () => {
+  let endedSpans: Span[];
+  let events: ErrorEvent[];
+
+  beforeEach(() => {
+    getMainCarrier().__SENTRY__ = undefined;
+    endedSpans = [];
+    events = [];
+    const client = new TestClient(
+      getDefaultTestClientOptions({
+        dsn: 'https://public@dsn.ingest.sentry.io/1337',
+        tracesSampleRate: 1,
+        beforeSend: event => {
+          events.push(event);
+          return null;
+        },
+      }),
+    );
+    setCurrentClient(client);
+    client.init();
+    client.on('spanEnd', span => endedSpans.push(span));
+  });
+
+  afterEach(() => {
+    getMainCarrier().__SENTRY__ = undefined;
+  });
+
+  function toolSpans() {
+    return endedSpans.map(span => spanToStaticSpanJSON(span)).filter(span => span.op === 'gen_ai.execute_tool');
+  }
+
+  it('wraps each tool call of the runner in an execute_tool span under the active span', async () => {
+    const weather = tool('weather', async () => 'sunny');
+    const serverTool = { type: 'web_search_20250305', name: 'web_search' };
+    const serialized = JSON.stringify([weather, serverTool]);
+
+    instrumentAnthropicAiClient(fakeClient()).beta.messages.toolRunner({ tools: [weather, serverTool] });
+    const parent = await startSpan({ name: 'agent' }, async span => {
+      await weather.run({ city: 'Vienna' }, { toolUse: { id: 'toolu_1' } });
+      return spanToStaticSpanJSON(span);
+    });
+
+    expect(JSON.stringify([weather, serverTool])).toBe(serialized);
+    expect(toolSpans()).toEqual([
+      expect.objectContaining({
+        description: 'execute_tool weather',
+        parent_span_id: parent.span_id,
+        origin: 'auto.ai.anthropic',
+        data: expect.objectContaining({
+          'gen_ai.operation.name': 'execute_tool',
+          'gen_ai.tool.name': 'weather',
+          'gen_ai.tool.description': 'weather tool',
+          'gen_ai.tool.call.id': 'toolu_1',
+          'gen_ai.tool.call.arguments': '{"city":"Vienna"}',
+          'gen_ai.tool.call.result': 'sunny',
+        }),
+      }),
+    ]);
+  });
+
+  it('leaves out the attributes a call does not have', () => {
+    const bare = { name: 'bare', input_schema: {}, run: () => undefined };
+
+    instrumentAnthropicAiClient(fakeClient()).beta.messages.toolRunner({ tools: [bare] });
+    bare.run({});
+
+    const { data } = toolSpans()[0]!;
+    for (const key of ['gen_ai.tool.description', 'gen_ai.tool.call.id', 'gen_ai.tool.call.result']) {
+      expect(data).not.toHaveProperty([key]);
+    }
+  });
+
+  it('keeps a synchronous run synchronous', () => {
+    const weather = tool('weather', () => 'sunny');
+
+    instrumentAnthropicAiClient(fakeClient()).beta.messages.toolRunner({ tools: [weather] });
+
+    expect(weather.run({})).toBe('sunny');
+    expect(toolSpans()).toHaveLength(1);
+  });
+
+  it.each([
+    ['async', async () => Promise.reject(new Error('boom'))],
+    [
+      'sync',
+      () => {
+        throw new Error('boom');
+      },
+    ],
+  ])('marks a failed %s tool call and captures the error the runner swallows', async (_, run) => {
+    const explode = tool('explode', run);
+
+    instrumentAnthropicAiClient(fakeClient()).beta.messages.toolRunner({ tools: [explode] });
+    await expect(async () => explode.run({})).rejects.toThrow('boom');
+
+    expect(toolSpans()[0]!.status).toBe('internal_error');
+    await vi.waitFor(() => expect(events).toHaveLength(1));
+    expect(events[0]!.exception?.values?.[0]).toMatchObject({
+      value: 'boom',
+      mechanism: { type: 'auto.ai.anthropic.tool_error', handled: false },
+    });
+  });
+
+  it('does not capture a ToolError or a call aborted by the runner', async () => {
+    const toolError = Object.assign(new Error('bad input'), { name: 'ToolError' });
+    const refuses = tool('refuses', async () => {
+      throw toolError;
+    });
+    const aborted = tool('aborted', async () => {
+      throw new Error('aborted');
+    });
+
+    instrumentAnthropicAiClient(fakeClient()).beta.messages.toolRunner({ tools: [refuses, aborted] });
+    await expect(refuses.run({})).rejects.toBe(toolError);
+    await expect(aborted.run({}, { signal: AbortSignal.abort() })).rejects.toThrow('aborted');
+
+    expect(toolSpans().map(span => span.status)).toEqual(['internal_error', 'cancelled']);
+    expect(events).toHaveLength(0);
+  });
+
+  it('wraps tools added through addTools() and setMessagesParams()', () => {
+    const added = tool('added', () => 'a');
+    const fromParams = tool('fromParams', () => 'b');
+    const fromMutator = tool('fromMutator', () => 'c');
+
+    const runner = instrumentAnthropicAiClient(fakeClient()).beta.messages.toolRunner({ tools: [] });
+    runner.addTools(added);
+    runner.setMessagesParams({ tools: [fromParams] });
+    runner.setMessagesParams(prev => ({ ...prev, tools: [fromMutator] }));
+
+    added.run({});
+    fromParams.run({});
+    fromMutator.run({});
+
+    expect(toolSpans().map(span => span.description)).toEqual([
+      'execute_tool added',
+      'execute_tool fromParams',
+      'execute_tool fromMutator',
+    ]);
+  });
+
+  it('wraps a tool once when it is shared between runners or instrumented twice', () => {
+    const weather = tool('weather', () => 'sunny');
+
+    const instrumented = instrumentAnthropicAiClient(instrumentAnthropicAiClient(fakeClient()));
+    instrumented.beta.messages.toolRunner({ tools: [weather] });
+    instrumented.beta.messages.toolRunner({ tools: [weather] });
+    weather.run({});
+
+    expect(toolSpans()).toHaveLength(1);
+  });
+
+  it('runs a frozen tool without a span', () => {
+    const frozen = Object.freeze(tool('frozen', () => 'ok'));
+
+    instrumentAnthropicAiClient(fakeClient()).beta.messages.toolRunner({ tools: [frozen] });
+
+    expect(frozen.run({})).toBe('ok');
+    expect(toolSpans()).toHaveLength(0);
+  });
+
+  it('passes a toolRunner() error through', () => {
+    const instrumented = instrumentAnthropicAiClient(fakeClient());
+
+    expect(() => instrumented.beta.messages.toolRunner(undefined as unknown as Params)).toThrow('params required');
+  });
+});
