@@ -68,8 +68,9 @@ async function waitForSpan(traceId: string, op: string): Promise<{ span: TraceIt
 async function expectDecideSpan(traceId: string): Promise<Attributes> {
   const { span, attributes } = await waitForSpan(traceId, GEN_AI_DECIDE);
 
-  expect(span.description).toBe(`decide ${MODEL}`);
+  // `span.description` stays empty: ingest only derives it for ops it knows, and `gen_ai.decide` is new.
   expect(attributes).toMatchObject({
+    'span.name': `decide ${MODEL}`,
     'span.op': GEN_AI_DECIDE,
     'span.status': 'ok',
     origin: 'auto.ai.openai',
