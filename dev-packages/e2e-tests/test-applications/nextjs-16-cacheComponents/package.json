@@ -20,9 +20,12 @@
     "test:build-latest-webpack": "pnpm install && pnpm add next@latest && pnpm build-webpack",
     "test:build-canary-webpack": "pnpm install && pnpm add next@canary && pnpm build-webpack",
     "test:assert": "pnpm test:prod && pnpm test:dev",
-    "test:assert-webpack": "TEST_BUNDLER=webpack pnpm test:prod && pnpm test:dev-webpack"
+    "test:assert-webpack": "TEST_BUNDLER=webpack pnpm test:prod && pnpm test:dev-webpack",
+    "test:build:cloudflare": "pnpm install && opennextjs-cloudflare build",
+    "start:cloudflare": "opennextjs-cloudflare preview --var \"E2E_TEST_DSN:$E2E_TEST_DSN\""
   },
   "dependencies": {
+    "@opennextjs/cloudflare": "^1.20.10",
     "@sentry/nextjs": "file:../../packed/sentry-nextjs-packed.tgz",
     "@sentry/core": "file:../../packed/sentry-core-packed.tgz",
     "import-in-the-middle": "^1",
@@ -41,7 +44,8 @@
     "@types/react-dom": "^19",
     "eslint": "^9",
     "eslint-config-next": "^16",
-    "typescript": "^5"
+    "typescript": "^5",
+    "wrangler": "^4.148.0"
   },
   "sentryTest": {
     "runner": "namespace-profile-sentry-javascript",
@@ -50,6 +54,14 @@
         "build-command": "pnpm test:build-webpack",
         "label": "nextjs-16-cacheComponents (webpack)",
         "assert-command": "pnpm test:assert-webpack"
+      }
+    ],
+    "optionalVariants": [
+      {
+        "runtime": "cloudflare",
+        "build-command": "pnpm test:build:cloudflare",
+        "assert-command": "pnpm test:prod",
+        "label": "nextjs-16-cacheComponents (cloudflare)"
       }
     ]
   }
