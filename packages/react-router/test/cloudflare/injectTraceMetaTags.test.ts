@@ -131,6 +131,44 @@ describe('injectTraceMetaTags', () => {
     expect(output).toBe('<html><body></he');
   });
 
+  test('does not rely on the TransformStream constructor, which older workerd compatibility dates reject', async () => {
+    vi.stubGlobal(
+      'TransformStream',
+      class {
+        constructor() {
+          throw new Error('TransformStream is not supported');
+        }
+      },
+    );
+
+    try {
+      const input = streamFromChunks([new TextEncoder().encode('<html><head></head></html>')]);
+      const output = new TextDecoder().decode(await readAll(injectTraceMetaTags(input)));
+
+      expect(output).toContain('<meta name="sentry-trace" content="test-trace-id"></head>');
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
+  test('keeps reading while a partial tag is held back so the stream does not stall', async () => {
+    const encoder = new TextEncoder();
+    const input = streamFromChunks([encoder.encode('<head><'), encoder.encode('/'), encoder.encode('head><body>')]);
+
+    const output = new TextDecoder().decode(await readAll(injectTraceMetaTags(input)));
+
+    expect(output).toBe('<head><meta name="sentry-trace" content="test-trace-id"></head><body>');
+  });
+
+  test('cancels the source stream when the consumer cancels', async () => {
+    const cancel = vi.fn();
+    const input = new ReadableStream({ cancel });
+
+    await injectTraceMetaTags(input).cancel('done');
+
+    expect(cancel).toHaveBeenCalledWith('done');
+  });
+
   test('resolves the trace meta tags synchronously, before the stream is read', async () => {
     const encoder = new TextEncoder();
     const input = streamFromChunks([encoder.encode('<html><head></head></html>')]);
