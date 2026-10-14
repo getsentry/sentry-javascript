@@ -149,7 +149,7 @@ export function createWorkerGlobalSetup(options: WorkerGlobalSetupOptions): (con
     const appDir = getAppDir(config);
 
     if (!existsSync(join(appDir, '.wrangler/deploy/config.json'))) {
-      throw new Error('Run `pnpm build` first: wrangler would deploy the uninstrumented source.');
+      throw new Error('Run `pnpm run build` first: wrangler would deploy the uninstrumented source.');
     }
 
     // Wrangler authenticates with `CLOUDFLARE_API_TOKEN` (CI) or a `wrangler login` session (local),

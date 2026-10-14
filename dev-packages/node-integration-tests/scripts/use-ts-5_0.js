@@ -8,7 +8,7 @@ const tsVersion = '5.0.4';
 
 console.log(`Installing typescript@${tsVersion}, and @types/node@18...`);
 
-execSync(`yarn add --dev --ignore-workspace-root-check typescript@${tsVersion} @types/node@^18`, {
+execSync(`pnpm add --save-dev --workspace-root typescript@${tsVersion} @types/node@^18`, {
   stdio: 'inherit',
   cwd,
 });

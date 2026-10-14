@@ -1,3 +1,5 @@
+const fs = require('fs');
+const path = require('path');
 const pkg = require('../package.json');
 
 const TYPESCRIPT_VERSION = '~7.0.2';
@@ -20,6 +22,20 @@ ref: https://github.com/getsentry/sentry-javascript/issues/2845
 ref: https://twitter.com/wesleytodd/status/1297974661574262784
 
 "Never upgrade a TypeScript version without a major package bump. Just don't." — Kamil
+`);
+  process.exit(1);
+}
+
+// pnpm reads the workspace packages from `pnpm-workspace.yaml`, the repo scripts and Deno from `package.json`.
+const pnpmWorkspacePackages = Array.from(
+  fs.readFileSync(path.join(__dirname, '../pnpm-workspace.yaml'), 'utf8').matchAll(/^\s+-\s+'([^']+)'$/gm),
+  match => match[1],
+);
+
+if (pnpmWorkspacePackages.join('\n') !== pkg.workspaces.join('\n')) {
+  console.error(`
+[INCONSISTENT WORKSPACES]: The \`packages\` list in pnpm-workspace.yaml and the \`workspaces\` list in package.json
+must contain the same packages in the same order.
 `);
   process.exit(1);
 }

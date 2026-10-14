@@ -149,7 +149,7 @@ async function run(): Promise<void> {
   // Load environment variables from .env file locally
   dotenv.config();
 
-  // Allow to run a single app only via `yarn test:run <app-name>`
+  // Allow to run a single app only via `pnpm run test:run <app-name>`
   const appName = process.argv[2] || '';
   // Forward any additional flags to the test command
   const allTestFlags = process.argv.slice(3);
@@ -210,7 +210,12 @@ async function run(): Promise<void> {
     SENTRY_E2E_WORKSPACE_ROOT: resolve(__dirname, '../..'),
   };
 
-  const env = { ...process.env, ...envVarsToInject };
+  const env = {
+    // `pnpm run test:run` passes the settings of the root .npmrc (for example its hoisted node_modules folder) to this
+    // script as `npm_config_*` variables. Remove them, so that the test applications install like in CI.
+    ...Object.fromEntries(Object.entries(process.env).filter(([key]) => !/^npm_config_/i.test(key))),
+    ...envVarsToInject,
+  };
 
   console.log('Syncing packed tarball symlinks...');
   console.log('');
@@ -220,9 +225,7 @@ async function run(): Promise<void> {
   console.log('Cleaning test-applications...');
   console.log('');
 
-  // Not `pnpm clean:test-applications`: pnpm checks a package's dependencies before it runs a script,
-  // and it would install this yarn workspace package with pnpm.
-  await asyncExec('yarn clean:test-applications', { env, cwd: __dirname });
+  await asyncExec('pnpm run clean:test-applications', { env, cwd: __dirname });
   await asyncExec('pnpm cache delete "@sentry/*"', { env, cwd: __dirname });
 
   const testAppPaths = appName ? [appName.trim()] : globSync('*', { cwd: `${__dirname}/test-applications/` });

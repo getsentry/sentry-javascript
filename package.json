@@ -19,8 +19,8 @@
     "circularDepCheck": "nx run-many -t circularDepCheck",
     "clean": "run-s clean:build clean:caches",
     "clean:build": "nx run-many -t clean",
-    "clean:caches": "yarn rimraf eslintcache .nxcache .nx",
-    "clean:deps": "rimraf packages/*/node_modules dev-packages/*/node_modules && rm -rf node_modules && yarn",
+    "clean:caches": "pnpm exec rimraf eslintcache .nxcache .nx",
+    "clean:deps": "rimraf packages/*/node_modules dev-packages/*/node_modules && rm -rf node_modules && pnpm install",
     "clean:tarballs": "rimraf {packages,dev-packages}/*/*.tgz",
     "clean:watchman": "watchman watch-del \".\"",
     "clean:all": "run-s clean:build clean:tarballs clean:caches clean:deps clean:watchman",
@@ -32,8 +32,8 @@
     "lint:fix": "oxlint . --fix",
     "lint:es-compatibility": "nx run-many -t lint:es-compatibility",
     "lint:types": "nx run-many -t lint:types",
-    "dedupe-deps:check": "yarn-deduplicate yarn.lock --list --fail",
-    "dedupe-deps:fix": "yarn-deduplicate yarn.lock",
+    "dedupe-deps:check": "pnpm dedupe --check",
+    "dedupe-deps:fix": "pnpm dedupe",
     "postpublish": "nx run-many -t postpublish --parallel=1",
     "test": "nx run-many -t test --exclude=@sentry-internal/browser-integration-tests --exclude=@sentry-internal/bun-integration-tests --exclude=@sentry-internal/deno-integration-tests --exclude=@sentry-internal/e2e-tests --exclude=@sentry-internal/integration-shims --exclude=@sentry-internal/node-integration-tests --exclude=@sentry-internal/cloudflare-integration-tests --exclude=@sentry-internal/bundler-plugin-integration-tests",
     "test:scripts": "vitest run scripts/*.test.ts",
@@ -45,13 +45,17 @@
     "test:ci:browser": "UNIT_TEST_ENV=browser tsx ./scripts/ci-unit-tests.ts",
     "test:ci:node": "UNIT_TEST_ENV=node tsx ./scripts/ci-unit-tests.ts",
     "test:ci:bun": "nx run-many -t test -p @sentry/bun",
-    "test:size-limit": "yarn size-limit --json",
+    "test:size-limit": "pnpm exec size-limit --json",
     "yalc:publish": "nx run-many -t yalc:publish"
   },
   "volta": {
     "node": "24.21.0",
-    "yarn": "1.22.22"
+    "pnpm": "9.15.9"
   },
+  "//_workspaces_comment": [
+    "pnpm reads the workspace packages from pnpm-workspace.yaml. Deno and the repo scripts read this list.",
+    "scripts/verify-packages-versions.js checks that both lists are the same."
+  ],
   "workspaces": [
     "packages/angular",
     "packages/astro",

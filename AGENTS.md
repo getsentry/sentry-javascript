@@ -1,12 +1,13 @@
 # Sentry JavaScript SDK
 
-Monorepo with 40+ packages in `@sentry/*`, managed with Yarn workspaces and Nx.
+Monorepo with 40+ packages in `@sentry/*`, managed with pnpm workspaces and Nx.
 
 ## Setup
 
-- [Volta](https://volta.sh/) for Node.js/Yarn version management. pnpm (for E2E tests) is a root dev dependency
-- After cloning: `yarn install && yarn build`
-- Never change Volta, Yarn, or package manager versions unless explicitly asked
+- [Volta](https://volta.sh/) for Node.js/pnpm version management. pnpm 12 (for E2E tests) is a root devDependency
+- Requires `VOLTA_FEATURE_PNPM=1`
+- After cloning: `pnpm install && pnpm run build`
+- Never change Volta, pnpm, or package manager versions unless explicitly asked
 
 ### Code Intelligence
 
@@ -23,10 +24,10 @@ After writing or editing code, check LSP diagnostics and fix errors before proce
 
 ## Package Manager
 
-Use **yarn**, never npm or pnpm. Scripts live in the root `package.json`.
-`yarn build:dev:filter @sentry/<pkg>` builds one package and its deps.
+Use **pnpm**, never npm or yarn. Scripts live in the root `package.json`.
+`pnpm run build:dev:filter @sentry/<pkg>` builds one package and its deps.
 
-Single package: `cd packages/<name> && yarn test`
+Single package: `cd packages/<name> && pnpm run test`
 
 ## Commit Attribution
 
@@ -51,9 +52,9 @@ Uses **Git Flow** (see `docs/gitflow.md`).
 
 ## Before Every Pull Request
 
-1. `yarn format`
-2. `yarn build:dev`
-3. `yarn lint`
+1. `pnpm run format`
+2. `pnpm run build:dev`
+3. `pnpm run lint`
 4. Run the unit and integration/E2E tests for the affected packages.
 5. NEVER push on `develop`
 
@@ -81,8 +82,8 @@ Uses **Git Flow** (see `docs/gitflow.md`).
 ## Linting & Formatting
 
 - This project uses **Oxlint** and **Oxfmt** — NOT ESLint or Prettier
-- Never run `eslint`, `npx eslint`, or any ESLint CLI — use `yarn lint` (Oxlint) instead
-- Never run `prettier` — use `yarn format` (Oxfmt) instead
+- Never run `eslint`, `npx eslint`, or any ESLint CLI — use `pnpm run lint` (Oxlint) instead
+- Never run `prettier` — use `pnpm run format` (Oxfmt) instead
 - ESLint packages in the repo are legacy/e2e test app dependencies — ignore them
 - Do not create, modify, or suggest `.eslintrc`, `eslint.config.*`, or `.prettierrc` files
 

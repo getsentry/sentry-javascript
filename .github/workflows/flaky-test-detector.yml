@@ -26,17 +26,19 @@ jobs:
     steps:
       - name: Check out current branch
         uses: actions/checkout@v7
+      - name: Install pnpm
+        uses: ./.github/actions/install-pnpm
       - name: Set up Node
         uses: actions/setup-node@v7
         with:
           node-version-file: 'package.json'
-          cache: 'yarn'
+          cache: 'pnpm'
 
       - name: Install dependencies
-        run: yarn install --ignore-engines --frozen-lockfile
+        run: pnpm install --frozen-lockfile
 
       - name: Build packages
-        run: yarn build
+        run: pnpm run build
 
       - name: Install Playwright
         uses: ./.github/actions/install-playwright
@@ -54,7 +56,7 @@ jobs:
 
       - name: Detect flaky tests
         id: test
-        run: yarn test:detect-flaky
+        run: pnpm run test:detect-flaky
         working-directory: dev-packages/browser-integration-tests
         env:
           CHANGED_TEST_PATHS: ${{ steps.changed.outputs.browser_integration_files }}
