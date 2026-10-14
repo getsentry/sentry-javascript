@@ -2,6 +2,7 @@ import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { setAsyncLocalStorageAsyncContextStrategy } from '@sentry/server-utils/no-diagnostic-channels';
 import { CloudflareClient, type CloudflareClientOptions } from '../src/client';
 import { makeFlushLock } from '../src/flush';
+import { makeCloudflareTransport } from '../src/transport';
 import { getInvocationState } from '../src/utils/invocationContext';
 import { withInvocationIsolationScope } from '../src/utils/invocationScope';
 
@@ -820,5 +821,27 @@ describe('CloudflareClient', () => {
         expect(ctx.waitUntil).toHaveBeenCalledWith(expect.any(Promise));
       },
     );
+
+    it('does not throw when the fetch of the transport throws synchronously', async () => {
+      const client = new CloudflareClient({
+        ...MOCK_CLIENT_OPTIONS,
+        transport: makeCloudflareTransport,
+        transportOptions: {
+          fetch: () => {
+            throw new Error('foo');
+          },
+        },
+      });
+      client.init();
+      const waits: Promise<unknown>[] = [];
+      const ctx = { waitUntil: vi.fn(promise => waits.push(promise)), passThroughOnException: vi.fn() };
+
+      withInvocationIsolationScope(() => {
+        expect(() => client.captureCheckIn({ monitorSlug: 'foo', status: 'in_progress' })).not.toThrow();
+      }, ctx as never);
+
+      expect(waits).toHaveLength(1);
+      await expect(Promise.all(waits)).resolves.toBeDefined();
+    });
   });
 });
