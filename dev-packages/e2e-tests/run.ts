@@ -131,7 +131,7 @@ async function getVariantBuildCommand(
 /**
  * The directory of the node version that the app pins. CI uses the same pin (see `node-version-file` in
  * .github/workflows/build.yml). Only node comes from Volta: Volta cannot run pnpm 12
- * (https://github.com/volta-cli/volta/issues/2114), so pnpm comes from the root devDependencies.
+ * (https://github.com/volta-cli/volta/issues/2114), so the apps use the pnpm version that runs this script.
  */
 function getPinnedNodeDir(cwd: string): string | undefined {
   try {
@@ -210,12 +210,7 @@ async function run(): Promise<void> {
     SENTRY_E2E_WORKSPACE_ROOT: resolve(__dirname, '../..'),
   };
 
-  const env = {
-    // `pnpm run test:run` passes the settings of the root .npmrc (for example its hoisted node_modules folder) to this
-    // script as `npm_config_*` variables. Remove them, so that the test applications install like in CI.
-    ...Object.fromEntries(Object.entries(process.env).filter(([key]) => !/^npm_config_/i.test(key))),
-    ...envVarsToInject,
-  };
+  const env = { ...process.env, ...envVarsToInject };
 
   console.log('Syncing packed tarball symlinks...');
   console.log('');

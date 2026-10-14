@@ -15,8 +15,7 @@ Developer Documentation.
 ## Setting up an Environment
 
 We use [Volta](https://volta.sh/) to ensure we use consistent versions of node and pnpm. Make sure to enable
-[pnpm support in Volta](https://docs.volta.sh/advanced/pnpm). `pnpm install` also installs the pnpm version that the E2E
-tests use.
+[pnpm support in Volta](https://docs.volta.sh/advanced/pnpm).
 
 `sentry-javascript` is a monorepo containing several packages, managed with pnpm workspaces and Nx. To get started,
 install all dependencies, and then perform an initial build, so TypeScript can read all of the linked type definitions.

@@ -49,17 +49,9 @@ for (const dir of directories) {
     continue;
   }
 
-  // Without `--ignore-workspace`, pnpm finds the root pnpm-workspace.yaml and installs the monorepo instead of the fixture.
-  // The fixtures must get the pnpm default settings that the snapshots expect, not the settings of the root .npmrc
-  // (for example its hoisted node_modules folder). `NPM_CONFIG_WORKSPACE_DIR` stops pnpm from reading that file, and
-  // the `npm_config_*` variables are removed because `pnpm run test` passes the root settings to this script with them.
-  execSync('pnpm install --force --ignore-workspace', {
+  execSync('pnpm install --force', {
     cwd: dir,
     stdio: 'inherit',
-    env: {
-      ...Object.fromEntries(Object.entries(process.env).filter(([key]) => !/^npm_config_/i.test(key))),
-      NPM_CONFIG_WORKSPACE_DIR: dir,
-    },
   });
 }
 

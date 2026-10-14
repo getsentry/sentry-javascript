@@ -61,3 +61,38 @@ packages:
   - 'dev-packages/external-contributor-gh-action'
   - 'dev-packages/rollup-utils'
   - 'dev-packages/bundler-tests'
+
+# Yarn 1 did not install peer dependencies, and some packages break with the versions that pnpm would add.
+autoInstallPeers: false
+strictPeerDependencies: false
+linkWorkspacePackages: true
+preferWorkspacePackages: true
+shamefullyHoist: true
+# A flat node_modules folder like Yarn 1, because some packages and configs import dependencies that they do not declare.
+nodeLinker: hoisted
+
+overrides:
+  nx>minimatch: 10.2.5
+  postcss-url>minimatch: 3.1.5
+  '@angular-devkit/build-angular>minimatch': 5.1.9
+  nitropack>rollup-plugin-visualizer: ^6.0.3
+
+# Dependencies whose install scripts run. pnpm 11+ fails the install on build scripts that are not listed.
+# `false` only for scripts that just print a message.
+allowBuilds:
+  '@apollo/protobufjs': true
+  '@nestjs/core': false
+  '@parcel/watcher': true
+  '@prisma/client': true
+  '@prisma/engines': true
+  '@sentry/node-cpu-profiler': true
+  '@sentry/node-native-stacktrace': true
+  core-js-pure: false
+  esbuild: true
+  mongodb-memory-server-global: true
+  nice-napi: true
+  nx: true
+  prisma: true
+  sharp: true
+  vue-demi: true
+  workerd: true

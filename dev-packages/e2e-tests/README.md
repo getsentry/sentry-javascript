@@ -123,7 +123,7 @@ Each app has a `pnpm-workspace.yaml` for its pnpm settings, because pnpm ignores
 dependency with a build script: `true` if the app needs the script, `false` if the script only prints a message. pnpm
 fails the install (`ERR_PNPM_IGNORED_BUILDS`) for a build script that `allowBuilds` does not list.
 
-Apps use the pnpm version from the root `devDependencies`. To use another version, set `packageManager` in the app's
+Apps use the pnpm version of `packageManager` in the root `package.json`. To use another version, set `packageManager` in the app's
 `package.json` (for example `"packageManager": "pnpm@10.34.6"`), and use the settings of that version in its
 `pnpm-workspace.yaml`. pnpm then switches to that version, locally and in CI. The lowest supported version is pnpm 10.
 

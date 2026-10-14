@@ -27,14 +27,12 @@ async function buildLambdaLayer(): Promise<void> {
   // Use a temporary store directory to avoid stale cache references to local file: packages.
   // The store must be outside the monorepo to avoid recursive nesting when pnpm
   // follows file: links and copies package directories.
-  // `--node-linker=hoisted` gives a flat node_modules folder without symlinks, which `pruneNodeModules` expects.
   const storeDir = path.join(os.tmpdir(), `sentry-lambda-build-store-${Date.now()}`);
-  run(`pnpm install --prod --ignore-workspace --node-linker=hoisted --store-dir "${storeDir}"`, {
-    cwd: './build/aws/dist-serverless/nodejs',
-  });
+  run(`pnpm install --prod --store-dir "${storeDir}"`, { cwd: './build/aws/dist-serverless/nodejs' });
 
   await pruneNodeModules();
   fs.rmSync('./build/aws/dist-serverless/nodejs/package.json', { force: true });
+  fs.rmSync('./build/aws/dist-serverless/nodejs/pnpm-workspace.yaml', { force: true });
   fs.rmSync('./build/aws/dist-serverless/nodejs/pnpm-lock.yaml', { force: true });
   fs.rmSync(storeDir, { recursive: true, force: true });
 
@@ -184,7 +182,7 @@ function buildPackageJson(): void {
     .filter(name => !name.startsWith('.')) // Skip hidden directories
     .sort();
 
-  const resolutions: Record<string, string> = {};
+  const overrides: Record<string, string> = {};
 
   for (const packageDir of packageDirs) {
     const packageJsonPath = path.join(packagesDir, packageDir, 'package.json');
@@ -193,7 +191,7 @@ function buildPackageJson(): void {
         const packageContent = JSON.parse(fs.readFileSync(packageJsonPath, 'utf-8')) as { name?: string };
         const packageName = packageContent.name;
         if (typeof packageName === 'string' && packageName) {
-          resolutions[packageName] = `file:../../../../../../packages/${packageDir}`;
+          overrides[packageName] = `file:../../../../../../packages/${packageDir}`;
         }
       } catch {
         console.warn(`Warning: Could not read package.json for ${packageDir}`);
@@ -205,14 +203,21 @@ function buildPackageJson(): void {
     dependencies: {
       '@sentry/aws-serverless': 'file:../../../../../../packages/aws-serverless',
     },
-    resolutions,
-    // Lets Volta run the pnpm version of the monorepo for the install in this folder.
-    volta: { extends: '../../../../../../package.json' },
   };
 
   fsForceMkdirSync('./build/aws/dist-serverless/nodejs');
   const packageJsonPath = './build/aws/dist-serverless/nodejs/package.json';
   fs.writeFileSync(packageJsonPath, JSON.stringify(packageJson, null, 2));
+
+  // pnpm reads the overrides only from pnpm-workspace.yaml. This file also makes the folder the workspace root, so
+  // pnpm does not install the monorepo. `nodeLinker: hoisted` gives a flat node_modules folder without symlinks,
+  // which `pruneNodeModules` expects.
+  const workspaceLines = [
+    'nodeLinker: hoisted',
+    'overrides:',
+    ...Object.entries(overrides).map(([name, spec]) => `  ${JSON.stringify(name)}: ${JSON.stringify(spec)}`),
+  ];
+  fs.writeFileSync('./build/aws/dist-serverless/nodejs/pnpm-workspace.yaml', `${workspaceLines.join('\n')}\n`);
 }
 
 function replaceSDKSource(): void {

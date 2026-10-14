@@ -4,7 +4,7 @@ Monorepo with 40+ packages in `@sentry/*`, managed with pnpm workspaces and Nx.
 
 ## Setup
 
-- [Volta](https://volta.sh/) for Node.js/pnpm version management. pnpm 12 (for E2E tests) is a root devDependency
+- [Volta](https://volta.sh/) for Node.js/pnpm version management
 - Requires `VOLTA_FEATURE_PNPM=1`
 - After cloning: `pnpm install && pnpm run build`
 - Never change Volta, pnpm, or package manager versions unless explicitly asked

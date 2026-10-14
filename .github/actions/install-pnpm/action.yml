@@ -1,15 +1,8 @@
 name: 'Install pnpm'
-description: 'Installs the pnpm version that Volta pins in the root package.json.'
+description: 'Installs the pnpm version of `packageManager` in the root package.json.'
 
 runs:
   using: 'composite'
   steps:
-    - name: Resolve pnpm version
-      id: pnpm-version
-      shell: bash
-      run: |
-        version=$(jq -er '.volta.pnpm' package.json)
-        echo "version=$version" >> "$GITHUB_OUTPUT"
+    # Without a `version` input, the action reads the version from `packageManager`. With both, it fails.
     - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
-      with:
-        version: ${{ steps.pnpm-version.outputs.version }}
