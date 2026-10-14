@@ -1,3 +1,5 @@
+allowBuilds:
+  esbuild: true
 minimumReleaseAge: 0
 overrides:
   '@embroider/vite@1.7.14': '1.7.13'

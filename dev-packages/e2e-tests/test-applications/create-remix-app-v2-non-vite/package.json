@@ -30,9 +30,6 @@
     "eslint": "^8.38.0",
     "typescript": "^5.0.4"
   },
-  "resolutions": {
-    "@types/react": "18.2.22"
-  },
   "volta": {
     "extends": "../../package.json"
   }

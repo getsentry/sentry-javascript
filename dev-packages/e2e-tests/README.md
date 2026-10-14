@@ -118,10 +118,10 @@ Make sure to add a `test:build` and `test:assert` command to the new app's `pack
 Sentry packages are automatically resolved to the local build via pnpm overrides injected at test time, so no manual
 registry configuration is needed.
 
-Each app has a `pnpm-workspace.yaml` for its pnpm settings, because pnpm ignores the `pnpm` field in `package.json`.
-Copy it from a similar app. It needs `minimumReleaseAge: 0` and an `allowBuilds` entry for each dependency with a build
-script: `true` if the app needs the script, `false` if the script only prints a message. pnpm fails the install
-(`ERR_PNPM_IGNORED_BUILDS`) for a build script that `allowBuilds` does not list.
+Each app has a `pnpm-workspace.yaml` for its pnpm settings, because pnpm ignores the `pnpm` and `resolutions` fields in
+`package.json`. Copy it from a similar app. It needs `minimumReleaseAge: 0` and an `allowBuilds` entry for each
+dependency with a build script: `true` if the app needs the script, `false` if the script only prints a message. pnpm
+fails the install (`ERR_PNPM_IGNORED_BUILDS`) for a build script that `allowBuilds` does not list.
 
 Apps use the pnpm version from the root `devDependencies`. To use another version, set `packageManager` in the app's
 `package.json` (for example `"packageManager": "pnpm@10.34.6"`), and use the settings of that version in its

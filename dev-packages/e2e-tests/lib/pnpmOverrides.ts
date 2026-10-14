@@ -15,11 +15,13 @@ import { fixFileLinkDependencies } from './copyToTemp';
  */
 export async function addPnpmOverrides(tmpDirPath: string, packedDirPath: string): Promise<void> {
   const packageJsonPath = path.join(tmpDirPath, 'package.json');
-  const packageJson = JSON.parse(await readFile(packageJsonPath, 'utf8')) as { pnpm?: unknown };
+  const packageJson = JSON.parse(await readFile(packageJsonPath, 'utf8')) as { pnpm?: unknown; resolutions?: unknown };
 
-  // pnpm 11+ ignores this field, so its settings would silently have no effect.
-  if (packageJson.pnpm) {
-    throw new Error(`Move the "pnpm" settings in ${packageJsonPath} to the app's pnpm-workspace.yaml`);
+  // pnpm 11+ ignores these fields, so their settings would silently have no effect.
+  if (packageJson.pnpm || packageJson.resolutions) {
+    throw new Error(
+      `Move the "pnpm" and "resolutions" settings in ${packageJsonPath} to the app's pnpm-workspace.yaml`,
+    );
   }
 
   const packageNames = getPublishedSentryTarballPackageNames();
