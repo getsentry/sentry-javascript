@@ -53,7 +53,7 @@
     "build": "run-s build:transpile build:types",
     "build:tarball": "npm pack",
     "build:dev": "pnpm run build",
-    "build:transpile": "rollup -c rollup.npm.config.mjs",
+    "build:transpile": "rolldown -c rollup.npm.config.mjs",
     "build:types": "tsc -p tsconfig.types.json",
     "clean": "rimraf -g ./node_modules ./build"
   },
