@@ -126,7 +126,6 @@ export {
   mysqlIntegration,
   mysql2Integration,
   nitroIntegration,
-  nitroServerTimingIntegration,
   redisIntegration,
   tediousIntegration,
   postgresIntegration,

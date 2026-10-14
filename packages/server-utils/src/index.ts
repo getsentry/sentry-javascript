@@ -77,6 +77,7 @@ export type { ExpressIntegrationOptions } from './integrations/express/types';
 export { expressErrorHandler, setupExpressErrorHandler } from './integrations/express/error-handler';
 /* oxlint-enable typescript/no-deprecated */
 export { firebaseIntegration } from './integrations/firebase';
-export { nitroIntegration, nitroServerTimingIntegration } from './integrations/nitro';
+export { nitroIntegration } from './integrations/nitro';
+export type { NitroIntegrationOptions } from './integrations/nitro';
 
 export { getTracingIntegrations, getErrorIntegrations } from './integrations';
