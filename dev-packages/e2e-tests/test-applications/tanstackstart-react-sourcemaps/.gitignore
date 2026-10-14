@@ -1,0 +1,11 @@
+node_modules
+.output
+.nitro
+.tanstack
+src/routeTree.gen.ts
+
+# Mock Sentry server artifacts
+.tmp_mock_uploads.json
+.tmp_chunks
+.tmp_build_stdout
+.tmp_build_stderr
