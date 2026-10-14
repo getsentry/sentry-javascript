@@ -74,16 +74,14 @@ export function extractRequestAttributes(
   if (args.length > 0 && typeof args[0] === 'object' && args[0] !== null) {
     const params = args[0] as Record<string, unknown>;
 
-    const availableTools = recordInputs ? extractAvailableTools(params) : undefined;
-    if (availableTools) {
-      attributes[GEN_AI_TOOL_DEFINITIONS] = availableTools;
+    if (recordInputs) {
+      attributes[GEN_AI_TOOL_DEFINITIONS] = extractAvailableTools(params);
     }
 
     Object.assign(attributes, extractRequestParameters(params));
 
-    const decisionInput = recordInputs && operationName === 'decide' ? getDecisionInputMessages(params) : undefined;
-    if (decisionInput) {
-      attributes[GEN_AI_INPUT_MESSAGES] = decisionInput;
+    if (recordInputs && operationName === 'decide') {
+      attributes[GEN_AI_INPUT_MESSAGES] = getDecisionInputMessages(params);
     }
   } else {
     attributes[GEN_AI_REQUEST_MODEL] = 'unknown';
