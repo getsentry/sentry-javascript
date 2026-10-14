@@ -17,7 +17,7 @@ async function handleRequest(req, res) {
   }
 
   Sentry.captureException(new Error(req.params.request));
-  Sentry.logger.info(req.params.request);
+  Sentry.logger.info('Request handled');
   Sentry.metrics.count('request_count', 1);
   res.send({ ok: true });
   setImmediate(() => {
