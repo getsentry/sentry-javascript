@@ -567,6 +567,28 @@ function wrapDefaultSpecifier(localName: string, state: TransformState): string 
 }
 
 /**
+ * `export { default } from './handler'`. The handler may already be wrapped in its own module,
+ * which this transform cannot see, so the emitted guard returns such a handler as-is.
+ */
+function wrapDefaultReexport(
+  localName: string,
+  sourceLiteral: string,
+  state: TransformState,
+  prelude: string[],
+): string {
+  const target = '__SENTRY_REEXPORT_default__';
+  prelude.push(
+    localName === DEFAULT_IMPORT
+      ? `import ${target} from ${sourceLiteral};`
+      : `import { ${localName} as ${target} } from ${sourceLiteral};`,
+    `const __SENTRY_DEFAULT_EXPORT__ = __SENTRY__._INTERNAL_wrapUnlessInstrumented(__SENTRY__.withSentry, ${state.optionsFn}, ${target});`,
+  );
+  state.needsImport = true;
+  state.autoWrapped.add(DEFAULT_EXPORT);
+  return '__SENTRY_DEFAULT_EXPORT__ as default';
+}
+
+/**
  * Handle one export specifier, returning the `Wrapped as Exported` pair to emit for a class that
  * gets wrapped. The import/wrapper statements a cross-module pair depends on are pushed onto
  * `prelude`; a local class's wrapper binding is emitted after its declaration instead.
@@ -593,7 +615,10 @@ function wrapSpecifier(
 
   if (!exportedName || !localName) return undefined;
   if (!kind) {
-    return exportedName === DEFAULT_IMPORT && !sourceLiteral ? wrapDefaultSpecifier(localName, state) : undefined;
+    if (exportedName !== DEFAULT_IMPORT) return undefined;
+    return sourceLiteral
+      ? wrapDefaultReexport(localName, sourceLiteral, state, prelude)
+      : wrapDefaultSpecifier(localName, state);
   }
 
   // Without a `from` clause the specifier points at a module-local binding.
