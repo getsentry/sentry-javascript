@@ -31,6 +31,7 @@ import {
 import { OPENAI_METHOD_REGISTRY } from './constants';
 import { instrumentStream } from './streaming';
 import type { ChatCompletionChunk, OpenAiOptions, OpenAIStream, ResponseStreamingEvent } from './types';
+import { getDecisionInputMessages } from './mapping';
 import { addResponseAttributes, extractRequestParameters } from './utils';
 
 /**
@@ -73,12 +74,15 @@ export function extractRequestAttributes(
   if (args.length > 0 && typeof args[0] === 'object' && args[0] !== null) {
     const params = args[0] as Record<string, unknown>;
 
-    const availableTools = recordInputs ? extractAvailableTools(params) : undefined;
-    if (availableTools) {
-      attributes[GEN_AI_TOOL_DEFINITIONS] = availableTools;
+    if (recordInputs) {
+      attributes[GEN_AI_TOOL_DEFINITIONS] = extractAvailableTools(params);
     }
 
     Object.assign(attributes, extractRequestParameters(params));
+
+    if (recordInputs && operationName === 'decide') {
+      attributes[GEN_AI_INPUT_MESSAGES] = getDecisionInputMessages(params);
+    }
   } else {
     attributes[GEN_AI_REQUEST_MODEL] = 'unknown';
   }
@@ -88,6 +92,11 @@ export function extractRequestAttributes(
 
 // Extract and record AI request inputs, if present. This is intentionally separate from response attributes.
 export function addRequestAttributes(span: Span, params: Record<string, unknown>, operationName: string): void {
+  // A decision's input is recorded when its span starts, in `extractRequestAttributes`.
+  if (operationName === 'decide') {
+    return;
+  }
+
   // Store embeddings input on a separate attribute
   if (operationName === 'embeddings' && 'input' in params) {
     const input = params.input;
@@ -203,7 +212,7 @@ function instrumentMethod<T extends unknown[], R>(
       }
 
       return originalResult.then(result => {
-        addResponseAttributes(span, result, options.recordOutputs);
+        addResponseAttributes(span, result, options.recordOutputs, operationName);
         return result;
       });
     });
