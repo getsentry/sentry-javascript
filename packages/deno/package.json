@@ -33,6 +33,9 @@
     "@sentry/server-runtime-injection": "11.8.0",
     "@sentry/server-utils": "11.8.0"
   },
+  "devDependencies": {
+    "@sentry-internal/rollup-utils": "11.8.0"
+  },
   "scripts": {
     "deno-types": "node ./scripts/download-deno-types.mjs",
     "build": "run-s build:transpile build:types",
