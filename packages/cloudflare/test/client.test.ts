@@ -797,4 +797,28 @@ describe('CloudflareClient', () => {
       expect(flushSpy).not.toHaveBeenCalled();
     });
   });
+
+  describe('check-in delivery', () => {
+    it.each([true, false])(
+      'drains the transport for a check-in before the flush point and registers it with the invocation waitUntil (cacheClient: %s)',
+      cacheClient => {
+        const flushMock = vi.fn().mockResolvedValue(true);
+        const client = new CloudflareClient({
+          ...MOCK_CLIENT_OPTIONS,
+          cacheClient,
+          transport: () => ({ send: vi.fn().mockResolvedValue({}), flush: flushMock }),
+        });
+        client.init();
+        const ctx = { waitUntil: vi.fn(), passThroughOnException: vi.fn() };
+
+        withInvocationIsolationScope(() => {
+          client.captureCheckIn({ monitorSlug: 'foo', status: 'in_progress' });
+        }, ctx as never);
+
+        expect(flushMock).toHaveBeenCalledTimes(1);
+        expect(ctx.waitUntil).toHaveBeenCalledTimes(1);
+        expect(ctx.waitUntil).toHaveBeenCalledWith(expect.any(Promise));
+      },
+    );
+  });
 });
