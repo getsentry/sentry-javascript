@@ -22,7 +22,7 @@ export function getDecisionOutputMessages(answers: unknown[]): string | undefine
 /**
  * Lay out a decisions question like a Jev question, with its options in `criteria`: choices as
  * `{ [value]: description }` (an empty description when there is none), and score levels as their labels,
- * indexed by score value.
+ * indexed by score value, with any level descriptions in `descriptions` at the same index.
  */
 function toJevQuestionFormat(question: unknown): unknown {
   if (!isObjectLike(question)) {
@@ -41,7 +41,12 @@ function toJevQuestionFormat(question: unknown): unknown {
 
   if (question.type === 'score' && Array.isArray(question.levels)) {
     const { levels, ...rest } = question;
-    return { ...rest, criteria: levels.map(level => (isObjectLike(level) ? level.label : level)) };
+    const criteria = levels.map(level => (isObjectLike(level) ? level.label : level));
+    // Sentry renders score criteria as a list of labels only, so level descriptions get their own list.
+    const descriptions = levels.map(level =>
+      isObjectLike(level) && typeof level.description === 'string' ? level.description : '',
+    );
+    return descriptions.some(Boolean) ? { ...rest, criteria, descriptions } : { ...rest, criteria };
   }
 
   return question;

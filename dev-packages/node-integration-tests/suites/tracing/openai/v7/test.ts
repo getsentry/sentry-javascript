@@ -215,6 +215,8 @@ describe.runIf(supports({ min: 22 }))('OpenAI integration (V7)', () => {
                 type: 'score',
                 instructions: 'How urgent is this ticket?',
                 criteria: ['low', 'high'],
+                // `low` has no description, so it gets an empty one.
+                descriptions: ['', 'Blocks the customer'],
               },
             },
           },

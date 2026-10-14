@@ -69,7 +69,7 @@ const questions = [
     type: 'score',
     name: 'urgency',
     instructions: 'How urgent is this ticket?',
-    levels: [{ label: 'low' }, { label: 'high' }],
+    levels: [{ label: 'low' }, { label: 'high', description: 'Blocks the customer' }],
   },
 ];
 
