@@ -107,7 +107,7 @@ describe('awsLambdaWebIntegration', () => {
     };
     expect(integration.processEvent!(event, {}, client)).toEqual({
       contexts: {
-        'aws.lambda': { aws_request_id: 'request', memory_size: 2048, initialization_type: 'native-http' },
+        'aws.lambda': { aws_request_id: 'request', memory_size: 2_147_483_648, initialization_type: 'native-http' },
         cloud_resource: {
           'cloud.provider': 'aws',
           'cloud.platform': 'aws_lambda',
@@ -226,17 +226,20 @@ describe('awsLambdaWebIntegration', () => {
     });
   });
 
-  it.each([undefined, '', 'invalid', '0', '-1', 'Infinity'])(
-    'omits invalid memory size %s from spans',
+  it.each([undefined, '', 'invalid', '0', '-1', 'Infinity', '1e308'])(
+    'omits invalid memory size %s from spans and error contexts',
     async memory => {
       vi.stubEnv('AWS_LAMBDA_FUNCTION_MEMORY_SIZE', memory);
       const { awsLambdaWebIntegration } = await import('../../src/integrations/awsLambdaWeb');
       const integration = awsLambdaWebIntegration();
       const span = spanToJSON(new SentrySpan({ name: 'startup' }));
+      const event = { contexts: { 'aws.lambda': {} } };
 
       integration.processSegmentSpan!(span, client);
+      integration.processEvent!(event, {}, client);
 
       expect(span.attributes).not.toHaveProperty('faas.max_memory');
+      expect(event.contexts['aws.lambda']).toHaveProperty('memory_size', undefined);
     },
   );
 
