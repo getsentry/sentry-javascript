@@ -77,7 +77,7 @@ describe('sentryCloudflareAutoInstrumentPlugin', () => {
     expect(result.code).toBe(
       "import * as __SENTRY__ from '@sentry/nextjs/cloudflare';\n" +
         'const __SENTRY_DEFAULT_EXPORT__ = { fetch() { return new Response("ok"); } };\n' +
-        'export default __SENTRY__.withSentry(() => undefined, __SENTRY_DEFAULT_EXPORT__);\n',
+        'export default __SENTRY__.withSentry(() => undefined, __SENTRY_DEFAULT_EXPORT__);',
     );
   });
 
@@ -99,7 +99,7 @@ describe('sentryCloudflareAutoInstrumentPlugin', () => {
     expect(result.code).toBe(
       "import * as __SENTRY__ from '@sentry/cloudflare';\n" +
         'const __SENTRY_DEFAULT_EXPORT__ = { fetch() { return new Response("ok"); } };\n' +
-        'export default __SENTRY__.withSentry(() => undefined, __SENTRY_DEFAULT_EXPORT__);\n',
+        'export default __SENTRY__.withSentry(() => undefined, __SENTRY_DEFAULT_EXPORT__);',
     );
   });
 
@@ -119,7 +119,7 @@ describe('sentryCloudflareAutoInstrumentPlugin', () => {
     expect(result.code).toBe(
       "import * as __SENTRY__ from '@sentry/cloudflare';\n" +
         'const __SENTRY_DEFAULT_EXPORT__ = { fetch() { return new Response("ok"); } };\n' +
-        'export default __SENTRY__.withSentry(() => undefined, __SENTRY_DEFAULT_EXPORT__);\n',
+        'export default __SENTRY__.withSentry(() => undefined, __SENTRY_DEFAULT_EXPORT__);',
     );
   });
 
@@ -143,7 +143,7 @@ describe('sentryCloudflareAutoInstrumentPlugin', () => {
     expect(result.code).toBe(
       "import * as __SENTRY__ from '@sentry/cloudflare';\n" +
         'const __SENTRY_DEFAULT_EXPORT__ = { fetch() { return new Response("ok"); } };\n' +
-        'export default __SENTRY__.withSentry(() => undefined, __SENTRY_DEFAULT_EXPORT__);\n',
+        'export default __SENTRY__.withSentry(() => undefined, __SENTRY_DEFAULT_EXPORT__);',
     );
   });
 
@@ -520,7 +520,6 @@ describe('wranglerConfigPath option', () => {
         "import * as __SENTRY__ from '@sentry/cloudflare';",
         'const __SENTRY_DEFAULT_EXPORT__ = { fetch() { return new Response("ok"); } };',
         'export default __SENTRY__.withSentry(() => undefined, __SENTRY_DEFAULT_EXPORT__);',
-        '',
       ].join('\n'),
     );
   });
@@ -598,7 +597,6 @@ describe('package specifier as wrangler `main`', () => {
         "import * as __SENTRY__ from '@sentry/cloudflare';",
         'const __SENTRY_DEFAULT_EXPORT__ = { fetch() { return new Response("ok"); } };',
         'export default __SENTRY__.withSentry(() => undefined, __SENTRY_DEFAULT_EXPORT__);',
-        '',
       ].join('\n'),
     );
   });

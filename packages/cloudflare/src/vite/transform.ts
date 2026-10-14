@@ -393,12 +393,44 @@ function wrapDefaultExport(node: ExportDefaultNode, ctx: TransformContext, state
     }
   }
 
-  // `export default <expr>` → `const __SENTRY_DEFAULT_EXPORT__ = <expr>`
-  // MagicString positions are always relative to the original source.
-  state.ms.overwrite(node.start, decl.start, 'const __SENTRY_DEFAULT_EXPORT__ = ');
-  state.ms.append(`\nexport default __SENTRY__.withSentry(${state.optionsFn}, __SENTRY_DEFAULT_EXPORT__);\n`);
+  // MagicString positions are always relative to the original source. Only the `export default`
+  // keywords are replaced, so parentheses around the expression stay.
+  const source = state.ms.original;
+  const keywordsEnd = node.start + source.slice(node.start, decl.start).lastIndexOf('default') + 'default'.length;
+  const declaredName =
+    decl.type === 'ClassDeclaration' || decl.type === 'FunctionDeclaration'
+      ? (decl as ClassDeclarationNode).id?.name
+      : undefined;
+
+  let wrapped = '__SENTRY_DEFAULT_EXPORT__';
+  if (declaredName) {
+    // `export default class Handler {}`: the declaration stays, so `Handler` stays bound in the module.
+    state.ms.remove(node.start, decl.start);
+    wrapped = declaredName;
+  } else if (isAnonymousFunctionOrClass(decl)) {
+    // As a property value, the class or function gets the name `default`, as `export default` gives it.
+    const hasSemicolon = source[node.end - 1] === ';';
+    state.ms.overwrite(node.start, keywordsEnd, 'const __SENTRY_DEFAULT_EXPORT__ = { default:');
+    state.ms.appendLeft(hasSemicolon ? node.end - 1 : node.end, hasSemicolon ? ' }.default' : ' }.default;');
+  } else {
+    state.ms.overwrite(node.start, keywordsEnd, 'const __SENTRY_DEFAULT_EXPORT__ =');
+  }
+
+  // Right after the original statement, so the default export is set where it was before.
+  state.ms.appendLeft(node.end, `\nexport default __SENTRY__.withSentry(${state.optionsFn}, ${wrapped});`);
   state.needsImport = true;
   state.autoWrapped.add(DEFAULT_EXPORT);
+}
+
+function isAnonymousFunctionOrClass(node: BaseNode): boolean {
+  if (node.type === 'ArrowFunctionExpression') return true;
+  const isFunctionOrClass = [
+    'FunctionExpression',
+    'FunctionDeclaration',
+    'ClassExpression',
+    'ClassDeclaration',
+  ].includes(node.type);
+  return isFunctionOrClass && !(node as ClassDeclarationNode).id;
 }
 
 function handleNamedExport(node: ExportNamedNode, ctx: TransformContext, state: TransformState): void {
