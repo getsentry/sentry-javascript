@@ -8,7 +8,7 @@ type FilesToDeleteAfterUpload = string | string[] | undefined;
 /** TanStack Router and Start split route files into virtual modules, e.g. `index.tsx?tss-serverfn-split`. */
 const TANSTACK_SPLIT_QUERY_REGEX = /\?ts[rs]-[^/]*$/;
 
-/** Sources such as `virtual:#nitro/runtime` are no file paths. Two letters at least, so `C:` stays a drive letter. */
+/** Sources such as `virtual:#nitro/runtime` are no file paths. Two letters at least, so drive letters, like `C:`, are not matched by the regex. */
 const SCHEME_REGEX = /^[a-z][a-z\d+.-]+:/i;
 
 /**
