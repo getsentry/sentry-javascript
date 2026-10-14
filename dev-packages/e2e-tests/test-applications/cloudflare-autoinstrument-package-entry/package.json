@@ -18,6 +18,7 @@
     "@cloudflare/vite-plugin": "^1.47.0",
     "@cloudflare/workers-types": "^5.20260727.1",
     "@playwright/test": "~1.63.0",
+    "@sentry/conventions": "0.27.0",
     "@sentry-internal/test-utils": "link:../../../test-utils",
     "vite": "^8.1.5",
     "wrangler": "^4.114.0"

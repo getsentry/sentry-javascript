@@ -1,4 +1,6 @@
 import { expect, test } from '@playwright/test';
+import { SENTRY_ENVIRONMENT, SENTRY_ORIGIN } from '@sentry/conventions/attributes';
+import { HTTP_SERVER } from '@sentry/conventions/op';
 import { getSpanOp, waitForError, waitForStreamedSpan } from '@sentry-internal/test-utils';
 
 // The worker entry is a package with no Sentry calls. Any event that arrives
@@ -7,16 +9,16 @@ import { getSpanOp, waitForError, waitForStreamedSpan } from '@sentry-internal/t
 test('wraps a package entry with withSentry (options from instrument.server.ts)', async ({ baseURL }) => {
   const spanPromise = waitForStreamedSpan(
     'cloudflare-autoinstrument-package-entry',
-    span => getSpanOp(span) === 'http.server' && span.is_segment,
+    span => getSpanOp(span) === HTTP_SERVER && span.is_segment,
   );
 
   const res = await fetch(baseURL!);
   expect(res.status).toBe(200);
 
   const span = await spanPromise;
-  expect(span.attributes['sentry.origin']?.value).toBe('auto.http.cloudflare');
+  expect(span.attributes[SENTRY_ORIGIN]?.value).toBe('auto.http.cloudflare');
   // Only `instrument.server.ts` sets this environment.
-  expect(span.attributes['sentry.environment']?.value).toBe('qa');
+  expect(span.attributes[SENTRY_ENVIRONMENT]?.value).toBe('qa');
 });
 
 test('captures an error thrown by a package entry', async ({ baseURL }) => {
