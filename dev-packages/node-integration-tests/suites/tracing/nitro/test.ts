@@ -1,3 +1,14 @@
+import {
+  CACHE_HIT,
+  CACHE_KEY,
+  DB_OPERATION_NAME,
+  DB_SYSTEM_NAME,
+  HTTP_RESPONSE_STATUS_CODE,
+  HTTP_ROUTE,
+  SENTRY_OP,
+  SENTRY_ORIGIN,
+} from '@sentry/conventions/attributes';
+import { CACHE_GET, CACHE_PUT, HTTP_SERVER } from '@sentry/conventions/op';
 import { afterAll, describe, expect, vi } from 'vitest';
 import { supports } from '../../../utils';
 import { cleanupChildProcesses, createEsmTests } from '../../../utils/runner';
@@ -17,23 +28,21 @@ describe.runIf(supports({ min: 20 }))('nitro integrations', () => {
           span: container => {
             const segment = container.items.find(span => span.is_segment);
             const srvxSpan = container.items.find(
-              span => span.attributes['sentry.origin']?.value === 'auto.http.nitro.srvx',
+              span => span.attributes[SENTRY_ORIGIN]?.value === 'auto.http.nitro.srvx',
             );
-            const h3Span = container.items.find(
-              span => span.attributes['sentry.origin']?.value === 'auto.http.nitro.h3',
-            );
+            const h3Span = container.items.find(span => span.attributes[SENTRY_ORIGIN]?.value === 'auto.http.nitro.h3');
 
             traceId = segment?.trace_id;
 
             expect(segment?.name).toBe('GET /hello/:name');
-            expect(segment?.attributes['http.route']).toEqual({ type: 'string', value: '/hello/:name' });
+            expect(segment?.attributes[HTTP_ROUTE]).toEqual({ type: 'string', value: '/hello/:name' });
 
             // Bun publishes no `http.server.request.start`, so there the srvx span is the segment itself.
             expect(srvxSpan).toMatchObject({
               status: 'ok',
               attributes: expect.objectContaining({
-                'sentry.op': { type: 'string', value: 'http.server' },
-                'http.response.status_code': { type: 'integer', value: 200 },
+                [SENTRY_OP]: { type: 'string', value: HTTP_SERVER },
+                [HTTP_RESPONSE_STATUS_CODE]: { type: 'integer', value: 200 },
               }),
             });
 
@@ -42,8 +51,8 @@ describe.runIf(supports({ min: 20 }))('nitro integrations', () => {
               parent_span_id: srvxSpan?.span_id,
               status: 'ok',
               attributes: expect.objectContaining({
-                'sentry.op': { type: 'string', value: 'http.server' },
-                'http.route': { type: 'string', value: '/hello/:name' },
+                [SENTRY_OP]: { type: 'string', value: HTTP_SERVER },
+                [HTTP_ROUTE]: { type: 'string', value: '/hello/:name' },
               }),
             });
           },
@@ -69,7 +78,7 @@ describe.runIf(supports({ min: 20 }))('nitro integrations', () => {
           span: container => {
             const segment = container.items.find(span => span.is_segment);
             const cacheSpans = container.items.filter(
-              span => span.attributes['sentry.origin']?.value === 'auto.cache.nitro',
+              span => span.attributes[SENTRY_ORIGIN]?.value === 'auto.cache.nitro',
             );
 
             expect(segment?.name).toBe('GET /cache');
@@ -78,20 +87,20 @@ describe.runIf(supports({ min: 20 }))('nitro integrations', () => {
                 name: 'cache.put',
                 status: 'ok',
                 attributes: expect.objectContaining({
-                  'sentry.op': { type: 'string', value: 'cache.put' },
-                  'cache.key': { type: 'string', value: 'cache:key' },
-                  'db.operation.name': { type: 'string', value: 'setItem' },
-                  'db.system.name': { type: 'string', value: 'memory' },
+                  [SENTRY_OP]: { type: 'string', value: CACHE_PUT },
+                  [CACHE_KEY]: { type: 'string', value: 'cache:key' },
+                  [DB_OPERATION_NAME]: { type: 'string', value: 'setItem' },
+                  [DB_SYSTEM_NAME]: { type: 'string', value: 'memory' },
                 }),
               }),
               expect.objectContaining({
                 name: 'cache.get',
                 status: 'ok',
                 attributes: expect.objectContaining({
-                  'sentry.op': { type: 'string', value: 'cache.get' },
-                  'cache.key': { type: 'string', value: 'cache:key' },
-                  'cache.hit': { type: 'boolean', value: true },
-                  'db.operation.name': { type: 'string', value: 'getItem' },
+                  [SENTRY_OP]: { type: 'string', value: CACHE_GET },
+                  [CACHE_KEY]: { type: 'string', value: 'cache:key' },
+                  [CACHE_HIT]: { type: 'boolean', value: true },
+                  [DB_OPERATION_NAME]: { type: 'string', value: 'getItem' },
                 }),
               }),
             ]);
