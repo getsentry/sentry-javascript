@@ -1,3 +1,7 @@
+import { execFileSync } from 'node:child_process';
+import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { parse } from 'acorn';
 import { describe, expect, it } from 'vitest';
 import { applyAutoInstrumentTransforms, type ClassWrapperKind, type TransformContext } from '../../src/vite/transform';
@@ -73,6 +77,161 @@ describe('default export wrapping', () => {
     const result = transform(code, ctx)!;
     expect(result).toBeDefined();
     expect(result.code).toContain('__SENTRY__.withSentry(');
+  });
+
+  it('wraps a local binding exported as default by a specifier', () => {
+    const code = ['var server_default = { fetch: handle };', 'export { server_default as default };'].join('\n');
+
+    expect(transform(code, ctx)!.code).toBe(
+      [
+        "import * as __SENTRY__ from '@sentry/cloudflare';",
+        'var server_default = { fetch: handle };',
+        'var __SENTRY_DEFAULT_EXPORT__ = server_default;',
+        'export { __SENTRY_DEFAULT_EXPORT__ as default };',
+        '__SENTRY_DEFAULT_EXPORT__ = __SENTRY__.withSentry((env) => ({}), server_default);',
+      ].join('\n'),
+    );
+  });
+
+  it('binds the default export after a local declared below the export', () => {
+    const code = ['export { handler as default };', 'const handler = { fetch() {} };'].join('\n');
+
+    expect(transform(code, ctx)!.code).toBe(
+      [
+        "import * as __SENTRY__ from '@sentry/cloudflare';",
+        'export { __SENTRY_DEFAULT_EXPORT__ as default };',
+        'const handler = { fetch() {} };',
+        'var __SENTRY_DEFAULT_EXPORT__ = handler;',
+        '__SENTRY_DEFAULT_EXPORT__ = __SENTRY__.withSentry((env) => ({}), handler);',
+      ].join('\n'),
+    );
+  });
+
+  it('binds the default export after a function declaration', () => {
+    const code = ['function handler() {}', 'export { handler as default };'].join('\n');
+
+    expect(transform(code, ctx)!.code).toBe(
+      [
+        "import * as __SENTRY__ from '@sentry/cloudflare';",
+        'function handler() {}',
+        'var __SENTRY_DEFAULT_EXPORT__ = handler;',
+        'export { __SENTRY_DEFAULT_EXPORT__ as default };',
+        '__SENTRY_DEFAULT_EXPORT__ = __SENTRY__.withSentry((env) => ({}), handler);',
+      ].join('\n'),
+    );
+  });
+
+  it('binds the default export after the import of an imported local', () => {
+    const code = ["import handler from './handler';", 'export { handler as default };'].join('\n');
+
+    expect(transform(code, ctx)!.code).toBe(
+      [
+        "import * as __SENTRY__ from '@sentry/cloudflare';",
+        "import handler from './handler';",
+        'var __SENTRY_DEFAULT_EXPORT__ = handler;',
+        'export { __SENTRY_DEFAULT_EXPORT__ as default };',
+        '__SENTRY_DEFAULT_EXPORT__ = __SENTRY__.withSentry((env) => ({}), handler);',
+      ].join('\n'),
+    );
+  });
+
+  it('keeps the default export readable from a circular import during module evaluation', () => {
+    // `b` reads the entry's default export while the entry is still evaluating, as bundled code can.
+    const entry = [
+      "import { readDefault } from './b.mjs';",
+      'var server_default = { fetch() {} };',
+      'console.log(readDefault());',
+      'export { server_default as default };',
+    ].join('\n');
+    const transformed = transform(entry, ctx)!.code.replace(
+      "import * as __SENTRY__ from '@sentry/cloudflare';",
+      'const __SENTRY__ = { withSentry: (_options, handler) => handler };',
+    );
+
+    const dir = mkdtempSync(join(tmpdir(), 'sentry-cf-cycle-'));
+    try {
+      writeFileSync(join(dir, 'a.mjs'), transformed);
+      writeFileSync(
+        join(dir, 'b.mjs'),
+        "import handler from './a.mjs';\nexport function readDefault() { return typeof handler.fetch; }\n",
+      );
+      // Plain Node: Vitest's module runner does not evaluate import cycles like native ESM does.
+      expect(execFileSync(process.execPath, [join(dir, 'a.mjs')], { encoding: 'utf8' }).trim()).toBe('function');
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  /**
+   * Runs `a.mjs` transformed, under plain Node, with a `withSentry` stub that marks each method it
+   * finds as instrumented, and returns what `main.mjs` prints.
+   */
+  function runInstrumented(entry: string): string {
+    const transformed = transform(entry, ctx)!.code.replace(
+      "import * as __SENTRY__ from '@sentry/cloudflare';",
+      'const __SENTRY__ = { withSentry: (_options, handler) => { for (const key of Object.keys(handler)) handler[key].instrumented = true; return handler; } };',
+    );
+    const dir = mkdtempSync(join(tmpdir(), 'sentry-cf-late-'));
+    try {
+      writeFileSync(join(dir, 'a.mjs'), transformed);
+      writeFileSync(
+        join(dir, 'main.mjs'),
+        "import handler from './a.mjs';\nconsole.log(String(handler?.fetch?.instrumented));\n",
+      );
+      return execFileSync(process.execPath, [join(dir, 'main.mjs')], { encoding: 'utf8' }).trim();
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  }
+
+  it('wraps a default export assigned after its declaration', () => {
+    const entry = ['let handler;', 'handler = { fetch() {} };', 'export { handler as default };'].join('\n');
+    expect(runInstrumented(entry)).toBe('true');
+  });
+
+  it('wraps a method added to the default export after its declaration', () => {
+    const entry = ['const handler = {};', 'handler.fetch = function () {};', 'export { handler as default };'].join(
+      '\n',
+    );
+    expect(runInstrumented(entry)).toBe('true');
+  });
+
+  it('leaves sibling specifiers of a default specifier export untouched', () => {
+    const code = [
+      'const helper = 1;',
+      'const handler = { fetch() {} };',
+      'export { helper, handler as default };',
+    ].join('\n');
+
+    expect(transform(code, ctx)!.code).toBe(
+      [
+        "import * as __SENTRY__ from '@sentry/cloudflare';",
+        'const helper = 1;',
+        'const handler = { fetch() {} };',
+        'var __SENTRY_DEFAULT_EXPORT__ = handler;',
+        'export { __SENTRY_DEFAULT_EXPORT__ as default };',
+        'export { helper };',
+        '__SENTRY_DEFAULT_EXPORT__ = __SENTRY__.withSentry((env) => ({}), handler);',
+      ].join('\n'),
+    );
+  });
+
+  it('skips a hand-wrapped `export const` exported as default by a specifier', () => {
+    const code = [
+      "import { withSentry } from '@sentry/cloudflare';",
+      'export const handler = withSentry((env) => ({}), { fetch() {} });',
+      'export { handler as default };',
+    ].join('\n');
+    expect(transform(code, ctx)).toBeUndefined();
+  });
+
+  it('skips a hand-wrapped local exported as default by a specifier', () => {
+    const code = [
+      "import { withSentry } from '@sentry/cloudflare';",
+      'const handler = withSentry((env) => ({}), { fetch() {} });',
+      'export { handler as default };',
+    ].join('\n');
+    expect(transform(code, ctx)).toBeUndefined();
   });
 
   it('uses custom options callback', () => {
@@ -459,6 +618,20 @@ describe('WorkerEntrypoint class wrapping (structural)', () => {
     expect(result.code).not.toContain('export class AdminEntry');
     expect(result.code).toContain('export const AdminEntry = __SENTRY__.withSentry(');
     expect(result.wrappedClasses).toEqual(new Set(['AdminEntry']));
+  });
+
+  it('shares one wrapper between `export class` and a default specifier after it', () => {
+    const code = [
+      "import { WorkerEntrypoint } from 'cloudflare:workers';",
+      'export class AdminEntry extends WorkerEntrypoint {}',
+      'export { AdminEntry as default };',
+    ].join('\n');
+
+    const result = transform(code, ctx)!;
+    expect(result.code.match(/withSentry\(/g)).toHaveLength(1);
+    // The wrapper takes over the class binding, so the default specifier stays as written.
+    expect(result.code).toContain('export const AdminEntry = __SENTRY__.withSentry(');
+    expect(result.code).toContain('export { AdminEntry as default };');
   });
 
   it('wraps a class extending an aliased WorkerEntrypoint import', () => {
