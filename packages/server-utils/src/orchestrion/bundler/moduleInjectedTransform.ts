@@ -14,9 +14,9 @@ interface ProgramNode {
 }
 
 // Where the injected snippet imports from: the `orchestrionModuleInjected`
-// helper and the module's channel-subscriber factory both live on the main
-// `@sentry/server-utils` entry, so a single import serves both. The ESM barrel
-// tree-shakes to just the helper and the factories actually referenced.
+// helper and the module's channel-subscriber factories all live on the main
+// `@sentry/server-utils` entry, so a single import serves them all. The ESM
+// barrel tree-shakes to just the helper and the factories actually referenced.
 const DEFAULT_IMPORT_SPECIFIER = '@sentry/server-utils';
 
 /**
@@ -40,18 +40,19 @@ export const ORCHESTRION_BUNDLER_MARKER_BANNER =
 /**
  * Snippet injected into each instrumented module. It imports the
  * `orchestrionModuleInjected` helper — plus the module's channel-subscriber
- * factory, when it has one — from `@sentry/server-utils` and calls the helper
- * with the module's real name. The helper records the module on the global
- * marker, stores the factory, and emits the `orchestrion.module-injected` client
- * event, so it runs exactly when the module is evaluated — the moment its
- * channels can start publishing. That per-module timing is what keeps
- * subscriptions lazy (Node caps diagnostics channels in use at 1024).
+ * factories, when it has any — from `@sentry/server-utils` and calls the helper
+ * once with the module's real name and all of its factories. The helper records
+ * the module on the global marker, stores the factories, and emits the
+ * `orchestrion.module-injected` client event, so it runs exactly when the
+ * module is evaluated — the moment its channels can start publishing. That
+ * per-module timing is what keeps subscriptions lazy (Node caps diagnostics
+ * channels in use at 1024).
  *
- * Importing the single named factory (rather than a central dispatch that pulls
- * in every subscriber) is what makes this tree-shake: a bundle carries only the
- * subscriber code for packages actually transformed into it. The helper is
- * generic (references no factory), so importing it alongside doesn't pull
- * siblings.
+ * Importing only the module's named factories (rather than a central dispatch
+ * that pulls in every subscriber) is what makes this tree-shake: a bundle
+ * carries only the subscriber code for packages actually transformed into it.
+ * The helper is generic (references no factory), so importing it alongside
+ * doesn't pull siblings.
  *
  * The specifier is parameterized for bundlers where the bare import emitted
  * inside a transformed `node_modules` file can't resolve (Turbopack under
