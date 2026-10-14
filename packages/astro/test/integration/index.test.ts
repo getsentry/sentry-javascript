@@ -451,12 +451,30 @@ describe('sentryAstro integration', () => {
     });
   });
 
-  describe('with `sentryCloudflareVitePlugin()` from `@sentry/cloudflare/vite` in the vite config', () => {
+  // The plugin returns an array, so it arrives nested.
+  describe.each([
+    {
+      setup: 'sentryCloudflareVitePlugin()',
+      plugins: [
+        { name: 'code-transformer' },
+        { name: 'sentry-cloudflare-mastra-observability-provider' },
+        { name: 'sentry-cloudflare-flue-runtime-provider' },
+        { name: 'sentry-cloudflare-auto-instrument' },
+      ],
+    },
+    {
+      setup: 'sentryCloudflareVitePlugin({ autoInstrumentation: false })',
+      plugins: [
+        { name: 'code-transformer' },
+        { name: 'sentry-cloudflare-mastra-observability-provider' },
+        { name: 'sentry-cloudflare-flue-runtime-provider' },
+      ],
+    },
+  ])('with `$setup` from `@sentry/cloudflare/vite` in the vite config', ({ plugins }) => {
     const cloudflareConfig = {
       ...config,
       adapter: { name: '@astrojs/cloudflare' },
-      // The plugin returns an array, so it arrives nested.
-      vite: { plugins: [[{ name: 'code-transformer' }, { name: 'sentry-cloudflare-auto-instrument' }]] },
+      vite: { plugins: [plugins] },
     } as AstroConfig;
 
     it('leaves the orchestrion transform and the Worker wrap to that plugin', async () => {

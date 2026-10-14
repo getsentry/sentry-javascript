@@ -142,9 +142,10 @@ export const sentryAstro = (options: SentryOptions = {}): AstroIntegration => {
 
         const isCloudflare = config?.adapter?.name?.startsWith('@astrojs/cloudflare');
         const isCloudflareWorkers = isCloudflare && !isCloudflarePages();
-        // That plugin wraps the Worker entry, inits the SDK from `instrument.server.*` or `env`, and
-        // adds its own orchestrion transform, so none of ours are needed.
-        const usesCloudflareVitePlugin = isCloudflareWorkers && hasCloudflareAutoInstrumentPlugin(config);
+        // That plugin adds its own orchestrion transform and wraps the Worker entry, which inits the
+        // SDK from `instrument.server.*` or `env`. With its `autoInstrumentation: false`, the user's
+        // own `withSentry` does the init. Either way, none of ours are needed.
+        const usesCloudflareVitePlugin = isCloudflareWorkers && hasCloudflareVitePlugin(config);
 
         // Wire up the orchestrion code transform so instrumented server-side dependencies (e.g.
         // `mysql`, `ioredis`) get `diagnostics_channel` publishers injected into the SSR bundle at
@@ -241,14 +242,16 @@ export const sentryAstro = (options: SentryOptions = {}): AstroIntegration => {
   };
 };
 
-const CLOUDFLARE_AUTO_INSTRUMENT_PLUGIN_NAME = 'sentry-cloudflare-auto-instrument';
+// Every sub-plugin of `sentryCloudflareVitePlugin()` but its orchestrion transform has this prefix,
+// and some are added whatever its options are.
+const CLOUDFLARE_VITE_PLUGIN_NAME_PREFIX = 'sentry-cloudflare-';
 
 /**
  * Whether the user added `sentryCloudflareVitePlugin()` from `@sentry/cloudflare/vite`. It is
  * detected by name because importing it here would load `@sentry/cloudflare` and `wrangler` for
  * every Astro app.
  */
-function hasCloudflareAutoInstrumentPlugin(config: AstroConfig): boolean {
+function hasCloudflareVitePlugin(config: AstroConfig): boolean {
   const pending: unknown[] = [config.vite?.plugins];
   while (pending.length > 0) {
     const plugin = pending.pop();
@@ -257,7 +260,7 @@ function hasCloudflareAutoInstrumentPlugin(config: AstroConfig): boolean {
     } else if (
       typeof plugin === 'object' &&
       plugin !== null &&
-      (plugin as { name?: unknown }).name === CLOUDFLARE_AUTO_INSTRUMENT_PLUGIN_NAME
+      String((plugin as { name?: unknown }).name).startsWith(CLOUDFLARE_VITE_PLUGIN_NAME_PREFIX)
     ) {
       return true;
     }
