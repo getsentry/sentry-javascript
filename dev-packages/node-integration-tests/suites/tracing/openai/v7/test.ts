@@ -208,8 +208,8 @@ describe.runIf(supports({ min: 22 }))('OpenAI integration (V7)', () => {
               department: {
                 type: 'choice',
                 instructions: 'Which team should handle this?',
-                // `other` has no description, so it is left out of the criteria.
-                criteria: { billing: 'Charges and refunds' },
+                // `other` has no description, so it gets an empty one.
+                criteria: { billing: 'Charges and refunds', other: '' },
               },
               urgency: {
                 type: 'score',

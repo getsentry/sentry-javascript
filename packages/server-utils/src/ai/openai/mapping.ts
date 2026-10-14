@@ -21,7 +21,7 @@ export function getDecisionOutputMessages(answers: unknown[]): string | undefine
 
 /**
  * Lay out a decisions question like a Jev question, with its options in `criteria`: choices as
- * `{ [value]: description }` (undescribed choices are left out), and score levels as their labels,
+ * `{ [value]: description }` (an empty description when there is none), and score levels as their labels,
  * indexed by score value.
  */
 function toJevQuestionFormat(question: unknown): unknown {
@@ -31,12 +31,12 @@ function toJevQuestionFormat(question: unknown): unknown {
 
   if (question.type === 'choice' && Array.isArray(question.choices)) {
     const { choices, ...rest } = question;
-    const described = choices.filter(
-      (choice): choice is Record<string, unknown> => isObjectLike(choice) && typeof choice.description === 'string',
+    const criteria = Object.fromEntries(
+      choices
+        .filter(isObjectLike)
+        .map(choice => [String(choice.value), typeof choice.description === 'string' ? choice.description : '']),
     );
-    return described.length
-      ? { ...rest, criteria: Object.fromEntries(described.map(choice => [String(choice.value), choice.description])) }
-      : rest;
+    return { ...rest, criteria };
   }
 
   if (question.type === 'score' && Array.isArray(question.levels)) {
