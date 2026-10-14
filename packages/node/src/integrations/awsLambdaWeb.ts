@@ -26,7 +26,7 @@ const _awsLambdaWebIntegration = (() => {
   };
   const environmentAttributes = {
     ...cloudContext,
-    'aws.lambda.memory_size': lambdaContext.memory_size,
+    'faas.max_memory': lambdaContext.memory_size ? lambdaContext.memory_size * 1024 * 1024 : undefined,
     'aws.lambda.initialization_type': lambdaContext.initialization_type,
   };
 
