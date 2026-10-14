@@ -136,7 +136,7 @@ describe.runIf(supports({ min: 20 }))('nitro integrations', () => {
           span: container => {
             const segment = container.items.find(span => span.is_segment);
             const cacheSpans = container.items.filter(
-              span => span.attributes['sentry.origin']?.value === 'auto.cache.nitro',
+              span => span.attributes[SENTRY_ORIGIN]?.value === 'auto.cache.nitro',
             );
 
             expect(segment?.name).toBe('GET /cache');
