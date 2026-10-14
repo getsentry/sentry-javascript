@@ -76,8 +76,9 @@ describe('sentryCloudflareAutoInstrumentPlugin', () => {
     expect(resolve).toHaveBeenCalledWith('@sentry/nextjs/cloudflare', join(dir, 'src/index.ts'));
     expect(result.code).toBe(
       "import * as __SENTRY__ from '@sentry/nextjs/cloudflare';\n" +
-        'const __SENTRY_DEFAULT_EXPORT__ = { fetch() { return new Response("ok"); } };\n' +
-        'export default __SENTRY__.withSentry(() => undefined, __SENTRY_DEFAULT_EXPORT__);',
+        'var __SENTRY_DEFAULT_EXPORT__ = { fetch() { return new Response("ok"); } };\n' +
+        'export { __SENTRY_DEFAULT_EXPORT__ as default };\n' +
+        '__SENTRY_DEFAULT_EXPORT__ = __SENTRY__.withSentry(() => undefined, __SENTRY_DEFAULT_EXPORT__);',
     );
   });
 
@@ -98,8 +99,9 @@ describe('sentryCloudflareAutoInstrumentPlugin', () => {
 
     expect(result.code).toBe(
       "import * as __SENTRY__ from '@sentry/cloudflare';\n" +
-        'const __SENTRY_DEFAULT_EXPORT__ = { fetch() { return new Response("ok"); } };\n' +
-        'export default __SENTRY__.withSentry(() => undefined, __SENTRY_DEFAULT_EXPORT__);',
+        'var __SENTRY_DEFAULT_EXPORT__ = { fetch() { return new Response("ok"); } };\n' +
+        'export { __SENTRY_DEFAULT_EXPORT__ as default };\n' +
+        '__SENTRY_DEFAULT_EXPORT__ = __SENTRY__.withSentry(() => undefined, __SENTRY_DEFAULT_EXPORT__);',
     );
   });
 
@@ -118,8 +120,9 @@ describe('sentryCloudflareAutoInstrumentPlugin', () => {
 
     expect(result.code).toBe(
       "import * as __SENTRY__ from '@sentry/cloudflare';\n" +
-        'const __SENTRY_DEFAULT_EXPORT__ = { fetch() { return new Response("ok"); } };\n' +
-        'export default __SENTRY__.withSentry(() => undefined, __SENTRY_DEFAULT_EXPORT__);',
+        'var __SENTRY_DEFAULT_EXPORT__ = { fetch() { return new Response("ok"); } };\n' +
+        'export { __SENTRY_DEFAULT_EXPORT__ as default };\n' +
+        '__SENTRY_DEFAULT_EXPORT__ = __SENTRY__.withSentry(() => undefined, __SENTRY_DEFAULT_EXPORT__);',
     );
   });
 
@@ -142,8 +145,9 @@ describe('sentryCloudflareAutoInstrumentPlugin', () => {
 
     expect(result.code).toBe(
       "import * as __SENTRY__ from '@sentry/cloudflare';\n" +
-        'const __SENTRY_DEFAULT_EXPORT__ = { fetch() { return new Response("ok"); } };\n' +
-        'export default __SENTRY__.withSentry(() => undefined, __SENTRY_DEFAULT_EXPORT__);',
+        'var __SENTRY_DEFAULT_EXPORT__ = { fetch() { return new Response("ok"); } };\n' +
+        'export { __SENTRY_DEFAULT_EXPORT__ as default };\n' +
+        '__SENTRY_DEFAULT_EXPORT__ = __SENTRY__.withSentry(() => undefined, __SENTRY_DEFAULT_EXPORT__);',
     );
   });
 
@@ -518,8 +522,9 @@ describe('wranglerConfigPath option', () => {
     expect(result.code).toBe(
       [
         "import * as __SENTRY__ from '@sentry/cloudflare';",
-        'const __SENTRY_DEFAULT_EXPORT__ = { fetch() { return new Response("ok"); } };',
-        'export default __SENTRY__.withSentry(() => undefined, __SENTRY_DEFAULT_EXPORT__);',
+        'var __SENTRY_DEFAULT_EXPORT__ = { fetch() { return new Response("ok"); } };',
+        'export { __SENTRY_DEFAULT_EXPORT__ as default };',
+        '__SENTRY_DEFAULT_EXPORT__ = __SENTRY__.withSentry(() => undefined, __SENTRY_DEFAULT_EXPORT__);',
       ].join('\n'),
     );
   });
@@ -595,8 +600,9 @@ describe('package specifier as wrangler `main`', () => {
     expect(result.code).toBe(
       [
         "import * as __SENTRY__ from '@sentry/cloudflare';",
-        'const __SENTRY_DEFAULT_EXPORT__ = { fetch() { return new Response("ok"); } };',
-        'export default __SENTRY__.withSentry(() => undefined, __SENTRY_DEFAULT_EXPORT__);',
+        'var __SENTRY_DEFAULT_EXPORT__ = { fetch() { return new Response("ok"); } };',
+        'export { __SENTRY_DEFAULT_EXPORT__ as default };',
+        '__SENTRY_DEFAULT_EXPORT__ = __SENTRY__.withSentry(() => undefined, __SENTRY_DEFAULT_EXPORT__);',
       ].join('\n'),
     );
   });
