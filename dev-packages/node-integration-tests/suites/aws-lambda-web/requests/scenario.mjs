@@ -8,7 +8,7 @@ const secondRequestStarted = new Promise(resolve => {
   releaseFirst = resolve;
 });
 
-async function handleRequest(req, res) {
+app.get('/:request', async (req, res) => {
   if (req.params.request === 'first') {
     process.stdout.write('FIRST_STARTED\n');
     await secondRequestStarted;
@@ -23,18 +23,6 @@ async function handleRequest(req, res) {
   setImmediate(() => {
     void Sentry.flush();
   });
-}
-
-app.get('/:request', (req, res) => {
-  if (process.env.FRAMEWORK_ROOT === 'forked-scope') {
-    return Sentry.withIsolationScope(() =>
-      Sentry.startSpan({ name: 'GET /:request', op: 'http.server' }, () => handleRequest(req, res)),
-    );
-  }
-  if (process.env.FRAMEWORK_ROOT === 'late-op') {
-    return Sentry.startSpan({ name: 'GET /:request' }, () => handleRequest(req, res));
-  }
-  return handleRequest(req, res);
 });
 
 startExpressServerAndSendPortToRunner(app);
