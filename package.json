@@ -151,11 +151,13 @@
     "yalc": "^1.0.0-pre.53",
     "yarn-deduplicate": "6.0.2"
   },
-  "resolutions": {
-    "**/nx/minimatch": "10.2.5",
-    "**/ng-packagr/postcss-url/minimatch": "3.1.5",
-    "**/@angular-devkit/build-angular/minimatch": "5.1.9",
-    "**/nitropack/rollup-plugin-visualizer": "^6.0.3"
+  "pnpm": {
+    "overrides": {
+      "nx>minimatch": "10.2.5",
+      "postcss-url>minimatch": "3.1.5",
+      "@angular-devkit/build-angular>minimatch": "5.1.9",
+      "nitropack>rollup-plugin-visualizer": "^6.0.3"
+    }
   },
   "version": "0.0.0",
   "name": "sentry-javascript"
