@@ -348,6 +348,50 @@ describe('sentryOrchestrionPlugin (vite)', () => {
     expect(typeof fallback).toBe('string');
     expect(fallback).toContain('server-utils');
   });
+
+  it('resolves the snippet import to the ESM entry, also for require() calls', async () => {
+    const plugin = vitePlugin();
+    const resolveId = plugin.resolveId as (
+      this: unknown,
+      source: string,
+      importer: string | undefined,
+      opts?: { ssr?: boolean },
+    ) => Promise<unknown>;
+
+    const resolve = vi.fn().mockResolvedValue(null);
+    // How Vite 5-7 resolve a `require()` in a CommonJS module.
+    const requireOptions = { ssr: true, custom: { 'node-resolve': { isRequire: true } } };
+
+    resolve.mockResolvedValueOnce({
+      id: '/app/node_modules/@sentry/server-utils/build/cjs/index.js',
+      moduleSideEffects: false,
+    });
+    await expect(
+      resolveId.call({ resolve }, '@sentry/server-utils', '/app/node_modules/mysql/index.js', requireOptions),
+    ).resolves.toEqual({
+      id: '/app/node_modules/@sentry/server-utils/build/esm/index.js',
+      moduleSideEffects: false,
+    });
+    expect(resolve).toHaveBeenCalledWith('@sentry/server-utils', '/app/node_modules/mysql/index.js', {
+      ...requireOptions,
+      skipSelf: true,
+    });
+
+    resolve.mockResolvedValueOnce({ id: 'C:\\app\\node_modules\\@sentry\\server-utils\\build\\cjs\\index.js' });
+    await expect(resolveId.call({ resolve }, '@sentry/server-utils', '/x.js', requireOptions)).resolves.toEqual({
+      id: 'C:\\app\\node_modules\\@sentry\\server-utils\\build\\esm\\index.js',
+    });
+
+    resolve.mockResolvedValueOnce({ id: '@sentry/server-utils', external: true });
+    await expect(resolveId.call({ resolve }, '@sentry/server-utils', '/x.js', requireOptions)).resolves.toEqual({
+      id: '@sentry/server-utils',
+      external: true,
+    });
+
+    const fallback = await resolveId.call({ resolve }, '@sentry/server-utils', '/x.js', requireOptions);
+    expect(fallback).toMatch(/[/\\]build[/\\]esm[/\\]index\.js$/);
+    expect(existsSync(fallback as string)).toBe(true);
+  });
 });
 
 describe('sentryOrchestrionPlugin (bun)', () => {

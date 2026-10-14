@@ -34,6 +34,11 @@ function ssrOnlyTransform(transform: Plugin['transform']): Plugin['transform'] {
   return transform;
 }
 
+// Maps the CJS entry of `@sentry/server-utils` to its ESM entry; any other id is returned unchanged.
+function toEsmEntry(id: string): string {
+  return id.replace(/([/\\])build[/\\]cjs[/\\]index\.js$/, '$1build$1esm$1index.js');
+}
+
 /**
  * Vite plugin that runs the orchestrion code transform on the bundled output.
  *
@@ -71,15 +76,21 @@ export function sentryOrchestrionPlugin(options: PluginOptions = {}): Plugin {
     // normal resolution fails, fall back to this package's own resolution so it
     // gets bundled from its real on-disk path. SSR-gated like the transform: the
     // specifier only appears in SSR modules.
+    //
+    // Always bundle the ESM entry. In a CommonJS module the snippet `require()`s the specifier,
+    // which resolves to the CJS build. Vite 5-7 turn that build's `require()`s of external
+    // packages into default imports, and `@sentry/core` has no default export, so the server
+    // crashes at startup. Vite 8 keeps the `require()`s, which loads a second copy of `@sentry/core`.
     async resolveId(source, importer, resolveOptions) {
       if (source !== SNIPPET_IMPORT_SPECIFIER || !resolveOptions?.ssr) {
         return null;
       }
       const resolved = await this.resolve(source, importer, { ...resolveOptions, skipSelf: true });
       if (resolved) {
-        return resolved;
+        return resolved.external ? resolved : { ...resolved, id: toEsmEntry(resolved.id) };
       }
-      return resolveOrchestrionRuntimeRequest(source) ?? null;
+      const fallback = resolveOrchestrionRuntimeRequest(source);
+      return fallback ? toEsmEntry(fallback) : null;
     },
     applyToEnvironment(environment) {
       // Orchestrion splices `node:diagnostics_channel` calls into instrumented modules, which only
