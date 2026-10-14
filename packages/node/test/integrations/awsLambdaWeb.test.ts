@@ -153,7 +153,7 @@ describe('awsLambdaWebIntegration', () => {
       client.emit('httpServerRequest', {}, {}, { headers: { 'lambda-web-request-id': 'request' } });
       const span = new SentrySpan({
         name: 'request',
-        attributes: { 'cloud.region': 'custom-region', 'faas.coldstart': false, 'aws.lambda.memory_size': 0 },
+        attributes: { 'cloud.region': 'custom-region', 'faas.coldstart': false, 'faas.max_memory': 0 },
       });
       const spanJSON = spanToJSON(span);
       integration.processSegmentSpan!(spanJSON, client);
@@ -166,7 +166,7 @@ describe('awsLambdaWebIntegration', () => {
         'cloud.account.id': '123456789012',
         'faas.coldstart': false,
         'faas.invocation_id': 'request',
-        'aws.lambda.memory_size': 0,
+        'faas.max_memory': 0,
         'aws.lambda.initialization_type': 'native-http',
       });
     });
@@ -221,10 +221,24 @@ describe('awsLambdaWebIntegration', () => {
       'cloud.provider': 'aws',
       'cloud.platform': 'aws_lambda',
       'cloud.account.id': '123456789012',
-      'aws.lambda.memory_size': 2048,
+      'faas.max_memory': 2_147_483_648,
       'aws.lambda.initialization_type': 'native-http',
     });
   });
+
+  it.each([undefined, '', 'invalid', '0', '-1', 'Infinity'])(
+    'omits invalid memory size %s from spans',
+    async memory => {
+      vi.stubEnv('AWS_LAMBDA_FUNCTION_MEMORY_SIZE', memory);
+      const { awsLambdaWebIntegration } = await import('../../src/integrations/awsLambdaWeb');
+      const integration = awsLambdaWebIntegration();
+      const span = spanToJSON(new SentrySpan({ name: 'startup' }));
+
+      integration.processSegmentSpan!(span, client);
+
+      expect(span.attributes).not.toHaveProperty('faas.max_memory');
+    },
+  );
 
   it('omits unavailable metadata and does not infer function identity', async () => {
     vi.stubEnv('AWS_REGION', undefined);
