@@ -23,7 +23,7 @@ import { ANTHROPIC_AI_ORIGIN } from './constants';
 import type { AnthropicAiOptions } from './types';
 
 type AnyFunction = (...args: unknown[]) => unknown;
-type RunnableTool = { name?: unknown; description?: unknown };
+type RunnableTool = { name: string; description?: unknown };
 type RunContext = { toolUse?: { id?: unknown }; signal?: AbortSignal } | undefined;
 type ToolRunner = { params?: { tools?: unknown } };
 
@@ -62,7 +62,8 @@ function instrumentTools(tools: unknown, options: AnthropicAiOptions): void {
   }
 
   for (const tool of tools) {
-    if (tool && typeof tool === 'object') {
+    // Toolsets are nameless entries whose `run` takes `(ctx, toolUse)`, so only named tools are wrapped.
+    if (tool && typeof tool === 'object' && typeof (tool as RunnableTool).name === 'string') {
       wrapInPlace(tool, 'run', (run, thisArg, args) => runWithSpan(tool as RunnableTool, run, thisArg, args, options));
     }
   }
@@ -95,17 +96,16 @@ function runWithSpan(
 ): unknown {
   const { recordInputs, recordOutputs } = resolveAIRecordingOptions(options);
   const [input, context] = args as [unknown, RunContext];
-  const name = typeof tool.name === 'string' ? tool.name : 'unknown';
   const callId = context?.toolUse?.id;
 
   return startSpan(
     {
-      name: `execute_tool ${name}`,
+      name: `execute_tool ${tool.name}`,
       op: GEN_AI_EXECUTE_TOOL,
       attributes: {
         [SENTRY_ORIGIN]: ANTHROPIC_AI_ORIGIN,
         [GEN_AI_OPERATION_NAME]: 'execute_tool',
-        [GEN_AI_TOOL_NAME]: name,
+        [GEN_AI_TOOL_NAME]: tool.name,
         ...(typeof tool.description === 'string' ? { [GEN_AI_TOOL_DESCRIPTION]: tool.description } : {}),
         ...(typeof callId === 'string' ? { [GEN_AI_TOOL_CALL_ID_ATTRIBUTE]: callId } : {}),
         ...(recordInputs ? { [GEN_AI_TOOL_CALL_ARGUMENTS]: stringify(input) } : {}),
@@ -129,9 +129,9 @@ function handleToolError(span: Span, error: unknown, context: RunContext): void 
 
   span.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
 
-  // The runner turns the throw into an error result for the model, so the app never sees it.
+  // Handled: the runner turns the throw into an error result for the model, so the app never sees it.
   // A `ToolError` is the SDK's way to send that result on purpose.
   if ((error as Error | undefined)?.name !== 'ToolError') {
-    captureException(error, { mechanism: { handled: false, type: ANTHROPIC_AI_ORIGIN } });
+    captureException(error, { mechanism: { handled: true, type: ANTHROPIC_AI_ORIGIN } });
   }
 }

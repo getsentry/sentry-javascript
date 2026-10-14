@@ -147,7 +147,7 @@ describe('instrumentAnthropicAiClient tool runner', () => {
     await vi.waitFor(() => expect(events).toHaveLength(1));
     expect(events[0]!.exception?.values?.[0]).toMatchObject({
       value: 'boom',
-      mechanism: { type: 'auto.ai.anthropic', handled: false },
+      mechanism: { type: 'auto.ai.anthropic', handled: true },
     });
   });
 
@@ -198,6 +198,32 @@ describe('instrumentAnthropicAiClient tool runner', () => {
     weather.run({});
 
     expect(toolSpans()).toHaveLength(1);
+  });
+
+  it('leaves toolsets alone, since their run takes (ctx, toolUse)', async () => {
+    const plainRun = vi.fn(async () => {
+      throw new Error('aborted by user');
+    });
+    const plainToolset = { type: 'browser_toolset_20260801', run: plainRun };
+    class ComputerToolset {
+      public readonly type = 'computer_toolset_20260801';
+      public readonly toolsetName = 'computer';
+      public async run(): Promise<string[]> {
+        return [];
+      }
+    }
+    const classToolset = new ComputerToolset();
+    const classRun = classToolset.run;
+
+    instrumentAnthropicAiClient(fakeClient()).beta.messages.toolRunner({ tools: [plainToolset, classToolset] });
+    const toolUse = { id: 'toolu_1', name: 'navigate', toolset_name: 'browser', input: {} };
+    await expect(plainToolset.run({ toolUse, signal: AbortSignal.abort() }, toolUse)).rejects.toThrow();
+    await classToolset.run();
+
+    expect(plainToolset.run).toBe(plainRun);
+    expect(classToolset.run).toBe(classRun);
+    expect(toolSpans()).toHaveLength(0);
+    expect(events).toHaveLength(0);
   });
 
   it('runs a frozen tool without a span', () => {
