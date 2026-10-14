@@ -13,7 +13,7 @@ runs:
       shell: bash
       env:
         PACKAGE_JSON: ${{ inputs.package-json }}
-      # Keep in sync with `getPnpmMajor` in `dev-packages/e2e-tests/lib/pnpmOverrides.ts`. It writes the overrides in
+      # Keep in sync with `getPnpmMajor` in `dev-packages/e2e-tests/lib/pnpmOverrides.mjs`. It writes the overrides in
       # the format of the version it finds, so a different lookup breaks the install.
       run: |
         package_json="$PACKAGE_JSON"

@@ -1,7 +1,10 @@
-import { readFile, writeFile } from 'fs/promises';
-import * as path from 'path';
-import { getPublishedSentryTarballPackageNames, packedSymlinkFilename } from './packedTarballUtils';
-import { fixFileLinkDependencies } from './copyToTemp';
+// @ts-check
+import { readFile, writeFile } from 'node:fs/promises';
+import * as path from 'node:path';
+import { fixFileLinkDependencies } from './copyToTemp.mjs';
+import { getPackedTarballs, packedSymlinkFilename } from './packedTarballUtils.mjs';
+
+/** @typedef {{ pnpm?: { overrides?: Record<string, string> }; volta?: { extends?: string; pnpm?: string } }} PackageJson */
 
 /**
  * For a given temp test application directory, add pnpm overrides to pin internal Sentry dependencies to their packed tarballs.
@@ -11,18 +14,16 @@ import { fixFileLinkDependencies } from './copyToTemp';
  * package.json. A fixture's existing overrides take precedence in both cases.
  * https://pnpm.io/settings/dependency-resolution#overrides
  *
- * @param tmpDirPath - The temporary directory path of the test application.
- * @param packedDirPath - The path to the packed tarballs.
- * @param packageNames - The names of the internal Sentry packages to pin to the packed tarballs.
+ * @param {string} tmpDirPath - The temporary directory path of the test application.
+ * @param {string} packedDirPath - The path to the packed tarballs.
+ * @returns {Promise<void>}
  */
-export async function addPnpmOverrides(tmpDirPath: string, packedDirPath: string): Promise<void> {
+export async function addPnpmOverrides(tmpDirPath, packedDirPath) {
   const packageJsonPath = path.join(tmpDirPath, 'package.json');
-  const packageJson = JSON.parse(await readFile(packageJsonPath, 'utf8')) as {
-    pnpm?: { overrides?: Record<string, string> };
-    volta?: { extends?: string; pnpm?: string };
-  };
+  /** @type {PackageJson} */
+  const packageJson = JSON.parse(await readFile(packageJsonPath, 'utf8'));
 
-  const packageNames = getPublishedSentryTarballPackageNames();
+  const packageNames = getPackedTarballs().map(({ name }) => name);
   const overrides = Object.fromEntries(
     packageNames.map(packageName => [packageName, `file:${packedDirPath}/${packedSymlinkFilename(packageName)}`]),
   );
@@ -57,11 +58,13 @@ export async function addPnpmOverrides(tmpDirPath: string, packedDirPath: string
   console.log(`Added ${packageNames.length} internal Sentry package overrides`);
 }
 
-// Keep in sync with `.github/actions/install-pnpm`, which installs the version this finds in CI.
-async function getPnpmMajor(
-  packageJsonPath: string,
-  packageJson: { volta?: { extends?: string; pnpm?: string } },
-): Promise<number> {
+/**
+ * Keep in sync with `.github/actions/install-pnpm`, which installs the version this finds in CI.
+ * @param {string} packageJsonPath
+ * @param {PackageJson} packageJson
+ * @returns {Promise<number>}
+ */
+async function getPnpmMajor(packageJsonPath, packageJson) {
   const pnpmVersion = packageJson.volta?.pnpm;
   if (pnpmVersion) {
     const major = /^(?<major>\d+)(?:\.|$)/.exec(pnpmVersion)?.groups?.major;
@@ -75,16 +78,19 @@ async function getPnpmMajor(
   const voltaExtends = packageJson.volta?.extends;
   if (voltaExtends) {
     const extendedPackageJsonPath = path.resolve(path.dirname(packageJsonPath), voltaExtends);
-    const extendedPackageJson = JSON.parse(await readFile(extendedPackageJsonPath, 'utf8')) as {
-      volta?: { extends?: string; pnpm?: string };
-    };
+    /** @type {PackageJson} */
+    const extendedPackageJson = JSON.parse(await readFile(extendedPackageJsonPath, 'utf8'));
     return getPnpmMajor(extendedPackageJsonPath, extendedPackageJson);
   }
 
   throw new Error(`No Volta pnpm version found for ${packageJsonPath}`);
 }
 
-function parseWorkspaceOverrides(workspace: string): Record<string, string> {
+/**
+ * @param {string} workspace
+ * @returns {Record<string, string>}
+ */
+function parseWorkspaceOverrides(workspace) {
   const overrides = /^overrides:\n((?:[ \t]+.*(?:\n|$))*)/m.exec(workspace)?.[1];
   if (!overrides) {
     return {};
@@ -100,16 +106,24 @@ function parseWorkspaceOverrides(workspace: string): Record<string, string> {
           throw new Error(`Unsupported pnpm workspace override: ${line.trim()}`);
         }
 
-        return [JSON.parse(match[1]) as string, JSON.parse(match[2]) as string];
+        return [JSON.parse(match[1]), JSON.parse(match[2])];
       }),
   );
 }
 
-function removeWorkspaceOverrides(workspace: string): string {
+/**
+ * @param {string} workspace
+ * @returns {string}
+ */
+function removeWorkspaceOverrides(workspace) {
   return workspace.replace(/^overrides:\n(?:[ \t]+.*(?:\n|$))*/m, '');
 }
 
-function formatWorkspaceOverrides(overrides: Record<string, string>): string {
+/**
+ * @param {Record<string, string>} overrides
+ * @returns {string}
+ */
+function formatWorkspaceOverrides(overrides) {
   return Object.entries(overrides)
     .map(([packageName, target]) => `  ${JSON.stringify(packageName)}: ${JSON.stringify(target)}`)
     .join('\n');

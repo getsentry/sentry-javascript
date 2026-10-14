@@ -1095,11 +1095,6 @@ jobs:
         uses: denoland/setup-deno@v2.0.5
         with:
           deno-version: ${{ matrix.deno-version || 'v2.8.3' }}
-      - name: Restore caches
-        uses: ./.github/actions/restore-cache
-        with:
-          dependency_cache_key: ${{ needs.job_build.outputs.dependency_cache_key }}
-
       - name: Restore tarball artifacts
         uses: actions/download-artifact@v8
         with:
@@ -1118,6 +1113,13 @@ jobs:
         with:
           name: build-layer-output
           path: ${{ env.BUILD_LAYER_PATH }}
+
+      # The Lambda functions install the built workspace packages directly (see `src/stack.ts`).
+      - name: Restore build artifacts
+        uses: actions/download-artifact@v8
+        if: matrix.test-application == 'aws-serverless'
+        with:
+          name: build-output
 
       # Installs Playwright while the app builds.
       # Started after the artifact downloads: starting next to them made `download-artifact` fail to read the event file.
@@ -1175,7 +1177,7 @@ jobs:
       - name: Pre-process E2E Test Dumps
         if: failure()
         run: |
-          node ./scripts/normalize-e2e-test-dump-transaction-events.js
+          node ./scripts/normalize-e2e-test-dump-transaction-events.js ${{ runner.temp }}/test-application/event-dumps
 
       - name: Upload E2E Test Event Dumps
         uses: actions/upload-artifact@v7
@@ -1248,11 +1250,6 @@ jobs:
         uses: denoland/setup-deno@v2.0.5
         with:
           deno-version: ${{ matrix.deno-version || 'v2.8.3' }}
-      - name: Restore caches
-        uses: ./.github/actions/restore-cache
-        with:
-          dependency_cache_key: ${{ needs.job_build.outputs.dependency_cache_key }}
-
       - name: Restore tarball artifacts
         uses: actions/download-artifact@v8
         with:
@@ -1308,7 +1305,7 @@ jobs:
       - name: Pre-process E2E Test Dumps
         if: failure()
         run: |
-          node ./scripts/normalize-e2e-test-dump-transaction-events.js
+          node ./scripts/normalize-e2e-test-dump-transaction-events.js ${{ runner.temp }}/test-application/event-dumps
 
       - name: Upload E2E Test Event Dumps
         uses: actions/upload-artifact@v7
