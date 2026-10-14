@@ -13,6 +13,7 @@ import {
   getSourcemaps,
   loadMockServerResults,
   startNodeServer,
+  type SourcemapEntry,
 } from '@sentry-internal/test-utils';
 
 const CLIENT_OUTPUT = path.join('.output', 'public');
@@ -81,13 +82,22 @@ const bundles = getArtifactBundles(requests);
 assert.ok(bundles.length > 0, 'Expected at least one artifact bundle with a manifest');
 
 const sourcemaps = getSourcemaps(bundles);
-const containsMarker = (marker: string): boolean =>
-  sourcemaps.some(map => map.sourcemap.sourcesContent?.some(source => source?.includes(marker)));
 
-// Vite builds the client, and Nitro builds the server again from Vite's SSR output. Each side is pinned to a marker
-// only that side's source supplies.
-assert.ok(containsMarker(CLIENT_MARKER), 'Expected an uploaded source map carrying the client source');
-assert.ok(containsMarker(SERVER_MARKER), 'Expected an uploaded source map carrying the server source');
+/** The uploaded source maps of the files in an output directory, matched by debug ID. */
+function sourceMapsOf(outputDir: string): SourcemapEntry[] {
+  const debugIds = new Set(findInjectedDebugIds({ outputDir }));
+  return sourcemaps.filter(map => map.debugId && debugIds.has(map.debugId));
+}
+
+const clientSourceMaps = sourceMapsOf(CLIENT_OUTPUT);
+const serverSourceMaps = sourceMapsOf(SERVER_OUTPUT);
+const containsMarker = (maps: SourcemapEntry[], marker: string): boolean =>
+  maps.some(map => map.sourcemap.sourcesContent?.some(source => source?.includes(marker)));
+
+// Both markers are in the same route file, which client and server source maps embed completely. So each marker only
+// proves the upload of its side if the check only looks at the source maps of that side.
+assert.ok(containsMarker(clientSourceMaps, CLIENT_MARKER), 'Expected a client source map carrying the client source');
+assert.ok(containsMarker(serverSourceMaps, SERVER_MARKER), 'Expected a server source map carrying the server source');
 
 // --- Source paths match the files in the project ---
 
@@ -99,9 +109,7 @@ assert.deepEqual(unresolvedSources, [], 'Expected every uploaded source path to 
 // --- Server source maps reach the original source ---
 
 // Nitro bundles the SSR output again. Its maps must lead through that output to the file the server function is in.
-const serverDebugIds = new Set(findInjectedDebugIds({ outputDir: SERVER_OUTPUT }));
-const serverFunctionSources = sourcemaps
-  .filter(map => map.debugId && serverDebugIds.has(map.debugId))
+const serverFunctionSources = serverSourceMaps
   .filter(map => map.sourcemap.sourcesContent?.some(source => source?.includes(SERVER_MARKER)))
   .flatMap(map => getSourcemapSources(map.sourcemap));
 assert.ok(
