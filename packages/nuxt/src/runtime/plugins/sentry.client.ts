@@ -36,7 +36,7 @@ interface VueRouter {
 
 type VueRouteProviderRouter = ReturnType<Parameters<typeof _INTERNAL_createVueRouteProvider>[0]>;
 
-// Do not report Nuxt errors with a 3xx or 4xx status code
+// 3xx/4xx Nuxt errors are expected control flow (redirects, not-found pages), not bugs. The server skips them too.
 function isIgnoredNuxtError(error: unknown): boolean {
   if (!isNuxtError(error)) {
     return false;

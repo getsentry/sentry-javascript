@@ -12,12 +12,13 @@ vi.mock('../../../src/runtime/utils', () => ({
 
 type Hook = (...args: unknown[]) => void;
 
-async function setupHooks(): Promise<Record<string, Hook>> {
+async function setupHook(hookName: string): Promise<Hook> {
   const { default: plugin } = await import('../../../src/runtime/plugins/sentry.client');
   const hooks: Record<string, Hook> = {};
   const nuxtApp = { hook: (name: string, hook: Hook) => (hooks[name] = hook) };
   await (plugin as unknown as { setup: (app: unknown) => Promise<void> }).setup(nuxtApp);
-  return hooks;
+  expect(hooks).toHaveProperty(hookName);
+  return hooks[hookName]!;
 }
 
 function nuxtError(statusCode: number): Error {
@@ -30,27 +31,27 @@ describe('sentry client plugin error hooks', () => {
   });
 
   it.each(['app:error', 'vue:error'])('does not report 3xx/4xx Nuxt errors from %s', async hookName => {
-    const hooks = await setupHooks();
+    const hook = await setupHook(hookName);
 
-    hooks[hookName]?.(nuxtError(404));
-    hooks[hookName]?.(nuxtError(301));
+    hook(nuxtError(404));
+    hook(nuxtError(301));
 
     expect(reportNuxtError).not.toHaveBeenCalled();
   });
 
   it.each(['app:error', 'vue:error'])('reports 5xx Nuxt errors from %s', async hookName => {
-    const hooks = await setupHooks();
+    const hook = await setupHook(hookName);
 
-    hooks[hookName]?.(nuxtError(503));
+    hook(nuxtError(503));
 
     expect(reportNuxtError).toHaveBeenCalledTimes(1);
   });
 
   it('reports errors that are not Nuxt errors from vue:error', async () => {
-    const hooks = await setupHooks();
+    const hook = await setupHook('vue:error');
     const error = Object.assign(new Error('boom'), { statusCode: 404 });
 
-    hooks['vue:error']?.(error, undefined, 'setup function');
+    hook(error, undefined, 'setup function');
 
     expect(reportNuxtError).toHaveBeenCalledWith({ error, instance: undefined, info: 'setup function' });
   });
