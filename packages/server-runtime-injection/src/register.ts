@@ -1,4 +1,5 @@
 import { consoleSandbox, debug, getClient, GLOBAL_OBJ, parseSemver } from '@sentry/core';
+import { createHash } from 'node:crypto';
 import { existsSync, readFileSync } from 'node:fs';
 import * as Module from 'node:module';
 import { dirname, join } from 'node:path';
@@ -230,14 +231,24 @@ export function registerDiagnosticsChannelInjection(): void {
     if (typeof mod.registerHooks === 'function' && stableSyncHooks) {
       initialize({ instrumentations: SENTRY_RUNTIME_INSTRUMENTATIONS });
       const isNode = !globalAny.Bun && !globalAny.Deno;
-      const filesLoadedByHook = new Set<string>();
+      const filesLoadedByHook = new Map<string, string>();
       const loadHook = globalAny.Deno ? withDenoFormats(load) : load;
       mod.registerHooks({
         resolve,
-        load: (url: string, context: unknown, nextLoad: Function) => {
-          const result = loadHook(url, context, nextLoad) as { format?: string } | undefined;
-          if (isNode && result?.format === 'commonjs') {
-            filesLoadedByHook.add(url);
+        load: (url: string, context: { format?: string }, nextLoad: Function) => {
+          const result = loadHook(url, context, nextLoad) as
+            | { format?: string; source?: string | Uint8Array; shortCircuit?: boolean }
+            | undefined;
+          const format = result?.format ?? context.format;
+          if (
+            isNode &&
+            (format == null || format === 'commonjs') &&
+            result?.shortCircuit === true &&
+            result?.source != null &&
+            url.startsWith('file:')
+          ) {
+            const sourceHash = createHash('sha256').update(result.source).digest('hex');
+            filesLoadedByHook.set(pathToFileURL(fileURLToPath(url)).href, sourceHash);
           }
           return result;
         },
@@ -250,7 +261,12 @@ export function registerDiagnosticsChannelInjection(): void {
         new ModulePatch({ instrumentations: SENTRY_RUNTIME_INSTRUMENTATIONS }).patch();
         const patchedCompile = prototype._compile;
         prototype._compile = function (content, filename, ...args) {
-          const compile = filesLoadedByHook.delete(pathToFileURL(filename).href) ? originalCompile : patchedCompile;
+          const url = pathToFileURL(filename).href;
+          const loadedSourceHash = filesLoadedByHook.get(url);
+          filesLoadedByHook.delete(url);
+          const alreadyTransformed =
+            loadedSourceHash !== undefined && loadedSourceHash === createHash('sha256').update(content).digest('hex');
+          const compile = alreadyTransformed ? originalCompile : patchedCompile;
           return compile.call(this, content, filename, ...args);
         };
       }
