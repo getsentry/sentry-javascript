@@ -87,8 +87,7 @@ function moduleInjectedSnippet(
   // A module with several integrations (e.g. `h3`) passes them all in one call, since the helper
   // treats each call as the module's complete list.
   const args = [JSON.stringify(moduleName), ...exportNames.map(exportName => `() => ${exportName}()`)].join(', ');
-  const calls = `${MODULE_INJECTED_SINK} = orchestrionModuleInjected(${args});`;
-  return `${importStmt}\n${calls}`;
+  return `${importStmt}\n${MODULE_INJECTED_SINK} = orchestrionModuleInjected(${args});`;
 }
 
 /**
