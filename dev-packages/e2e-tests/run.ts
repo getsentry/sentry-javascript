@@ -5,10 +5,10 @@ import { mkdir, mkdtemp, readFile, rm } from 'fs/promises';
 import { sync as globSync } from 'glob';
 import { tmpdir } from 'os';
 import { delimiter, dirname, join, resolve } from 'path';
-import { copyToTemp } from './lib/copyToTemp';
-import { applyRuntimeFiles } from './lib/runtimeFiles';
-import { syncPackedTarballSymlinks } from './lib/syncPackedTarballSymlinks';
-import { addPnpmOverrides } from './lib/pnpmOverrides';
+import { copyToTemp } from './lib/copyToTemp.mjs';
+import { applyRuntimeFiles } from './lib/runtimeFiles.mjs';
+import { syncPackedTarballSymlinks } from './lib/syncPackedTarballSymlinks.mjs';
+import { addPnpmOverrides } from './lib/pnpmOverrides.mjs';
 
 interface SentryTestVariant {
   'build-command': string;
