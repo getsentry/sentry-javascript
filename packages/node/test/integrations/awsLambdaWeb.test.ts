@@ -1,3 +1,12 @@
+import {
+  CLOUD_ACCOUNT_ID,
+  CLOUD_PLATFORM,
+  CLOUD_PROVIDER,
+  CLOUD_REGION,
+  FAAS_COLDSTART,
+  FAAS_INVOCATION_ID,
+  SENTRY_ORIGIN,
+} from '@sentry/conventions/attributes';
 import type { Integration } from '@sentry/core';
 import {
   getCurrentScope,
@@ -55,7 +64,7 @@ describe('awsLambdaWebIntegration', () => {
     disabled.processSegmentSpan!(span, client);
 
     expect(disabled.processEvent!({}, {}, client)).toEqual({});
-    expect(span.attributes).toEqual({ 'sentry.origin': 'manual' });
+    expect(span.attributes).toEqual({ [SENTRY_ORIGIN]: 'manual' });
   });
 
   it('keeps request context isolated and assigns cold start before tracing or sampling', async () => {
@@ -103,16 +112,16 @@ describe('awsLambdaWebIntegration', () => {
 
   it('preserves request and user context while adding environment metadata', () => {
     const event = {
-      contexts: { 'aws.lambda': { aws_request_id: 'request' }, cloud_resource: { 'cloud.region': 'custom' } },
+      contexts: { 'aws.lambda': { aws_request_id: 'request' }, cloud_resource: { [CLOUD_REGION]: 'custom' } },
     };
     expect(integration.processEvent!(event, {}, client)).toEqual({
       contexts: {
         'aws.lambda': { aws_request_id: 'request', memory_size: 2_147_483_648, initialization_type: 'native-http' },
         cloud_resource: {
-          'cloud.provider': 'aws',
-          'cloud.platform': 'aws_lambda',
-          'cloud.region': 'custom',
-          'cloud.account.id': '123456789012',
+          [CLOUD_PROVIDER]: 'aws',
+          [CLOUD_PLATFORM]: 'aws_lambda',
+          [CLOUD_REGION]: 'custom',
+          [CLOUD_ACCOUNT_ID]: '123456789012',
         },
       },
     });
@@ -153,19 +162,19 @@ describe('awsLambdaWebIntegration', () => {
       client.emit('httpServerRequest', {}, {}, { headers: { 'lambda-web-request-id': 'request' } });
       const span = new SentrySpan({
         name: 'request',
-        attributes: { 'cloud.region': 'custom-region', 'faas.coldstart': false, 'faas.max_memory': 0 },
+        attributes: { [CLOUD_REGION]: 'custom-region', [FAAS_COLDSTART]: false, 'faas.max_memory': 0 },
       });
       const spanJSON = spanToJSON(span);
       integration.processSegmentSpan!(spanJSON, client);
 
       expect(spanJSON.attributes).toEqual({
-        'sentry.origin': 'manual',
-        'cloud.region': 'custom-region',
-        'cloud.provider': 'aws',
-        'cloud.platform': 'aws_lambda',
-        'cloud.account.id': '123456789012',
-        'faas.coldstart': false,
-        'faas.invocation_id': 'request',
+        [SENTRY_ORIGIN]: 'manual',
+        [CLOUD_REGION]: 'custom-region',
+        [CLOUD_PROVIDER]: 'aws',
+        [CLOUD_PLATFORM]: 'aws_lambda',
+        [CLOUD_ACCOUNT_ID]: '123456789012',
+        [FAAS_COLDSTART]: false,
+        [FAAS_INVOCATION_ID]: 'request',
         'faas.max_memory': 0,
         'aws.lambda.initialization_type': 'native-http',
       });
@@ -183,8 +192,8 @@ describe('awsLambdaWebIntegration', () => {
       integration.processSegmentSpan!(spanJSON, client);
 
       expect(scope.getScopeData().contexts['aws.lambda']).toEqual({ revision_id: 'rev-current', cold_start: true });
-      expect(spanJSON.attributes).not.toHaveProperty('faas.invocation_id');
-      expect(spanJSON.attributes).not.toHaveProperty('aws.lambda.web.endpoint_name');
+      expect(spanJSON.attributes).not.toHaveProperty([FAAS_INVOCATION_ID]);
+      expect(spanJSON.attributes).not.toHaveProperty(['aws.lambda.web.endpoint_name']);
     });
   });
 
@@ -194,7 +203,7 @@ describe('awsLambdaWebIntegration', () => {
     client.addIntegration(spanStreamingIntegration());
     const captured = vi.fn();
     client.on('processSpan', span => {
-      captured(span.is_segment, span.attributes['faas.invocation_id'], span.attributes['cloud.platform']);
+      captured(span.is_segment, span.attributes[FAAS_INVOCATION_ID], span.attributes[CLOUD_PLATFORM]);
     });
 
     withIsolationScope(() => {
@@ -211,16 +220,16 @@ describe('awsLambdaWebIntegration', () => {
   });
 
   it('adds static metadata to segment spans outside requests without overwriting attributes', () => {
-    const span = spanToJSON(new SentrySpan({ name: 'startup', attributes: { 'cloud.region': 'custom-region' } }));
+    const span = spanToJSON(new SentrySpan({ name: 'startup', attributes: { [CLOUD_REGION]: 'custom-region' } }));
 
     integration.processSegmentSpan!(span, client);
 
     expect(span.attributes).toEqual({
-      'sentry.origin': 'manual',
-      'cloud.region': 'custom-region',
-      'cloud.provider': 'aws',
-      'cloud.platform': 'aws_lambda',
-      'cloud.account.id': '123456789012',
+      [SENTRY_ORIGIN]: 'manual',
+      [CLOUD_REGION]: 'custom-region',
+      [CLOUD_PROVIDER]: 'aws',
+      [CLOUD_PLATFORM]: 'aws_lambda',
+      [CLOUD_ACCOUNT_ID]: '123456789012',
       'faas.max_memory': 2_147_483_648,
       'aws.lambda.initialization_type': 'native-http',
     });
@@ -238,7 +247,7 @@ describe('awsLambdaWebIntegration', () => {
       integration.processSegmentSpan!(span, client);
       integration.processEvent!(event, {}, client);
 
-      expect(span.attributes).not.toHaveProperty('faas.max_memory');
+      expect(span.attributes).not.toHaveProperty(['faas.max_memory']);
       expect(event.contexts['aws.lambda']).toHaveProperty('memory_size', undefined);
     },
   );
@@ -257,7 +266,7 @@ describe('awsLambdaWebIntegration', () => {
     });
     expect(minimal.processEvent!({}, {}, client)).toEqual({
       contexts: {
-        cloud_resource: { 'cloud.provider': 'aws', 'cloud.platform': 'aws_lambda' },
+        cloud_resource: { [CLOUD_PROVIDER]: 'aws', [CLOUD_PLATFORM]: 'aws_lambda' },
         'aws.lambda': {},
       },
     });
