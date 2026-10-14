@@ -478,6 +478,45 @@ describe('instrumentScheduled', () => {
       expect(sentItemTypes.filter(type => type === 'check_in')).toHaveLength(2);
     });
 
+    test('holds the check-ins of withMonitor for the flush at the end of the invocation', async () => {
+      // The runtime cancels a send that is not registered with `waitUntil` once the event ends.
+      // `withMonitor` forks the isolation scope, so its check-ins must still ride the boundary flush.
+      const sentItemTypes: string[] = [];
+      const transportFlush = vi.fn(async () => true);
+      let flushesInHandler = -1;
+      const wrappedHandler = withSentry(
+        env => ({
+          dsn: env.SENTRY_DSN,
+          transport: () => ({
+            send: async envelope => {
+              sentItemTypes.push(...envelope[1].map(([itemHeader]) => itemHeader.type));
+              return {};
+            },
+            flush: transportFlush,
+          }),
+        }),
+        {
+          async scheduled() {
+            await SentryCore.withMonitor('foo', async () => {
+              await new Promise(resolve => setTimeout(resolve, 1));
+            });
+            flushesInHandler = transportFlush.mock.calls.length;
+          },
+        } satisfies ExportedHandler<typeof MOCK_ENV>,
+      );
+
+      const waits: Promise<unknown>[] = [];
+      await wrappedHandler.scheduled?.(controllerFor('30 9 * * 1-5'), MOCK_ENV, {
+        waitUntil: vi.fn(promise => waits.push(promise)),
+        passThroughOnException: vi.fn(),
+      } as unknown as ExecutionContext);
+      await Promise.all(waits);
+
+      expect(sentItemTypes.filter(type => type === 'check_in')).toHaveLength(2);
+      expect(flushesInHandler).toBe(0);
+      expect(transportFlush).toHaveBeenCalledTimes(1);
+    });
+
     test('drains the transport for the in_progress check-in while the handler runs', async () => {
       const transportFlush = vi.fn(async () => true);
       let finishHandler: () => void = () => undefined;

@@ -16,8 +16,9 @@ import { getOriginalWaitUntil } from '../flush';
  *
  * The state rides on the invocation's forked isolation scope, which the async
  * context strategy (AsyncLocalStorage) hands back for exactly the async context that
- * owns the invocation — including detached continuations created inside it. A symbol
- * key keeps it off `Scope.clone()` and out of serialized event data.
+ * owns the invocation — including detached continuations created inside it. It lives in
+ * the scope's `refs`, so isolation scopes forked inside the invocation (`withMonitor`,
+ * `withIsolationScope`) share it, and it stays out of serialized event data.
  */
 export interface InvocationState {
   /**
@@ -40,7 +41,7 @@ export interface InvocationState {
   waitUntil?: ExecutionContext['waitUntil'] | null;
 }
 
-const INVOCATION_STATE: unique symbol = Symbol('sentryInvocationState');
+const SCOPE_INVOCATION_FIELD = 'invocationState';
 
 /**
  * Returns the invocation's original (un-instrumented) `waitUntil`, bound to its context,
@@ -63,10 +64,6 @@ export function getInvocationWaitUntil(state: InvocationState): ExecutionContext
   return state.waitUntil ?? undefined;
 }
 
-type ScopeWithInvocationState = Scope & {
-  [INVOCATION_STATE]?: InvocationState;
-};
-
 /**
  * Attaches invocation state to a forked isolation scope. Only meaningful on a scope
  * that outlives nothing but this invocation — never attach to the default isolation
@@ -81,7 +78,7 @@ export function setInvocationState(scope: Scope, state: InvocationState): void {
     return;
   }
 
-  (scope as ScopeWithInvocationState)[INVOCATION_STATE] = state;
+  scope.refs[SCOPE_INVOCATION_FIELD] = state;
 }
 
 /**
@@ -91,9 +88,9 @@ export function setInvocationState(scope: Scope, state: InvocationState): void {
  * is never attached there in the first place).
  */
 export function getInvocationState(): InvocationState | undefined {
-  const isolationScope = getIsolationScope() as ScopeWithInvocationState;
+  const isolationScope = getIsolationScope();
   if (isolationScope === getDefaultIsolationScope()) {
     return undefined;
   }
-  return isolationScope[INVOCATION_STATE];
+  return isolationScope.refs[SCOPE_INVOCATION_FIELD] as InvocationState | undefined;
 }
