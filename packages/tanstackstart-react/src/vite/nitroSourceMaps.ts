@@ -22,6 +22,7 @@ type Nitro = {
     sourcemap: unknown;
     experimental: { sourcemapMinify?: false };
     // c12 keeps each config source that Nitro merged: the `nitro()` options, `nitro.config.ts`, presets and more.
+    // It is internal until Nitro exposes the layers: https://github.com/nitrojs/nitro/issues/4771
     _c12?: { layers?: { config?: NitroSourceMapConfig | null }[] };
   };
 };
