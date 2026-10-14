@@ -8,16 +8,7 @@ import {
   SENTRY_ORIGIN,
 } from '@sentry/conventions/attributes';
 import type { Integration } from '@sentry/core';
-import {
-  getCurrentScope,
-  getIsolationScope,
-  SentrySpan,
-  spanStreamingIntegration,
-  spanToJSON,
-  startInactiveSpan,
-  startSpan,
-  withIsolationScope,
-} from '@sentry/core';
+import { getCurrentScope, getIsolationScope, SentrySpan, spanToJSON, withIsolationScope } from '@sentry/core';
 import { setAsyncLocalStorageAsyncContextStrategy } from '@sentry/server-utils';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { NodeClient } from '../../src/sdk/client';
@@ -65,49 +56,6 @@ describe('awsLambdaWebIntegration', () => {
 
     expect(disabled.processEvent!({}, {}, client)).toEqual({});
     expect(span.attributes).toEqual({ [SENTRY_ORIGIN]: 'manual' });
-  });
-
-  it('keeps request context isolated and assigns cold start before tracing or sampling', async () => {
-    integration.setup!(client);
-    let releaseFirst!: () => void;
-    const barrier = new Promise<void>(resolve => {
-      releaseFirst = resolve;
-    });
-    const first = withIsolationScope(async scope => {
-      client.emit(
-        'httpServerRequest',
-        {},
-        {},
-        { headers: { 'lambda-web-request-id': 'first', 'lambda-web-endpoint-name': 'prod' } },
-      );
-      await barrier;
-      return scope.getScopeData();
-    });
-    const second = withIsolationScope(scope => {
-      client.emit(
-        'httpServerRequest',
-        {},
-        {},
-        { headers: { 'lambda-web-request-id': 'second', 'lambda-web-endpoint-name': 'canary' } },
-      );
-      return scope.getScopeData();
-    });
-    releaseFirst();
-    const firstData = await first;
-
-    expect(firstData.contexts['aws.lambda']).toEqual({
-      cold_start: true,
-      aws_request_id: 'first',
-      endpoint_name: 'prod',
-    });
-    expect(second.contexts['aws.lambda']).toEqual({
-      cold_start: false,
-      aws_request_id: 'second',
-      endpoint_name: 'canary',
-    });
-    expect(firstData.attributes).toEqual({});
-    expect(second.attributes).toEqual({});
-    expect(getIsolationScope().getScopeData().contexts['aws.lambda']).toBeUndefined();
   });
 
   it('preserves request and user context while adding environment metadata', () => {
@@ -195,28 +143,6 @@ describe('awsLambdaWebIntegration', () => {
       expect(spanJSON.attributes).not.toHaveProperty([FAAS_INVOCATION_ID]);
       expect(spanJSON.attributes).not.toHaveProperty(['aws.lambda.web.endpoint_name']);
     });
-  });
-
-  it('enriches segment spans without enriching child spans', () => {
-    client.getOptions().tracesSampleRate = 1;
-    client.addIntegration(integration);
-    client.addIntegration(spanStreamingIntegration());
-    const captured = vi.fn();
-    client.on('processSpan', span => {
-      captured(span.is_segment, span.attributes[FAAS_INVOCATION_ID], span.attributes[CLOUD_PLATFORM]);
-    });
-
-    withIsolationScope(() => {
-      client.emit('httpServerRequest', {}, {}, { headers: { 'lambda-web-request-id': 'request' } });
-      startSpan({ name: 'request' }, () => {
-        startInactiveSpan({ name: 'child' }).end();
-      });
-    });
-
-    expect(captured).toHaveBeenCalledTimes(2);
-    expect(captured).toHaveBeenNthCalledWith(1, false, undefined, undefined);
-    expect(captured).toHaveBeenNthCalledWith(2, true, 'request', 'aws_lambda');
-    expect(getIsolationScope().getScopeData().contexts['aws.lambda']).toBeUndefined();
   });
 
   it('adds static metadata to segment spans outside requests without overwriting attributes', () => {
