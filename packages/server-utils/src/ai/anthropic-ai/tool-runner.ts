@@ -24,7 +24,7 @@ import type { AnthropicAiOptions } from './types';
 
 type AnyFunction = (...args: unknown[]) => unknown;
 type RunnableTool = { name: string; description?: unknown };
-type RunContext = { toolUse?: { id?: unknown }; signal?: AbortSignal } | undefined;
+type RunContext = { toolUse?: { id?: unknown }; toolUseBlock?: { id?: unknown }; signal?: AbortSignal } | undefined;
 type ToolRunner = { params?: { tools?: unknown } };
 
 /** Wrap `beta.messages.toolRunner()` so the runners it returns trace their tool calls. */
@@ -96,7 +96,8 @@ function runWithSpan(
 ): unknown {
   const { recordInputs, recordOutputs } = resolveAIRecordingOptions(options);
   const [input, context] = args as [unknown, RunContext];
-  const callId = context?.toolUse?.id;
+  // SDK versions before `toolUse` existed pass only `toolUseBlock`.
+  const callId = (context?.toolUse ?? context?.toolUseBlock)?.id;
 
   return startSpan(
     {

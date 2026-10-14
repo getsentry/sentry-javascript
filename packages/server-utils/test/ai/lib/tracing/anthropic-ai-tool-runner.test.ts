@@ -108,6 +108,15 @@ describe('instrumentAnthropicAiClient tool runner', () => {
     ]);
   });
 
+  it('reads the call id from toolUseBlock on SDKs that pass only that', () => {
+    const weather = tool('weather', () => 'sunny');
+
+    instrumentAnthropicAiClient(fakeClient()).beta.messages.toolRunner({ tools: [weather] });
+    weather.run({}, { toolUseBlock: { id: 'toolu_old' } });
+
+    expect(toolSpans()[0]!.data[GEN_AI_TOOL_CALL_ID_ATTRIBUTE]).toBe('toolu_old');
+  });
+
   it('leaves out the attributes a call does not have', () => {
     const bare = { name: 'bare', input_schema: {}, run: () => undefined };
 
