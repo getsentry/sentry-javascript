@@ -529,10 +529,13 @@ function wrapSpecifierExports(node: ExportNamedNode, ctx: TransformContext, stat
 }
 
 /**
- * `export { handler as default }`, the form bundlers emit for a default export. The wrapper is
- * declared right after `handler`, so the default export is set as soon as `handler` is. It is a
- * `var`: a circular import that reads the default export earlier gets `undefined`, as it would
- * from the bundler's own `var`, where a `const` would throw and stop the Worker from starting.
+ * `export { handler as default }`, the form bundlers emit for a default export. The export is set
+ * in two steps. Right after `handler` is declared, it is bound to `handler` as-is, so a circular
+ * import that reads it during module evaluation gets the handler, as before the transform. At the
+ * end of the module, it is rebound to the wrapper, so a handler assigned or given methods later is
+ * wrapped as it ends up. The binding is a `var`: a read before `handler` is declared gets
+ * `undefined`, as it would from the bundler's own `var`, where a `const` would throw and stop the
+ * Worker from starting.
  */
 function wrapDefaultSpecifier(localName: string, state: TransformState): string | undefined {
   if (state.manuallyWrappedLocals.has(localName)) return undefined;
@@ -544,13 +547,13 @@ function wrapDefaultSpecifier(localName: string, state: TransformState): string 
     return `${wrappedName} as default`;
   }
 
-  const wrapper = `var __SENTRY_DEFAULT_EXPORT__ = __SENTRY__.withSentry(${state.optionsFn}, ${localName});`;
   const declaringStatement = state.declaringStatements.get(localName);
   if (declaringStatement) {
-    state.ms.appendLeft(declaringStatement.end, `\n${wrapper}`);
-  } else {
-    state.ms.append(`\n${wrapper}\n`);
+    state.ms.appendLeft(declaringStatement.end, `\nvar __SENTRY_DEFAULT_EXPORT__ = ${localName};`);
   }
+  state.ms.append(
+    `\n${declaringStatement ? '' : 'var '}__SENTRY_DEFAULT_EXPORT__ = __SENTRY__.withSentry(${state.optionsFn}, ${localName});`,
+  );
   state.needsImport = true;
   state.autoWrapped.add(DEFAULT_EXPORT);
   return '__SENTRY_DEFAULT_EXPORT__ as default';
