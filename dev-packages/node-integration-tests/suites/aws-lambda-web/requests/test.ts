@@ -1,14 +1,24 @@
+import {
+  CLOUD_ACCOUNT_ID,
+  CLOUD_PLATFORM,
+  CLOUD_PROVIDER,
+  CLOUD_REGION,
+  FAAS_COLDSTART,
+  FAAS_INVOCATION_ID,
+  SENTRY_OP,
+} from '@sentry/conventions/attributes';
 import { expect, vi } from 'vitest';
 import { createEsmAndCjsTests } from '../../../utils/runner';
 
 createEsmAndCjsTests(__dirname, 'scenario.mjs', 'instrument.mjs', (createRunner, test) => {
-  test('isolates concurrent requests and leaves logs and metrics unenriched, with and without tracing', async () => {
-    for (const { tracing, frameworkRoot } of [
-      { tracing: true, frameworkRoot: '' },
-      { tracing: false, frameworkRoot: '' },
-      { tracing: true, frameworkRoot: 'forked-scope' },
-      { tracing: true, frameworkRoot: 'late-op' },
-    ]) {
+  test.each([
+    { name: 'default tracing', tracing: true, frameworkRoot: '' },
+    { name: 'tracing disabled', tracing: false, frameworkRoot: '' },
+    { name: 'forked isolation scope', tracing: true, frameworkRoot: 'forked-scope' },
+    { name: 'span operation assigned at span end', tracing: true, frameworkRoot: 'late-op' },
+  ])(
+    '$name: isolates concurrent requests and leaves logs and metrics unenriched',
+    async ({ tracing, frameworkRoot }) => {
       const runner = createRunner()
         .withEnv({
           AWS_LAMBDA_HTTP_ENDPOINT: '0.0.0.0:3000',
@@ -28,10 +38,10 @@ createEsmAndCjsTests(__dirname, 'scenario.mjs', 'instrument.mjs', (createRunner,
             exception: { values: [expect.objectContaining({ value: request })] },
             contexts: {
               cloud_resource: {
-                'cloud.provider': 'aws',
-                'cloud.platform': 'aws_lambda',
-                'cloud.region': 'us-east-1',
-                'cloud.account.id': '123456789012',
+                [CLOUD_PROVIDER]: 'aws',
+                [CLOUD_PLATFORM]: 'aws_lambda',
+                [CLOUD_REGION]: 'us-east-1',
+                [CLOUD_ACCOUNT_ID]: '123456789012',
               },
               'aws.lambda': {
                 memory_size: 2_147_483_648,
@@ -47,7 +57,7 @@ createEsmAndCjsTests(__dirname, 'scenario.mjs', 'instrument.mjs', (createRunner,
           spans.push({
             request,
             collected: runner.collectStreamedSpansUntilSegment(
-              span => span.attributes['faas.invocation_id']?.value === request,
+              span => span.attributes[FAAS_INVOCATION_ID]?.value === request,
             ),
           });
         }
@@ -79,16 +89,16 @@ createEsmAndCjsTests(__dirname, 'scenario.mjs', 'instrument.mjs', (createRunner,
         expect(items.find(item => item.is_segment)).toMatchObject({
           name: 'GET /:request',
           attributes: {
-            'sentry.op': { type: 'string', value: 'http.server' },
-            'cloud.platform': { type: 'string', value: 'aws_lambda' },
-            'cloud.region': { type: 'string', value: 'us-east-1' },
+            [SENTRY_OP]: { type: 'string', value: 'http.server' },
+            [CLOUD_PLATFORM]: { type: 'string', value: 'aws_lambda' },
+            [CLOUD_REGION]: { type: 'string', value: 'us-east-1' },
             'faas.max_memory': { type: 'integer', value: 2_147_483_648 },
-            'faas.coldstart': { type: 'boolean', value: request === 'first' },
-            'faas.invocation_id': { type: 'string', value: request },
+            [FAAS_COLDSTART]: { type: 'boolean', value: request === 'first' },
+            [FAAS_INVOCATION_ID]: { type: 'string', value: request },
             'aws.lambda.web.endpoint_name': { type: 'string', value: `${request}-endpoint` },
           },
         });
       }
-    }
-  });
+    },
+  );
 });
