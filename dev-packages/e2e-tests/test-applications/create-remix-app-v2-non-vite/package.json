@@ -7,8 +7,8 @@
     "start": "NODE_OPTIONS='--import=./instrument.server.cjs' remix-serve build/index.js",
     "typecheck": "tsc",
     "clean": "npx rimraf node_modules pnpm-lock.yaml",
-    "test:build": "pnpm install && npx playwright install && pnpm build",
-    "test:assert": "pnpm playwright test"
+    "test:build": "pnpm install && pnpm build",
+    "test:assert": "playwright install chromium && pnpm playwright test"
   },
   "dependencies": {
     "@sentry/remix": "file:../../packed/sentry-remix-packed.tgz",

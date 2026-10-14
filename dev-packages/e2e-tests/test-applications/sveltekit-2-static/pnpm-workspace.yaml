@@ -2,3 +2,5 @@ allowBuilds:
   esbuild: true
   svelte-preprocess: false
 minimumReleaseAge: 0
+overrides:
+  'rollup': '4.64.5'
