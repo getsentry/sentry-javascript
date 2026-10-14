@@ -11,7 +11,8 @@ export * from '@sentry/react';
 
 export { captureRemixErrorBoundaryError } from '../client/errors';
 export { withSentry } from '../client/performance';
-export { ErrorBoundary, browserTracingIntegration } from '../client';
+export { browserTracingIntegration } from '../client';
+export { ErrorBoundary } from '@sentry/react';
 export { makeWrappedCreateRequestHandler, sentryHandleError };
 export { generateSentryServerTimingHeader } from '../server/serverTimingTracePropagation';
 
