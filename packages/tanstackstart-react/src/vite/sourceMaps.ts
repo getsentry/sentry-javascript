@@ -5,16 +5,10 @@ import type { SentryTanstackStartOptions } from './sentryTanstackStart';
 
 type FilesToDeleteAfterUpload = string | string[] | undefined;
 
-/**
- * Tells the plugin that deletes source maps after the upload whether the source maps of an environment are only
- * there because Sentry enabled them.
- */
-type SourceMapsEnablerApi = { hasSentryEnabledSourceMaps(environmentName: string): boolean };
-
 /** TanStack Router and Start split route files into virtual modules, e.g. `index.tsx?tss-serverfn-split`. */
 const TANSTACK_SPLIT_QUERY_REGEX = /\?ts[rs]-[^/]*$/;
 
-/** Sources such as `virtual:#nitro/runtime` are no file paths. Two letters at least, so `C:` stays a drive letter. */
+/** Sources such as `virtual:#nitro/runtime` are no file paths. Two letters at least, so drive letters, like `C:`, are not matched by the regex. */
 const SCHEME_REGEX = /^[a-z][a-z\d+.-]+:/i;
 
 /**
@@ -35,6 +29,12 @@ export function rewriteTanstackStartSource(source: string, _map: unknown, contex
   const absolutePath = path.resolve(context?.mapDir ?? process.cwd(), sourcePath);
   return path.relative(process.cwd(), absolutePath).split(path.sep).join('/');
 }
+
+/**
+ * Tells the plugin that deletes source maps after the upload whether the source maps of an environment are only
+ * there because Sentry enabled them.
+ */
+type SourceMapsEnablerApi = { hasSentryEnabledSourceMaps(environmentName: string): boolean };
 
 /**
  * A Sentry plugin for adding the @sentry/bundler-plugins/vite to automatically upload source maps to Sentry.

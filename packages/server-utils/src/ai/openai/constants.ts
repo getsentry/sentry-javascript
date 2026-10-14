@@ -12,6 +12,8 @@ export const OPENAI_METHOD_REGISTRY = {
   // Conversations API - for conversation state management
   // https://platform.openai.com/docs/guides/conversation-state
   'conversations.create': { operation: 'chat' },
+  // https://developers.openai.com/api/docs/guides/decisions
+  'decisions.create': { operation: 'decide' },
 } as const satisfies InstrumentedMethodRegistry;
 export const RESPONSES_TOOL_CALL_EVENT_TYPES = [
   'response.output_item.added',
