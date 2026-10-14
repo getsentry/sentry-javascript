@@ -119,7 +119,7 @@ test('records a text decision with its state, questions and answers', async ({ b
   ]);
 });
 
-test('records an image decision by media type only', async ({ baseURL }) => {
+test('records an image decision with its image data', async ({ baseURL }) => {
   const response = await fetch(`${baseURL}/decide-image`);
   const body = await response.json();
   expect(response.status, JSON.stringify(body)).toBe(200);
@@ -145,7 +145,7 @@ test('records an image decision by media type only', async ({ baseURL }) => {
           role: 'user',
           content: [
             { type: 'input_text', text: 'Is this image mostly red?' },
-            { type: 'input_image', mime_type: 'image/png' },
+            { type: 'input_image', image_url: expect.stringMatching(/^data:image\/png;base64,/) },
           ],
         },
       ],
