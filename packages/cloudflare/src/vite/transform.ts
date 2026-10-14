@@ -504,6 +504,26 @@ function wrapSpecifierExports(node: ExportNamedNode, ctx: TransformContext, stat
 }
 
 /**
+ * `export { handler as default }`, the form bundlers emit for a default export. The wrapper is
+ * declared at the end of the module, where `handler` is sure to be initialized.
+ */
+function wrapDefaultSpecifier(localName: string, state: TransformState): string | undefined {
+  if (state.manuallyWrappedLocals.has(localName)) return undefined;
+
+  // Same as `export default Foo`: re-point at the wrapper a named export already made.
+  const wrappedName = state.wrappedLocals.get(localName);
+  if (wrappedName) {
+    state.autoWrapped.add(DEFAULT_EXPORT);
+    return `${wrappedName} as default`;
+  }
+
+  state.ms.append(`\nconst __SENTRY_DEFAULT_EXPORT__ = __SENTRY__.withSentry(${state.optionsFn}, ${localName});\n`);
+  state.needsImport = true;
+  state.autoWrapped.add(DEFAULT_EXPORT);
+  return '__SENTRY_DEFAULT_EXPORT__ as default';
+}
+
+/**
  * Handle one export specifier, returning the `Wrapped as Exported` pair to emit for a class that
  * gets wrapped. The import/wrapper statements a cross-module pair depends on are pushed onto
  * `prelude`; a local class's wrapper binding is emitted after its declaration instead.
@@ -528,7 +548,10 @@ function wrapSpecifier(
     ? resolveWrapperKind(exportedName, sourceLiteral ? undefined : localName, state)
     : undefined;
 
-  if (!exportedName || !localName || !kind) return undefined;
+  if (!exportedName || !localName) return undefined;
+  if (!kind) {
+    return exportedName === DEFAULT_IMPORT && !sourceLiteral ? wrapDefaultSpecifier(localName, state) : undefined;
+  }
 
   // Without a `from` clause the specifier points at a module-local binding.
   if (!sourceLiteral) {

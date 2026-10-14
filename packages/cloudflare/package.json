@@ -61,10 +61,14 @@
   },
   "peerDependencies": {
     "@cloudflare/workers-types": "^4.x || ^5.x",
+    "vite": "^6.1.0 || ^7.0.0 || ^8.0.0",
     "wrangler": "^4.x"
   },
   "peerDependenciesMeta": {
     "@cloudflare/workers-types": {
+      "optional": true
+    },
+    "vite": {
       "optional": true
     },
     "wrangler": {

@@ -75,6 +75,49 @@ describe('default export wrapping', () => {
     expect(result.code).toContain('__SENTRY__.withSentry(');
   });
 
+  it('wraps a local binding exported as default by a specifier', () => {
+    const code = ['var server_default = { fetch: handle };', 'export { server_default as default };'].join('\n');
+
+    expect(transform(code, ctx)!.code).toBe(
+      [
+        "import * as __SENTRY__ from '@sentry/cloudflare';",
+        'var server_default = { fetch: handle };',
+        'export { __SENTRY_DEFAULT_EXPORT__ as default };',
+        'const __SENTRY_DEFAULT_EXPORT__ = __SENTRY__.withSentry((env) => ({}), server_default);',
+        '',
+      ].join('\n'),
+    );
+  });
+
+  it('leaves sibling specifiers of a default specifier export untouched', () => {
+    const code = [
+      'const helper = 1;',
+      'const handler = { fetch() {} };',
+      'export { helper, handler as default };',
+    ].join('\n');
+
+    expect(transform(code, ctx)!.code).toBe(
+      [
+        "import * as __SENTRY__ from '@sentry/cloudflare';",
+        'const helper = 1;',
+        'const handler = { fetch() {} };',
+        'export { __SENTRY_DEFAULT_EXPORT__ as default };',
+        'export { helper };',
+        'const __SENTRY_DEFAULT_EXPORT__ = __SENTRY__.withSentry((env) => ({}), handler);',
+        '',
+      ].join('\n'),
+    );
+  });
+
+  it('skips a hand-wrapped local exported as default by a specifier', () => {
+    const code = [
+      "import { withSentry } from '@sentry/cloudflare';",
+      'const handler = withSentry((env) => ({}), { fetch() {} });',
+      'export { handler as default };',
+    ].join('\n');
+    expect(transform(code, ctx)).toBeUndefined();
+  });
+
   it('uses custom options callback', () => {
     const custom: TransformContext = {
       classWrappers: doWrappers(),
