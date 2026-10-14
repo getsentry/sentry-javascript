@@ -33,5 +33,5 @@ export async function proxy(request: NextRequest) {
 
 // See "Matching Paths" below to learn more
 export const config = {
-  matcher: ['/api/endpoint-behind-middleware', '/api/endpoint-behind-faulty-middleware'],
+  matcher: ['/api/endpoint-behind-middleware', '/api/endpoint-behind-faulty-middleware', '/page-behind-proxy'],
 };

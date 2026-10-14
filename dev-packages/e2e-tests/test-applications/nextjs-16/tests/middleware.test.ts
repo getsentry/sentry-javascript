@@ -48,6 +48,31 @@ test('Should create a span for middleware', async ({ request }) => {
   expect(routeSpan.attributes['isolation_scope.has_proxy_marker']).toEqual({ value: false, type: 'boolean' });
 });
 
+for (const path of ['/api/endpoint-behind-middleware', '/page-behind-proxy']) {
+  test(`Should create one http.server segment for a request to ${path} behind the proxy`, async ({ request }) => {
+    test.skip(getRuntime() === 'cloudflare', 'On Workers the middleware span is a child of the request span');
+
+    // Next.js runs the proxy in a `BaseServer.handleRequest` span of its own, before the one that renders the route.
+    // That first span has neither a route nor the middleware span as a child, so it must not become a second
+    // `http.server` segment.
+    const spansPromise = collectStreamedSpans(
+      'nextjs-16',
+      spans =>
+        spans.some(span => span.is_segment && span.name === 'middleware GET') &&
+        spans.some(span => span.is_segment && span.name === `GET ${path}`),
+    );
+
+    const response = await request.get(path);
+    expect(response.status()).toBe(200);
+
+    const segmentSpans = (await spansPromise).filter(span => span.is_segment);
+    expect(segmentSpans.map(span => span.name).sort()).toEqual([`GET ${path}`, 'middleware GET']);
+    expect(segmentSpans.filter(span => getSpanOp(span) === 'http.server').map(span => span.name)).toEqual([
+      `GET ${path}`,
+    ]);
+  });
+}
+
 // `withSentry` from `@sentry/nextjs/cloudflare` wraps the Worker entry, so middleware runs inside the request's
 // `http.server` segment and its span is a child of it rather than a segment of its own.
 test('Should create a span for middleware inside the request segment of the Worker', async ({ request }) => {
