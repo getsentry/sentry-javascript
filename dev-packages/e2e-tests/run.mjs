@@ -1,43 +1,41 @@
+// @ts-check
 /* eslint-disable no-console */
-import { spawn } from 'child_process';
-import * as dotenv from 'dotenv';
-import { mkdir, mkdtemp, readFile, rm } from 'fs/promises';
-import { sync as globSync } from 'glob';
-import { tmpdir } from 'os';
-import { join, resolve } from 'path';
+import { spawn } from 'node:child_process';
+import { existsSync, readdirSync } from 'node:fs';
+import { mkdir, mkdtemp, readFile, rm } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { dirname, join, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { copyToTemp } from './lib/copyToTemp.mjs';
+import { addPnpmOverrides } from './lib/pnpmOverrides.mjs';
 import { applyRuntimeFiles } from './lib/runtimeFiles.mjs';
 import { syncPackedTarballSymlinks } from './lib/syncPackedTarballSymlinks.mjs';
-import { addPnpmOverrides } from './lib/pnpmOverrides.mjs';
 
-interface SentryTestVariant {
-  'build-command': string;
-  'assert-command'?: string;
-  label?: string;
-  skip?: boolean;
-  /** Runtime of the variant (`bun`, `deno` or `cloudflare`). Sets `RUNTIME` and selects the runtime-specific files. */
-  runtime?: string;
-}
+const __dirname = dirname(fileURLToPath(import.meta.url));
 
-interface PackageJson {
-  sentryTest?: {
-    variants?: SentryTestVariant[];
-    optionalVariants?: SentryTestVariant[];
-  };
-}
+/**
+ * `runtime` is the runtime of the variant (`bun`, `deno` or `cloudflare`). It sets `RUNTIME` and selects the
+ * runtime-specific files.
+ * @typedef {{ 'build-command': string; 'assert-command'?: string; label?: string; skip?: boolean; runtime?: string }} SentryTestVariant
+ */
+
+/** @typedef {{ sentryTest?: { variants?: SentryTestVariant[]; optionalVariants?: SentryTestVariant[] } }} PackageJson */
 
 const DEFAULT_DSN = 'https://username@domain/123';
 const DEFAULT_SENTRY_ORG_SLUG = 'sentry-javascript-sdks';
 const DEFAULT_SENTRY_PROJECT = 'sentry-javascript-e2e-tests';
 
-function asyncExec(
-  command: string | string[],
-  options: { env: Record<string, string | undefined>; cwd: string },
-): Promise<void> {
+/**
+ * @param {string | string[]} command
+ * @param {{ env: Record<string, string | undefined>; cwd: string }} options
+ * @returns {Promise<void>}
+ */
+function asyncExec(command, options) {
   return new Promise((resolve, reject) => {
     // If command is an array, use spawn with separate command and args (safer)
     // If command is a string, maintain backward compatibility with shell: true
-    let process: ReturnType<typeof spawn>;
+    /** @type {ReturnType<typeof spawn>} */
+    let process;
     if (typeof command === 'string') {
       process = spawn(command, { ...options, shell: true });
     } else {
@@ -76,27 +74,28 @@ function asyncExec(
   });
 }
 
-function findMatchingVariant(variants: SentryTestVariant[], variantLabel: string): SentryTestVariant | undefined {
+/**
+ * @param {SentryTestVariant[]} variants
+ * @param {string} variantLabel
+ * @returns {SentryTestVariant | undefined}
+ */
+function findMatchingVariant(variants, variantLabel) {
   const variantLabelLower = variantLabel.toLowerCase();
 
   return variants.find(variant => variant.label?.toLowerCase().includes(variantLabelLower));
 }
 
-async function getVariantBuildCommand(
-  packageJsonPath: string,
-  variantLabel: string,
-  testAppPath: string,
-): Promise<{
-  buildCommand: string;
-  assertCommand: string;
-  testLabel: string;
-  matchedVariantLabel?: string;
-  skip?: boolean;
-  runtime?: string;
-}> {
+/**
+ * @param {string} packageJsonPath
+ * @param {string} variantLabel
+ * @param {string} testAppPath
+ * @returns {Promise<{ buildCommand: string; assertCommand: string; testLabel: string; matchedVariantLabel?: string; skip?: boolean; runtime?: string }>}
+ */
+async function getVariantBuildCommand(packageJsonPath, variantLabel, testAppPath) {
   try {
     const packageJsonContent = await readFile(packageJsonPath, 'utf-8');
-    const packageJson: PackageJson = JSON.parse(packageJsonContent);
+    /** @type {PackageJson} */
+    const packageJson = JSON.parse(packageJsonContent);
 
     const allVariants = [
       ...(packageJson.sentryTest?.variants || []),
@@ -128,9 +127,12 @@ async function getVariantBuildCommand(
   };
 }
 
-async function run(): Promise<void> {
+async function run() {
   // Load environment variables from .env file locally
-  dotenv.config();
+  const envFile = join(__dirname, '.env');
+  if (existsSync(envFile)) {
+    process.loadEnvFile(envFile);
+  }
 
   // Allow to run a single app only via `yarn test:run <app-name>`
   const appName = process.argv[2] || '';
@@ -138,7 +140,8 @@ async function run(): Promise<void> {
   const allTestFlags = process.argv.slice(3);
 
   // Check for --variant flag
-  let variantLabel: string | undefined;
+  /** @type {string | undefined} */
+  let variantLabel;
   let skipNextFlag = false;
 
   const testFlags = allTestFlags.filter((flag, index) => {
@@ -216,7 +219,11 @@ async function run(): Promise<void> {
   await asyncExec('pnpm clean:test-applications', { env, cwd: __dirname });
   await asyncExec('pnpm cache delete "@sentry/*"', { env, cwd: __dirname });
 
-  const testAppPaths = appName ? [appName.trim()] : globSync('*', { cwd: `${__dirname}/test-applications/` });
+  const testAppPaths = appName
+    ? [appName.trim()]
+    : readdirSync(join(__dirname, 'test-applications'), { withFileTypes: true })
+        .filter(entry => entry.isDirectory() && !entry.name.startsWith('.'))
+        .map(entry => entry.name);
 
   console.log(`Runnings tests for: ${testAppPaths.join(', ')}`);
   console.log('');
