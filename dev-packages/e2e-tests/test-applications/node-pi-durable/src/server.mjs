@@ -38,7 +38,7 @@ const tools = [
     // The manual span should nest under the SDK's `execute_tool` span.
     execute: async args =>
       Sentry.startSpan({ name: 'resolve-weather', attributes: { 'weather.city': args.city } }, () => ({
-        content: [{ type: 'text', text: `It is 21 degrees and sunny in ${args.city}.` }],
+        output: [{ type: 'text', text: `It is 21 degrees and sunny in ${args.city}.` }],
       })),
   }),
   defineTool({
@@ -60,7 +60,7 @@ const tools = [
       try {
         writeFileSync(`${dataDir}crashed-${args.job}`, 'crashed once', { flag: 'wx' });
       } catch {
-        return { content: [{ type: 'text', text: `Step of job ${args.job} completed.` }] };
+        return { output: [{ type: 'text', text: `Step of job ${args.job} completed.` }] };
       }
       process.exit(CRASH_EXIT_CODE);
     },
@@ -80,14 +80,14 @@ const tools = [
       const request = { type: 'input', content: args.task, requestId: `delegate:${api.taskId}` };
       const settled = await (await child.submit(request, toolContext)).wait(toolContext);
       if (settled.status !== 'done') {
-        return { isError: true, content: [{ type: 'text', text: `Subagent ended: ${settled.reason}` }] };
+        return { isError: true, output: [{ type: 'text', text: `Subagent ended: ${settled.reason}` }] };
       }
       const answer = await api.commit(tx => tx.entry(AssistantEntry, settled.answer), toolContext);
       const text = (answer?.model?.[0]?.content ?? [])
         .filter(part => part.type === 'text')
         .map(part => part.text)
         .join('');
-      return { content: [{ type: 'text', text }] };
+      return { output: [{ type: 'text', text }] };
     },
   }),
 ];

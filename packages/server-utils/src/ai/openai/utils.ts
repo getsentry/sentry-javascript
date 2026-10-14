@@ -166,20 +166,13 @@ export function addResponseAttributes(span: Span, result: unknown, recordOutputs
 }
 
 /**
- * Extract conversation ID from request parameters
- * Supports both Conversations API and previous_response_id chaining
+ * Extract the Conversations API id (`conversation: "conv_..."`) from request parameters.
+ * `previous_response_id` is deliberately not read: it names the previous response, so it changes on
+ * every turn and cannot group a conversation's spans.
  * @see https://platform.openai.com/docs/guides/conversation-state
  */
 function extractConversationId(params: Record<string, unknown>): string | undefined {
-  // Conversations API: conversation parameter (e.g., "conv_...")
-  if ('conversation' in params && typeof params.conversation === 'string') {
-    return params.conversation;
-  }
-  // Responses chaining: previous_response_id links to parent response
-  if ('previous_response_id' in params && typeof params.previous_response_id === 'string') {
-    return params.previous_response_id;
-  }
-  return undefined;
+  return 'conversation' in params && typeof params.conversation === 'string' ? params.conversation : undefined;
 }
 
 /**

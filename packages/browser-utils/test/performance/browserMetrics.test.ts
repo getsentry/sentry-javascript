@@ -289,6 +289,26 @@ describe('_addResourceSpans', () => {
     expect(json.attributes['url.full']).toBe('https://example.com/assets/app.js?v=42#main');
   });
 
+  it('filters sensitive query params in the description and url.full', () => {
+    const spans: Span[] = [];
+
+    getClient()?.on('spanEnd', span => {
+      spans.push(span);
+    });
+
+    const entry = mockPerformanceResourceTiming({
+      initiatorType: 'script',
+      nextHopProtocol: 'http/1.1',
+    });
+
+    _addResourceSpans(span, entry, 'https://example.com/assets/app.js?token=abc&v=42', 100, 23);
+
+    expect(spans).toHaveLength(1);
+    const json = spanToJSON(spans[0]!);
+    expect(json.name).toBe('/assets/app.js?token=[Filtered]&v=42');
+    expect(json.attributes['url.full']).toBe('https://example.com/assets/app.js?token=[Filtered]&v=42');
+  });
+
   it('sets url.full to the full cross-origin URL', () => {
     const spans: Span[] = [];
 
@@ -787,6 +807,26 @@ describe('_addNavigationSpans', () => {
           trace_id,
         }),
       ]),
+    );
+  });
+
+  it('filters sensitive query params in span names and url.full', () => {
+    const spans: Span[] = [];
+
+    getClient()?.on('spanEnd', span => {
+      spans.push(span);
+    });
+
+    _addNavigationSpans(pageloadSpan, { ...entry, name: 'https://santry.com/test?jwt=baz&q=1' });
+
+    const filteredUrl = 'https://santry.com/test?jwt=[Filtered]&q=1';
+    expect(spans.map(spanToJSON)).toEqual(
+      Array(9).fill(
+        expect.objectContaining({
+          name: filteredUrl,
+          attributes: expect.objectContaining({ 'url.full': filteredUrl }),
+        }),
+      ),
     );
   });
 

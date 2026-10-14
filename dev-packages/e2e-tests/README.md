@@ -118,6 +118,9 @@ Make sure to add a `test:build` and `test:assert` command to the new app's `pack
 Sentry packages are automatically resolved to the local build via pnpm overrides injected at test time, so no manual
 registry configuration is needed.
 
+Apps use the root pnpm version. To use another one, set `volta.pnpm` in the app's `package.json`. Volta (locally) and
+CI (`.github/actions/install-pnpm`) both install that version.
+
 ### Test apps that deploy a real Cloudflare Worker
 
 Apps like `cloudflare-workers-send-to-sentry` deploy the built app as a real Worker and check what arrives in Sentry:

@@ -111,8 +111,13 @@ describe('sentryAstro integration', () => {
         debug: false,
         bundleSizeOptimizations: {},
         sourcemaps: {
-          assets: ['out/**/*'],
-          filesToDeleteAfterUpload: ['./dist/**/client/**/*.map', './dist/**/server/**/*.map'],
+          assets: ['out/**/*', 'out/**/.prerender/**/*'],
+          filesToDeleteAfterUpload: [
+            './dist/**/client/**/*.map',
+            './dist/**/server/**/*.map',
+            './dist/**/_astro/**/*.map',
+            './dist/**/.prerender/**/*.map',
+          ],
         },
         _metaOptions: {
           telemetry: {
@@ -142,8 +147,13 @@ describe('sentryAstro integration', () => {
         debug: false,
         bundleSizeOptimizations: {},
         sourcemaps: {
-          assets: ['dist/**/*'],
-          filesToDeleteAfterUpload: ['./dist/**/client/**/*.map', './dist/**/server/**/*.map'],
+          assets: ['dist/**/*', 'dist/**/.prerender/**/*'],
+          filesToDeleteAfterUpload: [
+            './dist/**/client/**/*.map',
+            './dist/**/server/**/*.map',
+            './dist/**/_astro/**/*.map',
+            './dist/**/.prerender/**/*.map',
+          ],
         },
         _metaOptions: {
           telemetry: {
@@ -181,8 +191,13 @@ describe('sentryAstro integration', () => {
         debug: false,
         bundleSizeOptimizations: {},
         sourcemaps: {
-          assets: ['{.vercel,dist}/**/*'],
-          filesToDeleteAfterUpload: ['./dist/**/client/**/*.map', './dist/**/server/**/*.map'],
+          assets: ['{.vercel,dist}/**/*', '{.vercel,dist}/**/.prerender/**/*'],
+          filesToDeleteAfterUpload: [
+            './dist/**/client/**/*.map',
+            './dist/**/server/**/*.map',
+            './dist/**/_astro/**/*.map',
+            './dist/**/.prerender/**/*.map',
+          ],
         },
         _metaOptions: {
           telemetry: {
@@ -221,7 +236,12 @@ describe('sentryAstro integration', () => {
         bundleSizeOptimizations: {},
         sourcemaps: {
           assets: ['dist/server/**/*, dist/client/**/*'],
-          filesToDeleteAfterUpload: ['./dist/**/client/**/*.map', './dist/**/server/**/*.map'],
+          filesToDeleteAfterUpload: [
+            './dist/**/client/**/*.map',
+            './dist/**/server/**/*.map',
+            './dist/**/_astro/**/*.map',
+            './dist/**/.prerender/**/*.map',
+          ],
         },
         _metaOptions: {
           telemetry: {

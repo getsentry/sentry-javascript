@@ -2,17 +2,6 @@ import type { Event } from '@sentry/core';
 import { afterAll, describe, expect, test } from 'vitest';
 import { cleanupChildProcesses, createRunner } from '../../utils/runner';
 
-/** Avoid flakes on slow CI: fixed sleeps can fire before the child process has finished exiting. */
-async function waitForChildExit(childHasExited: () => boolean, timeoutMs = 30_000): Promise<void> {
-  const start = Date.now();
-  while (!childHasExited()) {
-    if (Date.now() - start > timeoutMs) {
-      throw new Error('Timed out waiting for child process to exit');
-    }
-    await new Promise<void>(resolve => setTimeout(resolve, 100));
-  }
-}
-
 const ANR_EVENT = {
   // Ensure we have context
   contexts: {
@@ -187,19 +176,11 @@ describe('should report ANR when event loop blocked', { timeout: 90_000 }, () =>
   });
 
   test('should exit', async () => {
-    const runner = createRunner(__dirname, 'should-exit.js').start();
-
-    await waitForChildExit(() => runner.childHasExited());
-
-    expect(runner.childHasExited()).toBe(true);
+    await createRunner(__dirname, 'should-exit.js').start().exited();
   });
 
   test('should exit forced', async () => {
-    const runner = createRunner(__dirname, 'should-exit-forced.js').start();
-
-    await waitForChildExit(() => runner.childHasExited());
-
-    expect(runner.childHasExited()).toBe(true);
+    await createRunner(__dirname, 'should-exit-forced.js').start().exited();
   });
 
   test('With session', async () => {

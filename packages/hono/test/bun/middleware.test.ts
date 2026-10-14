@@ -2,7 +2,7 @@ import * as SentryCore from '@sentry/core';
 import { SDK_VERSION } from '@sentry/core';
 import { Hono } from 'hono';
 import { beforeEach, describe, expect, it, type Mock, vi } from 'vitest';
-import { sentry } from '../../src/bun/middleware';
+import { sentry, type HonoBunOptions } from '../../src/bun/middleware';
 import { init } from '../../src/bun/sdk';
 import { LOW_QUALITY_TRANSACTION_PATTERNS } from '../../src/shared/lowQualityTransactionPatterns';
 
@@ -102,7 +102,8 @@ describe('Hono Bun Middleware', () => {
         sampleRate: 0.5,
         tracesSampleRate: 1.0,
         debug: true,
-      };
+        enableOpenTelemetrySetup: true,
+      } satisfies HonoBunOptions;
 
       sentry(app, options);
 
@@ -113,6 +114,7 @@ describe('Hono Bun Middleware', () => {
           sampleRate: 0.5,
           tracesSampleRate: 1.0,
           debug: true,
+          enableOpenTelemetrySetup: true,
         }),
       );
     });

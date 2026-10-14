@@ -3,6 +3,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
+  addRuntimeInjectionTraceDep,
   constructFunctionReExport,
   constructWrappedFunctionExportQuery,
   extractFunctionReexportQueryParameters,
@@ -425,5 +426,23 @@ export { foo_sentryWrapped as foo };
     const entryId = './module';
     const result = constructFunctionReExport(query, entryId);
     expect(result).toBe('');
+  });
+});
+
+describe('addRuntimeInjectionTraceDep', () => {
+  it('keeps `@sentry/server-runtime-injection` out of the Nitro v3 bundle', () => {
+    const nuxtMock = { options: { nitro: { traceDeps: ['sharp'] } } } as unknown as Nuxt;
+
+    addRuntimeInjectionTraceDep(nuxtMock, true);
+
+    expect(nuxtMock.options.nitro).toEqual({ traceDeps: ['sharp', '@sentry/server-runtime-injection'] });
+  });
+
+  it('does not touch the Nitro v2 config', () => {
+    const nuxtMock = { options: { nitro: {} } } as unknown as Nuxt;
+
+    addRuntimeInjectionTraceDep(nuxtMock, false);
+
+    expect(nuxtMock.options.nitro).toEqual({});
   });
 });

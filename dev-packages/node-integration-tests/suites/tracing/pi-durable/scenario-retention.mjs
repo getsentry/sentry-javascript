@@ -46,7 +46,7 @@ registry.install(
             tx => tx.createConversation({ ownership: { kind: 'task', taskId: api.taskId } }),
             toolContext,
           );
-          return { content: [{ type: 'text', text: 'Subagent created.' }] };
+          return { output: [{ type: 'text', text: 'Subagent created.' }] };
         },
       }),
     ],

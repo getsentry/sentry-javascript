@@ -70,7 +70,7 @@ registry.install(
           const settled = await (
             await child.submit({ type: 'input', content: args.task }, toolContext)
           ).wait(toolContext);
-          return { content: [{ type: 'text', text: await answerText(api, settled, toolContext) }] };
+          return { output: [{ type: 'text', text: await answerText(api, settled, toolContext) }] };
         },
       }),
       defineTool({
@@ -89,14 +89,14 @@ registry.install(
           const settled = await (
             await child.submit({ type: 'input', content: 'Forked task.' }, toolContext)
           ).wait(toolContext);
-          return { content: [{ type: 'text', text: await answerText(api, settled, toolContext) }] };
+          return { output: [{ type: 'text', text: await answerText(api, settled, toolContext) }] };
         },
       }),
       defineTool({
         name: 'inner',
         description: 'A plain tool.',
         parameters: Type.Object({}),
-        execute: async () => ({ content: [{ type: 'text', text: 'INNER RESULT' }] }),
+        execute: async () => ({ output: [{ type: 'text', text: 'INNER RESULT' }] }),
       }),
       defineTool({
         name: 'batch',
@@ -105,7 +105,7 @@ registry.install(
         execute: async (_args, api, toolContext) => {
           const inner = (await api.agent(toolContext)).tools.find(tool => tool.name === 'inner');
           await inner.execute({}, api, toolContext);
-          return { content: [{ type: 'text', text: 'OUTER RESULT' }] };
+          return { output: [{ type: 'text', text: 'OUTER RESULT' }] };
         },
       }),
     ],

@@ -65,7 +65,7 @@ registry.install(
           await new Promise((_, reject) =>
             toolContext.abortSignal.addEventListener('abort', () => reject(new Error('tool aborted'))),
           );
-          return { content: [] };
+          return { output: [] };
         },
       }),
     ],
