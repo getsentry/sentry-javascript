@@ -10,6 +10,7 @@ import {
   GEN_AI_RESPONSE_ID,
   GEN_AI_RESPONSE_MODEL,
   GEN_AI_RESPONSE_STREAMING,
+  GEN_AI_USAGE_CACHE_CREATION_INPUT_TOKENS,
   GEN_AI_USAGE_CACHE_READ_INPUT_TOKENS,
   GEN_AI_USAGE_INPUT_TOKENS,
   GEN_AI_USAGE_OUTPUT_TOKENS,
@@ -190,8 +191,10 @@ describe.runIf(supports({ min: 22 }))('OpenAI integration (V7)', () => {
           [GEN_AI_PROVIDER_NAME]: { value: 'openai' },
           [GEN_AI_REQUEST_MODEL]: { value: 'gpt-6-luna' },
           [GEN_AI_RESPONSE_MODEL]: { value: 'gpt-6-luna' },
+          // OpenAI's input tokens already include the cached ones, so they are not added again.
           [GEN_AI_USAGE_INPUT_TOKENS]: { value: 382 },
-          [GEN_AI_USAGE_CACHE_READ_INPUT_TOKENS]: { value: 0 },
+          [GEN_AI_USAGE_CACHE_READ_INPUT_TOKENS]: { value: 256 },
+          [GEN_AI_USAGE_CACHE_CREATION_INPUT_TOKENS]: { value: 64 },
           [GEN_AI_USAGE_OUTPUT_TOKENS]: { value: 0 },
           [GEN_AI_USAGE_REASONING_OUTPUT_TOKENS]: { value: 0 },
           [GEN_AI_USAGE_TOTAL_TOKENS]: { value: 382 },
@@ -205,13 +208,15 @@ describe.runIf(supports({ min: 22 }))('OpenAI integration (V7)', () => {
               department: {
                 type: 'choice',
                 instructions: 'Which team should handle this?',
-                // `other` has no description, so it is left out of the criteria.
-                criteria: { billing: 'Charges and refunds' },
+                // `other` has no description, so it gets an empty one.
+                criteria: { billing: 'Charges and refunds', other: '' },
               },
               urgency: {
                 type: 'score',
                 instructions: 'How urgent is this ticket?',
                 criteria: ['low', 'high'],
+                // Keyed by score value; `low` has no description, so it is left out.
+                descriptions: { 1: 'Blocks the customer' },
               },
             },
           },
@@ -238,14 +243,12 @@ describe.runIf(supports({ min: 22 }))('OpenAI integration (V7)', () => {
           },
         ]);
 
-        // Images are base64 data URLs, so only their media type is recorded.
-        expect(imageSpan!.attributes[GEN_AI_INPUT_MESSAGES]!.value).not.toContain('base64');
         expect(JSON.parse(imageSpan!.attributes[GEN_AI_INPUT_MESSAGES]!.value as string)[0].state).toEqual([
           {
             role: 'user',
             content: [
               { type: 'input_text', text: 'Is the package damaged?' },
-              { type: 'input_image', mime_type: 'image/png' },
+              { type: 'input_image', image_url: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUg==' },
             ],
           },
         ]);

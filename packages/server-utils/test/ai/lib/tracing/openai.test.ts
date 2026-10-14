@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { GEN_AI_INPUT_MESSAGES, GEN_AI_OUTPUT_MESSAGES } from '@sentry/conventions/attributes';
+import { GEN_AI_OUTPUT_MESSAGES } from '@sentry/conventions/attributes';
 import { GEN_AI_DECIDE } from '@sentry/conventions/op';
 import { getMainCarrier, setCurrentClient, spanToStaticSpanJSON } from '@sentry/core';
 import type { Span } from '@sentry/core';
@@ -119,25 +119,41 @@ describe('instrumentOpenAiClient span names', () => {
     ]);
   });
 
-  it('records only the media type of a decisions image passed as a top-level part', async () => {
+  it('records a boolean decision choice as a string', async () => {
     const endedSpans = setupClient('stream');
     const instrumented = instrumentOpenAiClient({
-      decisions: { create: vi.fn().mockResolvedValue({ model: 'gpt-6-luna', answers: [] }) },
+      decisions: {
+        create: vi.fn().mockResolvedValue({
+          model: 'gpt-6-luna',
+          answers: [
+            {
+              type: 'choice',
+              name: 'is_spam',
+              choice: true,
+              probabilities: [
+                { value: true, probability: 0.91 },
+                { value: false, probability: 0.09 },
+              ],
+              confidence: 0.91,
+            },
+          ],
+        }),
+      },
     });
 
     await instrumented.decisions.create({
       model: 'gpt-6-luna',
-      input: [
-        { type: 'input_text', text: 'Is this red?' },
-        { type: 'input_image', image_url: 'data:image/png;base64,iVBORw0KGgo=' },
-      ],
-      questions: [],
+      input: 'Win a free cruise!',
+      questions: [{ type: 'choice', name: 'is_spam', choices: [{ value: true }, { value: false }] }],
     });
 
-    const [input] = JSON.parse(spanToStaticSpanJSON(endedSpans[0]!).data[GEN_AI_INPUT_MESSAGES] as string);
-    expect(input.state).toEqual([
-      { type: 'input_text', text: 'Is this red?' },
-      { type: 'input_image', mime_type: 'image/png' },
+    expect(JSON.parse(spanToStaticSpanJSON(endedSpans[0]!).data[GEN_AI_OUTPUT_MESSAGES] as string)).toEqual([
+      {
+        type: 'evaluation',
+        answers: {
+          is_spam: { type: 'choice', choice: 'true', probabilities: { true: 0.91, false: 0.09 }, confidence: 0.91 },
+        },
+      },
     ]);
   });
 });

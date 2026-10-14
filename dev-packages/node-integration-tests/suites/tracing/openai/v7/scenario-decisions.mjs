@@ -42,7 +42,7 @@ function startMockServer() {
       ],
       usage: {
         input_tokens: 382,
-        input_tokens_details: { cached_tokens: 0, cache_write_tokens: 0 },
+        input_tokens_details: { cached_tokens: 256, cache_write_tokens: 64 },
         output_tokens: 0,
         output_tokens_details: { reasoning_tokens: 0 },
         total_tokens: 382,
@@ -69,7 +69,7 @@ const questions = [
     type: 'score',
     name: 'urgency',
     instructions: 'How urgent is this ticket?',
-    levels: [{ label: 'low' }, { label: 'high' }],
+    levels: [{ label: 'low' }, { label: 'high', description: 'Blocks the customer' }],
   },
 ];
 
