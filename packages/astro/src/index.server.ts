@@ -91,6 +91,7 @@ export {
   nativeNodeFetchIntegration,
   NodeClient,
   nodeContextIntegration,
+  awsLambdaWebIntegration,
   onUncaughtExceptionIntegration,
   onUnhandledRejectionIntegration,
   mistralAIIntegration,
