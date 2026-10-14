@@ -57,6 +57,7 @@
     "@sentry/hono": "11.8.0",
     "@sentry/node": "11.8.0",
     "@sentry/server-utils": "11.8.0",
+    "@smithy/node-http-handler": "4.12.1",
     "@types/mongodb": "^3.6.20",
     "@types/mysql": "^2.15.21",
     "@types/pg": "^8.6.5",
@@ -112,17 +113,20 @@
     "yargs": "^16.2.0"
   },
   "devDependencies": {
+    "@hapi/boom": "^10.0.1",
     "@neondatabase/serverless": "1.2.0",
     "@opentelemetry/instrumentation-http": "0.220.0",
     "@sentry/conventions": "0.27.0",
     "@sentry-internal/test-utils": "11.8.0",
     "@types/amqplib": "^0.10.5",
+    "@types/express": "^4.17.21",
     "@types/node-cron": "^3.0.11",
     "@types/node-schedule": "^2.1.7",
     "esbuild": "0.28.1",
     "eslint-plugin-regexp": "^3.1.0",
     "globby": "11",
     "react": "^18.3.1",
+    "winston-transport": "^4.9.0",
     "zod": "^3.24.1"
   },
   "config": {

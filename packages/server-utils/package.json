@@ -105,7 +105,8 @@
     "@neondatabase/serverless": "1.2.0",
     "@types/node": "^20.19.0",
     "meriyah": "^6.1.4",
-    "vite": "^8.3.1"
+    "vite": "^8.3.1",
+    "webpack": "^5.0.0"
   },
   "scripts": {
     "build": "run-p build:transpile build:types",

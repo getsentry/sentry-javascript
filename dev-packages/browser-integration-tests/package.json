@@ -72,6 +72,7 @@
     "webpack": "^5.95.0"
   },
   "devDependencies": {
+    "@sentry/rrweb-types": "^2.44.1",
     "@types/node": "^20.19.0",
     "eslint-plugin-regexp": "^3.1.0",
     "glob": "^13.0.6"

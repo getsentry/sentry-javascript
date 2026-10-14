@@ -105,6 +105,7 @@
   "devDependencies": {
     "@cloudflare/workers-types": "4.20250922.0",
     "@types/node": "^20.19.0",
+    "hono": "^4.13.7",
     "wrangler": "4.62.0"
   },
   "scripts": {
