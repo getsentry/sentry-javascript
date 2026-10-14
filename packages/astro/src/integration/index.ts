@@ -142,6 +142,9 @@ export const sentryAstro = (options: SentryOptions = {}): AstroIntegration => {
 
         const isCloudflare = config?.adapter?.name?.startsWith('@astrojs/cloudflare');
         const isCloudflareWorkers = isCloudflare && !isCloudflarePages();
+        // That plugin wraps the Worker entry, inits the SDK from `instrument.server.*` or `env`, and
+        // adds its own orchestrion transform, so none of ours are needed.
+        const usesCloudflareVitePlugin = isCloudflareWorkers && hasCloudflareAutoInstrumentPlugin(config);
 
         // Wire up the orchestrion code transform so instrumented server-side dependencies (e.g.
         // `mysql`, `ioredis`) get `diagnostics_channel` publishers injected into the SSR bundle at
@@ -149,7 +152,7 @@ export const sentryAstro = (options: SentryOptions = {}): AstroIntegration => {
         // `buildTimeInstrumentation` is `false`. Cloudflare Pages is skipped: it gets no
         // `withSentry` wrap, so nothing would read the marker the injected snippets write, and
         // keeping the transform off avoids bundling dead subscriber code.
-        if (sdkEnabled.server && (!isCloudflare || isCloudflareWorkers)) {
+        if (sdkEnabled.server && (!isCloudflare || isCloudflareWorkers) && !usesCloudflareVitePlugin) {
           updateConfig({
             vite: {
               plugins: [sentryOrchestrionPlugin({ buildTimeInstrumentation }) as VitePlugin],
@@ -179,7 +182,7 @@ export const sentryAstro = (options: SentryOptions = {}): AstroIntegration => {
             // This ensures Sentry.init() runs in dev mode (where the Vite plugin doesn't fire)
             // and also serves as the fallback for non-Cloudflare adapters in production.
             injectScript('page-ssr', buildSdkInitFileImportSnippet(pathToServerInit));
-          } else {
+          } else if (!usesCloudflareVitePlugin) {
             debug && logger.info('Using default server init.');
             injectScript('page-ssr', buildServerSnippet(options || {}));
           }
@@ -199,7 +202,9 @@ export const sentryAstro = (options: SentryOptions = {}): AstroIntegration => {
             debug && logger.info('Adding Cloudflare Vite plugin to wrap Worker entry with withSentry.');
             updateConfig({
               vite: {
-                plugins: [sentryCloudflareNodeWarningPlugin(), sentryCloudflareVitePlugin()],
+                plugins: usesCloudflareVitePlugin
+                  ? [sentryCloudflareNodeWarningPlugin()]
+                  : [sentryCloudflareNodeWarningPlugin(), sentryCloudflareVitePlugin()],
               },
             });
           } else if (isCloudflare) {
@@ -235,6 +240,30 @@ export const sentryAstro = (options: SentryOptions = {}): AstroIntegration => {
     },
   };
 };
+
+const CLOUDFLARE_AUTO_INSTRUMENT_PLUGIN_NAME = 'sentry-cloudflare-auto-instrument';
+
+/**
+ * Whether the user added `sentryCloudflareVitePlugin()` from `@sentry/cloudflare/vite`. It is
+ * detected by name because importing it here would load `@sentry/cloudflare` and `wrangler` for
+ * every Astro app.
+ */
+function hasCloudflareAutoInstrumentPlugin(config: AstroConfig): boolean {
+  const pending: unknown[] = [config.vite?.plugins];
+  while (pending.length > 0) {
+    const plugin = pending.pop();
+    if (Array.isArray(plugin)) {
+      pending.push(...plugin);
+    } else if (
+      typeof plugin === 'object' &&
+      plugin !== null &&
+      (plugin as { name?: unknown }).name === CLOUDFLARE_AUTO_INSTRUMENT_PLUGIN_NAME
+    ) {
+      return true;
+    }
+  }
+  return false;
+}
 
 const possibleFileExtensions = ['ts', 'js', 'tsx', 'jsx', 'mjs', 'cjs', 'mts'];
 

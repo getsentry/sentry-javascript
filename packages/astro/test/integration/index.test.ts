@@ -451,6 +451,63 @@ describe('sentryAstro integration', () => {
     });
   });
 
+  describe('with `sentryCloudflareVitePlugin()` from `@sentry/cloudflare/vite` in the vite config', () => {
+    const cloudflareConfig = {
+      ...config,
+      adapter: { name: '@astrojs/cloudflare' },
+      // The plugin returns an array, so it arrives nested.
+      vite: { plugins: [[{ name: 'code-transformer' }, { name: 'sentry-cloudflare-auto-instrument' }]] },
+    } as AstroConfig;
+
+    it('leaves the orchestrion transform and the Worker wrap to that plugin', async () => {
+      const integration = sentryAstro({});
+
+      // @ts-expect-error - the hook exists and we only need to pass what we actually use
+      await integration.hooks['astro:config:setup']({
+        ...baseConfigHookObject,
+        updateConfig,
+        injectScript,
+        config: cloudflareConfig,
+      });
+
+      expect(orchestrionVite).not.toHaveBeenCalled();
+      expect(updateConfig).toHaveBeenCalledWith({
+        vite: { plugins: [expect.objectContaining({ name: 'sentry-astro-cloudflare-suppress-node-warnings' })] },
+      });
+      expect(updateConfig).not.toHaveBeenCalledWith({
+        vite: { plugins: expect.arrayContaining([expect.objectContaining({ name: 'sentry-astro-cloudflare' })]) },
+      });
+    });
+
+    it('does not inject the default server init', async () => {
+      const integration = sentryAstro({});
+
+      // @ts-expect-error - the hook exists and we only need to pass what we actually use
+      await integration.hooks['astro:config:setup']({
+        ...baseConfigHookObject,
+        updateConfig,
+        injectScript,
+        config: cloudflareConfig,
+      });
+
+      expect(injectScript).not.toHaveBeenCalledWith('page-ssr', expect.anything());
+    });
+
+    it('still injects a server init file', async () => {
+      const integration = sentryAstro({ serverInitPath: 'my-server-init-path.js' });
+
+      // @ts-expect-error - the hook exists and we only need to pass what we actually use
+      await integration.hooks['astro:config:setup']({
+        ...baseConfigHookObject,
+        updateConfig,
+        injectScript,
+        config: cloudflareConfig,
+      });
+
+      expect(injectScript).toHaveBeenCalledWith('page-ssr', expect.stringContaining('my-server-init-path.js'));
+    });
+  });
+
   it("doesn't add the orchestrion plugin for the cloudflare pages adapter", async () => {
     // Simulate a Pages project: a wrangler config containing `pages_build_output_dir`.
     wranglerPagesConfig = '{ "pages_build_output_dir": "./dist" }';
