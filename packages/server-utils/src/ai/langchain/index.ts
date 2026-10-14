@@ -1,7 +1,16 @@
 /* eslint-disable max-lines */
-import { getClient, hasSpanStreamingEnabled, SPAN_STATUS_ERROR, startSpanManual, stringify } from '@sentry/core';
+import {
+  getClient,
+  hasSpanStreamingEnabled,
+  SPAN_STATUS_ERROR,
+  spanToJSON,
+  startInactiveSpan,
+  stringify,
+  withActiveSpan,
+} from '@sentry/core';
 import type { Span, SpanAttributeValue } from '@sentry/core';
 import {
+  GEN_AI_CONVERSATION_ID,
   GEN_AI_OPERATION_NAME,
   GEN_AI_PIPELINE_NAME,
   GEN_AI_REQUEST_MODEL,
@@ -49,6 +58,7 @@ export function createLangChainCallbackHandler(options: LangChainOptions = {}): 
   // Internal state - single instance tracks all spans
   const spanMap = new Map<string, Span>();
   const decideRunIds = new Set<string>();
+  const runs = new Map<string, { parentRunId?: string; conversationId?: string }>();
 
   /**
    * Exit a span and clean up
@@ -60,6 +70,35 @@ export function createLangChainCallbackHandler(options: LangChainOptions = {}): 
     }
     spanMap.delete(runId);
     decideRunIds.delete(runId);
+    runs.delete(runId);
+  };
+
+  // LangChain never makes our run spans active, so each run starts under its parent run's span.
+  // With no span for the parent run (skipped or unseen), the active span stays the parent.
+  const startRunSpan = (runId: string, parentRunId: string | undefined, start: () => Span): void => {
+    const parentSpan = parentRunId ? spanMap.get(parentRunId) : undefined;
+    const span = parentSpan ? withActiveSpan(parentSpan, start) : start();
+    spanMap.set(runId, span);
+
+    // `@langchain/core` >= 1.1.40 keeps `configurable` out of run metadata, so often only the chat span knows
+    // the conversation id. A span takes it from its parent, or hands it up to open ancestors without one.
+    // The own id is read off the span, since one from `Sentry.setConversationId()` is only set there.
+    const ownId = spanToJSON(span).attributes[GEN_AI_CONVERSATION_ID];
+    const parentConversationId = parentRunId ? runs.get(parentRunId)?.conversationId : undefined;
+    const conversationId = typeof ownId === 'string' ? ownId : parentConversationId;
+    if (conversationId && conversationId !== ownId) {
+      span.setAttribute(GEN_AI_CONVERSATION_ID, conversationId);
+    }
+    runs.set(runId, { parentRunId, conversationId });
+
+    for (let id = parentRunId; conversationId && id; id = runs.get(id)?.parentRunId) {
+      const run = runs.get(id);
+      if (!run || run.conversationId) {
+        break;
+      }
+      run.conversationId = conversationId;
+      spanMap.get(id)?.setAttribute(GEN_AI_CONVERSATION_ID, conversationId);
+    }
   };
 
   /**
@@ -91,7 +130,7 @@ export function createLangChainCallbackHandler(options: LangChainOptions = {}): 
       llm: unknown,
       prompts: string[],
       runId: string,
-      _parentRunId?: string,
+      parentRunId?: string,
       _extraParams?: Record<string, unknown>,
       tags?: string[],
       metadata?: Record<string, unknown>,
@@ -110,8 +149,8 @@ export function createLangChainCallbackHandler(options: LangChainOptions = {}): 
         typeof attributes[GEN_AI_OPERATION_NAME] === 'string' ? attributes[GEN_AI_OPERATION_NAME] : 'unknown';
       const client = getClient();
 
-      startSpanManual(
-        {
+      startRunSpan(runId, parentRunId, () =>
+        startInactiveSpan({
           // With span streaming, omit the `'unknown'` model sentinel so the name stays low-cardinality.
           name:
             (typeof modelName === 'string' && modelName !== 'unknown') || !(client && hasSpanStreamingEnabled(client))
@@ -123,11 +162,7 @@ export function createLangChainCallbackHandler(options: LangChainOptions = {}): 
             ...attributes,
             [SENTRY_OP]: GEN_AI_CHAT,
           },
-        },
-        span => {
-          spanMap.set(runId, span);
-          return span;
-        },
+        }),
       );
     },
 
@@ -136,7 +171,7 @@ export function createLangChainCallbackHandler(options: LangChainOptions = {}): 
       llm: unknown,
       messages: unknown,
       runId: string,
-      _parentRunId?: string,
+      parentRunId?: string,
       extraParams?: Record<string, unknown>,
       tags?: string[],
       metadata?: Record<string, unknown>,
@@ -161,8 +196,8 @@ export function createLangChainCallbackHandler(options: LangChainOptions = {}): 
         typeof attributes[GEN_AI_OPERATION_NAME] === 'string' ? attributes[GEN_AI_OPERATION_NAME] : 'unknown';
       const client = getClient();
 
-      startSpanManual(
-        {
+      startRunSpan(runId, parentRunId, () =>
+        startInactiveSpan({
           // With span streaming, omit the `'unknown'` model sentinel so the name stays low-cardinality.
           name:
             (typeof modelName === 'string' && modelName !== 'unknown') || !(client && hasSpanStreamingEnabled(client))
@@ -174,11 +209,7 @@ export function createLangChainCallbackHandler(options: LangChainOptions = {}): 
             ...attributes,
             [SENTRY_OP]: GEN_AI_CHAT,
           },
-        },
-        span => {
-          spanMap.set(runId, span);
-          return span;
-        },
+        }),
       );
     },
 
@@ -196,8 +227,8 @@ export function createLangChainCallbackHandler(options: LangChainOptions = {}): 
         if (attributes) {
           span.setAttributes(attributes);
         }
-        exitSpan(runId);
       }
+      exitSpan(runId);
     },
 
     // LLM Error Handler - note: handleLLMError with capital LLM
@@ -207,8 +238,8 @@ export function createLangChainCallbackHandler(options: LangChainOptions = {}): 
       const span = spanMap.get(runId);
       if (span?.isRecording()) {
         span.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
-        exitSpan(runId);
       }
+      exitSpan(runId);
     },
 
     // Chain Start Handler
@@ -216,7 +247,7 @@ export function createLangChainCallbackHandler(options: LangChainOptions = {}): 
       chain: { name?: string },
       inputs: Record<string, unknown>,
       runId: string,
-      _parentRunId?: string,
+      parentRunId?: string,
       _tags?: string[],
       metadata?: Record<string, unknown>,
       _runType?: string,
@@ -224,7 +255,7 @@ export function createLangChainCallbackHandler(options: LangChainOptions = {}): 
     ) {
       // A Jev call is a real model call, so it is recorded inside an agent too.
       if (isTypeSafeClassifier(chain)) {
-        spanMap.set(runId, startTypeSafeClassifierSpan(chain, inputs, metadata, recordInputs));
+        startRunSpan(runId, parentRunId, () => startTypeSafeClassifierSpan(chain, inputs, metadata, recordInputs));
         decideRunIds.add(runId);
         return;
       }
@@ -253,8 +284,8 @@ export function createLangChainCallbackHandler(options: LangChainOptions = {}): 
 
       const client = getClient();
 
-      startSpanManual(
-        {
+      startRunSpan(runId, parentRunId, () =>
+        startInactiveSpan({
           // With span streaming, the name leads with the operation per the agent templates. The
           // chain name is bounded, so it stays; the `'unknown_chain'` sentinel is dropped instead.
           name: !(client && hasSpanStreamingEnabled(client))
@@ -266,11 +297,7 @@ export function createLangChainCallbackHandler(options: LangChainOptions = {}): 
             ...attributes,
             [SENTRY_OP]: GEN_AI_INVOKE_AGENT,
           },
-        },
-        span => {
-          spanMap.set(runId, span);
-          return span;
-        },
+        }),
       );
     },
 
@@ -306,7 +333,7 @@ export function createLangChainCallbackHandler(options: LangChainOptions = {}): 
       tool: { name?: string },
       input: string,
       runId: string,
-      _parentRunId?: string,
+      parentRunId?: string,
       _tags?: string[],
       metadata?: Record<string, unknown>,
       runName?: string,
@@ -331,18 +358,14 @@ export function createLangChainCallbackHandler(options: LangChainOptions = {}): 
         attributes[GEN_AI_TOOL_CALL_ARGUMENTS] = input;
       }
 
-      startSpanManual(
-        {
+      startRunSpan(runId, parentRunId, () =>
+        startInactiveSpan({
           name: `execute_tool ${toolName}`,
           attributes: {
             ...attributes,
             [SENTRY_OP]: GEN_AI_EXECUTE_TOOL,
           },
-        },
-        span => {
-          spanMap.set(runId, span);
-          return span;
-        },
+        }),
       );
     },
 
@@ -359,8 +382,8 @@ export function createLangChainCallbackHandler(options: LangChainOptions = {}): 
             [GEN_AI_TOOL_CALL_RESULT]: stringify(content, String),
           });
         }
-        exitSpan(runId);
       }
+      exitSpan(runId);
     },
 
     // Tool Error Handler
@@ -370,8 +393,8 @@ export function createLangChainCallbackHandler(options: LangChainOptions = {}): 
       const span = spanMap.get(runId);
       if (span?.isRecording()) {
         span.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
-        exitSpan(runId);
       }
+      exitSpan(runId);
     },
 
     // LangChain BaseCallbackHandler required methods
