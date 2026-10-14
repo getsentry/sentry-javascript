@@ -118,4 +118,42 @@ describe('instrumentOpenAiClient span names', () => {
       { type: 'evaluation', answers: { wants_refund: { type: 'predicate', probability: 0.97 } } },
     ]);
   });
+
+  it('records a boolean decision choice as a string', async () => {
+    const endedSpans = setupClient('stream');
+    const instrumented = instrumentOpenAiClient({
+      decisions: {
+        create: vi.fn().mockResolvedValue({
+          model: 'gpt-6-luna',
+          answers: [
+            {
+              type: 'choice',
+              name: 'is_spam',
+              choice: true,
+              probabilities: [
+                { value: true, probability: 0.91 },
+                { value: false, probability: 0.09 },
+              ],
+              confidence: 0.91,
+            },
+          ],
+        }),
+      },
+    });
+
+    await instrumented.decisions.create({
+      model: 'gpt-6-luna',
+      input: 'Win a free cruise!',
+      questions: [{ type: 'choice', name: 'is_spam', choices: [{ value: true }, { value: false }] }],
+    });
+
+    expect(JSON.parse(spanToStaticSpanJSON(endedSpans[0]!).data[GEN_AI_OUTPUT_MESSAGES] as string)).toEqual([
+      {
+        type: 'evaluation',
+        answers: {
+          is_spam: { type: 'choice', choice: 'true', probabilities: { true: 0.91, false: 0.09 }, confidence: 0.91 },
+        },
+      },
+    ]);
+  });
 });

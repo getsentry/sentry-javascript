@@ -71,7 +71,8 @@ function toJevAnswerFormat(answer: unknown): unknown {
   const options = answer.probabilities.filter(isObjectLike);
   const probabilities = Object.fromEntries(options.map(option => [String(option.value), option.probability]));
   if (answer.type === 'choice') {
-    return { ...answer, probabilities };
+    // Choice values can be booleans, but Sentry renders a choice as a string, like its `probabilities` keys.
+    return { ...answer, choice: String(answer.choice), probabilities };
   }
 
   const legend = Object.fromEntries(
