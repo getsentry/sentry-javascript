@@ -2,6 +2,7 @@ import type { BuildTimeOptionsBase, ReactComponentAnnotationOptions } from '@sen
 import { sentryOrchestrionPlugin } from '@sentry/server-utils/orchestrion/vite';
 import type { Plugin } from 'vite';
 import { makeAutoInstrumentMiddlewarePlugin } from './autoInstrumentMiddleware';
+import { makeComposeNitroServiceSourceMapsPlugin, makeEnableNitroSourceMapsPlugin } from './nitroSourceMaps';
 import { makeRoutePatternPlugin } from './routePatterns';
 import { makeAddSentryVitePlugin, makeEnableSourceMapsVitePlugin } from './sourceMaps';
 import type { TunnelRouteOptions } from './tunnelRoute';
@@ -92,7 +93,7 @@ export function sentryTanstackStart(options: SentryTanstackStartOptions = {}): P
   // (CommonJS) deps via `ssr.noExternal`, which the `vite dev` SSR module runner can't evaluate.
   plugins.push(sentryOrchestrionPlugin({ buildTimeInstrumentation: options.buildTimeInstrumentation }));
 
-  plugins.push(...makeAddSentryVitePlugin(options));
+  plugins.push(...makeAddSentryVitePlugin(options), makeComposeNitroServiceSourceMapsPlugin());
 
   // middleware auto-instrumentation
   if (options.autoInstrumentMiddleware !== false) {
@@ -102,7 +103,7 @@ export function sentryTanstackStart(options: SentryTanstackStartOptions = {}): P
   // source maps
   const sourceMapsDisabled = options.sourcemaps?.disable === true || options.sourcemaps?.disable === 'disable-upload';
   if (!sourceMapsDisabled) {
-    plugins.push(...makeEnableSourceMapsVitePlugin(options));
+    plugins.push(...makeEnableSourceMapsVitePlugin(options), makeEnableNitroSourceMapsPlugin(options));
   }
 
   return plugins;
