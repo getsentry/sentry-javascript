@@ -490,8 +490,10 @@ function _startRootSpan(
 
   const mutableSpanSamplingData = { spanAttributes: { ...spanArguments.attributes }, spanName: name, parentSampled };
 
-  // we don't care about the decision for the moment; this is just a placeholder
-  client?.emit('beforeSampling', mutableSpanSamplingData, { decision: false });
+  const samplingDecision = { decision: true };
+  client?.emit('beforeSampling', mutableSpanSamplingData, samplingDecision);
+  // Like suppressed tracing, a span dropped by a hook is SDK-internal and records no client outcome
+  const _isDroppedBeforeSampling = !samplingDecision.decision;
 
   // If hook consumers override the parentSampled flag, we will use that value instead of the actual one
   const finalParentSampled = mutableSpanSamplingData.parentSampled ?? parentSampled;
@@ -500,19 +502,20 @@ function _startRootSpan(
   const currentPropagationContext = scope.getPropagationContext();
   const _isTracingSuppressed = isTracingSuppressed(scope);
 
-  const [sampled, sampleRate, localSampleRateWasApplied, dropReason] = _isTracingSuppressed
-    ? [false]
-    : sampleSpan(
-        options,
-        {
-          name,
-          parentSampled: finalParentSampled,
-          attributes: finalAttributes,
-          normalizedRequest: isolationScope.getScopeData().sdkProcessingMetadata.normalizedRequest,
-          parentSampleRate: parseSampleRate(currentPropagationContext.dsc?.sample_rate),
-        },
-        currentPropagationContext.sampleRand,
-      );
+  const [sampled, sampleRate, localSampleRateWasApplied, dropReason] =
+    _isTracingSuppressed || _isDroppedBeforeSampling
+      ? [false]
+      : sampleSpan(
+          options,
+          {
+            name,
+            parentSampled: finalParentSampled,
+            attributes: finalAttributes,
+            normalizedRequest: isolationScope.getScopeData().sdkProcessingMetadata.normalizedRequest,
+            parentSampleRate: parseSampleRate(currentPropagationContext.dsc?.sample_rate),
+          },
+          currentPropagationContext.sampleRand,
+        );
 
   const rootSpan = new SentrySpan({
     ...spanArguments,
@@ -525,7 +528,7 @@ function _startRootSpan(
     sampled,
   });
 
-  if (!sampled && client && !_isTracingSuppressed) {
+  if (!sampled && client && !_isTracingSuppressed && !_isDroppedBeforeSampling) {
     DEBUG_BUILD && debug.log('[Tracing] Discarding root span because its trace was not chosen to be sampled.');
     const outcomeReason = dropReason || 'sample_rate';
     // A standalone span is sent on its own and never becomes a transaction.

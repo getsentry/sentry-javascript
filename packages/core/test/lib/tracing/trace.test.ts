@@ -2788,6 +2788,26 @@ describe('ignoreSpans (core path, streaming)', () => {
     expect(spyOnDroppedEvent).toHaveBeenNthCalledWith(2, 'sample_rate', 'span');
   });
 
+  it('does not record a root span that a beforeSampling hook drops, nor an outcome for it', () => {
+    const options = getDefaultTestClientOptions({
+      tracesSampleRate: 1,
+      traceLifecycle: 'stream',
+    });
+    client = new TestClient(options);
+    setCurrentClient(client);
+    client.init();
+    client.on('beforeSampling', (_samplingData, samplingDecision) => {
+      samplingDecision.decision = false;
+    });
+    const spyOnDroppedEvent = vi.spyOn(client, 'recordDroppedEvent');
+
+    startSpan({ name: 'GET /foo' }, span => {
+      expect(spanIsSampled(span)).toBe(false);
+    });
+
+    expect(spyOnDroppedEvent).not.toHaveBeenCalled();
+  });
+
   it('records sample_rate outcomes for the transaction and all of its spans on static path', () => {
     const options = getDefaultTestClientOptions({
       tracesSampleRate: 0,

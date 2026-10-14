@@ -11,10 +11,13 @@ import {
 import { MIDDLEWARE } from '@sentry/conventions/op';
 import type { Client, Options, Span } from '@sentry/core';
 import {
+  _INTERNAL_getIncomingRequestForScope,
   getIsolationScope,
   getRootSpan,
+  GLOBAL_OBJ,
   hasSpanStreamingEnabled,
   HTTP_SPAN_NAME_FALLBACK,
+  parseSemver,
   spanToJSON,
 } from '@sentry/core';
 import { enhanceMiddlewareRootSpan } from '../common/enhanceMiddlewareRootSpan';
@@ -36,6 +39,11 @@ import {
 } from './vercelQueuesMonitoring';
 
 const NEXTJS_ERROR_PAGE_ROUTES = ['/500', '/_error'];
+const NEXT_REQUEST_META = Symbol.for('NextInternalRequestMeta');
+
+const globalWithInjectedValues = GLOBAL_OBJ as typeof GLOBAL_OBJ & {
+  _sentryNextJsVersion?: string;
+};
 
 export const NEXTJS_SERVER_IGNORE_SPANS: NonNullable<Options['ignoreSpans']> = [
   // Static assets (matches `_next/static` anywhere in the name to handle custom basePath)
@@ -75,6 +83,10 @@ export function addNextjsServerSpanHooks(client: Client): void {
     ) {
       samplingDecision.decision = false;
     }
+
+    if (isProxyInvocationSpan(spanAttributes)) {
+      samplingDecision.decision = false;
+    }
   });
 
   client.on('spanStart', span => handleOnSpanStart(span, client));
@@ -102,6 +114,31 @@ export function addNextjsServerSpanHooks(client: Client): void {
 }
 
 type SpanAttributes = ReturnType<typeof spanToJSON>['attributes'];
+
+/**
+ * Whether a span is the `BaseServer.handleRequest` span that Next.js starts only to run the proxy (middleware).
+ *
+ * Next.js handles a request behind a proxy with two `handleRequest` calls: one that only runs the proxy, and one that
+ * renders the route. Since Next.js 16.3 (vercel/next.js#95306), the proxy span is not a child of the first span anymore,
+ * so that span would end up as an empty `http.server` segment next to the one of the route. On older versions it holds
+ * the proxy span and becomes the `middleware` segment, so it must be kept there.
+ */
+function isProxyInvocationSpan(spanAttributes: Record<string, unknown>): boolean {
+  if (spanAttributes[ATTR_NEXT_SPAN_TYPE] !== 'BaseServer.handleRequest') {
+    return false;
+  }
+
+  const { major, minor } = parseSemver(globalWithInjectedValues._sentryNextJsVersion ?? '');
+  if (major === undefined || minor === undefined || major < 16 || (major === 16 && minor < 3)) {
+    return false;
+  }
+
+  // Next.js sets this flag on the request before the call that only runs the proxy, and resets it before rendering
+  const request = _INTERNAL_getIncomingRequestForScope(getIsolationScope()) as
+    | { [NEXT_REQUEST_META]?: { middlewareInvoke?: boolean } }
+    | undefined;
+  return request?.[NEXT_REQUEST_META]?.middlewareInvoke === true;
+}
 
 /**
  * Hoists the parameterized route that a Next.js span carries in `next.route` up to the root span, as its name and
