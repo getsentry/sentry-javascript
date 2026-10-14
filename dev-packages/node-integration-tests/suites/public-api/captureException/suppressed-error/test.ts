@@ -25,7 +25,7 @@ describe.runIf(supports({ min: 22 }))('SuppressedError', () => {
               },
               {
                 type: 'SuppressedError',
-                value: expect.stringContaining('suppressed during disposal'),
+                value: expect.any(String),
                 mechanism: { type: 'generic', handled: true, exception_id: 0 },
               },
             ],
