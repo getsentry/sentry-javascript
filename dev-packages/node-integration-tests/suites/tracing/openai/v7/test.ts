@@ -241,14 +241,12 @@ describe.runIf(supports({ min: 22 }))('OpenAI integration (V7)', () => {
           },
         ]);
 
-        // Images are base64 data URLs, so only their media type is recorded.
-        expect(imageSpan!.attributes[GEN_AI_INPUT_MESSAGES]!.value).not.toContain('base64');
         expect(JSON.parse(imageSpan!.attributes[GEN_AI_INPUT_MESSAGES]!.value as string)[0].state).toEqual([
           {
             role: 'user',
             content: [
               { type: 'input_text', text: 'Is the package damaged?' },
-              { type: 'input_image', mime_type: 'image/png' },
+              { type: 'input_image', image_url: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUg==' },
             ],
           },
         ]);

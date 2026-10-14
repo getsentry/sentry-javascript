@@ -7,11 +7,11 @@ import { getEvaluationInputMessages, getEvaluationOutputMessages } from '../core
 
 /**
  * Serialize a decisions request. Its evidence is `input` where Jev's is `state`; it is recorded as `state`
- * so both render the same. Images are base64 data URLs, so they are reported by media type only.
+ * so both render the same.
  */
 export function getDecisionInputMessages(params: Record<string, unknown>): string | undefined {
   const questions = Array.isArray(params.questions) ? params.questions.map(toJevQuestionFormat) : params.questions;
-  return getEvaluationInputMessages({ state: withoutImageData(params.input), questions: keyByName(questions) });
+  return getEvaluationInputMessages({ state: params.input, questions: keyByName(questions) });
 }
 
 /** Serialize the answers of a decisions response, laid out and keyed like Jev answers. */
@@ -90,26 +90,4 @@ function keyByName(items: unknown): unknown {
       return [typeof name === 'string' ? name : String(index), rest];
     }),
   );
-}
-
-function withoutImageData(input: unknown): unknown {
-  if (!Array.isArray(input)) {
-    return input;
-  }
-
-  // Parts are also handled at the top level, in case a flat list of parts is passed instead of messages.
-  return input.map(item =>
-    isObjectLike(item) && Array.isArray(item.content)
-      ? { ...item, content: item.content.map(withoutImageDataPart) }
-      : withoutImageDataPart(item),
-  );
-}
-
-function withoutImageDataPart(part: unknown): unknown {
-  if (!isObjectLike(part) || part.type !== 'input_image' || typeof part.image_url !== 'string') {
-    return part;
-  }
-
-  const mimeType = /^data:([^;,]+)/.exec(part.image_url)?.[1];
-  return mimeType ? { type: 'input_image', mime_type: mimeType } : { type: 'input_image' };
 }

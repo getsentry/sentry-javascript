@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { GEN_AI_INPUT_MESSAGES, GEN_AI_OUTPUT_MESSAGES } from '@sentry/conventions/attributes';
+import { GEN_AI_OUTPUT_MESSAGES } from '@sentry/conventions/attributes';
 import { GEN_AI_DECIDE } from '@sentry/conventions/op';
 import { getMainCarrier, setCurrentClient, spanToStaticSpanJSON } from '@sentry/core';
 import type { Span } from '@sentry/core';
@@ -116,28 +116,6 @@ describe('instrumentOpenAiClient span names', () => {
     expect(JSON.parse(json.data[GEN_AI_OUTPUT_MESSAGES] as string)).toEqual([
       // Keyed by question name, as the conventions define it.
       { type: 'evaluation', answers: { wants_refund: { type: 'predicate', probability: 0.97 } } },
-    ]);
-  });
-
-  it('records only the media type of a decisions image passed as a top-level part', async () => {
-    const endedSpans = setupClient('stream');
-    const instrumented = instrumentOpenAiClient({
-      decisions: { create: vi.fn().mockResolvedValue({ model: 'gpt-6-luna', answers: [] }) },
-    });
-
-    await instrumented.decisions.create({
-      model: 'gpt-6-luna',
-      input: [
-        { type: 'input_text', text: 'Is this red?' },
-        { type: 'input_image', image_url: 'data:image/png;base64,iVBORw0KGgo=' },
-      ],
-      questions: [],
-    });
-
-    const [input] = JSON.parse(spanToStaticSpanJSON(endedSpans[0]!).data[GEN_AI_INPUT_MESSAGES] as string);
-    expect(input.state).toEqual([
-      { type: 'input_text', text: 'Is this red?' },
-      { type: 'input_image', mime_type: 'image/png' },
     ]);
   });
 });
