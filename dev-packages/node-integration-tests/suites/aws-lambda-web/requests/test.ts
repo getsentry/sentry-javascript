@@ -34,7 +34,7 @@ createEsmAndCjsTests(__dirname, 'scenario.mjs', 'instrument.mjs', (createRunner,
                 'cloud.account.id': '123456789012',
               },
               'aws.lambda': {
-                memory_size: 2048,
+                memory_size: 2_147_483_648,
                 initialization_type: 'native-http',
                 cold_start: request === 'first',
                 aws_request_id: request,

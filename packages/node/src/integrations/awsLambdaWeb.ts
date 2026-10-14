@@ -19,14 +19,14 @@ const _awsLambdaWebIntegration = (() => {
     [CLOUD_REGION]: process.env.AWS_REGION,
     [CLOUD_ACCOUNT_ID]: process.env.AWS_ACCOUNT_ID,
   };
-  const memory = Number(process.env.AWS_LAMBDA_FUNCTION_MEMORY_SIZE);
+  const memory = Number(process.env.AWS_LAMBDA_FUNCTION_MEMORY_SIZE) * 1024 * 1024;
   const lambdaContext = {
     memory_size: Number.isFinite(memory) && memory > 0 ? memory : undefined,
     initialization_type: process.env.AWS_LAMBDA_INITIALIZATION_TYPE,
   };
   const environmentAttributes = {
     ...cloudContext,
-    'faas.max_memory': lambdaContext.memory_size ? lambdaContext.memory_size * 1024 * 1024 : undefined,
+    'faas.max_memory': lambdaContext.memory_size,
     'aws.lambda.initialization_type': lambdaContext.initialization_type,
   };
 
