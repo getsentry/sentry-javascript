@@ -71,8 +71,15 @@ export const sentryAstro = (options: SentryOptions = {}): AstroIntegration => {
             typeof sourcemaps?.filesToDeleteAfterUpload === 'undefined' &&
             computedSourceMapSettings.previousUserSourceMapSetting === 'unset'
           ) {
-            // This also works for adapters, as the source maps are also copied to e.g. the .vercel folder
-            updatedFilesToDeleteAfterUpload = ['./dist/**/client/**/*.map', './dist/**/server/**/*.map'];
+            // This also works for adapters, as the source maps are also copied to e.g. the .vercel folder.
+            // Static output has no client folder and writes client assets to `<outDir>/<build.assets>` instead.
+            // Astro removes the hidden `.prerender` folder itself, but we don't want to rely on that.
+            updatedFilesToDeleteAfterUpload = [
+              './dist/**/client/**/*.map',
+              './dist/**/server/**/*.map',
+              `./dist/**/${config.build?.assets ?? '_astro'}/**/*.map`,
+              './dist/**/.prerender/**/*.map',
+            ];
 
             debug &&
               logger.info(
