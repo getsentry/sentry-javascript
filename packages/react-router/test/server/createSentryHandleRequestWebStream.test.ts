@@ -1,6 +1,13 @@
+import type * as SentryCoreServer from '@sentry/core/server';
+import { _INTERNAL_safeUnref } from '@sentry/core/server';
 import type { EntryContext } from 'react-router';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { createSentryHandleRequestWebStream } from '../../src/server/createSentryHandleRequestWebStream';
+
+vi.mock('@sentry/core/server', async importOriginal => ({
+  ...(await importOriginal<typeof SentryCoreServer>()),
+  _INTERNAL_safeUnref: vi.fn(timer => timer),
+}));
 
 vi.mock('../../src/server/wrapSentryHandleRequest', () => ({
   wrapSentryHandleRequest: vi.fn(fn => fn),
@@ -137,6 +144,19 @@ describe('createSentryHandleRequestWebStream', () => {
     const response = (await handleRequest(makeRequest(), 200, headers, makeRouterContext(), {})) as Response;
     expect(response).toBeInstanceOf(Response);
     expect(response.status).toBe(200);
+  });
+
+  it('unrefs the abort timer so it cannot keep a Node process alive', async () => {
+    mockRenderToReadableStream.mockResolvedValue(createBody(Promise.resolve()));
+
+    const handleRequest = createSentryHandleRequestWebStream({
+      renderToReadableStream: mockRenderToReadableStream,
+      ServerRouter: mockServerRouter,
+    });
+
+    await handleRequest(makeRequest(), 200, headers, makeRouterContext(), {});
+
+    expect(_INTERNAL_safeUnref).toHaveBeenCalledTimes(1);
   });
 
   it('aborts the signal after streamTimeout and clears the timer once allReady settles', async () => {

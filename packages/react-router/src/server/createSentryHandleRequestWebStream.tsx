@@ -1,3 +1,4 @@
+import { _INTERNAL_safeUnref } from '@sentry/core/server';
 import React from 'react';
 import type { AppLoadContext, EntryContext, RouterContextProvider } from 'react-router';
 import type {
@@ -41,7 +42,7 @@ export function createSentryHandleRequestWebStream(
     const app = <ServerRouter context={routerContext} url={request.url} nonce={nonce} />;
 
     const controller = new AbortController();
-    const abortTimer = setTimeout(() => controller.abort(), streamTimeout);
+    const abortTimer = _INTERNAL_safeUnref(setTimeout(() => controller.abort(), streamTimeout));
 
     let body: RenderToReadableStreamResult;
     try {
