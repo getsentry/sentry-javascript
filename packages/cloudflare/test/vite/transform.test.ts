@@ -216,6 +216,15 @@ describe('default export wrapping', () => {
     );
   });
 
+  it('skips a hand-wrapped `export const` exported as default by a specifier', () => {
+    const code = [
+      "import { withSentry } from '@sentry/cloudflare';",
+      'export const handler = withSentry((env) => ({}), { fetch() {} });',
+      'export { handler as default };',
+    ].join('\n');
+    expect(transform(code, ctx)).toBeUndefined();
+  });
+
   it('skips a hand-wrapped local exported as default by a specifier', () => {
     const code = [
       "import { withSentry } from '@sentry/cloudflare';",
@@ -648,6 +657,22 @@ describe('WorkerEntrypoint class wrapping (structural)', () => {
     expect(result.code).toContain('const __SENTRY_WRAPPED_AdminEntry__ = __SENTRY__.withSentry(');
     expect(result.code).toContain('export { __SENTRY_WRAPPED_AdminEntry__ as AdminEntry };');
     expect(result.wrappedClasses).toEqual(new Set(['AdminEntry']));
+  });
+
+  it.each([
+    ['after', ['export class AdminEntry extends WorkerEntrypoint {}', 'export { AdminEntry as default };']],
+    ['before', ['export { AdminEntry as default };', 'export class AdminEntry extends WorkerEntrypoint {}']],
+  ])('shares one wrapper between `export class` and a default specifier %s it', (_order, lines) => {
+    const code = ["import { WorkerEntrypoint } from 'cloudflare:workers';", ...lines].join('\n');
+
+    const result = transform(code, ctx)!;
+    expect(result.code.match(/withSentry\(/g)).toHaveLength(1);
+    // The wrapper follows the class, so it never reads the class before it is set.
+    expect(result.code.indexOf('const __SENTRY_WRAPPED_AdminEntry__')).toBeGreaterThan(
+      result.code.indexOf('class AdminEntry extends WorkerEntrypoint {}'),
+    );
+    expect(result.code).toContain('export { __SENTRY_WRAPPED_AdminEntry__ as default };');
+    expect(result.code).toContain('export { __SENTRY_WRAPPED_AdminEntry__ as AdminEntry };');
   });
 
   it('wraps a class extending an aliased WorkerEntrypoint import', () => {

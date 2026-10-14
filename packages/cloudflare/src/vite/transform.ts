@@ -219,7 +219,7 @@ interface TransformState {
   needsImport: boolean;
   wrappedClasses: Set<string>;
   /**
-   * Top-level (non-exported) class declarations, so specifier exports like
+   * Top-level class declarations, exported or not, so specifier exports like
    * `export { MyDO }` can locate the class they refer to.
    */
   topLevelClasses: Map<string, ClassDeclarationNode>;
@@ -326,8 +326,9 @@ function collectManuallyWrappedLocals(ast: ProgramBody): Set<string> {
   const locals = new Set<string>();
 
   for (const node of ast.body) {
-    if (node.type !== 'VariableDeclaration') continue;
-    for (const declarator of (node as VariableDeclarationNode).declarations ?? []) {
+    const declaration = declarationOf(node);
+    if (declaration?.type !== 'VariableDeclaration') continue;
+    for (const declarator of (declaration as VariableDeclarationNode).declarations ?? []) {
       const name = declarator.id?.type === 'Identifier' ? declarator.id.name : undefined;
       const init = declarator.init;
       if (name && init && wrapperMethods.some(method => isCallToMethod(init, method))) {
@@ -342,7 +343,7 @@ function collectManuallyWrappedLocals(ast: ProgramBody): Set<string> {
 function collectDeclaringStatements(ast: ProgramBody): Map<string, BaseNode> {
   const statements = new Map<string, BaseNode>();
   for (const node of ast.body) {
-    const declaration = node.type === 'ExportNamedDeclaration' ? (node as ExportNamedNode).declaration : node;
+    const declaration = declarationOf(node);
     if (!declaration) continue;
     const ids =
       declaration.type === 'VariableDeclaration'
@@ -360,11 +361,17 @@ function collectDeclaringStatements(ast: ProgramBody): Map<string, BaseNode> {
 function collectTopLevelClasses(ast: ProgramBody): Map<string, ClassDeclarationNode> {
   const classes = new Map<string, ClassDeclarationNode>();
   for (const node of ast.body) {
-    if (node.type !== 'ClassDeclaration') continue;
-    const classNode = node as ClassDeclarationNode;
+    const declaration = declarationOf(node);
+    if (declaration?.type !== 'ClassDeclaration') continue;
+    const classNode = declaration as ClassDeclarationNode;
     if (classNode.id?.name) classes.set(classNode.id.name, classNode);
   }
   return classes;
+}
+
+/** The declaration a top-level statement makes, looking through `export` (`export const x = ...`). */
+function declarationOf(node: BaseNode): BaseNode | null | undefined {
+  return node.type === 'ExportNamedDeclaration' ? (node as ExportNamedNode).declaration : node;
 }
 
 function wrapDefaultExport(node: ExportDefaultNode, ctx: TransformContext, state: TransformState): void {
