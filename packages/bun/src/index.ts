@@ -100,6 +100,7 @@ export {
   modulesIntegration,
   contextLinesIntegration,
   nodeContextIntegration,
+  awsLambdaWebIntegration,
   localVariablesIntegration,
   requestDataIntegration,
   systemErrorIntegration,
