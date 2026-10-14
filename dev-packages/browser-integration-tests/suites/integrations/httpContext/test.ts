@@ -1,7 +1,7 @@
 import { expect } from '@playwright/test';
 import type { Event } from '@sentry/core';
 import { sentryTest } from '../../../utils/fixtures';
-import { getFirstSentryEnvelopeRequest } from '../../../utils/helpers';
+import { envelopeRequestParser, getFirstSentryEnvelopeRequest, waitForErrorRequest } from '../../../utils/helpers';
 
 sentryTest('httpContextIntegration captures user-agent and referrer', async ({ getLocalTestUrl, page }) => {
   const url = await getLocalTestUrl({ testDir: __dirname });
@@ -22,4 +22,16 @@ sentryTest('httpContextIntegration captures user-agent and referrer', async ({ g
     },
     url: expect.any(String),
   });
+});
+
+sentryTest('httpContextIntegration filters sensitive query params in the URL', async ({ getLocalTestUrl, page }) => {
+  const url = await getLocalTestUrl({ testDir: __dirname });
+
+  const errorEventPromise = waitForErrorRequest(page);
+
+  await page.goto(`${url}?jwt=sensitive-jwt-value&page=1`);
+
+  const errorEvent = envelopeRequestParser(await errorEventPromise);
+
+  expect(errorEvent.request?.url).toBe(`${url}?jwt=[Filtered]&page=1`);
 });
