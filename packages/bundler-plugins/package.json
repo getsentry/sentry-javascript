@@ -132,6 +132,7 @@
   },
   "devDependencies": {
     "@babel/core": "^7.18.5",
+    "@babel/parser": "^7.29.8",
     "@babel/preset-react": "^7.23.3",
     "@types/babel__core": "^7.20.5",
     "@types/node": "^20.19.0",

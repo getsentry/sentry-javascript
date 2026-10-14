@@ -44,16 +44,27 @@ function isSideEffectFreePackage(packageName) {
 
   let sideEffectFree = false;
   try {
-    const json = JSON.parse(
-      fs.readFileSync(path.resolve(repoRoot, 'node_modules', packageName, 'package.json'), { encoding: 'utf8' }),
-    );
+    const json = JSON.parse(fs.readFileSync(findPackageJson(packageName), { encoding: 'utf8' }));
     sideEffectFree = json.sideEffects === false;
   } catch {
-    // Not resolvable from the repo root - assume side effects.
+    // Not resolvable from the built package - assume side effects.
   }
 
   sideEffectsCache.set(packageName, sideEffectFree);
   return sideEffectFree;
+}
+
+/**
+ * The `package.json` of a dependency of the built package (the working directory): the nearest
+ * `node_modules/<packageName>` from there up to the repo root, like Node resolves it.
+ */
+function findPackageJson(packageName) {
+  for (let dir = process.cwd(); ; dir = path.dirname(dir)) {
+    const candidate = path.join(dir, 'node_modules', packageName, 'package.json');
+    if (fs.existsSync(candidate) || dir === repoRoot || dir === path.dirname(dir)) {
+      return candidate;
+    }
+  }
 }
 
 function getPackageName(id) {

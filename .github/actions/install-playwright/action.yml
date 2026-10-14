@@ -36,6 +36,8 @@ runs:
         # Bump the iteration when bumping runner images to use a new cache
         key: playwright-${{ runner.os }}-iteration-1-${{ steps.playwright-version.outputs.version }}
 
+    # The npx steps run outside the repository. In the repository, npm finds this playwright version in
+    # node_modules/.pnpm and then runs node_modules/.bin/playwright, which the root folder does not have.
     # We always install all browsers, if uncached
     - name: Install Playwright dependencies (uncached)
       env:
@@ -43,6 +45,7 @@ runs:
       run: npx -y "playwright@$PLAYWRIGHT_VERSION" install chromium webkit firefox --with-deps
       if: steps.playwright-version.outputs.version != '' && steps.playwright-cache.outputs.cache-hit != 'true'
       shell: bash
+      working-directory: ${{ runner.temp }}
 
     - name: Install Playwright system dependencies only (cached)
       env:
@@ -51,6 +54,7 @@ runs:
       run: npx -y "playwright@$PLAYWRIGHT_VERSION" install-deps "$PLAYWRIGHT_BROWSERS"
       if: steps.playwright-version.outputs.version != '' && steps.playwright-cache.outputs.cache-hit == 'true'
       shell: bash
+      working-directory: ${{ runner.temp }}
 
     # Only store cache on develop branch
     - name: Store cached playwright binaries
