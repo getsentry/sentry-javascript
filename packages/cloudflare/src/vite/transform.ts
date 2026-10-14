@@ -61,6 +61,10 @@ interface VariableDeclarationNode extends BaseNode {
   declarations?: VariableDeclaratorNode[];
 }
 
+interface ImportDeclarationNode extends BaseNode {
+  specifiers?: Array<{ local?: { type: string; name?: string } }>;
+}
+
 function isCallToMethod(node: BaseNode, methodName: string): boolean {
   if (node.type !== 'CallExpression') return false;
   const callee = (node as CallExpressionNode).callee;
@@ -169,6 +173,7 @@ export function applyAutoInstrumentTransforms(
     optionsFn: sameWorkerBindings.length > 0 ? MERGED_OPTIONS_IDENTIFIER : ctx.optionsFn,
     autoWrapped: new Set<ExportName>(),
     manuallyWrappedLocals: collectManuallyWrappedLocals(ast),
+    declaringStatements: collectDeclaringStatements(ast),
   };
   const { wrappedClasses } = state;
 
@@ -245,6 +250,8 @@ interface TransformState {
    * specifier must report it as wrapped rather than wrap it a second time.
    */
   manuallyWrappedLocals: Set<string>;
+  /** Top-level binding name → the statement that declares it. */
+  declaringStatements: Map<string, BaseNode>;
 }
 
 /**
@@ -330,6 +337,24 @@ function collectManuallyWrappedLocals(ast: ProgramBody): Set<string> {
   }
 
   return locals;
+}
+
+function collectDeclaringStatements(ast: ProgramBody): Map<string, BaseNode> {
+  const statements = new Map<string, BaseNode>();
+  for (const node of ast.body) {
+    const declaration = node.type === 'ExportNamedDeclaration' ? (node as ExportNamedNode).declaration : node;
+    if (!declaration) continue;
+    const ids =
+      declaration.type === 'VariableDeclaration'
+        ? ((declaration as VariableDeclarationNode).declarations ?? []).map(declarator => declarator.id)
+        : declaration.type === 'ImportDeclaration'
+          ? ((declaration as ImportDeclarationNode).specifiers ?? []).map(specifier => specifier.local)
+          : [(declaration as ClassDeclarationNode).id];
+    for (const id of ids) {
+      if (id?.type === 'Identifier' && id.name) statements.set(id.name, node);
+    }
+  }
+  return statements;
 }
 
 function collectTopLevelClasses(ast: ProgramBody): Map<string, ClassDeclarationNode> {
@@ -505,7 +530,9 @@ function wrapSpecifierExports(node: ExportNamedNode, ctx: TransformContext, stat
 
 /**
  * `export { handler as default }`, the form bundlers emit for a default export. The wrapper is
- * declared at the end of the module, where `handler` is sure to be initialized.
+ * declared right after `handler`, so the default export is set as soon as `handler` is. It is a
+ * `var`: a circular import that reads the default export earlier gets `undefined`, as it would
+ * from the bundler's own `var`, where a `const` would throw and stop the Worker from starting.
  */
 function wrapDefaultSpecifier(localName: string, state: TransformState): string | undefined {
   if (state.manuallyWrappedLocals.has(localName)) return undefined;
@@ -517,7 +544,13 @@ function wrapDefaultSpecifier(localName: string, state: TransformState): string 
     return `${wrappedName} as default`;
   }
 
-  state.ms.append(`\nconst __SENTRY_DEFAULT_EXPORT__ = __SENTRY__.withSentry(${state.optionsFn}, ${localName});\n`);
+  const wrapper = `var __SENTRY_DEFAULT_EXPORT__ = __SENTRY__.withSentry(${state.optionsFn}, ${localName});`;
+  const declaringStatement = state.declaringStatements.get(localName);
+  if (declaringStatement) {
+    state.ms.appendLeft(declaringStatement.end, `\n${wrapper}`);
+  } else {
+    state.ms.append(`\n${wrapper}\n`);
+  }
   state.needsImport = true;
   state.autoWrapped.add(DEFAULT_EXPORT);
   return '__SENTRY_DEFAULT_EXPORT__ as default';
