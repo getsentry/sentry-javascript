@@ -80,15 +80,13 @@ export type InternalGlobal = {
     /**
      * Channel-subscriber integration factories stored by the snippet the
      * bundler transform splices into each instrumented module, keyed by module
-     * name. A module holds a single factory, or a Set of them once it registers
-     * more than one integration (e.g. `h3` → span + Server-Timing) — the single
-     * shape is kept for the common case so an older reader stays compatible. A
-     * factory shared by several packages (e.g. pg/pg-pool) appears under several
-     * keys; integration-name deduplication collapses them at setup. A
-     * bundler-only SDK (e.g. `@sentry/cloudflare`) reads these at `init()` and
-     * instantiates them.
+     * name. A module may register several integrations (e.g. `h3` → span +
+     * Server-Timing). A factory shared by several packages (e.g. pg/pg-pool)
+     * appears under several keys; integration-name deduplication collapses them
+     * at setup. A bundler-only SDK (e.g. `@sentry/cloudflare`) reads these at
+     * `init()` and instantiates them.
      */
-    integrations?: Map<string, (() => Integration) | Set<() => Integration>>;
+    integrations?: Map<string, Array<() => Integration>>;
     /**
      * Set once `registerDiagnosticsChannelInjection()` has run but could not
      * install the runtime module hooks — most commonly because

@@ -388,9 +388,9 @@ describe('getDefaultIntegrations', () => {
     globalThis.__SENTRY_ORCHESTRION__ = {
       bundler: new Set(['mysql', 'pg', 'lru-memoizer']),
       integrations: new Map([
-        ['mysql', mysqlIntegration],
-        ['pg', postgresIntegration],
-        ['lru-memoizer', lruMemoizerIntegration],
+        ['mysql', [mysqlIntegration]],
+        ['pg', [postgresIntegration]],
+        ['lru-memoizer', [lruMemoizerIntegration]],
       ]),
     };
 
@@ -411,7 +411,7 @@ describe('getDefaultIntegrations', () => {
     // after init: store the factory on the marker, then emit the event.
     globalThis.__SENTRY_ORCHESTRION__ = {
       bundler: new Set(['mysql']),
-      integrations: new Map([['mysql', mysqlIntegration]]),
+      integrations: new Map([['mysql', [mysqlIntegration]]]),
     };
     client?.emit('orchestrion.module-injected', 'mysql');
 
@@ -426,10 +426,10 @@ describe('getDefaultIntegrations', () => {
     expect(client?.getIntegrationByName('LruMemoizer')).toBeUndefined();
 
     // A module registering more than one integration (like `h3` → span + Server-Timing) evaluates
-    // after init: store the Set of factories on the marker, then emit the event.
+    // after init: store its factories on the marker, then emit the event.
     globalThis.__SENTRY_ORCHESTRION__ = {
       bundler: new Set(['some-module']),
-      integrations: new Map([['some-module', new Set([mysqlIntegration, lruMemoizerIntegration])]]),
+      integrations: new Map([['some-module', [mysqlIntegration, lruMemoizerIntegration]]]),
     };
     client?.emit('orchestrion.module-injected', 'some-module');
 
@@ -442,7 +442,7 @@ describe('getDefaultIntegrations', () => {
     // One module registering more than one integration (like `h3` → span + Server-Timing).
     globalThis.__SENTRY_ORCHESTRION__ = {
       bundler: new Set(['some-module']),
-      integrations: new Map([['some-module', new Set([mysqlIntegration, lruMemoizerIntegration])]]),
+      integrations: new Map([['some-module', [mysqlIntegration, lruMemoizerIntegration]]]),
     };
 
     const names = getDefaultIntegrations({}).map(i => i.name);

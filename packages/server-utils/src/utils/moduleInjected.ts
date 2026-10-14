@@ -39,11 +39,9 @@ export function orchestrionModuleInjected(moduleName: string, ...integrationFns:
 
   // Each call carries the module's complete factory list, so it replaces rather than merges: every
   // instrumented file of a package (e.g. pg, amqplib) passes fresh thunks for the same integrations,
-  // which identity can't dedupe. A single factory keeps the plain shape older readers expect; only a
-  // module with several integrations (e.g. `h3` → span + Server-Timing) is stored as a Set.
-  const [first, ...rest] = integrationFns;
-  if (first) {
-    (marker.integrations ??= new Map()).set(moduleName, rest.length ? new Set(integrationFns) : first);
+  // which identity can't dedupe.
+  if (integrationFns.length) {
+    (marker.integrations ??= new Map()).set(moduleName, integrationFns);
   }
 
   getClient()?.emit('orchestrion.module-injected', moduleName);

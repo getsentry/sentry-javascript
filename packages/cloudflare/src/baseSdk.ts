@@ -27,8 +27,8 @@ import { defaultStackParser } from './vendor/stacktrace';
 /**
  * Instantiate the channel-subscriber factories the `@sentry/cloudflare/vite`
  * plugin registered on the global marker. The plugin splices a small snippet
- * into each instrumented module that `.set`s its factory here (keyed by module
- * name), so the marker holds one factory per package actually bundled.
+ * into each instrumented module that `.set`s its factories here (keyed by module
+ * name), so the marker holds one entry per package actually bundled.
  *
  * The marker is read directly instead of importing the factories, so a worker
  * built without the plugin — where the channels never fire — ships none of this
@@ -37,10 +37,7 @@ import { defaultStackParser } from './vendor/stacktrace';
 function getRegisteredChannelIntegrations(): Integration[] {
   const registered = GLOBAL_OBJ.__SENTRY_ORCHESTRION__?.integrations;
 
-  // A module holds a single factory, or a Set of them (once it registers more than one integration).
-  return registered
-    ? [...registered.values()].flatMap(entry => (entry instanceof Set ? [...entry] : [entry])).map(factory => factory())
-    : [];
+  return registered ? [...registered.values()].flat().map(factory => factory()) : [];
 }
 
 /**
@@ -159,8 +156,7 @@ export function initWithDefaultIntegrations(
   // integration on the live client here. `addIntegration` dedupes by
   // integration name, so already-installed integrations are no-ops.
   client.on('orchestrion.module-injected', moduleName => {
-    const entry = GLOBAL_OBJ.__SENTRY_ORCHESTRION__?.integrations?.get(moduleName);
-    const factories = entry instanceof Set ? entry : entry ? [entry] : [];
+    const factories = GLOBAL_OBJ.__SENTRY_ORCHESTRION__?.integrations?.get(moduleName) ?? [];
     factories.forEach(factory => client.addIntegration(factory()));
   });
 

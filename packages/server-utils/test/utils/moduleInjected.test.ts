@@ -38,14 +38,14 @@ describe('orchestrionModuleInjected', () => {
   it('stores the factory on the global marker keyed by module name', () => {
     const fn = factory('Mysql');
     orchestrionModuleInjected('mysql', fn);
-    expect(GLOBAL_OBJ.__SENTRY_ORCHESTRION__?.integrations?.get('mysql')).toBe(fn);
+    expect(GLOBAL_OBJ.__SENTRY_ORCHESTRION__?.integrations?.get('mysql')).toEqual([fn]);
   });
 
-  it('stores a Set when a module registers several integrations in one call', () => {
+  it('stores all factories a module registers in one call', () => {
     const fn1 = factory('Nitro');
     const fn2 = factory('NitroServerTiming');
     orchestrionModuleInjected('h3', fn1, fn2);
-    expect(GLOBAL_OBJ.__SENTRY_ORCHESTRION__?.integrations?.get('h3')).toEqual(new Set([fn1, fn2]));
+    expect(GLOBAL_OBJ.__SENTRY_ORCHESTRION__?.integrations?.get('h3')).toEqual([fn1, fn2]);
   });
 
   it('keeps a single factory when several files of one package register the same integration', () => {
@@ -54,7 +54,7 @@ describe('orchestrionModuleInjected', () => {
     const fromPool = factory('Postgres');
     orchestrionModuleInjected('pg', fromClient);
     orchestrionModuleInjected('pg', fromPool);
-    expect(GLOBAL_OBJ.__SENTRY_ORCHESTRION__?.integrations?.get('pg')).toBe(fromPool);
+    expect(GLOBAL_OBJ.__SENTRY_ORCHESTRION__?.integrations?.get('pg')).toEqual([fromPool]);
   });
 
   it('does not accumulate factories when several files register a multi-integration module', () => {
@@ -62,7 +62,7 @@ describe('orchestrionModuleInjected', () => {
     const fn1 = factory('Nitro');
     const fn2 = factory('NitroServerTiming');
     orchestrionModuleInjected('h3', fn1, fn2);
-    expect(GLOBAL_OBJ.__SENTRY_ORCHESTRION__?.integrations?.get('h3')).toEqual(new Set([fn1, fn2]));
+    expect(GLOBAL_OBJ.__SENTRY_ORCHESTRION__?.integrations?.get('h3')).toEqual([fn1, fn2]);
   });
 
   it('stores no factory when none is given', () => {
