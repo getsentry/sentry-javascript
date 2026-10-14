@@ -10,6 +10,11 @@ import { initialize, load, resolve, createDiagnosticsPort } from '@apm-js-collab
 import { setDiagnosticsHook } from '@apm-js-collab/tracing-hooks/lib/diagnostics.js';
 
 type NodeModule = {
+  Module: {
+    prototype: {
+      _compile: (this: unknown, content: string, filename: string, ...args: unknown[]) => unknown;
+    };
+  };
   registerHooks?: (options: { load: Function; resolve: Function }) => { deregister: () => void };
   register?: typeof register;
 };
@@ -192,7 +197,7 @@ export function registerDiagnosticsChannelInjection(): void {
 
   // `Module.registerHooks` / `Module.register` are newer than the @types/node
   // we build against, hence the cast.
-  const mod = Module as NodeModule;
+  const mod = Module as unknown as NodeModule;
 
   setDiagnosticsHook(({ url, moduleName, error }): void => {
     if (error) {
@@ -224,7 +229,31 @@ export function registerDiagnosticsChannelInjection(): void {
   try {
     if (typeof mod.registerHooks === 'function' && stableSyncHooks) {
       initialize({ instrumentations: SENTRY_RUNTIME_INSTRUMENTATIONS });
-      mod.registerHooks({ resolve, load: globalAny.Deno ? withDenoFormats(load) : load });
+      const isNode = !globalAny.Bun && !globalAny.Deno;
+      const filesLoadedByHook = new Set<string>();
+      const loadHook = globalAny.Deno ? withDenoFormats(load) : load;
+      mod.registerHooks({
+        resolve,
+        load: (url: string, context: unknown, nextLoad: Function) => {
+          const result = loadHook(url, context, nextLoad) as { format?: string } | undefined;
+          if (isNode && result?.format === 'commonjs') {
+            filesLoadedByHook.add(url);
+          }
+          return result;
+        },
+      });
+
+      if (isNode) {
+        // Custom require hooks bypass load. Avoid transforming files twice when load already handled them.
+        const prototype = mod.Module.prototype;
+        const originalCompile = prototype._compile;
+        new ModulePatch({ instrumentations: SENTRY_RUNTIME_INSTRUMENTATIONS }).patch();
+        const patchedCompile = prototype._compile;
+        prototype._compile = function (content, filename, ...args) {
+          const compile = filesLoadedByHook.delete(pathToFileURL(filename).href) ? originalCompile : patchedCompile;
+          return compile.call(this, content, filename, ...args);
+        };
+      }
       debug.log('Registered diagnostics-channel injection via Module.registerHooks()');
     } else if (typeof mod.register === 'function' && !globalAny.Bun && !globalAny.Deno) {
       // `Module.register` + the `_compile` patch is Node 18.19–24.12 / 25.0
