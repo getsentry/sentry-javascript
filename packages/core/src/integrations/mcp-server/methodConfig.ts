@@ -2,13 +2,15 @@
  * Method configuration and request processing for MCP server instrumentation
  */
 
-import { isObjectLike } from '../../utils/is';
 import {
-  MCP_PROMPT_NAME_ATTRIBUTE,
-  MCP_REQUEST_ARGUMENT,
-  MCP_RESOURCE_URI_ATTRIBUTE,
-  MCP_TOOL_NAME_ATTRIBUTE,
-} from './attributes';
+  MCP_PROMPT_NAME,
+  MCP_REQUEST_ARGUMENT_KEY_BASE,
+  MCP_REQUEST_ARGUMENT_NAME,
+  MCP_REQUEST_ARGUMENT_URI,
+  MCP_RESOURCE_URI,
+  MCP_TOOL_NAME,
+} from '@sentry/conventions/attributes';
+import { isObjectLike } from '../../utils/is';
 import type { MethodConfig } from './types';
 
 /**
@@ -18,27 +20,29 @@ import type { MethodConfig } from './types';
 const METHOD_CONFIGS: Record<string, MethodConfig> = {
   'tools/call': {
     targetField: 'name',
-    targetAttribute: MCP_TOOL_NAME_ATTRIBUTE,
+    // oxlint-disable-next-line typescript/no-deprecated -- Preserve the legacy tool name attribute for existing consumers.
+    targetAttribute: MCP_TOOL_NAME,
     targetIsLowCardinality: true,
     captureArguments: true,
     argumentsField: 'arguments',
   },
   'resources/read': {
     targetField: 'uri',
-    targetAttribute: MCP_RESOURCE_URI_ATTRIBUTE,
+    targetAttribute: MCP_RESOURCE_URI,
     captureUri: true,
   },
   'resources/subscribe': {
     targetField: 'uri',
-    targetAttribute: MCP_RESOURCE_URI_ATTRIBUTE,
+    targetAttribute: MCP_RESOURCE_URI,
   },
   'resources/unsubscribe': {
     targetField: 'uri',
-    targetAttribute: MCP_RESOURCE_URI_ATTRIBUTE,
+    targetAttribute: MCP_RESOURCE_URI,
   },
   'prompts/get': {
     targetField: 'name',
-    targetAttribute: MCP_PROMPT_NAME_ATTRIBUTE,
+    // oxlint-disable-next-line typescript/no-deprecated -- Preserve the legacy prompt name attribute for existing consumers.
+    targetAttribute: MCP_PROMPT_NAME,
     targetIsLowCardinality: true,
     captureName: true,
     captureArguments: true,
@@ -95,17 +99,17 @@ export function getRequestArguments(method: string, params: Record<string, unkno
     const argumentsObj = params[config.argumentsField];
     if (isObjectLike(argumentsObj)) {
       for (const [key, value] of Object.entries(argumentsObj as Record<string, unknown>)) {
-        args[`${MCP_REQUEST_ARGUMENT}.${key.toLowerCase()}`] = JSON.stringify(value);
+        args[`${MCP_REQUEST_ARGUMENT_KEY_BASE}.${key.toLowerCase()}`] = JSON.stringify(value);
       }
     }
   }
 
   if (config.captureUri && params?.uri) {
-    args[`${MCP_REQUEST_ARGUMENT}.uri`] = JSON.stringify(params.uri);
+    args[MCP_REQUEST_ARGUMENT_URI] = JSON.stringify(params.uri);
   }
 
   if (config.captureName && params?.name) {
-    args[`${MCP_REQUEST_ARGUMENT}.name`] = JSON.stringify(params.name);
+    args[MCP_REQUEST_ARGUMENT_NAME] = JSON.stringify(params.name);
   }
 
   return args;

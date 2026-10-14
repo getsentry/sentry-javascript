@@ -20,11 +20,14 @@
     "test:build-latest-webpack": "pnpm install && pnpm add next@latest && pnpm build-webpack",
     "test:build-canary-webpack": "pnpm install && pnpm add next@canary && pnpm build-webpack",
     "test:assert": "pnpm test:prod && pnpm test:dev",
-    "test:assert-webpack": "pnpm test:prod && pnpm test:dev-webpack"
+    "test:assert-webpack": "pnpm test:prod && pnpm test:dev-webpack",
+    "test:build:cloudflare": "pnpm install && _SENTRY_TUNNEL_DESTINATION_OVERRIDE=http://localhost:3031/ opennextjs-cloudflare build",
+    "start:cloudflare": "opennextjs-cloudflare preview"
   },
   "dependencies": {
-    "@sentry/nextjs": "file:../../packed/sentry-nextjs-packed.tgz",
+    "@opennextjs/cloudflare": "^1.14.9",
     "@sentry/core": "file:../../packed/sentry-core-packed.tgz",
+    "@sentry/nextjs": "file:../../packed/sentry-nextjs-packed.tgz",
     "ai": "^3.0.0",
     "import-in-the-middle": "^1",
     "next": "16.3.8",
@@ -41,7 +44,8 @@
     "@types/react-dom": "^19",
     "eslint": "^9",
     "eslint-config-next": "^16",
-    "typescript": "^5"
+    "typescript": "^5",
+    "wrangler": "^4.61.0"
   },
   "volta": {
     "extends": "../../package.json"
@@ -57,6 +61,14 @@
         "build-command": "pnpm test:build",
         "label": "nextjs-16-tunnel (turbopack)",
         "assert-command": "pnpm test:assert"
+      }
+    ],
+    "optionalVariants": [
+      {
+        "runtime": "cloudflare",
+        "build-command": "pnpm test:build:cloudflare",
+        "assert-command": "pnpm test:prod",
+        "label": "nextjs-16-tunnel (cloudflare)"
       }
     ]
   }
