@@ -1,5 +1,5 @@
 import { existsSync, readFileSync } from 'node:fs';
-import { dirname, join } from 'node:path';
+import { basename, dirname, join } from 'node:path';
 import { GLOBAL_OBJ, type IntegrationFn } from '@sentry/core';
 
 type ModuleInfo = Record<string, string>;
@@ -73,6 +73,24 @@ function collectModules(): ModuleInfo {
   };
 }
 
+/**
+ * Whether `dir` is a node_modules folder of the main module, or a folder
+ * `<that node_modules>/<.pnpm or .bun>/<package id>/node_modules`, where the isolated layouts of pnpm and Bun keep
+ * each package.
+ */
+function isMainModulesDir(dir: string, mainPaths: string[]): boolean {
+  if (mainPaths.includes(dir)) {
+    return true;
+  }
+
+  const storeDir = dirname(dirname(dir));
+  return (
+    basename(dir) === 'node_modules' &&
+    ['.pnpm', '.bun'].includes(basename(storeDir)) &&
+    mainPaths.includes(dirname(storeDir))
+  );
+}
+
 /** Extract information about package.json modules from require.cache */
 function collectRequireModules(): ModuleInfo {
   const mainPaths = require.main?.paths || [];
@@ -94,7 +112,7 @@ function collectRequireModules(): ModuleInfo {
       if (!dir || orig === dir || seen.has(orig)) {
         return undefined;
       }
-      if (mainPaths.indexOf(dir) < 0) {
+      if (!isMainModulesDir(dir, mainPaths)) {
         return updir();
       }
 

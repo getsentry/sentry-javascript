@@ -1,4 +1,5 @@
 import { SDK_VERSION } from '@sentry/core';
+import { mkdirSync, rmSync, writeFileSync } from 'fs';
 import { join } from 'path';
 import { afterAll, describe, expect, test } from 'vitest';
 import { cleanupChildProcesses, createRunner } from '../../utils/runner';
@@ -25,6 +26,28 @@ describe('modulesIntegration', () => {
       .start();
     runner.makeRequest('get', '/test1', { expectError: true });
     await runner.completed();
+  });
+
+  test('CJS with the isolated layouts of pnpm and Bun', async () => {
+    const nodeModulesDir = join(__dirname, 'node_modules');
+    for (const [storeDir, name, version] of [
+      ['.pnpm', 'pnpm-isolated-package', '1.2.3'],
+      ['.bun', 'bun-isolated-package', '4.5.6'],
+    ] as const) {
+      const packageDir = join(nodeModulesDir, storeDir, `${name}@${version}`, 'node_modules', name);
+      mkdirSync(packageDir, { recursive: true });
+      writeFileSync(join(packageDir, 'package.json'), JSON.stringify({ name, version }));
+      writeFileSync(join(packageDir, 'index.js'), 'module.exports = {};');
+    }
+
+    try {
+      await createRunner(__dirname, 'scenario-isolated.js')
+        .expect({ event: { modules: { 'pnpm-isolated-package': '1.2.3', 'bun-isolated-package': '4.5.6' } } })
+        .start()
+        .completed();
+    } finally {
+      rmSync(nodeModulesDir, { recursive: true, force: true });
+    }
   });
 
   test('ESM', async () => {
