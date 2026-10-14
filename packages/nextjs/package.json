@@ -99,6 +99,7 @@
     "stacktrace-parser": "^0.1.11"
   },
   "devDependencies": {
+    "@sentry-internal/rollup-utils": "11.8.0",
     "cjs-module-lexer": "^2.2.0",
     "next": "15.5.27",
     "react": "^18.3.1",

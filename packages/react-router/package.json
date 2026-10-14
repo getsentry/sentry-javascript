@@ -70,6 +70,7 @@
   "devDependencies": {
     "@react-router/dev": "^7.17.0",
     "@react-router/node": "^7.15.0",
+    "@sentry-internal/rollup-utils": "11.8.0",
     "@testing-library/react": "^15.0.5",
     "@types/node": "^18.19.1",
     "@types/react": "17.0.3",

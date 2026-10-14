@@ -73,6 +73,7 @@
   "devDependencies": {
     "@babel/core": "^7.29.6",
     "@sentry-internal/replay-worker": "11.8.0",
+    "@sentry-internal/rollup-utils": "11.8.0",
     "@sentry/conventions": "^0.27.0",
     "@sentry/rrweb": "2.44.1",
     "@sentry/rrweb-snapshot": "2.44.1",

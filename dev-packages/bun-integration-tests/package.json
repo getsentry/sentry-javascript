@@ -23,6 +23,7 @@
   "devDependencies": {
     "@sentry-internal/node-integration-tests": "11.8.0",
     "@sentry-internal/test-utils": "11.8.0",
+    "@sentry/core": "11.8.0",
     "@types/mysql": "^2.15.27",
     "@types/pg": "^8.20.0",
     "bun-types": "^1.2.9",

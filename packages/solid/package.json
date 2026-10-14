@@ -72,6 +72,7 @@
     }
   },
   "devDependencies": {
+    "@sentry-internal/rollup-utils": "11.8.0",
     "@solidjs/router": "^1.0.0",
     "@solidjs/testing-library": "0.8.5",
     "@tanstack/solid-router": "^1.169.2",

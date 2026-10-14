@@ -85,6 +85,8 @@
     "sorcery": "1.0.0"
   },
   "devDependencies": {
+    "@sentry-internal/rollup-utils": "11.8.0",
+    "@sentry/browser": "11.8.0",
     "@sveltejs/kit": "^2.70.2",
     "@sveltejs/vite-plugin-svelte": "^3.0.0",
     "@types/node": "^18.19.1",
