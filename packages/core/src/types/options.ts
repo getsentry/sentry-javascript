@@ -661,6 +661,9 @@ export interface TunnelOptions {
    */
   allowedDsns?: string[];
 
+  /** A fixed tunnel path instead of the one derived from the DSN. A relative `tunnel` string sets this. */
+  path?: string;
+
   /** Path prefix the app is served under, e.g. `/docs`. Set the same value in the browser and the server `init`. */
   basePath?: string;
 
