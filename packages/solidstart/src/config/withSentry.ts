@@ -1,3 +1,4 @@
+import { fileURLToPath } from 'node:url';
 import { debug } from '@sentry/core';
 import { INSTRUMENTED_MODULE_NAMES } from '@sentry/server-utils/orchestrion/config';
 import {
@@ -116,6 +117,15 @@ export function withSentry(
       externals,
       commonJS,
       modules: [...existingModules, sentryNitroModule],
+      // Through `server.plugins`, since vinxi's dev server ignores plugins that Nitro modules add.
+      plugins: [...(server.plugins || []), getTunnelPluginPath()],
     },
   };
+}
+
+function getTunnelPluginPath(): string {
+  const url = new URL('../nitro/tunnelPlugin.js', import.meta.url);
+
+  // `import.meta.url` is a file URL in the built package, but not in every test environment.
+  return url.protocol === 'file:' ? fileURLToPath(url) : url.pathname;
 }

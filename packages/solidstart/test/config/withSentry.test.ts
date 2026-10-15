@@ -78,6 +78,16 @@ describe('withSentry()', () => {
     expect(addInstrumentationFileToBuildMock).toHaveBeenCalledWith(nitroOptions);
   });
 
+  it('registers the managed tunnel plugin through server.plugins and keeps user plugins', () => {
+    const config = withSentry({ server: { plugins: ['./user-plugin.ts'] } }, {});
+
+    expect((config?.server as { plugins?: string[] }).plugins).toEqual([
+      './user-plugin.ts',
+      // Vitest serves the source file, the built package the transpiled one.
+      expect.stringMatching(/\/nitro\/tunnelPlugin\.[jt]s$/),
+    ]);
+  });
+
   it('does not override user-defined hooks in server.hooks', () => {
     const config = withSentry(solidStartConfig, {});
     expect(config?.server.hooks?.['rollup:before']).toBe(userDefinedNitroRollupBeforeHookMock);
