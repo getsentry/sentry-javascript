@@ -2,7 +2,7 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import { sync as globSync } from 'glob';
-import { packedSymlinkFilename, versionedTarballFilename } from './packedTarballUtils';
+import { packedSymlinkFilename, TARBALL_PACKAGE_JSON_GLOB, versionedTarballFilename } from './packedTarballUtils';
 
 const e2eTestsRoot = path.resolve(__dirname, '..');
 const repositoryRoot = path.resolve(e2eTestsRoot, '../..');
@@ -13,7 +13,7 @@ function readJson<T>(filePath: string): T {
 }
 
 /**
- * Ensures `packed/<name>-packed.tgz` symlinks point at the current versioned tarballs under `packages/*`.
+ * Ensures `packed/<name>-packed.tgz` symlinks point at the current versioned tarballs.
  * Run after `pnpm run build:tarball` at the repo root (or from CI after restoring the tarball cache).
  */
 export function syncPackedTarballSymlinks(): void {
@@ -28,7 +28,7 @@ export function syncPackedTarballSymlinks(): void {
     fs.rmSync(path.join(packedDir, entry.name), { recursive: true, force: true });
   }
 
-  const packageJsonPaths = globSync('packages/*/package.json', {
+  const packageJsonPaths = globSync(TARBALL_PACKAGE_JSON_GLOB, {
     cwd: repositoryRoot,
     absolute: true,
   });
@@ -57,7 +57,7 @@ export function syncPackedTarballSymlinks(): void {
 
   if (linked === 0) {
     throw new Error(
-      `No packed tarballs found for version ${version} under packages/*/. Run "pnpm run build:tarball" at the repository root.`,
+      `No packed tarballs found for version ${version}. Run "pnpm run build:tarball" at the repository root.`,
     );
   }
 

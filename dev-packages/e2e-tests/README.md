@@ -101,6 +101,10 @@ that point to the versioned tarballs. When a test application is run, pnpm overr
 `pnpm-workspace.yaml` to pin all `@sentry/*` and `@sentry-internal/*` packages to those local tarballs. This means test apps
 install the packages as if they were published, but from the local build output instead of a registry.
 
+`@sentry-internal/test-utils` is packed as well. Test apps depend on its tarball directly
+(`"@sentry-internal/test-utils": "file:../../packed/sentry-internal-test-utils-packed.tgz"`), so after changing
+test-utils, run `yarn build:tarball` again.
+
 The E2E test script looks for test applications in the `test-applications` folder. These are standalone apps that use
 our SDKs and can be used to verify their behavior.
 

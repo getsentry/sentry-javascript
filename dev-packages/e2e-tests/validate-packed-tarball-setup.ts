@@ -8,7 +8,7 @@ const repositoryRoot = path.resolve(__dirname, '../..');
 const e2ePkg = JSON.parse(fs.readFileSync(path.join(__dirname, 'package.json'), 'utf8')) as { version: string };
 const version = e2ePkg.version;
 
-const tarballPaths = globSync(`packages/*/sentry-*-${version}.tgz`, {
+const tarballPaths = globSync(`{packages/*,dev-packages/test-utils}/sentry-*-${version}.tgz`, {
   cwd: repositoryRoot,
   absolute: true,
 });
