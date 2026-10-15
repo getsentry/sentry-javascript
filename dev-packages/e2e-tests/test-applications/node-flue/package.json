@@ -35,7 +35,6 @@
     "node": "24.x"
   },
   "volta": {
-    "node": "24.15.0",
     "extends": "../../package.json"
   },
   "sentryTest": {

@@ -18,8 +18,6 @@
     "concurrently": "^8.2.2"
   },
   "volta": {
-    "node": "20.19.2",
-    "yarn": "1.22.22",
-    "pnpm": "9.15.9"
+    "extends": "../../package.json"
   }
 }

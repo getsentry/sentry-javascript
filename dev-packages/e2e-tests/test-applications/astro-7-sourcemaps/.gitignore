@@ -1,0 +1,8 @@
+dist/
+.astro/
+node_modules/
+.DS_Store
+
+# Mock Sentry server artifacts
+.tmp_*
+/tmp_mock_chunks

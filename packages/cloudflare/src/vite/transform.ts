@@ -61,6 +61,10 @@ interface VariableDeclarationNode extends BaseNode {
   declarations?: VariableDeclaratorNode[];
 }
 
+interface ImportDeclarationNode extends BaseNode {
+  specifiers?: Array<{ local?: { type: string; name?: string } }>;
+}
+
 function isCallToMethod(node: BaseNode, methodName: string): boolean {
   if (node.type !== 'CallExpression') return false;
   const callee = (node as CallExpressionNode).callee;
@@ -169,6 +173,7 @@ export function applyAutoInstrumentTransforms(
     optionsFn: sameWorkerBindings.length > 0 ? MERGED_OPTIONS_IDENTIFIER : ctx.optionsFn,
     autoWrapped: new Set<ExportName>(),
     manuallyWrappedLocals: collectManuallyWrappedLocals(ast),
+    declaringStatements: collectDeclaringStatements(ast),
   };
   const { wrappedClasses } = state;
 
@@ -214,7 +219,7 @@ interface TransformState {
   needsImport: boolean;
   wrappedClasses: Set<string>;
   /**
-   * Top-level (non-exported) class declarations, so specifier exports like
+   * Top-level class declarations, exported or not, so specifier exports like
    * `export { MyDO }` can locate the class they refer to.
    */
   topLevelClasses: Map<string, ClassDeclarationNode>;
@@ -245,6 +250,8 @@ interface TransformState {
    * specifier must report it as wrapped rather than wrap it a second time.
    */
   manuallyWrappedLocals: Set<string>;
+  /** Top-level binding name → the statement that declares it. */
+  declaringStatements: Map<string, BaseNode>;
 }
 
 /**
@@ -319,8 +326,9 @@ function collectManuallyWrappedLocals(ast: ProgramBody): Set<string> {
   const locals = new Set<string>();
 
   for (const node of ast.body) {
-    if (node.type !== 'VariableDeclaration') continue;
-    for (const declarator of (node as VariableDeclarationNode).declarations ?? []) {
+    const declaration = declarationOf(node);
+    if (declaration?.type !== 'VariableDeclaration') continue;
+    for (const declarator of (declaration as VariableDeclarationNode).declarations ?? []) {
       const name = declarator.id?.type === 'Identifier' ? declarator.id.name : undefined;
       const init = declarator.init;
       if (name && init && wrapperMethods.some(method => isCallToMethod(init, method))) {
@@ -332,14 +340,38 @@ function collectManuallyWrappedLocals(ast: ProgramBody): Set<string> {
   return locals;
 }
 
+function collectDeclaringStatements(ast: ProgramBody): Map<string, BaseNode> {
+  const statements = new Map<string, BaseNode>();
+  for (const node of ast.body) {
+    const declaration = declarationOf(node);
+    if (!declaration) continue;
+    const ids =
+      declaration.type === 'VariableDeclaration'
+        ? ((declaration as VariableDeclarationNode).declarations ?? []).map(declarator => declarator.id)
+        : declaration.type === 'ImportDeclaration'
+          ? ((declaration as ImportDeclarationNode).specifiers ?? []).map(specifier => specifier.local)
+          : [(declaration as ClassDeclarationNode).id];
+    for (const id of ids) {
+      if (id?.type === 'Identifier' && id.name) statements.set(id.name, node);
+    }
+  }
+  return statements;
+}
+
 function collectTopLevelClasses(ast: ProgramBody): Map<string, ClassDeclarationNode> {
   const classes = new Map<string, ClassDeclarationNode>();
   for (const node of ast.body) {
-    if (node.type !== 'ClassDeclaration') continue;
-    const classNode = node as ClassDeclarationNode;
+    const declaration = declarationOf(node);
+    if (declaration?.type !== 'ClassDeclaration') continue;
+    const classNode = declaration as ClassDeclarationNode;
     if (classNode.id?.name) classes.set(classNode.id.name, classNode);
   }
   return classes;
+}
+
+/** The declaration a top-level statement makes, looking through `export` (`export const x = ...`). */
+function declarationOf(node: BaseNode): BaseNode | null | undefined {
+  return node.type === 'ExportNamedDeclaration' ? (node as ExportNamedNode).declaration : node;
 }
 
 function wrapDefaultExport(node: ExportDefaultNode, ctx: TransformContext, state: TransformState): void {
@@ -504,6 +536,37 @@ function wrapSpecifierExports(node: ExportNamedNode, ctx: TransformContext, stat
 }
 
 /**
+ * `export { handler as default }`, the form bundlers emit for a default export. The export is set
+ * in two steps. Right after `handler` is declared, it is bound to `handler` as-is, so a circular
+ * import that reads it during module evaluation gets the handler, as before the transform. At the
+ * end of the module, it is rebound to the wrapper, so a handler assigned or given methods later is
+ * wrapped as it ends up. The binding is a `var`: a read before `handler` is declared gets
+ * `undefined`, as it would from the bundler's own `var`, where a `const` would throw and stop the
+ * Worker from starting.
+ */
+function wrapDefaultSpecifier(localName: string, state: TransformState): string | undefined {
+  if (state.manuallyWrappedLocals.has(localName)) return undefined;
+
+  // Same as `export default Foo`: re-point at the wrapper a named export already made.
+  const wrappedName = state.wrappedLocals.get(localName);
+  if (wrappedName) {
+    state.autoWrapped.add(DEFAULT_EXPORT);
+    return `${wrappedName} as default`;
+  }
+
+  const declaringStatement = state.declaringStatements.get(localName);
+  if (declaringStatement) {
+    state.ms.appendLeft(declaringStatement.end, `\nvar __SENTRY_DEFAULT_EXPORT__ = ${localName};`);
+  }
+  state.ms.append(
+    `\n${declaringStatement ? '' : 'var '}__SENTRY_DEFAULT_EXPORT__ = __SENTRY__.withSentry(${state.optionsFn}, ${localName});`,
+  );
+  state.needsImport = true;
+  state.autoWrapped.add(DEFAULT_EXPORT);
+  return '__SENTRY_DEFAULT_EXPORT__ as default';
+}
+
+/**
  * Handle one export specifier, returning the `Wrapped as Exported` pair to emit for a class that
  * gets wrapped. The import/wrapper statements a cross-module pair depends on are pushed onto
  * `prelude`; a local class's wrapper binding is emitted after its declaration instead.
@@ -528,7 +591,10 @@ function wrapSpecifier(
     ? resolveWrapperKind(exportedName, sourceLiteral ? undefined : localName, state)
     : undefined;
 
-  if (!exportedName || !localName || !kind) return undefined;
+  if (!exportedName || !localName) return undefined;
+  if (!kind) {
+    return exportedName === DEFAULT_IMPORT && !sourceLiteral ? wrapDefaultSpecifier(localName, state) : undefined;
+  }
 
   // Without a `from` clause the specifier points at a module-local binding.
   if (!sourceLiteral) {

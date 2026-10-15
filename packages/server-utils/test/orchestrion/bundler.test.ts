@@ -227,6 +227,7 @@ describe('sentryOrchestrionPlugin (vite)', () => {
     const plugin = vitePlugin();
     (plugin.configResolved as (config: unknown) => void)({
       command,
+      plugins: [plugin],
       ssr: { external: ssrExternal },
       logger: { warn },
     } as unknown as ResolvedConfig);
@@ -321,6 +322,59 @@ describe('sentryOrchestrionPlugin (vite)', () => {
     // `node:diagnostics_channel` imports break against the browser shim.
     expect(transform.call({}, 'code', 'id', { ssr: false })).toBeNull();
     expect(transform.call({}, 'code', 'id', undefined)).toBeNull();
+    expect(transform.call({}, 'code', 'id', { ssr: true })).toBe('transformed');
+  });
+
+  it('transforms and warns only in the first instance when two Sentry plugins add it to one build', () => {
+    const first = vitePlugin();
+    const second = vitePlugin();
+    const warn = vi.fn();
+    const config = {
+      command: 'build',
+      plugins: [{ name: 'other' }, first, second],
+      ssr: { external: ['mysql'] },
+      logger: { warn },
+    } as unknown as ResolvedConfig;
+
+    (first.configResolved as (config: unknown) => void)(config);
+    (second.configResolved as (config: unknown) => void)(config);
+
+    const firstTransform = first.transform as (
+      this: unknown,
+      code: string,
+      id: string,
+      opts?: { ssr?: boolean },
+    ) => unknown;
+    const secondTransform = second.transform as (
+      this: unknown,
+      code: string,
+      id: string,
+      opts?: { ssr?: boolean },
+    ) => unknown;
+    expect(firstTransform.call({}, 'code', 'id', { ssr: true })).toBe('transformed');
+    expect(secondTransform.call({}, 'code', 'id', { ssr: true })).toBeNull();
+    expect(warn).toHaveBeenCalledTimes(1);
+  });
+
+  it('still transforms when an SDK wraps the plugin with an object spread', () => {
+    // `@sentry/remix` puts `{ ...orchestrion, configResolved, transform }` into the build and calls the original hooks.
+    const plugin = vitePlugin();
+    const wrapper = { ...plugin, configResolved: vi.fn(), transform: vi.fn() };
+    const config = {
+      command: 'build',
+      plugins: [wrapper],
+      ssr: {},
+      logger: { warn: vi.fn() },
+    } as unknown as ResolvedConfig;
+
+    (plugin.configResolved as (config: unknown) => void)(config);
+
+    const transform = plugin.transform as (
+      this: unknown,
+      code: string,
+      id: string,
+      opts?: { ssr?: boolean },
+    ) => unknown;
     expect(transform.call({}, 'code', 'id', { ssr: true })).toBe('transformed');
   });
 
