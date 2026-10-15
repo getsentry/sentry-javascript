@@ -310,18 +310,26 @@ export function determineReleaseName(): string | undefined {
   );
 }
 
+// Release detection and commit association can read the same variable in one build.
+const warnedPlaceholderEnvVars = new Set<string>();
+
 /**
  * Reads an environment variable that should hold a commit SHA. A value that is the variable's own
  * name, such as `VERCEL_GIT_COMMIT_SHA=VERCEL_GIT_COMMIT_SHA`, is ignored: it never changes, so as
  * a release name it would put every build into one release.
  */
-function readCommitEnvVar(name: string): string | undefined {
+export function readCommitEnvVar(name: string): string | undefined {
   const value = process.env[name];
   if (value?.trim() === name) {
-    // eslint-disable-next-line no-console
-    console.warn(
-      `[@sentry/bundler-plugins] Ignoring the ${name} environment variable as a release name, because its value is its own name. Set the release explicitly, or fix the variable in your build environment.`,
-    );
+    if (!warnedPlaceholderEnvVars.has(name)) {
+      warnedPlaceholderEnvVars.add(name);
+      // This runs before the plugin logger exists, so `silent: true` does not suppress it. That is
+      // deliberate: a warning that is easy to miss is how this misconfiguration went unnoticed.
+      // eslint-disable-next-line no-console
+      console.warn(
+        `[@sentry/bundler-plugins] Ignoring the ${name} environment variable as a release name, because its value is its own name. Set the release explicitly, or fix the variable in your build environment.`,
+      );
+    }
     return undefined;
   }
   return value;
