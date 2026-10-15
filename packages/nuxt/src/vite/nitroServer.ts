@@ -50,9 +50,11 @@ export function setupNitroServer(
   if (isNitroV3) {
     addNitroPlugin(moduleDirResolver.resolve('./runtime/plugins/handler.server'));
     addNitroPlugin(moduleDirResolver.resolve('./runtime/plugins/update-route-name.server'));
+    addNitroPlugin(moduleDirResolver.resolve('./runtime/plugins/tunnel.server'));
   } else {
     addNitroPlugin(moduleDirResolver.resolve('./runtime/plugins/handler-legacy.server'));
     addNitroPlugin(moduleDirResolver.resolve('./runtime/plugins/update-route-name-legacy.server'));
+    addNitroPlugin(moduleDirResolver.resolve('./runtime/plugins/tunnel-legacy.server'));
   }
 
   addNitroPlugin(moduleDirResolver.resolve('./runtime/plugins/sentry.server'));

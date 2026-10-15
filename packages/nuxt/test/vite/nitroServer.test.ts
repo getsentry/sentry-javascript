@@ -65,26 +65,32 @@ describe('setupNitroServer', () => {
       serverApi: 'nitro2',
       handler: 'handler-legacy.server',
       updateRouteName: 'update-route-name-legacy.server',
+      tunnel: 'tunnel-legacy.server',
       storage: 'storage-legacy.server',
     },
     {
       serverApi: 'nitro3',
       handler: 'handler.server',
       updateRouteName: 'update-route-name.server',
+      tunnel: 'tunnel.server',
       storage: 'storage.server',
     },
-  ] as const)('registers the $handler plugins on $serverApi', ({ serverApi, handler, updateRouteName, storage }) => {
-    const { nuxt } = createFakeNuxt();
+  ] as const)(
+    'registers the $handler plugins on $serverApi',
+    ({ serverApi, handler, updateRouteName, tunnel, storage }) => {
+      const { nuxt } = createFakeNuxt();
 
-    setupNitroServer(nuxt, serverApi, SERVER_CONFIG, MODULE_OPTIONS);
+      setupNitroServer(nuxt, serverApi, SERVER_CONFIG, MODULE_OPTIONS);
 
-    expect(addNitroPluginMock).toHaveBeenCalledTimes(5);
-    expect(addNitroPluginMock).toHaveBeenNthCalledWith(1, `${APP_ROOT}/.nuxt/sentry-server-config-plugin.mjs`);
-    expect(addNitroPluginMock).toHaveBeenNthCalledWith(2, `./runtime/plugins/${handler}`);
-    expect(addNitroPluginMock).toHaveBeenNthCalledWith(3, `./runtime/plugins/${updateRouteName}`);
-    expect(addNitroPluginMock).toHaveBeenNthCalledWith(4, './runtime/plugins/sentry.server');
-    expect(addNitroPluginMock).toHaveBeenNthCalledWith(5, `./runtime/plugins/${storage}`);
-  });
+      expect(addNitroPluginMock).toHaveBeenCalledTimes(6);
+      expect(addNitroPluginMock).toHaveBeenNthCalledWith(1, `${APP_ROOT}/.nuxt/sentry-server-config-plugin.mjs`);
+      expect(addNitroPluginMock).toHaveBeenNthCalledWith(2, `./runtime/plugins/${handler}`);
+      expect(addNitroPluginMock).toHaveBeenNthCalledWith(3, `./runtime/plugins/${updateRouteName}`);
+      expect(addNitroPluginMock).toHaveBeenNthCalledWith(4, `./runtime/plugins/${tunnel}`);
+      expect(addNitroPluginMock).toHaveBeenNthCalledWith(5, './runtime/plugins/sentry.server');
+      expect(addNitroPluginMock).toHaveBeenNthCalledWith(6, `./runtime/plugins/${storage}`);
+    },
+  );
 
   it('instruments the middleware and adds the config shim once Nitro initializes', () => {
     const { nuxt, callHook } = createFakeNuxt();
