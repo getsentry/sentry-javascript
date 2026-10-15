@@ -5334,6 +5334,11 @@
   resolved "https://registry.yarnpkg.com/@ioredis/commands/-/commands-1.5.1.tgz#a0a3449993b10c7aeb91ecb0d5f1a23692297e51"
   integrity sha512-JH8ZL/ywcJyR9MmJ5BNqZllXNZQqQbnVZOqpPQqE1vHiFgAw4NHbvE0FOduNU8IX9babitBT46571OnPTT0Zcw==
 
+"@ioredis/commands@2.0.0":
+  version "2.0.0"
+  resolved "https://registry.yarnpkg.com/@ioredis/commands/-/commands-2.0.0.tgz#7207c56e0be51fd9f2ec2505ebdb9372a3ceb76d"
+  integrity sha512-vrx0AE/T0h7cRZwfo1M39Cr+ZhZrkf0V8mQN75wucKCxCLD9l/VX6no3gFvrLqD1IlG/1LtzWovqEw3t0Vr9zg==
+
 "@isaacs/cliui@^8.0.2":
   version "8.0.2"
   resolved "https://registry.yarnpkg.com/@isaacs/cliui/-/cliui-8.0.2.tgz#b37667b7bc181c168782259bab42474fbf52b550"
@@ -7207,6 +7212,76 @@
   dependencies:
     playwright "1.63.0"
 
+"@pnpm/exe.android-arm64@12.11.2":
+  version "12.11.2"
+  resolved "https://sfw.security.sentry.io/npm/@pnpm/exe.android-arm64/-/exe.android-arm64-12.11.2.tgz#19a5bb724b6474d012183d27cf3e681a5b77676f"
+  integrity sha512-owLw13OfPkEoY+hLBNeeG+dCFhywr7q2d/EHPz4mNL2RhKnv8gNwMARkjkiDQu234aItVwFNDeGnmQXm+ikkAg==
+
+"@pnpm/exe.android-x64@12.11.2":
+  version "12.11.2"
+  resolved "https://sfw.security.sentry.io/npm/@pnpm/exe.android-x64/-/exe.android-x64-12.11.2.tgz#006e181ff05ac4865f1a0403e5eb06a4c726c818"
+  integrity sha512-GYPkVebl4iokOA/4MPSpGoUVfFlsth7uqOCe1XiaiM23LAdvUOMJBObqHJijr89ZqjwHm9pO6vO45GRwJ2U2qA==
+
+"@pnpm/exe.darwin-arm64@12.11.2":
+  version "12.11.2"
+  resolved "https://sfw.security.sentry.io/npm/@pnpm/exe.darwin-arm64/-/exe.darwin-arm64-12.11.2.tgz#5412671ac9eef2fabf21f7025d55f6f5a85c2b42"
+  integrity sha512-n9M4On66y8FDxUAKgMO1FXt0qihyG4e+56p3/F0uo8Bx9KplW8BwKVnXigzCJ8aNM6sVVPkOE6M9XXbeVIxnZA==
+
+"@pnpm/exe.darwin-x64@12.11.2":
+  version "12.11.2"
+  resolved "https://sfw.security.sentry.io/npm/@pnpm/exe.darwin-x64/-/exe.darwin-x64-12.11.2.tgz#e638b01084f6fbda14210cb5dfb27b0b7113ce62"
+  integrity sha512-oSW7n3sBT0c0cyk4kj10T2Y6Mpm+OFEiCAWozgX039tdoI6yqJF1uaFD3sw7ugLdu6VV3+uY0pa1TUZIPdxDWA==
+
+"@pnpm/exe.freebsd-x64@12.11.2":
+  version "12.11.2"
+  resolved "https://sfw.security.sentry.io/npm/@pnpm/exe.freebsd-x64/-/exe.freebsd-x64-12.11.2.tgz#ee8d8b123670fcaf2b8d00496c93f6165ae115f4"
+  integrity sha512-qbzc3KoDpa/Lkf8vs3jnDe6dUUbso+6eLIyssYFMiliLpYNxn8dirk11YoNnOQcdHVB50v5RFls1Yid6ttT5pg==
+
+"@pnpm/exe.linux-arm64-musl@12.11.2":
+  version "12.11.2"
+  resolved "https://sfw.security.sentry.io/npm/@pnpm/exe.linux-arm64-musl/-/exe.linux-arm64-musl-12.11.2.tgz#4ca69ac270510e5ef1a1d4e90b53b6f607b37706"
+  integrity sha512-uMEYDwKRktGwANubQ+kYCwmhNwg3Ik6qK89ahsbQ5cP30R/5FVJb/T99vr9XRUBC/A7mZI6eeT92oyVas9ACyg==
+
+"@pnpm/exe.linux-arm64@12.11.2":
+  version "12.11.2"
+  resolved "https://sfw.security.sentry.io/npm/@pnpm/exe.linux-arm64/-/exe.linux-arm64-12.11.2.tgz#9c0032a9afa67ce04d26210ba3fd38717f8fd0b6"
+  integrity sha512-6e8ZAQUwFXAWHHHv5FesWqf/kEK04wuitBv5f/gxzkC0DiBfaixr+f+6JQede8SF4Ji5LcMwVFJbzAtffpWxEg==
+
+"@pnpm/exe.linux-ppc64@12.11.2":
+  version "12.11.2"
+  resolved "https://sfw.security.sentry.io/npm/@pnpm/exe.linux-ppc64/-/exe.linux-ppc64-12.11.2.tgz#aa1ed3cd8dfb72ae7e82bd11552244e7d0cddd5f"
+  integrity sha512-Ui8A4nepkVupx2VpuFfysEluMvWK6gTB5rgVts7Ss/+8dj0RD28x3F/seNeH/zSypgC6yKdV6qsKVQh/uffTuQ==
+
+"@pnpm/exe.linux-riscv64@12.11.2":
+  version "12.11.2"
+  resolved "https://sfw.security.sentry.io/npm/@pnpm/exe.linux-riscv64/-/exe.linux-riscv64-12.11.2.tgz#6c199e88fef12313af84b3fb5178bca76b36cf9b"
+  integrity sha512-i1yLdQ5bu+wjQ+srtFoJAaY2gN/+oXHFdjul4llCeoDxHE0rTIG3R41NhHfCjyFPW4+CpbBT58933CL9sMOCnA==
+
+"@pnpm/exe.linux-s390x@12.11.2":
+  version "12.11.2"
+  resolved "https://sfw.security.sentry.io/npm/@pnpm/exe.linux-s390x/-/exe.linux-s390x-12.11.2.tgz#4b39d64e334720e057f5bbc7bb2a0abd17336d94"
+  integrity sha512-YS1/lhPjjTsN4QL50VaFZKRa3Uc/bDnhE8eKbJMFvuX06UuFS5YaiDg04APoZdfVSGqTfX27QAg7rfLMSWaqxA==
+
+"@pnpm/exe.linux-x64-musl@12.11.2":
+  version "12.11.2"
+  resolved "https://sfw.security.sentry.io/npm/@pnpm/exe.linux-x64-musl/-/exe.linux-x64-musl-12.11.2.tgz#8ad50201bb69e3b647d75fd2ba58fb6706221850"
+  integrity sha512-7eIxQR05fvJxCujUSKp5KTtehJ7QqrgqP/HD1+BcB/SaV2Be4XI1PEHiOgA1zxsiMIeMvTF6E4G4dYHrFjeXRg==
+
+"@pnpm/exe.linux-x64@12.11.2":
+  version "12.11.2"
+  resolved "https://sfw.security.sentry.io/npm/@pnpm/exe.linux-x64/-/exe.linux-x64-12.11.2.tgz#e5f2a6fdac29bd712ad6001d62e776a617d21fc4"
+  integrity sha512-FK7QKe24AYgppJwO3mpooYptduuvIGqKJPi5ac7MdnWkjUy46JBfYhCW0grnkWKC8YOf0x+vGviuQqJEj3SpQQ==
+
+"@pnpm/exe.win32-arm64@12.11.2":
+  version "12.11.2"
+  resolved "https://sfw.security.sentry.io/npm/@pnpm/exe.win32-arm64/-/exe.win32-arm64-12.11.2.tgz#2564ef5e03ea9e039bc1271133cab12bb6248005"
+  integrity sha512-PCTjVDdJb6VvraZxrEeFv6EqEA0hhIsAySx28e95J2Tqpi88hLpgOXgNqV0vpxq9A+b8GLQfyk/D+1UlJPv/YQ==
+
+"@pnpm/exe.win32-x64@12.11.2":
+  version "12.11.2"
+  resolved "https://sfw.security.sentry.io/npm/@pnpm/exe.win32-x64/-/exe.win32-x64-12.11.2.tgz#f473dc852f50662cc535aef1bcbe36bc3ad02769"
+  integrity sha512-8sgX86OvRjJ3yZs/TvGR2L31wH9ScPZ+f+geKI3ikuB0RRiK3i4LlTRO8OXN6pdRqj8epMde4312MCjj7JsJdA==
+
 "@polka/url@^1.0.0-next.24":
   version "1.0.0-next.28"
   resolved "https://registry.yarnpkg.com/@polka/url/-/url-1.0.0-next.28.tgz#d45e01c4a56f143ee69c54dd6b12eade9e270a73"
@@ -8024,10 +8099,10 @@
     "@angular-devkit/schematics" "14.2.13"
     jsonc-parser "3.1.0"
 
-"@sentry/conventions@0.26.0", "@sentry/conventions@^0.26.0":
-  version "0.26.0"
-  resolved "https://sfw.security.sentry.io/npm/@sentry/conventions/-/conventions-0.26.0.tgz#3da6c91e1c4e570914b998f8b4f97ab7e5144a23"
-  integrity sha512-ttSRcoLf2kIENDIFzH12aJaVMdxnidMYLvVNwEX/JjXfXaQot8u5M47QmgAFOOhVJ4nQ2uU8wTCh+fwSPrrCfg==
+"@sentry/conventions@0.27.0", "@sentry/conventions@^0.27.0":
+  version "0.27.0"
+  resolved "https://sfw.security.sentry.io/npm/@sentry/conventions/-/conventions-0.27.0.tgz#10a6a112d58347dfcf70d85d7a01e86f45a0ba2c"
+  integrity sha512-Mrqd/o7n/z7qWSYfQQA7x4fFTA0IqOG6JNsbBpnC97khPwZk7n6DPtOO7YgaYplSl8R8QLRbBz9Xv2lVhToSAg==
 
 "@sentry/node-cpu-profiler@^2.4.4":
   version "2.4.4"
@@ -15731,11 +15806,6 @@ fast-querystring@^1.0.0:
   dependencies:
     fast-decode-uri-component "^1.0.1"
 
-fast-redact@^3.1.1:
-  version "3.5.0"
-  resolved "https://registry.yarnpkg.com/fast-redact/-/fast-redact-3.5.0.tgz#e9ea02f7e57d0cd8438180083e93077e496285e4"
-  integrity sha512-dwsoQlS7h9hMeYUq1W++23NDcBLV4KqONnITDV9DjfS3q1SgDGVrBdvvTLUotWtPSD7asWDV9/CmsZPy8Hf70A==
-
 fast-safe-stringify@2.1.1:
   version "2.1.1"
   resolved "https://registry.yarnpkg.com/fast-safe-stringify/-/fast-safe-stringify-2.1.1.tgz#c406a83b6e70d9e35ce3b30a81141df30aeba884"
@@ -17635,6 +17705,18 @@ invariant@^2.2.1, invariant@^2.2.2:
     denque "2.1.0"
     redis-errors "1.2.0"
     redis-parser "3.0.0"
+    standard-as-callback "2.1.0"
+
+"ioredis-6@npm:ioredis@^6.0.0":
+  version "6.0.0"
+  resolved "https://registry.yarnpkg.com/ioredis/-/ioredis-6.0.0.tgz#b757c590547c43a5e18ea9c312d05c5c46c7e6fa"
+  integrity sha512-f+Dtubxfpf6KYFq7WVXJoOLn0bk4TJrMrN9SzeE+jrWrCWj7XX3fA6vkryafhADX+GMymRxgDJDOI33COkJc0w==
+  dependencies:
+    "@ioredis/commands" "2.0.0"
+    cluster-key-slot "1.1.1"
+    debug "4.4.3"
+    denque "2.1.0"
+    redis-errors "1.2.0"
     standard-as-callback "2.1.0"
 
 ioredis@5.10.1, ioredis@^5.10.1:
@@ -22359,27 +22441,10 @@ pino-std-serializers@^7.0.0:
   resolved "https://registry.yarnpkg.com/pino-std-serializers/-/pino-std-serializers-7.0.0.tgz#7c625038b13718dbbd84ab446bd673dc52259e3b"
   integrity sha512-e906FRY0+tV27iq4juKzSYPbUj2do2X2JX4EzSca1631EB2QJQUqGbDuERal7LCtOpxl6x3+nvo9NPZcmjkiFA==
 
-pino@9.10.0:
-  version "9.10.0"
-  resolved "https://registry.yarnpkg.com/pino/-/pino-9.10.0.tgz#b78555637605ef6f4287e51a89b2087d66da4859"
-  integrity sha512-VOFxoNnxICtxaN8S3E73pR66c5MTFC+rwRcNRyHV/bV/c90dXvJqMfjkeRFsGBDXmlUN3LccJQPqGIufnaJePA==
-  dependencies:
-    atomic-sleep "^1.0.0"
-    fast-redact "^3.1.1"
-    on-exit-leak-free "^2.1.0"
-    pino-abstract-transport "^2.0.0"
-    pino-std-serializers "^7.0.0"
-    process-warning "^5.0.0"
-    quick-format-unescaped "^4.0.3"
-    real-require "^0.2.0"
-    safe-stable-stringify "^2.3.1"
-    sonic-boom "^4.0.1"
-    thread-stream "^3.0.0"
-
-"pino@^9.14.0 || ^10.1.0":
-  version "10.3.1"
-  resolved "https://registry.yarnpkg.com/pino/-/pino-10.3.1.tgz#6552c8f8d8481844c9e452e7bf0be90bff1939ce"
-  integrity sha512-r34yH/GlQpKZbU1BvFFqOjhISRo1MNx1tWYsYvmj6KIRHSPMT2+yHOEb1SG6NMvRoHRF0a07kCOox/9yakl1vg==
+pino@10.4.0, "pino@^9.14.0 || ^10.1.0":
+  version "10.4.0"
+  resolved "https://registry.yarnpkg.com/pino/-/pino-10.4.0.tgz#8371a2633094100be30b6bf73fd69e29749588d5"
+  integrity sha512-bk1ZMTwG/Vymx+zPoa28MhNzucFvXJWp3csrSuxuHPSMeUettaCoQ5Jvg07mtC4JGNpcfTwz41oVCnNgBK9+vA==
   dependencies:
     "@pinojs/redact" "^0.4.0"
     atomic-sleep "^1.0.0"
@@ -22388,7 +22453,7 @@ pino@9.10.0:
     pino-std-serializers "^7.0.0"
     process-warning "^5.0.0"
     quick-format-unescaped "^4.0.3"
-    real-require "^0.2.0"
+    real-require "^1.0.0"
     safe-stable-stringify "^2.3.1"
     sonic-boom "^4.0.1"
     thread-stream "^4.0.0"
@@ -22462,6 +22527,26 @@ pluralize@^8.0.0:
   version "8.0.0"
   resolved "https://registry.yarnpkg.com/pluralize/-/pluralize-8.0.0.tgz#1a6fa16a38d12a1901e0320fa017051c539ce3b1"
   integrity sha512-Nc3IT5yHzflTfbjgqWcCPpo7DaKy4FnpB0l/zCAW0Tc7jxAiuqSxHasntB3D7887LSrA93kDJ9IXovxJYxyLCA==
+
+pnpm@12.11.2:
+  version "12.11.2"
+  resolved "https://sfw.security.sentry.io/npm/pnpm/-/pnpm-12.11.2.tgz#b52ddf8ba9850292e091eee9fbec5532159464eb"
+  integrity sha512-JaUWUqGWeFr18ovabf6NxYLr76SsHRgCIc4TkCMcX7dmN4IupLbkYzznSs3LCnf3Ja8RutOBd/3t2u6BipVcuQ==
+  optionalDependencies:
+    "@pnpm/exe.android-arm64" "12.11.2"
+    "@pnpm/exe.android-x64" "12.11.2"
+    "@pnpm/exe.darwin-arm64" "12.11.2"
+    "@pnpm/exe.darwin-x64" "12.11.2"
+    "@pnpm/exe.freebsd-x64" "12.11.2"
+    "@pnpm/exe.linux-arm64" "12.11.2"
+    "@pnpm/exe.linux-arm64-musl" "12.11.2"
+    "@pnpm/exe.linux-ppc64" "12.11.2"
+    "@pnpm/exe.linux-riscv64" "12.11.2"
+    "@pnpm/exe.linux-s390x" "12.11.2"
+    "@pnpm/exe.linux-x64" "12.11.2"
+    "@pnpm/exe.linux-x64-musl" "12.11.2"
+    "@pnpm/exe.win32-arm64" "12.11.2"
+    "@pnpm/exe.win32-x64" "12.11.2"
 
 possible-typed-array-names@^1.0.0:
   version "1.0.0"

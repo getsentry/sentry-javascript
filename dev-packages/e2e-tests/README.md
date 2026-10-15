@@ -98,7 +98,7 @@ A variant runs its `build-command` and `assert-command`. Without them, it runs t
 
 We build our packages, pack them into tarballs (`yarn build:tarball`), and create symlinks in the `packed/` directory
 that point to the versioned tarballs. When a test application is run, pnpm overrides are injected into its
-`package.json` to pin all `@sentry/*` and `@sentry-internal/*` packages to those local tarballs. This means test apps
+`pnpm-workspace.yaml` to pin all `@sentry/*` and `@sentry-internal/*` packages to those local tarballs. This means test apps
 install the packages as if they were published, but from the local build output instead of a registry.
 
 The E2E test script looks for test applications in the `test-applications` folder. These are standalone apps that use
@@ -117,6 +117,15 @@ Make sure to add a `test:build` and `test:assert` command to the new app's `pack
 
 Sentry packages are automatically resolved to the local build via pnpm overrides injected at test time, so no manual
 registry configuration is needed.
+
+Each app has a `pnpm-workspace.yaml` for its pnpm settings, because pnpm ignores the `pnpm` and `resolutions` fields in
+`package.json`. Copy it from a similar app. It needs `minimumReleaseAge: 0` and an `allowBuilds` entry for each
+dependency with a build script: `true` if the app needs the script, `false` if the script only prints a message. pnpm
+fails the install (`ERR_PNPM_IGNORED_BUILDS`) for a build script that `allowBuilds` does not list.
+
+Apps use the pnpm version from the root `devDependencies`. To use another version, set `packageManager` in the app's
+`package.json` (for example `"packageManager": "pnpm@10.34.6"`), and use the settings of that version in its
+`pnpm-workspace.yaml`. pnpm then switches to that version, locally and in CI. The lowest supported version is pnpm 10.
 
 ### Test apps that deploy a real Cloudflare Worker
 
@@ -172,8 +181,11 @@ is the reference setup.
   `withSentry` and reads the init options from `instrument.server.ts` next to the entry. The start command runs
   `wrangler dev` on the build output. Code at module scope must not do I/O (for example open a database connection),
   because workerd does not allow it. `nextjs-16` has no Vite build: its Cloudflare variant builds with
-  `opennextjs-cloudflare build` and wraps the generated Worker in `worker.ts` with `withSentry` from
-  `@sentry/nextjs/cloudflare`.
+  `opennextjs-cloudflare build --config wrangler.opennext.jsonc` and wraps the generated Worker in `worker.ts` with
+  `withSentry` from `@sentry/nextjs/cloudflare`.
+- **Build flavors**: a variant can also build the same app with another tool, for example `nextjs-16 (vinext)` builds
+  `nextjs-16` with vinext. A build flavor is not a runtime: its assert script sets its own env var (`VINEXT=1`, read by
+  `tests/isVinext.ts`). It sets `runtime` only to run on another runtime, for example `nextjs-16 (vinext, bun)`.
 - **Runtime-specific files**: a file that has the runtime as a part of its name replaces the existing file without that
   part, for example `app/entry.server.cloudflare.tsx` replaces `app/entry.server.tsx` and `vite.cloudflare.config.ts`
   replaces `vite.config.ts`. For a variant with `runtime`, the runner copies these files over the others in the

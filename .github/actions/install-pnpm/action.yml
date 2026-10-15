@@ -1,0 +1,11 @@
+name: 'Install pnpm'
+description: 'Puts the pnpm version from the root devDependencies on PATH. Run it after the dependencies are installed.'
+
+runs:
+  using: 'composite'
+  steps:
+    # The dev dependency is the one pnpm version for CI and local runs. An app that needs another version sets
+    # `packageManager` in its package.json, and pnpm switches to that version.
+    - name: Add pnpm to PATH
+      shell: bash
+      run: echo "$GITHUB_WORKSPACE/node_modules/pnpm" >> "$GITHUB_PATH"

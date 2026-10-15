@@ -111,8 +111,13 @@ describe('sentryAstro integration', () => {
         debug: false,
         bundleSizeOptimizations: {},
         sourcemaps: {
-          assets: ['out/**/*'],
-          filesToDeleteAfterUpload: ['./dist/**/client/**/*.map', './dist/**/server/**/*.map'],
+          assets: ['out/**/*', 'out/**/.prerender/**/*'],
+          filesToDeleteAfterUpload: [
+            './dist/**/client/**/*.map',
+            './dist/**/server/**/*.map',
+            './dist/**/_astro/**/*.map',
+            './dist/**/.prerender/**/*.map',
+          ],
         },
         _metaOptions: {
           telemetry: {
@@ -142,8 +147,13 @@ describe('sentryAstro integration', () => {
         debug: false,
         bundleSizeOptimizations: {},
         sourcemaps: {
-          assets: ['dist/**/*'],
-          filesToDeleteAfterUpload: ['./dist/**/client/**/*.map', './dist/**/server/**/*.map'],
+          assets: ['dist/**/*', 'dist/**/.prerender/**/*'],
+          filesToDeleteAfterUpload: [
+            './dist/**/client/**/*.map',
+            './dist/**/server/**/*.map',
+            './dist/**/_astro/**/*.map',
+            './dist/**/.prerender/**/*.map',
+          ],
         },
         _metaOptions: {
           telemetry: {
@@ -181,8 +191,13 @@ describe('sentryAstro integration', () => {
         debug: false,
         bundleSizeOptimizations: {},
         sourcemaps: {
-          assets: ['{.vercel,dist}/**/*'],
-          filesToDeleteAfterUpload: ['./dist/**/client/**/*.map', './dist/**/server/**/*.map'],
+          assets: ['{.vercel,dist}/**/*', '{.vercel,dist}/**/.prerender/**/*'],
+          filesToDeleteAfterUpload: [
+            './dist/**/client/**/*.map',
+            './dist/**/server/**/*.map',
+            './dist/**/_astro/**/*.map',
+            './dist/**/.prerender/**/*.map',
+          ],
         },
         _metaOptions: {
           telemetry: {
@@ -221,7 +236,12 @@ describe('sentryAstro integration', () => {
         bundleSizeOptimizations: {},
         sourcemaps: {
           assets: ['dist/server/**/*, dist/client/**/*'],
-          filesToDeleteAfterUpload: ['./dist/**/client/**/*.map', './dist/**/server/**/*.map'],
+          filesToDeleteAfterUpload: [
+            './dist/**/client/**/*.map',
+            './dist/**/server/**/*.map',
+            './dist/**/_astro/**/*.map',
+            './dist/**/.prerender/**/*.map',
+          ],
         },
         _metaOptions: {
           telemetry: {
@@ -428,6 +448,81 @@ describe('sentryAstro integration', () => {
       vite: {
         plugins: [{ name: 'sentry-orchestrion-vite' }],
       },
+    });
+  });
+
+  // The plugin returns an array, so it arrives nested.
+  describe.each([
+    {
+      setup: 'sentryCloudflareVitePlugin()',
+      plugins: [
+        { name: 'code-transformer' },
+        { name: 'sentry-cloudflare-mastra-observability-provider' },
+        { name: 'sentry-cloudflare-flue-runtime-provider' },
+        { name: 'sentry-cloudflare-auto-instrument' },
+      ],
+    },
+    {
+      setup: 'sentryCloudflareVitePlugin({ autoInstrumentation: false })',
+      plugins: [
+        { name: 'code-transformer' },
+        { name: 'sentry-cloudflare-mastra-observability-provider' },
+        { name: 'sentry-cloudflare-flue-runtime-provider' },
+      ],
+    },
+  ])('with `$setup` from `@sentry/cloudflare/vite` in the vite config', ({ plugins }) => {
+    const cloudflareConfig = {
+      ...config,
+      adapter: { name: '@astrojs/cloudflare' },
+      vite: { plugins: [plugins] },
+    } as AstroConfig;
+
+    it('leaves the orchestrion transform and the Worker wrap to that plugin', async () => {
+      const integration = sentryAstro({});
+
+      // @ts-expect-error - the hook exists and we only need to pass what we actually use
+      await integration.hooks['astro:config:setup']({
+        ...baseConfigHookObject,
+        updateConfig,
+        injectScript,
+        config: cloudflareConfig,
+      });
+
+      expect(orchestrionVite).not.toHaveBeenCalled();
+      expect(updateConfig).toHaveBeenCalledWith({
+        vite: { plugins: [expect.objectContaining({ name: 'sentry-astro-cloudflare-suppress-node-warnings' })] },
+      });
+      expect(updateConfig).not.toHaveBeenCalledWith({
+        vite: { plugins: expect.arrayContaining([expect.objectContaining({ name: 'sentry-astro-cloudflare' })]) },
+      });
+    });
+
+    it('does not inject the default server init', async () => {
+      const integration = sentryAstro({});
+
+      // @ts-expect-error - the hook exists and we only need to pass what we actually use
+      await integration.hooks['astro:config:setup']({
+        ...baseConfigHookObject,
+        updateConfig,
+        injectScript,
+        config: cloudflareConfig,
+      });
+
+      expect(injectScript).not.toHaveBeenCalledWith('page-ssr', expect.anything());
+    });
+
+    it('still injects a server init file', async () => {
+      const integration = sentryAstro({ serverInitPath: 'my-server-init-path.js' });
+
+      // @ts-expect-error - the hook exists and we only need to pass what we actually use
+      await integration.hooks['astro:config:setup']({
+        ...baseConfigHookObject,
+        updateConfig,
+        injectScript,
+        config: cloudflareConfig,
+      });
+
+      expect(injectScript).toHaveBeenCalledWith('page-ssr', expect.stringContaining('my-server-init-path.js'));
     });
   });
 

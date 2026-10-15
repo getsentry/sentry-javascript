@@ -21,9 +21,11 @@
     "test:build-canary-webpack": "pnpm install && pnpm add next@canary && pnpm build-webpack",
     "test:assert": "pnpm test:prod && pnpm test:dev",
     "test:assert-webpack": "pnpm test:prod && pnpm test:dev-webpack",
-    "test:build:cloudflare": "pnpm install && opennextjs-cloudflare build",
-    "test:build-latest:cloudflare": "pnpm install && pnpm add next@16.3 && opennextjs-cloudflare build",
-    "start:cloudflare": "opennextjs-cloudflare preview --var \"E2E_TEST_DSN:$E2E_TEST_DSN\""
+    "test:build:cloudflare": "pnpm install && opennextjs-cloudflare build --config wrangler.opennext.jsonc",
+    "test:build-latest:cloudflare": "pnpm install && pnpm add next@16.3 && opennextjs-cloudflare build --config wrangler.opennext.jsonc",
+    "start:cloudflare": "opennextjs-cloudflare preview --config wrangler.opennext.jsonc --var \"E2E_TEST_DSN:$E2E_TEST_DSN\"",
+    "test:build:vinext": "pnpm install && pnpm add react@19.3.0 react-dom@19.3.0 && npm pkg set type=module && vinext build",
+    "test:assert:vinext": "VINEXT=1 pnpm test:prod"
   },
   "//": "Pin `ioredis` to 5.10.1: it's the last version before the driver publishes its own native diagnostics channels; orchestrion's config covers `ioredis <5.11.0`.",
   "dependencies": {
@@ -53,7 +55,12 @@
     "@types/react-dom": "^19",
     "eslint": "^9",
     "eslint-config-next": "^16",
+    "@vitejs/plugin-react": "^6.1.1",
+    "@vitejs/plugin-rsc": "^0.5.35",
+    "react-server-dom-webpack": "^19.3.0",
     "typescript": "^5",
+    "vinext": "^1.0.1",
+    "vite": "^8.3.0",
     "wrangler": "^4.61.0"
   },
   "volta": {
@@ -109,6 +116,17 @@
         "assert-command": "pnpm test:prod",
         "deno-version": "v2.9.0",
         "label": "nextjs-16 (deno)"
+      },
+      {
+        "build-command": "pnpm test:build:vinext",
+        "assert-command": "pnpm test:assert:vinext",
+        "label": "nextjs-16 (vinext)"
+      },
+      {
+        "runtime": "bun",
+        "build-command": "pnpm test:build:vinext",
+        "assert-command": "pnpm test:assert:vinext",
+        "label": "nextjs-16 (vinext, bun)"
       }
     ]
   }

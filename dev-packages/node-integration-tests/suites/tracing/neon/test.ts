@@ -14,7 +14,7 @@ import {
 } from '@sentry/conventions/attributes';
 import { DB } from '@sentry/conventions/op';
 import { afterAll, describe, expect } from 'vitest';
-import { RUNTIME, streamedAttribute as attr } from '../../../utils';
+import { streamedAttribute as attr, supports } from '../../../utils';
 import { cleanupChildProcesses, createEsmAndCjsTests, describeWithDockerCompose } from '../../../utils/runner';
 
 const ORIGIN = 'auto.db.neon';
@@ -139,7 +139,7 @@ describeWithDockerCompose('neon auto instrumentation', { workingDirectory: [__di
     createEsmAndCjsTests(__dirname, 'scenario-pool.mjs', 'instrument.mjs', (createTestRunner, test) => {
       // On Bun and Deno the pool's connect callback runs outside the segment's async context, so
       // the queries it issues have no parent span.
-      test.skipIf(RUNTIME !== 'node')('instruments `Pool` queries', { timeout: 90_000 }, async () => {
+      test.runIf(supports({ runtimes: ['node'] }))('instruments `Pool` queries', { timeout: 90_000 }, async () => {
         const runner = createTestRunner();
         const spansPromise = runner.collectStreamedSpansUntilSegment('Test Span');
 

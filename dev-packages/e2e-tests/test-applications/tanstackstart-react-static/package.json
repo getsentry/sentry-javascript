@@ -29,7 +29,7 @@
     "@tanstack/react-router": "1.170.18",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
-    "nitro": "latest || *",
+    "nitro": "^3.0.0",
     "ioredis": "5.10.1",
     "mysql": "^2.18.1"
   },
@@ -43,7 +43,7 @@
     "typescript": "^5.9.0",
     "vite": "7.3.2",
     "vite-tsconfig-paths": "^5.1.4",
-    "@playwright/test": "~1.56.0",
+    "@playwright/test": "~1.63.0",
     "@sentry-internal/test-utils": "link:../../../test-utils"
   },
   "volta": {

@@ -15,7 +15,10 @@
     "test:assert": "pnpm test:prod && pnpm test:dev",
     "test:dev": "TEST_ENV=development playwright test db"
   },
-  "//": "Need to use ioredis 5.10.1 because that's the last version before they support tracing channels",
+  "//": [
+    "Need to use ioredis 5.10.1 because that's the last version before they support tracing channels",
+    "Rollup 4.64.6 keeps SvelteKit's Svelte 5 `$app/state` code in the Svelte 4 server build, which then throws `$state is not defined` on every page render"
+  ],
   "dependencies": {
     "@sentry/sveltekit": "file:../../packed/sentry-sveltekit-packed.tgz",
     "ioredis": "5.10.1",

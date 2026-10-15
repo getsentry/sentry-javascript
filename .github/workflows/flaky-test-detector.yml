@@ -42,6 +42,7 @@ jobs:
         uses: ./.github/actions/install-playwright
         with:
           browsers: 'chromium'
+          cwd: dev-packages/browser-integration-tests
 
       - name: Determine changed tests
         uses: dorny/paths-filter@v4.0.3
