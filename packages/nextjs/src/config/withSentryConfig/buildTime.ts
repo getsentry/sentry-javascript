@@ -3,6 +3,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import type { NextConfigObject, SentryBuildOptions } from '../types';
 import { hasOnlyAppRouterPages } from './pagesRouterDetection';
+import { getManagedTunnelOptions } from './tunnel';
 
 /**
  * Adds Sentry-related build-time variables to `nextConfig.env`.
@@ -23,12 +24,7 @@ export function setUpBuildTimeVariables(
   const assetPrefix = userNextConfig.assetPrefix || userNextConfig.basePath || '';
   const basePath = userNextConfig.basePath ?? '';
 
-  const rewritesTunnelPath =
-    userSentryOptions.tunnelRoute !== undefined &&
-    userNextConfig.output !== 'export' &&
-    typeof userSentryOptions.tunnelRoute === 'string'
-      ? `${basePath}${userSentryOptions.tunnelRoute}`
-      : undefined;
+  const managedTunnel = getManagedTunnelOptions(userNextConfig, userSentryOptions.tunnelRoute);
 
   const buildTimeVariables: Record<string, string> = {
     // Make sure that if we have a windows path, the backslashes are interpreted as such (rather than as escape
@@ -49,8 +45,8 @@ export function setUpBuildTimeVariables(
     buildTimeVariables._experimentalThirdPartyOriginStackFrames = 'true';
   }
 
-  if (rewritesTunnelPath) {
-    buildTimeVariables._sentryRewritesTunnelPath = rewritesTunnelPath;
+  if (managedTunnel) {
+    buildTimeVariables._sentryManagedTunnel = JSON.stringify(managedTunnel);
   }
 
   if (basePath) {

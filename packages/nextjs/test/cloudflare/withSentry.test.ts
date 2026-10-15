@@ -28,7 +28,7 @@ describe('withSentry', () => {
     getMainCarrier().__SENTRY__ = undefined;
     (GLOBAL_OBJ as typeof GLOBAL_OBJ & { __SENTRY_CLOUDFLARE_CLIENT__?: unknown }).__SENTRY_CLOUDFLARE_CLIENT__ =
       undefined;
-    delete (GLOBAL_OBJ as typeof GLOBAL_OBJ & { _sentryRewritesTunnelPath?: string })._sentryRewritesTunnelPath;
+    delete (GLOBAL_OBJ as typeof GLOBAL_OBJ & { _sentryManagedTunnel?: unknown })._sentryManagedTunnel;
     delete (GLOBAL_OBJ as typeof GLOBAL_OBJ & { _sentryRelease?: string })._sentryRelease;
     vi.restoreAllMocks();
     trace.disable();
@@ -186,8 +186,10 @@ describe('withSentry', () => {
   });
 
   it('does not sample the request span of a request to the tunnel route', async () => {
-    (GLOBAL_OBJ as typeof GLOBAL_OBJ & { _sentryRewritesTunnelPath?: string })._sentryRewritesTunnelPath =
-      '/monitoring';
+    (GLOBAL_OBJ as typeof GLOBAL_OBJ & { _sentryManagedTunnel?: unknown })._sentryManagedTunnel = {
+      basePath: '',
+      path: '/monitoring',
+    };
     const sampledByPath: Record<string, boolean> = {};
     const handler = withSentry(() => ({ dsn: DSN, tracesSampleRate: 1 }), {
       fetch: (request: Request) => {
@@ -197,7 +199,7 @@ describe('withSentry', () => {
       },
     });
 
-    await handler.fetch?.(new Request('https://example.com/monitoring?o=1&p=2') as never, {}, {
+    await handler.fetch?.(new Request('https://example.com/monitoring', { method: 'POST' }) as never, {}, {
       waitUntil: vi.fn(),
       passThroughOnException: vi.fn(),
       props: {},
@@ -212,8 +214,10 @@ describe('withSentry', () => {
   });
 
   it('does not sample the request span of a request to the tunnel route when a `tracesSampler` samples every span', async () => {
-    (GLOBAL_OBJ as typeof GLOBAL_OBJ & { _sentryRewritesTunnelPath?: string })._sentryRewritesTunnelPath =
-      '/monitoring';
+    (GLOBAL_OBJ as typeof GLOBAL_OBJ & { _sentryManagedTunnel?: unknown })._sentryManagedTunnel = {
+      basePath: '',
+      path: '/monitoring',
+    };
     const sampledByPath: Record<string, boolean> = {};
     const handler = withSentry(() => ({ dsn: DSN, tracesSampler: () => 1 }), {
       fetch: (request: Request) => {
@@ -223,7 +227,7 @@ describe('withSentry', () => {
       },
     });
 
-    await handler.fetch?.(new Request('https://example.com/monitoring?o=1&p=2') as never, {}, {
+    await handler.fetch?.(new Request('https://example.com/monitoring', { method: 'POST' }) as never, {}, {
       waitUntil: vi.fn(),
       passThroughOnException: vi.fn(),
       props: {},
