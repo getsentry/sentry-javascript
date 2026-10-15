@@ -1,7 +1,7 @@
 import { HTTP_TARGET, URL_FULL, URL_PATH, SENTRY_ORIGIN } from '@sentry/conventions/attributes';
 import type { RawAttributes } from '@sentry/core';
 import { getClient, isSentryRequestUrl, isTunnelRequest, type Span } from '@sentry/core';
-import { MANAGED_TUNNEL_ROUTE } from '../managedTunnelRoute';
+import { getInjectedManagedTunnelOptions, MANAGED_TUNNEL_ROUTE } from '../managedTunnelRoute';
 import { ATTR_NEXT_SPAN_TYPE } from '../nextSpanAttributes';
 import { TRANSACTION_ATTR_SHOULD_DROP_TRANSACTION } from '../span-attributes-with-logic-attached';
 
@@ -70,7 +70,7 @@ export function isTunnelRouteSpan(spanAttributes: Record<string, unknown>): bool
   // Extract pathname from the target (e.g., "/tunnel?o=123&p=456" -> "/tunnel")
   const pathname = target.split('?')[0] || '';
 
-  const managedTunnel = getClient()?.getOptions()._managedTunnel;
+  const managedTunnel = getClient()?.getOptions()._managedTunnel ?? getInjectedManagedTunnelOptions();
   if (!managedTunnel) {
     return false;
   }
