@@ -4,7 +4,7 @@ description: 'Puts the pnpm version from the root devDependencies on PATH. Run i
 runs:
   using: 'composite'
   steps:
-    # The devDependency is the one pnpm version for CI and local runs. An app that needs another version sets
+    # The dev dependency is the one pnpm version for CI and local runs. An app that needs another version sets
     # `packageManager` in its package.json, and pnpm switches to that version.
     - name: Add pnpm to PATH
       shell: bash

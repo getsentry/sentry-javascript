@@ -125,8 +125,7 @@ fails the install (`ERR_PNPM_IGNORED_BUILDS`) for a build script that `allowBuil
 
 Apps use the pnpm version from the root `devDependencies`. To use another version, set `packageManager` in the app's
 `package.json` (for example `"packageManager": "pnpm@10.34.6"`), and use the settings of that version in its
-`pnpm-workspace.yaml`. pnpm then switches to that version, locally and in CI. The lowest supported version is pnpm 10,
-because pnpm 9 does not read overrides from `pnpm-workspace.yaml`.
+`pnpm-workspace.yaml`. pnpm then switches to that version, locally and in CI. The lowest supported version is pnpm 10.
 
 ### Test apps that deploy a real Cloudflare Worker
 

@@ -31,6 +31,12 @@ export async function addPnpmOverrides(tmpDirPath: string, packedDirPath: string
 
   const pnpmWorkspacePath = path.join(tmpDirPath, 'pnpm-workspace.yaml');
   const pnpmWorkspace = await readFile(pnpmWorkspacePath, 'utf8').catch(() => '');
+
+  // Without it, pnpm skips versions published in the last day, which apps that test the newest releases need.
+  if (!/^minimumReleaseAge: 0$/m.test(pnpmWorkspace)) {
+    throw new Error(`Set "minimumReleaseAge: 0" in the app's pnpm-workspace.yaml (${pnpmWorkspacePath})`);
+  }
+
   const existingOverrides = parseWorkspaceOverrides(pnpmWorkspace);
   fixFileLinkDependencies(existingOverrides);
   const workspaceOverrides = formatWorkspaceOverrides({ ...overrides, ...existingOverrides });

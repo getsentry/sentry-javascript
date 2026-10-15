@@ -4,7 +4,7 @@ Monorepo with 40+ packages in `@sentry/*`, managed with Yarn workspaces and Nx.
 
 ## Setup
 
-- [Volta](https://volta.sh/) for Node.js/Yarn version management. pnpm (for E2E tests) is a root devDependency
+- [Volta](https://volta.sh/) for Node.js/Yarn version management. pnpm (for E2E tests) is a root dev dependency
 - After cloning: `yarn install && yarn build`
 - Never change Volta, Yarn, or package manager versions unless explicitly asked
 

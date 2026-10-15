@@ -11,7 +11,7 @@
     "codegen": "shopify hydrogen codegen",
     "clean": "npx rimraf node_modules dist pnpm-lock.yaml",
     "test:build": "pnpm install && pnpm build",
-    "test:assert": "playwright install chromium && pnpm playwright test"
+    "test:assert": "pnpm playwright test"
   },
   "dependencies": {
     "@remix-run/react": "^2.17.4",

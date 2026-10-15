@@ -118,7 +118,7 @@ All tests completed successfully. Your SDK changes work correctly with this test
 - **Test app not found**: List available apps and ask user to clarify
 - **Packed tarballs missing**: Run `yarn build:tarball` at the repo root, then `yarn test:prepare` in `dev-packages/e2e-tests`
 - **Build failures**: Fix build errors before running tests
-- **`ERR_PNPM_IGNORED_BUILDS`**: A dependency has a build script that the app's `allowBuilds` does not list. Add it to the app's `pnpm-workspace.yaml`: `true` if the app needs the script, `false` if the script only prints a message
+- **`ERR_PNPM_IGNORED_BUILDS`**: A dependency has a build script that the app's `allowBuilds` does not list. Add it to the app's `pnpm-workspace.yaml`: `true` if the app needs the script, `false` if the script only prints a message. `pnpm approve-builds <pkg>` (or `!<pkg>` for `false`) in the app's temp copy writes the entry there, so copy it back to the app
 
 ## Common Test Applications
 
