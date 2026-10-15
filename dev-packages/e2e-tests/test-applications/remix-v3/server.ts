@@ -6,7 +6,7 @@ import { router } from './app/router.ts';
 
 Sentry.init({
   dsn: process.env.E2E_TEST_DSN,
-  tunnel: 'http://localhost:3061/',
+  tunnel: process.env.E2E_TEST_TUNNEL ? true : 'http://localhost:3061/',
   tracesSampleRate: 1.0,
 });
 

@@ -4,9 +4,14 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 // Trace data as the SDK would produce it for the active request; empty when nothing is active.
 const getTraceData = vi.hoisted(() => vi.fn<() => { 'sentry-trace'?: string; baggage?: string }>(() => ({})));
 
+const handleTunnelRequestIfMatched = vi.hoisted(() =>
+  vi.fn<(request: Request) => Promise<Response> | undefined>(() => undefined),
+);
+
 vi.mock('@sentry/core', async importOriginal => ({
   ...(await importOriginal<typeof SentryCore>()),
   getTraceData,
+  handleTunnelRequestIfMatched,
 }));
 
 import { sentryRemixMiddleware } from '../../src/v3/server/middleware';
@@ -27,6 +32,20 @@ function contextFor(url: string, headers: Record<string, string> = {}): RequestC
 describe('sentryRemixMiddleware', () => {
   beforeEach(() => {
     getTraceData.mockReturnValue({});
+    handleTunnelRequestIfMatched.mockReturnValue(undefined);
+  });
+
+  it('answers tunnel requests before route matching and the rest of the chain', async () => {
+    const tunnelResponse = new Response('forwarded');
+    handleTunnelRequestIfMatched.mockReturnValue(Promise.resolve(tunnelResponse));
+    const next = vi.fn();
+    const context = contextFor('http://x/abc123');
+
+    const response = await sentryRemixMiddleware(matcherFor('/'))(context, next);
+
+    expect(response).toBe(tunnelResponse);
+    expect(handleTunnelRequestIfMatched).toHaveBeenCalledWith(context.request);
+    expect(next).not.toHaveBeenCalled();
   });
 
   it('propagates the trace to HTML responses through Server-Timing, ahead of the route', async () => {
