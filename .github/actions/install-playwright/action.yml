@@ -9,6 +9,11 @@ inputs:
       'The directory whose package.json declares the `@playwright/test` version to install. Nothing is installed if it
       does not depend on `@playwright/test`.'
     required: true
+  part:
+    description:
+      'What to install: `all`, `browsers` or `system-deps`. `browsers` and `system-deps` together install the same as
+      `all`, and can run as two background steps in parallel.'
+    default: 'all'
 
 runs:
   using: 'composite'
@@ -29,7 +34,7 @@ runs:
     - name: Restore cached playwright binaries
       uses: actions/cache/restore@v6.1.0
       id: playwright-cache
-      if: steps.playwright-version.outputs.version != ''
+      if: steps.playwright-version.outputs.version != '' && inputs.part != 'system-deps'
       with:
         path: |
           ~/.cache/ms-playwright
@@ -37,27 +42,38 @@ runs:
         key: playwright-${{ runner.os }}-iteration-1-${{ steps.playwright-version.outputs.version }}
 
     # We always install all browsers, if uncached
-    - name: Install Playwright dependencies (uncached)
+    - name: Install Playwright browsers (uncached)
       env:
+        PART: ${{ inputs.part }}
         PLAYWRIGHT_VERSION: ${{ steps.playwright-version.outputs.version }}
-      run: npx -y "playwright@$PLAYWRIGHT_VERSION" install chromium webkit firefox --with-deps
-      if: steps.playwright-version.outputs.version != '' && steps.playwright-cache.outputs.cache-hit != 'true'
+      run: |
+        if [ "$PART" = all ]; then
+          npx -y "playwright@$PLAYWRIGHT_VERSION" install chromium webkit firefox --with-deps
+        else
+          # A separate npm cache, so this `npx` doesn't race the one installing the system deps in parallel.
+          npm_config_cache="$RUNNER_TEMP/playwright-npm-cache" npx -y "playwright@$PLAYWRIGHT_VERSION" install chromium webkit firefox
+        fi
+      if:
+        steps.playwright-version.outputs.version != '' && inputs.part != 'system-deps' &&
+        steps.playwright-cache.outputs.cache-hit != 'true'
       shell: bash
 
-    - name: Install Playwright system dependencies only (cached)
+    - name: Install Playwright system dependencies
       env:
         PLAYWRIGHT_BROWSERS: ${{ inputs.browsers || 'chromium webkit firefox' }}
         PLAYWRIGHT_VERSION: ${{ steps.playwright-version.outputs.version }}
       run: npx -y "playwright@$PLAYWRIGHT_VERSION" install-deps "$PLAYWRIGHT_BROWSERS"
-      if: steps.playwright-version.outputs.version != '' && steps.playwright-cache.outputs.cache-hit == 'true'
+      if:
+        steps.playwright-version.outputs.version != '' && (inputs.part == 'system-deps' || (inputs.part == 'all' &&
+        steps.playwright-cache.outputs.cache-hit == 'true'))
       shell: bash
 
     # Only store cache on develop branch
     - name: Store cached playwright binaries
       uses: actions/cache/save@v6.1.0
       if:
-        steps.playwright-version.outputs.version != '' && github.event_name == 'push' && github.ref ==
-        'refs/heads/develop'
+        steps.playwright-version.outputs.version != '' && inputs.part != 'system-deps' && github.event_name == 'push' &&
+        github.ref == 'refs/heads/develop'
       with:
         path: |
           ~/.cache/ms-playwright
