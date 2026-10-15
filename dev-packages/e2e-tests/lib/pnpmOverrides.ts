@@ -22,8 +22,7 @@ export async function addPnpmOverrides(tmpDirPath: string, packedDirPath: string
     volta?: { extends?: string; pnpm?: string };
   };
 
-  // Test apps depend on the test-utils tarball directly, and nothing else depends on it.
-  const packageNames = getPublishedSentryTarballPackageNames().filter(name => name !== '@sentry-internal/test-utils');
+  const packageNames = getPublishedSentryTarballPackageNames();
   const overrides = Object.fromEntries(
     packageNames.map(packageName => [packageName, `file:${packedDirPath}/${packedSymlinkFilename(packageName)}`]),
   );
