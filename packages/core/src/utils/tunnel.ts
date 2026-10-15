@@ -164,9 +164,38 @@ export async function handleTunnelRequest(options: HandleTunnelRequestOptions): 
     return new Response('Invalid envelope', { status: 400 });
   }
 
+  const sentryIngestUrl = resolveIngestUrl(head.line, allowedDsns);
+  if (typeof sentryIngestUrl !== 'string') {
+    // Nothing past the header gets forwarded, so the runtime can stop receiving the body.
+    reader.cancel().catch(() => undefined);
+
+    return sentryIngestUrl;
+  }
+
+  try {
+    // The forward is SDK plumbing, not app work, so it must not show up as a span.
+    return await suppressTracing(() =>
+      fetch(sentryIngestUrl, {
+        method: 'POST',
+        headers: forwardHeaders(request),
+        // The body streams through without being buffered, so its size is left for Sentry to judge.
+        body: prependToStream(head.read, reader),
+        duplex: 'half',
+      } as RequestInit),
+    );
+  } catch (error) {
+    debug.error('Sentry tunnel: failed to forward envelope', error);
+    return new Response('Failed to forward envelope to Sentry', { status: 500 });
+  }
+}
+
+/**
+ * Returns the Sentry ingest URL for an envelope header line, or the response that rejects it.
+ */
+function resolveIngestUrl(headerLine: Uint8Array, allowedDsns: Array<string>): string | Response {
   let envelopeHeader;
   try {
-    [envelopeHeader] = parseEnvelope(head.line);
+    [envelopeHeader] = parseEnvelope(headerLine);
   } catch {
     return new Response('Invalid envelope', { status: 400 });
   }
@@ -196,23 +225,7 @@ export async function handleTunnelRequest(options: HandleTunnelRequestOptions): 
     return new Response('Invalid DSN', { status: 403 });
   }
 
-  const sentryIngestUrl = getEnvelopeEndpointWithUrlEncodedAuth(dsnComponents);
-
-  try {
-    // The forward is SDK plumbing, not app work, so it must not show up as a span.
-    return await suppressTracing(() =>
-      fetch(sentryIngestUrl, {
-        method: 'POST',
-        headers: forwardHeaders(request),
-        // The body streams through without being buffered, so its size is left for Sentry to judge.
-        body: prependToStream(head.read, reader),
-        duplex: 'half',
-      } as RequestInit),
-    );
-  } catch (error) {
-    debug.error('Sentry tunnel: failed to forward envelope', error);
-    return new Response('Failed to forward envelope to Sentry', { status: 500 });
-  }
+  return getEnvelopeEndpointWithUrlEncodedAuth(dsnComponents);
 }
 
 /**
