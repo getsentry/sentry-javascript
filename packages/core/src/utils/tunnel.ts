@@ -161,20 +161,15 @@ export async function handleTunnelRequest(options: HandleTunnelRequestOptions): 
     return new Response('Tunnel not configured', { status: 500 });
   }
 
-  // The HTTP server ends the body at `Content-Length`, so the header bounds what `arrayBuffer()` reads.
-  const contentLength = Number(request.headers.get('content-length'));
-  if (!contentLength) {
-    return new Response('Length required', { status: 411 });
+  const reader = request.body?.getReader();
+  const head = reader && (await readEnvelopeHeaderLine(reader));
+  if (!reader || !head) {
+    return new Response('Invalid envelope', { status: 400 });
   }
-  if (contentLength > MAX_TUNNEL_BODY_SIZE) {
-    return new Response('Envelope too large', { status: 413 });
-  }
-
-  const body = new Uint8Array(await request.arrayBuffer());
 
   let envelopeHeader;
   try {
-    [envelopeHeader] = parseEnvelope(body);
+    [envelopeHeader] = parseEnvelope(head.line);
   } catch {
     return new Response('Invalid envelope', { status: 400 });
   }
@@ -211,16 +206,92 @@ export async function handleTunnelRequest(options: HandleTunnelRequestOptions): 
     return await suppressTracing(() =>
       fetch(sentryIngestUrl, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/x-sentry-envelope',
-        },
-        body,
-      }),
+        headers: forwardHeaders(request),
+        // The body streams through without being buffered, so its size is left for Sentry to judge.
+        body: prependToStream(head.read, reader),
+        duplex: 'half',
+      } as RequestInit),
     );
   } catch (error) {
     debug.error('Sentry tunnel: failed to forward envelope', error);
     return new Response('Failed to forward envelope to Sentry', { status: 500 });
   }
+}
+
+/**
+ * The header is a small JSON object, so a line longer than this is not an envelope.
+ */
+const MAX_ENVELOPE_HEADER_BYTES = 64 * 1024;
+
+/**
+ * Reads the request body only up to the end of the envelope header line.
+ * Returns the line and every byte read so far, or `undefined` when no header line fits the limit.
+ */
+async function readEnvelopeHeaderLine(
+  reader: ReadableStreamDefaultReader<Uint8Array>,
+): Promise<{ line: Uint8Array; read: Uint8Array } | undefined> {
+  let read: Uint8Array = new Uint8Array(0);
+
+  while (read.length <= MAX_ENVELOPE_HEADER_BYTES) {
+    const { done, value } = await reader.read();
+    if (done) {
+      return read.length ? { line: read, read } : undefined;
+    }
+
+    const searchFrom = read.length;
+    read = concatBytes(read, value);
+
+    const newline = read.indexOf(0x0a, searchFrom);
+    if (newline !== -1) {
+      return { line: read.subarray(0, newline), read };
+    }
+  }
+
+  await reader.cancel();
+
+  return undefined;
+}
+
+function concatBytes(a: Uint8Array, b: Uint8Array): Uint8Array {
+  const merged = new Uint8Array(a.length + b.length);
+  merged.set(a);
+  merged.set(b, a.length);
+
+  return merged;
+}
+
+function prependToStream(
+  prefix: Uint8Array,
+  reader: ReadableStreamDefaultReader<Uint8Array>,
+): ReadableStream<Uint8Array> {
+  return new ReadableStream({
+    start(controller) {
+      controller.enqueue(prefix);
+    },
+    async pull(controller) {
+      const { done, value } = await reader.read();
+      if (done) {
+        controller.close();
+        return;
+      }
+
+      controller.enqueue(value);
+    },
+    cancel(reason) {
+      return reader.cancel(reason);
+    },
+  });
+}
+
+function forwardHeaders(request: Request): Record<string, string> {
+  const headers: Record<string, string> = { 'Content-Type': 'application/x-sentry-envelope' };
+  // Keeps the upload fixed-length where the runtime allows it (Node, Bun), instead of chunked.
+  const contentLength = request.headers.get('content-length');
+  if (contentLength) {
+    headers['Content-Length'] = contentLength;
+  }
+
+  return headers;
 }
 
 function resolveAllowedDsns(allowedDsns: Array<string> | undefined): Array<string> {
