@@ -1,3 +1,4 @@
+import type { TunnelOptions } from '@sentry/core';
 import type { Plugin } from 'vite';
 
 export type TunnelRouteOptions =
@@ -14,42 +15,10 @@ export type TunnelRouteOptions =
       /**
        * Controls the public route path used by the managed tunnel route.
        *
-       * If omitted, an opaque path is generated once per dev session or production build.
+       * If omitted, the path is derived from the DSN at runtime, the same way `Sentry.init({ tunnel: true })` does.
        */
       path?: string;
     };
-
-const MANAGED_TUNNEL_ROUTE_IMPORT = 'SentryManagedTunnelRouteImport';
-const MANAGED_TUNNEL_ROUTE_NAME = 'SentryManagedTunnelRoute';
-const MANAGED_TUNNEL_ROUTE_PATH_ENV_KEY = '__SENTRY_INTERNAL_TANSTACKSTART_TUNNEL_ROUTE__';
-
-const VIRTUAL_TUNNEL_ROUTE_ID = 'virtual:sentry-tanstackstart-react/tunnel-route';
-const RESOLVED_VIRTUAL_TUNNEL_ROUTE_ID = `\0${VIRTUAL_TUNNEL_ROUTE_ID}`;
-
-function generateRandomTunnelRoute(): string {
-  const randomPath = Array.from({ length: 8 }, () => Math.floor(Math.random() * 36).toString(36)).join('');
-
-  return `/${randomPath}`;
-}
-
-export function resolveTunnelRoute(tunnel: true | string): string {
-  if (typeof tunnel === 'string') {
-    return tunnel;
-  }
-
-  if (process.env[MANAGED_TUNNEL_ROUTE_PATH_ENV_KEY]) {
-    return process.env[MANAGED_TUNNEL_ROUTE_PATH_ENV_KEY];
-  }
-
-  const resolvedTunnelRoute = generateRandomTunnelRoute();
-  process.env[MANAGED_TUNNEL_ROUTE_PATH_ENV_KEY] = resolvedTunnelRoute;
-  return resolvedTunnelRoute;
-}
-
-type NormalizedTunnelRouteOptions = {
-  resolvedPath: string;
-  allowedDsns: string[] | undefined;
-};
 
 function validateStaticPath(path: string): void {
   if (!path.startsWith('/') || path.includes('?') || path.includes('#')) {
@@ -59,156 +28,90 @@ function validateStaticPath(path: string): void {
   }
 }
 
-function normalizeTunnelRouteOptions(options: TunnelRouteOptions): NormalizedTunnelRouteOptions {
+/**
+ * Maps `tunnelRoute` onto the options `Sentry.init({ tunnel })` takes, so both are served the same way.
+ */
+export function normalizeTunnelRouteOptions(options: TunnelRouteOptions): TunnelOptions {
   if (options === true) {
-    return { resolvedPath: resolveTunnelRoute(true), allowedDsns: undefined };
+    return {};
   }
 
   if (typeof options === 'string') {
     validateStaticPath(options);
-    return {
-      resolvedPath: resolveTunnelRoute(options),
-      allowedDsns: undefined,
-    };
+
+    return { path: options };
   }
 
-  const allowedDsns = options.allowedDsns && options.allowedDsns.length > 0 ? options.allowedDsns : undefined;
-  const path = options.path;
-
-  if (path) {
-    validateStaticPath(path);
+  if (options.path) {
+    validateStaticPath(options.path);
   }
 
-  return { resolvedPath: resolveTunnelRoute(path || true), allowedDsns };
+  return {
+    path: options.path || undefined,
+    allowedDsns: options.allowedDsns?.length ? options.allowedDsns : undefined,
+  };
 }
 
-// `routeTree.gen.ts` quote style follows `tsr.config.json#quoteStyle` (`single` | `double`),
-// so we check both forms for each route-identifying key.
-const ROUTE_CONFLICT_KEYS = ['fullPath', 'path', 'id'] as const;
-
-function hasRouteConflict(source: string, resolvedTunnelRoute: string): boolean {
-  const literals = [`'${resolvedTunnelRoute}'`, `"${resolvedTunnelRoute}"`];
-  return ROUTE_CONFLICT_KEYS.some(key => literals.some(literal => source.includes(`${key}: ${literal}`)));
-}
-
-function injectAfterLastImport(source: string, statement: string): string {
-  const importMatches = [...source.matchAll(/^import .+$/gm)];
-  const lastImport = importMatches.at(-1);
-
-  if (lastImport?.index === undefined) {
-    throw new Error(
-      '[@sentry/tanstackstart-react] Failed to inject the managed tunnel route because `routeTree.gen.ts` imports could not be located.',
-    );
-  }
-
-  const insertIndex = lastImport.index + lastImport[0].length;
-  return `${source.slice(0, insertIndex)}\n${statement}${source.slice(insertIndex)}`;
-}
-
-export function injectManagedTunnelRoute(source: string, resolvedTunnelRoute: string): string {
-  if (source.includes(VIRTUAL_TUNNEL_ROUTE_ID)) {
-    return source;
-  }
-
-  if (hasRouteConflict(source, resolvedTunnelRoute)) {
-    throw new Error(
-      `[@sentry/tanstackstart-react] Cannot register managed tunnel route "${resolvedTunnelRoute}" because an existing TanStack Start route already uses that path.`,
-    );
-  }
-
-  const serializedTunnelRoute = JSON.stringify(resolvedTunnelRoute);
-
-  let transformedSource = injectAfterLastImport(
-    source,
-    `import { Route as ${MANAGED_TUNNEL_ROUTE_IMPORT} } from '${VIRTUAL_TUNNEL_ROUTE_ID}'`,
-  );
-
-  const rootRouteChildrenMatch = transformedSource.match(
-    /const rootRouteChildren(?:\s*:\s*RootRouteChildren)?\s*=\s*\{/,
-  );
-
-  if (rootRouteChildrenMatch?.index === undefined) {
-    throw new Error(
-      '[@sentry/tanstackstart-react] Failed to inject the managed tunnel route because the generated TanStack route tree did not contain `rootRouteChildren`.',
-    );
-  }
-
-  const injectedRootRouteChildrenDeclaration = `const ${MANAGED_TUNNEL_ROUTE_NAME} = ${MANAGED_TUNNEL_ROUTE_IMPORT}.update({
-  id: ${serializedTunnelRoute},
-  path: ${serializedTunnelRoute},
-  getParentRoute: () => rootRouteImport,
-} as any)
-
-${rootRouteChildrenMatch[0]}
-  ${MANAGED_TUNNEL_ROUTE_NAME}: ${MANAGED_TUNNEL_ROUTE_NAME},
-`;
-
-  transformedSource = `${transformedSource.slice(0, rootRouteChildrenMatch.index)}${injectedRootRouteChildrenDeclaration}${transformedSource.slice(rootRouteChildrenMatch.index + rootRouteChildrenMatch[0].length)}`;
-
-  return transformedSource;
-}
-
+/**
+ * Tells the client SDK which tunnel to use. The server entry wrapper serves it.
+ */
 export function makeTunnelRoutePlugin(options: TunnelRouteOptions, debug?: boolean): Plugin {
-  const normalized = normalizeTunnelRouteOptions(options);
-  const resolvedTunnelRoute = normalized.resolvedPath;
-  const serializedTunnelRoute = JSON.stringify(resolvedTunnelRoute);
-  const serializedAllowedDsns = normalized.allowedDsns ? JSON.stringify(normalized.allowedDsns) : undefined;
+  const { path } = normalizeTunnelRouteOptions(options);
 
   if (debug) {
     // eslint-disable-next-line no-console
-    console.log(`[@sentry/tanstackstart-react] Registered tunnel route: ${resolvedTunnelRoute}`);
+    console.log(`[@sentry/tanstackstart-react] Tunnel route: ${path ?? 'derived from the DSN'}`);
   }
 
   return {
     name: 'sentry-tanstackstart-tunnel-route',
-    enforce: 'pre',
     config() {
-      return {
-        define: {
-          __SENTRY_TANSTACKSTART_TUNNEL_ROUTE__: serializedTunnelRoute,
-        },
-      };
-    },
-    resolveId(source) {
-      return source === VIRTUAL_TUNNEL_ROUTE_ID ? RESOLVED_VIRTUAL_TUNNEL_ROUTE_ID : null;
-    },
-    load(id) {
-      if (id !== RESOLVED_VIRTUAL_TUNNEL_ROUTE_ID) {
-        return null;
-      }
-
-      return `import { createFileRoute } from '@tanstack/react-router';
-import { registerSentryServerTunnelRoute } from '@sentry/tanstackstart-react';
-
-// Server-only: drop the tunnel route's own transaction. Registered synchronously at module evaluation
-// (before any request) so streamed spans are filtered from the first request. The SSR guard tree-shakes
-// it (and the import) out of the client bundle.
-if (import.meta.env.SSR) {
-  registerSentryServerTunnelRoute(${serializedTunnelRoute});
-}
-
-export const Route = createFileRoute(${serializedTunnelRoute})({
-  server: {
-    handlers: {
-      async POST({ request }) {
-        const Sentry = await import('@sentry/tanstackstart-react');
-        return Sentry.createSentryTunnelRoute(${serializedAllowedDsns ? `{ allowedDsns: ${serializedAllowedDsns} }` : `{}`}).handlers.POST({ request });
-      },
-      // Without a handler for a method, TanStack Start falls back to SSR-rendering the app (running root loaders).
-      ANY() {
-        return new Response(null, { status: 405, headers: { Allow: 'POST' } });
-      },
-    },
-  },
-});
-`;
-    },
-    transform(source, id) {
-      if (!id.endsWith('/routeTree.gen.ts') && !id.endsWith('\\routeTree.gen.ts')) {
-        return null;
-      }
-
-      return injectManagedTunnelRoute(source, resolvedTunnelRoute);
+      return { define: { __SENTRY_TANSTACKSTART_TUNNEL_ROUTE__: path ? JSON.stringify(path) : 'true' } };
     },
   };
+}
+
+const SERVER_ENTRY_ALIAS = 'virtual:tanstack-start-server-entry';
+const ORIGINAL_SERVER_ENTRY_QUERY = '?sentry-tunnel-original';
+// The default entry is used directly when the app has no `src/server.ts`, and by Cloudflare's `main`.
+const DEFAULT_SERVER_ENTRY = /\/react-start\/dist\/(?:plugin\/)?default-entry\/(?:esm\/)?server\.[jt]s$/;
+
+/**
+ * Wraps the TanStack Start server entry so tunnel requests are answered before Start's own request middleware and
+ * routing. It does nothing unless the managed tunnel is enabled, either here via `tunnelRoute` or at runtime via
+ * `Sentry.init({ tunnel: true })`.
+ */
+export function makeServerEntryTunnelPlugin(tunnelRoute: TunnelRouteOptions | undefined): Plugin {
+  const tunnelOptions = tunnelRoute ? JSON.stringify(normalizeTunnelRouteOptions(tunnelRoute)) : 'undefined';
+  const serverEntryIds = new Set<string>();
+
+  return {
+    name: 'sentry-tanstackstart-server-entry-tunnel',
+    enforce: 'pre',
+    configResolved(config) {
+      const aliases = Array.isArray(config.resolve.alias) ? config.resolve.alias : [];
+      const serverEntry = aliases.find(alias => alias.find === SERVER_ENTRY_ALIAS);
+      if (serverEntry) {
+        serverEntryIds.add(normalizePath(serverEntry.replacement));
+      }
+    },
+    load(id) {
+      const normalizedId = normalizePath(id);
+      if (!serverEntryIds.has(normalizedId) && !DEFAULT_SERVER_ENTRY.test(normalizedId)) {
+        return null;
+      }
+
+      const original = JSON.stringify(`${id}${ORIGINAL_SERVER_ENTRY_QUERY}`);
+
+      return `import entry from ${original};
+import { wrapServerEntryWithSentryTunnel } from '@sentry/tanstackstart-react';
+export * from ${original};
+export default wrapServerEntryWithSentryTunnel(entry, ${tunnelOptions});
+`;
+    },
+  };
+}
+
+function normalizePath(id: string): string {
+  return id.replace(/\\/g, '/');
 }

@@ -62,3 +62,10 @@ export function createSentryTunnelRoute(_options: CreateSentryTunnelRouteOptions
  * can statically import it (the call is server-guarded and tree-shaken from the client bundle).
  */
 export function registerSentryServerTunnelRoute(_path: string): void {}
+
+/**
+ * No-op stub for client-side builds. The server entry the Vite plugin wraps only runs on the server.
+ */
+export function wrapServerEntryWithSentryTunnel<T>(entry: T, _options?: unknown): T {
+  return entry;
+}

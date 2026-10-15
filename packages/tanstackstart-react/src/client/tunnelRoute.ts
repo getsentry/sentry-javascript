@@ -1,7 +1,7 @@
 import { consoleSandbox } from '@sentry/core';
 import type { BrowserOptions as ReactBrowserOptions } from '@sentry/react';
 
-declare const __SENTRY_TANSTACKSTART_TUNNEL_ROUTE__: string | undefined;
+declare const __SENTRY_TANSTACKSTART_TUNNEL_ROUTE__: string | true | undefined;
 
 let hasWarnedAboutManagedTunnelRouteOverride = false;
 
@@ -18,7 +18,7 @@ export function applyTunnelRouteOption(options: ReactBrowserOptions): void {
   }
 
   if (options.tunnel) {
-    if (!hasWarnedAboutManagedTunnelRouteOverride) {
+    if (options.tunnel !== managedTunnelRoute && !hasWarnedAboutManagedTunnelRouteOverride) {
       hasWarnedAboutManagedTunnelRouteOverride = true;
       consoleSandbox(() => {
         // eslint-disable-next-line no-console
