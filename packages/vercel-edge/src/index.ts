@@ -50,6 +50,7 @@ export {
   setAttribute,
   setAttributes,
   setUser,
+  setConversationId,
   getSpanStatusFromHttpCode,
   setHttpStatus,
   withScope,
@@ -92,9 +93,11 @@ export {
   spanToJSON,
   spanToTraceHeader,
   spanToBaggageHeader,
+  updateSpanName,
   consoleLoggingIntegration,
   createConsolaReporter,
   featureFlagsIntegration,
+  growthbookIntegration,
   logger,
   metrics,
   withStaticSpan,
@@ -114,6 +117,7 @@ export {
   createLangChainCallbackHandler,
   instrumentLangChainEmbeddings,
   instrumentStateGraph,
+  instrumentCreateReactAgent,
 } from '@sentry/server-utils/no-diagnostic-channels';
 
 export { VercelEdgeClient } from './client';
@@ -121,3 +125,7 @@ export { getDefaultIntegrations, init } from './sdk';
 
 export { winterCGFetchIntegration } from './integrations/wintercg-fetch';
 export type { FetchIntegrationOptions } from '@sentry/core';
+
+// vercelAIIntegration and prismaIntegration require diagnostics channels, unavailable on Vercel Edge.
+// Cloudflare's httpServerIntegration relies on its request lifecycle and cannot be reused here.
+// spotlightIntegration needs a shared fetch-based implementation before it can be exported here.
