@@ -50,6 +50,30 @@ describe('applyTunnelRouteOption()', () => {
     );
   });
 
+  it('turns on the DSN-derived tunnel when the plugin derives the path from the DSN', async () => {
+    vi.stubGlobal('__SENTRY_TANSTACKSTART_TUNNEL_ROUTE__', true);
+
+    const { applyTunnelRouteOption } = await import('../../src/client/tunnelRoute');
+
+    const options: BrowserOptions = { dsn: 'https://public@dsn.ingest.sentry.io/1337' };
+    applyTunnelRouteOption(options);
+
+    expect(options.tunnel).toBe(true);
+  });
+
+  it('does not warn when the runtime option already matches the managed tunnel', async () => {
+    vi.stubGlobal('__SENTRY_TANSTACKSTART_TUNNEL_ROUTE__', true);
+
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+    const { applyTunnelRouteOption } = await import('../../src/client/tunnelRoute');
+
+    const options: BrowserOptions = { dsn: 'https://public@dsn.ingest.sentry.io/1337', tunnel: true };
+    applyTunnelRouteOption(options);
+
+    expect(options.tunnel).toBe(true);
+    expect(warnSpy).not.toHaveBeenCalled();
+  });
+
   it('does nothing when no managed tunnel route was injected', async () => {
     const { applyTunnelRouteOption } = await import('../../src/client/tunnelRoute');
 
