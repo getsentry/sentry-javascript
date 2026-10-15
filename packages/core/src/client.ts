@@ -243,6 +243,9 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
    */
   protected _unhandledSessionStatus: SessionStatus;
 
+  /** Whether we already explained a managed tunnel request the server rejected. */
+  private _hasWarnedAboutManagedTunnel?: boolean;
+
   /**
    * Initializes this client instance.
    *
@@ -1317,6 +1320,8 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
       try {
         const result = await this._transport.send(envelope);
         this.emit('afterEnvelope', envelope);
+        DEBUG_BUILD && this._warnIfManagedTunnelIsNotServed(result.statusCode);
+
         return result;
       } catch (reason) {
         DEBUG_BUILD && debug.error('Error while sending envelope:', reason);
@@ -1326,6 +1331,22 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
 
     DEBUG_BUILD && debug.error('Transport disabled');
     return {};
+  }
+
+  /**
+   * `tunnel: true` only works when the server serves the tunnel. These statuses mean nothing answers the path (404, 405)
+   * or something rejected the request (403), as opposed to Sentry rate limiting or failing.
+   */
+  private _warnIfManagedTunnelIsNotServed(statusCode: number | undefined): void {
+    const { tunnel, _managedTunnel } = this._options;
+    if (!tunnel || !_managedTunnel || this._hasWarnedAboutManagedTunnel || ![403, 404, 405].includes(statusCode ?? 0)) {
+      return;
+    }
+
+    this._hasWarnedAboutManagedTunnel = true;
+    debug.warn(
+      `The managed tunnel at "${tunnel}" responded with ${statusCode}, so events sent through it are lost. \`tunnel: true\` needs a server that answers it: a Sentry meta-framework SDK (SvelteKit, Nuxt, Astro, ...) or your own endpoint calling \`handleTunnelRequest\`. A 403 can also mean the server's \`allowedDsns\` doesn't include this DSN.`,
+    );
   }
 
   /**

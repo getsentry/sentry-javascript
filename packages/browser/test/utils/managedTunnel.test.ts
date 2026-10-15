@@ -15,6 +15,13 @@ describe('resolveBrowserTunnelOption', () => {
     expect(isTunnelRequest({ method: 'POST', url: tunnel! }, { allowedDsns: [DSN] })).toBe(true);
   });
 
+  it('marks the tunnel as managed so the client can explain a server that does not answer it', () => {
+    expect(resolveBrowserTunnelOption({ dsn: DSN, tunnel: { basePath: '/docs' } })._managedTunnel).toEqual({
+      basePath: '/docs',
+    });
+    expect(resolveBrowserTunnelOption({ dsn: DSN, tunnel: '/my-tunnel' })._managedTunnel).toBeUndefined();
+  });
+
   it('prefixes the base path and appends a trailing slash when asked', () => {
     const { tunnel } = resolveBrowserTunnelOption({ dsn: DSN, tunnel: { basePath: '/docs/', trailingSlash: true } });
 
