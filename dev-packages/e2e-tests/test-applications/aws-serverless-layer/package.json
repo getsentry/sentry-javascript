@@ -10,7 +10,6 @@
     "test:build": "pnpm test:pull-sam-image && pnpm install && npx rimraf node_modules/@sentry/aws-serverless/nodejs",
     "test:assert": "pnpm test"
   },
-  "//": "We need to override this here again to ensure this is not overwritten by the test runner",
   "devDependencies": {
     "@aws-sdk/client-lambda": "^3.863.0",
     "@playwright/test": "~1.63.0",
