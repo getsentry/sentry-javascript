@@ -202,6 +202,16 @@ describe('getTunnelPath', () => {
   it('returns undefined for an invalid DSN', () => {
     expect(getTunnelPath('not-a-dsn')).toBeUndefined();
   });
+
+  it('parses each DSN string once, so an invalid DSN logs once', () => {
+    const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+    getTunnelPath('also-not-a-dsn');
+    getTunnelPath('also-not-a-dsn');
+
+    expect(consoleErrorSpy).toHaveBeenCalledOnce();
+    consoleErrorSpy.mockRestore();
+  });
 });
 
 describe('isTunnelRequest', () => {

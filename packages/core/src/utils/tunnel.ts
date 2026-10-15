@@ -15,6 +15,10 @@ export interface HandleTunnelRequestOptions {
   allowedDsns?: Array<string>;
 }
 
+// Servers derive the paths on every POST, so parse and hash each DSN once. This also keeps an invalid DSN in
+// `allowedDsns` from logging on every request. Keys come from config, never from requests, so the map stays small.
+const tunnelPathCache = new Map<string, string | undefined>();
+
 /**
  * Splits the `tunnel` option a server SDK's `init` received. A URL stays the transport tunnel for the server's own
  * envelopes. `true` or {@link TunnelOptions} enables serving the managed tunnel instead.
@@ -37,9 +41,17 @@ export function resolveServerTunnelOption(tunnel: string | true | TunnelOptions 
  * between them. The path is a hash so it carries nothing an ad-blocker filter list could match on.
  */
 export function getTunnelPath(dsn: DsnLike): string | undefined {
-  const components = makeDsn(dsn);
+  if (typeof dsn === 'string' && tunnelPathCache.has(dsn)) {
+    return tunnelPathCache.get(dsn);
+  }
 
-  return components ? `/${fnv1a(dsnToString(components)).toString(36)}` : undefined;
+  const components = makeDsn(dsn);
+  const path = components ? `/${fnv1a(dsnToString(components)).toString(36)}` : undefined;
+  if (typeof dsn === 'string') {
+    tunnelPathCache.set(dsn, path);
+  }
+
+  return path;
 }
 
 /**
@@ -193,7 +205,12 @@ function stripBasePath(pathname: string, basePath: string | undefined): string {
   return pathname === base || pathname.startsWith(`${base}/`) ? pathname.slice(base.length) : pathname;
 }
 
-/** 32-bit FNV-1a. Synchronous, so the browser can derive the path before its client is constructed. */
+/**
+ * 32-bit FNV-1a, because the browser needs the path synchronously in `init` (`crypto.subtle.digest` is async) and it
+ * runs in every runtime without dependencies. It needn't be cryptographic since the DSN is public.
+ *
+ * Browser and server SDKs compute the path separately, so changing the algorithm breaks mixed SDK versions.
+ */
 function fnv1a(input: string): number {
   let hash = 0x811c9dc5;
   for (let i = 0; i < input.length; i++) {
