@@ -9,7 +9,7 @@ import type { BrowserOptions } from '../client';
  */
 export function resolveBrowserTunnelOption(
   options: BrowserOptions,
-): Pick<BrowserOptions, 'transportOptions'> & { tunnel: string | undefined } {
+): Pick<BrowserOptions, 'transportOptions' | '_managedTunnel'> & { tunnel: string | undefined } {
   const { tunnel, dsn, transportOptions } = options;
   if (typeof tunnel === 'string' || !tunnel) {
     return { tunnel, transportOptions };
@@ -28,6 +28,8 @@ export function resolveBrowserTunnelOption(
 
   return {
     tunnel: resolvedTunnel,
+    // Lets the client explain a tunnel request that nothing on the server answers.
+    _managedTunnel: tunnelOptions,
     // The fetch transport sends `text/plain` by default to avoid a CORS preflight. A same-origin request has no
     // preflight, and frameworks with CSRF protection (SvelteKit, Astro) reject a `text/plain` POST as a form submission.
     transportOptions: {
