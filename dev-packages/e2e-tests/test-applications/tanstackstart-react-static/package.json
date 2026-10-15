@@ -43,7 +43,7 @@
     "typescript": "^5.9.0",
     "vite": "7.3.2",
     "vite-tsconfig-paths": "^5.1.4",
-    "@playwright/test": "~1.56.0",
+    "@playwright/test": "~1.63.0",
     "@sentry-internal/test-utils": "link:../../../test-utils"
   },
   "volta": {
