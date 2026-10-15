@@ -25,6 +25,25 @@ function makeEnvelopeRequest(envelopeHeader: Record<string, unknown>, url = 'htt
   return new Request(url, { method: 'POST', body });
 }
 
+/**
+ * A request whose body starts with `head` and then never ends, so buffering it would hang the test.
+ */
+function makeEndlessRequest(head: string): Request {
+  const filler = new Uint8Array(16 * 1024).fill(0x61);
+  let sentHead = false;
+
+  return new Request('http://localhost/tunnel', {
+    method: 'POST',
+    duplex: 'half',
+    body: new ReadableStream<Uint8Array>({
+      pull(controller) {
+        controller.enqueue(sentHead ? filler : new TextEncoder().encode(head));
+        sentHead = true;
+      },
+    }),
+  } as RequestInit);
+}
+
 describe('handleTunnelRequest', () => {
   let fetchMock: ReturnType<typeof vi.fn>;
 
@@ -52,9 +71,62 @@ describe('handleTunnelRequest', () => {
     expect(url).toBe(getEnvelopeEndpointWithUrlEncodedAuth(makeDsn(TEST_DSN)!));
     expect(init.method).toBe('POST');
     expect(init.headers).toEqual({ 'Content-Type': 'application/x-sentry-envelope' });
-    expect(init.body).toBeInstanceOf(Uint8Array);
+    expect(await new Response(init.body).text()).toBe(serializeEnvelope(createEnvelope({ dsn: TEST_DSN }, [])));
 
     expect(result).toBe(upstreamResponse);
+  });
+
+  it('forwards the content length of the incoming request', async () => {
+    fetchMock.mockResolvedValueOnce(new Response('ok'));
+    const body = `${JSON.stringify({ dsn: TEST_DSN })}\n`;
+
+    await handleTunnelRequest({
+      request: new Request('http://localhost/tunnel', {
+        method: 'POST',
+        body,
+        headers: { 'content-length': String(body.length) },
+      }),
+      allowedDsns: [TEST_DSN],
+    });
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      expect.any(String),
+      expect.objectContaining({
+        headers: { 'Content-Type': 'application/x-sentry-envelope', 'Content-Length': String(body.length) },
+      }),
+    );
+  });
+
+  it('rejects a disallowed DSN after reading only the envelope header', async () => {
+    const result = await handleTunnelRequest({
+      request: makeEndlessRequest(`${JSON.stringify({ dsn: 'https://other@example.com/9999' })}\n`),
+      allowedDsns: [TEST_DSN],
+    });
+
+    expect(result.status).toBe(403);
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it('streams an allowed envelope to Sentry without reading the rest of the body', async () => {
+    const upstreamResponse = new Response('ok');
+    fetchMock.mockResolvedValueOnce(upstreamResponse);
+
+    const result = await handleTunnelRequest({
+      request: makeEndlessRequest(`${JSON.stringify({ dsn: TEST_DSN })}\n`),
+      allowedDsns: [TEST_DSN],
+    });
+
+    expect(result).toBe(upstreamResponse);
+  });
+
+  it('returns 400 when the envelope header line exceeds the limit', async () => {
+    const result = await handleTunnelRequest({
+      request: makeEndlessRequest(''),
+      allowedDsns: [TEST_DSN],
+    });
+
+    expect(result.status).toBe(400);
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 
   it('returns 500 when allowedDsns is empty', async () => {
