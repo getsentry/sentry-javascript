@@ -28,7 +28,7 @@ function makeEnvelopeRequest(envelopeHeader: Record<string, unknown>, url = 'htt
 /**
  * A request whose body starts with `head` and then never ends, so buffering it would hang the test.
  */
-function makeEndlessRequest(head: string): Request {
+function makeEndlessRequest(head: string, onCancel?: () => void): Request {
   const filler = new Uint8Array(16 * 1024).fill(0x61);
   let sentHead = false;
 
@@ -40,6 +40,7 @@ function makeEndlessRequest(head: string): Request {
         controller.enqueue(sentHead ? filler : new TextEncoder().encode(head));
         sentHead = true;
       },
+      cancel: onCancel,
     }),
   } as RequestInit);
 }
@@ -105,6 +106,17 @@ describe('handleTunnelRequest', () => {
 
     expect(result.status).toBe(403);
     expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it('cancels the body of a rejected request', async () => {
+    const onCancel = vi.fn();
+
+    await handleTunnelRequest({
+      request: makeEndlessRequest(`${JSON.stringify({ dsn: 'https://other@example.com/9999' })}\n`, onCancel),
+      allowedDsns: [TEST_DSN],
+    });
+
+    expect(onCancel).toHaveBeenCalledOnce();
   });
 
   it('streams an allowed envelope to Sentry without reading the rest of the body', async () => {
@@ -264,6 +276,11 @@ describe('getTunnelPath', () => {
 
     expect(path).toMatch(/^\/[0-9a-z]{1,7}$/);
     expect(path).not.toContain('sentry');
+  });
+
+  // Browser and server SDKs of different versions must derive the same path, so the hash must never change.
+  it('derives a fixed path for a known DSN', () => {
+    expect(getTunnelPath(TEST_DSN)).toBe('/fdv680');
   });
 
   it('is stable for the same DSN and differs between DSNs', () => {
