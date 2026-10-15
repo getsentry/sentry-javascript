@@ -82,6 +82,8 @@ function _getKitSpanEnhancement(spanName: string | undefined): {
       return { op: 'function.sveltekit.load', origin: 'auto.function.sveltekit.load' };
     case 'sveltekit.form_action':
       return { op: 'function.sveltekit.form_action', origin: 'auto.function.sveltekit.action' };
+    case 'sveltekit.endpoint':
+      return { op: 'function.sveltekit.endpoint', origin: 'auto.function.sveltekit.endpoint' };
     case 'sveltekit.remote.call':
       return { op: 'function.sveltekit.remote', origin: 'auto.rpc.sveltekit.remote' };
     case 'sveltekit.handle.root':
