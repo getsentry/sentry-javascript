@@ -393,12 +393,47 @@ function wrapDefaultExport(node: ExportDefaultNode, ctx: TransformContext, state
     }
   }
 
-  // `export default <expr>` → `const __SENTRY_DEFAULT_EXPORT__ = <expr>`
-  // MagicString positions are always relative to the original source.
-  state.ms.overwrite(node.start, decl.start, 'const __SENTRY_DEFAULT_EXPORT__ = ');
-  state.ms.append(`\nexport default __SENTRY__.withSentry(${state.optionsFn}, __SENTRY_DEFAULT_EXPORT__);\n`);
+  // MagicString positions are always relative to the original source. Only the `export default`
+  // keywords are replaced, so parentheses around the expression stay.
+  const source = state.ms.original;
+  const keywordsEnd = node.start + source.slice(node.start, decl.start).lastIndexOf('default') + 'default'.length;
+  const declaredName =
+    decl.type === 'ClassDeclaration' || decl.type === 'FunctionDeclaration'
+      ? (decl as ClassDeclarationNode).id?.name
+      : undefined;
+
+  // As with `export { handler as default }`, the export is set in two steps: bound as-is where the
+  // original statement set it, then rebound at the end of the module to the wrapper, which sees
+  // methods added in between. See `wrapDefaultSpecifier`.
+  let wrapped = '__SENTRY_DEFAULT_EXPORT__';
+  if (declaredName) {
+    // `export default class Handler {}`: the declaration stays, so `Handler` stays bound in the module.
+    state.ms.remove(node.start, decl.start);
+    state.ms.appendLeft(node.end, `\nvar __SENTRY_DEFAULT_EXPORT__ = ${declaredName};`);
+    wrapped = declaredName;
+  } else if (isAnonymousFunctionOrClass(decl)) {
+    // As a property value, the class or function gets the name `default`, as `export default` gives it.
+    const hasSemicolon = source[node.end - 1] === ';';
+    state.ms.overwrite(node.start, keywordsEnd, 'var __SENTRY_DEFAULT_EXPORT__ = { default:');
+    state.ms.appendLeft(hasSemicolon ? node.end - 1 : node.end, hasSemicolon ? ' }.default' : ' }.default;');
+  } else {
+    state.ms.overwrite(node.start, keywordsEnd, 'var __SENTRY_DEFAULT_EXPORT__ =');
+  }
+  state.ms.appendLeft(node.end, '\nexport { __SENTRY_DEFAULT_EXPORT__ as default };');
+  state.ms.append(`\n__SENTRY_DEFAULT_EXPORT__ = __SENTRY__.withSentry(${state.optionsFn}, ${wrapped});`);
   state.needsImport = true;
   state.autoWrapped.add(DEFAULT_EXPORT);
+}
+
+function isAnonymousFunctionOrClass(node: BaseNode): boolean {
+  if (node.type === 'ArrowFunctionExpression') return true;
+  const isFunctionOrClass = [
+    'FunctionExpression',
+    'FunctionDeclaration',
+    'ClassExpression',
+    'ClassDeclaration',
+  ].includes(node.type);
+  return isFunctionOrClass && !(node as ClassDeclarationNode).id;
 }
 
 function handleNamedExport(node: ExportNamedNode, ctx: TransformContext, state: TransformState): void {
