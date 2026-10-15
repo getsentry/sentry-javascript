@@ -107,7 +107,7 @@ function createGenAiSpan(
   const { recordInputs } = resolveAIRecordingOptions(options);
 
   const attributes = extractRequestAttributes(operation, params, data.self, recordInputs);
-  const model = (attributes[GEN_AI_REQUEST_MODEL] as string) || 'unknown';
+  const model = (attributes[GEN_AI_REQUEST_MODEL] as string);
   attributes[SENTRY_ORIGIN] = ORIGIN;
   const client = getClient();
 

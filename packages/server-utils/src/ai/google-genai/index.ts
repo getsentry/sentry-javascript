@@ -66,8 +66,6 @@ export function extractModel(params: Record<string, unknown>, context?: unknown)
       return contextObj.modelVersion;
     }
   }
-
-  return 'unknown';
 }
 
 /**
@@ -314,7 +312,7 @@ function instrumentMethod<T extends unknown[], R>(
       const client = getClient();
       // With span streaming, omit the `'unknown'` model sentinel so the name stays low-cardinality.
       const spanName =
-        (typeof model === 'string' && model !== 'unknown') || !(client && hasSpanStreamingEnabled(client))
+        (typeof model === 'string') || !(client && hasSpanStreamingEnabled(client))
           ? `${operationName} ${model}`
           : operationName;
 

@@ -247,7 +247,7 @@ export function extractLLMRequestAttributes(
   langSmithMetadata?: Record<string, unknown>,
 ): Record<string, SpanAttributeValue | undefined> {
   const system = langSmithMetadata?.ls_provider;
-  const modelName = invocationParams?.model ?? langSmithMetadata?.ls_model_name ?? 'unknown';
+  const modelName = invocationParams?.model ?? langSmithMetadata?.ls_model_name;
 
   const attrs = baseRequestAttributes(system, modelName, llm, invocationParams, langSmithMetadata);
 

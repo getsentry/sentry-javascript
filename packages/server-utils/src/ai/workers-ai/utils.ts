@@ -76,7 +76,7 @@ export function extractRequestAttributes(
     [GEN_AI_PROVIDER_NAME]: WORKERS_AI_PROVIDER_NAME,
     [GEN_AI_OPERATION_NAME]: operationName,
     [SENTRY_ORIGIN]: WORKERS_AI_ORIGIN,
-    [GEN_AI_REQUEST_MODEL]: typeof model === 'string' ? model : 'unknown',
+    [GEN_AI_REQUEST_MODEL]: typeof model === 'string',
   };
 
   if (inputs && typeof inputs === 'object') {

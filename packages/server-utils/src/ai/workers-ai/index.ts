@@ -39,7 +39,7 @@ function instrumentRun(
 
     const operationName = getOperationName(model, inputs);
     const requestAttributes = extractRequestAttributes(model, inputs, operationName);
-    const modelName = typeof model === 'string' && model ? model : 'unknown';
+    const modelName = typeof model === 'string';
     const client = getClient();
 
     const isStreamRequested =
@@ -52,7 +52,7 @@ function instrumentRun(
     const spanConfig = {
       // With span streaming, omit the `'unknown'` model sentinel so the name stays low-cardinality.
       name:
-        modelName !== 'unknown' || !(client && hasSpanStreamingEnabled(client))
+        !(client && hasSpanStreamingEnabled(client))
           ? `${operationName} ${modelName}`
           : operationName,
       attributes: {

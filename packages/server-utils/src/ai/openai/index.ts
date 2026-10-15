@@ -1,5 +1,5 @@
 /* eslint-disable typescript-eslint/no-deprecated */
-import { DEBUG_BUILD } from '../../debug-build';
+import { DEBUG_BUILD } from "../../debug-build";
 import {
   getClient,
   hasSpanStreamingEnabled,
@@ -8,8 +8,8 @@ import {
   startSpanManual,
   debug,
   stringify,
-} from '@sentry/core';
-import type { Span, SpanAttributeValue } from '@sentry/core';
+} from "@sentry/core";
+import type { Span, SpanAttributeValue } from "@sentry/core";
 import {
   GEN_AI_EMBEDDINGS_INPUT,
   GEN_AI_INPUT_MESSAGES,
@@ -19,28 +19,41 @@ import {
   GEN_AI_SYSTEM_INSTRUCTIONS,
   GEN_AI_TOOL_DEFINITIONS,
   SENTRY_ORIGIN,
-} from '@sentry/conventions/attributes';
-import type { InstrumentedMethodEntry } from '../core/utils';
+} from "@sentry/conventions/attributes";
+import type { InstrumentedMethodEntry } from "../core/utils";
 import {
   buildMethodPath,
   extractSystemInstructions,
   getGenAiSpanOp,
   resolveAIRecordingOptions,
   wrapPromiseWithMethods,
-} from '../core/utils';
-import { OPENAI_METHOD_REGISTRY } from './constants';
-import { instrumentStream } from './streaming';
-import type { ChatCompletionChunk, OpenAiOptions, OpenAIStream, ResponseStreamingEvent } from './types';
-import { addResponseAttributes, extractRequestParameters } from './utils';
+} from "../core/utils";
+import { OPENAI_METHOD_REGISTRY } from "./constants";
+import { instrumentStream } from "./streaming";
+import type {
+  ChatCompletionChunk,
+  OpenAiOptions,
+  OpenAIStream,
+  ResponseStreamingEvent,
+} from "./types";
+import { addResponseAttributes, extractRequestParameters } from "./utils";
 
 /**
  * Extract available tools from request parameters
  */
-function extractAvailableTools(params: Record<string, unknown>): string | undefined {
+function extractAvailableTools(
+  params: Record<string, unknown>,
+): string | undefined {
   const tools = Array.isArray(params.tools) ? params.tools : [];
-  const hasWebSearchOptions = params.web_search_options && typeof params.web_search_options === 'object';
+  const hasWebSearchOptions =
+    params.web_search_options && typeof params.web_search_options === "object";
   const webSearchOptions = hasWebSearchOptions
-    ? [{ type: 'web_search_options', ...(params.web_search_options as Record<string, unknown>) }]
+    ? [
+        {
+          type: "web_search_options",
+          ...(params.web_search_options as Record<string, unknown>),
+        },
+      ]
     : [];
 
   const availableTools = [...tools, ...webSearchOptions];
@@ -51,7 +64,7 @@ function extractAvailableTools(params: Record<string, unknown>): string | undefi
   try {
     return JSON.stringify(availableTools);
   } catch (error) {
-    DEBUG_BUILD && debug.error('Failed to serialize OpenAI tools:', error);
+    DEBUG_BUILD && debug.error("Failed to serialize OpenAI tools:", error);
     return undefined;
   }
 }
@@ -65,31 +78,35 @@ export function extractRequestAttributes(
   recordInputs: boolean,
 ): Record<string, unknown> {
   const attributes: Record<string, unknown> = {
-    [GEN_AI_PROVIDER_NAME]: 'openai',
+    [GEN_AI_PROVIDER_NAME]: "openai",
     [GEN_AI_OPERATION_NAME]: operationName,
-    [SENTRY_ORIGIN]: 'auto.ai.openai',
+    [SENTRY_ORIGIN]: "auto.ai.openai",
   };
 
-  if (args.length > 0 && typeof args[0] === 'object' && args[0] !== null) {
+  if (args.length > 0 && typeof args[0] === "object" && args[0] !== null) {
     const params = args[0] as Record<string, unknown>;
 
-    const availableTools = recordInputs ? extractAvailableTools(params) : undefined;
+    const availableTools = recordInputs
+      ? extractAvailableTools(params)
+      : undefined;
     if (availableTools) {
       attributes[GEN_AI_TOOL_DEFINITIONS] = availableTools;
     }
 
     Object.assign(attributes, extractRequestParameters(params));
-  } else {
-    attributes[GEN_AI_REQUEST_MODEL] = 'unknown';
   }
 
   return attributes;
 }
 
 // Extract and record AI request inputs, if present. This is intentionally separate from response attributes.
-export function addRequestAttributes(span: Span, params: Record<string, unknown>, operationName: string): void {
+export function addRequestAttributes(
+  span: Span,
+  params: Record<string, unknown>,
+  operationName: string,
+): void {
   // Store embeddings input on a separate attribute
-  if (operationName === 'embeddings' && 'input' in params) {
+  if (operationName === "embeddings" && "input" in params) {
     const input = params.input;
 
     // No input provided
@@ -98,7 +115,7 @@ export function addRequestAttributes(span: Span, params: Record<string, unknown>
     }
 
     // Empty input string
-    if (typeof input === 'string' && input.length === 0) {
+    if (typeof input === "string" && input.length === 0) {
       return;
     }
 
@@ -111,7 +128,12 @@ export function addRequestAttributes(span: Span, params: Record<string, unknown>
     return;
   }
 
-  const src = 'input' in params ? params.input : 'messages' in params ? params.messages : undefined;
+  const src =
+    "input" in params
+      ? params.input
+      : "messages" in params
+        ? params.messages
+        : undefined;
 
   if (!src) {
     return;
@@ -121,7 +143,8 @@ export function addRequestAttributes(span: Span, params: Record<string, unknown>
     return;
   }
 
-  const { systemInstructions, filteredMessages } = extractSystemInstructions(src);
+  const { systemInstructions, filteredMessages } =
+    extractSystemInstructions(src);
 
   if (systemInstructions) {
     span.setAttribute(GEN_AI_SYSTEM_INSTRUCTIONS, systemInstructions);
@@ -143,18 +166,24 @@ function instrumentMethod<T extends unknown[], R>(
   options: OpenAiOptions,
 ): (...args: T) => Promise<R> {
   return function instrumentedCall(...args: T): Promise<R> {
-    const operationName = instrumentedMethod.operation || 'unknown';
-    const requestAttributes = extractRequestAttributes(args, operationName, !!options.recordInputs);
-    const model = (requestAttributes[GEN_AI_REQUEST_MODEL] as string) || 'unknown';
+    const operationName = instrumentedMethod.operation || "unknown";
+    const requestAttributes = extractRequestAttributes(
+      args,
+      operationName,
+      !!options.recordInputs,
+    );
+    const model =
+      (requestAttributes[GEN_AI_REQUEST_MODEL] as string);
 
     const params = args[0] as Record<string, unknown> | undefined;
-    const isStreamRequested = params && typeof params === 'object' && params.stream === true;
+    const isStreamRequested =
+      params && typeof params === "object" && params.stream === true;
     const client = getClient();
 
     const spanConfig = {
       // With span streaming, omit the `'unknown'` model sentinel so the name stays low-cardinality.
       name:
-        model !== 'unknown' || !(client && hasSpanStreamingEnabled(client))
+        !(client && hasSpanStreamingEnabled(client))
           ? `${operationName} ${model}`
           : operationName,
       op: getGenAiSpanOp(operationName),
@@ -176,12 +205,17 @@ function instrumentMethod<T extends unknown[], R>(
           try {
             const result = await originalResult;
             return instrumentStream(
-              result as OpenAIStream<ChatCompletionChunk | ResponseStreamingEvent>,
+              result as OpenAIStream<
+                ChatCompletionChunk | ResponseStreamingEvent
+              >,
               span,
               options.recordOutputs ?? false,
             ) as unknown as R;
           } catch (error) {
-            span.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
+            span.setStatus({
+              code: SPAN_STATUS_ERROR,
+              message: "internal_error",
+            });
             span.end();
             throw error;
           }
@@ -202,7 +236,7 @@ function instrumentMethod<T extends unknown[], R>(
         addRequestAttributes(span, params, operationName);
       }
 
-      return originalResult.then(result => {
+      return originalResult.then((result) => {
         addResponseAttributes(span, result, options.recordOutputs);
         return result;
       });
@@ -215,14 +249,21 @@ function instrumentMethod<T extends unknown[], R>(
 /**
  * Create a deep proxy for OpenAI client instrumentation
  */
-function createDeepProxy<T extends object>(target: T, currentPath = '', options: OpenAiOptions): T {
+function createDeepProxy<T extends object>(
+  target: T,
+  currentPath = "",
+  options: OpenAiOptions,
+): T {
   return new Proxy(target, {
     get(obj: object, prop: string): unknown {
       const value = (obj as Record<string, unknown>)[prop];
       const methodPath = buildMethodPath(currentPath, String(prop));
 
-      const instrumentedMethod = OPENAI_METHOD_REGISTRY[methodPath as keyof typeof OPENAI_METHOD_REGISTRY];
-      if (typeof value === 'function' && instrumentedMethod) {
+      const instrumentedMethod =
+        OPENAI_METHOD_REGISTRY[
+          methodPath as keyof typeof OPENAI_METHOD_REGISTRY
+        ];
+      if (typeof value === "function" && instrumentedMethod) {
         return instrumentMethod(
           value as (...args: unknown[]) => Promise<unknown>,
           methodPath,
@@ -232,13 +273,13 @@ function createDeepProxy<T extends object>(target: T, currentPath = '', options:
         );
       }
 
-      if (typeof value === 'function') {
+      if (typeof value === "function") {
         // Bind non-instrumented functions to preserve the original `this` context,
         // which is required for accessing private class fields (e.g. #baseURL) in OpenAI SDK v5.
         return value.bind(obj);
       }
 
-      if (value && typeof value === 'object') {
+      if (value && typeof value === "object") {
         return createDeepProxy(value, methodPath, options);
       }
 
@@ -251,6 +292,9 @@ function createDeepProxy<T extends object>(target: T, currentPath = '', options:
  * Instrument an OpenAI client with Sentry tracing
  * Can be used across Node.js, Cloudflare Workers, and Vercel Edge
  */
-export function instrumentOpenAiClient<T extends object>(client: T, options?: OpenAiOptions): T {
-  return createDeepProxy(client, '', resolveAIRecordingOptions(options));
+export function instrumentOpenAiClient<T extends object>(
+  client: T,
+  options?: OpenAiOptions,
+): T {
+  return createDeepProxy(client, "", resolveAIRecordingOptions(options));
 }
