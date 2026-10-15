@@ -49,6 +49,15 @@ import {
   getInvocationParams,
 } from './utils';
 
+interface LangChainRun {
+  span: Span;
+  parentRunId?: string;
+  // The span active when the run started, to tell whether a span was opened inside the run since.
+  activeSpan?: Span;
+  conversationId?: string;
+  decide?: boolean;
+}
+
 /**
  * Creates a Sentry callback handler for LangChain
  * Returns a plain object that LangChain will call via duck-typing
@@ -59,20 +68,17 @@ export function createLangChainCallbackHandler(options: LangChainOptions = {}): 
   const { recordInputs, recordOutputs } = resolveAIRecordingOptions(options);
 
   // Internal state - single instance tracks all spans
-  const spanMap = new Map<string, Span>();
-  const decideRunIds = new Set<string>();
-  const runs = new Map<string, { parentRunId?: string; activeSpan?: Span; conversationId?: string }>();
+  const runs = new Map<string, LangChainRun>();
+  const getRun = (runId: string | undefined): LangChainRun | undefined => (runId ? runs.get(runId) : undefined);
 
   /**
    * Exit a span and clean up
    */
   const exitSpan = (runId: string): void => {
-    const span = spanMap.get(runId);
+    const span = runs.get(runId)?.span;
     if (span?.isRecording()) {
       span.end();
     }
-    spanMap.delete(runId);
-    decideRunIds.delete(runId);
     runs.delete(runId);
   };
 
@@ -80,43 +86,44 @@ export function createLangChainCallbackHandler(options: LangChainOptions = {}): 
   // an ignored span only parents when it is a root, which drops its subtree. The active span stays the parent
   // if the ancestor run has no span, or if another span was opened since that run started.
   const getParentRunSpan = (parentRunId: string | undefined, activeSpan: Span | undefined): Span | undefined => {
-    for (let id = parentRunId; id; id = runs.get(id)?.parentRunId) {
-      const span = spanMap.get(id);
-      if (!span || runs.get(id)?.activeSpan !== activeSpan) {
+    for (let run = getRun(parentRunId); run; run = getRun(run.parentRunId)) {
+      if (run.activeSpan !== activeSpan) {
         return undefined;
       }
-      if (!spanIsIgnored(span) || getRootSpan(span) === span) {
-        return span;
+      if (!spanIsIgnored(run.span) || getRootSpan(run.span) === run.span) {
+        return run.span;
       }
     }
     return undefined;
   };
 
-  const startRunSpan = (runId: string, parentRunId: string | undefined, start: () => Span): void => {
+  const startRunSpan = (runId: string, parentRunId: string | undefined, start: () => Span): LangChainRun => {
     const activeSpan = getActiveSpan();
     const parentSpan = getParentRunSpan(parentRunId, activeSpan);
     const span = parentSpan ? withActiveSpan(parentSpan, start) : start();
-    spanMap.set(runId, span);
 
     // `@langchain/core` >= 1.1.40 keeps `configurable` out of run metadata, so often only the chat span knows
-    // the conversation id. A span takes it from its parent, or hands it up to open ancestors without one.
-    // The own id is read off the span, since one from `Sentry.setConversationId()` is only set there.
+    // the conversation id. The own id is read off the span, since one from `Sentry.setConversationId()` is
+    // only set there.
     const ownId = spanToJSON(span).attributes[GEN_AI_CONVERSATION_ID];
-    const parentConversationId = parentRunId ? runs.get(parentRunId)?.conversationId : undefined;
-    const conversationId = typeof ownId === 'string' ? ownId : parentConversationId;
+    const conversationId = typeof ownId === 'string' ? ownId : getRun(parentRunId)?.conversationId;
     if (conversationId && conversationId !== ownId) {
       span.setAttribute(GEN_AI_CONVERSATION_ID, conversationId);
     }
-    runs.set(runId, { parentRunId, activeSpan, conversationId });
 
-    for (let id = parentRunId; conversationId && id; id = runs.get(id)?.parentRunId) {
-      const run = runs.get(id);
-      if (!run || run.conversationId) {
-        break;
+    const run: LangChainRun = { span, parentRunId, activeSpan, conversationId };
+    runs.set(runId, run);
+    if (conversationId) {
+      for (
+        let ancestor = getRun(parentRunId);
+        ancestor && !ancestor.conversationId;
+        ancestor = getRun(ancestor.parentRunId)
+      ) {
+        ancestor.conversationId = conversationId;
+        ancestor.span.setAttribute(GEN_AI_CONVERSATION_ID, conversationId);
       }
-      run.conversationId = conversationId;
-      spanMap.get(id)?.setAttribute(GEN_AI_CONVERSATION_ID, conversationId);
     }
+    return run;
   };
 
   /**
@@ -239,7 +246,7 @@ export function createLangChainCallbackHandler(options: LangChainOptions = {}): 
       _tags?: string[],
       _extraParams?: Record<string, unknown>,
     ) {
-      const span = spanMap.get(runId);
+      const span = runs.get(runId)?.span;
       if (span?.isRecording()) {
         const attributes = extractLlmResponseAttributes(output as LangChainLLMResult, recordOutputs);
         if (attributes) {
@@ -253,7 +260,7 @@ export function createLangChainCallbackHandler(options: LangChainOptions = {}): 
     handleLLMError(_error: Error, runId: string) {
       // The error is surfaced to the caller (invoke() rejects), so we only mark the span failed and
       // do not record it.
-      const span = spanMap.get(runId);
+      const span = runs.get(runId)?.span;
       if (span?.isRecording()) {
         span.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
       }
@@ -273,8 +280,9 @@ export function createLangChainCallbackHandler(options: LangChainOptions = {}): 
     ) {
       // A Jev call is a real model call, so it is recorded inside an agent too.
       if (isTypeSafeClassifier(chain)) {
-        startRunSpan(runId, parentRunId, () => startTypeSafeClassifierSpan(chain, inputs, metadata, recordInputs));
-        decideRunIds.add(runId);
+        startRunSpan(runId, parentRunId, () =>
+          startTypeSafeClassifierSpan(chain, inputs, metadata, recordInputs),
+        ).decide = true;
         return;
       }
 
@@ -321,9 +329,10 @@ export function createLangChainCallbackHandler(options: LangChainOptions = {}): 
 
     // Chain End Handler
     handleChainEnd(outputs: unknown, runId: string) {
-      const span = spanMap.get(runId);
+      const run = runs.get(runId);
+      const span = run?.span;
       if (span?.isRecording()) {
-        if (decideRunIds.has(runId)) {
+        if (run?.decide) {
           addTypeSafeClassifierResponseAttributes(span, outputs, recordOutputs);
         } else if (recordOutputs) {
           span.setAttributes({
@@ -331,7 +340,6 @@ export function createLangChainCallbackHandler(options: LangChainOptions = {}): 
           });
         }
       }
-      // Also for a sampled-out span, which would otherwise stay tracked.
       exitSpan(runId);
     },
 
@@ -339,7 +347,7 @@ export function createLangChainCallbackHandler(options: LangChainOptions = {}): 
     handleChainError(_error: Error, runId: string) {
       // The error is surfaced to the caller (invoke() rejects), so we only mark the span failed and
       // do not record it.
-      const span = spanMap.get(runId);
+      const span = runs.get(runId)?.span;
       if (span?.isRecording()) {
         span.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
       }
@@ -389,7 +397,7 @@ export function createLangChainCallbackHandler(options: LangChainOptions = {}): 
 
     // Tool End Handler
     handleToolEnd(output: unknown, runId: string) {
-      const span = spanMap.get(runId);
+      const span = runs.get(runId)?.span;
       if (span?.isRecording()) {
         if (recordOutputs) {
           // LangChain tools may return ToolMessage objects — extract the content
@@ -408,7 +416,7 @@ export function createLangChainCallbackHandler(options: LangChainOptions = {}): 
     handleToolError(_error: Error, runId: string) {
       // The error is surfaced to the caller (invoke() rejects), so we only mark the span failed and
       // do not record it.
-      const span = spanMap.get(runId);
+      const span = runs.get(runId)?.span;
       if (span?.isRecording()) {
         span.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
       }

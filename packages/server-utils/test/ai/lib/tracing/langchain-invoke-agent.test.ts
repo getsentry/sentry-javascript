@@ -303,12 +303,10 @@ describe('LangChain callback handler run tree', () => {
       thread_id: 'thread-b',
     });
     handler.handleLLMEnd?.({ generations: [] }, 'b-chat');
-    for (const runId of ['a-tool', 'b-tool']) {
-      handler.handleToolEnd?.('sunny', runId);
-    }
-    for (const runId of ['a', 'b']) {
-      handler.handleChainEnd?.({}, runId);
-    }
+    handler.handleToolEnd?.('sunny', 'a-tool');
+    handler.handleToolEnd?.('sunny', 'b-tool');
+    handler.handleChainEnd?.({}, 'a');
+    handler.handleChainEnd?.({}, 'b');
 
     const spans = byName(endedSpans);
     expect(spans['execute_tool tool_a']?.parent_span_id).toBe(spans['chain a']?.span_id);
