@@ -1028,6 +1028,16 @@ jobs:
           compression-level: 6
           overwrite: true
 
+      - name: Upload test-utils tarball artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: build-test-utils-tarball-output
+          path: dev-packages/test-utils/*.tgz
+          if-no-files-found: error
+          retention-days: 4
+          compression-level: 6
+          overwrite: true
+
   job_e2e_tests:
     name: E2E ${{ matrix.label || matrix.test-application }} Test
     # We need to add the `always()` check here because the previous step has this as well :(
@@ -1090,6 +1100,12 @@ jobs:
         with:
           name: build-tarball-output
           path: ${{ env.TARBALL_ARTIFACT_DOWNLOAD_PATH }}
+
+      - name: Restore test-utils tarball artifact
+        uses: actions/download-artifact@v8
+        with:
+          name: build-test-utils-tarball-output
+          path: dev-packages/test-utils
 
       - name: Restore build layer artifacts
         uses: actions/download-artifact@v8
@@ -1235,6 +1251,12 @@ jobs:
         with:
           name: build-tarball-output
           path: ${{ env.TARBALL_ARTIFACT_DOWNLOAD_PATH }}
+
+      - name: Restore test-utils tarball artifact
+        uses: actions/download-artifact@v8
+        with:
+          name: build-test-utils-tarball-output
+          path: dev-packages/test-utils
 
       # Installs Playwright while the app builds.
       # Started after the artifact downloads: starting next to them made `download-artifact` fail to read the event file.
