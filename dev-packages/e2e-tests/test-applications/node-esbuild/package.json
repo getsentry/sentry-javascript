@@ -15,7 +15,7 @@
     "@sentry/bundler-plugins": "file:../../packed/sentry-bundler-plugins-packed.tgz"
   },
   "devDependencies": {
-    "@sentry-internal/test-utils": "link:../../../test-utils",
+    "@sentry-internal/test-utils": "file:../../packed/sentry-internal-test-utils-packed.tgz",
     "graphql": "16.9.0",
     "esbuild": "0.28.2"
   },

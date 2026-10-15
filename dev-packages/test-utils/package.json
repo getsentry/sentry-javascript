@@ -8,9 +8,7 @@
   "module": "build/esm/index.js",
   "types": "build/types/index.d.ts",
   "files": [
-    "cjs",
-    "esm",
-    "types"
+    "/build"
   ],
   "exports": {
     "./package.json": "./package.json",
@@ -53,7 +51,7 @@
     "lint:fix": "oxlint . --fix --type-aware",
     "lint": "oxlint . --type-aware",
     "build": "run-s build:transpile build:types",
-    "build:tarball": "run-s build:transpile build:types",
+    "build:tarball": "npm pack",
     "build:dev": "yarn build",
     "build:transpile": "rollup -c rollup.npm.config.mjs",
     "build:types": "tsc -p tsconfig.types.json",

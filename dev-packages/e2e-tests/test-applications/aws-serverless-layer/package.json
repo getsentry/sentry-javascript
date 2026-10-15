@@ -14,7 +14,7 @@
   "devDependencies": {
     "@aws-sdk/client-lambda": "^3.863.0",
     "@playwright/test": "1.64.1",
-    "@sentry-internal/test-utils": "link:../../../test-utils",
+    "@sentry-internal/test-utils": "file:../../packed/sentry-internal-test-utils-packed.tgz",
     "@sentry/aws-serverless": "link:../../../../packages/aws-serverless/build/aws/dist-serverless/",
     "aws-cdk-lib": "^2.210.0",
     "constructs": "^10.4.2",
