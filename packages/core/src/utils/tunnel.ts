@@ -1,8 +1,10 @@
 import { getEnvelopeEndpointWithUrlEncodedAuth } from '../api';
 import { getClient } from '../currentScopes';
 import { suppressTracing } from '../tracing/trace';
-import type { DsnLike } from '../types/dsn';
-import type { TunnelOptions } from '../types/options';
+import { URL_PATH } from '@sentry/conventions/attributes';
+import type { DsnComponents, DsnLike } from '../types/dsn';
+import type { IgnoreSpanFilter, TunnelOptions } from '../types/options';
+import { escapeStringForRegex } from '../vendor/escapeStringForRegex';
 import { debug } from './debug-logger';
 import { dsnToString, makeDsn } from './dsn';
 import { parseEnvelope } from './envelope';
@@ -85,13 +87,27 @@ export function getTunnelPaths(options?: TunnelOptions): string[] {
     return [];
   }
 
-  if (tunnelOptions.path) {
-    return [tunnelOptions.path];
+  return tunnelPathsFor(tunnelOptions, resolveAllowedDsns(tunnelOptions.allowedDsns));
+}
+
+/**
+ * An `ignoreSpans` filter for the server spans of tunnel requests. Server SDKs start the span before a framework
+ * hook gets to answer the request, so clients add this whenever the managed tunnel is enabled.
+ */
+export function getTunnelIgnoreSpanFilter(
+  tunnelOptions: TunnelOptions,
+  dsn: DsnComponents | undefined,
+): IgnoreSpanFilter | undefined {
+  const allowedDsns = tunnelOptions.allowedDsns ?? (dsn ? [dsnToString(dsn)] : []);
+  const paths = tunnelPathsFor(tunnelOptions, allowedDsns).map(escapeStringForRegex);
+  if (!paths.length) {
+    return undefined;
   }
 
-  return resolveAllowedDsns(tunnelOptions.allowedDsns)
-    .map(dsn => getTunnelPath(dsn))
-    .filter((path): path is string => !!path);
+  const basePath = escapeStringForRegex(tunnelOptions.basePath?.replace(/\/$/, '') ?? '');
+
+  // oxlint-disable-next-line sdk/no-regexp-constructor -- built from escaped config values, not end user input
+  return { attributes: { [URL_PATH]: new RegExp(`^(?:${basePath})?(?:${paths.join('|')})/?$`) } };
 }
 
 /**
@@ -242,4 +258,12 @@ function fnv1a(input: string): number {
 
   // eslint-disable-next-line no-bitwise
   return hash >>> 0;
+}
+
+function tunnelPathsFor(tunnelOptions: TunnelOptions, allowedDsns: Array<string>): string[] {
+  if (tunnelOptions.path) {
+    return [tunnelOptions.path];
+  }
+
+  return allowedDsns.map(dsn => getTunnelPath(dsn)).filter((path): path is string => !!path);
 }

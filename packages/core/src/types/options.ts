@@ -96,7 +96,7 @@ export type IgnoreSpanAttributeValue = string | boolean | number | string[] | bo
  * At least one of the properties (`name`, `op`, or `attributes`) must be set.
  * If multiple are set, all must match for the span to be ignored.
  */
-type IgnoreSpanFilter =
+export type IgnoreSpanFilter =
   | {
       /**
        * Spans with a name matching this pattern will be ignored.
