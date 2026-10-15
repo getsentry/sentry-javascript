@@ -29,8 +29,19 @@ import { nextjsUseCacheIntegration } from './useCacheInstrumentation';
 
 export * from '@sentry/node';
 
-// Explicitly re-export so these are statically detectable by turbopack
-export { pinoIntegration, vercelAIIntegration } from '@sentry/node';
+// Explicit exports are also detectable by Node's CJS lexer when imported from ESM.
+export {
+  addBreadcrumb,
+  captureException,
+  captureMessage,
+  consoleLoggingIntegration,
+  isEnabled,
+  isInitialized,
+  pinoIntegration,
+  setContext,
+  setTag,
+  vercelAIIntegration,
+} from '@sentry/node';
 
 export { captureUnderscoreErrorException } from '../common/pages-router-instrumentation/_error';
 
