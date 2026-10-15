@@ -6,6 +6,7 @@ import { makeDsn } from '../../../src/utils/dsn';
 import { createEnvelope, serializeEnvelope } from '../../../src/utils/envelope';
 import {
   getTunnelPath,
+  getTunnelIgnoreSpanFilter,
   getTunnelPaths,
   handleTunnelRequest,
   handleTunnelRequestIfMatched,
@@ -357,6 +358,62 @@ describe('handleTunnelRequestIfMatched', () => {
     expect(handleTunnelRequestIfMatched(request, { allowedDsns: [TEST_DSN] })).toBeUndefined();
     expect(request.bodyUsed).toBe(false);
     expect(fetchMock).not.toHaveBeenCalled();
+  });
+});
+
+describe('getTunnelIgnoreSpanFilter', () => {
+  function urlPathMatcher(filter: ReturnType<typeof getTunnelIgnoreSpanFilter>): RegExp {
+    return (filter as { attributes: { 'url.path': RegExp } }).attributes['url.path'];
+  }
+
+  it("matches the tunnel path of the client's DSN, with or without a trailing slash", () => {
+    const matcher = urlPathMatcher(getTunnelIgnoreSpanFilter({}, makeDsn(TEST_DSN)));
+    const tunnelPath = getTunnelPath(TEST_DSN)!;
+
+    expect(matcher.test(tunnelPath)).toBe(true);
+    expect(matcher.test(`${tunnelPath}/`)).toBe(true);
+    expect(matcher.test(`${tunnelPath}x`)).toBe(false);
+    expect(matcher.test('/api/users')).toBe(false);
+  });
+
+  it('follows allowedDsns, a fixed path and the base path', () => {
+    const otherDsn = 'https://other@o2.ingest.sentry.io/42';
+
+    expect(
+      urlPathMatcher(getTunnelIgnoreSpanFilter({ allowedDsns: [otherDsn] }, makeDsn(TEST_DSN))).test(
+        getTunnelPath(otherDsn)!,
+      ),
+    ).toBe(true);
+    expect(urlPathMatcher(getTunnelIgnoreSpanFilter({ path: '/monitor' }, undefined)).test('/monitor')).toBe(true);
+    expect(
+      urlPathMatcher(getTunnelIgnoreSpanFilter({ basePath: '/app/' }, makeDsn(TEST_DSN))).test(
+        `/app${getTunnelPath(TEST_DSN)}`,
+      ),
+    ).toBe(true);
+  });
+
+  it('returns nothing when there is no path to match', () => {
+    expect(getTunnelIgnoreSpanFilter({}, undefined)).toBeUndefined();
+  });
+});
+
+describe('client with the managed tunnel enabled', () => {
+  it('ignores the server spans of tunnel requests and keeps user filters', () => {
+    const client = new TestClient(
+      getDefaultTestClientOptions({ dsn: TEST_DSN, _managedTunnel: {}, ignoreSpans: ['user-filter'] }),
+    );
+    const ignoreSpans = client.getOptions().ignoreSpans!;
+
+    expect(ignoreSpans[0]).toBe('user-filter');
+    expect(
+      (ignoreSpans[1] as { attributes: { 'url.path': RegExp } }).attributes['url.path'].test(getTunnelPath(TEST_DSN)!),
+    ).toBe(true);
+  });
+
+  it('leaves ignoreSpans alone without the managed tunnel', () => {
+    const client = new TestClient(getDefaultTestClientOptions({ dsn: TEST_DSN }));
+
+    expect(client.getOptions().ignoreSpans).toBeUndefined();
   });
 });
 
