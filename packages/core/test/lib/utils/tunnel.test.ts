@@ -299,6 +299,13 @@ describe('getTunnelPaths', () => {
     ]);
   });
 
+  it('returns a fixed path instead of the DSN-derived ones', () => {
+    expect(getTunnelPaths({ path: '/monitor', allowedDsns: [TEST_DSN] })).toEqual(['/monitor']);
+    expect(isTunnelRequest({ method: 'POST', url: '/monitor' }, { path: '/monitor', allowedDsns: [TEST_DSN] })).toBe(
+      true,
+    );
+  });
+
   it('uses the managed tunnel config of the active client', () => {
     expect(getTunnelPaths()).toEqual([]);
 
@@ -368,6 +375,10 @@ describe('resolveServerTunnelOption', () => {
       tunnel: undefined,
       _managedTunnel: { allowedDsns: [TEST_DSN] },
     });
+  });
+
+  it('serves a relative path instead of using it as the transport tunnel', () => {
+    expect(resolveServerTunnelOption('/monitor')).toEqual({ tunnel: undefined, _managedTunnel: { path: '/monitor' } });
   });
 
   it('leaves everything off when unset', () => {

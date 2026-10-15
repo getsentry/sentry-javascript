@@ -30,8 +30,13 @@ export function resolveServerTunnelOption(tunnel: string | true | TunnelOptions 
   tunnel: string | undefined;
   _managedTunnel?: TunnelOptions;
 } {
-  if (typeof tunnel === 'string' || !tunnel) {
+  if (!tunnel) {
     return { tunnel };
+  }
+
+  if (typeof tunnel === 'string') {
+    // A relative path can't be a transport URL on the server, so it names the path to serve instead.
+    return tunnel.startsWith('/') ? { tunnel: undefined, _managedTunnel: { path: tunnel } } : { tunnel };
   }
 
   return { tunnel: undefined, _managedTunnel: tunnel === true ? {} : tunnel };
@@ -78,6 +83,10 @@ export function getTunnelPaths(options?: TunnelOptions): string[] {
   const tunnelOptions = options ?? getClient()?.getOptions()._managedTunnel;
   if (!tunnelOptions) {
     return [];
+  }
+
+  if (tunnelOptions.path) {
+    return [tunnelOptions.path];
   }
 
   return resolveAllowedDsns(tunnelOptions.allowedDsns)
