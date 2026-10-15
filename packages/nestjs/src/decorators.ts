@@ -38,8 +38,7 @@ export const SentryCron = (
     const wrappedMethod = function (this: unknown, ...args: unknown[]): unknown {
       if (!resolved) {
         resolved = true;
-        // `@Cron()` sets its metadata on whatever function is `descriptor.value` when it runs, which is
-        // this function if it is applied after `@SentryCron()`, so it is only readable at call time.
+        // A `@Cron()` applied after `@SentryCron()` puts its metadata on this wrapper, so read it at call time.
         resolvedMonitorConfig = resolveMonitorConfig(monitorSlug, monitorConfig, [
           wrappedMethod,
           (target as Record<PropertyKey, unknown> | undefined)?.[propertyKey],
@@ -98,8 +97,7 @@ function resolveMonitorConfig(
 
 const SCHEDULE_CRON_OPTIONS = 'SCHEDULE_CRON_OPTIONS';
 
-// Presets of the `cron` package (which also lowercases them), as sent to Sentry. Sentry accepts
-// `@yearly`/`@monthly`/`@weekly`/`@daily`/`@hourly`; the others are sent as crontabs.
+// `cron` presets (case-insensitive). Sentry accepts only the first five, so the others are sent as crontabs.
 const CRON_PRESETS: Record<string, string | undefined> = {
   '@yearly': '@yearly',
   '@monthly': '@monthly',
@@ -163,8 +161,7 @@ function nestCronOptionsToMonitorConfig(cronOptions: NestCronOptions): MonitorCo
     return undefined;
   }
 
-  // Without a `timeZone`, the job runs in the server's local time zone.
-  // Without a time zone Sentry would assume UTC, which may not be when the job runs.
+  // Without a `timeZone`, `cron` uses the server's time zone, but Sentry would assume UTC.
   const timezone = toSentryTimeZone(typeof timeZone === 'string' && timeZone ? timeZone : getLocalTimeZone());
   if (!timezone) {
     return undefined;
