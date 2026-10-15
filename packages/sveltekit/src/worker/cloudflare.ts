@@ -6,6 +6,7 @@ import {
 } from '@sentry/cloudflare';
 import { addNonEnumerableProperty } from '@sentry/core';
 import type { Handle } from '@sveltejs/kit';
+import { applyTunnelBasePath } from '../common/tunnel';
 import { rewriteFramesIntegration } from '../server-common/integrations/rewriteFramesIntegration';
 import { svelteKitSpansIntegration } from '../server-common/integrations/svelteKitSpans';
 import { getCloudflareExecutionContext } from '../server-common/utils';
@@ -31,6 +32,7 @@ export function initCloudflareSentryHandle(options: CloudflareOptions): Handle {
     ...options,
   };
 
+  applyTunnelBasePath(opts);
   setAsyncLocalStorageAsyncContextStrategy();
 
   const handleInitSentry: Handle = ({ event, resolve }) => {
