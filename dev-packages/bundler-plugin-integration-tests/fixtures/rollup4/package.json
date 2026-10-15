@@ -8,6 +8,6 @@
     "rollup": "4.59.0",
     "@rollup/plugin-babel": "6.0.4",
     "@rollup/plugin-node-resolve": "16.0.3",
-    "@sentry/bundler-plugins": "11.7.0"
+    "@sentry/bundler-plugins": "11.8.0"
   }
 }
