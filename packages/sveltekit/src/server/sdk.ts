@@ -1,6 +1,7 @@
 import { applySdkMetadata } from '@sentry/core';
 import type { NodeClient, NodeOptions } from '@sentry/node';
 import { getDefaultIntegrations as getDefaultNodeIntegrations, init as initNodeSdk } from '@sentry/node';
+import { applyTunnelBasePath } from '../common/tunnel';
 import { rewriteFramesIntegration } from '../server-common/integrations/rewriteFramesIntegration';
 import { svelteKitSpansIntegration } from '../server-common/integrations/svelteKitSpans';
 import { httpIntegration } from './integrations/http';
@@ -26,6 +27,7 @@ export function init(options: NodeOptions): NodeClient | undefined {
   };
 
   applySdkMetadata(opts, 'sveltekit', ['sveltekit', 'node']);
+  applyTunnelBasePath(opts);
 
   return initNodeSdk(opts);
 }

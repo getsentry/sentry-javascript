@@ -7,6 +7,7 @@ import {
   getDefaultIsolationScope,
   getIsolationScope,
   getTraceMetaTags,
+  handleTunnelRequestIfMatched,
   hasSpanStreamingEnabled,
   httpHeadersToSpanAttributes,
   HTTP_SPAN_NAME_FALLBACK,
@@ -291,6 +292,11 @@ export function sentryHandle(handlerOptions?: SentryHandleOptions): Handle {
   };
 
   const sentryRequestHandler: Handle = input => {
+    const tunnelResponse = handleTunnelRequestIfMatched(input.event.request);
+    if (tunnelResponse) {
+      return tunnelResponse;
+    }
+
     const backwardsForwardsCompatibleEvent = input.event as typeof input.event & BackwardsForwardsCompatibleEvent;
 
     // Escape hatch to suppress request isolation and trace continuation (see initCloudflareSentryHandle)

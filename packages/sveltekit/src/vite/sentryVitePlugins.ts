@@ -11,6 +11,7 @@ import { makeGlobalValuesInjectionPlugin } from './injectGlobalValues';
 import { createKitConfigResolver } from './kitConfig';
 import { makeCustomSentryVitePlugins } from './sourceMaps';
 import { getAdapterOutputDir } from './svelteConfig';
+import { makeTunnelBasePathPlugin } from './tunnelBasePath';
 import type { CustomSentryVitePluginOptions, SentrySvelteKitPluginOptions } from './types';
 
 const DEFAULT_PLUGIN_OPTIONS: SentrySvelteKitPluginOptions = {
@@ -56,6 +57,7 @@ export async function sentrySvelteKit(options: SentrySvelteKitPluginOptions = {}
     kitConfigResolver.plugin,
     makeBrowserTracingVariantResolverPlugin(),
     makeOpenTelemetryApiResolverPlugin(),
+    makeTunnelBasePathPlugin(getKitConfig),
   ];
 
   if (mergedOptions.autoInstrument) {
