@@ -12,6 +12,7 @@ function createMockQueue(): Queue {
 
 describe('instrumentQueueProducer', () => {
   beforeEach(() => {
+    vi.restoreAllMocks();
     vi.clearAllMocks();
   });
 
@@ -24,6 +25,110 @@ describe('instrumentQueueProducer', () => {
 
       expect(queue.send).toHaveBeenCalledTimes(1);
       expect(queue.send).toHaveBeenLastCalledWith({ hello: 'world' }, { contentType: 'json' });
+    });
+
+    test('does not add trace context by default', async () => {
+      vi.spyOn(SentryCore, 'getTraceData').mockReturnValue({
+        'sentry-trace': '1234567890abcdef1234567890abcdef-1234567890abcdef-1',
+      });
+      const queue = createMockQueue();
+      const wrapped = instrumentQueueProducer(queue, 'BILLING_QUEUE');
+      const message = { invoiceId: 'inv_123' };
+
+      await wrapped.send(message);
+
+      expect(queue.send).toHaveBeenCalledTimes(1);
+      expect(queue.send).toHaveBeenLastCalledWith(message, undefined);
+    });
+
+    test('adds trace context to object payloads', async () => {
+      vi.spyOn(SentryCore, 'getTraceData').mockReturnValue({
+        'sentry-trace': '1234567890abcdef1234567890abcdef-1234567890abcdef-1',
+        baggage: 'sentry-release=1.0.0',
+      });
+      const queue = createMockQueue();
+      const wrapped = instrumentQueueProducer(queue, 'BILLING_QUEUE', true);
+      const message = { invoiceId: 'inv_123' };
+
+      await wrapped.send(message);
+
+      expect(queue.send).toHaveBeenCalledTimes(1);
+      expect(queue.send).toHaveBeenLastCalledWith(
+        {
+          invoiceId: 'inv_123',
+          __sentry_queue_trace__: '1234567890abcdef1234567890abcdef-1234567890abcdef-1',
+        },
+        undefined,
+      );
+      expect(message).toEqual({ invoiceId: 'inv_123' });
+    });
+
+    test('includes injected trace context in body size', async () => {
+      const setAttribute = vi.fn();
+      vi.spyOn(SentryCore, 'startSpan').mockImplementation(((_options, callback) =>
+        callback({ setAttribute } as unknown as SentryCore.Span)) as typeof SentryCore.startSpan);
+      vi.spyOn(SentryCore, 'getTraceData').mockReturnValue({
+        'sentry-trace': '1234567890abcdef1234567890abcdef-1234567890abcdef-1',
+      });
+      const queue = createMockQueue();
+      const wrapped = instrumentQueueProducer(queue, 'BILLING_QUEUE', true);
+
+      await wrapped.send({ invoiceId: 'inv_123' });
+
+      const sentBody = {
+        invoiceId: 'inv_123',
+        __sentry_queue_trace__: '1234567890abcdef1234567890abcdef-1234567890abcdef-1',
+      };
+      expect(queue.send).toHaveBeenCalledExactlyOnceWith(sentBody, undefined);
+      expect(setAttribute).toHaveBeenCalledExactlyOnceWith(
+        'messaging.message.body.size',
+        new TextEncoder().encode(JSON.stringify(sentBody)).byteLength,
+      );
+    });
+
+    test('preserves an existing metadata field', async () => {
+      vi.spyOn(SentryCore, 'getTraceData').mockReturnValue({
+        'sentry-trace': '1234567890abcdef1234567890abcdef-1234567890abcdef-1',
+      });
+      const queue = createMockQueue();
+      const wrapped = instrumentQueueProducer(queue, 'BILLING_QUEUE', true);
+      const message = {
+        invoiceId: 'inv_123',
+        __sentry_queue_trace__: 'abcdefabcdefabcdefabcdefabcdefab-fedcbafedcbafedc-0',
+      };
+
+      await wrapped.send(message);
+
+      expect(queue.send).toHaveBeenCalledTimes(1);
+      expect(queue.send).toHaveBeenLastCalledWith(message, undefined);
+    });
+
+    test('does not add trace context to array payloads', async () => {
+      vi.spyOn(SentryCore, 'getTraceData').mockReturnValue({
+        'sentry-trace': '1234567890abcdef1234567890abcdef-1234567890abcdef-1',
+      });
+      const queue = createMockQueue();
+      const wrapped = instrumentQueueProducer(queue, 'BILLING_QUEUE', true);
+      const message = [{ invoiceId: 'inv_123' }];
+
+      await wrapped.send(message);
+
+      expect(queue.send).toHaveBeenCalledTimes(1);
+      expect(queue.send).toHaveBeenLastCalledWith(message, undefined);
+    });
+
+    test('does not add trace context to binary payloads', async () => {
+      vi.spyOn(SentryCore, 'getTraceData').mockReturnValue({
+        'sentry-trace': '1234567890abcdef1234567890abcdef-1234567890abcdef-1',
+      });
+      const queue = createMockQueue();
+      const wrapped = instrumentQueueProducer(queue, 'BILLING_QUEUE', true);
+      const message = new ArrayBuffer(42);
+
+      await wrapped.send(message);
+
+      expect(queue.send).toHaveBeenCalledTimes(1);
+      expect(queue.send).toHaveBeenLastCalledWith(message, undefined);
     });
 
     test('starts a queue.publish span with messaging attributes', async () => {
@@ -95,6 +200,69 @@ describe('instrumentQueueProducer', () => {
       await wrapped.sendBatch([{ body: 'a' }, { body: 'b' }]);
 
       expect(queue.sendBatch).toHaveBeenCalledTimes(1);
+    });
+
+    test('adds the publish span context to every object body', async () => {
+      vi.spyOn(SentryCore, 'getTraceData').mockReturnValue({
+        'sentry-trace': 'abcdefabcdefabcdefabcdefabcdefab-fedcbafedcbafedc-0',
+        baggage: 'sentry-environment=production',
+      });
+      const queue = createMockQueue();
+      const wrapped = instrumentQueueProducer(queue, 'BILLING_QUEUE', true);
+
+      await wrapped.sendBatch(
+        [
+          { body: { invoiceId: 'inv_123' }, contentType: 'json' },
+          { body: { invoiceId: 'inv_456' }, delaySeconds: 10 },
+        ],
+        { delaySeconds: 5 },
+      );
+
+      expect(queue.sendBatch).toHaveBeenCalledTimes(1);
+      expect(queue.sendBatch).toHaveBeenLastCalledWith(
+        [
+          {
+            body: {
+              invoiceId: 'inv_123',
+              __sentry_queue_trace__: 'abcdefabcdefabcdefabcdefabcdefab-fedcbafedcbafedc-0',
+            },
+            contentType: 'json',
+          },
+          {
+            body: {
+              invoiceId: 'inv_456',
+              __sentry_queue_trace__: 'abcdefabcdefabcdefabcdefabcdefab-fedcbafedcbafedc-0',
+            },
+            delaySeconds: 10,
+          },
+        ],
+        { delaySeconds: 5 },
+      );
+    });
+
+    test('includes injected trace context in batch body size', async () => {
+      const setAttribute = vi.fn();
+      vi.spyOn(SentryCore, 'startSpan').mockImplementation(((_options, callback) =>
+        callback({ setAttribute } as unknown as SentryCore.Span)) as typeof SentryCore.startSpan);
+      vi.spyOn(SentryCore, 'getTraceData').mockReturnValue({
+        'sentry-trace': 'abcdefabcdefabcdefabcdefabcdefab-fedcbafedcbafedc-1',
+      });
+      const queue = createMockQueue();
+      const wrapped = instrumentQueueProducer(queue, 'BILLING_QUEUE', true);
+
+      await wrapped.sendBatch([{ body: { invoiceId: 'inv_123' } }, { body: { invoiceId: 'inv_456' } }]);
+
+      const sentTrace = 'abcdefabcdefabcdefabcdefabcdefab-fedcbafedcbafedc-1';
+      const sentMessages = [
+        { body: { invoiceId: 'inv_123', __sentry_queue_trace__: sentTrace } },
+        { body: { invoiceId: 'inv_456', __sentry_queue_trace__: sentTrace } },
+      ];
+      const expectedSize = sentMessages.reduce(
+        (total, message) => total + new TextEncoder().encode(JSON.stringify(message.body)).byteLength,
+        0,
+      );
+      expect(queue.sendBatch).toHaveBeenCalledExactlyOnceWith(sentMessages, undefined);
+      expect(setAttribute).toHaveBeenCalledExactlyOnceWith('messaging.message.body.size', expectedSize);
     });
 
     test('starts a queue.publish span with batch attributes', async () => {

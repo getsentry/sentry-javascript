@@ -15,6 +15,10 @@
   - The plugins use the `sentry` CLI SDK instead of `@sentry/cli`. Sentry self-hosted 26.4.2 or higher is supported. Lower versions may continue to work.
   - Deploys that the plugins create on Vercel use the value of `VERCEL_TARGET_ENV` (`production`, `preview` or a custom name) as their environment, instead of `vercel-production` or `vercel-preview`. To keep the old value, set `release.deploy.env`.
 
+### Other Changes
+
+- feat(cloudflare): Add `queueTracePropagationBindings` to link Queue producer and consumer traces ([#25306](https://github.com/getsentry/sentry-javascript/pull/25306))
+
 ## 11.7.0
 
 ### Important Changes
