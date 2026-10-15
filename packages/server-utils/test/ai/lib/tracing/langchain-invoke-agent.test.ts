@@ -18,7 +18,7 @@ import {
   spanToStaticSpanJSON,
   startSpan,
 } from '@sentry/core';
-import type { Span } from '@sentry/core';
+import type { ClientOptions, Span } from '@sentry/core';
 import { createLangChainCallbackHandler } from '../../../../src/ai/langchain';
 import { getDefaultTestClientOptions, TestClient } from '../../../mocks/client';
 
@@ -30,12 +30,13 @@ afterEach(() => {
   getMainCarrier().__SENTRY__ = undefined;
 });
 
-function setupClient(traceLifecycle: 'static' | 'stream' = 'static'): Span[] {
+function setupClient(traceLifecycle: 'static' | 'stream' = 'static', options: Partial<ClientOptions> = {}): Span[] {
   const client = new TestClient(
     getDefaultTestClientOptions({
       dsn: 'https://public@dsn.ingest.sentry.io/1337',
       tracesSampleRate: 1,
       traceLifecycle,
+      ...options,
     }),
   );
   setCurrentClient(client);
@@ -190,6 +191,56 @@ describe('LangChain callback handler run tree', () => {
 
     const spans = byName(endedSpans);
     expect(spans['chat unknown']?.parent_span_id).toBe(spans['invoke_agent graph']?.span_id);
+  });
+
+  it('keeps a span opened inside a run as the parent of runs started under it', () => {
+    const endedSpans = setupClient();
+    const handler = createLangChainCallbackHandler();
+
+    startSpan({ name: 'caller' }, () => {
+      handler.handleChainStart?.({}, {}, 'outer', undefined, undefined, undefined, undefined, 'outer');
+      startSpan({ name: 'fetch-context' }, () => {
+        handler.handleChainStart?.({}, {}, 'inner', 'outer', undefined, undefined, undefined, 'inner');
+        handler.handleChatModelStart?.(chatModel, [[]], 'chat', 'inner');
+        handler.handleLLMEnd?.({ generations: [] }, 'chat');
+        handler.handleChainEnd?.({}, 'inner');
+      });
+      handler.handleChainEnd?.({}, 'outer');
+    });
+
+    const spans = byName(endedSpans);
+    expect(spans['chain inner']?.parent_span_id).toBe(spans['fetch-context']?.span_id);
+    expect(spans['chat unknown']?.parent_span_id).toBe(spans['chain inner']?.span_id);
+  });
+
+  it('starts a run under the nearest ancestor run span that is not ignored', () => {
+    const endedSpans = setupClient('stream', { ignoreSpans: [{ name: 'invoke_agent inner' }] });
+    const handler = createLangChainCallbackHandler();
+
+    startSpan({ name: 'caller' }, () => {
+      handler.handleChainStart?.({}, {}, 'outer', undefined, undefined, undefined, undefined, 'outer');
+      handler.handleChainStart?.({}, {}, 'inner', 'outer', undefined, undefined, undefined, 'inner');
+      handler.handleToolStart?.({}, '{}', 'tool', 'inner', undefined, undefined, 'lookup_weather');
+      handler.handleToolEnd?.('sunny', 'tool');
+      handler.handleChainEnd?.({}, 'inner');
+      handler.handleChainEnd?.({}, 'outer');
+    });
+
+    const spans = byName(endedSpans);
+    expect(spans['invoke_agent inner']).toBeUndefined();
+    expect(spans['execute_tool lookup_weather']?.parent_span_id).toBe(spans['invoke_agent outer']?.span_id);
+  });
+
+  it('drops the runs under an ignored root run span, like core', () => {
+    const endedSpans = setupClient('stream', { ignoreSpans: [{ name: 'invoke_agent outer' }] });
+    const handler = createLangChainCallbackHandler();
+
+    handler.handleChainStart?.({}, {}, 'outer', undefined, undefined, undefined, undefined, 'outer');
+    handler.handleToolStart?.({}, '{}', 'tool', 'outer', undefined, undefined, 'lookup_weather');
+    handler.handleToolEnd?.('sunny', 'tool');
+    handler.handleChainEnd?.({}, 'outer');
+
+    expect(endedSpans.map(span => spanToJSON(span).name)).toEqual([]);
   });
 
   it('passes the conversation id down to child runs without one', () => {

@@ -1,8 +1,11 @@
 /* eslint-disable max-lines */
 import {
+  getActiveSpan,
   getClient,
+  getRootSpan,
   hasSpanStreamingEnabled,
   SPAN_STATUS_ERROR,
+  spanIsIgnored,
   spanToJSON,
   startInactiveSpan,
   stringify,
@@ -58,7 +61,7 @@ export function createLangChainCallbackHandler(options: LangChainOptions = {}): 
   // Internal state - single instance tracks all spans
   const spanMap = new Map<string, Span>();
   const decideRunIds = new Set<string>();
-  const runs = new Map<string, { parentRunId?: string; conversationId?: string }>();
+  const runs = new Map<string, { parentRunId?: string; activeSpan?: Span; conversationId?: string }>();
 
   /**
    * Exit a span and clean up
@@ -73,10 +76,25 @@ export function createLangChainCallbackHandler(options: LangChainOptions = {}): 
     runs.delete(runId);
   };
 
-  // LangChain never makes our run spans active, so each run starts under its parent run's span.
-  // With no span for the parent run (skipped or unseen), the active span stays the parent.
+  // LangChain never makes our run spans active, so a run starts under its nearest ancestor run span. Like core,
+  // an ignored span only parents when it is a root, which drops its subtree. The active span stays the parent
+  // if the ancestor run has no span, or if another span was opened since that run started.
+  const getParentRunSpan = (parentRunId: string | undefined, activeSpan: Span | undefined): Span | undefined => {
+    for (let id = parentRunId; id; id = runs.get(id)?.parentRunId) {
+      const span = spanMap.get(id);
+      if (!span || runs.get(id)?.activeSpan !== activeSpan) {
+        return undefined;
+      }
+      if (!spanIsIgnored(span) || getRootSpan(span) === span) {
+        return span;
+      }
+    }
+    return undefined;
+  };
+
   const startRunSpan = (runId: string, parentRunId: string | undefined, start: () => Span): void => {
-    const parentSpan = parentRunId ? spanMap.get(parentRunId) : undefined;
+    const activeSpan = getActiveSpan();
+    const parentSpan = getParentRunSpan(parentRunId, activeSpan);
     const span = parentSpan ? withActiveSpan(parentSpan, start) : start();
     spanMap.set(runId, span);
 
@@ -89,7 +107,7 @@ export function createLangChainCallbackHandler(options: LangChainOptions = {}): 
     if (conversationId && conversationId !== ownId) {
       span.setAttribute(GEN_AI_CONVERSATION_ID, conversationId);
     }
-    runs.set(runId, { parentRunId, conversationId });
+    runs.set(runId, { parentRunId, activeSpan, conversationId });
 
     for (let id = parentRunId; conversationId && id; id = runs.get(id)?.parentRunId) {
       const run = runs.get(id);
