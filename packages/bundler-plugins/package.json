@@ -119,14 +119,10 @@
     "supports-color": "^8.1.1"
   },
   "peerDependencies": {
-    "@babel/core": "^7.18.5",
     "rollup": ">=3.2.0",
     "webpack": ">=5.1.0"
   },
   "peerDependenciesMeta": {
-    "@babel/core": {
-      "optional": true
-    },
     "rollup": {
       "optional": true
     },
