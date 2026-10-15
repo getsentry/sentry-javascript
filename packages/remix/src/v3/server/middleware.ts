@@ -5,6 +5,7 @@ import {
   getRootSpan,
   getSpanStatusFromHttpCode,
   getTraceData,
+  handleTunnelRequestIfMatched,
   INTERNAL_setSegmentNameSourceIfSegment,
   type Scope,
   updateSpanName,
@@ -25,6 +26,11 @@ import { resolveRoutePattern } from './route';
  */
 export function sentryRemixMiddleware(matcher: MatcherLike): MiddlewareLike {
   return async function sentryMiddleware(context: RequestContextLike, next: NextFunctionLike): Promise<Response> {
+    const tunnelResponse = handleTunnelRequestIfMatched(context.request);
+    if (tunnelResponse) {
+      return tunnelResponse;
+    }
+
     const isolationScope = getIsolationScope();
     isolationScope.setSDKProcessingMetadata({ normalizedRequest: winterCGRequestToRequestData(context.request) });
 
