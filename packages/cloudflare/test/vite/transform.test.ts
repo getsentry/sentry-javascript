@@ -234,6 +234,46 @@ describe('default export wrapping', () => {
     expect(transform(code, ctx)).toBeUndefined();
   });
 
+  it('wraps a default re-export from another module', () => {
+    const code = "export { default } from './handler';";
+
+    expect(transform(code, ctx)!.code).toBe(
+      [
+        "import * as __SENTRY__ from '@sentry/cloudflare';",
+        "import __SENTRY_REEXPORT_default__ from './handler';",
+        'const __SENTRY_DEFAULT_EXPORT__ = __SENTRY__._INTERNAL_wrapUnlessInstrumented(__SENTRY__.withSentry, (env) => ({}), __SENTRY_REEXPORT_default__);',
+        'export { __SENTRY_DEFAULT_EXPORT__ as default };',
+      ].join('\n'),
+    );
+  });
+
+  it('wraps a named export of another module re-exported as default', () => {
+    const code = "export { handler as default } from './handler';";
+
+    expect(transform(code, ctx)!.code).toBe(
+      [
+        "import * as __SENTRY__ from '@sentry/cloudflare';",
+        "import { handler as __SENTRY_REEXPORT_default__ } from './handler';",
+        'const __SENTRY_DEFAULT_EXPORT__ = __SENTRY__._INTERNAL_wrapUnlessInstrumented(__SENTRY__.withSentry, (env) => ({}), __SENTRY_REEXPORT_default__);',
+        'export { __SENTRY_DEFAULT_EXPORT__ as default };',
+      ].join('\n'),
+    );
+  });
+
+  it('leaves sibling specifiers of a default re-export untouched', () => {
+    const code = "export { default, helper } from './handler';";
+
+    expect(transform(code, ctx)!.code).toBe(
+      [
+        "import * as __SENTRY__ from '@sentry/cloudflare';",
+        "import __SENTRY_REEXPORT_default__ from './handler';",
+        'const __SENTRY_DEFAULT_EXPORT__ = __SENTRY__._INTERNAL_wrapUnlessInstrumented(__SENTRY__.withSentry, (env) => ({}), __SENTRY_REEXPORT_default__);',
+        'export { __SENTRY_DEFAULT_EXPORT__ as default };',
+        "export { helper } from './handler';",
+      ].join('\n'),
+    );
+  });
+
   it('uses custom options callback', () => {
     const custom: TransformContext = {
       classWrappers: doWrappers(),
@@ -1100,6 +1140,16 @@ describe('same-worker RPC binding floor', () => {
     const code = 'export default { fetch() { return new Response("ok"); } };';
 
     const result = transform(code, {
+      classWrappers: doWrappers(),
+      optionsFn: '() => undefined',
+      sameWorkerBindings: [{ bindingName: 'SELF', className: DEFAULT_EXPORT }],
+    })!;
+
+    expect(result.code).toContain('rpcTracePropagationBindings: ["SELF",');
+  });
+
+  it('enables a self service binding when it wrapped a default re-export', () => {
+    const result = transform("export { default } from './handler';", {
       classWrappers: doWrappers(),
       optionsFn: '() => undefined',
       sameWorkerBindings: [{ bindingName: 'SELF', className: DEFAULT_EXPORT }],
