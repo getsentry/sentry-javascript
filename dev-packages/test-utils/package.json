@@ -60,14 +60,14 @@
     "clean": "rimraf -g ./node_modules ./build"
   },
   "peerDependencies": {
-    "@playwright/test": "~1.63.0"
+    "@playwright/test": "1.64.1"
   },
   "dependencies": {
     "express": "^4.21.2",
     "ws": "^8.20.1"
   },
   "devDependencies": {
-    "@playwright/test": "~1.63.0",
+    "@playwright/test": "1.64.1",
     "@sentry/core": "11.8.0",
     "@types/ws": "^8.18.1",
     "eslint-plugin-regexp": "^3.1.0"
