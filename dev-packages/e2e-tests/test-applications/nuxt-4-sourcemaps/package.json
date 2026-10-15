@@ -25,8 +25,7 @@
     "typescript": "~5.0.0"
   },
   "volta": {
-    "extends": "../../package.json",
-    "node": "22.20.0"
+    "extends": "../../package.json"
   },
   "sentryTest": {
     "variants": [

@@ -27,16 +27,12 @@ import {
   getGenAiSpanOp,
   resolveAIRecordingOptions,
   wrapPromiseWithMethods,
-} from "../core/utils";
-import { OPENAI_METHOD_REGISTRY } from "./constants";
-import { instrumentStream } from "./streaming";
-import type {
-  ChatCompletionChunk,
-  OpenAiOptions,
-  OpenAIStream,
-  ResponseStreamingEvent,
-} from "./types";
-import { addResponseAttributes, extractRequestParameters } from "./utils";
+} from '../core/utils';
+import { OPENAI_METHOD_REGISTRY } from './constants';
+import { instrumentStream } from './streaming';
+import type { ChatCompletionChunk, OpenAiOptions, OpenAIStream, ResponseStreamingEvent } from './types';
+import { getDecisionInputMessages } from './mapping';
+import { addResponseAttributes, extractRequestParameters } from './utils';
 
 /**
  * Extract available tools from request parameters
@@ -86,14 +82,15 @@ export function extractRequestAttributes(
   if (args.length > 0 && typeof args[0] === "object" && args[0] !== null) {
     const params = args[0] as Record<string, unknown>;
 
-    const availableTools = recordInputs
-      ? extractAvailableTools(params)
-      : undefined;
-    if (availableTools) {
-      attributes[GEN_AI_TOOL_DEFINITIONS] = availableTools;
+    if (recordInputs) {
+      attributes[GEN_AI_TOOL_DEFINITIONS] = extractAvailableTools(params);
     }
 
     Object.assign(attributes, extractRequestParameters(params));
+
+    if (recordInputs && operationName === 'decide') {
+      attributes[GEN_AI_INPUT_MESSAGES] = getDecisionInputMessages(params);
+    }
   }
 
   return attributes;

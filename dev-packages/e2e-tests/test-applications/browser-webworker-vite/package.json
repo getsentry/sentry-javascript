@@ -22,8 +22,6 @@
     "@sentry/vite-plugin": "^5.4.1"
   },
   "volta": {
-    "node": "20.19.2",
-    "yarn": "1.22.22",
-    "pnpm": "9.15.9"
+    "extends": "../../package.json"
   }
 }
