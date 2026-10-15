@@ -101,9 +101,10 @@ export { isSentryRequestUrl } from './utils/isSentryRequestUrl';
 export { handleCallbackErrors } from './utils/handleCallbackErrors';
 export { safeCallback } from './utils/safeCallback';
 export { parameterize, fmt } from './utils/parameterize';
-export type { HandleTunnelRequestOptions } from './utils/tunnel';
+export type { HandleTunnelRequestOptions, TunnelRequestLike } from './utils/tunnel';
 export {
   getTunnelPath,
+  getTunnelPaths,
   handleTunnelRequest,
   handleTunnelRequestIfMatched,
   isTunnelRequest,

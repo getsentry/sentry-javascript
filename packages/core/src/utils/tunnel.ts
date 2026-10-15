@@ -6,6 +6,7 @@ import type { TunnelOptions } from '../types/options';
 import { debug } from './debug-logger';
 import { dsnToString, makeDsn } from './dsn';
 import { parseEnvelope } from './envelope';
+import { parseUrl } from './url';
 
 // Bounds the memory of each request. SDK envelopes stay far below it.
 export const MAX_TUNNEL_BODY_SIZE = 20 * 1024 * 1024;
@@ -40,7 +41,36 @@ export function resolveServerTunnelOption(tunnel: string | true | TunnelOptions 
  */
 export function getTunnelPath(dsn: DsnLike): string | undefined {
   const components = makeDsn(dsn);
+
   return components ? `/${fnv1a(dsnToString(components)).toString(36)}` : undefined;
+}
+
+/**
+ * The parts of an incoming request the tunnel decision may look at. A fetch `Request` satisfies it, and Node SDKs pass
+ * an `IncomingMessage` directly. Callers always pass the whole request so the decision can change without touching them.
+ */
+export interface TunnelRequestLike {
+  method?: string;
+  /** Absolute URL or path with query, e.g. Node's `IncomingMessage.url`. */
+  url?: string;
+  headers?: Headers | Record<string, string | string[] | undefined>;
+}
+
+/**
+ * Returns the tunnel paths the server accepts, relative to its base path. Frameworks that can only register routes
+ * use these, everything else should call {@link isTunnelRequest} or {@link handleTunnelRequestIfMatched}.
+ *
+ * Without `options`, this uses the managed tunnel config of the active client.
+ */
+export function getTunnelPaths(options?: TunnelOptions): string[] {
+  const tunnelOptions = options ?? getClient()?.getOptions()._managedTunnel;
+  if (!tunnelOptions) {
+    return [];
+  }
+
+  return resolveAllowedDsns(tunnelOptions.allowedDsns)
+    .map(dsn => getTunnelPath(dsn))
+    .filter((path): path is string => !!path);
 }
 
 /**
@@ -49,8 +79,8 @@ export function getTunnelPath(dsn: DsnLike): string | undefined {
  * Without `options`, this uses the managed tunnel config of the active client and matches nothing unless its
  * `init` was called with `tunnel: true`.
  */
-export function isTunnelRequest(method: string, pathname: string, options?: TunnelOptions): boolean {
-  if (method !== 'POST') {
+export function isTunnelRequest(request: TunnelRequestLike, options?: TunnelOptions): boolean {
+  if (request.method !== 'POST' || !request.url) {
     return false;
   }
 
@@ -59,8 +89,9 @@ export function isTunnelRequest(method: string, pathname: string, options?: Tunn
     return false;
   }
 
-  const path = stripBasePath(pathname, tunnelOptions.basePath).replace(/\/$/, '');
-  return resolveAllowedDsns(tunnelOptions.allowedDsns).some(dsn => getTunnelPath(dsn) === path);
+  const path = stripBasePath(parseUrl(request.url).path || '/', tunnelOptions.basePath).replace(/\/$/, '');
+
+  return getTunnelPaths(tunnelOptions).includes(path);
 }
 
 /**
@@ -68,11 +99,12 @@ export function isTunnelRequest(method: string, pathname: string, options?: Tunn
  * can hand the request to the app.
  */
 export function handleTunnelRequestIfMatched(request: Request, options?: TunnelOptions): Promise<Response> | undefined {
-  if (!isTunnelRequest(request.method, new URL(request.url).pathname, options)) {
+  if (!isTunnelRequest(request, options)) {
     return undefined;
   }
 
   const allowedDsns = (options ?? getClient()?.getOptions()._managedTunnel)?.allowedDsns;
+
   return handleTunnelRequest({ request, allowedDsns });
 }
 
@@ -160,6 +192,7 @@ function resolveAllowedDsns(allowedDsns: Array<string> | undefined): Array<strin
   }
 
   const dsn = getClient()?.getDsn();
+
   return dsn ? [dsnToString(dsn)] : [];
 }
 
@@ -180,6 +213,7 @@ function fnv1a(input: string): number {
     hash ^= input.charCodeAt(i);
     hash = Math.imul(hash, 0x01000193);
   }
+
   // eslint-disable-next-line no-bitwise
   return hash >>> 0;
 }
