@@ -8,6 +8,7 @@ import * as path from 'path';
 import type { VitePlugin } from './cloudflare';
 import { sentryCloudflareNodeWarningPlugin, sentryCloudflareVitePlugin } from './cloudflare';
 import { buildClientSnippet, buildSdkInitFileImportSnippet, buildServerSnippet } from './snippets';
+import { getAstroTunnelOptions, makeTunnelOptionsVitePlugin, TUNNEL_OPTIONS_IMPORT } from './tunnel';
 import type { SentryOptions } from './types';
 
 const PKG_NAME = '@sentry/astro';
@@ -128,15 +129,21 @@ export const sentryAstro = (options: SentryOptions = {}): AstroIntegration => {
           });
         }
 
+        const tunnelOptions = getAstroTunnelOptions(config);
+        if (tunnelOptions) {
+          updateConfig({ vite: { plugins: [makeTunnelOptionsVitePlugin(tunnelOptions)] } });
+        }
+        const tunnelOptionsImport = tunnelOptions ? TUNNEL_OPTIONS_IMPORT : '';
+
         if (sdkEnabled.client) {
           const pathToClientInit = clientInitPath ? path.resolve(clientInitPath) : findDefaultSdkInitFile('client');
 
           if (pathToClientInit) {
             debug && logger.info(`Using ${pathToClientInit} for client init.`);
-            injectScript('page', buildSdkInitFileImportSnippet(pathToClientInit));
+            injectScript('page', tunnelOptionsImport + buildSdkInitFileImportSnippet(pathToClientInit));
           } else {
             debug && logger.info('Using default client init.');
-            injectScript('page', buildClientSnippet(options || {}));
+            injectScript('page', tunnelOptionsImport + buildClientSnippet(options || {}));
           }
         }
 
@@ -182,10 +189,10 @@ export const sentryAstro = (options: SentryOptions = {}): AstroIntegration => {
             // Always inject the server config via `injectScript('page-ssr')`.
             // This ensures Sentry.init() runs in dev mode (where the Vite plugin doesn't fire)
             // and also serves as the fallback for non-Cloudflare adapters in production.
-            injectScript('page-ssr', buildSdkInitFileImportSnippet(pathToServerInit));
+            injectScript('page-ssr', tunnelOptionsImport + buildSdkInitFileImportSnippet(pathToServerInit));
           } else if (!usesCloudflareVitePlugin) {
             debug && logger.info('Using default server init.');
-            injectScript('page-ssr', buildServerSnippet(options || {}));
+            injectScript('page-ssr', tunnelOptionsImport + buildServerSnippet(options || {}));
           }
 
           if (isCloudflareWorkers && command !== 'dev') {

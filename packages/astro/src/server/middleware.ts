@@ -25,6 +25,7 @@ import {
   winterCGRequestToRequestData,
   filterCollectedUrl,
   filterCollectedUrlQuery,
+  handleTunnelRequestIfMatched,
 } from '@sentry/core';
 import { flushIfServerless } from '@sentry/core/server';
 import {
@@ -92,6 +93,11 @@ export const handleRequest: (options?: MiddlewareOptions) => MiddlewareHandler =
     // To reproduce this: Run the astro-5 "tracing.serverIslands.test" only
     if (!getClient()) {
       return next();
+    }
+
+    const tunnelResponse = handleTunnelRequestIfMatched(ctx.request);
+    if (tunnelResponse) {
+      return tunnelResponse;
     }
 
     const isDynamicPageRequest = checkIsDynamicPageRequest(ctx);
