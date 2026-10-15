@@ -44,7 +44,9 @@
     "test:build": "pnpm install && pnpm build",
     "test:assert": "pnpm test:ts && pnpm test:playwright",
     "test:ts": "pnpm typecheck",
-    "test:playwright": "playwright test"
+    "test:playwright": "playwright test",
+    "test:build:tunnel": "pnpm install && E2E_TEST_TUNNEL=1 pnpm build",
+    "test:assert:tunnel": "E2E_TEST_TUNNEL=1 pnpm test:playwright tunnel"
   },
   "eslintConfig": {
     "extends": [
@@ -85,6 +87,11 @@
       {
         "runtime": "cloudflare",
         "label": "react-router-8-framework (cloudflare)"
+      },
+      {
+        "build-command": "pnpm test:build:tunnel",
+        "assert-command": "pnpm test:assert:tunnel",
+        "label": "react-router-8-framework (tunnel)"
       }
     ]
   }
