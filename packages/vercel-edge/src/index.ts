@@ -127,5 +127,5 @@ export { winterCGFetchIntegration } from './integrations/wintercg-fetch';
 export type { FetchIntegrationOptions } from '@sentry/core';
 
 // vercelAIIntegration and prismaIntegration require diagnostics channels, unavailable on Vercel Edge.
-// Cloudflare's httpServerIntegration relies on its request lifecycle and cannot be reused here.
-// spotlightIntegration needs a shared fetch-based implementation before it can be exported here.
+// Cloudflare's httpServerIntegration is consumed by its request wrapper, which Vercel Edge does not use.
+// The fetch-based spotlightIntegration lives in the Cloudflare package, not a shared entry point.
