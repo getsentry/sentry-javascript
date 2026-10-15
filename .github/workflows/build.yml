@@ -143,14 +143,16 @@ jobs:
         id: matrix
         run:
           yarn --silent ci:build-matrix --base=${{ (github.event_name == 'pull_request' &&
-          github.event.pull_request.base.sha) || '' }} >> $GITHUB_OUTPUT
+          needs.job_get_metadata.outputs.changed_ci != 'true' && github.event.pull_request.base.sha) || '' }} >>
+          $GITHUB_OUTPUT
         working-directory: dev-packages/e2e-tests
 
       - name: Determine which optional E2E test applications should be run
         id: matrix-optional
         run:
           yarn --silent ci:build-matrix-optional --base=${{ (github.event_name == 'pull_request' &&
-          github.event.pull_request.base.sha) || '' }} >> $GITHUB_OUTPUT
+          needs.job_get_metadata.outputs.changed_ci != 'true' && github.event.pull_request.base.sha) || '' }} >>
+          $GITHUB_OUTPUT
         working-directory: dev-packages/e2e-tests
 
     outputs:
