@@ -301,6 +301,16 @@ function forwardHeaders(request: Request): Record<string, string> {
     headers['Content-Length'] = contentLength;
   }
 
+  // Relay infers the user's IP and geo from the sender, which is now this server. Proxies and CDNs put the
+  // visitor's IP in these headers, in the order Relay itself reads them.
+  const clientIp =
+    request.headers.get('cf-connecting-ip') ||
+    request.headers.get('x-vercel-forwarded-for') ||
+    request.headers.get('x-forwarded-for');
+  if (clientIp) {
+    headers['X-Sentry-Forwarded-For'] = clientIp;
+  }
+
   return headers;
 }
 

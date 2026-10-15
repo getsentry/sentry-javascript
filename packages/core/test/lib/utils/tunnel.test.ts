@@ -98,6 +98,30 @@ describe('handleTunnelRequest', () => {
     );
   });
 
+  it.each([
+    ['cf-connecting-ip', { 'cf-connecting-ip': '1.1.1.1', 'x-forwarded-for': '2.2.2.2' }, '1.1.1.1'],
+    ['x-vercel-forwarded-for', { 'x-vercel-forwarded-for': '3.3.3.3', 'x-forwarded-for': '2.2.2.2' }, '3.3.3.3'],
+    ['x-forwarded-for', { 'x-forwarded-for': '2.2.2.2, 10.0.0.1' }, '2.2.2.2, 10.0.0.1'],
+  ])('forwards the client IP from %s', async (_, incomingHeaders, forwardedFor) => {
+    fetchMock.mockResolvedValueOnce(new Response('ok'));
+
+    await handleTunnelRequest({
+      request: new Request('http://localhost/tunnel', {
+        method: 'POST',
+        body: `${JSON.stringify({ dsn: TEST_DSN })}\n`,
+        headers: incomingHeaders,
+      }),
+      allowedDsns: [TEST_DSN],
+    });
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      expect.any(String),
+      expect.objectContaining({
+        headers: expect.objectContaining({ 'X-Sentry-Forwarded-For': forwardedFor }),
+      }),
+    );
+  });
+
   it('rejects a disallowed DSN after reading only the envelope header', async () => {
     const result = await handleTunnelRequest({
       request: makeEndlessRequest(`${JSON.stringify({ dsn: 'https://other@example.com/9999' })}\n`),
