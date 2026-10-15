@@ -5,7 +5,7 @@ import { makeAutoInstrumentMiddlewarePlugin } from './autoInstrumentMiddleware';
 import { makeRoutePatternPlugin } from './routePatterns';
 import { makeAddSentryVitePlugin, makeEnableSourceMapsVitePlugin } from './sourceMaps';
 import type { TunnelRouteOptions } from './tunnelRoute';
-import { makeTunnelRoutePlugin } from './tunnelRoute';
+import { makeServerEntryTunnelPlugin, makeTunnelRoutePlugin } from './tunnelRoute';
 
 /**
  * Build-time options for the Sentry TanStack Start SDK.
@@ -40,7 +40,7 @@ export interface SentryTanstackStartOptions extends BuildTimeOptionsBase {
    * as the default `tunnel` option on the client.
    *
    * You can pass:
-   * - `true` to generate an opaque route path per dev session or production build.
+   * - `true` to serve the path derived from the DSN, the same one `Sentry.init({ tunnel: true })` uses.
    * - `'/custom-path'` to use a fixed static route path.
    * - `{ allowedDsns, path }` for full control. If `allowedDsns` is omitted or empty, the tunnel route derives the DSN
    *   from the active server Sentry client at runtime.
@@ -76,7 +76,7 @@ export interface SentryTanstackStartOptions extends BuildTimeOptionsBase {
  * @returns An array of Vite plugins
  */
 export function sentryTanstackStart(options: SentryTanstackStartOptions = {}): Plugin[] {
-  const plugins: Plugin[] = [makeRoutePatternPlugin()];
+  const plugins: Plugin[] = [makeRoutePatternPlugin(), makeServerEntryTunnelPlugin(options.tunnelRoute)];
 
   if (options.tunnelRoute) {
     plugins.push(makeTunnelRoutePlugin(options.tunnelRoute, options.debug));

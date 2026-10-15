@@ -10,7 +10,8 @@ const expectedTunnelPathMatcher =
       ? '/custom-monitor'
       : tunnelRouteMode === 'object'
         ? '/object-monitor'
-        : /^\/[a-z0-9]{8}$/;
+        : // The path `tunnelRoute: true` derives from the DSN.
+          /^\/[a-z0-9]{1,7}$/;
 
 test.skip(tunnelRouteMode === 'off', 'Tunnel assertions only run in the tunnel-route variants');
 
@@ -61,13 +62,12 @@ test('Sends client-side errors through the configured tunnel route', async ({ pa
   expect(errorEvent.transaction).toBe('/');
 });
 
-test('Rejects non-POST requests to the managed tunnel route instead of rendering the app', async ({ request }) => {
+test('Only answers POSTs on the managed tunnel path and leaves other methods to the app', async ({ request }) => {
   test.skip(tunnelRouteMode !== 'static', 'Requires a known managed tunnel path');
 
   const response = await request.get('/monitor');
 
-  expect(response.status()).toBe(405);
-  expect(response.headers()['allow']).toBe('POST');
+  expect(response.status()).toBe(404);
 });
 
 function pathnameMatchesTunnelRoute(pathname: string): boolean {
