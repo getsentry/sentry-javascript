@@ -4,7 +4,13 @@ import { sveltekit } from '@sveltejs/kit/vite';
 import { vitePreprocess } from '@sveltejs/vite-plugin-svelte';
 import { defineConfig } from 'vite';
 
+// The tunnel variant serves the app under a base path to cover that the managed tunnel follows it.
+const tunnelVariant = !!process.env.E2E_TEST_TUNNEL;
+
 export default defineConfig({
+  define: {
+    __E2E_TEST_TUNNEL__: JSON.stringify(tunnelVariant),
+  },
   plugins: [
     sentrySvelteKit({
       autoUploadSourceMaps: false,
@@ -22,6 +28,7 @@ export default defineConfig({
       tracing: {
         server: true,
       },
+      paths: tunnelVariant ? { base: '/app' } : undefined,
     }),
   ],
 });
