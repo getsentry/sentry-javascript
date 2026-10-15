@@ -11,8 +11,7 @@
   },
   "dependencies": {
     "@sentry/node": "file:../../packed/sentry-node-packed.tgz",
-    "@sentry/server-utils": "file:../../packed/sentry-server-utils-packed.tgz",
-    "@sentry/bundler-plugins": "file:../../packed/sentry-bundler-plugins-packed.tgz"
+    "@sentry/server-utils": "file:../../packed/sentry-server-utils-packed.tgz"
   },
   "devDependencies": {
     "@sentry-internal/test-utils": "link:../../../test-utils",
