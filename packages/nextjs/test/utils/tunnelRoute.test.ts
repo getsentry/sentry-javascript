@@ -1,120 +1,124 @@
+import * as fs from 'fs';
+import * as os from 'os';
+import * as path from 'path';
 import type { BrowserOptions } from '@sentry/react';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it } from 'vitest';
 import { applyTunnelRouteOption } from '../../src/client/tunnelRoute';
+import {
+  ensureTunnelRouteFile,
+  getManagedTunnelOptions,
+  setUpTunnelRewriteRules,
+} from '../../src/config/withSentryConfig/tunnel';
+import type { NextConfigObject } from '../../src/config/types';
 
 const globalWithInjectedValues = global as typeof global & {
-  _sentryRewritesTunnelPath?: string;
+  _sentryManagedTunnel?: unknown;
 };
 
-beforeEach(() => {
-  globalWithInjectedValues._sentryRewritesTunnelPath = undefined;
+afterEach(() => {
+  delete globalWithInjectedValues._sentryManagedTunnel;
 });
 
 describe('applyTunnelRouteOption()', () => {
-  it('Correctly applies `tunnelRoute` option when conditions are met', () => {
-    globalWithInjectedValues._sentryRewritesTunnelPath = '/my-error-monitoring-route';
-    const options: any = {
-      dsn: 'https://11111111111111111111111111111111@o2222222.ingest.sentry.io/3333333',
-    } as BrowserOptions;
+  it('applies the injected tunnel options', () => {
+    globalWithInjectedValues._sentryManagedTunnel = { basePath: '/base' };
+    const options: BrowserOptions = { dsn: 'https://public@o1.ingest.sentry.io/1' };
 
     applyTunnelRouteOption(options);
 
-    expect(options.tunnel).toBe('/my-error-monitoring-route?o=2222222&p=3333333');
+    expect(options.tunnel).toEqual({ basePath: '/base' });
   });
 
-  it("Doesn't apply `tunnelRoute` when DSN is missing", () => {
-    globalWithInjectedValues._sentryRewritesTunnelPath = '/my-error-monitoring-route';
-    const options: any = {
-      // no dsn
-    } as BrowserOptions;
+  it('keeps a `tunnel` the user set', () => {
+    globalWithInjectedValues._sentryManagedTunnel = { basePath: '' };
+    const options: BrowserOptions = { tunnel: '/my-tunnel' };
+
+    applyTunnelRouteOption(options);
+
+    expect(options.tunnel).toBe('/my-tunnel');
+  });
+
+  it('leaves `tunnel` unset without `tunnelRoute`', () => {
+    const options: BrowserOptions = {};
 
     applyTunnelRouteOption(options);
 
     expect(options.tunnel).toBeUndefined();
-  });
-
-  it("Doesn't apply `tunnelRoute` when DSN is invalid", () => {
-    // Avoid polluting the test output with error messages
-    const mockConsoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
-
-    globalWithInjectedValues._sentryRewritesTunnelPath = '/my-error-monitoring-route';
-    const options: any = {
-      dsn: 'invalidDsn',
-    } as BrowserOptions;
-
-    applyTunnelRouteOption(options);
-
-    expect(options.tunnel).toBeUndefined();
-
-    mockConsoleError.mockRestore();
-  });
-
-  it("Doesn't apply `tunnelRoute` option when `tunnelRoute` option wasn't injected", () => {
-    const options: any = {
-      dsn: 'https://11111111111111111111111111111111@o2222222.ingest.sentry.io/3333333',
-    } as BrowserOptions;
-
-    applyTunnelRouteOption(options);
-
-    expect(options.tunnel).toBeUndefined();
-  });
-
-  it("Doesn't `tunnelRoute` option when DSN is not a SaaS DSN", () => {
-    globalWithInjectedValues._sentryRewritesTunnelPath = '/my-error-monitoring-route';
-    const options: any = {
-      dsn: 'https://11111111111111111111111111111111@example.com/3333333',
-    } as BrowserOptions;
-
-    applyTunnelRouteOption(options);
-
-    expect(options.tunnel).toBeUndefined();
-  });
-
-  it('Correctly applies `tunnelRoute` option to region DSNs', () => {
-    globalWithInjectedValues._sentryRewritesTunnelPath = '/my-error-monitoring-route';
-    const options: any = {
-      dsn: 'https://11111111111111111111111111111111@o2222222.ingest.us.sentry.io/3333333',
-    } as BrowserOptions;
-
-    applyTunnelRouteOption(options);
-
-    expect(options.tunnel).toBe('/my-error-monitoring-route?o=2222222&p=3333333&r=us');
   });
 });
 
-describe('Random tunnel route generation', () => {
-  it('Works when tunnelRoute is true and generates random-looking paths', () => {
-    globalWithInjectedValues._sentryRewritesTunnelPath = '/abc123def'; // Simulated random path
-    const options: any = {
-      dsn: 'https://11111111111111111111111111111111@o2222222.ingest.sentry.io/3333333',
-    } as BrowserOptions;
-
-    applyTunnelRouteOption(options);
-
-    expect(options.tunnel).toBe('/abc123def?o=2222222&p=3333333');
-    expect(options.tunnel).toMatch(/^\/[a-z0-9]+\?o=2222222&p=3333333$/);
+describe('getManagedTunnelOptions()', () => {
+  it('derives the path from the DSN for `true` and keeps a string path', () => {
+    expect(getManagedTunnelOptions({ basePath: '/base' }, true)).toEqual({ basePath: '/base' });
+    expect(getManagedTunnelOptions({}, '/monitoring')).toEqual({ basePath: '', path: '/monitoring' });
   });
 
-  it('Works with region DSNs when tunnelRoute is true', () => {
-    globalWithInjectedValues._sentryRewritesTunnelPath = '/x7h9k2m'; // Simulated random path
-    const options: any = {
-      dsn: 'https://11111111111111111111111111111111@o2222222.ingest.eu.sentry.io/3333333',
-    } as BrowserOptions;
+  it('is off without `tunnelRoute` and for static exports', () => {
+    expect(getManagedTunnelOptions({}, undefined)).toBeUndefined();
+    expect(getManagedTunnelOptions({}, false)).toBeUndefined();
+    expect(getManagedTunnelOptions({ output: 'export' }, true)).toBeUndefined();
+  });
+});
 
-    applyTunnelRouteOption(options);
+describe('setUpTunnelRewriteRules()', () => {
+  it('rewrites envelope POSTs on a single segment to the tunnel route for a DSN-derived path', async () => {
+    const config: NextConfigObject = {};
+    setUpTunnelRewriteRules(config, { basePath: '' });
 
-    expect(options.tunnel).toBe('/x7h9k2m?o=2222222&p=3333333&r=eu');
-    expect(options.tunnel).toMatch(/^\/[a-z0-9]+\?o=2222222&p=3333333&r=eu$/);
+    expect(await config.rewrites!()).toEqual({
+      beforeFiles: [
+        {
+          source: '/:sentryTunnelPath',
+          has: [{ type: 'header', key: 'content-type', value: 'application/x-sentry-envelope' }],
+          destination: '/sentry-tunnel?p=:sentryTunnelPath',
+        },
+      ],
+      afterFiles: [],
+      fallback: [],
+    });
   });
 
-  it('Does not apply tunnel when tunnelRoute is false', () => {
-    globalWithInjectedValues._sentryRewritesTunnelPath = undefined;
-    const options: any = {
-      dsn: 'https://11111111111111111111111111111111@o2222222.ingest.sentry.io/3333333',
-    } as BrowserOptions;
+  it('rewrites a fixed path and keeps the user rewrites', async () => {
+    const userRewrite = { source: '/old', destination: '/new' };
+    const config: NextConfigObject = { rewrites: async () => [userRewrite] };
+    setUpTunnelRewriteRules(config, { basePath: '', path: '/api/monitor' });
 
-    applyTunnelRouteOption(options);
+    expect(await config.rewrites!()).toEqual({
+      beforeFiles: [{ source: '/api/monitor(/?)', destination: '/sentry-tunnel?p=api%2Fmonitor' }],
+      afterFiles: [userRewrite],
+      fallback: [],
+    });
+  });
+});
 
-    expect(options.tunnel).toBeUndefined();
+describe('ensureTunnelRouteFile()', () => {
+  const projectDirs: string[] = [];
+
+  function makeProjectDir(...dirs: string[]): string {
+    const projectDir = fs.mkdtempSync(path.join(os.tmpdir(), 'sentry-nextjs-tunnel-'));
+    projectDirs.push(projectDir);
+    dirs.forEach(dir => fs.mkdirSync(path.join(projectDir, dir), { recursive: true }));
+    return projectDir;
+  }
+
+  afterEach(() => {
+    projectDirs.splice(0).forEach(dir => fs.rmSync(dir, { recursive: true, force: true }));
+  });
+
+  it('creates the route in `app` and leaves an existing one alone', () => {
+    const projectDir = makeProjectDir('app');
+    fs.writeFileSync(path.join(projectDir, 'tsconfig.json'), '{}');
+
+    const routeFile = ensureTunnelRouteFile(projectDir);
+
+    expect(routeFile).toBe(path.join(projectDir, 'app', 'sentry-tunnel', 'route.ts'));
+    expect(fs.readFileSync(routeFile!, 'utf8')).toContain("export { POST } from '@sentry/nextjs/tunnel';");
+    expect(ensureTunnelRouteFile(projectDir)).toBeUndefined();
+  });
+
+  it('uses `src/app` in a `src` layout and JavaScript without a tsconfig', () => {
+    const projectDir = makeProjectDir('src/pages');
+
+    expect(ensureTunnelRouteFile(projectDir)).toBe(path.join(projectDir, 'src', 'app', 'sentry-tunnel', 'route.js'));
   });
 });

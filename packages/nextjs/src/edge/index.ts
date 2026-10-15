@@ -16,6 +16,7 @@ import {
 import type { VercelEdgeOptions } from '@sentry/vercel-edge';
 import { getDefaultIntegrations, init as vercelEdgeInit } from '@sentry/vercel-edge';
 import { DEBUG_BUILD } from '../common/debug-build';
+import { getInjectedManagedTunnelOptions, getManagedTunnelSpanFilter } from '../common/managedTunnelRoute';
 import { ATTR_NEXT_SPAN_NAME, ATTR_NEXT_SPAN_TYPE } from '../common/nextSpanAttributes';
 import {
   ATTR_NEXT_PAGES_API_ROUTE_TYPE,
@@ -66,7 +67,6 @@ export type EdgeOptions = VercelEdgeOptions;
 const globalWithInjectedValues = GLOBAL_OBJ as typeof GLOBAL_OBJ & {
   _sentryRewriteFramesDistDir?: string;
   _sentryRelease?: string;
-  _sentryRewritesTunnelPath?: string;
 };
 
 /** Inits the Sentry NextJS SDK on the Edge Runtime. */
@@ -106,6 +106,15 @@ export function init(options: VercelEdgeOptions = {}): void {
     // Override runtime to 'cloudflare' when running on OpenNext/Cloudflare
     ...(isRunningOnCloudflare && { runtime: { name: 'cloudflare' } }),
   };
+
+  if (opts.tunnel === undefined) {
+    opts.tunnel = getInjectedManagedTunnelOptions();
+  }
+
+  const managedTunnelSpanFilter = typeof opts.tunnel === 'object' && getManagedTunnelSpanFilter(opts.tunnel, opts.dsn);
+  if (managedTunnelSpanFilter) {
+    opts.ignoreSpans = [...(opts.ignoreSpans || []), managedTunnelSpanFilter];
+  }
 
   const nextjsIgnoreSpans: NonNullable<VercelEdgeOptions['ignoreSpans']> = [
     // (set in `dropMiddlewareTunnelRequests` during `spanStart`)

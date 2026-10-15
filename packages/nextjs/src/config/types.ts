@@ -266,15 +266,22 @@ export type SentryBuildOptions = Omit<
   widenClientFileUpload?: boolean;
 
   /**
-   * Tunnel Sentry requests through this route on the Next.js server, to circumvent ad-blockers blocking Sentry events
-   * from being sent. This option should be a path (for example: '/error-monitoring').
+   * Tunnel Sentry requests through your Next.js server, to circumvent ad-blockers blocking Sentry events from being
+   * sent. Your server forwards only the envelope, so cookies and auth headers never leave it.
    *
-   * - Pass `true` to auto-generate a random, ad-blocker-resistant route for each build
-   * - Pass a string path (e.g., '/monitoring') to use a custom route
+   * - Pass `true` to derive an ad-blocker-resistant path from the DSN, the same on the server and in the browser
+   * - Pass a string path (e.g., '/monitoring') to use a fixed route
+   *
+   * The tunnel is answered by `app/sentry-tunnel/route.ts`, which the build creates if it is missing:
+   *
+   * ```ts
+   * export { POST } from '@sentry/nextjs/tunnel';
+   * ```
    *
    * Tunnel requests go through your middleware (`proxy.ts` / `middleware.ts`) like any other request. If your
-   * middleware redirects or blocks unauthenticated requests, exclude the tunnel route in its `matcher` so events
-   * can reach Sentry. Matchers have to be static, so use a fixed string route in that case rather than `true`.
+   * middleware redirects or blocks unauthenticated requests, let requests with the
+   * `content-type: application/x-sentry-envelope` header through, for example with a `missing` condition in its
+   * `matcher`.
    *
    * NOTE: This feature only works with Next.js 11+
    */

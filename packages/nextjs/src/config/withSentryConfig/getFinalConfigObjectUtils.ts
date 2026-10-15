@@ -2,6 +2,7 @@ import { debug, isMatchingPattern, parseSemver } from '@sentry/core';
 import { getSentryRelease } from '@sentry/node';
 import * as fs from 'fs';
 import * as path from 'path';
+import { MANAGED_TUNNEL_ROUTE } from '../../common/managedTunnelRoute';
 import type { VercelCronsConfig } from '../../common/types';
 import { getBuildLogger } from '../buildLogger';
 import { createRouteManifest } from '../manifest/createRouteManifest';
@@ -9,7 +10,7 @@ import type { RouteManifest } from '../manifest/types';
 import type { NextConfigObject, SentryBuildOptions } from '../types';
 import { requiresInstrumentationHook } from '../util';
 import { getGitRevision, getInstrumentationClientFileContents } from './buildTime';
-import { resolveTunnelRoute, setUpTunnelRewriteRules } from './tunnel';
+import { ensureTunnelRouteFile, getManagedTunnelOptions, setUpTunnelRewriteRules } from './tunnel';
 
 let showedExportModeTunnelWarning = false;
 let showedExperimentalBuildModeWarning = false;
@@ -29,7 +30,7 @@ export function resolveReleaseName(userSentryOptions: SentryBuildOptions): strin
 /**
  * Applies tunnel-route rewrites, if configured.
  *
- * Note: this mutates `userSentryOptions` (to store the resolved tunnel route) and `incomingUserNextConfigObject`.
+ * Note: this mutates `incomingUserNextConfigObject`.
  */
 export function maybeSetUpTunnelRouteRewriteRules(
   incomingUserNextConfigObject: NextConfigObject,
@@ -49,11 +50,26 @@ export function maybeSetUpTunnelRouteRewriteRules(
     return;
   }
 
-  // Update the global options object to use the resolved value everywhere
-  const resolvedTunnelRoute = resolveTunnelRoute(userSentryOptions.tunnelRoute);
-  userSentryOptions.tunnelRoute = resolvedTunnelRoute || undefined;
+  const tunnelOptions = getManagedTunnelOptions(incomingUserNextConfigObject, userSentryOptions.tunnelRoute);
+  if (!tunnelOptions) {
+    return;
+  }
 
-  setUpTunnelRewriteRules(incomingUserNextConfigObject, resolvedTunnelRoute);
+  try {
+    const createdRouteFile = ensureTunnelRouteFile();
+    if (createdRouteFile) {
+      getBuildLogger(userSentryOptions.silent).log(
+        `[@sentry/nextjs] Created ${path.relative(process.cwd(), createdRouteFile)} to answer \`tunnelRoute\`. Commit it with your app.`,
+      );
+    }
+  } catch (error) {
+    getBuildLogger(userSentryOptions.silent).warn(
+      `[@sentry/nextjs] Could not create the tunnel route. Add \`app${MANAGED_TUNNEL_ROUTE}/route.ts\` with \`export { POST } from '@sentry/nextjs/tunnel';\`.`,
+      error,
+    );
+  }
+
+  setUpTunnelRewriteRules(incomingUserNextConfigObject, tunnelOptions);
 }
 
 /**
