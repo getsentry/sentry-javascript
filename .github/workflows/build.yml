@@ -346,6 +346,8 @@ jobs:
             run: yarn lint:es-compatibility
           - name: Lint types
             run: yarn lint:types
+          - name: Check Playwright versions
+            run: node ./scripts/check-playwright-versions.mjs
 
   job_check_lockfile:
     name: Check lockfile
