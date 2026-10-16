@@ -1,5 +1,4 @@
-// Type check only: `tsc --noEmit` in `test:build` checks that these calls compile with the real Hono
-// types. Nothing imports or runs this file.
+// Only `tsc` in `test:build` reads this file. Nothing runs it.
 import { sentry as sentryBun } from '@sentry/hono/bun';
 import { sentry as sentryCloudflare } from '@sentry/hono/cloudflare';
 import { sentry as sentryDeno } from '@sentry/hono/deno';

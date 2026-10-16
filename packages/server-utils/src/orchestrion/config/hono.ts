@@ -8,9 +8,8 @@ const honoInstrumentationConfig: InstrumentationConfig[] = [
   {
     // `new Context()` runs once per request: where the Sentry middleware is injected and matched
     // middleware handlers are wrapped for spans.
-    // TODO(v12): Raise the minimum Hono version to 4.4.9, here and in the `hono` peer range of
-    // `@sentry/hono`. Before 4.4.9, `#dispatch` passes `matchResult` to `new HonoRequest()`, not to
-    // `new Context()`, so this hook gets no match result and instruments nothing.
+    // TODO(v12): Raise the minimum Hono version to 4.4.9, here and in the `@sentry/hono` peer range.
+    // Before 4.4.9, Hono passes `matchResult` to `new HonoRequest()`, so this hook does nothing.
     channelName: 'context',
     module: { name: 'hono', versionRange: '>=4.0.0 <5', filePath: /^dist\/(?:cjs\/)?context\.js$/ },
     functionQuery: { className: 'Context' },

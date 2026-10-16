@@ -1,6 +1,5 @@
 {
-  // Checks only the type-only files that call the SDK with the real Hono types. The rest of the app
-  // source runs on several runtimes and has no Node, Bun or Deno globals in its types.
+  // The rest of `src` needs Node, Bun and Deno types, which this app does not install.
   "extends": "./tsconfig.json",
   "include": ["src/*.typecheck.ts"]
 }

@@ -42,18 +42,16 @@ describe('Hono 5', () => {
     api.use(honoMiddleware(api));
   });
 
-  // In this package `hono` resolves to Hono 4, and `Hono` has `private` members, so a Hono 5 app never
-  // matches the `Hono` type of `sentry()`. In a Hono 5 app, the same import resolves to Hono 5, so a
-  // Hono 5 app checks these calls with its own types. Each `@ts-expect-error` fails if the call starts
-  // to compile here.
+  // In this package, `sentry()` gets its `Hono` type from Hono 4. That class has private members, so a
+  // Hono 5 app cannot match it. In a real Hono 5 app, `sentry()` gets the Hono 5 types.
   it('rejects sentry(app) here, because `hono` is Hono 4 in this package', () => {
-    // @ts-expect-error -- Hono 5 app against the Hono 4 types of `sentry()`
+    // @ts-expect-error -- Hono 5 app, Hono 4 types
     app5.use(sentryNode(app5));
-    // @ts-expect-error -- Hono 5 app against the Hono 4 types of `sentry()`
+    // @ts-expect-error -- Hono 5 app, Hono 4 types
     app5.use(sentryBun(app5, { dsn }));
-    // @ts-expect-error -- Hono 5 app against the Hono 4 types of `sentry()`
+    // @ts-expect-error -- Hono 5 app, Hono 4 types
     app5.use(sentryDeno(app5, { dsn }));
-    // @ts-expect-error -- Hono 5 app against the Hono 4 types of `sentry()`
+    // @ts-expect-error -- Hono 5 app, Hono 4 types
     app5.use(sentryCloudflare(app5, env => ({ dsn: env.SENTRY_DSN })));
   });
 });
