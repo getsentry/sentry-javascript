@@ -437,12 +437,33 @@ describe('sentryMiddleware', () => {
     const html = await resultFromNext?.text();
 
     expect(html).toContain('<head>');
-    expect(html).toContain('<meta name="something" content=""/></head>');
-    // parametrized route is injected
-    expect(html).toContain('<meta name="sentry-route-name" content="%2Fusers"/>');
+    expect(html).toContain('<meta name="something" content=""/>');
+    // parametrized route is injected, directly before the closing head tag
+    expect(html).toContain('<meta name="sentry-route-name" content="%2Fusers"/></head>');
     // trace data is not injected
     expect(html).not.toContain('<meta name="sentry-trace" content="');
     expect(html).not.toContain('<meta name="baggage" content="');
+  });
+
+  it('injects the routing <meta> tag when the head already has a sentry-trace <meta> tag', async () => {
+    const middleware = handleRequest();
+
+    const ctx = STATIC_REQUEST_CONTEXT;
+    const next = vi.fn(() =>
+      Promise.resolve(
+        new Response('<head><meta name="sentry-trace" content="rendered-by-app"/></head>', {
+          headers: new Headers({ 'content-type': 'text/html' }),
+        }),
+      ),
+    );
+
+    // @ts-expect-error, a partial ctx object is fine here
+    const resultFromNext = await middleware(ctx, next);
+    const html = await resultFromNext?.text();
+
+    expect(html).toBe(
+      '<head><meta name="sentry-trace" content="rendered-by-app"/><meta name="sentry-route-name" content="%2Fusers"/></head>',
+    );
   });
 
   it('injects routing <meta> tag into the HTML of a pageload response without Sentry being initialized', async () => {
@@ -497,7 +518,7 @@ describe('sentryMiddleware', () => {
     const html = await resultFromNext?.text();
 
     expect(html).toContain('<head>');
-    expect(html).toContain('<meta name="something" content=""/></head>');
+    expect(html).toContain('<meta name="something" content=""/>');
     expect(html).toContain('<meta name="sentry-route-name" content="%2Fusers"/>');
     expect(html).toContain('<meta name="sentry-trace" content="');
     expect(html).toContain('<meta name="baggage" content="');

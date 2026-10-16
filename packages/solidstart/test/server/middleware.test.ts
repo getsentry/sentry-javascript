@@ -49,6 +49,30 @@ describe('middleware', () => {
       expect(html).toContain('<meta name="baggage" content="abc">');
     });
 
+    it('injects tracing meta tags into the stream of an h3 v2 HTTPResponse (SolidStart 2)', async () => {
+      const httpResponse = {
+        [Symbol.for('h3.HTTPResponse')]: true,
+        body: new Response('<head><meta charset="utf-8"></head>').body,
+      };
+
+      const onBeforeResponse = sentryBeforeResponseMiddleware();
+      await onBeforeResponse(mockFetchEvent, { body: httpResponse });
+
+      const html = await new Response(httpResponse.body).text();
+      expect(html).toContain('<meta charset="utf-8">');
+      expect(html).toContain('<meta name="sentry-trace" content="123">');
+      expect(html).toContain('<meta name="baggage" content="abc">');
+    });
+
+    it('leaves a string body from the sync render mode unchanged', async () => {
+      const response = { body: '<head><meta charset="utf-8"></head>' };
+
+      const onBeforeResponse = sentryBeforeResponseMiddleware();
+      await onBeforeResponse(mockFetchEvent, response);
+
+      expect(response.body).toBe('<head><meta charset="utf-8"></head>');
+    });
+
     it('does not add meta tags if there is no head tag', async () => {
       const onBeforeResponse = sentryBeforeResponseMiddleware();
       onBeforeResponse(mockFetchEvent, mockMiddlewareHTMLNoHeadResponse);
