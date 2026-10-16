@@ -83,10 +83,12 @@ export function makeAddSentryVitePlugin(options: SentryTanstackStartOptions): Pl
       }
 
       const filesToDelete = getSentryEnabledSourceMapGlobs(config);
-      if (debug && filesToDelete.length > 0) {
+      if (debug) {
         // eslint-disable-next-line no-console
         console.log(
-          `[Sentry] Automatically setting \`sourcemaps.filesToDeleteAfterUpload: ${JSON.stringify(filesToDelete)}\` to delete generated source maps after they were uploaded to Sentry.`,
+          filesToDelete.length > 0
+            ? `[Sentry] Automatically setting \`sourcemaps.filesToDeleteAfterUpload: ${JSON.stringify(filesToDelete)}\` to delete generated source maps after they were uploaded to Sentry.`
+            : '[Sentry] No source maps are deleted after the upload, because Sentry did not enable source map generation for this build.',
         );
       }
       resolveFilesToDeleteAfterUpload?.(filesToDelete);
