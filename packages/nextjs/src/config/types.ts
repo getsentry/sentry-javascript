@@ -282,9 +282,8 @@ export type SentryBuildOptions = Omit<
    * ```
    *
    * Tunnel requests go through your middleware (`proxy.ts` / `middleware.ts`) like any other request. If your
-   * middleware redirects or blocks unauthenticated requests, let the tunnel path through: the string you set, or
-   * `getTunnelPath(dsn)` from `@sentry/nextjs` for `true`. Don't exempt requests by their `content-type` header,
-   * since any client can set it.
+   * middleware redirects or blocks unauthenticated requests, let them through with `isTunnelRequest(request)` from
+   * `@sentry/nextjs`. Don't exempt requests by their `content-type` header, since any client can set it.
    *
    * NOTE: This feature only works with Next.js 11+
    */

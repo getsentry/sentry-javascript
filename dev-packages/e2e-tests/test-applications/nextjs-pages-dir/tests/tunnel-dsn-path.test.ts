@@ -63,6 +63,14 @@ test('does not create server spans for tunnel requests', async ({ page }) => {
   expect(tunnelSpans).toEqual([]);
 });
 
+test('lets tunnel requests through auth middleware with `isTunnelRequest`', async ({ request }) => {
+  const headers = { 'content-type': 'application/x-sentry-envelope', 'x-e2e-require-auth': '1' };
+  const data = `${JSON.stringify({ dsn: 'http://public@localhost:3031/1337' })}\n`;
+
+  expect((await request.post(TUNNEL_PATH!, { headers, data })).status()).toBe(200);
+  expect((await request.post('/notatunnel', { headers, data })).status()).toBe(401);
+});
+
 test('answers 404 to an envelope POST on any other path', async ({ request }) => {
   const response = await request.post('/notatunnel', {
     headers: { 'content-type': 'application/x-sentry-envelope' },
