@@ -141,6 +141,44 @@ describe('sentryHandle with span streaming', () => {
   });
 });
 
+describe('sentryHandle with the managed tunnel', () => {
+  const DSN = 'https://public@o1.ingest.sentry.io/1337';
+
+  beforeEach(() => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(() => Promise.resolve(new Response('forwarded'))),
+    );
+    setCurrentClient(new NodeClient(getDefaultNodeClientOptions({ dsn: DSN, _managedTunnel: {} })));
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it('answers tunnel requests without resolving the route', async () => {
+    const tunnelPath = SentryCore.getTunnelPath(DSN)!;
+    const request = new Request(`http://localhost:3000${tunnelPath}`, {
+      method: 'POST',
+      body: SentryCore.serializeEnvelope(SentryCore.createEnvelope({ dsn: DSN }, [])) as BodyInit,
+    });
+    const mockResolve = vi.fn();
+
+    const response = await sentryHandle()({ event: mockEvent({ request, route: { id: null } }), resolve: mockResolve });
+
+    expect(await response.text()).toBe('forwarded');
+    expect(mockResolve).not.toHaveBeenCalled();
+  });
+
+  it('resolves every other request', async () => {
+    const mockResolve = vi.fn(() => Promise.resolve(new Response('app')));
+
+    const response = await sentryHandle()({ event: mockEvent(), resolve: mockResolve });
+
+    expect(await response.text()).toBe('app');
+  });
+});
+
 describe('sentryHandle', () => {
   describe.each([
     // isSync, isError, expectedResponse
