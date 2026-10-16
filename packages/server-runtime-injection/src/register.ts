@@ -230,7 +230,6 @@ export function registerDiagnosticsChannelInjection(): void {
   try {
     if (typeof mod.registerHooks === 'function' && stableSyncHooks) {
       initialize({ instrumentations: SENTRY_RUNTIME_INSTRUMENTATIONS });
-      const isNode = !globalAny.Bun && !globalAny.Deno;
       const filesLoadedByHook = new Map<string, string>();
       const loadHook = globalAny.Deno ? withDenoFormats(load) : load;
       mod.registerHooks({
@@ -241,7 +240,6 @@ export function registerDiagnosticsChannelInjection(): void {
             | undefined;
           const format = result?.format ?? context.format;
           if (
-            isNode &&
             (format == null || format === 'commonjs') &&
             result?.shortCircuit === true &&
             result?.source != null &&
@@ -254,22 +252,20 @@ export function registerDiagnosticsChannelInjection(): void {
         },
       });
 
-      if (isNode) {
-        // Custom require hooks bypass load. Avoid transforming files twice when load already handled them.
-        const prototype = mod.Module.prototype;
-        const originalCompile = prototype._compile;
-        new ModulePatch({ instrumentations: SENTRY_RUNTIME_INSTRUMENTATIONS }).patch();
-        const patchedCompile = prototype._compile;
-        prototype._compile = function (content, filename, ...args) {
-          const url = pathToFileURL(filename).href;
-          const loadedSourceHash = filesLoadedByHook.get(url);
-          filesLoadedByHook.delete(url);
-          const alreadyTransformed =
-            loadedSourceHash !== undefined && loadedSourceHash === createHash('sha256').update(content).digest('hex');
-          const compile = alreadyTransformed ? originalCompile : patchedCompile;
-          return compile.call(this, content, filename, ...args);
-        };
-      }
+      // Custom require hooks bypass load. Avoid transforming files twice when load already handled them.
+      const prototype = mod.Module.prototype;
+      const originalCompile = prototype._compile;
+      new ModulePatch({ instrumentations: SENTRY_RUNTIME_INSTRUMENTATIONS }).patch();
+      const patchedCompile = prototype._compile;
+      prototype._compile = function (content, filename, ...args) {
+        const url = pathToFileURL(filename).href;
+        const loadedSourceHash = filesLoadedByHook.get(url);
+        filesLoadedByHook.delete(url);
+        const alreadyTransformed =
+          loadedSourceHash !== undefined && loadedSourceHash === createHash('sha256').update(content).digest('hex');
+        const compile = alreadyTransformed ? originalCompile : patchedCompile;
+        return compile.call(this, content, filename, ...args);
+      };
       debug.log('Registered diagnostics-channel injection via Module.registerHooks()');
     } else if (typeof mod.register === 'function' && !globalAny.Bun && !globalAny.Deno) {
       // `Module.register` + the `_compile` patch is Node 18.19–24.12 / 25.0

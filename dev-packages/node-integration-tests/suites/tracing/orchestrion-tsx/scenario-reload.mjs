@@ -25,5 +25,4 @@ injections = 0;
 
 const DataLoader = require('dataloader');
 const value = await new DataLoader(async keys => keys).load('real-key');
-await Sentry.close(1000);
 process.stdout.write(JSON.stringify([{ value, loads, injections }]));

@@ -100,13 +100,13 @@ describe('registerDiagnosticsChannelInjection - bundled/tree-shaken detection', 
     warnSpy.mockRestore();
   });
 
-  it.each(['Bun', 'Deno'])('does not replace the CommonJS compiler on %s', runtime => {
-    vi.stubGlobal(runtime, {});
+  it('installs the CommonJS compiler fallback on Deno', () => {
+    vi.stubGlobal('Deno', { version: { deno: '2.8.3' } });
     const originalCompile = modulePrototypeMock._compile;
 
     registerDiagnosticsChannelInjection();
 
-    expect(modulePrototypeMock._compile).toBe(originalCompile);
+    expect(modulePrototypeMock._compile).not.toBe(originalCompile);
   });
 
   it('includes the underlying error when registering the hooks fails', () => {
