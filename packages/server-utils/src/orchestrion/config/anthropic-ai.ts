@@ -28,7 +28,7 @@ export const anthropicAiConfig = [
   })),
   ...['resources/beta/messages/messages.js', 'resources/beta/messages/messages.mjs'].map(filePath => ({
     channelName: 'tool-runner',
-    module: { name: '@anthropic-ai/sdk', versionRange: '>=0.19.2 <1', filePath },
+    module: { name: '@anthropic-ai/sdk', versionRange: '>=0.63.0 <1', filePath },
     functionQuery: { className: 'Messages', methodName: 'toolRunner', kind: 'Sync' as const },
   })),
 ] satisfies InstrumentationConfig[];

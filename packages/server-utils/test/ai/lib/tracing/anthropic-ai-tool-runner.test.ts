@@ -150,7 +150,7 @@ describe('instrumentAnthropicAiClient tool runner', () => {
     const explode = tool('explode', run);
 
     instrumentAnthropicAiClient(fakeClient()).beta.messages.toolRunner({ tools: [explode] });
-    await expect(async () => explode.run({})).rejects.toThrow('boom');
+    await expect(async () => explode.run({}, { toolUse: { id: 'toolu_1' } })).rejects.toThrow('boom');
 
     expect(toolSpans()[0]!.status).toBe('internal_error');
     await vi.waitFor(() => expect(events).toHaveLength(1));
@@ -158,6 +158,18 @@ describe('instrumentAnthropicAiClient tool runner', () => {
       value: 'boom',
       mechanism: { type: 'auto.ai.anthropic', handled: true },
     });
+  });
+
+  it('marks but does not capture a throw from a direct call, which reaches its caller', async () => {
+    const explode = tool('explode', async () => {
+      throw new Error('boom');
+    });
+
+    instrumentAnthropicAiClient(fakeClient()).beta.messages.toolRunner({ tools: [explode] });
+    await expect(explode.run({})).rejects.toThrow('boom');
+
+    expect(toolSpans()[0]!.status).toBe('internal_error');
+    expect(events).toHaveLength(0);
   });
 
   it('does not capture a ToolError or a call aborted by the runner', async () => {
@@ -170,8 +182,10 @@ describe('instrumentAnthropicAiClient tool runner', () => {
     });
 
     instrumentAnthropicAiClient(fakeClient()).beta.messages.toolRunner({ tools: [refuses, aborted] });
-    await expect(refuses.run({})).rejects.toBe(toolError);
-    await expect(aborted.run({}, { signal: AbortSignal.abort() })).rejects.toThrow('aborted');
+    await expect(refuses.run({}, { toolUse: { id: 'toolu_1' } })).rejects.toBe(toolError);
+    await expect(aborted.run({}, { toolUse: { id: 'toolu_2' }, signal: AbortSignal.abort() })).rejects.toThrow(
+      'aborted',
+    );
 
     expect(toolSpans().map(span => span.status)).toEqual(['internal_error', 'cancelled']);
     expect(events).toHaveLength(0);

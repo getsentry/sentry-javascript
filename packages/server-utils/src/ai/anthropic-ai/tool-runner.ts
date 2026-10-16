@@ -130,9 +130,10 @@ function handleToolError(span: Span, error: unknown, context: RunContext): void 
 
   span.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
 
-  // Handled: the runner turns the throw into an error result for the model, so the app never sees it.
-  // A `ToolError` is the SDK's way to send that result on purpose.
-  if ((error as Error | undefined)?.name !== 'ToolError') {
+  // Only a runner passes `toolUse`/`toolUseBlock` (SDK 0.85+), and it hands the throw to the model as a result.
+  // A direct call rethrows to its caller, and a `ToolError` is sent on purpose, so neither is captured.
+  const fromRunner = !!(context?.toolUse ?? context?.toolUseBlock);
+  if (fromRunner && (error as Error | undefined)?.name !== 'ToolError') {
     captureException(error, { mechanism: { handled: true, type: ANTHROPIC_AI_ORIGIN } });
   }
 }
