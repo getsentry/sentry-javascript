@@ -17,6 +17,16 @@ export function makeRoutePatternPlugin(): Plugin {
     name: 'sentry-tanstackstart-route-patterns',
     enforce: 'post',
 
+    // The transform below must see the SDK's own `wrapFetchWithSentry` file. Vite externalizes dependencies in
+    // server builds, and Nitro 3 copies external dependencies into its output instead of bundling them.
+    configEnvironment(name, config, env) {
+      if (env.command === 'serve' || (config.consumer ?? (name === 'client' ? 'client' : 'server')) !== 'server') {
+        return null;
+      }
+
+      return { resolve: { noExternal: ['@sentry/tanstackstart-react'] } };
+    },
+
     configResolved(config) {
       resolvedRoot = config.root || process.cwd();
     },
