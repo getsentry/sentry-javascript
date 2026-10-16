@@ -280,6 +280,38 @@ describe('Durable Object class wrapping', () => {
     optionsFn: '(env) => ({})',
   };
 
+  it.each([
+    ['after', ['export class Impl extends DurableObject {}', 'export { Impl as MyDurableObject };']],
+    ['before', ['export { Impl as MyDurableObject };', 'export class Impl extends DurableObject {}']],
+  ])('keeps an `export class` exported as declared when a specifier %s it wraps it', (_order, lines) => {
+    const code = ['class DurableObject {}', ...lines].join('\n');
+
+    const result = transform(code, ctx)!;
+    expect(result.code).toContain('export class Impl extends DurableObject {}');
+    expect(result.code).not.toContain('__SENTRY_ORIGINAL_');
+    expect(result.code.match(/instrumentDurableObjectWithSentry\(/g)).toHaveLength(1);
+    // The wrapper follows the class, so it never reads the class before it is set.
+    expect(result.code.indexOf('const __SENTRY_WRAPPED_Impl__')).toBeGreaterThan(
+      result.code.indexOf('export class Impl'),
+    );
+    expect(result.code).toContain('export { __SENTRY_WRAPPED_Impl__ as MyDurableObject };');
+    expect(result.wrappedClasses).toEqual(new Set(['MyDurableObject']));
+  });
+
+  it('shares one wrapper between two specifiers wrapping the same `export class`', () => {
+    const code = [
+      'class DurableObject {}',
+      'export class Impl extends DurableObject {}',
+      'export { Impl as MyDurableObject };',
+      'export { Impl as OtherDO };',
+    ].join('\n');
+
+    const result = transform(code, { ...ctx, classWrappers: doWrappers('MyDurableObject', 'OtherDO') })!;
+    expect(result.code.match(/instrumentDurableObjectWithSentry\(/g)).toHaveLength(1);
+    expect(result.code).toContain('export { __SENTRY_WRAPPED_Impl__ as MyDurableObject };');
+    expect(result.code).toContain('export { __SENTRY_WRAPPED_Impl__ as OtherDO };');
+  });
+
   it('wraps an exported DO class', () => {
     const code = [
       'class DurableObject {}',
@@ -618,6 +650,20 @@ describe('WorkerEntrypoint class wrapping (structural)', () => {
     expect(result.code).not.toContain('export class AdminEntry');
     expect(result.code).toContain('export const AdminEntry = __SENTRY__.withSentry(');
     expect(result.wrappedClasses).toEqual(new Set(['AdminEntry']));
+  });
+
+  it('shares one wrapper between `export class` and a default specifier before it', () => {
+    const code = [
+      "import { WorkerEntrypoint } from 'cloudflare:workers';",
+      'export { AdminEntry as default };',
+      'export class AdminEntry extends WorkerEntrypoint {}',
+    ].join('\n');
+
+    const result = transform(code, ctx)!;
+    expect(result.code.match(/withSentry\(/g)).toHaveLength(1);
+    expect(result.code.match(/const AdminEntry\b/g)).toHaveLength(1);
+    expect(result.code).toContain('export const AdminEntry = __SENTRY__.withSentry(');
+    expect(result.code).toContain('export { AdminEntry as default };');
   });
 
   it('shares one wrapper between `export class` and a default specifier after it', () => {
