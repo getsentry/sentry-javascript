@@ -65,9 +65,9 @@ packages:
 # Yarn 1 did not install peer dependencies, and some packages break with the versions that pnpm would add.
 autoInstallPeers: false
 strictPeerDependencies: false
+# The packages depend on each other by exact version, not with `workspace:`.
+# This links them from the workspace instead of installing them from npm.
 linkWorkspacePackages: true
-preferWorkspacePackages: true
-shamefullyHoist: true
 # A flat node_modules folder like Yarn 1, because some packages and configs import dependencies that they do not declare.
 nodeLinker: hoisted
 
