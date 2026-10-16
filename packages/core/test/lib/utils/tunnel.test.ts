@@ -416,6 +416,11 @@ describe('getTunnelPaths', () => {
     );
   });
 
+  it('matches a fixed path that ends with a slash', () => {
+    expect(isTunnelRequest({ method: 'POST', url: '/monitor' }, { path: '/monitor/' })).toBe(true);
+    expect(isTunnelRequest({ method: 'POST', url: '/monitor/' }, { path: '/monitor/' })).toBe(true);
+  });
+
   it('uses the managed tunnel config of the active client', () => {
     expect(getTunnelPaths()).toEqual([]);
 
@@ -498,6 +503,7 @@ describe('getTunnelIgnoreSpanFilter', () => {
       ),
     ).toBe(true);
     expect(urlPathMatcher(getTunnelIgnoreSpanFilter({ path: '/monitor' }, undefined)).test('/monitor')).toBe(true);
+    expect(urlPathMatcher(getTunnelIgnoreSpanFilter({ path: '/monitor/' }, undefined)).test('/monitor')).toBe(true);
     expect(
       urlPathMatcher(getTunnelIgnoreSpanFilter({ basePath: '/app/' }, makeDsn(TEST_DSN))).test(
         `/app${getTunnelPath(TEST_DSN)}`,
