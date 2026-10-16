@@ -15,7 +15,7 @@ export const MANAGED_TUNNEL_PATH_PARAM = 'p';
 /**
  * The tunnel options `withSentryConfig` injects for `tunnelRoute`.
  */
-export type ManagedTunnelOptions = Pick<TunnelOptions, 'path'> & { basePath: string };
+export type ManagedTunnelOptions = Pick<TunnelOptions, 'path' | 'allowedDsns'> & { basePath: string };
 
 const globalWithInjectedValues = GLOBAL_OBJ as typeof GLOBAL_OBJ & {
   _sentryManagedTunnel?: ManagedTunnelOptions;

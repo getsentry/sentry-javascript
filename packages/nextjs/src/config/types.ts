@@ -4,6 +4,7 @@ import type {
   ModuleMetadata,
   ModuleMetadataCallback,
   ReactComponentAnnotationOptions,
+  TunnelOptions,
 } from '@sentry/core';
 
 // The first argument to `withSentryConfig` (which is the user's next config).
@@ -271,6 +272,8 @@ export type SentryBuildOptions = Omit<
    *
    * - Pass `true` to derive an ad-blocker-resistant path from the DSN, the same on the server and in the browser
    * - Pass a string path (e.g., '/monitoring') to use a fixed route
+   * - Pass `{ path, allowedDsns }` to also forward envelopes for other DSNs, e.g. when the browser uses a different
+   *   DSN than the server. Without `allowedDsns`, only the server's own DSN is forwarded.
    *
    * The tunnel is answered by `app/sentry-tunnel/route.ts`, which the build creates if it is missing:
    *
@@ -285,7 +288,7 @@ export type SentryBuildOptions = Omit<
    *
    * NOTE: This feature only works with Next.js 11+
    */
-  tunnelRoute?: string | boolean;
+  tunnelRoute?: string | boolean | Pick<TunnelOptions, 'path' | 'allowedDsns'>;
 
   /**
    * Suppress the warning about the `onRouterTransitionStart` hook.
