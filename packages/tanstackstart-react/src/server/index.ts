@@ -9,7 +9,11 @@ export { init } from './sdk';
 export { wrapFetchWithSentry } from './wrapFetchWithSentry';
 export { wrapMiddlewaresWithSentry } from './middleware';
 export { sentryGlobalRequestMiddleware, sentryGlobalFunctionMiddleware } from './globalMiddleware';
-export { createSentryTunnelRoute, registerSentryServerTunnelRoute } from './tunnelRoute';
+export {
+  createSentryTunnelRoute,
+  registerSentryServerTunnelRoute,
+  wrapServerEntryWithSentryTunnel,
+} from './tunnelRoute';
 
 /**
  * A no-op stub of the replay integration for the server. Router setup code is shared between client and server,
