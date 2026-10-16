@@ -1,7 +1,8 @@
-import type { Plugin, ResolvedConfig } from 'vite';
+import type { Plugin, ResolvedConfig, UserConfig } from 'vite';
 import { describe, expect, it } from 'vitest';
 import {
   makeServerEntryTunnelPlugin,
+  makeTunnelBasePathPlugin,
   makeTunnelRoutePlugin,
   normalizeTunnelRouteOptions,
 } from '../../src/vite/tunnelRoute';
@@ -47,8 +48,11 @@ describe('tunnelRoute vite plugin', () => {
 describe('server entry tunnel vite plugin', () => {
   const USER_ENTRY = '/app/src/server.ts';
 
-  function setup(tunnelRoute?: Parameters<typeof makeServerEntryTunnelPlugin>[0]): (id: string) => unknown {
-    const plugin = makeServerEntryTunnelPlugin(tunnelRoute);
+  function setup(
+    tunnelRoute?: Parameters<typeof makeServerEntryTunnelPlugin>[0],
+    basePath = '',
+  ): (id: string) => unknown {
+    const plugin = makeServerEntryTunnelPlugin(tunnelRoute, () => basePath);
     const config = {
       resolve: { alias: [{ find: 'virtual:tanstack-start-server-entry', replacement: USER_ENTRY }] },
     } as unknown as ResolvedConfig;
@@ -60,7 +64,7 @@ describe('server entry tunnel vite plugin', () => {
   it('wraps the app server entry and the default entry', () => {
     const load = setup();
 
-    expect(load(USER_ENTRY)).toContain('export default wrapServerEntryWithSentryTunnel(entry, undefined);');
+    expect(load(USER_ENTRY)).toContain('export default wrapServerEntryWithSentryTunnel(entry, undefined, "");');
     expect(load(`${USER_ENTRY}?sentry-tunnel-original`)).toBeNull();
     expect(load('/app/node_modules/@tanstack/react-start/dist/default-entry/esm/server.js')).toContain(
       'wrapServerEntryWithSentryTunnel',
@@ -78,13 +82,45 @@ describe('server entry tunnel vite plugin', () => {
   });
 
   it('passes the build-time options when `tunnelRoute` derives the path from the DSN', () => {
-    expect(setup(true)(USER_ENTRY)).toContain('wrapServerEntryWithSentryTunnel(entry, {});');
+    expect(setup(true)(USER_ENTRY)).toContain('wrapServerEntryWithSentryTunnel(entry, {}, "");');
     expect(setup({ allowedDsns: ['https://public@o0.ingest.sentry.io/0'] })(USER_ENTRY)).toContain(
-      'wrapServerEntryWithSentryTunnel(entry, {"allowedDsns":["https://public@o0.ingest.sentry.io/0"]});',
+      'wrapServerEntryWithSentryTunnel(entry, {"allowedDsns":["https://public@o0.ingest.sentry.io/0"]}, "");',
     );
   });
 
   it('serves a static `tunnelRoute` path from the wrapper too', () => {
-    expect(setup('/monitor')(USER_ENTRY)).toContain('wrapServerEntryWithSentryTunnel(entry, {"path":"/monitor"});');
+    expect(setup('/monitor')(USER_ENTRY)).toContain('wrapServerEntryWithSentryTunnel(entry, {"path":"/monitor"}, "");');
+  });
+
+  it('passes the base path Start routes on to the wrapper', () => {
+    expect(setup(undefined, '/app')(USER_ENTRY)).toContain(
+      'wrapServerEntryWithSentryTunnel(entry, undefined, "/app");',
+    );
+  });
+});
+
+describe('tunnel base path vite plugin', () => {
+  function resolve(config: UserConfig): { define: unknown; basePath: string } {
+    const { plugin, getBasePath } = makeTunnelBasePathPlugin();
+    const result = (plugin.config as (config: UserConfig) => { define: unknown })(config);
+
+    return { define: result.define, basePath: getBasePath() };
+  }
+
+  it('reads the base path Start defines for every environment', () => {
+    expect(resolve({ define: { 'process.env.TSS_ROUTER_BASEPATH': JSON.stringify('/app/') } })).toEqual({
+      define: { __SENTRY_TANSTACKSTART_TUNNEL_BASE_PATH__: '"/app"' },
+      basePath: '/app',
+    });
+  });
+
+  it("falls back to Vite's `base`, ignoring an absolute one", () => {
+    expect(resolve({ base: '/my-app/' }).basePath).toBe('/my-app');
+    expect(resolve({ base: 'https://cdn.example.com/assets/' }).basePath).toBe('');
+  });
+
+  it('serves the tunnel from the root without a base path', () => {
+    expect(resolve({ define: { 'process.env.TSS_ROUTER_BASEPATH': JSON.stringify('/') } }).basePath).toBe('');
+    expect(resolve({}).basePath).toBe('');
   });
 });

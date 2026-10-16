@@ -52,6 +52,10 @@ const mockServerEntryTunnelPlugin: Plugin = {
   load: vi.fn(),
 };
 
+const mockTunnelBasePathPlugin: Plugin = {
+  name: 'sentry-tanstackstart-tunnel-base-path',
+};
+
 const mockRoutePatternPlugin: Plugin = {
   name: 'sentry-tanstackstart-route-patterns',
   enforce: 'pre',
@@ -90,6 +94,7 @@ vi.mock('../../src/vite/autoInstrumentMiddleware', () => ({
 vi.mock('../../src/vite/tunnelRoute', () => ({
   makeTunnelRoutePlugin: vi.fn(() => mockTunnelRoutePlugin),
   makeServerEntryTunnelPlugin: vi.fn(() => mockServerEntryTunnelPlugin),
+  makeTunnelBasePathPlugin: vi.fn(() => ({ plugin: mockTunnelBasePathPlugin, getBasePath: () => '' })),
 }));
 
 describe('sentryTanstackStart()', () => {
@@ -108,6 +113,7 @@ describe('sentryTanstackStart()', () => {
 
       expect(plugins).toEqual([
         mockRoutePatternPlugin,
+        mockTunnelBasePathPlugin,
         mockServerEntryTunnelPlugin,
         mockOrchestrionPlugin,
         mockSourceMapsConfigPlugin,
@@ -123,7 +129,7 @@ describe('sentryTanstackStart()', () => {
 
       const plugins = sentryTanstackStart({ autoInstrumentMiddleware: false });
 
-      expect(plugins).toEqual([mockRoutePatternPlugin, mockServerEntryTunnelPlugin]);
+      expect(plugins).toEqual([mockRoutePatternPlugin, mockTunnelBasePathPlugin, mockServerEntryTunnelPlugin]);
     });
 
     it('returns only the tunnel route plugin in development mode when tunnelRoute is configured', () => {
@@ -134,7 +140,12 @@ describe('sentryTanstackStart()', () => {
         tunnelRoute: { allowedDsns: ['https://public@o0.ingest.sentry.io/0'] },
       });
 
-      expect(plugins).toEqual([mockRoutePatternPlugin, mockServerEntryTunnelPlugin, mockTunnelRoutePlugin]);
+      expect(plugins).toEqual([
+        mockRoutePatternPlugin,
+        mockTunnelBasePathPlugin,
+        mockServerEntryTunnelPlugin,
+        mockTunnelRoutePlugin,
+      ]);
     });
 
     it('returns Sentry Vite plugins but not enable source maps plugin when sourcemaps.disable is true', () => {
@@ -145,6 +156,7 @@ describe('sentryTanstackStart()', () => {
 
       expect(plugins).toEqual([
         mockRoutePatternPlugin,
+        mockTunnelBasePathPlugin,
         mockServerEntryTunnelPlugin,
         mockOrchestrionPlugin,
         mockSourceMapsConfigPlugin,
@@ -161,6 +173,7 @@ describe('sentryTanstackStart()', () => {
 
       expect(plugins).toEqual([
         mockRoutePatternPlugin,
+        mockTunnelBasePathPlugin,
         mockServerEntryTunnelPlugin,
         mockOrchestrionPlugin,
         mockSourceMapsConfigPlugin,
@@ -177,6 +190,7 @@ describe('sentryTanstackStart()', () => {
 
       expect(plugins).toEqual([
         mockRoutePatternPlugin,
+        mockTunnelBasePathPlugin,
         mockServerEntryTunnelPlugin,
         mockOrchestrionPlugin,
         mockSourceMapsConfigPlugin,
@@ -194,6 +208,7 @@ describe('sentryTanstackStart()', () => {
 
       expect(plugins).toEqual([
         mockRoutePatternPlugin,
+        mockTunnelBasePathPlugin,
         mockServerEntryTunnelPlugin,
         mockOrchestrionPlugin,
         mockSourceMapsConfigPlugin,
@@ -211,6 +226,7 @@ describe('sentryTanstackStart()', () => {
 
       expect(plugins).toEqual([
         mockRoutePatternPlugin,
+        mockTunnelBasePathPlugin,
         mockServerEntryTunnelPlugin,
         mockOrchestrionPlugin,
         mockSourceMapsConfigPlugin,
@@ -228,6 +244,7 @@ describe('sentryTanstackStart()', () => {
 
       expect(plugins).toEqual([
         mockRoutePatternPlugin,
+        mockTunnelBasePathPlugin,
         mockServerEntryTunnelPlugin,
         mockOrchestrionPlugin,
         mockSourceMapsConfigPlugin,
@@ -261,6 +278,7 @@ describe('sentryTanstackStart()', () => {
 
       expect(plugins).toEqual([
         mockRoutePatternPlugin,
+        mockTunnelBasePathPlugin,
         mockServerEntryTunnelPlugin,
         mockTunnelRoutePlugin,
         mockOrchestrionPlugin,
@@ -283,7 +301,7 @@ describe('sentryTanstackStart()', () => {
       sentryTanstackStart(options);
 
       expect(makeTunnelRoutePlugin).toHaveBeenCalledWith(options.tunnelRoute, undefined);
-      expect(makeServerEntryTunnelPlugin).toHaveBeenCalledWith(options.tunnelRoute);
+      expect(makeServerEntryTunnelPlugin).toHaveBeenCalledWith(options.tunnelRoute, expect.any(Function));
     });
   });
 
