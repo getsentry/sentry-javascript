@@ -149,6 +149,8 @@ export {
   mongooseIntegration,
   mysqlIntegration,
   mysql2Integration,
+  nitroIntegration,
+  nitroServerTimingIntegration,
   mistralAIIntegration,
   openAIIntegration,
   groqIntegration,
