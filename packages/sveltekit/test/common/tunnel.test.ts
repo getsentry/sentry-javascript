@@ -30,9 +30,18 @@ describe('applyTunnelBasePath', () => {
     expect(options.tunnel).toEqual({ basePath: '/other' });
   });
 
+  it('serves a relative tunnel path under the base path too', () => {
+    globalWithBasePath[TUNNEL_BASE_PATH_GLOBAL] = '/app';
+    const options: Parameters<typeof applyTunnelBasePath>[0] = { tunnel: '/monitor' };
+
+    applyTunnelBasePath(options);
+
+    expect(options.tunnel).toEqual({ basePath: '/app', path: '/monitor' });
+  });
+
   it('leaves URL tunnels, a disabled tunnel, and apps without a base path alone', () => {
     globalWithBasePath[TUNNEL_BASE_PATH_GLOBAL] = '/app';
-    const url: Parameters<typeof applyTunnelBasePath>[0] = { tunnel: '/monitor' };
+    const url: Parameters<typeof applyTunnelBasePath>[0] = { tunnel: 'https://example.com/tunnel' };
     const off: Parameters<typeof applyTunnelBasePath>[0] = {};
     applyTunnelBasePath(url);
     applyTunnelBasePath(off);
@@ -41,7 +50,7 @@ describe('applyTunnelBasePath', () => {
     const noBase: Parameters<typeof applyTunnelBasePath>[0] = { tunnel: true };
     applyTunnelBasePath(noBase);
 
-    expect(url.tunnel).toBe('/monitor');
+    expect(url.tunnel).toBe('https://example.com/tunnel');
     expect(off.tunnel).toBeUndefined();
     expect(noBase.tunnel).toBe(true);
   });
