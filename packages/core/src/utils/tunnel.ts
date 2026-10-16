@@ -1,4 +1,5 @@
 import { getEnvelopeEndpointWithUrlEncodedAuth } from '../api';
+import type { Client } from '../client';
 import { getClient } from '../currentScopes';
 import { suppressTracing } from '../tracing/trace';
 import { URL_PATH } from '@sentry/conventions/attributes';
@@ -126,6 +127,26 @@ export function getTunnelIgnoreSpanFilter(
 
   // oxlint-disable-next-line sdk/no-regexp-constructor -- built from escaped config values, not end user input
   return { attributes: { [URL_PATH]: new RegExp(`^${basePath}(?:${paths.join('|')})/?$`) } };
+}
+
+/**
+ * Serves the client's managed tunnel under a base path the framework only knows after `init`, e.g. from its runtime
+ * config, and drops the tunnel's server spans under it. A `basePath` the user set wins.
+ */
+export function setManagedTunnelBasePath(client: Client | undefined, basePath: string | undefined): void {
+  const options = client?.getOptions();
+  const tunnelOptions = options?._managedTunnel;
+  const normalizedBasePath = basePath?.replace(/\/+$/, '');
+  if (!options || !tunnelOptions || tunnelOptions.basePath !== undefined || !normalizedBasePath) {
+    return;
+  }
+
+  options._managedTunnel = { ...tunnelOptions, basePath: normalizedBasePath };
+
+  const spanFilter = getTunnelIgnoreSpanFilter(options._managedTunnel, client?.getDsn());
+  if (spanFilter) {
+    options.ignoreSpans = [...(options.ignoreSpans ?? []), spanFilter];
+  }
 }
 
 /**

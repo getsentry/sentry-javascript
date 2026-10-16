@@ -13,6 +13,7 @@ import {
   handleTunnelRequestIfMatched,
   isTunnelRequest,
   resolveServerTunnelOption,
+  setManagedTunnelBasePath,
 } from '../../../src/utils/tunnel';
 import type { TunnelOptions } from '../../../src/types/options';
 import { getDefaultTestClientOptions, TestClient } from '../../mocks/client';
@@ -617,6 +618,43 @@ describe('applyTunnelDefaults', () => {
     expect(applyTunnelDefaults(undefined, { basePath: '/app' })).toBeUndefined();
     expect(applyTunnelDefaults('/monitor', {})).toBe('/monitor');
     expect(applyTunnelDefaults(true, undefined)).toBe(true);
+  });
+});
+
+describe('setManagedTunnelBasePath', () => {
+  afterEach(() => {
+    getCurrentScope().setClient(undefined);
+  });
+
+  it('serves the tunnel under the base path and drops its spans there', () => {
+    setTestClient(TEST_DSN, {});
+    const client = getCurrentScope().getClient()!;
+
+    setManagedTunnelBasePath(client, '/app/');
+
+    expect(client.getOptions()._managedTunnel).toEqual({ basePath: '/app' });
+    expect(isTunnelRequest({ method: 'POST', url: `/app${getTunnelPath(TEST_DSN)}` })).toBe(true);
+    expect(isTunnelRequest({ method: 'POST', url: getTunnelPath(TEST_DSN) })).toBe(false);
+    expect(client.getOptions().ignoreSpans).toContainEqual(
+      getTunnelIgnoreSpanFilter({ basePath: '/app' }, makeDsn(TEST_DSN)),
+    );
+  });
+
+  it('keeps a base path the user set, and does nothing without a managed tunnel or a base path', () => {
+    setTestClient(TEST_DSN, { basePath: '/custom' });
+    const client = getCurrentScope().getClient()!;
+    setManagedTunnelBasePath(client, '/app');
+    expect(client.getOptions()._managedTunnel).toEqual({ basePath: '/custom' });
+
+    setTestClient(TEST_DSN, {});
+    const rootClient = getCurrentScope().getClient()!;
+    setManagedTunnelBasePath(rootClient, '/');
+    expect(rootClient.getOptions()._managedTunnel).toEqual({});
+
+    setTestClient(TEST_DSN);
+    const offClient = getCurrentScope().getClient()!;
+    setManagedTunnelBasePath(offClient, '/app');
+    expect(offClient.getOptions()._managedTunnel).toBeUndefined();
   });
 });
 
