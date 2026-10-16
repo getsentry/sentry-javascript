@@ -5,6 +5,7 @@ import { isTracingSuppressed } from '../../../src/tracing/trace';
 import { makeDsn } from '../../../src/utils/dsn';
 import { createEnvelope, serializeEnvelope } from '../../../src/utils/envelope';
 import {
+  applyTunnelDefaults,
   getTunnelPath,
   getTunnelIgnoreSpanFilter,
   getTunnelPaths,
@@ -598,6 +599,28 @@ describe('resolveServerTunnelOption', () => {
 
   it('leaves everything off when unset', () => {
     expect(resolveServerTunnelOption(undefined)).toEqual({ tunnel: undefined });
+  });
+});
+
+describe('applyTunnelDefaults', () => {
+  it('fills in the defaults for `true` and options, and lets options the user set win', () => {
+    expect(applyTunnelDefaults(true, { basePath: '/app' })).toEqual({ basePath: '/app' });
+    expect(applyTunnelDefaults({ allowedDsns: [TEST_DSN] }, { basePath: '/app' })).toEqual({
+      basePath: '/app',
+      allowedDsns: [TEST_DSN],
+    });
+    expect(applyTunnelDefaults({ basePath: '/custom' }, { basePath: '/app' })).toEqual({ basePath: '/custom' });
+  });
+
+  it('treats a relative path as a managed tunnel with that path', () => {
+    expect(applyTunnelDefaults('/monitor', { basePath: '/app' })).toEqual({ basePath: '/app', path: '/monitor' });
+  });
+
+  it('leaves a URL, an unset tunnel and empty defaults alone', () => {
+    expect(applyTunnelDefaults('https://example.com/tunnel', { basePath: '/app' })).toBe('https://example.com/tunnel');
+    expect(applyTunnelDefaults(undefined, { basePath: '/app' })).toBeUndefined();
+    expect(applyTunnelDefaults('/monitor', {})).toBe('/monitor');
+    expect(applyTunnelDefaults(true, undefined)).toBe(true);
   });
 });
 
