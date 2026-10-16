@@ -170,7 +170,7 @@ describe('SentryBullMQTracer', () => {
           traceFlags: 1,
         },
         attributes: {
-          'sentry.link.type': 'previous_trace',
+          'sentry.link.type': 'message_origin',
         },
       });
       expect(span.setAttribute).not.toHaveBeenCalled();

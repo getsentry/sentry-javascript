@@ -100,7 +100,7 @@ test('Links the queue.process segment span to its producer span', async ({ baseU
       trace_id: producerSpan.trace_id,
       span_id: producerSpan.span_id,
       sampled: true,
-      attributes: { 'sentry.link.type': { type: 'string', value: 'previous_trace' } },
+      attributes: { 'sentry.link.type': { type: 'string', value: 'message_origin' } },
     },
   ]);
 });
