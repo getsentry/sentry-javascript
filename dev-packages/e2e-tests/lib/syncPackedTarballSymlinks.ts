@@ -14,7 +14,7 @@ function readJson<T>(filePath: string): T {
 
 /**
  * Ensures `packed/<name>-packed.tgz` symlinks point at the current versioned tarballs under `packages/*`.
- * Run after `yarn build:tarball` at the repo root (or from CI after restoring the tarball cache).
+ * Run after `pnpm run build:tarball` at the repo root (or from CI after restoring the tarball cache).
  */
 export function syncPackedTarballSymlinks(): void {
   const { version } = readJson<{ version: string }>(path.join(e2eTestsRoot, 'package.json'));
@@ -57,7 +57,7 @@ export function syncPackedTarballSymlinks(): void {
 
   if (linked === 0) {
     throw new Error(
-      `No packed tarballs found for version ${version} under packages/*/. Run "yarn build:tarball" at the repository root.`,
+      `No packed tarballs found for version ${version} under packages/*/. Run "pnpm run build:tarball" at the repository root.`,
     );
   }
 

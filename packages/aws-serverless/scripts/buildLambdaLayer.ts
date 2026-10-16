@@ -24,19 +24,17 @@ async function buildLambdaLayer(): Promise<void> {
   console.log('Building Lambda layer.');
   buildPackageJson();
   console.log('Installing local @sentry/aws-serverless into build/aws/dist-serverless/nodejs.');
-  // Use a temporary cache folder to avoid stale cache references to local file: packages.
-  // Yarn's global cache can contain outdated references to build artifacts from other
-  // @sentry/* packages (e.g., build/node_modules paths that no longer exist), causing
-  // ENOENT errors during file copying.
-  // The cache folder must be outside the monorepo to avoid recursive nesting when Yarn
+  // Use a temporary store directory to avoid stale cache references to local file: packages.
+  // The store must be outside the monorepo to avoid recursive nesting when pnpm
   // follows file: links and copies package directories.
-  const cacheFolder = path.join(os.tmpdir(), `sentry-lambda-build-cache-${Date.now()}`);
-  run(`yarn install --prod --cwd ./build/aws/dist-serverless/nodejs --cache-folder "${cacheFolder}"`);
+  const storeDir = path.join(os.tmpdir(), `sentry-lambda-build-store-${Date.now()}`);
+  run(`pnpm install --prod --store-dir "${storeDir}"`, { cwd: './build/aws/dist-serverless/nodejs' });
 
   await pruneNodeModules();
   fs.rmSync('./build/aws/dist-serverless/nodejs/package.json', { force: true });
-  fs.rmSync('./build/aws/dist-serverless/nodejs/yarn.lock', { force: true });
-  fs.rmSync(cacheFolder, { recursive: true, force: true });
+  fs.rmSync('./build/aws/dist-serverless/nodejs/pnpm-workspace.yaml', { force: true });
+  fs.rmSync('./build/aws/dist-serverless/nodejs/pnpm-lock.yaml', { force: true });
+  fs.rmSync(storeDir, { recursive: true, force: true });
 
   // The layer also includes `awslambda-auto.js`, a helper file which calls `Sentry.init()` and wraps the lambda
   // handler. It gets run when Node is launched inside the lambda, using the environment variable
@@ -184,7 +182,7 @@ function buildPackageJson(): void {
     .filter(name => !name.startsWith('.')) // Skip hidden directories
     .sort();
 
-  const resolutions: Record<string, string> = {};
+  const overrides: Record<string, string> = {};
 
   for (const packageDir of packageDirs) {
     const packageJsonPath = path.join(packagesDir, packageDir, 'package.json');
@@ -193,7 +191,7 @@ function buildPackageJson(): void {
         const packageContent = JSON.parse(fs.readFileSync(packageJsonPath, 'utf-8')) as { name?: string };
         const packageName = packageContent.name;
         if (typeof packageName === 'string' && packageName) {
-          resolutions[packageName] = `file:../../../../../../packages/${packageDir}`;
+          overrides[packageName] = `file:../../../../../../packages/${packageDir}`;
         }
       } catch {
         console.warn(`Warning: Could not read package.json for ${packageDir}`);
@@ -205,12 +203,21 @@ function buildPackageJson(): void {
     dependencies: {
       '@sentry/aws-serverless': 'file:../../../../../../packages/aws-serverless',
     },
-    resolutions,
   };
 
   fsForceMkdirSync('./build/aws/dist-serverless/nodejs');
   const packageJsonPath = './build/aws/dist-serverless/nodejs/package.json';
   fs.writeFileSync(packageJsonPath, JSON.stringify(packageJson, null, 2));
+
+  // pnpm reads the overrides only from pnpm-workspace.yaml. This file also makes the folder the workspace root, so
+  // pnpm does not install the monorepo. `nodeLinker: hoisted` gives a flat node_modules folder without symlinks,
+  // which `pruneNodeModules` expects.
+  const workspaceLines = [
+    'nodeLinker: hoisted',
+    'overrides:',
+    ...Object.entries(overrides).map(([name, spec]) => `  ${JSON.stringify(name)}: ${JSON.stringify(spec)}`),
+  ];
+  fs.writeFileSync('./build/aws/dist-serverless/nodejs/pnpm-workspace.yaml', `${workspaceLines.join('\n')}\n`);
 }
 
 function replaceSDKSource(): void {
@@ -241,6 +248,9 @@ function replaceSDKSource(): void {
       );
     }
 
+    // pnpm hard-links the files of `file:` dependencies to the monorepo packages. Removing the file first makes
+    // sure that the write does not also change `packages/core/build`.
+    fs.rmSync(envFile);
     fs.writeFileSync(envFile, content.replace(pattern, replacement));
     console.log(`Updated SDK source in ${envFile}`);
   }
