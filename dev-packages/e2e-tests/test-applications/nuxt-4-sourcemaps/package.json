@@ -11,7 +11,11 @@
     "test:build:keep-client-sourcemaps": "E2E_KEEP_CLIENT_SOURCEMAPS=true pnpm test:build",
     "test:assert:keep-client-sourcemaps": "E2E_KEEP_CLIENT_SOURCEMAPS=true pnpm test:assert",
     "test:build:static": "NUXT_COMMAND=generate pnpm test:build",
-    "test:assert:static": "NUXT_COMMAND=generate pnpm test:assert"
+    "test:assert:static": "NUXT_COMMAND=generate pnpm test:assert",
+    "test:build:netlify": "NITRO_PRESET=netlify pnpm test:build",
+    "test:assert:netlify": "NITRO_PRESET=netlify pnpm test:assert",
+    "test:build:cloudflare-pages": "NITRO_PRESET=cloudflare-pages pnpm test:build",
+    "test:assert:cloudflare-pages": "NITRO_PRESET=cloudflare-pages pnpm test:assert"
   },
   "dependencies": {
     "@sentry/nuxt": "file:../../packed/sentry-nuxt-packed.tgz",
@@ -38,6 +42,16 @@
         "build-command": "pnpm test:build:static",
         "assert-command": "pnpm test:assert:static",
         "label": "nuxt-4-sourcemaps (static / nuxt generate)"
+      },
+      {
+        "build-command": "pnpm test:build:netlify",
+        "assert-command": "pnpm test:assert:netlify",
+        "label": "nuxt-4-sourcemaps (netlify preset)"
+      },
+      {
+        "build-command": "pnpm test:build:cloudflare-pages",
+        "assert-command": "pnpm test:assert:cloudflare-pages",
+        "label": "nuxt-4-sourcemaps (cloudflare-pages preset)"
       }
     ]
   }
