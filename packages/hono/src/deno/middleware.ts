@@ -1,4 +1,5 @@
-import { type BaseTransportOptions, debug, type Options } from '@sentry/core';
+import { debug } from '@sentry/core';
+import type { DenoOptions } from '@sentry/deno';
 import { init } from './sdk';
 import type { Env, Hono, MiddlewareHandler } from 'hono';
 import { getConnInfo } from 'hono/deno';
@@ -6,7 +7,7 @@ import { requestHandler, responseHandler } from '../shared/middlewareHandlers';
 import { applyPatches } from '../shared/applyPatches';
 import type { SentryHonoMiddlewareOptions } from '../shared/types';
 
-export interface HonoDenoOptions extends Options<BaseTransportOptions>, SentryHonoMiddlewareOptions {}
+export interface HonoDenoOptions extends DenoOptions, SentryHonoMiddlewareOptions {}
 
 /**
  * Sentry middleware for Hono running in a Deno runtime environment.

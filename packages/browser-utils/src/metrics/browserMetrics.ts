@@ -690,7 +690,7 @@ function _addPerformanceNavigationTiming(
   }
   startAndEndSpan(span, timeOrigin + msToSec(start), timeOrigin + msToSec(end), {
     op: `browser.${name}`,
-    name: entry.name,
+    name: filterCollectedUrl(entry.name),
     attributes: {
       [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ui.browser.metrics',
       ...(event === 'redirect' && entry.redirectCount != null ? { 'http.redirect_count': entry.redirectCount } : {}),
@@ -718,9 +718,11 @@ function _addRequest(span: Span, entry: PerformanceNavigationTiming, timeOrigin:
     // In this case, ie. when the document request hasn't finished yet, `entry.responseEnd` will be 0.
     // In order not to produce faulty spans, where the end timestamp is before the start timestamp, we will only collect
     // these spans when the responseEnd value is available. The backend (Relay) would drop the entire span if it contained faulty spans.
+    const filteredUrl = filterCollectedUrl(entry.name);
+
     startAndEndSpan(span, requestStartTimestamp, responseEndTimestamp, {
       op: 'browser.request',
-      name: entry.name,
+      name: filteredUrl,
       attributes: {
         [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ui.browser.metrics',
       },
@@ -728,7 +730,7 @@ function _addRequest(span: Span, entry: PerformanceNavigationTiming, timeOrigin:
 
     startAndEndSpan(span, responseStartTimestamp, responseEndTimestamp, {
       op: 'browser.response',
-      name: entry.name,
+      name: filteredUrl,
       attributes: {
         [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ui.browser.metrics',
       },
@@ -776,7 +778,8 @@ export function _addResourceSpans(
 
   attributes['url.same_origin'] = resourceUrl.includes(WINDOW.location.origin);
 
-  attributes[URL_FULL] = filterCollectedUrl(resourceUrl);
+  const filteredUrl = filterCollectedUrl(resourceUrl);
+  attributes[URL_FULL] = filteredUrl;
 
   _setResourceRequestAttributes(entry, attributes, [
     // https://developer.mozilla.org/en-US/docs/Web/API/PerformanceResourceTiming/responseStatus
@@ -799,7 +802,7 @@ export function _addResourceSpans(
   const endTimestamp = startTimestamp + duration;
 
   startAndEndSpan(span, startTimestamp, endTimestamp, {
-    name: resourceUrl.replace(WINDOW.location.origin, ''),
+    name: filteredUrl.replace(WINDOW.location.origin, ''),
     op,
     attributes: attributesWithResourceTiming,
   });
@@ -873,7 +876,7 @@ function _setWebVitalAttributes(span: Span, options: AddWebVitalsToSpanOptions):
 
     if (_lcpEntry.url) {
       // Trim URL to the first 200 characters.
-      span.setAttribute('lcp.url', _lcpEntry.url.trim().slice(0, 200));
+      span.setAttribute('lcp.url', filterCollectedUrl(_lcpEntry.url.trim()).slice(0, 200));
     }
 
     if (_lcpEntry.loadTime != null) {

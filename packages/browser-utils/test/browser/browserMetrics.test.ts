@@ -512,6 +512,26 @@ describe('_addResourceSpans', () => {
     expect(json.data['url.full']).toBe('https://example.com/assets/app.js?v=42#main');
   });
 
+  it('filters sensitive query params in the description and url.full', () => {
+    const spans: Span[] = [];
+
+    getClient()?.on('spanEnd', span => {
+      spans.push(span);
+    });
+
+    const entry = mockPerformanceResourceTiming({
+      initiatorType: 'script',
+      nextHopProtocol: 'http/1.1',
+    });
+
+    _addResourceSpans(span, entry, 'https://example.com/assets/app.js?token=abc&v=42', 100, 23, 345);
+
+    expect(spans).toHaveLength(1);
+    const json = spanToJSON(spans[0]!);
+    expect(json.description).toBe('/assets/app.js?token=[Filtered]&v=42');
+    expect(json.data['url.full']).toBe('https://example.com/assets/app.js?token=[Filtered]&v=42');
+  });
+
   it('sets url.full to the full cross-origin URL', () => {
     const spans: Span[] = [];
 
@@ -818,45 +838,46 @@ describe('_addNavigationSpans', () => {
     client.init();
   });
 
+  // entry taken from a real entry via browser dev tools
+  const entry: PerformanceNavigationTiming = {
+    name: 'https://santry.com/test',
+    entryType: 'navigation',
+    startTime: 0,
+    duration: 546.1000000014901,
+    initiatorType: 'navigation',
+    nextHopProtocol: 'h2',
+    workerStart: 0,
+    redirectStart: 7.5,
+    redirectEnd: 20.5,
+    redirectCount: 2,
+    fetchStart: 4.9000000059604645,
+    domainLookupStart: 4.9000000059604645,
+    domainLookupEnd: 4.9000000059604645,
+    connectStart: 4.9000000059604645,
+    secureConnectionStart: 4.9000000059604645,
+    connectEnd: 4.9000000059604645,
+    requestStart: 7.9000000059604645,
+    responseStart: 396.80000000447035,
+    responseEnd: 416.40000000596046,
+    transferSize: 14726,
+    encodedBodySize: 14426,
+    decodedBodySize: 67232,
+    responseStatus: 200,
+    serverTiming: [],
+    unloadEventStart: 0,
+    unloadEventEnd: 0,
+    domInteractive: 473.20000000298023,
+    domContentLoadedEventStart: 480.1000000014901,
+    domContentLoadedEventEnd: 480.30000000447035,
+    domComplete: 546,
+    loadEventStart: 546,
+    loadEventEnd: 546.1000000014901,
+    type: 'navigate',
+    activationStart: 0,
+    toJSON: () => ({}),
+  };
+
   it('adds navigation spans based on the navigation performance entry', () => {
-    // entry taken from a real entry via browser dev tools
-    const entry: PerformanceNavigationTiming = {
-      name: 'https://santry.com/test',
-      entryType: 'navigation',
-      startTime: 0,
-      duration: 546.1000000014901,
-      initiatorType: 'navigation',
-      nextHopProtocol: 'h2',
-      workerStart: 0,
-      redirectStart: 7.5,
-      redirectEnd: 20.5,
-      redirectCount: 2,
-      fetchStart: 4.9000000059604645,
-      domainLookupStart: 4.9000000059604645,
-      domainLookupEnd: 4.9000000059604645,
-      connectStart: 4.9000000059604645,
-      secureConnectionStart: 4.9000000059604645,
-      connectEnd: 4.9000000059604645,
-      requestStart: 7.9000000059604645,
-      responseStart: 396.80000000447035,
-      responseEnd: 416.40000000596046,
-      transferSize: 14726,
-      encodedBodySize: 14426,
-      decodedBodySize: 67232,
-      responseStatus: 200,
-      serverTiming: [],
-      unloadEventStart: 0,
-      unloadEventEnd: 0,
-      domInteractive: 473.20000000298023,
-      domContentLoadedEventStart: 480.1000000014901,
-      domContentLoadedEventEnd: 480.30000000447035,
-      domComplete: 546,
-      loadEventStart: 546,
-      loadEventEnd: 546.1000000014901,
-      type: 'navigate',
-      activationStart: 0,
-      toJSON: () => ({}),
-    };
     const spans: Span[] = [];
 
     getClient()?.on('spanEnd', span => {
@@ -972,6 +993,20 @@ describe('_addNavigationSpans', () => {
           trace_id,
         }),
       ]),
+    );
+  });
+
+  it('filters sensitive query params in span names', () => {
+    const spans: Span[] = [];
+
+    getClient()?.on('spanEnd', span => {
+      spans.push(span);
+    });
+
+    _addNavigationSpans(pageloadSpan, { ...entry, name: 'https://santry.com/test?jwt=baz&q=1' }, 999);
+
+    expect(spans.map(spanToJSON)).toEqual(
+      Array(9).fill(expect.objectContaining({ description: 'https://santry.com/test?jwt=[Filtered]&q=1' })),
     );
   });
 });

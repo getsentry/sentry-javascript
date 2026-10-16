@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import { httpContextIntegration, SEMANTIC_ATTRIBUTE_SENTRY_OP } from '../../src/exports';
-import type { StreamedSpanJSON } from '@sentry/core';
+import type { Event, StreamedSpanJSON } from '@sentry/core';
 import { getDefaultBrowserClientOptions } from '../helper/browser-client-options';
 import { BrowserClient } from '../../src/client';
 
@@ -82,5 +82,28 @@ describe('httpContextIntegration', () => {
       [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'ui.click',
       'user_agent.original': USER_AGENT,
     });
+  });
+
+  it('filters sensitive query params in the URL attached to events', () => {
+    const client = new BrowserClient(getDefaultBrowserClientOptions());
+    const event: Event = {};
+
+    document.location.href = 'https://example.com/?jwt=baz&page=1';
+    try {
+      httpContextIntegration().preprocessEvent!(event, {}, client);
+    } finally {
+      document.location.href = 'https://example.com';
+    }
+
+    expect(event.request?.url).toBe('https://example.com/?jwt=[Filtered]&page=1');
+  });
+
+  it('leaves a user-supplied event URL untouched', () => {
+    const client = new BrowserClient(getDefaultBrowserClientOptions());
+    const event: Event = { request: { url: 'https://example.com/?jwt=user-set' } };
+
+    httpContextIntegration().preprocessEvent!(event, {}, client);
+
+    expect(event.request?.url).toBe('https://example.com/?jwt=user-set');
   });
 });

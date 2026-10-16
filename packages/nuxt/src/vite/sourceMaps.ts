@@ -4,7 +4,11 @@ import { sentryVitePlugin, type SentryVitePluginOptions } from '@sentry/vite-plu
 import type { NitroConfig } from 'nitropack';
 import type { Plugin } from 'vite';
 import type { SentryNuxtModuleOptions } from '../common/types';
-import { deleteSourceMapsAfterBuild, withoutSourceMapDeletion } from './sourceMapDeletion';
+import {
+  addPublicSourceMapDeletionPlugin,
+  deleteSourceMapsAfterBuild,
+  withoutSourceMapDeletion,
+} from './sourceMapDeletion';
 import { validateSourceMapsOptionsPlugin } from './sentryVitePlugin';
 
 /**
@@ -119,6 +123,12 @@ export function setupSourceMaps(
       nitroConfig.rollupConfig.plugins.push(
         sentryRollupPlugin(withoutSourceMapDeletion(getPluginOptions(moduleOptions, shouldDeleteFilesFallback))),
       );
+    }
+  });
+
+  nuxt.hook('nitro:init', nitro => {
+    if (sourceMapsEnabled && !nitro.options.dev && !nuxt.options?._prepare) {
+      addPublicSourceMapDeletionPlugin(nitro, () => getPluginOptions(moduleOptions, shouldDeleteFilesFallback));
     }
   });
 
