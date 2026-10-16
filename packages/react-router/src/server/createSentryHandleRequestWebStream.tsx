@@ -43,6 +43,16 @@ export function createSentryHandleRequestWebStream(
 
     const controller = new AbortController();
     const abortTimer = _INTERNAL_safeUnref(setTimeout(() => controller.abort(), streamTimeout));
+    const abortRender = (): void => controller.abort(request.signal.reason);
+    if (request.signal.aborted) {
+      abortRender();
+    } else {
+      request.signal.addEventListener('abort', abortRender, { once: true });
+    }
+    const stopAbortHandling = (): void => {
+      clearTimeout(abortTimer);
+      request.signal.removeEventListener('abort', abortRender);
+    };
 
     let body: RenderToReadableStreamResult;
     try {
@@ -59,13 +69,12 @@ export function createSentryHandleRequestWebStream(
         },
       });
     } catch (error) {
-      clearTimeout(abortTimer);
+      stopAbortHandling();
       throw error;
     }
 
     shellRendered = true;
-    const clearAbortTimer = (): void => clearTimeout(abortTimer);
-    body.allReady.then(clearAbortTimer, clearAbortTimer);
+    body.allReady.then(stopAbortHandling, stopAbortHandling);
 
     if (isBot || isSpaMode) {
       await body.allReady;

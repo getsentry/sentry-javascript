@@ -385,7 +385,8 @@ describe('createSentryHandleRequest', () => {
     expect(handleRequest).toBeDefined();
     expect(wrapSentryHandleRequestModule.wrapSentryHandleRequest).toHaveBeenCalled();
 
-    await handleRequest(mockRequest, 200, mockResponseHeaders, mockRouterContext, mockLoadContext);
+    const request = { ...mockRequest, signal: new AbortController().signal } as Request;
+    await handleRequest(request, 200, mockResponseHeaders, mockRouterContext, mockLoadContext);
 
     expect(mockRenderToReadableStream).toHaveBeenCalled();
     expect(mockRenderToPipeableStream).not.toHaveBeenCalled();
