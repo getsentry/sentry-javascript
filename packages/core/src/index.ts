@@ -123,10 +123,6 @@ export {
   INTERNAL_setSegmentNameSourceIfSegment,
 } from './utils/spanUtils';
 export { _setSpanForScope as _INTERNAL_setSpanForScope } from './utils/spanOnScope';
-export {
-  _getIncomingRequestForScope as _INTERNAL_getIncomingRequestForScope,
-  _setIncomingRequestForScope as _INTERNAL_setIncomingRequestForScope,
-} from './utils/incomingRequestOnScope';
 export { parseSampleRate } from './utils/parseSampleRate';
 export { applySdkMetadata } from './utils/sdkMetadata';
 export { getTraceData } from './utils/traceData';

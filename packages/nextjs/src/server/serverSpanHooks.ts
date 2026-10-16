@@ -9,9 +9,8 @@ import {
   URL_QUERY,
 } from '@sentry/conventions/attributes';
 import { MIDDLEWARE } from '@sentry/conventions/op';
-import type { Client, Options, Span } from '@sentry/core';
+import type { Client, Options, Scope, Span } from '@sentry/core';
 import {
-  _INTERNAL_getIncomingRequestForScope,
   getIsolationScope,
   getRootSpan,
   GLOBAL_OBJ,
@@ -40,6 +39,10 @@ import {
 
 const NEXTJS_ERROR_PAGE_ROUTES = ['/500', '/_error'];
 const NEXT_REQUEST_META = Symbol.for('NextInternalRequestMeta');
+
+// Spans of Next.js start without access to the request they belong to, so the request is looked up through the
+// isolation scope of the request
+const requestsByIsolationScope = new WeakMap<Scope, object>();
 
 const globalWithInjectedValues = GLOBAL_OBJ as typeof GLOBAL_OBJ & {
   _sentryNextJsVersion?: string;
@@ -82,6 +85,12 @@ export function addNextjsServerSpanHooks(client: Client): void {
         spanAttributes[URL_QUERY].includes('sentry_client'))
     ) {
       samplingDecision.decision = false;
+    }
+  });
+
+  client.on('httpServerRequest', request => {
+    if (typeof request === 'object' && request) {
+      requestsByIsolationScope.set(getIsolationScope(), request);
     }
   });
 
@@ -137,7 +146,7 @@ function isProxyInvocationSpan(spanAttributes: Record<string, unknown>): boolean
 
   // Next.js sets this flag on the request before the call that only runs the proxy, and resets it before rendering
   const request: { [NEXT_REQUEST_META]?: { middlewareInvoke?: boolean } } | undefined =
-    _INTERNAL_getIncomingRequestForScope(getIsolationScope());
+    requestsByIsolationScope.get(getIsolationScope());
   return request?.[NEXT_REQUEST_META]?.middlewareInvoke === true;
 }
 

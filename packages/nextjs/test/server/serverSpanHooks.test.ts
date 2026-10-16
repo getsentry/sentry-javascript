@@ -6,9 +6,8 @@ import {
   SENTRY_SEGMENT_NAME_SOURCE,
 } from '@sentry/conventions/attributes';
 import { MIDDLEWARE } from '@sentry/conventions/op';
-import type { Client, SpanAttributes } from '@sentry/core';
+import type { Client } from '@sentry/core';
 import {
-  _INTERNAL_setIncomingRequestForScope,
   addChildSpanToSpan,
   GLOBAL_OBJ,
   SentrySpan,
@@ -194,21 +193,19 @@ describe('addNextjsServerSpanHooks beforeSpanStart', () => {
   function isRequestSpanIgnored(nextVersion: string | undefined, middlewareInvoke: boolean | undefined): boolean {
     globalWithInjectedValues._sentryNextJsVersion = nextVersion;
 
-    let beforeSpanStart: ((data: { name: string | undefined; attributes: SpanAttributes }) => void) | undefined;
+    const hooks: Record<string, (...args: unknown[]) => void> = {};
     addNextjsServerSpanHooks({
-      on: (hook: string, callback: typeof beforeSpanStart) => {
-        if (hook === 'beforeSpanStart') {
-          beforeSpanStart = callback;
-        }
+      on: (hook: string, callback: (...args: unknown[]) => void) => {
+        hooks[hook] = callback;
       },
       getOptions: () => ({}),
     } as unknown as Client);
 
     const request = { [Symbol.for('NextInternalRequestMeta')]: { middlewareInvoke } };
     const spanStartData = { name: 'GET', attributes: { [ATTR_NEXT_SPAN_TYPE]: 'BaseServer.handleRequest' } };
-    withIsolationScope(isolationScope => {
-      _INTERNAL_setIncomingRequestForScope(isolationScope, request);
-      beforeSpanStart?.(spanStartData);
+    withIsolationScope(() => {
+      hooks['httpServerRequest']?.(request, {}, {});
+      hooks['beforeSpanStart']?.(spanStartData);
     });
     return shouldIgnoreSpan(
       { description: spanStartData.name, attributes: spanStartData.attributes },

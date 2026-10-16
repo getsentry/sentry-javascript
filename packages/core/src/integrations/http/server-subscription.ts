@@ -34,7 +34,6 @@ import {
 import { patchRequestToCaptureBody } from './patch-request-to-capture-body';
 import { getUrlFragment, getUrlQuery, parseStringToURLObject, stripUrlQueryAndFragment } from '../../utils/url';
 import { recordRequestSession } from './record-request-session';
-import { _setIncomingRequestForScope } from '../../utils/incomingRequestOnScope';
 import { generateSpanId, generateTraceId } from '../../utils/propagationContext';
 import { continueTrace, startSpanManual } from '../../tracing/trace';
 import { getSpanStatusFromHttpCode, SPAN_STATUS_ERROR } from '../../tracing';
@@ -154,7 +153,6 @@ export function instrumentServer(options: HttpInstrumentationOptions, server: Ht
 
       // Update the isolation scope, isolate this request
       isolationScope.setSDKProcessingMetadata({ normalizedRequest, ipAddress });
-      _setIncomingRequestForScope(isolationScope, request);
 
       // attempt to update the scope's `transactionName` based on the request
       // URL. Ideally, framework instrumentations coming after the
