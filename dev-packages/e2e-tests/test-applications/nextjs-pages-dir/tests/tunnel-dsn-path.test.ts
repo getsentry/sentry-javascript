@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { waitForError, waitForStreamedSpans } from '@sentry-internal/test-utils';
+import { getSpanOp, waitForError, waitForStreamedSpan, waitForStreamedSpans } from '@sentry-internal/test-utils';
 import type { SerializedStreamedSpan } from '@sentry/core';
 import { getTunnelPath } from '@sentry/core';
 
@@ -37,13 +37,25 @@ test('does not create server spans for tunnel requests', async ({ page }) => {
     return false;
   });
 
+  const errorPromise = waitForError('nextjs-pages-dir', event => {
+    return event.exception?.values?.[0]?.value === 'Managed tunnel span error';
+  });
+
   await page.goto('/');
-  await page
-    .evaluate(() => {
+  await page.evaluate(() => {
+    setTimeout(() => {
       throw new Error('Managed tunnel span error');
-    })
-    .catch(() => undefined);
-  await page.waitForTimeout(3000);
+    });
+  });
+  await errorPromise;
+
+  // Spans flush in order, so a span for the tunnel request would arrive before the one for this request.
+  const anchorSpanPromise = waitForStreamedSpan(
+    'nextjs-pages-dir',
+    span => span.is_segment && getSpanOp(span) === 'http.server' && span.name === 'GET /',
+  );
+  await page.request.get('/');
+  await anchorSpanPromise;
 
   const tunnelSpans = serverSpans.filter(
     span => span.name.includes(TUNNEL_PATH!) || span.name.includes('sentry-tunnel'),
