@@ -13,6 +13,7 @@ import {
 import type { Context, GetConnInfo } from './honoTypes';
 import { hasFetchEvent } from './hono-context';
 import { defaultShouldHandleError } from './defaultShouldHandleError';
+import { getMatchedHandlers, wrapRouteHandlers } from './matchResult';
 import { resolveRouteName } from './resolveRouteName';
 import { type SentryHonoMiddlewareOptions } from './types';
 import { HTTP_ROUTE } from '@sentry/conventions/attributes';
@@ -22,6 +23,12 @@ import { HTTP_ROUTE } from '@sentry/conventions/attributes';
  */
 export function requestHandler(context: Context, getConnInfo?: GetConnInfo): void {
   const isolationScope = getCurrentIsolationScope();
+
+  // The manual setup has no Context hook, so wrap the route handlers here.
+  const matchedHandlers = getMatchedHandlers(context);
+  if (matchedHandlers) {
+    wrapRouteHandlers(matchedHandlers);
+  }
 
   // Set a provisional route name as early as possible so events captured during the request already carry the route.
   // It is re-resolved in `responseHandler` once the middleware chain has run.
@@ -87,7 +94,7 @@ export function responseHandler(
   context: Context,
   shouldHandleError?: SentryHonoMiddlewareOptions['shouldHandleError'],
 ): void {
-  // Overwrite the route name now that the middleware chain has run: `routeIndex` is accurate here
+  // Resolve the name again, now that a route handler may have stored its index
   updateSpanRouteName(getCurrentIsolationScope(), context);
 
   captureContextError(context, shouldHandleError);
@@ -116,6 +123,11 @@ export function captureContextError(
 
 function updateSpanRouteName(isolationScope: Scope, context: Context): void {
   const route = resolveRouteName(context);
+  // Without a route, keep the span name from the runtime.
+  if (route === undefined) {
+    return;
+  }
+
   const routeName = `${context.req.method} ${route}`;
   const activeSpan = getActiveSpan();
 
