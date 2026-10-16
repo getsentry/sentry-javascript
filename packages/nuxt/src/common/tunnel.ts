@@ -1,5 +1,5 @@
 import type { Options } from '@sentry/core';
-import { applyTunnelDefaults, GLOBAL_OBJ } from '@sentry/core';
+import { applyTunnelDefaults, GLOBAL_OBJ, normalizeTunnelBasePath } from '@sentry/core';
 
 /** Set by the generated client config plugin to the app's runtime `app.baseURL`. */
 export const NUXT_TUNNEL_BASE_PATH_GLOBAL = '__sentry_nuxt_base_path';
@@ -11,7 +11,6 @@ export const NUXT_TUNNEL_BASE_PATH_GLOBAL = '__sentry_nuxt_base_path';
  */
 export function applyNuxtTunnelBasePath(options: Pick<Options, 'tunnel'>): void {
   const baseURL = (GLOBAL_OBJ as { [NUXT_TUNNEL_BASE_PATH_GLOBAL]?: string })[NUXT_TUNNEL_BASE_PATH_GLOBAL];
-  // A relative `./` base means the app is served from wherever it's deployed, which Nitro treats as the root.
-  const basePath = baseURL?.replace(/^\.\//, '/').replace(/\/+$/, '');
+  const basePath = normalizeTunnelBasePath(baseURL);
   options.tunnel = applyTunnelDefaults(options.tunnel, basePath ? { basePath } : undefined);
 }
