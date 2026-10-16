@@ -4,7 +4,7 @@ const path = require('path');
 
 /**
  * Build a cache key for the dependencies of the monorepo.
- * In addition to the content of the pnpm-lock.yaml file, we also include
+ * In addition to the content of the pnpm-lock.yaml and pnpm-workspace.yaml files, we also include
  * dependencies of all workspace packages in the cache key.
  * This ensures that we get a consistent cache key even if a dependency change does not affect
  * the pnpm-lock.yaml file.
@@ -12,7 +12,9 @@ const path = require('path');
 function outputDependencyCacheKey() {
   const lockfileContent = fs.readFileSync(path.join(process.cwd(), 'pnpm-lock.yaml'), 'utf8');
 
-  const hashParts = [lockfileContent];
+  const workspaceContent = fs.readFileSync(path.join(process.cwd(), 'pnpm-workspace.yaml'), 'utf8');
+
+  const hashParts = [lockfileContent, workspaceContent];
 
   const packageJson = require(path.join(process.cwd(), 'package.json'));
 
