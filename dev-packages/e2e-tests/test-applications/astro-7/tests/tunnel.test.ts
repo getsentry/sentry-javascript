@@ -3,9 +3,17 @@ import { getSpanOp, waitForStreamedSpan } from '@sentry-internal/test-utils';
 
 test.skip(!process.env.PUBLIC_E2E_TEST_TUNNEL, 'Only runs in the tunnel variant');
 
+const DSN = 'http://public@localhost:3031/1337';
 const TUNNEL_PATH = /^\/docs\/[a-z0-9]{1,7}\/$/;
 
 test('answers the managed tunnel under the base path before the app middleware', async ({ page }) => {
+  // The first request this server sees, so no SSR page has run `Sentry.init` yet.
+  const coldTunnelResponse = await page.request.post('/docs/qpo967/', {
+    headers: { 'content-type': 'application/x-sentry-envelope' },
+    data: `${JSON.stringify({ dsn: DSN })}\n`,
+  });
+  expect(coldTunnelResponse.status()).toBe(200);
+
   // The variant's auth middleware rejects every other POST.
   expect((await page.request.post('/docs/anything/', { data: 'x' })).status()).toBe(401);
 
