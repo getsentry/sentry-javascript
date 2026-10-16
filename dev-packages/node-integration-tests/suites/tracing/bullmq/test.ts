@@ -115,7 +115,7 @@ describeWithDockerCompose('bullmq', { workingDirectory: [__dirname] }, () => {
           trace_id: producer.trace_id,
           span_id: producer.span_id,
           sampled: true,
-          attributes: { 'sentry.link.type': { type: 'string', value: 'previous_trace' } },
+          attributes: { 'sentry.link.type': { type: 'string', value: 'message_origin' } },
         });
       }
 

@@ -70,7 +70,7 @@ export class SentryBullMQTracer implements Tracer<SentryContext> {
       span.addLink({
         context: producerSpanCtx,
         attributes: {
-          [SENTRY_LINK_TYPE]: 'previous_trace',
+          [SENTRY_LINK_TYPE]: 'message_origin',
         },
       });
     }
