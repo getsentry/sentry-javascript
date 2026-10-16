@@ -2,6 +2,7 @@ import { HTTP_SERVER } from '@sentry/conventions/op';
 import { applySdkMetadata } from '@sentry/core';
 import type { NodeClient, NodeOptions } from '@sentry/node';
 import { init as initNodeSdk } from '@sentry/node';
+import { applyAstroTunnelOptions } from '../tunnel';
 
 /**
  *
@@ -13,6 +14,7 @@ export function init(options: NodeOptions): NodeClient | undefined {
   };
 
   applySdkMetadata(opts, 'astro', ['astro', 'node']);
+  applyAstroTunnelOptions(opts);
 
   opts.ignoreSpans = [
     ...(opts.ignoreSpans || []),
