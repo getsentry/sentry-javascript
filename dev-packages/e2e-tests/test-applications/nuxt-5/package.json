@@ -19,7 +19,8 @@
     "test:build:tunnel": "pnpm install && E2E_TEST_TUNNEL=1 pnpm build",
     "test:build:tunnel-basepath": "pnpm install && E2E_TEST_TUNNEL=1 E2E_TEST_BASE_PATH=/app pnpm build",
     "test:assert:tunnel": "E2E_TEST_TUNNEL=1 TEST_ENV=production playwright test tunnel",
-    "test:assert:tunnel-basepath": "E2E_TEST_TUNNEL=1 E2E_TEST_BASE_PATH=/app TEST_ENV=production playwright test tunnel"
+    "test:assert:tunnel-basepath": "E2E_TEST_TUNNEL=1 E2E_TEST_BASE_PATH=/app TEST_ENV=production playwright test tunnel",
+    "test:assert:tunnel-dev": "E2E_TEST_TUNNEL=1 TEST_ENV=development playwright test tunnel"
   },
   "//": [
     "Currently, we need to install the latest version of Nitro and the Nuxt nightlies as those contain Nuxt v5",
@@ -53,6 +54,11 @@
         "build-command": "pnpm test:build:tunnel-basepath",
         "assert-command": "pnpm test:assert:tunnel-basepath",
         "label": "nuxt-5 (tunnel-basepath)"
+      },
+      {
+        "build-command": "pnpm install",
+        "assert-command": "pnpm test:assert:tunnel-dev",
+        "label": "nuxt-5 (tunnel-dev)"
       }
     ]
   },
