@@ -11,18 +11,15 @@
 #
 # Node/pnpm versions come from `package.json` (managed by Volta locally); in the
 # cloud we rely on whatever Node runtime the sandbox provides, and install the
-# pinned pnpm version when the sandbox has none.
+# `packageManager` pnpm version when the sandbox has none.
 set -euo pipefail
 
 cd "$(dirname "$0")/.."
 
-# Required by the repo's package-manager setup (pnpm via Volta).
-export VOLTA_FEATURE_PNPM=1
-
 echo "node: $(node --version 2>/dev/null || echo 'not found')"
 
 if ! command -v pnpm >/dev/null 2>&1; then
-  PNPM_VERSION="$(node -p "require('./package.json').volta.pnpm")"
+  PNPM_VERSION="$(node -p "require('./package.json').packageManager.split('@')[1]")"
   echo "Installing pnpm ${PNPM_VERSION}..."
   npm install --global "pnpm@${PNPM_VERSION}"
 fi
