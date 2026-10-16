@@ -1,6 +1,6 @@
 {
   "name": "node-openai-decisions-send-to-sentry",
-  "description": "The OpenAI integration for the Decisions API as a user runs it: a plain Sentry.init on an express app, real decisions.create requests against OpenAI, and the gen_ai.decide spans read back from a real Sentry project",
+  "description": "The OpenAI Decisions API as a user runs it: a plain Sentry.init on an express app, real decisions requests against OpenAI through the openai client and the Vercel AI SDK, and the gen_ai.decide spans read back from a real Sentry project",
   "version": "1.0.0",
   "private": true,
   "type": "module",
@@ -10,13 +10,16 @@
     "test": "playwright test",
     "clean": "npx rimraf node_modules dist pnpm-lock.yaml",
     "test:build": "pnpm install && pnpm build",
-    "test:build-latest": "pnpm install && pnpm add openai@latest && pnpm build",
+    "test:build-latest": "pnpm install && pnpm add openai@latest ai@latest @ai-sdk/openai@latest && pnpm build",
     "test:assert": "pnpm test"
   },
   "dependencies": {
+    "@ai-sdk/openai": "4.0.95",
     "@sentry/node": "file:../../packed/sentry-node-packed.tgz",
+    "ai": "7.0.142",
     "express": "^4.21.2",
-    "openai": "7.32.0"
+    "openai": "7.32.0",
+    "zod": "^4.1.8"
   },
   "devDependencies": {
     "@playwright/test": "~1.63.0",
