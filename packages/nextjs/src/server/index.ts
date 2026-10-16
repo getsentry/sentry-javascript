@@ -15,6 +15,7 @@ import { getDefaultIntegrations, httpIntegration, init as nodeInit } from '@sent
 import { DEBUG_BUILD } from '../common/debug-build';
 import { devErrorSymbolicationEventProcessor } from '../common/devErrorSymbolicationEventProcessor';
 import { dropReactControlFlowErrorsEventProcessor } from '../common/utils/dropReactControlFlowErrors';
+import { getTunnelRouteIgnoreSpans } from '../common/utils/dropMiddlewareTunnelRequests';
 import { isBuild } from '../common/utils/isBuild';
 import {
   isAsyncContextOwnedByCloudflare,
@@ -155,7 +156,7 @@ export function init(options: NodeOptions): NodeClient | undefined {
     ...cloudflareConfig,
   };
 
-  opts.ignoreSpans = [...(opts.ignoreSpans || []), ...NEXTJS_SERVER_IGNORE_SPANS];
+  opts.ignoreSpans = [...(opts.ignoreSpans || []), ...NEXTJS_SERVER_IGNORE_SPANS, ...getTunnelRouteIgnoreSpans()];
 
   if (DEBUG_BUILD && opts.debug) {
     debug.enable();

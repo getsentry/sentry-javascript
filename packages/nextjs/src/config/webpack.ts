@@ -26,8 +26,9 @@ import type {
   WebpackPluginInstance,
 } from './types';
 import { sentryOrchestrionWebpackPlugin } from '@sentry/server-utils/orchestrion/webpack';
-import { getNextjsVersion, getPackageModules } from './util';
+import { DEFAULT_PAGE_EXTENSIONS, getNextjsVersion, getPackageModules } from './util';
 import type { VercelCronsConfigResult } from './withSentryConfig/getFinalConfigObjectUtils';
+import { getTunnelRouteInjectedValues } from './withSentryConfig/tunnel';
 
 // Next.js runs webpack 3 times, once for the client, the server, and for edge. Because we don't want to print certain
 // warnings 3 times, we keep track of them here.
@@ -72,8 +73,7 @@ export function constructWebpackConfigFunction({
     const { isServer, dev: isDev, dir: projectDir } = buildContext;
     const logger = getBuildLogger(userSentryOptions.silent);
     const runtime = isServer ? (buildContext.nextRuntime === 'edge' ? 'edge' : 'server') : 'client';
-    // Default page extensions per https://github.com/vercel/next.js/blob/f1dbc9260d48c7995f6c52f8fbcc65f08e627992/packages/next/server/config-shared.ts#L161
-    const pageExtensions = userNextConfig.pageExtensions || ['tsx', 'ts', 'jsx', 'js'];
+    const pageExtensions = userNextConfig.pageExtensions || DEFAULT_PAGE_EXTENSIONS;
     const dotPrefixedPageExtensions = pageExtensions.map(ext => `.${ext}`);
     const pageExtensionRegex = pageExtensions.map(escapeStringForRegex).join('|');
     const nextVersion = nextJsVersion || getNextjsVersion();
@@ -719,13 +719,7 @@ function addValueInjectionLoader({
   const releaseToInject = releaseName && shouldCreateRelease ? releaseName : undefined;
 
   const isomorphicValues = {
-    // `rewritesTunnel` set by the user in Next.js config
-    _sentryRewritesTunnelPath:
-      userSentryOptions.tunnelRoute !== undefined &&
-      userNextConfig.output !== 'export' &&
-      typeof userSentryOptions.tunnelRoute === 'string'
-        ? `${userNextConfig.basePath ?? ''}${userSentryOptions.tunnelRoute}`
-        : undefined,
+    ...getTunnelRouteInjectedValues(userNextConfig, userSentryOptions),
 
     // The webpack plugin's release injection breaks the `app` directory so we inject the release manually here instead.
     // Having a release defined in dev-mode spams releases in Sentry so we only set one in non-dev mode
