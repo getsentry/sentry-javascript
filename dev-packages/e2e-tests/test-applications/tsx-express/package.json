@@ -27,7 +27,6 @@
     "tsx": "^4.20.3"
   },
   "volta": {
-    "node": "20.19.5",
     "extends": "../../package.json"
   }
 }

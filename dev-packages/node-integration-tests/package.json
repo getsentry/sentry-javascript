@@ -25,7 +25,7 @@
     "test:watch": "yarn test --watch"
   },
   "dependencies": {
-    "@anthropic-ai/sdk": "0.63.0",
+    "@anthropic-ai/sdk": "0.133.0",
     "@apollo/server": "^5.5.0",
     "@aws-sdk/client-dynamodb": "^3.1046.0",
     "@aws-sdk/client-kinesis": "^3.1146.0",
