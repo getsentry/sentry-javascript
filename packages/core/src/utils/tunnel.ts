@@ -13,7 +13,7 @@ import { parseUrl } from './url';
 export interface HandleTunnelRequestOptions {
   /** Incoming request containing the Sentry envelope as its body */
   request: Request;
-  /** DSNs whose envelopes may be forwarded. Defaults to the DSN of the active client. */
+  /** DSNs whose envelopes may be forwarded, in addition to the DSN of the active client. */
   allowedDsns?: Array<string>;
 }
 
@@ -95,8 +95,9 @@ export function getTunnelIgnoreSpanFilter(
   tunnelOptions: TunnelOptions,
   dsn: DsnComponents | undefined,
 ): IgnoreSpanFilter | undefined {
-  const allowedDsns = tunnelOptions.allowedDsns ?? (dsn ? [dsnToString(dsn)] : []);
-  const paths = tunnelPathsFor(tunnelOptions, allowedDsns).map(escapeStringForRegex);
+  const paths = tunnelPathsFor(tunnelOptions, resolveAllowedDsns(tunnelOptions.allowedDsns, dsn)).map(
+    escapeStringForRegex,
+  );
   if (!paths.length) {
     return undefined;
   }
@@ -314,14 +315,17 @@ function forwardHeaders(request: Request): Record<string, string> {
   return headers;
 }
 
-function resolveAllowedDsns(allowedDsns: Array<string> | undefined): Array<string> {
-  if (allowedDsns) {
-    return allowedDsns;
-  }
+/**
+ * `allowedDsns` plus the server's own DSN. The own DSN is always trusted, so listing only the browser DSN can't lock
+ * out a browser that shares it. It goes last, because React Router can serve only the first path.
+ */
+function resolveAllowedDsns(
+  allowedDsns: Array<string> | undefined,
+  ownDsn: DsnComponents | undefined = getClient()?.getDsn(),
+): Array<string> {
+  const dsns = [...(allowedDsns ?? []), ...(ownDsn ? [dsnToString(ownDsn)] : [])];
 
-  const dsn = getClient()?.getDsn();
-
-  return dsn ? [dsnToString(dsn)] : [];
+  return [...new Set(dsns)];
 }
 
 /**
@@ -359,5 +363,6 @@ function tunnelPathsFor(tunnelOptions: TunnelOptions, allowedDsns: Array<string>
     return [tunnelOptions.path.replace(/\/$/, '')];
   }
 
-  return allowedDsns.map(dsn => getTunnelPath(dsn)).filter((path): path is string => !!path);
+  // A DSN can be listed in another form than the own one, e.g. with a trailing slash, and still give the same path.
+  return [...new Set(allowedDsns.map(dsn => getTunnelPath(dsn)).filter((path): path is string => !!path))];
 }
