@@ -59,15 +59,13 @@ export function extractRequestAttributes(
       attributes[GEN_AI_TOOL_DEFINITIONS] = JSON.stringify(params.tools);
     }
 
-    attributes[GEN_AI_REQUEST_MODEL] = params.model ?? 'unknown';
+    attributes[GEN_AI_REQUEST_MODEL] = params.model;
     if ('temperature' in params) attributes[GEN_AI_REQUEST_TEMPERATURE] = params.temperature;
     if ('top_p' in params) attributes[GEN_AI_REQUEST_TOP_P] = params.top_p;
     if ('stream' in params) attributes[GEN_AI_REQUEST_STREAM_ATTRIBUTE] = params.stream;
     if ('top_k' in params) attributes[GEN_AI_REQUEST_TOP_K] = params.top_k;
     if ('frequency_penalty' in params) attributes[GEN_AI_REQUEST_FREQUENCY_PENALTY] = params.frequency_penalty;
     if ('max_tokens' in params) attributes[GEN_AI_REQUEST_MAX_TOKENS] = params.max_tokens;
-  } else {
-    attributes[GEN_AI_REQUEST_MODEL] = 'unknown';
   }
 
   return attributes;
@@ -261,12 +259,12 @@ function instrumentMethod<T extends unknown[], R>(
 
       const operationName = instrumentedMethod.operation || 'unknown';
       const requestAttributes = extractRequestAttributes(args, operationName, !!options.recordInputs);
-      const model = requestAttributes[GEN_AI_REQUEST_MODEL] || 'unknown';
+      const model = requestAttributes[GEN_AI_REQUEST_MODEL];
       const client = getClient();
       // With span streaming, omit the `'unknown'` model sentinel so the name stays low-cardinality.
       const spanConfig = {
         name:
-          (typeof model === 'string' && model !== 'unknown') || !(client && hasSpanStreamingEnabled(client))
+          (typeof model === 'string') || !(client && hasSpanStreamingEnabled(client))
             ? `${operationName} ${model}`
             : operationName,
         op: getGenAiSpanOp(operationName),

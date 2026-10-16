@@ -43,7 +43,7 @@ function extractEmbeddingAttributes(instance: unknown): Record<string, unknown> 
     [SENTRY_ORIGIN]: LANGCHAIN_ORIGIN,
     [SENTRY_OP]: GEN_AI_EMBEDDINGS,
     [GEN_AI_OPERATION_NAME]: 'embeddings',
-    [GEN_AI_REQUEST_MODEL]: embeddingsInstance.model ?? 'unknown',
+    [GEN_AI_REQUEST_MODEL]: embeddingsInstance.model,
   };
 
   attributes[GEN_AI_PROVIDER_NAME] = inferSystemFromInstance(embeddingsInstance);
@@ -70,7 +70,7 @@ export function _INTERNAL_getLangChainEmbeddingsSpanOptions(
 ): { name: string; attributes: Record<string, SpanAttributeValue> } {
   const { recordInputs } = resolveAIRecordingOptions(options);
   const attributes = extractEmbeddingAttributes(instance);
-  const modelName = attributes[GEN_AI_REQUEST_MODEL] || 'unknown';
+  const modelName = attributes[GEN_AI_REQUEST_MODEL];
   const client = getClient();
 
   if (recordInputs && input != null) {
@@ -80,7 +80,7 @@ export function _INTERNAL_getLangChainEmbeddingsSpanOptions(
   return {
     // With span streaming, omit the `'unknown'` model sentinel so the name stays low-cardinality.
     name:
-      (typeof modelName === 'string' && modelName !== 'unknown') || !(client && hasSpanStreamingEnabled(client))
+      (typeof modelName === 'string') || !(client && hasSpanStreamingEnabled(client))
         ? `embeddings ${modelName}`
         : 'embeddings',
     attributes: attributes as Record<string, SpanAttributeValue>,

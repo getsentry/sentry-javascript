@@ -86,12 +86,12 @@ function createGenAiSpan(data: OrchestrionChannelContext, operation: string, opt
 
   const attributes = extractRequestAttributes(args, operation, recordInputs);
   attributes[SENTRY_ORIGIN] = ORIGIN;
-  const model = (params?.model as string) || 'unknown';
+  const model = (params?.model as string);
   const client = getClient();
 
   const span = startInactiveSpan({
     // With span streaming, omit the `'unknown'` model sentinel so the name stays low-cardinality.
-    name: model !== 'unknown' || !(client && hasSpanStreamingEnabled(client)) ? `${operation} ${model}` : operation,
+    name: !(client && hasSpanStreamingEnabled(client)) ? `${operation} ${model}` : operation,
     op: getGenAiSpanOp(operation),
     attributes: attributes as Record<string, SpanAttributeValue>,
   });

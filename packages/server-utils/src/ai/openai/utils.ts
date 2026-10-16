@@ -206,7 +206,7 @@ function extractConversationId(params: Record<string, unknown>): string | undefi
  */
 export function extractRequestParameters(params: Record<string, unknown>): Record<string, unknown> {
   const attributes: Record<string, unknown> = {
-    [GEN_AI_REQUEST_MODEL]: params.model ?? 'unknown',
+    [GEN_AI_REQUEST_MODEL]: params.model,
   };
 
   if ('temperature' in params) attributes[GEN_AI_REQUEST_TEMPERATURE] = params.temperature;

@@ -109,13 +109,13 @@ function createGenAiSpan(
   const { recordInputs } = resolveAIRecordingOptions(options);
 
   const attributes = extractRequestAttributes(args, operation, recordInputs);
-  const model = (attributes[GEN_AI_REQUEST_MODEL] as string) || 'unknown';
+  const model = (attributes[GEN_AI_REQUEST_MODEL] as string);
   attributes[SENTRY_ORIGIN] = ORIGIN;
   const client = getClient();
 
   const span = startInactiveSpan({
     // With span streaming, omit the `'unknown'` model sentinel so the name stays low-cardinality.
-    name: model !== 'unknown' || !(client && hasSpanStreamingEnabled(client)) ? `${operation} ${model}` : operation,
+    name: !(client && hasSpanStreamingEnabled(client)) ? `${operation} ${model}` : operation,
     op: getGenAiSpanOp(operation),
     attributes: attributes as Record<string, SpanAttributeValue>,
   });

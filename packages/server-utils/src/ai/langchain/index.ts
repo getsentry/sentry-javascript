@@ -105,7 +105,7 @@ export function createLangChainCallbackHandler(options: LangChainOptions = {}): 
         invocationParams,
         metadata,
       );
-      const modelName = attributes[GEN_AI_REQUEST_MODEL] || 'unknown';
+      const modelName = attributes[GEN_AI_REQUEST_MODEL];
       const operationName =
         typeof attributes[GEN_AI_OPERATION_NAME] === 'string' ? attributes[GEN_AI_OPERATION_NAME] : 'unknown';
       const client = getClient();
@@ -114,7 +114,7 @@ export function createLangChainCallbackHandler(options: LangChainOptions = {}): 
         {
           // With span streaming, omit the `'unknown'` model sentinel so the name stays low-cardinality.
           name:
-            (typeof modelName === 'string' && modelName !== 'unknown') || !(client && hasSpanStreamingEnabled(client))
+            (typeof modelName === 'string') || !(client && hasSpanStreamingEnabled(client))
               ? `${operationName} ${modelName}`
               : operationName,
           attributes: {
@@ -156,7 +156,7 @@ export function createLangChainCallbackHandler(options: LangChainOptions = {}): 
         attributes[GEN_AI_TOOL_DEFINITIONS] = toolDefsJson;
       }
 
-      const modelName = attributes[GEN_AI_REQUEST_MODEL] || 'unknown';
+      const modelName = attributes[GEN_AI_REQUEST_MODEL];
       const operationName =
         typeof attributes[GEN_AI_OPERATION_NAME] === 'string' ? attributes[GEN_AI_OPERATION_NAME] : 'unknown';
       const client = getClient();
@@ -165,7 +165,7 @@ export function createLangChainCallbackHandler(options: LangChainOptions = {}): 
         {
           // With span streaming, omit the `'unknown'` model sentinel so the name stays low-cardinality.
           name:
-            (typeof modelName === 'string' && modelName !== 'unknown') || !(client && hasSpanStreamingEnabled(client))
+            (typeof modelName === 'string') || !(client && hasSpanStreamingEnabled(client))
               ? `${operationName} ${modelName}`
               : operationName,
           attributes: {
