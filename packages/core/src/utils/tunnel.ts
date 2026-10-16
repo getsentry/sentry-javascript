@@ -42,6 +42,26 @@ export function resolveServerTunnelOption(tunnel: string | true | TunnelOptions 
 }
 
 /**
+ * Fills in the defaults a framework SDK knows about its app, like the base path, for a managed tunnel. Options the
+ * user set win. A relative `tunnel` path is a managed tunnel with that `path`, so it gets the defaults too, while a
+ * URL and an unset `tunnel` are returned as they are.
+ */
+export function applyTunnelDefaults(
+  tunnel: string | true | TunnelOptions | undefined,
+  defaults: TunnelOptions | undefined,
+): string | true | TunnelOptions | undefined {
+  if (!tunnel || !defaults || !Object.keys(defaults).length) {
+    return tunnel;
+  }
+
+  if (typeof tunnel === 'string') {
+    return tunnel.startsWith('/') ? { ...defaults, path: tunnel } : tunnel;
+  }
+
+  return { ...defaults, ...(tunnel === true ? {} : tunnel) };
+}
+
+/**
  * Returns the same-origin tunnel path for a DSN, e.g. `/k3x9q2a`.
  *
  * Browser and server SDKs derive the path independently from the DSN, so no build step has to pass it
