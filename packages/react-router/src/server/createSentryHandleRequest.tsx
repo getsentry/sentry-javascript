@@ -4,6 +4,12 @@ import React from 'react';
 import type { AppLoadContext, EntryContext, RouterContextProvider, ServerRouter } from 'react-router';
 import { PassThrough } from 'stream';
 import { getMetaTagTransformer } from './getMetaTagTransformer';
+import { createSentryHandleRequestWebStream } from './createSentryHandleRequestWebStream';
+import type {
+  HandleRequestWithMiddleware,
+  HandleRequestWithoutMiddleware,
+  SentryWebStreamHandleRequestOptions,
+} from './handleRequestTypes';
 import { wrapSentryHandleRequest } from './wrapSentryHandleRequest';
 
 type RenderToPipeableStreamOptions = {
@@ -59,32 +65,28 @@ export interface SentryHandleRequestOptions {
   getNonce?: (args: { request: Request; loadContext: AppLoadContext | RouterContextProvider }) => string | undefined;
 }
 
-type HandleRequestWithoutMiddleware = (
-  request: Request,
-  responseStatusCode: number,
-  responseHeaders: Headers,
-  routerContext: EntryContext,
-  loadContext: AppLoadContext,
-) => Promise<unknown>;
-
-type HandleRequestWithMiddleware = (
-  request: Request,
-  responseStatusCode: number,
-  responseHeaders: Headers,
-  routerContext: EntryContext,
-  loadContext: RouterContextProvider,
-) => Promise<unknown>;
-
 /**
  * A complete Sentry-instrumented handleRequest implementation that handles both
  * route parametrization and trace meta tag injection.
+ *
+ * Pass `renderToReadableStream` (Web Streams) instead of `renderToPipeableStream` to use the Web Streams variant.
  *
  * @param options Configuration options
  * @returns A Sentry-instrumented handleRequest function
  */
 export function createSentryHandleRequest(
   options: SentryHandleRequestOptions,
+): HandleRequestWithoutMiddleware & HandleRequestWithMiddleware;
+export function createSentryHandleRequest(
+  options: SentryWebStreamHandleRequestOptions,
+): HandleRequestWithoutMiddleware & HandleRequestWithMiddleware;
+export function createSentryHandleRequest(
+  options: SentryHandleRequestOptions | SentryWebStreamHandleRequestOptions,
 ): HandleRequestWithoutMiddleware & HandleRequestWithMiddleware {
+  if ('renderToReadableStream' in options) {
+    return createSentryHandleRequestWebStream(options);
+  }
+
   const {
     streamTimeout = 10000,
     renderToPipeableStream,
