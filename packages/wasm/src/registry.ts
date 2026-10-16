@@ -27,7 +27,9 @@ export function getModuleInfo(module: WebAssembly.Module): ModuleInfo {
 
   const buildId0 = buildIds[0];
   if (buildId0) {
-    const firstBuildId = new Uint8Array(buildId0);
+    const payload = new Uint8Array(buildId0);
+    // Legacy build IDs omit the length prefix, so only strip it for a matching 16-byte payload.
+    const firstBuildId = payload.length === 17 && payload[0] === 0x10 ? payload.subarray(1) : payload;
     buildId = Array.from(firstBuildId).reduce((acc, x) => {
       return acc + x.toString(16).padStart(2, '0');
     }, '');
