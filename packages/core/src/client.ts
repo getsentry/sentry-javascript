@@ -1323,6 +1323,8 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
       try {
         const result = await this._transport.send(envelope);
         this.emit('afterEnvelope', envelope);
+        DEBUG_BUILD && warnIfManagedTunnelIsNotServed(this._options, result.statusCode);
+
         return result;
       } catch (reason) {
         DEBUG_BUILD && debug.error('Error while sending envelope:', reason);
@@ -1930,4 +1932,22 @@ function estimatePrimitiveSizeInBytes(value: Primitive): number {
   }
 
   return 0;
+}
+
+let hasWarnedAboutManagedTunnel = false;
+
+/**
+ * `tunnel: true` only works when the server serves the tunnel. These statuses mean nothing answers the path (404, 405)
+ * or something rejected the request (403), as opposed to Sentry rate limiting or failing.
+ */
+function warnIfManagedTunnelIsNotServed(options: ClientOptions, statusCode: number | undefined): void {
+  const { tunnel, _managedTunnel } = options;
+  if (!tunnel || !_managedTunnel || hasWarnedAboutManagedTunnel || ![403, 404, 405].includes(statusCode ?? 0)) {
+    return;
+  }
+
+  hasWarnedAboutManagedTunnel = true;
+  debug.warn(
+    `The managed tunnel at "${tunnel}" responded with ${statusCode}, so events sent through it are lost. \`tunnel: true\` needs a server that answers it: a Sentry meta-framework SDK (SvelteKit, Nuxt, Astro, ...), \`tunnelRoute\` in Next.js, or your own endpoint calling \`handleTunnelRequest\`. A 403 can also mean the server's \`allowedDsns\` doesn't include this DSN.`,
+  );
 }

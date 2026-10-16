@@ -374,8 +374,8 @@ export interface ClientOptions<TO extends BaseTransportOptions = BaseTransportOp
   tunnel?: string;
 
   /**
-   * Set by server SDKs when the managed tunnel is enabled. Server request handlers check it to decide whether to
-   * serve the managed tunnel.
+   * Set when `init` was called with `tunnel: true` or {@link TunnelOptions}. Browser SDKs keep it to explain a rejected
+   * tunnel request, and server request handlers check it to decide whether to serve the managed tunnel.
    *
    * @internal This option is not part of the public API and is subject to change at any time.
    */
@@ -674,8 +674,21 @@ export interface TunnelOptions {
 /** Base configuration options for every SDK. */
 export interface CoreOptions<TO extends BaseTransportOptions = BaseTransportOptions> extends Omit<
   Partial<ClientOptions<TO>>,
-  'integrations' | 'transport' | 'stackParser'
+  'integrations' | 'transport' | 'stackParser' | 'tunnel'
 > {
+  /**
+   * Where to send envelopes instead of the Sentry ingest URL.
+   *
+   * - A URL sends envelopes to your own tunnel endpoint. On the server, a relative path such as `/monitor` instead
+   *   serves the managed tunnel at that path, so `tunnel: '/monitor'` on both sides gives a fixed path.
+   * - `true` (or {@link TunnelOptions}) enables the managed tunnel. Set it in both the browser and the server `init`:
+   *   the browser sends envelopes to a same-origin path derived from its DSN, and the server SDK serves that path and
+   *   forwards the envelopes to Sentry. This keeps ad-blockers from dropping events.
+   *
+   * @default undefined
+   */
+  tunnel?: string | true | TunnelOptions;
+
   /**
    * If this is set to false, default integrations will not be added, otherwise this will internally be set to the
    * recommended default integrations.

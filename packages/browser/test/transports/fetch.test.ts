@@ -73,9 +73,10 @@ describe('fetchTransport', () => {
     expect(headers.get).toHaveBeenCalledTimes(0);
     await transport.send(ERROR_ENVELOPE);
 
-    expect(headers.get).toHaveBeenCalledTimes(2);
+    expect(headers.get).toHaveBeenCalledTimes(3);
     expect(headers.get).toHaveBeenCalledWith('X-Sentry-Rate-Limits');
     expect(headers.get).toHaveBeenCalledWith('Retry-After');
+    expect(headers.get).toHaveBeenCalledWith('X-Sentry-Tunnel');
   });
 
   it('allows for custom options to be passed in', async () => {
