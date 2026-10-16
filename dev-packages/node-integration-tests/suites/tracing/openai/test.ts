@@ -1323,9 +1323,9 @@ describe('OpenAI integration', () => {
     },
   );
 
-  // Test for conversation ID support (Conversations API and previous_response_id)
+  // Conversation id: read from the Conversations API, not from `previous_response_id` chaining
   createEsmAndCjsTests(__dirname, 'scenario-conversation.mjs', 'instrument.mjs', (createRunner, test) => {
-    test('captures conversation ID from Conversations API and previous_response_id', async () => {
+    test('captures the conversation ID from the Conversations API and ignores previous_response_id', async () => {
       await createRunner()
         .expect({
           transaction: {
@@ -1393,48 +1393,27 @@ describe('OpenAI integration', () => {
               value: 'conv_689667905b048191b4740501625afd940c7533ace33a2dab',
             });
 
-            const unlinkedResponseSpan = container.items.find(
+            // The unlinked call and the one chained with `previous_response_id` both carry no conversation id:
+            // a response id names one response, not the thread, so chaining does not group spans.
+            const unlinkedResponseSpans = container.items.filter(
               span =>
                 span.attributes[SEMANTIC_ATTRIBUTE_SENTRY_OP]?.value === 'gen_ai.chat' &&
+                span.attributes[GEN_AI_REQUEST_MODEL_ATTRIBUTE]?.value === 'gpt-4' &&
                 span.attributes[GEN_AI_CONVERSATION_ID_ATTRIBUTE] === undefined,
             );
-            expect(unlinkedResponseSpan).toBeDefined();
-            expect(unlinkedResponseSpan!.status).toBe('ok');
-            expect(unlinkedResponseSpan!.attributes[SEMANTIC_ATTRIBUTE_SENTRY_OP]).toEqual({
-              type: 'string',
-              value: 'gen_ai.chat',
-            });
-            expect(unlinkedResponseSpan!.attributes[GEN_AI_CONVERSATION_ID_ATTRIBUTE]).toBeUndefined();
-
-            const previousResponseSpan = container.items.find(
-              span => span.attributes[GEN_AI_CONVERSATION_ID_ATTRIBUTE]?.value === 'resp_mock_conv_123',
-            );
-            expect(previousResponseSpan).toBeDefined();
-            expect(previousResponseSpan!.status).toBe('ok');
-            expect(previousResponseSpan!.attributes[GEN_AI_OPERATION_NAME_ATTRIBUTE]).toEqual({
-              type: 'string',
-              value: 'chat',
-            });
-            expect(previousResponseSpan!.attributes[SEMANTIC_ATTRIBUTE_SENTRY_OP]).toEqual({
-              type: 'string',
-              value: 'gen_ai.chat',
-            });
-            expect(previousResponseSpan!.attributes[SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]).toEqual({
-              type: 'string',
-              value: isOrchestrionEnabled() ? 'auto.ai.orchestrion.openai' : 'auto.ai.openai',
-            });
-            expect(previousResponseSpan!.attributes[GEN_AI_SYSTEM_ATTRIBUTE]).toEqual({
-              type: 'string',
-              value: 'openai',
-            });
-            expect(previousResponseSpan!.attributes[GEN_AI_REQUEST_MODEL_ATTRIBUTE]).toEqual({
-              type: 'string',
-              value: 'gpt-4',
-            });
-            expect(previousResponseSpan!.attributes[GEN_AI_CONVERSATION_ID_ATTRIBUTE]).toEqual({
-              type: 'string',
-              value: 'resp_mock_conv_123',
-            });
+            expect(unlinkedResponseSpans).toHaveLength(2);
+            for (const span of unlinkedResponseSpans) {
+              expect(span.status).toBe('ok');
+              expect(span.attributes[GEN_AI_RESPONSE_ID_ATTRIBUTE]).toEqual({
+                type: 'string',
+                value: 'resp_mock_conv_123',
+              });
+            }
+            expect(
+              container.items.some(
+                span => span.attributes[GEN_AI_CONVERSATION_ID_ATTRIBUTE]?.value === 'resp_mock_conv_123',
+              ),
+            ).toBe(false);
           },
         })
         .start()
