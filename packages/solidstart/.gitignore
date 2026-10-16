@@ -2,4 +2,5 @@
 /client
 /server
 /*.d.ts
+/*.d.mts
 /*.d.ts.map
