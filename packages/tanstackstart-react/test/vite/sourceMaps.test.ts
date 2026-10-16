@@ -372,12 +372,14 @@ describe('makeAddSentryVitePlugin()', () => {
       consoleSpy.mockRestore();
     });
 
-    it('does not log the default when Sentry enabled no source maps', async () => {
+    it('logs that it deletes no source maps when Sentry enabled none', async () => {
       const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
 
       await resolveFilesToDelete(NITRO_ENVIRONMENTS, { sentryEnabledEnvironments: [], options: { debug: true } });
 
-      expect(consoleSpy).not.toHaveBeenCalledWith(expect.stringContaining('Automatically setting'));
+      expect(consoleSpy).toHaveBeenCalledWith(
+        '[Sentry] No source maps are deleted after the upload, because Sentry did not enable source map generation for this build.',
+      );
       consoleSpy.mockRestore();
     });
   });
