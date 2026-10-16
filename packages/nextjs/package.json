@@ -18,7 +18,11 @@
   "exports": {
     "./package.json": "./package.json",
     ".": {
-      "types": "./build/types/index.types.d.ts",
+      "types": {
+        "node": "./build/types/index.types.d.ts",
+        "import": "./build/types/index.types.d.mts",
+        "default": "./build/types/index.types.d.ts"
+      },
       "edge": {
         "import": "./build/esm/edge/index.js",
         "require": "./build/cjs/edge/index.js",
@@ -47,7 +51,10 @@
       "import": "./build/esm/index.server.js"
     },
     "./cloudflare": {
-      "types": "./build/types/cloudflare/index.d.ts",
+      "types": {
+        "import": "./build/types/cloudflare/index.d.mts",
+        "default": "./build/types/cloudflare/index.d.ts"
+      },
       "import": "./build/esm/cloudflare/index.js",
       "require": "./build/cjs/cloudflare/index.js"
     },
@@ -105,7 +112,7 @@
     "build": "run-p build:transpile build:types",
     "build:dev": "pnpm run build",
     "build:transpile": "tsx --tsconfig tsconfig.tsnode.json scripts/buildRollup.ts",
-    "build:types": "tsc -p tsconfig.types.json",
+    "build:types": "tsc -p tsconfig.types.json && node ../../dev-packages/rollup-utils/write-esm-types.mjs",
     "build:watch": "run-p build:transpile:watch",
     "build:dev:watch": "pnpm run build:watch",
     "build:transpile:watch": "nodemon --ext ts --watch src scripts/buildRollup.ts",

@@ -18,32 +18,50 @@
   "exports": {
     "./package.json": "./package.json",
     ".": {
-      "types": "./build/types/index.d.ts",
+      "types": {
+        "import": "./build/types/index.d.mts",
+        "default": "./build/types/index.d.ts"
+      },
       "import": "./build/esm/index.js",
       "require": "./build/cjs/index.js"
     },
     "./no-diagnostic-channels": {
-      "types": "./build/types/index.no-diagnostic-channels.d.ts",
+      "types": {
+        "import": "./build/types/index.no-diagnostic-channels.d.mts",
+        "default": "./build/types/index.no-diagnostic-channels.d.ts"
+      },
       "import": "./build/esm/index.no-diagnostic-channels.js",
       "require": "./build/cjs/index.no-diagnostic-channels.js"
     },
     "./orchestrion/config": {
-      "types": "./build/types/orchestrion/config/index.d.ts",
+      "types": {
+        "import": "./build/types/orchestrion/config/index.d.mts",
+        "default": "./build/types/orchestrion/config/index.d.ts"
+      },
       "import": "./build/esm/orchestrion/config/index.js",
       "require": "./build/cjs/orchestrion/config/index.js"
     },
     "./orchestrion/vite": {
-      "types": "./build/types/orchestrion/bundler/vite.d.ts",
+      "types": {
+        "import": "./build/types/orchestrion/bundler/vite.d.mts",
+        "default": "./build/types/orchestrion/bundler/vite.d.ts"
+      },
       "import": "./build/esm/orchestrion/bundler/vite.js",
       "require": "./build/cjs/orchestrion/bundler/vite.js"
     },
     "./orchestrion/rollup": {
-      "types": "./build/types/orchestrion/bundler/rollup.d.ts",
+      "types": {
+        "import": "./build/types/orchestrion/bundler/rollup.d.mts",
+        "default": "./build/types/orchestrion/bundler/rollup.d.ts"
+      },
       "import": "./build/esm/orchestrion/bundler/rollup.js",
       "require": "./build/cjs/orchestrion/bundler/rollup.js"
     },
     "./orchestrion/webpack": {
-      "types": "./build/types/orchestrion/bundler/webpack.d.ts",
+      "types": {
+        "import": "./build/types/orchestrion/bundler/webpack.d.mts",
+        "default": "./build/types/orchestrion/bundler/webpack.d.ts"
+      },
       "import": "./build/esm/orchestrion/bundler/webpack.js",
       "require": "./build/cjs/orchestrion/bundler/webpack.js"
     },
@@ -52,17 +70,26 @@
       "require": "./build/cjs/orchestrion/bundler/webpack-loader.js"
     },
     "./orchestrion/load-hook": {
-      "types": "./build/types/orchestrion/bundler/load-hook.d.ts",
+      "types": {
+        "import": "./build/types/orchestrion/bundler/load-hook.d.mts",
+        "default": "./build/types/orchestrion/bundler/load-hook.d.ts"
+      },
       "import": "./build/esm/orchestrion/bundler/load-hook.js",
       "require": "./build/cjs/orchestrion/bundler/load-hook.js"
     },
     "./orchestrion/esbuild": {
-      "types": "./build/types/orchestrion/bundler/esbuild.d.ts",
+      "types": {
+        "import": "./build/types/orchestrion/bundler/esbuild.d.mts",
+        "default": "./build/types/orchestrion/bundler/esbuild.d.ts"
+      },
       "import": "./build/esm/orchestrion/bundler/esbuild.js",
       "require": "./build/cjs/orchestrion/bundler/esbuild.js"
     },
     "./orchestrion/bun": {
-      "types": "./build/types/orchestrion/bundler/bun.d.ts",
+      "types": {
+        "import": "./build/types/orchestrion/bundler/bun.d.mts",
+        "default": "./build/types/orchestrion/bundler/bun.d.ts"
+      },
       "import": "./build/esm/orchestrion/bundler/bun.js",
       "require": "./build/cjs/orchestrion/bundler/bun.js"
     }
@@ -111,7 +138,7 @@
     "build": "run-p build:transpile build:types",
     "build:dev": "pnpm run build",
     "build:transpile": "rollup -c rollup.npm.config.mjs",
-    "build:types": "tsc -p tsconfig.types.json",
+    "build:types": "tsc -p tsconfig.types.json && node ../../dev-packages/rollup-utils/write-esm-types.mjs",
     "build:watch": "run-p build:transpile:watch",
     "build:dev:watch": "run-p build:transpile:watch",
     "build:transpile:watch": "rollup -c rollup.npm.config.mjs --watch",

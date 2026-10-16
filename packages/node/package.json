@@ -19,7 +19,7 @@
     "./package.json": "./package.json",
     ".": {
       "import": {
-        "types": "./build/types/index.d.ts",
+        "types": "./build/types/index.d.mts",
         "default": "./build/esm/index.js"
       },
       "require": {
@@ -34,7 +34,7 @@
     },
     "./vite": {
       "import": {
-        "types": "./build/types/bundler-plugin/vite.d.ts",
+        "types": "./build/types/bundler-plugin/vite.d.mts",
         "default": "./build/esm/bundler-plugin/vite.js"
       },
       "require": {
@@ -44,7 +44,7 @@
     },
     "./rollup": {
       "import": {
-        "types": "./build/types/bundler-plugin/rollup.d.ts",
+        "types": "./build/types/bundler-plugin/rollup.d.mts",
         "default": "./build/esm/bundler-plugin/rollup.js"
       },
       "require": {
@@ -54,7 +54,7 @@
     },
     "./webpack": {
       "import": {
-        "types": "./build/types/bundler-plugin/webpack.d.ts",
+        "types": "./build/types/bundler-plugin/webpack.d.mts",
         "default": "./build/esm/bundler-plugin/webpack.js"
       },
       "require": {
@@ -64,7 +64,7 @@
     },
     "./esbuild": {
       "import": {
-        "types": "./build/types/bundler-plugin/esbuild.d.ts",
+        "types": "./build/types/bundler-plugin/esbuild.d.mts",
         "default": "./build/esm/bundler-plugin/esbuild.js"
       },
       "require": {
@@ -92,7 +92,7 @@
     "build": "run-p build:transpile build:types",
     "build:dev": "pnpm run build",
     "build:transpile": "rollup -c rollup.npm.config.mjs",
-    "build:types": "tsc -p tsconfig.types.json",
+    "build:types": "tsc -p tsconfig.types.json && node ../../dev-packages/rollup-utils/write-esm-types.mjs",
     "build:watch": "run-p build:transpile:watch",
     "build:dev:watch": "pnpm run build:watch",
     "build:transpile:watch": "rollup -c rollup.npm.config.mjs --watch",

@@ -1,0 +1,6 @@
+allowBuilds:
+  '@sentry/node-cpu-profiler': false
+  '@sentry/node-native-stacktrace': false
+minimumReleaseAge: 0
+# The checks read only the files of the Sentry packages, so the framework peer dependencies are not needed.
+autoInstallPeers: false
