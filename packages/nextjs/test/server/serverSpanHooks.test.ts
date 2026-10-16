@@ -1,16 +1,18 @@
 import {
   HTTP_REQUEST_METHOD,
   HTTP_ROUTE,
+  HTTP_TARGET,
   SENTRY_OP,
   SENTRY_ORIGIN,
   SENTRY_SEGMENT_NAME_SOURCE,
+  URL_QUERY,
 } from '@sentry/conventions/attributes';
 import { MIDDLEWARE } from '@sentry/conventions/op';
 import type { Client } from '@sentry/core';
-import { addChildSpanToSpan, SentrySpan, spanToStaticSpanJSON } from '@sentry/core';
+import { addChildSpanToSpan, SentrySpan, shouldIgnoreSpan, spanToStaticSpanJSON } from '@sentry/core';
 import { describe, expect, it } from 'vitest';
 import { ATTR_NEXT_SPAN_NAME, ATTR_NEXT_SPAN_TYPE } from '../../src/common/nextSpanAttributes';
-import { handleOnSpanStart } from '../../src/server/serverSpanHooks';
+import { handleOnSpanStart, NEXTJS_SERVER_IGNORE_SPANS } from '../../src/server/serverSpanHooks';
 
 const client = { getOptions: () => ({}) } as unknown as Client;
 
@@ -169,5 +171,24 @@ describe('handleOnSpanStart', () => {
     handleOnSpanStart(middlewareSpan, client);
 
     expect(spanToStaticSpanJSON(rootSpan).description).toBe('GET /api/endpoint');
+  });
+});
+
+describe('NEXTJS_SERVER_IGNORE_SPANS', () => {
+  const isIgnored = (attributes: Record<string, unknown>): boolean =>
+    shouldIgnoreSpan({ description: 'GET /api/envelope', op: 'http.server', attributes }, NEXTJS_SERVER_IGNORE_SPANS);
+
+  it.each([
+    // eslint-disable-next-line typescript/no-deprecated
+    [HTTP_TARGET, '/api/1/envelope/?sentry_key=abc&sentry_client=sentry.javascript.nextjs'],
+    [URL_QUERY, '?sentry_client=sentry.javascript.nextjs&sentry_key=abc'],
+  ])('ignores a request to Sentry ingest by %s', (attribute, value) => {
+    expect(isIgnored({ [attribute]: value })).toBe(true);
+  });
+
+  it('keeps a request that has only one of the Sentry ingest query parameters', () => {
+    // eslint-disable-next-line typescript/no-deprecated
+    expect(isIgnored({ [HTTP_TARGET]: '/api/envelope?sentry_key=abc' })).toBe(false);
+    expect(isIgnored({ [URL_QUERY]: '?sentry_client=abc' })).toBe(false);
   });
 });

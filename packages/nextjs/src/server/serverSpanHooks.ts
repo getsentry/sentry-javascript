@@ -36,6 +36,7 @@ import {
 } from './vercelQueuesMonitoring';
 
 const NEXTJS_ERROR_PAGE_ROUTES = ['/500', '/_error'];
+const SENTRY_INGEST_QUERY = /sentry_key.*sentry_client|sentry_client.*sentry_key/;
 
 export const NEXTJS_SERVER_IGNORE_SPANS: NonNullable<Options['ignoreSpans']> = [
   // Static assets (matches `_next/static` anywhere in the name to handle custom basePath)
@@ -51,32 +52,18 @@ export const NEXTJS_SERVER_IGNORE_SPANS: NonNullable<Options['ignoreSpans']> = [
   // Spans flagged via TRANSACTION_ATTR_SHOULD_DROP_TRANSACTION
   // (set in `dropMiddlewareTunnelRequests` during `spanStart`)
   { attributes: { [TRANSACTION_ATTR_SHOULD_DROP_TRANSACTION]: true } },
+  // Requests to Sentry ingest that the Node.js server forwards to the Edge Runtime server (e.g. in middleware). These
+  // happen outside of userland, so we never get the chance to `suppressTracing` them.
+  // eslint-disable-next-line typescript/no-deprecated
+  { attributes: { [HTTP_TARGET]: SENTRY_INGEST_QUERY } },
+  // oxlint-disable-next-line sdk/no-unfiltered-url-attributes -- a pattern to match, not a collected value
+  { attributes: { [URL_QUERY]: SENTRY_INGEST_QUERY } },
 ];
 
 /**
  * Registers the hooks that name, enrich and filter the spans and events of the Next.js server on `client`.
  */
 export function addNextjsServerSpanHooks(client: Client): void {
-  client.on('beforeSampling', ({ spanAttributes }, samplingDecision) => {
-    // There are situations where the Next.js Node.js server forwards requests for the Edge Runtime server (e.g. in
-    // middleware) and this causes spans for Sentry ingest requests to be created. These are not exempt from our tracing
-    // because we didn't get the chance to do `suppressTracing`, since this happens outside of userland.
-    // We need to drop these spans.
-    if (
-      // eslint-disable-next-line typescript/no-deprecated
-      (typeof spanAttributes[HTTP_TARGET] === 'string' &&
-        // eslint-disable-next-line typescript/no-deprecated
-        spanAttributes[HTTP_TARGET].includes('sentry_key') &&
-        // eslint-disable-next-line typescript/no-deprecated
-        spanAttributes[HTTP_TARGET].includes('sentry_client')) ||
-      (typeof spanAttributes[URL_QUERY] === 'string' &&
-        spanAttributes[URL_QUERY].includes('sentry_key') &&
-        spanAttributes[URL_QUERY].includes('sentry_client'))
-    ) {
-      samplingDecision.decision = false;
-    }
-  });
-
   client.on('spanStart', span => handleOnSpanStart(span, client));
 
   // Normalize name/op/source/status on the request root span at span end, before it is serialized into
