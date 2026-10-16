@@ -1,5 +1,5 @@
 import type { Options } from '@sentry/core';
-import { GLOBAL_OBJ } from '@sentry/core';
+import { applyTunnelDefaults, GLOBAL_OBJ } from '@sentry/core';
 
 /** Set by `sentrySvelteKit()` to the app's `paths.base`. */
 export const TUNNEL_BASE_PATH_GLOBAL = '__sentry_sveltekit_base_path';
@@ -10,9 +10,5 @@ export const TUNNEL_BASE_PATH_GLOBAL = '__sentry_sveltekit_base_path';
  */
 export function applyTunnelBasePath(options: Pick<Options, 'tunnel'>): void {
   const basePath = (GLOBAL_OBJ as { [TUNNEL_BASE_PATH_GLOBAL]?: string })[TUNNEL_BASE_PATH_GLOBAL];
-  if (!basePath || !options.tunnel || typeof options.tunnel === 'string') {
-    return;
-  }
-
-  options.tunnel = { basePath, ...(options.tunnel === true ? {} : options.tunnel) };
+  options.tunnel = applyTunnelDefaults(options.tunnel, basePath ? { basePath } : undefined);
 }
