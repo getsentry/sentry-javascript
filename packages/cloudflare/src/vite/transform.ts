@@ -610,13 +610,14 @@ function wrapCrossModuleSpecifier(
     if (localClass?.id && state.exportedClasses.has(localName) && !state.renamedLocals.has(localName)) {
       const wrappedName = wrapExportedClassAlias(localName, localClass, kind, state);
       state.wrappedClasses.add(exportedName);
-      state.autoWrapped.add(exportedName);
+      state.autoWrapped.add(toExportName(exportedName));
       return `${wrappedName} as ${exportedName}`;
     }
 
     if (localClass?.id) {
       wrapLocalClassExport(localName, localClass, kind, ctx, state);
       state.wrappedClasses.add(exportedName);
+      state.autoWrapped.add(toExportName(exportedName));
       state.needsImport = true;
       return undefined;
     }
@@ -648,7 +649,7 @@ function wrapCrossModuleSpecifier(
     `const ${wrappedName} = __SENTRY__._INTERNAL_wrapUnlessInstrumented(__SENTRY__.${WRAPPER_METHODS[kind]}, ${state.optionsFn}, ${target});`,
   );
   state.wrappedClasses.add(exportedName);
-  state.autoWrapped.add(exportedName);
+  state.autoWrapped.add(toExportName(exportedName));
   state.needsImport = true;
 
   return `${wrappedName} as ${exportedName}`;
@@ -675,6 +676,11 @@ function wrapExportedClassAlias(
   );
   state.needsImport = true;
   return wrappedName;
+}
+
+/** The name same-worker bindings know an export by: `default` is the default export. */
+function toExportName(exportedName: string): ExportName {
+  return exportedName === DEFAULT_IMPORT ? DEFAULT_EXPORT : exportedName;
 }
 
 /** Rename a locally declared class and rebind its original name to the wrapper. */

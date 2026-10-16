@@ -1125,6 +1125,23 @@ describe('same-worker RPC binding floor', () => {
     expect(result.code).toContain('rpcTracePropagationBindings: ["SELF",');
   });
 
+  it.each([
+    ['after', ['export class AdminEntry extends WorkerEntrypoint {}', 'export { AdminEntry as default };']],
+    ['before', ['export { AdminEntry as default };', 'export class AdminEntry extends WorkerEntrypoint {}']],
+    ['local', ['class AdminEntry extends WorkerEntrypoint {}', 'export { AdminEntry as default };']],
+  ])('enables a self service binding when a default specifier exports a wrapped entrypoint (%s)', (_shape, lines) => {
+    const code = ["import { WorkerEntrypoint } from 'cloudflare:workers';", ...lines].join('\n');
+
+    const result = transform(code, {
+      classWrappers: new Map(),
+      optionsFn: '() => undefined',
+      sameWorkerBindings: [{ bindingName: 'SELF', className: DEFAULT_EXPORT }],
+    })!;
+
+    expect(result.code.match(/withSentry\(/g)).toHaveLength(1);
+    expect(result.code).toContain('rpcTracePropagationBindings: ["SELF",');
+  });
+
   it('drops a binding whose class was wrapped by hand', () => {
     // A hand-wrapped receiver runs on its own options and would see the trailing argument.
     const code = [
