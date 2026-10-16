@@ -1,5 +1,5 @@
 import type { Integration, Options } from '@sentry/core';
-import { applySdkMetadata, debug, envToBool, getSDKSource } from '@sentry/core';
+import { applySdkMetadata, debug, envToBool, getSDKSource, resolveServerTunnelOption } from '@sentry/core';
 import type { NodeClient, NodeOptions } from '@sentry/node';
 import { getDefaultIntegrationsWithoutPerformance, initWithoutDefaultIntegrations } from '@sentry/node';
 import { awsIntegration } from '@sentry/server-utils';
@@ -105,6 +105,8 @@ export function init(options: AwsServerlessOptions = {}): NodeClient | undefined
       }
     } else {
       DEBUG_BUILD && debug.log('Proxying Sentry events through the Sentry Lambda extension');
+      // The extension takes over the transport, but `tunnel: true` still has to serve the managed tunnel.
+      opts._managedTunnel = resolveServerTunnelOption(opts.tunnel)._managedTunnel;
       opts.tunnel = 'http://localhost:9000/envelope';
     }
   }
