@@ -20,7 +20,7 @@ describe('makeTunnelBasePathPlugin', () => {
     for (const id of ['/p/src/hooks.server.ts', '/p/src/hooks.client.js', '/p/src/instrumentation.server.ts']) {
       expect(transform('const a = 1;', id)).toEqual({
         code: `import ${JSON.stringify('\0sentry-sveltekit-tunnel-base-path')};\nconst a = 1;`,
-        map: null,
+        map: expect.objectContaining({ mappings: expect.any(String) }),
       });
     }
     expect(transform('const a = 1;', '/p/src/routes/+page.svelte')).toBeNull();
