@@ -19,7 +19,7 @@
     "./package.json": "./package.json",
     ".": {
       "import": {
-        "types": "./build/types/index.d.ts",
+        "types": "./build/types/index.d.mts",
         "default": "./build/esm/index.js"
       },
       "require": {
@@ -29,7 +29,7 @@
     },
     "./cloudflare": {
       "import": {
-        "types": "./build/types/index.cloudflare.d.ts",
+        "types": "./build/types/index.cloudflare.d.mts",
         "default": "./build/esm/index.cloudflare.js"
       },
       "require": {
@@ -39,7 +39,7 @@
     },
     "./node": {
       "import": {
-        "types": "./build/types/index.node.d.ts",
+        "types": "./build/types/index.node.d.mts",
         "default": "./build/esm/index.node.js"
       },
       "require": {
@@ -49,7 +49,7 @@
     },
     "./bun": {
       "import": {
-        "types": "./build/types/index.bun.d.ts",
+        "types": "./build/types/index.bun.d.mts",
         "default": "./build/esm/index.bun.js"
       },
       "require": {
@@ -59,7 +59,7 @@
     },
     "./deno": {
       "import": {
-        "types": "./build/types/index.deno.d.ts",
+        "types": "./build/types/index.deno.d.mts",
         "default": "./build/esm/index.deno.js"
       },
       "require": {
@@ -118,7 +118,7 @@
     "build": "run-p build:transpile build:types",
     "build:dev": "pnpm run build",
     "build:transpile": "rollup -c rollup.npm.config.mjs",
-    "build:types": "tsc -p tsconfig.types.json",
+    "build:types": "tsc -p tsconfig.types.json && node ../../dev-packages/rollup-utils/write-esm-types.mjs",
     "build:watch": "run-p build:transpile:watch",
     "build:dev:watch": "pnpm run build:watch",
     "build:transpile:watch": "rollup -c rollup.npm.config.mjs --watch",

@@ -19,7 +19,10 @@
   "exports": {
     "./package.json": "./package.json",
     ".": {
-      "types": "./build/types/index.types.d.ts",
+      "types": {
+        "import": "./build/types/index.types.d.mts",
+        "default": "./build/types/index.types.d.ts"
+      },
       "browser": {
         "import": "./build/esm/index.client.js",
         "require": "./build/cjs/index.client.js"
@@ -30,12 +33,18 @@
       }
     },
     "./server": {
-      "types": "./build/types/index.server.d.ts",
+      "types": {
+        "import": "./build/types/index.server.d.mts",
+        "default": "./build/types/index.server.d.ts"
+      },
       "import": "./build/esm/index.server.js",
       "require": "./build/cjs/index.server.js"
     },
     "./client": {
-      "types": "./build/types/index.client.d.ts",
+      "types": {
+        "import": "./build/types/index.client.d.mts",
+        "default": "./build/types/index.client.d.ts"
+      },
       "import": "./build/esm/index.client.js",
       "require": "./build/cjs/index.client.js"
     }
@@ -66,7 +75,7 @@
     "build": "run-p build:transpile build:types",
     "build:dev": "pnpm run build",
     "build:transpile": "rollup -c rollup.npm.config.mjs",
-    "build:types": "tsc -p tsconfig.types.json",
+    "build:types": "tsc -p tsconfig.types.json && node ../../dev-packages/rollup-utils/write-esm-types.mjs",
     "build:watch": "run-p build:transpile:watch",
     "build:dev:watch": "pnpm run build:watch",
     "build:transpile:watch": "rollup -c rollup.npm.config.mjs --watch",

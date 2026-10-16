@@ -12,6 +12,7 @@
   "files": [
     "/build",
     "/*.d.ts",
+    "/*.d.mts",
     "/*.d.ts.map"
   ],
   "main": "build/cjs/index.js",
@@ -21,7 +22,7 @@
     "./package.json": "./package.json",
     ".": {
       "import": {
-        "types": "./build/types/index.d.ts",
+        "types": "./build/types/index.d.mts",
         "default": "./build/esm/index.js"
       },
       "require": {
@@ -31,7 +32,7 @@
     },
     "./tanstackrouter": {
       "import": {
-        "types": "./tanstackrouter.d.ts",
+        "types": "./tanstackrouter.d.mts",
         "default": "./build/esm/tanstackrouter.js"
       },
       "require": {
@@ -70,7 +71,7 @@
     "build": "run-p build:transpile build:types",
     "build:dev": "run-p build:transpile build:types",
     "build:transpile": "rollup -c rollup.npm.config.mjs",
-    "build:types": "run-s build:types:core build:types:router",
+    "build:types": "run-s build:types:core build:types:router && node ../../dev-packages/rollup-utils/write-esm-types.mjs",
     "build:types:core": "tsc -p tsconfig.types.json",
     "build:types:router": "tsc -p tsconfig.router-types.json",
     "build:watch": "run-p build:transpile:watch",
@@ -78,7 +79,7 @@
     "build:transpile:watch": "rollup -c rollup.npm.config.mjs --watch",
     "build:tarball": "npm pack",
     "circularDepCheck": "madge --circular src/index.ts && madge --circular src/tanstackrouter.ts",
-    "clean": "rimraf build coverage sentry-vue-*.tgz",
+    "clean": "rimraf build coverage sentry-vue-*.tgz ./*.d.ts ./*.d.mts ./*.d.ts.map",
     "lint:fix": "oxlint . --fix --type-aware",
     "lint": "oxlint . --type-aware",
     "lint:types": "oxlint src --type-aware --type-check",
@@ -97,6 +98,7 @@
         "outputs": [
           "{projectRoot}/build/types",
           "{projectRoot}/*.d.ts",
+          "{projectRoot}/*.d.mts",
           "{projectRoot}/*.d.ts.map"
         ]
       }

@@ -23,11 +23,11 @@
     "./package.json": "./package.json",
     "./server": {
       "react-native": {
-        "types": "./build/types/server.d.ts",
+        "types": "./build/types/server.d.mts",
         "default": "./build/esm/server.js"
       },
       "import": {
-        "types": "./build/types/server.d.ts",
+        "types": "./build/types/server.d.mts",
         "default": "./build/esm/server.js"
       },
       "require": {
@@ -37,11 +37,11 @@
     },
     "./browser": {
       "react-native": {
-        "types": "./build/types/browser.d.ts",
+        "types": "./build/types/browser.d.mts",
         "default": "./build/esm/browser.js"
       },
       "import": {
-        "types": "./build/types/browser.d.ts",
+        "types": "./build/types/browser.d.mts",
         "default": "./build/esm/browser.js"
       },
       "require": {
@@ -51,11 +51,11 @@
     },
     ".": {
       "react-native": {
-        "types": "./build/types/index.d.ts",
+        "types": "./build/types/index.d.mts",
         "default": "./build/esm/index.js"
       },
       "import": {
-        "types": "./build/types/index.d.ts",
+        "types": "./build/types/index.d.mts",
         "default": "./build/esm/index.js"
       },
       "require": {
@@ -71,7 +71,7 @@
     "build": "run-p build:transpile build:types",
     "build:dev": "pnpm run build",
     "build:transpile": "rollup -c rollup.npm.config.mjs",
-    "build:types": "tsc -p tsconfig.types.json",
+    "build:types": "tsc -p tsconfig.types.json && node ../../dev-packages/rollup-utils/write-esm-types.mjs",
     "build:watch": "run-p build:transpile:watch",
     "build:dev:watch": "pnpm run build:watch",
     "build:transpile:watch": "rollup -c rollup.npm.config.mjs --watch",

@@ -24,7 +24,11 @@
   "exports": {
     "./package.json": "./package.json",
     ".": {
-      "types": "./build/types/index.types.d.ts",
+      "types": {
+        "node": "./build/types/index.types.d.ts",
+        "import": "./build/types/index.types.d.mts",
+        "default": "./build/types/index.types.d.ts"
+      },
       "browser": {
         "import": "./build/esm/index.client.js",
         "require": "./build/cjs/index.client.js",
@@ -38,13 +42,19 @@
       }
     },
     "./cloudflare": {
+      "types": {
+        "import": "./build/types/cloudflare/index.d.mts",
+        "default": "./build/types/cloudflare/index.d.ts"
+      },
       "import": "./build/esm/cloudflare/index.js",
       "require": "./build/cjs/cloudflare/index.js",
-      "types": "./build/types/cloudflare/index.d.ts",
       "default": "./build/esm/cloudflare/index.js"
     },
     "./vite": {
-      "types": "./build/types/vite/index.d.ts",
+      "types": {
+        "import": "./build/types/vite/index.d.mts",
+        "default": "./build/types/vite/index.d.ts"
+      },
       "import": "./build/esm/vite/index.js",
       "require": "./build/cjs/vite/index.js"
     },
@@ -55,13 +65,13 @@
     },
     "./v3": {
       "import": {
-        "types": "./build/types/v3/index.server.d.ts",
+        "types": "./build/types/v3/index.server.d.mts",
         "default": "./build/esm/v3/index.server.js"
       }
     },
     "./v3/client": {
       "import": {
-        "types": "./build/types/v3/index.client.d.ts",
+        "types": "./build/types/v3/index.client.d.mts",
         "default": "./build/esm/v3/client-bundle.js"
       }
     },
@@ -112,7 +122,7 @@
     "build": "run-p build:transpile build:types",
     "build:dev": "pnpm run build",
     "build:transpile": "rollup -c rollup.npm.config.mjs",
-    "build:types": "tsc -p tsconfig.types.json",
+    "build:types": "tsc -p tsconfig.types.json && node ../../dev-packages/rollup-utils/write-esm-types.mjs",
     "build:watch": "run-p build:transpile:watch",
     "build:dev:watch": "pnpm run build:watch",
     "build:transpile:watch": "rollup -c rollup.npm.config.mjs --watch",

@@ -27,7 +27,10 @@
   "exports": {
     "./package.json": "./package.json",
     ".": {
-      "types": "./build/types/index.d.ts",
+      "types": {
+        "import": "./build/types/index.d.mts",
+        "default": "./build/types/index.d.ts"
+      },
       "import": "./build/esm/index.js",
       "require": "./build/cjs/index.js"
     }
@@ -36,7 +39,7 @@
     "build": "run-p build:transpile build:types",
     "build:dev": "pnpm run build",
     "build:transpile": "rollup -c rollup.npm.config.mjs",
-    "build:types": "tsc -p tsconfig.types.json",
+    "build:types": "tsc -p tsconfig.types.json && node ../../dev-packages/rollup-utils/write-esm-types.mjs",
     "build:watch": "run-p build:transpile:watch",
     "build:dev:watch": "pnpm run build:watch",
     "build:transpile:watch": "rollup -c rollup.npm.config.mjs --watch",
