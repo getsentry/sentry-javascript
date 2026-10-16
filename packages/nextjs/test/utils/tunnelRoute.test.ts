@@ -5,6 +5,7 @@ import type { BrowserOptions } from '@sentry/react';
 import { getTunnelPath } from '@sentry/core';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { applyTunnelRouteOption } from '../../src/client/tunnelRoute';
+import { isTunnelRequest } from '../../src/common/isTunnelRequest';
 import { sentryTunnelRouteHandler } from '../../src/common/sentryTunnelRouteHandler';
 import {
   ensureTunnelRouteFile,
@@ -110,6 +111,20 @@ describe('sentryTunnelRouteHandler()', () => {
 
     expect(response.status).toBe(404);
     expect(fetchMock).not.toHaveBeenCalled();
+  });
+});
+
+describe('isTunnelRequest()', () => {
+  it('matches POSTs to the tunnel of the injected options', () => {
+    globalWithInjectedValues._sentryManagedTunnel = { basePath: '/base', path: '/monitoring' };
+
+    expect(isTunnelRequest({ method: 'POST', url: 'http://localhost/base/monitoring' })).toBe(true);
+    expect(isTunnelRequest({ method: 'GET', url: 'http://localhost/base/monitoring' })).toBe(false);
+    expect(isTunnelRequest({ method: 'POST', url: 'http://localhost/base/admin' })).toBe(false);
+  });
+
+  it('matches nothing without `tunnelRoute`', () => {
+    expect(isTunnelRequest({ method: 'POST', url: 'http://localhost/monitoring' })).toBe(false);
   });
 });
 
