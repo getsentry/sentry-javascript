@@ -5,6 +5,10 @@ inputs:
   dependency_cache_key:
     description: 'The dependency cache key'
     required: true
+  restore-build-output:
+    description:
+      'Whether to download the build output artifact. Disable it to download the artifact in a separate step.'
+    default: 'true'
 
 runs:
   using: 'composite'
@@ -17,6 +21,7 @@ runs:
         key: ${{ inputs.dependency_cache_key }}
 
     - name: Restore build artifacts
+      if: inputs.restore-build-output == 'true'
       uses: actions/download-artifact@v7
       with:
         name: build-output
