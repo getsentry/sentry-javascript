@@ -29,7 +29,7 @@
     "@tanstack/react-router": "1.170.41",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
-    "nitro": "^3.0.0",
+    "nitro": "^3.0.260429-beta",
     "ioredis": "5.10.1",
     "mysql": "^2.18.1"
   },
