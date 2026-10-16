@@ -85,12 +85,11 @@ test('Waits for sse streaming when sse has been explicitly aborted', async ({ pa
   expect(durationInSeconds(httpGet)).toBe(0);
 
   // Spans carry no breadcrumbs, so the abort error is validated on the console directly
-  // The abort error is logged asynchronously after the span is sent, so it may not have arrived yet
+  // The abort error is logged asynchronously after the span is sent, so it may not have arrived yet.
+  // Older Chromium rejects with "BodyStreamBuffer was aborted", newer with the signal's abort reason.
   await expect
     .poll(() =>
-      consoleMessages.some(
-        message => message.includes('Could not fetch sse') && message.includes('BodyStreamBuffer was aborted'),
-      ),
+      consoleMessages.some(message => message.includes('Could not fetch sse') && message.includes('AbortError')),
     )
     .toBe(true);
 });
