@@ -109,6 +109,7 @@ export {
   handleTunnelRequest,
   handleTunnelRequestIfMatched,
   isTunnelRequest,
+  normalizeTunnelBasePath,
   resolveServerTunnelOption,
   setManagedTunnelBasePath,
   TUNNEL_RESPONSE_HEADER,
