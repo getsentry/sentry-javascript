@@ -656,7 +656,7 @@ export type BeforeSendStaticSpanCallback = (span: SpanJSON) => SpanJSON;
 /** Options for the managed tunnel, see `tunnel`. */
 export interface TunnelOptions {
   /**
-   * Server only. DSNs whose envelopes the tunnel forwards. Defaults to the server's own DSN, so list the browser DSN
+   * Server only. DSNs whose envelopes the tunnel forwards, in addition to the server's own DSN. List the browser DSN
    * here when the browser uses a different one.
    */
   allowedDsns?: string[];

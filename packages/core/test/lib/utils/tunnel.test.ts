@@ -269,6 +269,23 @@ describe('handleTunnelRequest', () => {
     expect(suppressed).toBe(true);
   });
 
+  it('accepts the DSN of the active client on top of allowedDsns', async () => {
+    setTestClient(TEST_DSN);
+    fetchMock.mockResolvedValue(new Response('ok'));
+
+    const ownDsnResult = await handleTunnelRequest({
+      request: makeEnvelopeRequest({ dsn: TEST_DSN }),
+      allowedDsns: ['https://browser@o2.ingest.sentry.io/42'],
+    });
+    const unlistedDsnResult = await handleTunnelRequest({
+      request: makeEnvelopeRequest({ dsn: 'https://other@o3.ingest.sentry.io/7' }),
+      allowedDsns: ['https://browser@o2.ingest.sentry.io/42'],
+    });
+
+    expect(ownDsnResult.status).toBe(200);
+    expect(unlistedDsnResult.status).toBe(403);
+  });
+
   it('defaults allowedDsns to the DSN of the active client', async () => {
     setTestClient(TEST_DSN);
     fetchMock.mockResolvedValueOnce(new Response('ok'));
@@ -428,6 +445,13 @@ describe('getTunnelPaths', () => {
     expect(isTunnelRequest({ method: 'POST', url: '/monitor/' }, { path: '/monitor/' })).toBe(true);
   });
 
+  it('serves the path of the active client DSN on top of allowedDsns, once', () => {
+    const browserDsn = 'https://browser@o2.ingest.sentry.io/42';
+    setTestClient(TEST_DSN, { allowedDsns: [browserDsn, TEST_DSN] });
+
+    expect(getTunnelPaths()).toEqual([getTunnelPath(browserDsn), getTunnelPath(TEST_DSN)]);
+  });
+
   it('uses the managed tunnel config of the active client', () => {
     expect(getTunnelPaths()).toEqual([]);
 
@@ -507,6 +531,11 @@ describe('getTunnelIgnoreSpanFilter', () => {
     expect(
       urlPathMatcher(getTunnelIgnoreSpanFilter({ allowedDsns: [otherDsn] }, makeDsn(TEST_DSN))).test(
         getTunnelPath(otherDsn)!,
+      ),
+    ).toBe(true);
+    expect(
+      urlPathMatcher(getTunnelIgnoreSpanFilter({ allowedDsns: [otherDsn] }, makeDsn(TEST_DSN))).test(
+        getTunnelPath(TEST_DSN)!,
       ),
     ).toBe(true);
     expect(urlPathMatcher(getTunnelIgnoreSpanFilter({ path: '/monitor' }, undefined)).test('/monitor')).toBe(true);
