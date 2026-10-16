@@ -104,7 +104,7 @@ export function getTunnelIgnoreSpanFilter(
   const basePath = escapeStringForRegex(tunnelOptions.basePath?.replace(/\/$/, '') ?? '');
 
   // oxlint-disable-next-line sdk/no-regexp-constructor -- built from escaped config values, not end user input
-  return { attributes: { [URL_PATH]: new RegExp(`^(?:${basePath})?(?:${paths.join('|')})/?$`) } };
+  return { attributes: { [URL_PATH]: new RegExp(`^${basePath}(?:${paths.join('|')})/?$`) } };
 }
 
 /**
@@ -123,9 +123,9 @@ export function isTunnelRequest(request: TunnelRequestLike, options?: TunnelOpti
     return false;
   }
 
-  const path = stripBasePath(parseUrl(request.url).path || '/', tunnelOptions.basePath).replace(/\/$/, '');
+  const path = stripBasePath(parseUrl(request.url).path || '/', tunnelOptions.basePath);
 
-  return getTunnelPaths(tunnelOptions).includes(path);
+  return path !== undefined && getTunnelPaths(tunnelOptions).includes(path.replace(/\/$/, ''));
 }
 
 /**
@@ -324,13 +324,16 @@ function resolveAllowedDsns(allowedDsns: Array<string> | undefined): Array<strin
   return dsn ? [dsnToString(dsn)] : [];
 }
 
-function stripBasePath(pathname: string, basePath: string | undefined): string {
+/**
+ * Returns the path below `basePath`, or `undefined` for a path outside it, which the tunnel doesn't serve.
+ */
+function stripBasePath(pathname: string, basePath: string | undefined): string | undefined {
   const base = basePath?.replace(/\/$/, '');
   if (!base) {
     return pathname;
   }
 
-  return pathname === base || pathname.startsWith(`${base}/`) ? pathname.slice(base.length) : pathname;
+  return pathname === base || pathname.startsWith(`${base}/`) ? pathname.slice(base.length) : undefined;
 }
 
 /**

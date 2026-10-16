@@ -373,6 +373,13 @@ describe('isTunnelRequest', () => {
       isTunnelRequest({ method: 'POST', url: `/docsx${tunnelPath}` }, { allowedDsns: [TEST_DSN], basePath: '/docs' }),
     ).toBe(false);
   });
+
+  it('matches nothing outside the base path', () => {
+    expect(isTunnelRequest({ method: 'POST', url: tunnelPath }, { allowedDsns: [TEST_DSN], basePath: '/docs' })).toBe(
+      false,
+    );
+    expect(isTunnelRequest({ method: 'POST', url: '/monitor' }, { path: '/monitor', basePath: '/docs' })).toBe(false);
+  });
 });
 
 describe('isTunnelRequest request shapes', () => {
@@ -509,6 +516,9 @@ describe('getTunnelIgnoreSpanFilter', () => {
         `/app${getTunnelPath(TEST_DSN)}`,
       ),
     ).toBe(true);
+    expect(
+      urlPathMatcher(getTunnelIgnoreSpanFilter({ basePath: '/app' }, makeDsn(TEST_DSN))).test(getTunnelPath(TEST_DSN)!),
+    ).toBe(false);
   });
 
   it('returns nothing when there is no path to match', () => {
