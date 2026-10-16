@@ -18,7 +18,9 @@
     "test:assert": "pnpm test:prod && pnpm test:dev",
     "test:prod:import": "TEST_ENV=production-import playwright test",
     "test:build:tunnel": "pnpm install && E2E_TEST_TUNNEL=1 node ./scripts/build-with-prerender-event-sink.mjs",
-    "test:assert:tunnel": "E2E_TEST_TUNNEL=1 TEST_ENV=production playwright test tunnel"
+    "test:build:tunnel-basepath": "pnpm install && E2E_TEST_TUNNEL=1 E2E_TEST_BASE_PATH=/app node ./scripts/build-with-prerender-event-sink.mjs",
+    "test:assert:tunnel": "E2E_TEST_TUNNEL=1 TEST_ENV=production playwright test tunnel",
+    "test:assert:tunnel-basepath": "E2E_TEST_TUNNEL=1 E2E_TEST_BASE_PATH=/app TEST_ENV=production playwright test tunnel"
   },
   "//": "Pin ioredis to 5.10.1 because that's the last version before it publishes its own diagnostics channels",
   "dependencies": {
@@ -52,6 +54,11 @@
         "build-command": "pnpm test:build:tunnel",
         "assert-command": "pnpm test:assert:tunnel",
         "label": "nuxt-4 (tunnel)"
+      },
+      {
+        "build-command": "pnpm test:build:tunnel-basepath",
+        "assert-command": "pnpm test:assert:tunnel-basepath",
+        "label": "nuxt-4 (tunnel-basepath)"
       }
     ],
     "optionalVariants": [

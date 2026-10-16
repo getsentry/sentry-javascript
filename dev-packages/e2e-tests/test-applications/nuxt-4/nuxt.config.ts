@@ -14,6 +14,9 @@ export default defineNuxtConfig({
     '/rendering-modes/pre-rendered-page': { prerender: true },
   },
 
+  // The base-path variant serves the app, and so the tunnel, under `/app`.
+  ...(process.env.E2E_TEST_BASE_PATH && { app: { baseURL: `${process.env.E2E_TEST_BASE_PATH}/` } }),
+
   modules: ['@pinia/nuxt', '@sentry/nuxt/module'],
   runtimeConfig: {
     public: {
