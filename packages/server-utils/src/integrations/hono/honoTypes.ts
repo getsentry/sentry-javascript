@@ -29,8 +29,7 @@ export interface HonoRoute {
   handler: (...args: any[]) => any;
 }
 
-// An entry of Hono's match result (`matchResult[0]`). `compose` runs `entry[0][0]`; `hono/route` and
-// `c.req.matchedRoutes` read `entry[0][1]`.
+// One entry of Hono's `matchResult[0]`.
 export type MatchedHandler = [[handler: HonoRoute['handler'], route: HonoRoute], paramIndexMap: unknown];
 
 export interface HonoRequest {

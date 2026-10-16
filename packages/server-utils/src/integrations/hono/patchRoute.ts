@@ -103,8 +103,7 @@ export function installRouteHookOnPrototype(honoBaseProto: HonoBaseProto): Route
 }
 
 /**
- * Identifies middleware handlers in a sub-app's flat routes array and wraps them in spans.
- * See: https://github.com/honojs/hono/blob/18fe604c8cefc2628240651b1af219692e1918c1/src/hono-base.ts#L156-L168
+ * Wraps the middleware handlers of a sub-app's routes in spans.
  */
 export function wrapSubAppMiddleware(routes: HonoRoute[]): void {
   const middlewareFlags = getMiddlewareFlags(routes);

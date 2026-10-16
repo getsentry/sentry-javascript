@@ -28,13 +28,13 @@ export function isMiddleware(handler: unknown): boolean {
 }
 
 /**
- * Tells for each route whether it is a middleware. Hono has no such flag, so within a method+path
- * group the last handler is the route handler and earlier ones are middleware (`app.get('/path', mw,
- * handler)`). `.use()` registers as method 'ALL' with a lone middleware entry, so arity decides there.
- * Position is needed because a route handler declared with an unused `next` param has middleware arity.
+ * Tells for each route if it is a middleware. Hono has no flag for this. In a method+path group, the
+ * last handler is the route handler (`app.get('/path', mw, handler)`). `.use()` adds middleware with
+ * method `ALL` and no route handler, so for `ALL` routes the arity also counts. Arity alone is not
+ * enough, because a route handler can declare an unused `next`.
  */
 export function getMiddlewareFlags(routes: HonoRoute[]): boolean[] {
-  // \0 is a collision-free delimiter: it cannot appear in a valid HTTP method or URL path.
+  // `\0` cannot appear in an HTTP method or a URL path.
   const groupKey = (route: HonoRoute): string => `${route.method}\0${route.path}`;
   const lastIndexByKey = new Map(routes.map((route, i) => [groupKey(route), i]));
 

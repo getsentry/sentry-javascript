@@ -119,8 +119,8 @@ function injectHonoInstrumentation(
     wrapMatchedMiddleware(handlers);
   }
 
-  // Prepend the Sentry request/response middleware. `c.req.matchedRoutes` and `hono/route` read
-  // `routeMeta`; its middleware arity keeps route-name resolution from picking it.
+  // Prepend the Sentry request/response middleware. Its arity marks it as a middleware, so its `/*`
+  // never becomes the route name.
   const routeMeta = { basePath: '/', path: '/*', method: 'ALL', handler: requestMiddleware };
   handlers.unshift([[requestMiddleware, routeMeta], {}]);
 }

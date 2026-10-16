@@ -18,8 +18,8 @@ function isMatchedHandler(entry: unknown): entry is MatchedHandler {
 }
 
 /**
- * Checks the shape that `compose` and `hono/route` read from `matchResult[0]`. These are Hono
- * internals, so the SDK does not read or wrap the entries of a list of another shape.
+ * Checks the entry shape that `compose` and `hono/route` read. The match result is a Hono internal, so
+ * the SDK leaves other shapes alone.
  */
 export function isMatchedHandlerList(handlers: unknown): handlers is MatchedHandler[] {
   return Array.isArray(handlers) && handlers.every(isMatchedHandler);
