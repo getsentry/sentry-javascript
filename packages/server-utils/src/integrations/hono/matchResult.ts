@@ -2,14 +2,13 @@ import { addNonEnumerableProperty, isPlainObject } from '@sentry/core';
 import type { Context, HonoRoute, MatchedHandler } from './honoTypes';
 import { getMiddlewareFlags } from './isMiddleware';
 
-// The `routeIndex` of the last route handler that started for a request, stored on its `Context`.
-// `Symbol.for` so that every copy of `@sentry/server-utils` reads the index that another copy recorded.
+// The `Context` key for the `routeIndex` of the last route handler that started. `Symbol.for`, so that
+// other copies of `@sentry/server-utils` can read it.
 const ROUTE_HANDLER_INDEX = Symbol.for('sentry.hono.routeHandlerIndex');
 
-// Marks the wrapper that records `ROUTE_HANDLER_INDEX`. The router returns the same cached match
-// result for each request to a route, so this keeps every copy of `@sentry/server-utils` from wrapping
-// a handler twice. A span wrapper does not count: a route handler that `app.use()` wrapped for a span
-// must still record its index.
+// Marks the index wrapper, so that a handler gets it only once. The router reuses the same match result
+// for each request to a route. Span wrappers do not count, because a route handler from `app.use()`
+// has a span wrapper and still needs the index wrapper.
 const RECORDS_ROUTE_HANDLER_INDEX = Symbol.for('sentry.hono.recordsRouteHandlerIndex');
 
 function isMatchedHandler(entry: unknown): entry is MatchedHandler {
@@ -37,9 +36,8 @@ export function isMatchedHandlerList(handlers: unknown): handlers is MatchedHand
 }
 
 /**
- * Reads the request's match result through the getter that `hono/route` uses (Hono 4.8+ and Hono 5).
- * Its key is an unregistered `Symbol()` that `hono` does not export, so the getter is found by its
- * shape: it is the only symbol-keyed getter on the `HonoRequest` prototype.
+ * Reads the match result through the getter that `hono/route` uses (Hono 4.8 and later). `hono` does
+ * not export the getter's symbol, so this finds it as the only symbol-keyed getter on the prototype.
  */
 export function getMatchedHandlers(context: Context): MatchedHandler[] | undefined {
   const requestProto: object | null = Object.getPrototypeOf(context.req);
@@ -59,12 +57,11 @@ export function getMatchedHandlers(context: Context): MatchedHandler[] | undefin
 }
 
 /**
- * Wraps the route handlers of a match result, so that each records `c.req.routeIndex` when it starts.
- * Inside a route handler the index is correct on every Hono major, but Hono 5 restores it after
- * `next()`, so the Sentry middleware cannot read it there.
+ * Wraps each route handler, so that it stores `c.req.routeIndex` when it starts. Hono 5 resets the
+ * index after `next()`, so the Sentry middleware cannot read it there.
  *
- * `compose` reads each handler from the match result when it calls it, so a wrap from inside the
- * Sentry middleware still covers the handlers that run after it.
+ * Calling this from the Sentry middleware itself works, because `compose` reads each handler from the
+ * match result only when it calls it.
  */
 export function wrapRouteHandlers(handlers: MatchedHandler[]): void {
   const middlewareFlags = getMiddlewareFlags(handlers.map(([[, route]]) => route));

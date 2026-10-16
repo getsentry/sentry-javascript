@@ -8,19 +8,16 @@ function isRouteHandler(handler: unknown): boolean {
   return typeof handler === 'function' && !isMiddleware(handler);
 }
 
-// `c.req.matchedRoutes` exists on every Hono 4; Hono 5 removes it.
+// Hono 5 has no `c.req.matchedRoutes`.
 function readMatchedRoutes(context: Context): HonoRoute[] {
   return context.req.matchedRoutes ?? getMatchedHandlers(context)?.map(([[, route]]) => route) ?? [];
 }
 
 /**
- * Resolves the route path of the handler that responded, for the transaction name.
+ * Returns the route path of the handler that responded, or `undefined` if no route matched.
  *
- * Picking the handler (not just the last matched route) avoids two failure modes: a catch-all
- * registered after the handlers (the last route would be just `/*`), and a middleware that
- * short-circuits before the handler runs (`routeIndex` would point to the middleware).
- *
- * Returns `undefined` when the request has no matched routes.
+ * The last matched route is not enough, because a catch-all registered later would name every
+ * request `/*`.
  */
 export function resolveRouteName(context: Context): string | undefined {
   const routes = readMatchedRoutes(context);
@@ -31,14 +28,14 @@ export function resolveRouteName(context: Context): string | undefined {
     return recorded.path;
   }
 
-  // No recorded index on Hono 4.0 to 4.7 with the manual setup. There, `routeIndex` stays on the
+  // Without a recorded index (manual setup before Hono 4.8), use `routeIndex`. Hono 4 leaves it on the
   // handler that responded.
   const current = routes[context.req.routeIndex];
   if (current && isRouteHandler(current.handler)) {
     return current.path;
   }
 
-  // No route handler started (a middleware short-circuited, or a 404): fall back to the last matched handler.
+  // No route handler ran, for example because a middleware returned early.
   for (let i = routes.length - 1; i >= 0; i--) {
     const route = routes[i];
     if (route && isRouteHandler(route.handler)) {

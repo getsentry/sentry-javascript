@@ -7,10 +7,9 @@ import { Hono } from 'hono';
 const app = new Hono();
 app.use(Sentry.honoMiddleware(app));
 
-// Counts the Sentry wrappers around the running handler. Two SDK paths wrap route handlers here, and
-// the router hands both the same cached handler list on each request, so a missing guard would nest one
-// more wrapper per request. The match result is read through the only symbol-keyed getter on the
-// request prototype (the one that `hono/route` uses).
+// Counts the Sentry wrappers around the handler that runs. Both setups wrap route handlers, and the
+// router reuses the handler list for each request, so without a guard the wrappers would pile up.
+// It reads the match result like `hono/route` does.
 function wrapperCount(c) {
   const [matchResultKey] = Object.getOwnPropertySymbols(Object.getPrototypeOf(c.req));
   let handler = c.req[matchResultKey][0][c.req.routeIndex][0][0];

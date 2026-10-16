@@ -33,7 +33,6 @@ const ROUTE_NAME_CASES: Array<{ method: 'get' | 'post'; path: string; name: stri
   { method: 'get', path: '/outer/self-watering-plant', name: 'GET /outer/:itemId', route: '/outer/:itemId' },
 ];
 
-// Matches the span container whose segment has this name, and checks its route.
 function segmentNamed(name: string, route: string): { span: (container: { items: StreamedSpan[] }) => void } {
   return {
     span: container => {
@@ -361,7 +360,7 @@ describe('hono auto-instrumentation with honoMiddleware(app)', () => {
         .expect(segmentNamed('GET /users/:id', '/users/:id'))
         .start();
 
-      // The router returns the same cached handler list for each request to a route.
+      // The second request gets the same cached handler list.
       expect(await runner.makeRequest('get', '/users/me')).toEqual({ wrappers: 1 });
       expect(await runner.makeRequest('get', '/users/me')).toEqual({ wrappers: 1 });
       expect(await runner.makeRequest('get', '/users/42')).toEqual({ wrappers: 1 });

@@ -24,7 +24,7 @@ import { HTTP_ROUTE } from '@sentry/conventions/attributes';
 export function requestHandler(context: Context, getConnInfo?: GetConnInfo): void {
   const isolationScope = getCurrentIsolationScope();
 
-  // Without the Context hook (manual setup), this is the only place that sees the match result.
+  // The manual setup has no Context hook, so wrap the route handlers here.
   const matchedHandlers = getMatchedHandlers(context);
   if (matchedHandlers) {
     wrapRouteHandlers(matchedHandlers);
@@ -94,7 +94,7 @@ export function responseHandler(
   context: Context,
   shouldHandleError?: SentryHonoMiddlewareOptions['shouldHandleError'],
 ): void {
-  // Re-resolve now that the middleware chain has run and the responding route handler, if any, has recorded its index
+  // Resolve the name again, now that a route handler may have stored its index
   updateSpanRouteName(getCurrentIsolationScope(), context);
 
   captureContextError(context, shouldHandleError);
@@ -123,7 +123,7 @@ export function captureContextError(
 
 function updateSpanRouteName(isolationScope: Scope, context: Context): void {
   const route = resolveRouteName(context);
-  // Keep the runtime's name rather than `GET `.
+  // Without a route, keep the span name from the runtime.
   if (route === undefined) {
     return;
   }
