@@ -107,6 +107,7 @@ describe('valid options keep compiling', () => {
         serverName: 'my-worker',
         rpcTracePropagationBindings: ['ORDERS', /^SVC_/],
         durableObjectSqlSpanAllowlist: ['cf_my_table', /^cf_reports_/],
+        isStreamingResponse: response => (response.headers.has('content-length') ? false : undefined),
         beforeSend: event => event,
         integrations: [],
       }),

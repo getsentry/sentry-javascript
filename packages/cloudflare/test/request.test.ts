@@ -961,6 +961,225 @@ describe('flushAndDispose', () => {
     });
   });
 
+  describe('streaming response classification', () => {
+    const options: CloudflareOptions = { dsn: MOCK_OPTIONS.dsn, cacheClient: false };
+
+    test('defers teardown until a text/x-component body without Content-Length is consumed', async () => {
+      const waits: Promise<unknown>[] = [];
+      const waitUntil = vi.fn((promise: Promise<unknown>) => waits.push(promise));
+      const context = { waitUntil } as unknown as ExecutionContext;
+
+      const flushSpy = vi.spyOn(SentryCore.Client.prototype, 'flush').mockResolvedValue(true);
+
+      let releaseLastChunk!: () => void;
+      const lastChunkGate = new Promise<void>(resolve => {
+        releaseLastChunk = resolve;
+      });
+
+      const stream = new ReadableStream({
+        async start(controller) {
+          controller.enqueue(new TextEncoder().encode('<div>shell</div>'));
+          await lastChunkGate;
+          controller.enqueue(new TextEncoder().encode('<div>suspended</div>'));
+          controller.close();
+        },
+      });
+
+      const result = await wrapRequestHandler(
+        { options, request: new Request('https://example.com'), context },
+        () => new Response(stream, { headers: { 'content-type': 'text/x-component;charset=utf-8' } }),
+      );
+
+      expect(waitUntil).not.toHaveBeenCalled();
+
+      releaseLastChunk();
+      expect(await result.text()).toBe('<div>shell</div><div>suspended</div>');
+
+      await Promise.all(waits);
+      expect(waitUntil).toHaveBeenCalledTimes(1);
+
+      flushSpy.mockRestore();
+    });
+
+    test('tears down at handler return for a text/html body without Content-Length', async () => {
+      const waitUntil = vi.fn();
+      const context = { waitUntil } as unknown as ExecutionContext;
+
+      const flushSpy = vi.spyOn(SentryCore.Client.prototype, 'flush').mockResolvedValue(true);
+
+      const response = new Response('<div>page</div>', { headers: { 'content-type': 'text/html;charset=utf-8' } });
+
+      const result = await wrapRequestHandler(
+        { options, request: new Request('https://example.com'), context },
+        () => response,
+      );
+
+      expect(result).toBe(response);
+      expect(waitUntil).toHaveBeenCalledTimes(1);
+
+      flushSpy.mockRestore();
+    });
+
+    test.each(['text/x-component;charset=utf-8', 'text/html;charset=utf-8'])(
+      'tears down at handler return for a %s body with a Content-Length',
+      async contentType => {
+        const waitUntil = vi.fn();
+        const context = { waitUntil } as unknown as ExecutionContext;
+
+        const flushSpy = vi.spyOn(SentryCore.Client.prototype, 'flush').mockResolvedValue(true);
+
+        const response = new Response('<div>prerendered</div>', {
+          headers: { 'content-type': contentType, 'content-length': '22' },
+        });
+
+        const result = await wrapRequestHandler(
+          { options, request: new Request('https://example.com'), context },
+          () => response,
+        );
+
+        expect(result).toBe(response);
+        expect(waitUntil).toHaveBeenCalledTimes(1);
+
+        flushSpy.mockRestore();
+      },
+    );
+
+    test('tears down at handler return when TransformStream ignores the transformer', async () => {
+      // workerd without `transformstream_enable_standard_constructor` returns an identity stream.
+      vi.stubGlobal(
+        'TransformStream',
+        class extends TransformStream {
+          constructor() {
+            super();
+          }
+        },
+      );
+      onTestFinished(() => {
+        vi.unstubAllGlobals();
+      });
+
+      const waitUntil = vi.fn();
+      const context = { waitUntil } as unknown as ExecutionContext;
+
+      const flushSpy = vi.spyOn(SentryCore.Client.prototype, 'flush').mockResolvedValue(true);
+
+      const response = new Response('<div>shell</div>', {
+        headers: { 'content-type': 'text/x-component;charset=utf-8' },
+      });
+
+      const result = await wrapRequestHandler(
+        { options, request: new Request('https://example.com'), context },
+        () => response,
+      );
+
+      expect(result).toBe(response);
+      expect(waitUntil).toHaveBeenCalledTimes(1);
+
+      flushSpy.mockRestore();
+    });
+
+    test('tears down at handler return when isStreamingResponse returns false', async () => {
+      const waitUntil = vi.fn();
+      const context = { waitUntil } as unknown as ExecutionContext;
+
+      const flushSpy = vi.spyOn(SentryCore.Client.prototype, 'flush').mockResolvedValue(true);
+
+      const response = new Response('<div>buffered</div>', {
+        headers: { 'content-type': 'text/x-component;charset=utf-8' },
+      });
+
+      const result = await wrapRequestHandler(
+        {
+          options: { ...options, isStreamingResponse: () => false },
+          request: new Request('https://example.com'),
+          context,
+        },
+        () => response,
+      );
+
+      expect(result).toBe(response);
+      expect(waitUntil).toHaveBeenCalledTimes(1);
+
+      flushSpy.mockRestore();
+    });
+
+    test('defers teardown when isStreamingResponse returns true for an unknown content type', async () => {
+      const waits: Promise<unknown>[] = [];
+      const waitUntil = vi.fn((promise: Promise<unknown>) => waits.push(promise));
+      const context = { waitUntil } as unknown as ExecutionContext;
+
+      const flushSpy = vi.spyOn(SentryCore.Client.prototype, 'flush').mockResolvedValue(true);
+
+      let releaseLastChunk!: () => void;
+      const lastChunkGate = new Promise<void>(resolve => {
+        releaseLastChunk = resolve;
+      });
+
+      const stream = new ReadableStream({
+        async start(controller) {
+          controller.enqueue(new TextEncoder().encode('first'));
+          await lastChunkGate;
+          controller.enqueue(new TextEncoder().encode('deferred'));
+          controller.close();
+        },
+      });
+
+      const result = await wrapRequestHandler(
+        {
+          options: {
+            ...options,
+            isStreamingResponse: response =>
+              response.headers.get('content-type') === 'text/x-script' ? true : undefined,
+          },
+          request: new Request('https://example.com'),
+          context,
+        },
+        () => new Response(stream, { headers: { 'content-type': 'text/x-script' } }),
+      );
+
+      expect(waitUntil).not.toHaveBeenCalled();
+
+      releaseLastChunk();
+      expect(await result.text()).toBe('firstdeferred');
+
+      await Promise.all(waits);
+      expect(waitUntil).toHaveBeenCalledTimes(1);
+
+      flushSpy.mockRestore();
+    });
+
+    test('uses the default classification when isStreamingResponse throws', async () => {
+      const waitUntil = vi.fn();
+      const context = { waitUntil } as unknown as ExecutionContext;
+
+      const flushSpy = vi.spyOn(SentryCore.Client.prototype, 'flush').mockResolvedValue(true);
+
+      const response = new Response('<div>shell</div>', {
+        headers: { 'content-type': 'text/x-component;charset=utf-8' },
+      });
+
+      const result = await wrapRequestHandler(
+        {
+          options: {
+            ...options,
+            isStreamingResponse: () => {
+              throw new Error('isStreamingResponse failed');
+            },
+          },
+          request: new Request('https://example.com'),
+          context,
+        },
+        () => response,
+      );
+
+      expect(result).not.toBe(response);
+      expect(waitUntil).not.toHaveBeenCalled();
+      expect(await result.text()).toBe('<div>shell</div>');
+
+      flushSpy.mockRestore();
+    });
+  });
+
   test('dispose is NOT called for protocol upgrade responses (status 101)', async () => {
     const context = createMockExecutionContext();
     const waits: Promise<unknown>[] = [];
