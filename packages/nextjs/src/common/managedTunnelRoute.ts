@@ -47,7 +47,11 @@ export function getManagedTunnelSpanFilter(
   tunnelOptions: TunnelOptions,
   dsn: string | undefined,
 ): NonNullable<Options['ignoreSpans']>[number] | undefined {
-  const paths = getTunnelPaths({ ...tunnelOptions, allowedDsns: tunnelOptions.allowedDsns ?? (dsn ? [dsn] : []) });
+  // `init` runs this before the client exists, so the own DSN is added here.
+  const paths = getTunnelPaths({
+    ...tunnelOptions,
+    allowedDsns: [...(dsn ? [dsn] : []), ...(tunnelOptions.allowedDsns ?? [])],
+  });
   if (!paths.length) {
     return undefined;
   }
