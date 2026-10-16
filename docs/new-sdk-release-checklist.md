@@ -45,6 +45,7 @@ differ slightly for other SDKs depending on how they are structured and how they
 - [ ] Make sure `build.yml` CI script is correctly set up to cover tests for the new package
   - [ ] Ensure unit tests run correctly
   - [ ] If it is a browser SDK, add it to `BROWSER_TEST_PACKAGES` in `scripts/ci-unit-tests.ts`
+  - [ ] Add it as a dependency of the `package-types` E2E app, which checks the types of every package
 
 - [ ] Make sure the file paths in the
       ["Upload Artifacts" job](https://github.com/getsentry/sentry-javascript/blob/e5c1486eed236b878f2c49d6a04be86093816ac9/.github/workflows/build.yml#L314-L349)

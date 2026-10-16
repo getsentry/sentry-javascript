@@ -20,37 +20,58 @@
   "exports": {
     "./package.json": "./package.json",
     "./webpack": {
-      "types": "./build/types/webpack/index.d.ts",
+      "types": {
+        "import": "./build/types/webpack/index.d.mts",
+        "default": "./build/types/webpack/index.d.ts"
+      },
       "import": "./build/esm/webpack/index.js",
       "require": "./build/cjs/webpack/index.js"
     },
     "./rollup": {
-      "types": "./build/types/rollup/index.d.ts",
+      "types": {
+        "import": "./build/types/rollup/index.d.mts",
+        "default": "./build/types/rollup/index.d.ts"
+      },
       "import": "./build/esm/rollup/index.js",
       "require": "./build/cjs/rollup/index.js"
     },
     "./vite": {
-      "types": "./build/types/vite/index.d.ts",
+      "types": {
+        "import": "./build/types/vite/index.d.mts",
+        "default": "./build/types/vite/index.d.ts"
+      },
       "import": "./build/esm/vite/index.js",
       "require": "./build/cjs/vite/index.js"
     },
     "./esbuild": {
-      "types": "./build/types/esbuild/index.d.ts",
+      "types": {
+        "import": "./build/types/esbuild/index.d.mts",
+        "default": "./build/types/esbuild/index.d.ts"
+      },
       "import": "./build/esm/esbuild/index.js",
       "require": "./build/cjs/esbuild/index.js"
     },
     "./core": {
-      "types": "./build/types/core/index.d.ts",
+      "types": {
+        "import": "./build/types/core/index.d.mts",
+        "default": "./build/types/core/index.d.ts"
+      },
       "import": "./build/esm/core/index.js",
       "require": "./build/cjs/core/index.js"
     },
     "./loader-utils": {
-      "types": "./build/types/loader-utils/index.d.ts",
+      "types": {
+        "import": "./build/types/loader-utils/index.d.mts",
+        "default": "./build/types/loader-utils/index.d.ts"
+      },
       "import": "./build/esm/loader-utils/index.js",
       "require": "./build/cjs/loader-utils/index.js"
     },
     "./babel-plugin": {
-      "types": "./build/types/babel-plugin/index.d.ts",
+      "types": {
+        "import": "./build/types/babel-plugin/index.d.mts",
+        "default": "./build/types/babel-plugin/index.d.ts"
+      },
       "import": "./build/esm/babel-plugin/index.js",
       "require": "./build/cjs/babel-plugin/index.js"
     },
@@ -71,7 +92,7 @@
     "build:dev": "pnpm run build",
     "build:version": "node -p \"'export const LIB_VERSION = ' + JSON.stringify(require('./package.json').version) + ';'\" > src/core/version.ts",
     "build:transpile": "rollup -c rollup.npm.config.mjs",
-    "build:types": "tsc -p tsconfig.types.json",
+    "build:types": "tsc -p tsconfig.types.json && node ../../dev-packages/rollup-utils/write-esm-types.mjs",
     "build:watch": "run-p build:transpile:watch",
     "build:dev:watch": "pnpm run build:watch",
     "build:transpile:watch": "rollup -c rollup.npm.config.mjs --watch",

@@ -19,12 +19,18 @@
   "exports": {
     "./package.json": "./package.json",
     "./browser-tracing-variant": {
-      "types": "./build/types/client/svelte4BrowserTracing.d.ts",
+      "types": {
+        "import": "./build/types/client/svelte4BrowserTracing.d.mts",
+        "default": "./build/types/client/svelte4BrowserTracing.d.ts"
+      },
       "import": "./build/esm/client/svelte4BrowserTracing.js",
       "require": "./build/cjs/client/svelte4BrowserTracing.js"
     },
     ".": {
-      "types": "./build/types/index.types.d.ts",
+      "types": {
+        "import": "./build/types/index.types.d.mts",
+        "default": "./build/types/index.types.d.ts"
+      },
       "workerd": {
         "import": "./build/esm/index.workerd.js",
         "require": "./build/cjs/index.workerd.js"
@@ -47,12 +53,18 @@
       }
     },
     "./opentelemetry-api": {
-      "types": "./build/types/opentelemetryApi.d.ts",
+      "types": {
+        "import": "./build/types/opentelemetryApi.d.mts",
+        "default": "./build/types/opentelemetryApi.d.ts"
+      },
       "import": "./build/esm/opentelemetryApi.js",
       "require": "./build/cjs/opentelemetryApi.js"
     },
     "./vite": {
-      "types": "./build/types/vite/index.d.ts",
+      "types": {
+        "import": "./build/types/vite/index.d.mts",
+        "default": "./build/types/vite/index.d.ts"
+      },
       "import": "./build/esm/vite/index.js",
       "require": "./build/cjs/vite/index.js"
     }
@@ -94,7 +106,7 @@
     "build": "run-p build:transpile build:types",
     "build:dev": "pnpm run build",
     "build:transpile": "rollup -c rollup.npm.config.mjs",
-    "build:types": "tsc -p tsconfig.types.json",
+    "build:types": "tsc -p tsconfig.types.json && node ../../dev-packages/rollup-utils/write-esm-types.mjs",
     "build:watch": "run-p build:transpile:watch",
     "build:dev:watch": "pnpm run build:watch",
     "build:transpile:watch": "rollup -c rollup.npm.config.mjs --watch",
