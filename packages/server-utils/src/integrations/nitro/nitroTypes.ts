@@ -33,7 +33,7 @@ export interface H3TracingRequestEvent {
 
 /** Payload of the `srvx.request`/`srvx.middleware` tracing channels (`srvx/tracing`'s `RequestEvent`). */
 export interface SrvxRequestEvent {
-  server: { options: { port?: number } };
+  server: { url?: string; options: { port?: number } };
   request: {
     _url?: { href: string; pathname: string };
     method: string;
