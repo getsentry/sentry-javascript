@@ -25,11 +25,11 @@
   "//": "Need to use ioredis 5.10.1 because that's the last version before they support tracing channels",
   "dependencies": {
     "@sentry/tanstackstart-react": "file:../../packed/sentry-tanstackstart-react-packed.tgz",
-    "@tanstack/react-start": "1.168.35",
-    "@tanstack/react-router": "1.170.18",
+    "@tanstack/react-start": "1.168.60",
+    "@tanstack/react-router": "1.170.41",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
-    "nitro": "^3.0.0",
+    "nitro": "^3.0.260429-beta",
     "ioredis": "5.10.1",
     "mysql": "^2.18.1"
   },
