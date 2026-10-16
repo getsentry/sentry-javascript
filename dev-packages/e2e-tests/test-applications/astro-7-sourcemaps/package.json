@@ -17,6 +17,7 @@
     "astro": "^7.2.8"
   },
   "devDependencies": {
+    "@playwright/test": "~1.56.0",
     "@sentry-internal/test-utils": "link:../../../test-utils",
     "@types/node": "^22.20.0"
   },
