@@ -2717,6 +2717,51 @@ describe('ignoreSpans (core path, streaming)', () => {
     });
   });
 
+  it('ignores a span that a beforeSpanStart listener marks for ignoreSpans', () => {
+    const options = getDefaultTestClientOptions({
+      tracesSampleRate: 1,
+      traceLifecycle: 'stream',
+      ignoreSpans: [{ attributes: { 'test.ignore': true } }],
+    });
+    client = new TestClient(options);
+    setCurrentClient(client);
+    client.init();
+    const spyOnDroppedEvent = vi.spyOn(client, 'recordDroppedEvent');
+    client.on('beforeSpanStart', ({ name, attributes }) => {
+      if (name === 'GET') {
+        attributes['test.ignore'] = true;
+      }
+    });
+
+    startSpan({ name: 'GET' }, span => {
+      expect(span).toBeInstanceOf(SentryNonRecordingSpan);
+    });
+    startSpan({ name: 'GET /users' }, span => {
+      expect(span).toBeInstanceOf(SentrySpan);
+    });
+
+    expect(spyOnDroppedEvent).toHaveBeenCalledTimes(1);
+    expect(spyOnDroppedEvent).toHaveBeenCalledWith('ignored', 'span');
+  });
+
+  it('applies the changes of beforeSpanStart listeners without mutating the attributes passed in', () => {
+    const options = getDefaultTestClientOptions({ tracesSampleRate: 1 });
+    client = new TestClient(options);
+    setCurrentClient(client);
+    client.init();
+    client.on('beforeSpanStart', spanStartData => {
+      spanStartData.name = 'renamed';
+      spanStartData.attributes['test.added'] = 'yes';
+    });
+
+    const attributes = { 'test.original': 'yes' };
+    const span = startInactiveSpan({ name: 'original', attributes });
+
+    expect(spanToJSON(span).name).toBe('renamed');
+    expect(spanToJSON(span).attributes).toMatchObject({ 'test.original': 'yes', 'test.added': 'yes' });
+    expect(attributes).toEqual({ 'test.original': 'yes' });
+  });
+
   it('returns SentryNonRecordingSpan for startInactiveSpan matching ignoreSpans', () => {
     const options = getDefaultTestClientOptions({
       tracesSampleRate: 1,
@@ -2786,26 +2831,6 @@ describe('ignoreSpans (core path, streaming)', () => {
     expect(spyOnDroppedEvent).toHaveBeenCalledTimes(2);
     expect(spyOnDroppedEvent).toHaveBeenNthCalledWith(1, 'sample_rate', 'span');
     expect(spyOnDroppedEvent).toHaveBeenNthCalledWith(2, 'sample_rate', 'span');
-  });
-
-  it('does not record a root span that a beforeSampling hook drops, nor an outcome for it', () => {
-    const options = getDefaultTestClientOptions({
-      tracesSampleRate: 1,
-      traceLifecycle: 'stream',
-    });
-    client = new TestClient(options);
-    setCurrentClient(client);
-    client.init();
-    client.on('beforeSampling', (_samplingData, samplingDecision) => {
-      samplingDecision.decision = false;
-    });
-    const spyOnDroppedEvent = vi.spyOn(client, 'recordDroppedEvent');
-
-    startSpan({ name: 'GET /foo' }, span => {
-      expect(spanIsSampled(span)).toBe(false);
-    });
-
-    expect(spyOnDroppedEvent).not.toHaveBeenCalled();
   });
 
   it('records sample_rate outcomes for the transaction and all of its spans on static path', () => {

@@ -83,9 +83,11 @@ export function addNextjsServerSpanHooks(client: Client): void {
     ) {
       samplingDecision.decision = false;
     }
+  });
 
-    if (isProxyInvocationSpan(spanAttributes)) {
-      samplingDecision.decision = false;
+  client.on('beforeSpanStart', ({ attributes }) => {
+    if (isProxyInvocationSpan(attributes)) {
+      attributes[TRANSACTION_ATTR_SHOULD_DROP_TRANSACTION] = true;
     }
   });
 
@@ -134,9 +136,8 @@ function isProxyInvocationSpan(spanAttributes: Record<string, unknown>): boolean
   }
 
   // Next.js sets this flag on the request before the call that only runs the proxy, and resets it before rendering
-  const request = _INTERNAL_getIncomingRequestForScope(getIsolationScope()) as
-    | { [NEXT_REQUEST_META]?: { middlewareInvoke?: boolean } }
-    | undefined;
+  const request: { [NEXT_REQUEST_META]?: { middlewareInvoke?: boolean } } | undefined =
+    _INTERNAL_getIncomingRequestForScope(getIsolationScope());
   return request?.[NEXT_REQUEST_META]?.middlewareInvoke === true;
 }
 

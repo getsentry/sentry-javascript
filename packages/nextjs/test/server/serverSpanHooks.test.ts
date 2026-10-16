@@ -6,18 +6,23 @@ import {
   SENTRY_SEGMENT_NAME_SOURCE,
 } from '@sentry/conventions/attributes';
 import { MIDDLEWARE } from '@sentry/conventions/op';
-import type { Client } from '@sentry/core';
+import type { Client, SpanAttributes } from '@sentry/core';
 import {
   _INTERNAL_setIncomingRequestForScope,
   addChildSpanToSpan,
   GLOBAL_OBJ,
   SentrySpan,
+  shouldIgnoreSpan,
   spanToStaticSpanJSON,
   withIsolationScope,
 } from '@sentry/core';
 import { afterEach, describe, expect, it } from 'vitest';
 import { ATTR_NEXT_SPAN_NAME, ATTR_NEXT_SPAN_TYPE } from '../../src/common/nextSpanAttributes';
-import { addNextjsServerSpanHooks, handleOnSpanStart } from '../../src/server/serverSpanHooks';
+import {
+  addNextjsServerSpanHooks,
+  handleOnSpanStart,
+  NEXTJS_SERVER_IGNORE_SPANS,
+} from '../../src/server/serverSpanHooks';
 
 const client = { getOptions: () => ({}) } as unknown as Client;
 
@@ -179,51 +184,51 @@ describe('handleOnSpanStart', () => {
   });
 });
 
-describe('addNextjsServerSpanHooks beforeSampling', () => {
+describe('addNextjsServerSpanHooks beforeSpanStart', () => {
   const globalWithInjectedValues = GLOBAL_OBJ as typeof GLOBAL_OBJ & { _sentryNextJsVersion?: string };
 
   afterEach(() => {
     delete globalWithInjectedValues._sentryNextJsVersion;
   });
 
-  function getSamplingDecision(nextVersion: string | undefined, middlewareInvoke: boolean | undefined): boolean {
+  function isRequestSpanIgnored(nextVersion: string | undefined, middlewareInvoke: boolean | undefined): boolean {
     globalWithInjectedValues._sentryNextJsVersion = nextVersion;
 
-    let beforeSampling: ((data: unknown, decision: { decision: boolean }) => void) | undefined;
+    let beforeSpanStart: ((data: { name: string | undefined; attributes: SpanAttributes }) => void) | undefined;
     addNextjsServerSpanHooks({
-      on: (hook: string, callback: typeof beforeSampling) => {
-        if (hook === 'beforeSampling') {
-          beforeSampling = callback;
+      on: (hook: string, callback: typeof beforeSpanStart) => {
+        if (hook === 'beforeSpanStart') {
+          beforeSpanStart = callback;
         }
       },
       getOptions: () => ({}),
     } as unknown as Client);
 
     const request = { [Symbol.for('NextInternalRequestMeta')]: { middlewareInvoke } };
-    const samplingDecision = { decision: true };
+    const spanStartData = { name: 'GET', attributes: { [ATTR_NEXT_SPAN_TYPE]: 'BaseServer.handleRequest' } };
     withIsolationScope(isolationScope => {
       _INTERNAL_setIncomingRequestForScope(isolationScope, request);
-      beforeSampling?.(
-        { spanAttributes: { [ATTR_NEXT_SPAN_TYPE]: 'BaseServer.handleRequest' }, spanName: 'GET' },
-        samplingDecision,
-      );
+      beforeSpanStart?.(spanStartData);
     });
-    return samplingDecision.decision;
+    return shouldIgnoreSpan(
+      { description: spanStartData.name, attributes: spanStartData.attributes },
+      NEXTJS_SERVER_IGNORE_SPANS,
+    );
   }
 
-  it('drops the request span that Next.js only starts to run the proxy', () => {
-    expect(getSamplingDecision('16.3.0', true)).toBe(false);
+  it('ignores the request span that Next.js only starts to run the proxy', () => {
+    expect(isRequestSpanIgnored('16.3.0', true)).toBe(true);
   });
 
   it('keeps the request span that renders the route', () => {
-    expect(getSamplingDecision('16.3.0', false)).toBe(true);
+    expect(isRequestSpanIgnored('16.3.0', false)).toBe(false);
   });
 
   it('keeps the request span that runs the proxy before Next.js 16.3, since the proxy span is its child there', () => {
-    expect(getSamplingDecision('16.2.4', true)).toBe(true);
+    expect(isRequestSpanIgnored('16.2.4', true)).toBe(false);
   });
 
   it('keeps the request span that runs the proxy if the Next.js version is unknown', () => {
-    expect(getSamplingDecision(undefined, true)).toBe(true);
+    expect(isRequestSpanIgnored(undefined, true)).toBe(false);
   });
 });

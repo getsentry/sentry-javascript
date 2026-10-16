@@ -678,6 +678,16 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
   ): () => void;
 
   /**
+   * Register a callback right before a span is created, before `ignoreSpans` is checked. Listeners can change the
+   * name and the attributes of the span by mutating the passed `spanStartData` object.
+   * @returns {() => void} A function that, when executed, removes the registered callback.
+   */
+  public on(
+    hook: 'beforeSpanStart',
+    callback: (spanStartData: { name: string | undefined; attributes: SpanAttributes }) => void,
+  ): () => void;
+
+  /**
    * Register a callback before span sampling runs. Receives a `samplingDecision` object argument with a `decision`
    * property that can be used to make a sampling decision that will be enforced, before any span sampling runs.
    * @returns {() => void} A function that, when executed, removes the registered callback.
@@ -1037,6 +1047,9 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
 
   /** A hook that is called right before a span is created; listeners mutate the passed object. */
   public emit(hook: 'prepareSpanScope', spanScope: { scope: Scope; parentSpan: Span | undefined }): void;
+
+  /** A hook that is called right before a span is created, before `ignoreSpans` is checked. */
+  public emit(hook: 'beforeSpanStart', spanStartData: { name: string | undefined; attributes: SpanAttributes }): void;
 
   /** A hook that is called every time before a span is sampled. */
   public emit(
