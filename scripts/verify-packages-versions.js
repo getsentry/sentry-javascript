@@ -27,15 +27,49 @@ ref: https://twitter.com/wesleytodd/status/1297974661574262784
 }
 
 // pnpm reads the workspace packages from `pnpm-workspace.yaml`, the repo scripts and Deno from `package.json`.
-const pnpmWorkspacePackages = Array.from(
-  fs.readFileSync(path.join(__dirname, '../pnpm-workspace.yaml'), 'utf8').matchAll(/^\s+-\s+'([^']+)'$/gm),
-  match => match[1],
-);
+function readPnpmWorkspacePackages() {
+  const lines = fs.readFileSync(path.join(__dirname, '../pnpm-workspace.yaml'), 'utf8').split('\n');
+  const start = lines.indexOf('packages:');
+  const packages = [];
 
-if (pnpmWorkspacePackages.join('\n') !== pkg.workspaces.join('\n')) {
+  if (start === -1) {
+    return packages;
+  }
+
+  for (const line of lines.slice(start + 1)) {
+    // The list ends at the next top-level key.
+    if (/^[^\s#]/.test(line)) {
+      break;
+    }
+
+    const match = line.match(/^\s+-\s+['"]?([^'"\s]+)['"]?\s*$/);
+    if (match) {
+      packages.push(match[1]);
+    }
+  }
+
+  return packages;
+}
+
+if (readPnpmWorkspacePackages().join('\n') !== pkg.workspaces.join('\n')) {
   console.error(`
 [INCONSISTENT WORKSPACES]: The \`packages\` list in pnpm-workspace.yaml and the \`workspaces\` list in package.json
 must contain the same packages in the same order.
+`);
+  process.exit(1);
+}
+
+// Configs import workspace packages that they do not declare, so every workspace package must be linked into the
+// root node_modules folder, as Yarn did.
+const missingRootDevDependencies = pkg.workspaces
+  .map(workspace => require(path.join(__dirname, '..', workspace, 'package.json')).name)
+  .filter(name => pkg.devDependencies[name] !== 'workspace:*');
+
+if (missingRootDevDependencies.length > 0) {
+  console.error(`
+[MISSING ROOT DEV DEPENDENCIES]: Every workspace package must be in the \`devDependencies\` of the root package.json
+with the version \`workspace:*\`. Missing:
+${missingRootDevDependencies.join('\n')}
 `);
   process.exit(1);
 }
