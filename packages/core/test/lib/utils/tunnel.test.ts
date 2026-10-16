@@ -12,6 +12,7 @@ import {
   handleTunnelRequest,
   handleTunnelRequestIfMatched,
   isTunnelRequest,
+  normalizeTunnelBasePath,
   resolveServerTunnelOption,
   setManagedTunnelBasePath,
 } from '../../../src/utils/tunnel';
@@ -645,6 +646,21 @@ describe('applyTunnelDefaults', () => {
     expect(applyTunnelDefaults(undefined, { basePath: '/app' })).toBeUndefined();
     expect(applyTunnelDefaults('/monitor', {})).toBe('/monitor');
     expect(applyTunnelDefaults(true, undefined)).toBe(true);
+  });
+});
+
+describe('normalizeTunnelBasePath', () => {
+  it.each([
+    ['/app', '/app'],
+    ['/app/', '/app'],
+    ['app', '/app'],
+    ['./app/', '/app'],
+    ['./', ''],
+    ['/', ''],
+    ['', ''],
+    [undefined, ''],
+  ])('normalizes %j to %j', (input, expected) => {
+    expect(normalizeTunnelBasePath(input)).toBe(expected);
   });
 });
 

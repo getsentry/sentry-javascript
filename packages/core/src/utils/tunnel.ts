@@ -126,10 +126,19 @@ export function getTunnelIgnoreSpanFilter(
     return undefined;
   }
 
-  const basePath = escapeStringForRegex(tunnelOptions.basePath?.replace(/\/$/, '') ?? '');
+  const basePath = escapeStringForRegex(normalizeTunnelBasePath(tunnelOptions.basePath));
 
   // oxlint-disable-next-line sdk/no-regexp-constructor -- built from escaped config values, not end user input
   return { attributes: { [URL_PATH]: new RegExp(`^${basePath}(?:${paths.join('|')})/?$`) } };
+}
+
+/**
+ * Normalizes a framework's base path to the `/app` form the managed tunnel is served under, or `''` for the root.
+ */
+export function normalizeTunnelBasePath(basePath: string | undefined): string {
+  const path = (basePath?.startsWith('./') ? basePath.slice(1) : (basePath ?? '')).replace(/\/$/, '');
+
+  return !path || path.startsWith('/') ? path : `/${path}`;
 }
 
 /**
@@ -139,7 +148,7 @@ export function getTunnelIgnoreSpanFilter(
 export function setManagedTunnelBasePath(client: Client | undefined, basePath: string | undefined): void {
   const options = client?.getOptions();
   const tunnelOptions = options?._managedTunnel;
-  const normalizedBasePath = basePath?.replace(/\/+$/, '');
+  const normalizedBasePath = normalizeTunnelBasePath(basePath);
   if (!options || !tunnelOptions || tunnelOptions.basePath !== undefined || !normalizedBasePath) {
     return;
   }
@@ -396,7 +405,7 @@ function resolveAllowedDsns(
  * Returns the path below `basePath`, or `undefined` for a path outside it, which the tunnel doesn't serve.
  */
 function stripBasePath(pathname: string, basePath: string | undefined): string | undefined {
-  const base = basePath?.replace(/\/$/, '');
+  const base = normalizeTunnelBasePath(basePath);
   if (!base) {
     return pathname;
   }
