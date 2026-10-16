@@ -1,8 +1,34 @@
 import { sentryVitePlugin } from '@sentry/vite-plugin';
+import * as path from 'node:path';
 import type { Plugin, UserConfig } from 'vite';
 import type { SentryTanstackStartOptions } from './sentryTanstackStart';
 
 type FilesToDeleteAfterUpload = string | string[] | undefined;
+
+/** TanStack Router and Start split route files into virtual modules, e.g. `index.tsx?tss-serverfn-split`. */
+const TANSTACK_SPLIT_QUERY_REGEX = /\?ts[rs]-[^/]*$/;
+
+/** Sources such as `virtual:#nitro/runtime` are no file paths. Two letters at least, so drive letters, like `C:`, are not matched by the regex. */
+const SCHEME_REGEX = /^[a-z][a-z\d+.-]+:/i;
+
+/**
+ * Makes source paths relative to the project root and removes TanStack's split queries, so that client and server
+ * frames show the path of the source file, such as `src/routes/index.tsx`.
+ *
+ * Paths in a source map are relative to the map's directory, which the default hook ignores.
+ *
+ * @internal Only exported for testing.
+ */
+export function rewriteTanstackStartSource(source: string, _map: unknown, context?: { mapDir: string }): string {
+  const sourcePath = source.replace(TANSTACK_SPLIT_QUERY_REGEX, '');
+
+  if (SCHEME_REGEX.test(sourcePath)) {
+    return sourcePath;
+  }
+
+  const absolutePath = path.resolve(context?.mapDir ?? process.cwd(), sourcePath);
+  return path.relative(process.cwd(), absolutePath).split(path.sep).join('/');
+}
 
 /**
  * A Sentry plugin for adding the @sentry/vite-plugin to automatically upload source maps to Sentry.
@@ -70,7 +96,8 @@ export function makeAddSentryVitePlugin(options: SentryTanstackStartOptions): Pl
       ignore: sourcemaps?.ignore,
       // BuildTimeOptionsBase types can lag behind bundler plugin options in some local setups.
       // Keep runtime support while staying resilient to type version skew.
-      rewriteSources: (sourcemaps as unknown as { rewriteSources?: unknown } | undefined)?.rewriteSources as never,
+      rewriteSources: ((sourcemaps as unknown as { rewriteSources?: unknown } | undefined)?.rewriteSources ??
+        rewriteTanstackStartSource) as never,
       filesToDeleteAfterUpload: filesToDeleteAfterUploadPromise,
     },
     reactComponentAnnotation: {
