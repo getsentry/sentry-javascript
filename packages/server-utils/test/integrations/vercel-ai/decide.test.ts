@@ -55,4 +55,31 @@ describe('Vercel AI decide spans', () => {
       { type: 'evaluation', answers: { wantsRefund: { type: 'boolean', probability: 0.99 } } },
     ]);
   });
+
+  it.each(['typesafe', 'openai'])('restores answer confidence from `providerMetadata.%s`', provider => {
+    const message = {
+      type: 'experimental_decide',
+      event: {
+        provider,
+        modelId: 'gpt-6-luna',
+        state: 'I was charged twice',
+        questions: { department: { type: 'choice', criteria: { billing: 'Charges', support: 'Other' } } },
+        recordInputs: true,
+        recordOutputs: true,
+      },
+      result: {
+        answers: { department: { type: 'choice', value: 'billing' } },
+        providerMetadata: { [provider]: { confidence: { department: 0.91 } } },
+      },
+    } as unknown as Message;
+
+    const span = createSpanFromMessage(message, {} as Parameters<typeof createSpanFromMessage>[1])!;
+    enrichSpanOnEnd(span, message, {} as Parameters<typeof enrichSpanOnEnd>[2]);
+    span.end();
+
+    const json = spanToStaticSpanJSON(endedSpans[0]!);
+    expect(JSON.parse(json.data?.['gen_ai.output.messages'] as string)).toEqual([
+      { type: 'evaluation', answers: { department: { type: 'choice', value: 'billing', confidence: 0.91 } } },
+    ]);
+  });
 });
