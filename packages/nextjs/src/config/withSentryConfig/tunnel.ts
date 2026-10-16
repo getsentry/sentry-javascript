@@ -94,18 +94,16 @@ export function ensureTunnelRouteFile(projectDir: string = process.cwd()): strin
   return routeFile;
 }
 
+/**
+ * Next.js only reads `src/app` and `src/pages` when neither `app` nor `pages` exists in the project root.
+ */
 function resolveAppDir(projectDir: string): string {
   const appDir = path.join(projectDir, 'app');
-  const srcAppDir = path.join(projectDir, 'src', 'app');
-  if (isDirectory(appDir)) {
+  if (isDirectory(appDir) || isDirectory(path.join(projectDir, 'pages'))) {
     return appDir;
   }
 
-  if (isDirectory(srcAppDir) || isDirectory(path.join(projectDir, 'src'))) {
-    return srcAppDir;
-  }
-
-  return appDir;
+  return isDirectory(path.join(projectDir, 'src')) ? path.join(projectDir, 'src', 'app') : appDir;
 }
 
 function isDirectory(dir: string): boolean {
