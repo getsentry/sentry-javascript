@@ -701,13 +701,15 @@ function getOutputMessages(
 }
 
 /**
- * The AI SDK TypeSafe provider moves each answer's `confidence` out of the answers into
- * `providerMetadata.typesafe.confidence` (keyed by question id). Put it back so decide answers keep it.
+ * The AI SDK TypeSafe and OpenAI providers move each answer's `confidence` out of the answers into
+ * `providerMetadata.<provider>.confidence` (keyed by question id). Put it back so decide answers keep it.
  */
 function withProviderConfidence(result: Record<string, unknown>): unknown {
   const { answers, providerMetadata } = result;
-  const typesafe = isObjectLike(providerMetadata) ? providerMetadata.typesafe : undefined;
-  const confidence = isObjectLike(typesafe) && isObjectLike(typesafe.confidence) ? typesafe.confidence : undefined;
+  const metadata = isObjectLike(providerMetadata)
+    ? [providerMetadata.typesafe, providerMetadata.openai].find(m => isObjectLike(m) && isObjectLike(m.confidence))
+    : undefined;
+  const confidence = isObjectLike(metadata) && isObjectLike(metadata.confidence) ? metadata.confidence : undefined;
   if (!confidence || !isObjectLike(answers)) {
     return answers;
   }
