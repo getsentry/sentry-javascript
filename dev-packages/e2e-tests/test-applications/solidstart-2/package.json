@@ -9,7 +9,9 @@
     "start": "HOST=localhost PORT=3030 node .output/server/index.mjs",
     "test:prod": "TEST_ENV=production playwright test",
     "test:build": "pnpm install && pnpm build",
-    "test:assert": "pnpm test:prod"
+    "test:assert": "pnpm test:prod",
+    "test:build:tunnel": "pnpm install && E2E_TEST_TUNNEL=1 pnpm build",
+    "test:assert:tunnel": "E2E_TEST_TUNNEL=1 E2E_TEST_DSN=http://public@localhost:3031/1337 TEST_ENV=production playwright test tunnel"
   },
   "type": "module",
   "dependencies": {
@@ -38,6 +40,13 @@
     "node": ">=24"
   },
   "sentryTest": {
-    "optional": true
+    "optional": true,
+    "variants": [
+      {
+        "build-command": "pnpm test:build:tunnel",
+        "assert-command": "pnpm test:assert:tunnel",
+        "label": "solidstart-2 (tunnel)"
+      }
+    ]
   }
 }
