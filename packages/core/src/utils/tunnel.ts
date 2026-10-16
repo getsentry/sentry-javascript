@@ -356,7 +356,7 @@ function fnv1a(input: string): number {
 
 function tunnelPathsFor(tunnelOptions: TunnelOptions, allowedDsns: Array<string>): string[] {
   if (tunnelOptions.path) {
-    return [tunnelOptions.path];
+    return [tunnelOptions.path.replace(/\/$/, '')];
   }
 
   return allowedDsns.map(dsn => getTunnelPath(dsn)).filter((path): path is string => !!path);
