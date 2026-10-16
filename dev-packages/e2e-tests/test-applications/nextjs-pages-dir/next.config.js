@@ -9,6 +9,7 @@ const nextConfig = {
 
 module.exports = withSentryConfig(nextConfig, {
   debug: true,
+  tunnelRoute: !!process.env.NEXT_PUBLIC_E2E_TUNNEL,
   sourcemaps: {
     deleteSourcemapsAfterUpload: true,
   },

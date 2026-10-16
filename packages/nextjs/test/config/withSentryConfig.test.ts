@@ -6,9 +6,16 @@ import {
 } from '../../src/config/diagnosticsChannelInjection';
 import type { SentryBuildOptions } from '../../src/config/types';
 import * as util from '../../src/config/util';
+import type * as tunnelModule from '../../src/config/withSentryConfig/tunnel';
 import { DEFAULT_SERVER_EXTERNAL_PACKAGES } from '../../src/config/withSentryConfig';
 import { defaultRuntimePhase, defaultsObject, exportedNextConfig, userNextConfig } from './fixtures';
 import { materializeFinalNextConfig } from './testUtils';
+
+// `tunnelRoute` creates the app's tunnel route file, which must not land in this package.
+vi.mock('../../src/config/withSentryConfig/tunnel', async importOriginal => ({
+  ...(await importOriginal<typeof tunnelModule>()),
+  ensureTunnelRouteFile: vi.fn(),
+}));
 
 // Build-time instrumentation is on by default, so the bundle-safe packages are deliberately dropped
 // from the externals defaults (the loader transforms them) and the orchestrion runtime is added.

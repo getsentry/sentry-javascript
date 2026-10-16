@@ -1,13 +1,9 @@
 import { HTTP_TARGET, URL_FULL, URL_PATH, SENTRY_ORIGIN } from '@sentry/conventions/attributes';
 import type { RawAttributes } from '@sentry/core';
-import { getClient, GLOBAL_OBJ, isSentryRequestUrl, type Span } from '@sentry/core';
+import { getClient, isSentryRequestUrl, isTunnelRequest, type Span } from '@sentry/core';
+import { getInjectedManagedTunnelOptions, MANAGED_TUNNEL_ROUTE } from '../managedTunnelRoute';
 import { ATTR_NEXT_SPAN_TYPE } from '../nextSpanAttributes';
-import { isPathnameUnderSentryTunnelRoute } from './tunnelPathnameMatch';
 import { TRANSACTION_ATTR_SHOULD_DROP_TRANSACTION } from '../span-attributes-with-logic-attached';
-
-const globalWithInjectedValues = GLOBAL_OBJ as typeof GLOBAL_OBJ & {
-  _sentryRewritesTunnelPath?: string;
-};
 
 /**
  * Drops spans for tunnel requests from middleware, fetch instrumentation, or BaseServer.handleRequest.
@@ -63,22 +59,26 @@ function isSentryRequestSpan(attrs: RawAttributes<Record<string, unknown>>): boo
  * Checks if a span's HTTP target matches the tunnel route.
  */
 export function isTunnelRouteSpan(spanAttributes: Record<string, unknown>): boolean {
-  const tunnelPath = globalWithInjectedValues._sentryRewritesTunnelPath || process.env._sentryRewritesTunnelPath;
-  if (!tunnelPath) {
-    return false;
-  }
-
   // `http.target` is only read for spans from a user's own OpenTelemetry instrumentation, which
   // still emits the old semantic conventions; the SDK sets `url.path`.
   // eslint-disable-next-line typescript/no-deprecated
   const target = spanAttributes[URL_PATH] ?? spanAttributes[HTTP_TARGET];
-
-  if (typeof target === 'string') {
-    // Extract pathname from the target (e.g., "/tunnel?o=123&p=456" -> "/tunnel")
-    const pathname = target.split('?')[0] || '';
-
-    return isPathnameUnderSentryTunnelRoute(pathname, tunnelPath);
+  if (typeof target !== 'string') {
+    return false;
   }
 
-  return false;
+  // Extract pathname from the target (e.g., "/tunnel?o=123&p=456" -> "/tunnel")
+  const pathname = target.split('?')[0] || '';
+
+  const managedTunnel = getClient()?.getOptions()._managedTunnel ?? getInjectedManagedTunnelOptions();
+  if (!managedTunnel) {
+    return false;
+  }
+
+  const basePath = managedTunnel.basePath?.replace(/\/$/, '') ?? '';
+
+  return (
+    pathname === `${basePath}${MANAGED_TUNNEL_ROUTE}` ||
+    isTunnelRequest({ method: 'POST', url: pathname }, managedTunnel)
+  );
 }

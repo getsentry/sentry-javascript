@@ -2,15 +2,13 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { dropMiddlewareTunnelRequests } from '../../src/common/utils/dropMiddlewareTunnelRequests';
 import { TRANSACTION_ATTR_SHOULD_DROP_TRANSACTION } from '../../src/common/span-attributes-with-logic-attached';
 
-const globalWithInjectedValues = global as typeof global & {
-  _sentryRewritesTunnelPath?: string;
-};
+let managedTunnel: { basePath: string; path?: string } | undefined;
 
 vi.mock('@sentry/core', async requireActual => {
   return {
     ...(await requireActual<any>()),
     getClient: () => ({
-      getOptions: () => ({}),
+      getOptions: () => ({ _managedTunnel: managedTunnel }),
     }),
   };
 });
@@ -26,25 +24,25 @@ function createMockSpan(): { setAttribute: ReturnType<typeof vi.fn>; attributes:
 }
 
 beforeEach(() => {
-  globalWithInjectedValues._sentryRewritesTunnelPath = undefined;
+  managedTunnel = undefined;
 });
 
 describe('dropMiddlewareTunnelRequests', () => {
   describe('BaseServer.handleRequest spans', () => {
     it('marks BaseServer.handleRequest span for dropping when http.target matches tunnel path', () => {
-      globalWithInjectedValues._sentryRewritesTunnelPath = '/monitoring';
+      managedTunnel = { basePath: '', path: '/monitoring' };
       const span = createMockSpan();
 
       dropMiddlewareTunnelRequests(span as any, {
         'next.span_type': 'BaseServer.handleRequest',
-        'http.target': '/monitoring?o=123&p=456',
+        'http.target': '/monitoring?o=123',
       });
 
       expect(span.setAttribute).toHaveBeenCalledWith(TRANSACTION_ATTR_SHOULD_DROP_TRANSACTION, true);
     });
 
     it('marks BaseServer.handleRequest span for dropping when http.target exactly matches tunnel path', () => {
-      globalWithInjectedValues._sentryRewritesTunnelPath = '/monitoring';
+      managedTunnel = { basePath: '', path: '/monitoring' };
       const span = createMockSpan();
 
       dropMiddlewareTunnelRequests(span as any, {
@@ -56,7 +54,7 @@ describe('dropMiddlewareTunnelRequests', () => {
     });
 
     it('does not mark BaseServer.handleRequest span for dropping when http.target does not match tunnel path', () => {
-      globalWithInjectedValues._sentryRewritesTunnelPath = '/monitoring';
+      managedTunnel = { basePath: '', path: '/monitoring' };
       const span = createMockSpan();
 
       dropMiddlewareTunnelRequests(span as any, {
@@ -67,8 +65,20 @@ describe('dropMiddlewareTunnelRequests', () => {
       expect(span.setAttribute).not.toHaveBeenCalled();
     });
 
+    it('marks the span of the tunnel route the rewrite points at', () => {
+      managedTunnel = { basePath: '' };
+      const span = createMockSpan();
+
+      dropMiddlewareTunnelRequests(span as any, {
+        'next.span_type': 'BaseServer.handleRequest',
+        'http.target': '/sentry-tunnel?p=abc123',
+      });
+
+      expect(span.setAttribute).toHaveBeenCalledWith(TRANSACTION_ATTR_SHOULD_DROP_TRANSACTION, true);
+    });
+
     it('does not mark BaseServer.handleRequest span for dropping when http.target shares tunnel path prefix', () => {
-      globalWithInjectedValues._sentryRewritesTunnelPath = '/monitoring';
+      managedTunnel = { basePath: '', path: '/monitoring' };
       const span = createMockSpan();
 
       dropMiddlewareTunnelRequests(span as any, {
@@ -91,12 +101,12 @@ describe('dropMiddlewareTunnelRequests', () => {
     });
 
     it('handles BaseServer.handleRequest span with basePath prefix in http.target', () => {
-      globalWithInjectedValues._sentryRewritesTunnelPath = '/basepath/monitoring';
+      managedTunnel = { basePath: '/basepath', path: '/monitoring' };
       const span = createMockSpan();
 
       dropMiddlewareTunnelRequests(span as any, {
         'next.span_type': 'BaseServer.handleRequest',
-        'http.target': '/basepath/monitoring?o=123&p=456',
+        'http.target': '/basepath/monitoring',
       });
 
       expect(span.setAttribute).toHaveBeenCalledWith(TRANSACTION_ATTR_SHOULD_DROP_TRANSACTION, true);
@@ -105,12 +115,12 @@ describe('dropMiddlewareTunnelRequests', () => {
 
   describe('Middleware.execute spans', () => {
     it('marks middleware span for dropping when http.target matches tunnel path', () => {
-      globalWithInjectedValues._sentryRewritesTunnelPath = '/monitoring';
+      managedTunnel = { basePath: '', path: '/monitoring' };
       const span = createMockSpan();
 
       dropMiddlewareTunnelRequests(span as any, {
         'next.span_type': 'Middleware.execute',
-        'http.target': '/monitoring?o=123&p=456',
+        'http.target': '/monitoring?o=123',
       });
 
       expect(span.setAttribute).toHaveBeenCalledWith(TRANSACTION_ATTR_SHOULD_DROP_TRANSACTION, true);
@@ -119,7 +129,7 @@ describe('dropMiddlewareTunnelRequests', () => {
 
   describe('unrelated spans', () => {
     it('does not process spans without matching span type or origin', () => {
-      globalWithInjectedValues._sentryRewritesTunnelPath = '/monitoring';
+      managedTunnel = { basePath: '', path: '/monitoring' };
       const span = createMockSpan();
 
       dropMiddlewareTunnelRequests(span as any, {
@@ -138,7 +148,7 @@ describe('dropMiddlewareTunnelRequests', () => {
         getOptions: () => ({ enableOpenTelemetrySetup: false }),
       } as any);
 
-      globalWithInjectedValues._sentryRewritesTunnelPath = '/monitoring';
+      managedTunnel = { basePath: '', path: '/monitoring' };
       const span = createMockSpan();
 
       dropMiddlewareTunnelRequests(span as any, {
