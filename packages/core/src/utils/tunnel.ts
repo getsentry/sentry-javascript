@@ -193,6 +193,26 @@ export function handleTunnelRequestIfMatched(request: Request, options?: TunnelO
  * @returns A `Response` — either the upstream Sentry response on success, or an error response.
  */
 export async function handleTunnelRequest(options: HandleTunnelRequestOptions): Promise<Response> {
+  return markTunnelResponse(await forwardTunnelRequest(options));
+}
+
+/**
+ * Set on every response the tunnel handler returns, so a browser can tell it apart from whatever else answers the
+ * tunnel path, e.g. a static host serving `index.html` for every path.
+ */
+export const TUNNEL_RESPONSE_HEADER = 'X-Sentry-Tunnel';
+
+function markTunnelResponse(response: Response): Response {
+  const headers = new Headers(response.headers);
+  // `fetch` already decoded the body, so its original encoding and length no longer describe it.
+  headers.delete('content-encoding');
+  headers.delete('content-length');
+  headers.set(TUNNEL_RESPONSE_HEADER, '1');
+
+  return new Response(response.body, { status: response.status, statusText: response.statusText, headers });
+}
+
+async function forwardTunnelRequest(options: HandleTunnelRequestOptions): Promise<Response> {
   const { request } = options;
   const allowedDsns = resolveAllowedDsns(options.allowedDsns);
 
