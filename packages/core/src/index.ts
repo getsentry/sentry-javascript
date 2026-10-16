@@ -110,6 +110,7 @@ export {
   handleTunnelRequestIfMatched,
   isTunnelRequest,
   resolveServerTunnelOption,
+  setManagedTunnelBasePath,
 } from './utils/tunnel';
 export { addAutoIpAddressToSession } from './utils/ipAddress';
 export {
