@@ -121,16 +121,17 @@ test('server pageload request span has nested request span for sub request', asy
         status: 'ok',
       }),
 
-      // sub request `+server` handler span (emitted by Kit since 3.1.0):
+      // sub request `+server` handler span (emitted by Kit since 3.1.0).
+      // Its op is inferred as `http` from `http.method` before the integration runs, and v10 keeps existing ops.
       expect.objectContaining({
         data: expect.objectContaining({
           'http.route': '/api/users',
           'http.method': 'GET',
-          'sentry.op': 'function.sveltekit.endpoint',
+          'sentry.op': 'http',
           'sentry.origin': 'auto.function.sveltekit.endpoint',
         }),
         description: 'sveltekit.endpoint',
-        op: 'function.sveltekit.endpoint',
+        op: 'http',
         origin: 'auto.function.sveltekit.endpoint',
         status: 'ok',
       }),
