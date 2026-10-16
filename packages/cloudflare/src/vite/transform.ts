@@ -61,6 +61,10 @@ interface VariableDeclarationNode extends BaseNode {
   declarations?: VariableDeclaratorNode[];
 }
 
+interface ImportDeclarationNode extends BaseNode {
+  specifiers?: Array<{ local?: { type: string; name?: string } }>;
+}
+
 function isCallToMethod(node: BaseNode, methodName: string): boolean {
   if (node.type !== 'CallExpression') return false;
   const callee = (node as CallExpressionNode).callee;
@@ -160,6 +164,8 @@ export function applyAutoInstrumentTransforms(
     wrappedClasses: new Set<string>(),
     topLevelClasses,
     renamedLocals: new Set<string>(),
+    exportedClasses: collectExportedClasses(ast),
+    aliasedLocals: new Map<string, string>(),
     classWrappers: ctx.classWrappers,
     agentClasses: ctx.agentClasses ?? new Set<string>(),
     workerEntrypointClasses: detectWorkerEntrypointClasses(ast),
@@ -167,17 +173,21 @@ export function applyAutoInstrumentTransforms(
     optionsFn: sameWorkerBindings.length > 0 ? MERGED_OPTIONS_IDENTIFIER : ctx.optionsFn,
     autoWrapped: new Set<ExportName>(),
     manuallyWrappedLocals: collectManuallyWrappedLocals(ast),
+    declaringStatements: collectDeclaringStatements(ast),
   };
   const { wrappedClasses } = state;
 
   // Named exports first, regardless of source order: the default-export handler
   // needs to know which local bindings a named export already wrapped, so it can
   // skip a class that is both exported by name and re-exported as default (which
-  // would otherwise wrap it twice).
-  for (const node of ast.body) {
-    if (node.type === 'ExportNamedDeclaration') {
-      handleNamedExport(node as ExportNamedNode, ctx, state);
-    }
+  // would otherwise wrap it twice). Declaration exports (`export class Foo`) go before
+  // specifier exports (`export { Foo as MyDO }`) for the same reason.
+  const namedExports = ast.body.filter(node => node.type === 'ExportNamedDeclaration') as ExportNamedNode[];
+  for (const node of namedExports) {
+    if (node.declaration) handleNamedExport(node, ctx, state);
+  }
+  for (const node of namedExports) {
+    if (!node.declaration) handleNamedExport(node, ctx, state);
   }
   for (const node of ast.body) {
     if (node.type === 'ExportDefaultDeclaration') {
@@ -212,7 +222,7 @@ interface TransformState {
   needsImport: boolean;
   wrappedClasses: Set<string>;
   /**
-   * Top-level (non-exported) class declarations, so specifier exports like
+   * Top-level class declarations, exported or not, so specifier exports like
    * `export { MyDO }` can locate the class they refer to.
    */
   topLevelClasses: Map<string, ClassDeclarationNode>;
@@ -221,6 +231,13 @@ interface TransformState {
    * the same class don't produce duplicate bindings.
    */
   renamedLocals: Set<string>;
+  /** Names of top-level classes declared with `export class`. */
+  exportedClasses: Set<string>;
+  /**
+   * `export class` name → the binding holding its wrapper, for a class exported by its own name
+   * unwrapped and wrapped only under another name by a specifier (`export { Foo as MyDO }`).
+   */
+  aliasedLocals: Map<string, string>;
   /** Class name → wrapper kind, keyed by the *exported* name (from config). */
   classWrappers: Map<string, ClassWrapperKind>;
   /** Local class names detected as `agents` Agents (see {@link TransformContext.agentClasses}). */
@@ -243,6 +260,8 @@ interface TransformState {
    * specifier must report it as wrapped rather than wrap it a second time.
    */
   manuallyWrappedLocals: Set<string>;
+  /** Top-level binding name → the statement that declares it. */
+  declaringStatements: Map<string, BaseNode>;
 }
 
 /**
@@ -322,8 +341,9 @@ function collectManuallyWrappedLocals(ast: ProgramBody): Set<string> {
   const locals = new Set<string>();
 
   for (const node of ast.body) {
-    if (node.type !== 'VariableDeclaration') continue;
-    for (const declarator of (node as VariableDeclarationNode).declarations ?? []) {
+    const declaration = declarationOf(node);
+    if (declaration?.type !== 'VariableDeclaration') continue;
+    for (const declarator of (declaration as VariableDeclarationNode).declarations ?? []) {
       const name = declarator.id?.type === 'Identifier' ? declarator.id.name : undefined;
       const init = declarator.init;
       if (name && init && wrapperMethods.some(method => isCallToMethod(init, method))) {
@@ -335,14 +355,50 @@ function collectManuallyWrappedLocals(ast: ProgramBody): Set<string> {
   return locals;
 }
 
+function collectDeclaringStatements(ast: ProgramBody): Map<string, BaseNode> {
+  const statements = new Map<string, BaseNode>();
+  for (const node of ast.body) {
+    const declaration = declarationOf(node);
+    if (!declaration) continue;
+    const ids =
+      declaration.type === 'VariableDeclaration'
+        ? ((declaration as VariableDeclarationNode).declarations ?? []).map(declarator => declarator.id)
+        : declaration.type === 'ImportDeclaration'
+          ? ((declaration as ImportDeclarationNode).specifiers ?? []).map(specifier => specifier.local)
+          : [(declaration as ClassDeclarationNode).id];
+    for (const id of ids) {
+      if (id?.type === 'Identifier' && id.name) statements.set(id.name, node);
+    }
+  }
+  return statements;
+}
+
 function collectTopLevelClasses(ast: ProgramBody): Map<string, ClassDeclarationNode> {
   const classes = new Map<string, ClassDeclarationNode>();
   for (const node of ast.body) {
-    if (node.type !== 'ClassDeclaration') continue;
-    const classNode = node as ClassDeclarationNode;
+    const declaration = declarationOf(node);
+    if (declaration?.type !== 'ClassDeclaration') continue;
+    const classNode = declaration as ClassDeclarationNode;
     if (classNode.id?.name) classes.set(classNode.id.name, classNode);
   }
   return classes;
+}
+
+function collectExportedClasses(ast: ProgramBody): Set<string> {
+  const names = new Set<string>();
+  for (const node of ast.body) {
+    if (node.type !== 'ExportNamedDeclaration') continue;
+    const declaration = (node as ExportNamedNode).declaration;
+    if (declaration?.type !== 'ClassDeclaration') continue;
+    const name = (declaration as ClassDeclarationNode).id?.name;
+    if (name) names.add(name);
+  }
+  return names;
+}
+
+/** The declaration a top-level statement makes, looking through `export` (`export const x = ...`). */
+function declarationOf(node: BaseNode): BaseNode | null | undefined {
+  return node.type === 'ExportNamedDeclaration' ? (node as ExportNamedNode).declaration : node;
 }
 
 function wrapDefaultExport(node: ExportDefaultNode, ctx: TransformContext, state: TransformState): void {
@@ -483,6 +539,37 @@ function wrapSpecifierExports(node: ExportNamedNode, ctx: TransformContext, stat
 }
 
 /**
+ * `export { handler as default }`, the form bundlers emit for a default export. The export is set
+ * in two steps. Right after `handler` is declared, it is bound to `handler` as-is, so a circular
+ * import that reads it during module evaluation gets the handler, as before the transform. At the
+ * end of the module, it is rebound to the wrapper, so a handler assigned or given methods later is
+ * wrapped as it ends up. The binding is a `var`: a read before `handler` is declared gets
+ * `undefined`, as it would from the bundler's own `var`, where a `const` would throw and stop the
+ * Worker from starting.
+ */
+function wrapDefaultSpecifier(localName: string, state: TransformState): string | undefined {
+  if (state.manuallyWrappedLocals.has(localName)) return undefined;
+
+  // Same as `export default Foo`: a local class already wrapped by a named export keeps its
+  // binding, which now points at the wrapped class, so the specifier can stay as written.
+  if (state.renamedLocals.has(localName)) {
+    state.autoWrapped.add(DEFAULT_EXPORT);
+    return undefined;
+  }
+
+  const declaringStatement = state.declaringStatements.get(localName);
+  if (declaringStatement) {
+    state.ms.appendLeft(declaringStatement.end, `\nvar __SENTRY_DEFAULT_EXPORT__ = ${localName};`);
+  }
+  state.ms.append(
+    `\n${declaringStatement ? '' : 'var '}__SENTRY_DEFAULT_EXPORT__ = __SENTRY__.withSentry(${state.optionsFn}, ${localName});`,
+  );
+  state.needsImport = true;
+  state.autoWrapped.add(DEFAULT_EXPORT);
+  return '__SENTRY_DEFAULT_EXPORT__ as default';
+}
+
+/**
  * Handle one export specifier, returning the `Wrapped as Exported` pair to emit when its class has
  * to be wrapped through a fresh binding — the cross-module case. The import/wrapper statements that
  * pair depends on are pushed onto `prelude`.
@@ -508,16 +595,29 @@ function wrapCrossModuleSpecifier(
     ? resolveWrapperKind(exportedName, sourceLiteral ? undefined : localName, state)
     : undefined;
 
-  if (!exportedName || !localName || !kind) return undefined;
+  if (!exportedName || !localName) return undefined;
+  if (!kind) {
+    return exportedName === DEFAULT_IMPORT && !sourceLiteral ? wrapDefaultSpecifier(localName, state) : undefined;
+  }
 
   // Without a `from` clause the specifier points at a module-local binding, which may already be
   // (or become) the wrapped class without touching the export statement itself.
   if (!sourceLiteral) {
     const localClass = state.topLevelClasses.get(localName);
 
+    // `export class Foo` that its own export left unwrapped: keep `Foo` exported as declared and
+    // export a wrapper bound right after the class under the specifier's name.
+    if (localClass?.id && state.exportedClasses.has(localName) && !state.renamedLocals.has(localName)) {
+      const wrappedName = wrapExportedClassAlias(localName, localClass, kind, state);
+      state.wrappedClasses.add(exportedName);
+      state.autoWrapped.add(toExportName(exportedName));
+      return `${wrappedName} as ${exportedName}`;
+    }
+
     if (localClass?.id) {
       wrapLocalClassExport(localName, localClass, kind, ctx, state);
       state.wrappedClasses.add(exportedName);
+      state.autoWrapped.add(toExportName(exportedName));
       state.needsImport = true;
       return undefined;
     }
@@ -549,10 +649,38 @@ function wrapCrossModuleSpecifier(
     `const ${wrappedName} = __SENTRY__._INTERNAL_wrapUnlessInstrumented(__SENTRY__.${WRAPPER_METHODS[kind]}, ${state.optionsFn}, ${target});`,
   );
   state.wrappedClasses.add(exportedName);
-  state.autoWrapped.add(exportedName);
+  state.autoWrapped.add(toExportName(exportedName));
   state.needsImport = true;
 
   return `${wrappedName} as ${exportedName}`;
+}
+
+/**
+ * Bind a wrapper for an `export class` right after its declaration and return that binding. The
+ * declaration and its own export stay as written.
+ */
+function wrapExportedClassAlias(
+  localName: string,
+  localClass: ClassDeclarationNode,
+  kind: ClassWrapperKind,
+  state: TransformState,
+): string {
+  const existing = state.aliasedLocals.get(localName);
+  if (existing) return existing;
+
+  const wrappedName = `__SENTRY_WRAPPED_${localName}__`;
+  state.aliasedLocals.set(localName, wrappedName);
+  state.ms.appendLeft(
+    localClass.end,
+    `\nconst ${wrappedName} = __SENTRY__.${WRAPPER_METHODS[kind]}(${state.optionsFn}, ${localName});\n`,
+  );
+  state.needsImport = true;
+  return wrappedName;
+}
+
+/** The name same-worker bindings know an export by: `default` is the default export. */
+function toExportName(exportedName: string): ExportName {
+  return exportedName === DEFAULT_IMPORT ? DEFAULT_EXPORT : exportedName;
 }
 
 /** Rename a locally declared class and rebind its original name to the wrapper. */
