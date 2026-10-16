@@ -110,6 +110,8 @@
     "@cloudflare/workers-types": "4.20250922.0",
     "@hono/node-server": "^2.0.10",
     "@types/node": "^18.19.1",
+    "hono": "4.13.9",
+    "hono-5": "npm:hono@5.0.0-rc.1",
     "wrangler": "4.62.0"
   },
   "scripts": {
