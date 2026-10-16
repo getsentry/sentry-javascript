@@ -4,7 +4,7 @@ import { cp, mkdir, readFile, rm, writeFile } from 'fs/promises';
 import { basename, join } from 'path';
 import { promisify } from 'util';
 import { afterAll, beforeAll, test, type TestAPI } from 'vitest';
-import { CLEANUP_STEPS, createRunner } from './createRunner';
+import { CLEANUP_STEPS, createRunner, PACKAGE_ROOT } from './createRunner';
 
 const execPromise = promisify(exec);
 
@@ -267,7 +267,10 @@ function prepareTmpDir(
     }
 
     if (options?.afterSetupCommand) {
-      const env = { ...process.env, PATH: `${join(tmpDirPath, 'node_modules', '.bin')}:${process.env.PATH}` };
+      // The Bun and Deno packages run these suites with their own `PATH`, which does not have the bins of
+      // this package (e.g. `prisma`).
+      const binPaths = [join(tmpDirPath, 'node_modules', '.bin'), join(PACKAGE_ROOT, 'node_modules', '.bin')];
+      const env = { ...process.env, PATH: `${binPaths.join(':')}:${process.env.PATH}` };
       await execPromise(options.afterSetupCommand, { cwd: tmpDirPath, env });
     }
   }

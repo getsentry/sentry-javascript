@@ -91,6 +91,7 @@
   },
   "sideEffects": false,
   "devDependencies": {
+    "@sentry-internal/rollup-utils": "11.8.0",
     "zod": "^3.24.1"
   },
   "dependencies": {
