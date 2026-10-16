@@ -82,4 +82,23 @@ describe('wrapServerEntryWithSentryTunnel', () => {
       ),
     ).toBe(true);
   });
+
+  it('answers the tunnel under the base path Start routes on, and only there', async () => {
+    setClient({});
+    const wrapped = wrapServerEntryWithSentryTunnel({ fetch: appFetch }, undefined, '/app');
+
+    expect(
+      await (await wrapped.fetch(makeEnvelopeRequest(`http://localhost:3000/app${getTunnelPath(DSN)}`))).text(),
+    ).toBe('forwarded');
+    expect(await (await wrapped.fetch(makeEnvelopeRequest(TUNNEL_URL))).text()).toBe('app');
+  });
+
+  it('keeps a base path the server `init` set', async () => {
+    setClient({ basePath: '/custom' });
+    const wrapped = wrapServerEntryWithSentryTunnel({ fetch: appFetch }, undefined, '/app');
+
+    expect(
+      await (await wrapped.fetch(makeEnvelopeRequest(`http://localhost:3000/custom${getTunnelPath(DSN)}`))).text(),
+    ).toBe('forwarded');
+  });
 });

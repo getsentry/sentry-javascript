@@ -10,7 +10,7 @@ const expectedTunnelPathMatcher =
       ? '/custom-monitor'
       : tunnelRouteMode === 'object'
         ? '/object-monitor'
-        : /^\/[a-z0-9]{8}$/;
+        : /^\/[a-z0-9]{1,7}$/;
 
 test.skip(tunnelRouteMode === 'off', 'Tunnel assertions only run in the tunnel-route variants');
 
