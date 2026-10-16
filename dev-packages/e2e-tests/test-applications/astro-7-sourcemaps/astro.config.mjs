@@ -42,7 +42,8 @@ export default defineConfig({
       authToken: 'fake-auth-token',
       org: 'test-org',
       project: 'test-project',
-      release: { name: 'test-release' },
+      // v10 has no build-time `release` option on the integration, so it goes straight to the Vite plugin
+      unstable_sentryVitePluginOptions: { release: { name: 'test-release' } },
       debug: true,
     }),
     ...(isStatic ? [] : [ssrRoute]),
