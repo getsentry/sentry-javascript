@@ -49,15 +49,24 @@ describe('applyAstroTunnelOptions', () => {
     expect(fromOptions.tunnel).toEqual({ basePath: '/other', trailingSlash: true });
   });
 
+  it('serves a relative tunnel path with the Astro routing options too', () => {
+    globalWithOptions.__sentry_astro_tunnel_options = { basePath: '/docs', trailingSlash: true };
+    const options: Parameters<typeof applyAstroTunnelOptions>[0] = { tunnel: '/monitor' };
+
+    applyAstroTunnelOptions(options);
+
+    expect(options.tunnel).toEqual({ basePath: '/docs', trailingSlash: true, path: '/monitor' });
+  });
+
   it('leaves URL tunnels and a disabled tunnel alone', () => {
     globalWithOptions.__sentry_astro_tunnel_options = { basePath: '/docs' };
-    const url: Parameters<typeof applyAstroTunnelOptions>[0] = { tunnel: '/monitor' };
+    const url: Parameters<typeof applyAstroTunnelOptions>[0] = { tunnel: 'https://example.com/tunnel' };
     const off: Parameters<typeof applyAstroTunnelOptions>[0] = {};
 
     applyAstroTunnelOptions(url);
     applyAstroTunnelOptions(off);
 
-    expect(url.tunnel).toBe('/monitor');
+    expect(url.tunnel).toBe('https://example.com/tunnel');
     expect(off.tunnel).toBeUndefined();
   });
 });
