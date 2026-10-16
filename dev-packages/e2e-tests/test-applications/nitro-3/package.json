@@ -11,7 +11,9 @@
     "test:build": "pnpm install && pnpm build",
     "test:assert": "pnpm test",
     "test:build:tunnel": "pnpm install && E2E_TEST_TUNNEL=1 pnpm build",
-    "test:assert:tunnel": "E2E_TEST_TUNNEL=1 playwright test tunnel"
+    "test:build:tunnel-basepath": "pnpm install && E2E_TEST_TUNNEL=1 E2E_TEST_BASE_PATH=/app pnpm build",
+    "test:assert:tunnel": "E2E_TEST_TUNNEL=1 playwright test tunnel",
+    "test:assert:tunnel-basepath": "E2E_TEST_TUNNEL=1 E2E_TEST_BASE_PATH=/app playwright test tunnel"
   },
   "dependencies": {
     "@sentry/browser": "latest || *",
@@ -35,6 +37,11 @@
         "build-command": "pnpm test:build:tunnel",
         "assert-command": "pnpm test:assert:tunnel",
         "label": "nitro-3 (tunnel)"
+      },
+      {
+        "build-command": "pnpm test:build:tunnel-basepath",
+        "assert-command": "pnpm test:assert:tunnel-basepath",
+        "label": "nitro-3 (tunnel-basepath)"
       }
     ]
   }
