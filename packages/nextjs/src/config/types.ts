@@ -272,6 +272,17 @@ export type SentryBuildOptions = Omit<
    * - Pass `true` to auto-generate a random, ad-blocker-resistant route for each build
    * - Pass a string path (e.g., '/monitoring') to use a custom route
    *
+   * By default, the tunnel route proxies each request to Sentry with all its headers, cookies included. To forward
+   * only the event payload, create `app/sentry-tunnel/route.ts` (or `src/app/sentry-tunnel/route.ts`, not in a route
+   * group) with:
+   *
+   * ```ts
+   * export { POST } from '@sentry/nextjs/tunnel';
+   * ```
+   *
+   * This handler accepts the DSN of the server SDK, also a self-hosted one. For other DSNs, use
+   * `createSentryTunnelRoute` from the same import.
+   *
    * Tunnel requests go through your middleware (`proxy.ts` / `middleware.ts`) like any other request. If your
    * middleware redirects or blocks unauthenticated requests, exclude the tunnel route in its `matcher` so events
    * can reach Sentry. Matchers have to be static, so use a fixed string route in that case rather than `true`.
