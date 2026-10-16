@@ -25,6 +25,9 @@ function recordChunksWithoutSourceMap() {
 }
 
 export default defineConfig({
+  define: {
+    __E2E_TEST_TUNNEL__: JSON.stringify(!!process.env.E2E_TEST_TUNNEL),
+  },
   plugins: [
     solidStart({
       appRoot: './src',
