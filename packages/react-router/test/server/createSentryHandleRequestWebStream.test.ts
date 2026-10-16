@@ -43,9 +43,13 @@ describe('createSentryHandleRequestWebStream', () => {
   const mockServerRouter = vi.fn();
   const mockRenderToReadableStream = vi.fn();
 
-  const makeRequest = (userAgent: string | null = 'Mozilla/5.0'): Request =>
+  const makeRequest = (
+    userAgent: string | null = 'Mozilla/5.0',
+    signal: AbortSignal = new AbortController().signal,
+  ): Request =>
     ({
       url: 'https://sentry-example.com/test',
+      signal,
       headers: {
         get: vi.fn((name: string) => (name === 'user-agent' ? userAgent : null)),
       },
@@ -198,6 +202,81 @@ describe('createSentryHandleRequestWebStream', () => {
     expect(signal.aborted).toBe(false);
     vi.advanceTimersByTime(1);
     expect(signal.aborted).toBe(true);
+  });
+
+  it('aborts the render signal when the request is aborted mid-render', async () => {
+    const requestController = new AbortController();
+    mockRenderToReadableStream.mockResolvedValue(createBody(new Promise(() => {})));
+
+    const handleRequest = createSentryHandleRequestWebStream({
+      renderToReadableStream: mockRenderToReadableStream,
+      ServerRouter: mockServerRouter,
+    });
+
+    await handleRequest(makeRequest('Mozilla/5.0', requestController.signal), 200, headers, makeRouterContext(), {});
+    const { signal } = mockRenderToReadableStream.mock.calls[0]![1] as { signal: AbortSignal };
+    expect(signal.aborted).toBe(false);
+
+    requestController.abort(new Error('client disconnected'));
+
+    expect(signal.aborted).toBe(true);
+    expect(signal.reason).toEqual(new Error('client disconnected'));
+  });
+
+  it('aborts the render signal immediately when the request is already aborted', async () => {
+    const requestController = new AbortController();
+    requestController.abort();
+    mockRenderToReadableStream.mockResolvedValue(createBody(new Promise(() => {})));
+
+    const handleRequest = createSentryHandleRequestWebStream({
+      renderToReadableStream: mockRenderToReadableStream,
+      ServerRouter: mockServerRouter,
+    });
+
+    await handleRequest(makeRequest('Mozilla/5.0', requestController.signal), 200, headers, makeRouterContext(), {});
+    const { signal } = mockRenderToReadableStream.mock.calls[0]![1] as { signal: AbortSignal };
+
+    expect(signal.aborted).toBe(true);
+  });
+
+  it('ignores a request abort once allReady has settled', async () => {
+    const requestController = new AbortController();
+    const allReady = createDeferred();
+    mockRenderToReadableStream.mockResolvedValue(createBody(allReady.promise));
+
+    const handleRequest = createSentryHandleRequestWebStream({
+      renderToReadableStream: mockRenderToReadableStream,
+      ServerRouter: mockServerRouter,
+    });
+
+    await handleRequest(makeRequest('Mozilla/5.0', requestController.signal), 200, headers, makeRouterContext(), {});
+    const { signal } = mockRenderToReadableStream.mock.calls[0]![1] as { signal: AbortSignal };
+
+    allReady.resolve();
+    await allReady.promise;
+    await vi.advanceTimersByTimeAsync(0);
+    requestController.abort();
+
+    expect(signal.aborted).toBe(false);
+  });
+
+  it('stops listening to the request signal when the render fails', async () => {
+    const requestController = new AbortController();
+    mockRenderToReadableStream.mockRejectedValue(new Error('Shell error'));
+
+    const handleRequest = createSentryHandleRequestWebStream({
+      renderToReadableStream: mockRenderToReadableStream,
+      ServerRouter: mockServerRouter,
+    });
+
+    await expect(
+      handleRequest(makeRequest('Mozilla/5.0', requestController.signal), 200, headers, makeRouterContext(), {}),
+    ).rejects.toThrow('Shell error');
+    const { signal } = mockRenderToReadableStream.mock.calls[0]![1] as { signal: AbortSignal };
+
+    requestController.abort();
+
+    expect(signal.aborted).toBe(false);
   });
 
   it('uses a 10000ms default stream timeout', async () => {
