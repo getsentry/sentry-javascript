@@ -1,0 +1,3 @@
+allowBuilds:
+  msgpackr-extract: true
+minimumReleaseAge: 0

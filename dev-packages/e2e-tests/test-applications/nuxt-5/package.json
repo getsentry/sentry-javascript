@@ -41,7 +41,6 @@
     "optional": true
   },
   "volta": {
-    "extends": "../../package.json",
-    "pnpm": "11.10.0"
+    "extends": "../../package.json"
   }
 }

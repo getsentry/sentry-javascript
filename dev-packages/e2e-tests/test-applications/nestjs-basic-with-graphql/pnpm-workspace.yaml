@@ -1,0 +1,4 @@
+allowBuilds:
+  '@apollo/protobufjs': false
+  '@nestjs/core': false
+minimumReleaseAge: 0

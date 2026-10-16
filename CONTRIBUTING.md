@@ -14,10 +14,8 @@ Developer Documentation.
 
 ## Setting up an Environment
 
-We use [Volta](https://volta.sh/) to ensure we use consistent versions of node, yarn and pnpm.
-
-Make sure to also enable [pnpm support in Volta](https://docs.volta.sh/advanced/pnpm) if you want to run the E2E tests
-locally.
+We use [Volta](https://volta.sh/) to ensure we use consistent versions of node and yarn. `yarn install` also installs
+the pnpm version that the E2E tests use.
 
 `sentry-javascript` is a monorepo containing several packages, managed with Yarn workspaces and Nx. To get started,
 install all dependencies, and then perform an initial build, so TypeScript can read all of the linked type definitions.
@@ -80,7 +78,8 @@ E2E tests verify SDK behavior in real-world framework scenarios.
 ### Prerequisites
 
 1. **Docker**: Required for some E2E tests
-2. **Volta with pnpm support**: Enable pnpm in Volta by setting `VOLTA_FEATURE_PNPM=1` in your environment. See [Volta pnpm docs](https://docs.volta.sh/advanced/pnpm).
+2. **Volta**: The E2E tests run each app on the node version that it pins. Without Volta, they use your current node
+   version.
 
 ### Step-by-Step Instructions
 
