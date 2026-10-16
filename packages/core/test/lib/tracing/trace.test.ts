@@ -2717,6 +2717,51 @@ describe('ignoreSpans (core path, streaming)', () => {
     });
   });
 
+  it('ignores a span that a beforeSpanStart listener marks for ignoreSpans', () => {
+    const options = getDefaultTestClientOptions({
+      tracesSampleRate: 1,
+      traceLifecycle: 'stream',
+      ignoreSpans: [{ attributes: { 'test.ignore': true } }],
+    });
+    client = new TestClient(options);
+    setCurrentClient(client);
+    client.init();
+    const spyOnDroppedEvent = vi.spyOn(client, 'recordDroppedEvent');
+    client.on('beforeSpanStart', ({ name, attributes }) => {
+      if (name === 'GET') {
+        attributes['test.ignore'] = true;
+      }
+    });
+
+    startSpan({ name: 'GET' }, span => {
+      expect(span).toBeInstanceOf(SentryNonRecordingSpan);
+    });
+    startSpan({ name: 'GET /users' }, span => {
+      expect(span).toBeInstanceOf(SentrySpan);
+    });
+
+    expect(spyOnDroppedEvent).toHaveBeenCalledTimes(1);
+    expect(spyOnDroppedEvent).toHaveBeenCalledWith('ignored', 'span');
+  });
+
+  it('applies the changes of beforeSpanStart listeners without mutating the attributes passed in', () => {
+    const options = getDefaultTestClientOptions({ tracesSampleRate: 1 });
+    client = new TestClient(options);
+    setCurrentClient(client);
+    client.init();
+    client.on('beforeSpanStart', spanStartData => {
+      spanStartData.name = 'renamed';
+      spanStartData.attributes['test.added'] = 'yes';
+    });
+
+    const attributes = { 'test.original': 'yes' };
+    const span = startInactiveSpan({ name: 'original', attributes });
+
+    expect(spanToJSON(span).name).toBe('renamed');
+    expect(spanToJSON(span).attributes).toMatchObject({ 'test.original': 'yes', 'test.added': 'yes' });
+    expect(attributes).toEqual({ 'test.original': 'yes' });
+  });
+
   it('returns SentryNonRecordingSpan for startInactiveSpan matching ignoreSpans', () => {
     const options = getDefaultTestClientOptions({
       tracesSampleRate: 1,

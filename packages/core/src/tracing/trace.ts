@@ -362,6 +362,12 @@ function createChildOrRootSpan({
   }
 
   const client = getClient();
+  // Copy the attributes, so listeners do not mutate an object the caller passed in
+  const spanStartData = { name: spanArguments.name, attributes: { ...spanArguments.attributes } };
+  client?.emit('beforeSpanStart', spanStartData);
+  spanArguments.name = spanStartData.name;
+  spanArguments.attributes = spanStartData.attributes;
+
   if (_shouldIgnoreStreamedSpan(client, spanArguments)) {
     if (!isTracingSuppressed(scope)) {
       // if tracing is actively suppressed (Sentry.suppressTracing(...)),
