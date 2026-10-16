@@ -2,8 +2,10 @@ import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
 import type { BrowserOptions } from '@sentry/react';
-import { afterEach, describe, expect, it } from 'vitest';
+import { getTunnelPath } from '@sentry/core';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { applyTunnelRouteOption } from '../../src/client/tunnelRoute';
+import { sentryTunnelRouteHandler } from '../../src/common/sentryTunnelRouteHandler';
 import {
   ensureTunnelRouteFile,
   getManagedTunnelOptions,
@@ -53,10 +55,61 @@ describe('getManagedTunnelOptions()', () => {
     expect(getManagedTunnelOptions({}, '/monitoring')).toEqual({ basePath: '', path: '/monitoring' });
   });
 
+  it('keeps the path and allowed DSNs of an options object', () => {
+    const allowedDsns = ['https://browser@o1.ingest.sentry.io/1'];
+
+    expect(getManagedTunnelOptions({}, { allowedDsns })).toEqual({ basePath: '', allowedDsns });
+    expect(getManagedTunnelOptions({}, { path: '/monitoring', allowedDsns })).toEqual({
+      basePath: '',
+      path: '/monitoring',
+      allowedDsns,
+    });
+  });
+
   it('is off without `tunnelRoute` and for static exports', () => {
     expect(getManagedTunnelOptions({}, undefined)).toBeUndefined();
     expect(getManagedTunnelOptions({}, false)).toBeUndefined();
     expect(getManagedTunnelOptions({ output: 'export' }, true)).toBeUndefined();
+  });
+});
+
+describe('sentryTunnelRouteHandler()', () => {
+  const BROWSER_DSN = 'https://browser@o1.ingest.sentry.io/1';
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  function tunnelRequest(dsn: string): Request {
+    return new Request(`http://localhost/sentry-tunnel?p=${getTunnelPath(dsn)!.slice(1)}`, {
+      method: 'POST',
+      body: `${JSON.stringify({ dsn })}\n`,
+    });
+  }
+
+  it('forwards envelopes for the allowed DSNs of `tunnelRoute`', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(new Response('ok'));
+    vi.stubGlobal('fetch', fetchMock);
+    globalWithInjectedValues._sentryManagedTunnel = { basePath: '', allowedDsns: [BROWSER_DSN] };
+
+    const response = await sentryTunnelRouteHandler(tunnelRequest(BROWSER_DSN));
+
+    expect(response.status).toBe(200);
+    expect(fetchMock).toHaveBeenCalledWith(
+      expect.stringContaining('https://o1.ingest.sentry.io/api/1/envelope/'),
+      expect.anything(),
+    );
+  });
+
+  it('rejects envelopes for a DSN that is not allowed', async () => {
+    const fetchMock = vi.fn();
+    vi.stubGlobal('fetch', fetchMock);
+    globalWithInjectedValues._sentryManagedTunnel = { basePath: '', allowedDsns: [BROWSER_DSN] };
+
+    const response = await sentryTunnelRouteHandler(tunnelRequest('https://other@o1.ingest.sentry.io/2'));
+
+    expect(response.status).toBe(404);
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 });
 
@@ -120,5 +173,11 @@ describe('ensureTunnelRouteFile()', () => {
     const projectDir = makeProjectDir('src/pages');
 
     expect(ensureTunnelRouteFile(projectDir)).toBe(path.join(projectDir, 'src', 'app', 'sentry-tunnel', 'route.js'));
+  });
+
+  it('uses the root `app` when the root has `pages`, as Next.js then ignores `src`', () => {
+    const projectDir = makeProjectDir('pages', 'src/utils');
+
+    expect(ensureTunnelRouteFile(projectDir)).toBe(path.join(projectDir, 'app', 'sentry-tunnel', 'route.js'));
   });
 });

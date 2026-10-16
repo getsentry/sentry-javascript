@@ -2,7 +2,7 @@ import type { ManagedTunnelOptions } from '../../common/managedTunnelRoute';
 import { MANAGED_TUNNEL_PATH_PARAM, MANAGED_TUNNEL_ROUTE } from '../../common/managedTunnelRoute';
 import * as fs from 'fs';
 import * as path from 'path';
-import type { NextConfigObject } from '../types';
+import type { NextConfigObject, SentryBuildOptions } from '../types';
 
 /**
  * The managed tunnel options for `tunnelRoute`, or `undefined` when the tunnel is off.
@@ -11,15 +11,19 @@ import type { NextConfigObject } from '../types';
  */
 export function getManagedTunnelOptions(
   userNextConfig: NextConfigObject,
-  tunnelRoute: string | boolean | undefined,
+  tunnelRoute: SentryBuildOptions['tunnelRoute'],
 ): ManagedTunnelOptions | undefined {
   if (!tunnelRoute || userNextConfig.output === 'export') {
     return undefined;
   }
 
+  const { path, allowedDsns } =
+    typeof tunnelRoute === 'object' ? tunnelRoute : { path: typeof tunnelRoute === 'string' ? tunnelRoute : undefined };
+
   return {
     basePath: userNextConfig.basePath ?? '',
-    ...(typeof tunnelRoute === 'string' && { path: tunnelRoute }),
+    ...(path && { path }),
+    ...(allowedDsns && { allowedDsns }),
   };
 }
 
