@@ -1,4 +1,5 @@
 import { escapeStringForRegex } from '@sentry/core';
+import MagicString from 'magic-string';
 import type { Plugin } from 'vite';
 import { TUNNEL_BASE_PATH_GLOBAL } from '../common/tunnel';
 import type { ResolvedKitConfig } from './kitConfig';
@@ -40,7 +41,10 @@ export function makeTunnelBasePathPlugin(getKitConfig: () => Promise<ResolvedKit
         return null;
       }
 
-      return { code: `import ${JSON.stringify(VIRTUAL_BASE_PATH_FILE)};\n${code}`, map: null };
+      const ms = new MagicString(code);
+      ms.prepend(`import ${JSON.stringify(VIRTUAL_BASE_PATH_FILE)};\n`);
+
+      return { code: ms.toString(), map: ms.generateMap({ hires: true }) };
     },
   };
 }
