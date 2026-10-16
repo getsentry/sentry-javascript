@@ -9,7 +9,9 @@ describe('makeTunnelRoutePlugin', () => {
   it('adds the tunnel route to the SSR server build', () => {
     const result = transform('export const routes = {};', '\0virtual:react-router/server-build', { ssr: true });
 
-    expect(result?.code).toContain("routes['sentry-tunnel'] = __sentryCreateTunnelRoute();");
+    expect(result?.code).toContain(
+      "routes['sentry-tunnel'] = __sentryCreateTunnelRoute(typeof basename === 'string' ? basename : undefined);",
+    );
     expect(result?.code).toContain("from '@sentry/react-router'");
   });
 
