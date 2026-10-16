@@ -633,7 +633,9 @@ describe.each(matrix)('Vercel AI integration (version %s)', (version, vercelAiVe
     'scenario-stream-tools.mjs',
     'instrument.mjs',
     (createRunner, test) => {
-      test('captures usage, tool calls and output across a multi-step streamText', async () => {
+      // Node 26.12 regresses Web Streams async context, nesting the second model span under the first.
+      const skipOnNode26 = !usesChannels && NODE_VERSION.major === 26 && NODE_VERSION.minor >= 12;
+      test.skipIf(skipOnNode26)('captures usage, tool calls and output across a multi-step streamText', async () => {
         await createRunner()
           .expect({ transaction: { transaction: 'main' } })
           .expect({
