@@ -16,9 +16,6 @@ set -euo pipefail
 
 cd "$(dirname "$0")/.."
 
-# Required by the repo's package-manager setup (some workspaces use pnpm via Volta).
-export VOLTA_FEATURE_PNPM=1
-
 echo "node: $(node --version 2>/dev/null || echo 'not found')"
 echo "yarn: $(yarn --version 2>/dev/null || echo 'not found')"
 

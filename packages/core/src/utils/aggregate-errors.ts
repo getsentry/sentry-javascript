@@ -95,11 +95,41 @@ function aggregateExceptionsFromError(
     });
   }
 
+  // SuppressedError (explicit resource management) wraps two errors: `error` (the new one thrown during disposal)
+  // and `suppressed` (the original one it replaced).
+  // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/SuppressedError
+
+  if (isSuppressedError(error)) {
+    ['error', 'suppressed'].forEach(property => {
+      const childError = error[property];
+      if (isError(childError)) {
+        applyExceptionGroupFieldsForParentException(exception, exceptionId, error);
+        const newException = exceptionFromErrorImplementation(parser, childError);
+        const newExceptionId = newExceptions.length;
+        applyExceptionGroupFieldsForChildException(newException, property, newExceptionId, exceptionId);
+        newExceptions = aggregateExceptionsFromError(
+          exceptionFromErrorImplementation,
+          parser,
+          limit,
+          childError as ExtendedError,
+          key,
+          [newException, ...newExceptions],
+          newException,
+          newExceptionId,
+        );
+      }
+    });
+  }
+
   return newExceptions;
 }
 
 function isExceptionGroup(error: ExtendedError): error is ExtendedError & { errors: unknown[] } {
   return Array.isArray(error.errors);
+}
+
+function isSuppressedError(error: ExtendedError): boolean {
+  return 'error' in error && 'suppressed' in error;
 }
 
 function applyExceptionGroupFieldsForParentException(

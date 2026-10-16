@@ -8,7 +8,7 @@
     "test:assert": "$(pnpm bin)/electron-rebuild && pnpm playwright test"
   },
   "dependencies": {
-    "@electron/rebuild": "^3.7.0",
+    "@electron/rebuild": "^4.2.1",
     "@playwright/test": "~1.63.0",
     "@sentry/electron": "latest || *",
     "@sentry/node": "file:../../packed/sentry-node-packed.tgz",

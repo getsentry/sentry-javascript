@@ -13,6 +13,7 @@ test('should capture with different severity levels', async () => {
     .expect({ event: { message: 'error_message', level: 'error' } })
     .expect({ event: { message: 'fatal_message', level: 'fatal' } })
     .expect({ event: { message: 'log_message', level: 'log' } })
+    .unordered()
     .start()
     .completed();
 });

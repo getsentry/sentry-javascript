@@ -1,6 +1,6 @@
 import type { RequestEventData } from '@sentry/core';
 import * as SentryCore from '@sentry/core';
-import { afterEach, beforeAll, beforeEach, describe, expect, spyOn, test } from 'bun:test';
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, spyOn, test } from 'bun:test';
 import type { BunOptions } from '../../src';
 import { bunServerIntegration, getDefaultIntegrationsWithoutPerformance, init } from '../../src';
 import { instrumentBunServe } from '../../src/integrations/bunserver';
@@ -51,6 +51,13 @@ describe('Bun Serve Integration', () => {
     // Don't reuse the port; Bun server stops lazily so tests may accidentally hit a server still closing from a
     // previous test
     port += 1;
+  });
+
+  // The spies replace `@sentry/core` exports for all test files that `bun test` runs after this one
+  afterAll(() => {
+    captureExceptionSpy.mockRestore();
+    continueTraceSpy.mockRestore();
+    startSpanSpy.mockRestore();
   });
 
   test.each(['fetch', 'route'])(

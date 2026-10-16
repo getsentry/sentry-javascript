@@ -26,9 +26,6 @@
     "@sentry-internal/test-utils": "link:../../../test-utils",
     "tsx": "^4.20.3"
   },
-  "resolutions": {
-    "@types/qs": "6.9.17"
-  },
   "volta": {
     "extends": "../../package.json"
   }

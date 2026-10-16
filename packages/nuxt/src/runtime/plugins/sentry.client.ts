@@ -36,6 +36,16 @@ interface VueRouter {
 
 type VueRouteProviderRouter = ReturnType<Parameters<typeof _INTERNAL_createVueRouteProvider>[0]>;
 
+// 3xx/4xx Nuxt errors are expected control flow (redirects, not-found pages), not bugs. The server skips them too.
+function isIgnoredNuxtError(error: unknown): boolean {
+  if (!isNuxtError(error)) {
+    return false;
+  }
+  // oxlint-disable-next-line typescript/no-deprecated
+  const statusCode = error?.status || error?.statusCode;
+  return !!statusCode && statusCode >= 300 && statusCode < 500;
+}
+
 // Tree-shakable guard to remove all code related to tracing
 declare const __SENTRY_TRACING__: boolean;
 
@@ -87,19 +97,18 @@ export default defineNuxtPlugin({
     });
 
     nuxtApp.hook('app:error', error => {
-      if (isNuxtError(error)) {
-        // oxlint-disable-next-line typescript/no-deprecated
-        const statusCode = error?.status || error?.statusCode;
-
-        // Do not report if status code is 3xx or 4xx
-        if (statusCode && statusCode >= 300 && statusCode < 500) {
-          return;
-        }
+      if (isIgnoredNuxtError(error)) {
+        return;
       }
       reportNuxtError({ error });
     });
 
+    // Nuxt calls `vue:error` for every error that reaches the root component, so an error thrown during setup
+    // (e.g. `createError({ statusCode: 404 })`) arrives here too, not only in `app:error`.
     nuxtApp.hook('vue:error', (error, instance, info) => {
+      if (isIgnoredNuxtError(error)) {
+        return;
+      }
       reportNuxtError({ error, instance, info });
     });
   },

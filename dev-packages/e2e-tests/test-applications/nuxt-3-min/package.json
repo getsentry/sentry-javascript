@@ -25,11 +25,6 @@
     "@playwright/test": "~1.63.0",
     "@sentry-internal/test-utils": "link:../../../test-utils"
   },
-  "pnpm": {
-    "overrides": {
-      "ofetch": "1.4.0"
-    }
-  },
   "volta": {
     "extends": "../../package.json"
   }
