@@ -9,10 +9,12 @@ type Queued<Fn> = Fn extends (...args: infer Args) => unknown ? (...args: Args) 
  * The subset of the Sentry browser API that is safe to call on the CDN loader's
  * `window.Sentry` stub before the full SDK has loaded.
  *
- * Any other SDK API needs to be wrapped in `Sentry.onLoad()`.
+ * Any other SDK API needs to be wrapped in `Sentry.onLoad()`. Inside the callback, the full SDK is
+ * loaded, so `window.Sentry` can be cast to the full SDK type.
  *
  * @example
  * ```ts
+ * import type * as SentryBrowser from '@sentry/browser';
  * import type { LoaderSentry } from '@sentry/browser';
  *
  * declare global {
@@ -21,11 +23,13 @@ type Queued<Fn> = Fn extends (...args: infer Args) => unknown ? (...args: Args) 
  *   }
  * }
  *
- * window.Sentry.onLoad(() => {
- *   window.Sentry.init({ release: 'my-app@1.0.0' });
- * });
- *
  * window.Sentry.captureException(new Error('Something went wrong'));
+ *
+ * window.Sentry.onLoad(() => {
+ *   const Sentry = window.Sentry as typeof SentryBrowser;
+ *   Sentry.init({ release: 'my-app@1.0.0' });
+ *   Sentry.addIntegration(Sentry.replayIntegration());
+ * });
  * ```
  */
 export interface LoaderSentry {
