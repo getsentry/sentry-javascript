@@ -126,6 +126,7 @@ describe('withSentry()', () => {
     });
     const names = config?.vite.plugins.flat().map((plugin: Plugin) => plugin.name);
     expect(names).toEqual([
+      'sentry-solidstart-tunnel-base-path',
       'sentry-solidstart-build-instrumentation-file',
       'sentry-vite-plugin',
       'sentry-solidstart-update-source-map-setting',
@@ -149,6 +150,7 @@ describe('withSentry()', () => {
 
     const names = config?.vite.plugins.flat().map((plugin: Plugin) => plugin.name);
     expect(names).toEqual([
+      'sentry-solidstart-tunnel-base-path',
       'sentry-solidstart-build-instrumentation-file',
       'sentry-vite-plugin',
       'sentry-solidstart-update-source-map-setting',
@@ -176,6 +178,7 @@ describe('withSentry()', () => {
       .plugins.flat()
       .map((plugin: Plugin) => plugin.name);
     expect(names).toEqual([
+      'sentry-solidstart-tunnel-base-path',
       'sentry-solidstart-build-instrumentation-file',
       'sentry-vite-plugin',
       'sentry-solidstart-update-source-map-setting',
