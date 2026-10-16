@@ -1,9 +1,16 @@
-import type { EventEnvelope, EventItem } from '@sentry/core';
-import { createEnvelope, getTunnelPath, isTunnelRequest } from '@sentry/core';
+import type { EventEnvelope, EventItem, Transport, TransportMakeRequestResponse } from '@sentry/core';
+import {
+  createEnvelope,
+  getEnvelopeEndpointWithUrlEncodedAuth,
+  getTunnelPath,
+  isTunnelRequest,
+  makeDsn,
+} from '@sentry/core';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { getClient, getCurrentScope, init } from '../../src';
 import { makeFetchTransport } from '../../src/transports/fetch';
-import { resolveBrowserTunnelOption } from '../../src/utils/managedTunnel';
+import { makeManagedTunnelTransport, resolveBrowserTunnelOption } from '../../src/utils/managedTunnel';
+import type { BrowserTransportOptions } from '../../src/transports/types';
 
 const DSN = 'https://public@o123.ingest.sentry.io/1337';
 
@@ -96,5 +103,116 @@ describe('init with `tunnel: true`', () => {
     init({ dsn: DSN, tunnel: true, defaultIntegrations: false });
 
     expect(getClient()?.getOptions().tunnel).toBe(getTunnelPath(DSN));
+  });
+});
+
+describe('makeManagedTunnelTransport', () => {
+  const TUNNEL_URL = `https://example.com${getTunnelPath(DSN)}`;
+  const DIRECT_URL = getEnvelopeEndpointWithUrlEncodedAuth(makeDsn(DSN)!);
+
+  function makeEnvelope(id: string): EventEnvelope {
+    return createEnvelope<EventEnvelope>({ dsn: DSN, event_id: id }, [
+      [{ type: 'event' }, { event_id: id }] as EventItem,
+    ]);
+  }
+
+  // Each transport answers with the next response queued for its URL and records what it sent.
+  function setup(responses: Record<string, TransportMakeRequestResponse[]>): {
+    transport: Transport;
+    sent: Array<{ url: string; id: string; headers: BrowserTransportOptions['headers'] }>;
+  } {
+    const sent: Array<{ url: string; id: string; headers: BrowserTransportOptions['headers'] }> = [];
+    const makeTransport = (options: BrowserTransportOptions): Transport => ({
+      send: envelope => {
+        sent.push({ url: options.url, id: String(envelope[0].event_id), headers: options.headers });
+
+        return Promise.resolve(responses[options.url]?.shift() ?? { statusCode: 200 });
+      },
+      flush: () => Promise.resolve(true),
+    });
+    const transport = makeManagedTunnelTransport(makeTransport, { 'X-Custom': '1' })({
+      url: TUNNEL_URL,
+      headers: { 'Content-Type': 'application/x-sentry-envelope', 'X-Custom': '1' },
+      recordDroppedEvent: () => undefined,
+    });
+
+    return { transport, sent };
+  }
+
+  const tunnelResponse = { statusCode: 200, headers: { 'x-sentry-tunnel': '1' } } as TransportMakeRequestResponse;
+
+  it('keeps sending through the tunnel while its handler answers', async () => {
+    const { transport, sent } = setup({ [TUNNEL_URL]: [tunnelResponse, tunnelResponse] });
+
+    await transport.send(makeEnvelope('a'));
+    await transport.send(makeEnvelope('b'));
+
+    expect(sent.map(({ url, id }) => [url, id])).toEqual([
+      [TUNNEL_URL, 'a'],
+      [TUNNEL_URL, 'b'],
+    ]);
+  });
+
+  it.each([404, 405])(
+    'sends an envelope directly once, and everything after it, when the tunnel answers %s',
+    async statusCode => {
+      const { transport, sent } = setup({ [TUNNEL_URL]: [{ statusCode }] });
+
+      expect(await transport.send(makeEnvelope('a'))).toEqual({ statusCode: 200 });
+      await transport.send(makeEnvelope('b'));
+
+      expect(sent.map(({ url, id }) => [url, id])).toEqual([
+        [TUNNEL_URL, 'a'],
+        [DIRECT_URL, 'a'],
+        [DIRECT_URL, 'b'],
+      ]);
+      // Sentry takes the default `text/plain` without a CORS preflight, so the tunnel's content type is dropped.
+      expect(sent[1]?.headers).toEqual({ 'X-Custom': '1' });
+    },
+  );
+
+  it('never sends an envelope again after a 2xx the tunnel handler did not produce, only the ones after it', async () => {
+    const { transport, sent } = setup({
+      [TUNNEL_URL]: [{ statusCode: 200, headers: {} } as TransportMakeRequestResponse],
+    });
+
+    await transport.send(makeEnvelope('a'));
+    await transport.send(makeEnvelope('b'));
+
+    expect(sent.map(({ url, id }) => [url, id])).toEqual([
+      [TUNNEL_URL, 'a'],
+      [DIRECT_URL, 'b'],
+    ]);
+  });
+
+  it.each([400, 403, 413, 429, 500, 503])('never sends an envelope again after a %s', async statusCode => {
+    const { transport, sent } = setup({ [TUNNEL_URL]: [{ statusCode }] });
+
+    await transport.send(makeEnvelope('a'));
+    await transport.send(makeEnvelope('b'));
+
+    expect(sent.map(({ url, id }) => [url, id])).toEqual([
+      [TUNNEL_URL, 'a'],
+      [TUNNEL_URL, 'b'],
+    ]);
+  });
+
+  it('only sends each envelope directly once when several were already on their way to the tunnel', async () => {
+    const { transport, sent } = setup({ [TUNNEL_URL]: [{ statusCode: 404 }, { statusCode: 404 }] });
+
+    await Promise.all([transport.send(makeEnvelope('a')), transport.send(makeEnvelope('b'))]);
+
+    expect(sent.filter(({ url }) => url === DIRECT_URL).map(({ id }) => id)).toEqual(['a', 'b']);
+  });
+
+  it('is used by `init` for a managed tunnel only', () => {
+    const transport = vi.fn(makeFetchTransport);
+
+    init({ dsn: DSN, tunnel: true, transport });
+    const managedTransportOptions = transport.mock.calls[0]?.[0];
+    init({ dsn: DSN, tunnel: 'https://proxy.example.com', transport });
+
+    expect(managedTransportOptions?.url).toBe(getTunnelPath(DSN));
+    expect(transport).toHaveBeenLastCalledWith(expect.objectContaining({ url: 'https://proxy.example.com' }));
   });
 });
