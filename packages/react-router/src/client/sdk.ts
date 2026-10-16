@@ -1,7 +1,14 @@
 import type { BrowserOptions } from '@sentry/browser';
 import { init as browserInit } from '@sentry/browser';
 import type { Client } from '@sentry/core';
-import { applySdkMetadata, applyTunnelDefaults, consoleSandbox, GLOBAL_OBJ, setTag } from '@sentry/core';
+import {
+  applySdkMetadata,
+  applyTunnelDefaults,
+  consoleSandbox,
+  GLOBAL_OBJ,
+  normalizeTunnelBasePath,
+  setTag,
+} from '@sentry/core';
 
 const BROWSER_TRACING_INTEGRATION_ID = 'BrowserTracing';
 
@@ -31,7 +38,7 @@ export function init(options: BrowserOptions): Client | undefined {
   }
 
   // The managed tunnel is served under the app's `basename`, like every other route. A `basePath` the user set wins.
-  const basePath = GLOBAL_OBJ_WITH_ROUTER_CONTEXT.__reactRouterContext?.basename?.replace(/\/+$/, '');
+  const basePath = normalizeTunnelBasePath(GLOBAL_OBJ_WITH_ROUTER_CONTEXT.__reactRouterContext?.basename);
   options.tunnel = applyTunnelDefaults(options.tunnel, basePath ? { basePath } : undefined);
 
   applySdkMetadata(options, 'react-router', ['react-router', 'browser']);
