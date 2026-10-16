@@ -23,7 +23,9 @@
     "test:assert:tunnel-static": "E2E_TEST_TUNNEL_ROUTE_MODE=static E2E_TEST_DSN=http://public@localhost:3031/1337 pnpm test",
     "test:assert:tunnel-custom": "E2E_TEST_CUSTOM_TUNNEL_ROUTE=1 pnpm test",
     "test:assert:tunnel-object": "E2E_TEST_TUNNEL_ROUTE_MODE=object E2E_TEST_DSN=http://public@localhost:3031/1337 pnpm test",
-    "test:assert:tunnel-basepath": "E2E_TEST_TUNNEL_ROUTE_MODE=dynamic E2E_TEST_BASE_PATH=/app E2E_TEST_DSN=http://public@localhost:3031/1337 pnpm test tunnel"
+    "test:assert:tunnel-basepath": "E2E_TEST_TUNNEL_ROUTE_MODE=dynamic E2E_TEST_BASE_PATH=/app E2E_TEST_DSN=http://public@localhost:3031/1337 pnpm test tunnel",
+    "test:assert:tunnel-dev": "E2E_TEST_TUNNEL_ROUTE_MODE=dynamic E2E_TEST_DSN=http://public@localhost:3031/1337 TEST_ENV=development pnpm test tunnel",
+    "test:assert:tunnel-basepath-dev": "E2E_TEST_TUNNEL_ROUTE_MODE=dynamic E2E_TEST_BASE_PATH=/app E2E_TEST_DSN=http://public@localhost:3031/1337 TEST_ENV=development pnpm test tunnel"
   },
   "//": "Need to use ioredis 5.10.1 because that's the last version before they support tracing channels",
   "dependencies": {
@@ -82,6 +84,16 @@
         "label": "tanstackstart-react (tunnel-basepath)",
         "build-command": "pnpm test:build:tunnel-basepath",
         "assert-command": "pnpm test:assert:tunnel-basepath"
+      },
+      {
+        "label": "tanstackstart-react (tunnel-dev)",
+        "build-command": "pnpm install",
+        "assert-command": "pnpm test:assert:tunnel-dev"
+      },
+      {
+        "label": "tanstackstart-react (tunnel-basepath-dev)",
+        "build-command": "pnpm install",
+        "assert-command": "pnpm test:assert:tunnel-basepath-dev"
       }
     ]
   }
