@@ -2,11 +2,13 @@
 import type { SentryVitePluginOptions } from '@sentry/vite-plugin';
 import type { UserConfig } from 'vite';
 import { mergeConfig } from 'vite';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import * as path from 'path';
 import {
   getUpdatedSourceMapSettings,
   makeAddSentryVitePlugin,
   makeEnableSourceMapsVitePlugin,
+  rewriteTanstackStartSource,
 } from '../../src/vite/sourceMaps';
 
 const mockedSentryVitePlugin = {
@@ -255,6 +257,16 @@ describe('makeAddSentryVitePlugin()', () => {
     );
   });
 
+  it('rewrites sources with the TanStack Start hook by default', () => {
+    makeAddSentryVitePlugin({});
+
+    expect(sentryVitePluginSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        sourcemaps: expect.objectContaining({ rewriteSources: rewriteTanstackStartSource }),
+      }),
+    );
+  });
+
   it('sets the correct metaFramework in telemetry options', () => {
     makeAddSentryVitePlugin({
       org: 'my-org',
@@ -333,5 +345,58 @@ describe('getUpdatedSourceMapSettings', () => {
     const result = getUpdatedSourceMapSettings({});
 
     expect(result).toBe('hidden');
+  });
+});
+
+describe('rewriteTanstackStartSource', () => {
+  const projectRoot = path.resolve('/projects/shop');
+
+  beforeEach(() => {
+    vi.spyOn(process, 'cwd').mockReturnValue(projectRoot);
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it.each([
+    {
+      label: 'a server function split from a route',
+      source: '../../../src/routes/index.tsx?tss-serverfn-split',
+      mapDir: '.output/server/_ssr',
+      expected: 'src/routes/index.tsx',
+    },
+    {
+      label: 'a route component split for the client',
+      source: '../../../src/routes/users.$userId.tsx?tsr-split=component',
+      mapDir: '.output/public/assets',
+      expected: 'src/routes/users.$userId.tsx',
+    },
+    {
+      label: 'a dependency',
+      source: '../../node_modules/.pnpm/h3@2.0.2/node_modules/h3/dist/index.mjs',
+      mapDir: '.output/server',
+      expected: 'node_modules/.pnpm/h3@2.0.2/node_modules/h3/dist/index.mjs',
+    },
+    {
+      label: 'a source that climbs fewer directories than the map is deep',
+      source: '../shared/format-price.ts',
+      mapDir: '.output/server/chunks/build',
+      expected: '.output/server/chunks/shared/format-price.ts',
+    },
+  ])('makes the path of $label relative to the project root', ({ source, mapDir, expected }) => {
+    expect(rewriteTanstackStartSource(source, {}, { mapDir: path.join(projectRoot, mapDir) })).toBe(expected);
+  });
+
+  it('keeps sources that are no file paths', () => {
+    const mapDir = path.join(projectRoot, '.output/server');
+
+    expect(rewriteTanstackStartSource('virtual:#nitro/virtual/plugins', {}, { mapDir })).toBe(
+      'virtual:#nitro/virtual/plugins',
+    );
+  });
+
+  it('resolves sources from the project root without a map directory', () => {
+    expect(rewriteTanstackStartSource('src/routes/index.tsx?tss-serverfn-split', {})).toBe('src/routes/index.tsx');
   });
 });
