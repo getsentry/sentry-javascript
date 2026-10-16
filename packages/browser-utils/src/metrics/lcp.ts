@@ -2,6 +2,7 @@ import type { Client, SpanAttributes } from '@sentry/core';
 import {
   browserPerformanceTimeOrigin,
   debug,
+  filterCollectedUrl,
   getCurrentScope,
   SEMANTIC_ATTRIBUTE_EXCLUSIVE_TIME,
   SEMANTIC_ATTRIBUTE_SENTRY_MEASUREMENT_UNIT,
@@ -90,7 +91,7 @@ export function _sendStandaloneLcpSpan(
     entry.element && (attributes['lcp.element'] = htmlTreeAsString(entry.element));
     entry.id && (attributes['lcp.id'] = entry.id);
 
-    entry.url && (attributes['lcp.url'] = entry.url);
+    entry.url && (attributes['lcp.url'] = filterCollectedUrl(entry.url));
 
     // loadTime is the time of LCP that's related to receiving the LCP element response..
     entry.loadTime != null && (attributes['lcp.loadTime'] = entry.loadTime);

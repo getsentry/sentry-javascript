@@ -295,6 +295,11 @@ export function determineReleaseName(): string | undefined {
   );
 }
 
+function stringifyForCodeInjection(value: unknown): string | undefined {
+  // Bundles may be inlined in HTML, where JSON quoting does not escape script tags or HTML comments.
+  return JSON.stringify(value)?.replace(/</g, '\\u003c');
+}
+
 /**
  * Generates code for the global injector which is responsible for setting the global
  * `SENTRY_RELEASE` & `SENTRY_BUILD_INFO` variables.
@@ -306,12 +311,12 @@ export function generateReleaseInjectorCode({
   release: string;
   injectBuildInformation: boolean;
 }): CodeInjection {
-  let code = `e.SENTRY_RELEASE={id:${JSON.stringify(release)}};`;
+  let code = `e.SENTRY_RELEASE={id:${stringifyForCodeInjection(release)}};`;
 
   if (injectBuildInformation) {
     const buildInfo = getBuildInformation();
 
-    code += `e.SENTRY_BUILD_INFO=${JSON.stringify(buildInfo)};`;
+    code += `e.SENTRY_BUILD_INFO=${stringifyForCodeInjection(buildInfo)};`;
   }
 
   return new CodeInjection(code);
@@ -322,7 +327,7 @@ export function generateModuleMetadataInjectorCode(metadata: any): CodeInjection
   // We are merging the metadata objects in case modules are bundled twice with the plugin
   // Use try-catch to avoid issues when bundlers rename global variables like 'window' to 'k'
   return new CodeInjection(
-    `e._sentryModuleMetadata=e._sentryModuleMetadata||{},e._sentryModuleMetadata[(new e.Error).stack]=function(e){for(var n=1;n<arguments.length;n++){var a=arguments[n];if(null!=a)for(var t in a)a.hasOwnProperty(t)&&(e[t]=a[t])}return e}({},e._sentryModuleMetadata[(new e.Error).stack],${JSON.stringify(
+    `e._sentryModuleMetadata=e._sentryModuleMetadata||{},e._sentryModuleMetadata[(new e.Error).stack]=function(e){for(var n=1;n<arguments.length;n++){var a=arguments[n];if(null!=a)for(var t in a)a.hasOwnProperty(t)&&(e[t]=a[t])}return e}({},e._sentryModuleMetadata[(new e.Error).stack],${stringifyForCodeInjection(
       metadata,
     )});`,
   );

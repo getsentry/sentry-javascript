@@ -1,5 +1,5 @@
-import { withSentry } from '@sentry/cloudflare';
-import { applySdkMetadata, type BaseTransportOptions, debug, type Options } from '@sentry/core';
+import { withSentry, type CloudflareOptions } from '@sentry/cloudflare';
+import { applySdkMetadata, debug } from '@sentry/core';
 import { getConnInfo } from 'hono/cloudflare-workers';
 import type { Env, Hono, MiddlewareHandler } from 'hono';
 import { buildFilteredIntegrations } from '../shared/buildFilteredIntegrations';
@@ -8,7 +8,7 @@ import { requestHandler, responseHandler } from '../shared/middlewareHandlers';
 import { applyPatches } from '../shared/applyPatches';
 import type { SentryHonoMiddlewareOptions } from '../shared/types';
 
-export interface HonoCloudflareOptions extends Options<BaseTransportOptions>, SentryHonoMiddlewareOptions {}
+export interface HonoCloudflareOptions extends CloudflareOptions, SentryHonoMiddlewareOptions {}
 
 /**
  * Sentry middleware for Hono on Cloudflare Workers.

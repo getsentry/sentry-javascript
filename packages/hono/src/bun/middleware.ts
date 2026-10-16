@@ -1,4 +1,5 @@
-import { type BaseTransportOptions, debug, type Options } from '@sentry/core';
+import type { BunOptions } from '@sentry/bun';
+import { debug } from '@sentry/core';
 import { init } from './sdk';
 import { getConnInfo } from 'hono/bun';
 import type { Env, Hono, MiddlewareHandler } from 'hono';
@@ -6,7 +7,7 @@ import { requestHandler, responseHandler } from '../shared/middlewareHandlers';
 import { applyPatches } from '../shared/applyPatches';
 import type { SentryHonoMiddlewareOptions } from '../shared/types';
 
-export interface HonoBunOptions extends Options<BaseTransportOptions>, SentryHonoMiddlewareOptions {}
+export interface HonoBunOptions extends BunOptions, SentryHonoMiddlewareOptions {}
 
 /**
  * Sentry middleware for Hono running in a Bun runtime environment.
