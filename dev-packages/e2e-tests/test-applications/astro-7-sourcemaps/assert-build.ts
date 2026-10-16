@@ -2,8 +2,6 @@ import * as assert from 'node:assert/strict';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 import {
-  findInjectedDebugIds,
-  findSourceMapFiles,
   getArtifactBundles,
   getAssembleRequests,
   getChunkUploadPosts,
@@ -11,6 +9,38 @@ import {
   getSourcemaps,
   loadMockServerResults,
 } from '@sentry-internal/test-utils';
+
+// v10's `@sentry-internal/test-utils` has no build-output helpers, so the two used here are inlined.
+const INJECTED_DEBUG_ID_PATTERN = /sentry-dbid-([\da-f]{8}-[\da-f]{4}-[\da-f]{4}-[\da-f]{4}-[\da-f]{12})/gi;
+
+function walkFiles(outputDir: string): string[] {
+  if (!fs.existsSync(outputDir)) {
+    throw new Error(`Output directory does not exist: ${outputDir}`);
+  }
+  return fs
+    .readdirSync(outputDir, { recursive: true, withFileTypes: true })
+    .filter(entry => entry.isFile())
+    .map(entry => path.join(entry.parentPath, entry.name));
+}
+
+/** Distinct lowercased debug IDs the bundler plugin injected into the emitted JavaScript. */
+function findInjectedDebugIds({ outputDir }: { outputDir: string }): string[] {
+  const debugIds = new Set<string>();
+  for (const file of walkFiles(outputDir)) {
+    if (!['.js', '.mjs', '.cjs'].includes(path.extname(file))) continue;
+    for (const match of fs.readFileSync(file, 'utf8').matchAll(INJECTED_DEBUG_ID_PATTERN)) {
+      debugIds.add((match[1] as string).toLowerCase());
+    }
+  }
+  return [...debugIds];
+}
+
+/** Every `.map` file under `outputDir`, relative to the current directory. */
+function findSourceMapFiles({ outputDir }: { outputDir: string }): string[] {
+  return walkFiles(outputDir)
+    .filter(file => file.endsWith('.map'))
+    .map(file => path.relative(process.cwd(), file));
+}
 
 const isStatic = process.env.E2E_ASTRO_OUTPUT === 'static';
 
