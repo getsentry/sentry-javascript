@@ -17184,10 +17184,15 @@ homedir-polyfill@^1.0.1:
   dependencies:
     parse-passwd "^1.0.0"
 
-hono@^4.13.7:
-  version "4.13.7"
-  resolved "https://registry.yarnpkg.com/hono/-/hono-4.13.7.tgz#80fdab8326f03d02f049117fd968101933493600"
-  integrity sha512-c8/gF9ac8Y78/agExVocyLevgR+JlpNB444Py0FSX8pJoPdYUfUzRcXtYEYGwt6l19qIlVZPN5Mfsw9jFShmQQ==
+"hono-5@npm:hono@5.0.0-rc.1":
+  version "5.0.0-rc.1"
+  resolved "https://sfw.security.sentry.io/npm/hono/-/hono-5.0.0-rc.1.tgz#7115abe957dd0a5b794e999267dec3a6b217196f"
+  integrity sha512-vTcfU9yAggXh/+ZSi8zpYbzYDubCgFnSt8d5afCAlgkd38dyYb3CVtOh8YWhS65NkEqBseCsTj/P8mceJ+7KNA==
+
+hono@4.13.9, hono@^4.13.7:
+  version "4.13.9"
+  resolved "https://sfw.security.sentry.io/npm/hono/-/hono-4.13.9.tgz#682943308ab2f228012460d596a9af58090a1528"
+  integrity sha512-7dMkQmZoC4E6F7AtaQSPhlWAdnBti+j7rreMZl8QB4jFiEhP9TWbGWUMi8WYzBCgmgulxuvLQupKqo+Co6Omyg==
 
 hookable@^5.5.3:
   version "5.5.3"
