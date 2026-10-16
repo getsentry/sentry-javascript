@@ -1,5 +1,7 @@
 import type { TunnelOptions } from '@sentry/core';
+import { getClient, getTunnelPaths, setManagedTunnelBasePath } from '@sentry/core';
 import type { Plugin } from 'vite';
+import { registerSentryServerTunnelRoute } from '../server/tunnelRoute';
 
 export type TunnelRouteOptions =
   | true
@@ -132,7 +134,8 @@ export function makeServerEntryTunnelPlugin(
   tunnelRoute: TunnelRouteOptions | undefined,
   getBasePath: () => string = () => '',
 ): Plugin {
-  const tunnelOptions = tunnelRoute ? JSON.stringify(normalizeTunnelRouteOptions(tunnelRoute)) : 'undefined';
+  const normalizedTunnelOptions = tunnelRoute ? normalizeTunnelRouteOptions(tunnelRoute) : undefined;
+  const tunnelOptions = normalizedTunnelOptions ? JSON.stringify(normalizedTunnelOptions) : 'undefined';
   const serverEntryIds = new Set<string>();
 
   return {
@@ -143,6 +146,15 @@ export function makeServerEntryTunnelPlugin(
       const serverEntry = aliases.find(alias => alias.find === SERVER_ENTRY_ALIAS);
       if (serverEntry) {
         serverEntryIds.add(normalizePath(serverEntry.replacement));
+      }
+    },
+    // `vite dev` takes each request in this process and passes it on to where the server entry runs, so its
+    // `http.server` span comes from the SDK `--import` set up here, which the server entry never reaches.
+    configureServer() {
+      const basePath = getBasePath();
+      setManagedTunnelBasePath(getClient(), basePath);
+      if (normalizedTunnelOptions) {
+        getTunnelPaths(normalizedTunnelOptions).forEach(path => registerSentryServerTunnelRoute(`${basePath}${path}`));
       }
     },
     load(id) {
