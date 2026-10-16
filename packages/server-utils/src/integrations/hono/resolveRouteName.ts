@@ -1,5 +1,6 @@
 import type { Context, HonoRoute } from './honoTypes';
 import { isMiddleware } from './isMiddleware';
+import { getMatchedHandlers, getRecordedRouteHandlerIndex } from './matchResult';
 
 // Arity alone is enough here (unlike `wrapSubAppMiddleware` in patchRoute.ts, which also needs position)
 // We only want the path, and inline middleware shares its handler's path.
@@ -7,36 +8,37 @@ function isRouteHandler(handler: unknown): boolean {
   return typeof handler === 'function' && !isMiddleware(handler);
 }
 
-// Read the request's own matched routes rather than importing the `hono/route` helpers, so the
-// instrumentation needs no runtime import from `hono`. `c.req.matchedRoutes` and `c.req.routePath`
-// are the (deprecated but public) getters those helpers wrap; `routePath(c, index)` is reimplemented
-// here as `matchedRoutes(c).at(index)?.path` so an arbitrary index (e.g. -1) can be resolved.
-function matchedRoutes(context: Context): HonoRoute[] {
-  return context.req.matchedRoutes ?? [];
-}
-
-function routePath(context: Context, index?: number): string {
-  const routes = matchedRoutes(context);
-  return routes.at(index ?? context.req.routeIndex)?.path ?? '';
+// `c.req.matchedRoutes` exists on every Hono 4; Hono 5 removes it.
+function readMatchedRoutes(context: Context): HonoRoute[] {
+  return context.req.matchedRoutes ?? getMatchedHandlers(context)?.map(([[, route]]) => route) ?? [];
 }
 
 /**
- * Resolves the route path of the matched handler for the transaction name.
+ * Resolves the route path of the handler that responded, for the transaction name.
  *
- * Picking the handler (not just `routePath`) avoids two failure modes: a catch-all middleware
- * registered after the handlers (`routePath(c, -1)` would return just `/*`), and a middleware that
- * short-circuits before the handler runs (`routePath(c)` would return the middleware's path).
+ * Picking the handler (not just the last matched route) avoids two failure modes: a catch-all
+ * registered after the handlers (the last route would be just `/*`), and a middleware that
+ * short-circuits before the handler runs (`routeIndex` would point to the middleware).
+ *
+ * Returns `undefined` when the request has no matched routes.
  */
-export function resolveRouteName(context: Context): string {
-  const routes = matchedRoutes(context);
+export function resolveRouteName(context: Context): string | undefined {
+  const routes = readMatchedRoutes(context);
 
-  // Trust routeIndex when it lands on a handler - to disambiguate overlapping handlers.
+  const recordedIndex = getRecordedRouteHandlerIndex(context);
+  const recorded = recordedIndex === undefined ? undefined : routes[recordedIndex];
+  if (recorded) {
+    return recorded.path;
+  }
+
+  // No recorded index on Hono 4.0 to 4.7 with the manual setup. There, `routeIndex` stays on the
+  // handler that responded.
   const current = routes[context.req.routeIndex];
   if (current && isRouteHandler(current.handler)) {
     return current.path;
   }
 
-  // A middleware short-circuited, so routeIndex is stuck on it: fall back to the last matched handler.
+  // No route handler started (a middleware short-circuited, or a 404): fall back to the last matched handler.
   for (let i = routes.length - 1; i >= 0; i--) {
     const route = routes[i];
     if (route && isRouteHandler(route.handler)) {
@@ -46,5 +48,5 @@ export function resolveRouteName(context: Context): string {
 
   // No handler matched (middleware-only path)
   // Final matched route: https://hono.dev/docs/helpers/route#using-with-index-parameter
-  return routePath(context, -1);
+  return routes.at(-1)?.path;
 }
