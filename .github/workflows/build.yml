@@ -1176,21 +1176,6 @@ jobs:
           overwrite: true
           retention-days: 7
 
-      - name: Pre-process E2E Test Dumps
-        if: failure()
-        run: |
-          node ./scripts/normalize-e2e-test-dump-transaction-events.js ${{ runner.temp }}/test-application/event-dumps
-
-      - name: Upload E2E Test Event Dumps
-        uses: actions/upload-artifact@v7
-        if: failure()
-        with:
-          name: E2E Test Dump (${{ matrix.label || matrix.test-application }})
-          path: ${{ runner.temp }}/test-application/event-dumps
-          overwrite: true
-          retention-days: 7
-          if-no-files-found: ignore
-
   # - We skip optional tests on release branches
   job_optional_e2e_tests:
     name: E2E ${{ matrix.label || matrix.test-application }} Test (optional)
@@ -1308,21 +1293,6 @@ jobs:
         working-directory: ${{ runner.temp }}/test-application
         timeout-minutes: 10
         run: ${{ matrix.assert-command || 'pnpm test:assert' }}
-
-      - name: Pre-process E2E Test Dumps
-        if: failure()
-        run: |
-          node ./scripts/normalize-e2e-test-dump-transaction-events.js ${{ runner.temp }}/test-application/event-dumps
-
-      - name: Upload E2E Test Event Dumps
-        uses: actions/upload-artifact@v7
-        if: failure()
-        with:
-          name: E2E Test Dump (${{ matrix.label || matrix.test-application }})
-          path: ${{ runner.temp }}/test-application/event-dumps
-          overwrite: true
-          retention-days: 7
-          if-no-files-found: ignore
 
   job_required_jobs_passed:
     name: All required jobs passed or were skipped
