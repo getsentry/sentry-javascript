@@ -1,5 +1,5 @@
 import { fileURLToPath } from 'node:url';
-import { debug, GLOBAL_OBJ } from '@sentry/core';
+import { debug, GLOBAL_OBJ, normalizeTunnelBasePath } from '@sentry/core';
 import { INSTRUMENTED_MODULE_NAMES } from '@sentry/server-utils/orchestrion/config';
 import {
   commonJSInteropOptions,
@@ -7,7 +7,7 @@ import {
   sentryOrchestrionPlugin,
 } from '@sentry/server-utils/orchestrion/rollup';
 import type { Nitro, NitroConfig } from 'nitropack';
-import { TUNNEL_BASE_PATH_GLOBAL, toTunnelBasePath } from '../common/tunnel';
+import { TUNNEL_BASE_PATH_GLOBAL } from '../common/tunnel';
 import { addSentryPluginToVite } from '../vite/sentrySolidStartVite';
 import type { SentrySolidStartPluginOptions } from '../vite/types';
 import {
@@ -49,7 +49,9 @@ export function withSentry(
 
   const server = (solidStartConfig.server || {}) as SolidStartInlineServerConfig;
   // Requests reach the tunnel with `server.baseURL` still in front, so both sides serve it under that.
-  const tunnelBasePath = toTunnelBasePath((server as SolidStartInlineServerConfig & { baseURL?: string }).baseURL);
+  const tunnelBasePath = normalizeTunnelBasePath(
+    (server as SolidStartInlineServerConfig & { baseURL?: string }).baseURL,
+  );
   // vinxi's dev server runs Nitro in this process, so the tunnel plugin can read it from here in dev.
   if (tunnelBasePath) {
     (GLOBAL_OBJ as { [TUNNEL_BASE_PATH_GLOBAL]?: string })[TUNNEL_BASE_PATH_GLOBAL] = tunnelBasePath;

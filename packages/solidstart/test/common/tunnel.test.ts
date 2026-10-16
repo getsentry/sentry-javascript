@@ -1,15 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { applyTunnelBasePath, toTunnelBasePath } from '../../src/common/tunnel';
-
-describe('toTunnelBasePath', () => {
-  it('turns `server.baseURL` into a base path, and the root into none', () => {
-    expect(toTunnelBasePath('/app/')).toBe('/app');
-    expect(toTunnelBasePath('app')).toBe('/app');
-    expect(toTunnelBasePath('/')).toBe('');
-    expect(toTunnelBasePath('./')).toBe('');
-    expect(toTunnelBasePath(undefined)).toBe('');
-  });
-});
+import { applyTunnelBasePath } from '../../src/common/tunnel';
 
 describe('applyTunnelBasePath', () => {
   afterEach(() => {
