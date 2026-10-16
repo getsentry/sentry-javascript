@@ -76,7 +76,30 @@ describe('handleTunnelRequest', () => {
     expect(init.headers).toEqual({ 'Content-Type': 'application/x-sentry-envelope' });
     expect(await new Response(init.body).text()).toBe(serializeEnvelope(createEnvelope({ dsn: TEST_DSN }, [])));
 
-    expect(result).toBe(upstreamResponse);
+    expect(result.status).toBe(200);
+    expect(await result.text()).toBe('ok');
+  });
+
+  it("marks every response it returns as the tunnel's, so the browser can tell it from a static host", async () => {
+    fetchMock.mockResolvedValueOnce(
+      new Response('{}', { status: 200, headers: { 'Content-Type': 'application/json', 'Content-Encoding': 'gzip' } }),
+    );
+
+    const forwarded = await handleTunnelRequest({
+      request: makeEnvelopeRequest({ dsn: TEST_DSN }),
+      allowedDsns: [TEST_DSN],
+    });
+    const rejected = await handleTunnelRequest({
+      request: makeEnvelopeRequest({ dsn: 'https://public@other.ingest.sentry.io/1' }),
+      allowedDsns: [TEST_DSN],
+    });
+
+    expect(forwarded.headers.get('X-Sentry-Tunnel')).toBe('1');
+    expect(forwarded.headers.get('Content-Type')).toBe('application/json');
+    // `fetch` already decoded the body, so the original encoding would make the browser decode it twice.
+    expect(forwarded.headers.get('Content-Encoding')).toBeNull();
+    expect(rejected.status).toBe(403);
+    expect(rejected.headers.get('X-Sentry-Tunnel')).toBe('1');
   });
 
   it('forwards the content length of the incoming request', async () => {
@@ -154,7 +177,7 @@ describe('handleTunnelRequest', () => {
       allowedDsns: [TEST_DSN],
     });
 
-    expect(result).toBe(upstreamResponse);
+    expect(await result.text()).toBe('ok');
   });
 
   it('returns 400 when the envelope header line exceeds the limit', async () => {
@@ -246,7 +269,7 @@ describe('handleTunnelRequest', () => {
     expect(fetchMock).toHaveBeenCalledOnce();
     const [url] = fetchMock.mock.calls[0]!;
     expect(url).toBe(getEnvelopeEndpointWithUrlEncodedAuth(makeDsn(TEST_DSN)!));
-    expect(result).toBe(upstreamResponse);
+    expect(await result.text()).toBe('ok');
   });
 
   it('returns 500 when fetch throws a network error', async () => {

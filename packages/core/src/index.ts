@@ -111,6 +111,7 @@ export {
   isTunnelRequest,
   resolveServerTunnelOption,
   setManagedTunnelBasePath,
+  TUNNEL_RESPONSE_HEADER,
 } from './utils/tunnel';
 export { addAutoIpAddressToSession } from './utils/ipAddress';
 export {
