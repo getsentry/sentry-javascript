@@ -20,7 +20,7 @@
     "@tanstack/react-router": "^1.136.0",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
-    "nitro": "latest || *",
+    "nitro": "latest",
     "ioredis": "5.10.1",
     "mysql": "^2.18.1"
   },
@@ -30,10 +30,10 @@
     "@types/node": "^24.10.0",
     "@typescript-eslint/eslint-plugin": "^7.2.0",
     "@typescript-eslint/parser": "^7.2.0",
-    "@vitejs/plugin-react-swc": "^3.5.0",
+    "@vitejs/plugin-react-swc": "^4.3.3",
     "typescript": "^5.9.0",
-    "vite": "7.3.5",
-    "vite-tsconfig-paths": "^5.1.4",
+    "vite": "8.3.4",
+    "vite-tsconfig-paths": "^6.1.1",
     "@playwright/test": "~1.56.0",
     "@sentry-internal/test-utils": "link:../../../test-utils"
   },
