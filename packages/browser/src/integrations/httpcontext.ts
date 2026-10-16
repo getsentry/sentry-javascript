@@ -15,7 +15,7 @@ export const httpContextIntegration = defineIntegration(() => {
         return;
       }
 
-      const reqData = getHttpRequestData();
+      const reqData = getHttpRequestData(client);
       const headers = {
         ...reqData.headers,
         ...event.request?.headers,
@@ -29,13 +29,13 @@ export const httpContextIntegration = defineIntegration(() => {
       };
     },
 
-    processSpan(span) {
+    processSpan(span, client) {
       // if none of the information we want exists, don't bother
       if (!WINDOW.navigator && !WINDOW.location && !WINDOW.document) {
         return;
       }
 
-      const reqData = getHttpRequestData();
+      const reqData = getHttpRequestData(client);
 
       safeSetSpanJSONAttributes(span, {
         // This attribute is used by the "Filter out events from legacy browsers and crawlers" features on the Sentry backend.

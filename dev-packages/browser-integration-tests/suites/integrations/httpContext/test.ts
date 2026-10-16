@@ -35,3 +35,18 @@ sentryTest('httpContextIntegration filters sensitive query params in the URL', a
 
   expect(errorEvent.request?.url).toBe(`${url}?jwt=[Filtered]&page=1`);
 });
+
+sentryTest(
+  'httpContextIntegration filters sensitive query params in the Referer header',
+  async ({ getLocalTestUrl, page }) => {
+    const url = await getLocalTestUrl({ testDir: __dirname });
+
+    const errorEventPromise = waitForErrorRequest(page);
+
+    await page.goto(url, { referer: `${url}?jwt=sensitive-jwt-value&page=1` });
+
+    const errorEvent = envelopeRequestParser(await errorEventPromise);
+
+    expect(errorEvent.request?.headers?.Referer).toBe(`${url}?jwt=[Filtered]&page=1`);
+  },
+);
