@@ -1,5 +1,5 @@
 import type { TunnelOptions } from '@sentry/core';
-import { getClient, getTunnelPaths, setManagedTunnelBasePath } from '@sentry/core';
+import { getClient, getTunnelPaths, normalizeTunnelBasePath, setManagedTunnelBasePath } from '@sentry/core';
 import type { Plugin } from 'vite';
 import { registerSentryServerTunnelRoute } from '../server/tunnelRoute';
 
@@ -88,7 +88,7 @@ export function makeTunnelBasePathPlugin(): { plugin: Plugin; getBasePath: () =>
     enforce: 'post',
     config(config) {
       const startBasePath = config.define?.[START_BASE_PATH_DEFINE];
-      basePath = normalizeBasePath(
+      basePath = normalizeTunnelBasePath(
         typeof startBasePath === 'string' ? parseDefine(startBasePath) : getRouterBasePathFromViteBase(config.base),
       );
 
@@ -112,12 +112,6 @@ function parseDefine(value: string): string | undefined {
 // Start's own fallback when `router.basepath` isn't set: an absolute (CDN) `base` doesn't move the app's routes.
 function getRouterBasePathFromViteBase(base: string | undefined): string | undefined {
   return base && !/^[a-z][a-z\d+.-]*:/i.test(base) && !base.startsWith('//') ? base : undefined;
-}
-
-function normalizeBasePath(basePath: string | undefined): string {
-  const trimmed = (basePath ?? '').replace(/^\.?\/+|\/+$/g, '');
-
-  return trimmed ? `/${trimmed}` : '';
 }
 
 const SERVER_ENTRY_ALIAS = 'virtual:tanstack-start-server-entry';
