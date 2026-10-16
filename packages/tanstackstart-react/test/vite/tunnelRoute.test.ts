@@ -1,5 +1,7 @@
+import type { Client } from '@sentry/core';
+import { getCurrentScope, getTunnelPath, makeDsn } from '@sentry/core';
 import type { Plugin, ResolvedConfig, UserConfig } from 'vite';
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it } from 'vitest';
 import {
   makeServerEntryTunnelPlugin,
   makeTunnelBasePathPlugin,
@@ -122,5 +124,39 @@ describe('tunnel base path vite plugin', () => {
   it('serves the tunnel from the root without a base path', () => {
     expect(resolve({ define: { 'process.env.TSS_ROUTER_BASEPATH': JSON.stringify('/') } }).basePath).toBe('');
     expect(resolve({}).basePath).toBe('');
+  });
+});
+
+describe('server entry tunnel vite plugin in `vite dev`', () => {
+  const DSN = 'https://public@o1.ingest.sentry.io/1337';
+
+  afterEach(() => {
+    getCurrentScope().setClient(undefined);
+  });
+
+  function setClient(managedTunnel: object | undefined): Record<string, unknown> {
+    const options = { dsn: DSN, _managedTunnel: managedTunnel, ignoreSpans: [] as unknown[] };
+    getCurrentScope().setClient({ getDsn: () => makeDsn(DSN), getOptions: () => options } as unknown as Client);
+
+    return options;
+  }
+
+  it("drops the dev server's spans for a `tunnelRoute` under the base path", () => {
+    const options = setClient(undefined);
+    const plugin = makeServerEntryTunnelPlugin(true, () => '/app');
+
+    (plugin.configureServer as () => void)();
+
+    const [filter] = options.ignoreSpans as { attributes: Record<string, RegExp> }[];
+    expect(filter?.attributes['url.path']?.test(`/app${getTunnelPath(DSN)}`)).toBe(true);
+  });
+
+  it("serves the dev server's managed tunnel from `init` under the base path", () => {
+    const options = setClient({});
+    const plugin = makeServerEntryTunnelPlugin(undefined, () => '/app');
+
+    (plugin.configureServer as () => void)();
+
+    expect(options._managedTunnel).toEqual({ basePath: '/app' });
   });
 });
