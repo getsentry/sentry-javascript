@@ -31,7 +31,7 @@ assert.ok(
 assert.strictEqual(
   symlinkPaths.length,
   tarballPaths.length,
-  `Tarball count (${tarballPaths.length}) does not match packed symlink count (${symlinkPaths.length}). Re-run "pnpm sync:packed-tarballs".`,
+  `Tarball count (${tarballPaths.length}) does not match packed symlink count (${symlinkPaths.length}). Re-run "pnpm run test:prepare".`,
 );
 
 for (const symlinkPath of symlinkPaths) {
