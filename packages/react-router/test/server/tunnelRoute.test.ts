@@ -54,4 +54,21 @@ describe('createSentryTunnelRoute', () => {
     expect(await (await route.module.action({ request })).text()).toBe('forwarded');
     expect(route.module.loader().status).toBe(405);
   });
+
+  it('serves the tunnel under `basename`, which React Router leaves in the request URL', async () => {
+    setClient({});
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(() => Promise.resolve(new Response('forwarded'))),
+    );
+    const route = createSentryTunnelRoute('/app/') as TunnelRoute;
+    const request = new Request(`http://localhost/app${getTunnelPath(DSN)}`, {
+      method: 'POST',
+      body: serializeEnvelope(createEnvelope({ dsn: DSN }, [])) as BodyInit,
+    });
+
+    // React Router matches the route under `basename` itself, so the path stays relative to it.
+    expect(route.path).toBe(getTunnelPath(DSN));
+    expect(await (await route.module.action({ request })).text()).toBe('forwarded');
+  });
 });
