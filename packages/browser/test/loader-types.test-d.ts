@@ -1,5 +1,6 @@
 import { expectTypeOf, it, describe } from 'vitest';
-import type { LoaderSentry } from '../src/loader';
+import type { Scope } from '@sentry/core';
+import type { LoaderSentry } from '../src/loader-types';
 
 describe('LoaderSentry', () => {
   it('exposes the APIs supported by the loader', () => {
@@ -29,5 +30,19 @@ describe('LoaderSentry', () => {
     expectTypeOf<LoaderSentry['captureEvent']>().returns.toBeVoid();
     expectTypeOf<LoaderSentry['withScope']>().returns.toBeVoid();
     expectTypeOf<LoaderSentry['showReportDialog']>().returns.toBeVoid();
+  });
+
+  it('keeps the parameters of the SDK methods', () => {
+    expectTypeOf<LoaderSentry['init']>().toBeCallableWith({ dsn: 'https://public@dsn.ingest.sentry.io/1337' });
+    expectTypeOf<LoaderSentry['captureException']>().toBeCallableWith(new Error('test'), { tags: { foo: 'bar' } });
+    expectTypeOf<LoaderSentry['captureMessage']>().toBeCallableWith('test', 'warning');
+    expectTypeOf<LoaderSentry['onLoad']>().toBeCallableWith(() => {});
+  });
+
+  it('only exposes the callback overload of withScope', () => {
+    expectTypeOf<LoaderSentry['withScope']>().toBeCallableWith(scope => {
+      scope.setTag('foo', 'bar');
+    });
+    expectTypeOf<LoaderSentry['withScope']>().parameters.toEqualTypeOf<[callback: (scope: Scope) => void]>();
   });
 });

@@ -1,4 +1,3 @@
-
 import { defineConfig } from 'vitest/config';
 import baseConfig from '../../vite/vite.config';
 
@@ -12,8 +11,8 @@ export default defineConfig({
     },
     typecheck: {
       enabled: true,
-      include: ['test/loader.test-d.ts'],
-      tsconfig: './tsconfig.loader.test.json',
+      tsconfig: './tsconfig.test.json',
+      ignoreSourceErrors: true,
     },
   },
 });

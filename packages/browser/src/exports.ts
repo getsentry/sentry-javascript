@@ -23,7 +23,7 @@ export type {
 } from '@sentry/core';
 
 export type { BrowserOptions } from './client';
-export type { LoaderSentry } from './loader';
+export type { LoaderSentry } from './loader-types';
 
 export {
   addEventProcessor,
