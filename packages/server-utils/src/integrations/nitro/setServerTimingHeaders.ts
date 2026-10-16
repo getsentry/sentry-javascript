@@ -12,8 +12,7 @@ const globalWithServerTiming = GLOBAL_OBJ as typeof GLOBAL_OBJ & {
  * This is deliberately independent of span sampling: `getTraceData()` returns valid trace
  * propagation data even in tracing-without-performance mode, and the browser SDK reads these headers
  * (via the Performance API) to connect a pageload to the backend trace regardless of whether the
- * server records spans. Span creation itself lives in the separate `nitroIntegration`, which only
- * activates when tracing is enabled.
+ * server records spans.
  */
 export function captureServerTimingHeaders(): void {
   if (globalWithServerTiming.__SENTRY_NITRO_SERVER_TIMING_INSTRUMENTED__) {

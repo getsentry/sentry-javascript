@@ -112,4 +112,48 @@ describe.runIf(supports({ min: 20 }))('nitro integrations', () => {
       await runner.completed();
     });
   });
+
+  createEsmTests(__dirname, 'scenario.mjs', 'instrument-no-tracing.mjs', (createRunner, test) => {
+    test('sets Server-Timing headers without tracing enabled', async () => {
+      const runner = createRunner().start();
+
+      const port = await vi.waitFor(() => runner.getPort() ?? Promise.reject(new Error('port not ready')), {
+        timeout: 30_000,
+      });
+      const response = await fetch(`http://localhost:${port}/hello/world`);
+      expect(await response.text()).toBe('Hello, world!');
+
+      const serverTiming = response.headers.get('server-timing');
+      expect(serverTiming).toMatch(/sentry-trace;desc="[a-f\d]{32}-[a-f\d]{16}"/);
+      expect(serverTiming).toContain('baggage;desc="');
+    });
+  });
+
+  createEsmTests(__dirname, 'scenario.mjs', 'instrument-opt-out.mjs', (createRunner, test) => {
+    test('skips Server-Timing headers and cache spans when opted out', async () => {
+      const runner = createRunner()
+        .expect({
+          span: container => {
+            const segment = container.items.find(span => span.is_segment);
+            const cacheSpans = container.items.filter(
+              span => span.attributes[SENTRY_ORIGIN]?.value === 'auto.cache.nitro',
+            );
+
+            expect(segment?.name).toBe('GET /cache');
+            expect(cacheSpans).toEqual([]);
+          },
+        })
+        .start();
+
+      const port = await vi.waitFor(() => runner.getPort() ?? Promise.reject(new Error('port not ready')), {
+        timeout: 30_000,
+      });
+      const response = await fetch(`http://localhost:${port}/cache`);
+      expect(await response.text()).toBe('value');
+
+      await runner.completed();
+
+      expect(response.headers.get('server-timing')).toBeNull();
+    });
+  });
 });
