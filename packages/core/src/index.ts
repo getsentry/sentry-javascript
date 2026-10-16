@@ -103,6 +103,7 @@ export { safeCallback } from './utils/safeCallback';
 export { parameterize, fmt } from './utils/parameterize';
 export type { HandleTunnelRequestOptions, TunnelRequestLike } from './utils/tunnel';
 export {
+  applyTunnelDefaults,
   getTunnelPath,
   getTunnelPaths,
   handleTunnelRequest,
