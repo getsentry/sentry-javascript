@@ -6,7 +6,7 @@ import { makeComposeNitroServiceSourceMapsPlugin, makeEnableNitroSourceMapsPlugi
 import { makeRoutePatternPlugin } from './routePatterns';
 import { makeAddSentryVitePlugin, makeEnableSourceMapsVitePlugin } from './sourceMaps';
 import type { TunnelRouteOptions } from './tunnelRoute';
-import { makeServerEntryTunnelPlugin, makeTunnelRoutePlugin } from './tunnelRoute';
+import { makeServerEntryTunnelPlugin, makeTunnelBasePathPlugin, makeTunnelRoutePlugin } from './tunnelRoute';
 
 /**
  * Build-time options for the Sentry TanStack Start SDK.
@@ -77,7 +77,12 @@ export interface SentryTanstackStartOptions extends BuildTimeOptionsBase {
  * @returns An array of Vite plugins
  */
 export function sentryTanstackStart(options: SentryTanstackStartOptions = {}): Plugin[] {
-  const plugins: Plugin[] = [makeRoutePatternPlugin(), makeServerEntryTunnelPlugin(options.tunnelRoute)];
+  const tunnelBasePath = makeTunnelBasePathPlugin();
+  const plugins: Plugin[] = [
+    makeRoutePatternPlugin(),
+    tunnelBasePath.plugin,
+    makeServerEntryTunnelPlugin(options.tunnelRoute, tunnelBasePath.getBasePath),
+  ];
 
   if (options.tunnelRoute) {
     plugins.push(makeTunnelRoutePlugin(options.tunnelRoute, options.debug));

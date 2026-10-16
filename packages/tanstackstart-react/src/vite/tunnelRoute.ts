@@ -71,6 +71,53 @@ export function makeTunnelRoutePlugin(options: TunnelRouteOptions, debug?: boole
   };
 }
 
+const START_BASE_PATH_DEFINE = 'process.env.TSS_ROUTER_BASEPATH';
+
+/**
+ * Reads the base path TanStack Start routes on and hands it to the client SDK and the server entry wrapper, so the
+ * managed tunnel is served under it without the user repeating it. Start resolves it from `router.basepath`, or from
+ * Vite's `base`, and defines it for every environment. This runs after Start's own `config` hook to see that define.
+ */
+export function makeTunnelBasePathPlugin(): { plugin: Plugin; getBasePath: () => string } {
+  let basePath = '';
+
+  const plugin: Plugin = {
+    name: 'sentry-tanstackstart-tunnel-base-path',
+    enforce: 'post',
+    config(config) {
+      const startBasePath = config.define?.[START_BASE_PATH_DEFINE];
+      basePath = normalizeBasePath(
+        typeof startBasePath === 'string' ? parseDefine(startBasePath) : getRouterBasePathFromViteBase(config.base),
+      );
+
+      return { define: { __SENTRY_TANSTACKSTART_TUNNEL_BASE_PATH__: JSON.stringify(basePath) } };
+    },
+  };
+
+  return { plugin, getBasePath: () => basePath };
+}
+
+function parseDefine(value: string): string | undefined {
+  try {
+    const parsed: unknown = JSON.parse(value);
+
+    return typeof parsed === 'string' ? parsed : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+// Start's own fallback when `router.basepath` isn't set: an absolute (CDN) `base` doesn't move the app's routes.
+function getRouterBasePathFromViteBase(base: string | undefined): string | undefined {
+  return base && !/^[a-z][a-z\d+.-]*:/i.test(base) && !base.startsWith('//') ? base : undefined;
+}
+
+function normalizeBasePath(basePath: string | undefined): string {
+  const trimmed = (basePath ?? '').replace(/^\.?\/+|\/+$/g, '');
+
+  return trimmed ? `/${trimmed}` : '';
+}
+
 const SERVER_ENTRY_ALIAS = 'virtual:tanstack-start-server-entry';
 const ORIGINAL_SERVER_ENTRY_QUERY = '?sentry-tunnel-original';
 // The default entry is used directly when the app has no `src/server.ts`, and by Cloudflare's `main`.
@@ -81,7 +128,10 @@ const DEFAULT_SERVER_ENTRY = /\/react-start\/dist\/(?:plugin\/)?default-entry\/(
  * routing. It does nothing unless the managed tunnel is enabled, either here via `tunnelRoute` or at runtime via
  * `Sentry.init({ tunnel: true })`.
  */
-export function makeServerEntryTunnelPlugin(tunnelRoute: TunnelRouteOptions | undefined): Plugin {
+export function makeServerEntryTunnelPlugin(
+  tunnelRoute: TunnelRouteOptions | undefined,
+  getBasePath: () => string = () => '',
+): Plugin {
   const tunnelOptions = tunnelRoute ? JSON.stringify(normalizeTunnelRouteOptions(tunnelRoute)) : 'undefined';
   const serverEntryIds = new Set<string>();
 
@@ -106,7 +156,7 @@ export function makeServerEntryTunnelPlugin(tunnelRoute: TunnelRouteOptions | un
       return `import entry from ${original};
 import { wrapServerEntryWithSentryTunnel } from '@sentry/tanstackstart-react';
 export * from ${original};
-export default wrapServerEntryWithSentryTunnel(entry, ${tunnelOptions});
+export default wrapServerEntryWithSentryTunnel(entry, ${tunnelOptions}, ${JSON.stringify(getBasePath())});
 `;
     },
   };
