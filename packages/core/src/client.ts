@@ -243,8 +243,6 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
    */
   protected _unhandledSessionStatus: SessionStatus;
 
-  /** Whether we already explained a managed tunnel request the server rejected. */
-
   /**
    * Initializes this client instance.
    *
@@ -1944,6 +1942,6 @@ function warnIfManagedTunnelIsNotServed(options: ClientOptions, statusCode: numb
 
   hasWarnedAboutManagedTunnel = true;
   debug.warn(
-    `The managed tunnel at "${tunnel}" responded with ${statusCode}, so events sent through it are lost. \`tunnel: true\` needs a server that answers it: a Sentry meta-framework SDK (SvelteKit, Nuxt, Astro, ...) or your own endpoint calling \`handleTunnelRequest\`. A 403 can also mean the server's \`allowedDsns\` doesn't include this DSN.`,
+    `The managed tunnel at "${tunnel}" responded with ${statusCode}, so events sent through it are lost. \`tunnel: true\` needs a server that answers it: a Sentry meta-framework SDK (SvelteKit, Nuxt, Astro, ...), \`tunnelRoute\` in Next.js, or your own endpoint calling \`handleTunnelRequest\`. A 403 can also mean the server's \`allowedDsns\` doesn't include this DSN.`,
   );
 }
