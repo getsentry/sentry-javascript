@@ -41,6 +41,18 @@ describe('React Router client SDK', () => {
       expect(browserInit).toHaveBeenCalledWith(expect.objectContaining(expectedMetadata));
     });
 
+    it("serves the managed tunnel under the app's `basename`, unless the user set a base path", () => {
+      vi.stubGlobal('__reactRouterContext', { basename: '/app/' });
+
+      reactRouterInit({ tunnel: true });
+      expect(browserInit).toHaveBeenLastCalledWith(expect.objectContaining({ tunnel: { basePath: '/app' } }));
+
+      reactRouterInit({ tunnel: { basePath: '/custom' } });
+      expect(browserInit).toHaveBeenLastCalledWith(expect.objectContaining({ tunnel: { basePath: '/custom' } }));
+
+      vi.unstubAllGlobals();
+    });
+
     it('returns client from init', () => {
       expect(reactRouterInit({})).not.toBeUndefined();
     });
