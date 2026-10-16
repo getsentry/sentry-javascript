@@ -104,16 +104,30 @@ export function createSentryTunnelRoute(options: CreateSentryTunnelRouteOptions)
 
 /**
  * Answers managed tunnel requests before the server entry runs. The `sentryTanstackStart` Vite plugin applies this
- * to the app's server entry automatically.
+ * to the app's server entry automatically, with the base path Start routes on.
  */
-export function wrapServerEntryWithSentryTunnel<T extends ServerEntry>(entry: T, options?: TunnelOptions): T {
+export function wrapServerEntryWithSentryTunnel<T extends ServerEntry>(
+  entry: T,
+  options?: TunnelOptions,
+  basePath?: string,
+): T {
+  // Requests still carry Start's base path here, so the tunnel is matched under it.
+  const getTunnelOptions = (): TunnelOptions | undefined => {
+    const tunnelOptions = options ?? getClient()?.getOptions()._managedTunnel;
+
+    return tunnelOptions && basePath ? { basePath, ...tunnelOptions } : tunnelOptions;
+  };
+
   // When `init` ran before the server entry loads, drop the tunnel's spans from the first request on.
-  getTunnelPaths(options).forEach(registerSentryServerTunnelRoute);
+  const startupOptions = getTunnelOptions();
+  getTunnelPaths(startupOptions).forEach(path =>
+    registerSentryServerTunnelRoute(`${startupOptions?.basePath?.replace(/\/$/, '') ?? ''}${path}`),
+  );
 
   return {
     ...entry,
     fetch(request: Request, opts?: unknown) {
-      const tunnelResponse = handleTunnelRequestIfMatched(request, options);
+      const tunnelResponse = handleTunnelRequestIfMatched(request, getTunnelOptions());
       if (tunnelResponse) {
         registerSentryServerTunnelRoute(new URL(request.url).pathname);
 
