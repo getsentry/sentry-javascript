@@ -25,7 +25,7 @@
   "private": true,
   "scripts": {
     "build": "run-p build:transpile build:types",
-    "build:transpile": "rollup -c rollup.npm.config.mjs",
+    "build:transpile": "rolldown -c rollup.npm.config.mjs",
     "build:types": "tsc -p tsconfig.types.json",
     "build:dev": "yarn build",
     "build:watch": "run-p build:transpile:watch",
