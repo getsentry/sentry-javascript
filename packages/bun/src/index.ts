@@ -139,6 +139,7 @@ export {
   setupKoaErrorHandler,
   genericPoolIntegration,
   nodeCronIntegration,
+  nodeScheduleIntegration,
   graphqlIntegration,
   knexIntegration,
   kafkaIntegration,

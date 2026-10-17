@@ -117,6 +117,7 @@ export {
   fsIntegration,
   genericPoolIntegration,
   nodeCronIntegration,
+  nodeScheduleIntegration,
   graphqlIntegration,
   knexIntegration,
   kafkaIntegration,
