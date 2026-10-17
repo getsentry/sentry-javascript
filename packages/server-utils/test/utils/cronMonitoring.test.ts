@@ -1,7 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { toMonitorConfig } from '../../src/integrations/node-cron';
+import { cronExpressionToMonitorConfig } from '../../src/utils/cronMonitoring';
 
-describe('node-cron toMonitorConfig', () => {
+const toMonitorConfig = (expression: string, timezone: unknown) =>
+  cronExpressionToMonitorConfig(expression, timezone, 'and');
+
+describe('cronExpressionToMonitorConfig with node-cron day matching', () => {
   it.each([
     ['* * * * *', '* * * * *'],
     ['0 30 9 * * 1-5', '30 9 * * 1-5'],
@@ -44,4 +47,24 @@ describe('node-cron toMonitorConfig', () => {
   it('falls back to the local time zone', () => {
     expect(toMonitorConfig('* * * * *', undefined)?.timezone).toBe(Intl.DateTimeFormat().resolvedOptions().timeZone);
   });
+});
+
+describe('cronExpressionToMonitorConfig with cron-parser day matching', () => {
+  it.each([
+    ['0 9 1,15 * mon', '0 9 1,15 * 1'],
+    ['0 9 */2 * *', '0 9 */2 * *'],
+    ['0 9 * * 1-5', '0 9 * * 1-5'],
+  ])('sends %s as %s', (expression, crontab) => {
+    expect(cronExpressionToMonitorConfig(expression, 'UTC', 'or')?.schedule).toEqual({
+      type: 'crontab',
+      value: crontab,
+    });
+  });
+
+  it.each(['0 9 */2 * 1', '0 9 1 * */2', '0 9 1-31 * 1', '0 9 15 * 0-6', '0 9 15 * 1-7'])(
+    'sends no config for %s',
+    expression => {
+      expect(cronExpressionToMonitorConfig(expression, 'UTC', 'or')).toBeUndefined();
+    },
+  );
 });
