@@ -14,6 +14,7 @@ describe('nodeScheduleIntegration', () => {
   createEsmAndCjsTests(__dirname, 'scenario.mjs', 'instrument.mjs', (createRunner, test) => {
     test('sends check-ins for named jobs', async () => {
       await createRunner()
+        .ignore('event')
         .expect({ check_in: { monitor_slug: 'rule-job', status: 'in_progress' } })
         .expect({ check_in: { monitor_slug: 'rule-job', status: 'ok' } })
         .expect({
@@ -24,6 +25,13 @@ describe('nodeScheduleIntegration', () => {
           check_in: { monitor_slug: 'my-schedule-job', status: 'in_progress', monitor_config: MONITOR_CONFIG },
         })
         .expect({ check_in: { monitor_slug: 'my-schedule-job', status: 'error', duration: expect.any(Number) } })
+        .start()
+        .completed();
+    });
+
+    test('captures job errors', async () => {
+      await createRunner()
+        .unordered()
         .expect({
           event: {
             exception: {
