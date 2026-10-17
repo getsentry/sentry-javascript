@@ -47,6 +47,7 @@ export {
   fsIntegration,
   functionToStringIntegration,
   genericPoolIntegration,
+  cronJobIntegration,
   nodeCronIntegration,
   nodeScheduleIntegration,
   getActiveSpan,
