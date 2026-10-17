@@ -6,7 +6,7 @@ import { startSpan } from '@sentry/node';
 import { DEBUG_BUILD } from './debug-build';
 import { isExpectedError } from './helpers';
 import type { ReflectWithMetadata } from './integrations/helpers';
-import { copyReflectMetadata } from './integrations/helpers';
+import { copyReflectMetadata, markSentryCronMethod } from './integrations/helpers';
 
 /**
  * Monitor settings for `@SentryCron` whose schedule and time zone come from the `@Cron()` decorator
@@ -60,6 +60,8 @@ export const SentryCron = (
     };
 
     descriptor.value = wrappedMethod;
+    markSentryCronMethod(originalMethod);
+    markSentryCronMethod(wrappedMethod);
 
     copyFunctionNameAndMetadata({ originalMethod, descriptor });
 
@@ -138,7 +140,7 @@ function getMonitorConfigFromNestCron(candidates: unknown[]): MonitorConfig | un
  * Converts the options `@Cron()` stores as metadata into a Sentry monitor config.
  * Returns `undefined` for schedules Sentry can't represent.
  */
-function nestCronOptionsToMonitorConfig(cronOptions: NestCronOptions): MonitorConfig | undefined {
+export function nestCronOptionsToMonitorConfig(cronOptions: NestCronOptions): MonitorConfig | undefined {
   const { cronTime, timeZone, utcOffset } = cronOptions;
 
   // A fixed UTC offset has no IANA time zone equivalent.
