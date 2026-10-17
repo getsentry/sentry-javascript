@@ -78,6 +78,9 @@ export function instrumentNodeCron<T>(
               );
             };
 
+            // Tells `nodeCronIntegration` that this task is already monitored.
+            (monitoredCallback as unknown as Record<symbol, boolean>)[Symbol.for('sentry.cron.monitored')] = true;
+
             return target.apply(thisArg, [expression, monitoredCallback, options]);
           },
         });
