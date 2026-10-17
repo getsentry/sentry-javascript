@@ -9,11 +9,11 @@ import type { CatchTarget, InjectableTarget, MinimalNestJsExecutionContext } fro
 import { patchCatchTarget, patchInjectableTarget } from './wrap-components';
 import {
   extractQueueName,
-  MECHANISM_CRON,
   MECHANISM_INTERVAL,
   MECHANISM_TIMEOUT,
   patchMethodDescriptor,
   patchProcessorTarget,
+  wrapCronHandler,
   wrapEventHandler,
   wrapScheduleHandler,
 } from './wrap-handlers';
@@ -61,7 +61,10 @@ function subscribeDecoratorChannel<T>(channelName: string, patch: (target: T) =>
  * `descriptor.value` with a wrapped handler before delegating to the
  * original decorator.
  */
-function makeMethodDecorator(original: AnyFn, wrapHandler: (handler: AnyFn) => AnyFn): AnyFn {
+function makeMethodDecorator(
+  original: AnyFn,
+  wrapHandler: (handler: AnyFn, target: unknown, propertyKey: string | symbol | undefined) => AnyFn,
+): AnyFn {
   return function (this: unknown, ...args: unknown[]): unknown {
     patchMethodDescriptor(
       args[0] as { __SENTRY_INTERNAL__?: boolean } | undefined,
@@ -189,8 +192,10 @@ export function subscribeToNestChannels(): void {
   subscribeDecoratorChannel<CatchTarget>(CHANNELS.NESTJS_CATCH, patchCatchTarget);
 
   // @Cron/@Interval/@Timeout (schedule), @OnEvent (event), @Processor (bullmq)
-  subscribeFactoryDecorator(CHANNELS.NESTJS_SCHEDULE_CRON, decorator =>
-    makeMethodDecorator(decorator, handler => wrapScheduleHandler(handler, MECHANISM_CRON)),
+  subscribeFactoryDecorator(CHANNELS.NESTJS_SCHEDULE_CRON, (decorator, data) =>
+    makeMethodDecorator(decorator, (handler, target, propertyKey) =>
+      wrapCronHandler(handler, [...(data.arguments || [])], target, propertyKey),
+    ),
   );
   subscribeFactoryDecorator(CHANNELS.NESTJS_SCHEDULE_INTERVAL, decorator =>
     makeMethodDecorator(decorator, handler => wrapScheduleHandler(handler, MECHANISM_INTERVAL)),

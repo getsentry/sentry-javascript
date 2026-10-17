@@ -1,4 +1,5 @@
-import { captureException, isObjectLike, isThenable, startSpan, withIsolationScope } from '@sentry/core';
+import { captureException, isObjectLike, isThenable, startSpan, withIsolationScope, withMonitor } from '@sentry/core';
+import { makeCronMonitorResolver } from './cron-monitoring';
 import type { AnyFn, ReflectWithMetadata } from './helpers';
 import { getBullMQProcessSpanOptions, getEventSpanOptions, isWrapped, markWrapped } from './helpers';
 
@@ -54,6 +55,28 @@ export function wrapScheduleHandler(handler: AnyFn, mechanismType: string): AnyF
       return result;
     });
   };
+}
+
+/**
+ * Wrap a `@Cron` handler like {@link wrapScheduleHandler}, sending check-ins when `monitorCronJobs` is enabled.
+ */
+export function wrapCronHandler(
+  handler: AnyFn,
+  cronArgs: unknown[],
+  target: unknown,
+  propertyKey: string | symbol | undefined,
+): AnyFn {
+  const scheduleHandler = wrapScheduleHandler(handler, MECHANISM_CRON);
+  const resolveMonitor = makeCronMonitorResolver(cronArgs, target, propertyKey);
+
+  const wrapped = function (this: unknown, ...args: unknown[]): unknown {
+    const monitor = resolveMonitor(handler, wrapped);
+    if (!monitor) {
+      return scheduleHandler.apply(this, args);
+    }
+    return withMonitor(monitor.slug, () => scheduleHandler.apply(this, args), monitor.config);
+  };
+  return wrapped;
 }
 
 function eventNameFromEvent(event: unknown): string {
@@ -140,11 +163,11 @@ export function patchMethodDescriptor(
   target: { __SENTRY_INTERNAL__?: boolean } | undefined,
   propertyKey: string | symbol | undefined,
   descriptor: PropertyDescriptor | undefined,
-  wrapHandler: (handler: AnyFn) => AnyFn,
+  wrapHandler: (handler: AnyFn, target: unknown, propertyKey: string | symbol | undefined) => AnyFn,
 ): void {
   const handler = descriptor?.value as AnyFn | undefined;
   if (descriptor && handler && typeof handler === 'function' && !target?.__SENTRY_INTERNAL__ && !isWrapped(handler)) {
-    const wrapped = wrapHandler(handler);
+    const wrapped = wrapHandler(handler, target, propertyKey);
     Object.defineProperty(wrapped, 'name', {
       value: handler.name || String(propertyKey),
       configurable: true,

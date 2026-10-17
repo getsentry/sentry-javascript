@@ -31,6 +31,18 @@ export function markWrapped(fn: AnyFn): void {
   (fn as AnyFn & Record<symbol, unknown>)[SENTRY_WRAPPED] = true;
 }
 
+const SENTRY_CRON_METHODS = new WeakSet<object>();
+
+/** Marks a method that `@SentryCron()` monitors, so `@Cron()` monitoring skips it. */
+export function markSentryCronMethod(fn: object): void {
+  SENTRY_CRON_METHODS.add(fn);
+}
+
+/** Whether `fn` is monitored by `@SentryCron()` (see {@link markSentryCronMethod}). */
+export function isSentryCronMethod(fn: object): boolean {
+  return SENTRY_CRON_METHODS.has(fn);
+}
+
 /**
  * The subset of `reflect-metadata`'s `Reflect` augmentation that NestJS
  * relies on. Methods are optional because `reflect-metadata` may not be

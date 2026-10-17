@@ -92,6 +92,12 @@ export class AppController {
     return {};
   }
 
+  @Get('test-auto-monitored-cron')
+  async testAutoMonitoredCron() {
+    await this.appService.testAutoMonitoredCron();
+    return {};
+  }
+
   @Get('kill-test-cron/:job')
   async killTestCron(@Param('job') job: string) {
     this.appService.killTestCron(job);
