@@ -1,4 +1,5 @@
 import { afterAll, describe, expect } from 'vitest';
+import { supports } from '../../../utils';
 import { cleanupChildProcesses, createEsmAndCjsTests, describeWithDockerCompose } from '../../../utils/runner';
 
 describeWithDockerCompose('graphile-worker crontab monitoring', { workingDirectory: [__dirname] }, () => {
@@ -6,8 +7,12 @@ describeWithDockerCompose('graphile-worker crontab monitoring', { workingDirecto
     cleanupChildProcesses();
   });
 
-  for (const version of ['0.16.6', '0.18.0']) {
-    describe(`graphile-worker ${version}`, () => {
+  // 0.18 ships only ES modules. The CJS test `require()`s it, which the module hooks don't see on Node 20 or Deno.
+  for (const [version, runIf] of [
+    ['0.16.6', true],
+    ['0.18.0', supports({ min: 22, runtimes: ['node'] })],
+  ] as const) {
+    describe.runIf(runIf)(`graphile-worker ${version}`, () => {
       createEsmAndCjsTests(
         __dirname,
         'scenario.mjs',
