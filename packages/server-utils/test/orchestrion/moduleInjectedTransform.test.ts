@@ -44,7 +44,7 @@ describe('channel integration definitions', () => {
 
     // `@nestjs/*` and `@remix-run/*` are covered by listeners in their own SDK packages.
     // Crons integrations are opt-in, so bundler-only SDKs must not install them for every app.
-    const optIn = new Set(['node-cron', 'node-schedule']);
+    const optIn = new Set(['cron', 'node-cron', 'node-schedule']);
     const uncovered = [...configured].filter(
       name => !defined.has(name) && !optIn.has(name) && !name.startsWith('@nestjs/') && !name.startsWith('@remix-run/'),
     );
