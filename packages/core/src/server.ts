@@ -12,6 +12,8 @@ export { wrapMcpServerWithSentry } from './integrations/mcp-server';
 export { isNodeEnv, loadModule } from './utils/node';
 export { filenameIsInApp, node, nodeStackLineParser } from './utils/node-stack-trace';
 export { vercelWaitUntil } from './utils/vercelWaitUntil';
+export { getReleaseFromCommitEnv, readCommitEnvVar } from './utils/commitEnv';
+export type { PlaceholderCommitEnvVarHandler } from './utils/commitEnv';
 export { flushIfServerless } from './utils/flushIfServerless';
 export { callFrameToStackFrame, watchdogTimer } from './utils/anr';
 export { safeUnref as _INTERNAL_safeUnref } from './utils/timer';
