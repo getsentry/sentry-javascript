@@ -42,6 +42,20 @@ describe('init', () => {
     );
   });
 
+  it('passes elysia SDK metadata to initNode', async () => {
+    // eslint-disable-next-line @typescript-eslint/consistent-type-imports
+    const { applySdkMetadata } = await vi.importActual<typeof import('@sentry/core')>('@sentry/core');
+    mockApplySdkMetadata.mockImplementationOnce(applySdkMetadata);
+
+    init({ dsn: 'https://examplePublicKey@o0.ingest.sentry.io/0' });
+
+    expect(mockInitNode).toHaveBeenCalledWith(
+      expect.objectContaining({
+        _metadata: { sdk: expect.objectContaining({ name: 'sentry.javascript.elysia' }) },
+      }),
+    );
+  });
+
   it('calls initNode with the options', () => {
     init({ dsn: 'https://examplePublicKey@o0.ingest.sentry.io/0' });
 
