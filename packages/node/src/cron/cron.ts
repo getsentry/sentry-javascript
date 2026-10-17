@@ -51,6 +51,8 @@ export type CronJobConstructor = {
   ): CronJob;
 };
 
+const MONITORED = Symbol.for('sentry.cron.monitored');
+
 const ERROR_TEXT = 'Automatic instrumentation of CronJob only supports crontab string';
 
 /**
@@ -115,6 +117,9 @@ export function instrumentCron<T>(lib: T & CronJobConstructor, monitorSlug: stri
         );
       }
 
+      // Tells `cronJobIntegration` that this job is already monitored.
+      (monitoredTick as unknown as Record<symbol, boolean>)[MONITORED] = true;
+
       return new target(cronTime, monitoredTick, onComplete, start, timeZone, ...rest);
     },
     get(target, prop: keyof CronJobConstructor) {
@@ -156,6 +161,8 @@ export function instrumentCron<T>(lib: T & CronJobConstructor, monitorSlug: stri
               },
             );
           };
+
+          (param.onTick as unknown as Record<symbol, boolean>)[MONITORED] = true;
 
           return target.from(param);
         };
