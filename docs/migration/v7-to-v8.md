@@ -315,7 +315,7 @@ function middleware(res, req, next) {
 }
 ```
 
-You can [read more about the new performance APIs here](./v8-new-performance-apis.md).
+You can [read more about the new performance APIs here](../v8-new-performance-apis.md).
 
 To accommodate these changes, we're removed the following APIs:
 
@@ -350,7 +350,7 @@ We now support the following integrations out of the box without extra configura
 - `prismaIntegration`: Automatically instruments Prisma
 
 To make sure these integrations work properly you'll have to change how you
-[initialize the SDK](./docs/v8-initializing.md)
+[initialize the SDK](../v8-initializing.md)
 
 ## 4. Removal of deprecated APIs
 
@@ -395,7 +395,7 @@ and confusing to power users, it is going to be replaced by a set of new APIs: t
 See [Deprecate Hub](#deprecate-hub) for details on how to replace existing usage of the Hub APIs.
 
 The `hub.bindClient` and `makeMain` methods have been removed entirely, see
-[initializing the SDK in v8](./v8-initializing.md) for details how to work around this.
+[initializing the SDK in v8](../v8-initializing.md) for details how to work around this.
 
 #### Removal of class-based integrations
 
@@ -755,7 +755,7 @@ Removed top-level exports: `withSentryApi`, `withSentryAPI`, `withSentryGetServe
 - [Updated minimum compatible Next.js version to `13.2.0`](#updated-minimum-compatible-nextjs-version-to-1320)
 - [Merging of the Sentry Webpack Plugin options and SDK Build options](#merging-of-the-sentry-webpack-plugin-options-and-sdk-build-options)
 - [Removal of the `sentry` property in your Next.js options (next.config.js)](#removal-of-the-sentry-property-in-your-nextjs-options-nextconfigjs)
-- [Updated the `@sentry/webpack-plugin` dependency to version 2](#updated-the-sentry-webpack-plugin-dependency-to-version-2)
+- [Updated the `@sentry/webpack-plugin` dependency to version 2](#updated-the-sentrywebpack-plugin-dependency-to-version-2)
 
 #### Removal of deprecated API in `@sentry/nextjs`
 
@@ -1213,7 +1213,7 @@ Sentry.init({
 - [Updated behaviour of `extraErrorDataIntegration`](#extraerrordataintegration-changes)
 - [Updated behaviour of `transactionContext` passed to `tracesSampler`](#transactioncontext-no-longer-passed-to-tracessampler)
 - [Updated behaviour of `getClient()`](#getclient-always-returns-a-client)
-- [Updated behaviour of the SDK in combination with `onUncaughtException` handlers in Node.js](#behaviour-in-combination-with-onuncaughtexception-handlers-in-node.js)
+- [Updated behaviour of the SDK in combination with `onUncaughtException` handlers in Node.js](#behaviour-in-combination-with-onuncaughtexception-handlers-in-nodejs)
 - [Updated expected return value for `captureException()`, `captureMessage()` and `captureEvent` methods on Clients](#updated-expected-return-value-for-captureexception-capturemessage-and-captureevent-methods-on-clients)
 - [Removal of Client-Side health check transaction filters](#removal-of-client-side-health-check-transaction-filters)
 - [Change of Replay default options (`unblock` and `unmask`)](#change-of-replay-default-options-unblock-and-unmask)
