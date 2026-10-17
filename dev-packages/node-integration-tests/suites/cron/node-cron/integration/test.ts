@@ -14,6 +14,7 @@ describe('nodeCronIntegration', () => {
   createEsmAndCjsTests(__dirname, 'scenario.mjs', 'instrument.mjs', (createRunner, test) => {
     test('sends check-ins for named tasks', async () => {
       await createRunner()
+        .ignore('event')
         .expect({
           check_in: { monitor_slug: 'my-cron-job', status: 'in_progress', monitor_config: MONITOR_CONFIG },
         })
@@ -22,6 +23,13 @@ describe('nodeCronIntegration', () => {
           check_in: { monitor_slug: 'my-cron-job', status: 'in_progress', monitor_config: MONITOR_CONFIG },
         })
         .expect({ check_in: { monitor_slug: 'my-cron-job', status: 'error', duration: expect.any(Number) } })
+        .start()
+        .completed();
+    });
+
+    test('captures job errors', async () => {
+      await createRunner()
+        .unordered()
         .expect({
           event: {
             exception: {
