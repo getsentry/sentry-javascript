@@ -117,6 +117,7 @@ export {
   // oxlint-disable-next-line typescript/no-deprecated
   setupKoaErrorHandler,
   genericPoolIntegration,
+  nodeCronIntegration,
   graphqlIntegration,
   knexIntegration,
   kafkaIntegration,
