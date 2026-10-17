@@ -12,6 +12,7 @@ export {
   firebaseIntegration,
   genericPoolIntegration,
   googleGenAIIntegration,
+  graphileWorkerIntegration,
   graphqlIntegration,
   groqIntegration,
   hapiIntegration,

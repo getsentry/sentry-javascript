@@ -39,6 +39,8 @@ export { awsIntegration } from './integrations/aws-sdk';
 export { dataloaderIntegration } from './integrations/dataloader';
 export { genericPoolIntegration } from './integrations/generic-pool';
 export { googleGenAIIntegration } from './integrations/google-genai';
+export { graphileWorkerIntegration } from './integrations/graphile-worker';
+export type { GraphileWorkerOptions } from './integrations/graphile-worker';
 export { graphqlIntegration } from './integrations/graphql';
 export { hapiIntegration } from './integrations/hapi';
 export { honoIntegration, honoMiddleware } from './integrations/hono';
