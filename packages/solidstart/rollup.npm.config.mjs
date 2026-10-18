@@ -18,7 +18,7 @@ export default makeNPMConfigVariants(
     // prevent this internal code from ending up in our built package (this doesn't happen automatically because
     // the name doesn't match an SDK dependency)
     packageSpecificConfig: {
-      external: ['solid-js/web', 'solid-js', '@sentry/solid', '@sentry/solid/solidrouter'],
+      external: ['solid-js/web', 'solid-js', '@sentry/solid', '@sentry/solid/solidrouter', 'h3'],
       output: {
         dynamicImportInCjs: true,
       },
