@@ -27,7 +27,15 @@ describe('init', () => {
 
     expect(mockInitNode).toHaveBeenCalledWith(
       expect.objectContaining({
-        _metadata: { sdk: expect.objectContaining({ name: 'sentry.javascript.elysia' }) },
+        _metadata: {
+          sdk: expect.objectContaining({
+            name: 'sentry.javascript.elysia',
+            packages: [
+              expect.objectContaining({ name: 'npm:@sentry/elysia' }),
+              expect.objectContaining({ name: 'npm:@sentry/node' }),
+            ],
+          }),
+        },
       }),
     );
   });
@@ -94,10 +102,12 @@ describe('init', () => {
   it('detects runtime correctly', () => {
     init({ dsn: 'https://examplePublicKey@o0.ingest.sentry.io/0' });
 
-    const calledOptions = mockInitNode.mock.calls[0]![0];
     // In vitest (Node), Bun is not defined, so runtime should be node
-    expect(calledOptions.runtime.name).toBe('node');
-    expect(calledOptions.runtime.version).toBe(process.version);
+    expect(mockInitNode).toHaveBeenCalledWith(
+      expect.objectContaining({
+        runtime: { name: 'node', version: process.version },
+      }),
+    );
   });
 
   it('detects bun runtime when Bun is defined', () => {
@@ -105,9 +115,20 @@ describe('init', () => {
 
     init({ dsn: 'https://***@o0.ingest.sentry.io/0' });
 
-    const calledOptions = mockInitNode.mock.calls[0]![0];
-    expect(calledOptions.runtime).toEqual({ name: 'bun', version: '1.2.3' });
-    expect(mockApplySdkMetadata).toHaveBeenCalledWith(expect.anything(), 'elysia', ['elysia', 'bun']);
+    expect(mockInitNode).toHaveBeenCalledWith(
+      expect.objectContaining({
+        runtime: { name: 'bun', version: '1.2.3' },
+        _metadata: {
+          sdk: expect.objectContaining({
+            name: 'sentry.javascript.elysia',
+            packages: [
+              expect.objectContaining({ name: 'npm:@sentry/elysia' }),
+              expect.objectContaining({ name: 'npm:@sentry/bun' }),
+            ],
+          }),
+        },
+      }),
+    );
   });
 });
 
