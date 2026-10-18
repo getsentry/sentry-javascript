@@ -15,7 +15,9 @@
     "test:assert:tunnel": "E2E_TEST_TUNNEL=1 playwright test tunnel",
     "test:assert:tunnel-basepath": "E2E_TEST_TUNNEL=1 E2E_TEST_BASE_PATH=/app playwright test tunnel",
     "test:assert:tunnel-dev": "TEST_ENV=development E2E_TEST_TUNNEL=1 playwright test tunnel",
-    "test:assert:tunnel-basepath-dev": "TEST_ENV=development E2E_TEST_TUNNEL=1 E2E_TEST_BASE_PATH=/app playwright test tunnel"
+    "test:assert:tunnel-basepath-dev": "TEST_ENV=development E2E_TEST_TUNNEL=1 E2E_TEST_BASE_PATH=/app playwright test tunnel",
+    "test:build:tunnel-no-middleware": "pnpm install && E2E_TEST_TUNNEL=1 E2E_TEST_NO_MIDDLEWARE=1 pnpm build",
+    "test:assert:tunnel-no-middleware": "E2E_TEST_TUNNEL=1 E2E_TEST_NO_MIDDLEWARE=1 playwright test tunnel -g 'without app middleware'"
   },
   "dependencies": {
     "@sentry/browser": "latest || *",
@@ -44,6 +46,11 @@
         "build-command": "pnpm test:build:tunnel-basepath",
         "assert-command": "pnpm test:assert:tunnel-basepath",
         "label": "nitro-3 (tunnel-basepath)"
+      },
+      {
+        "build-command": "pnpm test:build:tunnel-no-middleware",
+        "assert-command": "pnpm test:assert:tunnel-no-middleware",
+        "label": "nitro-3 (tunnel-no-middleware)"
       },
       {
         "build-command": "pnpm install",
