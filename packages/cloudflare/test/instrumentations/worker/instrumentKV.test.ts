@@ -135,6 +135,7 @@ describe('instrumentKV', () => {
         }),
       }),
     );
+    expect(startSpanSpy.mock.calls[2]?.[0].attributes?.[CACHE_KEY]).toBeUndefined();
   });
 
   test('forwards unknown property accesses transparently', () => {

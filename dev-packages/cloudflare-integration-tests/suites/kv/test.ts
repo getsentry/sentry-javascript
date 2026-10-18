@@ -154,6 +154,7 @@ it('emits cache.get for KV list operations', async ({ signal }) => {
           }),
         ]),
       );
+      expect(spans[0]?.attributes[CACHE_KEY]).toBeUndefined();
     })
     .start(signal);
 

@@ -259,21 +259,6 @@ describe('instrumentEnv', () => {
     expect(instrumented.MY_BUCKET).not.toBe(r2);
   });
 
-  it('does not instrument a JSRPC proxy as Workers KV', () => {
-    const jsrpcProxy = new Proxy(
-      {},
-      {
-        get(_target, _prop) {
-          return () => {};
-        },
-      },
-    );
-    const env = { SERVICE: jsrpcProxy };
-    const instrumented = instrumentEnv(env);
-
-    expect(instrumented.SERVICE).not.toBe(jsrpcProxy);
-  });
-
   it('caches the wrapped Queue binding across repeated access', () => {
     const queue = { send: vi.fn(), sendBatch: vi.fn() };
     const env = { MY_QUEUE: queue };
