@@ -29,7 +29,8 @@ export interface ServerRouteOptions {
 
 export interface ServerRoute {
   path: string;
-  method: string;
+  /** A single method (including `'*'`), or several methods registered together. */
+  method: string | string[];
   handler?: LifecycleMethod | unknown;
   options?: ((server: unknown) => ServerRouteOptions) | ServerRouteOptions;
   [key: string]: unknown;

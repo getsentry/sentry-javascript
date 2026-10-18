@@ -47,6 +47,51 @@ describe('hapi auto-instrumentation', () => {
       await runner.completed();
     });
 
+    test('should instrument a route registered with an array of methods.', async () => {
+      const runner = createRunner()
+        .unordered()
+        .expect({
+          span: container => {
+            expect(container.items.find(item => item.is_segment)?.name).toBe('POST /multi');
+            expect(container.items).toContainEqual(
+              expect.objectContaining({
+                name: '/multi',
+                status: 'ok',
+                attributes: expect.objectContaining({
+                  'http.route': { type: 'string', value: '/multi' },
+                  'http.request.method': { type: 'string', value: 'POST' },
+                  'hapi.type': { type: 'string', value: 'router' },
+                  'sentry.origin': { type: 'string', value: origin },
+                  'sentry.op': { type: 'string', value: 'router' },
+                }),
+              }),
+            );
+          },
+        })
+        .expect({
+          span: container => {
+            expect(container.items.find(item => item.is_segment)?.name).toBe('GET /multi');
+            expect(container.items).toContainEqual(
+              expect.objectContaining({
+                name: '/multi',
+                status: 'ok',
+                attributes: expect.objectContaining({
+                  'http.route': { type: 'string', value: '/multi' },
+                  'http.request.method': { type: 'string', value: 'GET' },
+                  'hapi.type': { type: 'string', value: 'router' },
+                  'sentry.origin': { type: 'string', value: origin },
+                  'sentry.op': { type: 'string', value: 'router' },
+                }),
+              }),
+            );
+          },
+        })
+        .start();
+      await runner.makeRequest('post', '/multi');
+      await runner.makeRequest('get', '/multi');
+      await runner.completed();
+    });
+
     test('should instrument plugin routes and server extensions.', async () => {
       const runner = createRunner()
         .expect({

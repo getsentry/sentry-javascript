@@ -107,12 +107,39 @@ const isPatchableExtMethod = (
   return !Array.isArray(variableToCheck);
 };
 
+/**
+ * Method hapi has already resolved for this request.
+ *
+ * `server.route()` accepts `method` as a string or an array and expands an array
+ * into one route per method only after instrumentation wraps the handler, so the
+ * closed-over config can still hold the array. The request carries the one method
+ * that matched (lower case).
+ */
+function matchedRequestMethod(request: unknown): string | undefined {
+  if (isObjectLike(request) && typeof request.method === 'string' && request.method.length > 0) {
+    return request.method;
+  }
+  return undefined;
+}
+
+/** A single method string safe to put on a span. Non-strings never reach `toUpperCase`. */
+function routeMethodForSpan(route: ServerRoute, requestMethod?: string): string | undefined {
+  if (typeof route.method === 'string') {
+    return route.method;
+  }
+  return requestMethod ? requestMethod.toUpperCase() : undefined;
+}
+
 /** Build the span name and attributes for a Hapi route. */
-export const getRouteMetadata = (route: ServerRoute, pluginName?: string): SpanMetadata => {
+export const getRouteMetadata = (route: ServerRoute, pluginName?: string, requestMethod?: string): SpanMetadata => {
+  const method = routeMethodForSpan(route, requestMethod);
   const attributes: SpanAttributes = {
     [HTTP_ROUTE]: route.path,
-    [HTTP_REQUEST_METHOD]: route.method,
   };
+
+  if (method !== undefined) {
+    attributes[HTTP_REQUEST_METHOD] = method;
+  }
 
   if (pluginName) {
     attributes[AttributeNames.HAPI_TYPE] = HapiLayerType.PLUGIN;
@@ -129,7 +156,11 @@ export const getRouteMetadata = (route: ServerRoute, pluginName?: string): SpanM
 
   return {
     attributes,
-    name: isStreamedSpan ? route.path || fallbackName : `${route.method.toUpperCase()} ${route.path}`,
+    name: isStreamedSpan
+      ? route.path || fallbackName
+      : method !== undefined
+        ? `${method.toUpperCase()} ${route.path}`
+        : route.path || fallbackName,
   };
 };
 
@@ -199,7 +230,7 @@ function wrapRouteHandler(route: PatchableServerRoute, pluginName?: string): Pat
         return oldHandler.call(this, ...params);
       }
       setHttpServerSpanRouteAttribute(route.path);
-      const metadata = getRouteMetadata(route, pluginName);
+      const metadata = getRouteMetadata(route, pluginName, matchedRequestMethod(params[0]));
       return startMetadataSpan(metadata, () => oldHandler.call(this, ...params));
     };
   };

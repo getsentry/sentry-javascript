@@ -19,6 +19,12 @@ const run = async () => {
   });
 
   server.route({
+    method: ['GET', 'POST'],
+    path: '/multi',
+    handler: () => 'ok',
+  });
+
+  server.route({
     method: 'GET',
     path: '/error',
     handler: () => {

@@ -1,6 +1,7 @@
-import { setCurrentClient } from '@sentry/core';
+import { setCurrentClient, spanToJSON, startSpan } from '@sentry/core';
+import type { Span } from '@sentry/core';
 import { afterEach, describe, expect, it } from 'vitest';
-import { getExtMetadata, getRouteMetadata } from '../../src/integrations/hapi/hapi-utils';
+import { getExtMetadata, getRouteMetadata, wrapRouteArguments } from '../../src/integrations/hapi/hapi-utils';
 import { getDefaultTestClientOptions, TestClient } from '../mocks/client';
 
 describe('getRouteMetadata', () => {
@@ -55,6 +56,205 @@ describe('getRouteMetadata', () => {
 
     expect(getRouteMetadata(pathlessRoute).name).toBe('Router');
     expect(getRouteMetadata(pathlessRoute, 'my-plugin').name).toBe('Request handler');
+  });
+
+  it('uses one uppercase method when the route was registered with an array of methods', () => {
+    expect(getRouteMetadata({ path: '/multi', method: ['GET', 'POST'] } as any, undefined, 'post')).toEqual({
+      name: 'POST /multi',
+      attributes: {
+        'http.route': '/multi',
+        'http.request.method': 'POST',
+        'hapi.type': 'router',
+      },
+    });
+  });
+
+  it('uses one uppercase method for a plugin route registered with an array of methods', () => {
+    expect(getRouteMetadata({ path: '/multi', method: ['GET', 'POST'] } as any, 'my-plugin', 'get')).toEqual({
+      name: 'GET /multi',
+      attributes: {
+        'http.route': '/multi',
+        'http.request.method': 'GET',
+        'hapi.type': 'plugin',
+        'hapi.plugin.name': 'my-plugin',
+      },
+    });
+  });
+
+  it('records one uppercase method and keeps the path span name when span streaming is enabled', () => {
+    const client = new TestClient(getDefaultTestClientOptions({ traceLifecycle: 'stream' }));
+    setCurrentClient(client);
+
+    expect(getRouteMetadata({ path: '/multi', method: ['GET', 'POST'] } as any, undefined, 'post')).toEqual({
+      name: '/multi',
+      attributes: {
+        'http.route': '/multi',
+        'http.request.method': 'POST',
+        'hapi.type': 'router',
+      },
+    });
+  });
+
+  it('does not throw when an array method has no resolved request method', () => {
+    expect(getRouteMetadata({ path: '/multi', method: ['GET', 'POST'] } as any)).toEqual({
+      name: '/multi',
+      attributes: {
+        'http.route': '/multi',
+        'hapi.type': 'router',
+      },
+    });
+  });
+
+  it('keeps a string route method when a request method is also provided', () => {
+    expect(getRouteMetadata({ path: '/single', method: 'GET' } as any, undefined, 'post')).toEqual({
+      name: 'GET /single',
+      attributes: {
+        'http.route': '/single',
+        'http.request.method': 'GET',
+        'hapi.type': 'router',
+      },
+    });
+  });
+});
+
+describe('wrapRouteArguments', () => {
+  afterEach(() => {
+    setCurrentClient(undefined as unknown as TestClient);
+  });
+
+  function captureSpans(traceLifecycle?: 'stream'): Span[] {
+    const client = new TestClient(
+      getDefaultTestClientOptions({
+        dsn: 'https://public@dsn.ingest.sentry.io/1337',
+        tracesSampleRate: 1,
+        ...(traceLifecycle ? { traceLifecycle } : {}),
+      }),
+    );
+    setCurrentClient(client);
+    client.init();
+
+    const endedSpans: Span[] = [];
+    client.on('spanEnd', span => {
+      endedSpans.push(span);
+    });
+    return endedSpans;
+  }
+
+  function invokeWrapped(
+    route: { method: string | string[]; path: string; handler: (request: unknown, h: unknown) => unknown },
+    request: { method: string },
+  ): unknown {
+    wrapRouteArguments([route]);
+    return startSpan({ name: 'incoming' }, () => route.handler(request, {}));
+  }
+
+  function routerSpan(endedSpans: Span[]) {
+    return endedSpans.map(span => spanToJSON(span)).find(span => span.attributes['hapi.type'] === 'router');
+  }
+
+  it('reads the request method for a route registered with an array of methods', () => {
+    const endedSpans = captureSpans();
+
+    expect(
+      invokeWrapped(
+        {
+          method: ['GET', 'POST'],
+          path: '/multi',
+          handler: () => 'ok',
+        },
+        { method: 'post' },
+      ),
+    ).toBe('ok');
+
+    expect(routerSpan(endedSpans)).toMatchObject({
+      name: 'POST /multi',
+      attributes: {
+        'http.route': '/multi',
+        'http.request.method': 'POST',
+        'hapi.type': 'router',
+      },
+    });
+  });
+
+  it('reads the request method and keeps the path span name when span streaming is enabled', () => {
+    const endedSpans = captureSpans('stream');
+
+    invokeWrapped(
+      {
+        method: ['GET', 'POST'],
+        path: '/multi',
+        handler: () => 'ok',
+      },
+      { method: 'get' },
+    );
+
+    expect(routerSpan(endedSpans)).toMatchObject({
+      name: '/multi',
+      attributes: {
+        'http.route': '/multi',
+        'http.request.method': 'GET',
+      },
+    });
+  });
+
+  it('keeps the registered method for a string route', () => {
+    const endedSpans = captureSpans();
+
+    invokeWrapped(
+      {
+        method: 'GET',
+        path: '/single',
+        handler: () => 'ok',
+      },
+      { method: 'get' },
+    );
+
+    expect(routerSpan(endedSpans)).toMatchObject({
+      name: 'GET /single',
+      attributes: {
+        'http.request.method': 'GET',
+      },
+    });
+  });
+
+  it('still runs the route handler when building span metadata cannot resolve a method', () => {
+    const endedSpans = captureSpans();
+
+    expect(
+      invokeWrapped(
+        {
+          method: ['GET', 'POST'],
+          path: '/multi',
+          handler: () => 'ok',
+        },
+        { method: '' },
+      ),
+    ).toBe('ok');
+
+    expect(routerSpan(endedSpans)).toMatchObject({
+      name: '/multi',
+      attributes: {
+        'http.route': '/multi',
+      },
+    });
+    expect(routerSpan(endedSpans)?.attributes['http.request.method']).toBeUndefined();
+  });
+
+  it('propagates errors thrown by the route handler', () => {
+    captureSpans();
+
+    expect(() =>
+      invokeWrapped(
+        {
+          method: ['GET', 'POST'],
+          path: '/multi',
+          handler: () => {
+            throw new Error('user');
+          },
+        },
+        { method: 'post' },
+      ),
+    ).toThrow('user');
   });
 });
 
