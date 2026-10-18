@@ -124,9 +124,16 @@ export function wrapServerEntryWithSentryTunnel<T extends ServerEntry>(
     registerSentryServerTunnelRoute(`${startupOptions?.basePath?.replace(/\/$/, '') ?? ''}${path}`),
   );
 
+  // A class entry, like Cloudflare's `WorkerEntrypoint`, can't be spread into an object. The tunnel is then served
+  // by the wrapped default server entry it calls.
+  if (typeof entry === 'function') {
+    return entry;
+  }
+
   return {
     ...entry,
-    fetch(request: Request, opts?: unknown) {
+    // Cloudflare Workers pass `env` and `ctx` after the request, and `withSentry` needs `ctx` to flush.
+    fetch(request: Request, ...rest: unknown[]) {
       const tunnelResponse = handleTunnelRequestIfMatched(request, getTunnelOptions());
       if (tunnelResponse) {
         registerSentryServerTunnelRoute(new URL(request.url).pathname);
@@ -134,7 +141,7 @@ export function wrapServerEntryWithSentryTunnel<T extends ServerEntry>(
         return tunnelResponse;
       }
 
-      return entry.fetch(request, opts);
+      return entry.fetch(request, ...rest);
     },
   };
 }
