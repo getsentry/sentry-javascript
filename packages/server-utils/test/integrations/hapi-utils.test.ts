@@ -1,3 +1,4 @@
+import { HTTP_REQUEST_METHOD, HTTP_ROUTE } from '@sentry/conventions/attributes';
 import { setCurrentClient, spanToJSON, startSpan } from '@sentry/core';
 import type { Span } from '@sentry/core';
 import { afterEach, describe, expect, it } from 'vitest';
@@ -62,8 +63,8 @@ describe('getRouteMetadata', () => {
     expect(getRouteMetadata({ path: '/multi', method: ['GET', 'POST'] } as any, undefined, 'post')).toEqual({
       name: 'POST /multi',
       attributes: {
-        'http.route': '/multi',
-        'http.request.method': 'POST',
+        [HTTP_ROUTE]: '/multi',
+        [HTTP_REQUEST_METHOD]: 'POST',
         'hapi.type': 'router',
       },
     });
@@ -73,8 +74,8 @@ describe('getRouteMetadata', () => {
     expect(getRouteMetadata({ path: '/multi', method: ['GET', 'POST'] } as any, 'my-plugin', 'get')).toEqual({
       name: 'GET /multi',
       attributes: {
-        'http.route': '/multi',
-        'http.request.method': 'GET',
+        [HTTP_ROUTE]: '/multi',
+        [HTTP_REQUEST_METHOD]: 'GET',
         'hapi.type': 'plugin',
         'hapi.plugin.name': 'my-plugin',
       },
@@ -88,8 +89,8 @@ describe('getRouteMetadata', () => {
     expect(getRouteMetadata({ path: '/multi', method: ['GET', 'POST'] } as any, undefined, 'post')).toEqual({
       name: '/multi',
       attributes: {
-        'http.route': '/multi',
-        'http.request.method': 'POST',
+        [HTTP_ROUTE]: '/multi',
+        [HTTP_REQUEST_METHOD]: 'POST',
         'hapi.type': 'router',
       },
     });
@@ -99,7 +100,7 @@ describe('getRouteMetadata', () => {
     expect(getRouteMetadata({ path: '/multi', method: ['GET', 'POST'] } as any)).toEqual({
       name: '/multi',
       attributes: {
-        'http.route': '/multi',
+        [HTTP_ROUTE]: '/multi',
         'hapi.type': 'router',
       },
     });
@@ -109,8 +110,8 @@ describe('getRouteMetadata', () => {
     expect(getRouteMetadata({ path: '/single', method: 'GET' } as any, undefined, 'post')).toEqual({
       name: 'GET /single',
       attributes: {
-        'http.route': '/single',
-        'http.request.method': 'GET',
+        [HTTP_ROUTE]: '/single',
+        [HTTP_REQUEST_METHOD]: 'GET',
         'hapi.type': 'router',
       },
     });
@@ -169,8 +170,8 @@ describe('wrapRouteArguments', () => {
     expect(routerSpan(endedSpans)).toMatchObject({
       name: 'POST /multi',
       attributes: {
-        'http.route': '/multi',
-        'http.request.method': 'POST',
+        [HTTP_ROUTE]: '/multi',
+        [HTTP_REQUEST_METHOD]: 'POST',
         'hapi.type': 'router',
       },
     });
@@ -191,8 +192,8 @@ describe('wrapRouteArguments', () => {
     expect(routerSpan(endedSpans)).toMatchObject({
       name: '/multi',
       attributes: {
-        'http.route': '/multi',
-        'http.request.method': 'GET',
+        [HTTP_ROUTE]: '/multi',
+        [HTTP_REQUEST_METHOD]: 'GET',
       },
     });
   });
@@ -212,7 +213,7 @@ describe('wrapRouteArguments', () => {
     expect(routerSpan(endedSpans)).toMatchObject({
       name: 'GET /single',
       attributes: {
-        'http.request.method': 'GET',
+        [HTTP_REQUEST_METHOD]: 'GET',
       },
     });
   });
@@ -234,10 +235,10 @@ describe('wrapRouteArguments', () => {
     expect(routerSpan(endedSpans)).toMatchObject({
       name: '/multi',
       attributes: {
-        'http.route': '/multi',
+        [HTTP_ROUTE]: '/multi',
       },
     });
-    expect(routerSpan(endedSpans)?.attributes['http.request.method']).toBeUndefined();
+    expect(routerSpan(endedSpans)?.attributes[HTTP_REQUEST_METHOD]).toBeUndefined();
   });
 
   it('propagates errors thrown by the route handler', () => {

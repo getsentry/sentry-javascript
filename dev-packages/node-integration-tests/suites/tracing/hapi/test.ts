@@ -1,3 +1,5 @@
+import { HTTP_REQUEST_METHOD, HTTP_ROUTE, SENTRY_OP, SENTRY_ORIGIN } from '@sentry/conventions/attributes';
+import { ROUTER } from '@sentry/conventions/op';
 import { afterAll, describe, expect } from 'vitest';
 import { cleanupChildProcesses, createEsmAndCjsTests } from '../../../utils/runner';
 
@@ -58,11 +60,11 @@ describe('hapi auto-instrumentation', () => {
                 name: '/multi',
                 status: 'ok',
                 attributes: expect.objectContaining({
-                  'http.route': { type: 'string', value: '/multi' },
-                  'http.request.method': { type: 'string', value: 'POST' },
+                  [HTTP_ROUTE]: { type: 'string', value: '/multi' },
+                  [HTTP_REQUEST_METHOD]: { type: 'string', value: 'POST' },
                   'hapi.type': { type: 'string', value: 'router' },
-                  'sentry.origin': { type: 'string', value: origin },
-                  'sentry.op': { type: 'string', value: 'router' },
+                  [SENTRY_ORIGIN]: { type: 'string', value: origin },
+                  [SENTRY_OP]: { type: 'string', value: ROUTER },
                 }),
               }),
             );
@@ -76,11 +78,11 @@ describe('hapi auto-instrumentation', () => {
                 name: '/multi',
                 status: 'ok',
                 attributes: expect.objectContaining({
-                  'http.route': { type: 'string', value: '/multi' },
-                  'http.request.method': { type: 'string', value: 'GET' },
+                  [HTTP_ROUTE]: { type: 'string', value: '/multi' },
+                  [HTTP_REQUEST_METHOD]: { type: 'string', value: 'GET' },
                   'hapi.type': { type: 'string', value: 'router' },
-                  'sentry.origin': { type: 'string', value: origin },
-                  'sentry.op': { type: 'string', value: 'router' },
+                  [SENTRY_ORIGIN]: { type: 'string', value: origin },
+                  [SENTRY_OP]: { type: 'string', value: ROUTER },
                 }),
               }),
             );
