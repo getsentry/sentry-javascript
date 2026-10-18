@@ -1,5 +1,6 @@
 import { expect, test } from '@playwright/test';
 import { getSpanOp, waitForStreamedSpan } from '@sentry-internal/test-utils';
+import { getTunnelPath } from '@sentry/core';
 
 test.skip(!process.env.E2E_TEST_TUNNEL, 'Only runs in the tunnel variant');
 
@@ -39,4 +40,16 @@ test('answers the managed tunnel before the app auth middleware', async ({ page 
     anchorSpanPromise.then(() => 'anchor' as const),
   ]);
   expect(winner).toBe('anchor');
+});
+
+test('answers the managed tunnel without app middleware', async ({ request }) => {
+  const dsn = 'http://public@localhost:3031/1337';
+  const envelopeHeader = { dsn, sent_at: new Date().toISOString() };
+  const response = await request.post(`${BASE_PATH}${getTunnelPath(dsn)}`, {
+    data: `${JSON.stringify(envelopeHeader)}\n${JSON.stringify({ type: 'client_report' })}\n${JSON.stringify({ timestamp: Date.now() / 1000, discarded_events: [] })}\n`,
+    headers: { 'Content-Type': 'application/x-sentry-envelope' },
+  });
+
+  expect(response.headers()['x-sentry-tunnel']).toBe('1');
+  expect(response.status()).toBe(200);
 });
