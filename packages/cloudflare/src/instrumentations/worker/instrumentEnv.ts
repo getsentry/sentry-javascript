@@ -33,6 +33,7 @@ const instrumentedBindings = new WeakMap<object, unknown>();
  * - DurableObjectNamespace (via `idFromName` duck-typing)
  * - Service bindings / JSRPC proxies
  * - Queue producers (via `send` + `sendBatch` duck-typing)
+ * - Workers KV namespaces (via `get` + `put` + `list` + `getWithMetadata` duck-typing)
  * - R2 Buckets (via `head` + `put` + `createMultipartUpload` duck-typing)
  * - Workers AI (via `run` + `gateway` + `toMarkdown` duck-typing)
  *

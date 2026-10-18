@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { isD1Database, isDurableObjectNamespace, isJSRPC, isQueue } from '../../src/utils/isBinding';
+import { isD1Database, isDurableObjectNamespace, isJSRPC, isKVNamespace, isQueue } from '../../src/utils/isBinding';
 
 describe('isJSRPC', () => {
   it('returns false for a plain object', () => {
