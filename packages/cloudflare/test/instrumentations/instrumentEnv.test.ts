@@ -222,6 +222,58 @@ describe('instrumentEnv', () => {
     expect(send.mock.calls[0]?.[0]).toBe('hello');
   });
 
+  it('wraps Workers KV bindings in a proxy', async () => {
+    const get = vi.fn().mockResolvedValue('value');
+    const put = vi.fn().mockResolvedValue(undefined);
+    const list = vi.fn().mockResolvedValue({ keys: [], list_complete: true });
+    const getWithMetadata = vi.fn().mockResolvedValue({ value: 'value', metadata: null });
+    const kv = { get, put, list, getWithMetadata, delete: vi.fn() };
+    const env = { MY_KV: kv };
+    const instrumented = instrumentEnv(env);
+
+    const wrapped = instrumented.MY_KV as typeof kv;
+    expect(wrapped).not.toBe(kv);
+
+    await wrapped.get('test-key', 'json');
+    expect(get).toHaveBeenCalledWith('test-key', 'json');
+
+    await wrapped.put('test-key', 'value');
+    expect(put).toHaveBeenCalledWith('test-key', 'value');
+  });
+
+  it('caches the wrapped Workers KV binding across repeated access', () => {
+    const kv = { get: vi.fn(), put: vi.fn(), list: vi.fn(), getWithMetadata: vi.fn() };
+    const env = { MY_KV: kv };
+    const instrumented = instrumentEnv(env);
+
+    expect(instrumented.MY_KV).toBe(instrumented.MY_KV);
+  });
+
+  it('instruments Workers KV bindings independently from R2 bindings', () => {
+    const kv = { get: vi.fn(), put: vi.fn(), list: vi.fn(), getWithMetadata: vi.fn() };
+    const r2 = { head: vi.fn(), put: vi.fn(), createMultipartUpload: vi.fn() };
+    const env = { MY_KV: kv, MY_BUCKET: r2 };
+    const instrumented = instrumentEnv(env);
+
+    expect(instrumented.MY_KV).not.toBe(kv);
+    expect(instrumented.MY_BUCKET).not.toBe(r2);
+  });
+
+  it('does not instrument a JSRPC proxy as Workers KV', () => {
+    const jsrpcProxy = new Proxy(
+      {},
+      {
+        get(_target, _prop) {
+          return () => {};
+        },
+      },
+    );
+    const env = { SERVICE: jsrpcProxy };
+    const instrumented = instrumentEnv(env);
+
+    expect(instrumented.SERVICE).not.toBe(jsrpcProxy);
+  });
+
   it('caches the wrapped Queue binding across repeated access', () => {
     const queue = { send: vi.fn(), sendBatch: vi.fn() };
     const env = { MY_QUEUE: queue };

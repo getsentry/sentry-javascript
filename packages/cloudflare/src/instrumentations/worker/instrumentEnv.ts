@@ -6,6 +6,7 @@ import {
   isD1Database,
   isDurableObjectNamespace,
   isJSRPC,
+  isKVNamespace,
   isQueue,
   isR2Bucket,
 } from '../../utils/isBinding';
@@ -14,6 +15,7 @@ import { appendRpcMeta } from '../../utils/rpcMeta';
 import { createRpcPropagationResolver } from '../../utils/rpcPropagation';
 import { instrumentDurableObjectNamespace, STUB_NON_RPC_METHODS } from '../instrumentDurableObjectNamespace';
 import { instrumentFetcher } from './instrumentFetcher';
+import { instrumentKV } from './instrumentKV';
 import { instrumentQueueProducer } from './instrumentQueueProducer';
 import { instrumentR2Bucket } from './instrumentR2';
 
@@ -67,6 +69,13 @@ export function instrumentEnv<Env extends Record<string, unknown>>(env: Env, opt
       if (isQueue(item)) {
         const bindingName = typeof prop === 'string' ? prop : String(prop);
         const instrumented = instrumentQueueProducer(item, bindingName);
+        instrumentedBindings.set(item, instrumented);
+        return instrumented;
+      }
+
+      if (isKVNamespace(item)) {
+        const bindingName = typeof prop === 'string' ? prop : String(prop);
+        const instrumented = instrumentKV(item, bindingName);
         instrumentedBindings.set(item, instrumented);
         return instrumented;
       }

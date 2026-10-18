@@ -1,0 +1,12 @@
+{
+  "name": "worker-name",
+  "compatibility_date": "2025-06-17",
+  "main": "index.ts",
+  "compatibility_flags": ["nodejs_compat"],
+  "kv_namespaces": [
+    {
+      "binding": "MY_KV",
+      "id": "00000000000000000000000000000000",
+    },
+  ],
+}

@@ -1,0 +1,138 @@
+import type { KVNamespace } from '@cloudflare/workers-types';
+import * as SentryCore from '@sentry/core';
+import { beforeEach, describe, expect, test, vi } from 'vitest';
+import { instrumentKV } from '../../../src/instrumentations/worker/instrumentKV';
+
+function createMockKVNamespace(): KVNamespace {
+  return {
+    get: vi.fn().mockResolvedValue('value'),
+    getWithMetadata: vi.fn().mockResolvedValue({ value: 'value', metadata: null }),
+    put: vi.fn().mockResolvedValue(undefined),
+    delete: vi.fn().mockResolvedValue(undefined),
+    list: vi.fn().mockResolvedValue({ keys: [], list_complete: true }),
+  } as unknown as KVNamespace;
+}
+
+describe('instrumentKV', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  const startSpanSpy = vi.spyOn(SentryCore, 'startSpan');
+
+  test('forwards get with the type argument', async () => {
+    const kv = createMockKVNamespace();
+    const wrapped = instrumentKV(kv, 'MY_KV');
+
+    const result = await wrapped.get('test-key', 'json');
+
+    expect(result).toBe('value');
+    expect(kv.get).toHaveBeenCalledWith('test-key', 'json');
+  });
+
+  test('starts a cache.get span with KV attributes', async () => {
+    const kv = createMockKVNamespace();
+    const wrapped = instrumentKV(kv, 'MY_KV');
+
+    await wrapped.get('test-key');
+
+    expect(startSpanSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        attributes: expect.objectContaining({
+          'sentry.op': 'cache.get',
+          'sentry.origin': 'auto.cache.cloudflare.kv',
+          'cache.operation': 'get',
+          'cache.key': 'test-key',
+          'db.operation.name': 'get',
+          'db.collection.name': 'MY_KV',
+          'db.system.name': 'cloudflare.kv',
+        }),
+      }),
+      expect.any(Function),
+    );
+  });
+
+  test('handles bulk get without changing the underlying argument shape', async () => {
+    const kv = createMockKVNamespace();
+    const get = vi.fn().mockResolvedValue(new Map([['first', 'one'], ['second', 'two']]));
+    kv.get = get as unknown as KVNamespace['get'];
+    const wrapped = instrumentKV(kv, 'MY_KV');
+
+    const keys = ['first', 'second'];
+    const result = await wrapped.get(keys, 'text');
+
+    expect(result).toBeInstanceOf(Map);
+    expect(get).toHaveBeenCalledWith(keys, 'text');
+    expect(startSpanSpy.mock.calls[0]?.[0]).toEqual(
+      expect.objectContaining({
+        attributes: expect.objectContaining({
+          'cache.key': ['first', 'second'],
+        }),
+      }),
+    );
+  });
+
+  test('handles getWithMetadata as a cache read', async () => {
+    const kv = createMockKVNamespace();
+    const wrapped = instrumentKV(kv, 'MY_KV');
+
+    await wrapped.getWithMetadata('test-key', 'json');
+
+    expect(kv.getWithMetadata).toHaveBeenCalledWith('test-key', 'json');
+    expect(startSpanSpy.mock.calls[0]?.[0]).toEqual(
+      expect.objectContaining({
+        attributes: expect.objectContaining({
+          'sentry.op': 'cache.get',
+          'cache.key': 'test-key',
+          'db.operation.name': 'getWithMetadata',
+        }),
+      }),
+    );
+  });
+
+  test('instruments put, delete, and list operations', async () => {
+    const kv = createMockKVNamespace();
+    const wrapped = instrumentKV(kv, 'MY_KV');
+
+    await wrapped.put('put-key', 'value');
+    await wrapped.delete('delete-key');
+    await wrapped.list({ prefix: 'test-' });
+
+    expect(startSpanSpy).toHaveBeenCalledTimes(3);
+    expect(startSpanSpy.mock.calls[0]?.[0]).toEqual(
+      expect.objectContaining({
+        attributes: expect.objectContaining({
+          'sentry.op': 'cache.put',
+          'cache.key': 'put-key',
+          'db.operation.name': 'put',
+        }),
+      }),
+    );
+    expect(startSpanSpy.mock.calls[1]?.[0]).toEqual(
+      expect.objectContaining({
+        attributes: expect.objectContaining({
+          'sentry.op': 'cache.remove',
+          'cache.key': 'delete-key',
+          'db.operation.name': 'delete',
+        }),
+      }),
+    );
+    expect(startSpanSpy.mock.calls[2]?.[0]).toEqual(
+      expect.objectContaining({
+        attributes: expect.objectContaining({
+          'sentry.op': 'cache.get',
+          'db.operation.name': 'list',
+        }),
+      }),
+    );
+  });
+
+  test('forwards unknown property accesses transparently', () => {
+    const kv = Object.assign(createMockKVNamespace(), {
+      customMethod: vi.fn().mockReturnValue('ok'),
+    }) as KVNamespace & { customMethod: () => string };
+
+    const wrapped = instrumentKV(kv, 'MY_KV');
+    expect(wrapped.customMethod()).toBe('ok');
+  });
+});

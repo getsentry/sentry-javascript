@@ -210,3 +210,41 @@ describe('isD1Database', () => {
     expect(isD1Database(jsrpcProxy)).toBe(false);
   });
 });
+
+
+describe('isKVNamespace', () => {
+  it('returns true for an object with get, put, list, and getWithMetadata methods', () => {
+    const kv = {
+      get: async () => null,
+      put: async () => {},
+      list: async () => ({ keys: [], list_complete: true }),
+      getWithMetadata: async () => ({ value: null, metadata: null }),
+    };
+    expect(isKVNamespace(kv)).toBe(true);
+  });
+
+  it('returns false when getWithMetadata is missing', () => {
+    expect(isKVNamespace({ get: () => {}, put: () => {}, list: () => {} })).toBe(false);
+  });
+
+  it('returns false when a required method is not a function', () => {
+    expect(isKVNamespace({ get: 'nope', put: () => {}, list: () => {}, getWithMetadata: () => {} })).toBe(false);
+  });
+
+  it('returns false for null and undefined', () => {
+    expect(isKVNamespace(null)).toBe(false);
+    expect(isKVNamespace(undefined)).toBe(false);
+  });
+
+  it('returns false for a JSRPC proxy even though it has all KV methods', () => {
+    const jsrpcProxy = new Proxy(
+      {},
+      {
+        get(_target, _prop) {
+          return () => {};
+        },
+      },
+    );
+    expect(isKVNamespace(jsrpcProxy)).toBe(false);
+  });
+});
