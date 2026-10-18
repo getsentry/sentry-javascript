@@ -45,7 +45,7 @@ describe('instrumentKV', () => {
           'cache.key': 'test-key',
           'db.operation.name': 'get',
           'db.collection.name': 'MY_KV',
-          'db.system.name': 'cloudflare.kv',
+          'db.system.name': 'cloudflare-kv',
         }),
       }),
       expect.any(Function),

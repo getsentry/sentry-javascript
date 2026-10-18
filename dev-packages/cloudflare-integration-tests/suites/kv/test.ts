@@ -17,7 +17,7 @@ it('emits cache.get for a KV read with key and hit attributes', async ({ signal 
               'cache.hit': { type: 'boolean', value: true },
               'db.operation.name': { type: 'string', value: 'get' },
               'db.collection.name': { type: 'string', value: 'MY_KV' },
-              'db.system.name': { type: 'string', value: 'cloudflare.kv' },
+              'db.system.name': { type: 'string', value: 'cloudflare-kv' },
             }),
           }),
         ]),
