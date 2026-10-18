@@ -527,6 +527,15 @@ describe('handleTunnelRequestIfMatched', () => {
     );
   });
 
+  it('leaves a fixed path to the app when there is no DSN to forward to', () => {
+    setTestClient(undefined, { path: '/monitor' });
+    const request = makeEnvelopeRequest({ dsn: TEST_DSN }, 'http://localhost/monitor');
+
+    expect(handleTunnelRequestIfMatched(request)).toBeUndefined();
+    expect(handleTunnelRequestIfMatched(request, { path: '/monitor' })).toBeUndefined();
+    expect(request.bodyUsed).toBe(false);
+  });
+
   it('returns undefined without reading the body when the request does not match', () => {
     const request = makeEnvelopeRequest({ dsn: TEST_DSN }, 'http://localhost/api/users');
 
@@ -697,6 +706,6 @@ describe('setManagedTunnelBasePath', () => {
   });
 });
 
-function setTestClient(dsn: string, managedTunnel?: TunnelOptions): void {
+function setTestClient(dsn: string | undefined, managedTunnel?: TunnelOptions): void {
   setCurrentClient(new TestClient(getDefaultTestClientOptions({ dsn, _managedTunnel: managedTunnel })));
 }

@@ -189,6 +189,11 @@ export function handleTunnelRequestIfMatched(request: Request, options?: TunnelO
   }
 
   const allowedDsns = (options ?? getClient()?.getOptions()._managedTunnel)?.allowedDsns;
+  // A fixed path matches without a DSN, but with nowhere to forward to the request is left to the app. Its 404 makes
+  // the browser send directly, instead of losing every envelope to an error response.
+  if (!resolveAllowedDsns(allowedDsns).length) {
+    return undefined;
+  }
 
   return handleTunnelRequest({ request, allowedDsns });
 }
