@@ -50,6 +50,7 @@ export {
   setAttribute,
   setAttributes,
   setUser,
+  setConversationId,
   getSpanStatusFromHttpCode,
   setHttpStatus,
   withScope,
@@ -75,6 +76,7 @@ export {
   inboundFiltersIntegration,
   instrumentOpenAiClient,
   instrumentStateGraph,
+  instrumentCreateReactAgent,
   // eslint-disable-next-line typescript/no-deprecated
   instrumentLangGraph,
   instrumentGoogleGenAIClient,
@@ -99,12 +101,14 @@ export {
   spanToJSON,
   spanToTraceHeader,
   spanToBaggageHeader,
+  updateSpanName,
   wrapMcpServerWithSentry,
   consoleLoggingIntegration,
   createConsolaReporter,
   createLangChainCallbackHandler,
   instrumentLangChainEmbeddings,
   featureFlagsIntegration,
+  growthbookIntegration,
   logger,
   metrics,
   withStreamedSpan,
@@ -116,3 +120,7 @@ export { getDefaultIntegrations, init } from './sdk';
 
 export { winterCGFetchIntegration } from './integrations/wintercg-fetch';
 export { vercelAIIntegration } from './integrations/tracing/vercelai';
+
+// prismaIntegration requires diagnostics channels, unavailable on Vercel Edge.
+// Cloudflare's httpServerIntegration is consumed by its request wrapper, which Vercel Edge does not use.
+// The fetch-based spotlightIntegration lives in the Cloudflare package, not a shared entry point.
