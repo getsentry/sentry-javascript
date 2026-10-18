@@ -66,6 +66,27 @@ describe('wrapServerEntryWithSentryTunnel', () => {
     expect(appFetch).toHaveBeenCalledWith(request, { context: 1 });
   });
 
+  it("passes every argument to the app, like a Cloudflare Worker's `env` and `ctx`", async () => {
+    setClient({});
+    const request = makeEnvelopeRequest('http://localhost:3000/api/users');
+    const env = { E2E_TEST_DSN: DSN };
+    const ctx = { waitUntil: vi.fn(), passThroughOnException: vi.fn() };
+
+    await wrapServerEntryWithSentryTunnel({ fetch: appFetch }).fetch(request, env, ctx);
+
+    expect(appFetch).toHaveBeenCalledWith(request, env, ctx);
+  });
+
+  it('returns a class entry, like a `WorkerEntrypoint`, unchanged', () => {
+    class Worker {
+      public fetch(): Response {
+        return new Response('app');
+      }
+    }
+
+    expect(wrapServerEntryWithSentryTunnel(Worker as unknown as { fetch: () => Response })).toBe(Worker);
+  });
+
   it('ignores spans for the tunnel path from the start when the client already exists', async () => {
     // Paths are registered once per module, and earlier tests already registered this one.
     vi.resetModules();
