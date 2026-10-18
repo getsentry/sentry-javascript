@@ -1,5 +1,6 @@
+import { SENTRY_OP } from '@sentry/conventions/attributes';
 import { describe, expect, it, vi } from 'vitest';
-import { httpContextIntegration, SEMANTIC_ATTRIBUTE_SENTRY_OP } from '../../src/exports';
+import { httpContextIntegration } from '../../src/exports';
 import type { Event, StreamedSpanJSON } from '@sentry/core';
 import { getDefaultBrowserClientOptions } from '../helper/browser-client-options';
 import { BrowserClient } from '../../src/client';
@@ -29,7 +30,7 @@ describe('httpContextIntegration', () => {
     const span: Partial<StreamedSpanJSON> = {
       is_segment: true,
       attributes: {
-        [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'http.client',
+        [SENTRY_OP]: 'http.client',
       },
     };
 
@@ -39,7 +40,7 @@ describe('httpContextIntegration', () => {
 
     expect(span.attributes).not.toHaveProperty('url.full');
     expect(span.attributes).toEqual({
-      [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'http.client',
+      [SENTRY_OP]: 'http.client',
       'http.request.header.referer': ['https://example.com'],
       'user_agent.original': USER_AGENT,
       'sentry.is_localhost': false,
@@ -52,7 +53,7 @@ describe('httpContextIntegration', () => {
     const span: Partial<StreamedSpanJSON> = {
       is_segment: true,
       attributes: {
-        [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'pageload',
+        [SENTRY_OP]: 'pageload',
       },
     };
 
@@ -61,7 +62,7 @@ describe('httpContextIntegration', () => {
     integration.processSpan!(span as StreamedSpanJSON, browserClient);
 
     expect(span.attributes).toEqual({
-      [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'pageload',
+      [SENTRY_OP]: 'pageload',
       'http.request.header.referer': ['https://example.com'],
       'user_agent.original': USER_AGENT,
       'sentry.is_localhost': false,
@@ -74,14 +75,14 @@ describe('httpContextIntegration', () => {
 
     const span: Partial<StreamedSpanJSON> = {
       attributes: {
-        [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'ui.click',
+        [SENTRY_OP]: 'ui.click',
       },
     };
 
     integration.processSpan!(span as StreamedSpanJSON, new BrowserClient(getDefaultBrowserClientOptions()));
 
     expect(span.attributes).toEqual({
-      [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'ui.click',
+      [SENTRY_OP]: 'ui.click',
       'user_agent.original': USER_AGENT,
       'sentry.is_localhost': false,
     });
@@ -141,6 +142,74 @@ describe('httpContextIntegration', () => {
       });
     });
 
+    it('filters sensitive query params in the URL attached to events', () => {
+      const client = new BrowserClient(getDefaultBrowserClientOptions());
+      const event: Event = {};
+
+      document.location.href = 'https://example.com/?jwt=baz&page=1';
+      try {
+        httpContextIntegration().preprocessEvent!(event, {}, client);
+      } finally {
+        document.location.href = 'https://example.com';
+      }
+
+      expect(event.request?.url).toBe('https://example.com/?jwt=[Filtered]&page=1');
+    });
+
+    it('filters sensitive query params in the Referer header attached to events', () => {
+      const client = new BrowserClient(getDefaultBrowserClientOptions());
+      const event: Event = {};
+
+      document.referrer = 'https://example.com/?jwt=baz&page=1';
+      try {
+        httpContextIntegration().preprocessEvent!(event, {}, client);
+      } finally {
+        document.referrer = 'https://example.com';
+      }
+
+      expect(event.request?.headers?.Referer).toBe('https://example.com/?jwt=[Filtered]&page=1');
+    });
+
+    it('removes the query from the Referer header attached to events when `urlQueryParams` is disabled', () => {
+      const client = new BrowserClient(getDefaultBrowserClientOptions({ dataCollection: { urlQueryParams: false } }));
+      const event: Event = {};
+
+      document.referrer = 'https://example.com/?jwt=baz&page=1';
+      try {
+        httpContextIntegration().preprocessEvent!(event, {}, client);
+      } finally {
+        document.referrer = 'https://example.com';
+      }
+
+      expect(event.request?.headers?.Referer).toBe('https://example.com/');
+    });
+
+    it('filters sensitive query params in the referer attribute of segment spans', () => {
+      const client = new BrowserClient(getDefaultBrowserClientOptions());
+      const span: Partial<StreamedSpanJSON> = {
+        is_segment: true,
+        attributes: { [SENTRY_OP]: 'pageload' },
+      };
+
+      document.referrer = 'https://example.com/?jwt=baz&page=1';
+      try {
+        httpContextIntegration().processSpan!(span as StreamedSpanJSON, client);
+      } finally {
+        document.referrer = 'https://example.com';
+      }
+
+      expect(span.attributes?.['http.request.header.referer']).toEqual(['https://example.com/?jwt=[Filtered]&page=1']);
+    });
+
+    it('leaves a user-supplied event URL untouched', () => {
+      const client = new BrowserClient(getDefaultBrowserClientOptions());
+      const event: Event = { request: { url: 'https://example.com/?jwt=user-set' } };
+
+      httpContextIntegration().preprocessEvent!(event, {}, client);
+
+      expect(event.request?.url).toBe('https://example.com/?jwt=user-set');
+    });
+
     it('applies an allowlist to event headers', () => {
       const client = new BrowserClient(
         getDefaultBrowserClientOptions({ dataCollection: { httpHeaders: { request: { allow: ['user-agent'] } } } }),
@@ -161,13 +230,13 @@ describe('httpContextIntegration', () => {
       );
       const span: Partial<StreamedSpanJSON> = {
         is_segment: true,
-        attributes: { [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'pageload' },
+        attributes: { [SENTRY_OP]: 'pageload' },
       };
 
       httpContextIntegration().processSpan!(span as StreamedSpanJSON, client);
 
       expect(span.attributes).toEqual({
-        [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'pageload',
+        [SENTRY_OP]: 'pageload',
         'sentry.is_localhost': false,
         'url.full': 'https://example.com',
       });
@@ -179,13 +248,13 @@ describe('httpContextIntegration', () => {
       );
       const span: Partial<StreamedSpanJSON> = {
         is_segment: true,
-        attributes: { [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'pageload' },
+        attributes: { [SENTRY_OP]: 'pageload' },
       };
 
       httpContextIntegration().processSpan!(span as StreamedSpanJSON, client);
 
       expect(span.attributes).toEqual({
-        [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'pageload',
+        [SENTRY_OP]: 'pageload',
         'url.full': 'https://example.com',
         'http.request.header.referer': ['[Filtered]'],
         'user_agent.original': USER_AGENT,

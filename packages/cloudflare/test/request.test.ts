@@ -1174,6 +1174,7 @@ describe('cached client (cacheClient)', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     _clearGlobalClientCache();
+    SentryCore.getCurrentScope().setClient(undefined);
   });
 
   // `init()` resolves defaults into the options object it is given, so each call
@@ -1221,6 +1222,7 @@ describe('cached client (cacheClient)', () => {
   test('clears cache with _clearGlobalClientCache', async () => {
     const client1 = init(makeOptions());
     _clearGlobalClientCache();
+    SentryCore.getCurrentScope().setClient(undefined);
     const client2 = init(makeOptions());
     expect(client2).not.toBe(client1);
   });

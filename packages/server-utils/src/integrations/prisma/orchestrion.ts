@@ -1,15 +1,9 @@
 import * as diagnosticsChannel from '../../utils/diagnosticsChannel';
 import type { Span } from '@sentry/core';
-import {
-  getActiveSpan,
-  getRootSpan,
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  spanIsIgnored,
-  startInactiveSpan,
-  withActiveSpan,
-} from '@sentry/core';
-import { DB_COLLECTION_NAME, DB_OPERATION_NAME, SENTRY_OP } from '@sentry/conventions/attributes';
+import { getActiveSpan, getRootSpan, spanIsIgnored, startInactiveSpan, withActiveSpan } from '@sentry/core';
+import { DB_COLLECTION_NAME, DB_OPERATION_NAME, SENTRY_OP, SENTRY_ORIGIN } from '@sentry/conventions/attributes';
 import { DB } from '@sentry/conventions/op';
+import type { OrchestrionChannelContext } from '../../orchestrion/types';
 import { prismaChannels, PRISMA_LAZY_TERMINALS } from '../../orchestrion/config/prisma';
 import type { TracingChannelLifeCycleOptions } from '../../tracing-channel';
 import { bindTracingChannelToSpan, safeChannelCallback } from '../../tracing-channel';
@@ -27,12 +21,8 @@ interface PrismaCollection {
   tableName?: unknown;
 }
 
-interface PrismaTerminalChannelContext {
-  arguments: unknown[];
+interface PrismaTerminalChannelContext extends OrchestrionChannelContext {
   self?: PrismaCollection;
-  moduleVersion?: string;
-  result?: unknown;
-  error?: unknown;
 }
 
 // Prisma's `AsyncIterableResult`: `await`, `.then()` and `.first()` all funnel through `toArray()`; only
@@ -84,7 +74,7 @@ function startOperationSpan(method: string, data: PrismaTerminalChannelContext):
     name: OPERATION_SPAN_NAME,
     parentSpan,
     attributes: {
-      [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: PRISMA_ORIGIN,
+      [SENTRY_ORIGIN]: PRISMA_ORIGIN,
       [SENTRY_OP]: DB,
       [DB_OPERATION_NAME]: method,
       [DB_COLLECTION_NAME]: table ?? model,

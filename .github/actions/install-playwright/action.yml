@@ -5,19 +5,23 @@ inputs:
     description: 'What browsers to install.'
     default: 'chromium webkit firefox'
   cwd:
-    description: 'The working directory to run Playwright in.'
-    default: '.'
+    description:
+      'The directory whose package.json declares the `@playwright/test` version to install. Nothing is installed if it
+      does not depend on `@playwright/test`.'
+    required: true
 
 runs:
   using: 'composite'
   steps:
-    # Resolve the app's @playwright/test version. Some apps (e.g. the node bundler apps) assert via a
-    # plain node script and don't depend on Playwright — emit an empty version instead of failing, so
-    # the steps below skip the (wasted) browser install rather than erroring on the missing package.
+    # Read from package.json rather than node_modules, so this can run before dependencies are installed.
     - name: Get Playwright version
       id: playwright-version
       run: |
-        version=$(node -e "let v = ''; try { v = require('@playwright/test/package.json').version; } catch {} process.stdout.write(String(v));")
+        version=$(node -e "
+          const { dependencies, devDependencies } = require('./package.json');
+          const range = devDependencies?.['@playwright/test'] ?? dependencies?.['@playwright/test'] ?? '';
+          process.stdout.write(range.replace(/^[~^=]/, ''));
+        ")
         echo "version=$version" >> "$GITHUB_OUTPUT"
       shell: bash
       working-directory: ${{ inputs.cwd }}
@@ -34,18 +38,19 @@ runs:
 
     # We always install all browsers, if uncached
     - name: Install Playwright dependencies (uncached)
-      run: npx playwright install chromium webkit firefox --with-deps
+      env:
+        PLAYWRIGHT_VERSION: ${{ steps.playwright-version.outputs.version }}
+      run: npx -y "playwright@$PLAYWRIGHT_VERSION" install chromium webkit firefox --with-deps
       if: steps.playwright-version.outputs.version != '' && steps.playwright-cache.outputs.cache-hit != 'true'
       shell: bash
-      working-directory: ${{ inputs.cwd }}
 
     - name: Install Playwright system dependencies only (cached)
       env:
         PLAYWRIGHT_BROWSERS: ${{ inputs.browsers || 'chromium webkit firefox' }}
-      run: npx playwright install-deps "$PLAYWRIGHT_BROWSERS"
+        PLAYWRIGHT_VERSION: ${{ steps.playwright-version.outputs.version }}
+      run: npx -y "playwright@$PLAYWRIGHT_VERSION" install-deps "$PLAYWRIGHT_BROWSERS"
       if: steps.playwright-version.outputs.version != '' && steps.playwright-cache.outputs.cache-hit == 'true'
       shell: bash
-      working-directory: ${{ inputs.cwd }}
 
     # Only store cache on develop branch
     - name: Store cached playwright binaries

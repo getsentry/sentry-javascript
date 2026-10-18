@@ -3,7 +3,6 @@ import {
   FUNCTION_SPAN_NAME_FALLBACK,
   getClient,
   hasSpanStreamingEnabled,
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   startSpan,
 } from '@sentry/core';
 import { flushIfServerless } from '@sentry/core/server';
@@ -13,6 +12,7 @@ import {
   HTTP_ROUTE,
   SENTRY_DESCRIPTION,
   SENTRY_OP,
+  SENTRY_ORIGIN,
 } from '@sentry/conventions/attributes';
 import { FUNCTION } from '@sentry/conventions/op';
 import type { RequestEvent } from '@sveltejs/kit';
@@ -71,7 +71,7 @@ export function wrapServerRouteWithSentry<T extends RequestEvent>(
             attributes: {
               [SENTRY_OP]: FUNCTION,
               [CODE_FUNCTION_NAME]: httpMethod,
-              [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.sveltekit',
+              [SENTRY_ORIGIN]: 'auto.function.sveltekit',
               [HTTP_REQUEST_METHOD]: httpMethod,
               [HTTP_ROUTE]: routeId,
               // Relay infers the description from `code.function.name`, which would drop the route.

@@ -1,16 +1,10 @@
 import type { Client } from '@sentry/core';
-import {
-  debug,
-  hasSpanStreamingEnabled,
-  PAGELOAD_SPAN_NAME_FALLBACK,
-  parseBaggageHeader,
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-} from '@sentry/core';
+import { debug, hasSpanStreamingEnabled, PAGELOAD_SPAN_NAME_FALLBACK, parseBaggageHeader } from '@sentry/core';
 import { startBrowserTracingPageLoadSpan, WINDOW } from '@sentry/react';
 import type { NEXT_DATA } from 'next/dist/shared/lib/utils';
 import type { ParsedUrlQuery } from 'querystring';
 import { DEBUG_BUILD } from '../../common/debug-build';
-import { SENTRY_OP, SENTRY_SEGMENT_NAME_SOURCE, URL_TEMPLATE } from '@sentry/conventions/attributes';
+import { SENTRY_OP, SENTRY_SEGMENT_NAME_SOURCE, URL_TEMPLATE, SENTRY_ORIGIN } from '@sentry/conventions/attributes';
 import { PAGELOAD } from '@sentry/conventions/op';
 
 const globalObject = WINDOW;
@@ -113,7 +107,7 @@ export function pagesRouterInstrumentPageLoad(client: Client): void {
       name,
       attributes: {
         [SENTRY_OP]: PAGELOAD,
-        [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.pageload.nextjs.pages_router_instrumentation',
+        [SENTRY_ORIGIN]: 'auto.pageload.nextjs.pages_router_instrumentation',
         [SENTRY_SEGMENT_NAME_SOURCE]: route ? 'route' : 'url',
         ...(route && { [URL_TEMPLATE]: route }),
         ...(params && { ...params }),

@@ -1,3 +1,4 @@
+import type { OrchestrionChannelContext } from '../../../src/orchestrion/types';
 import { AsyncLocalStorage } from 'node:async_hooks';
 import { tracingChannel } from 'node:diagnostics_channel';
 import type { Client, Scope, Span } from '@sentry/core';
@@ -73,11 +74,6 @@ function makeSpan(): Span {
   return { end: vi.fn(), setStatus: vi.fn(), setAttributes: vi.fn() } as unknown as Span;
 }
 
-interface ChannelContext {
-  arguments: unknown[];
-  self?: unknown;
-}
-
 describe('postgresIntegration', () => {
   let startInactiveSpanSpy: MockInstance;
   let getActiveSpanSpy: MockInstance;
@@ -113,7 +109,10 @@ describe('postgresIntegration', () => {
   const CONNECTION = { database: 'tests', host: 'localhost', port: 5432, user: 'tim' };
 
   it('query: builds a `pg.query` span with db attributes and the orchestrion origin', async () => {
-    const ctx: ChannelContext = { arguments: ['SELECT * FROM "User"'], self: { connectionParameters: CONNECTION } };
+    const ctx: OrchestrionChannelContext = {
+      arguments: ['SELECT * FROM "User"'],
+      self: { connectionParameters: CONNECTION },
+    };
 
     await tracingChannel(CHANNELS.PG_QUERY).tracePromise(async () => ({ rows: [] }), ctx);
 
@@ -138,7 +137,7 @@ describe('postgresIntegration', () => {
   });
 
   it('query: records the prepared-statement name as `db.postgresql.plan`', async () => {
-    const ctx: ChannelContext = {
+    const ctx: OrchestrionChannelContext = {
       arguments: [{ name: 'select-user-by-email', text: 'SELECT * FROM "User" WHERE "email" = $1', values: ['x'] }],
       self: { connectionParameters: CONNECTION },
     };
@@ -159,7 +158,7 @@ describe('postgresIntegration', () => {
   });
 
   it('query: sets error status and ends the span when the query rejects', async () => {
-    const ctx: ChannelContext = { arguments: ['SELECT 1'], self: { connectionParameters: CONNECTION } };
+    const ctx: OrchestrionChannelContext = { arguments: ['SELECT 1'], self: { connectionParameters: CONNECTION } };
 
     await expect(
       tracingChannel(CHANNELS.PG_QUERY).tracePromise(async () => {
@@ -172,7 +171,7 @@ describe('postgresIntegration', () => {
   });
 
   it('connect: builds a `pg.connect` span with no origin (defaults to manual)', async () => {
-    const ctx: ChannelContext = { arguments: [], self: { connectionParameters: CONNECTION } };
+    const ctx: OrchestrionChannelContext = { arguments: [], self: { connectionParameters: CONNECTION } };
 
     await tracingChannel(CHANNELS.PG_CONNECT).tracePromise(async () => undefined, ctx);
 
@@ -193,7 +192,7 @@ describe('postgresIntegration', () => {
   });
 
   it('pool connect: builds a `pg-pool.connect` span with masked connection string + pool attributes', async () => {
-    const ctx: ChannelContext = {
+    const ctx: OrchestrionChannelContext = {
       arguments: [],
       self: {
         options: {
@@ -229,7 +228,7 @@ describe('postgresIntegration', () => {
   });
 
   it('pool connect: falls back to the explicit `port` when the connection string omits it (OTel parity)', async () => {
-    const ctx: ChannelContext = {
+    const ctx: OrchestrionChannelContext = {
       arguments: [],
       self: {
         options: {
@@ -254,7 +253,7 @@ describe('postgresIntegration', () => {
 
   it('requireParentSpan: does not create a span when there is no active span', async () => {
     getActiveSpanSpy.mockReturnValue(undefined);
-    const ctx: ChannelContext = { arguments: ['SELECT 1'], self: { connectionParameters: CONNECTION } };
+    const ctx: OrchestrionChannelContext = { arguments: ['SELECT 1'], self: { connectionParameters: CONNECTION } };
 
     await tracingChannel(CHANNELS.PG_QUERY).tracePromise(async () => ({ rows: [] }), ctx);
 

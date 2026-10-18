@@ -1,13 +1,6 @@
-import { SENTRY_OP } from '@sentry/conventions/attributes';
+import { SENTRY_OP, SENTRY_ORIGIN } from '@sentry/conventions/attributes';
 import { HTTP_SERVER } from '@sentry/conventions/op';
-import {
-  debug,
-  getActiveSpan,
-  getOriginalFunction,
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  startSpan,
-  type WrappedFunction,
-} from '@sentry/core';
+import { debug, getActiveSpan, getOriginalFunction, startSpan, type WrappedFunction } from '@sentry/core';
 import { INTERNAL_REQUEST_ORIGIN } from './constants';
 import type { Env, Hono } from './honoTypes';
 import { DEBUG_BUILD } from '../../debug-build';
@@ -104,7 +97,7 @@ export function patchAppRequest<E extends Env>(app: Hono<E>): void {
           onlyIfParent: true,
           attributes: {
             [SENTRY_OP]: INTERNAL_REQUEST_OP,
-            [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: INTERNAL_REQUEST_ORIGIN,
+            [SENTRY_ORIGIN]: INTERNAL_REQUEST_ORIGIN,
           },
         },
         () => {

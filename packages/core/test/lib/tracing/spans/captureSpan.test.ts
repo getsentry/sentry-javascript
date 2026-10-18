@@ -3,8 +3,6 @@ import type { Contexts, Span, StreamedSpanJSON } from '../../../../src';
 import {
   captureSpan,
   debug,
-  SEMANTIC_ATTRIBUTE_SENTRY_OP,
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE,
   spanStreamingIntegration,
   startInactiveSpan,
@@ -33,6 +31,8 @@ import {
   SENTRY_ENVIRONMENT,
   SENTRY_RELEASE,
   SENTRY_SDK_INTEGRATIONS,
+  SENTRY_OP,
+  SENTRY_ORIGIN,
 } from '@sentry/conventions/attributes';
 
 describe('captureSpan', () => {
@@ -77,11 +77,11 @@ describe('captureSpan', () => {
           type: 'string',
           value: 'stream',
         },
-        [SEMANTIC_ATTRIBUTE_SENTRY_OP]: {
+        [SENTRY_OP]: {
           type: 'string',
           value: 'http.client',
         },
-        [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: {
+        [SENTRY_ORIGIN]: {
           type: 'string',
           value: 'manual',
         },
@@ -173,11 +173,11 @@ describe('captureSpan', () => {
       status: 'ok',
       is_segment: true,
       attributes: {
-        [SEMANTIC_ATTRIBUTE_SENTRY_OP]: {
+        [SENTRY_OP]: {
           type: 'string',
           value: 'http.client',
         },
-        [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: {
+        [SENTRY_ORIGIN]: {
           type: 'string',
           value: 'manual',
         },
@@ -269,11 +269,11 @@ describe('captureSpan', () => {
       status: 'ok',
       is_segment: true,
       attributes: {
-        [SEMANTIC_ATTRIBUTE_SENTRY_OP]: {
+        [SENTRY_OP]: {
           type: 'string',
           value: 'http.client',
         },
-        [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: {
+        [SENTRY_ORIGIN]: {
           type: 'string',
           value: 'manual',
         },
@@ -350,8 +350,8 @@ describe('captureSpan', () => {
       is_segment: true,
       attributes: {
         [SENTRY_TRACE_LIFECYCLE]: { type: 'string', value: 'stream' },
-        [SEMANTIC_ATTRIBUTE_SENTRY_OP]: { type: 'string', value: 'http.client' },
-        [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: { type: 'string', value: 'manual' },
+        [SENTRY_OP]: { type: 'string', value: 'http.client' },
+        [SENTRY_ORIGIN]: { type: 'string', value: 'manual' },
         [SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE]: { type: 'integer', value: 1 },
         [SENTRY_SEGMENT_NAME]: { value: 'my-span', type: 'string' },
         [SENTRY_SEGMENT_ID]: { value: span.spanContext().spanId, type: 'string' },
@@ -507,8 +507,7 @@ describe('captureSpan', () => {
       expect(beforeSendSpan).not.toHaveBeenCalled();
     });
 
-    it('logs a warning if the beforeSendSpan callback returns null', () => {
-      const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+    it('keeps the span if the beforeSendSpan callback returns null', () => {
       const beforeSendSpan = vi.fn(() => null as unknown as StreamedSpanJSON);
 
       const client = new TestClient(
@@ -522,16 +521,17 @@ describe('captureSpan', () => {
         }),
       );
 
-      const span = startInactiveSpan({ name: 'my-span', attributes: { 'sentry.op': 'http.client' } });
-      span.end();
+      const span = withScope(scope => {
+        scope.setClient(client);
+        const span = startInactiveSpan({ name: 'my-span', attributes: { 'sentry.op': 'http.client' } });
+        span.end();
+        return span;
+      });
 
-      captureSpan(span, client);
+      const serialized = captureSpan(span, client);
 
-      expect(consoleWarnSpy).toHaveBeenCalledWith(
-        '[Sentry] Returning null from `beforeSendSpan` is disallowed. To drop certain spans, configure the respective integrations directly or use `ignoreSpans`.',
-      );
-
-      consoleWarnSpy.mockRestore();
+      expect(serialized.span_id).toBe(span.spanContext().spanId);
+      expect(serialized.name).toBe('my-span');
     });
 
     it('keeps the span and logs an error if the beforeSendSpan callback throws', () => {

@@ -20,7 +20,6 @@
     "@sentry-internal/test-utils": "link:../../../test-utils"
   },
   "volta": {
-    "extends": "../../package.json",
-    "node": "24.11.0"
+    "extends": "../../package.json"
   }
 }

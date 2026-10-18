@@ -7,17 +7,11 @@ import {
   NETWORK_PEER_PORT,
   SERVER_ADDRESS,
   SERVER_PORT,
+  SENTRY_OP,
 } from '@sentry/conventions/attributes';
 import { CACHE_GET, CACHE_PUT, CACHE_REMOVE } from '@sentry/conventions/op';
 import type { Span, SpanAttributes } from '@sentry/core';
-import {
-  CACHE_OPERATION_NAMES,
-  getClient,
-  hasSpanStreamingEnabled,
-  SEMANTIC_ATTRIBUTE_SENTRY_OP,
-  spanToJSON,
-  truncate,
-} from '@sentry/core';
+import { CACHE_OPERATION_NAMES, getClient, hasSpanStreamingEnabled, spanToJSON, truncate } from '@sentry/core';
 
 // Runtime-agnostic on purpose: imports nothing from `node:*` and touches `Buffer` only inside
 // function bodies (never at module load), so bundling this into an edge runtime is safe and the
@@ -174,7 +168,7 @@ export function getRedisCacheAttributes(
   }
 
   const attributes: SpanAttributes = {
-    [SEMANTIC_ATTRIBUTE_SENTRY_OP]: cacheOperation,
+    [SENTRY_OP]: cacheOperation,
     [CACHE_KEY]: safeKey,
     [CACHE_OPERATION]: CACHE_OPERATION_NAMES[cacheOperation],
   };
@@ -208,7 +202,7 @@ export function getRedisCacheAttributes(
  * meaningless.
  */
 export function applyCacheResponseAttributes(span: Span, response: unknown): void {
-  const op = spanToJSON(span).attributes[SEMANTIC_ATTRIBUTE_SENTRY_OP];
+  const op = spanToJSON(span).attributes[SENTRY_OP];
   if (op !== CACHE_GET && op !== CACHE_PUT) {
     return;
   }

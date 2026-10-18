@@ -5,11 +5,12 @@ import {
   HTTP_REQUEST_METHOD,
   SENTRY_OP,
   URL_PATH,
+  SENTRY_ORIGIN,
 } from '@sentry/conventions/attributes';
 import { FUNCTION_GCP } from '@sentry/conventions/op';
 import type { Client, Integration } from '@sentry/core';
 import * as SentryCore from '@sentry/core';
-import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, SERVERLESS_FUNCTION_SPAN_NAME_FALLBACK } from '@sentry/core';
+import { SERVERLESS_FUNCTION_SPAN_NAME_FALLBACK } from '@sentry/core';
 import { afterEach, beforeEach, describe, expect, type MockInstance, test, vi } from 'vitest';
 import type { HttpFunction, Request, Response } from '../../src/gcpfunction/general';
 import { wrapHttpFunction } from '../../src/gcpfunction/http';
@@ -107,7 +108,7 @@ describe('GCPFunction', () => {
           [FAAS_NAME]: undefined,
           [FAAS_TRIGGER]: 'http',
           [SENTRY_SEGMENT_NAME_SOURCE]: 'route',
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.serverless.gcp_http',
+          [SENTRY_ORIGIN]: 'auto.function.serverless.gcp_http',
           [HTTP_REQUEST_METHOD]: 'POST',
           [URL_PATH]: '/path',
         },
@@ -134,7 +135,7 @@ describe('GCPFunction', () => {
           [FAAS_NAME]: undefined,
           [FAAS_TRIGGER]: 'http',
           [SENTRY_SEGMENT_NAME_SOURCE]: 'route',
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.serverless.gcp_http',
+          [SENTRY_ORIGIN]: 'auto.function.serverless.gcp_http',
           [HTTP_REQUEST_METHOD]: 'POST',
           [URL_PATH]: '/path',
         },

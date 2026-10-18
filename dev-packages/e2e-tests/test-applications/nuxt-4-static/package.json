@@ -26,11 +26,11 @@
   },
   "devDependencies": {
     "@playwright/test": "~1.63.0",
+    "@sentry/conventions": "0.27.0",
     "@sentry-internal/test-utils": "link:../../../test-utils"
   },
   "volta": {
-    "extends": "../../package.json",
-    "node": "22.20.0"
+    "extends": "../../package.json"
   },
   "sentryTest": {
     "variants": [

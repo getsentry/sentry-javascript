@@ -1,11 +1,12 @@
 /* eslint-disable no-console */
-import { spawn } from 'child_process';
+import { execFileSync, spawn } from 'child_process';
 import * as dotenv from 'dotenv';
 import { mkdir, mkdtemp, readFile, rm } from 'fs/promises';
 import { sync as globSync } from 'glob';
 import { tmpdir } from 'os';
-import { join, resolve } from 'path';
+import { delimiter, dirname, join, resolve } from 'path';
 import { copyToTemp } from './lib/copyToTemp';
+import { applyRuntimeFiles } from './lib/runtimeFiles';
 import { syncPackedTarballSymlinks } from './lib/syncPackedTarballSymlinks';
 import { addPnpmOverrides } from './lib/pnpmOverrides';
 
@@ -14,6 +15,8 @@ interface SentryTestVariant {
   'assert-command'?: string;
   label?: string;
   skip?: boolean;
+  /** Runtime of the variant (`bun`, `deno` or `cloudflare`). Sets `RUNTIME` and selects the runtime-specific files. */
+  runtime?: string;
 }
 
 interface PackageJson {
@@ -89,6 +92,7 @@ async function getVariantBuildCommand(
   testLabel: string;
   matchedVariantLabel?: string;
   skip?: boolean;
+  runtime?: string;
 }> {
   try {
     const packageJsonContent = await readFile(packageJsonPath, 'utf-8');
@@ -108,6 +112,7 @@ async function getVariantBuildCommand(
         testLabel: matchingVariant.label || testAppPath,
         matchedVariantLabel: matchingVariant.label,
         skip: matchingVariant.skip,
+        runtime: matchingVariant.runtime,
       };
     }
 
@@ -121,6 +126,23 @@ async function getVariantBuildCommand(
     assertCommand: 'pnpm test:assert',
     testLabel: testAppPath,
   };
+}
+
+/**
+ * The directory of the node version that the app pins. CI uses the same pin (see `node-version-file` in
+ * .github/workflows/build.yml). Only node comes from Volta: Volta cannot run pnpm 12
+ * (https://github.com/volta-cli/volta/issues/2114), so pnpm comes from the root devDependencies.
+ */
+function getPinnedNodeDir(cwd: string): string | undefined {
+  try {
+    return dirname(execFileSync('volta', ['run', 'node', '-p', 'process.execPath'], { cwd, encoding: 'utf8' }).trim());
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code !== 'ENOENT') {
+      throw error;
+    }
+    console.warn(`Volta is not installed, so ${cwd} runs on node ${process.version} instead of the version it pins.`);
+    return undefined;
+  }
 }
 
 async function run(): Promise<void> {
@@ -188,17 +210,7 @@ async function run(): Promise<void> {
     SENTRY_E2E_WORKSPACE_ROOT: resolve(__dirname, '../..'),
   };
 
-  const env = {
-    ...process.env,
-    ...envVarsToInject,
-    // Volta applies a project's node pin only to commands it manages, and it
-    // manages pnpm only when this is set. Without it, the `volta run pnpm`
-    // calls below build each app on whatever node is already on PATH rather
-    // than the version its package.json pins. CI reads that pin directly
-    // (see `node-version-file` in .github/workflows/build.yml), so leaving
-    // this unset makes local runs fail on apps CI passes.
-    VOLTA_FEATURE_PNPM: '1',
-  };
+  const env = { ...process.env, ...envVarsToInject };
 
   console.log('Syncing packed tarball symlinks...');
   console.log('');
@@ -208,7 +220,9 @@ async function run(): Promise<void> {
   console.log('Cleaning test-applications...');
   console.log('');
 
-  await asyncExec('pnpm clean:test-applications', { env, cwd: __dirname });
+  // Not `pnpm clean:test-applications`: pnpm checks a package's dependencies before it runs a script,
+  // and it would install this yarn workspace package with pnpm.
+  await asyncExec('yarn clean:test-applications', { env, cwd: __dirname });
   await asyncExec('pnpm cache delete "@sentry/*"', { env, cwd: __dirname });
 
   const testAppPaths = appName ? [appName.trim()] : globSync('*', { cwd: `${__dirname}/test-applications/` });
@@ -232,16 +246,16 @@ async function run(): Promise<void> {
     // at all - breaks the build with `unable to open database file`. Give each app its own.
     const sentryConfigDir = join(tmpDirPath, '.tmp_sentry_home');
     await mkdir(sentryConfigDir, { recursive: true });
-    const appEnv = { ...env, SENTRY_CONFIG_DIR: sentryConfigDir };
 
     const cwd = tmpDirPath;
     // Resolve variant if needed
-    const { buildCommand, assertCommand, testLabel, matchedVariantLabel } = variantLabel
+    const { buildCommand, assertCommand, testLabel, matchedVariantLabel, runtime } = variantLabel
       ? await getVariantBuildCommand(join(tmpDirPath, 'package.json'), variantLabel, testAppPath)
       : {
           buildCommand: 'pnpm test:build',
           assertCommand: 'pnpm test:assert',
           testLabel: testAppPath,
+          runtime: undefined,
         };
 
     // Print which variant we're using if found
@@ -249,8 +263,20 @@ async function run(): Promise<void> {
       console.log(`\n\nUsing variant: "${matchedVariantLabel}"\n\n`);
     }
 
+    if (runtime) {
+      applyRuntimeFiles(tmpDirPath, runtime);
+    }
+
+    const nodeDir = getPinnedNodeDir(cwd);
+    const appEnv = {
+      ...env,
+      SENTRY_CONFIG_DIR: sentryConfigDir,
+      ...(runtime ? { RUNTIME: runtime } : {}),
+      ...(nodeDir ? { PATH: `${nodeDir}${delimiter}${process.env.PATH}` } : {}),
+    };
+
     console.log(`Building ${testLabel} in ${tmpDirPath}...`);
-    await asyncExec(`volta run ${buildCommand}`, { env: appEnv, cwd });
+    await asyncExec(buildCommand, { env: appEnv, cwd });
 
     console.log(`Testing ${testLabel}...`);
     // Pass command as a string to support shell features (env vars, operators like &&)
@@ -264,7 +290,7 @@ async function run(): Promise<void> {
       }
       return flag;
     });
-    const testCommand = `volta run ${assertCommand}${quotedTestFlags.length > 0 ? ` ${quotedTestFlags.join(' ')}` : ''}`;
+    const testCommand = `${assertCommand}${quotedTestFlags.length > 0 ? ` ${quotedTestFlags.join(' ')}` : ''}`;
     await asyncExec(testCommand, { env: appEnv, cwd });
 
     // clean up (although this is tmp, still nice to do)

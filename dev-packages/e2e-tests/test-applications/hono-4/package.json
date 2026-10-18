@@ -35,16 +35,17 @@
     "wrangler": "^4.114.0"
   },
   "volta": {
-    "node": "24.15.0",
     "extends": "../../package.json"
   },
   "sentryTest": {
     "variants": [
       {
+        "runtime": "bun",
         "assert-command": "pnpm test:assert:bun",
         "label": "hono-4 (bun)"
       },
       {
+        "runtime": "deno",
         "assert-command": "pnpm test:assert:deno",
         "label": "hono-4 (deno)"
       },

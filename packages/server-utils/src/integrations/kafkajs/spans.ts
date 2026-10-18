@@ -18,6 +18,7 @@ import {
   MESSAGING_SYSTEM,
   SENTRY_KIND,
   SENTRY_OP,
+  SENTRY_ORIGIN,
 } from '@sentry/conventions/attributes';
 import { QUEUE_PROCESS, QUEUE_PUBLISH, QUEUE_RECEIVE } from '@sentry/conventions/op';
 import type { Span, SpanAttributes, SpanLink } from '@sentry/core';
@@ -25,8 +26,8 @@ import {
   getClient,
   getTraceData,
   hasSpanStreamingEnabled,
+  isObjectLike,
   propagationContextFromHeaders,
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SPAN_STATUS_ERROR,
   startInactiveSpan,
 } from '@sentry/core';
@@ -135,7 +136,7 @@ export function startConsumerSpan({ topic, message, operationType, links, attrib
       [ATTR_MESSAGING_KAFKA_OFFSET]: message?.offset as string | undefined,
       // Mirror the upstream behavior of only tagging per-message processing spans (not the batch
       // receiving span, which carries no message) with the auto origin.
-      ...(message ? { [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: CONSUMER_ORIGIN } : {}),
+      ...(message ? { [SENTRY_ORIGIN]: CONSUMER_ORIGIN } : {}),
     },
   });
 }
@@ -155,7 +156,7 @@ export function startProducerSpan(topic: string, message: Message): Span {
         message.partition !== undefined ? String(message.partition) : undefined,
       [MESSAGING_OPERATION_NAME]: 'send',
       [MESSAGING_OPERATION_TYPE]: MESSAGING_OPERATION_TYPE_VALUE_SEND,
-      [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: PRODUCER_ORIGIN,
+      [SENTRY_ORIGIN]: PRODUCER_ORIGIN,
     },
   });
 
@@ -183,7 +184,7 @@ export function applyErrorToSpans(spans: Span[], reason: unknown): void {
   let errorType: string = ERROR_TYPE_VALUE_OTHER;
   if (typeof reason === 'string' || reason === undefined) {
     errorMessage = reason;
-  } else if (typeof reason === 'object' && reason !== null && Object.prototype.hasOwnProperty.call(reason, 'message')) {
+  } else if (isObjectLike(reason) && Object.prototype.hasOwnProperty.call(reason, 'message')) {
     errorMessage = (reason as { message?: string }).message;
     errorType = (reason as { constructor: { name: string } }).constructor.name;
   }

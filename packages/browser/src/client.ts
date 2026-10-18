@@ -10,7 +10,7 @@ import type {
 import type { BrowserClientReplayOptions } from '@sentry/core/browser';
 import type { RouteProvider } from '@sentry/browser-utils';
 import { setRouteProvider } from '@sentry/browser-utils';
-import { addAutoIpAddressToSession, applySdkMetadata, Client, getSDKSource } from '@sentry/core';
+import { addAutoIpAddressToSession, applySdkMetadata, Client, getSDKSource, timestampInSeconds } from '@sentry/core';
 import { eventFromException, eventFromMessage } from './eventbuilder';
 import { WINDOW } from './helpers';
 import type { BrowserTransportOptions } from './transports/types';
@@ -138,27 +138,56 @@ export class BrowserClient extends Client<BrowserClientOptions> {
 
     const { sendClientReports } = this._options;
 
-    // Flush buffered data when the page becomes hidden (e.g. tab switch, navigation, or the page
-    // being discarded). `flush()` emits the `flush` hook, which drains the span (streaming), log and
-    // metric buffers and hands the resulting envelopes to the transport (which uses `keepalive`).
-    // Client report outcomes don't listen to the `flush` hook, so we flush them separately.
-    if (WINDOW.document) {
-      WINDOW.document.addEventListener('visibilitychange', () => {
-        if (WINDOW.document.visibilityState === 'hidden') {
-          if (sendClientReports) {
-            this._flushOutcomes();
+    // Devices usually hide the page before they sleep and show it again after they wake up. Checking for drift
+    // at both points makes the time origin correction happen at the sleep, rather than at the next regular timestamp call.
+    const checkDrift = (): void => {
+      timestampInSeconds();
+    };
+
+    // Most bundle-size-efficient way to add and remove listeners: Create a table to avoid repeated
+    // addeventlistener and removeeventlistener calls. The alternative, using an AbortController, can
+    // lead to app breakage on old Angular<>Zone.js < 0.14.3 versions.
+    const listeners: [EventTarget | undefined, string, () => void][] = [
+      // Flush buffered data when the page becomes hidden (e.g. tab switch, navigation, or the page
+      // being discarded). `flush()` emits the `flush` hook, which drains the span (streaming), log and
+      // metric buffers and hands the resulting envelopes to the transport (which uses `keepalive`).
+      // Client report outcomes don't listen to the `flush` hook, so we flush them separately.
+      [
+        WINDOW.document,
+        'visibilitychange',
+        () => {
+          // Devices usually hide the page before they sleep and show it again after they wake up. Checking for drift
+          // at both points makes the time origin correction happen at the sleep, rather than at the next regular timestamp call.
+          checkDrift();
+
+          if (WINDOW.document.visibilityState === 'hidden') {
+            if (sendClientReports) {
+              this._flushOutcomes();
+            }
+            // Defer the flush to a microtask so that visibilitychange listeners registered after this
+            // one have already run. In particular, browser tracing's background-tab detection ends the
+            // active pageload/navigation (segment) span when the page is hidden. Deferring ensures that
+            // segment span has been added to the streaming buffer before we flush, so it is sent
+            // together with its child spans instead of being orphaned.
+            queueMicrotask(() => {
+              void this.flush();
+            });
           }
-          // Defer the flush to a microtask so that visibilitychange listeners registered after this
-          // one have already run. In particular, browser tracing's background-tab detection ends the
-          // active pageload/navigation (segment) span when the page is hidden. Deferring ensures that
-          // segment span has been added to the streaming buffer before we flush, so it is sent
-          // together with its child spans instead of being orphaned.
-          queueMicrotask(() => {
-            void this.flush();
-          });
-        }
-      });
-    }
+        },
+      ],
+      // `freeze` and `resume` are only fired by Chromium browsers. Other browsers never fire them, so these listeners
+      // are no-ops there.
+      [WINDOW.document, 'freeze', checkDrift],
+      [WINDOW.document, 'resume', checkDrift],
+      // Pages restored from the back/forward cache were paused while they were cached.
+      [WINDOW, 'pagehide', checkDrift],
+      [WINDOW, 'pageshow', checkDrift],
+    ];
+
+    listeners.forEach(([target, name, listener]) => target?.addEventListener?.(name, listener));
+    this.on('close', () =>
+      listeners.forEach(([target, name, listener]) => target?.removeEventListener?.(name, listener)),
+    );
 
     if (userInfo) {
       this.on('beforeSendSession', addAutoIpAddressToSession);

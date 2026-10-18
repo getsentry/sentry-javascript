@@ -1,10 +1,15 @@
 import { expect, test } from '@playwright/test';
 import type { SerializedStreamedSpan } from '@sentry-internal/test-utils';
 import { getSpanOp, waitForStreamedSpan, waitForStreamedSpans } from '@sentry-internal/test-utils';
-import { APP_NAME } from '../constants';
+import { APP_NAME, RUNTIME } from '../constants';
 
 test.describe('low-quality span filter', () => {
   test('does not send a server span for /__manifest? requests', async ({ page }) => {
+    test.skip(
+      RUNTIME !== 'node',
+      "The filter is a default integration of `@sentry/react-router`'s `init()`, which only Node uses; the other runtimes init their own SDK",
+    );
+
     const streamedSpans: SerializedStreamedSpan[] = [];
 
     const navigationPromise = waitForStreamedSpan(APP_NAME, span => {

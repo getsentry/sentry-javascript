@@ -30,7 +30,6 @@
     "wrangler": "^4.61.0"
   },
   "volta": {
-    "node": "24.15.0",
     "extends": "../../package.json"
   },
   "sentryTest": {
@@ -40,10 +39,12 @@
         "label": "hono-4-legacy (node)"
       },
       {
+        "runtime": "bun",
         "assert-command": "RUNTIME=bun pnpm test:assert",
         "label": "hono-4-legacy (bun)"
       },
       {
+        "runtime": "deno",
         "assert-command": "RUNTIME=deno pnpm test:assert",
         "label": "hono-4-legacy (deno)"
       }

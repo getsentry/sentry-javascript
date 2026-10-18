@@ -30,8 +30,9 @@
     "zod": "4.5.4"
   },
   "devDependencies": {
-    "@playwright/test": "~1.56.0",
+    "@playwright/test": "~1.63.0",
     "@sentry-internal/test-utils": "link:../../../test-utils",
+    "@sentry/conventions": "0.27.0",
     "@sentry/core": "file:../../packed/sentry-core-packed.tgz",
     "@types/node": "24.x",
     "typescript": "~5.9.0"
@@ -40,7 +41,6 @@
     "node": "24.x"
   },
   "volta": {
-    "node": "24.15.0",
     "extends": "../../package.json"
   },
   "sentryTest": {

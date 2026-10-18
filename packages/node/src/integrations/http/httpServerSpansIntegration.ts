@@ -24,6 +24,7 @@ import {
   URL_QUERY,
   URL_SCHEME,
   USER_AGENT_ORIGINAL,
+  SENTRY_ORIGIN,
 } from '@sentry/conventions/attributes';
 import { HTTP_SERVER } from '@sentry/conventions/op';
 import type { Event, Integration, IntegrationFn, Span, SpanAttributes, SpanStatus } from '@sentry/core';
@@ -39,7 +40,6 @@ import {
   httpHeadersToSpanAttributes,
   getContentLengthFromHeaders,
   parseStringToURLObject,
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SPAN_STATUS_ERROR,
   stripUrlQueryAndFragment,
   isTracingSuppressed,
@@ -168,7 +168,7 @@ const _httpServerSpansIntegration = ((options: HttpServerSpansIntegrationOptions
               [SENTRY_KIND]: 'server',
               [SENTRY_OP]: HTTP_SERVER,
               [SENTRY_SEGMENT_NAME_SOURCE]: 'url',
-              [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.http_server',
+              [SENTRY_ORIGIN]: 'auto.http.http_server',
               [SENTRY_HTTP_PREFETCH]: isKnownPrefetchRequest(request) || undefined,
               [URL_FULL]: filterCollectedUrl(fullUrl, client),
               [URL_PATH]: urlObj?.pathname ?? httpTargetWithoutQueryFragment,

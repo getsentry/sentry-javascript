@@ -7,6 +7,7 @@ import {
   ERROR_TYPE,
   SENTRY_KIND,
   SENTRY_OP,
+  SENTRY_ORIGIN,
 } from '@sentry/conventions/attributes';
 import { DB } from '@sentry/conventions/op';
 import type { IntegrationFn, Span } from '@sentry/core';
@@ -15,7 +16,6 @@ import {
   defineIntegration,
   getClient,
   hasSpanStreamingEnabled,
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SPAN_STATUS_ERROR,
   startInactiveSpan,
 } from '@sentry/core';
@@ -28,6 +28,7 @@ import {
   _reconstructQuery,
   type PostgresConnectionContext,
 } from './postgresjs';
+import type { OrchestrionChannelContext } from '../orchestrion/types';
 import { CHANNELS } from '../orchestrion/channels';
 import { bindTracingChannelToSpan } from '../tracing-channel';
 import { postgresJsModuleNames } from '../orchestrion/config/postgres';
@@ -81,11 +82,9 @@ interface PostgresQuery {
   reject?: (...args: unknown[]) => unknown;
 }
 
-interface PostgresJsQueryContext {
-  arguments?: unknown[];
+interface PostgresJsQueryContext extends OrchestrionChannelContext {
   self?: PostgresQuery;
-  result?: unknown;
-  error?: unknown;
+  [SPAN_ENDED]?: boolean;
 }
 
 // A connection object -> its resolved context, populated on the `connection`
@@ -178,7 +177,7 @@ function wrapQuerySettlement(data: PostgresJsQueryContext, span: Span, sanitized
   // Claim ownership of ending the span up front, so `deferSpanEnd` defers to the
   // wrapper even if `span.end()` below throws.
   const markEnded = (): void => {
-    (data as Record<symbol, unknown>)[SPAN_ENDED] = true;
+    data[SPAN_ENDED] = true;
   };
 
   const originalResolve = query.resolve;
@@ -299,7 +298,7 @@ function instrumentPostgresJs(options: PostgresJsIntegrationOptions): void {
         attributes: {
           [SENTRY_OP]: DB,
           [SENTRY_KIND]: 'client',
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: ORIGIN,
+          [SENTRY_ORIGIN]: ORIGIN,
           [DB_SYSTEM_NAME]: DB_SYSTEM_NAME_POSTGRES,
           [DB_QUERY_TEXT]: sanitizedSqlQuery,
           [DB_QUERY_SUMMARY]: querySummary,
@@ -332,7 +331,7 @@ function instrumentPostgresJs(options: PostgresJsIntegrationOptions): void {
       deferSpanEnd({ data }) {
         // `handle` is async: its promise settles on dispatch (asyncEnd), long
         // before the query does. The resolve/reject wrappers own the ending.
-        if ((data as Record<symbol, unknown>)[SPAN_ENDED]) {
+        if (data[SPAN_ENDED]) {
           return true; // wrappers already ended it
         }
         if ('error' in data) {

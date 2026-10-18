@@ -10,7 +10,7 @@
     "typecheck": "tsc",
     "codegen": "shopify hydrogen codegen",
     "clean": "npx rimraf node_modules dist pnpm-lock.yaml",
-    "test:build": "pnpm install && npx playwright install && pnpm build",
+    "test:build": "pnpm install && pnpm build",
     "test:assert": "pnpm playwright test"
   },
   "dependencies": {
@@ -19,7 +19,7 @@
     "@remix-run/cloudflare-pages": "^2.17.4",
     "@sentry/cloudflare": "file:../../packed/sentry-cloudflare-packed.tgz",
     "@sentry/remix": "file:../../packed/sentry-remix-packed.tgz",
-    "@sentry/vite-plugin": "^5.3.0",
+    "@sentry/vite-plugin": "^5.4.1",
     "@shopify/hydrogen": "2025.4.0",
     "@shopify/remix-oxygen": "2.0.10",
     "graphql": "^16.6.0",

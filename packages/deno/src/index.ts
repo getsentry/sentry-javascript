@@ -81,7 +81,9 @@ export {
   supabaseIntegration,
   instrumentSupabaseClient,
   zodErrorsIntegration,
+  // oxlint-disable-next-line typescript/no-deprecated
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
+  // oxlint-disable-next-line typescript/no-deprecated
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE,
   startSession,
@@ -138,6 +140,7 @@ export {
   langChainIntegration,
   langGraphIntegration,
   mastraIntegration,
+  piDurableIntegration,
   mcpServerIntegration,
   SentryMastraExporter,
   createFlueInstrumentation,
@@ -153,6 +156,7 @@ export {
   typesafeIntegration,
   postgresIntegration,
   postgresJsIntegration,
+  neonIntegration,
   tediousIntegration,
   eveConversationHook,
   eveIntegration,

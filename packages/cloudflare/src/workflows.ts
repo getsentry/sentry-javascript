@@ -1,15 +1,12 @@
-import { SENTRY_SEGMENT_NAME_SOURCE, CODE_FUNCTION_NAME, SENTRY_OP } from '@sentry/conventions/attributes';
+import {
+  SENTRY_SEGMENT_NAME_SOURCE,
+  CODE_FUNCTION_NAME,
+  SENTRY_OP,
+  SENTRY_ORIGIN,
+} from '@sentry/conventions/attributes';
 import { FUNCTION } from '@sentry/conventions/op';
 import type { PropagationContext, Scope } from '@sentry/core';
-import {
-  captureException,
-  flush,
-  getCurrentScope,
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  startSpan,
-  withIsolationScope,
-  withScope,
-} from '@sentry/core';
+import { captureException, flush, getCurrentScope, startSpan, withIsolationScope, withScope } from '@sentry/core';
 import type {
   WorkflowDelayDuration,
   WorkflowEntrypoint,
@@ -22,7 +19,7 @@ import type {
   WorkflowStepRollbackOptions,
   WorkflowTimeoutDuration,
 } from 'cloudflare:workers';
-import { setAsyncLocalStorageAsyncContextStrategy } from '@sentry/server-utils/no-diagnostic-channels';
+import { setAsyncLocalStorageAsyncContextStrategyForWorker } from './utils/asyncContextStrategy';
 import type { CloudflareOptions } from './client';
 import { flushAndDispose, getOriginalWaitUntil } from './flush';
 import { markAsInstrumented } from './instrument';
@@ -146,7 +143,7 @@ class WrappedWorkflowStep implements WorkflowStep {
                 typeof config?.retries?.delay === 'function' ? undefined : config?.retries?.delay,
               'cloudflare.workflow.retries.limit': config?.retries?.limit,
               'cloudflare.workflow.attempt': attempt,
-              [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.faas.cloudflare.workflow',
+              [SENTRY_ORIGIN]: 'auto.faas.cloudflare.workflow',
               [SENTRY_SEGMENT_NAME_SOURCE]: 'task',
             },
           },
@@ -254,7 +251,7 @@ export function instrumentWorkflowWithSentry<
         get(obj, prop, receiver) {
           if (prop === 'run') {
             return async function (event: WorkflowEvent<P>, step: WorkflowStep): Promise<unknown> {
-              setAsyncLocalStorageAsyncContextStrategy();
+              setAsyncLocalStorageAsyncContextStrategyForWorker();
 
               return withInvocationIsolationScope(async isolationScope => {
                 const waitUntil = getOriginalWaitUntil(context).bind(context);

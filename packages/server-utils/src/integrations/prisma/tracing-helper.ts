@@ -20,7 +20,6 @@ import {
   getClient,
   hasSpanStreamingEnabled,
   LRUMap,
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   startInactiveSpan,
   startSpanManual,
 } from '@sentry/core';
@@ -34,6 +33,7 @@ import {
   DB_SYSTEM_NAME,
   SENTRY_KIND,
   SENTRY_OP,
+  SENTRY_ORIGIN,
 } from '@sentry/conventions/attributes';
 import { getSqlQuerySummary, sanitizeSqlQuery, type SqlDialect, toSqlDialect } from '../../utils/sql';
 
@@ -98,7 +98,7 @@ function registerPrismaSpan(id: string, span: Span): void {
 function buildSpanAttributes(name: string, attributes: Record<string, unknown> | undefined): SpanAttributes {
   const merged: SpanAttributes = {
     ...(attributes as SpanAttributes | undefined),
-    [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: PRISMA_ORIGIN,
+    [SENTRY_ORIGIN]: PRISMA_ORIGIN,
   };
 
   // Prisma itself emits the deprecated `db.system` on older versions, so both spellings are checked

@@ -1,6 +1,6 @@
 import { PassThrough } from 'node:stream';
-import { SENTRY_SEGMENT_NAME_SOURCE, HTTP_ROUTE } from '@sentry/conventions/attributes';
-import { getActiveSpan, getRootSpan, getTraceMetaTags, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '@sentry/core';
+import { SENTRY_SEGMENT_NAME_SOURCE, HTTP_ROUTE, SENTRY_ORIGIN } from '@sentry/conventions/attributes';
+import { getActiveSpan, getRootSpan, getTraceMetaTags } from '@sentry/core';
 import { flushIfServerless } from '@sentry/core/server';
 import { beforeEach, describe, expect, test, vi } from 'vitest';
 import { getMetaTagTransformer } from '../../src/server/getMetaTagTransformer';
@@ -70,7 +70,7 @@ describe('wrapSentryHandleRequest', () => {
     expect(mockRootSpan.setAttributes).toHaveBeenCalledWith({
       [HTTP_ROUTE]: '/some-path',
       [SENTRY_SEGMENT_NAME_SOURCE]: 'route',
-      [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.react_router.request_handler',
+      [SENTRY_ORIGIN]: 'auto.http.react_router.request_handler',
     });
   });
 
@@ -90,7 +90,7 @@ describe('wrapSentryHandleRequest', () => {
     expect(mockRootSpan.setAttributes).toHaveBeenLastCalledWith({
       [HTTP_ROUTE]: '/',
       [SENTRY_SEGMENT_NAME_SOURCE]: 'route',
-      [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.react_router.request_handler',
+      [SENTRY_ORIGIN]: 'auto.http.react_router.request_handler',
     });
 
     const nestedIndexContext = {
@@ -109,7 +109,7 @@ describe('wrapSentryHandleRequest', () => {
     expect(mockRootSpan.setAttributes).toHaveBeenLastCalledWith({
       [HTTP_ROUTE]: '/dashboard',
       [SENTRY_SEGMENT_NAME_SOURCE]: 'route',
-      [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.react_router.request_handler',
+      [SENTRY_ORIGIN]: 'auto.http.react_router.request_handler',
     });
   });
 

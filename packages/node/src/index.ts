@@ -25,6 +25,7 @@ export {
   lruMemoizerIntegration,
   createFlueInstrumentation,
   mastraIntegration,
+  piDurableIntegration,
   mcpServerIntegration,
   SentryMastraExporter,
   mongoIntegration,
@@ -37,6 +38,7 @@ export {
   typesafeIntegration,
   postgresIntegration,
   postgresJsIntegration,
+  neonIntegration,
   redisIntegration,
   tediousIntegration,
   vercelAIIntegration,
@@ -113,7 +115,9 @@ export {
   setAttributes,
   setUser,
   setConversationId,
+  // oxlint-disable-next-line typescript/no-deprecated
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
+  // oxlint-disable-next-line typescript/no-deprecated
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE,
   setCurrentClient,

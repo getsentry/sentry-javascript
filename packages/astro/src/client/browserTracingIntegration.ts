@@ -4,14 +4,9 @@ import {
   WINDOW,
 } from '@sentry/browser';
 import type { Client, Integration, TransactionSource } from '@sentry/core';
-import {
-  debug,
-  hasSpanStreamingEnabled,
-  PAGELOAD_SPAN_NAME_FALLBACK,
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-} from '@sentry/core';
+import { debug, hasSpanStreamingEnabled, PAGELOAD_SPAN_NAME_FALLBACK } from '@sentry/core';
 import { DEBUG_BUILD } from '../debug-build';
-import { SENTRY_SEGMENT_NAME_SOURCE, URL_TEMPLATE } from '@sentry/conventions/attributes';
+import { SENTRY_SEGMENT_NAME_SOURCE, URL_TEMPLATE, SENTRY_ORIGIN } from '@sentry/conventions/attributes';
 
 /**
  * Returns the value of a meta-tag
@@ -44,7 +39,7 @@ export function browserTracingIntegration(
             name,
             attributes: {
               [SENTRY_SEGMENT_NAME_SOURCE]: source,
-              [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.pageload.astro',
+              [SENTRY_ORIGIN]: 'auto.pageload.astro',
               ...(source === 'route' && { [URL_TEMPLATE]: name }),
             },
           });

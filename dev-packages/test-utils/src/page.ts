@@ -76,3 +76,32 @@ export async function hidePage(page: Page): Promise<void> {
   });
   /* oxlint-enable no-restricted-globals */
 }
+
+/**
+ * Waits until the browser has delivered the `soft-navigation` entry for a client-side navigation.
+ *
+ * The entry only arrives once the new route has painted, which can be after the click resolves.
+ * web-vitals starts the soft navigation's metrics when it sees the entry, so hiding the page before
+ * that reports the vitals for the previous navigation, and those of the soft navigation are never
+ * finalized.
+ */
+export async function waitForSoftNavigation(page: Page): Promise<void> {
+  /* oxlint-disable no-restricted-globals */
+  await page.evaluate(() => {
+    return new Promise<void>(resolve => {
+      if (!PerformanceObserver.supportedEntryTypes.includes('soft-navigation')) {
+        resolve();
+        return;
+      }
+
+      // The SDK's observer was registered first, so it is notified first. Resolving from a task after
+      // ours runs lets it handle the entry before the caller continues.
+      const observer = new PerformanceObserver(() => {
+        observer.disconnect();
+        setTimeout(resolve, 0);
+      });
+      observer.observe({ type: 'soft-navigation', buffered: true });
+    });
+  });
+  /* oxlint-enable no-restricted-globals */
+}

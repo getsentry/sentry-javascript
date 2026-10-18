@@ -1,3 +1,4 @@
+import { isObjectLike } from '@sentry/core';
 import type { NextPageContext } from 'next';
 import type { ErrorProps } from 'next/error';
 import { isBuild } from '../utils/isBuild';
@@ -47,15 +48,15 @@ export function wrapErrorGetInitialPropsWithSentry(
           sentryTrace?: string;
         } = await tracedGetInitialProps.apply(thisArg, args);
 
-        if (typeof errorGetInitialProps === 'object' && errorGetInitialProps !== null) {
+        if (isObjectLike(errorGetInitialProps)) {
           if (sentryTrace) {
             // The Next.js serializer throws on undefined values so we need to guard for it (#12102)
-            (errorGetInitialProps as Record<string, unknown>)._sentryTraceData = sentryTrace;
+            errorGetInitialProps._sentryTraceData = sentryTrace;
           }
 
           // The Next.js serializer throws on undefined values so we need to guard for it (#12102)
           if (baggage) {
-            (errorGetInitialProps as Record<string, unknown>)._sentryBaggage = baggage;
+            errorGetInitialProps._sentryBaggage = baggage;
           }
         }
 

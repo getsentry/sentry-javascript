@@ -36,6 +36,8 @@ test('links a cached layout hit to the trace that filled the layout entry', asyn
   const putSpan = findCacheSpan(missSpans, 'cache.put');
   expect(putSpan).toBeDefined();
 
+  expect(putSpan!.attributes['code.file.path']?.value).toBe('app/(cached-nesting)/cached-mid-layout/[id]/layout.tsx');
+
   const hitGetSpan = findCacheSpan(hitSpans, 'cache.get', true);
   expect(hitGetSpan).toBeDefined();
   expect(hitGetSpan!.attributes['cache.key']).toEqual(putSpan!.attributes['cache.key']);
@@ -113,6 +115,14 @@ test('links two cached levels to different origin traces after the layout expire
   // Layout + component entry.
   const fillPutSpans = fillSpans.filter(span => getSpanOp(span) === 'cache.put');
   expect(new Set(fillPutSpans.map(span => JSON.stringify(span.attributes['cache.key']?.value))).size).toBe(2);
+
+  // One fill per file: the layout (multipart key) and the cached component (JSON key).
+  expect(new Set(fillPutSpans.map(span => span.attributes['code.file.path']?.value))).toEqual(
+    new Set([
+      'app/(cached-nesting)/mixed-lifetimes/[id]/layout.tsx',
+      'app/(cached-nesting)/mixed-lifetimes/[id]/page.tsx',
+    ]),
+  );
 
   // Sleep past the layout's `expire` (2s); the component entry stays valid for hours.
   await new Promise(resolve => setTimeout(resolve, 3_000));

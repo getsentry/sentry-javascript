@@ -67,7 +67,8 @@ export const sentryOnBuildEnd: BuildEndHook = async ({ reactRouterConfig, viteCo
   // check if release should be created
   if (release?.name) {
     try {
-      await sentry.release.create({ orgVersion: release.name });
+      // The release API requires a project, and the one given to the SDK does not reach this call.
+      await sentry.release.create({ orgVersion: release.name, project });
     } catch (error) {
       // eslint-disable-next-line no-console
       console.error('[Sentry] Could not create release', error);

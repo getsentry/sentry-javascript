@@ -1,9 +1,9 @@
 import { expect, test } from '@playwright/test';
 import { collectStreamedSpans, getSpanOp, waitForStreamedSpan } from '@sentry-internal/test-utils';
+import { IMPORT_SURFACES } from './importSurfaces';
 
 test.describe('distributed tracing', () => {
   const PARAM = 's0me-param';
-  const API_PATH = `/api/user/${PARAM}`;
 
   test('capture a distributed pageload trace', async ({ page }) => {
     const clientSpanPromise = waitForStreamedSpan('nuxt-4', span => {
@@ -62,87 +62,93 @@ test.describe('distributed tracing', () => {
     expect(serverSpan.trace_id).toBe(metaTraceId);
   });
 
-  test('capture a distributed trace from a client-side API request with parametrized routes', async ({ page }) => {
-    // The `http.client` span ends after the pageload segment, so it can be flushed in a later
-    // envelope. Accumulate until both spans have arrived.
-    const clientSpansPromise = collectStreamedSpans('nuxt-4', spans => {
-      return (
-        spans.some(span => span.name === '/test-param/user/:userId()' && span.is_segment) &&
-        spans.some(
-          span => getSpanOp(span) === 'http.client' && `${span.attributes['url.full']?.value}`.includes(API_PATH),
-        )
+  IMPORT_SURFACES.forEach(({ name, apiPrefix }) => {
+    test(`capture a distributed trace from a client-side API request with parametrized routes (${name})`, async ({
+      page,
+    }) => {
+      const API_PATH = `${apiPrefix}/user/${PARAM}`;
+
+      // The `http.client` span ends after the pageload segment, so it can be flushed in a later
+      // envelope. Accumulate until both spans have arrived.
+      const clientSpansPromise = collectStreamedSpans('nuxt-4', spans => {
+        return (
+          spans.some(span => span.name === '/test-param/user/:userId()' && span.is_segment) &&
+          spans.some(
+            span => getSpanOp(span) === 'http.client' && `${span.attributes['url.full']?.value}`.includes(API_PATH),
+          )
+        );
+      });
+      const ssrSpanPromise = waitForStreamedSpan('nuxt-4', span => {
+        return span.is_segment && span.name.includes('GET /test-param/user');
+      });
+      const serverReqSpanPromise = waitForStreamedSpan('nuxt-4', span => {
+        return span.is_segment && span.name.includes(`GET ${apiPrefix}/user/`);
+      });
+
+      // Navigate to the page which will trigger an API call from the client-side
+      await page.goto(`/test-param/user/${PARAM}?apiPrefix=${apiPrefix}`);
+
+      const [clientSpans, ssrSpan, serverReqSpan] = await Promise.all([
+        clientSpansPromise,
+        ssrSpanPromise,
+        serverReqSpanPromise,
+      ]);
+
+      const pageloadSpan = clientSpans.find(span => span.name === '/test-param/user/:userId()' && span.is_segment);
+      const httpClientSpan = clientSpans.find(
+        span => getSpanOp(span) === 'http.client' && `${span.attributes['url.full']?.value}`.includes(API_PATH),
       );
+
+      expect(pageloadSpan).toMatchObject({
+        name: '/test-param/user/:userId()',
+        is_segment: true,
+        attributes: expect.objectContaining({
+          'sentry.op': { type: 'string', value: 'pageload' },
+          'sentry.origin': { type: 'string', value: 'auto.pageload.vue' },
+          'sentry.segment.name.source': { type: 'string', value: 'route' },
+        }),
+      });
+
+      expect(httpClientSpan).toBeDefined();
+      expect(httpClientSpan).toMatchObject({
+        // A relative fetch has no domain of its own, so it resolves against the page origin.
+        name: 'GET localhost',
+        parent_span_id: pageloadSpan?.span_id, // pageload span is parent
+        attributes: expect.objectContaining({
+          type: { type: 'string', value: 'fetch' },
+          'sentry.op': { type: 'string', value: 'http.client' },
+          'sentry.origin': { type: 'string', value: 'auto.http.browser' },
+          'http.request.method': { type: 'string', value: 'GET' },
+          'url.full': { type: 'string', value: expect.stringContaining(API_PATH) },
+          'url.domain': { type: 'string', value: 'localhost' },
+        }),
+      });
+
+      expect(ssrSpan).toMatchObject({
+        name: 'GET /test-param/user/:userId()', // parametrized route
+        is_segment: true,
+        attributes: expect.objectContaining({
+          'sentry.op': { type: 'string', value: 'http.server' },
+          'sentry.origin': { type: 'string', value: 'auto.http.http_server' },
+          'sentry.segment.name.source': { type: 'string', value: 'route' },
+        }),
+      });
+
+      expect(serverReqSpan).toMatchObject({
+        name: `GET ${apiPrefix}/user/:userId`, // parametrized route
+        is_segment: true,
+        parent_span_id: httpClientSpan?.span_id, // http.client span is parent
+        attributes: expect.objectContaining({
+          'sentry.op': { type: 'string', value: 'http.server' },
+          'sentry.origin': { type: 'string', value: 'auto.http.http_server' },
+        }),
+      });
+
+      // `collectStreamedSpans` already guarantees the pageload and http.client spans share a trace,
+      // so only the independently awaited server spans need the check.
+      expect(pageloadSpan?.trace_id).toBeDefined();
+      expect(pageloadSpan?.trace_id).toBe(ssrSpan.trace_id);
+      expect(pageloadSpan?.trace_id).toBe(serverReqSpan.trace_id);
     });
-    const ssrSpanPromise = waitForStreamedSpan('nuxt-4', span => {
-      return span.is_segment && span.name.includes('GET /test-param/user');
-    });
-    const serverReqSpanPromise = waitForStreamedSpan('nuxt-4', span => {
-      return span.is_segment && span.name.includes('GET /api/user/');
-    });
-
-    // Navigate to the page which will trigger an API call from the client-side
-    await page.goto(`/test-param/user/${PARAM}`);
-
-    const [clientSpans, ssrSpan, serverReqSpan] = await Promise.all([
-      clientSpansPromise,
-      ssrSpanPromise,
-      serverReqSpanPromise,
-    ]);
-
-    const pageloadSpan = clientSpans.find(span => span.name === '/test-param/user/:userId()' && span.is_segment);
-    const httpClientSpan = clientSpans.find(
-      span => getSpanOp(span) === 'http.client' && `${span.attributes['url.full']?.value}`.includes(API_PATH),
-    );
-
-    expect(pageloadSpan).toMatchObject({
-      name: '/test-param/user/:userId()',
-      is_segment: true,
-      attributes: expect.objectContaining({
-        'sentry.op': { type: 'string', value: 'pageload' },
-        'sentry.origin': { type: 'string', value: 'auto.pageload.vue' },
-        'sentry.segment.name.source': { type: 'string', value: 'route' },
-      }),
-    });
-
-    expect(httpClientSpan).toBeDefined();
-    expect(httpClientSpan).toMatchObject({
-      // A relative fetch has no domain of its own, so it resolves against the page origin.
-      name: 'GET localhost',
-      parent_span_id: pageloadSpan?.span_id, // pageload span is parent
-      attributes: expect.objectContaining({
-        type: { type: 'string', value: 'fetch' },
-        'sentry.op': { type: 'string', value: 'http.client' },
-        'sentry.origin': { type: 'string', value: 'auto.http.browser' },
-        'http.request.method': { type: 'string', value: 'GET' },
-        'url.full': { type: 'string', value: expect.stringContaining(API_PATH) },
-        'url.domain': { type: 'string', value: 'localhost' },
-      }),
-    });
-
-    expect(ssrSpan).toMatchObject({
-      name: 'GET /test-param/user/:userId()', // parametrized route
-      is_segment: true,
-      attributes: expect.objectContaining({
-        'sentry.op': { type: 'string', value: 'http.server' },
-        'sentry.origin': { type: 'string', value: 'auto.http.http_server' },
-        'sentry.segment.name.source': { type: 'string', value: 'route' },
-      }),
-    });
-
-    expect(serverReqSpan).toMatchObject({
-      name: 'GET /api/user/:userId', // parametrized route
-      is_segment: true,
-      parent_span_id: httpClientSpan?.span_id, // http.client span is parent
-      attributes: expect.objectContaining({
-        'sentry.op': { type: 'string', value: 'http.server' },
-        'sentry.origin': { type: 'string', value: 'auto.http.http_server' },
-      }),
-    });
-
-    // `collectStreamedSpans` already guarantees the pageload and http.client spans share a trace,
-    // so only the independently awaited server spans need the check.
-    expect(pageloadSpan?.trace_id).toBeDefined();
-    expect(pageloadSpan?.trace_id).toBe(ssrSpan.trace_id);
-    expect(pageloadSpan?.trace_id).toBe(serverReqSpan.trace_id);
   });
 });

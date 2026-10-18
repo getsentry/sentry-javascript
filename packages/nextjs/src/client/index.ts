@@ -2,7 +2,7 @@
 // can be removed once following issue is fixed: https://github.com/import-js/eslint-plugin-import/issues/703
 /* eslint-disable import/export */
 import type { Client, EventProcessor, Integration } from '@sentry/core';
-import { addEventProcessor, applySdkMetadata, consoleSandbox, getGlobalScope, GLOBAL_OBJ } from '@sentry/core';
+import { applySdkMetadata, consoleSandbox, getGlobalScope, GLOBAL_OBJ } from '@sentry/core';
 import type { BrowserOptions } from '@sentry/react';
 import { getDefaultIntegrations as getReactDefaultIntegrations, init as reactInit } from '@sentry/react';
 import { DEBUG_BUILD } from '../common/debug-build';
@@ -22,8 +22,6 @@ export { captureUnderscoreErrorException } from '../common/pages-router-instrume
 export { browserTracingIntegration } from './browserTracingIntegration';
 export { captureRouterTransitionStart } from './routing/appRouterRoutingInstrumentation';
 
-let clientIsInitialized = false;
-
 const globalWithInjectedValues = GLOBAL_OBJ as typeof GLOBAL_OBJ & {
   _sentryRewriteFramesAssetPrefixPath: string;
   _sentryAssetPrefix?: string;
@@ -37,21 +35,12 @@ declare const __SENTRY_TRACING__: boolean;
 
 /** Inits the Sentry NextJS SDK on the browser with the React SDK. */
 export function init(options: BrowserOptions): Client | undefined {
-  if (clientIsInitialized) {
-    consoleSandbox(() => {
-      // eslint-disable-next-line no-console
-      console.warn(
-        '[@sentry/nextjs] You are calling `Sentry.init()` more than once on the client. This can happen if you have both a `sentry.client.config.ts` and a `instrumentation-client.ts` file with `Sentry.init()` calls. It is recommended to call `Sentry.init()` once in `instrumentation-client.ts`.',
-      );
-    });
-  }
-  clientIsInitialized = true;
-
   if (!DEBUG_BUILD && options.debug) {
     consoleSandbox(() => {
+      // TODO(v12): Remove the `webpack.treeshake` mention together with that option
       // eslint-disable-next-line no-console
       console.warn(
-        '[@sentry/nextjs] You have enabled `debug: true`, but Sentry debug logging was removed from your bundle (likely via `webpack.treeshake.removeDebugLogging: true`). Set that option to `false` to see Sentry debug output.',
+        '[@sentry/nextjs] You have enabled `debug: true`, but Sentry debug logging was removed from your bundle (likely via `bundleSizeOptimizations.excludeDebugStatements: true` or `webpack.treeshake.removeDebugLogging: true`). Set that option to `false` to see Sentry debug output.',
       );
     });
   }
@@ -88,10 +77,10 @@ export function init(options: BrowserOptions): Client | undefined {
       ? null
       : event;
   filterNextRedirectError.id = 'NextRedirectErrorFilter';
-  addEventProcessor(filterNextRedirectError);
+  client?.addEventProcessor(filterNextRedirectError);
 
   if (process.env.NODE_ENV === 'development') {
-    addEventProcessor(devErrorSymbolicationEventProcessor);
+    client?.addEventProcessor(devErrorSymbolicationEventProcessor);
   }
 
   try {

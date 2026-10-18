@@ -31,7 +31,7 @@ document.addEventListener('click', event => {
   if (id === 'component-error') {
     void app.frames.top.replace(createElement(Boom, {}));
   }
-  if (id === 'throw-error') {
+  if (id === 'throw-error' || id === 'throw-on-user') {
     throwError();
   }
 });

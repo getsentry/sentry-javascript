@@ -1,4 +1,4 @@
-import { afterAll, test } from 'vitest';
+import { afterAll, expect, test } from 'vitest';
 import { cleanupChildProcesses, createRunner } from '../../../../utils/runner';
 
 afterAll(() => {
@@ -24,12 +24,12 @@ test('records a client report and no error event when tracesSampler throws', asy
 });
 
 test('sends the span when tracesSampler throws but tracesSampleRate is 1', async () => {
-  await createRunner(__dirname, 'scenario-fallback.ts')
-    .expect({
-      transaction: {
-        transaction: 'sampled via tracesSampleRate fallback',
-      },
-    })
-    .start()
-    .completed();
+  const runner = createRunner(__dirname, 'scenario-fallback.ts');
+  const spansPromise = runner.collectStreamedSpansUntilSegment();
+
+  await runner.start().completed();
+
+  const spans = await spansPromise;
+  const segment = spans.find(span => span.is_segment);
+  expect(segment?.name).toBe('sampled via tracesSampleRate fallback');
 });

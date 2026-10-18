@@ -7,8 +7,6 @@ const mode = process.env.BODY_MODE;
 Sentry.init({
   dsn: process.env.SENTRY_DSN,
   tracesSampleRate: 1.0,
-  // Request bodies are only attached to transaction events, so this suite needs the static trace lifecycle.
-  traceLifecycle: 'static',
   ...(mode === 'explicit-small' && {
     dataCollection: { httpBodies: [] },
     integrations: integrations => [

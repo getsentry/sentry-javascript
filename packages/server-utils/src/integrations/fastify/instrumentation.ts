@@ -21,6 +21,7 @@ import {
   HTTP_ROUTE,
   SENTRY_OP,
   URL_PATH,
+  SENTRY_ORIGIN,
 } from '@sentry/conventions/attributes';
 import { HANDLER, MIDDLEWARE } from '@sentry/conventions/op';
 import type { Span } from '@sentry/core';
@@ -30,7 +31,6 @@ import {
   getIsolationScope,
   hasSpanStreamingEnabled,
   REQUEST_HANDLER_SPAN_NAME_FALLBACK,
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SPAN_STATUS_ERROR,
   startInactiveSpan,
   startSpan,
@@ -168,7 +168,7 @@ function onRequest(this: any, request: any, _reply: any, hookDone: () => void): 
   getIsolationScope().setTransactionName(`${method} ${routeName}`);
 
   const attributes: Record<string, string> = {
-    [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: ORIGIN,
+    [SENTRY_ORIGIN]: ORIGIN,
     [SENTRY_OP]: HANDLER,
     [HTTP_REQUEST_METHOD]: request.method,
     [URL_PATH]: request.url,
@@ -359,7 +359,7 @@ function handlerWrapper(handler: AnyFn, hookName: string, spanAttributes: Record
         attributes: {
           ...spanAttributes,
           [SENTRY_OP]: op,
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: ORIGIN,
+          [SENTRY_ORIGIN]: ORIGIN,
         },
         parentSpan,
       },

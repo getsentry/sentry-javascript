@@ -26,9 +26,6 @@
     "@sentry-internal/test-utils": "link:../../../test-utils",
     "@sentry/core": "file:../../packed/sentry-core-packed.tgz"
   },
-  "resolutions": {
-    "@types/qs": "6.9.17"
-  },
   "volta": {
     "extends": "../../package.json"
   },

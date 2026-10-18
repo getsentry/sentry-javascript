@@ -9,12 +9,12 @@ const IP_HEADER_NAMES = new Set(ipHeaderNames.map(name => name.toLowerCase()));
  * normalized first. Some proxies (for example Azure App Service) add the client port,
  * and RFC 7239 allows a quoted `Forwarded` value and any case for `for=`.
  */
-export function getClientIPAddress(headers: { [key: string]: string | string[] | undefined }): string | null {
+export function getClientIPAddress(headers: { [key: string]: string | string[] | null | undefined }): string | null {
   const normalized: { [key: string]: string } = {};
 
   for (const [key, value] of Object.entries(headers)) {
     const name = key.toLowerCase();
-    if (value === undefined || !IP_HEADER_NAMES.has(name)) {
+    if (value == null || !IP_HEADER_NAMES.has(name)) {
       continue;
     }
 

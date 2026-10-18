@@ -1,4 +1,4 @@
-import { GEN_AI_REQUEST_MODEL } from '@sentry/conventions/attributes';
+import { GEN_AI_REQUEST_MODEL, SENTRY_ORIGIN } from '@sentry/conventions/attributes';
 import * as diagnosticsChannel from '../utils/diagnosticsChannel';
 import type { IntegrationFn, Span, SpanAttributeValue } from '@sentry/core';
 import {
@@ -7,14 +7,16 @@ import {
   getActiveSpan,
   getClient,
   hasSpanStreamingEnabled,
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   startInactiveSpan,
 } from '@sentry/core';
 import { getGenAiSpanOp, resolveAIRecordingOptions } from '../ai/core/utils';
 import { wrapApiPromiseResponse } from '../ai/core/apiPromise';
 import { addPrivateRequestAttributes, addResponseAttributes, extractRequestAttributes } from '../ai/anthropic-ai';
+import { ANTHROPIC_AI_ORIGIN } from '../ai/anthropic-ai/constants';
 import { instrumentAsyncIterableStream, instrumentMessageStream } from '../ai/anthropic-ai/streaming';
+import { instrumentToolRunner } from '../ai/anthropic-ai/tool-runner';
 import type { AnthropicAiOptions, AnthropicAiResponse } from '../ai/anthropic-ai/types';
+import type { OrchestrionChannelContext } from '../orchestrion/types';
 import { CHANNELS } from '../orchestrion/channels';
 import { bindTracingChannelToSpan } from '../tracing-channel';
 import { anthropicAiModuleNames } from '../orchestrion/config/anthropic-ai';
@@ -23,8 +25,6 @@ import { invokeOrchestrionInstrumentation } from '../orchestrion/instrumentation
 // Same name as the OTel integration by design, so the OTel 'Anthropic_AI'
 // integration is deduplicated out of the default set.
 const INTEGRATION_NAME = 'Anthropic_AI' as const;
-
-const ORIGIN = 'auto.ai.anthropic';
 
 // `stream` determines how the span is ended
 const INSTRUMENTED_CHANNELS = [
@@ -38,11 +38,6 @@ const INSTRUMENTED_CHANNELS = [
 
 type StreamMode = (typeof INSTRUMENTED_CHANNELS)[number]['stream'];
 
-interface AnthropicChannelContext {
-  arguments: unknown[];
-  result?: unknown;
-}
-
 const _anthropicAIIntegration = ((options: AnthropicAiOptions = {}) => {
   return {
     name: INTEGRATION_NAME,
@@ -55,7 +50,7 @@ const _anthropicAIIntegration = ((options: AnthropicAiOptions = {}) => {
 function instrumentAnthropic(options: AnthropicAiOptions): void {
   for (const { channel, operation, stream } of INSTRUMENTED_CHANNELS) {
     bindTracingChannelToSpan(
-      diagnosticsChannel.tracingChannel<AnthropicChannelContext>(channel),
+      diagnosticsChannel.tracingChannel<OrchestrionChannelContext>(channel),
       data => createGenAiSpan(data, operation, options, stream),
       {
         beforeSpanEnd: (span, data) => {
@@ -79,6 +74,12 @@ function instrumentAnthropic(options: AnthropicAiOptions): void {
       },
     );
   }
+
+  diagnosticsChannel
+    .tracingChannel<OrchestrionChannelContext>(CHANNELS.ANTHROPIC_TOOL_RUNNER)
+    .end.subscribe(message => {
+      instrumentToolRunner((message as OrchestrionChannelContext).result, options);
+    });
 }
 
 /**
@@ -86,7 +87,7 @@ function instrumentAnthropic(options: AnthropicAiOptions): void {
  * Returning `undefined` opts the payload out so no span is opened.
  */
 function createGenAiSpan(
-  data: AnthropicChannelContext,
+  data: OrchestrionChannelContext,
   operation: string,
   options: AnthropicAiOptions,
   stream: StreamMode,
@@ -115,7 +116,7 @@ function createGenAiSpan(
 
   const attributes = extractRequestAttributes(args, operation, recordInputs);
   const model = (attributes[GEN_AI_REQUEST_MODEL] as string) || 'unknown';
-  attributes[SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN] = ORIGIN;
+  attributes[SENTRY_ORIGIN] = ANTHROPIC_AI_ORIGIN;
   const client = getClient();
 
   const span = startInactiveSpan({
@@ -192,7 +193,7 @@ function isMessageStream(value: unknown): value is MessageStreamEmitter {
  */
 function wrapStreamResult(
   span: Span,
-  data: AnthropicChannelContext,
+  data: OrchestrionChannelContext,
   stream: StreamMode,
   options: AnthropicAiOptions,
 ): boolean {

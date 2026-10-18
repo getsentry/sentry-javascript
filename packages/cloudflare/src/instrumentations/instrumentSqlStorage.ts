@@ -1,21 +1,14 @@
 import type { SqlStorage } from '@cloudflare/workers-types';
-import { SENTRY_OP } from '@sentry/conventions/attributes';
+import { SENTRY_OP, SENTRY_ORIGIN } from '@sentry/conventions/attributes';
 import { DB_QUERY } from '@sentry/conventions/op';
-import {
-  getActiveSpan,
-  getClient,
-  hasSpansEnabled,
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  spanIsSampled,
-  startSpan,
-} from '@sentry/core';
+import { getActiveSpan, getClient, hasSpansEnabled, spanIsSampled, startSpan } from '@sentry/core';
 import { getSqlQuerySummary, sanitizeSqlQuery } from '@sentry/server-utils';
 import type { CloudflareClientOptions } from '../client';
 import { mayTargetCloudflareInternalTable, targetsCloudflareInternalTable } from '../utils/internalSqlQuery';
 
 const SPAN_ATTRIBUTES = {
   [SENTRY_OP]: DB_QUERY,
-  [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.db.cloudflare.durable_object.sql',
+  [SENTRY_ORIGIN]: 'auto.db.cloudflare.durable_object.sql',
   'db.system.name': 'cloudflare-durable-object-sql',
   'db.operation.name': 'exec',
 };
@@ -44,7 +37,7 @@ export function instrumentSqlStorage(sql: SqlStorage): SqlStorage {
         if (childSpanWillNotBeRecorded() && !mayTargetCloudflareInternalTable(query)) {
           // This span is never sent, so skip the costly sanitize and summary
           // steps. We still start the span so it records its dropped span
-          // outcome. A query that may target a `cf_` table takes the full path,
+          // outcome. A query that may target a `cf_` or `pi_` table takes the full path,
           // because an internal query must start no span.
           return startSpan({ name: 'exec', attributes: SPAN_ATTRIBUTES }, callOriginal);
         }

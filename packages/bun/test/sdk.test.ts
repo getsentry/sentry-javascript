@@ -1,4 +1,5 @@
 import type { BaseTransportOptions, Envelope, Event, Transport, TransportMakeRequestResponse } from '@sentry/core';
+import { getCurrentScope } from '@sentry/core';
 import { describe, expect, test } from 'bun:test';
 import type { NodeClient } from '../src/index';
 import { init } from '../src/index';
@@ -26,6 +27,7 @@ describe('Bun SDK', () => {
 
   test('SDK works as expected', async () => {
     let client: NodeClient | undefined;
+    getCurrentScope().setClient(undefined);
     expect(() => {
       client = init(initOptions);
     }).not.toThrow();

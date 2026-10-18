@@ -4,16 +4,16 @@ import {
   _INTERNAL_shouldSkipAiProviderWrapping,
   getClient,
   hasSpanStreamingEnabled,
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   startInactiveSpan,
 } from '@sentry/core';
-import { GEN_AI_PROVIDER_NAME } from '@sentry/conventions/attributes';
+import { GEN_AI_PROVIDER_NAME, SENTRY_ORIGIN } from '@sentry/conventions/attributes';
 import { getGenAiSpanOp, resolveAIRecordingOptions } from '../ai/core/utils';
 import { wrapApiPromiseResponse } from '../ai/core/apiPromise';
 import { addRequestAttributes, extractRequestAttributes } from '../ai/openai';
 import { instrumentStream } from '../ai/openai/streaming';
 import type { OpenAiOptions } from '../ai/openai/types';
 import { addResponseAttributes } from '../ai/openai/utils';
+import type { OrchestrionChannelContext } from '../orchestrion/types';
 import { invokeOrchestrionInstrumentation } from '../orchestrion/instrumentation';
 import { bindTracingChannelToSpan } from '../tracing-channel';
 
@@ -35,15 +35,6 @@ export interface OpenAiCompatibleProvider {
 }
 
 /**
- * The context orchestrion shares across the tracing-channel lifecycle hooks: `arguments` is the live args
- * array passed to `Completions.create(body, options)`, and `result` holds its returned `APIPromise`.
- */
-interface OpenAiCompatibleChannelContext {
-  arguments: unknown[];
-  result?: unknown;
-}
-
-/**
  * Builds a diagnostics-channel integration for an OpenAI-compatible provider SDK. It subscribes to the
  * `orchestrion:<module>:{chat,embeddings}` channels injected into the SDK's `create` methods, so it
  * requires the Sentry runtime hook or bundler plugin. Everything below the channel — request/response
@@ -61,7 +52,7 @@ export function createOpenAiCompatibleIntegration<T extends OpenAiCompatibleProv
   function instrument(options: OpenAiOptions): void {
     for (const { channel, operation } of instrumentedChannels) {
       bindTracingChannelToSpan(
-        diagnosticsChannel.tracingChannel<OpenAiCompatibleChannelContext>(channel),
+        diagnosticsChannel.tracingChannel<OrchestrionChannelContext>(channel),
         data => createGenAiSpan(data, operation, provider, options),
         {
           beforeSpanEnd: (span, data) => {
@@ -98,7 +89,7 @@ export function createOpenAiCompatibleIntegration<T extends OpenAiCompatibleProv
  * Returning `undefined` opts the payload out so no span is opened.
  */
 function createGenAiSpan(
-  data: OpenAiCompatibleChannelContext,
+  data: OrchestrionChannelContext,
   operation: string,
   provider: OpenAiCompatibleProvider,
   options: OpenAiOptions,
@@ -117,7 +108,7 @@ function createGenAiSpan(
   // `extractRequestAttributes` defaults the provider to openai; override it for the concrete provider.
   const attributes = extractRequestAttributes(args, operation, recordInputs);
   attributes[GEN_AI_PROVIDER_NAME] = provider.providerName;
-  attributes[SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN] = provider.origin;
+  attributes[SENTRY_ORIGIN] = provider.origin;
   const model = (params?.model as string) || 'unknown';
   const client = getClient();
 
@@ -150,7 +141,7 @@ function isAsyncIterable(value: unknown): value is AsyncIterableStream {
  * to hand span-ending ownership to `instrumentStream`; `false` for non-streaming/errored results, which end
  * via the normal `beforeSpanEnd` path.
  */
-function wrapStreamResult(span: Span, data: OpenAiCompatibleChannelContext, options: OpenAiOptions): boolean {
+function wrapStreamResult(span: Span, data: OrchestrionChannelContext, options: OpenAiOptions): boolean {
   const result = data.result;
   if (!isAsyncIterable(result)) {
     return false;

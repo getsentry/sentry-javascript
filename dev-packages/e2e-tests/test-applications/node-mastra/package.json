@@ -15,19 +15,20 @@
     "test:dev": "TEST_ENV=development playwright test"
   },
   "dependencies": {
-    "@mastra/core": "~1.65.0",
+    "@mastra/core": "~1.74.0",
     "@mastra/libsql": "~1.22.4",
     "@mastra/memory": "~1.28.3",
     "@mastra/observability": "~1.17.6",
-    "@openrouter/ai-sdk-provider": "~3.0.0",
+    "@openrouter/ai-sdk-provider": "~3.1.0",
     "@sentry/node": "file:../../packed/sentry-node-packed.tgz",
     "ai": "~7.0.97",
     "dataloader": "~2.2.3",
     "zod": "4.5.4"
   },
   "devDependencies": {
-    "@playwright/test": "~1.56.0",
+    "@playwright/test": "~1.63.0",
     "@sentry-internal/test-utils": "link:../../../test-utils",
+    "@sentry/conventions": "0.27.0",
     "@types/node": "24.x",
     "mastra": "~1.28.0",
     "typescript": "~5.9.0"
@@ -36,7 +37,6 @@
     "node": "24.x"
   },
   "volta": {
-    "node": "24.15.0",
     "extends": "../../package.json"
   },
   "sentryTest": {

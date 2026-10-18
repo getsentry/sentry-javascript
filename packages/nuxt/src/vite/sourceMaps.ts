@@ -5,7 +5,7 @@ import { warnOnRemovedBuildOptions } from '@sentry/core';
 import type { NitroConfig } from 'nitropack';
 import type { Plugin } from 'vite';
 import type { SentryNuxtModuleOptions } from '../common/types';
-import { deleteSourceMapsAfterBuild, withoutSourceMapDeletion } from './sourceMapDeletion';
+import { deletePublicSourceMaps, deleteSourceMapsAfterBuild, withoutSourceMapDeletion } from './sourceMapDeletion';
 import { validateSourceMapsOptionsPlugin } from './sentryVitePlugin';
 
 /**
@@ -22,7 +22,7 @@ export type SourceMapSetting = boolean | 'hidden' | 'inline';
 export function setupSourceMaps(
   moduleOptions: SentryNuxtModuleOptions,
   nuxt: Nuxt,
-  addVitePlugin: (plugin: Plugin[], options?: { dev?: boolean; build?: boolean }) => void,
+  addVitePlugin: (plugin: Plugin[], options?: { dev?: boolean; build?: boolean; server?: boolean }) => void,
 ): void {
   // Warn here rather than in `getPluginOptions`, which runs once per bundler (Vite and Nitro's
   // Rollup) and would emit the same warning twice.
@@ -73,13 +73,16 @@ export function setupSourceMaps(
   });
 
   if (sourceMapsEnabled && !nuxt.options.dev && !nuxt.options?._prepare) {
+    // Also on the SSR build: Nitro's source maps reach the original files only through that build's maps.
+    addVitePlugin([validateSourceMapsOptionsPlugin({ nuxt, moduleOptions, sourceMapsEnabled })], {
+      dev: false,
+      build: true,
+    });
+
     addVitePlugin(
-      [
-        validateSourceMapsOptionsPlugin({ nuxt, moduleOptions, sourceMapsEnabled }),
-        // Vite plugin is added on the client and server side (plugin runs for both builds)
-        ...sentryVitePlugin(withoutSourceMapDeletion(getPluginOptions(moduleOptions, shouldDeleteFilesFallback))),
-      ],
-      { dev: false, build: true }, // Only add source map plugin during build
+      sentryVitePlugin(withoutSourceMapDeletion(getPluginOptions(moduleOptions, shouldDeleteFilesFallback))),
+      // Nitro bundles the SSR output again, so debug IDs from the SSR build would point to the wrong maps.
+      { dev: false, build: true, server: false },
     );
   }
 
@@ -106,6 +109,24 @@ export function setupSourceMaps(
       nitroConfig.rollupConfig.plugins.push(
         sentryRollupPlugin(withoutSourceMapDeletion(getPluginOptions(moduleOptions, shouldDeleteFilesFallback))),
       );
+    }
+  });
+
+  nuxt.hook('nitro:init', nitro => {
+    if (sourceMapsEnabled && !nitro.options.dev && !nuxt.options?._prepare) {
+      const publicDir = nitro.options.output.publicDir;
+      const rollupConfig = (nitro.options.rollupConfig ??= { output: {} });
+
+      rollupConfig.plugins = [
+        rollupConfig.plugins,
+        {
+          name: 'sentry-nuxt-public-source-map-deletion',
+          // By now the client build is in the public dir, and Nitro has not yet listed its files.
+          async buildStart() {
+            await deletePublicSourceMaps(getPluginOptions(moduleOptions, shouldDeleteFilesFallback), publicDir);
+          },
+        },
+      ];
     }
   });
 
@@ -162,7 +183,7 @@ export function getPluginOptions(
     sourcemaps: {
       disable: moduleOptions.sourcemaps?.disable,
       // The server/client files are in different places depending on the nitro preset (e.g. '.output/server' or '.netlify/functions-internal/server')
-      // We cannot determine automatically how the build folder looks like (depends on the preset), so we have to accept that source maps are uploaded multiple times (with the vitePlugin for Nuxt and the rollupPlugin for Nitro).
+      // We cannot determine automatically how the build folder looks like (depends on the preset), so each plugin uploads its own build output (the vitePlugin for the Nuxt client and the rollupPlugin for Nitro).
       // If we could know where the server/client assets are located, we could do something like this (based on the Nitro preset): isNitro ? ['./.output/server/**/*'] : ['./.output/public/**/*'],
       assets: sourcemapsOptions.assets ?? undefined,
       ignore: sourcemapsOptions.ignore ?? undefined,

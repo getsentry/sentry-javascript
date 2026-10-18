@@ -10,7 +10,6 @@ import {
   hasSpanStreamingEnabled,
   httpHeadersToSpanAttributes,
   HTTP_SPAN_NAME_FALLBACK,
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   setHttpStatus,
   spanToJSON,
   startSpan,
@@ -31,6 +30,7 @@ import {
   SENTRY_SEGMENT_NAME_SOURCE,
   URL_FULL,
   URL_PATH,
+  SENTRY_ORIGIN,
 } from '@sentry/conventions/attributes';
 import { HTTP_SERVER } from '@sentry/conventions/op';
 
@@ -205,7 +205,7 @@ async function instrumentHandle(
 
         kitRootSpan.setAttributes({
           [SENTRY_OP]: HTTP_SERVER,
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.sveltekit',
+          [SENTRY_ORIGIN]: 'auto.http.sveltekit',
           [SENTRY_SEGMENT_NAME_SOURCE]: routeName ? 'route' : 'url',
           'sveltekit.tracing.original_name': originalName,
           [URL_FULL]: (kitRootSpanAttributes[URL_FULL] as string | undefined) ?? filterCollectedUrl(event.url.href),
@@ -238,7 +238,7 @@ async function instrumentHandle(
           {
             attributes: {
               [SENTRY_OP]: HTTP_SERVER,
-              [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.sveltekit',
+              [SENTRY_ORIGIN]: 'auto.http.sveltekit',
               [SENTRY_SEGMENT_NAME_SOURCE]: routeId ? 'route' : 'url',
               [HTTP_REQUEST_METHOD]: event.request.method,
               [URL_FULL]: filterCollectedUrl(event.url.href),

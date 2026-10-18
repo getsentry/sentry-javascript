@@ -574,8 +574,9 @@ export const browserTracingIntegration = ((options: Partial<BrowserTracingOption
 
         // We store the normalized request data on the scope, so we get the request data at time of span creation
         // otherwise, the URL etc. may already be of the following navigation, and we'd report the wrong URL
+        const requestData = getHttpRequestData(client);
         scope.setSDKProcessingMetadata({
-          normalizedRequest: getHttpRequestData(),
+          normalizedRequest: { ...requestData, url: filterCollectedUrl(requestData.url, client) },
         });
 
         _createRouteSpan(client, {
@@ -814,8 +815,8 @@ export function startBrowserTracingNavigationSpan(
   if (url && !isRedirect) {
     scope.setSDKProcessingMetadata({
       normalizedRequest: {
-        ...getHttpRequestData(),
-        url,
+        ...getHttpRequestData(client),
+        url: filterCollectedUrl(url, client),
       },
     });
   }

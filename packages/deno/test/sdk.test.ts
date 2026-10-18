@@ -1,8 +1,19 @@
 import { assertNotEquals } from 'https://deno.land/std@0.202.0/assert/assert_not_equals.ts';
 import { assertArrayIncludes } from 'https://deno.land/std@0.212.0/assert/assert_array_includes.ts';
-import { getDefaultIntegrations, init, spanStreamingIntegration } from '../build/esm/index.js';
+import {
+  getCurrentScope,
+  getDefaultIntegrations,
+  init as initSdk,
+  spanStreamingIntegration,
+} from '../build/esm/index.js';
+import type { DenoOptions } from '../build/esm/index.js';
 import { assert } from 'https://deno.land/std@0.212.0/assert/assert.ts';
 import { assertEquals } from 'https://deno.land/std@0.212.0/assert/assert_equals.ts';
+
+function init(options: DenoOptions) {
+  getCurrentScope().setClient(undefined);
+  return initSdk(options);
+}
 
 Deno.test('init() should return client', () => {
   assertNotEquals(init({}), undefined);
@@ -30,7 +41,7 @@ Deno.test("doesn't add spanStreamingIntegration if user added it manually", () =
   });
   const integrations = client.getOptions().integrations.filter(i => i.name === 'SpanStreaming');
   assertEquals(integrations.length, 1);
-  assert(!integrations[0].isDefaultInstance);
+  assert(!(integrations[0] as { isDefaultInstance?: true }).isDefaultInstance);
 });
 
 Deno.test("doesn't add tracing integrations when tracing is disabled", () => {
@@ -63,7 +74,7 @@ Deno.test('getDefaultIntegrations gates the tracing set on the options it is giv
 });
 
 Deno.test("init doesn't write the computed default integrations back onto the options object", () => {
-  const options = { dsn: 'https://username@domain/123' };
+  const options: DenoOptions = { dsn: 'https://username@domain/123' };
   init(options);
   assertEquals('defaultIntegrations' in options, false);
   options.tracesSampleRate = 1;

@@ -1,4 +1,4 @@
-import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '@sentry/core';
+import { SENTRY_ORIGIN } from '@sentry/conventions/attributes';
 import { describe, expect, it } from 'vitest';
 import {
   getBullMQProcessSpanOptions,
@@ -8,15 +8,15 @@ import {
 } from '../../src/integrations/helpers';
 
 function middlewareOrigin(componentType?: string): unknown {
-  return getMiddlewareSpanOptions({ name: 'X' }, undefined, componentType).attributes[SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN];
+  return getMiddlewareSpanOptions({ name: 'X' }, undefined, componentType).attributes[SENTRY_ORIGIN];
 }
 
 function eventOrigin(): unknown {
-  return getEventSpanOptions('x').attributes[SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN];
+  return getEventSpanOptions('x').attributes[SENTRY_ORIGIN];
 }
 
 function bullmqOrigin(): unknown {
-  return getBullMQProcessSpanOptions('q').attributes[SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN];
+  return getBullMQProcessSpanOptions('q').attributes[SENTRY_ORIGIN];
 }
 
 describe('NestJS span origin', () => {

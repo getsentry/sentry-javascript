@@ -1,10 +1,6 @@
-import { SENTRY_SEGMENT_NAME_SOURCE } from '@sentry/conventions/attributes';
+import { SENTRY_SEGMENT_NAME_SOURCE, SENTRY_OP, SENTRY_ORIGIN } from '@sentry/conventions/attributes';
 import { expect, it } from 'vitest';
-import {
-  SEMANTIC_ATTRIBUTE_SENTRY_OP,
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE,
-} from '@sentry/core';
+import { SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE } from '@sentry/core';
 import { createRunner } from '../../../runner';
 
 it('Workflow steps create segment spans with correct attributes', async ({ signal }) => {
@@ -28,8 +24,8 @@ it('Workflow steps create segment spans with correct attributes', async ({ signa
         is_segment: true,
         status: 'ok',
         attributes: expect.objectContaining({
-          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: { type: 'string', value: 'function' },
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: { type: 'string', value: 'auto.faas.cloudflare.workflow' },
+          [SENTRY_OP]: { type: 'string', value: 'function' },
+          [SENTRY_ORIGIN]: { type: 'string', value: 'auto.faas.cloudflare.workflow' },
           [SENTRY_SEGMENT_NAME_SOURCE]: { type: 'string', value: 'task' },
           [SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE]: { type: 'integer', value: 1 },
           'code.function.name': { type: 'string', value: stepName },

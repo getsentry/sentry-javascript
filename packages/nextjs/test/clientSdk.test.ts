@@ -1,7 +1,7 @@
 import type { Integration } from '@sentry/core';
 import { debug, getMainCarrier, GLOBAL_OBJ, SentryNonRecordingSpan, spanToJSON } from '@sentry/core';
 import * as SentryReact from '@sentry/react';
-import { getClient, WINDOW } from '@sentry/react';
+import { close, getClient, getIsolationScope, WINDOW } from '@sentry/react';
 import { JSDOM } from 'jsdom';
 import { afterAll, afterEach, describe, expect, it, vi } from 'vitest';
 import { breadcrumbsIntegration, browserTracingIntegration, init } from '../src/client';
@@ -241,6 +241,22 @@ describe('Client init()', () => {
 
   it('returns client from init', () => {
     expect(init({})).not.toBeUndefined();
+  });
+
+  it('registers its event processors on the client', () => {
+    const client = init({});
+
+    expect(client?.getEventProcessors().map(processor => processor.id)).toContain('NextRedirectErrorFilter');
+  });
+
+  it('does not add event processors to the isolation scope after close()', async () => {
+    const isolationProcessorCount = getIsolationScope().getScopeData().eventProcessors.length;
+
+    init({});
+    await close();
+    init({});
+
+    expect(getIsolationScope().getScopeData().eventProcessors.length).toBe(isolationProcessorCount);
   });
 
   describe('environment option', () => {

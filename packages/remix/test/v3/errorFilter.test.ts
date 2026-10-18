@@ -1,7 +1,11 @@
+import type * as SentryCore from '@sentry/core';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const captureException = vi.fn();
-vi.mock('@sentry/core', () => ({ captureException: (...args: unknown[]) => captureException(...args) }));
+vi.mock('@sentry/core', async importOriginal => ({
+  isObjectLike: (await importOriginal<typeof SentryCore>()).isObjectLike,
+  captureException: (...args: unknown[]) => captureException(...args),
+}));
 
 const { captureRequestError, defaultShouldHandleError, isRequestAbort, setShouldHandleError } =
   await import('../../src/v3/server/errorFilter');

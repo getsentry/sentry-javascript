@@ -2,9 +2,9 @@ import type { Client, Span } from '@sentry/core';
 import {
   GLOBAL_OBJ,
   hasSpanStreamingEnabled,
+  isObjectLike,
   NAVIGATION_SPAN_NAME_FALLBACK,
   PAGELOAD_SPAN_NAME_FALLBACK,
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   filterCollectedUrl,
   timestampInSeconds,
 } from '@sentry/core';
@@ -23,6 +23,7 @@ import {
   URL_FULL,
   URL_PATH,
   URL_TEMPLATE,
+  SENTRY_ORIGIN,
 } from '@sentry/conventions/attributes';
 import { NAVIGATION, PAGELOAD } from '@sentry/conventions/op';
 
@@ -104,7 +105,7 @@ export function appRouterInstrumentPageLoad(client: Client): void {
     // pageload should always start at timeOrigin (and needs to be in s, not ms)
     attributes: {
       [SENTRY_OP]: PAGELOAD,
-      [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.pageload.nextjs.app_router_instrumentation',
+      [SENTRY_ORIGIN]: 'auto.pageload.nextjs.app_router_instrumentation',
       [SENTRY_SEGMENT_NAME_SOURCE]: parameterizedPathname ? 'route' : 'url',
       ...(parameterizedPathname && { [URL_TEMPLATE]: parameterizedPathname }),
     },
@@ -179,7 +180,7 @@ export function appRouterInstrumentNavigation(client: Client): void {
           name: spanName,
           attributes: {
             [SENTRY_OP]: NAVIGATION,
-            [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.nextjs.app_router_instrumentation',
+            [SENTRY_ORIGIN]: 'auto.navigation.nextjs.app_router_instrumentation',
             [SENTRY_SEGMENT_NAME_SOURCE]: parameterizedPathname ? 'route' : 'url',
             'navigation.type': `router.${navigationType}`,
             ...(parameterizedPathname && { [URL_TEMPLATE]: parameterizedPathname }),
@@ -216,7 +217,7 @@ export function appRouterInstrumentNavigation(client: Client): void {
           name: spanName,
           startTime: traversal?.startTime,
           attributes: {
-            [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.nextjs.app_router_instrumentation',
+            [SENTRY_ORIGIN]: 'auto.navigation.nextjs.app_router_instrumentation',
             [SENTRY_SEGMENT_NAME_SOURCE]: parameterizedPathname ? 'route' : 'url',
             'navigation.type': traversal?.navigationType ?? 'browser.popstate',
             ...(parameterizedPathname && { [URL_TEMPLATE]: parameterizedPathname }),
@@ -250,8 +251,8 @@ export function appRouterInstrumentNavigation(client: Client): void {
       if (globalValue) {
         GLOBAL_OBJ_WITH_NEXT_ROUTER.next = new Proxy(globalValue, {
           set(target, p, newValue) {
-            if (p === 'router' && typeof newValue === 'object' && newValue !== null) {
-              patchRouter(client, newValue, currentRouterPatchingNavigationSpanRef);
+            if (p === 'router' && isObjectLike(newValue)) {
+              patchRouter(client, newValue as unknown as NextRouter, currentRouterPatchingNavigationSpanRef);
             }
 
             // @ts-expect-error we cannot possibly type this
@@ -313,7 +314,7 @@ function patchRouter(client: Client, router: NextRouter, currentNavigationSpanRe
                 (hasSpanStreamingEnabled(client) ? NAVIGATION_SPAN_NAME_FALLBACK : transactionName),
               attributes: {
                 [SENTRY_OP]: NAVIGATION,
-                [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.nextjs.app_router_instrumentation',
+                [SENTRY_ORIGIN]: 'auto.navigation.nextjs.app_router_instrumentation',
                 [SENTRY_SEGMENT_NAME_SOURCE]: parameterizedPathname ? 'route' : 'url',
                 'navigation.type': `router.${routerFunctionName}`,
                 ...(parameterizedPathname && { [URL_TEMPLATE]: parameterizedPathname }),

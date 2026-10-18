@@ -7,80 +7,45 @@ import { fixFileLinkDependencies } from './copyToTemp';
  * For a given temp test application directory, add pnpm overrides to pin internal Sentry dependencies to their packed tarballs.
  * This is used to ensure that the test application uses the correct version of the internal Sentry packages.
  *
- * pnpm 11 requires overrides in pnpm-workspace.yaml, while older versions use
- * package.json. A fixture's existing overrides take precedence in both cases.
+ * pnpm reads overrides only from pnpm-workspace.yaml. A fixture's existing overrides take precedence.
  * https://pnpm.io/settings/dependency-resolution#overrides
  *
  * @param tmpDirPath - The temporary directory path of the test application.
  * @param packedDirPath - The path to the packed tarballs.
- * @param packageNames - The names of the internal Sentry packages to pin to the packed tarballs.
  */
 export async function addPnpmOverrides(tmpDirPath: string, packedDirPath: string): Promise<void> {
   const packageJsonPath = path.join(tmpDirPath, 'package.json');
-  const packageJson = JSON.parse(await readFile(packageJsonPath, 'utf8')) as {
-    pnpm?: { overrides?: Record<string, string> };
-    volta?: { extends?: string; pnpm?: string };
-  };
+  const packageJson = JSON.parse(await readFile(packageJsonPath, 'utf8')) as { pnpm?: unknown; resolutions?: unknown };
+
+  // pnpm 11+ ignores these fields, so their settings would silently have no effect.
+  if (packageJson.pnpm || packageJson.resolutions) {
+    throw new Error(
+      `Move the "pnpm" and "resolutions" settings in ${packageJsonPath} to the app's pnpm-workspace.yaml`,
+    );
+  }
 
   const packageNames = getPublishedSentryTarballPackageNames();
   const overrides = Object.fromEntries(
     packageNames.map(packageName => [packageName, `file:${packedDirPath}/${packedSymlinkFilename(packageName)}`]),
   );
 
-  const existingOverrides = packageJson.pnpm?.overrides ?? {};
-  fixFileLinkDependencies(existingOverrides);
-  const mergedOverrides = { ...overrides, ...existingOverrides };
+  const pnpmWorkspacePath = path.join(tmpDirPath, 'pnpm-workspace.yaml');
+  const pnpmWorkspace = await readFile(pnpmWorkspacePath, 'utf8').catch(() => '');
 
-  const pnpmMajor = await getPnpmMajor(packageJsonPath, packageJson);
-
-  if (pnpmMajor < 11) {
-    packageJson.pnpm = { ...packageJson.pnpm, overrides: mergedOverrides };
-  } else {
-    // pnpm 11: https://github.com/pnpm/pnpm/issues/11536
-    const pnpmWorkspacePath = path.join(tmpDirPath, 'pnpm-workspace.yaml');
-    const pnpmWorkspace = await readFile(pnpmWorkspacePath, 'utf8').catch(() => '');
-    const existingWorkspaceOverrides = parseWorkspaceOverrides(pnpmWorkspace);
-    const workspaceOverrides = formatWorkspaceOverrides({ ...mergedOverrides, ...existingWorkspaceOverrides });
-    const workspaceWithoutOverrides = removeWorkspaceOverrides(pnpmWorkspace);
-
-    await writeFile(pnpmWorkspacePath, `${workspaceWithoutOverrides.trimEnd()}\noverrides:\n${workspaceOverrides}\n`);
-
-    delete packageJson.pnpm?.overrides;
-    if (packageJson.pnpm && Object.keys(packageJson.pnpm).length === 0) {
-      delete packageJson.pnpm;
-    }
+  // Without it, pnpm skips versions published in the last day, which apps that test the newest releases need.
+  if (!/^minimumReleaseAge: 0$/m.test(pnpmWorkspace)) {
+    throw new Error(`Set "minimumReleaseAge: 0" in the app's pnpm-workspace.yaml (${pnpmWorkspacePath})`);
   }
 
-  await writeFile(packageJsonPath, JSON.stringify(packageJson, null, 2));
+  const existingOverrides = parseWorkspaceOverrides(pnpmWorkspace);
+  fixFileLinkDependencies(existingOverrides);
+  const workspaceOverrides = formatWorkspaceOverrides({ ...overrides, ...existingOverrides });
+  const workspaceWithoutOverrides = removeWorkspaceOverrides(pnpmWorkspace);
+
+  await writeFile(pnpmWorkspacePath, `${workspaceWithoutOverrides.trimEnd()}\noverrides:\n${workspaceOverrides}\n`);
 
   // oxlint-disable-next-line no-console
   console.log(`Added ${packageNames.length} internal Sentry package overrides`);
-}
-
-async function getPnpmMajor(
-  packageJsonPath: string,
-  packageJson: { volta?: { extends?: string; pnpm?: string } },
-): Promise<number> {
-  const pnpmVersion = packageJson.volta?.pnpm;
-  if (pnpmVersion) {
-    const major = /^(?<major>\d+)(?:\.|$)/.exec(pnpmVersion)?.groups?.major;
-    if (!major) {
-      throw new Error(`Invalid Volta pnpm version in ${packageJsonPath}: ${pnpmVersion}`);
-    }
-
-    return Number(major);
-  }
-
-  const voltaExtends = packageJson.volta?.extends;
-  if (voltaExtends) {
-    const extendedPackageJsonPath = path.resolve(path.dirname(packageJsonPath), voltaExtends);
-    const extendedPackageJson = JSON.parse(await readFile(extendedPackageJsonPath, 'utf8')) as {
-      volta?: { extends?: string; pnpm?: string };
-    };
-    return getPnpmMajor(extendedPackageJsonPath, extendedPackageJson);
-  }
-
-  throw new Error(`No Volta pnpm version found for ${packageJsonPath}`);
 }
 
 function parseWorkspaceOverrides(workspace: string): Record<string, string> {
@@ -94,14 +59,18 @@ function parseWorkspaceOverrides(workspace: string): Record<string, string> {
       .trim()
       .split('\n')
       .map(line => {
-        const match = /^\s*("(?:[^"\\]|\\.)*"):\s*("(?:[^"\\]|\\.)*")\s*$/.exec(line);
+        const match = /^\s*('(?:[^']|'')*'|"(?:[^"\\]|\\.)*"):\s*('(?:[^']|'')*'|"(?:[^"\\]|\\.)*")\s*$/.exec(line);
         if (!match?.[1] || !match[2]) {
           throw new Error(`Unsupported pnpm workspace override: ${line.trim()}`);
         }
 
-        return [JSON.parse(match[1]) as string, JSON.parse(match[2]) as string];
+        return [parseYamlString(match[1]), parseYamlString(match[2])];
       }),
   );
+}
+
+function parseYamlString(quoted: string): string {
+  return quoted.startsWith("'") ? quoted.slice(1, -1).replace(/''/g, "'") : (JSON.parse(quoted) as string);
 }
 
 function removeWorkspaceOverrides(workspace: string): string {
