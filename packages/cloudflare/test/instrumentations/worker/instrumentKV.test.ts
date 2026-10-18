@@ -1,4 +1,14 @@
 import type { KVNamespace } from '@cloudflare/workers-types';
+import {
+  CACHE_KEY,
+  CACHE_OPERATION,
+  DB_COLLECTION_NAME,
+  DB_OPERATION_NAME,
+  DB_SYSTEM_NAME,
+  SENTRY_OP,
+  SENTRY_ORIGIN,
+} from '@sentry/conventions/attributes';
+import { CACHE_GET, CACHE_PUT, CACHE_REMOVE } from '@sentry/conventions/op';
 import * as SentryCore from '@sentry/core';
 import { beforeEach, describe, expect, test, vi } from 'vitest';
 import { instrumentKV } from '../../../src/instrumentations/worker/instrumentKV';
@@ -39,13 +49,13 @@ describe('instrumentKV', () => {
     expect(startSpanSpy).toHaveBeenCalledWith(
       expect.objectContaining({
         attributes: expect.objectContaining({
-          'sentry.op': 'cache.get',
-          'sentry.origin': 'auto.cache.cloudflare.kv',
-          'cache.operation': 'get',
-          'cache.key': 'test-key',
-          'db.operation.name': 'get',
-          'db.collection.name': 'MY_KV',
-          'db.system.name': 'cloudflare-kv',
+          [SENTRY_OP]: CACHE_GET,
+          [SENTRY_ORIGIN]: 'auto.cache.cloudflare.kv',
+          [CACHE_OPERATION]: SentryCore.CACHE_OPERATION_NAMES[CACHE_GET],
+          [CACHE_KEY]: 'test-key',
+          [DB_OPERATION_NAME]: 'get',
+          [DB_COLLECTION_NAME]: 'MY_KV',
+          [DB_SYSTEM_NAME]: 'cloudflare-kv',
         }),
       }),
       expect.any(Function),
@@ -66,7 +76,7 @@ describe('instrumentKV', () => {
     expect(startSpanSpy.mock.calls[0]?.[0]).toEqual(
       expect.objectContaining({
         attributes: expect.objectContaining({
-          'cache.key': ['first', 'second'],
+          [CACHE_KEY]: ['first', 'second'],
         }),
       }),
     );
@@ -82,9 +92,9 @@ describe('instrumentKV', () => {
     expect(startSpanSpy.mock.calls[0]?.[0]).toEqual(
       expect.objectContaining({
         attributes: expect.objectContaining({
-          'sentry.op': 'cache.get',
-          'cache.key': 'test-key',
-          'db.operation.name': 'getWithMetadata',
+          [SENTRY_OP]: CACHE_GET,
+          [CACHE_KEY]: 'test-key',
+          [DB_OPERATION_NAME]: 'getWithMetadata',
         }),
       }),
     );
@@ -102,26 +112,26 @@ describe('instrumentKV', () => {
     expect(startSpanSpy.mock.calls[0]?.[0]).toEqual(
       expect.objectContaining({
         attributes: expect.objectContaining({
-          'sentry.op': 'cache.put',
-          'cache.key': 'put-key',
-          'db.operation.name': 'put',
+          [SENTRY_OP]: CACHE_PUT,
+          [CACHE_KEY]: 'put-key',
+          [DB_OPERATION_NAME]: 'put',
         }),
       }),
     );
     expect(startSpanSpy.mock.calls[1]?.[0]).toEqual(
       expect.objectContaining({
         attributes: expect.objectContaining({
-          'sentry.op': 'cache.remove',
-          'cache.key': 'delete-key',
-          'db.operation.name': 'delete',
+          [SENTRY_OP]: CACHE_REMOVE,
+          [CACHE_KEY]: 'delete-key',
+          [DB_OPERATION_NAME]: 'delete',
         }),
       }),
     );
     expect(startSpanSpy.mock.calls[2]?.[0]).toEqual(
       expect.objectContaining({
         attributes: expect.objectContaining({
-          'sentry.op': 'cache.get',
-          'db.operation.name': 'list',
+          [SENTRY_OP]: CACHE_GET,
+          [DB_OPERATION_NAME]: 'list',
         }),
       }),
     );

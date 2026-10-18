@@ -1,3 +1,15 @@
+import {
+  CACHE_HIT,
+  CACHE_KEY,
+  CACHE_OPERATION,
+  DB_COLLECTION_NAME,
+  DB_OPERATION_NAME,
+  DB_SYSTEM_NAME,
+  SENTRY_OP,
+  SENTRY_ORIGIN,
+} from '@sentry/conventions/attributes';
+import { CACHE_GET, CACHE_PUT, CACHE_REMOVE } from '@sentry/conventions/op';
+import { CACHE_OPERATION_NAMES } from '@sentry/core';
 import { expect, it } from 'vitest';
 import { createRunner } from '../../runner';
 import { getSpansFromEnvelope } from '../../spanUtils';
@@ -5,19 +17,19 @@ import { getSpansFromEnvelope } from '../../spanUtils';
 it('emits cache.get for a KV read with key and hit attributes', async ({ signal }) => {
   const runner = createRunner(__dirname)
     .expect(envelope => {
-      const spans = getSpansFromEnvelope(envelope).filter(span => span.name === 'cache.get');
+      const spans = getSpansFromEnvelope(envelope).filter(span => span.name === CACHE_GET);
       expect(spans).toEqual(
         expect.arrayContaining([
           expect.objectContaining({
             attributes: expect.objectContaining({
-              'sentry.op': { type: 'string', value: 'cache.get' },
-              'sentry.origin': { type: 'string', value: 'auto.cache.cloudflare.kv' },
-              'cache.operation': { type: 'string', value: 'get' },
-              'cache.key': { type: 'string', value: 'get-key' },
-              'cache.hit': { type: 'boolean', value: true },
-              'db.operation.name': { type: 'string', value: 'get' },
-              'db.collection.name': { type: 'string', value: 'MY_KV' },
-              'db.system.name': { type: 'string', value: 'cloudflare-kv' },
+              [SENTRY_OP]: { type: 'string', value: CACHE_GET },
+              [SENTRY_ORIGIN]: { type: 'string', value: 'auto.cache.cloudflare.kv' },
+              [CACHE_OPERATION]: { type: 'string', value: CACHE_OPERATION_NAMES[CACHE_GET] },
+              [CACHE_KEY]: { type: 'string', value: 'get-key' },
+              [CACHE_HIT]: { type: 'boolean', value: true },
+              [DB_OPERATION_NAME]: { type: 'string', value: 'get' },
+              [DB_COLLECTION_NAME]: { type: 'string', value: 'MY_KV' },
+              [DB_SYSTEM_NAME]: { type: 'string', value: 'cloudflare-kv' },
             }),
           }),
         ]),
@@ -33,15 +45,18 @@ it('emits cache.get for a bulk KV read with all keys in cache.key', async ({ sig
   const runner = createRunner(__dirname)
     .expect(envelope => {
       const spans = getSpansFromEnvelope(envelope).filter(
-        span => span.name === 'cache.get' && span.attributes['db.operation.name']?.value === 'get',
+        span => span.name === CACHE_GET && span.attributes[DB_OPERATION_NAME]?.value === 'get',
       );
 
       expect(spans).toEqual(
         expect.arrayContaining([
           expect.objectContaining({
             attributes: expect.objectContaining({
-              'cache.key': expect.objectContaining({ type: 'array' }),
-              'cache.hit': { type: 'boolean', value: true },
+              [CACHE_KEY]: expect.objectContaining({
+                type: 'array',
+                value: expect.arrayContaining(['bulk-a', 'bulk-b']),
+              }),
+              [CACHE_HIT]: { type: 'boolean', value: true },
             }),
           }),
         ]),
@@ -57,14 +72,14 @@ it('emits cache.get for getWithMetadata', async ({ signal }) => {
   const runner = createRunner(__dirname)
     .expect(envelope => {
       const spans = getSpansFromEnvelope(envelope).filter(
-        span => span.name === 'cache.get' && span.attributes['db.operation.name']?.value === 'getWithMetadata',
+        span => span.name === CACHE_GET && span.attributes[DB_OPERATION_NAME]?.value === 'getWithMetadata',
       );
 
       expect(spans).toEqual([
         expect.objectContaining({
           attributes: expect.objectContaining({
-            'cache.key': { type: 'string', value: 'metadata-key' },
-            'cache.hit': { type: 'boolean', value: true },
+            [CACHE_KEY]: { type: 'string', value: 'metadata-key' },
+            [CACHE_HIT]: { type: 'boolean', value: true },
           }),
         }),
       ]);
@@ -78,15 +93,15 @@ it('emits cache.get for getWithMetadata', async ({ signal }) => {
 it('emits cache.put for KV writes', async ({ signal }) => {
   const runner = createRunner(__dirname)
     .expect(envelope => {
-      const spans = getSpansFromEnvelope(envelope).filter(span => span.name === 'cache.put');
+      const spans = getSpansFromEnvelope(envelope).filter(span => span.name === CACHE_PUT);
       expect(spans).toEqual(
         expect.arrayContaining([
           expect.objectContaining({
             attributes: expect.objectContaining({
-              'sentry.op': { type: 'string', value: 'cache.put' },
-              'cache.operation': { type: 'string', value: 'put' },
-              'cache.key': { type: 'string', value: 'put-key' },
-              'db.operation.name': { type: 'string', value: 'put' },
+              [SENTRY_OP]: { type: 'string', value: CACHE_PUT },
+              [CACHE_OPERATION]: { type: 'string', value: CACHE_OPERATION_NAMES[CACHE_PUT] },
+              [CACHE_KEY]: { type: 'string', value: 'put-key' },
+              [DB_OPERATION_NAME]: { type: 'string', value: 'put' },
             }),
           }),
         ]),
@@ -101,15 +116,15 @@ it('emits cache.put for KV writes', async ({ signal }) => {
 it('emits cache.remove for KV deletes', async ({ signal }) => {
   const runner = createRunner(__dirname)
     .expect(envelope => {
-      const spans = getSpansFromEnvelope(envelope).filter(span => span.name === 'cache.remove');
+      const spans = getSpansFromEnvelope(envelope).filter(span => span.name === CACHE_REMOVE);
       expect(spans).toEqual(
         expect.arrayContaining([
           expect.objectContaining({
             attributes: expect.objectContaining({
-              'sentry.op': { type: 'string', value: 'cache.remove' },
-              'cache.operation': { type: 'string', value: 'remove' },
-              'cache.key': { type: 'string', value: 'delete-key' },
-              'db.operation.name': { type: 'string', value: 'delete' },
+              [SENTRY_OP]: { type: 'string', value: CACHE_REMOVE },
+              [CACHE_OPERATION]: { type: 'string', value: CACHE_OPERATION_NAMES[CACHE_REMOVE] },
+              [CACHE_KEY]: { type: 'string', value: 'delete-key' },
+              [DB_OPERATION_NAME]: { type: 'string', value: 'delete' },
             }),
           }),
         ]),
@@ -125,16 +140,16 @@ it('emits cache.get for KV list operations', async ({ signal }) => {
   const runner = createRunner(__dirname)
     .expect(envelope => {
       const spans = getSpansFromEnvelope(envelope).filter(
-        span => span.name === 'cache.get' && span.attributes['db.operation.name']?.value === 'list',
+        span => span.name === CACHE_GET && span.attributes[DB_OPERATION_NAME]?.value === 'list',
       );
 
       expect(spans).toEqual(
         expect.arrayContaining([
           expect.objectContaining({
             attributes: expect.objectContaining({
-              'sentry.op': { type: 'string', value: 'cache.get' },
-              'cache.operation': { type: 'string', value: 'get' },
-              'db.operation.name': { type: 'string', value: 'list' },
+              [SENTRY_OP]: { type: 'string', value: CACHE_GET },
+              [CACHE_OPERATION]: { type: 'string', value: CACHE_OPERATION_NAMES[CACHE_GET] },
+              [DB_OPERATION_NAME]: { type: 'string', value: 'list' },
             }),
           }),
         ]),

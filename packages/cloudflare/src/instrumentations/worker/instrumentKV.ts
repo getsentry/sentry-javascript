@@ -1,5 +1,14 @@
 import type { KVNamespace } from '@cloudflare/workers-types';
-import { CACHE_HIT, CACHE_KEY, CACHE_OPERATION, SENTRY_OP, SENTRY_ORIGIN } from '@sentry/conventions/attributes';
+import {
+  CACHE_HIT,
+  CACHE_KEY,
+  CACHE_OPERATION,
+  DB_COLLECTION_NAME,
+  DB_OPERATION_NAME,
+  DB_SYSTEM_NAME,
+  SENTRY_OP,
+  SENTRY_ORIGIN,
+} from '@sentry/conventions/attributes';
 import { CACHE_GET, CACHE_PUT, CACHE_REMOVE } from '@sentry/conventions/op';
 import { CACHE_OPERATION_NAMES, getClient, hasSpanStreamingEnabled, isObjectLike, startSpan } from '@sentry/core';
 
@@ -42,9 +51,9 @@ function createSpanOptions(bindingName: string, operation: KVOperation, args: un
       [CACHE_OPERATION]: cacheOperationName,
       [SENTRY_ORIGIN]: ORIGIN,
       ...(keys && keys.length > 0 && { [CACHE_KEY]: keys.length > 1 ? keys : keys[0] }),
-      'db.operation.name': operation,
-      'db.collection.name': bindingName,
-      'db.system.name': 'cloudflare-kv',
+      [DB_OPERATION_NAME]: operation,
+      [DB_COLLECTION_NAME]: bindingName,
+      [DB_SYSTEM_NAME]: 'cloudflare-kv',
     },
   };
 }
