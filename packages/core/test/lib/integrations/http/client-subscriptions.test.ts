@@ -126,6 +126,10 @@ describe('getHttpClientSubscriptions', () => {
         res.writeHead(req.url === '/not-found' ? 404 : 200);
         // Keep the body open so that the request can be aborted after the response arrived.
         res.write('x');
+        if (req.url === '/server-abort') {
+          // The server goes away before the body is complete.
+          setTimeout(() => res.socket?.destroy(), 10);
+        }
       });
       await new Promise<void>(resolve => server.listen(0, '127.0.0.1', resolve));
       port = (server.address() as AddressInfo).port;
@@ -138,7 +142,13 @@ describe('getHttpClientSubscriptions', () => {
 
     function makeRequest(
       path: string,
-      abortAt: 'beforeResponse' | 'afterResponse' | 'destroyWithError',
+      abortAt:
+        | 'beforeResponse'
+        | 'afterResponse'
+        | 'destroyWithError'
+        | 'destroyResponse'
+        | 'destroyResponseWithError'
+        | 'never',
     ): Promise<SpanJSON> {
       const client = new TestClient(getDefaultTestClientOptions({ tracesSampleRate: 1 }));
       setCurrentClient(client);
@@ -162,7 +172,11 @@ describe('getHttpClientSubscriptions', () => {
           response.once('data', () => {
             if (abortAt === 'destroyWithError') {
               request.destroy(new Error('boom'));
-            } else {
+            } else if (abortAt === 'destroyResponse') {
+              response.destroy();
+            } else if (abortAt === 'destroyResponseWithError') {
+              response.destroy(new Error('boom'));
+            } else if (abortAt !== 'never') {
               controller.abort();
             }
           });
@@ -187,6 +201,23 @@ describe('getHttpClientSubscriptions', () => {
 
     it('sets an error status when the request fails for another reason', async () => {
       const span = await makeRequest('/', 'destroyWithError');
+
+      expect(span.status).toBe('error');
+    });
+
+    it('ends the span with the response status when the caller destroys the response mid-body', async () => {
+      expect((await makeRequest('/', 'destroyResponse')).status).toBe('ok');
+      expect((await makeRequest('/not-found', 'destroyResponse')).status).toBe('error');
+    });
+
+    it('ends the span with an error status when the response is destroyed with an error mid-body', async () => {
+      const span = await makeRequest('/', 'destroyResponseWithError');
+
+      expect(span.status).toBe('error');
+    });
+
+    it('sets an error status when the server closes the connection mid-body', async () => {
+      const span = await makeRequest('/server-abort', 'never');
 
       expect(span.status).toBe('error');
     });

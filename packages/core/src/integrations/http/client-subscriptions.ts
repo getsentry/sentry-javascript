@@ -175,7 +175,7 @@ export function getHttpClientSubscriptions(options: HttpInstrumentationOptions):
       options.outgoingResponseHook?.(span, response);
 
       let finished = false;
-      function finishWithResponse(error?: unknown): void {
+      function finishWithResponse(error?: unknown, destroyedByCaller = false): void {
         if (!finished) {
           finished = true;
           if (error) {
@@ -184,7 +184,7 @@ export function getHttpClientSubscriptions(options: HttpInstrumentationOptions):
           if (breadcrumbs) {
             addBreadcrumbs(request, response);
           }
-          const aborted = response.aborted && !response.complete;
+          const aborted = !destroyedByCaller && response.aborted && !response.complete;
           const status: SpanStatus =
             error || typeof response.statusCode !== 'number' || aborted
               ? { code: SPAN_STATUS_ERROR }
@@ -196,6 +196,10 @@ export function getHttpClientSubscriptions(options: HttpInstrumentationOptions):
 
       response.on('end', () => finishWithResponse());
       response.on(errorMonitor, finishWithResponse);
+      // A response destroyed by the caller without an error (e.g. `res.destroy()`) emits neither
+      // 'end' nor 'error', only 'close'. Like a caller abort, this is not a failure of the request,
+      // so end the span with the status of the response. After 'end' or an error this is a no-op.
+      response.on('close', () => finishWithResponse(undefined, true));
     });
   };
 
