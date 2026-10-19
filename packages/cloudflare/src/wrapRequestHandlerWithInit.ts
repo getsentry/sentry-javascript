@@ -182,12 +182,14 @@ export function wrapRequestHandlerWithInit(
             throw e;
           }
 
+          const userClassification = safeCallback(
+            DEBUG_BUILD ? 'Error in `isStreamingResponse`, using the default classification:' : '',
+            () => options.isStreamingResponse?.(res, request),
+            () => undefined,
+          );
+          // An async callback returns a promise, which would otherwise count as `true`.
           const isStreaming =
-            safeCallback(
-              DEBUG_BUILD ? 'Error in `isStreamingResponse`, using the default classification:' : '',
-              () => options.isStreamingResponse?.(res),
-              () => undefined,
-            ) ?? classifyResponseStreaming(res).isStreaming;
+            typeof userClassification === 'boolean' ? userClassification : classifyResponseStreaming(res).isStreaming;
 
           if (isStreaming && res.body) {
             try {

@@ -1103,7 +1103,7 @@ describe('flushAndDispose', () => {
       flushSpy.mockRestore();
     });
 
-    test('defers teardown when isStreamingResponse returns true for an unknown content type', async () => {
+    test('defers teardown when isStreamingResponse returns true for the request route', async () => {
       const waits: Promise<unknown>[] = [];
       const waitUntil = vi.fn((promise: Promise<unknown>) => waits.push(promise));
       const context = { waitUntil } as unknown as ExecutionContext;
@@ -1128,10 +1128,9 @@ describe('flushAndDispose', () => {
         {
           options: {
             ...options,
-            isStreamingResponse: response =>
-              response.headers.get('content-type') === 'text/x-script' ? true : undefined,
+            isStreamingResponse: (_response, request) => (request.url.endsWith('.data') ? true : undefined),
           },
-          request: new Request('https://example.com'),
+          request: new Request('https://example.com/products.data'),
           context,
         },
         () => new Response(stream, { headers: { 'content-type': 'text/x-script' } }),
@@ -1175,6 +1174,32 @@ describe('flushAndDispose', () => {
       expect(result).not.toBe(response);
       expect(waitUntil).not.toHaveBeenCalled();
       expect(await result.text()).toBe('<div>shell</div>');
+
+      flushSpy.mockRestore();
+    });
+
+    test('uses the default classification when isStreamingResponse returns a promise', async () => {
+      const waitUntil = vi.fn();
+      const context = { waitUntil } as unknown as ExecutionContext;
+
+      const flushSpy = vi.spyOn(SentryCore.Client.prototype, 'flush').mockResolvedValue(true);
+
+      const response = new Response('<div>page</div>', { headers: { 'content-type': 'text/html;charset=utf-8' } });
+
+      const result = await wrapRequestHandler(
+        {
+          options: {
+            ...options,
+            isStreamingResponse: (async () => true) as unknown as CloudflareOptions['isStreamingResponse'],
+          },
+          request: new Request('https://example.com'),
+          context,
+        },
+        () => response,
+      );
+
+      expect(result).toBe(response);
+      expect(waitUntil).toHaveBeenCalledTimes(1);
 
       flushSpy.mockRestore();
     });
