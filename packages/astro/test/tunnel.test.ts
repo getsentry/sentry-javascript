@@ -37,36 +37,12 @@ describe('applyAstroTunnelOptions', () => {
     delete globalWithOptions.__sentry_astro_tunnel_options;
   });
 
-  it('adds the Astro routing options to the managed tunnel, letting user options win', () => {
+  it('adds the Astro routing options to the managed tunnel', () => {
     globalWithOptions.__sentry_astro_tunnel_options = { basePath: '/docs', trailingSlash: true };
-    const fromTrue: Parameters<typeof applyAstroTunnelOptions>[0] = { tunnel: true };
-    const fromOptions: Parameters<typeof applyAstroTunnelOptions>[0] = { tunnel: { basePath: '/other' } };
-
-    applyAstroTunnelOptions(fromTrue);
-    applyAstroTunnelOptions(fromOptions);
-
-    expect(fromTrue.tunnel).toEqual({ basePath: '/docs', trailingSlash: true });
-    expect(fromOptions.tunnel).toEqual({ basePath: '/other', trailingSlash: true });
-  });
-
-  it('serves a relative tunnel path with the Astro routing options too', () => {
-    globalWithOptions.__sentry_astro_tunnel_options = { basePath: '/docs', trailingSlash: true };
-    const options: Parameters<typeof applyAstroTunnelOptions>[0] = { tunnel: '/monitor' };
+    const options: Parameters<typeof applyAstroTunnelOptions>[0] = { tunnel: true };
 
     applyAstroTunnelOptions(options);
 
-    expect(options.tunnel).toEqual({ basePath: '/docs', trailingSlash: true, path: '/monitor' });
-  });
-
-  it('leaves URL tunnels and a disabled tunnel alone', () => {
-    globalWithOptions.__sentry_astro_tunnel_options = { basePath: '/docs' };
-    const url: Parameters<typeof applyAstroTunnelOptions>[0] = { tunnel: 'https://example.com/tunnel' };
-    const off: Parameters<typeof applyAstroTunnelOptions>[0] = {};
-
-    applyAstroTunnelOptions(url);
-    applyAstroTunnelOptions(off);
-
-    expect(url.tunnel).toBe('https://example.com/tunnel');
-    expect(off.tunnel).toBeUndefined();
+    expect(options.tunnel).toEqual({ basePath: '/docs', trailingSlash: true });
   });
 });

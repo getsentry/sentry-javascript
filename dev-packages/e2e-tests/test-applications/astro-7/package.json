@@ -13,8 +13,7 @@
     "test:prod": "TEST_ENV=production playwright test",
     "test:dev": "TEST_ENV=development playwright test db",
     "test:build:tunnel": "pnpm install && PUBLIC_E2E_TEST_TUNNEL=1 PUBLIC_E2E_TEST_DSN=http://public@localhost:3031/1337 pnpm build",
-    "test:assert:tunnel": "PUBLIC_E2E_TEST_TUNNEL=1 PUBLIC_E2E_TEST_DSN=http://public@localhost:3031/1337 TEST_ENV=production playwright test tunnel",
-    "test:assert:tunnel-dev": "PUBLIC_E2E_TEST_TUNNEL=1 PUBLIC_E2E_TEST_DSN=http://public@localhost:3031/1337 TEST_ENV=development playwright test tunnel"
+    "test:assert:tunnel": "PUBLIC_E2E_TEST_TUNNEL=1 PUBLIC_E2E_TEST_DSN=http://public@localhost:3031/1337 sh -c 'TEST_ENV=production playwright test tunnel && TEST_ENV=development playwright test tunnel'"
   },
   "//": "Need to use ioredis 5.10.1 because that's the last version before they support tracing channels",
   "dependencies": {
@@ -36,11 +35,6 @@
         "build-command": "pnpm test:build:tunnel",
         "assert-command": "pnpm test:assert:tunnel",
         "label": "astro-7 (tunnel)"
-      },
-      {
-        "label": "astro-7 (tunnel-dev)",
-        "build-command": "pnpm install",
-        "assert-command": "pnpm test:assert:tunnel-dev"
       }
     ]
   }
