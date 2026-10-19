@@ -88,9 +88,11 @@ export function makeManagedTunnelTransport(
           return response;
         }
 
-        // Nothing handles the tunnel path, so the envelope never reached Sentry and is safe to send once more.
-        if (statusCode === 404 || statusCode === 405) {
-          const transport = switchToDirect(envelope, `nothing answers the managed tunnel at "${options.url}".`);
+        // Something other than the tunnel handler rejected the request, e.g. nothing serves the path (404) or an auth
+        // middleware answered first (401). Only the handler forwards, so the envelope never reached Sentry and is safe
+        // to send once more.
+        if (statusCode !== undefined && statusCode >= 400 && statusCode < 500) {
+          const transport = switchToDirect(envelope, `"${options.url}" answered ${statusCode} instead of the tunnel.`);
 
           return transport ? transport.send(envelope) : response;
         }
