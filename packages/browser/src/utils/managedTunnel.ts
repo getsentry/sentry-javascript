@@ -61,21 +61,6 @@ export function makeManagedTunnelTransport(
     const tunnelTransport = makeTransport(options);
     let directTransport: Transport | undefined;
 
-    const switchToDirect = (envelope: Envelope, reason: string): Transport | undefined => {
-      const { dsn, sdk } = envelope[0];
-      const components = dsn && makeDsn(dsn);
-      if (components && !directTransport) {
-        DEBUG_BUILD && debug.warn(`Sending to Sentry directly: ${reason}`);
-        directTransport = makeTransport({
-          ...options,
-          url: getEnvelopeEndpointWithUrlEncodedAuth(components, undefined, sdk),
-          headers: directHeaders,
-        });
-      }
-
-      return directTransport;
-    };
-
     return {
       async send(envelope: Envelope): Promise<TransportMakeRequestResponse> {
         if (directTransport) {
@@ -83,7 +68,7 @@ export function makeManagedTunnelTransport(
         }
 
         const response = await tunnelTransport.send(envelope);
-        const { statusCode } = response;
+        const statusCode = response.statusCode || 0;
 
         // The tunnel handler answered, so whatever status it passes on is Sentry's.
         if (response.headers?.['x-sentry-tunnel']) {
@@ -97,22 +82,26 @@ export function makeManagedTunnelTransport(
           return response;
         }
 
-        // Something other than the tunnel handler rejected the request, e.g. nothing serves the path (404) or an auth
-        // middleware answered first (401). Only the handler forwards, so the envelope never reached Sentry and is safe
-        // to send once more.
-        if (statusCode !== undefined && statusCode >= 400 && statusCode < 500) {
-          const transport = switchToDirect(envelope, `"${options.url}" answered ${statusCode} instead of the tunnel.`);
-
-          return transport ? transport.send(envelope) : response;
+        // Something other than the tunnel handler answered. A 4xx (nothing serves the path, an auth middleware) never
+        // reached Sentry, so it is sent once more. A 2xx (a static host serving `index.html`) may have been delivered,
+        // so only the envelopes after it go directly.
+        const rejected = statusCode >= 400 && statusCode < 500;
+        const { dsn, sdk } = envelope[0];
+        const components = (rejected || (statusCode >= 200 && statusCode < 300)) && dsn && makeDsn(dsn);
+        if (!components) {
+          return response;
         }
 
-        // Something other than the tunnel handler answered, like a static host serving `index.html`. This envelope
-        // may have been delivered all the same, so it isn't sent again, only the ones after it go directly.
-        if (statusCode !== undefined && statusCode >= 200 && statusCode < 300) {
-          switchToDirect(envelope, `the response from "${options.url}" didn't come from a Sentry tunnel handler.`);
-        }
+        DEBUG_BUILD &&
+          debug.warn(`Sending to Sentry directly: "${options.url}" answered ${statusCode} instead of the tunnel.`);
+        // Envelopes sent at the same time all land here, and they share one direct transport.
+        directTransport ??= makeTransport({
+          ...options,
+          url: getEnvelopeEndpointWithUrlEncodedAuth(components, undefined, sdk),
+          headers: directHeaders,
+        });
 
-        return response;
+        return rejected ? directTransport.send(envelope) : response;
       },
       async flush(timeout?: number): Promise<boolean> {
         const results = await Promise.all([tunnelTransport.flush(timeout), directTransport?.flush(timeout) ?? true]);
