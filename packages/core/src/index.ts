@@ -104,6 +104,7 @@ export { parameterize, fmt } from './utils/parameterize';
 export type { HandleTunnelRequestOptions, TunnelRequestLike } from './utils/tunnel';
 export {
   applyTunnelDefaults,
+  enableManagedTunnel,
   getTunnelPath,
   getTunnelPaths,
   handleTunnelRequest,
