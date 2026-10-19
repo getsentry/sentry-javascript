@@ -106,7 +106,7 @@ export function init(options: AwsServerlessOptions = {}): NodeClient | undefined
       }
     } else {
       DEBUG_BUILD && debug.log('Proxying Sentry events through the Sentry Lambda extension');
-      // The extension takes over the transport, but `tunnel: true` still has to serve the managed tunnel.
+      // The extension takes over the transport, but the managed tunnel is still served.
       opts._managedTunnel = resolveServerTunnelOption(opts.tunnel)._managedTunnel;
       opts.tunnel = 'http://localhost:9000/envelope';
     }

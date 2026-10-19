@@ -50,7 +50,6 @@ export function makeFetchTransport(
         headers: {
           'x-sentry-rate-limits': response.headers.get('X-Sentry-Rate-Limits'),
           'retry-after': response.headers.get('Retry-After'),
-          // Tells a managed tunnel's own responses apart from whatever else answers its path.
           'x-sentry-tunnel': response.headers.get('X-Sentry-Tunnel'),
         },
       };
