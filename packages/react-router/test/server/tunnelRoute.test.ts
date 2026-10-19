@@ -20,6 +20,8 @@ function setClient(managedTunnel: object | undefined): void {
   getCurrentScope().setClient({ getDsn: () => makeDsn(DSN), getOptions: () => options } as unknown as Client);
 }
 
+const ENVELOPE = serializeEnvelope(createEnvelope({ dsn: DSN }, [])) as string;
+
 describe('createSentryTunnelRoutes', () => {
   afterEach(() => {
     getCurrentScope().setClient(undefined);
@@ -53,7 +55,8 @@ describe('createSentryTunnelRoutes', () => {
     const route = firstRoute();
     const request = new Request(`http://localhost${getTunnelPath(DSN)}`, {
       method: 'POST',
-      body: serializeEnvelope(createEnvelope({ dsn: DSN }, [])) as BodyInit,
+      body: ENVELOPE,
+      headers: { 'content-length': String(ENVELOPE.length) },
     });
 
     expect(await (await route.module.action({ request })).text()).toBe('forwarded');
@@ -69,7 +72,8 @@ describe('createSentryTunnelRoutes', () => {
     const route = firstRoute('/app/');
     const request = new Request(`http://localhost/app${getTunnelPath(DSN)}`, {
       method: 'POST',
-      body: serializeEnvelope(createEnvelope({ dsn: DSN }, [])) as BodyInit,
+      body: ENVELOPE,
+      headers: { 'content-length': String(ENVELOPE.length) },
     });
 
     // React Router matches the route under `basename` itself, so the path stays relative to it.
