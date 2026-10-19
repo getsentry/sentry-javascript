@@ -33,6 +33,7 @@ import {
   flushSafelyWithTimeout,
   isAsyncContextOwnedByCloudflare,
   isCloudflareWaitUntilAvailable,
+  setCloudflareWorkerRelease,
   waitUntil,
 } from '../common/utils/responseEnd';
 import { setUrlProcessingMetadata } from '../common/utils/setUrlProcessingMetadata';
@@ -77,9 +78,10 @@ export function init(options: VercelEdgeOptions = {}): void {
   }
 
   if (!DEBUG_BUILD && options.debug) {
+    // TODO(v12): Remove the `webpack.treeshake` mention together with that option
     // eslint-disable-next-line no-console
     console.warn(
-      '[@sentry/nextjs] You have enabled `debug: true`, but Sentry debug logging was removed from your bundle (likely via `webpack.treeshake.removeDebugLogging: true`). Set that option to `false` to see Sentry debug output.',
+      '[@sentry/nextjs] You have enabled `debug: true`, but Sentry debug logging was removed from your bundle (likely via `bundleSizeOptimizations.excludeDebugStatements: true` or `webpack.treeshake.removeDebugLogging: true`). Set that option to `false` to see Sentry debug output.',
     );
   }
 
@@ -124,9 +126,10 @@ export function init(options: VercelEdgeOptions = {}): void {
   }
 
   if (isAsyncContextOwnedByCloudflare()) {
+    setCloudflareWorkerRelease(opts.release);
     DEBUG_BUILD &&
       debug.log(
-        'The client of `withSentry` handles this Worker, so `init` creates no client. Set the options in `withSentry`.',
+        'The client of `withSentry` handles this Worker, so `init` creates no client and only applies `release`. Set the other options in `withSentry`.',
       );
     return;
   }

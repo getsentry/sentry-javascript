@@ -6,7 +6,7 @@ argument-hint: '[version]  # e.g. 0.16.0; defaults to latest on npm'
 
 # Bump `@sentry/conventions`
 
-Bump `@sentry/conventions` across every `package.json` at once, keeping the two pin styles consistent, then refresh `yarn.lock`.
+Bump `@sentry/conventions` across every `package.json` at once, keeping the two pin styles consistent, then refresh `pnpm-lock.yaml`.
 
 ## 1. Determine the target version
 
@@ -28,31 +28,31 @@ Edit only the version string; leave the caret alone. If a file declares a versio
 ## 3. Refresh the lockfile and build
 
 ```bash
-yarn install
-yarn dedupe-deps:fix
-yarn build:dev
+pnpm install
+pnpm run dedupe-deps:fix
+pnpm run build:dev
 ```
 
-`yarn install` collapses the combined `yarn.lock` entry (`"@sentry/conventions@<OLD>", "@sentry/conventions@^<OLD>":`) onto the new version. Confirm no stale `<OLD>` resolution remains:
+`pnpm install` resolves both pin styles to the new version in `pnpm-lock.yaml`. Confirm no stale `<OLD>` resolution remains:
 
 ```bash
-grep -n '@sentry/conventions@' yarn.lock
+grep -n '@sentry/conventions@' pnpm-lock.yaml
 ```
 
 ## 4. Check for breaking API changes
 
-A `conventions` bump can rename or remove exported attribute constants. If `yarn build:dev` fails, inspect the type errors and update usages in `src/` **and** `test/`. Heaviest consumers: `packages/core`, `packages/opentelemetry`, `packages/aws-serverless`.
+A `conventions` bump can rename or remove exported attribute constants. If `pnpm run build:dev` fails, inspect the type errors and update usages in `src/` **and** `test/`. Heaviest consumers: `packages/core`, `packages/opentelemetry`, `packages/aws-serverless`.
 
 Use LSP `findReferences` on the changed export to catch every call site. Do not paper over a rename with a cast.
 
-After fixing, re-run `yarn build:dev` and confirm it passes before verifying, so the next step runs against fresh build output.
+After fixing, re-run `pnpm run build:dev` and confirm it passes before verifying, so the next step runs against fresh build output.
 
 ## 5. Final verification
 
 ```bash
-yarn circularDepCheck
-yarn fix
-yarn test
+pnpm run circularDepCheck
+pnpm run fix
+pnpm run test
 ```
 
 ## Commit

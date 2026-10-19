@@ -1,5 +1,6 @@
 import type { Builder } from '@sveltejs/kit';
 import * as fs from 'fs';
+import * as os from 'os';
 import * as path from 'path';
 import * as url from 'url';
 import type { SupportedSvelteKitAdapters } from './detectAdapter';
@@ -106,7 +107,11 @@ async function getNodeAdapterOutputDir(kitConfig: ResolvedKitConfig): Promise<st
     rimraf: () => {},
     mkdirp: () => {},
 
+    // SvelteKit 3 passes the kit config directly (`config.paths`), SvelteKit 2 nests it (`config.kit.paths`)
     config: {
+      paths: {
+        base: kitConfig.paths?.base || '',
+      },
       kit: {
         // @ts-expect-error - the builder expects a validated config but for our purpose it's fine to just pass this partial config
         paths: {
@@ -116,10 +121,33 @@ async function getNodeAdapterOutputDir(kitConfig: ResolvedKitConfig): Promise<st
     },
   };
 
+  // `@sveltejs/adapter-node` v6 deletes its (relative) output dir with `fs.rmSync` before it touches the
+  // builder, so our no-op `rimraf` doesn't help. Running `adapt()` from an empty temp cwd keeps it from
+  // wiping the user's real build output. The rm and `writeClient` both run synchronously, so the cwd is
+  // only changed for the synchronous part of the call and no other code observes it.
+  const originalCwd = process.cwd();
+  let sandboxDir: string | undefined;
+  let adaptResult: unknown;
   try {
-    await nodeAdapter.adapt(adapterBuilder);
+    sandboxDir = fs.mkdtempSync(path.join(os.tmpdir(), 'sentry-sveltekit-'));
+    process.chdir(sandboxDir);
+    adaptResult = nodeAdapter.adapt(adapterBuilder);
   } catch {
     // We expect the adapter to throw in writeClient!
+  } finally {
+    if (process.cwd() !== originalCwd) {
+      process.chdir(originalCwd);
+    }
+  }
+
+  try {
+    await adaptResult;
+  } catch {
+    // We expect the adapter to throw in writeClient!
+  }
+
+  if (sandboxDir) {
+    fs.rmSync(sandboxDir, { recursive: true, force: true });
   }
 
   return outputDir;

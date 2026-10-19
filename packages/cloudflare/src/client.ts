@@ -6,6 +6,7 @@ import {
   applySdkMetadata,
   debug,
   spanIsSampled,
+  spanStreamingIntegration,
 } from '@sentry/core';
 import type { ServerRuntimeClientOptions } from '@sentry/core/server';
 import { ServerRuntimeClient } from '@sentry/core/server';
@@ -14,6 +15,10 @@ import type { ExecutionContextCompat } from './executionContext';
 import type { makeFlushLock } from './flush';
 import type { CloudflareTransportOptions } from './transport';
 import { getInvocationState, getInvocationWaitUntil } from './utils/invocationContext';
+
+declare const __SENTRY_TRACING__: boolean;
+
+const SPAN_STREAMING_INTEGRATION_NAME = 'SpanStreaming';
 
 /**
  * The Sentry Cloudflare SDK Client.
@@ -58,6 +63,17 @@ export class CloudflareClient extends ServerRuntimeClient {
       // TODO: Add server name
       _flushInterval: 0,
     };
+
+    // workerd can't unref timers, so the default 500ms segment-end flush timer holds every
+    // Durable Object invocation open (and billed) until it fires, sampled or not. The boundary
+    // flush and the eager drain already deliver streamed spans here.
+    if (
+      (typeof __SENTRY_TRACING__ === 'undefined' || __SENTRY_TRACING__) &&
+      clientOptions.traceLifecycle !== 'static' &&
+      !clientOptions.integrations.some(i => i.name === SPAN_STREAMING_INTEGRATION_NAME)
+    ) {
+      clientOptions.integrations.push(spanStreamingIntegration({ flushOnSegmentEnd: false }));
+    }
 
     super(clientOptions);
     this._flushLock = flushLock;
@@ -371,12 +387,14 @@ interface BaseCloudflareOptions {
   rpcTracePropagationBindings?: TracePropagationTargets;
 
   /**
-   * Table names that should stay instrumented even though they match the reserved `cf_` prefix used
-   * by Durable Object frameworks (`agents`, `partyserver`, ...) for their internal SQLite tables.
+   * Table names that should stay instrumented even though they match a reserved prefix used by
+   * Durable Object frameworks for their internal SQLite tables: `cf_` (`agents`, `partyserver`, ...)
+   * and `pi_` (pi-durable in the `PiHarness` of `agents`).
    *
-   * By default, `exec` queries against `cf_`-prefixed tables are treated as framework noise and no
-   * `db.query` span is created for them. If one of your own tables happens to use this prefix, add it
-   * here to opt it back into instrumentation. Entries are matched against each table name in the
+   * By default, `exec` queries against tables with these prefixes are treated as framework noise and
+   * no `db.query` span is created for them. If one of your own tables happens to use such a prefix,
+   * add it here to opt it back into instrumentation, or add `/^pi_/` to see the statements of
+   * pi-durable. Entries are matched against each table name in the
    * query summary — strings must match exactly, while regular expressions give you prefix/pattern
    * matching.
    *

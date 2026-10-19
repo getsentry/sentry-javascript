@@ -28,8 +28,10 @@ jobs:
         with:
           node-version-file: 'package.json'
 
+      - name: Install pnpm
+        uses: ./.github/actions/install-pnpm
       - name: Install dependencies
-        run: yarn install --frozen-lockfile
+        run: pnpm install --frozen-lockfile
 
       - name: Add external contributor to CHANGELOG.md
         uses: ./dev-packages/external-contributor-gh-action

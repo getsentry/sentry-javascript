@@ -1,10 +1,17 @@
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import * as http from 'node:http';
+import type { AddressInfo } from 'node:net';
+import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import * as breadcrumbModule from '../../../../src/integrations/http/add-outgoing-request-breadcrumb';
 import { HTTP_ON_CLIENT_REQUEST } from '../../../../src/integrations/http/constants';
 import { getHttpClientSubscriptions } from '../../../../src/integrations/http/client-subscriptions';
 import type { HttpClientRequest, HttpIncomingMessage } from '../../../../src/integrations/http/types';
 import { SUPPRESS_TRACING_KEY } from '../../../../src/tracing/constants';
 import { getCurrentScope, withScope } from '../../../../src/currentScopes';
+import { setCurrentClient } from '../../../../src/sdk';
+import { startSpan } from '../../../../src/tracing/trace';
+import { spanToJSON } from '../../../../src/utils/spanUtils';
+import type { SpanJSON } from '../../../../src/types/span';
+import { getDefaultTestClientOptions, TestClient } from '../../../mocks/client';
 
 function makeMockRequest(): HttpClientRequest & {
   _responseListeners: ((res: HttpIncomingMessage) => void)[];
@@ -107,6 +114,81 @@ describe('getHttpClientSubscriptions', () => {
       response._endListeners.forEach(fn => fn());
 
       expect(spy).toHaveBeenCalledOnce();
+    });
+  });
+
+  describe('request errors', () => {
+    let server: http.Server;
+    let port: number;
+
+    beforeAll(async () => {
+      server = http.createServer((req, res) => {
+        res.writeHead(req.url === '/not-found' ? 404 : 200);
+        // Keep the body open so that the request can be aborted after the response arrived.
+        res.write('x');
+      });
+      await new Promise<void>(resolve => server.listen(0, '127.0.0.1', resolve));
+      port = (server.address() as AddressInfo).port;
+    });
+
+    afterAll(() => {
+      server.closeAllConnections();
+      server.close();
+    });
+
+    function makeRequest(
+      path: string,
+      abortAt: 'beforeResponse' | 'afterResponse' | 'destroyWithError',
+    ): Promise<SpanJSON> {
+      const client = new TestClient(getDefaultTestClientOptions({ tracesSampleRate: 1 }));
+      setCurrentClient(client);
+      client.init();
+
+      return new Promise(resolve => {
+        client.on('spanEnd', span => {
+          if (!spanToJSON(span).is_segment) {
+            resolve(spanToJSON(span));
+          }
+        });
+
+        const controller = new AbortController();
+        const request = http.request({ host: '127.0.0.1', port, path, signal: controller.signal });
+        startSpan({ name: 'parent' }, () => {
+          getHttpClientSubscriptions({})[HTTP_ON_CLIENT_REQUEST]({ request }, HTTP_ON_CLIENT_REQUEST);
+        });
+        request.on('error', () => {});
+        request.on('response', response => {
+          response.on('error', () => {});
+          response.once('data', () => {
+            if (abortAt === 'destroyWithError') {
+              request.destroy(new Error('boom'));
+            } else {
+              controller.abort();
+            }
+          });
+        });
+        if (abortAt === 'beforeResponse') {
+          controller.abort();
+        }
+        request.end();
+      });
+    }
+
+    it('does not set an error status when the request is aborted before the response', async () => {
+      const span = await makeRequest('/', 'beforeResponse');
+
+      expect(span.status).toBe('ok');
+    });
+
+    it('keeps the response status when the request is aborted after the response', async () => {
+      expect((await makeRequest('/', 'afterResponse')).status).toBe('ok');
+      expect((await makeRequest('/not-found', 'afterResponse')).status).toBe('error');
+    });
+
+    it('sets an error status when the request fails for another reason', async () => {
+      const span = await makeRequest('/', 'destroyWithError');
+
+      expect(span.status).toBe('error');
     });
   });
 });

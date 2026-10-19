@@ -98,14 +98,14 @@ type ExpectedEnvelopeHeader =
 
 type StartResult = {
   completed(): Promise<void>;
-  childHasExited(): boolean;
+  exited(): Promise<void>;
   getLogs(): string[];
   getPort(): number | undefined;
   sendSignal(signal: NodeJS.Signals): void;
   makeRequest<T>(
     method: 'get' | 'post' | 'put' | 'delete' | 'patch',
     path: string,
-    options?: { headers?: Record<string, string>; data?: BodyInit; expectError?: boolean },
+    options?: { headers?: Record<string, string>; data?: BodyInit; expectError?: boolean; timeout?: number },
   ): Promise<T | undefined>;
 };
 
@@ -380,6 +380,8 @@ export function createRunner(...paths: string[]) {
       const completedDeferred = createDeferred();
       // Resolved once the scenario reports its server port, so `makeRequest` can await it directly.
       const portReady = createDeferred();
+      // Resolved when the scenario process closes, so exit tests can await it instead of polling.
+      const exitedDeferred = createDeferred();
 
       // Vitest stops a test at its own timeout before `completed()` gives up, so print the child
       // output then too. `completed()` prints it for the failures it reports itself.
@@ -666,6 +668,7 @@ export function createRunner(...paths: string[]) {
           child.on('close', (code, signal) => {
             hasExited = true;
             exitStatus = signal ? `signal ${signal}` : `code ${code ?? 'unknown'}`;
+            exitedDeferred.resolve();
 
             if (ensureNoErrorOutput) {
               complete();
@@ -759,8 +762,8 @@ export function createRunner(...paths: string[]) {
             throw completeError;
           }
         },
-        childHasExited: function (): boolean {
-          return hasExited;
+        exited: function (): Promise<void> {
+          return exitedDeferred.promise;
         },
         getLogs(): string[] {
           return logs;
@@ -774,7 +777,12 @@ export function createRunner(...paths: string[]) {
         makeRequest: async function <T>(
           method: 'get' | 'post' | 'put' | 'delete' | 'patch',
           path: string,
-          options: { headers?: Record<string, string>; data?: BodyInit; expectError?: boolean } = {},
+          options: {
+            headers?: Record<string, string>;
+            data?: BodyInit;
+            expectError?: boolean;
+            timeout?: number;
+          } = {},
         ): Promise<T | undefined> {
           try {
             await waitForEvent(portReady.promise, PORT_TIMEOUT, 'Timed out waiting for server port');
@@ -791,7 +799,12 @@ export function createRunner(...paths: string[]) {
           if (process.env.DEBUG) log('making request', method, url, headers, body);
 
           try {
-            const res = await fetch(url, { headers, method: method.toUpperCase(), body });
+            const res = await fetch(url, {
+              headers,
+              method: method.toUpperCase(),
+              body,
+              signal: options.timeout !== undefined ? AbortSignal.timeout(options.timeout) : undefined,
+            });
 
             if (!res.ok) {
               if (!expectError) {

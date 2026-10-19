@@ -1,5 +1,6 @@
 import { getMainCarrier } from '@sentry/core';
 import { assertEquals, assertNotEquals } from 'https://deno.land/std@0.212.0/assert/mod.ts';
+import type { TracerProvider } from 'npm:@opentelemetry/api@1';
 import { context, propagation, trace } from 'npm:@opentelemetry/api@1';
 import type { DenoClient } from '../build/esm/index.js';
 import { init, startSpan } from '../build/esm/index.js';
@@ -149,8 +150,8 @@ Deno.test('should override pre-existing OTel provider with Sentry provider', asy
   resetSdk();
 
   // Simulate a pre-existing OTel registration (e.g. from Supabase Edge Runtime)
-  const fakeProvider = { getTracer: () => ({}) };
-  trace.setGlobalTracerProvider(fakeProvider as any);
+  const fakeProvider = { getTracer: () => ({}) } as unknown as TracerProvider;
+  trace.setGlobalTracerProvider(fakeProvider);
 
   const transactionEvents: any[] = [];
 

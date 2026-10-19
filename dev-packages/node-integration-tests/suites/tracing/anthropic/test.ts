@@ -1,3 +1,4 @@
+import type { Event, SerializedStreamedSpanContainer } from '@sentry/core';
 import { afterAll, describe, expect } from 'vitest';
 import {
   GEN_AI_INPUT_MESSAGES,
@@ -17,6 +18,8 @@ import {
   GEN_AI_USAGE_INPUT_TOKENS,
   GEN_AI_USAGE_OUTPUT_TOKENS,
   GEN_AI_USAGE_TOTAL_TOKENS,
+  SENTRY_OP,
+  SENTRY_ORIGIN,
 } from '@sentry/conventions/attributes';
 import { GEN_AI_REQUEST_STREAM_ATTRIBUTE } from '../../../../../packages/server-utils/src/ai/core/gen-ai-attributes';
 import { cleanupChildProcesses, createEsmAndCjsTests } from '../../../utils/runner';
@@ -34,14 +37,11 @@ describe('Anthropic integration', () => {
     test('preserves .withResponse() and .asResponse() for non-streaming and streaming', async () => {
       await createRunner()
         .expect({
-          transaction: {
-            transaction: 'main',
-          },
-        })
-        .expect({
           span: container => {
-            expect(container.items).toHaveLength(6);
-            const nonStreamingSpans = container.items.filter(
+            expect(container.items.find(span => span.is_segment && span.name === 'main')).toBeDefined();
+            const spans = container.items.filter(span => span.attributes[SENTRY_ORIGIN]?.value === 'auto.ai.anthropic');
+            expect(spans).toHaveLength(6);
+            const nonStreamingSpans = spans.filter(
               span => span.attributes[GEN_AI_RESPONSE_ID]?.value === 'msg_withresponse',
             );
             expect(nonStreamingSpans).toHaveLength(1);
@@ -52,15 +52,14 @@ describe('Anthropic integration', () => {
               expect(span.attributes[GEN_AI_REQUEST_MODEL].value).toBe('claude-3-haiku-20240307');
             }
 
-            const streamingSpan = container.items.find(
+            const streamingSpan = spans.find(
               span => span.attributes[GEN_AI_RESPONSE_ID]?.value === 'msg_stream_withresponse',
             );
-            expect(streamingSpan).toBeDefined();
             expect(streamingSpan!.name).toBe('chat claude-3-haiku-20240307');
             expect(streamingSpan!.status).toBe('ok');
             expect(streamingSpan!.attributes[GEN_AI_RESPONSE_STREAMING].value).toBe(true);
 
-            const rawResponseSpans = container.items.filter(span => span.attributes[GEN_AI_RESPONSE_ID] === undefined);
+            const rawResponseSpans = spans.filter(span => span.attributes[GEN_AI_RESPONSE_ID] === undefined);
             expect(rawResponseSpans).toHaveLength(4);
             for (const span of rawResponseSpans) {
               expect(span.name).toBe(`chat ${span.attributes[GEN_AI_REQUEST_MODEL].value}`);
@@ -83,158 +82,166 @@ describe('Anthropic integration', () => {
 
   createEsmAndCjsTests(__dirname, 'scenario.mjs', 'instrument.mjs', (createRunner, test) => {
     test('creates anthropic related spans with genAI recording disabled', async () => {
-      const runner = createRunner();
+      let receivedEvent: Event | undefined;
+      let receivedSpans: SerializedStreamedSpanContainer['items'] = [];
+
+      const runner = createRunner().unordered();
 
       await runner
-        .expect({ transaction: { transaction: 'main' } })
         .expect({
           span: container => {
-            expect(container.items).toHaveLength(3);
-            const completionSpan = container.items.find(
-              span => span.attributes[GEN_AI_RESPONSE_ID]?.value === 'msg_mock123',
-            );
-            expect(completionSpan).toBeDefined();
-            expect(completionSpan!.name).toBe('chat claude-3-haiku-20240307');
-            expect(completionSpan!.status).toBe('ok');
-
-            const errorSpan = container.items.find(span => span.name === 'chat error-model');
-            expect(errorSpan).toBeDefined();
-            expect(errorSpan!.status).toBe('error');
-
-            const streamingSpan = container.items.find(
-              span => span.attributes[GEN_AI_RESPONSE_ID]?.value === 'msg_stream123',
-            );
-            expect(streamingSpan).toBeDefined();
-            expect(streamingSpan!.name).toBe('chat claude-3-haiku-20240307');
-            expect(streamingSpan!.status).toBe('ok');
-            expect(streamingSpan!.attributes[GEN_AI_RESPONSE_STREAMING].value).toBe(true);
+            expect(container.items.find(span => span.is_segment && span.name === 'main')).toBeDefined();
+            receivedSpans = container.items;
           },
         })
-        .expect({ event: EXPECTED_STREAM_EVENT_HANDLER_MESSAGE })
+        .expect({
+          event: event => {
+            receivedEvent = event;
+          },
+        })
         .start()
         .completed();
+
+      expect(receivedEvent).toMatchObject({ event_id: expect.any(String), ...EXPECTED_STREAM_EVENT_HANDLER_MESSAGE });
+
+      const spans = receivedSpans.filter(span => span.attributes[SENTRY_ORIGIN]?.value === 'auto.ai.anthropic');
+      expect(spans).toHaveLength(3);
+      const completionSpan = spans.find(span => span.attributes[GEN_AI_RESPONSE_ID]?.value === 'msg_mock123');
+      expect(completionSpan!.name).toBe('chat claude-3-haiku-20240307');
+      expect(completionSpan!.status).toBe('ok');
+
+      const errorSpan = spans.find(span => span.name === 'chat error-model');
+      expect(errorSpan!.status).toBe('error');
+
+      const streamingSpan = spans.find(span => span.attributes[GEN_AI_RESPONSE_ID]?.value === 'msg_stream123');
+      expect(streamingSpan!.name).toBe('chat claude-3-haiku-20240307');
+      expect(streamingSpan!.status).toBe('ok');
+      expect(streamingSpan!.attributes[GEN_AI_RESPONSE_STREAMING].value).toBe(true);
     });
   });
 
   createEsmAndCjsTests(__dirname, 'scenario.mjs', 'instrument-with-pii.mjs', (createRunner, test) => {
     test('creates anthropic related spans with genAI recording enabled', async () => {
-      const runner = createRunner();
+      let receivedEvent: Event | undefined;
+      let receivedSpans: SerializedStreamedSpanContainer['items'] = [];
+
+      const runner = createRunner().unordered();
 
       await runner
-        .expect({ transaction: { transaction: 'main' } })
         .expect({
           span: container => {
-            expect(container.items).toHaveLength(3);
-            const completionSpan = container.items.find(
-              span => span.attributes[GEN_AI_RESPONSE_ID]?.value === 'msg_mock123',
-            );
-            expect(completionSpan).toBeDefined();
-            expect(completionSpan!.name).toBe('chat claude-3-haiku-20240307');
-            expect(completionSpan!.status).toBe('ok');
-            expect(completionSpan!.attributes[GEN_AI_OPERATION_NAME].value).toBe('chat');
-            expect(completionSpan!.attributes[GEN_AI_REQUEST_MAX_TOKENS].value).toBe(100);
-            expect(completionSpan!.attributes[GEN_AI_REQUEST_MODEL].value).toBe('claude-3-haiku-20240307');
-            expect(completionSpan!.attributes[GEN_AI_REQUEST_TEMPERATURE].value).toBe(0.7);
-            expect(completionSpan!.attributes[GEN_AI_RESPONSE_MODEL].value).toBe('claude-3-haiku-20240307');
-            expect(completionSpan!.attributes[GEN_AI_RESPONSE_ID].value).toBe('msg_mock123');
-            expect(completionSpan!.attributes[GEN_AI_RESPONSE_TEXT].value).toBe('Hello from Anthropic mock!');
-            expect(completionSpan!.attributes[GEN_AI_INPUT_MESSAGES].value).toBe(
-              '[{"role":"user","content":"What is the capital of France?"}]',
-            );
-            expect(completionSpan!.attributes[GEN_AI_PROVIDER_NAME].value).toBe('anthropic');
-            expect(completionSpan!.attributes[GEN_AI_USAGE_INPUT_TOKENS].value).toBe(10);
-            expect(completionSpan!.attributes[GEN_AI_USAGE_OUTPUT_TOKENS].value).toBe(15);
-            expect(completionSpan!.attributes[GEN_AI_USAGE_TOTAL_TOKENS].value).toBe(25);
-            expect(completionSpan!.attributes['sentry.op'].value).toBe('gen_ai.chat');
-            expect(completionSpan!.attributes['sentry.origin'].value).toBe('auto.ai.anthropic');
-
-            const errorSpan = container.items.find(
-              span => span.attributes[GEN_AI_INPUT_MESSAGES]?.value === '[{"role":"user","content":"This will fail"}]',
-            );
-            expect(errorSpan).toBeDefined();
-            expect(errorSpan!.name).toBe('chat error-model');
-            expect(errorSpan!.status).toBe('error');
-            expect(errorSpan!.attributes[GEN_AI_REQUEST_MODEL].value).toBe('error-model');
-
-            // TODO: messages.stream() should produce its own distinct gen_ai span, but it
-            // currently does not (pre-existing bug). Once fixed, add an additional indexed span assertion.
-            const streamingSpan = container.items.find(
-              span => span.attributes[GEN_AI_RESPONSE_ID]?.value === 'msg_stream123',
-            );
-            expect(streamingSpan).toBeDefined();
-            expect(streamingSpan!.name).toBe('chat claude-3-haiku-20240307');
-            expect(streamingSpan!.status).toBe('ok');
-            expect(streamingSpan!.attributes[GEN_AI_OPERATION_NAME].value).toBe('chat');
-            expect(streamingSpan!.attributes[GEN_AI_REQUEST_MODEL].value).toBe('claude-3-haiku-20240307');
-            expect(streamingSpan!.attributes[GEN_AI_REQUEST_STREAM_ATTRIBUTE].value).toBe(true);
-            expect(streamingSpan!.attributes[GEN_AI_RESPONSE_STREAMING].value).toBe(true);
-            expect(streamingSpan!.attributes[GEN_AI_RESPONSE_TEXT].value).toBe('Hello from stream!');
-            expect(streamingSpan!.attributes[GEN_AI_USAGE_INPUT_TOKENS].value).toBe(10);
-            expect(streamingSpan!.attributes[GEN_AI_USAGE_OUTPUT_TOKENS].value).toBe(15);
-            expect(streamingSpan!.attributes[GEN_AI_USAGE_TOTAL_TOKENS].value).toBe(25);
+            expect(container.items.find(span => span.is_segment && span.name === 'main')).toBeDefined();
+            receivedSpans = container.items;
           },
         })
-        .expect({ event: EXPECTED_STREAM_EVENT_HANDLER_MESSAGE })
+        .expect({
+          event: event => {
+            receivedEvent = event;
+          },
+        })
         .start()
         .completed();
+
+      expect(receivedEvent).toMatchObject({ event_id: expect.any(String), ...EXPECTED_STREAM_EVENT_HANDLER_MESSAGE });
+
+      const spans = receivedSpans.filter(span => span.attributes[SENTRY_ORIGIN]?.value === 'auto.ai.anthropic');
+      expect(spans).toHaveLength(3);
+      const completionSpan = spans.find(span => span.attributes[GEN_AI_RESPONSE_ID]?.value === 'msg_mock123');
+      expect(completionSpan!.name).toBe('chat claude-3-haiku-20240307');
+      expect(completionSpan!.status).toBe('ok');
+      expect(completionSpan!.attributes[GEN_AI_OPERATION_NAME].value).toBe('chat');
+      expect(completionSpan!.attributes[GEN_AI_REQUEST_MAX_TOKENS].value).toBe(100);
+      expect(completionSpan!.attributes[GEN_AI_REQUEST_MODEL].value).toBe('claude-3-haiku-20240307');
+      expect(completionSpan!.attributes[GEN_AI_REQUEST_TEMPERATURE].value).toBe(0.7);
+      expect(completionSpan!.attributes[GEN_AI_RESPONSE_MODEL].value).toBe('claude-3-haiku-20240307');
+      expect(completionSpan!.attributes[GEN_AI_RESPONSE_ID].value).toBe('msg_mock123');
+      expect(completionSpan!.attributes[GEN_AI_RESPONSE_TEXT].value).toBe('Hello from Anthropic mock!');
+      expect(completionSpan!.attributes[GEN_AI_INPUT_MESSAGES].value).toBe(
+        '[{"role":"user","content":"What is the capital of France?"}]',
+      );
+      expect(completionSpan!.attributes[GEN_AI_PROVIDER_NAME].value).toBe('anthropic');
+      expect(completionSpan!.attributes[GEN_AI_USAGE_INPUT_TOKENS].value).toBe(10);
+      expect(completionSpan!.attributes[GEN_AI_USAGE_OUTPUT_TOKENS].value).toBe(15);
+      expect(completionSpan!.attributes[GEN_AI_USAGE_TOTAL_TOKENS].value).toBe(25);
+      expect(completionSpan!.attributes[SENTRY_OP].value).toBe('gen_ai.chat');
+      expect(completionSpan!.attributes[SENTRY_ORIGIN].value).toBe('auto.ai.anthropic');
+
+      const errorSpan = spans.find(
+        span => span.attributes[GEN_AI_INPUT_MESSAGES]?.value === '[{"role":"user","content":"This will fail"}]',
+      );
+      expect(errorSpan!.name).toBe('chat error-model');
+      expect(errorSpan!.status).toBe('error');
+      expect(errorSpan!.attributes[GEN_AI_REQUEST_MODEL].value).toBe('error-model');
+
+      // TODO: messages.stream() should produce its own distinct gen_ai span, but it
+      // currently does not (pre-existing bug). Once fixed, add an additional indexed span assertion.
+      const streamingSpan = spans.find(span => span.attributes[GEN_AI_RESPONSE_ID]?.value === 'msg_stream123');
+      expect(streamingSpan!.name).toBe('chat claude-3-haiku-20240307');
+      expect(streamingSpan!.status).toBe('ok');
+      expect(streamingSpan!.attributes[GEN_AI_OPERATION_NAME].value).toBe('chat');
+      expect(streamingSpan!.attributes[GEN_AI_REQUEST_MODEL].value).toBe('claude-3-haiku-20240307');
+      expect(streamingSpan!.attributes[GEN_AI_REQUEST_STREAM_ATTRIBUTE].value).toBe(true);
+      expect(streamingSpan!.attributes[GEN_AI_RESPONSE_STREAMING].value).toBe(true);
+      expect(streamingSpan!.attributes[GEN_AI_RESPONSE_TEXT].value).toBe('Hello from stream!');
+      expect(streamingSpan!.attributes[GEN_AI_USAGE_INPUT_TOKENS].value).toBe(10);
+      expect(streamingSpan!.attributes[GEN_AI_USAGE_OUTPUT_TOKENS].value).toBe(15);
+      expect(streamingSpan!.attributes[GEN_AI_USAGE_TOTAL_TOKENS].value).toBe(25);
     });
   });
 
   createEsmAndCjsTests(__dirname, 'scenario.mjs', 'instrument-with-options.mjs', (createRunner, test) => {
     test('creates anthropic related spans with custom options', async () => {
-      const runner = createRunner();
+      let receivedEvent: Event | undefined;
+      let receivedSpans: SerializedStreamedSpanContainer['items'] = [];
+
+      const runner = createRunner().unordered();
 
       await runner
-        .expect({ transaction: { transaction: 'main' } })
         .expect({
           span: container => {
-            expect(container.items).toHaveLength(3);
-            const completionSpan = container.items.find(
-              span => span.attributes[GEN_AI_RESPONSE_ID]?.value === 'msg_mock123',
-            );
-            expect(completionSpan).toBeDefined();
-            expect(completionSpan!.name).toBe('chat claude-3-haiku-20240307');
-            expect(completionSpan!.status).toBe('ok');
-            expect(completionSpan!.attributes['sentry.op'].value).toBe('gen_ai.chat');
-            expect(completionSpan!.attributes[GEN_AI_INPUT_MESSAGES]).toBeDefined();
-            expect(completionSpan!.attributes[GEN_AI_RESPONSE_TEXT]).toBeDefined();
-
-            const errorSpan = container.items.find(span => span.name === 'chat error-model');
-            expect(errorSpan).toBeDefined();
-            expect(errorSpan!.status).toBe('error');
-            expect(errorSpan!.attributes['sentry.op'].value).toBe('gen_ai.chat');
-
-            const streamingSpan = container.items.find(
-              span => span.attributes[GEN_AI_RESPONSE_ID]?.value === 'msg_stream123',
-            );
-            expect(streamingSpan).toBeDefined();
-            expect(streamingSpan!.name).toBe('chat claude-3-haiku-20240307');
-            expect(streamingSpan!.status).toBe('ok');
-            expect(streamingSpan!.attributes[GEN_AI_RESPONSE_STREAMING].value).toBe(true);
+            expect(container.items.find(span => span.is_segment && span.name === 'main')).toBeDefined();
+            receivedSpans = container.items;
           },
         })
-        .expect({ event: EXPECTED_STREAM_EVENT_HANDLER_MESSAGE })
+        .expect({
+          event: event => {
+            receivedEvent = event;
+          },
+        })
         .start()
         .completed();
+
+      expect(receivedEvent).toMatchObject({ event_id: expect.any(String), ...EXPECTED_STREAM_EVENT_HANDLER_MESSAGE });
+
+      const spans = receivedSpans.filter(span => span.attributes[SENTRY_ORIGIN]?.value === 'auto.ai.anthropic');
+      expect(spans).toHaveLength(3);
+      const completionSpan = spans.find(span => span.attributes[GEN_AI_RESPONSE_ID]?.value === 'msg_mock123');
+      expect(completionSpan!.name).toBe('chat claude-3-haiku-20240307');
+      expect(completionSpan!.status).toBe('ok');
+      expect(completionSpan!.attributes[SENTRY_OP].value).toBe('gen_ai.chat');
+      expect(completionSpan!.attributes[GEN_AI_INPUT_MESSAGES]).toBeDefined();
+      expect(completionSpan!.attributes[GEN_AI_RESPONSE_TEXT]).toBeDefined();
+
+      const errorSpan = spans.find(span => span.name === 'chat error-model');
+      expect(errorSpan!.status).toBe('error');
+      expect(errorSpan!.attributes[SENTRY_OP].value).toBe('gen_ai.chat');
+
+      const streamingSpan = spans.find(span => span.attributes[GEN_AI_RESPONSE_ID]?.value === 'msg_stream123');
+      expect(streamingSpan!.name).toBe('chat claude-3-haiku-20240307');
+      expect(streamingSpan!.status).toBe('ok');
+      expect(streamingSpan!.attributes[GEN_AI_RESPONSE_STREAMING].value).toBe(true);
     });
   });
-
-  const EXPECTED_STREAM_SPANS_PII_FALSE = {
-    transaction: 'main',
-  };
-
-  const EXPECTED_STREAM_SPANS_PII_TRUE = {
-    transaction: 'main',
-  };
 
   createEsmAndCjsTests(__dirname, 'scenario-stream.mjs', 'instrument.mjs', (createRunner, test) => {
     test('streams produce spans with token usage and metadata (PII false)', async () => {
       await createRunner()
-        .expect({ transaction: EXPECTED_STREAM_SPANS_PII_FALSE })
         .expect({
           span: container => {
-            expect(container.items).toHaveLength(3);
-            const requestStreamSpans = container.items.filter(
+            expect(container.items.find(span => span.is_segment && span.name === 'main')).toBeDefined();
+            const spans = container.items.filter(span => span.attributes[SENTRY_ORIGIN]?.value === 'auto.ai.anthropic');
+            expect(spans).toHaveLength(3);
+            const requestStreamSpans = spans.filter(
               span => span.attributes[GEN_AI_REQUEST_STREAM_ATTRIBUTE]?.value === true,
             );
             expect(requestStreamSpans).toHaveLength(2);
@@ -249,7 +256,6 @@ describe('Anthropic integration', () => {
             const detailedStreamSpan = requestStreamSpans.find(
               span => span.attributes[GEN_AI_RESPONSE_FINISH_REASONS]?.value === '["end_turn"]',
             );
-            expect(detailedStreamSpan).toBeDefined();
             expect(detailedStreamSpan!.attributes[GEN_AI_PROVIDER_NAME].value).toBe('anthropic');
             expect(detailedStreamSpan!.attributes[GEN_AI_OPERATION_NAME].value).toBe('chat');
             expect(detailedStreamSpan!.attributes[GEN_AI_REQUEST_MODEL].value).toBe('claude-3-haiku-20240307');
@@ -258,10 +264,9 @@ describe('Anthropic integration', () => {
             expect(detailedStreamSpan!.attributes[GEN_AI_USAGE_OUTPUT_TOKENS].value).toBe(15);
             expect(detailedStreamSpan!.attributes[GEN_AI_USAGE_TOTAL_TOKENS].value).toBe(25);
 
-            const messagesStreamSpan = container.items.find(
+            const messagesStreamSpan = spans.find(
               span => span.attributes[GEN_AI_REQUEST_STREAM_ATTRIBUTE] === undefined,
             );
-            expect(messagesStreamSpan).toBeDefined();
             expect(messagesStreamSpan!.name).toBe('chat claude-3-haiku-20240307');
             expect(messagesStreamSpan!.status).toBe('ok');
             expect(messagesStreamSpan!.attributes[GEN_AI_PROVIDER_NAME].value).toBe('anthropic');
@@ -283,11 +288,12 @@ describe('Anthropic integration', () => {
   createEsmAndCjsTests(__dirname, 'scenario-stream.mjs', 'instrument-with-pii.mjs', (createRunner, test) => {
     test('streams record response text when PII true', async () => {
       await createRunner()
-        .expect({ transaction: EXPECTED_STREAM_SPANS_PII_TRUE })
         .expect({
           span: container => {
-            expect(container.items).toHaveLength(3);
-            const requestStreamSpans = container.items.filter(
+            expect(container.items.find(span => span.is_segment && span.name === 'main')).toBeDefined();
+            const spans = container.items.filter(span => span.attributes[SENTRY_ORIGIN]?.value === 'auto.ai.anthropic');
+            expect(spans).toHaveLength(3);
+            const requestStreamSpans = spans.filter(
               span => span.attributes[GEN_AI_REQUEST_STREAM_ATTRIBUTE]?.value === true,
             );
             expect(requestStreamSpans).toHaveLength(2);
@@ -299,10 +305,9 @@ describe('Anthropic integration', () => {
               expect(span.attributes[GEN_AI_RESPONSE_TEXT].value).toBe('Hello from stream!');
             }
 
-            const messagesStreamSpan = container.items.find(
+            const messagesStreamSpan = spans.find(
               span => span.attributes[GEN_AI_REQUEST_STREAM_ATTRIBUTE] === undefined,
             );
-            expect(messagesStreamSpan).toBeDefined();
             expect(messagesStreamSpan!.name).toBe('chat claude-3-haiku-20240307');
             expect(messagesStreamSpan!.status).toBe('ok');
             expect(messagesStreamSpan!.attributes[GEN_AI_RESPONSE_STREAMING].value).toBe(true);
@@ -333,20 +338,16 @@ describe('Anthropic integration', () => {
   createEsmAndCjsTests(__dirname, 'scenario-stream-nested-create.mjs', 'instrument.mjs', (createRunner, test) => {
     test('traces a create() invoked from a stream event handler (dedup does not over-suppress)', async () => {
       await createRunner()
-        .expect({ transaction: { transaction: 'main' } })
         .expect({
           span: container => {
-            const nestedSpan = container.items.find(
-              span => span.attributes[GEN_AI_RESPONSE_ID]?.value === 'msg_nested',
-            );
-            expect(nestedSpan).toBeDefined();
-            expect(nestedSpan.attributes['sentry.op'].value).toBe('gen_ai.chat');
+            expect(container.items.find(span => span.is_segment && span.name === 'main')).toBeDefined();
+            const spans = container.items.filter(span => span.attributes[SENTRY_ORIGIN]?.value === 'auto.ai.anthropic');
+            const nestedSpan = spans.find(span => span.attributes[GEN_AI_RESPONSE_ID]?.value === 'msg_nested');
+            expect(nestedSpan.attributes[SENTRY_OP].value).toBe('gen_ai.chat');
 
             // The helper's own internal `create` delegation must be deduped: exactly one span
             // for the streamed response, not a duplicate child span.
-            const streamingSpans = container.items.filter(
-              span => span.attributes[GEN_AI_RESPONSE_ID]?.value === 'msg_stream_1',
-            );
+            const streamingSpans = spans.filter(span => span.attributes[GEN_AI_RESPONSE_ID]?.value === 'msg_stream_1');
             expect(streamingSpans).toHaveLength(1);
           },
         })
@@ -364,17 +365,16 @@ describe('Anthropic integration', () => {
         '[{"type":"tool_use","id":"tool_weather_1","name":"weather","input":{"city":"Paris"}}]';
       await createRunner()
         .expect({
-          transaction: {},
-        })
-        .expect({
           span: container => {
-            expect(container.items).toHaveLength(1);
-            const [firstSpan] = container.items;
+            expect(container.items.find(span => span.is_segment && span.name === 'main')).toBeDefined();
+            const spans = container.items.filter(span => span.attributes[SENTRY_ORIGIN]?.value === 'auto.ai.anthropic');
+            expect(spans).toHaveLength(1);
+            const [firstSpan] = spans;
 
             // [0] messages.create with tools — available tools + tool calls recorded with PII
             expect(firstSpan!.name).toBe('chat claude-3-haiku-20240307');
             expect(firstSpan!.status).toBe('ok');
-            expect(firstSpan!.attributes['sentry.op'].value).toBe('gen_ai.chat');
+            expect(firstSpan!.attributes[SENTRY_OP].value).toBe('gen_ai.chat');
             expect(firstSpan!.attributes[GEN_AI_TOOL_DEFINITIONS].value).toBe(EXPECTED_TOOLS_JSON);
             expect(firstSpan!.attributes[GEN_AI_RESPONSE_TOOL_CALLS].value).toBe(EXPECTED_TOOL_CALLS_JSON);
           },
@@ -393,15 +393,14 @@ describe('Anthropic integration', () => {
         '[{"type":"tool_use","id":"tool_weather_2","name":"weather","input":{"city":"Paris"}}]';
       await createRunner()
         .expect({
-          transaction: {},
-        })
-        .expect({
           span: container => {
-            expect(container.items).toHaveLength(2);
-            for (const span of container.items) {
+            expect(container.items.find(span => span.is_segment && span.name === 'main')).toBeDefined();
+            const spans = container.items.filter(span => span.attributes[SENTRY_ORIGIN]?.value === 'auto.ai.anthropic');
+            expect(spans).toHaveLength(2);
+            for (const span of spans) {
               expect(span.name).toBe('chat claude-3-haiku-20240307');
               expect(span.status).toBe('ok');
-              expect(span.attributes['sentry.op'].value).toBe('gen_ai.chat');
+              expect(span.attributes[SENTRY_OP].value).toBe('gen_ai.chat');
               expect(span.attributes[GEN_AI_RESPONSE_STREAMING].value).toBe(true);
               expect(span.attributes[GEN_AI_RESPONSE_FINISH_REASONS].value).toBe('["tool_use"]');
               expect(span.attributes[GEN_AI_TOOL_DEFINITIONS].value).toBe(EXPECTED_TOOLS_JSON);
@@ -409,11 +408,11 @@ describe('Anthropic integration', () => {
             }
 
             // messages.create({ stream: true }) carries the request stream param; messages.stream() does not.
-            const createStreamSpan = container.items.find(
+            const createStreamSpan = spans.find(
               span => span.attributes[GEN_AI_REQUEST_STREAM_ATTRIBUTE]?.value === true,
             );
             expect(createStreamSpan).toBeDefined();
-            const messagesStreamSpan = container.items.find(
+            const messagesStreamSpan = spans.find(
               span => span.attributes[GEN_AI_REQUEST_STREAM_ATTRIBUTE] === undefined,
             );
             expect(messagesStreamSpan).toBeDefined();
@@ -425,10 +424,6 @@ describe('Anthropic integration', () => {
   });
 
   // Additional error scenarios - Streaming errors
-  const EXPECTED_STREAM_ERROR_SPANS = {
-    transaction: 'main',
-  };
-
   createEsmAndCjsTests(__dirname, 'scenario-stream-errors.mjs', 'instrument-with-pii.mjs', (createRunner, test) => {
     test('handles streaming errors correctly', async () => {
       await createRunner()
@@ -436,41 +431,38 @@ describe('Anthropic integration', () => {
         // being raised as an unhandled rejection, so the instrumentation captures it. This test only
         // asserts the spans.
         .ignore('event')
-        .expect({ transaction: EXPECTED_STREAM_ERROR_SPANS })
         .expect({
           span: container => {
-            expect(container.items).toHaveLength(4);
-            const createInitErrorSpan = container.items.find(
+            expect(container.items.find(span => span.is_segment && span.name === 'main')).toBeDefined();
+            const spans = container.items.filter(span => span.attributes[SENTRY_ORIGIN]?.value === 'auto.ai.anthropic');
+            expect(spans).toHaveLength(4);
+            const createInitErrorSpan = spans.find(
               span =>
                 span.attributes[GEN_AI_REQUEST_MODEL]?.value === 'error-stream-init' &&
                 span.attributes[GEN_AI_REQUEST_STREAM_ATTRIBUTE]?.value === true,
             );
-            expect(createInitErrorSpan).toBeDefined();
             expect(createInitErrorSpan!.name).toBe('chat error-stream-init');
             expect(createInitErrorSpan!.status).toBe('error');
 
-            const streamInitErrorSpan = container.items.find(
+            const streamInitErrorSpan = spans.find(
               span =>
                 span.attributes[GEN_AI_REQUEST_MODEL]?.value === 'error-stream-init' &&
                 span.attributes[GEN_AI_REQUEST_STREAM_ATTRIBUTE] === undefined,
             );
-            expect(streamInitErrorSpan).toBeDefined();
             expect(streamInitErrorSpan!.name).toBe('chat error-stream-init');
             expect(streamInitErrorSpan!.status).toBe('error');
 
-            const createMidwayErrorSpan = container.items.find(
+            const createMidwayErrorSpan = spans.find(
               span => span.attributes[GEN_AI_REQUEST_MODEL]?.value === 'error-stream-midway' && span.status === 'ok',
             );
-            expect(createMidwayErrorSpan).toBeDefined();
             expect(createMidwayErrorSpan!.name).toBe('chat error-stream-midway');
             expect(createMidwayErrorSpan!.attributes[GEN_AI_REQUEST_STREAM_ATTRIBUTE].value).toBe(true);
             expect(createMidwayErrorSpan!.attributes[GEN_AI_RESPONSE_STREAMING].value).toBe(true);
             expect(createMidwayErrorSpan!.attributes[GEN_AI_RESPONSE_TEXT].value).toBe('This stream will ');
 
-            const streamMidwayErrorSpan = container.items.find(
+            const streamMidwayErrorSpan = spans.find(
               span => span.attributes[GEN_AI_REQUEST_MODEL]?.value === 'error-stream-midway' && span.status === 'error',
             );
-            expect(streamMidwayErrorSpan).toBeDefined();
             expect(streamMidwayErrorSpan!.name).toBe('chat error-stream-midway');
             expect(streamMidwayErrorSpan!.attributes[GEN_AI_REQUEST_STREAM_ATTRIBUTE]).toBeUndefined();
           },
@@ -483,18 +475,17 @@ describe('Anthropic integration', () => {
   createEsmAndCjsTests(__dirname, 'scenario-errors.mjs', 'instrument-with-pii.mjs', (createRunner, test) => {
     test('handles tool errors correctly', async () => {
       await createRunner()
-        .expect({ transaction: { transaction: 'main' } })
         .expect({
           span: container => {
-            expect(container.items).toHaveLength(2);
-            const invalidFormatSpan = container.items.find(span => span.name === 'chat invalid-format');
-            expect(invalidFormatSpan).toBeDefined();
+            expect(container.items.find(span => span.is_segment && span.name === 'main')).toBeDefined();
+            const spans = container.items.filter(span => span.attributes[SENTRY_ORIGIN]?.value === 'auto.ai.anthropic');
+            expect(spans).toHaveLength(2);
+            const invalidFormatSpan = spans.find(span => span.name === 'chat invalid-format');
             expect(invalidFormatSpan!.status).toBe('error');
             expect(invalidFormatSpan!.attributes[GEN_AI_REQUEST_MODEL].value).toBe('invalid-format');
-            expect(invalidFormatSpan!.attributes['sentry.op'].value).toBe('gen_ai.chat');
+            expect(invalidFormatSpan!.attributes[SENTRY_OP].value).toBe('gen_ai.chat');
 
-            const toolSuccessSpan = container.items.find(span => span.name === 'chat claude-3-haiku-20240307');
-            expect(toolSuccessSpan).toBeDefined();
+            const toolSuccessSpan = spans.find(span => span.name === 'chat claude-3-haiku-20240307');
             expect(toolSuccessSpan!.status).toBe('ok');
             expect(toolSuccessSpan!.attributes[GEN_AI_RESPONSE_TOOL_CALLS].value).toContain('tool_ok_1');
           },
@@ -513,14 +504,13 @@ describe('Anthropic integration', () => {
         const expectedInstructions = JSON.stringify([{ type: 'text', content: 'You are a helpful assistant' }]);
         await createRunner()
           .expect({
-            transaction: {
-              transaction: 'main',
-            },
-          })
-          .expect({
             span: container => {
-              expect(container.items).toHaveLength(1);
-              const [firstSpan] = container.items;
+              expect(container.items.find(span => span.is_segment && span.name === 'main')).toBeDefined();
+              const spans = container.items.filter(
+                span => span.attributes[SENTRY_ORIGIN]?.value === 'auto.ai.anthropic',
+              );
+              expect(spans).toHaveLength(1);
+              const [firstSpan] = spans;
 
               // [0] messages.create — system instructions extracted into dedicated attribute
               expect(firstSpan!.attributes[GEN_AI_SYSTEM_INSTRUCTIONS].value).toBe(expectedInstructions);
@@ -532,53 +522,39 @@ describe('Anthropic integration', () => {
     },
   );
 
-  createEsmAndCjsTests(__dirname, 'scenario.mjs', 'instrument-span-streaming.mjs', (createRunner, test) => {
-    test('creates anthropic related spans with span streaming enabled', async () => {
-      await createRunner()
-        .expect({
-          span: container => {
-            const completionSpan = container.items.find(
-              span => span.attributes[GEN_AI_RESPONSE_ID]?.value === 'msg_mock123',
-            );
-            expect(completionSpan).toBeDefined();
-            expect(completionSpan!.name).toBe('chat claude-3-haiku-20240307');
-            expect(completionSpan!.status).toBe('ok');
-            expect(completionSpan!.attributes[GEN_AI_OPERATION_NAME].value).toBe('chat');
-            expect(completionSpan!.attributes[GEN_AI_REQUEST_MODEL].value).toBe('claude-3-haiku-20240307');
-            expect(completionSpan!.attributes[GEN_AI_INPUT_MESSAGES].value).toBe(
-              '[{"role":"user","content":"What is the capital of France?"}]',
-            );
-            expect(completionSpan!.attributes[GEN_AI_PROVIDER_NAME].value).toBe('anthropic');
-            expect(completionSpan!.attributes['sentry.op'].value).toBe('gen_ai.chat');
-            expect(completionSpan!.attributes['sentry.origin'].value).toBe('auto.ai.anthropic');
-          },
-        })
-        .start()
-        .completed();
-    });
-  });
-
   createEsmAndCjsTests(__dirname, 'scenario-response-error.mjs', 'instrument.mjs', (createRunner, test) => {
     test('captures error-shaped responses returned as data', async () => {
+      let receivedEvent: Event | undefined;
+
       await createRunner()
         // The API returns the error as data on a 200 response, never as a thrown error to the caller,
         // so the instrumentation intentionally captures it as an event.
         .unordered()
         .expect({
-          event: {
-            exception: {
-              values: [
-                {
-                  value: 'Overloaded',
-                  mechanism: { type: 'auto.ai.anthropic.anthropic_error', handled: false },
-                },
-              ],
-            },
+          event: event => {
+            receivedEvent = event;
           },
         })
-        .expect({ transaction: { transaction: 'main' } })
+        .expect({
+          span: container => {
+            const segment = container.items.find(span => span.is_segment && span.name === 'main');
+            expect(segment).toBeDefined();
+          },
+        })
         .start()
         .completed();
+
+      expect(receivedEvent).toMatchObject({
+        event_id: expect.any(String),
+        exception: {
+          values: [
+            {
+              value: 'Overloaded',
+              mechanism: { type: 'auto.ai.anthropic.anthropic_error', handled: false },
+            },
+          ],
+        },
+      });
     });
   });
 });

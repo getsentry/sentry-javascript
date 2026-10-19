@@ -21,6 +21,7 @@ import {
   withActiveSpan,
   waitForTracingChannelBinding,
 } from '@sentry/core';
+import type { OrchestrionChannelContext } from '../../orchestrion/types';
 import { CHANNELS } from '../../orchestrion/channels';
 import { getRedisQueryNaming } from './redis-span-name';
 import { defaultDbStatementSerializer } from './redis-statement-serializer';
@@ -65,13 +66,6 @@ interface NodeRedisClientOptions {
 
 interface NodeRedisClient {
   options?: NodeRedisClientOptions;
-}
-
-interface CommandContext {
-  arguments?: unknown[];
-  self?: unknown;
-  result?: unknown;
-  error?: unknown;
 }
 
 function endSpan(span: Span, err: unknown): void {
@@ -140,7 +134,7 @@ function startCommandSpan(
 // Settles via `command_obj.callback`, not the sync return — so instead of
 // `bindTracingChannelToSpan` we open the span in `start`, wrap the callback to end it, and end on `error` for sync throws.
 function subscribeLegacyRedisCommand(cacheOptions: RedisCacheOptions): void {
-  const channel = diagnosticsChannel.tracingChannel<CommandContext>(CHANNELS.REDIS_COMMAND);
+  const channel = diagnosticsChannel.tracingChannel<OrchestrionChannelContext>(CHANNELS.REDIS_COMMAND);
   const noop = (): void => {};
   channel.subscribe({
     end: noop,
@@ -170,7 +164,7 @@ function subscribeLegacyRedisCommand(cacheOptions: RedisCacheOptions): void {
         attributes[SERVER_PORT] = client.connection_options.port;
       }
       const span = startCommandSpan(command.command, command.args ?? [], attributes, cacheOptions);
-      (data as CommandContext & { _sentrySpan?: Span })._sentrySpan = span;
+      (data as OrchestrionChannelContext & { _sentrySpan?: Span })._sentrySpan = span;
 
       const parentSpan = getActiveSpan();
       command.callback = function (this: unknown, err: Error | null | undefined, reply: unknown) {
@@ -185,7 +179,7 @@ function subscribeLegacyRedisCommand(cacheOptions: RedisCacheOptions): void {
     },
     error(data) {
       // Synchronous throw: the wrapped callback never fires, so end here instead.
-      const span = (data as CommandContext & { _sentrySpan?: Span })._sentrySpan;
+      const span = (data as OrchestrionChannelContext & { _sentrySpan?: Span })._sentrySpan;
       if (span) {
         endSpan(span, data.error);
       }
@@ -197,10 +191,10 @@ function subscribeLegacyRedisCommand(cacheOptions: RedisCacheOptions): void {
 
 function bindNodeRedisCommandChannel(
   channelName: string,
-  getWireArgs: (data: CommandContext) => Array<string | Buffer> | undefined,
+  getWireArgs: (data: OrchestrionChannelContext) => Array<string | Buffer> | undefined,
   cacheOptions: RedisCacheOptions,
 ): void {
-  const channel = diagnosticsChannel.tracingChannel<CommandContext, CommandContext>(channelName);
+  const channel = diagnosticsChannel.tracingChannel<OrchestrionChannelContext, OrchestrionChannelContext>(channelName);
   bindTracingChannelToSpan(
     channel,
     data => {
@@ -223,14 +217,14 @@ function bindNodeRedisCommandChannel(
 }
 
 // `sendCommand(args, options)` — `args` are already the wire arguments.
-function getSendCommandArgs(data: CommandContext): Array<string | Buffer> | undefined {
+function getSendCommandArgs(data: OrchestrionChannelContext): Array<string | Buffer> | undefined {
   const args = data.arguments?.[0];
   return Array.isArray(args) ? (args as Array<string | Buffer>) : undefined;
 }
 
 // `commandsExecutor(command, jsArgs)` — derive the wire arguments the same way
 // `@redis/client` does internally, via `command.transformArguments`.
-function getExecutorArgs(data: CommandContext): Array<string | Buffer> | undefined {
+function getExecutorArgs(data: OrchestrionChannelContext): Array<string | Buffer> | undefined {
   const command = data.arguments?.[0] as RedisCommandDefinition | undefined;
   const jsArgs = data.arguments?.[1];
   if (typeof command?.transformArguments !== 'function' || !Array.isArray(jsArgs)) {
@@ -244,7 +238,9 @@ function getExecutorArgs(data: CommandContext): Array<string | Buffer> | undefin
 }
 
 function bindNodeRedisConnectChannel(): void {
-  const channel = diagnosticsChannel.tracingChannel<CommandContext, CommandContext>(CHANNELS.NODE_REDIS_CONNECT);
+  const channel = diagnosticsChannel.tracingChannel<OrchestrionChannelContext, OrchestrionChannelContext>(
+    CHANNELS.NODE_REDIS_CONNECT,
+  );
   bindTracingChannelToSpan(channel, data => {
     const options = (data.self as NodeRedisClient | undefined)?.options;
     return startInactiveSpan({
@@ -261,8 +257,11 @@ function bindNodeRedisConnectChannel(): void {
 // Batch (multi/pipeline): one span per `exec`. Batched commands bypass `sendCommand`, so
 // the executor's `ctx.arguments[0]` (the queued commands) gives the batch size. Span shape
 // mirrors the native `node-redis:batch` span (see `redis-dc-subscriber.ts`).
-function bindNodeRedisBatchChannel(channelName: string, getOperation: (data: CommandContext) => string): void {
-  const channel = diagnosticsChannel.tracingChannel<CommandContext, CommandContext>(channelName);
+function bindNodeRedisBatchChannel(
+  channelName: string,
+  getOperation: (data: OrchestrionChannelContext) => string,
+): void {
+  const channel = diagnosticsChannel.tracingChannel<OrchestrionChannelContext, OrchestrionChannelContext>(channelName);
   bindTracingChannelToSpan(channel, data => {
     const commands = data.arguments?.[0];
     const size = Array.isArray(commands) ? commands.length : undefined;

@@ -62,6 +62,9 @@ export interface SdkProcessingMetadata {
   dynamicSamplingContext?: Partial<DynamicSamplingContext>;
   capturedSpanScope?: Scope;
   capturedSpanIsolationScope?: Scope;
+  /**
+   * @deprecated This is no longer set or read by the SDK and will be removed in the next major version.
+   */
   spanCountBeforeProcessing?: number;
   ipAddress?: string;
 }

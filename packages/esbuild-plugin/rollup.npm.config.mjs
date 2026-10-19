@@ -1,0 +1,12 @@
+import { makeBaseNPMConfig, makeNPMConfigVariants } from '@sentry-internal/rollup-utils';
+
+export default makeNPMConfigVariants(
+  makeBaseNPMConfig({
+    entrypoints: ['src/index.ts'],
+    packageSpecificConfig: {
+      output: {
+        exports: 'named',
+      },
+    },
+  }),
+);

@@ -1,8 +1,34 @@
+import { UI_INTERACTION_CLICK } from '@sentry/conventions/op';
+import {
+  BROWSER_WEB_VITAL_INP_VALUE,
+  SENTRY_IS_LOCALHOST,
+  SENTRY_ORIGIN,
+  SENTRY_OP,
+  UI_COMPONENT_NAME,
+  BROWSER_WEB_VITAL_INP_TARGET,
+  SENTRY_EXCLUSIVE_TIME,
+  BROWSER_WEB_VITAL_INP_INTERACTION_TYPE,
+  BROWSER_NAVIGATION_TYPE,
+  SENTRY_TRANSACTION,
+  SENTRY_SEGMENT_NAME,
+  USER_AGENT_ORIGINAL,
+  SENTRY_PAGELOAD_SPAN_ID,
+  SENTRY_TRACE_LIFECYCLE,
+  SENTRY_SEGMENT_ID,
+  SENTRY_SDK_NAME,
+  SENTRY_SDK_VERSION,
+  SENTRY_ENVIRONMENT,
+} from '@sentry/conventions/attributes';
 import { expect } from '@playwright/test';
 import { SDK_VERSION } from '@sentry/core';
 import { sentryTest } from '../../../../utils/fixtures';
 import { hidePage, shouldSkipTracingTest } from '../../../../utils/helpers';
-import { getSpanOp, getSpansFromEnvelope, waitForStreamedSpanEnvelope } from '../../../../utils/spanUtils';
+import {
+  collectStreamedSpans,
+  getSpanOp,
+  getSpansFromEnvelope,
+  waitForStreamedSpanEnvelope,
+} from '../../../../utils/spanUtils';
 
 sentryTest(
   'captures an INP click as a streamed span for a parametrized transaction',
@@ -13,19 +39,17 @@ sentryTest(
       sentryTest.skip();
     }
 
+    const spans = collectStreamedSpans(page);
     const url = await getLocalTestUrl({ testDir: __dirname });
 
-    const spanEnvelopePromise = waitForStreamedSpanEnvelope(
-      page,
-      env => !!getSpansFromEnvelope(env).find(s => getSpanOp(s) === 'ui.interaction.click'),
+    const spanEnvelopePromise = waitForStreamedSpanEnvelope(page, env =>
+      getSpansFromEnvelope(env).some(span => getSpanOp(span) === UI_INTERACTION_CLICK),
     );
 
     await page.goto(url);
 
     await page.locator('[data-test-id=normal-button]').click();
-    await page.locator('.clicked[data-test-id=normal-button]').isVisible();
-
-    await page.waitForTimeout(500);
+    await expect(page.locator('.clicked[data-test-id=normal-button]')).toBeVisible();
 
     // Page hide to trigger INP
     await hidePage(page);
@@ -33,7 +57,10 @@ sentryTest(
     const spanEnvelope = await spanEnvelopePromise;
     const envelopeHeader = spanEnvelope[0];
     const itemHeader = spanEnvelope[1][0][0];
-    const inpSpan = getSpansFromEnvelope(spanEnvelope).find(s => getSpanOp(s) === 'ui.interaction.click')!;
+    await page.evaluate(() => (window as any).Sentry.flush());
+    const inpSpans = spans.filter(span => getSpanOp(span) === UI_INTERACTION_CLICK);
+    expect(inpSpans).toHaveLength(1);
+    const [inpSpan] = inpSpans;
 
     const traceId = envelopeHeader.trace!.trace_id;
     expect(traceId).toMatch(/^[\da-f]{32}$/);
@@ -55,17 +82,17 @@ sentryTest(
 
     expect(itemHeader).toEqual({
       type: 'span',
-      item_count: 1,
+      item_count: getSpansFromEnvelope(spanEnvelope).length,
       content_type: 'application/vnd.sentry.items.span.v2+json',
     });
 
-    const inpValue = inpSpan.attributes['browser.web_vital.inp.value']?.value as number;
+    const inpValue = inpSpan.attributes[BROWSER_WEB_VITAL_INP_VALUE]?.value as number;
     expect(inpValue).toBeGreaterThan(0);
 
     const pageloadSpanId = inpSpan.parent_span_id;
 
     expect(inpSpan).toEqual({
-      name: 'body > NormalButton',
+      name: 'NormalButton',
       span_id: expect.stringMatching(/^[\da-f]{16}$/),
       trace_id: traceId,
       parent_span_id: expect.stringMatching(/^[\da-f]{16}$/),
@@ -74,25 +101,25 @@ sentryTest(
       is_segment: false,
       status: 'ok',
       attributes: {
-        'sentry.is_localhost': { value: false, type: 'boolean' },
-        'sentry.origin': { value: 'auto.http.browser.inp', type: 'string' },
-        'sentry.op': { value: 'ui.interaction.click', type: 'string' },
-        'ui.component_name': { value: 'NormalButton', type: 'string' },
-        'browser.web_vital.inp.target': { value: 'body > NormalButton', type: 'string' },
-        'sentry.exclusive_time': { value: inpValue, type: expect.stringMatching(/^(integer)|(double)$/) },
-        'browser.web_vital.inp.value': { value: inpValue, type: expect.stringMatching(/^(integer)|(double)$/) },
-        'browser.web_vital.inp.interaction_type': { value: 'click', type: 'string' },
-        'browser.navigation.type': { value: 'navigate', type: 'string' },
+        [SENTRY_IS_LOCALHOST]: { value: false, type: 'boolean' },
+        [SENTRY_ORIGIN]: { value: 'auto.http.browser.inp', type: 'string' },
+        [SENTRY_OP]: { value: UI_INTERACTION_CLICK, type: 'string' },
+        [UI_COMPONENT_NAME]: { value: 'NormalButton', type: 'string' },
+        [BROWSER_WEB_VITAL_INP_TARGET]: { value: 'body > NormalButton', type: 'string' },
+        [SENTRY_EXCLUSIVE_TIME]: { value: inpValue, type: expect.stringMatching(/^(integer)|(double)$/) },
+        [BROWSER_WEB_VITAL_INP_VALUE]: { value: inpValue, type: expect.stringMatching(/^(integer)|(double)$/) },
+        [BROWSER_WEB_VITAL_INP_INTERACTION_TYPE]: { value: 'click', type: 'string' },
+        [BROWSER_NAVIGATION_TYPE]: { value: 'navigate', type: 'string' },
         // the parametrized route name flows onto the INP span
-        'sentry.transaction': { value: 'test-route', type: 'string' },
-        'sentry.segment.name': { value: 'test-route', type: 'string' },
-        'user_agent.original': { value: expect.stringContaining('Chrome'), type: 'string' },
-        'sentry.pageload.span_id': { value: pageloadSpanId, type: 'string' },
-        'sentry.trace_lifecycle': { value: 'stream', type: 'string' },
-        'sentry.segment.id': { value: pageloadSpanId, type: 'string' },
-        'sentry.sdk.name': { value: 'sentry.javascript.browser', type: 'string' },
-        'sentry.sdk.version': { value: SDK_VERSION, type: 'string' },
-        'sentry.environment': { value: 'production', type: 'string' },
+        [SENTRY_TRANSACTION]: { value: 'test-route', type: 'string' },
+        [SENTRY_SEGMENT_NAME]: { value: 'test-route', type: 'string' },
+        [USER_AGENT_ORIGINAL]: { value: expect.stringContaining('Chrome'), type: 'string' },
+        [SENTRY_PAGELOAD_SPAN_ID]: { value: pageloadSpanId, type: 'string' },
+        [SENTRY_TRACE_LIFECYCLE]: { value: 'stream', type: 'string' },
+        [SENTRY_SEGMENT_ID]: { value: pageloadSpanId, type: 'string' },
+        [SENTRY_SDK_NAME]: { value: 'sentry.javascript.browser', type: 'string' },
+        [SENTRY_SDK_VERSION]: { value: SDK_VERSION, type: 'string' },
+        [SENTRY_ENVIRONMENT]: { value: 'production', type: 'string' },
       },
     });
   },

@@ -58,19 +58,19 @@ of `@playwright/test` to be able to access the extra fixtures.
 
 Tests can be run locally using the latest version of Chromium with:
 
-`yarn test`
+`pnpm run test`
 
 To run tests with a different browser such as `firefox` or `webkit`:
 
-`yarn test --project='firefox'` `yarn test --project='webkit'`
+`pnpm run test --project='firefox'` `pnpm run test --project='webkit'`
 
 Or to run on all three browsers:
 
-`yarn test:all`
+`pnpm run test:all`
 
 To filter tests by their title:
 
-`yarn test -g "XMLHttpRequest without any handlers set"`
+`pnpm run test --grep "XMLHttpRequest without any handlers set"`
 
 You can refer to [Playwright documentation](https://playwright.dev/docs/test-cli) for other CLI options.
 
@@ -108,7 +108,7 @@ occur while writing tests for Sentry Browser SDK.
   capabilities to run the specific test. This is really helpful to understand what happened during the test or for
   example when a timeout occurred.
 
-  To use UI mode, simply call `yarn test --ui` and filter on the test in the UI.
+  To use UI mode, simply call `pnpm run test --ui` and filter on the test in the UI.
 
   Note: passing [the `-g` flag](#running-tests-locally) along with the `--ui` command doesn't give you an advantage as
   you have to filter on the test again in the UI.
