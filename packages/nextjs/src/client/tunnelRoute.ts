@@ -25,6 +25,12 @@ export function applyTunnelRouteOption(options: BrowserOptions): void {
         tunnelPath += `&r=${regionCode}`;
       }
       options.tunnel = tunnelPath;
+      // The tunnel route is same-origin, so fetch would include credentials (cookies, HTTP authentication) that the
+      // tunnel does not need.
+      options.transportOptions = {
+        ...options.transportOptions,
+        fetchOptions: { credentials: 'omit', ...options.transportOptions?.fetchOptions },
+      };
       DEBUG_BUILD && debug.log(`Tunneling events to "${tunnelPath}"`);
     } else {
       DEBUG_BUILD && debug.warn('Provided DSN is not a Sentry SaaS DSN. Will not tunnel events.');

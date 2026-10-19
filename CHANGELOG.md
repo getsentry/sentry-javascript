@@ -4,6 +4,20 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+### Important Changes
+
+- **feat(nextjs): Send tunnel route requests with `credentials: 'omit'` ([#PR](https://github.com/getsentry/sentry-javascript/pull/PR))**
+
+  With `tunnelRoute`, `@sentry/nextjs` now sends events from the browser with `credentials: 'omit'`, because the tunnel route does not need cookies.
+  If a layer in front of your app checks cookies before it lets requests through (for example Vercel Deployment Protection), you can send them again in your browser `Sentry.init` call:
+
+  ```js
+  // instrumentation-client.ts
+  Sentry.init({
+    transportOptions: { fetchOptions: { credentials: 'same-origin' } },
+  });
+  ```
+
 Work in this release was contributed by @adityareddy-dev, @jpdefo, and @Jxxunnn. Thank you for your contributions!
 
 ## 11.8.0

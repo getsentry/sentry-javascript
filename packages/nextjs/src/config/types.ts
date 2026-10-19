@@ -276,6 +276,10 @@ export type SentryBuildOptions = Omit<
    * middleware redirects or blocks unauthenticated requests, exclude the tunnel route in its `matcher` so events
    * can reach Sentry. Matchers have to be static, so use a fixed string route in that case rather than `true`.
    *
+   * The browser sends tunnel requests with `credentials: 'omit'`, so without cookies or HTTP authentication. If a
+   * layer in front of your app needs them (for example Vercel Deployment Protection or HTTP Basic authentication), set
+   * `transportOptions: { fetchOptions: { credentials: 'same-origin' } }` in `Sentry.init` of `instrumentation-client.ts`.
+   *
    * NOTE: This feature only works with Next.js 11+
    */
   tunnelRoute?: string | boolean;
