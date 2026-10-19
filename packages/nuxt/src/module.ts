@@ -5,7 +5,7 @@ import type {} from '@nuxt/nitro-server';
 import * as path from 'path';
 import { NUXT_TUNNEL_BASE_PATH_GLOBAL } from './common/tunnel';
 import type { SentryNuxtModuleOptions } from './common/types';
-import { setupNitroServer } from './vite/nitroServer';
+import { addTunnelPlugin, setupNitroServer } from './vite/nitroServer';
 import { setupOrchestrion } from './vite/orchestrion';
 import { setupSourceMaps } from './vite/sourceMaps';
 import { findDefaultSdkInitFile, resolveServerApi } from './vite/utils';
@@ -93,6 +93,9 @@ export default defineNuxtModule<ModuleOptions>({
       } else {
         addPlugin({ src: moduleDirResolver.resolve('./runtime/plugins/route-detector-legacy.server'), mode: 'server' });
       }
+    } else {
+      // The Cloudflare setup initializes the SDK from `sentryCloudflareNitroPlugin`, so it needs the tunnel too.
+      addTunnelPlugin(serverApi);
     }
 
     if (clientConfigFile || serverConfigFile) {
