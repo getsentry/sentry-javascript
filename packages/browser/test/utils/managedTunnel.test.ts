@@ -163,8 +163,8 @@ describe('makeManagedTunnelTransport', () => {
     ]);
   });
 
-  it.each([404, 405])(
-    'sends an envelope directly once, and everything after it, when the tunnel answers %s',
+  it.each([400, 401, 403, 404, 405, 413, 429])(
+    'sends an envelope directly once, and everything after it, when something other than the tunnel answers %s',
     async statusCode => {
       const { transport, sent } = setup({ [TUNNEL_URL]: [{ statusCode }] });
 
@@ -181,18 +181,21 @@ describe('makeManagedTunnelTransport', () => {
     },
   );
 
-  it.each([404, 405])('keeps using the tunnel when Sentry answers %s through its handler', async statusCode => {
-    const sentryResponse = { statusCode, headers: { 'x-sentry-tunnel': '1' } } as TransportMakeRequestResponse;
-    const { transport, sent } = setup({ [TUNNEL_URL]: [sentryResponse, tunnelResponse] });
+  it.each([403, 404, 405, 429])(
+    'keeps using the tunnel when Sentry answers %s through its handler',
+    async statusCode => {
+      const sentryResponse = { statusCode, headers: { 'x-sentry-tunnel': '1' } } as TransportMakeRequestResponse;
+      const { transport, sent } = setup({ [TUNNEL_URL]: [sentryResponse, tunnelResponse] });
 
-    expect(await transport.send(makeEnvelope('a'))).toBe(sentryResponse);
-    await transport.send(makeEnvelope('b'));
+      expect(await transport.send(makeEnvelope('a'))).toBe(sentryResponse);
+      await transport.send(makeEnvelope('b'));
 
-    expect(sent.map(({ url, id }) => [url, id])).toEqual([
-      [TUNNEL_URL, 'a'],
-      [TUNNEL_URL, 'b'],
-    ]);
-  });
+      expect(sent.map(({ url, id }) => [url, id])).toEqual([
+        [TUNNEL_URL, 'a'],
+        [TUNNEL_URL, 'b'],
+      ]);
+    },
+  );
 
   it('never sends an envelope again after a 2xx the tunnel handler did not produce, only the ones after it', async () => {
     const { transport, sent } = setup({
@@ -208,7 +211,7 @@ describe('makeManagedTunnelTransport', () => {
     ]);
   });
 
-  it.each([400, 403, 413, 429, 500, 503])('never sends an envelope again after a %s', async statusCode => {
+  it.each([500, 503])('never sends an envelope again after a %s', async statusCode => {
     const { transport, sent } = setup({ [TUNNEL_URL]: [{ statusCode }] });
 
     await transport.send(makeEnvelope('a'));
