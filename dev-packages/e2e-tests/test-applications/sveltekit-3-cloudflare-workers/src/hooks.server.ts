@@ -10,7 +10,7 @@ export const handle = sequence(
     environment: 'qa', // dynamic sampling bias to keep spans
     dsn: E2E_TEST_DSN,
     debug: !!process.env.DEBUG,
-    tunnel: 'http://localhost:3031/', // proxy server
+    tunnel: __E2E_TEST_TUNNEL__ ? true : 'http://localhost:3031/', // proxy server
     tracesSampleRate: 1.0,
   }),
   sentryHandle(),
