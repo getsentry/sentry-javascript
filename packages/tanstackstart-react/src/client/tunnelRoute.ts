@@ -16,7 +16,7 @@ export function applyTunnelRouteOption(options: ReactBrowserOptions): void {
 
   const basePath =
     typeof __SENTRY_TANSTACKSTART_TUNNEL_BASE_PATH__ !== 'undefined' ? __SENTRY_TANSTACKSTART_TUNNEL_BASE_PATH__ : '';
-  options.tunnel = applyTunnelDefaults(options.tunnel, basePath ? { basePath } : undefined);
+  options.tunnel = applyTunnelDefaults(options.tunnel, { basePath });
 }
 
 function applyManagedTunnelRoute(options: ReactBrowserOptions): void {
