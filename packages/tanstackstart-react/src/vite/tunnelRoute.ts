@@ -1,7 +1,6 @@
 import type { TunnelOptions } from '@sentry/core';
-import { getClient, getTunnelPaths, normalizeTunnelBasePath, setManagedTunnelBasePath } from '@sentry/core';
+import { enableManagedTunnel, getClient, normalizeTunnelBasePath, setManagedTunnelBasePath } from '@sentry/core';
 import type { Plugin } from 'vite';
-import { registerSentryServerTunnelRoute } from '../server/tunnelRoute';
 
 export type TunnelRouteOptions =
   | true
@@ -166,10 +165,10 @@ export function makeServerEntryTunnelPlugin(
     // `http.server` span comes from the SDK `--import` set up here, which the server entry never reaches.
     configureServer() {
       const basePath = getBasePath();
-      setManagedTunnelBasePath(getClient(), basePath);
       if (normalizedTunnelOptions) {
-        getTunnelPaths(normalizedTunnelOptions).forEach(path => registerSentryServerTunnelRoute(`${basePath}${path}`));
+        enableManagedTunnel(getClient(), basePath ? { basePath, ...normalizedTunnelOptions } : normalizedTunnelOptions);
       }
+      setManagedTunnelBasePath(getClient(), basePath);
     },
     load(id) {
       const normalizedId = normalizePath(id);
