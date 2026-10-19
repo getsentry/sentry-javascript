@@ -15,6 +15,7 @@ export const assets = createAssetServer({
     // into a browser module. The asset server substitutes these when it compiles.
     define: {
       'process.env.E2E_TEST_DSN': JSON.stringify(process.env.E2E_TEST_DSN),
+      'process.env.E2E_TEST_TUNNEL': JSON.stringify(process.env.E2E_TEST_TUNNEL ?? ''),
     },
   },
 });
