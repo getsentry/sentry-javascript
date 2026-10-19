@@ -4,6 +4,7 @@ import type {
   ModuleMetadata,
   ModuleMetadataCallback,
   ReactComponentAnnotationOptions,
+  TunnelOptions,
 } from '@sentry/core';
 
 // The first argument to `withSentryConfig` (which is the user's next config).
@@ -266,19 +267,27 @@ export type SentryBuildOptions = Omit<
   widenClientFileUpload?: boolean;
 
   /**
-   * Tunnel Sentry requests through this route on the Next.js server, to circumvent ad-blockers blocking Sentry events
-   * from being sent. This option should be a path (for example: '/error-monitoring').
+   * Tunnel Sentry requests through your Next.js server, to circumvent ad-blockers blocking Sentry events from being
+   * sent. Your server forwards only the envelope, so cookies and auth headers never leave it.
    *
-   * - Pass `true` to auto-generate a random, ad-blocker-resistant route for each build
-   * - Pass a string path (e.g., '/monitoring') to use a custom route
+   * - Pass `true` to derive an ad-blocker-resistant path from the DSN, the same on the server and in the browser
+   * - Pass a string path (e.g., '/monitoring') to use a fixed route
+   * - Pass `{ path, allowedDsns }` to also forward envelopes for other DSNs, e.g. when the browser uses a different
+   *   DSN than the server. The server's own DSN is always forwarded.
+   *
+   * The tunnel is answered by `app/sentry-tunnel/route.ts`, which the build creates if it is missing:
+   *
+   * ```ts
+   * export { POST } from '@sentry/nextjs/tunnel';
+   * ```
    *
    * Tunnel requests go through your middleware (`proxy.ts` / `middleware.ts`) like any other request. If your
-   * middleware redirects or blocks unauthenticated requests, exclude the tunnel route in its `matcher` so events
-   * can reach Sentry. Matchers have to be static, so use a fixed string route in that case rather than `true`.
+   * middleware redirects or blocks unauthenticated requests, let them through with `isTunnelRequest(request)` from
+   * `@sentry/nextjs`. Don't exempt requests by their `content-type` header, since any client can set it.
    *
    * NOTE: This feature only works with Next.js 11+
    */
-  tunnelRoute?: string | boolean;
+  tunnelRoute?: string | boolean | Pick<TunnelOptions, 'path' | 'allowedDsns'>;
 
   /**
    * Suppress the warning about the `onRouterTransitionStart` hook.

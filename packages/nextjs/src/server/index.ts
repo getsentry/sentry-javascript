@@ -13,6 +13,7 @@ import {
 import type { NodeClient, NodeOptions } from '@sentry/node';
 import { getDefaultIntegrations, httpIntegration, init as nodeInit } from '@sentry/node';
 import { DEBUG_BUILD } from '../common/debug-build';
+import { getInjectedManagedTunnelOptions, getManagedTunnelSpanFilter } from '../common/managedTunnelRoute';
 import { devErrorSymbolicationEventProcessor } from '../common/devErrorSymbolicationEventProcessor';
 import { dropReactControlFlowErrorsEventProcessor } from '../common/utils/dropReactControlFlowErrors';
 import { isBuild } from '../common/utils/isBuild';
@@ -154,6 +155,15 @@ export function init(options: NodeOptions): NodeClient | undefined {
     // Override runtime to 'cloudflare' when running on OpenNext/Cloudflare
     ...cloudflareConfig,
   };
+
+  if (opts.tunnel === undefined) {
+    opts.tunnel = getInjectedManagedTunnelOptions();
+  }
+
+  const managedTunnelSpanFilter = typeof opts.tunnel === 'object' && getManagedTunnelSpanFilter(opts.tunnel, opts.dsn);
+  if (managedTunnelSpanFilter) {
+    opts.ignoreSpans = [...(opts.ignoreSpans || []), managedTunnelSpanFilter];
+  }
 
   opts.ignoreSpans = [...(opts.ignoreSpans || []), ...NEXTJS_SERVER_IGNORE_SPANS];
 

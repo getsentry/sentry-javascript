@@ -11,6 +11,7 @@ import {
   setOpenTelemetryContextAsyncContextStrategy,
 } from '@sentry/opentelemetry';
 import { ATTR_NEXT_SPAN_TYPE } from '../common/nextSpanAttributes';
+import { getInjectedManagedTunnelOptions, getManagedTunnelSpanFilter } from '../common/managedTunnelRoute';
 import { isTunnelRouteSpan } from '../common/utils/dropMiddlewareTunnelRequests';
 import { dropReactControlFlowErrorsEventProcessor } from '../common/utils/dropReactControlFlowErrors';
 import { markAsyncContextOwnedByNextjsCloudflare } from '../common/utils/responseEnd';
@@ -68,9 +69,16 @@ export const withSentry: typeof withSentryCloudflare = (optionsCallback, handler
 
   return withSentryCloudflare(env => {
     const options: CloudflareOptions = { enableOpenTelemetrySetup: true, ...optionsCallback(env) };
+    if (options.tunnel === undefined) {
+      options.tunnel = getInjectedManagedTunnelOptions();
+    }
+
+    const managedTunnelSpanFilter =
+      typeof options.tunnel === 'object' && getManagedTunnelSpanFilter(options.tunnel, options.dsn);
     options.ignoreSpans = [
       ...(options.ignoreSpans || []),
       ...NEXTJS_SERVER_IGNORE_SPANS,
+      ...(managedTunnelSpanFilter ? [managedTunnelSpanFilter] : []),
       // The request spans of Next.js repeat the request span of `withSentry`. An ignored span does not become active,
       // so the other Next.js spans become children of the request span of `withSentry`, which then gets the route
       // from their `next.route` and its status from the response.

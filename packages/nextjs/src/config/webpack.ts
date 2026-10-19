@@ -28,6 +28,7 @@ import type {
 import { sentryOrchestrionWebpackPlugin } from '@sentry/server-utils/orchestrion/webpack';
 import { getNextjsVersion, getPackageModules } from './util';
 import type { VercelCronsConfigResult } from './withSentryConfig/getFinalConfigObjectUtils';
+import { getManagedTunnelOptions } from './withSentryConfig/tunnel';
 
 // Next.js runs webpack 3 times, once for the client, the server, and for edge. Because we don't want to print certain
 // warnings 3 times, we keep track of them here.
@@ -719,19 +720,12 @@ function addValueInjectionLoader({
   const releaseToInject = releaseName && shouldCreateRelease ? releaseName : undefined;
 
   const isomorphicValues = {
-    // `rewritesTunnel` set by the user in Next.js config
-    _sentryRewritesTunnelPath:
-      userSentryOptions.tunnelRoute !== undefined &&
-      userNextConfig.output !== 'export' &&
-      typeof userSentryOptions.tunnelRoute === 'string'
-        ? `${userNextConfig.basePath ?? ''}${userSentryOptions.tunnelRoute}`
-        : undefined,
-
     // The webpack plugin's release injection breaks the `app` directory so we inject the release manually here instead.
     // Having a release defined in dev-mode spams releases in Sentry so we only set one in non-dev mode
     // Only inject if release creation is not explicitly disabled (to maintain build determinism)
     SENTRY_RELEASE: releaseToInject && !buildContext.dev ? { id: releaseToInject } : undefined,
     _sentryBasePath: buildContext.dev ? userNextConfig.basePath : undefined,
+    _sentryManagedTunnel: getManagedTunnelOptions(userNextConfig, userSentryOptions.tunnelRoute),
     // This is used to determine version-based dev-symbolication behavior
     _sentryNextJsVersion: nextJsVersion,
   };

@@ -1,117 +1,115 @@
-import { _INTERNAL_safeMathRandom } from '@sentry/core';
-import type { NextConfigObject } from '../types';
+import type { ManagedTunnelOptions } from '../../common/managedTunnelRoute';
+import { MANAGED_TUNNEL_PATH_PARAM, MANAGED_TUNNEL_ROUTE } from '../../common/managedTunnelRoute';
+import * as fs from 'fs';
+import * as path from 'path';
+import type { NextConfigObject, SentryBuildOptions } from '../types';
 
 /**
- * Generates a random tunnel route path that's less likely to be blocked by ad-blockers
- */
-function generateRandomTunnelRoute(): string {
-  // Generate a random 8-character alphanumeric string
-  const randomString = _INTERNAL_safeMathRandom().toString(36).substring(2, 10);
-  return `/${randomString}`;
-}
-
-/**
- * Resolves the tunnel route based on the user's configuration and the environment.
- * @param tunnelRoute - The user-provided tunnel route option
- */
-export function resolveTunnelRoute(tunnelRoute: string | true): string {
-  if (process.env.__SENTRY_TUNNEL_ROUTE__) {
-    // Reuse cached value from previous build (server/client)
-    return process.env.__SENTRY_TUNNEL_ROUTE__;
-  }
-
-  const resolvedTunnelRoute = typeof tunnelRoute === 'string' ? tunnelRoute : generateRandomTunnelRoute();
-
-  // Cache for subsequent builds (only during build time)
-  // Turbopack runs the config twice, so we need a shared context to avoid generating a new tunnel route for each build.
-  // env works well here
-  // https://linear.app/getsentry/issue/JS-549/adblock-plus-blocking-requests-to-sentry-and-monitoring-tunnel
-  if (resolvedTunnelRoute) {
-    process.env.__SENTRY_TUNNEL_ROUTE__ = resolvedTunnelRoute;
-  }
-
-  return resolvedTunnelRoute;
-}
-
-/**
- * Injects rewrite rules into the Next.js config provided by the user to tunnel
- * requests from the `tunnelPath` to Sentry.
+ * The managed tunnel options for `tunnelRoute`, or `undefined` when the tunnel is off.
  *
- * See https://nextjs.org/docs/api-reference/next.config.js/rewrites.
+ * `true` derives the path from the DSN at runtime. A string keeps that fixed path.
  */
-export function setUpTunnelRewriteRules(userNextConfig: NextConfigObject, tunnelPath: string): void {
-  const originalRewrites = userNextConfig.rewrites;
-  // Allow overriding the tunnel destination for E2E tests via environment variable
-  const destinationOverride = process.env._SENTRY_TUNNEL_DESTINATION_OVERRIDE;
+export function getManagedTunnelOptions(
+  userNextConfig: NextConfigObject,
+  tunnelRoute: SentryBuildOptions['tunnelRoute'],
+): ManagedTunnelOptions | undefined {
+  if (!tunnelRoute || userNextConfig.output === 'export') {
+    return undefined;
+  }
 
-  // Make sure destinations are statically defined at build time
-  const destination = destinationOverride || 'https://o:orgid.ingest.sentry.io/api/:projectid/envelope/?hsts=0';
-  const destinationWithRegion =
-    destinationOverride || 'https://o:orgid.ingest.:region.sentry.io/api/:projectid/envelope/?hsts=0';
+  const { path, allowedDsns } =
+    typeof tunnelRoute === 'object' ? tunnelRoute : { path: typeof tunnelRoute === 'string' ? tunnelRoute : undefined };
+
+  return {
+    basePath: userNextConfig.basePath ?? '',
+    ...(path && { path }),
+    ...(allowedDsns && { allowedDsns }),
+  };
+}
+
+/**
+ * Rewrites tunnel requests to the app's own tunnel route, in the same process.
+ *
+ * With a DSN-derived path the config doesn't know the path, since it doesn't know the DSN. The rewrite matches any
+ * single-segment envelope POST instead, and the route handler checks the path against the DSN.
+ */
+export function setUpTunnelRewriteRules(userNextConfig: NextConfigObject, tunnelOptions: ManagedTunnelOptions): void {
+  const originalRewrites = userNextConfig.rewrites;
+
+  const tunnelRewrite = tunnelOptions.path
+    ? {
+        source: `${tunnelOptions.path}(/?)`,
+        destination: `${MANAGED_TUNNEL_ROUTE}?${MANAGED_TUNNEL_PATH_PARAM}=${encodeURIComponent(tunnelOptions.path.replace(/^\//, ''))}`,
+      }
+    : {
+        source: '/:sentryTunnelPath',
+        has: [{ type: 'header', key: 'content-type', value: 'application/x-sentry-envelope' }],
+        destination: `${MANAGED_TUNNEL_ROUTE}?${MANAGED_TUNNEL_PATH_PARAM}=:sentryTunnelPath`,
+      };
 
   // This function doesn't take any arguments at the time of writing but we future-proof
   // here in case Next.js ever decides to pass some
   userNextConfig.rewrites = async (...args: unknown[]) => {
-    const tunnelRouteRewrite = {
-      // Matched rewrite routes will look like the following: `[tunnelPath]?o=[orgid]&p=[projectid]`
-      // Nextjs will automatically convert `source` into a regex for us
-      source: `${tunnelPath}(/?)`,
-      has: [
-        {
-          type: 'query',
-          key: 'o', // short for orgId - we keep it short so matching is harder for ad-blockers
-          value: '(?<orgid>\\d*)',
-        },
-        {
-          type: 'query',
-          key: 'p', // short for projectId - we keep it short so matching is harder for ad-blockers
-          value: '(?<projectid>\\d*)',
-        },
-      ],
-      destination,
-    };
-
-    const tunnelRouteRewriteWithRegion = {
-      // Matched rewrite routes will look like the following: `[tunnelPath]?o=[orgid]&p=[projectid]?r=[region]`
-      // Nextjs will automatically convert `source` into a regex for us
-      source: `${tunnelPath}(/?)`,
-      has: [
-        {
-          type: 'query',
-          key: 'o', // short for orgId - we keep it short so matching is harder for ad-blockers
-          value: '(?<orgid>\\d*)',
-        },
-        {
-          type: 'query',
-          key: 'p', // short for projectId - we keep it short so matching is harder for ad-blockers
-          value: '(?<projectid>\\d*)',
-        },
-        {
-          type: 'query',
-          key: 'r', // short for region - we keep it short so matching is harder for ad-blockers
-          value: '(?<region>[a-z]{2})',
-        },
-      ],
-      destination: destinationWithRegion,
-    };
-
-    // Order of these is important, they get applied first to last.
-    const newRewrites = [tunnelRouteRewriteWithRegion, tunnelRouteRewrite];
-
     if (typeof originalRewrites !== 'function') {
-      return newRewrites;
+      return { beforeFiles: [tunnelRewrite], afterFiles: [], fallback: [] };
     }
 
     // @ts-expect-error Expected 0 arguments but got 1 - this is from the future-proofing mentioned above, so we don't care about it
     const originalRewritesResult = await originalRewrites(...args);
 
     if (Array.isArray(originalRewritesResult)) {
-      return [...newRewrites, ...originalRewritesResult];
-    } else {
-      return {
-        ...originalRewritesResult,
-        beforeFiles: [...newRewrites, ...(originalRewritesResult.beforeFiles || [])],
-      };
+      return { beforeFiles: [tunnelRewrite], afterFiles: originalRewritesResult, fallback: [] };
     }
+
+    return {
+      ...originalRewritesResult,
+      beforeFiles: [tunnelRewrite, ...(originalRewritesResult.beforeFiles || [])],
+    };
   };
+}
+
+const MANAGED_TUNNEL_ROUTE_FILE_CONTENTS = `// Answers Sentry's tunnel (\`tunnelRoute\`). Created by \`withSentryConfig\`, commit it with your app.
+export { POST } from '@sentry/nextjs/tunnel';
+`;
+
+/**
+ * Creates the route the tunnel rewrite points at, unless the app already has it.
+ *
+ * Next.js only routes files it finds in the app directory, and a route created after it scanned them is missed,
+ * so the file is written before the build or dev server starts and kept in place.
+ *
+ * @returns The path of the file it created, if any.
+ */
+export function ensureTunnelRouteFile(projectDir: string = process.cwd()): string | undefined {
+  const appDir = resolveAppDir(projectDir);
+  const routeDir = path.join(appDir, MANAGED_TUNNEL_ROUTE);
+  const hasRouteFile = ['ts', 'tsx', 'js', 'jsx', 'mjs'].some(extension =>
+    fs.existsSync(path.join(routeDir, `route.${extension}`)),
+  );
+  if (hasRouteFile) {
+    return undefined;
+  }
+
+  const extension = fs.existsSync(path.join(projectDir, 'tsconfig.json')) ? 'ts' : 'js';
+  const routeFile = path.join(routeDir, `route.${extension}`);
+  fs.mkdirSync(routeDir, { recursive: true });
+  fs.writeFileSync(routeFile, MANAGED_TUNNEL_ROUTE_FILE_CONTENTS);
+
+  return routeFile;
+}
+
+/**
+ * Next.js only reads `src/app` and `src/pages` when neither `app` nor `pages` exists in the project root.
+ */
+function resolveAppDir(projectDir: string): string {
+  const appDir = path.join(projectDir, 'app');
+  if (isDirectory(appDir) || isDirectory(path.join(projectDir, 'pages'))) {
+    return appDir;
+  }
+
+  return isDirectory(path.join(projectDir, 'src')) ? path.join(projectDir, 'src', 'app') : appDir;
+}
+
+function isDirectory(dir: string): boolean {
+  return fs.existsSync(dir) && fs.lstatSync(dir).isDirectory();
 }

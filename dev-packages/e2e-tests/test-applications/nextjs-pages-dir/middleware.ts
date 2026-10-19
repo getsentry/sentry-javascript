@@ -15,10 +15,16 @@ export async function middleware(request: NextRequest) {
     await fetch('http://localhost:3030/');
   }
 
+  // Stands in for auth middleware, without blocking the other tests.
+  if (request.headers.has('x-e2e-require-auth') && !Sentry.isTunnelRequest(request)) {
+    return new NextResponse(null, { status: 401 });
+  }
+
   return NextResponse.next();
 }
 
 // See "Matching Paths" below to learn more
 export const config = {
-  matcher: ['/api/endpoint-behind-middleware', '/api/endpoint-behind-faulty-middleware'],
+  // The tunnel path of the test DSN, and a path next to it for the tunnel variant.
+  matcher: ['/api/endpoint-behind-middleware', '/api/endpoint-behind-faulty-middleware', '/qpo967', '/notatunnel'],
 };
