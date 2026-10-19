@@ -24,6 +24,11 @@ describe('makeTunnelBasePathPlugin', () => {
       });
     }
     expect(transform('const a = 1;', '/p/src/routes/+page.svelte')).toBeNull();
+    // The module only assigns a global, so it must survive tree-shaking.
+    expect((plugin.resolveId as Hook)('\0sentry-sveltekit-tunnel-base-path')).toEqual({
+      id: '\0sentry-sveltekit-tunnel-base-path',
+      moduleSideEffects: true,
+    });
     expect((plugin.load as Hook)('\0sentry-sveltekit-tunnel-base-path')).toBe(
       'globalThis["__sentry_sveltekit_base_path"] = "/app";',
     );

@@ -29,7 +29,7 @@ export function makeTunnelBasePathPlugin(getKitConfig: () => Promise<ResolvedKit
       entryFileRegexp = new RegExp(`/(?:${hooksFiles}|src/instrumentation\\.server)\\.(?:js|ts|mjs|mts)$`);
     },
 
-    resolveId: id => (id === VIRTUAL_BASE_PATH_FILE ? id : null),
+    resolveId: id => (id === VIRTUAL_BASE_PATH_FILE ? { id, moduleSideEffects: true } : null),
 
     load: id =>
       id === VIRTUAL_BASE_PATH_FILE
