@@ -2,7 +2,7 @@ import { existsSync } from 'node:fs';
 import { basename } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { addNitroPlugin, addTemplate, createResolver } from '@nuxt/kit';
-import type { Nuxt } from '@nuxt/schema';
+import type { Nuxt, ResolvedNuxtTemplate } from '@nuxt/schema';
 import { consoleSandbox, debug } from '@sentry/core';
 import * as fs from 'fs';
 import type { Nitro } from 'nitropack';
@@ -105,15 +105,11 @@ export function addSentryTopImport(moduleOptions: SentryNuxtModuleOptions, nitro
 }
 
 /**
- * Registers a Nitro plugin that statically imports the Sentry server config, so the SDK initializes
- * at server startup without a `node --import` preload.
+ * Generates the module that sets the runtime flags `Sentry.init` reads. Import it before the
+ * Sentry server config: a statement above the config import would not survive import hoisting.
  */
-export function addServerConfigPlugin(nuxt: Nuxt, serverConfigFile: string, isLegacyNitro: boolean): void {
-  const configPath = createResolver(nuxt.options.rootDir).resolve(serverConfigFile);
-
-  // `Sentry.init` reads these flags, and a statement above the config import would not survive
-  // import hoisting — so they live in their own module which is imported first.
-  const runtimeFlagsTemplate = addTemplate({
+export function addRuntimeFlagsTemplate(): ResolvedNuxtTemplate {
+  return addTemplate({
     filename: 'sentry-runtime-flags.mjs',
     write: true,
     getContents: () =>
@@ -124,6 +120,15 @@ export function addServerConfigPlugin(nuxt: Nuxt, serverConfigFile: string, isLe
         '',
       ].join('\n'),
   });
+}
+
+/**
+ * Registers a Nitro plugin that statically imports the Sentry server config, so the SDK initializes
+ * at server startup without a `node --import` preload.
+ */
+export function addServerConfigPlugin(nuxt: Nuxt, serverConfigFile: string, isLegacyNitro: boolean): void {
+  const configPath = createResolver(nuxt.options.rootDir).resolve(serverConfigFile);
+  const runtimeFlagsTemplate = addRuntimeFlagsTemplate();
 
   const configPluginTemplate = addTemplate({
     filename: 'sentry-server-config-plugin.mjs',

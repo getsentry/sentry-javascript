@@ -21,20 +21,13 @@ type NitroModuleOptions = Omit<SentryNuxtModuleOptions, 'experimental_entrypoint
 /**
  * Sets up the server SDK on the Nitro side: the server config plugin, the server plugins, and the
  * middleware, storage and database instrumentation.
- *
- * A host on the `nuxt` server API runs no Nitro, so it gets none of this. Kit would skip each
- * Nitro-only registration there with a `NUXT_B8024` warning.
  */
 export function setupNitroServer(
   nuxt: Nuxt,
-  serverApi: ServerApi,
+  serverApi: Exclude<ServerApi, 'nuxt'>,
   serverConfigFile: string,
   moduleOptions: NitroModuleOptions,
 ): void {
-  if (serverApi === 'nuxt') {
-    return;
-  }
-
   const isNitroV3 = serverApi === 'nitro3';
   const moduleDirResolver = createResolver(import.meta.url);
   // oxlint-disable-next-line typescript/no-deprecated -- supported until removal

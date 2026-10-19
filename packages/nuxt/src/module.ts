@@ -8,6 +8,7 @@ import { setupNitroServer } from './vite/nitroServer';
 import { setupOrchestrion } from './vite/orchestrion';
 import { setupSourceMaps } from './vite/sourceMaps';
 import { findDefaultSdkInitFile, resolveServerApi } from './vite/utils';
+import { setupViteServer } from './vite/viteServer';
 
 export type ModuleOptions = SentryNuxtModuleOptions;
 type NuxtPageSubset = { file?: string; path: string };
@@ -84,7 +85,11 @@ export default defineNuxtModule<ModuleOptions>({
     setupOrchestrion(nuxt, !!serverConfigFile, moduleOptions.buildTimeInstrumentation);
 
     if (serverConfigFile) {
-      setupNitroServer(nuxt, serverApi, serverConfigFile, moduleOptions);
+      if (serverApi === 'nuxt') {
+        setupViteServer(nuxt, serverConfigFile, moduleOptions);
+      } else {
+        setupNitroServer(nuxt, serverApi, serverConfigFile, moduleOptions);
+      }
 
       if (isMinNuxtV4) {
         addPlugin({ src: moduleDirResolver.resolve('./runtime/plugins/route-detector.server'), mode: 'server' });

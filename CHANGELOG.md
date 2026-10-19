@@ -4,6 +4,14 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+### Important Changes
+
+- **feat(nuxt): Start the server SDK on the Nuxt Vite server (experimental)**
+
+  Nuxt 4.6 added the experimental `@nuxt/vite-server` (`server: { builder: 'vite' }`), which renders pages without Nitro. The SDK now bundles `sentry.server.config` into the `ssr` build of this server and instruments database drivers such as `mysql` at build time. Support is experimental, like the Vite server itself, and can change in a minor release.
+
+  What works: the server SDK in production builds that run on Node.js, request spans and the `db` spans of instrumented libraries. Not supported yet: `nuxt dev`, Cloudflare, trace meta tags in the HTML, and the capture of errors during server-side rendering.
+
 ## 11.6.0
 
 ### Important Changes
