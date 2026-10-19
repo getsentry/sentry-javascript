@@ -203,11 +203,11 @@ it('sends a streamed span envelope with correct spans for a manually started spa
       [SENTRY_ENVIRONMENT]: { type: 'string', value: 'production' },
       'server.address': {
         type: 'string',
-        value: 'localhost',
+        value: '127.0.0.1',
       },
       'url.full': {
         type: 'string',
-        value: expect.stringMatching(/^http:\/\/localhost:.+$/),
+        value: expect.stringMatching(/^http:\/\/127\.0\.0\.1:.+$/),
       },
       'url.path': {
         type: 'string',
@@ -247,7 +247,7 @@ it('sends a streamed span envelope with correct spans for a manually started spa
       },
       'http.request.header.host': {
         type: 'array',
-        value: [expect.stringMatching(/^localhost:.+$/)],
+        value: [expect.stringMatching(/^127\.0\.0\.1:.+$/)],
       },
       'http.request.header.sec-fetch-mode': {
         type: 'array',

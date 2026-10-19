@@ -557,7 +557,9 @@ export function createRunner(...paths: string[]) {
           path: string,
           options: { headers?: Record<string, string>; data?: BodyInit; expectError?: boolean } = {},
         ): Promise<T | undefined> {
-          const url = `http://localhost:${await workerPortPromise}${path}`;
+          // wrangler only binds this port on 127.0.0.1. `localhost` resolves to ::1 first, where the same
+          // port number can belong to another wrangler's inspector, which answers 500 "Not yet implemented".
+          const url = `http://127.0.0.1:${await workerPortPromise}${path}`;
           const body = options.data;
           const headers = options.headers || {};
           const expectError = options.expectError || false;
