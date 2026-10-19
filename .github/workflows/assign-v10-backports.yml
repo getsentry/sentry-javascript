@@ -1,0 +1,59 @@
+name: 'Automation: Assign v10 backport PRs'
+
+on:
+  pull_request_target:
+    types:
+      - opened
+      - reopened
+      - edited
+    branches:
+      - v10
+
+jobs:
+  assign_backport:
+    name: Assign original PR author
+    permissions:
+      pull-requests: write
+    runs-on: ubuntu-24.04
+    if: |
+      github.event.pull_request.user.login == 'sentry-junior[bot]'
+      && toJSON(github.event.pull_request.assignees) == '[]'
+    steps:
+      - name: Assign original author or merger
+        uses: actions/github-script@v9
+        with:
+          script: |
+            const { owner, repo } = context.repo;
+            const backport = context.payload.pull_request;
+
+            const match = /^Backport of:\s*#(\d+)/m.exec(backport.body ?? '');
+            if (!match) {
+              core.info('No "Backport of: #<number>" reference found, skipping.');
+              return;
+            }
+
+            const { data: original } = await github.rest.pulls.get({
+              owner,
+              repo,
+              pull_number: Number(match[1]),
+            });
+
+            const isInternal =
+              ['MEMBER', 'OWNER', 'COLLABORATOR'].includes(original.author_association) &&
+              original.user.type !== 'Bot';
+
+            const assignee = isInternal ? original.user.login : original.merged_by?.login;
+            if (!assignee) {
+              core.info(`Could not determine an assignee from #${original.number}, skipping.`);
+              return;
+            }
+
+            core.info(
+              `Assigning ${assignee} (${isInternal ? 'author' : 'merger'} of #${original.number}) to #${backport.number}.`,
+            );
+            await github.rest.issues.addAssignees({
+              owner,
+              repo,
+              issue_number: backport.number,
+              assignees: [assignee],
+            });
