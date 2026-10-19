@@ -13,6 +13,7 @@ import {
   handleTunnelRequestIfMatched,
   isTunnelRequest,
   normalizeTunnelBasePath,
+  resolveAllowedDsns,
   resolveServerTunnelOption,
   resolveTunnelPaths,
 } from '../../../src/utils/tunnel';
@@ -33,7 +34,9 @@ function getTunnelIgnoreSpanFilter(
   tunnelOptions: TunnelOptions,
   dsn: DsnComponents | undefined,
 ): IgnoreSpanFilter | undefined {
-  return getTunnelIgnoreSpanFilters(tunnelOptions, resolveTunnelPaths(tunnelOptions, dsn))[0];
+  const paths = resolveTunnelPaths(tunnelOptions, resolveAllowedDsns(tunnelOptions.allowedDsns, dsn));
+
+  return getTunnelIgnoreSpanFilters(tunnelOptions, paths)[0];
 }
 
 function makeEnvelopeRequest(envelopeHeader: Record<string, unknown>, url = 'http://localhost/tunnel'): Request {
@@ -475,14 +478,14 @@ describe('getTunnelPaths', () => {
   it('returns one path per allowed DSN and skips invalid ones', () => {
     const otherDsn = 'https://other@o2.ingest.sentry.io/42';
 
-    expect(resolveTunnelPaths({ allowedDsns: [TEST_DSN, otherDsn, 'not-a-dsn'] }, undefined)).toEqual([
+    expect(resolveTunnelPaths({}, [TEST_DSN, otherDsn, 'not-a-dsn'])).toEqual([
       getTunnelPath(TEST_DSN),
       getTunnelPath(otherDsn),
     ]);
   });
 
   it('returns a fixed path instead of the DSN-derived ones', () => {
-    expect(resolveTunnelPaths({ path: '/monitor', allowedDsns: [TEST_DSN] }, undefined)).toEqual(['/monitor']);
+    expect(resolveTunnelPaths({ path: '/monitor' }, [TEST_DSN])).toEqual(['/monitor']);
     expect(isTunnelRequestFor({ method: 'POST', url: '/monitor' }, { path: '/monitor', allowedDsns: [TEST_DSN] })).toBe(
       true,
     );

@@ -4,6 +4,7 @@ import type { IgnoreSpanFilter, TunnelOptions } from '../types/options';
 import {
   getTunnelIgnoreSpanFilters,
   normalizeTunnelBasePath,
+  resolveAllowedDsns,
   resolveTunnelPaths,
   withPathBelowBasePath,
 } from './tunnel';
@@ -42,9 +43,9 @@ export function setManagedTunnelDefaults(defaults: ManagedTunnelDefaults): void 
 
 /**
  * Settles a server client's managed tunnel: the one its `init` enabled, or else the defaults, under the default base
- * path, computes the paths it's served at, and installs the span filters for them. Server clients call this when
- * they're created, and {@link setManagedTunnelDefaults} calls it again for a client that already exists, replacing the
- * filters it added.
+ * path. It computes the DSNs the client forwards for and the paths it's served at, and installs the span filters for
+ * them. Server clients call this when they're created, and {@link setManagedTunnelDefaults} calls it again for a
+ * client that already exists, replacing the filters it added.
  */
 export function applyManagedTunnelDefaults(client: Client | undefined): void {
   const options = client?.getOptions();
@@ -58,7 +59,8 @@ export function applyManagedTunnelDefaults(client: Client | undefined): void {
     tunnelOptions.basePath === undefined && basePath ? { ...tunnelOptions, basePath } : tunnelOptions,
   );
   options._managedTunnel = resolved;
-  options._managedTunnelPaths = resolveTunnelPaths(resolved, client.getDsn());
+  options._managedTunnelAllowedDsns = resolveAllowedDsns(resolved.allowedDsns, client.getDsn());
+  options._managedTunnelPaths = resolveTunnelPaths(resolved, options._managedTunnelAllowedDsns);
 
   const previousFilters = installedSpanFilters.get(client) ?? [];
   const spanFilters = getTunnelIgnoreSpanFilters(resolved, options._managedTunnelPaths);

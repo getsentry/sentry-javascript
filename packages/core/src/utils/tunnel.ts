@@ -7,7 +7,6 @@ import type { IgnoreSpanFilter, TunnelOptions } from '../types/options';
 import { escapeStringForRegex } from '../vendor/escapeStringForRegex';
 import { debug } from './debug-logger';
 import { dsnToString, makeDsn } from './dsn';
-import { parseEnvelope } from './envelope';
 import { parseUrl } from './url';
 
 // Bounds the memory of each request. SDK envelopes stay far below it.
@@ -93,16 +92,16 @@ export function getTunnelPaths(): string[] {
 }
 
 /**
- * The paths a server client serves its managed tunnel at: the fixed `path`, or else the path of each allowed DSN and
- * of its own. Server clients compute them once, when their managed tunnel is settled, since neither changes later.
+ * The paths a server client serves its managed tunnel at: the fixed `path`, or else the path of each DSN it forwards
+ * for. Server clients compute them once, when their managed tunnel is settled, since neither changes later.
  */
-export function resolveTunnelPaths(tunnelOptions: TunnelOptions, ownDsn: DsnComponents | undefined): string[] {
+export function resolveTunnelPaths(tunnelOptions: TunnelOptions, allowedDsns: Array<string>): string[] {
   if (tunnelOptions.path) {
     return [tunnelOptions.path.replace(/\/$/, '')];
   }
 
   // A DSN can be listed in another form than the own one, e.g. with a trailing slash, and still give the same path.
-  const paths = resolveAllowedDsns(tunnelOptions.allowedDsns, ownDsn).map(dsn => getTunnelPath(dsn));
+  const paths = allowedDsns.map(dsn => getTunnelPath(dsn));
 
   return [...new Set(paths.filter((path): path is string => !!path))];
 }
@@ -161,18 +160,14 @@ export function isTunnelRequest(request: TunnelRequestLike): boolean {
  * can hand the request to the app.
  */
 export function handleTunnelRequestIfMatched(request: Request): Promise<Response> | undefined {
-  if (!isTunnelRequest(request)) {
-    return undefined;
-  }
-
-  const allowedDsns = getClient()?.getOptions()._managedTunnel?.allowedDsns;
+  const allowedDsns = getClient()?.getOptions()._managedTunnelAllowedDsns;
   // A fixed path matches without a DSN, but with nowhere to forward to the request is left to the app. Its 404 makes
   // the browser send directly, instead of losing every envelope to an error response.
-  if (!resolveAllowedDsns(allowedDsns).length) {
+  if (!allowedDsns?.length || !isTunnelRequest(request)) {
     return undefined;
   }
 
-  return handleTunnelRequest({ request, allowedDsns });
+  return forwardTunnelRequest(request, allowedDsns);
 }
 
 /**
@@ -183,8 +178,8 @@ export function handleTunnelRequestIfMatched(request: Request): Promise<Response
  *
  * @returns A `Response` — either the upstream Sentry response on success, or an error response.
  */
-export async function handleTunnelRequest(options: HandleTunnelRequestOptions): Promise<Response> {
-  return markTunnelResponse(await forwardTunnelRequest(options));
+export function handleTunnelRequest(options: HandleTunnelRequestOptions): Promise<Response> {
+  return forwardTunnelRequest(options.request, resolveAllowedDsns(options.allowedDsns, getClient()?.getDsn()));
 }
 
 /**
@@ -203,10 +198,11 @@ function markTunnelResponse(response: Response): Response {
   return new Response(response.body, { status: response.status, statusText: response.statusText, headers });
 }
 
-async function forwardTunnelRequest(options: HandleTunnelRequestOptions): Promise<Response> {
-  const { request } = options;
-  const allowedDsns = resolveAllowedDsns(options.allowedDsns);
+async function forwardTunnelRequest(request: Request, allowedDsns: Array<string>): Promise<Response> {
+  return markTunnelResponse(await forwardEnvelope(request, allowedDsns));
+}
 
+async function forwardEnvelope(request: Request, allowedDsns: Array<string>): Promise<Response> {
   if (allowedDsns.length === 0) {
     return new Response('Tunnel not configured', { status: 500 });
   }
@@ -248,9 +244,10 @@ async function forwardTunnelRequest(options: HandleTunnelRequestOptions): Promis
  * Returns the Sentry ingest URL for an envelope header line, or the response that rejects it.
  */
 function resolveIngestUrl(headerLine: Uint8Array, allowedDsns: Array<string>): string | Response {
-  let envelopeHeader;
+  let envelopeHeader: { dsn?: string } | null;
   try {
-    [envelopeHeader] = parseEnvelope(headerLine);
+    // Only the header line is read, and it's a single JSON object.
+    envelopeHeader = JSON.parse(new TextDecoder().decode(headerLine));
   } catch {
     return new Response('Invalid envelope', { status: 400 });
   }
@@ -373,13 +370,16 @@ function forwardHeaders(request: Request): Record<string, string> {
  * `allowedDsns` plus the server's own DSN. The own DSN is always trusted, so listing only the browser DSN can't lock
  * out a browser that shares it.
  */
-function resolveAllowedDsns(
+export function resolveAllowedDsns(
   allowedDsns: Array<string> | undefined,
-  ownDsn: DsnComponents | undefined = getClient()?.getDsn(),
+  ownDsn: DsnComponents | undefined,
 ): Array<string> {
-  const dsns = [...(allowedDsns ?? []), ...(ownDsn ? [dsnToString(ownDsn)] : [])];
+  const dsns = new Set(allowedDsns);
+  if (ownDsn) {
+    dsns.add(dsnToString(ownDsn));
+  }
 
-  return [...new Set(dsns)];
+  return [...dsns];
 }
 
 /**
