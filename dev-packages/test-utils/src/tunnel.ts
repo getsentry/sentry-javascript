@@ -35,3 +35,10 @@ export function watchForTunnelSpan(
     ]);
   };
 }
+
+/**
+ * An envelope with an empty client report, which Sentry accepts without creating anything.
+ */
+export function makeClientReportEnvelope(dsn: string): string {
+  return `${JSON.stringify({ dsn, sent_at: new Date().toISOString() })}\n${JSON.stringify({ type: 'client_report' })}\n${JSON.stringify({ timestamp: Date.now() / 1000, discarded_events: [] })}\n`;
+}

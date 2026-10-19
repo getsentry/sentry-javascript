@@ -1,5 +1,10 @@
 import { expect, test } from '@playwright/test';
-import { getSpanOp, waitForError, waitForStreamedSpan } from '@sentry-internal/test-utils';
+import {
+  isServerSpanAt,
+  makeClientReportEnvelope,
+  waitForError,
+  watchForTunnelSpan,
+} from '@sentry-internal/test-utils';
 import { getTunnelPath } from '@sentry/core';
 import { connect } from 'node:net';
 
@@ -12,42 +17,25 @@ test('answers the managed tunnel before the app auth middleware', async ({ page 
   // The variant's auth middleware rejects every other POST.
   expect((await page.request.post(`${BASE_PATH}/api/anything`, { data: 'x' })).status()).toBe(401);
 
-  const tunnelServerSpanPromise = waitForStreamedSpan(
-    'nitro-3',
-    span => getSpanOp(span) === 'http.server' && TUNNEL_PATH.test(String(span.attributes['url.path']?.value ?? '')),
-  );
+  const raceTunnelSpan = watchForTunnelSpan('nitro-3', isServerSpanAt(TUNNEL_PATH));
   const tunnelResponsePromise = page.waitForResponse(
     response => response.request().method() === 'POST' && TUNNEL_PATH.test(new URL(response.url()).pathname),
   );
 
   await page.goto(`${BASE_PATH}/`);
-  const tunnelResponse = await tunnelResponsePromise;
 
-  expect(tunnelResponse.status()).toBe(200);
-  expect(new URL(tunnelResponse.url()).origin).toBe(new URL(page.url()).origin);
-
-  // Anchor on a regular server span requested after the tunnel traffic: spans flush in order, so a tunnel span
-  // would arrive first.
-  const anchorSpanPromise = waitForStreamedSpan(
-    'nitro-3',
-    span =>
-      getSpanOp(span) === 'http.server' &&
-      String(span.attributes['url.path']?.value ?? '') === `${BASE_PATH}/api/test-transaction`,
-  );
-  await page.request.get(`${BASE_PATH}/api/test-transaction`);
-
-  const winner = await Promise.race([
-    tunnelServerSpanPromise.then(() => 'tunnel' as const),
-    anchorSpanPromise.then(() => 'anchor' as const),
-  ]);
-  expect(winner).toBe('anchor');
+  expect((await tunnelResponsePromise).status()).toBe(200);
+  expect(
+    await raceTunnelSpan(isServerSpanAt(`${BASE_PATH}/api/test-transaction`), () =>
+      page.request.get(`${BASE_PATH}/api/test-transaction`),
+    ),
+  ).toBe('anchor');
 });
 
-test('answers the managed tunnel without app middleware', async ({ request }) => {
+test('answers a request to the managed tunnel itself', async ({ request }) => {
   const dsn = 'http://public@localhost:3031/1337';
-  const envelopeHeader = { dsn, sent_at: new Date().toISOString() };
   const response = await request.post(`${BASE_PATH}${getTunnelPath(dsn)}`, {
-    data: `${JSON.stringify(envelopeHeader)}\n${JSON.stringify({ type: 'client_report' })}\n${JSON.stringify({ timestamp: Date.now() / 1000, discarded_events: [] })}\n`,
+    data: makeClientReportEnvelope(dsn),
     headers: { 'Content-Type': 'application/x-sentry-envelope' },
   });
 

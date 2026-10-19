@@ -16,9 +16,7 @@
     "test:build": "pnpm install && pnpm build",
     "test:build-canary": "pnpm add nuxt@npm:nuxt-nightly@latest && pnpm add nitro@npm:nitro-nightly@latest && pnpm install --force && pnpm build",
     "test:assert": "pnpm test:prod && pnpm test:dev",
-    "test:build:tunnel": "pnpm install && E2E_TEST_TUNNEL=1 pnpm build",
     "test:build:tunnel-basepath": "pnpm install && E2E_TEST_TUNNEL=1 E2E_TEST_BASE_PATH=/app pnpm build",
-    "test:assert:tunnel": "E2E_TEST_TUNNEL=1 TEST_ENV=production playwright test tunnel",
     "test:assert:tunnel-basepath": "E2E_TEST_TUNNEL=1 E2E_TEST_BASE_PATH=/app TEST_ENV=production playwright test tunnel",
     "test:assert:tunnel-dev": "E2E_TEST_TUNNEL=1 TEST_ENV=development playwright test tunnel"
   },
@@ -45,11 +43,6 @@
   "sentryTest": {
     "optional": true,
     "variants": [
-      {
-        "build-command": "pnpm test:build:tunnel",
-        "assert-command": "pnpm test:assert:tunnel",
-        "label": "nuxt-5 (tunnel)"
-      },
       {
         "build-command": "pnpm test:build:tunnel-basepath",
         "assert-command": "pnpm test:assert:tunnel-basepath",

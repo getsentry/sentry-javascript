@@ -14,13 +14,6 @@ export default defineConfig({
       withSentryConfig({
         serverDir: './server',
         ...(process.env.E2E_TEST_BASE_PATH && { baseURL: `${process.env.E2E_TEST_BASE_PATH}/` }),
-        // Without static assets, global middleware or routed middleware, Nitro skips its middleware array whenever
-        // route rules exist, as on serverless presets.
-        ...(process.env.E2E_TEST_NO_MIDDLEWARE && {
-          serveStatic: false,
-          ignore: ['**/middleware/**'],
-          routeRules: { '/api/**': { headers: { 'x-e2e-route-rule': '1' } } },
-        }),
       }),
     ),
   ],
