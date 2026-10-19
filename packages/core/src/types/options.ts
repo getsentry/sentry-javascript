@@ -374,8 +374,8 @@ export interface ClientOptions<TO extends BaseTransportOptions = BaseTransportOp
   tunnel?: string;
 
   /**
-   * Set when `init` was called with `tunnel: true` or {@link TunnelOptions}. Browser SDKs keep it to explain a rejected
-   * tunnel request, and server request handlers check it to decide whether to serve the managed tunnel.
+   * Set when `init` was called with `tunnel: true` or {@link TunnelOptions}. Server request handlers check it to decide
+   * whether to serve the managed tunnel.
    *
    * @internal This option is not part of the public API and is subject to change at any time.
    */

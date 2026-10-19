@@ -16,10 +16,9 @@ import {
   _INTERNAL_warnIfClientIsActive,
   linkedErrorsIntegration,
   requestDataIntegration,
-  resolveServerTunnelOption,
   stackParserFromStackParserOptions,
 } from '@sentry/core';
-import { nodeStackLineParser } from '@sentry/core/server';
+import { nodeStackLineParser, resolveServerTunnelOption } from '@sentry/core/server';
 import {
   SentryPropagator,
   SentryTracerProvider,
