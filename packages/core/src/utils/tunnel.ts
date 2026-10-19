@@ -76,10 +76,10 @@ export function applyTunnelDefaults(
   }
 
   if (typeof tunnel === 'string') {
-    return tunnel.startsWith('/') ? withPathBelowBasePath({ ...defaults, path: tunnel }) : tunnel;
+    return tunnel.startsWith('/') ? stripBasePathFromTunnelPath({ ...defaults, path: tunnel }) : tunnel;
   }
 
-  return withPathBelowBasePath({ ...defaults, ...(tunnel === true ? {} : tunnel) });
+  return stripBasePathFromTunnelPath({ ...defaults, ...(tunnel === true ? {} : tunnel) });
 }
 
 /**
@@ -395,7 +395,7 @@ export function resolveAllowedDsns(
 /**
  * Makes a fixed `path` relative to `basePath`, so one written with the base path isn't served under it twice.
  */
-export function withPathBelowBasePath(tunnelOptions: TunnelOptions): TunnelOptions {
+export function stripBasePathFromTunnelPath(tunnelOptions: TunnelOptions): TunnelOptions {
   const path = tunnelOptions.path && stripBasePath(tunnelOptions.path, tunnelOptions.basePath);
 
   return path ? { ...tunnelOptions, path } : tunnelOptions;

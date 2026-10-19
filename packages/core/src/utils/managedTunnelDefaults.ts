@@ -7,7 +7,7 @@ import {
   resolveAllowedDsns,
   resolveTunnelPaths,
   setServedTunnel,
-  withPathBelowBasePath,
+  stripBasePathFromTunnelPath,
 } from './tunnel';
 
 /**
@@ -50,7 +50,7 @@ export function applyManagedTunnelDefaults(client: Client | undefined): void {
   }
 
   const basePath = normalizeTunnelBasePath(managedTunnelDefaults?.basePath);
-  const resolved = withPathBelowBasePath(
+  const resolved = stripBasePathFromTunnelPath(
     tunnelOptions.basePath === undefined && basePath ? { ...tunnelOptions, basePath } : tunnelOptions,
   );
   options._managedTunnel = resolved;
