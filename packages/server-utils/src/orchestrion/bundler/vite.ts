@@ -1,8 +1,10 @@
 import codeTransformer from '@apm-js-collab/code-transformer-bundler-plugins/vite';
-import type { ConfigEnv, Plugin, ResolvedConfig, UserConfig } from 'vite';
+import { resolve } from 'node:path';
+import type { ConfigEnv, ConfigPluginContext, Plugin, ResolvedConfig, UserConfig } from 'vite';
 
 export type { Plugin as VitePlugin } from 'vite';
 import { instrumentedModuleNames } from '../config';
+import { commonJSDependencyNames } from './commonJSDependencies';
 import type { PluginOptions } from './options';
 import { externalEntryMatchesModule, externalizedModulesWarning, orchestrionTransformOptions } from './options';
 import { resolveOrchestrionRuntimeRequest, SNIPPET_IMPORT_SPECIFIER } from './resolve';
@@ -69,9 +71,11 @@ export function sentryOrchestrionPlugin(options: PluginOptions = {}): Plugin {
   }
 
   const upstream = codeTransformer(orchestrionTransformOptions(options));
+  let commonJSDependencies: string[] = [];
   const noExternalModules = (): string[] => [
     ...instrumentedModuleNames(options.instrumentations),
     '@sentry/server-utils',
+    ...commonJSDependencies,
   ];
 
   const instance = {};
@@ -116,14 +120,33 @@ export function sentryOrchestrionPlugin(options: PluginOptions = {}): Plugin {
     // ESM entry, which crashes at startup.
     // Not in `serve`: Vite's dev SSR runner has no CJS interop, so inlined `mysql`/`ioredis` throw
     // `exports is not defined`, and the runtime hook injects the same publishers instead.
+    // Rolldown (Vite 8) emits a `require()` of an external package in bundled CommonJS as
+    // `__require()`, which a bundler that runs over the server output cannot follow. Rollup turns it
+    // into an `import`. So on Rolldown, the dependencies that this CommonJS requires are bundled too.
     config: {
       // Runs after the framework plugins, so `build.ssr` set by their `config` hooks is visible.
       order: 'post',
-      handler(config: UserConfig, env?: ConfigEnv): { ssr: { noExternal: string[] } } | null {
+      handler(
+        this: ConfigPluginContext | undefined,
+        config: UserConfig,
+        env?: ConfigEnv,
+      ): { ssr: { noExternal: string[] } } | null {
+        if (env?.command === 'serve') {
+          return null;
+        }
+
+        // Vite 5 calls `config` hooks without a `this` context.
+        if (this?.meta.rolldownVersion) {
+          commonJSDependencies = commonJSDependencyNames(
+            resolve(config.root ?? process.cwd()),
+            instrumentedModuleNames(options.instrumentations),
+          );
+        }
+
         // A top-level `ssr` key makes Vite 6+ add an `ssr` environment with no entry, which
         // `vite build --app` cannot build. Vite 5 has no `configEnvironment` and needs the key, and
         // its SSR builds always set `build.ssr`.
-        if (env?.command === 'serve' || !(config.ssr || config.build?.ssr)) {
+        if (!(config.ssr || config.build?.ssr)) {
           return null;
         }
 

@@ -14,6 +14,7 @@
     "test:build:tunnel-static": "pnpm install && E2E_TEST_TUNNEL_ROUTE_MODE=static E2E_TEST_DSN=http://public@localhost:3031/1337 pnpm build",
     "test:build:tunnel-custom": "pnpm install && E2E_TEST_CUSTOM_TUNNEL_ROUTE=1 pnpm build",
     "test:build:tunnel-object": "pnpm install && E2E_TEST_TUNNEL_ROUTE_MODE=object E2E_TEST_DSN=http://public@localhost:3031/1337 pnpm build",
+    "test:build:hoisted": "pnpm install --config.node-linker=hoisted && pnpm build",
     "test:build-latest": "pnpm add @tanstack/react-start@latest @tanstack/react-router@latest nitro@latest vite@latest @vitejs/plugin-react-swc@latest vite-tsconfig-paths@latest && pnpm install && pnpm build",
     "test:assert:proxy": "pnpm test && TEST_ENV=development pnpm playwright test db-drivers",
     "test:assert": "pnpm test:assert:proxy",
@@ -51,6 +52,10 @@
   },
   "sentryTest": {
     "variants": [
+      {
+        "label": "tanstackstart-react (hoisted)",
+        "build-command": "pnpm test:build:hoisted"
+      },
       {
         "label": "tanstackstart-react (tunnel-generated)",
         "build-command": "pnpm test:build:tunnel-generated",
