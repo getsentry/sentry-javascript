@@ -11,7 +11,7 @@
     "lint:fix": "oxlint . --fix --type-aware",
     "lint:types": "tsc --noEmit",
     "test": "vitest run",
-    "test:watch": "yarn test --watch"
+    "test:watch": "pnpm run test --watch"
   },
   "dependencies": {
     "@sentry/bun": "11.8.0",

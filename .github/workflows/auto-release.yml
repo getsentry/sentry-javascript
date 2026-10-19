@@ -45,6 +45,10 @@ jobs:
           version=${version/'prepare-release/'/''}
           echo "version=$version" >> $GITHUB_OUTPUT
 
+      # scripts/craft-pre-release.sh installs dependencies with pnpm.
+      - name: Install pnpm
+        uses: ./.github/actions/install-pnpm
+
       - name: Set up Node
         uses: actions/setup-node@v7
         with:

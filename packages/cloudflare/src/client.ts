@@ -6,6 +6,7 @@ import {
   applySdkMetadata,
   debug,
   spanIsSampled,
+  spanStreamingIntegration,
 } from '@sentry/core';
 import type { ServerRuntimeClientOptions } from '@sentry/core/server';
 import { ServerRuntimeClient } from '@sentry/core/server';
@@ -14,6 +15,10 @@ import type { ExecutionContextCompat } from './executionContext';
 import type { makeFlushLock } from './flush';
 import type { CloudflareTransportOptions } from './transport';
 import { getInvocationState, getInvocationWaitUntil } from './utils/invocationContext';
+
+declare const __SENTRY_TRACING__: boolean;
+
+const SPAN_STREAMING_INTEGRATION_NAME = 'SpanStreaming';
 
 /**
  * The Sentry Cloudflare SDK Client.
@@ -58,6 +63,17 @@ export class CloudflareClient extends ServerRuntimeClient {
       // TODO: Add server name
       _flushInterval: 0,
     };
+
+    // workerd can't unref timers, so the default 500ms segment-end flush timer holds every
+    // Durable Object invocation open (and billed) until it fires, sampled or not. The boundary
+    // flush and the eager drain already deliver streamed spans here.
+    if (
+      (typeof __SENTRY_TRACING__ === 'undefined' || __SENTRY_TRACING__) &&
+      clientOptions.traceLifecycle !== 'static' &&
+      !clientOptions.integrations.some(i => i.name === SPAN_STREAMING_INTEGRATION_NAME)
+    ) {
+      clientOptions.integrations.push(spanStreamingIntegration({ flushOnSegmentEnd: false }));
+    }
 
     super(clientOptions);
     this._flushLock = flushLock;

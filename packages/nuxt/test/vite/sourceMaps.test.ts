@@ -328,6 +328,7 @@ describe('validate sourcemap settings', () => {
       rollupConfig?: {
         output?: { sourcemap?: SourceMapSetting; sourcemapExcludeSources?: boolean };
       };
+      experimental?: { asyncContext?: boolean; sourcemapMinify?: false };
     };
     type MinimalNuxtConfig = {
       options: { sourcemap?: SourceMapSetting | { server?: SourceMapSetting; client?: SourceMapSetting } };
@@ -361,6 +362,14 @@ describe('validate sourcemap settings', () => {
       validateNitroSourceMapSettings(getNuxtConfig(true), nitroConfig, { debug: true });
 
       expect(nitroConfig?.rollupConfig?.output?.sourcemapExcludeSources).toBe(false);
+    });
+
+    it("should disable Nitro's source map minification and keep other experimental options", () => {
+      const nitroConfig = { ...getNitroConfig(true), experimental: { asyncContext: true } };
+
+      validateNitroSourceMapSettings(getNuxtConfig(true), nitroConfig, { debug: true });
+
+      expect(nitroConfig.experimental).toEqual({ asyncContext: true, sourcemapMinify: false });
     });
 
     it('should not show console.warn when rollup sourcemap is undefined', () => {

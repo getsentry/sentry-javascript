@@ -1,7 +1,8 @@
-import { readFile, writeFile } from 'fs/promises';
-import * as path from 'path';
-import { getPublishedSentryTarballPackageNames, packedSymlinkFilename } from './packedTarballUtils';
-import { fixFileLinkDependencies } from './copyToTemp';
+// @ts-check
+import { readFile, writeFile } from 'node:fs/promises';
+import * as path from 'node:path';
+import { fixFileLinkDependencies } from './copyToTemp.mjs';
+import { getPackedTarballs, packedSymlinkFilename } from './packedTarballUtils.mjs';
 
 /**
  * For a given temp test application directory, add pnpm overrides to pin internal Sentry dependencies to their packed tarballs.
@@ -10,12 +11,14 @@ import { fixFileLinkDependencies } from './copyToTemp';
  * pnpm reads overrides only from pnpm-workspace.yaml. A fixture's existing overrides take precedence.
  * https://pnpm.io/settings/dependency-resolution#overrides
  *
- * @param tmpDirPath - The temporary directory path of the test application.
- * @param packedDirPath - The path to the packed tarballs.
+ * @param {string} tmpDirPath - The temporary directory path of the test application.
+ * @param {string} packedDirPath - The path to the packed tarballs.
+ * @returns {Promise<void>}
  */
-export async function addPnpmOverrides(tmpDirPath: string, packedDirPath: string): Promise<void> {
+export async function addPnpmOverrides(tmpDirPath, packedDirPath) {
   const packageJsonPath = path.join(tmpDirPath, 'package.json');
-  const packageJson = JSON.parse(await readFile(packageJsonPath, 'utf8')) as { pnpm?: unknown; resolutions?: unknown };
+  /** @type {{ pnpm?: unknown; resolutions?: unknown }} */
+  const packageJson = JSON.parse(await readFile(packageJsonPath, 'utf8'));
 
   // pnpm 11+ ignores these fields, so their settings would silently have no effect.
   if (packageJson.pnpm || packageJson.resolutions) {
@@ -24,7 +27,7 @@ export async function addPnpmOverrides(tmpDirPath: string, packedDirPath: string
     );
   }
 
-  const packageNames = getPublishedSentryTarballPackageNames();
+  const packageNames = getPackedTarballs().map(({ name }) => name);
   const overrides = Object.fromEntries(
     packageNames.map(packageName => [packageName, `file:${packedDirPath}/${packedSymlinkFilename(packageName)}`]),
   );
@@ -48,7 +51,11 @@ export async function addPnpmOverrides(tmpDirPath: string, packedDirPath: string
   console.log(`Added ${packageNames.length} internal Sentry package overrides`);
 }
 
-function parseWorkspaceOverrides(workspace: string): Record<string, string> {
+/**
+ * @param {string} workspace
+ * @returns {Record<string, string>}
+ */
+function parseWorkspaceOverrides(workspace) {
   const overrides = /^overrides:\n((?:[ \t]+.*(?:\n|$))*)/m.exec(workspace)?.[1];
   if (!overrides) {
     return {};
@@ -69,15 +76,27 @@ function parseWorkspaceOverrides(workspace: string): Record<string, string> {
   );
 }
 
-function parseYamlString(quoted: string): string {
-  return quoted.startsWith("'") ? quoted.slice(1, -1).replace(/''/g, "'") : (JSON.parse(quoted) as string);
+/**
+ * @param {string} quoted
+ * @returns {string}
+ */
+function parseYamlString(quoted) {
+  return quoted.startsWith("'") ? quoted.slice(1, -1).replace(/''/g, "'") : JSON.parse(quoted);
 }
 
-function removeWorkspaceOverrides(workspace: string): string {
+/**
+ * @param {string} workspace
+ * @returns {string}
+ */
+function removeWorkspaceOverrides(workspace) {
   return workspace.replace(/^overrides:\n(?:[ \t]+.*(?:\n|$))*/m, '');
 }
 
-function formatWorkspaceOverrides(overrides: Record<string, string>): string {
+/**
+ * @param {Record<string, string>} overrides
+ * @returns {string}
+ */
+function formatWorkspaceOverrides(overrides) {
   return Object.entries(overrides)
     .map(([packageName, target]) => `  ${JSON.stringify(packageName)}: ${JSON.stringify(target)}`)
     .join('\n');

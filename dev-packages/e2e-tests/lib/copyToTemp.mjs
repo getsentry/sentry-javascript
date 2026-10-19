@@ -1,22 +1,31 @@
+// @ts-check
 /* eslint-disable no-console */
-import { readFileSync, writeFileSync } from 'fs';
-import { cp } from 'fs/promises';
-import { isAbsolute, join, resolve } from 'path';
+import { readFileSync, writeFileSync } from 'node:fs';
+import { cp } from 'node:fs/promises';
+import { dirname, isAbsolute, join, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
-export async function copyToTemp(originalPath: string, tmpDirPath: string): Promise<void> {
+const __dirname = dirname(fileURLToPath(import.meta.url));
+
+/**
+ * @param {string} originalPath
+ * @param {string} tmpDirPath
+ * @returns {Promise<void>}
+ */
+export async function copyToTemp(originalPath, tmpDirPath) {
   // copy files to tmp dir
   await cp(originalPath, tmpDirPath, { recursive: true });
 
   fixPackageJson(tmpDirPath);
 }
 
-function fixPackageJson(cwd: string): void {
+/**
+ * @param {string} cwd
+ */
+function fixPackageJson(cwd) {
   const packageJsonPath = join(cwd, 'package.json');
-  const packageJson = JSON.parse(readFileSync(packageJsonPath, 'utf8')) as {
-    dependencies?: Record<string, string>;
-    devDependencies?: Record<string, string>;
-    volta?: Record<string, unknown>;
-  };
+  /** @type {{ dependencies?: Record<string, string>; devDependencies?: Record<string, string>; volta?: Record<string, unknown> }} */
+  const packageJson = JSON.parse(readFileSync(packageJsonPath, 'utf8'));
 
   // 1. Fix file dependencies
   if (packageJson.dependencies) {
@@ -45,8 +54,11 @@ function fixPackageJson(cwd: string): void {
   writeFileSync(packageJsonPath, JSON.stringify(packageJson, null, 2));
 }
 
-// Exported for pnpmOverrides as well
-export function fixFileLinkDependencies(dependencyObj: Record<string, string>): void {
+/**
+ * Exported for pnpmOverrides as well
+ * @param {Record<string, string>} dependencyObj
+ */
+export function fixFileLinkDependencies(dependencyObj) {
   for (const [key, value] of Object.entries(dependencyObj)) {
     const prefix = value.startsWith('link:') ? 'link:' : value.startsWith('file:') ? 'file:' : null;
     if (!prefix) {

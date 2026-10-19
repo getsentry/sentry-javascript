@@ -1,6 +1,5 @@
-import * as dc from 'node:diagnostics_channel';
 import { SENTRY_OP, SENTRY_SEGMENT_NAME_SOURCE, SENTRY_ORIGIN } from '@sentry/conventions/attributes';
-import { HTTP_SERVER, MIDDLEWARE } from '@sentry/conventions/op';
+import { HANDLER, HTTP_SERVER, MIDDLEWARE } from '@sentry/conventions/op';
 import {
   isObjectLike,
   getActiveSpan,
@@ -14,17 +13,13 @@ import {
   parseStringToURLObject,
   setHttpStatus,
   type Span,
+  spanToJSON,
   startInactiveSpan,
 } from '@sentry/core';
-import {
-  bindTracingChannelToSpan,
-  setHttpServerSpanRouteAttribute,
-  type TracingChannelPayloadWithSpan,
-} from '@sentry/server-utils';
-import type { TracingRequestEvent as H3TracingRequestEvent } from 'h3/tracing';
-import type { H3Event } from 'nitro/h3';
-import type { RequestEvent as SrvxRequestEvent } from 'srvx/tracing';
-import { setServerTimingHeaders } from './setServerTimingHeaders';
+import { bindTracingChannelToSpan, type TracingChannelPayloadWithSpan } from '../../tracing-channel';
+import * as diagnosticsChannel from '../../utils/diagnosticsChannel';
+import { setHttpServerSpanRouteAttribute } from '../../utils/setHttpServerSpanRouteAttribute';
+import type { H3TracingRequestEvent, NitroH3Event, SrvxRequestEvent } from './nitroTypes';
 
 /**
  * Global object with the trace channels
@@ -67,9 +62,28 @@ function applyResponseStatus(span: Span, data: TracingChannelPayloadWithSpan<{ r
 }
 
 /**
+ * Whether the request already has an `http.server` root span, created by the runtime's own HTTP
+ * server instrumentation (Node `http`, `Bun.serve`, `Deno.serve`, Cloudflare's request wrapper).
+ */
+function hasHttpServerRootSpan(): boolean {
+  const activeSpan = getActiveSpan();
+  return !!activeSpan && spanToJSON(getRootSpan(activeSpan)).attributes[SENTRY_OP] === HTTP_SERVER;
+}
+
+/**
+ * The port the srvx server listens on. `options.port` is only the configured one, which is `0` for a
+ * random port.
+ */
+function getServerPort(server: SrvxRequestEvent['server']): number | undefined {
+  const url = server.url ? parseStringToURLObject(server.url) : undefined;
+  const port = url && 'port' in url ? Number(url.port) : undefined;
+  return port || server.options.port || undefined;
+}
+
+/**
  * Extracts the parameterized route pattern from the h3 event context.
  */
-function getParameterizedRoute(event: H3Event): string | undefined {
+function getParameterizedRoute(event: NitroH3Event): string | undefined {
   const matchedRoute = event.context?.matchedRoute;
   if (!matchedRoute) {
     return undefined;
@@ -87,13 +101,32 @@ function getParameterizedRoute(event: H3Event): string | undefined {
 
 function setupH3TracingChannels(): void {
   // Bail if this is not available
-  if (!dc.tracingChannel) {
+  if (!diagnosticsChannel.tracingChannel) {
     return;
   }
 
-  const { channel: h3Channel } = bindTracingChannelToSpan(
-    dc.tracingChannel<H3TracingRequestEvent>('h3.request'),
+  bindTracingChannelToSpan(
+    diagnosticsChannel.tracingChannel<H3TracingRequestEvent>('h3.request'),
     data => {
+      const method = data.event.req.method?.toUpperCase() || HTTP_SPAN_NAME_FALLBACK;
+
+      // The route lives on the request's `http.server` root span, so the route handler only gets a
+      // span that times the handler itself instead of yet another nested `http.server` span.
+      if (data.type === 'route' && hasHttpServerRootSpan()) {
+        const matchedRoute = data.event.context?.matchedRoute?.route;
+        const span = startInactiveSpan({
+          name: matchedRoute ? `${method} ${matchedRoute}` : method,
+          attributes: {
+            [SENTRY_ORIGIN]: 'auto.http.nitro.h3',
+            [SENTRY_OP]: HANDLER,
+          },
+        });
+
+        setParameterizedRouteAttributes(span, data.event);
+
+        return span;
+      }
+
       const parsedUrl = parseStringToURLObject(data.event.url.href);
       const routePattern = getParameterizedRoute(data.event);
 
@@ -109,19 +142,17 @@ function setupH3TracingChannels(): void {
       // With span streaming, span names have to be low cardinality, so we can't fall back to the URL.
       // Only applies to the http.server span; middleware spans keep their own naming.
       const isUnparameterizedStreamedServerSpan =
-        data?.type !== 'middleware' &&
+        data.type !== 'middleware' &&
         urlAttributes[SENTRY_SEGMENT_NAME_SOURCE] !== 'route' &&
         !!client &&
         hasSpanStreamingEnabled(client);
 
       const span = startInactiveSpan({
-        name: isUnparameterizedStreamedServerSpan
-          ? data.event.req.method?.toUpperCase() || HTTP_SPAN_NAME_FALLBACK
-          : spanName,
+        name: isUnparameterizedStreamedServerSpan ? method : spanName,
         attributes: {
           ...urlAttributes,
           [SENTRY_ORIGIN]: 'auto.http.nitro.h3',
-          [SENTRY_OP]: data?.type === 'middleware' ? MIDDLEWARE : HTTP_SERVER,
+          [SENTRY_OP]: data.type === 'middleware' ? MIDDLEWARE : HTTP_SERVER,
         },
       });
 
@@ -133,8 +164,8 @@ function setupH3TracingChannels(): void {
       beforeSpanEnd(span, data) {
         applyResponseStatus(span, data);
 
-        // Update the root span (srvx transaction) with the parameterized route name.
-        // The srvx span is created before h3 resolves the route, so it initially has the raw URL.
+        // Update the root span with the parameterized route name. The root span is created before h3
+        // resolves the route, so it initially has the raw URL.
         // Note: data.type is always 'middleware' here regardless of handler type, so we rely on
         // getParameterizedRoute() to filter out catch-all routes instead.
         const routePattern = getParameterizedRoute(data.event);
@@ -144,26 +175,25 @@ function setupH3TracingChannels(): void {
       },
     },
   );
-
-  h3Channel.subscribe({
-    start: data => {
-      setServerTimingHeaders(data.event);
-    },
-  });
 }
 
 function setupSrvxTracingChannels(): void {
-  if (!dc.tracingChannel) {
+  if (!diagnosticsChannel.tracingChannel) {
     return;
   }
 
   // Store the parent span per-request so middleware and fetch share the same parent.
   // WeakMap ensures per-request isolation in concurrent environments and automatic cleanup.
-  const requestParentSpans = new WeakMap<Request, Span>();
+  const requestParentSpans = new WeakMap<SrvxRequestEvent['request'], Span>();
 
   bindTracingChannelToSpan(
-    dc.tracingChannel<SrvxRequestEvent>('srvx.request'),
+    diagnosticsChannel.tracingChannel<SrvxRequestEvent>('srvx.request'),
     data => {
+      // srvx only opens the request's `http.server` span when the runtime has not already created one.
+      if (hasHttpServerRootSpan()) {
+        return undefined;
+      }
+
       const parsedUrl = data.request._url ? parseStringToURLObject(data.request._url.href) : undefined;
       const client = getClient();
       const [spanName, urlAttributes] = getHttpSpanDetailsFromUrlObject(
@@ -200,7 +230,7 @@ function setupSrvxTracingChannels(): void {
           ...headerAttributes,
           [SENTRY_ORIGIN]: 'auto.http.nitro.srvx',
           [SENTRY_OP]: data.middleware ? MIDDLEWARE : HTTP_SERVER,
-          'server.port': data.server.options.port,
+          'server.port': getServerPort(data.server),
         },
         // Use the same parent span as middleware to make them siblings
         parentSpan: requestParentSpans.get(data.request) || undefined,
@@ -217,7 +247,7 @@ function setupSrvxTracingChannels(): void {
   );
 
   bindTracingChannelToSpan(
-    dc.tracingChannel<SrvxRequestEvent>('srvx.middleware'),
+    diagnosticsChannel.tracingChannel<SrvxRequestEvent>('srvx.middleware'),
     data => {
       // For the first middleware, capture the current parent span per-request
       if (data.middleware?.index === 0) {
@@ -254,7 +284,7 @@ function setupSrvxTracingChannels(): void {
 /**
  * Sets the parameterized route attributes on the span.
  */
-function setParameterizedRouteAttributes(span: Span, event: H3Event): void {
+function setParameterizedRouteAttributes(span: Span, event: NitroH3Event): void {
   const matchedRoutePath = getParameterizedRoute(event);
   if (!matchedRoutePath) {
     return;

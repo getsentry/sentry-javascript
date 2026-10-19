@@ -14,6 +14,7 @@ env:
 
   CACHED_BUILD_PATHS: |
     ${{ github.workspace }}/packages/*/*.tgz
+    ${{ github.workspace }}/dev-packages/test-utils/*.tgz
     ${{ github.workspace }}/node_modules
     ${{ github.workspace }}/packages/*/node_modules
     ${{ github.workspace }}/dev-packages/*/node_modules
@@ -34,6 +35,8 @@ jobs:
         uses: actions/checkout@v7
         with:
           ref: ${{ env.HEAD_COMMIT }}
+      - name: Install pnpm
+        uses: ./.github/actions/install-pnpm
       - name: Set up Node
         uses: actions/setup-node@v7
         with:
@@ -44,12 +47,12 @@ jobs:
           path: ${{ env.CACHED_BUILD_PATHS }}
           key: canary-${{ env.HEAD_COMMIT }}
       - name: Install dependencies
-        run: yarn install
+        run: pnpm install
       - name: Build packages
-        run: yarn build
+        run: pnpm run build
 
       - name: Build tarballs
-        run: yarn build:tarball
+        run: pnpm run build:tarball
 
   job_e2e_tests:
     name: E2E ${{ matrix.label }} Test
@@ -117,6 +120,8 @@ jobs:
         uses: actions/checkout@v7
         with:
           ref: ${{ env.HEAD_COMMIT }}
+      - name: Install pnpm
+        uses: ./.github/actions/install-pnpm
       - name: Set up Node
         uses: actions/setup-node@v7
         with:
@@ -127,31 +132,31 @@ jobs:
         with:
           path: ${{ env.CACHED_BUILD_PATHS }}
           key: canary-${{ env.HEAD_COMMIT }}
-      - name: Install pnpm
-        uses: ./.github/actions/install-pnpm
 
       - name: Prepare e2e tests
-        run: yarn test:prepare
+        run: pnpm run test:prepare
         working-directory: dev-packages/e2e-tests
 
       - name: Validate test setup
-        run: yarn test:validate
+        run: pnpm run test:validate
         working-directory: dev-packages/e2e-tests
 
       - name: Copy to temp
-        run: yarn ci:copy-to-temp ./test-applications/${{ matrix.test-application }} ${{ runner.temp }}/test-application
+        run:
+          pnpm run ci:copy-to-temp ./test-applications/${{ matrix.test-application }} ${{ runner.temp
+          }}/test-application
         working-directory: dev-packages/e2e-tests
 
       - name: Add pnpm overrides
         run:
-          yarn ci:pnpm-overrides ${{ runner.temp }}/test-application ${{ github.workspace
+          pnpm run ci:pnpm-overrides ${{ runner.temp }}/test-application ${{ github.workspace
           }}/dev-packages/e2e-tests/packed
         working-directory: dev-packages/e2e-tests
 
       - name: Build E2E app
         working-directory: ${{ runner.temp }}/test-application
         timeout-minutes: 7
-        run: yarn ${{ matrix.build-command }}
+        run: pnpm ${{ matrix.build-command }}
 
       - name: Install Playwright
         uses: ./.github/actions/install-playwright
@@ -162,7 +167,7 @@ jobs:
       - name: Run E2E test
         working-directory: ${{ runner.temp }}/test-application
         timeout-minutes: 15
-        run: yarn test:assert
+        run: pnpm test:assert
 
       - name: Create Issue
         if: failure() && github.event_name == 'schedule'
