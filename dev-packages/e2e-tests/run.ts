@@ -131,7 +131,7 @@ async function getVariantBuildCommand(
 /**
  * The directory of the node version that the app pins. CI uses the same pin (see `node-version-file` in
  * .github/workflows/build.yml). Only node comes from Volta: Volta cannot run pnpm 12
- * (https://github.com/volta-cli/volta/issues/2114), so pnpm comes from the root devDependencies.
+ * (https://github.com/volta-cli/volta/issues/2114), so the apps use the pnpm version that runs this script.
  */
 function getPinnedNodeDir(cwd: string): string | undefined {
   try {
@@ -149,7 +149,7 @@ async function run(): Promise<void> {
   // Load environment variables from .env file locally
   dotenv.config();
 
-  // Allow to run a single app only via `yarn test:run <app-name>`
+  // Allow to run a single app only via `pnpm run test:run <app-name>`
   const appName = process.argv[2] || '';
   // Forward any additional flags to the test command
   const allTestFlags = process.argv.slice(3);
@@ -220,9 +220,7 @@ async function run(): Promise<void> {
   console.log('Cleaning test-applications...');
   console.log('');
 
-  // Not `pnpm clean:test-applications`: pnpm checks a package's dependencies before it runs a script,
-  // and it would install this yarn workspace package with pnpm.
-  await asyncExec('yarn clean:test-applications', { env, cwd: __dirname });
+  await asyncExec('pnpm run clean:test-applications', { env, cwd: __dirname });
   await asyncExec('pnpm cache delete "@sentry/*"', { env, cwd: __dirname });
 
   const testAppPaths = appName ? [appName.trim()] : globSync('*', { cwd: `${__dirname}/test-applications/` });

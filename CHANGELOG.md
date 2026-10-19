@@ -19,6 +19,8 @@
 
   Also, the server no longer sends spans of tunnel requests when span streaming is on, because these spans only show the SDK's own traffic.
 
+Work in this release was contributed by @adityareddy-dev, @jpdefo, and @Jxxunnn. Thank you for your contributions!
+
 ## 11.8.0
 
 ### Important Changes
