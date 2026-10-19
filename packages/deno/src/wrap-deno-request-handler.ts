@@ -45,6 +45,15 @@ function captureServeError(e: unknown): void {
   });
 }
 
+// A user hook that throws must not fail the request or leave the span open.
+function callHook(name: string, hook: () => void): void {
+  try {
+    hook();
+  } catch (e) {
+    debug.warn(`Error in the Deno.serve ${name} hook.`, e);
+  }
+}
+
 function shouldCreateSpan(
   client: Client,
   integration: DenoServeIntegrationOptions | undefined,
@@ -178,7 +187,10 @@ export const wrapDenoRequestHandler = <Addr extends Deno.Addr = Deno.Addr>(
         }
 
         return startSpanManual({ name, attributes }, async span => {
-          integration?.onSpanCreated?.(span, request);
+          const { onSpanCreated, onSpanEnd } = integration ?? {};
+          if (onSpanCreated) {
+            callHook('onSpanCreated', () => onSpanCreated(span, request));
+          }
           let res: Response;
 
           try {
@@ -196,8 +208,11 @@ export const wrapDenoRequestHandler = <Addr extends Deno.Addr = Deno.Addr>(
             throw e;
           }
 
-          const onSpanEnd = integration?.onSpanEnd;
-          return streamResponse(span, res, onSpanEnd && (() => onSpanEnd(span, request, res)));
+          return streamResponse(
+            span,
+            res,
+            onSpanEnd && (() => callHook('onSpanEnd', () => onSpanEnd(span, request, res))),
+          );
         });
       },
     );

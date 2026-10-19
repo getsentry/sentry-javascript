@@ -997,7 +997,7 @@ Deno.test('Deno.serve should not create spans for requests that ignoreIncomingRe
   const errorEvents: ErrorEvent[] = [];
   const urlPaths: string[] = [];
 
-  init({
+  const client = init({
     dsn: 'https://username@domain/123',
     tracesSampleRate: 1,
     traceLifecycle: 'static',
@@ -1031,7 +1031,7 @@ Deno.test('Deno.serve should not create spans for requests that ignoreIncomingRe
   await (await fetch(`${server.url}/health/fail`)).text();
   await (await fetch(`${server.url}/users`)).text();
   await server.close();
-  await delay(100);
+  await client.flush();
 
   assertEquals(urlPaths, ['/health?ok=1', '/health/fail', '/users']);
   assertEquals(
@@ -1102,7 +1102,7 @@ Deno.test('Deno.serve should not create spans when spans is false, but still cap
   const transactionEvents: TransactionEvent[] = [];
   const errorEvents: ErrorEvent[] = [];
 
-  init({
+  const client = init({
     dsn: 'https://username@domain/123',
     tracesSampleRate: 1,
     traceLifecycle: 'static',
@@ -1130,7 +1130,7 @@ Deno.test('Deno.serve should not create spans when spans is false, but still cap
   await (await fetch(`${server.url}/ok`)).text();
   await (await fetch(`${server.url}/error`, { method: 'POST', body: 'payload' })).text();
   await server.close();
-  await delay(100);
+  await client.flush();
 
   assertEquals(transactionEvents.length, 0);
   assertEquals(errorEvents.length, 1);
@@ -1245,3 +1245,88 @@ Deno.test('Deno.serve should call onSpanEnd when a streamed response finishes', 
   assertEquals(transactionEvents.length, 1);
   assertEquals(transactionEvents[0]?.contexts?.trace?.data?.['test.ended'], true);
 });
+
+Deno.test('Deno.serve should still respond and end the span when onSpanCreated throws', async () => {
+  resetGlobals();
+  const transactionEvents: TransactionEvent[] = [];
+
+  init({
+    dsn: 'https://username@domain/123',
+    tracesSampleRate: 1,
+    traceLifecycle: 'static',
+    integrations: integrations => [
+      ...integrations.filter(integration => integration.name !== 'DenoServe'),
+      denoServeIntegration({
+        onSpanCreated: () => {
+          throw new Error('onSpanCreated failed');
+        },
+      }),
+    ],
+    beforeSendTransaction: (event: TransactionEvent) => {
+      transactionEvents.push(event);
+      return null;
+    },
+  }) as DenoClient;
+
+  const server = await serveForTest(() => new Response('OK'));
+  const response = await fetch(`${server.url}/created`);
+  assertEquals(response.status, 200);
+  assertEquals(await response.text(), 'OK');
+  await server.close();
+
+  assertEquals(
+    transactionEvents.map(event => event.transaction),
+    ['GET /created'],
+  );
+});
+
+for (const [label, makeResponse] of [
+  ['a response', () => new Response('OK')],
+  [
+    'a streamed response',
+    () =>
+      new Response(
+        new ReadableStream({
+          start(controller) {
+            controller.enqueue(new TextEncoder().encode('OK'));
+            controller.close();
+          },
+        }),
+        { headers: { 'content-type': 'text/event-stream' } },
+      ),
+  ],
+] as const) {
+  Deno.test(`Deno.serve should still respond and end the span when onSpanEnd throws for ${label}`, async () => {
+    resetGlobals();
+    const transactionEvents: TransactionEvent[] = [];
+
+    init({
+      dsn: 'https://username@domain/123',
+      tracesSampleRate: 1,
+      traceLifecycle: 'static',
+      integrations: integrations => [
+        ...integrations.filter(integration => integration.name !== 'DenoServe'),
+        denoServeIntegration({
+          onSpanEnd: () => {
+            throw new Error('onSpanEnd failed');
+          },
+        }),
+      ],
+      beforeSendTransaction: (event: TransactionEvent) => {
+        transactionEvents.push(event);
+        return null;
+      },
+    }) as DenoClient;
+
+    const server = await serveForTest(makeResponse);
+    const response = await fetch(`${server.url}/ended`);
+    assertEquals(response.status, 200);
+    assertEquals(await response.text(), 'OK');
+    await server.close();
+
+    assertEquals(
+      transactionEvents.map(event => event.transaction),
+      ['GET /ended'],
+    );
+  });
+}
