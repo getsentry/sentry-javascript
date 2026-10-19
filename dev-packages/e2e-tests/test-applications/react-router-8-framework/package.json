@@ -105,6 +105,12 @@
         "label": "react-router-8-framework (tunnel-basepath)"
       },
       {
+        "runtime": "cloudflare",
+        "build-command": "pnpm test:build:tunnel-basepath",
+        "assert-command": "pnpm test:assert:tunnel-basepath",
+        "label": "react-router-8-framework (tunnel-basepath-cloudflare)"
+      },
+      {
         "label": "react-router-8-framework (tunnel-dev)",
         "build-command": "pnpm install",
         "assert-command": "pnpm test:assert:tunnel-dev"
