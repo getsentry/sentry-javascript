@@ -158,9 +158,11 @@ describe('sentryHandle with the managed tunnel', () => {
 
   it('answers tunnel requests without resolving the route', async () => {
     const tunnelPath = SentryCore.getTunnelPath(DSN)!;
+    const body = SentryCore.serializeEnvelope(SentryCore.createEnvelope({ dsn: DSN }, [])) as string;
     const request = new Request(`http://localhost:3000${tunnelPath}`, {
       method: 'POST',
-      body: SentryCore.serializeEnvelope(SentryCore.createEnvelope({ dsn: DSN }, [])) as BodyInit,
+      body,
+      headers: { 'content-length': String(body.length) },
     });
     const mockResolve = vi.fn();
 
