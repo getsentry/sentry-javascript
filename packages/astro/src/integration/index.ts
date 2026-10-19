@@ -7,7 +7,6 @@ import { createRequire } from 'module';
 import * as path from 'path';
 import type { VitePlugin } from './cloudflare';
 import { sentryCloudflareNodeWarningPlugin, sentryCloudflareVitePlugin } from './cloudflare';
-import { makeSentryMiddlewareVitePlugin, SENTRY_MIDDLEWARE_MODULE } from './middleware/virtual';
 import { buildClientSnippet, buildSdkInitFileImportSnippet, buildServerSnippet } from './snippets';
 import { getAstroTunnelOptions, makeTunnelOptionsVitePlugin, TUNNEL_OPTIONS_IMPORT } from './tunnel';
 import type { SentryOptions } from './types';
@@ -182,23 +181,18 @@ export const sentryAstro = (options: SentryOptions = {}): AstroIntegration => {
           }
         }
 
-        let serverInitSnippet = '';
         if (sdkEnabled.server) {
           const pathToServerInit = serverInitPath ? path.resolve(serverInitPath) : findDefaultSdkInitFile('server');
 
           if (pathToServerInit) {
             debug && logger.info(`Using ${pathToServerInit} for server init.`);
-            serverInitSnippet = tunnelOptionsImport + buildSdkInitFileImportSnippet(pathToServerInit);
+            // Always inject the server config via `injectScript('page-ssr')`.
+            // This ensures Sentry.init() runs in dev mode (where the Vite plugin doesn't fire)
+            // and also serves as the fallback for non-Cloudflare adapters in production.
+            injectScript('page-ssr', tunnelOptionsImport + buildSdkInitFileImportSnippet(pathToServerInit));
           } else if (!usesCloudflareVitePlugin) {
             debug && logger.info('Using default server init.');
-            serverInitSnippet = tunnelOptionsImport + buildServerSnippet(options || {});
-          }
-
-          // Always inject the server config via `injectScript('page-ssr')`.
-          // This ensures Sentry.init() runs in dev mode (where the Vite plugin doesn't fire)
-          // and also serves as the fallback for non-Cloudflare adapters in production.
-          if (serverInitSnippet) {
-            injectScript('page-ssr', serverInitSnippet);
+            injectScript('page-ssr', tunnelOptionsImport + buildServerSnippet(options || {}));
           }
 
           if (isCloudflareWorkers && command !== 'dev') {
@@ -245,10 +239,9 @@ export const sentryAstro = (options: SentryOptions = {}): AstroIntegration => {
         const shouldAddMiddleware = sdkEnabled.server && autoInstrumentation?.requestHandler !== false;
 
         if (isSSR && shouldAddMiddleware) {
-          updateConfig({ vite: { plugins: [makeSentryMiddlewareVitePlugin(serverInitSnippet)] } });
           addMiddleware({
             order: 'pre',
-            entrypoint: SENTRY_MIDDLEWARE_MODULE,
+            entrypoint: '@sentry/astro/middleware',
           });
         }
       },

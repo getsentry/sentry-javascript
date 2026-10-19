@@ -680,31 +680,8 @@ describe('sentryAstro integration', () => {
     expect(addMiddleware).toHaveBeenCalledTimes(1);
     expect(addMiddleware).toHaveBeenCalledWith({
       order: 'pre',
-      entrypoint: 'virtual:@sentry/astro/middleware',
+      entrypoint: '@sentry/astro/middleware',
     });
-  });
-
-  it('runs the server init before the middleware, so requests that render no page find a client', async () => {
-    const integration = sentryAstro({});
-    const updateConfig = vi.fn();
-    const injectScript = vi.fn();
-
-    // @ts-expect-error - the hook exists and we only need to pass what we actually use
-    await integration.hooks['astro:config:setup']({
-      // @ts-expect-error - we only need to pass what we actually use
-      config: { output: 'server' },
-      addMiddleware: vi.fn(),
-      updateConfig,
-      injectScript,
-    });
-
-    const plugin = updateConfig.mock.calls
-      .flatMap(([config]) => config.vite?.plugins ?? [])
-      .find(plugin => plugin.name === 'sentry-astro-middleware');
-    const resolvedId = plugin.resolveId('virtual:@sentry/astro/middleware');
-    const serverInit = injectScript.mock.calls.find(([stage]) => stage === 'page-ssr')?.[1];
-
-    expect(plugin.load(resolvedId)).toBe(`${serverInit}\nexport { onRequest } from "@sentry/astro/middleware";\n`);
   });
 
   it.each([{ output: 'static' }, { output: undefined }])(
