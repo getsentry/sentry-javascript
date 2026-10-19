@@ -62,6 +62,23 @@ export type DenoServeIntegrationOptions = {
   onSpanEnd?: (span: Span, request: Request, response: Response) => void;
 
   /**
+   * Whether the integration should create [Sessions](https://docs.sentry.io/product/releases/health/#sessions) for
+   * incoming requests to track the health and crash-free rate of your releases in Sentry.
+   *
+   * For a streamed response, the session ends when the stream finishes.
+   *
+   * @default `true`
+   */
+  sessions?: boolean;
+
+  /**
+   * Number of milliseconds until sessions are flushed as a session aggregate.
+   *
+   * @default `60000` (60s)
+   */
+  sessionFlushingDelayMS?: number;
+
+  /**
    * Do not capture spans for incoming `Deno.serve` requests with the given status codes.
    * By default, some 3xx and 4xx status codes are dropped (see @default).
    * Expects an array of status codes or a range of status codes, e.g. [[300,399], 404] would ignore 3xx and 404 status codes.
@@ -149,6 +166,8 @@ const _denoServeIntegration = ((options: DenoServeIntegrationOptions = {}) => {
     spans: options.spans,
     onSpanCreated: options.onSpanCreated,
     onSpanEnd: options.onSpanEnd,
+    sessions: options.sessions ?? true,
+    sessionFlushingDelayMS: options.sessionFlushingDelayMS,
     processEvent(event: Event): Event | null {
       // Gated on this integration's own span origin so it does not filter `node:http`
       // transactions, which `denoHttpIntegration` owns via its own `ignoreStatusCodes`.

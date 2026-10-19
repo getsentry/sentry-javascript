@@ -25,7 +25,7 @@ import {
   winterCGRequestToRequestData,
   withIsolationScope,
 } from '@sentry/core';
-import { getClientIPAddress, isStaticAssetRequest } from '@sentry/core/server';
+import { getClientIPAddress, isStaticAssetRequest, startRequestSession } from '@sentry/core/server';
 import type { DenoServeIntegrationOptions } from './integrations/deno-serve';
 import { streamResponse } from './utils/streaming';
 
@@ -100,16 +100,24 @@ export const wrapDenoRequestHandler = <Addr extends Deno.Addr = Deno.Addr>(
     }
     isolationScope.setClient(client);
 
+    const integration = client.getIntegrationByName<Integration & DenoServeIntegrationOptions>('DenoServe');
+    const endSession = integration?.sessions
+      ? startRequestSession(client, {
+          requestIsolationScope: isolationScope,
+          sessionFlushingDelayMS: integration.sessionFlushingDelayMS,
+        })
+      : undefined;
+
     if (request.method === 'OPTIONS' || request.method === 'HEAD') {
       try {
         return await handler();
       } catch (e) {
         captureServeError(e);
         throw e;
+      } finally {
+        endSession?.();
       }
     }
-
-    const integration = client.getIntegrationByName<Integration & DenoServeIntegrationOptions>('DenoServe');
 
     const urlObject = parseStringToURLObject(request.url);
     const [rawName, attributes] = getHttpSpanDetailsFromUrlObject(
@@ -181,16 +189,18 @@ export const wrapDenoRequestHandler = <Addr extends Deno.Addr = Deno.Addr>(
       },
       async () => {
         if (!createSpan) {
+          let res: Response;
           try {
-            const res = await handler();
+            res = await handler();
             isolationScope.setContext('response', {
               status_code: res.status,
             });
-            return res;
           } catch (e) {
             captureServeError(e);
+            endSession?.();
             throw e;
           }
+          return endSession ? streamResponse(undefined, res, endSession) : res;
         }
 
         return startSpanManual({ name, attributes }, async span => {
@@ -212,14 +222,16 @@ export const wrapDenoRequestHandler = <Addr extends Deno.Addr = Deno.Addr>(
           } catch (e) {
             span.end();
             captureServeError(e);
+            endSession?.();
             throw e;
           }
 
-          return streamResponse(
-            span,
-            res,
-            onSpanEnd && (() => callUserCallback('onSpanEnd', () => onSpanEnd(span, request, res), undefined)),
-          );
+          return streamResponse(span, res, () => {
+            if (onSpanEnd) {
+              callUserCallback('onSpanEnd', () => onSpanEnd(span, request, res), undefined);
+            }
+            endSession?.();
+          });
         });
       },
     );
