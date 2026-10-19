@@ -181,6 +181,19 @@ describe('makeManagedTunnelTransport', () => {
     },
   );
 
+  it.each([404, 405])('keeps using the tunnel when Sentry answers %s through its handler', async statusCode => {
+    const sentryResponse = { statusCode, headers: { 'x-sentry-tunnel': '1' } } as TransportMakeRequestResponse;
+    const { transport, sent } = setup({ [TUNNEL_URL]: [sentryResponse, tunnelResponse] });
+
+    expect(await transport.send(makeEnvelope('a'))).toBe(sentryResponse);
+    await transport.send(makeEnvelope('b'));
+
+    expect(sent.map(({ url, id }) => [url, id])).toEqual([
+      [TUNNEL_URL, 'a'],
+      [TUNNEL_URL, 'b'],
+    ]);
+  });
+
   it('never sends an envelope again after a 2xx the tunnel handler did not produce, only the ones after it', async () => {
     const { transport, sent } = setup({
       [TUNNEL_URL]: [{ statusCode: 200, headers: {} } as TransportMakeRequestResponse],
