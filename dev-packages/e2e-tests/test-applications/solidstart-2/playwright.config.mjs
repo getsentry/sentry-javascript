@@ -1,7 +1,7 @@
 import { getPlaywrightConfig } from '@sentry-internal/test-utils';
 
 const config = getPlaywrightConfig({
-  startCommand: process.env.TEST_ENV === 'development' ? 'pnpm exec vite dev --port 3030' : 'pnpm start',
+  startCommand: 'pnpm start',
   port: 3030,
 });
 
