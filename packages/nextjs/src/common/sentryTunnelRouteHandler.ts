@@ -1,5 +1,6 @@
 import type { TunnelOptions } from '@sentry/core';
-import { getClient, handleTunnelRequest, isTunnelRequest } from '@sentry/core';
+import { getClient, handleTunnelRequest } from '@sentry/core';
+import { isTunnelRequest } from '@sentry/core/server';
 import { getInjectedManagedTunnelOptions, MANAGED_TUNNEL_PATH_PARAM, MANAGED_TUNNEL_ROUTE } from './managedTunnelRoute';
 
 /**

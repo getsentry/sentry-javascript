@@ -1,5 +1,6 @@
-import type { TunnelRequestLike } from '@sentry/core';
-import { getClient, isTunnelRequest as isManagedTunnelRequest } from '@sentry/core';
+import type { TunnelRequestLike } from '@sentry/core/server';
+import { getClient } from '@sentry/core';
+import { isTunnelRequest as isManagedTunnelRequest } from '@sentry/core/server';
 import { getInjectedManagedTunnelOptions } from './managedTunnelRoute';
 
 /**

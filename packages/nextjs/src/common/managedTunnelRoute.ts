@@ -1,6 +1,7 @@
 import { HTTP_TARGET } from '@sentry/conventions/attributes';
 import type { Options, TunnelOptions } from '@sentry/core';
-import { escapeStringForRegex, getTunnelPaths, GLOBAL_OBJ } from '@sentry/core';
+import { escapeStringForRegex, GLOBAL_OBJ } from '@sentry/core';
+import { getTunnelPaths } from '@sentry/core/server';
 
 /**
  * The route the managed tunnel rewrite points at. The user's `app/sentry-tunnel/route.ts` answers it.

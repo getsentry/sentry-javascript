@@ -1,6 +1,7 @@
 import { HTTP_TARGET, URL_FULL, URL_PATH, SENTRY_ORIGIN } from '@sentry/conventions/attributes';
 import type { RawAttributes } from '@sentry/core';
-import { getClient, isSentryRequestUrl, isTunnelRequest, type Span } from '@sentry/core';
+import { getClient, isSentryRequestUrl, type Span } from '@sentry/core';
+import { isTunnelRequest } from '@sentry/core/server';
 import { getInjectedManagedTunnelOptions, MANAGED_TUNNEL_ROUTE } from '../managedTunnelRoute';
 import { ATTR_NEXT_SPAN_TYPE } from '../nextSpanAttributes';
 import { TRANSACTION_ATTR_SHOULD_DROP_TRANSACTION } from '../span-attributes-with-logic-attached';
