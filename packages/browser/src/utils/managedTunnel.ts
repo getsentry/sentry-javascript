@@ -1,5 +1,11 @@
 import type { Envelope, Transport, TransportMakeRequestResponse, TunnelOptions } from '@sentry/core';
-import { debug, getEnvelopeEndpointWithUrlEncodedAuth, getTunnelPath, makeDsn } from '@sentry/core';
+import {
+  debug,
+  getEnvelopeEndpointWithUrlEncodedAuth,
+  getTunnelPath,
+  makeDsn,
+  normalizeTunnelBasePath,
+} from '@sentry/core';
 import { DEBUG_BUILD } from '../debug-build';
 import type { BrowserOptions } from '../client';
 import type { BrowserTransportOptions } from '../transports/types';
@@ -22,7 +28,7 @@ export function resolveBrowserTunnelOption(
     return { tunnel: undefined, transportOptions };
   }
 
-  const basePath = tunnelOptions.basePath?.replace(/\/$/, '') ?? '';
+  const basePath = normalizeTunnelBasePath(tunnelOptions.basePath);
   const resolvedTunnel = `${basePath}${tunnelPath}${tunnelOptions.trailingSlash ? '/' : ''}`;
 
   DEBUG_BUILD && debug.log(`Tunneling events to "${resolvedTunnel}"`);

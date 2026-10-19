@@ -36,6 +36,16 @@ describe('resolveBrowserTunnelOption', () => {
     expect(isTunnelRequest({ method: 'POST', url: tunnel! }, { allowedDsns: [DSN], basePath: '/docs' })).toBe(true);
   });
 
+  it('normalizes the base path like the server does, so the tunnel URL is never page-relative', () => {
+    expect(resolveBrowserTunnelOption({ dsn: DSN, tunnel: { basePath: 'docs' } }).tunnel).toBe(
+      `/docs${getTunnelPath(DSN)}`,
+    );
+    expect(resolveBrowserTunnelOption({ dsn: DSN, tunnel: { basePath: './docs/' } }).tunnel).toBe(
+      `/docs${getTunnelPath(DSN)}`,
+    );
+    expect(resolveBrowserTunnelOption({ dsn: DSN, tunnel: { basePath: './' } }).tunnel).toBe(getTunnelPath(DSN));
+  });
+
   it('uses a fixed path instead of the DSN-derived one', () => {
     const { tunnel, transportOptions } = resolveBrowserTunnelOption({ dsn: DSN, tunnel: { path: '/monitor' } });
 
