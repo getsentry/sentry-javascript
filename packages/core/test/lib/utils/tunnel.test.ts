@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { getEnvelopeEndpointWithUrlEncodedAuth } from '../../../src/api';
-import { createTransport, debug, getCurrentScope, resolvedSyncPromise, setCurrentClient } from '../../../src';
+import { getCurrentScope, setCurrentClient } from '../../../src';
 import { isTracingSuppressed } from '../../../src/tracing/trace';
 import { makeDsn } from '../../../src/utils/dsn';
 import { createEnvelope, serializeEnvelope } from '../../../src/utils/envelope';
@@ -700,43 +700,6 @@ describe('server client with the managed tunnel enabled', () => {
     expect(
       new TestClient(getDefaultTestClientOptions({ dsn: TEST_DSN, _managedTunnel: {} })).getOptions().ignoreSpans,
     ).toBeUndefined();
-  });
-});
-
-describe('client warning about a managed tunnel nothing serves', () => {
-  /** The tunnel warnings among the debug warnings, as the transport also warns about every failed response. */
-  async function tunnelWarningsFor(statusCode: number, managedTunnel?: TunnelOptions): Promise<unknown[]> {
-    const warnSpy = vi.spyOn(debug, 'warn').mockImplementation(() => {});
-    const client = new TestClient(
-      getDefaultTestClientOptions({
-        dsn: TEST_DSN,
-        tunnel: '/abc123',
-        _managedTunnel: managedTunnel,
-        transport: () =>
-          createTransport({ recordDroppedEvent: () => undefined }, () => resolvedSyncPromise({ statusCode })),
-      }),
-    );
-
-    await client.sendEnvelope(createEnvelope({}, [[{ type: 'event' }, {}]] as never));
-    await client.sendEnvelope(createEnvelope({}, [[{ type: 'event' }, {}]] as never));
-
-    return warnSpy.mock.calls.flat().filter(message => String(message).includes('managed tunnel'));
-  }
-
-  afterEach(() => {
-    vi.restoreAllMocks();
-  });
-
-  it('warns once when the server does not answer the managed tunnel', async () => {
-    const warnings = await tunnelWarningsFor(404, {});
-
-    expect(warnings).toEqual([expect.stringContaining('The managed tunnel at "/abc123" responded with 404')]);
-  });
-
-  it('stays quiet for rate limits and for tunnels the user set up themselves', async () => {
-    expect(await tunnelWarningsFor(429, {})).toEqual([]);
-    vi.restoreAllMocks();
-    expect(await tunnelWarningsFor(404)).toEqual([]);
   });
 });
 

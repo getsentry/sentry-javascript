@@ -1,5 +1,6 @@
 import type { Integration, Options } from '@sentry/core';
-import { applySdkMetadata, debug, envToBool, getSDKSource, resolveServerTunnelOption } from '@sentry/core';
+import { applySdkMetadata, debug, envToBool, getSDKSource } from '@sentry/core';
+import { resolveServerTunnelOption } from '@sentry/core/server';
 import type { NodeClient, NodeOptions } from '@sentry/node';
 import { getDefaultIntegrationsWithoutPerformance, initWithoutDefaultIntegrations } from '@sentry/node';
 import { awsIntegration } from '@sentry/server-utils';
