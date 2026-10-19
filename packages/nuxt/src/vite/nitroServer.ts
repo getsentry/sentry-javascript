@@ -124,6 +124,10 @@ function setupDeprecatedInjectMode(
  * `setupNitroServer` and adds this on its own.
  */
 export function addTunnelPlugin(serverApi: ServerApi): void {
+  if (serverApi === 'nuxt') {
+    return;
+  }
+
   const moduleDirResolver = createResolver(import.meta.url);
   addNitroPlugin(
     moduleDirResolver.resolve(
