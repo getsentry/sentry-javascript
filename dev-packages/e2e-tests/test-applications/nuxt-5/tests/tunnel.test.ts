@@ -3,6 +3,13 @@ import { getSpanOp, waitForStreamedSpan } from '@sentry-internal/test-utils';
 
 test.skip(!process.env.E2E_TEST_TUNNEL, 'Only runs in the tunnel variant');
 
+test.beforeAll(async ({ request }) => {
+  // `nuxt dev` opens the port before it's ready and answers 503 until then, and Playwright only waits for the port.
+  await expect
+    .poll(async () => (await request.get(`${process.env.E2E_TEST_BASE_PATH ?? ''}/`)).status(), { timeout: 30_000 })
+    .not.toBe(503);
+});
+
 const BASE_PATH = process.env.E2E_TEST_BASE_PATH ?? '';
 const TUNNEL_PATH = new RegExp(`^${BASE_PATH}/[a-z0-9]{1,7}$`);
 
