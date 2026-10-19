@@ -1,6 +1,6 @@
 import type { Nuxt } from '@nuxt/schema';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { setupNitroServer } from '../../src/vite/nitroServer';
+import { addTunnelPlugin, setupNitroServer } from '../../src/vite/nitroServer';
 
 const addNitroPluginMock = vi.hoisted(() => vi.fn());
 const addServerImportsMock = vi.hoisted(() => vi.fn());
@@ -91,6 +91,12 @@ describe('setupNitroServer', () => {
       expect(addNitroPluginMock).toHaveBeenNthCalledWith(6, `./runtime/plugins/${storage}`);
     },
   );
+
+  it('adds no tunnel plugin to a host without Nitro', () => {
+    addTunnelPlugin('nuxt');
+
+    expect(addNitroPluginMock).not.toHaveBeenCalled();
+  });
 
   it('instruments the middleware and adds the config shim once Nitro initializes', () => {
     const { nuxt, callHook } = createFakeNuxt();
