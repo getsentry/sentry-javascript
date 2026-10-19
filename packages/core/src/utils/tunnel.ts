@@ -346,12 +346,9 @@ function prependToStream(
 }
 
 function forwardHeaders(request: Request): Record<string, string> {
+  // No `Content-Length`: the body is a stream, and some runtimes' `fetch` rejects the header on one (Next.js's edge
+  // runtime in dev).
   const headers: Record<string, string> = { 'Content-Type': 'application/x-sentry-envelope' };
-  // Keeps the upload fixed-length where the runtime allows it (Node, Bun), instead of chunked.
-  const contentLength = request.headers.get('content-length');
-  if (contentLength) {
-    headers['Content-Length'] = contentLength;
-  }
 
   // Relay infers the user's IP and geo from the sender, which is now this server. Proxies and CDNs put the
   // visitor's IP in these headers, in the order Relay itself reads them.

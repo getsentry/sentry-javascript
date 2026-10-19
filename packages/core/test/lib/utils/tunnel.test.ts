@@ -121,27 +121,6 @@ describe('handleTunnelRequest', () => {
     expect(rejected.headers.get('X-Sentry-Tunnel')).toBe('1');
   });
 
-  it('forwards the content length of the incoming request', async () => {
-    fetchMock.mockResolvedValueOnce(new Response('ok'));
-    const body = `${JSON.stringify({ dsn: TEST_DSN })}\n`;
-
-    await handleTunnelRequest({
-      request: new Request('http://localhost/tunnel', {
-        method: 'POST',
-        body,
-        headers: { 'content-length': String(body.length) },
-      }),
-      allowedDsns: [TEST_DSN],
-    });
-
-    expect(fetchMock).toHaveBeenCalledWith(
-      expect.any(String),
-      expect.objectContaining({
-        headers: { 'Content-Type': 'application/x-sentry-envelope', 'Content-Length': String(body.length) },
-      }),
-    );
-  });
-
   it.each([
     ['cf-connecting-ip', { 'cf-connecting-ip': '1.1.1.1', 'x-forwarded-for': '2.2.2.2' }, '1.1.1.1'],
     ['x-vercel-forwarded-for', { 'x-vercel-forwarded-for': '3.3.3.3', 'x-forwarded-for': '2.2.2.2' }, '3.3.3.3'],
