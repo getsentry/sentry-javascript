@@ -1,7 +1,12 @@
 import type { Client } from '../client';
 import { getClient } from '../currentScopes';
 import type { IgnoreSpanFilter, TunnelOptions } from '../types/options';
-import { getTunnelIgnoreSpanFilters, normalizeTunnelBasePath, withPathBelowBasePath } from './tunnel';
+import {
+  getTunnelIgnoreSpanFilters,
+  normalizeTunnelBasePath,
+  resolveTunnelPaths,
+  withPathBelowBasePath,
+} from './tunnel';
 
 /**
  * Managed tunnel settings a framework SDK knows outside `init`.
@@ -37,8 +42,9 @@ export function setManagedTunnelDefaults(defaults: ManagedTunnelDefaults): void 
 
 /**
  * Settles a server client's managed tunnel: the one its `init` enabled, or else the defaults, under the default base
- * path, and installs the span filters for it. Server clients call this when they're created, and
- * {@link setManagedTunnelDefaults} calls it again for a client that already exists, replacing the filters it added.
+ * path, computes the paths it's served at, and installs the span filters for them. Server clients call this when
+ * they're created, and {@link setManagedTunnelDefaults} calls it again for a client that already exists, replacing the
+ * filters it added.
  */
 export function applyManagedTunnelDefaults(client: Client | undefined): void {
   const options = client?.getOptions();
@@ -52,9 +58,10 @@ export function applyManagedTunnelDefaults(client: Client | undefined): void {
     tunnelOptions.basePath === undefined && basePath ? { ...tunnelOptions, basePath } : tunnelOptions,
   );
   options._managedTunnel = resolved;
+  options._managedTunnelPaths = resolveTunnelPaths(resolved, client.getDsn());
 
   const previousFilters = installedSpanFilters.get(client) ?? [];
-  const spanFilters = getTunnelIgnoreSpanFilters(resolved, client.getDsn());
+  const spanFilters = getTunnelIgnoreSpanFilters(resolved, options._managedTunnelPaths);
   options.ignoreSpans = [
     ...(options.ignoreSpans ?? []).filter(filter => !(previousFilters as unknown[]).includes(filter)),
     ...spanFilters,

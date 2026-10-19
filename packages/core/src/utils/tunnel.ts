@@ -20,10 +20,6 @@ export interface HandleTunnelRequestOptions {
   allowedDsns?: Array<string>;
 }
 
-// Servers derive the paths on every POST, so parse and hash each DSN once. This also keeps an invalid DSN in
-// `allowedDsns` from logging on every request. Keys come from config, never from requests, so the map stays small.
-const tunnelPathCache = new Map<string, string | undefined>();
-
 /**
  * Splits the `tunnel` option a server SDK's `init` received. A URL stays the transport tunnel for the server's own
  * envelopes. `true` or {@link TunnelOptions} enables serving the managed tunnel instead.
@@ -71,17 +67,9 @@ export function applyTunnelDefaults(
  * between them. The path is a hash so it carries nothing an ad-blocker filter list could match on.
  */
 export function getTunnelPath(dsn: DsnLike): string | undefined {
-  if (typeof dsn === 'string' && tunnelPathCache.has(dsn)) {
-    return tunnelPathCache.get(dsn);
-  }
-
   const components = makeDsn(dsn);
-  const path = components ? `/${fnv1a(dsnToString(components)).toString(36)}` : undefined;
-  if (typeof dsn === 'string') {
-    tunnelPathCache.set(dsn, path);
-  }
 
-  return path;
+  return components ? `/${fnv1a(dsnToString(components)).toString(36)}` : undefined;
 }
 
 /**
@@ -96,18 +84,27 @@ export interface TunnelRequestLike {
 }
 
 /**
- * Returns the tunnel paths the server accepts, relative to its base path. Frameworks that can only register routes
- * use these, everything else should call {@link isTunnelRequest} or {@link handleTunnelRequestIfMatched}.
- *
- * Without `options`, this uses the managed tunnel config of the active client.
+ * Returns the tunnel paths the active server client accepts, relative to its base path. Frameworks that can only
+ * register routes use these, everything else should call {@link isTunnelRequest} or
+ * {@link handleTunnelRequestIfMatched}.
  */
-export function getTunnelPaths(options?: TunnelOptions): string[] {
-  const tunnelOptions = options ?? getClient()?.getOptions()._managedTunnel;
-  if (!tunnelOptions) {
-    return [];
+export function getTunnelPaths(): string[] {
+  return getClient()?.getOptions()._managedTunnelPaths ?? [];
+}
+
+/**
+ * The paths a server client serves its managed tunnel at: the fixed `path`, or else the path of each allowed DSN and
+ * of its own. Server clients compute them once, when their managed tunnel is settled, since neither changes later.
+ */
+export function resolveTunnelPaths(tunnelOptions: TunnelOptions, ownDsn: DsnComponents | undefined): string[] {
+  if (tunnelOptions.path) {
+    return [tunnelOptions.path.replace(/\/$/, '')];
   }
 
-  return tunnelPathsFor(tunnelOptions, resolveAllowedDsns(tunnelOptions.allowedDsns));
+  // A DSN can be listed in another form than the own one, e.g. with a trailing slash, and still give the same path.
+  const paths = resolveAllowedDsns(tunnelOptions.allowedDsns, ownDsn).map(dsn => getTunnelPath(dsn));
+
+  return [...new Set(paths.filter((path): path is string => !!path))];
 }
 
 /**
@@ -115,14 +112,13 @@ export function getTunnelPaths(options?: TunnelOptions): string[] {
  * before a framework hook gets to answer the request. Besides `url.path`, they match the legacy
  * `http.url`, the only URL attribute some framework spans start with, like SvelteKit's `sveltekit.handle.root`.
  */
-export function getTunnelIgnoreSpanFilters(
-  tunnelOptions: TunnelOptions,
-  dsn: DsnComponents | undefined,
-): IgnoreSpanFilter[] {
-  const pathPattern = getTunnelPathPattern(tunnelOptions, dsn);
-  if (!pathPattern) {
+export function getTunnelIgnoreSpanFilters(tunnelOptions: TunnelOptions, paths: string[]): IgnoreSpanFilter[] {
+  if (!paths.length) {
     return [];
   }
+
+  const basePath = escapeStringForRegex(normalizeTunnelBasePath(tunnelOptions.basePath));
+  const pathPattern = `${basePath}(?:${paths.map(escapeStringForRegex).join('|')})/?`;
 
   return [
     // oxlint-disable-next-line sdk/no-regexp-constructor -- built from escaped config values, not end user input
@@ -130,22 +126,6 @@ export function getTunnelIgnoreSpanFilters(
     // oxlint-disable-next-line sdk/no-regexp-constructor -- built from escaped config values, not end user input
     { attributes: { 'http.url': new RegExp(`^[a-z][a-z\\d+.-]*://[^/]+${pathPattern}(?:[?#].*)?$`) } },
   ];
-}
-
-/**
- * The tunnel paths under the base path, as a regex source matching a pathname with an optional trailing slash.
- */
-function getTunnelPathPattern(tunnelOptions: TunnelOptions, dsn: DsnComponents | undefined): string | undefined {
-  const paths = tunnelPathsFor(tunnelOptions, resolveAllowedDsns(tunnelOptions.allowedDsns, dsn)).map(
-    escapeStringForRegex,
-  );
-  if (!paths.length) {
-    return undefined;
-  }
-
-  const basePath = escapeStringForRegex(normalizeTunnelBasePath(tunnelOptions.basePath));
-
-  return `${basePath}(?:${paths.join('|')})/?`;
 }
 
 /**
@@ -158,24 +138,22 @@ export function normalizeTunnelBasePath(basePath: string | undefined): string {
 }
 
 /**
- * Returns true if the request targets the managed tunnel.
- *
- * Without `options`, this uses the managed tunnel config of the active client and matches nothing unless its
+ * Returns true if the request targets the managed tunnel of the active client, which matches nothing unless its
  * `init` was called with `tunnel: true`.
  */
-export function isTunnelRequest(request: TunnelRequestLike, options?: TunnelOptions): boolean {
+export function isTunnelRequest(request: TunnelRequestLike): boolean {
   if (request.method !== 'POST' || !request.url) {
     return false;
   }
 
-  const tunnelOptions = options ?? getClient()?.getOptions()._managedTunnel;
+  const tunnelOptions = getClient()?.getOptions()._managedTunnel;
   if (!tunnelOptions) {
     return false;
   }
 
   const path = stripBasePath(parseUrl(request.url).path || '/', tunnelOptions.basePath);
 
-  return path !== undefined && getTunnelPaths(tunnelOptions).includes(path.replace(/\/$/, ''));
+  return path !== undefined && getTunnelPaths().includes(path.replace(/\/$/, ''));
 }
 
 /**
@@ -442,13 +420,4 @@ function fnv1a(input: string): number {
 
   // eslint-disable-next-line no-bitwise
   return hash >>> 0;
-}
-
-function tunnelPathsFor(tunnelOptions: TunnelOptions, allowedDsns: Array<string>): string[] {
-  if (tunnelOptions.path) {
-    return [tunnelOptions.path.replace(/\/$/, '')];
-  }
-
-  // A DSN can be listed in another form than the own one, e.g. with a trailing slash, and still give the same path.
-  return [...new Set(allowedDsns.map(dsn => getTunnelPath(dsn)).filter((path): path is string => !!path))];
 }

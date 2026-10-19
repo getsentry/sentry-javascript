@@ -14,12 +14,14 @@ import {
   isTunnelRequest,
   normalizeTunnelBasePath,
   resolveServerTunnelOption,
+  resolveTunnelPaths,
 } from '../../../src/utils/tunnel';
 import {
   _INTERNAL_resetManagedTunnelDefaults,
   applyManagedTunnelDefaults,
   setManagedTunnelDefaults,
 } from '../../../src/utils/managedTunnelDefaults';
+import type { DsnComponents } from '../../../src/types/dsn';
 import type { IgnoreSpanFilter, TunnelOptions } from '../../../src/types/options';
 import { getDefaultTestClientOptions, TestClient } from '../../mocks/client';
 import { ServerRuntimeClient } from '../../../src/server-runtime-client';
@@ -28,9 +30,10 @@ const TEST_DSN = 'https://public@dsn.ingest.sentry.io/1337';
 
 /** The `url.path` filter, the first of the tunnel span filters. */
 function getTunnelIgnoreSpanFilter(
-  ...args: Parameters<typeof getTunnelIgnoreSpanFilters>
+  tunnelOptions: TunnelOptions,
+  dsn: DsnComponents | undefined,
 ): IgnoreSpanFilter | undefined {
-  return getTunnelIgnoreSpanFilters(...args)[0];
+  return getTunnelIgnoreSpanFilters(tunnelOptions, resolveTunnelPaths(tunnelOptions, dsn))[0];
 }
 
 function makeEnvelopeRequest(envelopeHeader: Record<string, unknown>, url = 'http://localhost/tunnel'): Request {
@@ -375,16 +378,6 @@ describe('getTunnelPath', () => {
   it('returns undefined for an invalid DSN', () => {
     expect(getTunnelPath('not-a-dsn')).toBeUndefined();
   });
-
-  it('parses each DSN string once, so an invalid DSN logs once', () => {
-    const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
-
-    getTunnelPath('also-not-a-dsn');
-    getTunnelPath('also-not-a-dsn');
-
-    expect(consoleErrorSpy).toHaveBeenCalledOnce();
-    consoleErrorSpy.mockRestore();
-  });
 });
 
 describe('isTunnelRequest', () => {
@@ -395,20 +388,22 @@ describe('isTunnelRequest', () => {
   });
 
   it('matches a POST to the tunnel path of an allowed DSN', () => {
-    expect(isTunnelRequest({ method: 'POST', url: tunnelPath }, { allowedDsns: [TEST_DSN] })).toBe(true);
-    expect(isTunnelRequest({ method: 'POST', url: `${tunnelPath}/` }, { allowedDsns: [TEST_DSN] })).toBe(true);
+    expect(isTunnelRequestFor({ method: 'POST', url: tunnelPath }, { allowedDsns: [TEST_DSN] })).toBe(true);
+    expect(isTunnelRequestFor({ method: 'POST', url: `${tunnelPath}/` }, { allowedDsns: [TEST_DSN] })).toBe(true);
   });
 
   it('does not match other methods, other paths, or path prefixes', () => {
-    expect(isTunnelRequest({ method: 'GET', url: tunnelPath }, { allowedDsns: [TEST_DSN] })).toBe(false);
-    expect(isTunnelRequest({ method: 'POST', url: '/somewhere' }, { allowedDsns: [TEST_DSN] })).toBe(false);
-    expect(isTunnelRequest({ method: 'POST', url: `${tunnelPath}x` }, { allowedDsns: [TEST_DSN] })).toBe(false);
+    expect(isTunnelRequestFor({ method: 'GET', url: tunnelPath }, { allowedDsns: [TEST_DSN] })).toBe(false);
+    expect(isTunnelRequestFor({ method: 'POST', url: '/somewhere' }, { allowedDsns: [TEST_DSN] })).toBe(false);
+    expect(isTunnelRequestFor({ method: 'POST', url: `${tunnelPath}x` }, { allowedDsns: [TEST_DSN] })).toBe(false);
   });
 
   it('does not match the tunnel path of a DSN that is not allowed', () => {
     const otherDsn = 'https://other@example.com/9999';
 
-    expect(isTunnelRequest({ method: 'POST', url: getTunnelPath(otherDsn)! }, { allowedDsns: [TEST_DSN] })).toBe(false);
+    expect(isTunnelRequestFor({ method: 'POST', url: getTunnelPath(otherDsn)! }, { allowedDsns: [TEST_DSN] })).toBe(
+      false,
+    );
   });
 
   it('uses the managed tunnel config of the active client when no options are passed', () => {
@@ -421,43 +416,54 @@ describe('isTunnelRequest', () => {
 
   it('matches nothing without a client', () => {
     expect(isTunnelRequest({ method: 'POST', url: tunnelPath })).toBe(false);
-    expect(isTunnelRequest({ method: 'POST', url: tunnelPath }, {})).toBe(false);
   });
 
   it('matches under a base path', () => {
     expect(
-      isTunnelRequest({ method: 'POST', url: `/docs${tunnelPath}` }, { allowedDsns: [TEST_DSN], basePath: '/docs/' }),
+      isTunnelRequestFor(
+        { method: 'POST', url: `/docs${tunnelPath}` },
+        { allowedDsns: [TEST_DSN], basePath: '/docs/' },
+      ),
     ).toBe(true);
     expect(
-      isTunnelRequest({ method: 'POST', url: `/docsx${tunnelPath}` }, { allowedDsns: [TEST_DSN], basePath: '/docs' }),
+      isTunnelRequestFor(
+        { method: 'POST', url: `/docsx${tunnelPath}` },
+        { allowedDsns: [TEST_DSN], basePath: '/docs' },
+      ),
     ).toBe(false);
   });
 
   it('matches nothing outside the base path', () => {
-    expect(isTunnelRequest({ method: 'POST', url: tunnelPath }, { allowedDsns: [TEST_DSN], basePath: '/docs' })).toBe(
+    expect(
+      isTunnelRequestFor({ method: 'POST', url: tunnelPath }, { allowedDsns: [TEST_DSN], basePath: '/docs' }),
+    ).toBe(false);
+    expect(isTunnelRequestFor({ method: 'POST', url: '/monitor' }, { path: '/monitor', basePath: '/docs' })).toBe(
       false,
     );
-    expect(isTunnelRequest({ method: 'POST', url: '/monitor' }, { path: '/monitor', basePath: '/docs' })).toBe(false);
   });
 });
 
 describe('isTunnelRequest request shapes', () => {
   const tunnelPath = getTunnelPath(TEST_DSN)!;
 
+  afterEach(() => {
+    getCurrentScope().setClient(undefined);
+  });
+
   it('accepts a fetch Request with an absolute URL and query', () => {
     const request = new Request(`https://example.com${tunnelPath}?o=1`, { method: 'POST' });
 
-    expect(isTunnelRequest(request, { allowedDsns: [TEST_DSN] })).toBe(true);
+    expect(isTunnelRequestFor(request, { allowedDsns: [TEST_DSN] })).toBe(true);
   });
 
   it('accepts a Node IncomingMessage-like object', () => {
     const incomingMessage = { method: 'POST', url: `${tunnelPath}?o=1`, headers: { host: 'example.com' } };
 
-    expect(isTunnelRequest(incomingMessage, { allowedDsns: [TEST_DSN] })).toBe(true);
+    expect(isTunnelRequestFor(incomingMessage, { allowedDsns: [TEST_DSN] })).toBe(true);
   });
 
   it('does not match without a URL', () => {
-    expect(isTunnelRequest({ method: 'POST' }, { allowedDsns: [TEST_DSN] })).toBe(false);
+    expect(isTunnelRequestFor({ method: 'POST' }, { allowedDsns: [TEST_DSN] })).toBe(false);
   });
 });
 
@@ -469,22 +475,22 @@ describe('getTunnelPaths', () => {
   it('returns one path per allowed DSN and skips invalid ones', () => {
     const otherDsn = 'https://other@o2.ingest.sentry.io/42';
 
-    expect(getTunnelPaths({ allowedDsns: [TEST_DSN, otherDsn, 'not-a-dsn'] })).toEqual([
+    expect(resolveTunnelPaths({ allowedDsns: [TEST_DSN, otherDsn, 'not-a-dsn'] }, undefined)).toEqual([
       getTunnelPath(TEST_DSN),
       getTunnelPath(otherDsn),
     ]);
   });
 
   it('returns a fixed path instead of the DSN-derived ones', () => {
-    expect(getTunnelPaths({ path: '/monitor', allowedDsns: [TEST_DSN] })).toEqual(['/monitor']);
-    expect(isTunnelRequest({ method: 'POST', url: '/monitor' }, { path: '/monitor', allowedDsns: [TEST_DSN] })).toBe(
+    expect(resolveTunnelPaths({ path: '/monitor', allowedDsns: [TEST_DSN] }, undefined)).toEqual(['/monitor']);
+    expect(isTunnelRequestFor({ method: 'POST', url: '/monitor' }, { path: '/monitor', allowedDsns: [TEST_DSN] })).toBe(
       true,
     );
   });
 
   it('matches a fixed path that ends with a slash', () => {
-    expect(isTunnelRequest({ method: 'POST', url: '/monitor' }, { path: '/monitor/' })).toBe(true);
-    expect(isTunnelRequest({ method: 'POST', url: '/monitor/' }, { path: '/monitor/' })).toBe(true);
+    expect(isTunnelRequestFor({ method: 'POST', url: '/monitor' }, { path: '/monitor/' })).toBe(true);
+    expect(isTunnelRequestFor({ method: 'POST', url: '/monitor/' }, { path: '/monitor/' })).toBe(true);
   });
 
   it('serves the path of the active client DSN on top of allowedDsns, once', () => {
@@ -502,6 +508,17 @@ describe('getTunnelPaths', () => {
 
     setTestClient(TEST_DSN, {});
     expect(getTunnelPaths()).toEqual([getTunnelPath(TEST_DSN)]);
+  });
+
+  it('derives the paths once per client, so an invalid DSN in allowedDsns logs once', () => {
+    const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    setTestClient(TEST_DSN, { allowedDsns: ['also-not-a-dsn'] });
+
+    isTunnelRequest({ method: 'POST', url: getTunnelPath(TEST_DSN) });
+    isTunnelRequest({ method: 'POST', url: getTunnelPath(TEST_DSN) });
+
+    expect(consoleErrorSpy).toHaveBeenCalledOnce();
+    consoleErrorSpy.mockRestore();
   });
 });
 
@@ -770,5 +787,12 @@ describe('setManagedTunnelDefaults', () => {
 });
 
 function setTestClient(dsn: string | undefined, managedTunnel?: TunnelOptions): void {
-  setCurrentClient(new TestClient(getDefaultTestClientOptions({ dsn, _managedTunnel: managedTunnel })));
+  setCurrentClient(new ServerRuntimeClient(getDefaultTestClientOptions({ dsn, _managedTunnel: managedTunnel })));
+}
+
+/** `isTunnelRequest` for a server client with this managed tunnel and no DSN of its own. */
+function isTunnelRequestFor(request: Parameters<typeof isTunnelRequest>[0], managedTunnel: TunnelOptions): boolean {
+  setTestClient(undefined, managedTunnel);
+
+  return isTunnelRequest(request);
 }
