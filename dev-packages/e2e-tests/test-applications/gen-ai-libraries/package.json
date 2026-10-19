@@ -6,8 +6,8 @@
   "type": "module",
   "scripts": {
     "dev:node": "node --import tsx/esm --import ./src/instrument.node.ts src/entry.node.ts",
-    "dev:cloudflare": "wrangler dev --config ./dist/gen_ai_libraries/wrangler.json --var \"E2E_TEST_DSN:$E2E_TEST_DSN\" --var \"E2E_OPENROUTER_API_KEY:$E2E_OPENROUTER_API_KEY\" --port 38787",
-    "preview": "vite preview --port 38787",
+    "dev:cloudflare": "wrangler dev --config ./dist/gen_ai_libraries/wrangler.json --var \"E2E_TEST_DSN:$E2E_TEST_DSN\" --var \"E2E_OPENROUTER_API_KEY:$E2E_OPENROUTER_API_KEY\" --port 8787",
+    "preview": "vite preview --port 8787",
     "test": "playwright test",
     "clean": "npx rimraf node_modules dist pnpm-lock.yaml",
     "test:build": "pnpm install",
