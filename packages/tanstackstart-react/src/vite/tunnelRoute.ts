@@ -1,5 +1,6 @@
 import type { TunnelOptions } from '@sentry/core';
-import { enableManagedTunnel, getClient, normalizeTunnelBasePath, setManagedTunnelBasePath } from '@sentry/core';
+import { normalizeTunnelBasePath } from '@sentry/core';
+import { setManagedTunnelDefaults } from '@sentry/core/server';
 import type { Plugin } from 'vite';
 
 export type TunnelRouteOptions =
@@ -164,11 +165,7 @@ export function makeServerEntryTunnelPlugin(
     // `vite dev` takes each request in this process and passes it on to where the server entry runs, so its
     // `http.server` span comes from the SDK `--import` set up here, which the server entry never reaches.
     configureServer() {
-      const basePath = getBasePath();
-      if (normalizedTunnelOptions) {
-        enableManagedTunnel(getClient(), basePath ? { basePath, ...normalizedTunnelOptions } : normalizedTunnelOptions);
-      }
-      setManagedTunnelBasePath(getClient(), basePath);
+      setManagedTunnelDefaults({ tunnel: normalizedTunnelOptions, basePath: getBasePath() });
     },
     load(id) {
       const normalizedId = normalizePath(id);
