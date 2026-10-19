@@ -4,10 +4,13 @@ import { applyTunnelRouteOption } from '../../src/client/tunnelRoute';
 
 const globalWithInjectedValues = global as typeof global & {
   _sentryRewritesTunnelPath?: string;
+  _sentryTunnelRouteMode?: string;
 };
 
 beforeEach(() => {
+  vi.restoreAllMocks();
   globalWithInjectedValues._sentryRewritesTunnelPath = undefined;
+  globalWithInjectedValues._sentryTunnelRouteMode = undefined;
 });
 
 describe('applyTunnelRouteOption()', () => {
@@ -112,6 +115,32 @@ describe('Random tunnel route generation', () => {
     const options: any = {
       dsn: 'https://11111111111111111111111111111111@o2222222.ingest.sentry.io/3333333',
     } as BrowserOptions;
+
+    applyTunnelRouteOption(options);
+
+    expect(options.tunnel).toBeUndefined();
+  });
+});
+
+describe('applyTunnelRouteOption() in handler mode', () => {
+  it.each([
+    ['a SaaS DSN', 'https://11111111111111111111111111111111@o2222222.ingest.us.sentry.io/3333333'],
+    ['a self-hosted DSN', 'https://11111111111111111111111111111111@sentry.example.com/3333333'],
+  ])('tunnels %s to the tunnel path with no query', (_description, dsn) => {
+    globalWithInjectedValues._sentryRewritesTunnelPath = '/my-error-monitoring-route';
+    globalWithInjectedValues._sentryTunnelRouteMode = 'handler';
+    const options: BrowserOptions = { dsn };
+
+    applyTunnelRouteOption(options);
+
+    expect(options.tunnel).toBe('/my-error-monitoring-route');
+  });
+
+  it("Doesn't apply `tunnelRoute` when DSN is invalid", () => {
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+    globalWithInjectedValues._sentryRewritesTunnelPath = '/my-error-monitoring-route';
+    globalWithInjectedValues._sentryTunnelRouteMode = 'handler';
+    const options: BrowserOptions = { dsn: 'invalidDsn' };
 
     applyTunnelRouteOption(options);
 
