@@ -8,9 +8,16 @@ import type { RouteManifest } from '../manifest/types';
 import type { NextConfigObject, SentryBuildOptions } from '../types';
 import { requiresInstrumentationHook } from '../util';
 import { getGitRevision, getInstrumentationClientFileContents } from './buildTime';
-import { resolveTunnelRoute, setUpTunnelRewriteRules } from './tunnel';
+import {
+  findTunnelRouteHandlerFile,
+  resolveTunnelRoute,
+  setUpTunnelHandlerRewrite,
+  setUpTunnelRewriteRules,
+} from './tunnel';
 
 let showedExportModeTunnelWarning = false;
+let showedUnusedTunnelRouteHandlerWarning = false;
+let showedTunnelRouteHandlerModeLog = false;
 let showedExperimentalBuildModeWarning = false;
 
 /**
@@ -26,7 +33,7 @@ export function resolveReleaseName(userSentryOptions: SentryBuildOptions): strin
 }
 
 /**
- * Applies tunnel-route rewrites, if configured.
+ * Applies tunnel-route rewrites, if configured. Uses handler mode if the project has a tunnel route handler file.
  *
  * Note: this mutates `userSentryOptions` (to store the resolved tunnel route) and `incomingUserNextConfigObject`.
  */
@@ -34,6 +41,11 @@ export function maybeSetUpTunnelRouteRewriteRules(
   incomingUserNextConfigObject: NextConfigObject,
   userSentryOptions: SentryBuildOptions,
 ): void {
+  if (userSentryOptions.tunnelRoute === undefined) {
+    maybeWarnAboutUnusedTunnelRouteHandler(incomingUserNextConfigObject, userSentryOptions.silent);
+    return;
+  }
+
   if (!userSentryOptions.tunnelRoute) {
     return;
   }
@@ -53,7 +65,41 @@ export function maybeSetUpTunnelRouteRewriteRules(
   const resolvedTunnelRoute = resolveTunnelRoute(userSentryOptions.tunnelRoute);
   userSentryOptions.tunnelRoute = resolvedTunnelRoute || undefined;
 
-  setUpTunnelRewriteRules(incomingUserNextConfigObject, resolvedTunnelRoute);
+  const tunnelRouteHandlerFile = findTunnelRouteHandlerFile(incomingUserNextConfigObject.pageExtensions);
+  if (!tunnelRouteHandlerFile) {
+    setUpTunnelRewriteRules(incomingUserNextConfigObject, resolvedTunnelRoute);
+    return;
+  }
+
+  setUpTunnelHandlerRewrite(incomingUserNextConfigObject, resolvedTunnelRoute);
+
+  if (!showedTunnelRouteHandlerModeLog && !userSentryOptions.silent) {
+    showedTunnelRouteHandlerModeLog = true;
+    // eslint-disable-next-line no-console
+    console.log(
+      `[@sentry/nextjs] The tunnel route sends events through ${tunnelRouteHandlerFile}. Only the event payload goes to Sentry.`,
+    );
+  }
+}
+
+function maybeWarnAboutUnusedTunnelRouteHandler(
+  incomingUserNextConfigObject: NextConfigObject,
+  silent: boolean | undefined,
+): void {
+  if (silent || showedUnusedTunnelRouteHandlerWarning || incomingUserNextConfigObject.output === 'export') {
+    return;
+  }
+
+  const tunnelRouteHandlerFile = findTunnelRouteHandlerFile(incomingUserNextConfigObject.pageExtensions);
+  if (!tunnelRouteHandlerFile) {
+    return;
+  }
+
+  showedUnusedTunnelRouteHandlerWarning = true;
+  // eslint-disable-next-line no-console
+  console.warn(
+    `[@sentry/nextjs] Found ${tunnelRouteHandlerFile}, but the \`tunnelRoute\` option is not set. Set \`tunnelRoute\` in \`withSentryConfig\` to send events through this route.`,
+  );
 }
 
 /**

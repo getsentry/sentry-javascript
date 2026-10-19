@@ -4,6 +4,23 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+### Important Changes
+
+- **feat(v10/nextjs): Add a tunnel route handler that sends only the event payload to Sentry ([#25456](https://github.com/getsentry/sentry-javascript/pull/25456))**
+
+  The `tunnelRoute` option can now send events through a route handler in your app. The handler forwards only the event payload to Sentry, and no request headers. To use it, add this file next to your `tunnelRoute` option:
+
+  ```ts
+  // app/sentry-tunnel/route.ts (or src/app/sentry-tunnel/route.ts)
+  export { POST } from '@sentry/nextjs/tunnel';
+  ```
+
+  The handler accepts events for the DSN of your server SDK. To accept other DSNs, use `createSentryTunnelRoute({ allowedDsns })` from the same import. Without the file, the tunnel route works as before.
+
+  With the handler, tunnel requests go through your middleware. If your middleware blocks unauthenticated requests, exclude the tunnel route in its `matcher`.
+
+  Also, the server no longer sends spans of tunnel requests when span streaming is on, because these spans only show the SDK's own traffic.
+
 ## 10.76.2
 
 - feat(v10/deps): Bump bundler plugins to 5.4.1 ([#25147](https://github.com/getsentry/sentry-javascript/pull/25147))

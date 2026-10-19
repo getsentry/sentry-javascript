@@ -1,7 +1,10 @@
 // mock helper functions not tested directly in this file
 import '../mocks';
 import * as core from '@sentry/core';
-import { describe, expect, it, vi } from 'vitest';
+import * as fs from 'fs';
+import type * as os from 'os';
+import * as path from 'path';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import * as getBuildPluginOptionsModule from '../../../src/config/getBuildPluginOptions';
 import type * as loadOrchestrionBundlerModule from '../../../src/config/loadOrchestrionBundler';
 import * as util from '../../../src/config/util';
@@ -16,6 +19,9 @@ import {
   userNextConfig,
 } from '../fixtures';
 import { materializeFinalNextConfig, materializeFinalWebpackConfig } from '../testUtils';
+
+const realFs = await vi.importActual<typeof fs>('fs');
+const realOs = await vi.importActual<typeof os>('os');
 
 // Stub only the plugin factory. The externals handler under test needs the real
 // `resolveOrchestrionRuntimeRequest`. The bundler module loads via native `require`, which
@@ -926,6 +932,41 @@ describe('constructWebpackConfigFunction()', () => {
       });
 
       expect(finalWebpackConfig.externals).toBeUndefined();
+    });
+  });
+
+  describe('tunnel route value injection', () => {
+    let projectDir: string | undefined;
+    let cwdSpy: ReturnType<typeof vi.spyOn> | undefined;
+
+    afterEach(() => {
+      vi.mocked(fs.statSync).mockReset();
+      cwdSpy?.mockRestore();
+      if (projectDir) {
+        realFs.rmSync(projectDir, { recursive: true, force: true });
+      }
+    });
+
+    it('injects the tunnel path and the handler mode', async () => {
+      projectDir = realFs.mkdtempSync(path.join(realOs.tmpdir(), 'sentry-nextjs-webpack-tunnel-'));
+      realFs.mkdirSync(path.join(projectDir, 'app/sentry-tunnel'), { recursive: true });
+      realFs.writeFileSync(path.join(projectDir, 'app/sentry-tunnel/route.ts'), '');
+      cwdSpy = vi.spyOn(process, 'cwd').mockReturnValue(projectDir);
+      vi.mocked(fs.statSync).mockImplementation(realFs.statSync);
+
+      const finalWebpackConfig = await materializeFinalWebpackConfig({
+        exportedNextConfig: userNextConfig,
+        incomingWebpackConfig: clientWebpackConfig,
+        incomingWebpackBuildContext: clientBuildContext,
+        sentryBuildTimeOptions: { tunnelRoute: '/monitoring' },
+      });
+
+      const valueInjectionLoader = finalWebpackConfig.module.rules
+        .flatMap(rule => rule.use ?? [])
+        .find(loader => String(loader.loader).endsWith('valueInjectionLoader.js'));
+      expect(valueInjectionLoader?.options).toMatchObject({
+        values: { _sentryRewritesTunnelPath: '/monitoring', _sentryTunnelRouteMode: 'handler' },
+      });
     });
   });
 });

@@ -11,6 +11,7 @@ import type {
   TurbopackOptions,
 } from '../types';
 import { supportsNativeDebugIds, supportsTurbopackRuleCondition } from '../util';
+import { getTunnelRouteInjectedValues } from '../withSentryConfig/tunnel';
 import { generateValueInjectionRules } from './generateValueInjectionRules';
 
 /**
@@ -46,17 +47,10 @@ export function constructTurbopackConfig({
     ...(shouldEnableNativeDebugIds ? { debugIds: true } : {}),
   };
 
-  const tunnelPath =
-    userSentryOptions?.tunnelRoute !== undefined &&
-    userNextConfig.output !== 'export' &&
-    typeof userSentryOptions.tunnelRoute === 'string'
-      ? `${userNextConfig.basePath ?? ''}${userSentryOptions.tunnelRoute}`
-      : undefined;
-
   const valueInjectionRules = generateValueInjectionRules({
     routeManifest,
     nextJsVersion,
-    tunnelPath,
+    tunnelRouteValues: getTunnelRouteInjectedValues(userNextConfig, userSentryOptions),
     vercelCronsConfig,
   });
 
