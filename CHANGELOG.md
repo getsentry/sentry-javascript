@@ -4,7 +4,9 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
-Work in this release was contributed by @mketiku. Thank you for your contribution!
+Work in this release was contributed by @adityareddy-dev, @jpdefo, @Jxxunnn, @philipatkinson, @Shubham-Padkonde, @mikamikasuki, and @mketiku. Thank you for your contributions!
+
+## 11.8.0
 
 ### Important Changes
 
@@ -16,6 +18,55 @@ Work in this release was contributed by @mketiku. Thank you for your contributio
   - `@sentry/webpack-plugin` requires webpack 5.1 or higher. The `@sentry/webpack-plugin/webpack5` entry point still works and exports the same plugin as `@sentry/webpack-plugin`.
   - The plugins use the `sentry` CLI SDK instead of `@sentry/cli`. Sentry self-hosted 26.4.2 or higher is supported. Lower versions may continue to work.
   - Deploys that the plugins create on Vercel use the value of `VERCEL_TARGET_ENV` (`production`, `preview` or a custom name) as their environment, instead of `vercel-production` or `vercel-preview`. To keep the old value, set `release.deploy.env`.
+
+- **feat(server-utils): Instrument the OpenAI decisions API as `gen_ai.decide` spans ([#25285](https://github.com/getsentry/sentry-javascript/pull/25285))**
+
+  OpenAI `decisions.create` calls now create `gen_ai.decide` spans.
+
+### Other Changes
+
+- feat(core): Support SuppressedError in LinkedErrors integration ([#25246](https://github.com/getsentry/sentry-javascript/pull/25246))
+- fix(astro): Delete generated source maps for static output ([#25310](https://github.com/getsentry/sentry-javascript/pull/25310))
+- fix(astro): Upload source maps of Astro 7's prerender build ([#25309](https://github.com/getsentry/sentry-javascript/pull/25309))
+- fix(browser): Apply `urlQueryParams` to the Referer header ([#25324](https://github.com/getsentry/sentry-javascript/pull/25324))
+- fix(cloudflare): auto-instrument when wrangler `main` is a package ([#25343](https://github.com/getsentry/sentry-javascript/pull/25343))
+- fix(hono): Expose runtime-specific SDK options ([#25290](https://github.com/getsentry/sentry-javascript/pull/25290))
+- fix(node): Instrument Prisma 8 CollectionBase from rc.15 ([#25301](https://github.com/getsentry/sentry-javascript/pull/25301))
+- fix(nuxt): Skip 3xx/4xx Nuxt errors in the vue:error hook ([#25341](https://github.com/getsentry/sentry-javascript/pull/25341))
+- fix(server-utils): Read pi-durable 1.2.0 tool results from `output` ([#25312](https://github.com/getsentry/sentry-javascript/pull/25312))
+- fix(server-utils): Transform modules once when two Sentry Vite plugins add orchestrion ([#25043](https://github.com/getsentry/sentry-javascript/pull/25043))
+- fix(sveltekit): add op and origin to Kit's `sveltekit.endpoint` span ([#25376](https://github.com/getsentry/sentry-javascript/pull/25376))
+- fix(tanstackstart-react): Keep parametrized route names in Nitro 3 builds ([#25307](https://github.com/getsentry/sentry-javascript/pull/25307))
+- fix(tanstackstart-react): Rewrite source paths of split route modules ([#25361](https://github.com/getsentry/sentry-javascript/pull/25361))
+
+<details>
+  <summary> <strong>Internal Changes</strong> </summary>
+
+- chore: Add external contributor to CHANGELOG.md ([#25375](https://github.com/getsentry/sentry-javascript/pull/25375))
+- ci: Install the pnpm version that Volta pins ([#25287](https://github.com/getsentry/sentry-javascript/pull/25287))
+- license: Add cli FSL notice to package licenses ([#25314](https://github.com/getsentry/sentry-javascript/pull/25314))
+- ref(core): use shared MCP attribute conventions ([#25059](https://github.com/getsentry/sentry-javascript/pull/25059))
+- ref(tanstackstart-react): Reuse shared component annotation options ([#25313](https://github.com/getsentry/sentry-javascript/pull/25313))
+- test(browser): Keep whitespace text out of the handlers-lcp page ([#25280](https://github.com/getsentry/sentry-javascript/pull/25280))
+- test(bun): Restore @sentry/core spies after the Bun.serve tests ([#25276](https://github.com/getsentry/sentry-javascript/pull/25276))
+- test(bundler-plugins): Disable CLI telemetry in the CLI contract tests ([#25308](https://github.com/getsentry/sentry-javascript/pull/25308))
+- test(e2e): Add node-openai-decisions-send-to-sentry test app ([#25331](https://github.com/getsentry/sentry-javascript/pull/25331))
+- test(e2e): Add node-openai-send-to-sentry test app ([#24824](https://github.com/getsentry/sentry-javascript/pull/24824))
+- test(e2e): Add nuxt-5-sourcemaps test ([#25268](https://github.com/getsentry/sentry-javascript/pull/25268))
+- test(e2e): Inherit root Volta config in all e2e test apps ([#25369](https://github.com/getsentry/sentry-javascript/pull/25369))
+- test(e2e): Use an external host address for the Lambda DSN on loopback hostnames ([#25282](https://github.com/getsentry/sentry-javascript/pull/25282))
+- test(nextjs): Run nextjs-16-tunnel on Cloudflare ([#25161](https://github.com/getsentry/sentry-javascript/pull/25161))
+- test(nextjs): Switch DEBUG_BUILD with a getter instead of re-importing the SDK ([#25279](https://github.com/getsentry/sentry-javascript/pull/25279))
+- test(node): Await the child exit in the "should exit" integration tests ([#25277](https://github.com/getsentry/sentry-javascript/pull/25277))
+- test(node): Cover ioredis v6 in the diagnostics_channel suite ([#25300](https://github.com/getsentry/sentry-javascript/pull/25300))
+- test(node): Cover LangChain model calls made from a tool without config ([#25326](https://github.com/getsentry/sentry-javascript/pull/25326))
+- test(node): Log slow and failed Docker Compose starts in integration tests ([#25278](https://github.com/getsentry/sentry-javascript/pull/25278))
+- test(node): Unflake captureMessage with_level test ([#25358](https://github.com/getsentry/sentry-javascript/pull/25358))
+- test(sveltekit): Pin rollup to 4.64.5 ([#25328](https://github.com/getsentry/sentry-javascript/pull/25328))
+
+</details>
+
+Work in this release was contributed by @kunal649 and @mketiku. Thank you for your contributions!
 
 ## 11.7.0
 

@@ -1,0 +1,6 @@
+allowBuilds:
+  esbuild: true
+  sharp: true
+minimumReleaseAge: 0
+overrides:
+  'esbuild': '0.24.0'

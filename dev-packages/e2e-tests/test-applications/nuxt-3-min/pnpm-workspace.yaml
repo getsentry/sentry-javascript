@@ -1,0 +1,5 @@
+allowBuilds:
+  esbuild: true
+minimumReleaseAge: 0
+overrides:
+  'ofetch': '1.4.0'
