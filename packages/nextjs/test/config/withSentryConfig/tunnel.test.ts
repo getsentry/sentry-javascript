@@ -21,6 +21,15 @@ describe('findTunnelRouteHandlerFile', () => {
     expect(findTunnelRouteHandlerFile(undefined, makeProject(files))).toBe(expectedFile);
   });
 
+  // Next.js finds `pages` and `app` separately, so a root `pages` does not hide `src/app`, only `src/pages`
+  // Next.js 16 rejects this case at build time.
+  // https://github.com/vercel/next.js/blob/7a7d48862287fd5caecd99da41149ecbddf37320/packages/next/src/lib/find-pages-dir.ts#L4-L13
+  it('finds the file in `src/app` next to a root `pages` directory', () => {
+    const projectDir = makeProject(['pages/index.tsx', 'src/app/sentry-tunnel/route.ts']);
+
+    expect(findTunnelRouteHandlerFile(undefined, projectDir)).toBe('src/app/sentry-tunnel/route.ts');
+  });
+
   it('ignores `src/app` when there is a root `app` directory', () => {
     const projectDir = makeProject(['app/page.tsx', 'src/app/sentry-tunnel/route.ts']);
 
