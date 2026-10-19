@@ -60,7 +60,6 @@ async function run() {
 
     // Else, we fetch the results for the comparison branch and compare them with the current branch (likely running on a PR)
     let base;
-    let baseIsNotLatest = false;
     let baseWorkflowRun;
 
     try {
@@ -91,11 +90,6 @@ async function run() {
       });
 
       base = JSON.parse(await fs.readFile(RESULTS_FILE_PATH, { encoding: 'utf8' }));
-
-      if (!artifacts.isLatest) {
-        baseIsNotLatest = true;
-        core.info('Base artifact is not the latest one. This may lead to incorrect results.');
-      }
     } catch (error) {
       core.startGroup('Warning, unable to find base results');
       core.error(error);
@@ -105,10 +99,52 @@ async function run() {
     const increases = base ? limit.getSizeIncreases(base, current, sizeConfig) : [];
     const bodyParts = [SIZE_LIMIT_HEADING];
 
-    if (baseIsNotLatest) {
-      bodyParts.push(
-        '⚠️ **Warning:** The baseline is behind the target branch. Re-run after the latest base build completes for up-to-date results.',
-      );
+    // Check if our baseline build is up to date with the target branch (likely develop) and report any mismatches
+    if (base) {
+      const baselineSha = baseWorkflowRun.head_sha; // The commit SHA of the baseline build (where we pull the size-limit results from)
+      const repoUrl = `${context.serverUrl}/${repo.owner}/${repo.repo}`;
+      const commitLink = sha => `[${sha.slice(0, 7)}](${repoUrl}/commit/${sha})`;
+
+      try {
+        const { data: mergeCommit } = await octokit.rest.repos.getCommit({ ...repo, ref: context.sha });
+        const mergedBaseSha = mergeCommit.parents[0].sha; // The SHA of the target branch (likely develop) base commit that was used to test this PR
+
+        bodyParts.push(
+          `Compared: ${commitLink(context.sha)} (PR test merge using ${comparisonBranch} at ${commitLink(mergedBaseSha)})`,
+          `Against: ${commitLink(baselineSha)} (${comparisonBranch}) · [base run #${baseWorkflowRun.run_number}](${baseWorkflowRun.html_url})`,
+        );
+
+        if (baselineSha === mergedBaseSha) {
+          bodyParts.push("✅ Baseline matches: this diff contains only this PR's changes.");
+        } else {
+          const { data: comparison } = await octokit.rest.repos.compareCommitsWithBasehead({
+            ...repo,
+            basehead: `${baselineSha}...${mergedBaseSha}`,
+          });
+          const differences = [];
+          if (comparison.ahead_by > 0) {
+            differences.push(
+              `${comparison.ahead_by} ${comparisonBranch} commit(s) in the PR build are missing from the baseline`,
+            );
+          }
+          if (comparison.behind_by > 0) {
+            differences.push(
+              `${comparison.behind_by} ${comparisonBranch} commit(s) in the baseline are missing from the PR build`,
+            );
+          }
+          const guidance =
+            comparison.behind_by > 0
+              ? `Rebase your PR onto the latest ${comparisonBranch} to compare against an up-to-date baseline.`
+              : `Re-run once ${comparisonBranch}'s baseline build for ${commitLink(mergedBaseSha)} finishes.`;
+          bodyParts.push(
+            `⚠️ Baseline mismatch: ${differences.join('; ')}. Their size changes also affect this comparison. ` +
+              `[Compare commits](${comparison.html_url}). ${guidance}`,
+          );
+        }
+      } catch (error) {
+        core.warning(`Unable to check baseline alignment: ${error.message}`);
+        bodyParts.push('⚠️ Unable to verify whether the baseline matches the PR build.');
+      }
     }
 
     let failure;
