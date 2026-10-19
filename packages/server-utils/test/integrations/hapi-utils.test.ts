@@ -1,8 +1,10 @@
-import { HTTP_REQUEST_METHOD, HTTP_ROUTE } from '@sentry/conventions/attributes';
-import { setCurrentClient } from '@sentry/core';
+import { HTTP_REQUEST_METHOD, HTTP_ROUTE, SENTRY_OP, SENTRY_ORIGIN } from '@sentry/conventions/attributes';
+import { ROUTER } from '@sentry/conventions/op';
+import type { Span } from '@sentry/core';
+import { setCurrentClient, spanToJSON, startSpan } from '@sentry/core';
 import { afterEach, describe, expect, it } from 'vitest';
 import { AttributeNames } from '../../src/integrations/hapi/hapi-types';
-import { getExtMetadata, getRouteMetadata } from '../../src/integrations/hapi/hapi-utils';
+import { getExtMetadata, getRouteMetadata, wrapRouteArguments } from '../../src/integrations/hapi/hapi-utils';
 import { getDefaultTestClientOptions, TestClient } from '../mocks/client';
 
 describe('getRouteMetadata', () => {
@@ -65,6 +67,42 @@ describe('getRouteMetadata', () => {
 
     expect(getRouteMetadata({ path: '', method: 'GET' }).name).toBe('Router');
     expect(getRouteMetadata({ path: '', method: 'GET', pluginName: 'my-plugin' }).name).toBe('Request handler');
+  });
+});
+
+describe('wrapRouteArguments', () => {
+  afterEach(() => {
+    setCurrentClient(undefined as unknown as TestClient);
+  });
+
+  it.each([
+    { request: { method: 'post' }, name: 'POST /multi', method: 'POST' },
+    { request: {}, name: '/multi', method: undefined },
+  ])('names the router span $name for a multi-method route', ({ request, name, method }) => {
+    const client = new TestClient(getDefaultTestClientOptions({ tracesSampleRate: 1 }));
+    setCurrentClient(client);
+    client.init();
+    const endedSpans: Span[] = [];
+    client.on('spanEnd', span => endedSpans.push(span));
+    const route = {
+      method: ['GET', 'POST'],
+      path: '/multi',
+      handler: (_request: unknown, _h: unknown): unknown => 'ok',
+    };
+    wrapRouteArguments([route]);
+
+    const response = startSpan({ name: 'incoming' }, () => route.handler(request, {}));
+
+    expect(response).toBe('ok');
+    const routerSpan = endedSpans.map(span => spanToJSON(span)).find(span => span.attributes[SENTRY_OP] === ROUTER);
+    expect(routerSpan?.name).toBe(name);
+    expect(routerSpan?.attributes).toEqual({
+      [HTTP_ROUTE]: '/multi',
+      [HTTP_REQUEST_METHOD]: method,
+      [AttributeNames.HAPI_TYPE]: 'router',
+      [SENTRY_OP]: ROUTER,
+      [SENTRY_ORIGIN]: 'auto.http.hapi',
+    });
   });
 });
 
