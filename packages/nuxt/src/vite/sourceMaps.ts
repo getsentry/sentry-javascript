@@ -332,7 +332,7 @@ export function changeNuxtSourceMapSettings(
 }
 
 /** Logs warnings about potentially conflicting source map settings.
- *  Configures `sourcemapExcludeSources` in Nitro to make source maps usable in Sentry.
+ *  Configures `sourcemapExcludeSources` and `sourcemapMinify` in Nitro to make source maps usable in Sentry.
  *
  * only exported for testing
  */
@@ -372,10 +372,13 @@ export function validateNitroSourceMapSettings(
   }
 
   nitroConfig.rollupConfig.output.sourcemapExcludeSources = false;
+  // Nitro's source map minification runs after the bundler wrote the maps: it clears `mappings` of maps with
+  // `node_modules` sources, and Nitro 3 also deletes `sourcesContent`, which overrides `sourcemapExcludeSources`.
+  nitroConfig.experimental = { ...nitroConfig.experimental, sourcemapMinify: false };
   if (isDebug) {
     // eslint-disable-next-line no-console
     console.log(
-      '[Sentry] Set `sourcemapExcludeSources: false` in the Nuxt config (`nitro.rollupConfig.output`). Source maps will now include the actual code to be able to un-minify code snippets in Sentry.',
+      '[Sentry] Set `sourcemapExcludeSources: false` (`nitro.rollupConfig.output`) and `sourcemapMinify: false` (`nitro.experimental`) in the Nuxt config. Source maps will now include the actual code to be able to un-minify code snippets in Sentry.',
     );
   }
 }
