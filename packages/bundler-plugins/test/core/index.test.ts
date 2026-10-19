@@ -45,8 +45,21 @@ describe('getDebugIdSnippet', () => {
   it('returns the debugId injection snippet for a passed debugId', () => {
     const snippet = getDebugIdSnippet('1234');
     expect(snippet.code()).toMatchInlineSnapshot(
-      `"!function(){try{var e="undefined"!=typeof window?window:"undefined"!=typeof global?global:"undefined"!=typeof globalThis?globalThis:"undefined"!=typeof self?self:{};var n=(new e.Error).stack;n&&(e._sentryDebugIds=e._sentryDebugIds||{},e._sentryDebugIds[n]="1234",e._sentryDebugIdIdentifier="sentry-dbid-1234");}catch(e){}}();"`,
+      `"!function(){try{var e="undefined"!=typeof globalThis?globalThis:"undefined"!=typeof window?window:"undefined"!=typeof global?global:"undefined"!=typeof self?self:{};var n=(new e.Error).stack;n&&(e._sentryDebugIds=e._sentryDebugIds||{},e._sentryDebugIds[n]="1234",e._sentryDebugIdIdentifier="sentry-dbid-1234");}catch(e){}}();"`,
     );
+  });
+
+  it('registers the debug ID when a later `const global` shadows the identifier', () => {
+    // A second bundling pass over an already-injected chunk can rewrite a free
+    // `global` into a `const` declared below the injection. Reading it from the
+    // top of the file hits the temporal dead zone, where `typeof` throws rather
+    // than returning "undefined".
+    const scope: { Error: ErrorConstructor; _sentryDebugIds?: Record<string, string> } = { Error };
+    const run = new Function('globalThis', `${getDebugIdSnippet('5678').code()}\nconst global = globalThis;`);
+
+    run(scope);
+
+    expect(Object.values(scope._sentryDebugIds ?? {})).toEqual(['5678']);
   });
 });
 

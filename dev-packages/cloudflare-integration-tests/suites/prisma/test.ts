@@ -7,7 +7,10 @@ import { getSpanOp } from '../../spanUtils';
 beforeAll(() => {
   // Generate the Prisma client (including the WASM query engine used on Workers) before wrangler
   // bundles the worker. The generated client (output: "./generated") is gitignored.
-  execSync(`yarn prisma generate --schema ${join(__dirname, 'schema.prisma')}`, { cwd: __dirname, stdio: 'inherit' });
+  execSync(`pnpm exec prisma generate --schema ${join(__dirname, 'schema.prisma')}`, {
+    cwd: __dirname,
+    stdio: 'inherit',
+  });
 }, 120_000);
 
 it('captures Prisma spans for a D1 query via the @sentry/cloudflare prismaIntegration', async ({ signal }) => {

@@ -63,6 +63,7 @@ export const CHANNEL_INTEGRATION_DEFINITIONS = [
   { exportName: 'kafkaIntegration', modules: ['kafkajs'] },
   { exportName: 'redisIntegration', modules: ['redis', '@redis/client', 'ioredis'] },
   { exportName: 'dataloaderIntegration', modules: ['dataloader'] },
+  { exportName: 'nitroIntegration', modules: ['h3'] },
 ] as const satisfies ReadonlyArray<{ exportName: string; modules: readonly string[] }>;
 
 /** Look up the subscriber export name for an instrumented package, if any. */

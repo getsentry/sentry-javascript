@@ -14,7 +14,7 @@
     "@sentry/server-utils": "file:../../packed/sentry-server-utils-packed.tgz"
   },
   "devDependencies": {
-    "@sentry-internal/test-utils": "link:../../../test-utils",
+    "@sentry-internal/test-utils": "file:../../packed/sentry-internal-test-utils-packed.tgz",
     "graphql": "16.9.0",
     "rollup": "4.62.3",
     "@rollup/plugin-node-resolve": "^16.0.0",
