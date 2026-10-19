@@ -183,7 +183,11 @@ it('sends a streamed span envelope with correct spans for a manually started spa
     status: 'ok',
   });
 
-  expect(segmentSpan).toEqual({
+  // On runtimes with `Span.spanContext()`, the segment continues the Cloudflare trace, so the Cloudflare span is its parent.
+  const { parent_span_id: segmentParentSpanId, ...segmentSpanWithoutParent } = segmentSpan!;
+  expect(segmentParentSpanId).toBeOneOf([undefined, expect.stringMatching(/^[\da-f]{16}$/)]);
+
+  expect(segmentSpanWithoutParent).toEqual({
     attributes: {
       'sentry.is_localhost': { value: true, type: 'boolean' },
       [SENTRY_TRACE_LIFECYCLE]: { type: 'string', value: 'stream' },

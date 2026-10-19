@@ -648,6 +648,87 @@ describe('withSentry', () => {
         links: undefined,
       });
     });
+
+    describe('with a Cloudflare trace', () => {
+      const CLOUDFLARE_TRACE_ID = 'a1b2c3d4e5f60718293a4b5c6d7e8f90';
+      const CLOUDFLARE_SPAN_ID = 'b1c2d3e4f5a60718';
+      const CLOUDFLARE_TRACING = {
+        getActiveSpan: () => ({
+          isTraced: true,
+          spanContext: () => ({ traceId: CLOUDFLARE_TRACE_ID, spanId: CLOUDFLARE_SPAN_ID, traceFlags: 1 }),
+        }),
+      };
+
+      test.each([0, undefined])('attaches errors to the Cloudflare trace with tracesSampleRate %s', async rate => {
+        let sentryEvent: Event = {};
+        await wrapRequestHandler(
+          {
+            options: {
+              dsn: MOCK_OPTIONS.dsn,
+              cacheClient: false,
+              tracesSampleRate: rate,
+              beforeSend(event) {
+                sentryEvent = event;
+                return null;
+              },
+            },
+            request: new Request('https://example.com'),
+            context: { ...createMockExecutionContext(), tracing: CLOUDFLARE_TRACING } as unknown as ExecutionContext,
+          },
+          () => {
+            SentryCore.captureException(new Error('test'));
+            return new Response('test');
+          },
+        );
+
+        expect(sentryEvent.contexts?.trace?.trace_id).toBe(CLOUDFLARE_TRACE_ID);
+      });
+
+      test('makes the request span a child of the Cloudflare span', async () => {
+        let rootSpan: ReturnType<typeof SentryCore.spanToJSON> | undefined;
+        await wrapRequestHandler(
+          {
+            options: { dsn: MOCK_OPTIONS.dsn, cacheClient: false, tracesSampleRate: 1 },
+            request: new Request('https://example.com'),
+            context: { ...createMockExecutionContext(), tracing: CLOUDFLARE_TRACING } as unknown as ExecutionContext,
+          },
+          () => {
+            const activeSpan = SentryCore.getActiveSpan();
+            rootSpan = activeSpan ? SentryCore.spanToJSON(SentryCore.getRootSpan(activeSpan)) : undefined;
+            return new Response('test');
+          },
+        );
+
+        expect(rootSpan).toMatchObject({ trace_id: CLOUDFLARE_TRACE_ID, parent_span_id: CLOUDFLARE_SPAN_ID });
+      });
+
+      test('prefers an incoming sentry-trace header', async () => {
+        const request = new Request('https://example.com');
+        request.headers.set('sentry-trace', '12312012123120121231201212312012-1121201211212012');
+
+        let sentryEvent: Event = {};
+        await wrapRequestHandler(
+          {
+            options: {
+              dsn: MOCK_OPTIONS.dsn,
+              cacheClient: false,
+              beforeSend(event) {
+                sentryEvent = event;
+                return null;
+              },
+            },
+            request,
+            context: { ...createMockExecutionContext(), tracing: CLOUDFLARE_TRACING } as unknown as ExecutionContext,
+          },
+          () => {
+            SentryCore.captureException(new Error('test'));
+            return new Response('test');
+          },
+        );
+
+        expect(sentryEvent.contexts?.trace?.trace_id).toBe('12312012123120121231201212312012');
+      });
+    });
   });
 });
 

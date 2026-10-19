@@ -27,6 +27,7 @@ import type { CloudflareClient, CloudflareOptions } from './client';
 import type { ExecutionContextCompat } from './executionContext';
 import { flushAndDispose, getOriginalWaitUntil } from './flush';
 import { addCloudResourceContext, addCultureContext, addRequest } from './scope-utils';
+import { continueCloudflareTrace } from './utils/cloudflareTrace';
 import { getInvocationState, getInvocationWaitUntil } from './utils/invocationContext';
 import { withInvocationIsolationScope } from './utils/invocationScope';
 
@@ -158,6 +159,11 @@ export function wrapRequestHandlerWithInit(
     return continueTrace(
       { sentryTrace: request.headers.get('sentry-trace') || '', baggage: request.headers.get('baggage') },
       () => {
+        // An incoming Sentry trace keeps precedence, so traces from instrumented clients stay connected.
+        if (!request.headers.get('sentry-trace')) {
+          continueCloudflareTrace(context);
+        }
+
         // Note: This span will not have a duration unless I/O happens in the handler. This is
         // because of how the cloudflare workers runtime works.
         // See: https://developers.cloudflare.com/workers/runtime-apis/performance/

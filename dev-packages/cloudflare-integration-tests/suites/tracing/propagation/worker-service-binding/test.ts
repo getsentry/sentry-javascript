@@ -14,8 +14,9 @@ it('propagates trace from worker to worker via service binding', async ({ signal
   await runner.makeRequest('get', '/');
 
   const segmentSpans = (await spansPromise).filter(span => span.is_segment);
-  const worker = segmentSpans.find(span => !span.parent_span_id);
-  const subWorker = segmentSpans.find(span => span.parent_span_id);
+  // The worker segment has no parent in this trace. On runtimes with `Span.spanContext()`, its parent is the Cloudflare span.
+  const subWorker = segmentSpans.find(span => segmentSpans.some(parent => parent.span_id === span.parent_span_id));
+  const worker = segmentSpans.find(span => span !== subWorker);
 
   expect(worker?.name).toBe('GET /');
   expect(worker?.attributes['sentry.origin']).toEqual({ type: 'string', value: 'auto.http.cloudflare' });
