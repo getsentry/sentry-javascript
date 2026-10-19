@@ -8,10 +8,10 @@ import {
 } from '@sentry-internal/test-utils';
 import { isDevMode } from './isDevMode';
 
-const packageJson = require('../package.json');
+const nextPackageJson = require('next/package.json');
 
 test('Sends a pageload span', async ({ page }) => {
-  const nextjsVersion = packageJson.dependencies.next;
+  const nextjsVersion = nextPackageJson.version;
   const nextjsMajor = Number(nextjsVersion.split('.')[0]);
 
   const pageloadSpanPromise = waitForStreamedSpan('nextjs-app-dir', span => {
@@ -46,7 +46,7 @@ test('Sends a pageload span', async ({ page }) => {
 });
 
 test('Should send a span for instrumented server actions', async ({ page }) => {
-  const nextjsVersion = packageJson.dependencies.next;
+  const nextjsVersion = nextPackageJson.version;
   const nextjsMajor = Number(nextjsVersion.split('.')[0]);
   test.skip(!isNaN(nextjsMajor) && nextjsMajor < 14, 'only applies to nextjs apps >= version 14');
 
@@ -70,7 +70,7 @@ test('Should send a span for instrumented server actions', async ({ page }) => {
 });
 
 test('Should send a wrapped server action as a child of a nextjs span', async ({ page }) => {
-  const nextjsVersion = packageJson.dependencies.next;
+  const nextjsVersion = nextPackageJson.version;
   const nextjsMajor = Number(nextjsVersion.split('.')[0]);
 
   test.skip(!isNaN(nextjsMajor) && nextjsMajor < 14, 'only applies to nextjs apps >= version 14');
@@ -105,7 +105,7 @@ test('Should send a wrapped server action as a child of a nextjs span', async ({
 });
 
 test('Should set not_found status for server actions calling notFound()', async ({ page }) => {
-  const nextjsVersion = packageJson.dependencies.next;
+  const nextjsVersion = nextPackageJson.version;
   const nextjsMajor = Number(nextjsVersion.split('.')[0]);
   test.skip(!isNaN(nextjsMajor) && nextjsMajor < 14, 'only applies to nextjs apps >= version 14');
 
@@ -125,7 +125,7 @@ test('Should set not_found status for server actions calling notFound()', async 
 test('Should not capture "NEXT_REDIRECT" control-flow errors for server actions calling redirect()', async ({
   page,
 }) => {
-  const nextjsVersion = packageJson.dependencies.next;
+  const nextjsVersion = nextPackageJson.version;
   const nextjsMajor = Number(nextjsVersion.split('.')[0]);
   test.skip(!isNaN(nextjsMajor) && nextjsMajor < 14, 'only applies to nextjs apps >= version 14');
 

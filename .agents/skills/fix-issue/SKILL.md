@@ -73,7 +73,7 @@ A single `-m` only sets the subject — the footer would be silently dropped, an
 
 **Commit message format:** Conventional Commits — `<type>` is one of `test`, `fix`, `feat`, `ref`, `chore`, `docs`, `ci`. Look at recent commits (`git log --oneline -10`) for examples. The PR body in Step 7 will also include `Fixes #<issue-number>` as a belt-and-suspenders — GitHub recognizes the closing keyword in either place.
 
-**Do NOT run `yarn format` / `yarn lint` / `yarn test` / `yarn build:dev` before committing.** `CLAUDE.md` / `AGENTS.md` list a "Before Every Commit" checklist that includes those, but this workflow does not allowlist `yarn` (per Step 5 / Turn economy). CI will run lint and tests on the opened PR; rely on that. The pre-commit checklist in those docs does not apply to this skill.
+**Do NOT run `pnpm run format` / `pnpm run lint` / `pnpm run test` / `pnpm run build:dev` before committing.** `CLAUDE.md` / `AGENTS.md` list a "Before Every Commit" checklist that includes those, but this workflow does not allowlist `pnpm` (per Step 5 / Turn economy). CI will run lint and tests on the opened PR; rely on that. The pre-commit checklist in those docs does not apply to this skill.
 
 ### Step 7: Open a PR
 
@@ -116,7 +116,7 @@ Your budget is measured in _agent turns_ (assistant messages), not individual to
 - Plan before acting. Prefer targeted commands over broad ones: read specific line ranges instead of whole files; grep for the exact symbol instead of listing directories.
 - In each turn, issue all independent tool calls in parallel rather than spreading them across multiple turns.
 - Do NOT re-read a file you just edited to "verify" — the edit either succeeded or errored.
-- Do NOT run tests, linters, formatters, or builds. This workflow does not allowlist `yarn`/`npm`/`npx`; verification is static-only per Step 5. Attempting a test command will be blocked and waste a turn.
+- Do NOT run tests, linters, formatters, or builds. This workflow does not allowlist `pnpm`/`npm`/`npx`; verification is static-only per Step 5. Attempting a test command will be blocked and waste a turn.
 - If a search returned what you need, stop searching. Do not look for confirmation.
 
 ## Turn budget

@@ -75,21 +75,21 @@ suite or test that fails only on Bun versions older than a given one runs with `
 
 Tests can be run locally with:
 
-`yarn test`
+`pnpm run test`
 
 To run tests with Vitest's watch mode:
 
-`yarn test:watch`
+`pnpm run test:watch`
 
 To filter tests by their title:
 
-`yarn test -t "set different properties of a scope"`
+`pnpm run test -t "set different properties of a scope"`
 
 ## Debugging Tests
 
 To enable verbose logging during test execution, set the `DEBUG` environment variable:
 
-`DEBUG=1 yarn test`
+`DEBUG=1 pnpm run test`
 
 When `DEBUG` is enabled, the test runner will output:
 

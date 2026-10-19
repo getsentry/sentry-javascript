@@ -2,7 +2,7 @@ import { mkdirSync } from 'fs';
 import HtmlWebpackPlugin from 'html-webpack-plugin';
 import webpack from 'webpack';
 import webpackConfig from '../webpack.config';
-import SentryScenarioGenerationPlugin from './generatePlugin';
+import SentryScenarioGenerationPlugin, { useLoader } from './generatePlugin';
 
 export async function generatePage(
   initPath: string,
@@ -30,6 +30,9 @@ export async function generatePage(
             filename: outPageName,
             template: templatePath,
             inject: 'body',
+            // Deferred scripts may run after the loader has swapped in the CDN bundle but before it calls
+            // `init()`, so their SDK calls would be dropped. Blocking scripts always hit the loader stub.
+            scriptLoading: useLoader ? 'blocking' : 'defer',
           }),
         ],
       }),

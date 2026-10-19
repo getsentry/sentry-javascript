@@ -1,0 +1,4 @@
+allowBuilds:
+  '@parcel/watcher': true
+  msgpackr-extract: true
+minimumReleaseAge: 0
