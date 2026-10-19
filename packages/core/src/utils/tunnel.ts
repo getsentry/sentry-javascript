@@ -116,6 +116,37 @@ export function getTunnelIgnoreSpanFilter(
   tunnelOptions: TunnelOptions,
   dsn: DsnComponents | undefined,
 ): IgnoreSpanFilter | undefined {
+  const pathPattern = getTunnelPathPattern(tunnelOptions, dsn);
+
+  // oxlint-disable-next-line sdk/no-regexp-constructor -- built from escaped config values, not end user input
+  return pathPattern ? { attributes: { [URL_PATH]: new RegExp(`^${pathPattern}$`) } } : undefined;
+}
+
+/**
+ * The `ignoreSpans` filters a client installs for tunnel requests. Besides `url.path`, they match the legacy
+ * `http.url`, the only URL attribute some framework spans start with, like SvelteKit's `sveltekit.handle.root`.
+ */
+export function getTunnelIgnoreSpanFilters(
+  tunnelOptions: TunnelOptions,
+  dsn: DsnComponents | undefined,
+): IgnoreSpanFilter[] {
+  const pathPattern = getTunnelPathPattern(tunnelOptions, dsn);
+  if (!pathPattern) {
+    return [];
+  }
+
+  return [
+    // oxlint-disable-next-line sdk/no-regexp-constructor -- built from escaped config values, not end user input
+    { attributes: { [URL_PATH]: new RegExp(`^${pathPattern}$`) } },
+    // oxlint-disable-next-line sdk/no-regexp-constructor -- built from escaped config values, not end user input
+    { attributes: { 'http.url': new RegExp(`^[a-z][a-z\\d+.-]*://[^/]+${pathPattern}(?:[?#].*)?$`) } },
+  ];
+}
+
+/**
+ * The tunnel paths under the base path, as a regex source matching a pathname with an optional trailing slash.
+ */
+function getTunnelPathPattern(tunnelOptions: TunnelOptions, dsn: DsnComponents | undefined): string | undefined {
   const paths = tunnelPathsFor(tunnelOptions, resolveAllowedDsns(tunnelOptions.allowedDsns, dsn)).map(
     escapeStringForRegex,
   );
@@ -125,8 +156,7 @@ export function getTunnelIgnoreSpanFilter(
 
   const basePath = escapeStringForRegex(normalizeTunnelBasePath(tunnelOptions.basePath));
 
-  // oxlint-disable-next-line sdk/no-regexp-constructor -- built from escaped config values, not end user input
-  return { attributes: { [URL_PATH]: new RegExp(`^${basePath}(?:${paths.join('|')})/?$`) } };
+  return `${basePath}(?:${paths.join('|')})/?`;
 }
 
 /**
@@ -152,9 +182,9 @@ export function setManagedTunnelBasePath(client: Client | undefined, basePath: s
 
   options._managedTunnel = withPathBelowBasePath({ ...tunnelOptions, basePath: normalizedBasePath });
 
-  const spanFilter = getTunnelIgnoreSpanFilter(options._managedTunnel, client?.getDsn());
-  if (spanFilter) {
-    options.ignoreSpans = [...(options.ignoreSpans ?? []), spanFilter];
+  const spanFilters = getTunnelIgnoreSpanFilters(options._managedTunnel, client?.getDsn());
+  if (spanFilters.length) {
+    options.ignoreSpans = [...(options.ignoreSpans ?? []), ...spanFilters];
   }
 }
 
@@ -394,7 +424,7 @@ function forwardHeaders(request: Request): Record<string, string> {
 
 /**
  * `allowedDsns` plus the server's own DSN. The own DSN is always trusted, so listing only the browser DSN can't lock
- * out a browser that shares it. It goes last, because React Router can serve only the first path.
+ * out a browser that shares it.
  */
 function resolveAllowedDsns(
   allowedDsns: Array<string> | undefined,
