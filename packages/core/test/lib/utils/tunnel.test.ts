@@ -1,15 +1,63 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { getEnvelopeEndpointWithUrlEncodedAuth } from '../../../src/api';
+import { getCurrentScope, setCurrentClient } from '../../../src';
+import { isTracingSuppressed } from '../../../src/tracing/trace';
 import { makeDsn } from '../../../src/utils/dsn';
 import { createEnvelope, serializeEnvelope } from '../../../src/utils/envelope';
-import { handleTunnelRequest } from '../../../src/utils/tunnel';
+import {
+  applyTunnelDefaults,
+  getTunnelPath,
+  getTunnelIgnoreSpanFilters,
+  getTunnelPaths,
+  handleTunnelRequest,
+  handleTunnelRequestIfMatched,
+  isTunnelRequest,
+  normalizeTunnelBasePath,
+  resolveServerTunnelOption,
+} from '../../../src/utils/tunnel';
+import {
+  _INTERNAL_resetManagedTunnelDefaults,
+  applyManagedTunnelDefaults,
+  setManagedTunnelDefaults,
+} from '../../../src/utils/managedTunnelDefaults';
+import type { IgnoreSpanFilter, TunnelOptions } from '../../../src/types/options';
+import { getDefaultTestClientOptions, TestClient } from '../../mocks/client';
+import { ServerRuntimeClient } from '../../../src/server-runtime-client';
 
 const TEST_DSN = 'https://public@dsn.ingest.sentry.io/1337';
 
-function makeEnvelopeRequest(envelopeHeader: Record<string, unknown>): Request {
+/** The `url.path` filter, the first of the tunnel span filters. */
+function getTunnelIgnoreSpanFilter(
+  ...args: Parameters<typeof getTunnelIgnoreSpanFilters>
+): IgnoreSpanFilter | undefined {
+  return getTunnelIgnoreSpanFilters(...args)[0];
+}
+
+function makeEnvelopeRequest(envelopeHeader: Record<string, unknown>, url = 'http://localhost/tunnel'): Request {
   const envelope = createEnvelope(envelopeHeader, []);
   const body = serializeEnvelope(envelope);
-  return new Request('http://localhost/tunnel', { method: 'POST', body });
+
+  return new Request(url, { method: 'POST', body });
+}
+
+/**
+ * A request whose body starts with `head` and then never ends, so buffering it would hang the test.
+ */
+function makeEndlessRequest(head: string, onCancel?: () => void): Request {
+  const filler = new Uint8Array(16 * 1024).fill(0x61);
+  let sentHead = false;
+
+  return new Request('http://localhost/tunnel', {
+    method: 'POST',
+    duplex: 'half',
+    body: new ReadableStream<Uint8Array>({
+      pull(controller) {
+        controller.enqueue(sentHead ? filler : new TextEncoder().encode(head));
+        sentHead = true;
+      },
+      cancel: onCancel,
+    }),
+  } as RequestInit);
 }
 
 describe('handleTunnelRequest', () => {
@@ -22,6 +70,7 @@ describe('handleTunnelRequest', () => {
 
   afterEach(() => {
     vi.restoreAllMocks();
+    getCurrentScope().setClient(undefined);
   });
 
   it('forwards the envelope to Sentry and returns the upstream response', async () => {
@@ -38,9 +87,120 @@ describe('handleTunnelRequest', () => {
     expect(url).toBe(getEnvelopeEndpointWithUrlEncodedAuth(makeDsn(TEST_DSN)!));
     expect(init.method).toBe('POST');
     expect(init.headers).toEqual({ 'Content-Type': 'application/x-sentry-envelope' });
-    expect(init.body).toBeInstanceOf(Uint8Array);
+    expect(await new Response(init.body).text()).toBe(serializeEnvelope(createEnvelope({ dsn: TEST_DSN }, [])));
 
-    expect(result).toBe(upstreamResponse);
+    expect(result.status).toBe(200);
+    expect(await result.text()).toBe('ok');
+  });
+
+  it("marks every response it returns as the tunnel's, so the browser can tell it from a static host", async () => {
+    fetchMock.mockResolvedValueOnce(
+      new Response('{}', { status: 200, headers: { 'Content-Type': 'application/json', 'Content-Encoding': 'gzip' } }),
+    );
+
+    const forwarded = await handleTunnelRequest({
+      request: makeEnvelopeRequest({ dsn: TEST_DSN }),
+      allowedDsns: [TEST_DSN],
+    });
+    const rejected = await handleTunnelRequest({
+      request: makeEnvelopeRequest({ dsn: 'https://public@other.ingest.sentry.io/1' }),
+      allowedDsns: [TEST_DSN],
+    });
+
+    expect(forwarded.headers.get('X-Sentry-Tunnel')).toBe('1');
+    expect(forwarded.headers.get('Content-Type')).toBe('application/json');
+    // `fetch` already decoded the body, so the original encoding would make the browser decode it twice.
+    expect(forwarded.headers.get('Content-Encoding')).toBeNull();
+    expect(rejected.status).toBe(403);
+    expect(rejected.headers.get('X-Sentry-Tunnel')).toBe('1');
+  });
+
+  it('forwards the content length of the incoming request', async () => {
+    fetchMock.mockResolvedValueOnce(new Response('ok'));
+    const body = `${JSON.stringify({ dsn: TEST_DSN })}\n`;
+
+    await handleTunnelRequest({
+      request: new Request('http://localhost/tunnel', {
+        method: 'POST',
+        body,
+        headers: { 'content-length': String(body.length) },
+      }),
+      allowedDsns: [TEST_DSN],
+    });
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      expect.any(String),
+      expect.objectContaining({
+        headers: { 'Content-Type': 'application/x-sentry-envelope', 'Content-Length': String(body.length) },
+      }),
+    );
+  });
+
+  it.each([
+    ['cf-connecting-ip', { 'cf-connecting-ip': '1.1.1.1', 'x-forwarded-for': '2.2.2.2' }, '1.1.1.1'],
+    ['x-vercel-forwarded-for', { 'x-vercel-forwarded-for': '3.3.3.3', 'x-forwarded-for': '2.2.2.2' }, '3.3.3.3'],
+    ['x-forwarded-for', { 'x-forwarded-for': '2.2.2.2, 10.0.0.1' }, '2.2.2.2, 10.0.0.1'],
+  ])('forwards the client IP from %s', async (_, incomingHeaders, forwardedFor) => {
+    fetchMock.mockResolvedValueOnce(new Response('ok'));
+
+    await handleTunnelRequest({
+      request: new Request('http://localhost/tunnel', {
+        method: 'POST',
+        body: `${JSON.stringify({ dsn: TEST_DSN })}\n`,
+        headers: incomingHeaders,
+      }),
+      allowedDsns: [TEST_DSN],
+    });
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      expect.any(String),
+      expect.objectContaining({
+        headers: expect.objectContaining({ 'X-Sentry-Forwarded-For': forwardedFor }),
+      }),
+    );
+  });
+
+  it('rejects a disallowed DSN after reading only the envelope header', async () => {
+    const result = await handleTunnelRequest({
+      request: makeEndlessRequest(`${JSON.stringify({ dsn: 'https://other@example.com/9999' })}\n`),
+      allowedDsns: [TEST_DSN],
+    });
+
+    expect(result.status).toBe(403);
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it('cancels the body of a rejected request', async () => {
+    const onCancel = vi.fn();
+
+    await handleTunnelRequest({
+      request: makeEndlessRequest(`${JSON.stringify({ dsn: 'https://other@example.com/9999' })}\n`, onCancel),
+      allowedDsns: [TEST_DSN],
+    });
+
+    expect(onCancel).toHaveBeenCalledOnce();
+  });
+
+  it('streams an allowed envelope to Sentry without reading the rest of the body', async () => {
+    const upstreamResponse = new Response('ok');
+    fetchMock.mockResolvedValueOnce(upstreamResponse);
+
+    const result = await handleTunnelRequest({
+      request: makeEndlessRequest(`${JSON.stringify({ dsn: TEST_DSN })}\n`),
+      allowedDsns: [TEST_DSN],
+    });
+
+    expect(await result.text()).toBe('ok');
+  });
+
+  it('returns 400 when the envelope header line exceeds the limit', async () => {
+    const result = await handleTunnelRequest({
+      request: makeEndlessRequest(''),
+      allowedDsns: [TEST_DSN],
+    });
+
+    expect(result.status).toBe(400);
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 
   it('returns 500 when allowedDsns is empty', async () => {
@@ -118,7 +278,7 @@ describe('handleTunnelRequest', () => {
     expect(fetchMock).toHaveBeenCalledOnce();
     const [url] = fetchMock.mock.calls[0]!;
     expect(url).toBe(getEnvelopeEndpointWithUrlEncodedAuth(makeDsn(TEST_DSN)!));
-    expect(result).toBe(upstreamResponse);
+    expect(await result.text()).toBe('ok');
   });
 
   it('returns 500 when fetch throws a network error', async () => {
@@ -133,4 +293,478 @@ describe('handleTunnelRequest', () => {
     expect(result.status).toBe(500);
     expect(await result.text()).toBe('Failed to forward envelope to Sentry');
   });
+
+  it('forwards with tracing suppressed so the forward does not create a span', async () => {
+    let suppressed: boolean | undefined;
+    fetchMock.mockImplementationOnce(() => {
+      suppressed = isTracingSuppressed();
+
+      return Promise.resolve(new Response('ok'));
+    });
+
+    await handleTunnelRequest({ request: makeEnvelopeRequest({ dsn: TEST_DSN }), allowedDsns: [TEST_DSN] });
+
+    expect(suppressed).toBe(true);
+  });
+
+  it('accepts the DSN of the active client on top of allowedDsns', async () => {
+    setTestClient(TEST_DSN);
+    fetchMock.mockResolvedValue(new Response('ok'));
+
+    const ownDsnResult = await handleTunnelRequest({
+      request: makeEnvelopeRequest({ dsn: TEST_DSN }),
+      allowedDsns: ['https://browser@o2.ingest.sentry.io/42'],
+    });
+    const unlistedDsnResult = await handleTunnelRequest({
+      request: makeEnvelopeRequest({ dsn: 'https://other@o3.ingest.sentry.io/7' }),
+      allowedDsns: ['https://browser@o2.ingest.sentry.io/42'],
+    });
+
+    expect(ownDsnResult.status).toBe(200);
+    expect(unlistedDsnResult.status).toBe(403);
+  });
+
+  it('defaults allowedDsns to the DSN of the active client', async () => {
+    setTestClient(TEST_DSN);
+    fetchMock.mockResolvedValueOnce(new Response('ok'));
+
+    const result = await handleTunnelRequest({ request: makeEnvelopeRequest({ dsn: TEST_DSN }) });
+
+    expect(result.status).toBe(200);
+    expect(fetchMock).toHaveBeenCalledWith(
+      getEnvelopeEndpointWithUrlEncodedAuth(makeDsn(TEST_DSN)!),
+      expect.objectContaining({ method: 'POST' }),
+    );
+  });
+
+  it('returns 500 when allowedDsns is omitted and there is no client', async () => {
+    const result = await handleTunnelRequest({ request: makeEnvelopeRequest({ dsn: TEST_DSN }) });
+
+    expect(result.status).toBe(500);
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
 });
+
+describe('getTunnelPath', () => {
+  it('returns a short opaque path that does not leak the DSN', () => {
+    const path = getTunnelPath(TEST_DSN);
+
+    expect(path).toMatch(/^\/[0-9a-z]{1,7}$/);
+    expect(path).not.toContain('sentry');
+  });
+
+  // Browser and server SDKs of different versions must derive the same path, so the hash must never change.
+  it('derives a fixed path for a known DSN', () => {
+    expect(getTunnelPath(TEST_DSN)).toBe('/fdv680');
+  });
+
+  it('is stable for the same DSN and differs between DSNs', () => {
+    expect(getTunnelPath(TEST_DSN)).toBe(getTunnelPath(TEST_DSN));
+    expect(getTunnelPath(TEST_DSN)).not.toBe(getTunnelPath('https://public@dsn.ingest.sentry.io/1338'));
+  });
+
+  it('ignores DSN formatting differences so browser and server derive the same path', () => {
+    expect(getTunnelPath('https://public:secret@dsn.ingest.sentry.io/1337')).toBe(getTunnelPath(TEST_DSN));
+    expect(getTunnelPath(makeDsn(TEST_DSN)!)).toBe(getTunnelPath(TEST_DSN));
+  });
+
+  it('returns undefined for an invalid DSN', () => {
+    expect(getTunnelPath('not-a-dsn')).toBeUndefined();
+  });
+
+  it('parses each DSN string once, so an invalid DSN logs once', () => {
+    const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+    getTunnelPath('also-not-a-dsn');
+    getTunnelPath('also-not-a-dsn');
+
+    expect(consoleErrorSpy).toHaveBeenCalledOnce();
+    consoleErrorSpy.mockRestore();
+  });
+});
+
+describe('isTunnelRequest', () => {
+  const tunnelPath = getTunnelPath(TEST_DSN)!;
+
+  afterEach(() => {
+    getCurrentScope().setClient(undefined);
+  });
+
+  it('matches a POST to the tunnel path of an allowed DSN', () => {
+    expect(isTunnelRequest({ method: 'POST', url: tunnelPath }, { allowedDsns: [TEST_DSN] })).toBe(true);
+    expect(isTunnelRequest({ method: 'POST', url: `${tunnelPath}/` }, { allowedDsns: [TEST_DSN] })).toBe(true);
+  });
+
+  it('does not match other methods, other paths, or path prefixes', () => {
+    expect(isTunnelRequest({ method: 'GET', url: tunnelPath }, { allowedDsns: [TEST_DSN] })).toBe(false);
+    expect(isTunnelRequest({ method: 'POST', url: '/somewhere' }, { allowedDsns: [TEST_DSN] })).toBe(false);
+    expect(isTunnelRequest({ method: 'POST', url: `${tunnelPath}x` }, { allowedDsns: [TEST_DSN] })).toBe(false);
+  });
+
+  it('does not match the tunnel path of a DSN that is not allowed', () => {
+    const otherDsn = 'https://other@example.com/9999';
+
+    expect(isTunnelRequest({ method: 'POST', url: getTunnelPath(otherDsn)! }, { allowedDsns: [TEST_DSN] })).toBe(false);
+  });
+
+  it('uses the managed tunnel config of the active client when no options are passed', () => {
+    setTestClient(TEST_DSN);
+    expect(isTunnelRequest({ method: 'POST', url: tunnelPath })).toBe(false);
+
+    setTestClient(TEST_DSN, {});
+    expect(isTunnelRequest({ method: 'POST', url: tunnelPath })).toBe(true);
+  });
+
+  it('matches nothing without a client', () => {
+    expect(isTunnelRequest({ method: 'POST', url: tunnelPath })).toBe(false);
+    expect(isTunnelRequest({ method: 'POST', url: tunnelPath }, {})).toBe(false);
+  });
+
+  it('matches under a base path', () => {
+    expect(
+      isTunnelRequest({ method: 'POST', url: `/docs${tunnelPath}` }, { allowedDsns: [TEST_DSN], basePath: '/docs/' }),
+    ).toBe(true);
+    expect(
+      isTunnelRequest({ method: 'POST', url: `/docsx${tunnelPath}` }, { allowedDsns: [TEST_DSN], basePath: '/docs' }),
+    ).toBe(false);
+  });
+
+  it('matches nothing outside the base path', () => {
+    expect(isTunnelRequest({ method: 'POST', url: tunnelPath }, { allowedDsns: [TEST_DSN], basePath: '/docs' })).toBe(
+      false,
+    );
+    expect(isTunnelRequest({ method: 'POST', url: '/monitor' }, { path: '/monitor', basePath: '/docs' })).toBe(false);
+  });
+});
+
+describe('isTunnelRequest request shapes', () => {
+  const tunnelPath = getTunnelPath(TEST_DSN)!;
+
+  it('accepts a fetch Request with an absolute URL and query', () => {
+    const request = new Request(`https://example.com${tunnelPath}?o=1`, { method: 'POST' });
+
+    expect(isTunnelRequest(request, { allowedDsns: [TEST_DSN] })).toBe(true);
+  });
+
+  it('accepts a Node IncomingMessage-like object', () => {
+    const incomingMessage = { method: 'POST', url: `${tunnelPath}?o=1`, headers: { host: 'example.com' } };
+
+    expect(isTunnelRequest(incomingMessage, { allowedDsns: [TEST_DSN] })).toBe(true);
+  });
+
+  it('does not match without a URL', () => {
+    expect(isTunnelRequest({ method: 'POST' }, { allowedDsns: [TEST_DSN] })).toBe(false);
+  });
+});
+
+describe('getTunnelPaths', () => {
+  afterEach(() => {
+    getCurrentScope().setClient(undefined);
+  });
+
+  it('returns one path per allowed DSN and skips invalid ones', () => {
+    const otherDsn = 'https://other@o2.ingest.sentry.io/42';
+
+    expect(getTunnelPaths({ allowedDsns: [TEST_DSN, otherDsn, 'not-a-dsn'] })).toEqual([
+      getTunnelPath(TEST_DSN),
+      getTunnelPath(otherDsn),
+    ]);
+  });
+
+  it('returns a fixed path instead of the DSN-derived ones', () => {
+    expect(getTunnelPaths({ path: '/monitor', allowedDsns: [TEST_DSN] })).toEqual(['/monitor']);
+    expect(isTunnelRequest({ method: 'POST', url: '/monitor' }, { path: '/monitor', allowedDsns: [TEST_DSN] })).toBe(
+      true,
+    );
+  });
+
+  it('matches a fixed path that ends with a slash', () => {
+    expect(isTunnelRequest({ method: 'POST', url: '/monitor' }, { path: '/monitor/' })).toBe(true);
+    expect(isTunnelRequest({ method: 'POST', url: '/monitor/' }, { path: '/monitor/' })).toBe(true);
+  });
+
+  it('serves the path of the active client DSN on top of allowedDsns, once', () => {
+    const browserDsn = 'https://browser@o2.ingest.sentry.io/42';
+    setTestClient(TEST_DSN, { allowedDsns: [browserDsn, TEST_DSN] });
+
+    expect(getTunnelPaths()).toEqual([getTunnelPath(browserDsn), getTunnelPath(TEST_DSN)]);
+  });
+
+  it('uses the managed tunnel config of the active client', () => {
+    expect(getTunnelPaths()).toEqual([]);
+
+    setTestClient(TEST_DSN);
+    expect(getTunnelPaths()).toEqual([]);
+
+    setTestClient(TEST_DSN, {});
+    expect(getTunnelPaths()).toEqual([getTunnelPath(TEST_DSN)]);
+  });
+});
+
+describe('handleTunnelRequestIfMatched', () => {
+  let fetchMock: ReturnType<typeof vi.fn>;
+
+  beforeEach(() => {
+    fetchMock = vi.fn();
+    vi.stubGlobal('fetch', fetchMock);
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+    getCurrentScope().setClient(undefined);
+  });
+
+  it('forwards a matching request', async () => {
+    fetchMock.mockResolvedValueOnce(new Response('ok'));
+    setTestClient(TEST_DSN, {});
+    const request = makeEnvelopeRequest({ dsn: TEST_DSN }, `http://localhost${getTunnelPath(TEST_DSN)}`);
+
+    const result = await handleTunnelRequestIfMatched(request);
+
+    expect(result?.status).toBe(200);
+    expect(fetchMock).toHaveBeenCalledOnce();
+  });
+
+  it('forwards using the allowedDsns of the active client managed tunnel config', async () => {
+    const browserDsn = 'https://browser@o1.ingest.sentry.io/42';
+    setTestClient(TEST_DSN, { allowedDsns: [browserDsn] });
+    fetchMock.mockResolvedValueOnce(new Response('ok'));
+    const request = makeEnvelopeRequest({ dsn: browserDsn }, `http://localhost${getTunnelPath(browserDsn)}`);
+
+    const result = await handleTunnelRequestIfMatched(request);
+
+    expect(result?.status).toBe(200);
+    expect(fetchMock).toHaveBeenCalledWith(
+      getEnvelopeEndpointWithUrlEncodedAuth(makeDsn(browserDsn)!),
+      expect.objectContaining({ method: 'POST' }),
+    );
+  });
+
+  it('leaves a fixed path to the app when there is no DSN to forward to', () => {
+    setTestClient(undefined, { path: '/monitor' });
+    const request = makeEnvelopeRequest({ dsn: TEST_DSN }, 'http://localhost/monitor');
+
+    expect(handleTunnelRequestIfMatched(request)).toBeUndefined();
+    expect(request.bodyUsed).toBe(false);
+  });
+
+  it('returns undefined without reading the body when the request does not match', () => {
+    setTestClient(TEST_DSN, {});
+    const request = makeEnvelopeRequest({ dsn: TEST_DSN }, 'http://localhost/api/users');
+
+    expect(handleTunnelRequestIfMatched(request)).toBeUndefined();
+    expect(request.bodyUsed).toBe(false);
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+});
+
+describe('getTunnelIgnoreSpanFilter', () => {
+  function urlPathMatcher(filter: ReturnType<typeof getTunnelIgnoreSpanFilter>): RegExp {
+    return (filter as { attributes: { 'url.path': RegExp } }).attributes['url.path'];
+  }
+
+  it("matches the tunnel path of the client's DSN, with or without a trailing slash", () => {
+    const matcher = urlPathMatcher(getTunnelIgnoreSpanFilter({}, makeDsn(TEST_DSN)));
+    const tunnelPath = getTunnelPath(TEST_DSN)!;
+
+    expect(matcher.test(tunnelPath)).toBe(true);
+    expect(matcher.test(`${tunnelPath}/`)).toBe(true);
+    expect(matcher.test(`${tunnelPath}x`)).toBe(false);
+    expect(matcher.test('/api/users')).toBe(false);
+  });
+
+  it('follows allowedDsns, a fixed path and the base path', () => {
+    const otherDsn = 'https://other@o2.ingest.sentry.io/42';
+
+    expect(
+      urlPathMatcher(getTunnelIgnoreSpanFilter({ allowedDsns: [otherDsn] }, makeDsn(TEST_DSN))).test(
+        getTunnelPath(otherDsn)!,
+      ),
+    ).toBe(true);
+    expect(
+      urlPathMatcher(getTunnelIgnoreSpanFilter({ allowedDsns: [otherDsn] }, makeDsn(TEST_DSN))).test(
+        getTunnelPath(TEST_DSN)!,
+      ),
+    ).toBe(true);
+    expect(urlPathMatcher(getTunnelIgnoreSpanFilter({ path: '/monitor' }, undefined)).test('/monitor')).toBe(true);
+    expect(urlPathMatcher(getTunnelIgnoreSpanFilter({ path: '/monitor/' }, undefined)).test('/monitor')).toBe(true);
+    expect(
+      urlPathMatcher(getTunnelIgnoreSpanFilter({ basePath: '/app/' }, makeDsn(TEST_DSN))).test(
+        `/app${getTunnelPath(TEST_DSN)}`,
+      ),
+    ).toBe(true);
+    expect(
+      urlPathMatcher(getTunnelIgnoreSpanFilter({ basePath: '/app' }, makeDsn(TEST_DSN))).test(getTunnelPath(TEST_DSN)!),
+    ).toBe(false);
+  });
+
+  it('returns nothing when there is no path to match', () => {
+    expect(getTunnelIgnoreSpanFilter({}, undefined)).toBeUndefined();
+  });
+});
+
+describe('server client with the managed tunnel enabled', () => {
+  it('ignores the server spans of tunnel requests and keeps user filters', () => {
+    const client = new ServerRuntimeClient(
+      getDefaultTestClientOptions({ dsn: TEST_DSN, _managedTunnel: {}, ignoreSpans: ['user-filter'] }),
+    );
+    const ignoreSpans = client.getOptions().ignoreSpans!;
+
+    expect(ignoreSpans[0]).toBe('user-filter');
+    expect(
+      (ignoreSpans[1] as { attributes: { 'url.path': RegExp } }).attributes['url.path'].test(getTunnelPath(TEST_DSN)!),
+    ).toBe(true);
+  });
+
+  it('leaves ignoreSpans alone without the managed tunnel, and in non-server clients', () => {
+    expect(
+      new ServerRuntimeClient(getDefaultTestClientOptions({ dsn: TEST_DSN })).getOptions().ignoreSpans,
+    ).toBeUndefined();
+    expect(
+      new TestClient(getDefaultTestClientOptions({ dsn: TEST_DSN, _managedTunnel: {} })).getOptions().ignoreSpans,
+    ).toBeUndefined();
+  });
+});
+
+describe('resolveServerTunnelOption', () => {
+  it('keeps a URL as the transport tunnel', () => {
+    expect(resolveServerTunnelOption('https://example.com/tunnel')).toEqual({ tunnel: 'https://example.com/tunnel' });
+  });
+
+  it('enables the managed tunnel for `true` and options, and leaves the transport untunneled', () => {
+    expect(resolveServerTunnelOption(true)).toEqual({ tunnel: undefined, _managedTunnel: {} });
+    expect(resolveServerTunnelOption({ allowedDsns: [TEST_DSN] })).toEqual({
+      tunnel: undefined,
+      _managedTunnel: { allowedDsns: [TEST_DSN] },
+    });
+  });
+
+  it('serves a relative path instead of using it as the transport tunnel', () => {
+    expect(resolveServerTunnelOption('/monitor')).toEqual({ tunnel: undefined, _managedTunnel: { path: '/monitor' } });
+  });
+
+  it('leaves everything off when unset', () => {
+    expect(resolveServerTunnelOption(undefined)).toEqual({ tunnel: undefined });
+  });
+});
+
+describe('applyTunnelDefaults', () => {
+  it('fills in the defaults for `true` and options, and lets options the user set win', () => {
+    expect(applyTunnelDefaults(true, { basePath: '/app' })).toEqual({ basePath: '/app' });
+    expect(applyTunnelDefaults({ allowedDsns: [TEST_DSN] }, { basePath: '/app' })).toEqual({
+      basePath: '/app',
+      allowedDsns: [TEST_DSN],
+    });
+    expect(applyTunnelDefaults({ basePath: '/custom' }, { basePath: '/app' })).toEqual({ basePath: '/custom' });
+  });
+
+  it('treats a relative path as a managed tunnel with that path', () => {
+    expect(applyTunnelDefaults('/monitor', { basePath: '/app' })).toEqual({ basePath: '/app', path: '/monitor' });
+  });
+
+  it('does not add the base path again to a path that already starts with it', () => {
+    expect(applyTunnelDefaults('/app/monitor', { basePath: '/app' })).toEqual({ basePath: '/app', path: '/monitor' });
+    expect(applyTunnelDefaults({ path: '/app/monitor' }, { basePath: '/app' })).toEqual({
+      basePath: '/app',
+      path: '/monitor',
+    });
+    expect(applyTunnelDefaults('/application/monitor', { basePath: '/app' })).toEqual({
+      basePath: '/app',
+      path: '/application/monitor',
+    });
+  });
+
+  it('leaves a URL, an unset tunnel and empty defaults alone', () => {
+    expect(applyTunnelDefaults('https://example.com/tunnel', { basePath: '/app' })).toBe('https://example.com/tunnel');
+    expect(applyTunnelDefaults(undefined, { basePath: '/app' })).toBeUndefined();
+    expect(applyTunnelDefaults('/monitor', {})).toBe('/monitor');
+    expect(applyTunnelDefaults(true, undefined)).toBe(true);
+  });
+});
+
+describe('normalizeTunnelBasePath', () => {
+  it.each([
+    ['/app', '/app'],
+    ['/app/', '/app'],
+    ['app', '/app'],
+    ['./app/', '/app'],
+    ['./', ''],
+    ['/', ''],
+    ['', ''],
+    [undefined, ''],
+  ])('normalizes %j to %j', (input, expected) => {
+    expect(normalizeTunnelBasePath(input)).toBe(expected);
+  });
+});
+
+describe('setManagedTunnelDefaults', () => {
+  afterEach(() => {
+    getCurrentScope().setClient(undefined);
+    _INTERNAL_resetManagedTunnelDefaults();
+  });
+
+  it('serves the tunnel under the base path and drops its spans there', () => {
+    setTestClient(TEST_DSN, {});
+    const client = getCurrentScope().getClient()!;
+
+    setManagedTunnelDefaults({ basePath: '/app/' });
+
+    expect(client.getOptions()._managedTunnel).toEqual({ basePath: '/app' });
+    expect(isTunnelRequest({ method: 'POST', url: `/app${getTunnelPath(TEST_DSN)}` })).toBe(true);
+    expect(isTunnelRequest({ method: 'POST', url: getTunnelPath(TEST_DSN) })).toBe(false);
+    expect(client.getOptions().ignoreSpans).toContainEqual(
+      getTunnelIgnoreSpanFilter({ basePath: '/app' }, makeDsn(TEST_DSN)),
+    );
+  });
+
+  it('does not add the base path again to a fixed path that already starts with it', () => {
+    setTestClient(TEST_DSN, { path: '/app/monitor' });
+    const client = getCurrentScope().getClient()!;
+
+    setManagedTunnelDefaults({ basePath: '/app' });
+
+    expect(client.getOptions()._managedTunnel).toEqual({ basePath: '/app', path: '/monitor' });
+    expect(isTunnelRequest({ method: 'POST', url: '/app/monitor' })).toBe(true);
+    expect(isTunnelRequest({ method: 'POST', url: '/app/app/monitor' })).toBe(false);
+  });
+
+  it('keeps a base path the user set, and does nothing without a managed tunnel or a base path', () => {
+    setTestClient(TEST_DSN, { basePath: '/custom' });
+    const client = getCurrentScope().getClient()!;
+    setManagedTunnelDefaults({ basePath: '/app' });
+    expect(client.getOptions()._managedTunnel).toEqual({ basePath: '/custom' });
+    _INTERNAL_resetManagedTunnelDefaults();
+
+    setTestClient(TEST_DSN, {});
+    const rootClient = getCurrentScope().getClient()!;
+    setManagedTunnelDefaults({ basePath: '/' });
+    expect(rootClient.getOptions()._managedTunnel).toEqual({});
+    _INTERNAL_resetManagedTunnelDefaults();
+
+    setTestClient(TEST_DSN);
+    const offClient = getCurrentScope().getClient()!;
+    setManagedTunnelDefaults({ basePath: '/app' });
+    expect(offClient.getOptions()._managedTunnel).toBeUndefined();
+  });
+
+  it('enables the tunnel on clients created later, unless their `init` set one', () => {
+    setManagedTunnelDefaults({ tunnel: { path: '/monitor' }, basePath: '/app' });
+
+    setTestClient(TEST_DSN);
+    const laterClient = getCurrentScope().getClient()!;
+    applyManagedTunnelDefaults(laterClient);
+    expect(laterClient.getOptions()._managedTunnel).toEqual({ path: '/monitor', basePath: '/app' });
+    expect(laterClient.getOptions().ignoreSpans).toContainEqual(
+      getTunnelIgnoreSpanFilter({ path: '/monitor', basePath: '/app' }, makeDsn(TEST_DSN)),
+    );
+
+    setTestClient(TEST_DSN, { path: '/from-init' });
+    const initClient = getCurrentScope().getClient()!;
+    applyManagedTunnelDefaults(initClient);
+    expect(initClient.getOptions()._managedTunnel).toEqual({ path: '/from-init', basePath: '/app' });
+  });
+});
+
+function setTestClient(dsn: string | undefined, managedTunnel?: TunnelOptions): void {
+  setCurrentClient(new TestClient(getDefaultTestClientOptions({ dsn, _managedTunnel: managedTunnel })));
+}
