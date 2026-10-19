@@ -96,7 +96,14 @@ Deno.test('calls onEnd before ending the span for a non-streamed response', asyn
 
 Deno.test('calls onEnd before ending the span when a streamed response finishes', async () => {
   const calls: string[] = [];
-  const span = { end: () => calls.push('end') } as unknown as Parameters<typeof streamResponse>[0];
+  let resolveEnded: () => void;
+  const ended = new Promise<void>(resolve => (resolveEnded = resolve));
+  const span = {
+    end: () => {
+      calls.push('end');
+      resolveEnded();
+    },
+  } as unknown as Parameters<typeof streamResponse>[0];
 
   let sourceController: ReadableStreamDefaultController<Uint8Array> | undefined;
   const source = new ReadableStream<Uint8Array>({
@@ -115,6 +122,6 @@ Deno.test('calls onEnd before ending the span when a streamed response finishes'
   assertEquals(calls, []);
   sourceController!.close();
   assertEquals(await response.text(), 'chunk');
-  await new Promise(resolve => setTimeout(resolve, 0));
+  await ended;
   assertEquals(calls, ['onEnd', 'end']);
 });
