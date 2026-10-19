@@ -6,7 +6,7 @@ import {
   SENTRY_SEGMENT_NAME_SOURCE,
 } from '@sentry/conventions/attributes';
 import { HTTP_SERVER } from '@sentry/conventions/op';
-import type { Integration, MaxRequestBodySize } from '@sentry/core';
+import type { Client, Integration } from '@sentry/core';
 import {
   captureBodyFromWinterCGRequest,
   captureException,
@@ -14,6 +14,7 @@ import {
   debug,
   getClient,
   getHttpSpanDetailsFromUrlObject,
+  hasSpansEnabled,
   hasSpanStreamingEnabled,
   httpHeadersToSpanAttributes,
   HTTP_SPAN_NAME_FALLBACK,
@@ -24,7 +25,8 @@ import {
   winterCGRequestToRequestData,
   withIsolationScope,
 } from '@sentry/core';
-import { getClientIPAddress } from '@sentry/core/server';
+import { getClientIPAddress, isStaticAssetRequest } from '@sentry/core/server';
+import type { DenoServeIntegrationOptions } from './integrations/deno-serve';
 import { streamResponse } from './utils/streaming';
 
 export type RequestHandlerWrapperOptions<Addr extends Deno.Addr> = {
@@ -32,6 +34,45 @@ export type RequestHandlerWrapperOptions<Addr extends Deno.Addr> = {
   info: Deno.ServeHandlerInfo<Addr>;
   serveOptions?: Deno.ServeOptions<Addr>;
 };
+
+function captureServeError(e: unknown): void {
+  captureException(e, {
+    mechanism: {
+      handled: false,
+      type: 'auto.http.deno',
+      data: { function: 'serve' },
+    },
+  });
+}
+
+// A user callback that throws must not fail the request or leave the span open.
+function callUserCallback<T>(name: string, callback: () => T, fallback: T): T {
+  try {
+    return callback();
+  } catch (e) {
+    debug.error(`Error in the Deno.serve ${name} callback.`, e);
+    return fallback;
+  }
+}
+
+function shouldCreateSpan(
+  client: Client,
+  integration: DenoServeIntegrationOptions | undefined,
+  request: Request,
+  urlPath: string,
+): boolean {
+  if (!(integration?.spans ?? hasSpansEnabled(client.getOptions()))) {
+    return false;
+  }
+  if (integration?.ignoreStaticAssets && request.method === 'GET' && isStaticAssetRequest(urlPath)) {
+    return false;
+  }
+  const ignoreIncomingRequests = integration?.ignoreIncomingRequests;
+  return !(
+    ignoreIncomingRequests &&
+    callUserCallback('ignoreIncomingRequests', () => ignoreIncomingRequests(urlPath, request), false)
+  );
+}
 
 const assignIfSet = <T extends Record<string, unknown>, K extends keyof T>(
   obj: T,
@@ -63,16 +104,12 @@ export const wrapDenoRequestHandler = <Addr extends Deno.Addr = Deno.Addr>(
       try {
         return await handler();
       } catch (e) {
-        captureException(e, {
-          mechanism: {
-            handled: false,
-            type: 'auto.http.deno',
-            data: { function: 'serve' },
-          },
-        });
+        captureServeError(e);
         throw e;
       }
     }
+
+    const integration = client.getIntegrationByName<Integration & DenoServeIntegrationOptions>('DenoServe');
 
     const urlObject = parseStringToURLObject(request.url);
     const [rawName, attributes] = getHttpSpanDetailsFromUrlObject(
@@ -122,22 +159,45 @@ export const wrapDenoRequestHandler = <Addr extends Deno.Addr = Deno.Addr>(
       ipAddress: socketIp,
     });
 
-    const configuredBodySize = client.getIntegrationByName<Integration & { maxRequestBodySize?: MaxRequestBodySize }>(
-      'DenoServe',
-    )?.maxRequestBodySize;
     const effectiveBodySize =
-      configuredBodySize ?? (dataCollection.httpBodies.includes('incomingRequest') ? 'medium' : 'none');
-    if (request.method !== 'GET' && effectiveBodySize !== 'none') {
+      integration?.maxRequestBodySize ?? (dataCollection.httpBodies.includes('incomingRequest') ? 'medium' : 'none');
+    const ignoreRequestBody = integration?.ignoreRequestBody;
+    if (
+      request.method !== 'GET' &&
+      effectiveBodySize !== 'none' &&
+      // If the filter throws, skip the body so it cannot leak data the filter was meant to hide.
+      !(ignoreRequestBody && callUserCallback('ignoreRequestBody', () => ignoreRequestBody(request.url, request), true))
+    ) {
       await captureBodyFromWinterCGRequest(request, isolationScope, effectiveBodySize);
     }
+
+    const urlPath = urlObject ? `${urlObject.pathname}${urlObject.search}` : '/';
+    const createSpan = shouldCreateSpan(client, integration, request, urlPath);
 
     return continueTrace(
       {
         sentryTrace: request.headers.get('sentry-trace') || '',
         baggage: request.headers.get('baggage'),
       },
-      () => {
+      async () => {
+        if (!createSpan) {
+          try {
+            const res = await handler();
+            isolationScope.setContext('response', {
+              status_code: res.status,
+            });
+            return res;
+          } catch (e) {
+            captureServeError(e);
+            throw e;
+          }
+        }
+
         return startSpanManual({ name, attributes }, async span => {
+          const { onSpanCreated, onSpanEnd } = integration ?? {};
+          if (onSpanCreated) {
+            callUserCallback('onSpanCreated', () => onSpanCreated(span, request), undefined);
+          }
           let res: Response;
 
           try {
@@ -151,17 +211,15 @@ export const wrapDenoRequestHandler = <Addr extends Deno.Addr = Deno.Addr>(
             );
           } catch (e) {
             span.end();
-            captureException(e, {
-              mechanism: {
-                handled: false,
-                type: 'auto.http.deno',
-                data: { function: 'serve' },
-              },
-            });
+            captureServeError(e);
             throw e;
           }
 
-          return streamResponse(span, res);
+          return streamResponse(
+            span,
+            res,
+            onSpanEnd && (() => callUserCallback('onSpanEnd', () => onSpanEnd(span, request, res), undefined)),
+          );
         });
       },
     );

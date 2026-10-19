@@ -21,6 +21,12 @@
 
 Work in this release was contributed by @adityareddy-dev, @jpdefo, @Jxxunnn, @philipatkinson, @Shubham-Padkonde, @mikamikasuki, and @mketiku. Thank you for your contributions!
 
+- **feat(deno): Add incoming request options to `denoServeIntegration`**
+
+  `denoServeIntegration` now accepts `ignoreRequestBody`, `ignoreIncomingRequests`, `ignoreStaticAssets`, `spans`, `onSpanCreated` and `onSpanEnd`, with the same meaning as in `denoHttpIntegration`. The callbacks receive the web `Request`.
+
+  `ignoreStaticAssets` defaults to `true`, so `Deno.serve` no longer creates spans for `GET` requests to common static assets such as `favicon.ico`, `robots.txt` or `*.js` files. To keep these spans, set `denoServeIntegration({ ignoreStaticAssets: false })`. `Deno.serve` spans also follow the client's tracing configuration by default, so the integration does not start spans when tracing is disabled.
+
 ## 11.8.0
 
 ### Important Changes
