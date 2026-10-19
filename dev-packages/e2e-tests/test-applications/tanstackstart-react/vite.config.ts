@@ -26,8 +26,6 @@ function resolveTunnelRouteOption() {
       return true;
     case 'static':
       return '/monitor';
-    case 'object':
-      return { path: '/object-monitor', allowedDsns: [appDsn] };
     default:
       return undefined;
   }

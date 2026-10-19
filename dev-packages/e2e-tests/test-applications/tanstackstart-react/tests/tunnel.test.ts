@@ -9,10 +9,8 @@ const expectedTunnelPathMatcher =
     ? '/monitor'
     : tunnelRouteMode === 'custom'
       ? '/custom-monitor'
-      : tunnelRouteMode === 'object'
-        ? '/object-monitor'
-        : // The path `tunnelRoute: true` derives from the DSN.
-          new RegExp(`^${basePath}/[a-z0-9]{1,7}$`);
+      : // The path `tunnelRoute: true` derives from the DSN.
+        new RegExp(`^${basePath}/[a-z0-9]{1,7}$`);
 
 test.skip(tunnelRouteMode === 'off', 'Tunnel assertions only run in the tunnel-route variants');
 
