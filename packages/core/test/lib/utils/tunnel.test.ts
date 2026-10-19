@@ -723,6 +723,12 @@ describe('applyTunnelDefaults', () => {
     expect(applyTunnelDefaults('/monitor', {})).toBe('/monitor');
     expect(applyTunnelDefaults(true, undefined)).toBe(true);
   });
+
+  it('normalizes the default base path and ignores a root one', () => {
+    expect(applyTunnelDefaults(true, { basePath: 'app/' })).toEqual({ basePath: '/app' });
+    expect(applyTunnelDefaults(true, { basePath: '/' })).toBe(true);
+    expect(applyTunnelDefaults(true, { basePath: undefined })).toBe(true);
+  });
 });
 
 describe('normalizeTunnelBasePath', () => {

@@ -66,20 +66,24 @@ export function resolveServerTunnelOption(tunnel: string | true | TunnelOptions 
 
 /**
  * Fills in framework defaults (like the base path) for a managed tunnel. User options win; URLs pass through.
+ * The base path is normalized, and a root one is no default at all.
  */
 export function applyTunnelDefaults(
   tunnel: string | true | TunnelOptions | undefined,
   defaults: TunnelOptions | undefined,
 ): string | true | TunnelOptions | undefined {
-  if (!tunnel || !defaults || !Object.keys(defaults).length) {
+  const { basePath, ...rest } = defaults ?? {};
+  const normalizedBasePath = normalizeTunnelBasePath(basePath);
+  const resolvedDefaults: TunnelOptions = normalizedBasePath ? { ...rest, basePath: normalizedBasePath } : rest;
+  if (!tunnel || !Object.keys(resolvedDefaults).length) {
     return tunnel;
   }
 
   if (typeof tunnel === 'string') {
-    return tunnel.startsWith('/') ? stripBasePathFromTunnelPath({ ...defaults, path: tunnel }) : tunnel;
+    return tunnel.startsWith('/') ? stripBasePathFromTunnelPath({ ...resolvedDefaults, path: tunnel }) : tunnel;
   }
 
-  return stripBasePathFromTunnelPath({ ...defaults, ...(tunnel === true ? {} : tunnel) });
+  return stripBasePathFromTunnelPath({ ...resolvedDefaults, ...(tunnel === true ? {} : tunnel) });
 }
 
 /**
