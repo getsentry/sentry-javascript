@@ -1,10 +1,12 @@
+import { HTTP_REQUEST_METHOD, HTTP_ROUTE } from '@sentry/conventions/attributes';
 import { setCurrentClient } from '@sentry/core';
 import { afterEach, describe, expect, it } from 'vitest';
+import { AttributeNames } from '../../src/integrations/hapi/hapi-types';
 import { getExtMetadata, getRouteMetadata } from '../../src/integrations/hapi/hapi-utils';
 import { getDefaultTestClientOptions, TestClient } from '../mocks/client';
 
 describe('getRouteMetadata', () => {
-  const route = { path: '/users/{id}', method: 'get' } as any;
+  const route = { path: '/users/{id}', method: 'GET' };
 
   afterEach(() => {
     setCurrentClient(undefined as unknown as TestClient);
@@ -14,21 +16,31 @@ describe('getRouteMetadata', () => {
     expect(getRouteMetadata(route)).toEqual({
       name: 'GET /users/{id}',
       attributes: {
-        'http.route': '/users/{id}',
-        'http.request.method': 'get',
-        'hapi.type': 'router',
+        [HTTP_ROUTE]: '/users/{id}',
+        [HTTP_REQUEST_METHOD]: 'GET',
+        [AttributeNames.HAPI_TYPE]: 'router',
       },
     });
   });
 
   it('describes a plugin-registered route as a plugin layer', () => {
-    expect(getRouteMetadata(route, 'my-plugin')).toEqual({
+    expect(getRouteMetadata({ ...route, pluginName: 'my-plugin' })).toEqual({
       name: 'GET /users/{id}',
       attributes: {
-        'http.route': '/users/{id}',
-        'http.request.method': 'get',
-        'hapi.type': 'plugin',
-        'hapi.plugin.name': 'my-plugin',
+        [HTTP_ROUTE]: '/users/{id}',
+        [HTTP_REQUEST_METHOD]: 'GET',
+        [AttributeNames.HAPI_TYPE]: 'plugin',
+        [AttributeNames.PLUGIN_NAME]: 'my-plugin',
+      },
+    });
+  });
+
+  it('names the span after the path alone when the request method is unknown', () => {
+    expect(getRouteMetadata({ path: '/users/{id}' })).toEqual({
+      name: '/users/{id}',
+      attributes: {
+        [HTTP_ROUTE]: '/users/{id}',
+        [AttributeNames.HAPI_TYPE]: 'router',
       },
     });
   });
@@ -44,17 +56,15 @@ describe('getRouteMetadata', () => {
     const client = new TestClient(getDefaultTestClientOptions({ traceLifecycle: 'stream' }));
     setCurrentClient(client);
 
-    expect(getRouteMetadata(route, 'my-plugin').name).toBe('/users/{id}');
+    expect(getRouteMetadata({ ...route, pluginName: 'my-plugin' }).name).toBe('/users/{id}');
   });
 
   it('falls back to a static span name when the route has no path', () => {
     const client = new TestClient(getDefaultTestClientOptions({ traceLifecycle: 'stream' }));
     setCurrentClient(client);
 
-    const pathlessRoute = { path: '', method: 'get' } as any;
-
-    expect(getRouteMetadata(pathlessRoute).name).toBe('Router');
-    expect(getRouteMetadata(pathlessRoute, 'my-plugin').name).toBe('Request handler');
+    expect(getRouteMetadata({ path: '', method: 'GET' }).name).toBe('Router');
+    expect(getRouteMetadata({ path: '', method: 'GET', pluginName: 'my-plugin' }).name).toBe('Request handler');
   });
 });
 

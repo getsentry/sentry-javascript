@@ -29,7 +29,6 @@ import type {
   ServerExtEventsObject,
   ServerExtEventsRequestObject,
   ServerRequestExtType,
-  ServerRoute,
   ServerRouteOptions,
 } from './hapi-types';
 import { HTTP_REQUEST_METHOD, HTTP_ROUTE } from '@sentry/conventions/attributes';
@@ -108,10 +107,18 @@ const isPatchableExtMethod = (
 };
 
 /** Build the span name and attributes for a Hapi route. */
-export const getRouteMetadata = (route: ServerRoute, pluginName?: string): SpanMetadata => {
+export const getRouteMetadata = ({
+  path,
+  method,
+  pluginName,
+}: {
+  path: string;
+  method?: string;
+  pluginName?: string;
+}): SpanMetadata => {
   const attributes: SpanAttributes = {
-    [HTTP_ROUTE]: route.path,
-    [HTTP_REQUEST_METHOD]: route.method,
+    [HTTP_ROUTE]: path,
+    [HTTP_REQUEST_METHOD]: method,
   };
 
   if (pluginName) {
@@ -126,10 +133,11 @@ export const getRouteMetadata = (route: ServerRoute, pluginName?: string): SpanM
   // handler spans are named after their route alone, without the method prefix.
   const isStreamedSpan = !!client && hasSpanStreamingEnabled(client);
   const fallbackName = pluginName ? REQUEST_HANDLER_SPAN_NAME_FALLBACK : ROUTER_SPAN_NAME_FALLBACK;
+  const staticName = method ? `${method} ${path}` : path;
 
   return {
     attributes,
-    name: isStreamedSpan ? route.path || fallbackName : `${route.method.toUpperCase()} ${route.path}`,
+    name: isStreamedSpan ? path || fallbackName : staticName,
   };
 };
 
@@ -185,6 +193,12 @@ function startMetadataSpan(metadata: SpanMetadata, original: () => unknown): unk
   );
 }
 
+// The route config can register several methods (or `'*'`), so read the method
+// Hapi resolved for this request instead.
+function getRequestMethod(request: unknown): string | undefined {
+  return isObjectLike(request) && typeof request.method === 'string' ? request.method.toUpperCase() : undefined;
+}
+
 /**
  * Patches each individual route handler method in order to create the span. It
  * does not create spans when there is no parent span.
@@ -199,7 +213,7 @@ function wrapRouteHandler(route: PatchableServerRoute, pluginName?: string): Pat
         return oldHandler.call(this, ...params);
       }
       setHttpServerSpanRouteAttribute(route.path);
-      const metadata = getRouteMetadata(route, pluginName);
+      const metadata = getRouteMetadata({ path: route.path, method: getRequestMethod(params[0]), pluginName });
       return startMetadataSpan(metadata, () => oldHandler.call(this, ...params));
     };
   };
