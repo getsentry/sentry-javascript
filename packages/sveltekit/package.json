@@ -89,7 +89,7 @@
     "@sentry/browser": "11.8.0",
     "@sveltejs/kit": "^2.70.2",
     "@sveltejs/vite-plugin-svelte": "^3.0.0",
-    "@types/node": "^18.19.1",
+    "@types/node": "^20.19.0",
     "svelte": "^4.2.8",
     "vite": "^8.3.1"
   },
