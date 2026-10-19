@@ -15,7 +15,7 @@ const tarballPaths = globSync(`packages/*/sentry-*-${version}.tgz`, {
 
 assert.ok(
   tarballPaths.length > 0,
-  `No tarballs found for version ${version}. Run "yarn build:tarball" at the repository root.`,
+  `No tarballs found for version ${version}. Run "pnpm run build:tarball" at the repository root.`,
 );
 
 const symlinkPaths = globSync('packed/*-packed.tgz', {
@@ -25,13 +25,13 @@ const symlinkPaths = globSync('packed/*-packed.tgz', {
 
 assert.ok(
   symlinkPaths.length > 0,
-  'No packed tarball symlinks found. Run "yarn test:prepare" in dev-packages/e2e-tests.',
+  'No packed tarball symlinks found. Run "pnpm run test:prepare" in dev-packages/e2e-tests.',
 );
 
 assert.strictEqual(
   symlinkPaths.length,
   tarballPaths.length,
-  `Tarball count (${tarballPaths.length}) does not match packed symlink count (${symlinkPaths.length}). Re-run "yarn sync:packed-tarballs".`,
+  `Tarball count (${tarballPaths.length}) does not match packed symlink count (${symlinkPaths.length}). Re-run "pnpm run test:prepare".`,
 );
 
 for (const symlinkPath of symlinkPaths) {
