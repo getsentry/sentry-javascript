@@ -1,5 +1,8 @@
 import { URL_PATH } from '@sentry/conventions/attributes';
+import type { TunnelOptions } from '@sentry/core';
 import { dsnToString, escapeStringForRegex, getClient, handleTunnelRequest } from '@sentry/core';
+import { handleTunnelRequestIfMatched, setManagedTunnelDefaults } from '@sentry/core/server';
+import type { ServerEntry } from './wrapFetchWithSentry';
 
 const registeredTunnelRoutePaths = new Set<string>();
 
@@ -89,6 +92,37 @@ export function createSentryTunnelRoute(options: CreateSentryTunnelRouteOptions)
           allowedDsns,
         });
       },
+    },
+  };
+}
+
+/**
+ * Answers managed tunnel requests before the server entry runs. The `sentryTanstackStart` Vite plugin applies this
+ * to the app's server entry automatically, with its `tunnelRoute` and the base path Start routes on.
+ *
+ * `tunnelRoute` enables the managed tunnel on every server client the same way `Sentry.init({ tunnel })` does, unless
+ * that `init` already enabled one, and the tunnel is then served from the client's config like in every other SDK.
+ */
+export function wrapServerEntryWithSentryTunnel<T extends ServerEntry>(
+  entry: T,
+  tunnelRoute?: TunnelOptions,
+  basePath?: string,
+): T {
+  // Runs when the server entry loads, before any request. Requests still carry Start's base path here, so the tunnel
+  // is served under it.
+  setManagedTunnelDefaults({ tunnel: tunnelRoute, basePath });
+
+  // A class entry, like Cloudflare's `WorkerEntrypoint`, can't be spread into an object. The tunnel is then served
+  // by the wrapped default server entry it calls.
+  if (typeof entry === 'function') {
+    return entry;
+  }
+
+  return {
+    ...entry,
+    // Cloudflare Workers pass `env` and `ctx` after the request, and `withSentry` needs `ctx` to flush.
+    fetch(request: Request, ...rest: unknown[]) {
+      return handleTunnelRequestIfMatched(request) ?? entry.fetch(request, ...rest);
     },
   };
 }
