@@ -2,19 +2,15 @@ import { expect, test } from '@playwright/test';
 import { waitForError, waitForStreamedSpan } from '@sentry-internal/test-utils';
 
 test('Sends exceptions to Sentry on error in @Cron decorated method', async ({ baseURL }) => {
-  // The job throws the same error on every tick, so the Dedupe integration drops all but the first
-  // one unless another error is sent in between. That first error may predate this test.
-  const errorEventPromise = waitForError(
-    'nestjs-basic',
-    event => {
-      return (
-        !event.type &&
-        event.exception?.values?.[0]?.value === 'Test error from schedule cron' &&
-        event.exception?.values?.[0]?.mechanism?.type === 'auto.function.nestjs.cron'
-      );
-    },
-    0,
-  );
+  const testStart = Date.now();
+  const errorEventPromise = waitForError('nestjs-basic', event => {
+    const thrownAt = event.exception?.values?.[0]?.value?.match(/^Test error from schedule cron (\d+)$/)?.[1];
+    return (
+      !event.type &&
+      Number(thrownAt) >= testStart &&
+      event.exception?.values?.[0]?.mechanism?.type === 'auto.function.nestjs.cron'
+    );
+  });
 
   const errorEvent = await errorEventPromise;
 
@@ -29,18 +25,15 @@ test('Sends exceptions to Sentry on error in @Cron decorated method', async ({ b
 });
 
 test('Sends exceptions to Sentry on error in @Interval decorated method', async ({ baseURL }) => {
-  // See the @Cron test above for why this looks back to app startup.
-  const errorEventPromise = waitForError(
-    'nestjs-basic',
-    event => {
-      return (
-        !event.type &&
-        event.exception?.values?.[0]?.value === 'Test error from schedule interval' &&
-        event.exception?.values?.[0]?.mechanism?.type === 'auto.function.nestjs.interval'
-      );
-    },
-    0,
-  );
+  const testStart = Date.now();
+  const errorEventPromise = waitForError('nestjs-basic', event => {
+    const thrownAt = event.exception?.values?.[0]?.value?.match(/^Test error from schedule interval (\d+)$/)?.[1];
+    return (
+      !event.type &&
+      Number(thrownAt) >= testStart &&
+      event.exception?.values?.[0]?.mechanism?.type === 'auto.function.nestjs.interval'
+    );
+  });
 
   const errorEvent = await errorEventPromise;
 

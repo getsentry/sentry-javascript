@@ -334,17 +334,12 @@ export function waitForEnvelopeItem(
   });
 }
 
-/**
- * Wait for an error to be sent.
- *
- * Pass `timestamp` to look further back than the moment of the call, e.g. `0` for an error the app
- * emits on its own, before any test can start listening.
- */
+/** Wait for an error to be sent. */
 export function waitForError(
   proxyServerName: string,
   callback: (errorEvent: Event) => Promise<boolean> | boolean,
-  timestamp: number = getNanosecondTimestamp(),
 ): Promise<Event> {
+  const timestamp = getNanosecondTimestamp();
   return new Promise((resolve, reject) => {
     waitForEnvelopeItem(
       proxyServerName,
