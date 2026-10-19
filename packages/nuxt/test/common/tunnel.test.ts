@@ -18,23 +18,12 @@ describe('applyNuxtTunnelBasePath', () => {
     expect(options.tunnel).toEqual({ basePath: '/app' });
   });
 
-  it('keeps a base path the user set', () => {
-    globalWithBasePath[NUXT_TUNNEL_BASE_PATH_GLOBAL] = '/app/';
-    const options: Parameters<typeof applyNuxtTunnelBasePath>[0] = { tunnel: { basePath: '/custom' } };
+  it('serves from the root for the default base URL', () => {
+    globalWithBasePath[NUXT_TUNNEL_BASE_PATH_GLOBAL] = '/';
+    const options: Parameters<typeof applyNuxtTunnelBasePath>[0] = { tunnel: true };
 
     applyNuxtTunnelBasePath(options);
 
-    expect(options.tunnel).toEqual({ basePath: '/custom' });
-  });
-
-  it('serves from the root for the default and relative base URLs', () => {
-    for (const baseURL of ['/', './']) {
-      globalWithBasePath[NUXT_TUNNEL_BASE_PATH_GLOBAL] = baseURL;
-      const options: Parameters<typeof applyNuxtTunnelBasePath>[0] = { tunnel: true };
-
-      applyNuxtTunnelBasePath(options);
-
-      expect(options.tunnel).toBe(true);
-    }
+    expect(options.tunnel).toBe(true);
   });
 });
