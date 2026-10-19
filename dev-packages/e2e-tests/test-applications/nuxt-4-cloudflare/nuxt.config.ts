@@ -14,5 +14,9 @@ export default defineNuxtConfig({
     alias: {
       'readable-stream': 'node:stream',
     },
+    // The tunnel variant serves the managed tunnel.
+    replace: {
+      __E2E_TEST_TUNNEL__: JSON.stringify(!!process.env.E2E_TEST_TUNNEL),
+    },
   },
 });
