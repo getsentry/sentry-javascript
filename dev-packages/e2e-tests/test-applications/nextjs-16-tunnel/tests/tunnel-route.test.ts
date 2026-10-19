@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test';
+import { HTTP_REQUEST_METHOD, SERVER_ADDRESS, URL_FULL } from '@sentry/conventions/attributes';
 import { getSpanOp, waitForRequest, waitForStreamedSpan, waitForStreamedSpans } from '@sentry-internal/test-utils';
 import type { Event, SerializedStreamedSpan } from '@sentry/core';
 
@@ -106,7 +107,7 @@ test('Tunnel requests should not create middleware or fetch spans', async ({ pag
   // We WILL have a middleware span for GET / (the pageload)
   // But we should NOT have middleware spans for POST requests (tunnel route)
   const postMiddlewareSpans = middlewareSpans.filter(
-    span => span.name.includes('POST') || getStringAttribute(span, 'http.request.method') === 'POST',
+    span => span.name.includes('POST') || getStringAttribute(span, HTTP_REQUEST_METHOD) === 'POST',
   );
 
   expect(postMiddlewareSpans).toHaveLength(0);
@@ -114,7 +115,7 @@ test('Tunnel requests should not create middleware or fetch spans', async ({ pag
   // We should NOT have any fetch spans to Sentry ingest. Matched on the host attribute rather than a
   // substring of the full URL, which would also match an arbitrary host with `sentry.io` elsewhere in it.
   const sentryFetchSpans = allSpans.filter(span => {
-    const host = getStringAttribute(span, 'server.address') ?? '';
+    const host = getStringAttribute(span, SERVER_ADDRESS) ?? '';
     return getSpanOp(span) === 'http.client' && (host === 'sentry.io' || host.endsWith('.sentry.io'));
   });
 
@@ -157,29 +158,35 @@ test.describe('Tunnel route handler', () => {
     expect(proxyRequest.rawProxyRequestHeaders['content-type']).toBe('application/x-sentry-envelope');
   });
 
-  test('does not create server spans for tunnel requests', async ({ page }) => {
-    // The callback never returns true, so this promise is deliberately left unsettled.
-    const allSpans: SerializedStreamedSpan[] = [];
-    void waitForStreamedSpans('nextjs-16-tunnel', spans => {
-      allSpans.push(...spans);
-      return false;
+  test('does not create server spans for tunnel requests', async ({ page, baseURL }) => {
+    // One listener, so it gets every span that the proxy received before the barrier span.
+    const spansBeforeBarrier: SerializedStreamedSpan[] = [];
+    const barrierSpanPromise = waitForStreamedSpans('nextjs-16-tunnel', spans => {
+      spansBeforeBarrier.push(...spans);
+      return spans.some(span => span.is_segment && span.name === 'GET /api/flush');
     });
-    const pageloadSpanPromise = waitForStreamedSpan('nextjs-16-tunnel', span => {
-      return getSpanOp(span) === 'pageload' && span.is_segment;
-    });
+    const pageloadTunnelResponsePromise = page.waitForResponse(
+      response =>
+        response.request().method() === 'POST' &&
+        new URL(response.url()).origin === baseURL &&
+        (response.request().postData() ?? '').includes('pageload'),
+    );
 
     await page.goto('/');
-    await pageloadSpanPromise;
-    // Wait for the server to send the spans that the tunnel request would wrongly produce
-    await page.waitForTimeout(3000);
+    await pageloadTunnelResponsePromise;
+    // Flush the edge client of the edge tunnel route (a 405 on the Node.js one), then the Node.js client twice:
+    // the first flush sends the tunnel spans, the second one the barrier span of the first flush.
+    await page.request.get('/sentry-tunnel');
+    await page.request.get('/api/flush');
+    await page.request.get('/api/flush');
+    await barrierSpanPromise;
 
-    const postSpans = allSpans.filter(
-      span => span.name.startsWith('POST') || getStringAttribute(span, 'http.request.method') === 'POST',
+    const postSpans = spansBeforeBarrier.filter(
+      span => span.name.startsWith('POST') || getStringAttribute(span, HTTP_REQUEST_METHOD) === 'POST',
     );
-    const ingestSpans = allSpans.filter(
+    const ingestSpans = spansBeforeBarrier.filter(
       span =>
-        getSpanOp(span) === 'http.client' &&
-        !!getStringAttribute(span, 'url.full')?.startsWith('http://localhost:3031/'),
+        getSpanOp(span) === 'http.client' && !!getStringAttribute(span, URL_FULL)?.startsWith('http://localhost:3031/'),
     );
     expect(postSpans).toEqual([]);
     expect(ingestSpans).toEqual([]);

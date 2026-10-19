@@ -1,9 +1,11 @@
+import { HTTP_TARGET, SERVER_ADDRESS, URL_PATH } from '@sentry/conventions/attributes';
 import { shouldIgnoreSpan } from '@sentry/core';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   dropMiddlewareTunnelRequests,
   getTunnelRouteIgnoreSpans,
 } from '../../src/common/utils/dropMiddlewareTunnelRequests';
+import { ATTR_NEXT_ROUTE, ATTR_NEXT_SPAN_TYPE } from '../../src/common/nextSpanAttributes';
 import { TRANSACTION_ATTR_SHOULD_DROP_TRANSACTION } from '../../src/common/span-attributes-with-logic-attached';
 
 const globalWithInjectedValues = global as typeof global & {
@@ -164,6 +166,12 @@ describe('getTunnelRouteIgnoreSpans', () => {
     return shouldIgnoreSpan({ description: 'POST', op: 'http.server', attributes }, getTunnelRouteIgnoreSpans());
   }
 
+  // Next.js sets the deprecated `http.target` on its request spans.
+  function nextRequestSpanAttributes(spanType: string, target: string): Record<string, unknown> {
+    // eslint-disable-next-line typescript/no-deprecated
+    return { [ATTR_NEXT_SPAN_TYPE]: spanType, [HTTP_TARGET]: target };
+  }
+
   it('returns no entries when there is no tunnel route', () => {
     expect(getTunnelRouteIgnoreSpans()).toEqual([]);
   });
@@ -175,7 +183,7 @@ describe('getTunnelRouteIgnoreSpans', () => {
   ])('ignores a %s span for %s in rewrite mode', (spanType, target) => {
     globalWithInjectedValues._sentryRewritesTunnelPath = '/monitoring';
 
-    expect(isIgnored({ 'next.span_type': spanType, 'http.target': target })).toBe(true);
+    expect(isIgnored(nextRequestSpanAttributes(spanType, target))).toBe(true);
   });
 
   it.each([
@@ -190,7 +198,7 @@ describe('getTunnelRouteIgnoreSpans', () => {
   ])('does not ignore a request span for %s in rewrite mode, which the rewrite does not serve', target => {
     globalWithInjectedValues._sentryRewritesTunnelPath = '/monitoring';
 
-    expect(isIgnored({ 'next.span_type': 'BaseServer.handleRequest', 'http.target': target })).toBe(false);
+    expect(isIgnored(nextRequestSpanAttributes('BaseServer.handleRequest', target))).toBe(false);
   });
 
   it.each(['/monitoring', '/monitoring/', '/monitoring?cache=0'])(
@@ -199,7 +207,7 @@ describe('getTunnelRouteIgnoreSpans', () => {
       globalWithInjectedValues._sentryRewritesTunnelPath = '/monitoring';
       globalWithInjectedValues._sentryTunnelRouteMode = 'handler';
 
-      expect(isIgnored({ 'next.span_type': 'BaseServer.handleRequest', 'http.target': target })).toBe(true);
+      expect(isIgnored(nextRequestSpanAttributes('BaseServer.handleRequest', target))).toBe(true);
     },
   );
 
@@ -207,17 +215,20 @@ describe('getTunnelRouteIgnoreSpans', () => {
     globalWithInjectedValues._sentryRewritesTunnelPath = '/monitoring';
     globalWithInjectedValues._sentryTunnelRouteMode = 'handler';
 
-    expect(isIgnored({ 'next.span_type': 'BaseServer.handleRequest', 'http.target': '/monitoring/dashboard' })).toBe(
-      false,
-    );
+    expect(isIgnored(nextRequestSpanAttributes('BaseServer.handleRequest', '/monitoring/dashboard'))).toBe(false);
   });
 
   it('does not ignore an outgoing request with the tunnel path', () => {
     globalWithInjectedValues._sentryRewritesTunnelPath = '/monitoring';
 
-    expect(
-      isIgnored({ 'url.path': '/monitoring', 'http.target': '/monitoring', 'server.address': 'api.example.com' }),
-    ).toBe(false);
+    const outgoingRequestAttributes = {
+      [URL_PATH]: '/monitoring',
+      // eslint-disable-next-line typescript/no-deprecated
+      [HTTP_TARGET]: '/monitoring',
+      [SERVER_ADDRESS]: 'api.example.com',
+    };
+
+    expect(isIgnored(outgoingRequestAttributes)).toBe(false);
   });
 
   it.each(['/sentry-tunnel', '/sentry-tunnel/route'])(
@@ -226,7 +237,9 @@ describe('getTunnelRouteIgnoreSpans', () => {
       globalWithInjectedValues._sentryRewritesTunnelPath = '/monitoring';
       globalWithInjectedValues._sentryTunnelRouteMode = 'handler';
 
-      expect(isIgnored({ 'next.span_type': 'AppRouteRouteHandlers.runHandler', 'next.route': nextRoute })).toBe(true);
+      expect(
+        isIgnored({ [ATTR_NEXT_SPAN_TYPE]: 'AppRouteRouteHandlers.runHandler', [ATTR_NEXT_ROUTE]: nextRoute }),
+      ).toBe(true);
     },
   );
 
@@ -234,14 +247,14 @@ describe('getTunnelRouteIgnoreSpans', () => {
     globalWithInjectedValues._sentryRewritesTunnelPath = '/monitoring';
     globalWithInjectedValues._sentryTunnelRouteMode = 'rewrite';
 
-    expect(isIgnored({ 'next.span_type': 'AppRouteRouteHandlers.runHandler', 'next.route': '/sentry-tunnel' })).toBe(
-      false,
-    );
+    expect(
+      isIgnored({ [ATTR_NEXT_SPAN_TYPE]: 'AppRouteRouteHandlers.runHandler', [ATTR_NEXT_ROUTE]: '/sentry-tunnel' }),
+    ).toBe(false);
   });
 
   it('escapes regex characters in the tunnel path', () => {
     globalWithInjectedValues._sentryRewritesTunnelPath = '/a.b';
 
-    expect(isIgnored({ 'next.span_type': 'BaseServer.handleRequest', 'http.target': '/axb?o=123&p=456' })).toBe(false);
+    expect(isIgnored(nextRequestSpanAttributes('BaseServer.handleRequest', '/axb?o=123&p=456'))).toBe(false);
   });
 });
