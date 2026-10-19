@@ -14,9 +14,9 @@ import {
   requestDataIntegration,
   stackParserFromStackParserOptions,
 } from '@sentry/core';
+import { nodeStackLineParser, resolveServerTunnelOption } from '@sentry/core/server';
 import { getTracingIntegrations, getErrorIntegrations } from '@sentry/server-utils';
 import { DenoClient } from './client';
-import { nodeStackLineParser } from '@sentry/core/server';
 import { breadcrumbsIntegration } from './integrations/breadcrumbs';
 import { denoContextIntegration } from './integrations/context';
 import { contextLinesIntegration } from './integrations/contextlines';
@@ -110,6 +110,7 @@ export function init(options: DenoOptions = {}): Client {
 
   const clientOptions: ServerRuntimeClientOptions = {
     ...options,
+    ...resolveServerTunnelOption(options.tunnel),
     stackParser: stackParserFromStackParserOptions(options.stackParser || defaultStackParser),
     integrations: getIntegrationsToSetup({ integrations: options.integrations, defaultIntegrations }),
     transport: options.transport || makeFetchTransport,
