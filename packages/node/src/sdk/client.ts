@@ -40,6 +40,7 @@ export class NodeClient extends ServerRuntimeClient<NodeClientOptions> {
   private _clientReportOnExitFlushListener: (() => void) | undefined;
   private _logOnExitFlushListener: (() => void) | undefined;
   private _metricsOnExitFlushListener: (() => void) | undefined;
+  private _spanOnExitFlushListener: (() => void) | undefined;
 
   public constructor(options: NodeClientOptions) {
     const serverName =
@@ -69,6 +70,12 @@ export class NodeClient extends ServerRuntimeClient<NodeClientOptions> {
       _INTERNAL_flushMetricsBuffer(this);
     };
 
+    // The span buffer drains on the client's `flush` hook. Its timers are unref'd, so without this a
+    // process that exits on its own drops every span still waiting in the buffer.
+    this._spanOnExitFlushListener = () => {
+      this.emit('flush');
+    };
+
     if (serverName) {
       this.on('beforeCaptureLog', log => {
         log.attributes = {
@@ -80,6 +87,7 @@ export class NodeClient extends ServerRuntimeClient<NodeClientOptions> {
 
     process.on('beforeExit', this._logOnExitFlushListener);
     process.on('beforeExit', this._metricsOnExitFlushListener);
+    process.on('beforeExit', this._spanOnExitFlushListener);
 
     // Enable deferred segment-span transaction capture here, in the constructor, rather than in
     // `initOtel`. Every client runs its constructor exactly once, whereas `initOtel` only runs on
@@ -167,6 +175,10 @@ export class NodeClient extends ServerRuntimeClient<NodeClientOptions> {
 
     if (this._metricsOnExitFlushListener) {
       process.off('beforeExit', this._metricsOnExitFlushListener);
+    }
+
+    if (this._spanOnExitFlushListener) {
+      process.off('beforeExit', this._spanOnExitFlushListener);
     }
 
     const allEventsSent = await super.close(timeout);
