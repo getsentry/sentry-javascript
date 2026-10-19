@@ -1330,3 +1330,83 @@ for (const [label, makeResponse] of [
     );
   });
 }
+
+Deno.test('Deno.serve should not capture the body and still respond when ignoreRequestBody throws', async () => {
+  resetGlobals();
+  const transactionEvents: TransactionEvent[] = [];
+  const errorEvents: ErrorEvent[] = [];
+
+  const client = init({
+    dsn: 'https://username@domain/123',
+    tracesSampleRate: 1,
+    traceLifecycle: 'static',
+    integrations: integrations => [
+      ...integrations.filter(integration => integration.name !== 'DenoServe'),
+      denoServeIntegration({
+        ignoreRequestBody: () => {
+          throw new Error('ignoreRequestBody failed');
+        },
+      }),
+    ],
+    beforeSend: (event: ErrorEvent) => {
+      errorEvents.push(event);
+      return null;
+    },
+    beforeSendTransaction: (event: TransactionEvent) => {
+      transactionEvents.push(event);
+      return null;
+    },
+  }) as DenoClient;
+
+  const server = await serveForTest(async request => new Response(await request.text()));
+  const response = await fetch(`${server.url}/upload`, { method: 'POST', body: 'secret' });
+  assertEquals(response.status, 200);
+  assertEquals(await response.text(), 'secret');
+  await server.close();
+  await client.flush();
+
+  assertEquals(errorEvents.length, 0);
+  assertEquals(transactionEvents.length, 1);
+  assertEquals(transactionEvents[0]?.request?.data, undefined);
+});
+
+Deno.test('Deno.serve should create the span and still respond when ignoreIncomingRequests throws', async () => {
+  resetGlobals();
+  const transactionEvents: TransactionEvent[] = [];
+  const errorEvents: ErrorEvent[] = [];
+
+  const client = init({
+    dsn: 'https://username@domain/123',
+    tracesSampleRate: 1,
+    traceLifecycle: 'static',
+    integrations: integrations => [
+      ...integrations.filter(integration => integration.name !== 'DenoServe'),
+      denoServeIntegration({
+        ignoreIncomingRequests: () => {
+          throw new Error('ignoreIncomingRequests failed');
+        },
+      }),
+    ],
+    beforeSend: (event: ErrorEvent) => {
+      errorEvents.push(event);
+      return null;
+    },
+    beforeSendTransaction: (event: TransactionEvent) => {
+      transactionEvents.push(event);
+      return null;
+    },
+  }) as DenoClient;
+
+  const server = await serveForTest(() => new Response('OK'));
+  const response = await fetch(`${server.url}/page`);
+  assertEquals(response.status, 200);
+  assertEquals(await response.text(), 'OK');
+  await server.close();
+  await client.flush();
+
+  assertEquals(errorEvents.length, 0);
+  assertEquals(
+    transactionEvents.map(event => event.transaction),
+    ['GET /page'],
+  );
+});

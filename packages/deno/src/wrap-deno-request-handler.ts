@@ -45,12 +45,13 @@ function captureServeError(e: unknown): void {
   });
 }
 
-// A user hook that throws must not fail the request or leave the span open.
-function callHook(name: string, hook: () => void): void {
+// A user callback that throws must not fail the request or leave the span open.
+function callUserCallback<T>(name: string, callback: () => T, fallback: T): T {
   try {
-    hook();
+    return callback();
   } catch (e) {
-    debug.warn(`Error in the Deno.serve ${name} hook.`, e);
+    debug.error(`Error in the Deno.serve ${name} callback.`, e);
+    return fallback;
   }
 }
 
@@ -66,7 +67,11 @@ function shouldCreateSpan(
   if (integration?.ignoreStaticAssets && request.method === 'GET' && isStaticAssetRequest(urlPath)) {
     return false;
   }
-  return !integration?.ignoreIncomingRequests?.(urlPath, request);
+  const ignoreIncomingRequests = integration?.ignoreIncomingRequests;
+  return !(
+    ignoreIncomingRequests &&
+    callUserCallback('ignoreIncomingRequests', () => ignoreIncomingRequests(urlPath, request), false)
+  );
 }
 
 const assignIfSet = <T extends Record<string, unknown>, K extends keyof T>(
@@ -156,10 +161,12 @@ export const wrapDenoRequestHandler = <Addr extends Deno.Addr = Deno.Addr>(
 
     const effectiveBodySize =
       integration?.maxRequestBodySize ?? (dataCollection.httpBodies.includes('incomingRequest') ? 'medium' : 'none');
+    const ignoreRequestBody = integration?.ignoreRequestBody;
     if (
       request.method !== 'GET' &&
       effectiveBodySize !== 'none' &&
-      !integration?.ignoreRequestBody?.(request.url, request)
+      // If the filter throws, skip the body so it cannot leak data the filter was meant to hide.
+      !(ignoreRequestBody && callUserCallback('ignoreRequestBody', () => ignoreRequestBody(request.url, request), true))
     ) {
       await captureBodyFromWinterCGRequest(request, isolationScope, effectiveBodySize);
     }
@@ -189,7 +196,7 @@ export const wrapDenoRequestHandler = <Addr extends Deno.Addr = Deno.Addr>(
         return startSpanManual({ name, attributes }, async span => {
           const { onSpanCreated, onSpanEnd } = integration ?? {};
           if (onSpanCreated) {
-            callHook('onSpanCreated', () => onSpanCreated(span, request));
+            callUserCallback('onSpanCreated', () => onSpanCreated(span, request), undefined);
           }
           let res: Response;
 
@@ -211,7 +218,7 @@ export const wrapDenoRequestHandler = <Addr extends Deno.Addr = Deno.Addr>(
           return streamResponse(
             span,
             res,
-            onSpanEnd && (() => callHook('onSpanEnd', () => onSpanEnd(span, request, res))),
+            onSpanEnd && (() => callUserCallback('onSpanEnd', () => onSpanEnd(span, request, res), undefined)),
           );
         });
       },
