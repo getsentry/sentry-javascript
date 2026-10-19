@@ -1,6 +1,6 @@
 import { addNonEnumerableProperty, isPlainObject } from '@sentry/core';
 import type { Context, HonoRoute, MatchedHandler } from './honoTypes';
-import { getMiddlewareFlags } from './isMiddleware';
+import { isMiddleware } from './isMiddleware';
 
 // The `Context` key for the `routeIndex` of the last route handler that started. `Symbol.for`, so that
 // other copies of `@sentry/server-utils` can read it.
@@ -10,6 +10,9 @@ const ROUTE_HANDLER_INDEX = Symbol.for('sentry.hono.routeHandlerIndex');
 // for each request to a route. Span wrappers do not count, because a route handler from `app.use()`
 // has a span wrapper and still needs the index wrapper.
 const RECORDS_ROUTE_HANDLER_INDEX = Symbol.for('sentry.hono.recordsRouteHandlerIndex');
+
+// The `Context` key for the callback that runs when a route handler starts.
+const ON_ROUTE_HANDLER_START = Symbol.for('sentry.hono.onRouteHandlerStart');
 
 function isMatchedHandler(entry: unknown): entry is MatchedHandler {
   const pair: unknown = Array.isArray(entry) ? entry[0] : undefined;
@@ -37,7 +40,8 @@ export function isMatchedHandlerList(handlers: unknown): handlers is MatchedHand
 
 /**
  * Reads the match result through the getter that `hono/route` uses (Hono 4.8 and later). `hono` does
- * not export the getter's symbol, so this finds it as the only symbol-keyed getter on the prototype.
+ * not export the getter's symbol, so this finds it as the symbol-keyed getter that returns a match
+ * result.
  */
 export function getMatchedHandlers(context: Context): MatchedHandler[] | undefined {
   const requestProto: object | null = Object.getPrototypeOf(context.req);
@@ -45,31 +49,46 @@ export function getMatchedHandlers(context: Context): MatchedHandler[] | undefin
     return undefined;
   }
 
-  const [getterKey, ...otherGetterKeys] = Object.getOwnPropertySymbols(requestProto).filter(
-    key => typeof Object.getOwnPropertyDescriptor(requestProto, key)?.get === 'function',
-  );
-  if (!getterKey || otherGetterKeys.length > 0) {
-    return undefined;
+  for (const key of Object.getOwnPropertySymbols(requestProto)) {
+    if (typeof Object.getOwnPropertyDescriptor(requestProto, key)?.get !== 'function') {
+      continue;
+    }
+    const matchResult: unknown = Reflect.get(context.req, key);
+    if (Array.isArray(matchResult) && isMatchedHandlerList(matchResult[0])) {
+      return matchResult[0];
+    }
   }
+  return undefined;
+}
 
-  const matchResult: unknown = Reflect.get(context.req, getterKey);
-  return Array.isArray(matchResult) && isMatchedHandlerList(matchResult[0]) ? matchResult[0] : undefined;
+/** Runs `callback` each time a route handler of this request starts. */
+export function onRouteHandlerStart(context: Context, callback: () => void): void {
+  addNonEnumerableProperty(context, ON_ROUTE_HANDLER_START, callback);
 }
 
 /**
  * Wraps each route handler, so that it stores `c.req.routeIndex` when it starts. Hono 5 resets the
  * index after `next()`, so the Sentry middleware cannot read it there.
  *
+ * Only a route handler that declares `next` can pass the request on to a later one. If none does, the
+ * first route handler that runs also responds, so this wraps nothing and returns `false`.
+ *
  * Calling this from the Sentry middleware itself works, because `compose` reads each handler from the
  * match result only when it calls it.
  */
-export function wrapRouteHandlers(handlers: MatchedHandler[]): void {
-  const middlewareFlags = getMiddlewareFlags(handlers.map(([[, route]]) => route));
+export function wrapRouteHandlers(handlers: MatchedHandler[], middlewareFlags: boolean[]): boolean {
+  // `isMiddleware()` checks the arity, so for a route handler it tells if the handler declares `next`.
+  const canPassOn = handlers.some(([[handler]], i) => !middlewareFlags[i] && isMiddleware(handler));
+  if (!canPassOn) {
+    return false;
+  }
+
   for (const [i, [pair]] of handlers.entries()) {
     if (!middlewareFlags[i]) {
       pair[0] = recordRouteHandlerIndex(pair[0]);
     }
   }
+  return true;
 }
 
 function recordRouteHandlerIndex(handler: HonoRoute['handler']): HonoRoute['handler'] {
@@ -81,6 +100,10 @@ function recordRouteHandlerIndex(handler: HonoRoute['handler']): HonoRoute['hand
     apply(target, thisArg, args: [Context, ...unknown[]]) {
       const [context] = args;
       addNonEnumerableProperty(context, ROUTE_HANDLER_INDEX, context.req.routeIndex);
+      const onStart: unknown = Reflect.get(context, ON_ROUTE_HANDLER_START);
+      if (typeof onStart === 'function') {
+        onStart();
+      }
       return Reflect.apply(target, thisArg, args);
     },
     get(target, prop, receiver) {

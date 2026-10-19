@@ -8,12 +8,14 @@ import {
   INTERNAL_setSegmentNameSourceIfSegment,
   updateSpanName,
   type Scope,
+  type Span,
   winterCGRequestToRequestData,
 } from '@sentry/core';
 import type { Context, GetConnInfo } from './honoTypes';
 import { hasFetchEvent } from './hono-context';
 import { defaultShouldHandleError } from './defaultShouldHandleError';
-import { getMatchedHandlers, wrapRouteHandlers } from './matchResult';
+import { getMiddlewareFlags } from './isMiddleware';
+import { getMatchedHandlers, onRouteHandlerStart, wrapRouteHandlers } from './matchResult';
 import { resolveRouteName } from './resolveRouteName';
 import { type SentryHonoMiddlewareOptions } from './types';
 import { HTTP_ROUTE } from '@sentry/conventions/attributes';
@@ -23,16 +25,25 @@ import { HTTP_ROUTE } from '@sentry/conventions/attributes';
  */
 export function requestHandler(context: Context, getConnInfo?: GetConnInfo): void {
   const isolationScope = getCurrentIsolationScope();
+  // The span to name. When a route handler starts, a span of the user can be the active one.
+  const span = getActiveSpan();
 
-  // The manual setup has no Context hook, so wrap the route handlers here.
+  // Hono 5 removes `c.req.matchedRoutes`. Before Hono 4.8, it is the only source.
   const matchedHandlers = getMatchedHandlers(context);
-  if (matchedHandlers) {
-    wrapRouteHandlers(matchedHandlers);
-  }
+  const routes = matchedHandlers?.map(([[, route]]) => route) ?? context.req.matchedRoutes ?? [];
+  const middlewareFlags = getMiddlewareFlags(routes);
+  const nameSpan = (): void =>
+    updateSpanRouteName(isolationScope, span, context, resolveRouteName(context, routes, middlewareFlags));
 
-  // Set a provisional route name as early as possible so events captured during the request already carry the route.
-  // It is re-resolved in `responseHandler` once the middleware chain has run.
-  updateSpanRouteName(isolationScope, context);
+  // Name the span before the handlers run, so that events captured during the request carry the route.
+  nameSpan();
+
+  // The manual setup has no Context hook, so wrap the route handlers here. Without the getter, the
+  // Context hook may still have wrapped them.
+  if (!matchedHandlers || wrapRouteHandlers(matchedHandlers, middlewareFlags)) {
+    // A route handler can pass the request on with `next()`, so the one that responds names it.
+    onRouteHandlerStart(context, nameSpan);
+  }
 
   isolationScope.setSDKProcessingMetadata({
     normalizedRequest: winterCGRequestToRequestData(hasFetchEvent(context) ? context.event.request : context.req.raw),
@@ -94,17 +105,13 @@ export function responseHandler(
   context: Context,
   shouldHandleError?: SentryHonoMiddlewareOptions['shouldHandleError'],
 ): void {
-  // Resolve the name again, now that a route handler may have stored its index
-  updateSpanRouteName(getCurrentIsolationScope(), context);
-
   captureContextError(context, shouldHandleError);
 }
 
 /**
  * Captures an unhandled context error, gated by the user's `shouldHandleError` (or the default).
  *
- * Split out from {@link responseHandler} so a deduplicated middleware can still report its own
- * context's error without re-resolving the route name or overwriting request data — e.g. the inner
+ * A deduplicated middleware calls it directly to report the error of its own context — e.g. the inner
  * context of an internal `.request()` whose route threw but whose failed response the outer handler
  * swallowed.
  */
@@ -121,15 +128,18 @@ export function captureContextError(
   }
 }
 
-function updateSpanRouteName(isolationScope: Scope, context: Context): void {
-  const route = resolveRouteName(context);
+function updateSpanRouteName(
+  isolationScope: Scope,
+  activeSpan: Span | undefined,
+  context: Context,
+  route: string | undefined,
+): void {
   // Without a route, keep the span name from the runtime.
   if (route === undefined) {
     return;
   }
 
   const routeName = `${context.req.method} ${route}`;
-  const activeSpan = getActiveSpan();
 
   if (activeSpan) {
     activeSpan.updateName(routeName);

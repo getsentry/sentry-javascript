@@ -84,8 +84,7 @@ export function honoMiddleware<E extends Env>(app: Hono<E>, options: HonoIntegra
   });
 }
 
-function wrapMatchedMiddleware(handlers: MatchedHandler[]): void {
-  const middlewareFlags = getMiddlewareFlags(handlers.map(([[, route]]) => route));
+function wrapMatchedMiddleware(handlers: MatchedHandler[], middlewareFlags: boolean[]): void {
   for (const [i, [pair]] of handlers.entries()) {
     if (middlewareFlags[i]) {
       pair[0] = wrapMiddlewareWithSpan(pair[0]);
@@ -117,8 +116,9 @@ function injectHonoInstrumentation(
   injectedHandlerLists.add(handlers);
 
   if (isMatchedHandlerList(handlers)) {
-    wrapMatchedMiddleware(handlers);
-    wrapRouteHandlers(handlers);
+    const middlewareFlags = getMiddlewareFlags(handlers.map(([[, route]]) => route));
+    wrapMatchedMiddleware(handlers, middlewareFlags);
+    wrapRouteHandlers(handlers, middlewareFlags);
   }
 
   // Prepend the Sentry request/response middleware. Its arity marks it as a middleware, so its `/*`

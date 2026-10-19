@@ -21,8 +21,18 @@ function wrapperCount(c) {
   return count;
 }
 
+// No route handler here declares `next`, so the SDK does not wrap them.
 app.get('/users/me', c => c.json({ wrappers: wrapperCount(c) }));
-app.get('/users/:id', c => c.json({ wrappers: wrapperCount(c) }));
+
+// A route handler that declares `next`, so the SDK wraps the route handlers of this request.
+app.get('/posts/:id', async (c, next) => {
+  if (c.req.param('id') === 'draft') {
+    await next();
+    return;
+  }
+  return c.json({ wrappers: wrapperCount(c) });
+});
+app.get('/posts/*', c => c.json({ wrappers: wrapperCount(c) }));
 
 serve({ fetch: app.fetch, port: 0 }, info => {
   sendPortToRunner(info.port);

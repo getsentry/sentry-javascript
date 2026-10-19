@@ -1,5 +1,6 @@
 import { serve } from '@hono/node-server';
 import { sendPortToRunner } from '@sentry-internal/node-integration-tests';
+import { captureMessage, startSpan } from '@sentry/node';
 import { Hono } from 'hono';
 
 // No `@sentry/hono` and no `sentry()` middleware: the app is instrumented automatically by the
@@ -101,6 +102,12 @@ app
 app.get('/users/me', c => c.text('me'));
 app.get('/users/:id', c => c.text(`user ${c.req.param('id')}`));
 
+// The catch-all below also matches. An event from inside this handler must still get this route.
+app.get('/users/:id/capture', c => {
+  captureMessage('Message from a route handler');
+  return c.text('captured');
+});
+
 // A middleware that returns early. No route handler runs, so the name falls back to the last matched
 // route handler.
 app.use('/early/*', async (c, _next) => c.text('blocked by middleware'));
@@ -114,8 +121,27 @@ app.get('/head-error/:id', () => {
   throw new Error('Test error from a HEAD request');
 });
 
+// Runs the rest of the chain in its own span. The SDK must name the segment, not this span. The route
+// handler declares `next`, so the SDK names the request when the handler starts, inside this span.
+app.use('/traced/*', (_c, next) => startSpan({ name: 'user span' }, () => next()));
+app.get('/traced/:id', (c, _next) => c.text('traced'));
+
+// Passes `draft` on to the catch-all below with `next()`. The catch-all responds, so it names the request.
+app.get('/posts/:id', async (c, next) => {
+  if (c.req.param('id') === 'draft') {
+    await next();
+    return;
+  }
+  return c.text('post');
+});
+app.get('/posts/*', c => {
+  captureMessage('Message from a route handler after next()');
+  return c.text('fallback');
+});
+
 // A catch-all registered last. It also matches `/users/me` and `/users/42`, but must not name them.
 app.get('/users/*', c => c.text('users catch-all'));
+app.get('/early/*', c => c.text('never reached'));
 
 serve({ fetch: app.fetch, port: 0 }, info => {
   sendPortToRunner(info.port);

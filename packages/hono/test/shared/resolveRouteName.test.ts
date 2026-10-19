@@ -52,9 +52,25 @@ function createApp({ restoreRouteIndex }: { restoreRouteIndex: boolean }): Hono 
   app.get('/users/:id', c => c.text('user'));
   app.use('/mw-only/*', async (_c, _next) => new Response('handled by middleware'));
 
+  // A middleware that returns early. Of the matched route handlers, Hono would have run `/blocked/me`.
+  app.use('/blocked/*', async (c, _next) => c.text('blocked', 401));
+  app.get('/blocked/me', c => c.text('me'));
+  app.get('/blocked/:id', c => c.text('user'));
+  app.get('/blocked/*', c => c.text('catch-all'));
+
   const subApp = new Hono();
   subApp.get('/items/:itemId', c => c.text('item'));
   app.route('/sub', subApp);
+
+  // Passes `draft` on to the catch-all below with `next()`. The catch-all responds, so it names the request.
+  app.get('/posts/:id', async (c, next) => {
+    if (c.req.param('id') === 'draft') {
+      await next();
+      return;
+    }
+    return c.text('post');
+  });
+  app.get('/posts/*', c => c.text('fallback'));
 
   // A catch-all registered last. It also matches `/users/me` and `/users/42`, but never responds.
   app.get('/users/*', c => c.text('catch-all'));
@@ -81,9 +97,9 @@ if (!matchResultKey) {
 }
 
 const SOURCES: Array<{ source: string; hidden: PropertyKey[]; restoreRouteIndex: boolean }> = [
-  { source: '`c.req.matchedRoutes` (Hono 4)', hidden: [], restoreRouteIndex: false },
+  { source: 'Hono 4', hidden: [], restoreRouteIndex: false },
   // Hono 5 has no `c.req.matchedRoutes`.
-  { source: 'the match result getter (Hono 5)', hidden: ['matchedRoutes'], restoreRouteIndex: true },
+  { source: 'Hono 5 (simulated)', hidden: ['matchedRoutes'], restoreRouteIndex: true },
 ];
 
 const CASES: Array<[path: string, expected: string]> = [
@@ -93,9 +109,12 @@ const CASES: Array<[path: string, expected: string]> = [
   ['/users/all/the/things', 'GET /users/*'],
   ['/sub/items/7', 'GET /sub/items/:itemId'],
   ['/mw-only/anything', 'GET /mw-only/*'],
+  ['/blocked/me', 'GET /blocked/me'],
+  ['/posts/1', 'GET /posts/:id'],
+  ['/posts/draft', 'GET /posts/*'],
 ];
 
-describe.each(SOURCES)('route name from $source', ({ hidden, restoreRouteIndex }) => {
+describe.each(SOURCES)('route name on $source', ({ hidden, restoreRouteIndex }) => {
   let restores: Array<() => void> = [];
 
   beforeEach(() => {
@@ -114,6 +133,40 @@ describe.each(SOURCES)('route name from $source', ({ hidden, restoreRouteIndex }
     await app.request(path);
 
     expect(mockSetTransactionName).toHaveBeenLastCalledWith(expected);
+  });
+
+  it('does not name a request without a route', async () => {
+    freshIsolationScope();
+    const app = createApp({ restoreRouteIndex });
+
+    await app.request('/does-not-exist');
+
+    expect(mockSetTransactionName).not.toHaveBeenCalled();
+  });
+});
+
+describe('route name with another symbol-keyed getter on the request', () => {
+  let restores: Array<() => void> = [];
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    restores = [
+      hideRequestProperty('matchedRoutes'),
+      overrideRequestProperty(Symbol('requestId'), { get: () => 'req-7f3a' }),
+    ];
+  });
+
+  afterEach(() => {
+    restores.forEach(restore => restore());
+  });
+
+  it('still finds the match result getter', async () => {
+    freshIsolationScope();
+    const app = createApp({ restoreRouteIndex: true });
+
+    await app.request('/users/me');
+
+    expect(mockSetTransactionName).toHaveBeenLastCalledWith('GET /users/me');
   });
 });
 

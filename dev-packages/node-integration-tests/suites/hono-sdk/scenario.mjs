@@ -1,5 +1,5 @@
 import { serve } from '@hono/node-server';
-import { sentry } from '@sentry/hono/node';
+import { captureMessage, sentry } from '@sentry/hono/node';
 import { sendPortToRunner } from '@sentry-internal/node-integration-tests';
 import { Hono } from 'hono';
 
@@ -23,6 +23,12 @@ app.get('/error/:param', () => {
 // Both routes match `/users/me`. The name must come from the handler that responded.
 app.get('/users/me', c => c.text('me'));
 app.get('/users/:id', c => c.text(`user ${c.req.param('id')}`));
+
+// The catch-all below also matches. An event from inside this handler must still get this route.
+app.get('/users/:id/capture', c => {
+  captureMessage('Message from a route handler');
+  return c.text('captured');
+});
 
 // A middleware that returns early. No route handler runs, so the name falls back to the last matched
 // route handler.
@@ -53,8 +59,22 @@ app.get('/outer/:itemId', async c => {
   return c.json({ outer: c.req.param('itemId'), inner: await res.json() });
 });
 
+// Passes `draft` on to the catch-all below with `next()`. The catch-all responds, so it names the request.
+app.get('/posts/:id', async (c, next) => {
+  if (c.req.param('id') === 'draft') {
+    await next();
+    return;
+  }
+  return c.text('post');
+});
+app.get('/posts/*', c => {
+  captureMessage('Message from a route handler after next()');
+  return c.text('fallback');
+});
+
 // A catch-all registered last. It also matches `/users/me` and `/users/42`, but must not name them.
 app.get('/users/*', c => c.text('users catch-all'));
+app.get('/early/*', c => c.text('never reached'));
 
 serve({ fetch: app.fetch, port: 0 }, info => {
   sendPortToRunner(info.port);
