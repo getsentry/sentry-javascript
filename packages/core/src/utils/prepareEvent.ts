@@ -96,18 +96,35 @@ export function prepareEvent(
   ];
 
   // Skip event processors for internal exceptions to prevent recursion
+  const isTransaction = event.type === 'transaction';
+  // Snapshot the count rather than reading `event.spans` later: processors get a shallow copy of the
+  // event, so one that mutates `spans` in place also mutates the original array.
+  const spanCountBeforeProcessing = event.spans?.length || 0;
   const result: PromiseLike<Event | null> = isInternalException(hint)
     ? resolvedSyncPromise(prepared)
     : notifyEventProcessors(eventProcessors, prepared, hint);
 
   return result.then(evt => {
-    if (evt) {
-      // We apply the debug_meta field only after all event processors have ran, so that if any event processors modified
-      // file names (e.g.the RewriteFrames integration) the filename -> debug ID relationship isn't destroyed.
-      // This should not cause any PII issues, since we're only moving data that is already on the event and not adding
-      // any new data
-      applyDebugMeta(evt);
+    if (!evt) {
+      // The client records the dropped transaction itself; the span outcome covers its root span plus all child spans.
+      if (isTransaction && client) {
+        client.recordDroppedEvent('event_processor', 'span', 1 + spanCountBeforeProcessing);
+      }
+      return null;
     }
+
+    if (isTransaction && client) {
+      const droppedSpanCount = spanCountBeforeProcessing - (evt.spans?.length || 0);
+      if (droppedSpanCount > 0) {
+        client.recordDroppedEvent('event_processor', 'span', droppedSpanCount);
+      }
+    }
+
+    // We apply the debug_meta field only after all event processors have ran, so that if any event processors modified
+    // file names (e.g.the RewriteFrames integration) the filename -> debug ID relationship isn't destroyed.
+    // This should not cause any PII issues, since we're only moving data that is already on the event and not adding
+    // any new data
+    applyDebugMeta(evt);
 
     if (typeof normalizeDepth === 'number' && normalizeDepth > 0) {
       return normalizeEvent(evt, normalizeDepth, normalizeMaxBreadth);
