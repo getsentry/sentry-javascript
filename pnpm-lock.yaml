@@ -461,8 +461,8 @@ importers:
         specifier: ^7.16.7
         version: 7.28.5(@babel/core@7.29.7(supports-color@10.0.0))(supports-color@10.0.0)
       '@playwright/test':
-        specifier: ~1.63.0
-        version: 1.63.0
+        specifier: 1.64.1
+        version: 1.64.1
       '@sentry/browser':
         specifier: 11.8.0
         version: link:../../packages/browser
@@ -1068,8 +1068,8 @@ importers:
         version: 8.21.3
     devDependencies:
       '@playwright/test':
-        specifier: ~1.63.0
-        version: 1.63.0
+        specifier: 1.64.1
+        version: 1.64.1
       '@sentry/core':
         specifier: 11.8.0
         version: link:../../packages/core
@@ -1689,7 +1689,7 @@ importers:
     devDependencies:
       next:
         specifier: 15.5.27
-        version: 15.5.27(@babel/core@7.29.7(supports-color@10.0.0))(@opentelemetry/api@1.9.1)(@playwright/test@1.63.0)(@types/node@18.19.130)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(sass@1.72.0)
+        version: 15.5.27(@babel/core@7.29.7(supports-color@10.0.0))(@opentelemetry/api@1.9.1)(@playwright/test@1.64.1)(@types/node@18.19.130)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(sass@1.72.0)
       react:
         specifier: ^18.3.1
         version: 18.3.1
@@ -7332,8 +7332,8 @@ packages:
     resolution: {integrity: sha512-+1VkjdD0QBLPodGrJUeqarH8VAIvQODIbwh9XpP5Syisf7YoQgsJKPNFoqqLQlu+VQ/tVSshMR6loPMn8U+dPg==}
     engines: {node: '>=14'}
 
-  '@playwright/test@1.63.0':
-    resolution: {integrity: sha512-oxMK4vllB9RK5NQ2l1pq1IfOf2AvnEuj/vYGDj0H2nMtmtZpKtCwt/l00GEO6xjGfpBNAvjovvYdCm50dRQkpQ==}
+  '@playwright/test@1.64.1':
+    resolution: {integrity: sha512-IaYGml/nSOiZWROfPtuIL7neuu9qDOZ3TNvNljUIrhDMxiGTgPjzj/g9p9RxpS2tSepPDRY+UwAaEeiKtUvIAg==}
     engines: {node: '>=20'}
     hasBin: true
 
@@ -15627,13 +15627,13 @@ packages:
     resolution: {integrity: sha512-nDywThFk1i4BQK4twPQ6TA4RT8bDY96yeuCVBWL3ePARCiEKDRSrNGbFIgUJpLp+XeIR65v8ra7WuJOFUBtkMA==}
     engines: {node: '>=8'}
 
-  playwright-core@1.63.0:
-    resolution: {integrity: sha512-rYCsBF/M5HjUch52bbtVONEFjv6Xu8sm8h72dNlR5bzIE1fvC/bxgspzkjSfU+MweEMmPM8KJebG6nnyxo5mCg==}
+  playwright-core@1.64.1:
+    resolution: {integrity: sha512-BC4s8y6SEVA6Q1rSxZTto8hI1KUI3xXlHGZgvGqP4IqPdI/a6FX9H29IDNz7vKo9l21b6LfYosScPL6M3xxyDQ==}
     engines: {node: '>=20'}
     hasBin: true
 
-  playwright@1.63.0:
-    resolution: {integrity: sha512-+7ziBLidS4NaNCdt57SUDT+wYmmd5fmiQejUic/kb+YsYSCPyOOE9sebzMjNmQrsnNpDJqd4WHvV/8lfKfUDUg==}
+  playwright@1.64.1:
+    resolution: {integrity: sha512-HCrVhHr5QQuwYoswEUGTb7gGp522yflbv/ST8nF4sFWGuLjQCt17Q/EubpGGSNKYn1tsTCPZxqHhHCfVURu7UA==}
     engines: {node: '>=20'}
     hasBin: true
 
@@ -25453,9 +25453,9 @@ snapshots:
   '@pkgjs/parseargs@0.11.0':
     optional: true
 
-  '@playwright/test@1.63.0':
+  '@playwright/test@1.64.1':
     dependencies:
-      playwright: 1.63.0
+      playwright: 1.64.1
 
   '@polka/url@1.0.0-next.28': {}
 
@@ -34457,7 +34457,7 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  next@15.5.27(@babel/core@7.29.7(supports-color@10.0.0))(@opentelemetry/api@1.9.1)(@playwright/test@1.63.0)(@types/node@18.19.130)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(sass@1.72.0):
+  next@15.5.27(@babel/core@7.29.7(supports-color@10.0.0))(@opentelemetry/api@1.9.1)(@playwright/test@1.64.1)(@types/node@18.19.130)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(sass@1.72.0):
     dependencies:
       '@next/env': 15.5.27
       '@swc/helpers': 0.5.15
@@ -34476,7 +34476,7 @@ snapshots:
       '@next/swc-win32-arm64-msvc': 15.5.27
       '@next/swc-win32-x64-msvc': 15.5.27
       '@opentelemetry/api': 1.9.1
-      '@playwright/test': 1.63.0
+      '@playwright/test': 1.64.1
       sass: 1.72.0
       sharp: 0.35.5(@types/node@18.19.130)
     transitivePeerDependencies:
@@ -36185,11 +36185,11 @@ snapshots:
     dependencies:
       find-up: 3.0.0
 
-  playwright-core@1.63.0: {}
+  playwright-core@1.64.1: {}
 
-  playwright@1.63.0:
+  playwright@1.64.1:
     dependencies:
-      playwright-core: 1.63.0
+      playwright-core: 1.64.1
 
   pluralize@8.0.0: {}
 
