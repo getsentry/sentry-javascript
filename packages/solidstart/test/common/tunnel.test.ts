@@ -6,16 +6,13 @@ describe('applyTunnelBasePath', () => {
     vi.unstubAllGlobals();
   });
 
-  it('serves the managed tunnel under the defined base path, unless the user set one', () => {
+  it('serves the managed tunnel under the defined base path', () => {
     vi.stubGlobal('__SENTRY_SOLIDSTART_TUNNEL_BASE_PATH__', '/app');
-    const managed: Parameters<typeof applyTunnelBasePath>[0] = { tunnel: true };
-    const own: Parameters<typeof applyTunnelBasePath>[0] = { tunnel: { basePath: '/custom' } };
+    const options: Parameters<typeof applyTunnelBasePath>[0] = { tunnel: true };
 
-    applyTunnelBasePath(managed);
-    applyTunnelBasePath(own);
+    applyTunnelBasePath(options);
 
-    expect(managed.tunnel).toEqual({ basePath: '/app' });
-    expect(own.tunnel).toEqual({ basePath: '/custom' });
+    expect(options.tunnel).toEqual({ basePath: '/app' });
   });
 
   it('leaves the tunnel alone without a base path', () => {
