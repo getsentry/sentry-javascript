@@ -1,4 +1,4 @@
-import { getClient, setManagedTunnelBasePath } from '@sentry/core';
+import { setManagedTunnelDefaults } from '@sentry/core/server';
 import type { NitroModule } from 'nitro/types';
 import type { SentryNitroOptions } from './config';
 import { instrumentServer } from './instruments/instrumentServer';
@@ -17,7 +17,7 @@ export function createNitroModule(sentryOptions?: SentryNitroOptions, sentryEnab
       // In dev, Vite's server takes each request in this process before Nitro handles it, and its `http.server` span
       // comes from the SDK `--import` set up here. The runtime plugin only reaches the client where Nitro runs.
       if (nitro.options.dev) {
-        setManagedTunnelBasePath(getClient(), nitro.options.baseURL);
+        setManagedTunnelDefaults({ basePath: nitro.options.baseURL });
       }
     },
   };
