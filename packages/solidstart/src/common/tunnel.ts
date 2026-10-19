@@ -13,5 +13,5 @@ declare const __SENTRY_SOLIDSTART_TUNNEL_BASE_PATH__: string | undefined;
 export function applyTunnelBasePath(options: Pick<Options, 'tunnel'>): void {
   const basePath =
     typeof __SENTRY_SOLIDSTART_TUNNEL_BASE_PATH__ !== 'undefined' ? __SENTRY_SOLIDSTART_TUNNEL_BASE_PATH__ : '';
-  options.tunnel = applyTunnelDefaults(options.tunnel, basePath ? { basePath } : undefined);
+  options.tunnel = applyTunnelDefaults(options.tunnel, { basePath });
 }
