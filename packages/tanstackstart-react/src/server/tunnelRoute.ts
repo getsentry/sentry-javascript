@@ -1,14 +1,7 @@
 import { URL_PATH } from '@sentry/conventions/attributes';
 import type { TunnelOptions } from '@sentry/core';
-import {
-  dsnToString,
-  enableManagedTunnel,
-  escapeStringForRegex,
-  getClient,
-  handleTunnelRequest,
-  handleTunnelRequestIfMatched,
-  setManagedTunnelBasePath,
-} from '@sentry/core';
+import { dsnToString, escapeStringForRegex, getClient, handleTunnelRequest } from '@sentry/core';
+import { handleTunnelRequestIfMatched, setManagedTunnelDefaults } from '@sentry/core/server';
 import type { ServerEntry } from './wrapFetchWithSentry';
 
 const registeredTunnelRoutePaths = new Set<string>();
@@ -107,26 +100,17 @@ export function createSentryTunnelRoute(options: CreateSentryTunnelRouteOptions)
  * Answers managed tunnel requests before the server entry runs. The `sentryTanstackStart` Vite plugin applies this
  * to the app's server entry automatically, with its `tunnelRoute` and the base path Start routes on.
  *
- * `tunnelRoute` enables the managed tunnel on the client the same way `Sentry.init({ tunnel })` does, unless that
- * `init` already enabled one, and the tunnel is then served from the client's config like in every other SDK.
+ * `tunnelRoute` enables the managed tunnel on every server client the same way `Sentry.init({ tunnel })` does, unless
+ * that `init` already enabled one, and the tunnel is then served from the client's config like in every other SDK.
  */
 export function wrapServerEntryWithSentryTunnel<T extends ServerEntry>(
   entry: T,
   tunnelRoute?: TunnelOptions,
   basePath?: string,
 ): T {
-  // Requests still carry Start's base path here, so the tunnel is served under it.
-  const applyToClient = (): void => {
-    const client = getClient();
-    if (tunnelRoute) {
-      enableManagedTunnel(client, basePath ? { basePath, ...tunnelRoute } : tunnelRoute);
-    }
-    setManagedTunnelBasePath(client, basePath);
-  };
-
-  // `init` usually runs from `--import` before the server entry loads, so the tunnel's spans are dropped from the
-  // first request on. On Cloudflare the client is created per request, which this repeats for.
-  applyToClient();
+  // Runs when the server entry loads, before any request. Requests still carry Start's base path here, so the tunnel
+  // is served under it.
+  setManagedTunnelDefaults({ tunnel: tunnelRoute, basePath });
 
   // A class entry, like Cloudflare's `WorkerEntrypoint`, can't be spread into an object. The tunnel is then served
   // by the wrapped default server entry it calls.
@@ -138,8 +122,6 @@ export function wrapServerEntryWithSentryTunnel<T extends ServerEntry>(
     ...entry,
     // Cloudflare Workers pass `env` and `ctx` after the request, and `withSentry` needs `ctx` to flush.
     fetch(request: Request, ...rest: unknown[]) {
-      applyToClient();
-
       return handleTunnelRequestIfMatched(request) ?? entry.fetch(request, ...rest);
     },
   };

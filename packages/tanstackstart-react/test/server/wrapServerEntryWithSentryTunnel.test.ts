@@ -1,5 +1,6 @@
 import type { Client } from '@sentry/core';
 import { createEnvelope, getCurrentScope, getTunnelPath, makeDsn, serializeEnvelope } from '@sentry/core';
+import { _INTERNAL_resetManagedTunnelDefaults } from '@sentry/core/server';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { wrapServerEntryWithSentryTunnel } from '../../src/server/tunnelRoute';
 
@@ -25,6 +26,7 @@ describe('wrapServerEntryWithSentryTunnel', () => {
 
   afterEach(() => {
     getCurrentScope().setClient(undefined);
+    _INTERNAL_resetManagedTunnelDefaults();
     vi.unstubAllGlobals();
     vi.clearAllMocks();
   });
