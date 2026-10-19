@@ -4,5 +4,8 @@ Sentry.init({
   dsn: process.env.E2E_TEST_TUNNEL ? 'http://public@localhost:3031/1337' : 'https://username@domain/123',
   environment: 'qa', // dynamic sampling bias to keep transactions
   tracesSampleRate: 1.0,
-  tunnel: process.env.E2E_TEST_TUNNEL ? true : `http://localhost:3031/`, // proxy server
+  // The tunnel variants also accept another app's DSN, so the server serves more than one tunnel path.
+  tunnel: process.env.E2E_TEST_TUNNEL
+    ? { allowedDsns: ['http://other@localhost:3031/1338'] }
+    : `http://localhost:3031/`,
 });

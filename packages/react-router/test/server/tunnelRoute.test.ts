@@ -1,7 +1,7 @@
 import type { Client } from '@sentry/core';
 import { createEnvelope, getCurrentScope, getTunnelPath, makeDsn, serializeEnvelope } from '@sentry/core';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { createSentryTunnelRoute } from '../../src/server/tunnelRoute';
+import { createSentryTunnelRoutes } from '../../src/server/tunnelRoute';
 
 const DSN = 'https://public@o1.ingest.sentry.io/1337';
 
@@ -11,12 +11,16 @@ type TunnelRoute = {
   module: { action: (args: { request: Request }) => Promise<Response> | Response; loader: () => Response };
 };
 
+function firstRoute(basename?: string): TunnelRoute {
+  return Object.values(createSentryTunnelRoutes(basename))[0] as TunnelRoute;
+}
+
 function setClient(managedTunnel: object | undefined): void {
   const options = { dsn: DSN, _managedTunnel: managedTunnel };
   getCurrentScope().setClient({ getDsn: () => makeDsn(DSN), getOptions: () => options } as unknown as Client);
 }
 
-describe('createSentryTunnelRoute', () => {
+describe('createSentryTunnelRoutes', () => {
   afterEach(() => {
     getCurrentScope().setClient(undefined);
     vi.unstubAllGlobals();
@@ -24,19 +28,20 @@ describe('createSentryTunnelRoute', () => {
 
   it('is a top-level route at the tunnel path when `init` enabled the managed tunnel', () => {
     setClient({});
-    const route = createSentryTunnelRoute() as TunnelRoute;
+    const route = firstRoute();
 
     expect(route.parentId).toBeUndefined();
     expect(route.path).toBe(getTunnelPath(DSN));
   });
 
-  it('serves a path that never matches when the tunnel is off or Sentry is not initialized yet', () => {
-    const route = createSentryTunnelRoute() as TunnelRoute;
+  it('adds no route when the tunnel is off, and a path that never matches when Sentry is not initialized yet', () => {
+    const route = firstRoute();
     const pathWithoutClient = route.path;
     setClient(undefined);
 
     expect(pathWithoutClient).toBe('/__sentry-tunnel-disabled__');
     expect(route.path).toBe('/__sentry-tunnel-disabled__');
+    expect(createSentryTunnelRoutes()).toEqual({});
   });
 
   it('forwards tunnel POSTs and rejects other methods', async () => {
@@ -45,7 +50,7 @@ describe('createSentryTunnelRoute', () => {
       'fetch',
       vi.fn(() => Promise.resolve(new Response('forwarded'))),
     );
-    const route = createSentryTunnelRoute() as TunnelRoute;
+    const route = firstRoute();
     const request = new Request(`http://localhost${getTunnelPath(DSN)}`, {
       method: 'POST',
       body: serializeEnvelope(createEnvelope({ dsn: DSN }, [])) as BodyInit,
@@ -61,7 +66,7 @@ describe('createSentryTunnelRoute', () => {
       'fetch',
       vi.fn(() => Promise.resolve(new Response('forwarded'))),
     );
-    const route = createSentryTunnelRoute('/app/') as TunnelRoute;
+    const route = firstRoute('/app/');
     const request = new Request(`http://localhost/app${getTunnelPath(DSN)}`, {
       method: 'POST',
       body: serializeEnvelope(createEnvelope({ dsn: DSN }, [])) as BodyInit,
