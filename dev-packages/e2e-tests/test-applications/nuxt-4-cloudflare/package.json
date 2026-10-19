@@ -8,7 +8,9 @@
     "preview": "wrangler dev --var \"E2E_TEST_DSN:$E2E_TEST_DSN\" --port 3030 --log-level=$(test $CI && echo 'none' || echo 'log')",
     "test": "playwright test",
     "test:build": "pnpm install && pnpm build",
-    "test:assert": "pnpm test"
+    "test:assert": "pnpm test",
+    "test:build:tunnel": "pnpm install && E2E_TEST_TUNNEL=1 pnpm build",
+    "test:assert:tunnel": "E2E_TEST_TUNNEL=1 pnpm test tunnel"
   },
   "dependencies": {
     "@sentry/nuxt": "file:../../packed/sentry-nuxt-packed.tgz",
@@ -23,5 +25,14 @@
   },
   "volta": {
     "extends": "../../package.json"
+  },
+  "sentryTest": {
+    "variants": [
+      {
+        "build-command": "pnpm test:build:tunnel",
+        "assert-command": "pnpm test:assert:tunnel",
+        "label": "nuxt-4-cloudflare (tunnel)"
+      }
+    ]
   }
 }
