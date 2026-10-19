@@ -1,11 +1,6 @@
 import type { EventEnvelope, EventItem, Transport, TransportMakeRequestResponse } from '@sentry/core';
-import {
-  createEnvelope,
-  getEnvelopeEndpointWithUrlEncodedAuth,
-  getTunnelPath,
-  isTunnelRequest,
-  makeDsn,
-} from '@sentry/core';
+import { createEnvelope, getEnvelopeEndpointWithUrlEncodedAuth, getTunnelPath, makeDsn } from '@sentry/core';
+import { isTunnelRequest } from '@sentry/core/server';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { getClient, getCurrentScope, init } from '../../src';
 import { makeFetchTransport } from '../../src/transports/fetch';

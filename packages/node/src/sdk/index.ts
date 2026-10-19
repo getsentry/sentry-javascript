@@ -15,9 +15,9 @@ import {
   linkedErrorsIntegration,
   propagationContextFromHeaders,
   requestDataIntegration,
-  resolveServerTunnelOption,
   stackParserFromStackParserOptions,
 } from '@sentry/core';
+import { resolveServerTunnelOption } from '@sentry/core/server';
 import { isMainThread, parentPort } from 'node:worker_threads';
 import { detectOrchestrionSetup, getErrorIntegrations, getTracingIntegrations } from '@sentry/server-utils';
 import { DEBUG_BUILD } from '../debug-build';

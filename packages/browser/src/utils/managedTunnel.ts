@@ -46,6 +46,8 @@ export function resolveBrowserTunnelOption(
   };
 }
 
+let hasWarnedAboutRejectedDsn = false;
+
 /**
  * Sends to Sentry directly once it's clear nothing on this origin serves the managed tunnel, e.g. in a static build,
  * on an SPA host, or when the server SDK isn't set up. An envelope is only sent again when the tunnel's response
@@ -85,6 +87,13 @@ export function makeManagedTunnelTransport(
 
         // The tunnel handler answered, so whatever status it passes on is Sentry's.
         if (response.headers?.['x-sentry-tunnel']) {
+          if (DEBUG_BUILD && statusCode === 403 && !hasWarnedAboutRejectedDsn) {
+            hasWarnedAboutRejectedDsn = true;
+            debug.warn(
+              `The managed tunnel at "${options.url}" rejected this DSN, so events sent through it are lost. Add it to the server's \`allowedDsns\`.`,
+            );
+          }
+
           return response;
         }
 

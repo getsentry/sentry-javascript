@@ -12,12 +12,11 @@ import {
   initAndBind,
   linkedErrorsIntegration,
   requestDataIntegration,
-  resolveServerTunnelOption,
   stackParserFromStackParserOptions,
 } from '@sentry/core';
+import { nodeStackLineParser, resolveServerTunnelOption } from '@sentry/core/server';
 import { detectOrchestrionSetup, getTracingIntegrations, getErrorIntegrations } from '@sentry/server-utils';
 import { DenoClient } from './client';
-import { nodeStackLineParser } from '@sentry/core/server';
 import { breadcrumbsIntegration } from './integrations/breadcrumbs';
 import { denoContextIntegration } from './integrations/context';
 import { contextLinesIntegration } from './integrations/contextlines';

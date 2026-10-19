@@ -15,10 +15,13 @@ import {
   _INTERNAL_warnIfClientIsActive,
   linkedErrorsIntegration,
   requestDataIntegration,
-  resolveServerTunnelOption,
   stackParserFromStackParserOptions,
 } from '@sentry/core';
-import { _INTERNAL_getReleaseFromCommitEnv as getReleaseFromCommitEnv, nodeStackLineParser } from '@sentry/core/server';
+import {
+  _INTERNAL_getReleaseFromCommitEnv as getReleaseFromCommitEnv,
+  nodeStackLineParser,
+  resolveServerTunnelOption,
+} from '@sentry/core/server';
 import {
   SentryPropagator,
   SentryTracerProvider,
