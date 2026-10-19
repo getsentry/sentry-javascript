@@ -4,6 +4,6 @@ Sentry.init({
   dsn: import.meta.env.PUBLIC_E2E_TEST_DSN,
   environment: 'qa',
   tracesSampleRate: 1.0,
-  tunnel: 'http://localhost:3031/', // proxy server
+  tunnel: import.meta.env.PUBLIC_E2E_TEST_TUNNEL ? true : 'http://localhost:3031/', // proxy server
   debug: true,
 });
