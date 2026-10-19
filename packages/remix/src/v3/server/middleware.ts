@@ -5,12 +5,12 @@ import {
   getRootSpan,
   getSpanStatusFromHttpCode,
   getTraceData,
-  handleTunnelRequestIfMatched,
   INTERNAL_setSegmentNameSourceIfSegment,
   type Scope,
   updateSpanName,
   winterCGRequestToRequestData,
 } from '@sentry/core';
+import { handleTunnelRequestIfMatched } from '@sentry/core/server';
 
 import { formatRouteTiming } from '../routeTiming';
 import type { MatcherLike, MiddlewareLike, NextFunctionLike, RequestContextLike } from '../types';
