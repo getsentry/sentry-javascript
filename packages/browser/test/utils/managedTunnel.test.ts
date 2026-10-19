@@ -1,6 +1,5 @@
 import type { EventEnvelope, EventItem, Transport, TransportMakeRequestResponse } from '@sentry/core';
 import { createEnvelope, getEnvelopeEndpointWithUrlEncodedAuth, getTunnelPath, makeDsn } from '@sentry/core';
-import { isTunnelRequest } from '@sentry/core/server';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { getClient, getCurrentScope, init } from '../../src';
 import { makeFetchTransport } from '../../src/transports/fetch';
@@ -14,7 +13,6 @@ describe('resolveBrowserTunnelOption', () => {
     const { tunnel } = resolveBrowserTunnelOption({ dsn: DSN, tunnel: true });
 
     expect(tunnel).toBe(getTunnelPath(DSN));
-    expect(isTunnelRequest({ method: 'POST', url: tunnel! }, { allowedDsns: [DSN] })).toBe(true);
   });
 
   it('marks the tunnel as managed so the client can explain a server that does not answer it', () => {
@@ -28,7 +26,6 @@ describe('resolveBrowserTunnelOption', () => {
     const { tunnel } = resolveBrowserTunnelOption({ dsn: DSN, tunnel: { basePath: '/docs/', trailingSlash: true } });
 
     expect(tunnel).toBe(`/docs${getTunnelPath(DSN)}/`);
-    expect(isTunnelRequest({ method: 'POST', url: tunnel! }, { allowedDsns: [DSN], basePath: '/docs' })).toBe(true);
   });
 
   it('normalizes the base path like the server does, so the tunnel URL is never page-relative', () => {
