@@ -5,15 +5,19 @@ import { sync as globSync } from 'glob';
 const E2E_TESTS_ROOT = path.resolve(__dirname, '..');
 const REPOSITORY_ROOT = path.resolve(E2E_TESTS_ROOT, '../..');
 
+// test-utils is not published, but test apps install it from its tarball too: with a `link:`, its dependencies would
+// resolve from the monorepo's root `node_modules` instead of the app's.
+export const TARBALL_PACKAGE_JSON_GLOB = '{packages/*,dev-packages/test-utils}/package.json';
+
 /**
  * Workspace @sentry and @sentry-internal packages that have a built tarball for the E2E version.
- * @returns The names of the published Sentry tarball packages.
+ * @returns The names of the Sentry tarball packages.
  */
 export function getPublishedSentryTarballPackageNames(): string[] {
   const version = getE2eTestsPackageVersion();
   const names: string[] = [];
 
-  for (const packageJsonPath of globSync('packages/*/package.json', {
+  for (const packageJsonPath of globSync(TARBALL_PACKAGE_JSON_GLOB, {
     cwd: REPOSITORY_ROOT,
     absolute: true,
   })) {
