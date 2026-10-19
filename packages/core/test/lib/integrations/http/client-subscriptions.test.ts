@@ -1,4 +1,5 @@
 import * as http from 'node:http';
+import { errorMonitor } from 'node:events';
 import type { AddressInfo } from 'node:net';
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import * as breadcrumbModule from '../../../../src/integrations/http/add-outgoing-request-breadcrumb';
@@ -149,6 +150,7 @@ describe('getHttpClientSubscriptions', () => {
         | 'destroyResponse'
         | 'destroyResponseWithError'
         | 'never',
+      { listenForResponseErrors = true }: { listenForResponseErrors?: boolean } = {},
     ): Promise<SpanJSON> {
       const client = new TestClient(getDefaultTestClientOptions({ tracesSampleRate: 1 }));
       setCurrentClient(client);
@@ -164,11 +166,14 @@ describe('getHttpClientSubscriptions', () => {
         const controller = new AbortController();
         const request = http.request({ host: '127.0.0.1', port, path, signal: controller.signal });
         startSpan({ name: 'parent' }, () => {
-          getHttpClientSubscriptions({})[HTTP_ON_CLIENT_REQUEST]({ request }, HTTP_ON_CLIENT_REQUEST);
+          // Like @sentry/node, pass the real `errorMonitor`, so Sentry itself does not add an `error` listener.
+          getHttpClientSubscriptions({ errorMonitor })[HTTP_ON_CLIENT_REQUEST]({ request }, HTTP_ON_CLIENT_REQUEST);
         });
         request.on('error', () => {});
         request.on('response', response => {
-          response.on('error', () => {});
+          if (listenForResponseErrors) {
+            response.on('error', () => {});
+          }
           response.once('data', () => {
             if (abortAt === 'destroyWithError') {
               request.destroy(new Error('boom'));
@@ -218,6 +223,12 @@ describe('getHttpClientSubscriptions', () => {
 
     it('sets an error status when the server closes the connection mid-body', async () => {
       const span = await makeRequest('/server-abort', 'never');
+
+      expect(span.status).toBe('error');
+    });
+
+    it('sets an error status when the connection resets mid-body and nothing listens for response errors', async () => {
+      const span = await makeRequest('/server-abort', 'never', { listenForResponseErrors: false });
 
       expect(span.status).toBe('error');
     });
