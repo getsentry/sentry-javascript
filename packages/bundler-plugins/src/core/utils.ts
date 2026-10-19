@@ -455,7 +455,14 @@ export class CodeInjection {
   private readonly footer: string;
 
   constructor(private body: string = '') {
-    this.header = `!function(){try{var e="undefined"!=typeof window?window:"undefined"!=typeof global?global:"undefined"!=typeof globalThis?globalThis:"undefined"!=typeof self?self:{};`;
+    // `globalThis` is checked first so the other identifiers are never evaluated
+    // where it exists. A downstream bundler that runs over an already-injected
+    // chunk can turn a free `global` into a `const` it declares further down the
+    // file (Nitro's node compat does this). Reading that binding from the top of
+    // the file hits the temporal dead zone, and `typeof` throws there instead of
+    // returning "undefined", so the whole injection was silently swallowed by the
+    // `catch` below and the chunk registered no debug ID.
+    this.header = `!function(){try{var e="undefined"!=typeof globalThis?globalThis:"undefined"!=typeof window?window:"undefined"!=typeof global?global:"undefined"!=typeof self?self:{};`;
     this.footer = '}catch(e){}}();';
   }
 
