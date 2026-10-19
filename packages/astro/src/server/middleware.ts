@@ -25,9 +25,8 @@ import {
   winterCGRequestToRequestData,
   filterCollectedUrl,
   filterCollectedUrlQuery,
-  handleTunnelRequestIfMatched,
 } from '@sentry/core';
-import { flushIfServerless } from '@sentry/core/server';
+import { flushIfServerless, handleTunnelRequestIfMatched } from '@sentry/core/server';
 import {
   captureException,
   continueTrace,

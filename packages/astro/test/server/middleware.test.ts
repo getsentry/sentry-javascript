@@ -2,6 +2,7 @@ import { HTTP_REQUEST_METHOD, SENTRY_SEGMENT_NAME_SOURCE, URL_FULL, URL_PATH } f
 import type { Client, Span } from '@sentry/core';
 
 import * as SentryCore from '@sentry/core';
+import * as SentryCoreServer from '@sentry/core/server';
 import * as SentryNode from '@sentry/node';
 import type { APIContext } from 'astro';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -38,7 +39,7 @@ describe('sentryMiddleware with the managed tunnel', () => {
     const getClientSpy = vi.spyOn(SentryNode, 'getClient').mockReturnValue({} as Client);
     const tunnelResponse = new Response('forwarded');
     const matcherSpy = vi
-      .spyOn(SentryCore, 'handleTunnelRequestIfMatched')
+      .spyOn(SentryCoreServer, 'handleTunnelRequestIfMatched')
       .mockReturnValue(Promise.resolve(tunnelResponse));
     const next = vi.fn();
     const request = new Request('https://myDomain.io/abc123', { method: 'POST' });
