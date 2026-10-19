@@ -93,7 +93,7 @@ export function createFetchIntegration({
             return;
           }
 
-          // Matches Node's http and undici instrumentation, so SDK-internal requests (e.g. a tunnel forward) leave no breadcrumb.
+          // Like Node's http and undici instrumentation: SDK-internal requests leave no breadcrumb.
           if (isTracingSuppressed() || isSentryRequestUrl(handlerData.fetchData.url, client)) {
             return;
           }

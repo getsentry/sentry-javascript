@@ -22,16 +22,12 @@ interface ManagedTunnelDefaults {
 
 let managedTunnelDefaults: ManagedTunnelDefaults | undefined;
 
-// The span filters each client got for its managed tunnel, so applying new defaults replaces them.
+// So re-applying defaults replaces a client's filters instead of adding more.
 const installedSpanFilters = new WeakMap<Client, IgnoreSpanFilter[]>();
 
 /**
- * Sets the managed tunnel settings a framework SDK knows outside `init`, for every server client created afterwards
- * and for the current one. Clients created per request, like on Cloudflare, then start with the tunnel and its span
- * filters, so not even their first tunnel request's span gets through. A managed tunnel or `basePath` that `init`
- * set wins.
- *
- * Framework SDKs call this once, when their server code loads.
+ * Sets framework-known tunnel settings for the current and every later server client, so per-request clients
+ * (Cloudflare) start with them. Settings from `init` win. Framework SDKs call this once at load.
  */
 export function setManagedTunnelDefaults(defaults: ManagedTunnelDefaults): void {
   managedTunnelDefaults = {
@@ -43,10 +39,8 @@ export function setManagedTunnelDefaults(defaults: ManagedTunnelDefaults): void 
 }
 
 /**
- * Settles a server client's managed tunnel: the one its `init` enabled, or else the defaults, under the default base
- * path. It computes the DSNs the client forwards for and the paths it's served at, and installs the span filters for
- * them. Server clients call this when they're created, and {@link setManagedTunnelDefaults} calls it again for a
- * client that already exists, replacing the filters it added.
+ * Resolves a server client's managed tunnel (from `init` or the defaults), computes its paths and allowed DSNs, and
+ * installs its span filters. Runs when a server client is created and from {@link setManagedTunnelDefaults}.
  */
 export function applyManagedTunnelDefaults(client: Client | undefined): void {
   const options = client?.getOptions();

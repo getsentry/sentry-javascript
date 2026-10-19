@@ -374,8 +374,7 @@ export interface ClientOptions<TO extends BaseTransportOptions = BaseTransportOp
   tunnel?: string;
 
   /**
-   * Set by server SDKs when the managed tunnel is enabled. Server request handlers check it to decide whether to
-   * serve the managed tunnel.
+   * Set by server SDKs when the managed tunnel is enabled.
    *
    * @internal This option is not part of the public API and is subject to change at any time.
    */
@@ -656,8 +655,7 @@ export type BeforeSendStaticSpanCallback = (span: SpanJSON) => SpanJSON;
 /** Options for the managed tunnel, see `tunnel`. */
 export interface TunnelOptions {
   /**
-   * Server only. DSNs whose envelopes the tunnel forwards, in addition to the server's own DSN. List the browser DSN
-   * here when the browser uses a different one.
+   * Server only. DSNs to forward besides the server's own, e.g. a different browser DSN.
    */
   allowedDsns?: string[];
 

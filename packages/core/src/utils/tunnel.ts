@@ -11,8 +11,7 @@ import { dsnToString, makeDsn } from './dsn';
 import { parseUrl } from './url';
 
 /**
- * What a server client serves its managed tunnel at and forwards for. Both only depend on its tunnel options and DSN,
- * so they're computed once, when its managed tunnel is settled, and only read per request.
+ * A server client's tunnel paths and allowed DSNs, computed once per client.
  */
 interface ServedTunnel {
   paths: string[];
@@ -22,7 +21,7 @@ interface ServedTunnel {
 const servedTunnels = new WeakMap<Client, ServedTunnel>();
 
 /**
- * Records what a server client serves its managed tunnel at and forwards for.
+ * Stores a server client's computed tunnel paths and allowed DSNs.
  */
 export function setServedTunnel(client: Client, servedTunnel: ServedTunnel): void {
   servedTunnels.set(client, servedTunnel);
@@ -42,8 +41,7 @@ export interface HandleTunnelRequestOptions {
 }
 
 /**
- * Splits the `tunnel` option a server SDK's `init` received. A URL stays the transport tunnel for the server's own
- * envelopes. `true` or {@link TunnelOptions} enables serving the managed tunnel instead.
+ * Splits a server `tunnel` option: a URL stays the transport tunnel, anything else enables the managed tunnel.
  */
 export function resolveServerTunnelOption(tunnel: string | true | TunnelOptions | undefined): {
   tunnel: string | undefined;
@@ -54,7 +52,7 @@ export function resolveServerTunnelOption(tunnel: string | true | TunnelOptions 
   }
 
   if (typeof tunnel === 'string') {
-    // A relative path can't be a transport URL on the server, so it names the path to serve instead.
+    // A relative path can't be a transport URL on the server, so it's the path to serve.
     return tunnel.startsWith('/') ? { tunnel: undefined, _managedTunnel: { path: tunnel } } : { tunnel };
   }
 
@@ -62,9 +60,7 @@ export function resolveServerTunnelOption(tunnel: string | true | TunnelOptions 
 }
 
 /**
- * Fills in the defaults a framework SDK knows about its app, like the base path, for a managed tunnel. Options the
- * user set win. A relative `tunnel` path is a managed tunnel with that `path`, so it gets the defaults too, while a
- * URL and an unset `tunnel` are returned as they are.
+ * Fills in framework defaults (like the base path) for a managed tunnel. User options win; URLs pass through.
  */
 export function applyTunnelDefaults(
   tunnel: string | true | TunnelOptions | undefined,
@@ -82,10 +78,8 @@ export function applyTunnelDefaults(
 }
 
 /**
- * Returns the same-origin tunnel path for a DSN, e.g. `/k3x9q2a`.
- *
- * Browser and server SDKs derive the path independently from the DSN, so no build step has to pass it
- * between them. The path is a hash so it carries nothing an ad-blocker filter list could match on.
+ * Returns the same-origin tunnel path for a DSN, e.g. `/k3x9q2a`. Browser and server derive it independently,
+ * and as a hash it gives ad-blocker filter lists nothing to match.
  */
 export function getTunnelPath(dsn: DsnLike): string | undefined {
   const components = makeDsn(dsn);
@@ -94,8 +88,7 @@ export function getTunnelPath(dsn: DsnLike): string | undefined {
 }
 
 /**
- * The parts of an incoming request the tunnel decision may look at. A fetch `Request` satisfies it, and Node SDKs pass
- * an `IncomingMessage` directly. Callers always pass the whole request so the decision can change without touching them.
+ * The parts of a request the tunnel match reads. Satisfied by a fetch `Request` and Node's `IncomingMessage`.
  */
 export interface TunnelRequestLike {
   method?: string;
@@ -105,33 +98,30 @@ export interface TunnelRequestLike {
 }
 
 /**
- * Returns the tunnel paths the active server client accepts, relative to its base path. Frameworks that can only
- * register routes use these, everything else should call {@link isTunnelRequest} or
- * {@link handleTunnelRequestIfMatched}.
+ * Returns the active server client's tunnel paths, relative to its base path. For frameworks that can only register
+ * routes; everything else uses {@link handleTunnelRequestIfMatched}.
  */
 export function getTunnelPaths(): string[] {
   return getServedTunnel()?.paths ?? [];
 }
 
 /**
- * The paths a server client serves its managed tunnel at: the fixed `path`, or else the path of each DSN it forwards
- * for. Server clients compute them once, when their managed tunnel is settled, since neither changes later.
+ * The paths a managed tunnel is served at: the fixed `path`, or else one per allowed DSN.
  */
 export function resolveTunnelPaths(tunnelOptions: TunnelOptions, allowedDsns: Array<string>): string[] {
   if (tunnelOptions.path) {
     return [tunnelOptions.path.replace(/\/$/, '')];
   }
 
-  // A DSN can be listed in another form than the own one, e.g. with a trailing slash, and still give the same path.
+  // Differently written DSNs can hash to the same path.
   const paths = allowedDsns.map(dsn => getTunnelPath(dsn));
 
   return [...new Set(paths.filter((path): path is string => !!path))];
 }
 
 /**
- * The `ignoreSpans` filters a server client installs for the server spans of tunnel requests, which server SDKs start
- * before a framework hook gets to answer the request. Besides `url.path`, they match the legacy
- * `http.url`, the only URL attribute some framework spans start with, like SvelteKit's `sveltekit.handle.root`.
+ * `ignoreSpans` filters for the server spans of tunnel requests. They match `url.path` and the legacy `http.url`,
+ * which some framework spans start with (SvelteKit's `sveltekit.handle.root`).
  */
 export function getTunnelIgnoreSpanFilters(tunnelOptions: TunnelOptions, paths: string[]): IgnoreSpanFilter[] {
   if (!paths.length) {
@@ -150,7 +140,7 @@ export function getTunnelIgnoreSpanFilters(tunnelOptions: TunnelOptions, paths: 
 }
 
 /**
- * Normalizes a framework's base path to the `/app` form the managed tunnel is served under, or `''` for the root.
+ * Normalizes a base path to `/app`, or `''` for the root.
  */
 export function normalizeTunnelBasePath(basePath: string | undefined): string {
   const path = (basePath?.startsWith('./') ? basePath.slice(1) : (basePath ?? '')).replace(/\/$/, '');
@@ -159,8 +149,7 @@ export function normalizeTunnelBasePath(basePath: string | undefined): string {
 }
 
 /**
- * Returns true if the request targets the managed tunnel of the active client, which matches nothing unless its
- * `init` was called with `tunnel: true`.
+ * Returns true if the request targets the active server client's managed tunnel.
  */
 export function isTunnelRequest(request: TunnelRequestLike): boolean {
   if (request.method !== 'POST' || !request.url) {
@@ -178,13 +167,11 @@ export function isTunnelRequest(request: TunnelRequestLike): boolean {
 }
 
 /**
- * Forwards the request to Sentry if it targets the managed tunnel, otherwise returns `undefined` so the caller
- * can hand the request to the app.
+ * Forwards the request if it targets the managed tunnel, otherwise returns `undefined` for the app to handle.
  */
 export function handleTunnelRequestIfMatched(request: Request): Promise<Response> | undefined {
   const allowedDsns = getServedTunnel()?.allowedDsns;
-  // A fixed path matches without a DSN, but with nowhere to forward to the request is left to the app. Its 404 makes
-  // the browser send directly, instead of losing every envelope to an error response.
+  // Without a DSN to forward to, the app's 404 makes the browser send directly.
   if (!allowedDsns?.length || !isTunnelRequest(request)) {
     return undefined;
   }
@@ -205,8 +192,7 @@ export function handleTunnelRequest(options: HandleTunnelRequestOptions): Promis
 }
 
 /**
- * Set on every response the tunnel handler returns, so a browser can tell it apart from whatever else answers the
- * tunnel path, e.g. a static host serving `index.html` for every path.
+ * Marks responses from the tunnel handler, so the browser can tell them from e.g. a static host's `index.html`.
  */
 export const TUNNEL_RESPONSE_HEADER = 'X-Sentry-Tunnel';
 
@@ -230,8 +216,7 @@ async function forwardEnvelope(request: Request, allowedDsns: Array<string>): Pr
   }
 
   const reader = request.body?.getReader();
-  // A client that drops the connection mid-upload makes the read throw. That is the client going away, not an app
-  // error, so it gets the same answer as any other unreadable envelope.
+  // A client aborting mid-upload makes the read throw.
   const head = reader && (await readEnvelopeHeaderLine(reader).catch(() => undefined));
   if (!reader || !head) {
     return new Response('Invalid envelope', { status: 400 });
@@ -239,19 +224,16 @@ async function forwardEnvelope(request: Request, allowedDsns: Array<string>): Pr
 
   const sentryIngestUrl = resolveIngestUrl(head.line, allowedDsns);
   if (typeof sentryIngestUrl !== 'string') {
-    // Nothing past the header gets forwarded, so the runtime can stop receiving the body.
     reader.cancel().catch(() => undefined);
 
     return sentryIngestUrl;
   }
 
   try {
-    // The forward is SDK plumbing, not app work, so it must not show up as a span.
     return await suppressTracing(() =>
       fetch(sentryIngestUrl, {
         method: 'POST',
         headers: forwardHeaders(request),
-        // The body streams through without being buffered, so its size is left for Sentry to judge.
         body: prependToStream(head.read, reader),
         duplex: 'half',
       } as RequestInit),
@@ -263,12 +245,11 @@ async function forwardEnvelope(request: Request, allowedDsns: Array<string>): Pr
 }
 
 /**
- * Returns the Sentry ingest URL for an envelope header line, or the response that rejects it.
+ * Returns the ingest URL for an envelope header line, or the rejecting response.
  */
 function resolveIngestUrl(headerLine: Uint8Array, allowedDsns: Array<string>): string | Response {
   let envelopeHeader: { dsn?: string } | null;
   try {
-    // Only the header line is read, and it's a single JSON object.
     envelopeHeader = JSON.parse(new TextDecoder().decode(headerLine));
   } catch {
     return new Response('Invalid envelope', { status: 400 });
@@ -303,13 +284,12 @@ function resolveIngestUrl(headerLine: Uint8Array, allowedDsns: Array<string>): s
 }
 
 /**
- * The header is a small JSON object, so a line longer than this is not an envelope.
+ * A header line longer than this is not an envelope.
  */
 const MAX_ENVELOPE_HEADER_BYTES = 64 * 1024;
 
 /**
- * Reads the request body only up to the end of the envelope header line.
- * Returns the line and every byte read so far, or `undefined` when no header line fits the limit.
+ * Reads the body up to the envelope header line. Returns the line and every byte read, or `undefined`.
  */
 async function readEnvelopeHeaderLine(
   reader: ReadableStreamDefaultReader<Uint8Array>,
@@ -368,12 +348,10 @@ function prependToStream(
 }
 
 function forwardHeaders(request: Request): Record<string, string> {
-  // No `Content-Length`: the body is a stream, and some runtimes' `fetch` rejects the header on one (Next.js's edge
-  // runtime in dev).
+  // No `Content-Length`: some runtimes reject it on a streamed body (Next.js edge in dev).
   const headers: Record<string, string> = { 'Content-Type': 'application/x-sentry-envelope' };
 
-  // Relay infers the user's IP and geo from the sender, which is now this server. Proxies and CDNs put the
-  // visitor's IP in these headers, in the order Relay itself reads them.
+  // Relay would otherwise attribute the server's IP. Same precedence Relay uses.
   const clientIp =
     request.headers.get('cf-connecting-ip') ||
     request.headers.get('x-vercel-forwarded-for') ||
@@ -386,8 +364,7 @@ function forwardHeaders(request: Request): Record<string, string> {
 }
 
 /**
- * `allowedDsns` plus the server's own DSN. The own DSN is always trusted, so listing only the browser DSN can't lock
- * out a browser that shares it.
+ * `allowedDsns` plus the server's own DSN, which is always allowed.
  */
 export function resolveAllowedDsns(
   allowedDsns: Array<string> | undefined,
@@ -402,8 +379,7 @@ export function resolveAllowedDsns(
 }
 
 /**
- * Makes a fixed `path` relative to `basePath`. A path the user wrote with the base path in it, as a `tunnel` had to
- * be before the SDK added the base path, would otherwise be served under the base path twice.
+ * Makes a fixed `path` relative to `basePath`, so one written with the base path isn't served under it twice.
  */
 export function withPathBelowBasePath(tunnelOptions: TunnelOptions): TunnelOptions {
   const path = tunnelOptions.path && stripBasePath(tunnelOptions.path, tunnelOptions.basePath);
@@ -412,7 +388,7 @@ export function withPathBelowBasePath(tunnelOptions: TunnelOptions): TunnelOptio
 }
 
 /**
- * Returns the path below `basePath`, or `undefined` for a path outside it, which the tunnel doesn't serve.
+ * Returns the path below `basePath`, or `undefined` outside it.
  */
 function stripBasePath(pathname: string, basePath: string | undefined): string | undefined {
   const base = normalizeTunnelBasePath(basePath);
@@ -424,10 +400,8 @@ function stripBasePath(pathname: string, basePath: string | undefined): string |
 }
 
 /**
- * 32-bit FNV-1a, because the browser needs the path synchronously in `init` (`crypto.subtle.digest` is async) and it
- * runs in every runtime without dependencies. It needn't be cryptographic since the DSN is public.
- *
- * Browser and server SDKs compute the path separately, so changing the algorithm breaks mixed SDK versions.
+ * 32-bit FNV-1a: synchronous (the browser needs it in `init`) and dependency free. Changing it breaks mixed SDK
+ * versions, since browser and server compute the path separately.
  */
 function fnv1a(input: string): number {
   let hash = 0x811c9dc5;
