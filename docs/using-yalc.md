@@ -1,7 +1,7 @@
 # Using `yalc` for Local SDK Testing
 
 [Yalc](https://github.com/wclr/yalc) is a simple local dependency repository which we can use to work with local
-versions of our SDKs. This is a good alternative to `npm|pnpm link` for packages where linking is problematic (e.g.
+versions of our SDKs. This is a good alternative to [`pnpm link`](./using-pnpm-link.md) for packages where linking is problematic (e.g.
 SvelteKit or Angular).
 
 Here's how to set up and use yalc:
