@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { getSpanOp, waitForStreamedSpan } from '@sentry-internal/test-utils';
+import { getSpanOp, waitForError, waitForStreamedSpan } from '@sentry-internal/test-utils';
 
 test.skip(!process.env.E2E_TEST_TUNNEL, 'Only runs in the tunnel variant');
 
@@ -37,6 +37,36 @@ test('answers the managed tunnel before the app auth middleware', async ({ page 
   const winner = await Promise.race([
     tunnelServerSpanPromise.then(() => 'tunnel' as const),
     anchorSpanPromise.then(() => 'anchor' as const),
+  ]);
+  expect(winner).toBe('anchor');
+});
+
+test('answers the managed tunnel once, without errors from route rules that run after it', async ({ request }) => {
+  const dsn = 'http://public@localhost:3031/1337';
+  // The path the SDK derives from `dsn`.
+  const tunnelPath = '/qpo967';
+  const tunnelErrorPromise = waitForError(
+    'nuxt-4',
+    event => !!event.exception?.values?.[0]?.value?.includes('Cannot set headers'),
+  );
+  const anchorErrorPromise = waitForError(
+    'nuxt-4',
+    event => event.exception?.values?.[0]?.value === 'Nuxt 4 Server error',
+  );
+
+  const response = await request.post(`${BASE_PATH}${tunnelPath}`, {
+    data: `${JSON.stringify({ dsn, sent_at: new Date().toISOString() })}\n${JSON.stringify({ type: 'client_report' })}\n${JSON.stringify({ timestamp: Date.now() / 1000, discarded_events: [] })}\n`,
+    headers: { 'Content-Type': 'application/x-sentry-envelope' },
+  });
+  expect(response.headers()['x-sentry-tunnel']).toBe('1');
+  expect(response.status()).toBe(200);
+
+  // Errors are sent in order, so one from the tunnel request would arrive before this later one.
+  await request.get(`${BASE_PATH}/api/server-error`);
+
+  const winner = await Promise.race([
+    tunnelErrorPromise.then(() => 'tunnel' as const),
+    anchorErrorPromise.then(() => 'anchor' as const),
   ]);
   expect(winner).toBe('anchor');
 });

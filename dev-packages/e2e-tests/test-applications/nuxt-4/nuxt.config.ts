@@ -12,6 +12,8 @@ export default defineNuxtConfig({
     '/rendering-modes/swr-cached-page': { swr: true },
     '/rendering-modes/swr-1h-cached-page': { swr: 3600 },
     '/rendering-modes/pre-rendered-page': { prerender: true },
+    // A headers rule on every path, like a security headers setup, also covers the tunnel's path.
+    ...(tunnelVariant && { '/**': { headers: { 'x-e2e-route-rule': '1' } } }),
   },
 
   // The base-path variant serves the app, and so the tunnel, under `/app`.
