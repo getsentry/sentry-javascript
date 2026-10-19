@@ -1060,6 +1060,8 @@ jobs:
       E2E_TEST_SENTRY_PROJECT: 'sentry-javascript-e2e-tests'
       # The `runtime` of a runtime variant, see dev-packages/e2e-tests/README.md
       RUNTIME: ${{ matrix.runtime }}
+      # Without the root node_modules, `pnpm run` would first install the whole workspace.
+      pnpm_config_verify_deps_before_run: 'false'
     strategy:
       fail-fast: false
       matrix: ${{ fromJson(needs.job_build.outputs.e2e-matrix) }}
@@ -1119,16 +1121,6 @@ jobs:
         with:
           name: build-output
 
-      # Installs Playwright while the app builds.
-      # Started after the artifact downloads: starting next to them made `download-artifact` fail to read the event file.
-      - name: Install Playwright
-        id: install-playwright
-        background: true
-        uses: ./.github/actions/install-playwright
-        with:
-          browsers: chromium
-          cwd: dev-packages/e2e-tests/test-applications/${{ matrix.test-application }}
-
       - name: Prepare e2e tests
         run: pnpm run test:prepare
         working-directory: dev-packages/e2e-tests
@@ -1148,6 +1140,17 @@ jobs:
           pnpm run ci:pnpm-overrides ${{ runner.temp }}/test-application ${{ github.workspace
           }}/dev-packages/e2e-tests/packed
         working-directory: dev-packages/e2e-tests
+
+      # Installs Playwright while the app builds. Keep it right before the build: the runner sets up a background
+      # composite action's steps from the job's shared `github` context, which fails with "Collection was modified" if
+      # a foreground step starts at that moment. Starting next to `download-artifact` also made it fail to read the event file.
+      - name: Install Playwright
+        id: install-playwright
+        background: true
+        uses: ./.github/actions/install-playwright
+        with:
+          browsers: chromium
+          cwd: dev-packages/e2e-tests/test-applications/${{ matrix.test-application }}
 
       - name: Build E2E app
         working-directory: ${{ runner.temp }}/test-application
@@ -1206,6 +1209,8 @@ jobs:
       CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
       # The `runtime` of a runtime variant, see dev-packages/e2e-tests/README.md
       RUNTIME: ${{ matrix.runtime }}
+      # Without the root node_modules, `pnpm run` would first install the whole workspace.
+      pnpm_config_verify_deps_before_run: 'false'
     strategy:
       fail-fast: false
       matrix: ${{ fromJson(needs.job_build.outputs.e2e-matrix-optional) }}
@@ -1246,16 +1251,6 @@ jobs:
           name: build-test-utils-tarball-output
           path: dev-packages/test-utils
 
-      # Installs Playwright while the app builds.
-      # Started after the artifact downloads: starting next to them made `download-artifact` fail to read the event file.
-      - name: Install Playwright
-        id: install-playwright
-        background: true
-        uses: ./.github/actions/install-playwright
-        with:
-          browsers: chromium
-          cwd: dev-packages/e2e-tests/test-applications/${{ matrix.test-application }}
-
       - name: Prepare E2E tests
         run: pnpm run test:prepare
         working-directory: dev-packages/e2e-tests
@@ -1275,6 +1270,17 @@ jobs:
           pnpm run ci:pnpm-overrides ${{ runner.temp }}/test-application ${{ github.workspace
           }}/dev-packages/e2e-tests/packed
         working-directory: dev-packages/e2e-tests
+
+      # Installs Playwright while the app builds. Keep it right before the build: the runner sets up a background
+      # composite action's steps from the job's shared `github` context, which fails with "Collection was modified" if
+      # a foreground step starts at that moment. Starting next to `download-artifact` also made it fail to read the event file.
+      - name: Install Playwright
+        id: install-playwright
+        background: true
+        uses: ./.github/actions/install-playwright
+        with:
+          browsers: chromium
+          cwd: dev-packages/e2e-tests/test-applications/${{ matrix.test-application }}
 
       - name: Build E2E app
         working-directory: ${{ runner.temp }}/test-application

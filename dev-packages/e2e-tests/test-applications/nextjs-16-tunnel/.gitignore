@@ -10,6 +10,9 @@
 !.yarn/releases
 !.yarn/versions
 
+# Copied by `test:build-handler*`
+/app/sentry-tunnel/
+
 # testing
 /coverage
 
