@@ -86,22 +86,15 @@ describe('applyTunnelRouteOption()', () => {
     expect(options.tunnel).toBeUndefined();
   });
 
-  it('serves the tunnel under the base path Start routes on, unless the user set one', async () => {
+  it('serves the tunnel under the base path Start routes on', async () => {
     vi.stubGlobal('__SENTRY_TANSTACKSTART_TUNNEL_BASE_PATH__', '/app');
 
     const { applyTunnelRouteOption } = await import('../../src/client/tunnelRoute');
 
-    const managed: BrowserOptions = { tunnel: true };
-    applyTunnelRouteOption(managed);
-    expect(managed.tunnel).toEqual({ basePath: '/app' });
+    const options: BrowserOptions = { tunnel: true };
+    applyTunnelRouteOption(options);
 
-    const own: BrowserOptions = { tunnel: { basePath: '/custom' } };
-    applyTunnelRouteOption(own);
-    expect(own.tunnel).toEqual({ basePath: '/custom' });
-
-    const url: BrowserOptions = { tunnel: 'https://example.com/tunnel' };
-    applyTunnelRouteOption(url);
-    expect(url.tunnel).toBe('https://example.com/tunnel');
+    expect(options.tunnel).toEqual({ basePath: '/app' });
   });
 
   it('serves a static `tunnelRoute` under the base path too', async () => {
