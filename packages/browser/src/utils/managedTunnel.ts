@@ -83,6 +83,11 @@ export function makeManagedTunnelTransport(
         const response = await tunnelTransport.send(envelope);
         const { statusCode } = response;
 
+        // The tunnel handler answered, so whatever status it passes on is Sentry's.
+        if (response.headers?.['x-sentry-tunnel']) {
+          return response;
+        }
+
         // Nothing handles the tunnel path, so the envelope never reached Sentry and is safe to send once more.
         if (statusCode === 404 || statusCode === 405) {
           const transport = switchToDirect(envelope, `nothing answers the managed tunnel at "${options.url}".`);
@@ -92,12 +97,7 @@ export function makeManagedTunnelTransport(
 
         // Something other than the tunnel handler answered, like a static host serving `index.html`. This envelope
         // may have been delivered all the same, so it isn't sent again, only the ones after it go directly.
-        if (
-          statusCode !== undefined &&
-          statusCode >= 200 &&
-          statusCode < 300 &&
-          !response.headers?.['x-sentry-tunnel']
-        ) {
+        if (statusCode !== undefined && statusCode >= 200 && statusCode < 300) {
           switchToDirect(envelope, `the response from "${options.url}" didn't come from a Sentry tunnel handler.`);
         }
 
