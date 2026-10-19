@@ -14,6 +14,7 @@ env:
 
   CACHED_BUILD_PATHS: |
     ${{ github.workspace }}/packages/*/*.tgz
+    ${{ github.workspace }}/dev-packages/test-utils/*.tgz
     ${{ github.workspace }}/node_modules
     ${{ github.workspace }}/packages/*/node_modules
     ${{ github.workspace }}/dev-packages/*/node_modules

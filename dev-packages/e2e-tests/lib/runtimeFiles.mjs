@@ -1,12 +1,15 @@
+// @ts-check
 /* eslint-disable no-console */
-import { copyFileSync, existsSync, readdirSync } from 'fs';
-import { join } from 'path';
+import { copyFileSync, existsSync, readdirSync } from 'node:fs';
+import { join } from 'node:path';
 
 /**
  * Copies each file in `dir` that has `runtime` as a part of its name over the existing file without that part, for
  * example `app/entry.server.cloudflare.tsx` over `app/entry.server.tsx`.
+ * @param {string} dir
+ * @param {string} runtime
  */
-export function applyRuntimeFiles(dir: string, runtime: string): void {
+export function applyRuntimeFiles(dir, runtime) {
   for (const entry of readdirSync(dir, { withFileTypes: true })) {
     if (entry.name === 'node_modules' || entry.name.startsWith('.')) {
       continue;

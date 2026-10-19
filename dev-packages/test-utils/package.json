@@ -8,9 +8,7 @@
   "module": "build/esm/index.js",
   "types": "build/types/index.d.ts",
   "files": [
-    "cjs",
-    "esm",
-    "types"
+    "/build"
   ],
   "exports": {
     "./package.json": "./package.json",
@@ -53,21 +51,21 @@
     "lint:fix": "oxlint . --fix --type-aware",
     "lint": "oxlint . --type-aware",
     "build": "run-s build:transpile build:types",
-    "build:tarball": "run-s build:transpile build:types",
+    "build:tarball": "npm pack",
     "build:dev": "pnpm run build",
     "build:transpile": "rollup -c rollup.npm.config.mjs",
     "build:types": "tsc -p tsconfig.types.json",
     "clean": "rimraf -g ./node_modules ./build"
   },
   "peerDependencies": {
-    "@playwright/test": "~1.63.0"
+    "@playwright/test": "1.64.1"
   },
   "dependencies": {
     "express": "^4.21.2",
     "ws": "^8.20.1"
   },
   "devDependencies": {
-    "@playwright/test": "~1.63.0",
+    "@playwright/test": "1.64.1",
     "@sentry/core": "11.8.0",
     "@types/ws": "^8.18.1",
     "eslint-plugin-regexp": "^3.1.0"

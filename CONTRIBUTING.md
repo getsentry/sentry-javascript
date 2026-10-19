@@ -51,7 +51,7 @@ upgrading.
 
 To test local versions of SDK packages, for instance in test projects, you have a couple of options:
 
-- Use [`pnpm link`](https://pnpm.io/cli/link) to symlink your package to the test project.
+- Use [`pnpm link`](./docs/using-pnpm-link.md) to symlink your package to the test project.
 - Use [`yalc` to install SDK packages](./docs/using-yalc.md) as if they were already published.
 - Run `build:tarball` in the repo and `pnpm add ./path/to/tarball.tgz` in the project.
 
