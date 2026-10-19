@@ -1,8 +1,0 @@
-{
-  "$schema": "node_modules/wrangler/config-schema.json",
-  "name": "cloudflare-autoinstrument-package-entry",
-  // A package export, not a file path. The Sentry plugin resolves it with Vite.
-  "main": "worker-entry/fetch-handler",
-  "compatibility_date": "2026-05-20",
-  "compatibility_flags": ["nodejs_compat"],
-}

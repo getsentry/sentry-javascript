@@ -353,6 +353,95 @@ describe('sentryAstro integration', () => {
     expect(sentryVitePluginSpy).toHaveBeenCalledTimes(0);
   });
 
+  // The plugin returns an array, so it arrives nested.
+  describe.each([
+    {
+      setup: 'sentryCloudflareVitePlugin({ _experimental: { autoInstrumentation: true } })',
+      plugins: [{ name: 'sentry-cloudflare-auto-instrument' }],
+    },
+    {
+      setup:
+        'sentryCloudflareVitePlugin({ _experimental: { autoInstrumentation: true, useDiagnosticsChannelInjection: true } })',
+      plugins: [{ name: 'code-transformer' }, { name: 'sentry-cloudflare-auto-instrument' }],
+    },
+  ])('with `$setup` from `@sentry/cloudflare/vite` in the vite config', ({ plugins }) => {
+    const cloudflareConfig = {
+      ...config,
+      adapter: { name: '@astrojs/cloudflare' },
+      vite: { plugins: [plugins] },
+    } as AstroConfig;
+
+    it('leaves the Worker wrap to that plugin', async () => {
+      const integration = sentryAstro({});
+
+      // @ts-expect-error - the hook exists and we only need to pass what we actually use
+      await integration.hooks['astro:config:setup']({
+        ...baseConfigHookObject,
+        updateConfig,
+        injectScript,
+        config: cloudflareConfig,
+      });
+
+      expect(updateConfig).toHaveBeenCalledWith({
+        vite: { plugins: [expect.objectContaining({ name: 'sentry-astro-cloudflare-suppress-node-warnings' })] },
+      });
+      expect(updateConfig).not.toHaveBeenCalledWith({
+        vite: { plugins: expect.arrayContaining([expect.objectContaining({ name: 'sentry-astro-cloudflare' })]) },
+      });
+    });
+
+    it('does not inject the default server init', async () => {
+      const integration = sentryAstro({});
+
+      // @ts-expect-error - the hook exists and we only need to pass what we actually use
+      await integration.hooks['astro:config:setup']({
+        ...baseConfigHookObject,
+        updateConfig,
+        injectScript,
+        config: cloudflareConfig,
+      });
+
+      expect(injectScript).not.toHaveBeenCalledWith('page-ssr', expect.anything());
+    });
+
+    it('still injects a server init file', async () => {
+      const integration = sentryAstro({ serverInitPath: 'my-server-init-path.js' });
+
+      // @ts-expect-error - the hook exists and we only need to pass what we actually use
+      await integration.hooks['astro:config:setup']({
+        ...baseConfigHookObject,
+        updateConfig,
+        injectScript,
+        config: cloudflareConfig,
+      });
+
+      expect(injectScript).toHaveBeenCalledWith('page-ssr', expect.stringContaining('my-server-init-path.js'));
+    });
+  });
+
+  // Without `_experimental.autoInstrumentation`, the plugin does not wrap the Worker on v10.
+  it('keeps its own Worker wrap when `@sentry/cloudflare/vite` only adds the orchestrion transform', async () => {
+    const integration = sentryAstro({});
+    const cloudflareConfig = {
+      ...config,
+      adapter: { name: '@astrojs/cloudflare' },
+      vite: { plugins: [[{ name: 'code-transformer' }]] },
+    } as AstroConfig;
+
+    // @ts-expect-error - the hook exists and we only need to pass what we actually use
+    await integration.hooks['astro:config:setup']({
+      ...baseConfigHookObject,
+      updateConfig,
+      injectScript,
+      config: cloudflareConfig,
+    });
+
+    expect(updateConfig).toHaveBeenCalledWith({
+      vite: { plugins: expect.arrayContaining([expect.objectContaining({ name: 'sentry-astro-cloudflare' })]) },
+    });
+    expect(injectScript).toHaveBeenCalledWith('page-ssr', expect.anything());
+  });
+
   it.each([{}, { enabled: true }])('injects client and server init scripts', async options => {
     const integration = sentryAstro(options);
 
