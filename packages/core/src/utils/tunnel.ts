@@ -192,6 +192,24 @@ export function setManagedTunnelBasePath(client: Client | undefined, basePath: s
 }
 
 /**
+ * Enables the managed tunnel on a client whose `init` didn't, from an option a framework SDK received elsewhere,
+ * like a build option, and drops the tunnel's spans from then on. A managed tunnel the `init` enabled wins.
+ */
+export function enableManagedTunnel(client: Client | undefined, tunnelOptions: TunnelOptions): void {
+  const options = client?.getOptions();
+  if (!options || options._managedTunnel) {
+    return;
+  }
+
+  options._managedTunnel = tunnelOptions;
+
+  const spanFilters = getTunnelIgnoreSpanFilters(tunnelOptions, client?.getDsn());
+  if (spanFilters.length) {
+    options.ignoreSpans = [...(options.ignoreSpans ?? []), ...spanFilters];
+  }
+}
+
+/**
  * Returns true if the request targets the managed tunnel.
  *
  * Without `options`, this uses the managed tunnel config of the active client and matches nothing unless its
