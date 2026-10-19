@@ -7,10 +7,21 @@ import {
 } from '@sentry/conventions/attributes';
 import { MIDDLEWARE } from '@sentry/conventions/op';
 import type { Client } from '@sentry/core';
-import { addChildSpanToSpan, SentrySpan, spanToStaticSpanJSON } from '@sentry/core';
-import { describe, expect, it } from 'vitest';
+import {
+  addChildSpanToSpan,
+  GLOBAL_OBJ,
+  SentrySpan,
+  shouldIgnoreSpan,
+  spanToStaticSpanJSON,
+  withIsolationScope,
+} from '@sentry/core';
+import { afterEach, describe, expect, it } from 'vitest';
 import { ATTR_NEXT_SPAN_NAME, ATTR_NEXT_SPAN_TYPE } from '../../src/common/nextSpanAttributes';
-import { handleOnSpanStart } from '../../src/server/serverSpanHooks';
+import {
+  addNextjsServerSpanHooks,
+  handleOnSpanStart,
+  NEXTJS_SERVER_IGNORE_SPANS,
+} from '../../src/server/serverSpanHooks';
 
 const client = { getOptions: () => ({}) } as unknown as Client;
 
@@ -169,5 +180,52 @@ describe('handleOnSpanStart', () => {
     handleOnSpanStart(middlewareSpan, client);
 
     expect(spanToStaticSpanJSON(rootSpan).description).toBe('GET /api/endpoint');
+  });
+});
+
+describe('addNextjsServerSpanHooks beforeSpanStart', () => {
+  const globalWithInjectedValues = GLOBAL_OBJ as typeof GLOBAL_OBJ & { _sentryNextJsVersion?: string };
+
+  afterEach(() => {
+    delete globalWithInjectedValues._sentryNextJsVersion;
+  });
+
+  function isRequestSpanIgnored(nextVersion: string | undefined, middlewareInvoke: boolean | undefined): boolean {
+    globalWithInjectedValues._sentryNextJsVersion = nextVersion;
+
+    const hooks: Record<string, (...args: unknown[]) => void> = {};
+    addNextjsServerSpanHooks({
+      on: (hook: string, callback: (...args: unknown[]) => void) => {
+        hooks[hook] = callback;
+      },
+      getOptions: () => ({}),
+    } as unknown as Client);
+
+    const request = { [Symbol.for('NextInternalRequestMeta')]: { middlewareInvoke } };
+    const spanStartData = { name: 'GET', attributes: { [ATTR_NEXT_SPAN_TYPE]: 'BaseServer.handleRequest' } };
+    withIsolationScope(() => {
+      hooks['httpServerRequest']?.(request, {}, {});
+      hooks['beforeSpanStart']?.(spanStartData);
+    });
+    return shouldIgnoreSpan(
+      { description: spanStartData.name, attributes: spanStartData.attributes },
+      NEXTJS_SERVER_IGNORE_SPANS,
+    );
+  }
+
+  it('ignores the request span that Next.js only starts to run the proxy', () => {
+    expect(isRequestSpanIgnored('16.3.0', true)).toBe(true);
+  });
+
+  it('keeps the request span that renders the route', () => {
+    expect(isRequestSpanIgnored('16.3.0', false)).toBe(false);
+  });
+
+  it('keeps the request span that runs the proxy before Next.js 16.3, since the proxy span is its child there', () => {
+    expect(isRequestSpanIgnored('16.2.4', true)).toBe(false);
+  });
+
+  it('keeps the request span that runs the proxy if the Next.js version is unknown', () => {
+    expect(isRequestSpanIgnored(undefined, true)).toBe(false);
   });
 });
