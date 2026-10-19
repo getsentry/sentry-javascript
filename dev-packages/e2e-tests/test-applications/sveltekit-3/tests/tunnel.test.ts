@@ -43,3 +43,31 @@ test('sends client events through the managed tunnel under the base path', async
   ]);
   expect(winner).toBe('anchor');
 });
+
+test('does not send spans of tunnel requests with Kit tracing on', async ({ page }) => {
+  // Kit's own `sveltekit.handle.root` span starts with only `http.url`, no `url.path`.
+  const tunnelSpanPromise = waitForStreamedSpan('sveltekit-3', span => {
+    const url = span.attributes['http.url']?.value ?? span.attributes['url.path']?.value;
+    return typeof url === 'string' && TUNNEL_PATH.test(url.startsWith('http') ? new URL(url).pathname : url);
+  });
+  const tunnelResponsePromise = page.waitForResponse(
+    response => response.request().method() === 'POST' && TUNNEL_PATH.test(new URL(response.url()).pathname),
+  );
+
+  await page.goto('/app/');
+  await tunnelResponsePromise;
+
+  // Anchor on a regular page span requested after the tunnel traffic: spans flush in order, so a tunnel span
+  // would arrive first.
+  const anchorSpanPromise = waitForStreamedSpan('sveltekit-3', span => {
+    const url = span.attributes['http.url']?.value ?? span.attributes['url.path']?.value;
+    return typeof url === 'string' && url.endsWith('/app/users/456');
+  });
+  await page.request.get('/app/users/456');
+
+  const winner = await Promise.race([
+    tunnelSpanPromise.then(() => 'tunnel' as const),
+    anchorSpanPromise.then(() => 'anchor' as const),
+  ]);
+  expect(winner).toBe('anchor');
+});
