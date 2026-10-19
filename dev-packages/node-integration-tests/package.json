@@ -10,19 +10,19 @@
   "module": "build/esm/index.js",
   "types": "build/types/src/index.d.ts",
   "scripts": {
-    "build": "run-s build:transpile build:types",
-    "build:dev": "yarn build",
+    "build": "pnpm run build:transpile && pnpm run build:types",
+    "build:dev": "pnpm run build",
     "build:transpile": "rollup -c rollup.npm.config.mjs",
     "build:types": "tsc -p tsconfig.types.json",
-    "clean": "rimraf -g suites/**/node_modules suites/**/tmp_* && run-p clean:script",
+    "clean": "rimraf -g suites/**/node_modules suites/**/tmp_* && pnpm run clean:script",
     "clean:script": "node scripts/clean.js",
     "lint": "oxlint . --type-aware",
     "lint:fix": "oxlint . --fix --type-aware",
-    "type-check": "run-s type-check:src type-check:test",
+    "type-check": "pnpm run type-check:src && pnpm run type-check:test",
     "type-check:src": "tsc --noEmit",
     "type-check:test": "tsc -p tsconfig.test.json --noEmit",
     "test": "vitest run",
-    "test:watch": "yarn test --watch"
+    "test:watch": "pnpm run test --watch"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "0.133.0",
