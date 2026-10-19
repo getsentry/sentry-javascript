@@ -1,5 +1,4 @@
 import { getEnvelopeEndpointWithUrlEncodedAuth } from '../api';
-import type { Client } from '../client';
 import { getClient } from '../currentScopes';
 import { suppressTracing } from '../tracing/trace';
 import { URL_PATH } from '@sentry/conventions/attributes';
@@ -112,21 +111,8 @@ export function getTunnelPaths(options?: TunnelOptions): string[] {
 }
 
 /**
- * An `ignoreSpans` filter for the server spans of tunnel requests. Server SDKs start the span before a framework
- * hook gets to answer the request, so clients add this whenever the managed tunnel is enabled.
- */
-export function getTunnelIgnoreSpanFilter(
-  tunnelOptions: TunnelOptions,
-  dsn: DsnComponents | undefined,
-): IgnoreSpanFilter | undefined {
-  const pathPattern = getTunnelPathPattern(tunnelOptions, dsn);
-
-  // oxlint-disable-next-line sdk/no-regexp-constructor -- built from escaped config values, not end user input
-  return pathPattern ? { attributes: { [URL_PATH]: new RegExp(`^${pathPattern}$`) } } : undefined;
-}
-
-/**
- * The `ignoreSpans` filters a client installs for tunnel requests. Besides `url.path`, they match the legacy
+ * The `ignoreSpans` filters a server client installs for the server spans of tunnel requests, which server SDKs start
+ * before a framework hook gets to answer the request. Besides `url.path`, they match the legacy
  * `http.url`, the only URL attribute some framework spans start with, like SvelteKit's `sveltekit.handle.root`.
  */
 export function getTunnelIgnoreSpanFilters(
@@ -172,44 +158,6 @@ export function normalizeTunnelBasePath(basePath: string | undefined): string {
 }
 
 /**
- * Serves the client's managed tunnel under a base path the framework only knows after `init`, e.g. from its runtime
- * config, and drops the tunnel's server spans under it. A `basePath` the user set wins.
- */
-export function setManagedTunnelBasePath(client: Client | undefined, basePath: string | undefined): void {
-  const options = client?.getOptions();
-  const tunnelOptions = options?._managedTunnel;
-  const normalizedBasePath = normalizeTunnelBasePath(basePath);
-  if (!options || !tunnelOptions || tunnelOptions.basePath !== undefined || !normalizedBasePath) {
-    return;
-  }
-
-  options._managedTunnel = withPathBelowBasePath({ ...tunnelOptions, basePath: normalizedBasePath });
-
-  const spanFilters = getTunnelIgnoreSpanFilters(options._managedTunnel, client?.getDsn());
-  if (spanFilters.length) {
-    options.ignoreSpans = [...(options.ignoreSpans ?? []), ...spanFilters];
-  }
-}
-
-/**
- * Enables the managed tunnel on a client whose `init` didn't, from an option a framework SDK received elsewhere,
- * like a build option, and drops the tunnel's spans from then on. A managed tunnel the `init` enabled wins.
- */
-export function enableManagedTunnel(client: Client | undefined, tunnelOptions: TunnelOptions): void {
-  const options = client?.getOptions();
-  if (!options || options._managedTunnel) {
-    return;
-  }
-
-  options._managedTunnel = tunnelOptions;
-
-  const spanFilters = getTunnelIgnoreSpanFilters(tunnelOptions, client?.getDsn());
-  if (spanFilters.length) {
-    options.ignoreSpans = [...(options.ignoreSpans ?? []), ...spanFilters];
-  }
-}
-
-/**
  * Returns true if the request targets the managed tunnel.
  *
  * Without `options`, this uses the managed tunnel config of the active client and matches nothing unless its
@@ -234,12 +182,12 @@ export function isTunnelRequest(request: TunnelRequestLike, options?: TunnelOpti
  * Forwards the request to Sentry if it targets the managed tunnel, otherwise returns `undefined` so the caller
  * can hand the request to the app.
  */
-export function handleTunnelRequestIfMatched(request: Request, options?: TunnelOptions): Promise<Response> | undefined {
-  if (!isTunnelRequest(request, options)) {
+export function handleTunnelRequestIfMatched(request: Request): Promise<Response> | undefined {
+  if (!isTunnelRequest(request)) {
     return undefined;
   }
 
-  const allowedDsns = (options ?? getClient()?.getOptions()._managedTunnel)?.allowedDsns;
+  const allowedDsns = getClient()?.getOptions()._managedTunnel?.allowedDsns;
   // A fixed path matches without a DSN, but with nowhere to forward to the request is left to the app. Its 404 makes
   // the browser send directly, instead of losing every envelope to an error response.
   if (!resolveAllowedDsns(allowedDsns).length) {
@@ -460,7 +408,7 @@ function resolveAllowedDsns(
  * Makes a fixed `path` relative to `basePath`. A path the user wrote with the base path in it, as a `tunnel` had to
  * be before the SDK added the base path, would otherwise be served under the base path twice.
  */
-function withPathBelowBasePath(tunnelOptions: TunnelOptions): TunnelOptions {
+export function withPathBelowBasePath(tunnelOptions: TunnelOptions): TunnelOptions {
   const path = tunnelOptions.path && stripBasePath(tunnelOptions.path, tunnelOptions.basePath);
 
   return path ? { ...tunnelOptions, path } : tunnelOptions;
