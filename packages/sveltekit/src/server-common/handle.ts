@@ -7,7 +7,6 @@ import {
   getDefaultIsolationScope,
   getIsolationScope,
   getTraceMetaTags,
-  handleTunnelRequestIfMatched,
   hasSpanStreamingEnabled,
   httpHeadersToSpanAttributes,
   HTTP_SPAN_NAME_FALLBACK,
@@ -20,7 +19,7 @@ import {
   withIsolationScope,
   filterCollectedUrl,
 } from '@sentry/core';
-import { flushIfServerless } from '@sentry/core/server';
+import { flushIfServerless, handleTunnelRequestIfMatched } from '@sentry/core/server';
 import type { Handle, ResolveOptions } from '@sveltejs/kit';
 import { DEBUG_BUILD } from '../common/debug-build';
 import { getTracePropagationData, sendErrorToSentry } from './utils';
