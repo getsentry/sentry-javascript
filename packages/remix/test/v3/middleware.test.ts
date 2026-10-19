@@ -1,4 +1,5 @@
 import type * as SentryCore from '@sentry/core';
+import type * as SentryCoreServer from '@sentry/core/server';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 // Trace data as the SDK would produce it for the active request; empty when nothing is active.
@@ -11,6 +12,10 @@ const handleTunnelRequestIfMatched = vi.hoisted(() =>
 vi.mock('@sentry/core', async importOriginal => ({
   ...(await importOriginal<typeof SentryCore>()),
   getTraceData,
+}));
+
+vi.mock('@sentry/core/server', async importOriginal => ({
+  ...(await importOriginal<typeof SentryCoreServer>()),
   handleTunnelRequestIfMatched,
 }));
 
