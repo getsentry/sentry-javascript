@@ -68,7 +68,7 @@ describe('Vercel AI decide spans', () => {
         recordOutputs: true,
       },
       result: {
-        answers: { department: { type: 'choice', value: 'billing' } },
+        answers: { department: { type: 'choice', choice: 'billing' } },
         providerMetadata: { [provider]: { confidence: { department: 0.91 } } },
       },
     } as unknown as Message;
@@ -79,7 +79,7 @@ describe('Vercel AI decide spans', () => {
 
     const json = spanToStaticSpanJSON(endedSpans[0]!);
     expect(JSON.parse(json.data?.['gen_ai.output.messages'] as string)).toEqual([
-      { type: 'evaluation', answers: { department: { type: 'choice', value: 'billing', confidence: 0.91 } } },
+      { type: 'evaluation', answers: { department: { type: 'choice', choice: 'billing', confidence: 0.91 } } },
     ]);
   });
 });
