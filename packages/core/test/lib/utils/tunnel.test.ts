@@ -280,7 +280,7 @@ describe('handleTunnelRequest', () => {
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
-  it('returns 403 when the DSN string cannot be parsed into components', async () => {
+  it('ignores an allowed DSN that cannot be parsed', async () => {
     const malformedDsn = 'not-a-valid-dsn';
 
     const result = await handleTunnelRequest({
@@ -288,10 +288,20 @@ describe('handleTunnelRequest', () => {
       allowedDsns: [malformedDsn],
     });
 
-    expect(result).toBeInstanceOf(Response);
-    expect(result.status).toBe(403);
-    expect(await result.text()).toBe('Invalid DSN');
+    expect(result.status).toBe(500);
     expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it('matches an allowed DSN written with a secret key, which the envelope header leaves out', async () => {
+    fetchMock.mockResolvedValueOnce(new Response('ok', { status: 200 }));
+
+    const result = await handleTunnelRequest({
+      request: makeEnvelopeRequest({ dsn: TEST_DSN }),
+      allowedDsns: [TEST_DSN.replace('@', ':secret@')],
+    });
+
+    expect(result.status).toBe(200);
+    expect(fetchMock).toHaveBeenCalledOnce();
   });
 
   it('forwards the envelope when multiple DSNs are configured', async () => {

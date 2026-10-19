@@ -388,9 +388,12 @@ export function resolveAllowedDsns(
   allowedDsns: Array<string> | undefined,
   ownDsn: DsnComponents | undefined,
 ): Array<string> {
-  const dsns = new Set(allowedDsns);
-  if (ownDsn) {
-    dsns.add(dsnToString(ownDsn));
+  // Normalized like the envelope header's DSN, which has no secret key.
+  const dsns = new Set<string>();
+  for (const components of [...(allowedDsns ?? []).map(dsn => makeDsn(dsn)), ownDsn]) {
+    if (components) {
+      dsns.add(dsnToString(components));
+    }
   }
 
   return [...dsns];
