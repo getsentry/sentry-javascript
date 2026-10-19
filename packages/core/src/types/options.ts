@@ -382,21 +382,6 @@ export interface ClientOptions<TO extends BaseTransportOptions = BaseTransportOp
   _managedTunnel?: TunnelOptions;
 
   /**
-   * The paths a server client serves the managed tunnel at, relative to its base path. Set with `_managedTunnel`.
-   *
-   * @internal This option is not part of the public API and is subject to change at any time.
-   */
-  _managedTunnelPaths?: string[];
-
-  /**
-   * The DSNs a server client forwards managed tunnel envelopes for: `allowedDsns` plus its own. Set with
-   * `_managedTunnel`.
-   *
-   * @internal This option is not part of the public API and is subject to change at any time.
-   */
-  _managedTunnelAllowedDsns?: string[];
-
-  /**
    * Controls what data the SDK collects and sends to Sentry.
    * All fields are optional — omitted fields use the documented defaults.
    *

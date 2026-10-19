@@ -6,6 +6,7 @@ import {
   normalizeTunnelBasePath,
   resolveAllowedDsns,
   resolveTunnelPaths,
+  setServedTunnel,
   withPathBelowBasePath,
 } from './tunnel';
 
@@ -59,11 +60,12 @@ export function applyManagedTunnelDefaults(client: Client | undefined): void {
     tunnelOptions.basePath === undefined && basePath ? { ...tunnelOptions, basePath } : tunnelOptions,
   );
   options._managedTunnel = resolved;
-  options._managedTunnelAllowedDsns = resolveAllowedDsns(resolved.allowedDsns, client.getDsn());
-  options._managedTunnelPaths = resolveTunnelPaths(resolved, options._managedTunnelAllowedDsns);
+  const allowedDsns = resolveAllowedDsns(resolved.allowedDsns, client.getDsn());
+  const paths = resolveTunnelPaths(resolved, allowedDsns);
+  setServedTunnel(client, { paths, allowedDsns });
 
   const previousFilters = installedSpanFilters.get(client) ?? [];
-  const spanFilters = getTunnelIgnoreSpanFilters(resolved, options._managedTunnelPaths);
+  const spanFilters = getTunnelIgnoreSpanFilters(resolved, paths);
   options.ignoreSpans = [
     ...(options.ignoreSpans ?? []).filter(filter => !(previousFilters as unknown[]).includes(filter)),
     ...spanFilters,

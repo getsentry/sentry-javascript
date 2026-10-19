@@ -1,4 +1,5 @@
 import { getEnvelopeEndpointWithUrlEncodedAuth } from '../api';
+import type { Client } from '../client';
 import { getClient } from '../currentScopes';
 import { suppressTracing } from '../tracing/trace';
 import { URL_PATH } from '@sentry/conventions/attributes';
@@ -9,8 +10,29 @@ import { debug } from './debug-logger';
 import { dsnToString, makeDsn } from './dsn';
 import { parseUrl } from './url';
 
-// Bounds the memory of each request. SDK envelopes stay far below it.
-export const MAX_TUNNEL_BODY_SIZE = 20 * 1024 * 1024;
+/**
+ * What a server client serves its managed tunnel at and forwards for. Both only depend on its tunnel options and DSN,
+ * so they're computed once, when its managed tunnel is settled, and only read per request.
+ */
+interface ServedTunnel {
+  paths: string[];
+  allowedDsns: string[];
+}
+
+const servedTunnels = new WeakMap<Client, ServedTunnel>();
+
+/**
+ * Records what a server client serves its managed tunnel at and forwards for.
+ */
+export function setServedTunnel(client: Client, servedTunnel: ServedTunnel): void {
+  servedTunnels.set(client, servedTunnel);
+}
+
+function getServedTunnel(): ServedTunnel | undefined {
+  const client = getClient();
+
+  return client && servedTunnels.get(client);
+}
 
 export interface HandleTunnelRequestOptions {
   /** Incoming request containing the Sentry envelope as its body */
@@ -88,7 +110,7 @@ export interface TunnelRequestLike {
  * {@link handleTunnelRequestIfMatched}.
  */
 export function getTunnelPaths(): string[] {
-  return getClient()?.getOptions()._managedTunnelPaths ?? [];
+  return getServedTunnel()?.paths ?? [];
 }
 
 /**
@@ -160,7 +182,7 @@ export function isTunnelRequest(request: TunnelRequestLike): boolean {
  * can hand the request to the app.
  */
 export function handleTunnelRequestIfMatched(request: Request): Promise<Response> | undefined {
-  const allowedDsns = getClient()?.getOptions()._managedTunnelAllowedDsns;
+  const allowedDsns = getServedTunnel()?.allowedDsns;
   // A fixed path matches without a DSN, but with nowhere to forward to the request is left to the app. Its 404 makes
   // the browser send directly, instead of losing every envelope to an error response.
   if (!allowedDsns?.length || !isTunnelRequest(request)) {
