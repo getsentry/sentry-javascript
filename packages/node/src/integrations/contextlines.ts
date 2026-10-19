@@ -4,7 +4,7 @@ import type { Event, IntegrationFn, StackFrame } from '@sentry/core';
 import { debug, defineIntegration, LRUMap, snipLine, stripUrlQueryAndFragment } from '@sentry/core';
 import { DEBUG_BUILD } from '../debug-build';
 
-const SOURCE_FILE_EXTENSION = /\.(?:[cm]?[jt]sx?|vue|svelte|astro)$/;
+const SOURCE_FILE_EXTENSION = /\.(?:[cm]?[jt]sx?|vue|svelte|astro|mdx)$/;
 const LRU_FILE_CONTENTS_CACHE = new LRUMap<string, Record<number, string>>(10);
 const LRU_FILE_CONTENTS_FS_READ_FAILED = new LRUMap<string, 1>(20);
 const DEFAULT_LINES_OF_CONTEXT = 5;

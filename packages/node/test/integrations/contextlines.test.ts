@@ -96,6 +96,7 @@ describe('ContextLines', () => {
       'file:///var/task/index.js?v=abc123',
       'file:///var/task/index.js#hash',
       'file:///var/task/Component.vue',
+      'file:///var/task/page.mdx',
     ])('reads source file %s', async filename => {
       expect.assertions(1);
       const frames: StackFrame[] = [{ colno: 1, filename, lineno: 1, function: 'fxn1' }];

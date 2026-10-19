@@ -4,7 +4,7 @@ import { addContextToFrame, defineIntegration, LRUMap, stripUrlQueryAndFragment 
 const INTEGRATION_NAME = 'ContextLines' as const;
 // Frame filenames come from the parsed `error.stack` string, which application
 // code can overwrite with external input, so only read source files.
-const SOURCE_FILE_EXTENSION = /\.(?:[cm]?[jt]sx?|vue|svelte|astro)$/i;
+const SOURCE_FILE_EXTENSION = /\.(?:[cm]?[jt]sx?|vue|svelte|astro|mdx)$/i;
 const FILE_CONTENT_CACHE = new LRUMap<string, string | null>(100);
 const DEFAULT_LINES_OF_CONTEXT = 5;
 
