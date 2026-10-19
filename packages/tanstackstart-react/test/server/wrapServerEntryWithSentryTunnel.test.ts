@@ -87,21 +87,30 @@ describe('wrapServerEntryWithSentryTunnel', () => {
     expect(wrapServerEntryWithSentryTunnel(Worker as unknown as { fetch: () => Response })).toBe(Worker);
   });
 
-  it('ignores spans for the tunnel path from the start when the client already exists', async () => {
-    // Paths are registered once per module, and earlier tests already registered this one.
-    vi.resetModules();
-    const { wrapServerEntryWithSentryTunnel: freshWrap } = await import('../../src/server/tunnelRoute');
-    setClient({});
+  it('enables `tunnelRoute` on the client like `init` would, dropping its spans from the start', () => {
+    setClient(undefined);
     const options = getCurrentScope().getClient()!.getOptions();
 
-    freshWrap({ fetch: appFetch });
+    wrapServerEntryWithSentryTunnel({ fetch: appFetch }, {});
 
-    expect(options.ignoreSpans).toEqual([{ attributes: { 'url.path': expect.any(RegExp) } }]);
+    expect(options._managedTunnel).toEqual({});
     expect(
       (options.ignoreSpans![0] as { attributes: { 'url.path': RegExp } }).attributes['url.path'].test(
         getTunnelPath(DSN)!,
       ),
     ).toBe(true);
+  });
+
+  it('keeps the managed tunnel `init` enabled over `tunnelRoute`', async () => {
+    setClient({ path: '/from-init' });
+    const options = getCurrentScope().getClient()!.getOptions();
+
+    const response = await wrapServerEntryWithSentryTunnel({ fetch: appFetch }, { path: '/from-build' }).fetch(
+      makeEnvelopeRequest('http://localhost:3000/from-init'),
+    );
+
+    expect(options._managedTunnel).toEqual({ path: '/from-init' });
+    expect(await response.text()).toBe('forwarded');
   });
 
   it('answers the tunnel under the base path Start routes on, and only there', async () => {
