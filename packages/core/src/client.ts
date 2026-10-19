@@ -41,7 +41,6 @@ import type { ResolvedDataCollection } from './types/datacollection';
 import { createClientReportEnvelope } from './utils/clientreport';
 import { consoleSandbox, debug } from './utils/debug-logger';
 import { dsnToString, makeDsn } from './utils/dsn';
-import { getTunnelIgnoreSpanFilters } from './utils/tunnel';
 import { addItemToEnvelope, createAttachmentEnvelopeItem, getDataCategoryByType } from './utils/envelope';
 import { getPossibleEventMessages, isInternalException } from './utils/eventUtils';
 import { isObjectLike, isParameterizedString, isPlainObject, isPrimitive } from './utils/is';
@@ -270,13 +269,6 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
       this._dsn = makeDsn(options.dsn);
     } else {
       DEBUG_BUILD && debug.warn('No DSN provided, client will not send events.');
-    }
-
-    const tunnelSpanFilters = options._managedTunnel
-      ? getTunnelIgnoreSpanFilters(options._managedTunnel, this._dsn)
-      : [];
-    if (tunnelSpanFilters.length) {
-      this._options.ignoreSpans = [...(this._options.ignoreSpans ?? []), ...tunnelSpanFilters];
     }
 
     const { beforeSendSpan, traceLifecycle } = this._options;

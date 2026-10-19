@@ -101,18 +101,12 @@ export { isSentryRequestUrl } from './utils/isSentryRequestUrl';
 export { handleCallbackErrors } from './utils/handleCallbackErrors';
 export { safeCallback } from './utils/safeCallback';
 export { parameterize, fmt } from './utils/parameterize';
-export type { HandleTunnelRequestOptions, TunnelRequestLike } from './utils/tunnel';
+export type { HandleTunnelRequestOptions } from './utils/tunnel';
 export {
   applyTunnelDefaults,
-  enableManagedTunnel,
   getTunnelPath,
-  getTunnelPaths,
   handleTunnelRequest,
-  handleTunnelRequestIfMatched,
-  isTunnelRequest,
   normalizeTunnelBasePath,
-  resolveServerTunnelOption,
-  setManagedTunnelBasePath,
   TUNNEL_RESPONSE_HEADER,
 } from './utils/tunnel';
 export { addAutoIpAddressToSession } from './utils/ipAddress';
