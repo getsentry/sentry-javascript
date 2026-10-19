@@ -1,7 +1,14 @@
 import { makeBaseNPMConfig, makeNPMConfigVariants } from '@sentry-internal/rollup-utils';
 
 const baseConfig = makeBaseNPMConfig({
-  entrypoints: ['src/index.server.ts', 'src/index.client.ts'],
+  entrypoints: [
+    'src/index.server.ts',
+    'src/index.client.ts',
+    'src/bundler-plugin/vite.ts',
+    'src/bundler-plugin/rollup.ts',
+    'src/bundler-plugin/webpack.ts',
+    'src/bundler-plugin/esbuild.ts',
+  ],
   packageSpecificConfig: {
     output: {
       preserveModulesRoot: 'src',
