@@ -1,4 +1,5 @@
-import { debug, getClient, getTunnelPaths, handleTunnelRequestIfMatched, setManagedTunnelBasePath } from '@sentry/core';
+import { debug, getClient } from '@sentry/core';
+import { getTunnelPaths, handleTunnelRequestIfMatched, setManagedTunnelDefaults } from '@sentry/core/server';
 import { DEBUG_BUILD } from '../common/debug-build';
 
 // Never matches a request, for when the managed tunnel is off.
@@ -12,13 +13,13 @@ const DISABLED_TUNNEL_PATH = '/__sentry-tunnel-disabled__';
  * @param basename The app's `basename`, which React Router matches the routes under but leaves in the request URL.
  */
 export function createSentryTunnelRoutes(basename?: string): Record<string, Record<string, unknown>> {
-  // `init` runs from `--import` before the server build loads, so the client and its tunnel paths are usually known.
-  const client = getClient();
-  if (!client) {
-    return { 'sentry-tunnel': makeTunnelRoute('sentry-tunnel', () => getLazyTunnelPath(basename)) };
-  }
+  // Runs when the server build loads. Clients created later, e.g. per request on Cloudflare, start with the basename.
+  setManagedTunnelDefaults({ basePath: basename });
 
-  setManagedTunnelBasePath(client, basename);
+  // `init` runs from `--import` before the server build loads, so the client and its tunnel paths are usually known.
+  if (!getClient()) {
+    return { 'sentry-tunnel': makeTunnelRoute('sentry-tunnel', getLazyTunnelPath) };
+  }
 
   return Object.fromEntries(
     getTunnelPaths().map((path, index) => {
@@ -33,14 +34,11 @@ export function createSentryTunnelRoutes(basename?: string): Record<string, Reco
  * The path of the single route added when `init` runs after the server build loads, e.g. per request on Cloudflare.
  * React Router reads it on its first request and keeps it until the server restarts.
  */
-function getLazyTunnelPath(basename: string | undefined): string {
-  const client = getClient();
-  if (!client) {
+function getLazyTunnelPath(): string {
+  if (!getClient()) {
     DEBUG_BUILD && debug.warn('The managed tunnel stays off until restart: a request came in before `Sentry.init`.');
     return DISABLED_TUNNEL_PATH;
   }
-
-  setManagedTunnelBasePath(client, basename);
 
   const [path, ...otherPaths] = getTunnelPaths();
   if (otherPaths.length) {
