@@ -60,7 +60,7 @@
     "@sentry/node": "11.8.0"
   },
   "devDependencies": {
-    "@types/node": "^18.19.1"
+    "@types/node": "^20.19.0"
   },
   "volta": {
     "extends": "../../package.json"

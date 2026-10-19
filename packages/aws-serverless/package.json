@@ -64,7 +64,7 @@
     "@types/aws-lambda": "^8.10.161"
   },
   "devDependencies": {
-    "@types/node": "^18.19.1",
+    "@types/node": "^20.19.0",
     "@vercel/nft": "^1.11.0"
   },
   "scripts": {
