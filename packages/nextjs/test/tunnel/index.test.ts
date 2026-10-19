@@ -22,7 +22,11 @@ function createEnvelopeRequest(dsn: string): { request: Request; body: Uint8Arra
   const body = typeof envelope === 'string' ? new TextEncoder().encode(envelope) : envelope;
   const request = new Request('https://shop.example.com/monitoring', {
     method: 'POST',
-    headers: { cookie: 'session=8f2c1d', 'content-type': 'text/plain;charset=UTF-8' },
+    headers: {
+      cookie: 'session=8f2c1d',
+      'content-type': 'text/plain;charset=UTF-8',
+      'content-length': String(body.byteLength),
+    },
     body,
   });
   return { request, body };
