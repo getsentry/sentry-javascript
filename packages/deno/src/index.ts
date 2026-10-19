@@ -26,6 +26,7 @@ export type { DenoOptions } from './types';
 export {
   addEventProcessor,
   addBreadcrumb,
+  addIntegration,
   captureException,
   captureEvent,
   captureMessage,
@@ -52,6 +53,7 @@ export {
   setAttribute,
   setAttributes,
   setUser,
+  setConversationId,
   getSpanStatusFromHttpCode,
   setHttpStatus,
   withScope,
@@ -69,6 +71,8 @@ export {
   startNewTrace,
   bindScopeToEmitter,
   suppressTracing,
+  withActiveSpan,
+  getSpanDescendants,
   eventFiltersIntegration,
   linkedErrorsIntegration,
   functionToStringIntegration,
@@ -78,6 +82,7 @@ export {
   dedupeIntegration,
   extraErrorDataIntegration,
   rewriteFramesIntegration,
+  moduleMetadataIntegration,
   supabaseIntegration,
   instrumentSupabaseClient,
   zodErrorsIntegration,
@@ -94,7 +99,9 @@ export {
   spanToTraceHeader,
   spanToBaggageHeader,
   updateSpanName,
+  createConsolaReporter,
   featureFlagsIntegration,
+  growthbookIntegration,
   metrics,
   withStaticSpan,
   // oxlint-disable-next-line typescript/no-deprecated
@@ -103,12 +110,30 @@ export {
   consoleLoggingIntegration,
   spanStreamingIntegration,
 } from '@sentry/core';
-export { wrapMcpServerWithSentry } from '@sentry/core/server';
-export { instrumentPostgresJsSql } from '@sentry/server-utils';
+export { trpcMiddleware, wrapMcpServerWithSentry } from '@sentry/core/server';
+export {
+  instrumentPostgresJsSql,
+  prismaIntegration,
+  instrumentOpenAiClient,
+  instrumentAnthropicAiClient,
+  instrumentGoogleGenAIClient,
+  instrumentMistralAiClient,
+  instrumentTypeSafeClient,
+  createLangChainCallbackHandler,
+  instrumentLangChainEmbeddings,
+  instrumentStateGraph,
+  instrumentCreateReactAgent,
+} from '@sentry/server-utils';
+export type { FlueOptions } from '@sentry/server-utils';
 
 export { DenoClient } from './client';
 
-export { getDefaultIntegrations, init } from './sdk';
+export {
+  getDefaultIntegrations,
+  getDefaultIntegrationsWithoutPerformance,
+  init,
+  initWithoutDefaultIntegrations,
+} from './sdk';
 export { denoServeIntegration } from './integrations/deno-serve';
 export type { DenoServeIntegrationOptions } from './integrations/deno-serve';
 export { fetchIntegration } from './integrations/fetch';
