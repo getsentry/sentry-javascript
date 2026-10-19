@@ -646,6 +646,18 @@ describe('applyTunnelDefaults', () => {
     expect(applyTunnelDefaults('/monitor', { basePath: '/app' })).toEqual({ basePath: '/app', path: '/monitor' });
   });
 
+  it('does not add the base path again to a path that already starts with it', () => {
+    expect(applyTunnelDefaults('/app/monitor', { basePath: '/app' })).toEqual({ basePath: '/app', path: '/monitor' });
+    expect(applyTunnelDefaults({ path: '/app/monitor' }, { basePath: '/app' })).toEqual({
+      basePath: '/app',
+      path: '/monitor',
+    });
+    expect(applyTunnelDefaults('/application/monitor', { basePath: '/app' })).toEqual({
+      basePath: '/app',
+      path: '/application/monitor',
+    });
+  });
+
   it('leaves a URL, an unset tunnel and empty defaults alone', () => {
     expect(applyTunnelDefaults('https://example.com/tunnel', { basePath: '/app' })).toBe('https://example.com/tunnel');
     expect(applyTunnelDefaults(undefined, { basePath: '/app' })).toBeUndefined();
@@ -686,6 +698,17 @@ describe('setManagedTunnelBasePath', () => {
     expect(client.getOptions().ignoreSpans).toContainEqual(
       getTunnelIgnoreSpanFilter({ basePath: '/app' }, makeDsn(TEST_DSN)),
     );
+  });
+
+  it('does not add the base path again to a fixed path that already starts with it', () => {
+    setTestClient(TEST_DSN, { path: '/app/monitor' });
+    const client = getCurrentScope().getClient()!;
+
+    setManagedTunnelBasePath(client, '/app');
+
+    expect(client.getOptions()._managedTunnel).toEqual({ basePath: '/app', path: '/monitor' });
+    expect(isTunnelRequest({ method: 'POST', url: '/app/monitor' })).toBe(true);
+    expect(isTunnelRequest({ method: 'POST', url: '/app/app/monitor' })).toBe(false);
   });
 
   it('keeps a base path the user set, and does nothing without a managed tunnel or a base path', () => {
