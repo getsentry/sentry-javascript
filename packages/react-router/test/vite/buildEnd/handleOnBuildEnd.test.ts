@@ -1,5 +1,5 @@
 import { createSentrySDK } from 'sentry';
-import * as fs from 'fs';
+import { rm } from 'node:fs/promises';
 import { glob } from 'glob';
 import type { ResolvedConfig } from 'vite';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -7,11 +7,10 @@ import { sentryOnBuildEnd } from '../../../src/vite/buildEnd/handleOnBuildEnd';
 import type { SentryReactRouterBuildOptions } from '../../../src/vite/types';
 
 vi.mock('sentry');
-vi.mock('fs', () => ({
-  promises: {
-    rm: vi.fn().mockResolvedValue(undefined),
-  },
-}));
+vi.mock('node:fs/promises', () => {
+  const rm = vi.fn().mockResolvedValue(undefined);
+  return { rm, default: { rm } };
+});
 vi.mock('glob');
 
 type TestConfig = ResolvedConfig & {
@@ -59,12 +58,16 @@ describe('sentryOnBuildEnd', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.mocked(createSentrySDK).mockReturnValue(mockSentrySdkInstance as unknown as ReturnType<typeof createSentrySDK>);
+    mockSentrySdkInstance.sourcemap.upload.mockReset();
+    vi.mocked(createSentrySDK)
+      .mockReset()
+      .mockReturnValue(mockSentrySdkInstance as unknown as ReturnType<typeof createSentrySDK>);
     vi.mocked(glob).mockResolvedValue(['/build/file1.map', '/build/file2.map']);
-    vi.mocked(fs.promises.rm).mockResolvedValue(undefined);
+    vi.mocked(rm).mockResolvedValue(undefined);
   });
 
   afterEach(() => {
+    vi.restoreAllMocks();
     vi.resetModules();
   });
 
@@ -140,6 +143,139 @@ describe('sentryOnBuildEnd', () => {
     });
   });
 
+  it('uploads to each project with one debug ID injection and cleanup after both uploads', async () => {
+    const frontendUpload = vi.fn();
+    const backendUpload = vi.fn();
+    vi.mocked(createSentrySDK)
+      .mockReturnValueOnce(mockSentrySdkInstance as unknown as ReturnType<typeof createSentrySDK>)
+      .mockReturnValueOnce({
+        ...mockSentrySdkInstance,
+        sourcemap: { ...mockSentrySdkInstance.sourcemap, upload: frontendUpload },
+      } as unknown as ReturnType<typeof createSentrySDK>)
+      .mockReturnValueOnce({
+        ...mockSentrySdkInstance,
+        sourcemap: { ...mockSentrySdkInstance.sourcemap, upload: backendUpload },
+      } as unknown as ReturnType<typeof createSentrySDK>);
+    const sentryConfig: SentryReactRouterBuildOptions = {
+      ...defaultConfig.viteConfig.sentryConfig,
+      project: ['frontend', 'backend'],
+      release: { name: 'v1.0.0' },
+      sentryUrl: 'https://sentry.example.com',
+      headers: { 'X-Custom-Header': 'test-value' },
+    };
+    const config = {
+      ...defaultConfig,
+      viteConfig: { ...defaultConfig.viteConfig, sentryConfig },
+    };
+
+    // @ts-expect-error - mocking the React config
+    await sentryOnBuildEnd(config);
+
+    expect(createSentrySDK).toHaveBeenCalledTimes(3);
+    expect(createSentrySDK).toHaveBeenNthCalledWith(1, {
+      token: 'test-token',
+      org: 'test-org',
+      url: 'https://sentry.example.com',
+      headers: { 'X-Custom-Header': 'test-value' },
+      project: undefined,
+    });
+    expect(createSentrySDK).toHaveBeenNthCalledWith(2, {
+      token: 'test-token',
+      org: 'test-org',
+      url: 'https://sentry.example.com',
+      headers: { 'X-Custom-Header': 'test-value' },
+      project: 'frontend',
+    });
+    expect(createSentrySDK).toHaveBeenNthCalledWith(3, {
+      token: 'test-token',
+      org: 'test-org',
+      url: 'https://sentry.example.com',
+      headers: { 'X-Custom-Header': 'test-value' },
+      project: 'backend',
+    });
+    expect(mockSentrySdkInstance.release.create).toHaveBeenCalledExactlyOnceWith({
+      orgVersion: 'v1.0.0',
+      project: 'frontend,backend',
+    });
+    expect(mockSentrySdkInstance.sourcemap.inject).toHaveBeenCalledExactlyOnceWith({ directory: '/build' });
+    expect(frontendUpload).toHaveBeenCalledExactlyOnceWith({ directory: '/build', release: 'v1.0.0' });
+    expect(backendUpload).toHaveBeenCalledExactlyOnceWith({ directory: '/build', release: 'v1.0.0' });
+    expect(mockSentrySdkInstance.sourcemap.inject).toHaveBeenCalledBefore(frontendUpload);
+    expect(mockSentrySdkInstance.sourcemap.inject).toHaveBeenCalledBefore(backendUpload);
+    expect(glob).toHaveBeenCalledExactlyOnceWith(['/build/**/*.map'], { absolute: true, nodir: true });
+    expect(rm).toHaveBeenCalledTimes(2);
+    expect(rm).toHaveBeenCalledWith('/build/file1.map', { force: true });
+    expect(rm).toHaveBeenCalledWith('/build/file2.map', { force: true });
+    expect(frontendUpload).toHaveBeenCalledBefore(vi.mocked(rm));
+    expect(backendUpload).toHaveBeenCalledBefore(vi.mocked(rm));
+  });
+
+  it('preserves source maps when one project upload fails', async () => {
+    const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    const uploadError = new Error('Backend upload failed');
+    mockSentrySdkInstance.sourcemap.upload.mockResolvedValueOnce(undefined).mockRejectedValueOnce(uploadError);
+    const sentryConfig: SentryReactRouterBuildOptions = {
+      ...defaultConfig.viteConfig.sentryConfig,
+      project: ['frontend', 'backend'],
+    };
+    const config = {
+      ...defaultConfig,
+      viteConfig: { ...defaultConfig.viteConfig, sentryConfig },
+    };
+
+    // @ts-expect-error - mocking the React config
+    await sentryOnBuildEnd(config);
+
+    expect(mockSentrySdkInstance.sourcemap.upload).toHaveBeenCalledTimes(2);
+    expect(consoleSpy).toHaveBeenCalledWith('[Sentry] Could not upload sourcemaps', uploadError);
+    expect(glob).not.toHaveBeenCalled();
+    expect(rm).not.toHaveBeenCalled();
+  });
+
+  it('preserves source maps when no projects are configured in the array', async () => {
+    const sentryConfig: SentryReactRouterBuildOptions = {
+      ...defaultConfig.viteConfig.sentryConfig,
+      project: [],
+    };
+    const config = {
+      ...defaultConfig,
+      viteConfig: { ...defaultConfig.viteConfig, sentryConfig },
+    };
+
+    // @ts-expect-error - mocking the React config
+    await sentryOnBuildEnd(config);
+
+    expect(mockSentrySdkInstance.sourcemap.upload).not.toHaveBeenCalled();
+    expect(glob).not.toHaveBeenCalled();
+    expect(rm).not.toHaveBeenCalled();
+  });
+
+  it('leaves project resolution to the CLI when the project option is omitted', async () => {
+    const sentryConfig: SentryReactRouterBuildOptions = {
+      ...defaultConfig.viteConfig.sentryConfig,
+      project: undefined,
+    };
+    const config = {
+      ...defaultConfig,
+      viteConfig: { ...defaultConfig.viteConfig, sentryConfig },
+    };
+
+    // @ts-expect-error - mocking the React config
+    await sentryOnBuildEnd(config);
+
+    expect(createSentrySDK).toHaveBeenCalledExactlyOnceWith({
+      token: 'test-token',
+      org: 'test-org',
+      url: undefined,
+      headers: undefined,
+      project: undefined,
+    });
+    expect(mockSentrySdkInstance.sourcemap.upload).toHaveBeenCalledExactlyOnceWith({
+      directory: '/build',
+      release: 'undefined',
+    });
+  });
+
   it('should not upload or inject source maps when disabled via top-level sourcemaps.disable', async () => {
     const config = {
       ...defaultConfig,
@@ -198,7 +334,7 @@ describe('sentryOnBuildEnd', () => {
     await sentryOnBuildEnd(config);
 
     expect(glob).not.toHaveBeenCalled();
-    expect(fs.promises.rm).not.toHaveBeenCalled();
+    expect(rm).not.toHaveBeenCalled();
   });
 
   it('should delete source maps after upload with default pattern', async () => {

@@ -58,7 +58,7 @@ export const sentryOnBuildEnd: BuildEndHook = async ({ reactRouterConfig, viteCo
     token: authToken,
     org,
     url: sentryUrl,
-    project,
+    project: Array.isArray(project) ? undefined : project,
     headers,
   };
 
@@ -68,7 +68,10 @@ export const sentryOnBuildEnd: BuildEndHook = async ({ reactRouterConfig, viteCo
   if (release?.name) {
     try {
       // The release API requires a project, and the one given to the SDK does not reach this call.
-      await sentry.release.create({ orgVersion: release.name, project });
+      await sentry.release.create({
+        orgVersion: release.name,
+        project: Array.isArray(project) ? project.join(',') : project,
+      });
     } catch (error) {
       // eslint-disable-next-line no-console
       console.error('[Sentry] Could not create release', error);
@@ -79,6 +82,7 @@ export const sentryOnBuildEnd: BuildEndHook = async ({ reactRouterConfig, viteCo
   // uploaded manually at a later point - only `true` turns source maps off entirely.
   const sourceMapsFullyDisabled = sourcemaps?.disable === true;
   const uploadDisabled = sourceMapsFullyDisabled || sourcemaps?.disable === 'disable-upload';
+  let sourceMapsUploaded = false;
 
   if (!sourceMapsFullyDisabled && viteConfig.build.sourcemap !== false) {
     // inject debugIds
@@ -92,10 +96,18 @@ export const sentryOnBuildEnd: BuildEndHook = async ({ reactRouterConfig, viteCo
     if (!uploadDisabled) {
       // upload sourcemaps
       try {
-        await sentry.sourcemap.upload({
-          directory: reactRouterConfig.buildDirectory,
-          release: release?.name || 'undefined',
-        });
+        const uploadClients = Array.isArray(project)
+          ? project.map(project => createSentrySDK({ ...sentryOptions, project }))
+          : [sentry];
+
+        for (const client of uploadClients) {
+          await client.sourcemap.upload({
+            directory: reactRouterConfig.buildDirectory,
+            release: release?.name || 'undefined',
+          });
+        }
+
+        sourceMapsUploaded = uploadClients.length > 0;
       } catch (error) {
         // eslint-disable-next-line no-console
         console.error('[Sentry] Could not upload sourcemaps', error);
@@ -105,7 +117,7 @@ export const sentryOnBuildEnd: BuildEndHook = async ({ reactRouterConfig, viteCo
 
   // Only clean up source maps that were actually uploaded. Deleting them after skipping
   // the upload would leave the user with neither, breaking a manual upload.
-  if (uploadDisabled) {
+  if (!sourceMapsUploaded) {
     return;
   }
 
