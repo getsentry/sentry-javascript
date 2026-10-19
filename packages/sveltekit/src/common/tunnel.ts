@@ -10,5 +10,5 @@ export const TUNNEL_BASE_PATH_GLOBAL = '__sentry_sveltekit_base_path';
  */
 export function applyTunnelBasePath(options: Pick<Options, 'tunnel'>): void {
   const basePath = (GLOBAL_OBJ as { [TUNNEL_BASE_PATH_GLOBAL]?: string })[TUNNEL_BASE_PATH_GLOBAL];
-  options.tunnel = applyTunnelDefaults(options.tunnel, basePath ? { basePath } : undefined);
+  options.tunnel = applyTunnelDefaults(options.tunnel, { basePath });
 }

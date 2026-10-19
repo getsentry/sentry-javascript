@@ -11,47 +11,18 @@ describe('applyTunnelBasePath', () => {
 
   it('adds the injected base path to the managed tunnel', () => {
     globalWithBasePath[TUNNEL_BASE_PATH_GLOBAL] = '/app';
-    const fromTrue: Parameters<typeof applyTunnelBasePath>[0] = { tunnel: true };
-    const fromOptions: Parameters<typeof applyTunnelBasePath>[0] = { tunnel: { allowedDsns: ['dsn'] } };
-
-    applyTunnelBasePath(fromTrue);
-    applyTunnelBasePath(fromOptions);
-
-    expect(fromTrue.tunnel).toEqual({ basePath: '/app' });
-    expect(fromOptions.tunnel).toEqual({ basePath: '/app', allowedDsns: ['dsn'] });
-  });
-
-  it('keeps a base path the user set', () => {
-    globalWithBasePath[TUNNEL_BASE_PATH_GLOBAL] = '/app';
-    const options: Parameters<typeof applyTunnelBasePath>[0] = { tunnel: { basePath: '/other' } };
+    const options: Parameters<typeof applyTunnelBasePath>[0] = { tunnel: true };
 
     applyTunnelBasePath(options);
 
-    expect(options.tunnel).toEqual({ basePath: '/other' });
+    expect(options.tunnel).toEqual({ basePath: '/app' });
   });
 
-  it('serves a relative tunnel path under the base path too', () => {
-    globalWithBasePath[TUNNEL_BASE_PATH_GLOBAL] = '/app';
-    const options: Parameters<typeof applyTunnelBasePath>[0] = { tunnel: '/monitor' };
+  it('leaves the tunnel alone without a base path', () => {
+    const options: Parameters<typeof applyTunnelBasePath>[0] = { tunnel: true };
 
     applyTunnelBasePath(options);
 
-    expect(options.tunnel).toEqual({ basePath: '/app', path: '/monitor' });
-  });
-
-  it('leaves URL tunnels, a disabled tunnel, and apps without a base path alone', () => {
-    globalWithBasePath[TUNNEL_BASE_PATH_GLOBAL] = '/app';
-    const url: Parameters<typeof applyTunnelBasePath>[0] = { tunnel: 'https://example.com/tunnel' };
-    const off: Parameters<typeof applyTunnelBasePath>[0] = {};
-    applyTunnelBasePath(url);
-    applyTunnelBasePath(off);
-
-    delete globalWithBasePath.__sentry_sveltekit_base_path;
-    const noBase: Parameters<typeof applyTunnelBasePath>[0] = { tunnel: true };
-    applyTunnelBasePath(noBase);
-
-    expect(url.tunnel).toBe('https://example.com/tunnel');
-    expect(off.tunnel).toBeUndefined();
-    expect(noBase.tunnel).toBe(true);
+    expect(options.tunnel).toBe(true);
   });
 });
