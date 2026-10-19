@@ -238,7 +238,9 @@ async function forwardTunnelRequest(options: HandleTunnelRequestOptions): Promis
   }
 
   const reader = request.body?.getReader();
-  const head = reader && (await readEnvelopeHeaderLine(reader));
+  // A client that drops the connection mid-upload makes the read throw. That is the client going away, not an app
+  // error, so it gets the same answer as any other unreadable envelope.
+  const head = reader && (await readEnvelopeHeaderLine(reader).catch(() => undefined));
   if (!reader || !head) {
     return new Response('Invalid envelope', { status: 400 });
   }
