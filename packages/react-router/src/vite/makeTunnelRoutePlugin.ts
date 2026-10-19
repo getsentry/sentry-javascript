@@ -3,7 +3,7 @@ import type { Plugin } from 'vite';
 const SERVER_BUILD_MODULE_ID = 'virtual:react-router/server-build';
 
 /**
- * Adds the managed tunnel route to the server build. It only serves requests when `Sentry.init` enables the
+ * Adds the managed tunnel routes to the server build. They only serve requests when `Sentry.init` enables the
  * managed tunnel. The server build exports the app's `basename`, which the route needs to match the request URL.
  */
 export function makeTunnelRoutePlugin(): Plugin {
@@ -18,8 +18,8 @@ export function makeTunnelRoutePlugin(): Plugin {
 
       return {
         code: `${code}
-import { createSentryTunnelRoute as __sentryCreateTunnelRoute } from '@sentry/react-router';
-routes['sentry-tunnel'] = __sentryCreateTunnelRoute(typeof basename === 'string' ? basename : undefined);
+import { createSentryTunnelRoutes as __sentryCreateTunnelRoutes } from '@sentry/react-router';
+Object.assign(routes, __sentryCreateTunnelRoutes(typeof basename === 'string' ? basename : undefined));
 `,
         map: null,
       };
