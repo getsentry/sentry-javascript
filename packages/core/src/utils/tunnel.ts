@@ -59,10 +59,10 @@ export function applyTunnelDefaults(
   }
 
   if (typeof tunnel === 'string') {
-    return tunnel.startsWith('/') ? { ...defaults, path: tunnel } : tunnel;
+    return tunnel.startsWith('/') ? withPathBelowBasePath({ ...defaults, path: tunnel }) : tunnel;
   }
 
-  return { ...defaults, ...(tunnel === true ? {} : tunnel) };
+  return withPathBelowBasePath({ ...defaults, ...(tunnel === true ? {} : tunnel) });
 }
 
 /**
@@ -153,7 +153,7 @@ export function setManagedTunnelBasePath(client: Client | undefined, basePath: s
     return;
   }
 
-  options._managedTunnel = { ...tunnelOptions, basePath: normalizedBasePath };
+  options._managedTunnel = withPathBelowBasePath({ ...tunnelOptions, basePath: normalizedBasePath });
 
   const spanFilter = getTunnelIgnoreSpanFilter(options._managedTunnel, client?.getDsn());
   if (spanFilter) {
@@ -404,6 +404,16 @@ function resolveAllowedDsns(
   const dsns = [...(allowedDsns ?? []), ...(ownDsn ? [dsnToString(ownDsn)] : [])];
 
   return [...new Set(dsns)];
+}
+
+/**
+ * Makes a fixed `path` relative to `basePath`. A path the user wrote with the base path in it, as a `tunnel` had to
+ * be before the SDK added the base path, would otherwise be served under the base path twice.
+ */
+function withPathBelowBasePath(tunnelOptions: TunnelOptions): TunnelOptions {
+  const path = tunnelOptions.path && stripBasePath(tunnelOptions.path, tunnelOptions.basePath);
+
+  return path ? { ...tunnelOptions, path } : tunnelOptions;
 }
 
 /**
