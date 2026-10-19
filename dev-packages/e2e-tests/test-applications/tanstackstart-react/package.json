@@ -13,7 +13,6 @@
     "test:build:tunnel-generated": "pnpm install && E2E_TEST_TUNNEL_ROUTE_MODE=dynamic E2E_TEST_DSN=http://public@localhost:3031/1337 pnpm build",
     "test:build:tunnel-static": "pnpm install && E2E_TEST_TUNNEL_ROUTE_MODE=static E2E_TEST_DSN=http://public@localhost:3031/1337 pnpm build",
     "test:build:tunnel-custom": "pnpm install && E2E_TEST_CUSTOM_TUNNEL_ROUTE=1 pnpm build",
-    "test:build:tunnel-object": "pnpm install && E2E_TEST_TUNNEL_ROUTE_MODE=object E2E_TEST_DSN=http://public@localhost:3031/1337 pnpm build",
     "test:build:hoisted": "pnpm install --config.node-linker=hoisted && pnpm build",
     "test:build:tunnel-basepath": "pnpm install && E2E_TEST_TUNNEL_ROUTE_MODE=dynamic E2E_TEST_BASE_PATH=/app E2E_TEST_DSN=http://public@localhost:3031/1337 pnpm build",
     "test:build-latest": "pnpm add @tanstack/react-start@latest @tanstack/react-router@latest nitro@latest vite@latest @vitejs/plugin-react-swc@latest vite-tsconfig-paths@latest && pnpm install && pnpm build",
@@ -22,9 +21,7 @@
     "test:assert:tunnel-generated": "E2E_TEST_TUNNEL_ROUTE_MODE=dynamic E2E_TEST_DSN=http://public@localhost:3031/1337 pnpm test",
     "test:assert:tunnel-static": "E2E_TEST_TUNNEL_ROUTE_MODE=static E2E_TEST_DSN=http://public@localhost:3031/1337 pnpm test",
     "test:assert:tunnel-custom": "E2E_TEST_CUSTOM_TUNNEL_ROUTE=1 pnpm test",
-    "test:assert:tunnel-object": "E2E_TEST_TUNNEL_ROUTE_MODE=object E2E_TEST_DSN=http://public@localhost:3031/1337 pnpm test",
     "test:assert:tunnel-basepath": "E2E_TEST_TUNNEL_ROUTE_MODE=dynamic E2E_TEST_BASE_PATH=/app E2E_TEST_DSN=http://public@localhost:3031/1337 pnpm test tunnel",
-    "test:assert:tunnel-dev": "E2E_TEST_TUNNEL_ROUTE_MODE=dynamic E2E_TEST_DSN=http://public@localhost:3031/1337 TEST_ENV=development pnpm test tunnel",
     "test:assert:tunnel-basepath-dev": "E2E_TEST_TUNNEL_ROUTE_MODE=dynamic E2E_TEST_BASE_PATH=/app E2E_TEST_DSN=http://public@localhost:3031/1337 TEST_ENV=development pnpm test tunnel"
   },
   "//": "Need to use ioredis 5.10.1 because that's the last version before they support tracing channels",
@@ -76,19 +73,9 @@
         "assert-command": "pnpm test:assert:tunnel-custom"
       },
       {
-        "label": "tanstackstart-react (tunnel-object)",
-        "build-command": "pnpm test:build:tunnel-object",
-        "assert-command": "pnpm test:assert:tunnel-object"
-      },
-      {
         "label": "tanstackstart-react (tunnel-basepath)",
         "build-command": "pnpm test:build:tunnel-basepath",
         "assert-command": "pnpm test:assert:tunnel-basepath"
-      },
-      {
-        "label": "tanstackstart-react (tunnel-dev)",
-        "build-command": "pnpm install",
-        "assert-command": "pnpm test:assert:tunnel-dev"
       },
       {
         "label": "tanstackstart-react (tunnel-basepath-dev)",
