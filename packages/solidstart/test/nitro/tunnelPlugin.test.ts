@@ -50,7 +50,11 @@ describe('SolidStart v1 tunnel plugin', () => {
     vi.stubGlobal('fetch', sentryFetch);
     const envelope = serializeEnvelope(createEnvelope({ dsn: DSN }, [])) as string;
 
-    const response = await fetchApp(getTunnelPath(DSN)!, { method: 'POST', body: envelope });
+    const response = await fetchApp(getTunnelPath(DSN)!, {
+      method: 'POST',
+      body: envelope,
+      headers: { 'content-length': String(envelope.length) },
+    });
 
     expect(await response.text()).toBe('forwarded');
     expect(await new Response(sentryFetch.mock.lastCall![1].body).text()).toBe(envelope);
