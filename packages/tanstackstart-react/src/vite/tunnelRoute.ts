@@ -54,6 +54,15 @@ export function normalizeTunnelRouteOptions(options: TunnelRouteOptions): Tunnel
   };
 }
 
+// `routeTree.gen.ts` quote style follows `tsr.config.json#quoteStyle` (`single` | `double`),
+// so we check both forms for each route-identifying key.
+const ROUTE_CONFLICT_KEYS = ['fullPath', 'path', 'id'] as const;
+
+function hasRouteConflict(source: string, tunnelPath: string): boolean {
+  const literals = [`'${tunnelPath}'`, `"${tunnelPath}"`];
+  return ROUTE_CONFLICT_KEYS.some(key => literals.some(literal => source.includes(`${key}: ${literal}`)));
+}
+
 /**
  * Tells the client SDK which tunnel to use. The server entry wrapper serves it.
  */
@@ -69,6 +78,17 @@ export function makeTunnelRoutePlugin(options: TunnelRouteOptions, debug?: boole
     name: 'sentry-tanstackstart-tunnel-route',
     config() {
       return { define: { __SENTRY_TANSTACKSTART_TUNNEL_ROUTE__: path ? JSON.stringify(path) : 'true' } };
+    },
+    // The server entry wrapper answers POSTs to a fixed path before Start's routing, so an app route on that path
+    // would silently lose them.
+    transform(source, id) {
+      if (path && /[\\/]routeTree\.gen\.ts$/.test(id) && hasRouteConflict(source, path)) {
+        throw new Error(
+          `[@sentry/tanstackstart-react] Cannot register managed tunnel route "${path}" because an existing TanStack Start route already uses that path.`,
+        );
+      }
+
+      return null;
     },
   };
 }

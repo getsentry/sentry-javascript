@@ -45,6 +45,28 @@ describe('tunnelRoute vite plugin', () => {
       define: { __SENTRY_TANSTACKSTART_TUNNEL_ROUTE__: 'true' },
     });
   });
+
+  it('fails when a static tunnel route conflicts with an existing route', () => {
+    const transform = (path: string, source: string): unknown =>
+      (makeTunnelRoutePlugin(path).transform as (source: string, id: string) => unknown)(
+        source,
+        '/app/src/routeTree.gen.ts',
+      );
+    const singleQuoted = "const MonitorRoute = MonitorRouteImport.update({\n  id: '/monitor',\n  path: '/monitor',";
+    const doubleQuoted = singleQuoted.replace(/'/g, '"');
+
+    expect(() => transform('/monitor', singleQuoted)).toThrow(
+      'Cannot register managed tunnel route "/monitor" because an existing TanStack Start route already uses that path.',
+    );
+    expect(() => transform('/monitor', doubleQuoted)).toThrow('already uses that path');
+    expect(transform('/other', singleQuoted)).toBeNull();
+    expect(
+      (makeTunnelRoutePlugin(true).transform as (s: string, id: string) => unknown)(
+        singleQuoted,
+        '/app/src/routeTree.gen.ts',
+      ),
+    ).toBeNull();
+  });
 });
 
 describe('server entry tunnel vite plugin', () => {
