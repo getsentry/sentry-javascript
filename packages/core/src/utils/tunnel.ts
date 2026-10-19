@@ -33,6 +33,11 @@ function getServedTunnel(): ServedTunnel | undefined {
   return client && servedTunnels.get(client);
 }
 
+/**
+ * Bounds what one tunnel request may send. SDK envelopes stay far below it.
+ */
+export const MAX_TUNNEL_BODY_SIZE = 20 * 1024 * 1024;
+
 export interface HandleTunnelRequestOptions {
   /** Incoming request containing the Sentry envelope as its body */
   request: Request;
@@ -213,6 +218,15 @@ async function forwardTunnelRequest(request: Request, allowedDsns: Array<string>
 async function forwardEnvelope(request: Request, allowedDsns: Array<string>): Promise<Response> {
   if (allowedDsns.length === 0) {
     return new Response('Tunnel not configured', { status: 500 });
+  }
+
+  // The HTTP server ends the body at `Content-Length`, so the header bounds what the forward streams.
+  const contentLength = Number(request.headers.get('content-length'));
+  if (!contentLength) {
+    return new Response('Length required', { status: 411 });
+  }
+  if (contentLength > MAX_TUNNEL_BODY_SIZE) {
+    return new Response('Envelope too large', { status: 413 });
   }
 
   const reader = request.body?.getReader();

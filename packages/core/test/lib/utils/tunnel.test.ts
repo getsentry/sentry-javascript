@@ -16,6 +16,7 @@ import {
   resolveAllowedDsns,
   resolveServerTunnelOption,
   resolveTunnelPaths,
+  MAX_TUNNEL_BODY_SIZE,
 } from '../../../src/utils/tunnel';
 import {
   _INTERNAL_resetManagedTunnelDefaults,
@@ -39,11 +40,15 @@ function getTunnelIgnoreSpanFilter(
   return getTunnelIgnoreSpanFilters(tunnelOptions, paths)[0];
 }
 
-function makeEnvelopeRequest(envelopeHeader: Record<string, unknown>, url = 'http://localhost/tunnel'): Request {
-  const envelope = createEnvelope(envelopeHeader, []);
-  const body = serializeEnvelope(envelope);
+function makeEnvelopeRequest(
+  envelopeHeader: Record<string, unknown>,
+  url = 'http://localhost/tunnel',
+  contentLength?: number,
+): Request {
+  const body = serializeEnvelope(createEnvelope(envelopeHeader, []));
+  const length = contentLength ?? new TextEncoder().encode(body as string).length;
 
-  return new Request(url, { method: 'POST', body });
+  return new Request(url, { method: 'POST', body, headers: { 'content-length': String(length) } });
 }
 
 /**
@@ -56,6 +61,7 @@ function makeEndlessRequest(head: string, onCancel?: () => void): Request {
   return new Request('http://localhost/tunnel', {
     method: 'POST',
     duplex: 'half',
+    headers: { 'content-length': String(MAX_TUNNEL_BODY_SIZE) },
     body: new ReadableStream<Uint8Array>({
       pull(controller) {
         controller.enqueue(sentHead ? filler : new TextEncoder().encode(head));
@@ -72,6 +78,40 @@ describe('handleTunnelRequest', () => {
   beforeEach(() => {
     fetchMock = vi.fn();
     vi.stubGlobal('fetch', fetchMock);
+  });
+
+  it('forwards the envelope when Content-Length equals the limit', async () => {
+    fetchMock.mockResolvedValueOnce(new Response('ok'));
+
+    const result = await handleTunnelRequest({
+      request: makeEnvelopeRequest({ dsn: TEST_DSN }, undefined, MAX_TUNNEL_BODY_SIZE),
+      allowedDsns: [TEST_DSN],
+    });
+
+    expect(result.status).toBe(200);
+  });
+
+  it('returns 413 when Content-Length is above the limit, without reading the body', async () => {
+    const request = makeEnvelopeRequest({ dsn: TEST_DSN }, undefined, MAX_TUNNEL_BODY_SIZE + 1);
+
+    const result = await handleTunnelRequest({ request, allowedDsns: [TEST_DSN] });
+
+    expect(result.status).toBe(413);
+    expect(request.bodyUsed).toBe(false);
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it('returns 411 when the request has no Content-Length', async () => {
+    const result = await handleTunnelRequest({
+      request: new Request('http://localhost/tunnel', {
+        method: 'POST',
+        body: `${JSON.stringify({ dsn: TEST_DSN })}\n`,
+      }),
+      allowedDsns: [TEST_DSN],
+    });
+
+    expect(result.status).toBe(411);
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 
   afterEach(() => {
@@ -132,7 +172,7 @@ describe('handleTunnelRequest', () => {
       request: new Request('http://localhost/tunnel', {
         method: 'POST',
         body: `${JSON.stringify({ dsn: TEST_DSN })}\n`,
-        headers: incomingHeaders,
+        headers: { ...incomingHeaders, 'content-length': '1' },
       }),
       allowedDsns: [TEST_DSN],
     });
