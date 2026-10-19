@@ -128,6 +128,24 @@ export const nestjsConfig = [
     },
     functionQuery: { functionName: 'Processor', kind: 'Sync' },
   },
+  {
+    channelName: 'onWorkerEventDecorator',
+    module: {
+      name: '@nestjs/bullmq',
+      versionRange: '>=10.0.0',
+      filePath: 'dist/decorators/on-worker-event.decorator.js',
+    },
+    functionQuery: { expressionName: 'OnWorkerEvent', kind: 'Sync' },
+  },
+  {
+    channelName: 'onQueueEventDecorator',
+    module: {
+      name: '@nestjs/bullmq',
+      versionRange: '>=10.0.0',
+      filePath: 'dist/decorators/on-queue-event.decorator.js',
+    },
+    functionQuery: { expressionName: 'OnQueueEvent', kind: 'Sync' },
+  },
 ] satisfies InstrumentationConfig[];
 
 export const nestjsChannels = {
@@ -140,4 +158,6 @@ export const nestjsChannels = {
   NESTJS_SCHEDULE_TIMEOUT: 'orchestrion:@nestjs/schedule:timeoutDecorator',
   NESTJS_ONEVENT: 'orchestrion:@nestjs/event-emitter:onEventDecorator',
   NESTJS_PROCESSOR: 'orchestrion:@nestjs/bullmq:processorDecorator',
+  NESTJS_BULLMQ_WORKER_EVENT: 'orchestrion:@nestjs/bullmq:onWorkerEventDecorator',
+  NESTJS_BULLMQ_QUEUE_EVENT: 'orchestrion:@nestjs/bullmq:onQueueEventDecorator',
 } as const;

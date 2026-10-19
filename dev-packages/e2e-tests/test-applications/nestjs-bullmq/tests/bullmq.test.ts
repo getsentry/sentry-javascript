@@ -75,56 +75,42 @@ test('BullMQ processor breadcrumbs do not leak into subsequent HTTP requests', a
   expect(await getLeakedBreadcrumbs(baseURL!)).not.toContain('leaked-breadcrumb-from-bullmq-processor');
 });
 
-// TODO: @OnWorkerEvent('completed') handlers run outside the isolation scope created by process().
-// They are registered via worker.on() (EventEmitter), so breadcrumbs/tags set there
-// leak into the default isolation scope and appear on subsequent HTTP requests.
-test('BullMQ @OnWorkerEvent completed lifecycle breadcrumbs currently leak into subsequent HTTP requests', async ({
+test('BullMQ @OnWorkerEvent completed lifecycle breadcrumbs do not leak into subsequent HTTP requests', async ({
   baseURL,
 }) => {
-  const processSpanPromise = waitForProcessSpan();
+  const callbackPromise = waitForError(APP_NAME, event => event.message === 'BullMQ completed lifecycle callback');
 
-  // Enqueue a job (the completed event fires right after the job is processed)
   await fetch(`${baseURL}/enqueue/lifecycle-breadcrumb-test`);
 
-  await processSpanPromise;
+  await callbackPromise;
 
-  // This SHOULD be not.toContain() once lifecycle event isolation is implemented.
-  expect(await getLeakedBreadcrumbs(baseURL!)).toContain('leaked-breadcrumb-from-lifecycle-event');
+  expect(await getLeakedBreadcrumbs(baseURL!)).not.toContain('leaked-breadcrumb-from-lifecycle-event');
 });
 
-// TODO: @OnWorkerEvent('active') handlers run outside the isolation scope created by process().
-// Breadcrumbs set there leak into the default isolation scope and appear on subsequent HTTP requests.
-test('BullMQ @OnWorkerEvent active lifecycle breadcrumbs currently leak into subsequent HTTP requests', async ({
+test('BullMQ @OnWorkerEvent active lifecycle breadcrumbs do not leak into subsequent HTTP requests', async ({
   baseURL,
 }) => {
-  const processSpanPromise = waitForProcessSpan();
+  const callbackPromise = waitForError(APP_NAME, event => event.message === 'BullMQ active lifecycle callback');
 
   await fetch(`${baseURL}/enqueue/lifecycle-active-breadcrumb-test`);
 
-  await processSpanPromise;
+  await callbackPromise;
 
-  // This SHOULD be not.toContain() once lifecycle event isolation is implemented.
-  expect(await getLeakedBreadcrumbs(baseURL!)).toContain('leaked-breadcrumb-from-active-event');
+  expect(await getLeakedBreadcrumbs(baseURL!)).not.toContain('leaked-breadcrumb-from-active-event');
 });
 
-// TODO: @OnWorkerEvent('failed') handlers run outside the isolation scope created by process().
-// Breadcrumbs set there leak into the default isolation scope and appear on subsequent HTTP requests.
-test('BullMQ @OnWorkerEvent failed lifecycle breadcrumbs currently leak into subsequent HTTP requests', async ({
+test('BullMQ @OnWorkerEvent failed lifecycle breadcrumbs do not leak into subsequent HTTP requests', async ({
   baseURL,
 }) => {
-  const processSpanPromise = waitForProcessSpan();
+  const callbackPromise = waitForError(APP_NAME, event => event.message === 'BullMQ failed lifecycle callback');
 
   await fetch(`${baseURL}/enqueue/lifecycle-failed-breadcrumb-test`);
 
-  await processSpanPromise;
+  await callbackPromise;
 
-  // This SHOULD be not.toContain() once lifecycle event isolation is implemented.
-  expect(await getLeakedBreadcrumbs(baseURL!)).toContain('leaked-breadcrumb-from-failed-event');
+  expect(await getLeakedBreadcrumbs(baseURL!)).not.toContain('leaked-breadcrumb-from-failed-event');
 });
 
-// The 'progress' event does NOT leak breadcrumbs — unlike 'active', 'completed', and 'failed',
-// BullMQ emits it inside the process() call (via job.updateProgress()), so it runs within
-// the isolation scope already established by the instrumentation.
 test('BullMQ @OnWorkerEvent progress lifecycle breadcrumbs do not leak into subsequent HTTP requests', async ({
   baseURL,
 }) => {

@@ -10,17 +10,20 @@ import type { CatchTarget, InjectableTarget, MinimalNestJsExecutionContext } fro
 import { patchCatchTarget, patchInjectableTarget } from './wrap-components';
 import {
   extractQueueName,
+  MECHANISM_BULLMQ_QUEUE_EVENT,
+  MECHANISM_BULLMQ_WORKER_EVENT,
   MECHANISM_CRON,
   MECHANISM_INTERVAL,
   MECHANISM_TIMEOUT,
   patchMethodDescriptor,
   patchProcessorTarget,
   wrapEventHandler,
-  wrapScheduleHandler,
+  wrapIsolatedHandler,
 } from './wrap-handlers';
 import { getAppCreationSpanOptions, wrapRequestContextHandler, wrapRouteHandler } from './wrap-route';
 
 const NOOP = (): void => {};
+const JOB_SCOPED_WORKER_EVENTS = new Set<unknown>(['active', 'progress', 'completed', 'failed']);
 
 /**
  * Subscribe to a decorator channel (`Injectable`/`Catch`).
@@ -185,18 +188,26 @@ export function subscribeToNestChannels(): void {
 
   // @Cron/@Interval/@Timeout (schedule), @OnEvent (event), @Processor (bullmq)
   subscribeFactoryDecorator(CHANNELS.NESTJS_SCHEDULE_CRON, decorator =>
-    makeMethodDecorator(decorator, handler => wrapScheduleHandler(handler, MECHANISM_CRON)),
+    makeMethodDecorator(decorator, handler => wrapIsolatedHandler(handler, MECHANISM_CRON)),
   );
   subscribeFactoryDecorator(CHANNELS.NESTJS_SCHEDULE_INTERVAL, decorator =>
-    makeMethodDecorator(decorator, handler => wrapScheduleHandler(handler, MECHANISM_INTERVAL)),
+    makeMethodDecorator(decorator, handler => wrapIsolatedHandler(handler, MECHANISM_INTERVAL)),
   );
   subscribeFactoryDecorator(CHANNELS.NESTJS_SCHEDULE_TIMEOUT, decorator =>
-    makeMethodDecorator(decorator, handler => wrapScheduleHandler(handler, MECHANISM_TIMEOUT)),
+    makeMethodDecorator(decorator, handler => wrapIsolatedHandler(handler, MECHANISM_TIMEOUT)),
   );
   subscribeFactoryDecorator(CHANNELS.NESTJS_ONEVENT, (decorator, data) =>
     makeMethodDecorator(decorator, handler => wrapEventHandler(handler, data.arguments?.[0])),
   );
   subscribeFactoryDecorator(CHANNELS.NESTJS_PROCESSOR, (decorator, data) =>
     makeProcessorDecorator(decorator, extractQueueName(data.arguments?.[0])),
+  );
+  subscribeFactoryDecorator(CHANNELS.NESTJS_BULLMQ_WORKER_EVENT, (decorator, data) =>
+    makeMethodDecorator(decorator, handler =>
+      wrapIsolatedHandler(handler, MECHANISM_BULLMQ_WORKER_EVENT, JOB_SCOPED_WORKER_EVENTS.has(data.arguments?.[0])),
+    ),
+  );
+  subscribeFactoryDecorator(CHANNELS.NESTJS_BULLMQ_QUEUE_EVENT, decorator =>
+    makeMethodDecorator(decorator, handler => wrapIsolatedHandler(handler, MECHANISM_BULLMQ_QUEUE_EVENT)),
   );
 }

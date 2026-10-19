@@ -36,6 +36,7 @@ export class TestProcessor extends WorkerHost {
         message: 'leaked-breadcrumb-from-lifecycle-event',
         level: 'info',
       });
+      Sentry.captureMessage('BullMQ completed lifecycle callback');
     }
   }
 
@@ -46,6 +47,7 @@ export class TestProcessor extends WorkerHost {
         message: 'leaked-breadcrumb-from-active-event',
         level: 'info',
       });
+      Sentry.captureMessage('BullMQ active lifecycle callback');
     }
   }
 
@@ -56,6 +58,7 @@ export class TestProcessor extends WorkerHost {
         message: 'leaked-breadcrumb-from-failed-event',
         level: 'info',
       });
+      Sentry.captureMessage('BullMQ failed lifecycle callback');
     }
   }
 

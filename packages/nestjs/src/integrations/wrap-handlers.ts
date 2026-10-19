@@ -1,10 +1,17 @@
+import type { Scope } from '@sentry/core';
 import { captureException, isObjectLike, isThenable, startSpan, withIsolationScope } from '@sentry/core';
 import type { AnyFn, ReflectWithMetadata } from './helpers';
-import { getBullMQProcessSpanOptions, getEventSpanOptions, isWrapped, markWrapped } from './helpers';
+import {
+  copyReflectMetadata,
+  getBullMQProcessSpanOptions,
+  getEventSpanOptions,
+  isWrapped,
+  markWrapped,
+} from './helpers';
 
 /**
  * Span-emitting / error-capturing logic for the `@Cron`/`@Interval`/
- * `@Timeout` (schedule), `@OnEvent` (event), and `@Processor` (bullmq)
+ * `@Timeout` (schedule), `@OnEvent` (event), and BullMQ processor and lifecycle
  * handlers.
  *
  * @module
@@ -18,6 +25,26 @@ export const MECHANISM_INTERVAL = 'auto.function.nestjs.interval';
 export const MECHANISM_TIMEOUT = 'auto.function.nestjs.timeout';
 export const MECHANISM_EVENT = 'auto.event.nestjs';
 export const MECHANISM_BULLMQ = 'auto.queue.nestjs.bullmq';
+export const MECHANISM_BULLMQ_WORKER_EVENT = 'auto.queue.nestjs.bullmq.worker_event';
+export const MECHANISM_BULLMQ_QUEUE_EVENT = 'auto.queue.nestjs.bullmq.queue_event';
+
+const bullMQJobScopes = new WeakMap<object, Scope>();
+
+function withBullMQJobScope<T>(job: unknown, callback: () => T): T {
+  if (!isObjectLike(job)) {
+    return withIsolationScope(callback);
+  }
+
+  const existingScope = bullMQJobScopes.get(job);
+  if (existingScope) {
+    return withIsolationScope(existingScope, callback);
+  }
+
+  return withIsolationScope(scope => {
+    bullMQJobScopes.set(job, scope);
+    return callback();
+  });
+}
 
 const EVENT_LISTENER_METADATA = 'EVENT_LISTENER_METADATA';
 
@@ -31,13 +58,13 @@ function captureHandlerError(error: unknown, mechanismType: string): void {
 }
 
 /**
- * Wrap a scheduled handler (`@Cron`/`@Interval`/`@Timeout`): fork the
- * isolation scope and capture errors. NOT async. Preserve the handler's sync
- * return type, so sync and async errors are handled on separate paths.
+ * Preserve synchronous throws so the caller's error handling still applies.
+ *
+ * @param shareJobScope Reuse the first argument's (BullMQ Job) scope so lifecycle hooks share context with process().
  */
-export function wrapScheduleHandler(handler: AnyFn, mechanismType: string): AnyFn {
+export function wrapIsolatedHandler(handler: AnyFn, mechanismType: string, shareJobScope: boolean = false): AnyFn {
   return function (this: unknown, ...args: unknown[]): unknown {
-    return withIsolationScope(() => {
+    const invoke = (): unknown => {
       let result: unknown;
       try {
         result = handler.apply(this, args);
@@ -52,7 +79,9 @@ export function wrapScheduleHandler(handler: AnyFn, mechanismType: string): AnyF
         });
       }
       return result;
-    });
+    };
+
+    return shareJobScope ? withBullMQJobScope(args[0], invoke) : withIsolationScope(invoke);
   };
 }
 
@@ -113,12 +142,12 @@ export function wrapEventHandler(handler: AnyFn, fallbackEvent: unknown): AnyFn 
 }
 
 /**
- * Wrap a BullMQ `process` method: fork the isolation scope, open a
+ * Wrap a BullMQ `process` method: reuse the job's isolation scope, open a
  * `queue.process` transaction, and capture errors.
  */
 export function wrapBullMQProcess(process: AnyFn, queueName: string | undefined): AnyFn {
   return function (this: unknown, ...args: unknown[]): unknown {
-    return withIsolationScope(() =>
+    return withBullMQJobScope(args[0], () =>
       startSpan(getBullMQProcessSpanOptions(queueName), async () => {
         try {
           return await process.apply(this, args);
@@ -145,6 +174,7 @@ export function patchMethodDescriptor(
   const handler = descriptor?.value as AnyFn | undefined;
   if (descriptor && handler && typeof handler === 'function' && !target?.__SENTRY_INTERNAL__ && !isWrapped(handler)) {
     const wrapped = wrapHandler(handler);
+    copyReflectMetadata(handler, wrapped);
     Object.defineProperty(wrapped, 'name', {
       value: handler.name || String(propertyKey),
       configurable: true,
