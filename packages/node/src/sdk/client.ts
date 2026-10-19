@@ -70,8 +70,7 @@ export class NodeClient extends ServerRuntimeClient<NodeClientOptions> {
       _INTERNAL_flushMetricsBuffer(this);
     };
 
-    // The span buffer drains on the client's `flush` hook. Its timers are unref'd, so without this a
-    // process that exits on its own drops every span still waiting in the buffer.
+    // The span buffer's timers are unref'd, so a natural exit would drop its spans.
     this._spanOnExitFlushListener = () => {
       this.emit('flush');
     };
