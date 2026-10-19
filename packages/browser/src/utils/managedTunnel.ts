@@ -11,8 +11,7 @@ import type { BrowserOptions } from '../client';
 import type { BrowserTransportOptions } from '../transports/types';
 
 /**
- * Resolves the `tunnel` option `init` received. `true` or {@link TunnelOptions} point the tunnel at the same-origin
- * path the server SDK derives from the same DSN.
+ * Resolves `tunnel: true` or {@link TunnelOptions} to the same-origin path the server derives from the DSN.
  */
 export function resolveBrowserTunnelOption(
   options: BrowserOptions,
@@ -35,10 +34,8 @@ export function resolveBrowserTunnelOption(
 
   return {
     tunnel: resolvedTunnel,
-    // Lets the client explain a tunnel request that nothing on the server answers.
     _managedTunnel: tunnelOptions,
-    // The fetch transport sends `text/plain` by default to avoid a CORS preflight. A same-origin request has no
-    // preflight, and frameworks with CSRF protection (SvelteKit, Astro) reject a `text/plain` POST as a form submission.
+    // CSRF protection (SvelteKit, Astro) rejects the default `text/plain` POST as a form submission.
     transportOptions: {
       ...transportOptions,
       headers: { 'Content-Type': 'application/x-sentry-envelope', ...transportOptions?.headers },
@@ -49,9 +46,8 @@ export function resolveBrowserTunnelOption(
 let hasWarnedAboutRejectedDsn = false;
 
 /**
- * Sends to Sentry directly once it's clear nothing on this origin serves the managed tunnel, e.g. in a static build,
- * on an SPA host, or when the server SDK isn't set up. An envelope is only sent again when the tunnel's response
- * proves it was never ingested, so nothing reaches Sentry twice.
+ * Falls back to sending directly when nothing on this origin serves the managed tunnel. An envelope is resent only
+ * when the response proves it never reached Sentry.
  */
 export function makeManagedTunnelTransport(
   makeTransport: (options: BrowserTransportOptions) => Transport,
@@ -70,7 +66,6 @@ export function makeManagedTunnelTransport(
         const response = await tunnelTransport.send(envelope);
         const statusCode = response.statusCode || 0;
 
-        // The tunnel handler answered, so whatever status it passes on is Sentry's.
         if (response.headers?.['x-sentry-tunnel']) {
           if (DEBUG_BUILD && statusCode === 403 && !hasWarnedAboutRejectedDsn) {
             hasWarnedAboutRejectedDsn = true;
@@ -82,9 +77,7 @@ export function makeManagedTunnelTransport(
           return response;
         }
 
-        // Something other than the tunnel handler answered. A 4xx (nothing serves the path, an auth middleware) never
-        // reached Sentry, so it is sent once more. A 2xx (a static host serving `index.html`) may have been delivered,
-        // so only the envelopes after it go directly.
+        // Not the tunnel: a 4xx never reached Sentry so it's resent, a 2xx may have, so only later envelopes go direct.
         const rejected = statusCode >= 400 && statusCode < 500;
         const { dsn, sdk } = envelope[0];
         const components = (rejected || (statusCode >= 200 && statusCode < 300)) && dsn && makeDsn(dsn);
@@ -94,7 +87,6 @@ export function makeManagedTunnelTransport(
 
         DEBUG_BUILD &&
           debug.warn(`Sending to Sentry directly: "${options.url}" answered ${statusCode} instead of the tunnel.`);
-        // Envelopes sent at the same time all land here, and they share one direct transport.
         directTransport ??= makeTransport({
           ...options,
           url: getEnvelopeEndpointWithUrlEncodedAuth(components, undefined, sdk),
