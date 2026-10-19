@@ -17,7 +17,7 @@ import {
   requestDataIntegration,
   stackParserFromStackParserOptions,
 } from '@sentry/core';
-import { getReleaseFromCommitEnv, nodeStackLineParser } from '@sentry/core/server';
+import { _INTERNAL_getReleaseFromCommitEnv as getReleaseFromCommitEnv, nodeStackLineParser } from '@sentry/core/server';
 import {
   SentryPropagator,
   SentryTracerProvider,

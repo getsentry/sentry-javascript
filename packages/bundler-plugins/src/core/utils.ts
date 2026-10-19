@@ -6,7 +6,10 @@ import crypto from 'crypto';
 import childProcess from 'child_process';
 import type { SourceMap } from 'magic-string';
 import MagicString from 'magic-string';
-import { getReleaseFromCommitEnv, readCommitEnvVar as readCoreCommitEnvVar } from '@sentry/core/server';
+import {
+  _INTERNAL_getReleaseFromCommitEnv as getReleaseFromCommitEnv,
+  _INTERNAL_readCommitEnvVar as readCoreCommitEnvVar,
+} from '@sentry/core/server';
 
 /**
  * Checks whether the given input is already an array, and if it isn't, wraps it in one.
@@ -238,7 +241,7 @@ function warnAboutPlaceholderCommitEnvVar(name: string): void {
 
 /**
  * Reads an environment variable that should hold a commit SHA, ignoring a value that is the
- * variable's own name. See `readCommitEnvVar` in `@sentry/core/server`.
+ * variable's own name. See `_INTERNAL_readCommitEnvVar` in `@sentry/core/server`.
  */
 export function readCommitEnvVar(name: string): string | undefined {
   return readCoreCommitEnvVar(name, warnAboutPlaceholderCommitEnvVar);

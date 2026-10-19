@@ -2,7 +2,7 @@
 
 import type { StackParser } from '@sentry/core';
 import { createStackParser, GLOBAL_OBJ } from '@sentry/core';
-import { getReleaseFromCommitEnv, nodeStackLineParser } from '@sentry/core/server';
+import { _INTERNAL_getReleaseFromCommitEnv as getReleaseFromCommitEnv, nodeStackLineParser } from '@sentry/core/server';
 import { createGetModuleFromFilename } from '../utils/module';
 
 /**
