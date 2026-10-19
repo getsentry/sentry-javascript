@@ -2,17 +2,17 @@ import type { Span } from '@sentry/core';
 import { classifyResponseStreaming } from '@sentry/core/server';
 
 /**
- * Tee a stream, and end the provided span when the stream ends.
+ * Tee a stream, and end the provided span (if any) when the stream ends.
  * Returns the other side of the tee, which can be used to send the
  * response to a client.
  *
  * `onEnd` runs right before the span ends.
  */
-export async function streamResponse(span: Span, res: Response, onEnd?: () => void): Promise<Response> {
+export async function streamResponse(span: Span | undefined, res: Response, onEnd?: () => void): Promise<Response> {
   const classification = classifyResponseStreaming(res);
   const endSpan = (): void => {
     onEnd?.();
-    span.end();
+    span?.end();
   };
 
   // not streaming, just end the span and return the response

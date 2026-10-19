@@ -1,10 +1,12 @@
 // <reference lib="deno.ns" />
 
-import type { ErrorEvent, Span, TransactionEvent } from '@sentry/core';
-import { getMainCarrier } from '@sentry/core';
+import type { AggregationCounts, Envelope, ErrorEvent, Span, TransactionEvent } from '@sentry/core';
+import { forEachEnvelopeItem, getMainCarrier } from '@sentry/core';
 import { assertEquals, assertExists, assertMatch, assertNotEquals } from 'https://deno.land/std@0.212.0/assert/mod.ts';
-import type { DenoClient } from '../build/esm/index.js';
+import type { DenoClient, DenoOptions } from '../build/esm/index.js';
 import { captureException, captureMessage, init, denoServeIntegration, setTag, setUser } from '../build/esm/index.js';
+
+import { makeTestTransport } from './transport.ts';
 
 const LOOPBACK_ADDRESS = /^(127\.0\.0\.1|::1|::ffff:127\.0\.0\.1)$/;
 
@@ -1409,4 +1411,181 @@ Deno.test('Deno.serve should create the span and still respond when ignoreIncomi
     transactionEvents.map(event => event.transaction),
     ['GET /page'],
   );
+});
+
+type SessionCounts = Omit<AggregationCounts, 'started'>;
+
+function initWithSessionTransport(options: DenoOptions = {}): {
+  client: DenoClient;
+  sessions: SessionCounts[];
+  firstSession: Promise<void>;
+} {
+  const sessions: SessionCounts[] = [];
+  let resolveFirstSession: () => void;
+  const firstSession = new Promise<void>(resolve => (resolveFirstSession = resolve));
+  const client = init({
+    dsn: 'https://username@domain/123',
+    release: '1.0.0',
+    transport: makeTestTransport((envelope: Envelope) => {
+      forEachEnvelopeItem(envelope, (item, type) => {
+        if (type === 'sessions') {
+          for (const { started: _started, ...counts } of (item[1] as { aggregates: AggregationCounts[] }).aggregates) {
+            sessions.push(counts);
+          }
+          resolveFirstSession();
+        }
+      });
+    }),
+    ...options,
+  }) as DenoClient;
+  return { client, sessions, firstSession };
+}
+
+Deno.test('Deno.serve should record an exited session for a successful request', async () => {
+  resetGlobals();
+  const { client, sessions } = initWithSessionTransport();
+
+  const server = await serveForTest(() => new Response('OK'));
+  await (await fetch(`${server.url}/ok`)).text();
+  await server.close();
+  await client.flush();
+
+  assertEquals(sessions, [{ exited: 1, errored: 0, crashed: 0 }]);
+});
+
+Deno.test('Deno.serve should record an errored session for a handled exception', async () => {
+  resetGlobals();
+  const { client, sessions } = initWithSessionTransport();
+
+  const server = await serveForTest(() => {
+    captureException(new Error('handled'));
+    return new Response('OK');
+  });
+  await (await fetch(`${server.url}/handled`)).text();
+  await server.close();
+  await client.flush();
+
+  assertEquals(sessions, [{ exited: 0, errored: 1, crashed: 0 }]);
+});
+
+Deno.test('Deno.serve should record a crashed session when the handler throws', async () => {
+  resetGlobals();
+  const { client, sessions } = initWithSessionTransport();
+
+  const server = await serveForTest(() => {
+    throw new Error('unhandled');
+  });
+  await (await fetch(`${server.url}/throws`)).text();
+  await server.close();
+  await client.flush();
+
+  assertEquals(sessions, [{ exited: 0, errored: 0, crashed: 1 }]);
+});
+
+Deno.test('Deno.serve should record sessions for OPTIONS and HEAD requests', async () => {
+  resetGlobals();
+  const { client, sessions } = initWithSessionTransport();
+
+  const server = await serveForTest(() => new Response('OK'));
+  await (await fetch(`${server.url}/cors`, { method: 'OPTIONS' })).text();
+  await (await fetch(`${server.url}/cors`, { method: 'HEAD' })).text();
+  await server.close();
+  await client.flush();
+
+  assertEquals(sessions, [{ exited: 2, errored: 0, crashed: 0 }]);
+});
+
+Deno.test('Deno.serve should not record sessions when sessions is false', async () => {
+  resetGlobals();
+  const { client, sessions } = initWithSessionTransport({
+    integrations: integrations => [
+      ...integrations.filter(integration => integration.name !== 'DenoServe'),
+      denoServeIntegration({ sessions: false }),
+    ],
+  });
+
+  const server = await serveForTest(() => new Response('OK'));
+  await (await fetch(`${server.url}/ok`)).text();
+  await server.close();
+  await client.flush();
+
+  assertEquals(sessions, []);
+});
+
+Deno.test('Deno.serve should send the session aggregate after sessionFlushingDelayMS', async () => {
+  resetGlobals();
+  const { sessions, firstSession } = initWithSessionTransport({
+    integrations: integrations => [
+      ...integrations.filter(integration => integration.name !== 'DenoServe'),
+      denoServeIntegration({ sessionFlushingDelayMS: 50 }),
+    ],
+  });
+
+  const server = await serveForTest(() => new Response('OK'));
+  await (await fetch(`${server.url}/ok`)).text();
+  await server.close();
+
+  // The timeout only bounds a failure. With the default 60s delay, no
+  // session arrives within it.
+  let timeoutId: ReturnType<typeof setTimeout> | undefined;
+  const timedOut = new Promise<'timed out'>(resolve => {
+    timeoutId = setTimeout(() => resolve('timed out'), 10_000);
+  });
+  const result = await Promise.race([firstSession.then(() => 'sent' as const), timedOut]);
+  clearTimeout(timeoutId);
+
+  assertEquals(result, 'sent');
+  assertEquals(sessions, [{ exited: 1, errored: 0, crashed: 0 }]);
+});
+
+for (const [label, options] of [
+  ['when tracing is enabled', { tracesSampleRate: 1, traceLifecycle: 'static' }],
+  ['when tracing is disabled', {}],
+] as const) {
+  Deno.test(`Deno.serve should record a streamed response session when the stream finishes ${label}`, async () => {
+    resetGlobals();
+    const { client, sessions } = initWithSessionTransport(options);
+
+    let streamController: ReadableStreamDefaultController<Uint8Array> | undefined;
+    const server = await serveForTest(() => {
+      const stream = new ReadableStream<Uint8Array>({
+        start(controller) {
+          streamController = controller;
+          controller.enqueue(new TextEncoder().encode('chunk\n'));
+        },
+      });
+      return new Response(stream, { headers: { 'content-type': 'text/event-stream' } });
+    });
+
+    const response = await fetch(`${server.url}/stream`);
+    await client.flush();
+    assertEquals(sessions, []);
+
+    streamController!.close();
+    assertEquals(await response.text(), 'chunk\n');
+    await server.close();
+    await client.flush();
+
+    assertEquals(sessions, [{ exited: 1, errored: 0, crashed: 0 }]);
+  });
+}
+
+Deno.test('Deno.serve should record sessions for requests without a span', async () => {
+  resetGlobals();
+  const { client, sessions } = initWithSessionTransport({
+    tracesSampleRate: 1,
+    traceLifecycle: 'static',
+    integrations: integrations => [
+      ...integrations.filter(integration => integration.name !== 'DenoServe'),
+      denoServeIntegration({ ignoreIncomingRequests: urlPath => urlPath === '/health' }),
+    ],
+  });
+
+  const server = await serveForTest(() => new Response('OK'));
+  await (await fetch(`${server.url}/health`)).text();
+  await (await fetch(`${server.url}/favicon.ico`)).text();
+  await server.close();
+  await client.flush();
+
+  assertEquals(sessions, [{ exited: 2, errored: 0, crashed: 0 }]);
 });
