@@ -1123,13 +1123,17 @@ jobs:
 
       # Installs Playwright while the app builds.
       # Started after the artifact downloads: starting next to them made `download-artifact` fail to read the event file.
+      # Not the `install-playwright` action: the runner sets up a background composite action's steps from the job's
+      # shared `github` context, which fails with "Collection was modified" when a foreground step starts at that moment.
       - name: Install Playwright
         id: install-playwright
         background: true
-        uses: ./.github/actions/install-playwright
-        with:
-          browsers: chromium
-          cwd: dev-packages/e2e-tests/test-applications/${{ matrix.test-application }}
+        working-directory: dev-packages/e2e-tests/test-applications/${{ matrix.test-application }}
+        run: |
+          version=$(node -p "const { dependencies, devDependencies } = require('./package.json'); (devDependencies?.['@playwright/test'] ?? dependencies?.['@playwright/test'] ?? '').replace(/^[~^=]/, '')")
+          if [ -n "$version" ]; then
+            npx -y "playwright@$version" install --with-deps chromium
+          fi
 
       - name: Prepare e2e tests
         run: pnpm run test:prepare
@@ -1252,13 +1256,17 @@ jobs:
 
       # Installs Playwright while the app builds.
       # Started after the artifact downloads: starting next to them made `download-artifact` fail to read the event file.
+      # Not the `install-playwright` action: the runner sets up a background composite action's steps from the job's
+      # shared `github` context, which fails with "Collection was modified" when a foreground step starts at that moment.
       - name: Install Playwright
         id: install-playwright
         background: true
-        uses: ./.github/actions/install-playwright
-        with:
-          browsers: chromium
-          cwd: dev-packages/e2e-tests/test-applications/${{ matrix.test-application }}
+        working-directory: dev-packages/e2e-tests/test-applications/${{ matrix.test-application }}
+        run: |
+          version=$(node -p "const { dependencies, devDependencies } = require('./package.json'); (devDependencies?.['@playwright/test'] ?? dependencies?.['@playwright/test'] ?? '').replace(/^[~^=]/, '')")
+          if [ -n "$version" ]; then
+            npx -y "playwright@$version" install --with-deps chromium
+          fi
 
       - name: Prepare E2E tests
         run: pnpm run test:prepare
