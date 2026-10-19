@@ -8,7 +8,9 @@ const DSN = 'https://public@o1.ingest.sentry.io/1337';
 const TUNNEL_URL = `http://localhost:3000${getTunnelPath(DSN)}`;
 
 function makeEnvelopeRequest(url: string): Request {
-  return new Request(url, { method: 'POST', body: serializeEnvelope(createEnvelope({ dsn: DSN }, [])) as BodyInit });
+  const body = serializeEnvelope(createEnvelope({ dsn: DSN }, [])) as string;
+
+  return new Request(url, { method: 'POST', body, headers: { 'content-length': String(body.length) } });
 }
 
 function setClient(managedTunnel: object | undefined): void {
