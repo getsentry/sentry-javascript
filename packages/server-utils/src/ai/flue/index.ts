@@ -2,13 +2,13 @@ import type { Scope, Span } from '@sentry/core';
 import {
   continueTrace,
   getActiveSpan,
+  getDefaultIsolationScope,
   getIsolationScope,
   GLOBAL_OBJ,
   LRUMap,
   startNewTrace,
   startSpan,
   withActiveSpan,
-  withIsolationScope,
 } from '@sentry/core';
 import {
   GEN_AI_AGENT_NAME,
@@ -19,6 +19,7 @@ import {
 import type { GenAiOptions } from '../core/utils';
 import { getGenAiSpanOp, resolveAIRecordingOptions } from '../core/utils';
 import { skipPiAiProviderIntegrations } from '../pi-ai/providers';
+import { withCleanScopes } from '../../utils/withCleanScopes';
 import { FLUE_INSTRUMENTATION_KEY, FLUE_OPERATION, FLUE_ORIGIN, MAX_TRACKED_FLUE_SPANS } from './constants';
 import type { SpanTracker } from './utils';
 import {
@@ -45,10 +46,15 @@ interface Admission {
  * (https://github.com/withastro/flue/issues/813).
  */
 function runInAdmissionContext<T>(admission: Admission | undefined, next: () => T): T {
-  if (!admission) {
+  if (isCloudflareWorkers()) {
     return next();
   }
-  return withIsolationScope(admission.isolationScope, () =>
+  if (!admission) {
+    // Admitted by another process, replayed by idempotency key, or evicted: there is nothing to
+    // restore, but the loop's context still belongs to an unrelated request.
+    return withCleanScopes(getDefaultIsolationScope().clone(), () => startNewTrace(next));
+  }
+  return withCleanScopes(admission.isolationScope, () =>
     admission.span ? withActiveSpan(admission.span, next) : startNewTrace(next),
   );
 }

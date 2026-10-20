@@ -303,17 +303,37 @@ describe('createFlueInstrumentation', () => {
       expect(findSpan('invoke_agent Hello')?.parent_span_id).toBe(alarmSpanId);
     });
 
-    it('forgets the admission once the submission settled', async () => {
+    // A submission admitted by another process, replayed by idempotency key, or already settled has
+    // no record here, but the loop still carries the context of whichever request started it.
+    it('drops the loop context when nothing was recorded for the submission', async () => {
       withActiveSpan(startInactiveSpan({ name: 'POST /agents/hello/b' }), admit);
       instrumentation.observe({ type: 'submission_settled', submissionId: 'sub_1' }, {});
 
-      let loopSpanId: string | undefined;
+      let loopTraceId: string | undefined;
       await startSpan({ name: 'POST /agents/hello/a' }, span => {
-        loopSpanId = span.spanContext().spanId;
+        loopTraceId = span.spanContext().traceId;
         return runSubmission();
       });
 
-      expect(findSpan('invoke_agent Hello')?.parent_span_id).toBe(loopSpanId);
+      const agent = findSpan('invoke_agent Hello');
+      expect(agent?.parent_span_id).toBeUndefined();
+      expect(agent?.trace_id).toMatch(/^[0-9a-f]{32}$/);
+      expect(agent?.trace_id).not.toBe(loopTraceId);
+    });
+
+    it('continues the replayed traceparent when nothing was recorded for the submission', async () => {
+      const traceId = 'cccccccccccccccccccccccccccccccc';
+      await startSpan({ name: 'POST /agents/hello/a' }, () =>
+        instrumentation.interceptor(SUBMISSION_OP, AGENT_CTX, () =>
+          instrumentation.interceptor(
+            AGENT_OP,
+            { ...AGENT_CTX, traceCarrier: { traceparent: `00-${traceId}-dddddddddddddddd-01` } },
+            async () => undefined,
+          ),
+        ),
+      );
+
+      expect(findSpan('invoke_agent Hello')?.trace_id).toBe(traceId);
     });
   });
 
