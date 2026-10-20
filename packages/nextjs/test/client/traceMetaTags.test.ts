@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+import { SENTRY_LINK_TYPE } from '@sentry/conventions/attributes';
 import type { Span } from '@sentry/core';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
@@ -191,7 +192,7 @@ describe('waitForTraceMetaTag', () => {
 });
 
 describe('addTraceMetaTagLink', () => {
-  it('links the span described by the sentry-trace value and carries the sampled flag', () => {
+  it('links the server request described by the sentry-trace value and carries the sampled flag', () => {
     const span = { addLink: vi.fn() } as unknown as Span;
 
     addTraceMetaTagLink(span, { sentryTrace: HEAD_TRACE, baggage: undefined });
@@ -202,9 +203,11 @@ describe('addTraceMetaTagLink', () => {
 
     expect(span.addLink).toHaveBeenNthCalledWith(1, {
       context: { traceId: '11111111111111111111111111111111', spanId: '1111111111111111', traceFlags: 1 },
+      attributes: { [SENTRY_LINK_TYPE]: 'server_request' },
     });
     expect(span.addLink).toHaveBeenNthCalledWith(2, {
       context: { traceId: '33333333333333333333333333333333', spanId: '3333333333333333', traceFlags: 0 },
+      attributes: { [SENTRY_LINK_TYPE]: 'server_request' },
     });
   });
 

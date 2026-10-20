@@ -1,3 +1,4 @@
+import { SENTRY_LINK_TYPE } from '@sentry/conventions/attributes';
 import type { Span } from '@sentry/core';
 import { extractTraceparentData } from '@sentry/core';
 import { GLOBAL_OBJ } from '@sentry/core';
@@ -6,6 +7,8 @@ import { WINDOW } from '@sentry/react';
 // `@opentelemetry/api` `TraceFlags`, inlined because core does not export its copies.
 const TRACE_FLAG_SAMPLED = 0x1;
 const TRACE_FLAG_NONE = 0x0;
+
+const SERVER_REQUEST_LINK_TYPE = 'server_request';
 
 export interface TraceMetaTagValues {
   sentryTrace: string;
@@ -144,5 +147,6 @@ export function addTraceMetaTagLink(span: Span, { sentryTrace }: TraceMetaTagVal
       spanId: traceparent.parentSpanId,
       traceFlags: traceparent.parentSampled ? TRACE_FLAG_SAMPLED : TRACE_FLAG_NONE,
     },
+    attributes: { [SENTRY_LINK_TYPE]: SERVER_REQUEST_LINK_TYPE },
   });
 }
