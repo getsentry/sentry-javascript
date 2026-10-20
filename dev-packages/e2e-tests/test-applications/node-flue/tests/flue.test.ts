@@ -88,7 +88,8 @@ test('nests a manual span raised inside a tool under that tool span', async ({ b
   const manualSpan = spans.find(span => span.name === 'resolve-weather');
 
   expect(manualSpan?.attributes?.['weather.source']?.value).toBe('static-table');
-  expect(manualSpan?.attributes?.['weather.city']?.value).toBe('Berlin');
+  // The model chooses the argument (`Berlin`, `Berlin, Germany`, ...).
+  expect(manualSpan?.attributes?.['weather.city']?.value).toEqual(expect.stringContaining('Berlin'));
   expect(manualSpan?.trace_id).toBe(executeTool?.trace_id);
   expect(manualSpan?.parent_span_id).toBe(executeTool?.span_id);
 });
