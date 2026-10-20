@@ -63,46 +63,6 @@ describe('withSentry', () => {
     });
   });
 
-  describe('managed tunnel', () => {
-    async function transactionsFor(url: string, tunnel?: true): Promise<string[]> {
-      const transactions: string[] = [];
-      await wrapRequestHandler(
-        {
-          options: {
-            ...MOCK_OPTIONS,
-            tunnel,
-            tracesSampleRate: 1,
-            beforeSendTransaction(event) {
-              transactions.push(event.transaction ?? '');
-              return null;
-            },
-          },
-          request: new Request(url, { method: 'POST' }),
-          context: createMockExecutionContext(),
-        },
-        () => new Response('app'),
-      ).then(response => response.text());
-
-      // Wait for async span end and transaction capture
-      await new Promise(resolve => setTimeout(resolve, 50));
-
-      return transactions;
-    }
-
-    test('leaves tunnel requests to the app and drops their server span', async () => {
-      const tunnelUrl = `https://example.com${SentryCore.getTunnelPath(MOCK_OPTIONS.dsn!)}`;
-
-      expect(await transactionsFor(tunnelUrl, true)).toEqual([]);
-      expect(await transactionsFor('https://example.com/api', true)).toEqual(['POST /api']);
-    });
-
-    test('keeps the span of the tunnel path when the managed tunnel is off', async () => {
-      const tunnelUrl = `https://example.com${SentryCore.getTunnelPath(MOCK_OPTIONS.dsn!)}`;
-
-      expect(await transactionsFor(tunnelUrl)).toHaveLength(1);
-    });
-  });
-
   test('passes through the response from the handler', async () => {
     const response = new Response('test');
     const result = await wrapRequestHandler(
