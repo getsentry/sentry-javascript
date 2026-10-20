@@ -6,6 +6,7 @@ interface BullMQRepeatOptions {
   pattern?: unknown;
   every?: unknown;
   tz?: unknown;
+  utc?: unknown;
   limit?: unknown;
   endDate?: unknown;
 }
@@ -122,8 +123,10 @@ function getMonitorConfig(repeat: BullMQRepeatOptions | undefined): MonitorConfi
   }
 
   const crontab = typeof repeat.pattern === 'string' ? toCrontab(repeat.pattern) : undefined;
-  // Without `tz`, cron-parser uses the server's time zone.
-  const timezone = toSentryTimeZone(typeof repeat.tz === 'string' && repeat.tz ? repeat.tz : getLocalTimeZone());
+  // cron-parser 4 (BullMQ 5) prefers `utc` over `tz`, and uses the server's time zone without either.
+  const timezone = toSentryTimeZone(
+    repeat.utc === true ? 'UTC' : typeof repeat.tz === 'string' && repeat.tz ? repeat.tz : getLocalTimeZone(),
+  );
   return crontab && timezone ? { schedule: { type: 'crontab', value: crontab }, timezone } : undefined;
 }
 

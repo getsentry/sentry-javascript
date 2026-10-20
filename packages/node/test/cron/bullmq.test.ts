@@ -88,6 +88,13 @@ describe('cron.instrumentBullMQWorker', () => {
     });
   });
 
+  test('uses UTC with utc: true', () => {
+    expect(sentConfig({ pattern: '0 * * * *', tz: 'Europe/Vienna', utc: true })).toEqual({
+      schedule: { type: 'crontab', value: '0 * * * *' },
+      timezone: 'UTC',
+    });
+  });
+
   test('sends no config for a fixed UTC offset', () => {
     expect(sentConfig({ pattern: '0 * * * *', tz: 'UTC+5' })).toBeUndefined();
   });
