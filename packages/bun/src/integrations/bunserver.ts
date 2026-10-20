@@ -1,3 +1,4 @@
+/* eslint-disable max-lines */
 import type { Integration, IntegrationFn, MaxRequestBodySize, SpanAttributes } from '@sentry/core';
 import {
   captureBodyFromWinterCGRequest,
@@ -20,6 +21,7 @@ import {
   filterCollectedUrl,
   filterCollectedUrlQuery,
 } from '@sentry/core';
+import type { AssertTrue, CheckServerRequestOptions } from '@sentry/core/server';
 import { classifyResponseStreaming, getClientIPAddress } from '@sentry/core/server';
 import type { Server, ServeOptions } from 'bun';
 import {
@@ -54,6 +56,26 @@ export type BunServerIntegrationOptions = {
    */
   maxRequestBodySize?: MaxRequestBodySize;
 };
+
+// Checks these options against the shared `ServerRequestOptions`. A new
+// shared field fails to compile here, until this integration supports
+// it or lists it as unsupported.
+type _ServerRequestOptionsCheck = AssertTrue<
+  CheckServerRequestOptions<
+    BunServerIntegrationOptions,
+    Request,
+    Response,
+    // Not supported yet.
+    | 'spans'
+    | 'sessions'
+    | 'sessionFlushingDelayMS'
+    | 'ignoreRequestBody'
+    | 'ignoreIncomingRequests'
+    | 'ignoreStaticAssets'
+    | 'onSpanCreated'
+    | 'onSpanEnd'
+  >
+>;
 
 const _bunServerIntegration = ((options: BunServerIntegrationOptions = {}) => {
   return {
