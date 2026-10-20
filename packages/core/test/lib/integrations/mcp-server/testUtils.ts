@@ -1,10 +1,12 @@
 import type { Client } from '../../../../src/client';
+import type { DataCollection } from '../../../../src/types/datacollection';
+import { resolveDataCollectionOptions } from '../../../../src/utils/data-collection/resolveDataCollectionOptions';
 import { vi } from 'vitest';
 
 /**
  * Creates a mock Sentry client with getDataCollectionOptions for use in MCP server tests.
  * @param userInfo - Whether user identity data (IP, port) is collected. Default: true
- * @param mcp - Whether MCP inputs/outputs are recorded. Defaults to match userInfo.
+ * @param mcp - The `dataCollection.mcp` setting. Defaults to match userInfo.
  * @param traceLifecycle - Whether spans are streamed or sent as transactions. Default: 'static'
  */
 export function createMockClient(
@@ -14,7 +16,7 @@ export function createMockClient(
 ): Client {
   const mcpOptions = mcp ?? { inputs: userInfo, outputs: userInfo };
   return {
-    getOptions: () => ({ traceLifecycle }),
+    getOptions: () => ({ traceLifecycle, dataCollection: { mcp: mcpOptions } }),
     getDataCollectionOptions: () => ({
       userInfo,
       cookies: true,
@@ -28,6 +30,18 @@ export function createMockClient(
       stackFrameVariables: true,
       frameContextLines: 5,
     }),
+    getDsn: () => ({ publicKey: 'test-key', host: 'test-host' }),
+    emit: vi.fn(),
+  } as unknown as Client;
+}
+
+/**
+ * Creates a mock Sentry client whose data collection options are resolved from `dataCollection`, as the real client does.
+ */
+export function createMockClientWithDataCollection(dataCollection: DataCollection): Client {
+  return {
+    getOptions: () => ({ traceLifecycle: 'static', dataCollection }),
+    getDataCollectionOptions: () => resolveDataCollectionOptions({ dataCollection }),
     getDsn: () => ({ publicKey: 'test-key', host: 'test-host' }),
     emit: vi.fn(),
   } as unknown as Client;

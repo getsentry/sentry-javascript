@@ -17,7 +17,9 @@ Sentry.init({
   tunnel: `http://localhost:3031/`, // proxy server
   tracesSampleRate: 1,
   dataCollection: {
-    mcp: {
+    // Covers the `genAI` fallback for MCP content. The node-express app covers `mcp`.
+    // TODO(v12): Switch to `mcp` once the `genAI` fallback is removed.
+    genAI: {
       inputs: false,
       outputs: false,
     },

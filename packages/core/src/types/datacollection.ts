@@ -95,6 +95,7 @@ export interface DataCollection {
    * Metadata (method name, tool or prompt name, session and protocol version, content counts, error status) is always
    * collected. MCP content is gated by this option, not `genAI`, even when it is stored on `gen_ai.*` attributes.
    * The `recordInputs`/`recordOutputs` options of `wrapMcpServerWithSentry`, when set, take precedence over these values.
+   * When a field isn't set, the MCP server instrumentation falls back to the matching `genAI` field.
    * @default { inputs: true, outputs: true }
    */
   mcp?: {

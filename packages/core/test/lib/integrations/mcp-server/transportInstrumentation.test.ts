@@ -1123,39 +1123,6 @@ describe('MCP Server Transport Instrumentation', () => {
       );
     });
 
-    it('should not gate MCP inputs on dataCollection.genAI', async () => {
-      const client = createMockClient(true);
-      const dataCollection = client.getDataCollectionOptions();
-      getClientSpy.mockReturnValue({
-        ...client,
-        getDataCollectionOptions: () => ({ ...dataCollection, genAI: { inputs: false, outputs: false } }),
-      } as typeof client);
-
-      const mockMcpServer = createMockMcpServer();
-      const wrappedMcpServer = wrapMcpServerWithSentry(mockMcpServer);
-      const transport = createMockTransport();
-
-      await wrappedMcpServer.connect(transport);
-
-      transport.onmessage?.(
-        {
-          jsonrpc: '2.0',
-          method: 'tools/call',
-          id: 'tool-1',
-          params: { name: 'weather', arguments: { location: 'London' } },
-        },
-        {},
-      );
-
-      expect(startInactiveSpanSpy).toHaveBeenCalledWith(
-        expect.objectContaining({
-          attributes: expect.objectContaining({
-            'mcp.request.argument.location': '"London"',
-          }),
-        }),
-      );
-    });
-
     it('should capture inputs/outputs when dataCollection.mcp.inputs/outputs are true', async () => {
       getClientSpy.mockReturnValue(createMockClient(true));
 
