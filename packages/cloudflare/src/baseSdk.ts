@@ -1,5 +1,5 @@
 import type { Integration } from '@sentry/core';
-import { _INTERNAL_isClientClosed, debug, getCurrentScope, setCurrentClient } from '@sentry/core';
+import { _INTERNAL_isClientClosed, debug, getCurrentScope, safeCallback, setCurrentClient } from '@sentry/core';
 import {
   consoleIntegration,
   conversationIdIntegration,
@@ -107,7 +107,9 @@ export function initWithDefaultIntegrations(
     return cached;
   }
 
-  if (options.defaultIntegrations === undefined) {
+  // `false` or a custom list turns off the SDK defaults, late-loaded ones included.
+  const usesSdkDefaults = options.defaultIntegrations === undefined;
+  if (usesSdkDefaults) {
     options.defaultIntegrations = getDefaultIntegrationsImpl(options);
   }
 
@@ -153,12 +155,36 @@ export function initWithDefaultIntegrations(
   // lazily required on first use) stores its subscriber factory on the global
   // marker too late for the default-integrations snapshot above. Its injected
   // snippet emits this event right after storing the factory, so install the
-  // integration on the live client here. `addIntegration` dedupes by
-  // integration name, so already-installed integrations are no-ops.
+  // integration on the live client here, with the same rules as the defaults.
+  // `addIntegration` dedupes by integration name, so an integration the user
+  // configured stays in place.
+  const userIntegrations = options.integrations;
   client.on('orchestrion.module-injected', moduleName => {
     const factory = GLOBAL_OBJ.__SENTRY_ORCHESTRION__?.integrations?.get(moduleName);
-    if (factory) {
-      client.addIntegration(factory());
+    if (!usesSdkDefaults || !factory) {
+      return;
+    }
+
+    const integration = factory();
+    if (typeof userIntegrations !== 'function') {
+      client.addIntegration(integration);
+      return;
+    }
+
+    // Pass the late default through the user's `integrations` function, so a
+    // filter that removed it at init removes it here too. This calls the
+    // function again, once for each late module. If the function throws, skip
+    // the integration, so the module load that emitted the event still works.
+    const kept = safeCallback(
+      DEBUG_BUILD ? 'Error in the `integrations` function, skipping a late-loaded integration:' : '',
+      () =>
+        getIntegrationsToSetup({ defaultIntegrations: [integration], integrations: userIntegrations }).find(
+          ({ name }) => name === integration.name,
+        ),
+      () => undefined,
+    );
+    if (kept) {
+      client.addIntegration(kept);
     }
   });
 
