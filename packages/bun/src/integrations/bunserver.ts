@@ -2,7 +2,7 @@ import type { Client, Integration, IntegrationFn, MaxRequestBodySize, Span, Span
 import { debug, defineIntegration, getClient, withIsolationScope } from '@sentry/core';
 import type { AssertTrue, CheckServerRequestOptions, ServerRequestOptions } from '@sentry/core/server';
 import { URL_PATH_PARAMETER_KEY_BASE } from '@sentry/conventions/attributes';
-import { wrapServerRequestHandler } from '@sentry/server-utils';
+import { wrapServerRequestHandler } from '@sentry/server-utils/request-handler';
 import type { Server, ServeOptions } from 'bun';
 
 const INTEGRATION_NAME = 'BunServer' as const;

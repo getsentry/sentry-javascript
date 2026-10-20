@@ -98,4 +98,62 @@ describe('monitorStream', () => {
       process.off('unhandledRejection', unhandled);
     }
   });
+
+  it('calls onDone before the stream closes', async () => {
+    const calls: string[] = [];
+    const source = new ReadableStream<Uint8Array>({
+      start(controller) {
+        controller.enqueue(encode('a'));
+        controller.close();
+      },
+    });
+    const reader = monitorStream(
+      source,
+      () => calls.push('onDone'),
+      () => calls.push('onError'),
+    ).getReader();
+    void reader.closed.then(() => calls.push('closed'));
+
+    await reader.read();
+    await reader.read();
+    await new Promise(resolve => setTimeout(resolve, 0));
+
+    expect(calls).toEqual(['onDone', 'closed']);
+  });
+
+  it('calls onDone in the same task as the cancel', async () => {
+    const onDone = vi.fn();
+    const source = new ReadableStream<Uint8Array>({
+      start(controller) {
+        controller.enqueue(encode('a'));
+      },
+    });
+    const reader = monitorStream(source, onDone, vi.fn()).getReader();
+    await reader.read();
+
+    const cancelled = reader.cancel('client disconnected');
+    expect(onDone).toHaveBeenCalledTimes(1);
+
+    await cancelled;
+    await new Promise(resolve => setTimeout(resolve, 0));
+    expect(onDone).toHaveBeenCalledTimes(1);
+  });
+
+  it('still delivers the body when onDone throws', async () => {
+    const source = new ReadableStream<Uint8Array>({
+      start(controller) {
+        controller.enqueue(encode('ok'));
+        controller.close();
+      },
+    });
+    const body = monitorStream(
+      source,
+      () => {
+        throw new Error('waitUntil failed');
+      },
+      vi.fn(),
+    );
+
+    expect(await new Response(body).text()).toBe('ok');
+  });
 });

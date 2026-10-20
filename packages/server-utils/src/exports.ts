@@ -1,7 +1,5 @@
 // Shared exports not using diagnostics channels
 export { setHttpServerSpanRouteAttribute } from './utils/setHttpServerSpanRouteAttribute';
-export { wrapServerRequestHandler } from './utils/wrapServerRequestHandler';
-export type { ServerRequestHandlerConfig } from './utils/wrapServerRequestHandler';
 export { setAsyncLocalStorageAsyncContextStrategy } from './async-context';
 export { openTelemetryIntegration, getOtlpTracesEndpoint } from './opentelemetry';
 export * from './ai';

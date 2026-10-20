@@ -1,15 +1,6 @@
-import type { Client, IntegrationFn, MaxRequestBodySize, Span } from '@sentry/core';
-import {
-  captureBodyFromWinterCGRequest,
-  defineIntegration,
-  getIsolationScope,
-  hasSpansEnabled,
-  parseStringToURLObject,
-  safeCallback,
-} from '@sentry/core';
-import type { AssertTrue, CheckServerRequestOptions } from '@sentry/core/server';
-import { isStaticAssetRequest } from '@sentry/core/server';
-import { DEBUG_BUILD } from '../debug-build';
+import type { Client, Integration, IntegrationFn, MaxRequestBodySize, Span } from '@sentry/core';
+import { defineIntegration } from '@sentry/core';
+import type { AssertTrue, CheckServerRequestOptions, ServerRequestOptions } from '@sentry/core/server';
 
 const INTEGRATION_NAME = 'HttpServer' as const;
 
@@ -100,21 +91,45 @@ type _ServerRequestOptionsCheck = AssertTrue<
   >
 >;
 
-interface HttpServerIntegrationInstance extends HttpServerIntegrationOptions {
-  name: string;
-  maxRequestBodySize: MaxRequestBodySize | undefined;
+type SupportedServerRequestOptions = Omit<
+  ServerRequestOptions<Request, Response>,
+  'sessions' | 'sessionFlushingDelayMS'
+>;
+
+// Every supported shared option is a required key, so a new one fails to compile below until the
+// integration passes it on.
+type HttpServerRequestOptions = {
+  [K in keyof Required<SupportedServerRequestOptions>]: SupportedServerRequestOptions[K];
+};
+
+interface HttpServerIntegration extends Integration {
+  requestOptions: HttpServerRequestOptions;
 }
 
-const _httpServerIntegration = ((options: HttpServerIntegrationOptions = {}): HttpServerIntegrationInstance => {
+/**
+ * The incoming request options of the client's `httpServerIntegration`. Without the integration,
+ * the SDK attaches no request body, so users can turn body capture off by removing it.
+ */
+export function getHttpServerRequestOptions(client: Client): ServerRequestOptions<Request, Response> {
+  return (
+    client.getIntegrationByName<HttpServerIntegration>(INTEGRATION_NAME)?.requestOptions ?? {
+      maxRequestBodySize: 'none',
+    }
+  );
+}
+
+const _httpServerIntegration = ((options: HttpServerIntegrationOptions = {}): HttpServerIntegration => {
   return {
     name: INTEGRATION_NAME,
-    maxRequestBodySize: options.maxRequestBodySize,
-    ignoreRequestBody: options.ignoreRequestBody,
-    ignoreIncomingRequests: options.ignoreIncomingRequests,
-    ignoreStaticAssets: options.ignoreStaticAssets ?? true,
-    spans: options.spans,
-    onSpanCreated: options.onSpanCreated,
-    onSpanEnd: options.onSpanEnd,
+    requestOptions: {
+      maxRequestBodySize: options.maxRequestBodySize,
+      ignoreRequestBody: options.ignoreRequestBody,
+      ignoreIncomingRequests: options.ignoreIncomingRequests,
+      ignoreStaticAssets: options.ignoreStaticAssets ?? true,
+      spans: options.spans,
+      onSpanCreated: options.onSpanCreated,
+      onSpanEnd: options.onSpanEnd,
+    },
   };
 }) satisfies IntegrationFn;
 
@@ -137,102 +152,3 @@ const _httpServerIntegration = ((options: HttpServerIntegrationOptions = {}): Ht
  * ```
  */
 export const httpServerIntegration = defineIntegration(_httpServerIntegration);
-
-/**
- * Capture the request body based on the HttpServer integration config.
- * Called internally by `wrapRequestHandler`.
- */
-export async function captureIncomingRequestBody(client: Client, request: Request): Promise<void> {
-  const integration = client.getIntegrationByName<HttpServerIntegrationInstance>(INTEGRATION_NAME);
-
-  if (!integration) {
-    return;
-  }
-
-  const configuredBodySize = integration.maxRequestBodySize;
-  const effectiveBodySize: MaxRequestBodySize =
-    configuredBodySize ??
-    (client.getDataCollectionOptions().httpBodies.includes('incomingRequest') ? 'medium' : 'none');
-
-  if (effectiveBodySize === 'none') {
-    return;
-  }
-
-  // Skip GET and HEAD requests - they don't have bodies
-  // Also skip OPTIONS, even if they may have a body, they might not give a lot of extra value
-  if (request.method === 'GET' || request.method === 'HEAD' || request.method === 'OPTIONS') {
-    return;
-  }
-
-  const ignoreRequestBody = integration.ignoreRequestBody;
-  if (
-    ignoreRequestBody &&
-    // If the filter throws, skip the body so it cannot leak data the filter was meant to hide.
-    safeCallback(
-      DEBUG_BUILD ? 'Error in `ignoreRequestBody`, skipping the body:' : '',
-      () => ignoreRequestBody(request.url, request),
-      () => true,
-    )
-  ) {
-    return;
-  }
-
-  const isolationScope = getIsolationScope();
-  await captureBodyFromWinterCGRequest(request, isolationScope, effectiveBodySize);
-}
-
-/**
- * Whether to create a span for the incoming request, based on the HttpServer integration config.
- * Called internally by `wrapRequestHandler`.
- */
-export function shouldCreateIncomingRequestSpan(client: Client | undefined, request: Request): boolean {
-  if (!client) {
-    return false;
-  }
-
-  const integration = client.getIntegrationByName<HttpServerIntegrationInstance>(INTEGRATION_NAME);
-  if (!(integration?.spans ?? hasSpansEnabled(client.getOptions()))) {
-    return false;
-  }
-
-  const urlObject = parseStringToURLObject(request.url);
-  const urlPath = urlObject ? `${urlObject.pathname}${urlObject.search}` : '/';
-  if (integration?.ignoreStaticAssets && request.method === 'GET' && isStaticAssetRequest(urlPath)) {
-    return false;
-  }
-
-  const ignoreIncomingRequests = integration?.ignoreIncomingRequests;
-  return !(
-    ignoreIncomingRequests &&
-    safeCallback(
-      DEBUG_BUILD ? 'Error in `ignoreIncomingRequests`, creating the span:' : '',
-      () => ignoreIncomingRequests(urlPath, request),
-      () => false,
-    )
-  );
-}
-
-/**
- * The `onSpanCreated` and `onSpanEnd` hooks of the HttpServer integration, guarded so that a hook
- * that throws does not fail the request. Called internally by `wrapRequestHandler`.
- */
-export function getIncomingRequestSpanHooks(client: Client | undefined): {
-  onSpanCreated: (span: Span, request: Request) => void;
-  onSpanEnd: (span: Span, request: Request, response: Response) => void;
-} {
-  const integration = client?.getIntegrationByName<HttpServerIntegrationInstance>(INTEGRATION_NAME);
-  return {
-    onSpanCreated: (span, request) =>
-      safeCallback(
-        DEBUG_BUILD ? 'Error in `onSpanCreated`:' : '',
-        () => integration?.onSpanCreated?.(span, request),
-        () => undefined,
-      ),
-    onSpanEnd: (span, request, response) =>
-      safeCallback(
-        DEBUG_BUILD ? 'Error in `onSpanEnd`:' : '',
-        () => integration?.onSpanEnd?.(span, request, response),
-        () => undefined,
-      ),
-  };
-}

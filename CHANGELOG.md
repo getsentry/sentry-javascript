@@ -250,6 +250,25 @@ Work in this release was contributed by @4ktLuffy, @adityareddy-dev, @dasilvalui
   - The SDK no longer reads a streamed response ahead of the client.
   - Errors in `OPTIONS` and `HEAD` requests now carry the request data.
 
+- **ref(bun): Use the shared request handler wrapper for `Bun.serve`**
+
+  `Bun.serve` now uses the same request handler wrapper as `Deno.serve`. Bun spans now follow the Sentry span conventions for `http.server` spans, so some attributes change:
+
+  - The matched route is in `http.route` instead of `url.template`. Routes without parameters now also set `http.route`, with the `route` source.
+  - The host is in `server.address` instead of `url.domain`.
+  - A request to `/` is named after the route (for example `GET /`), as on the other runtimes.
+  - Spans now also have `user_agent.original` and `http.request.body.size`.
+
+  If you query Bun spans by `url.template` or `url.domain`, use `http.route` or `server.address` instead. Errors in `OPTIONS` and `HEAD` requests now carry the request data. On all three runtimes, the span now lists every `Set-Cookie` header of a response, not only the last one.
+
+- **ref(cloudflare): Use the shared request handler wrapper**
+
+  Cloudflare Workers now use the same request handler wrapper as `Deno.serve` and `Bun.serve`. Changes for Cloudflare users:
+
+  - Request spans now set `client.address` from the `CF-Connecting-IP` header (or another forwarding header), as on the other runtimes. This follows `dataCollection.userInfo`, which is `true` by default. To leave it out, set `dataCollection: { userInfo: false }`.
+  - Request spans now have the response header attributes, and events have the `response` context with the status code.
+  - When the source of a streamed response fails, the SDK now captures the error and marks the span as failed. With `captureErrors: false`, it does not capture it.
+
 ## 11.8.0
 
 ### Important Changes
