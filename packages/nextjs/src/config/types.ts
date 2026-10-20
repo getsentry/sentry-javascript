@@ -612,8 +612,8 @@ export type SentryBuildOptions = {
    * - Pass `true` to auto-generate a random, ad-blocker-resistant route for each build
    * - Pass a string path (e.g., '/monitoring') to use a custom route
    *
-   * By default, the tunnel route proxies each request to Sentry with all its headers, cookies included. To forward
-   * only the event payload, create `app/sentry-tunnel/route.ts` (or `src/app/sentry-tunnel/route.ts`, not in a route
+   * By default, the tunnel route proxies each request to Sentry with its headers. To forward only the event payload,
+   * create `app/sentry-tunnel/route.ts` (or `src/app/sentry-tunnel/route.ts`, not in a route
    * group) with:
    *
    * ```ts
@@ -627,6 +627,10 @@ export type SentryBuildOptions = {
    * request. If your middleware redirects or blocks unauthenticated requests, exclude the tunnel route in its
    * `matcher` so events can reach Sentry. Matchers have to be static, so use a fixed string route in that case
    * rather than `true`.
+   *
+   * Without the route handler, the browser sends tunnel requests with `credentials: 'omit'`, so without cookies or HTTP
+   * authentication. If a layer in front of your app needs them (for example Vercel Deployment Protection or HTTP Basic authentication), set
+   * `transportOptions: { fetchOptions: { credentials: 'same-origin' } }` in `Sentry.init` of `instrumentation-client.ts`.
    *
    * NOTE: This feature only works with Next.js 11+
    */

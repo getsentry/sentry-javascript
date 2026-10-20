@@ -21,6 +21,18 @@
 
   Also, the server no longer sends spans of tunnel requests when span streaming is on, because these spans only show the SDK's own traffic.
 
+- **feat(v10/nextjs): Send tunnel route requests with `credentials: 'omit'` ([#25509](https://github.com/getsentry/sentry-javascript/pull/25509))**
+
+  With `tunnelRoute` and no tunnel route handler, `@sentry/nextjs` now sends events from the browser with `credentials: 'omit'`, because the tunnel route does not need cookies.
+  If a layer in front of your app checks cookies before it lets requests through (for example Vercel Deployment Protection), you can send them again in your browser `Sentry.init` call:
+
+  ```js
+  // instrumentation-client.ts
+  Sentry.init({
+    transportOptions: { fetchOptions: { credentials: 'same-origin' } },
+  });
+  ```
+
 ## 10.76.2
 
 - feat(v10/deps): Bump bundler plugins to 5.4.1 ([#25147](https://github.com/getsentry/sentry-javascript/pull/25147))
