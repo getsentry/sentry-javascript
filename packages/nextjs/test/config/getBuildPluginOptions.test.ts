@@ -90,6 +90,31 @@ describe('getBuildPluginOptions', () => {
       expect(result.applicationKey).toBe('my-app-key');
     });
 
+    it.each(['webpack-nodejs', 'webpack-edge'] as const)('does not forward applicationKey for %s builds', buildTool => {
+      const result = getBuildPluginOptions({
+        sentryBuildOptions: { applicationKey: 'my-app-key' },
+        releaseName: mockReleaseName,
+        distDirAbsPath: mockDistDirAbsPath,
+        buildTool,
+      });
+
+      expect(result.applicationKey).toBeUndefined();
+    });
+
+    it.each(['webpack-nodejs', 'webpack-edge'] as const)(
+      'does not forward applicationKey from unstable_sentryWebpackPluginOptions for %s builds',
+      buildTool => {
+        const result = getBuildPluginOptions({
+          sentryBuildOptions: { webpack: { unstable_sentryWebpackPluginOptions: { applicationKey: 'my-app-key' } } },
+          releaseName: mockReleaseName,
+          distDirAbsPath: mockDistDirAbsPath,
+          buildTool,
+        });
+
+        expect(result.applicationKey).toBeUndefined();
+      },
+    );
+
     it('normalizes Windows paths to posix for glob patterns in after-production-compile builds', () => {
       const windowsPath = 'C:\\Users\\test\\.next';
       const sentryBuildOptions: SentryBuildOptions = {
