@@ -48,6 +48,33 @@ test('captures the invoke_agent / chat / execute_tool hierarchy for a Flue turn'
   expect(executeTool?.parent_span_id).toBe(invokeAgent?.span_id);
 });
 
+// Flue's Node coordinator runs every turn from one long-lived loop that keeps the async context of
+// the first request that started it (https://github.com/withastro/flue/issues/813). Two turns, so
+// the second one would land in the first request's trace if that leaked.
+test('puts each turn under the request that sent it', async ({ baseURL }) => {
+  for (const prefix of ['first-request', 'second-request']) {
+    const conversationId = newConversationId(prefix);
+    const isRequest = (span: SpanLike & { is_segment?: boolean }) =>
+      span.is_segment === true &&
+      span.name?.startsWith('POST') &&
+      Object.values(span.attributes ?? {}).some(
+        attribute => typeof attribute?.value === 'string' && attribute.value.includes(conversationId),
+      );
+    const spansPromise = collectStreamedSpans(
+      APP,
+      spansOfTrace => spansOfTrace.some(isRequest) && hasOps(['gen_ai.invoke_agent'])(spansOfTrace),
+    );
+
+    await runAgentTurn(baseURL!, conversationId, 'Say hello.');
+
+    const spans = await spansPromise;
+    const request = spans.find(isRequest);
+    const agents = spans.filter(span => getSpanOp(span) === 'gen_ai.invoke_agent');
+    expect(agents).toHaveLength(1);
+    expect(agents[0]?.parent_span_id).toBe(request?.span_id);
+  }
+});
+
 test('nests a manual span raised inside a tool under that tool span', async ({ baseURL }) => {
   const spansPromise = collectStreamedSpans(
     APP,
@@ -61,6 +88,7 @@ test('nests a manual span raised inside a tool under that tool span', async ({ b
   const manualSpan = spans.find(span => span.name === 'resolve-weather');
 
   expect(manualSpan?.attributes?.['weather.source']?.value).toBe('static-table');
+  expect(manualSpan?.attributes?.['weather.city']?.value).toBe('Berlin');
   expect(manualSpan?.trace_id).toBe(executeTool?.trace_id);
   expect(manualSpan?.parent_span_id).toBe(executeTool?.span_id);
 });
