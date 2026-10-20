@@ -152,6 +152,48 @@ export {
   getInstrumentedModuleNames,
 } from '@sentry/server-utils';
 
+// The orchestrion channel integrations. When the `@sentry/cloudflare/vite`
+// plugin bundles an instrumented package, the SDK adds the matching
+// integration with its default options. Pass one in `integrations` to set
+// options. Without the plugin, these integrations record nothing.
+export {
+  amqplibIntegration,
+  anthropicAIIntegration,
+  awsIntegration,
+  dataloaderIntegration,
+  expressIntegration,
+  firebaseIntegration,
+  genericPoolIntegration,
+  googleGenAIIntegration,
+  graphqlIntegration,
+  groqIntegration,
+  hapiIntegration,
+  kafkaIntegration,
+  knexIntegration,
+  koaIntegration,
+  langChainIntegration,
+  langGraphIntegration,
+  lruMemoizerIntegration,
+  mastraIntegration,
+  mcpServerIntegration,
+  mistralAIIntegration,
+  mongoIntegration,
+  mongooseIntegration,
+  mysql2Integration,
+  mysqlIntegration,
+  neonIntegration,
+  nitroIntegration,
+  openAIIntegration,
+  piDurableIntegration,
+  postgresIntegration,
+  postgresJsIntegration,
+  redisIntegration,
+  SentryMastraExporter,
+  tediousIntegration,
+  togetherAIIntegration,
+  typesafeIntegration,
+} from '@sentry/server-utils';
+
 export { instrumentWorkflowWithSentry } from './workflows';
 
 export { setAsyncLocalStorageAsyncContextStrategy } from '@sentry/server-utils/no-diagnostic-channels';
