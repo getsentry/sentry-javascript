@@ -1,6 +1,6 @@
-import type { Event, IntegrationFn, MaxRequestBodySize, Span } from '@sentry/core';
+import type { Client, Event, Integration, IntegrationFn, MaxRequestBodySize, Span } from '@sentry/core';
 import { debug, defineIntegration } from '@sentry/core';
-import type { AssertTrue, CheckServerRequestOptions } from '@sentry/core/server';
+import type { AssertTrue, CheckServerRequestOptions, ServerRequestOptions } from '@sentry/core/server';
 import { DEFAULT_IGNORE_STATUS_CODES, processHttpServerTransactionEvent } from '@sentry/core/server';
 import type { RequestHandlerWrapperOptions } from '../wrap-deno-request-handler';
 import { wrapDenoRequestHandler } from '../wrap-deno-request-handler';
@@ -140,6 +140,7 @@ const applyHandlerWrap =
         request,
         info,
         serveOptions,
+        getRequestOptions: getDenoServeRequestOptions,
       } as RequestHandlerWrapperOptions<A>,
       () => handler(request, info as Deno.ServeHandlerInfo<A>),
     );
@@ -159,21 +160,38 @@ const instrumentedDenoServe = (serve: typeof Deno.serve): typeof Deno.serve =>
     },
   });
 
-const _denoServeIntegration = ((options: DenoServeIntegrationOptions = {}) => {
+// Every shared option is a required key, so a new one fails to compile below until the integration
+// passes it on.
+type DenoServeRequestOptions = {
+  [K in keyof Required<ServerRequestOptions<Request, Response>>]: ServerRequestOptions<Request, Response>[K];
+};
+
+interface DenoServeIntegration extends Integration {
+  requestOptions: DenoServeRequestOptions;
+}
+
+/** The incoming request options of the client's `denoServeIntegration`, if it has one. */
+function getDenoServeRequestOptions(client: Client): ServerRequestOptions<Request, Response> | undefined {
+  return client.getIntegrationByName<DenoServeIntegration>(INTEGRATION_NAME)?.requestOptions;
+}
+
+const _denoServeIntegration = ((options: DenoServeIntegrationOptions = {}): DenoServeIntegration => {
   // oxlint-disable-next-line typescript/no-deprecated
   const ignoreStatusCodes = options.ignoreStatusCodes ?? DEFAULT_IGNORE_STATUS_CODES;
 
   return {
     name: INTEGRATION_NAME,
-    maxRequestBodySize: options.maxRequestBodySize,
-    ignoreRequestBody: options.ignoreRequestBody,
-    ignoreIncomingRequests: options.ignoreIncomingRequests,
-    ignoreStaticAssets: options.ignoreStaticAssets ?? true,
-    spans: options.spans,
-    onSpanCreated: options.onSpanCreated,
-    onSpanEnd: options.onSpanEnd,
-    sessions: options.sessions ?? true,
-    sessionFlushingDelayMS: options.sessionFlushingDelayMS,
+    requestOptions: {
+      maxRequestBodySize: options.maxRequestBodySize,
+      ignoreRequestBody: options.ignoreRequestBody,
+      ignoreIncomingRequests: options.ignoreIncomingRequests,
+      ignoreStaticAssets: options.ignoreStaticAssets ?? true,
+      spans: options.spans,
+      onSpanCreated: options.onSpanCreated,
+      onSpanEnd: options.onSpanEnd,
+      sessions: options.sessions ?? true,
+      sessionFlushingDelayMS: options.sessionFlushingDelayMS,
+    },
     processEvent(event: Event): Event | null {
       // Gated on this integration's own span origin so it does not filter `node:http`
       // transactions, which `denoHttpIntegration` owns via its own `ignoreStatusCodes`.
