@@ -16,11 +16,11 @@ export function Hello() {
     input: v.object({ city: v.string() }),
     // Wrapped in a manual span: Flue runs the tool while the SDK's `execute_tool` span is active,
     // so this should nest directly under it rather than landing beside it.
-    run: ({ city }) =>
+    run: ({ data }) =>
       Sentry.startSpan(
-        { name: 'resolve-weather', attributes: { 'weather.source': 'static-table', 'weather.city': city } },
+        { name: 'resolve-weather', attributes: { 'weather.source': 'static-table', 'weather.city': data.city } },
         () => {
-          return `It is 21 degrees and sunny in ${city}.`;
+          return `It is 21 degrees and sunny in ${data.city}.`;
         },
       ),
   });
