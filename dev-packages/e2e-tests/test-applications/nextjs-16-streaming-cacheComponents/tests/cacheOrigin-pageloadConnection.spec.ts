@@ -105,3 +105,34 @@ test('starts a fresh trace on a fully static page', async ({ page }) => {
   expect(pageloadSpan.trace_id).toBeTruthy();
   expect(pageloadSpan.links).toBeUndefined();
 });
+
+test('keeps a navigation that starts while the pageload waits for the trace meta tag', async ({ page }) => {
+  test.skip(process.env.TEST_ENV !== 'production', 'Only a prerendered shell makes the trace meta tag arrive late');
+
+  const pageloadSpanPromise = waitForStreamedSpan(APP, span => {
+    return span.name === '/slow-hole' && getSpanOp(span) === 'pageload' && span.is_segment;
+  });
+
+  const navigationSpanPromise = waitForStreamedSpan(APP, span => {
+    return span.name === '/static-shell' && getSpanOp(span) === 'navigation' && span.is_segment;
+  });
+
+  await page.goto('/slow-hole', { waitUntil: 'commit' });
+  await page.waitForFunction(() => !!(window as { next?: { router?: unknown } }).next?.router);
+
+  // The resumed part, which carries the tag, has not arrived yet, so the pageload is still waiting.
+  await expect(page.locator('#slow-fallback')).toBeVisible();
+  expect(await page.locator('meta[name="sentry-trace"]').count()).toBe(0);
+
+  await page.locator('#navigate').click();
+  await expect(page.locator('#static-shell')).toHaveText('Static shell');
+
+  const [pageloadSpan, navigationSpan] = await Promise.all([pageloadSpanPromise, navigationSpanPromise]);
+
+  // The navigation ends the pageload like any pageload it interrupts, and runs to its own idle timeout.
+  expect(pageloadSpan.attributes['sentry.idle_span_finish_reason']).toEqual({ type: 'string', value: 'cancelled' });
+  expect(navigationSpan.attributes['sentry.idle_span_finish_reason']).toEqual({
+    type: 'string',
+    value: 'idleTimeout',
+  });
+});

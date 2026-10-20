@@ -42,12 +42,11 @@ export function browserTracingIntegration(
         nextRouterInstrumentNavigation(client);
       }
 
-      // Registered before the browser tracing integration's own handler, which creates the navigation
-      // span: a pageload that is still waiting for its trace meta tag has to exist by then, so the
-      // handler ends it like any pageload a navigation interrupts. Started later, the pageload would
-      // end the navigation span instead.
+      // A pageload that is still waiting for its trace meta tag has to exist before the navigation span,
+      // so the navigation ends it like any pageload it interrupts. Started later, the pageload would end
+      // the navigation span instead.
       if (instrumentPageLoad) {
-        client.on('startNavigationSpan', settlePendingPageloadWait);
+        client.on('beforeStartNavigationSpan', settlePendingPageloadWait);
       }
 
       browserTracingIntegrationInstance.afterAllSetup(client);
