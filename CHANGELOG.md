@@ -49,6 +49,10 @@ Work in this release was contributed by @adityareddy-dev, @jpdefo, @Jxxunnn, @ph
 
   `denoServeIntegration` now records a request session for each incoming request, as `denoHttpIntegration` does for `node:http`. This gives release health and crash-free rates for `Deno.serve` apps. Sessions are sent only when a `release` is set. To turn them off, set `denoServeIntegration({ sessions: false })`. `sessionFlushingDelayMS` sets how long the SDK waits before it sends the session aggregate.
 
+- **fix(core): Preserve span links through `beforeSendSpan`**
+
+  A transaction's `contexts.trace.links` (including the `previous_trace` link) was dropped whenever `beforeSendSpan` was set, even for an identity callback, because the transaction-event/span-JSON round trip did not carry `links`. The conversion now preserves them.
+
 ## 11.8.0
 
 ### Important Changes
