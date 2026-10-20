@@ -8,10 +8,6 @@
   "license": "MIT",
   "private": true,
   "main": "./index.mjs",
-  "dependencies": {
-    "acorn": "^8.7.0",
-    "recast": "^0.24.0"
-  },
   "devDependencies": {
     "eslint-plugin-regexp": "^3.1.0"
   },
