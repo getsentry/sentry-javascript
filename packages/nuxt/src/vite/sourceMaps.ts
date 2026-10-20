@@ -1,11 +1,13 @@
 import type { Nuxt } from '@nuxt/schema';
 import { sentryRollupPlugin, type SentryRollupPluginOptions } from '@sentry/rollup-plugin';
 import { sentryVitePlugin, type SentryVitePluginOptions } from '@sentry/vite-plugin';
-import type { NitroConfig } from 'nitropack';
+import type { Nitro, NitroConfig } from 'nitropack';
 import type { Plugin } from 'vite';
 import type { SentryNuxtModuleOptions } from '../common/types';
 import {
   addPublicSourceMapDeletionPlugin,
+  type DeletionFallback,
+  getFallbackFilesToDelete,
   deleteSourceMapsAfterBuild,
   withoutSourceMapDeletion,
 } from './sourceMapDeletion';
@@ -43,7 +45,7 @@ export function setupSourceMaps(
           (sourceMapsUploadOptions.enabled ?? true);
 
   // In case we overwrite the source map settings, we default to deleting the files
-  const shouldDeleteFilesFallback = { client: true, server: true };
+  const shouldDeleteFilesFallback: DeletionFallback = { client: true, server: true };
 
   nuxt.hook('modules:done', () => {
     if (sourceMapsEnabled && !nuxt.options.dev && !nuxt.options?._prepare) {
@@ -112,6 +114,7 @@ export function setupSourceMaps(
       }
 
       validateNitroSourceMapSettings(nuxt, nitroConfig, moduleOptions);
+      shouldDeleteFilesFallback.server &&= nitroConfig.rollupConfig.output?.sourcemap === undefined;
 
       if (isDebug) {
         // eslint-disable-next-line no-console
@@ -126,8 +129,9 @@ export function setupSourceMaps(
     }
   });
 
-  nuxt.hook('nitro:init', nitro => {
+  nuxt.hook('nitro:init', (nitro: Nitro) => {
     if (sourceMapsEnabled && !nitro.options.dev && !nuxt.options?._prepare) {
+      shouldDeleteFilesFallback.outputDirs = nitro.options.output;
       addPublicSourceMapDeletionPlugin(nitro, () => getPluginOptions(moduleOptions, shouldDeleteFilesFallback));
     }
   });
@@ -155,18 +159,13 @@ function normalizePath(path: string): string {
 // eslint-disable-next-line complexity
 export function getPluginOptions(
   moduleOptions: SentryNuxtModuleOptions,
-  shouldDeleteFilesFallback?: { client: boolean; server: boolean },
+  shouldDeleteFilesFallback?: DeletionFallback,
 ): SentryVitePluginOptions | SentryRollupPluginOptions {
   // eslint-disable-next-line typescript/no-deprecated
   const sourceMapsUploadOptions = moduleOptions.sourceMapsUploadOptions || {};
 
-  const shouldDeleteFilesAfterUpload = shouldDeleteFilesFallback?.client || shouldDeleteFilesFallback?.server;
-  const fallbackFilesToDelete = [
-    ...(shouldDeleteFilesFallback?.client ? ['.*/**/public/**/*.map'] : []),
-    ...(shouldDeleteFilesFallback?.server
-      ? ['.*/**/server/**/*.map', '.*/**/output/**/*.map', '.*/**/function/**/*.map']
-      : []),
-  ];
+  const fallbackFilesToDelete = getFallbackFilesToDelete(shouldDeleteFilesFallback);
+  const shouldDeleteFilesAfterUpload = fallbackFilesToDelete.length > 0;
 
   // Check for filesToDeleteAfterUpload in new location first, then deprecated location
   const sourcemapsOptions = moduleOptions.sourcemaps || {};
@@ -232,7 +231,7 @@ export function getPluginOptions(
       ignore: sourcemapsOptions.ignore ?? deprecatedSourcemapsOptions.ignore ?? undefined,
       filesToDeleteAfterUpload: filesToDeleteAfterUpload
         ? filesToDeleteAfterUpload
-        : shouldDeleteFilesFallback?.server || shouldDeleteFilesFallback?.client
+        : shouldDeleteFilesAfterUpload
           ? fallbackFilesToDelete
           : undefined,
       rewriteSources: sourcemapsOptions.rewriteSources ?? normalizePath,
