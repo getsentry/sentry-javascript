@@ -1,5 +1,6 @@
 import type { Event, IntegrationFn, MaxRequestBodySize, Span } from '@sentry/core';
 import { debug, defineIntegration } from '@sentry/core';
+import type { AssertTrue, CheckServerRequestOptions } from '@sentry/core/server';
 import { DEFAULT_IGNORE_STATUS_CODES, processHttpServerTransactionEvent } from '@sentry/core/server';
 import type { RequestHandlerWrapperOptions } from '../wrap-deno-request-handler';
 import { wrapDenoRequestHandler } from '../wrap-deno-request-handler';
@@ -98,6 +99,11 @@ export type DenoServeIntegrationOptions = {
    */
   ignoreStatusCodes?: (number | [number, number])[];
 };
+
+// Checks these options against the shared `ServerRequestOptions`. A new
+// shared field fails to compile here, until this integration supports
+// it or lists it as unsupported.
+type _ServerRequestOptionsCheck = AssertTrue<CheckServerRequestOptions<DenoServeIntegrationOptions, Request, Response>>;
 
 export type ServeParams =
   // [(Request) => Response]

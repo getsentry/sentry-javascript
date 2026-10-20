@@ -43,6 +43,11 @@ export type {
   HttpServerResponse,
   HttpModuleExport,
 } from './integrations/http/types';
+export type {
+  AssertTrue,
+  CheckServerRequestOptions,
+  ServerRequestOptions,
+} from './integrations/http/server-request-options';
 export { createFetchIntegration } from './integrations/fetch';
 export type { FetchIntegrationOptions } from './integrations/fetch';
 export { classifyResponseStreaming } from './utils/responseStreaming';
