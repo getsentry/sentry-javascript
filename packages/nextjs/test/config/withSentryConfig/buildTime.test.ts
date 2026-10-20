@@ -57,4 +57,25 @@ describe('setUpBuildTimeVariables', () => {
       expect(nextConfig.env._sentryHasPagesRouter).toBe('true');
     });
   });
+
+  describe('tunnel route', () => {
+    it('adds the tunnel path and the handler mode for a project with a tunnel route handler', () => {
+      const nextConfig = { basePath: '/docs' };
+
+      setUpBuildTimeVariables(
+        nextConfig,
+        { tunnelRoute: '/monitoring' },
+        undefined,
+        makeProject(['app/sentry-tunnel/route.ts']),
+      );
+
+      expect(nextConfig).toEqual({
+        basePath: '/docs',
+        env: expect.objectContaining({
+          _sentryRewritesTunnelPath: '/docs/monitoring',
+          _sentryTunnelRouteMode: 'handler',
+        }),
+      });
+    });
+  });
 });

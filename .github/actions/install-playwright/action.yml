@@ -37,20 +37,23 @@ runs:
         key: playwright-${{ runner.os }}-iteration-1-${{ steps.playwright-version.outputs.version }}
 
     # We always install all browsers, if uncached
+    # `npx` runs outside the repo, so it can't pick up a `playwright` that a parallel `pnpm install` is still linking.
     - name: Install Playwright dependencies (uncached)
       env:
         PLAYWRIGHT_VERSION: ${{ steps.playwright-version.outputs.version }}
       run: npx -y "playwright@$PLAYWRIGHT_VERSION" install chromium webkit firefox --with-deps
       if: steps.playwright-version.outputs.version != '' && steps.playwright-cache.outputs.cache-hit != 'true'
       shell: bash
+      working-directory: ${{ runner.temp }}
 
     - name: Install Playwright system dependencies only (cached)
       env:
         PLAYWRIGHT_BROWSERS: ${{ inputs.browsers || 'chromium webkit firefox' }}
         PLAYWRIGHT_VERSION: ${{ steps.playwright-version.outputs.version }}
-      run: npx -y "playwright@$PLAYWRIGHT_VERSION" install-deps "$PLAYWRIGHT_BROWSERS"
+      run: npx -y "playwright@$PLAYWRIGHT_VERSION" install-deps $PLAYWRIGHT_BROWSERS
       if: steps.playwright-version.outputs.version != '' && steps.playwright-cache.outputs.cache-hit == 'true'
       shell: bash
+      working-directory: ${{ runner.temp }}
 
     # Only store cache on develop branch
     - name: Store cached playwright binaries

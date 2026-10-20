@@ -478,6 +478,35 @@ interface BaseCloudflareOptions {
    * @default true
    */
   cacheClient?: boolean;
+
+  /**
+   * A function that receives the response of a `fetch` handler and the request it answers, and
+   * returns whether the response body is still being produced after the handler returns.
+   *
+   * For `true`, the SDK keeps the `http.server` span open until the body has been sent, so spans
+   * created while the body streams stay inside the request. It does this by passing the body through
+   * a `TransformStream`. For `false`, the SDK ends the span when the handler returns and sends the
+   * response unchanged. For `undefined` or any other value, the SDK decides: Server-Sent Events,
+   * NDJSON and `application/stream+json` responses, and `text/plain` and `text/x-component`
+   * responses without a `Content-Length` header count as streamed. HTML does not, so return `true`
+   * for pages that are rendered with streamed SSR.
+   *
+   * The function must be synchronous and must not read the response body. Use the status, the
+   * headers and the request URL.
+   *
+   * @example
+   * ```ts
+   * // src/instrument.server.ts
+   * import { defineCloudflareOptions } from '@sentry/cloudflare';
+   *
+   * export default defineCloudflareOptions(env => ({
+   *   dsn: env.SENTRY_DSN,
+   *   isStreamingResponse: response =>
+   *     response.headers.get('content-type')?.startsWith('text/html') ? true : undefined,
+   * }));
+   * ```
+   */
+  isStreamingResponse?: (response: Response, request: Request) => boolean | undefined;
 }
 
 /**

@@ -22,7 +22,7 @@ export {
   DEFAULT_IGNORE_STATUS_CODES,
   processHttpServerTransactionEvent,
 } from './integrations/http/server-transaction-event';
-export { recordRequestSession } from './integrations/http/record-request-session';
+export { recordRequestSession, startRequestSession } from './integrations/http/record-request-session';
 export { getClientIPAddress } from './utils/clientIPAddress';
 export { addOutgoingRequestBreadcrumb } from './integrations/http/add-outgoing-request-breadcrumb';
 export {

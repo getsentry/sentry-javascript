@@ -17,7 +17,7 @@
     "astro": "^7.2.8"
   },
   "devDependencies": {
-    "@sentry-internal/test-utils": "link:../../../test-utils",
+    "@sentry-internal/test-utils": "file:../../packed/sentry-internal-test-utils-packed.tgz",
     "@types/node": "^22.20.0"
   },
   "volta": {

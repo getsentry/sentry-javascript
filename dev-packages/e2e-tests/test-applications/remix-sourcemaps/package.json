@@ -19,7 +19,7 @@
   },
   "devDependencies": {
     "@remix-run/dev": "2.17.4",
-    "@sentry-internal/test-utils": "link:../../../test-utils",
+    "@sentry-internal/test-utils": "file:../../packed/sentry-internal-test-utils-packed.tgz",
     "@types/node": "^20",
     "@types/react": "^18.2.64",
     "@types/react-dom": "^18.2.34",

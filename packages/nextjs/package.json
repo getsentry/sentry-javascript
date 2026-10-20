@@ -55,6 +55,11 @@
       "types": "./build/types/config/index.d.ts",
       "default": "./build/cjs/config/index.js"
     },
+    "./tunnel": {
+      "types": "./build/types/tunnel/index.d.ts",
+      "import": "./build/esm/tunnel/index.js",
+      "require": "./build/cjs/tunnel/index.js"
+    },
     "./async-storage-shim": {
       "import": {
         "default": "./build/esm/config/templates/requestAsyncStorageShim.js"
