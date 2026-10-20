@@ -52,7 +52,7 @@ describe('instrumentKV', () => {
           [SENTRY_OP]: CACHE_GET,
           [SENTRY_ORIGIN]: 'auto.cache.cloudflare.kv',
           [CACHE_OPERATION]: SentryCore.CACHE_OPERATION_NAMES[CACHE_GET],
-          [CACHE_KEY]: 'test-key',
+          [CACHE_KEY]: ['test-key'],
           [DB_OPERATION_NAME]: 'get',
           [DB_COLLECTION_NAME]: 'MY_KV',
           [DB_SYSTEM_NAME]: 'cloudflare-kv',
@@ -93,7 +93,7 @@ describe('instrumentKV', () => {
       expect.objectContaining({
         attributes: expect.objectContaining({
           [SENTRY_OP]: CACHE_GET,
-          [CACHE_KEY]: 'test-key',
+          [CACHE_KEY]: ['test-key'],
           [DB_OPERATION_NAME]: 'getWithMetadata',
         }),
       }),
@@ -113,7 +113,7 @@ describe('instrumentKV', () => {
       expect.objectContaining({
         attributes: expect.objectContaining({
           [SENTRY_OP]: CACHE_PUT,
-          [CACHE_KEY]: 'put-key',
+          [CACHE_KEY]: ['put-key'],
           [DB_OPERATION_NAME]: 'put',
         }),
       }),
@@ -122,7 +122,7 @@ describe('instrumentKV', () => {
       expect.objectContaining({
         attributes: expect.objectContaining({
           [SENTRY_OP]: CACHE_REMOVE,
-          [CACHE_KEY]: 'delete-key',
+          [CACHE_KEY]: ['delete-key'],
           [DB_OPERATION_NAME]: 'delete',
         }),
       }),

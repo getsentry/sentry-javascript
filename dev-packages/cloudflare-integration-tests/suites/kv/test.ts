@@ -23,7 +23,7 @@ it('emits cache.get for a KV read with key and hit attributes', async ({ signal 
         [SENTRY_OP]: { type: 'string', value: CACHE_GET },
         [SENTRY_ORIGIN]: { type: 'string', value: 'auto.cache.cloudflare.kv' },
         [CACHE_OPERATION]: { type: 'string', value: CACHE_OPERATION_NAMES[CACHE_GET] },
-        [CACHE_KEY]: { type: 'string', value: 'get-key' },
+        [CACHE_KEY]: { type: 'array', value: ['get-key'] },
         [CACHE_HIT]: { type: 'boolean', value: true },
         [DB_OPERATION_NAME]: { type: 'string', value: 'get' },
         [DB_COLLECTION_NAME]: { type: 'string', value: 'MY_KV' },
@@ -73,7 +73,7 @@ it('emits cache.get for getWithMetadata', async ({ signal }) => {
       expect(spans).toEqual([
         expect.objectContaining({
           attributes: expect.objectContaining({
-            [CACHE_KEY]: { type: 'string', value: 'metadata-key' },
+            [CACHE_KEY]: { type: 'array', value: ['metadata-key'] },
             [CACHE_HIT]: { type: 'boolean', value: true },
           }),
         }),
@@ -95,7 +95,7 @@ it('emits cache.put for KV writes', async ({ signal }) => {
             attributes: expect.objectContaining({
               [SENTRY_OP]: { type: 'string', value: CACHE_PUT },
               [CACHE_OPERATION]: { type: 'string', value: CACHE_OPERATION_NAMES[CACHE_PUT] },
-              [CACHE_KEY]: { type: 'string', value: 'put-key' },
+              [CACHE_KEY]: { type: 'array', value: ['put-key'] },
               [DB_OPERATION_NAME]: { type: 'string', value: 'put' },
             }),
           }),
@@ -118,7 +118,7 @@ it('emits cache.remove for KV deletes', async ({ signal }) => {
             attributes: expect.objectContaining({
               [SENTRY_OP]: { type: 'string', value: CACHE_REMOVE },
               [CACHE_OPERATION]: { type: 'string', value: CACHE_OPERATION_NAMES[CACHE_REMOVE] },
-              [CACHE_KEY]: { type: 'string', value: 'delete-key' },
+              [CACHE_KEY]: { type: 'array', value: ['delete-key'] },
               [DB_OPERATION_NAME]: { type: 'string', value: 'delete' },
             }),
           }),
@@ -139,7 +139,7 @@ it('emits separate spans for separate KV requests', async ({ signal }) => {
       expect(spans[0]?.attributes).toEqual(
         expect.objectContaining({
           [DB_OPERATION_NAME]: { type: 'string', value: 'get' },
-          [CACHE_KEY]: { type: 'string', value: 'get-key' },
+          [CACHE_KEY]: { type: 'array', value: ['get-key'] },
         }),
       );
     })
@@ -149,7 +149,7 @@ it('emits separate spans for separate KV requests', async ({ signal }) => {
       expect(spans[0]?.attributes).toEqual(
         expect.objectContaining({
           [DB_OPERATION_NAME]: { type: 'string', value: 'put' },
-          [CACHE_KEY]: { type: 'string', value: 'put-key' },
+          [CACHE_KEY]: { type: 'array', value: ['put-key'] },
         }),
       );
     })

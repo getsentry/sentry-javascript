@@ -48,7 +48,7 @@ function createSpanOptions(bindingName: string, operation: KVOperation, args: un
       [SENTRY_OP]: cacheOperation,
       [CACHE_OPERATION]: cacheOperationName,
       [SENTRY_ORIGIN]: ORIGIN,
-      ...(keys && keys.length > 0 && { [CACHE_KEY]: keys.length > 1 ? keys : keys[0] }),
+      ...(keys && keys.length > 0 && { [CACHE_KEY]: keys }),
       [DB_OPERATION_NAME]: operation,
       [DB_COLLECTION_NAME]: bindingName,
       [DB_SYSTEM_NAME]: 'cloudflare-kv',
