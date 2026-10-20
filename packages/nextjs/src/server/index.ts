@@ -24,6 +24,7 @@ import { DEBUG_BUILD } from '../common/debug-build';
 import { devErrorSymbolicationEventProcessor } from '../common/devErrorSymbolicationEventProcessor';
 import { getVercelEnv } from '../common/getVercelEnv';
 import { TRANSACTION_ATTR_SHOULD_DROP_TRANSACTION } from '../common/span-attributes-with-logic-attached';
+import { getTunnelRouteIgnoreSpans } from '../common/utils/dropMiddlewareTunnelRequests';
 import { isBuild } from '../common/utils/isBuild';
 import { isCloudflareWaitUntilAvailable } from '../common/utils/responseEnd';
 import { setUrlProcessingMetadata } from '../common/utils/setUrlProcessingMetadata';
@@ -193,6 +194,7 @@ export function init(options: NodeOptions): NodeClient | undefined {
     // Spans flagged via TRANSACTION_ATTR_SHOULD_DROP_TRANSACTION
     // (set in `dropMiddlewareTunnelRequests` during `spanStart`)
     { attributes: { [TRANSACTION_ATTR_SHOULD_DROP_TRANSACTION]: true } },
+    ...getTunnelRouteIgnoreSpans(),
   ];
   opts.ignoreSpans = [...(opts.ignoreSpans || []), ...nextjsIgnoreSpans];
 

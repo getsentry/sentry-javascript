@@ -24,7 +24,7 @@ import { DEBUG_BUILD } from '../common/debug-build';
 import { ATTR_NEXT_SPAN_TYPE } from '../common/nextSpanAttributes';
 import { TRANSACTION_ATTR_SHOULD_DROP_TRANSACTION } from '../common/span-attributes-with-logic-attached';
 import { addHeadersAsAttributes } from '../common/utils/addHeadersAsAttributes';
-import { dropMiddlewareTunnelRequests } from '../common/utils/dropMiddlewareTunnelRequests';
+import { dropMiddlewareTunnelRequests, getTunnelRouteIgnoreSpans } from '../common/utils/dropMiddlewareTunnelRequests';
 import { isBuild } from '../common/utils/isBuild';
 import { flushSafelyWithTimeout, isCloudflareWaitUntilAvailable, waitUntil } from '../common/utils/responseEnd';
 import { setUrlProcessingMetadata } from '../common/utils/setUrlProcessingMetadata';
@@ -90,6 +90,7 @@ export function init(options: VercelEdgeOptions = {}): void {
   const nextjsIgnoreSpans: NonNullable<VercelEdgeOptions['ignoreSpans']> = [
     // (set in `dropMiddlewareTunnelRequests` during `spanStart`)
     { attributes: { [TRANSACTION_ATTR_SHOULD_DROP_TRANSACTION]: true } },
+    ...getTunnelRouteIgnoreSpans(),
   ];
   opts.ignoreSpans = [...(opts.ignoreSpans || []), ...nextjsIgnoreSpans];
 

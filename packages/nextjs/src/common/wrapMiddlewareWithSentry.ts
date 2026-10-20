@@ -12,8 +12,9 @@ import {
   winterCGRequestToRequestData,
   withIsolationScope,
 } from '@sentry/core';
+import { TRANSACTION_ATTR_SHOULD_DROP_TRANSACTION } from '../common/span-attributes-with-logic-attached';
 import { flushSafelyWithTimeout, waitUntil } from '../common/utils/responseEnd';
-import { isSentryTunnelRequest } from '../common/utils/tunnelPathnameMatch';
+import { getTunnelRouteRequestPattern, isSentryTunnelRequest } from '../common/utils/tunnelPathnameMatch';
 import type { EdgeRouteHandler } from '../edge/types';
 
 /**
@@ -113,6 +114,10 @@ export function wrapMiddlewareWithSentry<H extends EdgeRouteHandler>(
             attributes: {
               [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: spanSource,
               [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.nextjs.wrap_middleware',
+              // The `ignoreSpans` entries for tunnel requests cannot match this span, because it has no request target.
+              ...(isTunnelRouteHandlerRequest(req, tunnelRoute) && {
+                [TRANSACTION_ATTR_SHOULD_DROP_TRANSACTION]: true,
+              }),
             },
           },
           runMiddleware,
@@ -120,4 +125,17 @@ export function wrapMiddlewareWithSentry<H extends EdgeRouteHandler>(
       });
     },
   });
+}
+
+function isTunnelRouteHandlerRequest(req: unknown, tunnelRoute: unknown): boolean {
+  if (
+    !(req instanceof Request) ||
+    typeof tunnelRoute !== 'string' ||
+    (globalThis as Record<string, unknown>)._sentryTunnelRouteMode !== 'handler'
+  ) {
+    return false;
+  }
+
+  const url = new URL(req.url);
+  return getTunnelRouteRequestPattern(tunnelRoute, 'handler').test(`${url.pathname}${url.search}`);
 }

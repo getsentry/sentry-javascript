@@ -1,5 +1,7 @@
 import { expect, test } from '@playwright/test';
-import { waitForTransaction } from '@sentry-internal/test-utils';
+import { HTTP_REQUEST_METHOD, URL_FULL } from '@sentry/conventions/attributes';
+import { waitForRequest, waitForTransaction } from '@sentry-internal/test-utils';
+import type { Event } from '@sentry/core';
 
 test('Tunnel route should proxy pageload transaction to Sentry', async ({ page }) => {
   // Wait for the pageload transaction to be sent through the tunnel
@@ -129,4 +131,76 @@ test('Tunnel requests should not create middleware or fetch spans', async ({ pag
   );
 
   expect(sentryFetchTransactions).toHaveLength(0);
+});
+
+test.describe('Tunnel route handler', () => {
+  test.skip(process.env.NEXT_PUBLIC_E2E_TEST_TUNNEL_MODE !== 'handler', 'Only the handler variants use the handler');
+
+  test('forwards events without the cookies of the browser', async ({ page, context, baseURL }) => {
+    await context.addCookies([{ name: 'session', value: '8f2c1d', url: baseURL }]);
+    const proxyRequestPromise = waitForRequest('nextjs-16-tunnel', ({ envelope }) =>
+      envelope[1].some(
+        ([itemHeader, item]) =>
+          itemHeader.type === 'event' &&
+          (item as Event).exception?.values?.[0]?.value === 'Tunnel route handler cookie test',
+      ),
+    );
+
+    await page.goto('/');
+    await page.waitForFunction(() => typeof (window as { __SENTRY__?: unknown }).__SENTRY__ === 'object');
+    const tunnelRequestPromise = page.waitForRequest(
+      request =>
+        request.method() === 'POST' &&
+        new URL(request.url()).origin === baseURL &&
+        (request.postData() ?? '').includes('Tunnel route handler cookie test'),
+    );
+    await page.evaluate(() => {
+      setTimeout(() => {
+        throw new Error('Tunnel route handler cookie test');
+      });
+    });
+
+    const tunnelRequest = await tunnelRequestPromise;
+    const proxyRequest = await proxyRequestPromise;
+
+    expect(new URL(tunnelRequest.url()).search).toBe('');
+    expect((await tunnelRequest.allHeaders()).cookie).toBe('session=8f2c1d');
+    expect(proxyRequest.rawProxyRequestHeaders.cookie).toBeUndefined();
+    expect(proxyRequest.rawProxyRequestHeaders['content-type']).toBe('application/x-sentry-envelope');
+  });
+
+  test('does not create server transactions for tunnel requests', async ({ page, baseURL }) => {
+    // One listener, so it gets every transaction that the proxy received before the barrier transaction.
+    const transactionsBeforeBarrier: Event[] = [];
+    const barrierTransactionPromise = waitForTransaction('nextjs-16-tunnel', transaction => {
+      transactionsBeforeBarrier.push(transaction);
+      return transaction.transaction === 'GET /api/flush';
+    });
+    const pageloadTunnelResponsePromise = page.waitForResponse(
+      response =>
+        response.request().method() === 'POST' &&
+        new URL(response.url()).origin === baseURL &&
+        (response.request().postData() ?? '').includes('pageload'),
+    );
+
+    await page.goto('/');
+    await pageloadTunnelResponsePromise;
+    // Flush the edge client of the edge tunnel route (a 405 on the Node.js one), then the Node.js client twice:
+    // the first flush sends the tunnel transactions, the second one the barrier transaction of the first flush.
+    await page.request.get('/sentry-tunnel');
+    await page.request.get('/api/flush');
+    await page.request.get('/api/flush');
+    await barrierTransactionPromise;
+
+    const postTransactions = transactionsBeforeBarrier.filter(
+      transaction =>
+        transaction.transaction?.startsWith('POST') ||
+        transaction.contexts?.trace?.data?.[HTTP_REQUEST_METHOD] === 'POST',
+    );
+    const ingestSpans = transactionsBeforeBarrier
+      .flatMap(transaction => transaction.spans ?? [])
+      .filter(span => span.op === 'http.client' && String(span.data?.[URL_FULL]).startsWith('http://localhost:3031/'));
+    expect(postTransactions).toEqual([]);
+    expect(ingestSpans).toEqual([]);
+  });
 });
