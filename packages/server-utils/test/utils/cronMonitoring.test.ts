@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { cronExpressionToMonitorConfig } from '../../src/utils/cronMonitoring';
+import { cronExpressionToMonitorConfig, shouldMonitorJob } from '../../src/utils/cronMonitoring';
 
 const toMonitorConfig = (expression: string, timezone: unknown) =>
   cronExpressionToMonitorConfig(expression, timezone, 'and');
@@ -67,4 +67,29 @@ describe('cronExpressionToMonitorConfig with cron-parser day matching', () => {
       expect(cronExpressionToMonitorConfig(expression, 'UTC', 'or')).toBeUndefined();
     },
   );
+});
+
+describe('shouldMonitorJob', () => {
+  const job = (): void => {};
+
+  it('monitors named jobs', () => {
+    expect(shouldMonitorJob('job', job, undefined)).toBe(true);
+  });
+
+  it('skips unnamed jobs and jobs that are not functions', () => {
+    expect(shouldMonitorJob(undefined, job, undefined)).toBe(false);
+    expect(shouldMonitorJob('', job, undefined)).toBe(false);
+    expect(shouldMonitorJob('job', './job.js', undefined)).toBe(false);
+  });
+
+  it('skips excluded jobs', () => {
+    expect(shouldMonitorJob('job', job, ['job'])).toBe(false);
+    expect(shouldMonitorJob('job-2', job, ['job'])).toBe(true);
+    expect(shouldMonitorJob('debug-job', job, [/^debug-/])).toBe(false);
+  });
+
+  it('skips jobs that `Sentry.cron.instrument*` already monitors', () => {
+    const monitored = Object.assign((): void => {}, { [Symbol.for('sentry.cron.monitored')]: true });
+    expect(shouldMonitorJob('job', monitored, undefined)).toBe(false);
+  });
 });
