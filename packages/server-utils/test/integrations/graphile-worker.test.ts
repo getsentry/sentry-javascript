@@ -108,6 +108,16 @@ describe('graphile-worker crontab monitoring', () => {
     ]);
   });
 
+  it('does not throw into the worker when sending a check-in fails', () => {
+    const events = new EventEmitter();
+    monitorGraphileCronJobs(events, [cronItem('report', 'report', { minutes: [0] })], {});
+    captureCheckIn.mockImplementation(() => {
+      throw new Error('sentry failed');
+    });
+
+    expect(() => runJob(events, cronJob('report', '2026-10-16T09:00:00.000Z'), new Error('boom'))).not.toThrow();
+  });
+
   it('skips jobs that were not scheduled by the crontab, ambiguous jobs and excluded items', () => {
     const events = new EventEmitter();
     monitorGraphileCronJobs(
