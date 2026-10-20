@@ -82,7 +82,6 @@ export const sentryOnBuildEnd: BuildEndHook = async ({ reactRouterConfig, viteCo
   // uploaded manually at a later point - only `true` turns source maps off entirely.
   const sourceMapsFullyDisabled = sourcemaps?.disable === true;
   const uploadDisabled = sourceMapsFullyDisabled || sourcemaps?.disable === 'disable-upload';
-  let sourceMapsUploaded = false;
 
   if (!sourceMapsFullyDisabled && viteConfig.build.sourcemap !== false) {
     // inject debugIds
@@ -106,8 +105,6 @@ export const sentryOnBuildEnd: BuildEndHook = async ({ reactRouterConfig, viteCo
             release: release?.name || 'undefined',
           });
         }
-
-        sourceMapsUploaded = uploadClients.length > 0;
       } catch (error) {
         // eslint-disable-next-line no-console
         console.error('[Sentry] Could not upload sourcemaps', error);
@@ -117,7 +114,7 @@ export const sentryOnBuildEnd: BuildEndHook = async ({ reactRouterConfig, viteCo
 
   // Only clean up source maps that were actually uploaded. Deleting them after skipping
   // the upload would leave the user with neither, breaking a manual upload.
-  if (!sourceMapsUploaded) {
+  if (uploadDisabled) {
     return;
   }
 

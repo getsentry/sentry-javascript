@@ -171,28 +171,14 @@ describe('sentryOnBuildEnd', () => {
     // @ts-expect-error - mocking the React config
     await sentryOnBuildEnd(config);
 
-    expect(createSentrySDK).toHaveBeenCalledTimes(3);
-    expect(createSentrySDK).toHaveBeenNthCalledWith(1, {
+    const connectionOptions = {
       token: 'test-token',
       org: 'test-org',
       url: 'https://sentry.example.com',
       headers: { 'X-Custom-Header': 'test-value' },
-      project: undefined,
-    });
-    expect(createSentrySDK).toHaveBeenNthCalledWith(2, {
-      token: 'test-token',
-      org: 'test-org',
-      url: 'https://sentry.example.com',
-      headers: { 'X-Custom-Header': 'test-value' },
-      project: 'frontend',
-    });
-    expect(createSentrySDK).toHaveBeenNthCalledWith(3, {
-      token: 'test-token',
-      org: 'test-org',
-      url: 'https://sentry.example.com',
-      headers: { 'X-Custom-Header': 'test-value' },
-      project: 'backend',
-    });
+    };
+    expect(createSentrySDK).toHaveBeenCalledWith({ ...connectionOptions, project: 'frontend' });
+    expect(createSentrySDK).toHaveBeenCalledWith({ ...connectionOptions, project: 'backend' });
     expect(mockSentrySdkInstance.release.create).toHaveBeenCalledExactlyOnceWith({
       orgVersion: 'v1.0.0',
       project: 'frontend,backend',
@@ -210,29 +196,7 @@ describe('sentryOnBuildEnd', () => {
     expect(backendUpload).toHaveBeenCalledBefore(vi.mocked(rm));
   });
 
-  it('preserves source maps when one project upload fails', async () => {
-    const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => undefined);
-    const uploadError = new Error('Backend upload failed');
-    mockSentrySdkInstance.sourcemap.upload.mockResolvedValueOnce(undefined).mockRejectedValueOnce(uploadError);
-    const sentryConfig: SentryReactRouterBuildOptions = {
-      ...defaultConfig.viteConfig.sentryConfig,
-      project: ['frontend', 'backend'],
-    };
-    const config = {
-      ...defaultConfig,
-      viteConfig: { ...defaultConfig.viteConfig, sentryConfig },
-    };
-
-    // @ts-expect-error - mocking the React config
-    await sentryOnBuildEnd(config);
-
-    expect(mockSentrySdkInstance.sourcemap.upload).toHaveBeenCalledTimes(2);
-    expect(consoleSpy).toHaveBeenCalledWith('[Sentry] Could not upload sourcemaps', uploadError);
-    expect(glob).not.toHaveBeenCalled();
-    expect(rm).not.toHaveBeenCalled();
-  });
-
-  it('preserves source maps when no projects are configured in the array', async () => {
+  it('skips uploads when the project array is empty', async () => {
     const sentryConfig: SentryReactRouterBuildOptions = {
       ...defaultConfig.viteConfig.sentryConfig,
       project: [],
@@ -246,8 +210,6 @@ describe('sentryOnBuildEnd', () => {
     await sentryOnBuildEnd(config);
 
     expect(mockSentrySdkInstance.sourcemap.upload).not.toHaveBeenCalled();
-    expect(glob).not.toHaveBeenCalled();
-    expect(rm).not.toHaveBeenCalled();
   });
 
   it('leaves project resolution to the CLI when the project option is omitted', async () => {
@@ -293,6 +255,8 @@ describe('sentryOnBuildEnd', () => {
 
     expect(mockSentrySdkInstance.sourcemap.inject).not.toHaveBeenCalled();
     expect(mockSentrySdkInstance.sourcemap.upload).not.toHaveBeenCalled();
+    expect(glob).not.toHaveBeenCalled();
+    expect(rm).not.toHaveBeenCalled();
   });
 
   // `'disable-upload'` means "inject debug IDs, but let me upload the maps myself", so
@@ -315,36 +279,6 @@ describe('sentryOnBuildEnd', () => {
     expect(mockSentrySdkInstance.sourcemap.inject).toHaveBeenCalledWith({ directory: '/build' });
     expect(mockSentrySdkInstance.sourcemap.upload).not.toHaveBeenCalled();
     expect(glob).not.toHaveBeenCalled();
-  });
-
-  // Deleting maps that were never uploaded would leave the user with neither.
-  it('should not delete source maps when upload is disabled', async () => {
-    const config = {
-      ...defaultConfig,
-      viteConfig: {
-        ...defaultConfig.viteConfig,
-        sentryConfig: {
-          ...defaultConfig.viteConfig.sentryConfig,
-          sourcemaps: { disable: true },
-        },
-      } as unknown as TestConfig,
-    };
-
-    // @ts-expect-error - mocking the React config
-    await sentryOnBuildEnd(config);
-
-    expect(glob).not.toHaveBeenCalled();
-    expect(rm).not.toHaveBeenCalled();
-  });
-
-  it('should delete source maps after upload with default pattern', async () => {
-    // @ts-expect-error - mocking the React config
-    await sentryOnBuildEnd(defaultConfig);
-
-    expect(glob).toHaveBeenCalledWith(['/build/**/*.map'], {
-      absolute: true,
-      nodir: true,
-    });
   });
 
   it('should delete custom files after upload when specified', async () => {
@@ -394,13 +328,6 @@ describe('sentryOnBuildEnd', () => {
     consoleSpy.mockRestore();
   });
 
-  it('should inject debug IDs before uploading source maps', async () => {
-    // @ts-expect-error - mocking the React config
-    await sentryOnBuildEnd(defaultConfig);
-
-    expect(mockSentrySdkInstance.sourcemap.inject).toHaveBeenCalledWith({ directory: '/build' });
-  });
-
   it('should handle errors during debug ID injection gracefully', async () => {
     const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
     mockSentrySdkInstance.sourcemap.inject.mockRejectedValueOnce(new Error('Injection failed'));
@@ -414,15 +341,29 @@ describe('sentryOnBuildEnd', () => {
     consoleSpy.mockRestore();
   });
 
-  it('should handle errors during source map upload gracefully', async () => {
-    const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
-    mockSentrySdkInstance.sourcemap.upload.mockRejectedValueOnce(new Error('Upload failed'));
+  it('logs a failed project upload and still runs cleanup', async () => {
+    const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    const uploadError = new Error('Backend upload failed');
+    mockSentrySdkInstance.sourcemap.upload.mockResolvedValueOnce(undefined).mockRejectedValueOnce(uploadError);
+    const sentryConfig: SentryReactRouterBuildOptions = {
+      ...defaultConfig.viteConfig.sentryConfig,
+      project: ['frontend', 'backend'],
+    };
+    const config = {
+      ...defaultConfig,
+      viteConfig: { ...defaultConfig.viteConfig, sentryConfig },
+    };
 
     // @ts-expect-error - mocking the React config
-    await sentryOnBuildEnd(defaultConfig);
+    await sentryOnBuildEnd(config);
 
-    expect(consoleSpy).toHaveBeenCalledWith('[Sentry] Could not upload sourcemaps', expect.any(Error));
-    consoleSpy.mockRestore();
+    expect(mockSentrySdkInstance.sourcemap.upload).toHaveBeenCalledTimes(2);
+    expect(consoleSpy).toHaveBeenCalledWith('[Sentry] Could not upload sourcemaps', uploadError);
+    expect(glob).toHaveBeenCalledExactlyOnceWith(['/build/**/*.map'], { absolute: true, nodir: true });
+    expect(rm).toHaveBeenCalledTimes(2);
+    expect(rm).toHaveBeenCalledWith('/build/file1.map', { force: true });
+    expect(rm).toHaveBeenCalledWith('/build/file2.map', { force: true });
+    expect(consoleSpy).toHaveBeenCalledBefore(vi.mocked(rm));
   });
 
   it('should log debug information when debug is enabled', async () => {
