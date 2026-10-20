@@ -8,9 +8,12 @@ import {
   INTERNAL_setSegmentNameSourceIfSegment,
   updateSpanName,
   type Scope,
+  type SpanAttributes,
+  spanToJSON,
   winterCGRequestToRequestData,
 } from '@sentry/core';
-import type { Context, GetConnInfo } from './honoTypes';
+import type { Context } from './honoTypes';
+import { type HonoRuntime, readConnInfo } from './connInfo';
 import { hasFetchEvent } from './hono-context';
 import { defaultShouldHandleError } from './defaultShouldHandleError';
 import { resolveRouteName } from './resolveRouteName';
@@ -20,7 +23,7 @@ import { HTTP_ROUTE } from '@sentry/conventions/attributes';
 /**
  * Request handler for Hono framework
  */
-export function requestHandler(context: Context, getConnInfo?: GetConnInfo): void {
+export function requestHandler(context: Context, runtime: HonoRuntime): void {
   const isolationScope = getCurrentIsolationScope();
 
   // Set a provisional route name as early as possible so events captured during the request already carry the route.
@@ -31,9 +34,7 @@ export function requestHandler(context: Context, getConnInfo?: GetConnInfo): voi
     normalizedRequest: winterCGRequestToRequestData(hasFetchEvent(context) ? context.event.request : context.req.raw),
   });
 
-  if (getConnInfo) {
-    setConnInfoAttributes(context, getConnInfo, isolationScope);
-  }
+  setConnInfoAttributes(context, runtime, isolationScope);
 }
 
 function getCurrentIsolationScope(): Scope {
@@ -44,40 +45,57 @@ function getCurrentIsolationScope(): Scope {
 }
 
 /**
- * Adds HTTP connection info (client IP, port, transport, address type) from Hono's `getConnInfo`
- * helper to the root (server) span and the isolation scope.
+ * Adds HTTP connection info (client IP, port, transport, address type) from the runtime to the root
+ * (server) span and the isolation scope.
+ *
+ * Attributes that are already on the root span are kept: the runtime SDK sets them first and reads
+ * forwarding headers, while the Node, Bun and Deno runtime objects only know the socket peer (a proxy,
+ * if there is one).
  */
-function setConnInfoAttributes(context: Context, getConnInfo: GetConnInfo, isolationScope: Scope): void {
+function setConnInfoAttributes(context: Context, runtime: HonoRuntime, isolationScope: Scope): void {
   const activeSpan = getActiveSpan();
   if (!activeSpan) {
     return;
   }
 
-  let remote: ReturnType<GetConnInfo>['remote'] | undefined;
-  try {
-    remote = getConnInfo(context).remote;
-  } catch {
-    // The helper can throw when the underlying socket/env is unavailable (e.g. unsupported runtime).
+  const connInfo = readConnInfo(context, runtime);
+  if (!connInfo) {
     return;
   }
 
-  const { address, port, transport, addressType } = remote || {};
+  const { address, port, transport, addressType } = connInfo;
 
   // Only collect client IP if `userInfo` is enabled (this is primarily for setting data with `.setUser`, but in this case we cannot check for `dataCollection.headers` or similar)
   const ipAddress = address && getClient()?.getDataCollectionOptions().userInfo ? address : undefined;
 
-  getRootSpan(activeSpan).setAttributes({
-    'client.port': port,
-    'network.peer.port': port,
-    'network.transport': transport,
-    'network.type': addressType?.toLowerCase(),
-    'client.address': ipAddress,
-    'network.peer.address': ipAddress,
-  });
+  const rootSpan = getRootSpan(activeSpan);
+  const existingAttributes = spanToJSON(rootSpan).attributes ?? {};
+  // A port only identifies the client together with its address: behind a proxy, the socket port is the proxy's.
+  const writesClientAddress = ipAddress !== undefined && existingAttributes['client.address'] === undefined;
+  rootSpan.setAttributes(
+    onlyNewAttributes(
+      {
+        'client.port': writesClientAddress ? port : undefined,
+        'network.peer.port': port,
+        'network.transport': transport,
+        'network.type': addressType?.toLowerCase(),
+        'client.address': ipAddress,
+        'network.peer.address': ipAddress,
+      },
+      existingAttributes,
+    ),
+  );
 
   if (ipAddress) {
     isolationScope.setUser({ ...isolationScope.getUser(), ip_address: ipAddress });
   }
+}
+
+/** Keeps the defined attributes that are not on the span yet. */
+function onlyNewAttributes(attributes: SpanAttributes, existingAttributes: Record<string, unknown>): SpanAttributes {
+  return Object.fromEntries(
+    Object.entries(attributes).filter(([key, value]) => value !== undefined && existingAttributes[key] === undefined),
+  );
 }
 
 /**
