@@ -315,4 +315,24 @@ describe('appRouterInstrumentPageLoad', () => {
       'http://localhost:3000/navigation?from=document',
     );
   });
+
+  // `settlePendingPageloadWait` is a no-op when the pageload did not wait, so both cases run the same steps.
+  it.each([
+    { start: 'at once', cacheComponents: 'false' },
+    { start: 'after the wait', cacheComponents: 'true' },
+  ])(
+    'filters sensitive query parameters from the document URL of a pageload that starts $start',
+    async ({ cacheComponents }) => {
+      vi.stubEnv('_sentryCacheComponents', cacheComponents);
+      window.history.replaceState({}, '', '/navigation?token=2c4f9e1b&from=document');
+      const { core, instrumentation } = await setup('static');
+
+      instrumentation.appRouterInstrumentPageLoad(core.getClient()!);
+      instrumentation.settlePendingPageloadWait();
+
+      const filteredUrl = 'http://localhost:3000/navigation?token=[Filtered]&from=document';
+      expect(core.spanToJSON(core.getActiveSpan()!).attributes?.[URL_FULL]).toBe(filteredUrl);
+      expect(core.getCurrentScope().getScopeData().sdkProcessingMetadata.normalizedRequest?.url).toBe(filteredUrl);
+    },
+  );
 });

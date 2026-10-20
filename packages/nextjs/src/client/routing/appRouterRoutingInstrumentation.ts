@@ -136,7 +136,7 @@ function startPageloadSpan(
 
 /** Instruments the Next.js app router for pageloads. */
 export function appRouterInstrumentPageLoad(client: Client): void {
-  const documentUrl = WINDOW.location.href;
+  const documentUrl = filterCollectedUrl(WINDOW.location.href, client);
   const pathname = stripTrailingSlash(WINDOW.location.pathname);
   const parameterizedPathname = resolveCurrentRoute(client);
   const spanOptions: StartSpanOptions = {
@@ -148,7 +148,7 @@ export function appRouterInstrumentPageLoad(client: Client): void {
       [SENTRY_ORIGIN]: 'auto.pageload.nextjs.app_router_instrumentation',
       [SENTRY_SEGMENT_NAME_SOURCE]: parameterizedPathname ? 'route' : 'url',
       [URL_PATH]: WINDOW.location.pathname,
-      [URL_FULL]: filterCollectedUrl(documentUrl, client),
+      [URL_FULL]: documentUrl,
       ...(parameterizedPathname && { [URL_TEMPLATE]: parameterizedPathname }),
     },
   };
