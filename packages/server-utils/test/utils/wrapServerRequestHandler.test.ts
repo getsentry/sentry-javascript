@@ -1,3 +1,4 @@
+import { HTTP_ROUTE, SENTRY_SEGMENT_NAME_SOURCE, URL_PATH_PARAMETER_KEY_BASE } from '@sentry/conventions/attributes';
 import type { Event } from '@sentry/core';
 import { getIsolationScope, setCurrentClient, withIsolationScope } from '@sentry/core';
 import { beforeAll, describe, expect, it, vi } from 'vitest';
@@ -8,7 +9,10 @@ import { getDefaultTestClientOptions, TestClient } from '../mocks/client';
 
 const MECHANISM = { handled: false, type: 'auto.http.test' };
 
-function setup(options: ServerRequestHandlerConfig['options'] = {}): {
+function setup(
+  options: ServerRequestHandlerConfig['options'] = {},
+  extra: Partial<ServerRequestHandlerConfig> = {},
+): {
   events: Event[];
   transactions: Event[];
   serve: (request: Request, handler: () => Response | Promise<Response>) => Promise<Response>;
@@ -35,7 +39,7 @@ function setup(options: ServerRequestHandlerConfig['options'] = {}): {
   const serve = (request: Request, handler: () => Response | Promise<Response>): Promise<Response> =>
     withIsolationScope(isolationScope =>
       wrapServerRequestHandler(
-        { request, client, isolationScope, options, origin: 'auto.http.test', mechanism: MECHANISM },
+        { request, client, isolationScope, options, origin: 'auto.http.test', mechanism: MECHANISM, ...extra },
         handler,
       ),
     );
@@ -153,5 +157,39 @@ describe('wrapServerRequestHandler', () => {
 
     expect(events[0]?.exception?.values?.[0]?.mechanism).toEqual(MECHANISM);
     expect(transactions).toHaveLength(0);
+  });
+
+  it('names the span after the route and adds the runtime attributes', async () => {
+    const { transactions, serve } = setup(
+      {},
+      { routeName: '/users/:id', attributes: { [`${URL_PATH_PARAMETER_KEY_BASE}.id`]: '42' } },
+    );
+
+    const response = await serve(new Request('https://example.com/users/42'), () => new Response('ok'));
+    expect(await response.text()).toBe('ok');
+    await vi.waitFor(() => expect(transactions).toHaveLength(1));
+
+    expect(transactions[0]?.transaction).toBe('GET /users/:id');
+    expect(transactions[0]?.contexts?.trace?.data).toEqual(
+      expect.objectContaining({
+        [HTTP_ROUTE]: '/users/:id',
+        [SENTRY_SEGMENT_NAME_SOURCE]: 'route',
+        [`${URL_PATH_PARAMETER_KEY_BASE}.id`]: '42',
+      }),
+    );
+  });
+
+  it('keeps every Set-Cookie header of the response', async () => {
+    const { transactions, serve } = setup();
+    const headers = new Headers();
+    headers.append('set-cookie', 'first=1');
+    headers.append('set-cookie', 'second=2');
+
+    const response = await serve(new Request('https://example.com/login'), () => new Response('ok', { headers }));
+    expect(await response.text()).toBe('ok');
+    await vi.waitFor(() => expect(transactions).toHaveLength(1));
+
+    const setCookie = transactions[0]?.contexts?.trace?.data?.['http.response.header.set-cookie'] as string[];
+    expect(setCookie.map(cookie => cookie.split('=')[0])).toEqual(['first', 'second']);
   });
 });

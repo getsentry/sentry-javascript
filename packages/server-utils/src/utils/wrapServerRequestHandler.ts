@@ -8,7 +8,7 @@ import {
   USER_AGENT_ORIGINAL,
 } from '@sentry/conventions/attributes';
 import { HTTP_SERVER } from '@sentry/conventions/op';
-import type { Client, Mechanism, Scope, Span } from '@sentry/core';
+import type { Client, Mechanism, Scope, Span, SpanAttributes } from '@sentry/core';
 import {
   captureBodyFromWinterCGRequest,
   captureException,
@@ -49,6 +49,10 @@ export interface ServerRequestHandlerConfig {
   mechanism: Mechanism;
   /** The address and port of the socket, if the runtime knows them. */
   getSocketAddress?: () => { address: string; port?: number } | undefined;
+  /** The matched route of the server framework, e.g. `/users/:id`. Sets `http.route` and the span name. */
+  routeName?: string;
+  /** Span attributes that only the runtime knows, e.g. the route parameters. */
+  attributes?: SpanAttributes;
 }
 
 /**
@@ -141,7 +145,7 @@ export async function wrapServerRequestHandler(
         'server',
         config.origin,
         request,
-        undefined,
+        config.routeName,
         client,
       );
       // With span streaming, span names have to be low cardinality, so we can't fall back to the URL.
@@ -179,6 +183,7 @@ export async function wrapServerRequestHandler(
       // describes the OSI application-layer protocol (http), not the scheme (might be https)
       attributes[NETWORK_PROTOCOL_NAME] = 'http';
       Object.assign(attributes, httpHeadersToSpanAttributes(headers, dataCollection));
+      Object.assign(attributes, config.attributes);
       attributes[SENTRY_OP] = HTTP_SERVER;
 
       return startSpanManual({ name, attributes }, async span => {
@@ -205,7 +210,7 @@ export async function wrapServerRequestHandler(
         setHttpStatus(span, response.status);
         isolationScope.setContext('response', { status_code: response.status });
         span.setAttributes(
-          httpHeadersToSpanAttributes(winterCGHeadersToDict(response.headers), dataCollection, 'response'),
+          httpHeadersToSpanAttributes(responseHeadersToDict(response.headers), dataCollection, 'response'),
         );
 
         return onResponseDone(
@@ -267,4 +272,14 @@ function onResponseDone(response: Response, mechanism: Mechanism, onDone: () => 
   }
   onDone();
   return response;
+}
+
+// `Headers.forEach` lists each `Set-Cookie` header on its own, so a plain dict keeps only the last one.
+function responseHeadersToDict(headers: Headers): Record<string, string | string[]> {
+  const dict: Record<string, string | string[]> = winterCGHeadersToDict(headers);
+  const setCookie = typeof headers.getSetCookie === 'function' ? headers.getSetCookie() : [];
+  if (setCookie.length) {
+    dict['set-cookie'] = setCookie;
+  }
+  return dict;
 }
