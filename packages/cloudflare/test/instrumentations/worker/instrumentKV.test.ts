@@ -64,7 +64,12 @@ describe('instrumentKV', () => {
 
   test('handles bulk get without changing the underlying argument shape', async () => {
     const kv = createMockKVNamespace();
-    const get = vi.fn().mockResolvedValue(new Map([['first', 'one'], ['second', 'two']]));
+    const get = vi.fn().mockResolvedValue(
+      new Map([
+        ['first', 'one'],
+        ['second', 'two'],
+      ]),
+    );
     kv.get = get as unknown as KVNamespace['get'];
     const wrapped = instrumentKV(kv, 'MY_KV');
 

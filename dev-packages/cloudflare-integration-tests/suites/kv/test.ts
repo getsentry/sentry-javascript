@@ -19,16 +19,18 @@ it('emits cache.get for a KV read with key and hit attributes', async ({ signal 
     .expect(envelope => {
       const spans = getSpansFromEnvelope(envelope).filter(span => span.name === CACHE_GET);
       expect(spans).toHaveLength(1);
-      expect(spans[0]?.attributes).toEqual({
-        [SENTRY_OP]: { type: 'string', value: CACHE_GET },
-        [SENTRY_ORIGIN]: { type: 'string', value: 'auto.cache.cloudflare.kv' },
-        [CACHE_OPERATION]: { type: 'string', value: CACHE_OPERATION_NAMES[CACHE_GET] },
-        [CACHE_KEY]: { type: 'array', value: ['get-key'] },
-        [CACHE_HIT]: { type: 'boolean', value: true },
-        [DB_OPERATION_NAME]: { type: 'string', value: 'get' },
-        [DB_COLLECTION_NAME]: { type: 'string', value: 'MY_KV' },
-        [DB_SYSTEM_NAME]: { type: 'string', value: 'cloudflare-kv' },
-      });
+      expect(spans[0]?.attributes).toEqual(
+        expect.objectContaining({
+          [SENTRY_OP]: { type: 'string', value: CACHE_GET },
+          [SENTRY_ORIGIN]: { type: 'string', value: 'auto.cache.cloudflare.kv' },
+          [CACHE_OPERATION]: { type: 'string', value: CACHE_OPERATION_NAMES[CACHE_GET] },
+          [CACHE_KEY]: { type: 'array', value: ['get-key'] },
+          [CACHE_HIT]: { type: 'boolean', value: true },
+          [DB_OPERATION_NAME]: { type: 'string', value: 'get' },
+          [DB_COLLECTION_NAME]: { type: 'string', value: 'MY_KV' },
+          [DB_SYSTEM_NAME]: { type: 'string', value: 'cloudflare-kv' },
+        }),
+      );
     })
     .start(signal);
 

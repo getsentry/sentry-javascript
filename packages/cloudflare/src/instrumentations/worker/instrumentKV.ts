@@ -88,7 +88,7 @@ export function instrumentKV<T extends KVNamespace>(kv: T, bindingName: string):
         }
 
         return function (this: unknown, ...args: unknown[]) {
-          const operation = prop as KVOperation;
+          const operation = prop;
 
           return startSpan(createSpanOptions(bindingName, operation, args), async span => {
             const result = await Reflect.apply(original, target, args);
