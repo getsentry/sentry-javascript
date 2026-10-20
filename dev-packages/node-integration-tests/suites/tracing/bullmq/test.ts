@@ -41,7 +41,7 @@ describeWithDockerCompose('bullmq', { workingDirectory: [__dirname] }, () => {
                 }),
               );
 
-              producerSpans[publishSpan.attributes['bullmq.job.name']!.value as string] = {
+              producerSpans[publishSpan.attributes['messaging.bullmq.job.name']!.value as string] = {
                 trace_id: publishSpan.trace_id,
                 span_id: publishSpan.span_id,
                 messageId: publishSpan.attributes['messaging.message.id']!.value,
@@ -52,7 +52,7 @@ describeWithDockerCompose('bullmq', { workingDirectory: [__dirname] }, () => {
         .expect({
           span: container => {
             const consumerSegment = container.items.find(
-              item => item.is_segment && item.attributes['bullmq.job.name']?.value === 'test-job-1',
+              item => item.is_segment && item.attributes['messaging.bullmq.job.name']?.value === 'test-job-1',
             );
 
             expect(consumerSegment).toEqual(
@@ -82,7 +82,7 @@ describeWithDockerCompose('bullmq', { workingDirectory: [__dirname] }, () => {
         .expect({
           span: container => {
             const consumerSegment = container.items.find(
-              item => item.is_segment && item.attributes['bullmq.job.name']?.value === 'test-job-2',
+              item => item.is_segment && item.attributes['messaging.bullmq.job.name']?.value === 'test-job-2',
             );
 
             expect(consumerSegment).toEqual(
@@ -223,39 +223,46 @@ describeWithDockerCompose('bullmq', { workingDirectory: [__dirname] }, () => {
         .start()
         .completed();
 
-      // `bullmq.job.state` and `bullmq.queue.clean.count` are only set by BullMQ 6.
+      // `messaging.bullmq.job.state` and `messaging.bullmq.queue.clean.count` need BullMQ 6.
       expect([...attributeKeys]).toEqual(
         expect.arrayContaining([
-          'bullmq.flow.name',
-          'bullmq.job.attempt_finished_timestamp',
-          'bullmq.job.bulk.names',
-          'bullmq.job.deduplication.key',
-          'bullmq.job.finished.timestamp',
-          'bullmq.job.ids',
-          'bullmq.job.key',
-          'bullmq.job.name',
-          'bullmq.job.processed.timestamp',
-          'bullmq.job.scheduler.id',
-          'bullmq.job.status',
-          'bullmq.job.type',
-          'bullmq.queue.clean.limit',
-          'bullmq.queue.drain.delay',
-          'bullmq.queue.event.max.length',
-          'bullmq.queue.grace',
-          'bullmq.queue.jobs.state',
-          'bullmq.queue.rate.limit',
-          'bullmq.worker.do.not.wait.active',
-          'bullmq.worker.force.close',
-          'bullmq.worker.id',
-          'bullmq.worker.jobs.to.extend.locks',
-          'bullmq.worker.name',
-          'bullmq.worker.rate.limit',
-          'bullmq.worker.stalled.jobs',
+          'messaging.bullmq.flow.name',
+          'messaging.bullmq.job.attempt_finished_timestamp',
+          'messaging.bullmq.job.bulk.names',
+          'messaging.bullmq.job.deduplication.key',
+          'messaging.bullmq.job.finished.timestamp',
+          'messaging.bullmq.job.ids',
+          'messaging.bullmq.job.key',
+          'messaging.bullmq.job.name',
+          'messaging.bullmq.job.processed.timestamp',
+          'messaging.bullmq.job.scheduler.id',
+          'messaging.bullmq.job.status',
+          'messaging.bullmq.job.type',
+          'messaging.bullmq.queue.clean.limit',
+          'messaging.bullmq.queue.drain.delay',
+          'messaging.bullmq.queue.event.max.length',
+          'messaging.bullmq.queue.grace',
+          'messaging.bullmq.queue.jobs.state',
+          'messaging.bullmq.queue.rate.limit',
+          'messaging.bullmq.worker.do.not.wait.active',
+          'messaging.bullmq.worker.force.close',
+          'messaging.bullmq.worker.id',
+          'messaging.bullmq.worker.jobs.to.extend.locks',
+          'messaging.bullmq.worker.name',
+          'messaging.bullmq.worker.rate.limit',
+          'messaging.bullmq.worker.stalled.jobs',
         ]),
       );
       expect(
-        [...attributeKeys].filter(key =>
-          ['bullmq.job.options', 'bullmq.job.progress', 'bullmq.queue.options', 'bullmq.worker.options'].includes(key),
+        [...attributeKeys].filter(
+          key =>
+            key.startsWith('bullmq.') ||
+            [
+              'messaging.bullmq.job.options',
+              'messaging.bullmq.job.progress',
+              'messaging.bullmq.queue.options',
+              'messaging.bullmq.worker.options',
+            ].includes(key),
         ),
       ).toEqual([]);
     });

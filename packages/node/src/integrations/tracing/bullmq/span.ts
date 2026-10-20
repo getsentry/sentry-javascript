@@ -23,8 +23,8 @@ function toOtelAttributes(attributes: Record<string, AttributeValue>): Attribute
 }
 
 /**
- * Returns the BullMQ attributes, with each attribute that has a `messaging.*` convention replaced by that convention,
- * and without the attributes that hold JSON strings.
+ * Returns the BullMQ attributes with Sentry keys: the `messaging.*` convention where one exists, and the
+ * `messaging.bullmq.*` key for all others. The attributes that hold JSON strings are left out.
  */
 export function toSentryAttributes(attributes: Record<string, AttributeValue>): Attributes {
   const {
@@ -39,7 +39,7 @@ export function toSentryAttributes(attributes: Record<string, AttributeValue>): 
 
   for (const [key, value] of Object.entries(toOtelAttributes(rest))) {
     if (!JSON_STRING_ATTRIBUTES.has(key)) {
-      result[key] = value;
+      result[key.startsWith('bullmq.') ? `messaging.${key}` : key] = value;
     }
   }
 

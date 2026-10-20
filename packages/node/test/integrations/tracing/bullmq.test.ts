@@ -103,7 +103,7 @@ describe('SentryBullMQTracer', () => {
       });
     });
 
-    it('merges attributes from SpanOptions and replaces mapped ones with messaging attributes', () => {
+    it('merges attributes from SpanOptions and gives them messaging keys', () => {
       const telemetry = new BullMQTelemetry();
 
       telemetry.tracer.startSpan('add emails', {
@@ -117,7 +117,7 @@ describe('SentryBullMQTracer', () => {
           'sentry.origin': 'auto.queue.bullmq.producer',
           'messaging.system': 'bullmq',
           'messaging.destination.name': 'emails',
-          'bullmq.job.name': 'welcome-email',
+          'messaging.bullmq.job.name': 'welcome-email',
         },
         onlyIfParent: false,
       });
@@ -203,7 +203,7 @@ describe('SentryBullMQSpan', () => {
 
     span.setAttribute('bullmq.job.name', 'welcome-email');
 
-    expect(otelSpan.setAttributes).toHaveBeenCalledWith({ 'bullmq.job.name': 'welcome-email' });
+    expect(otelSpan.setAttributes).toHaveBeenCalledWith({ 'messaging.bullmq.job.name': 'welcome-email' });
   });
 
   it('delegates setAttributes to the underlying OTel span', () => {
@@ -212,12 +212,12 @@ describe('SentryBullMQSpan', () => {
     span.setAttributes({ 'bullmq.job.name': 'welcome-email', 'bullmq.worker.name': 'mailer' });
 
     expect(otelSpan.setAttributes).toHaveBeenCalledWith({
-      'bullmq.job.name': 'welcome-email',
-      'bullmq.worker.name': 'mailer',
+      'messaging.bullmq.job.name': 'welcome-email',
+      'messaging.bullmq.worker.name': 'mailer',
     });
   });
 
-  it('replaces the BullMQ attributes that have a messaging convention and keeps the others', () => {
+  it('replaces the BullMQ attributes that have a messaging convention and prefixes the others', () => {
     const { span, otelSpan } = createSpan();
 
     span.setAttributes({
@@ -230,7 +230,7 @@ describe('SentryBullMQSpan', () => {
     });
 
     expect(otelSpan.setAttributes).toHaveBeenCalledWith({
-      'bullmq.job.name': 'welcome-email',
+      'messaging.bullmq.job.name': 'welcome-email',
       'messaging.destination.name': 'emails',
       'messaging.operation.name': 'process',
       'messaging.message.id': '42',
@@ -563,7 +563,7 @@ describe('SentryBullMQMeter', () => {
       expect(SentryCore.metrics.count).toHaveBeenCalledWith('bullmq.jobs.completed', 1, {
         unit: undefined,
         attributes: {
-          'bullmq.job.name': 'welcome-email',
+          'messaging.bullmq.job.name': 'welcome-email',
           'messaging.destination.name': 'emails',
         },
       });

@@ -55,7 +55,7 @@ test('BullMQ processor breadcrumbs do not leak into subsequent HTTP requests', a
     return (
       span.is_segment &&
       getSpanOp(span) === 'queue.process' &&
-      span.attributes['bullmq.job.name']?.value === 'breadcrumb-job'
+      span.attributes['messaging.bullmq.job.name']?.value === 'breadcrumb-job'
     );
   });
 
@@ -79,12 +79,14 @@ test('BullMQ processor breadcrumbs do not leak into subsequent HTTP requests', a
 
 test('Links the queue.process segment span to its producer span', async ({ baseURL }) => {
   const producerSpanPromise = waitForStreamedSpan('node-bullmq', span => {
-    return getSpanOp(span) === 'queue.publish' && span.attributes['bullmq.job.name']?.value === 'link-job';
+    return getSpanOp(span) === 'queue.publish' && span.attributes['messaging.bullmq.job.name']?.value === 'link-job';
   });
 
   const consumerSpanPromise = waitForStreamedSpan('node-bullmq', span => {
     return (
-      span.is_segment && getSpanOp(span) === 'queue.process' && span.attributes['bullmq.job.name']?.value === 'link-job'
+      span.is_segment &&
+      getSpanOp(span) === 'queue.process' &&
+      span.attributes['messaging.bullmq.job.name']?.value === 'link-job'
     );
   });
 
