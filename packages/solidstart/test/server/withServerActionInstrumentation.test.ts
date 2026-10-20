@@ -169,6 +169,37 @@ describe('withServerActionInstrumentation', () => {
     expect(mockSpanSetAttribute).to.toHaveBeenCalledWith(SENTRY_SEGMENT_NAME_SOURCE, 'route');
   });
 
+  it('sets a server action name on the root span when the active span is a child span', async () => {
+    setCurrentClient(createMockNodeClient());
+
+    const rootSpan = SentryCore.startInactiveSpan({
+      name: 'POST',
+      parentSpan: null,
+      attributes: {
+        'url.path': '/_server',
+        'http.request.method': 'POST',
+        [SENTRY_OP]: 'http.server',
+      },
+    });
+    const handlerSpan = SentryCore.startInactiveSpan({
+      name: 'POST /**',
+      parentSpan: rootSpan,
+      attributes: { [SENTRY_OP]: 'handler' },
+    });
+    mockGetActiveSpan.mockReturnValue(handlerSpan);
+
+    await serverActionGetPrefecture();
+
+    expect(spanToJSON(rootSpan)).toMatchObject({
+      name: 'POST getPrefecture',
+      attributes: expect.objectContaining({
+        'http.route': 'getPrefecture',
+        [SENTRY_SEGMENT_NAME_SOURCE]: 'route',
+      }),
+    });
+    expect(spanToJSON(handlerSpan).name).toBe('POST /**');
+  });
+
   it('does not set a server action name if the active span had a non `/_server` `url.path`', async () => {
     const span = new SentryCore.SentrySpan();
     span.setAttribute('url.path', '/users/5');

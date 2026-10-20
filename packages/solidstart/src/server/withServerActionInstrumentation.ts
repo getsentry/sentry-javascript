@@ -1,6 +1,6 @@
 import { handleCallbackErrors, SPAN_STATUS_ERROR } from '@sentry/core';
 import { flushIfServerless } from '@sentry/core/server';
-import { captureException, getActiveSpan, spanToJSON, startSpan } from '@sentry/node';
+import { captureException, getActiveSpan, getRootSpan, spanToJSON, startSpan } from '@sentry/node';
 import { isRedirect } from './utils';
 import {
   SENTRY_SEGMENT_NAME_SOURCE,
@@ -25,7 +25,9 @@ export async function withServerActionInstrumentation<A extends (...args: unknow
   const activeSpan = getActiveSpan();
 
   if (activeSpan) {
-    const spanData = spanToJSON(activeSpan).attributes;
+    // The request attributes live on the root `http.server` span. The active span can be a child of
+    // it, e.g. the Nitro route handler span.
+    const spanData = spanToJSON(getRootSpan(activeSpan)).attributes;
 
     // In solid start, server function calls are made to `/_server` which doesn't tell us
     // a lot. We rewrite the span's route to be that of the sever action name but only
