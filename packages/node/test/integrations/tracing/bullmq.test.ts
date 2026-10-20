@@ -494,7 +494,7 @@ describe('SentryBullMQMeter', () => {
 
       counter.add(5, { 'queue.name': 'emails' });
 
-      expect(SentryCore.metrics.count).toHaveBeenCalledWith('bullmq.jobs.completed', 5, {
+      expect(SentryCore.metrics.count).toHaveBeenCalledWith('messaging.bullmq.jobs.completed', 5, {
         unit: 'none',
         attributes: { 'queue.name': 'emails' },
       });
@@ -506,7 +506,7 @@ describe('SentryBullMQMeter', () => {
 
       counter.add(1);
 
-      expect(SentryCore.metrics.count).toHaveBeenCalledWith('bullmq.jobs.failed', 1, {
+      expect(SentryCore.metrics.count).toHaveBeenCalledWith('messaging.bullmq.jobs.failed', 1, {
         unit: undefined,
         attributes: undefined,
       });
@@ -520,7 +520,7 @@ describe('SentryBullMQMeter', () => {
 
       histogram.record(142.5, { 'queue.name': 'notifications' });
 
-      expect(SentryCore.metrics.distribution).toHaveBeenCalledWith('bullmq.job.duration', 142.5, {
+      expect(SentryCore.metrics.distribution).toHaveBeenCalledWith('messaging.bullmq.job.duration', 142.5, {
         unit: 'millisecond',
         attributes: { 'queue.name': 'notifications' },
       });
@@ -532,7 +532,7 @@ describe('SentryBullMQMeter', () => {
 
       histogram.record(512);
 
-      expect(SentryCore.metrics.distribution).toHaveBeenCalledWith('bullmq.job.payload', 512, {
+      expect(SentryCore.metrics.distribution).toHaveBeenCalledWith('messaging.bullmq.job.payload', 512, {
         unit: 'byte',
         attributes: undefined,
       });
@@ -546,7 +546,7 @@ describe('SentryBullMQMeter', () => {
 
       gauge.record(37, { 'queue.name': 'reports' });
 
-      expect(SentryCore.metrics.gauge).toHaveBeenCalledWith('bullmq.queue.jobs', 37, {
+      expect(SentryCore.metrics.gauge).toHaveBeenCalledWith('messaging.bullmq.queue.jobs', 37, {
         unit: 'none',
         attributes: { 'queue.name': 'reports' },
       });
@@ -560,7 +560,7 @@ describe('SentryBullMQMeter', () => {
 
       counter.add(1, { 'bullmq.queue.name': 'emails', 'bullmq.job.name': 'welcome-email' });
 
-      expect(SentryCore.metrics.count).toHaveBeenCalledWith('bullmq.jobs.completed', 1, {
+      expect(SentryCore.metrics.count).toHaveBeenCalledWith('messaging.bullmq.jobs.completed', 1, {
         unit: undefined,
         attributes: {
           'messaging.bullmq.job.name': 'welcome-email',
@@ -580,7 +580,7 @@ describe('SentryBullMQMeter', () => {
         enabled: true,
       });
 
-      expect(SentryCore.metrics.count).toHaveBeenCalledWith('bullmq.jobs.completed', 1, {
+      expect(SentryCore.metrics.count).toHaveBeenCalledWith('messaging.bullmq.jobs.completed', 1, {
         unit: undefined,
         attributes: {
           'queue.name': 'emails',
@@ -596,7 +596,7 @@ describe('SentryBullMQMeter', () => {
 
       counter.add(1, { tags: ['a', 'b'] });
 
-      expect(SentryCore.metrics.count).toHaveBeenCalledWith('bullmq.jobs.completed', 1, {
+      expect(SentryCore.metrics.count).toHaveBeenCalledWith('messaging.bullmq.jobs.completed', 1, {
         unit: undefined,
         attributes: {},
       });

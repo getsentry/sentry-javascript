@@ -107,30 +107,30 @@ test('Links the queue.process segment span to its producer span', async ({ baseU
   ]);
 });
 
-test('Emits bullmq.jobs.completed counter metric on successful job', async ({ baseURL }) => {
+test('Emits messaging.bullmq.jobs.completed counter metric on successful job', async ({ baseURL }) => {
   const metricPromise = waitForMetric('node-bullmq', metric => {
-    return metric.name === 'bullmq.jobs.completed' && metric.type === 'counter';
+    return metric.name === 'messaging.bullmq.jobs.completed' && metric.type === 'counter';
   });
 
   await fetch(`${baseURL}/enqueue/success`);
 
   const metric = await metricPromise;
 
-  expect(metric.name).toBe('bullmq.jobs.completed');
+  expect(metric.name).toBe('messaging.bullmq.jobs.completed');
   expect(metric.type).toBe('counter');
   expect(metric.value).toEqual(expect.any(Number));
 });
 
-test('Emits bullmq.job.duration histogram metric on job completion', async ({ baseURL }) => {
+test('Emits messaging.bullmq.job.duration histogram metric on job completion', async ({ baseURL }) => {
   const metricPromise = waitForMetric('node-bullmq', metric => {
-    return metric.name === 'bullmq.job.duration' && metric.type === 'distribution';
+    return metric.name === 'messaging.bullmq.job.duration' && metric.type === 'distribution';
   });
 
   await fetch(`${baseURL}/enqueue/success`);
 
   const metric = await metricPromise;
 
-  expect(metric.name).toBe('bullmq.job.duration');
+  expect(metric.name).toBe('messaging.bullmq.job.duration');
   expect(metric.type).toBe('distribution');
   expect(metric.value).toEqual(expect.any(Number));
 });

@@ -1,5 +1,5 @@
 import { metrics } from '@sentry/core';
-import { toSentryAttributes } from './span';
+import { toMessagingKey, toSentryAttributes } from './span';
 import type { AttributeValue, Counter, Gauge, Histogram, Meter, MetricOptions } from './types';
 
 function toMetricAttributes(
@@ -86,14 +86,14 @@ class SentryBullMQGauge implements Gauge {
 
 export class SentryBullMQMeter implements Meter {
   public createCounter(name: string, options?: MetricOptions): Counter {
-    return new SentryBullMQCounter(name, toSentryUnit(options?.unit));
+    return new SentryBullMQCounter(toMessagingKey(name), toSentryUnit(options?.unit));
   }
 
   public createHistogram(name: string, options?: MetricOptions): Histogram {
-    return new SentryBullMQHistogram(name, toSentryUnit(options?.unit));
+    return new SentryBullMQHistogram(toMessagingKey(name), toSentryUnit(options?.unit));
   }
 
   public createGauge(name: string, options?: MetricOptions): Gauge {
-    return new SentryBullMQGauge(name, toSentryUnit(options?.unit));
+    return new SentryBullMQGauge(toMessagingKey(name), toSentryUnit(options?.unit));
   }
 }

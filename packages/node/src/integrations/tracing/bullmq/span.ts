@@ -23,6 +23,13 @@ function toOtelAttributes(attributes: Record<string, AttributeValue>): Attribute
 }
 
 /**
+ * Returns `messaging.<key>` for a `bullmq.*` attribute key or metric name, and all other keys unchanged.
+ */
+export function toMessagingKey(key: string): string {
+  return key.startsWith('bullmq.') ? `messaging.${key}` : key;
+}
+
+/**
  * Returns the BullMQ attributes with Sentry keys: the `messaging.*` convention where one exists, and the
  * `messaging.bullmq.*` key for all others. The attributes that hold JSON strings are left out.
  */
@@ -39,7 +46,7 @@ export function toSentryAttributes(attributes: Record<string, AttributeValue>): 
 
   for (const [key, value] of Object.entries(toOtelAttributes(rest))) {
     if (!JSON_STRING_ATTRIBUTES.has(key)) {
-      result[key.startsWith('bullmq.') ? `messaging.${key}` : key] = value;
+      result[toMessagingKey(key)] = value;
     }
   }
 

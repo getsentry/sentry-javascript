@@ -130,11 +130,11 @@ describeWithDockerCompose('bullmq', { workingDirectory: [__dirname] }, () => {
             const items = metrics.items || [];
 
             expect(items).toHaveLength(4);
-            expect(items.filter(item => item.name === 'bullmq.jobs.completed')).toEqual([
+            expect(items.filter(item => item.name === 'messaging.bullmq.jobs.completed')).toEqual([
               expect.objectContaining({ type: 'counter', unit: 'none', value: expect.any(Number) }),
               expect.objectContaining({ type: 'counter', unit: 'none', value: expect.any(Number) }),
             ]);
-            expect(items.filter(item => item.name === 'bullmq.job.duration')).toEqual([
+            expect(items.filter(item => item.name === 'messaging.bullmq.job.duration')).toEqual([
               expect.objectContaining({ type: 'distribution', unit: 'millisecond', value: expect.any(Number) }),
               expect.objectContaining({ type: 'distribution', unit: 'millisecond', value: expect.any(Number) }),
             ]);
@@ -212,8 +212,8 @@ describeWithDockerCompose('bullmq', { workingDirectory: [__dirname] }, () => {
         })
         .expect({
           trace_metric: (metrics: SerializedMetricContainer) => {
-            expect(metrics.items.find(item => item.name === 'bullmq.jobs.completed')).toBeDefined();
-            expect(metrics.items.find(item => item.name === 'bullmq.queue.jobs')).toBeDefined();
+            expect(metrics.items.find(item => item.name === 'messaging.bullmq.jobs.completed')).toBeDefined();
+            expect(metrics.items.find(item => item.name === 'messaging.bullmq.queue.jobs')).toBeDefined();
 
             for (const item of metrics.items) {
               Object.keys(item.attributes || {}).forEach(key => attributeKeys.add(key));
