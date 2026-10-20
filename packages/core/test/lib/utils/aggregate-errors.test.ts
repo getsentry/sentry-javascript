@@ -273,6 +273,44 @@ describe('applyAggregateErrorsToEvent()', () => {
     });
   });
 
+  test.each([
+    [0, ['Root Error']],
+    [1, ['First child', 'Root Error']],
+    [3, ['Third child', 'Second child', 'First child', 'Root Error']],
+  ])('limits AggregateError children to %i linked errors', (limit, expectedValues) => {
+    const originalException: ExtendedError = runInNewContext(
+      `new AggregateError(['not an error', new Error('First child'), new Error('Second child'), new Error('Third child'), new Error('Fourth child')], 'Root Error')`,
+    );
+    const event = { exception: { values: [exceptionFromError(stackParser, originalException)] } };
+
+    applyAggregateErrorsToEvent(exceptionFromError, stackParser, 'cause', limit, event, { originalException });
+
+    expect(event.exception.values.map(exception => exception.value)).toEqual(expectedValues);
+  });
+
+  test('stops reading aggregate children when a nested cause uses the linked-error limit', () => {
+    const cause = new FakeAggregateError(
+      [new Error('First child'), new Error('Second child'), new Error('Third child')],
+      'Cause',
+    );
+    const originalException = new CustomAggregateError([new Error('Unread child')], 'Root Error', cause);
+    Object.defineProperty(originalException.errors, 0, {
+      get() {
+        throw new Error('Read an aggregate child after reaching the limit');
+      },
+    });
+    const event = { exception: { values: [exceptionFromError(stackParser, originalException)] } };
+
+    applyAggregateErrorsToEvent(exceptionFromError, stackParser, 'cause', 3, event, { originalException });
+
+    expect(event.exception.values.map(exception => exception.value)).toEqual([
+      'Second child',
+      'First child',
+      'Cause',
+      'Root Error',
+    ]);
+  });
+
   test('should keep the original mechanism type for the root exception', () => {
     const fakeAggregateError = new FakeAggregateError(
       [new Error('Nested Error 1'), new Error('Nested Error 2')],
@@ -539,6 +577,21 @@ describe('applyAggregateErrorsToEvent()', () => {
       'dispose 1 failed',
       'An error was suppressed during disposal.',
     ]);
+  });
+
+  test('limits nested SuppressedErrors before reading later siblings', () => {
+    const inner = new FakeSuppressedError(new Error('dispose failed'), new Error('Unread inner error'), 'Inner');
+    const originalException = new FakeSuppressedError(inner, new Error('Unread outer error'), 'Root Error');
+    Object.defineProperty(inner, 'suppressed', {
+      get() {
+        throw new Error('Read a suppressed error after reaching the limit');
+      },
+    });
+    const event = { exception: { values: [exceptionFromError(stackParser, originalException)] } };
+
+    applyAggregateErrorsToEvent(exceptionFromError, stackParser, 'cause', 2, event, { originalException });
+
+    expect(event.exception.values.map(exception => exception.value)).toEqual(['dispose failed', 'Inner', 'Root Error']);
   });
 
   test('skips `error` / `suppressed` values that are not Errors', () => {

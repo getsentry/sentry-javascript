@@ -75,7 +75,10 @@ function aggregateExceptionsFromError(
   // This will create exception grouping for AggregateErrors
   // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/AggregateError
   if (isExceptionGroup(error)) {
-    error.errors.forEach((childError, i) => {
+    const errors = error.errors;
+    const length = errors.length;
+    for (let i = 0; i < length && newExceptions.length < limit + 1; i++) {
+      const childError = errors[i];
       if (isError(childError)) {
         applyExceptionGroupFieldsForParentException(exception, exceptionId, error);
         const newException = exceptionFromErrorImplementation(parser, childError);
@@ -92,7 +95,7 @@ function aggregateExceptionsFromError(
           newExceptionId,
         );
       }
-    });
+    }
   }
 
   // SuppressedError (explicit resource management) wraps two errors: `error` (the new one thrown during disposal)
@@ -100,7 +103,10 @@ function aggregateExceptionsFromError(
   // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/SuppressedError
 
   if (isSuppressedError(error)) {
-    ['error', 'suppressed'].forEach(property => {
+    for (const property of ['error', 'suppressed']) {
+      if (newExceptions.length >= limit + 1) {
+        break;
+      }
       const childError = error[property];
       if (isError(childError)) {
         applyExceptionGroupFieldsForParentException(exception, exceptionId, error);
@@ -118,7 +124,7 @@ function aggregateExceptionsFromError(
           newExceptionId,
         );
       }
-    });
+    }
   }
 
   return newExceptions;
