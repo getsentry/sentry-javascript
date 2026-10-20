@@ -429,7 +429,7 @@ describe('NodeClient', () => {
       expect(clearIntervalSpy).toHaveBeenCalledWith(intervalResult?.value);
     });
 
-    it('removes log, metric and span exit listeners when closed', async () => {
+    it('removes the exit flush listener when closed', async () => {
       const originalListeners = process.listeners('beforeExit');
       const client = new NodeClient(getDefaultNodeClientOptions({ sendClientReports: false }));
 
@@ -437,7 +437,7 @@ describe('NodeClient', () => {
 
       await client.close();
 
-      expect(addedListeners).toHaveLength(3);
+      expect(addedListeners).toHaveLength(1);
       expect(process.listeners('beforeExit')).toEqual(originalListeners);
     });
   });
