@@ -1,7 +1,45 @@
 import type { MonitorConfig } from '@sentry/core';
-import { captureException, isThenable, withMonitor } from '@sentry/core';
+import { captureException, debug, isThenable, stringMatchesSomePattern, withMonitor } from '@sentry/core';
+import { DEBUG_BUILD } from '../debug-build';
+import * as diagnosticsChannel from './diagnosticsChannel';
 
 export type AnyFn = (this: unknown, ...args: unknown[]) => unknown;
+
+// Set by `Sentry.cron.instrument*`, which already send check-ins.
+const MONITORED = Symbol.for('sentry.cron.monitored');
+
+/**
+ * Calls `onJob` with the arguments of each call on a scheduler's job-creation channel, so it can wrap the job.
+ * Errors are logged and the job is created unmonitored.
+ */
+export function subscribeToJobCreation(
+  channelName: string,
+  integrationName: string,
+  onJob: (args: unknown[]) => void,
+): void {
+  diagnosticsChannel.tracingChannel<{ arguments: unknown[] }>(channelName).start.subscribe(message => {
+    try {
+      onJob((message as { arguments: unknown[] }).arguments);
+    } catch (e) {
+      DEBUG_BUILD && debug.error(`[${integrationName}] Failed to set up the cron monitor:`, e);
+    }
+  });
+}
+
+/** Whether a job is named, not excluded, and not already monitored by `Sentry.cron.instrument*`. */
+export function shouldMonitorJob(
+  name: unknown,
+  job: unknown,
+  excludeJobs: Array<string | RegExp> | undefined,
+): name is string {
+  return (
+    typeof name === 'string' &&
+    !!name &&
+    typeof job === 'function' &&
+    !(job as { [MONITORED]?: boolean })[MONITORED] &&
+    !stringMatchesSomePattern(name, excludeJobs, true)
+  );
+}
 
 const NICKNAMES: Record<string, string> = {
   '@yearly': '0 0 1 1 *',

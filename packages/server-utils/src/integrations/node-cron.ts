@@ -1,24 +1,22 @@
-import * as diagnosticsChannel from '../utils/diagnosticsChannel';
 import type { IntegrationFn } from '@sentry/core';
-import { debug, defineIntegration, stringMatchesSomePattern } from '@sentry/core';
-import { DEBUG_BUILD } from '../debug-build';
+import { defineIntegration } from '@sentry/core';
 import { CHANNELS } from '../orchestrion/channels';
 import { nodeCronModuleNames } from '../orchestrion/config/node-cron';
 import { invokeOrchestrionInstrumentation } from '../orchestrion/instrumentation';
 import type { AnyFn } from '../utils/cronMonitoring';
-import { cronExpressionToMonitorConfig, wrapScheduledJob } from '../utils/cronMonitoring';
+import {
+  cronExpressionToMonitorConfig,
+  shouldMonitorJob,
+  subscribeToJobCreation,
+  wrapScheduledJob,
+} from '../utils/cronMonitoring';
 
 const INTEGRATION_NAME = 'NodeCron' as const;
-
-// Set by `Sentry.cron.instrumentNodeCron`, which already sends check-ins.
-const MONITORED = Symbol.for('sentry.cron.monitored');
 
 export interface NodeCronIntegrationOptions {
   /** Task names not to monitor. Strings must match the name exactly. */
   excludeJobs?: Array<string | RegExp>;
 }
-
-const NOOP = (): void => {};
 
 let options: NodeCronIntegrationOptions = {};
 
@@ -41,33 +39,42 @@ const _nodeCronIntegration = ((integrationOptions: NodeCronIntegrationOptions = 
 export const nodeCronIntegration = defineIntegration(_nodeCronIntegration);
 
 function subscribe(): void {
-  diagnosticsChannel.tracingChannel<{ arguments: unknown[] }>(CHANNELS.NODE_CRON_CREATE_TASK).subscribe({
-    start(data) {
-      try {
-        const [expression, func, taskOptions] = data.arguments;
-        const { name, timezone } = (taskOptions || {}) as { name?: unknown; timezone?: unknown };
-        if (
-          typeof func !== 'function' ||
-          (func as { [MONITORED]?: boolean })[MONITORED] ||
-          typeof name !== 'string' ||
-          !name ||
-          stringMatchesSomePattern(name, options.excludeJobs, true)
-        ) {
-          return;
-        }
-        data.arguments[1] = wrapScheduledJob(
-          func as AnyFn,
-          name,
-          cronExpressionToMonitorConfig(String(expression), timezone, 'and'),
-          'auto.function.node-cron',
-        );
-      } catch (e) {
-        DEBUG_BUILD && debug.error('[NodeCron] Failed to set up the cron monitor:', e);
-      }
-    },
-    end: NOOP,
-    asyncStart: NOOP,
-    asyncEnd: NOOP,
-    error: NOOP,
+  subscribeToJobCreation(CHANNELS.NODE_CRON_CREATE_TASK, INTEGRATION_NAME, args => wrapTask(args, false));
+  subscribeToJobCreation(CHANNELS.NODE_CRON_V3_CREATE_TASK, INTEGRATION_NAME, args => wrapTask(args, true));
+}
+
+// `createTask(expression, func, options)`
+function wrapTask(args: unknown[], isNodeCron3: boolean): void {
+  const [expression, func, taskOptions] = args;
+  const { name, timezone } = (taskOptions || {}) as { name?: unknown; timezone?: unknown };
+  if (!shouldMonitorJob(name, func, options.excludeJobs)) {
+    return;
+  }
+  const monitorConfig =
+    isNodeCron3 && !isReadAlikeByNodeCron3(String(expression))
+      ? undefined
+      : cronExpressionToMonitorConfig(String(expression), timezone, 'and');
+  args[1] = wrapScheduledJob(func as AnyFn, name, monitorConfig, 'auto.function.node-cron');
+}
+
+const NODE_CRON_3_FIELD_MINIMUMS = [0, 0, 1, 1, 0];
+
+/**
+ * node-cron 3 keeps the values of a stepped field that are multiples of the step (`*\/2` days are 2, 4, ...)
+ * and reads `7` in a weekday range as `0`. Returns `false` where that differs from standard cron.
+ */
+export function isReadAlikeByNodeCron3(expression: string): boolean {
+  const fields = expression.trim().split(/\s+/);
+  const minimums = fields.length === 6 ? [0, ...NODE_CRON_3_FIELD_MINIMUMS] : NODE_CRON_3_FIELD_MINIMUMS;
+  const weekday = fields[fields.length - 1] || '';
+  if (weekday.includes('-') && weekday.includes('7')) {
+    return false;
+  }
+  return fields.every((field, index) => {
+    if (!field.includes('/')) {
+      return true;
+    }
+    const match = /^(?:\*|(\d+)-\d+)\/(\d+)$/.exec(field);
+    return !!match && Number(match[1] ?? minimums[index]) % Number(match[2]) === 0;
   });
 }
