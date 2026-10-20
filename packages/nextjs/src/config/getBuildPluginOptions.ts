@@ -357,5 +357,8 @@ export function getBuildPluginOptions({
       },
     },
     ...sentryBuildOptions.webpack?.unstable_sentryWebpackPluginOptions,
+    // Only the browser reads these tags (`thirdPartyErrorFilterIntegration`), so server bundles skip the per-module cost.
+    // Set after the spread so a key passed through `unstable_sentryWebpackPluginOptions` is dropped on the server too.
+    ...(buildTool === 'webpack-nodejs' || buildTool === 'webpack-edge' ? { applicationKey: undefined } : {}),
   };
 }
