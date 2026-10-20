@@ -4,15 +4,15 @@ import { vi } from 'vitest';
 /**
  * Creates a mock Sentry client with getDataCollectionOptions for use in MCP server tests.
  * @param userInfo - Whether user identity data (IP, port) is collected. Default: true
- * @param genAI - Whether AI inputs/outputs are recorded. Defaults to match userInfo.
+ * @param mcp - Whether MCP inputs/outputs are recorded. Defaults to match userInfo.
  * @param traceLifecycle - Whether spans are streamed or sent as transactions. Default: 'static'
  */
 export function createMockClient(
   userInfo = true,
-  genAI?: { inputs: boolean; outputs: boolean },
+  mcp?: { inputs: boolean; outputs: boolean },
   traceLifecycle: 'static' | 'stream' = 'static',
 ): Client {
-  const genAIOptions = genAI ?? { inputs: userInfo, outputs: userInfo };
+  const mcpOptions = mcp ?? { inputs: userInfo, outputs: userInfo };
   return {
     getOptions: () => ({ traceLifecycle }),
     getDataCollectionOptions: () => ({
@@ -22,7 +22,8 @@ export function createMockClient(
       httpBodies: [],
       urlQueryParams: true,
       graphQL: { document: true, variables: true },
-      genAI: genAIOptions,
+      genAI: { inputs: true, outputs: true },
+      mcp: mcpOptions,
       databaseQueryData: true,
       stackFrameVariables: true,
       frameContextLines: 5,

@@ -27,11 +27,11 @@ function resolveMcpOptions(options: McpServerWrapperOptions): ResolvedMcpOptions
     };
   }
 
-  const genAI = getClient()?.getDataCollectionOptions().genAI;
+  const mcp = getClient()?.getDataCollectionOptions().mcp;
 
   return {
-    recordInputs: options.recordInputs ?? genAI?.inputs ?? true,
-    recordOutputs: options.recordOutputs ?? genAI?.outputs ?? true,
+    recordInputs: options.recordInputs ?? mcp?.inputs ?? true,
+    recordOutputs: options.recordOutputs ?? mcp?.outputs ?? true,
   };
 }
 
