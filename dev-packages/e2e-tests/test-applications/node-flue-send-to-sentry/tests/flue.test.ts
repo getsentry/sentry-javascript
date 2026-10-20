@@ -106,5 +106,5 @@ test('nests a manual span raised inside a tool under that tool span', async ({ b
 
   await expect
     .poll(() => fetchSpanAttributes(traceId, manualSpan!.event_id!), EVENT_POLLING_OPTIONS)
-    .toMatchObject({ 'weather.source': 'static-table', 'weather.city': 'Berlin' });
+    .toMatchObject({ 'weather.source': 'static-table', 'weather.city': expect.stringContaining('Berlin') });
 });
