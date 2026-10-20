@@ -55,6 +55,7 @@ describe('getDebugIdSnippet', () => {
     // top of the file hits the temporal dead zone, where `typeof` throws rather
     // than returning "undefined".
     const scope: { Error: ErrorConstructor; _sentryDebugIds?: Record<string, string> } = { Error };
+    // oxlint-disable-next-line typescript/no-implied-eval
     const run = new Function('globalThis', `${getDebugIdSnippet('5678').code()}\nconst global = globalThis;`);
 
     run(scope);
