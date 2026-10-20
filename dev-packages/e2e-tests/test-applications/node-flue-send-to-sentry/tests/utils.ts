@@ -1,4 +1,5 @@
 import { expect } from '@playwright/test';
+import { SEARCH_GEN_AI__CONVERSATION__ID } from '@sentry/conventions/attributes/search';
 import type { TraceItem } from '@sentry-internal/test-utils/cli';
 import {
   EVENT_POLLING_OPTIONS,
@@ -28,8 +29,8 @@ export async function runAgentTurn(baseURL: string, instanceId: string, message:
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ kind: 'user', body: message }),
   });
-  expect(res.status).toBe(202);
-  await res.text();
+  const body = await res.text();
+  expect(res.status, body).toBe(202);
 
   const deadline = Date.now() + 90_000;
   while (Date.now() < deadline) {
@@ -54,7 +55,10 @@ export async function waitForConversationTrace(
 ): Promise<{ traceId: string; spans: TraceItem[] }> {
   let traceId: string | undefined;
   await expect
-    .poll(() => (traceId = findTraceIdOfSpan(`gen_ai.conversation.id:${conversationId}`)), EVENT_POLLING_OPTIONS)
+    .poll(
+      () => (traceId = findTraceIdOfSpan(`${SEARCH_GEN_AI__CONVERSATION__ID}:${conversationId}`)),
+      EVENT_POLLING_OPTIONS,
+    )
     .toBeDefined();
 
   console.log(`Polling for the agent spans: sentry trace view ${traceTarget(traceId!)}`);

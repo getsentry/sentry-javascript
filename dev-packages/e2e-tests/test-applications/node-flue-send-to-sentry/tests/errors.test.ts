@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test';
+import { SEARCH_GEN_AI__TOOL__NAME, SEARCH_SPAN__STATUS } from '@sentry/conventions/attributes/search';
 import {
   EVENT_POLLING_OPTIONS,
   fetchEvent,
@@ -31,5 +32,5 @@ test('sends an error thrown inside a Flue tool and marks its span errored', asyn
   const executeTool = spans.find(span => span.description === 'execute_tool fail_now');
   await expect
     .poll(() => fetchSpanAttributes(traceId, executeTool!.event_id!), EVENT_POLLING_OPTIONS)
-    .toMatchObject({ 'gen_ai.tool.name': 'fail_now', 'span.status': 'error' });
+    .toMatchObject({ [SEARCH_GEN_AI__TOOL__NAME]: 'fail_now', [SEARCH_SPAN__STATUS]: 'error' });
 });
