@@ -1,13 +1,15 @@
 /* eslint-disable max-lines */
-import type { Integration, IntegrationFn, MaxRequestBodySize, SpanAttributes } from '@sentry/core';
+import type { Client, Integration, IntegrationFn, MaxRequestBodySize, Span, SpanAttributes } from '@sentry/core';
 import {
   captureBodyFromWinterCGRequest,
   captureException,
   continueTrace,
+  debug,
   defineIntegration,
   getClient,
   getUrlFragment,
   getUrlQuery,
+  hasSpansEnabled,
   hasSpanStreamingEnabled,
   httpHeadersToSpanAttributes,
   HTTP_SPAN_NAME_FALLBACK,
@@ -22,7 +24,12 @@ import {
   filterCollectedUrlQuery,
 } from '@sentry/core';
 import type { AssertTrue, CheckServerRequestOptions } from '@sentry/core/server';
-import { classifyResponseStreaming, getClientIPAddress } from '@sentry/core/server';
+import {
+  classifyResponseStreaming,
+  getClientIPAddress,
+  isStaticAssetRequest,
+  startRequestSession,
+} from '@sentry/core/server';
 import type { Server, ServeOptions } from 'bun';
 import {
   CLIENT_ADDRESS,
@@ -55,32 +62,86 @@ export type BunServerIntegrationOptions = {
    * @default 'medium'
    */
   maxRequestBodySize?: MaxRequestBodySize;
+
+  /**
+   * Do not capture the request body for incoming requests where the given callback returns `true`.
+   *
+   * `url` is the full URL of the request, including the query string. `request` is the incoming
+   * {@link Request}. The callback runs before the SDK reads the body.
+   */
+  ignoreRequestBody?: (url: string, request: Request) => boolean;
+
+  /**
+   * Do not capture server spans for incoming requests whose URL path makes the given callback return `true`.
+   *
+   * `urlPath` is the path of the request, including the query string. `request` is the incoming
+   * {@link Request}. Errors thrown by the handler are still captured.
+   */
+  ignoreIncomingRequests?: (urlPath: string, request: Request) => boolean;
+
+  /**
+   * Whether to automatically ignore common static asset requests (favicon.ico, robots.txt, etc.)
+   * when creating server spans.
+   *
+   * @default `true`
+   */
+  ignoreStaticAssets?: boolean;
+
+  /**
+   * Whether to create spans for incoming requests.
+   * Errors are still captured and request data is still attached when this is `false`.
+   * Defaults to the client's tracing configuration (`hasSpansEnabled`).
+   */
+  spans?: boolean;
+
+  /**
+   * A hook that can be used to mutate the span for incoming requests.
+   * This is triggered after the span is created, before the request handler runs.
+   */
+  onSpanCreated?: (span: Span, request: Request) => void;
+
+  /**
+   * A hook that can be used to mutate the span one last time before it ends.
+   * For a streamed response, this runs when the stream finishes.
+   * It is not called when the request handler throws.
+   */
+  onSpanEnd?: (span: Span, request: Request, response: Response) => void;
+
+  /**
+   * Whether the integration should create [Sessions](https://docs.sentry.io/product/releases/health/#sessions) for
+   * incoming requests to track the health and crash-free rate of your releases in Sentry.
+   *
+   * For a streamed response, the session ends when the stream finishes.
+   *
+   * @default `true`
+   */
+  sessions?: boolean;
+
+  /**
+   * Number of milliseconds until sessions are flushed as a session aggregate.
+   *
+   * @default `60000` (60s)
+   */
+  sessionFlushingDelayMS?: number;
 };
 
 // Checks these options against the shared `ServerRequestOptions`. A new
 // shared field fails to compile here, until this integration supports
 // it or lists it as unsupported.
-type _ServerRequestOptionsCheck = AssertTrue<
-  CheckServerRequestOptions<
-    BunServerIntegrationOptions,
-    Request,
-    Response,
-    // Not supported yet.
-    | 'spans'
-    | 'sessions'
-    | 'sessionFlushingDelayMS'
-    | 'ignoreRequestBody'
-    | 'ignoreIncomingRequests'
-    | 'ignoreStaticAssets'
-    | 'onSpanCreated'
-    | 'onSpanEnd'
-  >
->;
+type _ServerRequestOptionsCheck = AssertTrue<CheckServerRequestOptions<BunServerIntegrationOptions, Request, Response>>;
 
 const _bunServerIntegration = ((options: BunServerIntegrationOptions = {}) => {
   return {
     name: INTEGRATION_NAME,
     maxRequestBodySize: options.maxRequestBodySize,
+    ignoreRequestBody: options.ignoreRequestBody,
+    ignoreIncomingRequests: options.ignoreIncomingRequests,
+    ignoreStaticAssets: options.ignoreStaticAssets ?? true,
+    spans: options.spans,
+    onSpanCreated: options.onSpanCreated,
+    onSpanEnd: options.onSpanEnd,
+    sessions: options.sessions ?? true,
+    sessionFlushingDelayMS: options.sessionFlushingDelayMS,
     setupOnce() {
       instrumentBunServe();
     },
@@ -230,6 +291,59 @@ type RouteHandler = Extract<
   Function
 >;
 
+function captureServeError(error: unknown): void {
+  captureException(error, { mechanism: { type: 'auto.http.bun.serve', handled: false } });
+}
+
+// A user callback that throws must not fail the request or leave the span open.
+function callUserCallback<T>(name: string, callback: () => T, fallback: T): T {
+  try {
+    return callback();
+  } catch (e) {
+    debug.error(`Error in the Bun.serve ${name} callback.`, e);
+    return fallback;
+  }
+}
+
+function shouldCreateSpan(
+  client: Client | undefined,
+  integration: BunServerIntegrationOptions | undefined,
+  request: Request,
+  urlPath: string,
+): boolean {
+  if (!(integration?.spans ?? (client ? hasSpansEnabled(client.getOptions()) : false))) {
+    return false;
+  }
+  if (integration?.ignoreStaticAssets && request.method.toUpperCase() === 'GET' && isStaticAssetRequest(urlPath)) {
+    return false;
+  }
+  const ignoreIncomingRequests = integration?.ignoreIncomingRequests;
+  return !(
+    ignoreIncomingRequests &&
+    callUserCallback('ignoreIncomingRequests', () => ignoreIncomingRequests(urlPath, request), false)
+  );
+}
+
+/**
+ * Calls `onDone` when the response is done: at once, or when a streamed body finishes.
+ * Returns the response to send.
+ */
+function onResponseDone<T extends Response | undefined>(response: T, onDone: () => void, onStreamError: () => void): T {
+  if (response?.body && !response.body.locked && classifyResponseStreaming(response).isStreaming) {
+    const body = monitorStream(response.body, onDone, error => {
+      onStreamError();
+      captureServeError(error);
+    });
+    return new Response(body, {
+      status: response.status,
+      statusText: response.statusText,
+      headers: response.headers,
+    }) as T;
+  }
+  onDone();
+  return response;
+}
+
 function wrapRequestHandler<T extends RouteHandler = RouteHandler>(
   target: T,
   thisArg: unknown,
@@ -239,8 +353,26 @@ function wrapRequestHandler<T extends RouteHandler = RouteHandler>(
   return withIsolationScope(async isolationScope => {
     const request = args[0];
     const upperCaseMethod = request.method.toUpperCase();
+
+    const client = getClient();
+    const integration = client?.getIntegrationByName<Integration & BunServerIntegrationOptions>(INTEGRATION_NAME);
+    const endSession =
+      client && integration?.sessions
+        ? startRequestSession(client, {
+            requestIsolationScope: isolationScope,
+            sessionFlushingDelayMS: integration.sessionFlushingDelayMS,
+          })
+        : undefined;
+
     if (upperCaseMethod === 'OPTIONS' || upperCaseMethod === 'HEAD') {
-      return target.apply(thisArg, args);
+      try {
+        return await target.apply(thisArg, args);
+      } catch (e) {
+        captureServeError(e);
+        throw e;
+      } finally {
+        endSession?.();
+      }
     }
 
     const parsedUrl = parseStringToURLObject(request.url);
@@ -267,7 +399,6 @@ function wrapRequestHandler<T extends RouteHandler = RouteHandler>(
       routeName = route;
     }
 
-    const client = getClient();
     const dataCollection = client?.getDataCollectionOptions();
 
     let socketAddress: { address: string; port: number } | undefined;
@@ -301,24 +432,52 @@ function wrapRequestHandler<T extends RouteHandler = RouteHandler>(
       ipAddress: socketAddress?.address,
     });
 
-    if (client && dataCollection) {
-      const configuredBodySize = client.getIntegrationByName<Integration & { maxRequestBodySize?: MaxRequestBodySize }>(
-        INTEGRATION_NAME,
-      )?.maxRequestBodySize;
+    if (dataCollection) {
       const effectiveBodySize =
-        configuredBodySize ?? (dataCollection.httpBodies.includes('incomingRequest') ? 'medium' : 'none');
-      if (upperCaseMethod !== 'GET' && effectiveBodySize !== 'none') {
+        integration?.maxRequestBodySize ?? (dataCollection.httpBodies.includes('incomingRequest') ? 'medium' : 'none');
+      const ignoreRequestBody = integration?.ignoreRequestBody;
+      if (
+        upperCaseMethod !== 'GET' &&
+        effectiveBodySize !== 'none' &&
+        // If the filter throws, skip the body so it cannot leak data the filter was meant to hide.
+        !(
+          ignoreRequestBody &&
+          callUserCallback('ignoreRequestBody', () => ignoreRequestBody(request.url, request), true)
+        )
+      ) {
         await captureBodyFromWinterCGRequest(request, isolationScope, effectiveBodySize);
       }
     }
+
+    const urlPath = parsedUrl ? `${parsedUrl.pathname}${parsedUrl.search}` : '/';
+    const createSpan = shouldCreateSpan(client, integration, request, urlPath);
 
     return continueTrace(
       {
         sentryTrace: request.headers.get('sentry-trace') ?? '',
         baggage: request.headers.get('baggage'),
       },
-      () =>
-        startSpanManual(
+      async () => {
+        if (!createSpan) {
+          let response: Response | undefined;
+          try {
+            response = (await target.apply(thisArg, args)) as Response | undefined;
+          } catch (e) {
+            captureServeError(e);
+            endSession?.();
+            throw e;
+          }
+          if (response?.status) {
+            isolationScope.setContext('response', { status_code: response.status });
+          }
+          return onResponseDone(
+            response,
+            () => endSession?.(),
+            () => undefined,
+          );
+        }
+
+        return startSpanManual(
           {
             attributes: { ...attributes, [SENTRY_OP]: HTTP_SERVER },
             // With span streaming, span names have to be low cardinality, so we can't fall back to the URL path.
@@ -328,47 +487,49 @@ function wrapRequestHandler<T extends RouteHandler = RouteHandler>(
                 : request.method?.toUpperCase() || HTTP_SPAN_NAME_FALLBACK,
           },
           async (span, endSpan) => {
+            const { onSpanCreated, onSpanEnd } = integration ?? {};
+            if (onSpanCreated) {
+              callUserCallback('onSpanCreated', () => onSpanCreated(span, request), undefined);
+            }
+
+            let response: Response | undefined;
             try {
-              const response = (await target.apply(thisArg, args)) as Response | undefined;
-              if (response?.status) {
-                setHttpStatus(span, response.status);
-
-                isolationScope.setContext('response', {
-                  status_code: response.status,
-                });
-
-                if (dataCollection) {
-                  span.setAttributes(
-                    httpHeadersToSpanAttributes(response.headers.toJSON(), dataCollection, 'response'),
-                  );
-                }
-              }
-              if (response?.body && !response.body.locked && classifyResponseStreaming(response).isStreaming) {
-                const body = monitorStream(response.body, endSpan, error => {
-                  span.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
-                  captureException(error, { mechanism: { type: 'auto.http.bun.serve', handled: false } });
-                });
-                return new Response(body, {
-                  status: response.status,
-                  statusText: response.statusText,
-                  headers: response.headers,
-                });
-              }
-              endSpan();
-              return response;
+              response = (await target.apply(thisArg, args)) as Response | undefined;
             } catch (e) {
               span.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
-              captureException(e, {
-                mechanism: {
-                  type: 'auto.http.bun.serve',
-                  handled: false,
-                },
-              });
+              captureServeError(e);
               endSpan();
+              endSession?.();
               throw e;
             }
+
+            if (response?.status) {
+              setHttpStatus(span, response.status);
+
+              isolationScope.setContext('response', {
+                status_code: response.status,
+              });
+
+              if (dataCollection) {
+                span.setAttributes(httpHeadersToSpanAttributes(response.headers.toJSON(), dataCollection, 'response'));
+              }
+            }
+
+            const finalResponse = response;
+            return onResponseDone(
+              response,
+              () => {
+                if (onSpanEnd && finalResponse) {
+                  callUserCallback('onSpanEnd', () => onSpanEnd(span, request, finalResponse), undefined);
+                }
+                endSpan();
+                endSession?.();
+              },
+              () => span.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' }),
+            );
           },
-        ),
+        );
+      },
     );
   });
 }
