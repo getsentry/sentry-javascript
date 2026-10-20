@@ -32,7 +32,6 @@ describe('constructTurbopackConfig', () => {
       { path: '/users', regex: '/users' },
       { path: '/api/health', regex: '/api/health' },
     ],
-    isrRoutes: [],
   };
 
   const mockSentryOptions = {};
@@ -285,7 +284,7 @@ describe('constructTurbopackConfig', () => {
   describe('with edge cases', () => {
     it('should handle empty route manifest', () => {
       const userNextConfig: NextConfigObject = {};
-      const emptyManifest: RouteManifest = { dynamicRoutes: [], staticRoutes: [], isrRoutes: [] };
+      const emptyManifest: RouteManifest = { dynamicRoutes: [], staticRoutes: [] };
 
       const result = constructTurbopackConfig({
         userNextConfig,
@@ -325,7 +324,6 @@ describe('constructTurbopackConfig', () => {
     it('should handle complex route manifest', () => {
       const userNextConfig: NextConfigObject = {};
       const complexManifest: RouteManifest = {
-        isrRoutes: [],
         dynamicRoutes: [
           { path: '/users/[id]/posts/[postId]', regex: '/users/([^/]+)/posts/([^/]+)', paramNames: ['id', 'postId'] },
           { path: '/api/[...params]', regex: '/api/(.+)', paramNames: ['params'] },
@@ -901,7 +899,7 @@ describe('condition field version gating', () => {
 
     const result = constructTurbopackConfig({
       userNextConfig,
-      routeManifest: { dynamicRoutes: [], staticRoutes: [], isrRoutes: [] },
+      routeManifest: { dynamicRoutes: [], staticRoutes: [] },
       nextJsVersion: '17.0.0',
     });
 
@@ -1064,7 +1062,6 @@ describe('moduleMetadataInjection with applicationKey', () => {
     const mockRouteManifest: RouteManifest = {
       dynamicRoutes: [],
       staticRoutes: [{ path: '/', regex: '/' }],
-      isrRoutes: [],
     };
 
     const result = constructTurbopackConfig({
@@ -1264,7 +1261,6 @@ describe('componentAnnotation with turbopackReactComponentAnnotation', () => {
     const mockRouteManifest: RouteManifest = {
       dynamicRoutes: [],
       staticRoutes: [{ path: '/', regex: '/' }],
-      isrRoutes: [],
     };
 
     const result = constructTurbopackConfig({

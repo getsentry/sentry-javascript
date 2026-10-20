@@ -5,13 +5,34 @@
  */
 
 import {
-  MCP_PROMPT_RESULT_DESCRIPTION_ATTRIBUTE,
-  MCP_PROMPT_RESULT_MESSAGE_COUNT_ATTRIBUTE,
-  MCP_TOOL_RESULT_CONTENT_COUNT_ATTRIBUTE,
-  MCP_TOOL_RESULT_IS_ERROR_ATTRIBUTE,
-} from './attributes';
+  MCP_PROMPT_RESULT_DESCRIPTION,
+  MCP_PROMPT_RESULT_KEY_CONTENT,
+  MCP_PROMPT_RESULT_KEY_ROLE,
+  MCP_PROMPT_RESULT_MESSAGE_CONTENT,
+  MCP_PROMPT_RESULT_MESSAGE_COUNT,
+  MCP_PROMPT_RESULT_MESSAGE_ROLE,
+  MCP_TOOL_RESULT_CONTENT,
+  MCP_TOOL_RESULT_CONTENT_COUNT,
+  MCP_TOOL_RESULT_CONTENT_TYPE,
+  MCP_TOOL_RESULT_DATA_SIZE,
+  MCP_TOOL_RESULT_IS_ERROR,
+  MCP_TOOL_RESULT_KEY_CONTENT,
+  MCP_TOOL_RESULT_KEY_CONTENT_TYPE,
+  MCP_TOOL_RESULT_KEY_DATA_SIZE,
+  MCP_TOOL_RESULT_KEY_MIME_TYPE,
+  MCP_TOOL_RESULT_KEY_NAME,
+  MCP_TOOL_RESULT_KEY_RESOURCE_MIME_TYPE,
+  MCP_TOOL_RESULT_KEY_RESOURCE_URI,
+  MCP_TOOL_RESULT_KEY_URI,
+  MCP_TOOL_RESULT_MIME_TYPE,
+  MCP_TOOL_RESULT_NAME,
+  MCP_TOOL_RESULT_RESOURCE_MIME_TYPE,
+  MCP_TOOL_RESULT_RESOURCE_URI,
+  MCP_TOOL_RESULT_URI,
+} from '@sentry/conventions/attributes';
 import { isValidContentItem } from './validation';
 
+/* oxlint-disable typescript/no-deprecated -- Preserve the legacy result attributes for existing consumers. */
 /**
  * Build attributes for tool result content items
  * @param content - Array of content items from tool result
@@ -23,7 +44,7 @@ function buildAllContentItemAttributes(
   includeContent: boolean,
 ): Record<string, string | number | boolean> {
   const attributes: Record<string, string | number> = {
-    [MCP_TOOL_RESULT_CONTENT_COUNT_ATTRIBUTE]: content.length,
+    [MCP_TOOL_RESULT_CONTENT_COUNT]: content.length,
   };
 
   for (const [i, item] of content.entries()) {
@@ -31,41 +52,55 @@ function buildAllContentItemAttributes(
       continue;
     }
 
-    const prefix = content.length === 1 ? 'mcp.tool.result' : `mcp.tool.result.${i}`;
+    const single = content.length === 1;
+    const index = String(i);
 
     if (typeof item.type === 'string') {
-      attributes[`${prefix}.content_type`] = item.type;
+      const key = single ? MCP_TOOL_RESULT_CONTENT_TYPE : MCP_TOOL_RESULT_KEY_CONTENT_TYPE.replace('<key>', index);
+      attributes[key] = item.type;
     }
 
     if (includeContent) {
       const safeSet = (key: string, value: unknown): void => {
         if (typeof value === 'string') {
-          attributes[`${prefix}.${key}`] = value;
+          attributes[key] = value;
         }
       };
 
-      safeSet('mime_type', item.mimeType);
-      safeSet('uri', item.uri);
-      safeSet('name', item.name);
+      safeSet(
+        single ? MCP_TOOL_RESULT_MIME_TYPE : MCP_TOOL_RESULT_KEY_MIME_TYPE.replace('<key>', index),
+        item.mimeType,
+      );
+      safeSet(single ? MCP_TOOL_RESULT_URI : MCP_TOOL_RESULT_KEY_URI.replace('<key>', index), item.uri);
+      safeSet(single ? MCP_TOOL_RESULT_NAME : MCP_TOOL_RESULT_KEY_NAME.replace('<key>', index), item.name);
 
       if (typeof item.text === 'string') {
-        attributes[`${prefix}.content`] = item.text;
+        const attrName = single ? MCP_TOOL_RESULT_CONTENT : MCP_TOOL_RESULT_KEY_CONTENT.replace('<key>', index);
+        attributes[attrName] = item.text;
       }
 
       if (typeof item.data === 'string') {
-        attributes[`${prefix}.data_size`] = item.data.length;
+        const key = single ? MCP_TOOL_RESULT_DATA_SIZE : MCP_TOOL_RESULT_KEY_DATA_SIZE.replace('<key>', index);
+        attributes[key] = item.data.length;
       }
 
       const resource = item.resource;
       if (isValidContentItem(resource)) {
-        safeSet('resource_uri', resource.uri);
-        safeSet('resource_mime_type', resource.mimeType);
+        safeSet(
+          single ? MCP_TOOL_RESULT_RESOURCE_URI : MCP_TOOL_RESULT_KEY_RESOURCE_URI.replace('<key>', index),
+          resource.uri,
+        );
+        safeSet(
+          single ? MCP_TOOL_RESULT_RESOURCE_MIME_TYPE : MCP_TOOL_RESULT_KEY_RESOURCE_MIME_TYPE.replace('<key>', index),
+          resource.mimeType,
+        );
       }
     }
   }
 
   return attributes;
 }
+/* oxlint-enable typescript/no-deprecated */
 
 /**
  * Extract tool result attributes for span instrumentation
@@ -84,7 +119,8 @@ export function extractToolResultAttributes(
   const attributes = Array.isArray(result.content) ? buildAllContentItemAttributes(result.content, recordOutputs) : {};
 
   if (typeof result.isError === 'boolean') {
-    attributes[MCP_TOOL_RESULT_IS_ERROR_ATTRIBUTE] = result.isError;
+    // oxlint-disable-next-line typescript/no-deprecated -- Preserve the legacy tool result attribute for existing consumers.
+    attributes[MCP_TOOL_RESULT_IS_ERROR] = result.isError;
   }
 
   return attributes;
@@ -106,11 +142,11 @@ export function extractPromptResultAttributes(
   }
 
   if (recordOutputs && typeof result.description === 'string') {
-    attributes[MCP_PROMPT_RESULT_DESCRIPTION_ATTRIBUTE] = result.description;
+    attributes[MCP_PROMPT_RESULT_DESCRIPTION] = result.description;
   }
 
   if (Array.isArray(result.messages)) {
-    attributes[MCP_PROMPT_RESULT_MESSAGE_COUNT_ATTRIBUTE] = result.messages.length;
+    attributes[MCP_PROMPT_RESULT_MESSAGE_COUNT] = result.messages.length;
 
     if (recordOutputs) {
       const messages = result.messages;
@@ -119,21 +155,21 @@ export function extractPromptResultAttributes(
           continue;
         }
 
-        const prefix = messages.length === 1 ? 'mcp.prompt.result' : `mcp.prompt.result.${i}`;
-
-        const safeSet = (key: string, value: unknown): void => {
-          if (typeof value === 'string') {
-            const attrName = messages.length === 1 ? `${prefix}.message_${key}` : `${prefix}.${key}`;
-            attributes[attrName] = value;
-          }
-        };
-
-        safeSet('role', message.role);
+        if (typeof message.role === 'string') {
+          const attrName =
+            messages.length === 1
+              ? MCP_PROMPT_RESULT_MESSAGE_ROLE
+              : MCP_PROMPT_RESULT_KEY_ROLE.replace('<key>', String(i));
+          attributes[attrName] = message.role;
+        }
 
         if (isValidContentItem(message.content)) {
           const content = message.content;
           if (typeof content.text === 'string') {
-            const attrName = messages.length === 1 ? `${prefix}.message_content` : `${prefix}.content`;
+            const attrName =
+              messages.length === 1
+                ? MCP_PROMPT_RESULT_MESSAGE_CONTENT
+                : MCP_PROMPT_RESULT_KEY_CONTENT.replace('<key>', String(i));
             attributes[attrName] = content.text;
           }
         }
