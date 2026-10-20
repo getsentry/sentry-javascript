@@ -10,12 +10,21 @@ import type { Scope } from '@sentry/core';
 import { captureException } from '@sentry/core';
 import type { AttributeValue, TelemetrySpan } from './types';
 
+// BullMQ sets these attributes to `JSON.stringify()` output. They are left out until Sentry attributes support objects.
+const JSON_STRING_ATTRIBUTES = new Set([
+  'bullmq.job.options',
+  'bullmq.job.progress',
+  'bullmq.queue.options',
+  'bullmq.worker.options',
+]);
+
 function toOtelAttributes(attributes: Record<string, AttributeValue>): Attributes {
   return attributes as Attributes;
 }
 
 /**
- * Returns the BullMQ attributes, with each attribute that has a `messaging.*` convention replaced by that convention.
+ * Returns the BullMQ attributes, with each attribute that has a `messaging.*` convention replaced by that convention,
+ * and without the attributes that hold JSON strings.
  */
 export function toSentryAttributes(attributes: Record<string, AttributeValue>): Attributes {
   const {
@@ -26,7 +35,13 @@ export function toSentryAttributes(attributes: Record<string, AttributeValue>): 
     'bullmq.job.bulk.count': bulkCount,
     ...rest
   } = attributes;
-  const result = toOtelAttributes(rest);
+  const result: Attributes = {};
+
+  for (const [key, value] of Object.entries(toOtelAttributes(rest))) {
+    if (!JSON_STRING_ATTRIBUTES.has(key)) {
+      result[key] = value;
+    }
+  }
 
   if (typeof queueName === 'string') {
     result[MESSAGING_DESTINATION_NAME] = queueName;

@@ -234,9 +234,7 @@ describeWithDockerCompose('bullmq', { workingDirectory: [__dirname] }, () => {
           'bullmq.job.ids',
           'bullmq.job.key',
           'bullmq.job.name',
-          'bullmq.job.options',
           'bullmq.job.processed.timestamp',
-          'bullmq.job.progress',
           'bullmq.job.scheduler.id',
           'bullmq.job.status',
           'bullmq.job.type',
@@ -245,18 +243,21 @@ describeWithDockerCompose('bullmq', { workingDirectory: [__dirname] }, () => {
           'bullmq.queue.event.max.length',
           'bullmq.queue.grace',
           'bullmq.queue.jobs.state',
-          'bullmq.queue.options',
           'bullmq.queue.rate.limit',
           'bullmq.worker.do.not.wait.active',
           'bullmq.worker.force.close',
           'bullmq.worker.id',
           'bullmq.worker.jobs.to.extend.locks',
           'bullmq.worker.name',
-          'bullmq.worker.options',
           'bullmq.worker.rate.limit',
           'bullmq.worker.stalled.jobs',
         ]),
       );
+      expect(
+        [...attributeKeys].filter(key =>
+          ['bullmq.job.options', 'bullmq.job.progress', 'bullmq.queue.options', 'bullmq.worker.options'].includes(key),
+        ),
+      ).toEqual([]);
     });
   });
 });

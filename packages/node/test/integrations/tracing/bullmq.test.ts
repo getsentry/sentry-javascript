@@ -259,6 +259,22 @@ describe('SentryBullMQSpan', () => {
     });
   });
 
+  it('leaves out the BullMQ attributes that hold JSON strings', () => {
+    const { span, otelSpan } = createSpan();
+
+    span.setAttributes({
+      'bullmq.job.id': '42',
+      'bullmq.job.options': '{"removeChildren":true}',
+      'bullmq.job.progress': '{"percentage":50}',
+      'bullmq.queue.options': '{"count":10}',
+      'bullmq.worker.options': '{"block":false}',
+    });
+
+    expect(otelSpan.setAttributes).toHaveBeenCalledWith({
+      'messaging.message.id': '42',
+    });
+  });
+
   it('delegates addEvent to the underlying OTel span', () => {
     const { span, otelSpan } = createSpan();
 
