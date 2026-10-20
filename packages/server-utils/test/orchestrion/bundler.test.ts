@@ -1,11 +1,10 @@
-import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
-import { tmpdir } from 'node:os';
-import { isAbsolute, join } from 'node:path';
+import { existsSync } from 'node:fs';
+import { isAbsolute } from 'node:path';
 import type { OnStartResult, PluginBuild } from 'esbuild';
 import type { NormalizedInputOptions, PluginContext } from 'rollup';
-import type { Plugin, ResolvedConfig } from 'vite';
+import type { ResolvedConfig } from 'vite';
 import type { Compiler } from 'webpack';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { sentryOrchestrionPlugin as bunPlugin } from '../../src/orchestrion/bundler/bun';
 import { sentryOrchestrionPlugin as esbuildPlugin } from '../../src/orchestrion/bundler/esbuild';
 import { orchestrionTransformOptions } from '../../src/orchestrion/bundler/options';
@@ -220,9 +219,6 @@ describe('sentryOrchestrionWebpackPlugin', () => {
 });
 
 describe('sentryOrchestrionPlugin (vite)', () => {
-  const ROLLUP_CONTEXT = { meta: { rollupVersion: '4.0.0' } };
-  const ROLLDOWN_CONTEXT = { meta: { rollupVersion: '4.0.0', rolldownVersion: '1.2.14' } };
-
   function runConfigResolved(
     ssrExternal: string[] | true | undefined,
     command: 'build' | 'serve' = 'build',
@@ -238,26 +234,23 @@ describe('sentryOrchestrionPlugin (vite)', () => {
     return warn;
   }
 
-  // `context` is the `this` of the hook: Vite 6+ pass `meta`, Vite 5 passes nothing.
   function runConfig(
     command: 'build' | 'serve',
     userConfig: Record<string, unknown> = { build: { ssr: true } },
-    options: { plugin?: Plugin; context?: unknown } = {},
   ): { ssr: { noExternal: string[] } } | null {
-    const { plugin = vitePlugin() } = options;
-    const context = 'context' in options ? options.context : ROLLUP_CONTEXT;
+    const plugin = vitePlugin();
     const config = plugin.config as {
-      handler: (this: unknown, config: unknown, env: unknown) => { ssr: { noExternal: string[] } } | null;
+      handler: (config: unknown, env: unknown) => { ssr: { noExternal: string[] } } | null;
     };
-    return config.handler.call(context, userConfig, { command, mode: 'production' });
+    return config.handler.call(plugin, userConfig, { command, mode: 'production' });
   }
 
   function runConfigEnvironment(
     name: string,
     environmentConfig: Record<string, unknown>,
     command: 'build' | 'serve' = 'build',
-    plugin = vitePlugin(),
   ): { resolve: { noExternal: string[] } } | null {
+    const plugin = vitePlugin();
     const configEnvironment = plugin.configEnvironment as (
       name: string,
       config: unknown,
@@ -288,45 +281,6 @@ describe('sentryOrchestrionPlugin (vite)', () => {
     // crash at server startup.
     expect(config?.ssr.noExternal).toContain('@sentry/server-utils');
     expect(config?.ssr.noExternal).toContain('mysql');
-  });
-
-  describe('dependencies of bundled CommonJS', () => {
-    let root: string;
-
-    beforeEach(() => {
-      root = mkdtempSync(join(tmpdir(), 'orch-vite-cjs-deps-'));
-      mkdirSync(join(root, 'node_modules/pg'), { recursive: true });
-      writeFileSync(join(root, 'node_modules/pg/package.json'), JSON.stringify({ dependencies: { 'pg-types': '^2' } }));
-      mkdirSync(join(root, 'node_modules/pg-types'), { recursive: true });
-      writeFileSync(join(root, 'node_modules/pg-types/package.json'), '{}');
-    });
-
-    afterEach(() => {
-      rmSync(root, { recursive: true, force: true });
-    });
-
-    it('force-bundles them on Rolldown, which emits their requires as `__require()`', () => {
-      const config = runConfig('build', { root, build: { ssr: true } }, { context: ROLLDOWN_CONTEXT });
-
-      expect(config?.ssr.noExternal).toContain('pg-types');
-    });
-
-    it('force-bundles them in server environments on Rolldown', () => {
-      const plugin = vitePlugin();
-
-      runConfig('build', { root }, { plugin, context: ROLLDOWN_CONTEXT });
-
-      expect(runConfigEnvironment('ssr', {}, 'build', plugin)?.resolve.noExternal).toContain('pg-types');
-    });
-
-    it.each([
-      ['Rollup', ROLLUP_CONTEXT],
-      ['Vite 5, which calls config hooks without a context', undefined],
-    ])('leaves them external on %s', (_, context) => {
-      const config = runConfig('build', { root, build: { ssr: true } }, { context });
-
-      expect(config?.ssr.noExternal).not.toContain('pg-types');
-    });
   });
 
   it('does not force-bundle instrumented modules on the dev server', () => {
@@ -491,6 +445,27 @@ describe('sentryOrchestrionPlugin (vite)', () => {
     const fallback = await resolveId.call({ resolve }, '@sentry/server-utils', '/x.js', requireOptions);
     expect(fallback).toMatch(/[/\\]build[/\\]esm[/\\]index\.js$/);
     expect(existsSync(fallback as string)).toBe(true);
+  });
+
+  it('resolves the snippet require() to the ESM entry before it handles other requires on Rolldown', async () => {
+    const resolveId = vitePlugin().resolveId as (
+      this: unknown,
+      source: string,
+      importer: string,
+      opts: { ssr: boolean; kind: string },
+    ) => Promise<unknown>;
+    const context = {
+      meta: { rolldownVersion: '1.2.14' },
+      environment: { name: 'ssr', mode: 'build', config: { resolve: { external: [] } } },
+      resolve: vi.fn().mockResolvedValue({ id: '/app/node_modules/@sentry/server-utils/build/cjs/index.js' }),
+    };
+
+    const resolved = await resolveId.call(context, '@sentry/server-utils', '/app/node_modules/pg/lib/client.js', {
+      ssr: true,
+      kind: 'require-call',
+    });
+
+    expect(resolved).toEqual({ id: '/app/node_modules/@sentry/server-utils/build/esm/index.js' });
   });
 });
 

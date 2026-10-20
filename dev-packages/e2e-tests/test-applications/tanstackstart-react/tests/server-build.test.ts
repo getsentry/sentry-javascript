@@ -3,10 +3,10 @@ import path from 'node:path';
 import { expect, test } from '@playwright/test';
 import { bundleReferencesModule } from '@sentry-internal/test-utils';
 
-// Vite 8 emits a `require()` of an external package in bundled CommonJS as `__require()`, and Nitro's
-// second bundling pass cannot follow that call. In a flat install (the hoisted variant), Vite keeps
-// the dependencies of the instrumented drivers external unless the SDK bundles them, and the server
-// then fails with `Cannot find module` outside the project.
+// Nitro can't follow the `__require()` calls that Vite 8 emits for external requires in bundled
+// CommonJS, so the deployed server fails with `Cannot find module`. Only flat installs (the hoisted
+// variant) keep the drivers' dependencies external.
+// https://vite.dev/guide/migration#require-calls-for-externalized-modules
 test('bundles the CommonJS dependencies of the instrumented drivers', () => {
   const root = path.join(process.cwd(), '.output/server');
   const serverBundle = readdirSync(root, { recursive: true, encoding: 'utf8' })
