@@ -38,8 +38,6 @@ export function makeFetchTransport(
       // There is also a limit of requests that can be open at the same time, so we also limit this to 15
       // See https://github.com/getsentry/sentry-javascript/pull/7553 for details
       keepalive: pendingBodySize <= 60_000 && pendingCount < 15,
-      // TODO(v12): Default to `credentials: 'omit'`. With the fetch default `'same-origin'`, requests to a same-origin
-      // `tunnel` include credentials (cookies, HTTP authentication), which the tunnel does not need.
       ...options.fetchOptions,
     };
 
