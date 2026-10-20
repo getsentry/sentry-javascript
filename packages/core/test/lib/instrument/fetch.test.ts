@@ -121,4 +121,49 @@ describe('instrument > addFetchInstrumentationHandler', () => {
 
     expect(error.message).toBe('Failed to fetch (example.com)');
   });
+
+  describe('relative URLs', () => {
+    const globalWithLocation = GLOBAL_OBJ as typeof GLOBAL_OBJ & { location?: { origin: string } };
+
+    afterEach(() => {
+      Reflect.deleteProperty(globalWithLocation, 'location');
+    });
+
+    async function failWith(target: string): Promise<TypeError> {
+      const error = new TypeError('Failed to fetch');
+      globalThis.fetch = vi.fn<typeof fetch>().mockRejectedValue(error);
+      addFetchInstrumentationHandler(() => undefined);
+      await expect(globalThis.fetch(target)).rejects.toBe(error);
+      return error;
+    }
+
+    it('resolves a relative URL against the current origin', async () => {
+      globalWithLocation.location = { origin: 'https://app.example.com/some/page?x=1' };
+      expect((await failWith('/api/users')).message).toBe('Failed to fetch (app.example.com)');
+    });
+
+    it('resolves an empty URL (`fetch("")`) against the current page', async () => {
+      globalWithLocation.location = { origin: 'https://app.example.com/some/page?x=1' };
+      expect((await failWith('')).message).toBe('Failed to fetch (app.example.com)');
+    });
+
+    it('does not change the message for a relative URL if there is no current page', async () => {
+      expect((await failWith('/api/users')).message).toBe('Failed to fetch');
+    });
+
+    it('does not append an empty host (e.g. pages served from file://)', async () => {
+      globalWithLocation.location = { origin: 'file:///C:/app/index.html' };
+      expect((await failWith('/api/users')).message).toBe('Failed to fetch');
+    });
+
+    it('does not change the message if the origin is opaque ("null")', async () => {
+      globalWithLocation.location = { origin: 'null' };
+      expect((await failWith('/api/users')).message).toBe('Failed to fetch');
+    });
+
+    it('still uses the host of an absolute URL, ignoring the current page', async () => {
+      globalWithLocation.location = { origin: 'https://app.example.com/some/page' };
+      expect((await failWith('https://other.example.org/x')).message).toBe('Failed to fetch (other.example.org)');
+    });
+  });
 });
