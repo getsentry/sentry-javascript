@@ -1,20 +1,47 @@
 import { expect, test } from '@playwright/test';
+import {
+  SEARCH_GEN_AI__AGENT__NAME,
+  SEARCH_GEN_AI__CONVERSATION__ID,
+  SEARCH_GEN_AI__COST__TOTAL_TOKENS,
+  SEARCH_GEN_AI__INPUT__MESSAGES,
+  SEARCH_GEN_AI__OPERATION__NAME,
+  SEARCH_GEN_AI__PROVIDER__NAME,
+  SEARCH_GEN_AI__TOOL__CALL__ARGUMENTS,
+  SEARCH_GEN_AI__TOOL__CALL__RESULT,
+  SEARCH_GEN_AI__TOOL__NAME,
+  SEARCH_GEN_AI__USAGE__INPUT_TOKENS,
+  SEARCH_GEN_AI__USAGE__OUTPUT_TOKENS,
+  SEARCH_ORIGIN,
+  SEARCH_SPAN__STATUS,
+} from '@sentry/conventions/attributes/search';
+import {
+  GEN_AI_CHAT,
+  GEN_AI_EXECUTE_TOOL,
+  GEN_AI_INVOKE_AGENT,
+  HTTP_CLIENT,
+  HTTP_SERVER,
+} from '@sentry/conventions/op';
+import type { TraceItem } from '@sentry-internal/test-utils/cli';
 import { EVENT_POLLING_OPTIONS, fetchSpanAttributes } from '@sentry-internal/test-utils/cli';
 import { newInstanceId, runAgentTurn, waitForConversationTrace } from './utils';
 
 test('sends the request / invoke_agent / chat / execute_tool hierarchy of a Flue turn', async ({ baseURL }) => {
   const conversationId = await runAgentTurn(baseURL!, newInstanceId('weather'), 'What is the weather in Paris?');
 
-  const { traceId, spans } = await waitForConversationTrace(conversationId, spans =>
-    ['http.server', 'gen_ai.invoke_agent', 'gen_ai.chat', 'gen_ai.execute_tool', 'http.client'].every(op =>
-      spans.some(span => span.op === op),
-    ),
+  // Spans land in Sentry at different times, so wait for the relationships the test checks, not just the ops.
+  const isProviderCall = (span: TraceItem, spans: TraceItem[]) =>
+    span.op === HTTP_CLIENT && spans.some(chat => chat.op === GEN_AI_CHAT && chat.event_id === span.parent_span_id);
+  const { traceId, spans } = await waitForConversationTrace(
+    conversationId,
+    spans =>
+      [HTTP_SERVER, GEN_AI_INVOKE_AGENT, GEN_AI_EXECUTE_TOOL].every(op => spans.some(span => span.op === op)) &&
+      spans.some(span => isProviderCall(span, spans)),
   );
 
-  const request = spans.find(span => span.op === 'http.server');
-  const agents = spans.filter(span => span.op === 'gen_ai.invoke_agent');
+  const request = spans.find(span => span.op === HTTP_SERVER);
+  const agents = spans.filter(span => span.op === GEN_AI_INVOKE_AGENT);
   const invokeAgent = agents[0];
-  const chat = spans.find(span => span.op === 'gen_ai.chat');
+  const chats = spans.filter(span => span.op === GEN_AI_CHAT);
   const executeTool = spans.find(span => span.description === 'execute_tool get_weather');
 
   // A turn has one agent span. More than one means other conversations' runs leaked into this
@@ -24,43 +51,53 @@ test('sends the request / invoke_agent / chat / execute_tool hierarchy of a Flue
   // request span instead of starting a trace of its own as it does on Cloudflare.
   expect(invokeAgent?.parent_span_id).toBe(request?.event_id);
   // Tool and chat spans are siblings under the agent invocation, matching how Flue's own
-  // OpenTelemetry adapter projects them.
-  expect(chat?.parent_span_id).toBe(invokeAgent?.event_id);
+  // OpenTelemetry adapter projects them. A chat span anywhere else would be a provider SDK
+  // reporting the same model call a second time.
+  expect(chats.map(chat => chat.parent_span_id)).toEqual(chats.map(() => invokeAgent?.event_id));
   expect(executeTool?.parent_span_id).toBe(invokeAgent?.event_id);
-  // The provider's HTTP call is made while the chat span is active.
-  expect(spans.some(span => span.op === 'http.client' && span.parent_span_id === chat?.event_id)).toBe(true);
 
   await expect
     .poll(() => fetchSpanAttributes(traceId, invokeAgent!.event_id!), EVENT_POLLING_OPTIONS)
     .toMatchObject({
-      origin: 'auto.ai.flue',
-      'gen_ai.operation.name': 'invoke_agent',
-      'gen_ai.agent.name': 'Hello',
-      'gen_ai.conversation.id': conversationId,
+      [SEARCH_ORIGIN]: 'auto.ai.flue',
+      [SEARCH_GEN_AI__OPERATION__NAME]: 'invoke_agent',
+      [SEARCH_GEN_AI__AGENT__NAME]: 'Hello',
+      [SEARCH_GEN_AI__CONVERSATION__ID]: conversationId,
     });
 
+  let chatAttributes: Record<string, unknown> | undefined;
   await expect
-    .poll(() => fetchSpanAttributes(traceId, chat!.event_id!), EVENT_POLLING_OPTIONS)
+    .poll(() => (chatAttributes = fetchSpanAttributes(traceId, chats[0]!.event_id!)), EVENT_POLLING_OPTIONS)
     .toMatchObject({
-      origin: 'auto.ai.flue',
-      'span.status': 'ok',
-      'gen_ai.provider.name': 'openrouter',
-      'gen_ai.usage.input_tokens': expect.anything(),
-      'gen_ai.usage.output_tokens': expect.anything(),
-      // Flue computes cost itself; no provider SDK reports it.
-      'gen_ai.cost.total_tokens': expect.anything(),
+      [SEARCH_ORIGIN]: 'auto.ai.flue',
+      [SEARCH_SPAN__STATUS]: 'ok',
+      [SEARCH_GEN_AI__PROVIDER__NAME]: 'openrouter',
+      [SEARCH_GEN_AI__INPUT__MESSAGES]: expect.stringContaining('What is the weather in Paris?'),
     });
+  // The trace-items API returns integer attributes as strings.
+  expect(Number(chatAttributes![SEARCH_GEN_AI__USAGE__INPUT_TOKENS])).toBeGreaterThan(0);
+  expect(Number(chatAttributes![SEARCH_GEN_AI__USAGE__OUTPUT_TOKENS])).toBeGreaterThan(0);
+  // Flue computes cost itself; no provider SDK reports it.
+  expect(chatAttributes![SEARCH_GEN_AI__COST__TOTAL_TOKENS]).toBeGreaterThan(0);
 
   await expect
     .poll(() => fetchSpanAttributes(traceId, executeTool!.event_id!), EVENT_POLLING_OPTIONS)
-    .toMatchObject({ origin: 'auto.ai.flue', 'gen_ai.tool.name': 'get_weather' });
+    .toMatchObject({
+      [SEARCH_ORIGIN]: 'auto.ai.flue',
+      [SEARCH_GEN_AI__TOOL__NAME]: 'get_weather',
+      // The model chooses the argument (`Paris`, `Paris, France`, ...); the tool's sentence is fixed.
+      [SEARCH_GEN_AI__TOOL__CALL__ARGUMENTS]: expect.stringContaining('Paris'),
+      [SEARCH_GEN_AI__TOOL__CALL__RESULT]: expect.stringMatching(/^It is 21 degrees and sunny in Paris/),
+    });
 });
 
 test('nests a manual span raised inside a tool under that tool span', async ({ baseURL }) => {
   const conversationId = await runAgentTurn(baseURL!, newInstanceId('manual-span'), 'What is the weather in Berlin?');
 
   const { traceId, spans } = await waitForConversationTrace(conversationId, spans =>
-    spans.some(span => span.description === 'resolve-weather'),
+    spans.some(
+      span => span.description === 'resolve-weather' && spans.some(parent => parent.event_id === span.parent_span_id),
+    ),
   );
 
   const manualSpan = spans.find(span => span.description === 'resolve-weather');
