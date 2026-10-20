@@ -1,4 +1,4 @@
-import { createComponentNameAnnotateHooks, getDebugIdSnippet } from '../../src/core';
+import { createComponentNameAnnotateHooks, getDebugIdSnippet, isInitialChunk } from '../../src/core';
 import { getOxcParseAstAsync } from '../../src/core/component-annotation-oxc';
 import { containsOnlyImports } from '../../src/core/utils';
 import { describe, it, expect, vi } from 'vitest';
@@ -60,6 +60,31 @@ describe('getDebugIdSnippet', () => {
     run(scope);
 
     expect(Object.values(scope._sentryDebugIds ?? {})).toEqual(['5678']);
+  });
+});
+
+describe('isInitialChunk', () => {
+  const chunks = {
+    'entry.js': { fileName: 'entry.js', isEntry: true, imports: ['shared.js', 'external'] },
+    'shared.js': { fileName: 'shared.js', imports: ['vendor.js'] },
+    'vendor.js': { fileName: 'vendor.js', imports: ['shared.js'] },
+    'route.js': { fileName: 'route.js', imports: ['route-shared.js'] },
+    'route-shared.js': { fileName: 'route-shared.js', imports: [] },
+  };
+
+  it('marks entry chunks and chunks they reach through static imports as initial', () => {
+    expect(isInitialChunk(chunks['entry.js'], chunks)).toBe(true);
+    expect(isInitialChunk(chunks['shared.js'], chunks)).toBe(true);
+    expect(isInitialChunk(chunks['vendor.js'], chunks)).toBe(true);
+  });
+
+  it('does not mark chunks that only dynamic imports reach as initial', () => {
+    expect(isInitialChunk(chunks['route.js'], chunks)).toBe(false);
+    expect(isInitialChunk(chunks['route-shared.js'], chunks)).toBe(false);
+  });
+
+  it('treats every chunk as initial without a chunk graph', () => {
+    expect(isInitialChunk({ fileName: 'route.js' }, undefined)).toBe(true);
   });
 });
 
