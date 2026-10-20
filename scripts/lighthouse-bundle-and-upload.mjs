@@ -88,13 +88,13 @@ async function prepareCell(mode, fieldName) {
   await rm(tempApp, { recursive: true, force: true });
 
   // Copy app to temp (fixes file:/link: deps to workspace-absolute paths)
-  execFileSync('yarn', ['ci:copy-to-temp', `./test-applications/${APP_DIR}`, tempApp], {
+  execFileSync('pnpm', ['run', 'ci:copy-to-temp', `./test-applications/${APP_DIR}`, tempApp], {
     cwd: E2E_DIR,
     stdio: 'inherit',
   });
 
   // Add pnpm overrides (workspace-absolute paths pointing at packed dir)
-  execFileSync('yarn', ['ci:pnpm-overrides', tempApp, PACKED_DIR], {
+  execFileSync('pnpm', ['run', 'ci:pnpm-overrides', tempApp, PACKED_DIR], {
     cwd: E2E_DIR,
     stdio: 'inherit',
   });
@@ -105,7 +105,7 @@ async function prepareCell(mode, fieldName) {
   // Build with the Vite mode — mode selection lives inside the per-mode npm
   // script, no extra env vars needed for routing. VITE_E2E_TEST_DSN is passed
   // so the tracing-replay build's Sentry.init has a DSN at build time.
-  execFileSync('pnpm', [`build:${mode}`], {
+  execFileSync('pnpm', ['run', `build:${mode}`], {
     cwd: tempApp,
     stdio: 'inherit',
     env: {

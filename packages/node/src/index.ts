@@ -33,6 +33,7 @@ export {
   mysqlIntegration,
   mistralAIIntegration,
   mysql2Integration,
+  nitroIntegration,
   openAIIntegration,
   togetherAIIntegration,
   typesafeIntegration,

@@ -260,26 +260,34 @@ describe('LangChain integration (v1)', () => {
 
         expect(chatSpans).toHaveLength(2);
         expect(
-          chatSpans.map(span => [span.attributes[GEN_AI_CONVERSATION_ID]?.value, ancestorNames(span)[0]]).sort(),
+          chatSpans
+            .map(span => [
+              span.attributes[GEN_AI_CONVERSATION_ID]?.value,
+              ancestorNames(span).find(name => name === 'auto' || name === 'handler'),
+            ])
+            .sort(),
         ).toEqual([
           ['thread_auto', 'auto'],
           ['thread_handler', 'handler'],
         ]);
 
-        const handlerRunSpans = spans.filter(
+        // Each run span sits under its parent run's span. The id only reaches runs still open when the model
+        // call reveals it, so the step that ran before the model call has none.
+        const handlerSpans = spans.filter(
           span =>
-            span.attributes[SENTRY_ORIGIN]?.value === 'auto.ai.langchain' &&
-            span.attributes[SENTRY_OP]?.value !== GEN_AI_CHAT,
+            span.attributes[SENTRY_ORIGIN]?.value === 'auto.ai.langchain' && ancestorNames(span).includes('handler'),
         );
-        expect(handlerRunSpans.map(span => span.name).sort()).toEqual([
-          'execute_tool lookup_weather',
-          'invoke_agent RunnableLambda',
-          'invoke_agent nested_chain',
-          'invoke_agent outer',
+        expect(
+          handlerSpans
+            .map(span => [span.name, ancestorNames(span)[0], span.attributes[GEN_AI_CONVERSATION_ID]?.value])
+            .sort(),
+        ).toEqual([
+          ['chat claude-3-5-sonnet-20241022', 'invoke_agent nested_chain', 'thread_handler'],
+          ['execute_tool lookup_weather', 'invoke_agent outer', 'thread_handler'],
+          ['invoke_agent RunnableLambda', 'invoke_agent nested_chain', undefined],
+          ['invoke_agent nested_chain', 'execute_tool lookup_weather', 'thread_handler'],
+          ['invoke_agent outer', 'handler', 'thread_handler'],
         ]);
-        for (const span of handlerRunSpans) {
-          expect(ancestorNames(span)).toContain('handler');
-        }
       });
     },
     {
