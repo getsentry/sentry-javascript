@@ -10,14 +10,15 @@ import { describe, expect, it } from 'vitest';
  */
 const buildDir = join(__dirname, '..', 'build');
 
-// Stands in for Deno's permission check. Node's own loader reads `process.env` too, so only reads
-// made from this package's built files throw.
+// Stands in for Deno's permission check. Node's own loader reads `process.env` too, even while it
+// loads a file that one of ours required, so only reads whose direct caller is one of this
+// package's built files throw. Stack lines: the `Error` line, this trap, then the caller.
 const lockEnv = `
 import { createRequire } from 'node:module';
 const require = createRequire(import.meta.url);
 const env = process.env;
 const guard = trap => (...args) => {
-  if (new Error().stack.includes(${JSON.stringify(buildDir)})) {
+  if (new Error().stack.split('\\n')[2].includes(${JSON.stringify(buildDir)})) {
     throw new Error('process.env access denied');
   }
   return Reflect[trap](env, ...args.slice(1));
