@@ -19,7 +19,7 @@ import type { SdkSource } from './env';
 /** Internal global with common properties and Sentry extensions  */
 export type InternalGlobal = {
   navigator?: { userAgent?: string; maxTouchPoints?: number };
-  location?: { origin?: string };
+  location?: { href?: string };
   console: Console;
   PerformanceObserver?: any;
   Sentry?: any;

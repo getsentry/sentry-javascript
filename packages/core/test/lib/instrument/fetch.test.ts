@@ -123,7 +123,7 @@ describe('instrument > addFetchInstrumentationHandler', () => {
   });
 
   describe('relative URLs', () => {
-    const globalWithLocation = GLOBAL_OBJ as typeof GLOBAL_OBJ & { location?: { origin: string } };
+    const globalWithLocation = GLOBAL_OBJ as typeof GLOBAL_OBJ & { location?: { href: string } };
 
     afterEach(() => {
       Reflect.deleteProperty(globalWithLocation, 'location');
@@ -137,33 +137,24 @@ describe('instrument > addFetchInstrumentationHandler', () => {
       return error;
     }
 
-    it('resolves a relative URL against the current origin', async () => {
-      globalWithLocation.location = { origin: 'https://app.example.com/some/page?x=1' };
-      expect((await failWith('/api/users')).message).toBe('Failed to fetch (app.example.com)');
-    });
+    it.each([
+      ['a relative path', 'https://app.example.com/some/page?x=1', '/api/users', 'Failed to fetch (app.example.com)'],
+      ['an empty URL (`fetch("")`)', 'https://app.example.com/some/page?x=1', '', 'Failed to fetch (app.example.com)'],
+      ['a relative path with no current page', undefined, '/api/users', 'Failed to fetch'],
+      ['a relative path on a `file://` page', 'file:///C:/app/index.html', '/api/users', 'Failed to fetch'],
+      ['a relative path with an opaque origin', 'null', '/api/users', 'Failed to fetch'],
+      [
+        'an absolute URL, ignoring the current page',
+        'https://app.example.com/some/page',
+        'https://other.example.org/x',
+        'Failed to fetch (other.example.org)',
+      ],
+    ])('handles %s', async (_name, href, target, expected) => {
+      if (href) {
+        globalWithLocation.location = { href };
+      }
 
-    it('resolves an empty URL (`fetch("")`) against the current page', async () => {
-      globalWithLocation.location = { origin: 'https://app.example.com/some/page?x=1' };
-      expect((await failWith('')).message).toBe('Failed to fetch (app.example.com)');
-    });
-
-    it('does not change the message for a relative URL if there is no current page', async () => {
-      expect((await failWith('/api/users')).message).toBe('Failed to fetch');
-    });
-
-    it('does not append an empty host (e.g. pages served from file://)', async () => {
-      globalWithLocation.location = { origin: 'file:///C:/app/index.html' };
-      expect((await failWith('/api/users')).message).toBe('Failed to fetch');
-    });
-
-    it('does not change the message if the origin is opaque ("null")', async () => {
-      globalWithLocation.location = { origin: 'null' };
-      expect((await failWith('/api/users')).message).toBe('Failed to fetch');
-    });
-
-    it('still uses the host of an absolute URL, ignoring the current page', async () => {
-      globalWithLocation.location = { origin: 'https://app.example.com/some/page' };
-      expect((await failWith('https://other.example.org/x')).message).toBe('Failed to fetch (other.example.org)');
+      expect((await failWith(target)).message).toBe(expected);
     });
   });
 });

@@ -136,7 +136,7 @@ function instrumentFetch(onFetchResolved?: (response: Response) => void): void {
                 error.message === 'NetworkError when attempting to fetch resource.')
             ) {
               try {
-                const url = new URL(handlerData.fetchData.url, GLOBAL_OBJ.location?.origin);
+                const url = new URL(handlerData.fetchData.url, GLOBAL_OBJ.location?.href);
                 const hostname = url.host;
 
                 if (hostname) {
