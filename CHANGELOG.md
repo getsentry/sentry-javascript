@@ -63,6 +63,12 @@ Work in this release was contributed by @adityareddy-dev, @jpdefo, @Jxxunnn, @ph
 
   `httpIntegration` and `httpServerSpansIntegration` now accept `onSpanEnd`, a hook that runs when the response for an incoming request finishes, before its span ends. Use it to change the span based on the response. Deno and Bun already have this option.
 
+- **feat(cloudflare): Add incoming request span options to `httpServerIntegration`**
+
+  Cloudflare's `httpServerIntegration` now accepts `ignoreIncomingRequests`, `ignoreStaticAssets`, `spans`, `onSpanCreated` and `onSpanEnd`, with the same meaning as in the Node, Deno and Bun integrations. The callbacks receive the web `Request`.
+
+  `ignoreStaticAssets` defaults to `true`, so workers no longer create spans for `GET` requests to common static assets such as `favicon.ico`, `robots.txt` or `*.js` files. To keep these spans, set `httpServerIntegration({ ignoreStaticAssets: false })`. Request spans also follow the client's tracing configuration by default, so the SDK does not start them when tracing is disabled. If `ignoreRequestBody` throws, the request no longer fails, and the SDK skips the body.
+
 ## 11.8.0
 
 ### Important Changes
