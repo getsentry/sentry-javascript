@@ -10,7 +10,7 @@ import {
   SENTRY_ORIGIN,
 } from '@sentry/conventions/attributes';
 import { CACHE_GET, CACHE_PUT, CACHE_REMOVE } from '@sentry/conventions/op';
-import { CACHE_OPERATION_NAMES, getClient, hasSpanStreamingEnabled, isObjectLike, startSpan } from '@sentry/core';
+import { CACHE_OPERATION_NAMES, isObjectLike, startSpan } from '@sentry/core';
 
 const ORIGIN = 'auto.cache.cloudflare.kv';
 
@@ -42,10 +42,8 @@ function createSpanOptions(bindingName: string, operation: KVOperation, args: un
   const cacheOperation = OPERATION_SPAN_OPS[operation];
   const cacheOperationName = CACHE_OPERATION_NAMES[cacheOperation];
   const keys = getCacheKeys(operation, args);
-  const client = getClient();
-
   return {
-    name: client && hasSpanStreamingEnabled(client) ? cacheOperation : keys?.join(', ') || operation,
+    name: cacheOperation,
     attributes: {
       [SENTRY_OP]: cacheOperation,
       [CACHE_OPERATION]: cacheOperationName,

@@ -231,7 +231,7 @@ describe('instrumentEnv', () => {
     const env = { MY_KV: kv };
     const instrumented = instrumentEnv(env);
 
-    const wrapped = instrumented.MY_KV as typeof kv;
+    const wrapped = instrumented.MY_KV;
     expect(wrapped).not.toBe(kv);
 
     await wrapped.get('test-key', 'json');

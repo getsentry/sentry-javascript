@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { isD1Database, isDurableObjectNamespace, isJSRPC, isKVNamespace, isQueue } from '../../src/utils/isBinding';
+import {
+  isD1Database,
+  isDurableObjectNamespace,
+  isJSRPC,
+  isKVNamespace,
+  isQueue,
+} from '../../src/utils/isBinding';
 
 describe('isJSRPC', () => {
   it('returns false for a plain object', () => {
@@ -211,7 +217,6 @@ describe('isD1Database', () => {
   });
 });
 
-
 describe('isKVNamespace', () => {
   it('returns true for an object with get, put, list, and getWithMetadata methods', () => {
     const kv = {
@@ -228,7 +233,9 @@ describe('isKVNamespace', () => {
   });
 
   it('returns false when a required method is not a function', () => {
-    expect(isKVNamespace({ get: 'nope', put: () => {}, list: () => {}, getWithMetadata: () => {} })).toBe(false);
+    expect(
+      isKVNamespace({ get: 'nope', put: () => {}, list: () => {}, getWithMetadata: () => {} }),
+    ).toBe(false);
   });
 
   it('returns false for null and undefined', () => {

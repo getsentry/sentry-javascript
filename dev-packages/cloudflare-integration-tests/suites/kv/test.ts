@@ -18,22 +18,17 @@ it('emits cache.get for a KV read with key and hit attributes', async ({ signal 
   const runner = createRunner(__dirname)
     .expect(envelope => {
       const spans = getSpansFromEnvelope(envelope).filter(span => span.name === CACHE_GET);
-      expect(spans).toEqual(
-        expect.arrayContaining([
-          expect.objectContaining({
-            attributes: expect.objectContaining({
-              [SENTRY_OP]: { type: 'string', value: CACHE_GET },
-              [SENTRY_ORIGIN]: { type: 'string', value: 'auto.cache.cloudflare.kv' },
-              [CACHE_OPERATION]: { type: 'string', value: CACHE_OPERATION_NAMES[CACHE_GET] },
-              [CACHE_KEY]: { type: 'string', value: 'get-key' },
-              [CACHE_HIT]: { type: 'boolean', value: true },
-              [DB_OPERATION_NAME]: { type: 'string', value: 'get' },
-              [DB_COLLECTION_NAME]: { type: 'string', value: 'MY_KV' },
-              [DB_SYSTEM_NAME]: { type: 'string', value: 'cloudflare-kv' },
-            }),
-          }),
-        ]),
-      );
+      expect(spans).toHaveLength(1);
+      expect(spans[0]?.attributes).toEqual({
+        [SENTRY_OP]: { type: 'string', value: CACHE_GET },
+        [SENTRY_ORIGIN]: { type: 'string', value: 'auto.cache.cloudflare.kv' },
+        [CACHE_OPERATION]: { type: 'string', value: CACHE_OPERATION_NAMES[CACHE_GET] },
+        [CACHE_KEY]: { type: 'string', value: 'get-key' },
+        [CACHE_HIT]: { type: 'boolean', value: true },
+        [DB_OPERATION_NAME]: { type: 'string', value: 'get' },
+        [DB_COLLECTION_NAME]: { type: 'string', value: 'MY_KV' },
+        [DB_SYSTEM_NAME]: { type: 'string', value: 'cloudflare-kv' },
+      });
     })
     .start(signal);
 
@@ -133,6 +128,35 @@ it('emits cache.remove for KV deletes', async ({ signal }) => {
     .start(signal);
 
   await runner.makeRequest('get', '/kv/delete');
+  await runner.completed();
+});
+
+it('emits separate spans for separate KV requests', async ({ signal }) => {
+  const runner = createRunner(__dirname)
+    .expect(envelope => {
+      const spans = getSpansFromEnvelope(envelope).filter(span => span.name === CACHE_GET);
+      expect(spans).toHaveLength(1);
+      expect(spans[0]?.attributes).toEqual(
+        expect.objectContaining({
+          [DB_OPERATION_NAME]: { type: 'string', value: 'get' },
+          [CACHE_KEY]: { type: 'string', value: 'get-key' },
+        }),
+      );
+    })
+    .expect(envelope => {
+      const spans = getSpansFromEnvelope(envelope).filter(span => span.name === CACHE_PUT);
+      expect(spans).toHaveLength(1);
+      expect(spans[0]?.attributes).toEqual(
+        expect.objectContaining({
+          [DB_OPERATION_NAME]: { type: 'string', value: 'put' },
+          [CACHE_KEY]: { type: 'string', value: 'put-key' },
+        }),
+      );
+    })
+    .start(signal);
+
+  await runner.makeRequest('get', '/kv/get');
+  await runner.makeRequest('get', '/kv/put');
   await runner.completed();
 });
 
