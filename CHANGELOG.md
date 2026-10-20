@@ -35,7 +35,7 @@
 
   Pageloads of apps with `cacheComponents` enabled are connected to their server request again. Pages that Next.js prerenders no longer carry trace information, so a cached page can no longer connect visitors to a request that was not theirs. This also applies to ISR pages.
 
-  If you set up OpenTelemetry yourself, for example with `@vercel/otel`, register `NextSentryPropagator` and pass your tracer provider to `markPrerendersOnTracerProvider` so that your prerendered pages carry no trace information either.
+  If you set up OpenTelemetry yourself and register `SentryPropagator`, register `NextSentryPropagator` instead and pass your tracer provider to `markPrerendersOnTracerProvider`, so that your prerendered pages carry no trace information either.
 
 Work in this release was contributed by @adityareddy-dev, @jpdefo, @Jxxunnn, @philipatkinson, @Shubham-Padkonde, @mikamikasuki, and @mketiku. Thank you for your contributions!
 
