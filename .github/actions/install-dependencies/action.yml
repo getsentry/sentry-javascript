@@ -4,9 +4,6 @@ description: 'Installs pnpm dependencies into node_modules folders on the Namesp
 runs:
   using: 'composite'
   steps:
-    - name: Install pnpm
-      uses: ./.github/actions/install-pnpm
-
     - name: List dependency paths
       id: paths
       run: |
@@ -19,10 +16,12 @@ runs:
       shell: bash
 
     - name: Mount dependency cache
-      uses: namespacelabs/nscloud-cache-action@1124a6f3ce44e5cf84cc22111530961f4d2a15f9 # v1.7.0
+      uses: ./.github/actions/mount-pnpm-store
       with:
-        cache: pnpm
         path: ${{ steps.paths.outputs.paths }}
+
+    - name: Install pnpm
+      uses: ./.github/actions/install-pnpm
 
     # The cache volume can hold node_modules of another commit or branch. This is a no-op when they match
     # pnpm-lock.yaml.

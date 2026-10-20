@@ -52,8 +52,9 @@ env:
   # This option both controls the `v8-compile-cache-lib` and `v8-compile-cache` packages.
   DISABLE_V8_COMPILE_CACHE: '1'
 
-# All jobs share one Namespace cache volume through `overrides.cache-tag`. Pull request jobs get their own volume
-# (`-pr`), so they cannot change the node_modules that develop and release builds install from.
+# Jobs that install the monorepo dependencies share one Namespace cache volume through `overrides.cache-tag`, E2E jobs
+# share another one (`-e2e`). Jobs that do not use a cache volume have no cache tag. Pull request jobs get their own
+# volumes (`-pr`), so they cannot change the node_modules that develop and release builds install from.
 jobs:
   job_get_metadata:
     uses: ./.github/workflows/ci-metadata.yml
@@ -268,9 +269,7 @@ jobs:
   job_check_branches:
     name: Check PR branches
     needs: job_get_metadata
-    runs-on:
-      namespace-profile-sentry-javascript-small;overrides.cache-tag=sentry-javascript${{ github.event_name ==
-      'pull_request' && '-pr' || '' }}
+    runs-on: namespace-profile-sentry-javascript-small
     if: github.event_name == 'pull_request'
     permissions:
       pull-requests: write
@@ -354,9 +353,7 @@ jobs:
     name: Check lockfile
     needs: [job_get_metadata]
     timeout-minutes: 10
-    runs-on:
-      namespace-profile-sentry-javascript;overrides.cache-tag=sentry-javascript${{ github.event_name == 'pull_request'
-      && '-pr' || '' }}
+    runs-on: namespace-profile-sentry-javascript
     if: |
       needs.job_get_metadata.outputs.changed_deps == 'true' ||
       needs.job_get_metadata.outputs.is_base_branch == 'true' ||
@@ -1054,8 +1051,8 @@ jobs:
       always() && needs.job_build_tarballs.result == 'success' && needs.job_build.outputs.e2e-matrix !='{"include":[]}'
     needs: [job_get_metadata, job_build, job_build_layer, job_build_tarballs]
     runs-on:
-      namespace-profile-sentry-javascript;overrides.cache-tag=sentry-javascript${{ github.event_name == 'pull_request'
-      && '-pr' || '' }}
+      namespace-profile-sentry-javascript;overrides.cache-tag=sentry-javascript-e2e${{ github.event_name ==
+      'pull_request' && '-pr' || '' }}
     timeout-minutes: 15
     env:
       # We just use a dummy DSN here, only send to the tunnel anyhow
@@ -1100,13 +1097,11 @@ jobs:
         uses: denoland/setup-deno@v2.0.5
         with:
           deno-version: ${{ matrix.deno-version || 'v2.8.3' }}
-      - name: Install pnpm
-        uses: ./.github/actions/install-pnpm
       # Keeps the pnpm store on the cache volume for the `pnpm install` of the test application
       - name: Mount pnpm store
-        uses: namespacelabs/nscloud-cache-action@1124a6f3ce44e5cf84cc22111530961f4d2a15f9 # v1.7.0
-        with:
-          cache: pnpm
+        uses: ./.github/actions/mount-pnpm-store
+      - name: Install pnpm
+        uses: ./.github/actions/install-pnpm
 
       - name: Restore tarball artifacts
         uses: actions/download-artifact@v8
@@ -1202,8 +1197,8 @@ jobs:
       github.event.pull_request.head.repo.full_name == github.repository) && github.actor != 'dependabot[bot]'
     needs: [job_get_metadata, job_build, job_build_tarballs]
     runs-on:
-      namespace-profile-sentry-javascript;overrides.cache-tag=sentry-javascript${{ github.event_name == 'pull_request'
-      && '-pr' || '' }}
+      namespace-profile-sentry-javascript;overrides.cache-tag=sentry-javascript-e2e${{ github.event_name ==
+      'pull_request' && '-pr' || '' }}
     timeout-minutes: 15
     env:
       E2E_TEST_AUTH_TOKEN: ${{ secrets.E2E_TEST_AUTH_TOKEN }}
@@ -1251,13 +1246,11 @@ jobs:
         uses: denoland/setup-deno@v2.0.5
         with:
           deno-version: ${{ matrix.deno-version || 'v2.8.3' }}
-      - name: Install pnpm
-        uses: ./.github/actions/install-pnpm
       # Keeps the pnpm store on the cache volume for the `pnpm install` of the test application
       - name: Mount pnpm store
-        uses: namespacelabs/nscloud-cache-action@1124a6f3ce44e5cf84cc22111530961f4d2a15f9 # v1.7.0
-        with:
-          cache: pnpm
+        uses: ./.github/actions/mount-pnpm-store
+      - name: Install pnpm
+        uses: ./.github/actions/install-pnpm
 
       - name: Restore tarball artifacts
         uses: actions/download-artifact@v8
@@ -1343,9 +1336,7 @@ jobs:
       ]
     # Always run this, even if a dependent job failed
     if: always()
-    runs-on:
-      namespace-profile-sentry-javascript-small;overrides.cache-tag=sentry-javascript${{ github.event_name ==
-      'pull_request' && '-pr' || '' }}
+    runs-on: namespace-profile-sentry-javascript-small
     permissions: {}
     steps:
       - name: Check for failures
