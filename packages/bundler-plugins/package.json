@@ -136,7 +136,7 @@
     "@types/babel__core": "^7.20.5",
     "@types/node": "^20.19.0",
     "premove": "^4.0.0",
-    "rolldown": "^1.2.14",
+    "rolldown": "^1.0.0",
     "vitest": "^4.1.11",
     "webpack": "5.104.1"
   },
