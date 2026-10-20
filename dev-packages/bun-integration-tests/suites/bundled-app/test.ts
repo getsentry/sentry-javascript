@@ -4,19 +4,19 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterAll, expect, test } from 'vitest';
 
-// Outside the repo, so the bundle has no `node_modules` above it, as in a deployed app.
+// Outside the repo, so no `node_modules` is above the bundle, as in a deployed app.
 const runDir = mkdtempSync(join(tmpdir(), 'sentry-bun-bundled-app-'));
 
 afterAll(() => {
   rmSync(runDir, { recursive: true, force: true });
 });
 
-// Without `node_modules`, a module lookup starts Bun's auto-install, and Bun exits when it cannot
-// create its package cache. See https://github.com/getsentry/sentry-javascript/issues/25540
+// Without `node_modules`, a module lookup starts Bun's auto-install, which exits the process when it
+// cannot create its cache: https://github.com/getsentry/sentry-javascript/issues/25540
 test('a bundled app initializes when Bun cannot create its package cache', () => {
   const app = join(runDir, 'app.mjs');
   execFileSync('bun', ['build', join(__dirname, 'index.ts'), '--target=bun', '--format=esm', `--outfile=${app}`]);
-  // Files where Bun creates its cache directories, so that this also fails for the root user.
+  // Files block the cache directories. Unlike file permissions, this also works for root.
   writeFileSync(join(runDir, 'node_modules'), '');
   writeFileSync(join(runDir, 'cache'), '');
 

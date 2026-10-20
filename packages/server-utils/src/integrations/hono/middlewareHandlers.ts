@@ -48,9 +48,8 @@ function getCurrentIsolationScope(): Scope {
  * Adds HTTP connection info (client IP, port, transport, address type) from the runtime to the root
  * (server) span and the isolation scope.
  *
- * Attributes that are already on the root span are kept: the runtime SDK sets them first and reads
- * forwarding headers, while the Node, Bun and Deno runtime objects only know the socket peer (a proxy,
- * if there is one).
+ * Keeps attributes that the runtime SDK already set: it reads forwarding headers, while the runtime
+ * objects only know the socket peer, which can be a proxy.
  */
 function setConnInfoAttributes(context: Context, runtime: HonoRuntime, isolationScope: Scope): void {
   const activeSpan = getActiveSpan();
@@ -70,7 +69,7 @@ function setConnInfoAttributes(context: Context, runtime: HonoRuntime, isolation
 
   const rootSpan = getRootSpan(activeSpan);
   const existingAttributes = spanToJSON(rootSpan).attributes ?? {};
-  // A port only identifies the client together with its address: behind a proxy, the socket port is the proxy's.
+  // Pair `client.port` only with the socket address: behind a proxy, the socket port is the proxy's.
   const writesClientAddress = ipAddress !== undefined && existingAttributes['client.address'] === undefined;
   rootSpan.setAttributes(
     onlyNewAttributes(

@@ -2,10 +2,7 @@ import * as SentryCore from '@sentry/core';
 import { Hono, type MiddlewareHandler } from 'hono';
 import { vi } from 'vitest';
 
-/**
- * Sends one request through `middleware` inside a root span, with `userInfo` collection on, and
- * gives the root span attributes. `env` is what the runtime adapter passes to `app.fetch`.
- */
+/** Sends a request through `middleware` in a root span, with `userInfo` on, and returns the span attributes. */
 export async function requestConnInfoAttributes(
   middleware: MiddlewareHandler,
   { env, headers }: { env?: unknown; headers?: Record<string, string> },

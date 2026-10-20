@@ -6,7 +6,7 @@ const anyString = expect.any(String) as unknown;
 const anyNumber = expect.any(Number) as unknown;
 const ipvType = expect.stringMatching(/^ipv[46]$/) as unknown;
 
-// Per-runtime `http.server` connection-info expectations. Each runtime object that Hono holds exposes
+// Per-runtime `http.server` connection-info expectations. Each runtime exposes
 // a different set of fields, so the expected attribute values are declared here once (keyed by
 // runtime) instead of branching inside the tests. `undefined` means the attribute must be absent.
 // Relational checks (`network.peer.*` mirroring `client.*`) are asserted in the tests, since they
@@ -45,7 +45,7 @@ const CONN_INFO: Record<Runtime, { added: Record<string, unknown>; baseline: Rec
     baseline: { 'client.port': anyNumber, 'network.type': ipvType },
   },
   deno: {
-    // Only Deno's `remoteAddr` exposes `network.transport`.
+    // `network.transport` comes from Deno's `remoteAddr`.
     added: { 'client.address': anyString, 'client.port': anyNumber, 'network.transport': expect.stringMatching(/tcp/) },
     baseline: {
       'server.address': 'localhost',
@@ -55,8 +55,7 @@ const CONN_INFO: Record<Runtime, { added: Record<string, unknown>; baseline: Rec
     },
   },
   cloudflare: {
-    // Cloudflare Workers expose only the client address (the `cf-connecting-ip` header): no port,
-    // address family, or transport.
+    // Workers give only the client address (the `cf-connecting-ip` header).
     added: {
       'client.address': anyString,
       'client.port': undefined,

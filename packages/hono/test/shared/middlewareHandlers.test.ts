@@ -354,7 +354,7 @@ describe('requestHandler — connection info (via createHonoRequestMiddleware)',
 
   it('does not pair the socket port with a client.address that is already on the root span', async () => {
     mockUserInfo(true);
-    // The runtime SDK read `client.address` from a forwarding header and knows no client port.
+    // Set by the runtime SDK from a forwarding header, without a port.
     rootSpan.setAttribute('client.address', '198.51.100.7');
 
     await runMiddleware(createNodeContext({ remoteAddress: '10.0.0.1', remotePort: 54321 }));

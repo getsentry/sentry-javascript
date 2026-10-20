@@ -10,10 +10,8 @@ export interface ConnInfo {
   addressType?: string;
 }
 
-// Structural shapes of what each runtime adapter passes to `app.fetch` as `c.env`. They copy the reads of
-// Hono's own `getConnInfo` helpers, which moved out of `hono` in Hono 5.
-// The readers cast `c.env` to these shapes without validation: the caller selects the runtime, the runtime
-// defines the shape, and `readConnInfo` catches a read that throws.
+// What the runtime adapters pass to `app.fetch` as `c.env`. The readers copy Hono's `getConnInfo` helpers,
+// which Hono 5 moved out of `hono`. The casts are unchecked, and `readConnInfo` catches a read that throws.
 type NodeBindings = {
   incoming?: { socket?: { remoteAddress?: string; remotePort?: number; remoteFamily?: string } };
 };
@@ -23,6 +21,7 @@ type BunServer = {
 type DenoServeHandlerInfo = { remoteAddr?: { hostname?: string; port?: number; transport?: string } };
 
 const READERS: Record<HonoRuntime, (context: Context) => ConnInfo | undefined> = {
+  // https://github.com/honojs/node-server/blob/v2.1.5/src/conninfo.ts
   node: context => {
     const env = context.env as (NodeBindings & { server?: NodeBindings }) | undefined;
     const socket = (env?.server ?? env)?.incoming?.socket;
@@ -30,28 +29,28 @@ const READERS: Record<HonoRuntime, (context: Context) => ConnInfo | undefined> =
       ? { address: socket.remoteAddress, port: socket.remotePort, addressType: socket.remoteFamily }
       : undefined;
   },
+  // https://github.com/honojs/hono/blob/v4.13.13/src/adapter/bun/conninfo.ts
   bun: context => {
     const env = context.env as (BunServer & { server?: BunServer }) | undefined;
     const info = (env?.server ?? env)?.requestIP?.(context.req.raw);
     return info ? { address: info.address, port: info.port, addressType: info.family } : undefined;
   },
+  // https://github.com/honojs/hono/blob/v4.13.13/src/adapter/deno/conninfo.ts
   deno: context => {
     const remoteAddr = (context.env as DenoServeHandlerInfo | undefined)?.remoteAddr;
     return remoteAddr
       ? { address: remoteAddr.hostname, port: remoteAddr.port, transport: remoteAddr.transport }
       : undefined;
   },
-  // On Cloudflare `c.env` holds the user's bindings, so only the request is read.
+  // `c.env` holds the user's bindings here, so only the header is read.
+  // https://github.com/honojs/hono/blob/v4.13.13/src/adapter/cloudflare-workers/conninfo.ts
   cloudflare: context => {
     const address = context.req.raw.headers.get('cf-connecting-ip');
     return address ? { address } : undefined;
   },
 };
 
-/**
- * Reads the connection info from the runtime objects that Hono holds for the request.
- * Gives `undefined` when the runtime object is missing or a read throws.
- */
+/** Gives `undefined` when the runtime object is missing or a read throws. */
 export function readConnInfo(context: Context, runtime: HonoRuntime): ConnInfo | undefined {
   try {
     return READERS[runtime](context);

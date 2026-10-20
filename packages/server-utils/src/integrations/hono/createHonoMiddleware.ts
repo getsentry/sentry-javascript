@@ -17,7 +17,7 @@ const HONO_REQUEST_HANDLED = Symbol.for('sentry.hono.requestHandled');
 const HONO_SHOULD_HANDLE_ERROR = Symbol.for('sentry.hono.shouldHandleError');
 
 export interface CreateHonoRequestMiddlewareOptions {
-  /** The runtime that serves the app. It selects where the connection info is read from. */
+  /** Selects where the connection info is read from. */
   runtime: HonoRuntime;
 
   /** Static `shouldHandleError` callback (Node/Bun/Deno). */

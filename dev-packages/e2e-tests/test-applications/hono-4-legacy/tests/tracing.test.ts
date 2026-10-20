@@ -49,7 +49,7 @@ test('attaches HTTP connection info to the server span', async ({ baseURL, page 
   expect(data['network.peer.address']?.value).toBe(data['client.address']?.value);
 
   if (RUNTIME !== 'node' && RUNTIME !== 'deno') {
-    // Only set by the Node HTTP server span and read from Deno's `remoteAddr`
+    // Only the Node HTTP server span and Deno's `remoteAddr` give a transport.
     expect(data['network.transport']?.value).toBeUndefined();
   } else {
     expect(data['network.transport']?.value).toMatch(/tcp/);
