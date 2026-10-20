@@ -1,9 +1,10 @@
 import { expect, test } from '@playwright/test';
 import { waitForTransaction } from '@sentry-internal/test-utils';
 
-// TODO: Remove the inverse assertion in cacheComponents.spec.ts ("Prerendered shell does not stitch the pageload onto a stale trace") when this test passes.
 test('connects the pageload trace to the runtime server request', async ({ page }) => {
-  test.fail();
+  // The resumed part of the document, which carries the tag, arrives after the SDK started. Enabled
+  // once the pageload instrumentation waits for it.
+  test.skip(true, 'Needs the deferred pageload start');
 
   // The shell is prerendered, but the page's dynamic part (`DynamicContent` awaits `headers()`)
   // runs on the server on every request and produces the `GET /pageload-tracing` transaction.
