@@ -992,6 +992,46 @@ describe('NestJS orchestrion subscriber: schedule / event / bullmq', () => {
     },
   );
 
+  it.each([CHANNELS.NESTJS_BULLMQ_WORKER_EVENT, CHANNELS.NESTJS_BULLMQ_QUEUE_EVENT])(
+    '%s: propagates synchronous listener errors without capturing them',
+    channel => {
+      installTestAsyncContextStrategy();
+      subscribeToNestChannels();
+      const captureSpy = vi.spyOn(SentryCore, 'captureException');
+      const error = new Error('listener failed');
+      const descriptor: PropertyDescriptor = {
+        value: () => {
+          throw error;
+        },
+      };
+      const decorator = driveFactory(channel, ['completed'], (_t, _k, d) => d);
+      decorator({}, 'onCompleted', descriptor);
+
+      expect(() => descriptor.value({})).toThrow(error);
+      expect(captureSpy).not.toHaveBeenCalled();
+    },
+  );
+
+  it.each([CHANNELS.NESTJS_BULLMQ_WORKER_EVENT, CHANNELS.NESTJS_BULLMQ_QUEUE_EVENT])(
+    '%s: propagates async listener errors without capturing them',
+    async channel => {
+      installTestAsyncContextStrategy();
+      subscribeToNestChannels();
+      const captureSpy = vi.spyOn(SentryCore, 'captureException');
+      const error = new Error('async listener failed');
+      const descriptor: PropertyDescriptor = {
+        value: async () => {
+          throw error;
+        },
+      };
+      const decorator = driveFactory(channel, ['completed'], (_t, _k, d) => d);
+      decorator({}, 'onCompleted', descriptor);
+
+      await expect(descriptor.value({})).rejects.toBe(error);
+      expect(captureSpy).not.toHaveBeenCalled();
+    },
+  );
+
   it('schedule @Timeout: captures sync errors with the timeout mechanism', () => {
     installTestAsyncContextStrategy();
     initTestClient();

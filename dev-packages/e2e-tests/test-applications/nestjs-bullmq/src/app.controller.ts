@@ -9,8 +9,8 @@ export class AppController {
 
   @Get('enqueue/:name')
   async enqueue(@Param('name') name: string) {
-    await this.queue.add(name, { timestamp: Date.now() });
-    return { queued: true };
+    const job = await this.queue.add(name, { timestamp: Date.now() });
+    return { queued: true, jobId: job.id };
   }
 
   @Get('check-isolation')

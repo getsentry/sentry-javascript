@@ -25,8 +25,6 @@ export const MECHANISM_INTERVAL = 'auto.function.nestjs.interval';
 export const MECHANISM_TIMEOUT = 'auto.function.nestjs.timeout';
 export const MECHANISM_EVENT = 'auto.event.nestjs';
 export const MECHANISM_BULLMQ = 'auto.queue.nestjs.bullmq';
-export const MECHANISM_BULLMQ_WORKER_EVENT = 'auto.queue.nestjs.bullmq.worker_event';
-export const MECHANISM_BULLMQ_QUEUE_EVENT = 'auto.queue.nestjs.bullmq.queue_event';
 
 const bullMQJobScopes = new WeakMap<object, Scope>();
 
@@ -59,10 +57,8 @@ function captureHandlerError(error: unknown, mechanismType: string): void {
 
 /**
  * Preserve synchronous throws so the caller's error handling still applies.
- *
- * @param shareJobScope Reuse the first argument's (BullMQ Job) scope so lifecycle hooks share context with process().
  */
-export function wrapIsolatedHandler(handler: AnyFn, mechanismType: string, shareJobScope: boolean = false): AnyFn {
+export function wrapScheduleHandler(handler: AnyFn, mechanismType: string): AnyFn {
   return function (this: unknown, ...args: unknown[]): unknown {
     const invoke = (): unknown => {
       let result: unknown;
@@ -81,6 +77,16 @@ export function wrapIsolatedHandler(handler: AnyFn, mechanismType: string, share
       return result;
     };
 
+    return withIsolationScope(invoke);
+  };
+}
+
+/**
+ * @param shareJobScope Reuse the first argument's (BullMQ Job) scope so lifecycle hooks share context with process().
+ */
+export function wrapBullMQEventHandler(handler: AnyFn, shareJobScope: boolean = false): AnyFn {
+  return function (this: unknown, ...args: unknown[]): unknown {
+    const invoke = (): unknown => handler.apply(this, args);
     return shareJobScope ? withBullMQJobScope(args[0], invoke) : withIsolationScope(invoke);
   };
 }

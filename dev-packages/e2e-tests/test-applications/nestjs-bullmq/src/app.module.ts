@@ -4,6 +4,7 @@ import { BullModule } from '@nestjs/bullmq';
 import { SentryGlobalFilter, SentryModule } from '@sentry/nestjs/setup';
 import { AppController } from './app.controller';
 import { TestProcessor } from './jobs/test.processor';
+import { TestQueueEventsListener } from './jobs/test-queue-events.listener';
 
 @Module({
   imports: [
@@ -16,6 +17,7 @@ import { TestProcessor } from './jobs/test.processor';
   controllers: [AppController],
   providers: [
     TestProcessor,
+    TestQueueEventsListener,
     {
       provide: APP_FILTER,
       useClass: SentryGlobalFilter,

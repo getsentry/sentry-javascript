@@ -122,3 +122,66 @@ test('BullMQ @OnWorkerEvent progress lifecycle breadcrumbs do not leak into subs
 
   expect(await getLeakedBreadcrumbs(baseURL!)).not.toContain('leaked-breadcrumb-from-progress-event');
 });
+
+test('Shares job context across worker lifecycle callbacks and async boundaries', async ({ baseURL }) => {
+  const processEventPromise = waitForError(APP_NAME, event => event.message === 'BullMQ shared lifecycle process');
+  const completedEventPromise = waitForError(APP_NAME, event => event.message === 'BullMQ shared lifecycle completed');
+
+  const response = await fetch(`${baseURL}/enqueue/shared-lifecycle-context`);
+  const { jobId } = await response.json();
+  const [processEvent, completedEvent] = await Promise.all([processEventPromise, completedEventPromise]);
+
+  expect([processEvent.tags?.['lifecycle.job_id'], completedEvent.tags?.['lifecycle.job_id']]).toEqual([jobId, jobId]);
+  expect([processEvent.tags?.['lifecycle.progress'], completedEvent.tags?.['lifecycle.progress']]).toEqual([
+    'received',
+    'received',
+  ]);
+  expect([processEvent.user?.id, completedEvent.user?.id]).toEqual([jobId, jobId]);
+  expect(
+    processEvent.breadcrumbs
+      ?.filter(breadcrumb => breadcrumb.category === 'bullmq.lifecycle')
+      .map(breadcrumb => breadcrumb.message),
+  ).toEqual(['active', 'process', 'progress', 'process-after-progress']);
+  expect(
+    completedEvent.breadcrumbs
+      ?.filter(breadcrumb => breadcrumb.category === 'bullmq.lifecycle')
+      .map(breadcrumb => breadcrumb.message),
+  ).toEqual(['active', 'process', 'progress', 'process-after-progress', 'completed']);
+});
+
+test('Isolates async queue event listeners from other notifications and HTTP requests', async ({ baseURL }) => {
+  const firstEventPromise = waitForError(APP_NAME, event =>
+    event.message?.startsWith('BullMQ queue lifecycle callback '),
+  );
+
+  const firstResponse = await fetch(`${baseURL}/enqueue/queue-event-isolation`);
+  const { jobId: firstJobId } = await firstResponse.json();
+  const firstEvent = await firstEventPromise;
+
+  const secondEventPromise = waitForError(APP_NAME, event =>
+    event.message?.startsWith('BullMQ queue lifecycle callback '),
+  );
+  const secondResponse = await fetch(`${baseURL}/enqueue/queue-event-isolation`);
+  const { jobId: secondJobId } = await secondResponse.json();
+  const secondEvent = await secondEventPromise;
+
+  expect([firstEvent.tags?.['queue_event.job_id'], secondEvent.tags?.['queue_event.job_id']]).toEqual([
+    firstJobId,
+    secondJobId,
+  ]);
+  expect([firstEvent.extra, secondEvent.extra]).toEqual([
+    { previousJobId: null, previousBreadcrumbs: [] },
+    { previousJobId: null, previousBreadcrumbs: [] },
+  ]);
+  expect(
+    firstEvent.breadcrumbs
+      ?.filter(breadcrumb => breadcrumb.category === 'bullmq.queue_event')
+      .map(breadcrumb => breadcrumb.message),
+  ).toEqual([`leaked-breadcrumb-from-queue-event-${firstJobId}`]);
+  expect(
+    secondEvent.breadcrumbs
+      ?.filter(breadcrumb => breadcrumb.category === 'bullmq.queue_event')
+      .map(breadcrumb => breadcrumb.message),
+  ).toEqual([`leaked-breadcrumb-from-queue-event-${secondJobId}`]);
+  expect(await getLeakedBreadcrumbs(baseURL!)).toEqual([]);
+});

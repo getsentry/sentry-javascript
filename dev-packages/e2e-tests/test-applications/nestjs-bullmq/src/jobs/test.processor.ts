@@ -5,6 +5,18 @@ import * as Sentry from '@sentry/nestjs';
 @Processor('test-queue')
 export class TestProcessor extends WorkerHost {
   async process(job: Job): Promise<any> {
+    if (job.name === 'shared-lifecycle-context') {
+      Sentry.addBreadcrumb({ category: 'bullmq.lifecycle', message: 'process' });
+      await job.updateProgress(50);
+      Sentry.addBreadcrumb({ category: 'bullmq.lifecycle', message: 'process-after-progress' });
+      Sentry.captureMessage('BullMQ shared lifecycle process');
+      return { processed: true };
+    }
+
+    if (job.name === 'queue-event-isolation') {
+      return { scenario: 'queue-event-isolation' };
+    }
+
     if (job.name === 'fail') {
       throw new Error('Test error from BullMQ processor');
     }
@@ -30,7 +42,13 @@ export class TestProcessor extends WorkerHost {
   }
 
   @OnWorkerEvent('completed')
-  onCompleted(job: Job) {
+  async onCompleted(job: Job) {
+    if (job.name === 'shared-lifecycle-context') {
+      await Promise.resolve();
+      Sentry.addBreadcrumb({ category: 'bullmq.lifecycle', message: 'completed' });
+      Sentry.captureMessage('BullMQ shared lifecycle completed');
+    }
+
     if (job.name === 'lifecycle-breadcrumb-test') {
       Sentry.addBreadcrumb({
         message: 'leaked-breadcrumb-from-lifecycle-event',
@@ -42,6 +60,12 @@ export class TestProcessor extends WorkerHost {
 
   @OnWorkerEvent('active')
   onActive(job: Job) {
+    if (job.name === 'shared-lifecycle-context') {
+      Sentry.setTag('lifecycle.job_id', job.id);
+      Sentry.setUser({ id: job.id });
+      Sentry.addBreadcrumb({ category: 'bullmq.lifecycle', message: 'active' });
+    }
+
     if (job.name === 'lifecycle-active-breadcrumb-test') {
       Sentry.addBreadcrumb({
         message: 'leaked-breadcrumb-from-active-event',
@@ -64,6 +88,11 @@ export class TestProcessor extends WorkerHost {
 
   @OnWorkerEvent('progress')
   onProgress(job: Job) {
+    if (job.name === 'shared-lifecycle-context') {
+      Sentry.setTag('lifecycle.progress', 'received');
+      Sentry.addBreadcrumb({ category: 'bullmq.lifecycle', message: 'progress' });
+    }
+
     if (job.name === 'lifecycle-progress-breadcrumb-test') {
       Sentry.addBreadcrumb({
         message: 'leaked-breadcrumb-from-progress-event',
