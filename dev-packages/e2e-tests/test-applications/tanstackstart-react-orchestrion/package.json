@@ -10,7 +10,8 @@
     "clean": "npx rimraf node_modules pnpm-lock.yaml",
     "test:build": "pnpm install && pnpm build",
     "test:build-latest": "pnpm add @tanstack/react-start@latest @tanstack/react-router@latest && pnpm install && pnpm build",
-    "test:assert": "pnpm test"
+    "test:assert": "pnpm test",
+    "test:build:hoisted": "pnpm install --config.node-linker=hoisted && pnpm build"
   },
   "//": "Need to use ioredis 5.10.1 because that's the last version before they support tracing channels",
   "dependencies": {
@@ -39,5 +40,13 @@
   },
   "volta": {
     "extends": "../../package.json"
+  },
+  "sentryTest": {
+    "variants": [
+      {
+        "label": "tanstackstart-react-orchestrion (hoisted)",
+        "build-command": "pnpm test:build:hoisted"
+      }
+    ]
   }
 }
