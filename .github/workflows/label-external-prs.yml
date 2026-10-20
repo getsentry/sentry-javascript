@@ -9,7 +9,7 @@ jobs:
     name: Add external label
     permissions:
       pull-requests: write
-    runs-on: namespace-profile-sentry-javascript-small
+    runs-on: ubuntu-24.04
     if: |
       github.event.pull_request.author_association != 'COLLABORATOR'
       && github.event.pull_request.author_association != 'MEMBER'

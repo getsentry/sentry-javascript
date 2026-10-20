@@ -1,5 +1,10 @@
 name: 'Install pnpm dependencies'
-description: 'Installs pnpm dependencies into node_modules folders on the Namespace cache volume.'
+description: 'Installs pnpm dependencies and caches them.'
+
+outputs:
+  cache_key:
+    description: 'The dependency cache key'
+    value: ${{ steps.compute_lockfile_hash.outputs.hash }}
 
 runs:
   using: 'composite'
@@ -7,25 +12,19 @@ runs:
     - name: Install pnpm
       uses: ./.github/actions/install-pnpm
 
-    - name: List dependency paths
-      id: paths
-      run: |
-        {
-          echo 'paths<<EOF'
-          node -e 'const { workspaces } = require("./package.json"); for (const dir of [".", ...workspaces]) console.log(require("path").resolve(dir, "node_modules"))'
-          echo '~/.cache/mongodb-binaries'
-          echo 'EOF'
-        } >> "$GITHUB_OUTPUT"
+    - name: Compute dependency cache key
+      id: compute_lockfile_hash
+      run: node ./scripts/dependency-hash-key.js >> "$GITHUB_OUTPUT"
       shell: bash
 
-    - name: Mount dependency cache
-      uses: namespacelabs/nscloud-cache-action@1124a6f3ce44e5cf84cc22111530961f4d2a15f9 # v1.7.0
+    - name: Check dependency cache
+      uses: actions/cache@v6.1.0
+      id: cache_dependencies
       with:
-        cache: pnpm
-        path: ${{ steps.paths.outputs.paths }}
+        path: ${{ env.CACHED_DEPENDENCY_PATHS }}
+        key: ${{ steps.compute_lockfile_hash.outputs.hash }}
 
-    # The cache volume can hold node_modules of another commit or branch. This is a no-op when they match
-    # pnpm-lock.yaml.
     - name: Install dependencies
+      if: steps.cache_dependencies.outputs.cache-hit != 'true'
       run: pnpm install --frozen-lockfile
       shell: bash
