@@ -20,7 +20,7 @@ import {
   SENTRY_OP,
   SENTRY_ORIGIN,
 } from '@sentry/conventions/attributes';
-import { GEN_AI_DECIDE } from '@sentry/conventions/op';
+import { GEN_AI_CHAT, GEN_AI_DECIDE } from '@sentry/conventions/op';
 import { GEN_AI_RESPONSE_STOP_REASON_ATTRIBUTE } from '../../../../../../packages/server-utils/src/ai/core/gen-ai-attributes';
 import { cleanupChildProcesses, createEsmAndCjsTests } from '../../../../utils/runner';
 import { createEsmTests } from '../../../../utils/runner/createEsmAndCjsTests';
@@ -225,6 +225,69 @@ describe('LangChain integration (v1)', () => {
           .sort((a, b) => a.start_timestamp - b.start_timestamp)
           .map(span => span.attributes[GEN_AI_CONVERSATION_ID]?.value);
         expect(ids).toEqual(['thread_from_config', 'session_from_config', 'conversation_from_scope', undefined]);
+      });
+    },
+    {
+      additionalDependencies: {
+        langchain: '^1.0.0',
+        '@langchain/core': '^1.0.0',
+        '@langchain/anthropic': '^1.0.0',
+      },
+    },
+  );
+
+  createEsmAndCjsTests(
+    __dirname,
+    'scenario-nested-runtime-context.mjs',
+    'instrument.mjs',
+    (createRunner, test) => {
+      test('keeps the conversation id and trace for a model called from a tool without config', async () => {
+        const runner = createRunner().ignore('event');
+        const spansPromise = runner.collectStreamedSpansUntilSegment('main');
+
+        await runner.start().completed();
+
+        const spans = await spansPromise;
+        const byId = new Map(spans.map(span => [span.span_id, span]));
+        const ancestorNames = (span: (typeof spans)[number]): string[] => {
+          const names: string[] = [];
+          for (let p = byId.get(span.parent_span_id ?? ''); p; p = byId.get(p.parent_span_id ?? '')) {
+            names.push(p.name);
+          }
+          return names;
+        };
+        const chatSpans = spans.filter(span => span.attributes[SENTRY_OP]?.value === GEN_AI_CHAT);
+
+        expect(chatSpans).toHaveLength(2);
+        expect(
+          chatSpans
+            .map(span => [
+              span.attributes[GEN_AI_CONVERSATION_ID]?.value,
+              ancestorNames(span).find(name => name === 'auto' || name === 'handler'),
+            ])
+            .sort(),
+        ).toEqual([
+          ['thread_auto', 'auto'],
+          ['thread_handler', 'handler'],
+        ]);
+
+        // Each run span sits under its parent run's span. The id only reaches runs still open when the model
+        // call reveals it, so the step that ran before the model call has none.
+        const handlerSpans = spans.filter(
+          span =>
+            span.attributes[SENTRY_ORIGIN]?.value === 'auto.ai.langchain' && ancestorNames(span).includes('handler'),
+        );
+        expect(
+          handlerSpans
+            .map(span => [span.name, ancestorNames(span)[0], span.attributes[GEN_AI_CONVERSATION_ID]?.value])
+            .sort(),
+        ).toEqual([
+          ['chat claude-3-5-sonnet-20241022', 'invoke_agent nested_chain', 'thread_handler'],
+          ['execute_tool lookup_weather', 'invoke_agent outer', 'thread_handler'],
+          ['invoke_agent RunnableLambda', 'invoke_agent nested_chain', undefined],
+          ['invoke_agent nested_chain', 'execute_tool lookup_weather', 'thread_handler'],
+          ['invoke_agent outer', 'handler', 'thread_handler'],
+        ]);
       });
     },
     {

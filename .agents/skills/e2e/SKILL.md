@@ -39,7 +39,7 @@ For each modified package, rebuild its tarball:
 
 ```bash
 cd packages/<package-name>
-yarn build && yarn build:tarball
+pnpm run build && pnpm run build:tarball
 cd ../..
 ```
 
@@ -49,7 +49,7 @@ If the user says "I changed @sentry/node" or similar, rebuild just that package:
 
 ```bash
 cd packages/node
-yarn build && yarn build:tarball
+pnpm run build && pnpm run build:tarball
 cd ../..
 ```
 
@@ -75,14 +75,14 @@ Navigate to the e2e-tests directory and run the test:
 
 ```bash
 cd dev-packages/e2e-tests
-yarn test:run <app-name>
+pnpm run test:run <app-name>
 ```
 
 If a variant was specified:
 
 ```bash
 cd dev-packages/e2e-tests
-yarn test:run <app-name> --variant <variant-name>
+pnpm run test:run <app-name> --variant <variant-name>
 ```
 
 ### Step 5: Report Results
@@ -114,10 +114,11 @@ All tests completed successfully. Your SDK changes work correctly with this test
 
 ## Error Handling
 
-- **No tarballs found**: Run `yarn build && yarn build:tarball` at repository root
+- **No tarballs found**: Run `pnpm run build && pnpm run build:tarball` at repository root
 - **Test app not found**: List available apps and ask user to clarify
-- **Packed tarballs missing**: Run `yarn build:tarball` at the repo root, then `yarn test:prepare` in `dev-packages/e2e-tests`
+- **Packed tarballs missing**: Run `pnpm run build:tarball` at the repo root, then `pnpm run test:prepare` in `dev-packages/e2e-tests`
 - **Build failures**: Fix build errors before running tests
+- **`ERR_PNPM_IGNORED_BUILDS`**: A dependency has a build script that the app's `allowBuilds` does not list. Add it to the app's `pnpm-workspace.yaml`: `true` if the app needs the script, `false` if the script only prints a message. `pnpm approve-builds <pkg>` (or `!<pkg>` for `false`) in the app's temp copy writes the entry there, so copy it back to the app
 
 ## Common Test Applications
 
@@ -147,12 +148,12 @@ ls dev-packages/e2e-tests/test-applications/
 # Step 1: Detect recent changes to packages/node
 # Step 2: Rebuild the modified package
 cd packages/node
-yarn build && yarn build:tarball
+pnpm run build && pnpm run build:tarball
 cd ../..
 
 # Step 3: Run the test
 cd dev-packages/e2e-tests
-yarn test:run node-express-esm-loader
+pnpm run test:run node-express-esm-loader
 ```
 
 ### Example 2: First-time test run
@@ -162,11 +163,11 @@ yarn test:run node-express-esm-loader
 
 # Step 1: Check for existing tarballs
 # Step 2: None found, build all packages
-yarn build && yarn build:tarball
+pnpm run build && pnpm run build:tarball
 
 # Step 3: Run the test
 cd dev-packages/e2e-tests
-yarn test:run nextjs-app-dir
+pnpm run test:run nextjs-app-dir
 ```
 
 ### Example 3: With variant
@@ -177,7 +178,7 @@ yarn test:run nextjs-app-dir
 # Step 1: Rebuild if needed
 # Step 2: Run with variant
 cd dev-packages/e2e-tests
-yarn test:run nextjs-app-dir --variant nextjs-15
+pnpm run test:run nextjs-app-dir --variant nextjs-15
 ```
 
 ## Tips

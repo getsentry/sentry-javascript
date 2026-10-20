@@ -2,14 +2,19 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { getEnvelopeEndpointWithUrlEncodedAuth } from '../../../src/api';
 import { makeDsn } from '../../../src/utils/dsn';
 import { createEnvelope, serializeEnvelope } from '../../../src/utils/envelope';
-import { handleTunnelRequest } from '../../../src/utils/tunnel';
+import { handleTunnelRequest, MAX_TUNNEL_BODY_SIZE } from '../../../src/utils/tunnel';
 
 const TEST_DSN = 'https://public@dsn.ingest.sentry.io/1337';
 
-function makeEnvelopeRequest(envelopeHeader: Record<string, unknown>): Request {
+function makeEnvelopeRequest(envelopeHeader: Record<string, unknown>, contentLength?: number): Request {
   const envelope = createEnvelope(envelopeHeader, []);
   const body = serializeEnvelope(envelope);
-  return new Request('http://localhost/tunnel', { method: 'POST', body });
+  const byteLength = typeof body === 'string' ? new TextEncoder().encode(body).byteLength : body.byteLength;
+  return new Request('http://localhost/tunnel', {
+    method: 'POST',
+    body,
+    headers: { 'content-length': String(contentLength ?? byteLength) },
+  });
 }
 
 describe('handleTunnelRequest', () => {
@@ -69,7 +74,11 @@ describe('handleTunnelRequest', () => {
 
   it('returns 400 when the envelope body contains malformed JSON', async () => {
     const result = await handleTunnelRequest({
-      request: new Request('http://localhost/tunnel', { method: 'POST', body: 'not valid envelope data{{{' }),
+      request: new Request('http://localhost/tunnel', {
+        method: 'POST',
+        body: 'not valid envelope data{{{',
+        headers: { 'content-length': '26' },
+      }),
       allowedDsns: [TEST_DSN],
     });
 
@@ -132,5 +141,49 @@ describe('handleTunnelRequest', () => {
     expect(result).toBeInstanceOf(Response);
     expect(result.status).toBe(500);
     expect(await result.text()).toBe('Failed to forward envelope to Sentry');
+  });
+
+  describe('body size limit', () => {
+    it('forwards the envelope when Content-Length equals the limit', async () => {
+      fetchMock.mockResolvedValueOnce(new Response('ok', { status: 200 }));
+
+      const result = await handleTunnelRequest({
+        request: makeEnvelopeRequest({ dsn: TEST_DSN }, MAX_TUNNEL_BODY_SIZE),
+        allowedDsns: [TEST_DSN],
+      });
+
+      expect(result.status).toBe(200);
+    });
+
+    it('returns 413 when Content-Length is above the limit', async () => {
+      const result = await handleTunnelRequest({
+        request: makeEnvelopeRequest({ dsn: TEST_DSN }, MAX_TUNNEL_BODY_SIZE + 1),
+        allowedDsns: [TEST_DSN],
+      });
+
+      expect(result.status).toBe(413);
+      expect(await result.text()).toBe('Envelope too large');
+      expect(fetchMock).not.toHaveBeenCalled();
+    });
+
+    it('returns 411 when the request has no Content-Length', async () => {
+      const body = new ReadableStream<Uint8Array>({
+        start(controller) {
+          controller.enqueue(new TextEncoder().encode(`${JSON.stringify({ dsn: TEST_DSN })}\n`));
+          controller.close();
+        },
+      });
+      // Node.js requires `duplex` for a stream body, but the DOM types do not have it yet.
+      const init: RequestInit & { duplex: 'half' } = { method: 'POST', body, duplex: 'half' };
+
+      const result = await handleTunnelRequest({
+        request: new Request('http://localhost/tunnel', init),
+        allowedDsns: [TEST_DSN],
+      });
+
+      expect(result.status).toBe(411);
+      expect(await result.text()).toBe('Length required');
+      expect(fetchMock).not.toHaveBeenCalled();
+    });
   });
 });

@@ -1,19 +1,25 @@
 import type { SerializedStreamedSpanContainer } from '@sentry/core';
 import { afterAll, describe, expect } from 'vitest';
 import {
+  GEN_AI_INPUT_MESSAGES,
   GEN_AI_OPERATION_NAME,
+  GEN_AI_OUTPUT_MESSAGES,
   GEN_AI_PROVIDER_NAME,
   GEN_AI_REQUEST_MODEL,
   GEN_AI_RESPONSE_FINISH_REASONS,
   GEN_AI_RESPONSE_ID,
   GEN_AI_RESPONSE_MODEL,
   GEN_AI_RESPONSE_STREAMING,
+  GEN_AI_USAGE_CACHE_CREATION_INPUT_TOKENS,
+  GEN_AI_USAGE_CACHE_READ_INPUT_TOKENS,
   GEN_AI_USAGE_INPUT_TOKENS,
   GEN_AI_USAGE_OUTPUT_TOKENS,
+  GEN_AI_USAGE_REASONING_OUTPUT_TOKENS,
   GEN_AI_USAGE_TOTAL_TOKENS,
   SENTRY_OP,
   SENTRY_ORIGIN,
 } from '@sentry/conventions/attributes';
+import { GEN_AI_DECIDE } from '@sentry/conventions/op';
 import { cleanupChildProcesses, createEsmAndCjsTests } from '../../../../utils/runner';
 import { supports } from '../../../../utils/index';
 
@@ -155,6 +161,105 @@ describe.runIf(supports({ min: 22 }))('OpenAI integration (V7)', () => {
     {
       additionalDependencies: {
         openai: '7.5.0',
+      },
+    },
+  );
+
+  // The decisions API (`openai` >= 7.30.0) returns typed answers, so it is recorded like a Jev call.
+  createEsmAndCjsTests(
+    __dirname,
+    'scenario-decisions.mjs',
+    'instrument-with-recording.mjs',
+    (createRunner, test) => {
+      test('instruments the decisions API as decide spans', async () => {
+        const runner = createRunner().ignore('event');
+        const spansPromise = runner.collectStreamedSpansUntilSegment('main');
+
+        await runner.start().completed();
+
+        const spans = (await spansPromise).filter(span => span.attributes[SENTRY_OP]?.value === GEN_AI_DECIDE);
+        expect(spans).toHaveLength(3);
+
+        // Both successful spans are named `decide gpt-6-luna` and may arrive in any order, so match on the input.
+        const inputOf = (span: (typeof spans)[number]): string => String(span.attributes[GEN_AI_INPUT_MESSAGES]?.value);
+        const textSpan = spans.find(span => inputOf(span).includes('charged twice'));
+        const imageSpan = spans.find(span => inputOf(span).includes('input_image'));
+        expect(textSpan!.name).toBe('decide gpt-6-luna');
+        expect(textSpan!.attributes).toMatchObject({
+          [SENTRY_ORIGIN]: { value: 'auto.ai.openai' },
+          [GEN_AI_OPERATION_NAME]: { value: 'decide' },
+          [GEN_AI_PROVIDER_NAME]: { value: 'openai' },
+          [GEN_AI_REQUEST_MODEL]: { value: 'gpt-6-luna' },
+          [GEN_AI_RESPONSE_MODEL]: { value: 'gpt-6-luna' },
+          // OpenAI's input tokens already include the cached ones, so they are not added again.
+          [GEN_AI_USAGE_INPUT_TOKENS]: { value: 382 },
+          [GEN_AI_USAGE_CACHE_READ_INPUT_TOKENS]: { value: 256 },
+          [GEN_AI_USAGE_CACHE_CREATION_INPUT_TOKENS]: { value: 64 },
+          [GEN_AI_USAGE_OUTPUT_TOKENS]: { value: 0 },
+          [GEN_AI_USAGE_REASONING_OUTPUT_TOKENS]: { value: 0 },
+          [GEN_AI_USAGE_TOTAL_TOKENS]: { value: 382 },
+        });
+        expect(JSON.parse(textSpan!.attributes[GEN_AI_INPUT_MESSAGES]!.value as string)).toEqual([
+          {
+            type: 'evaluation',
+            state: 'I was charged twice and want a refund.',
+            questions: {
+              wants_refund: { type: 'predicate', instructions: 'Is a refund requested?' },
+              department: {
+                type: 'choice',
+                instructions: 'Which team should handle this?',
+                // `other` has no description, so it gets an empty one.
+                criteria: { billing: 'Charges and refunds', other: '' },
+              },
+              urgency: {
+                type: 'score',
+                instructions: 'How urgent is this ticket?',
+                criteria: ['low', 'high'],
+                // Keyed by score value; `low` has no description, so it is left out.
+                descriptions: { 1: 'Blocks the customer' },
+              },
+            },
+          },
+        ]);
+        expect(JSON.parse(textSpan!.attributes[GEN_AI_OUTPUT_MESSAGES]!.value as string)).toEqual([
+          {
+            type: 'evaluation',
+            answers: {
+              wants_refund: { type: 'predicate', probability: 0.97 },
+              department: {
+                type: 'choice',
+                choice: 'billing',
+                probabilities: { billing: 0.82, other: 0.18 },
+                confidence: 0.82,
+              },
+              urgency: {
+                type: 'score',
+                score: 0.95,
+                probabilities: { 0: 0.05, 1: 0.95 },
+                legend: { 0: 'low', 1: 'high' },
+                confidence: 0.93,
+              },
+            },
+          },
+        ]);
+
+        expect(JSON.parse(imageSpan!.attributes[GEN_AI_INPUT_MESSAGES]!.value as string)[0].state).toEqual([
+          {
+            role: 'user',
+            content: [
+              { type: 'input_text', text: 'Is the package damaged?' },
+              { type: 'input_image', image_url: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUg==' },
+            ],
+          },
+        ]);
+
+        const errorSpan = spans.find(span => span.name === 'decide error-model');
+        expect(errorSpan!.status).not.toBe('ok');
+      });
+    },
+    {
+      additionalDependencies: {
+        openai: '7.30.0',
       },
     },
   );

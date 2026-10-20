@@ -1,4 +1,4 @@
-import { getPlaywrightConfig } from '@sentry-internal/test-utils';
+import { getPlaywrightConfig, getRuntime } from '@sentry-internal/test-utils';
 const testEnv = process.env.TEST_ENV;
 
 if (!testEnv) {
@@ -15,7 +15,7 @@ const getStartCommand = () => {
   }
 
   if (testEnv === 'production') {
-    return 'pnpm next start -p 3030';
+    return getRuntime() === 'cloudflare' ? 'pnpm start:cloudflare --port 3030' : 'pnpm next start -p 3030';
   }
 
   throw new Error(`Unknown test env: ${testEnv}`);
