@@ -358,7 +358,7 @@ describe('_INTERNAL_captureMetric', () => {
     );
 
     expect(beforeSendMetric).toHaveBeenCalled();
-    expect(recordDroppedEventSpy).toHaveBeenCalledWith('before_send', 'metric', 1);
+    expect(recordDroppedEventSpy).toHaveBeenCalledWith('before_send', 'trace_metric', 1);
     expect(loggerWarnSpy).toHaveBeenCalledWith('`beforeSendMetric` returned `null`, will not send metric.');
     expect(_INTERNAL_getMetricBuffer(client)).toBeUndefined();
 
@@ -385,7 +385,7 @@ describe('_INTERNAL_captureMetric', () => {
     expect(() => _INTERNAL_captureMetric({ type: 'counter', name: 'test.metric', value: 1 }, { scope })).not.toThrow();
 
     expect(beforeSendMetric).toHaveBeenCalled();
-    expect(recordDroppedEventSpy).toHaveBeenCalledWith('callback_error', 'metric', 1);
+    expect(recordDroppedEventSpy).toHaveBeenCalledWith('callback_error', 'trace_metric', 1);
     expect(debugErrorSpy).toHaveBeenCalledWith(
       'The `beforeSendMetric` callback threw an error, dropping the metric:',
       exception,

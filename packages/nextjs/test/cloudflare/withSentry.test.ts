@@ -16,7 +16,7 @@ import {
 } from '@sentry/core';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { withSentry } from '../../src/cloudflare';
-import { ATTR_NEXT_SPAN_TYPE } from '../../src/common/nextSpanAttributes';
+import { ATTR_NEXT_SPAN_NAME, ATTR_NEXT_SPAN_TYPE } from '../../src/common/nextSpanAttributes';
 import { init as initEdge } from '../../src/edge';
 import { init as initServer } from '../../src/server';
 import { NEXTJS_SERVER_IGNORE_SPANS } from '../../src/server/serverSpanHooks';
@@ -255,6 +255,40 @@ describe('withSentry', () => {
     } as never);
 
     expect(carrier['sentry-trace']).toBe(`${activeSpan?.spanContext().traceId}-${activeSpan?.spanContext().spanId}-1`);
+  });
+
+  it('injects no meta tags while Next.js prerenders a page in a request', async () => {
+    // Next.js collects the meta tag values with an array carrier.
+    const carrier: Array<{ key: string; value: string }> = [];
+    const requestCarrier: Record<string, string> = {};
+    const handler = withSentry(() => ({ dsn: DSN, tracesSampleRate: 1 }), {
+      fetch: () => {
+        trace.getTracer('next.js').startActiveSpan(
+          'prerender route (app) /isr',
+          {
+            attributes: {
+              [ATTR_NEXT_SPAN_TYPE]: 'AppRender.getBodyResult',
+              [ATTR_NEXT_SPAN_NAME]: 'prerender route (app) /isr',
+            },
+          },
+          span => {
+            propagation.inject(context.active(), carrier, { set: (c, key, value) => c.push({ key, value }) });
+            span.end();
+          },
+        );
+        propagation.inject(context.active(), requestCarrier);
+        return new Response('ok');
+      },
+    });
+
+    await handler.fetch?.(new Request('https://example.com/') as never, {}, {
+      waitUntil: vi.fn(),
+      passThroughOnException: vi.fn(),
+      props: {},
+    } as never);
+
+    expect(carrier).toEqual([]);
+    expect(requestCarrier['sentry-trace']).toMatch(/^[0-9a-f]{32}-[0-9a-f]{16}-1$/);
   });
 
   it('does not set the global propagator when the callback turns off the OpenTelemetry setup', async () => {

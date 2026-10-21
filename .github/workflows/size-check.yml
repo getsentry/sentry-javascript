@@ -1,0 +1,36 @@
+name: 'CI: Size Check'
+
+on:
+  pull_request_target:
+    types: [labeled, unlabeled]
+
+permissions:
+  contents: read
+  actions: write
+  pull-requests: read
+
+concurrency:
+  group: size-check-label-${{ github.event.pull_request.number }}-${{ github.event.label.name }}
+  cancel-in-progress: true
+
+jobs:
+  rerun:
+    if: github.event.label.name == 'Accept Bundlesize Increase'
+    runs-on: namespace-profile-sentry-javascript;overrides.cache-tag=sentry-javascript
+    timeout-minutes: 60
+    steps:
+      - name: Check out workflow commit
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ github.workflow_sha }}
+          persist-credentials: false
+      - name: Set up Node
+        uses: actions/setup-node@v7
+        with:
+          node-version-file: 'package.json'
+      - name: Install dependencies
+        uses: ./.github/actions/install-dependencies
+      - name: Rerun Size Check
+        uses: ./dev-packages/size-limit-gh-action/rerun
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
