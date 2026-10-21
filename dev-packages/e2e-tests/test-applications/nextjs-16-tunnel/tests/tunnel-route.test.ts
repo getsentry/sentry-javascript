@@ -133,6 +133,38 @@ test('Tunnel requests should not create middleware or fetch spans', async ({ pag
   expect(sentryFetchTransactions).toHaveLength(0);
 });
 
+test('Tunnel requests are sent without the cookies of the browser', async ({ page, context, baseURL }) => {
+  test.skip(process.env.NEXT_PUBLIC_E2E_TEST_TUNNEL_MODE === 'handler', 'The handler variants send the cookies');
+  await context.addCookies([{ name: 'session', value: '8f2c1d', url: baseURL }]);
+  const proxyRequestPromise = waitForRequest('nextjs-16-tunnel', ({ envelope }) =>
+    envelope[1].some(
+      ([itemHeader, item]) =>
+        itemHeader.type === 'event' && (item as Event).exception?.values?.[0]?.value === 'Tunnel cookie test',
+    ),
+  );
+
+  await page.goto('/');
+  await page.waitForFunction(() => typeof (window as { __SENTRY__?: unknown }).__SENTRY__ === 'object');
+  const tunnelRequestPromise = page.waitForRequest(
+    request =>
+      request.method() === 'POST' &&
+      new URL(request.url()).origin === baseURL &&
+      (request.postData() ?? '').includes('Tunnel cookie test'),
+  );
+  await page.evaluate(() => {
+    setTimeout(() => {
+      throw new Error('Tunnel cookie test');
+    });
+  });
+
+  const tunnelRequest = await tunnelRequestPromise;
+  const proxyRequest = await proxyRequestPromise;
+
+  expect(await page.evaluate(() => document.cookie)).toBe('session=8f2c1d');
+  expect((await tunnelRequest.allHeaders()).cookie).toBeUndefined();
+  expect(proxyRequest.rawProxyRequestHeaders.cookie).toBeUndefined();
+});
+
 test.describe('Tunnel route handler', () => {
   test.skip(process.env.NEXT_PUBLIC_E2E_TEST_TUNNEL_MODE !== 'handler', 'Only the handler variants use the handler');
 

@@ -122,6 +122,53 @@ describe('Random tunnel route generation', () => {
   });
 });
 
+describe('applyTunnelRouteOption() credentials', () => {
+  const SAAS_DSN = 'https://11111111111111111111111111111111@o2222222.ingest.sentry.io/3333333';
+
+  beforeEach(() => {
+    globalWithInjectedValues._sentryRewritesTunnelPath = '/my-error-monitoring-route';
+  });
+
+  it("sends tunnel requests with `credentials: 'omit'`", () => {
+    const options: BrowserOptions = { dsn: SAAS_DSN };
+
+    applyTunnelRouteOption(options);
+
+    expect(options.transportOptions).toEqual({ fetchOptions: { credentials: 'omit' } });
+  });
+
+  it('keeps the fetch options of the user', () => {
+    const options: BrowserOptions = {
+      dsn: SAAS_DSN,
+      transportOptions: { bufferSize: 10, fetchOptions: { credentials: 'same-origin', priority: 'low' } },
+    };
+
+    applyTunnelRouteOption(options);
+
+    expect(options.transportOptions).toEqual({
+      bufferSize: 10,
+      fetchOptions: { credentials: 'same-origin', priority: 'low' },
+    });
+  });
+
+  it('does not change the transport options when the events are not tunneled', () => {
+    const options: BrowserOptions = { dsn: 'https://11111111111111111111111111111111@example.com/3333333' };
+
+    applyTunnelRouteOption(options);
+
+    expect(options.transportOptions).toBeUndefined();
+  });
+
+  it('does not change the transport options in handler mode', () => {
+    globalWithInjectedValues._sentryTunnelRouteMode = 'handler';
+    const options: BrowserOptions = { dsn: SAAS_DSN };
+
+    applyTunnelRouteOption(options);
+
+    expect(options.transportOptions).toBeUndefined();
+  });
+});
+
 describe('applyTunnelRouteOption() in handler mode', () => {
   it.each([
     ['a SaaS DSN', 'https://11111111111111111111111111111111@o2222222.ingest.us.sentry.io/3333333'],
