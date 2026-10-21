@@ -5,6 +5,7 @@ export type { Plugin as VitePlugin } from 'vite';
 import { instrumentedModuleNames } from '../config';
 import type { PluginOptions } from './options';
 import { externalEntryMatchesModule, externalizedModulesWarning, orchestrionTransformOptions } from './options';
+import { createExternalRequireResolver } from './externalRequire';
 import { resolveOrchestrionRuntimeRequest, SNIPPET_IMPORT_SPECIFIER } from './resolve';
 
 type TransformHandler = (this: unknown, code: string, id: string, opts?: { ssr?: boolean }) => unknown;
@@ -73,6 +74,7 @@ export function sentryOrchestrionPlugin(options: PluginOptions = {}): Plugin {
     ...instrumentedModuleNames(options.instrumentations),
     '@sentry/server-utils',
   ];
+  const resolveExternalRequire = createExternalRequireResolver(noExternalModules());
 
   const instance = {};
   // `true` when an earlier instance of this plugin is in the same build, which then transforms the modules alone.
@@ -94,7 +96,10 @@ export function sentryOrchestrionPlugin(options: PluginOptions = {}): Plugin {
     // packages into default imports, and `@sentry/core` has no default export, so the server
     // crashes at startup. Vite 8 keeps the `require()`s, which loads a second copy of `@sentry/core`.
     async resolveId(source, importer, resolveOptions) {
-      if (source !== SNIPPET_IMPORT_SPECIFIER || !resolveOptions?.ssr) {
+      if (source !== SNIPPET_IMPORT_SPECIFIER) {
+        return resolveExternalRequire.call(this, source, importer, resolveOptions);
+      }
+      if (!resolveOptions?.ssr) {
         return null;
       }
       const resolved = await this.resolve(source, importer, { ...resolveOptions, skipSelf: true });

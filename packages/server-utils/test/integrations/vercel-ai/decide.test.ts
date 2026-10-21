@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { GEN_AI_OUTPUT_MESSAGES } from '@sentry/conventions/attributes';
 import { GEN_AI_DECIDE } from '@sentry/conventions/op';
 import { getMainCarrier, setCurrentClient, spanToStaticSpanJSON } from '@sentry/core';
 import type { Span } from '@sentry/core';
@@ -41,7 +42,7 @@ describe('Vercel AI decide spans', () => {
         recordOutputs: true,
       },
       result: { answers: { wantsRefund: { type: 'boolean', probability: 0.99 } } },
-    } as unknown as Message;
+    } satisfies Message;
 
     const span = createSpanFromMessage(message, {} as Parameters<typeof createSpanFromMessage>[1])!;
     expect(span).toBeDefined();
@@ -51,8 +52,35 @@ describe('Vercel AI decide spans', () => {
     const json = spanToStaticSpanJSON(endedSpans[0]!);
     expect(json.description).toBe('decide typesafe-ai/jev');
     expect(json.op).toBe(GEN_AI_DECIDE);
-    expect(JSON.parse(json.data?.['gen_ai.output.messages'] as string)).toEqual([
+    expect(JSON.parse(json.data?.[GEN_AI_OUTPUT_MESSAGES] as string)).toEqual([
       { type: 'evaluation', answers: { wantsRefund: { type: 'boolean', probability: 0.99 } } },
+    ]);
+  });
+
+  it.each(['typesafe', 'openai'])('restores answer confidence from `providerMetadata.%s`', provider => {
+    const message = {
+      type: 'experimental_decide',
+      event: {
+        provider,
+        modelId: 'gpt-6-luna',
+        state: 'I was charged twice',
+        questions: { department: { type: 'choice', criteria: { billing: 'Charges', support: 'Other' } } },
+        recordInputs: true,
+        recordOutputs: true,
+      },
+      result: {
+        answers: { department: { type: 'choice', choice: 'billing' } },
+        providerMetadata: { [provider]: { confidence: { department: 0.91 } } },
+      },
+    } satisfies Message;
+
+    const span = createSpanFromMessage(message, {} as Parameters<typeof createSpanFromMessage>[1])!;
+    enrichSpanOnEnd(span, message, {} as Parameters<typeof enrichSpanOnEnd>[2]);
+    span.end();
+
+    const json = spanToStaticSpanJSON(endedSpans[0]!);
+    expect(JSON.parse(json.data?.[GEN_AI_OUTPUT_MESSAGES] as string)).toEqual([
+      { type: 'evaluation', answers: { department: { type: 'choice', choice: 'billing', confidence: 0.91 } } },
     ]);
   });
 });

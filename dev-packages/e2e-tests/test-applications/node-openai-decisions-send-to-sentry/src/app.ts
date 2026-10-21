@@ -1,5 +1,7 @@
 // `instrument.ts` is preloaded via `node --import`, so Sentry is already initialised here.
+import { createOpenAI } from '@ai-sdk/openai';
 import * as Sentry from '@sentry/node';
+import { experimental_decide } from 'ai';
 import express from 'express';
 import OpenAI from 'openai';
 
@@ -11,6 +13,7 @@ if (!apiKey) {
 }
 
 const client = new OpenAI({ apiKey });
+const aiSdkOpenAI = createOpenAI({ apiKey });
 
 const MODEL = 'gpt-6-luna';
 
@@ -69,6 +72,29 @@ app.get('/decide-image', async (_req, res, next) => {
       questions: [{ type: 'predicate', name: 'is_red', instructions: 'Is the image mostly red?' }],
     });
     res.send({ traceId: Sentry.getActiveSpan()?.spanContext().traceId, answers: decision.answers });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// The same decision through the Vercel AI SDK, which calls the Decisions API itself rather than through
+// the `openai` client, so the Vercel AI integration records it.
+app.get('/vercel-ai-decide', async (_req, res, next) => {
+  try {
+    const { answers } = await experimental_decide({
+      model: aiSdkOpenAI.decisionModel(MODEL),
+      state: 'I was charged twice this month and want a refund.',
+      questions: {
+        wantsRefund: { type: 'boolean', instructions: 'Is a refund requested?' },
+        department: {
+          type: 'choice',
+          instructions: 'Which team should handle this?',
+          criteria: { billing: 'Charges and refunds', other: 'Anything else' },
+        },
+        urgency: { type: 'score', instructions: 'How urgent is this ticket?', criteria: ['low', 'high'] },
+      },
+    });
+    res.send({ traceId: Sentry.getActiveSpan()?.spanContext().traceId, answers });
   } catch (error) {
     next(error);
   }
