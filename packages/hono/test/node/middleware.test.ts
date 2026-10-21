@@ -1,3 +1,11 @@
+import {
+  CLIENT_ADDRESS,
+  CLIENT_PORT,
+  NETWORK_PEER_ADDRESS,
+  NETWORK_PEER_PORT,
+  NETWORK_TRANSPORT,
+  NETWORK_TYPE,
+} from '@sentry/conventions/attributes';
 import * as SentryCore from '@sentry/core';
 import { Hono } from 'hono';
 import { beforeEach, describe, expect, it, type Mock, vi } from 'vitest';
@@ -240,11 +248,11 @@ describe('Hono Node Middleware — connection info', () => {
 
     const attributes = await requestConnInfoAttributes(middleware, { env });
 
-    expect(attributes['client.address']).toBe('203.0.113.5');
-    expect(attributes['client.port']).toBe(54321);
-    expect(attributes['network.peer.address']).toBe('203.0.113.5');
-    expect(attributes['network.peer.port']).toBe(54321);
-    expect(attributes['network.type']).toBe('ipv4');
-    expect(attributes).not.toHaveProperty('network.transport');
+    expect(attributes[CLIENT_ADDRESS]).toBe('203.0.113.5');
+    expect(attributes[CLIENT_PORT]).toBe(54321);
+    expect(attributes[NETWORK_PEER_ADDRESS]).toBe('203.0.113.5');
+    expect(attributes[NETWORK_PEER_PORT]).toBe(54321);
+    expect(attributes[NETWORK_TYPE]).toBe('ipv4');
+    expect(attributes).not.toHaveProperty(NETWORK_TRANSPORT);
   });
 });

@@ -1,3 +1,11 @@
+import {
+  CLIENT_ADDRESS,
+  CLIENT_PORT,
+  NETWORK_PEER_ADDRESS,
+  NETWORK_PEER_PORT,
+  NETWORK_TRANSPORT,
+  NETWORK_TYPE,
+} from '@sentry/conventions/attributes';
 import * as SentryCloudflare from '@sentry/cloudflare';
 import * as SentryCore from '@sentry/core';
 import { SDK_VERSION } from '@sentry/core';
@@ -206,11 +214,11 @@ describe('Hono Cloudflare Middleware — connection info', () => {
 
     const attributes = await requestConnInfoAttributes(middleware, { headers });
 
-    expect(attributes['client.address']).toBe('203.0.113.5');
-    expect(attributes['network.peer.address']).toBe('203.0.113.5');
-    expect(attributes).not.toHaveProperty('client.port');
-    expect(attributes).not.toHaveProperty('network.peer.port');
-    expect(attributes).not.toHaveProperty('network.type');
-    expect(attributes).not.toHaveProperty('network.transport');
+    expect(attributes[CLIENT_ADDRESS]).toBe('203.0.113.5');
+    expect(attributes[NETWORK_PEER_ADDRESS]).toBe('203.0.113.5');
+    expect(attributes).not.toHaveProperty(CLIENT_PORT);
+    expect(attributes).not.toHaveProperty(NETWORK_PEER_PORT);
+    expect(attributes).not.toHaveProperty(NETWORK_TYPE);
+    expect(attributes).not.toHaveProperty(NETWORK_TRANSPORT);
   });
 });

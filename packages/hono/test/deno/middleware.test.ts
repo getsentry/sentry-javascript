@@ -1,3 +1,11 @@
+import {
+  CLIENT_ADDRESS,
+  CLIENT_PORT,
+  NETWORK_PEER_ADDRESS,
+  NETWORK_PEER_PORT,
+  NETWORK_TRANSPORT,
+  NETWORK_TYPE,
+} from '@sentry/conventions/attributes';
 import * as SentryCore from '@sentry/core';
 import { SDK_VERSION } from '@sentry/core';
 import { Hono } from 'hono';
@@ -258,11 +266,11 @@ describe('Hono Deno Middleware — connection info', () => {
 
     const attributes = await requestConnInfoAttributes(middleware, { env });
 
-    expect(attributes['client.address']).toBe('127.0.0.1');
-    expect(attributes['client.port']).toBe(54321);
-    expect(attributes['network.peer.address']).toBe('127.0.0.1');
-    expect(attributes['network.peer.port']).toBe(54321);
-    expect(attributes['network.transport']).toBe('tcp');
-    expect(attributes).not.toHaveProperty('network.type');
+    expect(attributes[CLIENT_ADDRESS]).toBe('127.0.0.1');
+    expect(attributes[CLIENT_PORT]).toBe(54321);
+    expect(attributes[NETWORK_PEER_ADDRESS]).toBe('127.0.0.1');
+    expect(attributes[NETWORK_PEER_PORT]).toBe(54321);
+    expect(attributes[NETWORK_TRANSPORT]).toBe('tcp');
+    expect(attributes).not.toHaveProperty(NETWORK_TYPE);
   });
 });

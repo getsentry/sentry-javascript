@@ -10,15 +10,25 @@ import {
   type Scope,
   type SpanAttributes,
   spanToJSON,
+  winterCGHeadersToDict,
   winterCGRequestToRequestData,
 } from '@sentry/core';
+import { getClientIPAddress } from '@sentry/core/server';
 import type { Context } from './honoTypes';
 import { type HonoRuntime, readConnInfo } from './connInfo';
 import { hasFetchEvent } from './hono-context';
 import { defaultShouldHandleError } from './defaultShouldHandleError';
 import { resolveRouteName } from './resolveRouteName';
 import { type SentryHonoMiddlewareOptions } from './types';
-import { HTTP_ROUTE } from '@sentry/conventions/attributes';
+import {
+  CLIENT_ADDRESS,
+  CLIENT_PORT,
+  HTTP_ROUTE,
+  NETWORK_PEER_ADDRESS,
+  NETWORK_PEER_PORT,
+  NETWORK_TRANSPORT,
+  NETWORK_TYPE,
+} from '@sentry/conventions/attributes';
 
 /**
  * Request handler for Hono framework
@@ -70,23 +80,25 @@ function setConnInfoAttributes(context: Context, runtime: HonoRuntime, isolation
   const rootSpan = getRootSpan(activeSpan);
   const existingAttributes = spanToJSON(rootSpan).attributes ?? {};
   // Pair `client.port` only with the socket address: behind a proxy, the socket port is the proxy's.
-  const writesClientAddress = ipAddress !== undefined && existingAttributes['client.address'] === undefined;
+  const writesClientAddress = ipAddress !== undefined && existingAttributes[CLIENT_ADDRESS] === undefined;
   rootSpan.setAttributes(
     onlyNewAttributes(
       {
-        'client.port': writesClientAddress ? port : undefined,
-        'network.peer.port': port,
-        'network.transport': transport,
-        'network.type': addressType?.toLowerCase(),
-        'client.address': ipAddress,
-        'network.peer.address': ipAddress,
+        [CLIENT_PORT]: writesClientAddress ? port : undefined,
+        [NETWORK_PEER_PORT]: port,
+        [NETWORK_TRANSPORT]: transport,
+        [NETWORK_TYPE]: addressType?.toLowerCase(),
+        [CLIENT_ADDRESS]: ipAddress,
+        [NETWORK_PEER_ADDRESS]: ipAddress,
       },
       existingAttributes,
     ),
   );
 
   if (ipAddress) {
-    isolationScope.setUser({ ...isolationScope.getUser(), ip_address: ipAddress });
+    // Like `RequestData`, prefer the forwarding header: behind a proxy, the socket address is the proxy's.
+    const userIpAddress = getClientIPAddress(winterCGHeadersToDict(context.req.raw.headers)) || ipAddress;
+    isolationScope.setUser({ ...isolationScope.getUser(), ip_address: userIpAddress });
   }
 }
 

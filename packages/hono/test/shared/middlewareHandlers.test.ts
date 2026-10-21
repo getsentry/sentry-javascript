@@ -1,4 +1,13 @@
-import { HTTP_ROUTE, SENTRY_SEGMENT_NAME_SOURCE } from '@sentry/conventions/attributes';
+import {
+  CLIENT_ADDRESS,
+  CLIENT_PORT,
+  HTTP_ROUTE,
+  NETWORK_PEER_ADDRESS,
+  NETWORK_PEER_PORT,
+  NETWORK_TRANSPORT,
+  NETWORK_TYPE,
+  SENTRY_SEGMENT_NAME_SOURCE,
+} from '@sentry/conventions/attributes';
 import * as SentryCore from '@sentry/core';
 import { createHonoRequestMiddleware } from '@sentry/server-utils';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -224,8 +233,10 @@ describe('requestHandler — connection info (via createHonoRequestMiddleware)',
   }
 
   // The `c.env` that `@hono/node-server` passes to `app.fetch`.
-  function createNodeContext(socket: Record<string, unknown>): object {
-    return Object.assign(createMockContext(200), { env: { incoming: { socket } } });
+  function createNodeContext(socket: Record<string, unknown>, headers?: Record<string, string>): object {
+    const context = createMockContext(200) as { req: { raw: Request } };
+    context.req.raw = new Request('http://localhost/test', { headers });
+    return Object.assign(context, { env: { incoming: { socket } } });
   }
 
   it('sets the peer port and address type regardless of userInfo', async () => {
@@ -234,8 +245,8 @@ describe('requestHandler — connection info (via createHonoRequestMiddleware)',
     await runMiddleware(createNodeContext({ remoteAddress: '203.0.113.5', remotePort: 54321, remoteFamily: 'IPv4' }));
 
     const attributes = getRootSpanAttributes();
-    expect(attributes['network.peer.port']).toBe(54321);
-    expect(attributes['network.type']).toBe('ipv4');
+    expect(attributes[NETWORK_PEER_PORT]).toBe(54321);
+    expect(attributes[NETWORK_TYPE]).toBe('ipv4');
   });
 
   it('sets IP-bearing attributes and user.ip_address when userInfo is true', async () => {
@@ -244,10 +255,10 @@ describe('requestHandler — connection info (via createHonoRequestMiddleware)',
     await runMiddleware(createNodeContext({ remoteAddress: '203.0.113.5', remotePort: 443, remoteFamily: 'IPv6' }));
 
     const attributes = getRootSpanAttributes();
-    expect(attributes['client.address']).toBe('203.0.113.5');
-    expect(attributes['client.port']).toBe(443);
-    expect(attributes['network.peer.address']).toBe('203.0.113.5');
-    expect(attributes['network.type']).toBe('ipv6');
+    expect(attributes[CLIENT_ADDRESS]).toBe('203.0.113.5');
+    expect(attributes[CLIENT_PORT]).toBe(443);
+    expect(attributes[NETWORK_PEER_ADDRESS]).toBe('203.0.113.5');
+    expect(attributes[NETWORK_TYPE]).toBe('ipv6');
     expect(mockSetUser).toHaveBeenCalledWith({ ip_address: '203.0.113.5' });
   });
 
@@ -267,27 +278,29 @@ describe('requestHandler — connection info (via createHonoRequestMiddleware)',
   it('omits IP-bearing attributes when userInfo is false', async () => {
     mockUserInfo(false);
 
-    await runMiddleware(createNodeContext({ remoteAddress: '203.0.113.5', remotePort: 8080 }));
+    await runMiddleware(
+      createNodeContext({ remoteAddress: '203.0.113.5', remotePort: 8080 }, { 'x-forwarded-for': '198.51.100.7' }),
+    );
 
     const attributes = getRootSpanAttributes();
-    expect(attributes).not.toHaveProperty('client.address');
-    expect(attributes).not.toHaveProperty('client.port');
-    expect(attributes).not.toHaveProperty('network.peer.address');
+    expect(attributes).not.toHaveProperty(CLIENT_ADDRESS);
+    expect(attributes).not.toHaveProperty(CLIENT_PORT);
+    expect(attributes).not.toHaveProperty(NETWORK_PEER_ADDRESS);
     expect(mockSetUser).not.toHaveBeenCalled();
     // Non-PII data is still recorded.
-    expect(attributes['network.peer.port']).toBe(8080);
+    expect(attributes[NETWORK_PEER_PORT]).toBe(8080);
   });
 
   it('does not write the attributes that the runtime does not give', async () => {
     mockUserInfo(true);
-    rootSpan.setAttribute('network.transport', 'tcp');
+    rootSpan.setAttribute(NETWORK_TRANSPORT, 'tcp');
 
     await runMiddleware(createNodeContext({ remotePort: 54321 }));
 
     const attributes = getRootSpanAttributes();
-    expect(attributes['network.transport']).toBe('tcp');
-    expect(attributes).not.toHaveProperty('client.address');
-    expect(attributes).not.toHaveProperty('network.type');
+    expect(attributes[NETWORK_TRANSPORT]).toBe('tcp');
+    expect(attributes).not.toHaveProperty(CLIENT_ADDRESS);
+    expect(attributes).not.toHaveProperty(NETWORK_TYPE);
     expect(mockSetUser).not.toHaveBeenCalled();
   });
 
@@ -301,7 +314,7 @@ describe('requestHandler — connection info (via createHonoRequestMiddleware)',
     const context = Object.assign(createMockContext(200), { env: { incoming } });
 
     await expect(runMiddleware(context)).resolves.toBeUndefined();
-    expect(getRootSpanAttributes()).not.toHaveProperty('client.port');
+    expect(getRootSpanAttributes()).not.toHaveProperty(CLIENT_PORT);
     expect(mockSetUser).not.toHaveBeenCalled();
   });
 
@@ -312,8 +325,8 @@ describe('requestHandler — connection info (via createHonoRequestMiddleware)',
     await runMiddleware(createNodeContext({ remoteAddress: '203.0.113.5', remotePort: 443 }));
 
     const attributes = getRootSpanAttributes();
-    expect(attributes).not.toHaveProperty('client.address');
-    expect(attributes).not.toHaveProperty('network.peer.port');
+    expect(attributes).not.toHaveProperty(CLIENT_ADDRESS);
+    expect(attributes).not.toHaveProperty(NETWORK_PEER_PORT);
     expect(mockSetUser).not.toHaveBeenCalled();
   });
 
@@ -323,8 +336,8 @@ describe('requestHandler — connection info (via createHonoRequestMiddleware)',
     await runMiddleware(createMockContext(200));
 
     const attributes = getRootSpanAttributes();
-    expect(attributes).not.toHaveProperty('client.port');
-    expect(attributes).not.toHaveProperty('client.address');
+    expect(attributes).not.toHaveProperty(CLIENT_PORT);
+    expect(attributes).not.toHaveProperty(CLIENT_ADDRESS);
     expect(mockSetUser).not.toHaveBeenCalled();
   });
 
@@ -336,32 +349,43 @@ describe('requestHandler — connection info (via createHonoRequestMiddleware)',
 
     await runMiddleware(context, { runtime: 'deno' });
 
-    expect(getRootSpanAttributes()['network.transport']).toBe('tcp');
+    expect(getRootSpanAttributes()[NETWORK_TRANSPORT]).toBe('tcp');
   });
 
   it('keeps attributes that are already on the root span', async () => {
     mockUserInfo(true);
-    rootSpan.setAttributes({ 'client.address': '198.51.100.7', 'client.port': 1234 });
+    rootSpan.setAttributes({ [CLIENT_ADDRESS]: '198.51.100.7', [CLIENT_PORT]: 1234 });
 
     await runMiddleware(createNodeContext({ remoteAddress: '10.0.0.1', remotePort: 54321 }));
 
     const attributes = getRootSpanAttributes();
-    expect(attributes['client.address']).toBe('198.51.100.7');
-    expect(attributes['client.port']).toBe(1234);
-    expect(attributes['network.peer.address']).toBe('10.0.0.1');
-    expect(attributes['network.peer.port']).toBe(54321);
+    expect(attributes[CLIENT_ADDRESS]).toBe('198.51.100.7');
+    expect(attributes[CLIENT_PORT]).toBe(1234);
+    expect(attributes[NETWORK_PEER_ADDRESS]).toBe('10.0.0.1');
+    expect(attributes[NETWORK_PEER_PORT]).toBe(54321);
   });
 
   it('does not pair the socket port with a client.address that is already on the root span', async () => {
     mockUserInfo(true);
     // Set by the runtime SDK from a forwarding header, without a port.
-    rootSpan.setAttribute('client.address', '198.51.100.7');
+    rootSpan.setAttribute(CLIENT_ADDRESS, '198.51.100.7');
 
     await runMiddleware(createNodeContext({ remoteAddress: '10.0.0.1', remotePort: 54321 }));
 
     const attributes = getRootSpanAttributes();
-    expect(attributes['client.address']).toBe('198.51.100.7');
-    expect(attributes).not.toHaveProperty('client.port');
-    expect(attributes['network.peer.port']).toBe(54321);
+    expect(attributes[CLIENT_ADDRESS]).toBe('198.51.100.7');
+    expect(attributes).not.toHaveProperty(CLIENT_PORT);
+    expect(attributes[NETWORK_PEER_PORT]).toBe(54321);
+  });
+
+  it('sets user.ip_address from a forwarding header before the socket address', async () => {
+    mockUserInfo(true);
+
+    await runMiddleware(
+      createNodeContext({ remoteAddress: '10.0.0.1', remotePort: 54321 }, { 'x-forwarded-for': '198.51.100.7' }),
+    );
+
+    expect(mockSetUser).toHaveBeenCalledWith({ ip_address: '198.51.100.7' });
+    expect(getRootSpanAttributes()[NETWORK_PEER_ADDRESS]).toBe('10.0.0.1');
   });
 });
