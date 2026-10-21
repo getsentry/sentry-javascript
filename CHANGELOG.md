@@ -4,9 +4,11 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 10.77.0
+
 ### Important Changes
 
-- **feat(v10/nextjs): Add a tunnel route handler that sends only the event payload to Sentry ([#25456](https://github.com/getsentry/sentry-javascript/pull/25456))**
+- **feat(v10/nextjs): Add a tunnel route handler that sends only the event payload to Sentry ([#25559](https://github.com/getsentry/sentry-javascript/pull/25559))**
 
   The `tunnelRoute` option can now send events through a route handler in your app. The handler forwards only the event payload to Sentry, and no request headers. To use it, add this file next to your `tunnelRoute` option:
 
@@ -21,7 +23,7 @@
 
   Also, the server no longer sends spans of tunnel requests when span streaming is on, because these spans only show the SDK's own traffic.
 
-- **feat(v10/nextjs): Send tunnel route requests with `credentials: 'omit'` ([#25509](https://github.com/getsentry/sentry-javascript/pull/25509))**
+- **feat(v10/nextjs): Send tunnel route requests with `credentials: 'omit'` ([#25561](https://github.com/getsentry/sentry-javascript/pull/25561))**
 
   With `tunnelRoute` and no tunnel route handler, `@sentry/nextjs` now sends events from the browser with `credentials: 'omit'`, because the tunnel route does not need cookies.
   If a layer in front of your app checks cookies before it lets requests through (for example Vercel Deployment Protection), you can send them again in your browser `Sentry.init` call:
@@ -32,6 +34,46 @@
     transportOptions: { fetchOptions: { credentials: 'same-origin' } },
   });
   ```
+
+### Other Changes
+
+- feat(v10/core): Limit the body size of tunnel requests ([#25560](https://github.com/getsentry/sentry-javascript/pull/25560))
+- fix(v10/astro): Upload source maps of Astro 7's prerender build ([#25426](https://github.com/getsentry/sentry-javascript/pull/25426))
+- fix(v10/browser): Apply `urlQueryParams` to event URLs, static span names and LCP URLs ([#25297](https://github.com/getsentry/sentry-javascript/pull/25297))
+- fix(v10/browser): Apply `urlQueryParams` to the Referer header ([#25425](https://github.com/getsentry/sentry-javascript/pull/25425))
+- fix(v10/browser): Skip profiling for unsampled active root spans ([#25502](https://github.com/getsentry/sentry-javascript/pull/25502))
+- fix(v10/bundler-plugins): Check `globalThis` before `global` in the injected snippet ([#25507](https://github.com/getsentry/sentry-javascript/pull/25507))
+- fix(v10/bundler-plugins): Escape JSON in generated injection code ([#25298](https://github.com/getsentry/sentry-javascript/pull/25298))
+- fix(v10/cloudflare): auto-instrument when wrangler `main` is a package ([#25430](https://github.com/getsentry/sentry-javascript/pull/25430))
+- fix(v10/core): Don't mark http client spans as errors when the caller aborts ([#25431](https://github.com/getsentry/sentry-javascript/pull/25431))
+- fix(v10/core): Record span outcomes for spans dropped when building a transaction ([#25294](https://github.com/getsentry/sentry-javascript/pull/25294))
+- fix(v10/core): Stop treating previous_response_id as the OpenAI conversation id ([#25432](https://github.com/getsentry/sentry-javascript/pull/25432))
+- fix(v10/hono): Expose runtime-specific SDK options ([#25299](https://github.com/getsentry/sentry-javascript/pull/25299))
+- fix(v10/nextjs): Apply top-level `bundleSizeOptimizations` to webpack and Turbopack builds ([#25261](https://github.com/getsentry/sentry-javascript/pull/25261))
+- fix(v10/nextjs): Filter query parameters in request error context ([#25433](https://github.com/getsentry/sentry-javascript/pull/25433))
+- fix(v10/nextjs): Only inject applicationKey metadata into browser bundles ([#25567](https://github.com/getsentry/sentry-javascript/pull/25567))
+- fix(v10/node): Don't mark fetch spans as errors when the caller aborts ([#25273](https://github.com/getsentry/sentry-javascript/pull/25273))
+- fix(v10/nuxt): Delete public source maps before Nitro lists its public assets ([#25284](https://github.com/getsentry/sentry-javascript/pull/25284))
+- fix(v10/nuxt): Keep sourcesContent in Nuxt 5 server source maps ([#25499](https://github.com/getsentry/sentry-javascript/pull/25499))
+- fix(v10/nuxt): Skip 3xx/4xx Nuxt errors in the vue:error hook ([#25427](https://github.com/getsentry/sentry-javascript/pull/25427))
+- fix(v10/react-router): Respect custom default integrations ([#25434](https://github.com/getsentry/sentry-javascript/pull/25434))
+- fix(v10/remix): Respect custom default integrations ([#25435](https://github.com/getsentry/sentry-javascript/pull/25435))
+- fix(v10/server-utils): End Express layer spans when the client aborts ([#25256](https://github.com/getsentry/sentry-javascript/pull/25256))
+- fix(v10/server-utils): avoid quadratic SQL summary regex backtracking ([#25257](https://github.com/getsentry/sentry-javascript/pull/25257))
+- fix(v10/sveltekit): add op and origin to Kit's `sveltekit.endpoint` span ([#25429](https://github.com/getsentry/sentry-javascript/pull/25429))
+- fix(v10/tanstackstart-react): Keep parametrized route names in Nitro 3 builds ([#25316](https://github.com/getsentry/sentry-javascript/pull/25316))
+- fix(v10/tanstackstart-react): Rewrite source paths of split route modules ([#25428](https://github.com/getsentry/sentry-javascript/pull/25428))
+
+<details>
+  <summary> <strong>Internal Changes</strong> </summary>
+
+- ci(v10): Assign Junior backport PRs to the original author ([#25529](https://github.com/getsentry/sentry-javascript/pull/25529))
+- test(v10): Skip Vercel AI OTel multi-step test on Node 26.12+ ([#25443](https://github.com/getsentry/sentry-javascript/pull/25443))
+- test(v10/cloudflare): Deflake flush-timeout Workflow test ([#25182](https://github.com/getsentry/sentry-javascript/pull/25182))
+- test(v10/e2e): Update TanStack Start build tooling ([#25436](https://github.com/getsentry/sentry-javascript/pull/25436))
+- test(v10/sveltekit): Pin rollup to 4.64.5 ([#25440](https://github.com/getsentry/sentry-javascript/pull/25440))
+
+</details>
 
 ## 10.76.2
 
