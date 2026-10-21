@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import { createTransport } from '../../../src/transports/base';
 import type { ClientReport } from '../../../src/types/clientreport';
-import type { AttachmentItem, EventEnvelope, EventItem } from '../../../src/types/envelope';
+import type { AttachmentItem, Envelope, EventEnvelope, EventItem } from '../../../src/types/envelope';
 import type { TransportMakeRequestResponse } from '../../../src/types/transport';
 import { createClientReportEnvelope } from '../../../src/utils/clientreport';
 import { createEnvelope, serializeEnvelope } from '../../../src/utils/envelope';
@@ -323,6 +323,34 @@ describe('createTransport', () => {
         await transport.send(ERROR_ENVELOPE);
         expect(requestExecutor).toHaveBeenCalledTimes(1);
         expect(recordDroppedEventCallback).not.toHaveBeenCalled();
+      });
+
+      it('back-off using X-Sentry-Rate-Limits with trace_metric category', async () => {
+        const { retryAfterSeconds, beforeLimit, withinLimit } = setRateLimitTimes();
+        const [transport, , requestExecutor, recordDroppedEventCallback] = createTestTransport({
+          headers: {
+            'x-sentry-rate-limits': `${retryAfterSeconds}:trace_metric:scope`,
+            'retry-after': null,
+          },
+        });
+
+        const dateNowSpy = vi.spyOn(Date, 'now').mockImplementation(() => beforeLimit);
+
+        await transport.send(ERROR_ENVELOPE);
+        requestExecutor.mockClear();
+
+        dateNowSpy.mockImplementation(() => withinLimit);
+
+        await transport.send(
+          createEnvelope<Envelope>({ sent_at: '123' }, [
+            [
+              { type: 'trace_metric', item_count: 2, content_type: 'application/vnd.sentry.items.trace-metric+json' },
+              { items: [] },
+            ],
+          ] as Envelope[1]),
+        );
+        expect(requestExecutor).not.toHaveBeenCalled();
+        expect(recordDroppedEventCallback).toHaveBeenCalledWith('ratelimit_backoff', 'trace_metric');
       });
     });
 
