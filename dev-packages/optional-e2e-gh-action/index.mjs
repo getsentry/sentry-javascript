@@ -43,7 +43,12 @@ async function run() {
   }
 
   if (pr) {
-    await reportInComment(octokit, repo, pr.number, workflowRun);
+    // A failed report must not fail this job, because that marks the PR as failed.
+    try {
+      await reportInComment(octokit, repo, pr.number, workflowRun);
+    } catch (error) {
+      core.warning(`Could not report the optional E2E results in a PR comment: ${error.message}`);
+    }
   }
 }
 
