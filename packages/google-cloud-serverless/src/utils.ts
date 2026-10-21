@@ -51,3 +51,15 @@ export function markEventUnhandled(scope: Scope, type: string): Scope {
 
   return scope;
 }
+
+/**
+ * Resolves the name of the currently executing cloud function.
+ *
+ * `FUNCTION_TARGET` ("the function to be executed") is set by GCP for every deployed function, and
+ * by the functions-framework when running locally, where `K_SERVICE` is absent. `K_SERVICE` is the
+ * Cloud Run service the function runs as; the two differ whenever the entry point is named
+ * separately from the service, as in `gcloud run deploy my-service --function myHandler`.
+ */
+export function getFunctionName(): string | undefined {
+  return process.env.FUNCTION_TARGET || process.env.K_SERVICE || undefined;
+}

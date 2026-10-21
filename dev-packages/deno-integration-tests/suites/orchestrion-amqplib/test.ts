@@ -2,27 +2,29 @@
 
 import { tracingChannel } from 'node:diagnostics_channel';
 import type { DenoClient } from '@sentry/deno';
-import { init, startSpan } from '@sentry/deno';
+import { flush, init, startSpan } from '@sentry/deno';
 import { assert } from 'https://deno.land/std@0.212.0/assert/assert.ts';
 import { assertExists } from 'https://deno.land/std@0.212.0/assert/assert_exists.ts';
 import { assertEquals } from 'https://deno.land/std@0.212.0/assert/assert_equals.ts';
-import { resetGlobals, transactionSink, withTimeout } from '../../src/index.ts';
+import { getSpanOp, resetGlobals, spanSink, withTimeout } from '../../src/index.ts';
 
 Deno.test('amqplib instrumentation: included in default integrations (Deno 2.8.0+)', () => {
   resetGlobals();
-  const client = init({ traceLifecycle: 'static', dsn: 'https://username@domain/123' }) as DenoClient;
+  const client = init({
+    dsn: 'https://username@domain/123',
+    tracesSampleRate: 1,
+  }) as DenoClient;
   const names = client.getOptions().integrations.map(i => i.name);
   assert(names.includes('Amqplib'), `Amqplib should be in defaults, got ${names.join(', ')}`);
 });
 
 Deno.test('amqplib instrumentation: orchestrion:amqplib:publish channel produces a nested queue.publish span', async () => {
   resetGlobals();
-  const sink = transactionSink();
+  const sink = spanSink();
   init({
-    traceLifecycle: 'static',
     dsn: 'https://username@domain/123',
     tracesSampleRate: 1,
-    beforeSendTransaction: sink.beforeSendTransaction,
+    transport: sink.transport,
   });
 
   const channel = tracingChannel('orchestrion:amqplib:publish');
@@ -43,16 +45,25 @@ Deno.test('amqplib instrumentation: orchestrion:amqplib:publish channel produces
     });
   });
 
-  const parent = await withTimeout(
-    sink.waitFor(t => t.transaction === 'parent'),
-    5000,
-    "'parent' transaction",
-  );
+  await flush();
 
-  const publishSpan = parent.spans?.find(s => s.op === 'queue.publish');
-  assertExists(publishSpan, `expected a queue.publish child span, got ops: ${parent.spans?.map(s => s.op).join(', ')}`);
-  assertEquals(publishSpan!.description, 'publish my-exchange');
-  assertEquals(publishSpan!.data?.['messaging.destination.name'], 'my-exchange');
-  assertEquals(publishSpan!.data?.['messaging.system'], 'rabbitmq');
-  assertEquals(publishSpan!.data?.['sentry.origin'], 'auto.amqplib.publisher');
+  const parent = await withTimeout(
+    sink.waitFor(span => span.is_segment && span.name === 'parent'),
+    5000,
+    "'parent' segment span",
+  );
+  const children = sink.spans.filter(span => span.parent_span_id === parent.span_id);
+  assertEquals(children.length, 1);
+  assertEquals(children[0]!.trace_id, parent.trace_id);
+  assertEquals(children[0]!.is_segment, false);
+
+  const publishSpan = children.find(s => getSpanOp(s) === 'queue.publish');
+  assertExists(
+    publishSpan,
+    `expected a queue.publish child span, got ops: ${children.map(s => getSpanOp(s)).join(', ')}`,
+  );
+  assertEquals(publishSpan.name, 'send my-exchange');
+  assertEquals(publishSpan.attributes['messaging.destination.name']?.value, 'my-exchange');
+  assertEquals(publishSpan.attributes['messaging.system']?.value, 'rabbitmq');
+  assertEquals(publishSpan.attributes['sentry.origin']?.value, 'auto.amqplib.publisher');
 });

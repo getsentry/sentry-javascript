@@ -17,7 +17,24 @@
     {
       "files": ["**/src/**"],
       "rules": {
-        "sdk/no-class-field-initializers": "off"
+        "sdk/no-class-field-initializers": "off",
+        "no-restricted-imports": [
+          "error",
+          {
+            "paths": [
+              {
+                "name": "node:diagnostics_channel",
+                "allowTypeImports": true,
+                "message": "Bun garbage-collects a channel that no code references, together with its subscribers. Use `subscribeDiagnosticsChannel` or `diagnosticsTracingChannel` from `@sentry/server-utils` instead. See https://github.com/oven-sh/bun/issues/43086"
+              },
+              {
+                "name": "diagnostics_channel",
+                "allowTypeImports": true,
+                "message": "Bun garbage-collects a channel that no code references, together with its subscribers. Use `subscribeDiagnosticsChannel` or `diagnosticsTracingChannel` from `@sentry/server-utils` instead. See https://github.com/oven-sh/bun/issues/43086"
+              }
+            ]
+          }
+        ]
       }
     },
     {

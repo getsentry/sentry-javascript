@@ -85,9 +85,17 @@ function addIncludesForTestApp(testApp, includes, { optionalMode }) {
   }
 
   variants.forEach(variant => {
+    // Allow skipping an individual variant (e.g. one blocked by an upstream bug) while keeping the
+    // others. `sentryTest.skip` above skips the whole app; this is the per-variant equivalent.
+    if (variant.skip) {
+      return;
+    }
+
+    // Don't leak the `skip` flag into the matrix include.
+    const { skip: _skip, ...variantConfig } = variant;
     includes.push({
       'test-application': testApp,
-      ...variant,
+      ...variantConfig,
     });
   });
 }
@@ -122,7 +130,7 @@ function getAffectedTestApplications(testApplications, { base = 'develop', head 
 
   let affectedProjects = [];
   try {
-    affectedProjects = execSync(`yarn --silent nx show projects --affected ${additionalArgs.join(' ')}`)
+    affectedProjects = execSync(`pnpm --silent exec nx show projects --affected ${additionalArgs.join(' ')}`)
       .toString()
       .split('\n')
       .map(line => line.trim())

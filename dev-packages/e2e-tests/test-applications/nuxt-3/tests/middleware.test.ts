@@ -1,9 +1,10 @@
 import { expect, test } from '@playwright/test';
-import { collectStreamedSpans, getSpanOp, waitForError } from '@sentry-internal/test-utils';
+import { collectStreamedSpansUntilSegment, getSpanOp, waitForError } from '@sentry-internal/test-utils';
 
 async function collectRequestSpans() {
-  const spans = await collectStreamedSpans('nuxt-3', spans =>
-    spans.some(span => span.is_segment && span.attributes['url.path']?.value === '/api/middleware-test'),
+  const spans = await collectStreamedSpansUntilSegment(
+    'nuxt-3',
+    span => span.attributes['url.path']?.value === '/api/middleware-test',
   );
   const rootSpan = spans.find(span => span.is_segment && span.attributes['url.path']?.value === '/api/middleware-test');
 

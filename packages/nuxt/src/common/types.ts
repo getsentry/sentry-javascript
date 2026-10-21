@@ -56,6 +56,10 @@ export type SentryNuxtModuleOptions = BuildTimeOptionsBase & {
    * If `"experimental_dynamic-import"` is enabled, the Sentry SDK wraps the server entry file with `import()`.
    *
    * @default undefined
+   *
+   * @deprecated The Sentry server config is bundled into the Nitro server build by default now and
+   * initializes itself at server startup — no `node --import` preload and no inject mode needed.
+   * Remove this option to use the default behavior. It will be removed in a future major version.
    */
   autoInjectServerSentry?: 'top-level-import' | 'experimental_dynamic-import';
 
@@ -87,6 +91,9 @@ export type SentryNuxtModuleOptions = BuildTimeOptionsBase & {
    * Any wrapped export is expected to be an async function.
    *
    * @default ['default', 'handler', 'server']
+   *
+   * @deprecated Only used with the deprecated `autoInjectServerSentry: 'experimental_dynamic-import'`
+   * mode. It will be removed in a future major version together with that mode.
    */
   experimental_entrypointWrappedFunctions?: string[];
 };

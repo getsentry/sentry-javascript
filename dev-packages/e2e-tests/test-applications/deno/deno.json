@@ -1,10 +1,15 @@
 {
   "imports": {
     "@sentry/deno": "npm:@sentry/deno",
+    "@sentry/deno/import": "./node_modules/@sentry/deno/build/import.mjs",
     "@sentry/core": "npm:@sentry/core",
     "@opentelemetry/api": "npm:@opentelemetry/api@^1.9.0",
     "ai": "npm:ai@^3.0.0",
     "ai/test": "npm:ai@^3.0.0/test",
+    "ioredis": "npm:ioredis@^5.11.0",
+    "mysql": "npm:mysql@2.18.1",
+    "pg": "npm:pg@8.16.0",
+    "redis": "npm:redis@^5.12.0",
     "zod": "npm:zod@^3.22.4"
   },
   "nodeModulesDir": "manual"

@@ -1,5 +1,10 @@
 import { expect, test } from '@playwright/test';
-import { collectStreamedSpans, getSpanOp, waitForStreamedSpan } from '@sentry-internal/test-utils';
+import {
+  collectStreamedSpans,
+  collectStreamedSpansUntilSegment,
+  getSpanOp,
+  waitForStreamedSpan,
+} from '@sentry-internal/test-utils';
 import { callRpc } from './agent-socket';
 
 // The worker entry (`src/index.ts`) contains no Sentry calls at all — every
@@ -49,6 +54,16 @@ for (const { title, binding, agentClass } of [
     binding: 'derived-agent',
     agentClass: 'DerivedAgent',
   },
+  {
+    title: 'an Agent imported from another module and exported by specifier',
+    binding: 'imported-agent',
+    agentClass: 'ImportedAgent',
+  },
+  {
+    title: 'an Agent re-exported straight from another module',
+    binding: 're-exported-agent',
+    agentClass: 'ReExportedAgent',
+  },
 ]) {
   test(`applies agent instrumentation to ${title}`, async ({ baseURL }) => {
     const instance = `${binding}-instance`;
@@ -82,19 +97,15 @@ for (const { title, binding, agentClass } of [
     expect(rpcSpan.attributes['sentry.op']?.value).toBe('rpc');
     expect(rpcSpan.attributes['sentry.origin']?.value).toBe('auto.faas.cloudflare.agents');
     // Read back off the instance at runtime (`_ParentClass.name`), so it
-    // confirms the wrapper landed on the user's real class. Matched loosely
-    // because the transform renames the class it wraps to
-    // `__SENTRY_ORIGINAL_<name>__` and the bundler infers that name.
-    expect(rpcSpan.attributes['gen_ai.agent.name']?.value).toContain(agentClass);
+    // confirms the wrapper landed on the user's real class, with its name intact.
+    expect(rpcSpan.attributes['gen_ai.agent.name']?.value).toBe(agentClass);
   });
 }
 
 test('applies plain Durable Object instrumentation to a non-Agent class', async ({ baseURL }) => {
-  const spansPromise = collectStreamedSpans('cloudflare-autoinstrument', spans =>
-    spans.some(
-      span =>
-        getSpanOp(span) === 'http.server' && span.is_segment && span.attributes['url.path']?.value === '/plain-do',
-    ),
+  const spansPromise = collectStreamedSpansUntilSegment(
+    'cloudflare-autoinstrument',
+    span => getSpanOp(span) === 'http.server' && span.attributes['url.path']?.value === '/plain-do',
   );
 
   const res = await fetch(`${baseURL}/plain-do`);

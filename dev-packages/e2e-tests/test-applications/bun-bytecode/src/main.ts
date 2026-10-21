@@ -4,7 +4,6 @@
 import * as Sentry from '@sentry/bun';
 
 Sentry.init({
-  traceLifecycle: 'static',
   dsn: 'https://username@domain/123',
   tracesSampleRate: 0,
 });

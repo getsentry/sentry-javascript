@@ -1,61 +1,43 @@
-import type { TransactionEvent } from '@sentry/core';
 import { expect, it } from 'vitest';
 import { createRunner } from '../../../runner';
-
-// A fetch-invoked Durable Object emits an `http.server` transaction whose only
-// children are the two `auto.db.cloudflare.durable_object` storage spans
-// (`get` + `put`) — present only when the class was actually auto-instrumented.
-function expectDurableObjectTransaction(transactionEvent: TransactionEvent): void {
-  expect(transactionEvent).toEqual(
-    expect.objectContaining({
-      contexts: expect.objectContaining({
-        trace: expect.objectContaining({ op: 'http.server', origin: 'auto.http.cloudflare' }),
-      }),
-    }),
-  );
-  expect(transactionEvent.spans).toHaveLength(2);
-  expect(transactionEvent.spans).toEqual([
-    expect.objectContaining({
-      op: 'db',
-      description: 'durable_object_storage_get',
-      origin: 'auto.db.cloudflare.durable_object',
-    }),
-    expect.objectContaining({
-      op: 'db',
-      description: 'durable_object_storage_put',
-      origin: 'auto.db.cloudflare.durable_object',
-    }),
-  ]);
-}
-
-// The main worker transaction just forwards to the DO, so it carries no child
-// spans. The empty-spans assertion keeps it disjoint from the DO transactions.
-function expectMainWorkerTransaction(transactionEvent: TransactionEvent): void {
-  expect(transactionEvent).toEqual(
-    expect.objectContaining({
-      contexts: expect.objectContaining({
-        trace: expect.objectContaining({ op: 'http.server', origin: 'auto.http.cloudflare' }),
-      }),
-    }),
-  );
-  expect(transactionEvent.spans).toHaveLength(0);
-}
+import { getSpanOp } from '../../../spanUtils';
 
 // Two Durable Object classes are bound in wrangler. Hitting both must produce a
-// storage-bearing DO transaction for each, proving the transform wrapped every
+// storage-bearing DO segment span for each, proving the transform wrapped every
 // configured class rather than stopping after the first match.
 it('auto-instruments multiple Durable Object classes in one entry', async ({ signal }) => {
-  const runner = createRunner(__dirname)
-    .unordered()
-    // One storage-bearing DO transaction per configured class.
-    .expect(envelope => expectDurableObjectTransaction(envelope[1]?.[0]?.[1] as TransactionEvent))
-    .expect(envelope => expectDurableObjectTransaction(envelope[1]?.[0]?.[1] as TransactionEvent))
-    // One child-less main worker transaction per request.
-    .expect(envelope => expectMainWorkerTransaction(envelope[1]?.[0]?.[1] as TransactionEvent))
-    .expect(envelope => expectMainWorkerTransaction(envelope[1]?.[0]?.[1] as TransactionEvent))
-    .start(signal);
+  const runner = createRunner(__dirname).start(signal);
 
-  await runner.makeRequest('get', '/increment-a');
-  await runner.makeRequest('get', '/increment-b');
-  await runner.completed();
+  // Each request runs in its own trace, and inside a trace the worker and the Durable Object stream
+  // from separate isolates. One collector per request therefore waits for that trace's two segment
+  // spans.
+  for (const path of ['/increment-a', '/increment-b']) {
+    const spansPromise = runner.collectStreamedSpans(
+      spansOfTrace => spansOfTrace.filter(span => span.is_segment).length === 2,
+    );
+
+    await runner.makeRequest('get', path);
+
+    const spans = await spansPromise;
+    const workerSpan = spans.find(span => span.is_segment && !span.parent_span_id);
+    const durableObjectSpan = spans.find(span => span.is_segment && span.parent_span_id);
+
+    expect(getSpanOp(workerSpan!)).toBe('http.server');
+    expect(workerSpan?.attributes['url.path']).toEqual({ type: 'string', value: path });
+
+    expect(getSpanOp(durableObjectSpan!)).toBe('http.server');
+    expect(durableObjectSpan?.attributes['sentry.origin']).toEqual({ type: 'string', value: 'auto.http.cloudflare' });
+    expect(durableObjectSpan?.parent_span_id).toBe(workerSpan?.span_id);
+
+    // The `auto.db.cloudflare.durable_object` storage pair (`get` + `put`) is the fingerprint of an
+    // instrumented Durable Object.
+    expect(
+      spans
+        .filter(span => span.parent_span_id === durableObjectSpan?.span_id)
+        .map(span => ({ name: span.name, op: getSpanOp(span), origin: span.attributes['sentry.origin']?.value })),
+    ).toEqual([
+      { name: 'durable_object_storage_get', op: 'db', origin: 'auto.db.cloudflare.durable_object' },
+      { name: 'durable_object_storage_put', op: 'db', origin: 'auto.db.cloudflare.durable_object' },
+    ]);
+  }
 });

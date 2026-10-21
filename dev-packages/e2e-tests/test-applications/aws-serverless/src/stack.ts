@@ -9,7 +9,8 @@ import { execFileSync } from 'node:child_process';
 
 const LAMBDA_FUNCTIONS_DIR = './src/lambda-functions-npm';
 const LAMBDA_FUNCTION_TIMEOUT = 10;
-export const SAM_PORT = Number(process.env.SAM_PORT) || 7120;
+// SAM allocates runtime container ports in [5000, 9000) before binding its own endpoint.
+export const SAM_PORT = Number(process.env.SAM_PORT) || 17120;
 
 /** Match SAM / Docker to this machine so Apple Silicon does not mix arm64 images with an x86_64 template default. */
 function samLambdaArchitecture(): 'arm64' | 'x86_64' {
@@ -52,7 +53,7 @@ export class LocalLambdaStack extends Stack {
       const functionName = `Npm${lambdaDir}`;
 
       const lambdaPath = path.resolve(LAMBDA_FUNCTIONS_DIR, lambdaDir);
-      const packageLockPath = path.join(lambdaPath, 'package-lock.json');
+      const lockfilePath = path.join(lambdaPath, 'pnpm-lock.yaml');
       const nodeModulesPath = path.join(lambdaPath, 'node_modules');
 
       // `dir` is the package directory under `packages/`; `name` is the published npm name.
@@ -81,20 +82,29 @@ export class LocalLambdaStack extends Stack {
 
       console.log(`[LocalLambdaStack] Install dependencies for ${functionName}`);
 
-      if (fs.existsSync(packageLockPath)) {
-        fs.rmSync(packageLockPath);
+      if (fs.existsSync(lockfilePath)) {
+        fs.rmSync(lockfilePath);
       }
 
       if (fs.existsSync(nodeModulesPath)) {
         fs.rmSync(nodeModulesPath, { recursive: true, force: true });
       }
 
-      const packageJson = {
-        dependencies,
-      };
-
-      fs.writeFileSync(path.join(lambdaPath, 'package.json'), JSON.stringify(packageJson, null, 2));
-      execFileSync('npm', ['install', '--install-links', '--prefix', lambdaPath], { stdio: 'inherit' });
+      fs.writeFileSync(path.join(lambdaPath, 'package.json'), JSON.stringify({ dependencies }, null, 2));
+      // JSON is valid YAML. pnpm reads overrides only from pnpm-workspace.yaml, and this file also keeps
+      // pnpm from treating the app's own pnpm-workspace.yaml as the workspace root.
+      fs.writeFileSync(
+        path.join(lambdaPath, 'pnpm-workspace.yaml'),
+        JSON.stringify({ minimumReleaseAge: 0, overrides: dependencies }, null, 2),
+      );
+      execFileSync(
+        'pnpm',
+        ['install', '--offline', '--prod', '--ignore-scripts', '--no-frozen-lockfile', '--config.node-linker=hoisted'],
+        {
+          cwd: lambdaPath,
+          stdio: 'inherit',
+        },
+      );
 
       if (!process.env.NODE_VERSION) {
         throw new Error('[LocalLambdaStack] NODE_VERSION is not set');
@@ -113,7 +123,6 @@ export class LocalLambdaStack extends Stack {
               SENTRY_DSN: dsn,
               SENTRY_TRACES_SAMPLE_RATE: 1.0,
               SENTRY_DEBUG: true,
-              SENTRY_TRACE_LIFECYCLE: 'static',
               NODE_OPTIONS: `--import=@sentry/aws-serverless/awslambda-auto`,
             },
           },
@@ -134,13 +143,13 @@ export class LocalLambdaStack extends Stack {
       try {
         const response = await fetch(`http://127.0.0.1:${port}/`);
 
-        if (response.ok || response.status === 404) {
+        if (response.status === 404 && response.headers.get('x-amzn-errortype') === 'PathNotFoundLocally') {
           console.log(`[LocalLambdaStack] SAM stack is ready`);
           return;
         }
-      } catch {
-        await new Promise(resolve => setTimeout(resolve, 1000));
-      }
+      } catch {}
+
+      await new Promise(resolve => setTimeout(resolve, 1000));
     }
 
     throw new Error(`[LocalLambdaStack] Failed to start SAM stack after ${timeout}ms`);
@@ -149,14 +158,31 @@ export class LocalLambdaStack extends Stack {
 
 export async function getHostIp() {
   if (process.env.GITHUB_ACTIONS) {
-    const host = await dns.lookup(os.hostname());
-    return host.address;
+    return getExternalHostIp();
   }
 
   if (platform === 'darwin' || platform === 'win32') {
     return 'host.docker.internal';
   }
 
+  return getExternalHostIp();
+}
+
+/**
+ * The Lambda container reaches the event proxy on the host through an address of the host's network interface.
+ * Some runners (e.g. Namespace) map the hostname to a loopback address, which inside the container is the container
+ * itself, so fall back to the first external IPv4 address that is not a Docker bridge.
+ */
+async function getExternalHostIp(): Promise<string> {
   const host = await dns.lookup(os.hostname());
-  return host.address;
+  if (!host.address.startsWith('127.') && host.address !== '::1') {
+    return host.address;
+  }
+
+  const external = Object.entries(os.networkInterfaces())
+    .filter(([name]) => !name.startsWith('docker') && !name.startsWith('br-') && !name.startsWith('veth'))
+    .flatMap(([, addresses]) => addresses ?? [])
+    .find(address => address.family === 'IPv4' && !address.internal);
+
+  return external?.address ?? host.address;
 }

@@ -3,16 +3,7 @@ import type { Contexts, Span, StreamedSpanJSON } from '../../../../src';
 import {
   captureSpan,
   debug,
-  SEMANTIC_ATTRIBUTE_SENTRY_ENVIRONMENT,
-  SEMANTIC_ATTRIBUTE_SENTRY_OP,
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  SEMANTIC_ATTRIBUTE_SENTRY_RELEASE,
   SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE,
-  SEMANTIC_ATTRIBUTE_SENTRY_SDK_INTEGRATIONS,
-  SEMANTIC_ATTRIBUTE_USER_EMAIL,
-  SEMANTIC_ATTRIBUTE_USER_ID,
-  SEMANTIC_ATTRIBUTE_USER_IP_ADDRESS,
-  SEMANTIC_ATTRIBUTE_USER_USERNAME,
   spanStreamingIntegration,
   startInactiveSpan,
   startSpan,
@@ -33,6 +24,15 @@ import {
   SENTRY_SEGMENT_NAME,
   SENTRY_SEGMENT_NAME_SOURCE,
   SENTRY_TRACE_LIFECYCLE,
+  USER_EMAIL,
+  USER_ID,
+  USER_IP_ADDRESS,
+  USER_NAME,
+  SENTRY_ENVIRONMENT,
+  SENTRY_RELEASE,
+  SENTRY_SDK_INTEGRATIONS,
+  SENTRY_OP,
+  SENTRY_ORIGIN,
 } from '@sentry/conventions/attributes';
 
 describe('captureSpan', () => {
@@ -77,11 +77,11 @@ describe('captureSpan', () => {
           type: 'string',
           value: 'stream',
         },
-        [SEMANTIC_ATTRIBUTE_SENTRY_OP]: {
+        [SENTRY_OP]: {
           type: 'string',
           value: 'http.client',
         },
-        [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: {
+        [SENTRY_ORIGIN]: {
           type: 'string',
           value: 'manual',
         },
@@ -101,27 +101,27 @@ describe('captureSpan', () => {
           value: 'custom',
           type: 'string',
         },
-        [SEMANTIC_ATTRIBUTE_SENTRY_RELEASE]: {
+        [SENTRY_RELEASE]: {
           value: '1.0.0',
           type: 'string',
         },
-        [SEMANTIC_ATTRIBUTE_SENTRY_ENVIRONMENT]: {
+        [SENTRY_ENVIRONMENT]: {
           value: 'staging',
           type: 'string',
         },
-        [SEMANTIC_ATTRIBUTE_USER_ID]: {
+        [USER_ID]: {
           value: '123',
           type: 'string',
         },
-        [SEMANTIC_ATTRIBUTE_USER_EMAIL]: {
+        [USER_EMAIL]: {
           value: 'user@example.com',
           type: 'string',
         },
-        [SEMANTIC_ATTRIBUTE_USER_USERNAME]: {
+        [USER_NAME]: {
           value: 'testuser',
           type: 'string',
         },
-        [SEMANTIC_ATTRIBUTE_USER_IP_ADDRESS]: {
+        [USER_IP_ADDRESS]: {
           value: '127.0.0.1',
           type: 'string',
         },
@@ -173,11 +173,11 @@ describe('captureSpan', () => {
       status: 'ok',
       is_segment: true,
       attributes: {
-        [SEMANTIC_ATTRIBUTE_SENTRY_OP]: {
+        [SENTRY_OP]: {
           type: 'string',
           value: 'http.client',
         },
-        [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: {
+        [SENTRY_ORIGIN]: {
           type: 'string',
           value: 'manual',
         },
@@ -197,11 +197,11 @@ describe('captureSpan', () => {
           value: 'custom',
           type: 'string',
         },
-        [SEMANTIC_ATTRIBUTE_SENTRY_RELEASE]: {
+        [SENTRY_RELEASE]: {
           value: '1.0.0',
           type: 'string',
         },
-        [SEMANTIC_ATTRIBUTE_SENTRY_ENVIRONMENT]: {
+        [SENTRY_ENVIRONMENT]: {
           value: 'staging',
           type: 'string',
         },
@@ -217,19 +217,19 @@ describe('captureSpan', () => {
           value: '1.0.0',
           type: 'string',
         },
-        [SEMANTIC_ATTRIBUTE_USER_ID]: {
+        [USER_ID]: {
           value: '123',
           type: 'string',
         },
-        [SEMANTIC_ATTRIBUTE_USER_EMAIL]: {
+        [USER_EMAIL]: {
           value: 'user@example.com',
           type: 'string',
         },
-        [SEMANTIC_ATTRIBUTE_USER_USERNAME]: {
+        [USER_NAME]: {
           value: 'testuser',
           type: 'string',
         },
-        [SEMANTIC_ATTRIBUTE_USER_IP_ADDRESS]: {
+        [USER_IP_ADDRESS]: {
           value: '127.0.0.1',
           type: 'string',
         },
@@ -269,11 +269,11 @@ describe('captureSpan', () => {
       status: 'ok',
       is_segment: true,
       attributes: {
-        [SEMANTIC_ATTRIBUTE_SENTRY_OP]: {
+        [SENTRY_OP]: {
           type: 'string',
           value: 'http.client',
         },
-        [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: {
+        [SENTRY_ORIGIN]: {
           type: 'string',
           value: 'manual',
         },
@@ -293,11 +293,11 @@ describe('captureSpan', () => {
           value: 'custom',
           type: 'string',
         },
-        [SEMANTIC_ATTRIBUTE_SENTRY_RELEASE]: {
+        [SENTRY_RELEASE]: {
           value: '1.0.0',
           type: 'string',
         },
-        [SEMANTIC_ATTRIBUTE_SENTRY_ENVIRONMENT]: {
+        [SENTRY_ENVIRONMENT]: {
           value: 'production',
           type: 'string',
         },
@@ -350,17 +350,17 @@ describe('captureSpan', () => {
       is_segment: true,
       attributes: {
         [SENTRY_TRACE_LIFECYCLE]: { type: 'string', value: 'stream' },
-        [SEMANTIC_ATTRIBUTE_SENTRY_OP]: { type: 'string', value: 'http.client' },
-        [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: { type: 'string', value: 'manual' },
+        [SENTRY_OP]: { type: 'string', value: 'http.client' },
+        [SENTRY_ORIGIN]: { type: 'string', value: 'manual' },
         [SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE]: { type: 'integer', value: 1 },
         [SENTRY_SEGMENT_NAME]: { value: 'my-span', type: 'string' },
         [SENTRY_SEGMENT_ID]: { value: span.spanContext().spanId, type: 'string' },
         [SENTRY_SEGMENT_NAME_SOURCE]: { value: 'custom', type: 'string' },
-        [SEMANTIC_ATTRIBUTE_SENTRY_RELEASE]: { value: '1.0.0', type: 'string' },
-        [SEMANTIC_ATTRIBUTE_SENTRY_ENVIRONMENT]: { value: 'staging', type: 'string' },
+        [SENTRY_RELEASE]: { value: '1.0.0', type: 'string' },
+        [SENTRY_ENVIRONMENT]: { value: 'staging', type: 'string' },
         [SENTRY_SDK_NAME]: { value: 'sentry.javascript.browser', type: 'string' },
         [SENTRY_SDK_VERSION]: { value: '9.0.0', type: 'string' },
-        [SEMANTIC_ATTRIBUTE_SENTRY_SDK_INTEGRATIONS]: {
+        [SENTRY_SDK_INTEGRATIONS]: {
           type: 'array',
           value: ['EventFilters', 'BrowserTracing'],
         },
@@ -389,7 +389,7 @@ describe('captureSpan', () => {
     });
 
     expect(serializedChild.is_segment).toBe(false);
-    expect(serializedChild.attributes[SEMANTIC_ATTRIBUTE_SENTRY_SDK_INTEGRATIONS]).toBeUndefined();
+    expect(serializedChild.attributes[SENTRY_SDK_INTEGRATIONS]).toBeUndefined();
   });
 
   describe('client hooks', () => {
@@ -507,8 +507,7 @@ describe('captureSpan', () => {
       expect(beforeSendSpan).not.toHaveBeenCalled();
     });
 
-    it('logs a warning if the beforeSendSpan callback returns null', () => {
-      const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+    it('keeps the span if the beforeSendSpan callback returns null', () => {
       const beforeSendSpan = vi.fn(() => null as unknown as StreamedSpanJSON);
 
       const client = new TestClient(
@@ -522,16 +521,17 @@ describe('captureSpan', () => {
         }),
       );
 
-      const span = startInactiveSpan({ name: 'my-span', attributes: { 'sentry.op': 'http.client' } });
-      span.end();
+      const span = withScope(scope => {
+        scope.setClient(client);
+        const span = startInactiveSpan({ name: 'my-span', attributes: { 'sentry.op': 'http.client' } });
+        span.end();
+        return span;
+      });
 
-      captureSpan(span, client);
+      const serialized = captureSpan(span, client);
 
-      expect(consoleWarnSpy).toHaveBeenCalledWith(
-        '[Sentry] Returning null from `beforeSendSpan` is disallowed. To drop certain spans, configure the respective integrations directly or use `ignoreSpans`.',
-      );
-
-      consoleWarnSpy.mockRestore();
+      expect(serialized.span_id).toBe(span.spanContext().spanId);
+      expect(serialized.name).toBe('my-span');
     });
 
     it('keeps the span and logs an error if the beforeSendSpan callback throws', () => {

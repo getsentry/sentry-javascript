@@ -2,25 +2,21 @@ import type { Nuxt } from '@nuxt/schema';
 import { consoleSandbox } from '@sentry/core';
 import * as fs from 'fs';
 import * as path from 'path';
+import { fileURLToPath } from 'node:url';
 import type { SentryNuxtModuleOptions } from '../common/types';
-import { resolvePath } from '@nuxt/kit';
+import { resolvePath, resolveServerVariant } from '@nuxt/kit';
+
+const SERVER_API_VARIANTS = { nitro2: 'nitro2', nitro3: 'nitro3', nuxt: 'nuxt' } as const;
+
+/** The upstream server API the host runs. `nuxt` means the host runs no Nitro, for example the Vite server. */
+export type ServerApi = keyof typeof SERVER_API_VARIANTS;
 
 /**
- * Gets the major version of the installed nitro package.
- * Returns 2 as the default if nitro is not found or the version cannot be determined.
+ * Resolves the server API of the current Nuxt host. Call it once in the module setup and pass the result on.
  */
-export async function getNitroMajorVersion(): Promise<number> {
-  try {
-    const { getPackageInfo } = await import('local-pkg');
-    const info = await getPackageInfo('nitro');
-    if (info?.version) {
-      const major = parseInt(info.version.split('.')[0] ?? '2', 10);
-      return isNaN(major) ? 2 : major;
-    }
-  } catch {
-    // If local-pkg is unavailable or nitro is not found, default to v2
-  }
-  return 2;
+export function resolveServerApi(): ServerApi {
+  // Kit returns `undefined` only when the host runs none of the given keys, and every host runs one of these.
+  return resolveServerVariant(SERVER_API_VARIANTS) ?? 'nitro2';
 }
 
 /**
@@ -59,6 +55,11 @@ export async function findDefaultSdkInitFile(
 }
 
 export const SERVER_CONFIG_FILENAME = 'sentry.server.config';
+
+/** Whether a resolved Nitro preset targets Cloudflare (workerd). Nitro normalizes preset names, so any `cloudflare*` spelling matches. */
+export function isCloudflarePreset(preset: string | undefined): boolean {
+  return !!preset?.replace(/-/g, '_').startsWith('cloudflare');
+}
 
 /** Builds the value for `node --import`. Node reads it as a URL, so it needs forward slashes on Windows too. */
 export function toImportSpecifier(fromDir: string, filePath: string): string {
@@ -200,25 +201,42 @@ export function constructFunctionReExport(pathWithQuery: string, entryId: string
 }
 
 /**
- * Sets up alias to work around OpenTelemetry's incomplete ESM imports.
- * https://github.com/getsentry/sentry-javascript/issues/15204
+ * `load()` emits `file://` specifiers because Node's ESM loader rejects bare Windows
+ * paths (`ERR_UNSUPPORTED_ESM_URL_SCHEME`), but Rollup's resolver only understands
+ * filesystem paths. Returns `undefined` for a malformed `file://` URL.
  *
- * OpenTelemetry's @opentelemetry/resources package has incomplete imports missing
- * the .js file extensions (like execAsync for machine-id detection). This causes module resolution
- * errors in certain Nuxt configurations, particularly when local Nuxt modules in Nuxt 4 are present.
- *
- * @see https://nuxt.com/docs/guide/concepts/esm#aliasing-libraries
+ * Only exported for testing.
  */
-export function addOTelCommonJSImportAlias(nuxt: Nuxt, isNitroV3 = false): void {
-  if (!nuxt.options.dev || isNitroV3) {
+export function toResolvablePath(source: string): { path: string; wasFileUrl: boolean } | undefined {
+  if (!source.startsWith('file://')) {
+    return { path: source, wasFileUrl: false };
+  }
+  if (source === 'file://' || source === 'file:///') {
+    return undefined;
+  }
+  try {
+    const filePath = fileURLToPath(source);
+    if (!filePath || filePath === '/' || filePath === '\\') {
+      return undefined;
+    }
+    return { path: filePath, wasFileUrl: true };
+  } catch {
+    return undefined;
+  }
+}
+
+/**
+ * Nitro v3 bundles every dependency by default, but `@sentry/server-runtime-injection` must load
+ * from `node_modules`: on Node versions without `Module.registerHooks` it registers its ESM loader
+ * hook by file, and that file does not exist next to a bundled copy. Nitro v2 already keeps
+ * dependencies external.
+ */
+export function addRuntimeInjectionTraceDep(nuxt: Nuxt, isNitroV3: boolean): void {
+  if (!isNitroV3) {
     return;
   }
 
-  if (!nuxt.options.alias) {
-    nuxt.options.alias = {};
-  }
-
-  if (!nuxt.options.alias['@opentelemetry/resources']) {
-    nuxt.options.alias['@opentelemetry/resources'] = '@opentelemetry/resources/build/src/index.js';
-  }
+  // Nuxt types `nitro` against Nitro v2, which has no `traceDeps`.
+  const nitroOptions = nuxt.options.nitro as { traceDeps?: (string | RegExp)[] };
+  nitroOptions.traceDeps = [...(nitroOptions.traceDeps ?? []), '@sentry/server-runtime-injection'];
 }

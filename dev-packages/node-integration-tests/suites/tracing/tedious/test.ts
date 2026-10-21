@@ -1,4 +1,17 @@
-import { afterAll, expect } from 'vitest';
+import {
+  DB_NAMESPACE,
+  DB_QUERY_SUMMARY,
+  DB_QUERY_TEXT,
+  DB_SYSTEM_NAME,
+  DB_USER,
+  SENTRY_OP,
+  SENTRY_ORIGIN,
+  SERVER_ADDRESS,
+  SERVER_PORT,
+} from '@sentry/conventions/attributes';
+import { DB } from '@sentry/conventions/op';
+import { afterAll, describe, expect } from 'vitest';
+import { supports } from '../../../utils';
 import { cleanupChildProcesses, createEsmAndCjsTests, describeWithDockerCompose } from '../../../utils/runner';
 
 describeWithDockerCompose('tedious auto instrumentation', { workingDirectory: [__dirname] }, () => {
@@ -8,36 +21,36 @@ describeWithDockerCompose('tedious auto instrumentation', { workingDirectory: [_
     cleanupChildProcesses();
   });
 
-  const dbSpan = (overrides: Record<string, unknown>) =>
+  const dbSpan = (text: string, status = 'ok') =>
     expect.objectContaining({
-      op: 'db',
-      origin: ORIGIN,
-      data: expect.objectContaining({
-        'sentry.origin': ORIGIN,
-        'sentry.op': 'db',
-        'db.system.name': 'mssql',
-        'db.namespace': 'master',
-        'db.user': 'sa',
-        'server.address': '127.0.0.1',
-        'server.port': 1433,
+      status,
+      attributes: expect.objectContaining({
+        [DB_QUERY_TEXT]: { type: 'string', value: text },
+        [SENTRY_ORIGIN]: { type: 'string', value: ORIGIN },
+        [SENTRY_OP]: { type: 'string', value: DB },
+        [DB_SYSTEM_NAME]: { type: 'string', value: 'mssql' },
+        [DB_NAMESPACE]: { type: 'string', value: 'master' },
+        [DB_USER]: { type: 'string', value: 'sa' },
+        [SERVER_ADDRESS]: { type: 'string', value: '127.0.0.1' },
+        [SERVER_PORT]: { type: 'integer', value: 1433 },
       }),
-      ...overrides,
     });
 
-  const EXPECTED_TRANSACTION = {
-    transaction: 'Test Transaction',
-    spans: expect.arrayContaining([
-      dbSpan({ description: 'SELECT 1 + 1 AS solution', status: 'ok' }),
-      dbSpan({ description: 'SELECT 42; SELECT 42;', status: 'ok' }),
-      dbSpan({ description: 'select !', status: 'internal_error' }),
-      dbSpan({ description: '[dbo].[test_proced]', status: 'ok' }),
-      dbSpan({ description: 'INSERT INTO [dbo].[test_prepared] VALUES (@val1, @val2)', status: 'ok' }),
+  const EXPECTED_SPANS = {
+    items: expect.arrayContaining([
+      dbSpan('SELECT ? + ? AS solution'),
+      dbSpan('SELECT ?; SELECT ?'),
+      dbSpan('select !', 'error'),
+      dbSpan('[dbo].[test_proced]'),
+      dbSpan('INSERT INTO [dbo].[test_prepared] VALUES (@val1, @val2)'),
       expect.objectContaining({
-        description: 'execBulkLoad test_bulk master',
-        op: 'db',
-        origin: ORIGIN,
+        name: 'execBulkLoad test_bulk',
         status: 'ok',
-        data: expect.objectContaining({ 'db.sql.table': 'test_bulk' }),
+        attributes: expect.objectContaining({
+          'db.sql.table': { type: 'string', value: 'test_bulk' },
+          [SENTRY_OP]: { type: 'string', value: DB },
+          [SENTRY_ORIGIN]: { type: 'string', value: ORIGIN },
+        }),
       }),
     ]),
   };
@@ -46,46 +59,61 @@ describeWithDockerCompose('tedious auto instrumentation', { workingDirectory: [_
     test('should auto-instrument `tedious` package', async () => {
       await createTestRunner()
         .expect({
-          transaction: transaction => {
-            expect(transaction.transaction).toBe(EXPECTED_TRANSACTION.transaction);
-            expect(transaction.spans).toEqual(EXPECTED_TRANSACTION.spans);
+          span: container => {
+            expect(container.items.find(span => span.is_segment)?.name).toBe('Test Transaction');
+            expect(container.items).toEqual(EXPECTED_SPANS.items);
 
             const CREATE_PROCEDURE =
-              'CREATE OR ALTER PROCEDURE [dbo].[test_proced] @inputVal varchar(30), @outputCount int OUTPUT AS set @outputCount = LEN(@inputVal);';
-            const CREATE_PREPARED_TABLE =
-              "if object_id('[dbo].[test_prepared]') is null CREATE TABLE [dbo].[test_prepared] (c1 int, c2 int)";
-            const CREATE_BULK_TABLE =
-              "if object_id('[dbo].[test_bulk]') is null CREATE TABLE [dbo].[test_bulk] (c1 int, c2 varchar(30))";
+              'CREATE OR ALTER PROCEDURE [dbo].[test_proced] @inputVal varchar(?), @outputCount int OUTPUT AS set @outputCount = LEN(@inputVal)';
+            const CREATE_PREPARED_TABLE = 'if object_id(?) is null CREATE TABLE [dbo].[test_prepared] (c1 int, c2 int)';
+            const CREATE_BULK_TABLE = 'if object_id(?) is null CREATE TABLE [dbo].[test_bulk] (c1 int, c2 varchar(?))';
             const INSERT_PREPARED = 'INSERT INTO [dbo].[test_prepared] VALUES (@val1, @val2)';
-            const INSERT_BULK = 'insert bulk test_bulk([c1] int, [c2] nvarchar(50)) WITH (KEEP_NULLS)';
+            const INSERT_BULK = 'insert bulk test_bulk([c1] int, [c2] nvarchar(?)) WITH (KEEP_NULLS)';
             const SELECT_PREPARED = 'SELECT c1, c2 FROM [dbo].[test_prepared]';
             const SELECT_JOIN =
               'SELECT p.c1 FROM [dbo].[test_prepared] p INNER JOIN [dbo].[test_bulk] b ON p.c1 = b.c1';
-            const SELECT_INLINE_LITERAL = 'SELECT c1, c2 FROM [dbo].[test_prepared] WHERE c1 = 42';
+            const SELECT_INLINE_LITERAL = 'SELECT c1, c2 FROM [dbo].[test_prepared] WHERE c1 = ?';
             const SELECT_PARAMETERIZED = 'SELECT c1, c2 FROM [dbo].[test_prepared] WHERE c1 = @c1';
-            const SELECT_STRING_LITERAL = "SELECT c1, c2 FROM [dbo].[test_bulk] WHERE c2 = 'hello from acme'";
+            const SELECT_STRING_LITERAL = 'SELECT c1, c2 FROM [dbo].[test_bulk] WHERE c2 = ?';
 
             expect(
-              (transaction.spans ?? [])
-                .filter(span => span.origin === ORIGIN)
-                .map(span => ({ name: span.description, text: span.data?.['db.query.text'] })),
+              container.items
+                .filter(span => span.attributes[SENTRY_ORIGIN]?.value === ORIGIN)
+                .map(span => ({
+                  name: span.name,
+                  summary: span.attributes[DB_QUERY_SUMMARY]?.value,
+                  text: span.attributes[DB_QUERY_TEXT]?.value,
+                })),
             ).toEqual([
-              { name: 'SELECT 1 + 1 AS solution', text: 'SELECT 1 + 1 AS solution' },
-              { name: 'SELECT 42; SELECT 42;', text: 'SELECT 42; SELECT 42;' },
-              { name: 'select !', text: 'select !' },
-              { name: CREATE_PROCEDURE, text: CREATE_PROCEDURE },
-              { name: '[dbo].[test_proced]', text: '[dbo].[test_proced]' },
-              { name: CREATE_PREPARED_TABLE, text: CREATE_PREPARED_TABLE },
-              { name: INSERT_PREPARED, text: INSERT_PREPARED },
-              { name: INSERT_PREPARED, text: INSERT_PREPARED },
-              { name: CREATE_BULK_TABLE, text: CREATE_BULK_TABLE },
-              { name: 'execBulkLoad test_bulk master', text: undefined },
-              { name: INSERT_BULK, text: INSERT_BULK },
-              { name: SELECT_PREPARED, text: SELECT_PREPARED },
-              { name: SELECT_JOIN, text: SELECT_JOIN },
-              { name: SELECT_INLINE_LITERAL, text: SELECT_INLINE_LITERAL },
-              { name: SELECT_PARAMETERIZED, text: SELECT_PARAMETERIZED },
-              { name: SELECT_STRING_LITERAL, text: SELECT_STRING_LITERAL },
+              { name: 'SELECT', summary: 'SELECT', text: 'SELECT ? + ? AS solution' },
+              { name: 'SELECT', summary: 'SELECT', text: 'SELECT ?; SELECT ?' },
+              { name: 'select', summary: 'select', text: 'select !' },
+              { name: 'CREATE', summary: 'CREATE', text: CREATE_PROCEDURE },
+              { name: 'callProcedure [dbo].[test_proced]', summary: undefined, text: '[dbo].[test_proced]' },
+              { name: 'if', summary: 'if', text: CREATE_PREPARED_TABLE },
+              { name: 'INSERT [dbo].[test_prepared]', summary: 'INSERT [dbo].[test_prepared]', text: INSERT_PREPARED },
+              { name: 'INSERT [dbo].[test_prepared]', summary: 'INSERT [dbo].[test_prepared]', text: INSERT_PREPARED },
+              { name: 'if', summary: 'if', text: CREATE_BULK_TABLE },
+              { name: 'insert', summary: 'insert', text: INSERT_BULK },
+              { name: 'execBulkLoad test_bulk', summary: undefined, text: undefined },
+              { name: 'SELECT [dbo].[test_prepared]', summary: 'SELECT [dbo].[test_prepared]', text: SELECT_PREPARED },
+              {
+                // TODO: (check if correct) Both sides of the join survive into the summary.
+                name: 'SELECT [dbo].[test_prepared] [dbo].[test_bulk]',
+                summary: 'SELECT [dbo].[test_prepared] [dbo].[test_bulk]',
+                text: SELECT_JOIN,
+              },
+              {
+                name: 'SELECT [dbo].[test_prepared]',
+                summary: 'SELECT [dbo].[test_prepared]',
+                text: SELECT_INLINE_LITERAL,
+              },
+              {
+                name: 'SELECT [dbo].[test_prepared]',
+                summary: 'SELECT [dbo].[test_prepared]',
+                text: SELECT_PARAMETERIZED,
+              },
+              { name: 'SELECT [dbo].[test_bulk]', summary: 'SELECT [dbo].[test_bulk]', text: SELECT_STRING_LITERAL },
             ]);
           },
         })
@@ -94,90 +122,42 @@ describeWithDockerCompose('tedious auto instrumentation', { workingDirectory: [_
     });
   });
 
-  createEsmAndCjsTests(__dirname, 'scenario.mjs', 'instrument-span-streaming.mjs', (createTestRunner, test) => {
-    test('should name spans after the query summary with span streaming', async () => {
-      await createTestRunner()
-        .expect({
-          span: container => {
-            const dbSpans = container.items.filter(item => item.attributes['sentry.origin']?.value === ORIGIN);
+  // tedious 20 requires Node >= 22.
+  describe.runIf(supports({ min: 22 }))('tedious v20', () => {
+    createEsmAndCjsTests(
+      __dirname,
+      'scenario.mjs',
+      'instrument.mjs',
+      (createTestRunner, test) => {
+        test('should auto-instrument `tedious` package', async () => {
+          await createTestRunner()
+            .expect({
+              span: container => {
+                const dbSpans = container.items.filter(item => item.attributes[SENTRY_ORIGIN]?.value === ORIGIN);
 
-            expect(
-              dbSpans.map(span => ({
-                name: span.name,
-                summary: span.attributes['db.query.summary']?.value,
-                text: span.attributes['db.query.text']?.value,
-              })),
-            ).toEqual([
-              { name: 'SELECT', summary: 'SELECT', text: 'SELECT 1 + 1 AS solution' },
-              { name: 'SELECT', summary: 'SELECT', text: 'SELECT 42; SELECT 42;' },
-              { name: 'select', summary: 'select', text: 'select !' },
-              {
-                name: 'CREATE',
-                summary: 'CREATE',
-                text: 'CREATE OR ALTER PROCEDURE [dbo].[test_proced] @inputVal varchar(30), @outputCount int OUTPUT AS set @outputCount = LEN(@inputVal);',
+                expect(dbSpans.map(span => span.name)).toEqual(
+                  expect.arrayContaining([
+                    'SELECT',
+                    'callProcedure [dbo].[test_proced]',
+                    'INSERT [dbo].[test_prepared]',
+                    'execBulkLoad test_bulk',
+                    'SELECT [dbo].[test_bulk]',
+                  ]),
+                );
+                expect(dbSpans.find(span => span.name === 'select')?.status).toBe('error');
+                const attributes = dbSpans[0]?.attributes;
+                expect(attributes?.[DB_SYSTEM_NAME]).toEqual({ type: 'string', value: 'mssql' });
+                expect(attributes?.[DB_NAMESPACE]).toEqual({ type: 'string', value: 'master' });
+                expect(attributes?.[DB_USER]).toEqual({ type: 'string', value: 'sa' });
+                expect(attributes?.[SERVER_ADDRESS]).toEqual({ type: 'string', value: '127.0.0.1' });
+                expect(attributes?.[SERVER_PORT]).toEqual({ type: 'integer', value: 1433 });
               },
-              { name: 'callProcedure [dbo].[test_proced]', summary: undefined, text: '[dbo].[test_proced]' },
-              {
-                name: 'if',
-                summary: 'if',
-                text: "if object_id('[dbo].[test_prepared]') is null CREATE TABLE [dbo].[test_prepared] (c1 int, c2 int)",
-              },
-              {
-                name: 'INSERT [dbo].[test_prepared]',
-                summary: 'INSERT [dbo].[test_prepared]',
-                text: 'INSERT INTO [dbo].[test_prepared] VALUES (@val1, @val2)',
-              },
-              {
-                name: 'INSERT [dbo].[test_prepared]',
-                summary: 'INSERT [dbo].[test_prepared]',
-                text: 'INSERT INTO [dbo].[test_prepared] VALUES (@val1, @val2)',
-              },
-              {
-                name: 'if',
-                summary: 'if',
-                text: "if object_id('[dbo].[test_bulk]') is null CREATE TABLE [dbo].[test_bulk] (c1 int, c2 varchar(30))",
-              },
-              {
-                name: 'insert',
-                summary: 'insert',
-                text: 'insert bulk test_bulk([c1] int, [c2] nvarchar(50)) WITH (KEEP_NULLS)',
-              },
-              { name: 'execBulkLoad test_bulk', summary: undefined, text: undefined },
-              {
-                name: 'SELECT [dbo].[test_prepared]',
-                summary: 'SELECT [dbo].[test_prepared]',
-                text: 'SELECT c1, c2 FROM [dbo].[test_prepared]',
-              },
-              {
-                // TODO: (check if correct) Both sides of the join survive into the summary.
-                name: 'SELECT [dbo].[test_prepared] [dbo].[test_bulk]',
-                summary: 'SELECT [dbo].[test_prepared] [dbo].[test_bulk]',
-                text: 'SELECT p.c1 FROM [dbo].[test_prepared] p INNER JOIN [dbo].[test_bulk] b ON p.c1 = b.c1',
-              },
-              {
-                // TODO: (fix) tedious reports the statement as the caller wrote it, so an inlined literal reaches
-                // `db.query.text` unsanitized. Only the summary is sanitized.
-                name: 'SELECT [dbo].[test_prepared]',
-                summary: 'SELECT [dbo].[test_prepared]',
-                text: 'SELECT c1, c2 FROM [dbo].[test_prepared] WHERE c1 = 42',
-              },
-              {
-                name: 'SELECT [dbo].[test_prepared]',
-                summary: 'SELECT [dbo].[test_prepared]',
-                text: 'SELECT c1, c2 FROM [dbo].[test_prepared] WHERE c1 = @c1',
-              },
-              {
-                // TODO: (fix) The `from` inside the string literal must not be read as a table: the statement is
-                // sanitized before it is summarized, so the summary is just the real table.
-                name: 'SELECT [dbo].[test_bulk]',
-                summary: 'SELECT [dbo].[test_bulk]',
-                text: "SELECT c1, c2 FROM [dbo].[test_bulk] WHERE c2 = 'hello from acme'",
-              },
-            ]);
-          },
-        })
-        .start()
-        .completed();
-    });
+            })
+            .start()
+            .completed();
+        });
+      },
+      { additionalDependencies: { tedious: '^20' } },
+    );
   });
 });

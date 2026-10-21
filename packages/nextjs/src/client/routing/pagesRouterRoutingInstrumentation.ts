@@ -1,32 +1,11 @@
-import type { Client, TransactionSource } from '@sentry/core';
-import {
-  debug,
-  hasSpanStreamingEnabled,
-  NAVIGATION_SPAN_NAME_FALLBACK,
-  PAGELOAD_SPAN_NAME_FALLBACK,
-  parseBaggageHeader,
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  stripUrlQueryAndFragment,
-} from '@sentry/core';
-import {
-  getAbsoluteUrl,
-  startBrowserTracingNavigationSpan,
-  startBrowserTracingPageLoadSpan,
-  WINDOW,
-} from '@sentry/react';
+import type { Client } from '@sentry/core';
+import { debug, hasSpanStreamingEnabled, PAGELOAD_SPAN_NAME_FALLBACK, parseBaggageHeader } from '@sentry/core';
+import { startBrowserTracingPageLoadSpan, WINDOW } from '@sentry/react';
 import type { NEXT_DATA } from 'next/dist/shared/lib/utils';
-import RouterImport from 'next/router';
 import type { ParsedUrlQuery } from 'querystring';
 import { DEBUG_BUILD } from '../../common/debug-build';
-import { SENTRY_OP, SENTRY_SEGMENT_NAME_SOURCE, URL_TEMPLATE } from '@sentry/conventions/attributes';
-import { NAVIGATION, PAGELOAD } from '@sentry/conventions/op';
-
-// next/router v10 is CJS
-//
-// For ESM/CJS interoperability 'reasons', depending on how this file is loaded, Router might be on the default export
-const Router: typeof RouterImport = RouterImport.events
-  ? RouterImport
-  : (RouterImport as unknown as { default: typeof RouterImport }).default;
+import { SENTRY_OP, SENTRY_SEGMENT_NAME_SOURCE, URL_TEMPLATE, SENTRY_ORIGIN } from '@sentry/conventions/attributes';
+import { PAGELOAD } from '@sentry/conventions/op';
 
 const globalObject = WINDOW;
 
@@ -128,7 +107,7 @@ export function pagesRouterInstrumentPageLoad(client: Client): void {
       name,
       attributes: {
         [SENTRY_OP]: PAGELOAD,
-        [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.pageload.nextjs.pages_router_instrumentation',
+        [SENTRY_ORIGIN]: 'auto.pageload.nextjs.pages_router_instrumentation',
         [SENTRY_SEGMENT_NAME_SOURCE]: route ? 'route' : 'url',
         ...(route && { [URL_TEMPLATE]: route }),
         ...(params && { ...params }),
@@ -139,47 +118,11 @@ export function pagesRouterInstrumentPageLoad(client: Client): void {
 }
 
 /**
- * Instruments the Next.js pages router for navigation.
- * Only supported for client side routing. Works for Next >= 10.
+ * Matches a pathname against the Pages Router build manifest, e.g. `/users/1` -> `/users/[id]`.
  *
- * Leverages the SingletonRouter from the `next/router` to
- * generate pageload/navigation transactions and parameterize
- * transaction names.
+ * Expects a pathname without `basePath`, which is what Next reports internally.
  */
-export function pagesRouterInstrumentNavigation(client: Client): void {
-  Router.events.on('routeChangeStart', (navigationTarget: string) => {
-    const strippedNavigationTarget = stripUrlQueryAndFragment(navigationTarget);
-    const matchedRoute = getNextRouteFromPathname(strippedNavigationTarget);
-
-    let newLocation: string;
-    let spanSource: TransactionSource;
-
-    if (matchedRoute) {
-      newLocation = matchedRoute;
-      spanSource = 'route';
-    } else {
-      newLocation = strippedNavigationTarget;
-      spanSource = 'url';
-    }
-
-    startBrowserTracingNavigationSpan(
-      client,
-      {
-        // With span streaming, span names have to be low cardinality, so we can't fall back to the URL.
-        name: spanSource === 'route' || !hasSpanStreamingEnabled(client) ? newLocation : NAVIGATION_SPAN_NAME_FALLBACK,
-        attributes: {
-          [SENTRY_OP]: NAVIGATION,
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.nextjs.pages_router_instrumentation',
-          [SENTRY_SEGMENT_NAME_SOURCE]: spanSource,
-          ...(spanSource === 'route' && { [URL_TEMPLATE]: newLocation }),
-        },
-      },
-      { url: getAbsoluteUrl(navigationTarget) },
-    );
-  });
-}
-
-function getNextRouteFromPathname(pathname: string): string | undefined {
+export function getNextRouteFromPathname(pathname: string): string | undefined {
   const pageRoutes = globalObject.__BUILD_MANIFEST?.sortedPages;
 
   // Page route should in 99.999% of the cases be defined by now but just to be sure we make a check here

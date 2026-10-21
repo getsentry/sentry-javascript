@@ -70,6 +70,10 @@ describe('startTrackingWebVitals', () => {
 
     const cleanupWebVitals = startTrackingWebVitals({ trackCls: false, trackLcp: false, client: getClient()! });
 
+    // The metric observers are started in a microtask. A real one is buffered and would still see
+    // entries emitted before that, but this stub only delivers to observers that already exist.
+    await new Promise(resolve => setTimeout(resolve, 0));
+
     await emitPaintEntries([
       { entryType: 'paint', name: 'first-paint', duration: 0, startTime: 12, toJSON: () => ({}) },
       { entryType: 'paint', name: 'first-contentful-paint', duration: 0, startTime: 18, toJSON: () => ({}) },
@@ -86,5 +90,6 @@ describe('startTrackingWebVitals', () => {
 
     expect(spanToJSON(pageloadSpan).attributes['browser.web_vital.fp.value']).toBe(12);
     expect(spanToJSON(pageloadSpan).attributes['browser.web_vital.fcp.value']).toBe(18);
+    expect(spanToJSON(pageloadSpan).attributes['browser.navigation.type']).toBe('navigate');
   });
 });

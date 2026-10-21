@@ -1,6 +1,6 @@
 import { errorMonitor } from 'node:events';
-import http from 'node:http';
-import https from 'node:https';
+import * as http from 'node:http';
+import * as https from 'node:https';
 import type { IntegrationFn, Span } from '@sentry/core';
 import { defineIntegration } from '@sentry/core';
 import type { HttpIncomingMessage, HttpServerResponse } from '@sentry/core/server';

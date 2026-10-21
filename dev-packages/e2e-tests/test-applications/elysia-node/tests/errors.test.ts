@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { waitForError, waitForTransaction } from '@sentry-internal/test-utils';
+import { waitForError, waitForStreamedSpan } from '@sentry-internal/test-utils';
 
 test('Captures an error thrown in a route handler', async ({ baseURL, request }) => {
   const errorEventPromise = waitForError('elysia-node', event => {
@@ -19,6 +19,7 @@ test('Captures an error thrown in a route handler', async ({ baseURL, request })
   });
 
   expect(errorEvent.transaction).toEqual('GET /test-exception/:id');
+  expect(errorEvent.sdk?.name).toBe('sentry.javascript.elysia');
 
   expect(errorEvent.contexts?.trace).toEqual(
     expect.objectContaining({
@@ -47,13 +48,14 @@ test('Error event includes request metadata', async ({ baseURL, request }) => {
 });
 
 test('Does not capture errors for 4xx responses', async ({ baseURL, request }) => {
-  const transactionPromise = waitForTransaction('elysia-node', transactionEvent => {
-    return transactionEvent?.transaction === 'GET /test-4xx';
-  });
+  const segmentPromise = waitForStreamedSpan(
+    'elysia-node',
+    segment => segment.is_segment && segment.name === 'GET /test-4xx',
+  );
 
   const response = await request.get(`${baseURL}/test-4xx`);
-  // Wait for the transaction to ensure the request was processed
-  await transactionPromise;
+  // Wait for the segment to ensure the request was processed
+  await segmentPromise;
 
   expect(response.status()).toBe(400);
 });

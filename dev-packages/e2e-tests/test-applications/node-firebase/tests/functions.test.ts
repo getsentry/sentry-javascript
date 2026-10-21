@@ -1,154 +1,105 @@
 import { expect, test } from '@playwright/test';
-import { waitForError, waitForTransaction } from '@sentry-internal/test-utils';
+import {
+  collectStreamedSpansUntilSegment,
+  getSpanOp,
+  waitForError,
+  waitForStreamedSpan,
+} from '@sentry-internal/test-utils';
 
-// FIXME: firebase-functions runs inside the Firebase emulator, where the channel-injection runtime
-// module hook doesn't transform the emulator-loaded handlers, so no channel spans are produced.
-// (Firestore in a plain Node process works.) Deferred; tracked separately for a channel firebase-
-// functions emulator fix.
-test.fixme('should only call the function once without any extra calls', async () => {
-  const serverTransactionPromise = waitForTransaction('node-firebase', span => {
-    return span.transaction === 'firebase.function.http.request';
-  });
-
-  await fetch(`http://localhost:5001/demo-functions/default/helloWorld`);
-
-  const transactionEvent = await serverTransactionPromise;
-
-  expect(transactionEvent.transaction).toEqual('firebase.function.http.request');
-  expect(transactionEvent.contexts).toEqual(
-    expect.objectContaining({
-      trace: expect.objectContaining({
-        data: {
-          'cloud.project_id': 'demo-functions',
-          'faas.name': 'helloWorld',
-          'faas.provider': 'firebase',
-          'faas.trigger': 'http.request',
-          'sentry.kind': 'server',
-          'sentry.op': 'http.request',
-          'sentry.origin': 'auto.firebase.functions',
-          'sentry.sample_rate': expect.any(Number),
-          'sentry.segment.name.source': 'route',
-        },
-        op: 'http.request',
-        origin: 'auto.firebase.functions',
-        span_id: expect.any(String),
-        status: 'ok',
-        trace_id: expect.any(String),
-      }),
-    }),
+test('should create one segment for an HTTP function', async () => {
+  const spansPromise = collectStreamedSpansUntilSegment(
+    'node-firebase',
+    span => span.name === 'helloWorld' && span.attributes['faas.name']?.value === 'helloWorld',
   );
-});
 
-test.fixme('should send failed transaction when the function fails', async () => {
-  const errorEventPromise = waitForError('node-firebase', () => true);
-  const serverTransactionPromise = waitForTransaction('node-firebase', span => {
-    return !!span.transaction;
-  });
+  const response = await fetch('http://localhost:5001/demo-functions/default/helloWorld');
 
-  await fetch(`http://localhost:5001/demo-functions/default/unhandeledError`);
-
-  const transactionEvent = await serverTransactionPromise;
-  const errorEvent = await errorEventPromise;
-
-  expect(transactionEvent.transaction).toEqual('firebase.function.http.request');
-  expect(transactionEvent.contexts?.trace?.trace_id).toEqual(errorEvent.contexts?.trace?.trace_id);
-  expect(errorEvent).toMatchObject({
-    exception: {
-      values: [
-        {
-          type: 'Error',
-          value: 'There is an error!',
-          mechanism: {
-            type: 'auto.firebase.functions',
-            handled: false,
-          },
-        },
-      ],
-    },
+  expect(response.ok).toBe(true);
+  const spans = await spansPromise;
+  expect(spans).toHaveLength(1);
+  const span = spans[0]!;
+  expect(getSpanOp(span)).toBe('function.gcp');
+  expect(span).toMatchObject({
+    name: 'helloWorld',
+    status: 'ok',
+    span_id: expect.any(String),
+    trace_id: expect.any(String),
+    attributes: expect.objectContaining({
+      'cloud.project_id': { value: 'demo-functions', type: 'string' },
+      'faas.name': { value: 'helloWorld', type: 'string' },
+      'faas.provider': { value: 'firebase', type: 'string' },
+      'faas.trigger': { value: 'http.request', type: 'string' },
+      'gcp.function.context.type': { value: 'firebase.function.http.request', type: 'string' },
+      'sentry.kind': { value: 'server', type: 'string' },
+      'sentry.origin': { value: 'auto.firebase.functions', type: 'string' },
+      'sentry.sample_rate': { value: expect.any(Number), type: 'integer' },
+      'sentry.segment.name.source': { value: 'component', type: 'string' },
+    }),
   });
 });
 
-test.fixme('should create a document and trigger onDocumentCreated and another with authContext', async () => {
-  const serverTransactionPromise = waitForTransaction('node-firebase', span => {
-    return span.transaction === 'firebase.function.http.request';
-  });
+test('should send failed span when the function fails', async () => {
+  const errorPromise = waitForError(
+    'node-firebase',
+    event => event.exception?.values?.[0]?.value === 'There is an error!',
+  );
+  const spanPromise = waitForStreamedSpan(
+    'node-firebase',
+    span =>
+      span.is_segment && span.name === 'unhandeledError' && span.attributes['faas.name']?.value === 'unhandeledError',
+  );
 
-  const serverTransactionOnDocumentCreatePromise = waitForTransaction('node-firebase', span => {
-    return (
-      span.transaction === 'firebase.function.firestore.document.created' &&
-      span.contexts?.trace?.data?.['faas.name'] === 'onDocumentCreate'
-    );
-  });
+  await fetch('http://localhost:5001/demo-functions/default/unhandeledError');
 
-  const serverTransactionOnDocumentWithAuthContextCreatePromise = waitForTransaction('node-firebase', span => {
-    return (
-      span.transaction === 'firebase.function.firestore.document.created' &&
-      span.contexts?.trace?.data?.['faas.name'] === 'onDocumentCreateWithAuthContext'
-    );
-  });
+  const span = await spanPromise;
+  const error = await errorPromise;
+  expect(span.status).toBe('error');
+  expect(span.trace_id).toBe(error.contexts?.trace?.trace_id);
+  expect(span.span_id).toBe(error.contexts?.trace?.span_id);
+  expect(error.exception?.values).toEqual([
+    expect.objectContaining({
+      type: 'Error',
+      value: 'There is an error!',
+      mechanism: { type: 'auto.firebase.functions', handled: false },
+    }),
+  ]);
+});
 
-  await fetch(`http://localhost:5001/demo-functions/default/onCallSomething`);
+test('should create a document and trigger onDocumentCreated and another with authContext', async () => {
+  const functions = [
+    { name: 'onCallSomething', trigger: 'http.request' },
+    { name: 'onDocumentCreate', trigger: 'firestore.document.created' },
+    { name: 'onDocumentCreateWithAuthContext', trigger: 'firestore.document.created' },
+  ];
+  const spanPromises = functions.map(({ name }) =>
+    collectStreamedSpansUntilSegment('node-firebase', span => span.attributes['faas.name']?.value === name),
+  );
 
-  const transactionEvent = await serverTransactionPromise;
-  const transactionEventOnDocumentCreate = await serverTransactionOnDocumentCreatePromise;
-  const transactionEventOnDocumentWithAuthContextCreate = await serverTransactionOnDocumentWithAuthContextCreatePromise;
+  const response = await fetch('http://localhost:5001/demo-functions/default/onCallSomething');
 
-  expect(transactionEvent.transaction).toEqual('firebase.function.http.request');
-  expect(transactionEvent.contexts?.trace).toEqual({
-    data: {
-      'cloud.project_id': 'demo-functions',
-      'faas.name': 'onCallSomething',
-      'faas.provider': 'firebase',
-      'faas.trigger': 'http.request',
-      'sentry.kind': 'server',
-      'sentry.op': 'http.request',
-      'sentry.origin': 'auto.firebase.functions',
-      'sentry.sample_rate': expect.any(Number),
-      'sentry.segment.name.source': 'route',
-    },
-    op: 'http.request',
-    origin: 'auto.firebase.functions',
-    span_id: expect.any(String),
-    status: 'ok',
-    trace_id: expect.any(String),
+  expect(response.ok).toBe(true);
+  const traces = await Promise.all(spanPromises);
+  functions.forEach(({ name, trigger }, index) => {
+    const spans = traces[index]!;
+    expect(spans).toHaveLength(1);
+    const segment = spans[0]!;
+    expect(segment).toMatchObject({
+      name,
+      status: 'ok',
+      span_id: expect.any(String),
+      trace_id: expect.any(String),
+      attributes: expect.objectContaining({
+        'cloud.project_id': { value: 'demo-functions', type: 'string' },
+        'faas.name': { value: name, type: 'string' },
+        'faas.provider': { value: 'firebase', type: 'string' },
+        'faas.trigger': { value: trigger, type: 'string' },
+        'gcp.function.context.type': { value: `firebase.function.${trigger}`, type: 'string' },
+        'sentry.kind': { value: 'server', type: 'string' },
+        'sentry.op': { value: 'function.gcp', type: 'string' },
+        'sentry.origin': { value: 'auto.firebase.functions', type: 'string' },
+        'sentry.sample_rate': { value: expect.any(Number), type: 'integer' },
+        'sentry.segment.name.source': { value: 'component', type: 'string' },
+      }),
+    });
   });
-  expect(transactionEvent.spans).toHaveLength(3);
-  expect(transactionEventOnDocumentCreate.contexts?.trace).toEqual({
-    data: {
-      'cloud.project_id': 'demo-functions',
-      'faas.name': 'onDocumentCreate',
-      'faas.provider': 'firebase',
-      'faas.trigger': 'firestore.document.created',
-      'sentry.kind': 'server',
-      'sentry.op': expect.any(String),
-      'sentry.origin': 'auto.firebase.functions',
-      'sentry.sample_rate': expect.any(Number),
-      'sentry.segment.name.source': 'route',
-    },
-    op: expect.any(String),
-    origin: 'auto.firebase.functions',
-    span_id: expect.any(String),
-    status: 'ok',
-    trace_id: expect.any(String),
-  });
-  expect(transactionEventOnDocumentCreate.spans).toHaveLength(2);
-  expect(transactionEventOnDocumentWithAuthContextCreate.contexts?.trace).toEqual({
-    data: {
-      'cloud.project_id': 'demo-functions',
-      'faas.name': 'onDocumentCreateWithAuthContext',
-      'faas.provider': 'firebase',
-      'faas.trigger': 'firestore.document.created',
-      'sentry.kind': 'server',
-      'sentry.op': expect.any(String),
-      'sentry.origin': 'auto.firebase.functions',
-      'sentry.sample_rate': expect.any(Number),
-      'sentry.segment.name.source': 'route',
-    },
-    op: expect.any(String),
-    origin: 'auto.firebase.functions',
-    span_id: expect.any(String),
-    status: 'ok',
-    trace_id: expect.any(String),
-  });
-  expect(transactionEventOnDocumentWithAuthContextCreate.spans).toHaveLength(0);
 });

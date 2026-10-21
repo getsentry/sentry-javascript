@@ -9,6 +9,7 @@ describe('TanStack Start React Server SDK', () => {
   describe('init', () => {
     beforeEach(() => {
       vi.clearAllMocks();
+      SentryNode.getCurrentScope().setClient(undefined);
     });
 
     it('Adds TanStack Start React server metadata to the SDK options', () => {

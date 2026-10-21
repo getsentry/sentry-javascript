@@ -2,22 +2,24 @@
 
 import { tracingChannel } from 'node:diagnostics_channel';
 import type { DenoClient } from '@sentry/deno';
-import { init, startSpan } from '@sentry/deno';
+import { flush, init, startSpan } from '@sentry/deno';
 import { assert } from 'https://deno.land/std@0.212.0/assert/assert.ts';
 import { assertEquals } from 'https://deno.land/std@0.212.0/assert/assert_equals.ts';
 import { assertExists } from 'https://deno.land/std@0.212.0/assert/assert_exists.ts';
-import { resetGlobals, transactionSink, withTimeout } from '../../src/index.ts';
+import { getSpanOp, resetGlobals, spanSink, withTimeout } from '../../src/index.ts';
 
 Deno.test('pg instrumentation: included in default integrations (Deno 2.8.0+)', () => {
   resetGlobals();
-  const client = init({ traceLifecycle: 'static', dsn: 'https://username@domain/123' }) as DenoClient;
+  const client = init({
+    dsn: 'https://username@domain/123',
+    tracesSampleRate: 1,
+  }) as DenoClient;
   const names = client.getOptions().integrations.map(i => i.name);
   assert(names.includes('Postgres'), `Postgres should be in defaults, got ${names.join(', ')}`);
 });
 
-// The orchestrion runtime hook (`@sentry/deno/import`) only works as a FIRST
-// import inside the entry graph in Deno 2.8.0 through 2.8.2.
-// TODO: revisit a `--import` or `--preload` approach once Deno 2.8.3 ships.
+// Covers the import form of the hook. The `--preload` form the README
+// documents is covered by the `deno` E2E app.
 Deno.test('@sentry/deno/import: transforms pg so it publishes the orchestrion channel', async () => {
   const scenario = new URL('./scenario.mjs', import.meta.url);
 
@@ -51,12 +53,11 @@ Deno.test('@sentry/deno/import: transforms pg so it publishes the orchestrion ch
 
 Deno.test('pg instrumentation: orchestrion:pg:query channel produces a nested db span', async () => {
   resetGlobals();
-  const sink = transactionSink();
+  const sink = spanSink();
   init({
-    traceLifecycle: 'static',
     dsn: 'https://username@domain/123',
     tracesSampleRate: 1,
-    beforeSendTransaction: sink.beforeSendTransaction,
+    transport: sink.transport,
   });
 
   const channel = tracingChannel('orchestrion:pg:query');
@@ -81,19 +82,25 @@ Deno.test('pg instrumentation: orchestrion:pg:query channel produces a nested db
     });
   });
 
-  const parent = await withTimeout(
-    sink.waitFor(t => t.transaction === 'parent'),
-    5000,
-    "'parent' transaction",
-  );
+  await flush();
 
-  const pgSpan = parent.spans?.find(s => s.op === 'db');
-  assertExists(pgSpan, `expected a db child span, got ops: ${parent.spans?.map(s => s.op).join(', ')}`);
-  assertEquals(pgSpan!.description, 'SELECT 1 AS solution');
-  assertEquals(pgSpan!.data?.['db.system.name'], 'postgresql');
-  assertEquals(pgSpan!.data?.['db.query.text'], 'SELECT 1 AS solution');
-  assertEquals(pgSpan!.data?.['server.address'], '127.0.0.1');
-  assertEquals(pgSpan!.data?.['server.port'], 5432);
-  assertEquals(pgSpan!.data?.['db.user'], 'root');
-  assertEquals(pgSpan!.data?.['sentry.origin'], 'auto.db.postgres');
+  const parent = await withTimeout(
+    sink.waitFor(span => span.is_segment && span.name === 'parent'),
+    5000,
+    "'parent' segment span",
+  );
+  const children = sink.spans.filter(span => span.parent_span_id === parent.span_id);
+  assertEquals(children.length, 1);
+  assertEquals(children[0]!.trace_id, parent.trace_id);
+  assertEquals(children[0]!.is_segment, false);
+
+  const pgSpan = children.find(s => getSpanOp(s) === 'db');
+  assertExists(pgSpan, `expected a db child span, got ops: ${children.map(s => getSpanOp(s)).join(', ')}`);
+  assertEquals(pgSpan.name, 'SELECT');
+  assertEquals(pgSpan.attributes['db.system.name']?.value, 'postgresql');
+  assertEquals(pgSpan.attributes['db.query.text']?.value, 'SELECT ? AS solution');
+  assertEquals(pgSpan.attributes['server.address']?.value, '127.0.0.1');
+  assertEquals(pgSpan.attributes['server.port']?.value, 5432);
+  assertEquals(pgSpan.attributes['db.user']?.value, 'root');
+  assertEquals(pgSpan.attributes['sentry.origin']?.value, 'auto.db.postgres');
 });

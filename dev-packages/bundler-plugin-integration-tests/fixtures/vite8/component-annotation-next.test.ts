@@ -7,7 +7,7 @@ test(import.meta.url, ({ runBundler, readOutputFiles }) => {
     {
       "app.js": "(function() {
     	try {
-    		var e = "undefined" != typeof window ? window : "undefined" != typeof global ? global : "undefined" != typeof globalThis ? globalThis : "undefined" != typeof self ? self : {};
+    		var e = "undefined" != typeof globalThis ? globalThis : "undefined" != typeof window ? window : "undefined" != typeof global ? global : "undefined" != typeof self ? self : {};
     		e.SENTRY_RELEASE = { id: "CURRENT_SHA" };
     		var n = new e.Error().stack;
     		n && (e._sentryDebugIds = e._sentryDebugIds || {}, e._sentryDebugIds[n] = "00000000-0000-0000-0000-000000000000", e._sentryDebugIdIdentifier = "sentry-dbid-00000000-0000-0000-0000-000000000000");
@@ -34,13 +34,13 @@ test(import.meta.url, ({ runBundler, readOutputFiles }) => {
     		"data-sentry-component": "App",
     		children: [/* @__PURE__ */ jsxDEV(ComponentA, {}, void 0, false, {
     			fileName: _jsxFileName,
-    			lineNumber: 4,
+    			lineNumber: 6,
     			columnNumber: 7
     		}, this), ";"]
     	}, void 0, true, {
     		fileName: _jsxFileName,
-    		lineNumber: 3,
-    		columnNumber: 10
+    		lineNumber: 5,
+    		columnNumber: 5
     	}, this);
     }
     console.log(App());

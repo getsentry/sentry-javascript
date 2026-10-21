@@ -1,10 +1,10 @@
 import { expect, test } from 'vitest';
 import { createRunner } from '../../../../utils/runner';
 
-test('envelope header for transaction event of route correct', async () => {
+test('includes the route name in the streamed span envelope header', async () => {
   await createRunner(__dirname, 'scenario.ts')
     .expectHeader({
-      transaction: {
+      span: {
         trace: {
           trace_id: expect.stringMatching(/[a-f\d]{32}/),
           public_key: 'public',

@@ -82,7 +82,7 @@ describe('module-injected transform', () => {
     // The helper is called with the REAL module name, so no reverse lookup is
     // needed at runtime and the lazy-subscription event matches what channel
     // integrations wait for.
-    expect(result!.code).toContain('orchestrionModuleInjected("mysql", mysqlIntegration)');
+    expect(result!.code).toContain('orchestrionModuleInjected("mysql", () => mysqlIntegration())');
     // The result is assigned to a global. `@sentry/server-utils` is `sideEffects: false` and the
     // helper returns `void`, so a bare call statement is one a bundler can prove droppable.
     // rollup >= 4.63.0 removes it, leaving the module instrumented but unsubscribed.
@@ -107,7 +107,7 @@ describe('module-injected transform', () => {
       /import\s*\{\s*orchestrionModuleInjected,\s*postgresIntegration\s*\}\s*from\s*["']@sentry\/server-utils["']/,
     );
     expect(result!.code).not.toContain('@sentry/core');
-    expect(result!.code).toContain('orchestrionModuleInjected("pg", postgresIntegration)');
+    expect(result!.code).toContain('orchestrionModuleInjected("pg", () => postgresIntegration())');
   });
 
   it('injects a helper-only snippet for a module with no subscriber factory', () => {
@@ -157,7 +157,7 @@ describe('module-injected transform', () => {
     expect(result!.code).toMatch(
       /const\s*\{\s*orchestrionModuleInjected,\s*redisIntegration\s*\}\s*=\s*require\(["']@sentry\/server-utils["']\)/,
     );
-    expect(result!.code).toContain('orchestrionModuleInjected("ioredis", redisIntegration)');
+    expect(result!.code).toContain('orchestrionModuleInjected("ioredis", () => redisIntegration())');
     // The library publishes its own channels, so nothing else is injected: no
     // diagnostics_channel import, no channel declaration, no function wrapper.
     expect(result!.code).not.toContain('diagnostics_channel');
@@ -173,7 +173,7 @@ describe('module-injected transform', () => {
     expect(result!.code).toMatch(
       /import\s*\{\s*orchestrionModuleInjected,\s*vercelAIIntegration\s*\}\s*from\s*["']@sentry\/server-utils["']/,
     );
-    expect(result!.code).toContain('orchestrionModuleInjected("ai", vercelAIIntegration)');
+    expect(result!.code).toContain('orchestrionModuleInjected("ai", () => vercelAIIntegration())');
     expect(result!.code).not.toContain('diagnostics_channel');
     expect(result!.code).not.toContain('tr_ch_apm');
   });

@@ -1,5 +1,6 @@
 import { sentry } from '@sentry/hono/bun';
 import { Hono } from 'hono';
+import { sendPortToRunner } from '@sentry-internal/node-integration-tests';
 
 const app = new Hono();
 
@@ -7,7 +8,6 @@ app.use(
   sentry(app, {
     dsn: process.env.SENTRY_DSN,
     tracesSampleRate: 1.0,
-    traceLifecycle: 'static',
   }),
 );
 
@@ -29,4 +29,4 @@ const server = Bun.serve({
   fetch: app.fetch,
 });
 
-process.send?.(JSON.stringify({ event: 'READY', port: server.port }));
+sendPortToRunner(server.port!);

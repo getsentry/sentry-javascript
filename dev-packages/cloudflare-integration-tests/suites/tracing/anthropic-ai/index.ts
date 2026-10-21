@@ -24,7 +24,6 @@ const mockFetch: typeof fetch = async () =>
 export default Sentry.withSentry(
   (env: Env) => ({
     dsn: env.SENTRY_DSN,
-    traceLifecycle: 'static',
     tracesSampleRate: 1.0,
     dataCollection: { genAI: { inputs: true, outputs: true } },
   }),

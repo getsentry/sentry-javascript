@@ -4,7 +4,6 @@ import {
   getClient,
   handleCallbackErrors,
   hasSpanStreamingEnabled,
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SPAN_STATUS_ERROR,
   startSpan,
   startSpanManual,
@@ -28,17 +27,21 @@ import {
   GEN_AI_RESPONSE_TOOL_CALLS,
   GEN_AI_SYSTEM_INSTRUCTIONS,
   GEN_AI_TOOL_DEFINITIONS,
-  GEN_AI_USAGE_INPUT_TOKENS,
-  GEN_AI_USAGE_OUTPUT_TOKENS,
-  GEN_AI_USAGE_TOTAL_TOKENS,
+  GEN_AI_USAGE_REASONING_OUTPUT_TOKENS,
+  SENTRY_ORIGIN,
 } from '@sentry/conventions/attributes';
 import type { InstrumentedMethodEntry } from '../core/utils';
-import { buildMethodPath, extractSystemInstructions, getGenAiSpanOp, resolveAIRecordingOptions } from '../core/utils';
+import { buildMethodPath, getGenAiSpanOp, getTokenUsageAttributes, resolveAIRecordingOptions } from '../core/utils';
 import { GOOGLE_GENAI_METHOD_REGISTRY, GOOGLE_GENAI_SYSTEM_NAME } from './constants';
 import { instrumentStream } from './streaming';
 import type { Candidate, ContentPart, GoogleGenAIOptions, GoogleGenAIResponse } from './types';
 import type { ContentListUnion, Message, PartListUnion } from './utils';
-import { contentUnionToMessages } from './utils';
+import {
+  candidatesToMessageParts,
+  contentUnionToMessages,
+  setOutputMessagesAttribute,
+  systemInstructionToText,
+} from './utils';
 
 /**
  * Extract model from parameters or chat context object
@@ -103,11 +106,12 @@ export function extractRequestAttributes(
   operationName: string,
   params?: Record<string, unknown>,
   context?: unknown,
+  recordInputs = true,
 ): Record<string, SpanAttributeValue> {
   const attributes: Record<string, SpanAttributeValue> = {
     [GEN_AI_PROVIDER_NAME]: GOOGLE_GENAI_SYSTEM_NAME,
     [GEN_AI_OPERATION_NAME]: operationName,
-    [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ai.google_genai',
+    [SENTRY_ORIGIN]: 'auto.ai.google_genai',
   };
 
   if (params) {
@@ -119,7 +123,7 @@ export function extractRequestAttributes(
       Object.assign(attributes, extractConfigAttributes(config));
 
       // Extract available tools from config
-      if ('tools' in config && Array.isArray(config.tools)) {
+      if (recordInputs && 'tools' in config && Array.isArray(config.tools)) {
         const functionDeclarations = config.tools.flatMap(
           (tool: { functionDeclarations: unknown[] }) => tool.functionDeclarations,
         );
@@ -147,9 +151,7 @@ export function addPrivateRequestAttributes(span: Span, params: Record<string, u
     return;
   }
 
-  const messages: Message[] = [];
-
-  // config.systemInstruction: ContentUnion
+  // config.systemInstruction: ContentUnion. It has its own attribute, so it never joins the message list.
   if (
     'config' in params &&
     params.config &&
@@ -157,8 +159,13 @@ export function addPrivateRequestAttributes(span: Span, params: Record<string, u
     'systemInstruction' in params.config &&
     params.config.systemInstruction
   ) {
-    messages.push(...contentUnionToMessages(params.config.systemInstruction, 'system'));
+    const systemInstructions = systemInstructionToText(params.config.systemInstruction);
+    if (systemInstructions) {
+      span.setAttribute(GEN_AI_SYSTEM_INSTRUCTIONS, JSON.stringify([{ type: 'text', content: systemInstructions }]));
+    }
   }
+
+  const messages: Message[] = [];
 
   // For chats.create: history contains the conversation history
   if ('history' in params) {
@@ -175,15 +182,9 @@ export function addPrivateRequestAttributes(span: Span, params: Record<string, u
     messages.push(...contentUnionToMessages(params.message as PartListUnion, 'user'));
   }
 
-  if (Array.isArray(messages) && messages.length) {
-    const { systemInstructions, filteredMessages } = extractSystemInstructions(messages);
-
-    if (systemInstructions) {
-      span.setAttribute(GEN_AI_SYSTEM_INSTRUCTIONS, systemInstructions);
-    }
-
+  if (messages.length) {
     span.setAttributes({
-      [GEN_AI_INPUT_MESSAGES]: stringify(filteredMessages),
+      [GEN_AI_INPUT_MESSAGES]: stringify(messages),
     });
   }
 }
@@ -202,21 +203,23 @@ export function addResponseAttributes(span: Span, response: GoogleGenAIResponse,
   // Add usage metadata if present
   if (response.usageMetadata && typeof response.usageMetadata === 'object') {
     const usage = response.usageMetadata;
-    if (typeof usage.promptTokenCount === 'number') {
-      span.setAttributes({
-        [GEN_AI_USAGE_INPUT_TOKENS]: usage.promptTokenCount,
-      });
+    const hasOutput = typeof usage.candidatesTokenCount === 'number' || typeof usage.thoughtsTokenCount === 'number';
+    span.setAttributes(
+      getTokenUsageAttributes(
+        usage.promptTokenCount,
+        hasOutput ? (usage.candidatesTokenCount ?? 0) + (usage.thoughtsTokenCount ?? 0) : undefined,
+        undefined,
+        usage.cachedContentTokenCount,
+        usage.totalTokenCount,
+      ),
+    );
+    if (typeof usage.thoughtsTokenCount === 'number') {
+      span.setAttribute(GEN_AI_USAGE_REASONING_OUTPUT_TOKENS, usage.thoughtsTokenCount);
     }
-    if (typeof usage.candidatesTokenCount === 'number') {
-      span.setAttributes({
-        [GEN_AI_USAGE_OUTPUT_TOKENS]: usage.candidatesTokenCount,
-      });
-    }
-    if (typeof usage.totalTokenCount === 'number') {
-      span.setAttributes({
-        [GEN_AI_USAGE_TOTAL_TOKENS]: usage.totalTokenCount,
-      });
-    }
+  }
+
+  if (recordOutputs) {
+    setOutputMessagesAttribute(span, candidatesToMessageParts(response.candidates));
   }
 
   // Add response text if recordOutputs is enabled
@@ -301,7 +304,12 @@ function instrumentMethod<T extends unknown[], R>(
       const operationName = instrumentedMethod.operation || 'unknown';
       const params = args[0] as Record<string, unknown> | undefined;
       const attributeParams = resolveChatParams(operationName, params, context);
-      const requestAttributes = extractRequestAttributes(operationName, attributeParams, context);
+      const requestAttributes = extractRequestAttributes(
+        operationName,
+        attributeParams,
+        context,
+        !!options.recordInputs,
+      );
       const model = requestAttributes[GEN_AI_REQUEST_MODEL] || 'unknown';
       const client = getClient();
       // With span streaming, omit the `'unknown'` model sentinel so the name stays low-cardinality.

@@ -6,6 +6,16 @@ function startMockAnthropicServer() {
   const app = express();
   app.use(express.json());
 
+  app.post('/anthropic/v1/complete', (req, res) => {
+    res.send({
+      id: 'compl_withresponse',
+      type: 'completion',
+      model: req.body.model,
+      completion: 'Testing .asResponse() method!',
+      stop_reason: 'stop_sequence',
+    });
+  });
+
   app.post('/anthropic/v1/messages', (req, res) => {
     const model = req.body.model;
 
@@ -135,6 +145,8 @@ async function run() {
     // Call .asResponse() and verify it returns raw Response
     const rawResponse = await result2.asResponse();
 
+    await rawResponse.json();
+
     // Verify response is a Response object with correct headers
     if (!(rawResponse instanceof Response)) {
       throw new Error('.asResponse() did not return a Response object');
@@ -188,6 +200,34 @@ async function run() {
     for await (const _ of streamWithResponse.data) {
       void _;
     }
+
+    const betaResponse = await client.beta.messages
+      .create({
+        model: 'claude-3-haiku-20240307',
+        max_tokens: 100,
+        messages: [{ role: 'user', content: 'Test beta asResponse' }],
+      })
+      .asResponse();
+    await betaResponse.json();
+
+    const completionResponse = await client.completions
+      .create({
+        model: 'claude-2',
+        max_tokens_to_sample: 100,
+        prompt: '\n\nHuman: Test asResponse\n\nAssistant:',
+      })
+      .asResponse();
+    await completionResponse.json();
+
+    const rawStreamResponse = await client.messages
+      .create({
+        model: 'claude-3-haiku-20240307',
+        max_tokens: 100,
+        messages: [{ role: 'user', content: 'Test streaming asResponse' }],
+        stream: true,
+      })
+      .asResponse();
+    await rawStreamResponse.text();
   });
 
   // Wait for the stream event handler to finish

@@ -1,4 +1,4 @@
-import type { Span } from '@sentry/core';
+import type { Client, Span } from '@sentry/core';
 import * as SentryCore from '@sentry/core';
 import { afterEach, beforeEach, describe, expect, it, type MockInstance, vi } from 'vitest';
 import { getPortAndAddress, startFirestoreSpan } from '../../src/integrations/firebase/firestore';
@@ -115,6 +115,7 @@ describe('wrapFunctionsRegistration', () => {
           'sentry.op': 'function.gcp',
           'faas.trigger': 'http.request',
           'faas.provider': 'firebase',
+          'gcp.function.context.type': 'firebase.function.http.request',
         }),
       }),
       expect.any(Function),
@@ -153,6 +154,89 @@ describe('wrapFunctionsRegistration', () => {
       }),
     );
     expect(span.end).toHaveBeenCalledTimes(1);
+  });
+
+  describe('with span streaming enabled', () => {
+    beforeEach(() => {
+      vi.spyOn(SentryCore, 'getClient').mockReturnValue({
+        getOptions: () => ({ traceLifecycle: 'stream' }),
+      } as unknown as Client);
+    });
+
+    afterEach(() => {
+      vi.unstubAllEnvs();
+    });
+
+    it('names the span after the function name from FUNCTION_TARGET', async () => {
+      vi.stubEnv('FUNCTION_TARGET', 'onDocumentCreate');
+
+      const wrapped = wrapAndGetHandler([vi.fn()], 'firestore.document.created');
+      await wrapped({ some: 'event' });
+
+      expect(startSpanManualSpy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          name: 'onDocumentCreate',
+          attributes: expect.objectContaining({
+            'faas.name': 'onDocumentCreate',
+            // The trigger type stays on the span even though it is no longer the name, and the
+            // former span name stays on the span as what the description is derived from.
+            'faas.trigger': 'firestore.document.created',
+            'gcp.function.context.type': 'firebase.function.firestore.document.created',
+          }),
+        }),
+        expect.any(Function),
+      );
+    });
+
+    it('falls back to K_SERVICE when FUNCTION_TARGET is unset', async () => {
+      vi.stubEnv('FUNCTION_TARGET', '');
+      vi.stubEnv('K_SERVICE', 'helloworld');
+
+      const wrapped = wrapAndGetHandler([vi.fn()], 'http.request');
+      await wrapped('req', 'res');
+
+      expect(startSpanManualSpy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          name: 'helloworld',
+          attributes: expect.objectContaining({ 'faas.name': 'helloworld' }),
+        }),
+        expect.any(Function),
+      );
+    });
+
+    it('falls back to the static span name when no function name is resolvable', async () => {
+      vi.stubEnv('FUNCTION_TARGET', '');
+      vi.stubEnv('K_SERVICE', '');
+
+      const wrapped = wrapAndGetHandler([vi.fn()], 'http.request');
+      await wrapped('req', 'res');
+
+      expect(startSpanManualSpy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          name: SentryCore.SERVERLESS_FUNCTION_SPAN_NAME_FALLBACK,
+          attributes: expect.objectContaining({ 'faas.name': undefined }),
+        }),
+        expect.any(Function),
+      );
+    });
+
+    it('keeps naming the span after the trigger type when span streaming is disabled', async () => {
+      vi.stubEnv('FUNCTION_TARGET', 'onDocumentCreate');
+      vi.spyOn(SentryCore, 'getClient').mockReturnValue({
+        getOptions: () => ({ traceLifecycle: 'static' }),
+      } as unknown as Client);
+
+      const wrapped = wrapAndGetHandler([vi.fn()], 'firestore.document.created');
+      await wrapped({ some: 'event' });
+
+      expect(startSpanManualSpy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          name: 'firebase.function.firestore.document.created',
+          attributes: expect.objectContaining({ 'faas.name': 'onDocumentCreate' }),
+        }),
+        expect.any(Function),
+      );
+    });
   });
 
   it('does not double-wrap an already-wrapped handler', () => {

@@ -1,5 +1,10 @@
 import { expect, test } from '@playwright/test';
-import { collectStreamedSpans, getSpanOp, waitForStreamedSpan } from '@sentry-internal/test-utils';
+import {
+  collectStreamedSpans,
+  collectStreamedSpansUntilSegment,
+  getSpanOp,
+  waitForStreamedSpan,
+} from '@sentry-internal/test-utils';
 
 // The agent request segment is the Durable Object's `http.server` span. It has a parent because
 // the worker propagates its trace over the RPC binding; the worker's own segment for the same URL
@@ -124,14 +129,12 @@ test('does not emit db.query spans for the agents runtime `cf_`-prefixed interna
   page,
   baseURL,
 }) => {
-  const spansPromise = collectStreamedSpans('cloudflare-agent', spans =>
-    spans.some(
-      span =>
-        getSpanOp(span) === 'http.server' &&
-        span.is_segment &&
-        span.attributes['url.path']?.value === '/agents/my-agent/user-123' &&
-        span.parent_span_id !== undefined,
-    ),
+  const spansPromise = collectStreamedSpansUntilSegment(
+    'cloudflare-agent',
+    span =>
+      getSpanOp(span) === 'http.server' &&
+      span.attributes['url.path']?.value === '/agents/my-agent/user-123' &&
+      span.parent_span_id !== undefined,
   );
 
   await page.goto(baseURL!);

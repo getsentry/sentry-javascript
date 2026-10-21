@@ -2,27 +2,29 @@
 
 import { tracingChannel } from 'node:diagnostics_channel';
 import type { DenoClient } from '@sentry/deno';
-import { init, startSpan } from '@sentry/deno';
+import { flush, init, startSpan } from '@sentry/deno';
 import { assert } from 'https://deno.land/std@0.212.0/assert/assert.ts';
 import { assertEquals } from 'https://deno.land/std@0.212.0/assert/assert_equals.ts';
 import { assertExists } from 'https://deno.land/std@0.212.0/assert/assert_exists.ts';
-import { resetGlobals, transactionSink, withTimeout } from '../../src/index.ts';
+import { getSpanOp, resetGlobals, spanSink, withTimeout } from '../../src/index.ts';
 
 Deno.test('langgraph instrumentation: included in default integrations (Deno 2.8.0+)', () => {
   resetGlobals();
-  const client = init({ traceLifecycle: 'static', dsn: 'https://username@domain/123' }) as DenoClient;
+  const client = init({
+    dsn: 'https://username@domain/123',
+    tracesSampleRate: 1,
+  }) as DenoClient;
   const names = client.getOptions().integrations.map(i => i.name);
   assert(names.includes('LangGraph'), `LangGraph should be in defaults, got ${names.join(', ')}`);
 });
 
 Deno.test('langgraph instrumentation: orchestrion stateGraphCompile channel wraps the compiled graph invoke', async () => {
   resetGlobals();
-  const sink = transactionSink();
+  const sink = spanSink();
   init({
-    traceLifecycle: 'static',
     dsn: 'https://username@domain/123',
     tracesSampleRate: 1,
-    beforeSendTransaction: sink.beforeSendTransaction,
+    transport: sink.transport,
   });
 
   const channel = tracingChannel('orchestrion:@langchain/langgraph:stateGraphCompile');
@@ -40,19 +42,25 @@ Deno.test('langgraph instrumentation: orchestrion stateGraphCompile channel wrap
     await compiledGraph.invoke();
   });
 
-  const parent = await withTimeout(
-    sink.waitFor(t => t.transaction === 'parent'),
-    5000,
-    "'parent' transaction",
-  );
+  await flush();
 
-  const invokeAgentSpan = parent.spans?.find(s => s.op === 'gen_ai.invoke_agent');
+  const parent = await withTimeout(
+    sink.waitFor(span => span.is_segment && span.name === 'parent'),
+    5000,
+    "'parent' segment span",
+  );
+  const children = sink.spans.filter(span => span.parent_span_id === parent.span_id);
+  assertEquals(children.length, 1);
+  assertEquals(children[0]!.trace_id, parent.trace_id);
+  assertEquals(children[0]!.is_segment, false);
+
+  const invokeAgentSpan = children.find(s => getSpanOp(s) === 'gen_ai.invoke_agent');
   assertExists(
     invokeAgentSpan,
-    `expected a gen_ai.invoke_agent child span, got ops: ${parent.spans?.map(s => s.op).join(', ')}`,
+    `expected a gen_ai.invoke_agent child span, got ops: ${children.map(s => getSpanOp(s)).join(', ')}`,
   );
-  assertEquals(invokeAgentSpan!.description, 'invoke_agent my-agent');
-  assertEquals(invokeAgentSpan!.data?.['gen_ai.operation.name'], 'invoke_agent');
-  assertEquals(invokeAgentSpan!.data?.['gen_ai.agent.name'], 'my-agent');
-  assertEquals(invokeAgentSpan!.data?.['sentry.origin'], 'auto.ai.langgraph');
+  assertEquals(invokeAgentSpan.name, 'invoke_agent my-agent');
+  assertEquals(invokeAgentSpan.attributes['gen_ai.operation.name']?.value, 'invoke_agent');
+  assertEquals(invokeAgentSpan.attributes['gen_ai.agent.name']?.value, 'my-agent');
+  assertEquals(invokeAgentSpan.attributes['sentry.origin']?.value, 'auto.ai.langgraph');
 });

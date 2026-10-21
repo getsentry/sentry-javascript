@@ -10,7 +10,7 @@ import type {
   EnvelopeItemType,
   EventEnvelopeHeaders,
 } from '../types/envelope';
-import type { Event } from '../types/event';
+import type { Event, EventType } from '../types/event';
 import type { SdkInfo } from '../types/sdkinfo';
 import type { SdkMetadata } from '../types/sdkmetadata';
 import { dsnToString } from './dsn';
@@ -195,7 +195,7 @@ export function createAttachmentEnvelopeItem(attachment: Attachment): Attachment
 type OverriddenItemType = Exclude<EnvelopeItemType, DataCategory>;
 
 // Map of envelope item types to data categories where the category differs from the type.
-// Types that map to themselves (session, attachment, transaction, profile, feedback, span, metric) fall through.
+// Types that map to themselves (session, attachment, transaction, profile, feedback, span, trace_metric) fall through.
 const DATA_CATEGORY_OVERRIDES: Record<OverriddenItemType, DataCategory> = {
   sessions: 'session',
   event: 'error',
@@ -207,7 +207,7 @@ const DATA_CATEGORY_OVERRIDES: Record<OverriddenItemType, DataCategory> = {
   check_in: 'monitor',
   raw_security: 'security',
   log: 'log_item',
-  trace_metric: 'metric',
+  metric: 'trace_metric',
 };
 
 function _isOverriddenType(type: EnvelopeItemType): type is OverriddenItemType {
@@ -250,4 +250,11 @@ export function createEventEnvelopeHeaders(
       trace: dynamicSamplingContext,
     }),
   };
+}
+
+/**
+ * Maps an event type to the data category used for client reports.
+ */
+export function getDataCategoryByType(type: EventType): DataCategory {
+  return type === 'replay_event' ? 'replay' : type || 'error';
 }

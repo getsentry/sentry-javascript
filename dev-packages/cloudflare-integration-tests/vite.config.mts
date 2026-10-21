@@ -26,11 +26,7 @@ export default defineConfig({
     // overhead is significantly less.
     pool: 'threads',
     // Run tests sequentially to avoid port conflicts with wrangler dev processes
-    poolOptions: {
-      threads: {
-        singleThread: true,
-      },
-    },
+    maxWorkers: 1,
     sequence: {
       shuffle: true,
     },

@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { EVENT_POLLING_OPTIONS, findErrorInTrace, findTransactionInTrace } from './utils/sentry-api';
+import { EVENT_POLLING_OPTIONS, findErrorInTrace, findSpanInTrace } from './utils/sentry-api';
 
 test('Sends exception to Sentry', async ({ baseURL }) => {
   const response = await fetch(`${baseURL}/test-error`);
@@ -10,13 +10,13 @@ test('Sends exception to Sentry', async ({ baseURL }) => {
   await expect.poll(() => findErrorInTrace(traceId, exceptionId), EVENT_POLLING_OPTIONS).toBeDefined();
 });
 
-test('Sends transaction to Sentry', async ({ baseURL }) => {
-  const response = await fetch(`${baseURL}/test-transaction`);
-  const { transactionId, traceId } = await response.json();
+test('Sends streamed span to Sentry', async ({ baseURL }) => {
+  const response = await fetch(`${baseURL}/test-span`);
+  const { traceId } = await response.json();
 
-  console.log(`Polling for transaction eventId: ${transactionId} in trace: ${traceId}`);
+  console.log(`Polling for streamed span in trace: ${traceId}`);
 
   await expect
-    .poll(() => findTransactionInTrace(traceId, transactionId), EVENT_POLLING_OPTIONS)
+    .poll(() => findSpanInTrace(traceId, 'e2e-test'), EVENT_POLLING_OPTIONS)
     .toMatchObject({ op: 'e2e-test' });
 });

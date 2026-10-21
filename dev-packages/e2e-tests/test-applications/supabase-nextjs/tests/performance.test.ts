@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { collectStreamedSpans, getSpanOp, waitForStreamedSpan } from '@sentry-internal/test-utils';
+import { collectStreamedSpansUntilSegment, getSpanOp, waitForStreamedSpan } from '@sentry-internal/test-utils';
 
 type StreamedSpan = Awaited<ReturnType<typeof waitForStreamedSpan>>;
 
@@ -11,12 +11,6 @@ const DB_ATTRIBUTES = {
   'sentry.op': { value: 'db', type: 'string' },
   'sentry.origin': { value: 'auto.db.supabase', type: 'string' },
 };
-
-function collectSpansUntilSegment(segmentName: string): Promise<StreamedSpan[]> {
-  return collectStreamedSpans('supabase-nextjs', spans =>
-    spans.some(span => span.name === segmentName && span.is_segment),
-  );
-}
 
 function expectDbSpan(
   span: StreamedSpan | undefined,
@@ -39,7 +33,7 @@ function expectDbSpan(
 
 // This should be the first test as it will be needed for the other tests
 test('Sends server-side Supabase auth admin `createUser` span', async ({ baseURL }) => {
-  const spansPromise = collectSpansUntilSegment('GET /api/create-test-user');
+  const spansPromise = collectStreamedSpansUntilSegment('supabase-nextjs', 'GET /api/create-test-user');
 
   await fetch(`${baseURL}/api/create-test-user`);
   const spans = await spansPromise;
@@ -110,7 +104,7 @@ test('Sends client-side Supabase db-operation spans to Sentry', async ({ page })
 });
 
 test('Sends server-side Supabase db-operation spans to Sentry', async ({ baseURL }) => {
-  const spansPromise = collectSpansUntilSegment('GET /api/add-todo-entry');
+  const spansPromise = collectStreamedSpansUntilSegment('supabase-nextjs', 'GET /api/add-todo-entry');
 
   await fetch(`${baseURL}/api/add-todo-entry`);
   const spans = await spansPromise;
@@ -135,7 +129,7 @@ test('Sends server-side Supabase db-operation spans to Sentry', async ({ baseURL
 });
 
 test('Sends server-side Supabase auth admin `listUsers` span', async ({ baseURL }) => {
-  const spansPromise = collectSpansUntilSegment('GET /api/list-users');
+  const spansPromise = collectStreamedSpansUntilSegment('supabase-nextjs', 'GET /api/list-users');
 
   await fetch(`${baseURL}/api/list-users`);
   const spans = await spansPromise;

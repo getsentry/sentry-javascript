@@ -1,0 +1,280 @@
+import type { Span } from '@sentry/core';
+import {
+  debug,
+  flush as sentryFlush,
+  getActiveSpan,
+  getClient,
+  LRUMap,
+  SPAN_STATUS_ERROR,
+  startInactiveSpan,
+  timestampInSeconds,
+} from '@sentry/core';
+import { GEN_AI_RESPONSE_MODEL, SENTRY_OP, SENTRY_ORIGIN } from '@sentry/conventions/attributes';
+import { DEBUG_BUILD } from '../../debug-build';
+import type { GenAiOptions } from '../core/utils';
+import { resolveAIRecordingOptions } from '../core/utils';
+import {
+  getOperation,
+  getSpanAttributes,
+  getSpanName,
+  getUsageAttributes,
+  isExportedSpanType,
+  mergeUsageAttributes,
+  type AttributeRecordingOptions,
+  type SpanAttributes,
+} from './utils';
+import {
+  AGENT_SPAN_TYPES,
+  MASTRA_EXPORTER_BRAND,
+  MASTRA_EXPORTER_NAME,
+  MASTRA_ORIGIN,
+  MAX_TRACKED_MASTRA_SPANS,
+  MODEL_SPAN_TYPES,
+} from './constants';
+import type { ClassifierEvaluationCall } from './classifier-evaluation';
+import { takeStartingClassifierEvaluation } from './classifier-evaluation';
+import { registerMastraSpan, unregisterMastraSpan } from './span-registry';
+import type {
+  MastraExportedSpan,
+  MastraExporterInitOptions,
+  MastraObservabilityExporter,
+  MastraSpanOutputProcessor,
+  MastraSpanType,
+  MastraTracingEvent,
+} from './types';
+
+export type MastraExporterOptions = GenAiOptions;
+
+interface TrackedSpan {
+  span: Span;
+  spanType: MastraSpanType;
+  usage: SpanAttributes;
+  evaluation?: ClassifierEvaluationCall;
+}
+
+const FLUSH_TIMEOUT_MS = 2000;
+
+/** Bound on the skipped-span parent walk; a cyclic chain from Mastra would otherwise hang the process. */
+const MAX_PARENT_WALK_DEPTH = 100;
+
+/**
+ * Mastra `ObservabilityExporter` that turns tracing events into Sentry spans.
+ *
+ * Never calls `Sentry.init()` / `Sentry.close()` — the community `@mastra/sentry` package does both
+ * and replaces the app's client. No `@mastra/*` or `node:` imports.
+ */
+export class SentryMastraExporter implements MastraObservabilityExporter {
+  public name = MASTRA_EXPORTER_NAME;
+
+  public readonly [MASTRA_EXPORTER_BRAND] = true;
+
+  private readonly _spans = new LRUMap<string, TrackedSpan>(MAX_TRACKED_MASTRA_SPANS);
+  /**
+   * Dropped span id -> parent id, for re-parenting descendants. A dropped span with no parent maps to
+   * its own id: `LRUMap.remove` only deletes truthy values, so an empty-string sentinel would never be
+   * evicted and would eventually fill the map, while a self-reference can never be a real parent id.
+   */
+  private readonly _skipped = new LRUMap<string, string>(MAX_TRACKED_MASTRA_SPANS);
+  private readonly _options: MastraExporterOptions;
+  private _spanOutputProcessors: MastraSpanOutputProcessor[] = [];
+
+  public constructor(options: MastraExporterOptions = {}) {
+    this._options = options;
+  }
+
+  /** Called by Mastra with the config of the observability instance this exporter belongs to. */
+  public init(options: MastraExporterInitOptions): void {
+    this._spanOutputProcessors = options.config?.spanOutputProcessors ?? [];
+  }
+
+  /** Mastra's interface is async; the work is synchronous. */
+  public async exportTracingEvent(event: MastraTracingEvent): Promise<void> {
+    if (!getClient()) {
+      return;
+    }
+
+    try {
+      this._handleEvent(event);
+    } catch (error) {
+      DEBUG_BUILD && debug.error('[Mastra] failed to export tracing event', error);
+    }
+  }
+
+  /** Flush without closing the client — the app still owns it. */
+  public async flush(): Promise<void> {
+    await sentryFlush(FLUSH_TIMEOUT_MS);
+  }
+
+  /** End open spans, then flush. Does not close the Sentry client. */
+  public async shutdown(): Promise<void> {
+    for (const id of this._spans.keys()) {
+      unregisterMastraSpan(id);
+    }
+    for (const { span } of this._spans.values()) {
+      span.end();
+    }
+    this._spans.clear();
+    this._skipped.clear();
+    await this.flush();
+  }
+
+  private _handleEvent(event: MastraTracingEvent): void {
+    const span = event.exportedSpan;
+
+    if (span.isEvent) {
+      return;
+    }
+
+    // Unmapped types are recorded so children re-parent onto a surviving ancestor.
+    if (!isExportedSpanType(span.type)) {
+      if (event.type === 'span_started') {
+        this._skipped.set(span.id, span.parentSpanId ?? span.id);
+      } else if (event.type === 'span_ended') {
+        this._skipped.remove(span.id);
+      }
+      return;
+    }
+
+    // Per event: the exporter can be constructed before `Sentry.init()`, when `dataCollection.genAI` does not exist yet.
+    const recordingOptions = resolveAIRecordingOptions(this._options);
+    switch (event.type) {
+      case 'span_started':
+        this._onSpanStarted(span, recordingOptions);
+        break;
+      case 'span_updated':
+        this._onSpanUpdated(span, recordingOptions);
+        break;
+      case 'span_ended':
+        this._onSpanEnded(span, recordingOptions);
+        break;
+    }
+  }
+
+  private _onSpanStarted(span: MastraExportedSpan, recordingOptions: AttributeRecordingOptions): void {
+    const parentId = this._resolveParentId(span.parentSpanId);
+    const parentSpan = parentId ? this._spans.get(parentId)?.span : undefined;
+    const activeSpan = getActiveSpan();
+
+    const sentrySpan = startInactiveSpan({
+      name: getSpanName(span),
+      startTime: span.startTime,
+      // Prefer the Mastra parent so the tree stays together; else the active request span.
+      parentSpan: parentSpan ?? activeSpan,
+      attributes: {
+        ...getSpanAttributes(span, recordingOptions),
+        [SENTRY_OP]: getOperation(span.type)?.op,
+        [SENTRY_ORIGIN]: MASTRA_ORIGIN,
+      },
+    });
+
+    const evaluation = span.type === 'classifier_evaluation' ? takeStartingClassifierEvaluation() : undefined;
+    if (evaluation) {
+      Object.assign(evaluation, {
+        span: sentrySpan,
+        mastraSpan: span,
+        spanOutputProcessors: this._spanOutputProcessors,
+        recordInputs: recordingOptions.recordInputs,
+        recordOutputs: recordingOptions.recordOutputs,
+      });
+    }
+
+    this._trackSpan(span.id, { span: sentrySpan, spanType: span.type, usage: {}, evaluation });
+  }
+
+  /** Track a started span, ending any Sentry span that would otherwise be dropped without `end()`. */
+  private _trackSpan(id: string, tracked: TrackedSpan): void {
+    // A duplicate `span_started` would otherwise overwrite the entry and leak its Sentry span.
+    this._removeTracked(id)?.span.end();
+
+    // `LRUMap.set` evicts the oldest entry once the map is full, dropping that span without ending it.
+    if (this._spans.size >= MAX_TRACKED_MASTRA_SPANS) {
+      const oldestId = this._spans.keys()[0];
+      if (oldestId !== undefined) {
+        this._removeTracked(oldestId)?.span.end();
+      }
+    }
+
+    this._spans.set(id, tracked);
+    // Let the `executeWithContext` channel subscriber find this Sentry span by Mastra span id.
+    registerMastraSpan(id, tracked.span);
+  }
+
+  /** Remove a tracked span and keep the id→span registry in lockstep. */
+  private _removeTracked(id: string): TrackedSpan | undefined {
+    unregisterMastraSpan(id);
+    return this._spans.remove(id);
+  }
+
+  private _onSpanUpdated(span: MastraExportedSpan, recordingOptions: AttributeRecordingOptions): void {
+    const tracked = this._spans.get(span.id);
+    if (tracked) {
+      tracked.span.setAttributes(getSpanAttributes(span, recordingOptions));
+    }
+  }
+
+  private _onSpanEnded(span: MastraExportedSpan, recordingOptions: AttributeRecordingOptions): void {
+    const tracked = this._spans.get(span.id);
+    if (!tracked) {
+      DEBUG_BUILD && debug.warn(`[Mastra] no Sentry span open for ended span ${span.id} (${span.name})`);
+      return;
+    }
+
+    const { span: sentrySpan } = tracked;
+    sentrySpan.setAttributes(getSpanAttributes(span, recordingOptions));
+    sentrySpan.updateName(getSpanName(span));
+
+    if (MODEL_SPAN_TYPES.has(span.type)) {
+      this._rollUpToParentAgent(span);
+    }
+
+    if (span.errorInfo) {
+      // Status only — capturing here would duplicate the app's own report with a worse stack.
+      sentrySpan.setStatus({ code: SPAN_STATUS_ERROR, message: span.errorInfo.message });
+    }
+
+    const { evaluation } = tracked;
+    if (evaluation && !evaluation.settled) {
+      // The integration adds the call's input and answers once `evaluate()` settles, then ends the span.
+      evaluation.endTime = span.endTime ?? timestampInSeconds();
+    } else {
+      sentrySpan.end(span.endTime);
+    }
+    this._removeTracked(span.id);
+  }
+
+  /** Copy model/usage onto the parent agent so the AI Agents view shows totals. */
+  private _rollUpToParentAgent(span: MastraExportedSpan): void {
+    const parentId = this._resolveParentId(span.parentSpanId);
+    const parent = parentId ? this._spans.get(parentId) : undefined;
+    if (!parent || !AGENT_SPAN_TYPES.has(parent.spanType)) {
+      return;
+    }
+
+    const attrs = span.attributes ?? {};
+    const rolled = mergeUsageAttributes(parent.usage, getUsageAttributes(attrs.usage));
+    parent.usage = rolled;
+    const model = attrs.responseModel ?? attrs.model;
+    if (model !== undefined) {
+      rolled[GEN_AI_RESPONSE_MODEL] = model;
+    }
+    parent.span.setAttributes(rolled);
+  }
+
+  /** Nearest exported ancestor of a dropped span. */
+  private _resolveParentId(parentSpanId: string | undefined): string | undefined {
+    let current = parentSpanId;
+    for (let depth = 0; current; depth++) {
+      const parentOfSkipped = this._skipped.get(current);
+      if (parentOfSkipped === undefined) {
+        return current;
+      }
+      if (depth >= MAX_PARENT_WALK_DEPTH) {
+        DEBUG_BUILD && debug.warn('[Mastra] gave up walking a parent chain that is too deep or cyclic');
+        return undefined;
+      }
+      // Self-reference marks a dropped span with no parent; stop and fall back to the active span.
+      current = parentOfSkipped === current ? undefined : parentOfSkipped;
+    }
+    return undefined;
+  }
+}

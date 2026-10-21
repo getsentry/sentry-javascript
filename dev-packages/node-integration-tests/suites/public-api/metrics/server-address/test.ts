@@ -1,5 +1,6 @@
 import { afterAll, describe, expect, test } from 'vitest';
 import { cleanupChildProcesses, createRunner } from '../../../../utils/runner';
+import { EXPECTED_SDK_NAME } from '../../../../utils';
 
 describe('metrics server.address', () => {
   afterAll(() => {
@@ -23,7 +24,7 @@ describe('metrics server.address', () => {
                 'server.address': { value: expect.any(String), type: 'string' },
                 'sentry.release': { value: '1.0.0', type: 'string' },
                 'sentry.environment': { value: 'test', type: 'string' },
-                'sentry.sdk.name': { value: 'sentry.javascript.node', type: 'string' },
+                'sentry.sdk.name': { value: EXPECTED_SDK_NAME, type: 'string' },
                 'sentry.sdk.version': { value: expect.any(String), type: 'string' },
                 'sentry.timestamp.sequence': { value: expect.any(Number), type: 'integer' },
               },

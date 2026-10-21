@@ -90,7 +90,14 @@ describe('interactionsIntegration', () => {
 
   it('starts an interaction span named after the last route', () => {
     interactionsIntegration().setup?.(client);
-    completeRouteSpan(new SentrySpan({ op: 'pageload', name: '/users/:id', sampled: true }));
+    completeRouteSpan(
+      new SentrySpan({
+        op: 'pageload',
+        name: '/users/:id',
+        sampled: true,
+        attributes: { 'url.template': '/users/:id' },
+      }),
+    );
 
     click();
     flushIdleSpan();
@@ -98,7 +105,48 @@ describe('interactionsIntegration', () => {
     const spans = getInteractionSpans();
     expect(spans).toHaveLength(1);
     expect(spanToJSON(spans[0]!).name).toBe('/users/:id');
-    expect(spanToJSON(spans[0]!).attributes).toMatchObject({ 'sentry.origin': 'auto.browser.interactions' });
+    expect(spanToJSON(spans[0]!).attributes).toMatchObject({
+      'sentry.origin': 'auto.browser.interactions',
+      'url.template': '/users/:id',
+    });
+  });
+
+  it('prefers the route id over the parameterized route', () => {
+    interactionsIntegration().setup?.(client);
+    completeRouteSpan(
+      new SentrySpan({
+        op: 'pageload',
+        name: 'UserProfile',
+        sampled: true,
+        attributes: { 'router.navigation.route.id': 'UserProfile', 'url.template': '/users/:id' },
+      }),
+    );
+
+    click();
+    flushIdleSpan();
+
+    const spans = getInteractionSpans();
+    expect(spanToJSON(spans[0]!).name).toBe('UserProfile');
+    expect(spanToJSON(spans[0]!).attributes).toMatchObject({
+      'router.navigation.route.id': 'UserProfile',
+      'url.template': '/users/:id',
+      'sentry.segment.name': 'UserProfile',
+      'sentry.segment.name.source': 'custom',
+    });
+  });
+
+  it('falls back to Click when the route span has no parameterized route', () => {
+    interactionsIntegration().setup?.(client);
+    completeRouteSpan(new SentrySpan({ op: 'pageload', name: 'Pageload', sampled: true }));
+
+    click();
+    flushIdleSpan();
+
+    expect(spanToJSON(getInteractionSpans()[0]!).name).toBe('Click');
+    expect(spanToJSON(getInteractionSpans()[0]!).attributes).toMatchObject({
+      'sentry.segment.name': 'Click',
+      'sentry.segment.name.source': 'custom',
+    });
   });
 
   it('inherits the source of the route span', () => {
@@ -108,7 +156,10 @@ describe('interactionsIntegration', () => {
         op: 'navigation',
         name: '/users/:id',
         sampled: true,
-        attributes: { 'sentry.segment.name.source': 'route' },
+        attributes: {
+          'sentry.segment.name.source': 'route',
+          'url.template': '/users/:id',
+        },
       }),
     );
 
@@ -120,7 +171,7 @@ describe('interactionsIntegration', () => {
     });
   });
 
-  it('falls back to a url source when the route span has none', () => {
+  it('uses a custom source when the streamed span falls back to Click', () => {
     interactionsIntegration().setup?.(client);
     completeRouteSpan(new SentrySpan({ op: 'pageload', name: '/users/1', sampled: true }));
 
@@ -128,14 +179,19 @@ describe('interactionsIntegration', () => {
     flushIdleSpan();
 
     expect(spanToJSON(getInteractionSpans()[0]!).attributes).toMatchObject({
-      'sentry.segment.name.source': 'url',
+      'sentry.segment.name.source': 'custom',
     });
   });
 
   it('picks up the route name a router set after the route span started', () => {
     interactionsIntegration().setup?.(client);
 
-    const pageloadSpan = new SentrySpan({ op: 'pageload', name: '/users/1', sampled: true });
+    const pageloadSpan = new SentrySpan({
+      op: 'pageload',
+      name: '/users/1',
+      sampled: true,
+      attributes: { 'url.template': '/users/:id' },
+    });
     client.emit('spanStart', pageloadSpan);
     updateSpanName(pageloadSpan, '/users/:id');
     pageloadSpan.end();
@@ -212,7 +268,7 @@ describe('interactionsIntegration', () => {
 
   describe('browser event timing entries', () => {
     /** Clicks `target` and feeds the matching `event` timing entry through the observer handler. */
-    function clickAndReportEventTiming(target: Element): Span[] {
+    function clickAndReportEventTiming(target: Element | null): Span[] {
       let handler: ((data: { entries: PerformanceEntry[] }) => void) | undefined;
       vi.spyOn(performanceObserver, 'addPerformanceInstrumentationHandler').mockImplementation((type, callback) => {
         if (type === 'event') {
@@ -264,7 +320,10 @@ describe('interactionsIntegration', () => {
     it('names the span after the DOM tree and omits the component name for unannotated elements', () => {
       const spans = clickAndReportEventTiming(appendButton({ class: 'clicked' }));
 
-      expect(spanToJSON(spans[0]!).name).toBe('body > button.clicked');
+      expect(spanToJSON(spans[0]!).name).toBe('Click');
+      expect(spanToJSON(spans[0]!).attributes).toMatchObject({
+        'browser.web_vital.inp.target': 'body > button.clicked',
+      });
       expect(spanToJSON(spans[0]!).attributes).not.toHaveProperty('ui.component_name');
     });
 
@@ -273,15 +332,60 @@ describe('interactionsIntegration', () => {
         appendButton({ 'data-sentry-component': 'AnnotatedButton', 'data-sentry-element': 'StyledButton' }),
       );
 
-      expect(spanToJSON(spans[0]!).name).toBe('body > AnnotatedButton');
-      expect(spanToJSON(spans[0]!).attributes).toMatchObject({ 'ui.component_name': 'AnnotatedButton' });
+      expect(spanToJSON(spans[0]!).name).toBe('AnnotatedButton');
+      expect(spanToJSON(spans[0]!).attributes).toMatchObject({
+        'ui.component_name': 'AnnotatedButton',
+        'browser.web_vital.inp.target': 'body > AnnotatedButton',
+      });
     });
 
     it('falls back to the annotated element name when there is no component name', () => {
       const spans = clickAndReportEventTiming(appendButton({ 'data-sentry-element': 'StyledButton' }));
 
-      expect(spanToJSON(spans[0]!).name).toBe('body > StyledButton');
-      expect(spanToJSON(spans[0]!).attributes).toMatchObject({ 'ui.component_name': 'StyledButton' });
+      expect(spanToJSON(spans[0]!).name).toBe('StyledButton');
+      expect(spanToJSON(spans[0]!).attributes).toMatchObject({
+        'ui.component_name': 'StyledButton',
+        'browser.web_vital.inp.target': 'body > StyledButton',
+      });
     });
+
+    it('omits the target attribute when the entry has no element to describe', () => {
+      const spans = clickAndReportEventTiming(null);
+
+      expect(spanToJSON(spans[0]!).name).toBe('Click');
+      expect(spanToJSON(spans[0]!).attributes).not.toHaveProperty('browser.web_vital.inp.target');
+    });
+
+    it('keeps the selector name when span streaming is disabled', () => {
+      client = new TestClient(getDefaultClientOptions({ tracesSampleRate: 1, traceLifecycle: 'static' }));
+      setCurrentClient(client);
+      client.init();
+      client.on('spanEnd', span => {
+        endedSpans.push(span);
+      });
+
+      const spans = clickAndReportEventTiming(appendButton({ class: 'clicked' }));
+
+      expect(spans).toHaveLength(1);
+      expect(spanToJSON(spans[0]!).name).toBe('body > button.clicked');
+    });
+  });
+
+  it('keeps the high-cardinality names when span streaming is disabled', () => {
+    client = new TestClient(getDefaultClientOptions({ tracesSampleRate: 1, traceLifecycle: 'static' }));
+    setCurrentClient(client);
+    client.init();
+    client.on('spanEnd', span => {
+      endedSpans.push(span);
+    });
+
+    interactionsIntegration().setup?.(client);
+    completeRouteSpan(new SentrySpan({ op: 'pageload', name: 'Pageload', sampled: true }));
+
+    click();
+    flushIdleSpan();
+
+    expect(spanToJSON(getInteractionSpans()[0]!).name).toBe('Pageload');
+    expect(spanToJSON(getInteractionSpans()[0]!).attributes).not.toHaveProperty('sentry.description');
   });
 });

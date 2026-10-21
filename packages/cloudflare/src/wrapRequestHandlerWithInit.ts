@@ -14,18 +14,21 @@ import {
   httpHeadersToSpanAttributes,
   HTTP_SPAN_NAME_FALLBACK,
   parseStringToURLObject,
+  safeCallback,
   setHttpStatus,
   startSpanManual,
   winterCGHeadersToDict,
 } from '@sentry/core';
+import { classifyResponseStreaming } from '@sentry/core/server';
+import { DEBUG_BUILD } from './debug-build';
 import { captureIncomingRequestBody } from './integrations/httpServer';
+import { flushDeferredChannelEvents } from './orchestrion-deferred-channels';
 import type { CloudflareClient, CloudflareOptions } from './client';
 import type { ExecutionContextCompat } from './executionContext';
 import { flushAndDispose, getOriginalWaitUntil } from './flush';
 import { addCloudResourceContext, addCultureContext, addRequest } from './scope-utils';
 import { getInvocationState, getInvocationWaitUntil } from './utils/invocationContext';
 import { withInvocationIsolationScope } from './utils/invocationScope';
-import { classifyResponseStreaming } from './utils/streaming';
 
 function getRequestErrorMechanismType(context: ExecutionContextCompat | undefined): string {
   // Durable Object fetch handlers use DO state as context (see instrumentDurableObjectWithSentry)
@@ -81,6 +84,11 @@ export function wrapRequestHandlerWithInit(
 
     const client = initSdk({ ...options, ctx: context });
     isolationScope.setClient(client);
+
+    // Emit any orchestrion channel events deferred at module scope (e.g. a top-level
+    // `const app = new Hono()` wrapped by build-time instrumentation): we're now in a
+    // request, where workerd allows publish, and init() above has registered subscribers.
+    flushDeferredChannelEvents();
 
     const urlObject = parseStringToURLObject(request.url);
     const [rawName, attributes] = getHttpSpanDetailsFromUrlObject(
@@ -174,12 +182,19 @@ export function wrapRequestHandlerWithInit(
             throw e;
           }
 
-          // Classify response to detect actual streaming
-          const classification = classifyResponseStreaming(res);
+          const userClassification = safeCallback(
+            DEBUG_BUILD ? 'Error in `isStreamingResponse`, using the default classification:' : '',
+            () => options.isStreamingResponse?.(res, request),
+            () => undefined,
+          );
+          // An async callback returns a promise, which would otherwise count as `true`.
+          const isStreaming =
+            typeof userClassification === 'boolean' ? userClassification : classifyResponseStreaming(res).isStreaming;
 
-          if (classification.isStreaming && res.body) {
+          if (isStreaming && res.body) {
             try {
               let ended = false;
+              let transformerUsed = false;
 
               const endSpanOnce = (): void => {
                 if (ended) return;
@@ -189,7 +204,14 @@ export function wrapRequestHandlerWithInit(
                 waitUntil?.(flushAndDispose(client));
               };
 
+              // Workers with a compatibility date before 2022-11-30 and without the
+              // `transformstream_enable_standard_constructor` flag (for example under older mini-oxygen
+              // releases) ignore the transformer, so `flush` and `cancel` would never end the span. Only a
+              // used transformer runs `start`.
               const transform = new TransformStream({
+                start() {
+                  transformerUsed = true;
+                },
                 flush() {
                   // Source stream completed normally.
                   endSpanOnce();
@@ -202,15 +224,14 @@ export function wrapRequestHandlerWithInit(
                 },
               });
 
-              return new Response(res.body.pipeThrough(transform), {
-                status: res.status,
-                statusText: res.statusText,
-                headers: res.headers,
-              });
+              if (transformerUsed) {
+                // Passing the original response as the init keeps `encodeBody: 'manual'`, which a
+                // Response does not expose as a property. Without it, workerd compresses a
+                // pre-compressed body a second time.
+                return new Response(res.body.pipeThrough(transform), res);
+              }
             } catch {
-              span.end();
-              waitUntil?.(flushAndDispose(client));
-              return res;
+              // Falls back to ending the span at handler return.
             }
           }
 

@@ -1,13 +1,13 @@
 # Sentry JavaScript SDK
 
-Monorepo with 40+ packages in `@sentry/*`, managed with Yarn workspaces and Nx.
+Monorepo with 40+ packages in `@sentry/*`, managed with pnpm workspaces and Nx.
 
 ## Setup
 
-- [Volta](https://volta.sh/) for Node.js/Yarn/PNPM version management
+- [Volta](https://volta.sh/) for Node.js/pnpm version management
 - Requires `VOLTA_FEATURE_PNPM=1`
-- After cloning: `yarn install && yarn build`
-- Never change Volta, Yarn, or package manager versions unless explicitly asked
+- After cloning: `pnpm install && pnpm run build`
+- Never change Volta, pnpm, or package manager versions unless explicitly asked
 
 ### Code Intelligence
 
@@ -24,10 +24,10 @@ After writing or editing code, check LSP diagnostics and fix errors before proce
 
 ## Package Manager
 
-Use **yarn**, never npm or pnpm. Scripts live in the root `package.json`.
-`yarn build:dev:filter @sentry/<pkg>` builds one package and its deps.
+Use **pnpm**, never npm or yarn. Scripts live in the root `package.json`.
+`pnpm run build:dev:filter @sentry/<pkg>` builds one package and its deps.
 
-Single package: `cd packages/<name> && yarn test`
+Single package: `cd packages/<name> && pnpm run test`
 
 ## Commit Attribution
 
@@ -52,10 +52,10 @@ Uses **Git Flow** (see `docs/gitflow.md`).
 
 ## Before Every Pull Request
 
-1. `yarn format`
-2. `yarn build:dev`
-3. `yarn lint`
-4. `yarn test`
+1. `pnpm run format`
+2. `pnpm run build:dev`
+3. `pnpm run lint`
+4. Run the unit and integration/E2E tests for the affected packages.
 5. NEVER push on `develop`
 
 ## Pull Requests
@@ -64,22 +64,26 @@ Uses **Git Flow** (see `docs/gitflow.md`).
 - **Omit the "Summary" heading** in PR bodies — lead with the summary text itself, no `## Summary` header.
 - Include `Fixes #<issue-number>` somewhere in the PR body so the merge auto-closes the linked issue.
 - Always open PRs as draft.
-- Include reasoning of changes in the PR description, as well as decisions that were taken during implementation. Do not explain the implementation that can be viewed in the code.
+- **Keep PR descriptions condensed** — usually a few sentences. Explain the _reasoning_: why the change is needed, and any non-obvious decisions or tradeoffs made along the way. Do **not** walk through the implementation or describe what changed file-by-file — the diff already shows that. Only go longer when the decisions genuinely warrant it.
 
 ## Architecture
 
-- `packages/types/` is **deprecated — never modify it**. Types live in
-  `packages/core/`.
-- An AI provider integration spans three places: core instrumentation in
-  `packages/core/src/tracing/{provider}/`, the Node integration in
-  `packages/node/src/integrations/tracing/{provider}/`, and the edge
-  runtime in `packages/cloudflare/src/integrations/tracing/{provider}.ts`.
+- Types live in `packages/core/`. The `@sentry/types` package is gone.
+- An AI provider integration spans two places, both in
+  `packages/server-utils/`: the gen-AI instrumentation logic in
+  `src/ai/{provider}/`, and the integration that wires it up in
+  `src/integrations/{provider}.ts`, registered in `getTracingIntegrations()`.
+  Runtime packages (`node`, `cloudflare`, ...) re-export from
+  `@sentry/server-utils` rather than defining their own.
+
+- `Sentry.init()` follows one rule for repeated calls: the first call wins. See
+  `docs/repeated-init.md` before you add or change an `init()`.
 
 ## Linting & Formatting
 
 - This project uses **Oxlint** and **Oxfmt** — NOT ESLint or Prettier
-- Never run `eslint`, `npx eslint`, or any ESLint CLI — use `yarn lint` (Oxlint) instead
-- Never run `prettier` — use `yarn format` (Oxfmt) instead
+- Never run `eslint`, `npx eslint`, or any ESLint CLI — use `pnpm run lint` (Oxlint) instead
+- Never run `prettier` — use `pnpm run format` (Oxfmt) instead
 - ESLint packages in the repo are legacy/e2e test app dependencies — ignore them
 - Do not create, modify, or suggest `.eslintrc`, `eslint.config.*`, or `.prettierrc` files
 
@@ -90,9 +94,14 @@ Uses **Git Flow** (see `docs/gitflow.md`).
 - Only use libraries already in the codebase
 - Never expose secrets or keys
 - When modifying files, cover all occurrences (including `src/` and `test/`)
-- Comments explain **why**, never **what** — never add a comment that restates what the code does or describes the change being made; only comment when the reasoning isn't obvious from the code itself
+- **Write few comments; default to none.** Comments explain **why**, never **what** — never add a comment that restates what the code does or narrates the change being made. Only add one when the reasoning isn't clear from the code itself, or to flag a tradeoff or something that would otherwise look surprising to a reader. When in doubt, leave it out.
 - Do not use `expect(someSpy.mock.calls[0]?.[0])` or similar constructs to check what a spy was called with.
   Instead use `expect(someSpy).toHaveBeenCalledWith(...)` or derivatives for a more readable and less brittle test assertion.
+
+## Testing
+
+- **Do not set `traceLifecycle` in new tests** (node-integration-tests, e2e). Leave it unset so the test exercises the default — span streaming (`stream`). Many existing suites pin `traceLifecycle: 'static'` (or toggle it via `process.env.STREAMED`); do not copy that into new tests.
+- Under span streaming there is no `transaction` envelope with nested `spans`. Assert the transaction via the streamed span container: `.expect({ span: (container) => { ... } })`, finding the root with `container.items.find(i => i.is_segment)` and child spans with `container.items.filter(...)`. Add `.unordered()` so the span container and error events can arrive in any order and unrelated envelopes (client reports, etc.) are ignored. Errors are still separate `event` envelopes (`.expect({ event })`). A streamed span's error status is `'error'`, not the classic transaction's `'internal_error'`.
 
 ## Lazy Loading Is a Last Resort
 

@@ -1,14 +1,13 @@
 import type { TracingChannel } from 'node:diagnostics_channel';
-import { GRAPHQL_DOCUMENT, GRAPHQL_OPERATION_NAME, GRAPHQL_OPERATION_TYPE } from '@sentry/conventions/attributes';
-import { GRAPHQL } from '@sentry/conventions/op';
 import {
-  getClient,
-  hasSpanStreamingEnabled,
-  SEMANTIC_ATTRIBUTE_SENTRY_OP,
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  SPAN_STATUS_ERROR,
-  startInactiveSpan,
-} from '@sentry/core';
+  GRAPHQL_DOCUMENT,
+  GRAPHQL_OPERATION_NAME,
+  GRAPHQL_OPERATION_TYPE,
+  SENTRY_OP,
+  SENTRY_ORIGIN,
+} from '@sentry/conventions/attributes';
+import { GRAPHQL } from '@sentry/conventions/op';
+import { getClient, hasSpanStreamingEnabled, SPAN_STATUS_ERROR, startInactiveSpan } from '@sentry/core';
 import { bindTracingChannelToSpan } from '../../tracing-channel';
 import {
   GRAPHQL_FIELD_NAME,
@@ -159,8 +158,8 @@ function setupParseChannel(tracingChannel: GraphqlTracingChannelFactory): void {
     return startInactiveSpan({
       name: client && hasSpanStreamingEnabled(client) ? `GraphQL ${PROCESSING_TYPE_PARSE}` : SPAN_NAME_PARSE,
       attributes: {
-        [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: ORIGIN,
-        [SEMANTIC_ATTRIBUTE_SENTRY_OP]: GRAPHQL,
+        [SENTRY_ORIGIN]: ORIGIN,
+        [SENTRY_OP]: GRAPHQL,
         [GRAPHQL_PROCESSING_TYPE]: PROCESSING_TYPE_PARSE,
       },
     });
@@ -176,8 +175,8 @@ function setupValidateChannel(tracingChannel: GraphqlTracingChannelFactory): voi
       return startInactiveSpan({
         name: client && hasSpanStreamingEnabled(client) ? `GraphQL ${PROCESSING_TYPE_VALIDATE}` : SPAN_NAME_VALIDATE,
         attributes: {
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: ORIGIN,
-          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: GRAPHQL,
+          [SENTRY_ORIGIN]: ORIGIN,
+          [SENTRY_OP]: GRAPHQL,
           [GRAPHQL_PROCESSING_TYPE]: PROCESSING_TYPE_VALIDATE,
           [GRAPHQL_DOCUMENT]: collectGraphqlDocument(data.document),
         },
@@ -212,8 +211,8 @@ function setupOperationChannel(
             ? streamedName
             : getOperationSpanName(data.operationType, data.operationName, fallbackName),
         attributes: {
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: ORIGIN,
-          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: GRAPHQL,
+          [SENTRY_ORIGIN]: ORIGIN,
+          [SENTRY_OP]: GRAPHQL,
           [GRAPHQL_PROCESSING_TYPE]: PROCESSING_TYPE_EXECUTE,
           [GRAPHQL_OPERATION_TYPE]: data.operationType,
           [GRAPHQL_OPERATION_NAME]: data.operationName || undefined,
@@ -254,8 +253,8 @@ function setupResolveChannel(tracingChannel: GraphqlTracingChannelFactory, ignor
           ? `GraphQL ${PROCESSING_TYPE_RESOLVE}`
           : `${SPAN_NAME_RESOLVE} ${data.fieldPath}`,
       attributes: {
-        [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: ORIGIN,
-        [SEMANTIC_ATTRIBUTE_SENTRY_OP]: GRAPHQL,
+        [SENTRY_ORIGIN]: ORIGIN,
+        [SENTRY_OP]: GRAPHQL,
         [GRAPHQL_PROCESSING_TYPE]: PROCESSING_TYPE_RESOLVE,
         [GRAPHQL_FIELD_NAME]: data.fieldName,
         [GRAPHQL_FIELD_PATH]: data.fieldPath,

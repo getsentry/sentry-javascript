@@ -3,7 +3,6 @@ import { DEBUG_BUILD } from '../../debug-build';
 import {
   getClient,
   hasSpanStreamingEnabled,
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SPAN_STATUS_ERROR,
   startSpan,
   startSpanManual,
@@ -19,6 +18,7 @@ import {
   GEN_AI_REQUEST_MODEL,
   GEN_AI_SYSTEM_INSTRUCTIONS,
   GEN_AI_TOOL_DEFINITIONS,
+  SENTRY_ORIGIN,
 } from '@sentry/conventions/attributes';
 import type { InstrumentedMethodEntry } from '../core/utils';
 import {
@@ -31,6 +31,7 @@ import {
 import { OPENAI_METHOD_REGISTRY } from './constants';
 import { instrumentStream } from './streaming';
 import type { ChatCompletionChunk, OpenAiOptions, OpenAIStream, ResponseStreamingEvent } from './types';
+import { getDecisionInputMessages } from './mapping';
 import { addResponseAttributes, extractRequestParameters } from './utils';
 
 /**
@@ -59,22 +60,29 @@ function extractAvailableTools(params: Record<string, unknown>): string | undefi
 /**
  * Extract request attributes from method arguments
  */
-export function extractRequestAttributes(args: unknown[], operationName: string): Record<string, unknown> {
+export function extractRequestAttributes(
+  args: unknown[],
+  operationName: string,
+  recordInputs: boolean,
+): Record<string, unknown> {
   const attributes: Record<string, unknown> = {
     [GEN_AI_PROVIDER_NAME]: 'openai',
     [GEN_AI_OPERATION_NAME]: operationName,
-    [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ai.openai',
+    [SENTRY_ORIGIN]: 'auto.ai.openai',
   };
 
   if (args.length > 0 && typeof args[0] === 'object' && args[0] !== null) {
     const params = args[0] as Record<string, unknown>;
 
-    const availableTools = extractAvailableTools(params);
-    if (availableTools) {
-      attributes[GEN_AI_TOOL_DEFINITIONS] = availableTools;
+    if (recordInputs) {
+      attributes[GEN_AI_TOOL_DEFINITIONS] = extractAvailableTools(params);
     }
 
     Object.assign(attributes, extractRequestParameters(params));
+
+    if (recordInputs && operationName === 'decide') {
+      attributes[GEN_AI_INPUT_MESSAGES] = getDecisionInputMessages(params);
+    }
   } else {
     attributes[GEN_AI_REQUEST_MODEL] = 'unknown';
   }
@@ -84,6 +92,11 @@ export function extractRequestAttributes(args: unknown[], operationName: string)
 
 // Extract and record AI request inputs, if present. This is intentionally separate from response attributes.
 export function addRequestAttributes(span: Span, params: Record<string, unknown>, operationName: string): void {
+  // A decision's input is recorded when its span starts, in `extractRequestAttributes`.
+  if (operationName === 'decide') {
+    return;
+  }
+
   // Store embeddings input on a separate attribute
   if (operationName === 'embeddings' && 'input' in params) {
     const input = params.input;
@@ -140,7 +153,7 @@ function instrumentMethod<T extends unknown[], R>(
 ): (...args: T) => Promise<R> {
   return function instrumentedCall(...args: T): Promise<R> {
     const operationName = instrumentedMethod.operation || 'unknown';
-    const requestAttributes = extractRequestAttributes(args, operationName);
+    const requestAttributes = extractRequestAttributes(args, operationName, !!options.recordInputs);
     const model = (requestAttributes[GEN_AI_REQUEST_MODEL] as string) || 'unknown';
 
     const params = args[0] as Record<string, unknown> | undefined;
@@ -199,7 +212,7 @@ function instrumentMethod<T extends unknown[], R>(
       }
 
       return originalResult.then(result => {
-        addResponseAttributes(span, result, options.recordOutputs);
+        addResponseAttributes(span, result, options.recordOutputs, operationName);
         return result;
       });
     });

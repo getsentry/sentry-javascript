@@ -1,6 +1,34 @@
 // <reference lib="deno.ns" />
 
-import { assertEquals } from 'https://deno.land/std@0.212.0/assert/mod.ts';
+import { assertEquals, assertStrictEquals } from 'https://deno.land/std@0.212.0/assert/mod.ts';
+
+import { streamResponse } from '../src/utils/streaming.ts';
+
+Deno.test('cancels the source when the response reader is cancelled', async () => {
+  let sourceCancelReason: unknown;
+
+  const source = new ReadableStream<Uint8Array>({
+    start(controller) {
+      controller.enqueue(new TextEncoder().encode('first event'));
+    },
+    cancel(reason) {
+      sourceCancelReason = reason;
+    },
+  });
+
+  const span = { end() {} } as Parameters<typeof streamResponse>[0];
+  const response = await streamResponse(
+    span,
+    new Response(source, { headers: { 'content-type': 'text/event-stream' } }),
+  );
+  const reader = response.body!.getReader();
+  const reason = new Error('client disconnected');
+
+  await reader.read();
+  await reader.cancel(reason);
+
+  assertStrictEquals(sourceCancelReason, reason);
+});
 
 Deno.test('reader.closed.then(f, f) suppresses rejection when releaseLock is called on an open stream', async () => {
   // Reproduces the bug from GitHub issue #20177:
@@ -53,4 +81,47 @@ Deno.test('reader.closed.then(f, f) suppresses rejection when releaseLock is cal
   } finally {
     globalThis.removeEventListener('unhandledrejection', handler);
   }
+});
+
+Deno.test('calls onEnd before ending the span for a non-streamed response', async () => {
+  const calls: string[] = [];
+  const span = { end: () => calls.push('end') } as unknown as Parameters<typeof streamResponse>[0];
+
+  await streamResponse(span, new Response('{}', { headers: { 'content-type': 'application/json' } }), () =>
+    calls.push('onEnd'),
+  );
+
+  assertEquals(calls, ['onEnd', 'end']);
+});
+
+Deno.test('calls onEnd before ending the span when a streamed response finishes', async () => {
+  const calls: string[] = [];
+  let resolveEnded: () => void;
+  const ended = new Promise<void>(resolve => (resolveEnded = resolve));
+  const span = {
+    end: () => {
+      calls.push('end');
+      resolveEnded();
+    },
+  } as unknown as Parameters<typeof streamResponse>[0];
+
+  let sourceController: ReadableStreamDefaultController<Uint8Array> | undefined;
+  const source = new ReadableStream<Uint8Array>({
+    start(controller) {
+      sourceController = controller;
+      controller.enqueue(new TextEncoder().encode('chunk'));
+    },
+  });
+  const response = await streamResponse(
+    span,
+    new Response(source, { headers: { 'content-type': 'text/event-stream' } }),
+    () => calls.push('onEnd'),
+  );
+
+  await new Promise(resolve => setTimeout(resolve, 0));
+  assertEquals(calls, []);
+  sourceController!.close();
+  assertEquals(await response.text(), 'chunk');
+  await ended;
+  assertEquals(calls, ['onEnd', 'end']);
 });

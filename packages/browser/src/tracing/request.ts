@@ -13,7 +13,6 @@ import {
   instrumentFetchRequest,
   matchesTracePropagationTargets,
   parseUrl,
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SentryNonRecordingSpan,
   setHttpStatus,
   spanIsIgnored,
@@ -44,6 +43,7 @@ import {
   URL_FRAGMENT,
   URL_FULL,
   URL_QUERY,
+  SENTRY_ORIGIN,
 } from '@sentry/conventions/attributes';
 import { HTTP_CLIENT } from '@sentry/conventions/op';
 
@@ -393,7 +393,7 @@ function xhrCallback(
             [URL_FULL]: filterCollectedUrl(sanitizedFullUrl),
             [SERVER_ADDRESS]: host,
             [URL_DOMAIN]: domain,
-            [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.browser',
+            [SENTRY_ORIGIN]: 'auto.http.browser',
             [SENTRY_OP]: HTTP_CLIENT,
             [URL_QUERY]: filterCollectedUrlQuery(getUrlQuery(parsedUrl?.search)),
             [URL_FRAGMENT]: getUrlFragment(parsedUrl?.hash),

@@ -1,13 +1,8 @@
-import { SENTRY_SEGMENT_NAME_SOURCE, HTTP_ROUTE } from '@sentry/conventions/attributes';
-import {
-  getActiveSpan,
-  getCurrentScope,
-  getRootSpan,
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  updateSpanName,
-} from '@sentry/core';
+import { SENTRY_SEGMENT_NAME_SOURCE, HTTP_ROUTE, SENTRY_ORIGIN } from '@sentry/conventions/attributes';
+import { getActiveSpan, getCurrentScope, getRootSpan, updateSpanName } from '@sentry/core';
 import { flushIfServerless } from '@sentry/core/server';
 import type { AppLoadContext, EntryContext, RouterContextProvider } from 'react-router';
+import { registerServerBuildGlobal } from './serverBuild';
 import { isInstrumentationApiUsed } from './serverGlobals';
 
 type OriginalHandleRequestWithoutMiddleware = (
@@ -53,6 +48,11 @@ export function wrapSentryHandleRequest(
 export function wrapSentryHandleRequest(
   originalHandle: OriginalHandleRequestWithoutMiddleware | OriginalHandleRequestWithMiddleware,
 ): OriginalHandleRequestWithoutMiddleware | OriginalHandleRequestWithMiddleware {
+  // `entry.server` is evaluated before the server build module, so the build's capture call at the
+  // end of that module finds this. Runtimes without the Node server integration (Cloudflare) only
+  // register it here.
+  registerServerBuildGlobal();
+
   return async function sentryInstrumentedHandleRequest(
     request: Request,
     responseStatusCode: number,
@@ -60,8 +60,11 @@ export function wrapSentryHandleRequest(
     routerContext: EntryContext,
     loadContext: AppLoadContext | RouterContextProvider,
   ) {
-    const parameterizedPath =
-      routerContext?.staticHandlerContext?.matches?.[routerContext.staticHandlerContext.matches.length - 1]?.route.path;
+    const matches = routerContext?.staticHandlerContext?.matches;
+    // An index route has no `path` of its own and renders at its nearest ancestor's path, or at `/`.
+    const parameterizedPath = matches?.length
+      ? ([...matches].reverse().find(match => match.route.path)?.route.path ?? '/')
+      : undefined;
 
     const activeSpan = getActiveSpan();
     const rootSpan = activeSpan ? getRootSpan(activeSpan) : undefined;
@@ -86,7 +89,7 @@ export function wrapSentryHandleRequest(
         rootSpan.setAttributes({
           [HTTP_ROUTE]: routeName,
           [SENTRY_SEGMENT_NAME_SOURCE]: 'route',
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.react_router.request_handler',
+          [SENTRY_ORIGIN]: 'auto.http.react_router.request_handler',
         });
       }
     }

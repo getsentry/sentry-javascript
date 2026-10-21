@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { _getLocationURL } from '../src/utils/instrumentEmberAppInstanceForPerformance.ts';
+import { _getLocationURL, _recognizeURL } from '../src/utils/instrumentEmberAppInstanceForPerformance.ts';
 
 interface Location {
   formatURL?: (url: string) => string;
@@ -78,5 +78,38 @@ describe('_getLocationURL', () => {
     };
 
     expect(_getLocationURL(mockLocation)).toBe('');
+  });
+});
+
+type RouterServiceArg = Parameters<typeof _recognizeURL>[0];
+
+function mockRouterService(recognize: (url: string) => unknown): RouterServiceArg {
+  return { recognize } as unknown as RouterServiceArg;
+}
+
+describe('_recognizeURL', () => {
+  it('returns the route info when the router recognizes the URL', () => {
+    const routeInfo = { name: 'my.route', params: { id: '1' } };
+    const routerService = mockRouterService(() => routeInfo);
+
+    expect(_recognizeURL(routerService, '/my/route/1')).toBe(routeInfo);
+  });
+
+  it('returns undefined when the URL is not prefixed with the rootURL', () => {
+    // Ember's `none` location (used by `@ember/test-helpers`) yields URLs that `recognize()`
+    // rejects with this assertion, which previously threw out of the integration's setup.
+    const routerService = mockRouterService(() => {
+      throw new Error('Assertion Failed: You must pass a url that begins with the application\'s rootURL "/"');
+    });
+
+    expect(_recognizeURL(routerService, 'not-root-url-prefixed')).toBeUndefined();
+  });
+
+  it('returns undefined for any other recognize() failure', () => {
+    const routerService = mockRouterService(() => {
+      throw new Error('nope');
+    });
+
+    expect(_recognizeURL(routerService, '/unknown')).toBeUndefined();
   });
 });

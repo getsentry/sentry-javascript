@@ -101,6 +101,10 @@ export function instrumentEnv<Env extends Record<string, unknown>>(env: Env, opt
               return instrumentFetcher((...args) => Reflect.apply(value, target, args));
             }
 
+            if (p === 'connect' && typeof value === 'function') {
+              return (...args: unknown[]) => Reflect.apply(value, target, args);
+            }
+
             if (
               propagateRpcTrace &&
               typeof value === 'function' &&

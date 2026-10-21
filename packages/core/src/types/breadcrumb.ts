@@ -77,10 +77,13 @@ export interface BreadcrumbHint {
 
 export interface FetchBreadcrumbData {
   method: string;
+  /** Sanitized URL: the query string and fragment live in their own fields below. */
   url: string;
   status_code?: number;
   request_body_size?: number;
   response_body_size?: number;
+  'url.query'?: string;
+  'url.fragment'?: string;
 }
 
 export interface XhrBreadcrumbData {

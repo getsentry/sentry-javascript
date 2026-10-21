@@ -5,6 +5,7 @@ import type { ServerRuntimeClientOptions } from '@sentry/core/server';
 import {
   _INTERNAL_clearAiProviderSkips,
   _INTERNAL_flushLogsBuffer,
+  _INTERNAL_flushMetricsBuffer,
   _INTERNAL_setDeferSegmentSpanCapture,
   applySdkMetadata,
   debug,
@@ -17,12 +18,17 @@ import {
   type SentryTracerProvider,
   setOpenTelemetryContextAsyncContextStrategy,
 } from '@sentry/opentelemetry';
+import { registerDiagnosticsChannelInjection } from '@sentry/server-runtime-injection/register';
 import { setAsyncLocalStorageAsyncContextStrategy } from '@sentry/server-utils';
 import { isMainThread, threadId } from 'worker_threads';
 import { DEBUG_BUILD } from '../debug-build';
 import type { NodeClientOptions } from '../types';
 
 const DEFAULT_CLIENT_REPORT_FLUSH_INTERVAL_MS = 60_000; // 60s was chosen arbitrarily
+
+// Treeshakable guard to remove all code related to runtime diagnostics-channel injection. Set to
+// `false` at build time by the Sentry bundler plugins' `bundleSizeOptimizations.excludeChannelInjection`.
+declare const __SENTRY_CHANNEL_INJECTION__: boolean | undefined;
 
 /** A client for using Sentry with Node & OpenTelemetry. */
 export class NodeClient extends ServerRuntimeClient<NodeClientOptions> {
@@ -33,6 +39,7 @@ export class NodeClient extends ServerRuntimeClient<NodeClientOptions> {
   private _clientReportInterval: NodeJS.Timeout | undefined;
   private _clientReportOnExitFlushListener: (() => void) | undefined;
   private _logOnExitFlushListener: (() => void) | undefined;
+  private _metricsOnExitFlushListener: (() => void) | undefined;
 
   public constructor(options: NodeClientOptions) {
     const serverName =
@@ -58,6 +65,10 @@ export class NodeClient extends ServerRuntimeClient<NodeClientOptions> {
       _INTERNAL_flushLogsBuffer(this);
     };
 
+    this._metricsOnExitFlushListener = () => {
+      _INTERNAL_flushMetricsBuffer(this);
+    };
+
     if (serverName) {
       this.on('beforeCaptureLog', log => {
         log.attributes = {
@@ -68,6 +79,7 @@ export class NodeClient extends ServerRuntimeClient<NodeClientOptions> {
     }
 
     process.on('beforeExit', this._logOnExitFlushListener);
+    process.on('beforeExit', this._metricsOnExitFlushListener);
 
     // Enable deferred segment-span transaction capture here, in the constructor, rather than in
     // `initOtel`. Every client runs its constructor exactly once, whereas `initOtel` only runs on
@@ -82,6 +94,21 @@ export class NodeClient extends ServerRuntimeClient<NodeClientOptions> {
     // Same constructor anchoring as above: every client must continue incoming (remote) traces,
     // also manually constructed ones that never run `initOtel`.
     registerPrepareSpanScope(this);
+
+    // Install the channel-based (orchestrion diagnostics-channel) instrumentation hooks here, in the
+    // constructor, so that every client installs them — not only the one built by the Node SDK's
+    // `init()`. Downstream SDKs construct a client without going through that path, and would
+    // otherwise never install the hooks. Registration is idempotent (a global marker guards it), so
+    // a second construction is harmless. The channel integrations capture errors as well as spans,
+    // so this is independent of tracing. Opt out at runtime with `enableRuntimeChannelInjection:
+    // false`, or at build time via the bundler plugins'
+    // `bundleSizeOptimizations.excludeChannelInjection` (which tree-shakes this whole block away).
+    if (
+      (typeof __SENTRY_CHANNEL_INJECTION__ === 'undefined' || __SENTRY_CHANNEL_INJECTION__) &&
+      options.enableRuntimeChannelInjection !== false
+    ) {
+      registerDiagnosticsChannelInjection();
+    }
   }
 
   /** @inheritDoc */
@@ -136,6 +163,10 @@ export class NodeClient extends ServerRuntimeClient<NodeClientOptions> {
 
     if (this._logOnExitFlushListener) {
       process.off('beforeExit', this._logOnExitFlushListener);
+    }
+
+    if (this._metricsOnExitFlushListener) {
+      process.off('beforeExit', this._metricsOnExitFlushListener);
     }
 
     const allEventsSent = await super.close(timeout);

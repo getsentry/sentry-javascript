@@ -54,11 +54,11 @@ export function getPlaywrightConfig(
       {
         name: 'chromium',
         use: {
-          // This comes from `devices["Desktop Chrome"]` in Playwright 1.56.0
+          // This comes from `devices["Desktop Chrome"]` in Playwright 1.63.0
           // We inline this instead of importing this,
           // because playwright otherwise complains that it was imported twice :(
           userAgent:
-            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.7390.37 Safari/537.36',
+            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.8010.12 Safari/537.36',
           viewport: { width: 1280, height: 720 },
           deviceScaleFactor: 1,
           isMobile: false,

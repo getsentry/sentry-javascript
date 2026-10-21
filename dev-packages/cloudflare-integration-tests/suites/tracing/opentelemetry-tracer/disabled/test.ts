@@ -1,33 +1,27 @@
 import { SENTRY_ORIGIN } from '@sentry/conventions/attributes';
-import type { Event } from '@sentry/core';
 import { expect, it } from 'vitest';
-import { SHORT_UUID_MATCHER } from '../../../../expect';
 import { createRunner } from '../../../../runner';
+import { getSpansFromEnvelope } from '../../../../spanUtils';
 
 it('drops spans emitted through @opentelemetry/api when `enableOpenTelemetrySetup` is not enabled', async ({
   signal,
 }) => {
   const runner = createRunner(__dirname)
     .expect(envelope => {
-      const transactionEvent = envelope[1]?.[0]?.[1] as Event;
+      const spans = getSpansFromEnvelope(envelope);
+      const segmentSpan = spans.find(span => span.is_segment);
+      const childSpans = spans.filter(span => !span.is_segment);
 
-      expect(transactionEvent.transaction).toBe('GET /');
+      expect(segmentSpan?.name).toBe('GET /');
 
-      // Only the Sentry span survives; it re-parents onto the request span because the noop OTel
+      // Only the Sentry span survives. It re-parents onto the segment span, because the noop OTel
       // span it was nested under never became a real parent.
-      expect(transactionEvent.spans).toEqual([
-        {
-          data: { [SENTRY_ORIGIN]: 'manual' },
-          description: 'sentry child',
-          parent_span_id: transactionEvent.contexts?.trace?.span_id,
-          span_id: SHORT_UUID_MATCHER,
-          start_timestamp: expect.any(Number),
-          status: 'ok',
-          timestamp: expect.any(Number),
-          trace_id: transactionEvent.contexts?.trace?.trace_id,
-          origin: 'manual',
-        },
-      ]);
+      expect(childSpans).toHaveLength(1);
+      expect(childSpans[0]?.name).toBe('sentry child');
+      expect(childSpans[0]?.parent_span_id).toBe(segmentSpan?.span_id);
+      expect(childSpans[0]?.trace_id).toBe(segmentSpan?.trace_id);
+      expect(childSpans[0]?.status).toBe('ok');
+      expect(childSpans[0]?.attributes[SENTRY_ORIGIN]).toEqual({ type: 'string', value: 'manual' });
     })
     .start(signal);
 

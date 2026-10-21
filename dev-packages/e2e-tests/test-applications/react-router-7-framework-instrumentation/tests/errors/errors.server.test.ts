@@ -1,5 +1,10 @@
 import { expect, test } from '@playwright/test';
-import { collectStreamedSpans, getSpanOp, waitForError, waitForStreamedSpan } from '@sentry-internal/test-utils';
+import {
+  collectStreamedSpansUntilSegment,
+  getSpanOp,
+  waitForError,
+  waitForStreamedSpan,
+} from '@sentry-internal/test-utils';
 import { APP_NAME } from '../constants';
 
 test.describe('server - instrumentation API error capture', () => {
@@ -42,9 +47,7 @@ test.describe('server - instrumentation API error capture', () => {
   });
 
   test('should include loader span in the segment even when loader throws', async ({ page }) => {
-    const spansPromise = collectStreamedSpans(APP_NAME, spansOfTrace =>
-      spansOfTrace.some(span => span.name === 'GET /performance/error-loader' && span.is_segment),
-    );
+    const spansPromise = collectStreamedSpansUntilSegment(APP_NAME, 'GET /performance/error-loader');
 
     await page.goto(`/performance/error-loader`).catch(() => {
       // Expected to fail due to loader error

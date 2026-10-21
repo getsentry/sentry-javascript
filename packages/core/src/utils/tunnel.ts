@@ -3,6 +3,9 @@ import { debug } from './debug-logger';
 import { makeDsn } from './dsn';
 import { parseEnvelope } from './envelope';
 
+// Bounds the memory of each request. SDK envelopes stay far below it.
+export const MAX_TUNNEL_BODY_SIZE = 20 * 1024 * 1024;
+
 export interface HandleTunnelRequestOptions {
   /** Incoming request containing the Sentry envelope as its body */
   request: Request;
@@ -23,6 +26,15 @@ export async function handleTunnelRequest(options: HandleTunnelRequestOptions): 
 
   if (allowedDsns.length === 0) {
     return new Response('Tunnel not configured', { status: 500 });
+  }
+
+  // The HTTP server ends the body at `Content-Length`, so the header bounds what `arrayBuffer()` reads.
+  const contentLength = Number(request.headers.get('content-length'));
+  if (!contentLength) {
+    return new Response('Length required', { status: 411 });
+  }
+  if (contentLength > MAX_TUNNEL_BODY_SIZE) {
+    return new Response('Envelope too large', { status: 413 });
   }
 
   const body = new Uint8Array(await request.arrayBuffer());

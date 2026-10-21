@@ -5,19 +5,15 @@
  * @see https://modelcontextprotocol.io/specification/2025-06-18/basic/transports
  */
 
+import { MCP_PROTOCOL_VERSION } from '@sentry/conventions/attributes';
 import { getClient, getIsolationScope, withIsolationScope } from '../../currentScopes';
 import { withActiveSpan } from '../../tracing';
 import { startInactiveSpan } from '../../tracing/trace';
 import { isObjectLike } from '../../utils/is';
 import { fill } from '../../utils/object';
-import { MCP_PROTOCOL_VERSION_ATTRIBUTE } from './attributes';
 import { cleanupPendingSpansForTransport, completeSpanWithResults, storeSpanForRequest } from './correlation';
-import { captureError } from './errorCapture';
-import {
-  buildClientAttributesFromInfo,
-  extractSessionDataFromInitializeRequest,
-  extractSessionDataFromMessage,
-} from './sessionExtraction';
+import { captureError, isJsonRpcServerError } from './errorCapture';
+import { buildClientAttributesFromInfo, extractSessionDataFromInitializeRequest } from './sessionExtraction';
 import { cleanupSessionDataForTransport, updateSessionDataForTransport } from './sessionManagement';
 import { buildMcpServerSpanConfig, createMcpNotificationSpan, createMcpOutgoingNotificationSpan } from './spans';
 import type { ExtraHandlerData, McpServerWrapperOptions, MCPTransport, ResolvedMcpOptions, SessionData } from './types';
@@ -31,18 +27,22 @@ function resolveMcpOptions(options: McpServerWrapperOptions): ResolvedMcpOptions
     };
   }
 
-  const genAI = getClient()?.getDataCollectionOptions().genAI;
+  const client = getClient();
+  // TODO(v12): Drop the `genAI` fallback and read `client.getDataCollectionOptions().mcp`. Until then, the raw option
+  // is read because the resolved `mcp` always has defaults applied and would hide whether the user set it.
+  const userMcp = client?.getOptions().dataCollection?.mcp;
+  const genAI = client?.getDataCollectionOptions().genAI;
 
   return {
-    recordInputs: options.recordInputs ?? genAI?.inputs ?? true,
-    recordOutputs: options.recordOutputs ?? genAI?.outputs ?? true,
+    recordInputs: options.recordInputs ?? userMcp?.inputs ?? genAI?.inputs ?? true,
+    recordOutputs: options.recordOutputs ?? userMcp?.outputs ?? genAI?.outputs ?? true,
   };
 }
 
 /**
  * Wraps transport.onmessage to create spans for incoming messages.
- * Extracts and stores client info and protocol version from legacy initialize
- * requests and modern message envelopes.
+ * Stores client info and protocol version only for legacy initialize requests.
+ * Modern request metadata is read directly when building each message's span.
  * @param transport - MCP transport instance to wrap
  * @param options - MCP capture overrides
  */
@@ -52,15 +52,11 @@ export function wrapTransportOnMessage(transport: MCPTransport, options: McpServ
       return function (this: MCPTransport, message: unknown, extra?: unknown) {
         const request = isJsonRpcRequest(message) ? message : undefined;
         const notification = isJsonRpcNotification(message) ? message : undefined;
-        const jsonRpcMessage = request || notification;
         let messageSessionData: SessionData | undefined;
 
-        if (jsonRpcMessage) {
+        if (request?.method === 'initialize') {
           try {
-            messageSessionData =
-              request?.method === 'initialize'
-                ? extractSessionDataFromInitializeRequest(request)
-                : extractSessionDataFromMessage(jsonRpcMessage);
+            messageSessionData = extractSessionDataFromInitializeRequest(request);
             if (messageSessionData.protocolVersion || messageSessionData.clientInfo) {
               updateSessionDataForTransport(transport, messageSessionData);
             }
@@ -81,7 +77,7 @@ export function wrapTransportOnMessage(transport: MCPTransport, options: McpServ
               span.setAttributes({
                 ...buildClientAttributesFromInfo(messageSessionData.clientInfo),
                 ...(messageSessionData.protocolVersion && {
-                  [MCP_PROTOCOL_VERSION_ATTRIBUTE]: messageSessionData.protocolVersion,
+                  [MCP_PROTOCOL_VERSION]: messageSessionData.protocolVersion,
                 }),
               });
             }
@@ -109,8 +105,8 @@ export function wrapTransportOnMessage(transport: MCPTransport, options: McpServ
 
 /**
  * Wraps transport.send to handle outgoing messages and response correlation.
- * Extracts and stores protocol version and server info from legacy initialize
- * responses and modern result metadata.
+ * Caches legacy initialize metadata and applies modern result metadata only to
+ * the corresponding request span.
  * @param transport - MCP transport instance to wrap
  * @param options - MCP capture overrides
  */
@@ -133,7 +129,7 @@ export function wrapTransportSend(transport: MCPTransport, options: McpServerWra
               captureJsonRpcErrorResponse(message.error);
             }
 
-            completeSpanWithResults(transport, message.id, message.result, !!message.error);
+            completeSpanWithResults(transport, message.id, message.result, message.error);
           }
         }
 
@@ -185,10 +181,7 @@ function captureJsonRpcErrorResponse(errorResponse: unknown): void {
     if (isObjectLike(errorResponse) && 'code' in errorResponse && 'message' in errorResponse) {
       const jsonRpcError = errorResponse as { code: number; message: string; data?: unknown };
 
-      const isServerError =
-        jsonRpcError.code === -32603 || (jsonRpcError.code >= -32099 && jsonRpcError.code <= -32000);
-
-      if (isServerError) {
+      if (typeof jsonRpcError.code === 'number' && isJsonRpcServerError(jsonRpcError.code)) {
         const error = new Error(jsonRpcError.message);
         error.name = `JsonRpcError_${jsonRpcError.code}`;
 

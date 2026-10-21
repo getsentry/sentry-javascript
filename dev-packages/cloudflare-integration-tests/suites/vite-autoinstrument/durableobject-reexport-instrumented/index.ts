@@ -8,10 +8,11 @@ interface Env {
 // `Counter` is imported from another module (`./counter`) where it was already
 // manually wrapped with `instrumentDurableObjectWithSentry`, then re-exported
 // here. The auto-instrument transform runs over this entry and sees
-// `export { Counter }`, but `Counter` is an imported binding — not a local class
-// declaration — so it cannot (and must not) wrap it. The DO stays instrumented
-// solely via the manual wrap in `./counter`, and the plain default export below
-// is still auto-wrapped with `withSentry`.
+// `export { Counter }`, but nothing in this file reveals that the binding is
+// already wrapped, so it emits its wrapper behind a guard
+// (`_INTERNAL_wrapUnlessInstrumented`) that returns the manual wrap unchanged
+// instead of nesting. The plain default export below is still auto-wrapped
+// with `withSentry`.
 export { Counter };
 
 export default {

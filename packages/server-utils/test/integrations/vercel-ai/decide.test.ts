@@ -1,0 +1,86 @@
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { GEN_AI_OUTPUT_MESSAGES } from '@sentry/conventions/attributes';
+import { GEN_AI_DECIDE } from '@sentry/conventions/op';
+import { getMainCarrier, setCurrentClient, spanToStaticSpanJSON } from '@sentry/core';
+import type { Span } from '@sentry/core';
+import { createSpanFromMessage, enrichSpanOnEnd } from '../../../src/integrations/vercel-ai/vercel-ai-dc-subscriber';
+import { getDefaultTestClientOptions, TestClient } from '../../mocks/client';
+
+type Message = Parameters<typeof createSpanFromMessage>[0];
+
+describe('Vercel AI decide spans', () => {
+  let endedSpans: Span[];
+
+  beforeEach(() => {
+    getMainCarrier().__SENTRY__ = undefined;
+    const client = new TestClient(
+      getDefaultTestClientOptions({
+        dsn: 'https://public@dsn.ingest.sentry.io/1337',
+        tracesSampleRate: 1,
+      }),
+    );
+    setCurrentClient(client);
+    client.init();
+    endedSpans = [];
+    client.on('spanEnd', span => endedSpans.push(span));
+  });
+
+  afterEach(() => {
+    getMainCarrier().__SENTRY__ = undefined;
+  });
+
+  // `ai` 7.0.128 renamed the channel event from `experimental_evaluate` to `experimental_decide`.
+  it.each(['experimental_evaluate', 'experimental_decide'] as const)('creates a decide span for `%s`', type => {
+    const message = {
+      type,
+      event: {
+        provider: 'gateway',
+        modelId: 'typesafe-ai/jev',
+        state: 'I want a refund',
+        questions: { wantsRefund: { type: 'boolean', instructions: 'Is a refund requested?' } },
+        recordInputs: true,
+        recordOutputs: true,
+      },
+      result: { answers: { wantsRefund: { type: 'boolean', probability: 0.99 } } },
+    } satisfies Message;
+
+    const span = createSpanFromMessage(message, {} as Parameters<typeof createSpanFromMessage>[1])!;
+    expect(span).toBeDefined();
+    enrichSpanOnEnd(span, message, {} as Parameters<typeof enrichSpanOnEnd>[2]);
+    span.end();
+
+    const json = spanToStaticSpanJSON(endedSpans[0]!);
+    expect(json.description).toBe('decide typesafe-ai/jev');
+    expect(json.op).toBe(GEN_AI_DECIDE);
+    expect(JSON.parse(json.data?.[GEN_AI_OUTPUT_MESSAGES] as string)).toEqual([
+      { type: 'evaluation', answers: { wantsRefund: { type: 'boolean', probability: 0.99 } } },
+    ]);
+  });
+
+  it.each(['typesafe', 'openai'])('restores answer confidence from `providerMetadata.%s`', provider => {
+    const message = {
+      type: 'experimental_decide',
+      event: {
+        provider,
+        modelId: 'gpt-6-luna',
+        state: 'I was charged twice',
+        questions: { department: { type: 'choice', criteria: { billing: 'Charges', support: 'Other' } } },
+        recordInputs: true,
+        recordOutputs: true,
+      },
+      result: {
+        answers: { department: { type: 'choice', choice: 'billing' } },
+        providerMetadata: { [provider]: { confidence: { department: 0.91 } } },
+      },
+    } satisfies Message;
+
+    const span = createSpanFromMessage(message, {} as Parameters<typeof createSpanFromMessage>[1])!;
+    enrichSpanOnEnd(span, message, {} as Parameters<typeof enrichSpanOnEnd>[2]);
+    span.end();
+
+    const json = spanToStaticSpanJSON(endedSpans[0]!);
+    expect(JSON.parse(json.data?.[GEN_AI_OUTPUT_MESSAGES] as string)).toEqual([
+      { type: 'evaluation', answers: { department: { type: 'choice', choice: 'billing', confidence: 0.91 } } },
+    ]);
+  });
+});

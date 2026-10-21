@@ -54,7 +54,7 @@ const _fastifyIntegration = (({ shouldHandleError }: Partial<FastifyIntegrationO
 
 /**
  * Adds Sentry tracing instrumentation for [Fastify](https://fastify.dev/).
- * This integration supports Fastify v3.21.0-v5.0.0.
+ * This integration supports Fastify v3.21.0-v6.
  *
  * For more information, see the [fastify documentation](https://docs.sentry.io/platforms/javascript/guides/fastify/).
  *

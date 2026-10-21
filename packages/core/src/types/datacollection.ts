@@ -11,6 +11,14 @@ export type CollectBehavior = boolean | { allow: string[] } | { deny: string[] }
 export type HttpBodyCollectionTarget = 'incomingRequest' | 'outgoingRequest' | 'incomingResponse' | 'outgoingResponse';
 
 /**
+ * Controls HTTP header collection per direction.
+ */
+export interface HttpHeadersCollection {
+  request?: CollectBehavior;
+  response?: CollectBehavior;
+}
+
+/**
  * Controls what data the SDK collects and sends to Sentry.
  *
  * All fields are optional. Omitted fields use the documented defaults.
@@ -30,12 +38,11 @@ export interface DataCollection {
 
   /**
    * Controls HTTP header collection for requests and responses.
+   *
+   * Accepts a `CollectBehavior` applied to both directions, or `{ request, response }` to control each independently.
    * @default { request: true, response: true }
    */
-  httpHeaders?: {
-    request?: CollectBehavior;
-    response?: CollectBehavior;
-  };
+  httpHeaders?: CollectBehavior | HttpHeadersCollection;
 
   /**
    * Which HTTP body types to collect. An omitted value collects all body types valid for the
@@ -79,12 +86,39 @@ export interface DataCollection {
   };
 
   /**
-   * Include data associated with database queries. This controls collection of query parameters, inline literal values within query text, mutation/request bodies, and returned result data.
+   * Allow MCP request/response content recording when using the SDK's MCP server instrumentation.
+   *
+   * - `inputs`: attach the content of incoming MCP requests, such as tool call arguments, prompt arguments, and the
+   *   message payload of MCP logging notifications.
+   * - `outputs`: attach the content of MCP responses, such as tool results and prompt result messages.
+   *
+   * Metadata (method name, tool or prompt name, session and protocol version, content counts, error status) is always
+   * collected. MCP content is gated by this option, not `genAI`, even when it is stored on `gen_ai.*` attributes.
+   * The `recordInputs`/`recordOutputs` options of `wrapMcpServerWithSentry`, when set, take precedence over these values.
+   * When a field isn't set, the MCP server instrumentation falls back to the matching `genAI` field.
+   * @default { inputs: true, outputs: true }
+   */
+  mcp?: {
+    inputs?: boolean;
+    outputs?: boolean;
+  };
+
+  /**
+   * Include data associated with database queries. This controls collection of bound query parameters, data payloads for write operations, and returned result data.
    *
    * Sanitized or parameterized DB statements (`db.query.text`) are **not** controlled by this property. Structural metadata such as the database system, query summary, operation name, or the table being acted upon is also **always** collected.
    * @default true
    */
   databaseQueryData?: boolean;
+
+  /**
+   * Include arguments passed to tasks within queues.
+   *
+   * Structural metadata such as the messaging system, destination name, or operation is always
+   * collected.
+   * @default true
+   */
+  queues?: boolean;
 
   /**
    * Capture local variable values in stack frames.
@@ -109,8 +143,9 @@ export interface DataCollection {
 /**
  * Fully resolved `DataCollection` with all defaults applied.
  */
-export type ResolvedDataCollection = Required<DataCollection> & {
-  httpHeaders: Required<NonNullable<DataCollection['httpHeaders']>>;
+export type ResolvedDataCollection = Required<Omit<DataCollection, 'httpHeaders'>> & {
+  httpHeaders: Required<HttpHeadersCollection>;
   graphQL: Required<NonNullable<DataCollection['graphQL']>>;
   genAI: Required<NonNullable<DataCollection['genAI']>>;
+  mcp: Required<NonNullable<DataCollection['mcp']>>;
 };

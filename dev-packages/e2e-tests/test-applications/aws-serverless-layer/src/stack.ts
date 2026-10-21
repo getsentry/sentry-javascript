@@ -10,7 +10,8 @@ import { globSync } from 'glob';
 const LAMBDA_FUNCTIONS_DIR = './src/lambda-functions-layer';
 const LAMBDA_FUNCTION_TIMEOUT = 10;
 const LAYER_DIR = './node_modules/@sentry/aws-serverless/';
-export const SAM_PORT = Number(process.env.SAM_PORT) || 7120;
+// SAM allocates runtime container ports in [5000, 9000) before binding its own endpoint.
+export const SAM_PORT = Number(process.env.SAM_PORT) || 17120;
 
 /** Match SAM / Docker to this machine so Apple Silicon does not mix arm64 images with an x86_64 template default. */
 function samLambdaArchitecture(): 'arm64' | 'x86_64' {
@@ -102,13 +103,13 @@ export class LocalLambdaStack extends Stack {
       try {
         const response = await fetch(`http://127.0.0.1:${port}/`);
 
-        if (response.ok || response.status === 404) {
+        if (response.status === 404 && response.headers.get('x-amzn-errortype') === 'PathNotFoundLocally') {
           console.log(`[LocalLambdaStack] SAM stack is ready`);
           return;
         }
-      } catch {
-        await new Promise(resolve => setTimeout(resolve, 1000));
-      }
+      } catch {}
+
+      await new Promise(resolve => setTimeout(resolve, 1000));
     }
 
     throw new Error(`[LocalLambdaStack] Failed to start SAM stack after ${timeout}ms`);
@@ -117,14 +118,31 @@ export class LocalLambdaStack extends Stack {
 
 export async function getHostIp() {
   if (process.env.GITHUB_ACTIONS) {
-    const host = await dns.lookup(os.hostname());
-    return host.address;
+    return getExternalHostIp();
   }
 
   if (platform === 'darwin' || platform === 'win32') {
     return 'host.docker.internal';
   }
 
+  return getExternalHostIp();
+}
+
+/**
+ * The Lambda container reaches the event proxy on the host through an address of the host's network interface.
+ * Some runners (e.g. Namespace) map the hostname to a loopback address, which inside the container is the container
+ * itself, so fall back to the first external IPv4 address that is not a Docker bridge.
+ */
+async function getExternalHostIp(): Promise<string> {
   const host = await dns.lookup(os.hostname());
-  return host.address;
+  if (!host.address.startsWith('127.') && host.address !== '::1') {
+    return host.address;
+  }
+
+  const external = Object.entries(os.networkInterfaces())
+    .filter(([name]) => !name.startsWith('docker') && !name.startsWith('br-') && !name.startsWith('veth'))
+    .flatMap(([, addresses]) => addresses ?? [])
+    .find(address => address.family === 'IPv4' && !address.internal);
+
+  return external?.address ?? host.address;
 }

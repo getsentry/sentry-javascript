@@ -1,9 +1,21 @@
 import * as path from 'node:path';
 import type { Client, Event, EventProcessor } from '@sentry/core';
-import { applySdkMetadata, debug, DEFAULT_ENVIRONMENT, DEV_ENVIRONMENT, getGlobalScope } from '@sentry/core';
+import {
+  _INTERNAL_getActiveClient,
+  applySdkMetadata,
+  consoleSandbox,
+  debug,
+  DEFAULT_ENVIRONMENT,
+  DEV_ENVIRONMENT,
+} from '@sentry/core';
 import { init as initNode } from '@sentry/node';
 import { DEBUG_BUILD } from '../common/debug-build';
-import { isNuxtDevRuntime } from '../common/devMode';
+import {
+  isNuxtDevRuntime,
+  isNuxtPrerenderRuntime,
+  isNuxtServerInitialized,
+  markNuxtServerInitialized,
+} from '../common/devMode';
 import type { SentryNuxtServerOptions } from '../common/types';
 
 /**
@@ -12,12 +24,34 @@ import type { SentryNuxtServerOptions } from '../common/types';
  * @param options Configuration options for the SDK.
  */
 export function init(options: SentryNuxtServerOptions): Client | undefined {
+  // The prerenderer executes the server bundle (including nitro plugins) at build time (pollutes release health and adds build-time traces)
+  if (isNuxtPrerenderRuntime()) {
+    // potential follow-up: configurable with `capturePrerenderErrors`
+    DEBUG_BUILD && debug.log('Detected a Nitro prerender build. Skipping Sentry server initialization.');
+    return undefined;
+  }
+
+  // Since the server config is bundled into the Nitro build, a `node --import` preload of a config
+  // file initializes the SDK a second time. The first init wins so a preload keeps its semantics.
+  // A closed client does not count, so `close()` lets a later init set up a new one.
+  const existingClient = _INTERNAL_getActiveClient();
+  if (isNuxtServerInitialized() && existingClient) {
+    consoleSandbox(() => {
+      // eslint-disable-next-line no-console
+      console.log(
+        '[Sentry] The Sentry server SDK is already initialized, skipping a second initialization. The Sentry server config is bundled into the Nitro server build, so a `node --import` preload of the config file is no longer needed and can be removed.',
+      );
+    });
+    return existingClient;
+  }
+
   let isDevBuild = false;
   /*! rollup-include-esm-only */
   isDevBuild = !!import.meta.dev;
   /*! rollup-include-esm-only-end */
 
-  // Nitro v3 does not bundle the Sentry server config file, so `import.meta.dev` stays undefined there
+  // `import.meta.dev` is only substituted when this file itself is bundled; the generated
+  // runtime-flags module sets the global flag for the (usual) externalized case.
   const envFallback = isDevBuild || isNuxtDevRuntime() ? DEV_ENVIRONMENT : DEFAULT_ENVIRONMENT;
 
   const sentryOptions = {
@@ -29,8 +63,14 @@ export function init(options: SentryNuxtServerOptions): Client | undefined {
 
   const client = initNode(sentryOptions);
 
-  getGlobalScope().addEventProcessor(lowQualityTransactionsFilter(options));
-  getGlobalScope().addEventProcessor(clientSourceMapErrorFilter(options));
+  if (client) {
+    markNuxtServerInitialized();
+  }
+
+  // On the client, not the global scope, so a later `init()` after
+  // `close()` does not stack another copy.
+  client?.addEventProcessor(lowQualityTransactionsFilter(options));
+  client?.addEventProcessor(clientSourceMapErrorFilter(options));
 
   return client;
 }

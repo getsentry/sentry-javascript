@@ -1,0 +1,6 @@
+allowBuilds:
+  esbuild: true
+  workerd: true
+minimumReleaseAge: 0
+overrides:
+  'strip-literal': '~2.0.0'

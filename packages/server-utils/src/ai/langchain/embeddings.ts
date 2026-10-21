@@ -1,10 +1,4 @@
-import {
-  getClient,
-  hasSpanStreamingEnabled,
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  startSpan,
-  stringify,
-} from '@sentry/core';
+import { getClient, hasSpanStreamingEnabled, startSpan, stringify } from '@sentry/core';
 import type { SpanAttributeValue } from '@sentry/core';
 import {
   GEN_AI_EMBEDDINGS_INPUT,
@@ -12,6 +6,7 @@ import {
   GEN_AI_PROVIDER_NAME,
   GEN_AI_REQUEST_MODEL,
   SENTRY_OP,
+  SENTRY_ORIGIN,
 } from '@sentry/conventions/attributes';
 import { GEN_AI_EMBEDDINGS } from '@sentry/conventions/op';
 import {
@@ -45,7 +40,7 @@ function extractEmbeddingAttributes(instance: unknown): Record<string, unknown> 
   const embeddingsInstance = (instance ?? {}) as Record<string, unknown>;
 
   const attributes: Record<string, unknown> = {
-    [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: LANGCHAIN_ORIGIN,
+    [SENTRY_ORIGIN]: LANGCHAIN_ORIGIN,
     [SENTRY_OP]: GEN_AI_EMBEDDINGS,
     [GEN_AI_OPERATION_NAME]: 'embeddings',
     [GEN_AI_REQUEST_MODEL]: embeddingsInstance.model ?? 'unknown',

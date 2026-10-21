@@ -2,17 +2,21 @@
 /**
  * Shared utils for AI integrations (OpenAI, Anthropic, Verce.AI, etc.)
  */
-import { getClient, isThenable } from '@sentry/core';
+import { getClient, isObjectLike, isThenable, stringify } from '@sentry/core';
 import type { Span } from '@sentry/core';
 import {
+  GEN_AI_OUTPUT_MESSAGES,
   GEN_AI_RESPONSE_FINISH_REASONS,
   GEN_AI_RESPONSE_ID,
   GEN_AI_RESPONSE_MODEL,
   GEN_AI_RESPONSE_STREAMING,
   GEN_AI_RESPONSE_TEXT,
   GEN_AI_RESPONSE_TOOL_CALLS,
+  GEN_AI_USAGE_CACHE_CREATION_INPUT_TOKENS,
+  GEN_AI_USAGE_CACHE_READ_INPUT_TOKENS,
   GEN_AI_USAGE_INPUT_TOKENS,
   GEN_AI_USAGE_OUTPUT_TOKENS,
+  GEN_AI_USAGE_REASONING_OUTPUT_TOKENS,
   GEN_AI_USAGE_TOTAL_TOKENS,
 } from '@sentry/conventions/attributes';
 import { FUNCTION } from '@sentry/conventions/op';
@@ -85,47 +89,134 @@ export function buildMethodPath(currentPath: string, prop: string): string {
 }
 
 /**
- * Set token usage attributes
- * @param span - The span to add attributes to
- * @param promptTokens - The number of prompt tokens
- * @param completionTokens - The number of completion tokens
- * @param cachedInputTokens - The number of cached input tokens
- * @param cachedOutputTokens - The number of cached output tokens
+ * A minimal structural check for a web `ReadableStream`.
+ *
+ * The chunk type is the caller's assumption about the provider's stream (e.g. `Uint8Array` for SSE
+ * byte streams); the check itself only looks for the `ReadableStream` methods we rely on.
  */
-export function setTokenUsageAttributes(
-  span: Span,
+export function isReadableStream<T = unknown>(value: unknown): value is ReadableStream<T> {
+  return (
+    isObjectLike(value) &&
+    typeof (value as { pipeThrough?: unknown }).pipeThrough === 'function' &&
+    typeof (value as { getReader?: unknown }).getReader === 'function'
+  );
+}
+
+/**
+ * Build token usage attributes. Input tokens include cache reads and writes, which are subsets.
+ */
+export function getTokenUsageAttributes(
   promptTokens?: number,
   completionTokens?: number,
-  cachedInputTokens?: number,
-  cachedOutputTokens?: number,
-): void {
-  if (promptTokens !== undefined) {
-    span.setAttributes({
-      [GEN_AI_USAGE_INPUT_TOKENS]: promptTokens,
-    });
-  }
-  if (completionTokens !== undefined) {
-    span.setAttributes({
-      [GEN_AI_USAGE_OUTPUT_TOKENS]: completionTokens,
-    });
-  }
-  if (
-    promptTokens !== undefined ||
-    completionTokens !== undefined ||
-    cachedInputTokens !== undefined ||
-    cachedOutputTokens !== undefined
-  ) {
-    /**
-     * Total input tokens in a request is the summation of `input_tokens`,
-     * `cache_creation_input_tokens`, and `cache_read_input_tokens`.
-     */
-    const totalTokens =
-      (promptTokens ?? 0) + (completionTokens ?? 0) + (cachedInputTokens ?? 0) + (cachedOutputTokens ?? 0);
+  cacheCreationInputTokens?: number,
+  cacheReadInputTokens?: number,
+  totalTokens?: number,
+): Record<string, number> {
+  const attributes: Record<string, number> = {};
 
-    span.setAttributes({
-      [GEN_AI_USAGE_TOTAL_TOKENS]: totalTokens,
-    });
+  if (typeof promptTokens === 'number') {
+    attributes[GEN_AI_USAGE_INPUT_TOKENS] = promptTokens;
   }
+  if (typeof cacheCreationInputTokens === 'number') {
+    attributes[GEN_AI_USAGE_CACHE_CREATION_INPUT_TOKENS] = cacheCreationInputTokens;
+  }
+  if (typeof cacheReadInputTokens === 'number') {
+    attributes[GEN_AI_USAGE_CACHE_READ_INPUT_TOKENS] = cacheReadInputTokens;
+  }
+  if (typeof completionTokens === 'number') {
+    attributes[GEN_AI_USAGE_OUTPUT_TOKENS] = completionTokens;
+  }
+  if (typeof totalTokens === 'number') {
+    attributes[GEN_AI_USAGE_TOTAL_TOKENS] = totalTokens;
+  } else if (typeof promptTokens === 'number' || typeof completionTokens === 'number') {
+    attributes[GEN_AI_USAGE_TOTAL_TOKENS] =
+      (typeof promptTokens === 'number' ? promptTokens : 0) +
+      (typeof completionTokens === 'number' ? completionTokens : 0);
+  }
+  return attributes;
+}
+
+/** Serialize the `state` and `questions` of an evaluation request (TypeSafe, Workers AI, Mastra classifiers). */
+export function getEvaluationInputMessages(request: Record<string, unknown>): string | undefined {
+  return stringify([{ type: 'evaluation', state: request.state, questions: request.questions }]);
+}
+
+/** Serialize the `answers` of an evaluation result (TypeSafe, Workers AI, Mastra classifiers). */
+export function getEvaluationOutputMessages(answers: unknown): string | undefined {
+  return stringify([{ type: 'evaluation', answers }]);
+}
+
+/** One assistant turn for {@link setOutputMessagesAttribute}. */
+export interface GenAiOutputMessage {
+  /** The message's text content, already flattened out of any content-part array. */
+  responseText?: string;
+  /** Tool calls in either the OpenAI-compatible (`function.name`) or flat (`name`) shape. */
+  toolCalls?: unknown[];
+  /** Recorded as `finish_reason` on the message, per the `gen_ai.output.messages` schema. */
+  finishReason?: string;
+}
+
+/**
+ * Build the `gen_ai.output.messages` value (assistant messages with text and/or tool-call parts).
+ *
+ * We set this in addition to the deprecated `gen_ai.response.text` / `gen_ai.response.tool_calls`
+ * attributes because Sentry's product reads the model output from `gen_ai.output.messages` first.
+ * Relay migrates `gen_ai.response.text` into `gen_ai.output.messages`, but the tool-calls half of
+ * that migration is lossy — so tool-call turns would otherwise render an empty Output.
+ *
+ * Pass an array for providers that can return more than one choice per response; a single object is
+ * the common case of one assistant turn.
+ */
+export function setOutputMessagesAttribute(span: Span, messages: GenAiOutputMessage | GenAiOutputMessage[]): void {
+  const serialized = (Array.isArray(messages) ? messages : [messages])
+    .map(buildOutputMessage)
+    .filter((message): message is Record<string, unknown> => !!message);
+
+  if (serialized.length > 0) {
+    span.setAttribute(GEN_AI_OUTPUT_MESSAGES, JSON.stringify(serialized));
+  }
+}
+
+function buildOutputMessage({
+  responseText,
+  toolCalls,
+  finishReason,
+}: GenAiOutputMessage): Record<string, unknown> | undefined {
+  const parts: Array<Record<string, unknown>> = [];
+
+  if (typeof responseText === 'string' && responseText.length > 0) {
+    parts.push({ type: 'text', content: responseText });
+  }
+
+  if (Array.isArray(toolCalls)) {
+    for (const toolCall of toolCalls) {
+      if (!toolCall || typeof toolCall !== 'object') {
+        continue;
+      }
+      const call = toolCall as {
+        id?: unknown;
+        function?: { name?: unknown; arguments?: unknown };
+        name?: unknown;
+        arguments?: unknown;
+      };
+      // Normalize both the OpenAI-compatible shape (name/arguments nested under `function`)
+      // and the flat shape some providers use.
+      const name = call.function?.name ?? call.name;
+      const args = call.function?.arguments ?? call.arguments;
+      parts.push({
+        type: 'tool_call',
+        id: call.id,
+        name,
+        arguments: stringify(args ?? {}, String),
+      });
+    }
+  }
+
+  if (parts.length === 0) {
+    return undefined;
+  }
+
+  return finishReason ? { role: 'assistant', parts, finish_reason: finishReason } : { role: 'assistant', parts };
 }
 
 export interface StreamResponseState {
@@ -139,6 +230,7 @@ export interface StreamResponseState {
   totalTokens?: number;
   cacheCreationInputTokens?: number;
   cacheReadInputTokens?: number;
+  reasoningOutputTokens?: number;
 }
 
 /**
@@ -157,23 +249,18 @@ export function endStreamSpan(span: Span, state: StreamResponseState, recordOutp
   if (state.responseId) attrs[GEN_AI_RESPONSE_ID] = state.responseId;
   if (state.responseModel) attrs[GEN_AI_RESPONSE_MODEL] = state.responseModel;
 
-  if (state.promptTokens !== undefined) attrs[GEN_AI_USAGE_INPUT_TOKENS] = state.promptTokens;
-  if (state.completionTokens !== undefined) attrs[GEN_AI_USAGE_OUTPUT_TOKENS] = state.completionTokens;
-
-  // Use explicit total if provided (OpenAI, Google), otherwise compute from cache tokens (Anthropic)
-  if (state.totalTokens !== undefined) {
-    attrs[GEN_AI_USAGE_TOTAL_TOKENS] = state.totalTokens;
-  } else if (
-    state.promptTokens !== undefined ||
-    state.completionTokens !== undefined ||
-    state.cacheCreationInputTokens !== undefined ||
-    state.cacheReadInputTokens !== undefined
-  ) {
-    attrs[GEN_AI_USAGE_TOTAL_TOKENS] =
-      (state.promptTokens ?? 0) +
-      (state.completionTokens ?? 0) +
-      (state.cacheCreationInputTokens ?? 0) +
-      (state.cacheReadInputTokens ?? 0);
+  Object.assign(
+    attrs,
+    getTokenUsageAttributes(
+      state.promptTokens,
+      state.completionTokens,
+      state.cacheCreationInputTokens,
+      state.cacheReadInputTokens,
+      state.totalTokens,
+    ),
+  );
+  if (typeof state.reasoningOutputTokens === 'number') {
+    attrs[GEN_AI_USAGE_REASONING_OUTPUT_TOKENS] = state.reasoningOutputTokens;
   }
 
   if (state.finishReasons.length) {

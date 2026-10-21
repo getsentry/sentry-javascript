@@ -43,7 +43,8 @@ grep "import.*from '" <file> | grep -v "@opentelemetry\|'\./\|@sentry\|'util'\|'
 
 Check test coverage and report gaps:
 
-- Integration tests: `dev-packages/node-integration-tests/suites/tracing/<name>/`
+- Integration tests: `dev-packages/node-integration-tests/suites/tracing/<name>/`. Other runtimes run these
+  suites too; see "Other Runtimes" in `dev-packages/node-integration-tests/README.md`.
 - E2E tests: `dev-packages/e2e-tests/test-applications/node-<name>/`
 - Unit tests: `packages/node/test/integrations/tracing/<name>.test.ts`
 
@@ -122,17 +123,17 @@ Fix any compilation errors caused by this repository's strict TypeScript setting
 ## 8. Build, Format, and Test
 
 ```bash
-yarn install
-yarn fix
-yarn build:dev:filter @sentry/<package>
+pnpm install
+pnpm run fix
+pnpm run build:dev:filter @sentry/<package>
 ```
 
 Verify no external types leak into `.d.ts` output.
 
 Run existing tests:
 
-- `cd dev-packages/node-integration-tests && yarn test suites/tracing/<name>`
-- `cd packages/node && yarn test:unit test/integrations/tracing/<name>.test.ts`
+- `cd dev-packages/node-integration-tests && pnpm run test suites/tracing/<name>`
+- `cd packages/node && pnpm run test:unit test/integrations/tracing/<name>.test.ts`
 
 Update unit test imports from `@opentelemetry/instrumentation-<name>` to the vendored path, including `vi.mock()` calls.
 

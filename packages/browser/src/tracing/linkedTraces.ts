@@ -5,12 +5,11 @@ import {
   getRootSpan,
   SEMANTIC_ATTRIBUTE_SENTRY_PREVIOUS_TRACE_SAMPLE_RATE,
   SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE,
-  SEMANTIC_LINK_ATTRIBUTE_LINK_TYPE,
   spanToJSON,
 } from '@sentry/core';
 import { DEBUG_BUILD } from '../debug-build';
 import { WINDOW } from '../exports';
-import { SENTRY_OP } from '@sentry/conventions/attributes';
+import { SENTRY_LINK_TYPE, SENTRY_OP } from '@sentry/conventions/attributes';
 
 export interface PreviousTraceInfo {
   /**
@@ -188,14 +187,12 @@ export function addPreviousTraceSpanLink(
     span.addLink({
       context: previousTraceSpanCtx,
       attributes: {
-        [SEMANTIC_LINK_ATTRIBUTE_LINK_TYPE]: 'previous_trace',
+        [SENTRY_LINK_TYPE]: 'previous_trace',
       },
     });
 
-    // TODO: Remove this once EAP can store span links. We currently only set this attribute so that we
-    // can obtain the previous trace information from the EAP store. Long-term, EAP will handle
-    // span links and then we should remove this again. Also throwing in a TODO(v11), to remind us
-    // to check this at v11 time :)
+    // TODO(v12): Remove once EAP can filter span links by type. The Sentry trace view searches this attribute to find the NEXT trace.
+    // Sentry 26.9 and older also read it to find the PREVIOUS trace. Newer versions read the span link.
     span.setAttribute(
       PREVIOUS_TRACE_TMP_SPAN_ATTRIBUTE,
       `${previousTraceSpanCtx.traceId}-${previousTraceSpanCtx.spanId}-${

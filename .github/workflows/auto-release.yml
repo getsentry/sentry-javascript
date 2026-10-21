@@ -13,7 +13,7 @@ permissions:
 
 jobs:
   release:
-    runs-on: ubuntu-24.04
+    runs-on: namespace-profile-sentry-javascript-small
     name: 'Prepare a new version'
 
     steps:
@@ -45,13 +45,17 @@ jobs:
           version=${version/'prepare-release/'/''}
           echo "version=$version" >> $GITHUB_OUTPUT
 
+      # scripts/craft-pre-release.sh installs dependencies with pnpm.
+      - name: Install pnpm
+        uses: ./.github/actions/install-pnpm
+
       - name: Set up Node
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@v7
         with:
           node-version-file: 'package.json'
 
       - name: Prepare release
-        uses: getsentry/craft@cd1e8294061fd970b40d98b77aaa109cb1e00e78 # v2.30.1
+        uses: getsentry/craft@25028d0646040cc0a669ae3314cbf884f4c4347a # v2.31.2
         if:
           github.event.pull_request.merged == true && steps.version-regex.outputs.match != '' &&
           steps.get_version.outputs.version != ''

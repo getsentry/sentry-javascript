@@ -3,15 +3,18 @@
 import { tracingChannel } from 'node:diagnostics_channel';
 import type { Span } from '@sentry/core';
 import type { DenoClient } from '@sentry/deno';
-import { getActiveSpan, init, startSpan, startSpanManual } from '@sentry/deno';
+import { flush, getActiveSpan, init, startSpan, startSpanManual } from '@sentry/deno';
 import { assert } from 'https://deno.land/std@0.212.0/assert/assert.ts';
 import { assertEquals } from 'https://deno.land/std@0.212.0/assert/assert_equals.ts';
 import { assertExists } from 'https://deno.land/std@0.212.0/assert/assert_exists.ts';
-import { resetGlobals, transactionSink, withTimeout } from '../../src/index.ts';
+import { resetGlobals, spanSink, withTimeout } from '../../src/index.ts';
 
 Deno.test('lru-memoizer instrumentation: included in default integrations (Deno 2.8.0+)', () => {
   resetGlobals();
-  const client = init({ traceLifecycle: 'static', dsn: 'https://username@domain/123' }) as DenoClient;
+  const client = init({
+    dsn: 'https://username@domain/123',
+    tracesSampleRate: 1,
+  }) as DenoClient;
   const names = client.getOptions().integrations.map(i => i.name);
   assert(names.includes('LruMemoizer'), `LruMemoizer should be in defaults, got ${names.join(', ')}`);
 });
@@ -24,12 +27,11 @@ Deno.test('lru-memoizer instrumentation: included in default integrations (Deno 
 // new trace; with it, the parent is active again and a span nests under it.
 Deno.test('lru-memoizer instrumentation: restores the caller scope onto the memoized callback', async () => {
   resetGlobals();
-  const sink = transactionSink();
+  const sink = spanSink();
   init({
-    traceLifecycle: 'static',
     dsn: 'https://username@domain/123',
     tracesSampleRate: 1,
-    beforeSendTransaction: sink.beforeSendTransaction,
+    transport: sink.transport,
   });
 
   const channel = tracingChannel('orchestrion:lru-memoizer:load');
@@ -57,16 +59,19 @@ Deno.test('lru-memoizer instrumentation: restores the caller scope onto the memo
   // The callback saw the caller's span restored.
   assertEquals(restoredActive, parentSpan);
 
+  await flush();
+
   const parent = await withTimeout(
-    sink.waitFor(t => t.transaction === 'parent'),
+    sink.waitFor(span => span.is_segment && span.name === 'parent'),
     5000,
-    "'parent' transaction",
+    "'parent' segment span",
   );
+  const children = sink.spans.filter(span => span.parent_span_id === parent.span_id);
+  assertEquals(children.length, 1);
+  assertEquals(children[0]!.trace_id, parent.trace_id);
+  assertEquals(children[0]!.is_segment, false);
 
   // The span created in the restored callback nested under the caller, not a new trace.
-  const child = parent.spans?.find(s => s.description === 'memoized-work');
-  assertExists(
-    child,
-    `expected memoized-work nested under parent, got: ${parent.spans?.map(s => s.description).join(', ')}`,
-  );
+  const child = children.find(s => s.name === 'memoized-work');
+  assertExists(child, `expected memoized-work nested under parent, got: ${children.map(s => s.name).join(', ')}`);
 });

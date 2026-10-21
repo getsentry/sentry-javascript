@@ -1,25 +1,24 @@
 import { expect, test } from '@playwright/test';
-import { waitForTransaction } from '@sentry-internal/test-utils';
+import type { SerializedStreamedSpan } from '@sentry-internal/test-utils';
+import { getSpanOp, waitForStreamedSpan, waitForStreamedSpans } from '@sentry-internal/test-utils';
+
+const APP_NAME = 'astro-7';
 
 test.describe('tracing in static/pre-rendered routes', () => {
   test('only sends client pageload span with traceId from pre-rendered <meta> tags', async ({ page }) => {
-    const clientPageloadTxnPromise = waitForTransaction('astro-7', txnEvent => {
-      return txnEvent?.transaction === '/test-static';
+    const streamedSpans: SerializedStreamedSpan[] = [];
+    void waitForStreamedSpans(APP_NAME, spans => {
+      streamedSpans.push(...spans);
+      return false;
     });
 
-    waitForTransaction('astro-7', evt => {
-      if (evt.platform !== 'javascript') {
-        throw new Error('Server transaction should not be sent');
-      }
-      return false;
+    const clientPageloadSpanPromise = waitForStreamedSpan(APP_NAME, span => {
+      return getSpanOp(span) === 'pageload' && span.is_segment && span.name === '/test-static';
     });
 
     await page.goto('/test-static');
 
-    const clientPageloadTxn = await clientPageloadTxnPromise;
-
-    const clientPageloadTraceId = clientPageloadTxn.contexts?.trace?.trace_id;
-    const clientPageloadParentSpanId = clientPageloadTxn.contexts?.trace?.parent_span_id;
+    const clientPageloadSpan = await clientPageloadSpanPromise;
 
     const sentryTraceMetaTags = await page.locator('meta[name="sentry-trace"]').count();
     expect(sentryTraceMetaTags).toBe(0);
@@ -27,31 +26,24 @@ test.describe('tracing in static/pre-rendered routes', () => {
     const baggageMetaTags = await page.locator('meta[name="baggage"]').count();
     expect(baggageMetaTags).toBe(0);
 
-    expect(clientPageloadTraceId).toMatch(/[a-f0-9]{32}/);
-    expect(clientPageloadParentSpanId).toBeUndefined();
+    expect(clientPageloadSpan.trace_id).toMatch(/[a-f0-9]{32}/);
+    expect(clientPageloadSpan.parent_span_id).toBeUndefined();
 
-    expect(clientPageloadTxn).toMatchObject({
-      contexts: {
-        trace: {
-          data: expect.objectContaining({
-            'sentry.op': 'pageload',
-            'sentry.origin': 'auto.pageload.astro',
-            'sentry.segment.name.source': 'route',
-          }),
-          op: 'pageload',
-          origin: 'auto.pageload.astro',
-          span_id: expect.stringMatching(/[a-f0-9]{16}/),
-          trace_id: expect.stringMatching(/[a-f0-9]{32}/),
-        },
-      },
-      platform: 'javascript',
-      transaction: '/test-static',
-      transaction_info: {
-        source: 'route',
-      },
-      type: 'transaction',
+    expect(clientPageloadSpan.attributes).toMatchObject({
+      'sentry.op': { value: 'pageload', type: 'string' },
+      'sentry.origin': { value: 'auto.pageload.astro', type: 'string' },
+      'sentry.segment.name.source': { value: 'route', type: 'string' },
     });
 
-    await page.waitForTimeout(1000); // wait another sec to ensure no server transaction is sent
+    await page.waitForTimeout(1000); // wait another sec to ensure no server span is sent
+
+    // The route is pre-rendered, so the request never reaches the SSR middleware and no server span
+    // exists for it.
+    expect(
+      streamedSpans.filter(
+        span =>
+          getSpanOp(span) === 'http.server' && String(span.attributes['url.path']?.value).startsWith('/test-static'),
+      ),
+    ).toEqual([]);
   });
 });

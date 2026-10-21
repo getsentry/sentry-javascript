@@ -2,11 +2,13 @@
 import {
   SENTRY_SEGMENT_NAME_SOURCE,
   HTTP_ROUTE,
+  HTTP_REQUEST_METHOD,
   SENTRY_OP,
   URL_FRAGMENT,
   URL_FULL,
   URL_PATH,
   URL_QUERY,
+  SENTRY_ORIGIN,
 } from '@sentry/conventions/attributes';
 import { HTTP_SERVER } from '@sentry/conventions/op';
 import type { Span, SpanAttributes } from '@sentry/core';
@@ -19,7 +21,6 @@ import {
   hasSpanStreamingEnabled,
   HTTP_SPAN_NAME_FALLBACK,
   objectify,
-  SEMANTIC_ATTRIBUTE_HTTP_REQUEST_METHOD,
   spanToJSON,
   winterCGRequestToRequestData,
   filterCollectedUrl,
@@ -34,7 +35,6 @@ import {
   getCurrentScope,
   getTraceMetaTags,
   httpHeadersToSpanAttributes,
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   setHttpStatus,
   startSpan,
   winterCGHeadersToDict,
@@ -53,7 +53,7 @@ type MiddlewareOptions = {
    *
    * Only set this to `true` if you're fine with collecting potentially personally identifiable information (PII).
    *
-   * @default false (recommended)
+   * @default `dataCollection.userInfo` (`true` unless disabled)
    */
   trackClientIp?: boolean;
 };
@@ -78,10 +78,7 @@ type AstroLocalsWithSentry = Record<string, unknown> & {
 };
 
 export const handleRequest: (options?: MiddlewareOptions) => MiddlewareHandler = options => {
-  const handlerOptions = {
-    trackClientIp: false,
-    ...options,
-  };
+  const handlerOptions = { ...options };
 
   return async (ctx, next) => {
     // If no Sentry client exists, just bail
@@ -151,7 +148,7 @@ async function enhanceHttpServerSpan(ctx: APIContext, next: MiddlewareNext, root
     rootSpan.setAttributes({
       // This is here for backwards compatibility, we used to set this here before
       method,
-      [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.astro',
+      [SENTRY_ORIGIN]: 'auto.http.astro',
     });
 
     if (parametrizedRoute) {
@@ -209,7 +206,8 @@ async function instrumentRequestStartHttpServerSpan(
           normalizedRequest: winterCGRequestToRequestData(request),
         });
 
-        if (options.trackClientIp) {
+        // The integration option wins when set; otherwise `dataCollection.userInfo` decides.
+        if (options.trackClientIp ?? client.getDataCollectionOptions().userInfo) {
           isolationScope.setUser({ ip_address: ctx.clientAddress });
         }
 
@@ -222,9 +220,9 @@ async function instrumentRequestStartHttpServerSpan(
 
           const attributes: SpanAttributes = {
             [SENTRY_OP]: HTTP_SERVER,
-            [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.astro',
+            [SENTRY_ORIGIN]: 'auto.http.astro',
             [SENTRY_SEGMENT_NAME_SOURCE]: source,
-            [SEMANTIC_ATTRIBUTE_HTTP_REQUEST_METHOD]: method,
+            [HTTP_REQUEST_METHOD]: method,
             // This is here for backwards compatibility, we used to set this here before
             method,
             [URL_FULL]: filterCollectedUrl(ctx.url.href),

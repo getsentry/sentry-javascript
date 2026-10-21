@@ -26,6 +26,7 @@ export type { DenoOptions } from './types';
 export {
   addEventProcessor,
   addBreadcrumb,
+  addIntegration,
   captureException,
   captureEvent,
   captureMessage,
@@ -52,6 +53,7 @@ export {
   setAttribute,
   setAttributes,
   setUser,
+  setConversationId,
   getSpanStatusFromHttpCode,
   setHttpStatus,
   withScope,
@@ -69,20 +71,25 @@ export {
   startNewTrace,
   bindScopeToEmitter,
   suppressTracing,
+  withActiveSpan,
+  getSpanDescendants,
   eventFiltersIntegration,
   linkedErrorsIntegration,
   functionToStringIntegration,
   requestDataIntegration,
   captureConsoleIntegration,
+  consoleIntegration,
   dedupeIntegration,
   extraErrorDataIntegration,
   rewriteFramesIntegration,
+  moduleMetadataIntegration,
   supabaseIntegration,
   instrumentSupabaseClient,
   zodErrorsIntegration,
+  // oxlint-disable-next-line typescript/no-deprecated
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
+  // oxlint-disable-next-line typescript/no-deprecated
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  SENTRY_SEGMENT_NAME_SOURCE,
   SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE,
   startSession,
   captureSession,
@@ -92,7 +99,9 @@ export {
   spanToTraceHeader,
   spanToBaggageHeader,
   updateSpanName,
+  createConsolaReporter,
   featureFlagsIntegration,
+  growthbookIntegration,
   metrics,
   withStaticSpan,
   // oxlint-disable-next-line typescript/no-deprecated
@@ -101,13 +110,34 @@ export {
   consoleLoggingIntegration,
   spanStreamingIntegration,
 } from '@sentry/core';
-export { instrumentPostgresJsSql, wrapMcpServerWithSentry } from '@sentry/core/server';
+export { trpcMiddleware, wrapMcpServerWithSentry } from '@sentry/core/server';
+export {
+  instrumentPostgresJsSql,
+  prismaIntegration,
+  instrumentOpenAiClient,
+  instrumentAnthropicAiClient,
+  instrumentGoogleGenAIClient,
+  instrumentMistralAiClient,
+  instrumentTypeSafeClient,
+  createLangChainCallbackHandler,
+  instrumentLangChainEmbeddings,
+  instrumentStateGraph,
+  instrumentCreateReactAgent,
+} from '@sentry/server-utils';
+export type { FlueOptions } from '@sentry/server-utils';
 
 export { DenoClient } from './client';
 
-export { getDefaultIntegrations, init } from './sdk';
+export {
+  getDefaultIntegrations,
+  getDefaultIntegrationsWithoutPerformance,
+  init,
+  initWithoutDefaultIntegrations,
+} from './sdk';
 export { denoServeIntegration } from './integrations/deno-serve';
 export type { DenoServeIntegrationOptions } from './integrations/deno-serve';
+export { fetchIntegration } from './integrations/fetch';
+export type { FetchIntegrationOptions } from '@sentry/core';
 export { denoHttpIntegration } from './integrations/http';
 export type { DenoHttpIntegrationOptions } from './integrations/http';
 
@@ -127,20 +157,36 @@ export {
   googleGenAIIntegration,
   graphqlIntegration,
   hapiIntegration,
+  honoIntegration,
+  honoMiddleware,
   kafkaIntegration,
   knexIntegration,
   koaIntegration,
   langChainIntegration,
   langGraphIntegration,
+  mastraIntegration,
+  piDurableIntegration,
+  mcpServerIntegration,
+  SentryMastraExporter,
+  createFlueInstrumentation,
   lruMemoizerIntegration,
   mongoIntegration,
   mongooseIntegration,
   mysqlIntegration,
   mysql2Integration,
+  nitroIntegration,
+  mistralAIIntegration,
   openAIIntegration,
+  groqIntegration,
+  togetherAIIntegration,
+  typesafeIntegration,
   postgresIntegration,
   postgresJsIntegration,
+  neonIntegration,
   tediousIntegration,
+  eveConversationHook,
+  eveIntegration,
+  getInstrumentedModuleNames,
 } from '@sentry/server-utils';
 export { openTelemetryIntegration, getOtlpTracesEndpoint } from '@sentry/server-utils/no-diagnostic-channels';
 // Deprecated aliases kept for back-compat. Each forwards to the shared

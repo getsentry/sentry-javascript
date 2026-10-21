@@ -1,4 +1,4 @@
-import * as diagnosticsChannel from 'node:diagnostics_channel';
+import * as diagnosticsChannel from '../../utils/diagnosticsChannel';
 import {
   DB_OPERATION_NAME,
   DB_QUERY_TEXT,
@@ -7,14 +7,16 @@ import {
   SENTRY_OP,
   SERVER_ADDRESS,
   SERVER_PORT,
+  SENTRY_ORIGIN,
 } from '@sentry/conventions/attributes';
 import { DB_QUERY, DB } from '@sentry/conventions/op';
-import type { Span } from '@sentry/core';
-import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, startInactiveSpan } from '@sentry/core';
+import type { Span, SpanAttributes } from '@sentry/core';
+import { startInactiveSpan } from '@sentry/core';
+import type { OrchestrionChannelContext } from '../../orchestrion/types';
 import { CHANNELS } from '../../orchestrion/channels';
 import { bindTracingChannelToSpan } from '../../tracing-channel';
 import type { RedisCacheOptions } from './redis-cache';
-import { applyRedisCacheAttributes } from './redis-cache';
+import { applyCacheResponseAttributes, getRedisCacheAttributes } from './redis-cache';
 import { getRedisQueryNaming } from './redis-span-name';
 import { defaultDbStatementSerializer } from './redis-statement-serializer';
 
@@ -32,14 +34,9 @@ interface RedisClientLike {
   options?: { host?: string; port?: number };
 }
 
-interface IORedisCommandContext {
-  arguments?: unknown[];
+interface IORedisCommandContext extends OrchestrionChannelContext {
   self?: RedisClientLike;
-  result?: unknown;
-  error?: unknown;
 }
-
-type IORedisConnectContext = Omit<IORedisCommandContext, 'arguments'>;
 
 function getConnectionOptions(self: RedisClientLike | undefined): { host?: string; port?: number } {
   return { host: self?.options?.host, port: self?.options?.port };
@@ -50,7 +47,7 @@ function connectionAttributes(host: string | undefined, port: number | undefined
     [DB_SYSTEM_NAME]: DB_SYSTEM_VALUE_REDIS,
     ...(host != null ? { [SERVER_ADDRESS]: host } : {}),
     ...(port != null ? { [SERVER_PORT]: port } : {}),
-    [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: ORIGIN,
+    [SENTRY_ORIGIN]: ORIGIN,
   };
 }
 
@@ -65,7 +62,10 @@ const tracedCommands = new WeakSet<object>();
  *
  * Exported for unit testing.
  */
-export function startIORedisCommandSpan(data: IORedisCommandContext): Span | undefined {
+export function startIORedisCommandSpan(
+  data: IORedisCommandContext,
+  cacheOptions: RedisCacheOptions,
+): Span | undefined {
   const command = data.arguments?.[0] as RedisCommand | undefined;
   if (!command || typeof command !== 'object') {
     return undefined;
@@ -81,17 +81,19 @@ export function startIORedisCommandSpan(data: IORedisCommandContext): Span | und
     host,
     port,
   });
+  const attributes: SpanAttributes = {
+    [SENTRY_KIND]: 'client',
+    ...connectionAttributes(host, port),
+    [SENTRY_OP]: DB_QUERY,
+    [DB_OPERATION_NAME]: command.name,
+    ...namingAttributes,
+    [DB_QUERY_TEXT]: statement,
+  };
+  const cacheProperties = getRedisCacheAttributes(command.name, command.args ?? [], attributes, cacheOptions);
 
   return startInactiveSpan({
-    name: streamedName || statement,
-    attributes: {
-      [SENTRY_KIND]: 'client',
-      ...connectionAttributes(host, port),
-      [SENTRY_OP]: DB_QUERY,
-      [DB_OPERATION_NAME]: command.name,
-      ...namingAttributes,
-      [DB_QUERY_TEXT]: statement,
-    },
+    name: cacheProperties?.name ?? streamedName ?? statement,
+    attributes: { ...attributes, ...cacheProperties?.attributes },
   });
 }
 
@@ -105,20 +107,16 @@ export function instrumentIoredis(options: RedisCacheOptions): void {
   const commandChannel = diagnosticsChannel.tracingChannel<IORedisCommandContext, IORedisCommandContext>(
     CHANNELS.IOREDIS_COMMAND,
   );
-  const connectChannel = diagnosticsChannel.tracingChannel<IORedisConnectContext, IORedisConnectContext>(
+  const connectChannel = diagnosticsChannel.tracingChannel<IORedisCommandContext, IORedisCommandContext>(
     CHANNELS.IOREDIS_CONNECT,
   );
 
-  bindTracingChannelToSpan(commandChannel, startIORedisCommandSpan, {
+  bindTracingChannelToSpan(commandChannel, data => startIORedisCommandSpan(data, options), {
     // ioredis' `requireParentSpan` default: only create a span under an active span.
     requiresParentSpan: true,
     beforeSpanEnd(span, data) {
-      if ('error' in data) {
-        return;
-      }
-      const command = data.arguments?.[0] as RedisCommand | undefined;
-      if (command) {
-        applyRedisCacheAttributes(span, command.name, command.args, data.result, options);
+      if (!('error' in data)) {
+        applyCacheResponseAttributes(span, data.result);
       }
     },
   });

@@ -20,3 +20,5 @@ export function wrapRequestHandler(
 ): Promise<Response> {
   return wrapRequestHandlerWithInit(wrapperOptions, handler, initBaseSdk);
 }
+
+export { httpServerIntegration } from './integrations/httpServer';

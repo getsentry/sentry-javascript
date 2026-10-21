@@ -1,20 +1,24 @@
 import { expect, test } from '@playwright/test';
-import { waitForTransaction } from '@sentry-internal/test-utils';
+import type { SerializedStreamedSpan } from '@sentry-internal/test-utils';
+import { getSpanOp, waitForStreamedSpans } from '@sentry-internal/test-utils';
+
+const APP_NAME = 'remix-server-timing';
 
 test('propagates trace context from server-timing header to client pageload', async ({ page }) => {
   const testTag = crypto.randomUUID();
 
+  // Streamed spans are buffered before they flush, so spans from an earlier page load can still be
+  // arriving here. The `Server-Timing` header advertises this response's own trace, so that is what
+  // tells this page load's spans apart rather than the op or the URL.
+  const streamedSpans: SerializedStreamedSpan[] = [];
+  void waitForStreamedSpans(APP_NAME, spans => {
+    streamedSpans.push(...spans);
+    return false;
+  });
+
   const responsePromise = page.waitForResponse(
     response => response.url().includes(`tag=${testTag}`) && response.status() === 200,
   );
-
-  const pageLoadTransactionPromise = waitForTransaction('remix-server-timing', transactionEvent => {
-    return transactionEvent.contexts?.trace?.op === 'pageload' && transactionEvent.tags?.['sentry_test'] === testTag;
-  });
-
-  const httpServerTransactionPromise = waitForTransaction('remix-server-timing', transactionEvent => {
-    return transactionEvent.contexts?.trace?.op === 'http.server';
-  });
 
   await page.goto(`/?tag=${testTag}`);
 
@@ -33,30 +37,32 @@ test('propagates trace context from server-timing header to client pageload', as
   expect(headerSpanId).toHaveLength(16);
   expect(headerSampled).toBe('1');
 
-  const pageloadTransaction = await pageLoadTransactionPromise;
-  const httpServerTransaction = await httpServerTransactionPromise;
+  const findServerSegmentSpan = () =>
+    streamedSpans.find(span => getSpanOp(span) === 'http.server' && span.is_segment && span.trace_id === headerTraceId);
+  await expect.poll(findServerSegmentSpan).toBeDefined();
+  // The index route has no path of its own, so the segment keeps the low-cardinality method-only
+  // name it starts with.
+  expect(findServerSegmentSpan()!.name).toBe('GET');
+  expect(findServerSegmentSpan()!.span_id).toBe(headerSpanId);
 
-  expect(pageloadTransaction).toBeDefined();
-  expect(pageloadTransaction.transaction).toBe('/');
-
-  expect(httpServerTransaction.transaction).toBe('GET /');
-
-  expect(pageloadTransaction.contexts?.trace?.trace_id).toEqual(headerTraceId);
-  expect(pageloadTransaction.contexts?.trace?.parent_span_id).toEqual(headerSpanId);
-
-  expect(httpServerTransaction.contexts?.trace?.trace_id).toEqual(headerTraceId);
-  expect(httpServerTransaction.contexts?.trace?.span_id).toEqual(headerSpanId);
+  const findPageloadSpan = () =>
+    streamedSpans.find(span => getSpanOp(span) === 'pageload' && span.is_segment && span.trace_id === headerTraceId);
+  await expect.poll(findPageloadSpan).toBeDefined();
+  expect(findPageloadSpan()!.name).toBe('/');
+  expect(findPageloadSpan()!.parent_span_id).toBe(headerSpanId);
 });
 
 test('includes server-timing header on redirect responses', async ({ page }) => {
+  const streamedSpans: SerializedStreamedSpan[] = [];
+  void waitForStreamedSpans(APP_NAME, spans => {
+    streamedSpans.push(...spans);
+    return false;
+  });
+
   const redirectResponsePromise = page.waitForResponse(response => response.url().includes('/redirect-test'));
   const redirectedPageloadResponsePromise = page.waitForResponse(response =>
     response.url().includes('/user/redirected'),
   );
-
-  const pageLoadTransactionPromise = waitForTransaction('remix-server-timing', transactionEvent => {
-    return transactionEvent.contexts?.trace?.op === 'pageload';
-  });
 
   await page.goto('/redirect-test');
 
@@ -83,10 +89,11 @@ test('includes server-timing header on redirect responses', async ({ page }) => 
   await page.waitForURL(/\/user\/redirected/);
   await expect(page.locator('h1')).toContainText('User redirected');
 
-  const pageLoadTransaction = await pageLoadTransactionPromise;
-  expect(pageLoadTransaction.transaction).toBe('/user/:id');
-  expect(pageLoadTransaction.contexts?.trace?.trace_id).toEqual(traceId);
-  expect(pageLoadTransaction.contexts?.trace?.parent_span_id).toEqual(spanId);
+  const findPageloadSpan = () =>
+    streamedSpans.find(span => getSpanOp(span) === 'pageload' && span.is_segment && span.trace_id === traceId);
+  await expect.poll(findPageloadSpan).toBeDefined();
+  expect(findPageloadSpan()!.name).toBe('/user/:id');
+  expect(findPageloadSpan()!.parent_span_id).toBe(spanId);
 });
 
 test('excludes server-timing header from client-side navigation data fetches', async ({ page }) => {

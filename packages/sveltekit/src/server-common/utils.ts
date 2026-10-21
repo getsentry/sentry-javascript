@@ -7,16 +7,36 @@ export type MinimalCloudflareExecutionContext = {
   waitUntil(promise: Promise<unknown>): void;
 };
 
+type CloudflareExecutionContextProvider = () => MinimalCloudflareExecutionContext | undefined;
+
+let fallbackExecutionContextProvider: CloudflareExecutionContextProvider | undefined;
+
 /**
- * Reads the Cloudflare execution context off a SvelteKit `platform` object.
+ * Registers where to get the execution context from when `platform` doesn't carry one.
+ *
+ * Since `8.0.0-next.7`, `@sveltejs/adapter-cloudflare` no longer passes a `platform` object to
+ * SvelteKit at all; `waitUntil` is imported from `cloudflare:workers` instead. That module only
+ * resolves under the `workerd` export condition, so the entry point for that condition registers it
+ * here instead of the shared worker code importing it directly.
+ *
+ * @see https://github.com/sveltejs/kit/pull/16754
+ */
+export function setCloudflareExecutionContextFallback(provider: CloudflareExecutionContextProvider | undefined): void {
+  fallbackExecutionContextProvider = provider;
+}
+
+/**
+ * Reads the Cloudflare execution context off a SvelteKit `platform` object, falling back to the
+ * provider registered via `setCloudflareExecutionContextFallback`.
  *
  * The property name differs by adapter version:
  * - `@sveltejs/adapter-cloudflare` <= 7 exposes it as `platform.context`
- * - `@sveltejs/adapter-cloudflare` 8 renamed it to `platform.ctx`
+ * - `@sveltejs/adapter-cloudflare` 8 renamed it to `platform.ctx`, and later prereleases dropped
+ *   `platform` altogether (see the fallback)
  *
- * We read both so that request isolation and `waitUntil`-based flushing keep working across the
- * adapter versions our peer range allows. Both accesses fail silently when the shape changes, so
- * dropping either one costs us events without surfacing an error.
+ * We read all of them so that request isolation and `waitUntil`-based flushing keep working across
+ * the adapter versions our peer range allows. Every access fails silently when the shape changes,
+ * so dropping any of them costs us events without surfacing an error.
  *
  * @see https://github.com/sveltejs/kit/pull/16668
  */
@@ -26,7 +46,7 @@ export function getCloudflareExecutionContext(platform: unknown): MinimalCloudfl
     context?: MinimalCloudflareExecutionContext;
   };
 
-  return ctx ?? context;
+  return ctx ?? context ?? fallbackExecutionContextProvider?.();
 }
 
 /**

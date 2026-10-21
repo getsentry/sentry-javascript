@@ -1,5 +1,6 @@
-import { debug } from '@sentry/core';
+import { debug, escapeStringForRegex } from '@sentry/core';
 import * as path from 'path';
+import { getInstrumentedModuleNames } from '@sentry/server-utils/orchestrion/config';
 import {
   getOrchestrionLoaderPath,
   getSentryInstrumentations,
@@ -17,6 +18,7 @@ import type {
   TurbopackOptions,
 } from '../types';
 import { supportsNativeDebugIds, supportsTurbopackRuleCondition } from '../util';
+import { getTunnelRouteInjectedValues } from '../withSentryConfig/tunnel';
 import { generateValueInjectionRules } from './generateValueInjectionRules';
 
 /**
@@ -52,17 +54,10 @@ export function constructTurbopackConfig({
     ...(shouldEnableNativeDebugIds ? { debugIds: true } : {}),
   };
 
-  const tunnelPath =
-    userSentryOptions?.tunnelRoute !== undefined &&
-    userNextConfig.output !== 'export' &&
-    typeof userSentryOptions.tunnelRoute === 'string'
-      ? `${userNextConfig.basePath ?? ''}${userSentryOptions.tunnelRoute}`
-      : undefined;
-
   const valueInjectionRules = generateValueInjectionRules({
     routeManifest,
     nextJsVersion,
-    tunnelPath,
+    tunnelRouteValues: getTunnelRouteInjectedValues(userNextConfig, userSentryOptions),
     vercelCronsConfig,
   });
 
@@ -79,12 +74,13 @@ export function constructTurbopackConfig({
   // so it is safe even for node_modules with strict initialization order.
   // We only exclude Next.js build polyfills which contain non-standard syntax that causes
   // parse errors when any code is prepended (Turbopack re-parses the loader output).
+  // Server and edge modules are skipped because only the browser reads these tags.
   const applicationKey = userSentryOptions?.applicationKey;
   if (applicationKey && nextJsVersion && supportsTurbopackRuleCondition(nextJsVersion)) {
     newConfig.rules = safelyAddTurbopackRule(newConfig.rules, {
       matcher: '*.{ts,tsx,js,jsx,mjs,cjs}',
       rule: {
-        condition: { not: { path: /next\/dist\/build\/polyfills/ } },
+        condition: { all: ['browser', { not: { path: /next\/dist\/build\/polyfills/ } }] },
         loaders: [
           {
             loader: path.resolve(__dirname, '..', 'loaders', 'moduleMetadataInjectionLoader.js'),
@@ -163,10 +159,16 @@ function maybeAddOrchestrionRule(
   // build time.
   const importHelperPath = resolveOrchestrionRuntimeRequest('@sentry/server-utils');
 
+  // Turbopack runs webpack loaders out of process, one round trip per matched file. The transform
+  // only ever touches files of the instrumented packages, so limit the rule to those instead of
+  // paying that round trip for every server-side module (all of node_modules included).
+  const instrumentedPackages = getInstrumentedModuleNames().map(escapeStringForRegex);
+  const instrumentedPackagePath = new RegExp(`node_modules/(?:${instrumentedPackages.join('|')})/`);
+
   return safelyAddTurbopackRule(rules, {
     matcher: '*.{js,mjs,cjs}',
     rule: {
-      condition: 'node',
+      condition: { all: ['node', { path: instrumentedPackagePath }] },
       loaders: [
         {
           loader: getOrchestrionLoaderPath(),

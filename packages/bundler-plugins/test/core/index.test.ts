@@ -1,6 +1,7 @@
-import { createComponentNameAnnotateHooks, getDebugIdSnippet } from '../../src/core';
+import { createComponentNameAnnotateHooks, getDebugIdSnippet, isInitialChunk } from '../../src/core';
+import { getOxcParseAstAsync } from '../../src/core/component-annotation-oxc';
 import { containsOnlyImports } from '../../src/core/utils';
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 
 describe('createComponentNameAnnotateHooks', () => {
   it.each([
@@ -12,7 +13,31 @@ describe('createComponentNameAnnotateHooks', () => {
 
     const result = await transform(code, id);
 
-    expect(result?.map?.sources).toEqual([id]);
+    expect(result?.map).toMatchObject({ sources: [id] });
+  });
+
+  it('uses the given parser', async () => {
+    const getParseAstAsync = vi.fn(getOxcParseAstAsync);
+    const { transform } = createComponentNameAnnotateHooks([], false, { getParseAstAsync });
+
+    const result = await transform('export const App = () => <div />;', '/src/app.jsx');
+
+    expect(getParseAstAsync).toHaveBeenCalled();
+    expect(result?.code).toContain('data-sentry-component="App"');
+  });
+
+  it('falls back to oxc-parser when the given parser is unavailable', async () => {
+    const { transform } = createComponentNameAnnotateHooks([], false, { getParseAstAsync: async () => null });
+
+    const result = await transform('export const App = () => <div />;', '/src/app.jsx');
+
+    expect(result?.code).toContain('data-sentry-component="App"');
+  });
+
+  it('leaves files with syntax errors unchanged', async () => {
+    const { transform } = createComponentNameAnnotateHooks([], false);
+
+    await expect(transform('export const App = () => <div>;', '/src/app.jsx')).resolves.toBeNull();
   });
 });
 
@@ -20,8 +45,47 @@ describe('getDebugIdSnippet', () => {
   it('returns the debugId injection snippet for a passed debugId', () => {
     const snippet = getDebugIdSnippet('1234');
     expect(snippet.code()).toMatchInlineSnapshot(
-      `"!function(){try{var e="undefined"!=typeof window?window:"undefined"!=typeof global?global:"undefined"!=typeof globalThis?globalThis:"undefined"!=typeof self?self:{};var n=(new e.Error).stack;n&&(e._sentryDebugIds=e._sentryDebugIds||{},e._sentryDebugIds[n]="1234",e._sentryDebugIdIdentifier="sentry-dbid-1234");}catch(e){}}();"`,
+      `"!function(){try{var e="undefined"!=typeof globalThis?globalThis:"undefined"!=typeof window?window:"undefined"!=typeof global?global:"undefined"!=typeof self?self:{};var n=(new e.Error).stack;n&&(e._sentryDebugIds=e._sentryDebugIds||{},e._sentryDebugIds[n]="1234",e._sentryDebugIdIdentifier="sentry-dbid-1234");}catch(e){}}();"`,
     );
+  });
+
+  it('registers the debug ID when a later `const global` shadows the identifier', () => {
+    // A second bundling pass over an already-injected chunk can rewrite a free
+    // `global` into a `const` declared below the injection. Reading it from the
+    // top of the file hits the temporal dead zone, where `typeof` throws rather
+    // than returning "undefined".
+    const scope: { Error: ErrorConstructor; _sentryDebugIds?: Record<string, string> } = { Error };
+    // oxlint-disable-next-line typescript/no-implied-eval
+    const run = new Function('globalThis', `${getDebugIdSnippet('5678').code()}\nconst global = globalThis;`);
+
+    run(scope);
+
+    expect(Object.values(scope._sentryDebugIds ?? {})).toEqual(['5678']);
+  });
+});
+
+describe('isInitialChunk', () => {
+  const chunks = {
+    'entry.js': { fileName: 'entry.js', isEntry: true, imports: ['shared.js', 'external'] },
+    'shared.js': { fileName: 'shared.js', imports: ['vendor.js'] },
+    'vendor.js': { fileName: 'vendor.js', imports: ['shared.js'] },
+    'route.js': { fileName: 'route.js', imports: ['route-shared.js'] },
+    'route-shared.js': { fileName: 'route-shared.js', imports: [] },
+  };
+
+  it('marks entry chunks and chunks they reach through static imports as initial', () => {
+    expect(isInitialChunk(chunks['entry.js'], chunks)).toBe(true);
+    expect(isInitialChunk(chunks['shared.js'], chunks)).toBe(true);
+    expect(isInitialChunk(chunks['vendor.js'], chunks)).toBe(true);
+  });
+
+  it('does not mark chunks that only dynamic imports reach as initial', () => {
+    expect(isInitialChunk(chunks['route.js'], chunks)).toBe(false);
+    expect(isInitialChunk(chunks['route-shared.js'], chunks)).toBe(false);
+  });
+
+  it('treats every chunk as initial without a chunk graph', () => {
+    expect(isInitialChunk({ fileName: 'route.js' }, undefined)).toBe(true);
   });
 });
 

@@ -10,7 +10,9 @@ describe('resolveDataCollectionOptions', () => {
     urlQueryParams: true,
     graphQL: { document: true, variables: true },
     genAI: { inputs: true, outputs: true },
+    mcp: { inputs: true, outputs: true },
     databaseQueryData: true,
+    queues: true,
     stackFrameVariables: true,
     frameContextLines: 5,
   };
@@ -52,6 +54,7 @@ describe('resolveDataCollectionOptions', () => {
       expect(result.urlQueryParams).toBe(true);
       expect(result.graphQL).toEqual({ document: true, variables: true });
       expect(result.genAI).toEqual({ inputs: true, outputs: true });
+      expect(result.mcp).toEqual({ inputs: true, outputs: true });
       expect(result.databaseQueryData).toBe(true);
       expect(result.stackFrameVariables).toBe(true);
       expect(result.frameContextLines).toBe(5);
@@ -68,6 +71,59 @@ describe('resolveDataCollectionOptions', () => {
       expect(result.httpHeaders.response).toBe(true);
     });
 
+    it('merges nested httpHeaders partially for the response direction', () => {
+      const result = resolveDataCollectionOptions({
+        dataCollection: {
+          httpHeaders: { response: { allow: ['content-type'] } },
+        },
+      });
+
+      expect(result.httpHeaders).toEqual({ request: true, response: { allow: ['content-type'] } });
+    });
+
+    it('resolves independent request and response header settings', () => {
+      const result = resolveDataCollectionOptions({
+        dataCollection: {
+          httpHeaders: { request: { allow: ['x-request-id'] }, response: false },
+        },
+      });
+
+      expect(result.httpHeaders).toEqual({ request: { allow: ['x-request-id'] }, response: false });
+    });
+
+    it('treats an empty httpHeaders object as directional config with defaults', () => {
+      expect(resolveDataCollectionOptions({ dataCollection: { httpHeaders: {} } }).httpHeaders).toEqual({
+        request: true,
+        response: true,
+      });
+    });
+
+    it('applies boolean httpHeaders shorthand to both directions', () => {
+      expect(resolveDataCollectionOptions({ dataCollection: { httpHeaders: false } }).httpHeaders).toEqual({
+        request: false,
+        response: false,
+      });
+
+      expect(resolveDataCollectionOptions({ dataCollection: { httpHeaders: true } }).httpHeaders).toEqual({
+        request: true,
+        response: true,
+      });
+    });
+
+    it('applies allow/deny httpHeaders shorthand to both directions', () => {
+      const deny = { deny: ['forwarded', '-ip'] };
+      expect(resolveDataCollectionOptions({ dataCollection: { httpHeaders: deny } }).httpHeaders).toEqual({
+        request: deny,
+        response: deny,
+      });
+
+      const allow = { allow: ['content-type'] };
+      expect(resolveDataCollectionOptions({ dataCollection: { httpHeaders: allow } }).httpHeaders).toEqual({
+        request: allow,
+        response: allow,
+      });
+    });
+
     it('merges nested genAI partially', () => {
       const result = resolveDataCollectionOptions({
         dataCollection: {
@@ -77,6 +133,27 @@ describe('resolveDataCollectionOptions', () => {
 
       expect(result.genAI.inputs).toBe(false);
       expect(result.genAI.outputs).toBe(true);
+    });
+
+    it('merges nested mcp partially', () => {
+      const result = resolveDataCollectionOptions({
+        dataCollection: {
+          mcp: { outputs: false },
+        },
+      });
+
+      expect(result.mcp).toEqual({ inputs: true, outputs: false });
+    });
+
+    it('resolves mcp independently of genAI', () => {
+      const result = resolveDataCollectionOptions({
+        dataCollection: {
+          genAI: { inputs: false, outputs: false },
+        },
+      });
+
+      expect(result.genAI).toEqual({ inputs: false, outputs: false });
+      expect(result.mcp).toEqual({ inputs: true, outputs: true });
     });
 
     it('merges nested graphQL partially', () => {
@@ -120,6 +197,10 @@ describe('resolveDataCollectionOptions', () => {
       expect(result.databaseQueryData).toBe(false);
     });
 
+    it('supports turning off queue data', () => {
+      expect(resolveDataCollectionOptions({ dataCollection: { queues: false } }).queues).toBe(false);
+    });
+
     it('supports allow/deny list for stack frame variables', () => {
       expect(
         resolveDataCollectionOptions({ dataCollection: { stackFrameVariables: { allow: ['user'] } } })
@@ -147,7 +228,7 @@ describe('resolveDataCollectionOptions', () => {
     it('always returns all fields', () => {
       const result = resolveDataCollectionOptions({});
 
-      expect(Object.keys(result)).toHaveLength(10);
+      expect(Object.keys(result)).toHaveLength(12);
       expect(result).toHaveProperty('userInfo');
       expect(result).toHaveProperty('cookies');
       expect(result).toHaveProperty('httpHeaders');
@@ -161,7 +242,11 @@ describe('resolveDataCollectionOptions', () => {
       expect(result).toHaveProperty('genAI');
       expect(result).toHaveProperty('genAI.inputs');
       expect(result).toHaveProperty('genAI.outputs');
+      expect(result).toHaveProperty('mcp');
+      expect(result).toHaveProperty('mcp.inputs');
+      expect(result).toHaveProperty('mcp.outputs');
       expect(result).toHaveProperty('databaseQueryData');
+      expect(result).toHaveProperty('queues');
       expect(result).toHaveProperty('stackFrameVariables');
       expect(result).toHaveProperty('frameContextLines');
     });

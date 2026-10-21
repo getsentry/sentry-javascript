@@ -17,25 +17,22 @@
     "nitro": "3.0.260610-beta"
   },
   "devDependencies": {
-    "@playwright/test": "~1.56.0",
-    "@sentry-internal/test-utils": "link:../../../test-utils",
+    "@playwright/test": "1.64.1",
+    "@sentry-internal/test-utils": "file:../../packed/sentry-internal-test-utils-packed.tgz",
     "@solidjs/meta": "^0.29.4",
     "@solidjs/router": "^1.0.0",
     "@solidjs/start": "2.0.2",
     "@solidjs/testing-library": "^0.8.10",
     "@testing-library/jest-dom": "^6.4.2",
     "@testing-library/user-event": "^14.5.2",
-    "@vitest/ui": "^1.5.0",
     "jsdom": "^24.0.0",
     "solid-js": "1.9.14",
     "typescript": "^5.4.5",
     "vite": "^8.1.5",
-    "vite-plugin-solid": "^2.11.6",
-    "vitest": "^1.5.0"
+    "vite-plugin-solid": "^2.11.6"
   },
   "volta": {
-    "extends": "../../package.json",
-    "node": "24.15.0"
+    "extends": "../../package.json"
   },
   "engines": {
     "node": ">=24"

@@ -214,15 +214,17 @@ describe('instrumentWorkerEntrypoint', () => {
     });
 
     const waitUntil = vi.fn();
-    const TestClass = vi.fn((context: ExecutionContext) => ({
-      fetch: () => {
-        // The client is created per request, on the scope forked for that request, so it is only
-        // reachable from inside the handler.
-        testClient = SentryCore.getClient();
-        context.waitUntil(deferred);
-        return new Response('test');
-      },
-    }));
+    const TestClass = vi.fn(function (context: ExecutionContext) {
+      return {
+        fetch: () => {
+          // The client is created per request, on the scope forked for that request, so it is only
+          // reachable from inside the handler.
+          testClient = SentryCore.getClient();
+          context.waitUntil(deferred);
+          return new Response('test');
+        },
+      };
+    });
     const instrumented = instrumentWorkerEntrypoint(vi.fn(), TestClass as unknown as WorkerEntrypointConstructor);
     const context = { ...createMockExecutionContext(), waitUntil };
     const worker = Reflect.construct(instrumented, [context, {}]);

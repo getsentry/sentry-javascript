@@ -101,6 +101,64 @@ describe('createSentryServerInstrumentation', () => {
 
       expect(core.updateSpanName).toHaveBeenCalledWith(mockRootSpan, 'GET /users/:id');
     });
+
+    it.each([
+      ['loader', 'loader', '/users/:id'],
+      ['action', 'action', '/users/:id'],
+    ])('names the %s span after the function it wraps', async (hookName, functionName, pattern) => {
+      const mockCall = vi.fn().mockResolvedValue({ status: 'success', error: undefined });
+      const mockInstrument = vi.fn();
+
+      (core.startSpan as any).mockImplementation((_opts: any, fn: any) => fn());
+
+      const instrumentation = createSentryServerInstrumentation();
+      instrumentation.route?.({ id: 'test-route', index: false, path: '/test', instrument: mockInstrument });
+      const hooks = mockInstrument.mock.calls[0]![0];
+
+      await hooks[hookName](mockCall, {
+        request: { method: 'GET', url: 'http://example.com/users/123', headers: { get: () => null } },
+        params: { id: '123' },
+        unstable_pattern: pattern,
+        context: undefined,
+      });
+
+      expect(core.startSpan).toHaveBeenCalledWith(
+        expect.objectContaining({
+          name: functionName,
+          attributes: expect.objectContaining({
+            'code.function.name': functionName,
+            'sentry.description': pattern,
+          }),
+        }),
+        expect.any(Function),
+      );
+    });
+
+    it('keeps the raw pathname out of the span name for an unmatched route', async () => {
+      const mockCall = vi.fn().mockResolvedValue({ status: 'success', error: undefined });
+      const mockInstrument = vi.fn();
+
+      (core.startSpan as any).mockImplementation((_opts: any, fn: any) => fn());
+
+      const instrumentation = createSentryServerInstrumentation();
+      instrumentation.route?.({ id: 'test-route', index: false, path: '/test', instrument: mockInstrument });
+      const hooks = mockInstrument.mock.calls[0]![0];
+
+      await hooks.loader(mockCall, {
+        request: { method: 'GET', url: 'http://example.com/users/123', headers: { get: () => null } },
+        params: { id: '123' },
+        unstable_pattern: undefined,
+        context: undefined,
+      });
+
+      expect(core.startSpan).toHaveBeenCalledWith(
+        expect.objectContaining({
+          name: 'loader',
+          attributes: expect.objectContaining({ 'sentry.description': '/users/123' }),
+        }),
+        expect.any(Function),
+      );
+    });
   });
 
   it('should set the global flag when React Router invokes the handler registration', () => {

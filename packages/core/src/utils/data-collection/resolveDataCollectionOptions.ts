@@ -1,4 +1,9 @@
-import type { DataCollection, ResolvedDataCollection } from '../../types/datacollection';
+import type {
+  CollectBehavior,
+  DataCollection,
+  HttpHeadersCollection,
+  ResolvedDataCollection,
+} from '../../types/datacollection';
 
 const DEFAULTS: ResolvedDataCollection = {
   userInfo: true,
@@ -8,10 +13,31 @@ const DEFAULTS: ResolvedDataCollection = {
   urlQueryParams: true,
   graphQL: { document: true, variables: true },
   genAI: { inputs: true, outputs: true },
+  mcp: { inputs: true, outputs: true },
   databaseQueryData: true,
+  queues: true,
   stackFrameVariables: true,
   frameContextLines: 5,
 };
+
+function isCollectBehavior(value: CollectBehavior | HttpHeadersCollection): value is CollectBehavior {
+  return typeof value === 'boolean' || 'allow' in value || 'deny' in value;
+}
+
+function resolveHttpHeaders(httpHeaders: DataCollection['httpHeaders']): ResolvedDataCollection['httpHeaders'] {
+  if (httpHeaders === undefined) {
+    return { ...DEFAULTS.httpHeaders };
+  }
+
+  if (isCollectBehavior(httpHeaders)) {
+    return { request: httpHeaders, response: httpHeaders };
+  }
+
+  return {
+    request: httpHeaders.request ?? DEFAULTS.httpHeaders.request,
+    response: httpHeaders.response ?? DEFAULTS.httpHeaders.response,
+  };
+}
 
 /**
  * Resolves the effective `DataCollection` configuration from client options.
@@ -26,10 +52,7 @@ export function resolveDataCollectionOptions(options: { dataCollection?: DataCol
   return {
     userInfo: dc.userInfo ?? DEFAULTS.userInfo,
     cookies: dc.cookies ?? DEFAULTS.cookies,
-    httpHeaders: {
-      request: dc.httpHeaders?.request ?? DEFAULTS.httpHeaders.request,
-      response: dc.httpHeaders?.response ?? DEFAULTS.httpHeaders.response,
-    },
+    httpHeaders: resolveHttpHeaders(dc.httpHeaders),
     httpBodies: dc.httpBodies ?? DEFAULTS.httpBodies,
     urlQueryParams: dc.urlQueryParams ?? DEFAULTS.urlQueryParams,
     graphQL: {
@@ -40,7 +63,12 @@ export function resolveDataCollectionOptions(options: { dataCollection?: DataCol
       inputs: dc.genAI?.inputs ?? DEFAULTS.genAI.inputs,
       outputs: dc.genAI?.outputs ?? DEFAULTS.genAI.outputs,
     },
+    mcp: {
+      inputs: dc.mcp?.inputs ?? DEFAULTS.mcp.inputs,
+      outputs: dc.mcp?.outputs ?? DEFAULTS.mcp.outputs,
+    },
     databaseQueryData: dc.databaseQueryData ?? DEFAULTS.databaseQueryData,
+    queues: dc.queues ?? DEFAULTS.queues,
     stackFrameVariables: dc.stackFrameVariables ?? DEFAULTS.stackFrameVariables,
     frameContextLines: dc.frameContextLines ?? DEFAULTS.frameContextLines,
   };

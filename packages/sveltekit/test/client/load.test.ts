@@ -1,10 +1,12 @@
-import { SENTRY_SEGMENT_NAME_SOURCE } from '@sentry/conventions/attributes';
-import { SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '@sentry/core';
+import { SENTRY_SEGMENT_NAME_SOURCE, SENTRY_OP, SENTRY_ORIGIN, URL_PATH } from '@sentry/conventions/attributes';
+import type { Client } from '@sentry/core';
+import * as SentryCore from '@sentry/core';
 import * as SentrySvelte from '@sentry/svelte';
 import type { Load } from '@sveltejs/kit';
 import { redirect } from '@sveltejs/kit';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { wrapLoadWithSentry } from '../../src/client/load';
+import { createTrackedLoadEvent } from '../utils';
 
 const mockCaptureException = vi.spyOn(SentrySvelte, 'captureException').mockImplementation(() => 'xx');
 
@@ -104,10 +106,12 @@ describe('wrapLoadWithSentry', () => {
       expect(mockStartSpan).toHaveBeenCalledWith(
         {
           attributes: {
-            [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'function',
+            [SENTRY_OP]: 'function',
             'code.function.name': 'load',
-            [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.sveltekit',
+            [SENTRY_ORIGIN]: 'auto.function.sveltekit',
             [SENTRY_SEGMENT_NAME_SOURCE]: 'route',
+            'url.path': '/users/123',
+            'url.template': '/users/[id]',
           },
           name: '/users/[id]',
         },
@@ -132,10 +136,11 @@ describe('wrapLoadWithSentry', () => {
       expect(mockStartSpan).toHaveBeenCalledWith(
         {
           attributes: {
-            [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'function',
+            [SENTRY_OP]: 'function',
             'code.function.name': 'load',
-            [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.sveltekit',
+            [SENTRY_ORIGIN]: 'auto.function.sveltekit',
             [SENTRY_SEGMENT_NAME_SOURCE]: 'url',
+            'url.path': '/users/123',
           },
           name: '/users/123',
         },
@@ -160,7 +165,7 @@ describe('wrapLoadWithSentry', () => {
       const wrappedLoad = wrapLoadWithSentry(load);
       await wrappedLoad(eventWithUntrack);
 
-      expect(untrack).toHaveBeenCalledTimes(1);
+      expect(untrack).toHaveBeenCalledTimes(2);
       expect(mockStartSpan).toHaveBeenCalledWith(
         expect.objectContaining({
           name: routeIdFromUntrack,
@@ -170,6 +175,86 @@ describe('wrapLoadWithSentry', () => {
         }),
         expect.any(Function),
       );
+    });
+
+    it("doesn't add route or url dependencies to the load function when untrack is present", async () => {
+      const { event, trackedReads } = createTrackedLoadEvent({
+        params: { id: '123' },
+        route: { id: '/users/[id]' },
+        url: new URL('http://localhost:3000/users/123'),
+      });
+
+      const wrappedLoad = wrapLoadWithSentry(async () => ({}));
+      await wrappedLoad(event);
+
+      expect(trackedReads).toEqual([]);
+      expect(mockStartSpan).toHaveBeenCalledWith(
+        expect.objectContaining({
+          name: '/users/[id]',
+          attributes: expect.objectContaining({ [URL_PATH]: '/users/123' }),
+        }),
+        expect.any(Function),
+      );
+    });
+
+    describe('with span streaming enabled', () => {
+      beforeEach(() => {
+        vi.spyOn(SentryCore, 'getClient').mockImplementation(
+          () => ({ getOptions: () => ({ traceLifecycle: 'stream' }) }) as unknown as Client,
+        );
+      });
+
+      afterEach(() => {
+        vi.mocked(SentryCore.getClient).mockRestore();
+      });
+
+      // `MOCK_LOAD_ARGS.route` is mutated by the tests above, so build a fresh event here.
+      const getLoadArgs = (): any => ({
+        params: { id: '123' },
+        route: { id: '/users/[id]' },
+        url: new URL('http://localhost:3000/users/123'),
+      });
+
+      it('names the span after the load function and keeps the route in the description', async () => {
+        const wrappedLoad = wrapLoadWithSentry(async () => ({}));
+        await wrappedLoad(getLoadArgs());
+
+        expect(mockStartSpan).toHaveBeenCalledWith(
+          {
+            attributes: {
+              [SENTRY_OP]: 'function',
+              'code.function.name': 'load',
+              [SENTRY_ORIGIN]: 'auto.function.sveltekit',
+              [SENTRY_SEGMENT_NAME_SOURCE]: 'route',
+              'url.path': '/users/123',
+              'url.template': '/users/[id]',
+              'sentry.description': '/users/[id]',
+            },
+            name: 'load',
+          },
+          expect.any(Function),
+        );
+      });
+
+      it("keeps the raw URL as description if `event.route.id` isn't available", async () => {
+        const wrappedLoad = wrapLoadWithSentry(async () => ({}));
+        await wrappedLoad({ ...getLoadArgs(), route: {} });
+
+        expect(mockStartSpan).toHaveBeenCalledWith(
+          {
+            attributes: {
+              [SENTRY_OP]: 'function',
+              'code.function.name': 'load',
+              [SENTRY_ORIGIN]: 'auto.function.sveltekit',
+              [SENTRY_SEGMENT_NAME_SOURCE]: 'url',
+              'url.path': '/users/123',
+              'sentry.description': '/users/123',
+            },
+            name: 'load',
+          },
+          expect.any(Function),
+        );
+      });
     });
   });
 

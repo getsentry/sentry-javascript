@@ -1,7 +1,7 @@
 import type { MessageSendRequest, Queue, QueueSendBatchOptions, QueueSendOptions } from '@cloudflare/workers-types';
-import { SENTRY_OP } from '@sentry/conventions/attributes';
+import { SENTRY_OP, SENTRY_ORIGIN } from '@sentry/conventions/attributes';
 import { QUEUE_PUBLISH } from '@sentry/conventions/op';
-import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, startSpan } from '@sentry/core';
+import { startSpan } from '@sentry/core';
 
 const ORIGIN = 'auto.faas.cloudflare.queue';
 
@@ -26,7 +26,7 @@ function startPublishSpan<T>(
         ...(messageCount !== undefined && { 'messaging.batch.message_count': messageCount }),
         'messaging.message.body.size': bodySize,
         [SENTRY_OP]: QUEUE_PUBLISH,
-        [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: ORIGIN,
+        [SENTRY_ORIGIN]: ORIGIN,
       },
     },
     callback,
@@ -99,7 +99,9 @@ export function instrumentQueueProducer<T extends Queue>(queue: T, bindingName: 
         };
       }
 
-      return Reflect.get(target, prop, receiver);
+      const value = Reflect.get(target, prop) as unknown;
+
+      return typeof value === 'function' ? value.bind(target) : value;
     },
   });
 }

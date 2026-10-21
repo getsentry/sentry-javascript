@@ -18,6 +18,7 @@ import {
   MESSAGING_SYSTEM,
   SENTRY_KIND,
   SENTRY_OP,
+  SENTRY_ORIGIN,
 } from '@sentry/conventions/attributes';
 import { QUEUE_PROCESS, QUEUE_PUBLISH, QUEUE_RECEIVE } from '@sentry/conventions/op';
 import type { Span, SpanAttributes, SpanLink } from '@sentry/core';
@@ -25,8 +26,8 @@ import {
   getClient,
   getTraceData,
   hasSpanStreamingEnabled,
+  isObjectLike,
   propagationContextFromHeaders,
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SPAN_STATUS_ERROR,
   startInactiveSpan,
 } from '@sentry/core';
@@ -99,6 +100,17 @@ export function getLinksFromHeaders(headers: KafkaMessage['headers']): SpanLink[
   ];
 }
 
+/**
+ * The Kafka message key is producer-supplied payload data, so `dataCollection.queues` gates it.
+ * Everything else on the span (topic, partition, offset) is structural metadata and stays.
+ */
+function collectMessageKey(key: unknown, client = getClient()): string | undefined {
+  if (!key || client?.getDataCollectionOptions().queues === false) {
+    return undefined;
+  }
+  return String(key);
+}
+
 /** Starts an inactive consumer (process/receive) span carrying the kafkajs messaging attributes. */
 export function startConsumerSpan({ topic, message, operationType, links, attributes }: ConsumerSpanOptions): Span {
   // The batch "receive" span is named `poll`; per-message spans use the operation type verbatim.
@@ -119,12 +131,12 @@ export function startConsumerSpan({ topic, message, operationType, links, attrib
       [MESSAGING_DESTINATION_NAME]: topic,
       [MESSAGING_OPERATION_TYPE]: operationType,
       [MESSAGING_OPERATION_NAME]: operationName,
-      [ATTR_MESSAGING_KAFKA_MESSAGE_KEY]: message?.key ? String(message.key) : undefined,
+      [ATTR_MESSAGING_KAFKA_MESSAGE_KEY]: collectMessageKey(message?.key, client),
       [ATTR_MESSAGING_KAFKA_MESSAGE_TOMBSTONE]: message?.key && message.value === null ? true : undefined,
       [ATTR_MESSAGING_KAFKA_OFFSET]: message?.offset as string | undefined,
       // Mirror the upstream behavior of only tagging per-message processing spans (not the batch
       // receiving span, which carries no message) with the auto origin.
-      ...(message ? { [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: CONSUMER_ORIGIN } : {}),
+      ...(message ? { [SENTRY_ORIGIN]: CONSUMER_ORIGIN } : {}),
     },
   });
 }
@@ -138,13 +150,13 @@ export function startProducerSpan(topic: string, message: Message): Span {
       [SENTRY_KIND]: 'producer',
       [MESSAGING_SYSTEM]: MESSAGING_SYSTEM_VALUE_KAFKA,
       [MESSAGING_DESTINATION_NAME]: topic,
-      [ATTR_MESSAGING_KAFKA_MESSAGE_KEY]: message.key ? String(message.key) : undefined,
+      [ATTR_MESSAGING_KAFKA_MESSAGE_KEY]: collectMessageKey(message.key),
       [ATTR_MESSAGING_KAFKA_MESSAGE_TOMBSTONE]: message.key && message.value === null ? true : undefined,
       [ATTR_MESSAGING_DESTINATION_PARTITION_ID]:
         message.partition !== undefined ? String(message.partition) : undefined,
       [MESSAGING_OPERATION_NAME]: 'send',
       [MESSAGING_OPERATION_TYPE]: MESSAGING_OPERATION_TYPE_VALUE_SEND,
-      [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: PRODUCER_ORIGIN,
+      [SENTRY_ORIGIN]: PRODUCER_ORIGIN,
     },
   });
 
@@ -172,7 +184,7 @@ export function applyErrorToSpans(spans: Span[], reason: unknown): void {
   let errorType: string = ERROR_TYPE_VALUE_OTHER;
   if (typeof reason === 'string' || reason === undefined) {
     errorMessage = reason;
-  } else if (typeof reason === 'object' && reason !== null && Object.prototype.hasOwnProperty.call(reason, 'message')) {
+  } else if (isObjectLike(reason) && Object.prototype.hasOwnProperty.call(reason, 'message')) {
     errorMessage = (reason as { message?: string }).message;
     errorType = (reason as { constructor: { name: string } }).constructor.name;
   }

@@ -25,6 +25,8 @@ export class LRUMap<K, V> {
 
   /** Insert an entry and evict an older entry if we've reached maxSize */
   public set(key: K, value: V): void {
+    // Delete first so updating an existing key refreshes its order and does not evict another entry
+    this._cache.delete(key);
     if (this._cache.size >= this._maxSize) {
       // keys() returns an iterator in insertion order so keys().next() gives us the oldest key
       // eslint-disable-next-line @typescript-eslint/no-non-null-assertion

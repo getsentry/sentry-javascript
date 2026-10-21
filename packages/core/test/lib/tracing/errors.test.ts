@@ -1,11 +1,6 @@
+import { SENTRY_STATUS_MESSAGE } from '@sentry/conventions/attributes';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import {
-  SEMANTIC_ATTRIBUTE_SENTRY_STATUS_MESSAGE,
-  setCurrentClient,
-  spanToJSON,
-  startInactiveSpan,
-  startSpan,
-} from '../../../src';
+import { setCurrentClient, spanToJSON, startInactiveSpan, startSpan } from '../../../src';
 import * as globalErrorModule from '../../../src/instrument/globalError';
 import * as globalUnhandledRejectionModule from '../../../src/instrument/globalUnhandledRejection';
 import { _resetErrorsInstrumented, registerSpanErrorInstrumentation } from '../../../src/tracing/errors';
@@ -67,7 +62,7 @@ describe('registerErrorHandlers()', () => {
       mockErrorCallback({} as HandlerDataError);
       const { status, attributes } = spanToJSON(span);
       expect(status).toBe('error');
-      expect(attributes[SEMANTIC_ATTRIBUTE_SENTRY_STATUS_MESSAGE]).toBe('internal_error');
+      expect(attributes[SENTRY_STATUS_MESSAGE]).toBe('internal_error');
     });
   });
 
@@ -78,7 +73,7 @@ describe('registerErrorHandlers()', () => {
       mockUnhandledRejectionCallback({});
       const { status, attributes } = spanToJSON(span);
       expect(status).toBe('error');
-      expect(attributes[SEMANTIC_ATTRIBUTE_SENTRY_STATUS_MESSAGE]).toBe('internal_error');
+      expect(attributes[SENTRY_STATUS_MESSAGE]).toBe('internal_error');
     });
   });
 });

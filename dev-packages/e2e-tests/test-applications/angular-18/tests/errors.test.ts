@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { waitForError, waitForTransaction } from '@sentry-internal/test-utils';
+import { getSpanOp, waitForError, waitForStreamedSpan } from '@sentry-internal/test-utils';
 
 test('sends an error', async ({ page }) => {
   const errorPromise = waitForError('angular-18', async errorEvent => {
@@ -30,8 +30,8 @@ test('sends an error', async ({ page }) => {
 });
 
 test('assigns the correct transaction value after a navigation', async ({ page }) => {
-  const pageloadTxnPromise = waitForTransaction('angular-18', async transactionEvent => {
-    return !!transactionEvent?.transaction && transactionEvent.contexts?.trace?.op === 'pageload';
+  const pageloadSpanPromise = waitForStreamedSpan('angular-18', span => {
+    return span.is_segment && getSpanOp(span) === 'pageload';
   });
 
   const errorPromise = waitForError('angular-18', async errorEvent => {
@@ -39,7 +39,7 @@ test('assigns the correct transaction value after a navigation', async ({ page }
   });
 
   await page.goto(`/`);
-  await pageloadTxnPromise;
+  await pageloadSpanPromise;
 
   await page.waitForTimeout(5000);
 

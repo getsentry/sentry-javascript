@@ -1,29 +1,26 @@
 import { expect, test } from '@playwright/test';
-import { waitForTransaction } from '@sentry-internal/test-utils';
+import { getSpanOp, waitForStreamedSpan } from '@sentry-internal/test-utils';
 
-test('Sends a pageload transaction to Sentry', async ({ page }) => {
-  const transactionPromise = waitForTransaction('create-remix-app-v2', transactionEvent => {
-    return transactionEvent.contexts?.trace?.op === 'pageload' && transactionEvent.transaction === '/';
+test('Sends a pageload span to Sentry', async ({ page }) => {
+  const spanPromise = waitForStreamedSpan('create-remix-app-v2', span => {
+    return getSpanOp(span) === 'pageload' && span.is_segment && span.name === '/';
   });
 
   await page.goto('/');
 
-  const transactionEvent = await transactionPromise;
+  const span = await spanPromise;
 
-  expect(transactionEvent).toBeDefined();
-  expect(transactionEvent.contexts?.trace?.data).toEqual(
-    expect.objectContaining({
-      'sentry.segment.name.source': 'route',
-      'url.full': expect.stringMatching(/^https?:\/\/localhost:\d+\/$/),
-      'url.path': '/',
-      'url.template': '/',
-    }),
-  );
+  expect(span.attributes).toMatchObject({
+    'sentry.segment.name.source': { value: 'route', type: 'string' },
+    'url.full': { value: expect.stringMatching(/^https?:\/\/localhost:\d+\/$/), type: 'string' },
+    'url.path': { value: '/', type: 'string' },
+    'url.template': { value: '/', type: 'string' },
+  });
 });
 
-test('Sends a navigation transaction to Sentry', async ({ page }) => {
-  const transactionPromise = waitForTransaction('create-remix-app-v2', transactionEvent => {
-    return transactionEvent.contexts?.trace?.op === 'navigation' && transactionEvent.transaction === '/user/:id';
+test('Sends a navigation span to Sentry', async ({ page }) => {
+  const spanPromise = waitForStreamedSpan('create-remix-app-v2', span => {
+    return getSpanOp(span) === 'navigation' && span.is_segment && span.name === '/user/:id';
   });
 
   await page.goto('/');
@@ -31,17 +28,14 @@ test('Sends a navigation transaction to Sentry', async ({ page }) => {
   const linkElement = page.locator('id=navigation');
   await linkElement.click();
 
-  const transactionEvent = await transactionPromise;
+  const span = await spanPromise;
 
-  expect(transactionEvent).toBeDefined();
-  expect(transactionEvent.contexts?.trace?.data).toEqual(
-    expect.objectContaining({
-      'sentry.segment.name.source': 'route',
-      'url.full': expect.stringMatching(/^https?:\/\/localhost:\d+\/user\/5$/),
-      'url.path': '/user/5',
-      'url.template': '/user/:id',
-    }),
-  );
+  expect(span.attributes).toMatchObject({
+    'sentry.segment.name.source': { value: 'route', type: 'string' },
+    'url.full': { value: expect.stringMatching(/^https?:\/\/localhost:\d+\/user\/5$/), type: 'string' },
+    'url.path': { value: '/user/5', type: 'string' },
+    'url.template': { value: '/user/:id', type: 'string' },
+  });
 });
 
 test('Renders `sentry-trace` and `baggage` meta tags for the root route', async ({ page }) => {

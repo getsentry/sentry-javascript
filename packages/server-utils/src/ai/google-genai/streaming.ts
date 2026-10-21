@@ -2,6 +2,8 @@ import { captureException, SPAN_STATUS_ERROR } from '@sentry/core';
 import type { Span } from '@sentry/core';
 import { endStreamSpan } from '../core/utils';
 import type { GoogleGenAIResponse } from './types';
+import type { MessagePart } from './utils';
+import { candidatesToMessageParts, setOutputMessagesAttribute } from './utils';
 
 /**
  * State object used to accumulate information from a stream of Google GenAI events.
@@ -19,10 +21,15 @@ interface StreamingState {
   promptTokens?: number;
   /** Number of completion/output tokens used. */
   completionTokens?: number;
+  candidateTokens?: number;
+  reasoningOutputTokens?: number;
   /** Number of total tokens used. */
   totalTokens?: number;
+  cacheReadInputTokens?: number;
   /** Accumulated tool calls (finalized) */
   toolCalls: Array<Record<string, unknown>>;
+  /** Accumulated output message parts (for output recording). */
+  outputParts: MessagePart[];
 }
 
 /**
@@ -56,8 +63,13 @@ function handleResponseMetadata(chunk: GoogleGenAIResponse, state: StreamingStat
   const usage = chunk.usageMetadata;
   if (usage) {
     if (typeof usage.promptTokenCount === 'number') state.promptTokens = usage.promptTokenCount;
-    if (typeof usage.candidatesTokenCount === 'number') state.completionTokens = usage.candidatesTokenCount;
+    if (typeof usage.candidatesTokenCount === 'number') state.candidateTokens = usage.candidatesTokenCount;
+    if (typeof usage.thoughtsTokenCount === 'number') state.reasoningOutputTokens = usage.thoughtsTokenCount;
+    if (state.candidateTokens !== undefined || state.reasoningOutputTokens !== undefined) {
+      state.completionTokens = (state.candidateTokens ?? 0) + (state.reasoningOutputTokens ?? 0);
+    }
     if (typeof usage.totalTokenCount === 'number') state.totalTokens = usage.totalTokenCount;
+    if (typeof usage.cachedContentTokenCount === 'number') state.cacheReadInputTokens = usage.cachedContentTokenCount;
   }
 }
 
@@ -68,8 +80,13 @@ function handleResponseMetadata(chunk: GoogleGenAIResponse, state: StreamingStat
  * @param recordOutputs - Whether to record outputs
  */
 function handleCandidateContent(chunk: GoogleGenAIResponse, state: StreamingState, recordOutputs: boolean): void {
+  // The SDK getter already extracts function calls from candidate parts.
   if (Array.isArray(chunk.functionCalls)) {
     state.toolCalls.push(...chunk.functionCalls);
+  }
+
+  if (recordOutputs) {
+    state.outputParts.push(...candidatesToMessageParts(chunk.candidates));
   }
 
   for (const candidate of chunk.candidates ?? []) {
@@ -79,14 +96,6 @@ function handleCandidateContent(chunk: GoogleGenAIResponse, state: StreamingStat
 
     for (const part of candidate?.content?.parts ?? []) {
       if (recordOutputs && part.text) state.responseTexts.push(part.text);
-      if (part.functionCall) {
-        state.toolCalls.push({
-          type: 'function',
-          id: part.functionCall.id,
-          name: part.functionCall.name,
-          arguments: part.functionCall.args,
-        });
-      }
     }
   }
 }
@@ -118,6 +127,7 @@ export async function* instrumentStream(
     responseTexts: [],
     finishReasons: [],
     toolCalls: [],
+    outputParts: [],
   };
 
   try {
@@ -126,6 +136,9 @@ export async function* instrumentStream(
       yield chunk;
     }
   } finally {
+    if (recordOutputs) {
+      setOutputMessagesAttribute(span, state.outputParts);
+    }
     endStreamSpan(span, state, recordOutputs);
   }
 }

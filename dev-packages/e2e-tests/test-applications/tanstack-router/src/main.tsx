@@ -110,7 +110,6 @@ const router = createRouter({ routeTree, ...(__APP_BASEPATH__ ? { basepath: __AP
 declare const __APP_DSN__: string;
 
 Sentry.init({
-  traceLifecycle: 'static',
   environment: 'qa', // dynamic sampling bias to keep transactions
   dsn: __APP_DSN__,
   integrations: [Sentry.tanstackRouterBrowserTracingIntegration(router)],

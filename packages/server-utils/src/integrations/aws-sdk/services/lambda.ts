@@ -1,7 +1,7 @@
 import type { Span } from '@sentry/core';
 import { debug, getTraceData } from '@sentry/core';
 import {
-  FAAS_EXECUTION as ATTR_FAAS_EXECUTION,
+  FAAS_INVOCATION_ID as ATTR_FAAS_INVOCATION_ID,
   FAAS_INVOKED_NAME as ATTR_FAAS_INVOKED_NAME,
   FAAS_INVOKED_PROVIDER as ATTR_FAAS_INVOKED_PROVIDER,
   FAAS_INVOKED_REGION as ATTR_FAAS_INVOKED_REGION,
@@ -39,8 +39,7 @@ export class LambdaServiceExtension implements ServiceExtension {
 
   public responseHook(response: NormalizedResponse, span: Span): void {
     if (response.request.commandName === INVOKE_COMMAND) {
-      // oxlint-disable-next-line typescript/no-deprecated -- old-semconv faas.execution, matched to the OTel aws-sdk integration
-      span.setAttribute(ATTR_FAAS_EXECUTION, response.requestId);
+      span.setAttribute(ATTR_FAAS_INVOCATION_ID, response.requestId);
       // Region resolves asynchronously after `requestPreSpanHook`, so it's backfilled onto the
       // normalized request and read here (same timing as `cloud.region`).
       if (response.request.region) {

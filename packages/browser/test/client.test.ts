@@ -2,25 +2,37 @@
  * @vitest-environment jsdom
  */
 
-import { getCurrentScope, makeSession, setCurrentClient } from '@sentry/core';
+import { getRouteProvider, resolveCurrentRoute, setRouteProvider } from '@sentry/browser-utils';
+import * as SentryCore from '@sentry/core';
+import { debug, getCurrentScope, makeSession, setCurrentClient } from '@sentry/core';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { applyDefaultOptions, BrowserClient } from '../src/client';
 import { WINDOW } from '../src/helpers';
 import { getDefaultBrowserClientOptions } from './helper/browser-client-options';
 
-function setDocumentHidden(): void {
+vi.mock('@sentry/core', async importOriginal => {
+  const actual = await importOriginal<typeof SentryCore>();
+  return { ...actual, timestampInSeconds: vi.fn(actual.timestampInSeconds) };
+});
+
+function setDocumentVisibility(visibilityState: DocumentVisibilityState): void {
   if (WINDOW.document) {
-    Object.defineProperty(WINDOW.document, 'visibilityState', { value: 'hidden', configurable: true });
+    Object.defineProperty(WINDOW.document, 'visibilityState', { value: visibilityState, configurable: true });
     WINDOW.document.dispatchEvent(new Event('visibilitychange'));
   }
+}
+
+function setDocumentHidden(): void {
+  setDocumentVisibility('hidden');
 }
 
 describe('BrowserClient', () => {
   let client: BrowserClient;
 
-  afterEach(() => {
+  afterEach(async () => {
     vi.useRealTimers();
     vi.clearAllMocks();
+    await client?.close();
   });
 
   it('flushes the client (spans, logs, metrics) when the page becomes hidden', async () => {
@@ -39,6 +51,50 @@ describe('BrowserClient', () => {
     expect(flushSpy).toHaveBeenCalledTimes(1);
   });
 
+  it('checks the clocks for drift when the page is hidden and shown again', () => {
+    client = new BrowserClient(getDefaultBrowserClientOptions());
+    vi.spyOn(client, 'flush').mockReturnValue(Promise.resolve(true) as any);
+    vi.mocked(SentryCore.timestampInSeconds).mockClear();
+
+    setDocumentHidden();
+    expect(SentryCore.timestampInSeconds).toHaveBeenCalled();
+
+    vi.mocked(SentryCore.timestampInSeconds).mockClear();
+    setDocumentVisibility('visible');
+    expect(SentryCore.timestampInSeconds).toHaveBeenCalled();
+  });
+
+  it.each([
+    ['freeze', () => WINDOW.document],
+    ['resume', () => WINDOW.document],
+    ['pagehide', () => WINDOW],
+    ['pageshow', () => WINDOW],
+  ])('checks the clocks for drift on %s', (eventName, getTarget) => {
+    client = new BrowserClient(getDefaultBrowserClientOptions());
+    vi.mocked(SentryCore.timestampInSeconds).mockClear();
+
+    getTarget().dispatchEvent(new Event(eventName));
+
+    expect(SentryCore.timestampInSeconds).toHaveBeenCalled();
+  });
+
+  it('removes its page lifecycle listeners when closed', async () => {
+    client = new BrowserClient(getDefaultBrowserClientOptions());
+    await client.close();
+    const flushSpy = vi.spyOn(client, 'flush');
+    vi.mocked(SentryCore.timestampInSeconds).mockClear();
+
+    setDocumentHidden();
+    WINDOW.document.dispatchEvent(new Event('freeze'));
+    WINDOW.document.dispatchEvent(new Event('resume'));
+    WINDOW.dispatchEvent(new Event('pagehide'));
+    WINDOW.dispatchEvent(new Event('pageshow'));
+    await Promise.resolve();
+
+    expect(SentryCore.timestampInSeconds).not.toHaveBeenCalled();
+    expect(flushSpy).not.toHaveBeenCalled();
+  });
+
   it('does not flush outcomes when sendClientReports is disabled but still flushes the client', async () => {
     client = new BrowserClient(getDefaultBrowserClientOptions({ sendClientReports: false }));
     const flushSpy = vi.spyOn(client, 'flush').mockReturnValue(Promise.resolve(true) as any);
@@ -49,6 +105,28 @@ describe('BrowserClient', () => {
 
     expect(flushOutcomesSpy).not.toHaveBeenCalled();
     expect(flushSpy).toHaveBeenCalledTimes(1);
+  });
+
+  describe('routeProvider option', () => {
+    it('registers the provider for the client', () => {
+      const routeProvider = { resolveRoute: () => '/users/:id', resolveCurrentRoute: () => '/users/:id' };
+      client = new BrowserClient(getDefaultBrowserClientOptions({ routeProvider }));
+
+      expect(getRouteProvider(client)).toBe(routeProvider);
+    });
+
+    it('is replaced by a provider registered at runtime', () => {
+      vi.spyOn(debug, 'warn').mockImplementation(() => {});
+      client = new BrowserClient(
+        getDefaultBrowserClientOptions({
+          routeProvider: { resolveRoute: () => '/option', resolveCurrentRoute: () => '/option' },
+        }),
+      );
+
+      setRouteProvider({ resolveRoute: () => '/runtime', resolveCurrentRoute: () => '/runtime' }, client);
+
+      expect(resolveCurrentRoute(client)).toBe('/runtime');
+    });
   });
 
   describe('session status on unhandled errors', () => {

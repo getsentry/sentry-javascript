@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { waitForError, waitForTransaction } from '@sentry-internal/test-utils';
+import { getSpanOp, waitForError, waitForStreamedSpan } from '@sentry-internal/test-utils';
 
 test('sends an error', async ({ page }) => {
   const errorPromise = waitForError('ember-embroider', async errorEvent => {
@@ -30,8 +30,8 @@ test('sends an error', async ({ page }) => {
 });
 
 test('assigns the correct transaction value after a navigation', async ({ page }) => {
-  const pageloadTxnPromise = waitForTransaction('ember-embroider', async transactionEvent => {
-    return !!transactionEvent.transaction && transactionEvent.contexts?.trace?.op === 'pageload';
+  const pageloadSpanPromise = waitForStreamedSpan('ember-embroider', span => {
+    return span.is_segment && getSpanOp(span) === 'pageload';
   });
 
   const errorPromise = waitForError('ember-embroider', async errorEvent => {
@@ -39,7 +39,7 @@ test('assigns the correct transaction value after a navigation', async ({ page }
   });
 
   await page.goto(`/tracing`);
-  await pageloadTxnPromise;
+  await pageloadSpanPromise;
 
   await page.getByText('Errors').click();
 

@@ -1,3 +1,4 @@
+import { DB } from '@sentry/conventions/op';
 import { afterAll, expect } from 'vitest';
 import { cleanupChildProcesses, createEsmAndCjsTests, describeWithDockerCompose } from '../../../utils/runner';
 
@@ -14,12 +15,12 @@ describeWithDockerCompose('mysql2 auto instrumentation', { workingDirectory: [__
     transaction: 'Test Transaction',
     spans: expect.arrayContaining([
       expect.objectContaining({
-        description: 'SELECT 1 + 1 AS solution',
-        op: 'db',
+        description: 'SELECT ? + ? AS solution',
+        op: DB,
         origin: ORIGIN,
         data: expect.objectContaining({
           'db.system.name': 'mysql',
-          'db.query.text': 'SELECT 1 + 1 AS solution',
+          'db.query.text': 'SELECT ? + ? AS solution',
           'server.address': 'localhost',
           'server.port': 3306,
           'db.user': 'root',
@@ -28,7 +29,7 @@ describeWithDockerCompose('mysql2 auto instrumentation', { workingDirectory: [__
       // bind values are left as `?` placeholders in `db.statement` (not inlined)
       expect.objectContaining({
         description: 'SELECT ? as a, ? as b, NOW() as c',
-        op: 'db',
+        op: DB,
         origin: ORIGIN,
         data: expect.objectContaining({
           'db.system.name': 'mysql',
@@ -41,7 +42,7 @@ describeWithDockerCompose('mysql2 auto instrumentation', { workingDirectory: [__
       // a single non-array bind value is also left as a `?` placeholder in `db.statement`
       expect.objectContaining({
         description: 'SELECT ? AS scalar_value',
-        op: 'db',
+        op: DB,
         origin: ORIGIN,
         data: expect.objectContaining({
           'db.system.name': 'mysql',
@@ -50,18 +51,18 @@ describeWithDockerCompose('mysql2 auto instrumentation', { workingDirectory: [__
       }),
       // `execute` is instrumented the same way as `query`
       expect.objectContaining({
-        description: 'SELECT 42 AS answer',
-        op: 'db',
+        description: 'SELECT ? AS answer',
+        op: DB,
         origin: ORIGIN,
         data: expect.objectContaining({
           'db.system.name': 'mysql',
-          'db.query.text': 'SELECT 42 AS answer',
+          'db.query.text': 'SELECT ? AS answer',
         }),
       }),
       // a failing query produces a span with an error status
       expect.objectContaining({
         description: 'SELECT * FROM does_not_exist',
-        op: 'db',
+        op: DB,
         status: 'internal_error',
         origin: ORIGIN,
         data: expect.objectContaining({

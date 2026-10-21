@@ -32,7 +32,6 @@ describe('constructTurbopackConfig', () => {
       { path: '/users', regex: '/users' },
       { path: '/api/health', regex: '/api/health' },
     ],
-    isrRoutes: [],
   };
 
   const mockSentryOptions = {};
@@ -285,7 +284,7 @@ describe('constructTurbopackConfig', () => {
   describe('with edge cases', () => {
     it('should handle empty route manifest', () => {
       const userNextConfig: NextConfigObject = {};
-      const emptyManifest: RouteManifest = { dynamicRoutes: [], staticRoutes: [], isrRoutes: [] };
+      const emptyManifest: RouteManifest = { dynamicRoutes: [], staticRoutes: [] };
 
       const result = constructTurbopackConfig({
         userNextConfig,
@@ -325,7 +324,6 @@ describe('constructTurbopackConfig', () => {
     it('should handle complex route manifest', () => {
       const userNextConfig: NextConfigObject = {};
       const complexManifest: RouteManifest = {
-        isrRoutes: [],
         dynamicRoutes: [
           { path: '/users/[id]/posts/[postId]', regex: '/users/([^/]+)/posts/([^/]+)', paramNames: ['id', 'postId'] },
           { path: '/api/[...params]', regex: '/api/(.+)', paramNames: ['params'] },
@@ -901,7 +899,7 @@ describe('condition field version gating', () => {
 
     const result = constructTurbopackConfig({
       userNextConfig,
-      routeManifest: { dynamicRoutes: [], staticRoutes: [], isrRoutes: [] },
+      routeManifest: { dynamicRoutes: [], staticRoutes: [] },
       nextJsVersion: '17.0.0',
     });
 
@@ -965,7 +963,7 @@ describe('moduleMetadataInjection with applicationKey', () => {
     });
 
     expect(result.rules!['*.{ts,tsx,js,jsx,mjs,cjs}']).toEqual({
-      condition: { not: { path: /next\/dist\/build\/polyfills/ } },
+      condition: { all: ['browser', { not: { path: /next\/dist\/build\/polyfills/ } }] },
       loaders: [
         {
           loader: '/mocked/path/to/moduleMetadataInjectionLoader.js',
@@ -992,7 +990,7 @@ describe('moduleMetadataInjection with applicationKey', () => {
     expect(rule.loaders[0]!.options.applicationKey).toBe('my-top-level-key');
   });
 
-  it('should only exclude Next.js polyfills, not all foreign modules', () => {
+  it('should only tag browser modules and exclude Next.js polyfills, not all foreign modules', () => {
     const userNextConfig: NextConfigObject = {};
 
     const result = constructTurbopackConfig({
@@ -1001,11 +999,11 @@ describe('moduleMetadataInjection with applicationKey', () => {
       nextJsVersion: '16.0.0',
     });
 
-    const rule = result.rules!['*.{ts,tsx,js,jsx,mjs,cjs}'] as { condition?: { not: unknown }; loaders: unknown[] };
+    const rule = result.rules!['*.{ts,tsx,js,jsx,mjs,cjs}'] as { condition?: unknown; loaders: unknown[] };
     // Unlike component annotation (which uses { not: 'foreign' }), metadata injection
     // must cover node_modules to match the webpack plugin's BannerPlugin behavior.
     // Only Next.js build polyfills are excluded because they have non-standard syntax.
-    expect(rule.condition).toEqual({ not: { path: /next\/dist\/build\/polyfills/ } });
+    expect(rule.condition).toEqual({ all: ['browser', { not: { path: /next\/dist\/build\/polyfills/ } }] });
   });
 
   it('should NOT add metadata loader rule when Next.js < 16', () => {
@@ -1064,7 +1062,6 @@ describe('moduleMetadataInjection with applicationKey', () => {
     const mockRouteManifest: RouteManifest = {
       dynamicRoutes: [],
       staticRoutes: [{ path: '/', regex: '/' }],
-      isrRoutes: [],
     };
 
     const result = constructTurbopackConfig({
@@ -1100,7 +1097,7 @@ describe('moduleMetadataInjection with applicationKey', () => {
     });
 
     expect(result.rules!['*.{ts,tsx,js,jsx,mjs,cjs}']).toEqual({
-      condition: { not: { path: /next\/dist\/build\/polyfills/ } },
+      condition: { all: ['browser', { not: { path: /next\/dist\/build\/polyfills/ } }] },
       loaders: [
         {
           loader: '/mocked/path/to/moduleMetadataInjectionLoader.js',
@@ -1264,7 +1261,6 @@ describe('componentAnnotation with turbopackReactComponentAnnotation', () => {
     const mockRouteManifest: RouteManifest = {
       dynamicRoutes: [],
       staticRoutes: [{ path: '/', regex: '/' }],
-      isrRoutes: [],
     };
 
     const result = constructTurbopackConfig({
@@ -1455,7 +1451,7 @@ describe('orchestrion build-time instrumentation', () => {
   function getOrchestrionOptions(result: ReturnType<typeof constructTurbopackConfig>): {
     instrumentations: Array<{ module: { name: string; filePath: unknown } }>;
   } {
-    const rule = result.rules!['*.{js,mjs,cjs}'] as {
+    const rule = result.rules!['*.{js,mjs,cjs}'] as unknown as {
       loaders: Array<{ options: { instrumentations: Array<{ module: { name: string; filePath: unknown } }> } }>;
     };
     return rule.loaders[0]!.options;
@@ -1504,6 +1500,13 @@ describe('orchestrion build-time instrumentation', () => {
     expect(importHelperPath).not.toContain('orchestrion');
   });
 
+  function getOrchestrionCondition(result: ReturnType<typeof constructTurbopackConfig>): {
+    all: [string, { path: RegExp }];
+  } {
+    const rule = result.rules!['*.{js,mjs,cjs}'] as unknown as { condition: { all: [string, { path: RegExp }] } };
+    return rule.condition;
+  }
+
   it('restricts the orchestrion rule to the node environment', () => {
     const result = constructTurbopackConfig({
       userNextConfig: {},
@@ -1511,10 +1514,35 @@ describe('orchestrion build-time instrumentation', () => {
       nextJsVersion: '16.0.0',
     });
 
-    // `condition: 'node'` is what keeps the transform off client code — orchestrion
+    // `'node'` is what keeps the transform off client code — orchestrion
     // splices `node:diagnostics_channel` calls that throw `X is not a function` in the browser.
-    const rule = result.rules!['*.{js,mjs,cjs}'] as { condition?: unknown };
-    expect(rule.condition).toBe('node');
+    expect(getOrchestrionCondition(result)).toEqual({ all: ['node', { path: expect.any(RegExp) }] });
+  });
+
+  it('only sends files of instrumented packages through the loader', () => {
+    const result = constructTurbopackConfig({
+      userNextConfig: {},
+      userSentryOptions: {},
+      nextJsVersion: '16.0.0',
+    });
+
+    // Turbopack runs webpack loaders out of process, per file. Without a path filter every
+    // server-side JS file — all of node_modules included — pays that cost (see #24764).
+    const { path: pathCondition } = getOrchestrionCondition(result).all[1];
+
+    expect(pathCondition.test('node_modules/openai/resources/chat/completions/completions.js')).toBe(true);
+    expect(pathCondition.test('node_modules/@anthropic-ai/sdk/resources/messages/messages.mjs')).toBe(true);
+    expect(
+      pathCondition.test(
+        'node_modules/.pnpm/@anthropic-ai+sdk@0.50.0/node_modules/@anthropic-ai/sdk/resources/messages/messages.js',
+      ),
+    ).toBe(true);
+    expect(pathCondition.test('apps/web/node_modules/pg/lib/client.js')).toBe(true);
+
+    expect(pathCondition.test('node_modules/next/dist/server/app-render/app-render.js')).toBe(false);
+    expect(pathCondition.test('node_modules/openai-agents/dist/index.js')).toBe(false);
+    expect(pathCondition.test('node_modules/lodash/lodash.js')).toBe(false);
+    expect(pathCondition.test('app/api/chat/route.js')).toBe(false);
   });
 
   it('does not add the orchestrion rule when build-time instrumentation is turned off', () => {

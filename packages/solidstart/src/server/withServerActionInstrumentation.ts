@@ -1,13 +1,15 @@
-import { handleCallbackErrors, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, SPAN_STATUS_ERROR } from '@sentry/core';
+import { handleCallbackErrors, SPAN_STATUS_ERROR } from '@sentry/core';
 import { flushIfServerless } from '@sentry/core/server';
-import { captureException, getActiveSpan, spanToJSON, startSpan } from '@sentry/node';
+import { captureException, getActiveSpan, getRootSpan, spanToJSON, startSpan } from '@sentry/node';
 import { isRedirect } from './utils';
 import {
   SENTRY_SEGMENT_NAME_SOURCE,
+  CODE_FUNCTION_NAME,
   HTTP_ROUTE,
   HTTP_TARGET,
   SENTRY_OP,
   URL_PATH,
+  SENTRY_ORIGIN,
 } from '@sentry/conventions/attributes';
 import { FUNCTION } from '@sentry/conventions/op';
 import { setHttpServerSpanRouteAttribute } from '@sentry/server-utils';
@@ -23,7 +25,9 @@ export async function withServerActionInstrumentation<A extends (...args: unknow
   const activeSpan = getActiveSpan();
 
   if (activeSpan) {
-    const spanData = spanToJSON(activeSpan).attributes;
+    // Read the request's `http.server` root span, which is the span we rename. The active span is
+    // usually a framework handler span (e.g. Nitro's h3 `handler` span) without any URL attributes.
+    const spanData = spanToJSON(getRootSpan(activeSpan)).attributes;
 
     // In solid start, server function calls are made to `/_server` which doesn't tell us
     // a lot. We rewrite the span's route to be that of the sever action name but only
@@ -46,7 +50,8 @@ export async function withServerActionInstrumentation<A extends (...args: unknow
         name: serverActionName,
         attributes: {
           [SENTRY_OP]: FUNCTION,
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.solidstart',
+          [CODE_FUNCTION_NAME]: serverActionName,
+          [SENTRY_ORIGIN]: 'auto.function.solidstart',
           [SENTRY_SEGMENT_NAME_SOURCE]: 'component',
         },
       },

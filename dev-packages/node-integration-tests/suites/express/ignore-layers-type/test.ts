@@ -1,5 +1,4 @@
 import { afterAll, describe, expect } from 'vitest';
-import { assertSentryTransaction } from '../../../utils/assertions';
 import { cleanupChildProcesses, createEsmAndCjsTests } from '../../../utils/runner';
 
 describe('express ignoreLayersType', () => {
@@ -11,28 +10,26 @@ describe('express ignoreLayersType', () => {
     test('suppresses spans for layer types listed in ignoreLayersType', async () => {
       const runner = createRunner()
         .expect({
-          transaction: transaction => {
-            assertSentryTransaction(transaction, {
-              transaction: 'GET /test/express',
-              contexts: {
-                trace: {
-                  op: 'http.server',
-                  status: 'ok',
-                },
-              },
+          span: container => {
+            expect(container.items.find(item => item.is_segment)).toMatchObject({
+              name: 'GET /test/express',
+              status: 'ok',
+              attributes: expect.objectContaining({
+                'sentry.op': { type: 'string', value: 'http.server' },
+              }),
             });
-            expect(transaction.spans).toContainEqual(
+            expect(container.items).toContainEqual(
               expect.objectContaining({
-                data: expect.objectContaining({
-                  'express.type': 'request_handler',
+                attributes: expect.objectContaining({
+                  'express.type': { type: 'string', value: 'request_handler' },
                 }),
               }),
             );
             // The cors() middleware span is suppressed by ignoreLayersType: ['middleware'].
-            expect(transaction.spans).not.toContainEqual(
+            expect(container.items).not.toContainEqual(
               expect.objectContaining({
-                data: expect.objectContaining({
-                  'express.type': 'middleware',
+                attributes: expect.objectContaining({
+                  'express.type': { type: 'string', value: 'middleware' },
                 }),
               }),
             );

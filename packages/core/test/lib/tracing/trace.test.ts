@@ -6,8 +6,6 @@ import {
   getMainCarrier,
   getTraceData,
   Scope,
-  SEMANTIC_ATTRIBUTE_SENTRY_OP,
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   setAsyncContextStrategy,
   setCurrentClient,
   spanToJSON,
@@ -33,7 +31,7 @@ import { getActiveSpan, getRootSpan, getSpanDescendants, spanIsSampled } from '.
 import { getDefaultTestClientOptions, TestClient } from '../../mocks/client';
 import { SUPPRESS_TRACING_KEY } from '../../../src/tracing/constants';
 import { resetGlobals } from '../../testutils';
-import { SENTRY_SEGMENT_NAME_SOURCE } from '@sentry/conventions/attributes';
+import { SENTRY_SEGMENT_NAME_SOURCE, SENTRY_OP, SENTRY_ORIGIN } from '@sentry/conventions/attributes';
 
 const enum Type {
   Sync = 'sync',
@@ -110,14 +108,14 @@ describe('startSpan', () => {
       });
       try {
         await startSpan({ name: 'GET users/[id]' }, span => {
-          span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_OP, 'http.server');
+          span.setAttribute(SENTRY_OP, 'http.server');
           return callback();
         });
       } catch {
         //
       }
 
-      expect(spanToJSON(_span!).attributes[SEMANTIC_ATTRIBUTE_SENTRY_OP]).toEqual('http.server');
+      expect(spanToJSON(_span!).attributes[SENTRY_OP]).toEqual('http.server');
     });
 
     it('creates a span with correct description', async () => {
@@ -156,7 +154,7 @@ describe('startSpan', () => {
       try {
         await startSpan({ name: 'GET users/[id]' }, () => {
           return startSpan({ name: 'SELECT * from users' }, childSpan => {
-            childSpan.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_OP, 'db.query');
+            childSpan.setAttribute(SENTRY_OP, 'db.query');
             return callback();
           });
         });
@@ -168,7 +166,7 @@ describe('startSpan', () => {
       const spans = getSpanDescendants(_span!);
 
       expect(spans).toHaveLength(2);
-      expect(spanToJSON(spans[1]!).attributes[SEMANTIC_ATTRIBUTE_SENTRY_OP]).toEqual('db.query');
+      expect(spanToJSON(spans[1]!).attributes[SENTRY_OP]).toEqual('db.query');
     });
 
     it('correctly sets the span origin', async () => {
@@ -180,7 +178,7 @@ describe('startSpan', () => {
         await startSpan(
           {
             name: 'GET users/[id]',
-            attributes: { [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.browser' },
+            attributes: { [SENTRY_ORIGIN]: 'auto.http.browser' },
           },
           () => {
             return callback();
@@ -642,6 +640,21 @@ describe('startSpan', () => {
       expect(span).toBeInstanceOf(SentryNonRecordingSpan);
       expect(spyOnDroppedEvent).toHaveBeenCalledWith('no_parent_span', 'span');
       expect(spyOnDroppedEvent).toHaveBeenCalledTimes(1);
+    });
+
+    it('records no_parent_span client reports for spans nested in a span without parent', () => {
+      const spyOnDroppedEvent = vi.spyOn(client, 'recordDroppedEvent');
+
+      startSpan({ name: 'test span', onlyIfParent: true }, () => {
+        startSpan({ name: 'child span' }, () => {
+          startInactiveSpan({ name: 'grandchild span' }).end();
+        });
+      });
+
+      expect(spyOnDroppedEvent).toHaveBeenCalledTimes(3);
+      expect(spyOnDroppedEvent).toHaveBeenNthCalledWith(1, 'no_parent_span', 'span');
+      expect(spyOnDroppedEvent).toHaveBeenNthCalledWith(2, 'no_parent_span', 'span');
+      expect(spyOnDroppedEvent).toHaveBeenNthCalledWith(3, 'no_parent_span', 'span');
     });
 
     it('creates a span if there is a parent', () => {
@@ -2775,7 +2788,7 @@ describe('ignoreSpans (core path, streaming)', () => {
     expect(spyOnDroppedEvent).toHaveBeenNthCalledWith(2, 'sample_rate', 'span');
   });
 
-  it('records sample_rate/transaction for unsampled root span on static path', () => {
+  it('records sample_rate outcomes for the transaction and all of its spans on static path', () => {
     const options = getDefaultTestClientOptions({
       tracesSampleRate: 0,
     });
@@ -2785,11 +2798,62 @@ describe('ignoreSpans (core path, streaming)', () => {
     const spyOnDroppedEvent = vi.spyOn(client, 'recordDroppedEvent');
 
     startSpan({ name: 'GET /foo' }, () => {
-      startSpan({ name: 'db.query' }, () => {});
+      startSpan({ name: 'db.query' }, () => {
+        startSpan({ name: 'cache.lookup' }, () => {});
+      });
+      startInactiveSpan({ name: 'http.client' }).end();
     });
 
+    expect(spyOnDroppedEvent).toHaveBeenCalledTimes(5);
+    expect(spyOnDroppedEvent).toHaveBeenNthCalledWith(1, 'sample_rate', 'transaction');
+    expect(spyOnDroppedEvent).toHaveBeenNthCalledWith(2, 'sample_rate', 'span');
+    expect(spyOnDroppedEvent).toHaveBeenNthCalledWith(3, 'sample_rate', 'span');
+    expect(spyOnDroppedEvent).toHaveBeenNthCalledWith(4, 'sample_rate', 'span');
+    expect(spyOnDroppedEvent).toHaveBeenNthCalledWith(5, 'sample_rate', 'span');
+  });
+
+  it('records a single sample_rate/span outcome for an unsampled standalone root span on static path', () => {
+    const options = getDefaultTestClientOptions({
+      tracesSampleRate: 0,
+    });
+    client = new TestClient(options);
+    setCurrentClient(client);
+    client.init();
+    const spyOnDroppedEvent = vi.spyOn(client, 'recordDroppedEvent');
+
+    // oxlint-disable-next-line typescript/no-deprecated
+    startInactiveSpan({ name: 'inp', experimental: { standalone: true } }).end();
+
     expect(spyOnDroppedEvent).toHaveBeenCalledTimes(1);
-    expect(spyOnDroppedEvent).toHaveBeenCalledWith('sample_rate', 'transaction');
+    expect(spyOnDroppedEvent).toHaveBeenCalledWith('sample_rate', 'span');
+  });
+
+  // Unsampled spans are counted when they start, so this also counts spans a sampled
+  // transaction would never contain (here: a child that never ends).
+  it('records sample_rate outcomes for unsampled spans that a sampled transaction would not contain', () => {
+    const runScenario = (tracesSampleRate: number): ReturnType<typeof vi.spyOn> => {
+      client = new TestClient(getDefaultTestClientOptions({ tracesSampleRate }));
+      setCurrentClient(client);
+      client.init();
+      const spyOnDroppedEvent = vi.spyOn(client, 'recordDroppedEvent');
+
+      startSpan({ name: 'GET /foo' }, () => {
+        startInactiveSpan({ name: 'never ended' });
+      });
+
+      return spyOnDroppedEvent;
+    };
+
+    const sampledSpy = vi.spyOn(TestClient.prototype, 'sendEvent');
+    runScenario(1);
+    expect(sampledSpy).toHaveBeenCalledWith(expect.objectContaining({ spans: [] }), expect.anything());
+    sampledSpy.mockRestore();
+
+    const unsampledDroppedEventSpy = runScenario(0);
+    expect(unsampledDroppedEventSpy).toHaveBeenCalledTimes(3);
+    expect(unsampledDroppedEventSpy).toHaveBeenNthCalledWith(1, 'sample_rate', 'transaction');
+    expect(unsampledDroppedEventSpy).toHaveBeenNthCalledWith(2, 'sample_rate', 'span');
+    expect(unsampledDroppedEventSpy).toHaveBeenNthCalledWith(3, 'sample_rate', 'span');
   });
 
   it('records only one ignored outcome for directly ignored child span', () => {

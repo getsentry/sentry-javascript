@@ -3,7 +3,13 @@ import { getCurrentScope, withScope } from '../../../../src/currentScopes';
 import { wrapMcpServerWithSentry } from '../../../../src/integrations/mcp-server';
 import { Scope } from '../../../../src/scope';
 import * as tracingModule from '../../../../src/tracing/trace';
-import { createMockClient, createMockMcpServer, createMockTransport } from './testUtils';
+import type { DataCollection } from '../../../../src/types/datacollection';
+import {
+  createMockClient,
+  createMockClientWithDataCollection,
+  createMockMcpServer,
+  createMockTransport,
+} from './testUtils';
 
 describe('MCP Server Capture Policy', () => {
   type MockTransport = ReturnType<typeof createMockTransport>;
@@ -388,5 +394,78 @@ describe('MCP Server Capture Policy', () => {
       buildToolSpanConfig({ id: 'first-wrap-request', sessionId: 'capture-policy-first-wrap' }),
     );
     expectToolResult(span);
+  });
+
+  it('applies a later explicit override when the first wrap set no options (auto-instrumentation)', async () => {
+    // The `mcpServer` integration auto-wraps at construction with no options; a manual
+    // `wrapMcpServerWithSentry(server, { recordInputs: false, recordOutputs: false })` must still opt out,
+    // even against a client whose data-collection settings would otherwise capture both.
+    const server = createMockMcpServer();
+    wrapMcpServerWithSentry(server);
+    wrapMcpServerWithSentry(server, { recordInputs: false, recordOutputs: false });
+    const transport = await connectServer(server, 'capture-policy-auto-override');
+    const recordingScope = createClientScope(true, true);
+    const span = queueInactiveSpan();
+
+    receiveToolCall(transport, recordingScope, {
+      id: 'auto-override-request',
+      location: 'Riga, Latvia',
+    });
+    await sendToolResult(transport, recordingScope, {
+      id: 'auto-override-request',
+      text: 'Private forecast for Riga',
+    });
+
+    expect(startInactiveSpanSpy).toHaveBeenCalledOnce();
+    expect(startInactiveSpanSpy).toHaveBeenCalledWith(
+      buildToolSpanConfig({ id: 'auto-override-request', sessionId: 'capture-policy-auto-override' }),
+    );
+    expectToolResult(span);
+  });
+
+  describe('dataCollection precedence', () => {
+    it.each<[string, DataCollection, { inputs: boolean; outputs: boolean }]>([
+      ['records by default', {}, { inputs: true, outputs: true }],
+      ['uses mcp', { mcp: { inputs: false, outputs: false } }, { inputs: false, outputs: false }],
+      // TODO(v12): Remove the genAI fallback cases.
+      [
+        'falls back to genAI when mcp is unset',
+        { genAI: { inputs: false, outputs: false } },
+        { inputs: false, outputs: false },
+      ],
+      [
+        'prefers mcp over genAI',
+        { mcp: { inputs: true, outputs: true }, genAI: { inputs: false, outputs: false } },
+        { inputs: true, outputs: true },
+      ],
+      [
+        'prefers a disabled mcp over an enabled genAI',
+        { mcp: { inputs: false, outputs: false }, genAI: { inputs: true, outputs: true } },
+        { inputs: false, outputs: false },
+      ],
+      [
+        'falls back to genAI per field',
+        { mcp: { inputs: true }, genAI: { inputs: false, outputs: false } },
+        { inputs: true, outputs: false },
+      ],
+    ])('%s', async (_, dataCollection, expected) => {
+      const sessionId = `data-collection-${JSON.stringify(dataCollection)}`;
+      const transport = await connectWrappedServer(sessionId);
+      const scope = new Scope();
+      scope.setClient(createMockClientWithDataCollection(dataCollection));
+      const span = queueInactiveSpan();
+
+      receiveToolCall(transport, scope, { id: 'precedence-request', location: 'Vienna, Austria' });
+      await sendToolResult(transport, scope, { id: 'precedence-request', text: 'Forecast for Vienna' });
+
+      expect(startInactiveSpanSpy).toHaveBeenCalledWith(
+        buildToolSpanConfig({
+          id: 'precedence-request',
+          sessionId,
+          ...(expected.inputs && { location: 'Vienna, Austria' }),
+        }),
+      );
+      expectToolResult(span, expected.outputs ? 'Forecast for Vienna' : undefined);
+    });
   });
 });

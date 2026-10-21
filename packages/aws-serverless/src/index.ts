@@ -59,9 +59,18 @@ export {
   nativeNodeFetchIntegration,
   onUncaughtExceptionIntegration,
   onUnhandledRejectionIntegration,
+  mistralAIIntegration,
   openAIIntegration,
+  groqIntegration,
+  togetherAIIntegration,
+  typesafeIntegration,
   langChainIntegration,
   langGraphIntegration,
+  mastraIntegration,
+  piDurableIntegration,
+  mcpServerIntegration,
+  SentryMastraExporter,
+  createFlueInstrumentation,
   modulesIntegration,
   nodeRuntimeMetricsIntegration,
   type NodeRuntimeMetricsOptions,
@@ -87,9 +96,10 @@ export {
   getAutoPerformanceIntegrations,
   cron,
   parameterize,
+  // oxlint-disable-next-line typescript/no-deprecated
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
+  // oxlint-disable-next-line typescript/no-deprecated
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  SENTRY_SEGMENT_NAME_SOURCE,
   SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE,
   dataloaderIntegration,
   expressIntegration,
@@ -97,6 +107,8 @@ export {
   expressErrorHandler,
   // oxlint-disable-next-line typescript/no-deprecated
   setupExpressErrorHandler,
+  honoIntegration,
+  honoMiddleware,
   koaIntegration,
   // oxlint-disable-next-line typescript/no-deprecated
   setupKoaErrorHandler,
@@ -112,11 +124,13 @@ export {
   mongooseIntegration,
   mysqlIntegration,
   mysql2Integration,
+  nitroIntegration,
   redisIntegration,
   tediousIntegration,
   pinoIntegration,
   postgresIntegration,
   postgresJsIntegration,
+  neonIntegration,
   processSessionIntegration,
   prismaIntegration,
   openTelemetryIntegration,
@@ -138,6 +152,8 @@ export {
   updateSpanName,
   supabaseIntegration,
   instrumentSupabaseClient,
+  instrumentMistralAiClient,
+  instrumentTypeSafeClient,
   instrumentOpenAiClient,
   instrumentAnthropicAiClient,
   instrumentGoogleGenAIClient,
@@ -168,6 +184,10 @@ export {
   withStaticSpan,
   // oxlint-disable-next-line typescript/no-deprecated
   withStreamedSpan,
+  eveConversationHook,
+  eveInstrumentation,
+  eveIntegration,
+  getInstrumentedModuleNames,
 } from '@sentry/node';
 
 export {

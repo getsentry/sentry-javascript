@@ -36,14 +36,14 @@ test.describe('Lambda layer', () => {
     expect(transactionEvent.contexts?.trace).toEqual({
       data: {
         'sentry.sample_rate': 1,
-        'sentry.segment.name.source': 'custom',
+        'sentry.segment.name.source': 'component',
         'sentry.origin': 'auto.aws_lambda',
         'sentry.op': 'function.aws',
         'cloud.account.id': '012345678912',
         'cloud.platform': 'aws_lambda',
         'cloud.provider': 'aws',
-        'faas.execution': expect.any(String),
-        'faas.id': 'arn:aws:lambda:us-east-1:012345678912:function:LayerTracingCjs',
+        'faas.invocation_id': expect.any(String),
+        'cloud.resource_id': 'arn:aws:lambda:us-east-1:012345678912:function:LayerTracingCjs',
         'faas.name': 'LayerTracingCjs',
         'faas.coldstart': true,
         'sentry.kind': 'server',
@@ -107,14 +107,14 @@ test.describe('Lambda layer', () => {
     expect(transactionEvent.contexts?.trace).toEqual({
       data: {
         'sentry.sample_rate': 1,
-        'sentry.segment.name.source': 'custom',
+        'sentry.segment.name.source': 'component',
         'sentry.origin': 'auto.aws_lambda',
         'sentry.op': 'function.aws',
         'cloud.account.id': '012345678912',
         'cloud.platform': 'aws_lambda',
         'cloud.provider': 'aws',
-        'faas.execution': expect.any(String),
-        'faas.id': 'arn:aws:lambda:us-east-1:012345678912:function:LayerTracingEsm',
+        'faas.invocation_id': expect.any(String),
+        'cloud.resource_id': 'arn:aws:lambda:us-east-1:012345678912:function:LayerTracingEsm',
         'faas.name': 'LayerTracingEsm',
         'faas.coldstart': true,
         'sentry.kind': 'server',
@@ -233,14 +233,14 @@ test.describe('Lambda layer', () => {
     expect(transactionEvent.contexts?.trace).toEqual({
       data: {
         'sentry.sample_rate': 1,
-        'sentry.segment.name.source': 'custom',
+        'sentry.segment.name.source': 'component',
         'sentry.origin': 'auto.aws_lambda',
         'sentry.op': 'function.aws',
         'cloud.account.id': '012345678912',
         'cloud.platform': 'aws_lambda',
         'cloud.provider': 'aws',
-        'faas.execution': expect.any(String),
-        'faas.id': 'arn:aws:lambda:us-east-1:012345678912:function:LayerStreaming',
+        'faas.invocation_id': expect.any(String),
+        'cloud.resource_id': 'arn:aws:lambda:us-east-1:012345678912:function:LayerStreaming',
         'faas.name': 'LayerStreaming',
         'faas.coldstart': true,
         'sentry.kind': 'server',
@@ -289,7 +289,7 @@ test.describe('Lambda layer', () => {
           'sentry.op': 'function.aws',
           'sentry.origin': 'auto.aws_lambda',
           'sentry.kind': 'server',
-          'faas.id': 'arn:aws:lambda:us-east-1:012345678912:function:LayerCallback',
+          'cloud.resource_id': 'arn:aws:lambda:us-east-1:012345678912:function:LayerCallback',
           'faas.name': 'LayerCallback',
         }),
       }),
@@ -320,6 +320,48 @@ test.describe('Lambda layer', () => {
         },
       }),
     );
+  });
+
+  test('ends the span when a callback-style handler calls back after it returned', async ({ lambdaClient }) => {
+    const transactionEventPromise = waitForTransaction('aws-serverless-layer', transactionEvent => {
+      return transactionEvent?.transaction === 'LayerCallback';
+    });
+
+    await lambdaClient.send(
+      new InvokeCommand({
+        FunctionName: 'LayerCallback',
+        Payload: JSON.stringify({ callbackDelayMs: 200 }),
+      }),
+    );
+
+    const transactionEvent = await transactionEventPromise;
+
+    expect(transactionEvent.contexts?.trace?.status).toBe('ok');
+    expect(transactionEvent.timestamp! - transactionEvent.start_timestamp!).toBeGreaterThanOrEqual(0.2);
+  });
+
+  test('sets error status when a callback-style handler calls back with an error after it returned', async ({
+    lambdaClient,
+  }) => {
+    const errorEventPromise = waitForError('aws-serverless-layer', errorEvent => {
+      return errorEvent?.exception?.values?.[0]?.value === 'callback error';
+    });
+    const transactionEventPromise = waitForTransaction('aws-serverless-layer', transactionEvent => {
+      return transactionEvent?.transaction === 'LayerCallback';
+    });
+
+    await lambdaClient.send(
+      new InvokeCommand({
+        FunctionName: 'LayerCallback',
+        Payload: JSON.stringify({ shouldError: true, callbackDelayMs: 200 }),
+      }),
+    );
+
+    const [errorEvent, transactionEvent] = await Promise.all([errorEventPromise, transactionEventPromise]);
+
+    expect(transactionEvent.contexts?.trace?.status).toBe('internal_error');
+    expect(transactionEvent.timestamp! - transactionEvent.start_timestamp!).toBeGreaterThanOrEqual(0.2);
+    expect(errorEvent.contexts?.trace?.trace_id).toBe(transactionEvent.contexts?.trace?.trace_id);
   });
 
   test('continues a trace from incoming headers', async ({ lambdaClient }) => {

@@ -110,7 +110,7 @@ it('cacheClient: true - detached work events ARE captured', async ({ signal }) =
 });
 
 it('cacheClient: false - repro #22545: detached work events are silently dropped', async ({ signal }) => {
-  const runner = createRunner(__dirname).ignore('transaction', 'span').start(signal);
+  const runner = createRunner(__dirname).ignore('span').start(signal);
 
   // Make the request that spawns detached work
   await runner.makeRequest('get', '/no-cache/detached?id=repro-1');
@@ -135,7 +135,7 @@ it('cacheClient: true - dedupe drops the same error across invocations', async (
   // A shared client shares its dedupe state, so the same error captured by two separate
   // invocations is reported only once — the second is dropped as a duplicate.
   const runner = createRunner(__dirname)
-    .ignore('transaction', 'span')
+    .ignore('span')
     .unordered()
     .failOnUnexpected()
     .expect(errorEventExpectation('Same error', CAPTURE_MECHANISM))
@@ -159,7 +159,7 @@ it('cacheClient: true - dedupe drops the same error across invocations', async (
 it('cacheClient: false - dedupe does not persist across invocations', async ({ signal }) => {
   // A fresh client per invocation means fresh dedupe state, so each invocation reports
   // the same error independently.
-  const runner = createRunner(__dirname).ignore('transaction', 'span').start(signal);
+  const runner = createRunner(__dirname).ignore('span').start(signal);
 
   for (let i = 0; i < 3; i++) {
     await runner.makeRequestAndWaitForEnvelope(
@@ -174,7 +174,7 @@ it('cacheClient: false - dedupe does not persist across invocations', async ({ s
 // also start reusing the isolation scope `setTag`/`setUser` write to. The uncached counterpart of
 // this test lives in the `durable-object-scope` suite.
 it('cacheClient: true - two consecutive invocations get different isolation scopes', async ({ signal }) => {
-  const runner = createRunner(__dirname).ignore('transaction', 'span').start(signal);
+  const runner = createRunner(__dirname).ignore('span').start(signal);
 
   await runner.makeRequestAndWaitForEnvelope('get', '/cache/scope?id=scope-shared&seed=1', (envelope: Envelope) => {
     const event = envelope[1]?.[0]?.[1] as Event;

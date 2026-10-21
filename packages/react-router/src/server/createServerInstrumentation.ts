@@ -3,9 +3,11 @@ import {
   CODE_FUNCTION_NAME,
   HTTP_REQUEST_METHOD,
   HTTP_ROUTE,
+  SENTRY_DESCRIPTION,
   SENTRY_OP,
   URL_FULL,
   URL_PATH,
+  SENTRY_ORIGIN,
 } from '@sentry/conventions/attributes';
 import { FUNCTION, HTTP_SERVER, MIDDLEWARE } from '@sentry/conventions/op';
 import {
@@ -16,7 +18,6 @@ import {
   getRootSpan,
   hasSpanStreamingEnabled,
   HTTP_SPAN_NAME_FALLBACK,
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SPAN_STATUS_ERROR,
   startSpan,
   updateSpanName,
@@ -81,7 +82,7 @@ export function createSentryServerInstrumentation(
             updateSpanName(existingRootSpan, unparameterizedName);
             existingRootSpan.setAttributes({
               [SENTRY_OP]: HTTP_SERVER,
-              [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.react_router.instrumentation_api',
+              [SENTRY_ORIGIN]: 'auto.http.react_router.instrumentation_api',
               [SENTRY_SEGMENT_NAME_SOURCE]: 'url',
               [URL_FULL]: filterCollectedUrl(info.request.url),
               [URL_PATH]: pathname,
@@ -105,7 +106,7 @@ export function createSentryServerInstrumentation(
                 name: unparameterizedName,
                 attributes: {
                   [SENTRY_OP]: HTTP_SERVER,
-                  [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.react_router.instrumentation_api',
+                  [SENTRY_ORIGIN]: 'auto.http.react_router.instrumentation_api',
                   [SENTRY_SEGMENT_NAME_SOURCE]: 'url',
                   [HTTP_REQUEST_METHOD]: info.request.method,
                   [URL_PATH]: pathname,
@@ -144,13 +145,20 @@ export function createSentryServerInstrumentation(
           const routePattern = normalizeRoutePath(pattern) || urlPath;
           updateRootSpanWithRoute(info.request.method, pattern, urlPath);
 
+          const client = getClient();
+          const hasSpanStreaming = !!client && hasSpanStreamingEnabled(client);
+
           await startSpan(
             {
-              name: routePattern,
+              // With span streaming, a `function` span is named after the function it wraps, because
+              // `routePattern` falls back to the raw request path for routes without a pattern.
+              name: hasSpanStreaming ? 'loader' : routePattern,
               attributes: {
                 [SENTRY_OP]: FUNCTION,
                 [CODE_FUNCTION_NAME]: 'loader',
-                [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.react_router.instrumentation_api',
+                [SENTRY_ORIGIN]: 'auto.function.react_router.instrumentation_api',
+                // Relay infers a `function` span's description from `code.function.name` alone, which drops the route.
+                ...(hasSpanStreaming && { [SENTRY_DESCRIPTION]: routePattern }),
               },
             },
             async span => {
@@ -172,13 +180,20 @@ export function createSentryServerInstrumentation(
           const routePattern = normalizeRoutePath(pattern) || urlPath;
           updateRootSpanWithRoute(info.request.method, pattern, urlPath);
 
+          const client = getClient();
+          const hasSpanStreaming = !!client && hasSpanStreamingEnabled(client);
+
           await startSpan(
             {
-              name: routePattern,
+              // With span streaming, a `function` span is named after the function it wraps, because
+              // `routePattern` falls back to the raw request path for routes without a pattern.
+              name: hasSpanStreaming ? 'action' : routePattern,
               attributes: {
                 [SENTRY_OP]: FUNCTION,
                 [CODE_FUNCTION_NAME]: 'action',
-                [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.react_router.instrumentation_api',
+                [SENTRY_ORIGIN]: 'auto.function.react_router.instrumentation_api',
+                // Relay infers a `function` span's description from `code.function.name` alone, which drops the route.
+                ...(hasSpanStreaming && { [SENTRY_DESCRIPTION]: routePattern }),
               },
             },
             async span => {
@@ -222,7 +237,7 @@ export function createSentryServerInstrumentation(
               attributes: {
                 [SENTRY_OP]: MIDDLEWARE,
                 [CODE_FUNCTION_NAME]: 'middleware',
-                [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.react_router.instrumentation_api',
+                [SENTRY_ORIGIN]: 'auto.function.react_router.instrumentation_api',
                 'react_router.route.id': routeId,
                 [HTTP_ROUTE]: routePattern,
                 ...(middlewareName && { 'react_router.middleware.name': middlewareName }),
@@ -249,7 +264,7 @@ export function createSentryServerInstrumentation(
               attributes: {
                 [SENTRY_OP]: FUNCTION,
                 [CODE_FUNCTION_NAME]: 'lazy',
-                [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.react_router.instrumentation_api',
+                [SENTRY_ORIGIN]: 'auto.function.react_router.instrumentation_api',
               },
             },
             async span => {

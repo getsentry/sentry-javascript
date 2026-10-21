@@ -1,5 +1,10 @@
 import { expect, test } from '@playwright/test';
-import { waitForError, waitForTransaction } from '@sentry-internal/test-utils';
+import {
+  waitForError,
+  waitForStreamedSpan,
+  getSpanOp,
+  collectStreamedSpansUntilSegment,
+} from '@sentry-internal/test-utils';
 
 test('Should record exceptions captured inside handlers', async ({ request }) => {
   const errorEventPromise = waitForError('node-express-esm-loader', errorEvent => {
@@ -11,134 +16,155 @@ test('Should record exceptions captured inside handlers', async ({ request }) =>
   await expect(errorEventPromise).resolves.toBeDefined();
 });
 
-test('Should record a transaction for a parameterless route', async ({ request }) => {
-  const transactionEventPromise = waitForTransaction('node-express-esm-loader', transactionEvent => {
-    return transactionEvent?.transaction === 'GET /test-success';
-  });
+test('Should record a span for a parameterless route', async ({ request }) => {
+  const segmentEventPromise = waitForStreamedSpan(
+    'node-express-esm-loader',
+    segment => segment.is_segment && segment.name === 'GET /test-success',
+  );
 
   await request.get('/test-success');
 
-  await expect(transactionEventPromise).resolves.toBeDefined();
+  await expect(segmentEventPromise).resolves.toBeDefined();
 });
 
-test('Should record a transaction for route with parameters', async ({ request }) => {
-  const transactionEventPromise = waitForTransaction('node-express-esm-loader', transactionEvent => {
-    return transactionEvent.contexts?.trace?.data?.['url.path'] === '/test-transaction/1';
-  });
+test('Should record a span for route with parameters', async ({ request }) => {
+  const segmentEventPromise = collectStreamedSpansUntilSegment(
+    'node-express-esm-loader',
+    segment => segment.attributes?.['url.path']?.value === '/test-transaction/1',
+  );
 
   await request.get('/test-transaction/1');
 
-  const transactionEvent = await transactionEventPromise;
+  const segmentEventSpans = await segmentEventPromise;
+  const segmentEvent = segmentEventSpans.find(
+    segment => segment.is_segment && segment.attributes?.['url.path']?.value === '/test-transaction/1',
+  )!;
 
-  expect(transactionEvent).toBeDefined();
-  expect(transactionEvent.transaction).toEqual('GET /test-transaction/:param');
-  expect(transactionEvent.contexts?.trace?.data).toEqual(
+  expect(segmentEvent).toBeDefined();
+  expect(segmentEvent.name).toEqual('GET /test-transaction/:param');
+  expect(segmentEvent.attributes).toEqual(
     expect.objectContaining({
-      'http.request.method': 'GET',
-      'http.response.status_code': 200,
-      'http.route': '/test-transaction/:param',
-      'url.scheme': 'http',
-      'http.response.status_text': 'OK',
-      'url.full': 'http://localhost:3030/test-transaction/1',
-      'user_agent.original': expect.any(String),
-      'network.local.address': expect.any(String),
-      'server.address': 'localhost',
-      'network.local.port': 3030,
-      'network.peer.address': expect.any(String),
-      'network.peer.port': expect.any(Number),
-      'network.transport': 'tcp',
-      'sentry.kind': 'server',
-      'sentry.op': 'http.server',
-      'sentry.origin': 'auto.http.http_server',
-      'sentry.sample_rate': 1,
-      'sentry.segment.name.source': 'route',
+      'http.request.method': { value: 'GET', type: 'string' },
+      'http.response.status_code': { value: 200, type: 'integer' },
+      'http.route': { value: '/test-transaction/:param', type: 'string' },
+      'url.scheme': { value: 'http', type: 'string' },
+      'http.response.status_text': { value: 'OK', type: 'string' },
+      'url.full': { value: 'http://localhost:3030/test-transaction/1', type: 'string' },
+      'user_agent.original': { value: expect.any(String), type: 'string' },
+      'network.local.address': { value: expect.any(String), type: 'string' },
+      'server.address': { value: 'localhost', type: 'string' },
+      'network.local.port': { value: 3030, type: 'integer' },
+      'network.peer.address': { value: expect.any(String), type: 'string' },
+      'network.peer.port': { value: expect.any(Number), type: 'integer' },
+      'network.transport': { value: 'tcp', type: 'string' },
+      'sentry.kind': { value: 'server', type: 'string' },
+      'sentry.op': { value: 'http.server', type: 'string' },
+      'sentry.origin': { value: 'auto.http.http_server', type: 'string' },
+      'sentry.sample_rate': { value: 1, type: 'integer' },
+      'sentry.segment.name.source': { value: 'route', type: 'string' },
     }),
   );
 
-  const spans = transactionEvent.spans || [];
-  expect(spans).toContainEqual({
-    data: {
-      'express.name': 'query',
-      'express.type': 'middleware',
-      'sentry.origin': 'auto.http.express',
-      'sentry.op': 'middleware',
-    },
-    op: 'middleware',
-    description: 'query',
-    origin: 'auto.http.express',
-    parent_span_id: expect.stringMatching(/[a-f0-9]{16}/),
-    span_id: expect.stringMatching(/[a-f0-9]{16}/),
-    start_timestamp: expect.any(Number),
-    status: 'ok',
-    timestamp: expect.any(Number),
-    trace_id: expect.stringMatching(/[a-f0-9]{32}/),
-  });
+  const spans = segmentEventSpans.filter(
+    span => !span.is_segment && span.attributes['sentry.segment.id']?.value === segmentEvent.span_id,
+  );
+  expect(spans.filter(span => span.name === 'query')).toEqual([
+    expect.objectContaining({
+      name: 'query',
+      parent_span_id: expect.stringMatching(/[a-f0-9]{16}/),
+      span_id: expect.stringMatching(/[a-f0-9]{16}/),
+      start_timestamp: expect.any(Number),
+      status: 'ok',
+      end_timestamp: expect.any(Number),
+      trace_id: expect.stringMatching(/[a-f0-9]{32}/),
+      attributes: expect.objectContaining({
+        'express.name': { value: 'query', type: 'string' },
+        'express.type': { value: 'middleware', type: 'string' },
+        'sentry.origin': { value: 'auto.http.express', type: 'string' },
+        'sentry.op': { value: 'middleware', type: 'string' },
+      }),
+    }),
+  ]);
 
-  expect(spans).toContainEqual({
-    data: {
-      'express.name': 'expressInit',
-      'express.type': 'middleware',
-      'sentry.origin': 'auto.http.express',
-      'sentry.op': 'middleware',
-    },
-    op: 'middleware',
-    description: 'expressInit',
-    origin: 'auto.http.express',
-    parent_span_id: expect.stringMatching(/[a-f0-9]{16}/),
-    span_id: expect.stringMatching(/[a-f0-9]{16}/),
-    start_timestamp: expect.any(Number),
-    status: 'ok',
-    timestamp: expect.any(Number),
-    trace_id: expect.stringMatching(/[a-f0-9]{32}/),
-  });
+  expect(spans.filter(span => span.name === 'expressInit')).toEqual([
+    expect.objectContaining({
+      name: 'expressInit',
+      parent_span_id: expect.stringMatching(/[a-f0-9]{16}/),
+      span_id: expect.stringMatching(/[a-f0-9]{16}/),
+      start_timestamp: expect.any(Number),
+      status: 'ok',
+      end_timestamp: expect.any(Number),
+      trace_id: expect.stringMatching(/[a-f0-9]{32}/),
+      attributes: expect.objectContaining({
+        'express.name': { value: 'expressInit', type: 'string' },
+        'express.type': { value: 'middleware', type: 'string' },
+        'sentry.origin': { value: 'auto.http.express', type: 'string' },
+        'sentry.op': { value: 'middleware', type: 'string' },
+      }),
+    }),
+  ]);
 
-  expect(spans).toContainEqual({
-    data: {
-      'express.name': '/test-transaction/:param',
-      'express.type': 'request_handler',
-      'http.route': '/test-transaction/:param',
-      'sentry.origin': 'auto.http.express',
-      'sentry.op': 'handler',
-    },
-    op: 'handler',
-    description: '/test-transaction/:param',
-    origin: 'auto.http.express',
-    parent_span_id: expect.stringMatching(/[a-f0-9]{16}/),
-    span_id: expect.stringMatching(/[a-f0-9]{16}/),
-    start_timestamp: expect.any(Number),
-    status: 'ok',
-    timestamp: expect.any(Number),
-    trace_id: expect.stringMatching(/[a-f0-9]{32}/),
-  });
+  expect(spans.filter(span => span.name === '/test-transaction/:param')).toEqual([
+    expect.objectContaining({
+      name: '/test-transaction/:param',
+      parent_span_id: expect.stringMatching(/[a-f0-9]{16}/),
+      span_id: expect.stringMatching(/[a-f0-9]{16}/),
+      start_timestamp: expect.any(Number),
+      status: 'ok',
+      end_timestamp: expect.any(Number),
+      trace_id: expect.stringMatching(/[a-f0-9]{32}/),
+      attributes: expect.objectContaining({
+        'express.name': { value: '/test-transaction/:param', type: 'string' },
+        'express.type': { value: 'request_handler', type: 'string' },
+        'http.route': { value: '/test-transaction/:param', type: 'string' },
+        'sentry.origin': { value: 'auto.http.express', type: 'string' },
+        'sentry.op': { value: 'handler', type: 'string' },
+      }),
+    }),
+  ]);
 });
 
 test('Instruments MySQL via Orchestrion', async ({ baseURL }) => {
-  const transactionEventPromise = waitForTransaction('node-express-esm-loader', transactionEvent => {
-    return transactionEvent.contexts?.trace?.op === 'http.server' && transactionEvent.transaction === 'GET /test-mysql';
-  });
+  const segmentEventPromise = collectStreamedSpansUntilSegment(
+    'node-express-esm-loader',
+    segment => getSpanOp(segment) === 'http.server' && segment.name === 'GET /test-mysql',
+  );
 
   await fetch(`${baseURL}/test-mysql`);
 
-  const transactionEvent = await transactionEventPromise;
+  const segmentEventSpans = await segmentEventPromise;
+  const segmentEvent = segmentEventSpans.find(
+    segment => segment.is_segment && getSpanOp(segment) === 'http.server' && segment.name === 'GET /test-mysql',
+  )!;
 
-  expect(transactionEvent.contexts?.trace?.op).toEqual('http.server');
-  expect(transactionEvent.transaction).toEqual('GET /test-mysql');
-  expect(transactionEvent.contexts?.trace?.status).toEqual('ok');
-  expect(transactionEvent.contexts?.trace?.data?.['http.response.status_code']).toEqual(200);
+  expect(getSpanOp(segmentEvent)).toEqual('http.server');
+  expect(segmentEvent.name).toEqual('GET /test-mysql');
+  expect(segmentEvent?.status).toEqual('ok');
+  expect(segmentEvent.attributes?.['http.response.status_code']?.value).toEqual(200);
 
-  const spans = transactionEvent.spans || [];
-  expect(spans).toContainEqual(
-    expect.objectContaining({
-      op: 'db',
-      origin: 'auto.db.mysql',
-      description: 'SELECT 1 + 1 AS solution',
-    }),
+  const spans = segmentEventSpans.filter(
+    span => !span.is_segment && span.attributes['sentry.segment.id']?.value === segmentEvent.span_id,
   );
-  expect(spans).toContainEqual(
-    expect.objectContaining({
-      op: 'db',
-      origin: 'auto.db.mysql',
-      description: 'SELECT NOW()',
-    }),
+  const dbSpans = spans.filter(span => getSpanOp(span) === 'db');
+  expect(dbSpans).toHaveLength(2);
+  expect(dbSpans).toEqual(
+    expect.arrayContaining([
+      expect.objectContaining({
+        name: 'SELECT',
+        attributes: expect.objectContaining({
+          'sentry.op': { value: 'db', type: 'string' },
+          'sentry.origin': { value: 'auto.db.mysql', type: 'string' },
+          'db.query.text': { value: 'SELECT ? + ? AS solution', type: 'string' },
+        }),
+      }),
+      expect.objectContaining({
+        name: 'SELECT',
+        attributes: expect.objectContaining({
+          'sentry.op': { value: 'db', type: 'string' },
+          'sentry.origin': { value: 'auto.db.mysql', type: 'string' },
+          'db.query.text': { value: 'SELECT NOW()', type: 'string' },
+        }),
+      }),
+    ]),
   );
 });

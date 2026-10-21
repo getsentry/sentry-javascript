@@ -1,0 +1,9 @@
+// use prisma-next
+
+// Regenerate `contract.json` with `prisma-cli contract emit` and `init.sql` from `prisma-cli db init` (Node 22.18+).
+// No `DateTime` column: Prisma 8 decodes timestamps into `Temporal`, global only on Node 26.
+model User {
+  id    Int     @id @default(autoincrement())
+  email String  @unique
+  name  String?
+}

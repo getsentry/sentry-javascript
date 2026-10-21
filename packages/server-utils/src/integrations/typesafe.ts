@@ -1,0 +1,51 @@
+import * as diagnosticsChannel from '../utils/diagnosticsChannel';
+import type { IntegrationFn } from '@sentry/core';
+import { defineIntegration } from '@sentry/core';
+import type { GenAiOptions } from '../ai/core/utils';
+import { resolveAIRecordingOptions } from '../ai/core/utils';
+import { addResponseAttributes, onSystemOneResponse, startDecideSpan } from '../ai/typesafe';
+import { TYPESAFE_INTEGRATION_NAME } from '../ai/typesafe/constants';
+import type { OrchestrionChannelContext } from '../orchestrion/types';
+import { CHANNELS } from '../orchestrion/channels';
+import { typesafeModuleNames } from '../orchestrion/config/typesafe';
+import { invokeOrchestrionInstrumentation } from '../orchestrion/instrumentation';
+import { bindTracingChannelToSpan } from '../tracing-channel';
+
+const _typesafeIntegration = ((options: GenAiOptions = {}) => {
+  return {
+    name: TYPESAFE_INTEGRATION_NAME,
+    setup(client) {
+      invokeOrchestrionInstrumentation(client, typesafeModuleNames, instrumentTypeSafe, [options]);
+    },
+  };
+}) satisfies IntegrationFn;
+
+function instrumentTypeSafe(options: GenAiOptions): void {
+  bindTracingChannelToSpan(
+    diagnosticsChannel.tracingChannel<OrchestrionChannelContext>(CHANNELS.TYPESAFE_SYSTEM_ONE),
+    data => startDecideSpan(data.arguments?.[0], data.self, resolveAIRecordingOptions(options).recordInputs),
+    {
+      beforeSpanEnd: (span, data) => {
+        if (!('error' in data)) {
+          addResponseAttributes(span, data.result, resolveAIRecordingOptions(options).recordOutputs);
+        }
+      },
+      deferSpanEnd: ({ data, end }) =>
+        onSystemOneResponse(
+          data.result,
+          body => {
+            data.result = body;
+            end();
+          },
+          error => end(error),
+        ),
+    },
+  );
+}
+
+/**
+ * Diagnostics-channel-based integration for the TypeSafe SDK (`@typesafe-ai/sdk` >= 0.5.0 < 1).
+ * Subscribes to the `orchestrion:@typesafe-ai/sdk:system-one` channel injected into
+ * `TypeSafeClient.systemOne`, so it requires the Sentry runtime hook or bundler plugin.
+ */
+export const typesafeIntegration = defineIntegration(_typesafeIntegration);

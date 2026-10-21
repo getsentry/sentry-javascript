@@ -1,6 +1,6 @@
 {
   "private": true,
-  "version": "10.67.0",
+  "version": "11.8.0",
   "name": "@sentry-internal/test-utils",
   "author": "Sentry",
   "license": "MIT",
@@ -8,9 +8,7 @@
   "module": "build/esm/index.js",
   "types": "build/types/index.d.ts",
   "files": [
-    "cjs",
-    "esm",
-    "types"
+    "/build"
   ],
   "exports": {
     "./package.json": "./package.json",
@@ -23,6 +21,26 @@
         "types": "./build/types/index.d.ts",
         "default": "./build/cjs/index.js"
       }
+    },
+    "./cli": {
+      "import": {
+        "types": "./build/types/cli.d.ts",
+        "default": "./build/esm/cli.js"
+      },
+      "require": {
+        "types": "./build/types/cli.d.ts",
+        "default": "./build/cjs/cli.js"
+      }
+    },
+    "./cloudflare": {
+      "import": {
+        "types": "./build/types/cloudflare.d.ts",
+        "default": "./build/esm/cloudflare.js"
+      },
+      "require": {
+        "types": "./build/types/cloudflare.d.ts",
+        "default": "./build/cjs/cloudflare.js"
+      }
     }
   },
   "sideEffects": false,
@@ -33,22 +51,22 @@
     "lint:fix": "oxlint . --fix --type-aware",
     "lint": "oxlint . --type-aware",
     "build": "run-s build:transpile build:types",
-    "build:tarball": "run-s build:transpile build:types",
-    "build:dev": "yarn build",
+    "build:tarball": "npm pack",
+    "build:dev": "pnpm run build",
     "build:transpile": "rollup -c rollup.npm.config.mjs",
     "build:types": "tsc -p tsconfig.types.json",
     "clean": "rimraf -g ./node_modules ./build"
   },
   "peerDependencies": {
-    "@playwright/test": "~1.56.0"
+    "@playwright/test": "1.64.1"
   },
   "dependencies": {
     "express": "^4.21.2",
     "ws": "^8.20.1"
   },
   "devDependencies": {
-    "@playwright/test": "~1.56.0",
-    "@sentry/core": "10.67.0",
+    "@playwright/test": "1.64.1",
+    "@sentry/core": "11.8.0",
     "@types/ws": "^8.18.1",
     "eslint-plugin-regexp": "^3.1.0"
   },

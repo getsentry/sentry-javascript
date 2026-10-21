@@ -1,4 +1,11 @@
-import type { Event, TransactionEvent } from '@sentry/core';
+import type {
+  Envelope,
+  Event,
+  SerializedStreamedSpan,
+  SerializedStreamedSpanContainer,
+  TransactionEvent,
+  Transport,
+} from '@sentry/core';
 import { getAsyncContextStrategy, getMainCarrier, setAsyncContextStrategy } from '@sentry/core';
 
 /**
@@ -65,6 +72,11 @@ export function transactionSink(): {
   };
 }
 
+export function getSpanOp(span: SerializedStreamedSpan): string | undefined {
+  const attribute = span.attributes['sentry.op'];
+  return attribute?.type === 'string' ? attribute.value : undefined;
+}
+
 /**
  * A `beforeSend` hook that records every error and lets a test
  * `await` the first one matching a predicate. `waitFor` resolves immediately if
@@ -83,4 +95,37 @@ export function withTimeout<T>(p: Promise<T>, ms: number, what: string): Promise
   return Promise.race([p, timeout]).finally(() => {
     if (timer !== undefined) clearTimeout(timer);
   });
+}
+
+/**
+ * A `transport` that records every streamed span instead of sending it, and lets a test `await`
+ * the first one matching a predicate. Unlike events, spans cannot be dropped from `beforeSendSpan`
+ * (returning null is disallowed), so intercepting them needs a transport rather than a hook.
+ */
+export function spanSink(): {
+  spans: SerializedStreamedSpan[];
+  waitFor: (predicate: (span: SerializedStreamedSpan) => boolean) => Promise<SerializedStreamedSpan>;
+  transport: () => Transport;
+} {
+  const spans: SerializedStreamedSpan[] = [];
+  const sink = eventSink<SerializedStreamedSpan>();
+
+  return {
+    spans,
+    waitFor: sink.waitFor,
+    transport: () => ({
+      send: (envelope: Envelope) => {
+        for (const [header, payload] of envelope[1]) {
+          if (header.type === 'span') {
+            for (const span of (payload as SerializedStreamedSpanContainer).items) {
+              spans.push(span);
+              sink.beforeSend(span);
+            }
+          }
+        }
+        return Promise.resolve({});
+      },
+      flush: () => Promise.resolve(true),
+    }),
+  };
 }

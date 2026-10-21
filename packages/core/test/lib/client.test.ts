@@ -4,6 +4,7 @@ import {
   addBreadcrumb,
   dsnToString,
   getCurrentScope,
+  getGlobalScope,
   getIsolationScope,
   lastEventId,
   linkedErrorsIntegration,
@@ -21,8 +22,10 @@ import { _INTERNAL_captureMetric } from '../../src/metrics/internal';
 import * as traceModule from '../../src/tracing/trace';
 import { DEFAULT_TRANSPORT_BUFFER_SIZE } from '../../src/transports/base';
 import type { Envelope } from '../../src/types/envelope';
-import type { ErrorEvent, Event, TransactionEvent } from '../../src/types/event';
+import type { Outcome } from '../../src/types/clientreport';
+import type { ErrorEvent, Event, EventHint, TransactionEvent } from '../../src/types/event';
 import type { SpanJSON } from '../../src/types/span';
+import type { Transport } from '../../src/types/transport';
 import * as debugLoggerModule from '../../src/utils/debug-logger';
 import * as miscModule from '../../src/utils/misc';
 import * as timeModule from '../../src/utils/time';
@@ -357,22 +360,6 @@ describe('Client', () => {
       expect(isolationScopeBreadcrumbs).toEqual([{ message: 'hello3', timestamp: expect.any(Number) }]);
     });
 
-    test('it records `buffer_overflow` client discard reason when buffer overflows', () => {
-      const options = getDefaultTestClientOptions({ maxBreadcrumbs: 1 });
-      const client = new TestClient(options);
-      const recordLostEventSpy = vi.spyOn(client, 'recordDroppedEvent');
-      setCurrentClient(client);
-      getIsolationScope().setClient(client);
-      client.init();
-
-      addBreadcrumb({ message: 'hello1' });
-      addBreadcrumb({ message: 'hello2' });
-      addBreadcrumb({ message: 'hello3' });
-
-      expect(recordLostEventSpy).toHaveBeenCalledTimes(2);
-      expect(recordLostEventSpy).toHaveBeenLastCalledWith('buffer_overflow', 'log_item');
-    });
-
     test('calls `beforeBreadcrumb` and adds the breadcrumb without any changes', () => {
       const beforeBreadcrumb = vi.fn(breadcrumb => breadcrumb);
       const options = getDefaultTestClientOptions({ beforeBreadcrumb });
@@ -410,6 +397,27 @@ describe('Client', () => {
 
       const isolationScopeBreadcrumbs = getIsolationScope().getScopeData().breadcrumbs;
       expect(isolationScopeBreadcrumbs).toEqual([]);
+    });
+
+    test('calls `beforeBreadcrumb` and discards the breadcrumb when it throws', () => {
+      const exception = new Error('beforeBreadcrumb failed');
+      const beforeBreadcrumb = vi.fn(() => {
+        throw exception;
+      });
+      const options = getDefaultTestClientOptions({ beforeBreadcrumb });
+      const client = new TestClient(options);
+      setCurrentClient(client);
+      client.init();
+      const debugErrorSpy = vi.spyOn(debugLoggerModule.debug, 'error');
+
+      expect(() => addBreadcrumb({ message: 'hello' })).not.toThrow();
+
+      const isolationScopeBreadcrumbs = getIsolationScope().getScopeData().breadcrumbs;
+      expect(isolationScopeBreadcrumbs).toEqual([]);
+      expect(debugErrorSpy).toHaveBeenCalledWith(
+        'The `beforeBreadcrumb` callback threw an error, dropping the breadcrumb:',
+        exception,
+      );
     });
 
     test('`beforeBreadcrumb` gets an access to a hint as a second argument', () => {
@@ -1329,6 +1337,7 @@ describe('Client', () => {
 
       const captureExceptionSpy = vi.spyOn(client, 'captureException');
       const loggerLogSpy = vi.spyOn(debugLoggerModule.debug, 'log');
+      const recordDroppedEventSpy = vi.spyOn(client, 'recordDroppedEvent');
 
       const transaction: Event = {
         transaction: 'root span',
@@ -1358,7 +1367,10 @@ describe('Client', () => {
       // This proves that the reason the event didn't send/didn't get set on the test client is not because there was an
       // error, but because the event processor returned `null`
       expect(captureExceptionSpy).not.toBeCalled();
-      expect(loggerLogSpy).toBeCalledWith('before send for type `transaction` returned `null`, will not send event.');
+      expect(loggerLogSpy).toBeCalledWith('Transaction matched `ignoreSpans`, will not send event.');
+      expect(recordDroppedEventSpy).toHaveBeenCalledTimes(2);
+      expect(recordDroppedEventSpy).toHaveBeenCalledWith('ignored', 'transaction');
+      expect(recordDroppedEventSpy).toHaveBeenCalledWith('ignored', 'span', 3);
     });
 
     test('uses `ignoreSpans` to drop child spans', () => {
@@ -1428,7 +1440,8 @@ describe('Client', () => {
           status: 'ok',
         },
       ]);
-      expect(recordDroppedEventSpy).toBeCalledWith('before_send', 'span', 1);
+      expect(recordDroppedEventSpy).toHaveBeenCalledTimes(1);
+      expect(recordDroppedEventSpy).toHaveBeenCalledWith('ignored', 'span', 1);
     });
 
     test('uses complex `ignoreSpans` to drop child spans', () => {
@@ -1504,7 +1517,8 @@ describe('Client', () => {
           status: 'ok',
         },
       ]);
-      expect(recordDroppedEventSpy).toBeCalledWith('before_send', 'span', 2);
+      expect(recordDroppedEventSpy).toHaveBeenCalledTimes(1);
+      expect(recordDroppedEventSpy).toHaveBeenCalledWith('ignored', 'span', 2);
     });
 
     test('does not modify existing contexts for root span in `beforeSendSpan`', () => {
@@ -1704,51 +1718,6 @@ describe('Client', () => {
       // error, but because `beforeSendTransaction` returned `null`
       expect(captureExceptionSpy).not.toBeCalled();
       expect(loggerLogSpy).toBeCalledWith('before send for type `transaction` returned `null`, will not send event.');
-    });
-
-    test('does not discard span and warn when returning null from `beforeSendSpan', () => {
-      const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
-
-      // @ts-expect-error - intentionally violating the type signature here
-      const beforeSendSpan = withStaticSpan(vi.fn(() => null));
-
-      const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, beforeSendSpan });
-      const client = new TestClient(options);
-
-      const transaction: Event = {
-        transaction: '/dogs/are/great',
-        type: 'transaction',
-        spans: [
-          {
-            description: 'first span',
-            span_id: '9e15bf99fbe4bc80',
-            start_timestamp: 1591603196.637835,
-            trace_id: '86f39e84263a4de99c326acab3bfe3bd',
-            data: {},
-            status: 'ok',
-          },
-          {
-            description: 'second span',
-            span_id: 'aa554c1f506b0783',
-            start_timestamp: 1591603196.637835,
-            trace_id: '86f39e84263a4de99c326acab3bfe3bd',
-            data: {},
-            status: 'ok',
-          },
-        ],
-      };
-      client.captureEvent(transaction);
-
-      expect(beforeSendSpan).toHaveBeenCalledTimes(3);
-      const capturedEvent = TestClient.instance!.event!;
-      expect(capturedEvent.spans).toHaveLength(2);
-      expect(client['_outcomes']).toEqual({});
-
-      expect(consoleWarnSpy).toHaveBeenCalledTimes(1);
-      expect(consoleWarnSpy).toHaveBeenCalledWith(
-        '[Sentry] Returning null from `beforeSendSpan` is disallowed. To drop certain spans, configure the respective integrations directly or use `ignoreSpans`.',
-      );
-      consoleWarnSpy.mockRestore();
     });
 
     test("doesn't throw if the `beforeSendSpan` callback throws", () => {
@@ -2121,8 +2090,8 @@ describe('Client', () => {
       expect(recordLostEventSpy).toHaveBeenCalledWith('event_processor', 'error');
     });
 
-    test('event processor records dropped transaction events', () => {
-      expect.assertions(1);
+    test('event processor records dropped transaction events and spans', () => {
+      expect.assertions(3);
 
       const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN });
       const client = new TestClient(options);
@@ -2132,9 +2101,394 @@ describe('Client', () => {
       const scope = new Scope();
       scope.addEventProcessor(() => null);
 
-      client.captureEvent({ transaction: '/dogs/are/great', type: 'transaction' }, {}, scope);
+      client.captureEvent(
+        {
+          transaction: '/dogs/are/great',
+          type: 'transaction',
+          spans: [
+            {
+              description: 'fetch dogs',
+              data: {},
+              status: 'ok',
+              span_id: '9e15bf99fbe4bc80',
+              start_timestamp: 1591603196.637835,
+              trace_id: '86f39e84263a4de99c326acab3bfe3bd',
+            },
+          ],
+        },
+        {},
+        scope,
+      );
 
+      expect(recordLostEventSpy).toHaveBeenCalledTimes(2);
       expect(recordLostEventSpy).toHaveBeenCalledWith('event_processor', 'transaction');
+      expect(recordLostEventSpy).toHaveBeenCalledWith('event_processor', 'span', 2);
+    });
+
+    test('event processor records spans it removes from a sent transaction', () => {
+      const client = new TestClient(getDefaultTestClientOptions({ dsn: PUBLIC_DSN }));
+      const recordLostEventSpy = vi.spyOn(client, 'recordDroppedEvent');
+
+      const spans = [
+        {
+          span_id: 'aaaaaaaaaaaaaaaa',
+          start_timestamp: 1,
+          trace_id: '86f39e84263a4de99c326acab3bfe3bd',
+          data: {},
+          status: 'ok',
+        },
+        {
+          span_id: 'bbbbbbbbbbbbbbbb',
+          start_timestamp: 1,
+          trace_id: '86f39e84263a4de99c326acab3bfe3bd',
+          data: {},
+          status: 'ok',
+        },
+        {
+          span_id: 'cccccccccccccccc',
+          start_timestamp: 1,
+          trace_id: '86f39e84263a4de99c326acab3bfe3bd',
+          data: {},
+          status: 'ok',
+        },
+      ];
+
+      const scope = new Scope();
+      scope.addEventProcessor(event => ({ ...event, spans: event.spans?.slice(0, 1) }));
+
+      client.captureEvent({ transaction: '/dogs/are/great', type: 'transaction', spans }, {}, scope);
+
+      expect(TestClient.instance!.event?.spans).toHaveLength(1);
+      expect(recordLostEventSpy).toHaveBeenCalledTimes(1);
+      expect(recordLostEventSpy).toHaveBeenCalledWith('event_processor', 'span', 2);
+    });
+
+    test('event processor counts spans removed in place before a later processor drops the transaction', () => {
+      const client = new TestClient(getDefaultTestClientOptions({ dsn: PUBLIC_DSN }));
+      const recordLostEventSpy = vi.spyOn(client, 'recordDroppedEvent');
+
+      const spans = [
+        {
+          span_id: 'aaaaaaaaaaaaaaaa',
+          start_timestamp: 1,
+          trace_id: '86f39e84263a4de99c326acab3bfe3bd',
+          data: {},
+          status: 'ok',
+        },
+        {
+          span_id: 'bbbbbbbbbbbbbbbb',
+          start_timestamp: 1,
+          trace_id: '86f39e84263a4de99c326acab3bfe3bd',
+          data: {},
+          status: 'ok',
+        },
+        {
+          span_id: 'cccccccccccccccc',
+          start_timestamp: 1,
+          trace_id: '86f39e84263a4de99c326acab3bfe3bd',
+          data: {},
+          status: 'ok',
+        },
+      ];
+
+      const scope = new Scope();
+      scope.addEventProcessor(event => {
+        event.spans?.splice(0, 2);
+        return event;
+      });
+      scope.addEventProcessor(() => null);
+
+      client.captureEvent({ transaction: '/dogs/are/great', type: 'transaction', spans }, {}, scope);
+
+      expect(recordLostEventSpy).toHaveBeenCalledTimes(2);
+      expect(recordLostEventSpy).toHaveBeenCalledWith('event_processor', 'transaction');
+      expect(recordLostEventSpy).toHaveBeenCalledWith('event_processor', 'span', 4);
+    });
+
+    test('spans removed by event processors and `beforeSendTransaction` are each counted once', () => {
+      const beforeSendTransaction = vi.fn(event => ({ ...event, spans: [] }));
+      const client = new TestClient(getDefaultTestClientOptions({ dsn: PUBLIC_DSN, beforeSendTransaction }));
+      const recordLostEventSpy = vi.spyOn(client, 'recordDroppedEvent');
+
+      const spans = [
+        {
+          span_id: 'aaaaaaaaaaaaaaaa',
+          start_timestamp: 1,
+          trace_id: '86f39e84263a4de99c326acab3bfe3bd',
+          data: {},
+          status: 'ok',
+        },
+        {
+          span_id: 'bbbbbbbbbbbbbbbb',
+          start_timestamp: 1,
+          trace_id: '86f39e84263a4de99c326acab3bfe3bd',
+          data: {},
+          status: 'ok',
+        },
+        {
+          span_id: 'cccccccccccccccc',
+          start_timestamp: 1,
+          trace_id: '86f39e84263a4de99c326acab3bfe3bd',
+          data: {},
+          status: 'ok',
+        },
+      ];
+
+      const scope = new Scope();
+      scope.addEventProcessor(event => ({ ...event, spans: event.spans?.slice(0, 1) }));
+
+      client.captureEvent({ transaction: '/dogs/are/great', type: 'transaction', spans }, {}, scope);
+
+      expect(TestClient.instance!.event?.type).toBe('transaction');
+      expect(TestClient.instance!.event?.spans).toEqual([]);
+      expect(recordLostEventSpy).toHaveBeenCalledTimes(2);
+      expect(recordLostEventSpy).toHaveBeenCalledWith('event_processor', 'span', 2);
+      expect(recordLostEventSpy).toHaveBeenCalledWith('before_send', 'span', 1);
+    });
+
+    test('spans removed by event processors are not counted again when `beforeSendTransaction` drops the transaction', () => {
+      const client = new TestClient(
+        getDefaultTestClientOptions({ dsn: PUBLIC_DSN, beforeSendTransaction: () => null }),
+      );
+      const recordLostEventSpy = vi.spyOn(client, 'recordDroppedEvent');
+
+      const spans = [
+        {
+          span_id: 'aaaaaaaaaaaaaaaa',
+          start_timestamp: 1,
+          trace_id: '86f39e84263a4de99c326acab3bfe3bd',
+          data: {},
+          status: 'ok',
+        },
+        {
+          span_id: 'bbbbbbbbbbbbbbbb',
+          start_timestamp: 1,
+          trace_id: '86f39e84263a4de99c326acab3bfe3bd',
+          data: {},
+          status: 'ok',
+        },
+        {
+          span_id: 'cccccccccccccccc',
+          start_timestamp: 1,
+          trace_id: '86f39e84263a4de99c326acab3bfe3bd',
+          data: {},
+          status: 'ok',
+        },
+      ];
+
+      const scope = new Scope();
+      scope.addEventProcessor(event => ({ ...event, spans: event.spans?.slice(0, 1) }));
+
+      client.captureEvent({ transaction: '/dogs/are/great', type: 'transaction', spans }, {}, scope);
+
+      expect(TestClient.instance!.event).toBeUndefined();
+      expect(recordLostEventSpy).toHaveBeenCalledTimes(3);
+      expect(recordLostEventSpy).toHaveBeenCalledWith('event_processor', 'span', 2);
+      expect(recordLostEventSpy).toHaveBeenCalledWith('before_send', 'transaction');
+      expect(recordLostEventSpy).toHaveBeenCalledWith('before_send', 'span', 2);
+    });
+
+    test('spans removed by event processors are not counted again when `ignoreSpans` drops the root span', () => {
+      const client = new TestClient(getDefaultTestClientOptions({ dsn: PUBLIC_DSN, ignoreSpans: ['/dogs/are/great'] }));
+      const recordLostEventSpy = vi.spyOn(client, 'recordDroppedEvent');
+
+      const spans = [
+        {
+          span_id: 'aaaaaaaaaaaaaaaa',
+          start_timestamp: 1,
+          trace_id: '86f39e84263a4de99c326acab3bfe3bd',
+          data: {},
+          status: 'ok',
+        },
+        {
+          span_id: 'bbbbbbbbbbbbbbbb',
+          start_timestamp: 1,
+          trace_id: '86f39e84263a4de99c326acab3bfe3bd',
+          data: {},
+          status: 'ok',
+        },
+        {
+          span_id: 'cccccccccccccccc',
+          start_timestamp: 1,
+          trace_id: '86f39e84263a4de99c326acab3bfe3bd',
+          data: {},
+          status: 'ok',
+        },
+      ];
+
+      const scope = new Scope();
+      scope.addEventProcessor(event => ({ ...event, spans: event.spans?.slice(0, 1) }));
+
+      client.captureEvent({ transaction: '/dogs/are/great', type: 'transaction', spans }, {}, scope);
+
+      expect(TestClient.instance!.event).toBeUndefined();
+      expect(recordLostEventSpy).toHaveBeenCalledTimes(3);
+      expect(recordLostEventSpy).toHaveBeenCalledWith('event_processor', 'span', 2);
+      expect(recordLostEventSpy).toHaveBeenCalledWith('ignored', 'transaction');
+      expect(recordLostEventSpy).toHaveBeenCalledWith('ignored', 'span', 2);
+    });
+
+    test('child spans dropped by `ignoreSpans` are counted as ignored when `beforeSendTransaction` drops the transaction', () => {
+      const client = new TestClient(
+        getDefaultTestClientOptions({
+          dsn: PUBLIC_DSN,
+          ignoreSpans: ['ignored-child'],
+          beforeSendTransaction: () => null,
+        }),
+      );
+      const recordLostEventSpy = vi.spyOn(client, 'recordDroppedEvent');
+
+      const spans = [
+        {
+          span_id: 'aaaaaaaaaaaaaaaa',
+          description: 'ignored-child',
+          start_timestamp: 1,
+          trace_id: '86f39e84263a4de99c326acab3bfe3bd',
+          data: {},
+          status: 'ok',
+        },
+        {
+          span_id: 'bbbbbbbbbbbbbbbb',
+          start_timestamp: 1,
+          trace_id: '86f39e84263a4de99c326acab3bfe3bd',
+          data: {},
+          status: 'ok',
+        },
+      ];
+
+      client.captureEvent({ transaction: '/dogs/are/great', type: 'transaction', spans });
+
+      expect(TestClient.instance!.event).toBeUndefined();
+      expect(recordLostEventSpy).toHaveBeenCalledTimes(3);
+      expect(recordLostEventSpy).toHaveBeenCalledWith('ignored', 'span', 1);
+      expect(recordLostEventSpy).toHaveBeenCalledWith('before_send', 'transaction');
+      expect(recordLostEventSpy).toHaveBeenCalledWith('before_send', 'span', 2);
+    });
+
+    test('child spans dropped by `ignoreSpans` and removed by `beforeSendTransaction` are counted once with their reason', () => {
+      const client = new TestClient(
+        getDefaultTestClientOptions({
+          dsn: PUBLIC_DSN,
+          ignoreSpans: ['ignored-child'],
+          beforeSendTransaction: event => ({ ...event, spans: [] }),
+        }),
+      );
+      const recordLostEventSpy = vi.spyOn(client, 'recordDroppedEvent');
+
+      const spans = [
+        {
+          span_id: 'aaaaaaaaaaaaaaaa',
+          description: 'ignored-child',
+          start_timestamp: 1,
+          trace_id: '86f39e84263a4de99c326acab3bfe3bd',
+          data: {},
+          status: 'ok',
+        },
+        {
+          span_id: 'bbbbbbbbbbbbbbbb',
+          start_timestamp: 1,
+          trace_id: '86f39e84263a4de99c326acab3bfe3bd',
+          data: {},
+          status: 'ok',
+        },
+      ];
+
+      client.captureEvent({ transaction: '/dogs/are/great', type: 'transaction', spans });
+
+      expect(TestClient.instance!.event?.spans).toEqual([]);
+      expect(recordLostEventSpy).toHaveBeenCalledTimes(2);
+      expect(recordLostEventSpy).toHaveBeenCalledWith('ignored', 'span', 1);
+      expect(recordLostEventSpy).toHaveBeenCalledWith('before_send', 'span', 1);
+    });
+
+    describe('span outcomes when all span drop mechanisms apply to the same transaction', () => {
+      const childSpanDescriptions = [
+        'removed-by-event-processor-1',
+        'removed-by-event-processor-2',
+        'ignored-child',
+        'removed-by-before-send-transaction',
+        'kept-1',
+        'kept-2',
+      ];
+
+      function captureTransaction(
+        beforeSendTransaction: (event: TransactionEvent) => TransactionEvent | null,
+      ): TestClient {
+        const client = new TestClient(
+          getDefaultTestClientOptions({
+            dsn: PUBLIC_DSN,
+            ignoreSpans: ['ignored-child'],
+            beforeSendSpan: withStaticSpan(span => ({ ...span, data: { ...span.data, scrubbed: true } })),
+            beforeSendTransaction,
+          }),
+        );
+
+        const scope = new Scope();
+        scope.addEventProcessor(event => ({
+          ...event,
+          spans: event.spans?.filter(span => !span.description?.startsWith('removed-by-event-processor')),
+        }));
+
+        client.captureEvent(
+          {
+            transaction: '/dogs/are/great',
+            type: 'transaction',
+            spans: childSpanDescriptions.map((description, i) => ({
+              description,
+              span_id: `${i}`.padStart(16, '0'),
+              start_timestamp: 1,
+              trace_id: '86f39e84263a4de99c326acab3bfe3bd',
+              data: {},
+              status: 'ok',
+            })),
+          },
+          {},
+          scope,
+        );
+
+        return client;
+      }
+
+      function getOutcomes(client: TestClient): { outcomes: Outcome[]; spanOutcomeTotal: number } {
+        const outcomes = client._clearOutcomes();
+        const spanOutcomeTotal = outcomes.filter(o => o.category === 'span').reduce((sum, o) => sum + o.quantity, 0);
+        return { outcomes, spanOutcomeTotal };
+      }
+
+      test('counts each dropped span exactly once when the transaction is sent', () => {
+        const client = captureTransaction(event => ({
+          ...event,
+          spans: event.spans?.filter(span => span.description !== 'removed-by-before-send-transaction'),
+        }));
+
+        const sentSpans = TestClient.instance!.event!.spans!;
+        expect(sentSpans.map(span => span.description)).toEqual(['kept-1', 'kept-2']);
+
+        const { outcomes, spanOutcomeTotal } = getOutcomes(client);
+        expect(outcomes).toEqual([
+          { reason: 'event_processor', category: 'span', quantity: 2 },
+          { reason: 'ignored', category: 'span', quantity: 1 },
+          { reason: 'before_send', category: 'span', quantity: 1 },
+        ]);
+        // every child span is either sent or counted once; the root span is sent as the transaction
+        expect(spanOutcomeTotal + sentSpans.length).toBe(childSpanDescriptions.length);
+      });
+
+      test('counts each span exactly once when `beforeSendTransaction` drops the transaction', () => {
+        const client = captureTransaction(() => null);
+
+        expect(TestClient.instance!.event).toBeUndefined();
+
+        const { outcomes, spanOutcomeTotal } = getOutcomes(client);
+        expect(outcomes).toEqual([
+          { reason: 'event_processor', category: 'span', quantity: 2 },
+          { reason: 'ignored', category: 'span', quantity: 1 },
+          { reason: 'before_send', category: 'transaction', quantity: 1 },
+          { reason: 'before_send', category: 'span', quantity: 4 },
+        ]);
+        // all child spans plus the root span are counted once
+        expect(spanOutcomeTotal).toBe(childSpanDescriptions.length + 1);
+      });
     });
 
     test('mutating transaction name with event processors sets transaction-name-change metadata', () => {
@@ -2185,11 +2539,12 @@ describe('Client', () => {
       });
     });
 
-    test('event processor sends an event and logs when it crashes synchronously', () => {
+    test('drops the event and records a client report when an event processor throws synchronously', () => {
       const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN });
       const client = new TestClient(options);
       const captureExceptionSpy = vi.spyOn(client, 'captureException');
-      const loggerWarnSpy = vi.spyOn(debugLoggerModule.debug, 'warn');
+      const recordDroppedEventSpy = vi.spyOn(client, 'recordDroppedEvent');
+      const debugErrorSpy = vi.spyOn(debugLoggerModule.debug, 'error');
       const scope = new Scope();
       const exception = new Error('sorry 1');
       scope.addEventProcessor(() => {
@@ -2198,47 +2553,332 @@ describe('Client', () => {
 
       client.captureEvent({ message: 'hello' }, {}, scope);
 
-      expect(TestClient.instance!.event!.exception!.values![0]).toStrictEqual({
-        type: 'Error',
-        value: 'sorry 1',
-        mechanism: { type: 'internal', handled: false },
+      expect(TestClient.instance!.event).toBeUndefined();
+      expect(captureExceptionSpy).not.toHaveBeenCalled();
+      expect(recordDroppedEventSpy).toHaveBeenCalledWith('callback_error', 'error');
+      expect(debugErrorSpy).toHaveBeenCalledWith('Event processor "?" threw an error, dropping event:', exception);
+    });
+
+    test('drops the event and records a client report when an event processor rejects', async () => {
+      vi.useFakeTimers();
+
+      const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN });
+      const client = new TestClient(options);
+      const captureExceptionSpy = vi.spyOn(client, 'captureException');
+      const recordDroppedEventSpy = vi.spyOn(client, 'recordDroppedEvent');
+      const debugErrorSpy = vi.spyOn(debugLoggerModule.debug, 'error');
+      const scope = new Scope();
+      const exception = new Error('sorry 2');
+      scope.addEventProcessor(() => Promise.reject(exception));
+
+      client.captureEvent({ message: 'hello' }, {}, scope);
+
+      await vi.runOnlyPendingTimersAsync();
+
+      expect(TestClient.instance!.event).toBeUndefined();
+      expect(captureExceptionSpy).not.toHaveBeenCalled();
+      expect(recordDroppedEventSpy).toHaveBeenCalledWith('callback_error', 'error');
+      expect(debugErrorSpy).toHaveBeenCalledWith('Event processor "?" threw an error, dropping event:', exception);
+    });
+
+    test('a synchronously throwing event processor stops the processor chain', () => {
+      const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN });
+      const client = new TestClient(options);
+      const captureExceptionSpy = vi.spyOn(client, 'captureException');
+      const recordDroppedEventSpy = vi.spyOn(client, 'recordDroppedEvent');
+      const scope = new Scope();
+
+      const processor1 = vi.fn(event => {
+        return event;
       });
-      expect(captureExceptionSpy).toBeCalledWith(exception, {
-        data: {
-          __sentry__: true,
-        },
-        originalException: exception,
-        mechanism: { type: 'internal', handled: false },
+      const processor2 = vi.fn(() => {
+        throw new Error('sorry 3');
       });
-      expect(loggerWarnSpy).toBeCalledWith(
-        `Event processing pipeline threw an error, original event will not be sent. Details have been sent as a new event.\nReason: ${exception}`,
+      const processor3 = vi.fn(event => {
+        return event;
+      });
+
+      scope.addEventProcessor(processor1);
+      scope.addEventProcessor(processor2);
+      scope.addEventProcessor(processor3);
+
+      client.captureEvent({ message: 'hello' }, {}, scope);
+
+      expect(processor1).toHaveBeenCalledTimes(1);
+      expect(processor2).toHaveBeenCalledTimes(1);
+      expect(processor3).toHaveBeenCalledTimes(0);
+
+      expect(TestClient.instance!.event).toBeUndefined();
+      expect(captureExceptionSpy).not.toHaveBeenCalled();
+      expect(recordDroppedEventSpy).toHaveBeenCalledWith('callback_error', 'error');
+    });
+
+    test('a rejecting event processor stops the processor chain', async () => {
+      vi.useFakeTimers();
+
+      const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN });
+      const client = new TestClient(options);
+      const captureExceptionSpy = vi.spyOn(client, 'captureException');
+      const recordDroppedEventSpy = vi.spyOn(client, 'recordDroppedEvent');
+      const scope = new Scope();
+
+      const processor1 = vi.fn(async event => {
+        return event;
+      });
+      const processor2 = vi.fn(async () => {
+        throw new Error('sorry 4');
+      });
+      const processor3 = vi.fn(event => {
+        return event;
+      });
+
+      scope.addEventProcessor(processor1);
+      scope.addEventProcessor(processor2);
+      scope.addEventProcessor(processor3);
+
+      client.captureEvent({ message: 'hello' }, {}, scope);
+      await vi.runOnlyPendingTimersAsync();
+
+      expect(processor1).toHaveBeenCalledTimes(1);
+      expect(processor2).toHaveBeenCalledTimes(1);
+      expect(processor3).toHaveBeenCalledTimes(0);
+
+      expect(TestClient.instance!.event).toBeUndefined();
+      expect(captureExceptionSpy).not.toHaveBeenCalled();
+      expect(recordDroppedEventSpy).toHaveBeenCalledWith('callback_error', 'error');
+    });
+
+    test('client-level event processor that throws on all events does not capture a new event', () => {
+      const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN });
+      const client = new TestClient(options);
+      const captureExceptionSpy = vi.spyOn(client, 'captureException');
+
+      const processor = vi.fn(() => {
+        throw new Error('Processor always throws');
+      });
+      client.addEventProcessor(processor);
+
+      client.captureMessage('test message');
+
+      expect(processor).toHaveBeenCalledTimes(1);
+      expect(TestClient.instance!.event).toBeUndefined();
+      expect(captureExceptionSpy).not.toHaveBeenCalled();
+    });
+
+    test('drops the event and records a client report when `beforeSend` throws', () => {
+      const exception = new Error('beforeSend failed');
+      const beforeSend = vi.fn(() => {
+        throw exception;
+      });
+      const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, beforeSend });
+      const client = new TestClient(options);
+      const captureExceptionSpy = vi.spyOn(client, 'captureException');
+      const recordDroppedEventSpy = vi.spyOn(client, 'recordDroppedEvent');
+      const debugErrorSpy = vi.spyOn(debugLoggerModule.debug, 'error');
+
+      client.captureEvent({ message: 'hello' });
+
+      expect(beforeSend).toHaveBeenCalledTimes(1);
+      expect(TestClient.instance!.event).toBeUndefined();
+      expect(captureExceptionSpy).not.toHaveBeenCalled();
+      expect(recordDroppedEventSpy).toHaveBeenCalledWith('callback_error', 'error');
+      expect(recordDroppedEventSpy).toHaveBeenCalledTimes(1);
+      expect(debugErrorSpy).toHaveBeenCalledWith(
+        'The `beforeSend` callback threw an error, dropping the event:',
+        exception,
       );
     });
 
-    test('event processor sends an event and logs when it crashes asynchronously', async () => {
+    test('drops the event and records a client report when `beforeSend` rejects', async () => {
+      vi.useFakeTimers();
+
+      const exception = new Error('beforeSend failed');
+      const beforeSend = vi.fn(() => Promise.reject(exception));
+      const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, beforeSend });
+      const client = new TestClient(options);
+      const captureExceptionSpy = vi.spyOn(client, 'captureException');
+      const recordDroppedEventSpy = vi.spyOn(client, 'recordDroppedEvent');
+      const debugErrorSpy = vi.spyOn(debugLoggerModule.debug, 'error');
+
+      client.captureEvent({ message: 'hello' });
+      await vi.runOnlyPendingTimersAsync();
+
+      expect(beforeSend).toHaveBeenCalledTimes(1);
+      expect(TestClient.instance!.event).toBeUndefined();
+      expect(captureExceptionSpy).not.toHaveBeenCalled();
+      expect(recordDroppedEventSpy).toHaveBeenCalledWith('callback_error', 'error');
+      expect(recordDroppedEventSpy).toHaveBeenCalledTimes(1);
+      expect(debugErrorSpy).toHaveBeenCalledWith(
+        'The `beforeSend` callback threw an error, dropping the event:',
+        exception,
+      );
+    });
+
+    test('drops the transaction and its spans when `beforeSendTransaction` throws', () => {
+      const exception = new Error('beforeSendTransaction failed');
+      const beforeSendTransaction = vi.fn(() => {
+        throw exception;
+      });
+      const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, beforeSendTransaction });
+      const client = new TestClient(options);
+      const captureExceptionSpy = vi.spyOn(client, 'captureException');
+      const recordDroppedEventSpy = vi.spyOn(client, 'recordDroppedEvent');
+      const debugErrorSpy = vi.spyOn(debugLoggerModule.debug, 'error');
+
+      client.captureEvent({
+        transaction: '/dogs/are/great',
+        type: 'transaction',
+        spans: [
+          {
+            description: 'first span',
+            span_id: '9e15bf99fbe4bc80',
+            start_timestamp: 1591603196.637835,
+            trace_id: '86f39e84263a4de99c326acab3bfe3bd',
+            data: {},
+            status: 'ok',
+          },
+          {
+            description: 'second span',
+            span_id: 'aa554c1f506b0783',
+            start_timestamp: 1591603196.637835,
+            trace_id: '86f39e84263a4de99c326acab3bfe3bd',
+            data: {},
+            status: 'ok',
+          },
+        ],
+      });
+
+      expect(TestClient.instance!.event).toBeUndefined();
+      expect(captureExceptionSpy).not.toHaveBeenCalled();
+      expect(recordDroppedEventSpy).toHaveBeenCalledTimes(2);
+      expect(recordDroppedEventSpy).toHaveBeenCalledWith('callback_error', 'transaction');
+      expect(recordDroppedEventSpy).toHaveBeenCalledWith('callback_error', 'span', 3);
+      expect(debugErrorSpy).toHaveBeenCalledWith(
+        'The `beforeSendTransaction` callback threw an error, dropping the event:',
+        exception,
+      );
+    });
+
+    test('drops the transaction and its non-ignored spans when `beforeSendTransaction` rejects', async () => {
+      vi.useFakeTimers();
+
+      const exception = new Error('beforeSendTransaction failed');
+      const beforeSendTransaction = vi.fn(() => Promise.reject(exception));
+      const options = getDefaultTestClientOptions({
+        dsn: PUBLIC_DSN,
+        beforeSendTransaction,
+        ignoreSpans: ['ignored span'],
+      });
+      const client = new TestClient(options);
+      const captureExceptionSpy = vi.spyOn(client, 'captureException');
+      const recordDroppedEventSpy = vi.spyOn(client, 'recordDroppedEvent');
+      const debugErrorSpy = vi.spyOn(debugLoggerModule.debug, 'error');
+
+      client.captureEvent({
+        transaction: '/dogs/are/great',
+        type: 'transaction',
+        spans: ['first span', 'ignored span', 'second span'].map((description, i) => ({
+          description,
+          span_id: `${i}`.padStart(16, '0'),
+          start_timestamp: 1591603196.637835,
+          trace_id: '86f39e84263a4de99c326acab3bfe3bd',
+          data: {},
+          status: 'ok',
+        })),
+      });
+      await vi.runOnlyPendingTimersAsync();
+
+      expect(TestClient.instance!.event).toBeUndefined();
+      expect(captureExceptionSpy).not.toHaveBeenCalled();
+      expect(recordDroppedEventSpy).toHaveBeenCalledTimes(3);
+      expect(recordDroppedEventSpy).toHaveBeenCalledWith('ignored', 'span', 1);
+      expect(recordDroppedEventSpy).toHaveBeenCalledWith('callback_error', 'transaction');
+      expect(recordDroppedEventSpy).toHaveBeenCalledWith('callback_error', 'span', 3);
+      expect(debugErrorSpy).toHaveBeenCalledWith(
+        'The `beforeSendTransaction` callback threw an error, dropping the event:',
+        exception,
+      );
+    });
+
+    test.each([
+      ['sync', () => undefined],
+      ['async', () => Promise.resolve(undefined)],
+    ])('records a `before_send` outcome when `beforeSend` returns an invalid value (%s)', async (_, beforeSend) => {
+      vi.useFakeTimers();
+
+      // @ts-expect-error we need to test regular-js behavior
+      const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, beforeSend });
+      const client = new TestClient(options);
+      const captureExceptionSpy = vi.spyOn(client, 'captureException');
+      const recordDroppedEventSpy = vi.spyOn(client, 'recordDroppedEvent');
+      const loggerWarnSpy = vi.spyOn(debugLoggerModule.debug, 'warn');
+
+      client.captureEvent({ message: 'hello' });
+      await vi.runOnlyPendingTimersAsync();
+
+      expect(TestClient.instance!.event).toBeUndefined();
+      expect(captureExceptionSpy).not.toHaveBeenCalled();
+      expect(recordDroppedEventSpy).toHaveBeenCalledTimes(1);
+      expect(recordDroppedEventSpy).toHaveBeenCalledWith('before_send', 'error');
+      expect(loggerWarnSpy).toHaveBeenCalledWith('before send for type `error` must return `null` or a valid event.');
+    });
+
+    test.each([
+      ['sync', () => undefined],
+      ['async', () => Promise.resolve(undefined)],
+    ])(
+      'records `before_send` outcomes for the transaction and its spans when `beforeSendTransaction` returns an invalid value (%s)',
+      async (_, beforeSendTransaction) => {
+        vi.useFakeTimers();
+
+        const options = getDefaultTestClientOptions({
+          dsn: PUBLIC_DSN,
+          // @ts-expect-error we need to test regular-js behavior
+          beforeSendTransaction,
+          ignoreSpans: ['ignored span'],
+        });
+        const client = new TestClient(options);
+        const recordDroppedEventSpy = vi.spyOn(client, 'recordDroppedEvent');
+        const loggerWarnSpy = vi.spyOn(debugLoggerModule.debug, 'warn');
+
+        client.captureEvent({
+          transaction: '/dogs/are/great',
+          type: 'transaction',
+          spans: ['first span', 'ignored span'].map((description, i) => ({
+            description,
+            span_id: `${i}`.padStart(16, '0'),
+            start_timestamp: 1591603196.637835,
+            trace_id: '86f39e84263a4de99c326acab3bfe3bd',
+            data: {},
+            status: 'ok',
+          })),
+        });
+        await vi.runOnlyPendingTimersAsync();
+
+        expect(TestClient.instance!.event).toBeUndefined();
+        expect(recordDroppedEventSpy).toHaveBeenCalledTimes(3);
+        expect(recordDroppedEventSpy).toHaveBeenCalledWith('ignored', 'span', 1);
+        expect(recordDroppedEventSpy).toHaveBeenCalledWith('before_send', 'transaction');
+        expect(recordDroppedEventSpy).toHaveBeenCalledWith('before_send', 'span', 2);
+        expect(loggerWarnSpy).toHaveBeenCalledWith(
+          'before send for type `transaction` must return `null` or a valid event.',
+        );
+      },
+    );
+
+    test('captures an internal event when the event processing pipeline itself throws', async () => {
       vi.useFakeTimers();
 
       const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN });
       const client = new TestClient(options);
       const captureExceptionSpy = vi.spyOn(client, 'captureException');
       const loggerWarnSpy = vi.spyOn(debugLoggerModule.debug, 'warn');
-      const scope = new Scope();
-      const exception = new Error('sorry 2');
-      scope.addEventProcessor(() => {
-        return new Promise((_resolve, reject) => {
-          reject(exception);
-        });
-      });
+      const exception = new Error('sdk bug');
+      vi.spyOn(client as any, '_prepareEvent').mockImplementation(() => Promise.reject(exception));
 
-      client.captureEvent({ message: 'hello' }, {}, scope);
-
+      client.captureEvent({ message: 'hello' });
       await vi.runOnlyPendingTimersAsync();
 
-      expect(TestClient.instance!.event!.exception!.values![0]).toStrictEqual({
-        type: 'Error',
-        value: 'sorry 2',
-        mechanism: { type: 'internal', handled: false },
-      });
       expect(captureExceptionSpy).toBeCalledWith(exception, {
         data: {
           __sentry__: true,
@@ -2249,106 +2889,6 @@ describe('Client', () => {
       expect(loggerWarnSpy).toBeCalledWith(
         `Event processing pipeline threw an error, original event will not be sent. Details have been sent as a new event.\nReason: ${exception}`,
       );
-    });
-
-    test('event processor sends an event and logs when it crashes synchronously in processor chain', () => {
-      const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN });
-      const client = new TestClient(options);
-      const captureExceptionSpy = vi.spyOn(client, 'captureException');
-      const scope = new Scope();
-      const exception = new Error('sorry 3');
-
-      const processor1 = vi.fn(event => {
-        return event;
-      });
-      const processor2 = vi.fn(() => {
-        throw exception;
-      });
-      const processor3 = vi.fn(event => {
-        return event;
-      });
-
-      scope.addEventProcessor(processor1);
-      scope.addEventProcessor(processor2);
-      scope.addEventProcessor(processor3);
-
-      client.captureEvent({ message: 'hello' }, {}, scope);
-
-      expect(processor1).toHaveBeenCalledTimes(1);
-      expect(processor2).toHaveBeenCalledTimes(1);
-      expect(processor3).toHaveBeenCalledTimes(0);
-
-      expect(captureExceptionSpy).toBeCalledWith(exception, {
-        data: {
-          __sentry__: true,
-        },
-        originalException: exception,
-        mechanism: { type: 'internal', handled: false },
-      });
-    });
-
-    test('event processor sends an event and logs when it crashes asynchronously in processor chain', async () => {
-      vi.useFakeTimers();
-
-      const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN });
-      const client = new TestClient(options);
-      const captureExceptionSpy = vi.spyOn(client, 'captureException');
-      const scope = new Scope();
-      const exception = new Error('sorry 4');
-
-      const processor1 = vi.fn(async event => {
-        return event;
-      });
-      const processor2 = vi.fn(async () => {
-        throw exception;
-      });
-      const processor3 = vi.fn(event => {
-        return event;
-      });
-
-      scope.addEventProcessor(processor1);
-      scope.addEventProcessor(processor2);
-      scope.addEventProcessor(processor3);
-
-      client.captureEvent({ message: 'hello' }, {}, scope);
-      await vi.runOnlyPendingTimersAsync();
-
-      expect(processor1).toHaveBeenCalledTimes(1);
-      expect(processor2).toHaveBeenCalledTimes(1);
-      expect(processor3).toHaveBeenCalledTimes(0);
-
-      expect(captureExceptionSpy).toBeCalledWith(exception, {
-        data: {
-          __sentry__: true,
-        },
-        originalException: exception,
-        mechanism: { type: 'internal', handled: false },
-      });
-    });
-
-    test('client-level event processor that throws on all events does not cause infinite recursion', () => {
-      const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN });
-      const client = new TestClient(options);
-
-      let processorCallCount = 0;
-      // Add processor at client level - this runs on ALL events including internal exceptions
-      client.addEventProcessor(() => {
-        processorCallCount++;
-        throw new Error('Processor always throws');
-      });
-
-      client.captureMessage('test message');
-
-      // Should be called once for the original message
-      // internal exception events skips event processors entirely.
-      expect(processorCallCount).toBe(1);
-
-      // Verify the processor error was captured and sent
-      expect(TestClient.instance!.event!.exception!.values![0]).toStrictEqual({
-        type: 'Error',
-        value: 'Processor always throws',
-        mechanism: { type: 'internal', handled: false },
-      });
     });
 
     test('records events dropped due to `sampleRate` option', () => {
@@ -2731,6 +3271,141 @@ describe('Client', () => {
       expect(mockSend).toBeCalledTimes(1);
       expect(callback).toBeCalledTimes(1);
       expect(callback).toBeCalledWith(errorEvent, { statusCode: 200 });
+    });
+  });
+
+  describe('attachments', () => {
+    const send = vi.fn<Transport['send']>(() => Promise.resolve({}));
+    let client: TestClient;
+
+    beforeEach(() => {
+      vi.useRealTimers();
+      client = new TestClient({
+        dsn: 'https://public@example.com/1',
+        integrations: [],
+        stackParser: () => [],
+        enableSend: true,
+        transport: () => ({ send, flush: () => Promise.resolve(true) }),
+      });
+    });
+
+    it('excludes hint and hook attachments from internal events', async () => {
+      const event = { message: 'Internal SDK failure' };
+      const hint: EventHint = {
+        data: { __sentry__: true },
+        attachments: [{ filename: 'state.txt', data: 'private state' }],
+      };
+      client.on('beforeSendEvent', (_event, eventHint) => {
+        eventHint!.attachments!.push({ filename: 'hook.txt', data: 'private hook data' });
+      });
+
+      client.sendEvent(event, hint);
+      await client.flush(1000);
+
+      expect(send).toHaveBeenCalledTimes(1);
+      expect(send).toHaveBeenCalledWith([expect.any(Object), [[{ type: 'event' }, event]]]);
+    });
+
+    it.each([undefined, { __sentry__: false }])(
+      'preserves attachments for ordinary events with hint data %j',
+      async data => {
+        const event = { message: 'Application failure' };
+        const hint: EventHint = {
+          data,
+          attachments: [{ filename: 'state.txt', data: 'safe state' }],
+        };
+        client.on('beforeSendEvent', (_event, eventHint) => {
+          eventHint!.attachments!.push({ filename: 'hook.txt', data: 'safe hook data' });
+        });
+
+        client.sendEvent(event, hint);
+        await client.flush(1000);
+
+        expect(send).toHaveBeenCalledTimes(1);
+        expect(send).toHaveBeenCalledWith([
+          expect.any(Object),
+          [
+            [{ type: 'event' }, event],
+            [
+              {
+                type: 'attachment',
+                length: 10,
+                filename: 'state.txt',
+                content_type: undefined,
+                attachment_type: undefined,
+              },
+              new TextEncoder().encode('safe state'),
+            ],
+            [
+              {
+                type: 'attachment',
+                length: 14,
+                filename: 'hook.txt',
+                content_type: undefined,
+                attachment_type: undefined,
+              },
+              new TextEncoder().encode('safe hook data'),
+            ],
+          ],
+        ]);
+      },
+    );
+
+    it('excludes scope attachments when a pipeline failure bypasses filtering callbacks', async () => {
+      getGlobalScope().addAttachment({ filename: 'global.txt', data: 'private global data' });
+      getIsolationScope().addAttachment({ filename: 'isolation.txt', data: 'private isolation data' });
+      getCurrentScope().addAttachment({ filename: 'current.txt', data: 'private current data' });
+      const beforeSend = vi.fn((event: ErrorEvent, hint: EventHint) => {
+        hint.attachments = [];
+        return event;
+      });
+      client.getOptions().beforeSend = beforeSend;
+      const processor = vi.fn((event: Event, hint: EventHint) => {
+        hint.attachments = [];
+        return event;
+      });
+      client.addEventProcessor(processor);
+      client.on(
+        'postprocessEvent',
+        vi.fn().mockImplementationOnce(() => {
+          throw new Error('SDK pipeline failure');
+        }),
+      );
+
+      client.captureMessage('Application failure');
+      await client.flush(1000);
+
+      expect(beforeSend).not.toHaveBeenCalled();
+      expect(processor).toHaveBeenCalledTimes(1);
+      expect(send).toHaveBeenCalledTimes(1);
+      expect(send).toHaveBeenCalledWith([
+        expect.any(Object),
+        [
+          [
+            { type: 'event' },
+            expect.objectContaining({
+              exception: {
+                values: [
+                  {
+                    type: 'Error',
+                    value: 'SDK pipeline failure',
+                    mechanism: { type: 'internal', handled: false },
+                  },
+                ],
+              },
+            }),
+          ],
+        ],
+      ]);
+      expect(getGlobalScope().getScopeData().attachments).toEqual([
+        { filename: 'global.txt', data: 'private global data' },
+      ]);
+      expect(getIsolationScope().getScopeData().attachments).toEqual([
+        { filename: 'isolation.txt', data: 'private isolation data' },
+      ]);
+      expect(getCurrentScope().getScopeData().attachments).toEqual([
+        { filename: 'current.txt', data: 'private current data' },
+      ]);
     });
   });
 

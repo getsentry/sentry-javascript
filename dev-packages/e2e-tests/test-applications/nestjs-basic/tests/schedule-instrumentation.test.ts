@@ -1,11 +1,13 @@
 import { expect, test } from '@playwright/test';
-import { waitForError, waitForTransaction } from '@sentry-internal/test-utils';
+import { waitForError, waitForStreamedSpan } from '@sentry-internal/test-utils';
 
 test('Sends exceptions to Sentry on error in @Cron decorated method', async ({ baseURL }) => {
+  const testStart = Date.now();
   const errorEventPromise = waitForError('nestjs-basic', event => {
+    const thrownAt = event.exception?.values?.[0]?.value?.match(/^Test error from schedule cron (\d+)$/)?.[1];
     return (
       !event.type &&
-      event.exception?.values?.[0]?.value === 'Test error from schedule cron' &&
+      Number(thrownAt) >= testStart &&
       event.exception?.values?.[0]?.mechanism?.type === 'auto.function.nestjs.cron'
     );
   });
@@ -23,10 +25,12 @@ test('Sends exceptions to Sentry on error in @Cron decorated method', async ({ b
 });
 
 test('Sends exceptions to Sentry on error in @Interval decorated method', async ({ baseURL }) => {
+  const testStart = Date.now();
   const errorEventPromise = waitForError('nestjs-basic', event => {
+    const thrownAt = event.exception?.values?.[0]?.value?.match(/^Test error from schedule interval (\d+)$/)?.[1];
     return (
       !event.type &&
-      event.exception?.values?.[0]?.value === 'Test error from schedule interval' &&
+      Number(thrownAt) >= testStart &&
       event.exception?.values?.[0]?.mechanism?.type === 'auto.function.nestjs.interval'
     );
   });
@@ -75,18 +79,19 @@ test('Scheduled task breadcrumbs do not leak into subsequent HTTP requests', asy
   // Wait for at least one interval tick to fire
   await new Promise(resolve => setTimeout(resolve, 3000));
 
-  const transactionPromise = waitForTransaction('nestjs-basic', transactionEvent => {
-    return transactionEvent.transaction === 'GET /test-schedule-isolation';
+  const segmentSpanPromise = waitForStreamedSpan('nestjs-basic', span => {
+    return span.is_segment && span.name === 'GET /test-schedule-isolation';
   });
 
   await fetch(`${baseURL}/test-schedule-isolation`);
 
-  const transaction = await transactionPromise;
+  const segmentSpan = await segmentSpanPromise;
 
-  const leakedBreadcrumb = (transaction.breadcrumbs || []).find(
-    (b: any) => b.message === 'leaked-breadcrumb-from-schedule',
-  );
-  expect(leakedBreadcrumb).toBeUndefined();
+  // Streamed spans carry no breadcrumbs, so the route reports the leak as a span attribute
+  expect(segmentSpan.attributes['isolation_scope.has_schedule_breadcrumb']).toEqual({
+    value: false,
+    type: 'boolean',
+  });
 
   // kill interval so tests don't get stuck
   await fetch(`${baseURL}/kill-test-schedule-interval/test-schedule-isolation`);

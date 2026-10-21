@@ -1,4 +1,7 @@
 {
+  "attribution": {
+    "sessionUrl": false
+  },
   "env": { "ENABLE_LSP_TOOL": "1" },
   "hooks": {
     "SessionStart": [
@@ -36,7 +39,7 @@
       "Bash(gh run list:*)",
       "Bash(gh run logs:*)",
       "Bash(gh repo view:*)",
-      "Bash(yarn:*)",
+      "Bash(pnpm:*)",
       "WebFetch(domain:github.com)",
       "WebFetch(domain:docs.sentry.io)",
       "WebFetch(domain:develop.sentry.dev)",

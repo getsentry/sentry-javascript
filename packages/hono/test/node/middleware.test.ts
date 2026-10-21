@@ -127,8 +127,8 @@ describe('Hono Node Middleware', () => {
   describe('double-init guard', () => {
     it('skips re-initialization when a client already exists', () => {
       const fakeClient = { getOptions: () => ({}) };
-      const getClientSpy = vi
-        .spyOn(SentryCore, 'getClient')
+      const getActiveClientSpy = vi
+        .spyOn(SentryCore, '_INTERNAL_getActiveClient')
         .mockReturnValue(fakeClient as unknown as SentryCore.Client);
 
       const result = init({ dsn: 'https://public@dsn.ingest.sentry.io/1337' });
@@ -136,17 +136,17 @@ describe('Hono Node Middleware', () => {
       expect(result).toBe(fakeClient);
       expect(initNodeMock).not.toHaveBeenCalled();
 
-      getClientSpy.mockRestore();
+      getActiveClientSpy.mockRestore();
     });
 
     it('initializes normally when no client exists yet', () => {
-      const getClientSpy = vi.spyOn(SentryCore, 'getClient').mockReturnValue(undefined);
+      const getActiveClientSpy = vi.spyOn(SentryCore, '_INTERNAL_getActiveClient').mockReturnValue(undefined);
 
       init({ dsn: 'https://public@dsn.ingest.sentry.io/1337' });
 
       expect(initNodeMock).toHaveBeenCalledTimes(1);
 
-      getClientSpy.mockRestore();
+      getActiveClientSpy.mockRestore();
     });
   });
 
@@ -208,8 +208,8 @@ describe('Hono Node Middleware', () => {
   describe('double-init guard', () => {
     it('skips re-initialization when a client already exists', () => {
       const fakeClient = { getOptions: () => ({}) };
-      const getClientSpy = vi
-        .spyOn(SentryCore, 'getClient')
+      const getActiveClientSpy = vi
+        .spyOn(SentryCore, '_INTERNAL_getActiveClient')
         .mockReturnValue(fakeClient as unknown as SentryCore.Client);
 
       const result = init({ dsn: 'https://public@dsn.ingest.sentry.io/1337' });
@@ -218,17 +218,17 @@ describe('Hono Node Middleware', () => {
       expect(initNodeMock).not.toHaveBeenCalled();
       expect(applySdkMetadataMock).not.toHaveBeenCalled();
 
-      getClientSpy.mockRestore();
+      getActiveClientSpy.mockRestore();
     });
 
     it('initializes normally when no client exists yet', () => {
-      const getClientSpy = vi.spyOn(SentryCore, 'getClient').mockReturnValue(undefined);
+      const getActiveClientSpy = vi.spyOn(SentryCore, '_INTERNAL_getActiveClient').mockReturnValue(undefined);
 
       init({ dsn: 'https://public@dsn.ingest.sentry.io/1337' });
 
       expect(initNodeMock).toHaveBeenCalledTimes(1);
 
-      getClientSpy.mockRestore();
+      getActiveClientSpy.mockRestore();
     });
   });
 });

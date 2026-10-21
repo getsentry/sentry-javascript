@@ -1,0 +1,18 @@
+#:schema node_modules/wrangler/config-schema.json
+name = "cloudflare-think"
+main = "src/index.ts"
+compatibility_date = "2026-09-15"
+compatibility_flags = ["nodejs_compat"]
+
+# `vite preview` takes no `--var` flag, so the DSN is declared here and read from
+# the process environment the Playwright web server inherits.
+[secrets]
+required = ["E2E_TEST_DSN", "E2E_OPENROUTER_API_KEY"]
+
+[[durable_objects.bindings]]
+name = "ThinkAgent"
+class_name = "ThinkAgent"
+
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["ThinkAgent"]

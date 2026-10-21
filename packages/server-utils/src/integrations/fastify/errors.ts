@@ -1,5 +1,5 @@
 import type { FastifyIntegration, FastifyReply, FastifyRequest } from './types';
-import * as diagnosticsChannel from 'node:diagnostics_channel';
+import * as diagnosticsChannel from '../../utils/diagnosticsChannel';
 import { addNonEnumerableProperty, captureException, getClient } from '@sentry/core';
 import { defaultShouldHandleError, INTEGRATION_NAME } from './utils';
 

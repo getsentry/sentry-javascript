@@ -20,7 +20,7 @@
     "@trpc/client": "~11.8.0",
     "@trpc/react-query": "~11.8.0",
     "@trpc/server": "~11.8.0",
-    "next": "^15.5.13",
+    "next": "^15.5.24",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
     "server-only": "^0.0.1",
@@ -28,8 +28,8 @@
     "zod": "^3.24.2"
   },
   "devDependencies": {
-    "@playwright/test": "~1.56.0",
-    "@sentry-internal/test-utils": "link:../../../test-utils",
+    "@playwright/test": "1.64.1",
+    "@sentry-internal/test-utils": "file:../../packed/sentry-internal-test-utils-packed.tgz",
     "@types/node": "^22.15.21",
     "@types/react": "^19.1.0",
     "@types/react-dom": "^19.1.0",

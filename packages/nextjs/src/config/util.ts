@@ -3,6 +3,9 @@ import * as fs from 'fs';
 import { createRequire } from 'module';
 import * as path from 'path';
 
+// Default page extensions per https://github.com/vercel/next.js/blob/f1dbc9260d48c7995f6c52f8fbcc65f08e627992/packages/next/server/config-shared.ts#L161
+export const DEFAULT_PAGE_EXTENSIONS = ['tsx', 'ts', 'jsx', 'js'];
+
 /**
  * Returns the version of Next.js installed in the project, or undefined if it cannot be determined.
  */
@@ -22,12 +25,25 @@ export function getNextjsVersion(): string | undefined {
   return undefined;
 }
 
+// Anchored at this package so `next` (a peer dependency) still resolves when the process cwd is not
+// the Next.js project root, e.g. custom servers or monorepos started from the repo root.
+let sdkRequire: NodeJS.Require;
+/*! rollup-include-cjs-only */
+sdkRequire = createRequire(__filename);
+/*! rollup-include-cjs-only-end */
+/*! rollup-include-esm-only */
+sdkRequire = createRequire(import.meta.url);
+/*! rollup-include-esm-only-end */
+
 function resolveNextjsPackageJson(): string | undefined {
-  try {
-    return createRequire(`${process.cwd()}/`).resolve('next/package.json');
-  } catch {
-    return undefined;
+  for (const nodeRequire of [createRequire(`${process.cwd()}/`), sdkRequire]) {
+    try {
+      return nodeRequire.resolve('next/package.json');
+    } catch {
+      // try next
+    }
   }
+  return undefined;
 }
 
 /**

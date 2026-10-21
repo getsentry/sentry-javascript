@@ -65,6 +65,9 @@ export interface JsonRpcNotification {
  * @description Abstraction for MCP communication transport layer
  */
 export interface MCPTransport {
+  /** Starts the transport lifecycle. */
+  start?: () => Promise<void>;
+
   /**
    * Message handler for incoming JSON-RPC messages
    * The first argument is a JSON RPC message
@@ -228,9 +231,9 @@ export type SessionData = {
  * Options for configuring the MCP server wrapper.
  */
 export type McpServerWrapperOptions = {
-  /** Whether to capture tool/prompt input arguments in spans. Defaults to `dataCollection.genAI.inputs`. */
+  /** Whether to capture tool/prompt input arguments in spans. Defaults to `dataCollection.mcp.inputs`, then `dataCollection.genAI.inputs`. */
   recordInputs?: boolean;
-  /** Whether to capture tool/prompt output results in spans. Defaults to `dataCollection.genAI.outputs`. */
+  /** Whether to capture tool/prompt output results in spans. Defaults to `dataCollection.mcp.outputs`, then `dataCollection.genAI.outputs`. */
   recordOutputs?: boolean;
 };
 

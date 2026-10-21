@@ -397,35 +397,39 @@ describe('NodeClient', () => {
       expect(forceFlushSpy).toHaveBeenCalledTimes(1);
     });
 
-    it('stops client report tracking if it was started', async () => {
-      const processOffSpy = vi.spyOn(process, 'off');
-      const clearIntervalSpy = vi.spyOn(globalThis, 'clearInterval');
-
+    it('stops client report tracking when closed', async () => {
+      const originalListeners = process.listeners('beforeExit');
       const client = new NodeClient(getDefaultNodeClientOptions({ sendClientReports: true }));
+      const listenersBeforeTracking = process.listeners('beforeExit');
+      const setIntervalSpy = vi.spyOn(globalThis, 'setInterval');
+      const clearIntervalSpy = vi.spyOn(globalThis, 'clearInterval');
 
       client.startClientReportTracking();
 
-      const result = await client.close();
+      const addedListeners = process
+        .listeners('beforeExit')
+        .filter(listener => !listenersBeforeTracking.includes(listener));
+      const [intervalResult] = setIntervalSpy.mock.results;
 
-      expect(result).toBe(true);
+      await client.close();
 
+      expect(addedListeners).toHaveLength(1);
+      expect(process.listeners('beforeExit')).toEqual(originalListeners);
+      expect(setIntervalSpy).toHaveBeenCalledTimes(1);
       expect(clearIntervalSpy).toHaveBeenCalledTimes(1);
-
-      // removes `_clientReportOnExitFlushListener`
-      expect(processOffSpy).toHaveBeenNthCalledWith(1, 'beforeExit', expect.any(Function));
+      expect(clearIntervalSpy).toHaveBeenCalledWith(intervalResult?.value);
     });
 
-    it('stops log capture if it was started', async () => {
-      const processOffSpy = vi.spyOn(process, 'off');
+    it('removes log and metric exit listeners when closed', async () => {
+      const originalListeners = process.listeners('beforeExit');
+      const client = new NodeClient(getDefaultNodeClientOptions({ sendClientReports: false }));
 
-      const client = new NodeClient(getDefaultNodeClientOptions());
+      const addedListeners = process.listeners('beforeExit').filter(listener => !originalListeners.includes(listener));
 
-      const result = await client.close();
+      await client.close();
 
-      expect(result).toBe(true);
-
-      // removes `_logOnExitFlushListener`
-      expect(processOffSpy).toHaveBeenNthCalledWith(1, 'beforeExit', expect.any(Function));
+      expect(addedListeners).toHaveLength(2);
+      expect(process.listeners('beforeExit')).toEqual(originalListeners);
     });
   });
 

@@ -1,5 +1,5 @@
-import { SENTRY_SEGMENT_NAME_SOURCE } from '@sentry/conventions/attributes';
-import { getActiveSpan, SEMANTIC_ATTRIBUTE_SENTRY_OP, SentrySpan } from '@sentry/core';
+import { SENTRY_SEGMENT_NAME_SOURCE, SENTRY_OP } from '@sentry/conventions/attributes';
+import { getActiveSpan, SentrySpan } from '@sentry/core';
 import { afterEach, describe, expect, it, type Mock, vi } from 'vitest';
 import { updateRouteBeforeResponse } from '../../../src/runtime/hooks/updateRouteBeforeResponse';
 
@@ -15,7 +15,7 @@ vi.mock(import('@sentry/core'), async importOriginal => {
 describe('updateRouteBeforeResponse', () => {
   const mockRootSpan = new SentrySpan({
     attributes: {
-      [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'http.server',
+      [SENTRY_OP]: 'http.server',
     },
   });
   mockRootSpan.updateName = vi.fn();
