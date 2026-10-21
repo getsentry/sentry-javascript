@@ -277,6 +277,26 @@ describe('SentryBullMQSpan', () => {
     });
   });
 
+  it('sends bullmq.job.status as messaging.bullmq.job.state', () => {
+    const { span, otelSpan } = createSpan();
+
+    span.setAttributes({ 'bullmq.job.status': 'completed' });
+
+    expect(otelSpan.setAttributes).toHaveBeenCalledWith({
+      'messaging.bullmq.job.state': 'completed',
+    });
+  });
+
+  it('prefers bullmq.job.state when BullMQ sets it together with bullmq.job.status', () => {
+    const { span, otelSpan } = createSpan();
+
+    span.setAttributes({ 'bullmq.job.state': 'failed', 'bullmq.job.status': 'completed' });
+
+    expect(otelSpan.setAttributes).toHaveBeenCalledWith({
+      'messaging.bullmq.job.state': 'failed',
+    });
+  });
+
   it('delegates addEvent to the underlying OTel span', () => {
     const { span, otelSpan } = createSpan();
 

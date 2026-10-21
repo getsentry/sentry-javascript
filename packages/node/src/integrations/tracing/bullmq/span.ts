@@ -41,6 +41,8 @@ export function toSentryAttributes(attributes: Record<string, AttributeValue>): 
     'bullmq.job.attempts.made': attemptsMade,
     'bullmq.job.bulk.count': bulkCount,
     'bullmq.worker.id': workerId,
+    'bullmq.job.state': jobState,
+    'bullmq.job.status': jobStatus,
     ...rest
   } = attributes;
   const result: Attributes = {};
@@ -74,6 +76,12 @@ export function toSentryAttributes(attributes: Record<string, AttributeValue>): 
 
   if (typeof workerId === 'string') {
     result['messaging.client.id'] = workerId;
+  }
+
+  // BullMQ before 5.81.2 sets `bullmq.job.status` instead of `bullmq.job.state`.
+  const state = jobState ?? jobStatus;
+  if (typeof state === 'string') {
+    result['messaging.bullmq.job.state'] = state;
   }
 
   return result;
