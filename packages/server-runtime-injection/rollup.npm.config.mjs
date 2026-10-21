@@ -1,4 +1,5 @@
 import { builtinModules } from 'node:module';
+import * as path from 'node:path';
 import commonjs from '@rollup/plugin-commonjs';
 import license from 'rollup-plugin-license';
 import { defineConfig } from 'rollup';
@@ -53,13 +54,28 @@ const debugNodeAlias = {
   },
 };
 
+// `debug` vendors the `supports-color` that it finds, and which version that is depends on how the package manager
+// installs it. Resolve it from this package instead, so the vendored version is the one in its `devDependencies`.
+const supportsColorFromPackage = {
+  name: 'supports-color-from-package',
+  resolveId: {
+    order: 'pre',
+    handler(source) {
+      return source === 'supports-color'
+        ? this.resolve(source, path.join(import.meta.dirname, 'package.json'), { skipSelf: true })
+        : null;
+    },
+  },
+};
+
 // Bundling files from the repo-root `node_modules` moves rollup's common source ancestor up to the
 // repo root, so `preserveModules` names our own files `packages/server-runtime-injection/src/...` —
-// strip that prefix to keep the `build/cjs/register.js` layout the `exports` map points at. And npm
-// never packs `node_modules` directories, so the vendored dependencies must not be emitted under
-// that name.
+// strip that prefix to keep the `build/cjs/register.js` layout the `exports` map points at. A vendored
+// dependency is named by its path after the last `node_modules/`, because pnpm installs some of them
+// in nested or `.pnpm` folders. And npm never packs `node_modules` directories, so the vendored
+// dependencies are emitted under `vendored/`.
 const sanitizedFileNames = info =>
-  `${info.name.replace(/^packages\/server-runtime-injection\/src\//, '').replace(/node_modules/g, 'vendored')}.js`;
+  `${info.name.replace(/^packages\/server-runtime-injection\/src\//, '').replace(/^.*node_modules\//, 'vendored/')}.js`;
 
 // The vendored dependencies (see above) are third-party code redistributed inside this package's
 // published `build/`, so their licenses require us to carry each one's copyright/permission notice
@@ -97,7 +113,7 @@ export default [
       // `import` condition, so the `build/cjs` copy is unused.
       entrypoints: ['src/register.ts', 'src/hook.mjs'],
       packageSpecificConfig: {
-        plugins: [debugNodeAlias, commonJSPlugin, thirdPartyLicensePlugin],
+        plugins: [debugNodeAlias, supportsColorFromPackage, commonJSPlugin, thirdPartyLicensePlugin],
         output: {
           exports: 'named',
           preserveModules: true,

@@ -103,13 +103,13 @@
   "devDependencies": {
     "@apm-js-collab/code-transformer-bundler-plugins": "^0.7.4",
     "@neondatabase/serverless": "1.2.0",
-    "@types/node": "^18.19.1",
+    "@types/node": "^20.19.0",
     "meriyah": "^6.1.4",
     "vite": "^8.3.1"
   },
   "scripts": {
     "build": "run-p build:transpile build:types",
-    "build:dev": "yarn build",
+    "build:dev": "pnpm run build",
     "build:transpile": "rollup -c rollup.npm.config.mjs",
     "build:types": "tsc -p tsconfig.types.json",
     "build:watch": "run-p build:transpile:watch",
