@@ -9,18 +9,12 @@ import {
   traceTarget,
 } from '@sentry-internal/test-utils/cli';
 
-/** An agent instance id nothing has used yet, so a settled record cannot end the wait early. */
+/** A fresh instance id, so an earlier settlement cannot end the wait early. */
 export function newInstanceId(prefix: string): string {
   return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 }
 
-/**
- * Run one agent turn over Flue's agent router and wait for it to settle. Returns the id of the
- * conversation, which the SDK sets as `gen_ai.conversation.id` on the agent span.
- *
- * `POST /:id` only admits the work (it returns `202` and the turn runs after), so this reads the
- * conversation back until it reports a settlement.
- */
+/** Send one message and wait for the turn to settle. Returns the conversation id. */
 export async function runAgentTurn(baseURL: string, instanceId: string, message: string): Promise<string> {
   const url = `${baseURL}/agents/hello/${instanceId}`;
 
@@ -44,11 +38,7 @@ export async function runAgentTurn(baseURL: string, instanceId: string, message:
   throw new Error(`Flue turn for "${instanceId}" did not settle within 90s`);
 }
 
-/**
- * Find the trace of a conversation in Sentry and poll it until `isComplete` holds. The router answers
- * the `POST` before the turn runs, so the response carries no trace id to look up; the conversation id
- * is the handle the test has.
- */
+/** The router answers `202` before the turn runs, so the trace is found by conversation id. */
 export async function waitForConversationTrace(
   conversationId: string,
   isComplete: (spans: TraceItem[]) => boolean,

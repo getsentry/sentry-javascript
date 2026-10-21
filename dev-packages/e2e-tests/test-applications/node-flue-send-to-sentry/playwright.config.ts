@@ -4,8 +4,7 @@ const port = 3030;
 
 export default defineConfig({
   testDir: './tests',
-  // A real OpenRouter turn, then Sentry polls of up to 180s each (EVENT_POLLING_OPTIONS). Spans take about
-  // two minutes to become queryable, which falls inside the first poll; the later ones land quickly.
+  // A model turn, then Sentry polls of up to 180s each. Spans become queryable within the first one.
   timeout: 400_000,
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
