@@ -321,6 +321,23 @@ describe('Unit | coreHandlers | handleClick', () => {
         expect(mockAddBreadcrumbEvent).toHaveBeenCalledTimes(0);
       });
 
+      test('it does not consider clicks with mutation in the same millisecond as slow click', async () => {
+        const breadcrumb: Breadcrumb = {
+          timestamp: BASE_TIMESTAMP / 1000,
+          data: {
+            nodeId: 1,
+          },
+        };
+        const node = document.createElement('button');
+        detector.handleClick(breadcrumb, node);
+
+        detector.registerMutation(BASE_TIMESTAMP);
+
+        vi.advanceTimersByTime(3_500);
+
+        expect(mockAddBreadcrumbEvent).toHaveBeenCalledTimes(0);
+      });
+
       test('it considers clicks with mutation after threshold as slow click', async () => {
         const breadcrumb: Breadcrumb = {
           timestamp: BASE_TIMESTAMP / 1000,
@@ -449,6 +466,23 @@ describe('Unit | coreHandlers | handleClick', () => {
         expect(mockAddBreadcrumbEvent).toHaveBeenCalledTimes(0);
 
         vi.advanceTimersByTime(3_000);
+
+        expect(mockAddBreadcrumbEvent).toHaveBeenCalledTimes(0);
+      });
+
+      test('it does not consider clicks with scroll in the same millisecond as slow click', async () => {
+        const breadcrumb: Breadcrumb = {
+          timestamp: BASE_TIMESTAMP / 1000,
+          data: {
+            nodeId: 1,
+          },
+        };
+        const node = document.createElement('button');
+        detector.handleClick(breadcrumb, node);
+
+        detector.registerScroll(BASE_TIMESTAMP);
+
+        vi.advanceTimersByTime(3_500);
 
         expect(mockAddBreadcrumbEvent).toHaveBeenCalledTimes(0);
       });

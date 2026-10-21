@@ -118,8 +118,9 @@ sentryTest('captures multiple multi clicks', async ({ getLocalTestUrl, page, for
   await page.locator('#mutationButtonImmediately').click({ clickCount: 4 });
   await forceFlushReplay();
 
-  // Ensure we waited at least 1s, which is the threshold to create a new ui.click breadcrumb
-  await new Promise(resolve => setTimeout(resolve, 1001));
+  // The browser's 1s breadcrumb debounce timer must have fired before the next click creates a new ui.click
+  // breadcrumb, so leave some slack for timer delays on slow CI machines.
+  await new Promise(resolve => setTimeout(resolve, 1500));
 
   await page.locator('#mutationButtonImmediately').click({ clickCount: 2 });
   await forceFlushReplay();
