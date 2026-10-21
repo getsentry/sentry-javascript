@@ -53,8 +53,10 @@ env:
   DISABLE_V8_COMPILE_CACHE: '1'
 
 # Jobs that install the monorepo dependencies share one Namespace cache volume through `overrides.cache-tag`, E2E jobs
-# share another one (`-e2e`). Jobs that do not use a cache volume have no cache tag. Pull request jobs get their own
-# volumes (`-pr`), so they cannot change the node_modules that develop and release builds install from.
+# share another one (`-e2e`). The optional Cloudflare integration tests replace the installed wrangler with the latest
+# one, so they use a third one (`-latest-wrangler`). Jobs that do not use a cache volume have no cache tag. Pull request
+# jobs get their own volumes (`-pr`), so they cannot change the node_modules that develop and release builds install
+# from.
 jobs:
   job_get_metadata:
     uses: ./.github/workflows/ci-metadata.yml
@@ -857,6 +859,7 @@ jobs:
         working-directory: dev-packages/node-integration-tests
         run: pnpm run test --shard=${{ matrix.shard }}/3
 
+  # Runs on the wrangler pinned in the package, so the required run stays on a fixed, older runtime.
   job_cloudflare_integration_tests:
     name: Cloudflare Integration Tests (${{ matrix.shard }}/2)
     needs: [job_get_metadata, job_build]
@@ -869,7 +872,7 @@ jobs:
       fail-fast: false
       matrix:
         shard: [1, 2]
-    steps:
+    steps: &cloudflare_integration_tests_steps
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
         uses: actions/checkout@v7
         with:
@@ -881,9 +884,39 @@ jobs:
       - name: Restore caches
         uses: ./.github/actions/restore-cache
 
+      # The Vite plugin depends on wrangler and writes config for it, so both move together. In the hoisted layout,
+      # pnpm keeps the nested `node_modules` folders of the old versions (for example an old workerd under
+      # `node_modules/wrangler`), so the install starts from empty `node_modules` folders. They are mount points of the
+      # cache volume, so only their contents are deleted.
+      - name: Install the latest wrangler
+        if: matrix.wrangler == 'latest'
+        run: |
+          pnpm --filter @sentry-internal/cloudflare-integration-tests add --save-dev --lockfile-only wrangler@latest @cloudflare/vite-plugin@latest
+          find -H node_modules packages/*/node_modules dev-packages/*/node_modules -mindepth 1 -maxdepth 1 -exec rm -rf {} +
+          pnpm install --frozen-lockfile --filter @sentry-internal/cloudflare-integration-tests...
+
       - name: Run integration tests
         working-directory: dev-packages/cloudflare-integration-tests
         run: pnpm run test --shard=${{ matrix.shard }}/2
+
+  # Shows breakage from new wrangler and workerd releases early. It is not in `job_required_jobs_passed`, so it cannot
+  # block a PR, and like the optional E2E tests it does not run on release branches.
+  job_optional_cloudflare_integration_tests:
+    name: Cloudflare Integration Tests (${{ matrix.shard }}/2, latest wrangler) (optional)
+    needs: [job_get_metadata, job_build]
+    if:
+      needs.job_get_metadata.outputs.is_release != 'true' && (needs.job_build.outputs.changed_cloudflare_integration ==
+      'true' || github.event_name != 'pull_request')
+    runs-on:
+      namespace-profile-sentry-javascript;overrides.cache-tag=sentry-javascript-latest-wrangler${{ github.event_name ==
+      'pull_request' && '-pr' || '' }}
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2]
+        wrangler: [latest]
+    steps: *cloudflare_integration_tests_steps
 
   job_bundler_plugin_integration_tests:
     name: Bundler Plugin Integration Tests (Node ${{ matrix.node }})
@@ -1075,79 +1108,12 @@ jobs:
         uses: actions/checkout@v7
         with:
           ref: ${{ env.HEAD_COMMIT }}
-      - name: Set up Node
-        uses: actions/setup-node@v7
+      - name: Prepare E2E test application
+        uses: ./.github/actions/prepare-e2e-test
         with:
-          node-version-file: 'dev-packages/e2e-tests/test-applications/${{ matrix.test-application }}/package.json'
-      - name: Set up Bun
-        if:
-          matrix.test-application == 'node-exports-test-app' || contains(matrix.test-application, 'bun') ||
-          matrix.runtime == 'bun'
-        uses: oven-sh/setup-bun@v2
-        with:
-          bun-version: '1.3.14'
-      - name: Set up AWS SAM
-        if: matrix.test-application == 'aws-serverless' || matrix.test-application == 'aws-serverless-layer'
-        uses: aws-actions/setup-sam@v3
-        with:
-          use-installer: true
-          token: ${{ secrets.GITHUB_TOKEN }}
-      - name: Set up Deno
-        if: contains(matrix.test-application, 'deno') || matrix.runtime == 'deno'
-        uses: denoland/setup-deno@v2.0.5
-        with:
-          deno-version: ${{ matrix.deno-version || 'v2.8.3' }}
-      # Keeps the pnpm store on the cache volume for the `pnpm install` of the test application
-      - name: Mount pnpm store
-        uses: ./.github/actions/mount-pnpm-store
-      - name: Install pnpm
-        uses: ./.github/actions/install-pnpm
-
-      - name: Restore tarball artifacts
-        uses: actions/download-artifact@v8
-        with:
-          name: build-tarball-output
-          path: ${{ env.TARBALL_ARTIFACT_DOWNLOAD_PATH }}
-
-      - name: Restore test-utils tarball artifact
-        uses: actions/download-artifact@v8
-        with:
-          name: build-test-utils-tarball-output
-          path: dev-packages/test-utils
-
-      - name: Restore build layer artifacts
-        uses: actions/download-artifact@v8
-        if: matrix.test-application == 'aws-serverless' || matrix.test-application == 'aws-serverless-layer'
-        with:
-          name: build-layer-output
-          path: ${{ env.BUILD_LAYER_PATH }}
-
-      # The Lambda functions install the built workspace packages directly (see `src/stack.ts`).
-      - name: Restore build artifacts
-        uses: actions/download-artifact@v8
-        if: matrix.test-application == 'aws-serverless'
-        with:
-          name: build-output
-
-      - name: Prepare e2e tests
-        run: pnpm run test:prepare
-        working-directory: dev-packages/e2e-tests
-
-      - name: Validate e2e tests setup
-        run: pnpm run test:validate
-        working-directory: dev-packages/e2e-tests
-
-      - name: Copy to temp
-        run:
-          pnpm run ci:copy-to-temp ./test-applications/${{ matrix.test-application }} ${{ runner.temp
-          }}/test-application
-        working-directory: dev-packages/e2e-tests
-
-      - name: Add pnpm overrides
-        run:
-          pnpm run ci:pnpm-overrides ${{ runner.temp }}/test-application ${{ github.workspace
-          }}/dev-packages/e2e-tests/packed
-        working-directory: dev-packages/e2e-tests
+          test-application: ${{ matrix.test-application }}
+          runtime: ${{ matrix.runtime }}
+          deno-version: ${{ matrix.deno-version }}
 
       # Installs Playwright while the app builds. Keep it right before the build: the runner sets up a background
       # composite action's steps from the job's shared `github` context, which fails with "Collection was modified" if
@@ -1186,8 +1152,10 @@ jobs:
           retention-days: 7
 
   # - We skip optional tests on release branches
+  # - The tests run in optional-e2e.yml, so their failures do not mark the PR as failed. This job only waits for
+  #   them and reports failures in a PR comment.
   job_optional_e2e_tests:
-    name: E2E ${{ matrix.label || matrix.test-application }} Test (optional)
+    name: E2E Tests (optional)
     # We only run E2E tests for non-fork PRs because the E2E tests require secrets to work and they can't be accessed from forks
     # We need to add the `always()` check here because the previous step has this as well :(
     # See: https://github.com/actions/runner/issues/2205
@@ -1196,35 +1164,14 @@ jobs:
       needs.job_build.outputs.e2e-matrix-optional != '{"include":[]}' && (github.event_name != 'pull_request' ||
       github.event.pull_request.head.repo.full_name == github.repository) && github.actor != 'dependabot[bot]'
     needs: [job_get_metadata, job_build, job_build_tarballs]
-    runs-on:
-      namespace-profile-sentry-javascript;overrides.cache-tag=sentry-javascript-e2e${{ github.event_name ==
-      'pull_request' && '-pr' || '' }}
-    timeout-minutes: 15
-    env:
-      E2E_TEST_AUTH_TOKEN: ${{ secrets.E2E_TEST_AUTH_TOKEN }}
-      E2E_TEST_DSN: ${{ secrets.E2E_TEST_DSN }}
-      # Needed because some apps expect a certain prefix
-      NEXT_PUBLIC_E2E_TEST_DSN: ${{ secrets.E2E_TEST_DSN }}
-      PUBLIC_E2E_TEST_DSN: ${{ secrets.E2E_TEST_DSN }}
-      REACT_APP_E2E_TEST_DSN: ${{ secrets.E2E_TEST_DSN }}
-      E2E_TEST_SENTRY_ORG_SLUG: 'sentry-javascript-sdks'
-      E2E_TEST_SENTRY_PROJECT: 'sentry-javascript-e2e-tests'
-      E2E_OPENROUTER_API_KEY: ${{ secrets.E2E_OPENROUTER_API_KEY }}
-      # Only this app talks to OpenAI directly (OpenRouter has no Decisions route), so only it gets the key.
-      E2E_OPENAI_DECISIONS_API_KEY:
-        ${{ matrix.test-application == 'node-openai-decisions-send-to-sentry' && secrets.E2E_OPENAI_DECISIONS_API_KEY ||
-        '' }}
-      # Used by test apps that deploy a real Cloudflare Worker, e.g. cloudflare-workers-send-to-sentry
-      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-      # The `runtime` of a runtime variant, see dev-packages/e2e-tests/README.md
-      RUNTIME: ${{ matrix.runtime }}
-      # Without the root node_modules, `pnpm run` would first install the whole workspace.
-      pnpm_config_verify_deps_before_run: 'false'
-    strategy:
-      fail-fast: false
-      matrix: ${{ fromJson(needs.job_build.outputs.e2e-matrix-optional) }}
-
+    # This job only waits for optional-e2e.yml, which can take most of an hour. GitHub runners are free for public
+    # repos and Namespace runners are paid per minute, so the wait runs here and the tests run on Namespace.
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    permissions:
+      contents: read
+      actions: write
+      pull-requests: write
     steps:
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
         uses: actions/checkout@v7
@@ -1233,79 +1180,18 @@ jobs:
       - name: Set up Node
         uses: actions/setup-node@v7
         with:
-          node-version-file: 'dev-packages/e2e-tests/test-applications/${{ matrix.test-application }}/package.json'
-      - name: Set up Bun
-        if:
-          matrix.test-application == 'node-exports-test-app' || contains(matrix.test-application, 'bun') ||
-          matrix.runtime == 'bun'
-        uses: oven-sh/setup-bun@v2
-        with:
-          bun-version: '1.3.14'
-      - name: Set up Deno
-        if: contains(matrix.test-application, 'deno') || matrix.runtime == 'deno'
-        uses: denoland/setup-deno@v2.0.5
-        with:
-          deno-version: ${{ matrix.deno-version || 'v2.8.3' }}
-      # Keeps the pnpm store on the cache volume for the `pnpm install` of the test application
-      - name: Mount pnpm store
-        uses: ./.github/actions/mount-pnpm-store
+          node-version-file: 'package.json'
       - name: Install pnpm
         uses: ./.github/actions/install-pnpm
-
-      - name: Restore tarball artifacts
-        uses: actions/download-artifact@v8
+      # The Namespace cache volume is not available here, so only install what the action needs
+      - name: Install action dependencies
+        run: pnpm install --frozen-lockfile --filter @sentry-internal/optional-e2e-gh-action
+      - name: Run optional E2E tests
+        uses: ./dev-packages/optional-e2e-gh-action
         with:
-          name: build-tarball-output
-          path: ${{ env.TARBALL_ARTIFACT_DOWNLOAD_PATH }}
-
-      - name: Restore test-utils tarball artifact
-        uses: actions/download-artifact@v8
-        with:
-          name: build-test-utils-tarball-output
-          path: dev-packages/test-utils
-
-      - name: Prepare E2E tests
-        run: pnpm run test:prepare
-        working-directory: dev-packages/e2e-tests
-
-      - name: Validate test setup
-        run: pnpm run test:validate
-        working-directory: dev-packages/e2e-tests
-
-      - name: Copy to temp
-        run:
-          pnpm run ci:copy-to-temp ./test-applications/${{ matrix.test-application }} ${{ runner.temp
-          }}/test-application
-        working-directory: dev-packages/e2e-tests
-
-      - name: Add pnpm overrides
-        run:
-          pnpm run ci:pnpm-overrides ${{ runner.temp }}/test-application ${{ github.workspace
-          }}/dev-packages/e2e-tests/packed
-        working-directory: dev-packages/e2e-tests
-
-      # Installs Playwright while the app builds. Keep it right before the build: the runner sets up a background
-      # composite action's steps from the job's shared `github` context, which fails with "Collection was modified" if
-      # a foreground step starts at that moment. Starting next to `download-artifact` also made it fail to read the event file.
-      - name: Install Playwright
-        id: install-playwright
-        background: true
-        uses: ./.github/actions/install-playwright
-        with:
-          browsers: chromium
-          cwd: dev-packages/e2e-tests/test-applications/${{ matrix.test-application }}
-
-      - name: Build E2E app
-        working-directory: ${{ runner.temp }}/test-application
-        timeout-minutes: 7
-        run: ${{ matrix.build-command || 'pnpm test:build' }}
-
-      - wait: [install-playwright]
-
-      - name: Run E2E test
-        working-directory: ${{ runner.temp }}/test-application
-        timeout-minutes: 10
-        run: ${{ matrix.assert-command || 'pnpm test:assert' }}
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          commit: ${{ env.HEAD_COMMIT }}
+          matrix: ${{ needs.job_build.outputs.e2e-matrix-optional }}
 
   job_required_jobs_passed:
     name: All required jobs passed or were skipped

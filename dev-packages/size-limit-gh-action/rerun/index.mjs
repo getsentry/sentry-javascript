@@ -1,4 +1,8 @@
-export default async function rerunSizeCheck({ github, context, core }) {
+import * as core from '@actions/core';
+import { context, getOctokit } from '@actions/github';
+
+async function rerunSizeCheck() {
+  const github = getOctokit(core.getInput('github_token', { required: true }));
   const pr = context.payload.pull_request;
 
   const runs = await github.paginate(github.rest.actions.listWorkflowRuns, {
@@ -58,3 +62,5 @@ export default async function rerunSizeCheck({ github, context, core }) {
     job_id: job.id,
   });
 }
+
+await rerunSizeCheck().catch(error => core.setFailed(error.message));
