@@ -1,4 +1,4 @@
-import { captureException, type MonitorConfig, withMonitor } from '@sentry/core';
+import { addNonEnumerableProperty, captureException, type MonitorConfig, withMonitor } from '@sentry/core';
 import { replaceCronNames } from './common';
 
 export interface NodeCronOptions {
@@ -79,7 +79,7 @@ export function instrumentNodeCron<T>(
             };
 
             // Tells `nodeCronIntegration` that this task is already monitored.
-            (monitoredCallback as unknown as Record<symbol, boolean>)[Symbol.for('sentry.cron.monitored')] = true;
+            addNonEnumerableProperty(monitoredCallback, Symbol.for('sentry.cron.monitored'), true);
 
             return target.apply(thisArg, [expression, monitoredCallback, options]);
           },
