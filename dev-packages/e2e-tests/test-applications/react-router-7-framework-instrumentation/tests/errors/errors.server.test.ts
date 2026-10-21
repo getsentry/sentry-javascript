@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test';
+import type { SerializedStreamedSpan } from '@sentry-internal/test-utils';
 import {
   collectStreamedSpansUntilSegment,
   getSpanOp,
@@ -72,18 +73,25 @@ test.describe('server - instrumentation API error capture', () => {
       return errorEvent.exception?.values?.[0]?.value === 'Loader error for testing';
     });
 
-    const spanPromise = waitForStreamedSpan(APP_NAME, span => {
-      return span.name === 'GET /performance/error-loader' && span.is_segment;
+    // Streamed spans flush later than errors, so a segment span from an earlier test hitting the same
+    // route can still be arriving here. Collect them and look for the one in the error's trace.
+    const segmentSpans: SerializedStreamedSpan[] = [];
+    void waitForStreamedSpan(APP_NAME, span => {
+      if (span.name === 'GET /performance/error-loader' && span.is_segment) {
+        segmentSpans.push(span);
+      }
+      return false;
     });
 
     await page.goto(`/performance/error-loader`).catch(() => {
       // Expected to fail due to loader error
     });
 
-    const [error, span] = await Promise.all([errorPromise, spanPromise]);
+    const error = await errorPromise;
+    const traceId = error.contexts?.trace?.trace_id;
+    expect(traceId).toMatch(/^[a-f0-9]{32}$/);
 
-    // Error and segment span should have the same trace_id
-    expect(error.contexts?.trace?.trace_id).toBe(span.trace_id);
+    await expect.poll(() => segmentSpans.some(span => span.trace_id === traceId)).toBe(true);
   });
 
   // Skipped in dev: the action error is sometimes captured via the client instrumentation path
