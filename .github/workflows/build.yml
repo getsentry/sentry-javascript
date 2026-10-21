@@ -1200,124 +1200,28 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 60
     permissions:
+      contents: read
       actions: write
       pull-requests: write
-    env:
-      GH_TOKEN: ${{ github.token }}
-      GH_REPO: ${{ github.repository }}
-      CORRELATION_ID: ${{ github.run_id }}-${{ github.run_attempt }}
     steps:
-      - name: Trigger optional E2E tests
-        env:
-          MATRIX: ${{ needs.job_build.outputs.e2e-matrix-optional }}
-          PR_NUMBER: ${{ github.event.pull_request.number }}
-          DISPATCH_REF: ${{ github.head_ref || github.ref_name }}
-        run: |
-          # A dispatch by file name only works when the file is on the default branch, a dispatch by ID always works.
-          workflow_id=$(gh api "repos/$GH_REPO/actions/workflows" --paginate \
-            --jq '.workflows[] | select(.path == ".github/workflows/optional-e2e.yml") | .id')
-          echo "WORKFLOW_ID=$workflow_id" >> "$GITHUB_ENV"
-
-          gh workflow run "$workflow_id" --ref "$DISPATCH_REF" \
-            -f commit="$HEAD_COMMIT" \
-            -f build_run_id="$GITHUB_RUN_ID" \
-            -f matrix="$MATRIX" \
-            -f pr_number="$PR_NUMBER" \
-            -f correlation_id="$CORRELATION_ID"
-
-      - name: Wait for optional E2E tests
-        id: wait
-        run: |
-          for _ in $(seq 1 30); do
-            run_id=$(gh run list --workflow "$WORKFLOW_ID" --event workflow_dispatch --limit 20 \
-              --json databaseId,displayTitle \
-              --jq ".[] | select(.displayTitle | contains(\"$CORRELATION_ID\")) | .databaseId" | head -1)
-            [ -n "$run_id" ] && break
-            sleep 2
-          done
-          [ -z "$run_id" ] && echo "::error::Optional E2E run not found" && exit 1
-          run_url="$GITHUB_SERVER_URL/$GH_REPO/actions/runs/$run_id"
-          echo "Optional E2E run: $run_url"
-
-          until [ "$(gh run view "$run_id" --json status --jq .status)" = completed ]; do
-            sleep 30
-          done
-
-          conclusion=$(gh run view "$run_id" --json conclusion --jq .conclusion)
-          echo "Optional E2E tests finished with: $conclusion"
-          [ "$conclusion" != success ] && echo "::warning::Optional E2E tests $conclusion: $run_url"
-          echo "run_id=$run_id" >> "$GITHUB_OUTPUT"
-          echo "url=$run_url" >> "$GITHUB_OUTPUT"
-          exit 0
-
-      # Keeps one comment per PR up to date, so new pushes do not add more comments. The comment
-      # is only created when a check fails.
-      - name: Report result in PR comment
-        if: github.event_name == 'pull_request'
-        env:
-          PR_NUMBER: ${{ github.event.pull_request.number }}
-          RUN_ID: ${{ steps.wait.outputs.run_id }}
-          RUN_URL: ${{ steps.wait.outputs.url }}
-        run: |
-          gh run view "$RUN_ID" --json jobs > jobs.json
-
-          rows() {
-            jq -r --arg filter "$1" '
-              def dur: ((.completedAt | fromdate) - (.startedAt | fromdate)) as $s
-                | if $s >= 60 then "\($s / 60 | floor)m" else "\($s)s" end;
-              def icon: {success: "✅", failure: "❌", cancelled: "⛔", timed_out: "⏱️"}[.conclusion] // "❔";
-              def status:
-                if .conclusion == "success" then "Successful in \(dur)"
-                elif .conclusion == "cancelled" then "Cancelled after \(dur)"
-                else "Failing after \(dur)" end;
-              .jobs[]
-              | select(.conclusion != "skipped")
-              | select(if $filter == "success" then .conclusion == "success" else .conclusion != "success" end)
-              | "| \(icon) | CI: Optional E2E Tests / \(.name) | \(status) | [Details](\(.url)) |"' jobs.json
-          }
-          failing=$(rows failing)
-          successful=$(rows success)
-          counts=$(jq -r '[.jobs[] | select(.conclusion != "skipped")]
-            | [(map(select(.conclusion != "success")) | length | select(. > 0) | "\(.) failing"),
-               (map(select(.conclusion == "success")) | length | select(. > 0) | "\(.) successful")]
-            | join(", ")' jobs.json)
-          header=$'|   | Check | Status |   |\n|---|---|---|---|'
-
-          marker='<!-- optional-e2e-report -->'
-          comment_id=$(gh api "repos/$GH_REPO/issues/$PR_NUMBER/comments" --paginate \
-            --jq ".[] | select(.user.login == \"github-actions[bot]\" and (.body | contains(\"$marker\"))) | .id" | tail -1)
-          if [ -z "$failing" ] && [ -z "$comment_id" ]; then
-            exit 0
-          fi
-
-          {
-            echo "$marker"
-            echo '### Optional E2E tests'
-            echo
-            if [ -n "$failing" ]; then
-              echo "Some optional checks were not successful. They do not block the merge. $counts. [See the run]($RUN_URL)."
-              echo
-              echo "$header"
-              echo "$failing"
-            else
-              echo "All optional checks were successful. $counts. [See the run]($RUN_URL)."
-            fi
-            if [ -n "$successful" ]; then
-              echo
-              echo '<details><summary>Successful checks</summary>'
-              echo
-              echo "$header"
-              echo "$successful"
-              echo
-              echo '</details>'
-            fi
-          } > comment.md
-
-          if [ -n "$comment_id" ]; then
-            gh api -X PATCH "repos/$GH_REPO/issues/comments/$comment_id" -F body=@comment.md > /dev/null
-          else
-            gh pr comment "$PR_NUMBER" --body-file comment.md
-          fi
+      - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ env.HEAD_COMMIT }}
+      - name: Set up Node
+        uses: actions/setup-node@v7
+        with:
+          node-version-file: 'package.json'
+      - name: Restore caches
+        uses: ./.github/actions/restore-cache
+        with:
+          dependency_cache_key: ${{ needs.job_build.outputs.dependency_cache_key }}
+      - name: Run optional E2E tests
+        uses: ./dev-packages/optional-e2e-gh-action
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          commit: ${{ env.HEAD_COMMIT }}
+          matrix: ${{ needs.job_build.outputs.e2e-matrix-optional }}
 
   job_required_jobs_passed:
     name: All required jobs passed or were skipped

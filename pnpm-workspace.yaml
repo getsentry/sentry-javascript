@@ -59,6 +59,7 @@ packages:
   - 'dev-packages/size-limit-gh-action'
   - 'dev-packages/clear-cache-gh-action'
   - 'dev-packages/external-contributor-gh-action'
+  - 'dev-packages/optional-e2e-gh-action'
   - 'dev-packages/rollup-utils'
   - 'dev-packages/bundler-tests'
 
