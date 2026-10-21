@@ -1,9 +1,12 @@
 import type { ServerRuntimeClientOptions } from '@sentry/core/server';
 import { _INTERNAL_flushLogsBuffer, _INTERNAL_flushMetricsBuffer, SDK_VERSION } from '@sentry/core';
 import { ServerRuntimeClient } from '@sentry/core/server';
+import { registerDiagnosticsChannelInjection } from '@sentry/server-runtime-injection/register';
 import { setAsyncLocalStorageAsyncContextStrategy } from '@sentry/server-utils';
 import process from 'node:process';
 import type { DenoClientOptions } from './types';
+
+declare const __SENTRY_CHANNEL_INJECTION__: boolean | undefined;
 
 function getHostName(): string | undefined {
   // Deno.permissions.querySync is not available on Deno Deploy
@@ -75,6 +78,15 @@ export class DenoClient extends ServerRuntimeClient<DenoClientOptions> {
     process.on('beforeExit', this._metricsOnExitFlushListener);
     globalThis.addEventListener('unload', this._logOnExitFlushListener);
     globalThis.addEventListener('unload', this._metricsOnExitFlushListener);
+
+    // In the constructor, as in `NodeClient`, so a directly constructed client installs the hooks
+    // too. Registration is idempotent.
+    if (
+      (typeof __SENTRY_CHANNEL_INJECTION__ === 'undefined' || __SENTRY_CHANNEL_INJECTION__) &&
+      options.enableRuntimeChannelInjection !== false
+    ) {
+      registerDiagnosticsChannelInjection();
+    }
   }
 
   /** @inheritDoc */

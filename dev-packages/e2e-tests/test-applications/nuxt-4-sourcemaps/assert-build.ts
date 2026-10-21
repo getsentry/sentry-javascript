@@ -24,16 +24,34 @@ const keepClientSourceMaps = process.env.E2E_KEEP_CLIENT_SOURCEMAPS === 'true';
 /** `nuxt generate` emits no `.output/server`. Keyed on the command so a missing one under `nuxt build` still fails. */
 const isStaticBuild = process.env.NUXT_COMMAND === 'generate';
 
-const CLIENT_OUTPUT = path.join('.output', 'public');
+const nitroPreset = process.env.NITRO_PRESET ?? 'node-server';
+
+/** If Nitro moves one of these directories, the debug ID checks below fail. */
+const OUTPUT_DIRS: Record<string, { client: string; server: string }> = {
+  'node-server': { client: path.join('.output', 'public'), server: path.join('.output', 'server') },
+  netlify: { client: 'dist', server: path.join('.netlify', 'functions-internal', 'server') },
+  'cloudflare-pages': { client: 'dist', server: path.join('dist', '_worker.js') },
+};
+
+const outputDirs = OUTPUT_DIRS[nitroPreset];
+assert.ok(outputDirs, `Expected output directories for the Nitro preset ${nitroPreset}`);
+
+const CLIENT_OUTPUT = outputDirs.client;
 /** Vite's own output directory. Nitro copies it to `CLIENT_OUTPUT`, and Sentry deletes no maps here. */
 const CLIENT_BUILD_OUTPUT = path.join('.nuxt', 'dist', 'client');
-const SERVER_OUTPUT = path.join('.output', 'server');
+const SERVER_OUTPUT = outputDirs.server;
 
 /** Both markers sit in comments, so bundlers strip them from the code but keep them in `sourcesContent`. */
 const CLIENT_MARKER = 'SOURCEMAP_MARKER_CLIENT';
 const SERVER_MARKER = 'SOURCEMAP_MARKER_SERVER';
 
 const UUID_REGEX = /^[\da-f]{8}-[\da-f]{4}-[\da-f]{4}-[\da-f]{4}-[\da-f]{12}$/i;
+
+/** Some presets write the server into the client output, e.g. Cloudflare Pages. */
+function isClientFile(file: string): boolean {
+  const relativePath = path.relative(SERVER_OUTPUT, file);
+  return relativePath.startsWith('..') || path.isAbsolute(relativePath);
+}
 
 function filesContaining(dir: string, needle: string): string[] {
   return fs
@@ -64,7 +82,7 @@ function debugIdsOfChunksWithoutSourceMap(dir: string): Set<string> {
 }
 
 console.log(
-  `Variant: ${isStaticBuild ? 'nuxt generate' : 'nuxt build'}, ` +
+  `Variant: ${isStaticBuild ? 'nuxt generate' : 'nuxt build'}, Nitro preset ${nitroPreset}, ` +
     `client source maps ${keepClientSourceMaps ? 'kept' : 'deleted'}\n`,
 );
 
@@ -218,7 +236,7 @@ console.log('');
 
 // --- What the build leaves behind in the client output ---
 
-const clientSourceMaps = findSourceMapFiles({ outputDir: CLIENT_OUTPUT });
+const clientSourceMaps = findSourceMapFiles({ outputDir: CLIENT_OUTPUT }).filter(isClientFile);
 
 if (keepClientSourceMaps) {
   assert.ok(clientSourceMaps.length > 0, `Expected Sentry to leave the user-enabled maps in ${CLIENT_OUTPUT}`);
@@ -228,20 +246,30 @@ if (keepClientSourceMaps) {
   assert.deepEqual(clientSourceMaps, [], `Expected no source maps in ${CLIENT_OUTPUT} after upload`);
 
   // The maps are gone, so a surviving reference only 404s in devtools and leaks where they were.
-  const danglingReferences = findSourceMappingUrlComments({ outputDir: CLIENT_OUTPUT });
+  const danglingReferences = findSourceMappingUrlComments({ outputDir: CLIENT_OUTPUT }).filter(isClientFile);
   assert.deepEqual(danglingReferences, [], `Expected no sourceMappingURL comments in ${CLIENT_OUTPUT}`);
 
   // Catches source maps inlined as `data:` URIs, which the reference check above skips by design.
-  const leakedSource = filesContaining(CLIENT_OUTPUT, CLIENT_MARKER);
+  const leakedSource = filesContaining(CLIENT_OUTPUT, CLIENT_MARKER).filter(isClientFile);
   assert.deepEqual(leakedSource, [], `Expected no original client source under ${CLIENT_OUTPUT}`);
 
   console.log(`  ${CLIENT_OUTPUT} is free of source maps, sourceMappingURL comments and original source\n`);
 }
 
+// --- What the build leaves behind in the server output ---
+
+// Nuxt enables the server maps by default, so they are the user's and Sentry must keep them.
+if (!isStaticBuild) {
+  const serverSourceMaps = findSourceMapFiles({ outputDir: SERVER_OUTPUT });
+  assert.ok(serverSourceMaps.length > 0, `Expected Sentry to keep the server source maps in ${SERVER_OUTPUT}`);
+  console.log(`  ${serverSourceMaps.length} source map(s) kept in ${SERVER_OUTPUT}, as Nuxt enables them\n`);
+}
+
 // --- What the built server answers for the client source maps ---
 
-// `nuxt generate` emits no server, and a static host serves only the files that exist.
-if (!isStaticBuild) {
+// `nuxt generate` emits no server, and a static host serves only the files that exist. The other presets build a
+// server for their platform, which Node cannot start.
+if (!isStaticBuild && nitroPreset === 'node-server') {
   const clientChunkUrls = fs
     .readdirSync(CLIENT_OUTPUT, { recursive: true, withFileTypes: true })
     .filter(entry => entry.isFile() && entry.name.endsWith('.js'))

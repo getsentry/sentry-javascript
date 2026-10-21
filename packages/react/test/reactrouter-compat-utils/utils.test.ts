@@ -4,6 +4,7 @@ import {
   getNavigationContext,
   getNormalizedName,
   getNumberOfUrlSegments,
+  getRootRoutes,
   locationIsInsideDescendantRoute,
   pathEndsWithWildcard,
   pathIsWildcardAndHasChildren,
@@ -244,6 +245,17 @@ describe('reactrouter-compat-utils/utils', () => {
 
       const result = rebuildRoutePathFromAllRoutes(allRoutes, location, mockMatchRoutes as MatchRoutes);
       expect(result).toBe('');
+    });
+  });
+
+  describe('getRootRoutes', () => {
+    it('should drop routes whose parent is also in the list', () => {
+      const leaf: RouteObject = { path: 'account' };
+      const settings: RouteObject = { path: 'settings', children: [leaf] };
+      const root: RouteObject = { path: '/', children: [settings] };
+      const descendant: RouteObject = { path: '/users/*', element: 'div' };
+
+      expect(getRootRoutes([root, settings, leaf, descendant])).toEqual([root, descendant]);
     });
   });
 
@@ -542,16 +554,6 @@ describe('reactrouter-compat-utils/utils', () => {
       ];
       const branches: RouteMatch[] = [
         {
-          route: { path: '/users', element: null },
-          params: {},
-          pathname: '/users',
-          pathnameBase: '',
-        },
-      ];
-
-      // Mock for descendant route check
-      const descendantMatches: RouteMatch[] = [
-        {
           route: { path: '/users/*', element: 'div' },
           params: { '*': '123/profile' },
           pathname: '/users/123/profile',
@@ -569,9 +571,7 @@ describe('reactrouter-compat-utils/utils', () => {
         },
       ];
 
-      mockMatchRoutes
-        .mockReturnValueOnce(descendantMatches) // First call for descendant check
-        .mockReturnValueOnce(rebuildMatches); // Second call for path rebuild
+      mockMatchRoutes.mockReturnValueOnce(rebuildMatches);
 
       const result = resolveRouteNameAndSource(location, routes, allRoutes, branches, makeConfig());
       // Since locationIsInsideDescendantRoute returns true, it uses route source
