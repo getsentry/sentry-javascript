@@ -277,6 +277,19 @@ describe('SentryBullMQSpan', () => {
     });
   });
 
+  it('leaves out the deprecated bullmq.job.finished.timestamp', () => {
+    const { span, otelSpan } = createSpan();
+
+    span.setAttributes({
+      'bullmq.job.finished.timestamp': 1791184722000,
+      'bullmq.job.attempt_finished_timestamp': 1791184722000,
+    });
+
+    expect(otelSpan.setAttributes).toHaveBeenCalledWith({
+      'messaging.bullmq.job.attempt_finished_timestamp': 1791184722000,
+    });
+  });
+
   it('sends bullmq.job.status as messaging.bullmq.job.state', () => {
     const { span, otelSpan } = createSpan();
 

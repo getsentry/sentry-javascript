@@ -231,7 +231,6 @@ describeWithDockerCompose('bullmq', { workingDirectory: [__dirname] }, () => {
           'messaging.bullmq.job.attempt_finished_timestamp',
           'messaging.bullmq.job.bulk.names',
           'messaging.bullmq.job.deduplication.key',
-          'messaging.bullmq.job.finished.timestamp',
           'messaging.bullmq.job.ids',
           'messaging.bullmq.job.key',
           'messaging.bullmq.job.name',
@@ -260,6 +259,7 @@ describeWithDockerCompose('bullmq', { workingDirectory: [__dirname] }, () => {
             [
               'messaging.bullmq.worker.id',
               'messaging.bullmq.job.status',
+              'messaging.bullmq.job.finished.timestamp',
               'messaging.bullmq.job.options',
               'messaging.bullmq.job.progress',
               'messaging.bullmq.queue.options',

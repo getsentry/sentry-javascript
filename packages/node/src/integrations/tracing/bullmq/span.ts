@@ -10,12 +10,14 @@ import type { Scope } from '@sentry/core';
 import { captureException } from '@sentry/core';
 import type { AttributeValue, TelemetrySpan } from './types';
 
-// BullMQ sets these attributes to `JSON.stringify()` output. They are left out until Sentry attributes support objects.
-const JSON_STRING_ATTRIBUTES = new Set([
+const DROPPED_ATTRIBUTES = new Set([
+  // BullMQ sets these to `JSON.stringify()` output. They are left out until Sentry attributes support objects.
   'bullmq.job.options',
   'bullmq.job.progress',
   'bullmq.queue.options',
   'bullmq.worker.options',
+  // BullMQ deprecated this for `bullmq.job.attempt_finished_timestamp`, which it sets on the same spans.
+  'bullmq.job.finished.timestamp',
 ]);
 
 function toOtelAttributes(attributes: Record<string, AttributeValue>): Attributes {
@@ -31,7 +33,7 @@ export function toMessagingKey(key: string): string {
 
 /**
  * Returns the BullMQ attributes with Sentry keys: the `messaging.*` convention where one exists, and the
- * `messaging.bullmq.*` key for all others. The attributes that hold JSON strings are left out.
+ * `messaging.bullmq.*` key for all others. The attributes that hold JSON strings and the deprecated ones are left out.
  */
 export function toSentryAttributes(attributes: Record<string, AttributeValue>): Attributes {
   const {
@@ -48,7 +50,7 @@ export function toSentryAttributes(attributes: Record<string, AttributeValue>): 
   const result: Attributes = {};
 
   for (const [key, value] of Object.entries(toOtelAttributes(rest))) {
-    if (!JSON_STRING_ATTRIBUTES.has(key)) {
+    if (!DROPPED_ATTRIBUTES.has(key)) {
       result[toMessagingKey(key)] = value;
     }
   }
