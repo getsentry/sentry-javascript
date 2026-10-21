@@ -27,6 +27,11 @@
     "@playwright/test": "~1.56.0",
     "@sentry-internal/test-utils": "link:../../../test-utils"
   },
+  "pnpm": {
+    "overrides": {
+      "@opentelemetry/api": "1.9.0"
+    }
+  },
   "volta": {
     "extends": "../../package.json"
   }

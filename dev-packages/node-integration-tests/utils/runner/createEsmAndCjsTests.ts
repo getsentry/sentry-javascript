@@ -1,7 +1,7 @@
 import { exec } from 'child_process';
-import { existsSync } from 'fs';
+import { existsSync, readFileSync } from 'fs';
 import { cp, mkdir, readFile, rm, writeFile } from 'fs/promises';
-import { basename, join } from 'path';
+import { basename, dirname, join } from 'path';
 import { promisify } from 'util';
 import { afterAll, beforeAll, test, type TestAPI } from 'vitest';
 import { CLEANUP_STEPS, createRunner } from './createRunner';
@@ -292,6 +292,9 @@ experimentalUseDiagnosticsChannelInjection();`,
         private: true,
         version: '0.0.0',
         dependencies: additionalDependencies,
+        // Packages like `ai` depend on `@opentelemetry/api` themselves. If npm resolves a newer minor than the SDK's
+        // copy, the newer copy refuses the globals registered by the older one and the package's spans are dropped.
+        overrides: additionalDependencies['@opentelemetry/api'] ? {} : { '@opentelemetry/api': getSdkOtelApiVersion() },
       } as const;
 
       await writeFile(join(tmpDirPath, 'package.json'), JSON.stringify(packageJson, null, 2));
@@ -367,6 +370,22 @@ function convertEsmToCjs(content: string): string {
   });
 
   return newContent;
+}
+
+function getSdkOtelApiVersion(): string {
+  const otelApiEntry = require.resolve('@opentelemetry/api', { paths: [dirname(require.resolve('@sentry/node'))] });
+  let dir = dirname(otelApiEntry);
+  while (dir !== dirname(dir)) {
+    const packageJsonPath = join(dir, 'package.json');
+    if (existsSync(packageJsonPath)) {
+      const { name, version } = JSON.parse(readFileSync(packageJsonPath, 'utf8')) as { name?: string; version: string };
+      if (name === '@opentelemetry/api') {
+        return version;
+      }
+    }
+    dir = dirname(dir);
+  }
+  throw new Error(`Could not find the @opentelemetry/api version used by @sentry/node (resolved ${otelApiEntry})`);
 }
 
 const NPM_INSTALL_MAX_RETRIES = 3;
