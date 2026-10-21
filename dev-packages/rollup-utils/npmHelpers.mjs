@@ -5,7 +5,7 @@
  */
 
 import * as fs from 'fs';
-import { builtinModules } from 'module';
+import { builtinModules, isBuiltin } from 'module';
 import * as path from 'path';
 import { fileURLToPath } from 'url';
 
@@ -48,6 +48,12 @@ function isSideEffectFreePackage(packageName) {
     sideEffectFree = json.sideEffects === false;
   } catch {
     // Not resolvable from the built package - assume side effects.
+    if (isInstalledPackage(packageName)) {
+      // oxlint-disable-next-line no-console
+      console.warn(
+        `[rollup-utils] Cannot read the package.json of "${packageName}" from ${process.cwd()}, so its imports are kept. Declare it in the package.json of the built package.`,
+      );
+    }
   }
 
   sideEffectsCache.set(packageName, sideEffectFree);
@@ -65,6 +71,20 @@ function findPackageJson(packageName) {
       return candidate;
     }
   }
+}
+
+/**
+ * Whether `packageName` must have a `package.json` in a `node_modules` folder of the built package. This is false for
+ * builtins, for virtual modules and placeholders (e.g. `$app`, `cloudflare:workers`), which are no valid npm package
+ * names, for the built package itself, and for optional peers, which are not always installed.
+ */
+function isInstalledPackage(packageName) {
+  return (
+    !isBuiltin(packageName) &&
+    /^(@[a-z0-9-~][a-z0-9-._~]*\/)?[a-z0-9-~][a-z0-9-._~]*$/.test(packageName) &&
+    packageName !== packageDotJSON.name &&
+    !packageDotJSON.peerDependenciesMeta?.[packageName]?.optional
+  );
 }
 
 function getPackageName(id) {
