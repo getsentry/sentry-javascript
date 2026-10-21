@@ -142,7 +142,13 @@ describe('instrument > addFetchInstrumentationHandler', () => {
       ['an empty URL (`fetch("")`)', 'https://app.example.com/some/page?x=1', '', 'Failed to fetch (app.example.com)'],
       ['a relative path with no current page', undefined, '/api/users', 'Failed to fetch'],
       ['a relative path on a `file://` page', 'file:///C:/app/index.html', '/api/users', 'Failed to fetch'],
-      ['a relative path with an opaque origin', 'null', '/api/users', 'Failed to fetch'],
+      ['a relative path in a sandboxed srcdoc iframe', 'about:srcdoc', '/api/users', 'Failed to fetch'],
+      [
+        'an absolute URL in a sandboxed srcdoc iframe',
+        'about:srcdoc',
+        'https://api.example.org/v1/users',
+        'Failed to fetch (api.example.org)',
+      ],
       [
         'an absolute URL, ignoring the current page',
         'https://app.example.com/some/page',
