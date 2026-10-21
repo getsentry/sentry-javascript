@@ -118,13 +118,13 @@ describe('getHttpServerSubscriptions', () => {
     expect(transaction.contexts?.trace).toEqual(
       expect.objectContaining({
         op: 'http.server',
-        origin: 'auto.http.server',
+        origin: 'auto.http.http_server',
         data: expect.objectContaining({
           'http.request.method': 'GET',
           'http.response.status_code': 200,
           'sentry.kind': 'server',
           'sentry.op': 'http.server',
-          'sentry.origin': 'auto.http.server',
+          'sentry.origin': 'auto.http.http_server',
           'sentry.segment.name.source': 'url',
           [URL_FULL]: expect.stringMatching(/\/users\/42\?foo=bar$/),
           [URL_PATH]: '/users/42',
