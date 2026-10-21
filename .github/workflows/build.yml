@@ -53,8 +53,10 @@ env:
   DISABLE_V8_COMPILE_CACHE: '1'
 
 # Jobs that install the monorepo dependencies share one Namespace cache volume through `overrides.cache-tag`, E2E jobs
-# share another one (`-e2e`). Jobs that do not use a cache volume have no cache tag. Pull request jobs get their own
-# volumes (`-pr`), so they cannot change the node_modules that develop and release builds install from.
+# share another one (`-e2e`). The optional Cloudflare integration tests replace the installed wrangler with the latest
+# one, so they use a third one (`-latest-wrangler`). Jobs that do not use a cache volume have no cache tag. Pull request
+# jobs get their own volumes (`-pr`), so they cannot change the node_modules that develop and release builds install
+# from.
 jobs:
   job_get_metadata:
     uses: ./.github/workflows/ci-metadata.yml
@@ -884,12 +886,13 @@ jobs:
 
       # The Vite plugin depends on wrangler and writes config for it, so both move together. In the hoisted layout,
       # pnpm keeps the nested `node_modules` folders of the old versions (for example an old workerd under
-      # `node_modules/wrangler`), so the install starts from empty `node_modules` folders.
+      # `node_modules/wrangler`), so the install starts from empty `node_modules` folders. They are mount points of the
+      # cache volume, so only their contents are deleted.
       - name: Install the latest wrangler
         if: matrix.wrangler == 'latest'
         run: |
           pnpm --filter @sentry-internal/cloudflare-integration-tests add --save-dev --lockfile-only wrangler@latest @cloudflare/vite-plugin@latest
-          rm -rf node_modules packages/*/node_modules dev-packages/*/node_modules
+          find -H node_modules packages/*/node_modules dev-packages/*/node_modules -mindepth 1 -maxdepth 1 -exec rm -rf {} +
           pnpm install --frozen-lockfile --filter @sentry-internal/cloudflare-integration-tests...
 
       - name: Run integration tests
@@ -904,7 +907,9 @@ jobs:
     if:
       needs.job_get_metadata.outputs.is_release != 'true' && (needs.job_build.outputs.changed_cloudflare_integration ==
       'true' || github.event_name != 'pull_request')
-    runs-on: ubuntu-24.04
+    runs-on:
+      namespace-profile-sentry-javascript;overrides.cache-tag=sentry-javascript-latest-wrangler${{ github.event_name ==
+      'pull_request' && '-pr' || '' }}
     timeout-minutes: 15
     strategy:
       fail-fast: false
