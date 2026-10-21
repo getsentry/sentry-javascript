@@ -7,6 +7,7 @@
   "trailingComma": "all",
   "experimentalSortPackageJson": false,
   "ignorePatterns": [
+    ".github/actions/rerun-size-check/dist/**",
     "packages/browser/test/loader.js",
     "packages/replay-worker/examples/worker.min.js",
     "dev-packages/browser-integration-tests/fixtures/**",

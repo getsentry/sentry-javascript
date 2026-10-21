@@ -30,6 +30,7 @@
   },
   "globals": {},
   "ignorePatterns": [
+    ".github/actions/rerun-size-check/dist/**",
     "coverage/**",
     "build/**",
     "dist/**",

@@ -19,15 +19,12 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 60
     steps:
-      - name: Check out base commit
+      - name: Check out workflow commit
         uses: actions/checkout@v7
         with:
-          ref: ${{ github.event.pull_request.base.sha }}
+          ref: ${{ github.workflow_sha }}
           persist-credentials: false
-      - uses: actions/github-script@v9
+      - name: Rerun Size Check
+        uses: ./.github/actions/rerun-size-check
         with:
-          script: |
-            const { default: run } = await import(
-              `${process.env.GITHUB_WORKSPACE}/scripts/rerun-size-check.mjs`
-            );
-            await run({ github, context, core });
+          github_token: ${{ secrets.GITHUB_TOKEN }}
