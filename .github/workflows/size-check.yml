@@ -30,8 +30,6 @@ jobs:
           node-version-file: 'package.json'
       - name: Install dependencies
         uses: ./.github/actions/install-dependencies
-        env:
-          SKIP_PLAYWRIGHT_BROWSER_INSTALL: '1'
       - name: Rerun Size Check
         uses: ./dev-packages/size-limit-gh-action/rerun
         with:
