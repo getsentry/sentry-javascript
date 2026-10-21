@@ -1308,8 +1308,8 @@ importers:
   packages/cloudflare:
     dependencies:
       '@opentelemetry/api':
-        specifier: ^1.9.1
-        version: 1.9.1
+        specifier: ^1.10.0
+        version: 1.10.0
       '@sentry/conventions':
         specifier: ^0.27.0
         version: 0.27.0
@@ -1349,8 +1349,8 @@ importers:
   packages/deno:
     dependencies:
       '@opentelemetry/api':
-        specifier: ^1.9.1
-        version: 1.9.1
+        specifier: ^1.10.0
+        version: 1.10.0
       '@sentry/conventions':
         specifier: ^0.27.0
         version: 0.27.0
@@ -1580,8 +1580,8 @@ importers:
   packages/hono:
     dependencies:
       '@opentelemetry/api':
-        specifier: ^1.9.1
-        version: 1.9.1
+        specifier: ^1.10.0
+        version: 1.10.0
       '@sentry/conventions':
         specifier: ^0.27.0
         version: 0.27.0
@@ -1642,8 +1642,8 @@ importers:
   packages/nextjs:
     dependencies:
       '@opentelemetry/api':
-        specifier: ^1.9.1
-        version: 1.9.1
+        specifier: ^1.10.0
+        version: 1.10.0
       '@rollup/plugin-commonjs':
         specifier: 28.0.1
         version: 28.0.1(rollup@4.62.3)
@@ -1689,7 +1689,7 @@ importers:
     devDependencies:
       next:
         specifier: 15.5.27
-        version: 15.5.27(@babel/core@7.29.7(supports-color@10.0.0))(@opentelemetry/api@1.9.1)(@playwright/test@1.64.1)(@types/node@20.19.43)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(sass@1.72.0)
+        version: 15.5.27(@babel/core@7.29.7(supports-color@10.0.0))(@opentelemetry/api@1.10.0)(@playwright/test@1.64.1)(@types/node@20.19.43)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(sass@1.72.0)
       react:
         specifier: ^18.3.1
         version: 18.3.1
@@ -1731,8 +1731,8 @@ importers:
   packages/node:
     dependencies:
       '@opentelemetry/api':
-        specifier: ^1.9.1
-        version: 1.9.1
+        specifier: ^1.10.0
+        version: 1.10.0
       '@sentry/bundler-plugins':
         specifier: 11.8.0
         version: link:../bundler-plugins
@@ -1834,8 +1834,8 @@ importers:
         version: link:../core
     devDependencies:
       '@opentelemetry/api':
-        specifier: ^1.9.1
-        version: 1.9.1
+        specifier: ^1.10.0
+        version: 1.10.0
 
   packages/profiling-node:
     dependencies:
@@ -1923,8 +1923,8 @@ importers:
   packages/react-router:
     dependencies:
       '@opentelemetry/api':
-        specifier: ^1.9.1
-        version: 1.9.1
+        specifier: ^1.10.0
+        version: 1.10.0
       '@sentry/browser':
         specifier: 11.8.0
         version: link:../browser
@@ -2120,8 +2120,8 @@ importers:
   packages/server-utils:
     dependencies:
       '@opentelemetry/api':
-        specifier: ^1.9.1
-        version: 1.9.1
+        specifier: ^1.10.0
+        version: 1.10.0
       '@sentry/conventions':
         specifier: ^0.27.0
         version: 0.27.0
@@ -2271,8 +2271,8 @@ importers:
   packages/sveltekit:
     dependencies:
       '@opentelemetry/api':
-        specifier: ^1.9.1
-        version: 1.9.1
+        specifier: ^1.10.0
+        version: 1.10.0
       '@sentry/bundler-plugins':
         specifier: 11.8.0
         version: link:../bundler-plugins
@@ -2312,7 +2312,7 @@ importers:
     devDependencies:
       '@sveltejs/kit':
         specifier: ^2.70.2
-        version: 2.70.2(@opentelemetry/api@1.9.1)(@sveltejs/vite-plugin-svelte@3.1.2(supports-color@10.0.0)(svelte@4.2.8)(vite@8.3.1(@types/node@20.19.43)(esbuild@0.28.1)(jiti@2.7.0)(less@4.2.0(supports-color@10.0.0))(sass@1.72.0)(stylus@0.59.0(supports-color@10.0.0))(terser@5.43.1)(tsx@4.23.0)(yaml@2.9.0)))(svelte@4.2.8)(typescript@6.0.3)(vite@8.3.1(@types/node@20.19.43)(esbuild@0.28.1)(jiti@2.7.0)(less@4.2.0(supports-color@10.0.0))(sass@1.72.0)(stylus@0.59.0(supports-color@10.0.0))(terser@5.43.1)(tsx@4.23.0)(yaml@2.9.0))
+        version: 2.70.2(@opentelemetry/api@1.10.0)(@sveltejs/vite-plugin-svelte@3.1.2(supports-color@10.0.0)(svelte@4.2.8)(vite@8.3.1(@types/node@20.19.43)(esbuild@0.28.1)(jiti@2.7.0)(less@4.2.0(supports-color@10.0.0))(sass@1.72.0)(stylus@0.59.0(supports-color@10.0.0))(terser@5.43.1)(tsx@4.23.0)(yaml@2.9.0)))(svelte@4.2.8)(typescript@6.0.3)(vite@8.3.1(@types/node@20.19.43)(esbuild@0.28.1)(jiti@2.7.0)(less@4.2.0(supports-color@10.0.0))(sass@1.72.0)(stylus@0.59.0(supports-color@10.0.0))(terser@5.43.1)(tsx@4.23.0)(yaml@2.9.0))
       '@sveltejs/vite-plugin-svelte':
         specifier: ^3.0.0
         version: 3.1.2(supports-color@10.0.0)(svelte@4.2.8)(vite@8.3.1(@types/node@20.19.43)(esbuild@0.28.1)(jiti@2.7.0)(less@4.2.0(supports-color@10.0.0))(sass@1.72.0)(stylus@0.59.0(supports-color@10.0.0))(terser@5.43.1)(tsx@4.23.0)(yaml@2.9.0))
@@ -2326,8 +2326,8 @@ importers:
   packages/tanstackstart-react:
     dependencies:
       '@opentelemetry/api':
-        specifier: ^1.9.1
-        version: 1.9.1
+        specifier: ^1.10.0
+        version: 1.10.0
       '@sentry/browser-utils':
         specifier: 11.8.0
         version: link:../browser-utils
@@ -2362,8 +2362,8 @@ importers:
   packages/vercel-edge:
     dependencies:
       '@opentelemetry/api':
-        specifier: ^1.9.1
-        version: 1.9.1
+        specifier: ^1.10.0
+        version: 1.10.0
       '@sentry/core':
         specifier: 11.8.0
         version: link:../core
@@ -6419,6 +6419,10 @@ packages:
 
   '@opentelemetry/api-logs@0.220.0':
     resolution: {integrity: sha512-CmVa4ImJ+ynfrPMNaAXHET6Bhb44SwzmfyVJFq9ni2jgXJR/l7C6gfVFddNmHP+ZOkP9cf4f9DBe68qVLTHc9w==}
+    engines: {node: '>=8.0.0'}
+
+  '@opentelemetry/api@1.10.0':
+    resolution: {integrity: sha512-lMkyes8iHrG+mk6WH7X70MdCLI2RS0FwNBY1PyQ8UemaijE2m5mv5A0Niy3HtbYTFrgkUEQjFMXmSAk2hQDuPQ==}
     engines: {node: '>=8.0.0'}
 
   '@opentelemetry/api@1.9.0':
@@ -24936,6 +24940,8 @@ snapshots:
     dependencies:
       '@opentelemetry/api': 1.9.1
 
+  '@opentelemetry/api@1.10.0': {}
+
   '@opentelemetry/api@1.9.0': {}
 
   '@opentelemetry/api@1.9.1': {}
@@ -26577,7 +26583,7 @@ snapshots:
     dependencies:
       acorn: 8.18.0
 
-  '@sveltejs/kit@2.70.2(@opentelemetry/api@1.9.1)(@sveltejs/vite-plugin-svelte@3.1.2(supports-color@10.0.0)(svelte@4.2.8)(vite@8.3.1(@types/node@20.19.43)(esbuild@0.28.1)(jiti@2.7.0)(less@4.2.0(supports-color@10.0.0))(sass@1.72.0)(stylus@0.59.0(supports-color@10.0.0))(terser@5.43.1)(tsx@4.23.0)(yaml@2.9.0)))(svelte@4.2.8)(typescript@6.0.3)(vite@8.3.1(@types/node@20.19.43)(esbuild@0.28.1)(jiti@2.7.0)(less@4.2.0(supports-color@10.0.0))(sass@1.72.0)(stylus@0.59.0(supports-color@10.0.0))(terser@5.43.1)(tsx@4.23.0)(yaml@2.9.0))':
+  '@sveltejs/kit@2.70.2(@opentelemetry/api@1.10.0)(@sveltejs/vite-plugin-svelte@3.1.2(supports-color@10.0.0)(svelte@4.2.8)(vite@8.3.1(@types/node@20.19.43)(esbuild@0.28.1)(jiti@2.7.0)(less@4.2.0(supports-color@10.0.0))(sass@1.72.0)(stylus@0.59.0(supports-color@10.0.0))(terser@5.43.1)(tsx@4.23.0)(yaml@2.9.0)))(svelte@4.2.8)(typescript@6.0.3)(vite@8.3.1(@types/node@20.19.43)(esbuild@0.28.1)(jiti@2.7.0)(less@4.2.0(supports-color@10.0.0))(sass@1.72.0)(stylus@0.59.0(supports-color@10.0.0))(terser@5.43.1)(tsx@4.23.0)(yaml@2.9.0))':
     dependencies:
       '@standard-schema/spec': 1.1.0
       '@sveltejs/acorn-typescript': 1.0.9(acorn@8.18.0)
@@ -26595,7 +26601,7 @@ snapshots:
       svelte: 4.2.8
       vite: 8.3.1(@types/node@20.19.43)(esbuild@0.28.1)(jiti@2.7.0)(less@4.2.0(supports-color@10.0.0))(sass@1.72.0)(stylus@0.59.0(supports-color@10.0.0))(terser@5.43.1)(tsx@4.23.0)(yaml@2.9.0)
     optionalDependencies:
-      '@opentelemetry/api': 1.9.1
+      '@opentelemetry/api': 1.10.0
       typescript: 6.0.3
 
   '@sveltejs/vite-plugin-svelte-inspector@2.1.0(@sveltejs/vite-plugin-svelte@3.1.2(supports-color@10.0.0)(svelte@4.2.8)(vite@8.3.1(@types/node@20.19.43)(esbuild@0.28.1)(jiti@2.7.0)(less@4.2.0(supports-color@10.0.0))(sass@1.72.0)(stylus@0.59.0(supports-color@10.0.0))(terser@5.43.1)(tsx@4.23.0)(yaml@2.9.0)))(supports-color@10.0.0)(svelte@4.2.8)(vite@8.3.1(@types/node@20.19.43)(esbuild@0.28.1)(jiti@2.7.0)(less@4.2.0(supports-color@10.0.0))(sass@1.72.0)(stylus@0.59.0(supports-color@10.0.0))(terser@5.43.1)(tsx@4.23.0)(yaml@2.9.0))':
@@ -34318,7 +34324,7 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  next@15.5.27(@babel/core@7.29.7(supports-color@10.0.0))(@opentelemetry/api@1.9.1)(@playwright/test@1.64.1)(@types/node@20.19.43)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(sass@1.72.0):
+  next@15.5.27(@babel/core@7.29.7(supports-color@10.0.0))(@opentelemetry/api@1.10.0)(@playwright/test@1.64.1)(@types/node@20.19.43)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(sass@1.72.0):
     dependencies:
       '@next/env': 15.5.27
       '@swc/helpers': 0.5.15
@@ -34336,7 +34342,7 @@ snapshots:
       '@next/swc-linux-x64-musl': 15.5.27
       '@next/swc-win32-arm64-msvc': 15.5.27
       '@next/swc-win32-x64-msvc': 15.5.27
-      '@opentelemetry/api': 1.9.1
+      '@opentelemetry/api': 1.10.0
       '@playwright/test': 1.64.1
       sass: 1.72.0
       sharp: 0.35.5(@types/node@20.19.43)
