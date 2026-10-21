@@ -45,6 +45,7 @@ function EffectSpyFallback({ error }: { error: unknown }): JSX.Element {
   const [counter, setCounter] = useState(0);
 
   React.useEffect(() => {
+    // oxlint-disable-next-line set-state-in-effect
     setCounter(c => c + 1);
   }, []);
 
@@ -400,11 +401,12 @@ describe('ErrorBoundary', () => {
     // Regression test against:
     // https://github.com/getsentry/sentry-javascript/issues/6167
     it('does not set cause if non Error objected is thrown', () => {
+      function StringBam(): JSX.Element {
+        throw 'bam';
+      }
+
       const TestAppThrowingString: React.FC<ErrorBoundaryProps> = ({ children, ...props }) => {
         const [isError, setError] = React.useState(false);
-        function StringBam(): JSX.Element {
-          throw 'bam';
-        }
         return (
           <ErrorBoundary
             {...props}
@@ -487,6 +489,28 @@ describe('ErrorBoundary', () => {
       expect(cause.stack).toEqual(expect.any(String));
       expect(cause.name).toContain('React ErrorBoundary');
       expect(cause.message).toEqual(thirdError.message);
+    });
+
+    it('handles when `error.cause` is not an Error', () => {
+      function CustomBam(): JSX.Element {
+        const error = new Error('bam');
+        // @ts-expect-error Need to set cause on error
+        error.cause = 'timeout';
+        throw error;
+      }
+
+      const { container } = render(
+        <TestApp fallback={<p>You have hit an error</p>} errorComp={<CustomBam />}>
+          <h1>children</h1>
+        </TestApp>,
+      );
+
+      const btn = screen.getByTestId('errorBtn');
+      fireEvent.click(btn);
+
+      expect(container.innerHTML).toContain('You have hit an error');
+      expect(mockCaptureException).toHaveBeenCalledTimes(1);
+      expect(mockCaptureException.mock.calls[0]?.[0].cause).toBe('timeout');
     });
 
     it('handles when `error.cause` is recursive', () => {

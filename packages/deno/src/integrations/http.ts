@@ -162,7 +162,7 @@ const _denoHttpIntegration = ((options: DenoHttpIntegrationOptions = {}) => {
     processEvent(event: Event): Event | null {
       // Gated on this integration's own span origin so it does not filter `Deno.serve`
       // transactions, which `denoServeIntegration` owns via its own `ignoreStatusCodes`.
-      return processHttpServerTransactionEvent(event, ignoreStatusCodes, 'auto.http.server');
+      return processHttpServerTransactionEvent(event, ignoreStatusCodes, 'auto.http.http_server');
     },
     setupOnce() {
       const { [HTTP_ON_SERVER_REQUEST]: onHttpServerRequest } = getHttpServerSubscriptions({
