@@ -79,6 +79,15 @@ describe('instrumentStream (openai chat completion tool calls)', () => {
     expect(toolCalls.map(call => (call.function as { name: string }).name)).toEqual(['lookup', 'search']);
   });
 
+  it('does not let a later real index overwrite an earlier call without one', async () => {
+    const toolCalls = await recordedToolCalls([
+      chunkWith([{ id: 'call_b', type: 'function', function: { name: 'search', arguments: '{}' } }]),
+      chunkWith([{ index: 0, id: 'call_a', function: { name: 'lookup', arguments: '{}' } }]),
+    ]);
+
+    expect(toolCalls.map(call => call.id).sort()).toEqual(['call_a', 'call_b']);
+  });
+
   it('still groups indexed deltas by index', async () => {
     const toolCalls = await recordedToolCalls([
       chunkWith([{ index: 1, id: 'call_b', function: { name: 'search', arguments: '{' } }]),
