@@ -5,7 +5,7 @@ import { cleanupChildProcesses, createEsmAndCjsTests } from '../../../utils/runn
 // The suite runs twice on CI: once with the OTel `Aws` integration (default) and once with the
 // orchestrion diagnostics-channel integration auto-injected (`INJECT_ORCHESTRION`). Both emit the
 // same spans; only the origin differs.
-const ORIGIN = 'auto.aws.aws_sdk';
+const ORIGIN = 'auto.rpc.aws_sdk';
 
 // The aws-sdk instrumentation creates spans by patching the underlying smithy middleware stack. The
 // patch target differs between aws-sdk versions, so we run the exact same assertions against both:

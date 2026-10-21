@@ -63,7 +63,7 @@ export function getRequestSpanOptions(event: unknown, context: Context, requestI
         : context.functionName,
     attributes: {
       [SENTRY_OP]: FUNCTION_AWS,
-      [SENTRY_ORIGIN]: 'auto.aws_lambda',
+      [SENTRY_ORIGIN]: 'auto.function.aws_lambda',
       [SENTRY_SEGMENT_NAME_SOURCE]: 'component',
       [SENTRY_KIND]: 'server',
       [FAAS_INVOCATION_ID]: context.awsRequestId,
