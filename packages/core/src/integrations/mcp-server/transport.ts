@@ -27,11 +27,15 @@ function resolveMcpOptions(options: McpServerWrapperOptions): ResolvedMcpOptions
     };
   }
 
-  const genAI = getClient()?.getDataCollectionOptions().genAI;
+  const client = getClient();
+  // TODO(v12): Drop the `genAI` fallback and read `client.getDataCollectionOptions().mcp`. Until then, the raw option
+  // is read because the resolved `mcp` always has defaults applied and would hide whether the user set it.
+  const userMcp = client?.getOptions().dataCollection?.mcp;
+  const genAI = client?.getDataCollectionOptions().genAI;
 
   return {
-    recordInputs: options.recordInputs ?? genAI?.inputs ?? true,
-    recordOutputs: options.recordOutputs ?? genAI?.outputs ?? true,
+    recordInputs: options.recordInputs ?? userMcp?.inputs ?? genAI?.inputs ?? true,
+    recordOutputs: options.recordOutputs ?? userMcp?.outputs ?? genAI?.outputs ?? true,
   };
 }
 
