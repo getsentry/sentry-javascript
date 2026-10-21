@@ -1,4 +1,4 @@
-import { captureException, withMonitor } from '@sentry/core';
+import { addNonEnumerableProperty, captureException, withMonitor } from '@sentry/core';
 import { replaceCronNames } from './common';
 
 export type CronJobParams = {
@@ -118,7 +118,7 @@ export function instrumentCron<T>(lib: T & CronJobConstructor, monitorSlug: stri
       }
 
       // Tells `cronJobIntegration` that this job is already monitored.
-      (monitoredTick as unknown as Record<symbol, boolean>)[MONITORED] = true;
+      addNonEnumerableProperty(monitoredTick, MONITORED, true);
 
       return new target(cronTime, monitoredTick, onComplete, start, timeZone, ...rest);
     },
@@ -162,7 +162,7 @@ export function instrumentCron<T>(lib: T & CronJobConstructor, monitorSlug: stri
             );
           };
 
-          (param.onTick as unknown as Record<symbol, boolean>)[MONITORED] = true;
+          addNonEnumerableProperty(param.onTick, MONITORED, true);
 
           return target.from(param);
         };
