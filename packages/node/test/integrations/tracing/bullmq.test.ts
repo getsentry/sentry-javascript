@@ -226,6 +226,7 @@ describe('SentryBullMQSpan', () => {
       'bullmq.job.id': '42',
       'bullmq.job.attempts.made': 3,
       'bullmq.job.bulk.count': 5,
+      'bullmq.worker.id': '03327d57-05cc-4528-9d24-c59bf6520039',
       'bullmq.job.name': 'welcome-email',
     });
 
@@ -236,6 +237,7 @@ describe('SentryBullMQSpan', () => {
       'messaging.message.id': '42',
       'messaging.message.retry.count': 2,
       'messaging.batch.message_count': 5,
+      'messaging.client.id': '03327d57-05cc-4528-9d24-c59bf6520039',
     });
   });
 

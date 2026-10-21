@@ -40,6 +40,7 @@ export function toSentryAttributes(attributes: Record<string, AttributeValue>): 
     'bullmq.job.id': jobId,
     'bullmq.job.attempts.made': attemptsMade,
     'bullmq.job.bulk.count': bulkCount,
+    'bullmq.worker.id': workerId,
     ...rest
   } = attributes;
   const result: Attributes = {};
@@ -69,6 +70,10 @@ export function toSentryAttributes(attributes: Record<string, AttributeValue>): 
 
   if (typeof bulkCount === 'number') {
     result[MESSAGING_BATCH_MESSAGE_COUNT] = bulkCount;
+  }
+
+  if (typeof workerId === 'string') {
+    result['messaging.client.id'] = workerId;
   }
 
   return result;

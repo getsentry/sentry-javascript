@@ -226,6 +226,7 @@ describeWithDockerCompose('bullmq', { workingDirectory: [__dirname] }, () => {
       // `messaging.bullmq.job.state` and `messaging.bullmq.queue.clean.count` need BullMQ 6.
       expect([...attributeKeys]).toEqual(
         expect.arrayContaining([
+          'messaging.client.id',
           'messaging.bullmq.flow.name',
           'messaging.bullmq.job.attempt_finished_timestamp',
           'messaging.bullmq.job.bulk.names',
@@ -246,7 +247,6 @@ describeWithDockerCompose('bullmq', { workingDirectory: [__dirname] }, () => {
           'messaging.bullmq.queue.rate.limit',
           'messaging.bullmq.worker.do.not.wait.active',
           'messaging.bullmq.worker.force.close',
-          'messaging.bullmq.worker.id',
           'messaging.bullmq.worker.jobs.to.extend.locks',
           'messaging.bullmq.worker.name',
           'messaging.bullmq.worker.rate.limit',
@@ -258,6 +258,7 @@ describeWithDockerCompose('bullmq', { workingDirectory: [__dirname] }, () => {
           key =>
             key.startsWith('bullmq.') ||
             [
+              'messaging.bullmq.worker.id',
               'messaging.bullmq.job.options',
               'messaging.bullmq.job.progress',
               'messaging.bullmq.queue.options',
