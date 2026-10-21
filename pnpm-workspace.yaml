@@ -78,7 +78,7 @@ overrides:
 
 # Dependencies that import packages without declaring them. pnpm links these peers to the versions of the importer.
 packageExtensions:
-  # Its type declarations import the bundler types.
+  # Its type declarations import the bundler types: https://github.com/apm-js-collab/code-transformer-bundler-plugins/issues/49
   '@apm-js-collab/code-transformer-bundler-plugins':
     peerDependencies:
       esbuild: '*'
