@@ -220,6 +220,9 @@ importers:
       '@sentry-internal/node-integration-tests':
         specifier: workspace:*
         version: link:dev-packages/node-integration-tests
+      '@sentry-internal/optional-e2e-gh-action':
+        specifier: workspace:*
+        version: link:dev-packages/optional-e2e-gh-action
       '@sentry-internal/replay-worker':
         specifier: workspace:*
         version: link:packages/replay-worker
@@ -1002,6 +1005,18 @@ importers:
       zod:
         specifier: ^3.24.1
         version: 3.25.76
+
+  dev-packages/optional-e2e-gh-action:
+    dependencies:
+      '@actions/core':
+        specifier: 1.10.1
+        version: 1.10.1
+      '@actions/github':
+        specifier: ^5.0.0
+        version: 5.1.1(encoding@0.1.13)
+      markdown-table:
+        specifier: 3.0.3
+        version: 3.0.3
 
   dev-packages/rollup-utils:
     dependencies:
