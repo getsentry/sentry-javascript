@@ -41,7 +41,7 @@ export class BullMQTelemetry implements Telemetry<SentryContext> {
   public constructor(
     options: {
       /**
-       * Sends BullMQ's job metrics, such as `messaging.bullmq.jobs.completed` and `messaging.bullmq.job.duration`, to Sentry. Defaults to `false`.
+       * Sends BullMQ's job metrics, such as `messaging.bullmq.jobs.completed` and `messaging.process.duration`, to Sentry. Defaults to `false`.
        */
       enableMetrics?: boolean;
     } = {},

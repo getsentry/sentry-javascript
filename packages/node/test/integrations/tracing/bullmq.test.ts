@@ -575,15 +575,19 @@ describe('SentryBullMQMeter', () => {
   });
 
   describe('histogram', () => {
-    it('delegates record to metrics.distribution', () => {
+    it('records bullmq.job.duration as messaging.process.duration in seconds', () => {
       const telemetry = new BullMQTelemetry({ enableMetrics: true });
       const histogram = telemetry.meter!.createHistogram('bullmq.job.duration', { unit: 'ms' });
 
-      histogram.record(142.5, { 'queue.name': 'notifications' });
+      histogram.record(1500, { 'bullmq.queue.name': 'notifications' });
 
-      expect(SentryCore.metrics.distribution).toHaveBeenCalledWith('messaging.bullmq.job.duration', 142.5, {
-        unit: 'millisecond',
-        attributes: { 'queue.name': 'notifications' },
+      expect(SentryCore.metrics.distribution).toHaveBeenCalledWith('messaging.process.duration', 1.5, {
+        unit: 'second',
+        attributes: {
+          'messaging.destination.name': 'notifications',
+          'messaging.system': 'bullmq',
+          'messaging.operation.name': 'process',
+        },
       });
     });
 

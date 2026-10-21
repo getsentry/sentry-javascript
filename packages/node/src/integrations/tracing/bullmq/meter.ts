@@ -1,3 +1,4 @@
+import { MESSAGING_OPERATION_NAME, MESSAGING_SYSTEM } from '@sentry/conventions/attributes';
 import { metrics } from '@sentry/core';
 import { toMessagingKey, toSentryAttributes } from './span';
 import type { AttributeValue, Counter, Gauge, Histogram, Meter, MetricOptions } from './types';
@@ -84,12 +85,33 @@ class SentryBullMQGauge implements Gauge {
   }
 }
 
+/**
+ * Records BullMQ's `bullmq.job.duration` histogram, which is in milliseconds, as the OTel
+ * `messaging.process.duration` metric in seconds.
+ */
+class SentryBullMQProcessDuration implements Histogram {
+  public record(value: number, attributes?: Record<string, AttributeValue>): void {
+    metrics.distribution('messaging.process.duration', value / 1000, {
+      unit: 'second',
+      attributes: {
+        ...toMetricAttributes(attributes),
+        [MESSAGING_SYSTEM]: 'bullmq',
+        [MESSAGING_OPERATION_NAME]: 'process',
+      },
+    });
+  }
+}
+
 export class SentryBullMQMeter implements Meter {
   public createCounter(name: string, options?: MetricOptions): Counter {
     return new SentryBullMQCounter(toMessagingKey(name), toSentryUnit(options?.unit));
   }
 
   public createHistogram(name: string, options?: MetricOptions): Histogram {
+    if (name === 'bullmq.job.duration') {
+      return new SentryBullMQProcessDuration();
+    }
+
     return new SentryBullMQHistogram(toMessagingKey(name), toSentryUnit(options?.unit));
   }
 

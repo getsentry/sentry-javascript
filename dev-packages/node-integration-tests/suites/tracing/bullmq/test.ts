@@ -134,9 +134,18 @@ describeWithDockerCompose('bullmq', { workingDirectory: [__dirname] }, () => {
               expect.objectContaining({ type: 'counter', unit: 'none', value: expect.any(Number) }),
               expect.objectContaining({ type: 'counter', unit: 'none', value: expect.any(Number) }),
             ]);
-            expect(items.filter(item => item.name === 'messaging.bullmq.job.duration')).toEqual([
-              expect.objectContaining({ type: 'distribution', unit: 'millisecond', value: expect.any(Number) }),
-              expect.objectContaining({ type: 'distribution', unit: 'millisecond', value: expect.any(Number) }),
+            const processDuration = expect.objectContaining({
+              type: 'distribution',
+              unit: 'second',
+              value: expect.any(Number),
+              attributes: expect.objectContaining({
+                'messaging.system': { value: 'bullmq', type: 'string' },
+                'messaging.operation.name': { value: 'process', type: 'string' },
+              }),
+            });
+            expect(items.filter(item => item.name === 'messaging.process.duration')).toEqual([
+              processDuration,
+              processDuration,
             ]);
           },
         })

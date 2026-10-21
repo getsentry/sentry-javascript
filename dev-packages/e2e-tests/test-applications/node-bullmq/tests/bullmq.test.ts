@@ -121,16 +121,16 @@ test('Emits messaging.bullmq.jobs.completed counter metric on successful job', a
   expect(metric.value).toEqual(expect.any(Number));
 });
 
-test('Emits messaging.bullmq.job.duration histogram metric on job completion', async ({ baseURL }) => {
+test('Emits messaging.process.duration histogram metric on job completion', async ({ baseURL }) => {
   const metricPromise = waitForMetric('node-bullmq', metric => {
-    return metric.name === 'messaging.bullmq.job.duration' && metric.type === 'distribution';
+    return metric.name === 'messaging.process.duration' && metric.type === 'distribution';
   });
 
   await fetch(`${baseURL}/enqueue/success`);
 
   const metric = await metricPromise;
 
-  expect(metric.name).toBe('messaging.bullmq.job.duration');
+  expect(metric.name).toBe('messaging.process.duration');
   expect(metric.type).toBe('distribution');
   expect(metric.value).toEqual(expect.any(Number));
 });
