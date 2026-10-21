@@ -65,11 +65,7 @@ export function startRequestSession(
   client.emit('startRequestSession');
 
   let ended = false;
-  return () => {
-    if (ended) {
-      return;
-    }
-    ended = true;
+  const record = (flushNow: boolean): void => {
     const requestSession = requestIsolationScope.getScopeData().sdkProcessingMetadata.requestSession;
 
     if (client && requestSession) {
@@ -115,7 +111,37 @@ export function startRequestSession(
           flushPendingClientAggregates();
         }, sessionFlushingDelayMS);
         safeUnref(timeout);
+
+        if (flushNow) {
+          flushPendingClientAggregates();
+        }
       }
     }
+  };
+
+  return () => {
+    if (ended) {
+      return;
+    }
+    ended = true;
+
+    // The event pipeline decides whether an error counts towards the session, and it can still run after the
+    // response ended (e.g. async event processors), so the status is final only once those errors settle.
+    const pendingErrors = requestIsolationScope.getScopeData().sdkProcessingMetadata.requestSession?.pendingErrors;
+    if (!pendingErrors?.size) {
+      record(false);
+      return;
+    }
+
+    // `client.flush()` sends the aggregate before it waits for event processing. A session that settles during
+    // that wait is sent right away, so that the transport still has it when that flush drains it.
+    let flushedWhileSettling = false;
+    const unregisterClientFlushHook = client.on('flush', () => {
+      flushedWhileSettling = true;
+    });
+    void Promise.allSettled(pendingErrors).then(() => {
+      unregisterClientFlushHook();
+      record(flushedWhileSettling);
+    });
   };
 }

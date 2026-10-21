@@ -1362,6 +1362,17 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
     afterSetupIntegrations(this, integrations);
   }
 
+  /**
+   * Updates the sessions an error event counts towards. Runs after event processors and `beforeSend` kept the
+   * event, but before `sampleRate` is applied: dropped errors must not affect sessions, sampled-out errors must.
+   */
+  protected _updateSessionsFromEvent(event: Event, currentScope: Scope, isolationScope: Scope): void {
+    const session = currentScope.getSession() || isolationScope.getSession();
+    if (session) {
+      this._updateSessionFromEvent(session, event);
+    }
+  }
+
   /** Updates existing session based on the provided event */
   protected _updateSessionFromEvent(session: Session, event: Event): void {
     // initially, set `unhandled` based on the event level and update from exceptions if there are any later on
@@ -1602,9 +1613,8 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
           throw _makeDoNotSendEventError(`${dropMessage}, will not send event.`);
         }
 
-        const session = currentScope.getSession() || isolationScope.getSession();
-        if (isError && session) {
-          this._updateSessionFromEvent(session, processedEvent);
+        if (isError) {
+          this._updateSessionsFromEvent(processedEvent, currentScope, isolationScope);
         }
 
         if (isError && typeof parsedSampleRate === 'number' && safeMathRandom() > parsedSampleRate) {
