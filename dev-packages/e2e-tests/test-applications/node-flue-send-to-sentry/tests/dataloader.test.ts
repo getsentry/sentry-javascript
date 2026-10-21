@@ -4,11 +4,7 @@ import { CACHE_GET } from '@sentry/conventions/op';
 import { EVENT_POLLING_OPTIONS, fetchSpanAttributes } from '@sentry-internal/test-utils/cli';
 import { newInstanceId, runAgentTurn, waitForConversationTrace } from './utils';
 
-/**
- * `dataloader` is instrumented through orchestrion, a module transform, so it only produces spans
- * with the loader registered at process start (`--import=@sentry/node/import` in the start script).
- * The loader is called from inside a tool so its span lands in the agent's trace, beside the AI spans.
- */
+// Orchestrion only hooks `dataloader` with the loader preloaded (`--import` in the start script).
 test('sends orchestrion-instrumented dataloader spans in the same trace as the AI spans', async ({ baseURL }) => {
   const conversationId = await runAgentTurn(
     baseURL!,

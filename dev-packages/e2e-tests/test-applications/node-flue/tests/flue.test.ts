@@ -48,9 +48,7 @@ test('captures the invoke_agent / chat / execute_tool hierarchy for a Flue turn'
   expect(executeTool?.parent_span_id).toBe(invokeAgent?.span_id);
 });
 
-// Flue's Node coordinator runs every turn from one long-lived loop that keeps the async context of
-// the first request that started it (https://github.com/withastro/flue/issues/813). Two turns, so
-// the second one would land in the first request's trace if that leaked.
+// Two turns: if the context leaked, the second would land in the first request's trace (withastro/flue#813).
 test('puts each turn under the request that sent it', async ({ baseURL }) => {
   for (const prefix of ['first-request', 'second-request']) {
     const conversationId = newConversationId(prefix);

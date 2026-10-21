@@ -28,7 +28,7 @@ import { newInstanceId, runAgentTurn, waitForConversationTrace } from './utils';
 test('sends the request / invoke_agent / chat / execute_tool hierarchy of a Flue turn', async ({ baseURL }) => {
   const conversationId = await runAgentTurn(baseURL!, newInstanceId('weather'), 'What is the weather in Paris?');
 
-  // Spans land in Sentry at different times, so wait for the relationships the test checks, not just the ops.
+  // Spans land at different times, so wait for the relationships checked below, not just the ops.
   const isProviderCall = (span: TraceItem, spans: TraceItem[]) =>
     span.op === HTTP_CLIENT && spans.some(chat => chat.op === GEN_AI_CHAT && chat.event_id === span.parent_span_id);
   const { traceId, spans } = await waitForConversationTrace(
@@ -44,15 +44,10 @@ test('sends the request / invoke_agent / chat / execute_tool hierarchy of a Flue
   const chats = spans.filter(span => span.op === GEN_AI_CHAT);
   const executeTool = spans.find(span => span.description === 'execute_tool get_weather');
 
-  // A turn has one agent span. More than one means other conversations' runs leaked into this
-  // trace (https://github.com/withastro/flue/issues/813).
+  // More than one means other conversations leaked into this trace (withastro/flue#813).
   expect(agents).toHaveLength(1);
-  // On Node the turn runs inside the request that admitted it, so the agent span hangs off the
-  // request span instead of starting a trace of its own as it does on Cloudflare.
   expect(invokeAgent?.parent_span_id).toBe(request?.event_id);
-  // Tool and chat spans are siblings under the agent invocation, matching how Flue's own
-  // OpenTelemetry adapter projects them. A chat span anywhere else would be a provider SDK
-  // reporting the same model call a second time.
+  // A chat span anywhere else would be a provider SDK reporting the same call a second time.
   expect(chats.map(chat => chat.parent_span_id)).toEqual(chats.map(() => invokeAgent?.event_id));
   expect(executeTool?.parent_span_id).toBe(invokeAgent?.event_id);
 
@@ -85,7 +80,7 @@ test('sends the request / invoke_agent / chat / execute_tool hierarchy of a Flue
     .toMatchObject({
       [SEARCH_ORIGIN]: 'auto.ai.flue',
       [SEARCH_GEN_AI__TOOL__NAME]: 'get_weather',
-      // The model chooses the argument (`Paris`, `Paris, France`, ...); the tool's sentence is fixed.
+      // The model picks the argument (`Paris`, `Paris, France`, ...).
       [SEARCH_GEN_AI__TOOL__CALL__ARGUMENTS]: expect.stringContaining('Paris'),
       [SEARCH_GEN_AI__TOOL__CALL__RESULT]: expect.stringMatching(/^It is 21 degrees and sunny in Paris/),
     });

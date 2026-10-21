@@ -4,9 +4,6 @@ import * as Sentry from '@sentry/node';
 import * as v from 'valibot';
 import DataLoader from 'dataloader';
 
-// The `'use agent'` directive is how `@flue/vite` finds this module and binds an identity to it at
-// build time. That binding is the part a hand-written scenario cannot reproduce, so it is the main
-// reason this app exists alongside the node-integration-test suite.
 export function Hello() {
   useModel('openrouter/anthropic/claude-haiku-4.5');
 
