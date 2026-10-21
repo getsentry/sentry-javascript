@@ -42,7 +42,7 @@ describe('Vercel AI decide spans', () => {
         recordOutputs: true,
       },
       result: { answers: { wantsRefund: { type: 'boolean', probability: 0.99 } } },
-    } as unknown as Message;
+    } satisfies Message;
 
     const span = createSpanFromMessage(message, {} as Parameters<typeof createSpanFromMessage>[1])!;
     expect(span).toBeDefined();
@@ -72,7 +72,7 @@ describe('Vercel AI decide spans', () => {
         answers: { department: { type: 'choice', choice: 'billing' } },
         providerMetadata: { [provider]: { confidence: { department: 0.91 } } },
       },
-    } as unknown as Message;
+    } satisfies Message;
 
     const span = createSpanFromMessage(message, {} as Parameters<typeof createSpanFromMessage>[1])!;
     enrichSpanOnEnd(span, message, {} as Parameters<typeof enrichSpanOnEnd>[2]);
