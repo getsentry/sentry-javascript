@@ -42,7 +42,11 @@ jobs:
   job_optional_e2e_tests:
     name: E2E ${{ matrix.label || matrix.test-application }} Test (optional)
     if: github.event_name == 'workflow_dispatch'
-    runs-on: ubuntu-24.04
+    # Same cache volume as the E2E jobs in build.yml. The event is always `workflow_dispatch`, so the PR number
+    # decides if the run gets the PR volume.
+    runs-on:
+      namespace-profile-sentry-javascript;overrides.cache-tag=sentry-javascript-e2e${{ inputs.pr_number != '' && '-pr'
+      || '' }}
     timeout-minutes: 15
     permissions:
       contents: read
@@ -97,6 +101,9 @@ jobs:
         uses: denoland/setup-deno@v2.0.5
         with:
           deno-version: ${{ matrix.deno-version || 'v2.8.3' }}
+      # Keeps the pnpm store on the cache volume for the `pnpm install` of the test application
+      - name: Mount pnpm store
+        uses: ./.github/actions/mount-pnpm-store
       - name: Install pnpm
         uses: ./.github/actions/install-pnpm
 

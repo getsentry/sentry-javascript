@@ -446,6 +446,27 @@ describe('sentryOrchestrionPlugin (vite)', () => {
     expect(fallback).toMatch(/[/\\]build[/\\]esm[/\\]index\.js$/);
     expect(existsSync(fallback as string)).toBe(true);
   });
+
+  it('resolves the snippet require() to the ESM entry before it handles other requires on Rolldown', async () => {
+    const resolveId = vitePlugin().resolveId as (
+      this: unknown,
+      source: string,
+      importer: string,
+      opts: { ssr: boolean; kind: string },
+    ) => Promise<unknown>;
+    const context = {
+      meta: { rolldownVersion: '1.2.14' },
+      environment: { name: 'ssr', mode: 'build', config: { resolve: { external: [] } } },
+      resolve: vi.fn().mockResolvedValue({ id: '/app/node_modules/@sentry/server-utils/build/cjs/index.js' }),
+    };
+
+    const resolved = await resolveId.call(context, '@sentry/server-utils', '/app/node_modules/pg/lib/client.js', {
+      ssr: true,
+      kind: 'require-call',
+    });
+
+    expect(resolved).toEqual({ id: '/app/node_modules/@sentry/server-utils/build/esm/index.js' });
+  });
 });
 
 describe('sentryOrchestrionPlugin (bun)', () => {
