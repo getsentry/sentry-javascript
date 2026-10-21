@@ -326,7 +326,7 @@ function buildServerSpanWrap(
           attributes: {
             // Sentry-specific attributes
             [SENTRY_OP]: HTTP_SERVER,
-            [SENTRY_ORIGIN]: 'auto.http.server',
+            [SENTRY_ORIGIN]: 'auto.http.http_server',
             [SENTRY_SEGMENT_NAME_SOURCE]: 'url',
             [SENTRY_KIND]: 'server',
             // Network attributes
