@@ -191,12 +191,12 @@ export function _INTERNAL_captureMetric(beforeMetric: Metric, options?: Internal
     : enrichedMetric;
 
   if (processedMetric === CALLBACK_ERROR) {
-    client.recordDroppedEvent('callback_error', 'metric', 1);
+    client.recordDroppedEvent('callback_error', 'trace_metric', 1);
     return;
   }
 
   if (!processedMetric) {
-    client.recordDroppedEvent('before_send', 'metric', 1);
+    client.recordDroppedEvent('before_send', 'trace_metric', 1);
     DEBUG_BUILD && debug.log('`beforeSendMetric` returned `null`, will not send metric.');
     return;
   }

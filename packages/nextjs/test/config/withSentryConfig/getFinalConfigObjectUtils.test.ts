@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { NextConfigObject } from '../../../src/config/types';
 import { makeProject, removeProjects } from './projectFixture';
 
@@ -9,6 +9,14 @@ afterEach(() => {
 });
 
 describe('maybeSetUpTunnelRouteRewriteRules', () => {
+  beforeAll(async () => {
+    // The first import transforms the whole dependency tree, which can
+    // take longer than the test timeout on a slow CI runner. A timed-out
+    // test keeps running and logs into the next test's spies. Imports
+    // after `vi.resetModules()` reuse these transforms.
+    await import('../../../src/config/withSentryConfig/getFinalConfigObjectUtils');
+  });
+
   beforeEach(() => {
     vi.restoreAllMocks();
     // A fresh module per test, because the function logs each message only once.

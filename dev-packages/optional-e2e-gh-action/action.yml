@@ -1,0 +1,15 @@
+name: 'optional-e2e-gh-action'
+description: 'Run the optional E2E tests in their own workflow, wait for them and report failures in a PR comment'
+inputs:
+  github_token:
+    required: true
+    description: 'a github access token'
+  commit:
+    required: true
+    description: 'The commit that the tarballs were built from'
+  matrix:
+    required: true
+    description: 'The optional E2E test matrix as JSON'
+runs:
+  using: 'node24'
+  main: 'index.mjs'

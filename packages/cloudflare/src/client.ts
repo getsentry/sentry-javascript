@@ -1,4 +1,4 @@
-import type { ClientOptions, Options, TracePropagationTargets } from '@sentry/core';
+import type { CheckIn, ClientOptions, MonitorConfig, Options, Scope, TracePropagationTargets } from '@sentry/core';
 import {
   _INTERNAL_clearAiProviderSkips,
   _INTERNAL_flushLogsBuffer,
@@ -177,6 +177,20 @@ export class CloudflareClient extends ServerRuntimeClient {
     } finally {
       this._inBoundaryFlush = false;
     }
+  }
+
+  /**
+   * Sends the check-in at once instead of holding it for the flush at the end of the invocation.
+   * An `in_progress` check-in of a run that is longer than the check-in margin would otherwise
+   * reach Sentry too late, and Sentry would mark the run as missed.
+   */
+  public override captureCheckIn(checkIn: CheckIn, monitorConfig?: MonitorConfig, scope?: Scope): string {
+    const checkInId = super.captureCheckIn(checkIn, monitorConfig, scope);
+    const transport = this.getTransport();
+    if (transport) {
+      this._registerWithInvocationWaitUntil(transport.flush(2000));
+    }
+    return checkInId;
   }
 
   /**
