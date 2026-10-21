@@ -51,36 +51,6 @@
         "default": "./build/npm/cjs/awslambda-auto.js"
       }
     },
-    "./vite": {
-      "import": {
-        "types": "./build/npm/types/bundler-plugin/vite.d.ts",
-        "default": "./build/npm/esm/bundler-plugin/vite.js"
-      },
-      "require": {
-        "types": "./build/npm/types/bundler-plugin/vite.d.ts",
-        "default": "./build/npm/cjs/bundler-plugin/vite.js"
-      }
-    },
-    "./rollup": {
-      "import": {
-        "types": "./build/npm/types/bundler-plugin/rollup.d.ts",
-        "default": "./build/npm/esm/bundler-plugin/rollup.js"
-      },
-      "require": {
-        "types": "./build/npm/types/bundler-plugin/rollup.d.ts",
-        "default": "./build/npm/cjs/bundler-plugin/rollup.js"
-      }
-    },
-    "./webpack": {
-      "import": {
-        "types": "./build/npm/types/bundler-plugin/webpack.d.ts",
-        "default": "./build/npm/esm/bundler-plugin/webpack.js"
-      },
-      "require": {
-        "types": "./build/npm/types/bundler-plugin/webpack.d.ts",
-        "default": "./build/npm/cjs/bundler-plugin/webpack.js"
-      }
-    },
     "./esbuild": {
       "import": {
         "types": "./build/npm/types/bundler-plugin/esbuild.d.ts",

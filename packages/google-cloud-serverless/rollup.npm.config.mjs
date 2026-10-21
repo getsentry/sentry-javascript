@@ -1,16 +1,3 @@
 import { makeBaseNPMConfig, makeNPMConfigVariants, makeOrchestrionLoader } from '@sentry-internal/rollup-utils';
 
-export default [
-  ...makeNPMConfigVariants(
-    makeBaseNPMConfig({
-      entrypoints: [
-        'src/index.ts',
-        'src/bundler-plugin/vite.ts',
-        'src/bundler-plugin/rollup.ts',
-        'src/bundler-plugin/webpack.ts',
-        'src/bundler-plugin/esbuild.ts',
-      ],
-    }),
-  ),
-  ...makeOrchestrionLoader('./build'),
-];
+export default [...makeNPMConfigVariants(makeBaseNPMConfig()), ...makeOrchestrionLoader('./build')];

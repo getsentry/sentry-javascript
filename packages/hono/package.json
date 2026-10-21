@@ -66,46 +66,6 @@
         "types": "./build/types/index.deno.d.ts",
         "default": "./build/cjs/index.deno.js"
       }
-    },
-    "./node/vite": {
-      "import": {
-        "types": "./build/types/node/bundler-plugin/vite.d.ts",
-        "default": "./build/esm/node/bundler-plugin/vite.js"
-      },
-      "require": {
-        "types": "./build/types/node/bundler-plugin/vite.d.ts",
-        "default": "./build/cjs/node/bundler-plugin/vite.js"
-      }
-    },
-    "./node/rollup": {
-      "import": {
-        "types": "./build/types/node/bundler-plugin/rollup.d.ts",
-        "default": "./build/esm/node/bundler-plugin/rollup.js"
-      },
-      "require": {
-        "types": "./build/types/node/bundler-plugin/rollup.d.ts",
-        "default": "./build/cjs/node/bundler-plugin/rollup.js"
-      }
-    },
-    "./node/webpack": {
-      "import": {
-        "types": "./build/types/node/bundler-plugin/webpack.d.ts",
-        "default": "./build/esm/node/bundler-plugin/webpack.js"
-      },
-      "require": {
-        "types": "./build/types/node/bundler-plugin/webpack.d.ts",
-        "default": "./build/cjs/node/bundler-plugin/webpack.js"
-      }
-    },
-    "./node/esbuild": {
-      "import": {
-        "types": "./build/types/node/bundler-plugin/esbuild.d.ts",
-        "default": "./build/esm/node/bundler-plugin/esbuild.js"
-      },
-      "require": {
-        "types": "./build/types/node/bundler-plugin/esbuild.d.ts",
-        "default": "./build/cjs/node/bundler-plugin/esbuild.js"
-      }
     }
   },
   "publishConfig": {

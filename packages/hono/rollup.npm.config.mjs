@@ -7,10 +7,6 @@ const baseConfig = makeBaseNPMConfig({
     'src/index.node.ts',
     'src/index.bun.ts',
     'src/index.deno.ts',
-    'src/node/bundler-plugin/vite.ts',
-    'src/node/bundler-plugin/rollup.ts',
-    'src/node/bundler-plugin/webpack.ts',
-    'src/node/bundler-plugin/esbuild.ts',
   ],
   packageSpecificConfig: {
     output: {
