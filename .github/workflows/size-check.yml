@@ -16,7 +16,7 @@ concurrency:
 jobs:
   rerun:
     if: github.event.label.name == 'Accept Bundlesize Increase'
-    runs-on: ubuntu-24.04
+    runs-on: namespace-profile-sentry-javascript;overrides.cache-tag=sentry-javascript
     timeout-minutes: 60
     steps:
       - name: Check out workflow commit
@@ -28,10 +28,10 @@ jobs:
         uses: actions/setup-node@v7
         with:
           node-version-file: 'package.json'
-      - name: Install pnpm
-        uses: ./.github/actions/install-pnpm
       - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+        uses: ./.github/actions/install-dependencies
+        env:
+          SKIP_PLAYWRIGHT_BROWSER_INSTALL: '1'
       - name: Rerun Size Check
         uses: ./dev-packages/size-limit-gh-action/rerun
         with:
