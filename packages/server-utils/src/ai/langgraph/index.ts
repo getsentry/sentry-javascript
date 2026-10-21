@@ -35,6 +35,24 @@ import {
 } from './utils';
 
 let _insideCreateReactAgent = false;
+// Set while a manual wrapper runs the original sync `compile`/`createReactAgent`, so the integration's
+// channel hooks (which fire inside that call) leave the graph to the options the user passed explicitly.
+let _insideManualInstrumentation = false;
+
+/** Whether a manual `instrumentStateGraph()` / `instrumentCreateReactAgent()` call is in progress. */
+export function isInsideManualLangGraphInstrumentation(): boolean {
+  return _insideManualInstrumentation;
+}
+
+function runManually<T>(callback: () => T): T {
+  const previous = _insideManualInstrumentation;
+  _insideManualInstrumentation = true;
+  try {
+    return callback();
+  } finally {
+    _insideManualInstrumentation = previous;
+  }
+}
 
 const SENTRY_PATCHED = '__sentry_patched__';
 // invoke() drains this.stream() internally. Unlike Anthropic's sync flag, the marker lives on the span's
@@ -78,7 +96,7 @@ export function instrumentStateGraphCompile(
         return Reflect.apply(target, thisArg, args);
       }
 
-      const compiledGraph = Reflect.apply(target, thisArg, args);
+      const compiledGraph = runManually(() => Reflect.apply(target, thisArg, args));
       const compileOptions = args.length > 0 ? (args[0] as Record<string, unknown>) : {};
       instrumentCompiledGraph(compiledGraph, compileOptions, options, undefined, sentryHandler);
 
@@ -120,30 +138,6 @@ export function instrumentCompiledGraph(
       );
     }
   }
-}
-
-/**
- * Instruments CompiledGraph's invoke method to create spans for agent invocation
- *
- * Creates a `gen_ai.invoke_agent` span when invoke() is called
- */
-export function instrumentCompiledGraphInvoke(
-  originalInvoke: (...args: unknown[]) => Promise<unknown>,
-  graphInstance: CompiledGraph,
-  compileOptions: Record<string, unknown>,
-  options: LangGraphOptions,
-  llm?: BaseChatModel | null,
-  sentryCallbackHandler?: unknown,
-): (...args: unknown[]) => Promise<unknown> {
-  return instrumentCompiledGraphOperation(
-    originalInvoke,
-    graphInstance,
-    compileOptions,
-    options,
-    llm,
-    sentryCallbackHandler,
-    false,
-  );
 }
 
 function instrumentCompiledGraphOperation(
@@ -256,7 +250,13 @@ function instrumentCompiledGraphOperation(
           if (streaming) {
             if (isAsyncIterable(result)) {
               span.setAttribute(GEN_AI_RESPONSE_STREAMING, true);
-              return instrumentStreamResult(result, span, inputMessages, recordOutputs);
+              try {
+                return instrumentStreamResult(result, span, inputMessages, recordOutputs);
+              } catch {
+                // An unpatchable stream (e.g. frozen) still belongs to the caller; only the span is lost.
+                span.end();
+                return result;
+              }
             }
 
             span.end();
@@ -312,7 +312,7 @@ export function instrumentCreateReactAgent(
       _insideCreateReactAgent = true;
       let compiledGraph: CompiledGraph;
       try {
-        compiledGraph = Reflect.apply(target, thisArg, args);
+        compiledGraph = runManually(() => Reflect.apply(target, thisArg, args));
       } finally {
         _insideCreateReactAgent = false;
       }

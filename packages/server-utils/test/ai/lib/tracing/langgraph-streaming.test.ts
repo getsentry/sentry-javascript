@@ -1,6 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
 import type { Span } from '@sentry/core';
-import { SPAN_STATUS_ERROR } from '@sentry/core';
 import { AIMessageChunk } from '@langchain/core/messages';
 import { GEN_AI_RESPONSE_TEXT, GEN_AI_USAGE_OUTPUT_TOKENS } from '@sentry/conventions/attributes';
 import { instrumentStreamResult } from '../../../../src/ai/langgraph/streaming';
@@ -43,18 +42,12 @@ describe('LangGraph iterable protocol', () => {
 });
 
 describe('LangGraph pipeThrough execution lifecycle', () => {
-  it('awaits async transform and flush while allowing buffered output to outlive execution', async () => {
+  it('ends the span when the graph finishes, while buffered output outlives it', async () => {
     const span = createSpan();
     let finishTransform!: () => void;
-    let finishFlush!: () => void;
     const transformPending = new Promise<void>(resolve => {
       finishTransform = resolve;
     });
-    const flushPending = new Promise<void>(resolve => {
-      finishFlush = resolve;
-    });
-    const transformStarted = vi.fn();
-    const flushStarted = vi.fn();
     const stream = instrumentStreamResult(
       new ReadableStream<string>({
         start(controller) {
@@ -70,26 +63,17 @@ describe('LangGraph pipeThrough execution lifecycle', () => {
       new TransformStream<string, string>(
         {
           async transform(chunk, controller) {
-            transformStarted();
             await transformPending;
             controller.enqueue(chunk);
-          },
-          async flush() {
-            flushStarted();
-            await flushPending;
           },
         },
         undefined,
         { highWaterMark: 2 },
       ),
     );
-    await vi.waitFor(() => expect(transformStarted).toHaveBeenCalledTimes(1));
-    expect(span.end).not.toHaveBeenCalled();
-    finishTransform();
-    await vi.waitFor(() => expect(flushStarted).toHaveBeenCalledTimes(1));
-    expect(span.end).not.toHaveBeenCalled();
-    finishFlush();
+
     await vi.waitFor(() => expect(span.end).toHaveBeenCalledTimes(1));
+    finishTransform();
     const reader = output.getReader();
     expect(await reader.read()).toEqual({ done: false, value: 'Sunny in Seoul' });
     expect(await reader.read()).toEqual({ done: true, value: undefined });
@@ -97,7 +81,7 @@ describe('LangGraph pipeThrough execution lifecycle', () => {
     reader.releaseLock();
   });
 
-  it('marks async flush errors as failures of the source execution', async () => {
+  it('does not mark the agent span failed when a downstream transform fails', async () => {
     const span = createSpan();
     const error = new Error('Weather transform flush failed');
     const stream = instrumentStreamResult(
@@ -119,10 +103,8 @@ describe('LangGraph pipeThrough execution lifecycle', () => {
     );
     const reader = output.getReader();
     await expect(reader.read()).rejects.toThrow(error);
-    await vi.waitFor(() => {
-      expect(span.setStatus).toHaveBeenCalledWith({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
-      expect(span.end).toHaveBeenCalledTimes(1);
-    });
+    expect(span.setStatus).not.toHaveBeenCalled();
+    expect(span.end).toHaveBeenCalledTimes(1);
     reader.releaseLock();
   });
 });
@@ -301,5 +283,95 @@ describe('LangGraph stream caller errors', () => {
     reader.releaseLock();
     expect(span.end).toHaveBeenCalledTimes(1);
     expect(span.setStatus).not.toHaveBeenCalled();
+  });
+});
+
+describe('LangGraph wrapped stream chunks', () => {
+  const user = { role: 'user', content: 'Weather?' };
+  const assistant = { role: 'assistant', content: 'Sunny' };
+
+  async function recordedResponse(chunks: unknown[]): Promise<unknown> {
+    const span = createSpan();
+    const stream = instrumentStreamResult(
+      {
+        async *[Symbol.asyncIterator]() {
+          yield* chunks;
+        },
+      },
+      span as unknown as Span,
+      [user],
+      true,
+    );
+    for await (const _chunk of stream) {
+      // drain
+    }
+    return span.setAttribute.mock.calls.find(([key]) => key === GEN_AI_RESPONSE_TEXT)?.[1];
+  }
+
+  it('records only the root graph output from `subgraphs` chunks', async () => {
+    const response = await recordedResponse([
+      [[], { messages: [user] }],
+      [['inner:1'], { messages: [user, { role: 'assistant', content: 'inner thought' }] }],
+      [[], { messages: [user, assistant] }],
+    ]);
+
+    expect(response).toBe('[{"role":"assistant","content":"Sunny"}]');
+  });
+
+  it('ignores modes that do not carry the graph output', async () => {
+    const response = await recordedResponse([
+      [[], 'checkpoints', { values: { messages: [user, { role: 'assistant', content: 'stale' }] } }],
+      [[], 'values', { messages: [user, assistant] }],
+    ]);
+
+    expect(response).toBe('[{"role":"assistant","content":"Sunny"}]');
+  });
+});
+
+describe('LangGraph stream cancellation and tee', () => {
+  it('does not mark a caller cancel as a failure when it rejects the pending read', async () => {
+    const span = createSpan();
+    const cancelError = new TypeError('Invalid state: Releasing reader');
+    let rejectRead!: (error: unknown) => void;
+    const source = new ReadableStream<string>();
+    const stream = Object.assign(source, {
+      getReader: () => ({ read: () => new Promise((_resolve, reject) => (rejectRead = reject)) }),
+      cancel: async () => rejectRead(cancelError),
+    });
+    instrumentStreamResult(stream, span as unknown as Span, null, false);
+
+    const pendingRead = stream.getReader().read();
+    Object.defineProperty(stream, 'locked', { value: true });
+    await stream.cancel();
+
+    await expect(pendingRead).rejects.toBe(cancelError);
+    expect(span.setStatus).not.toHaveBeenCalled();
+    expect(span.end).toHaveBeenCalledTimes(1);
+  });
+
+  it('records and ends the span when the stream is consumed through tee()', async () => {
+    const span = createSpan();
+    const stream = instrumentStreamResult(
+      new ReadableStream({
+        start(controller) {
+          controller.enqueue({ agent: { messages: [{ role: 'assistant', content: 'Sunny' }] } });
+          controller.close();
+        },
+      }),
+      span as unknown as Span,
+      null,
+      true,
+    );
+
+    const [first, second] = stream.tee();
+    for await (const _chunk of first) {
+      // drain
+    }
+    for await (const _chunk of second) {
+      // drain
+    }
+
+    expect(span.setAttribute).toHaveBeenCalledWith(GEN_AI_RESPONSE_TEXT, '[{"role":"assistant","content":"Sunny"}]');
+    expect(span.end).toHaveBeenCalledTimes(1);
   });
 });

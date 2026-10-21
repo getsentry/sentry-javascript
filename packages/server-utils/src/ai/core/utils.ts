@@ -88,6 +88,38 @@ export function buildMethodPath(currentPath: string, prop: string): string {
   return currentPath ? `${currentPath}.${prop}` : prop;
 }
 
+/**
+ * A stream that pulls through `reader`, typically an instrumented one.
+ *
+ * `tee`, `pipeTo` and `pipeThrough` acquire their reader through internal slots rather than by
+ * calling the public `getReader`, so patching that method alone leaves them uninstrumented: the
+ * chunks bypass accumulation and the span is never ended. Handing them this stream instead routes
+ * them back through the wrapped reader, so there is still exactly one accumulating consumer.
+ *
+ * Same idea as `monitorStream` in `@sentry/deno`, with two deliberate differences: chunks are pulled
+ * on demand rather than drained in a `start` loop, so backpressure still reaches the source, and
+ * `cancel` is forwarded (the hole #24054 fixed there) so the source stops producing when the
+ * consumer disconnects.
+ */
+export function readableFromReader(reader: {
+  read: () => Promise<{ done: boolean; value?: unknown }>;
+  cancel?: (reason?: unknown) => Promise<unknown>;
+}): ReadableStream<unknown> {
+  return new ReadableStream({
+    async pull(controller) {
+      const { done, value } = await reader.read();
+      if (done) {
+        controller.close();
+        return;
+      }
+      controller.enqueue(value);
+    },
+    async cancel(reason) {
+      await reader.cancel?.(reason);
+    },
+  });
+}
+
 /** Whether a value can be drained with `for await`. */
 export function isAsyncIterable<T = unknown>(value: unknown): value is AsyncIterable<T> {
   return !!value && typeof (value as AsyncIterable<T>)[Symbol.asyncIterator] === 'function';

@@ -3,7 +3,7 @@ import type { IntegrationFn } from '@sentry/core';
 import { debug, defineIntegration, isObjectLike } from '@sentry/core';
 import { resolveAIRecordingOptions } from '../ai/core/utils';
 import { createLangChainCallbackHandler } from '../ai/langchain';
-import { instrumentCompiledGraph } from '../ai/langgraph';
+import { instrumentCompiledGraph, isInsideManualLangGraphInstrumentation } from '../ai/langgraph';
 import { LANGGRAPH_INTEGRATION_NAME } from '../ai/langgraph/constants';
 import type { LangGraphOptions } from '../ai/langgraph/types';
 import { extractAgentNameFromParams, extractLLMFromParams, wrapToolsWithSpans } from '../ai/langgraph/utils';
@@ -42,7 +42,7 @@ function instrumentLanggraph(options: LangGraphOptions): void {
   diagnosticsChannel
     .tracingChannel<OrchestrionChannelContext>(CHANNELS.LANGGRAPH_STATE_GRAPH_COMPILE)
     .end.subscribe(message => {
-      if (insideCreateReactAgent) {
+      if (insideCreateReactAgent || isInsideManualLangGraphInstrumentation()) {
         return;
       }
       const { arguments: args, result } = message as OrchestrionChannelContext;
@@ -60,6 +60,9 @@ function instrumentLanggraph(options: LangGraphOptions): void {
     // throw) and cleared in both `end` and `error`, so it can neither stick on across calls nor
     // stay off during this call's nested compile. Tool wrapping is guarded for the same reason.
     insideCreateReactAgent = true;
+    if (isInsideManualLangGraphInstrumentation()) {
+      return;
+    }
     try {
       const { arguments: args } = message as OrchestrionChannelContext;
       const params = getFirstArgObject(args);
@@ -72,6 +75,9 @@ function instrumentLanggraph(options: LangGraphOptions): void {
   });
   reactAgentChannel.end.subscribe(message => {
     insideCreateReactAgent = false;
+    if (isInsideManualLangGraphInstrumentation()) {
+      return;
+    }
     const { arguments: args, result } = message as OrchestrionChannelContext;
     const agentName = extractAgentNameFromParams(args) ?? undefined;
     const compileOptions = agentName ? { name: agentName } : {};

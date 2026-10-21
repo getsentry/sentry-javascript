@@ -247,23 +247,19 @@ describe('instrumentStateGraphCompile stream instrumentation', () => {
     expect(spanEnd).toHaveBeenCalledTimes(1);
   });
 
-  it('forwards pipe options to the source pipeTo operation', async () => {
+  it('applies pipe options to the destination', async () => {
     const stream = new TestLangGraphStream(['first update']);
-    const originalPipeTo = stream.pipeTo.bind(stream);
-    const sourcePipeTo = vi.fn((destination: WritableStream<string>, options?: StreamPipeOptions) =>
-      originalPipeTo(destination, options),
-    );
-    Object.defineProperty(stream, 'pipeTo', { configurable: true, value: sourcePipeTo, writable: true });
     const compiledGraph = { stream: vi.fn().mockResolvedValue(stream) };
     const compile = instrumentStateGraphCompile(() => compiledGraph, {});
     const graph = compile() as { stream: () => Promise<TestLangGraphStream<string>> };
-    const destination = new WritableStream<string>();
-    const options = { preventClose: true, signal: new AbortController().signal };
+    const written: string[] = [];
+    const destination = new WritableStream<string>({ write: chunk => void written.push(chunk) });
 
-    await (await graph.stream()).pipeTo(destination, options);
+    await (await graph.stream()).pipeTo(destination, { preventClose: true });
 
-    expect(sourcePipeTo).toHaveBeenCalledWith(expect.any(WritableStream), options);
-    expect(destination.locked).toBe(false);
+    const writer = destination.getWriter();
+    await writer.write('after pipe');
+    expect(written).toEqual(['first update', 'after pipe']);
     expect(spanEnd).toHaveBeenCalledTimes(1);
   });
 
@@ -316,17 +312,16 @@ describe('instrumentStateGraphCompile stream instrumentation', () => {
     writer.releaseLock();
   });
 
-  it('errors the pipeThrough readable when the source pipe rejects', async () => {
-    const error = new Error('pipe failed');
-    const stream = new TestLangGraphStream(['first update']);
-    Object.defineProperty(stream, 'pipeTo', {
-      configurable: true,
-      value: vi.fn().mockRejectedValue(error),
-      writable: true,
+  it('errors the pipeThrough readable when the source stream fails', async () => {
+    const error = new Error('graph failed');
+    const stream = new ReadableStream({
+      pull(controller) {
+        controller.error(error);
+      },
     });
     const compiledGraph = { stream: vi.fn().mockResolvedValue(stream) };
     const compile = instrumentStateGraphCompile(() => compiledGraph, {});
-    const graph = compile() as { stream: () => Promise<TestLangGraphStream<string>> };
+    const graph = compile() as { stream: () => Promise<ReadableStream<unknown>> };
 
     const reader = (await graph.stream()).pipeThrough(new TransformStream()).getReader();
 

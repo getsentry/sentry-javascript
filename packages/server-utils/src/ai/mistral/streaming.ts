@@ -1,6 +1,6 @@
 import type { Span } from '@sentry/core';
 import { SPAN_STATUS_ERROR } from '@sentry/core';
-import { endStreamSpan, isAsyncIterable, setOutputMessagesAttribute } from '../core/utils';
+import { endStreamSpan, isAsyncIterable, readableFromReader, setOutputMessagesAttribute } from '../core/utils';
 import type { MistralCompletionChunk, MistralToolCall } from './types';
 import { contentToString } from './utils';
 
@@ -21,7 +21,6 @@ interface StreamingState {
 
 /** Which drain path owns accumulation. See {@link instrumentEventStream}. */
 type StreamConsumer = 'iterator' | 'reader';
-
 
 interface StreamReaderLike {
   read: () => Promise<{ done: boolean; value?: unknown }>;
@@ -182,38 +181,6 @@ function wrapReader(
 }
 
 /**
- * A stream that pulls through `readable`'s instrumented reader.
- *
- * `tee`, `pipeTo` and `pipeThrough` acquire their reader through internal slots rather than by
- * calling the public `getReader`, so patching that method alone leaves them uninstrumented: the
- * chunks bypass accumulation and the span is never ended. Handing them this stream instead routes
- * them back through the wrapped reader, so there is still exactly one accumulating consumer.
- *
- * Same idea as `monitorStream` in `@sentry/deno`, with two deliberate differences: chunks are pulled
- * on demand rather than drained in a `start` loop, so backpressure still reaches the source, and
- * `cancel` is forwarded (the hole #24054 fixed there) so the source stops producing when the
- * consumer disconnects.
- */
-function instrumentedSource(readable: ReadableStreamLike): ReadableStream<unknown> {
-  // The patched `getReader`, so reads are accumulated and the span is ended by the shared logic.
-  const reader = readable.getReader!();
-
-  return new ReadableStream({
-    async pull(controller) {
-      const { done, value } = await reader.read();
-      if (done) {
-        controller.close();
-        return;
-      }
-      controller.enqueue(value);
-    },
-    async cancel(reason) {
-      await reader.cancel?.(reason);
-    },
-  });
-}
-
-/**
  * Instrument a Mistral event stream in place: accumulate response attributes as it is drained and
  * end `span` when it finishes.
  *
@@ -299,20 +266,23 @@ export function instrumentEventStream(stream: unknown, span: Span, recordOutputs
     };
   }
 
-  // Only patched when `getReader` is present, since that is what `instrumentedSource` pulls through.
+  // Only patched when `getReader` is present, since that is what `readableFromReader` pulls through.
   if (typeof readable.getReader === 'function') {
     if (typeof readable.tee === 'function') {
-      readable.tee = () => instrumentedSource(readable).tee();
+      readable.tee = () => readableFromReader(readable.getReader!()).tee();
     }
 
     if (typeof readable.pipeTo === 'function') {
       readable.pipeTo = (destination: unknown, options?: unknown) =>
-        instrumentedSource(readable).pipeTo(destination as WritableStream<unknown>, options as StreamPipeOptions);
+        readableFromReader(readable.getReader!()).pipeTo(
+          destination as WritableStream<unknown>,
+          options as StreamPipeOptions,
+        );
     }
 
     if (typeof readable.pipeThrough === 'function') {
       readable.pipeThrough = (transform: unknown, options?: unknown) =>
-        instrumentedSource(readable).pipeThrough(
+        readableFromReader(readable.getReader!()).pipeThrough(
           transform as ReadableWritablePair<unknown, unknown>,
           options as StreamPipeOptions,
         );

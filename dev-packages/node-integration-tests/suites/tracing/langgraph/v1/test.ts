@@ -133,4 +133,42 @@ describe('LangGraph integration (v1)', () => {
       },
     },
   );
+
+  createEsmAndCjsTests(
+    __dirname,
+    'scenario-stream-edge.mjs',
+    'instrument-with-pii.mjs',
+    (createRunner, test) => {
+      test('handles cancel, subgraphs, tee() and manual options on streamed runs', async () => {
+        const runner = createRunner();
+        const spansPromise = runner.collectStreamedSpansUntilSegment('main');
+
+        await runner.start().completed();
+
+        const spans = await spansPromise;
+        const agentSpans = spans.filter(span => span.attributes[SENTRY_OP]?.value === 'gen_ai.invoke_agent');
+        expect(agentSpans).toHaveLength(4);
+        const agentSpanFor = (prompt: string) =>
+          agentSpans.find(span => String(span.attributes[GEN_AI_INPUT_MESSAGES]?.value).includes(prompt))!;
+
+        expect(agentSpanFor('Cancel while iterating').status).toBe('ok');
+        expect(agentSpanFor('Stream with subgraphs').attributes[GEN_AI_RESPONSE_TEXT].value).toBe(
+          '[{"role":"assistant","content":"Cloudy"}]',
+        );
+        expect(agentSpanFor('Tee the forecast').attributes[GEN_AI_RESPONSE_TEXT].value).toBe(
+          '[{"role":"assistant","content":"Rainy"}]',
+        );
+
+        const manualSpan = agentSpans.find(span => span.name === 'invoke_agent manual_graph')!;
+        expect(manualSpan.attributes[GEN_AI_INPUT_MESSAGES]).toBeUndefined();
+        expect(manualSpan.attributes[GEN_AI_RESPONSE_TEXT].value).toBe('[{"role":"assistant","content":"Windy"}]');
+      });
+    },
+    {
+      additionalDependencies: {
+        '@langchain/core': '^1.0.0',
+        '@langchain/langgraph': '^1.0.0',
+      },
+    },
+  );
 });

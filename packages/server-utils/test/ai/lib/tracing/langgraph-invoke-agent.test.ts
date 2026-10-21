@@ -11,12 +11,21 @@ import type { Span } from '@sentry/core';
 import { GEN_AI_CONVERSATION_ID } from '@sentry/conventions/attributes';
 import {
   instrumentCompiledGraph,
-  instrumentCompiledGraphInvoke,
   instrumentStateGraphCompile,
+  isInsideManualLangGraphInstrumentation,
 } from '../../../../src/ai/langgraph';
-import type { CompiledGraph } from '../../../../src/ai/langgraph/types';
 import { wrapToolsWithSpans } from '../../../../src/ai/langgraph/utils';
 import { getDefaultTestClientOptions, TestClient } from '../../../mocks/client';
+
+function instrumentInvoke(
+  invoke: (...args: unknown[]) => Promise<unknown>,
+  compileOptions: Record<string, unknown> = {},
+  sentryCallbackHandler?: unknown,
+): (...args: unknown[]) => Promise<unknown> {
+  const graph = { invoke };
+  instrumentCompiledGraph(graph, compileOptions, {}, undefined, sentryCallbackHandler);
+  return graph.invoke;
+}
 
 describe('LangGraph invoke_agent span names', () => {
   beforeEach(() => {
@@ -45,12 +54,7 @@ describe('LangGraph invoke_agent span names', () => {
   }
 
   async function invokeGraph(compileOptions: Record<string, unknown>, config?: Record<string, unknown>): Promise<void> {
-    const invoke = instrumentCompiledGraphInvoke(
-      async () => ({ messages: [] }),
-      {} as CompiledGraph,
-      compileOptions,
-      {},
-    );
+    const invoke = instrumentInvoke(async () => ({ messages: [] }), compileOptions);
     await invoke({}, config);
   }
 
@@ -96,7 +100,7 @@ describe('LangGraph conversation id', () => {
 
   async function invokeGraph(config: Record<string, unknown>): Promise<Span> {
     const endedSpans = setupClient();
-    const invoke = instrumentCompiledGraphInvoke(async () => ({ messages: [] }), {} as CompiledGraph, {}, {});
+    const invoke = instrumentInvoke(async () => ({ messages: [] }));
     await invoke({}, config);
     return endedSpans[0]!;
   }
@@ -117,15 +121,12 @@ describe('LangGraph conversation id', () => {
   it('copies the conversation id from configurable into the metadata the graph runs with', async () => {
     setupClient();
     let receivedConfig: Record<string, unknown> | undefined;
-    const invoke = instrumentCompiledGraphInvoke(
+    const invoke = instrumentInvoke(
       async (_input: unknown, config: unknown) => {
         receivedConfig = config as Record<string, unknown>;
         return { messages: [] };
       },
-      {} as CompiledGraph,
       {},
-      {},
-      undefined,
       {},
     );
 
@@ -228,5 +229,34 @@ describe('LangGraph invoke stream suppression', () => {
     }
 
     expect(startedSpans).toHaveLength(2);
+  });
+
+  it('returns a stream it cannot patch to the caller instead of throwing', async () => {
+    const client = new TestClient(getDefaultTestClientOptions({ tracesSampleRate: 1 }));
+    setCurrentClient(client);
+    client.init();
+    const endedSpans: Span[] = [];
+    client.on('spanEnd', span => endedSpans.push(span));
+    const frozenStream = Object.freeze({
+      async *[Symbol.asyncIterator]() {
+        yield 'chunk';
+      },
+    });
+    const graph = { stream: async () => frozenStream };
+    instrumentCompiledGraph(graph, {}, {}, undefined, undefined);
+
+    await expect(graph.stream()).resolves.toBe(frozenStream);
+    expect(endedSpans).toHaveLength(1);
+  });
+
+  it('leaves a graph compiled by manual instrumentation to the manual options', () => {
+    let sawManualFlag = false;
+    instrumentStateGraphCompile(() => {
+      sawManualFlag = isInsideManualLangGraphInstrumentation();
+      return {};
+    }, {})();
+
+    expect(sawManualFlag).toBe(true);
+    expect(isInsideManualLangGraphInstrumentation()).toBe(false);
   });
 });

@@ -1,5 +1,6 @@
 import { SPAN_STATUS_ERROR, withActiveSpan, withScope } from '@sentry/core';
 import type { Scope, Span } from '@sentry/core';
+import { readableFromReader } from '../core/utils';
 import type { LangChainMessage } from '../langchain/types';
 import { setResponseAttributes } from './utils';
 
@@ -27,7 +28,11 @@ interface StreamLifecycle {
   recordChunk: (chunk: unknown) => void;
   complete: () => void;
   fail: () => void;
+  markCancelled: () => void;
 }
+
+// Modes whose payloads carry the graph's output; `debug`, `tasks`, `checkpoints` and `custom` do not.
+const OUTPUT_STREAM_MODES = new Set(['values', 'updates', 'messages']);
 
 interface StreamResponseState {
   finalMessages?: LangChainMessage[];
@@ -44,6 +49,7 @@ interface InstrumentableReadableStream extends AsyncIterable<unknown> {
   locked: boolean;
   getReader: (...args: unknown[]) => ReadableStreamReaderLike;
   cancel?: (reason?: unknown) => Promise<void>;
+  tee?: () => [ReadableStream<unknown>, ReadableStream<unknown>];
   pipeThrough?: (
     transform: ReadableWritablePair<unknown, unknown>,
     options?: StreamPipeOptions,
@@ -58,6 +64,8 @@ function createStreamLifecycle(
 ): StreamLifecycle {
   let state: StreamResponseState | undefined = recordOutputs ? { updateMessages: [], messageChunks: [] } : undefined;
   let completed = false;
+  // LangGraph's cancel releases the reader under a pending read, which rejects; that is not a failed run.
+  let cancelled = false;
 
   const complete = (): void => {
     if (completed) {
@@ -90,15 +98,40 @@ function createStreamLifecycle(
     },
     complete,
     fail(): void {
-      span.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
+      if (!cancelled && !completed) {
+        span.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
+      }
       complete();
+    },
+    markCancelled(): void {
+      cancelled = true;
     },
   };
 }
 
+// Multi-mode and `subgraphs` streams wrap payloads as `[mode, payload]`, `[namespace, payload]` or
+// `[namespace, mode, payload]`. Only the root graph's output modes describe this span's response.
+function getOutputPayload(chunk: unknown): { payload: unknown } | undefined {
+  if (!Array.isArray(chunk) || (typeof chunk[0] !== 'string' && !Array.isArray(chunk[0]))) {
+    return { payload: chunk };
+  }
+
+  const namespace = Array.isArray(chunk[0]) ? (chunk[0] as unknown[]) : [];
+  const mode = chunk.length === 3 ? chunk[1] : chunk[0];
+  if (namespace.length > 0 || (typeof mode === 'string' && !OUTPUT_STREAM_MODES.has(mode))) {
+    return undefined;
+  }
+
+  return { payload: chunk[chunk.length - 1] };
+}
+
 function accumulateStreamResponse(state: StreamResponseState, chunk: unknown): void {
-  const payload =
-    Array.isArray(chunk) && chunk.length === 2 && typeof chunk[0] === 'string' ? (chunk[1] as unknown) : chunk;
+  const payload = getOutputPayload(chunk)?.payload;
+  // `encoding: 'text/event-stream'` yields bytes; walking them would cost a lookup per byte for nothing.
+  if (!payload || typeof payload !== 'object' || ArrayBuffer.isView(payload)) {
+    return;
+  }
+
   if (
     Array.isArray(payload) &&
     payload.length === 2 &&
@@ -122,10 +155,6 @@ function accumulateStreamResponse(state: StreamResponseState, chunk: unknown): v
   const directMessages = getMessages(payload);
   if (directMessages) {
     state.finalMessages = directMessages;
-    return;
-  }
-
-  if (!payload || typeof payload !== 'object') {
     return;
   }
 
@@ -176,74 +205,47 @@ function instrumentReadableStream(
 
   if (stream.cancel) {
     const originalCancel = stream.cancel.bind(stream);
-    stream.cancel = (reason?: unknown): Promise<void> =>
-      stream.locked
+    stream.cancel = (reason?: unknown): Promise<void> => {
+      lifecycle.markCancelled();
+      return stream.locked
         ? originalCancel(reason)
         : completeWithLifecycle(
             withScope(scope, () => originalCancel(reason)),
             lifecycle,
           );
+    };
+  }
+
+  const readerSource = (): ReadableStream<unknown> =>
+    readableFromReader(stream.getReader());
+  // Native piping reads through internal slots, bypassing the patched `getReader`. The checks mirror
+  // native piping's own, made before the reader is taken so a rejected pipe leaves the source unlocked.
+  const instrumentedSource = (destination: WritableStream<unknown> | undefined): ReadableStream<unknown> => {
+    if (stream.locked || typeof destination?.getWriter !== 'function' || destination.locked) {
+      throw new TypeError('Cannot pipe a locked stream, or to a missing or locked destination.');
+    }
+    return readerSource();
+  };
+
+  if (stream.tee) {
+    stream.tee = () => readerSource().tee();
   }
 
   if (stream.pipeTo) {
-    const originalPipeTo = stream.pipeTo.bind(stream);
-    const instrumentedPipeTo = (destination: WritableStream<unknown>, options?: StreamPipeOptions): Promise<void> => {
-      let destinationWriter: WritableStreamDefaultWriter<unknown>;
+    stream.pipeTo = (destination: WritableStream<unknown>, options?: StreamPipeOptions): Promise<void> => {
       try {
-        if (stream.locked || destination.locked) {
-          return Promise.reject(new TypeError('Cannot pipe to or from a locked stream.'));
-        }
-        destinationWriter = destination.getWriter();
+        return instrumentedSource(destination).pipeTo(destination, options);
       } catch (error) {
         return Promise.reject(error);
       }
-
-      const recordingDestination = new WritableStream<unknown>({
-        write(chunk) {
-          lifecycle.recordChunk(chunk);
-          return destinationWriter.write(chunk);
-        },
-        close() {
-          return destinationWriter.close();
-        },
-        abort(reason) {
-          return destinationWriter.abort(reason);
-        },
-      });
-
-      let pipePromise: Promise<void>;
-      try {
-        pipePromise = withScope(scope, () => originalPipeTo(recordingDestination, options));
-      } catch (error) {
-        destinationWriter.releaseLock();
-        lifecycle.fail();
-        return Promise.reject(error);
-      }
-
-      return completeWithLifecycle(pipePromise, lifecycle).finally(() => {
-        destinationWriter.releaseLock();
-      });
     };
+  }
 
-    stream.pipeTo = instrumentedPipeTo;
-
-    if (stream.pipeThrough) {
-      stream.pipeThrough = (
-        transform: ReadableWritablePair<unknown, unknown>,
-        options?: StreamPipeOptions,
-      ): ReadableStream<unknown> => {
-        if (stream.locked || transform.writable.locked) {
-          throw new TypeError('Cannot pipe through a locked stream.');
-        }
-
-        void instrumentedPipeTo(transform.writable, options).catch(error => {
-          void transform.writable.abort(error).catch(() => {
-            // The pipe may already have propagated the failure through the transform.
-          });
-        });
-        return transform.readable;
-      };
-    }
+  if (stream.pipeThrough) {
+    stream.pipeThrough = (
+      transform: ReadableWritablePair<unknown, unknown>,
+      options?: StreamPipeOptions,
+    ): ReadableStream<unknown> => instrumentedSource(transform?.writable).pipeThrough(transform, options);
   }
 }
 
@@ -273,11 +275,13 @@ function instrumentReader(
 
   if (reader.cancel) {
     const originalCancel = reader.cancel.bind(reader);
-    reader.cancel = (reason?: unknown): Promise<void> =>
-      completeWithLifecycle(
+    reader.cancel = (reason?: unknown): Promise<void> => {
+      lifecycle.markCancelled();
+      return completeWithLifecycle(
         withScope(scope, () => originalCancel(reason)),
         lifecycle,
       );
+    };
   }
 
   return reader;
