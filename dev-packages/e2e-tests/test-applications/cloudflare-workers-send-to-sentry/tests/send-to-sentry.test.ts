@@ -135,3 +135,26 @@ test('Sends a Workers AI gen_ai.decide span for a Clef call to Sentry', async ()
       'gen_ai.output.messages': expect.stringContaining('"urgent"'),
     });
 });
+
+test('Sends a Workers AI gen_ai.extract span for a Clairic call to Sentry', async () => {
+  const { traceId }: { traceId: string } = JSON.parse(
+    await fetchFromWorker(`${workerUrl}/test-workers-ai-clairic`, 200),
+  );
+
+  console.log(`Polling for gen_ai.extract span: sentry trace view ${traceTarget(traceId)}`);
+
+  let spanId: string | undefined;
+  await expect
+    .poll(() => (spanId = findSpanInTrace(traceId, 'gen_ai.extract')?.event_id), EVENT_POLLING_OPTIONS)
+    .toBeDefined();
+
+  await expect
+    .poll(() => fetchSpanAttributes(traceId, spanId!), EVENT_POLLING_OPTIONS)
+    .toMatchObject({
+      'gen_ai.operation.name': 'extract',
+      'gen_ai.request.model': '@cf/cloudflare/clairic',
+      'gen_ai.response.model': expect.stringContaining('clairic'),
+      'gen_ai.input.messages': expect.stringContaining('Northwind Supply'),
+      'gen_ai.output.messages': expect.stringContaining('INV-2291'),
+    });
+});
