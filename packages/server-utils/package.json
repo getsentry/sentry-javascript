@@ -107,7 +107,7 @@
     "@types/node": "^20.19.0",
     "meriyah": "^6.1.4",
     "vite": "^8.3.1",
-    "webpack": "^5.0.0"
+    "webpack": "^5.104.1"
   },
   "scripts": {
     "build": "run-p build:transpile build:types",

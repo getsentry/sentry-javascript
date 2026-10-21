@@ -403,8 +403,8 @@ importers:
         specifier: ^4.0.0
         version: 4.0.0
       sentry:
-        specifier: ^0.44.0
-        version: 0.44.0
+        specifier: ^0.45.0
+        version: 0.45.0
       typescript:
         specifier: ~6.0.3
         version: 6.0.3
@@ -2216,7 +2216,7 @@ importers:
         specifier: ^8.3.1
         version: 8.3.1(@types/node@20.19.43)(esbuild@0.28.1)(jiti@2.7.0)(less@4.2.0(supports-color@10.0.0))(sass@1.72.0)(stylus@0.59.0(supports-color@10.0.0))(terser@5.43.1)(tsx@4.23.0)(yaml@2.9.0)
       webpack:
-        specifier: ^5.0.0
+        specifier: ^5.104.1
         version: 5.104.1(clean-css@5.2.2)(cssnano@7.1.9(postcss@8.5.31))(csso@5.0.5)(esbuild@0.28.1)(html-minifier-terser@6.1.0)(lightningcss@1.33.0)(postcss@8.5.31)(uglify-js@3.13.3)
 
   packages/solid:
