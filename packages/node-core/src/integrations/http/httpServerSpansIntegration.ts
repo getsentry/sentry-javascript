@@ -54,6 +54,7 @@ import {
   withActiveSpan,
   SPAN_KIND,
   filterCollectedUrl,
+  safeCallback,
 } from '@sentry/core';
 import { DEBUG_BUILD } from '../../debug-build';
 import type { NodeClient } from '../../sdk/client';
@@ -199,11 +200,26 @@ const _httpServerSpansIntegration = ((options: HttpServerSpansIntegrationOptions
             },
           });
 
-          // TODO v11: Remove the following three hooks, only onSpanCreated should remain
-          requestHook?.(span, request);
-          responseHook?.(span, response);
-          applyCustomAttributesOnSpan?.(span, request, response);
-          onSpanCreated?.(span, request, response);
+          safeCallback(
+            DEBUG_BUILD ? 'The `requestHook` callback threw an error:' : '',
+            () => requestHook?.(span, request),
+            () => undefined,
+          );
+          safeCallback(
+            DEBUG_BUILD ? 'The `responseHook` callback threw an error:' : '',
+            () => responseHook?.(span, response),
+            () => undefined,
+          );
+          safeCallback(
+            DEBUG_BUILD ? 'The `applyCustomAttributesOnSpan` callback threw an error:' : '',
+            () => applyCustomAttributesOnSpan?.(span, request, response),
+            () => undefined,
+          );
+          safeCallback(
+            DEBUG_BUILD ? 'The `onSpanCreated` callback threw an error:' : '',
+            () => onSpanCreated?.(span, request, response),
+            () => undefined,
+          );
 
           const rpcMetadata: RPCMetadata = { type: RPCType.HTTP, span };
 
@@ -363,7 +379,13 @@ function shouldIgnoreSpansForIncomingRequest(
     return true;
   }
 
-  if (ignoreIncomingRequests?.(urlPath, request)) {
+  if (
+    safeCallback(
+      DEBUG_BUILD ? 'The `ignoreIncomingRequests` callback threw an error, not ignoring the request:' : '',
+      () => !!ignoreIncomingRequests?.(urlPath, request),
+      () => false,
+    )
+  ) {
     return true;
   }
 

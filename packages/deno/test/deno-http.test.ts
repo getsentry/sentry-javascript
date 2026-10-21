@@ -6,7 +6,14 @@ import { assert } from 'https://deno.land/std@0.212.0/assert/assert.ts';
 import { assertEquals } from 'https://deno.land/std@0.212.0/assert/assert_equals.ts';
 import { assertExists } from 'https://deno.land/std@0.212.0/assert/assert_exists.ts';
 import type { DenoClient } from '../build/esm/index.js';
-import { getCurrentScope, getGlobalScope, getIsolationScope, init, startSpan } from '../build/esm/index.js';
+import {
+  denoHttpIntegration,
+  getCurrentScope,
+  getGlobalScope,
+  getIsolationScope,
+  init,
+  startSpan,
+} from '../build/esm/index.js';
 import {
   DENO_VERSION,
   HTTP_CLIENT_DIAGNOSTICS_CHANNEL_SUPPORTED,
@@ -194,5 +201,47 @@ Deno.test({
     );
     assertEquals(httpClientSpan!.data?.['http.method'], 'GET');
     assertEquals(httpClientSpan!.data?.['http.response.status_code'], 200);
+  },
+});
+
+Deno.test({
+  name: 'denoHttpIntegration: a throwing onSpanEnd still ends the span and serves later requests',
+  async fn() {
+    resetGlobals();
+    const sink = transactionSink();
+    init({
+      dsn: 'https://username@domain/123',
+      tracesSampleRate: 1,
+      beforeSendTransaction: sink.beforeSendTransaction,
+      integrations: [
+        denoHttpIntegration({
+          onSpanEnd: () => {
+            throw new Error('onSpanEnd error');
+          },
+        }),
+      ],
+    });
+
+    const server = http.createServer((_req, res) => {
+      res.end('ok');
+    });
+    const port: number = await new Promise(resolve => {
+      server.listen(0, '127.0.0.1', () => {
+        resolve((server.address() as { port: number }).port);
+      });
+    });
+
+    assertEquals(await (await fetch(`http://127.0.0.1:${port}/first`)).text(), 'ok');
+    assertEquals(await (await fetch(`http://127.0.0.1:${port}/second`)).text(), 'ok');
+
+    const txn = await withTimeout(
+      sink.waitFor(t => t.transaction === 'GET /first'),
+      5000,
+      'http.server transaction for the first request',
+    );
+
+    await new Promise<void>(resolve => server.close(() => resolve()));
+
+    assertEquals(txn.contexts?.trace?.op, 'http.server');
   },
 });
