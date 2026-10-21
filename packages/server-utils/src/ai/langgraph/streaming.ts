@@ -1,26 +1,7 @@
-import { SPAN_STATUS_ERROR, withActiveSpan } from '@sentry/core';
-import type { Span } from '@sentry/core';
+import { SPAN_STATUS_ERROR, withActiveSpan, withScope } from '@sentry/core';
+import type { Scope, Span } from '@sentry/core';
 import type { LangChainMessage } from '../langchain/types';
-import type { CompiledGraph } from './types';
 import { setResponseAttributes } from './utils';
-
-const graphInstrumentationIds = new WeakMap<CompiledGraph, number>();
-let nextGraphInstrumentationId = 0;
-
-export function getGraphInstrumentationId(graph: CompiledGraph): number {
-  const existingId = graphInstrumentationIds.get(graph);
-  if (existingId !== undefined) {
-    return existingId;
-  }
-
-  const id = nextGraphInstrumentationId++;
-  graphInstrumentationIds.set(graph, id);
-  return id;
-}
-
-export function isAsyncIterable(value: unknown): value is AsyncIterable<unknown> {
-  return !!value && typeof (value as AsyncIterable<unknown>)[Symbol.asyncIterator] === 'function';
-}
 
 export function instrumentStreamResult<T extends AsyncIterable<unknown>>(
   stream: T,
@@ -28,22 +9,17 @@ export function instrumentStreamResult<T extends AsyncIterable<unknown>>(
   inputMessages: LangChainMessage[] | null,
   recordOutputs: boolean | undefined,
 ): T {
-  const responseState: StreamResponseState = { updateMessages: [], messageChunks: [] };
-  const lifecycle = createStreamLifecycle(
-    span,
-    recordOutputs ? chunk => accumulateStreamResponse(responseState, chunk) : undefined,
-    recordOutputs
-      ? () => setResponseAttributes(span, inputMessages, getStreamResponseResult(responseState, inputMessages))
-      : undefined,
-  );
+  // Captured once: entering it per chunk is cheaper than `withActiveSpan`, which forks a scope each call.
+  const spanScope = withActiveSpan(span, scope => scope);
+  const lifecycle = createStreamLifecycle(span, inputMessages, recordOutputs);
 
   if (isReadableStream(stream)) {
-    instrumentReadableStream(stream, span, lifecycle);
+    instrumentReadableStream(stream, spanScope, lifecycle);
     return stream;
   }
 
   const iterate = stream[Symbol.asyncIterator].bind(stream);
-  stream[Symbol.asyncIterator] = () => instrumentStreamIterator({ [Symbol.asyncIterator]: iterate }, span, lifecycle);
+  stream[Symbol.asyncIterator] = () => instrumentStreamIterator(iterate(), spanScope, lifecycle);
   return stream;
 }
 
@@ -54,7 +30,7 @@ interface StreamLifecycle {
 }
 
 interface StreamResponseState {
-  finalState?: { messages: LangChainMessage[] };
+  finalMessages?: LangChainMessage[];
   updateMessages: LangChainMessage[];
   messageChunks: LangChainMessage[];
 }
@@ -77,9 +53,10 @@ interface InstrumentableReadableStream extends AsyncIterable<unknown> {
 
 function createStreamLifecycle(
   span: Span,
-  recordChunk?: (chunk: unknown) => void,
-  completeResponse?: () => void,
+  inputMessages: LangChainMessage[] | null,
+  recordOutputs: boolean | undefined,
 ): StreamLifecycle {
+  let state: StreamResponseState | undefined = recordOutputs ? { updateMessages: [], messageChunks: [] } : undefined;
   let completed = false;
 
   const complete = (): void => {
@@ -89,17 +66,27 @@ function createStreamLifecycle(
 
     completed = true;
     try {
-      completeResponse?.();
+      if (state) {
+        setResponseAttributes(span, inputMessages, getStreamResponseResult(state, inputMessages));
+      }
     } catch {
       // Recording failures must not replace the application's stream outcome.
     } finally {
+      // The caller may hold the stream long after it ends; don't keep every chunk alive with it.
+      state = undefined;
       span.end();
     }
   };
 
   return {
     recordChunk(chunk: unknown): void {
-      recordChunk?.(chunk);
+      try {
+        if (state) {
+          accumulateStreamResponse(state, chunk);
+        }
+      } catch {
+        // Same as `complete`: recording must never break the application's stream.
+      }
     },
     complete,
     fail(): void {
@@ -132,9 +119,9 @@ function accumulateStreamResponse(state: StreamResponseState, chunk: unknown): v
     }
     return;
   }
-  const directState = getMessageState(payload);
-  if (directState) {
-    state.finalState = directState;
+  const directMessages = getMessages(payload);
+  if (directMessages) {
+    state.finalMessages = directMessages;
     return;
   }
 
@@ -143,27 +130,24 @@ function accumulateStreamResponse(state: StreamResponseState, chunk: unknown): v
   }
 
   for (const update of Object.values(payload)) {
-    const updateState = getMessageState(update);
-    if (updateState) {
-      state.updateMessages.push(...updateState.messages);
-    }
+    state.updateMessages.push(...(getMessages(update) ?? []));
   }
 }
 
-function getMessageState(value: unknown): { messages: LangChainMessage[] } | undefined {
+function getMessages(value: unknown): LangChainMessage[] | undefined {
   if (!value || typeof value !== 'object' || !('messages' in value) || !Array.isArray(value.messages)) {
     return undefined;
   }
 
-  return { messages: value.messages as LangChainMessage[] };
+  return value.messages as LangChainMessage[];
 }
 
 function getStreamResponseResult(
   state: StreamResponseState,
   inputMessages: LangChainMessage[] | null,
 ): { messages: LangChainMessage[] } | undefined {
-  if (state.finalState) {
-    return state.finalState;
+  if (state.finalMessages) {
+    return { messages: state.finalMessages };
   }
 
   // Updates contain complete messages, including the same responses emitted as token chunks.
@@ -179,11 +163,15 @@ function isReadableStream(stream: AsyncIterable<unknown>): stream is Instrumenta
   return typeof (stream as Partial<InstrumentableReadableStream>).getReader === 'function';
 }
 
-function instrumentReadableStream(stream: InstrumentableReadableStream, span: Span, lifecycle: StreamLifecycle): void {
+function instrumentReadableStream(
+  stream: InstrumentableReadableStream,
+  scope: Scope,
+  lifecycle: StreamLifecycle,
+): void {
   const originalGetReader = stream.getReader.bind(stream);
   stream.getReader = (...args: unknown[]): ReadableStreamReaderLike => {
-    const reader = withActiveSpan(span, () => originalGetReader(...args));
-    return instrumentReader(reader, span, lifecycle);
+    const reader = withScope(scope, () => originalGetReader(...args));
+    return instrumentReader(reader, scope, lifecycle);
   };
 
   if (stream.cancel) {
@@ -192,7 +180,7 @@ function instrumentReadableStream(stream: InstrumentableReadableStream, span: Sp
       stream.locked
         ? originalCancel(reason)
         : completeWithLifecycle(
-            withActiveSpan(span, () => originalCancel(reason)),
+            withScope(scope, () => originalCancel(reason)),
             lifecycle,
           );
   }
@@ -225,7 +213,7 @@ function instrumentReadableStream(stream: InstrumentableReadableStream, span: Sp
 
       let pipePromise: Promise<void>;
       try {
-        pipePromise = withActiveSpan(span, () => originalPipeTo(recordingDestination, options));
+        pipePromise = withScope(scope, () => originalPipeTo(recordingDestination, options));
       } catch (error) {
         destinationWriter.releaseLock();
         lifecycle.fail();
@@ -261,12 +249,12 @@ function instrumentReadableStream(stream: InstrumentableReadableStream, span: Sp
 
 function instrumentReader(
   reader: ReadableStreamReaderLike,
-  span: Span,
+  scope: Scope,
   lifecycle: StreamLifecycle,
 ): ReadableStreamReaderLike {
   const originalRead = reader.read.bind(reader);
   reader.read = (...args: unknown[]): Promise<ReadableStreamReadResult<unknown>> => {
-    const readPromise: Promise<ReadableStreamReadResult<unknown>> = withActiveSpan(span, () => originalRead(...args));
+    const readPromise: Promise<ReadableStreamReadResult<unknown>> = withScope(scope, () => originalRead(...args));
     return readPromise.then(
       result => {
         if (result.done) {
@@ -287,7 +275,7 @@ function instrumentReader(
     const originalCancel = reader.cancel.bind(reader);
     reader.cancel = (reason?: unknown): Promise<void> =>
       completeWithLifecycle(
-        withActiveSpan(span, () => originalCancel(reason)),
+        withScope(scope, () => originalCancel(reason)),
         lifecycle,
       );
   }
@@ -309,31 +297,35 @@ function completeWithLifecycle<T>(promise: Promise<T>, lifecycle: StreamLifecycl
 }
 
 async function* instrumentStreamIterator(
-  stream: AsyncIterable<unknown>,
-  span: Span,
+  iterator: AsyncIterator<unknown>,
+  scope: Scope,
   lifecycle: StreamLifecycle,
 ): AsyncGenerator<unknown, void, unknown> {
-  const iterator = stream[Symbol.asyncIterator]();
-  let completed = false;
+  // Like `for await`, only close the source when the consumer stops early, not after it threw or finished.
+  let sourceDone = false;
 
   try {
     while (true) {
-      const result = await withActiveSpan(span, () => iterator.next());
+      let result: IteratorResult<unknown>;
+      try {
+        result = await withScope(scope, () => iterator.next());
+      } catch (error) {
+        sourceDone = true;
+        lifecycle.fail();
+        throw error;
+      }
       if (result.done) {
-        completed = true;
+        sourceDone = true;
         lifecycle.complete();
         return;
       }
       lifecycle.recordChunk(result.value);
       yield result.value;
     }
-  } catch (error) {
-    lifecycle.fail();
-    throw error;
   } finally {
     try {
-      if (!completed) {
-        await withActiveSpan(span, () => iterator.return?.());
+      if (!sourceDone) {
+        await withScope(scope, () => iterator.return?.());
       }
     } finally {
       lifecycle.complete();

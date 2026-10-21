@@ -88,6 +88,11 @@ export function buildMethodPath(currentPath: string, prop: string): string {
   return currentPath ? `${currentPath}.${prop}` : prop;
 }
 
+/** Whether a value can be drained with `for await`. */
+export function isAsyncIterable<T = unknown>(value: unknown): value is AsyncIterable<T> {
+  return !!value && typeof (value as AsyncIterable<T>)[Symbol.asyncIterator] === 'function';
+}
+
 /**
  * A minimal structural check for a web `ReadableStream`.
  *

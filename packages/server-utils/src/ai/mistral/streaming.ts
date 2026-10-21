@@ -1,6 +1,6 @@
 import type { Span } from '@sentry/core';
 import { SPAN_STATUS_ERROR } from '@sentry/core';
-import { endStreamSpan, setOutputMessagesAttribute } from '../core/utils';
+import { endStreamSpan, isAsyncIterable, setOutputMessagesAttribute } from '../core/utils';
 import type { MistralCompletionChunk, MistralToolCall } from './types';
 import { contentToString } from './utils';
 
@@ -22,7 +22,6 @@ interface StreamingState {
 /** Which drain path owns accumulation. See {@link instrumentEventStream}. */
 type StreamConsumer = 'iterator' | 'reader';
 
-type AsyncIterableStream = { [Symbol.asyncIterator]: () => AsyncIterator<unknown> };
 
 interface StreamReaderLike {
   read: () => Promise<{ done: boolean; value?: unknown }>;
@@ -35,11 +34,6 @@ interface ReadableStreamLike {
   tee?: () => unknown;
   pipeTo?: (destination: unknown, options?: unknown) => Promise<unknown>;
   pipeThrough?: (transform: unknown, options?: unknown) => unknown;
-}
-
-/** Whether a value can be drained with `for await`. */
-export function isAsyncIterable(value: unknown): value is AsyncIterableStream {
-  return !!value && typeof (value as AsyncIterableStream)[Symbol.asyncIterator] === 'function';
 }
 
 function createStreamingState(): StreamingState {

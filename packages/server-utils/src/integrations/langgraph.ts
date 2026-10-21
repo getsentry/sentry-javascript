@@ -3,9 +3,9 @@ import type { IntegrationFn } from '@sentry/core';
 import { debug, defineIntegration, isObjectLike } from '@sentry/core';
 import { resolveAIRecordingOptions } from '../ai/core/utils';
 import { createLangChainCallbackHandler } from '../ai/langchain';
-import { instrumentCompiledGraphInvoke, instrumentCompiledGraphStream } from '../ai/langgraph';
+import { instrumentCompiledGraph } from '../ai/langgraph';
 import { LANGGRAPH_INTEGRATION_NAME } from '../ai/langgraph/constants';
-import type { CompiledGraph, LangGraphOptions } from '../ai/langgraph/types';
+import type { LangGraphOptions } from '../ai/langgraph/types';
 import { extractAgentNameFromParams, extractLLMFromParams, wrapToolsWithSpans } from '../ai/langgraph/utils';
 import { DEBUG_BUILD } from '../debug-build';
 import type { OrchestrionChannelContext } from '../orchestrion/types';
@@ -46,7 +46,7 @@ function instrumentLanggraph(options: LangGraphOptions): void {
         return;
       }
       const { arguments: args, result } = message as OrchestrionChannelContext;
-      wrapCompiledGraphMethods(result, getFirstArgObject(args) ?? {}, resolvedOptions, null, sentryHandler);
+      instrumentCompiledGraph(result, getFirstArgObject(args) ?? {}, resolvedOptions, null, sentryHandler);
     });
 
   // createReactAgent only wraps tools and the returned graph's agent methods. Tools are wrapped at
@@ -75,7 +75,7 @@ function instrumentLanggraph(options: LangGraphOptions): void {
     const { arguments: args, result } = message as OrchestrionChannelContext;
     const agentName = extractAgentNameFromParams(args) ?? undefined;
     const compileOptions = agentName ? { name: agentName } : {};
-    wrapCompiledGraphMethods(result, compileOptions, resolvedOptions, extractLLMFromParams(args), sentryHandler);
+    instrumentCompiledGraph(result, compileOptions, resolvedOptions, extractLLMFromParams(args), sentryHandler);
   });
   // Make sure a thrown `createReactAgent` doesn't leave the suppression flag stuck on.
   reactAgentChannel.error.subscribe(() => {
@@ -87,47 +87,6 @@ function getFirstArgObject(args: unknown[] | undefined): Record<string, unknown>
   const first = (args ?? [])[0];
 
   return isObjectLike(first) ? first : undefined;
-}
-
-/**
- * Wrap the compiled graph's agent methods with the shared `invoke_agent` instrumentation, exactly as
- * the OTel path does on the returned graph.
- */
-function wrapCompiledGraphMethods(
-  graph: unknown,
-  compileOptions: Record<string, unknown>,
-  options: LangGraphOptions,
-  llm: ReturnType<typeof extractLLMFromParams>,
-  sentryHandler: unknown,
-): void {
-  if (!graph || typeof graph !== 'object') {
-    return;
-  }
-
-  const compiledGraph = graph as CompiledGraph;
-  const originalInvoke = compiledGraph.invoke;
-  if (typeof originalInvoke === 'function') {
-    compiledGraph.invoke = instrumentCompiledGraphInvoke(
-      originalInvoke.bind(compiledGraph),
-      compiledGraph,
-      compileOptions,
-      options,
-      llm,
-      sentryHandler,
-    );
-  }
-
-  const originalStream = compiledGraph.stream;
-  if (typeof originalStream === 'function') {
-    compiledGraph.stream = instrumentCompiledGraphStream(
-      originalStream.bind(compiledGraph),
-      compiledGraph,
-      compileOptions,
-      options,
-      llm,
-      sentryHandler,
-    );
-  }
 }
 
 /**

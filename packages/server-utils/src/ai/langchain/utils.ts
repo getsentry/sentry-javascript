@@ -505,7 +505,7 @@ export function extractLlmResponseAttributes(
 
 export function getAgentNameFromMetadata(metadata?: Record<string, unknown>): Record<string, SpanAttributeValue> {
   const attrs: Record<string, SpanAttributeValue> = {};
-  // lc_agent_name is injected by instrumentCompiledGraphInvoke (langgraph integration)
+  // lc_agent_name is injected by the langgraph invoke_agent wrapper (`instrumentCompiledGraph`)
   const agentName = metadata?.lc_agent_name;
   if (typeof agentName === 'string') {
     attrs[GEN_AI_AGENT_NAME] = agentName;

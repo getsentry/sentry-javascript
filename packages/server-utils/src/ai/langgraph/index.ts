@@ -14,7 +14,7 @@ import {
   SENTRY_ORIGIN,
 } from '@sentry/conventions/attributes';
 import { GEN_AI_INVOKE_AGENT } from '@sentry/conventions/op';
-import { extractSystemInstructions, resolveAIRecordingOptions } from '../core/utils';
+import { extractSystemInstructions, isAsyncIterable, resolveAIRecordingOptions } from '../core/utils';
 import { createLangChainCallbackHandler } from '../langchain';
 import type { BaseChatModel, LangChainMessage } from '../langchain/types';
 import {
@@ -24,7 +24,7 @@ import {
   normalizeLangChainMessages,
 } from '../langchain/utils';
 import { LANGGRAPH_ORIGIN } from './constants';
-import { getGraphInstrumentationId, instrumentStreamResult, isAsyncIterable } from './streaming';
+import { instrumentStreamResult } from './streaming';
 import type { CompiledGraph, LangGraphOptions } from './types';
 import {
   extractAgentNameFromParams,
@@ -37,7 +37,22 @@ import {
 let _insideCreateReactAgent = false;
 
 const SENTRY_PATCHED = '__sentry_patched__';
+// invoke() drains this.stream() internally. Unlike Anthropic's sync flag, the marker lives on the span's
+// scope, so it still holds if LangGraph ever awaits before that call.
 const LANGGRAPH_INVOKE_ACTIVE = 'sentry_langgraph_invoke_active';
+
+// One marker per graph, so a stream() of another graph inside invoke() still gets its own span. A graph
+// already in here is instrumented: manual `instrumentStateGraph()` and the integration can both see it.
+const INVOKE_MARKERS = new WeakMap<object, symbol>();
+
+function getInvokeMarker(graph: object): symbol {
+  let marker = INVOKE_MARKERS.get(graph);
+  if (!marker) {
+    marker = Symbol('sentry.langgraph.invoke');
+    INVOKE_MARKERS.set(graph, marker);
+  }
+  return marker;
+}
 
 /**
  * Instruments StateGraph's compile method to wrap the returned compiled graph's invoke() and stream()
@@ -65,31 +80,7 @@ export function instrumentStateGraphCompile(
 
       const compiledGraph = Reflect.apply(target, thisArg, args);
       const compileOptions = args.length > 0 ? (args[0] as Record<string, unknown>) : {};
-
-      // Instrument agent methods on the compiled graph
-      const originalInvoke = compiledGraph.invoke;
-      if (originalInvoke && typeof originalInvoke === 'function') {
-        compiledGraph.invoke = instrumentCompiledGraphInvoke(
-          originalInvoke.bind(compiledGraph) as (...args: unknown[]) => Promise<unknown>,
-          compiledGraph,
-          compileOptions,
-          options,
-          undefined,
-          sentryHandler,
-        );
-      }
-
-      const originalStream = compiledGraph.stream;
-      if (originalStream && typeof originalStream === 'function') {
-        compiledGraph.stream = instrumentCompiledGraphStream(
-          originalStream.bind(compiledGraph),
-          compiledGraph,
-          compileOptions,
-          options,
-          undefined,
-          sentryHandler,
-        );
-      }
+      instrumentCompiledGraph(compiledGraph, compileOptions, options, undefined, sentryHandler);
 
       return compiledGraph;
     },
@@ -97,6 +88,38 @@ export function instrumentStateGraphCompile(
 
   Object.defineProperty(wrapped, SENTRY_PATCHED, { value: true, enumerable: false });
   return wrapped;
+}
+
+/**
+ * Wraps a compiled graph's `invoke()` and `stream()` with `gen_ai.invoke_agent` spans, once per graph.
+ */
+export function instrumentCompiledGraph(
+  graph: unknown,
+  compileOptions: Record<string, unknown>,
+  options: LangGraphOptions,
+  llm: BaseChatModel | null | undefined,
+  sentryCallbackHandler: unknown,
+): void {
+  if (!graph || typeof graph !== 'object' || INVOKE_MARKERS.has(graph)) {
+    return;
+  }
+  getInvokeMarker(graph);
+
+  const compiledGraph = graph as CompiledGraph;
+  for (const method of ['invoke', 'stream'] as const) {
+    const original = compiledGraph[method];
+    if (typeof original === 'function') {
+      (compiledGraph as Record<string, unknown>)[method] = instrumentCompiledGraphOperation(
+        original.bind(compiledGraph) as (...args: unknown[]) => Promise<unknown>,
+        compiledGraph,
+        compileOptions,
+        options,
+        llm,
+        sentryCallbackHandler,
+        method === 'stream',
+      );
+    }
+  }
 }
 
 /**
@@ -123,25 +146,6 @@ export function instrumentCompiledGraphInvoke(
   );
 }
 
-export function instrumentCompiledGraphStream(
-  originalStream: (...args: unknown[]) => Promise<AsyncIterable<unknown>>,
-  graphInstance: CompiledGraph,
-  compileOptions: Record<string, unknown>,
-  options: LangGraphOptions,
-  llm?: BaseChatModel | null,
-  sentryCallbackHandler?: unknown,
-): (...args: unknown[]) => Promise<AsyncIterable<unknown>> {
-  return instrumentCompiledGraphOperation(
-    originalStream,
-    graphInstance,
-    compileOptions,
-    options,
-    llm,
-    sentryCallbackHandler,
-    true,
-  ) as (...args: unknown[]) => Promise<AsyncIterable<unknown>>;
-}
-
 function instrumentCompiledGraphOperation(
   originalOperation: (...args: unknown[]) => Promise<unknown>,
   graphInstance: CompiledGraph,
@@ -151,13 +155,13 @@ function instrumentCompiledGraphOperation(
   sentryCallbackHandler: unknown,
   streaming: boolean,
 ): (...args: unknown[]) => Promise<unknown> {
-  const graphInstrumentationId = getGraphInstrumentationId(graphInstance);
+  const invokeMarker = getInvokeMarker(graphInstance);
 
   return new Proxy(originalOperation, {
     apply(target, thisArg, args: unknown[]): Promise<unknown> {
       if (
         streaming &&
-        getCurrentScope().getScopeData().sdkProcessingMetadata[LANGGRAPH_INVOKE_ACTIVE] === graphInstrumentationId
+        getCurrentScope().getScopeData().sdkProcessingMetadata[LANGGRAPH_INVOKE_ACTIVE] === invokeMarker
       ) {
         // Only the first stream() is invoke's implementation detail; recursive calls need their own spans.
         getCurrentScope().setSDKProcessingMetadata({ [LANGGRAPH_INVOKE_ACTIVE]: undefined });
@@ -244,11 +248,7 @@ function instrumentCompiledGraphOperation(
           }
 
           if (!streaming) {
-            // LangGraph implements invoke() by consuming stream(); the shared async scope keeps that internal
-            // call from producing a nested duplicate while leaving direct concurrent stream() calls unaffected.
-            getCurrentScope().setSDKProcessingMetadata({
-              [LANGGRAPH_INVOKE_ACTIVE]: graphInstrumentationId,
-            });
+            getCurrentScope().setSDKProcessingMetadata({ [LANGGRAPH_INVOKE_ACTIVE]: invokeMarker });
           }
 
           const result = await Reflect.apply(target, thisArg, args);
@@ -317,40 +317,8 @@ export function instrumentCreateReactAgent(
         _insideCreateReactAgent = false;
       }
 
-      // Wrap agent methods on the returned compiled graph
-      const originalInvoke = compiledGraph.invoke;
-      if (originalInvoke && typeof originalInvoke === 'function') {
-        const compileOptions: Record<string, unknown> = {};
-        if (agentName) {
-          compileOptions.name = agentName;
-        }
-
-        compiledGraph.invoke = instrumentCompiledGraphInvoke(
-          originalInvoke.bind(compiledGraph) as (...args: unknown[]) => Promise<unknown>,
-          compiledGraph,
-          compileOptions,
-          resolvedOptions,
-          llm,
-          sentryHandler,
-        );
-      }
-
-      const originalStream = compiledGraph.stream;
-      if (originalStream && typeof originalStream === 'function') {
-        const compileOptions: Record<string, unknown> = {};
-        if (agentName) {
-          compileOptions.name = agentName;
-        }
-
-        compiledGraph.stream = instrumentCompiledGraphStream(
-          originalStream.bind(compiledGraph),
-          compiledGraph,
-          compileOptions,
-          resolvedOptions,
-          llm,
-          sentryHandler,
-        );
-      }
+      const compileOptions: Record<string, unknown> = agentName ? { name: agentName } : {};
+      instrumentCompiledGraph(compiledGraph, compileOptions, resolvedOptions, llm, sentryHandler);
 
       return compiledGraph;
     },

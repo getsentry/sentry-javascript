@@ -9,7 +9,11 @@ import {
 } from '@sentry/core';
 import type { Span } from '@sentry/core';
 import { GEN_AI_CONVERSATION_ID } from '@sentry/conventions/attributes';
-import { instrumentCompiledGraphInvoke, instrumentStateGraphCompile } from '../../../../src/ai/langgraph';
+import {
+  instrumentCompiledGraph,
+  instrumentCompiledGraphInvoke,
+  instrumentStateGraphCompile,
+} from '../../../../src/ai/langgraph';
 import type { CompiledGraph } from '../../../../src/ai/langgraph/types';
 import { wrapToolsWithSpans } from '../../../../src/ai/langgraph/utils';
 import { getDefaultTestClientOptions, TestClient } from '../../../mocks/client';
@@ -189,5 +193,40 @@ describe('LangGraph invoke stream suppression', () => {
     expect(startedSpans).toHaveLength(2);
     expect(startedSpans.map(span => spanToStaticSpanJSON(span).description)).toEqual(['invoke_agent', 'invoke_agent']);
     expect(spanToStaticSpanJSON(startedSpans[1]!).parent_span_id).toBe(startedSpans[0]!.spanContext().spanId);
+  });
+
+  it('creates one agent span per run when manual and auto instrumentation both wrap the graph', async () => {
+    const client = new TestClient(getDefaultTestClientOptions({ tracesSampleRate: 1 }));
+    setCurrentClient(client);
+    client.init();
+    const startedSpans: Span[] = [];
+    client.on('spanStart', span => startedSpans.push(span));
+    const graph = {
+      async invoke() {
+        const stream = await this.stream();
+        for await (const _chunk of stream) {
+          // drain, as LangGraph's invoke does
+        }
+      },
+      async stream(): Promise<AsyncIterable<unknown>> {
+        return {
+          async *[Symbol.asyncIterator]() {
+            yield 'chunk';
+          },
+        };
+      },
+    };
+    instrumentStateGraphCompile(
+      instrumentStateGraphCompile(() => graph, {}),
+      {},
+    )();
+    instrumentCompiledGraph(graph, {}, {}, undefined, undefined);
+
+    await graph.invoke();
+    for await (const _chunk of await graph.stream()) {
+      // drain
+    }
+
+    expect(startedSpans).toHaveLength(2);
   });
 });
