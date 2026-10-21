@@ -7,7 +7,7 @@ import { getBuildLogger } from '../buildLogger';
 import { createRouteManifest } from '../manifest/createRouteManifest';
 import type { RouteManifest } from '../manifest/types';
 import type { NextConfigObject, SentryBuildOptions } from '../types';
-import { requiresInstrumentationHook } from '../util';
+import { DEFAULT_PAGE_EXTENSIONS, requiresInstrumentationHook } from '../util';
 import { getGitRevision, getInstrumentationClientFileContents } from './buildTime';
 import {
   findTunnelRouteHandlerFile,
@@ -20,6 +20,8 @@ let showedExportModeTunnelWarning = false;
 let showedUnusedTunnelRouteHandlerWarning = false;
 let showedTunnelRouteHandlerModeLog = false;
 let showedExperimentalBuildModeWarning = false;
+
+const MISPLACED_INSTRUMENTATION_FILE_WARNING_SHOWN = '__SENTRY_MISPLACED_INSTRUMENTATION_FILE_WARNING_SHOWN__';
 
 /**
  * Resolves the Sentry release name to use for build-time behavior.
@@ -264,6 +266,48 @@ export function warnIfMissingOnRouterTransitionStartHook(userSentryOptions: Sent
       '[@sentry/nextjs] ACTION REQUIRED: To instrument navigations, the Sentry SDK requires you to export an `onRouterTransitionStart` hook from your `instrumentation-client.(js|ts)` file. You can do so by adding `export const onRouterTransitionStart = Sentry.captureRouterTransitionStart;` to the file.',
     );
   }
+}
+
+/**
+ * Warns if the `instrumentation` file is not in the folder that contains the `app` or `pages` directory.
+ * `next build` only looks there, even though dev and Turbopack also find the file in other places.
+ */
+export function warnIfMisplacedInstrumentationFile(
+  incomingUserNextConfigObject: NextConfigObject,
+  userSentryOptions: SentryBuildOptions,
+): void {
+  if (
+    process.env[MISPLACED_INSTRUMENTATION_FILE_WARNING_SHOWN] ||
+    process.env.SENTRY_SUPPRESS_INSTRUMENTATION_FILE_WARNING
+  ) {
+    return;
+  }
+
+  const projectDir = process.cwd();
+  const exists = (relativePath: string): boolean => fs.existsSync(path.join(projectDir, relativePath));
+
+  // Same lookup as Next.js' `findPagesDir`: `pages` before `app`, and `<name>` before `src/<name>`.
+  const routerDir = ['pages', 'app'].flatMap(name => [name, path.join('src', name)]).find(exists);
+  if (!routerDir) {
+    return;
+  }
+
+  const loadedDir = path.dirname(routerDir);
+  const ignoredDir = loadedDir === 'src' ? '.' : 'src';
+  const pageExtensions = incomingUserNextConfigObject.pageExtensions ?? DEFAULT_PAGE_EXTENSIONS;
+  const findInstrumentationFile = (dir: string): string | undefined =>
+    pageExtensions.map(extension => path.join(dir, `instrumentation.${extension}`)).find(exists);
+
+  const misplacedFile = findInstrumentationFile(ignoredDir);
+  if (!misplacedFile || findInstrumentationFile(loadedDir)) {
+    return;
+  }
+
+  // Next.js may evaluate its config in child processes, which inherit this state from their parent.
+  process.env[MISPLACED_INSTRUMENTATION_FILE_WARNING_SHOWN] = '1';
+  getBuildLogger(userSentryOptions.silent).warn(
+    `[@sentry/nextjs] Found ${misplacedFile}, but Next.js production builds only pick up the instrumentation file next to your ${routerDir} directory. Move it to ${path.join(loadedDir, path.basename(misplacedFile))}, or the Sentry SDK may not be initialized on the server in production.`,
+  );
 }
 
 /**
