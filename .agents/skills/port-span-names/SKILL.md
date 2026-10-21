@@ -175,7 +175,7 @@ The scope is only a valid fallback for standalone spans, which are sent without 
 **Build first.** Framework packages and the Playwright suites resolve `@sentry/core` from `build/`, not `src/`. A stale build produces failures that look like your bug but aren't.
 
 ```bash
-yarn build:dev:filter @sentry/browser   # plus each package you touched
+pnpm run build:dev:filter @sentry/browser   # plus each package you touched
 npx vitest run --root packages/<pkg> --coverage.enabled=false
 cd dev-packages/browser-integration-tests && npx playwright test --project=chromium suites/tracing
 ```
@@ -190,7 +190,7 @@ Expect to update, and read each one to confirm the new value is _correct_ rather
 - `sentry.segment.name` / `sentry.transaction` on child spans of a renamed segment span
 - span mocks missing `spanContext`/`setAttribute` once code paths shift
 
-Finish with `yarn format` and `yarn lint`.
+Finish with `pnpm run format` and `pnpm run lint`.
 
 ## 8. Document it in MIGRATION.md
 

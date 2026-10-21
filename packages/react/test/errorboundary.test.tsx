@@ -45,6 +45,7 @@ function EffectSpyFallback({ error }: { error: unknown }): JSX.Element {
   const [counter, setCounter] = useState(0);
 
   React.useEffect(() => {
+    // oxlint-disable-next-line set-state-in-effect
     setCounter(c => c + 1);
   }, []);
 
@@ -400,11 +401,12 @@ describe('ErrorBoundary', () => {
     // Regression test against:
     // https://github.com/getsentry/sentry-javascript/issues/6167
     it('does not set cause if non Error objected is thrown', () => {
+      function StringBam(): JSX.Element {
+        throw 'bam';
+      }
+
       const TestAppThrowingString: React.FC<ErrorBoundaryProps> = ({ children, ...props }) => {
         const [isError, setError] = React.useState(false);
-        function StringBam(): JSX.Element {
-          throw 'bam';
-        }
         return (
           <ErrorBoundary
             {...props}

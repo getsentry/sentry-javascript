@@ -38,6 +38,14 @@ export default {
         });
         return Response.json({ traceId: spanContext?.traceId });
       }
+      case '/test-workers-ai-clef': {
+        await env.AI.run('@cf/cloudflare/clef', {
+          model: 'clef',
+          state: 'Checkout has been failing for every customer for the last hour.',
+          questions: { urgent: { type: 'noul', instructions: 'Is this support request urgent?' } },
+        });
+        return Response.json({ traceId: spanContext?.traceId });
+      }
       case '/test-span':
         return Response.json({ spanId: spanContext?.spanId, traceId: spanContext?.traceId });
       case '/test-workflow-sleep': {

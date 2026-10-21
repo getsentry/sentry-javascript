@@ -60,16 +60,20 @@ describe('workers-ai utils', () => {
       expect(getOperationName(MODEL, { text: 'embed me' })).toBe('embeddings');
     });
 
-    it('returns "evaluate" for TypeSafe Jev models', () => {
-      expect(getOperationName('typesafe/jev', { state: 'Help!', questions: {} })).toBe('evaluate');
-      expect(getOperationName('typesafe/jev-1.13', { state: 'Help!', questions: {} })).toBe('evaluate');
+    it('returns "decide" for TypeSafe Jev models', () => {
+      expect(getOperationName('typesafe/jev', { state: 'Help!', questions: {} })).toBe('decide');
+      expect(getOperationName('typesafe/jev-1.13', { state: 'Help!', questions: {} })).toBe('decide');
     });
 
-    it('does not return "evaluate" for other TypeSafe models', () => {
+    it('returns "decide" for Cloudflare Clef models', () => {
+      expect(getOperationName('@cf/cloudflare/clef', { state: 'Help!', questions: {} })).toBe('decide');
+    });
+
+    it('does not return "decide" for other TypeSafe models', () => {
       expect(getOperationName('typesafe/other', { prompt: 'Hello' })).toBe('chat');
     });
 
-    it('does not return "evaluate" for other models with state and questions inputs', () => {
+    it('does not return "decide" for other models with state and questions inputs', () => {
       expect(getOperationName(MODEL, { state: 'Help!', questions: {} })).toBe('chat');
     });
 
@@ -202,7 +206,7 @@ describe('workers-ai utils', () => {
     it.each([
       { name: 'wrapped in { state, result }', wrap: (body: object) => ({ state: 'Completed', result: body }) },
       { name: 'unwrapped', wrap: (body: object) => body },
-    ])('records evaluate responses $name', ({ wrap }) => {
+    ])('records decide responses $name', ({ wrap }) => {
       const { span, attributes } = createMockSpan();
       const answers = { is_urgent: { type: 'noul', noul: 0.95 } };
 
@@ -210,7 +214,7 @@ describe('workers-ai utils', () => {
         span,
         wrap({ model: 'jev-1.13.0', answers, usage: { input_tokens: 366, output_tokens: 50 } }),
         true,
-        'evaluate',
+        'decide',
       );
 
       expect(attributes).toEqual({

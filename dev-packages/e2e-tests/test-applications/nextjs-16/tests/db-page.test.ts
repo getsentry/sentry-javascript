@@ -1,18 +1,19 @@
 import { expect, test } from '@playwright/test';
-import { collectStreamedSpansUntilSegment } from '@sentry-internal/test-utils';
+import { collectStreamedSpansUntilSegment, getRuntime } from '@sentry-internal/test-utils';
+import { isVinext } from './isVinext';
 
-test('Instruments DB calls made during server-side rendering of a page', async ({ page }) => {
+// pg is externalized, so the runtime module hook instruments it.
+test('Instruments pg calls made during server-side rendering of a page', async ({ page }) => {
+  test.skip(getRuntime() === 'bun' || getRuntime() === 'cloudflare', 'Bun and Workers have no runtime module hook');
+
   // The db spans are children of the segment span, which ends last.
   const spansPromise = collectStreamedSpansUntilSegment('nextjs-16', 'GET /db-page');
 
   await page.goto('/db-page');
   await expect(page.locator('#answer')).toHaveText('answer: 42');
-  await expect(page.locator('#cached')).toHaveText('cached: 42');
 
   const spans = await spansPromise;
 
-  // One page render produces spans from both injection paths: pg (externalized → runtime module
-  // hook) and ioredis (bundle-safe allowlisted → build-time loader).
   expect(spans).toContainEqual(
     expect.objectContaining({
       name: 'SELECT',
@@ -25,6 +26,20 @@ test('Instruments DB calls made during server-side rendering of a page', async (
       }),
     }),
   );
+});
+
+// ioredis is bundle-safe and allowlisted, so the build-time loader instruments it.
+test('Instruments ioredis calls made during server-side rendering of a page', async ({ page }) => {
+  test.skip(isVinext, 'vinext does not run the build-time loader of webpack or Turbopack');
+
+  // The db spans are children of the segment span, which ends last.
+  const spansPromise = collectStreamedSpansUntilSegment('nextjs-16', 'GET /db-page');
+
+  await page.goto('/db-page');
+  await expect(page.locator('#cached')).toHaveText('cached: 42');
+
+  const spans = await spansPromise;
+
   expect(spans).toContainEqual(
     expect.objectContaining({
       name: 'set localhost:6379',

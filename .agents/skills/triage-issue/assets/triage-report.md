@@ -29,7 +29,6 @@
 
 ### Cross-Repo Findings
 
-- **bundler-plugins:** <findings or "no matches">
 - **sentry-docs:** <findings or "no matches">
 
 ### Recommended Next Steps

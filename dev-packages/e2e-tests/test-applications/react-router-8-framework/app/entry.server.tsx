@@ -18,3 +18,5 @@ const handleRequest = Sentry.createSentryHandleRequest({
 export default handleRequest;
 
 export const handleError: HandleErrorFunction = Sentry.createSentryHandleError({ logErrors: true });
+
+export const instrumentations = [Sentry.createSentryServerInstrumentation()];

@@ -1,6 +1,8 @@
+import { SENTRY_OP } from '@sentry/conventions/attributes';
+import { HTTP_CLIENT } from '@sentry/conventions/op';
 import { createTestServer } from '@sentry-internal/test-utils';
 import { describe, expect } from 'vitest';
-import { RUNTIME } from '../../../../utils';
+import { supports } from '../../../../utils';
 import { createEsmAndCjsTests } from '../../../../utils/runner';
 
 describe('outgoing traceparent', () => {
@@ -23,14 +25,14 @@ describe('outgoing traceparent', () => {
       await createRunner()
         .withEnv({ SERVER_URL })
         .expect({
-          // The propagated `sentry-trace` must reference the `http.client` span, not the surrounding transaction span.
-          transaction: event => {
+          // The propagated `sentry-trace` must reference the `http.client` span, not the surrounding segment span.
+          span: container => {
             const propagatedSpanId = outgoingSentryTrace?.split('-')[1];
-            const httpClientSpan = event.spans?.find(span => span.op === 'http.client');
+            const httpClientSpan = container.items.find(span => span.attributes[SENTRY_OP]?.value === HTTP_CLIENT);
 
             expect(httpClientSpan).toBeDefined();
             expect(propagatedSpanId).toBe(httpClientSpan?.span_id);
-            expect(propagatedSpanId).not.toBe(event.contexts?.trace?.span_id);
+            expect(propagatedSpanId).not.toBe(container.items.find(span => span.is_segment)?.span_id);
           },
         })
         .start()
@@ -40,9 +42,9 @@ describe('outgoing traceparent', () => {
   });
 
   createEsmAndCjsTests(__dirname, 'scenario-http.mjs', 'instrument.mjs', (createRunner, test) => {
-    // Bun 1.3.14 does not instrument outgoing `node:http` requests.
+    // Bun before 1.4 does not instrument outgoing `node:http` requests.
     // See https://github.com/getsentry/sentry-javascript/issues/23881
-    test.skipIf(RUNTIME === 'bun')('outgoing http requests should get traceparent headers', async () => {
+    test.runIf(supports({ bunMin: '1.4.0' }))('outgoing http requests should get traceparent headers', async () => {
       expect.assertions(5);
 
       const [SERVER_URL, closeTestServer] = await createTestServer()
@@ -57,8 +59,8 @@ describe('outgoing traceparent', () => {
       await createRunner()
         .withEnv({ SERVER_URL })
         .expect({
-          transaction: {
-            // we're not too concerned with the actual transaction here since this is tested elsewhere
+          span: {
+            // Span contents are tested elsewhere.
           },
         })
         .start()

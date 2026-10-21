@@ -19,6 +19,7 @@ import {
 } from '../ai/google-genai';
 import { instrumentStream } from '../ai/google-genai/streaming';
 import type { GoogleGenAIOptions, GoogleGenAIResponse } from '../ai/google-genai/types';
+import type { OrchestrionChannelContext } from '../orchestrion/types';
 import { CHANNELS } from '../orchestrion/channels';
 import { bindTracingChannelToSpan } from '../tracing-channel';
 import { googleGenAiModuleNames } from '../orchestrion/config/google-genai';
@@ -37,14 +38,6 @@ const INSTRUMENTED_CHANNELS = [
   { channel: CHANNELS.GOOGLE_GENAI_CHAT, operation: 'chat' },
 ] as const;
 
-interface GoogleGenAIChannelContext {
-  arguments: unknown[];
-  // The transform stashes the call's `this` here, which chat methods need since the model lives on
-  // the `Chat` instance (`this.model`/`this.modelVersion`), not in the call arguments.
-  self?: unknown;
-  result?: unknown;
-}
-
 const _googleGenAIIntegration = ((options: GoogleGenAIOptions = {}) => {
   return {
     name: INTEGRATION_NAME,
@@ -57,7 +50,7 @@ const _googleGenAIIntegration = ((options: GoogleGenAIOptions = {}) => {
 function instrumentGoogleGenai(options: GoogleGenAIOptions): void {
   for (const { channel, operation } of INSTRUMENTED_CHANNELS) {
     bindTracingChannelToSpan(
-      diagnosticsChannel.tracingChannel<GoogleGenAIChannelContext>(channel),
+      diagnosticsChannel.tracingChannel<OrchestrionChannelContext>(channel),
       data => createGenAiSpan(data, operation, options),
       {
         beforeSpanEnd: (span, data) => {
@@ -81,7 +74,7 @@ function instrumentGoogleGenai(options: GoogleGenAIOptions): void {
  * Returning `undefined` opts the payload out so no span is opened.
  */
 function createGenAiSpan(
-  data: GoogleGenAIChannelContext,
+  data: OrchestrionChannelContext,
   operation: string,
   options: GoogleGenAIOptions,
 ): Span | undefined {
@@ -143,7 +136,7 @@ function isAsyncIterable(value: unknown): value is AsyncIterableStream {
  * For a stream we patch `result[Symbol.asyncIterator]` in place so `instrumentStream` ends the
  * span when iteration finishes.
  */
-function wrapStreamResult(span: Span, data: GoogleGenAIChannelContext, options: GoogleGenAIOptions): boolean {
+function wrapStreamResult(span: Span, data: OrchestrionChannelContext, options: GoogleGenAIOptions): boolean {
   const result = data.result;
   if (!isAsyncIterable(result)) {
     return false;

@@ -23,7 +23,7 @@ test.describe('server - performance', () => {
     expect(getSpanOp(span)).toBe('http.server');
     expect(span.attributes).toMatchObject({
       'sentry.op': { value: 'http.server', type: 'string' },
-      'sentry.origin': { value: 'auto.http.react_router.request_handler', type: 'string' },
+      'sentry.origin': { value: 'auto.http.react_router.instrumentation_api', type: 'string' },
       'sentry.segment.name.source': { value: 'route', type: 'string' },
       'sentry.environment': { value: 'qa', type: 'string' },
       'sentry.sdk.name': {
@@ -56,7 +56,7 @@ test.describe('server - performance', () => {
     expect(getSpanOp(span)).toBe('http.server');
     expect(span.attributes).toMatchObject({
       'sentry.op': { value: 'http.server', type: 'string' },
-      'sentry.origin': { value: 'auto.http.react_router.request_handler', type: 'string' },
+      'sentry.origin': { value: 'auto.http.react_router.instrumentation_api', type: 'string' },
       'sentry.segment.name.source': { value: 'route', type: 'string' },
       'sentry.environment': { value: 'qa', type: 'string' },
       'sentry.sdk.name': {

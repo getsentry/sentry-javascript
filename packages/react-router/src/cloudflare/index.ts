@@ -4,6 +4,10 @@ import { isPrerenderRequest } from '../server/serverBuild';
 export * from '../client';
 
 export { wrapSentryHandleRequest } from '../server/wrapSentryHandleRequest';
+export {
+  createSentryServerInstrumentation,
+  type CreateSentryServerInstrumentationOptions,
+} from '../server/createServerInstrumentation';
 
 /**
  * Injects Sentry trace meta tags into the HTML response by transforming the ReadableStream.

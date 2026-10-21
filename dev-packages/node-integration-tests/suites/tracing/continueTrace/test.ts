@@ -72,7 +72,7 @@ const CONFIGS: { name: string; rate?: string }[] = [
  * - incoming parentSampled true/false -> overrides local rate.
  * - deferred/none -> local tracesSampleRate decides.
  */
-function expectsTransaction(rate: string | undefined, variant: Variant): boolean {
+function expectsSpan(rate: string | undefined, variant: Variant): boolean {
   if (rate === undefined) return false; // TwP: span recording disabled
   if (variant.parentSampled === true) return true; // positive parent decision wins
   if (variant.parentSampled === false) return false; // negative parent decision wins
@@ -87,7 +87,7 @@ describe('continueTrace', () => {
   createEsmAndCjsTests(__dirname, 'scenario.mjs', 'instrument.mjs', (createRunner, test) => {
     describe.each(CONFIGS)('$name', config => {
       test.each(VARIANTS)('continues the $key', async variant => {
-        const wantsTransaction = expectsTransaction(config.rate, variant);
+        const wantsSpan = expectsSpan(config.rate, variant);
 
         const runner = createRunner().withEnv({
           TRACES_SAMPLE_RATE: config.rate,
@@ -96,10 +96,10 @@ describe('continueTrace', () => {
         });
 
         let observedErrorTraceId: string | undefined;
-        let observedTxTraceId: string | undefined;
+        let observedSpanTraceId: string | undefined;
 
         // The error event is delayed by async enrichment (context lines, local variables) while the
-        // transaction flushes synchronously on span end, so the two envelopes can arrive in either
+        // span buffer flushes after span end, so the two envelopes can arrive in either
         // order. Match them by type rather than by position.
         runner.unordered();
 
@@ -124,30 +124,30 @@ describe('continueTrace', () => {
           },
         });
 
-        if (wantsTransaction) {
+        if (wantsSpan) {
           runner.expect({
-            transaction: transaction => {
-              const trace = transaction.contexts?.trace;
-              observedTxTraceId = trace?.trace_id;
+            span: container => {
+              const segment = container.items.find(span => span.is_segment);
+              observedSpanTraceId = segment?.trace_id;
 
               if (variant.traceId) {
-                expect(trace?.trace_id).toBe(variant.traceId);
+                expect(segment?.trace_id).toBe(variant.traceId);
               } else {
-                expect(trace?.trace_id).toMatch(/^[a-f0-9]{32}$/);
+                expect(segment?.trace_id).toMatch(/^[a-f0-9]{32}$/);
               }
               if (variant.parentSpanId) {
-                expect(trace?.parent_span_id).toBe(variant.parentSpanId);
+                expect(segment?.parent_span_id).toBe(variant.parentSpanId);
               }
-              expect(transaction.transaction).toBe('continued-root-span');
+              expect(segment?.name).toBe('continued-root-span');
             },
           });
         }
 
         await runner.start().completed();
 
-        if (wantsTransaction) {
-          // Error and transaction share the (continued or freshly generated) trace id.
-          expect(observedTxTraceId).toBe(observedErrorTraceId);
+        if (wantsSpan) {
+          // Error and span share the (continued or freshly generated) trace id.
+          expect(observedSpanTraceId).toBe(observedErrorTraceId);
         }
       });
     });

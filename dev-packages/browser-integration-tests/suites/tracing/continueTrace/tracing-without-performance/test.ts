@@ -10,7 +10,7 @@ const SAMPLED_TRACE_ID = '12345678901234567890123456789012';
 const UNSAMPLED_TRACE_ID = 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa';
 const DEFERRED_TRACE_ID = 'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb';
 
-// In TwP mode no transactions are emitted, so each variant is observed via the captured error event
+// In TwP mode no spans are emitted, so each variant is observed via the captured error event
 // (which carries the continued trace on its `contexts.trace`) and the outgoing request headers.
 const VARIANTS = [
   { button: 'sampled', traceId: SAMPLED_TRACE_ID, sampledFlag: '-1' },

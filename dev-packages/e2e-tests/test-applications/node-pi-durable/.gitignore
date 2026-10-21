@@ -1,0 +1,5 @@
+node_modules
+.data
+results.junit.xml
+test-results
+playwright-report

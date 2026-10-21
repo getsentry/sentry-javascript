@@ -1,8 +1,11 @@
 import { createTestServer } from '@sentry-internal/test-utils';
 import { describe, expect } from 'vitest';
 import { createEsmAndCjsTests } from '../../../../utils/runner';
+import { supports } from '../../../../utils';
 
-describe('outgoing http with maxed-out agent sockets', () => {
+// Bun before 1.4 does not instrument outgoing `node:http` requests.
+// See https://github.com/getsentry/sentry-javascript/issues/23881
+describe.runIf(supports({ bunMin: '1.4.0' }))('outgoing http with maxed-out agent sockets', () => {
   createEsmAndCjsTests(__dirname, 'scenario.mjs', 'instrument.mjs', (createRunner, test) => {
     test('injects trace headers into requests queued behind a busy socket', async () => {
       expect.assertions(5);
@@ -21,8 +24,8 @@ describe('outgoing http with maxed-out agent sockets', () => {
       await createRunner()
         .withEnv({ SERVER_URL })
         .expect({
-          transaction: {
-            // we're not too concerned with the actual transaction here since this is tested elsewhere
+          span: {
+            // Span contents are tested elsewhere.
           },
         })
         .start()

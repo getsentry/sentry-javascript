@@ -1,7 +1,10 @@
+import { GEN_AI_CONVERSATION_ID } from '@sentry/conventions/attributes';
 import { describe, expect, it, vi } from 'vitest';
 import type { LangChainMessage } from '../../../../src/ai/langchain/types';
 import {
   _INTERNAL_mergeLangChainCallbackHandler,
+  getConversationIdFromMetadata,
+  getConversationIdMetadataFromConfig,
   normalizeLangChainMessages,
 } from '../../../../src/ai/langchain/utils';
 
@@ -147,5 +150,68 @@ describe('_INTERNAL_mergeLangChainCallbackHandler', () => {
   it('returns unchanged when the lone callback object is already a sentry handler', () => {
     const existing = { name: 'SentryCallbackHandler' };
     expect(_INTERNAL_mergeLangChainCallbackHandler(existing, sentryHandler)).toBe(existing);
+  });
+});
+
+describe('getConversationIdFromMetadata', () => {
+  it('reads thread_id', () => {
+    expect(getConversationIdFromMetadata({ thread_id: 'thread-1' })).toEqual({
+      [GEN_AI_CONVERSATION_ID]: 'thread-1',
+    });
+  });
+
+  it('falls back to session_id, then sessionId', () => {
+    expect(getConversationIdFromMetadata({ session_id: 'session-1' })).toEqual({
+      [GEN_AI_CONVERSATION_ID]: 'session-1',
+    });
+    expect(getConversationIdFromMetadata({ sessionId: 'session-2' })).toEqual({
+      [GEN_AI_CONVERSATION_ID]: 'session-2',
+    });
+  });
+
+  it('prefers thread_id over the session keys', () => {
+    expect(
+      getConversationIdFromMetadata({ sessionId: 'session-1', session_id: 'session-2', thread_id: 'thread-1' }),
+    ).toEqual({ [GEN_AI_CONVERSATION_ID]: 'thread-1' });
+  });
+
+  it('stringifies a numeric id', () => {
+    expect(getConversationIdFromMetadata({ thread_id: 42 })).toEqual({ [GEN_AI_CONVERSATION_ID]: '42' });
+  });
+
+  it('ignores empty, non-primitive and missing values', () => {
+    expect(getConversationIdFromMetadata({ thread_id: '' })).toEqual({});
+    expect(getConversationIdFromMetadata({ thread_id: { id: 'x' } })).toEqual({});
+    expect(getConversationIdFromMetadata({ thread_id: null })).toEqual({});
+    expect(getConversationIdFromMetadata({ thread_id: NaN })).toEqual({});
+    expect(getConversationIdFromMetadata({ thread_id: Infinity })).toEqual({});
+    expect(getConversationIdFromMetadata({})).toEqual({});
+    expect(getConversationIdFromMetadata(undefined)).toEqual({});
+  });
+
+  it('skips an empty thread_id and uses the next key', () => {
+    expect(getConversationIdFromMetadata({ thread_id: '', sessionId: 'session-1' })).toEqual({
+      [GEN_AI_CONVERSATION_ID]: 'session-1',
+    });
+  });
+});
+
+describe('getConversationIdMetadataFromConfig', () => {
+  it('picks the first conversation id key out of configurable', () => {
+    expect(
+      getConversationIdMetadataFromConfig({
+        configurable: { thread_id: 'thread-1', sessionId: 42, model: 'gpt-4o' },
+      }),
+    ).toEqual({ thread_id: 'thread-1' });
+  });
+
+  it('skips values that are not a valid id', () => {
+    expect(
+      getConversationIdMetadataFromConfig({ configurable: { thread_id: '', session_id: { id: 'x' }, sessionId: 42 } }),
+    ).toEqual({ sessionId: 42 });
+  });
+
+  it('returns nothing without configurable', () => {
+    expect(getConversationIdMetadataFromConfig({})).toEqual({});
   });
 });

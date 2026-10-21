@@ -3,7 +3,6 @@ import { getCurrentScope, SPAN_STATUS_ERROR, startSpan, startSpanManual, stringi
 import type { Span } from '@sentry/core';
 import {
   GEN_AI_AGENT_NAME,
-  GEN_AI_CONVERSATION_ID,
   GEN_AI_INPUT_MESSAGES,
   GEN_AI_OPERATION_NAME,
   GEN_AI_PIPELINE_NAME,
@@ -18,7 +17,12 @@ import { GEN_AI_INVOKE_AGENT } from '@sentry/conventions/op';
 import { extractSystemInstructions, resolveAIRecordingOptions } from '../core/utils';
 import { createLangChainCallbackHandler } from '../langchain';
 import type { BaseChatModel, LangChainMessage } from '../langchain/types';
-import { _INTERNAL_mergeLangChainCallbackHandler, normalizeLangChainMessages } from '../langchain/utils';
+import {
+  _INTERNAL_mergeLangChainCallbackHandler,
+  getConversationIdFromMetadata,
+  getConversationIdMetadataFromConfig,
+  normalizeLangChainMessages,
+} from '../langchain/utils';
 import { LANGGRAPH_ORIGIN } from './constants';
 import { getGraphInstrumentationId, instrumentStreamResult, isAsyncIterable } from './streaming';
 import type { CompiledGraph, LangGraphOptions } from './types';
@@ -47,7 +51,8 @@ export function instrumentStateGraphCompile(
     return originalCompile;
   }
 
-  // This exported entry point also needs the dataCollection defaults.
+  // This is exported, so callers can hand us an options object with no recording flags set. Resolving
+  // here (rather than only in `instrumentStateGraph`) keeps that path on the `dataCollection` defaults.
   const options = resolveAIRecordingOptions(rawOptions);
   const sentryHandler = createLangChainCallbackHandler(options);
 
@@ -160,9 +165,12 @@ function instrumentCompiledGraphOperation(
       }
 
       const modelName = llm?.modelName ?? llm?.model;
+      const config = args.length > 1 ? (args[1] as Record<string, unknown> | undefined) : undefined;
       const spanOptions = {
         name: 'invoke_agent',
         attributes: {
+          // Set before `spanStart`, so an id from `Sentry.setConversationId()` wins, as on the child spans
+          ...getConversationIdFromMetadata(config?.configurable as Record<string, unknown> | undefined),
           [SENTRY_ORIGIN]: LANGGRAPH_ORIGIN,
           [SENTRY_OP]: GEN_AI_INVOKE_AGENT,
           [GEN_AI_OPERATION_NAME]: 'invoke_agent',
@@ -182,15 +190,6 @@ function instrumentCompiledGraphOperation(
             span.setAttribute(GEN_AI_REQUEST_MODEL, modelName);
           }
 
-          // Extract thread_id from the config (second argument)
-          // LangGraph uses config.configurable.thread_id for conversation/session linking
-          const config = args.length > 1 ? (args[1] as Record<string, unknown> | undefined) : undefined;
-          const configurable = config?.configurable as Record<string, unknown> | undefined;
-          const threadId = configurable?.thread_id;
-          if (threadId && typeof threadId === 'string') {
-            span.setAttribute(GEN_AI_CONVERSATION_ID, threadId);
-          }
-
           // Inject callback handler and agent name into invoke config
           if (sentryCallbackHandler) {
             const invokeConfig = (args[1] ?? {}) as Record<string, unknown>;
@@ -198,6 +197,7 @@ function instrumentCompiledGraphOperation(
 
             const existingMetadata = (invokeConfig.metadata ?? {}) as Record<string, unknown>;
             invokeConfig.metadata = {
+              ...getConversationIdMetadataFromConfig(invokeConfig),
               ...existingMetadata,
               __sentry_langgraph__: true,
               ...(typeof graphName === 'string' ? { lc_agent_name: graphName } : {}),
@@ -218,21 +218,29 @@ function instrumentCompiledGraphOperation(
             span.setAttribute(GEN_AI_TOOL_DEFINITIONS, JSON.stringify(tools));
           }
 
-          // Parse input messages
-          const inputMessages =
-            args.length > 0 ? ((args[0] as { messages?: LangChainMessage[] } | null)?.messages ?? []) : [];
+          // Custom state annotations have no `messages` array, the whole state is recorded instead.
+          const inputState = args[0] as { messages?: LangChainMessage[]; lg_name?: string } | null | undefined;
+          const inputMessages = Array.isArray(inputState?.messages) ? inputState.messages : null;
+          // `new Command({ resume })` resumes an interrupted run and carries no user turn (LangGraph
+          // tags it `lg_name: 'Command'`), so skip it like a `null` resume rather than recording the
+          // control object as a message nobody wrote.
+          const isResumeCommand = inputState?.lg_name === 'Command';
 
-          if (inputMessages && recordInputs) {
-            const normalizedMessages = normalizeLangChainMessages(inputMessages);
-            const { systemInstructions, filteredMessages } = extractSystemInstructions(normalizedMessages);
+          if (recordInputs) {
+            if (inputMessages) {
+              const normalizedMessages = normalizeLangChainMessages(inputMessages);
+              const { systemInstructions, filteredMessages } = extractSystemInstructions(normalizedMessages);
 
-            if (systemInstructions) {
-              span.setAttribute(GEN_AI_SYSTEM_INSTRUCTIONS, systemInstructions);
+              if (systemInstructions) {
+                span.setAttribute(GEN_AI_SYSTEM_INSTRUCTIONS, systemInstructions);
+              }
+
+              span.setAttributes({
+                [GEN_AI_INPUT_MESSAGES]: stringify(filteredMessages),
+              });
+            } else if (inputState && typeof inputState === 'object' && !isResumeCommand) {
+              span.setAttribute(GEN_AI_INPUT_MESSAGES, stringify([{ role: 'user', content: stringify(inputState) }]));
             }
-
-            span.setAttributes({
-              [GEN_AI_INPUT_MESSAGES]: stringify(filteredMessages),
-            });
           }
 
           if (!streaming) {
@@ -248,7 +256,7 @@ function instrumentCompiledGraphOperation(
           if (streaming) {
             if (isAsyncIterable(result)) {
               span.setAttribute(GEN_AI_RESPONSE_STREAMING, true);
-              return instrumentStreamResult(result, span, inputMessages ?? null, recordOutputs);
+              return instrumentStreamResult(result, span, inputMessages, recordOutputs);
             }
 
             span.end();
@@ -256,7 +264,7 @@ function instrumentCompiledGraphOperation(
           }
 
           if (recordOutputs) {
-            setResponseAttributes(span, inputMessages ?? null, result);
+            setResponseAttributes(span, inputMessages, result);
           }
 
           return result;

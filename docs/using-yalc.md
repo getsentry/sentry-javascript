@@ -1,7 +1,7 @@
 # Using `yalc` for Local SDK Testing
 
 [Yalc](https://github.com/wclr/yalc) is a simple local dependency repository which we can use to work with local
-versions of our SDKs. This is a good alternative to `npm|yarn link` for packages where linking is problematic (e.g.
+versions of our SDKs. This is a good alternative to [`pnpm link`](./using-pnpm-link.md) for packages where linking is problematic (e.g.
 SvelteKit or Angular).
 
 Here's how to set up and use yalc:
@@ -13,17 +13,17 @@ Either install yalc globally,
 ```sh
 npm install -g yalc
 
-yarn global add yalc
+pnpm add -g yalc
 ```
 
-or add it to your desired test projects (same command without the `-g|global` flags)
+or add it to your desired test projects (same command without the `-g` flag)
 
 ## Registering/Updating packages
 
 Whenever you want to make your local changes available to your test projects (e.g. after a local code change), run:
 
 ```sh
-yarn yalc:publish
+pnpm run yalc:publish
 ```
 
 If you run this command in the root of the repo, this will publish all SDK packages to the local yalc repo. If you run
@@ -46,7 +46,7 @@ to add the local SDK package to your project.
 
 ### My changes are not applied to the test project
 
-Did you run `yarn build && yarn yalc:publish` after making your changes?
+Did you run `pnpm run build && pnpm run yalc:publish` after making your changes?
 
 ### My test project uses Vite and I still don't see changes
 

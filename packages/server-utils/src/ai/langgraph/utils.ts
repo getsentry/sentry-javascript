@@ -1,5 +1,5 @@
 /* eslint-disable typescript-eslint/no-deprecated */
-import { SPAN_STATUS_ERROR, startSpan } from '@sentry/core';
+import { SPAN_STATUS_ERROR, startSpan, stringify } from '@sentry/core';
 import type { Span, SpanAttributes } from '@sentry/core';
 import {
   GEN_AI_AGENT_NAME,
@@ -12,6 +12,8 @@ import {
   GEN_AI_TOOL_CALL_RESULT,
   GEN_AI_TOOL_DESCRIPTION,
   GEN_AI_TOOL_NAME,
+  GEN_AI_USAGE_CACHE_CREATION_INPUT_TOKENS,
+  GEN_AI_USAGE_CACHE_READ_INPUT_TOKENS,
   GEN_AI_USAGE_INPUT_TOKENS,
   GEN_AI_USAGE_OUTPUT_TOKENS,
   GEN_AI_USAGE_TOTAL_TOKENS,
@@ -20,8 +22,13 @@ import {
 } from '@sentry/conventions/attributes';
 import { GEN_AI_EXECUTE_TOOL } from '@sentry/conventions/op';
 import { GEN_AI_TOOL_CALL_ID_ATTRIBUTE } from '../core/gen-ai-attributes';
+import { setOutputMessagesAttribute } from '../core/utils';
 import type { BaseChatModel, LangChainMessage } from '../langchain/types';
-import { normalizeLangChainMessages } from '../langchain/utils';
+import {
+  extractMessageTokenUsageAttributes,
+  getConversationIdFromMetadata,
+  normalizeLangChainMessages,
+} from '../langchain/utils';
 import { LANGGRAPH_ORIGIN } from './constants';
 import type { CompiledGraph, LangGraphOptions, LangGraphTool } from './types';
 
@@ -89,6 +96,7 @@ export function wrapToolsWithSpans(tools: unknown[], options: LangGraphOptions, 
         if (typeof callAgentName === 'string') {
           spanAttributes[GEN_AI_AGENT_NAME] = callAgentName;
         }
+        Object.assign(spanAttributes, getConversationIdFromMetadata(callConfig?.metadata as Record<string, unknown>));
 
         if (toolDescription) {
           spanAttributes[GEN_AI_TOOL_DESCRIPTION] = toolDescription;
@@ -184,45 +192,17 @@ export function extractTokenUsageFromMessage(message: LangChainMessage): {
   inputTokens: number;
   outputTokens: number;
   totalTokens: number;
+  cacheCreationInputTokens?: number;
+  cacheReadInputTokens?: number;
 } {
-  const msg = message as Record<string, unknown>;
-  let inputTokens = 0;
-  let outputTokens = 0;
-  let totalTokens = 0;
-
-  // Extract from usage_metadata (newer format)
-  if (msg.usage_metadata && typeof msg.usage_metadata === 'object') {
-    const usage = msg.usage_metadata as Record<string, unknown>;
-    if (typeof usage.input_tokens === 'number') {
-      inputTokens = usage.input_tokens;
-    }
-    if (typeof usage.output_tokens === 'number') {
-      outputTokens = usage.output_tokens;
-    }
-    if (typeof usage.total_tokens === 'number') {
-      totalTokens = usage.total_tokens;
-    }
-    return { inputTokens, outputTokens, totalTokens };
-  }
-
-  // Fallback: Extract from response_metadata.tokenUsage
-  if (msg.response_metadata && typeof msg.response_metadata === 'object') {
-    const metadata = msg.response_metadata as Record<string, unknown>;
-    if (metadata.tokenUsage && typeof metadata.tokenUsage === 'object') {
-      const tokenUsage = metadata.tokenUsage as Record<string, unknown>;
-      if (typeof tokenUsage.promptTokens === 'number') {
-        inputTokens = tokenUsage.promptTokens;
-      }
-      if (typeof tokenUsage.completionTokens === 'number') {
-        outputTokens = tokenUsage.completionTokens;
-      }
-      if (typeof tokenUsage.totalTokens === 'number') {
-        totalTokens = tokenUsage.totalTokens;
-      }
-    }
-  }
-
-  return { inputTokens, outputTokens, totalTokens };
+  const attributes = extractMessageTokenUsageAttributes(message);
+  return {
+    inputTokens: attributes[GEN_AI_USAGE_INPUT_TOKENS] ?? 0,
+    outputTokens: attributes[GEN_AI_USAGE_OUTPUT_TOKENS] ?? 0,
+    totalTokens: attributes[GEN_AI_USAGE_TOTAL_TOKENS] ?? 0,
+    cacheCreationInputTokens: attributes[GEN_AI_USAGE_CACHE_CREATION_INPUT_TOKENS],
+    cacheReadInputTokens: attributes[GEN_AI_USAGE_CACHE_READ_INPUT_TOKENS],
+  };
 }
 
 /**
@@ -277,6 +257,14 @@ export function setResponseAttributes(span: Span, inputMessages: LangChainMessag
   const outputMessages = resultObj?.messages;
 
   if (!outputMessages || !Array.isArray(outputMessages)) {
+    // Custom state annotations have no `messages` array, the whole state is recorded instead.
+    if (result && typeof result === 'object') {
+      const serializedState = stringify(result);
+      // `gen_ai.output.messages` is what the product reads first; `gen_ai.response.text` is kept for
+      // back-compat (Relay still migrates it).
+      setOutputMessagesAttribute(span, { responseText: serializedState });
+      span.setAttribute(GEN_AI_RESPONSE_TEXT, stringify([{ role: 'assistant', content: serializedState }]));
+    }
     return;
   }
 
@@ -303,6 +291,8 @@ export function setResponseAttributes(span: Span, inputMessages: LangChainMessag
   let totalInputTokens = 0;
   let totalOutputTokens = 0;
   let totalTokens = 0;
+  let cacheCreationInputTokens: number | undefined;
+  let cacheReadInputTokens: number | undefined;
 
   // Extract metadata from messages
   for (const message of newMessages) {
@@ -311,6 +301,12 @@ export function setResponseAttributes(span: Span, inputMessages: LangChainMessag
     totalInputTokens += tokens.inputTokens;
     totalOutputTokens += tokens.outputTokens;
     totalTokens += tokens.totalTokens;
+    if (tokens.cacheCreationInputTokens !== undefined) {
+      cacheCreationInputTokens = (cacheCreationInputTokens ?? 0) + tokens.cacheCreationInputTokens;
+    }
+    if (tokens.cacheReadInputTokens !== undefined) {
+      cacheReadInputTokens = (cacheReadInputTokens ?? 0) + tokens.cacheReadInputTokens;
+    }
 
     // Extract model metadata (last message's metadata wins for model/finish_reason)
     extractModelMetadata(span, message);
@@ -325,5 +321,11 @@ export function setResponseAttributes(span: Span, inputMessages: LangChainMessag
   }
   if (totalTokens > 0) {
     span.setAttribute(GEN_AI_USAGE_TOTAL_TOKENS, totalTokens);
+  }
+  if (cacheCreationInputTokens !== undefined) {
+    span.setAttribute(GEN_AI_USAGE_CACHE_CREATION_INPUT_TOKENS, cacheCreationInputTokens);
+  }
+  if (cacheReadInputTokens !== undefined) {
+    span.setAttribute(GEN_AI_USAGE_CACHE_READ_INPUT_TOKENS, cacheReadInputTokens);
   }
 }

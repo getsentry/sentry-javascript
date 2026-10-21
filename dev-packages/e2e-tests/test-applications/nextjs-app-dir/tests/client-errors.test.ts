@@ -2,10 +2,10 @@ import { expect, test } from '@playwright/test';
 import { waitForError } from '@sentry-internal/test-utils';
 import { isDevMode } from './isDevMode';
 
-const packageJson = require('../package.json');
+const nextPackageJson = require('next/package.json');
 
 test('Sends a client-side exception to Sentry', async ({ page }) => {
-  const nextjsVersion = packageJson.dependencies.next;
+  const nextjsVersion = nextPackageJson.version;
   const nextjsMajor = Number(nextjsVersion.split('.')[0]);
 
   await page.goto('/');

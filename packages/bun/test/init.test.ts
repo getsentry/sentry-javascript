@@ -1,3 +1,4 @@
+import { GEN_AI_CONVERSATION_ID } from '@sentry/conventions/attributes';
 import { getCurrentScope, type Integration } from '@sentry/core';
 import * as sentryServerUtils from '@sentry/server-utils';
 import type { Mock } from 'bun:test';
@@ -8,6 +9,9 @@ import {
   getDefaultIntegrationsWithoutPerformance,
   init,
   initWithoutDefaultIntegrations,
+  spanToJSON,
+  startSpan,
+  withScope,
 } from '../src';
 
 const PUBLIC_DSN = 'https://username@domain/123';
@@ -127,6 +131,19 @@ describe('init()', () => {
       expect(integrations?.map(({ name }) => name)).toContain('Performance integration');
       expect(integrations?.map(({ name }) => name)).toContain('Some mock integration 4.1');
       expect(integrations?.map(({ name }) => name)).toContain('Some mock integration 4.3');
+    });
+
+    it('adds the conversation id of the scope to gen_ai spans', () => {
+      // The default integrations alone must do it, without the tracing integrations.
+      mockGetTracingIntegrations.mockImplementation(() => []);
+      init({ dsn: PUBLIC_DSN, tracesSampleRate: 1 });
+
+      withScope(scope => {
+        scope.setConversationId('conversation-1');
+        startSpan({ name: 'chat', op: 'gen_ai.chat' }, span => {
+          expect(spanToJSON(span).attributes[GEN_AI_CONVERSATION_ID]).toBe('conversation-1');
+        });
+      });
     });
   });
 

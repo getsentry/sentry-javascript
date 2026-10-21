@@ -12,8 +12,11 @@ import {
   GEN_AI_RESPONSE_STREAMING,
   GEN_AI_RESPONSE_TEXT,
   GEN_AI_RESPONSE_TOOL_CALLS,
+  GEN_AI_USAGE_CACHE_CREATION_INPUT_TOKENS,
+  GEN_AI_USAGE_CACHE_READ_INPUT_TOKENS,
   GEN_AI_USAGE_INPUT_TOKENS,
   GEN_AI_USAGE_OUTPUT_TOKENS,
+  GEN_AI_USAGE_REASONING_OUTPUT_TOKENS,
   GEN_AI_USAGE_TOTAL_TOKENS,
 } from '@sentry/conventions/attributes';
 import { FUNCTION } from '@sentry/conventions/op';
@@ -100,47 +103,47 @@ export function isReadableStream<T = unknown>(value: unknown): value is Readable
 }
 
 /**
- * Set token usage attributes
- * @param span - The span to add attributes to
- * @param promptTokens - The number of prompt tokens
- * @param completionTokens - The number of completion tokens
- * @param cachedInputTokens - The number of cached input tokens
- * @param cachedOutputTokens - The number of cached output tokens
+ * Build token usage attributes. Input tokens include cache reads and writes, which are subsets.
  */
-export function setTokenUsageAttributes(
-  span: Span,
+export function getTokenUsageAttributes(
   promptTokens?: number,
   completionTokens?: number,
-  cachedInputTokens?: number,
-  cachedOutputTokens?: number,
-): void {
-  if (promptTokens !== undefined) {
-    span.setAttributes({
-      [GEN_AI_USAGE_INPUT_TOKENS]: promptTokens,
-    });
-  }
-  if (completionTokens !== undefined) {
-    span.setAttributes({
-      [GEN_AI_USAGE_OUTPUT_TOKENS]: completionTokens,
-    });
-  }
-  if (
-    promptTokens !== undefined ||
-    completionTokens !== undefined ||
-    cachedInputTokens !== undefined ||
-    cachedOutputTokens !== undefined
-  ) {
-    /**
-     * Total input tokens in a request is the summation of `input_tokens`,
-     * `cache_creation_input_tokens`, and `cache_read_input_tokens`.
-     */
-    const totalTokens =
-      (promptTokens ?? 0) + (completionTokens ?? 0) + (cachedInputTokens ?? 0) + (cachedOutputTokens ?? 0);
+  cacheCreationInputTokens?: number,
+  cacheReadInputTokens?: number,
+  totalTokens?: number,
+): Record<string, number> {
+  const attributes: Record<string, number> = {};
 
-    span.setAttributes({
-      [GEN_AI_USAGE_TOTAL_TOKENS]: totalTokens,
-    });
+  if (typeof promptTokens === 'number') {
+    attributes[GEN_AI_USAGE_INPUT_TOKENS] = promptTokens;
   }
+  if (typeof cacheCreationInputTokens === 'number') {
+    attributes[GEN_AI_USAGE_CACHE_CREATION_INPUT_TOKENS] = cacheCreationInputTokens;
+  }
+  if (typeof cacheReadInputTokens === 'number') {
+    attributes[GEN_AI_USAGE_CACHE_READ_INPUT_TOKENS] = cacheReadInputTokens;
+  }
+  if (typeof completionTokens === 'number') {
+    attributes[GEN_AI_USAGE_OUTPUT_TOKENS] = completionTokens;
+  }
+  if (typeof totalTokens === 'number') {
+    attributes[GEN_AI_USAGE_TOTAL_TOKENS] = totalTokens;
+  } else if (typeof promptTokens === 'number' || typeof completionTokens === 'number') {
+    attributes[GEN_AI_USAGE_TOTAL_TOKENS] =
+      (typeof promptTokens === 'number' ? promptTokens : 0) +
+      (typeof completionTokens === 'number' ? completionTokens : 0);
+  }
+  return attributes;
+}
+
+/** Serialize the `state` and `questions` of an evaluation request (TypeSafe, Workers AI, Mastra classifiers). */
+export function getEvaluationInputMessages(request: Record<string, unknown>): string | undefined {
+  return stringify([{ type: 'evaluation', state: request.state, questions: request.questions }]);
+}
+
+/** Serialize the `answers` of an evaluation result (TypeSafe, Workers AI, Mastra classifiers). */
+export function getEvaluationOutputMessages(answers: unknown): string | undefined {
+  return stringify([{ type: 'evaluation', answers }]);
 }
 
 /** One assistant turn for {@link setOutputMessagesAttribute}. */
@@ -227,6 +230,7 @@ export interface StreamResponseState {
   totalTokens?: number;
   cacheCreationInputTokens?: number;
   cacheReadInputTokens?: number;
+  reasoningOutputTokens?: number;
 }
 
 /**
@@ -245,23 +249,18 @@ export function endStreamSpan(span: Span, state: StreamResponseState, recordOutp
   if (state.responseId) attrs[GEN_AI_RESPONSE_ID] = state.responseId;
   if (state.responseModel) attrs[GEN_AI_RESPONSE_MODEL] = state.responseModel;
 
-  if (state.promptTokens !== undefined) attrs[GEN_AI_USAGE_INPUT_TOKENS] = state.promptTokens;
-  if (state.completionTokens !== undefined) attrs[GEN_AI_USAGE_OUTPUT_TOKENS] = state.completionTokens;
-
-  // Use explicit total if provided (OpenAI, Google), otherwise compute from cache tokens (Anthropic)
-  if (state.totalTokens !== undefined) {
-    attrs[GEN_AI_USAGE_TOTAL_TOKENS] = state.totalTokens;
-  } else if (
-    state.promptTokens !== undefined ||
-    state.completionTokens !== undefined ||
-    state.cacheCreationInputTokens !== undefined ||
-    state.cacheReadInputTokens !== undefined
-  ) {
-    attrs[GEN_AI_USAGE_TOTAL_TOKENS] =
-      (state.promptTokens ?? 0) +
-      (state.completionTokens ?? 0) +
-      (state.cacheCreationInputTokens ?? 0) +
-      (state.cacheReadInputTokens ?? 0);
+  Object.assign(
+    attrs,
+    getTokenUsageAttributes(
+      state.promptTokens,
+      state.completionTokens,
+      state.cacheCreationInputTokens,
+      state.cacheReadInputTokens,
+      state.totalTokens,
+    ),
+  );
+  if (typeof state.reasoningOutputTokens === 'number') {
+    attrs[GEN_AI_USAGE_REASONING_OUTPUT_TOKENS] = state.reasoningOutputTokens;
   }
 
   if (state.finishReasons.length) {
