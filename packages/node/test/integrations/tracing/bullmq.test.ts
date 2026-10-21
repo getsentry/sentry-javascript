@@ -277,6 +277,32 @@ describe('SentryBullMQSpan', () => {
     });
   });
 
+  it('uses snake_case for the words of multi-word BullMQ keys', () => {
+    const { span, otelSpan } = createSpan();
+
+    span.setAttributes({
+      'bullmq.job.processed.timestamp': 1,
+      'bullmq.queue.event.max.length': 2,
+      'bullmq.queue.rate.limit': 3,
+      'bullmq.worker.do.not.wait.active': 4,
+      'bullmq.worker.force.close': 5,
+      'bullmq.worker.jobs.to.extend.locks': 6,
+      'bullmq.worker.rate.limit': 7,
+      'bullmq.worker.stalled.jobs': 8,
+    });
+
+    expect(otelSpan.setAttributes).toHaveBeenCalledWith({
+      'messaging.bullmq.job.processed_timestamp': 1,
+      'messaging.bullmq.queue.event.max_length': 2,
+      'messaging.bullmq.queue.rate_limit': 3,
+      'messaging.bullmq.worker.do_not_wait_active': 4,
+      'messaging.bullmq.worker.force_close': 5,
+      'messaging.bullmq.worker.jobs_to_extend_locks': 6,
+      'messaging.bullmq.worker.rate_limit': 7,
+      'messaging.bullmq.worker.stalled_jobs': 8,
+    });
+  });
+
   it('leaves out the deprecated bullmq.job.finished.timestamp', () => {
     const { span, otelSpan } = createSpan();
 

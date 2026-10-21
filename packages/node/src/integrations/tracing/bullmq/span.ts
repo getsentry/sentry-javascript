@@ -24,11 +24,24 @@ function toOtelAttributes(attributes: Record<string, AttributeValue>): Attribute
   return attributes as Attributes;
 }
 
+// BullMQ separates the words of these keys with dots. Sentry keys use dots only between sub-concepts.
+const SNAKE_CASE_KEYS = new Map([
+  ['bullmq.job.processed.timestamp', 'messaging.bullmq.job.processed_timestamp'],
+  ['bullmq.queue.event.max.length', 'messaging.bullmq.queue.event.max_length'],
+  ['bullmq.queue.rate.limit', 'messaging.bullmq.queue.rate_limit'],
+  ['bullmq.worker.do.not.wait.active', 'messaging.bullmq.worker.do_not_wait_active'],
+  ['bullmq.worker.force.close', 'messaging.bullmq.worker.force_close'],
+  ['bullmq.worker.jobs.to.extend.locks', 'messaging.bullmq.worker.jobs_to_extend_locks'],
+  ['bullmq.worker.rate.limit', 'messaging.bullmq.worker.rate_limit'],
+  ['bullmq.worker.stalled.jobs', 'messaging.bullmq.worker.stalled_jobs'],
+]);
+
 /**
- * Returns `messaging.<key>` for a `bullmq.*` attribute key or metric name, and all other keys unchanged.
+ * Returns the Sentry key for a `bullmq.*` attribute key or metric name: `messaging.<key>`, with snake_case for the
+ * keys in `SNAKE_CASE_KEYS`. Returns all other keys unchanged.
  */
 export function toMessagingKey(key: string): string {
-  return key.startsWith('bullmq.') ? `messaging.${key}` : key;
+  return SNAKE_CASE_KEYS.get(key) ?? (key.startsWith('bullmq.') ? `messaging.${key}` : key);
 }
 
 /**
