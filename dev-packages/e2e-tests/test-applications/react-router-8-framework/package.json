@@ -11,6 +11,7 @@
     "@react-router/serve": "^8.0.0",
     "@sentry/bun": "file:../../packed/sentry-bun-packed.tgz",
     "@sentry/cloudflare": "file:../../packed/sentry-cloudflare-packed.tgz",
+    "@sentry/core": "file:../../packed/sentry-core-packed.tgz",
     "@sentry/deno": "file:../../packed/sentry-deno-packed.tgz",
     "@sentry/react-router": "file:../../packed/sentry-react-router-packed.tgz",
     "ioredis": "^5.11.1",

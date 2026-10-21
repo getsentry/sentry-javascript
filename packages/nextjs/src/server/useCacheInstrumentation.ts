@@ -1,4 +1,5 @@
 import { createHash } from 'node:crypto';
+import { TraceFlags } from '@opentelemetry/api';
 import {
   CACHE_HIT,
   CACHE_ITEM_AGE,
@@ -16,6 +17,7 @@ import {
   CACHE_OPERATION_NAMES,
   debug,
   defineIntegration,
+  extractTraceparentData,
   fill,
   getActiveSpan,
   getClient,
@@ -23,6 +25,7 @@ import {
   hasSpansEnabled,
   LRUMap,
   spanIsSampled,
+  spanToTraceHeader,
   startSpan,
   timestampInSeconds,
 } from '@sentry/core';
@@ -70,6 +73,11 @@ interface UseCacheEntry {
   expire?: number;
   /** `cacheTag()` tags, excluding implicit soft tags */
   tags?: unknown[];
+  /**
+   * Set by Sentry, not by Next.js. Holds the `sentry-trace` header of the fill's `cache.put` span.
+   * Handlers that keep unknown entry properties carry it to hits on other instances.
+   */
+  __sentryCacheOrigin?: unknown;
 }
 
 type GlobalWithCacheHandlers = typeof globalThis & {
@@ -171,8 +179,8 @@ function recordCacheEntry(span: Span, entry: unknown): boolean {
   return hit;
 }
 
-// Cache origins are scoped per-process (known limitation: no links across server instances — that would require storing metadata on `CacheEntry`).
-// Hits on entries filled by another instance get no link. Lives on `globalThis` like the rest of the instrumentation state.
+// Fallback for handlers that drop unknown entry properties. Only a hit on the instance that did the
+// fill can use it. Lives on `globalThis`, like the rest of the instrumentation state.
 function getCacheOrigins(): LRUMap<string, CacheOrigin> {
   const globalWithCacheHandlers = globalThis as GlobalWithCacheHandlers;
   if (!globalWithCacheHandlers[SENTRY_CACHE_ORIGINS]) {
@@ -182,19 +190,58 @@ function getCacheOrigins(): LRUMap<string, CacheOrigin> {
 }
 
 /**
- * Links a cache hit to the fill that wrote this entry revision (matched by timestamp).
- * A hit with no matching origin (unsampled or dropped refill, another instance, process restart)
- * gets no link instead of a stale one.
+ * Links a cache hit to the fill that wrote this entry revision. A hit whose origin is unknown gets
+ * no link, never a stale one.
  */
 function linkCacheOrigin(span: Span, originKey: string, entry: unknown): void {
+  const context = getPatchedCacheOrigin(entry) ?? getRememberedCacheOrigin(originKey, entry);
+  if (context) {
+    span.addLink({ context, attributes: { [SENTRY_LINK_TYPE]: CACHE_ORIGIN_LINK_TYPE } });
+  }
+}
+
+/**
+ * Next.js writes an entry only after it runs the cached function, and it never writes back a hit.
+ * So a patched origin always belongs to the entry revision that carries it. Links point only at
+ * sampled traces.
+ */
+function getPatchedCacheOrigin(entry: unknown): SpanContextData | undefined {
+  const { __sentryCacheOrigin } = (entry ?? {}) as UseCacheEntry;
+  const origin = typeof __sentryCacheOrigin === 'string' ? extractTraceparentData(__sentryCacheOrigin) : undefined;
+  return origin?.traceId && origin.parentSpanId && origin.parentSampled
+    ? { traceId: origin.traceId, spanId: origin.parentSpanId, traceFlags: TraceFlags.SAMPLED }
+    : undefined;
+}
+
+/** The table can outlive the entry revision it remembers, so the fill timestamp must match. */
+function getRememberedCacheOrigin(originKey: string, entry: unknown): SpanContextData | undefined {
   const origin = getCacheOrigins().get(originKey);
   const { timestamp } = (entry ?? {}) as UseCacheEntry;
-  if (origin && origin.entryTimestamp === timestamp) {
-    span.addLink({
-      context: origin.context,
-      attributes: { [SENTRY_LINK_TYPE]: CACHE_ORIGIN_LINK_TYPE },
-    });
-  }
+  return origin && origin.entryTimestamp === timestamp ? origin.context : undefined;
+}
+
+/**
+ * Handlers get the patched promise, not the original one. Some handlers copy the entry in their own
+ * `then`, which can run before a callback that is added later.
+ */
+function patchCacheOrigin(pendingEntry: Promise<unknown>, origin: string): Promise<unknown> {
+  const patchedEntry = Promise.resolve(pendingEntry).then(entry => {
+    if (typeof entry === 'object' && entry !== null) {
+      try {
+        // Patch in place, not on a copy. Handlers can replace `entry.value` on the object they get,
+        // and Next.js keeps a reference to that object.
+        (entry as UseCacheEntry).__sentryCacheOrigin = origin;
+      } catch (error) {
+        // Frozen or proxied entries reject new properties. Hits then fall back to the table.
+        DEBUG_BUILD && debug.warn('Failed to patch a Next.js cache fill origin', error);
+      }
+    }
+    return entry;
+  });
+  // A handler can fail the write without reading the entry. A failed entry then has no other
+  // rejection handler, and Sentry must not cause an unhandled rejection.
+  patchedEntry.catch(() => undefined);
+  return patchedEntry;
 }
 
 /**
@@ -285,17 +332,21 @@ function instrumentHandler(handler: unknown): void {
 
         // The handler drains `pendingEntry` (the still-streaming entry) before storing, so this
         // span covers producing and storing the entry, not just the write.
-        return startCacheSpan(CACHE_PUT, digest, sourceFile ? { [CODE_FILE_PATH]: sourceFile } : {}, span =>
-          // Only a successful write becomes a fill origin: a failed write leaves no entry or the
-          // previous one (whose origin still stands). A dropped span (`ignoreSpans`) never
-          // reaches Sentry, so a link to it would be broken.
-          Promise.resolve(originalSet.call(this, cacheKey, pendingEntry)).then(result => {
-            if (span.isRecording()) {
-              rememberCacheOrigin(originKeyPrefix + digest, span, pendingEntry);
-            }
+        return startCacheSpan(CACHE_PUT, digest, sourceFile ? { [CODE_FILE_PATH]: sourceFile } : {}, span => {
+          // Read `isRecording()` before the write. The span ends with the write, and a handler can
+          // resolve the write before it reads the entry. A span dropped by `ignoreSpans` never reaches Sentry, so
+          // a link to it would be broken.
+          if (!span.isRecording()) {
+            return originalSet.call(this, cacheKey, pendingEntry);
+          }
+          const patchedEntry = patchCacheOrigin(pendingEntry, spanToTraceHeader(span));
+          return Promise.resolve(originalSet.call(this, cacheKey, patchedEntry)).then(result => {
+            // Only a successful write becomes a fill origin. A failed write leaves no entry or the
+            // previous one, whose origin still applies.
+            rememberCacheOrigin(originKeyPrefix + digest, span, patchedEntry);
             return result;
-          }),
-        );
+          });
+        });
       };
     });
   } catch (error) {

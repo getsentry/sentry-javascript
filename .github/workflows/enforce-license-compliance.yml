@@ -19,7 +19,7 @@ on:
 
 jobs:
   enforce-license-compliance:
-    runs-on: ubuntu-24.04
+    runs-on: namespace-profile-sentry-javascript
     steps:
       - name: 'Enforce License Compliance'
         uses: getsentry/action-enforce-license-compliance@main
