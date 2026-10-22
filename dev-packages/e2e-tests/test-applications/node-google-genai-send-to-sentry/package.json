@@ -1,0 +1,39 @@
+{
+  "name": "node-google-genai-send-to-sentry",
+  "description": "The Google GenAI integration as a user runs it: a plain Sentry.init on an express app, real generateContent, streaming, chat, tool-call and embedding requests, and the gen_ai spans read back from a real Sentry project",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "tsc",
+    "start": "node --import ./dist/instrument.js dist/app.js",
+    "test": "playwright test",
+    "clean": "npx rimraf node_modules dist pnpm-lock.yaml",
+    "test:build": "pnpm install && pnpm build",
+    "test:build-latest": "pnpm install && pnpm add @google/genai@latest && pnpm build",
+    "test:assert": "pnpm test"
+  },
+  "dependencies": {
+    "@google/genai": "1.20.0",
+    "@sentry/node": "file:../../packed/sentry-node-packed.tgz",
+    "express": "^4.21.2"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.64.1",
+    "@types/express": "^4.17.21",
+    "@types/node": "^24.0.0",
+    "typescript": "~5.9.0"
+  },
+  "sentryTest": {
+    "optional": true,
+    "optionalVariants": [
+      {
+        "build-command": "pnpm test:build-latest",
+        "label": "node-google-genai-send-to-sentry (latest)"
+      }
+    ]
+  },
+  "volta": {
+    "extends": "../../package.json"
+  }
+}
