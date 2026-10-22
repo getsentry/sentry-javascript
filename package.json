@@ -203,7 +203,7 @@
     "@types/node": "^20.19.0",
     "@vitest/coverage-v8": "^4.1.11",
     "deepmerge": "^4.2.2",
-    "es-check": "^7.2.1",
+    "es-check": "^9.8.1",
     "esbuild": "^0.28.1",
     "jsdom": "^21.1.2",
     "madge": "8.0.0",
