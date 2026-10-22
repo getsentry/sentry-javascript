@@ -200,6 +200,9 @@ export interface Options {
      * setting was not set. `true` also removes source maps you enabled yourself. `false` never removes them; the plugin
      * still turns on hidden source maps when the setting is not set, so they can be uploaded.
      *
+     * Only the source maps of JavaScript chunks are removed. Chunks that `sourcemaps.assets` or `sourcemaps.ignore`
+     * exclude are not uploaded and keep their source maps.
+     *
      * With Rollup, Vite and webpack the removed source maps are never written to the output directory. With esbuild
      * they are deleted after the upload.
      */

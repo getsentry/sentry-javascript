@@ -16,6 +16,23 @@
 
 Work in this release was contributed by @lazerg and @chiliec. Thank you for your contributions!
 
+### Important Changes
+
+- **feat(bundler-plugins): Enable hidden source maps and remove them after upload ([#25637](https://github.com/getsentry/sentry-javascript/pull/25637), [#25645](https://github.com/getsentry/sentry-javascript/pull/25645), [#25646](https://github.com/getsentry/sentry-javascript/pull/25646), [#25647](https://github.com/getsentry/sentry-javascript/pull/25647), [#25648](https://github.com/getsentry/sentry-javascript/pull/25648))**
+
+  The Sentry Rollup, Vite, webpack and esbuild plugins now turn on hidden source maps when your bundler has no source maps enabled and the plugin can upload them. They upload the maps to Sentry and remove them from the build output. You no longer need to set `sourcemap: 'hidden'` or `filesToDeleteAfterUpload` globs:
+
+  ```js
+  sentryVitePlugin({ org, project, authToken });
+  ```
+
+  The new `sourcemaps.deleteSourcemapsAfterUpload` option controls the removal:
+  - Unset: the plugin removes only the source maps it turned on itself. Source maps you enabled yourself stay in the build output, as before.
+  - `true`: the plugin also removes source maps you enabled yourself, and switches visible source maps to hidden. Set this if you already use `sourcemap: 'hidden'` and want to drop your `filesToDeleteAfterUpload` globs.
+  - `false`: the plugin never removes source maps.
+
+  Builds in development mode or without an auth token, org and project do not change.
+
 ## 11.10.0
 
 ### Important Changes
