@@ -29,6 +29,7 @@ describe('sentrySolidStartVite()', () => {
       'sentry-solidstart-tunnel-base-path',
       'sentry-solidstart-build-instrumentation-file',
       'sentry-vite-plugin',
+      'sentry-vite-debug-id-sourcemaps',
       'sentry-solidstart-update-source-map-setting',
     ]);
   });

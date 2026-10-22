@@ -22,6 +22,7 @@ import { createRequire } from 'node:module';
 import { finalizeRolldownDebugIds, getDebugIdForChunk, hasExistingDebugID } from './debug-id-injection';
 import { stampDebugIds, type OutputBundle } from './debug-id-stamping';
 import { createSourceMapHandling, type OutputDestinationOptions } from './source-map-handling';
+import { createViteSourceMapHooks } from '../vite/source-map-hooks';
 
 // The subset of Rollup's `TransformResult` that this plugin's `transform`
 // hook actually returns. Defined locally instead of imported from `rollup`
@@ -315,21 +316,41 @@ export function _createRollupPluginInternals(
         }
       : transform;
 
+  // Vite warns about `rollupOptions.output.sourcemap`, so the Vite plugin
+  // decides in a `config` hook instead.
+  const viteSourceMapHooks =
+    buildTool === 'vite' ? createViteSourceMapHooks(sentryBuildPluginManager, sourceMapHandling) : undefined;
+
   const main = {
     name,
     buildStart,
     ...(shouldTransform ? { transform: transformHook } : {}),
-    // Vite warns about `rollupOptions.output.sourcemap`, so the Vite plugin
-    // decides in its `config` hook instead.
-    ...(buildTool === 'rollup' ? { outputOptions: sourceMapHandling.outputOptions } : {}),
+    ...(viteSourceMapHooks
+      ? { configResolved: viteSourceMapHooks.configResolved }
+      : { outputOptions: sourceMapHandling.outputOptions }),
     renderChunk,
     generateBundle: { order: 'pre' as const, handler: generateBundle },
     writeBundle,
   };
 
   const post = {
-    name: `sentry-${buildTool}-upload-staging`,
-    generateBundle: { order: 'post' as const, handler: sourceMapHandling.stageSourceMaps },
+    name: buildTool === 'vite' ? 'sentry-vite-debug-id-sourcemaps' : 'sentry-rollup-upload-staging',
+    // On the post plugin, so framework plugins that set `build.sourcemap`
+    // themselves run first and the decision sees the merged setting.
+    ...(viteSourceMapHooks ? { config: viteSourceMapHooks.config } : {}),
+    generateBundle: {
+      order: 'post' as const,
+      async handler(outputOptions: OutputDestinationOptions, bundle: OutputBundle, isWrite?: boolean): Promise<void> {
+        if (buildTool === 'vite' && options.sourcemaps?.disable === 'disable-upload') {
+          // Vite's module preload rewrite in `generateBundle` regenerates the source map of every
+          // chunk with a dynamic import, which drops the debug ID the main plugin stamped in its
+          // `pre` hook. Restore it without touching the chunk code, so file hashes stay valid.
+          stampDebugIds(bundle, false);
+        }
+
+        await sourceMapHandling.stageSourceMaps(outputOptions, bundle, isWrite);
+      },
+    },
   };
 
   return { main, post };
