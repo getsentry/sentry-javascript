@@ -29,7 +29,7 @@ describe('graphqlIntegration', () => {
             type: 'string',
           });
           expect(executeSpan?.attributes['sentry.origin']).toEqual({
-            value: 'auto.graphql.diagnostic_channel',
+            value: 'auto.graphql.graphql',
             type: 'string',
           });
         },

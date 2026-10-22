@@ -35,6 +35,19 @@ export interface BaseDenoOptions {
    */
   enableOpenTelemetrySetup?: boolean;
 
+  /**
+   * Controls whether the SDK installs its runtime diagnostics-channel injection hooks. These hooks
+   * transform supported modules (e.g. Express) at load time so they emit the diagnostics channels
+   * that the channel-based integrations subscribe to. They only apply to modules imported after
+   * `init()`. To instrument modules imported before it, run Deno with
+   * `--preload=npm:@sentry/deno/import`.
+   *
+   * Set this to `false` to opt out.
+   *
+   * @default true
+   */
+  enableRuntimeChannelInjection?: boolean;
+
   /** Callback that is executed when a fatal global error occurs. */
   onFatalError?(this: void, error: Error): void;
 }
