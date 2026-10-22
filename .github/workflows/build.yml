@@ -362,7 +362,8 @@ jobs:
   job_check_lockfile:
     name: Check lockfile
     needs: [job_get_metadata]
-    timeout-minutes: 10
+    # `pnpm dedupe --check` fetches metadata for every package from npm, so this job can take 8+ min on PRs.
+    timeout-minutes: 20
     runs-on: namespace-profile-sentry-javascript
     if: |
       needs.job_get_metadata.outputs.changed_deps == 'true' ||
