@@ -224,6 +224,62 @@ export function workerGlobalTeardown(config: FullConfig): void {
   }
 }
 
+/** An event of Workers Logs: an invocation, a `console` call, or a span of the Cloudflare trace. */
+export interface WorkersLogsEvent {
+  $metadata: {
+    /** The `cf-ray` header of the request that the event belongs to. */
+    rayId?: string;
+    /** `span` for a span of the Cloudflare trace, `cf-worker-event` for an invocation. */
+    type?: string;
+    traceId?: string;
+    spanId?: string;
+  };
+}
+
+/**
+ * Returns the Workers Logs events of the last hour with the given values, for example
+ * `{ '$metadata.rayId': rayId }`. Returns an empty list while the events are not queryable yet.
+ *
+ * `CLOUDFLARE_API_TOKEN` needs the "Workers Observability: Edit" permission, which the query endpoint
+ * requires also for reads. A `wrangler login` session does not have it.
+ */
+export async function fetchWorkersLogsEvents(values: Record<string, string>): Promise<WorkersLogsEvent[]> {
+  const now = Date.now();
+  const response = await fetch(
+    `https://api.cloudflare.com/client/v4/accounts/${process.env.CLOUDFLARE_ACCOUNT_ID}/workers/observability/telemetry/query`,
+    {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${process.env.CLOUDFLARE_API_TOKEN}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        queryId: 'sentry-e2e-tests',
+        // Runs the query without saving it to the account.
+        dry: true,
+        view: 'events',
+        limit: 100,
+        timeframe: { from: now - 60 * 60 * 1000, to: now },
+        parameters: {
+          filters: Object.entries(values).map(([key, value]) => ({ key, operation: 'eq', type: 'string', value })),
+        },
+      }),
+    },
+  );
+
+  if (response.status === 429) {
+    return [];
+  }
+
+  const body = await response.text();
+
+  if (!response.ok) {
+    throw new Error(
+      `The Workers Logs query failed with status ${response.status}: ${body}. ` +
+        'CLOUDFLARE_API_TOKEN needs the "Workers Observability: Edit" permission.',
+    );
+  }
+
+  return (JSON.parse(body) as { result: { events?: { events?: WorkersLogsEvent[] } } }).result.events?.events ?? [];
+}
+
 /**
  * Sends a request until the Worker itself answers it, and returns the body of that answer.
  *
