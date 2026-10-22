@@ -47,8 +47,9 @@ describe('instrumentKV', () => {
     await wrapped.get('test-key');
 
     expect(startSpanSpy).toHaveBeenCalledWith(
-      expect.objectContaining({
-        attributes: expect.objectContaining({
+      {
+        name: CACHE_GET,
+        attributes: {
           [SENTRY_OP]: CACHE_GET,
           [SENTRY_ORIGIN]: 'auto.cache.cloudflare.kv',
           [CACHE_OPERATION]: SentryCore.CACHE_OPERATION_NAMES[CACHE_GET],
@@ -56,8 +57,8 @@ describe('instrumentKV', () => {
           [DB_OPERATION_NAME]: 'get',
           [DB_COLLECTION_NAME]: 'MY_KV',
           [DB_SYSTEM_NAME]: 'cloudflare-kv',
-        }),
-      }),
+        },
+      },
       expect.any(Function),
     );
   });
@@ -78,12 +79,20 @@ describe('instrumentKV', () => {
 
     expect(result).toBeInstanceOf(Map);
     expect(get).toHaveBeenCalledWith(keys, 'text');
-    expect(startSpanSpy.mock.calls[0]?.[0]).toEqual(
-      expect.objectContaining({
-        attributes: expect.objectContaining({
+    expect(startSpanSpy).toHaveBeenCalledWith(
+      {
+        name: CACHE_GET,
+        attributes: {
+          [SENTRY_OP]: CACHE_GET,
+          [SENTRY_ORIGIN]: 'auto.cache.cloudflare.kv',
+          [CACHE_OPERATION]: SentryCore.CACHE_OPERATION_NAMES[CACHE_GET],
           [CACHE_KEY]: ['first', 'second'],
-        }),
-      }),
+          [DB_OPERATION_NAME]: 'get',
+          [DB_COLLECTION_NAME]: 'MY_KV',
+          [DB_SYSTEM_NAME]: 'cloudflare-kv',
+        },
+      },
+      expect.any(Function),
     );
   });
 
@@ -94,14 +103,20 @@ describe('instrumentKV', () => {
     await wrapped.getWithMetadata('test-key', 'json');
 
     expect(kv.getWithMetadata).toHaveBeenCalledWith('test-key', 'json');
-    expect(startSpanSpy.mock.calls[0]?.[0]).toEqual(
-      expect.objectContaining({
-        attributes: expect.objectContaining({
+    expect(startSpanSpy).toHaveBeenCalledWith(
+      {
+        name: CACHE_GET,
+        attributes: {
           [SENTRY_OP]: CACHE_GET,
+          [SENTRY_ORIGIN]: 'auto.cache.cloudflare.kv',
+          [CACHE_OPERATION]: SentryCore.CACHE_OPERATION_NAMES[CACHE_GET],
           [CACHE_KEY]: ['test-key'],
           [DB_OPERATION_NAME]: 'getWithMetadata',
-        }),
-      }),
+          [DB_COLLECTION_NAME]: 'MY_KV',
+          [DB_SYSTEM_NAME]: 'cloudflare-kv',
+        },
+      },
+      expect.any(Function),
     );
   });
 
@@ -114,34 +129,53 @@ describe('instrumentKV', () => {
     await wrapped.list({ prefix: 'test-' });
 
     expect(startSpanSpy).toHaveBeenCalledTimes(3);
-    expect(startSpanSpy.mock.calls[0]?.[0]).toEqual(
-      expect.objectContaining({
-        attributes: expect.objectContaining({
+    expect(startSpanSpy).toHaveBeenNthCalledWith(
+      1,
+      {
+        name: CACHE_PUT,
+        attributes: {
           [SENTRY_OP]: CACHE_PUT,
+          [SENTRY_ORIGIN]: 'auto.cache.cloudflare.kv',
+          [CACHE_OPERATION]: SentryCore.CACHE_OPERATION_NAMES[CACHE_PUT],
           [CACHE_KEY]: ['put-key'],
           [DB_OPERATION_NAME]: 'put',
-        }),
-      }),
+          [DB_COLLECTION_NAME]: 'MY_KV',
+          [DB_SYSTEM_NAME]: 'cloudflare-kv',
+        },
+      },
+      expect.any(Function),
     );
-    expect(startSpanSpy.mock.calls[1]?.[0]).toEqual(
-      expect.objectContaining({
-        attributes: expect.objectContaining({
+    expect(startSpanSpy).toHaveBeenNthCalledWith(
+      2,
+      {
+        name: CACHE_REMOVE,
+        attributes: {
           [SENTRY_OP]: CACHE_REMOVE,
+          [SENTRY_ORIGIN]: 'auto.cache.cloudflare.kv',
+          [CACHE_OPERATION]: SentryCore.CACHE_OPERATION_NAMES[CACHE_REMOVE],
           [CACHE_KEY]: ['delete-key'],
           [DB_OPERATION_NAME]: 'delete',
-        }),
-      }),
+          [DB_COLLECTION_NAME]: 'MY_KV',
+          [DB_SYSTEM_NAME]: 'cloudflare-kv',
+        },
+      },
+      expect.any(Function),
     );
-    expect(startSpanSpy.mock.calls[2]?.[0]).toEqual(
-      expect.objectContaining({
-        attributes: expect.objectContaining({
+    expect(startSpanSpy).toHaveBeenNthCalledWith(
+      3,
+      {
+        name: CACHE_GET,
+        attributes: {
           [SENTRY_OP]: CACHE_GET,
+          [SENTRY_ORIGIN]: 'auto.cache.cloudflare.kv',
+          [CACHE_OPERATION]: SentryCore.CACHE_OPERATION_NAMES[CACHE_GET],
           [DB_OPERATION_NAME]: 'list',
-        }),
-      }),
+          [DB_COLLECTION_NAME]: 'MY_KV',
+          [DB_SYSTEM_NAME]: 'cloudflare-kv',
+        },
+      },
+      expect.any(Function),
     );
-    const listSpanAttributes = startSpanSpy.mock.calls[2]?.[0].attributes;
-    expect(listSpanAttributes?.[CACHE_KEY]).toBeUndefined();
   });
 
   test('forwards unknown property accesses transparently', () => {
