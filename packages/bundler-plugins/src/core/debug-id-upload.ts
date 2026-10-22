@@ -184,6 +184,11 @@ function hasSpecCompliantDebugId(bundleSource: string): boolean {
   return SPEC_LAST_DEBUG_ID_REGEX.test(bundleSource);
 }
 
+/** Whether the bundle carries a debug ID, injected by the plugin or as a `//# debugId=` comment. */
+export function hasDebugId(bundleSource: string): boolean {
+  return determineDebugIdFromBundleSource(bundleSource) !== undefined || hasSpecCompliantDebugId(bundleSource);
+}
+
 function addDebugIdToBundleSource(bundleSource: string, debugId: string): string {
   if (hasSpecCompliantDebugId(bundleSource)) {
     return bundleSource.replace(SPEC_LAST_DEBUG_ID_REGEX, `//# debugId=${debugId}`);

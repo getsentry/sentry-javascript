@@ -1,4 +1,4 @@
-import type { Options } from '../core';
+import type { Options, SourceMapKind, UploadFilter } from '../core';
 import {
   createSentryBuildPluginManager,
   generateReleaseInjectorCode,
@@ -7,8 +7,10 @@ import {
   createDebugIdUploadFunction,
   CodeInjection,
   addDebugIdToEmittedArtifacts,
+  hasDebugId,
   isJsFile,
 } from '../core';
+import * as fs from 'node:fs';
 import * as path from 'node:path';
 import { createRequire } from 'node:module';
 import { randomUUID } from 'node:crypto';
@@ -48,6 +50,8 @@ interface EsbuildOnEndArgs {
   };
 }
 
+type EsbuildSourceMapSetting = boolean | 'inline' | 'external' | 'linked' | 'both' | undefined;
+
 interface EsbuildInitialOptions {
   bundle?: boolean;
   inject?: string[];
@@ -55,6 +59,24 @@ interface EsbuildInitialOptions {
   define?: Record<string, string>;
   write?: boolean;
   absWorkingDir?: string;
+  sourcemap?: EsbuildSourceMapSetting;
+}
+
+/** Maps esbuild's `sourcemap` setting onto the plugin's source map kinds. */
+function sourceMapKindFromEsbuildSetting(setting: EsbuildSourceMapSetting): SourceMapKind {
+  switch (setting) {
+    case undefined:
+      return 'unset';
+    case false:
+      return 'off';
+    case 'external':
+      return 'hidden';
+    case 'inline':
+    case 'both':
+      return 'inline';
+    default:
+      return 'visible';
+  }
 }
 
 interface EsbuildPluginBuild {
@@ -280,6 +302,13 @@ export function sentryEsbuildPlugin(userOptions: Options = {}): any {
         });
       }
 
+      const sourceMapDecision = sentryBuildPluginManager.sourceMaps.decide(
+        sourceMapKindFromEsbuildSetting(initialOptions.sourcemap),
+      );
+      if (sourceMapDecision.enableHidden) {
+        initialOptions.sourcemap = 'external';
+      }
+
       // Create release and optionally upload
       const freeGlobalDependencyOnBuildArtifacts = createDependencyOnBuildArtifacts();
       const upload = createDebugIdUploadFunction({ sentryBuildPluginManager });
@@ -290,27 +319,38 @@ export function sentryEsbuildPlugin(userOptions: Options = {}): any {
           await sentryBuildPluginManager.createRelease();
 
           if (sourcemapsEnabled) {
-            const buildArtifacts = result.metafile ? Object.keys(result.metafile.outputs) : [];
+            // The metafile lists outputs relative to `absWorkingDir`, not to the process.
+            const outputDir = initialOptions.absWorkingDir ?? process.cwd();
+            const buildArtifacts = result.metafile
+              ? Object.keys(result.metafile.outputs).map(output => path.resolve(outputDir, output))
+              : [];
 
             if (options.sourcemaps?.disable !== 'disable-upload') {
-              await upload(buildArtifacts);
+              // The upload globs the paths, and glob reads backslashes as escapes.
+              const { uploaded } = await upload(buildArtifacts.map(artifact => artifact.split(path.sep).join('/')));
+
+              // esbuild writes before `onEnd` runs, so the maps are deleted from disk
+              // afterwards instead of being dropped from the output like in other bundlers.
+              if (sourceMapDecision.deleteAfterUpload && initialOptions.write !== false) {
+                const { shouldUpload } = sentryBuildPluginManager.sourceMaps;
+                const sourceMaps = await getUploadedSourceMaps(buildArtifacts, shouldUpload);
+
+                if (uploaded) {
+                  await Promise.all(sourceMaps.map(sourceMap => fs.promises.rm(sourceMap, { force: true })));
+                } else if (sourceMaps.length > 0) {
+                  logger.error('The source maps were not uploaded, so they stay in the build output.');
+                }
+              }
             } else if (initialOptions.write === false) {
               logger.debug('Build output is not written to disk. Skipping debug ID injection into build artifacts.');
             } else {
               // The upload routine (which stamps debug IDs into temp copies of the artifacts) is
               // skipped with `disable-upload`. esbuild has no hook to modify outputs before they are
               // written, so the emitted artifacts get stamped on disk instead.
-              const outputDir = initialOptions.absWorkingDir ?? process.cwd();
               await Promise.all(
                 buildArtifacts
                   .filter(isJsFile)
-                  .map(bundle =>
-                    addDebugIdToEmittedArtifacts(
-                      path.resolve(outputDir, bundle),
-                      logger,
-                      options.sourcemaps?.resolveSourceMap,
-                    ),
-                  ),
+                  .map(bundle => addDebugIdToEmittedArtifacts(bundle, logger, options.sourcemaps?.resolveSourceMap)),
               );
             }
           }
@@ -326,3 +366,24 @@ export function sentryEsbuildPlugin(userOptions: Options = {}): any {
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export default sentryEsbuildPlugin;
 export type { Options as SentryEsbuildPluginOptions } from '../core';
+
+/**
+ * The maps of the chunks the upload took: those that pass `sourcemaps.assets` and `ignore` and
+ * carry a debug ID. Shared chunks and CSS get none, so their maps stay in the build output.
+ */
+async function getUploadedSourceMaps(buildArtifacts: string[], shouldUpload: UploadFilter): Promise<string[]> {
+  const sourceMaps = new Set(buildArtifacts.filter(artifact => artifact.endsWith('.map')));
+  const uploaded: string[] = [];
+
+  for (const artifact of buildArtifacts) {
+    if (!isJsFile(artifact) || !sourceMaps.has(`${artifact}.map`) || !shouldUpload(artifact)) {
+      continue;
+    }
+    const code = await fs.promises.readFile(artifact, 'utf8').catch(() => '');
+    if (hasDebugId(code)) {
+      uploaded.push(`${artifact}.map`);
+    }
+  }
+
+  return uploaded;
+}
