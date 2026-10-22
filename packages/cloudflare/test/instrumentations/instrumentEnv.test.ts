@@ -249,14 +249,31 @@ describe('instrumentEnv', () => {
     expect(instrumented.MY_KV).toBe(instrumented.MY_KV);
   });
 
-  it('instruments Workers KV bindings independently from R2 bindings', () => {
-    const kv = { get: vi.fn(), put: vi.fn(), list: vi.fn(), getWithMetadata: vi.fn() };
-    const r2 = { head: vi.fn(), put: vi.fn(), createMultipartUpload: vi.fn() };
-    const env = { MY_KV: kv, MY_BUCKET: r2 };
-    const instrumented = instrumentEnv(env);
+  it('instruments Workers KV and R2 bindings as their own binding types', async () => {
+    const startSpanSpy = vi.spyOn(SentryCore, 'startSpan');
+    const kv = { get: vi.fn().mockResolvedValue(null), put: vi.fn(), list: vi.fn(), getWithMetadata: vi.fn() };
+    const r2 = {
+      head: vi.fn().mockResolvedValue(null),
+      get: vi.fn(),
+      put: vi.fn(),
+      list: vi.fn(),
+      createMultipartUpload: vi.fn(),
+    };
+    const instrumented = instrumentEnv({ MY_KV: kv, MY_BUCKET: r2 });
 
-    expect(instrumented.MY_KV).not.toBe(kv);
-    expect(instrumented.MY_BUCKET).not.toBe(r2);
+    await instrumented.MY_KV.get('kv-key');
+    await instrumented.MY_BUCKET.head('r2-key');
+
+    expect(startSpanSpy).toHaveBeenNthCalledWith(
+      1,
+      expect.objectContaining({ attributes: expect.objectContaining({ 'sentry.origin': 'auto.cache.cloudflare.kv' }) }),
+      expect.any(Function),
+    );
+    expect(startSpanSpy).toHaveBeenNthCalledWith(
+      2,
+      expect.objectContaining({ attributes: expect.objectContaining({ 'sentry.origin': 'auto.faas.cloudflare.r2' }) }),
+      expect.any(Function),
+    );
   });
 
   it('caches the wrapped Queue binding across repeated access', () => {
