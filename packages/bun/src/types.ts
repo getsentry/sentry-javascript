@@ -1,4 +1,4 @@
-import type { BaseTransportOptions, ClientOptions, Options } from '@sentry/core';
+import type { BaseTransportOptions, ClientOptions, Options, ServerTunnelOptions, TunnelInit } from '@sentry/core';
 import type { ServerRuntimeOptions } from '@sentry/core/server';
 
 /**
@@ -35,7 +35,12 @@ export interface BaseBunOptions extends ServerRuntimeOptions {
  * Configuration options for the Sentry Bun SDK
  * @see @sentry/core Options for more information.
  */
-export interface BunOptions extends Options<BaseTransportOptions>, BaseBunOptions {}
+export interface BunOptions extends Options<BaseTransportOptions>, BaseBunOptions {
+  /**
+   * See {@link Options.tunnel}. A server `init` also takes the server-only {@link ServerTunnelOptions}.
+   */
+  tunnel?: TunnelInit<ServerTunnelOptions>;
+}
 
 /**
  * Configuration options for the Sentry Bun SDK Client class

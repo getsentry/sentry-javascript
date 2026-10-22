@@ -1,4 +1,5 @@
 import type {
+  BrowserTunnelOptions,
   ClientOptions,
   Event,
   EventHint,
@@ -6,6 +7,7 @@ import type {
   ParameterizedString,
   Scope,
   SeverityLevel,
+  TunnelInit,
 } from '@sentry/core';
 import type { BrowserClientReplayOptions } from '@sentry/core/browser';
 import type { RouteProvider } from '@sentry/browser-utils';
@@ -91,7 +93,13 @@ type BrowserSpecificOptions = BrowserClientReplayOptions &
  * Configuration options for the Sentry Browser SDK.
  * @see @sentry/core Options for more information.
  */
-export type BrowserOptions = CoreOptions<BrowserTransportOptions> & BrowserSpecificOptions;
+export type BrowserOptions = CoreOptions<BrowserTransportOptions> &
+  BrowserSpecificOptions & {
+    /**
+     * See {@link CoreOptions.tunnel}. The browser `init` also takes the browser-only {@link BrowserTunnelOptions}.
+     */
+    tunnel?: TunnelInit<BrowserTunnelOptions>;
+  };
 
 /**
  * Configuration options for the Sentry Browser SDK Client class

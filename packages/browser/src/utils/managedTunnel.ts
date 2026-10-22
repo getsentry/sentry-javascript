@@ -1,4 +1,4 @@
-import type { Envelope, Transport, TransportMakeRequestResponse, TunnelOptions } from '@sentry/core';
+import type { BrowserTunnelOptions, Envelope, Transport, TransportMakeRequestResponse } from '@sentry/core';
 import {
   debug,
   getEnvelopeEndpointWithUrlEncodedAuth,
@@ -11,7 +11,7 @@ import type { BrowserOptions } from '../client';
 import type { BrowserTransportOptions } from '../transports/types';
 
 /**
- * Resolves `tunnel: true` or {@link TunnelOptions} to the same-origin path the server derives from the DSN.
+ * Resolves `tunnel: true` or {@link BrowserTunnelOptions} to the same-origin path the server derives from the DSN.
  */
 export function resolveBrowserTunnelOption(
   options: BrowserOptions,
@@ -21,7 +21,7 @@ export function resolveBrowserTunnelOption(
     return { tunnel, transportOptions };
   }
 
-  const tunnelOptions: TunnelOptions = tunnel === true ? {} : tunnel;
+  const tunnelOptions: BrowserTunnelOptions = tunnel === true ? {} : tunnel;
   const tunnelPath = tunnelOptions.path ?? (dsn && getTunnelPath(dsn));
   if (!tunnelPath) {
     return { tunnel: undefined, transportOptions };

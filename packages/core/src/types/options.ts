@@ -692,17 +692,11 @@ export interface CoreOptions<TO extends BaseTransportOptions = BaseTransportOpti
   'integrations' | 'transport' | 'stackParser' | 'tunnel'
 > {
   /**
-   * Where to send envelopes instead of the Sentry ingest URL.
-   *
-   * - A URL sends envelopes to your own tunnel endpoint. On the server, a relative path such as `/monitor` instead
-   *   serves the managed tunnel at that path, so `tunnel: '/monitor'` on both sides gives a fixed path.
-   * - `true` (or {@link TunnelOptions}) enables the managed tunnel. Set it in both the browser and the server `init`:
-   *   the browser sends envelopes to a same-origin path derived from its DSN, and the server SDK serves that path and
-   *   forwards the envelopes to Sentry. This keeps ad-blockers from dropping events.
+   * Where to send envelopes instead of the Sentry ingest URL, see {@link TunnelInit}.
    *
    * @default undefined
    */
-  tunnel?: string | true | TunnelOptions;
+  tunnel?: TunnelInit;
 
   /**
    * If this is set to false, default integrations will not be added, otherwise this will internally be set to the
