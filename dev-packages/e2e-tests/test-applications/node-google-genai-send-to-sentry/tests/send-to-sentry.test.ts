@@ -1,16 +1,38 @@
 import { expect, test } from '@playwright/test';
-import type { TraceItem } from './utils/sentry-api';
+import {
+  SEARCH_GEN_AI__EMBEDDINGS__INPUT,
+  SEARCH_GEN_AI__INPUT__MESSAGES,
+  SEARCH_GEN_AI__OPERATION__NAME,
+  SEARCH_GEN_AI__OUTPUT__MESSAGES,
+  SEARCH_GEN_AI__PROVIDER__NAME,
+  SEARCH_GEN_AI__REQUEST__MODEL,
+  SEARCH_GEN_AI__REQUEST__TEMPERATURE,
+  SEARCH_GEN_AI__RESPONSE__FINISH_REASONS,
+  SEARCH_GEN_AI__RESPONSE__MODEL,
+  SEARCH_GEN_AI__RESPONSE__STREAMING,
+  SEARCH_GEN_AI__SYSTEM_INSTRUCTIONS,
+  SEARCH_GEN_AI__TOOL__DEFINITIONS,
+  SEARCH_GEN_AI__USAGE__INPUT_TOKENS,
+  SEARCH_GEN_AI__USAGE__OUTPUT_TOKENS,
+  SEARCH_GEN_AI__USAGE__TOTAL_TOKENS,
+  SEARCH_ORIGIN,
+  SEARCH_SPAN__OP,
+  SEARCH_SPAN__STATUS,
+} from '@sentry/conventions/attributes/search';
+import { GEN_AI_CHAT, GEN_AI_EMBEDDINGS, GEN_AI_GENERATE_CONTENT, HTTP_SERVER } from '@sentry/conventions/op';
+import type { TraceItem } from '@sentry-internal/test-utils/cli';
 import {
   EVENT_POLLING_OPTIONS,
   fetchSpanAttributes,
   fetchTrace,
   findSpanInTrace,
   flattenTrace,
-} from './utils/sentry-api';
+  traceTarget,
+} from '@sentry-internal/test-utils/cli';
 
 // Mirrors src/app.ts.
 const MODEL = 'google/gemini-2.5-flash-lite';
-const EMBEDDING_MODEL = 'google/gemini-embedding-001';
+const EMBEDDINGS_MODEL = 'google/gemini-embedding-001';
 
 type Attributes = Record<string, unknown>;
 
@@ -23,7 +45,7 @@ async function requestTrace(baseURL: string | undefined, path: string): Promise<
   const { traceId } = JSON.parse(body) as { traceId?: string };
   expect(traceId, `${path} did not report a trace id: ${body}`).toMatch(/^[0-9a-f]{32}$/);
 
-  console.log(`${path}: https://${process.env.E2E_TEST_SENTRY_ORG_SLUG}.sentry.io/explore/traces/trace/${traceId}/`);
+  console.log(`${path}: sentry trace view ${traceTarget(traceId!)}`);
   return traceId!;
 }
 
@@ -36,9 +58,9 @@ async function waitForSpan(traceId: string, op: string): Promise<{ span: TraceIt
   let found: { span: TraceItem; attributes: Attributes } | undefined;
 
   await expect
-    .poll(async () => {
-      const span = await findSpanInTrace(traceId, op);
-      const attributes = span?.event_id ? await fetchSpanAttributes(traceId, span.event_id) : undefined;
+    .poll(() => {
+      const span = findSpanInTrace(traceId, op);
+      const attributes = span?.event_id ? fetchSpanAttributes(traceId, span.event_id) : undefined;
       found = span && attributes ? { span, attributes } : undefined;
       return found;
     }, EVENT_POLLING_OPTIONS)
@@ -47,43 +69,59 @@ async function waitForSpan(traceId: string, op: string): Promise<{ span: TraceIt
   return found!;
 }
 
-/** Whether the model-call span sits somewhere below the request span (`http.server`) of the trace. */
-async function isModelSpanUnderRequestSpan(traceId: string, modelSpanId: string): Promise<boolean> {
-  const requestSpan = flattenTrace(await fetchTrace(traceId)).find(item => item.op === 'http.server');
-  return flattenTrace(requestSpan?.children ?? []).some(item => item.event_id === modelSpanId);
+/** The ids of the spans with `op` below the request span of the trace. */
+function spanIdsUnderRequestSpan(traceId: string, op: string): string[] {
+  const requestSpan = flattenTrace(fetchTrace(traceId)).find(item => item.op === HTTP_SERVER);
+  return flattenTrace(requestSpan?.children ?? [])
+    .filter(item => item.op === op)
+    .map(item => item.event_id!);
+}
+
+/**
+ * The request span is the segment; it ends last, so it can land after its children. Expecting exactly
+ * one span also catches the call being instrumented twice.
+ */
+async function expectOnlySpanUnderRequestSpan(traceId: string, op: string, span: TraceItem): Promise<void> {
+  await expect.poll(() => spanIdsUnderRequestSpan(traceId, op), EVENT_POLLING_OPTIONS).toEqual([span.event_id]);
 }
 
 /**
  * The attributes every successful model-call span carries once Sentry has stored it, whatever the
- * model answers. Note the names are the stored ones: `origin` and `span.status` rather than the
- * `sentry.*` attributes the SDK sends.
+ * model answers. The keys are the search names, e.g. `span.op` and `origin` rather than the `sentry.*`
+ * attributes the SDK sends.
  */
-function expectModelCallAttributes(span: TraceItem, attributes: Attributes, operation: string, model: string): void {
+function expectModelCallAttributes(
+  span: TraceItem,
+  attributes: Attributes,
+  op: string,
+  operation: 'chat' | 'generate_content' | 'embeddings',
+  model: string,
+): void {
   expect(span.description).toBe(`${operation} ${model}`);
   expect(attributes).toMatchObject({
-    'span.op': `gen_ai.${operation}`,
-    'span.status': 'ok',
-    origin: 'auto.ai.google_genai',
-    'gen_ai.operation.name': operation,
-    'gen_ai.provider.name': 'google_genai',
-    'gen_ai.request.model': model,
+    [SEARCH_SPAN__OP]: op,
+    [SEARCH_SPAN__STATUS]: 'ok',
+    [SEARCH_ORIGIN]: 'auto.ai.google_genai',
+    [SEARCH_GEN_AI__OPERATION__NAME]: operation,
+    [SEARCH_GEN_AI__PROVIDER__NAME]: 'google_genai',
+    [SEARCH_GEN_AI__REQUEST__MODEL]: model,
   });
 }
 
-/** Token usage and the model version, which every content-producing call reports. */
-function expectUsage(attributes: Attributes): void {
-  expect(typeof attributes['gen_ai.response.model']).toBe('string');
-  expect(attributes['gen_ai.usage.input_tokens']).toBeGreaterThan(0);
-  expect(attributes['gen_ai.usage.output_tokens']).toBeGreaterThan(0);
-  expect(attributes['gen_ai.usage.total_tokens']).toBeGreaterThan(0);
+/** What every content-producing call reports back. The Sentry API returns int attributes as strings. */
+function expectResponseAttributes(attributes: Attributes): void {
+  expect(typeof attributes[SEARCH_GEN_AI__RESPONSE__MODEL]).toBe('string');
+  expect(Number(attributes[SEARCH_GEN_AI__USAGE__INPUT_TOKENS])).toBeGreaterThan(0);
+  expect(Number(attributes[SEARCH_GEN_AI__USAGE__OUTPUT_TOKENS])).toBeGreaterThan(0);
+  expect(Number(attributes[SEARCH_GEN_AI__USAGE__TOTAL_TOKENS])).toBeGreaterThan(0);
 }
 
-/** The prompt and the answer, which the SDK records by default and which have to survive the trip. */
+/** The SDK records prompts and answers by default, and they have to survive the trip to Sentry. */
 function expectRecordedConversation(attributes: Attributes): void {
-  expect(attributes['gen_ai.system_instructions']).toContain('automated test');
-  expect(attributes['gen_ai.input.messages']).toContain('capital of France');
-  expect(typeof attributes['gen_ai.output.messages']).toBe('string');
-  expect(attributes['gen_ai.request.temperature']).toBe(0);
+  expect(Number(attributes[SEARCH_GEN_AI__REQUEST__TEMPERATURE])).toBe(0);
+  expect(attributes[SEARCH_GEN_AI__SYSTEM_INSTRUCTIONS]).toContain('automated test');
+  expect(attributes[SEARCH_GEN_AI__INPUT__MESSAGES]).toContain('capital of France');
+  expect(attributes[SEARCH_GEN_AI__OUTPUT__MESSAGES]).toMatch(/paris/i);
 }
 
 test('Sends generateContent to Sentry as a gen_ai.generate_content span under the request span', async ({
@@ -91,56 +129,66 @@ test('Sends generateContent to Sentry as a gen_ai.generate_content span under th
 }) => {
   const traceId = await requestTrace(baseURL, '/generate');
 
-  const { span, attributes } = await waitForSpan(traceId, 'gen_ai.generate_content');
+  const { span, attributes } = await waitForSpan(traceId, GEN_AI_GENERATE_CONTENT);
 
-  expectModelCallAttributes(span, attributes, 'generate_content', MODEL);
-  expectUsage(attributes);
-  expect(attributes['gen_ai.response.streaming']).toBeUndefined();
+  expectModelCallAttributes(span, attributes, GEN_AI_GENERATE_CONTENT, 'generate_content', MODEL);
+  expectResponseAttributes(attributes);
+  expect(attributes[SEARCH_GEN_AI__RESPONSE__STREAMING]).toBeUndefined();
   expectRecordedConversation(attributes);
 
-  // The request span is the segment; it ends last, so it can land after its children.
-  await expect.poll(() => isModelSpanUnderRequestSpan(traceId, span.event_id!), EVENT_POLLING_OPTIONS).toBe(true);
+  await expectOnlySpanUnderRequestSpan(traceId, GEN_AI_GENERATE_CONTENT, span);
 });
 
 test('Sends generateContentStream to Sentry with its token usage', async ({ baseURL }) => {
   const traceId = await requestTrace(baseURL, '/generate-stream');
 
-  const { span, attributes } = await waitForSpan(traceId, 'gen_ai.generate_content');
+  const { span, attributes } = await waitForSpan(traceId, GEN_AI_GENERATE_CONTENT);
 
-  expectModelCallAttributes(span, attributes, 'generate_content', MODEL);
-  expectUsage(attributes);
-  expect(attributes['gen_ai.response.streaming']).toBe(true);
+  expectModelCallAttributes(span, attributes, GEN_AI_GENERATE_CONTENT, 'generate_content', MODEL);
+  // The usage only arrives in the last chunks, which the streaming instrumentation has to pick up.
+  expectResponseAttributes(attributes);
+  expect(attributes[SEARCH_GEN_AI__RESPONSE__STREAMING]).toBe(true);
+  // Finish reasons are only recorded for streamed calls.
+  expect(JSON.parse(attributes[SEARCH_GEN_AI__RESPONSE__FINISH_REASONS] as string)).toContain('STOP');
   expectRecordedConversation(attributes);
+
+  await expectOnlySpanUnderRequestSpan(traceId, GEN_AI_GENERATE_CONTENT, span);
 });
 
-test('Sends a chat message to Sentry as a gen_ai.chat span with the config given to chats.create()', async ({
-  baseURL,
-}) => {
+test('Sends a chat message to Sentry with the config given to chats.create()', async ({ baseURL }) => {
   const traceId = await requestTrace(baseURL, '/chat');
 
-  const { span, attributes } = await waitForSpan(traceId, 'gen_ai.chat');
+  const { span, attributes } = await waitForSpan(traceId, GEN_AI_CHAT);
 
-  expectModelCallAttributes(span, attributes, 'chat', MODEL);
-  expectUsage(attributes);
+  expectModelCallAttributes(span, attributes, GEN_AI_CHAT, 'chat', MODEL);
+  expectResponseAttributes(attributes);
   expectRecordedConversation(attributes);
+
+  await expectOnlySpanUnderRequestSpan(traceId, GEN_AI_CHAT, span);
 });
 
 test('Sends a generateContent call that returned a function call to Sentry', async ({ baseURL }) => {
   const traceId = await requestTrace(baseURL, '/tools');
 
-  const { span, attributes } = await waitForSpan(traceId, 'gen_ai.generate_content');
+  const { span, attributes } = await waitForSpan(traceId, GEN_AI_GENERATE_CONTENT);
 
-  expectModelCallAttributes(span, attributes, 'generate_content', MODEL);
-  expectUsage(attributes);
-  expect(attributes['gen_ai.tool.definitions']).toContain('get_weather');
-  expect(attributes['gen_ai.input.messages']).toContain('weather in Paris');
+  expectModelCallAttributes(span, attributes, GEN_AI_GENERATE_CONTENT, 'generate_content', MODEL);
+  expectResponseAttributes(attributes);
+  expect(attributes[SEARCH_GEN_AI__TOOL__DEFINITIONS]).toContain('get_weather');
+  expect(attributes[SEARCH_GEN_AI__INPUT__MESSAGES]).toContain('weather in Paris');
+  // The prompt does not name the tool, so it can only be in the output as the call the model made.
+  expect(attributes[SEARCH_GEN_AI__OUTPUT__MESSAGES]).toContain('get_weather');
+
+  await expectOnlySpanUnderRequestSpan(traceId, GEN_AI_GENERATE_CONTENT, span);
 });
 
 test('Sends embedContent to Sentry as a gen_ai.embeddings span', async ({ baseURL }) => {
   const traceId = await requestTrace(baseURL, '/embeddings');
 
-  const { span, attributes } = await waitForSpan(traceId, 'gen_ai.embeddings');
+  const { span, attributes } = await waitForSpan(traceId, GEN_AI_EMBEDDINGS);
 
-  expectModelCallAttributes(span, attributes, 'embeddings', EMBEDDING_MODEL);
-  expect(attributes['gen_ai.embeddings.input']).toContain('capital of France');
+  expectModelCallAttributes(span, attributes, GEN_AI_EMBEDDINGS, 'embeddings', EMBEDDINGS_MODEL);
+  expect(attributes[SEARCH_GEN_AI__EMBEDDINGS__INPUT]).toContain('capital of France');
+
+  await expectOnlySpanUnderRequestSpan(traceId, GEN_AI_EMBEDDINGS, span);
 });
