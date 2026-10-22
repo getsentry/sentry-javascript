@@ -1,7 +1,10 @@
 import { URL_PATH } from '@sentry/conventions/attributes';
 import type { TunnelOptions } from '@sentry/core';
 import { dsnToString, escapeStringForRegex, getClient, handleTunnelRequest } from '@sentry/core';
-import { handleTunnelRequestIfMatched, setManagedTunnelDefaults } from '@sentry/core/server';
+import {
+  handleTunnelRequestIfMatched,
+  _INTERNAL_setManagedTunnelDefaults as setManagedTunnelDefaults,
+} from '@sentry/core/server';
 import type { ServerEntry } from './wrapFetchWithSentry';
 
 const registeredTunnelRoutePaths = new Set<string>();

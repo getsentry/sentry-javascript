@@ -1,6 +1,6 @@
 import type { TunnelOptions } from '@sentry/core';
-import { normalizeTunnelBasePath } from '@sentry/core';
-import { setManagedTunnelDefaults } from '@sentry/core/server';
+import { _INTERNAL_normalizeTunnelBasePath as normalizeTunnelBasePath } from '@sentry/core';
+import { _INTERNAL_setManagedTunnelDefaults as setManagedTunnelDefaults } from '@sentry/core/server';
 import type { Plugin } from 'vite';
 
 export type TunnelRouteOptions =
