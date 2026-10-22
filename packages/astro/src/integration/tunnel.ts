@@ -34,7 +34,7 @@ export function makeTunnelOptionsVitePlugin(tunnelOptions: TunnelOptions): ViteP
       }
 
       return options?.ssr
-        ? `import { setManagedTunnelDefaults } from '@sentry/astro/middleware';\nsetManagedTunnelDefaults(${JSON.stringify({ basePath: tunnelOptions.basePath })});`
+        ? `import { _INTERNAL_setManagedTunnelDefaults } from '@sentry/astro/middleware';\n_INTERNAL_setManagedTunnelDefaults(${JSON.stringify({ basePath: tunnelOptions.basePath })});`
         : `globalThis[${JSON.stringify(TUNNEL_OPTIONS_GLOBAL)}] = ${JSON.stringify(tunnelOptions)};`;
     },
     transform: (code, id) =>
