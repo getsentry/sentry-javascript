@@ -16,6 +16,8 @@ on:
       - v10
       - v9
       - v8
+  merge_group:
+    branches: [develop]
 
 jobs:
   enforce-license-compliance:
