@@ -184,7 +184,7 @@ describe('Sentry Nuxt client plugin', () => {
   });
 
   describe('app:error hook — status-code filtering', () => {
-    it('skips reporting when a Nuxt error carries a 4xx status code', async () => {
+    it.each([404, 301])('skips reporting when a Nuxt error carries a %dxx status code', async statusCode => {
       const { isNuxtError } = await import('nuxt/app');
       const reportSpy = vi.spyOn(utils, 'reportNuxtError').mockImplementation(() => {});
       vi.mocked(isNuxtError).mockReturnValue(true);
@@ -194,7 +194,7 @@ describe('Sentry Nuxt client plugin', () => {
       const nuxtApp = makeNuxtApp();
       await (clientPlugin as NuxtPluginShape).setup(nuxtApp);
       const errorCb = nuxtApp.hook.mock.calls.find(c => c[0] === 'app:error')?.[1] as (e: unknown) => void;
-      errorCb({ statusCode: 404 });
+      errorCb({ statusCode });
 
       expect(reportSpy).not.toHaveBeenCalled();
     });
@@ -215,7 +215,9 @@ describe('Sentry Nuxt client plugin', () => {
       expect(reportSpy).toHaveBeenCalledWith({ error: err });
     });
 
-    it('reports a non-Nuxt error regardless of status code shape', async () => {
+    // Non-Nuxt error carrying a 4xx statusCode: exercises the `isNuxtError`
+    // guard directly (without the guard this would be skipped as 4xx).
+    it('reports a non-Nuxt error even when it carries a 4xx statusCode', async () => {
       const { isNuxtError } = await import('nuxt/app');
       const reportSpy = vi.spyOn(utils, 'reportNuxtError').mockImplementation(() => {});
       vi.mocked(isNuxtError).mockReturnValue(false);
@@ -225,7 +227,7 @@ describe('Sentry Nuxt client plugin', () => {
       const nuxtApp = makeNuxtApp();
       await (clientPlugin as NuxtPluginShape).setup(nuxtApp);
       const errorCb = nuxtApp.hook.mock.calls.find(c => c[0] === 'app:error')?.[1] as (e: unknown) => void;
-      const err = new Error('boom');
+      const err = Object.assign(new Error('boom'), { statusCode: 404 });
       errorCb(err);
 
       expect(reportSpy).toHaveBeenCalledWith({ error: err });
@@ -253,9 +255,9 @@ describe('Sentry Nuxt client plugin', () => {
     });
 
     // Mirror the status-code filtering from app:error so both hooks are
-    // covered symmetrically (upstream #25341 asserts this across both
-    // hook names via `it.each`).
-    it('skips reporting when a Nuxt error carries a 4xx status code', async () => {
+    // covered symmetrically (matches upstream #25341's `it.each` across
+    // both hook names).
+    it.each([404, 301])('skips reporting when a Nuxt error carries a %dxx status code', async statusCode => {
       const { isNuxtError } = await import('nuxt/app');
       const reportSpy = vi.spyOn(utils, 'reportNuxtError').mockImplementation(() => {});
       vi.mocked(isNuxtError).mockReturnValue(true);
@@ -269,7 +271,7 @@ describe('Sentry Nuxt client plugin', () => {
         instance: unknown,
         info: string,
       ) => void;
-      vueErrorCb({ statusCode: 404 }, undefined, 'setup');
+      vueErrorCb({ statusCode }, undefined, 'setup');
 
       expect(reportSpy).not.toHaveBeenCalled();
     });
@@ -289,6 +291,28 @@ describe('Sentry Nuxt client plugin', () => {
         info: string,
       ) => void;
       const err = { statusCode: 503, message: 'bad gateway' };
+      vueErrorCb(err, undefined, 'setup');
+
+      expect(reportSpy).toHaveBeenCalledWith({ error: err, instance: undefined, info: 'setup' });
+    });
+
+    // Non-Nuxt error carrying a 4xx statusCode: exercises the `isNuxtError`
+    // guard directly (without the guard this would be skipped as 4xx).
+    it('reports a non-Nuxt error even when it carries a 4xx statusCode', async () => {
+      const { isNuxtError } = await import('nuxt/app');
+      const reportSpy = vi.spyOn(utils, 'reportNuxtError').mockImplementation(() => {});
+      vi.mocked(isNuxtError).mockReturnValue(false);
+      getClient.mockReturnValue(makeClient());
+      getRouteProvider.mockReturnValue(undefined);
+
+      const nuxtApp = makeNuxtApp();
+      await (clientPlugin as NuxtPluginShape).setup(nuxtApp);
+      const vueErrorCb = nuxtApp.hook.mock.calls.find(c => c[0] === 'vue:error')?.[1] as (
+        e: unknown,
+        instance: unknown,
+        info: string,
+      ) => void;
+      const err = Object.assign(new Error('boom'), { statusCode: 404 });
       vueErrorCb(err, undefined, 'setup');
 
       expect(reportSpy).toHaveBeenCalledWith({ error: err, instance: undefined, info: 'setup' });
