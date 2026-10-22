@@ -609,6 +609,10 @@ jobs:
         env:
           NODE_VERSION: ${{ matrix.node }}
 
+      - name: Run script tests
+        run: pnpm run test:scripts
+        if: matrix.node == 24
+
   job_browser_playwright_tests:
     name:
       Playwright ${{ matrix.bundle }}${{ matrix.project && matrix.project != 'chromium' && format(' {0}',
