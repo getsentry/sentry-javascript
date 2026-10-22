@@ -60,9 +60,6 @@ function instrumentLanggraph(options: LangGraphOptions): void {
     // throw) and cleared in both `end` and `error`, so it can neither stick on across calls nor
     // stay off during this call's nested compile. Tool wrapping is guarded for the same reason.
     insideCreateReactAgent = true;
-    if (isInsideManualLangGraphInstrumentation()) {
-      return;
-    }
     try {
       const { arguments: args } = message as OrchestrionChannelContext;
       const params = getFirstArgObject(args);

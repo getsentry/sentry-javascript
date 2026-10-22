@@ -8,7 +8,7 @@ import {
   startSpan,
 } from '@sentry/core';
 import type { Span } from '@sentry/core';
-import { GEN_AI_CONVERSATION_ID } from '@sentry/conventions/attributes';
+import { GEN_AI_CONVERSATION_ID, GEN_AI_RESPONSE_TEXT } from '@sentry/conventions/attributes';
 import {
   instrumentCompiledGraph,
   instrumentStateGraphCompile,
@@ -258,5 +258,28 @@ describe('LangGraph invoke stream suppression', () => {
 
     expect(sawManualFlag).toBe(true);
     expect(isInsideManualLangGraphInstrumentation()).toBe(false);
+  });
+
+  it('records no output for a stream mode whose chunks are not the graph output', async () => {
+    const client = new TestClient(getDefaultTestClientOptions({ tracesSampleRate: 1 }));
+    setCurrentClient(client);
+    client.init();
+    const endedSpans: Span[] = [];
+    client.on('spanEnd', span => endedSpans.push(span));
+    const graph = {
+      stream: async () => ({
+        async *[Symbol.asyncIterator]() {
+          yield { values: { messages: [{ role: 'assistant', content: 'checkpointed' }] } };
+        },
+      }),
+    };
+    instrumentCompiledGraph(graph, {}, { recordOutputs: true }, undefined, undefined);
+
+    for await (const _chunk of await graph.stream({}, { streamMode: 'checkpoints' })) {
+      // drain
+    }
+
+    expect(endedSpans).toHaveLength(1);
+    expect(spanToStaticSpanJSON(endedSpans[0]!).data[GEN_AI_RESPONSE_TEXT]).toBeUndefined();
   });
 });

@@ -89,17 +89,8 @@ export function buildMethodPath(currentPath: string, prop: string): string {
 }
 
 /**
- * A stream that pulls through `reader`, typically an instrumented one.
- *
- * `tee`, `pipeTo` and `pipeThrough` acquire their reader through internal slots rather than by
- * calling the public `getReader`, so patching that method alone leaves them uninstrumented: the
- * chunks bypass accumulation and the span is never ended. Handing them this stream instead routes
- * them back through the wrapped reader, so there is still exactly one accumulating consumer.
- *
- * Same idea as `monitorStream` in `@sentry/deno`, with two deliberate differences: chunks are pulled
- * on demand rather than drained in a `start` loop, so backpressure still reaches the source, and
- * `cancel` is forwarded (the hole #24054 fixed there) so the source stops producing when the
- * consumer disconnects.
+ * A stream that pulls through `reader`. `tee` and `pipe*` read through internal slots and bypass a
+ * patched `getReader`; this routes them back through it, pulling on demand and forwarding `cancel` (#24054).
  */
 export function readableFromReader(reader: {
   read: () => Promise<{ done: boolean; value?: unknown }>;

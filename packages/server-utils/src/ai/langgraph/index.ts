@@ -24,7 +24,7 @@ import {
   normalizeLangChainMessages,
 } from '../langchain/utils';
 import { LANGGRAPH_ORIGIN } from './constants';
-import { instrumentStreamResult } from './streaming';
+import { instrumentStreamResult, isOutputStreamMode } from './streaming';
 import type { CompiledGraph, LangGraphOptions } from './types';
 import {
   extractAgentNameFromParams,
@@ -250,13 +250,8 @@ function instrumentCompiledGraphOperation(
           if (streaming) {
             if (isAsyncIterable(result)) {
               span.setAttribute(GEN_AI_RESPONSE_STREAMING, true);
-              try {
-                return instrumentStreamResult(result, span, inputMessages, recordOutputs);
-              } catch {
-                // An unpatchable stream (e.g. frozen) still belongs to the caller; only the span is lost.
-                span.end();
-                return result;
-              }
+              const recordStreamOutputs = recordOutputs && isOutputStreamMode(config?.streamMode);
+              return instrumentStreamResult(result, span, inputMessages, recordStreamOutputs);
             }
 
             span.end();

@@ -374,4 +374,17 @@ describe('LangGraph stream cancellation and tee', () => {
     expect(span.setAttribute).toHaveBeenCalledWith(GEN_AI_RESPONSE_TEXT, '[{"role":"assistant","content":"Sunny"}]');
     expect(span.end).toHaveBeenCalledTimes(1);
   });
+
+  it('ends the span when a cancel on a locked stream takes effect, even if nothing reads again', async () => {
+    const span = createSpan();
+    const source = new ReadableStream<string>();
+    const stream = Object.assign(source, { cancel: async () => undefined });
+    instrumentStreamResult(stream, span as unknown as Span, null, false);
+    Object.defineProperty(stream, 'locked', { value: true });
+
+    await stream.cancel('no longer needed');
+
+    expect(span.setStatus).not.toHaveBeenCalled();
+    expect(span.end).toHaveBeenCalledTimes(1);
+  });
 });
