@@ -68,6 +68,19 @@ describe('addPluginOptionTagsToScope', () => {
     expect(mockedScope.setTag).toHaveBeenCalledWith('deploy-options', true);
   });
 
+  it.each([
+    [undefined, 'auto'],
+    [true, 'true'],
+    [false, 'false'],
+  ])('should set the delete-sourcemaps-after-upload tag for `%s` to `%s`', (option, tag) => {
+    setTelemetryDataOnScope(
+      normalizeUserOptions({ ...defaultOptions, sourcemaps: { deleteSourcemapsAfterUpload: option } }),
+      mockedScope as unknown as Scope,
+      'rollup',
+    );
+    expect(mockedScope.setTag).toHaveBeenCalledWith('delete-sourcemaps-after-upload', tag);
+  });
+
   it('should set errorHandler tag to `custom` if the errorHandler option is specified', () => {
     setTelemetryDataOnScope(
       // eslint-disable-next-line @typescript-eslint/no-empty-function

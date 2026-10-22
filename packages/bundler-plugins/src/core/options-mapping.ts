@@ -30,6 +30,7 @@ export type NormalizedOptions = {
         rewriteSources?: RewriteSourcesHook;
         resolveSourceMap?: ResolveSourceMapHook;
         filesToDeleteAfterUpload?: string | string[] | Promise<string | string[] | undefined>;
+        deleteSourcemapsAfterUpload?: boolean;
       }
     | undefined;
   release: {
@@ -212,6 +213,13 @@ export function validateOptions(options: NormalizedOptions, logger: Logger): boo
       'Please set the `env` property.',
     );
     return false;
+  }
+
+  if (options.sourcemaps?.deleteSourcemapsAfterUpload && options.sourcemaps.disable) {
+    logger.warn(
+      'The `sourcemaps.deleteSourcemapsAfterUpload` option is set but source map upload is disabled via `sourcemaps.disable`.',
+      'Source maps will not be deleted.',
+    );
   }
 
   if (options.project && Array.isArray(options.project)) {
