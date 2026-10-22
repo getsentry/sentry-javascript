@@ -362,9 +362,14 @@ jobs:
   job_check_lockfile:
     name: Check lockfile
     needs: [job_get_metadata]
-    # `pnpm dedupe --check` fetches metadata for every package from npm, so this job can take 8+ min on PRs.
+    # Both checks only resolve dependencies, so they need no node_modules and little CPU. What they need is pnpm's
+    # package metadata: `pnpm dedupe --check` reads it for every dependency, about 300 MB from npm (1.2 GB unpacked).
+    # Without a cache, that download took 6 minutes or more. The job's own cache volume keeps the metadata, so pnpm
+    # only revalidates it. The timeout leaves room for a cold volume.
     timeout-minutes: 20
-    runs-on: namespace-profile-sentry-javascript
+    runs-on:
+      namespace-profile-sentry-javascript-small;overrides.cache-tag=sentry-javascript-lockfile${{ github.event_name ==
+      'pull_request' && '-pr' || '' }}
     if: |
       needs.job_get_metadata.outputs.changed_deps == 'true' ||
       needs.job_get_metadata.outputs.is_base_branch == 'true' ||
@@ -374,16 +379,18 @@ jobs:
         uses: actions/checkout@v7
         with:
           ref: ${{ env.HEAD_COMMIT }}
+      - name: Mount pnpm caches
+        uses: ./.github/actions/mount-pnpm-store
       - name: Install pnpm
         uses: ./.github/actions/install-pnpm
       - name: Set up Node
         uses: actions/setup-node@v7
         with:
           node-version-file: 'package.json'
-      - name: Install dependencies
-        run: pnpm install --no-frozen-lockfile
+      # `--lockfile-only` updates pnpm-lock.yaml like a full install would, without downloading and linking packages
       - name: Check that pnpm-lock.yaml is stable
         run: |
+          pnpm install --lockfile-only --no-frozen-lockfile
           if ! git diff --exit-code pnpm-lock.yaml; then
             echo "::error::pnpm-lock.yaml has uncommitted changes after running 'pnpm install'. Please run 'pnpm install' locally and commit the updated pnpm-lock.yaml."
             exit 1
