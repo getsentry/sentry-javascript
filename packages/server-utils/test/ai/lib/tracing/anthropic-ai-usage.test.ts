@@ -227,5 +227,47 @@ describe.each(['async iterable', 'message stream'] as const)(
         [GEN_AI_USAGE_CACHE_READ_INPUT_TOKENS]: 40,
       });
     });
+
+    it('takes the input count from message_delta when message_start reports zero', async () => {
+      const { span, attributes } = createMockSpan();
+      const events: AnthropicAiStreamingEvent[] = [
+        {
+          type: 'message_start',
+          message: {
+            id: 'msg_zero_start',
+            type: 'message',
+            model: 'claude-sonnet-4-6',
+            role: 'assistant',
+            content: [],
+            stop_reason: null,
+            stop_sequence: null,
+            usage: { input_tokens: 0, output_tokens: 1 },
+          },
+        },
+        { type: 'message_delta', usage: { input_tokens: 1500, output_tokens: 40 } },
+        { type: 'message_stop' },
+      ];
+
+      if (mode === 'async iterable') {
+        const stream = (async function* () {
+          yield* events;
+        })();
+        for await (const _ of instrumentAsyncIterableStream(stream, span, false)) {
+          void _;
+        }
+      } else {
+        const stream = instrumentMessageStream(new EventEmitter(), span, false);
+        for (const event of events) {
+          stream.emit('streamEvent', event);
+        }
+        stream.emit('message', {});
+      }
+
+      expect(attributes).toMatchObject({
+        [GEN_AI_USAGE_INPUT_TOKENS]: 1500,
+        [GEN_AI_USAGE_OUTPUT_TOKENS]: 40,
+        [GEN_AI_USAGE_TOTAL_TOKENS]: 1540,
+      });
+    });
   },
 );
