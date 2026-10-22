@@ -103,10 +103,10 @@ export { safeCallback } from './utils/safeCallback';
 export { parameterize, fmt } from './utils/parameterize';
 export type { HandleTunnelRequestOptions } from './utils/tunnel';
 export {
-  applyTunnelDefaults,
+  applyTunnelDefaults as _INTERNAL_applyTunnelDefaults,
   getTunnelPath,
   handleTunnelRequest,
-  normalizeTunnelBasePath,
+  normalizeTunnelBasePath as _INTERNAL_normalizeTunnelBasePath,
   TUNNEL_RESPONSE_HEADER,
 } from './utils/tunnel';
 export { addAutoIpAddressToSession } from './utils/ipAddress';
