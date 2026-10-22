@@ -337,7 +337,8 @@ test.describe('Lambda layer', () => {
     const transactionEvent = await transactionEventPromise;
 
     expect(transactionEvent.contexts?.trace?.status).toBe('ok');
-    expect(transactionEvent.timestamp! - transactionEvent.start_timestamp!).toBeGreaterThanOrEqual(0.2);
+    // Node timers can fire up to a millisecond early, so the 200 ms callback delay can measure as 199.x ms
+    expect(transactionEvent.timestamp! - transactionEvent.start_timestamp!).toBeGreaterThanOrEqual(0.19);
   });
 
   test('sets error status when a callback-style handler calls back with an error after it returned', async ({
@@ -360,7 +361,7 @@ test.describe('Lambda layer', () => {
     const [errorEvent, transactionEvent] = await Promise.all([errorEventPromise, transactionEventPromise]);
 
     expect(transactionEvent.contexts?.trace?.status).toBe('internal_error');
-    expect(transactionEvent.timestamp! - transactionEvent.start_timestamp!).toBeGreaterThanOrEqual(0.2);
+    expect(transactionEvent.timestamp! - transactionEvent.start_timestamp!).toBeGreaterThanOrEqual(0.19);
     expect(errorEvent.contexts?.trace?.trace_id).toBe(transactionEvent.contexts?.trace?.trace_id);
   });
 

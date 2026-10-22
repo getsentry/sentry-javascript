@@ -280,6 +280,10 @@ For example, if something is changed in the browser package, only E2E test apps 
 You can add additional information about the test (e.g. canary versions, optional in CI) by adding `sentryTest` in the `package.json`
 of a test application.
 
+The required E2E jobs run on 2 vCPUs (`namespace-profile-sentry-javascript-small`). If an app's job takes longer than
+about 90 seconds, set `"sentryTest": { "runner": "namespace-profile-sentry-javascript" }` to run it and its variants on
+4 vCPUs.
+
 If you add Sentry dependencies to your test application, set the dependency versions to `latest || *` in order
 for it to work with both regular and prerelease versions:
 
