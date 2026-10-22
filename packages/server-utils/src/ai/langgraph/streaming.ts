@@ -32,7 +32,7 @@ interface StreamLifecycle {
   recordChunk: (chunk: unknown) => void;
   complete: () => void;
   fail: () => void;
-  markCancelled: () => void;
+  markCancelled: (cancelled: boolean) => void;
 }
 
 // Modes whose payloads carry the graph's output; `debug`, `tasks`, `checkpoints` and `custom` do not.
@@ -109,8 +109,8 @@ function createStreamLifecycle(
       }
       complete();
     },
-    markCancelled(): void {
-      cancelled = true;
+    markCancelled(value: boolean): void {
+      cancelled = value;
     },
   };
 }
@@ -217,12 +217,18 @@ function instrumentReadableStream(
   if (stream.cancel) {
     const originalCancel = stream.cancel.bind(stream);
     stream.cancel = (reason?: unknown): Promise<void> => {
-      lifecycle.markCancelled();
+      // Marked up front because LangGraph's cancel can reject an in-flight read before the cancel settles.
+      lifecycle.markCancelled(true);
       // A plain locked stream rejects the cancel and keeps streaming, so only a cancel that took effect ends it.
-      const onError = stream.locked ? () => undefined : () => lifecycle.fail();
+      const locked = stream.locked;
       return handleCallbackErrors(
         () => withScope(scope, () => originalCancel(reason)),
-        onError,
+        () => {
+          lifecycle.markCancelled(false);
+          if (!locked) {
+            lifecycle.fail();
+          }
+        },
         undefined,
         () => lifecycle.complete(),
       );
@@ -273,10 +279,13 @@ function instrumentReader(
   if (reader.cancel) {
     const originalCancel = reader.cancel.bind(reader);
     reader.cancel = (reason?: unknown): Promise<void> => {
-      lifecycle.markCancelled();
+      lifecycle.markCancelled(true);
       return handleCallbackErrors(
         () => withScope(scope, () => originalCancel(reason)),
-        () => lifecycle.fail(),
+        () => {
+          lifecycle.markCancelled(false);
+          lifecycle.fail();
+        },
         () => lifecycle.complete(),
       );
     };

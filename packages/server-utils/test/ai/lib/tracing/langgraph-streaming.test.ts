@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import type { Span } from '@sentry/core';
+import { SPAN_STATUS_ERROR } from '@sentry/core';
 import { AIMessageChunk } from '@langchain/core/messages';
 import { GEN_AI_RESPONSE_TEXT, GEN_AI_USAGE_OUTPUT_TOKENS } from '@sentry/conventions/attributes';
 import { instrumentStreamResult } from '../../../../src/ai/langgraph/streaming';
@@ -385,6 +386,34 @@ describe('LangGraph stream cancellation and tee', () => {
     await stream.cancel('no longer needed');
 
     expect(span.setStatus).not.toHaveBeenCalled();
+    expect(span.end).toHaveBeenCalledTimes(1);
+  });
+
+  it('still marks a later stream failure as an error after a cancel that was rejected', async () => {
+    const span = createSpan();
+    const error = new Error('graph failed');
+    let pulls = 0;
+    const stream = instrumentStreamResult(
+      new ReadableStream<string>({
+        pull(controller) {
+          if (pulls++ === 0) {
+            controller.enqueue('Sunny');
+          } else {
+            controller.error(error);
+          }
+        },
+      }),
+      span as unknown as Span,
+      null,
+      false,
+    );
+    const reader = stream.getReader();
+    expect(await reader.read()).toEqual({ done: false, value: 'Sunny' });
+
+    await expect(stream.cancel()).rejects.toThrow(TypeError);
+    await expect(reader.read()).rejects.toBe(error);
+
+    expect(span.setStatus).toHaveBeenCalledExactlyOnceWith({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
     expect(span.end).toHaveBeenCalledTimes(1);
   });
 });
