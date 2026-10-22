@@ -1,4 +1,7 @@
-import { handleTunnelRequestIfMatched, setManagedTunnelDefaults } from '@sentry/core/server';
+import {
+  handleTunnelRequestIfMatched,
+  _INTERNAL_setManagedTunnelDefaults as setManagedTunnelDefaults,
+} from '@sentry/core/server';
 import { useRuntimeConfig } from 'nitro/runtime-config';
 import type { NitroAppPlugin, NitroApp } from 'nitro/types';
 

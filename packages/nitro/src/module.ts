@@ -1,4 +1,4 @@
-import { setManagedTunnelDefaults } from '@sentry/core/server';
+import { _INTERNAL_setManagedTunnelDefaults as setManagedTunnelDefaults } from '@sentry/core/server';
 import type { NitroModule } from 'nitro/types';
 import type { SentryNitroOptions } from './config';
 import { instrumentServer } from './instruments/instrumentServer';

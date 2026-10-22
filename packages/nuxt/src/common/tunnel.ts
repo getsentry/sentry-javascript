@@ -1,5 +1,5 @@
 import type { Options } from '@sentry/core';
-import { applyTunnelDefaults, GLOBAL_OBJ } from '@sentry/core';
+import { _INTERNAL_applyTunnelDefaults as applyTunnelDefaults, GLOBAL_OBJ } from '@sentry/core';
 
 /** Set by the generated client config plugin to the app's runtime `app.baseURL`. */
 export const NUXT_TUNNEL_BASE_PATH_GLOBAL = '__sentry_nuxt_base_path';
