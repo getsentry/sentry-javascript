@@ -1,7 +1,13 @@
 import type { BrowserOptions } from '@sentry/browser';
 import { init as browserInit } from '@sentry/browser';
 import type { Client } from '@sentry/core';
-import { applySdkMetadata, applyTunnelDefaults, consoleSandbox, GLOBAL_OBJ, setTag } from '@sentry/core';
+import {
+  applySdkMetadata,
+  _INTERNAL_applyTunnelDefaults as applyTunnelDefaults,
+  consoleSandbox,
+  GLOBAL_OBJ,
+  setTag,
+} from '@sentry/core';
 
 const BROWSER_TRACING_INTEGRATION_ID = 'BrowserTracing';
 

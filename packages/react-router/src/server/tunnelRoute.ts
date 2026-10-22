@@ -1,5 +1,9 @@
 import { debug, getClient } from '@sentry/core';
-import { getTunnelPaths, handleTunnelRequestIfMatched, setManagedTunnelDefaults } from '@sentry/core/server';
+import {
+  _INTERNAL_getTunnelPaths as getTunnelPaths,
+  handleTunnelRequestIfMatched,
+  _INTERNAL_setManagedTunnelDefaults as setManagedTunnelDefaults,
+} from '@sentry/core/server';
 import { DEBUG_BUILD } from '../common/debug-build';
 
 // Never matches a request, for when the managed tunnel is off.
