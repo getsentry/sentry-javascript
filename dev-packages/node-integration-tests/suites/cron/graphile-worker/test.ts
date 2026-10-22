@@ -27,6 +27,7 @@ describeWithDockerCompose('graphile-worker crontab monitoring', { workingDirecto
                   monitor_slug: 'hourly-report',
                   status: 'in_progress',
                   release: '1.0',
+                  monitor_config: { schedule: { type: 'crontab', value: '0 * * * *' }, timezone: 'UTC' },
                 },
               })
               .expect({
@@ -44,6 +45,7 @@ describeWithDockerCompose('graphile-worker crontab monitoring', { workingDirecto
                   monitor_slug: 'failing_task',
                   status: 'in_progress',
                   release: '1.0',
+                  monitor_config: { schedule: { type: 'crontab', value: '30 * * * *' }, timezone: 'UTC' },
                 },
               })
               .expect({
