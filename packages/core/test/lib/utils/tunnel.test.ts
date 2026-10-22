@@ -16,7 +16,6 @@ import {
   resolveAllowedDsns,
   resolveServerTunnelOption,
   resolveTunnelPaths,
-  MAX_TUNNEL_BODY_SIZE,
 } from '../../../src/utils/tunnel';
 import {
   _INTERNAL_resetManagedTunnelDefaults,
@@ -61,7 +60,7 @@ function makeEndlessRequest(head: string, onCancel?: () => void): Request {
   return new Request('http://localhost/tunnel', {
     method: 'POST',
     duplex: 'half',
-    headers: { 'content-length': String(MAX_TUNNEL_BODY_SIZE) },
+    headers: { 'content-length': String(1024 * 1024 * 1024) },
     body: new ReadableStream<Uint8Array>({
       pull(controller) {
         controller.enqueue(sentHead ? filler : new TextEncoder().encode(head));
@@ -80,25 +79,16 @@ describe('handleTunnelRequest', () => {
     vi.stubGlobal('fetch', fetchMock);
   });
 
-  it('forwards the envelope when Content-Length equals the limit', async () => {
-    fetchMock.mockResolvedValueOnce(new Response('ok'));
+  it('leaves the size limit to Sentry and passes its 413 back', async () => {
+    fetchMock.mockResolvedValueOnce(new Response('Envelope too large', { status: 413 }));
 
     const result = await handleTunnelRequest({
-      request: makeEnvelopeRequest({ dsn: TEST_DSN }, undefined, MAX_TUNNEL_BODY_SIZE),
+      request: makeEnvelopeRequest({ dsn: TEST_DSN }, undefined, 1024 * 1024 * 1024),
       allowedDsns: [TEST_DSN],
     });
 
-    expect(result.status).toBe(200);
-  });
-
-  it('returns 413 when Content-Length is above the limit, without reading the body', async () => {
-    const request = makeEnvelopeRequest({ dsn: TEST_DSN }, undefined, MAX_TUNNEL_BODY_SIZE + 1);
-
-    const result = await handleTunnelRequest({ request, allowedDsns: [TEST_DSN] });
-
+    expect(fetchMock).toHaveBeenCalledTimes(1);
     expect(result.status).toBe(413);
-    expect(request.bodyUsed).toBe(false);
-    expect(fetchMock).not.toHaveBeenCalled();
   });
 
   it('returns 411 when the request has no Content-Length', async () => {
