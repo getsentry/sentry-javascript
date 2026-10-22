@@ -2,7 +2,7 @@ import { handleRequest } from '../../server/middleware';
 
 // The one `@sentry/astro` entry that resolves to server code on every runtime, so the integration's virtual module
 // imports it from here.
-export { setManagedTunnelDefaults } from '@sentry/core/server';
+export { _INTERNAL_setManagedTunnelDefaults } from '@sentry/core/server';
 
 type MiddlewareNext = () => Promise<Response>;
 type MiddlewareHandler = (ctx: unknown, next: MiddlewareNext) => Promise<Response> | Response | Promise<void> | void;
