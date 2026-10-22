@@ -47,6 +47,7 @@
     "react": "17.x || 18.x || 19.x"
   },
   "devDependencies": {
+    "@sentry-internal/rollup-utils": "11.8.0",
     "@testing-library/react": "^15.0.5",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
@@ -54,13 +55,13 @@
   },
   "scripts": {
     "build": "run-p build:transpile build:types",
-    "build:dev": "yarn build",
+    "build:dev": "pnpm run build",
     "build:plugin": "tsc -p tsconfig.plugin.json",
     "build:transpile": "run-p build:rollup build:plugin",
     "build:rollup": "rollup -c rollup.npm.config.mjs",
     "build:types": "tsc -p tsconfig.types.json",
     "build:watch": "run-p build:transpile:watch",
-    "build:dev:watch": "yarn build:watch",
+    "build:dev:watch": "pnpm run build:watch",
     "build:transpile:watch": "rollup -c rollup.npm.config.mjs --watch",
     "build:tarball": "npm pack",
     "circularDepCheck": "madge --circular src/index.ts",

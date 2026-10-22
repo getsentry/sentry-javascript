@@ -147,6 +147,7 @@ export {
   mongooseIntegration,
   mysqlIntegration,
   mysql2Integration,
+  nitroIntegration,
   redisIntegration,
   tediousIntegration,
   postgresIntegration,

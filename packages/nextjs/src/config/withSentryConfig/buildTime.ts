@@ -3,6 +3,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import type { NextConfigObject, SentryBuildOptions } from '../types';
 import { hasOnlyAppRouterPages } from './pagesRouterDetection';
+import { getTunnelRouteInjectedValues } from './tunnel';
 
 /**
  * Adds Sentry-related build-time variables to `nextConfig.env`.
@@ -23,13 +24,6 @@ export function setUpBuildTimeVariables(
   const assetPrefix = userNextConfig.assetPrefix || userNextConfig.basePath || '';
   const basePath = userNextConfig.basePath ?? '';
 
-  const rewritesTunnelPath =
-    userSentryOptions.tunnelRoute !== undefined &&
-    userNextConfig.output !== 'export' &&
-    typeof userSentryOptions.tunnelRoute === 'string'
-      ? `${basePath}${userSentryOptions.tunnelRoute}`
-      : undefined;
-
   const buildTimeVariables: Record<string, string> = {
     // Make sure that if we have a windows path, the backslashes are interpreted as such (rather than as escape
     // characters)
@@ -39,6 +33,7 @@ export function setUpBuildTimeVariables(
     _sentryRewriteFramesAssetPrefixPath: assetPrefix
       ? new URL(assetPrefix, 'http://dogs.are.great').pathname.replace(/\/$/, '')
       : '',
+    ...getTunnelRouteInjectedValues(userNextConfig, userSentryOptions, projectDir),
   };
 
   if (userNextConfig.assetPrefix) {
@@ -47,10 +42,6 @@ export function setUpBuildTimeVariables(
 
   if (userSentryOptions._experimental?.thirdPartyOriginStackFrames) {
     buildTimeVariables._experimentalThirdPartyOriginStackFrames = 'true';
-  }
-
-  if (rewritesTunnelPath) {
-    buildTimeVariables._sentryRewritesTunnelPath = rewritesTunnelPath;
   }
 
   if (basePath) {
@@ -67,6 +58,11 @@ export function setUpBuildTimeVariables(
 
   if (releaseName) {
     buildTimeVariables._sentryRelease = releaseName;
+  }
+
+  // The client only waits for a late trace meta tag when a document can resume a prerendered shell.
+  if (userNextConfig.cacheComponents) {
+    buildTimeVariables._sentryCacheComponents = 'true';
   }
 
   // See `client/routing/nextRoutingInstrumentation.ts`.

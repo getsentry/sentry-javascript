@@ -35,6 +35,9 @@
     "@sentry/browser": "11.8.0",
     "@sentry/core": "11.8.0"
   },
+  "devDependencies": {
+    "@sentry-internal/rollup-utils": "11.8.0"
+  },
   "scripts": {
     "build": "run-p build:transpile build:bundle build:types",
     "build:bundle": "rollup --config rollup.bundle.config.mjs",

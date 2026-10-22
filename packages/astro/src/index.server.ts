@@ -88,6 +88,7 @@ export {
   mongoIntegration,
   mongooseIntegration,
   mysql2Integration,
+  nitroIntegration,
   mysqlIntegration,
   nativeNodeFetchIntegration,
   NodeClient,
