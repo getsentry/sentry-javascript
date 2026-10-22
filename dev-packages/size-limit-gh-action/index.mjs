@@ -11,6 +11,7 @@ import { getArtifactsForBranchAndWorkflow } from './utils/getArtifactsForBranchA
 import { MAX_INCREASE_BYTES, SizeLimitFormatter } from './utils/SizeLimitFormatter.mjs';
 
 const OVERRIDE_LABEL = 'Accept Bundlesize Increase';
+const RELEASE_BRANCH_PREFIX = 'prepare-release/';
 const SIZE_LIMIT_HEADING = '## size-limit report 📦 ';
 const ARTIFACT_NAME = 'size-limit-action';
 const ACTION_DIRECTORY = path.dirname(fileURLToPath(import.meta.url));
@@ -148,7 +149,10 @@ async function run() {
     }
 
     let failure;
-    if (!base) {
+    if (pr.head.ref.startsWith(RELEASE_BRANCH_PREFIX)) {
+      // Release PRs target master, which has no baseline and would include every change since the last release anyway
+      core.info('Release PR detected. Reporting bundle sizes without enforcing limits.');
+    } else if (!base) {
       failure = 'No baseline size measurements found. Re-run after the base build completes.';
       bodyParts.push(failure);
     } else if (increases.length > 0) {
@@ -186,7 +190,7 @@ async function run() {
         });
       }
 
-      if (increases.length > 0 && !comments.some(comment => comment.body === failure)) {
+      if (failure && increases.length > 0 && !comments.some(comment => comment.body === failure)) {
         await octokit.rest.issues.createComment({
           ...repo,
           issue_number: pr.number,
