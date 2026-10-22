@@ -1,5 +1,5 @@
 import { URL_PATH } from '@sentry/conventions/attributes';
-import type { TunnelOptions } from '@sentry/core';
+import type { ServerTunnelOptions } from '@sentry/core';
 import { dsnToString, escapeStringForRegex, getClient, handleTunnelRequest } from '@sentry/core';
 import {
   handleTunnelRequestIfMatched,
@@ -108,7 +108,7 @@ export function createSentryTunnelRoute(options: CreateSentryTunnelRouteOptions)
  */
 export function wrapServerEntryWithSentryTunnel<T extends ServerEntry>(
   entry: T,
-  tunnelRoute?: TunnelOptions,
+  tunnelRoute?: ServerTunnelOptions,
   basePath?: string,
 ): T {
   // Runs when the server entry loads, before any request. Requests still carry Start's base path here, so the tunnel

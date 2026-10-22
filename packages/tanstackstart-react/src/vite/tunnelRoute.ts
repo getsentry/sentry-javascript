@@ -1,4 +1,4 @@
-import type { TunnelOptions } from '@sentry/core';
+import type { ServerTunnelOptions } from '@sentry/core';
 import { _INTERNAL_normalizeTunnelBasePath as normalizeTunnelBasePath } from '@sentry/core';
 import { _INTERNAL_setManagedTunnelDefaults as setManagedTunnelDefaults } from '@sentry/core/server';
 import type { Plugin } from 'vite';
@@ -33,7 +33,7 @@ function validateStaticPath(path: string): void {
 /**
  * Maps `tunnelRoute` onto the options `Sentry.init({ tunnel })` takes, so both are served the same way.
  */
-export function normalizeTunnelRouteOptions(options: TunnelRouteOptions): TunnelOptions {
+export function normalizeTunnelRouteOptions(options: TunnelRouteOptions): ServerTunnelOptions {
   if (options === true) {
     return {};
   }
