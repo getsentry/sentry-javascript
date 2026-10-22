@@ -118,8 +118,10 @@ export function getTunnelPaths(): string[] {
  * The paths a managed tunnel is served at: the fixed `path`, or else one per allowed DSN.
  */
 export function resolveTunnelPaths(tunnelOptions: ServerTunnelOptions, allowedDsns: Array<string>): string[] {
-  if (tunnelOptions.path) {
-    return [tunnelOptions.path.replace(/\/$/, '')];
+  // A root path would take over every POST to the app's root, so it falls back to the DSN-derived ones.
+  const fixedPath = tunnelOptions.path?.replace(/\/$/, '');
+  if (fixedPath) {
+    return [fixedPath];
   }
 
   // Differently written DSNs can hash to the same path.

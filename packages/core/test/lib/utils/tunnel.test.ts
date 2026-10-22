@@ -520,6 +520,11 @@ describe('getTunnelPaths', () => {
     );
   });
 
+  it('ignores a root fixed path, so the tunnel does not take over POSTs to the root', () => {
+    expect(resolveTunnelPaths({ path: '/' }, [TEST_DSN])).toEqual([getTunnelPath(TEST_DSN)]);
+    expect(isTunnelRequestFor({ method: 'POST', url: '/' }, { path: '/', allowedDsns: [TEST_DSN] })).toBe(false);
+  });
+
   it('matches a fixed path that ends with a slash', () => {
     expect(isTunnelRequestFor({ method: 'POST', url: '/monitor' }, { path: '/monitor/' })).toBe(true);
     expect(isTunnelRequestFor({ method: 'POST', url: '/monitor/' }, { path: '/monitor/' })).toBe(true);
