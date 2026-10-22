@@ -19,6 +19,7 @@ import {
 } from '@sentry/core';
 import type { Span, SpanAttributes } from '@sentry/core';
 import { SENTRY_FORK_SET_ISOLATION_SCOPE_CONTEXT_KEY } from './constants';
+import { convertSpanLinkType } from './utils/convertSpanLinkType';
 import { SENTRY_KIND } from '@sentry/conventions/attributes';
 
 export class SentryTracer implements Tracer {
@@ -134,7 +135,7 @@ export class SentryTracer implements Tracer {
     const sentryOptions = {
       name,
       attributes: (options.attributes as SpanAttributes) || {},
-      links: options.links,
+      links: convertSpanLinkType(options.links),
       startTime: options.startTime,
     };
 
