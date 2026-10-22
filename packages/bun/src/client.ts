@@ -1,5 +1,8 @@
 import type { ServerRuntimeClientOptions } from '@sentry/core/server';
-import { resolveServerTunnelOption, ServerRuntimeClient } from '@sentry/core/server';
+import {
+  _INTERNAL_resolveServerTunnelOption as resolveServerTunnelOption,
+  ServerRuntimeClient,
+} from '@sentry/core/server';
 import { applySdkMetadata } from '@sentry/core';
 import * as os from 'os';
 import type { BunClientOptions } from './types';

@@ -14,7 +14,10 @@ import {
   requestDataIntegration,
   stackParserFromStackParserOptions,
 } from '@sentry/core';
-import { nodeStackLineParser, resolveServerTunnelOption } from '@sentry/core/server';
+import {
+  nodeStackLineParser,
+  _INTERNAL_resolveServerTunnelOption as resolveServerTunnelOption,
+} from '@sentry/core/server';
 import { detectOrchestrionSetup, getTracingIntegrations, getErrorIntegrations } from '@sentry/server-utils';
 import { DenoClient } from './client';
 import { breadcrumbsIntegration } from './integrations/breadcrumbs';

@@ -20,7 +20,7 @@ import {
 import {
   _INTERNAL_getReleaseFromCommitEnv as getReleaseFromCommitEnv,
   nodeStackLineParser,
-  resolveServerTunnelOption,
+  _INTERNAL_resolveServerTunnelOption as resolveServerTunnelOption,
 } from '@sentry/core/server';
 import {
   SentryPropagator,

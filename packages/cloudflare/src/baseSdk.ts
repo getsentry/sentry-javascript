@@ -1,6 +1,6 @@
 import type { Integration } from '@sentry/core';
 import { _INTERNAL_isClientClosed, debug, getCurrentScope, setCurrentClient } from '@sentry/core';
-import { resolveServerTunnelOption } from '@sentry/core/server';
+import { _INTERNAL_resolveServerTunnelOption as resolveServerTunnelOption } from '@sentry/core/server';
 import {
   consoleIntegration,
   conversationIdIntegration,

@@ -4,7 +4,7 @@ import {
   getEnvelopeEndpointWithUrlEncodedAuth,
   getTunnelPath,
   makeDsn,
-  normalizeTunnelBasePath,
+  _INTERNAL_normalizeTunnelBasePath as normalizeTunnelBasePath,
 } from '@sentry/core';
 import { DEBUG_BUILD } from '../debug-build';
 import type { BrowserOptions } from '../client';

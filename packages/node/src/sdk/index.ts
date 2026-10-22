@@ -17,7 +17,7 @@ import {
   requestDataIntegration,
   stackParserFromStackParserOptions,
 } from '@sentry/core';
-import { resolveServerTunnelOption } from '@sentry/core/server';
+import { _INTERNAL_resolveServerTunnelOption as resolveServerTunnelOption } from '@sentry/core/server';
 import { isMainThread, parentPort } from 'node:worker_threads';
 import { detectOrchestrionSetup, getErrorIntegrations, getTracingIntegrations } from '@sentry/server-utils';
 import { DEBUG_BUILD } from '../debug-build';
