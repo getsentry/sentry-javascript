@@ -251,6 +251,15 @@ interface SourceMapsOptions {
   filesToDeleteAfterUpload?: string | Array<string>;
 
   /**
+   * Whether source maps are removed from the build output after they are uploaded to Sentry.
+   *
+   * When unset, the plugin removes only the source maps it turned on itself, that is, when the bundler's source map
+   * setting was not set. `true` also removes source maps you enabled yourself. `false` never removes them; the plugin
+   * still turns on hidden source maps when the setting is not set, so they can be uploaded.
+   */
+  deleteSourcemapsAfterUpload?: boolean;
+
+  /**
    * Hook to rewrite the `sources` field inside the source map before being uploaded to Sentry. Does not modify the actual source map.
    *
    * The hook receives the following arguments:
