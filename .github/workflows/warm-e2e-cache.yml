@@ -3,8 +3,10 @@ name: 'CI: Warm E2E caches'
 # The E2E jobs share one cache volume per tag, and the last job to finish overwrites what the others saved, so the pnpm
 # store on it never holds the packages of every app. Downloads that the store misses are what crawls in the E2E builds.
 # This job installs every test application into the store once, and later jobs fork the volume it commits.
-# It also removes the packages no app uses anymore, so the volume stays under its size limit: Namespace does not clone
-# a cache that outgrew it.
+# The volume has to stay under its size limit, because Namespace does not clone a cache that outgrew it. `pnpm store
+# prune` cannot do that here: it keeps only packages that are hard-linked into a project, and the apps are installed
+# outside the cache volume, so their files are copies and prune would empty the store. Instead, the job starts from an
+# empty store when the volume is mostly full.
 
 on:
   workflow_dispatch:
@@ -63,6 +65,9 @@ jobs:
     # The profile and tags of the E2E jobs in build.yml and optional-e2e.yml
     runs-on: namespace-profile-sentry-javascript;overrides.cache-tag=${{ matrix.cache-tag }}
     timeout-minutes: 90
+    env:
+      # Without the root node_modules, `pnpm run` would first install the whole workspace, like in the E2E jobs.
+      pnpm_config_verify_deps_before_run: 'false'
     strategy:
       fail-fast: false
       matrix:
@@ -86,14 +91,36 @@ jobs:
           browsers: chromium
           cwd: dev-packages/test-utils
 
+      - name: Empty the pnpm store if the cache volume is mostly full
+        run: |
+          df -h "$PNPM_CONFIG_STORE_DIR"
+          echo "pnpm store: $(du -sh "$PNPM_CONFIG_STORE_DIR" | cut -f1)"
+          used=$(df --output=pcent "$PNPM_CONFIG_STORE_DIR" | tail -1 | tr -dc '0-9')
+          if [ "$used" -ge "$MAX_USED_PERCENT" ]; then
+            echo "::notice::The cache volume is $used% full, so the pnpm store starts empty."
+            find "$PNPM_CONFIG_STORE_DIR" -mindepth 1 -maxdepth 1 -exec rm -rf {} +
+          fi
+        env:
+          MAX_USED_PERCENT: 70
+
       - name: Install every test application
         working-directory: dev-packages/e2e-tests
-        run: node lib/warmCache.mjs "$RUNNER_TEMP/warm" 4
+        run: node lib/warmCache.mjs install "$RUNNER_TEMP/warm" 4
 
-      - name: Remove packages that no test application uses
-        working-directory: ${{ runner.temp }}
+      # Proves that the store alone holds what the apps need, which is what later E2E jobs rely on.
+      - name: Reinstall every test application from the store alone
+        working-directory: dev-packages/e2e-tests
+        run: node lib/warmCache.mjs verify "$RUNNER_TEMP/warm" 4
+
+      - name: Report the size of the pnpm store
+        if: ${{ !cancelled() }}
         run: |
-          echo "pnpm store before: $(du -sh "$PNPM_CONFIG_STORE_DIR" | cut -f1)"
-          pnpm store prune --yes
-          echo "pnpm store after: $(du -sh "$PNPM_CONFIG_STORE_DIR" | cut -f1)"
-          df -h /cache || true
+          df -h "$PNPM_CONFIG_STORE_DIR"
+          echo "pnpm store: $(du -sh "$PNPM_CONFIG_STORE_DIR" | cut -f1)"
+
+      - name: Check that the workspace was not installed
+        run: |
+          if [ -e node_modules ]; then
+            echo "::error::The workspace root has a node_modules folder, so the job installed the whole workspace."
+            exit 1
+          fi

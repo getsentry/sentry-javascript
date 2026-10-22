@@ -105,6 +105,8 @@ function batchIncludes(includes, batchSize) {
     }
   }
 
+  assertSameApps(includes, jobs, batchSize);
+
   return jobs.map(job => {
     const testApplications = job.apps.map(app => app['test-application']);
     return {
@@ -115,6 +117,33 @@ function batchIncludes(includes, batchSize) {
       'aws-serverless-build': testApplications.includes('aws-serverless'),
     };
   });
+}
+
+/**
+ * Batching must not drop, duplicate or change a matrix entry, so the jobs run exactly the apps and variants of the
+ * unbatched matrix. Fails the matrix step instead of silently running fewer tests.
+ */
+function assertSameApps(includes, jobs, batchSize) {
+  const withoutBatchFields = ({ label: _label, dir: _dir, ...app }) => app;
+  const key = include => {
+    const { runner: _runner, ...app } = include;
+    return JSON.stringify(withoutBatchFields(app), Object.keys(withoutBatchFields(app)).sort());
+  };
+  const expected = includes.map(key).sort();
+  const actual = jobs.flatMap(job => job.apps.map(key)).sort();
+  if (JSON.stringify(expected) !== JSON.stringify(actual)) {
+    throw new Error(`Batching changed the E2E matrix: ${expected.length} entries before, ${actual.length} after`);
+  }
+  const labels = includes.map(include => include.label || include['test-application']);
+  const batchedLabels = jobs.flatMap(job => job.apps.map(app => app.label));
+  if (JSON.stringify([...labels].sort()) !== JSON.stringify([...batchedLabels].sort())) {
+    throw new Error('Batching changed the labels of the E2E matrix');
+  }
+  for (const job of jobs) {
+    if (job.apps.length > (job.runner ? 1 : batchSize)) {
+      throw new Error(`The E2E job ${job.label} has ${job.apps.length} apps`);
+    }
+  }
 }
 
 function getPlaywrightVersion(appName) {

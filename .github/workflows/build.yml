@@ -700,9 +700,10 @@ jobs:
         if: ${{ !cancelled() && steps.flaky.outputs.flaky == 'true' }}
         run: echo "::warning::Some tests only passed on retry, see the job summary."
 
+      # Also for tests that passed on retry: the trace of their failed attempt is what explains the flake.
       - name: Upload Playwright Traces
         uses: actions/upload-artifact@v7
-        if: failure()
+        if: failure() || steps.flaky.outputs.flaky == 'true'
         with:
           name:
             playwright-traces-job_browser_playwright_tests-${{ matrix.bundle}}-${{matrix.project}}-${{matrix.shard ||
@@ -767,7 +768,7 @@ jobs:
 
       - name: Upload Playwright Traces
         uses: actions/upload-artifact@v7
-        if: failure()
+        if: failure() || steps.flaky.outputs.flaky == 'true'
         with:
           name: playwright-traces-job_browser_loader_tests-${{ matrix.bundle}}
           path: dev-packages/browser-integration-tests/test-results
@@ -1116,7 +1117,7 @@ jobs:
         uses: ./.github/actions/build-e2e-app
         with:
           app: ${{ toJSON(matrix.apps[1]) }}
-          clean-up: true
+          previous-app: ${{ toJSON(matrix.apps[0]) }}
 
       - name: Test ${{ matrix.apps[1].label }}
         id: test-1
@@ -1135,7 +1136,7 @@ jobs:
         uses: ./.github/actions/build-e2e-app
         with:
           app: ${{ toJSON(matrix.apps[2]) }}
-          clean-up: true
+          previous-app: ${{ toJSON(matrix.apps[1]) }}
 
       - name: Test ${{ matrix.apps[2].label }}
         id: test-2
@@ -1154,7 +1155,7 @@ jobs:
         uses: ./.github/actions/build-e2e-app
         with:
           app: ${{ toJSON(matrix.apps[3]) }}
-          clean-up: true
+          previous-app: ${{ toJSON(matrix.apps[2]) }}
 
       - name: Test ${{ matrix.apps[3].label }}
         id: test-3

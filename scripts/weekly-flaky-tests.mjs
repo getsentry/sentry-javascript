@@ -1,14 +1,17 @@
+import { FLAKY_ANNOTATION_PREFIX } from './ci-report-flaky-tests.mjs';
+
 const LOOKBACK_DAYS = 7;
 const CONCURRENT_RUNS = 4;
-// CI retries failed Playwright tests once. A job whose tests only passed on retry runs this step, see
-// `scripts/ci-report-flaky-tests.mjs`.
+// CI retries failed Playwright tests once. A job with a test that passed on retry runs this step, whether the job
+// passed or failed, and `scripts/ci-report-flaky-tests.mjs` adds a warning annotation per such test.
 export const FLAKY_STEP_NAME = 'Flaky tests passed on retry';
 
-function passedOnRetry(job) {
-  return (
-    job.conclusion === 'success' &&
-    (job.steps ?? []).some(step => step.name === FLAKY_STEP_NAME && step.conclusion === 'success')
-  );
+function hasTestsThatPassedOnRetry(job) {
+  return (job.steps ?? []).some(step => step.name === FLAKY_STEP_NAME && step.conclusion === 'success');
+}
+
+function isFlakyAnnotation(annotation) {
+  return annotation.annotation_level === 'warning' && annotation.title?.startsWith(FLAKY_ANNOTATION_PREFIX);
 }
 
 export function normalizeJobName(name) {
@@ -83,15 +86,15 @@ export async function collectReport({ github, context, core, now = new Date() })
         per_page: 100,
       });
       const jobsToInspect = jobs.filter(
-        job => (job.conclusion === 'failure' || passedOnRetry(job)) && !job.name.includes('(optional)'),
+        job => (job.conclusion === 'failure' || hasTestsThatPassedOnRetry(job)) && !job.name.includes('(optional)'),
       );
       core.info(`Run ${run.id}: ${jobs.length} job attempts, ${jobsToInspect.length} to inspect.`);
       for (const job of jobsToInspect) {
-        const retried = passedOnRetry(job);
-        if (retried) {
-          retriedJobs++;
-        } else {
+        if (job.conclusion === 'failure') {
           failedJobs++;
+        }
+        if (hasTestsThatPassedOnRetry(job)) {
+          retriedJobs++;
         }
 
         let annotations;
@@ -115,13 +118,19 @@ export async function collectReport({ github, context, core, now = new Date() })
             annotation.title &&
             /(?:^|\/)(?:tests?|__tests__|suites)\/|(?:^|[/.])(?:test|spec)\.[cm]?[jt]sx?$/i.test(annotation.path),
         );
-        if (failures.length === 0 && !retried) {
+        if (failures.length === 0 && job.conclusion === 'failure') {
           failedJobsWithoutTests++;
         }
 
-        for (const annotation of failures) {
-          const family = normalizeJobName(job.name);
-          const name = normalizeTestName(annotation.title);
+        // A test that passed on retry also has a failure annotation for its failed attempt. The rest of the failure
+        // annotations of the job are tests that failed every attempt.
+        const passedOnRetry = new Map(
+          annotations
+            .filter(isFlakyAnnotation)
+            .map(annotation => [normalizeTestName(annotation.title.slice(FLAKY_ANNOTATION_PREFIX.length)), annotation]),
+        );
+        const family = normalizeJobName(job.name);
+        const record = (annotation, name, retried) => {
           const key = JSON.stringify([family, annotation.path, name]);
           let test = tests.get(key);
           if (!test) {
@@ -133,6 +142,19 @@ export async function collectReport({ github, context, core, now = new Date() })
           }
           if (retried) {
             test.retriedRuns.add(run.id);
+          }
+        };
+
+        const recorded = new Set();
+        for (const annotation of failures) {
+          const name = normalizeTestName(annotation.title);
+          record(annotation, name, passedOnRetry.has(name));
+          recorded.add(name);
+        }
+        // GitHub keeps at most 10 failure annotations per step, so a flaky test can lack one.
+        for (const [name, annotation] of passedOnRetry) {
+          if (!recorded.has(name)) {
+            record(annotation, name, true);
           }
         }
       }
@@ -199,7 +221,7 @@ export function renderReport(report, context) {
 
   lines.push(
     '',
-    `${report.failedJobs} failed job attempts; ${report.failedJobsWithoutTests} without test annotations. ${report.retriedJobs} passing jobs had tests that passed on retry. Optional jobs excluded.`,
+    `${report.failedJobs} failed job attempts; ${report.failedJobsWithoutTests} without test annotations. ${report.retriedJobs} jobs had tests that passed on retry. Optional jobs excluded.`,
     '',
     ...report.warnings.map(warning => `- ${markdownCell(warning)}`),
   );

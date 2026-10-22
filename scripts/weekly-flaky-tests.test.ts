@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
+import { FLAKY_ANNOTATION_PREFIX } from './ci-report-flaky-tests.mjs';
 import { collectReport, FLAKY_STEP_NAME, normalizeJobName, renderReport } from './weekly-flaky-tests.mjs';
 
 const context = { repo: { owner: 'getsentry', repo: 'sentry-javascript' }, serverUrl: 'https://github.com', runId: 1 };
@@ -17,6 +18,10 @@ function job(id: number, name: string, conclusion: string, stepNames: string[] =
 
 function annotation(path: string, title: string) {
   return { annotation_level: 'failure', path, title };
+}
+
+function flakyAnnotation(path: string, title: string) {
+  return { annotation_level: 'warning', path, title: `${FLAKY_ANNOTATION_PREFIX}${title}` };
 }
 
 function createGithub(
@@ -75,9 +80,15 @@ describe('collectReport', () => {
         ],
       },
       {
-        100: [annotation(flakyPath, '[chromium] › flaky.test.ts:3:5 › works')],
+        100: [
+          annotation(flakyPath, '[chromium] › flaky.test.ts:3:5 › works'),
+          flakyAnnotation(flakyPath, '[chromium] › flaky.test.ts:3:5 › works'),
+        ],
         101: [annotation('../../_temp/e2e/astro-4/tests/a.test.ts', '[chromium] › a.test.ts:1:1 › unused')],
-        110: [annotation(flakyPath, '[chromium] › flaky.test.ts:3:5 › works')],
+        110: [
+          annotation(flakyPath, '[chromium] › flaky.test.ts:3:5 › works'),
+          flakyAnnotation(flakyPath, '[chromium] › flaky.test.ts:3:5 › works'),
+        ],
         111: [annotation(failingPath, '[chromium] › a/test.ts:1:1 › fails')],
       },
     );
@@ -102,6 +113,47 @@ describe('collectReport', () => {
 
     const markdown = renderReport(report, context);
     expect(markdown).toContain('| Test | Job | Affected runs | Passed on retry | Links to runs | Issue |');
-    expect(markdown).toContain('2 passing jobs had tests that passed on retry.');
+    expect(markdown).toContain('2 jobs had tests that passed on retry.');
+  });
+
+  it('tells the tests that passed on retry from the tests that failed in the same job', async () => {
+    const github = createGithub(
+      [{ id: 20, event: 'push', conclusion: 'failure', run_attempt: 1 }],
+      {
+        20: [job(200, 'E2E nextjs-16, nuxt-4 Test', 'failure', ['Run E2E test', FLAKY_STEP_NAME])],
+      },
+      {
+        200: [
+          annotation(flakyPath, '[chromium] › flaky.test.ts:3:5 › works'),
+          annotation(flakyPath, '[chromium] › flaky.test.ts:9:5 › breaks'),
+          annotation(flakyPath, '[chromium] › flaky.test.ts:9:5 › breaks'),
+          flakyAnnotation(flakyPath, '[chromium] › flaky.test.ts:3:5 › works'),
+          // Its failure annotation fell over GitHub's limit of failure annotations per step
+          flakyAnnotation(flakyPath, '[chromium] › flaky.test.ts:12:5 › also works'),
+        ],
+      },
+    );
+
+    const report = await collectReport({ github, context, core, now: new Date('2026-10-22T00:00:00Z') });
+
+    expect(report).toMatchObject({ runs: 1, failedJobs: 1, retriedJobs: 1, failedJobsWithoutTests: 0 });
+    expect(report.tests.map(test => [test.name, test.runs.size, test.retriedRuns.size])).toEqual([
+      ['flaky.test.ts › also works', 1, 1],
+      ['flaky.test.ts › breaks', 1, 0],
+      ['flaky.test.ts › works', 1, 1],
+    ]);
+  });
+
+  it('does not inspect a passing job without tests that passed on retry', async () => {
+    const github = createGithub(
+      [{ id: 30, event: 'push', conclusion: 'success', run_attempt: 1 }],
+      { 30: [job(300, 'E2E astro-4 Test', 'success', ['Run E2E test'])] },
+      {},
+    );
+
+    const report = await collectReport({ github, context, core, now: new Date('2026-10-22T00:00:00Z') });
+
+    expect(github.paginate).not.toHaveBeenCalledWith(github.rest.checks.listAnnotations, expect.anything());
+    expect(report).toMatchObject({ failedJobs: 0, retriedJobs: 0, tests: [] });
   });
 });

@@ -1,7 +1,7 @@
 name: 'Run E2E test application'
 description:
-  'Runs the tests of one application that `build-e2e-app` built, and uploads its Playwright traces if they fail. Takes
-  an entry of the `apps` list that `ci:build-matrix --batch-size` generates.'
+  'Runs the tests of one application that `build-e2e-app` built, and uploads its Playwright traces if a test failed,
+  even if it passed on retry. Takes an entry of the `apps` list that `ci:build-matrix --batch-size` generates.'
 inputs:
   app:
     description: 'The app as JSON: `dir` and the optional `runtime` and `assert-command`.'
@@ -18,13 +18,20 @@ runs:
         status=0
         timeout 600 bash -c "$ASSERT_COMMAND" || status=$?
         echo "status=$status" >> "$GITHUB_OUTPUT"
+        # The apps keep traces only of failed attempts (`retain-on-failure`) or of retries (`on-first-retry`), so traces
+        # after a passing run belong to a test that passed on retry.
+        if [ -n "$(find test-results -name 'trace.zip' -print -quit 2>/dev/null)" ]; then
+          echo "traces=true" >> "$GITHUB_OUTPUT"
+        fi
       env:
         ASSERT_COMMAND: ${{ fromJSON(inputs.app)['assert-command'] || 'pnpm test:assert' }}
         SENTRY_E2E_WORKSPACE_ROOT: ${{ github.workspace }}
+        # See build-e2e-app
+        SENTRY_E2E_APP: ${{ fromJSON(inputs.app).dir }}
         RUNTIME: ${{ fromJSON(inputs.app).runtime }}
 
     - name: Upload Playwright Traces
-      if: steps.test.outputs.status != '0'
+      if: steps.test.outputs.status != '0' || steps.test.outputs.traces == 'true'
       uses: actions/upload-artifact@v7
       with:
         name: playwright-traces-job_e2e_playwright_tests-${{ fromJSON(inputs.app).dir }}
