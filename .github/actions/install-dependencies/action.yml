@@ -58,7 +58,14 @@ runs:
       shell: bash
 
     # The cache volume can hold node_modules of another commit or branch. This is a no-op when they match
-    # pnpm-lock.yaml.
+    # pnpm-lock.yaml. On an empty cache volume, single downloads from the npm registry can crawl at kB/s for longer
+    # than the job's timeout, and pnpm does not give up on them. Another attempt reuses what is already in the store
+    # and opens new connections.
     - name: Install dependencies
-      run: pnpm install --frozen-lockfile
+      run: |
+        for attempt in 1 2; do
+          timeout 300 pnpm install --frozen-lockfile && exit 0
+          echo "::warning::pnpm install attempt $attempt failed or did not finish in 300 s, retrying"
+        done
+        timeout 600 pnpm install --frozen-lockfile
       shell: bash

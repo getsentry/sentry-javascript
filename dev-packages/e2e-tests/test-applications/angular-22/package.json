@@ -53,7 +53,7 @@
     "optionalVariants": [
       {
         "build-command": "pnpm test:build-canary",
-        "label": "angular (canary)"
+        "label": "angular-22 (canary)"
       }
     ]
   }

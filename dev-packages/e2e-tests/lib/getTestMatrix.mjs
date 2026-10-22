@@ -58,6 +58,7 @@ function run() {
   includedTestApplications.forEach(testApp => {
     addIncludesForTestApp(testApp, includes, { optionalMode });
   });
+  assertUniqueLabels(includes);
 
   // We print this to the output, so the GHA can use it for the matrix
   // eslint-disable-next-line no-console
@@ -117,6 +118,26 @@ function batchIncludes(includes, batchSize) {
       'aws-serverless-build': testApplications.includes('aws-serverless'),
     };
   });
+}
+
+/**
+ * The label names the job's check and the app's steps, so two entries with one label could not be told apart.
+ */
+function assertUniqueLabels(includes) {
+  const seen = new Set();
+  const duplicates = new Set();
+  for (const include of includes) {
+    const label = include.label || include['test-application'];
+    if (seen.has(label)) {
+      duplicates.add(label);
+    }
+    seen.add(label);
+  }
+  if (duplicates.size > 0) {
+    throw new Error(
+      `E2E matrix labels must be unique, but these are used more than once: ${[...duplicates].join(', ')}`,
+    );
+  }
 }
 
 /**

@@ -823,9 +823,44 @@ jobs:
       - name: Restore caches
         uses: ./.github/actions/restore-cache
 
+      # Suites `npm install` their `additionalDependencies` in their setup hook, and slow npm downloads were the most
+      # common reason for these jobs to fail. The Actions cache keeps those packages when the Namespace cache volume
+      # comes up empty. The key only changes weekly, so a push that edits a suite doesn't save another copy, and npm
+      # versions the suites no longer use don't pile up.
+      - name: Get npm cache key of the suites
+        id: npm-cache
+        run: |
+          echo "dir=$HOME/.cache/node-integration-npm" >> "$GITHUB_OUTPUT"
+          echo "key=node-integration-npm-shard${{ matrix.shard }}-$(date -u +%G-W%V)" >> "$GITHUB_OUTPUT"
+      - name: Restore npm cache of the suites
+        id: npm-cache-restore
+        uses: actions/cache/restore@v6.1.0
+        with:
+          path: ${{ steps.npm-cache.outputs.dir }}
+          key: ${{ steps.npm-cache.outputs.key }}
+      # Only the base branch saves, so PR caches don't evict it. The Node versions install the same packages, so one
+      # of them is enough. Without a restored cache, the other jobs keep the npm cache on the Namespace cache volume.
+      - name: Use the npm cache of the suites
+        id: npm-cache-use
+        if:
+          steps.npm-cache-restore.outputs.cache-hit == 'true' || (needs.job_get_metadata.outputs.is_base_branch ==
+          'true' && matrix.node == 24)
+        run: echo "npm_config_cache=$NPM_CACHE_DIR" >> "$GITHUB_ENV"
+        env:
+          NPM_CACHE_DIR: ${{ steps.npm-cache.outputs.dir }}
+
       - name: Run integration tests
         working-directory: dev-packages/node-integration-tests
         run: pnpm run test --shard=${{ matrix.shard }}/3
+
+      - name: Save npm cache of the suites
+        if:
+          ${{ !cancelled() && steps.npm-cache-use.outcome == 'success' && steps.npm-cache-restore.outputs.cache-hit !=
+          'true' && needs.job_get_metadata.outputs.is_base_branch == 'true' && matrix.node == 24 }}
+        uses: actions/cache/save@v6.1.0
+        with:
+          path: ${{ steps.npm-cache.outputs.dir }}
+          key: ${{ steps.npm-cache.outputs.key }}
 
   # Runs on the wrangler pinned in the package, so the required run stays on a fixed, older runtime.
   job_cloudflare_integration_tests:
