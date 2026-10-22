@@ -33,7 +33,7 @@ export const isStatusErrorMessageValid = (message: string): boolean => {
  * Get a Sentry span status from an otel span.
  */
 export function mapStatus(span: AbstractSpan): SpanStatus {
-  const attributes = spanHasAttributes(span) ? span.attributes : {};
+  const attributes = (spanHasAttributes(span) ? span.attributes : {}) as SpanAttributes;
   const status = spanHasStatus(span) ? span.status : undefined;
 
   if (status) {

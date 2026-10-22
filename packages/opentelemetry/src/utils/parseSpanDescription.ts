@@ -123,7 +123,7 @@ export function parseSpanDescription(span: AbstractSpan): SpanDescription {
   }
 
   const kind = getSpanKind(span);
-  return inferSpanData(name, attributes, kind);
+  return inferSpanData(name, attributes as SpanAttributes, kind);
 }
 
 function descriptionForDbSystem({ attributes, name }: { attributes: Attributes; name: string }): SpanDescription {
@@ -154,6 +154,8 @@ function descriptionForDbSystem({ attributes, name }: { attributes: Attributes; 
 /** Only exported for tests. */
 export function descriptionForHttpMethod(
   { name, kind, attributes }: { name: string; attributes: Attributes; kind: SpanKind },
+  // `AnyValue` replaces it in `@opentelemetry/api` 1.10, but does not exist in 1.9
+  // eslint-disable-next-line typescript/no-deprecated
   httpMethod: AttributeValue,
 ): SpanDescription {
   const opParts = ['http'];
@@ -238,6 +240,8 @@ export function descriptionForHttpMethod(
   };
 }
 
+// `AnyValue` replaces it in `@opentelemetry/api` 1.10, but does not exist in 1.9
+// eslint-disable-next-line typescript/no-deprecated
 function getGraphqlOperationNamesFromAttribute(attr: AttributeValue): string {
   if (Array.isArray(attr)) {
     // oxlint-disable-next-line typescript/require-array-sort-compare

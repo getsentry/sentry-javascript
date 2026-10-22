@@ -1,16 +1,15 @@
-import type { Tracer, TracerOptions, TracerProvider } from '@opentelemetry/api';
-import type { SpanAttributes } from '@sentry/core';
+import type { Attributes, Tracer, TracerOptions, TracerProvider } from '@opentelemetry/api';
 import { SentryTracer } from './tracer';
 
 /**
  * A minimal OpenTelemetry TracerProvider which creates native Sentry spans.
  */
 export class SentryTracerProvider implements TracerProvider {
-  public readonly resource?: { attributes: SpanAttributes };
+  public readonly resource?: { attributes: Attributes };
 
   private readonly _tracers = new Map<string, SentryTracer>();
 
-  public constructor(options: { resource?: { attributes: SpanAttributes } } = {}) {
+  public constructor(options: { resource?: { attributes: Attributes } } = {}) {
     this.resource = options.resource;
   }
 

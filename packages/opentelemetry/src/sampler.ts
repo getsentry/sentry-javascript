@@ -1,5 +1,5 @@
 /* eslint-disable complexity */
-import type { Context, Span, TraceState as TraceStateInterface } from '@opentelemetry/api';
+import type { Attributes, Context, Span, TraceState as TraceStateInterface } from '@opentelemetry/api';
 import { isSpanContextValid, SpanKind, trace } from '@opentelemetry/api';
 import { TraceState } from './utils/TraceState';
 import type { Sampler, SamplingResult } from '@opentelemetry/sdk-trace-base';
@@ -277,7 +277,9 @@ export function wrapSamplingDecision({
 }: {
   decision: SamplingDecision | undefined;
   context: Context;
-  spanAttributes: SpanAttributes;
+  // Typed as OTel `Attributes` so custom samplers can pass their `shouldSample` attributes through,
+  // whichever `@opentelemetry/api` version they use (1.10 widened attribute values to `AnyValue`).
+  spanAttributes: Attributes;
   sampleRand?: number;
   downstreamTraceSampleRate?: number;
   // flags for ignored streamed spans (only set for span streaming)
@@ -319,7 +321,7 @@ export function wrapSamplingDecision({
   return { decision, traceState };
 }
 
-function getBaseTraceState(context: Context, spanAttributes: SpanAttributes): TraceStateInterface {
+function getBaseTraceState(context: Context, spanAttributes: Attributes): TraceStateInterface {
   const parentSpan = trace.getSpan(context);
   const parentContext = parentSpan?.spanContext();
 

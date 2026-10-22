@@ -13,6 +13,8 @@ const ATTR_TELEMETRY_SDK_NAME = 'telemetry.sdk.name';
 const ATTR_TELEMETRY_SDK_VERSION = 'telemetry.sdk.version';
 const SEMRESATTRS_SERVICE_NAMESPACE = 'service.namespace';
 
+// `AnyValue` replaces it in `@opentelemetry/api` 1.10, but does not exist in 1.9
+// eslint-disable-next-line typescript/no-deprecated
 type RawResourceAttribute = [string, AttributeValue | undefined];
 
 /**
