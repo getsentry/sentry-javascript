@@ -71,7 +71,7 @@ describe('sentrySvelteKit()', () => {
     // + 1 auto instrument plugin
     // + 1 orchestrion plugin + 1 build flag plugin + 1 global values injection plugin + 1 modified main plugin
     // + 3 custom plugins
-    expect(plugins).toHaveLength(11);
+    expect(plugins).toHaveLength(12);
   });
 
   it('returns the custom sentry source maps upload plugin, unmodified sourcemaps plugins and the auto-instrument plugin by default', async () => {
@@ -94,6 +94,7 @@ describe('sentrySvelteKit()', () => {
       'sentry-sveltekit-global-values-injection-plugin',
       // modified main plugin (writeBundle deferred to closeBundle):
       'sentry-vite-plugin',
+      'sentry-vite-debug-id-sourcemaps',
       'sentry-sveltekit-update-source-map-setting-plugin',
       'sentry-sveltekit-files-to-delete-after-upload-setting-plugin',
       // custom source maps plugin (sorcery flattening + deferred upload):
@@ -122,7 +123,7 @@ describe('sentrySvelteKit()', () => {
   it("doesn't return the auto instrument plugin if autoInstrument is `false`", async () => {
     const plugins = await getSentrySvelteKitPlugins({ autoInstrument: false });
     const pluginNames = plugins.map(plugin => plugin.name);
-    expect(plugins).toHaveLength(10); // kit config resolver + browser-tracing variant resolver + OpenTelemetry API resolver + orchestrion + build flag + global values injection + 1 modified main plugin + 3 custom plugins
+    expect(plugins).toHaveLength(11); // kit config resolver + browser-tracing variant resolver + OpenTelemetry API resolver + orchestrion + build flag + global values injection + 1 modified main plugin + 1 debug ID plugin + 3 custom plugins
     expect(pluginNames).not.toContain('sentry-auto-instrumentation');
   });
 

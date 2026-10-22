@@ -28,6 +28,7 @@ describe('sentrySolidStartVite()', () => {
     expect(names).toEqual([
       'sentry-solidstart-build-instrumentation-file',
       'sentry-vite-plugin',
+      'sentry-vite-debug-id-sourcemaps',
       'sentry-solidstart-update-source-map-setting',
     ]);
   });

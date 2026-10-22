@@ -118,6 +118,7 @@ describe('withSentry()', () => {
     expect(names).toEqual([
       'sentry-solidstart-build-instrumentation-file',
       'sentry-vite-plugin',
+      'sentry-vite-debug-id-sourcemaps',
       'sentry-solidstart-update-source-map-setting',
     ]);
   });
@@ -141,6 +142,7 @@ describe('withSentry()', () => {
     expect(names).toEqual([
       'sentry-solidstart-build-instrumentation-file',
       'sentry-vite-plugin',
+      'sentry-vite-debug-id-sourcemaps',
       'sentry-solidstart-update-source-map-setting',
       'my-test-plugin',
     ]);
@@ -168,6 +170,7 @@ describe('withSentry()', () => {
     expect(names).toEqual([
       'sentry-solidstart-build-instrumentation-file',
       'sentry-vite-plugin',
+      'sentry-vite-debug-id-sourcemaps',
       'sentry-solidstart-update-source-map-setting',
       'my-test-plugin',
     ]);
