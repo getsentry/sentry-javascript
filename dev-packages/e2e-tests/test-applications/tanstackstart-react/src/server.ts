@@ -1,3 +1,4 @@
+// SOURCEMAP_MARKER_SERVER
 import { wrapFetchWithSentry } from '@sentry/tanstackstart-react';
 
 import handler, { createServerEntry } from '@tanstack/react-start/server-entry';

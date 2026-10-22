@@ -3,13 +3,13 @@
   "version": "0.0.0",
   "scripts": {
     "clean": "pnpx rimraf node_modules pnpm-lock.yaml .vinxi .output",
-    "build": "vinxi build",
+    "build": "node start-mock-sentry-server.mjs & vinxi build > .tmp_build_stdout 2> .tmp_build_stderr; BUILD_EXIT=$?; kill %1 2>/dev/null; if [ $BUILD_EXIT -ne 0 ]; then cat .tmp_build_stdout; cat .tmp_build_stderr >&2; fi; exit $BUILD_EXIT",
     "dev": "vinxi dev",
     "preview": "HOST=localhost PORT=3030 vinxi start",
     "start:import": "HOST=localhost PORT=3030 node --import ./.output/server/instrument.server.mjs .output/server/index.mjs",
     "test:prod": "TEST_ENV=production playwright test",
     "test:build": "pnpm install && pnpm build",
-    "test:assert": "pnpm test:prod && pnpm test:dev",
+    "test:assert": "node assert-build.ts && pnpm test:prod && pnpm test:dev",
     "test:dev": "TEST_ENV=development playwright test db"
   },
   "type": "module",
