@@ -1,4 +1,4 @@
-import type { Attributes, AttributeValue } from '@opentelemetry/api';
+import type { Attributes } from '@opentelemetry/api';
 import { SDK_INFO } from '@opentelemetry/core';
 import { SERVICE_NAME, SERVICE_VERSION } from '@sentry/conventions/attributes';
 import { SDK_VERSION } from '@sentry/core';
@@ -13,9 +13,7 @@ const ATTR_TELEMETRY_SDK_NAME = 'telemetry.sdk.name';
 const ATTR_TELEMETRY_SDK_VERSION = 'telemetry.sdk.version';
 const SEMRESATTRS_SERVICE_NAMESPACE = 'service.namespace';
 
-// `AnyValue` replaces it in `@opentelemetry/api` 1.10, but does not exist in 1.9
-// eslint-disable-next-line typescript/no-deprecated
-type RawResourceAttribute = [string, AttributeValue | undefined];
+type RawResourceAttribute = [string, Attributes[string]];
 
 /**
  * Minimal Resource implementation that satisfies the OpenTelemetry Resource interface

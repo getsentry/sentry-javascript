@@ -1,4 +1,4 @@
-import type { Attributes, AttributeValue } from '@opentelemetry/api';
+import type { Attributes } from '@opentelemetry/api';
 import { SpanKind } from '@opentelemetry/api';
 import {
   DB_STATEMENT,
@@ -154,9 +154,7 @@ function descriptionForDbSystem({ attributes, name }: { attributes: Attributes; 
 /** Only exported for tests. */
 export function descriptionForHttpMethod(
   { name, kind, attributes }: { name: string; attributes: Attributes; kind: SpanKind },
-  // `AnyValue` replaces it in `@opentelemetry/api` 1.10, but does not exist in 1.9
-  // eslint-disable-next-line typescript/no-deprecated
-  httpMethod: AttributeValue,
+  httpMethod: NonNullable<Attributes[string]>,
 ): SpanDescription {
   const opParts = ['http'];
 
@@ -240,9 +238,7 @@ export function descriptionForHttpMethod(
   };
 }
 
-// `AnyValue` replaces it in `@opentelemetry/api` 1.10, but does not exist in 1.9
-// eslint-disable-next-line typescript/no-deprecated
-function getGraphqlOperationNamesFromAttribute(attr: AttributeValue): string {
+function getGraphqlOperationNamesFromAttribute(attr: NonNullable<Attributes[string]>): string {
   if (Array.isArray(attr)) {
     // oxlint-disable-next-line typescript/require-array-sort-compare
     const sorted = attr.slice().sort();
