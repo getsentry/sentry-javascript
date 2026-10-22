@@ -1153,7 +1153,7 @@ jobs:
 
   # - We skip optional tests on release branches
   # - The tests run in optional-e2e.yml, so their failures do not mark the PR as failed. This job only waits for
-  #   them and reports failures in a PR comment.
+  #   them. optional-e2e.yml reports the results in a PR comment.
   job_optional_e2e_tests:
     name: E2E Tests (optional)
     # We only run E2E tests for non-fork PRs because the E2E tests require secrets to work and they can't be accessed from forks
@@ -1171,7 +1171,6 @@ jobs:
     permissions:
       contents: read
       actions: write
-      pull-requests: write
     steps:
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
         uses: actions/checkout@v7

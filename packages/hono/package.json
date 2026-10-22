@@ -79,7 +79,6 @@
   },
   "peerDependencies": {
     "@cloudflare/workers-types": "^4.x || ^5.x",
-    "@hono/node-server": "^1.x || ^2.x",
     "@sentry/bun": "11.8.0",
     "@sentry/cloudflare": "11.8.0",
     "@sentry/deno": "11.8.0",
@@ -88,9 +87,6 @@
   },
   "peerDependenciesMeta": {
     "@cloudflare/workers-types": {
-      "optional": true
-    },
-    "@hono/node-server": {
       "optional": true
     },
     "@sentry/bun": {
@@ -108,8 +104,13 @@
   },
   "devDependencies": {
     "@cloudflare/workers-types": "4.20250922.0",
-    "@hono/node-server": "^2.0.10",
+    "@sentry-internal/rollup-utils": "11.8.0",
+    "@sentry/bun": "11.8.0",
+    "@sentry/cloudflare": "11.8.0",
+    "@sentry/deno": "11.8.0",
+    "@sentry/node": "11.8.0",
     "@types/node": "^20.19.0",
+    "hono": "^4.13.7",
     "wrangler": "4.62.0"
   },
   "scripts": {

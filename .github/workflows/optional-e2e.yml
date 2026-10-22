@@ -115,3 +115,36 @@ jobs:
         working-directory: ${{ runner.temp }}/test-application
         timeout-minutes: 10
         run: ${{ matrix.assert-command || 'pnpm test:assert' }}
+
+  # A separate job in this workflow, so that a re-run of this run (all jobs or only the failed ones) also updates the
+  # comment. GitHub re-runs the jobs that depend on a re-run job.
+  job_report:
+    name: Report in PR comment
+    needs: [job_optional_e2e_tests]
+    # Not for a cancelled run: a new push cancels the old run, and the new run reports.
+    if: ${{ !cancelled() && github.event_name == 'workflow_dispatch' && inputs.pr_number != '' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      actions: read
+      pull-requests: write
+    steps:
+      - name: Check out commit ${{ env.HEAD_COMMIT }}
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ env.HEAD_COMMIT }}
+      - name: Set up Node
+        uses: actions/setup-node@v7
+        with:
+          node-version-file: 'package.json'
+      - name: Install pnpm
+        uses: ./.github/actions/install-pnpm
+      - name: Install action dependencies
+        run: pnpm install --frozen-lockfile --filter @sentry-internal/optional-e2e-gh-action
+      - name: Report optional E2E results
+        uses: ./dev-packages/optional-e2e-gh-action
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          mode: report
+          pr_number: ${{ inputs.pr_number }}
