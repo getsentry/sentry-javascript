@@ -82,7 +82,7 @@
     "access": "public"
   },
   "dependencies": {
-    "@opentelemetry/api": "^1.9.1",
+    "@opentelemetry/api": "^1.10.0",
     "@rollup/plugin-commonjs": "28.0.1",
     "@sentry/browser-utils": "11.8.0",
     "@sentry/bundler-plugins": "11.8.0",

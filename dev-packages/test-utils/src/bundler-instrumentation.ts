@@ -37,7 +37,7 @@ export interface InstrumentationFixture {
 const FIXTURES: Record<string, InstrumentationFixture> = {
   graphql: {
     moduleName: 'graphql',
-    origin: 'auto.graphql.diagnostic_channel',
+    origin: 'auto.graphql.graphql',
     sourceMarker: 'GraphQLSchema',
     assertResult: result => (result as { data?: { hello?: string } })?.data?.hello === 'world',
   },

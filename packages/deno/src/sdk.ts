@@ -14,7 +14,7 @@ import {
   requestDataIntegration,
   stackParserFromStackParserOptions,
 } from '@sentry/core';
-import { getTracingIntegrations, getErrorIntegrations } from '@sentry/server-utils';
+import { detectOrchestrionSetup, getTracingIntegrations, getErrorIntegrations } from '@sentry/server-utils';
 import { DenoClient } from './client';
 import { nodeStackLineParser } from '@sentry/core/server';
 import { breadcrumbsIntegration } from './integrations/breadcrumbs';
@@ -137,6 +137,9 @@ function _init(options: DenoOptions, getDefaultIntegrationsImpl: (options: Optio
   if (options.enableOpenTelemetrySetup ?? true) {
     setupOpenTelemetryTracer();
   }
+
+  // After client creation, so the debug logger is enabled.
+  detectOrchestrionSetup();
 
   return client;
 }

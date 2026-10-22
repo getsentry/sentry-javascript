@@ -24,6 +24,7 @@ import { spanToJSON } from '../../../../src/utils/spanUtils';
 import { setCurrentClient } from '../../../../src/sdk';
 import { HTTP_ON_SERVER_REQUEST } from '../../../../src/integrations/http/constants';
 import { getHttpServerSubscriptions } from '../../../../src/integrations/http/server-subscription';
+import type { HttpInstrumentationOptions } from '../../../../src/integrations/http/types';
 import type { Event } from '../../../../src/types/event';
 import { getDefaultTestClientOptions, TestClient } from '../../../mocks/client';
 
@@ -62,6 +63,7 @@ describe('getHttpServerSubscriptions', () => {
     path: string,
     method: 'GET' | 'HEAD' | 'OPTIONS' | 'POST' = 'GET',
     extraHeaders: Record<string, string> = {},
+    body?: string,
   ): Promise<void> {
     const { port } = server.address() as AddressInfo;
     return new Promise<void>((resolve, reject) => {
@@ -85,11 +87,11 @@ describe('getHttpServerSubscriptions', () => {
         },
       );
       req.on('error', reject);
-      req.end();
+      req.end(body);
     });
   }
 
-  function instrument(spans: boolean, extra: { ignoreStaticAssets?: boolean } = {}): void {
+  function instrument(spans: boolean, extra: Omit<HttpInstrumentationOptions, 'spans'> = {}): void {
     const { [HTTP_ON_SERVER_REQUEST]: onServerRequest } = getHttpServerSubscriptions({ spans, ...extra });
     // Fire the channel listener manually with the server we're about to use.
     // This avoids depending on Node's diagnostics_channel firing (only
@@ -118,13 +120,13 @@ describe('getHttpServerSubscriptions', () => {
     expect(transaction.contexts?.trace).toEqual(
       expect.objectContaining({
         op: 'http.server',
-        origin: 'auto.http.server',
+        origin: 'auto.http.http_server',
         data: expect.objectContaining({
           'http.request.method': 'GET',
           'http.response.status_code': 200,
           'sentry.kind': 'server',
           'sentry.op': 'http.server',
-          'sentry.origin': 'auto.http.server',
+          'sentry.origin': 'auto.http.http_server',
           'sentry.segment.name.source': 'url',
           [URL_FULL]: expect.stringMatching(/\/users\/42\?foo=bar$/),
           [URL_PATH]: '/users/42',
@@ -294,6 +296,76 @@ describe('getHttpServerSubscriptions', () => {
     const transaction = await waitForTransaction();
 
     expect(transaction.transaction).toBe('GET /favicon.ico');
+  });
+
+  describe('with user callbacks that throw', () => {
+    const throwingCallback = (): never => {
+      throw new Error('callback error');
+    };
+
+    async function expectRequestHandledTwice(): Promise<void> {
+      await makeRequest('/first');
+      await makeRequest('/second');
+    }
+
+    it('still handles the request and ends the span when `onSpanCreated` throws', async () => {
+      const handler = vi.fn((_req: http.IncomingMessage, res: http.ServerResponse) => res.end('ok'));
+      server = http.createServer(handler);
+      await new Promise<void>(resolve => server.listen(0, '127.0.0.1', () => resolve()));
+      instrument(true, { onSpanCreated: throwingCallback });
+
+      await expectRequestHandledTwice();
+      const transaction = await waitForTransaction();
+
+      expect(handler).toHaveBeenCalledTimes(2);
+      expect(transaction.transaction).toBe('GET /first');
+    });
+
+    it('still handles the request and ends the span when `onSpanEnd` throws', async () => {
+      const handler = vi.fn((_req: http.IncomingMessage, res: http.ServerResponse) => res.end('ok'));
+      server = http.createServer(handler);
+      await new Promise<void>(resolve => server.listen(0, '127.0.0.1', () => resolve()));
+      instrument(true, { onSpanEnd: throwingCallback });
+
+      await expectRequestHandledTwice();
+      const transaction = await waitForTransaction();
+
+      expect(handler).toHaveBeenCalledTimes(2);
+      expect(transaction.transaction).toBe('GET /first');
+    });
+
+    it('creates the span when `ignoreIncomingRequests` throws', async () => {
+      const handler = vi.fn((_req: http.IncomingMessage, res: http.ServerResponse) => res.end('ok'));
+      server = http.createServer(handler);
+      await new Promise<void>(resolve => server.listen(0, '127.0.0.1', () => resolve()));
+      instrument(true, { ignoreIncomingRequests: throwingCallback });
+
+      await expectRequestHandledTwice();
+      const transaction = await waitForTransaction();
+
+      expect(handler).toHaveBeenCalledTimes(2);
+      expect(transaction.transaction).toBe('GET /first');
+    });
+
+    it('skips the request body when `ignoreRequestBody` throws', async () => {
+      const receivedBodies: string[] = [];
+      server = http.createServer((req, res) => {
+        let body = '';
+        req.on('data', chunk => (body += chunk));
+        req.on('end', () => {
+          receivedBodies.push(body);
+          res.end('ok');
+        });
+      });
+      await new Promise<void>(resolve => server.listen(0, '127.0.0.1', () => resolve()));
+      instrument(true, { maxRequestBodySize: 'always', ignoreRequestBody: throwingCallback });
+
+      await makeRequest('/body', 'POST', { 'Content-Type': 'text/plain' }, 'secret');
+      const transaction = await waitForTransaction();
+
+      expect(receivedBodies).toEqual(['secret']);
+      expect(transaction.request?.data).toBeUndefined();
+    });
   });
 
   it('re-evaluates the spans default per request based on the current client', async () => {

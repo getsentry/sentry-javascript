@@ -96,7 +96,7 @@
     "access": "public"
   },
   "dependencies": {
-    "@opentelemetry/api": "^1.9.1",
+    "@opentelemetry/api": "^1.10.0",
     "@sentry/conventions": "^0.27.0",
     "@sentry/core": "11.8.0"
   },
