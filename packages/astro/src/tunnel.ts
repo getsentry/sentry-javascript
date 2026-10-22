@@ -1,5 +1,5 @@
 import type { Options, TunnelOptions } from '@sentry/core';
-import { applyTunnelDefaults, GLOBAL_OBJ } from '@sentry/core';
+import { _INTERNAL_applyTunnelDefaults as applyTunnelDefaults, GLOBAL_OBJ } from '@sentry/core';
 
 /** Set by the Sentry Astro integration from the `base` and `trailingSlash` config. */
 export const TUNNEL_OPTIONS_GLOBAL = '__sentry_astro_tunnel_options';
