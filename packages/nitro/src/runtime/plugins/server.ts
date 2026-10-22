@@ -1,4 +1,7 @@
-import { handleTunnelRequestIfMatched, setManagedTunnelDefaults } from '@sentry/core/server';
+import {
+  handleTunnelRequestIfMatched,
+  _INTERNAL_setManagedTunnelDefaults as setManagedTunnelDefaults,
+} from '@sentry/core/server';
 import { definePlugin } from 'nitro';
 import { useRuntimeConfig } from 'nitro/runtime-config';
 import { captureErrorHook } from '../hooks/captureErrorHook';

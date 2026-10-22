@@ -1,4 +1,8 @@
-import { handleTunnelRequestIfMatched, isTunnelRequest, setManagedTunnelDefaults } from '@sentry/core/server';
+import {
+  handleTunnelRequestIfMatched,
+  isTunnelRequest,
+  _INTERNAL_setManagedTunnelDefaults as setManagedTunnelDefaults,
+} from '@sentry/core/server';
 import { eventHandler, toWebRequest } from 'h3';
 import type { NitroAppPlugin } from 'nitropack';
 import { useRuntimeConfig } from 'nitropack/runtime';
