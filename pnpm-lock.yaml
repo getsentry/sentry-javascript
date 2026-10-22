@@ -2382,12 +2382,6 @@ importers:
       '@sentry/svelte':
         specifier: 11.10.0
         version: link:../svelte
-      '@sveltejs/acorn-typescript':
-        specifier: ^1.0.13
-        version: 1.0.13(acorn@8.18.0)
-      acorn:
-        specifier: ^8.14.0
-        version: 8.18.0
       magic-string:
         specifier: ~0.30.0
         version: 0.30.21
