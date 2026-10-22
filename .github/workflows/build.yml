@@ -370,8 +370,10 @@ jobs:
     runs-on:
       namespace-profile-sentry-javascript-small;overrides.cache-tag=sentry-javascript-lockfile${{ github.event_name ==
       'pull_request' && '-pr' || '' }}
+    # Also on CI changes, which can break this job without touching a dependency
     if: |
       needs.job_get_metadata.outputs.changed_deps == 'true' ||
+      needs.job_get_metadata.outputs.changed_ci == 'true' ||
       needs.job_get_metadata.outputs.is_base_branch == 'true' ||
       needs.job_get_metadata.outputs.is_release == 'true'
     steps:
