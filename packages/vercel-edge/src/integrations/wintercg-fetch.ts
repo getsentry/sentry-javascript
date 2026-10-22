@@ -5,5 +5,5 @@ import { createFetchIntegration } from '@sentry/core';
  */
 export const winterCGFetchIntegration = createFetchIntegration({
   name: 'WinterCGFetch',
-  spanOrigin: 'auto.http.wintercg_fetch',
+  spanOrigin: 'auto.http.fetch',
 });

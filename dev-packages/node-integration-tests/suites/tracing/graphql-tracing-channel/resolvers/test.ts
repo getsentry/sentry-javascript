@@ -51,7 +51,7 @@ describe.runIf(supports({ min: 22 }))('GraphQL tracing channel Test > resolve sp
               expect(helloResolverSpan?.name).toBe('GraphQL resolve');
               expect(helloResolverSpan?.attributes['sentry.op']).toEqual({ value: 'graphql', type: 'string' });
               expect(helloResolverSpan?.attributes['sentry.origin']).toEqual({
-                value: 'auto.graphql.diagnostic_channel',
+                value: 'auto.graphql.graphql',
                 type: 'string',
               });
               expect(helloResolverSpan?.attributes['graphql.field.name']).toEqual({ value: 'hello', type: 'string' });
@@ -65,7 +65,7 @@ describe.runIf(supports({ min: 22 }))('GraphQL tracing channel Test > resolve sp
               expect(userResolverSpan?.name).toBe('GraphQL resolve');
               expect(userResolverSpan?.attributes['sentry.op']).toEqual({ value: 'graphql', type: 'string' });
               expect(userResolverSpan?.attributes['sentry.origin']).toEqual({
-                value: 'auto.graphql.diagnostic_channel',
+                value: 'auto.graphql.graphql',
                 type: 'string',
               });
               expect(userResolverSpan?.attributes['graphql.field.name']).toEqual({ value: 'user', type: 'string' });

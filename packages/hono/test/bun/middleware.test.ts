@@ -1,3 +1,11 @@
+import {
+  CLIENT_ADDRESS,
+  CLIENT_PORT,
+  NETWORK_PEER_ADDRESS,
+  NETWORK_PEER_PORT,
+  NETWORK_TRANSPORT,
+  NETWORK_TYPE,
+} from '@sentry/conventions/attributes';
 import * as SentryCore from '@sentry/core';
 import { SDK_VERSION } from '@sentry/core';
 import { Hono } from 'hono';
@@ -5,15 +13,10 @@ import { beforeEach, describe, expect, it, type Mock, vi } from 'vitest';
 import { sentry, type HonoBunOptions } from '../../src/bun/middleware';
 import { init } from '../../src/bun/sdk';
 import { LOW_QUALITY_TRANSACTION_PATTERNS } from '../../src/shared/lowQualityTransactionPatterns';
+import { requestConnInfoAttributes } from '../shared/requestConnInfoAttributes';
 
 vi.mock('@sentry/bun', () => ({
   init: vi.fn(),
-}));
-
-// `hono/bun` eagerly imports Bun-only modules (e.g. SSG) that reference the `Bun` global,
-// which is not available under Vitest/Node. We only use its `getConnInfo` helper.
-vi.mock('hono/bun', () => ({
-  getConnInfo: vi.fn(() => ({ remote: {} })),
 }));
 
 // eslint-disable-next-line @typescript-eslint/consistent-type-imports
@@ -252,5 +255,22 @@ describe('Hono Bun Middleware', () => {
       const callArgs = (initBunMock as Mock).mock.calls[0]?.[0];
       expect(callArgs.ignoreSpans).toHaveLength(LOW_QUALITY_TRANSACTION_PATTERNS.length);
     });
+  });
+});
+
+describe('Hono Bun Middleware — connection info', () => {
+  it('reads the client address from `requestIP` of the server', async () => {
+    const middleware = sentry(new Hono(), { dsn: 'https://public@dsn.ingest.sentry.io/1337' });
+    // `Bun.serve` passes the server to `app.fetch` as `env`.
+    const env = { requestIP: () => ({ address: '::1', port: 54321, family: 'IPv6' }) };
+
+    const attributes = await requestConnInfoAttributes(middleware, { env });
+
+    expect(attributes[CLIENT_ADDRESS]).toBe('::1');
+    expect(attributes[CLIENT_PORT]).toBe(54321);
+    expect(attributes[NETWORK_PEER_ADDRESS]).toBe('::1');
+    expect(attributes[NETWORK_PEER_PORT]).toBe(54321);
+    expect(attributes[NETWORK_TYPE]).toBe('ipv6');
+    expect(attributes).not.toHaveProperty(NETWORK_TRANSPORT);
   });
 });

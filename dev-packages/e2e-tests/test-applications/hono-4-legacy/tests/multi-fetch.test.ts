@@ -360,8 +360,9 @@ test.describe('multi-fetch: internal .request() calls between sub-apps', () => {
     });
 
     test('error from failed internal fetch is correlated with the storefront trace', async ({ baseURL }) => {
+      // Not `ghost`: Dedupe would drop this error as a repeat of the error in the test above.
       const errorPromise = waitForError(APP_NAME, event => {
-        return event.exception?.values?.[0]?.value === 'Failed to fetch product: ghost';
+        return event.exception?.values?.[0]?.value === 'Failed to fetch product: phantom';
       });
 
       const segmentPromise = waitForStreamedSpan(
@@ -372,7 +373,7 @@ test.describe('multi-fetch: internal .request() calls between sub-apps', () => {
           segment.name === `GET ${STOREFRONT}/product-or-throw/:productId`,
       );
 
-      await fetch(`${baseURL}${STOREFRONT}/product-or-throw/ghost`);
+      await fetch(`${baseURL}${STOREFRONT}/product-or-throw/phantom`);
 
       const [errorEvent, segment] = await Promise.all([errorPromise, segmentPromise]);
 
