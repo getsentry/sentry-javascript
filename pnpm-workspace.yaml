@@ -97,3 +97,5 @@ allowBuilds:
   sharp: true
   vue-demi: true
   workerd: true
+minimumReleaseAgeExclude:
+  - '@opentelemetry/api@1.10.0'

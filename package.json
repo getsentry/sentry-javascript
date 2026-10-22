@@ -54,7 +54,7 @@
     "Volta reads the pnpm version only when `VOLTA_FEATURE_PNPM=1` is set, see CONTRIBUTING.md."
   ],
   "volta": {
-    "node": "24.21.0",
+    "node": "24.22.1",
     "pnpm": "10.34.6"
   },
   "//_workspaces_comment": [
