@@ -2,14 +2,18 @@ import { execFileSync } from 'node:child_process';
 import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { parse } from 'acorn';
-import { describe, expect, it } from 'vitest';
+import { loadParser, parseModule } from '@sentry/bundler-plugins/rewriter';
+import { beforeAll, describe, expect, it } from 'vitest';
 import { applyAutoInstrumentTransforms, type ClassWrapperKind, type TransformContext } from '../../src/vite/transform';
 import { DEFAULT_EXPORT } from '../../src/vite/wranglerConfig';
 
 function parseJS(code: string) {
-  return parse(code, { ecmaVersion: 'latest', sourceType: 'module' }) as unknown as { body: any[] };
+  return parseModule(code, 'module.js') as unknown as { body: any[] };
 }
+
+beforeAll(async () => {
+  await loadParser();
+});
 
 /** Build a `classWrappers` map with every given class name marked as a DO. */
 function doWrappers(...names: string[]): Map<string, ClassWrapperKind> {
