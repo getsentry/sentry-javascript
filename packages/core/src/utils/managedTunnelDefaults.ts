@@ -14,9 +14,12 @@ import {
  * Managed tunnel settings a framework SDK knows outside `init`.
  */
 interface ManagedTunnelDefaults {
-  /** Enables the managed tunnel, e.g. from TanStack Start's `tunnelRoute` build option. */
-  tunnel?: ServerTunnelOptions;
-  /** The path prefix the app is served under. */
+  /**
+   * Enables the managed tunnel when `init` didn't, e.g. from TanStack Start's `tunnelRoute` build option. Its base
+   * path is `basePath`, so it has none of its own.
+   */
+  tunnel?: Omit<ServerTunnelOptions, 'basePath'>;
+  /** The path prefix the app is served under. Applies however the tunnel was enabled, unless `init` set its own. */
   basePath?: string;
 }
 
@@ -44,7 +47,7 @@ export function setManagedTunnelDefaults(defaults: ManagedTunnelDefaults): void 
  */
 export function applyManagedTunnelDefaults(client: Client | undefined): void {
   const options = client?.getOptions();
-  const tunnelOptions = options?._managedTunnel ?? managedTunnelDefaults?.tunnel;
+  const tunnelOptions: ServerTunnelOptions | undefined = options?._managedTunnel ?? managedTunnelDefaults?.tunnel;
   if (!client || !options || !tunnelOptions) {
     return;
   }
