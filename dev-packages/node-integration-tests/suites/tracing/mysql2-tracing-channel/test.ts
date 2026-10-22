@@ -24,7 +24,7 @@ describe('mysql2 tracing channel Test', () => {
   const expectedQuerySpan = (queryText: string) =>
     expect.objectContaining({
       attributes: expect.objectContaining({
-        [SENTRY_ORIGIN]: { type: 'string', value: 'auto.db.mysql2.diagnostic_channel' },
+        [SENTRY_ORIGIN]: { type: 'string', value: 'auto.db.mysql2.native_channel' },
         [DB_SYSTEM_NAME]: { type: 'string', value: 'mysql' },
         [DB_OPERATION_NAME]: { type: 'string', value: 'SELECT' },
         [DB_QUERY_TEXT]: { type: 'string', value: queryText },
@@ -47,7 +47,7 @@ describe('mysql2 tracing channel Test', () => {
       expect.objectContaining({
         attributes: expect.objectContaining({
           [SENTRY_OP]: { type: 'string', value: DB },
-          [SENTRY_ORIGIN]: { type: 'string', value: 'auto.db.mysql2.diagnostic_channel' },
+          [SENTRY_ORIGIN]: { type: 'string', value: 'auto.db.mysql2.native_channel' },
           [DB_QUERY_TEXT]: { type: 'string', value: 'SELECT * FROM does_not_exist' },
         }),
         name: 'SELECT does_not_exist',
@@ -72,7 +72,7 @@ describe('mysql2 tracing channel Test', () => {
               expect(spans.find(span => span.attributes[SENTRY_ORIGIN]?.value === 'auto.db.mysql2')).toBeUndefined();
               // ...while the diagnostics-channel path is active.
               expect(
-                spans.find(span => span.attributes[SENTRY_ORIGIN]?.value === 'auto.db.mysql2.diagnostic_channel'),
+                spans.find(span => span.attributes[SENTRY_ORIGIN]?.value === 'auto.db.mysql2.native_channel'),
               ).toBeDefined();
             },
           })

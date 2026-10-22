@@ -1595,9 +1595,6 @@ importers:
       '@cloudflare/workers-types':
         specifier: 4.20250922.0
         version: 4.20250922.0
-      '@hono/node-server':
-        specifier: ^2.0.10
-        version: 2.0.10(hono@4.13.7)
       '@types/node':
         specifier: ^20.19.0
         version: 20.19.43
