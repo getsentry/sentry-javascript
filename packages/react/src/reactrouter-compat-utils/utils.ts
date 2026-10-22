@@ -138,6 +138,26 @@ export function prefixWithSlash(path: string): string {
 }
 
 /**
+ * Decodes a pathname the way React Router does before matching (`decodePath`): segment by segment, so an
+ * encoded slash stays `%2F`. Returns the whole pathname unchanged if any segment is not valid percent-encoding.
+ *
+ * Browsers hand us `location.pathname` percent-encoded, while React Router decodes the pathname before matching,
+ * so `pathname` and `pathnameBase` on a `RouteMatch` are decoded (older 6.x routers decoded only partially, or not
+ * at all). Decoding both sides before comparing them keeps routes with an encoded parameter (non-ASCII, spaces,
+ * reserved characters) matchable regardless of which side is still encoded.
+ */
+export function decodePathname(pathname: string): string {
+  try {
+    return pathname
+      .split('/')
+      .map(segment => decodeURIComponent(segment).replace(/\//g, '%2F'))
+      .join('/');
+  } catch {
+    return pathname;
+  }
+}
+
+/**
  * Rebuilds the route path from all available routes by matching against the current location.
  */
 export function rebuildRoutePathFromAllRoutes(
@@ -154,9 +174,13 @@ export function rebuildRoutePathFromAllRoutes(
   for (const match of matchedRoutes) {
     if (match.route.path && match.route.path !== '*') {
       const path = pickPath(match);
-      const strippedPath = stripBasenameFromPathname(location.pathname, prefixWithSlash(match.pathnameBase));
+      const decodedPathname = decodePathname(location.pathname);
+      const strippedPath = stripBasenameFromPathname(
+        decodedPathname,
+        decodePathname(prefixWithSlash(match.pathnameBase)),
+      );
 
-      if (location.pathname === strippedPath) {
+      if (decodedPathname === strippedPath) {
         return trimSlash(strippedPath);
       }
 
@@ -221,7 +245,10 @@ function reconstructNameFromDescendantParent(
   }
 
   const remainingPathname =
-    stripBasenameFromPathname(location.pathname, prefixWithSlash(parentMatch.pathnameBase)) || '/';
+    stripBasenameFromPathname(
+      decodePathname(location.pathname),
+      decodePathname(prefixWithSlash(parentMatch.pathnameBase)),
+    ) || '/';
   const remainingName = rebuildRoutePathFromAllRoutes(
     allRoutes.filter(route => route !== parentMatch.route),
     { pathname: remainingPathname },
@@ -303,7 +330,7 @@ export function getNormalizedName(
     pathBuilder = trimSlash(pathBuilder) + prefixWithSlash(newPath);
 
     // Check if this path matches the current location
-    if (trimSlash(location.pathname) !== trimSlash(basename + branch.pathname)) {
+    if (trimSlash(decodePathname(location.pathname)) !== trimSlash(decodePathname(basename + branch.pathname))) {
       continue;
     }
 

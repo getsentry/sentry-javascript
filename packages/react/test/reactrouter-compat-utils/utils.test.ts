@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   clearNavigationContext,
+  decodePathname,
   getNavigationContext,
   getNormalizedName,
   getNumberOfUrlSegments,
@@ -184,7 +185,54 @@ describe('reactrouter-compat-utils/utils', () => {
     });
   });
 
+  describe('decodePathname', () => {
+    it('should decode percent-encoded segments', () => {
+      expect(decodePathname('/clubs/%ED%95%9C%EA%B8%80')).toBe('/clubs/한글');
+      expect(decodePathname('/users/a%40b.com')).toBe('/users/a@b.com');
+    });
+
+    it('should keep an encoded slash inside a segment encoded', () => {
+      expect(decodePathname('/files/a%2Fb')).toBe('/files/a%2Fb');
+    });
+
+    it('should not touch a plus sign', () => {
+      expect(decodePathname('/tags/a+b')).toBe('/tags/a+b');
+    });
+
+    it('should return the whole pathname unchanged when a segment is malformed', () => {
+      expect(decodePathname('/a/%E0%A4%A/b')).toBe('/a/%E0%A4%A/b');
+    });
+
+    it('should leave an already decoded pathname as is', () => {
+      expect(decodePathname('/clubs/한글')).toBe('/clubs/한글');
+      expect(decodePathname('/')).toBe('/');
+      expect(decodePathname('')).toBe('');
+    });
+  });
+
   describe('rebuildRoutePathFromAllRoutes', () => {
+    it('should match a percent-encoded pathname against the decoded pathnameBase', () => {
+      const allRoutes: RouteObject[] = [{ path: ':clubId', element: null }];
+
+      // What a browser's `location.pathname` holds for `/한글`
+      const location: Location = { pathname: '/%ED%95%9C%EA%B8%80' };
+
+      const mockMatches: RouteMatch[] = [
+        {
+          route: { path: ':clubId', element: null },
+          params: { clubId: '한글' },
+          pathname: '/한글',
+          pathnameBase: '/한글',
+        },
+      ];
+
+      // The recursive call matches the remaining routes (none) against the stripped pathname
+      mockMatchRoutes.mockImplementation((routes: RouteObject[]) => (routes.length ? mockMatches : []));
+
+      const result = rebuildRoutePathFromAllRoutes(allRoutes, location, mockMatchRoutes as MatchRoutes);
+      expect(result).toBe(':clubId');
+    });
+
     it('should return pathname when it matches stripped path', () => {
       const allRoutes: RouteObject[] = [{ path: '/users', element: null }];
 
@@ -423,6 +471,57 @@ describe('reactrouter-compat-utils/utils', () => {
   });
 
   describe('getNormalizedName', () => {
+    it('should parameterize a percent-encoded pathname whose branch pathname is decoded', () => {
+      const routes: RouteObject[] = [{ path: '/clubs/:clubId', element: null }];
+      // What a browser's `location.pathname` holds for `/clubs/한글`
+      const location: Location = { pathname: '/clubs/%ED%95%9C%EA%B8%80' };
+      const branches: RouteMatch[] = [
+        {
+          route: { path: '/clubs/:clubId', element: null },
+          params: { clubId: '한글' },
+          pathname: '/clubs/한글',
+          pathnameBase: '/clubs/한글',
+        },
+      ];
+
+      const result = getNormalizedName(routes, location, branches, '');
+      expect(result).toEqual(['/clubs/:clubId', 'route']);
+    });
+
+    it('should keep matching when the basename itself is percent-encoded', () => {
+      const routes: RouteObject[] = [{ path: '/clubs/:clubId', element: null }];
+      // React Router strips the basename from the raw pathname, so an encoded basename is passed encoded
+      const basename = '/%ED%95%9C%EA%B5%AD';
+      const location: Location = { pathname: `${basename}/clubs/abc` };
+      const branches: RouteMatch[] = [
+        {
+          route: { path: '/clubs/:clubId', element: null },
+          params: { clubId: 'abc' },
+          pathname: '/clubs/abc',
+          pathnameBase: '/clubs/abc',
+        },
+      ];
+
+      expect(getNormalizedName(routes, location, branches, basename)).toEqual([`${basename}/clubs/:clubId`, 'route']);
+      expect(getNormalizedName(routes, location, branches, basename, true)).toEqual(['/clubs/:clubId', 'route']);
+    });
+
+    it('should keep matching when the router left the branch pathname encoded', () => {
+      // react-router < 6.5 matched against the raw pathname, 6.5 - 6.22 used `decodeURI` (keeps `%40`)
+      const routes: RouteObject[] = [{ path: '/users/:email', element: null }];
+      const location: Location = { pathname: '/users/a%40b.com' };
+      const branches: RouteMatch[] = [
+        {
+          route: { path: '/users/:email', element: null },
+          params: { email: 'a%40b.com' },
+          pathname: '/users/a%40b.com',
+          pathnameBase: '/users/a%40b.com',
+        },
+      ];
+
+      expect(getNormalizedName(routes, location, branches, '')).toEqual(['/users/:email', 'route']);
+    });
+
     it('should return pathname with url source when no routes provided', () => {
       const routes: RouteObject[] = [];
       const location: Location = { pathname: '/test' };
