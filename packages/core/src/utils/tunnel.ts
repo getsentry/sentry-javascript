@@ -309,6 +309,20 @@ function resolveIngestUrl(headerLine: Uint8Array, allowedDsns: Array<string>): s
 const MAX_ENVELOPE_HEADER_BYTES = 64 * 1024;
 
 /**
+ * Client headers Relay reads from a browser's own request: the user agent and its client hints to tell the browser,
+ * and `Origin` or `Referer` for the project's allowed domains check, which Relay skips without them.
+ */
+const FORWARDED_CLIENT_HEADERS = [
+  'user-agent',
+  'sec-ch-ua',
+  'sec-ch-ua-model',
+  'sec-ch-ua-platform',
+  'sec-ch-ua-platform-version',
+  'origin',
+  'referer',
+];
+
+/**
  * Reads the body up to the envelope header line. Returns the line and every byte read, or `undefined`.
  */
 async function readEnvelopeHeaderLine(
@@ -378,6 +392,13 @@ function forwardHeaders(request: Request): Record<string, string> {
     request.headers.get('x-forwarded-for');
   if (clientIp) {
     headers['X-Sentry-Forwarded-For'] = clientIp;
+  }
+
+  for (const name of FORWARDED_CLIENT_HEADERS) {
+    const value = request.headers.get(name);
+    if (value) {
+      headers[name] = value;
+    }
   }
 
   return headers;

@@ -185,6 +185,35 @@ describe('handleTunnelRequest', () => {
     );
   });
 
+  it('forwards the client headers Relay reads the browser and allowed domains from', async () => {
+    fetchMock.mockResolvedValueOnce(new Response('ok'));
+    const clientHeaders = {
+      'user-agent': 'Mozilla/5.0',
+      'sec-ch-ua': '"Chromium";v="140"',
+      'sec-ch-ua-model': '""',
+      'sec-ch-ua-platform': '"macOS"',
+      'sec-ch-ua-platform-version': '"15.0.0"',
+      origin: 'https://example.com',
+      referer: 'https://example.com/page',
+    };
+
+    await handleTunnelRequest({
+      request: new Request('http://localhost/tunnel', {
+        method: 'POST',
+        body: `${JSON.stringify({ dsn: TEST_DSN })}\n`,
+        headers: { ...clientHeaders, cookie: 'session=secret', 'content-length': '1' },
+      }),
+      allowedDsns: [TEST_DSN],
+    });
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      expect.any(String),
+      expect.objectContaining({
+        headers: { 'Content-Type': 'application/x-sentry-envelope', ...clientHeaders },
+      }),
+    );
+  });
+
   it('rejects a disallowed DSN after reading only the envelope header', async () => {
     const result = await handleTunnelRequest({
       request: makeEndlessRequest(`${JSON.stringify({ dsn: 'https://other@example.com/9999' })}\n`),
