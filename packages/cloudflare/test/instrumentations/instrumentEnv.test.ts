@@ -1,3 +1,4 @@
+import { SENTRY_ORIGIN } from '@sentry/conventions/attributes';
 import * as SentryCore from '@sentry/core';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { instrumentEnv } from '../../src/instrumentations/worker/instrumentEnv';
@@ -266,12 +267,12 @@ describe('instrumentEnv', () => {
 
     expect(startSpanSpy).toHaveBeenNthCalledWith(
       1,
-      expect.objectContaining({ attributes: expect.objectContaining({ 'sentry.origin': 'auto.cache.cloudflare.kv' }) }),
+      expect.objectContaining({ attributes: expect.objectContaining({ [SENTRY_ORIGIN]: 'auto.cache.cloudflare.kv' }) }),
       expect.any(Function),
     );
     expect(startSpanSpy).toHaveBeenNthCalledWith(
       2,
-      expect.objectContaining({ attributes: expect.objectContaining({ 'sentry.origin': 'auto.faas.cloudflare.r2' }) }),
+      expect.objectContaining({ attributes: expect.objectContaining({ [SENTRY_ORIGIN]: 'auto.faas.cloudflare.r2' }) }),
       expect.any(Function),
     );
   });
