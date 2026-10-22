@@ -1,5 +1,9 @@
 import { GLOBAL_OBJ } from '@sentry/core';
-import { handleTunnelRequestIfMatched, isTunnelRequest, setManagedTunnelDefaults } from '@sentry/core/server';
+import {
+  handleTunnelRequestIfMatched,
+  isTunnelRequest,
+  _INTERNAL_setManagedTunnelDefaults as setManagedTunnelDefaults,
+} from '@sentry/core/server';
 import { eventHandler, toWebRequest } from 'h3';
 import type { NitroAppPlugin } from 'nitropack';
 import { TUNNEL_BASE_PATH_GLOBAL } from '../common/tunnel';
