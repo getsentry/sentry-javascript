@@ -1,79 +1,33 @@
-/* eslint-disable max-lines */
-import MagicString from 'magic-string';
+import {
+  type BaseNode,
+  type ClassDeclarationNode,
+  collectDeclaringStatements,
+  collectManuallyWrappedLocals,
+  collectTopLevelClasses,
+  createRewriteState,
+  type ExportDefaultNode,
+  type ExportNamedNode,
+  type ExportSpecifierNode,
+  isCallToMethod,
+  type ProgramBody,
+  type RewriteState,
+  type VariableDeclarationNode,
+  wrapDefaultExport,
+  wrapDefaultReexport,
+  wrapDefaultSpecifier,
+  wrapForeignExport,
+  wrapInlineExport,
+  wrapLocalBinding,
+  wrapSpecifierExports,
+  type WrapExpression,
+} from '@sentry/bundler-plugins/rewriter';
+import type MagicString from 'magic-string';
 import { DEFAULT_EXPORT, type ExportName, type SameWorkerBinding } from './wranglerConfig';
 import { detectWorkerEntrypointClasses } from './workerEntrypoint';
 
+export type { BaseNode, ProgramBody };
+
 const MERGED_OPTIONS_IDENTIFIER = '__SENTRY_OPTIONS__';
-
-// ---------------------------------------------------------------------------
-// Minimal ESTree node types for the AST nodes we inspect.
-// ---------------------------------------------------------------------------
-
-export interface BaseNode {
-  type: string;
-  start: number;
-  end: number;
-}
-
-export interface ProgramBody {
-  body: BaseNode[];
-}
-
-interface IdentifierNode extends BaseNode {
-  name: string;
-}
-
-interface CalleeNode {
-  type: string;
-  name?: string;
-  property?: { type: string; name?: string };
-}
-
-interface CallExpressionNode extends BaseNode {
-  callee?: CalleeNode;
-}
-
-interface ClassDeclarationNode extends BaseNode {
-  id?: IdentifierNode | null;
-}
-
-interface ExportDefaultNode extends BaseNode {
-  declaration: BaseNode;
-}
-
-interface ExportSpecifierNode extends BaseNode {
-  local?: { type: string; name?: string };
-  exported?: { type: string; name?: string };
-}
-
-interface ExportNamedNode extends BaseNode {
-  declaration?: BaseNode | null;
-  source?: BaseNode | null;
-  specifiers?: ExportSpecifierNode[];
-}
-
-interface VariableDeclaratorNode {
-  id?: { type: string; name?: string };
-  init?: BaseNode | null;
-}
-
-interface VariableDeclarationNode extends BaseNode {
-  declarations?: VariableDeclaratorNode[];
-}
-
-interface ImportDeclarationNode extends BaseNode {
-  specifiers?: Array<{ local?: { type: string; name?: string } }>;
-}
-
-function isCallToMethod(node: BaseNode, methodName: string): boolean {
-  if (node.type !== 'CallExpression') return false;
-  const callee = (node as CallExpressionNode).callee;
-  if (!callee) return false;
-  if (callee.type === 'Identifier' && callee.name === methodName) return true;
-  return (
-    callee.type === 'MemberExpression' && callee.property?.type === 'Identifier' && callee.property.name === methodName
-  );
-}
 
 /**
  * The kind of Sentry wrapper to apply to an exported class.
@@ -156,23 +110,21 @@ export function applyAutoInstrumentTransforms(
   code: string,
   ast: ProgramBody,
   ctx: TransformContext,
+  rewrite: RewriteState = createRewriteState(code),
 ): TransformResult | undefined {
-  const ms = new MagicString(code);
-  const topLevelClasses = collectTopLevelClasses(ast);
+  const { ms } = rewrite;
   const sameWorkerBindings = ctx.sameWorkerBindings ?? [];
   const state: TransformState = {
-    ms,
-    needsImport: false,
+    rewrite,
     wrappedClasses: new Set<string>(),
-    topLevelClasses,
-    wrappedLocals: new Map<string, string>(),
+    topLevelClasses: collectTopLevelClasses(ast),
     classWrappers: ctx.classWrappers,
     agentClasses: ctx.agentClasses ?? new Set<string>(),
     workerEntrypointClasses: detectWorkerEntrypointClasses(ast),
     // The identifier must be chosen before wrapping, which bindings survive is only known after.
     optionsFn: sameWorkerBindings.length > 0 ? MERGED_OPTIONS_IDENTIFIER : ctx.optionsFn,
     autoWrapped: new Set<ExportName>(),
-    manuallyWrappedLocals: collectManuallyWrappedLocals(ast),
+    manuallyWrappedLocals: collectManuallyWrappedLocals(ast, Object.values(WRAPPER_METHODS)),
     declaringStatements: collectDeclaringStatements(ast),
   };
   const { wrappedClasses } = state;
@@ -188,11 +140,11 @@ export function applyAutoInstrumentTransforms(
   }
   for (const node of ast.body) {
     if (node.type === 'ExportDefaultDeclaration') {
-      wrapDefaultExport(node as ExportDefaultNode, ctx, state);
+      handleDefaultExport(node as ExportDefaultNode, state);
     }
   }
 
-  if (!state.needsImport) {
+  if (!rewrite.needsImport) {
     // Nothing was rewritten. Still surface any classes found already wrapped
     // manually (via `wrappedClasses`) so the caller doesn't warn about them;
     // return undefined only when there was nothing to report either.
@@ -215,19 +167,13 @@ export function applyAutoInstrumentTransforms(
 }
 
 interface TransformState {
-  ms: MagicString;
-  needsImport: boolean;
+  rewrite: RewriteState;
   wrappedClasses: Set<string>;
   /**
    * Top-level class declarations, exported or not, so specifier exports like
    * `export { MyDO }` can locate the class they refer to.
    */
   topLevelClasses: Map<string, ClassDeclarationNode>;
-  /**
-   * Local class name → the binding holding its wrapper, so two exports of the same class share one
-   * wrapper and a default export of it can be re-pointed.
-   */
-  wrappedLocals: Map<string, string>;
   /** Class name → wrapper kind, keyed by the *exported* name (from config). */
   classWrappers: Map<string, ClassWrapperKind>;
   /** Local class names detected as `agents` Agents (see {@link TransformContext.agentClasses}). */
@@ -317,143 +263,27 @@ function resolveWrapperKind(
   return undefined;
 }
 
+/** The `__SENTRY__.<helper>(options, target)` call for a wrapper kind. */
+function wrapWith(kind: ClassWrapperKind, state: TransformState): WrapExpression {
+  return target => `__SENTRY__.${WRAPPER_METHODS[kind]}(${state.optionsFn}, ${target})`;
+}
+
 /**
- * Top-level `const X = instrument*WithSentry(...)` bindings — a hand-wrapped class that is exported
- * separately (`export { X }`) rather than inline.
+ * Like {@link wrapWith}, for a target from another module. The target may already be wrapped in its
+ * own module, which this transform cannot see, so the emitted guard returns such a target as-is
+ * instead of nesting a second wrapper around it.
  */
-function collectManuallyWrappedLocals(ast: ProgramBody): Set<string> {
-  const wrapperMethods = Object.values(WRAPPER_METHODS);
-  const locals = new Set<string>();
-
-  for (const node of ast.body) {
-    const declaration = declarationOf(node);
-    if (declaration?.type !== 'VariableDeclaration') continue;
-    for (const declarator of (declaration as VariableDeclarationNode).declarations ?? []) {
-      const name = declarator.id?.type === 'Identifier' ? declarator.id.name : undefined;
-      const init = declarator.init;
-      if (name && init && wrapperMethods.some(method => isCallToMethod(init, method))) {
-        locals.add(name);
-      }
-    }
-  }
-
-  return locals;
+function guardedWrapWith(kind: ClassWrapperKind, state: TransformState): WrapExpression {
+  return target =>
+    `__SENTRY__._INTERNAL_wrapUnlessInstrumented(__SENTRY__.${WRAPPER_METHODS[kind]}, ${state.optionsFn}, ${target})`;
 }
 
-function collectDeclaringStatements(ast: ProgramBody): Map<string, BaseNode> {
-  const statements = new Map<string, BaseNode>();
-  for (const node of ast.body) {
-    const declaration = declarationOf(node);
-    if (!declaration) continue;
-    const ids =
-      declaration.type === 'VariableDeclaration'
-        ? ((declaration as VariableDeclarationNode).declarations ?? []).map(declarator => declarator.id)
-        : declaration.type === 'ImportDeclaration'
-          ? ((declaration as ImportDeclarationNode).specifiers ?? []).map(specifier => specifier.local)
-          : [(declaration as ClassDeclarationNode).id];
-    for (const id of ids) {
-      if (id?.type === 'Identifier' && id.name) statements.set(id.name, node);
-    }
-  }
-  return statements;
-}
-
-function collectTopLevelClasses(ast: ProgramBody): Map<string, ClassDeclarationNode> {
-  const classes = new Map<string, ClassDeclarationNode>();
-  for (const node of ast.body) {
-    const declaration = declarationOf(node);
-    if (declaration?.type !== 'ClassDeclaration') continue;
-    const classNode = declaration as ClassDeclarationNode;
-    if (classNode.id?.name) classes.set(classNode.id.name, classNode);
-  }
-  return classes;
-}
-
-/** The declaration a top-level statement makes, looking through `export` (`export const x = ...`). */
-function declarationOf(node: BaseNode): BaseNode | null | undefined {
-  return node.type === 'ExportNamedDeclaration' ? (node as ExportNamedNode).declaration : node;
-}
-
-function wrapDefaultExport(node: ExportDefaultNode, ctx: TransformContext, state: TransformState): void {
-  const decl = node.declaration;
-
+function handleDefaultExport(node: ExportDefaultNode, state: TransformState): void {
   // Already wrapped — leave it alone
-  if (isCallToMethod(decl, 'withSentry')) return;
+  if (isCallToMethod(node.declaration, 'withSentry')) return;
 
-  // `export default Foo` where `Foo` is a local class already wrapped by a named
-  // export (e.g. a self-bound WorkerEntrypoint also used as the default handler).
-  // Wrapping again would produce `withSentry(withSentry(...))`, so the default
-  // export is re-pointed at the wrapper binding the named export created.
-  if (decl.type === 'Identifier') {
-    const wrappedName = state.wrappedLocals.get((decl as IdentifierNode).name);
-    if (wrappedName) {
-      state.ms.overwrite(decl.start, decl.end, wrappedName);
-      state.autoWrapped.add(DEFAULT_EXPORT);
-      return;
-    }
-  }
-
-  // MagicString positions are always relative to the original source. Only the `export default`
-  // keywords are replaced, so parentheses around the expression stay.
-  const source = state.ms.original;
-  const keywordsEnd = exportDefaultKeywordsEnd(source, node.start);
-  const declaredName =
-    decl.type === 'ClassDeclaration' || decl.type === 'FunctionDeclaration'
-      ? (decl as ClassDeclarationNode).id?.name
-      : undefined;
-
-  // As with `export { handler as default }`, the export is set in two steps: bound as-is where the
-  // original statement set it, then rebound at the end of the module to the wrapper, which sees
-  // methods added in between. See `wrapDefaultSpecifier`.
-  let wrapped = '__SENTRY_DEFAULT_EXPORT__';
-  if (declaredName) {
-    // `export default class Handler {}`: the declaration stays, so `Handler` stays bound in the module.
-    state.ms.remove(node.start, decl.start);
-    state.ms.appendLeft(node.end, `\nvar __SENTRY_DEFAULT_EXPORT__ = ${declaredName};`);
-    wrapped = declaredName;
-  } else if (isAnonymousFunctionOrClass(decl)) {
-    // As a property value, the class or function gets the name `default`, as `export default` gives it.
-    const hasSemicolon = source[node.end - 1] === ';';
-    state.ms.overwrite(node.start, keywordsEnd, 'var __SENTRY_DEFAULT_EXPORT__ = { default:');
-    state.ms.appendLeft(hasSemicolon ? node.end - 1 : node.end, hasSemicolon ? ' }.default' : ' }.default;');
-  } else {
-    state.ms.overwrite(node.start, keywordsEnd, 'var __SENTRY_DEFAULT_EXPORT__ =');
-  }
-  state.ms.appendLeft(node.end, '\nexport { __SENTRY_DEFAULT_EXPORT__ as default };');
-  state.ms.append(`\n__SENTRY_DEFAULT_EXPORT__ = __SENTRY__.withSentry(${state.optionsFn}, ${wrapped});`);
-  state.needsImport = true;
+  wrapDefaultExport(state.rewrite, node, wrapWith('workerEntrypoint', state));
   state.autoWrapped.add(DEFAULT_EXPORT);
-}
-
-/**
- * Offset just past the `default` keyword of the `export default` statement at `start`. Comments can
- * sit between `export`, `default` and the expression, and may themselves contain the word `default`.
- */
-function exportDefaultKeywordsEnd(source: string, start: number): number {
-  let index = start + 'export'.length;
-  while (index < source.length && !source.startsWith('default', index)) {
-    if (source.startsWith('//', index)) {
-      const lineEnd = source.indexOf('\n', index);
-      index = lineEnd === -1 ? source.length : lineEnd;
-    } else if (source.startsWith('/*', index)) {
-      const commentEnd = source.indexOf('*/', index + 2);
-      index = commentEnd === -1 ? source.length : commentEnd + 2;
-    } else {
-      index++;
-    }
-  }
-  return index + 'default'.length;
-}
-
-function isAnonymousFunctionOrClass(node: BaseNode): boolean {
-  if (node.type === 'ArrowFunctionExpression') return true;
-  const isFunctionOrClass = [
-    'FunctionExpression',
-    'FunctionDeclaration',
-    'ClassExpression',
-    'ClassDeclaration',
-  ].includes(node.type);
-  return isFunctionOrClass && !(node as ClassDeclarationNode).id;
 }
 
 function handleNamedExport(node: ExportNamedNode, ctx: TransformContext, state: TransformState): void {
@@ -469,12 +299,14 @@ function handleNamedExport(node: ExportNamedNode, ctx: TransformContext, state: 
 
   // ---- Named class export matching a configured binding ----
   if (decl?.type === 'ClassDeclaration') {
-    wrapInlineClassExport(node, decl, ctx, state);
+    wrapInlineClassExport(node, decl, state);
     return;
   }
 
   // ---- Specifier export (`export { Foo as MyDO }`, `export { MyDO } from './do'`) ----
-  wrapSpecifierExports(node, ctx, state);
+  wrapSpecifierExports(state.rewrite, node, (specifier, sourceLiteral, prelude) =>
+    wrapSpecifier(specifier, sourceLiteral, state, prelude),
+  );
 }
 
 function collectManuallyWrappedClassExports(
@@ -483,7 +315,7 @@ function collectManuallyWrappedClassExports(
   state: TransformState,
 ): void {
   for (const declarator of varDecl.declarations ?? []) {
-    const name = declarator.id?.type === 'Identifier' ? declarator.id.name : undefined;
+    const name = declarator.id?.type === 'Identifier' ? (declarator.id as { name?: string }).name : undefined;
     const kind = name ? ctx.classWrappers.get(name) : undefined;
     if (!name || !kind || !declarator.init) continue;
 
@@ -498,10 +330,17 @@ function collectManuallyWrappedClassExports(
   }
 }
 
+/**
+ * The class declaration is never renamed (`class __SENTRY_ORIGINAL_MyAgent__`), because that would
+ * also rename what the class reports as `Function.prototype.name`, which libraries read to identify
+ * the user's class: `@cloudflare/think` hands `this.constructor.name` to the AI SDK as the telemetry
+ * `functionId`, and that surfaced as a `gen_ai.invoke_agent __SENTRY_ORIGINAL_MyAgent__` span.
+ * The wrapper gets its own binding instead, the same shape as the documented manual
+ * `instrument*WithSentry` pattern.
+ */
 function wrapInlineClassExport(
   exportNode: ExportNamedNode,
   classDecl: ClassDeclarationNode,
-  ctx: TransformContext,
   state: TransformState,
 ): void {
   const classId = classDecl.id;
@@ -510,142 +349,10 @@ function wrapInlineClassExport(
   if (!classId || !kind) return;
 
   const className = classId.name;
-
-  // Strip the `export ` keyword
-  state.ms.overwrite(exportNode.start, classDecl.start, '');
-
-  const wrappedName = wrapLocalClass(className, classDecl, kind, state);
-  state.ms.appendLeft(exportNode.end, `export { ${wrappedName} as ${className} };\n`);
+  wrapInlineExport(state.rewrite, exportNode, className, wrapWith(kind, state));
 
   state.wrappedClasses.add(className);
   state.autoWrapped.add(className);
-}
-
-/**
- * Wrap a class declared in this module and return the binding that holds the wrapper.
- *
- * The declaration is left exactly as written. Only the *export* has to become the wrapper, so the
- * wrapper gets its own binding and the export is aliased to it, the same shape as the documented
- * manual `instrument*WithSentry` pattern and the cross-module re-export path below. Renaming the
- * declaration instead (`class __SENTRY_ORIGINAL_MyAgent__`) would also rename what the class reports
- * as `Function.prototype.name`, which libraries read to identify the user's class: `@cloudflare/think`
- * hands `this.constructor.name` to the AI SDK as the telemetry `functionId`, and that surfaced as a
- * `gen_ai.invoke_agent __SENTRY_ORIGINAL_MyAgent__` span.
- */
-function wrapLocalClass(
-  localName: string,
-  localClass: ClassDeclarationNode,
-  kind: ClassWrapperKind,
-  state: TransformState,
-): string {
-  const existing = state.wrappedLocals.get(localName);
-  if (existing) return existing;
-
-  const wrappedName = `__SENTRY_WRAPPED_${localName}__`;
-  state.wrappedLocals.set(localName, wrappedName);
-  state.ms.appendLeft(
-    localClass.end,
-    `\nconst ${wrappedName} = __SENTRY__.${WRAPPER_METHODS[kind]}(${state.optionsFn}, ${localName});\n`,
-  );
-  state.needsImport = true;
-  return wrappedName;
-}
-
-/**
- * Wrap the configured classes an `export { ... }` statement names.
- *
- * Each such specifier is re-pointed at a binding holding the wrapper, which means rebuilding the
- * statement; specifiers this plugin has no business touching are carried over verbatim. For a class
- * declared in this module the wrapper binding follows the declaration (see {@link wrapLocalClass}).
- * A class that lives in **another** module — imported and re-exported, or re-exported directly — is
- * first bound under a private name, since an import binding cannot be reassigned and the `from` form
- * has no local binding at all.
- */
-function wrapSpecifierExports(node: ExportNamedNode, ctx: TransformContext, state: TransformState): void {
-  const specifiers = node.specifiers ?? [];
-  if (specifiers.length === 0) return;
-
-  const sourceLiteral = node.source ? state.ms.original.slice(node.source.start, node.source.end) : undefined;
-
-  const prelude: string[] = [];
-  const wrappedPairs: string[] = [];
-  const kept: string[] = [];
-
-  for (const specifier of specifiers) {
-    const pair = wrapSpecifier(specifier, sourceLiteral, ctx, state, prelude);
-    if (pair) {
-      wrappedPairs.push(pair);
-    } else {
-      kept.push(state.ms.original.slice(specifier.start, specifier.end));
-    }
-  }
-
-  if (wrappedPairs.length === 0) return;
-
-  const statements = [...prelude, `export { ${wrappedPairs.join(', ')} };`];
-  if (kept.length > 0) {
-    const clause = `export { ${kept.join(', ')} }`;
-    statements.push(sourceLiteral ? `${clause} from ${sourceLiteral};` : `${clause};`);
-  }
-  state.ms.overwrite(node.start, node.end, statements.join('\n'));
-}
-
-/**
- * `export { handler as default }`, the form bundlers emit for a default export. The export is set
- * in two steps. Right after `handler` is declared, it is bound to `handler` as-is, so a circular
- * import that reads it during module evaluation gets the handler, as before the transform. At the
- * end of the module, it is rebound to the wrapper, so a handler assigned or given methods later is
- * wrapped as it ends up. The binding is a `var`: a read before `handler` is declared gets
- * `undefined`, as it would from the bundler's own `var`, where a `const` would throw and stop the
- * Worker from starting.
- */
-function wrapDefaultSpecifier(localName: string, state: TransformState): string | undefined {
-  if (state.manuallyWrappedLocals.has(localName)) return undefined;
-
-  // Same as `export default Foo`: re-point at the wrapper a named export already made.
-  const wrappedName = state.wrappedLocals.get(localName);
-  if (wrappedName) {
-    state.autoWrapped.add(DEFAULT_EXPORT);
-    return `${wrappedName} as default`;
-  }
-
-  const declaringStatement = state.declaringStatements.get(localName);
-  if (declaringStatement) {
-    state.ms.appendLeft(declaringStatement.end, `\nvar __SENTRY_DEFAULT_EXPORT__ = ${localName};`);
-  }
-  state.ms.append(
-    `\n${declaringStatement ? '' : 'var '}__SENTRY_DEFAULT_EXPORT__ = __SENTRY__.withSentry(${state.optionsFn}, ${localName});`,
-  );
-  state.needsImport = true;
-  state.autoWrapped.add(DEFAULT_EXPORT);
-  return '__SENTRY_DEFAULT_EXPORT__ as default';
-}
-
-/**
- * `export { default } from './handler'`. The handler may already be wrapped in its own module,
- * which this transform cannot see, so the emitted guard returns such a handler as-is.
- *
- * The original re-export is a live binding to the handler module's export, but the wrapper is not
- * set until this module's body runs. A circular import that reads the default export before then
- * gets `undefined` instead of the handler. The binding is a `var` so that the read does not throw,
- * as a `const` would, and stop the Worker from starting. See `wrapDefaultSpecifier`.
- */
-function wrapDefaultReexport(
-  localName: string,
-  sourceLiteral: string,
-  state: TransformState,
-  prelude: string[],
-): string {
-  const target = '__SENTRY_REEXPORT_default__';
-  prelude.push(
-    localName === DEFAULT_IMPORT
-      ? `import ${target} from ${sourceLiteral};`
-      : `import { ${localName} as ${target} } from ${sourceLiteral};`,
-    `var __SENTRY_DEFAULT_EXPORT__ = __SENTRY__._INTERNAL_wrapUnlessInstrumented(__SENTRY__.withSentry, ${state.optionsFn}, ${target});`,
-  );
-  state.needsImport = true;
-  state.autoWrapped.add(DEFAULT_EXPORT);
-  return '__SENTRY_DEFAULT_EXPORT__ as default';
 }
 
 /**
@@ -659,7 +366,6 @@ function wrapDefaultReexport(
 function wrapSpecifier(
   specifier: ExportSpecifierNode,
   sourceLiteral: string | undefined,
-  ctx: TransformContext,
   state: TransformState,
   prelude: string[],
 ): string | undefined {
@@ -676,9 +382,26 @@ function wrapSpecifier(
   if (!exportedName || !localName) return undefined;
   if (!kind) {
     if (exportedName !== DEFAULT_IMPORT) return undefined;
-    return sourceLiteral
-      ? wrapDefaultReexport(localName, sourceLiteral, state, prelude)
-      : wrapDefaultSpecifier(localName, state);
+    if (sourceLiteral) {
+      const pair = wrapDefaultReexport(
+        state.rewrite,
+        localName,
+        sourceLiteral,
+        prelude,
+        guardedWrapWith('workerEntrypoint', state),
+      );
+      state.autoWrapped.add(DEFAULT_EXPORT);
+      return pair;
+    }
+    if (state.manuallyWrappedLocals.has(localName)) return undefined;
+    const pair = wrapDefaultSpecifier(
+      state.rewrite,
+      localName,
+      state.declaringStatements.get(localName),
+      wrapWith('workerEntrypoint', state),
+    );
+    state.autoWrapped.add(DEFAULT_EXPORT);
+    return pair;
   }
 
   // Without a `from` clause the specifier points at a module-local binding.
@@ -686,7 +409,7 @@ function wrapSpecifier(
     const localClass = state.topLevelClasses.get(localName);
 
     if (localClass?.id) {
-      const wrappedName = wrapLocalClass(localName, localClass, kind, state);
+      const wrappedName = wrapLocalBinding(state.rewrite, localName, localClass, wrapWith(kind, state));
       state.wrappedClasses.add(exportedName);
       return `${wrappedName} as ${exportedName}`;
     }
@@ -699,27 +422,15 @@ function wrapSpecifier(
 
   // The class comes from another module: bind it under a private name (for the `from` form, which
   // has no local binding at all), wrap that, and export the wrapper under the configured name.
-  let target = localName;
-
-  if (sourceLiteral) {
-    target = `__SENTRY_REEXPORT_${exportedName}__`;
-    prelude.push(
-      localName === DEFAULT_IMPORT
-        ? `import ${target} from ${sourceLiteral};`
-        : `import { ${localName} as ${target} } from ${sourceLiteral};`,
-    );
-  }
-
-  const wrappedName = `__SENTRY_WRAPPED_${exportedName}__`;
-
-  // The class may already be hand-wrapped in its own module, which this transform cannot see. The
-  // emitted guard returns such a class as-is instead of nesting a second wrapper around it.
-  prelude.push(
-    `const ${wrappedName} = __SENTRY__._INTERNAL_wrapUnlessInstrumented(__SENTRY__.${WRAPPER_METHODS[kind]}, ${state.optionsFn}, ${target});`,
+  const pair = wrapForeignExport(
+    state.rewrite,
+    localName,
+    exportedName,
+    sourceLiteral,
+    prelude,
+    guardedWrapWith(kind, state),
   );
   state.wrappedClasses.add(exportedName);
   state.autoWrapped.add(exportedName);
-  state.needsImport = true;
-
-  return `${wrappedName} as ${exportedName}`;
+  return pair;
 }

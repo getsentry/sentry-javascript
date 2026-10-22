@@ -1210,6 +1210,9 @@ importers:
       '@opentelemetry/api':
         specifier: ^1.9.1
         version: 1.10.0
+      '@sentry/bundler-plugins':
+        specifier: 11.10.0
+        version: link:../bundler-plugins
       '@sentry/conventions':
         specifier: ^0.30.0
         version: 0.30.0
@@ -1235,9 +1238,6 @@ importers:
       '@types/node':
         specifier: ^20.19.0
         version: 20.19.43
-      acorn:
-        specifier: ^8.14.0
-        version: 8.18.0
       vite:
         specifier: ^8.3.5
         version: 8.3.5(@types/node@20.19.43)(esbuild@0.28.1)(jiti@2.7.0)(less@4.2.0(supports-color@10.0.0))(sass@1.72.0)(stylus@0.59.0(supports-color@10.0.0))(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.0)

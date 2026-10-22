@@ -1,16 +1,20 @@
 import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { parse } from 'acorn';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { loadParser, parseModule } from '@sentry/bundler-plugins/rewriter';
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { sentryCloudflareAutoInstrumentPlugin } from '../../src/vite/autoInstrument';
 
 const { idResolver } = vi.hoisted(() => ({ idResolver: vi.fn() }));
 vi.mock('vite', () => ({ createIdResolver: () => idResolver }));
 
 function parseJS(code: string) {
-  return parse(code, { ecmaVersion: 'latest', sourceType: 'module' }) as unknown as { body: any[] };
+  return parseModule(code, 'module.js') as unknown as { body: any[] };
 }
+
+beforeAll(async () => {
+  await loadParser();
+});
 
 const tempDirs: string[] = [];
 

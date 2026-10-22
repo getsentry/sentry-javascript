@@ -1,10 +1,14 @@
-import { parse } from 'acorn';
-import { describe, expect, it } from 'vitest';
+import { loadParser, parseModule } from '@sentry/bundler-plugins/rewriter';
+import { beforeAll, describe, expect, it } from 'vitest';
 import { collectAgentCandidates, detectAgentClasses, type ModuleResolver } from '../../src/vite/agentClass';
 
 function parseJS(code: string) {
-  return parse(code, { ecmaVersion: 'latest', sourceType: 'module' }) as unknown as { body: any[] };
+  return parseModule(code, 'module.js') as unknown as { body: any[] };
 }
+
+beforeAll(async () => {
+  await loadParser();
+});
 
 const ENTRY = '/app/src/index.js';
 
