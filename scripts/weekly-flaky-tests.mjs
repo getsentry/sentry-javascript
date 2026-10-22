@@ -123,11 +123,14 @@ export async function collectReport({ github, context, core, now = new Date() })
         }
 
         // A test that passed on retry also has a failure annotation for its failed attempt. The rest of the failure
-        // annotations of the job are tests that failed every attempt.
+        // annotations of the job are tests that failed every attempt. The path tells apart the apps of an E2E job,
+        // whose tests can have the same names.
+        const testKey = (annotation, name) => JSON.stringify([annotation.path, name]);
         const passedOnRetry = new Map(
-          annotations
-            .filter(isFlakyAnnotation)
-            .map(annotation => [normalizeTestName(annotation.title.slice(FLAKY_ANNOTATION_PREFIX.length)), annotation]),
+          annotations.filter(isFlakyAnnotation).map(annotation => {
+            const name = normalizeTestName(annotation.title.slice(FLAKY_ANNOTATION_PREFIX.length));
+            return [testKey(annotation, name), { annotation, name }];
+          }),
         );
         const family = normalizeJobName(job.name);
         const record = (annotation, name, retried) => {
@@ -148,12 +151,12 @@ export async function collectReport({ github, context, core, now = new Date() })
         const recorded = new Set();
         for (const annotation of failures) {
           const name = normalizeTestName(annotation.title);
-          record(annotation, name, passedOnRetry.has(name));
-          recorded.add(name);
+          record(annotation, name, passedOnRetry.has(testKey(annotation, name)));
+          recorded.add(testKey(annotation, name));
         }
         // GitHub keeps at most 10 failure annotations per step, so a flaky test can lack one.
-        for (const [name, annotation] of passedOnRetry) {
-          if (!recorded.has(name)) {
+        for (const [key, { annotation, name }] of passedOnRetry) {
+          if (!recorded.has(key)) {
             record(annotation, name, true);
           }
         }

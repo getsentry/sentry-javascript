@@ -144,6 +144,30 @@ describe('collectReport', () => {
     ]);
   });
 
+  it('tells apart identically named tests of different apps in the same job', async () => {
+    const flakyVariantPath = '../../_temp/e2e/nextjs-16-turbopack/tests/flaky.test.ts';
+    const github = createGithub(
+      [{ id: 40, event: 'push', conclusion: 'failure', run_attempt: 1 }],
+      {
+        40: [job(400, 'E2E nextjs-16, nextjs-16 (turbopack) Test', 'failure', ['Run E2E test', FLAKY_STEP_NAME])],
+      },
+      {
+        400: [
+          annotation(flakyPath, '[chromium] › flaky.test.ts:3:5 › works'),
+          annotation(flakyVariantPath, '[chromium] › flaky.test.ts:3:5 › works'),
+          flakyAnnotation(flakyVariantPath, '[chromium] › flaky.test.ts:3:5 › works'),
+        ],
+      },
+    );
+
+    const report = await collectReport({ github, context, core, now: new Date('2026-10-22T00:00:00Z') });
+
+    expect(report.tests.map(test => [test.path, test.name, test.runs.size, test.retriedRuns.size])).toEqual([
+      [flakyVariantPath, 'flaky.test.ts › works', 1, 1],
+      [flakyPath, 'flaky.test.ts › works', 1, 0],
+    ]);
+  });
+
   it('does not inspect a passing job without tests that passed on retry', async () => {
     const github = createGithub(
       [{ id: 30, event: 'push', conclusion: 'success', run_attempt: 1 }],
