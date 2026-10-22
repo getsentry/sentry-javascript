@@ -38,6 +38,7 @@
   },
   "devDependencies": {
     "@edge-runtime/types": "4.0.0",
+    "@sentry-internal/rollup-utils": "11.8.0",
     "@sentry/opentelemetry": "11.8.0"
   },
   "scripts": {
