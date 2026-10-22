@@ -93,7 +93,7 @@ export function applyTunnelDefaults(
 export function getTunnelPath(dsn: DsnLike): string | undefined {
   const components = makeDsn(dsn);
 
-  return components ? `/${fnv1a(dsnToString(components)).toString(36)}` : undefined;
+  return components ? `/${fnv1a32(dsnToString(components)).toString(36)}` : undefined;
 }
 
 /**
@@ -423,10 +423,11 @@ function stripBasePath(pathname: string, basePath: string | undefined): string |
 }
 
 /**
- * 32-bit FNV-1a: synchronous (the browser needs it in `init`) and dependency free. Changing it breaks mixed SDK
- * versions, since browser and server compute the path separately.
+ * 32-bit FNV-1a (https://www.ietf.org/archive/id/draft-eastlake-fnv-22.html#name-fnv32-code): synchronous (the
+ * browser needs it in `init`) and dependency free. Changing it breaks mixed SDK versions, since browser and server
+ * compute the path separately.
  */
-function fnv1a(input: string): number {
+function fnv1a32(input: string): number {
   let hash = 0x811c9dc5;
   for (let i = 0; i < input.length; i++) {
     // eslint-disable-next-line no-bitwise
