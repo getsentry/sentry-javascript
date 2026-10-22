@@ -59,6 +59,7 @@
   },
   "devDependencies": {
     "@effect/vitest": "^4.0.0",
+    "@sentry-internal/rollup-utils": "11.8.0",
     "effect": "^4.0.0"
   },
   "scripts": {
