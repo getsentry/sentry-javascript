@@ -348,6 +348,7 @@ export function getBuildPluginOptions({
       assets: sentryBuildOptions.sourcemaps?.assets ?? sourcemapUploadAssets,
       ignore: finalIgnorePatterns,
       filesToDeleteAfterUpload,
+      deleteSourcemapsAfterUpload: false,
       resolveSourceMap: sentryBuildOptions.sourcemaps?.resolveSourceMap,
     },
     release: createReleaseConfig(releaseName, sentryBuildOptions),

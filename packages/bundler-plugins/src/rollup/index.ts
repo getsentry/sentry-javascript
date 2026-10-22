@@ -21,6 +21,7 @@ import * as path from 'node:path';
 import { createRequire } from 'node:module';
 import { finalizeRolldownDebugIds, getDebugIdForChunk, hasExistingDebugID } from './debug-id-injection';
 import { stampDebugIds, type OutputBundle } from './debug-id-stamping';
+import { createSourceMapHandling, type OutputDestinationOptions } from './source-map-handling';
 
 // The subset of Rollup's `TransformResult` that this plugin's `transform`
 // hook actually returns. Defined locally instead of imported from `rollup`
@@ -81,10 +82,14 @@ function getViteParseAstAsync(): Promise<ViteParseAstAsync | null> {
 }
 
 /**
- * @ignore - this is the internal plugin factory function only used for the Vite plugin!
+ * @ignore - internal plugin factory shared by the Rollup and Vite plugins.
+ *
+ * `main` carries injection, release creation and the upload. `post` runs last in `generateBundle`,
+ * copies chunks and their source maps into the upload staging folder and drops the map assets
+ * from the bundle, so the bundler never writes them.
  */
 // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
-export function _rollupPluginInternal(
+export function _createRollupPluginInternals(
   userOptions: Options = {},
   buildTool: 'rollup' | 'vite',
   buildToolMajorVersion?: string,
@@ -105,7 +110,10 @@ export function _rollupPluginInternal(
 
   if (options.disable) {
     return {
-      name: 'sentry-noop-plugin',
+      main: {
+        name: 'sentry-noop-plugin',
+      },
+      post: undefined,
     };
   }
 
@@ -116,6 +124,7 @@ export function _rollupPluginInternal(
   const freeGlobalDependencyOnBuildArtifacts = createDependencyOnBuildArtifacts();
   const upload = createDebugIdUploadFunction({ sentryBuildPluginManager });
   const sourcemapsEnabled = options.sourcemaps?.disable !== true;
+  const sourceMapHandling = createSourceMapHandling(sentryBuildPluginManager);
   const releaseInjectionCode = new CodeInjection();
   const chunkInjectionCode = new CodeInjection();
 
@@ -256,9 +265,11 @@ export function _rollupPluginInternal(
   }
 
   async function writeBundle(
-    outputOptions: { dir?: string; file?: string },
+    outputOptions: OutputDestinationOptions,
     bundle: { [fileName: string]: unknown },
   ): Promise<void> {
+    const staging = sourceMapHandling.takeStaging(outputOptions);
+
     try {
       await sentryBuildPluginManager.createRelease();
 
@@ -274,13 +285,15 @@ export function _rollupPluginInternal(
             '/**/*.cjs.map',
           ].map(q => `${q}?(\\?*)?(#*)`); // We want to allow query and hash strings at the end of files
           const buildArtifacts = await globFiles(JS_AND_MAP_PATTERNS, { root: outputDir });
-          await upload(buildArtifacts);
+          await upload(buildArtifacts, { staging });
         } else if (outputOptions.file) {
-          await upload([outputOptions.file]);
+          await upload([outputOptions.file], { staging });
         } else {
           const buildArtifacts = Object.keys(bundle).map(asset => path.join(path.resolve(), asset));
-          await upload(buildArtifacts);
+          await upload(buildArtifacts, { staging });
         }
+      } else {
+        await staging?.discard();
       }
     } finally {
       freeGlobalDependencyOnBuildArtifacts();
@@ -297,21 +310,44 @@ export function _rollupPluginInternal(
         }
       : transform;
 
-  return {
+  const main = {
     name,
     buildStart,
     ...(shouldTransform ? { transform: transformHook } : {}),
+    // Vite warns about `rollupOptions.output.sourcemap`, so the Vite plugin
+    // decides in its `config` hook instead.
+    ...(buildTool === 'rollup' ? { outputOptions: sourceMapHandling.outputOptions } : {}),
     renderChunk,
     generateBundle: { order: 'pre' as const, handler: generateBundle },
     writeBundle,
   };
+
+  const post = {
+    name: `sentry-${buildTool}-upload-staging`,
+    generateBundle: { order: 'post' as const, handler: sourceMapHandling.stageSourceMaps },
+  };
+
+  return { main, post };
+}
+
+/**
+ * @ignore - this is the internal plugin factory function only used for the Vite plugin!
+ */
+// eslint-disable-next-line @typescript-eslint/explicit-function-return-type
+export function _rollupPluginInternal(
+  userOptions: Options = {},
+  buildTool: 'rollup' | 'vite',
+  buildToolMajorVersion?: string,
+) {
+  return _createRollupPluginInternals(userOptions, buildTool, buildToolMajorVersion).main;
 }
 
 // eslint-disable-next-line @typescript-eslint/explicit-function-return-type, @typescript-eslint/no-explicit-any
 export function sentryRollupPlugin(userOptions: Options = {}): any {
+  const { main, post } = _createRollupPluginInternals(userOptions, 'rollup');
   // We return an array here so we don't break backwards compatibility with what
   // unplugin used to return
-  return [_rollupPluginInternal(userOptions, 'rollup')];
+  return post ? [main, post] : [main];
 }
 
 export type { Options as SentryRollupPluginOptions } from '../core';

@@ -77,6 +77,7 @@ export async function makeCustomSentryVitePlugins(
     sourcemaps: {
       ...options?.sourcemaps,
       filesToDeleteAfterUpload: filesToDeleteAfterUploadPromise,
+      deleteSourcemapsAfterUpload: false,
     },
   };
 

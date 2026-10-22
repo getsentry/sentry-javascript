@@ -385,6 +385,7 @@ describe('deleteFilesAfterUpload', () => {
       },
       sourcemaps: {
         filesToDeleteAfterUpload: expect.any(Promise),
+        deleteSourcemapsAfterUpload: false,
       },
     });
 
@@ -463,6 +464,7 @@ describe('deleteFilesAfterUpload', () => {
         },
         sourcemaps: {
           filesToDeleteAfterUpload: expect.any(Promise),
+          deleteSourcemapsAfterUpload: false,
         },
       });
 
