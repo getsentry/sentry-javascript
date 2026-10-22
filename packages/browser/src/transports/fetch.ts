@@ -1,5 +1,5 @@
 import type { Transport, TransportMakeRequestResponse, TransportRequest } from '@sentry/core';
-import { createTransport, makePromiseBuffer } from '@sentry/core';
+import { createTransport, makePromiseBuffer, TUNNEL_RESPONSE_HEADER } from '@sentry/core';
 import { clearCachedImplementation, getNativeImplementation } from '@sentry/browser-utils';
 import type { WINDOW } from '../helpers';
 import type { BrowserTransportOptions } from './types';
@@ -50,7 +50,7 @@ export function makeFetchTransport(
         headers: {
           'x-sentry-rate-limits': response.headers.get('X-Sentry-Rate-Limits'),
           'retry-after': response.headers.get('Retry-After'),
-          'x-sentry-tunnel': response.headers.get('X-Sentry-Tunnel'),
+          'x-sentry-tunnel': response.headers.get(TUNNEL_RESPONSE_HEADER),
         },
       };
     } catch (e) {
