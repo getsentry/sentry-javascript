@@ -1,4 +1,4 @@
-import type { TunnelOptions } from '@sentry/core';
+import type { BrowserTunnelOptions } from '@sentry/core';
 import type { AstroConfig } from 'astro';
 import { TUNNEL_OPTIONS_GLOBAL } from '../tunnel';
 import { WORKER_ENTRY_IDS, type VitePlugin } from './cloudflare';
@@ -7,7 +7,9 @@ const TUNNEL_OPTIONS_MODULE = 'virtual:@sentry/astro/tunnel-options';
 const RESOLVED_TUNNEL_OPTIONS_MODULE = `\0${TUNNEL_OPTIONS_MODULE}`;
 
 /** The tunnel options Astro's routing requires, or `undefined` if the defaults work. */
-export function getAstroTunnelOptions(config: Pick<AstroConfig, 'base' | 'trailingSlash'>): TunnelOptions | undefined {
+export function getAstroTunnelOptions(
+  config: Pick<AstroConfig, 'base' | 'trailingSlash'>,
+): BrowserTunnelOptions | undefined {
   const basePath = config.base?.replace(/\/$/, '');
   const trailingSlash = config.trailingSlash === 'always';
 
@@ -24,7 +26,7 @@ export const TUNNEL_OPTIONS_IMPORT = `import "${TUNNEL_OPTIONS_MODULE}";\n`;
  * defaults, because the server client isn't always `@sentry/astro`'s: on Cloudflare Workers it's `@sentry/cloudflare`'s,
  * created per request. The Worker entry imports the module first, so the defaults are set before any client exists.
  */
-export function makeTunnelOptionsVitePlugin(tunnelOptions: TunnelOptions): VitePlugin {
+export function makeTunnelOptionsVitePlugin(tunnelOptions: BrowserTunnelOptions): VitePlugin {
   return {
     name: 'sentry-astro-tunnel-options',
     resolveId: id => (id === TUNNEL_OPTIONS_MODULE ? RESOLVED_TUNNEL_OPTIONS_MODULE : null),
