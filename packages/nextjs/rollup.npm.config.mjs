@@ -12,6 +12,7 @@ export default [
         'src/server/index.ts',
         'src/edge/index.ts',
         'src/config/index.ts',
+        'src/tunnel/index.ts',
       ],
 
       // prevent this internal nextjs code from ending up in our built package (this doesn't happen automatically because

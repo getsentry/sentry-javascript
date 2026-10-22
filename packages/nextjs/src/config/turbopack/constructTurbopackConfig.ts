@@ -11,6 +11,7 @@ import type {
   TurbopackOptions,
 } from '../types';
 import { supportsNativeDebugIds, supportsTurbopackRuleCondition } from '../util';
+import { getTunnelRouteInjectedValues } from '../withSentryConfig/tunnel';
 import { generateValueInjectionRules } from './generateValueInjectionRules';
 
 /**
@@ -46,17 +47,10 @@ export function constructTurbopackConfig({
     ...(shouldEnableNativeDebugIds ? { debugIds: true } : {}),
   };
 
-  const tunnelPath =
-    userSentryOptions?.tunnelRoute !== undefined &&
-    userNextConfig.output !== 'export' &&
-    typeof userSentryOptions.tunnelRoute === 'string'
-      ? `${userNextConfig.basePath ?? ''}${userSentryOptions.tunnelRoute}`
-      : undefined;
-
   const valueInjectionRules = generateValueInjectionRules({
     routeManifest,
     nextJsVersion,
-    tunnelPath,
+    tunnelRouteValues: getTunnelRouteInjectedValues(userNextConfig, userSentryOptions),
     vercelCronsConfig,
   });
 
@@ -73,13 +67,14 @@ export function constructTurbopackConfig({
   // so it is safe even for node_modules with strict initialization order.
   // We only exclude Next.js build polyfills which contain non-standard syntax that causes
   // parse errors when any code is prepended (Turbopack re-parses the loader output).
+  // Server and edge modules are skipped because only the browser reads these tags.
   // eslint-disable-next-line typescript/no-deprecated
   const applicationKey = userSentryOptions?.applicationKey ?? userSentryOptions?._experimental?.turbopackApplicationKey;
   if (applicationKey && nextJsVersion && supportsTurbopackRuleCondition(nextJsVersion)) {
     newConfig.rules = safelyAddTurbopackRule(newConfig.rules, {
       matcher: '*.{ts,tsx,js,jsx,mjs,cjs}',
       rule: {
-        condition: { not: { path: /next\/dist\/build\/polyfills/ } },
+        condition: { all: ['browser', { not: { path: /next\/dist\/build\/polyfills/ } }] },
         loaders: [
           {
             loader: path.resolve(__dirname, '..', 'loaders', 'moduleMetadataInjectionLoader.js'),
