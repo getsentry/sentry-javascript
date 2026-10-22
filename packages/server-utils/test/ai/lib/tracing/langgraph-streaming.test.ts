@@ -416,4 +416,31 @@ describe('LangGraph stream cancellation and tee', () => {
     expect(span.setStatus).toHaveBeenCalledExactlyOnceWith({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
     expect(span.end).toHaveBeenCalledTimes(1);
   });
+
+  it.each([
+    ['pipeThrough without a readable side', (stream: ReadableStream<string>) => stream.pipeThrough({ writable: new WritableStream() } as ReadableWritablePair<string, string>)],
+    ['pipeThrough with an invalid signal', (stream: ReadableStream<string>) => stream.pipeThrough(new TransformStream(), { signal: {} as AbortSignal })],
+    ['pipeTo with an invalid signal', (stream: ReadableStream<string>) => stream.pipeTo(new WritableStream(), { signal: {} as AbortSignal })],
+  ])('rejects %s without locking the source', async (_label, pipe) => {
+    const span = createSpan();
+    const stream = instrumentStreamResult(
+      new ReadableStream<string>({
+        start(controller) {
+          controller.enqueue('Sunny');
+          controller.close();
+        },
+      }),
+      span as unknown as Span,
+      null,
+      false,
+    );
+
+    await expect(async () => pipe(stream)).rejects.toThrow(TypeError);
+
+    expect(stream.locked).toBe(false);
+    const reader = stream.getReader();
+    expect(await reader.read()).toEqual({ done: false, value: 'Sunny' });
+    expect(await reader.read()).toEqual({ done: true, value: undefined });
+    expect(span.end).toHaveBeenCalledTimes(1);
+  });
 });

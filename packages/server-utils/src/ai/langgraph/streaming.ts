@@ -237,9 +237,20 @@ function instrumentReadableStream(
 
   // Native piping reads through internal slots, bypassing the patched `getReader`. The checks mirror
   // native piping's own, made before the reader is taken so a rejected pipe leaves the source unlocked.
-  const instrumentedSource = (destination: WritableStream<unknown> | undefined): ReadableStream<unknown> => {
-    if (stream.locked || typeof destination?.getWriter !== 'function' || destination.locked) {
-      throw new TypeError('Cannot pipe a locked stream, or to a missing or locked destination.');
+  const instrumentedSource = (
+    destination: WritableStream<unknown> | undefined,
+    options: StreamPipeOptions | undefined,
+    hasReadable = true,
+  ): ReadableStream<unknown> => {
+    const signal = options?.signal;
+    if (
+      stream.locked ||
+      typeof destination?.getWriter !== 'function' ||
+      destination.locked ||
+      !hasReadable ||
+      (signal !== undefined && !(signal instanceof AbortSignal))
+    ) {
+      throw new TypeError('Cannot pipe a locked stream, or with a missing or locked destination or an invalid signal.');
     }
     return readableFromReader(stream.getReader());
   };
@@ -250,14 +261,15 @@ function instrumentReadableStream(
 
   if (stream.pipeTo) {
     stream.pipeTo = async (destination: WritableStream<unknown>, options?: StreamPipeOptions): Promise<void> =>
-      instrumentedSource(destination).pipeTo(destination, options);
+      instrumentedSource(destination, options).pipeTo(destination, options);
   }
 
   if (stream.pipeThrough) {
     stream.pipeThrough = (
       transform: ReadableWritablePair<unknown, unknown>,
       options?: StreamPipeOptions,
-    ): ReadableStream<unknown> => instrumentedSource(transform?.writable).pipeThrough(transform, options);
+    ): ReadableStream<unknown> =>
+      instrumentedSource(transform?.writable, options, !!transform?.readable).pipeThrough(transform, options);
   }
 }
 
