@@ -1,5 +1,5 @@
 import { fileURLToPath } from 'node:url';
-import { debug, GLOBAL_OBJ, normalizeTunnelBasePath } from '@sentry/core';
+import { debug, GLOBAL_OBJ, _INTERNAL_normalizeTunnelBasePath as normalizeTunnelBasePath } from '@sentry/core';
 import { INSTRUMENTED_MODULE_NAMES } from '@sentry/server-utils/orchestrion/config';
 import {
   commonJSInteropOptions,

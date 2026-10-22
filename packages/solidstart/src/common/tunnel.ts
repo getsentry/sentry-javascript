@@ -1,5 +1,5 @@
 import type { Options } from '@sentry/core';
-import { applyTunnelDefaults } from '@sentry/core';
+import { _INTERNAL_applyTunnelDefaults as applyTunnelDefaults } from '@sentry/core';
 
 /** Set on the server by `withSentry` to the app's `server.baseURL`. */
 export const TUNNEL_BASE_PATH_GLOBAL = '__sentry_solidstart_base_path';
