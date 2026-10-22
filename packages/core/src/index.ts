@@ -426,6 +426,7 @@ export type {
   ClientOptions,
   CoreOptions as Options,
   ServerTunnelOptions,
+  TunnelInit,
   TunnelOptions,
 } from './types/options';
 export type { Package } from './types/package';

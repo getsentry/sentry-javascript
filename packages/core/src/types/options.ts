@@ -673,6 +673,19 @@ export interface ServerTunnelOptions extends TunnelOptions {
   allowedDsns?: string[];
 }
 
+/**
+ * The `tunnel` option, where to send envelopes instead of the Sentry ingest URL:
+ *
+ * - A URL, e.g. `https://example.com/tunnel`, sends envelopes to your own tunnel endpoint.
+ * - A relative path, e.g. `/monitor`, enables the managed tunnel at that fixed path. The browser sends envelopes to
+ *   it and the server SDK serves it, so set the same path in both `init`s.
+ * - `true` enables the managed tunnel at a same-origin path derived from the DSN. Set it in both the browser and the
+ *   server `init`: the browser sends envelopes to that path and the server SDK forwards them to Sentry. This keeps
+ *   ad-blockers from dropping events.
+ * - Options, like `true`, with the browser or server options of the managed tunnel.
+ */
+export type TunnelInit<T extends TunnelOptions = TunnelOptions> = string | true | T;
+
 /** Base configuration options for every SDK. */
 export interface CoreOptions<TO extends BaseTransportOptions = BaseTransportOptions> extends Omit<
   Partial<ClientOptions<TO>>,

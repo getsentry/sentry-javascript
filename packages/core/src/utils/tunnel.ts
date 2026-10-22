@@ -4,7 +4,7 @@ import { getClient } from '../currentScopes';
 import { suppressTracing } from '../tracing/trace';
 import { URL_PATH } from '@sentry/conventions/attributes';
 import type { DsnComponents, DsnLike } from '../types/dsn';
-import type { IgnoreSpanFilter, ServerTunnelOptions, TunnelOptions } from '../types/options';
+import type { IgnoreSpanFilter, ServerTunnelOptions, TunnelInit, TunnelOptions } from '../types/options';
 import { escapeStringForRegex } from '../vendor/escapeStringForRegex';
 import { debug } from './debug-logger';
 import { dsnToString, makeDsn } from './dsn';
@@ -48,7 +48,7 @@ export interface HandleTunnelRequestOptions {
 /**
  * Splits a server `tunnel` option: a URL stays the transport tunnel, anything else enables the managed tunnel.
  */
-export function resolveServerTunnelOption(tunnel: string | true | ServerTunnelOptions | undefined): {
+export function resolveServerTunnelOption(tunnel: TunnelInit<ServerTunnelOptions> | undefined): {
   tunnel: string | undefined;
   _managedTunnel?: ServerTunnelOptions;
 } {
@@ -69,9 +69,9 @@ export function resolveServerTunnelOption(tunnel: string | true | ServerTunnelOp
  * The base path is normalized, and a root one is no default at all.
  */
 export function applyTunnelDefaults(
-  tunnel: string | true | TunnelOptions | undefined,
+  tunnel: TunnelInit | undefined,
   defaults: TunnelOptions | undefined,
-): string | true | TunnelOptions | undefined {
+): TunnelInit | undefined {
   const { basePath, ...rest } = defaults ?? {};
   const normalizedBasePath = normalizeTunnelBasePath(basePath);
   const resolvedDefaults: TunnelOptions = normalizedBasePath ? { ...rest, basePath: normalizedBasePath } : rest;
