@@ -343,6 +343,14 @@ jobs:
             run: pnpm run lint:es-compatibility
           - name: Lint types
             run: pnpm run lint:types
+          - name: Check for circular dependencies
+            run: pnpm run circularDepCheck
+          - name: Check for dts files that reference stuff in the temporary build folder
+            run: |
+              if grep -r --include "*.d.ts" --exclude-dir ".nx" 'import("@sentry(-internal)?/[^/]*/build' .; then
+                echo "Found illegal TypeScript import statement."
+                exit 1
+              fi
           - name: Check Playwright versions
             run: |
               version=$(node -p "require('./dev-packages/test-utils/package.json').devDependencies['@playwright/test']")
@@ -405,27 +413,6 @@ jobs:
 
       - name: Check file formatting
         run: pnpm run format:check
-
-  job_circular_dep_check:
-    name: Circular Dependency Check
-    needs: [job_get_metadata, job_build]
-    timeout-minutes: 10
-    runs-on:
-      namespace-profile-sentry-javascript;overrides.cache-tag=sentry-javascript${{ github.event_name == 'pull_request'
-      && '-pr' || '' }}
-    steps:
-      - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
-        uses: actions/checkout@v7
-        with:
-          ref: ${{ env.HEAD_COMMIT }}
-      - name: Set up Node
-        uses: actions/setup-node@v7
-        with:
-          node-version-file: 'package.json'
-      - name: Restore caches
-        uses: ./.github/actions/restore-cache
-      - name: Run madge
-        run: pnpm run circularDepCheck
 
   job_artifacts:
     name: Upload Artifacts
@@ -771,31 +758,6 @@ jobs:
           path: dev-packages/browser-integration-tests/test-results
           overwrite: true
           retention-days: 7
-
-  job_check_for_faulty_dts:
-    name: Check for faulty .d.ts files
-    needs: [job_get_metadata, job_build]
-    runs-on:
-      namespace-profile-sentry-javascript;overrides.cache-tag=sentry-javascript${{ github.event_name == 'pull_request'
-      && '-pr' || '' }}
-    timeout-minutes: 5
-    steps:
-      - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
-        uses: actions/checkout@v7
-        with:
-          ref: ${{ env.HEAD_COMMIT }}
-      - name: Set up Node
-        uses: actions/setup-node@v7
-        with:
-          node-version-file: 'package.json'
-      - name: Restore caches
-        uses: ./.github/actions/restore-cache
-      - name: Check for dts files that reference stuff in the temporary build folder
-        run: |
-          if grep -r --include "*.d.ts" --exclude-dir ".nx" 'import("@sentry(-internal)?/[^/]*/build' .; then
-            echo "Found illegal TypeScript import statement."
-            exit 1
-          fi
 
   job_node_integration_tests:
     name: Node (${{ matrix.node }}) Integration Tests (${{ matrix.shard }}/3)
@@ -1215,7 +1177,6 @@ jobs:
         job_lint,
         job_check_lockfile,
         job_check_format,
-        job_circular_dep_check,
         job_size_check,
       ]
     # Always run this, even if a dependent job failed
