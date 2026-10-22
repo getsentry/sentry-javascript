@@ -1,4 +1,4 @@
-import type { ClientOptions, Options, TracePropagationTargets } from '@sentry/core';
+import type { ClientOptions, Options, ServerTunnelOptions, TracePropagationTargets, TunnelInit } from '@sentry/core';
 import type { VercelEdgeClient } from './client';
 import type { VercelEdgeTransportOptions } from './transports';
 
@@ -58,7 +58,12 @@ export interface BaseVercelEdgeOptions {
  * Configuration options for the Sentry VercelEdge SDK
  * @see @sentry/core Options for more information.
  */
-export interface VercelEdgeOptions extends Options<VercelEdgeTransportOptions>, BaseVercelEdgeOptions {}
+export interface VercelEdgeOptions extends Options<VercelEdgeTransportOptions>, BaseVercelEdgeOptions {
+  /**
+   * See {@link Options.tunnel}. A server `init` also takes the server-only {@link ServerTunnelOptions}.
+   */
+  tunnel?: TunnelInit<ServerTunnelOptions>;
+}
 
 /**
  * Configuration options for the Sentry VercelEdge SDK Client class
