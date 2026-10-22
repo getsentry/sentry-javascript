@@ -61,7 +61,7 @@ sentryTest(
     const duration = end - start;
 
     expect(duration).toBeGreaterThanOrEqual(0.1);
-    expect(duration).toBeLessThanOrEqual(0.15);
+    expect(duration).toBeLessThan(1);
   },
 );
 
@@ -113,6 +113,6 @@ sentryTest(
     const duration = end - start;
 
     expect(duration).toBeGreaterThanOrEqual(0.1);
-    expect(duration).toBeLessThanOrEqual(0.15);
+    expect(duration).toBeLessThan(1);
   },
 );

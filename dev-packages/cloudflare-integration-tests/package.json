@@ -11,7 +11,7 @@
     "lint:fix": "oxlint . --fix --type-aware",
     "lint:types": "tsc --noEmit && tsc --noEmit -p suites/types/tsconfig.v4.json && tsc --noEmit -p suites/types/tsconfig.v5.json && tsc --noEmit -p suites/types/typegen/tsconfig.v4.json && tsc --noEmit -p suites/types/typegen/tsconfig.v5.json",
     "test": "vitest run",
-    "test:watch": "yarn test --watch"
+    "test:watch": "pnpm run test --watch"
   },
   "dependencies": {
     "ai": "^6.0.0",
@@ -34,6 +34,7 @@
     "@cloudflare/vite-plugin": "1.34.0",
     "@cloudflare/workers-types": "^4.20260426.0",
     "@cloudflare/workers-types-v5": "npm:@cloudflare/workers-types@5.20260710.1",
+    "@opentelemetry/api": "^1.9.1",
     "@sentry-internal/test-utils": "11.8.0",
     "@sentry/conventions": "0.27.0",
     "eslint-plugin-regexp": "^3.1.0",

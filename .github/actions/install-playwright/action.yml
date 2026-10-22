@@ -1,5 +1,5 @@
 name: 'Install Playwright dependencies'
-description: 'Installs Playwright dependencies and caches them.'
+description: 'Installs Playwright browsers and system dependencies, keeping both on the Namespace cache volume.'
 inputs:
   browsers:
     description: 'What browsers to install.'
@@ -26,40 +26,21 @@ runs:
       shell: bash
       working-directory: ${{ inputs.cwd }}
 
-    - name: Restore cached playwright binaries
-      uses: actions/cache/restore@v6.1.0
-      id: playwright-cache
+    - name: Mount Playwright cache
+      uses: namespacelabs/nscloud-cache-action@1124a6f3ce44e5cf84cc22111530961f4d2a15f9 # v1.7.0
       if: steps.playwright-version.outputs.version != ''
       with:
-        path: |
-          ~/.cache/ms-playwright
-        # Bump the iteration when bumping runner images to use a new cache
-        key: playwright-${{ runner.os }}-iteration-1-${{ steps.playwright-version.outputs.version }}
+        cache: |
+          playwright
+          apt
 
-    # We always install all browsers, if uncached
-    - name: Install Playwright dependencies (uncached)
-      env:
-        PLAYWRIGHT_VERSION: ${{ steps.playwright-version.outputs.version }}
-      run: npx -y "playwright@$PLAYWRIGHT_VERSION" install chromium webkit firefox --with-deps
-      if: steps.playwright-version.outputs.version != '' && steps.playwright-cache.outputs.cache-hit != 'true'
-      shell: bash
-
-    - name: Install Playwright system dependencies only (cached)
+    # Downloads only the browsers and apt packages that are not on the cache volume yet. `npx` runs outside the repo,
+    # so it can't pick up a `playwright` that a parallel `pnpm install` is still linking.
+    - name: Install Playwright
+      if: steps.playwright-version.outputs.version != ''
       env:
         PLAYWRIGHT_BROWSERS: ${{ inputs.browsers || 'chromium webkit firefox' }}
         PLAYWRIGHT_VERSION: ${{ steps.playwright-version.outputs.version }}
-      run: npx -y "playwright@$PLAYWRIGHT_VERSION" install-deps "$PLAYWRIGHT_BROWSERS"
-      if: steps.playwright-version.outputs.version != '' && steps.playwright-cache.outputs.cache-hit == 'true'
+      run: npx -y "playwright@$PLAYWRIGHT_VERSION" install --with-deps $PLAYWRIGHT_BROWSERS
       shell: bash
-
-    # Only store cache on develop branch
-    - name: Store cached playwright binaries
-      uses: actions/cache/save@v6.1.0
-      if:
-        steps.playwright-version.outputs.version != '' && github.event_name == 'push' && github.ref ==
-        'refs/heads/develop'
-      with:
-        path: |
-          ~/.cache/ms-playwright
-        # Bump the iteration when bumping runner images to use a new cache
-        key: playwright-${{ runner.os }}-iteration-1-${{ steps.playwright-version.outputs.version }}
+      working-directory: ${{ runner.temp }}
