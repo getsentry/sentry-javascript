@@ -38,7 +38,9 @@ const pluginName = 'sentry-bun-plugin';
 // banner holds this placeholder. It has the length of a debug ID, so the
 // swap does not move any code that the source map points to.
 const DEBUG_ID_PLACEHOLDER = 'sentry-bun-debug-id-placeholder-0000';
-const BUN_DEBUG_ID_REGEX = /\/\/# debugId=([0-9a-fA-F]{32})\s*$/;
+// Bun writes `//# sourceMappingURL=` after this comment for linked and
+// inline source maps, so match the last debug ID line, not the file end.
+const BUN_DEBUG_ID_REGEX = /^\/\/# debugId=([0-9a-fA-F]{32})$(?![\s\S]*^\/\/# debugId=)/m;
 
 function bunDebugIdToUuid(bunDebugId: string): string {
   const hex = bunDebugId.toLowerCase();

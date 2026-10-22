@@ -135,6 +135,21 @@ describe('sentryBunPlugin', () => {
     expect(fs.readFileSync(`${entry}.map`, 'utf8')).toBe(mapBefore);
   });
 
+  it('stamps a bundle that has a source map URL after the debug ID', async () => {
+    const config: Config = { sourcemap: 'linked', outdir: outDir };
+    const { end } = setupPlugin(sentryBunPlugin({ telemetry: false }) as BunPlugin, config);
+
+    const entry = path.join(outDir, 'index.js');
+    fs.writeFileSync(
+      entry,
+      `// @bun\n${config.banner}\nconsole.log(1);\n\n//# debugId=${BUN_DEBUG_ID}\n//# sourceMappingURL=index.js.map\n`,
+    );
+
+    await end([{ path: entry, kind: 'entry-point' }]);
+
+    expect(fs.readFileSync(entry, 'utf8').match(DEBUG_ID_MARKER)?.[1]).toBe(UUID);
+  });
+
   it('leaves a bundle without a Bun debug ID unchanged', async () => {
     const config: Config = { sourcemap: 'external', outdir: outDir };
     const { end } = setupPlugin(sentryBunPlugin({ telemetry: false }) as BunPlugin, config);
