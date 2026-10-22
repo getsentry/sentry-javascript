@@ -207,6 +207,12 @@ Work in this release was contributed by @4ktLuffy, @adityareddy-dev, @dasilvalui
 
   `httpIntegration` and `httpServerSpansIntegration` now accept `onSpanEnd`, a hook that runs when the response for an incoming request finishes, before its span ends. Use it to change the span based on the response. Deno and Bun already have this option.
 
+- **feat(bun): Inject debug IDs and upload source maps in `sentryBunPlugin` ([#25670](https://github.com/getsentry/sentry-javascript/pull/25670))**
+
+  `sentryBunPlugin` from `@sentry/bun/plugin` now accepts the same options as `sentryEsbuildPlugin` (`org`, `project`, `authToken`, `release`, `sourcemaps`, ...). When `Bun.build` writes source maps to `outdir`, the plugin injects the debug ID that Bun writes into each bundle, injects the release, and uploads the source maps at the end of the build. You no longer need to run `sentry sourcemap inject` and `sentry sourcemap upload` after the build.
+
+  Like the other bundler plugins, `sentryBunPlugin` now sends build telemetry and injects the release it detects (for example, from git). To turn off telemetry, set `telemetry: false`.
+
 ## 11.8.0
 
 ### Important Changes
