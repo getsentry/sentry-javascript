@@ -1083,9 +1083,10 @@ jobs:
     if:
       always() && needs.job_build_tarballs.result == 'success' && needs.job_build.outputs.e2e-matrix !='{"include":[]}'
     needs: [job_get_metadata, job_build, job_build_layer, job_build_tarballs]
+    # Most apps finish in under a minute on 4 vCPUs, so they run on 2. Apps that take longer set `sentryTest.runner`.
     runs-on:
-      namespace-profile-sentry-javascript;overrides.cache-tag=sentry-javascript-e2e${{ github.event_name ==
-      'pull_request' && '-pr' || '' }}
+      ${{ matrix.runner || 'namespace-profile-sentry-javascript-small' }};overrides.cache-tag=sentry-javascript-e2e${{
+      github.event_name == 'pull_request' && '-pr' || '' }}
     timeout-minutes: 15
     env:
       # We just use a dummy DSN here, only send to the tunnel anyhow

@@ -69,6 +69,7 @@
     "extends": "../../package.json"
   },
   "sentryTest": {
+    "runner": "namespace-profile-sentry-javascript",
     "variants": [
       {
         "build-command": "pnpm test:build-latest",
