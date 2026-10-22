@@ -54,6 +54,38 @@ it('emits cache.get for a KV read with key and hit attributes', async ({ signal 
   await runner.completed();
 });
 
+it('emits cache.get with cache.hit false for a KV read of a missing key', async ({ signal }) => {
+  const runner = createRunner(__dirname)
+    .expect(envelope => {
+      const spans = getSpansFromEnvelope(envelope);
+      const segmentSpan = spans.find(span => span.is_segment);
+      const getSpans = spans.filter(span => span.name === CACHE_GET);
+
+      expect(getSpans).toHaveLength(1);
+      expect(getSpans[0]?.attributes).toEqual({
+        [SENTRY_OP]: { type: 'string', value: CACHE_GET },
+        [SENTRY_ORIGIN]: { type: 'string', value: 'auto.cache.cloudflare.kv' },
+        [CACHE_OPERATION]: { type: 'string', value: CACHE_OPERATION_NAMES[CACHE_GET] },
+        [CACHE_KEY]: { type: 'array', value: ['missing-key'] },
+        [CACHE_HIT]: { type: 'boolean', value: false },
+        [DB_OPERATION_NAME]: { type: 'string', value: 'get' },
+        [DB_COLLECTION_NAME]: { type: 'string', value: 'MY_KV' },
+        [DB_SYSTEM_NAME]: { type: 'string', value: 'cloudflare-kv' },
+        [SENTRY_TRACE_LIFECYCLE]: { type: 'string', value: 'stream' },
+        [SENTRY_SEGMENT_NAME]: { type: 'string', value: 'GET' },
+        [SENTRY_SEGMENT_ID]: { type: 'string', value: segmentSpan?.span_id },
+        [SENTRY_SDK_NAME]: { type: 'string', value: 'sentry.javascript.cloudflare' },
+        [SENTRY_SDK_VERSION]: { type: 'string', value: SDK_VERSION },
+        [SENTRY_ENVIRONMENT]: { type: 'string', value: 'production' },
+        [SENTRY_IS_LOCALHOST]: { type: 'boolean', value: true },
+      });
+    })
+    .start(signal);
+
+  await runner.makeRequest('get', '/kv/get-miss');
+  await runner.completed();
+});
+
 it('emits cache.get for a bulk KV read with all keys in cache.key', async ({ signal }) => {
   const runner = createRunner(__dirname)
     .expect(envelope => {

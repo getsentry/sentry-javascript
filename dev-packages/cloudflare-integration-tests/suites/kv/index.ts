@@ -14,6 +14,11 @@ export default {
       return new Response(value);
     }
 
+    if (url.pathname === '/kv/get-miss') {
+      const value = await env.MY_KV.get('missing-key');
+      return new Response(value ?? 'miss');
+    }
+
     if (url.pathname === '/kv/bulk-get') {
       await env.MY_KV.put('bulk-a', 'a');
       await env.MY_KV.put('bulk-b', 'b');
