@@ -1,4 +1,4 @@
-import type { Options, TunnelOptions } from '@sentry/core';
+import type { BrowserTunnelOptions, Options } from '@sentry/core';
 import { _INTERNAL_applyTunnelDefaults as applyTunnelDefaults, GLOBAL_OBJ } from '@sentry/core';
 
 /** Set by the Sentry Astro integration from the `base` and `trailingSlash` config. */
@@ -9,6 +9,6 @@ export const TUNNEL_OPTIONS_GLOBAL = '__sentry_astro_tunnel_options';
  * before any middleware runs. Options the user set win.
  */
 export function applyAstroTunnelOptions(options: Pick<Options, 'tunnel'>): void {
-  const astroTunnelOptions = (GLOBAL_OBJ as { [TUNNEL_OPTIONS_GLOBAL]?: TunnelOptions })[TUNNEL_OPTIONS_GLOBAL];
+  const astroTunnelOptions = (GLOBAL_OBJ as { [TUNNEL_OPTIONS_GLOBAL]?: BrowserTunnelOptions })[TUNNEL_OPTIONS_GLOBAL];
   options.tunnel = applyTunnelDefaults(options.tunnel, astroTunnelOptions);
 }
