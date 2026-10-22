@@ -48,7 +48,7 @@ ${changedPaths.join('\n')}
       const cp = childProcess.spawn(
         `npx playwright test ${
           testPaths.length ? testPaths.join(' ') : './suites'
-        } --repeat-each ${repeatEachCount} --project=chromium`,
+        } --repeat-each ${repeatEachCount} --retries=0 --project=chromium`,
         { shell: true, cwd, stdio: 'inherit' },
       );
 

@@ -35,9 +35,13 @@ export function getPlaywrightConfig(
     /* Fail the build on CI if you accidentally left test.only in the source code. */
     forbidOnly: !!process.env.CI,
     /* In dev mode some apps are flaky, so we allow retry there... */
-    retries: testEnv.startsWith('dev') ? 3 : 0,
+    // A test that passes on retry is reported as flaky in the job summary and in the weekly flaky test report, so the
+    // retry keeps one flake from failing a job without hiding it.
+    retries: testEnv.startsWith('dev') ? 3 : process.env.CI ? 1 : 0,
     /* Reporter to use. See https://playwright.dev/docs/test-reporters */
-    reporter: process.env.CI ? [['line'], ['github'], ['junit', { outputFile: 'results.junit.xml' }]] : 'list',
+    reporter: process.env.CI
+      ? [['line'], ['github'], ['junit', { outputFile: 'results.junit.xml' }], ['json', { outputFile: 'results.json' }]]
+      : 'list',
     /* Shared settings for all the projects below. See https://playwright.dev/docs/api/class-testoptions. */
     use: {
       /* Maximum time each action such as `click()` can take. Defaults to 0 (no limit). */

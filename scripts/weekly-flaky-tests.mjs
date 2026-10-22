@@ -1,13 +1,27 @@
 const LOOKBACK_DAYS = 7;
 const CONCURRENT_RUNS = 4;
+// CI retries failed Playwright tests once. A job whose tests only passed on retry runs this step, see
+// `scripts/ci-report-flaky-tests.mjs`.
+export const FLAKY_STEP_NAME = 'Flaky tests passed on retry';
 
-function normalizeJobName(name) {
-  return name
-    .replace(/\(\s*(?:(?:(?:Node|TS)\s+)?\d+(?:\.\d+)*|\d+\/\d+)\s*\)/gi, ' ')
-    .replace(/Playwright\s+(?:bundle\w*|esm|cjs)(?:\s+(?:chromium|firefox|webkit))?\s+Tests/gi, 'Playwright Tests')
-    .replace(/-node-\d+(?:-\d+)*/gi, '')
-    .replace(/\s+/g, ' ')
-    .trim();
+function passedOnRetry(job) {
+  return (
+    job.conclusion === 'success' &&
+    (job.steps ?? []).some(step => step.name === FLAKY_STEP_NAME && step.conclusion === 'success')
+  );
+}
+
+export function normalizeJobName(name) {
+  return (
+    name
+      // An E2E job runs several apps. The test path names the app: each app runs in `e2e/<dir>/` of the runner's temp dir.
+      .replace(/^E2E .+ Test$/, 'E2E Tests')
+      .replace(/\(\s*(?:(?:(?:Node|TS)\s+)?\d+(?:\.\d+)*|\d+\/\d+)\s*\)/gi, ' ')
+      .replace(/Playwright\s+(?:bundle\w*|esm|cjs)(?:\s+(?:chromium|firefox|webkit))?\s+Tests/gi, 'Playwright Tests')
+      .replace(/-node-\d+(?:-\d+)*/gi, '')
+      .replace(/\s+/g, ' ')
+      .trim()
+  );
 }
 
 function normalizeTestName(name) {
@@ -50,12 +64,12 @@ export async function collectReport({ github, context, core, now = new Date() })
   const tests = new Map();
   let failedJobsWithoutTests = 0;
   let failedJobs = 0;
+  let retriedJobs = 0;
   let completedRuns = 0;
-  const pendingRuns = runs.filter(run => run.conclusion !== 'success' || run.run_attempt > 1);
+  // Runs that passed on the first attempt can still contain tests that only passed on retry.
+  const pendingRuns = [...runs];
   const runsToInspect = pendingRuns.length;
-  core.info(
-    `Found ${runs.length} runs; ${runsToInspect} need inspection, ${runs.length - runsToInspect} passed on the first attempt.`,
-  );
+  core.info(`Found ${runs.length} runs to inspect.`);
 
   async function worker() {
     while (pendingRuns.length > 0) {
@@ -68,10 +82,17 @@ export async function collectReport({ github, context, core, now = new Date() })
         filter: 'all',
         per_page: 100,
       });
-      const jobsToInspect = jobs.filter(job => job.conclusion === 'failure' && !job.name.includes('(optional)'));
-      core.info(`Run ${run.id}: ${jobs.length} job attempts, ${jobsToInspect.length} failures to inspect.`);
+      const jobsToInspect = jobs.filter(
+        job => (job.conclusion === 'failure' || passedOnRetry(job)) && !job.name.includes('(optional)'),
+      );
+      core.info(`Run ${run.id}: ${jobs.length} job attempts, ${jobsToInspect.length} to inspect.`);
       for (const job of jobsToInspect) {
-        failedJobs++;
+        const retried = passedOnRetry(job);
+        if (retried) {
+          retriedJobs++;
+        } else {
+          failedJobs++;
+        }
 
         let annotations;
         try {
@@ -94,7 +115,7 @@ export async function collectReport({ github, context, core, now = new Date() })
             annotation.title &&
             /(?:^|\/)(?:tests?|__tests__|suites)\/|(?:^|[/.])(?:test|spec)\.[cm]?[jt]sx?$/i.test(annotation.path),
         );
-        if (failures.length === 0) {
+        if (failures.length === 0 && !retried) {
           failedJobsWithoutTests++;
         }
 
@@ -104,17 +125,20 @@ export async function collectReport({ github, context, core, now = new Date() })
           const key = JSON.stringify([family, annotation.path, name]);
           let test = tests.get(key);
           if (!test) {
-            test = { family, path: annotation.path, name, runs: new Map() };
+            test = { family, path: annotation.path, name, runs: new Map(), retriedRuns: new Set() };
             tests.set(key, test);
           }
           if (!test.runs.has(run.id)) {
             test.runs.set(run.id, job.html_url);
           }
+          if (retried) {
+            test.retriedRuns.add(run.id);
+          }
         }
       }
       completedRuns++;
       core.info(
-        `Completed ${completedRuns}/${runsToInspect} runs; ${failedJobs} failed jobs inspected, ${tests.size} failing tests found.`,
+        `Completed ${completedRuns}/${runsToInspect} runs; ${failedJobs} failed and ${retriedJobs} retried jobs inspected, ${tests.size} tests found.`,
       );
     }
   }
@@ -125,6 +149,7 @@ export async function collectReport({ github, context, core, now = new Date() })
     until,
     runs: runs.length,
     failedJobs,
+    retriedJobs,
     failedJobsWithoutTests,
     warnings,
     tests: [...tests.values()].sort(
@@ -150,7 +175,10 @@ export function renderReport(report, context) {
   if (report.tests.length === 0) {
     lines.push('No test failures found.');
   } else {
-    lines.push('| Test | Job | Affected runs | Links to runs | Issue |', '| --- | --- | ---: | --- | --- |');
+    lines.push(
+      '| Test | Job | Affected runs | Passed on retry | Links to runs | Issue |',
+      '| --- | --- | ---: | ---: | --- | --- |',
+    );
     for (const test of report.tests) {
       const runs = [...test.runs].sort(([a], [b]) => b - a);
       const links = runs.map(([id, url]) => `[${id}](${url})`).join(', ');
@@ -160,18 +188,18 @@ export function renderReport(report, context) {
         'job-name': test.family,
         'test-name': test.name,
         'test-run-link': runs[0][1],
-        details: `${markdownCell(test.path)}\n\nFailed in ${test.runs.size} CI runs on develop during ${report.since.slice(0, 10)}–${report.until.slice(0, 10)}.\n\n[Weekly report](${reportUrl})`,
+        details: `${markdownCell(test.path)}\n\nFailed in ${test.runs.size} CI runs on develop (${test.retriedRuns.size} passed on retry) during ${report.since.slice(0, 10)}–${report.until.slice(0, 10)}.\n\n[Weekly report](${reportUrl})`,
       });
       const issueUrl = `${repositoryUrl}/issues/new?${issueParams}`;
       lines.push(
-        `| ${markdownCell(test.name)} | ${markdownCell(test.family)} | ${test.runs.size} | ${links} | [Create issue](${issueUrl}) |`,
+        `| ${markdownCell(test.name)} | ${markdownCell(test.family)} | ${test.runs.size} | ${test.retriedRuns.size} | ${links} | [Create issue](${issueUrl}) |`,
       );
     }
   }
 
   lines.push(
     '',
-    `${report.failedJobs} failed job attempts; ${report.failedJobsWithoutTests} without test annotations. Optional jobs excluded.`,
+    `${report.failedJobs} failed job attempts; ${report.failedJobsWithoutTests} without test annotations. ${report.retriedJobs} passing jobs had tests that passed on retry. Optional jobs excluded.`,
     '',
     ...report.warnings.map(warning => `- ${markdownCell(warning)}`),
   );

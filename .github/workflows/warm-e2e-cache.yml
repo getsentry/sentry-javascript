@@ -1,0 +1,99 @@
+name: 'CI: Warm E2E caches'
+
+# The E2E jobs share one cache volume per tag, and the last job to finish overwrites what the others saved, so the pnpm
+# store on it never holds the packages of every app. Downloads that the store misses are what crawls in the E2E builds.
+# This job installs every test application into the store once, and later jobs fork the volume it commits.
+# It also removes the packages no app uses anymore, so the volume stays under its size limit: Namespace does not clone
+# a cache that outgrew it.
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 4 * * *'
+
+permissions:
+  contents: read
+  # To download the tarballs of the build.yml run
+  actions: read
+
+concurrency:
+  group: ${{ github.workflow }}
+  cancel-in-progress: false
+
+jobs:
+  job_find_build:
+    name: Find the latest develop build
+    runs-on: namespace-profile-sentry-javascript-small
+    timeout-minutes: 5
+    outputs:
+      run-id: ${{ steps.build.outputs.run-id }}
+    steps:
+      - name: Find a develop build.yml run with tarballs
+        id: build
+        uses: actions/github-script@v9
+        with:
+          retries: 3
+          script: |
+            const { data } = await github.rest.actions.listWorkflowRuns({
+              ...context.repo,
+              workflow_id: 'build.yml',
+              branch: 'develop',
+              event: 'push',
+              status: 'completed',
+              per_page: 30,
+            });
+            for (const run of data.workflow_runs) {
+              const { data: artifacts } = await github.rest.actions.listWorkflowRunArtifacts({
+                ...context.repo,
+                run_id: run.id,
+                per_page: 100,
+              });
+              const names = new Set(artifacts.artifacts.filter(artifact => !artifact.expired).map(artifact => artifact.name));
+              if (names.has('build-tarball-output') && names.has('build-test-utils-tarball-output')) {
+                core.info(`Using the tarballs of ${run.html_url}`);
+                core.setOutput('run-id', run.id);
+                return;
+              }
+            }
+            core.setFailed('None of the last 30 develop build.yml runs has tarball artifacts.');
+
+  job_warm_cache:
+    name: Warm ${{ matrix.cache-tag }}
+    needs: [job_find_build]
+    # The profile and tags of the E2E jobs in build.yml and optional-e2e.yml
+    runs-on: namespace-profile-sentry-javascript;overrides.cache-tag=${{ matrix.cache-tag }}
+    timeout-minutes: 90
+    strategy:
+      fail-fast: false
+      matrix:
+        cache-tag: [sentry-javascript-e2e, sentry-javascript-e2e-pr]
+    steps:
+      # The test applications of this commit with the tarballs of a slightly older one. An app that needs a package the
+      # tarballs do not have yet fails to install and only gets a warning.
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - name: Set up E2E tests
+        uses: ./.github/actions/setup-e2e-tests
+        with:
+          artifacts-run-id: ${{ needs.job_find_build.outputs.run-id }}
+          github-token: ${{ github.token }}
+
+      - name: Install Playwright
+        uses: ./.github/actions/install-playwright
+        with:
+          browsers: chromium
+          cwd: dev-packages/test-utils
+
+      - name: Install every test application
+        working-directory: dev-packages/e2e-tests
+        run: node lib/warmCache.mjs "$RUNNER_TEMP/warm" 4
+
+      - name: Remove packages that no test application uses
+        working-directory: ${{ runner.temp }}
+        run: |
+          echo "pnpm store before: $(du -sh "$PNPM_CONFIG_STORE_DIR" | cut -f1)"
+          pnpm store prune --yes
+          echo "pnpm store after: $(du -sh "$PNPM_CONFIG_STORE_DIR" | cut -f1)"
+          df -h /cache || true
