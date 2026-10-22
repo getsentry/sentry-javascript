@@ -135,6 +135,7 @@ export interface ApiEvent {
     type: string;
     data: { values?: { type?: string; value?: string; mechanism?: { type?: string; handled?: boolean } }[] };
   }[];
+  contexts?: { trace?: { trace_id?: string; span_id?: string; parent_span_id?: string } };
 }
 
 /** Fetch an error event of the E2E test project. Returns `undefined` while the event is not stored yet. */
