@@ -13,6 +13,14 @@ We use [Gitflow](https://docs.github.com/en/get-started/quickstart/github-flow) 
 
 ![gitflow-chart](./assets/gitflow-chart.png)
 
+PRs into `develop` normally merge through the squash merge queue.
+Release backmerges from `master` use merge commits to preserve Git history.
+The Gitflow automation waits for required checks, then merges through the
+Gitflow App's queue-only bypass. Required checks and approvals still apply.
+
+If the backmerge workflow fails or times out, resolve the blocker and rerun
+the failed job.
+
 ## Important Caveats
 
 While a release is pending, we may merge anything into develop, **except for changes to package.json files**. If we
@@ -30,4 +38,7 @@ If this happen, you can resolve this as follows:
 - Create a new branch on top of `master` (e.g. `manual-develop-sync`)
 - Merge `develop` into this branch, with a merge commit (and fix any merge conflicts that come up)
 - Now create a PR against `develop` from your branch (e.g. `manual-develop-sync`)
-- Merge this PR with a merge commit
+- Wait for required checks and approval on the replacement PR.
+- Have a release maintainer with queue-bypass permission merge the PR directly,
+  choosing **Create a merge commit**. Do not add it to the squash merge queue.
+  Bypass only the queue requirement; required checks and approvals still apply.
