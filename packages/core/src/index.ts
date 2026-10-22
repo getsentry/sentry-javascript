@@ -421,7 +421,13 @@ export type {
   HttpHeadersCollection,
   ResolvedDataCollection,
 } from './types/datacollection';
-export type { ClientOptions, CoreOptions as Options, TunnelOptions } from './types/options';
+export type {
+  BrowserTunnelOptions,
+  ClientOptions,
+  CoreOptions as Options,
+  ServerTunnelOptions,
+  TunnelOptions,
+} from './types/options';
 export type { Package } from './types/package';
 export type { PolymorphicEvent, PolymorphicRequest } from './types/polymorphics';
 export type {

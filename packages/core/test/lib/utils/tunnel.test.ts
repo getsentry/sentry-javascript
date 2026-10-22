@@ -24,7 +24,7 @@ import {
   setManagedTunnelDefaults,
 } from '../../../src/utils/managedTunnelDefaults';
 import type { DsnComponents } from '../../../src/types/dsn';
-import type { IgnoreSpanFilter, TunnelOptions } from '../../../src/types/options';
+import type { IgnoreSpanFilter, ServerTunnelOptions } from '../../../src/types/options';
 import { getDefaultTestClientOptions, TestClient } from '../../mocks/client';
 import { ServerRuntimeClient } from '../../../src/server-runtime-client';
 
@@ -32,7 +32,7 @@ const TEST_DSN = 'https://public@dsn.ingest.sentry.io/1337';
 
 /** The `url.path` filter, the first of the tunnel span filters. */
 function getTunnelIgnoreSpanFilter(
-  tunnelOptions: TunnelOptions,
+  tunnelOptions: ServerTunnelOptions,
   dsn: DsnComponents | undefined,
 ): IgnoreSpanFilter | undefined {
   const paths = resolveTunnelPaths(tunnelOptions, resolveAllowedDsns(tunnelOptions.allowedDsns, dsn));
@@ -703,8 +703,10 @@ describe('resolveServerTunnelOption', () => {
 
 describe('applyTunnelDefaults', () => {
   it('fills in the defaults for `true` and options, and lets options the user set win', () => {
+    const serverTunnel: ServerTunnelOptions = { allowedDsns: [TEST_DSN] };
+
     expect(applyTunnelDefaults(true, { basePath: '/app' })).toEqual({ basePath: '/app' });
-    expect(applyTunnelDefaults({ allowedDsns: [TEST_DSN] }, { basePath: '/app' })).toEqual({
+    expect(applyTunnelDefaults(serverTunnel, { basePath: '/app' })).toEqual({
       basePath: '/app',
       allowedDsns: [TEST_DSN],
     });
@@ -824,12 +826,15 @@ describe('setManagedTunnelDefaults', () => {
   });
 });
 
-function setTestClient(dsn: string | undefined, managedTunnel?: TunnelOptions): void {
+function setTestClient(dsn: string | undefined, managedTunnel?: ServerTunnelOptions): void {
   setCurrentClient(new ServerRuntimeClient(getDefaultTestClientOptions({ dsn, _managedTunnel: managedTunnel })));
 }
 
 /** `isTunnelRequest` for a server client with this managed tunnel and no DSN of its own. */
-function isTunnelRequestFor(request: Parameters<typeof isTunnelRequest>[0], managedTunnel: TunnelOptions): boolean {
+function isTunnelRequestFor(
+  request: Parameters<typeof isTunnelRequest>[0],
+  managedTunnel: ServerTunnelOptions,
+): boolean {
   setTestClient(undefined, managedTunnel);
 
   return isTunnelRequest(request);

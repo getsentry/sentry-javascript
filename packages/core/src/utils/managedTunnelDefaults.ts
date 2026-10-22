@@ -1,6 +1,6 @@
 import type { Client } from '../client';
 import { getClient } from '../currentScopes';
-import type { IgnoreSpanFilter, TunnelOptions } from '../types/options';
+import type { IgnoreSpanFilter, ServerTunnelOptions } from '../types/options';
 import {
   getTunnelIgnoreSpanFilters,
   normalizeTunnelBasePath,
@@ -15,7 +15,7 @@ import {
  */
 interface ManagedTunnelDefaults {
   /** Enables the managed tunnel, e.g. from TanStack Start's `tunnelRoute` build option. */
-  tunnel?: TunnelOptions;
+  tunnel?: ServerTunnelOptions;
   /** The path prefix the app is served under. */
   basePath?: string;
 }

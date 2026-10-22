@@ -4,7 +4,7 @@ import { getClient } from '../currentScopes';
 import { suppressTracing } from '../tracing/trace';
 import { URL_PATH } from '@sentry/conventions/attributes';
 import type { DsnComponents, DsnLike } from '../types/dsn';
-import type { IgnoreSpanFilter, TunnelOptions } from '../types/options';
+import type { IgnoreSpanFilter, ServerTunnelOptions, TunnelOptions } from '../types/options';
 import { escapeStringForRegex } from '../vendor/escapeStringForRegex';
 import { debug } from './debug-logger';
 import { dsnToString, makeDsn } from './dsn';
@@ -48,9 +48,9 @@ export interface HandleTunnelRequestOptions {
 /**
  * Splits a server `tunnel` option: a URL stays the transport tunnel, anything else enables the managed tunnel.
  */
-export function resolveServerTunnelOption(tunnel: string | true | TunnelOptions | undefined): {
+export function resolveServerTunnelOption(tunnel: string | true | ServerTunnelOptions | undefined): {
   tunnel: string | undefined;
-  _managedTunnel?: TunnelOptions;
+  _managedTunnel?: ServerTunnelOptions;
 } {
   if (!tunnel) {
     return { tunnel };
@@ -117,7 +117,7 @@ export function getTunnelPaths(): string[] {
 /**
  * The paths a managed tunnel is served at: the fixed `path`, or else one per allowed DSN.
  */
-export function resolveTunnelPaths(tunnelOptions: TunnelOptions, allowedDsns: Array<string>): string[] {
+export function resolveTunnelPaths(tunnelOptions: ServerTunnelOptions, allowedDsns: Array<string>): string[] {
   if (tunnelOptions.path) {
     return [tunnelOptions.path.replace(/\/$/, '')];
   }
@@ -402,7 +402,7 @@ export function resolveAllowedDsns(
 /**
  * Makes a fixed `path` relative to `basePath`, so one written with the base path isn't served under it twice.
  */
-export function stripBasePathFromTunnelPath(tunnelOptions: TunnelOptions): TunnelOptions {
+export function stripBasePathFromTunnelPath<T extends TunnelOptions>(tunnelOptions: T): T {
   const path = tunnelOptions.path && stripBasePath(tunnelOptions.path, tunnelOptions.basePath);
 
   return path ? { ...tunnelOptions, path } : tunnelOptions;
