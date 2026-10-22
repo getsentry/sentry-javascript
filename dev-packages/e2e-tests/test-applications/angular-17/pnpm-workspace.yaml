@@ -1,0 +1,4 @@
+allowBuilds:
+  esbuild: true
+  nice-napi: true
+minimumReleaseAge: 0

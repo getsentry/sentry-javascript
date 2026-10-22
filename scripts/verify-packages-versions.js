@@ -1,3 +1,5 @@
+const fs = require('fs');
+const path = require('path');
 const pkg = require('../package.json');
 
 const TYPESCRIPT_VERSION = '~7.0.2';
@@ -20,6 +22,54 @@ ref: https://github.com/getsentry/sentry-javascript/issues/2845
 ref: https://twitter.com/wesleytodd/status/1297974661574262784
 
 "Never upgrade a TypeScript version without a major package bump. Just don't." — Kamil
+`);
+  process.exit(1);
+}
+
+// pnpm reads the workspace packages from `pnpm-workspace.yaml`, the repo scripts and Deno from `package.json`.
+function readPnpmWorkspacePackages() {
+  const lines = fs.readFileSync(path.join(__dirname, '../pnpm-workspace.yaml'), 'utf8').split('\n');
+  const start = lines.indexOf('packages:');
+  const packages = [];
+
+  if (start === -1) {
+    return packages;
+  }
+
+  for (const line of lines.slice(start + 1)) {
+    // The list ends at the next top-level key.
+    if (/^[^\s#]/.test(line)) {
+      break;
+    }
+
+    const match = line.match(/^\s+-\s+['"]?([^'"\s]+)['"]?\s*$/);
+    if (match) {
+      packages.push(match[1]);
+    }
+  }
+
+  return packages;
+}
+
+if (readPnpmWorkspacePackages().join('\n') !== pkg.workspaces.join('\n')) {
+  console.error(`
+[INCONSISTENT WORKSPACES]: The \`packages\` list in pnpm-workspace.yaml and the \`workspaces\` list in package.json
+must contain the same packages in the same order.
+`);
+  process.exit(1);
+}
+
+// Configs import workspace packages that they do not declare, so every workspace package must be linked into the
+// root node_modules folder, as Yarn did.
+const missingRootDevDependencies = pkg.workspaces
+  .map(workspace => require(path.join(__dirname, '..', workspace, 'package.json')).name)
+  .filter(name => pkg.devDependencies[name] !== 'workspace:*');
+
+if (missingRootDevDependencies.length > 0) {
+  console.error(`
+[MISSING ROOT DEV DEPENDENCIES]: Every workspace package must be in the \`devDependencies\` of the root package.json
+with the version \`workspace:*\`. Missing:
+${missingRootDevDependencies.join('\n')}
 `);
   process.exit(1);
 }

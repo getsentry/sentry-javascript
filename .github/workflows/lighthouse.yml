@@ -11,7 +11,7 @@ on:
 jobs:
   build-and-upload:
     name: Bundle and upload Lighthouse cells
-    runs-on: ubuntu-24.04
+    runs-on: namespace-profile-sentry-javascript-large
     timeout-minutes: 30
     env:
       LIGHTHOUSE_LAB_URL: ${{ secrets.LIGHTHOUSE_LAB_URL }}
@@ -24,9 +24,9 @@ jobs:
       - uses: actions/setup-node@v7
         with:
           node-version-file: 'package.json'
-      - run: yarn install --frozen-lockfile --ignore-engines
-      - run: yarn build:ci
-      - run: yarn build:tarball
-      - run: yarn test:prepare
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm run build:ci
+      - run: pnpm run build:tarball
+      - run: pnpm run test:prepare
         working-directory: dev-packages/e2e-tests
       - run: node scripts/lighthouse-bundle-and-upload.mjs

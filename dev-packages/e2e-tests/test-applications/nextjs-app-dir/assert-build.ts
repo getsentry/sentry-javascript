@@ -2,8 +2,8 @@ import * as fs from 'fs';
 import * as path from 'path';
 import * as assert from 'assert/strict';
 
-const packageJson = require('./package.json');
-const nextjsVersion = packageJson.dependencies.next;
+const nextPackageJson = require('next/package.json');
+const nextjsVersion = nextPackageJson.version;
 
 const buildStdout = fs.readFileSync('.tmp_build_stdout', 'utf-8');
 const buildStderr = fs.readFileSync('.tmp_build_stderr', 'utf-8');

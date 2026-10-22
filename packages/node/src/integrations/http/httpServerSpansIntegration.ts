@@ -52,6 +52,7 @@ import {
   filterCollectedUrlQuery,
   hasSpanStreamingEnabled,
   HTTP_SPAN_NAME_FALLBACK,
+  safeCallback,
 } from '@sentry/core';
 import { DEBUG_BUILD } from '../../debug-build';
 import type { NodeClient } from '../../sdk/client';
@@ -186,7 +187,11 @@ const _httpServerSpansIntegration = ((options: HttpServerSpansIntegrationOptions
             },
           });
 
-          onSpanCreated?.(span, request, response);
+          safeCallback(
+            DEBUG_BUILD ? 'The `onSpanCreated` callback threw an error:' : '',
+            () => onSpanCreated?.(span, request, response),
+            () => undefined,
+          );
 
           return withActiveSpan(span, () => {
             bindScopeToEmitter(request);
@@ -317,7 +322,13 @@ function shouldIgnoreSpansForIncomingRequest(
     return true;
   }
 
-  if (ignoreIncomingRequests?.(urlPath, request)) {
+  if (
+    safeCallback(
+      DEBUG_BUILD ? 'The `ignoreIncomingRequests` callback threw an error, not ignoring the request:' : '',
+      () => !!ignoreIncomingRequests?.(urlPath, request),
+      () => false,
+    )
+  ) {
     return true;
   }
 

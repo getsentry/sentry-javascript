@@ -11,7 +11,7 @@ See `docs/publishing-a-release.md` for full details.
 ## Steps
 
 1. Ensure you're on `develop` with latest changes. Stash any unsaved work with `git stash -u` if needed.
-2. Run `yarn changelog` (use `yarn changelog | pbcopy` to copy output).
+2. Run `pnpm run changelog` (use `pnpm run changelog | pbcopy` to copy output).
 3. Decide on a version per [semver](https://semver.org). Check the top of `CHANGELOG.md` for the current version.
 4. Create branch `prepare-release/VERSION` off `develop`.
 5. Update `CHANGELOG.md` — add the new version entry with the changelog output. See the "Updating the Changelog" section in `docs/publishing-a-release.md` for formatting details. Do not remove existing entries.
@@ -25,7 +25,7 @@ Follow `docs/new-sdk-release-checklist.md`. If anything doesn't match the checkl
 
 ## Key commands
 
-- `yarn changelog` — generate changelog entries
-- `yarn lint` — verify code quality
-- `yarn test` — run test suite
-- `yarn build:dev` — verify build
+- `pnpm run changelog` — generate changelog entries
+- `pnpm run lint` — verify code quality
+- `pnpm run test` — run test suite
+- `pnpm run build:dev` — verify build
