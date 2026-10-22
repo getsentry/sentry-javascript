@@ -1,16 +1,19 @@
-import type { Plugin } from 'vite';
-import { describe, expect, it, vi } from 'vitest';
+import { parseSync, type Plugin } from 'vite';
+import { beforeAll, describe, expect, it, vi } from 'vitest';
+import { loadParser, parseModule } from '@sentry/bundler-plugins/rewriter';
 import {
-  addSentryImport,
-  arrayToObjectShorthand,
   makeAutoInstrumentMiddlewarePlugin,
   wrapGlobalMiddleware,
   wrapRouteMiddleware,
   wrapServerFnMiddleware,
 } from '../../src/vite/autoInstrumentMiddleware';
 
+beforeAll(async () => {
+  await loadParser();
+});
+
 type PluginWithTransform = Plugin & {
-  transform: (code: string, id: string) => { code: string; map: null } | null;
+  transform: (code: string, id: string) => { code: string; map: unknown } | null;
 };
 
 describe('makeAutoInstrumentMiddlewarePlugin', () => {
@@ -97,6 +100,87 @@ createStart(() => ({ requestMiddleware: [getMiddleware()] }));
 
     consoleWarnSpy.mockRestore();
   });
+
+  it('keeps the warning text for middlewares that cannot be auto-wrapped', () => {
+    const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+    const plugin = makeAutoInstrumentMiddlewarePlugin() as PluginWithTransform;
+    const code = `
+import { createStart } from '@tanstack/react-start';
+createStart(() => ({ requestMiddleware: [getMiddleware()], functionMiddleware: [...shared] }));
+`;
+    plugin.transform(code, '/app/start.ts');
+
+    expect(consoleWarnSpy).toHaveBeenCalledWith(
+      '[Sentry] Could not auto-instrument requestMiddleware and functionMiddleware in /app/start.ts. ' +
+        'To instrument these middlewares, use wrapMiddlewaresWithSentry() manually. ',
+    );
+
+    consoleWarnSpy.mockRestore();
+  });
+
+  it('returns a source map for the rewritten code', () => {
+    const plugin = makeAutoInstrumentMiddlewarePlugin() as PluginWithTransform;
+    const result = plugin.transform(createStartFile, '/app/start.ts');
+
+    expect(result!.map).toEqual(expect.objectContaining({ mappings: expect.any(String) }));
+    expect(() => parseModule(result!.code, '/app/start.ts')).not.toThrow();
+  });
+
+  it('instruments a createStart file whose id does not contain "start"', () => {
+    const plugin = makeAutoInstrumentMiddlewarePlugin() as PluginWithTransform;
+    const result = plugin.transform(createStartFile, '/app/src/app-entry.ts');
+
+    expect(result!.code).toContain('requestMiddleware: wrapMiddlewaresWithSentry({ authMiddleware })');
+  });
+
+  it('wraps the other sites of a file in which one site is already wrapped', () => {
+    const plugin = makeAutoInstrumentMiddlewarePlugin() as PluginWithTransform;
+    const code = `
+import { createStart } from '@tanstack/react-start';
+import { wrapMiddlewaresWithSentry } from '@sentry/tanstackstart-react';
+createStart(() => ({
+  requestMiddleware: wrapMiddlewaresWithSentry({ myMiddleware }),
+  functionMiddleware: [loggingMiddleware],
+}));
+`;
+    const result = plugin.transform(code, '/app/start.ts');
+
+    expect(result!.code).toContain('requestMiddleware: wrapMiddlewaresWithSentry({ myMiddleware })');
+    expect(result!.code).toContain('functionMiddleware: wrapMiddlewaresWithSentry({ loggingMiddleware })');
+    expect(result!.code.match(/import \{ wrapMiddlewaresWithSentry \}/g)).toHaveLength(1);
+  });
+
+  it("inserts the import after a 'use server' directive", () => {
+    const plugin = makeAutoInstrumentMiddlewarePlugin() as PluginWithTransform;
+    const result = plugin.transform(`'use server';\n${createStartFile}`, '/app/start.ts');
+
+    expect(result!.code).toMatch(
+      /^'use server';\nimport \{ wrapMiddlewaresWithSentry \} from '@sentry\/tanstackstart-react';/,
+    );
+  });
+
+  it("parses with Rolldown's `this.parse` in Vite 8", () => {
+    const plugin = makeAutoInstrumentMiddlewarePlugin() as PluginWithTransform;
+    const parse = vi.fn((input: string, options: object) => parseSync('module', input, options).program);
+    const code = `${createStartFile}const typed: string = '';\n`;
+
+    const result = plugin.transform.call({ meta: { rolldownVersion: '1.2.11' }, parse }, code, '/app/start.ts');
+    expect(parse).toHaveBeenCalledWith(code, { lang: 'ts', preserveParens: false });
+    expect(result!.code).toContain('requestMiddleware: wrapMiddlewaresWithSentry({ authMiddleware })');
+  });
+
+  it('instruments server function middlewares', () => {
+    const plugin = makeAutoInstrumentMiddlewarePlugin() as PluginWithTransform;
+    const code = `
+import { createServerFn } from '@tanstack/react-start';
+export const serverFn = createServerFn().middleware([authMiddleware]).handler(async () => ({}));
+`;
+    const result = plugin.transform(code, '/app/routes/foo.ts');
+
+    expect(result!.code).toContain('.middleware(wrapMiddlewaresWithSentry({ authMiddleware }))');
+    expect(result!.code).toContain("import { wrapMiddlewaresWithSentry } from '@sentry/tanstackstart-react'");
+  });
 });
 
 describe('wrapGlobalMiddleware', () => {
@@ -168,6 +252,40 @@ createStart(() => ({
 
     expect(result.didWrap).toBe(true);
     expect(result.code).toContain('requestMiddleware: wrapMiddlewaresWithSentry({ authMiddleware })');
+  });
+
+  it('skips a nested middleware array', () => {
+    const code = 'createStart(() => ({ requestMiddleware: [authMiddleware, [loggingMiddleware]] }));';
+    const result = wrapGlobalMiddleware(code, '/app/start.ts', false);
+
+    expect(result.didWrap).toBe(false);
+    expect(result.code).toBe(code);
+    expect(result.skipped).toEqual(['requestMiddleware']);
+  });
+
+  it('is not confused by a `]` inside a string', () => {
+    const code = "createStart(() => ({ requestMiddleware: [authMiddleware], name: ']' }));";
+    const result = wrapGlobalMiddleware(code, '/app/start.ts', false);
+
+    expect(result.didWrap).toBe(true);
+    expect(result.code).toBe(
+      "createStart(() => ({ requestMiddleware: wrapMiddlewaresWithSentry({ authMiddleware }), name: ']' }));",
+    );
+  });
+
+  it('deduplicates middleware entries', () => {
+    const code = 'createStart(() => ({ requestMiddleware: [a, b, a] }));';
+    const result = wrapGlobalMiddleware(code, '/app/start.ts', false);
+
+    expect(result.code).toContain('requestMiddleware: wrapMiddlewaresWithSentry({ a, b })');
+  });
+
+  it('ignores middleware keys outside createStart()', () => {
+    const code = 'const config = { requestMiddleware: [authMiddleware] };';
+    const result = wrapGlobalMiddleware(code, '/app/start.ts', false);
+
+    expect(result.didWrap).toBe(false);
+    expect(result.code).toBe(code);
   });
 
   it('logs debug message when debug is enabled', () => {
@@ -407,74 +525,5 @@ const serverFn = createServerFn()
 
     expect(result.didWrap).toBe(true);
     expect(result.code).toContain('.middleware(wrapMiddlewaresWithSentry({ authMiddleware }))');
-  });
-});
-
-describe('addSentryImport', () => {
-  it('prepends import to code without directives', () => {
-    const code = 'const foo = 1;';
-    const result = addSentryImport(code);
-
-    expect(result).toBe("import { wrapMiddlewaresWithSentry } from '@sentry/tanstackstart-react';\nconst foo = 1;");
-  });
-
-  it('inserts import after use server directive', () => {
-    const code = "'use server';\nconst foo = 1;";
-    const result = addSentryImport(code);
-
-    expect(result).toMatch(/^'use server';\nimport \{ wrapMiddlewaresWithSentry \}/);
-    expect(result).toContain('const foo = 1;');
-  });
-
-  it('inserts import after use client directive', () => {
-    const code = '"use client";\nconst foo = 1;';
-    const result = addSentryImport(code);
-
-    expect(result).toMatch(/^"use client";\nimport \{ wrapMiddlewaresWithSentry \}/);
-    expect(result).toContain('const foo = 1;');
-  });
-
-  it('does not add import if it already exists', () => {
-    const code = "import { wrapMiddlewaresWithSentry } from '@sentry/tanstackstart-react';\nconst foo = 1;";
-    const result = addSentryImport(code);
-
-    expect(result).toBe(code);
-    // Verify the import appears exactly once
-    const importCount = (result.match(/import \{ wrapMiddlewaresWithSentry \}/g) || []).length;
-    expect(importCount).toBe(1);
-  });
-});
-
-describe('arrayToObjectShorthand', () => {
-  it('converts single identifier', () => {
-    expect(arrayToObjectShorthand('foo')).toBe('{ foo }');
-  });
-
-  it('converts multiple identifiers', () => {
-    expect(arrayToObjectShorthand('foo, bar, baz')).toBe('{ foo, bar, baz }');
-  });
-
-  it('handles whitespace', () => {
-    expect(arrayToObjectShorthand('  foo  ,  bar  ')).toBe('{ foo, bar }');
-  });
-
-  it('returns null for empty string', () => {
-    expect(arrayToObjectShorthand('')).toBeNull();
-  });
-
-  it('returns null for function calls', () => {
-    expect(arrayToObjectShorthand('getMiddleware()')).toBeNull();
-  });
-
-  it('returns null for spread syntax', () => {
-    expect(arrayToObjectShorthand('...middlewares')).toBeNull();
-  });
-
-  it('returns null for mixed valid and invalid', () => {
-    expect(arrayToObjectShorthand('foo, bar(), baz')).toBeNull();
-  });
-
-  it('deduplicates entries', () => {
-    expect(arrayToObjectShorthand('foo, foo, bar')).toBe('{ foo, bar }');
   });
 });

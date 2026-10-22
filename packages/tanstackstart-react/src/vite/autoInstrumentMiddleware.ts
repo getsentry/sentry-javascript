@@ -1,4 +1,20 @@
-import { uniq } from '@sentry/core';
+import {
+  addImport,
+  type BaseNode,
+  type CallExpressionNode,
+  createCallSiteRewriter,
+  createRewriteState,
+  exportedName,
+  hasImport,
+  isCallToMethod,
+  parseModule,
+  type ProgramBody,
+  type PropertyNode,
+  type RewriteRule,
+  type RuleContext,
+  walk,
+  wrapArrayLiteral,
+} from '@sentry/bundler-plugins/rewriter';
 import type { Plugin } from 'vite';
 
 type AutoInstrumentMiddlewareOptions = {
@@ -12,89 +28,137 @@ type WrapResult = {
   skipped: string[];
 };
 
-type FileTransformState = {
-  code: string;
-  needsImport: boolean;
-  skippedMiddlewares: string[];
+/** Calls `onSite` with each middleware value in the module and the label to report it under. */
+type SiteFinder = (ast: ProgramBody, onSite: (label: string, value: BaseNode) => void) => void;
+
+const SENTRY_MODULE = '@sentry/tanstackstart-react';
+const WRAPPER = 'wrapMiddlewaresWithSentry';
+const SOURCE_FILE_REGEX = /\.(ts|tsx|js|jsx|mjs|mts)$/;
+const GLOBAL_MIDDLEWARE_KEYS = ['requestMiddleware', 'functionMiddleware'];
+
+/** `requestMiddleware` and `functionMiddleware` properties inside a `createStart(...)` call. */
+const findGlobalSites: SiteFinder = (ast, onSite) => {
+  walk(ast, node => {
+    if (!isCallToMethod(node, 'createStart')) return;
+    walk((node as CallExpressionNode).arguments, inner => {
+      const key = propertyKey(inner);
+      if (key && GLOBAL_MIDDLEWARE_KEYS.includes(key)) onSite(key, (inner as PropertyNode).value!);
+    });
+  });
 };
 
-/**
- * Core function that wraps middleware arrays matching the given regex.
- */
-function wrapMiddlewareArrays(code: string, id: string, debug: boolean, regex: RegExp): WrapResult {
-  const skipped: string[] = [];
-  let didWrap = false;
-
-  const transformed = code.replace(regex, (match: string, key: string, contents: string) => {
-    const objContents = arrayToObjectShorthand(contents);
-    if (objContents) {
-      didWrap = true;
-      if (debug) {
-        // eslint-disable-next-line no-console
-        console.log(`[Sentry] Auto-wrapping ${key} in ${id}`);
-      }
-      // Handle method call syntax like `.middleware([...])` vs object property syntax like `middleware: [...]`
-      if (key.endsWith('(')) {
-        return `${key}wrapMiddlewaresWithSentry(${objContents}))`;
-      }
-      return `${key}: wrapMiddlewaresWithSentry(${objContents})`;
-    }
-    // Track middlewares that couldn't be auto-wrapped
-    // Skip if we matched whitespace only
-    if (contents.trim()) {
-      skipped.push(key);
-    }
-    return match;
+/** `middleware` properties, as route and handler options declare them. */
+const findRouteSites: SiteFinder = (ast, onSite) => {
+  walk(ast, node => {
+    if (propertyKey(node) === 'middleware') onSite('middleware', (node as PropertyNode).value!);
   });
+};
 
-  return { code: transformed, didWrap, skipped };
+/** The argument of `.middleware(...)` calls, as `createServerFn()` chains make them. */
+const findServerFnSites: SiteFinder = (ast, onSite) => {
+  walk(ast, node => {
+    const call = node as CallExpressionNode;
+    if (
+      call.callee?.type === 'MemberExpression' &&
+      isCallToMethod(node, 'middleware') &&
+      call.arguments?.length === 1
+    ) {
+      onSite('.middleware(', call.arguments[0]!);
+    }
+  });
+};
+
+function propertyKey(node: BaseNode): string | undefined {
+  if (node.type !== 'Property') return undefined;
+  const property = node as PropertyNode;
+  return property.computed || !property.value ? undefined : exportedName(property.key);
+}
+
+/** Wraps each middleware array the finder reports, skipping values already wrapped. */
+function wrapSites({ ast, id, state }: RuleContext, findSites: SiteFinder, debug: boolean): void {
+  findSites(ast, (label, value) => {
+    if (isCallToMethod(value, WRAPPER)) {
+      state.report.alreadyWrapped.push(label);
+      return;
+    }
+    if (value.type !== 'ArrayExpression') return;
+
+    const didWrap = wrapArrayLiteral(state, value, label, names => `${WRAPPER}({ ${names.join(', ')} })`);
+    if (didWrap && debug) {
+      // eslint-disable-next-line no-console
+      console.log(`[Sentry] Auto-wrapping ${label} in ${id}`);
+    }
+  });
+}
+
+function wrapStandalone(code: string, id: string, debug: boolean, findSites: SiteFinder): WrapResult {
+  let ast: ProgramBody;
+  try {
+    ast = parseModule(code, id);
+  } catch {
+    return { code, didWrap: false, skipped: [] };
+  }
+
+  const state = createRewriteState(code);
+  wrapSites({ ast, code, id, state }, findSites, debug);
+  return { code: state.ms.toString(), didWrap: state.report.wrapped.length > 0, skipped: state.report.skipped };
 }
 
 /**
  * Wraps global middleware arrays (requestMiddleware, functionMiddleware) in createStart() files.
  */
 export function wrapGlobalMiddleware(code: string, id: string, debug: boolean): WrapResult {
-  return wrapMiddlewareArrays(code, id, debug, /(requestMiddleware|functionMiddleware)\s*:\s*\[([^\]]*)\]/g);
+  return wrapStandalone(code, id, debug, findGlobalSites);
 }
 
 /**
  * Wraps route middleware arrays in createFileRoute() files.
  */
 export function wrapRouteMiddleware(code: string, id: string, debug: boolean): WrapResult {
-  return wrapMiddlewareArrays(code, id, debug, /(middleware)\s*:\s*\[([^\]]*)\]/g);
+  return wrapStandalone(code, id, debug, findRouteSites);
 }
 
 /**
  * Wraps middleware arrays in createServerFn().middleware([...]) calls.
  */
 export function wrapServerFnMiddleware(code: string, id: string, debug: boolean): WrapResult {
-  return wrapMiddlewareArrays(code, id, debug, /(\.middleware\s*\()\s*\[([^\]]*)\]\s*\)/g);
-}
-
-/**
- * Applies a wrap function to the current state and returns the updated state.
- */
-function applyWrap(
-  state: FileTransformState,
-  wrapFn: (code: string, id: string, debug: boolean) => WrapResult,
-  id: string,
-  debug: boolean,
-): FileTransformState {
-  const result = wrapFn(state.code, id, debug);
-  return {
-    code: result.code,
-    needsImport: state.needsImport || result.didWrap,
-    skippedMiddlewares: [...state.skippedMiddlewares, ...result.skipped],
-  };
+  return wrapStandalone(code, id, debug, findServerFnSites);
 }
 
 /**
  * A Vite plugin that automatically instruments TanStack Start middlewares:
  * - `requestMiddleware` and `functionMiddleware` arrays in `createStart()`
  * - `middleware` arrays in `createFileRoute()` route definitions
+ * - `middleware` arrays in `createServerFn().middleware()` calls
  */
 export function makeAutoInstrumentMiddlewarePlugin(options: AutoInstrumentMiddlewareOptions = {}): Plugin {
   const { enabled = true, debug = false } = options;
+
+  const rule = (name: string, contains: string[], findSites: SiteFinder): RewriteRule => ({
+    name,
+    include: { id: SOURCE_FILE_REGEX, contains },
+    apply: ctx => {
+      wrapSites(ctx, findSites, debug);
+      if (ctx.state.needsImport && !hasImport(ctx.ast, SENTRY_MODULE, WRAPPER)) {
+        addImport(ctx.state, ctx.ast, `import { ${WRAPPER} } from '${SENTRY_MODULE}';`);
+      }
+    },
+  });
+
+  const rewriter = createCallSiteRewriter(
+    [
+      rule('global-middleware', ['createStart('], findGlobalSites),
+      rule('route-middleware', ['createFileRoute(', 'middleware'], findRouteSites),
+      rule('server-fn-middleware', ['createServerFn', '.middleware'], findServerFnSites),
+    ],
+    {
+      logger: {
+        warn: message =>
+          // eslint-disable-next-line no-console
+          console.warn(`${message} To instrument these middlewares, use wrapMiddlewaresWithSentry() manually. `),
+      },
+    },
+  );
 
   return {
     name: 'sentry-tanstack-middleware-auto-instrument',
@@ -105,105 +169,7 @@ export function makeAutoInstrumentMiddlewarePlugin(options: AutoInstrumentMiddle
         return null;
       }
 
-      // Skip if not a TS/JS file
-      if (!/\.(ts|tsx|js|jsx|mjs|mts)$/.test(id)) {
-        return null;
-      }
-
-      // Detect file types that should be instrumented
-      const isStartFile = id.includes('start') && code.includes('createStart(');
-      const isRouteFile = code.includes('createFileRoute(') && /middleware\s*:\s*\[/.test(code);
-      const isServerFnFile = code.includes('createServerFn') && /\.middleware\s*\(\s*\[/.test(code);
-
-      if (!isStartFile && !isRouteFile && !isServerFnFile) {
-        return null;
-      }
-
-      // Skip if the user already did some manual wrapping
-      if (code.includes('wrapMiddlewaresWithSentry')) {
-        return null;
-      }
-
-      let fileTransformState: FileTransformState = {
-        code,
-        needsImport: false,
-        skippedMiddlewares: [],
-      };
-
-      // Wrap middlewares
-      if (isStartFile) {
-        fileTransformState = applyWrap(fileTransformState, wrapGlobalMiddleware, id, debug);
-      }
-      if (isRouteFile) {
-        fileTransformState = applyWrap(fileTransformState, wrapRouteMiddleware, id, debug);
-      }
-      if (isServerFnFile) {
-        fileTransformState = applyWrap(fileTransformState, wrapServerFnMiddleware, id, debug);
-      }
-
-      // Warn about middlewares that couldn't be auto-wrapped
-      if (fileTransformState.skippedMiddlewares.length > 0) {
-        // eslint-disable-next-line no-console
-        console.warn(
-          `[Sentry] Could not auto-instrument ${fileTransformState.skippedMiddlewares.join(' and ')} in ${id}. ` +
-            'To instrument these middlewares, use wrapMiddlewaresWithSentry() manually. ',
-        );
-      }
-
-      // We didn't wrap any middlewares, so we don't need to import the wrapMiddlewaresWithSentry function
-      if (!fileTransformState.needsImport) {
-        return null;
-      }
-
-      return { code: addSentryImport(fileTransformState.code), map: null };
+      return rewriter.transform(code, id, this);
     },
   };
-}
-
-/**
- * Convert array contents to object shorthand syntax.
- * e.g., "foo, bar, baz" → "{ foo, bar, baz }"
- *
- * Returns null if contents contain non-identifier expressions (function calls, etc.)
- * which cannot be converted to object shorthand.
- */
-export function arrayToObjectShorthand(contents: string): string | null {
-  const items = contents
-    .split(',')
-    .map(s => s.trim())
-    .filter(Boolean);
-
-  // Only convert if all items are valid identifiers (no complex expressions)
-  const allIdentifiers = items.every(item => /^[a-zA-Z_$][a-zA-Z0-9_$]*$/.test(item));
-  if (!allIdentifiers || items.length === 0) {
-    return null;
-  }
-
-  // Deduplicate to avoid invalid syntax like { foo, foo }
-  const uniqueItems = uniq(items);
-
-  return `{ ${uniqueItems.join(', ')} }`;
-}
-
-/**
- * Adds the wrapMiddlewaresWithSentry import to the code.
- * Handles 'use client' and 'use server' directives by inserting the import after them.
- */
-export function addSentryImport(code: string): string {
-  const sentryImport = "import { wrapMiddlewaresWithSentry } from '@sentry/tanstackstart-react';\n";
-
-  // Don't add the import if it already exists
-  if (code.includes(sentryImport.trimEnd())) {
-    return code;
-  }
-
-  // Check for 'use server' or 'use client' directives, these need to be before any imports
-  const directiveMatch = code.match(/^(['"])use (client|server)\1;?\s*\n?/);
-
-  if (!directiveMatch) {
-    return sentryImport + code;
-  }
-
-  const directive = directiveMatch[0];
-  return directive + sentryImport + code.slice(directive.length);
 }
