@@ -50,6 +50,9 @@
   "dependencies": {
     "@sentry/bundler-plugins": "11.8.0"
   },
+  "devDependencies": {
+    "@sentry-internal/rollup-utils": "11.8.0"
+  },
   "volta": {
     "extends": "../../package.json"
   }

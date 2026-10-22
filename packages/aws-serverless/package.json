@@ -64,6 +64,7 @@
     "@types/aws-lambda": "^8.10.161"
   },
   "devDependencies": {
+    "@sentry-internal/rollup-utils": "11.8.0",
     "@types/node": "^20.19.0",
     "@vercel/nft": "^1.11.0"
   },

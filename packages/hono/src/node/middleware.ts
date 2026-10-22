@@ -1,6 +1,5 @@
 import { consoleSandbox, debug, getClient } from '@sentry/core';
 import type { NodeOptions } from '@sentry/node';
-import { getConnInfo } from '@hono/node-server/conninfo';
 import { applyHonoPatches, createHonoRequestMiddleware, type SentryHonoMiddlewareOptions } from '@sentry/server-utils';
 import type { Env, Hono, MiddlewareHandler } from 'hono';
 
@@ -41,5 +40,5 @@ export const sentry = <E extends Env>(app: Hono<E>, options?: SentryHonoMiddlewa
 
   applyHonoPatches(app);
 
-  return createHonoRequestMiddleware({ getConnInfo, shouldHandleError: options?.shouldHandleError });
+  return createHonoRequestMiddleware({ runtime: 'node', shouldHandleError: options?.shouldHandleError });
 };
