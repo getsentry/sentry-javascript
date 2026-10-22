@@ -1096,9 +1096,10 @@ jobs:
           runtime: ${{ matrix.runtime }}
           deno-version: ${{ matrix.deno-version }}
 
-      # Installs Playwright while the app builds. Keep it right before the build: the runner sets up a background
-      # composite action's steps from the job's shared `github` context, which fails with "Collection was modified" if
-      # a foreground step starts at that moment. Starting next to `download-artifact` also made it fail to read the event file.
+      # Installs Playwright while the app installs and builds. Keep it right before the install: the runner sets up a
+      # background composite action's steps from the job's shared `github` context, which fails with "Collection was
+      # modified" if a foreground step starts at that moment. Starting next to `download-artifact` also made it fail to
+      # read the event file.
       - name: Install Playwright
         id: install-playwright
         background: true
@@ -1106,6 +1107,23 @@ jobs:
         with:
           browsers: chromium
           cwd: dev-packages/e2e-tests/test-applications/${{ matrix.test-application }}
+
+      # Every build command runs `pnpm install`, so installing first makes that a no-op. Some downloads from the npm
+      # registry crawl at tens of kB/s for the whole 7 minutes of the build step, and pnpm does not give up on a slow
+      # download. Another attempt reuses what is already in the store and opens new connections.
+      # The hoisted variant installs with another node linker, so installing first would only redo the install.
+      - name: Install E2E app dependencies
+        if: ${{ !contains(matrix.build-command, 'hoisted') }}
+        working-directory: ${{ runner.temp }}/test-application
+        timeout-minutes: 7
+        run: |
+          for attempt in 1 2; do
+            timeout 150 pnpm install && exit 0
+            echo "::warning::pnpm install attempt $attempt failed or did not finish in 150 s, retrying"
+          done
+          pnpm install
+        env:
+          SENTRY_E2E_WORKSPACE_ROOT: ${{ github.workspace }}
 
       - name: Build E2E app
         working-directory: ${{ runner.temp }}/test-application
