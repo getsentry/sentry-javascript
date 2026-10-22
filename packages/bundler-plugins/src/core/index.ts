@@ -110,8 +110,8 @@ export {
   generateModuleMetadataInjectorCode,
 } from './utils';
 export { createSentryBuildPluginManager } from './build-plugin-manager';
-export type { SentryBuildPluginManager, UploadStaging } from './build-plugin-manager';
-export { createDebugIdUploadFunction, addDebugIdToEmittedArtifacts, stampDebugId } from './debug-id-upload';
+export type { SentryBuildPluginManager, UploadResult, UploadStaging } from './build-plugin-manager';
+export { createDebugIdUploadFunction, addDebugIdToEmittedArtifacts, hasDebugId, stampDebugId } from './debug-id-upload';
 export { decideSourceMapHandling } from './sourcemap-settings';
 export type { SourceMapDecision, SourceMapKind } from './sourcemap-settings';
 export type { UploadFilter } from './upload-filter';
