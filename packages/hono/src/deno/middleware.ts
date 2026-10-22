@@ -2,7 +2,6 @@ import { debug } from '@sentry/core';
 import type { DenoOptions } from '@sentry/deno';
 import { init } from './sdk';
 import type { Env, Hono, MiddlewareHandler } from 'hono';
-import { getConnInfo } from 'hono/deno';
 import { requestHandler, responseHandler } from '../shared/middlewareHandlers';
 import { applyPatches } from '../shared/applyPatches';
 import type { SentryHonoMiddlewareOptions } from '../shared/types';
@@ -20,7 +19,7 @@ export const sentry = <E extends Env>(app: Hono<E>, options: HonoDenoOptions): M
   applyPatches(app);
 
   return async (context, next) => {
-    requestHandler(context, getConnInfo);
+    requestHandler(context, 'deno');
 
     await next(); // Handler runs in between Request above ⤴ and Response below ⤵
 
