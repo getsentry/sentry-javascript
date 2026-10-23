@@ -59,10 +59,10 @@ describe('useTakeScreenshot', () => {
     expect(getDisplayMedia).toHaveBeenCalledTimes(1);
   });
 
-  it('requests the capture after one second when the page draws no frames', async () => {
+  it('requests the capture after 300ms when the page draws no frames', async () => {
     mountHook();
 
-    await vi.advanceTimersByTimeAsync(999);
+    await vi.advanceTimersByTimeAsync(299);
     expect(getDisplayMedia).not.toHaveBeenCalled();
 
     await vi.advanceTimersByTimeAsync(1);

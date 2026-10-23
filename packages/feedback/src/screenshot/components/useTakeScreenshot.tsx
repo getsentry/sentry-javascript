@@ -15,7 +15,8 @@ interface Props {
 type UseTakeScreenshot = ({ onBeforeScreenshot, onScreenshot, onAfterScreenshot, onError }: Props) => void;
 
 const FRAMES_BEFORE_CAPTURE = 2;
-const MAX_WAIT_BEFORE_CAPTURE_MS = 1000;
+// Safari drops the user gesture that `getDisplayMedia` needs 1s after the click, so stay well below that.
+const MAX_WAIT_BEFORE_CAPTURE_MS = 300;
 
 /** Resolves once `frames` animation frames have been drawn, or after `timeout` ms if the page draws none. */
 function waitForFrames(frames: number, timeout: number): Promise<void> {
