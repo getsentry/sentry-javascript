@@ -47,6 +47,7 @@ export {
   fsIntegration,
   functionToStringIntegration,
   genericPoolIntegration,
+  nodeCronIntegration,
   getActiveSpan,
   getAutoPerformanceIntegrations,
   getClient,

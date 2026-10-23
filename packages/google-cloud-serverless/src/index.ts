@@ -116,6 +116,7 @@ export {
   fastifyIntegration,
   firebaseIntegration,
   genericPoolIntegration,
+  nodeCronIntegration,
   graphqlIntegration,
   knexIntegration,
   kafkaIntegration,
