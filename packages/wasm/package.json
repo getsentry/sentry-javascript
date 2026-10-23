@@ -59,8 +59,5 @@
     "lint:es-compatibility": "es-check es2020 ./build/{bundles,npm/cjs}/*.js && es-check es2020 ./build/npm/esm/*.js --module",
     "yalc:publish": "yalc publish --push --sig"
   },
-  "volta": {
-    "extends": "../../package.json"
-  },
   "sideEffects": false
 }

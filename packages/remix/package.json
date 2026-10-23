@@ -128,9 +128,6 @@
     "test:watch": "vitest --watch --config vitest.config.unit.ts",
     "yalc:publish": "yalc publish --push --sig"
   },
-  "volta": {
-    "extends": "../../package.json"
-  },
   "sideEffects": false,
   "nx": {
     "targets": {

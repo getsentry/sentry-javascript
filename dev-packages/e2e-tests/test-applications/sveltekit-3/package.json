@@ -28,8 +28,5 @@
     "typescript": "^6.0.0",
     "vite": "^8.0.12"
   },
-  "volta": {
-    "extends": "../../package.json"
-  },
   "type": "module"
 }

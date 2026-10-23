@@ -39,8 +39,11 @@
       }
     ]
   },
-  "volta": {
-    "node": "24.15.0",
-    "extends": "../../package.json"
+  "devEngines": {
+    "runtime": {
+      "name": "node",
+      "version": "24.15.0",
+      "onFail": "warn"
+    }
   }
 }

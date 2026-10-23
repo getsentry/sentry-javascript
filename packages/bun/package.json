@@ -73,8 +73,5 @@
     "test:watch": "bun test --watch",
     "yalc:publish": "yalc publish --push --sig"
   },
-  "volta": {
-    "extends": "../../package.json"
-  },
   "sideEffects": false
 }

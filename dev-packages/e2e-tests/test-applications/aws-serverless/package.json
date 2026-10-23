@@ -18,8 +18,5 @@
     "aws-cdk-lib": "^2.210.0",
     "constructs": "^10.4.2",
     "rimraf": "^5.0.10"
-  },
-  "volta": {
-    "extends": "../../package.json"
   }
 }

@@ -65,9 +65,6 @@
       "last 1 safari version"
     ]
   },
-  "volta": {
-    "extends": "../../package.json"
-  },
   "sentryTest": {
     "runner": "namespace-profile-sentry-javascript",
     "variants": [

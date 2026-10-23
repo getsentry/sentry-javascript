@@ -18,8 +18,5 @@
   "scripts": {
     "clean": "pnpm exec rimraf sentry-typescript-*.tgz",
     "build:tarball": "npm pack"
-  },
-  "volta": {
-    "extends": "../../package.json"
   }
 }

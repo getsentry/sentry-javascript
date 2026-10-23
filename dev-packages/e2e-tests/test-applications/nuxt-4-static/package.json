@@ -29,9 +29,6 @@
     "@sentry/conventions": "0.27.0",
     "@sentry-internal/test-utils": "file:../../packed/sentry-internal-test-utils-packed.tgz"
   },
-  "volta": {
-    "extends": "../../package.json"
-  },
   "sentryTest": {
     "runner": "namespace-profile-sentry-javascript",
     "variants": [

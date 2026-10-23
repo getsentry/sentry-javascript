@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Pull the Lambda Node docker image for SAM local. NODE_VERSION should be the major only (e.g. 20).
-# Defaults to 20 to match the repo's Volta Node major (see root package.json "volta.node").
+# Defaults to 20 to match the repo's Node major (see root package.json "devEngines.runtime").
 
 set -e
 

@@ -86,9 +86,6 @@
     "test:watch": "vitest --watch",
     "yalc:publish": "yalc publish --push --sig"
   },
-  "volta": {
-    "extends": "../../package.json"
-  },
   "sideEffects": false,
   "devDependencies": {
     "@sentry-internal/rollup-utils": "11.8.0",
