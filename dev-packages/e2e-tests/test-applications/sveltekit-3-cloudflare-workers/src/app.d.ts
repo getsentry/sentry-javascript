@@ -1,8 +1,6 @@
 // See https://svelte.dev/docs/kit/types#app.d.ts
 // `App.Platform` (including `platform.ctx`) is declared by `@sveltejs/adapter-cloudflare`.
 declare global {
-  const __E2E_TEST_TUNNEL__: boolean;
-
   namespace App {
     // interface Error {}
     // interface Locals {}

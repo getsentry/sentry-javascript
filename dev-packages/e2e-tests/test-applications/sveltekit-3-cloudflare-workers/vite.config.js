@@ -8,9 +8,6 @@ import { defineConfig } from 'vite';
 const tunnelVariant = !!process.env.E2E_TEST_TUNNEL;
 
 export default defineConfig({
-  define: {
-    __E2E_TEST_TUNNEL__: JSON.stringify(tunnelVariant),
-  },
   plugins: [
     sentrySvelteKit({
       autoUploadSourceMaps: false,
