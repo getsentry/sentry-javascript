@@ -29,6 +29,9 @@ export interface HonoRoute {
   handler: (...args: any[]) => any;
 }
 
+// One entry of Hono's `matchResult[0]`.
+export type MatchedHandler = [pair: [handler: HonoRoute['handler'], route: HonoRoute], paramIndexMap: unknown];
+
 export interface HonoRequest {
   raw: Request;
   method: string;
