@@ -46,7 +46,7 @@
     "tag": "v10"
   },
   "dependencies": {
-    "@opentelemetry/api": "^1.9.1",
+    "@opentelemetry/api": ">=1.9.1 <1.10.0",
     "@opentelemetry/instrumentation": "^0.220.0",
     "@sentry/browser": "10.76.2",
     "@sentry/cli": "^2.58.6",
