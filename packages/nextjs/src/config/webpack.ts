@@ -515,19 +515,8 @@ function getInstrumentationFile(projectDir: string, dotPrefixedExtensions: strin
  * Make sure the instrumentation file has a `onRequestError` Handler
  */
 function warnAboutMissingOnRequestErrorHandler(instrumentationFile: string | null, silent?: boolean): void {
-  const logger = getBuildLogger(silent);
-
-  if (!instrumentationFile) {
-    if (!process.env.SENTRY_SUPPRESS_INSTRUMENTATION_FILE_WARNING) {
-      logger.warn(
-        '[@sentry/nextjs] Could not find a Next.js instrumentation file. This indicates an incomplete configuration of the Sentry SDK. An instrumentation file is required for the Sentry SDK to be initialized on the server: https://docs.sentry.io/platforms/javascript/guides/nextjs/manual-setup/#create-initialization-config-files (you can suppress this warning by setting SENTRY_SUPPRESS_INSTRUMENTATION_FILE_WARNING=1 as environment variable)',
-      );
-    }
-    return;
-  }
-
-  if (!instrumentationFile.includes('onRequestError')) {
-    logger.warn(
+  if (instrumentationFile && !instrumentationFile.includes('onRequestError')) {
+    getBuildLogger(silent).warn(
       '[@sentry/nextjs] Could not find `onRequestError` hook in instrumentation file. This indicates outdated configuration of the Sentry SDK. Use `Sentry.captureRequestError` to instrument the `onRequestError` hook: https://docs.sentry.io/platforms/javascript/guides/nextjs/manual-setup/#errors-from-nested-react-server-components',
     );
   }

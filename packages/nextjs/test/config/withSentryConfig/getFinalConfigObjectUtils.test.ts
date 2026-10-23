@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { NextConfigObject } from '../../../src/config/types';
-import { warnIfMisplacedInstrumentationFile } from '../../../src/config/withSentryConfig/getFinalConfigObjectUtils';
+import { warnIfMissingInstrumentationFile } from '../../../src/config/withSentryConfig/getFinalConfigObjectUtils';
 import { makeProject, removeProjects } from './projectFixture';
 
 const HANDLER_REWRITE = { source: '/monitoring', destination: '/sentry-tunnel' };
@@ -123,13 +123,13 @@ describe('maybeSetUpTunnelRouteRewriteRules', () => {
   });
 });
 
-describe('warnIfMisplacedInstrumentationFile', () => {
+describe('warnIfMissingInstrumentationFile', () => {
   const ROOT_FILE_WITH_SRC_APP = ['src/app/page.tsx', 'instrumentation.ts'];
 
   beforeEach(() => {
     vi.restoreAllMocks();
     vi.unstubAllEnvs();
-    vi.stubEnv('__SENTRY_MISPLACED_INSTRUMENTATION_FILE_WARNING_SHOWN__', undefined);
+    vi.stubEnv('__SENTRY_MISSING_INSTRUMENTATION_FILE_WARNING_SHOWN__', undefined);
   });
 
   function setUp(files: string[]) {
@@ -137,71 +137,60 @@ describe('warnIfMisplacedInstrumentationFile', () => {
     return vi.spyOn(console, 'warn').mockImplementation(() => undefined);
   }
 
-  function misplacedFileWarning(found: string, routerDir: string, target: string): string {
-    return `[@sentry/nextjs] Found ${found}, but Next.js production builds only pick up the instrumentation file next to your ${routerDir} directory. Move it to ${target}, or the Sentry SDK may not be initialized on the server in production.`;
+  function missingFileWarning(routerDir: string, target: string): string {
+    return `[@sentry/nextjs] Could not find an instrumentation file next to your ${routerDir} directory. Next.js production builds only load it from there, so the Sentry SDK will not be initialized on the server. Create ${target}, or move your existing instrumentation file there: https://docs.sentry.io/platforms/javascript/guides/nextjs/manual-setup/#register-server-side-sdk (you can suppress this warning by setting SENTRY_SUPPRESS_INSTRUMENTATION_FILE_WARNING=1 as environment variable)`;
   }
 
   it.each([
-    {
-      found: 'instrumentation.ts',
-      routerDir: 'src/app',
-      target: 'src/instrumentation.ts',
-      files: ROOT_FILE_WITH_SRC_APP,
-    },
-    {
-      found: 'instrumentation.js',
-      routerDir: 'src/pages',
-      target: 'src/instrumentation.js',
-      files: ['src/pages/index.tsx', 'instrumentation.js'],
-    },
-    {
-      found: 'src/instrumentation.ts',
-      routerDir: 'app',
-      target: 'instrumentation.ts',
-      files: ['app/page.tsx', 'src/lib/db.ts', 'src/instrumentation.ts'],
-    },
-  ])('warns about $found in a project with $routerDir', ({ found, routerDir, target, files }) => {
+    ['the file is in the project root with `src/app`', ROOT_FILE_WITH_SRC_APP, 'src/app', 'src/instrumentation.ts'],
+    [
+      'the file is in `src` with `app`',
+      ['app/page.tsx', 'src/lib/db.ts', 'src/instrumentation.ts'],
+      'app',
+      'instrumentation.ts',
+    ],
+    ['there is no file with `src/pages`', ['src/pages/index.tsx'], 'src/pages', 'src/instrumentation.ts'],
+    [
+      'the file is next to `src/app`, but a root `pages` directory takes precedence',
+      ['pages/index.tsx', 'src/app/page.tsx', 'src/instrumentation.ts'],
+      'pages',
+      'instrumentation.ts',
+    ],
+  ])('warns when %s', (_setup, files, routerDir, target) => {
     const warnSpy = setUp(files);
 
-    warnIfMisplacedInstrumentationFile({}, {});
+    warnIfMissingInstrumentationFile({}, {});
 
     expect(warnSpy).toHaveBeenCalledTimes(1);
-    expect(warnSpy).toHaveBeenCalledWith(misplacedFileWarning(found, routerDir, target));
-  });
-
-  it('looks for the file with the configured `pageExtensions`', () => {
-    const warnSpy = setUp(['src/app/page.page.tsx', 'instrumentation.page.ts']);
-
-    warnIfMisplacedInstrumentationFile({ pageExtensions: ['page.tsx', 'page.ts'] }, {});
-
-    expect(warnSpy).toHaveBeenCalledTimes(1);
-    expect(warnSpy).toHaveBeenCalledWith(
-      misplacedFileWarning('instrumentation.page.ts', 'src/app', 'src/instrumentation.page.ts'),
-    );
+    expect(warnSpy).toHaveBeenCalledWith(missingFileWarning(routerDir, target));
   });
 
   it('warns only once', () => {
     const warnSpy = setUp(ROOT_FILE_WITH_SRC_APP);
 
-    warnIfMisplacedInstrumentationFile({}, {});
-    warnIfMisplacedInstrumentationFile({}, {});
+    warnIfMissingInstrumentationFile({}, {});
+    warnIfMissingInstrumentationFile({}, {});
 
     expect(warnSpy).toHaveBeenCalledTimes(1);
   });
 
   it.each([
     ['the file is next to `src/app`', ['src/app/page.tsx', 'src/instrumentation.ts']],
-    ['the file is next to `app`', ['app/page.tsx', 'instrumentation.ts']],
+    ['the file is next to `app`', ['app/page.tsx', 'instrumentation.js']],
     ['a file is in both folders', ['src/app/page.tsx', 'src/instrumentation.ts', 'instrumentation.ts']],
-    [
-      'a root `pages` directory takes precedence over `src/app`',
-      ['pages/index.tsx', 'src/app/page.tsx', 'instrumentation.ts'],
-    ],
-    ['the project has no `app` or `pages` directory', ['instrumentation.ts']],
+    ['the project has no `app` or `pages` directory', []],
   ])('does not warn when %s', (_setup, files) => {
     const warnSpy = setUp(files);
 
-    warnIfMisplacedInstrumentationFile({}, {});
+    warnIfMissingInstrumentationFile({}, {});
+
+    expect(warnSpy).not.toHaveBeenCalled();
+  });
+
+  it('looks for the file with the configured `pageExtensions`', () => {
+    const warnSpy = setUp(['src/app/page.page.tsx', 'src/instrumentation.page.ts']);
+
+    warnIfMissingInstrumentationFile({ pageExtensions: ['page.tsx', 'page.ts'] }, {});
 
     expect(warnSpy).not.toHaveBeenCalled();
   });
@@ -209,7 +198,7 @@ describe('warnIfMisplacedInstrumentationFile', () => {
   it('does not warn with `silent`', () => {
     const warnSpy = setUp(ROOT_FILE_WITH_SRC_APP);
 
-    warnIfMisplacedInstrumentationFile({}, { silent: true });
+    warnIfMissingInstrumentationFile({}, { silent: true });
 
     expect(warnSpy).not.toHaveBeenCalled();
   });
@@ -218,7 +207,7 @@ describe('warnIfMisplacedInstrumentationFile', () => {
     vi.stubEnv('SENTRY_SUPPRESS_INSTRUMENTATION_FILE_WARNING', '1');
     const warnSpy = setUp(ROOT_FILE_WITH_SRC_APP);
 
-    warnIfMisplacedInstrumentationFile({}, {});
+    warnIfMissingInstrumentationFile({}, {});
 
     expect(warnSpy).not.toHaveBeenCalled();
   });
