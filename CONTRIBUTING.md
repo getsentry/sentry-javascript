@@ -18,9 +18,21 @@ you get started, but if you have further questions, please feel free to reach ou
 
 ## Setting up an Environment
 
-We use [Volta](https://volta.sh/) to ensure we use consistent versions of node and pnpm. Volta manages pnpm only when
-[pnpm support](https://docs.volta.sh/advanced/pnpm) is enabled, so add `export VOLTA_FEATURE_PNPM=1` to your shell
-profile (for example `~/.zshrc`).
+> [!NOTE]
+> This setup is experimental: we are moving from Volta (which is unmaintained) to pnpm-managed node versions.
+
+pnpm manages the versions of node and pnpm. The root `package.json` pins node in `devEngines.runtime` and pnpm in
+`packageManager`. A package or E2E test app can override the node version with its own `devEngines.runtime`.
+
+1. Install pnpm 12 with the [standalone script](https://pnpm.io/installation#using-a-standalone-script), for example
+   `curl -fsSL https://get.pnpm.io/install.sh | sh -`.
+2. Install node through pnpm: `pnpm runtime set node 24 -g`. pnpm's `node` in `$PNPM_HOME/bin` then runs the version
+   that the nearest `package.json` pins, and downloads it if needed
+   ([project-aware global bins](https://pnpm.io/global-packages#project-aware-global-bins)).
+3. If you use Volta, nvm or a similar tool, remove it from your `PATH` (or put `$PNPM_HOME/bin` first), so `node`
+   resolves to pnpm's shim. Check with `node --version` in the repo root.
+
+pnpm switches to the `packageManager` version by itself, so you do not have to install a specific pnpm version.
 
 `sentry-javascript` is a monorepo containing several packages, managed with pnpm workspaces and Nx. To get started,
 install all dependencies, and then perform an initial build, so TypeScript can read all of the linked type definitions.
@@ -83,8 +95,8 @@ E2E tests verify SDK behavior in real-world framework scenarios.
 ### Prerequisites
 
 1. **Docker**: Required for some E2E tests
-2. **Volta**: The E2E tests run each app on the node version that it pins. Without Volta, they use your current node
-   version.
+2. **pnpm-managed node** (see [Setting up an Environment](#setting-up-an-environment)): The E2E tests run each app on
+   the node version that it pins. Without pnpm's `node` shim, they use your current node version.
 
 ### Step-by-Step Instructions
 

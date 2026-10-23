@@ -1,10 +1,10 @@
 // @ts-check
 /* eslint-disable no-console */
-import { execFileSync, spawn } from 'node:child_process';
+import { spawn } from 'node:child_process';
 import { existsSync, readdirSync } from 'node:fs';
 import { mkdir, mkdtemp, readFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
-import { delimiter, dirname, join, resolve } from 'node:path';
+import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { copyToTemp } from './lib/copyToTemp.mjs';
 import { addPnpmOverrides } from './lib/pnpmOverrides.mjs';
@@ -125,25 +125,6 @@ async function getVariantBuildCommand(packageJsonPath, variantLabel, testAppPath
     assertCommand: 'pnpm test:assert',
     testLabel: testAppPath,
   };
-}
-
-/**
- * The directory of the node version that the app pins. CI uses the same pin (see `node-version-file` in
- * .github/workflows/build.yml). Only node comes from Volta: Volta cannot run pnpm 12
- * (https://github.com/volta-cli/volta/issues/2114), so the apps use the pnpm version that runs this script.
- * @param {string} cwd
- * @returns {string | undefined}
- */
-function getPinnedNodeDir(cwd) {
-  try {
-    return dirname(execFileSync('volta', ['run', 'node', '-p', 'process.execPath'], { cwd, encoding: 'utf8' }).trim());
-  } catch (error) {
-    if (/** @type {NodeJS.ErrnoException} */ (error).code !== 'ENOENT') {
-      throw error;
-    }
-    console.warn(`Volta is not installed, so ${cwd} runs on node ${process.version} instead of the version it pins.`);
-    return undefined;
-  }
 }
 
 async function run() {
@@ -274,12 +255,10 @@ async function run() {
       applyRuntimeFiles(tmpDirPath, runtime);
     }
 
-    const nodeDir = getPinnedNodeDir(cwd);
     const appEnv = {
       ...env,
       SENTRY_CONFIG_DIR: sentryConfigDir,
       ...(runtime ? { RUNTIME: runtime } : {}),
-      ...(nodeDir ? { PATH: `${nodeDir}${delimiter}${process.env.PATH}` } : {}),
     };
 
     console.log(`Building ${testLabel} in ${tmpDirPath}...`);

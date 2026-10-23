@@ -60,8 +60,5 @@
   },
   "peerDependencies": {
     "webpack": ">=5.1.0"
-  },
-  "volta": {
-    "extends": "../../package.json"
   }
 }

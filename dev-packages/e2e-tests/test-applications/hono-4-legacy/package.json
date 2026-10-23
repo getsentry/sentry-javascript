@@ -30,9 +30,6 @@
     "typescript": "^5.5.2",
     "wrangler": "^4.61.0"
   },
-  "volta": {
-    "extends": "../../package.json"
-  },
   "sentryTest": {
     "variants": [
       {

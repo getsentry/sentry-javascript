@@ -43,9 +43,6 @@
     "vite": "^5.4.11",
     "vue-tsc": "^1.8.27"
   },
-  "volta": {
-    "extends": "../../package.json"
-  },
   "sentryTest": {
     "variants": [
       {

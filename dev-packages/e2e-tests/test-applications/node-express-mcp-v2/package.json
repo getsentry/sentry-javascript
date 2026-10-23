@@ -28,9 +28,6 @@
     "@sentry/core": "file:../../packed/sentry-core-packed.tgz"
   },
   "type": "module",
-  "volta": {
-    "extends": "../../package.json"
-  },
   "sentryTest": {
     "optional": true
   }

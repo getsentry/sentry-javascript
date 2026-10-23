@@ -29,8 +29,5 @@
     "@nestjs/schematics": "^11.0.0",
     "@types/node": "^18.19.1",
     "typescript": "~5.0.0"
-  },
-  "volta": {
-    "extends": "../../package.json"
   }
 }

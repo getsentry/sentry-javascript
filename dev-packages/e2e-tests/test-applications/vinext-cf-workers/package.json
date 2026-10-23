@@ -31,8 +31,5 @@
     "vinext": "^1.0.1",
     "vite": "^8.3.0",
     "wrangler": "^4.135.0"
-  },
-  "volta": {
-    "extends": "../../package.json"
   }
 }

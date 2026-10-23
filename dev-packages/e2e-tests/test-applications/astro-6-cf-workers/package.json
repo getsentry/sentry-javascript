@@ -24,9 +24,6 @@
     "mysql": "2.18.1",
     "wrangler": "^4.72.0"
   },
-  "volta": {
-    "extends": "../../package.json"
-  },
   "sentryTest": {
     "variants": [
       {

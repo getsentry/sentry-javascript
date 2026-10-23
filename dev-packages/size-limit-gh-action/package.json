@@ -22,8 +22,5 @@
     "@actions/io": "3.0.2",
     "bytes-iec": "3.1.1",
     "markdown-table": "3.0.3"
-  },
-  "volta": {
-    "extends": "../../package.json"
   }
 }

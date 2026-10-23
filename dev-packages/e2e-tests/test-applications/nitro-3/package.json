@@ -27,9 +27,6 @@
     "rolldown": "latest",
     "vite": "latest"
   },
-  "volta": {
-    "extends": "../../package.json"
-  },
   "sentryTest": {
     "variants": [
       {
