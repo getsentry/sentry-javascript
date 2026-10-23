@@ -26,6 +26,7 @@ const NO_FETCH_INSTRUMENTATION = [
   'suites/tracing/requests/fetch-no-tracing-no-spans/test.ts',
   'suites/tracing/requests/fetch-no-tracing/test.ts',
   'suites/tracing/requests/fetch-sampled-no-active-span/test.ts',
+  'suites/tracing/requests/fetch-sentry-requests/test.ts',
   'suites/tracing/requests/fetch-unsampled/test.ts',
   'suites/tracing/requests/traceparent/test.ts',
   'suites/tracing/sample-rand-propagation/test.ts',

@@ -1,9 +1,11 @@
 import { debug, dsnFromString, GLOBAL_OBJ } from '@sentry/core';
 import type { BrowserOptions } from '@sentry/react';
 import { DEBUG_BUILD } from '../common/debug-build';
+import type { TunnelRouteMode } from '../common/utils/tunnelPathnameMatch';
 
 const globalWithInjectedValues = GLOBAL_OBJ as typeof GLOBAL_OBJ & {
   _sentryRewritesTunnelPath?: string;
+  _sentryTunnelRouteMode?: TunnelRouteMode;
 };
 
 /**
@@ -16,6 +18,15 @@ export function applyTunnelRouteOption(options: BrowserOptions): void {
     if (!dsnComponents) {
       return;
     }
+
+    // The handler reads the DSN from the envelope, so it needs no query and no SaaS DSN.
+    const tunnelRouteMode = process.env._sentryTunnelRouteMode || globalWithInjectedValues._sentryTunnelRouteMode;
+    if (tunnelRouteMode === 'handler') {
+      options.tunnel = tunnelRouteOption;
+      DEBUG_BUILD && debug.log(`Tunneling events to "${tunnelRouteOption}"`);
+      return;
+    }
+
     const sentrySaasDsnMatch = dsnComponents.host.match(/^o(\d+)\.ingest(?:\.([a-z]{2}))?\.sentry\.io$/);
     if (sentrySaasDsnMatch) {
       const orgId = sentrySaasDsnMatch[1];
@@ -25,6 +36,12 @@ export function applyTunnelRouteOption(options: BrowserOptions): void {
         tunnelPath += `&r=${regionCode}`;
       }
       options.tunnel = tunnelPath;
+      // The tunnel route is same-origin, so fetch would include credentials (cookies, HTTP authentication) that the
+      // tunnel does not need.
+      options.transportOptions = {
+        ...options.transportOptions,
+        fetchOptions: { credentials: 'omit', ...options.transportOptions?.fetchOptions },
+      };
       DEBUG_BUILD && debug.log(`Tunneling events to "${tunnelPath}"`);
     } else {
       DEBUG_BUILD && debug.warn('Provided DSN is not a Sentry SaaS DSN. Will not tunnel events.');

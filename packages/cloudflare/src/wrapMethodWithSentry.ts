@@ -217,9 +217,9 @@ export function wrapMethodWithSentry<T extends OriginalMethod>(
 
                   if (storedContext) {
                     span.addLinks(buildSpanLinks(storedContext));
-                    // TODO(v12): Remove this once the Sentry trace view finds linked traces via span links.
-                    // EAP stores span links, but the trace view still reads this attribute to navigate to the
-                    // previous/next trace.
+
+                    // TODO(v12): Remove once EAP can filter span links by type. The Sentry trace view searches this attribute to find the NEXT trace.
+                    // Sentry 26.9 and older also read it to find the PREVIOUS trace. Newer versions read the span link.
                     const sampledFlag = storedContext.sampled ? '1' : '0';
                     span.setAttribute(
                       'sentry.previous_trace',

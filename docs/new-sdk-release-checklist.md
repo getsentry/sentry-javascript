@@ -11,6 +11,8 @@ differ slightly for other SDKs depending on how they are structured and how they
   - [ ] The package exports the necessary modules
   - [ ] The package has a working unit testing environment
   - [ ] The package builds correctly (inspect `<package>/build` directory)
+  - [ ] The package is in the `packages` list of `pnpm-workspace.yaml` and in the `workspaces` list of the root
+        `package.json` (in the same order). `scripts/verify-packages-versions.js` checks this.
 
 - [ ] Make sure that the `README.md` content is up to date and contains at least:
   - [ ] The correct name + a brief description of the SDK
@@ -24,7 +26,7 @@ differ slightly for other SDKs depending on how they are structured and how they
 - [ ] Make sure that the `LICENSE` file exists and has the correct license (We default to the `MIT` license)
   - [ ] Also check, that the same license is mentioned in `package.json`
 
-- [ ] Make sure that the tarball (`yarn build:tarball`) has all the necessary contents
+- [ ] Make sure that the tarball (`pnpm run build:tarball`) has all the necessary contents
 
   For basic SDKs, this means that the tarball has at least these files - you can configure what is included in the
   tarball via the `files` field in `package.json`:
@@ -36,7 +38,7 @@ differ slightly for other SDKs depending on how they are structured and how they
   - [ ] `LICENSE`
   - [ ] `README.md`
   - [ ] Any additional files that should be part of the tarball
-  - [ ] It’s recommended to build and pack a tarball and then `yarn add path/to/tarball.tar.gz` it to your test app(s)
+  - [ ] It’s recommended to build and pack a tarball and then `pnpm add path/to/tarball.tar.gz` it to your test app(s)
         to ensure that it has all the correct files.
 
 - [ ] Make sure `build.yml` CI script is correctly set up to cover tests for the new package
