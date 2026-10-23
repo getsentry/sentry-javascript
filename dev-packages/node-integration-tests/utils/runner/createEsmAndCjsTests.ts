@@ -165,7 +165,7 @@ function setupAndCleanup(
   // Must cover all npm install attempts (see `NPM_INSTALL_TIMEOUT_MS`) plus `afterSetupCommand`.
   beforeAll(async () => {
     await createTmpDir();
-  }, 240_000);
+  }, 200_000);
 
   // Clean up the tmp directory after both esm and cjs suites have run
   afterAll(async () => {
