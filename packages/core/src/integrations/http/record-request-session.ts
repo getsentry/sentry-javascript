@@ -65,7 +65,7 @@ export function startRequestSession(
   client.emit('startRequestSession');
 
   let ended = false;
-  const record = (flushNow: boolean): void => {
+  const record = (): void => {
     const requestSession = requestIsolationScope.getScopeData().sdkProcessingMetadata.requestSession;
 
     if (client && requestSession) {
@@ -89,6 +89,7 @@ export function startRequestSession(
         const flushPendingClientAggregates = (): void => {
           clearTimeout(timeout);
           unregisterClientFlushHook();
+          unregisterAfterFlushProcessingHook();
           clientToRequestSessionAggregatesMap.delete(client);
 
           const aggregatePayload: AggregationCounts[] = Object.entries(newClientAggregate).map(
@@ -106,15 +107,16 @@ export function startRequestSession(
           DEBUG_BUILD && debug.log('Sending request session aggregate due to client flush');
           flushPendingClientAggregates();
         });
+        // A session can settle while `client.flush()` waits for event processing, after `flush` was emitted.
+        const unregisterAfterFlushProcessingHook = client.on('afterFlushProcessing', () => {
+          DEBUG_BUILD && debug.log('Sending request session aggregate due to client flush');
+          flushPendingClientAggregates();
+        });
         const timeout = setTimeout(() => {
           DEBUG_BUILD && debug.log('Sending request session aggregate due to flushing schedule');
           flushPendingClientAggregates();
         }, sessionFlushingDelayMS);
         safeUnref(timeout);
-
-        if (flushNow) {
-          flushPendingClientAggregates();
-        }
       }
     }
   };
@@ -129,19 +131,10 @@ export function startRequestSession(
     // response ended (e.g. async event processors), so the status is final only once those errors settle.
     const pendingErrors = requestIsolationScope.getScopeData().sdkProcessingMetadata.requestSession?.pendingErrors;
     if (!pendingErrors?.size) {
-      record(false);
+      record();
       return;
     }
 
-    // `client.flush()` sends the aggregate before it waits for event processing. A session that settles during
-    // that wait is sent right away, so that the transport still has it when that flush drains it.
-    let flushedWhileSettling = false;
-    const unregisterClientFlushHook = client.on('flush', () => {
-      flushedWhileSettling = true;
-    });
-    void Promise.allSettled(pendingErrors).then(() => {
-      unregisterClientFlushHook();
-      record(flushedWhileSettling);
-    });
+    void Promise.allSettled(pendingErrors).then(record);
   };
 }

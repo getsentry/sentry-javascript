@@ -213,6 +213,27 @@ describe('ServerRuntimeClient', () => {
         aggregates: [{ started: expect.any(String), exited: 0, errored: 0, crashed: 0, ...counts }],
       });
     });
+
+    it('sends a session that settles during a flush with an aggregate opened during that flush', async () => {
+      client = new ServerRuntimeClient(
+        getDefaultClientOptions({
+          dsn: PUBLIC_DSN,
+          beforeSend: event => new Promise<ErrorEvent>(resolve => setTimeout(() => resolve(event), 10)),
+        }),
+      );
+      const sendSessionSpy = vi.spyOn(client, 'sendSession');
+      const endErroredRequestSession = startRequestSession(client, { requestIsolationScope: getIsolationScope() });
+      client.captureException(new Error('foo'));
+      endErroredRequestSession();
+
+      const flushed = client.flush();
+      startRequestSession(client, { requestIsolationScope: new Scope() })();
+      await flushed;
+
+      expect(sendSessionSpy).toHaveBeenCalledExactlyOnceWith({
+        aggregates: [{ started: expect.any(String), exited: 1, errored: 1, crashed: 0 }],
+      });
+    });
   });
 
   describe('captureMessage', () => {

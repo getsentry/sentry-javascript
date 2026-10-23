@@ -487,6 +487,7 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
     }
 
     const clientFinished = await this._isClientDoneProcessing(timeout);
+    this.emit('afterFlushProcessing');
     const transportFlushed = await transport.flush(timeout);
 
     return clientFinished && transportFlushed;
@@ -913,6 +914,12 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
   public on(hook: 'flush', callback: () => void): () => void;
 
   /**
+   * A hook that is called during a flush, after the client is done processing events and before the transport is flushed.
+   * @returns {() => void} A function that, when executed, removes the registered callback.
+   */
+  public on(hook: 'afterFlushProcessing', callback: () => void): () => void;
+
+  /**
    * A hook that is called when spans of a single trace should be flushed eagerly,
    * ahead of the trace's regular flush point. Only runtimes with a span streaming
    * buffer (e.g. the Cloudflare SDK) listen to this hook.
@@ -1226,6 +1233,11 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
    * Emit a hook event for client flush
    */
   public emit(hook: 'flush'): void;
+
+  /**
+   * Emit a hook event during a flush, after the client is done processing events.
+   */
+  public emit(hook: 'afterFlushProcessing'): void;
 
   /**
    * Fire a hook event indicating that spans of a single trace should be flushed eagerly.
