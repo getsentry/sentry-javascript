@@ -1,5 +1,5 @@
 import type { ServerRuntimeClientOptions } from '@sentry/core/server';
-import { _INTERNAL_flushLogsBuffer, _INTERNAL_flushMetricsBuffer, SDK_VERSION } from '@sentry/core';
+import { SDK_VERSION } from '@sentry/core';
 import { ServerRuntimeClient } from '@sentry/core/server';
 import { registerDiagnosticsChannelInjection } from '@sentry/server-runtime-injection/register';
 import { setAsyncLocalStorageAsyncContextStrategy } from '@sentry/server-utils';
@@ -25,8 +25,7 @@ function getHostName(): string | undefined {
  * @see SentryClient for usage documentation.
  */
 export class DenoClient extends ServerRuntimeClient<DenoClientOptions> {
-  private _logOnExitFlushListener: (() => void) | undefined;
-  private _metricsOnExitFlushListener: (() => void) | undefined;
+  private _onExitFlushListener: (() => void) | undefined;
 
   /**
    * Creates a new Deno SDK instance.
@@ -56,12 +55,10 @@ export class DenoClient extends ServerRuntimeClient<DenoClientOptions> {
 
     super(clientOptions);
 
-    this._logOnExitFlushListener = () => {
-      _INTERNAL_flushLogsBuffer(this);
-    };
-
-    this._metricsOnExitFlushListener = () => {
-      _INTERNAL_flushMetricsBuffer(this);
+    // The log, metric and span buffers drain on `flush`. Their timers are unref'd, so a natural exit
+    // would drop what they hold.
+    this._onExitFlushListener = () => {
+      this.emit('flush');
     };
 
     if (serverName) {
@@ -74,10 +71,8 @@ export class DenoClient extends ServerRuntimeClient<DenoClientOptions> {
     }
 
     // Unlike unload, beforeExit lets the transport finish asynchronous sends.
-    process.on('beforeExit', this._logOnExitFlushListener);
-    process.on('beforeExit', this._metricsOnExitFlushListener);
-    globalThis.addEventListener('unload', this._logOnExitFlushListener);
-    globalThis.addEventListener('unload', this._metricsOnExitFlushListener);
+    process.on('beforeExit', this._onExitFlushListener);
+    globalThis.addEventListener('unload', this._onExitFlushListener);
 
     // In the constructor, as in `NodeClient`, so a directly constructed client installs the hooks
     // too. Registration is idempotent.
@@ -102,14 +97,9 @@ export class DenoClient extends ServerRuntimeClient<DenoClientOptions> {
   /** @inheritDoc */
   // @ts-expect-error - PromiseLike is a subset of Promise
   public async close(timeout?: number | undefined): PromiseLike<boolean> {
-    if (this._logOnExitFlushListener) {
-      process.off('beforeExit', this._logOnExitFlushListener);
-      globalThis.removeEventListener('unload', this._logOnExitFlushListener);
-    }
-
-    if (this._metricsOnExitFlushListener) {
-      process.off('beforeExit', this._metricsOnExitFlushListener);
-      globalThis.removeEventListener('unload', this._metricsOnExitFlushListener);
+    if (this._onExitFlushListener) {
+      process.off('beforeExit', this._onExitFlushListener);
+      globalThis.removeEventListener('unload', this._onExitFlushListener);
     }
 
     return super.close(timeout);
