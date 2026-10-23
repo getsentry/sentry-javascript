@@ -167,6 +167,7 @@ describe.each(matrix)('Vercel AI integration (version %s)', (version, vercelAiVe
     {
       additionalDependencies: {
         ai: vercelAiVersion,
+        '@opentelemetry/api': '1.9.1',
       },
     },
   );
@@ -293,6 +294,7 @@ describe.each(matrix)('Vercel AI integration (version %s)', (version, vercelAiVe
     {
       additionalDependencies: {
         ai: vercelAiVersion,
+        '@opentelemetry/api': '1.9.1',
       },
     },
   );
@@ -365,6 +367,7 @@ describe.each(matrix)('Vercel AI integration (version %s)', (version, vercelAiVe
     {
       additionalDependencies: {
         ai: vercelAiVersion,
+        '@opentelemetry/api': '1.9.1',
       },
     },
   );
@@ -407,6 +410,7 @@ describe.each(matrix)('Vercel AI integration (version %s)', (version, vercelAiVe
     {
       additionalDependencies: {
         ai: vercelAiVersion,
+        '@opentelemetry/api': '1.9.1',
       },
     },
   );
@@ -470,6 +474,7 @@ describe.each(matrix)('Vercel AI integration (version %s)', (version, vercelAiVe
     {
       additionalDependencies: {
         ai: vercelAiVersion,
+        '@opentelemetry/api': '1.9.1',
       },
     },
   );
@@ -518,6 +523,7 @@ describe.each(matrix)('Vercel AI integration (version %s)', (version, vercelAiVe
     {
       additionalDependencies: {
         ai: vercelAiVersion,
+        '@opentelemetry/api': '1.9.1',
       },
     },
   );
@@ -565,6 +571,7 @@ describe.each(matrix)('Vercel AI integration (version %s)', (version, vercelAiVe
     {
       additionalDependencies: {
         ai: vercelAiVersion,
+        '@opentelemetry/api': '1.9.1',
       },
     },
   );
@@ -624,6 +631,7 @@ describe.each(matrix)('Vercel AI integration (version %s)', (version, vercelAiVe
     {
       additionalDependencies: {
         ai: vercelAiVersion,
+        '@opentelemetry/api': '1.9.1',
       },
     },
   );
@@ -692,6 +700,7 @@ describe.each(matrix)('Vercel AI integration (version %s)', (version, vercelAiVe
     {
       additionalDependencies: {
         ai: vercelAiVersion,
+        '@opentelemetry/api': '1.9.1',
       },
     },
   );
@@ -736,6 +745,7 @@ describe.each(matrix)('Vercel AI integration (version %s)', (version, vercelAiVe
     {
       additionalDependencies: {
         ai: vercelAiVersion,
+        '@opentelemetry/api': '1.9.1',
       },
     },
   );
@@ -776,6 +786,7 @@ describe.each(matrix)('Vercel AI integration (version %s)', (version, vercelAiVe
     {
       additionalDependencies: {
         ai: vercelAiVersion,
+        '@opentelemetry/api': '1.9.1',
       },
     },
   );
@@ -827,6 +838,7 @@ describe.each(matrix)('Vercel AI integration (version %s)', (version, vercelAiVe
     {
       additionalDependencies: {
         ai: vercelAiVersion,
+        '@opentelemetry/api': '1.9.1',
       },
     },
   );
@@ -883,6 +895,7 @@ describe.each(matrix)('Vercel AI integration (version %s)', (version, vercelAiVe
     {
       additionalDependencies: {
         ai: vercelAiVersion,
+        '@opentelemetry/api': '1.9.1',
       },
     },
   );
@@ -934,6 +947,7 @@ describe.each(matrix)('Vercel AI integration (version %s)', (version, vercelAiVe
     {
       additionalDependencies: {
         ai: vercelAiVersion,
+        '@opentelemetry/api': '1.9.1',
       },
     },
   );
@@ -950,6 +964,7 @@ describe.each(matrix)('Vercel AI integration (version %s)', (version, vercelAiVe
     {
       additionalDependencies: {
         ai: vercelAiVersion,
+        '@opentelemetry/api': '1.9.1',
       },
     },
   );
