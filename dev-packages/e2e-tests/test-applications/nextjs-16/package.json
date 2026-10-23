@@ -7,7 +7,7 @@
     "build": "next build > .tmp_build_stdout 2> .tmp_build_stderr || (cat .tmp_build_stdout && cat .tmp_build_stderr && exit 1)",
     "clean": "npx rimraf node_modules pnpm-lock.yaml .tmp_dev_server_logs",
     "dev:webpack": "next dev --webpack",
-    "build-webpack": "next build --webpack --debug-prerender > .tmp_build_stdout 2> .tmp_build_stderr || (cat .tmp_build_stdout && cat .tmp_build_stderr && pwd && pwd -P && uname -a && ls .next/static/chunks/app; for f in .next/server/app/_global-error/page_client-reference-manifest.js .next/server/app/page_client-reference-manifest.js; do echo MANIFEST $f; tr , '\\n' < $f | grep -v node_modules | grep -v chunks; done; grep -rl global-error .next/static/chunks | head; exit 1)",
+    "build-webpack": "next build --webpack --debug-prerender > .tmp_build_stdout 2> .tmp_build_stderr || (cat .tmp_build_stdout && cat .tmp_build_stderr && pwd && pwd -P && uname -a && ls .next/static/chunks/app; for f in .next/server/app/_global-error/page_client-reference-manifest.js .next/server/app/page_client-reference-manifest.js; do echo MANIFEST $f; tr , '\\n' < $f | grep -v node_modules | grep -v chunks; done; node debug-build.mjs; exit 1)",
     "start": "next start",
     "lint": "eslint",
     "test:prod": "TEST_ENV=production playwright test",
