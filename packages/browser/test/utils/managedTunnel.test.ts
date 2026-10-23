@@ -19,7 +19,9 @@ describe('resolveBrowserTunnelOption', () => {
     expect(resolveBrowserTunnelOption({ dsn: DSN, tunnel: { basePath: '/docs' } })._managedTunnel).toEqual({
       basePath: '/docs',
     });
-    expect(resolveBrowserTunnelOption({ dsn: DSN, tunnel: '/my-tunnel' })._managedTunnel).toBeUndefined();
+    expect(
+      resolveBrowserTunnelOption({ dsn: DSN, tunnel: 'https://proxy.example.com/tunnel' })._managedTunnel,
+    ).toBeUndefined();
   });
 
   it('prefixes the base path and appends a trailing slash when asked', () => {
@@ -45,11 +47,19 @@ describe('resolveBrowserTunnelOption', () => {
     expect(transportOptions?.headers).toEqual({ 'Content-Type': 'application/x-sentry-envelope' });
   });
 
+  it('treats a relative path as a shortcut for a fixed path', () => {
+    expect(resolveBrowserTunnelOption({ dsn: DSN, tunnel: '/monitor' })).toEqual(
+      resolveBrowserTunnelOption({ dsn: DSN, tunnel: { path: '/monitor' } }),
+    );
+  });
+
   it('keeps a URL tunnel and its transport options untouched', () => {
     const transportOptions = { headers: { 'x-custom': '1' } };
 
-    expect(resolveBrowserTunnelOption({ dsn: DSN, tunnel: '/my-tunnel', transportOptions })).toEqual({
-      tunnel: '/my-tunnel',
+    expect(
+      resolveBrowserTunnelOption({ dsn: DSN, tunnel: 'https://proxy.example.com/tunnel', transportOptions }),
+    ).toEqual({
+      tunnel: 'https://proxy.example.com/tunnel',
       transportOptions,
     });
   });
@@ -155,8 +165,8 @@ describe('makeManagedTunnelTransport', () => {
     ]);
   });
 
-  it.each([400, 401, 403, 404, 405, 413, 429])(
-    'sends an envelope directly once, and everything after it, when something other than the tunnel answers %s',
+  it.each([404, 405])(
+    'sends an envelope directly once, and everything after it, when nothing serves the tunnel and it answers %s',
     async statusCode => {
       const { transport, sent } = setup({ [TUNNEL_URL]: [{ statusCode }] });
 
@@ -189,31 +199,21 @@ describe('makeManagedTunnelTransport', () => {
     },
   );
 
-  it('never sends an envelope again after a 2xx the tunnel handler did not produce, only the ones after it', async () => {
-    const { transport, sent } = setup({
-      [TUNNEL_URL]: [{ statusCode: 200, headers: {} } as TransportMakeRequestResponse],
-    });
+  it.each([200, 400, 401, 403, 413, 429, 500, 503])(
+    'keeps using a tunnel the app serves itself when it answers %s',
+    async statusCode => {
+      const appResponse = { statusCode, headers: {} } as TransportMakeRequestResponse;
+      const { transport, sent } = setup({ [TUNNEL_URL]: [appResponse] });
 
-    await transport.send(makeEnvelope('a'));
-    await transport.send(makeEnvelope('b'));
+      expect(await transport.send(makeEnvelope('a'))).toBe(appResponse);
+      await transport.send(makeEnvelope('b'));
 
-    expect(sent.map(({ url, id }) => [url, id])).toEqual([
-      [TUNNEL_URL, 'a'],
-      [DIRECT_URL, 'b'],
-    ]);
-  });
-
-  it.each([500, 503])('never sends an envelope again after a %s', async statusCode => {
-    const { transport, sent } = setup({ [TUNNEL_URL]: [{ statusCode }] });
-
-    await transport.send(makeEnvelope('a'));
-    await transport.send(makeEnvelope('b'));
-
-    expect(sent.map(({ url, id }) => [url, id])).toEqual([
-      [TUNNEL_URL, 'a'],
-      [TUNNEL_URL, 'b'],
-    ]);
-  });
+      expect(sent.map(({ url, id }) => [url, id])).toEqual([
+        [TUNNEL_URL, 'a'],
+        [TUNNEL_URL, 'b'],
+      ]);
+    },
+  );
 
   it('only sends each envelope directly once when several were already on their way to the tunnel', async () => {
     const { transport, sent } = setup({ [TUNNEL_URL]: [{ statusCode: 404 }, { statusCode: 404 }] });
