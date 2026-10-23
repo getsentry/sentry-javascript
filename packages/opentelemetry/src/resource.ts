@@ -1,4 +1,4 @@
-import type { Attributes } from '@opentelemetry/api';
+import type { Attributes, AttributeValue } from '@opentelemetry/api';
 import { SDK_INFO } from '@opentelemetry/core';
 import { SERVICE_NAME, SERVICE_VERSION } from '@sentry/conventions/attributes';
 import { SDK_VERSION } from '@sentry/core';
@@ -13,7 +13,7 @@ const ATTR_TELEMETRY_SDK_NAME = 'telemetry.sdk.name';
 const ATTR_TELEMETRY_SDK_VERSION = 'telemetry.sdk.version';
 const SEMRESATTRS_SERVICE_NAMESPACE = 'service.namespace';
 
-type RawResourceAttribute = [string, Attributes[string]];
+type RawResourceAttribute = [string, AttributeValue | undefined];
 
 /**
  * Minimal Resource implementation that satisfies the OpenTelemetry Resource interface

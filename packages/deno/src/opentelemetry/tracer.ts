@@ -1,4 +1,4 @@
-import type { Context, Link, Span, SpanOptions, Tracer, TracerProvider } from '@opentelemetry/api';
+import type { Context, Span, SpanOptions, Tracer, TracerProvider } from '@opentelemetry/api';
 import { SpanKind, trace } from '@opentelemetry/api';
 import {
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
@@ -6,7 +6,6 @@ import {
   startInactiveSpan,
   startSpanManual,
 } from '@sentry/core';
-import type { SpanLink } from '@sentry/core';
 
 /**
  * Set up a mock OTEL tracer to allow inter-op with OpenTelemetry emitted spans.
@@ -40,7 +39,6 @@ class SentryDenoTracer implements Tracer {
 
     return startInactiveSpan({
       ...options,
-      links: convertSpanLinkType(options?.links),
       name,
       attributes: {
         ...options?.attributes,
@@ -75,7 +73,6 @@ class SentryDenoTracer implements Tracer {
 
     const spanOpts = {
       ...opts,
-      links: convertSpanLinkType(opts.links),
       name,
       attributes: {
         ...opts.attributes,
@@ -113,15 +110,4 @@ class SentryDenoTracer implements Tracer {
         return undefined;
     }
   }
-}
-
-/**
- * Converts OpenTelemetry span links to Sentry span links.
- *
- * Since `@opentelemetry/api` 1.10.0, link attribute values are typed as `unknown`.
- * Sentry's `SpanLink` only accepts strings, numbers, booleans and arrays of these as attribute values,
- * so OTel links do not match its type.
- */
-function convertSpanLinkType(links: Link[] | undefined): SpanLink[] | undefined {
-  return links as SpanLink[] | undefined;
 }

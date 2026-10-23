@@ -5,7 +5,6 @@ import { BasicTracerProvider } from '@opentelemetry/sdk-trace-base';
 import { debug as coreDebug, hasSpanStreamingEnabled } from '@sentry/core';
 import {
   initializeEsmLoader,
-  INSTRUMENTED,
   type NodeClient,
   SentryContextManager,
   setupOpenTelemetryLogger,
@@ -81,25 +80,6 @@ function registerGlobalTracerProvider(provider: TracerProvider): boolean {
   }
 
   return false;
-}
-
-/**
- * Points the instrumentations Sentry registered at the global tracer provider, which only exists
- * now that Sentry registered its own.
- *
- * `@opentelemetry/api` >= 1.10 ships separate ESM and CJS builds, so an ESM app can load both.
- * An instrumentation registered before the global provider existed keeps a tracer from the proxy
- * provider of its own api copy. If Sentry registered the global provider through the other copy,
- * that proxy never gets a delegate and all spans of the instrumentation are no-ops.
- */
-function updateInstrumentationTracerProviders(client: NodeClient): void {
-  const tracerProvider = trace.getTracerProvider();
-  const instrumentations = [
-    ...Object.values(INSTRUMENTED),
-    ...(client.getOptions().openTelemetryInstrumentations || []),
-  ];
-
-  instrumentations.forEach(instrumentation => instrumentation.setTracerProvider(tracerProvider));
 }
 
 interface AdditionalOpenTelemetryOptions {
@@ -194,9 +174,7 @@ export function setupOtel(
   });
 
   // Register as globals
-  if (registerGlobalTracerProvider(provider)) {
-    updateInstrumentationTracerProviders(client);
-  }
+  registerGlobalTracerProvider(provider);
   propagation.setGlobalPropagator(new SentryPropagator());
 
   const ctxManager = new SentryContextManager();
@@ -222,7 +200,6 @@ function setupSentryTracerProvider(
   // tracer provider, so setup validation doesn't skip required checks when
   // registration failed.
   setIsSetup('SentryTracerProvider');
-  updateInstrumentationTracerProviders(client);
 
   propagation.setGlobalPropagator(new SentryPropagator());
 

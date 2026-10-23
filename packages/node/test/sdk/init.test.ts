@@ -2,7 +2,6 @@ import { trace } from '@opentelemetry/api';
 import { BasicTracerProvider } from '@opentelemetry/sdk-trace-base';
 import type { Integration } from '@sentry/core';
 import { debug, SDK_VERSION } from '@sentry/core';
-import { INSTRUMENTED } from '@sentry/node-core';
 import * as SentryOpentelemetry from '@sentry/opentelemetry';
 import { afterEach, beforeEach, describe, expect, it, type Mock, type MockInstance, vi } from 'vitest';
 import { getClient, NodeClient, validateOpenTelemetrySetup } from '../../src/';
@@ -299,48 +298,6 @@ describe('init()', () => {
       expect(existingRegistry.trace).toBe(existingProvider);
 
       global[OTEL_API_GLOBAL_KEY] = undefined;
-    });
-
-    it('points instrumentations registered before init at the global tracer provider', () => {
-      const instrumentation = { setTracerProvider: vi.fn() };
-      INSTRUMENTED['Test'] = instrumentation as unknown as (typeof INSTRUMENTED)[string];
-
-      init({ dsn: PUBLIC_DSN });
-
-      expect(instrumentation.setTracerProvider).toHaveBeenCalledWith(trace.getTracerProvider());
-
-      delete INSTRUMENTED['Test'];
-    });
-
-    it('points `openTelemetryInstrumentations` at the global tracer provider', () => {
-      const instrumentation = {
-        setTracerProvider: vi.fn(),
-        setMeterProvider: vi.fn(),
-        setLoggerProvider: vi.fn(),
-        getConfig: () => ({ enabled: true }),
-      };
-
-      init({
-        dsn: PUBLIC_DSN,
-        openTelemetryBasicTracerProvider: true,
-        openTelemetryInstrumentations: [instrumentation as unknown as (typeof INSTRUMENTED)[string]],
-      });
-
-      expect(instrumentation.setTracerProvider).toHaveBeenLastCalledWith(trace.getTracerProvider());
-    });
-
-    it('does not change the tracer provider of instrumentations when global registration fails', () => {
-      const setGlobalSpy = vi.spyOn(trace, 'setGlobalTracerProvider').mockReturnValue(false);
-      vi.spyOn(debug, 'warn').mockImplementation(() => {});
-      const instrumentation = { setTracerProvider: vi.fn() };
-      INSTRUMENTED['Test'] = instrumentation as unknown as (typeof INSTRUMENTED)[string];
-
-      init({ dsn: PUBLIC_DSN });
-
-      expect(instrumentation.setTracerProvider).not.toHaveBeenCalled();
-
-      delete INSTRUMENTED['Test'];
-      setGlobalSpy.mockRestore();
     });
 
     it('does not mark SentryTracerProvider as set up when global registration fails', () => {

@@ -1,4 +1,4 @@
-import type { Attributes } from '@opentelemetry/api';
+import type { Attributes, AttributeValue } from '@opentelemetry/api';
 import { SpanKind } from '@opentelemetry/api';
 import {
   DB_STATEMENT,
@@ -123,7 +123,7 @@ export function parseSpanDescription(span: AbstractSpan): SpanDescription {
   }
 
   const kind = getSpanKind(span);
-  return inferSpanData(name, attributes as SpanAttributes, kind);
+  return inferSpanData(name, attributes, kind);
 }
 
 function descriptionForDbSystem({ attributes, name }: { attributes: Attributes; name: string }): SpanDescription {
@@ -154,7 +154,7 @@ function descriptionForDbSystem({ attributes, name }: { attributes: Attributes; 
 /** Only exported for tests. */
 export function descriptionForHttpMethod(
   { name, kind, attributes }: { name: string; attributes: Attributes; kind: SpanKind },
-  httpMethod: NonNullable<Attributes[string]>,
+  httpMethod: AttributeValue,
 ): SpanDescription {
   const opParts = ['http'];
 
@@ -238,7 +238,7 @@ export function descriptionForHttpMethod(
   };
 }
 
-function getGraphqlOperationNamesFromAttribute(attr: NonNullable<Attributes[string]>): string {
+function getGraphqlOperationNamesFromAttribute(attr: AttributeValue): string {
   if (Array.isArray(attr)) {
     // oxlint-disable-next-line typescript/require-array-sort-compare
     const sorted = attr.slice().sort();

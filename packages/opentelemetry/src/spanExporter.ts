@@ -6,9 +6,7 @@ import { HTTP_RESPONSE_STATUS_CODE, HTTP_STATUS_CODE } from '@sentry/conventions
 import type {
   SpanAttributes,
   SpanJSON,
-  SpanLink,
   SpanOrigin,
-  TimedEvent,
   TraceContext,
   TransactionEvent,
   TransactionSource,
@@ -224,7 +222,7 @@ export class SentrySpanExporter {
         };
       }
 
-      const measurements = timedEventsToMeasurements(span.events as TimedEvent[]);
+      const measurements = timedEventsToMeasurements(span.events);
       if (measurements) {
         transactionEvent.measurements = measurements;
       }
@@ -294,7 +292,7 @@ export function createTransactionForOtelSpan(span: ReadableSpan): TransactionEve
     origin,
     op,
     status: getStatusMessage(status), // As per protocol, span status is allowed to be undefined
-    links: convertSpanLinksForEnvelope(links as SpanLink[]),
+    links: convertSpanLinksForEnvelope(links),
   };
 
   const statusCode = attributes[HTTP_RESPONSE_STATUS_CODE];
@@ -380,8 +378,8 @@ function createAndFinishSpanForOtelSpan(node: SpanNode, spans: SpanJSON[], sentS
     status: getStatusMessage(status), // As per protocol, span status is allowed to be undefined
     op,
     origin,
-    measurements: timedEventsToMeasurements(span.events as TimedEvent[]),
-    links: convertSpanLinksForEnvelope(links as SpanLink[]),
+    measurements: timedEventsToMeasurements(span.events),
+    links: convertSpanLinksForEnvelope(links),
   };
 
   spans.push(spanJSON);
