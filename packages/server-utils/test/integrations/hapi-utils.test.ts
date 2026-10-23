@@ -1,9 +1,17 @@
-import { HTTP_REQUEST_METHOD, HTTP_ROUTE, SENTRY_OP, SENTRY_ORIGIN } from '@sentry/conventions/attributes';
+import {
+  HAPI_EXT_TYPE,
+  HAPI_PLUGIN_NAME,
+  HAPI_TYPE,
+  HTTP_REQUEST_METHOD,
+  HTTP_ROUTE,
+  SENTRY_OP,
+  SENTRY_ORIGIN,
+  SERVER_EXT_TYPE,
+} from '@sentry/conventions/attributes';
 import { ROUTER } from '@sentry/conventions/op';
 import type { Span } from '@sentry/core';
 import { setCurrentClient, spanToJSON, startSpan } from '@sentry/core';
 import { afterEach, describe, expect, it } from 'vitest';
-import { AttributeNames } from '../../src/integrations/hapi/hapi-types';
 import { getExtMetadata, getRouteMetadata, wrapRouteArguments } from '../../src/integrations/hapi/hapi-utils';
 import { getDefaultTestClientOptions, TestClient } from '../mocks/client';
 
@@ -20,7 +28,7 @@ describe('getRouteMetadata', () => {
       attributes: {
         [HTTP_ROUTE]: '/users/{id}',
         [HTTP_REQUEST_METHOD]: 'GET',
-        [AttributeNames.HAPI_TYPE]: 'router',
+        [HAPI_TYPE]: 'router',
       },
     });
   });
@@ -31,8 +39,8 @@ describe('getRouteMetadata', () => {
       attributes: {
         [HTTP_ROUTE]: '/users/{id}',
         [HTTP_REQUEST_METHOD]: 'GET',
-        [AttributeNames.HAPI_TYPE]: 'plugin',
-        [AttributeNames.PLUGIN_NAME]: 'my-plugin',
+        [HAPI_TYPE]: 'plugin',
+        [HAPI_PLUGIN_NAME]: 'my-plugin',
       },
     });
   });
@@ -42,7 +50,7 @@ describe('getRouteMetadata', () => {
       name: '/users/{id}',
       attributes: {
         [HTTP_ROUTE]: '/users/{id}',
-        [AttributeNames.HAPI_TYPE]: 'router',
+        [HAPI_TYPE]: 'router',
       },
     });
   });
@@ -99,7 +107,7 @@ describe('wrapRouteArguments', () => {
     expect(routerSpan?.attributes).toEqual({
       [HTTP_ROUTE]: '/multi',
       [HTTP_REQUEST_METHOD]: method,
-      [AttributeNames.HAPI_TYPE]: 'router',
+      [HAPI_TYPE]: 'router',
       [SENTRY_OP]: ROUTER,
       [SENTRY_ORIGIN]: 'auto.http.hapi',
     });
@@ -110,7 +118,12 @@ describe('getExtMetadata', () => {
   it('names an extension by its point', () => {
     expect(getExtMetadata('onPreHandler')).toEqual({
       name: 'ext - onPreHandler',
-      attributes: { 'server.ext.type': 'onPreHandler', 'hapi.type': 'server.ext' },
+      attributes: {
+        [HAPI_EXT_TYPE]: 'onPreHandler',
+        // oxlint-disable-next-line typescript/no-deprecated
+        [SERVER_EXT_TYPE]: 'onPreHandler',
+        [HAPI_TYPE]: 'server.ext',
+      },
     });
   });
 
@@ -123,9 +136,11 @@ describe('getExtMetadata', () => {
     expect(getExtMetadata('onPreHandler', 'my-plugin')).toEqual({
       name: 'my-plugin: ext - onPreHandler',
       attributes: {
-        'server.ext.type': 'onPreHandler',
-        'hapi.type': 'server.ext',
-        'hapi.plugin.name': 'my-plugin',
+        [HAPI_EXT_TYPE]: 'onPreHandler',
+        // oxlint-disable-next-line typescript/no-deprecated
+        [SERVER_EXT_TYPE]: 'onPreHandler',
+        [HAPI_TYPE]: 'server.ext',
+        [HAPI_PLUGIN_NAME]: 'my-plugin',
       },
     });
   });

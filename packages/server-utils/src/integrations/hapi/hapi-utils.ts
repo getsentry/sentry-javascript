@@ -18,7 +18,16 @@ import {
   ROUTER_SPAN_NAME_FALLBACK,
   startSpan,
 } from '@sentry/core';
-import { SENTRY_OP, SENTRY_ORIGIN } from '@sentry/conventions/attributes';
+import {
+  HAPI_EXT_TYPE,
+  HAPI_PLUGIN_NAME,
+  HAPI_TYPE,
+  HTTP_REQUEST_METHOD,
+  HTTP_ROUTE,
+  SENTRY_OP,
+  SENTRY_ORIGIN,
+  SERVER_EXT_TYPE,
+} from '@sentry/conventions/attributes';
 import { HANDLER, MIDDLEWARE, ROUTER } from '@sentry/conventions/op';
 import type {
   HapiRequest,
@@ -31,8 +40,7 @@ import type {
   ServerRequestExtType,
   ServerRouteOptions,
 } from './hapi-types';
-import { HTTP_REQUEST_METHOD, HTTP_ROUTE } from '@sentry/conventions/attributes';
-import { AttributeNames, handlerPatched, HapiLayerType, HapiLifecycleMethodNames } from './hapi-types';
+import { handlerPatched, HapiLayerType, HapiLifecycleMethodNames } from './hapi-types';
 import { setHttpServerSpanRouteAttribute } from '../../utils/setHttpServerSpanRouteAttribute';
 
 /**
@@ -122,10 +130,10 @@ export const getRouteMetadata = ({
   };
 
   if (pluginName) {
-    attributes[AttributeNames.HAPI_TYPE] = HapiLayerType.PLUGIN;
-    attributes[AttributeNames.PLUGIN_NAME] = pluginName;
+    attributes[HAPI_TYPE] = HapiLayerType.PLUGIN;
+    attributes[HAPI_PLUGIN_NAME] = pluginName;
   } else {
-    attributes[AttributeNames.HAPI_TYPE] = HapiLayerType.ROUTER;
+    attributes[HAPI_TYPE] = HapiLayerType.ROUTER;
   }
 
   const client = getClient();
@@ -152,23 +160,20 @@ export const getExtMetadata = (
     // `method` is the default name for the extension in the ServerExtEventsObject format.
     baseName = `ext - ${extPoint} - ${methodName}`;
   }
+  const attributes: SpanAttributes = {
+    [HAPI_EXT_TYPE]: extPoint,
+    // TODO(v12): Remove `server.ext.type`, which `hapi.ext.type` replaces.
+    // oxlint-disable-next-line typescript/no-deprecated
+    [SERVER_EXT_TYPE]: extPoint,
+    [HAPI_TYPE]: HapiLayerType.EXT,
+  };
   if (pluginName) {
     return {
-      attributes: {
-        [AttributeNames.EXT_TYPE]: extPoint,
-        [AttributeNames.HAPI_TYPE]: HapiLayerType.EXT,
-        [AttributeNames.PLUGIN_NAME]: pluginName,
-      },
+      attributes: { ...attributes, [HAPI_PLUGIN_NAME]: pluginName },
       name: `${pluginName}: ${baseName}`,
     };
   }
-  return {
-    attributes: {
-      [AttributeNames.EXT_TYPE]: extPoint,
-      [AttributeNames.HAPI_TYPE]: HapiLayerType.EXT,
-    },
-    name: baseName,
-  };
+  return { attributes, name: baseName };
 };
 
 const HAPI_TYPE_TO_SPAN_OP: Record<string, string> = {
@@ -178,7 +183,7 @@ const HAPI_TYPE_TO_SPAN_OP: Record<string, string> = {
 };
 
 function startMetadataSpan(metadata: SpanMetadata, original: () => unknown): unknown {
-  const hapiType = metadata.attributes[AttributeNames.HAPI_TYPE];
+  const hapiType = metadata.attributes[HAPI_TYPE];
   const op = hapiType ? HAPI_TYPE_TO_SPAN_OP[hapiType] : undefined;
   return startSpan(
     {

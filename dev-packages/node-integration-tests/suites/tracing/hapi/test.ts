@@ -1,4 +1,10 @@
-import { HTTP_REQUEST_METHOD, SENTRY_OP } from '@sentry/conventions/attributes';
+import {
+  HAPI_EXT_TYPE,
+  HAPI_TYPE,
+  HTTP_REQUEST_METHOD,
+  SENTRY_OP,
+  SERVER_EXT_TYPE,
+} from '@sentry/conventions/attributes';
 import { ROUTER } from '@sentry/conventions/op';
 import { afterAll, describe, expect } from 'vitest';
 import { cleanupChildProcesses, createEsmAndCjsTests } from '../../../utils/runner';
@@ -103,8 +109,10 @@ describe('hapi auto-instrumentation', () => {
               expect.objectContaining({
                 name: 'ext - onPreResponse',
                 attributes: expect.objectContaining({
-                  'hapi.type': { type: 'string', value: 'server.ext' },
-                  'server.ext.type': { type: 'string', value: 'onPreResponse' },
+                  [HAPI_TYPE]: { type: 'string', value: 'server.ext' },
+                  [HAPI_EXT_TYPE]: { type: 'string', value: 'onPreResponse' },
+                  // oxlint-disable-next-line typescript/no-deprecated
+                  [SERVER_EXT_TYPE]: { type: 'string', value: 'onPreResponse' },
                   'sentry.op': { type: 'string', value: 'middleware' },
                   'sentry.origin': { type: 'string', value: origin },
                 }),
