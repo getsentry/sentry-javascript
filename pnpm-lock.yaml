@@ -2055,8 +2055,8 @@ importers:
         specifier: ^2.17.5
         version: 2.17.5(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(typescript@5.8.3)
       '@remix-run/route-pattern':
-        specifier: ^0.24.0
-        version: 0.24.1
+        specifier: ^1.0.0
+        version: 1.0.0
       '@remix-run/server-runtime':
         specifier: ^2.17.4
         version: 2.17.5(typescript@5.8.3)
@@ -7748,8 +7748,8 @@ packages:
       typescript:
         optional: true
 
-  '@remix-run/route-pattern@0.24.1':
-    resolution: {integrity: sha512-HRee7tz2Ct7QdTQGDErHcVTAlXa5BBV6GOLEa/INw21ceTWTWlaU13FJupYVX0k1mh608rod880+SA5NlTPPfw==}
+  '@remix-run/route-pattern@1.0.0':
+    resolution: {integrity: sha512-EsI8J5AcDpnV76lGcpwPCqCN1Vj7X2eNPqgUr+RjInTsm4iTnrGzn0iIUxpUjQ5/Ba1cAd8CMMbsA2bjEjZiyQ==}
 
   '@remix-run/router@1.23.3':
     resolution: {integrity: sha512-4An71tdz9X8+3sI4Qqqd2LWd9vS39J7sqd9EU4Scw7TJE/qB10Flv/UuqbPVgfQV9XoK8Np6jNquZitnZq5i+Q==}
@@ -25838,7 +25838,7 @@ snapshots:
     optionalDependencies:
       typescript: 5.8.3
 
-  '@remix-run/route-pattern@0.24.1': {}
+  '@remix-run/route-pattern@1.0.0': {}
 
   '@remix-run/router@1.23.3': {}
 
