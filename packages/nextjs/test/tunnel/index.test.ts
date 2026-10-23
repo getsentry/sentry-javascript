@@ -59,12 +59,14 @@ describe('POST', () => {
     expect(fetchSpy).toHaveBeenCalledTimes(1);
     expect(fetchSpy).toHaveBeenCalledWith(
       'https://o1.ingest.sentry.io/api/1/envelope/?sentry_version=7&sentry_key=public',
-      {
+      expect.objectContaining({
         method: 'POST',
         headers: { 'Content-Type': 'application/x-sentry-envelope' },
-        body,
-      },
+      }),
     );
+    // The body streams through, so it is read back to compare it.
+    const [, init] = fetchSpy.mock.calls[0]!;
+    expect(new Uint8Array(await new Response((init as RequestInit).body).arrayBuffer())).toEqual(body);
   });
 
   it('responds with 500 when the server SDK has no DSN', async () => {

@@ -6,6 +6,17 @@
 
 export type { ServerRuntimeClientOptions } from './server-runtime-client';
 export { ServerRuntimeClient } from './server-runtime-client';
+export type { TunnelRequestLike } from './utils/tunnel';
+export {
+  getTunnelPaths as _INTERNAL_getTunnelPaths,
+  handleTunnelRequestIfMatched,
+  isTunnelRequest,
+  resolveServerTunnelOption as _INTERNAL_resolveServerTunnelOption,
+} from './utils/tunnel';
+export {
+  _INTERNAL_resetManagedTunnelDefaults,
+  setManagedTunnelDefaults as _INTERNAL_setManagedTunnelDefaults,
+} from './utils/managedTunnelDefaults';
 export type { ServerRuntimeOptions } from './types/options';
 export { trpcMiddleware } from './trpc';
 export { wrapMcpServerWithSentry } from './integrations/mcp-server';
