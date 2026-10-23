@@ -208,8 +208,8 @@ async function instrumentHandle(
           [SENTRY_ORIGIN]: 'auto.http.sveltekit',
           [SENTRY_SEGMENT_NAME_SOURCE]: routeName ? 'route' : 'url',
           'sveltekit.tracing.original_name': originalName,
-          [URL_FULL]: (kitRootSpanAttributes[URL_FULL] as string | undefined) ?? filterCollectedUrl(event.url.href),
-          [URL_PATH]: (kitRootSpanAttributes[URL_PATH] as string | undefined) ?? event.url.pathname,
+          [URL_FULL]: kitRootSpanAttributes[URL_FULL] ?? filterCollectedUrl(event.url.href),
+          [URL_PATH]: kitRootSpanAttributes[URL_PATH] ?? event.url.pathname,
           ...(routeName && {
             [HTTP_ROUTE]: routeName,
           }),

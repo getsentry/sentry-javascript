@@ -1,6 +1,7 @@
 import { expect, test } from '@playwright/test';
 import { waitForError } from '@sentry-internal/test-utils';
 import { IMPORT_SURFACES } from './importSurfaces';
+import { waitForHydration } from './waitForHydration';
 
 IMPORT_SURFACES.forEach(({ name, apiPrefix }) => {
   test.describe(`server-side errors (${name})`, () => {
@@ -10,6 +11,7 @@ IMPORT_SURFACES.forEach(({ name, apiPrefix }) => {
       });
 
       await page.goto(`/fetch-server-routes?apiPrefix=${apiPrefix}`);
+      await waitForHydration(page);
       await page.getByText('Fetch Server API Error', { exact: true }).click();
 
       const error = await errorPromise;
@@ -44,6 +46,7 @@ IMPORT_SURFACES.forEach(({ name, apiPrefix }) => {
       });
 
       await page.goto(`/test-param/1234?apiPrefix=${apiPrefix}`);
+      await waitForHydration(page);
       await page.getByRole('button', { name: 'Fetch Server API Error', exact: true }).click();
 
       const error = await errorPromise;
@@ -81,6 +84,7 @@ IMPORT_SURFACES.forEach(({ name, apiPrefix }) => {
       });
 
       await page.goto(`/fetch-server-routes?apiPrefix=${apiPrefix}`);
+      await waitForHydration(page);
       await page.getByText('Fetch Third-Party HTTPError', { exact: true }).click();
 
       const error = await errorPromise;

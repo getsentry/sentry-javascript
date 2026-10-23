@@ -1,6 +1,6 @@
 import * as SentryCore from '@sentry/core';
 import type { Envelope, Integration } from '@sentry/core';
-import { getClient } from '@sentry/core';
+import { getClient, startSpan } from '@sentry/core';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 import type { CloudflareOptions } from '../src/client';
 import { CloudflareClient } from '../src/client';
@@ -67,6 +67,32 @@ describe('init', () => {
         integrations: expect.not.arrayContaining([expect.objectContaining({ name: 'Dedupe' })]),
       }),
     );
+  });
+
+  test('does not leave a timer pending when a segment span ends', () => {
+    vi.useFakeTimers();
+    try {
+      init({ dsn: 'https://public@dsn.ingest.sentry.io/1337', tracesSampleRate: 0 });
+
+      startSpan({ name: 'alarm' }, () => undefined);
+
+      // A pending timer keeps a Durable Object invocation open until it fires.
+      expect(vi.getTimerCount()).toBe(0);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  test("doesn't add spanStreamingIntegration when tracing is excluded from the bundle", () => {
+    vi.stubGlobal('__SENTRY_TRACING__', false);
+    try {
+      const client = init({ dsn: 'https://public@dsn.ingest.sentry.io/1337' });
+      const integrations = client?.getOptions().integrations.filter(i => i.name === 'SpanStreaming');
+
+      expect(integrations).toEqual([]);
+    } finally {
+      vi.unstubAllGlobals();
+    }
   });
 
   type MarkedIntegration = Integration & { _custom?: boolean };

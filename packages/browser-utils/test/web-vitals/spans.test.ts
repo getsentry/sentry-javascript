@@ -392,6 +392,7 @@ describe('_sendLcpSpan', () => {
     vi.mocked(SentryCore.getClient).mockReturnValue({
       getOptions: () => ({ traceLifecycle: 'static' }),
       getIntegrationByName: () => undefined,
+      getDataCollectionOptions: () => ({ urlQueryParams: true }),
     } as any);
   });
 
@@ -403,7 +404,7 @@ describe('_sendLcpSpan', () => {
     const mockEntry = {
       element: { tagName: 'img' } as Element,
       id: 'hero',
-      url: 'https://example.com/hero.jpg',
+      url: 'https://example.com/hero.jpg?token=abc&size=2',
       loadTime: 100,
       renderTime: 150,
       size: 50000,
@@ -424,7 +425,7 @@ describe('_sendLcpSpan', () => {
           'sentry.pageload.span_id': 'pageload-123',
           'browser.web_vital.lcp.element': '<img>',
           'browser.web_vital.lcp.id': 'hero',
-          'browser.web_vital.lcp.url': 'https://example.com/hero.jpg',
+          'browser.web_vital.lcp.url': 'https://example.com/hero.jpg?token=[Filtered]&size=2',
           'browser.web_vital.lcp.load_time': 100,
           'browser.web_vital.lcp.render_time': 150,
           'browser.web_vital.lcp.size': 50000,

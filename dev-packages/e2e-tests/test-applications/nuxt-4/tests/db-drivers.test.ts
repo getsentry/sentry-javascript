@@ -86,7 +86,7 @@ test('Instruments mongoose automatically', async ({ baseURL }) => {
   expect(getSpanOp(rootSpan!)).toBe('http.server');
 
   const mongooseSpans = spans.filter(
-    span => span.attributes['sentry.origin']?.value === 'auto.db.mongoose.diagnostic_channel',
+    span => span.attributes['sentry.origin']?.value === 'auto.db.mongoose.native_channel',
   );
   expect(mongooseSpans).toHaveLength(2);
 

@@ -83,7 +83,7 @@ describe('createFetchIntegration', () => {
   it('uses the span origin it was created with', () => {
     const winterCGFetchIntegration = createFetchIntegration({
       name: 'WinterCGFetch',
-      spanOrigin: 'auto.http.wintercg_fetch',
+      spanOrigin: 'auto.http.fetch',
     });
 
     const handler = setupIntegration(winterCGFetchIntegration(), client);
@@ -94,7 +94,7 @@ describe('createFetchIntegration', () => {
       expect.any(Function),
       expect.any(Function),
       expect.any(Object),
-      expect.objectContaining({ spanOrigin: 'auto.http.wintercg_fetch' }),
+      expect.objectContaining({ spanOrigin: 'auto.http.fetch' }),
     );
   });
 

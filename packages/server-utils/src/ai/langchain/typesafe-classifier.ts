@@ -1,7 +1,7 @@
 import { SENTRY_ORIGIN } from '@sentry/conventions/attributes';
 import type { Span } from '@sentry/core';
 import { isObjectLike } from '@sentry/core';
-import { addResponseAttributes, startEvaluateSpan } from '../typesafe';
+import { addResponseAttributes, startDecideSpan } from '../typesafe';
 import { LANGCHAIN_ORIGIN } from './constants';
 import { getAgentNameFromMetadata, getConversationIdFromMetadata } from './utils';
 
@@ -40,7 +40,7 @@ export function isTypeSafeClassifier(chain: unknown): boolean {
   return isObjectLike(chain) && Array.isArray(chain.id) && chain.id[chain.id.length - 1] === TYPESAFE_CLASSIFIER_NAME;
 }
 
-/** Start an `evaluate` span for a `TypeSafeClassifier` run, from its serialized constructor arguments. */
+/** Start a `decide` span for a `TypeSafeClassifier` run, from its serialized constructor arguments. */
 export function startTypeSafeClassifierSpan(
   chain: unknown,
   inputs: Record<string, unknown>,
@@ -50,7 +50,7 @@ export function startTypeSafeClassifierSpan(
   const kwargs = isObjectLike(chain) && isObjectLike(chain.kwargs) ? chain.kwargs : {};
   const model = typeof kwargs.model === 'string' ? kwargs.model : DEFAULT_TYPESAFE_CLASSIFIER_MODEL;
 
-  return startEvaluateSpan({ model, state: getState(inputs), questions: kwargs.questions }, undefined, recordInputs, {
+  return startDecideSpan({ model, state: getState(inputs), questions: kwargs.questions }, undefined, recordInputs, {
     [SENTRY_ORIGIN]: LANGCHAIN_ORIGIN,
     ...getAgentNameFromMetadata(metadata),
     ...getConversationIdFromMetadata(metadata),

@@ -5,9 +5,17 @@ export type { Plugin as VitePlugin } from 'vite';
 import { instrumentedModuleNames } from '../config';
 import type { PluginOptions } from './options';
 import { externalEntryMatchesModule, externalizedModulesWarning, orchestrionTransformOptions } from './options';
+import { createExternalRequireResolver } from './externalRequire';
 import { resolveOrchestrionRuntimeRequest, SNIPPET_IMPORT_SPECIFIER } from './resolve';
 
 type TransformHandler = (this: unknown, code: string, id: string, opts?: { ssr?: boolean }) => unknown;
+
+// Key of a property on the plugin object. Its value is an object that is unique to each `sentryOrchestrionPlugin()`
+// call. An SDK that wraps the plugin with an object spread (`@sentry/remix`) copies the property, so `configResolved`
+// can find the first instance in a build also through a wrapper.
+const INSTANCE_KEY = '__sentryOrchestrionInstance';
+
+type OrchestrionVitePlugin = Plugin & { [INSTANCE_KEY]?: object };
 
 // On Vite >= 6 `applyToEnvironment` (below) keeps the whole plugin out of
 // client environments. Vite 5 (e.g. Remix v2) ignores that hook, so without
@@ -16,10 +24,10 @@ type TransformHandler = (this: unknown, code: string, id: string, opts?: { ssr?:
 // snippet's import of the subscriber factories (which import
 // `node:diagnostics_channel`) breaks against Vite's browser builtin shim. Gate
 // on the `ssr` flag, which Vite passes on both major versions.
-function ssrOnlyTransform(transform: Plugin['transform']): Plugin['transform'] {
+function ssrOnlyTransform(transform: Plugin['transform'], isDuplicate: () => boolean): Plugin['transform'] {
   const gate = (handler: TransformHandler): TransformHandler =>
     function (code, id, opts) {
-      if (!opts?.ssr) {
+      if (!opts?.ssr || isDuplicate()) {
         return null;
       }
       return handler.call(this, code, id, opts);
@@ -32,6 +40,11 @@ function ssrOnlyTransform(transform: Plugin['transform']): Plugin['transform'] {
     return { ...transform, handler: gate(transform.handler as TransformHandler) } as Plugin['transform'];
   }
   return transform;
+}
+
+// Maps the CJS entry of `@sentry/server-utils` to its ESM entry; any other id is returned unchanged.
+function toEsmEntry(id: string): string {
+  return id.replace(/([/\\])build[/\\]cjs[/\\]index\.js$/, '$1build$1esm$1index.js');
 }
 
 /**
@@ -61,25 +74,40 @@ export function sentryOrchestrionPlugin(options: PluginOptions = {}): Plugin {
     ...instrumentedModuleNames(options.instrumentations),
     '@sentry/server-utils',
   ];
+  const resolveExternalRequire = createExternalRequireResolver(noExternalModules());
 
-  return {
+  const instance = {};
+  // `true` when an earlier instance of this plugin is in the same build, which then transforms the modules alone.
+  let isDuplicate = false;
+
+  const plugin: OrchestrionVitePlugin = {
     ...upstream,
-    transform: ssrOnlyTransform(upstream.transform),
+    [INSTANCE_KEY]: instance,
+    transform: ssrOnlyTransform(upstream.transform, () => isDuplicate),
     // The module-injected snippet imports `@sentry/server-utils` from INSIDE
     // transformed `node_modules` files. Under isolated installs (pnpm) that bare
     // specifier doesn't resolve from an instrumented package's location, so when
     // normal resolution fails, fall back to this package's own resolution so it
     // gets bundled from its real on-disk path. SSR-gated like the transform: the
     // specifier only appears in SSR modules.
+    //
+    // Always bundle the ESM entry. In a CommonJS module the snippet `require()`s the specifier,
+    // which resolves to the CJS build. Vite 5-7 turn that build's `require()`s of external
+    // packages into default imports, and `@sentry/core` has no default export, so the server
+    // crashes at startup. Vite 8 keeps the `require()`s, which loads a second copy of `@sentry/core`.
     async resolveId(source, importer, resolveOptions) {
-      if (source !== SNIPPET_IMPORT_SPECIFIER || !resolveOptions?.ssr) {
+      if (source !== SNIPPET_IMPORT_SPECIFIER) {
+        return resolveExternalRequire.call(this, source, importer, resolveOptions);
+      }
+      if (!resolveOptions?.ssr) {
         return null;
       }
       const resolved = await this.resolve(source, importer, { ...resolveOptions, skipSelf: true });
       if (resolved) {
-        return resolved;
+        return resolved.external ? resolved : { ...resolved, id: toEsmEntry(resolved.id) };
       }
-      return resolveOrchestrionRuntimeRequest(source) ?? null;
+      const fallback = resolveOrchestrionRuntimeRequest(source);
+      return fallback ? toEsmEntry(fallback) : null;
     },
     applyToEnvironment(environment) {
       // Orchestrion splices `node:diagnostics_channel` calls into instrumented modules, which only
@@ -119,8 +147,13 @@ export function sentryOrchestrionPlugin(options: PluginOptions = {}): Plugin {
       return { resolve: { noExternal: noExternalModules() } };
     },
     configResolved(config: ResolvedConfig): void {
+      // Two Sentry Vite plugins can each add this plugin to one build, for example `sentryCloudflareVitePlugin` and
+      // `sentryReactRouter`. A module transformed twice declares the injected snippet twice and fails the build.
+      const first = (config.plugins as readonly OrchestrionVitePlugin[]).find(p => p[INSTANCE_KEY]);
+      isDuplicate = first !== undefined && first[INSTANCE_KEY] !== instance;
+
       // Nothing is force-bundled in `serve`, so an externalized module is expected there.
-      if (config.command === 'serve') {
+      if (isDuplicate || config.command === 'serve') {
         return;
       }
 
@@ -140,4 +173,6 @@ export function sentryOrchestrionPlugin(options: PluginOptions = {}): Plugin {
       }
     },
   };
+
+  return plugin;
 }

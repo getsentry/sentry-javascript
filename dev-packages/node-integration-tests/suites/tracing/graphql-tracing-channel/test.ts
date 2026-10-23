@@ -1,9 +1,9 @@
-import { afterAll, expect } from 'vitest';
-import { conditionalTest } from '../../../utils';
+import { afterAll, describe, expect } from 'vitest';
+import { supports } from '../../../utils';
 import { cleanupChildProcesses, createEsmAndCjsTests } from '../../../utils/runner';
 
 // GraphQL 17 requires Node >= 22, so this suite is skipped on older Node.
-conditionalTest({ min: 22 })('GraphQL tracing channel Test', () => {
+describe.runIf(supports({ min: 22 }))('GraphQL tracing channel Test', () => {
   afterAll(() => {
     cleanupChildProcesses();
   });
@@ -41,7 +41,7 @@ conditionalTest({ min: 22 })('GraphQL tracing channel Test', () => {
               expect(executeSpan?.name).toBe('GraphQL query');
               expect(executeSpan?.attributes['sentry.op']).toEqual({ value: 'graphql', type: 'string' });
               expect(executeSpan?.attributes['sentry.origin']).toEqual({
-                value: 'auto.graphql.diagnostic_channel',
+                value: 'auto.graphql.graphql',
                 type: 'string',
               });
               expect(executeSpan?.attributes['graphql.operation.type']).toEqual({ value: 'query', type: 'string' });
@@ -54,7 +54,7 @@ conditionalTest({ min: 22 })('GraphQL tracing channel Test', () => {
               expect(getUserSpan?.name).toBe('GraphQL query');
               expect(getUserSpan?.attributes['sentry.op']).toEqual({ value: 'graphql', type: 'string' });
               expect(getUserSpan?.attributes['sentry.origin']).toEqual({
-                value: 'auto.graphql.diagnostic_channel',
+                value: 'auto.graphql.graphql',
                 type: 'string',
               });
               expect(getUserSpan?.attributes['graphql.operation.type']).toEqual({ value: 'query', type: 'string' });
@@ -71,7 +71,7 @@ conditionalTest({ min: 22 })('GraphQL tracing channel Test', () => {
               expect(loginSpan?.name).toBe('GraphQL mutation');
               expect(loginSpan?.attributes['sentry.op']).toEqual({ value: 'graphql', type: 'string' });
               expect(loginSpan?.attributes['sentry.origin']).toEqual({
-                value: 'auto.graphql.diagnostic_channel',
+                value: 'auto.graphql.graphql',
                 type: 'string',
               });
               expect(loginSpan?.attributes['graphql.operation.name']).toEqual({ value: 'Login', type: 'string' });

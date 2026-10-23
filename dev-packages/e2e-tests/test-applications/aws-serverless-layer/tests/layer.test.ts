@@ -322,6 +322,49 @@ test.describe('Lambda layer', () => {
     );
   });
 
+  test('ends the span when a callback-style handler calls back after it returned', async ({ lambdaClient }) => {
+    const transactionEventPromise = waitForTransaction('aws-serverless-layer', transactionEvent => {
+      return transactionEvent?.transaction === 'LayerCallback';
+    });
+
+    await lambdaClient.send(
+      new InvokeCommand({
+        FunctionName: 'LayerCallback',
+        Payload: JSON.stringify({ callbackDelayMs: 200 }),
+      }),
+    );
+
+    const transactionEvent = await transactionEventPromise;
+
+    expect(transactionEvent.contexts?.trace?.status).toBe('ok');
+    // Node timers can fire up to a millisecond early, so the 200 ms callback delay can measure as 199.x ms
+    expect(transactionEvent.timestamp! - transactionEvent.start_timestamp!).toBeGreaterThanOrEqual(0.19);
+  });
+
+  test('sets error status when a callback-style handler calls back with an error after it returned', async ({
+    lambdaClient,
+  }) => {
+    const errorEventPromise = waitForError('aws-serverless-layer', errorEvent => {
+      return errorEvent?.exception?.values?.[0]?.value === 'callback error';
+    });
+    const transactionEventPromise = waitForTransaction('aws-serverless-layer', transactionEvent => {
+      return transactionEvent?.transaction === 'LayerCallback';
+    });
+
+    await lambdaClient.send(
+      new InvokeCommand({
+        FunctionName: 'LayerCallback',
+        Payload: JSON.stringify({ shouldError: true, callbackDelayMs: 200 }),
+      }),
+    );
+
+    const [errorEvent, transactionEvent] = await Promise.all([errorEventPromise, transactionEventPromise]);
+
+    expect(transactionEvent.contexts?.trace?.status).toBe('internal_error');
+    expect(transactionEvent.timestamp! - transactionEvent.start_timestamp!).toBeGreaterThanOrEqual(0.19);
+    expect(errorEvent.contexts?.trace?.trace_id).toBe(transactionEvent.contexts?.trace?.trace_id);
+  });
+
   test('continues a trace from incoming headers', async ({ lambdaClient }) => {
     const traceId = 'd4cda95b652f4a1592b449d5929fda1b';
     const parentSpanId = '6e0c63257de34c92';
