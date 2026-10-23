@@ -60,12 +60,3 @@ export interface Hono<E extends Env = Env> {
   routes: HonoRoute[];
   [key: string]: any;
 }
-
-export interface ConnInfoRemote {
-  address?: string;
-  port?: number;
-  transport?: string;
-  addressType?: string;
-}
-
-export type GetConnInfo = (context: any) => { remote?: ConnInfoRemote };
