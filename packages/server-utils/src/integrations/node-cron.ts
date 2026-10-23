@@ -18,14 +18,11 @@ export interface NodeCronIntegrationOptions {
   excludeJobs?: Array<string | RegExp>;
 }
 
-let options: NodeCronIntegrationOptions = {};
-
-const _nodeCronIntegration = ((integrationOptions: NodeCronIntegrationOptions = {}) => {
+const _nodeCronIntegration = ((options: NodeCronIntegrationOptions = {}) => {
   return {
     name: INTEGRATION_NAME,
     setup(client) {
-      options = integrationOptions;
-      invokeOrchestrionInstrumentation(client, nodeCronModuleNames, subscribe, [], {
+      invokeOrchestrionInstrumentation(client, nodeCronModuleNames, subscribe, [options], {
         requiresTracingChannelBinding: false,
       });
     },
@@ -38,13 +35,13 @@ const _nodeCronIntegration = ((integrationOptions: NodeCronIntegrationOptions = 
  */
 export const nodeCronIntegration = defineIntegration(_nodeCronIntegration);
 
-function subscribe(): void {
-  subscribeToJobCreation(CHANNELS.NODE_CRON_CREATE_TASK, INTEGRATION_NAME, args => wrapTask(args, false));
-  subscribeToJobCreation(CHANNELS.NODE_CRON_V3_CREATE_TASK, INTEGRATION_NAME, args => wrapTask(args, true));
+function subscribe(options: NodeCronIntegrationOptions): void {
+  subscribeToJobCreation(CHANNELS.NODE_CRON_CREATE_TASK, INTEGRATION_NAME, args => wrapTask(args, false, options));
+  subscribeToJobCreation(CHANNELS.NODE_CRON_V3_CREATE_TASK, INTEGRATION_NAME, args => wrapTask(args, true, options));
 }
 
 // `createTask(expression, func, options)`
-function wrapTask(args: unknown[], isNodeCron3: boolean): void {
+function wrapTask(args: unknown[], isNodeCron3: boolean, options: NodeCronIntegrationOptions): void {
   const [expression, func, taskOptions] = args;
   const { name, timezone } = (taskOptions || {}) as { name?: unknown; timezone?: unknown };
   if (!shouldMonitorJob(name, func, options.excludeJobs)) {

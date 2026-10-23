@@ -18,14 +18,11 @@ export interface NodeScheduleIntegrationOptions {
   excludeJobs?: Array<string | RegExp>;
 }
 
-let options: NodeScheduleIntegrationOptions = {};
-
-const _nodeScheduleIntegration = ((integrationOptions: NodeScheduleIntegrationOptions = {}) => {
+const _nodeScheduleIntegration = ((options: NodeScheduleIntegrationOptions = {}) => {
   return {
     name: INTEGRATION_NAME,
     setup(client) {
-      options = integrationOptions;
-      invokeOrchestrionInstrumentation(client, nodeScheduleModuleNames, subscribe, [], {
+      invokeOrchestrionInstrumentation(client, nodeScheduleModuleNames, subscribe, [options], {
         requiresTracingChannelBinding: false,
       });
     },
@@ -38,12 +35,12 @@ const _nodeScheduleIntegration = ((integrationOptions: NodeScheduleIntegrationOp
  */
 export const nodeScheduleIntegration = defineIntegration(_nodeScheduleIntegration);
 
-function subscribe(): void {
-  subscribeToJobCreation(CHANNELS.NODE_SCHEDULE_SCHEDULE_JOB, INTEGRATION_NAME, wrapJob);
+function subscribe(options: NodeScheduleIntegrationOptions): void {
+  subscribeToJobCreation(CHANNELS.NODE_SCHEDULE_SCHEDULE_JOB, INTEGRATION_NAME, args => wrapJob(args, options));
 }
 
 // `scheduleJob([name], spec, method, [callback])`, like node-schedule reads it.
-function wrapJob(args: unknown[]): void {
+function wrapJob(args: unknown[], options: NodeScheduleIntegrationOptions): void {
   const name = args.length >= 3 && typeof args[0] === 'string' ? args[0] : undefined;
   const [spec, method] = name ? [args[1], args[2]] : [args[0], args[1]];
   if (isOneOffSpec(spec) || !shouldMonitorJob(name, method, options.excludeJobs)) {
