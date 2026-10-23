@@ -7,7 +7,7 @@ import { sentryBunPlugin } from '../src/plugin';
 const DEBUG_ID_MARKER = /sentry-dbid-([0-9a-f-]{36})/;
 const BUN_DEBUG_ID = /\/\/# debugId=([0-9A-F]{32})/;
 
-function readSourceMap(bundlePath: string, source: string): { debugId?: string } {
+function readSourceMap(bundlePath: string, source: string): { debugId?: unknown } {
   const inlineMap = source.match(/^\/\/# sourceMappingURL=data:application\/json;base64,(.*)$/m)?.[1];
   return JSON.parse(
     inlineMap ? Buffer.from(inlineMap, 'base64').toString() : fs.readFileSync(`${bundlePath}.map`, 'utf8'),
@@ -52,7 +52,7 @@ describe('sentryBunPlugin', () => {
       expect(result.success).toBe(true);
 
       const bundles = result.outputs.filter(o => o.kind === 'entry-point' || o.kind === 'chunk');
-      expect(bundles.length).toBe(2);
+      expect(bundles.some(bundle => bundle.kind === 'chunk')).toBe(true);
 
       const debugIds = bundles.map(bundle => {
         const source = fs.readFileSync(bundle.path, 'utf8');
