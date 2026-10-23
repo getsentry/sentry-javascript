@@ -458,7 +458,6 @@ jobs:
         with:
           name: ${{ github.sha }}
           retention-days: 90
-          # Do not use `packages/**/*.tgz`: it follows the workspace links in `node_modules` and uploads duplicate tarballs.
           path: |
             ${{ github.workspace }}/packages/browser/build/bundles/**
             ${{ github.workspace }}/packages/replay-internal/build/bundles/**
@@ -466,6 +465,8 @@ jobs:
             ${{ github.workspace }}/packages/feedback/build/bundles/**
             ${{ github.workspace }}/packages/*/*.tgz
             ${{ github.workspace }}/packages/aws-serverless/build/aws/dist-serverless/*.zip
+            # `node_modules` contains links to the workspace packages. Without this line, the globs above might upload duplicate tarballs.
+            !${{ github.workspace }}/packages/**/node_modules/**
 
   job_browser_unit_tests:
     name: Browser Unit Tests
