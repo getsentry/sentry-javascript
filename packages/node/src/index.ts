@@ -11,6 +11,8 @@ export {
   type ExpressIntegrationOptions,
   firebaseIntegration,
   genericPoolIntegration,
+  cronJobIntegration,
+  type CronJobIntegrationOptions,
   nodeCronIntegration,
   type NodeCronIntegrationOptions,
   nodeScheduleIntegration,

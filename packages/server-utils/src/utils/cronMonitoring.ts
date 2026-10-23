@@ -49,6 +49,9 @@ const NICKNAMES: Record<string, string> = {
   '@daily': '0 0 * * *',
   '@midnight': '0 0 * * *',
   '@hourly': '0 * * * *',
+  '@minutely': '* * * * *',
+  '@weekdays': '0 0 * * 1-5',
+  '@weekends': '0 0 * * 0,6',
 };
 
 const MONTHS = ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec'];

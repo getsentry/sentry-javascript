@@ -67,7 +67,7 @@
     "body-parser": "^2.3.0",
     "consola": "^3.2.3",
     "cors": "^2.8.5",
-    "cron": "^3.1.6",
+    "cron": "^4.4.0",
     "dataloader": "2.2.2",
     "express": "^4.21.2",
     "fastify": "^5.12.5",

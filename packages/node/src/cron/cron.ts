@@ -1,4 +1,4 @@
-import { captureException, withMonitor } from '@sentry/core';
+import { addNonEnumerableProperty, captureException, withMonitor } from '@sentry/core';
 import { replaceCronNames } from './common';
 
 export type CronJobParams = {
@@ -50,6 +50,8 @@ export type CronJobConstructor = {
     unrefTimeout?: CronJobParams['unrefTimeout'],
   ): CronJob;
 };
+
+const MONITORED = Symbol.for('sentry.cron.monitored');
 
 const ERROR_TEXT = 'Automatic instrumentation of CronJob only supports crontab string';
 
@@ -115,6 +117,9 @@ export function instrumentCron<T>(lib: T & CronJobConstructor, monitorSlug: stri
         );
       }
 
+      // Tells `cronJobIntegration` that this job is already monitored.
+      addNonEnumerableProperty(monitoredTick, MONITORED, true);
+
       return new target(cronTime, monitoredTick, onComplete, start, timeZone, ...rest);
     },
     get(target, prop: keyof CronJobConstructor) {
@@ -156,6 +161,8 @@ export function instrumentCron<T>(lib: T & CronJobConstructor, monitorSlug: stri
               },
             );
           };
+
+          addNonEnumerableProperty(param.onTick, MONITORED, true);
 
           return target.from(param);
         };
