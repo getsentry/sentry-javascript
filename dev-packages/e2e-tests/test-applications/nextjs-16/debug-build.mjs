@@ -18,8 +18,11 @@ for (const file of walk(chunksDir)) {
   console.log('CHUNK', file, 'chunkIds', push?.[1], 'modules', ids.join(' '), 'size', src.length);
   const entry = /\.O\(0,\[([^\]]*)\],\(\)=>[^)]*\((\d+)\)\)/.exec(src);
   if (entry) console.log('  entry deps', entry[1], 'entry module', entry[2]);
-  const tail = src.slice(-400);
-  console.log('  tail', tail);
+  if (file.includes('global-error-')) {
+    for (const m of src.matchAll(/[,{](\d+):(?:\(|function)/g)) {
+      console.log('  MODULE', m[1], src.slice(m.index, m.index + 600).replace(/\s+/g, ' '));
+    }
+  }
 }
 
 const stats = '.next/server/app/_global-error/page.js';
