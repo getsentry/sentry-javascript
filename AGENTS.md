@@ -4,7 +4,7 @@ Monorepo with 40+ packages in `@sentry/*`, managed with pnpm workspaces and Nx.
 
 ## Setup
 
-- pnpm 12 manages Node.js and pnpm versions (see `CONTRIBUTING.md`): node in `devEngines.runtime`, pnpm in `packageManager`
+- pnpm manages Node.js and pnpm versions (see `CONTRIBUTING.md`): node in `devEngines.runtime`, pnpm in `packageManager`
 - After cloning: `pnpm install && pnpm run build`
 - Never change Node.js, pnpm, or package manager versions unless explicitly asked
 
