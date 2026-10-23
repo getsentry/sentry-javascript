@@ -16,6 +16,8 @@ on:
       - v10
       - v9
       - v8
+  merge_group:
+    branches: [develop]
 
 # Cancel in progress workflows on pull_requests.
 # https://docs.github.com/en/actions/using-jobs/using-concurrency#example-using-a-fallback-value

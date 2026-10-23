@@ -10,7 +10,7 @@ on:
       - release/**
   pull_request:
   merge_group:
-    types: [checks_requested]
+    branches: [develop]
   workflow_dispatch:
     inputs:
       commit:
