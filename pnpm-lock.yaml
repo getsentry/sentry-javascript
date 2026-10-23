@@ -298,8 +298,8 @@ importers:
         specifier: 11.9.0
         version: link:../../packages/browser
       '@sentry/conventions':
-        specifier: 0.27.0
-        version: 0.27.0
+        specifier: 0.29.0
+        version: 0.29.0
       '@sentry/opentelemetry':
         specifier: 11.9.0
         version: link:../../packages/opentelemetry
@@ -363,7 +363,7 @@ importers:
         version: link:../../packages/hono
       hono:
         specifier: ^4.13.7
-        version: 4.13.7
+        version: 4.13.9
       mysql:
         specifier: ^2.18.1
         version: 2.18.1
@@ -486,7 +486,7 @@ importers:
         version: 6.0.218(zod@4.6.5)
       hono:
         specifier: ^4.13.7
-        version: 4.13.7
+        version: 4.13.9
       langchain:
         specifier: ^1.5.16
         version: 1.5.16(@langchain/core@1.2.17(@opentelemetry/api@1.10.0)(openai@5.18.1(ws@8.21.3)(zod@4.6.5))(ws@8.21.3))(@opentelemetry/api@1.10.0)(openai@5.18.1(ws@8.21.3)(zod@4.6.5))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(ws@8.21.3)
@@ -510,8 +510,8 @@ importers:
         specifier: 11.9.0
         version: link:../test-utils
       '@sentry/conventions':
-        specifier: 0.27.0
-        version: 0.27.0
+        specifier: 0.29.0
+        version: 0.29.0
       eslint-plugin-regexp:
         specifier: ^3.1.0
         version: 3.1.0
@@ -547,8 +547,8 @@ importers:
         specifier: 11.9.0
         version: link:../node-integration-tests
       '@sentry/conventions':
-        specifier: ^0.27.0
-        version: 0.27.0
+        specifier: ^0.29.0
+        version: 0.29.0
       vitest:
         specifier: ^4.1.11
         version: 4.1.11(@opentelemetry/api@1.10.0)(@types/node@20.19.43)(@vitest/coverage-v8@4.1.11)(esbuild@0.28.1)(jiti@2.7.0)(jsdom@21.1.2(supports-color@10.0.0))(less@4.2.0(supports-color@10.0.0))(sass@1.72.0)(stylus@0.59.0(supports-color@10.0.0))(terser@5.43.1)(tsx@4.23.0)(yaml@2.9.0)
@@ -615,7 +615,7 @@ importers:
         version: 21.3.10
       '@hono/node-server':
         specifier: ^2.0.10
-        version: 2.0.10(hono@4.13.7)
+        version: 2.0.10(hono@4.13.9)
       '@koa/router':
         specifier: ^12.0.1
         version: 12.0.2(supports-color@10.0.0)
@@ -729,7 +729,7 @@ importers:
         version: 2.0.1-rc.22(crossws@0.4.10(srvx@0.11.22))
       hono:
         specifier: ^4.13.7
-        version: 4.13.7
+        version: 4.13.9
       http-terminator:
         specifier: ^3.2.0
         version: 3.2.0
@@ -852,8 +852,8 @@ importers:
         specifier: 11.9.0
         version: link:../test-utils
       '@sentry/conventions':
-        specifier: 0.27.0
-        version: 0.27.0
+        specifier: 0.29.0
+        version: 0.29.0
       '@sentry/node-native':
         specifier: 11.9.0
         version: link:../../packages/node-native
@@ -974,8 +974,8 @@ importers:
         specifier: 11.9.0
         version: link:../browser
       '@sentry/conventions':
-        specifier: ^0.27.0
-        version: 0.27.0
+        specifier: ^0.29.0
+        version: 0.29.0
       '@sentry/core':
         specifier: 11.9.0
         version: link:../core
@@ -1035,8 +1035,8 @@ importers:
         specifier: 11.9.0
         version: link:../bundler-plugins
       '@sentry/conventions':
-        specifier: ^0.27.0
-        version: 0.27.0
+        specifier: ^0.29.0
+        version: 0.29.0
       '@sentry/core':
         specifier: 11.9.0
         version: link:../core
@@ -1063,8 +1063,8 @@ importers:
   packages/aws-serverless:
     dependencies:
       '@sentry/conventions':
-        specifier: ^0.27.0
-        version: 0.27.0
+        specifier: ^0.29.0
+        version: 0.29.0
       '@sentry/core':
         specifier: 11.9.0
         version: link:../core
@@ -1097,8 +1097,8 @@ importers:
         specifier: 11.9.0
         version: link:../browser-utils
       '@sentry/conventions':
-        specifier: ^0.27.0
-        version: 0.27.0
+        specifier: ^0.29.0
+        version: 0.29.0
       '@sentry/core':
         specifier: 11.9.0
         version: link:../core
@@ -1125,8 +1125,8 @@ importers:
   packages/browser-utils:
     dependencies:
       '@sentry/conventions':
-        specifier: ^0.27.0
-        version: 0.27.0
+        specifier: ^0.29.0
+        version: 0.29.0
       '@sentry/core':
         specifier: 11.9.0
         version: link:../core
@@ -1141,8 +1141,8 @@ importers:
   packages/bun:
     dependencies:
       '@sentry/conventions':
-        specifier: ^0.27.0
-        version: 0.27.0
+        specifier: ^0.29.0
+        version: 0.29.0
       '@sentry/core':
         specifier: 11.9.0
         version: link:../core
@@ -1224,8 +1224,8 @@ importers:
         specifier: ^1.9.1
         version: 1.10.0
       '@sentry/conventions':
-        specifier: ^0.27.0
-        version: 0.27.0
+        specifier: ^0.29.0
+        version: 0.29.0
       '@sentry/core':
         specifier: 11.9.0
         version: link:../core
@@ -1261,8 +1261,8 @@ importers:
   packages/core:
     dependencies:
       '@sentry/conventions':
-        specifier: ^0.27.0
-        version: 0.27.0
+        specifier: ^0.29.0
+        version: 0.29.0
     devDependencies:
       '@sentry-internal/rollup-utils':
         specifier: 11.9.0
@@ -1277,8 +1277,8 @@ importers:
         specifier: ^1.9.1
         version: 1.10.0
       '@sentry/conventions':
-        specifier: ^0.27.0
-        version: 0.27.0
+        specifier: ^0.29.0
+        version: 0.29.0
       '@sentry/core':
         specifier: 11.9.0
         version: link:../core
@@ -1299,8 +1299,8 @@ importers:
         specifier: 11.9.0
         version: link:../browser
       '@sentry/conventions':
-        specifier: ^0.27.0
-        version: 0.27.0
+        specifier: ^0.29.0
+        version: 0.29.0
       '@sentry/core':
         specifier: 11.9.0
         version: link:../core
@@ -1324,8 +1324,8 @@ importers:
         specifier: 11.9.0
         version: link:../bun
       '@sentry/conventions':
-        specifier: ^0.27.0
-        version: 0.27.0
+        specifier: ^0.29.0
+        version: 0.29.0
       '@sentry/core':
         specifier: 11.9.0
         version: link:../core
@@ -1352,8 +1352,8 @@ importers:
         specifier: 11.9.0
         version: link:../browser
       '@sentry/conventions':
-        specifier: ^0.27.0
-        version: 0.27.0
+        specifier: ^0.29.0
+        version: 0.29.0
       '@sentry/core':
         specifier: 11.9.0
         version: link:../core
@@ -1501,8 +1501,8 @@ importers:
   packages/google-cloud-serverless:
     dependencies:
       '@sentry/conventions':
-        specifier: ^0.27.0
-        version: 0.27.0
+        specifier: ^0.29.0
+        version: 0.29.0
       '@sentry/core':
         specifier: 11.9.0
         version: link:../core
@@ -1541,8 +1541,8 @@ importers:
         specifier: ^1.9.1
         version: 1.10.0
       '@sentry/conventions':
-        specifier: ^0.27.0
-        version: 0.27.0
+        specifier: ^0.29.0
+        version: 0.29.0
       '@sentry/core':
         specifier: 11.9.0
         version: link:../core
@@ -1572,8 +1572,11 @@ importers:
         specifier: ^20.19.0
         version: 20.19.43
       hono:
-        specifier: ^4.13.7
-        version: 4.13.7
+        specifier: 4.13.9
+        version: 4.13.9
+      hono-5:
+        specifier: npm:hono@5.0.0-rc.1
+        version: hono@5.0.0-rc.1
       wrangler:
         specifier: 4.62.0
         version: 4.62.0(@cloudflare/workers-types@4.20250922.0)
@@ -1591,8 +1594,8 @@ importers:
   packages/nestjs:
     dependencies:
       '@sentry/conventions':
-        specifier: ^0.27.0
-        version: 0.27.0
+        specifier: ^0.29.0
+        version: 0.29.0
       '@sentry/core':
         specifier: 11.9.0
         version: link:../core
@@ -1637,8 +1640,8 @@ importers:
         specifier: 11.9.0
         version: link:../cloudflare
       '@sentry/conventions':
-        specifier: ^0.27.0
-        version: 0.27.0
+        specifier: ^0.29.0
+        version: 0.29.0
       '@sentry/core':
         specifier: 11.9.0
         version: link:../core
@@ -1689,8 +1692,8 @@ importers:
         specifier: 11.9.0
         version: link:../bundler-plugins
       '@sentry/conventions':
-        specifier: ^0.27.0
-        version: 0.27.0
+        specifier: ^0.29.0
+        version: 0.29.0
       '@sentry/core':
         specifier: 11.9.0
         version: link:../core
@@ -1729,8 +1732,8 @@ importers:
         specifier: 11.9.0
         version: link:../bundler-plugins
       '@sentry/conventions':
-        specifier: ^0.27.0
-        version: 0.27.0
+        specifier: ^0.29.0
+        version: 0.29.0
       '@sentry/core':
         specifier: 11.9.0
         version: link:../core
@@ -1785,8 +1788,8 @@ importers:
         specifier: 11.9.0
         version: link:../cloudflare
       '@sentry/conventions':
-        specifier: ^0.27.0
-        version: 0.27.0
+        specifier: ^0.29.0
+        version: 0.29.0
       '@sentry/core':
         specifier: 11.9.0
         version: link:../core
@@ -1846,8 +1849,8 @@ importers:
   packages/opentelemetry:
     dependencies:
       '@sentry/conventions':
-        specifier: ^0.27.0
-        version: 0.27.0
+        specifier: ^0.29.0
+        version: 0.29.0
       '@sentry/core':
         specifier: 11.9.0
         version: link:../core
@@ -1884,8 +1887,8 @@ importers:
         specifier: 11.9.0
         version: link:../browser
       '@sentry/conventions':
-        specifier: ^0.27.0
-        version: 0.27.0
+        specifier: ^0.29.0
+        version: 0.29.0
       '@sentry/core':
         specifier: 11.9.0
         version: link:../core
@@ -1960,8 +1963,8 @@ importers:
         specifier: 11.9.0
         version: link:../bundler-plugins
       '@sentry/conventions':
-        specifier: ^0.27.0
-        version: 0.27.0
+        specifier: ^0.29.0
+        version: 0.29.0
       '@sentry/core':
         specifier: 11.9.0
         version: link:../core
@@ -2024,8 +2027,8 @@ importers:
         specifier: 11.9.0
         version: link:../bundler-plugins
       '@sentry/conventions':
-        specifier: ^0.27.0
-        version: 0.27.0
+        specifier: ^0.29.0
+        version: 0.29.0
       '@sentry/core':
         specifier: 11.9.0
         version: link:../core
@@ -2120,8 +2123,8 @@ importers:
         specifier: 11.9.0
         version: link:../../dev-packages/rollup-utils
       '@sentry/conventions':
-        specifier: ^0.27.0
-        version: 0.27.0
+        specifier: ^0.29.0
+        version: 0.29.0
       '@sentry/rrweb':
         specifier: 2.44.1
         version: 2.44.1
@@ -2191,8 +2194,8 @@ importers:
         specifier: ^1.9.1
         version: 1.10.0
       '@sentry/conventions':
-        specifier: ^0.27.0
-        version: 0.27.0
+        specifier: ^0.29.0
+        version: 0.29.0
       '@sentry/core':
         specifier: 11.9.0
         version: link:../core
@@ -2225,8 +2228,8 @@ importers:
         specifier: 11.9.0
         version: link:../browser
       '@sentry/conventions':
-        specifier: ^0.27.0
-        version: 0.27.0
+        specifier: ^0.29.0
+        version: 0.29.0
       '@sentry/core':
         specifier: 11.9.0
         version: link:../core
@@ -2268,8 +2271,8 @@ importers:
         specifier: 11.9.0
         version: link:../bundler-plugins
       '@sentry/conventions':
-        specifier: 0.27.0
-        version: 0.27.0
+        specifier: 0.29.0
+        version: 0.29.0
       '@sentry/core':
         specifier: 11.9.0
         version: link:../core
@@ -2335,8 +2338,8 @@ importers:
         specifier: 11.9.0
         version: link:../browser
       '@sentry/conventions':
-        specifier: ^0.27.0
-        version: 0.27.0
+        specifier: ^0.29.0
+        version: 0.29.0
       '@sentry/core':
         specifier: 11.9.0
         version: link:../core
@@ -2372,8 +2375,8 @@ importers:
         specifier: 11.9.0
         version: link:../cloudflare
       '@sentry/conventions':
-        specifier: ^0.27.0
-        version: 0.27.0
+        specifier: ^0.29.0
+        version: 0.29.0
       '@sentry/core':
         specifier: 11.9.0
         version: link:../core
@@ -2436,8 +2439,8 @@ importers:
         specifier: 11.9.0
         version: link:../bundler-plugins
       '@sentry/conventions':
-        specifier: ^0.27.0
-        version: 0.27.0
+        specifier: ^0.29.0
+        version: 0.29.0
       '@sentry/core':
         specifier: 11.9.0
         version: link:../core
@@ -2504,8 +2507,8 @@ importers:
         specifier: 11.9.0
         version: link:../browser
       '@sentry/conventions':
-        specifier: ^0.27.0
-        version: 0.27.0
+        specifier: ^0.29.0
+        version: 0.29.0
       '@sentry/core':
         specifier: 11.9.0
         version: link:../core
@@ -8166,8 +8169,8 @@ packages:
     resolution: {integrity: sha512-MLxTpTU3E8QACQ/5c0sENMR2gRiMXpGaKeD5IHY+3wyU2fUSJVB0QPU/l1WhoyZbX8N9ospBgf5UEG7taVF9rg==}
     engines: {node: ^14.15.0 || >=16.10.0, npm: ^6.11.0 || ^7.5.6 || >=8.0.0, yarn: '>= 1.13.0'}
 
-  '@sentry/conventions@0.27.0':
-    resolution: {integrity: sha512-Mrqd/o7n/z7qWSYfQQA7x4fFTA0IqOG6JNsbBpnC97khPwZk7n6DPtOO7YgaYplSl8R8QLRbBz9Xv2lVhToSAg==}
+  '@sentry/conventions@0.29.0':
+    resolution: {integrity: sha512-kYq9/HJ/l6MYP/srIc20dy1W4mWyJfCF0OWFF+RhBGZwyr/wCmtabRFKyw7kqM+DTwZXQOjSTSZUcJhDowcInQ==}
     engines: {node: '>=14'}
 
   '@sentry/node-cpu-profiler@2.4.4':
@@ -12880,9 +12883,13 @@ packages:
     resolution: {integrity: sha512-eSmmWE5bZTK2Nou4g0AI3zZ9rswp7GRKoKXS1BLUkvPviOqs4YTN1djQIqrXy9k5gEtdLPy86JjRwsNM9tnDcA==}
     engines: {node: '>=0.10.0'}
 
-  hono@4.13.7:
-    resolution: {integrity: sha512-c8/gF9ac8Y78/agExVocyLevgR+JlpNB444Py0FSX8pJoPdYUfUzRcXtYEYGwt6l19qIlVZPN5Mfsw9jFShmQQ==}
+  hono@4.13.9:
+    resolution: {integrity: sha512-7dMkQmZoC4E6F7AtaQSPhlWAdnBti+j7rreMZl8QB4jFiEhP9TWbGWUMi8WYzBCgmgulxuvLQupKqo+Co6Omyg==}
     engines: {node: '>=16.9.0'}
+
+  hono@5.0.0-rc.1:
+    resolution: {integrity: sha512-vTcfU9yAggXh/+ZSi8zpYbzYDubCgFnSt8d5afCAlgkd38dyYb3CVtOh8YWhS65NkEqBseCsTj/P8mceJ+7KNA==}
+    engines: {node: '>=22.12.0'}
 
   hookable@5.5.3:
     resolution: {integrity: sha512-Yc+BQe8SvoXH1643Qez1zqLRmbA5rCL+sSmk6TVos0LWVfNIB7PGncdlId77WzLGSIB5KaWgTaNTs2lNVEI6VQ==}
@@ -23632,9 +23639,9 @@ snapshots:
       '@hapi/bourne': 3.0.0
       '@hapi/hoek': 11.0.4
 
-  '@hono/node-server@2.0.10(hono@4.13.7)':
+  '@hono/node-server@2.0.10(hono@4.13.9)':
     dependencies:
-      hono: 4.13.7
+      hono: 4.13.9
 
   '@humanwhocodes/config-array@0.11.14(supports-color@10.0.0)':
     dependencies:
@@ -26151,7 +26158,7 @@ snapshots:
     transitivePeerDependencies:
       - chokidar
 
-  '@sentry/conventions@0.27.0': {}
+  '@sentry/conventions@0.29.0': {}
 
   '@sentry/node-cpu-profiler@2.4.4':
     dependencies:
@@ -32195,7 +32202,9 @@ snapshots:
     dependencies:
       parse-passwd: 1.0.0
 
-  hono@4.13.7: {}
+  hono@4.13.9: {}
+
+  hono@5.0.0-rc.1: {}
 
   hookable@5.5.3: {}
 
