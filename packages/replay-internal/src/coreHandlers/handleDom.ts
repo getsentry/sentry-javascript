@@ -3,7 +3,7 @@ import type { Breadcrumb, HandlerDataDom } from '@sentry/core';
 import { record } from '@sentry/rrweb';
 import type { serializedElementNodeWithId, serializedNodeWithId } from '@sentry/rrweb-snapshot';
 import { NodeType } from '@sentry/rrweb-snapshot';
-import type { ReplayContainer } from '../types';
+import type { RecordingOptions, ReplayContainer } from '../types';
 import { createBreadcrumb } from '../util/createBreadcrumb';
 import { handleClick } from './handleClick';
 import { addBreadcrumbEvent } from './util/addBreadcrumbEvent';
@@ -18,7 +18,7 @@ export const handleDomListener: (replay: ReplayContainer) => (handlerData: Handl
       return;
     }
 
-    const result = handleDom(handlerData);
+    const result = handleDom(handlerData, replay.getMaskAttributeFn());
 
     if (!result) {
       return;
@@ -78,8 +78,11 @@ export function getBaseDomBreadcrumb(target: Node | null, message: string): Brea
  * An event handler to react to DOM events.
  * Exported for tests.
  */
-export function handleDom(handlerData: HandlerDataDom): Breadcrumb | null {
-  const { target, message } = getDomTarget(handlerData);
+export function handleDom(
+  handlerData: HandlerDataDom,
+  maskAttributeFn?: RecordingOptions['maskAttributeFn'],
+): Breadcrumb | null {
+  const { target, message } = getDomTarget(handlerData, maskAttributeFn);
 
   return createBreadcrumb({
     category: `ui.${handlerData.name}`,
@@ -87,7 +90,10 @@ export function handleDom(handlerData: HandlerDataDom): Breadcrumb | null {
   });
 }
 
-function getDomTarget(handlerData: HandlerDataDom): { target: Node | null; message: string } {
+function getDomTarget(
+  handlerData: HandlerDataDom,
+  maskAttributeFn?: RecordingOptions['maskAttributeFn'],
+): { target: Node | null; message: string } {
   const isClick = handlerData.name === 'click';
 
   let message: string | undefined;
@@ -96,7 +102,7 @@ function getDomTarget(handlerData: HandlerDataDom): { target: Node | null; messa
   // Accessing event.target can throw (see getsentry/raven-js#838, #768)
   try {
     target = isClick ? getClickTargetNode(handlerData.event as Event) : getTargetNode(handlerData.event as Event);
-    message = htmlTreeAsString(target, { maxStringLength: 200 }) || '<unknown>';
+    message = htmlTreeAsString(target, { maxStringLength: 200, maskAttributeFn }) || '<unknown>';
   } catch {
     message = '<unknown>';
   }
