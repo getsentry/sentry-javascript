@@ -8,11 +8,24 @@ import {
   startSpan,
 } from '@sentry/core';
 import type { Span } from '@sentry/core';
-import { GEN_AI_CONVERSATION_ID } from '@sentry/conventions/attributes';
-import { instrumentCompiledGraphInvoke } from '../../../../src/ai/langgraph';
-import type { CompiledGraph } from '../../../../src/ai/langgraph/types';
+import { GEN_AI_CONVERSATION_ID, GEN_AI_RESPONSE_TEXT } from '@sentry/conventions/attributes';
+import {
+  instrumentCompiledGraph,
+  instrumentStateGraphCompile,
+  isInsideManualLangGraphInstrumentation,
+} from '../../../../src/ai/langgraph';
 import { wrapToolsWithSpans } from '../../../../src/ai/langgraph/utils';
 import { getDefaultTestClientOptions, TestClient } from '../../../mocks/client';
+
+function instrumentInvoke(
+  invoke: (...args: unknown[]) => Promise<unknown>,
+  compileOptions: Record<string, unknown> = {},
+  sentryCallbackHandler?: unknown,
+): (...args: unknown[]) => Promise<unknown> {
+  const graph = { invoke };
+  instrumentCompiledGraph(graph, compileOptions, {}, undefined, sentryCallbackHandler);
+  return graph.invoke;
+}
 
 describe('LangGraph invoke_agent span names', () => {
   beforeEach(() => {
@@ -41,12 +54,7 @@ describe('LangGraph invoke_agent span names', () => {
   }
 
   async function invokeGraph(compileOptions: Record<string, unknown>, config?: Record<string, unknown>): Promise<void> {
-    const invoke = instrumentCompiledGraphInvoke(
-      async () => ({ messages: [] }),
-      {} as CompiledGraph,
-      compileOptions,
-      {},
-    );
+    const invoke = instrumentInvoke(async () => ({ messages: [] }), compileOptions);
     await invoke({}, config);
   }
 
@@ -92,7 +100,7 @@ describe('LangGraph conversation id', () => {
 
   async function invokeGraph(config: Record<string, unknown>): Promise<Span> {
     const endedSpans = setupClient();
-    const invoke = instrumentCompiledGraphInvoke(async () => ({ messages: [] }), {} as CompiledGraph, {}, {});
+    const invoke = instrumentInvoke(async () => ({ messages: [] }));
     await invoke({}, config);
     return endedSpans[0]!;
   }
@@ -113,15 +121,12 @@ describe('LangGraph conversation id', () => {
   it('copies the conversation id from configurable into the metadata the graph runs with', async () => {
     setupClient();
     let receivedConfig: Record<string, unknown> | undefined;
-    const invoke = instrumentCompiledGraphInvoke(
+    const invoke = instrumentInvoke(
       async (_input: unknown, config: unknown) => {
         receivedConfig = config as Record<string, unknown>;
         return { messages: [] };
       },
-      {} as CompiledGraph,
       {},
-      {},
-      undefined,
       {},
     );
 
@@ -139,5 +144,142 @@ describe('LangGraph conversation id', () => {
 
     const toolSpan = endedSpans.find(span => spanToStaticSpanJSON(span).description === 'execute_tool add')!;
     expect(spanToStaticSpanJSON(toolSpan).data[GEN_AI_CONVERSATION_ID]).toBe('thread-1');
+  });
+});
+
+describe('LangGraph invoke stream suppression', () => {
+  beforeEach(() => {
+    getMainCarrier().__SENTRY__ = undefined;
+  });
+
+  afterEach(() => {
+    getMainCarrier().__SENTRY__ = undefined;
+  });
+
+  it('instruments a recursive stream after suppressing the internal invoke stream', async () => {
+    const client = new TestClient(getDefaultTestClientOptions({ tracesSampleRate: 1 }));
+    setCurrentClient(client);
+    client.init();
+    const startedSpans: Span[] = [];
+    client.on('spanStart', span => startedSpans.push(span));
+    let nestedStream: Promise<AsyncIterable<unknown>> | undefined;
+    const graph = {
+      async invoke() {
+        return this.stream('internal');
+      },
+      async stream(input: string): Promise<AsyncIterable<unknown>> {
+        if (input === 'internal') {
+          nestedStream = this.stream('recursive');
+        }
+        return {
+          async *[Symbol.asyncIterator]() {
+            yield input;
+          },
+        };
+      },
+    };
+    instrumentStateGraphCompile(() => graph, {})();
+
+    const invokedStream = await graph.invoke();
+    const recursiveStream = await nestedStream!;
+    const chunks = [];
+    for await (const chunk of invokedStream) {
+      chunks.push(chunk);
+    }
+    for await (const chunk of recursiveStream) {
+      chunks.push(chunk);
+    }
+
+    expect(chunks).toEqual(['internal', 'recursive']);
+    expect(startedSpans).toHaveLength(2);
+    expect(startedSpans.map(span => spanToStaticSpanJSON(span).description)).toEqual(['invoke_agent', 'invoke_agent']);
+    expect(spanToStaticSpanJSON(startedSpans[1]!).parent_span_id).toBe(startedSpans[0]!.spanContext().spanId);
+  });
+
+  it('creates one agent span per run when manual and auto instrumentation both wrap the graph', async () => {
+    const client = new TestClient(getDefaultTestClientOptions({ tracesSampleRate: 1 }));
+    setCurrentClient(client);
+    client.init();
+    const startedSpans: Span[] = [];
+    client.on('spanStart', span => startedSpans.push(span));
+    const graph = {
+      async invoke() {
+        const stream = await this.stream();
+        for await (const _chunk of stream) {
+          // drain, as LangGraph's invoke does
+        }
+      },
+      async stream(): Promise<AsyncIterable<unknown>> {
+        return {
+          async *[Symbol.asyncIterator]() {
+            yield 'chunk';
+          },
+        };
+      },
+    };
+    instrumentStateGraphCompile(
+      instrumentStateGraphCompile(() => graph, {}),
+      {},
+    )();
+    instrumentCompiledGraph(graph, {}, {}, undefined, undefined);
+
+    await graph.invoke();
+    for await (const _chunk of await graph.stream()) {
+      // drain
+    }
+
+    expect(startedSpans).toHaveLength(2);
+  });
+
+  it('returns a stream it cannot patch to the caller instead of throwing', async () => {
+    const client = new TestClient(getDefaultTestClientOptions({ tracesSampleRate: 1 }));
+    setCurrentClient(client);
+    client.init();
+    const endedSpans: Span[] = [];
+    client.on('spanEnd', span => endedSpans.push(span));
+    const frozenStream = Object.freeze({
+      async *[Symbol.asyncIterator]() {
+        yield 'chunk';
+      },
+    });
+    const graph = { stream: async () => frozenStream };
+    instrumentCompiledGraph(graph, {}, {}, undefined, undefined);
+
+    await expect(graph.stream()).resolves.toBe(frozenStream);
+    expect(endedSpans).toHaveLength(1);
+  });
+
+  it('leaves a graph compiled by manual instrumentation to the manual options', () => {
+    let sawManualFlag = false;
+    instrumentStateGraphCompile(() => {
+      sawManualFlag = isInsideManualLangGraphInstrumentation();
+      return {};
+    }, {})();
+
+    expect(sawManualFlag).toBe(true);
+    expect(isInsideManualLangGraphInstrumentation()).toBe(false);
+  });
+
+  it('records no output for a stream mode whose chunks are not the graph output', async () => {
+    const client = new TestClient(getDefaultTestClientOptions({ tracesSampleRate: 1 }));
+    setCurrentClient(client);
+    client.init();
+    const endedSpans: Span[] = [];
+    client.on('spanEnd', span => endedSpans.push(span));
+    const graph = {
+      stream: async () => ({
+        async *[Symbol.asyncIterator]() {
+          yield { values: { messages: [{ role: 'assistant', content: 'checkpointed' }] } };
+        },
+      }),
+    };
+    instrumentCompiledGraph(graph, {}, { recordOutputs: true }, undefined, undefined);
+
+    for await (const _chunk of await graph.stream({}, { streamMode: 'checkpoints' })) {
+      // drain
+    }
+
+    expect(endedSpans).toHaveLength(1);
+    expect(spanToStaticSpanJSON(endedSpans[0]!).data[GEN_AI_RESPONSE_TEXT]).toBeUndefined();
   });
 });

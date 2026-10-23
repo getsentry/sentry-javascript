@@ -89,6 +89,34 @@ export function buildMethodPath(currentPath: string, prop: string): string {
 }
 
 /**
+ * A stream that pulls through `reader`. `tee` and `pipe*` read through internal slots and bypass a
+ * patched `getReader`; this routes them back through it, pulling on demand and forwarding `cancel` (#24054).
+ */
+export function readableFromReader(reader: {
+  read: () => Promise<{ done: boolean; value?: unknown }>;
+  cancel?: (reason?: unknown) => Promise<unknown>;
+}): ReadableStream<unknown> {
+  return new ReadableStream({
+    async pull(controller) {
+      const { done, value } = await reader.read();
+      if (done) {
+        controller.close();
+        return;
+      }
+      controller.enqueue(value);
+    },
+    async cancel(reason) {
+      await reader.cancel?.(reason);
+    },
+  });
+}
+
+/** Whether a value can be drained with `for await`. */
+export function isAsyncIterable<T = unknown>(value: unknown): value is AsyncIterable<T> {
+  return !!value && typeof (value as AsyncIterable<T>)[Symbol.asyncIterator] === 'function';
+}
+
+/**
  * A minimal structural check for a web `ReadableStream`.
  *
  * The chunk type is the caller's assumption about the provider's stream (e.g. `Uint8Array` for SSE
