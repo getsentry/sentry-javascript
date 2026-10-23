@@ -176,7 +176,7 @@ for the PR review.
 3. If someone else is assigned to the issue, ask them in the issue before you start.
 4. Open a PR against `develop` and link the issue, for example `Fixes #1234`.
 
-This also applies to small changes, typo fixes included. We may close PRs without a go-ahead.
+This also applies to small changes. We may close PRs without a go-ahead.
 
 ### Using AI tools
 
