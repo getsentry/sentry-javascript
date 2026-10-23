@@ -39,6 +39,11 @@
       "import": "./build/esm/esbuild/index.js",
       "require": "./build/cjs/esbuild/index.js"
     },
+    "./bun": {
+      "types": "./build/types/bun/index.d.ts",
+      "import": "./build/esm/bun/index.js",
+      "require": "./build/cjs/bun/index.js"
+    },
     "./core": {
       "types": "./build/types/core/index.d.ts",
       "import": "./build/esm/core/index.js",

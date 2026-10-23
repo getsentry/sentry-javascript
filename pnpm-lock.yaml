@@ -1140,6 +1140,9 @@ importers:
 
   packages/bun:
     dependencies:
+      '@sentry/bundler-plugins':
+        specifier: 11.9.0
+        version: link:../bundler-plugins
       '@sentry/conventions':
         specifier: ^0.29.0
         version: 0.29.0
