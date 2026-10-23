@@ -80,7 +80,11 @@ describe('@sentry/react/react-router', () => {
     expect(getCurrentScope().getScopeData().transactionName).toEqual('/about');
   });
 
-  it('parameterizes a pageload whose pathname has a percent-encoded parameter', () => {
+  it.each([
+    ['/clubs/%ED%95%9C%EA%B8%80', 'non-ASCII, what a browser holds for `/clubs/한글`'],
+    ['/clubs/%2541', 'still looks percent-encoded after decoding (`%41`)'],
+    ['/clubs/100%25', 'not valid percent-encoding after decoding (`100%`)'],
+  ])('parameterizes a pageload whose pathname has a percent-encoded parameter (%s: %s)', pathname => {
     const client = createMockBrowserClient();
     setCurrentClient(client);
 
@@ -89,8 +93,7 @@ describe('@sentry/react/react-router', () => {
     const SentryRoutes = wrapReactRouterRouting(Routes);
 
     render(
-      // What a browser's `location.pathname` holds for `/clubs/한글`
-      <MemoryRouter initialEntries={['/clubs/%ED%95%9C%EA%B8%80']}>
+      <MemoryRouter initialEntries={[pathname]}>
         <SentryRoutes>
           <Route path="/" element={<div>Home</div>} />
           <Route path="/clubs/:clubId" element={<div>Club</div>} />

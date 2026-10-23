@@ -138,23 +138,28 @@ export function prefixWithSlash(path: string): string {
 }
 
 /**
- * Decodes a pathname the way React Router does before matching (`decodePath`): segment by segment, so an
- * encoded slash stays `%2F`. Returns the whole pathname unchanged if any segment is not valid percent-encoding.
+ * Removes as many leading segments from `pathname` as `pathnameBase` has, the way `useRoutes` strips the parent
+ * `pathnameBase` for descendant routes.
  *
- * Browsers hand us `location.pathname` percent-encoded, while React Router decodes the pathname before matching,
- * so `pathname` and `pathnameBase` on a `RouteMatch` are decoded (older 6.x routers decoded only partially, or not
- * at all). Decoding both sides before comparing them keeps routes with an encoded parameter (non-ASCII, spaces,
- * reserved characters) matchable regardless of which side is still encoded.
+ * `location.pathname` is percent-encoded as the browser holds it, while React Router decodes the pathname before
+ * matching, so `pathnameBase` on a `RouteMatch` is decoded (older 6.x routers decoded only partially, or not at all).
+ * Stripping by segment count works regardless of which side is encoded, and keeps the remainder encoded so that
+ * matching it again decodes it exactly once.
  */
-export function decodePathname(pathname: string): string {
-  try {
-    return pathname
-      .split('/')
-      .map(segment => decodeURIComponent(segment).replace(/\//g, '%2F'))
-      .join('/');
-  } catch {
+function stripPathnameBaseSegments(pathname: string, pathnameBase: string): string {
+  const baseSegmentCount = countPathnameSegments(pathnameBase);
+  if (baseSegmentCount === 0) {
     return pathname;
   }
+  return prefixWithSlash(pathname.split('/').filter(Boolean).slice(baseSegmentCount).join('/'));
+}
+
+/**
+ * Counts the segments of a pathname with a plain split (`getNumberOfUrlSegments` also drops `,` segments, which a
+ * route parameter can legitimately be).
+ */
+function countPathnameSegments(pathname: string): number {
+  return pathname.split('/').filter(Boolean).length;
 }
 
 /**
@@ -174,13 +179,9 @@ export function rebuildRoutePathFromAllRoutes(
   for (const match of matchedRoutes) {
     if (match.route.path && match.route.path !== '*') {
       const path = pickPath(match);
-      const decodedPathname = decodePathname(location.pathname);
-      const strippedPath = stripBasenameFromPathname(
-        decodedPathname,
-        decodePathname(prefixWithSlash(match.pathnameBase)),
-      );
+      const strippedPath = stripPathnameBaseSegments(location.pathname, prefixWithSlash(match.pathnameBase));
 
-      if (decodedPathname === strippedPath) {
+      if (location.pathname === strippedPath) {
         return trimSlash(strippedPath);
       }
 
@@ -244,11 +245,7 @@ function reconstructNameFromDescendantParent(
     return undefined;
   }
 
-  const remainingPathname =
-    stripBasenameFromPathname(
-      decodePathname(location.pathname),
-      decodePathname(prefixWithSlash(parentMatch.pathnameBase)),
-    ) || '/';
+  const remainingPathname = stripPathnameBaseSegments(location.pathname, prefixWithSlash(parentMatch.pathnameBase));
   const remainingName = rebuildRoutePathFromAllRoutes(
     allRoutes.filter(route => route !== parentMatch.route),
     { pathname: remainingPathname },
@@ -329,8 +326,10 @@ export function getNormalizedName(
     const newPath = path[0] === '/' || pathBuilder[pathBuilder.length - 1] === '/' ? path : `/${path}`;
     pathBuilder = trimSlash(pathBuilder) + prefixWithSlash(newPath);
 
-    // Check if this path matches the current location
-    if (trimSlash(decodePathname(location.pathname)) !== trimSlash(decodePathname(basename + branch.pathname))) {
+    // Check if this branch spans the whole location. Compare segment counts rather than strings: the location
+    // pathname is percent-encoded while React Router decoded the branch pathname, and decoding never changes the
+    // number of segments.
+    if (countPathnameSegments(location.pathname) !== countPathnameSegments(basename + branch.pathname)) {
       continue;
     }
 
@@ -339,7 +338,7 @@ export function getNormalizedName(
       getNumberOfUrlSegments(pathBuilder) !== getNumberOfUrlSegments(branch.pathname) &&
       !pathEndsWithWildcard(pathBuilder)
     ) {
-      return [(stripBasename ? '' : basename) + newPath, 'route'];
+      return [(stripBasename ? '' : trimSlash(basename)) + newPath, 'route'];
     }
 
     // Handle wildcard routes with children - strip trailing wildcard
@@ -347,7 +346,7 @@ export function getNormalizedName(
       pathBuilder = pathBuilder.slice(0, -1);
     }
 
-    return [(stripBasename ? '' : basename) + pathBuilder, 'route'];
+    return [(stripBasename ? '' : trimSlash(basename)) + pathBuilder, 'route'];
   }
 
   // Fallback when no matching route found

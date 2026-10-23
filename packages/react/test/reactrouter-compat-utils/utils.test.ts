@@ -1,7 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   clearNavigationContext,
-  decodePathname,
   getNavigationContext,
   getNormalizedName,
   getNumberOfUrlSegments,
@@ -182,31 +181,6 @@ describe('reactrouter-compat-utils/utils', () => {
 
     it('should filter out empty segments and commas', () => {
       expect(getNumberOfUrlSegments('/users//profile,test')).toBe(2);
-    });
-  });
-
-  describe('decodePathname', () => {
-    it('should decode percent-encoded segments', () => {
-      expect(decodePathname('/clubs/%ED%95%9C%EA%B8%80')).toBe('/clubs/한글');
-      expect(decodePathname('/users/a%40b.com')).toBe('/users/a@b.com');
-    });
-
-    it('should keep an encoded slash inside a segment encoded', () => {
-      expect(decodePathname('/files/a%2Fb')).toBe('/files/a%2Fb');
-    });
-
-    it('should not touch a plus sign', () => {
-      expect(decodePathname('/tags/a+b')).toBe('/tags/a+b');
-    });
-
-    it('should return the whole pathname unchanged when a segment is malformed', () => {
-      expect(decodePathname('/a/%E0%A4%A/b')).toBe('/a/%E0%A4%A/b');
-    });
-
-    it('should leave an already decoded pathname as is', () => {
-      expect(decodePathname('/clubs/한글')).toBe('/clubs/한글');
-      expect(decodePathname('/')).toBe('/');
-      expect(decodePathname('')).toBe('');
     });
   });
 
@@ -506,6 +480,29 @@ describe('reactrouter-compat-utils/utils', () => {
       expect(getNormalizedName(routes, location, branches, basename, true)).toEqual(['/clubs/:clubId', 'route']);
     });
 
+    it('should not double the slash when the basename ends with one', () => {
+      const routes: RouteObject[] = [{ path: '/clubs/:clubId', element: null }];
+      const branches: RouteMatch[] = [
+        {
+          route: { path: '/clubs/:clubId', element: null },
+          params: { clubId: 'abc' },
+          pathname: '/clubs/abc',
+          pathnameBase: '/clubs/abc',
+        },
+      ];
+
+      // e.g. Vite's `import.meta.env.BASE_URL` always ends with a slash
+      expect(getNormalizedName(routes, { pathname: '/clubs/abc' }, branches, '/')).toEqual(['/clubs/:clubId', 'route']);
+      expect(getNormalizedName(routes, { pathname: '/app/clubs/abc' }, branches, '/app/')).toEqual([
+        '/app/clubs/:clubId',
+        'route',
+      ]);
+      expect(getNormalizedName(routes, { pathname: '/app/clubs/abc' }, branches, '/app/', true)).toEqual([
+        '/clubs/:clubId',
+        'route',
+      ]);
+    });
+
     it('should keep matching when the router left the branch pathname encoded', () => {
       // react-router < 6.5 matched against the raw pathname, 6.5 - 6.22 used `decodeURI` (keeps `%40`)
       const routes: RouteObject[] = [{ path: '/users/:email', element: null }];
@@ -520,6 +517,38 @@ describe('reactrouter-compat-utils/utils', () => {
       ];
 
       expect(getNormalizedName(routes, location, branches, '')).toEqual(['/users/:email', 'route']);
+    });
+
+    it('should parameterize a pathname whose parameter still looks percent-encoded after decoding', () => {
+      // `%2541` decodes to the literal `%41`; a second decode would turn it into `A`
+      const routes: RouteObject[] = [{ path: '/clubs/:clubId', element: null }];
+      const location: Location = { pathname: '/clubs/%2541' };
+      const branches: RouteMatch[] = [
+        {
+          route: { path: '/clubs/:clubId', element: null },
+          params: { clubId: '%41' },
+          pathname: '/clubs/%41',
+          pathnameBase: '/clubs/%41',
+        },
+      ];
+
+      expect(getNormalizedName(routes, location, branches, '')).toEqual(['/clubs/:clubId', 'route']);
+    });
+
+    it('should parameterize a pathname whose decoded parameter is not valid percent-encoding', () => {
+      // `100%25` decodes to `100%`, which cannot be decoded again
+      const routes: RouteObject[] = [{ path: '/clubs/:clubId', element: null }];
+      const location: Location = { pathname: '/clubs/100%25' };
+      const branches: RouteMatch[] = [
+        {
+          route: { path: '/clubs/:clubId', element: null },
+          params: { clubId: '100%' },
+          pathname: '/clubs/100%',
+          pathnameBase: '/clubs/100%',
+        },
+      ];
+
+      expect(getNormalizedName(routes, location, branches, '')).toEqual(['/clubs/:clubId', 'route']);
     });
 
     it('should return pathname with url source when no routes provided', () => {
