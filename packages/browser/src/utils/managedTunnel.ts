@@ -11,17 +11,18 @@ import type { BrowserOptions } from '../client';
 import type { BrowserTransportOptions } from '../transports/types';
 
 /**
- * Resolves `tunnel: true` or {@link BrowserTunnelOptions} to the same-origin path the server derives from the DSN.
+ * Resolves `tunnel: true`, a relative path or {@link BrowserTunnelOptions} to the managed tunnel's same-origin path.
  */
 export function resolveBrowserTunnelOption(
   options: BrowserOptions,
 ): Pick<BrowserOptions, 'transportOptions' | '_managedTunnel'> & { tunnel: string | undefined } {
   const { tunnel, dsn, transportOptions } = options;
-  if (typeof tunnel === 'string' || !tunnel) {
+  if (!tunnel || (typeof tunnel === 'string' && !tunnel.startsWith('/'))) {
     return { tunnel, transportOptions };
   }
 
-  const tunnelOptions: BrowserTunnelOptions = tunnel === true ? {} : tunnel;
+  const tunnelOptions: BrowserTunnelOptions =
+    tunnel === true ? {} : typeof tunnel === 'string' ? { path: tunnel } : tunnel;
   const tunnelPath = tunnelOptions.path ?? (dsn && getTunnelPath(dsn));
   if (!tunnelPath) {
     return { tunnel: undefined, transportOptions };
@@ -46,8 +47,7 @@ export function resolveBrowserTunnelOption(
 let hasWarnedAboutRejectedDsn = false;
 
 /**
- * Falls back to sending directly when nothing on this origin serves the managed tunnel. An envelope is resent only
- * when the response proves it never reached Sentry.
+ * Falls back to sending directly when nothing on this origin serves the managed tunnel, i.e. it answers 404 or 405.
  */
 export function makeManagedTunnelTransport(
   makeTransport: (options: BrowserTransportOptions) => Transport,
@@ -77,10 +77,9 @@ export function makeManagedTunnelTransport(
           return response;
         }
 
-        // Not the tunnel: a 4xx never reached Sentry so it's resent, a 2xx may have, so only later envelopes go direct.
-        const rejected = statusCode >= 400 && statusCode < 500;
+        // Only a 404 or 405 says nothing serves the path. Any other answer may come from a tunnel the app runs itself.
         const { dsn, sdk } = envelope[0];
-        const components = (rejected || (statusCode >= 200 && statusCode < 300)) && dsn && makeDsn(dsn);
+        const components = (statusCode === 404 || statusCode === 405) && dsn && makeDsn(dsn);
         if (!components) {
           return response;
         }
@@ -93,7 +92,7 @@ export function makeManagedTunnelTransport(
           headers: directHeaders,
         });
 
-        return rejected ? directTransport.send(envelope) : response;
+        return directTransport.send(envelope);
       },
       async flush(timeout?: number): Promise<boolean> {
         const results = await Promise.all([tunnelTransport.flush(timeout), directTransport?.flush(timeout) ?? true]);
