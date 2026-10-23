@@ -47,6 +47,7 @@
   },
   "devDependencies": {
     "@sentry-internal/integration-shims": "11.8.0",
+    "@sentry-internal/rollup-utils": "11.8.0",
     "fake-indexeddb": "^6.2.5"
   },
   "scripts": {

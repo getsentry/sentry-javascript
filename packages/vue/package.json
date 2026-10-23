@@ -62,6 +62,7 @@
     }
   },
   "devDependencies": {
+    "@sentry-internal/rollup-utils": "11.8.0",
     "@tanstack/vue-router": "^1.64.0",
     "vue": "~3.5.44"
   },

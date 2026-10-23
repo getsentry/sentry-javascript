@@ -72,7 +72,7 @@
     "access": "public"
   },
   "dependencies": {
-    "@opentelemetry/api": "^1.10.0",
+    "@opentelemetry/api": "^1.9.1",
     "@sentry/core": "11.8.0",
     "@sentry/conventions": "^0.27.0",
     "@sentry/server-utils": "11.8.0"
@@ -104,7 +104,13 @@
   },
   "devDependencies": {
     "@cloudflare/workers-types": "4.20250922.0",
+    "@sentry-internal/rollup-utils": "11.8.0",
+    "@sentry/bun": "11.8.0",
+    "@sentry/cloudflare": "11.8.0",
+    "@sentry/deno": "11.8.0",
+    "@sentry/node": "11.8.0",
     "@types/node": "^20.19.0",
+    "hono": "^4.13.7",
     "wrangler": "4.62.0"
   },
   "scripts": {

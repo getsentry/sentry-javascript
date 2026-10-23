@@ -82,7 +82,7 @@
     "access": "public"
   },
   "dependencies": {
-    "@opentelemetry/api": "^1.10.0",
+    "@opentelemetry/api": "^1.9.1",
     "@rollup/plugin-commonjs": "28.0.1",
     "@sentry/browser-utils": "11.8.0",
     "@sentry/bundler-plugins": "11.8.0",
@@ -99,6 +99,8 @@
     "stacktrace-parser": "^0.1.11"
   },
   "devDependencies": {
+    "@sentry-internal/rollup-utils": "11.8.0",
+    "cjs-module-lexer": "^2.2.0",
     "next": "15.5.27",
     "react": "^18.3.1",
     "react-dom": "^18.3.1"
