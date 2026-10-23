@@ -30,7 +30,7 @@ export interface HonoRoute {
 }
 
 // One entry of Hono's `matchResult[0]`.
-export type MatchedHandler = [[handler: HonoRoute['handler'], route: HonoRoute], paramIndexMap: unknown];
+export type MatchedHandler = [pair: [handler: HonoRoute['handler'], route: HonoRoute], paramIndexMap: unknown];
 
 export interface HonoRequest {
   raw: Request;
