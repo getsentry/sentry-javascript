@@ -6,7 +6,11 @@
 
 ### Important Changes
 
-- **fix(v10/deps): Limit `@opentelemetry/api` to `<1.10.0` and the OpenTelemetry SDK to `<3.0.0` ([#25715](https://github.com/getsentry/sentry-javascript/pull/25715))**
+- **fix(v10/deps)!: Limit `@opentelemetry/api` to `<1.10.0` and the OpenTelemetry SDK to `<3.0.0` ([#25715](https://github.com/getsentry/sentry-javascript/pull/25715))**
+
+  **Breaking change**
+
+  If your app uses `@opentelemetry/api` 1.10.0 or OpenTelemetry SDK v3 together with v10 of the Sentry SDK, you must stay on `@opentelemetry/api` below 1.10.0 and OpenTelemetry SDK v2, or upgrade to v11.
 
   `@opentelemetry/api` 1.10.0 only works with OpenTelemetry SDK v3 (`@opentelemetry/core` 3.x, `@opentelemetry/instrumentation` 0.300.x). The SDK v2 packages that v10 uses only support `@opentelemetry/api` below 1.10.0, and SDK v3 needs Node.js 22.15.0 or newer, while v10 supports Node.js 18 and newer. For this reason, v10 now limits `@opentelemetry/api` to `<1.10.0`, and the `@opentelemetry/instrumentation` and `@opentelemetry/exporter-trace-otlp-http` peer dependencies of `@sentry/node-core` to `<0.300.0`.
 
