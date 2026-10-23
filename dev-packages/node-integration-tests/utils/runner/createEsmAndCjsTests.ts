@@ -1,4 +1,4 @@
-import { exec } from 'child_process';
+import { exec, execFile } from 'child_process';
 import { existsSync } from 'fs';
 import { cp, mkdir, readFile, rm, writeFile } from 'fs/promises';
 import { basename, delimiter, join } from 'path';
@@ -7,6 +7,7 @@ import { afterAll, beforeAll, test, type TestAPI } from 'vitest';
 import { CLEANUP_STEPS, createRunner, PACKAGE_ROOT } from './createRunner';
 
 const execPromise = promisify(exec);
+const execFilePromise = promisify(execFile);
 
 interface ScenarioPaths {
   cjs: {
@@ -340,10 +341,12 @@ const NPM_INSTALL_TIMEOUT_MS = 60_000;
 async function npmInstallWithRetry(cwd: string, deps: string[]): Promise<void> {
   for (let attempt = 1; attempt <= NPM_INSTALL_MAX_RETRIES; attempt++) {
     try {
-      const { stdout, stderr } = await execPromise(
+      // Run npm without a shell, so the timeout kills npm itself rather than leaving it running next to the retry
+      const { stdout, stderr } = await execFilePromise(
+        'npm',
         // We only use --prefer-offline on the first attempt to try to read from cache
         // in follow ups we just try to install in any way
-        `npm install ${attempt === 1 ? '--prefer-offline' : ''} --no-audit --no-fund`,
+        ['install', ...(attempt === 1 ? ['--prefer-offline'] : []), '--no-audit', '--no-fund'],
         {
           cwd,
           encoding: 'utf8',
@@ -367,6 +370,9 @@ async function npmInstallWithRetry(cwd: string, deps: string[]): Promise<void> {
           `npm install attempt ${attempt}/${NPM_INSTALL_MAX_RETRIES} failed, retrying in ${NPM_INSTALL_RETRY_DELAY_MS}ms...`,
         );
         await new Promise(resolve => setTimeout(resolve, NPM_INSTALL_RETRY_DELAY_MS));
+        // A killed attempt leaves a partial install behind, which the next attempt would treat as complete
+        await rm(join(cwd, 'node_modules'), { recursive: true, force: true });
+        await rm(join(cwd, 'package-lock.json'), { force: true });
       } else {
         // oxlint-disable-next-line no-console
         console.error(error);
