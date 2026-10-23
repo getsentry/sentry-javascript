@@ -238,6 +238,10 @@ Work in this release was contributed by @4ktLuffy, @adityareddy-dev, @dasilvalui
 
   These integrations need the vite plugin. Without it, they record nothing, and with `debug: true` the SDK logs a warning.
 
+- **fix(cloudflare): Do not add back channel integrations the user removed**
+
+  When an instrumented package loaded after `init()` (for example through a dynamic `import()`), the SDK added its integration even if the user had removed it. This applied to an `integrations` function that filtered it out, `defaultIntegrations: false`, and a custom `defaultIntegrations` list. The SDK now applies the same rules to a late-loaded integration as to the defaults at `init()`. To do this, it calls an `integrations` function again, once for each package that loads after `init()`.
+
 ## 11.8.0
 
 ### Important Changes
