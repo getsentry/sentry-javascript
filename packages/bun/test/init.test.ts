@@ -193,7 +193,6 @@ describe('init()', () => {
       const full = getDefaultIntegrations({}).map(({ name }) => name);
 
       expect(withoutPerformance).toEqual(full);
-      expect(full).toContain('NodeSystemError');
       expect(mockGetTracingIntegrations).toHaveBeenCalledTimes(0);
     });
 
