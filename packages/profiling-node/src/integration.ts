@@ -23,6 +23,8 @@ import {
 } from './utils';
 
 const CHUNK_INTERVAL_MS = 1000 * 60;
+/** Exported only for tests. */
+export const MAX_ROOT_SPAN_PROFILE_MS = 1000 * 60 * 5;
 interface ChunkData {
   id: string;
   timer: NodeJS.Timeout | undefined;
@@ -144,7 +146,7 @@ class ContinuousProfiler {
   }
 
   /**
-   * Starts trace lifecycle profiling. Profiling will remain active as long as there is an active span.
+   * Starts trace lifecycle profiling. Profiling stays active while at least one sampled root span is open.
    */
   private _startTraceLifecycleProfiling(): void {
     if (!this._sampled) {
@@ -161,29 +163,48 @@ class ContinuousProfiler {
       return;
     }
 
-    // Unsampled child spans emit `spanStart` but never `spanEnd`, so only sampled spans are tracked.
-    const activeSpanIds = new Set<string>();
+    // Only sampled root spans are tracked, like in the browser `UIProfiler`. Each one gets a time limit,
+    // so a root span that never ends cannot keep the profiler running.
+    const rootSpanTimeouts = new Map<string, NodeJS.Timeout>();
+
+    const stopTrackingRootSpan = (spanId: string): void => {
+      global.clearTimeout(rootSpanTimeouts.get(spanId));
+      rootSpanTimeouts.delete(spanId);
+      if (rootSpanTimeouts.size === 0) {
+        this._stopChunkProfiling();
+      }
+    };
+
     this._client.on('spanStart', span => {
-      if (!spanIsSampled(span)) {
-        if (DEBUG_BUILD && span === getRootSpan(span)) {
-          debug.log('[Profiling] Not profiling trace because its root span was not sampled.');
-        }
+      if (span !== getRootSpan(span)) {
         return;
       }
-      if (activeSpanIds.size === 0) {
+      if (!spanIsSampled(span)) {
+        DEBUG_BUILD && debug.log('[Profiling] Not profiling trace because its root span was not sampled.');
+        return;
+      }
+
+      if (rootSpanTimeouts.size === 0) {
         this._startChunkProfiling();
       }
-      activeSpanIds.add(span.spanContext().spanId);
+
+      const spanId = span.spanContext().spanId;
+      const timeout = global.setTimeout(() => {
+        DEBUG_BUILD &&
+          debug.log(
+            `[Profiling] Reached 5-minute timeout for root span ${spanId}. You likely started a manual root span that never called \`.end()\`.`,
+          );
+        stopTrackingRootSpan(spanId);
+      }, MAX_ROOT_SPAN_PROFILE_MS);
+      // Unref timeout so it doesn't keep the process alive.
+      timeout.unref();
+      rootSpanTimeouts.set(spanId, timeout);
     });
 
     this._client.on('spanEnd', span => {
       const spanId = span.spanContext().spanId;
-      if (!activeSpanIds.has(spanId)) {
-        return;
-      }
-      activeSpanIds.delete(spanId);
-      if (activeSpanIds.size === 0) {
-        this._stopChunkProfiling();
+      if (rootSpanTimeouts.has(spanId)) {
+        stopTrackingRootSpan(spanId);
       }
     });
   }
