@@ -18,7 +18,7 @@ Developer Documentation.
 node and pnpm versions the repo pins.
 
 1. Install pnpm 12 or newer, see the [pnpm installation docs](https://pnpm.io/installation).
-2. Install a default node through pnpm:
+2. Install a default node version through pnpm:
 
    ```sh
    pnpm runtime set node 24 -g
@@ -199,9 +199,6 @@ _These steps are only relevant to Sentry employees when preparing and publishing
 [See the docs for publishing a release](./docs/publishing-a-release.md)
 
 ## Node and pnpm Versions
-
-_Experimental: we are moving from Volta, which is [unmaintained](https://github.com/volta-cli/volta#readme), to node
-versions managed by pnpm._
 
 - The root `package.json` pins node in `devEngines.runtime` and pnpm in `packageManager`. CI reads the same fields.
 - pnpm's `node` command runs the node version of the nearest `package.json` that pins one
