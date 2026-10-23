@@ -2294,6 +2294,9 @@ importers:
       '@sentry/solid':
         specifier: 11.9.0
         version: link:../solid
+      h3:
+        specifier: ^1.15.10
+        version: 1.15.11
     devDependencies:
       '@sentry-internal/rollup-utils':
         specifier: 11.9.0
