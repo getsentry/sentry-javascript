@@ -6,10 +6,10 @@
 
 # Contributing
 
-We welcome suggested improvements and bug fixes to the `@sentry/*` family of packages. If you're not on the Sentry team, read
-[External Contributors](#external-contributors) before you open a pull request. The guide below will help you get
-started, but if you have further questions, please feel free to reach out on [Discord](https://discord.gg/Ww9hbqr). To
-learn about some general SDK development principles check out the
+We welcome suggested improvements and bug fixes to the `@sentry/*` family of packages. If you're not on the Sentry
+team, read [External contributors](#external-contributors) before you open a pull request. The guide below will help
+you get started, but if you have further questions, please feel free to reach out on
+[Discord](https://discord.gg/Ww9hbqr). To learn about some general SDK development principles check out the
 [SDK Development Guide](https://develop.sentry.dev/sdk/) in the Sentry Developer Documentation.
 
 ## Setting up an Environment
@@ -165,23 +165,25 @@ Similar to building and testing, linting can be done in the project root or in i
 
 Note: you must run `pnpm run build` before `pnpm run lint` will work.
 
-## External Contributors
+## External contributors
 
-Before you write code, agree on the approach with us in an issue. That way, you don't spend time on a PR we can't merge.
+Before you write code, get a maintainer's go-ahead in an issue. That way, nobody spends a weekend on a PR that just
+sits in our queue. We check that the change fits our plans and that we have time to review it. Code details can wait
+for the PR review.
 
-1. Find or open an issue for your change. Describe the problem and the fix you have in mind.
-2. Wait for a maintainer to agree on the approach.
+1. Find or open an issue for your change. Describe the problem and what you want to change.
+2. Wait for a maintainer to give you the go-ahead.
 3. If someone else is assigned to the issue, ask them in the issue before you start.
 4. Open a PR against `develop` and link the issue, for example `Fixes #1234`.
 
-This also applies to small changes. We may close PRs that have no agreed approach.
+This also applies to small changes, typo fixes included. We may close PRs without a go-ahead.
 
-### Using AI Tools
+### Using AI tools
 
-Use any tools you like, but read, test, and understand every change before you submit it.
-We close PRs that look like unreviewed agent output.
+Use any tools you like. You're still the one who answers the review comments, so read, test, and understand every
+change before you submit it. We close PRs that look like unreviewed agent output.
 
-### Before Opening a PR
+### Before you open a PR
 
 - Follow the [Commit, Issue & PR guidelines](./docs/commit-issue-pr-guidelines.md).
 - Add tests for non-trivial changes (see [Adding Tests](#adding-tests)).
