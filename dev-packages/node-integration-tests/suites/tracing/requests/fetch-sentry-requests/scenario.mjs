@@ -5,7 +5,7 @@ const sentryUrl = `${process.env.SERVER_URL}/api/1337/envelope/?sentry_version=7
 
 Sentry.startSpan({ name: 'test_span' }, async () => {
   await fetch(sentryUrl).then(res => res.text());
-  const response = await fetch(`${process.env.SERVER_URL}/api/v0`)
-  
-  await response.text()
+  const response = await fetch(`${process.env.SERVER_URL}/api/v0`);
+
+  await response.text();
 });
