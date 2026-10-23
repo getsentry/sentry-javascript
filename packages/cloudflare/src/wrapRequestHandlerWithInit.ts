@@ -1,7 +1,7 @@
 import type { CfProperties, IncomingRequestCfProperties } from '@cloudflare/workers-types';
 import { NETWORK_PROTOCOL_NAME, NETWORK_PROTOCOL_VERSION } from '@sentry/conventions/attributes';
 import type { SpanAttributes } from '@sentry/core';
-import { safeCallback } from '@sentry/core';
+import { getIsolationScope, safeCallback } from '@sentry/core';
 import { wrapServerRequestHandler } from '@sentry/server-utils/request-handler';
 import { DEBUG_BUILD } from './debug-build';
 import { getHttpServerRequestOptions } from './integrations/httpServer';
@@ -41,7 +41,7 @@ type InitSdk = (options: CloudflareOptions) => CloudflareClient | undefined;
  * Same as {@link wrapRequestHandler}, but with the SDK initialization injected.
  *
  * Wrappers that are only reachable from the main entry point — where `nodejs_compat` is a
- * requirement anyway — pass `init` from `sdk.ts` to get the full default integrations.
+ * requirement anyway — pass `init` from `sdk.ts` so `enableOpenTelemetrySetup` is honored.
  *
  * @internal
  */
@@ -99,7 +99,10 @@ export function wrapRequestHandlerWithInit(
       {
         request,
         client,
-        isolationScope,
+        // Without `AsyncLocalStorage`, `withInvocationIsolationScope` does not fork, and the scope it
+        // passes in is not the current one. The request data has to go on the current scope, where
+        // events captured in the handler read it.
+        isolationScope: getIsolationScope(),
         options: getHttpServerRequestOptions(client),
         origin: 'auto.http.cloudflare',
         mechanism: captureErrors ? { handled: false, type: getRequestErrorMechanismType(context) } : undefined,
