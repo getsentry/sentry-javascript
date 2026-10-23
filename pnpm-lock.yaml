@@ -1221,7 +1221,7 @@ importers:
   packages/cloudflare:
     dependencies:
       '@opentelemetry/api':
-        specifier: ^1.10.0
+        specifier: ^1.9.1
         version: 1.10.0
       '@sentry/conventions':
         specifier: ^0.27.0
@@ -1274,7 +1274,7 @@ importers:
   packages/deno:
     dependencies:
       '@opentelemetry/api':
-        specifier: ^1.10.0
+        specifier: ^1.9.1
         version: 1.10.0
       '@sentry/conventions':
         specifier: ^0.27.0
@@ -1538,7 +1538,7 @@ importers:
   packages/hono:
     dependencies:
       '@opentelemetry/api':
-        specifier: ^1.10.0
+        specifier: ^1.9.1
         version: 1.10.0
       '@sentry/conventions':
         specifier: ^0.27.0
@@ -1622,7 +1622,7 @@ importers:
   packages/nextjs:
     dependencies:
       '@opentelemetry/api':
-        specifier: ^1.10.0
+        specifier: ^1.9.1
         version: 1.10.0
       '@rollup/plugin-commonjs':
         specifier: 28.0.1
@@ -1723,7 +1723,7 @@ importers:
   packages/node:
     dependencies:
       '@opentelemetry/api':
-        specifier: ^1.10.0
+        specifier: ^1.9.1
         version: 1.10.0
       '@sentry/bundler-plugins':
         specifier: 11.8.0
@@ -1853,7 +1853,7 @@ importers:
         version: link:../core
     devDependencies:
       '@opentelemetry/api':
-        specifier: ^1.10.0
+        specifier: ^1.9.1
         version: 1.10.0
       '@sentry-internal/rollup-utils':
         specifier: 11.8.0
@@ -1951,7 +1951,7 @@ importers:
   packages/react-router:
     dependencies:
       '@opentelemetry/api':
-        specifier: ^1.10.0
+        specifier: ^1.9.1
         version: 1.10.0
       '@sentry/browser':
         specifier: 11.8.0
@@ -2188,7 +2188,7 @@ importers:
   packages/server-utils:
     dependencies:
       '@opentelemetry/api':
-        specifier: ^1.10.0
+        specifier: ^1.9.1
         version: 1.10.0
       '@sentry/conventions':
         specifier: ^0.27.0
@@ -2363,7 +2363,7 @@ importers:
   packages/sveltekit:
     dependencies:
       '@opentelemetry/api':
-        specifier: ^1.10.0
+        specifier: ^1.9.1
         version: 1.10.0
       '@sentry/bundler-plugins':
         specifier: 11.8.0
@@ -2427,7 +2427,7 @@ importers:
   packages/tanstackstart-react:
     dependencies:
       '@opentelemetry/api':
-        specifier: ^1.10.0
+        specifier: ^1.9.1
         version: 1.10.0
       '@sentry/browser-utils':
         specifier: 11.8.0
@@ -2469,7 +2469,7 @@ importers:
   packages/vercel-edge:
     dependencies:
       '@opentelemetry/api':
-        specifier: ^1.10.0
+        specifier: ^1.9.1
         version: 1.10.0
       '@sentry/core':
         specifier: 11.8.0
