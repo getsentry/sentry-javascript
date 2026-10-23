@@ -1,5 +1,6 @@
 import type { Integration } from '@sentry/core';
 import { browserTracingIntegration as originalBrowserTracingIntegration, isBotUserAgent } from '@sentry/react';
+import { settlePendingPageloadWait } from './routing/appRouterRoutingInstrumentation';
 import { nextRouterInstrumentNavigation, nextRouterInstrumentPageLoad } from './routing/nextRoutingInstrumentation';
 
 /**
@@ -39,6 +40,13 @@ export function browserTracingIntegration(
       // If it were the other way around, the RSC fetch request would not receive the tracing headers from the navigation transaction.
       if (instrumentNavigation) {
         nextRouterInstrumentNavigation(client);
+      }
+
+      // A pageload that is still waiting for its trace meta tag has to exist before the navigation span,
+      // so the navigation ends it like any pageload it interrupts. Started later, the pageload would end
+      // the navigation span instead.
+      if (instrumentPageLoad) {
+        client.on('beforeStartNavigationSpan', settlePendingPageloadWait);
       }
 
       browserTracingIntegrationInstance.afterAllSetup(client);
