@@ -524,6 +524,29 @@ describe('getDefaultIntegrations', () => {
       expect(client?.getIntegrationByName('Mysql')).toBeUndefined();
     });
 
+    test('adds it when a custom defaultIntegrations list extends the SDK defaults', async () => {
+      resetSdk();
+      const client = init({ dsn: DSN, defaultIntegrations: [], extendsDefaultIntegrations: true });
+
+      await loadMysqlLate(client);
+
+      expect(client?.getIntegrationByName('Mysql')).toBeDefined();
+    });
+
+    test('does not add it when the integrations function filtered it out of a list that extends the SDK defaults', async () => {
+      resetSdk();
+      const client = init({
+        dsn: DSN,
+        defaultIntegrations: [],
+        extendsDefaultIntegrations: true,
+        integrations: defaults => defaults.filter(integration => integration.name !== 'Mysql'),
+      });
+
+      await loadMysqlLate(client);
+
+      expect(client?.getIntegrationByName('Mysql')).toBeUndefined();
+    });
+
     test.each([
       ['false', false as const],
       ['a custom list', [] as Integration[]],
