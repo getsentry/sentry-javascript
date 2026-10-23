@@ -8,11 +8,12 @@ import {
   USER_AGENT_ORIGINAL,
 } from '@sentry/conventions/attributes';
 import { HTTP_SERVER } from '@sentry/conventions/op';
-import type { Client, Mechanism, Scope, Span, SpanAttributes } from '@sentry/core';
+import type { Client, Mechanism, Scope, SpanAttributes } from '@sentry/core';
 import {
   captureBodyFromWinterCGRequest,
   captureException,
   continueTrace,
+  getCurrentScope,
   getHttpSpanDetailsFromUrlObject,
   hasSpansEnabled,
   hasSpanStreamingEnabled,
@@ -25,6 +26,8 @@ import {
   startSpanManual,
   winterCGHeadersToDict,
   winterCGRequestToRequestData,
+  withIsolationScope,
+  withScope,
 } from '@sentry/core';
 import type { ServerRequestOptions } from '@sentry/core/server';
 import {
@@ -45,14 +48,21 @@ export interface ServerRequestHandlerConfig {
   options: ServerRequestOptions<Request, Response> | undefined;
   /** Origin of the span, e.g. `auto.http.deno`. */
   origin: string;
-  /** Mechanism of errors that the handler or the response stream throws. */
-  mechanism: Mechanism;
+  /** Mechanism of errors that the handler or the response stream throws. Omit to not capture them. */
+  mechanism?: Mechanism;
   /** The address and port of the socket, if the runtime knows them. */
   getSocketAddress?: () => { address: string; port?: number } | undefined;
   /** The matched route of the server framework, e.g. `/users/:id`. Sets `http.route` and the span name. */
   routeName?: string;
   /** Span attributes that only the runtime knows, e.g. the route parameters. */
   attributes?: SpanAttributes;
+  /** Whether the response streams. Return `undefined` to use the default classification. */
+  isStreamingResponse?: (response: Response) => boolean | undefined;
+  /**
+   * Called once when the request is done: when the response is returned, when a streamed body
+   * finishes, or when the handler throws (then without a response).
+   */
+  onDone?: (response: Response | undefined) => void;
 }
 
 /**
@@ -72,6 +82,11 @@ export async function wrapServerRequestHandler(
 ): Promise<Response> {
   const { request, client, isolationScope, options, mechanism } = config;
   const method = request.method.toUpperCase();
+  const captureError = (error: unknown): void => {
+    if (mechanism) {
+      captureException(error, { mechanism });
+    }
+  };
 
   const endSession = options?.sessions
     ? startRequestSession(client, {
@@ -79,6 +94,14 @@ export async function wrapServerRequestHandler(
         sessionFlushingDelayMS: options.sessionFlushingDelayMS,
       })
     : undefined;
+  const finish = (response: Response | undefined): void => {
+    endSession?.();
+    config.onDone?.(response);
+  };
+  const isStreamingResponse = (response: Response): boolean => {
+    const classification = config.isStreamingResponse?.(response);
+    return typeof classification === 'boolean' ? classification : classifyResponseStreaming(response).isStreaming;
+  };
 
   const socketAddress = config.getSocketAddress?.();
   isolationScope.setSDKProcessingMetadata({
@@ -87,13 +110,15 @@ export async function wrapServerRequestHandler(
   });
 
   if (method === 'OPTIONS' || method === 'HEAD') {
+    let response: Response | undefined;
     try {
-      return await handler();
+      response = await handler();
+      return response;
     } catch (e) {
-      captureException(e, { mechanism });
+      captureError(e);
       throw e;
     } finally {
-      endSession?.();
+      finish(response);
     }
   }
 
@@ -132,12 +157,18 @@ export async function wrapServerRequestHandler(
         try {
           response = await handler();
         } catch (e) {
-          captureException(e, { mechanism });
-          endSession?.();
+          captureError(e);
+          finish(undefined);
           throw e;
         }
         isolationScope.setContext('response', { status_code: response.status });
-        return onResponseDone(response, mechanism, () => endSession?.());
+        const inRequestScope = bindToRequestScope(isolationScope);
+        return onResponseDone(
+          response,
+          isStreamingResponse(response),
+          inRequestScope(() => finish(response)),
+          inRequestScope(captureError),
+        );
       }
 
       const [rawName, attributes] = getHttpSpanDetailsFromUrlObject(
@@ -202,8 +233,8 @@ export async function wrapServerRequestHandler(
         } catch (e) {
           span.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
           span.end();
-          captureException(e, { mechanism });
-          endSession?.();
+          captureError(e);
+          finish(undefined);
           throw e;
         }
 
@@ -213,10 +244,11 @@ export async function wrapServerRequestHandler(
           httpHeadersToSpanAttributes(responseHeadersToDict(response.headers), dataCollection, 'response'),
         );
 
+        const inRequestScope = bindToRequestScope(isolationScope);
         return onResponseDone(
           response,
-          mechanism,
-          () => {
+          isStreamingResponse(response),
+          inRequestScope(() => {
             if (onSpanEnd) {
               safeCallback(
                 DEBUG_BUILD ? 'Error in `onSpanEnd`:' : '',
@@ -225,13 +257,33 @@ export async function wrapServerRequestHandler(
               );
             }
             span.end();
-            endSession?.();
-          },
-          span,
+            finish(response);
+          }),
+          inRequestScope((error: unknown) => {
+            span.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
+            captureError(error);
+          }),
         );
       });
     },
   );
+}
+
+/**
+ * Returns a function that binds a callback to the request's isolation scope and the current scope.
+ *
+ * A streamed body finishes after the handler returns. Without `AsyncLocalStorage` (Cloudflare
+ * Workers without `nodejs_compat`), its callbacks then run outside the request's scopes, where
+ * `getClient()` finds no client: the segment span would be sent as a transaction, and a captured
+ * error would not update the request session.
+ */
+function bindToRequestScope(
+  isolationScope: Scope,
+): <A extends unknown[]>(fn: (...args: A) => void) => (...args: A) => void {
+  const scope = getCurrentScope();
+  return fn =>
+    (...args) =>
+      withIsolationScope(isolationScope, () => withScope(scope, () => fn(...args)));
 }
 
 function shouldCreateSpan(
@@ -261,14 +313,21 @@ function shouldCreateSpan(
  * Calls `onDone` when the response is done: at once, or when a streamed body finishes.
  * Returns the response to send.
  */
-function onResponseDone(response: Response, mechanism: Mechanism, onDone: () => void, span?: Span): Response {
-  if (response.body && !response.body.locked && classifyResponseStreaming(response).isStreaming) {
-    const body = monitorStream(response.body, onDone, error => {
-      span?.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
-      captureException(error, { mechanism });
-    });
-    // Passing the original response as the init keeps its status, status text and headers.
-    return new Response(body, response);
+function onResponseDone(
+  response: Response,
+  isStreaming: boolean,
+  onDone: () => void,
+  onStreamError: (error: unknown) => void,
+): Response {
+  if (isStreaming && response.body && !response.body.locked) {
+    try {
+      // Passing the original response as the init keeps its status, status text and headers, and
+      // on Cloudflare also `encodeBody: 'manual'`, so workerd does not compress a compressed body again.
+      return new Response(monitorStream(response.body, onDone, onStreamError), response);
+    } catch {
+      // Workers with a compatibility date before 2022-11-30 and without the
+      // `streams_enable_constructors` flag cannot construct a `ReadableStream`, so end at once.
+    }
   }
   onDone();
   return response;
