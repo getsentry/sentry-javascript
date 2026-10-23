@@ -25,24 +25,24 @@ import { isObjectLike, startSpan } from '@sentry/core';
 const ORIGIN = 'auto.faas.cloudflare.r2';
 
 const R2_OPERATIONS = {
-  get: { spanName: 'r2_get', op: OBJECT_GET, operation: 'GetObject' },
-  head: { spanName: 'r2_head', op: OBJECT_HEAD, operation: 'HeadObject' },
-  put: { spanName: 'r2_put', op: OBJECT_PUT, operation: 'PutObject' },
-  delete: { spanName: 'r2_delete', op: OBJECT_DELETE, operation: 'DeleteObject' },
-  list: { spanName: 'r2_list', op: OBJECT_LIST, operation: 'ListObjects' },
-  uploadPart: { spanName: 'r2_uploadPart', op: OBJECT_UPLOAD_PART, operation: 'UploadPart' },
+  get: { spanName: 'R2.GetObject', op: OBJECT_GET, operation: 'GetObject' },
+  head: { spanName: 'R2.HeadObject', op: OBJECT_HEAD, operation: 'HeadObject' },
+  put: { spanName: 'R2.PutObject', op: OBJECT_PUT, operation: 'PutObject' },
+  delete: { spanName: 'R2.DeleteObject', op: OBJECT_DELETE, operation: 'DeleteObject' },
+  list: { spanName: 'R2.ListObjects', op: OBJECT_LIST, operation: 'ListObjects' },
+  uploadPart: { spanName: 'R2.UploadPart', op: OBJECT_UPLOAD_PART, operation: 'UploadPart' },
   abortMultipartUpload: {
-    spanName: 'r2_abortMultipartUpload',
+    spanName: 'R2.AbortMultipartUpload',
     op: OBJECT_MULTIPART_UPLOAD_ABORT,
     operation: 'AbortMultipartUpload',
   },
   createMultipartUpload: {
-    spanName: 'r2_createMultipartUpload',
+    spanName: 'R2.CreateMultipartUpload',
     op: OBJECT_MULTIPART_UPLOAD_CREATE,
     operation: 'CreateMultipartUpload',
   },
   completeMultipartUpload: {
-    spanName: 'r2_completeMultipartUpload',
+    spanName: 'R2.CompleteMultipartUpload',
     op: OBJECT_MULTIPART_UPLOAD_COMPLETE,
     operation: 'CompleteMultipartUpload',
   },
