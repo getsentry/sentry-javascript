@@ -9,7 +9,7 @@ import type {
   ModuleMetadata,
   ModuleMetadataCallback,
 } from './types';
-import { determineReleaseName } from './utils';
+import { determineReleaseName, readCommitEnvVar } from './utils';
 
 export type NormalizedOptions = {
   org: string | undefined;
@@ -135,9 +135,10 @@ export function normalizeUserOptions(userOptions: UserOptions): NormalizedOption
   };
 
   if (options.release.setCommits === undefined) {
+    const vercelCommitSha = readCommitEnvVar('VERCEL_GIT_COMMIT_SHA');
     if (
       process.env['VERCEL'] &&
-      process.env['VERCEL_GIT_COMMIT_SHA'] &&
+      vercelCommitSha &&
       process.env['VERCEL_GIT_REPO_SLUG'] &&
       process.env['VERCEL_GIT_REPO_OWNER'] &&
       // We only want to set commits for the production env because Sentry becomes extremely noisy (eg on slack) for
@@ -147,8 +148,8 @@ export function normalizeUserOptions(userOptions: UserOptions): NormalizedOption
     ) {
       options.release.setCommits = {
         shouldNotThrowOnFailure: true,
-        commit: process.env['VERCEL_GIT_COMMIT_SHA'],
-        previousCommit: process.env['VERCEL_GIT_PREVIOUS_SHA'],
+        commit: vercelCommitSha,
+        previousCommit: readCommitEnvVar('VERCEL_GIT_PREVIOUS_SHA'),
         repo: `${process.env['VERCEL_GIT_REPO_OWNER']}/${process.env['VERCEL_GIT_REPO_SLUG']}`,
         ignoreEmpty: true,
         ignoreMissing: true,

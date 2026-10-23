@@ -9,9 +9,16 @@ import type { RouteManifest } from '../manifest/types';
 import type { NextConfigObject, SentryBuildOptions } from '../types';
 import { requiresInstrumentationHook } from '../util';
 import { getGitRevision, getInstrumentationClientFileContents } from './buildTime';
-import { resolveTunnelRoute, setUpTunnelRewriteRules } from './tunnel';
+import {
+  findTunnelRouteHandlerFile,
+  resolveTunnelRoute,
+  setUpTunnelHandlerRewrite,
+  setUpTunnelRewriteRules,
+} from './tunnel';
 
 let showedExportModeTunnelWarning = false;
+let showedUnusedTunnelRouteHandlerWarning = false;
+let showedTunnelRouteHandlerModeLog = false;
 let showedExperimentalBuildModeWarning = false;
 
 /**
@@ -27,7 +34,7 @@ export function resolveReleaseName(userSentryOptions: SentryBuildOptions): strin
 }
 
 /**
- * Applies tunnel-route rewrites, if configured.
+ * Applies tunnel-route rewrites, if configured. Uses handler mode if the project has a tunnel route handler file.
  *
  * Note: this mutates `userSentryOptions` (to store the resolved tunnel route) and `incomingUserNextConfigObject`.
  */
@@ -35,6 +42,11 @@ export function maybeSetUpTunnelRouteRewriteRules(
   incomingUserNextConfigObject: NextConfigObject,
   userSentryOptions: SentryBuildOptions,
 ): void {
+  if (userSentryOptions.tunnelRoute === undefined) {
+    maybeWarnAboutUnusedTunnelRouteHandler(incomingUserNextConfigObject, userSentryOptions.silent);
+    return;
+  }
+
   if (!userSentryOptions.tunnelRoute) {
     return;
   }
@@ -53,7 +65,39 @@ export function maybeSetUpTunnelRouteRewriteRules(
   const resolvedTunnelRoute = resolveTunnelRoute(userSentryOptions.tunnelRoute);
   userSentryOptions.tunnelRoute = resolvedTunnelRoute || undefined;
 
-  setUpTunnelRewriteRules(incomingUserNextConfigObject, resolvedTunnelRoute);
+  const tunnelRouteHandlerFile = findTunnelRouteHandlerFile(incomingUserNextConfigObject.pageExtensions);
+  if (!tunnelRouteHandlerFile) {
+    setUpTunnelRewriteRules(incomingUserNextConfigObject, resolvedTunnelRoute);
+    return;
+  }
+
+  setUpTunnelHandlerRewrite(incomingUserNextConfigObject, resolvedTunnelRoute);
+
+  if (!showedTunnelRouteHandlerModeLog) {
+    showedTunnelRouteHandlerModeLog = true;
+    getBuildLogger(userSentryOptions.silent).log(
+      `[@sentry/nextjs] The tunnel route sends events through ${tunnelRouteHandlerFile}. Only the event payload goes to Sentry.`,
+    );
+  }
+}
+
+function maybeWarnAboutUnusedTunnelRouteHandler(
+  incomingUserNextConfigObject: NextConfigObject,
+  silent: boolean | undefined,
+): void {
+  if (showedUnusedTunnelRouteHandlerWarning || incomingUserNextConfigObject.output === 'export') {
+    return;
+  }
+
+  const tunnelRouteHandlerFile = findTunnelRouteHandlerFile(incomingUserNextConfigObject.pageExtensions);
+  if (!tunnelRouteHandlerFile) {
+    return;
+  }
+
+  showedUnusedTunnelRouteHandlerWarning = true;
+  getBuildLogger(silent).warn(
+    `[@sentry/nextjs] Found ${tunnelRouteHandlerFile}, but the \`tunnelRoute\` option is not set. Set \`tunnelRoute\` in \`withSentryConfig\` to send events through this route.`,
+  );
 }
 
 /**
@@ -128,7 +172,6 @@ export function filterRouteManifest(manifest: RouteManifest, excludeFilter: Excl
   return {
     staticRoutes: manifest.staticRoutes.filter(r => !shouldExclude(r.path)),
     dynamicRoutes: manifest.dynamicRoutes.filter(r => !shouldExclude(r.path)),
-    isrRoutes: manifest.isrRoutes.filter(r => !shouldExclude(r)),
   };
 }
 
@@ -140,16 +183,6 @@ export function maybeSetClientTraceMetadataOption(
   nextJsVersion: string | undefined,
   silent?: boolean,
 ): void {
-  // With Cache Components enabled, the page shell — and therefore the document's `sentry-trace`/
-  // `baggage` meta tags — can be prerendered and rendered in an async context detached from the
-  // runtime `http.server` request. The trace captured into those meta tags is therefore stale and
-  // unrelated to the actual request. If we enabled `clientTraceMetadata`, the browser pageload would
-  // continue that stale trace, producing a misleading distributed trace. So we don't enable the meta
-  // tags here; the browser pageload starts a fresh trace instead.
-  if (incomingUserNextConfigObject.cacheComponents) {
-    return;
-  }
-
   // Add the `clientTraceMetadata` experimental option based on Next.js version. The option got introduced in Next.js version 15.0.0 (actually 14.3.0-canary.64).
   // Adding the option on lower versions will cause Next.js to print nasty warnings we wouldn't confront our users with.
   if (nextJsVersion) {

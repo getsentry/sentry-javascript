@@ -1,0 +1,11 @@
+name: Rerun Size Check
+description: Rerun Size Check after the bundle size approval label changes
+
+inputs:
+  github_token:
+    description: Token with permission to read pull requests and rerun workflow jobs
+    required: true
+
+runs:
+  using: node24
+  main: index.mjs

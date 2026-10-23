@@ -107,6 +107,7 @@ type WebpackCompilation = {
     files: Iterable<string>;
     hash?: string;
     contentHash?: { javascript?: string };
+    canBeInitial?: () => boolean;
   }>;
   outputOptions: {
     path?: string;
@@ -198,7 +199,8 @@ function createSentryWebpackPlugin(userOptions: SentryWebpackPluginOptions = {})
   }
 
   const sourcemapsEnabled = options.sourcemaps?.disable !== true;
-  const staticInjectionCode = new CodeInjection();
+  const releaseInjectionCode = new CodeInjection();
+  const chunkInjectionCode = new CodeInjection();
 
   if (!options.release.inject) {
     logger.debug('Release injection disabled via `release.inject` option. Will not inject release.');
@@ -207,7 +209,7 @@ function createSentryWebpackPlugin(userOptions: SentryWebpackPluginOptions = {})
       'No release name provided. Will not inject release. Please set the `release.name` option to identify your release.',
     );
   } else {
-    staticInjectionCode.append(
+    releaseInjectionCode.append(
       generateReleaseInjectorCode({
         release: options.release.name,
         injectBuildInformation: options._experiments.injectBuildInformation || false,
@@ -216,7 +218,7 @@ function createSentryWebpackPlugin(userOptions: SentryWebpackPluginOptions = {})
   }
 
   if (Object.keys(bundleMetadata).length > 0) {
-    staticInjectionCode.append(generateModuleMetadataInjectorCode(bundleMetadata));
+    chunkInjectionCode.append(generateModuleMetadataInjectorCode(bundleMetadata));
   }
 
   const transformAnnotations = options.reactComponentAnnotation?.enabled
@@ -230,7 +232,7 @@ function createSentryWebpackPlugin(userOptions: SentryWebpackPluginOptions = {})
   const transformReplace = Object.keys(replacementValues).length > 0;
 
   function addCodeInjection(compiler: WebpackCompiler): void {
-    if (staticInjectionCode.isEmpty() && !sourcemapsEnabled) {
+    if (releaseInjectionCode.isEmpty() && chunkInjectionCode.isEmpty() && !sourcemapsEnabled) {
       return;
     }
 
@@ -267,7 +269,11 @@ function createSentryWebpackPlugin(userOptions: SentryWebpackPluginOptions = {})
 
               const sourceContents = source.source();
               const code = typeof sourceContents === 'string' ? sourceContents : Buffer.from(sourceContents).toString();
-              const codeToInject = staticInjectionCode.clone();
+              const codeToInject = new CodeInjection();
+              if (chunk.canBeInitial?.() ?? true) {
+                codeToInject.append(releaseInjectionCode);
+              }
+              codeToInject.append(chunkInjectionCode);
               if (sourcemapsEnabled) {
                 const hash = chunk.contentHash?.javascript ?? chunk.hash;
                 codeToInject.append(getDebugIdSnippet(hash ? stringToUUID(hash) : randomUUID()));

@@ -1,5 +1,14 @@
 import { _INTERNAL_safeMathRandom } from '@sentry/core';
-import type { NextConfigObject } from '../types';
+import * as fs from 'fs';
+import * as path from 'path';
+import { TUNNEL_ROUTE_HANDLER_PATH, type TunnelRouteMode } from '../../common/utils/tunnelPathnameMatch';
+import type { NextConfigObject, SentryBuildOptions } from '../types';
+import { DEFAULT_PAGE_EXTENSIONS } from '../util';
+
+/** The values that the client, server and edge bundles read to find the tunnel route. */
+export type TunnelRouteInjectedValues =
+  | { _sentryRewritesTunnelPath: string; _sentryTunnelRouteMode: TunnelRouteMode }
+  | Record<string, never>;
 
 /**
  * Generates a random tunnel route path that's less likely to be blocked by ad-blockers
@@ -113,5 +122,81 @@ export function setUpTunnelRewriteRules(userNextConfig: NextConfigObject, tunnel
         beforeFiles: [...newRewrites, ...(originalRewritesResult.beforeFiles || [])],
       };
     }
+  };
+}
+
+/**
+ * Injects a rewrite rule that sends requests from the `tunnelPath` to the tunnel route handler.
+ */
+export function setUpTunnelHandlerRewrite(userNextConfig: NextConfigObject, tunnelPath: string): void {
+  const originalRewrites = userNextConfig.rewrites;
+  // Next.js adds the `basePath` and an optional trailing slash.
+  const handlerRewrite = { source: tunnelPath, destination: TUNNEL_ROUTE_HANDLER_PATH };
+
+  // `beforeFiles`: a `public/` file or a page at the same path wins over an `afterFiles` rewrite.
+  userNextConfig.rewrites = async () => {
+    const originalRewritesResult = typeof originalRewrites === 'function' ? await originalRewrites() : [];
+
+    if (Array.isArray(originalRewritesResult)) {
+      return { beforeFiles: [handlerRewrite], afterFiles: originalRewritesResult };
+    }
+
+    return {
+      ...originalRewritesResult,
+      beforeFiles: [handlerRewrite, ...(originalRewritesResult.beforeFiles || [])],
+    };
+  };
+}
+
+/**
+ * Returns the tunnel route handler file relative to `projectDir` (for example `app/sentry-tunnel/route.ts`), or
+ * `undefined` if the project has none.
+ *
+ * Route groups are not searched: the file must be directly in `app/sentry-tunnel/` or `src/app/sentry-tunnel/`.
+ */
+export function findTunnelRouteHandlerFile(
+  pageExtensions: string[] = DEFAULT_PAGE_EXTENSIONS,
+  projectDir: string = process.cwd(),
+): string | undefined {
+  // Like Next.js, ignore `src/app` if there is a root `app` directory.
+  const appDir = ['app', 'src/app'].find(dir => getStats(path.join(projectDir, dir))?.isDirectory());
+  if (!appDir) {
+    return undefined;
+  }
+
+  return pageExtensions
+    .map(extension => `${appDir}${TUNNEL_ROUTE_HANDLER_PATH}/route.${extension}`)
+    .find(file => getStats(path.join(projectDir, file))?.isFile());
+}
+
+function getStats(filePath: string): fs.Stats | undefined {
+  try {
+    return fs.statSync(filePath);
+  } catch {
+    return undefined;
+  }
+}
+
+/**
+ * Returns the tunnel path that the client sends envelopes to, and the tunnel route mode.
+ * Returns no values if there is no tunnel route, or if it cannot work (static export).
+ *
+ * Call it after `maybeSetUpTunnelRouteRewriteRules`, which resolves `tunnelRoute: true` to a path.
+ */
+export function getTunnelRouteInjectedValues(
+  userNextConfig: NextConfigObject,
+  userSentryOptions: SentryBuildOptions | undefined,
+  projectDir: string = process.cwd(),
+): TunnelRouteInjectedValues {
+  const tunnelRoute = userSentryOptions?.tunnelRoute;
+  if (typeof tunnelRoute !== 'string' || !tunnelRoute || userNextConfig.output === 'export') {
+    return {};
+  }
+
+  return {
+    _sentryRewritesTunnelPath: `${userNextConfig.basePath ?? ''}${tunnelRoute}`,
+    _sentryTunnelRouteMode: findTunnelRouteHandlerFile(userNextConfig.pageExtensions, projectDir)
+      ? 'handler'
+      : 'rewrite',
   };
 }

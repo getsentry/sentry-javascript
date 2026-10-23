@@ -15,10 +15,12 @@ type LoadHook = (url: string, context: unknown, nextLoad: (url: string, context:
 // the real `Module.registerHooks({ resolve, load })` with the mocked (undefined-returning) callbacks,
 // leaving a broken resolve hook installed process-wide that crashes vitest's next dynamic `import()`.
 const registerHooksMock = vi.fn<(options: { load: LoadHook; resolve: unknown }) => void>();
+const modulePrototypeMock = vi.hoisted(() => ({ _compile: vi.fn() }));
 vi.mock('node:module', async importOriginal => {
   const actual = await importOriginal<typeof NodeModule>();
   return {
     ...actual,
+    Module: { prototype: modulePrototypeMock },
     registerHooks: (options: { load: LoadHook; resolve: unknown }) => registerHooksMock(options),
     register: vi.fn(),
   };
@@ -81,6 +83,7 @@ describe('registerDiagnosticsChannelInjection - bundled/tree-shaken detection', 
   }
 
   beforeEach(async () => {
+    modulePrototypeMock._compile = vi.fn();
     delete GLOBAL_OBJ.__SENTRY_ORCHESTRION__;
     setDiagnosticsHookMock.mockClear();
     warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
@@ -93,7 +96,17 @@ describe('registerDiagnosticsChannelInjection - bundled/tree-shaken detection', 
 
   afterEach(() => {
     delete GLOBAL_OBJ.__SENTRY_ORCHESTRION__;
+    vi.unstubAllGlobals();
     warnSpy.mockRestore();
+  });
+
+  it('installs the CommonJS compiler fallback on Deno', () => {
+    vi.stubGlobal('Deno', { version: { deno: '2.8.3' } });
+    const originalCompile = modulePrototypeMock._compile;
+
+    registerDiagnosticsChannelInjection();
+
+    expect(modulePrototypeMock._compile).not.toBe(originalCompile);
   });
 
   it('includes the underlying error when registering the hooks fails', () => {

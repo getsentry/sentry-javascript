@@ -16,7 +16,7 @@ Sentry.init({
   tunnel: `http://localhost:3031/`, // proxy server
   tracesSampleRate: 1,
   dataCollection: {
-    genAI: {
+    mcp: {
       inputs: false,
       outputs: false,
     },
