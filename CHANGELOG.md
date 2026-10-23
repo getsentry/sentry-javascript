@@ -242,6 +242,14 @@ Work in this release was contributed by @4ktLuffy, @adityareddy-dev, @dasilvalui
 
   When an instrumented package loaded after `init()` (for example through a dynamic `import()`), the SDK added its integration even if the user had removed it. This applied to an `integrations` function that filtered it out, `defaultIntegrations: false`, and a custom `defaultIntegrations` list. The SDK now applies the same rules to a late-loaded integration as to the defaults at `init()`. To do this, it calls an `integrations` function again, once for each package that loads after `init()`.
 
+- **ref(deno): Use the shared request handler wrapper for `Deno.serve`**
+
+  `Deno.serve` now uses a request handler wrapper that `Bun.serve` and Cloudflare will also use. Three small changes for Deno users:
+
+  - When the source of a streamed response fails, the SDK now captures the error and marks the span as failed.
+  - The SDK no longer reads a streamed response ahead of the client.
+  - Errors in `OPTIONS` and `HEAD` requests now carry the request data.
+
 ## 11.8.0
 
 ### Important Changes
