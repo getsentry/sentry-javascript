@@ -122,6 +122,8 @@ jobs:
           ref: ${{ env.HEAD_COMMIT }}
       - name: Install pnpm
         uses: ./.github/actions/install-pnpm
+      # Uses the repo's root node pin for the steps before the app is copied (`test:prepare`, `test:validate`,
+      # `ci:copy-to-temp`). The app's own node version is set up after the copy below.
       - name: Set up Node
         uses: actions/setup-node@v7
         with:
@@ -147,7 +149,9 @@ jobs:
           }}/test-application
         working-directory: dev-packages/e2e-tests
 
-      # The copy pins the node version that the app inherits or overrides in `devEngines.runtime`.
+      # Reads the node version that `ci:copy-to-temp` wrote into the copied app's `devEngines.runtime`: the app's own pin
+      # if it has one, otherwise the one inherited from the repo root. setup-node can't look up parent directories, so
+      # the temp copy has to carry the resolved version.
       - name: Set up Node for the E2E app
         uses: actions/setup-node@v7
         with:
