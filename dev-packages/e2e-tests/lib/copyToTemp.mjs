@@ -8,6 +8,8 @@ import { fileURLToPath } from 'node:url';
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = resolve(__dirname, '../../..');
 
+/** @typedef {{ name: string; version: string; onFail?: string }} RuntimeEntry */
+
 /**
  * @param {string} originalPath
  * @param {string} tmpDirPath
@@ -26,7 +28,7 @@ export async function copyToTemp(originalPath, tmpDirPath) {
  */
 function fixPackageJson(originalPath, cwd) {
   const packageJsonPath = join(cwd, 'package.json');
-  /** @type {{ dependencies?: Record<string, string>; devDependencies?: Record<string, string>; devEngines?: Record<string, unknown>; packageManager?: string }} */
+  /** @type {{ dependencies?: Record<string, string>; devDependencies?: Record<string, string>; devEngines?: { runtime?: RuntimeEntry | RuntimeEntry[] } & Record<string, unknown>; packageManager?: string }} */
   const packageJson = JSON.parse(readFileSync(packageJsonPath, 'utf8'));
 
   // 1. Fix file dependencies
@@ -42,7 +44,11 @@ function fixPackageJson(originalPath, cwd) {
   if (!nodeRuntime || !packageManager) {
     throw new Error(`Could not resolve the node and pnpm versions for ${originalPath}.`);
   }
-  packageJson.devEngines = { ...packageJson.devEngines, runtime: nodeRuntime };
+  const ownRuntimes = [packageJson.devEngines?.runtime].flat().filter(runtime => runtime !== undefined);
+  if (!ownRuntimes.some(runtime => runtime.name === 'node')) {
+    const runtime = ownRuntimes.length ? [...ownRuntimes, nodeRuntime] : nodeRuntime;
+    packageJson.devEngines = { ...packageJson.devEngines, runtime };
+  }
   packageJson.packageManager = packageManager;
   console.log(`Pinned node ${nodeRuntime.version} and ${packageManager}`);
 
@@ -52,10 +58,10 @@ function fixPackageJson(originalPath, cwd) {
 /**
  * The nearest `devEngines.runtime` node entry and `packageManager` between the app and the repo root.
  * @param {string} appPath
- * @returns {{ nodeRuntime?: { name: string; version: string }; packageManager?: string }}
+ * @returns {{ nodeRuntime?: RuntimeEntry; packageManager?: string }}
  */
 function resolveToolPins(appPath) {
-  /** @type {{ name: string; version: string } | undefined} */
+  /** @type {RuntimeEntry | undefined} */
   let nodeRuntime;
   /** @type {string | undefined} */
   let packageManager;
