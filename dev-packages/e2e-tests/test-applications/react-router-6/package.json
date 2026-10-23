@@ -50,5 +50,8 @@
   },
   "volta": {
     "extends": "../../package.json"
+  },
+  "sentryTest": {
+    "runner": "namespace-profile-sentry-javascript"
   }
 }

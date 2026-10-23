@@ -168,6 +168,8 @@ overrides:
   '@angular-devkit/build-angular>minimatch': 5.1.9
   nitropack>rollup-plugin-visualizer: ^6.0.3
 
+packageExtensionsChecksum: sha256-fhlie0ez1IGoAMNlEjx0m7qxdvOSi+Hp7amur8v5jaY=
+
 importers:
 
   .:
@@ -187,195 +189,15 @@ importers:
       '@rollup/plugin-terser':
         specifier: ^0.4.4
         version: 0.4.4(rollup@4.62.3)
-      '@sentry-internal/browser-integration-tests':
-        specifier: workspace:*
-        version: link:dev-packages/browser-integration-tests
-      '@sentry-internal/bun-integration-tests':
-        specifier: workspace:*
-        version: link:dev-packages/bun-integration-tests
-      '@sentry-internal/bundler-plugin-integration-tests':
-        specifier: workspace:*
-        version: link:dev-packages/bundler-plugin-integration-tests
-      '@sentry-internal/bundler-tests':
-        specifier: workspace:*
-        version: link:dev-packages/bundler-tests
-      '@sentry-internal/clear-cache-gh-action':
-        specifier: workspace:*
-        version: link:dev-packages/clear-cache-gh-action
-      '@sentry-internal/cloudflare-integration-tests':
-        specifier: workspace:*
-        version: link:dev-packages/cloudflare-integration-tests
-      '@sentry-internal/deno-integration-tests':
-        specifier: workspace:*
-        version: link:dev-packages/deno-integration-tests
-      '@sentry-internal/e2e-tests':
-        specifier: workspace:*
-        version: link:dev-packages/e2e-tests
-      '@sentry-internal/external-contributor-gh-action':
-        specifier: workspace:*
-        version: link:dev-packages/external-contributor-gh-action
-      '@sentry-internal/integration-shims':
-        specifier: workspace:*
-        version: link:packages/integration-shims
       '@sentry-internal/node-integration-tests':
         specifier: workspace:*
         version: link:dev-packages/node-integration-tests
-      '@sentry-internal/optional-e2e-gh-action':
-        specifier: workspace:*
-        version: link:dev-packages/optional-e2e-gh-action
-      '@sentry-internal/replay-worker':
-        specifier: workspace:*
-        version: link:packages/replay-worker
-      '@sentry-internal/rollup-utils':
-        specifier: workspace:*
-        version: link:dev-packages/rollup-utils
-      '@sentry-internal/size-limit-gh-action':
-        specifier: workspace:*
-        version: link:dev-packages/size-limit-gh-action
-      '@sentry-internal/test-utils':
-        specifier: workspace:*
-        version: link:dev-packages/test-utils
-      '@sentry/angular':
-        specifier: workspace:*
-        version: link:packages/angular
-      '@sentry/astro':
-        specifier: workspace:*
-        version: link:packages/astro
-      '@sentry/aws-serverless':
-        specifier: workspace:*
-        version: link:packages/aws-serverless
-      '@sentry/browser':
-        specifier: workspace:*
-        version: link:packages/browser
-      '@sentry/browser-utils':
-        specifier: workspace:*
-        version: link:packages/browser-utils
-      '@sentry/bun':
-        specifier: workspace:*
-        version: link:packages/bun
-      '@sentry/bundler-plugins':
-        specifier: workspace:*
-        version: link:packages/bundler-plugins
-      '@sentry/cloudflare':
-        specifier: workspace:*
-        version: link:packages/cloudflare
-      '@sentry/core':
-        specifier: workspace:*
-        version: link:packages/core
-      '@sentry/deno':
-        specifier: workspace:*
-        version: link:packages/deno
-      '@sentry/effect':
-        specifier: workspace:*
-        version: link:packages/effect
-      '@sentry/elysia':
-        specifier: workspace:*
-        version: link:packages/elysia
-      '@sentry/ember':
-        specifier: workspace:*
-        version: link:packages/ember
-      '@sentry/esbuild-plugin':
-        specifier: workspace:*
-        version: link:packages/esbuild-plugin
-      '@sentry/eslint-config-sdk':
-        specifier: workspace:*
-        version: link:packages/eslint-config-sdk
       '@sentry/eslint-plugin-sdk':
         specifier: workspace:*
         version: link:packages/eslint-plugin-sdk
-      '@sentry/feedback':
-        specifier: workspace:*
-        version: link:packages/feedback
-      '@sentry/gatsby':
-        specifier: workspace:*
-        version: link:packages/gatsby
-      '@sentry/google-cloud-serverless':
-        specifier: workspace:*
-        version: link:packages/google-cloud-serverless
-      '@sentry/hono':
-        specifier: workspace:*
-        version: link:packages/hono
-      '@sentry/nestjs':
-        specifier: workspace:*
-        version: link:packages/nestjs
-      '@sentry/nextjs':
-        specifier: workspace:*
-        version: link:packages/nextjs
-      '@sentry/nitro':
-        specifier: workspace:*
-        version: link:packages/nitro
-      '@sentry/node':
-        specifier: workspace:*
-        version: link:packages/node
-      '@sentry/node-native':
-        specifier: workspace:*
-        version: link:packages/node-native
-      '@sentry/nuxt':
-        specifier: workspace:*
-        version: link:packages/nuxt
-      '@sentry/opentelemetry':
-        specifier: workspace:*
-        version: link:packages/opentelemetry
-      '@sentry/profiling-node':
-        specifier: workspace:*
-        version: link:packages/profiling-node
-      '@sentry/react':
-        specifier: workspace:*
-        version: link:packages/react
-      '@sentry/react-router':
-        specifier: workspace:*
-        version: link:packages/react-router
-      '@sentry/remix':
-        specifier: workspace:*
-        version: link:packages/remix
-      '@sentry/replay':
-        specifier: workspace:*
-        version: link:packages/replay-internal
-      '@sentry/replay-canvas':
-        specifier: workspace:*
-        version: link:packages/replay-canvas
-      '@sentry/rollup-plugin':
-        specifier: workspace:*
-        version: link:packages/rollup-plugin
-      '@sentry/server-runtime-injection':
-        specifier: workspace:*
-        version: link:packages/server-runtime-injection
-      '@sentry/server-utils':
-        specifier: workspace:*
-        version: link:packages/server-utils
-      '@sentry/solid':
-        specifier: workspace:*
-        version: link:packages/solid
-      '@sentry/solidstart':
-        specifier: workspace:*
-        version: link:packages/solidstart
-      '@sentry/svelte':
-        specifier: workspace:*
-        version: link:packages/svelte
       '@sentry/sveltekit':
         specifier: workspace:*
         version: link:packages/sveltekit
-      '@sentry/tanstackstart-react':
-        specifier: workspace:*
-        version: link:packages/tanstackstart-react
-      '@sentry/typescript':
-        specifier: workspace:*
-        version: link:packages/typescript
-      '@sentry/vercel-edge':
-        specifier: workspace:*
-        version: link:packages/vercel-edge
-      '@sentry/vite-plugin':
-        specifier: workspace:*
-        version: link:packages/vite-plugin
-      '@sentry/vue':
-        specifier: workspace:*
-        version: link:packages/vue
-      '@sentry/wasm':
-        specifier: workspace:*
-        version: link:packages/wasm
-      '@sentry/webpack-plugin':
-        specifier: workspace:*
-        version: link:packages/webpack-plugin
       '@size-limit/esbuild':
         specifier: ~12.1.0
         version: 12.1.0(size-limit@12.1.0(jiti@2.7.0))
@@ -442,6 +264,9 @@ importers:
       size-limit:
         specifier: ~12.1.0
         version: 12.1.0(jiti@2.7.0)
+      tslib:
+        specifier: ^2.4.1
+        version: 2.8.1
       tsx:
         specifier: ^4.23.0
         version: 4.23.0
@@ -451,6 +276,9 @@ importers:
       vitest:
         specifier: ^4.1.11
         version: 4.1.11(@opentelemetry/api@1.10.0)(@types/node@20.19.43)(@vitest/coverage-v8@4.1.11)(esbuild@0.28.1)(jiti@2.7.0)(jsdom@21.1.2(supports-color@10.0.0))(less@4.2.0(supports-color@10.0.0))(sass@1.72.0)(stylus@0.59.0(supports-color@10.0.0))(terser@5.43.1)(tsx@4.23.0)(yaml@2.9.0)
+      webpack:
+        specifier: ^5.104.1
+        version: 5.104.1(clean-css@5.2.2)(cssnano@7.1.9(postcss@8.5.31))(csso@5.0.5)(esbuild@0.28.1)(html-minifier-terser@6.1.0)(lightningcss@1.33.0)(postcss@8.5.31)(uglify-js@3.13.3)
       yalc:
         specifier: ^1.0.0-pre.53
         version: 1.0.0-pre.53
@@ -467,16 +295,16 @@ importers:
         specifier: 1.64.1
         version: 1.64.1
       '@sentry/browser':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../../packages/browser
       '@sentry/conventions':
         specifier: 0.27.0
         version: 0.27.0
       '@sentry/opentelemetry':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../../packages/opentelemetry
       '@sentry/replay':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../../packages/replay-internal
       '@sentry/rrweb':
         specifier: 2.44.1
@@ -500,6 +328,21 @@ importers:
         specifier: ^5.95.0
         version: 5.104.1(clean-css@5.2.2)(cssnano@7.1.9(postcss@8.5.31))(csso@5.0.5)(esbuild@0.28.1)(html-minifier-terser@6.1.0)(lightningcss@1.33.0)(postcss@8.5.31)(uglify-js@3.13.3)
     devDependencies:
+      '@sentry/browser-utils':
+        specifier: 11.9.0
+        version: link:../../packages/browser-utils
+      '@sentry/core':
+        specifier: 11.9.0
+        version: link:../../packages/core
+      '@sentry/replay-canvas':
+        specifier: 11.9.0
+        version: link:../../packages/replay-canvas
+      '@sentry/rrweb-types':
+        specifier: ^2.44.1
+        version: 2.44.1
+      '@sentry/wasm':
+        specifier: 11.9.0
+        version: link:../../packages/wasm
       '@types/node':
         specifier: ^20.19.0
         version: 20.19.43
@@ -513,10 +356,10 @@ importers:
   dev-packages/bun-integration-tests:
     dependencies:
       '@sentry/bun':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../../packages/bun
       '@sentry/hono':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../../packages/hono
       hono:
         specifier: ^4.13.7
@@ -529,11 +372,20 @@ importers:
         version: 8.16.0
     devDependencies:
       '@sentry-internal/node-integration-tests':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../node-integration-tests
       '@sentry-internal/test-utils':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../test-utils
+      '@sentry/core':
+        specifier: 11.9.0
+        version: link:../../packages/core
+      '@types/mysql':
+        specifier: ^2.15.27
+        version: 2.15.27
+      '@types/pg':
+        specifier: ^8.20.0
+        version: 8.20.0
       bun-types:
         specifier: ^1.2.9
         version: 1.2.9
@@ -544,12 +396,15 @@ importers:
   dev-packages/bundler-plugin-integration-tests:
     dependencies:
       '@sentry/bundler-plugins':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../../packages/bundler-plugins
     devDependencies:
       premove:
         specifier: ^4.0.0
         version: 4.0.0
+      sentry:
+        specifier: ^0.45.0
+        version: 0.45.0
       typescript:
         specifier: ~6.0.3
         version: 6.0.3
@@ -563,7 +418,7 @@ importers:
         specifier: ^16.0.3
         version: 16.0.3(rollup@4.62.3)
       '@sentry/browser':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../../packages/browser
       rollup:
         specifier: ^4.60.3
@@ -618,13 +473,13 @@ importers:
         specifier: 6.15.0
         version: 6.15.0(prisma@6.15.0(magicast@0.3.5)(typescript@7.0.2))(typescript@7.0.2)
       '@sentry/cloudflare':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../../packages/cloudflare
       '@sentry/core':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../../packages/core
       '@sentry/hono':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../../packages/hono
       ai:
         specifier: ^6.0.0
@@ -648,8 +503,11 @@ importers:
       '@cloudflare/workers-types-v5':
         specifier: npm:@cloudflare/workers-types@5.20260710.1
         version: '@cloudflare/workers-types@5.20260710.1'
+      '@opentelemetry/api':
+        specifier: ^1.9.1
+        version: 1.10.0
       '@sentry-internal/test-utils':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../test-utils
       '@sentry/conventions':
         specifier: 0.27.0
@@ -673,10 +531,10 @@ importers:
   dev-packages/deno-integration-tests:
     dependencies:
       '@sentry/core':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../../packages/core
       '@sentry/deno':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../../packages/deno
       mysql:
         specifier: ^2.18.1
@@ -686,8 +544,11 @@ importers:
         version: 8.22.0
     devDependencies:
       '@sentry-internal/node-integration-tests':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../node-integration-tests
+      '@sentry/conventions':
+        specifier: ^0.27.0
+        version: 0.27.0
       vitest:
         specifier: ^4.1.11
         version: 4.1.11(@opentelemetry/api@1.10.0)(@types/node@20.19.43)(@vitest/coverage-v8@4.1.11)(esbuild@0.28.1)(jiti@2.7.0)(jsdom@21.1.2(supports-color@10.0.0))(less@4.2.0(supports-color@10.0.0))(sass@1.72.0)(stylus@0.59.0(supports-color@10.0.0))(terser@5.43.1)(tsx@4.23.0)(yaml@2.9.0)
@@ -795,20 +656,26 @@ importers:
         specifier: 6.15.0
         version: 6.15.0(prisma@6.15.0(magicast@0.3.5)(typescript@7.0.2))(typescript@7.0.2)
       '@sentry/aws-serverless':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../../packages/aws-serverless
       '@sentry/core':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../../packages/core
       '@sentry/hono':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../../packages/hono
       '@sentry/node':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../../packages/node
+      '@sentry/server-runtime-injection':
+        specifier: 11.9.0
+        version: link:../../packages/server-runtime-injection
       '@sentry/server-utils':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../../packages/server-utils
+      '@smithy/node-http-handler':
+        specifier: 4.12.1
+        version: 4.12.1
       '@types/mongodb':
         specifier: ^3.6.20
         version: 3.6.20
@@ -969,21 +836,33 @@ importers:
         specifier: ^16.2.0
         version: 16.2.0
     devDependencies:
+      '@hapi/boom':
+        specifier: ^10.0.1
+        version: 10.0.1
       '@neondatabase/serverless':
         specifier: 1.2.0
         version: 1.2.0
       '@opentelemetry/instrumentation-http':
         specifier: 0.220.0
         version: 0.220.0(@opentelemetry/api@1.9.0)(supports-color@10.0.0)
+      '@sentry-internal/rollup-utils':
+        specifier: 11.9.0
+        version: link:../rollup-utils
       '@sentry-internal/test-utils':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../test-utils
       '@sentry/conventions':
         specifier: 0.27.0
         version: 0.27.0
+      '@sentry/node-native':
+        specifier: 11.9.0
+        version: link:../../packages/node-native
       '@types/amqplib':
         specifier: ^0.10.5
         version: 0.10.5
+      '@types/express':
+        specifier: ^4.17.21
+        version: 4.17.21
       '@types/node-cron':
         specifier: ^3.0.11
         version: 3.0.11
@@ -1002,6 +881,9 @@ importers:
       react:
         specifier: ^18.3.1
         version: 18.3.1
+      winston-transport:
+        specifier: ^4.9.0
+        version: 4.9.0
       zod:
         specifier: ^3.24.1
         version: 3.25.76
@@ -1070,9 +952,15 @@ importers:
       '@playwright/test':
         specifier: 1.64.1
         version: 1.64.1
+      '@sentry-internal/rollup-utils':
+        specifier: 11.9.0
+        version: link:../rollup-utils
       '@sentry/core':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../../packages/core
+      '@types/express':
+        specifier: ^4.17.21
+        version: 4.17.21
       '@types/ws':
         specifier: ^8.18.1
         version: 8.18.1
@@ -1083,13 +971,13 @@ importers:
   packages/angular:
     dependencies:
       '@sentry/browser':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../browser
       '@sentry/conventions':
         specifier: ^0.27.0
         version: 0.27.0
       '@sentry/core':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../core
       tslib:
         specifier: ^2.4.1
@@ -1141,27 +1029,30 @@ importers:
   packages/astro:
     dependencies:
       '@sentry/browser':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../browser
       '@sentry/bundler-plugins':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../bundler-plugins
       '@sentry/conventions':
         specifier: ^0.27.0
         version: 0.27.0
       '@sentry/core':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../core
       '@sentry/node':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../node
       '@sentry/server-runtime-injection':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../server-runtime-injection
       '@sentry/server-utils':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../server-utils
     devDependencies:
+      '@sentry-internal/rollup-utils':
+        specifier: 11.9.0
+        version: link:../../dev-packages/rollup-utils
       astro:
         specifier: ^4.16.19
         version: 4.16.19(@types/node@20.19.43)(less@4.2.0(supports-color@10.0.0))(lightningcss@1.33.0)(rollup@4.62.3)(sass@1.72.0)(stylus@0.59.0(supports-color@10.0.0))(supports-color@10.0.0)(terser@5.43.1)(typescript@7.0.2)
@@ -1175,21 +1066,24 @@ importers:
         specifier: ^0.27.0
         version: 0.27.0
       '@sentry/core':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../core
       '@sentry/node':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../node
       '@sentry/server-runtime-injection':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../server-runtime-injection
       '@sentry/server-utils':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../server-utils
       '@types/aws-lambda':
         specifier: ^8.10.161
         version: 8.10.161
     devDependencies:
+      '@sentry-internal/rollup-utils':
+        specifier: 11.9.0
+        version: link:../../dev-packages/rollup-utils
       '@types/node':
         specifier: ^20.19.0
         version: 20.19.43
@@ -1200,27 +1094,30 @@ importers:
   packages/browser:
     dependencies:
       '@sentry/browser-utils':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../browser-utils
       '@sentry/conventions':
         specifier: ^0.27.0
         version: 0.27.0
       '@sentry/core':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../core
       '@sentry/feedback':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../feedback
       '@sentry/replay':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../replay-internal
       '@sentry/replay-canvas':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../replay-canvas
     devDependencies:
       '@sentry-internal/integration-shims':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../integration-shims
+      '@sentry-internal/rollup-utils':
+        specifier: 11.9.0
+        version: link:../../dev-packages/rollup-utils
       fake-indexeddb:
         specifier: ^6.2.5
         version: 6.2.5
@@ -1231,11 +1128,15 @@ importers:
         specifier: ^0.27.0
         version: 0.27.0
       '@sentry/core':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../core
       web-vitals:
         specifier: ^6.2.3
         version: 6.2.3
+    devDependencies:
+      '@sentry-internal/rollup-utils':
+        specifier: 11.9.0
+        version: link:../../dev-packages/rollup-utils
 
   packages/bun:
     dependencies:
@@ -1243,15 +1144,18 @@ importers:
         specifier: ^0.27.0
         version: 0.27.0
       '@sentry/core':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../core
       '@sentry/node':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../node
       '@sentry/server-utils':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../server-utils
     devDependencies:
+      '@sentry-internal/rollup-utils':
+        specifier: 11.9.0
+        version: link:../../dev-packages/rollup-utils
       bun-types:
         specifier: ^1.2.9
         version: 1.2.9
@@ -1259,7 +1163,7 @@ importers:
   packages/bundler-plugins:
     dependencies:
       '@sentry/core':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../core
       dotenv:
         specifier: ^17.4.2
@@ -1283,9 +1187,18 @@ importers:
       '@babel/core':
         specifier: ^7.18.5
         version: 7.29.7(supports-color@8.1.1)
+      '@babel/parser':
+        specifier: ^7.29.8
+        version: 7.29.9
       '@babel/preset-react':
         specifier: ^7.23.3
         version: 7.29.7(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1)
+      '@sentry-internal/rollup-utils':
+        specifier: 11.9.0
+        version: link:../../dev-packages/rollup-utils
+      '@sentry-internal/test-utils':
+        specifier: 11.9.0
+        version: link:../../dev-packages/test-utils
       '@types/babel__core':
         specifier: ^7.20.5
         version: 7.20.5
@@ -1308,19 +1221,19 @@ importers:
   packages/cloudflare:
     dependencies:
       '@opentelemetry/api':
-        specifier: ^1.10.0
+        specifier: ^1.9.1
         version: 1.10.0
       '@sentry/conventions':
         specifier: ^0.27.0
         version: 0.27.0
       '@sentry/core':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../core
       '@sentry/opentelemetry':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../opentelemetry
       '@sentry/server-utils':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../server-utils
       magic-string:
         specifier: ~0.30.21
@@ -1329,9 +1242,18 @@ importers:
       '@cloudflare/workers-types':
         specifier: 5.20260710.1
         version: 5.20260710.1
+      '@sentry-internal/rollup-utils':
+        specifier: 11.9.0
+        version: link:../../dev-packages/rollup-utils
       '@types/node':
         specifier: ^20.19.0
         version: 20.19.43
+      acorn:
+        specifier: ^8.14.0
+        version: 8.18.0
+      vite:
+        specifier: ^8.3.1
+        version: 8.3.1(@types/node@20.19.43)(esbuild@0.28.1)(jiti@2.7.0)(less@4.2.0(supports-color@10.0.0))(sass@1.72.0)(stylus@0.59.0(supports-color@10.0.0))(terser@5.43.1)(tsx@4.23.0)(yaml@2.9.0)
       wrangler:
         specifier: 4.61.0
         version: 4.61.0(@cloudflare/workers-types@5.20260710.1)
@@ -1342,6 +1264,9 @@ importers:
         specifier: ^0.27.0
         version: 0.27.0
     devDependencies:
+      '@sentry-internal/rollup-utils':
+        specifier: 11.9.0
+        version: link:../../dev-packages/rollup-utils
       zod:
         specifier: ^3.24.1
         version: 3.25.76
@@ -1349,39 +1274,46 @@ importers:
   packages/deno:
     dependencies:
       '@opentelemetry/api':
-        specifier: ^1.10.0
+        specifier: ^1.9.1
         version: 1.10.0
       '@sentry/conventions':
         specifier: ^0.27.0
         version: 0.27.0
       '@sentry/core':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../core
       '@sentry/server-runtime-injection':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../server-runtime-injection
       '@sentry/server-utils':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../server-utils
+    devDependencies:
+      '@sentry-internal/rollup-utils':
+        specifier: 11.9.0
+        version: link:../../dev-packages/rollup-utils
 
   packages/effect:
     dependencies:
       '@sentry/browser':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../browser
       '@sentry/conventions':
         specifier: ^0.27.0
         version: 0.27.0
       '@sentry/core':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../core
       '@sentry/node':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../node
     devDependencies:
       '@effect/vitest':
         specifier: ^4.0.0
         version: 4.0.0(effect@4.0.0)(vitest@4.1.11)
+      '@sentry-internal/rollup-utils':
+        specifier: 11.9.0
+        version: link:../../dev-packages/rollup-utils
       effect:
         specifier: ^4.0.0
         version: 4.0.0
@@ -1389,15 +1321,18 @@ importers:
   packages/elysia:
     dependencies:
       '@sentry/bun':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../bun
       '@sentry/conventions':
         specifier: ^0.27.0
         version: 0.27.0
       '@sentry/core':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../core
     devDependencies:
+      '@sentry-internal/rollup-utils':
+        specifier: 11.9.0
+        version: link:../../dev-packages/rollup-utils
       bun-types:
         specifier: ^1.2.9
         version: 1.2.9
@@ -1414,13 +1349,13 @@ importers:
         specifier: ^1.20.2
         version: 1.20.6(@babel/core@7.29.7(supports-color@10.0.0))(@glint/template@1.8.0)(supports-color@10.0.0)
       '@sentry/browser':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../browser
       '@sentry/conventions':
         specifier: ^0.27.0
         version: 0.27.0
       '@sentry/core':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../core
       decorator-transforms:
         specifier: ^2.3.2
@@ -1465,20 +1400,27 @@ importers:
       typescript:
         specifier: ~5.8.0
         version: 5.8.3
+      vite:
+        specifier: ^8.3.1
+        version: 8.3.1(@types/node@20.19.43)(esbuild@0.28.1)(jiti@2.7.0)(less@4.2.0(supports-color@10.0.0))(sass@1.72.0)(stylus@0.59.0(supports-color@10.0.0))(terser@5.43.1)(tsx@4.23.0)(yaml@2.9.0)
 
   packages/esbuild-plugin:
     dependencies:
       '@sentry/bundler-plugins':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../bundler-plugins
+    devDependencies:
+      '@sentry-internal/rollup-utils':
+        specifier: 11.9.0
+        version: link:../../dev-packages/rollup-utils
 
   packages/eslint-config-sdk:
     dependencies:
       '@sentry/eslint-plugin-sdk':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../eslint-plugin-sdk
       '@sentry/typescript':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../typescript
       '@typescript-eslint/eslint-plugin':
         specifier: ^5.62.0
@@ -1506,14 +1448,24 @@ importers:
         specifier: 8.57.0
         version: 8.57.0(supports-color@10.0.0)
 
-  packages/eslint-plugin-sdk: {}
+  packages/eslint-plugin-sdk:
+    devDependencies:
+      '@types/eslint':
+        specifier: ^8.2.1
+        version: 8.2.1
+      eslint:
+        specifier: ^8.57.0
+        version: 8.57.0(supports-color@10.0.0)
 
   packages/feedback:
     dependencies:
       '@sentry/core':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../core
     devDependencies:
+      '@sentry-internal/rollup-utils':
+        specifier: 11.9.0
+        version: link:../../dev-packages/rollup-utils
       preact:
         specifier: ^10.29.8
         version: 10.29.8
@@ -1521,15 +1473,18 @@ importers:
   packages/gatsby:
     dependencies:
       '@sentry/bundler-plugins':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../bundler-plugins
       '@sentry/core':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../core
       '@sentry/react':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../react
     devDependencies:
+      '@sentry-internal/rollup-utils':
+        specifier: 11.9.0
+        version: link:../../dev-packages/rollup-utils
       '@testing-library/react':
         specifier: ^15.0.5
         version: 15.0.5(@types/react@17.0.3)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
@@ -1549,16 +1504,16 @@ importers:
         specifier: ^0.27.0
         version: 0.27.0
       '@sentry/core':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../core
       '@sentry/node':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../node
       '@sentry/server-runtime-injection':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../server-runtime-injection
       '@sentry/server-utils':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../server-utils
     devDependencies:
       '@google-cloud/bigquery':
@@ -1567,6 +1522,9 @@ importers:
       '@google-cloud/common':
         specifier: ^3.4.1
         version: 3.6.0(encoding@0.1.13)(supports-color@10.0.0)
+      '@sentry-internal/rollup-utils':
+        specifier: 11.9.0
+        version: link:../../dev-packages/rollup-utils
       '@types/express':
         specifier: ^5.0.6
         version: 5.0.6
@@ -1580,24 +1538,42 @@ importers:
   packages/hono:
     dependencies:
       '@opentelemetry/api':
-        specifier: ^1.10.0
+        specifier: ^1.9.1
         version: 1.10.0
       '@sentry/conventions':
         specifier: ^0.27.0
         version: 0.27.0
       '@sentry/core':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../core
       '@sentry/server-utils':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../server-utils
     devDependencies:
       '@cloudflare/workers-types':
         specifier: 4.20250922.0
         version: 4.20250922.0
+      '@sentry-internal/rollup-utils':
+        specifier: 11.9.0
+        version: link:../../dev-packages/rollup-utils
+      '@sentry/bun':
+        specifier: 11.9.0
+        version: link:../bun
+      '@sentry/cloudflare':
+        specifier: 11.9.0
+        version: link:../cloudflare
+      '@sentry/deno':
+        specifier: 11.9.0
+        version: link:../deno
+      '@sentry/node':
+        specifier: 11.9.0
+        version: link:../node
       '@types/node':
         specifier: ^20.19.0
         version: 20.19.43
+      hono:
+        specifier: ^4.13.7
+        version: 4.13.7
       wrangler:
         specifier: 4.62.0
         version: 4.62.0(@cloudflare/workers-types@4.20250922.0)
@@ -1605,8 +1581,12 @@ importers:
   packages/integration-shims:
     dependencies:
       '@sentry/core':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../core
+    devDependencies:
+      '@sentry-internal/rollup-utils':
+        specifier: 11.9.0
+        version: link:../../dev-packages/rollup-utils
 
   packages/nestjs:
     dependencies:
@@ -1614,13 +1594,13 @@ importers:
         specifier: ^0.27.0
         version: 0.27.0
       '@sentry/core':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../core
       '@sentry/node':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../node
       '@sentry/server-utils':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../server-utils
     devDependencies:
       '@nestjs/common':
@@ -1629,6 +1609,9 @@ importers:
       '@nestjs/core':
         specifier: ^10.0.0
         version: 10.4.15(@nestjs/common@10.4.15(reflect-metadata@0.2.2)(rxjs@7.8.2))(encoding@0.1.13)(reflect-metadata@0.2.2)(rxjs@7.8.2)
+      '@sentry-internal/rollup-utils':
+        specifier: 11.9.0
+        version: link:../../dev-packages/rollup-utils
       reflect-metadata:
         specifier: ^0.2.2
         version: 0.2.2
@@ -1639,43 +1622,43 @@ importers:
   packages/nextjs:
     dependencies:
       '@opentelemetry/api':
-        specifier: ^1.10.0
+        specifier: ^1.9.1
         version: 1.10.0
       '@rollup/plugin-commonjs':
         specifier: 28.0.1
         version: 28.0.1(rollup@4.62.3)
       '@sentry/browser-utils':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../browser-utils
       '@sentry/bundler-plugins':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../bundler-plugins
       '@sentry/cloudflare':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../cloudflare
       '@sentry/conventions':
         specifier: ^0.27.0
         version: 0.27.0
       '@sentry/core':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../core
       '@sentry/node':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../node
       '@sentry/opentelemetry':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../opentelemetry
       '@sentry/react':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../react
       '@sentry/server-runtime-injection':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../server-runtime-injection
       '@sentry/server-utils':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../server-utils
       '@sentry/vercel-edge':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../vercel-edge
       rollup:
         specifier: ^4.60.3
@@ -1684,9 +1667,15 @@ importers:
         specifier: ^0.1.11
         version: 0.1.11
     devDependencies:
+      '@sentry-internal/rollup-utils':
+        specifier: 11.9.0
+        version: link:../../dev-packages/rollup-utils
+      cjs-module-lexer:
+        specifier: ^2.2.0
+        version: 2.2.0
       next:
-        specifier: 15.5.27
-        version: 15.5.27(@babel/core@7.29.7(supports-color@10.0.0))(@opentelemetry/api@1.10.0)(@playwright/test@1.64.1)(@types/node@20.19.43)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(sass@1.72.0)
+        specifier: 15.5.28
+        version: 15.5.28(@babel/core@7.29.7(supports-color@10.0.0))(@opentelemetry/api@1.10.0)(@playwright/test@1.64.1)(@types/node@20.19.43)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(sass@1.72.0)
       react:
         specifier: ^18.3.1
         version: 18.3.1
@@ -1697,30 +1686,36 @@ importers:
   packages/nitro:
     dependencies:
       '@sentry/bundler-plugins':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../bundler-plugins
       '@sentry/conventions':
         specifier: ^0.27.0
         version: 0.27.0
       '@sentry/core':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../core
       '@sentry/node':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../node
       '@sentry/server-runtime-injection':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../server-runtime-injection
       '@sentry/server-utils':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../server-utils
     devDependencies:
+      '@sentry-internal/rollup-utils':
+        specifier: 11.9.0
+        version: link:../../dev-packages/rollup-utils
       h3:
         specifier: ^2.0.1-rc.20
         version: 2.0.1-rc.22(crossws@0.4.10(srvx@0.11.22))
       nitro:
         specifier: ^3.0.260415-beta
         version: 3.0.260415-beta(@azure/storage-blob@12.31.0(supports-color@10.0.0))(chokidar@5.0.0)(dotenv@17.4.2)(giget@3.3.1)(ioredis@5.11.0(supports-color@10.0.0))(jiti@2.7.0)(lru-cache@11.4.0)(miniflare@4.20260426.0)(mongodb@7.1.0(@aws-sdk/credential-providers@3.983.0)(socks@2.8.7))(mysql2@3.23.3(@types/node@20.19.43))(rollup@4.62.3)(vite@8.3.1(@types/node@20.19.43)(esbuild@0.28.1)(jiti@2.7.0)(less@4.2.0(supports-color@10.0.0))(sass@1.72.0)(stylus@0.59.0(supports-color@10.0.0))(terser@5.43.1)(tsx@4.23.0)(yaml@2.9.0))
+      srvx:
+        specifier: ^0.11.22
+        version: 0.11.22
       unstorage:
         specifier: ^2.0.0-alpha.7
         version: 2.0.0-alpha.7(@azure/storage-blob@12.31.0(supports-color@10.0.0))(chokidar@5.0.0)(db0@0.3.4(mysql2@3.23.3(@types/node@20.19.43)))(ioredis@5.11.0(supports-color@10.0.0))(lru-cache@11.4.0)(mongodb@7.1.0(@aws-sdk/credential-providers@3.983.0)(socks@2.8.7))(ofetch@1.5.1)
@@ -1728,27 +1723,30 @@ importers:
   packages/node:
     dependencies:
       '@opentelemetry/api':
-        specifier: ^1.10.0
+        specifier: ^1.9.1
         version: 1.10.0
       '@sentry/bundler-plugins':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../bundler-plugins
       '@sentry/conventions':
         specifier: ^0.27.0
         version: 0.27.0
       '@sentry/core':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../core
       '@sentry/opentelemetry':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../opentelemetry
       '@sentry/server-runtime-injection':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../server-runtime-injection
       '@sentry/server-utils':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../server-utils
     devDependencies:
+      '@sentry-internal/rollup-utils':
+        specifier: 11.9.0
+        version: link:../../dev-packages/rollup-utils
       '@types/node':
         specifier: ^20.19.0
         version: 20.19.43
@@ -1756,15 +1754,18 @@ importers:
   packages/node-native:
     dependencies:
       '@sentry/core':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../core
       '@sentry/node':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../node
       '@sentry/node-native-stacktrace':
         specifier: ^0.5.1
         version: 0.5.1
     devDependencies:
+      '@sentry-internal/rollup-utils':
+        specifier: 11.9.0
+        version: link:../../dev-packages/rollup-utils
       '@types/node':
         specifier: ^20.19.0
         version: 20.19.43
@@ -1775,51 +1776,72 @@ importers:
         specifier: ^4.6.0
         version: 4.6.0(@nuxt/schema@3.21.11)(confbox@0.2.4)(dotenv@17.4.2)(giget@3.3.1)(jiti@2.7.0)(magic-string@1.1.0)(mlly@1.8.2)(oxc-parser@0.152.0)(rolldown@1.2.11)(unplugin@3.3.0(esbuild@0.28.1)(rolldown@1.2.11)(rollup@4.62.3)(vite@8.3.1(@types/node@20.19.43)(esbuild@0.28.1)(jiti@2.7.0)(less@4.2.0(supports-color@10.0.0))(sass@1.72.0)(stylus@0.59.0(supports-color@10.0.0))(terser@5.43.1)(tsx@4.23.0)(yaml@2.9.0))(webpack@5.107.2(clean-css@5.2.2)(cssnano@7.1.9(postcss@8.5.31))(csso@5.0.5)(esbuild@0.28.1)(html-minifier-terser@6.1.0)(lightningcss@1.33.0)(postcss@8.5.31)(uglify-js@3.13.3)))
       '@sentry/browser':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../browser
       '@sentry/bundler-plugins':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../bundler-plugins
       '@sentry/cloudflare':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../cloudflare
       '@sentry/conventions':
         specifier: ^0.27.0
         version: 0.27.0
       '@sentry/core':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../core
       '@sentry/node':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../node
       '@sentry/server-runtime-injection':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../server-runtime-injection
       '@sentry/server-utils':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../server-utils
       '@sentry/vue':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../vue
     devDependencies:
+      '@cloudflare/workers-types':
+        specifier: ^4.20260519.1
+        version: 4.20260519.1
       '@nuxt/nitro-server':
         specifier: ^3.21.11
         version: 3.21.11(@azure/storage-blob@12.31.0(supports-color@10.0.0))(@parcel/watcher@2.5.6)(db0@0.3.4(mysql2@3.23.3(@types/node@20.19.43)))(encoding@0.1.13)(esbuild@0.28.1)(ioredis@5.11.0(supports-color@10.0.0))(magicast@0.5.4)(mysql2@3.23.3(@types/node@20.19.43))(nuxt@3.21.11(0dc0d2df1a20b551c0e4dd687b74c07c))(oxc-parser@0.152.0)(rolldown@1.2.11)(rollup@4.62.3)(srvx@0.11.22)(supports-color@10.0.0)(typescript@7.0.2)(vite@8.3.1(@types/node@20.19.43)(esbuild@0.28.1)(jiti@2.7.0)(less@4.2.0(supports-color@10.0.0))(sass@1.72.0)(stylus@0.59.0(supports-color@10.0.0))(terser@5.43.1)(tsx@4.23.0)(yaml@2.9.0))(webpack@5.107.2(clean-css@5.2.2)(cssnano@7.1.9(postcss@8.5.31))(csso@5.0.5)(esbuild@0.28.1)(html-minifier-terser@6.1.0)(lightningcss@1.33.0)(postcss@8.5.31)(uglify-js@3.13.3))
+      '@nuxt/schema':
+        specifier: ^3.21.11
+        version: 3.21.11
+      '@sentry-internal/rollup-utils':
+        specifier: 11.9.0
+        version: link:../../dev-packages/rollup-utils
+      db0:
+        specifier: ^0.3.4
+        version: 0.3.4(mysql2@3.23.3(@types/node@20.19.43))
       h3:
         specifier: ^1.15.10
         version: 1.15.11
       nitro:
         specifier: ^3.0.260311-beta
         version: 3.0.260311-beta(@azure/storage-blob@12.31.0(supports-color@10.0.0))(chokidar@5.0.0)(dotenv@17.4.2)(giget@3.3.1)(ioredis@5.11.0(supports-color@10.0.0))(jiti@2.7.0)(lru-cache@11.4.0)(miniflare@4.20260426.0)(mongodb@7.1.0(@aws-sdk/credential-providers@3.983.0)(socks@2.8.7))(mysql2@3.23.3(@types/node@20.19.43))(rollup@4.62.3)(vite@8.3.1(@types/node@20.19.43)(esbuild@0.28.1)(jiti@2.7.0)(less@4.2.0(supports-color@10.0.0))(sass@1.72.0)(stylus@0.59.0(supports-color@10.0.0))(terser@5.43.1)(tsx@4.23.0)(yaml@2.9.0))
+      nitropack:
+        specifier: ^2.13.4
+        version: 2.13.4(@azure/storage-blob@12.31.0(supports-color@10.0.0))(@parcel/watcher@2.5.6)(encoding@0.1.13)(mysql2@3.23.3(@types/node@20.19.43))(oxc-parser@0.152.0)(rolldown@1.2.11)(srvx@0.11.22)(supports-color@10.0.0)(vite@8.3.1(@types/node@20.19.43)(esbuild@0.28.1)(jiti@2.7.0)(less@4.2.0(supports-color@10.0.0))(sass@1.72.0)(stylus@0.59.0(supports-color@10.0.0))(terser@5.43.1)(tsx@4.23.0)(yaml@2.9.0))(webpack@5.107.2(clean-css@5.2.2)(cssnano@7.1.9(postcss@8.5.31))(csso@5.0.5)(esbuild@0.28.1)(html-minifier-terser@6.1.0)(lightningcss@1.33.0)(postcss@8.5.31)(uglify-js@3.13.3))
       nuxi:
         specifier: ^3.25.1
         version: 3.25.1
       nuxt:
         specifier: 3.21.11
         version: 3.21.11(0dc0d2df1a20b551c0e4dd687b74c07c)
+      unstorage:
+        specifier: ^1.17.5
+        version: 1.17.5(@azure/storage-blob@12.31.0(supports-color@10.0.0))(db0@0.3.4(mysql2@3.23.3(@types/node@20.19.43)))(ioredis@5.11.0(supports-color@10.0.0))
       vite:
         specifier: ^8.3.1
         version: 8.3.1(@types/node@20.19.43)(esbuild@0.28.1)(jiti@2.7.0)(less@4.2.0(supports-color@10.0.0))(sass@1.72.0)(stylus@0.59.0(supports-color@10.0.0))(terser@5.43.1)(tsx@4.23.0)(yaml@2.9.0)
+      vue:
+        specifier: ^3.5.41
+        version: 3.5.44(typescript@7.0.2)
 
   packages/opentelemetry:
     dependencies:
@@ -1827,25 +1849,31 @@ importers:
         specifier: ^0.27.0
         version: 0.27.0
       '@sentry/core':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../core
     devDependencies:
       '@opentelemetry/api':
-        specifier: ^1.10.0
+        specifier: ^1.9.1
         version: 1.10.0
+      '@sentry-internal/rollup-utils':
+        specifier: 11.9.0
+        version: link:../../dev-packages/rollup-utils
 
   packages/profiling-node:
     dependencies:
       '@sentry/core':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../core
       '@sentry/node':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../node
       '@sentry/node-cpu-profiler':
         specifier: ^2.4.4
         version: 2.4.4
     devDependencies:
+      '@sentry-internal/rollup-utils':
+        specifier: 11.9.0
+        version: link:../../dev-packages/rollup-utils
       '@types/node':
         specifier: ^20.19.0
         version: 20.19.43
@@ -1853,15 +1881,18 @@ importers:
   packages/react:
     dependencies:
       '@sentry/browser':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../browser
       '@sentry/conventions':
         specifier: ^0.27.0
         version: 0.27.0
       '@sentry/core':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../core
     devDependencies:
+      '@sentry-internal/rollup-utils':
+        specifier: 11.9.0
+        version: link:../../dev-packages/rollup-utils
       '@testing-library/react':
         specifier: ^15.0.5
         version: 15.0.5(@types/react@17.0.3)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
@@ -1920,31 +1951,31 @@ importers:
   packages/react-router:
     dependencies:
       '@opentelemetry/api':
-        specifier: ^1.10.0
+        specifier: ^1.9.1
         version: 1.10.0
       '@sentry/browser':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../browser
       '@sentry/bundler-plugins':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../bundler-plugins
       '@sentry/conventions':
         specifier: ^0.27.0
         version: 0.27.0
       '@sentry/core':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../core
       '@sentry/node':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../node
       '@sentry/react':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../react
       '@sentry/server-runtime-injection':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../server-runtime-injection
       '@sentry/server-utils':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../server-utils
       glob:
         specifier: ^13.0.6
@@ -1959,6 +1990,18 @@ importers:
       '@react-router/node':
         specifier: ^7.15.0
         version: 7.18.1(react-router@7.18.3(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(typescript@6.0.3)
+      '@sentry-internal/rollup-utils':
+        specifier: 11.9.0
+        version: link:../../dev-packages/rollup-utils
+      '@testing-library/react':
+        specifier: ^15.0.5
+        version: 15.0.5(@types/react@17.0.3)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      '@types/node':
+        specifier: ^20.19.0
+        version: 20.19.43
+      '@types/react':
+        specifier: 17.0.3
+        version: 17.0.3
       react:
         specifier: ^18.3.1
         version: 18.3.1
@@ -1975,28 +2018,28 @@ importers:
         specifier: ^1.23.4
         version: 1.23.4
       '@sentry/browser':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../browser
       '@sentry/bundler-plugins':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../bundler-plugins
       '@sentry/conventions':
         specifier: ^0.27.0
         version: 0.27.0
       '@sentry/core':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../core
       '@sentry/node':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../node
       '@sentry/react':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../react
       '@sentry/server-runtime-injection':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../server-runtime-injection
       '@sentry/server-utils':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../server-utils
       sentry:
         specifier: ^0.44.0
@@ -2012,20 +2055,32 @@ importers:
         specifier: ^2.17.5
         version: 2.17.5(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(typescript@5.8.3)
       '@remix-run/route-pattern':
-        specifier: ^0.24.0
-        version: 0.24.1
+        specifier: ^1.0.0
+        version: 1.0.0
       '@remix-run/server-runtime':
         specifier: ^2.17.4
         version: 2.17.5(typescript@5.8.3)
+      '@sentry-internal/rollup-utils':
+        specifier: 11.9.0
+        version: link:../../dev-packages/rollup-utils
       '@types/express':
         specifier: ^4.17.14
         version: 4.17.21
+      '@types/react':
+        specifier: 17.0.3
+        version: 17.0.3
+      '@types/semver':
+        specifier: ^7.5.3
+        version: 7.5.3
       react:
         specifier: ^18.3.1
         version: 18.3.1
       react-dom:
         specifier: ^18.3.1
         version: 18.3.1(react@18.3.1)
+      semver:
+        specifier: ^7.8.5
+        version: 7.8.5
       vite:
         specifier: ^8.3.1
         version: 8.3.1(@types/node@20.19.43)(esbuild@0.28.1)(jiti@2.7.0)(less@4.2.0(supports-color@10.0.0))(sass@1.72.0)(stylus@0.59.0(supports-color@10.0.0))(terser@5.43.1)(tsx@4.23.0)(yaml@2.9.0)
@@ -2033,12 +2088,15 @@ importers:
   packages/replay-canvas:
     dependencies:
       '@sentry/core':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../core
       '@sentry/replay':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../replay-internal
     devDependencies:
+      '@sentry-internal/rollup-utils':
+        specifier: 11.9.0
+        version: link:../../dev-packages/rollup-utils
       '@sentry/rrweb':
         specifier: 2.44.1
         version: 2.44.1
@@ -2046,18 +2104,24 @@ importers:
   packages/replay-internal:
     dependencies:
       '@sentry/browser-utils':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../browser-utils
       '@sentry/core':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../core
     devDependencies:
       '@babel/core':
         specifier: ^7.29.6
         version: 7.29.7(supports-color@10.0.0)
       '@sentry-internal/replay-worker':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../replay-worker
+      '@sentry-internal/rollup-utils':
+        specifier: 11.9.0
+        version: link:../../dev-packages/rollup-utils
+      '@sentry/conventions':
+        specifier: ^0.27.0
+        version: 0.27.0
       '@sentry/rrweb':
         specifier: 2.44.1
         version: 2.44.1
@@ -2083,16 +2147,20 @@ importers:
   packages/rollup-plugin:
     dependencies:
       '@sentry/bundler-plugins':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../bundler-plugins
+    devDependencies:
+      '@sentry-internal/rollup-utils':
+        specifier: 11.9.0
+        version: link:../../dev-packages/rollup-utils
 
   packages/server-runtime-injection:
     dependencies:
       '@sentry/core':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../core
       '@sentry/server-utils':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../server-utils
     devDependencies:
       '@apm-js-collab/code-transformer':
@@ -2101,6 +2169,9 @@ importers:
       '@apm-js-collab/tracing-hooks':
         specifier: ^0.13.3
         version: 0.13.3(supports-color@7.2.0)
+      '@sentry-internal/rollup-utils':
+        specifier: 11.9.0
+        version: link:../../dev-packages/rollup-utils
       '@types/node':
         specifier: ^20.19.0
         version: 20.19.43
@@ -2117,21 +2188,24 @@ importers:
   packages/server-utils:
     dependencies:
       '@opentelemetry/api':
-        specifier: ^1.10.0
+        specifier: ^1.9.1
         version: 1.10.0
       '@sentry/conventions':
         specifier: ^0.27.0
         version: 0.27.0
       '@sentry/core':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../core
     devDependencies:
       '@apm-js-collab/code-transformer-bundler-plugins':
         specifier: ^0.7.4
-        version: 0.7.4
+        version: 0.7.4(esbuild@0.28.1)(rollup@4.62.3)(vite@8.3.1(@types/node@20.19.43)(esbuild@0.28.1)(jiti@2.7.0)(less@4.2.0(supports-color@10.0.0))(sass@1.72.0)(stylus@0.59.0(supports-color@10.0.0))(terser@5.43.1)(tsx@4.23.0)(yaml@2.9.0))(webpack@5.104.1(clean-css@5.2.2)(cssnano@7.1.9(postcss@8.5.31))(csso@5.0.5)(esbuild@0.28.1)(html-minifier-terser@6.1.0)(lightningcss@1.33.0)(postcss@8.5.31)(uglify-js@3.13.3))
       '@neondatabase/serverless':
         specifier: 1.2.0
         version: 1.2.0
+      '@sentry-internal/rollup-utils':
+        specifier: 11.9.0
+        version: link:../../dev-packages/rollup-utils
       '@types/node':
         specifier: ^20.19.0
         version: 20.19.43
@@ -2141,19 +2215,25 @@ importers:
       vite:
         specifier: ^8.3.1
         version: 8.3.1(@types/node@20.19.43)(esbuild@0.28.1)(jiti@2.7.0)(less@4.2.0(supports-color@10.0.0))(sass@1.72.0)(stylus@0.59.0(supports-color@10.0.0))(terser@5.43.1)(tsx@4.23.0)(yaml@2.9.0)
+      webpack:
+        specifier: ^5.104.1
+        version: 5.104.1(clean-css@5.2.2)(cssnano@7.1.9(postcss@8.5.31))(csso@5.0.5)(esbuild@0.28.1)(html-minifier-terser@6.1.0)(lightningcss@1.33.0)(postcss@8.5.31)(uglify-js@3.13.3)
 
   packages/solid:
     dependencies:
       '@sentry/browser':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../browser
       '@sentry/conventions':
         specifier: ^0.27.0
         version: 0.27.0
       '@sentry/core':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../core
     devDependencies:
+      '@sentry-internal/rollup-utils':
+        specifier: 11.9.0
+        version: link:../../dev-packages/rollup-utils
       '@solidjs/router':
         specifier: ^1.0.0
         version: 1.0.0(solid-js@1.9.11)
@@ -2185,30 +2265,36 @@ importers:
   packages/solidstart:
     dependencies:
       '@sentry/bundler-plugins':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../bundler-plugins
       '@sentry/conventions':
         specifier: 0.27.0
         version: 0.27.0
       '@sentry/core':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../core
       '@sentry/nitro':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../nitro
       '@sentry/node':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../node
       '@sentry/server-runtime-injection':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../server-runtime-injection
       '@sentry/server-utils':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../server-utils
       '@sentry/solid':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../solid
     devDependencies:
+      '@sentry-internal/rollup-utils':
+        specifier: 11.9.0
+        version: link:../../dev-packages/rollup-utils
+      '@sentry/browser':
+        specifier: 11.9.0
+        version: link:../browser
       '@solidjs/router':
         specifier: ^1.0.0
         version: 1.0.0(solid-js@1.9.11)
@@ -2224,6 +2310,12 @@ importers:
       '@testing-library/user-event':
         specifier: ^14.5.2
         version: 14.5.2(@testing-library/dom@10.4.1)
+      '@types/node':
+        specifier: ^20.19.0
+        version: 20.19.43
+      nitropack:
+        specifier: ^2.13.4
+        version: 2.13.4(@azure/storage-blob@12.31.0(supports-color@10.0.0))(@parcel/watcher@2.5.6)(encoding@0.1.13)(mysql2@3.23.3(@types/node@20.19.43))(oxc-parser@0.152.0)(rolldown@1.2.11)(srvx@0.11.22)(supports-color@10.0.0)(vite@8.3.1(@types/node@20.19.43)(esbuild@0.28.1)(jiti@2.7.0)(less@4.2.0(supports-color@10.0.0))(sass@1.72.0)(stylus@0.59.0(supports-color@10.0.0))(terser@5.43.1)(tsx@4.23.0)(yaml@2.9.0))(webpack@5.107.2(clean-css@5.2.2)(cssnano@7.1.9(postcss@8.5.31))(csso@5.0.5)(esbuild@0.28.1)(html-minifier-terser@6.1.0)(lightningcss@1.33.0)(postcss@8.5.31)(uglify-js@3.13.3))
       solid-js:
         specifier: ^1.9.11
         version: 1.9.11
@@ -2240,18 +2332,21 @@ importers:
   packages/svelte:
     dependencies:
       '@sentry/browser':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../browser
       '@sentry/conventions':
         specifier: ^0.27.0
         version: 0.27.0
       '@sentry/core':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../core
       magic-string:
         specifier: ~0.30.0
         version: 0.30.21
     devDependencies:
+      '@sentry-internal/rollup-utils':
+        specifier: 11.9.0
+        version: link:../../dev-packages/rollup-utils
       '@sveltejs/vite-plugin-svelte':
         specifier: 1.4.0
         version: 1.4.0(supports-color@10.0.0)(svelte@3.59.2)(vite@8.3.1(@types/node@20.19.43)(esbuild@0.28.1)(jiti@2.7.0)(less@4.2.0(supports-color@10.0.0))(sass@1.72.0)(stylus@0.59.0(supports-color@10.0.0))(terser@5.43.1)(tsx@4.23.0)(yaml@2.9.0))
@@ -2268,31 +2363,31 @@ importers:
   packages/sveltekit:
     dependencies:
       '@opentelemetry/api':
-        specifier: ^1.10.0
+        specifier: ^1.9.1
         version: 1.10.0
       '@sentry/bundler-plugins':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../bundler-plugins
       '@sentry/cloudflare':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../cloudflare
       '@sentry/conventions':
         specifier: ^0.27.0
         version: 0.27.0
       '@sentry/core':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../core
       '@sentry/node':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../node
       '@sentry/server-runtime-injection':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../server-runtime-injection
       '@sentry/server-utils':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../server-utils
       '@sentry/svelte':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../svelte
       '@sveltejs/acorn-typescript':
         specifier: ^1.0.9
@@ -2307,12 +2402,21 @@ importers:
         specifier: 1.0.0
         version: 1.0.0
     devDependencies:
+      '@sentry-internal/rollup-utils':
+        specifier: 11.9.0
+        version: link:../../dev-packages/rollup-utils
+      '@sentry/browser':
+        specifier: 11.9.0
+        version: link:../browser
       '@sveltejs/kit':
         specifier: ^2.70.2
         version: 2.70.2(@opentelemetry/api@1.10.0)(@sveltejs/vite-plugin-svelte@3.1.2(supports-color@10.0.0)(svelte@4.2.8)(vite@8.3.1(@types/node@20.19.43)(esbuild@0.28.1)(jiti@2.7.0)(less@4.2.0(supports-color@10.0.0))(sass@1.72.0)(stylus@0.59.0(supports-color@10.0.0))(terser@5.43.1)(tsx@4.23.0)(yaml@2.9.0)))(svelte@4.2.8)(typescript@6.0.3)(vite@8.3.1(@types/node@20.19.43)(esbuild@0.28.1)(jiti@2.7.0)(less@4.2.0(supports-color@10.0.0))(sass@1.72.0)(stylus@0.59.0(supports-color@10.0.0))(terser@5.43.1)(tsx@4.23.0)(yaml@2.9.0))
       '@sveltejs/vite-plugin-svelte':
         specifier: ^3.0.0
         version: 3.1.2(supports-color@10.0.0)(svelte@4.2.8)(vite@8.3.1(@types/node@20.19.43)(esbuild@0.28.1)(jiti@2.7.0)(less@4.2.0(supports-color@10.0.0))(sass@1.72.0)(stylus@0.59.0(supports-color@10.0.0))(terser@5.43.1)(tsx@4.23.0)(yaml@2.9.0))
+      '@types/node':
+        specifier: ^20.19.0
+        version: 20.19.43
       svelte:
         specifier: ^4.2.8
         version: 4.2.8
@@ -2323,33 +2427,39 @@ importers:
   packages/tanstackstart-react:
     dependencies:
       '@opentelemetry/api':
-        specifier: ^1.10.0
+        specifier: ^1.9.1
         version: 1.10.0
       '@sentry/browser-utils':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../browser-utils
       '@sentry/bundler-plugins':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../bundler-plugins
       '@sentry/conventions':
         specifier: ^0.27.0
         version: 0.27.0
       '@sentry/core':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../core
       '@sentry/node':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../node
       '@sentry/react':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../react
       '@sentry/server-runtime-injection':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../server-runtime-injection
       '@sentry/server-utils':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../server-utils
     devDependencies:
+      '@sentry-internal/rollup-utils':
+        specifier: 11.9.0
+        version: link:../../dev-packages/rollup-utils
+      '@types/node':
+        specifier: ^20.19.0
+        version: 20.19.43
       vite:
         specifier: ^8.3.1
         version: 8.3.1(@types/node@20.19.43)(esbuild@0.28.1)(jiti@2.7.0)(less@4.2.0(supports-color@10.0.0))(sass@1.72.0)(stylus@0.59.0(supports-color@10.0.0))(terser@5.43.1)(tsx@4.23.0)(yaml@2.9.0)
@@ -2359,40 +2469,50 @@ importers:
   packages/vercel-edge:
     dependencies:
       '@opentelemetry/api':
-        specifier: ^1.10.0
+        specifier: ^1.9.1
         version: 1.10.0
       '@sentry/core':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../core
       '@sentry/server-utils':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../server-utils
     devDependencies:
       '@edge-runtime/types':
         specifier: 4.0.0
         version: 4.0.0
+      '@sentry-internal/rollup-utils':
+        specifier: 11.9.0
+        version: link:../../dev-packages/rollup-utils
       '@sentry/opentelemetry':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../opentelemetry
 
   packages/vite-plugin:
     dependencies:
       '@sentry/bundler-plugins':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../bundler-plugins
+    devDependencies:
+      '@sentry-internal/rollup-utils':
+        specifier: 11.9.0
+        version: link:../../dev-packages/rollup-utils
 
   packages/vue:
     dependencies:
       '@sentry/browser':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../browser
       '@sentry/conventions':
         specifier: ^0.27.0
         version: 0.27.0
       '@sentry/core':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../core
     devDependencies:
+      '@sentry-internal/rollup-utils':
+        specifier: 11.9.0
+        version: link:../../dev-packages/rollup-utils
       '@tanstack/vue-router':
         specifier: ^1.64.0
         version: 1.141.4(vue@3.5.44(typescript@7.0.2))
@@ -2403,17 +2523,25 @@ importers:
   packages/wasm:
     dependencies:
       '@sentry/browser':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../browser
       '@sentry/core':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../core
+    devDependencies:
+      '@sentry-internal/rollup-utils':
+        specifier: 11.9.0
+        version: link:../../dev-packages/rollup-utils
 
   packages/webpack-plugin:
     dependencies:
       '@sentry/bundler-plugins':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../bundler-plugins
+    devDependencies:
+      '@sentry-internal/rollup-utils':
+        specifier: 11.9.0
+        version: link:../../dev-packages/rollup-utils
 
 packages:
 
@@ -2645,6 +2773,20 @@ packages:
   '@apm-js-collab/code-transformer-bundler-plugins@0.7.4':
     resolution: {integrity: sha512-nAfOeZPSUAQvJa1iFT/5oCrTm5YQhMMrfCNthNnaXHZiOQhu1KGuLoIx7HtbAi3wfwaBYLaICPIeenIaEwcXIg==}
     engines: {node: '>=18.0.0'}
+    peerDependencies:
+      esbuild: '*'
+      rollup: '*'
+      vite: '*'
+      webpack: '*'
+    peerDependenciesMeta:
+      esbuild:
+        optional: true
+      rollup:
+        optional: true
+      vite:
+        optional: true
+      webpack:
+        optional: true
 
   '@apm-js-collab/code-transformer@0.18.1':
     resolution: {integrity: sha512-u1Hb6bHjWtkSpiprwVP6YaHC1DTN4RAU3zYkUDUe7WMnJwdyU1pwTL9dFKiSJB9IiLue/EQovmyx6xhU7FFtAQ==}
@@ -6042,57 +6184,57 @@ packages:
       '@nestjs/common': ^11.0.0
       '@nestjs/core': ^11.0.0
 
-  '@next/env@15.5.27':
-    resolution: {integrity: sha512-WC5hvVqiuFOcRyz6gKPeJkiVvSMf3scNeAV49CdWtVqxmUlzh8UKR6YHt9yiNkh8LngtzqSlVz07/Ma3ZAzchA==}
+  '@next/env@15.5.28':
+    resolution: {integrity: sha512-xxW5EBI8fMPuVTPBW7LL980IRbuDXlbkUAwp9DDhtb4Lnich3nJ13uYpvrX4VE74hWPf6AvHHAMmGCidcHjbfg==}
 
-  '@next/swc-darwin-arm64@15.5.27':
-    resolution: {integrity: sha512-fBA9QurmK4+uj4wNhmRTuO5zMVRaBHCvp6H93zTG/5i6Yi6TewbvbesXB8YQNj8T99Cwrow87hHiFV6wL/hyMA==}
+  '@next/swc-darwin-arm64@15.5.28':
+    resolution: {integrity: sha512-dPoQYXcfSIqx5o+TOXVXO7kONK5qbtNRDeiTfII0bT3puGIT6VF5e0QwmxNZfEZ5Zety5f3m9P/p4xqwfiLlPg==}
     engines: {node: '>= 10'}
     cpu: [arm64]
     os: [darwin]
 
-  '@next/swc-darwin-x64@15.5.27':
-    resolution: {integrity: sha512-FGZwJwry8qZNHxD/nfwrCwCHHrqx6epqItkkxbYcBQEQ2uw5S43bY83fQB5zbAsZE7TELMjoYkbhsQ4oKM7wwg==}
+  '@next/swc-darwin-x64@15.5.28':
+    resolution: {integrity: sha512-RgCJ7buBivTH+6sddqaVm+/v8kwMHlFkobvdt3DfETutws5HrxnToMIWSN9X3MZ3aAi7BbKrGZZWUDQLEycXqw==}
     engines: {node: '>= 10'}
     cpu: [x64]
     os: [darwin]
 
-  '@next/swc-linux-arm64-gnu@15.5.27':
-    resolution: {integrity: sha512-GQulAaJYNF1RYuatlsw9/uzbKz4if2V7Ic9nVO+P0ljYPm4yBRTFIl6g5YkKTw40lMLbpy9edLoH44g3jSHMYA==}
+  '@next/swc-linux-arm64-gnu@15.5.28':
+    resolution: {integrity: sha512-OHXQe13olE59aKe++zHavGcJPh5SLHXi6Anret3BBeq1+qhSuOJDNAli/EDDfxs6UTqA4Qddo4uyYry2slyjiQ==}
     engines: {node: '>= 10'}
     cpu: [arm64]
     os: [linux]
     libc: [glibc]
 
-  '@next/swc-linux-arm64-musl@15.5.27':
-    resolution: {integrity: sha512-URFFsUmu8Pi0/1qdnUI7tx7keZw1Mt5zHfrIX1RfDG9Nih8DYxK54WZsDJUX2ZTlii1jgotL7qcbwKnSAES6xQ==}
+  '@next/swc-linux-arm64-musl@15.5.28':
+    resolution: {integrity: sha512-nTB7bB6vfn4ezCJNYP43ukt2o8L3+WxKF/sTcTxepdXsJh3SM9RhlU7wrZYbH7L4HO5M87dqDTwm8587vAkCiw==}
     engines: {node: '>= 10'}
     cpu: [arm64]
     os: [linux]
     libc: [musl]
 
-  '@next/swc-linux-x64-gnu@15.5.27':
-    resolution: {integrity: sha512-aJp74z7uvU5jQhyH7lyk+4qSRcTdKbKT9NQE3jiO9kWYkoHZjKi0zzHDbCoZ+v2sJDEiJ/z58R0UlWMGWNF3HA==}
+  '@next/swc-linux-x64-gnu@15.5.28':
+    resolution: {integrity: sha512-WXCfVI32rW3xCusoUX1RpZKtyChWU2Zwe27JUDmM3KrXwcDNc9vV4zEq0GKFAURnuQ/Ouo/XqPvB0yh445XZCg==}
     engines: {node: '>= 10'}
     cpu: [x64]
     os: [linux]
     libc: [glibc]
 
-  '@next/swc-linux-x64-musl@15.5.27':
-    resolution: {integrity: sha512-ILl2bQ8MbpvyMpY8AXljb3BXs0MJSC8HXZ6QV5AWpVS7ZELqNPtrHvhUk+SNarvjvICXX8bCS287TCi+gUFVYg==}
+  '@next/swc-linux-x64-musl@15.5.28':
+    resolution: {integrity: sha512-Miq+NDb/HWsXuxseYxMM6fuEOQXgTziarkKIRpVKCn8W69cEfhQaQr+90pO+u4q2CbJR2wzXmUuCFyZaJs/Nng==}
     engines: {node: '>= 10'}
     cpu: [x64]
     os: [linux]
     libc: [musl]
 
-  '@next/swc-win32-arm64-msvc@15.5.27':
-    resolution: {integrity: sha512-1MB9Rh5y8TOPN2x7naNTJNkCZQav9c70AI7EBYXxsEewwOffC4DjjwBwKf20NBvcA+u+5jDv7nVmHxunlP2d7Q==}
+  '@next/swc-win32-arm64-msvc@15.5.28':
+    resolution: {integrity: sha512-5LR79lemgDlgxvG7MQJ+zHCkVcrUoQuO7CiIvq3I58vNW4goSOE2b+19Z6FujRWMouvni4gvudYFuFuNxolGWA==}
     engines: {node: '>= 10'}
     cpu: [arm64]
     os: [win32]
 
-  '@next/swc-win32-x64-msvc@15.5.27':
-    resolution: {integrity: sha512-XtYgpGOswgnyBWXzOEG6q9RhvnSw0CEZ0MbWqCsl5PISgt9EzvJvNW5mU5n1PsphX/lnamzxjgQXH2GUJL8nqg==}
+  '@next/swc-win32-x64-msvc@15.5.28':
+    resolution: {integrity: sha512-GNipvXUYROSTf4PXEyH95FrWImIB5zdaK6uEOg0RP1/X2drnvoMwiBkJ0VWdzX7w3iiBm3y5g2TxkKDGVTOQcg==}
     engines: {node: '>= 10'}
     cpu: [x64]
     os: [win32]
@@ -7606,8 +7748,8 @@ packages:
       typescript:
         optional: true
 
-  '@remix-run/route-pattern@0.24.1':
-    resolution: {integrity: sha512-HRee7tz2Ct7QdTQGDErHcVTAlXa5BBV6GOLEa/INw21ceTWTWlaU13FJupYVX0k1mh608rod880+SA5NlTPPfw==}
+  '@remix-run/route-pattern@1.0.0':
+    resolution: {integrity: sha512-EsI8J5AcDpnV76lGcpwPCqCN1Vj7X2eNPqgUr+RjInTsm4iTnrGzn0iIUxpUjQ5/Ba1cAd8CMMbsA2bjEjZiyQ==}
 
   '@remix-run/router@1.23.3':
     resolution: {integrity: sha512-4An71tdz9X8+3sI4Qqqd2LWd9vS39J7sqd9EU4Scw7TJE/qB10Flv/UuqbPVgfQV9XoK8Np6jNquZitnZq5i+Q==}
@@ -14655,8 +14797,8 @@ packages:
     resolution: {integrity: sha512-lDcBsjBSMlj3LXH2v/FW3txlh2pYTjmbOXPYJD93HI5EwuLzI11tdHSIpUMmfq/IOsldj4Ps8M8flhm+pCK4Ew==}
     engines: {node: '>=12.22.0'}
 
-  next@15.5.27:
-    resolution: {integrity: sha512-F82CrlPZ8GRxBH9RIIoR3qU1t5RT3dv1K8moe8SjlDEquiFipvEI13R1Om90TaUOEwShkWCMlg8+gvTNzfMhvg==}
+  next@15.5.28:
+    resolution: {integrity: sha512-JjhLBBY1PNnuwPtcZ7t8yxVeJVYvD2Jyp633J+gRCNbzSt7N0E+xqCf6uQiff3+3qmUkwcF/ksfSsK1xsZ76Tw==}
     engines: {node: ^18.18.0 || ^19.8.0 || >= 20.0.0}
     hasBin: true
     peerDependencies:
@@ -19742,12 +19884,17 @@ snapshots:
     optionalDependencies:
       zod: 3.25.76
 
-  '@apm-js-collab/code-transformer-bundler-plugins@0.7.4':
+  '@apm-js-collab/code-transformer-bundler-plugins@0.7.4(esbuild@0.28.1)(rollup@4.62.3)(vite@8.3.1(@types/node@20.19.43)(esbuild@0.28.1)(jiti@2.7.0)(less@4.2.0(supports-color@10.0.0))(sass@1.72.0)(stylus@0.59.0(supports-color@10.0.0))(terser@5.43.1)(tsx@4.23.0)(yaml@2.9.0))(webpack@5.104.1(clean-css@5.2.2)(cssnano@7.1.9(postcss@8.5.31))(csso@5.0.5)(esbuild@0.28.1)(html-minifier-terser@6.1.0)(lightningcss@1.33.0)(postcss@8.5.31)(uglify-js@3.13.3))':
     dependencies:
       '@apm-js-collab/code-transformer': 0.18.1
       es-module-lexer: 2.1.0
       magic-string: 0.30.21
       module-details-from-path: 1.0.4
+    optionalDependencies:
+      esbuild: 0.28.1
+      rollup: 4.62.3
+      vite: 8.3.1(@types/node@20.19.43)(esbuild@0.28.1)(jiti@2.7.0)(less@4.2.0(supports-color@10.0.0))(sass@1.72.0)(stylus@0.59.0(supports-color@10.0.0))(terser@5.43.1)(tsx@4.23.0)(yaml@2.9.0)
+      webpack: 5.104.1(clean-css@5.2.2)(cssnano@7.1.9(postcss@8.5.31))(csso@5.0.5)(esbuild@0.28.1)(html-minifier-terser@6.1.0)(lightningcss@1.33.0)(postcss@8.5.31)(uglify-js@3.13.3)
 
   '@apm-js-collab/code-transformer@0.18.1':
     dependencies:
@@ -24162,30 +24309,30 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  '@next/env@15.5.27': {}
+  '@next/env@15.5.28': {}
 
-  '@next/swc-darwin-arm64@15.5.27':
+  '@next/swc-darwin-arm64@15.5.28':
     optional: true
 
-  '@next/swc-darwin-x64@15.5.27':
+  '@next/swc-darwin-x64@15.5.28':
     optional: true
 
-  '@next/swc-linux-arm64-gnu@15.5.27':
+  '@next/swc-linux-arm64-gnu@15.5.28':
     optional: true
 
-  '@next/swc-linux-arm64-musl@15.5.27':
+  '@next/swc-linux-arm64-musl@15.5.28':
     optional: true
 
-  '@next/swc-linux-x64-gnu@15.5.27':
+  '@next/swc-linux-x64-gnu@15.5.28':
     optional: true
 
-  '@next/swc-linux-x64-musl@15.5.27':
+  '@next/swc-linux-x64-musl@15.5.28':
     optional: true
 
-  '@next/swc-win32-arm64-msvc@15.5.27':
+  '@next/swc-win32-arm64-msvc@15.5.28':
     optional: true
 
-  '@next/swc-win32-x64-msvc@15.5.27':
+  '@next/swc-win32-x64-msvc@15.5.28':
     optional: true
 
   '@ngtools/webpack@14.2.13(@angular/compiler-cli@14.3.0(@angular/compiler@14.3.0(@angular/core@14.3.0(rxjs@7.8.2)(zone.js@0.12.0)))(supports-color@10.0.0)(typescript@4.6.4))(typescript@4.6.4)(webpack@5.76.1(clean-css@5.2.2)(cssnano@7.1.9(postcss@8.5.31))(csso@5.0.5)(esbuild@0.15.5)(html-minifier-terser@6.1.0)(lightningcss@1.33.0)(postcss@8.4.31)(uglify-js@3.13.3))':
@@ -24217,7 +24364,7 @@ snapshots:
   '@npmcli/fs@2.1.2':
     dependencies:
       '@gar/promisify': 1.1.3
-      semver: 7.5.3
+      semver: 7.8.5
 
   '@npmcli/git@3.0.2':
     dependencies:
@@ -24228,7 +24375,7 @@ snapshots:
       proc-log: 2.0.1
       promise-inflight: 1.0.1
       promise-retry: 2.0.1
-      semver: 7.5.3
+      semver: 7.8.5
       which: 2.0.2
     transitivePeerDependencies:
       - bluebird
@@ -25691,7 +25838,7 @@ snapshots:
     optionalDependencies:
       typescript: 5.8.3
 
-  '@remix-run/route-pattern@0.24.1': {}
+  '@remix-run/route-pattern@1.0.0': {}
 
   '@remix-run/router@1.23.3': {}
 
@@ -26883,7 +27030,7 @@ snapshots:
   '@types/body-parser@1.19.2':
     dependencies:
       '@types/connect': 3.4.38
-      '@types/node': 14.18.63
+      '@types/node': 20.19.43
 
   '@types/bonjour@3.5.13':
     dependencies:
@@ -26906,7 +27053,7 @@ snapshots:
 
   '@types/connect@3.4.38':
     dependencies:
-      '@types/node': 14.18.63
+      '@types/node': 20.19.43
 
   '@types/cookie@0.6.0': {}
 
@@ -26938,7 +27085,7 @@ snapshots:
 
   '@types/express-serve-static-core@4.17.43':
     dependencies:
-      '@types/node': 14.18.63
+      '@types/node': 20.19.43
       '@types/qs': 6.9.6
       '@types/range-parser': 1.2.3
       '@types/send': 0.17.4
@@ -26955,7 +27102,7 @@ snapshots:
       '@types/body-parser': 1.19.2
       '@types/express-serve-static-core': 4.17.43
       '@types/qs': 6.9.6
-      '@types/serve-static': 1.15.5
+      '@types/serve-static': 2.2.0
 
   '@types/express@5.0.6':
     dependencies:
@@ -27111,7 +27258,7 @@ snapshots:
   '@types/send@0.17.4':
     dependencies:
       '@types/mime': 1.3.2
-      '@types/node': 14.18.63
+      '@types/node': 20.19.43
 
   '@types/serve-index@1.9.4':
     dependencies:
@@ -28951,7 +29098,7 @@ snapshots:
 
   builtins@5.0.1:
     dependencies:
-      semver: 7.5.3
+      semver: 7.8.5
 
   bun-types@1.2.9:
     dependencies:
@@ -29560,7 +29707,7 @@ snapshots:
       postcss-modules-scope: 3.0.0(postcss@8.4.31)
       postcss-modules-values: 4.0.0(postcss@8.4.31)
       postcss-value-parser: 4.2.0
-      semver: 7.5.3
+      semver: 7.8.5
       webpack: 5.76.1(clean-css@5.2.2)(cssnano@7.1.9(postcss@8.5.31))(csso@5.0.5)(esbuild@0.15.5)(html-minifier-terser@6.1.0)(lightningcss@1.33.0)(postcss@8.4.31)(uglify-js@3.13.3)
 
   css-prefers-color-scheme@6.0.3(postcss@8.4.31):
@@ -34315,9 +34462,9 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  next@15.5.27(@babel/core@7.29.7(supports-color@10.0.0))(@opentelemetry/api@1.10.0)(@playwright/test@1.64.1)(@types/node@20.19.43)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(sass@1.72.0):
+  next@15.5.28(@babel/core@7.29.7(supports-color@10.0.0))(@opentelemetry/api@1.10.0)(@playwright/test@1.64.1)(@types/node@20.19.43)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(sass@1.72.0):
     dependencies:
-      '@next/env': 15.5.27
+      '@next/env': 15.5.28
       '@swc/helpers': 0.5.15
       caniuse-lite: 1.0.30001809
       postcss: 8.4.31
@@ -34325,14 +34472,14 @@ snapshots:
       react-dom: 18.3.1(react@18.3.1)
       styled-jsx: 5.1.6(@babel/core@7.29.7(supports-color@10.0.0))(react@18.3.1)
     optionalDependencies:
-      '@next/swc-darwin-arm64': 15.5.27
-      '@next/swc-darwin-x64': 15.5.27
-      '@next/swc-linux-arm64-gnu': 15.5.27
-      '@next/swc-linux-arm64-musl': 15.5.27
-      '@next/swc-linux-x64-gnu': 15.5.27
-      '@next/swc-linux-x64-musl': 15.5.27
-      '@next/swc-win32-arm64-msvc': 15.5.27
-      '@next/swc-win32-x64-msvc': 15.5.27
+      '@next/swc-darwin-arm64': 15.5.28
+      '@next/swc-darwin-x64': 15.5.28
+      '@next/swc-linux-arm64-gnu': 15.5.28
+      '@next/swc-linux-arm64-musl': 15.5.28
+      '@next/swc-linux-x64-gnu': 15.5.28
+      '@next/swc-linux-x64-musl': 15.5.28
+      '@next/swc-win32-arm64-msvc': 15.5.28
+      '@next/swc-win32-x64-msvc': 15.5.28
       '@opentelemetry/api': 1.10.0
       '@playwright/test': 1.64.1
       sass: 1.72.0
@@ -34866,7 +35013,7 @@ snapshots:
       nopt: 6.0.0
       npmlog: 6.0.2
       rimraf: 3.0.2
-      semver: 7.5.3
+      semver: 7.8.5
       tar: 6.2.1
       which: 2.0.2
     transitivePeerDependencies:
@@ -34918,7 +35065,7 @@ snapshots:
     dependencies:
       hosted-git-info: 5.1.0
       is-core-module: 2.16.1
-      semver: 7.5.3
+      semver: 7.8.5
       validate-npm-package-license: 3.0.4
 
   normalize-path@3.0.0: {}
@@ -34935,7 +35082,7 @@ snapshots:
 
   npm-install-checks@5.0.0:
     dependencies:
-      semver: 7.5.3
+      semver: 7.8.5
 
   npm-normalize-package-bin@1.0.1: {}
 
@@ -34947,7 +35094,7 @@ snapshots:
     dependencies:
       hosted-git-info: 5.1.0
       proc-log: 2.0.1
-      semver: 7.5.3
+      semver: 7.8.5
       validate-npm-package-name: 4.0.0
 
   npm-packlist@2.2.2:
@@ -34969,7 +35116,7 @@ snapshots:
       npm-install-checks: 5.0.0
       npm-normalize-package-bin: 1.0.1
       npm-package-arg: 9.1.0
-      semver: 7.5.3
+      semver: 7.8.5
 
   npm-registry-fetch@13.3.1(supports-color@10.0.0):
     dependencies:
@@ -36281,7 +36428,7 @@ snapshots:
       cosmiconfig: 7.1.0
       klona: 2.0.6
       postcss: 8.4.31
-      semver: 7.5.3
+      semver: 7.8.5
       webpack: 5.76.1(clean-css@5.2.2)(cssnano@7.1.9(postcss@8.5.31))(csso@5.0.5)(esbuild@0.15.5)(html-minifier-terser@6.1.0)(lightningcss@1.33.0)(postcss@8.4.31)(uglify-js@3.13.3)
 
   postcss-logical@5.0.4(postcss@8.4.31):

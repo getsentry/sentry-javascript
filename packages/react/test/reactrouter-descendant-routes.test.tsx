@@ -84,6 +84,81 @@ describe('React Router Descendant Routes', () => {
   });
 
   describe('withSentryReactRouterV6Routing', () => {
+    it('keeps the parent path prefix for a descendant route with a percent-encoded parameter', () => {
+      const client = createMockBrowserClient();
+      setCurrentClient(client);
+
+      client.addIntegration(
+        reactRouterV6BrowserTracingIntegration({
+          useEffect: React.useEffect,
+          useLocation,
+          useNavigationType,
+          createRoutesFromChildren,
+          matchRoutes,
+        }),
+      );
+      const SentryRoutes = withSentryReactRouterV6Routing(Routes);
+
+      const ChildRouter = () => (
+        <SentryRoutes>
+          <Route path=":id" element={<div id="child">Child</div>} />
+        </SentryRoutes>
+      );
+
+      const { container } = render(
+        // What a browser's `location.pathname` holds for `/child/한글`
+        <MemoryRouter initialEntries={['/child/%ED%95%9C%EA%B8%80']}>
+          <SentryRoutes>
+            <Route path="child/*" element={<ChildRouter />} />
+          </SentryRoutes>
+        </MemoryRouter>,
+      );
+
+      expect(container.innerHTML).toContain('Child');
+      expect(mockStartBrowserTracingPageLoadSpan).toHaveBeenCalledTimes(1);
+      expect(getCurrentScope().getScopeData().transactionName).toEqual('/child/:id');
+    });
+
+    it('re-matches the descendant remainder without decoding it twice', () => {
+      const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+      const client = createMockBrowserClient();
+      setCurrentClient(client);
+
+      client.addIntegration(
+        reactRouterV6BrowserTracingIntegration({
+          useEffect: React.useEffect,
+          useLocation,
+          useNavigationType,
+          createRoutesFromChildren,
+          matchRoutes,
+        }),
+      );
+      const SentryRoutes = withSentryReactRouterV6Routing(Routes);
+
+      const ChildRouter = () => (
+        <SentryRoutes>
+          <Route path=":id" element={<div id="child">Child</div>} />
+        </SentryRoutes>
+      );
+
+      try {
+        const { container } = render(
+          // `100%25` decodes to `100%`, which React Router cannot decode a second time
+          <MemoryRouter initialEntries={['/child/100%25']}>
+            <SentryRoutes>
+              <Route path="child/*" element={<ChildRouter />} />
+            </SentryRoutes>
+          </MemoryRouter>,
+        );
+
+        expect(container.innerHTML).toContain('Child');
+        expect(getCurrentScope().getScopeData().transactionName).toEqual('/child/:id');
+        expect(warnSpy).not.toHaveBeenCalledWith(expect.stringContaining('could not be decoded'));
+      } finally {
+        warnSpy.mockRestore();
+      }
+    });
+
     it('keeps the parent path prefix for descendant routes with non-wildcard nested children - pageload', () => {
       const client = createMockBrowserClient();
       setCurrentClient(client);

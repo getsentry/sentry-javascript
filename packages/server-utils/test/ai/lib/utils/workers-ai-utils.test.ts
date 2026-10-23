@@ -69,6 +69,10 @@ describe('workers-ai utils', () => {
       expect(getOperationName('@cf/cloudflare/clef', { state: 'Help!', questions: {} })).toBe('decide');
     });
 
+    it('returns "extract" for Cloudflare Clairic models', () => {
+      expect(getOperationName('@cf/cloudflare/clairic', { state: 'Invoice INV-1', fields: {} })).toBe('extract');
+    });
+
     it('does not return "decide" for other TypeSafe models', () => {
       expect(getOperationName('typesafe/other', { prompt: 'Hello' })).toBe('chat');
     });
@@ -141,6 +145,34 @@ describe('workers-ai utils', () => {
   });
 
   describe('addRequestAttributes', () => {
+    it('records extract requests without the model and image data', () => {
+      const { span, attributes } = createMockSpan();
+      const fields = { total: { type: 'number', unit: 'USD' } };
+
+      addRequestAttributes(
+        span,
+        {
+          model: 'clairic',
+          state: 'Total: $10',
+          fields,
+          images: ['data:image/png;base64,AAAA', 'data:image/png;base64,BBBB'],
+          reference_date: '2026-10-21',
+        },
+        'extract',
+      );
+
+      expect(attributes).toEqual({
+        [GEN_AI_INPUT_MESSAGES]: JSON.stringify([
+          {
+            state: 'Total: $10',
+            fields,
+            images: ['[Blob substitute]', '[Blob substitute]'],
+            reference_date: '2026-10-21',
+          },
+        ]),
+      });
+    });
+
     it('records messages and extracts system instructions', () => {
       const { span, attributes } = createMockSpan();
 
@@ -223,6 +255,31 @@ describe('workers-ai utils', () => {
         [GEN_AI_USAGE_OUTPUT_TOKENS]: 50,
         [GEN_AI_USAGE_TOTAL_TOKENS]: 416,
         [GEN_AI_OUTPUT_MESSAGES]: JSON.stringify([{ type: 'evaluation', answers }]),
+      });
+    });
+
+    it('records extract responses without the model and usage', () => {
+      const { span, attributes } = createMockSpan();
+      const answers = { total: { type: 'number', value: 10, confidence: 0.99 } };
+
+      addResponseAttributes(
+        span,
+        {
+          model: 'clairic',
+          answers,
+          truncated: false,
+          usage: { state_tokens: 5, input_tokens: 40, output_tokens: 3, passes: 1 },
+        },
+        true,
+        'extract',
+      );
+
+      expect(attributes).toEqual({
+        [GEN_AI_RESPONSE_MODEL]: 'clairic',
+        [GEN_AI_USAGE_INPUT_TOKENS]: 40,
+        [GEN_AI_USAGE_OUTPUT_TOKENS]: 3,
+        [GEN_AI_USAGE_TOTAL_TOKENS]: 43,
+        [GEN_AI_OUTPUT_MESSAGES]: JSON.stringify([{ answers, truncated: false }]),
       });
     });
 
