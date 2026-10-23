@@ -7,7 +7,7 @@
     "build": "next build > .tmp_build_stdout 2> .tmp_build_stderr || (cat .tmp_build_stdout && cat .tmp_build_stderr && exit 1)",
     "clean": "npx rimraf node_modules pnpm-lock.yaml .tmp_dev_server_logs",
     "dev:webpack": "next dev --webpack",
-    "build-webpack": "next build --webpack --debug-prerender > .tmp_build_stdout 2> .tmp_build_stderr || (cat .tmp_build_stdout && cat .tmp_build_stderr && cat pnpm-lock.yaml && exit 1)",
+    "build-webpack": "next build --webpack --debug-prerender > .tmp_build_stdout 2> .tmp_build_stderr || (cat .tmp_build_stdout && cat .tmp_build_stderr && pwd && pwd -P && uname -a && ls .next/static/chunks/app; grep -o \"[^\"]*global-error[^\"]*\" .next/server/app/_global-error/page_client-reference-manifest.js | sort -u; head -c 6000 .next/server/app/_global-error/page_client-reference-manifest.js; exit 1)",
     "start": "next start",
     "lint": "eslint",
     "test:prod": "TEST_ENV=production playwright test",
