@@ -1,3 +1,4 @@
+import { MCP_AUTH_CLIENT_NAME, MCP_CLIENT_NAME } from '@sentry/conventions/attributes';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { getCurrentScope } from '../../../../src/currentScopes';
 import { wrapMcpServerWithSentry } from '../../../../src/integrations/mcp-server';
@@ -54,8 +55,8 @@ describe('MCP OAuth client attribution', () => {
       extra: { clientName: 'Example Desktop' },
     });
     const attributes = spanToJSON(spans[0]!).attributes;
-    expect(attributes['mcp.auth.client.name']).toBe('Example Desktop');
-    expect(attributes).not.toHaveProperty('mcp.client.name');
+    expect(attributes[MCP_AUTH_CLIENT_NAME]).toBe('Example Desktop');
+    expect(attributes).not.toHaveProperty(MCP_CLIENT_NAME);
     expect(JSON.stringify(attributes)).not.toContain('test-access-token');
     expect(JSON.stringify(attributes)).not.toContain('test-client-id');
     expect(JSON.stringify(attributes)).not.toContain('tools:read');
@@ -81,13 +82,13 @@ describe('MCP OAuth client attribution', () => {
       extra: { clientName: 'Example Desktop' },
     });
     expect(laterResolver).not.toHaveBeenCalled();
-    expect(spanToJSON(spans[0]!).attributes['mcp.auth.client.name']).toBe('First Registered Client');
+    expect(spanToJSON(spans[0]!).attributes[MCP_AUTH_CLIENT_NAME]).toBe('First Registered Client');
   });
 
   it('does not infer OAuth names from provider-specific metadata without a resolver', async () => {
     const transport = await connect();
     transport.onmessage({ jsonrpc: '2.0', id: 1, method: 'tools/list' }, { authInfo });
-    expect(spanToJSON(spans[0]!).attributes).not.toHaveProperty('mcp.auth.client.name');
+    expect(spanToJSON(spans[0]!).attributes).not.toHaveProperty(MCP_AUTH_CLIENT_NAME);
   });
 
   it.each([
@@ -112,6 +113,6 @@ describe('MCP OAuth client attribution', () => {
 
     expect(transport.onmessage(message, extra)).toBe(result);
     expect(onmessage).toHaveBeenCalledExactlyOnceWith(message, extra);
-    expect(spanToJSON(spans[0]!).attributes).not.toHaveProperty('mcp.auth.client.name');
+    expect(spanToJSON(spans[0]!).attributes).not.toHaveProperty(MCP_AUTH_CLIENT_NAME);
   });
 });
