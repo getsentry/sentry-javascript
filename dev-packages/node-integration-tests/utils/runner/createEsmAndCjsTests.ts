@@ -161,10 +161,11 @@ function setupAndCleanup(
   createdRunners: Set<ReturnType<typeof createRunner>>,
   tmpDirPath: string,
 ) {
-  // Create tmp directory and install additionalDependencies (with retries)
+  // Create tmp directory and install additionalDependencies (with retries).
+  // Must cover all npm install attempts (see `NPM_INSTALL_TIMEOUT_MS`) plus `afterSetupCommand`.
   beforeAll(async () => {
     await createTmpDir();
-  }, 120_000);
+  }, 240_000);
 
   // Clean up the tmp directory after both esm and cjs suites have run
   afterAll(async () => {
@@ -332,6 +333,9 @@ function convertEsmToCjs(content: string): string {
 
 const NPM_INSTALL_MAX_RETRIES = 3;
 const NPM_INSTALL_RETRY_DELAY_MS = 2_000;
+// npm install can stall on CI without ever failing, which would otherwise use up the whole setup hook timeout
+// before a retry gets a chance to run.
+const NPM_INSTALL_TIMEOUT_MS = 60_000;
 
 async function npmInstallWithRetry(cwd: string, deps: string[]): Promise<void> {
   for (let attempt = 1; attempt <= NPM_INSTALL_MAX_RETRIES; attempt++) {
@@ -343,6 +347,7 @@ async function npmInstallWithRetry(cwd: string, deps: string[]): Promise<void> {
         {
           cwd,
           encoding: 'utf8',
+          timeout: NPM_INSTALL_TIMEOUT_MS,
         },
       );
 
