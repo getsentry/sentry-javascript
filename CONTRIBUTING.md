@@ -15,20 +15,71 @@ Developer Documentation.
 ## Setting up an Environment
 
 > [!NOTE]
-> This setup is experimental: we are moving from Volta (which is unmaintained) to pnpm-managed node versions.
+> This setup is experimental. We are moving from Volta, which is
+> [unmaintained](https://github.com/volta-cli/volta#readme), to node versions managed by pnpm. If you use Volta today,
+> see [Migrating from Volta](#migrating-from-volta).
 
-pnpm manages the versions of node and pnpm. The root `package.json` pins node in `devEngines.runtime` and pnpm in
-`packageManager`. A package or E2E test app can override the node version with its own `devEngines.runtime`.
+### How versions are managed
 
-1. Install pnpm 12 with the [standalone script](https://pnpm.io/installation#using-a-standalone-script), for example
-   `curl -fsSL https://get.pnpm.io/install.sh | sh -`.
-2. Install node through pnpm: `pnpm runtime set node 24 -g`. pnpm's `node` in `$PNPM_HOME/bin` then runs the version
-   that the nearest `package.json` pins, and downloads it if needed
-   ([project-aware global bins](https://pnpm.io/global-packages#project-aware-global-bins)).
-3. If you use Volta, nvm or a similar tool, remove it from your `PATH` (or put `$PNPM_HOME/bin` first), so `node`
-   resolves to pnpm's shim. Check with `node --version` in the repo root.
+- **node:** the root `package.json` pins node in `devEngines.runtime`. Packages and E2E test apps inherit it, and can
+  override it with their own `devEngines.runtime`. pnpm's `node` command runs the version of the nearest
+  `package.json` that pins one, and downloads it if needed
+  ([project-aware global bins](https://pnpm.io/global-packages#project-aware-global-bins)).
+- **pnpm:** the root `package.json` pins pnpm in `packageManager`. Any pnpm you run in the repo downloads that version
+  and switches to it, so your global pnpm only needs to be pnpm 12 or newer. All workspace packages use the root
+  version. E2E test apps can set their own `packageManager`, see `dev-packages/e2e-tests/README.md`.
+- **CI** reads the same fields: `actions/setup-node` reads `devEngines.runtime`, and `pnpm/action-setup` reads
+  `packageManager`.
 
-pnpm switches to the `packageManager` version by itself, so you do not have to install a specific pnpm version.
+### First-time setup
+
+1. Install pnpm 12 or newer with the [standalone script](https://pnpm.io/installation#using-a-standalone-script):
+
+   ```sh
+   curl -fsSL https://get.pnpm.io/install.sh | sh -
+   ```
+
+   The script adds `$PNPM_HOME/bin` to your shell profile. Open a new terminal afterwards. For Windows, see the
+   [pnpm installation docs](https://pnpm.io/installation).
+
+2. Install a default node through pnpm. pnpm uses it outside of projects that pin node:
+
+   ```sh
+   pnpm runtime set node 24 -g
+   ```
+
+3. Check that `node` and `pnpm` come from pnpm. In the repo root, `node --version` should print the version of
+   `devEngines.runtime`, and `pnpm --version` the version of `packageManager`:
+
+   ```sh
+   which node pnpm # both in $PNPM_HOME/bin
+   node --version
+   pnpm --version
+   ```
+
+   If `which` shows another location, a different tool (Volta, nvm, fnm, corepack, Homebrew node) comes first in your
+   `PATH`. Remove it, or move `$PNPM_HOME/bin` before it.
+
+### Updating versions
+
+- **node:** change `devEngines.runtime.version` in the root `package.json`, or in a package or E2E test app to override
+  it there. Contributors get the new version with their next `node` command, CI with its next run.
+- **pnpm:** change `packageManager` in the root `package.json`. `pnpm self-update <version>` in the repo does this for
+  you. To update only your global pnpm, run `pnpm self-update` outside of the repo.
+
+### Migrating from Volta
+
+The repo no longer has a `volta` field, so Volta runs its default node instead of the version the repo pins, and pnpm
+only works if you installed a default pnpm with Volta (`volta install pnpm`).
+
+- **If you don't need Volta for other projects:** remove it as described in the
+  [Volta docs](https://docs.volta.sh/advanced/uninstall): delete `~/.volta`, remove the Volta lines (`VOLTA_HOME`,
+  `VOLTA_FEATURE_PNPM` and the `PATH` entry) from your shell profile, and open a new terminal. Then follow the
+  [first-time setup](#first-time-setup).
+- **If other projects still need Volta:** follow the [first-time setup](#first-time-setup) and make sure that
+  `$PNPM_HOME/bin` comes before `~/.volta/bin` in your `PATH`. pnpm's `node` does not read the `volta` field, so in
+  projects that pin node only with Volta, `node` runs pnpm's default node. Use `volta run node` or `volta run pnpm`
+  there to get the Volta version.
 
 `sentry-javascript` is a monorepo containing several packages, managed with pnpm workspaces and Nx. To get started,
 install all dependencies, and then perform an initial build, so TypeScript can read all of the linked type definitions.
