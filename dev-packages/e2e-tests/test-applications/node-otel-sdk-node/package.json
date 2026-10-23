@@ -3,18 +3,20 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
-    "start": "node --import ./src/instrument.mjs src/app.mjs",
+    "start": "node --import ./src/${INSTRUMENT_FILE:-instrument.mjs} src/app.mjs",
     "clean": "npx rimraf node_modules pnpm-lock.yaml",
     "test:build": "pnpm install",
-    "test:assert": "playwright test"
+    "test:build:otel-v2": "pnpm install && pnpm add @opentelemetry/api@1.9.1 @opentelemetry/exporter-trace-otlp-http@^0.220.0 @opentelemetry/instrumentation@^0.220.0 @opentelemetry/instrumentation-http@^0.220.0 @opentelemetry/sdk-node@^0.220.0 @opentelemetry/sdk-trace-base@^2.9.0 && pnpm dedupe",
+    "test:assert": "playwright test",
+    "test:assert:otel-v2": "INSTRUMENT_FILE=instrument-otel-v2.mjs playwright test"
   },
   "dependencies": {
-    "@opentelemetry/api": "1.9.1",
-    "@opentelemetry/exporter-trace-otlp-http": "^0.220.0",
-    "@opentelemetry/instrumentation": "^0.220.0",
-    "@opentelemetry/instrumentation-http": "^0.220.0",
-    "@opentelemetry/sdk-node": "^0.220.0",
-    "@opentelemetry/sdk-trace-base": "^2.9.0",
+    "@opentelemetry/api": "^1.10.0",
+    "@opentelemetry/exporter-trace-otlp-http": "^0.300.0",
+    "@opentelemetry/instrumentation": "^0.300.0",
+    "@opentelemetry/instrumentation-http": "^0.300.0",
+    "@opentelemetry/sdk-node": "^0.300.0",
+    "@opentelemetry/sdk-trace": "^3.0.0",
     "@sentry/node": "file:../../packed/sentry-node-packed.tgz",
     "express": "^4.21.2"
   },
@@ -24,5 +26,14 @@
   },
   "volta": {
     "extends": "../../package.json"
+  },
+  "sentryTest": {
+    "variants": [
+      {
+        "build-command": "pnpm test:build:otel-v2",
+        "assert-command": "pnpm test:assert:otel-v2",
+        "label": "node-otel-sdk-node (OTel SDK v2)"
+      }
+    ]
   }
 }

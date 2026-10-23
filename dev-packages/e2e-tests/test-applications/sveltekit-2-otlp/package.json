@@ -12,14 +12,16 @@
     "check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
     "test:prod": "TEST_ENV=production playwright test",
     "test:build": "pnpm install && pnpm build",
+    "test:build:otel-v2": "pnpm remove @opentelemetry/context-async-hooks @opentelemetry/core @opentelemetry/sdk-trace && pnpm add @opentelemetry/api@1.9.1 @opentelemetry/exporter-trace-otlp-http@^0.220.0 @opentelemetry/resources@^2.9.0 @opentelemetry/sdk-trace-base@^2.9.0 @opentelemetry/sdk-trace-node@^2.9.0 && pnpm dedupe && cp otel-v2/otel-tracer-provider.ts src/otel-tracer-provider.ts && pnpm build",
     "test:assert": "pnpm test:prod"
   },
   "dependencies": {
-    "@opentelemetry/api": "^1.9.1",
-    "@opentelemetry/exporter-trace-otlp-http": "^0.220.0",
-    "@opentelemetry/resources": "^2.9.0",
-    "@opentelemetry/sdk-trace-base": "^2.9.0",
-    "@opentelemetry/sdk-trace-node": "^2.9.0",
+    "@opentelemetry/api": "^1.10.0",
+    "@opentelemetry/context-async-hooks": "^3.0.0",
+    "@opentelemetry/core": "^3.0.0",
+    "@opentelemetry/exporter-trace-otlp-http": "^0.300.0",
+    "@opentelemetry/resources": "^3.0.0",
+    "@opentelemetry/sdk-trace": "^3.0.0",
     "@sentry/core": "file:../../packed/sentry-core-packed.tgz",
     "@sentry/sveltekit": "file:../../packed/sentry-sveltekit-packed.tgz"
   },
@@ -38,5 +40,14 @@
   "type": "module",
   "volta": {
     "extends": "../../package.json"
+  },
+  "sentryTest": {
+    "variants": [
+      {
+        "build-command": "pnpm test:build:otel-v2",
+        "assert-command": "pnpm test:assert",
+        "label": "sveltekit-2-otlp (OTel SDK v2)"
+      }
+    ]
   }
 }

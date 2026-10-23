@@ -8,13 +8,15 @@
     "test": "playwright test",
     "clean": "npx rimraf node_modules pnpm-lock.yaml",
     "test:build": "pnpm install && pnpm build",
+    "test:build:otel-v2": "pnpm remove @opentelemetry/context-async-hooks @opentelemetry/core @opentelemetry/sdk-trace && pnpm add @opentelemetry/api@1.9.1 @opentelemetry/exporter-trace-otlp-http@^0.220.0 @opentelemetry/sdk-trace-base@^2.9.0 @opentelemetry/sdk-trace-node@^2.9.0 && pnpm dedupe && cp otel-v2/tracer-provider.ts src/tracer-provider.ts && pnpm build",
     "test:assert": "pnpm test"
   },
   "dependencies": {
-    "@opentelemetry/api": "^1.9.1",
-    "@opentelemetry/exporter-trace-otlp-http": "^0.220.0",
-    "@opentelemetry/sdk-trace-base": "^2.9.0",
-    "@opentelemetry/sdk-trace-node": "^2.9.0",
+    "@opentelemetry/api": "^1.10.0",
+    "@opentelemetry/context-async-hooks": "^3.0.0",
+    "@opentelemetry/core": "^3.0.0",
+    "@opentelemetry/exporter-trace-otlp-http": "^0.300.0",
+    "@opentelemetry/sdk-trace": "^3.0.0",
     "@sentry/node": "file:../../packed/sentry-node-packed.tgz",
     "@types/express": "^4.17.21",
     "@types/node": "^18.19.1",
@@ -27,5 +29,14 @@
   },
   "volta": {
     "extends": "../../package.json"
+  },
+  "sentryTest": {
+    "variants": [
+      {
+        "build-command": "pnpm test:build:otel-v2",
+        "assert-command": "pnpm test:assert",
+        "label": "node-express-otlp (OTel SDK v2)"
+      }
+    ]
   }
 }

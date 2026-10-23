@@ -1,9 +1,8 @@
 import { trace } from '@opentelemetry/api';
 import { OTLPTraceExporter } from '@opentelemetry/exporter-trace-otlp-http';
-import { BatchSpanProcessor } from '@opentelemetry/sdk-trace-base';
-import { NodeTracerProvider } from '@opentelemetry/sdk-trace-node';
 import * as Sentry from '@sentry/node';
 import express from 'express';
+import { registerTracerProvider } from './tracer-provider';
 
 const dsn = process.env.E2E_TEST_DSN as string;
 const appPort = 3030;
@@ -17,19 +16,12 @@ if (!otlpTracesEndpoint) {
 // The user brings their own OpenTelemetry setup. In production `url` would be
 // `otlpTracesEndpoint.url`; here it points at the local receiver below so the test can assert what
 // was actually exported. The auth headers are the real DSN-derived ones either way.
-const provider = new NodeTracerProvider({
-  spanProcessors: [
-    new BatchSpanProcessor(
-      new OTLPTraceExporter({
-        url: `http://localhost:${otlpReceiverPort}/v1/traces`,
-        headers: otlpTracesEndpoint.headers,
-      }),
-      { scheduledDelayMillis: 100 },
-    ),
-  ],
-});
-
-provider.register();
+registerTracerProvider(
+  new OTLPTraceExporter({
+    url: `http://localhost:${otlpReceiverPort}/v1/traces`,
+    headers: otlpTracesEndpoint.headers,
+  }),
+);
 
 Sentry.init({
   dsn,

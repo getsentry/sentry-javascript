@@ -14,16 +14,18 @@
     "test:dev": "TEST_ENV=development playwright test",
     "test:dev-webpack": "TEST_ENV=development-webpack playwright test",
     "test:build": "pnpm install && pnpm build",
+    "test:build:otel-v2": "pnpm remove @opentelemetry/context-async-hooks @opentelemetry/core @opentelemetry/sdk-trace && pnpm add @opentelemetry/api@1.9.1 @opentelemetry/exporter-trace-otlp-http@^0.220.0 @opentelemetry/resources@^2.9.0 @opentelemetry/sdk-trace-base@^2.9.0 @opentelemetry/sdk-trace-node@^2.9.0 && pnpm dedupe && cp otel-v2/otel-tracer-provider.ts otel-tracer-provider.ts && pnpm build",
     "test:build-webpack": "pnpm install && pnpm build-webpack",
     "test:assert": "pnpm test:prod && pnpm test:dev",
     "test:assert-webpack": "pnpm test:prod && pnpm test:dev-webpack"
   },
   "dependencies": {
-    "@opentelemetry/api": "^1.9.1",
-    "@opentelemetry/exporter-trace-otlp-http": "^0.220.0",
-    "@opentelemetry/resources": "^2.9.0",
-    "@opentelemetry/sdk-trace-base": "^2.9.0",
-    "@opentelemetry/sdk-trace-node": "^2.9.0",
+    "@opentelemetry/api": "^1.10.0",
+    "@opentelemetry/context-async-hooks": "^3.0.0",
+    "@opentelemetry/core": "^3.0.0",
+    "@opentelemetry/exporter-trace-otlp-http": "^0.300.0",
+    "@opentelemetry/resources": "^3.0.0",
+    "@opentelemetry/sdk-trace": "^3.0.0",
     "@sentry/core": "file:../../packed/sentry-core-packed.tgz",
     "@sentry/nextjs": "file:../../packed/sentry-nextjs-packed.tgz",
     "import-in-the-middle": "^2",
@@ -51,6 +53,11 @@
         "build-command": "pnpm test:build-webpack",
         "label": "nextjs-otlp (webpack)",
         "assert-command": "pnpm test:assert-webpack"
+      },
+      {
+        "build-command": "pnpm test:build:otel-v2",
+        "assert-command": "pnpm test:assert",
+        "label": "nextjs-otlp (OTel SDK v2)"
       }
     ]
   }
