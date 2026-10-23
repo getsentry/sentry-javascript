@@ -33,6 +33,7 @@
     "extends": "../../package.json"
   },
   "sentryTest": {
+    "runner": "namespace-profile-sentry-javascript",
     "variants": [
       {
         "build-command": "E2E_TEST_OTEL_SETUP=true pnpm test:build",

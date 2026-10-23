@@ -136,16 +136,18 @@ function instrumentFetch(onFetchResolved?: (response: Response) => void): void {
                 error.message === 'NetworkError when attempting to fetch resource.')
             ) {
               try {
-                const url = new URL(handlerData.fetchData.url);
+                const url = new URL(handlerData.fetchData.url, GLOBAL_OBJ.location?.href);
                 const hostname = url.host;
 
-                if (enhanceOption === 'always') {
-                  // Modify the error message directly
-                  error.message = `${error.message} (${hostname})`;
-                } else {
-                  // Store hostname as non-enumerable property for Sentry-only enhancement
-                  // This preserves the original error message for third-party packages
-                  addNonEnumerableProperty(error, '__sentry_fetch_url_host__', hostname);
+                if (hostname) {
+                  if (enhanceOption === 'always') {
+                    // Modify the error message directly
+                    error.message = `${error.message} (${hostname})`;
+                  } else {
+                    // Store hostname as non-enumerable property for Sentry-only enhancement
+                    // This preserves the original error message for third-party packages
+                    addNonEnumerableProperty(error, '__sentry_fetch_url_host__', hostname);
+                  }
                 }
               } catch {
                 // ignore it if errors happen here

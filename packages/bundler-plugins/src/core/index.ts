@@ -37,6 +37,58 @@ export function shouldSkipCodeInjection(code: string, facadeModuleId: string | n
   return false;
 }
 
+export interface ChunkGraphNode {
+  fileName: string;
+  isEntry?: boolean;
+  imports?: string[];
+}
+
+const initialChunksCache = new WeakMap<Record<string, ChunkGraphNode>, Set<string>>();
+
+function getInitialChunks(chunks: Record<string, ChunkGraphNode>): Set<string> {
+  const cached = initialChunksCache.get(chunks);
+  if (cached) {
+    return cached;
+  }
+
+  const initial = new Set<string>();
+  const queue = Object.values(chunks).filter(chunk => chunk.isEntry);
+
+  for (let chunk = queue.shift(); chunk; chunk = queue.shift()) {
+    if (initial.has(chunk.fileName)) {
+      continue;
+    }
+    initial.add(chunk.fileName);
+    for (const imported of chunk.imports ?? []) {
+      const importedChunk = chunks[imported];
+      if (importedChunk) {
+        queue.push(importedChunk);
+      }
+    }
+  }
+
+  initialChunksCache.set(chunks, initial);
+  return initial;
+}
+
+/**
+ * Whether a chunk loads at startup: it is an entry chunk, or an entry chunk
+ * reaches it through static imports. Chunks that only dynamic imports reach
+ * load later, after startup code already ran.
+ *
+ * Without the chunk graph every chunk counts as initial.
+ */
+export function isInitialChunk(
+  chunk: Pick<ChunkGraphNode, 'fileName' | 'isEntry'>,
+  chunks: Record<string, ChunkGraphNode> | undefined,
+): boolean {
+  if (chunk.isEntry || !chunks) {
+    return true;
+  }
+
+  return getInitialChunks(chunks).has(chunk.fileName);
+}
+
 export { globFiles } from './glob';
 export { getCodeInjectionPosition } from './get-code-injection-position';
 

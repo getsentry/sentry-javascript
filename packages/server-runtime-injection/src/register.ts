@@ -321,6 +321,25 @@ export function registerDiagnosticsChannelInjection(): void {
 
       const hookSpecifier = hookFound ? pathToFileURL(hookPath).href : '@sentry/server-runtime-injection/hook';
 
+      if (hookFound) {
+        // Only `build/esm/package.json` marks the hook and its chunks as ESM. Deployments can drop
+        // that file, and Vercel disables syntax detection, so Node then parses the hook as CommonJS
+        // and fails on its `export`s.
+        //
+        // This registers a small loader hook before the real one. Its `load` sets
+        // `format: 'module'` for every URL inside our ESM build directory and passes all other URLs
+        // through unchanged. Hooks registered earlier also apply when Node loads hook modules
+        // registered later, so the real hook and its chunks load as ESM even without the marker.
+        // The loader is inlined as a `data:` URL because Node always loads those as ESM, so it
+        // cannot fail the same way and needs no file of its own.
+        const esmDirUrl = `${pathToFileURL(dirname(hookPath)).href}/`;
+        mod.register(
+          `data:text/javascript,${encodeURIComponent(
+            `const d=${JSON.stringify(esmDirUrl)};export async function load(u,c,n){return n(u,u.startsWith(d)?{...c,format:'module'}:c)}`,
+          )}`,
+        );
+      }
+
       mod.register(hookSpecifier, {
         parentURL,
         data: { instrumentations: SENTRY_RUNTIME_INSTRUMENTATIONS, diagnosticsPort },

@@ -55,6 +55,34 @@ describe('httpIntegration', () => {
     });
   });
 
+  describe('user callbacks that throw', () => {
+    createEsmAndCjsTests(__dirname, 'server.mjs', 'instrument-throwing-callbacks.mjs', (createRunner, test) => {
+      test('still handles requests and sends the span when `onSpanCreated` and `ignoreIncomingRequests` throw', async () => {
+        const runner = createRunner()
+          .expect({
+            span: {
+              items: expect.arrayContaining([
+                expect.objectContaining({
+                  is_segment: true,
+                  status: 'ok',
+                  attributes: expect.objectContaining({
+                    [URL_FULL]: { type: 'string', value: expect.stringMatching(/\/test$/) },
+                    [HTTP_RESPONSE_STATUS_CODE]: { type: 'integer', value: 200 },
+                    [SENTRY_OP]: { type: 'string', value: HTTP_SERVER },
+                  }),
+                }),
+              ]),
+            },
+          })
+          .start();
+
+        expect(await runner.makeRequest('get', '/test')).toEqual({ response: 'response 1' });
+        expect(await runner.makeRequest('post', '/test')).toEqual({ response: 'response 2' });
+        await runner.completed();
+      });
+    });
+  });
+
   describe('outgoing request span hooks', () => {
     test('runs outgoingRequestHook, outgoingResponseHook and outgoingRequestApplyCustomAttributes', async () => {
       const [SERVER_URL, closeTestServer] = await createTestServer()
