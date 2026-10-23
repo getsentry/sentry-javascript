@@ -81,7 +81,7 @@ describe('instrumentR2Bucket', () => {
       expect(startSpanSpy).toHaveBeenLastCalledWith(
         expect.objectContaining({
           op: 'object.get',
-          name: 'r2_get',
+          name: 'R2.GetObject',
           attributes: expect.objectContaining({
             'cloudflare.r2.operation': 'GetObject',
             'cloudflare.r2.bucket': 'MY_BUCKET',
@@ -113,7 +113,7 @@ describe('instrumentR2Bucket', () => {
       expect(startSpanSpy).toHaveBeenLastCalledWith(
         expect.objectContaining({
           op: 'object.head',
-          name: 'r2_head',
+          name: 'R2.HeadObject',
           attributes: expect.objectContaining({
             'cloudflare.r2.operation': 'HeadObject',
             'cloudflare.r2.request.key': 'my-file.txt',
@@ -143,7 +143,7 @@ describe('instrumentR2Bucket', () => {
       expect(startSpanSpy).toHaveBeenLastCalledWith(
         expect.objectContaining({
           op: 'object.put',
-          name: 'r2_put',
+          name: 'R2.PutObject',
           attributes: expect.objectContaining({
             'cloudflare.r2.operation': 'PutObject',
             'cloudflare.r2.request.key': 'upload/photo.jpg',
@@ -171,7 +171,7 @@ describe('instrumentR2Bucket', () => {
       expect(startSpanSpy).toHaveBeenLastCalledWith(
         expect.objectContaining({
           op: 'object.delete',
-          name: 'r2_delete',
+          name: 'R2.DeleteObject',
           attributes: expect.objectContaining({
             'cloudflare.r2.operation': 'DeleteObject',
             'cloudflare.r2.request.key': 'my-file.txt',
@@ -207,7 +207,7 @@ describe('instrumentR2Bucket', () => {
       expect(startSpanSpy).toHaveBeenLastCalledWith(
         expect.objectContaining({
           op: 'object.list',
-          name: 'r2_list',
+          name: 'R2.ListObjects',
           attributes: expect.objectContaining({
             'cloudflare.r2.operation': 'ListObjects',
           }),
@@ -237,7 +237,7 @@ describe('instrumentR2Bucket', () => {
       expect(startSpanSpy).toHaveBeenLastCalledWith(
         expect.objectContaining({
           op: 'object.multipart_upload.create',
-          name: 'r2_createMultipartUpload',
+          name: 'R2.CreateMultipartUpload',
           attributes: expect.objectContaining({
             'cloudflare.r2.operation': 'CreateMultipartUpload',
             'cloudflare.r2.request.key': 'big-file.bin',
@@ -257,7 +257,7 @@ describe('instrumentR2Bucket', () => {
       expect(startSpanSpy).toHaveBeenCalledTimes(1);
       expect(startSpanSpy).toHaveBeenLastCalledWith(
         expect.objectContaining({
-          name: 'r2_uploadPart',
+          name: 'R2.UploadPart',
           attributes: expect.objectContaining({
             'cloudflare.r2.request.key': 'big-file.bin',
             'cloudflare.r2.request.part_number': 1,
@@ -295,7 +295,7 @@ describe('instrumentR2Bucket', () => {
       expect(startSpanSpy).toHaveBeenCalledTimes(1);
       expect(startSpanSpy).toHaveBeenLastCalledWith(
         expect.objectContaining({
-          name: 'r2_abortMultipartUpload',
+          name: 'R2.AbortMultipartUpload',
           attributes: expect.objectContaining({
             'cloudflare.r2.request.key': 'my-file.txt',
           }),
@@ -324,7 +324,7 @@ describe('instrumentR2Bucket', () => {
       expect(startSpanSpy).toHaveBeenCalledTimes(1);
       expect(startSpanSpy).toHaveBeenLastCalledWith(
         expect.objectContaining({
-          name: 'r2_completeMultipartUpload',
+          name: 'R2.CompleteMultipartUpload',
           attributes: expect.objectContaining({
             'cloudflare.r2.operation': 'CompleteMultipartUpload',
             'cloudflare.r2.request.key': 'my-file.txt',
