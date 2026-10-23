@@ -21,6 +21,7 @@ import {
   onUncaughtExceptionIntegration,
   onUnhandledRejectionIntegration,
   processSessionIntegration,
+  systemErrorIntegration,
 } from '@sentry/node';
 import { bunServerIntegration } from './integrations/bunserver';
 import { fetchIntegration } from './integrations/fetch';
@@ -52,6 +53,7 @@ export function getDefaultIntegrationsWithoutPerformance(): Integration[] {
     linkedErrorsIntegration(),
     dedupeIntegration(),
     requestDataIntegration(),
+    systemErrorIntegration(),
     conversationIdIntegration(),
     // Native Wrappers
     consoleIntegration(),
@@ -63,6 +65,7 @@ export function getDefaultIntegrationsWithoutPerformance(): Integration[] {
     // Event Info
     contextLinesIntegration(),
     nodeContextIntegration(),
+    // childProcessIntegration and workerThreadsIntegration are omitted: Bun never publishes to those diagnostics channels (#20237)
     modulesIntegration(),
     processSessionIntegration(),
     // Framework-level integrations. These are not performance-only: they also handle error capture, so
