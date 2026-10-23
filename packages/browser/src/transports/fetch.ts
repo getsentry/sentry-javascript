@@ -53,21 +53,19 @@ export function makeFetchTransport(
       const status = response.status;
 
       // Only a 404 or 405 says nothing serves the tunnel. Any other answer may come from a tunnel the app runs itself.
-      if (isTunnel && (status === 404 || status === 405) && !response.headers.get(TUNNEL_RESPONSE_HEADER)) {
-        DEBUG_BUILD &&
-          debug.warn(`Sending to Sentry directly: "${requestUrl}" answered ${status} instead of the tunnel.`);
-        url = fallbackUrl;
-
-        return await makeRequest(request);
+      if (!isTunnel || (status !== 404 && status !== 405) || response.headers.get(TUNNEL_RESPONSE_HEADER)) {
+        return {
+          statusCode: status,
+          headers: {
+            'x-sentry-rate-limits': response.headers.get('X-Sentry-Rate-Limits'),
+            'retry-after': response.headers.get('Retry-After'),
+          },
+        };
       }
 
-      return {
-        statusCode: status,
-        headers: {
-          'x-sentry-rate-limits': response.headers.get('X-Sentry-Rate-Limits'),
-          'retry-after': response.headers.get('Retry-After'),
-        },
-      };
+      DEBUG_BUILD &&
+        debug.warn(`Sending to Sentry directly: "${requestUrl}" answered ${status} instead of the tunnel.`);
+      url = fallbackUrl;
     } catch (e) {
       clearCachedImplementation('fetch');
       throw e;
@@ -75,6 +73,9 @@ export function makeFetchTransport(
       pendingBodySize -= requestSize;
       pendingCount--;
     }
+
+    // Resent once the tunnel request no longer counts as in flight, so the direct send keeps `keepalive`.
+    return makeRequest(request);
   }
 
   return createTransport(

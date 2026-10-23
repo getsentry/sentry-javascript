@@ -190,6 +190,17 @@ describe('makeFetchTransport with a managed tunnel', () => {
     expect(sent()).toEqual([[TUNNEL_URL, 'a']]);
   });
 
+  it('keeps `keepalive` on the direct resend of an envelope the tunnel did not take', async () => {
+    const { transport, nativeFetch } = setup({ [TUNNEL_URL]: [{ status: 404 }] });
+    const envelope = createEnvelope<EventEnvelope>({ dsn: DSN, event_id: 'a' }, [
+      [{ type: 'event' }, { event_id: 'a', message: 'x'.repeat(40_000) }] as EventItem,
+    ]);
+
+    await transport.send(envelope);
+
+    expect(nativeFetch).toHaveBeenLastCalledWith(DIRECT_URL, expect.objectContaining({ keepalive: true }));
+  });
+
   it('sends each envelope directly once when several were already on their way to the tunnel', async () => {
     const { transport, sent } = setup({ [TUNNEL_URL]: [{ status: 404 }, { status: 404 }] });
 
