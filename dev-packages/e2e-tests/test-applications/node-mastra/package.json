@@ -23,7 +23,7 @@
     "@sentry/node": "file:../../packed/sentry-node-packed.tgz",
     "ai": "~7.0.97",
     "dataloader": "~2.2.3",
-    "zod": "4.5.4"
+    "zod": "4.6.6"
   },
   "devDependencies": {
     "@playwright/test": "1.64.1",
