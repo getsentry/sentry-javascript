@@ -49,6 +49,21 @@ try {
   console.log('loads: no', error);
 }
 
+section('Component annotation transform');
+try {
+  const pluginsDir = fs.readdirSync(pnpmDir).find(name => name.startsWith('@sentry+bundler-plugins@'));
+  const { createComponentNameAnnotateHooks } = createRequire(
+    path.resolve(pnpmDir, pluginsDir, 'node_modules/@sentry/bundler-plugins/package.json'),
+  )('@sentry/bundler-plugins/core');
+  const file = path.resolve('app/global-error.tsx');
+  const source = fs.readFileSync(file, 'utf8');
+  const result = await createComponentNameAnnotateHooks([], false).transform(source, file);
+  const code = typeof result === 'string' ? result : result?.code;
+  console.log(code === undefined ? 'no change' : `start: ${JSON.stringify(code.slice(0, 120))}`);
+} catch (error) {
+  console.log('failed:', error);
+}
+
 section('Client reference manifest');
 const manifest = '.next/server/app/_global-error/page_client-reference-manifest.js';
 if (fs.existsSync(manifest)) {
@@ -56,6 +71,10 @@ if (fs.existsSync(manifest)) {
   console.log(
     `${manifest}: ${content.length} bytes, "global-error" appears ${content.split('global-error').length - 1} times`,
   );
+  let index = -1;
+  while ((index = content.indexOf('global-error', index + 1)) !== -1) {
+    console.log(`  - ${content.slice(Math.max(0, index - 90), index + 90).replace(/\s+/g, ' ')}`);
+  }
 } else {
   console.log(`${manifest}: missing`);
 }

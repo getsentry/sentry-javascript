@@ -20,7 +20,7 @@ export default withSentryConfig(nextConfig, {
   silent: true,
   applicationKey: 'nextjs-16-e2e',
   reactComponentAnnotation: {
-    enabled: true,
+    enabled: false,
   },
   _experimental: {
     vercelCronsMonitoring: true,
