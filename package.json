@@ -49,9 +49,13 @@
     "yalc:publish": "nx run-many -t yalc:publish"
   },
   "packageManager": "pnpm@12.11.2",
+  "//_volta_comment": [
+    "Volta cannot start pnpm 11 or newer (volta-cli/volta#2114). It starts this pnpm 10 version, which switches to the `packageManager` version.",
+    "Volta reads the pnpm version only when `VOLTA_FEATURE_PNPM=1` is set, see CONTRIBUTING.md."
+  ],
   "volta": {
     "node": "24.22.1",
-    "pnpm": "9.15.9"
+    "pnpm": "10.34.6"
   },
   "//_workspaces_comment": [
     "pnpm reads the workspace packages from pnpm-workspace.yaml. Deno and the repo scripts read this list.",
