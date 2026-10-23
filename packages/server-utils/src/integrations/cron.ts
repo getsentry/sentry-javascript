@@ -18,14 +18,11 @@ export interface CronJobIntegrationOptions {
   excludeJobs?: Array<string | RegExp>;
 }
 
-let options: CronJobIntegrationOptions = {};
-
-const _cronJobIntegration = ((integrationOptions: CronJobIntegrationOptions = {}) => {
+const _cronJobIntegration = ((options: CronJobIntegrationOptions = {}) => {
   return {
     name: INTEGRATION_NAME,
     setup(client) {
-      options = integrationOptions;
-      invokeOrchestrionInstrumentation(client, cronModuleNames, subscribe, [], {
+      invokeOrchestrionInstrumentation(client, cronModuleNames, subscribe, [options], {
         requiresTracingChannelBinding: false,
       });
     },
@@ -38,12 +35,12 @@ const _cronJobIntegration = ((integrationOptions: CronJobIntegrationOptions = {}
  */
 export const cronJobIntegration = defineIntegration(_cronJobIntegration);
 
-function subscribe(): void {
-  subscribeToJobCreation(CHANNELS.CRON_JOB_CONSTRUCTOR, INTEGRATION_NAME, wrapJob);
+function subscribe(options: CronJobIntegrationOptions): void {
+  subscribeToJobCreation(CHANNELS.CRON_JOB_CONSTRUCTOR, INTEGRATION_NAME, args => wrapJob(args, options));
 }
 
 // `new CronJob(cronTime, onTick, onComplete, start, timeZone, context, runOnInit, utcOffset, ..., name)`
-function wrapJob(args: unknown[]): void {
+function wrapJob(args: unknown[], options: CronJobIntegrationOptions): void {
   const [cronTime, onTick, , , timeZone] = args;
   const utcOffset = args[7];
   const name = args[11];
