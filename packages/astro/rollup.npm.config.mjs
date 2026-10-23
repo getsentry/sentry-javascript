@@ -2,7 +2,12 @@ import { makeBaseNPMConfig, makeNPMConfigVariants, makeOrchestrionLoader } from 
 
 const variants = makeNPMConfigVariants(
   makeBaseNPMConfig({
-    entrypoints: ['src/index.server.ts', 'src/index.client.ts', 'src/integration/middleware/index.ts'],
+    entrypoints: [
+      'src/index.server.ts',
+      'src/index.client.ts',
+      'src/index.integration.ts',
+      'src/integration/middleware/index.ts',
+    ],
     packageSpecificConfig: {
       output: {
         dynamicImportInCjs: true,

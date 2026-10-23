@@ -1,5 +1,5 @@
 import node from '@astrojs/node';
-import sentry from '@sentry/astro';
+import sentry from '@sentry/astro/integration';
 import { defineConfig } from 'astro/config';
 import * as fs from 'node:fs';
 
