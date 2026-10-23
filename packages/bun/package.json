@@ -49,6 +49,7 @@
     "@sentry/server-utils": "11.8.0"
   },
   "devDependencies": {
+    "@sentry-internal/rollup-utils": "11.8.0",
     "bun-types": "^1.2.9"
   },
   "scripts": {

@@ -33,7 +33,8 @@ sentryTest(
       [SENTRY_IDLE_SPAN_FINISH_REASON]: { type: 'string', value: 'cancelled' },
     });
 
-    // ending span after 1s but adding a margin of 0.5s to account for timing weirdness in CI to avoid flakes
-    expect(spanDurationSeconds).toBeLessThan(1.5);
+    // The navigation starts 1s after init, but init itself can run well after the time origin on slow CI machines.
+    // Calling `reportPageLoaded()` would only end the span after 2.5s.
+    expect(spanDurationSeconds).toBeLessThan(2.5);
   },
 );

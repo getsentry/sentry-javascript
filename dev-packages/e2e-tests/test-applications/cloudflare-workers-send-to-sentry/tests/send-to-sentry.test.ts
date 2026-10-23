@@ -1,6 +1,14 @@
 import { randomBytes } from 'node:crypto';
 import { expect, test } from '@playwright/test';
 import {
+  GEN_AI_INPUT_MESSAGES,
+  GEN_AI_OPERATION_NAME,
+  GEN_AI_OUTPUT_MESSAGES,
+  GEN_AI_REQUEST_MODEL,
+  GEN_AI_RESPONSE_MODEL,
+} from '@sentry/conventions/attributes';
+import { GEN_AI_CHAT, GEN_AI_DECIDE, HTTP_SERVER } from '@sentry/conventions/op';
+import {
   EVENT_POLLING_OPTIONS,
   fetchSpanAttributes,
   fetchTrace,
@@ -37,7 +45,7 @@ test('Sends an unhandled exception and its request span to Sentry', async () => 
   console.log(`Polling for unhandled error: sentry trace view ${traceTarget(traceId)}`);
 
   await expect.poll(() => findErrorInTrace(traceId), EVENT_POLLING_OPTIONS).toBeDefined();
-  await expect.poll(() => findSpanInTrace(traceId, 'http.server'), EVENT_POLLING_OPTIONS).toBeDefined();
+  await expect.poll(() => findSpanInTrace(traceId, HTTP_SERVER), EVENT_POLLING_OPTIONS).toBeDefined();
 });
 
 test('Sends a request span to Sentry', async () => {
@@ -48,7 +56,7 @@ test('Sends a request span to Sentry', async () => {
   console.log(`Polling for request spanId ${spanId}: sentry trace view ${traceTarget(traceId)}`);
 
   await expect
-    .poll(() => findSpanInTrace(traceId, 'http.server'), EVENT_POLLING_OPTIONS)
+    .poll(() => findSpanInTrace(traceId, HTTP_SERVER), EVENT_POLLING_OPTIONS)
     .toMatchObject({ event_id: spanId });
 });
 
@@ -82,15 +90,15 @@ test('Sends a Workers AI gen_ai span to Sentry', async () => {
 
   let spanId: string | undefined;
   await expect
-    .poll(() => (spanId = findSpanInTrace(traceId, 'gen_ai.chat')?.event_id), EVENT_POLLING_OPTIONS)
+    .poll(() => (spanId = findSpanInTrace(traceId, GEN_AI_CHAT)?.event_id), EVENT_POLLING_OPTIONS)
     .toBeDefined();
 
   // Sentry stores `gen_ai.response.text` as `gen_ai.output.messages`.
   await expect
     .poll(() => fetchSpanAttributes(traceId, spanId!), EVENT_POLLING_OPTIONS)
     .toMatchObject({
-      'gen_ai.input.messages': expect.stringContaining('Say hi'),
-      'gen_ai.output.messages': expect.stringContaining('"role":"assistant"'),
+      [GEN_AI_INPUT_MESSAGES]: expect.stringContaining('Say hi'),
+      [GEN_AI_OUTPUT_MESSAGES]: expect.stringContaining('"role":"assistant"'),
     });
 });
 
@@ -101,17 +109,17 @@ test('Sends a Workers AI gen_ai.decide span for a TypeSafe Jev call to Sentry', 
 
   let spanId: string | undefined;
   await expect
-    .poll(() => (spanId = findSpanInTrace(traceId, 'gen_ai.decide')?.event_id), EVENT_POLLING_OPTIONS)
+    .poll(() => (spanId = findSpanInTrace(traceId, GEN_AI_DECIDE)?.event_id), EVENT_POLLING_OPTIONS)
     .toBeDefined();
 
   await expect
     .poll(() => fetchSpanAttributes(traceId, spanId!), EVENT_POLLING_OPTIONS)
     .toMatchObject({
-      'gen_ai.operation.name': 'decide',
-      'gen_ai.request.model': 'typesafe/jev',
-      'gen_ai.response.model': expect.stringMatching(/^jev-/),
-      'gen_ai.input.messages': expect.stringContaining('My payouts have been failing'),
-      'gen_ai.output.messages': expect.stringContaining('"is_urgent"'),
+      [GEN_AI_OPERATION_NAME]: 'decide',
+      [GEN_AI_REQUEST_MODEL]: 'typesafe/jev',
+      [GEN_AI_RESPONSE_MODEL]: expect.stringMatching(/^jev-/),
+      [GEN_AI_INPUT_MESSAGES]: expect.stringContaining('My payouts have been failing'),
+      [GEN_AI_OUTPUT_MESSAGES]: expect.stringContaining('"is_urgent"'),
     });
 });
 
@@ -122,16 +130,40 @@ test('Sends a Workers AI gen_ai.decide span for a Clef call to Sentry', async ()
 
   let spanId: string | undefined;
   await expect
-    .poll(() => (spanId = findSpanInTrace(traceId, 'gen_ai.decide')?.event_id), EVENT_POLLING_OPTIONS)
+    .poll(() => (spanId = findSpanInTrace(traceId, GEN_AI_DECIDE)?.event_id), EVENT_POLLING_OPTIONS)
     .toBeDefined();
 
   await expect
     .poll(() => fetchSpanAttributes(traceId, spanId!), EVENT_POLLING_OPTIONS)
     .toMatchObject({
-      'gen_ai.operation.name': 'decide',
-      'gen_ai.request.model': '@cf/cloudflare/clef',
-      'gen_ai.response.model': expect.stringContaining('clef'),
-      'gen_ai.input.messages': expect.stringContaining('Checkout has been failing'),
-      'gen_ai.output.messages': expect.stringContaining('"urgent"'),
+      [GEN_AI_OPERATION_NAME]: 'decide',
+      [GEN_AI_REQUEST_MODEL]: '@cf/cloudflare/clef',
+      [GEN_AI_RESPONSE_MODEL]: expect.stringContaining('clef'),
+      [GEN_AI_INPUT_MESSAGES]: expect.stringContaining('Checkout has been failing'),
+      [GEN_AI_OUTPUT_MESSAGES]: expect.stringContaining('"urgent"'),
+    });
+});
+
+test('Sends a Workers AI gen_ai.extract span for a Clairic call to Sentry', async () => {
+  const { traceId }: { traceId: string } = JSON.parse(
+    await fetchFromWorker(`${workerUrl}/test-workers-ai-clairic`, 200),
+  );
+
+  console.log(`Polling for gen_ai.extract span: sentry trace view ${traceTarget(traceId)}`);
+
+  let spanId: string | undefined;
+  // TODO: Use `GEN_AI_EXTRACT` from `@sentry/conventions/op` once getsentry/sentry-conventions#728 is released
+  await expect
+    .poll(() => (spanId = findSpanInTrace(traceId, 'gen_ai.extract')?.event_id), EVENT_POLLING_OPTIONS)
+    .toBeDefined();
+
+  await expect
+    .poll(() => fetchSpanAttributes(traceId, spanId!), EVENT_POLLING_OPTIONS)
+    .toMatchObject({
+      [GEN_AI_OPERATION_NAME]: 'extract',
+      [GEN_AI_REQUEST_MODEL]: '@cf/cloudflare/clairic',
+      [GEN_AI_RESPONSE_MODEL]: expect.stringContaining('clairic'),
+      [GEN_AI_INPUT_MESSAGES]: expect.stringContaining('Northwind Supply'),
+      [GEN_AI_OUTPUT_MESSAGES]: expect.stringContaining('INV-2291'),
     });
 });

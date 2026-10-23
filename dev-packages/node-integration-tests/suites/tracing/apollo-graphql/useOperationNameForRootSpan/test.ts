@@ -36,7 +36,7 @@ describe('GraphQL/Apollo Tests > useOperationNameForRootSpan', () => {
                 type: 'string',
               });
               expect(getHelloSpan?.attributes['sentry.origin']).toEqual({
-                value: 'auto.graphql.diagnostic_channel',
+                value: 'auto.graphql.graphql',
                 type: 'string',
               });
               expect(getHelloSpan?.attributes['sentry.op']).toEqual({ value: 'graphql', type: 'string' });
@@ -85,7 +85,7 @@ describe('GraphQL/Apollo Tests > useOperationNameForRootSpan', () => {
                 type: 'string',
               });
               expect(testMutationSpan?.attributes['sentry.origin']).toEqual({
-                value: 'auto.graphql.diagnostic_channel',
+                value: 'auto.graphql.graphql',
                 type: 'string',
               });
               expect(testMutationSpan?.attributes['sentry.op']).toEqual({ value: 'graphql', type: 'string' });
@@ -122,7 +122,7 @@ describe('GraphQL/Apollo Tests > useOperationNameForRootSpan', () => {
               expect(executeSpan?.attributes['graphql.operation.type']).toEqual({ value: 'query', type: 'string' });
               expect(executeSpan?.attributes['graphql.document']).toEqual({ value: 'query {hello}', type: 'string' });
               expect(executeSpan?.attributes['sentry.origin']).toEqual({
-                value: 'auto.graphql.diagnostic_channel',
+                value: 'auto.graphql.graphql',
                 type: 'string',
               });
               expect(executeSpan?.attributes['sentry.op']).toEqual({ value: 'graphql', type: 'string' });
@@ -165,7 +165,7 @@ describe('GraphQL/Apollo Tests > useOperationNameForRootSpan', () => {
                 type: 'string',
               });
               expect(getHelloSpan?.attributes['sentry.origin']).toEqual({
-                value: 'auto.graphql.diagnostic_channel',
+                value: 'auto.graphql.graphql',
                 type: 'string',
               });
               expect(getHelloSpan?.attributes['sentry.op']).toEqual({ value: 'graphql', type: 'string' });
@@ -184,7 +184,7 @@ describe('GraphQL/Apollo Tests > useOperationNameForRootSpan', () => {
                 type: 'string',
               });
               expect(getWorldSpan?.attributes['sentry.origin']).toEqual({
-                value: 'auto.graphql.diagnostic_channel',
+                value: 'auto.graphql.graphql',
                 type: 'string',
               });
               expect(getWorldSpan?.attributes['sentry.op']).toEqual({ value: 'graphql', type: 'string' });

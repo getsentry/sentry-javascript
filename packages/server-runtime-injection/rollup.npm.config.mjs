@@ -30,41 +30,44 @@ import { makeBaseNPMConfig, makeNPMConfigVariants } from '@sentry-internal/rollu
 // to the default itself, not a `{ default }` namespace — CJS callers use it as
 // `require('esquery').parse(...)`.
 //
-// `strictRequires: false`: the default `'auto'` wraps conditionally-required modules (e.g.
-// `debug`'s browser/node split) in lazy initializers exported as `__require` — an export name that
-// downstream re-bundlers mishandle (Turbopack renames it, producing `.require is not a function`
-// crashes in Next.js on Cloudflare). Hoisting is safe here: the vendored graph is closed (nothing
+// `strictRequires: false`: the default `'auto'` wraps conditionally-required modules in lazy
+// initializers exported as `__require` — an export name that downstream re-bundlers mishandle
+// (Turbopack renames it, producing `.require is not a function` crashes in Next.js on Cloudflare). Hoisting is safe here: the vendored graph is closed (nothing
 // optional/missing) and has no require cycles that depend on lazy evaluation.
 const commonJSOptions = { transformMixedEsModules: true, requireReturnsDefault: 'auto', strictRequires: false };
 const commonJSPlugin = commonjs(commonJSOptions);
 
-// Always vendor `debug`'s Node build. Its default entry picks browser vs node at require time,
-// which drags the browser build into this server-only bundle — and, hoisted by
-// `strictRequires: false`, the browser build's storage detection probes `localStorage` at import
-// time, which on Node >= 26 emits an ExperimentalWarning that pollutes stderr and console
-// breadcrumbs in every user app. `order: 'pre'` because the base config's node-resolve plugin
-// sorts ahead of package-specific plugins and would otherwise resolve `debug` first.
-const debugNodeAlias = {
-  name: 'debug-node-alias',
+// Replace `debug` with `src/debug.ts`, which logs through the Sentry logger. `debug` and the
+// `supports-color` it loads read `process.env` at import time, which throws on Deno without env
+// permission. `order: 'pre'` because the base config's node-resolve plugin sorts ahead of
+// package-specific plugins and would otherwise resolve `debug` first.
+const debugShim = {
+  name: 'debug-shim',
   resolveId: {
     order: 'pre',
-    handler(source, importer) {
-      return source === 'debug' ? this.resolve('debug/src/node.js', importer, { skipSelf: true }) : null;
+    handler(source) {
+      return source === 'debug' ? path.join(import.meta.dirname, 'src/debug.ts') : null;
     },
   },
 };
 
-// `debug` vendors the `supports-color` that it finds, and which version that is depends on how the package manager
-// installs it. Resolve it from this package instead, so the vendored version is the one in its `devDependencies`.
-const supportsColorFromPackage = {
-  name: 'supports-color-from-package',
-  resolveId: {
-    order: 'pre',
-    handler(source) {
-      return source === 'supports-color'
-        ? this.resolve(source, path.join(import.meta.dirname, 'package.json'), { skipSelf: true })
-        : null;
-    },
+// `ModulePatch` reads `process.env.TRACING_DUMP` after each module it transforms. On Deno without
+// env permission that read throws, and the module counts as failed. Treat the throw as unset.
+const guardTracingDump = {
+  name: 'guard-tracing-dump',
+  transform(code, id) {
+    if (!id.includes('@apm-js-collab/tracing-hooks/index.js')) {
+      return null;
+    }
+    const read = 'process.env.TRACING_DUMP)';
+    if (!code.includes(read)) {
+      this.error(`Expected \`${read}\` in ${id}`);
+    }
+    // `map: null` keeps the existing mappings, which stay right because no line moves.
+    return {
+      code: code.replace(read, '(() => { try { return process.env.TRACING_DUMP } catch { return undefined } })())'),
+      map: null,
+    };
   },
 };
 
@@ -113,7 +116,7 @@ export default [
       // `import` condition, so the `build/cjs` copy is unused.
       entrypoints: ['src/register.ts', 'src/hook.mjs'],
       packageSpecificConfig: {
-        plugins: [debugNodeAlias, supportsColorFromPackage, commonJSPlugin, thirdPartyLicensePlugin],
+        plugins: [debugShim, guardTracingDump, commonJSPlugin, thirdPartyLicensePlugin],
         output: {
           exports: 'named',
           preserveModules: true,

@@ -14,8 +14,9 @@ Developer Documentation.
 
 ## Setting up an Environment
 
-We use [Volta](https://volta.sh/) to ensure we use consistent versions of node and pnpm. Make sure to enable
-[pnpm support in Volta](https://docs.volta.sh/advanced/pnpm).
+We use [Volta](https://volta.sh/) to ensure we use consistent versions of node and pnpm. Volta manages pnpm only when
+[pnpm support](https://docs.volta.sh/advanced/pnpm) is enabled, so add `export VOLTA_FEATURE_PNPM=1` to your shell
+profile (for example `~/.zshrc`).
 
 `sentry-javascript` is a monorepo containing several packages, managed with pnpm workspaces and Nx. To get started,
 install all dependencies, and then perform an initial build, so TypeScript can read all of the linked type definitions.

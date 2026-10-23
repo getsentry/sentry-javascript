@@ -40,6 +40,7 @@
     "elysia": "^1.4.0"
   },
   "devDependencies": {
+    "@sentry-internal/rollup-utils": "11.8.0",
     "bun-types": "^1.2.9",
     "elysia": "^1.4.29"
   },

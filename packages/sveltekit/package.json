@@ -70,7 +70,7 @@
     }
   },
   "dependencies": {
-    "@opentelemetry/api": "^1.9.1",
+    "@opentelemetry/api": "^1.10.0",
     "@sentry/cloudflare": "11.8.0",
     "@sentry/core": "11.8.0",
     "@sentry/conventions": "^0.27.0",
@@ -85,8 +85,11 @@
     "sorcery": "1.0.0"
   },
   "devDependencies": {
+    "@sentry-internal/rollup-utils": "11.8.0",
+    "@sentry/browser": "11.8.0",
     "@sveltejs/kit": "^2.70.2",
     "@sveltejs/vite-plugin-svelte": "^3.0.0",
+    "@types/node": "^20.19.0",
     "svelte": "^4.2.8",
     "vite": "^8.3.1"
   },
