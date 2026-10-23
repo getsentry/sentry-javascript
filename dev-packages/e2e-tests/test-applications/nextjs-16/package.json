@@ -7,7 +7,7 @@
     "build": "next build > .tmp_build_stdout 2> .tmp_build_stderr || (cat .tmp_build_stdout && cat .tmp_build_stderr && exit 1)",
     "clean": "npx rimraf node_modules pnpm-lock.yaml .tmp_dev_server_logs",
     "dev:webpack": "next dev --webpack",
-    "build-webpack": "next build --webpack > .tmp_build_stdout 2> .tmp_build_stderr || (cat .tmp_build_stdout && cat .tmp_build_stderr && exit 1)",
+    "build-webpack": "next build --webpack > .tmp_build_stdout 2> .tmp_build_stderr || (cat .tmp_build_stdout && cat .tmp_build_stderr && mkdir -p test-results/debug && cp pnpm-lock.yaml test-results/debug/ && ls node_modules/.pnpm > test-results/debug/pnpm-dirs.txt && tar --exclude=.next/cache -czf test-results/debug/next.tgz .next && exit 1)",
     "start": "next start",
     "lint": "eslint",
     "test:prod": "TEST_ENV=production playwright test",
