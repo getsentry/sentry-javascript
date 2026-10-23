@@ -33,32 +33,16 @@ Developer Documentation.
 
 ### First-time setup
 
-1. Install pnpm 12 or newer with the [standalone script](https://pnpm.io/installation#using-a-standalone-script):
-
-   ```sh
-   curl -fsSL https://get.pnpm.io/install.sh | sh -
-   ```
-
-   The script adds `$PNPM_HOME/bin` to your shell profile. Open a new terminal afterwards. For Windows, see the
-   [pnpm installation docs](https://pnpm.io/installation).
-
+1. Install pnpm 12 or newer, see the [pnpm installation docs](https://pnpm.io/installation). The
+   [standalone script](https://pnpm.io/installation#using-a-standalone-script) works without an existing node.
 2. Install a default node through pnpm. pnpm uses it outside of projects that pin node:
 
    ```sh
    pnpm runtime set node 24 -g
    ```
 
-3. Check that `node` and `pnpm` come from pnpm. In the repo root, `node --version` should print the version of
-   `devEngines.runtime`, and `pnpm --version` the version of `packageManager`:
-
-   ```sh
-   which node pnpm # both in $PNPM_HOME/bin
-   node --version
-   pnpm --version
-   ```
-
-   If `which` shows another location, a different tool (Volta, nvm, fnm, corepack, Homebrew node) comes first in your
-   `PATH`. Remove it, or move `$PNPM_HOME/bin` before it.
+3. In the repo root, `node --version` should print the version of `devEngines.runtime`, and `pnpm --version` the version
+   of `packageManager`. If not, see [Troubleshooting](#troubleshooting).
 
 ### Updating versions
 
@@ -67,19 +51,23 @@ Developer Documentation.
 - **pnpm:** change `packageManager` in the root `package.json`. `pnpm self-update <version>` in the repo does this for
   you. To update only your global pnpm, run `pnpm self-update` outside of the repo.
 
-### Migrating from Volta
+### Troubleshooting
+
+#### `node` or `pnpm` has the wrong version
+
+Run `which node pnpm`. Both should be in `$PNPM_HOME/bin`. If not, a different tool (Volta, nvm, fnm, corepack,
+Homebrew node) comes first in your `PATH`. Remove it, or move `$PNPM_HOME/bin` before it.
+
+#### Migrating from Volta
 
 The repo no longer has a `volta` field, so Volta runs its default node instead of the version the repo pins, and pnpm
-only works if you installed a default pnpm with Volta (`volta install pnpm`).
+only works if you installed a default pnpm with Volta.
 
-- **If you don't need Volta for other projects:** remove it as described in the
-  [Volta docs](https://docs.volta.sh/advanced/uninstall): delete `~/.volta`, remove the Volta lines (`VOLTA_HOME`,
-  `VOLTA_FEATURE_PNPM` and the `PATH` entry) from your shell profile, and open a new terminal. Then follow the
-  [first-time setup](#first-time-setup).
-- **If other projects still need Volta:** follow the [first-time setup](#first-time-setup) and make sure that
-  `$PNPM_HOME/bin` comes before `~/.volta/bin` in your `PATH`. pnpm's `node` does not read the `volta` field, so in
-  projects that pin node only with Volta, `node` runs pnpm's default node. Use `volta run node` or `volta run pnpm`
-  there to get the Volta version.
+- **If you don't need Volta for other projects:** [uninstall it](https://docs.volta.sh/advanced/uninstall), then follow
+  the [first-time setup](#first-time-setup).
+- **If other projects still need Volta:** follow the [first-time setup](#first-time-setup) and put `$PNPM_HOME/bin`
+  before `~/.volta/bin` in your `PATH`. pnpm's `node` does not read the `volta` field, so use `volta run node` in
+  projects that pin node only with Volta.
 
 `sentry-javascript` is a monorepo containing several packages, managed with pnpm workspaces and Nx. To get started,
 install all dependencies, and then perform an initial build, so TypeScript can read all of the linked type definitions.
