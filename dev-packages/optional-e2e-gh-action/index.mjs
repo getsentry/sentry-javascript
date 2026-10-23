@@ -118,7 +118,7 @@ async function reportInComment(octokit, repo, prNumber, workflowRun) {
   );
 
   const counts = [
-    failing.length && `${failing.length} failing`,
+    failing.length && `${failing.length} not successful`,
     successful.length && `${successful.length} successful`,
   ].filter(Boolean);
   const runLink = `[See the run](${workflowRun.html_url})`;
@@ -162,16 +162,33 @@ function formatJobs(jobs) {
 }
 
 function formatStatus({ conclusion, started_at, completed_at }) {
-  const seconds = Math.round((new Date(completed_at) - new Date(started_at)) / 1000);
-  const duration = seconds >= 60 ? `${Math.floor(seconds / 60)}m` : `${seconds}s`;
+  const duration = formatDuration(started_at, completed_at);
+  const withDuration = (status, preposition) => (duration ? `${status} ${preposition} ${duration}` : status);
 
-  if (conclusion === 'success') {
-    return `Successful in ${duration}`;
+  switch (conclusion) {
+    case 'success':
+      return withDuration('Successful', 'in');
+    case 'failure':
+      return withDuration('Failing', 'after');
+    case 'timed_out':
+      return withDuration('Timed out', 'after');
+    case 'cancelled':
+      return withDuration('Cancelled', 'after');
+    default:
+      return 'Status unknown';
   }
-  if (conclusion === 'cancelled') {
-    return `Cancelled after ${duration}`;
+}
+
+// A job that never started has no `started_at`, and `new Date(null)` is the epoch, which gives a wrong duration.
+function formatDuration(startedAt, completedAt) {
+  if (!startedAt || !completedAt) {
+    return undefined;
   }
-  return `Failing after ${duration}`;
+  const seconds = Math.round((new Date(completedAt) - new Date(startedAt)) / 1000);
+  if (!Number.isFinite(seconds) || seconds < 0) {
+    return undefined;
+  }
+  return seconds >= 60 ? `${Math.floor(seconds / 60)}m` : `${seconds}s`;
 }
 
 run().catch(error => core.setFailed(error.message));

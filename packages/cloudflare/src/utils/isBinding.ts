@@ -31,7 +31,7 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-import type { Ai, D1Database, DurableObjectNamespace, Queue, R2Bucket } from '@cloudflare/workers-types';
+import type { Ai, D1Database, DurableObjectNamespace, KVNamespace, Queue, R2Bucket } from '@cloudflare/workers-types';
 
 /**
  * Checks if a value is a JSRPC proxy (service binding).
@@ -93,6 +93,21 @@ export function isAiBinding(item: unknown): item is Ai {
     typeof item.run === 'function' &&
     typeof item.gateway === 'function' &&
     typeof item.toMarkdown === 'function'
+  );
+}
+
+/**
+ * Duck-type check for Workers KV namespace bindings.
+ * KVNamespace has `get`, `put`, `list`, and `getWithMetadata` methods.
+ */
+export function isKVNamespace(item: unknown): item is KVNamespace {
+  return (
+    item != null &&
+    isNotJSRPC(item) &&
+    typeof item.get === 'function' &&
+    typeof item.put === 'function' &&
+    typeof item.list === 'function' &&
+    typeof item.getWithMetadata === 'function'
   );
 }
 
