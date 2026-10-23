@@ -107,9 +107,10 @@ export function initWithDefaultIntegrations(
     return cached;
   }
 
-  // `false` or a custom list turns off the SDK defaults, late-loaded ones included.
-  const usesSdkDefaults = options.defaultIntegrations === undefined;
-  if (usesSdkDefaults) {
+  // `false` or a custom list turns off the SDK defaults, late-loaded ones
+  // included, unless an SDK built the list from the defaults.
+  const usesSdkDefaults = options.defaultIntegrations === undefined || !!options.extendsDefaultIntegrations;
+  if (options.defaultIntegrations === undefined) {
     options.defaultIntegrations = getDefaultIntegrationsImpl(options);
   }
 
