@@ -467,16 +467,16 @@ importers:
         specifier: 1.64.1
         version: 1.64.1
       '@sentry/browser':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../../packages/browser
       '@sentry/conventions':
         specifier: 0.27.0
         version: 0.27.0
       '@sentry/opentelemetry':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../../packages/opentelemetry
       '@sentry/replay':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../../packages/replay-internal
       '@sentry/rrweb':
         specifier: 2.44.1
@@ -513,10 +513,10 @@ importers:
   dev-packages/bun-integration-tests:
     dependencies:
       '@sentry/bun':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../../packages/bun
       '@sentry/hono':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../../packages/hono
       hono:
         specifier: ^4.13.7
@@ -529,10 +529,10 @@ importers:
         version: 8.16.0
     devDependencies:
       '@sentry-internal/node-integration-tests':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../node-integration-tests
       '@sentry-internal/test-utils':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../test-utils
       bun-types:
         specifier: ^1.2.9
@@ -544,7 +544,7 @@ importers:
   dev-packages/bundler-plugin-integration-tests:
     dependencies:
       '@sentry/bundler-plugins':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../../packages/bundler-plugins
     devDependencies:
       premove:
@@ -563,7 +563,7 @@ importers:
         specifier: ^16.0.3
         version: 16.0.3(rollup@4.62.3)
       '@sentry/browser':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../../packages/browser
       rollup:
         specifier: ^4.60.3
@@ -618,13 +618,13 @@ importers:
         specifier: 6.15.0
         version: 6.15.0(prisma@6.15.0(magicast@0.3.5)(typescript@7.0.2))(typescript@7.0.2)
       '@sentry/cloudflare':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../../packages/cloudflare
       '@sentry/core':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../../packages/core
       '@sentry/hono':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../../packages/hono
       ai:
         specifier: ^6.0.0
@@ -649,7 +649,7 @@ importers:
         specifier: npm:@cloudflare/workers-types@5.20260710.1
         version: '@cloudflare/workers-types@5.20260710.1'
       '@sentry-internal/test-utils':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../test-utils
       '@sentry/conventions':
         specifier: 0.27.0
@@ -673,10 +673,10 @@ importers:
   dev-packages/deno-integration-tests:
     dependencies:
       '@sentry/core':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../../packages/core
       '@sentry/deno':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../../packages/deno
       mysql:
         specifier: ^2.18.1
@@ -686,7 +686,7 @@ importers:
         version: 8.22.0
     devDependencies:
       '@sentry-internal/node-integration-tests':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../node-integration-tests
       vitest:
         specifier: ^4.1.11
@@ -795,19 +795,19 @@ importers:
         specifier: 6.15.0
         version: 6.15.0(prisma@6.15.0(magicast@0.3.5)(typescript@7.0.2))(typescript@7.0.2)
       '@sentry/aws-serverless':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../../packages/aws-serverless
       '@sentry/core':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../../packages/core
       '@sentry/hono':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../../packages/hono
       '@sentry/node':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../../packages/node
       '@sentry/server-utils':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../../packages/server-utils
       '@types/mongodb':
         specifier: ^3.6.20
@@ -976,7 +976,7 @@ importers:
         specifier: 0.220.0
         version: 0.220.0(@opentelemetry/api@1.9.0)(supports-color@10.0.0)
       '@sentry-internal/test-utils':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../test-utils
       '@sentry/conventions':
         specifier: 0.27.0
@@ -1071,7 +1071,7 @@ importers:
         specifier: 1.64.1
         version: 1.64.1
       '@sentry/core':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../../packages/core
       '@types/ws':
         specifier: ^8.18.1
@@ -1083,13 +1083,13 @@ importers:
   packages/angular:
     dependencies:
       '@sentry/browser':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../browser
       '@sentry/conventions':
         specifier: ^0.27.0
         version: 0.27.0
       '@sentry/core':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../core
       tslib:
         specifier: ^2.4.1
@@ -1141,25 +1141,25 @@ importers:
   packages/astro:
     dependencies:
       '@sentry/browser':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../browser
       '@sentry/bundler-plugins':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../bundler-plugins
       '@sentry/conventions':
         specifier: ^0.27.0
         version: 0.27.0
       '@sentry/core':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../core
       '@sentry/node':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../node
       '@sentry/server-runtime-injection':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../server-runtime-injection
       '@sentry/server-utils':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../server-utils
     devDependencies:
       astro:
@@ -1175,16 +1175,16 @@ importers:
         specifier: ^0.27.0
         version: 0.27.0
       '@sentry/core':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../core
       '@sentry/node':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../node
       '@sentry/server-runtime-injection':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../server-runtime-injection
       '@sentry/server-utils':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../server-utils
       '@types/aws-lambda':
         specifier: ^8.10.161
@@ -1200,26 +1200,26 @@ importers:
   packages/browser:
     dependencies:
       '@sentry/browser-utils':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../browser-utils
       '@sentry/conventions':
         specifier: ^0.27.0
         version: 0.27.0
       '@sentry/core':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../core
       '@sentry/feedback':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../feedback
       '@sentry/replay':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../replay-internal
       '@sentry/replay-canvas':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../replay-canvas
     devDependencies:
       '@sentry-internal/integration-shims':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../integration-shims
       fake-indexeddb:
         specifier: ^6.2.5
@@ -1231,7 +1231,7 @@ importers:
         specifier: ^0.27.0
         version: 0.27.0
       '@sentry/core':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../core
       web-vitals:
         specifier: ^6.2.3
@@ -1243,13 +1243,13 @@ importers:
         specifier: ^0.27.0
         version: 0.27.0
       '@sentry/core':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../core
       '@sentry/node':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../node
       '@sentry/server-utils':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../server-utils
     devDependencies:
       bun-types:
@@ -1259,7 +1259,7 @@ importers:
   packages/bundler-plugins:
     dependencies:
       '@sentry/core':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../core
       dotenv:
         specifier: ^17.4.2
@@ -1308,19 +1308,19 @@ importers:
   packages/cloudflare:
     dependencies:
       '@opentelemetry/api':
-        specifier: ^1.10.0
+        specifier: ^1.9.1
         version: 1.10.0
       '@sentry/conventions':
         specifier: ^0.27.0
         version: 0.27.0
       '@sentry/core':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../core
       '@sentry/opentelemetry':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../opentelemetry
       '@sentry/server-utils':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../server-utils
       magic-string:
         specifier: ~0.30.21
@@ -1349,34 +1349,34 @@ importers:
   packages/deno:
     dependencies:
       '@opentelemetry/api':
-        specifier: ^1.10.0
+        specifier: ^1.9.1
         version: 1.10.0
       '@sentry/conventions':
         specifier: ^0.27.0
         version: 0.27.0
       '@sentry/core':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../core
       '@sentry/server-runtime-injection':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../server-runtime-injection
       '@sentry/server-utils':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../server-utils
 
   packages/effect:
     dependencies:
       '@sentry/browser':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../browser
       '@sentry/conventions':
         specifier: ^0.27.0
         version: 0.27.0
       '@sentry/core':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../core
       '@sentry/node':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../node
     devDependencies:
       '@effect/vitest':
@@ -1389,13 +1389,13 @@ importers:
   packages/elysia:
     dependencies:
       '@sentry/bun':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../bun
       '@sentry/conventions':
         specifier: ^0.27.0
         version: 0.27.0
       '@sentry/core':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../core
     devDependencies:
       bun-types:
@@ -1414,13 +1414,13 @@ importers:
         specifier: ^1.20.2
         version: 1.20.6(@babel/core@7.29.7(supports-color@10.0.0))(@glint/template@1.8.0)(supports-color@10.0.0)
       '@sentry/browser':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../browser
       '@sentry/conventions':
         specifier: ^0.27.0
         version: 0.27.0
       '@sentry/core':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../core
       decorator-transforms:
         specifier: ^2.3.2
@@ -1469,16 +1469,16 @@ importers:
   packages/esbuild-plugin:
     dependencies:
       '@sentry/bundler-plugins':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../bundler-plugins
 
   packages/eslint-config-sdk:
     dependencies:
       '@sentry/eslint-plugin-sdk':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../eslint-plugin-sdk
       '@sentry/typescript':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../typescript
       '@typescript-eslint/eslint-plugin':
         specifier: ^5.62.0
@@ -1511,7 +1511,7 @@ importers:
   packages/feedback:
     dependencies:
       '@sentry/core':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../core
     devDependencies:
       preact:
@@ -1521,13 +1521,13 @@ importers:
   packages/gatsby:
     dependencies:
       '@sentry/bundler-plugins':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../bundler-plugins
       '@sentry/core':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../core
       '@sentry/react':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../react
     devDependencies:
       '@testing-library/react':
@@ -1549,16 +1549,16 @@ importers:
         specifier: ^0.27.0
         version: 0.27.0
       '@sentry/core':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../core
       '@sentry/node':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../node
       '@sentry/server-runtime-injection':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../server-runtime-injection
       '@sentry/server-utils':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../server-utils
     devDependencies:
       '@google-cloud/bigquery':
@@ -1580,16 +1580,16 @@ importers:
   packages/hono:
     dependencies:
       '@opentelemetry/api':
-        specifier: ^1.10.0
+        specifier: ^1.9.1
         version: 1.10.0
       '@sentry/conventions':
         specifier: ^0.27.0
         version: 0.27.0
       '@sentry/core':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../core
       '@sentry/server-utils':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../server-utils
     devDependencies:
       '@cloudflare/workers-types':
@@ -1605,7 +1605,7 @@ importers:
   packages/integration-shims:
     dependencies:
       '@sentry/core':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../core
 
   packages/nestjs:
@@ -1614,13 +1614,13 @@ importers:
         specifier: ^0.27.0
         version: 0.27.0
       '@sentry/core':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../core
       '@sentry/node':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../node
       '@sentry/server-utils':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../server-utils
     devDependencies:
       '@nestjs/common':
@@ -1639,43 +1639,43 @@ importers:
   packages/nextjs:
     dependencies:
       '@opentelemetry/api':
-        specifier: ^1.10.0
+        specifier: ^1.9.1
         version: 1.10.0
       '@rollup/plugin-commonjs':
         specifier: 28.0.1
         version: 28.0.1(rollup@4.62.3)
       '@sentry/browser-utils':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../browser-utils
       '@sentry/bundler-plugins':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../bundler-plugins
       '@sentry/cloudflare':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../cloudflare
       '@sentry/conventions':
         specifier: ^0.27.0
         version: 0.27.0
       '@sentry/core':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../core
       '@sentry/node':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../node
       '@sentry/opentelemetry':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../opentelemetry
       '@sentry/react':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../react
       '@sentry/server-runtime-injection':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../server-runtime-injection
       '@sentry/server-utils':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../server-utils
       '@sentry/vercel-edge':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../vercel-edge
       rollup:
         specifier: ^4.60.3
@@ -1697,22 +1697,22 @@ importers:
   packages/nitro:
     dependencies:
       '@sentry/bundler-plugins':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../bundler-plugins
       '@sentry/conventions':
         specifier: ^0.27.0
         version: 0.27.0
       '@sentry/core':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../core
       '@sentry/node':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../node
       '@sentry/server-runtime-injection':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../server-runtime-injection
       '@sentry/server-utils':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../server-utils
     devDependencies:
       h3:
@@ -1728,25 +1728,25 @@ importers:
   packages/node:
     dependencies:
       '@opentelemetry/api':
-        specifier: ^1.10.0
+        specifier: ^1.9.1
         version: 1.10.0
       '@sentry/bundler-plugins':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../bundler-plugins
       '@sentry/conventions':
         specifier: ^0.27.0
         version: 0.27.0
       '@sentry/core':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../core
       '@sentry/opentelemetry':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../opentelemetry
       '@sentry/server-runtime-injection':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../server-runtime-injection
       '@sentry/server-utils':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../server-utils
     devDependencies:
       '@types/node':
@@ -1756,10 +1756,10 @@ importers:
   packages/node-native:
     dependencies:
       '@sentry/core':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../core
       '@sentry/node':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../node
       '@sentry/node-native-stacktrace':
         specifier: ^0.5.1
@@ -1775,31 +1775,31 @@ importers:
         specifier: ^4.6.0
         version: 4.6.0(@nuxt/schema@3.21.11)(confbox@0.2.4)(dotenv@17.4.2)(giget@3.3.1)(jiti@2.7.0)(magic-string@1.1.0)(mlly@1.8.2)(oxc-parser@0.152.0)(rolldown@1.2.11)(unplugin@3.3.0(esbuild@0.28.1)(rolldown@1.2.11)(rollup@4.62.3)(vite@8.3.1(@types/node@20.19.43)(esbuild@0.28.1)(jiti@2.7.0)(less@4.2.0(supports-color@10.0.0))(sass@1.72.0)(stylus@0.59.0(supports-color@10.0.0))(terser@5.43.1)(tsx@4.23.0)(yaml@2.9.0))(webpack@5.107.2(clean-css@5.2.2)(cssnano@7.1.9(postcss@8.5.31))(csso@5.0.5)(esbuild@0.28.1)(html-minifier-terser@6.1.0)(lightningcss@1.33.0)(postcss@8.5.31)(uglify-js@3.13.3)))
       '@sentry/browser':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../browser
       '@sentry/bundler-plugins':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../bundler-plugins
       '@sentry/cloudflare':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../cloudflare
       '@sentry/conventions':
         specifier: ^0.27.0
         version: 0.27.0
       '@sentry/core':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../core
       '@sentry/node':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../node
       '@sentry/server-runtime-injection':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../server-runtime-injection
       '@sentry/server-utils':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../server-utils
       '@sentry/vue':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../vue
     devDependencies:
       '@nuxt/nitro-server':
@@ -1827,20 +1827,20 @@ importers:
         specifier: ^0.27.0
         version: 0.27.0
       '@sentry/core':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../core
     devDependencies:
       '@opentelemetry/api':
-        specifier: ^1.10.0
+        specifier: ^1.9.1
         version: 1.10.0
 
   packages/profiling-node:
     dependencies:
       '@sentry/core':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../core
       '@sentry/node':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../node
       '@sentry/node-cpu-profiler':
         specifier: ^2.4.4
@@ -1853,13 +1853,13 @@ importers:
   packages/react:
     dependencies:
       '@sentry/browser':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../browser
       '@sentry/conventions':
         specifier: ^0.27.0
         version: 0.27.0
       '@sentry/core':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../core
     devDependencies:
       '@testing-library/react':
@@ -1920,31 +1920,31 @@ importers:
   packages/react-router:
     dependencies:
       '@opentelemetry/api':
-        specifier: ^1.10.0
+        specifier: ^1.9.1
         version: 1.10.0
       '@sentry/browser':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../browser
       '@sentry/bundler-plugins':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../bundler-plugins
       '@sentry/conventions':
         specifier: ^0.27.0
         version: 0.27.0
       '@sentry/core':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../core
       '@sentry/node':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../node
       '@sentry/react':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../react
       '@sentry/server-runtime-injection':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../server-runtime-injection
       '@sentry/server-utils':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../server-utils
       glob:
         specifier: ^13.0.6
@@ -1975,28 +1975,28 @@ importers:
         specifier: ^1.23.4
         version: 1.23.4
       '@sentry/browser':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../browser
       '@sentry/bundler-plugins':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../bundler-plugins
       '@sentry/conventions':
         specifier: ^0.27.0
         version: 0.27.0
       '@sentry/core':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../core
       '@sentry/node':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../node
       '@sentry/react':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../react
       '@sentry/server-runtime-injection':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../server-runtime-injection
       '@sentry/server-utils':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../server-utils
       sentry:
         specifier: ^0.44.0
@@ -2033,10 +2033,10 @@ importers:
   packages/replay-canvas:
     dependencies:
       '@sentry/core':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../core
       '@sentry/replay':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../replay-internal
     devDependencies:
       '@sentry/rrweb':
@@ -2046,17 +2046,17 @@ importers:
   packages/replay-internal:
     dependencies:
       '@sentry/browser-utils':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../browser-utils
       '@sentry/core':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../core
     devDependencies:
       '@babel/core':
         specifier: ^7.29.6
         version: 7.29.7(supports-color@10.0.0)
       '@sentry-internal/replay-worker':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../replay-worker
       '@sentry/rrweb':
         specifier: 2.44.1
@@ -2083,16 +2083,16 @@ importers:
   packages/rollup-plugin:
     dependencies:
       '@sentry/bundler-plugins':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../bundler-plugins
 
   packages/server-runtime-injection:
     dependencies:
       '@sentry/core':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../core
       '@sentry/server-utils':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../server-utils
     devDependencies:
       '@apm-js-collab/code-transformer':
@@ -2117,13 +2117,13 @@ importers:
   packages/server-utils:
     dependencies:
       '@opentelemetry/api':
-        specifier: ^1.10.0
+        specifier: ^1.9.1
         version: 1.10.0
       '@sentry/conventions':
         specifier: ^0.27.0
         version: 0.27.0
       '@sentry/core':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../core
     devDependencies:
       '@apm-js-collab/code-transformer-bundler-plugins':
@@ -2145,13 +2145,13 @@ importers:
   packages/solid:
     dependencies:
       '@sentry/browser':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../browser
       '@sentry/conventions':
         specifier: ^0.27.0
         version: 0.27.0
       '@sentry/core':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../core
     devDependencies:
       '@solidjs/router':
@@ -2185,28 +2185,28 @@ importers:
   packages/solidstart:
     dependencies:
       '@sentry/bundler-plugins':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../bundler-plugins
       '@sentry/conventions':
         specifier: 0.27.0
         version: 0.27.0
       '@sentry/core':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../core
       '@sentry/nitro':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../nitro
       '@sentry/node':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../node
       '@sentry/server-runtime-injection':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../server-runtime-injection
       '@sentry/server-utils':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../server-utils
       '@sentry/solid':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../solid
     devDependencies:
       '@solidjs/router':
@@ -2240,13 +2240,13 @@ importers:
   packages/svelte:
     dependencies:
       '@sentry/browser':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../browser
       '@sentry/conventions':
         specifier: ^0.27.0
         version: 0.27.0
       '@sentry/core':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../core
       magic-string:
         specifier: ~0.30.0
@@ -2268,31 +2268,31 @@ importers:
   packages/sveltekit:
     dependencies:
       '@opentelemetry/api':
-        specifier: ^1.10.0
+        specifier: ^1.9.1
         version: 1.10.0
       '@sentry/bundler-plugins':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../bundler-plugins
       '@sentry/cloudflare':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../cloudflare
       '@sentry/conventions':
         specifier: ^0.27.0
         version: 0.27.0
       '@sentry/core':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../core
       '@sentry/node':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../node
       '@sentry/server-runtime-injection':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../server-runtime-injection
       '@sentry/server-utils':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../server-utils
       '@sentry/svelte':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../svelte
       '@sveltejs/acorn-typescript':
         specifier: ^1.0.9
@@ -2323,31 +2323,31 @@ importers:
   packages/tanstackstart-react:
     dependencies:
       '@opentelemetry/api':
-        specifier: ^1.10.0
+        specifier: ^1.9.1
         version: 1.10.0
       '@sentry/browser-utils':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../browser-utils
       '@sentry/bundler-plugins':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../bundler-plugins
       '@sentry/conventions':
         specifier: ^0.27.0
         version: 0.27.0
       '@sentry/core':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../core
       '@sentry/node':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../node
       '@sentry/react':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../react
       '@sentry/server-runtime-injection':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../server-runtime-injection
       '@sentry/server-utils':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../server-utils
     devDependencies:
       vite:
@@ -2359,38 +2359,38 @@ importers:
   packages/vercel-edge:
     dependencies:
       '@opentelemetry/api':
-        specifier: ^1.10.0
+        specifier: ^1.9.1
         version: 1.10.0
       '@sentry/core':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../core
       '@sentry/server-utils':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../server-utils
     devDependencies:
       '@edge-runtime/types':
         specifier: 4.0.0
         version: 4.0.0
       '@sentry/opentelemetry':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../opentelemetry
 
   packages/vite-plugin:
     dependencies:
       '@sentry/bundler-plugins':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../bundler-plugins
 
   packages/vue:
     dependencies:
       '@sentry/browser':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../browser
       '@sentry/conventions':
         specifier: ^0.27.0
         version: 0.27.0
       '@sentry/core':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../core
     devDependencies:
       '@tanstack/vue-router':
@@ -2403,16 +2403,16 @@ importers:
   packages/wasm:
     dependencies:
       '@sentry/browser':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../browser
       '@sentry/core':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../core
 
   packages/webpack-plugin:
     dependencies:
       '@sentry/bundler-plugins':
-        specifier: 11.8.0
+        specifier: 11.9.0
         version: link:../bundler-plugins
 
 packages:
