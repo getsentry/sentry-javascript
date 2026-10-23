@@ -116,3 +116,4 @@ allowBuilds:
   workerd: true
 minimumReleaseAgeExclude:
   - '@opentelemetry/api@1.10.0'
+  - '@sentry/conventions@0.29.0'
