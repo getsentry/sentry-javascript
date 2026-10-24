@@ -23,6 +23,7 @@ import { HTTP_ON_SERVER_REQUEST } from './constants';
 import type { HttpIncomingMessage, HttpInstrumentationOptions, HttpServer, HttpServerResponse } from './types';
 import { DEBUG_BUILD } from '../../debug-build';
 import { debug } from '../../utils/debug-logger';
+import { safeCallback } from '../../utils/safeCallback';
 import { getClient, getCurrentScope, getIsolationScope, withIsolationScope } from '../../currentScopes';
 import { hasSpansEnabled } from '../../utils/hasSpansEnabled';
 import { headersToDict, httpHeadersToSpanAttributes, httpRequestToRequestData } from '../../utils/request';
@@ -116,7 +117,14 @@ export function instrumentServer(options: HttpInstrumentationOptions, server: Ht
         sessionFlushingDelayMS = 60_000,
       } = options;
 
-      if (maxRequestBodySize !== 'none' && !ignoreRequestBody?.(url, request)) {
+      if (
+        maxRequestBodySize !== 'none' &&
+        !safeCallback(
+          DEBUG_BUILD ? 'The `ignoreRequestBody` callback threw an error, ignoring the request body:' : '',
+          () => !!ignoreRequestBody?.(url, request),
+          () => true,
+        )
+      ) {
         patchRequestToCaptureBody(request, isolationScope, maxRequestBodySize, INTEGRATION_NAME);
       }
 
@@ -322,7 +330,11 @@ function buildServerSpanWrap(
           },
         },
         span => {
-          onSpanCreated?.(span, request, response);
+          safeCallback(
+            DEBUG_BUILD ? 'The `onSpanCreated` callback threw an error:' : '',
+            () => onSpanCreated?.(span, request, response),
+            () => undefined,
+          );
           // Ensure we only end the span once
           // E.g. error can be emitted before close is emitted
           let isEnded = false;
@@ -345,7 +357,11 @@ function buildServerSpanWrap(
               ),
             });
             span.setStatus(status);
-            onSpanEnd?.(span, request, response);
+            safeCallback(
+              DEBUG_BUILD ? 'The `onSpanEnd` callback threw an error:' : '',
+              () => onSpanEnd?.(span, request, response),
+              () => undefined,
+            );
             span.end();
           }
 
@@ -392,7 +408,13 @@ function shouldIgnoreSpansForIncomingRequest(
     return true;
   }
 
-  if (ignoreIncomingRequests?.(urlPath, request)) {
+  if (
+    safeCallback(
+      DEBUG_BUILD ? 'The `ignoreIncomingRequests` callback threw an error, not ignoring the request:' : '',
+      () => !!ignoreIncomingRequests?.(urlPath, request),
+      () => false,
+    )
+  ) {
     return true;
   }
 

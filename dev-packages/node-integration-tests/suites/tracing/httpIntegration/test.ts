@@ -581,4 +581,28 @@ describe('httpIntegration', () => {
 
     await runner.completed();
   });
+  describe('user callbacks that throw', () => {
+    createEsmAndCjsTests(__dirname, 'server.mjs', 'instrument-throwing-callbacks.mjs', (createRunner, test) => {
+      test('still handles requests and sends the span when `onSpanCreated` and `ignoreIncomingRequests` throw', async () => {
+        const expectedTransaction = {
+          contexts: {
+            trace: {
+              op: 'http.server',
+              status: 'ok',
+              data: { url: expect.stringMatching(/\/test$/), 'http.response.status_code': 200 },
+            },
+          },
+        };
+        const runner = createRunner()
+          .unordered()
+          .expect({ transaction: expectedTransaction })
+          .expect({ transaction: expectedTransaction })
+          .start();
+
+        expect(await runner.makeRequest('get', '/test')).toEqual({ response: 'response 1' });
+        expect(await runner.makeRequest('post', '/test')).toEqual({ response: 'response 2' });
+        await runner.completed();
+      });
+    });
+  });
 });
