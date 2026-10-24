@@ -25,6 +25,7 @@ import {
   maybeSetUpTunnelRouteRewriteRules,
   resolveReleaseName,
   shouldReturnEarlyInExperimentalBuildMode,
+  warnIfMissingInstrumentationFile,
   warnIfMissingOnRouterTransitionStartHook,
 } from './getFinalConfigObjectUtils';
 
@@ -55,6 +56,7 @@ export function getFinalConfigObject(
   maybeSetClientTraceMetadataOption(incomingUserNextConfigObject, nextJsVersion, userSentryOptions.silent);
   maybeSetInstrumentationHookOption(incomingUserNextConfigObject, nextJsVersion, userSentryOptions.silent);
   warnIfMissingOnRouterTransitionStartHook(userSentryOptions);
+  warnIfMissingInstrumentationFile(incomingUserNextConfigObject, userSentryOptions);
 
   const bundlerInfo = getBundlerInfo(nextJsVersion);
   maybeWarnAboutUnsupportedTurbopack(nextJsVersion, bundlerInfo, userSentryOptions.silent);

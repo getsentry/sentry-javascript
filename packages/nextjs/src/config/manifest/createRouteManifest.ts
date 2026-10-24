@@ -135,20 +135,6 @@ function hasOptionalPrefix(paramNames: string[], localeParamNames: string[]): bo
   return localeParamNames.includes(firstParam);
 }
 
-/**
- * Check if a page file exports generateStaticParams (ISR/SSG indicator)
- */
-function checkForGenerateStaticParams(pageFilePath: string): boolean {
-  try {
-    const content = fs.readFileSync(pageFilePath, 'utf8');
-    // check for generateStaticParams export
-    // the regex covers `export function generateStaticParams`, `export async function generateStaticParams`, `export const generateStaticParams`
-    return /export\s+(async\s+)?function\s+generateStaticParams|export\s+const\s+generateStaticParams/.test(content);
-  } catch {
-    return false;
-  }
-}
-
 function scanAppDirectory(
   dir: string,
   basePath: string = '',
@@ -158,7 +144,6 @@ function scanAppDirectory(
 ): RouteManifest {
   const dynamicRoutes: RouteInfo[] = [];
   const staticRoutes: RouteInfo[] = [];
-  const isrRoutes: string[] = [];
 
   try {
     const entries = fs.readdirSync(dir, { withFileTypes: true });
@@ -168,14 +153,6 @@ function scanAppDirectory(
       // Conditionally normalize the path based on includeRouteGroups option
       const routePath = includeRouteGroups ? basePath || '/' : normalizeRouteGroupPath(basePath || '/');
       const isDynamic = routePath.includes(':');
-
-      // Check if this page has generateStaticParams (ISR/SSG indicator)
-      const pageFilePath = path.join(dir, pageFile.name);
-      const hasGenerateStaticParams = checkForGenerateStaticParams(pageFilePath);
-
-      if (hasGenerateStaticParams) {
-        isrRoutes.push(routePath);
-      }
 
       if (isDynamic) {
         const { regex, paramNames, hasOptionalPrefix } = buildRegexForDynamicRoute(routePath, localeParamNames);
@@ -217,14 +194,13 @@ function scanAppDirectory(
 
         dynamicRoutes.push(...subRoutes.dynamicRoutes);
         staticRoutes.push(...subRoutes.staticRoutes);
-        isrRoutes.push(...subRoutes.isrRoutes);
       }
     }
   } catch (error) {
     getBuildLogger(silent).warn('[@sentry/nextjs] Error building route manifest:', error);
   }
 
-  return { dynamicRoutes, staticRoutes, isrRoutes };
+  return { dynamicRoutes, staticRoutes };
 }
 
 /**
@@ -249,7 +225,6 @@ export function createRouteManifest(options?: CreateRouteManifestOptions): Route
 
   if (!targetDir) {
     return {
-      isrRoutes: [],
       dynamicRoutes: [],
       staticRoutes: [],
     };
@@ -267,7 +242,7 @@ export function createRouteManifest(options?: CreateRouteManifestOptions): Route
     return manifestCache;
   }
 
-  const { dynamicRoutes, staticRoutes, isrRoutes } = scanAppDirectory(
+  const { dynamicRoutes, staticRoutes } = scanAppDirectory(
     targetDir,
     options?.basePath,
     options?.includeRouteGroups,
@@ -278,7 +253,6 @@ export function createRouteManifest(options?: CreateRouteManifestOptions): Route
   const manifest: RouteManifest = {
     dynamicRoutes,
     staticRoutes,
-    isrRoutes,
   };
 
   // set cache

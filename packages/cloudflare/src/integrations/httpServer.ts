@@ -1,5 +1,6 @@
 import type { Client, IntegrationFn, MaxRequestBodySize } from '@sentry/core';
 import { captureBodyFromWinterCGRequest, defineIntegration, getIsolationScope } from '@sentry/core';
+import type { AssertTrue, CheckServerRequestOptions } from '@sentry/core/server';
 
 const INTEGRATION_NAME = 'HttpServer' as const;
 
@@ -39,6 +40,27 @@ export interface HttpServerIntegrationOptions {
    */
   ignoreRequestBody?: (url: string, request: Request) => boolean;
 }
+
+// Checks these options against the shared `ServerRequestOptions`. A new
+// shared field fails to compile here, until this integration supports
+// it or lists it as unsupported.
+type _ServerRequestOptionsCheck = AssertTrue<
+  CheckServerRequestOptions<
+    HttpServerIntegrationOptions,
+    Request,
+    Response,
+    // Not supported yet.
+    | 'spans'
+    | 'ignoreIncomingRequests'
+    | 'ignoreStaticAssets'
+    | 'onSpanCreated'
+    | 'onSpanEnd'
+    // Not supported. A worker has no long-lived process to run the timer
+    // that flushes session aggregates.
+    | 'sessions'
+    | 'sessionFlushingDelayMS'
+  >
+>;
 
 interface HttpServerIntegrationInstance {
   name: string;

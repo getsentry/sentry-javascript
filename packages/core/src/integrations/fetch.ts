@@ -5,6 +5,7 @@ import { getClient } from '../currentScopes';
 import { instrumentFetchRequest } from '../fetch';
 import { defineIntegration } from '../integration';
 import { addFetchInstrumentationHandler } from '../instrument/fetch';
+import { isTracingSuppressed } from '../tracing/trace';
 import type { FetchBreadcrumbData, FetchBreadcrumbHint } from '../types/breadcrumb';
 import type { HandlerDataFetch } from '../types/instrument';
 import type { Integration, IntegrationFn } from '../types/integration';
@@ -92,7 +93,8 @@ export function createFetchIntegration({
             return;
           }
 
-          if (isSentryRequestUrl(handlerData.fetchData.url, client)) {
+          // Like Node's http and undici instrumentation: SDK-internal requests leave no breadcrumb.
+          if (isTracingSuppressed() || isSentryRequestUrl(handlerData.fetchData.url, client)) {
             return;
           }
 

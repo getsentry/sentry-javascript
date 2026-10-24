@@ -27,7 +27,7 @@ export const REDIS_DC_CHANNEL_CONNECT = 'node-redis:connect';
 export const IOREDIS_DC_CHANNEL_COMMAND = 'ioredis:command';
 export const IOREDIS_DC_CHANNEL_CONNECT = 'ioredis:connect';
 
-const ORIGIN = 'auto.db.redis.diagnostic_channel';
+const ORIGIN = 'auto.db.redis.native_channel';
 const DB_SYSTEM_NAME_VALUE_REDIS = 'redis';
 
 /**

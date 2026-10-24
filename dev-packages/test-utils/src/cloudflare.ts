@@ -36,9 +36,11 @@ function getWorkerName(workerPrefix: string): string {
     return `${workerPrefix}-local-${randomBytes(3).toString('hex')}`;
   }
 
-  const { GITHUB_EVENT_NAME, GITHUB_REF_NAME = '' } = process.env;
+  const { GITHUB_EVENT_NAME, GITHUB_REF_NAME = '', E2E_PR_NUMBER } = process.env;
+  // The optional E2E workflow is dispatched on the PR branch, so its ref has no PR number.
   const prNumber =
-    GITHUB_EVENT_NAME === 'pull_request' ? GITHUB_REF_NAME.split('/')[0] : /\/pr-(\d+)-/.exec(GITHUB_REF_NAME)?.[1];
+    E2E_PR_NUMBER ||
+    (GITHUB_EVENT_NAME === 'pull_request' ? GITHUB_REF_NAME.split('/')[0] : /\/pr-(\d+)-/.exec(GITHUB_REF_NAME)?.[1]);
   const ref = prNumber ? `pr-${prNumber}` : GITHUB_REF_NAME;
   // Worker names allow lowercase alphanumerics and dashes only, up to 63 characters.
   const slug = ref.toLowerCase().replace(/[^a-z0-9]+/g, '-');
