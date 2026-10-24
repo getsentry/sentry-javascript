@@ -3,14 +3,14 @@ import { getSpanOp, waitForError, waitForStreamedSpan } from '@sentry-internal/t
 
 const tunnelRouteMode =
   process.env.E2E_TEST_TUNNEL_ROUTE_MODE ?? (process.env.E2E_TEST_CUSTOM_TUNNEL_ROUTE === '1' ? 'custom' : 'off');
+const basePath = process.env.E2E_TEST_BASE_PATH ?? '';
 const expectedTunnelPathMatcher =
   tunnelRouteMode === 'static'
     ? '/monitor'
     : tunnelRouteMode === 'custom'
       ? '/custom-monitor'
-      : tunnelRouteMode === 'object'
-        ? '/object-monitor'
-        : /^\/[a-z0-9]{8}$/;
+      : // The path `tunnelRoute: true` derives from the DSN.
+        new RegExp(`^${basePath}/[a-z0-9]{1,7}$`);
 
 test.skip(tunnelRouteMode === 'off', 'Tunnel assertions only run in the tunnel-route variants');
 
@@ -19,7 +19,7 @@ test('Sends client-side errors through the configured tunnel route', async ({ pa
     return errorEvent?.exception?.values?.[0]?.value === 'Sentry Client Test Error';
   });
 
-  await page.goto('/');
+  await page.goto(`${basePath}/`);
   const pageOrigin = new URL(page.url()).origin;
 
   // Wait for React to hydrate (see __root.tsx) before clicking — the SSR HTML
@@ -54,20 +54,19 @@ test('Sends client-side errors through the configured tunnel route', async ({ pa
     expect(managedTunnelUrl.pathname).toBe(expectedTunnelPathMatcher);
   } else {
     expect(managedTunnelUrl.pathname).toMatch(expectedTunnelPathMatcher);
-    expect(managedTunnelUrl.pathname).not.toBe('/monitor');
+    expect(managedTunnelUrl.pathname).not.toBe(`${basePath}/monitor`);
   }
 
   expect(errorEvent.exception?.values?.[0]?.value).toBe('Sentry Client Test Error');
-  expect(errorEvent.transaction).toBe('/');
+  expect(errorEvent.transaction).toBe(`${basePath}/`);
 });
 
-test('Rejects non-POST requests to the managed tunnel route instead of rendering the app', async ({ request }) => {
+test('Only answers POSTs on the managed tunnel path and leaves other methods to the app', async ({ request }) => {
   test.skip(tunnelRouteMode !== 'static', 'Requires a known managed tunnel path');
 
   const response = await request.get('/monitor');
 
-  expect(response.status()).toBe(405);
-  expect(response.headers()['allow']).toBe('POST');
+  expect(response.status()).toBe(404);
 });
 
 function pathnameMatchesTunnelRoute(pathname: string): boolean {
@@ -101,7 +100,7 @@ test('Does not create a server transaction for the tunnel route', async ({ page 
   // transaction by the server SDK — tunnel traffic is plumbing, not application requests.
   const tunnelServerEventPromise = waitForServerHttpSpan(pathnameMatchesTunnelRoute);
 
-  await page.goto('/');
+  await page.goto(`${basePath}/`);
   const pageOrigin = new URL(page.url()).origin;
 
   await page.locator('html[data-hydrated="true"]').waitFor();
@@ -127,7 +126,7 @@ test('Does not create a server transaction for the tunnel route', async ({ page 
   // this anchor. Racing the two lets us assert the absence of a tunnel transaction without idling on a timeout.
   const anchorServerEventPromise = waitForServerHttpSpan(pathname => pathname.includes('/api/user/'));
 
-  await page.request.get('/api/user/456');
+  await page.request.get(`${basePath}/api/user/456`);
 
   const winner = await Promise.race([
     tunnelServerEventPromise.then(() => 'tunnel' as const),
