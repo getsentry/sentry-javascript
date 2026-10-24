@@ -14,19 +14,26 @@ Developer Documentation.
 
 ## Setting up an Environment
 
-We use [Volta](https://volta.sh/) to ensure we use consistent versions of node and pnpm. Volta manages pnpm only when
-[pnpm support](https://docs.volta.sh/advanced/pnpm) is enabled, so add `export VOLTA_FEATURE_PNPM=1` to your shell
-profile (for example `~/.zshrc`).
+`sentry-javascript` is a monorepo containing several packages, managed with pnpm workspaces and Nx. pnpm installs the
+node and pnpm versions the repo pins.
 
-`sentry-javascript` is a monorepo containing several packages, managed with pnpm workspaces and Nx. To get started,
-install all dependencies, and then perform an initial build, so TypeScript can read all of the linked type definitions.
+1. Install pnpm 12 or newer, see the [pnpm installation docs](https://pnpm.io/installation).
+2. Install a default node version through pnpm:
 
-```
-$ pnpm install
-$ pnpm run build
-```
+   ```sh
+   pnpm runtime set node 24 -g
+   ```
 
-With that, the repo is fully set up and you are ready to run all commands.
+3. Install all dependencies, and then perform an initial build, so TypeScript can read all of the linked type
+   definitions:
+
+   ```sh
+   pnpm install
+   pnpm run build
+   ```
+
+With that, the repo is fully set up and you are ready to run all commands. If you used Volta before, or `node --version`
+doesn't match the repo, see [Node and pnpm Versions](#node-and-pnpm-versions).
 
 ## Building Packages
 
@@ -79,8 +86,8 @@ E2E tests verify SDK behavior in real-world framework scenarios.
 ### Prerequisites
 
 1. **Docker**: Required for some E2E tests
-2. **Volta**: The E2E tests run each app on the node version that it pins. Without Volta, they use your current node
-   version.
+2. **pnpm-managed node** (see [Setting up an Environment](#setting-up-an-environment)): The E2E tests run each app on
+   the node version that it pins. Without pnpm's `node` shim, they use your current node version.
 
 ### Step-by-Step Instructions
 
@@ -190,3 +197,21 @@ See [PR Reviews](./docs/pr-reviews.md).
 _These steps are only relevant to Sentry employees when preparing and publishing a new SDK release._
 
 [See the docs for publishing a release](./docs/publishing-a-release.md)
+
+## Node and pnpm Versions
+
+- The root `package.json` pins node in `devEngines.runtime` and pnpm in `packageManager`. CI reads the same fields.
+- pnpm's `node` command runs the node version of the nearest `package.json` that pins one
+  ([project-aware global bins](https://pnpm.io/global-packages#project-aware-global-bins)). Packages and E2E test apps
+  inherit the root version, and can override it with their own `devEngines.runtime`.
+
+If `node --version` or `pnpm --version` doesn't match the repo, run `which node pnpm`. Both should be in
+`$PNPM_HOME/bin`. If not, another tool (Volta, nvm, fnm, corepack, Homebrew node) comes first in your `PATH`. Remove it,
+or move `$PNPM_HOME/bin` before it.
+
+### Migrating from Volta
+
+The repo no longer has a `volta` field, so Volta runs its default node instead of the version the repo pins.
+[Uninstall Volta](https://docs.volta.sh/advanced/uninstall) and follow the
+[setup](#setting-up-an-environment). If other projects still need Volta, keep it, but put `$PNPM_HOME/bin` before
+`~/.volta/bin` in your `PATH`, and use `volta run node` in those projects.

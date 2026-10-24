@@ -34,8 +34,5 @@
     "test:watch": "vitest --watch",
     "build:tarball": "npm pack",
     "circularDepCheck": "madge --circular src/index.js"
-  },
-  "volta": {
-    "extends": "../../package.json"
   }
 }

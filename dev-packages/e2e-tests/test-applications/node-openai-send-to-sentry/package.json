@@ -34,8 +34,5 @@
         "label": "node-openai-send-to-sentry (latest)"
       }
     ]
-  },
-  "volta": {
-    "extends": "../../package.json"
   }
 }

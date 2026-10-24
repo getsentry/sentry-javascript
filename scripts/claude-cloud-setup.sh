@@ -9,7 +9,7 @@
 # cheap: a frozen-lockfile install is a no-op when node_modules is warm, and Nx
 # only rebuilds packages whose inputs actually changed.
 #
-# Node/pnpm versions come from `package.json` (managed by Volta locally); in the
+# Node/pnpm versions come from `package.json` (managed by pnpm locally); in the
 # cloud we rely on whatever Node runtime the sandbox provides, and install the
 # `packageManager` pnpm version when the sandbox has none.
 set -euo pipefail

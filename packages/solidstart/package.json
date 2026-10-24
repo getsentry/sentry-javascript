@@ -126,9 +126,6 @@
     "test:watch": "vitest --watch",
     "yalc:publish": "yalc publish --push --sig"
   },
-  "volta": {
-    "extends": "../../package.json"
-  },
   "nx": {
     "targets": {
       "build:types": {

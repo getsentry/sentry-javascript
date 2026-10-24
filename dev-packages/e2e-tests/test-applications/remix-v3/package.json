@@ -20,8 +20,5 @@
     "@sentry/core": "file:../../packed/sentry-core-packed.tgz",
     "@types/node": "^24.6.0",
     "typescript": "~5.9.0"
-  },
-  "volta": {
-    "extends": "../../package.json"
   }
 }

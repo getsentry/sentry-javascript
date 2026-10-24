@@ -4,10 +4,9 @@ Monorepo with 40+ packages in `@sentry/*`, managed with pnpm workspaces and Nx.
 
 ## Setup
 
-- [Volta](https://volta.sh/) for Node.js/pnpm version management
-- Requires `VOLTA_FEATURE_PNPM=1`
+- pnpm manages Node.js and pnpm versions (see `CONTRIBUTING.md`): node in `devEngines.runtime`, pnpm in `packageManager`
 - After cloning: `pnpm install && pnpm run build`
-- Never change Volta, pnpm, or package manager versions unless explicitly asked
+- Never change Node.js, pnpm, or package manager versions unless explicitly asked
 
 ### Code Intelligence
 
