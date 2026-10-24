@@ -45,10 +45,6 @@ const DROPPED_ATTRIBUTES = new Set([
   'bullmq.job.finished.timestamp',
 ]);
 
-function toOtelAttributes(attributes: Record<string, AttributeValue>): Attributes {
-  return attributes as Attributes;
-}
-
 // The BullMQ attribute keys and their `messaging.bullmq.*` keys in the Sentry conventions. Where BullMQ separates
 // the words of a key with dots, the Sentry key uses snake_case.
 const MESSAGING_BULLMQ_KEYS = new Map([
@@ -103,7 +99,7 @@ export function toSentryAttributes(attributes: Record<string, AttributeValue>): 
   } = attributes;
   const result: Attributes = {};
 
-  for (const [key, value] of Object.entries(toOtelAttributes(rest))) {
+  for (const [key, value] of Object.entries(rest)) {
     if (!DROPPED_ATTRIBUTES.has(key)) {
       result[toMessagingKey(key)] = value;
     }
@@ -161,7 +157,7 @@ export class SentryBullMQSpan implements TelemetrySpan {
   }
 
   public addEvent(name: string, attributes?: Record<string, AttributeValue>): void {
-    this._span.addEvent(name, attributes ? toOtelAttributes(attributes) : undefined);
+    this._span.addEvent(name, attributes);
 
     // BullMQ sends this event from `Worker.handleFailed`, and the event name is not an exported constant:
     // https://github.com/taskforcesh/bullmq/blob/01b8b14a973984845dc0bbcefccf35b3ed30782d/src/classes/worker.ts#L1223-L1225
