@@ -1,4 +1,11 @@
-import type { BaseTransportOptions, ClientOptions, Options, TracePropagationTargets } from '@sentry/core';
+import type {
+  BaseTransportOptions,
+  ClientOptions,
+  Options,
+  ServerTunnelOptions,
+  TunnelInit,
+  TracePropagationTargets,
+} from '@sentry/core';
 
 export interface BaseDenoOptions {
   /**
@@ -56,7 +63,12 @@ export interface BaseDenoOptions {
  * Configuration options for the Sentry Deno SDK
  * @see @sentry/core Options for more information.
  */
-export interface DenoOptions extends Options<BaseTransportOptions>, BaseDenoOptions {}
+export interface DenoOptions extends Options<BaseTransportOptions>, BaseDenoOptions {
+  /**
+   * See {@link Options.tunnel}. A server `init` also takes the server-only {@link ServerTunnelOptions}.
+   */
+  tunnel?: TunnelInit<ServerTunnelOptions>;
+}
 
 /**
  * Configuration options for the Sentry Deno SDK Client class

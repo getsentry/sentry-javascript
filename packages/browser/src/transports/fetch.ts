@@ -1,6 +1,7 @@
 import type { Transport, TransportMakeRequestResponse, TransportRequest } from '@sentry/core';
-import { createTransport, makePromiseBuffer } from '@sentry/core';
+import { createTransport, debug, makePromiseBuffer, TUNNEL_RESPONSE_HEADER } from '@sentry/core';
 import { clearCachedImplementation, getNativeImplementation } from '@sentry/browser-utils';
+import { DEBUG_BUILD } from '../debug-build';
 import type { WINDOW } from '../helpers';
 import type { BrowserTransportOptions } from './types';
 
@@ -13,10 +14,14 @@ export function makeFetchTransport(
   options: BrowserTransportOptions,
   nativeFetch: typeof WINDOW.fetch = getNativeImplementation('fetch'),
 ): Transport {
+  const fallbackUrl = options._tunnelFallbackUrl;
+  let url = options.url;
   let pendingBodySize = 0;
   let pendingCount = 0;
 
   async function makeRequest(request: TransportRequest): Promise<TransportMakeRequestResponse> {
+    const requestUrl = url;
+    const isTunnel = !!fallbackUrl && requestUrl !== fallbackUrl;
     const requestSize = request.body.length;
     pendingBodySize += requestSize;
     pendingCount++;
@@ -25,7 +30,8 @@ export function makeFetchTransport(
       body: request.body as BodyInit,
       method: 'POST',
       referrerPolicy: 'strict-origin',
-      headers: options.headers,
+      // CSRF protection (SvelteKit, Astro) rejects the default `text/plain` POST to the tunnel as a form submission.
+      headers: isTunnel ? { 'Content-Type': 'application/x-sentry-envelope', ...options.headers } : options.headers,
       // Outgoing requests are usually cancelled when navigating to a different page, causing a "TypeError: Failed to
       // fetch" error and sending a "network_error" client-outcome - in Chrome, the request status shows "(cancelled)".
       // The `keepalive` flag keeps outgoing requests alive, even when switching pages. We want this since we're
@@ -43,15 +49,23 @@ export function makeFetchTransport(
 
     try {
       // Note: We do not need to suppress tracing here, because we are using the native fetch, instead of our wrapped one.
-      const response = await nativeFetch(options.url, requestOptions);
+      const response = await nativeFetch(requestUrl, requestOptions);
+      const status = response.status;
 
-      return {
-        statusCode: response.status,
-        headers: {
-          'x-sentry-rate-limits': response.headers.get('X-Sentry-Rate-Limits'),
-          'retry-after': response.headers.get('Retry-After'),
-        },
-      };
+      // Only a 404 or 405 says nothing serves the tunnel. Any other answer may come from a tunnel the app runs itself.
+      if (!isTunnel || (status !== 404 && status !== 405) || response.headers.get(TUNNEL_RESPONSE_HEADER)) {
+        return {
+          statusCode: status,
+          headers: {
+            'x-sentry-rate-limits': response.headers.get('X-Sentry-Rate-Limits'),
+            'retry-after': response.headers.get('Retry-After'),
+          },
+        };
+      }
+
+      DEBUG_BUILD &&
+        debug.warn(`Sending to Sentry directly: "${requestUrl}" answered ${status} instead of the tunnel.`);
+      url = fallbackUrl;
     } catch (e) {
       clearCachedImplementation('fetch');
       throw e;
@@ -59,6 +73,9 @@ export function makeFetchTransport(
       pendingBodySize -= requestSize;
       pendingCount--;
     }
+
+    // Resent once the tunnel request no longer counts as in flight, so the direct send keeps `keepalive`.
+    return makeRequest(request);
   }
 
   return createTransport(

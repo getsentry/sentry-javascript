@@ -1,0 +1,45 @@
+import type { BrowserTunnelOptions } from '@sentry/core';
+import {
+  debug,
+  getEnvelopeEndpointWithUrlEncodedAuth,
+  getTunnelPath,
+  makeDsn,
+  _INTERNAL_normalizeTunnelBasePath as normalizeTunnelBasePath,
+} from '@sentry/core';
+import { DEBUG_BUILD } from '../debug-build';
+import type { BrowserOptions } from '../client';
+
+/**
+ * Resolves `tunnel: true`, a relative path or {@link BrowserTunnelOptions} to the managed tunnel's same-origin path.
+ */
+export function resolveBrowserTunnelOption(
+  options: BrowserOptions,
+): Pick<BrowserOptions, 'transportOptions'> & { tunnel: string | undefined } {
+  const { tunnel, dsn, transportOptions } = options;
+  if (!tunnel || (typeof tunnel === 'string' && !tunnel.startsWith('/'))) {
+    return { tunnel, transportOptions };
+  }
+
+  const tunnelOptions: BrowserTunnelOptions =
+    tunnel === true ? {} : typeof tunnel === 'string' ? { path: tunnel } : tunnel;
+  const dsnComponents = dsn && makeDsn(dsn);
+  const tunnelPath = tunnelOptions.path ?? (dsnComponents && getTunnelPath(dsnComponents));
+  if (!tunnelPath) {
+    return { tunnel: undefined, transportOptions };
+  }
+
+  const basePath = normalizeTunnelBasePath(tunnelOptions.basePath);
+  const resolvedTunnel = `${basePath}${tunnelPath}${tunnelOptions.trailingSlash ? '/' : ''}`;
+
+  DEBUG_BUILD && debug.log(`Tunneling events to "${resolvedTunnel}"`);
+
+  return {
+    tunnel: resolvedTunnel,
+    transportOptions: {
+      ...transportOptions,
+      _tunnelFallbackUrl: dsnComponents
+        ? getEnvelopeEndpointWithUrlEncodedAuth(dsnComponents, undefined, options._metadata?.sdk)
+        : undefined,
+    },
+  };
+}

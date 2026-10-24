@@ -374,7 +374,7 @@ export interface ClientOptions<TO extends BaseTransportOptions = BaseTransportOp
   tunnel?: string;
 
   /**
-   * Set by server SDKs when the managed tunnel is enabled.
+   * Set when `init` was called with `tunnel: true` or {@link TunnelOptions}.
    *
    * @internal This option is not part of the public API and is subject to change at any time.
    */
@@ -677,8 +677,9 @@ export interface ServerTunnelOptions extends TunnelOptions {
  * The `tunnel` option, where to send envelopes instead of the Sentry ingest URL:
  *
  * - A URL, e.g. `https://example.com/tunnel`, sends envelopes to your own tunnel endpoint.
- * - A relative path, e.g. `/monitor`, enables the managed tunnel at that fixed path. The browser sends envelopes to
- *   it and the server SDK serves it, so set the same path in both `init`s.
+ * - A relative path, e.g. `/monitor`, is a shortcut for `{ path: '/monitor' }`: the managed tunnel at that fixed
+ *   path. The browser sends envelopes to it, and the server SDK serves it when its `init` sets the same path. An app
+ *   can also serve the path itself, the browser only sends to Sentry directly when the path answers 404 or 405.
  * - `true` enables the managed tunnel at a same-origin path derived from the DSN. Set it in both the browser and the
  *   server `init`: the browser sends envelopes to that path and the server SDK forwards them to Sentry. This keeps
  *   ad-blockers from dropping events.
@@ -689,8 +690,15 @@ export type TunnelInit<T extends TunnelOptions = TunnelOptions> = string | true 
 /** Base configuration options for every SDK. */
 export interface CoreOptions<TO extends BaseTransportOptions = BaseTransportOptions> extends Omit<
   Partial<ClientOptions<TO>>,
-  'integrations' | 'transport' | 'stackParser'
+  'integrations' | 'transport' | 'stackParser' | 'tunnel'
 > {
+  /**
+   * Where to send envelopes instead of the Sentry ingest URL, see {@link TunnelInit}.
+   *
+   * @default undefined
+   */
+  tunnel?: TunnelInit;
+
   /**
    * If this is set to false, default integrations will not be added, otherwise this will internally be set to the
    * recommended default integrations.

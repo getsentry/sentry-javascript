@@ -1,4 +1,13 @@
-import type { CheckIn, ClientOptions, MonitorConfig, Options, Scope, TracePropagationTargets } from '@sentry/core';
+import type {
+  CheckIn,
+  ClientOptions,
+  MonitorConfig,
+  Options,
+  Scope,
+  ServerTunnelOptions,
+  TunnelInit,
+  TracePropagationTargets,
+} from '@sentry/core';
 import {
   _INTERNAL_clearAiProviderSkips,
   _INTERNAL_flushLogsBuffer,
@@ -530,6 +539,11 @@ interface BaseCloudflareOptions {
  */
 export interface CloudflareOptions extends Options<CloudflareTransportOptions>, BaseCloudflareOptions {
   ctx?: ExecutionContextCompat;
+
+  /**
+   * See {@link Options.tunnel}. A server `init` also takes the server-only {@link ServerTunnelOptions}.
+   */
+  tunnel?: TunnelInit<ServerTunnelOptions>;
 }
 
 /**

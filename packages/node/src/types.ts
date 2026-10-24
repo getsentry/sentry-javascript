@@ -1,4 +1,4 @@
-import type { ClientOptions, Options, Scope } from '@sentry/core';
+import type { ClientOptions, Options, Scope, ServerTunnelOptions, TunnelInit } from '@sentry/core';
 import type { ServerRuntimeOptions } from '@sentry/core/server';
 import type { NodeTransportOptions } from './transports';
 
@@ -73,7 +73,12 @@ export interface BaseNodeOptions extends ServerRuntimeOptions {
  * Configuration options for the Sentry Node SDK
  * @see @sentry/core Options for more information.
  */
-export interface NodeOptions extends Options<NodeTransportOptions>, BaseNodeOptions {}
+export interface NodeOptions extends Options<NodeTransportOptions>, BaseNodeOptions {
+  /**
+   * See {@link Options.tunnel}. A server `init` also takes the server-only {@link ServerTunnelOptions}.
+   */
+  tunnel?: TunnelInit<ServerTunnelOptions>;
+}
 
 /**
  * Configuration options for the Sentry Node SDK Client class
