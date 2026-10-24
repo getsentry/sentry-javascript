@@ -13,15 +13,7 @@ test('Creates a queue.publish span when adding a job', async ({ baseURL }) => {
   expect(publishSpan.name).toBe('add test-queue.publish-job');
   expect(publishSpan.is_segment).toBe(false);
   expect(publishSpan.status).toBe('ok');
-  expect(publishSpan.attributes['sentry.segment.name']?.value).toBe('GET /enqueue/:jobName');
-  expect(
-    Object.fromEntries(
-      Object.entries(publishSpan.attributes).filter(
-        ([key]) =>
-          key.startsWith('messaging.') || key.startsWith('bullmq.') || key === 'sentry.op' || key === 'sentry.origin',
-      ),
-    ),
-  ).toEqual({
+  expect(publishSpan.attributes).toEqual({
     'sentry.op': { type: 'string', value: 'queue.publish' },
     'sentry.origin': { type: 'string', value: 'auto.queue.bullmq.producer' },
     'messaging.system': { type: 'string', value: 'bullmq' },
@@ -29,6 +21,14 @@ test('Creates a queue.publish span when adding a job', async ({ baseURL }) => {
     'messaging.operation.name': { type: 'string', value: 'add' },
     'messaging.message.id': { type: 'string', value: expect.any(String) },
     'messaging.bullmq.job.name': { type: 'string', value: 'publish-job' },
+    'sentry.environment': { type: 'string', value: 'production' },
+    'sentry.is_localhost': { type: 'boolean', value: true },
+    'sentry.release': { type: 'string', value: '1.0' },
+    'sentry.sdk.name': { type: 'string', value: 'sentry.javascript.node' },
+    'sentry.sdk.version': { type: 'string', value: expect.any(String) },
+    'sentry.segment.id': { type: 'string', value: expect.stringMatching(/^[\da-f]{16}$/) },
+    'sentry.segment.name': { type: 'string', value: 'GET /enqueue/:jobName' },
+    'sentry.trace_lifecycle': { type: 'string', value: 'stream' },
   });
 });
 
@@ -47,14 +47,7 @@ test('Creates a segment span for queue.process when processing a job', async ({ 
 
   expect(processSpan.name).toBe('process test-queue');
   expect(processSpan.status).toBe('ok');
-  expect(
-    Object.fromEntries(
-      Object.entries(processSpan.attributes).filter(
-        ([key]) =>
-          key.startsWith('messaging.') || key.startsWith('bullmq.') || key === 'sentry.op' || key === 'sentry.origin',
-      ),
-    ),
-  ).toEqual({
+  expect(processSpan.attributes).toEqual({
     'sentry.op': { type: 'string', value: 'queue.process' },
     'sentry.origin': { type: 'string', value: 'auto.queue.bullmq.consumer' },
     'messaging.system': { type: 'string', value: 'bullmq' },
@@ -66,6 +59,17 @@ test('Creates a segment span for queue.process when processing a job', async ({ 
     'messaging.bullmq.job.name': { type: 'string', value: 'process-job' },
     'messaging.bullmq.job.processed_timestamp': { type: 'integer', value: expect.any(Number) },
     'messaging.bullmq.job.attempt_finished_timestamp': { type: 'integer', value: expect.any(Number) },
+    'sentry.environment': { type: 'string', value: 'production' },
+    'sentry.is_localhost': { type: 'boolean', value: false },
+    'sentry.release': { type: 'string', value: '1.0' },
+    'sentry.sample_rate': { type: 'integer', value: 1 },
+    'sentry.sdk.integrations': { type: 'array', value: expect.any(Array) },
+    'sentry.sdk.name': { type: 'string', value: 'sentry.javascript.node' },
+    'sentry.sdk.version': { type: 'string', value: expect.any(String) },
+    'sentry.segment.id': { type: 'string', value: processSpan.span_id },
+    'sentry.segment.name': { type: 'string', value: 'process test-queue' },
+    'sentry.segment.name.source': { type: 'string', value: 'custom' },
+    'sentry.trace_lifecycle': { type: 'string', value: 'stream' },
   });
 });
 
@@ -170,11 +174,7 @@ test('Emits messaging.bullmq.jobs.completed counter metric on successful job', a
     type: metric.type,
     unit: metric.unit,
     value: metric.value,
-    attributes: Object.fromEntries(
-      Object.entries(metric.attributes ?? {}).filter(
-        ([key]) => key.startsWith('messaging.') || key.startsWith('bullmq.'),
-      ),
-    ),
+    attributes: metric.attributes,
   }).toEqual({
     type: 'counter',
     unit: 'none',
@@ -183,6 +183,11 @@ test('Emits messaging.bullmq.jobs.completed counter metric on successful job', a
       'messaging.destination.name': { type: 'string', value: 'test-queue' },
       'messaging.bullmq.job.name': { type: 'string', value: 'counter-job' },
       'messaging.bullmq.job.state': { type: 'string', value: 'completed' },
+      'sentry.release': { type: 'string', value: '1.0' },
+      'sentry.sdk.name': { type: 'string', value: 'sentry.javascript.node' },
+      'sentry.sdk.version': { type: 'string', value: expect.any(String) },
+      'sentry.timestamp.sequence': { type: 'integer', value: expect.any(Number) },
+      'server.address': { type: 'string', value: expect.any(String) },
     },
   });
 });
@@ -203,11 +208,7 @@ test('Emits messaging.process.duration histogram metric on job completion', asyn
     type: metric.type,
     unit: metric.unit,
     value: metric.value,
-    attributes: Object.fromEntries(
-      Object.entries(metric.attributes ?? {}).filter(
-        ([key]) => key.startsWith('messaging.') || key.startsWith('bullmq.'),
-      ),
-    ),
+    attributes: metric.attributes,
   }).toEqual({
     type: 'distribution',
     unit: 'second',
@@ -218,6 +219,11 @@ test('Emits messaging.process.duration histogram metric on job completion', asyn
       'messaging.destination.name': { type: 'string', value: 'test-queue' },
       'messaging.bullmq.job.name': { type: 'string', value: 'duration-job' },
       'messaging.bullmq.job.state': { type: 'string', value: 'completed' },
+      'sentry.release': { type: 'string', value: '1.0' },
+      'sentry.sdk.name': { type: 'string', value: 'sentry.javascript.node' },
+      'sentry.sdk.version': { type: 'string', value: expect.any(String) },
+      'sentry.timestamp.sequence': { type: 'integer', value: expect.any(Number) },
+      'server.address': { type: 'string', value: expect.any(String) },
     },
   });
 });
