@@ -19,6 +19,22 @@
     "vitest": "^4.1.11",
     "webpack": "^5.0.0"
   },
+  "devDependencies": {
+    "@sentry/astro": "11.9.0",
+    "@sentry/bun": "11.9.0",
+    "@sentry/cloudflare": "11.9.0",
+    "@sentry/deno": "11.9.0",
+    "@sentry/nextjs": "11.9.0",
+    "@sentry/node": "11.9.0",
+    "@sentry/nuxt": "11.9.0",
+    "@sentry/react-router": "11.9.0",
+    "@sentry/remix": "11.9.0",
+    "@sentry/solidstart": "11.9.0",
+    "@sentry/sveltekit": "11.9.0",
+    "@sentry/tanstackstart-react": "11.9.0",
+    "@sentry/vercel-edge": "11.9.0",
+    "@vercel/nft": "^1.11.0"
+  },
   "volta": {
     "extends": "../../package.json"
   },
