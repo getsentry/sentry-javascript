@@ -280,9 +280,13 @@ For example, if something is changed in the browser package, only E2E test apps 
 You can add additional information about the test (e.g. canary versions, optional in CI) by adding `sentryTest` in the `package.json`
 of a test application.
 
-The required E2E jobs run on 2 vCPUs (`namespace-profile-sentry-javascript-small`). If an app's job takes longer than
-about 90 seconds, set `"sentryTest": { "runner": "namespace-profile-sentry-javascript" }` to run it and its variants on
-4 vCPUs.
+The required E2E jobs run on 2 vCPUs (`namespace-profile-sentry-javascript-small`), four apps or variants per job, one
+after another in `$RUNNER_TEMP/e2e/<label>`. A failed app does not stop the others of its job. If an app takes longer
+than about 90 seconds, set `"sentryTest": { "runner": "namespace-profile-sentry-javascript" }` to run it and its
+variants on 4 vCPUs, each in a job of its own.
+
+In CI, Playwright retries a failed test once. A test that passes on retry does not fail the job, but it is listed in the
+job summary and in the weekly flaky test report (`.github/workflows/weekly-flaky-tests.yml`).
 
 If you add Sentry dependencies to your test application, set the dependency versions to `latest || *` in order
 for it to work with both regular and prerelease versions:

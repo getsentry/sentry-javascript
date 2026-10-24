@@ -1,0 +1,95 @@
+name: 'Build E2E test application'
+description:
+  'Prepares, installs and builds one application of an E2E job in `runner.temp/e2e/<dir>`. Takes an entry of the `apps`
+  list that `ci:build-matrix --batch-size` generates.'
+inputs:
+  app:
+    description:
+      'The app as JSON: `test-application`, `dir` and the optional `runtime`, `deno-version`, `build-command`.'
+    required: true
+  previous-app:
+    description:
+      'The app that ran before in the same job, as JSON. Its leftover processes and containers are removed first.'
+    default: ''
+
+# Isolation between the apps of a job: the install, build and test steps of an app run with `SENTRY_E2E_APP=<dir>`,
+# which every process they start inherits, also servers that Playwright detaches. Before the next app starts, the
+# processes with the previous app's marker are stopped, and the containers created since the previous app started are
+# removed. This also covers an app whose build or test step timed out. The last app of a job needs no clean-up.
+runs:
+  using: 'composite'
+  steps:
+    # Playwright stops the web servers of an app and the apps stop their containers in their global teardown. This only
+    # matters when an app timed out before that, and its servers would block the ports of the next app.
+    - name: Stop leftovers of the previous app
+      if: inputs.previous-app != ''
+      shell: bash
+      run: |
+        pids=()
+        for proc in /proc/[0-9]*; do
+          if tr '\0' '\n' < "$proc/environ" 2>/dev/null | grep -qxF "SENTRY_E2E_APP=$PREVIOUS_DIR"; then
+            pids+=("${proc#/proc/}")
+            echo "Stopping $(tr '\0' ' ' < "$proc/cmdline" 2>/dev/null)"
+          fi
+        done
+        if [ ${#pids[@]} -gt 0 ]; then
+          kill -TERM "${pids[@]}" 2>/dev/null || true
+          sleep 5
+          kill -KILL "${pids[@]}" 2>/dev/null || true
+        fi
+
+        before="$RUNNER_TEMP/e2e/$PREVIOUS_DIR.containers"
+        if [ -f "$before" ]; then
+          containers=$(comm -13 "$before" <(docker ps -aq --no-trunc 2>/dev/null | sort))
+          if [ -n "$containers" ]; then
+            echo "Removing containers: $containers"
+            docker rm -f $containers > /dev/null || true
+          fi
+        fi
+      env:
+        PREVIOUS_DIR: ${{ inputs.previous-app && fromJSON(inputs.previous-app).dir || '' }}
+
+    - name: Record the containers that exist before the app
+      shell: bash
+      run: |
+        mkdir -p "$RUNNER_TEMP/e2e"
+        docker ps -aq --no-trunc 2>/dev/null | sort > "$RUNNER_TEMP/e2e/$APP_DIR.containers" || true
+      env:
+        APP_DIR: ${{ fromJSON(inputs.app).dir }}
+
+    - name: Prepare E2E test application
+      uses: ./.github/actions/prepare-e2e-app
+      with:
+        test-application: ${{ fromJSON(inputs.app)['test-application'] }}
+        dir: ${{ runner.temp }}/e2e/${{ fromJSON(inputs.app).dir }}
+        runtime: ${{ fromJSON(inputs.app).runtime }}
+        deno-version: ${{ fromJSON(inputs.app)['deno-version'] }}
+
+    # Every build command runs `pnpm install`, so installing first makes that a no-op. Some downloads from the npm
+    # registry crawl at tens of kB/s for the whole 7 minutes of the build step, and pnpm does not give up on a slow
+    # download. Another attempt reuses what is already in the store and opens new connections.
+    # The hoisted variant installs with another node linker, so installing first would only redo the install.
+    - name: Install E2E app dependencies
+      if: ${{ !contains(fromJSON(inputs.app)['build-command'], 'hoisted') }}
+      shell: bash
+      working-directory: ${{ runner.temp }}/e2e/${{ fromJSON(inputs.app).dir }}
+      run: |
+        for attempt in 1 2; do
+          timeout 150 pnpm install && exit 0
+          echo "::warning::pnpm install attempt $attempt failed or did not finish in 150 s, retrying"
+        done
+        timeout 300 pnpm install
+      env:
+        SENTRY_E2E_WORKSPACE_ROOT: ${{ github.workspace }}
+        SENTRY_E2E_APP: ${{ fromJSON(inputs.app).dir }}
+        RUNTIME: ${{ fromJSON(inputs.app).runtime }}
+
+    - name: Build E2E app
+      shell: bash
+      working-directory: ${{ runner.temp }}/e2e/${{ fromJSON(inputs.app).dir }}
+      run: timeout 420 bash -c "$BUILD_COMMAND"
+      env:
+        BUILD_COMMAND: ${{ fromJSON(inputs.app)['build-command'] || 'pnpm test:build' }}
+        SENTRY_E2E_WORKSPACE_ROOT: ${{ github.workspace }}
+        SENTRY_E2E_APP: ${{ fromJSON(inputs.app).dir }}
+        RUNTIME: ${{ fromJSON(inputs.app).runtime }}

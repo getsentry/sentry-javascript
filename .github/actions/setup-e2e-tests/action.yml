@@ -1,0 +1,77 @@
+name: 'Set up E2E tests'
+description:
+  'Restores the built tarballs and prepares the E2E test setup once per job. Run `prepare-e2e-app` afterwards for each
+  test application of the job.'
+inputs:
+  aws-serverless-layer:
+    description: 'Whether to restore the Lambda layer, which the `aws-serverless*` apps need.'
+    default: 'false'
+  aws-serverless-build:
+    description: 'Whether to restore the build output, which the `aws-serverless` app needs.'
+    default: 'false'
+  artifacts-run-id:
+    description: 'The workflow run that uploaded the tarball artifacts. Defaults to the current run.'
+    default: ''
+  github-token:
+    description: 'Token to download artifacts from `artifacts-run-id`. Only needed when that is set.'
+    default: ''
+
+runs:
+  using: 'composite'
+  steps:
+    # `prepare-e2e-app` switches to the Node version of each app
+    - name: Set up Node
+      uses: actions/setup-node@v7
+      with:
+        node-version-file: 'package.json'
+    # Keeps the pnpm store on the cache volume for the `pnpm install` of the test application
+    - name: Mount pnpm store
+      uses: ./.github/actions/mount-pnpm-store
+    - name: Install pnpm
+      uses: ./.github/actions/install-pnpm
+
+    # upload-artifact strips the path through the first `*`, so the tarballs are stored as <pkg>/*.tgz and have to be
+    # downloaded into packages/.
+    - name: Restore tarball artifacts
+      uses: actions/download-artifact@v8
+      with:
+        name: build-tarball-output
+        path: ${{ github.workspace }}/packages
+        run-id: ${{ inputs.artifacts-run-id || github.run_id }}
+        github-token: ${{ inputs.github-token }}
+
+    - name: Restore test-utils tarball artifact
+      uses: actions/download-artifact@v8
+      with:
+        name: build-test-utils-tarball-output
+        path: dev-packages/test-utils
+        run-id: ${{ inputs.artifacts-run-id || github.run_id }}
+        github-token: ${{ inputs.github-token }}
+
+    - name: Restore build layer artifacts
+      if: inputs.aws-serverless-layer == 'true'
+      uses: actions/download-artifact@v8
+      with:
+        name: build-layer-output
+        path: ${{ github.workspace }}/packages/aws-serverless/build/aws/dist-serverless
+        run-id: ${{ inputs.artifacts-run-id || github.run_id }}
+        github-token: ${{ inputs.github-token }}
+
+    # The Lambda functions install the built workspace packages directly (see `src/stack.ts`).
+    - name: Restore build artifacts
+      if: inputs.aws-serverless-build == 'true'
+      uses: actions/download-artifact@v8
+      with:
+        name: build-output
+        run-id: ${{ inputs.artifacts-run-id || github.run_id }}
+        github-token: ${{ inputs.github-token }}
+
+    - name: Prepare E2E tests
+      run: pnpm run test:prepare
+      shell: bash
+      working-directory: dev-packages/e2e-tests
+
+    - name: Validate E2E test setup
+      run: pnpm run test:validate
+      shell: bash
+      working-directory: dev-packages/e2e-tests

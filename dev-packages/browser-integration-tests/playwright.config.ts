@@ -2,7 +2,9 @@ import type { PlaywrightTestConfig } from '@playwright/test';
 import { devices } from '@playwright/test';
 
 const config: PlaywrightTestConfig = {
-  retries: 0,
+  // A test that passes on retry is reported as flaky in the job summary and in the weekly flaky test report.
+  // `test:detect-flaky` passes `--retries=0`, so it still fails on the first flaky run.
+  retries: process.env.CI ? 1 : 0,
   // Run tests inside of a single file in parallel
   fullyParallel: true,
   // Use 3 workers on CI, else use defaults (based on available CPU cores)
@@ -30,7 +32,9 @@ const config: PlaywrightTestConfig = {
     },
   ],
 
-  reporter: process.env.CI ? [['list'], ['github'], ['junit', { outputFile: 'results.junit.xml' }]] : 'list',
+  reporter: process.env.CI
+    ? [['list'], ['github'], ['junit', { outputFile: 'results.junit.xml' }], ['json', { outputFile: 'results.json' }]]
+    : 'list',
 
   globalSetup: require.resolve('./playwright.setup.ts'),
   globalTeardown: require.resolve('./playwright.teardown.ts'),

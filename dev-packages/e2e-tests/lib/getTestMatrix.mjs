@@ -14,6 +14,10 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
  *
  * If `--optional=true` is set, it will generate a matrix of optional test applications only.
  * Otherwise, these will be skipped.
+ *
+ * With `--batch-size=n`, every matrix entry is a job with an `apps` list. Apps on the default runner share a job, n at
+ * a time, so the job's setup (checkout, runner start, artifacts, Playwright) is paid once per n apps. An app that sets
+ * `sentryTest.runner` gets a job of its own.
  */
 function run() {
   const { values } = parseArgs({
@@ -22,10 +26,15 @@ function run() {
       base: { type: 'string' },
       head: { type: 'string' },
       optional: { type: 'string', default: 'false' },
+      'batch-size': { type: 'string' },
     },
   });
 
   const { base, head = 'HEAD', optional } = values;
+  const batchSize = values['batch-size'] ? Number(values['batch-size']) : undefined;
+  if (batchSize !== undefined && !(Number.isInteger(batchSize) && batchSize > 0)) {
+    throw new Error(`--batch-size must be a positive integer, got ${values['batch-size']}`);
+  }
 
   // For GitHub Action debugging
   // eslint-disable-next-line no-console
@@ -49,10 +58,118 @@ function run() {
   includedTestApplications.forEach(testApp => {
     addIncludesForTestApp(testApp, includes, { optionalMode });
   });
+  assertUniqueLabels(includes);
 
   // We print this to the output, so the GHA can use it for the matrix
   // eslint-disable-next-line no-console
-  console.log(`matrix=${JSON.stringify({ include: includes })}`);
+  console.log(`matrix=${JSON.stringify({ include: batchSize ? batchIncludes(includes, batchSize) : includes })}`);
+}
+
+/**
+ * Groups matrix entries into jobs. Each app gets a unique `dir`, the directory it is copied to, so the apps of one job
+ * do not share build output and their test results and traces stay apart.
+ * A job installs one Playwright version, so apps only share a job with apps that use the same version.
+ */
+function batchIncludes(includes, batchSize) {
+  const usedDirs = new Set();
+  const apps = includes.map(include => {
+    const label = include.label || include['test-application'];
+    const baseDir =
+      label
+        .toLowerCase()
+        .replace(/[^a-z0-9._-]+/g, '-')
+        .replace(/^-+|-+$/g, '') || 'app';
+    let dir = baseDir;
+    for (let i = 2; usedDirs.has(dir); i++) {
+      dir = `${baseDir}-${i}`;
+    }
+    usedDirs.add(dir);
+    const { runner: _runner, ...app } = include;
+    return { runner: include.runner, app: { ...app, label, dir } };
+  });
+
+  const jobs = apps
+    .filter(({ runner }) => runner)
+    .map(({ runner, app }) => ({ label: app.label, runner, apps: [app] }));
+
+  const sharedByPlaywrightVersion = new Map();
+  for (const { runner, app } of apps) {
+    if (!runner) {
+      const version = getPlaywrightVersion(app['test-application']);
+      sharedByPlaywrightVersion.set(version, [...(sharedByPlaywrightVersion.get(version) ?? []), app]);
+    }
+  }
+  for (const shared of sharedByPlaywrightVersion.values()) {
+    for (let i = 0; i < shared.length; i += batchSize) {
+      const batch = shared.slice(i, i + batchSize);
+      jobs.push({ label: batch.map(app => app.label).join(', '), apps: batch });
+    }
+  }
+
+  assertSameApps(includes, jobs, batchSize);
+
+  return jobs.map(job => {
+    const testApplications = job.apps.map(app => app['test-application']);
+    return {
+      ...job,
+      // The app whose package.json `install-playwright` reads the Playwright version from
+      'playwright-app': testApplications.find(app => getPlaywrightVersion(app)) ?? testApplications[0],
+      'aws-serverless-layer': testApplications.some(app => app.includes('aws-serverless')),
+      'aws-serverless-build': testApplications.includes('aws-serverless'),
+    };
+  });
+}
+
+/**
+ * The label names the job's check and the app's steps, so two entries with one label could not be told apart.
+ */
+function assertUniqueLabels(includes) {
+  const seen = new Set();
+  const duplicates = new Set();
+  for (const include of includes) {
+    const label = include.label || include['test-application'];
+    if (seen.has(label)) {
+      duplicates.add(label);
+    }
+    seen.add(label);
+  }
+  if (duplicates.size > 0) {
+    throw new Error(
+      `E2E matrix labels must be unique, but these are used more than once: ${[...duplicates].join(', ')}`,
+    );
+  }
+}
+
+/**
+ * Batching must not drop, duplicate or change a matrix entry, so the jobs run exactly the apps and variants of the
+ * unbatched matrix. Fails the matrix step instead of silently running fewer tests.
+ */
+function assertSameApps(includes, jobs, batchSize) {
+  const withoutBatchFields = ({ label: _label, dir: _dir, ...app }) => app;
+  const key = include => {
+    const { runner: _runner, ...app } = include;
+    return JSON.stringify(withoutBatchFields(app), Object.keys(withoutBatchFields(app)).sort());
+  };
+  const expected = includes.map(key).sort();
+  const actual = jobs.flatMap(job => job.apps.map(key)).sort();
+  if (JSON.stringify(expected) !== JSON.stringify(actual)) {
+    throw new Error(`Batching changed the E2E matrix: ${expected.length} entries before, ${actual.length} after`);
+  }
+  const labels = includes.map(include => include.label || include['test-application']);
+  const batchedLabels = jobs.flatMap(job => job.apps.map(app => app.label));
+  if (JSON.stringify([...labels].sort()) !== JSON.stringify([...batchedLabels].sort())) {
+    throw new Error('Batching changed the labels of the E2E matrix');
+  }
+  for (const job of jobs) {
+    if (job.apps.length > (job.runner ? 1 : batchSize)) {
+      throw new Error(`The E2E job ${job.label} has ${job.apps.length} apps`);
+    }
+  }
+}
+
+function getPlaywrightVersion(appName) {
+  const { dependencies, devDependencies } = getPackageJson(appName);
+  return devDependencies?.['@playwright/test'] ?? dependencies?.['@playwright/test'] ?? '';
 }
 
 /** Direct children of `test-applications/` that contain a `package.json` (replaces glob one-segment + package.json). */

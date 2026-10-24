@@ -1,0 +1,334 @@
+#!/usr/bin/env python3
+
+import argparse
+import csv
+import io
+import json
+import math
+import subprocess
+import sys
+
+from datetime import datetime, timedelta
+from textwrap import wrap
+
+REPOSITORY = "getsentry/sentry-javascript"
+
+
+def run_command(*command):
+    result = subprocess.run(command, capture_output=True, check=False, text=True)
+    if result.returncode:
+        error = result.stderr.strip() or result.stdout.strip()
+        raise RuntimeError(f"{command[0]} failed: {error}")
+    return result.stdout
+
+
+# A named tuple keeps this valid before Python 3.14; ruff format strips the parentheses
+# from an inline `except (A, B):` because the repo targets 3.14.
+NUMBER_ERRORS = (TypeError, ValueError)
+
+
+def number(value):
+    try:
+        return float(value)
+    except NUMBER_ERRORS:
+        return None
+
+
+def headroom(used_share):
+    if used_share is None or used_share <= 0:
+        return "n/a"
+    return f"{(1 - used_share) * 100:.1f}% free"
+
+
+def usage_bar(used_share, width=10):
+    if used_share is None or used_share <= 0:
+        return "░" * width
+    filled = round(min(max(used_share, 0), 1) * width)
+    return "█" * filled + "░" * (width - filled)
+
+
+def parse_time(value):
+    try:
+        return datetime.fromisoformat(value.replace("Z", "+00:00"))
+    except ValueError:
+        return datetime.strptime(value, "%Y-%m-%d %H:%M:%S %z UTC")
+
+
+def report_end(run):
+    if run["status"] != "completed":
+        return datetime.now().astimezone().isoformat()
+    completed_jobs = [
+        parse_time(job["completedAt"]) for job in run["jobs"] if job.get("completedAt")
+    ]
+    latest_completion = max(completed_jobs) if completed_jobs else parse_time(run["updatedAt"])
+    return (latest_completion + timedelta(seconds=1)).isoformat()
+
+
+def duration(started_at, completed_at):
+    seconds = round((parse_time(completed_at) - parse_time(started_at)).total_seconds())
+    minutes, seconds = divmod(seconds, 60)
+    hours, minutes = divmod(minutes, 60)
+    if hours:
+        return f"{hours}h {minutes}m {seconds}s"
+    if minutes:
+        return f"{minutes}m {seconds}s"
+    return f"{seconds}s"
+
+
+def compute_unit_minutes(instance):
+    started_at = instance.get("job_started_at")
+    completed_at = instance.get("job_completed_at")
+    cpu = number(instance.get("resources_cpu"))
+    memory_gb = number(instance.get("resources_ram_gb"))
+    if not started_at or not completed_at or not cpu or not memory_gb:
+        return None
+
+    elapsed_seconds = (parse_time(completed_at) - parse_time(started_at)).total_seconds()
+    billable_minutes = max(1, math.ceil(max(0, elapsed_seconds - 15) / 60))
+    units_per_minute = max(cpu, memory_gb / 2)
+    return units_per_minute * billable_minutes
+
+
+def print_workflow(workflow, profiles, total_unit_minutes, missing_compute_jobs):
+    content_width = 76
+    border = "─" * (content_width + 2)
+
+    def line(value):
+        for paragraph in value.splitlines():
+            for wrapped in wrap(paragraph, content_width) or [""]:
+                print(f"│ {wrapped:<{content_width}} │")
+
+    print(f"┌{border}┐")
+    line(f"Workflow: {workflow}")
+    print(f"├{border}┤")
+
+    for (profile, _, _), profile_data in sorted(profiles.items(), key=lambda item: str(item[0])):
+        job_count = profile_data["job_count"]
+        unit_minutes = profile_data["unit_minutes"]
+        partial = " · partial" if profile_data["missing_compute_jobs"] else ""
+        line(f"Runner: {profile} · {job_count} jobs · compute: {unit_minutes:.1f}m{partial}")
+
+        for resource, capacity_key, peaks_key in (
+            ("CPU", "cpu_capacity", "cpu_peaks"),
+            ("RAM", "memory_capacity", "memory_peaks"),
+        ):
+            peaks = profile_data[peaks_key]
+            if peaks:
+                peak_share, peak_value = max(peaks, key=lambda peak: peak[0])
+                capacity = profile_data[capacity_key]
+                line(
+                    f"    {resource} {usage_bar(peak_share)} {peak_share:.0%} · "
+                    f"{peak_value:.2f}/{capacity:.0f} · {headroom(peak_share)} · "
+                    f"{len(peaks)}/{job_count}"
+                )
+            else:
+                line(f"    {resource} {usage_bar(None)} n/a · 0/{job_count} measured")
+
+        line("    Jobs · bars scaled to the longest job")
+        jobs = sorted(
+            profile_data["jobs"],
+            key=lambda job: (job[2] is None, -(job[2] or 0), job[0]),
+        )
+        longest_job_seconds = max((job[2] or 0 for job in jobs), default=0)
+        for job_name, job_time, job_seconds in jobs:
+            filled = (
+                max(1, round(job_seconds / longest_job_seconds * 12))
+                if job_seconds is not None and longest_job_seconds > 0
+                else 0
+            )
+            bar = "█" * filled + "░" * (12 - filled)
+            prefix = f"      {bar} {job_time:>8}  "
+            job_lines = wrap(job_name, content_width - len(prefix)) or [""]
+            line(prefix + job_lines[0])
+            for job_line in job_lines[1:]:
+                line(f"{' ' * len(prefix)}{job_line}")
+
+    total_suffix = " (partial)" if missing_compute_jobs else ""
+    line(f"Total compute: {total_unit_minutes:.1f}m{total_suffix}")
+    print(f"└{border}┘")
+
+
+def report_rows(report, run_id):
+    rows = list(csv.reader(io.StringIO(report)))
+    header_index = next(
+        (index for index, row in enumerate(rows) if row and row[0] == "instance_id"),
+        None,
+    )
+    if header_index is None:
+        raise RuntimeError("nsc instance report did not return CSV data")
+
+    headers = rows[header_index]
+    data_rows = [row for row in rows[header_index + 1 :] if len(row) == len(headers)]
+    if "github_run_id" not in headers:
+        if not data_rows:
+            return []
+        raise RuntimeError("nsc instance report rows are missing GitHub run IDs")
+
+    run_id_index = headers.index("github_run_id")
+    return [dict(zip(headers, row)) for row in data_rows if row[run_id_index] == run_id]
+
+
+def latest_workflow_run(branch, workflow):
+    runs = json.loads(
+        run_command(
+            "gh",
+            "run",
+            "list",
+            "--repo",
+            REPOSITORY,
+            "--workflow",
+            workflow,
+            "--branch",
+            branch,
+            "--limit",
+            "1",
+            "--json",
+            "databaseId,workflowName,conclusion,status,url",
+        )
+    )
+    if not runs:
+        raise RuntimeError(f"no {workflow!r} runs found on branch {branch!r}")
+    return runs[0]
+
+
+def main():
+    parser = argparse.ArgumentParser(
+        description="Report Namespace usage for a Sentry JavaScript workflow run."
+    )
+    parser.add_argument(
+        "workflow_run_id",
+        nargs="?",
+        help="Workflow run ID (default: latest workflow run)",
+    )
+    parser.add_argument("--ref", help="Branch to inspect (default: checked-out branch)")
+    parser.add_argument(
+        "--workflow",
+        default="CI: Build & Test",
+        help="Workflow to inspect when selecting the latest run (default: CI: Build & Test)",
+    )
+    args = parser.parse_args()
+
+    if args.workflow_run_id:
+        if not args.workflow_run_id.isdigit():
+            raise RuntimeError("workflow run ID must contain only digits")
+        if args.ref:
+            raise RuntimeError("--ref can only be used when selecting the latest run")
+        run_id = args.workflow_run_id
+    else:
+        branch = args.ref or run_command("git", "branch", "--show-current").strip()
+        if not branch:
+            raise RuntimeError("no current Git branch; pass --ref")
+        run = latest_workflow_run(branch, args.workflow)
+        run_id = str(run["databaseId"])
+        run_summary = (
+            f"Latest {run['workflowName']} run on {branch}: "
+            f"{run['url']} ({run['status']}"
+            f"{', ' + run['conclusion'] if run['conclusion'] else ''})"
+        )
+        print("\n".join(wrap(run_summary, 80)), flush=True)
+
+    cost_scope = "Cost estimate disabled: cache/storage, builds, and plan pricing aren't captured."
+    print("\n".join(wrap(cost_scope, 80)))
+
+    run = json.loads(
+        run_command(
+            "gh",
+            "run",
+            "view",
+            run_id,
+            "--repo",
+            REPOSITORY,
+            "--json",
+            "status,createdAt,updatedAt,headSha,jobs",
+        )
+    )
+    print(f"Workflow SHA: {run['headSha']}")
+
+    report = run_command(
+        "nsc",
+        "instance",
+        "report",
+        "--repository",
+        REPOSITORY,
+        "--start",
+        run["createdAt"],
+        "--end",
+        report_end(run),
+        "--out",
+        "-",
+    )
+    instances = report_rows(report, run_id)
+    if not instances:
+        print(f"No Namespace runner instances found for run {run_id}.")
+        return
+
+    workflows = {}
+    for instance in sorted(instances, key=lambda row: row.get("job_started_at", "")):
+        workflow = instance.get("github_job_workflow_name") or "unknown workflow"
+        profile = instance.get("profile", "unknown").removeprefix("namespace-profile-")
+        cpu_capacity = number(instance.get("resources_cpu"))
+        cpu_peak_share = number(instance.get("resources_cpu_actual_max"))
+        memory_capacity = number(instance.get("resources_ram_gb"))
+        memory_peak_share = number(instance.get("resources_ram_gb_actual_max_percent"))
+
+        job_time = "n/a"
+        job_seconds = None
+        if instance.get("job_started_at") and instance.get("job_completed_at"):
+            job_time = duration(instance["job_started_at"], instance["job_completed_at"])
+            job_seconds = (
+                parse_time(instance["job_completed_at"]) - parse_time(instance["job_started_at"])
+            ).total_seconds()
+
+        unit_minutes = compute_unit_minutes(instance)
+        workflow_data = workflows.setdefault(
+            workflow,
+            {"profiles": {}, "unit_minutes": 0, "missing_compute_jobs": 0},
+        )
+        profile_key = (profile, cpu_capacity, memory_capacity)
+        profile_data = workflow_data["profiles"].setdefault(
+            profile_key,
+            {
+                "job_count": 0,
+                "cpu_capacity": cpu_capacity,
+                "memory_capacity": memory_capacity,
+                "cpu_peaks": [],
+                "memory_peaks": [],
+                "jobs": [],
+                "unit_minutes": 0,
+                "missing_compute_jobs": 0,
+            },
+        )
+        profile_data["job_count"] += 1
+        profile_data["jobs"].append(
+            (instance.get("github_job_name", "unknown job"), job_time, job_seconds)
+        )
+
+        if cpu_capacity and cpu_peak_share and cpu_peak_share > 0:
+            profile_data["cpu_peaks"].append((cpu_peak_share, cpu_capacity * cpu_peak_share))
+        if memory_capacity and memory_peak_share and memory_peak_share > 0:
+            profile_data["memory_peaks"].append(
+                (memory_peak_share, memory_capacity * memory_peak_share)
+            )
+
+        if unit_minutes is None:
+            workflow_data["missing_compute_jobs"] += 1
+            profile_data["missing_compute_jobs"] += 1
+        else:
+            workflow_data["unit_minutes"] += unit_minutes
+            profile_data["unit_minutes"] += unit_minutes
+
+    for workflow, data in sorted(workflows.items()):
+        print_workflow(
+            workflow,
+            data["profiles"],
+            data["unit_minutes"],
+            data["missing_compute_jobs"],
+        )
+
+
+if __name__ == "__main__":
+    try:
+        main()
+    except (KeyError, RuntimeError, json.JSONDecodeError) as error:
+        print(error, file=sys.stderr)
+        sys.exit(1)

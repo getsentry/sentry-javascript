@@ -1,4 +1,4 @@
-import { exec } from 'child_process';
+import { exec, execFile } from 'child_process';
 import { existsSync } from 'fs';
 import { cp, mkdir, readFile, rm, writeFile } from 'fs/promises';
 import { basename, delimiter, join } from 'path';
@@ -7,6 +7,7 @@ import { afterAll, beforeAll, test, type TestAPI } from 'vitest';
 import { CLEANUP_STEPS, createRunner, PACKAGE_ROOT } from './createRunner';
 
 const execPromise = promisify(exec);
+const execFilePromise = promisify(execFile);
 
 interface ScenarioPaths {
   cjs: {
@@ -164,7 +165,7 @@ function setupAndCleanup(
   // Create tmp directory and install additionalDependencies (with retries)
   beforeAll(async () => {
     await createTmpDir();
-  }, 120_000);
+  }, 210_000);
 
   // Clean up the tmp directory after both esm and cjs suites have run
   afterAll(async () => {
@@ -332,17 +333,22 @@ function convertEsmToCjs(content: string): string {
 
 const NPM_INSTALL_MAX_RETRIES = 3;
 const NPM_INSTALL_RETRY_DELAY_MS = 2_000;
+// Single downloads from the npm registry sometimes crawl at kB/s, and npm does not give up on them. Stopping a slow
+// attempt leaves time for another one, which reuses the cached packages and opens new connections.
+const NPM_INSTALL_ATTEMPT_TIMEOUT_MS = 50_000;
 
 async function npmInstallWithRetry(cwd: string, deps: string[]): Promise<void> {
   for (let attempt = 1; attempt <= NPM_INSTALL_MAX_RETRIES; attempt++) {
     try {
-      const { stdout, stderr } = await execPromise(
+      const { stdout, stderr } = await execFilePromise(
+        'npm',
         // We only use --prefer-offline on the first attempt to try to read from cache
         // in follow ups we just try to install in any way
-        `npm install ${attempt === 1 ? '--prefer-offline' : ''} --no-audit --no-fund`,
+        ['install', ...(attempt === 1 ? ['--prefer-offline'] : []), '--no-audit', '--no-fund'],
         {
           cwd,
           encoding: 'utf8',
+          timeout: NPM_INSTALL_ATTEMPT_TIMEOUT_MS,
         },
       );
 

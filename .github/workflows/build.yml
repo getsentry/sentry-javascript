@@ -140,7 +140,7 @@ jobs:
       - name: Determine which test applications should be run
         id: matrix
         run:
-          pnpm --silent run ci:build-matrix --base=${{ (github.event_name == 'pull_request' &&
+          pnpm --silent run ci:build-matrix --batch-size=4 --base=${{ (github.event_name == 'pull_request' &&
           needs.job_get_metadata.outputs.changed_ci != 'true' && github.event.pull_request.base.sha) || '' }} >>
           $GITHUB_OUTPUT
         working-directory: dev-packages/e2e-tests
@@ -362,11 +362,18 @@ jobs:
   job_check_lockfile:
     name: Check lockfile
     needs: [job_get_metadata]
-    # `pnpm dedupe --check` fetches metadata for every package from npm, so this job can take 8+ min on PRs.
+    # Both checks only resolve dependencies, so they need no node_modules and little CPU. What they need is pnpm's
+    # package metadata: `pnpm dedupe --check` reads it for every dependency, about 300 MB from npm (1.2 GB unpacked).
+    # Without a cache, that download took 6 minutes or more. The job's own cache volume keeps the metadata, so pnpm
+    # only revalidates it. The timeout leaves room for a cold volume.
     timeout-minutes: 20
-    runs-on: namespace-profile-sentry-javascript
+    runs-on:
+      namespace-profile-sentry-javascript-small;overrides.cache-tag=sentry-javascript-lockfile${{ github.event_name ==
+      'pull_request' && '-pr' || '' }}
+    # Also on CI changes, which can break this job without touching a dependency
     if: |
       needs.job_get_metadata.outputs.changed_deps == 'true' ||
+      needs.job_get_metadata.outputs.changed_ci == 'true' ||
       needs.job_get_metadata.outputs.is_base_branch == 'true' ||
       needs.job_get_metadata.outputs.is_release == 'true'
     steps:
@@ -374,16 +381,18 @@ jobs:
         uses: actions/checkout@v7
         with:
           ref: ${{ env.HEAD_COMMIT }}
+      - name: Mount pnpm caches
+        uses: ./.github/actions/mount-pnpm-store
       - name: Install pnpm
         uses: ./.github/actions/install-pnpm
       - name: Set up Node
         uses: actions/setup-node@v7
         with:
           node-version-file: 'package.json'
-      - name: Install dependencies
-        run: pnpm install --no-frozen-lockfile
+      # `--lockfile-only` updates pnpm-lock.yaml like a full install would, without downloading and linking packages
       - name: Check that pnpm-lock.yaml is stable
         run: |
+          pnpm install --lockfile-only --no-frozen-lockfile
           if ! git diff --exit-code pnpm-lock.yaml; then
             echo "::error::pnpm-lock.yaml has uncommitted changes after running 'pnpm install'. Please run 'pnpm install' locally and commit the updated pnpm-lock.yaml."
             exit 1
@@ -602,14 +611,21 @@ jobs:
         env:
           NODE_VERSION: ${{ matrix.node }}
 
+      - name: Run script tests
+        run: pnpm run test:scripts
+        if: matrix.node == 24
+
   job_browser_playwright_tests:
     name:
       Playwright ${{ matrix.bundle }}${{ matrix.project && matrix.project != 'chromium' && format(' {0}',
       matrix.project) || ''}}${{ matrix.shard && format(' ({0}/{1})', matrix.shard, matrix.shards) || ''}} Tests
     needs: [job_get_metadata, job_build, job_build_bundles]
     if: needs.job_build.outputs.changed_browser_integration == 'true' || github.event_name != 'pull_request'
+    # The bundle matrices use 2.5-4.7 of 8 vCPUs and up to about 6 of 16 GB, so they fit the 4 vCPU, 8 GB shape. The
+    # esm shards and the webkit bundle need the large shape.
     runs-on:
-      namespace-profile-sentry-javascript-large;overrides.cache-tag=sentry-javascript${{ github.event_name ==
+      ${{ (matrix.bundle == 'esm' || matrix.project == 'webkit') && 'namespace-profile-sentry-javascript-large' ||
+      'namespace-profile-sentry-javascript' }};overrides.cache-tag=sentry-javascript${{ github.event_name ==
       'pull_request' && '-pr' || '' }}
     timeout-minutes: 25
     strategy:
@@ -691,9 +707,22 @@ jobs:
           pnpm run test:all${{ matrix.project && format(' --project={0}', matrix.project) || '' }}${{ matrix.shard &&
           format(' --shard={0}/{1}', matrix.shard, matrix.shards) || '' }}
 
+      - &report_browser_flaky_tests
+        name: Report flaky tests
+        id: flaky
+        if: ${{ !cancelled() }}
+        run: node scripts/ci-report-flaky-tests.mjs dev-packages/browser-integration-tests/results.json
+
+      # Only runs if a test passed on retry. scripts/weekly-flaky-tests.mjs looks for this step name.
+      - &flaky_tests_passed_on_retry
+        name: Flaky tests passed on retry
+        if: ${{ !cancelled() && steps.flaky.outputs.flaky == 'true' }}
+        run: echo "::warning::Some tests only passed on retry, see the job summary."
+
+      # Also for tests that passed on retry: the trace of their failed attempt is what explains the flake.
       - name: Upload Playwright Traces
         uses: actions/upload-artifact@v7
-        if: failure()
+        if: failure() || steps.flaky.outputs.flaky == 'true'
         with:
           name:
             playwright-traces-job_browser_playwright_tests-${{ matrix.bundle}}-${{matrix.project}}-${{matrix.shard ||
@@ -753,9 +782,12 @@ jobs:
           cd dev-packages/browser-integration-tests
           pnpm run test:loader
 
+      - *report_browser_flaky_tests
+      - *flaky_tests_passed_on_retry
+
       - name: Upload Playwright Traces
         uses: actions/upload-artifact@v7
-        if: failure()
+        if: failure() || steps.flaky.outputs.flaky == 'true'
         with:
           name: playwright-traces-job_browser_loader_tests-${{ matrix.bundle}}
           path: dev-packages/browser-integration-tests/test-results
@@ -800,9 +832,44 @@ jobs:
       - name: Restore caches
         uses: ./.github/actions/restore-cache
 
+      # Suites `npm install` their `additionalDependencies` in their setup hook, and slow npm downloads were the most
+      # common reason for these jobs to fail. The Actions cache keeps those packages when the Namespace cache volume
+      # comes up empty. The key only changes weekly, so a push that edits a suite doesn't save another copy, and npm
+      # versions the suites no longer use don't pile up.
+      - name: Get npm cache key of the suites
+        id: npm-cache
+        run: |
+          echo "dir=$HOME/.cache/node-integration-npm" >> "$GITHUB_OUTPUT"
+          echo "key=node-integration-npm-shard${{ matrix.shard }}-$(date -u +%G-W%V)" >> "$GITHUB_OUTPUT"
+      - name: Restore npm cache of the suites
+        id: npm-cache-restore
+        uses: actions/cache/restore@v6.1.0
+        with:
+          path: ${{ steps.npm-cache.outputs.dir }}
+          key: ${{ steps.npm-cache.outputs.key }}
+      # Only the base branch saves, so PR caches don't evict it. The Node versions install the same packages, so one
+      # of them is enough. Without a restored cache, the other jobs keep the npm cache on the Namespace cache volume.
+      - name: Use the npm cache of the suites
+        id: npm-cache-use
+        if:
+          steps.npm-cache-restore.outputs.cache-hit == 'true' || (needs.job_get_metadata.outputs.is_base_branch ==
+          'true' && matrix.node == 24)
+        run: echo "npm_config_cache=$NPM_CACHE_DIR" >> "$GITHUB_ENV"
+        env:
+          NPM_CACHE_DIR: ${{ steps.npm-cache.outputs.dir }}
+
       - name: Run integration tests
         working-directory: dev-packages/node-integration-tests
         run: pnpm run test --shard=${{ matrix.shard }}/3
+
+      - name: Save npm cache of the suites
+        if:
+          ${{ !cancelled() && steps.npm-cache-use.outcome == 'success' && steps.npm-cache-restore.outputs.cache-hit !=
+          'true' && needs.job_get_metadata.outputs.is_base_branch == 'true' && matrix.node == 24 }}
+        uses: actions/cache/save@v6.1.0
+        with:
+          path: ${{ steps.npm-cache.outputs.dir }}
+          key: ${{ steps.npm-cache.outputs.key }}
 
   # Runs on the wrangler pinned in the package, so the required run stays on a fixed, older runtime.
   job_cloudflare_integration_tests:
@@ -1022,17 +1089,18 @@ jobs:
           overwrite: true
 
   job_e2e_tests:
-    name: E2E ${{ matrix.label || matrix.test-application }} Test
+    name: E2E ${{ matrix.label }} Test
     # We need to add the `always()` check here because the previous step has this as well :(
     # See: https://github.com/actions/runner/issues/2205
     if:
       always() && needs.job_build_tarballs.result == 'success' && needs.job_build.outputs.e2e-matrix !='{"include":[]}'
     needs: [job_get_metadata, job_build, job_build_layer, job_build_tarballs]
-    # Most apps finish in under a minute on 4 vCPUs, so they run on 2. Apps that take longer set `sentryTest.runner`.
+    # Most apps finish in under a minute on 4 vCPUs, so they run on 2, four apps per job (see `--batch-size` in
+    # `getTestMatrix.mjs`). Apps that take longer set `sentryTest.runner` and get a job of their own.
     runs-on:
       ${{ matrix.runner || 'namespace-profile-sentry-javascript-small' }};overrides.cache-tag=sentry-javascript-e2e${{
       github.event_name == 'pull_request' && '-pr' || '' }}
-    timeout-minutes: 15
+    timeout-minutes: ${{ matrix.runner && 25 || 40 }}
     env:
       # We just use a dummy DSN here, only send to the tunnel anyhow
       E2E_TEST_DSN: 'https://username@domain/123'
@@ -1042,8 +1110,6 @@ jobs:
       REACT_APP_E2E_TEST_DSN: 'https://username@domain/123'
       E2E_TEST_SENTRY_ORG_SLUG: 'sentry-javascript-sdks'
       E2E_TEST_SENTRY_PROJECT: 'sentry-javascript-e2e-tests'
-      # The `runtime` of a runtime variant, see dev-packages/e2e-tests/README.md
-      RUNTIME: ${{ matrix.runtime }}
       # Without the root node_modules, `pnpm run` would first install the whole workspace.
       pnpm_config_verify_deps_before_run: 'false'
     strategy:
@@ -1054,66 +1120,126 @@ jobs:
         uses: actions/checkout@v7
         with:
           ref: ${{ env.HEAD_COMMIT }}
-      - name: Prepare E2E test application
-        uses: ./.github/actions/prepare-e2e-test
+      - name: Set up E2E tests
+        uses: ./.github/actions/setup-e2e-tests
         with:
-          test-application: ${{ matrix.test-application }}
-          runtime: ${{ matrix.runtime }}
-          deno-version: ${{ matrix.deno-version }}
+          aws-serverless-layer: ${{ matrix.aws-serverless-layer }}
+          aws-serverless-build: ${{ matrix.aws-serverless-build }}
 
-      # Installs Playwright while the app installs and builds. Keep it right before the install: the runner sets up a
-      # background composite action's steps from the job's shared `github` context, which fails with "Collection was
-      # modified" if a foreground step starts at that moment. Starting next to `download-artifact` also made it fail to
-      # read the event file.
+      # Installs Playwright while the first app installs and builds. The apps of a job use the same Playwright version.
+      # Keep a `run` step right after it: the runner sets up a background composite action's steps from the job's shared
+      # `github` context, which fails with "Collection was modified" if a foreground step starts at that moment. Starting
+      # next to `download-artifact` also made it fail to read the event file.
       - name: Install Playwright
         id: install-playwright
         background: true
         uses: ./.github/actions/install-playwright
         with:
           browsers: chromium
-          cwd: dev-packages/e2e-tests/test-applications/${{ matrix.test-application }}
+          cwd: dev-packages/e2e-tests/test-applications/${{ matrix.playwright-app }}
 
-      # Every build command runs `pnpm install`, so installing first makes that a no-op. Some downloads from the npm
-      # registry crawl at tens of kB/s for the whole 7 minutes of the build step, and pnpm does not give up on a slow
-      # download. Another attempt reuses what is already in the store and opens new connections.
-      # The hoisted variant installs with another node linker, so installing first would only redo the install.
-      - name: Install E2E app dependencies
-        if: ${{ !contains(matrix.build-command, 'hoisted') }}
-        working-directory: ${{ runner.temp }}/test-application
-        timeout-minutes: 7
-        run: |
-          for attempt in 1 2; do
-            timeout 150 pnpm install && exit 0
-            echo "::warning::pnpm install attempt $attempt failed or did not finish in 150 s, retrying"
-          done
-          pnpm install
+      - name: List the apps of this job
+        run: echo "$APPS"
         env:
-          SENTRY_E2E_WORKSPACE_ROOT: ${{ github.workspace }}
+          APPS: ${{ toJSON(matrix.apps) }}
 
-      - name: Build E2E app
-        working-directory: ${{ runner.temp }}/test-application
-        timeout-minutes: 7
-        run: ${{ matrix.build-command || 'pnpm test:build' }}
-        env:
-          SENTRY_E2E_WORKSPACE_ROOT: ${{ github.workspace }}
+      # Each app runs in its own steps. A failed app does not stop the next one, and `Check E2E results` fails the job.
+      - name: Build ${{ matrix.apps[0].label }}
+        id: build-0
+        continue-on-error: true
+        timeout-minutes: 15
+        uses: ./.github/actions/build-e2e-app
+        with:
+          app: ${{ toJSON(matrix.apps[0]) }}
 
       - wait: [install-playwright]
 
-      - name: Run E2E test
-        working-directory: ${{ runner.temp }}/test-application
-        timeout-minutes: 10
-        run: ${{ matrix.assert-command || 'pnpm test:assert' }}
-        env:
-          SENTRY_E2E_WORKSPACE_ROOT: ${{ github.workspace }}
-
-      - name: Upload Playwright Traces
-        uses: actions/upload-artifact@v7
-        if: failure()
+      - name: Test ${{ matrix.apps[0].label }}
+        id: test-0
+        if: steps.build-0.outcome == 'success'
+        continue-on-error: true
+        timeout-minutes: 11
+        uses: ./.github/actions/test-e2e-app
         with:
-          name: playwright-traces-job_e2e_playwright_tests-${{ matrix.test-application}}
-          path: ${{ runner.temp }}/test-application/test-results
-          overwrite: true
-          retention-days: 7
+          app: ${{ toJSON(matrix.apps[0]) }}
+
+      - name: Build ${{ matrix.apps[1].label }}
+        id: build-1
+        if: matrix.apps[1]
+        continue-on-error: true
+        timeout-minutes: 15
+        uses: ./.github/actions/build-e2e-app
+        with:
+          app: ${{ toJSON(matrix.apps[1]) }}
+          previous-app: ${{ toJSON(matrix.apps[0]) }}
+
+      - name: Test ${{ matrix.apps[1].label }}
+        id: test-1
+        if: steps.build-1.outcome == 'success'
+        continue-on-error: true
+        timeout-minutes: 11
+        uses: ./.github/actions/test-e2e-app
+        with:
+          app: ${{ toJSON(matrix.apps[1]) }}
+
+      - name: Build ${{ matrix.apps[2].label }}
+        id: build-2
+        if: matrix.apps[2]
+        continue-on-error: true
+        timeout-minutes: 15
+        uses: ./.github/actions/build-e2e-app
+        with:
+          app: ${{ toJSON(matrix.apps[2]) }}
+          previous-app: ${{ toJSON(matrix.apps[1]) }}
+
+      - name: Test ${{ matrix.apps[2].label }}
+        id: test-2
+        if: steps.build-2.outcome == 'success'
+        continue-on-error: true
+        timeout-minutes: 11
+        uses: ./.github/actions/test-e2e-app
+        with:
+          app: ${{ toJSON(matrix.apps[2]) }}
+
+      - name: Build ${{ matrix.apps[3].label }}
+        id: build-3
+        if: matrix.apps[3]
+        continue-on-error: true
+        timeout-minutes: 15
+        uses: ./.github/actions/build-e2e-app
+        with:
+          app: ${{ toJSON(matrix.apps[3]) }}
+          previous-app: ${{ toJSON(matrix.apps[2]) }}
+
+      - name: Test ${{ matrix.apps[3].label }}
+        id: test-3
+        if: steps.build-3.outcome == 'success'
+        continue-on-error: true
+        timeout-minutes: 11
+        uses: ./.github/actions/test-e2e-app
+        with:
+          app: ${{ toJSON(matrix.apps[3]) }}
+
+      - name: Report flaky tests
+        id: flaky
+        if: ${{ !cancelled() }}
+        run: node scripts/ci-report-flaky-tests.mjs "$RUNNER_TEMP"/e2e/*/results.json
+
+      - *flaky_tests_passed_on_retry
+
+      - name: Check E2E results
+        if: ${{ !cancelled() }}
+        run: node dev-packages/e2e-tests/lib/checkJobResults.mjs
+        env:
+          APPS: ${{ toJSON(matrix.apps) }}
+          BUILD_0: ${{ steps.build-0.outcome }}
+          TEST_0: ${{ steps.test-0.outcome }}
+          BUILD_1: ${{ steps.build-1.outcome }}
+          TEST_1: ${{ steps.test-1.outcome }}
+          BUILD_2: ${{ steps.build-2.outcome }}
+          TEST_2: ${{ steps.test-2.outcome }}
+          BUILD_3: ${{ steps.build-3.outcome }}
+          TEST_3: ${{ steps.test-3.outcome }}
 
   # - We skip optional tests on release branches
   # - The tests run in optional-e2e.yml, so their failures do not mark the PR as failed. This job only waits for

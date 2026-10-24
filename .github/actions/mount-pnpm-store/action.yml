@@ -1,7 +1,5 @@
 name: 'Mount pnpm store'
-description:
-  'Mounts the pnpm store, the pnpm and npm caches and the given paths from the Namespace cache volume. Use it before
-  `install-pnpm`, so `install-pnpm` takes pnpm from the cache volume.'
+description: 'Mounts the pnpm store, the pnpm and npm caches and the given paths from the Namespace cache volume.'
 
 inputs:
   path:
@@ -12,8 +10,7 @@ inputs:
 runs:
   using: 'composite'
   steps:
-    # Replaces the `pnpm` mode of nscloud-cache-action until it works without pnpm on PATH. The mode runs `pnpm store
-    # path`, so it only works after `install-pnpm`, when `pnpm self-update` has already downloaded pnpm.
+    # Replaces the `pnpm` mode of nscloud-cache-action, which runs `pnpm store path` and so needs pnpm on PATH.
     # The cache directory holds `lockfile-verified.jsonl`. With it, `pnpm install` skips the supply-chain check of a
     # lockfile that was already verified, which otherwise fetches the metadata of every package from the registry.
     - name: Set pnpm store and cache directories
@@ -22,7 +19,7 @@ runs:
         echo "PNPM_CONFIG_CACHE_DIR=$HOME/.cache/pnpm" >> "$GITHUB_ENV"
       shell: bash
 
-    # The `npm` mode keeps the npm cache of the `npm ci` in `pnpm/action-setup`, which installs the bootstrap pnpm
+    # The `npm` mode keeps the npm cache of `npx` and of the `npm install`s in the integration tests
     - name: Mount cache paths
       uses: namespacelabs/nscloud-cache-action@1124a6f3ce44e5cf84cc22111530961f4d2a15f9 # v1.7.0
       with:

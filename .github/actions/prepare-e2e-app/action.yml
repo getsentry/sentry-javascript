@@ -1,0 +1,59 @@
+name: 'Prepare E2E test application'
+description:
+  'Sets up the runtimes for an E2E test application and copies it to `dir` with pnpm overrides pointing at the tarballs.
+  Run `setup-e2e-tests` first.'
+inputs:
+  test-application:
+    description: 'The name of the test application in dev-packages/e2e-tests/test-applications.'
+    required: true
+  dir:
+    description: 'The directory to copy the application to.'
+    required: true
+  runtime:
+    description: 'The `runtime` of a runtime variant, see dev-packages/e2e-tests/README.md.'
+    default: ''
+  deno-version:
+    description: 'The Deno version to install, if the application needs Deno.'
+    default: 'v2.8.3'
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Set up Node
+      uses: actions/setup-node@v7
+      with:
+        node-version-file: 'dev-packages/e2e-tests/test-applications/${{ inputs.test-application }}/package.json'
+    - name: Set up Bun
+      if:
+        inputs.test-application == 'node-exports-test-app' || contains(inputs.test-application, 'bun') || inputs.runtime
+        == 'bun'
+      uses: oven-sh/setup-bun@v2
+      with:
+        bun-version: '1.3.14'
+    - name: Set up AWS SAM
+      if: contains(inputs.test-application, 'aws-serverless')
+      uses: aws-actions/setup-sam@v3
+      with:
+        use-installer: true
+        token: ${{ github.token }}
+    - name: Set up Deno
+      if: contains(inputs.test-application, 'deno') || inputs.runtime == 'deno'
+      uses: denoland/setup-deno@v2.0.5
+      with:
+        deno-version: ${{ inputs.deno-version || 'v2.8.3' }}
+
+    - name: Copy to temp
+      run: pnpm run ci:copy-to-temp "./test-applications/$TEST_APPLICATION" "$APP_DIR"
+      shell: bash
+      working-directory: dev-packages/e2e-tests
+      env:
+        TEST_APPLICATION: ${{ inputs.test-application }}
+        APP_DIR: ${{ inputs.dir }}
+        RUNTIME: ${{ inputs.runtime }}
+
+    - name: Add pnpm overrides
+      run: pnpm run ci:pnpm-overrides "$APP_DIR" "$GITHUB_WORKSPACE/dev-packages/e2e-tests/packed"
+      shell: bash
+      working-directory: dev-packages/e2e-tests
+      env:
+        APP_DIR: ${{ inputs.dir }}

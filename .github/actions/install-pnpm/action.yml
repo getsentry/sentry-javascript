@@ -4,5 +4,76 @@ description: 'Installs the pnpm version of `packageManager` in the root package.
 runs:
   using: 'composite'
   steps:
-    # Without a `version` input, the action reads the version from `packageManager`. With both, it fails.
-    - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+    # `pnpm/action-setup` installs a bootstrap pnpm with npm, which then downloads the `packageManager` pnpm. Every job
+    # repeated both downloads, and neither gives up on a download that crawls. This keeps the standalone pnpm binary in
+    # the Actions cache, and aborts and retries a download that stays too slow.
+    - name: Get pnpm version
+      id: pnpm
+      shell: bash
+      run: |
+        version=$(node -p 'require("./package.json").packageManager.replace(/^pnpm@/, "").split("+")[0]')
+        case "$RUNNER_ARCH" in
+          X64) arch=x64 ;;
+          ARM64) arch=arm64 ;;
+          *) echo "::error::No standalone pnpm for runner architecture $RUNNER_ARCH" && exit 1 ;;
+        esac
+        {
+          echo "version=$version"
+          echo "package=@pnpm/exe.linux-$arch"
+          echo "key=pnpm-exe-linux-$arch-$version"
+          echo "dir=$HOME/.pnpm-exe/$version-linux-$arch"
+        } >> "$GITHUB_OUTPUT"
+
+    - name: Restore pnpm from the Actions cache
+      id: cache
+      uses: actions/cache/restore@v6.1.0
+      with:
+        path: ${{ steps.pnpm.outputs.dir }}
+        key: ${{ steps.pnpm.outputs.key }}
+
+    - name: Download pnpm
+      if: steps.cache.outputs.cache-hit != 'true'
+      shell: bash
+      env:
+        PNPM_DIR: ${{ steps.pnpm.outputs.dir }}
+        PNPM_PACKAGE: ${{ steps.pnpm.outputs.package }}
+        PNPM_VERSION: ${{ steps.pnpm.outputs.version }}
+      run: |
+        fetch() {
+          curl --fail --silent --show-error --location --retry 4 --retry-all-errors --connect-timeout 10 "$@"
+        }
+        manifest=$(fetch "https://registry.npmjs.org/$PNPM_PACKAGE/$PNPM_VERSION")
+        tarball=$(node -p 'JSON.parse(process.argv[1]).dist.tarball' "$manifest")
+        integrity=$(node -p 'JSON.parse(process.argv[1]).dist.integrity' "$manifest")
+        # Aborts a transfer that stays under 256 kB/s for 15 s, so a retry can open a faster connection. If every
+        # connection is that slow, the last download takes whatever speed it gets.
+        if ! fetch --speed-limit 262144 --speed-time 15 --output "$RUNNER_TEMP/pnpm.tgz" "$tarball"; then
+          echo "::warning::Every download of $tarball was slower than 256 kB/s, downloading it without a speed limit"
+          fetch --max-time 600 --output "$RUNNER_TEMP/pnpm.tgz" "$tarball"
+        fi
+        actual="sha512-$(openssl dgst -sha512 -binary "$RUNNER_TEMP/pnpm.tgz" | base64 -w0)"
+        if [[ "$actual" != "$integrity" ]]; then
+          echo "::error::$tarball has integrity $actual, but the registry lists $integrity"
+          exit 1
+        fi
+        mkdir -p "$PNPM_DIR"
+        tar -xzf "$RUNNER_TEMP/pnpm.tgz" -C "$PNPM_DIR" --strip-components=1 package/pnpm
+        rm "$RUNNER_TEMP/pnpm.tgz"
+
+    # Saved right away rather than at the end of the job, so jobs that fail later still fill the cache. PRs restore the
+    # base branch's copy, so they don't save their own.
+    - name: Save pnpm to the Actions cache
+      if: steps.cache.outputs.cache-hit != 'true' && github.event_name != 'pull_request'
+      uses: actions/cache/save@v6.1.0
+      with:
+        path: ${{ steps.pnpm.outputs.dir }}
+        key: ${{ steps.pnpm.outputs.key }}
+
+    - name: Add pnpm to PATH
+      shell: bash
+      env:
+        PNPM_DIR: ${{ steps.pnpm.outputs.dir }}
+      run: |
+        echo "PNPM_HOME=$PNPM_DIR" >> "$GITHUB_ENV"
+        echo "$PNPM_DIR" >> "$GITHUB_PATH"
+        "$PNPM_DIR/pnpm" --version
