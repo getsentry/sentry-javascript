@@ -4,6 +4,7 @@ import { isPrerenderRequest } from '../server/serverBuild';
 export * from '../client';
 
 export { wrapSentryHandleRequest } from '../server/wrapSentryHandleRequest';
+export { createSentryTunnelRoutes } from '../server/tunnelRoute';
 export {
   createSentryServerInstrumentation,
   type CreateSentryServerInstrumentationOptions,
