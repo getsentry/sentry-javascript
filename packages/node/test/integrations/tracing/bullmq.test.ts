@@ -29,6 +29,7 @@ function mockOtelSpan() {
     addEvent: vi.fn(),
     addLink: vi.fn(),
     recordException: vi.fn(),
+    setStatus: vi.fn(),
     end: vi.fn(),
     spanContext: () => ({ spanId: 'abc123', traceId: 'def456', traceFlags: 1 }),
   };
@@ -402,12 +403,24 @@ describe('SentryBullMQSpan', () => {
       });
     });
 
-    it('does not capture exception for other event names', () => {
-      const { span } = createSpan();
+    it('sets the error status on the span when the event name is "job failed"', () => {
+      const { span, otelSpan } = createSpan();
+
+      span.addEvent('job failed', { 'bullmq.job.failed.reason': 'Connection refused' });
+
+      expect(otelSpan.setStatus).toHaveBeenCalledWith({
+        code: SentryCore.SPAN_STATUS_ERROR,
+        message: 'internal_error',
+      });
+    });
+
+    it('does not capture an exception or set an error status for other event names', () => {
+      const { span, otelSpan } = createSpan();
 
       span.addEvent('job completed', { 'bullmq.job.result': '{"ok":true}' });
 
       expect(SentryCore.captureException).not.toHaveBeenCalled();
+      expect(otelSpan.setStatus).not.toHaveBeenCalled();
     });
   });
 

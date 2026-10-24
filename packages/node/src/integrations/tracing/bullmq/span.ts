@@ -7,7 +7,7 @@ import {
   MESSAGING_OPERATION_NAME,
 } from '@sentry/conventions/attributes';
 import type { Scope } from '@sentry/core';
-import { captureException } from '@sentry/core';
+import { captureException, SPAN_STATUS_ERROR } from '@sentry/core';
 import type { AttributeValue, TelemetrySpan } from './types';
 
 const DROPPED_ATTRIBUTES = new Set([
@@ -125,6 +125,8 @@ export class SentryBullMQSpan implements TelemetrySpan {
     // BullMQ sends this event from `Worker.handleFailed`, and the event name is not an exported constant:
     // https://github.com/taskforcesh/bullmq/blob/01b8b14a973984845dc0bbcefccf35b3ed30782d/src/classes/worker.ts#L1223-L1225
     if (name === 'job failed') {
+      this._span.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
+
       const reason = attributes?.['bullmq.job.failed.reason'];
       captureException(new Error(String(reason || 'Unknown error')), {
         mechanism: {
