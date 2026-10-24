@@ -70,7 +70,7 @@
     "tag": "v10"
   },
   "dependencies": {
-    "@opentelemetry/api": "^1.9.1",
+    "@opentelemetry/api": ">=1.9.1 <1.10.0",
     "@sentry/core": "10.76.2",
     "@sentry/server-utils": "10.76.2",
     "magic-string": "~0.30.21"

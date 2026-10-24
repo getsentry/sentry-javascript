@@ -9,6 +9,7 @@
   },
   "main": "dist/index.js",
   "dependencies": {
+    "@opentelemetry/api": "1.9.1",
     "firebase-admin": "^12.6.0",
     "firebase-functions": "^6.0.1",
     "@sentry/node": "file:../../../packed/sentry-node-packed.tgz"
