@@ -32,6 +32,12 @@
       "import": "./build/esm/index.client.js",
       "require": "./build/cjs/index.server.js"
     },
+    "./integration": {
+      "types": "./build/types/index.integration.d.ts",
+      "node": "./build/esm/index.integration.js",
+      "import": "./build/esm/index.integration.js",
+      "require": "./build/cjs/index.integration.js"
+    },
     "./middleware": {
       "types": "./build/types/integration/middleware/index.d.ts",
       "node": "./build/esm/integration/middleware/index.js",

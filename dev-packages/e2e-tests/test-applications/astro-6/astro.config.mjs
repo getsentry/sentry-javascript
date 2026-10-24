@@ -1,4 +1,4 @@
-import sentry from '@sentry/astro';
+import sentry from '@sentry/astro/integration';
 // @ts-check
 import { defineConfig } from 'astro/config';
 
