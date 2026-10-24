@@ -19,8 +19,11 @@ it('auto-instruments multiple Durable Object classes in one entry', async ({ sig
     await runner.makeRequest('get', path);
 
     const spans = await spansPromise;
-    const workerSpan = spans.find(span => span.is_segment && !span.parent_span_id);
-    const durableObjectSpan = spans.find(span => span.is_segment && span.parent_span_id);
+    // The worker segment has no parent in this trace. On runtimes with `Span.spanContext()`, its parent is the Cloudflare span.
+    const durableObjectSpan = spans.find(
+      span => span.is_segment && spans.some(parent => parent.span_id === span.parent_span_id),
+    );
+    const workerSpan = spans.find(span => span.is_segment && span !== durableObjectSpan);
 
     expect(getSpanOp(workerSpan!)).toBe('http.server');
     expect(workerSpan?.attributes['url.path']).toEqual({ type: 'string', value: path });

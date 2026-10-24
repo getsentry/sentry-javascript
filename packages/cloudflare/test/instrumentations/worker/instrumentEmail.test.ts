@@ -279,6 +279,38 @@ describe('instrumentEmail', () => {
         trace_id: expect.stringMatching(/[a-f0-9]{32}/),
       });
     });
+
+    test('makes the email span a child of the Cloudflare span', async () => {
+      let rootSpan: ReturnType<typeof SentryCore.spanToJSON> | undefined;
+      const handler = {
+        email(_message, _env, _context) {
+          const activeSpan = SentryCore.getActiveSpan();
+          rootSpan = activeSpan ? SentryCore.spanToJSON(SentryCore.getRootSpan(activeSpan)) : undefined;
+        },
+      } satisfies ExportedHandler<typeof MOCK_ENV>;
+
+      const wrappedHandler = withSentry(env => ({ dsn: env.SENTRY_DSN, tracesSampleRate: 1 }), handler);
+      const context = {
+        ...createMockExecutionContext(),
+        tracing: {
+          getActiveSpan: () => ({
+            isTraced: true,
+            spanContext: () => ({
+              traceId: 'a1b2c3d4e5f60718293a4b5c6d7e8f90',
+              spanId: 'b1c2d3e4f5a60718',
+              traceFlags: 1,
+            }),
+          }),
+        },
+      } as unknown as ExecutionContext;
+
+      await wrappedHandler.email?.(createMockEmailMessage(), MOCK_ENV, context);
+
+      expect(rootSpan).toMatchObject({
+        trace_id: 'a1b2c3d4e5f60718293a4b5c6d7e8f90',
+        parent_span_id: 'b1c2d3e4f5a60718',
+      });
+    });
   });
 
   test('flush must be called when all waitUntil are done', async () => {

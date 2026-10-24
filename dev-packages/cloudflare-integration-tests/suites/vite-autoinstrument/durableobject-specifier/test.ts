@@ -18,8 +18,11 @@ it('auto-instruments a Durable Object exported via a specifier list', async ({ s
   await runner.makeRequest('get', '/increment');
 
   const spans = await spansPromise;
-  const workerSpan = spans.find(span => span.is_segment && !span.parent_span_id);
-  const durableObjectSpan = spans.find(span => span.is_segment && span.parent_span_id);
+  // The worker segment has no parent in this trace. On runtimes with `Span.spanContext()`, its parent is the Cloudflare span.
+  const durableObjectSpan = spans.find(
+    span => span.is_segment && spans.some(parent => parent.span_id === span.parent_span_id),
+  );
+  const workerSpan = spans.find(span => span.is_segment && span !== durableObjectSpan);
 
   expect(getSpanOp(workerSpan!)).toBe('http.server');
   expect(workerSpan?.attributes['sentry.origin']).toEqual({ type: 'string', value: 'auto.http.cloudflare' });

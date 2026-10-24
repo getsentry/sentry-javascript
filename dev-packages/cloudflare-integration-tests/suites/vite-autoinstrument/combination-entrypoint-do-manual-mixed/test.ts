@@ -49,8 +49,11 @@ it('leaves a manually wrapped Durable Object untouched while auto-wrapping a sib
   await runner.makeRequest('get', '/increment');
 
   const durableObjectTraceSpans = await durableObjectSpansPromise;
-  const workerSpan = durableObjectTraceSpans.find(span => span.is_segment && !span.parent_span_id);
-  const durableObjectSpan = durableObjectTraceSpans.find(span => span.is_segment && span.parent_span_id);
+  // The worker segment has no parent in this trace. On runtimes with `Span.spanContext()`, its parent is the Cloudflare span.
+  const durableObjectSpan = durableObjectTraceSpans.find(
+    span => span.is_segment && durableObjectTraceSpans.some(parent => parent.span_id === span.parent_span_id),
+  );
+  const workerSpan = durableObjectTraceSpans.find(span => span.is_segment && span !== durableObjectSpan);
 
   expect(getSpanOp(workerSpan!)).toBe('http.server');
   expect(getSpanOp(durableObjectSpan!)).toBe('http.server');
