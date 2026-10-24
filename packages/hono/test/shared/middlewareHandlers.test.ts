@@ -1,6 +1,16 @@
 import * as SentryCore from '@sentry/core';
-import { HTTP_ROUTE } from '@sentry/conventions/attributes';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import {
+  CLIENT_ADDRESS,
+  CLIENT_PORT,
+  HTTP_ROUTE,
+  NETWORK_PEER_ADDRESS,
+  NETWORK_PEER_PORT,
+  NETWORK_TRANSPORT,
+  NETWORK_TYPE,
+} from '@sentry/conventions/attributes';
+import type { Context } from 'hono';
+import type { HonoRuntime } from '../../src/shared/connInfo';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { requestHandler, responseHandler } from '../../src/shared/middlewareHandlers';
 
 vi.mock('hono/route', () => ({
@@ -50,8 +60,9 @@ vi.mock('@sentry/core', async () => {
 const getClientMock = SentryCore.getClient as ReturnType<typeof vi.fn>;
 const captureExceptionMock = SentryCore.captureException as ReturnType<typeof vi.fn>;
 const getActiveSpanMock = SentryCore.getActiveSpan as ReturnType<typeof vi.fn>;
+const getRootSpanMock = SentryCore.getRootSpan as ReturnType<typeof vi.fn>;
 
-function createMockContext(status: number, error?: Error): unknown {
+function createMockContext(status: number, error?: Error): object {
   return {
     req: { method: 'GET', routeIndex: 0, raw: new Request('http://localhost/test') },
     res: { status },
@@ -187,7 +198,7 @@ describe('responseHandler', () => {
   describe('transaction name', () => {
     it('sets transaction name on isolation scope', () => {
       // oxlint-disable-next-line typescript/no-explicit-any
-      requestHandler(createMockContext(200) as any);
+      requestHandler(createMockContext(200) as any, 'node');
 
       expect(mockSetTransactionName).toHaveBeenCalledWith('GET /test');
     });
@@ -196,7 +207,7 @@ describe('responseHandler', () => {
       getActiveSpanMock.mockReturnValue(mockRootSpan);
 
       // oxlint-disable-next-line typescript/no-explicit-any
-      requestHandler(createMockContext(200) as any);
+      requestHandler(createMockContext(200) as any, 'node');
 
       expect(mockRootSpan.setAttributes).toHaveBeenCalledWith({
         'sentry.source': 'route',
@@ -206,18 +217,27 @@ describe('responseHandler', () => {
   });
 });
 
+async function runMiddleware(context: unknown, { runtime = 'node' }: { runtime?: HonoRuntime } = {}): Promise<void> {
+  requestHandler(context as Context, runtime);
+}
+
 describe('requestHandler — connection info', () => {
-  const activeSpan = { updateName: vi.fn(), setAttribute: vi.fn() };
+  let rootSpan: SentryCore.SentrySpan;
 
   beforeEach(() => {
     vi.clearAllMocks();
-    rootSpanAttributes = {};
     mockGetUser.mockReturnValue({});
-    getActiveSpanMock.mockReturnValue(activeSpan);
+    rootSpan = new SentryCore.SentrySpan({ name: 'GET /test' });
+    getActiveSpanMock.mockReturnValue(rootSpan);
+    getRootSpanMock.mockReturnValue(rootSpan);
   });
 
-  function getConnInfoStub(remote: Record<string, unknown>): () => { remote: Record<string, unknown> } {
-    return vi.fn(() => ({ remote }));
+  afterEach(() => {
+    getRootSpanMock.mockReturnValue(mockRootSpan);
+  });
+
+  function getRootSpanAttributes(): Record<string, unknown> {
+    return SentryCore.spanToJSON(rootSpan).data ?? {};
   }
 
   function mockUserInfo(userInfo: boolean): void {
@@ -226,40 +246,41 @@ describe('requestHandler — connection info', () => {
     });
   }
 
-  it('sets non-PII attributes (port, transport, type) regardless of userInfo', () => {
+  // The `c.env` that `@hono/node-server` passes to `app.fetch`.
+  function createNodeContext(socket: Record<string, unknown>, headers?: Record<string, string>): object {
+    const context = createMockContext(200) as { req: { raw: Request } };
+    context.req.raw = new Request('http://localhost/test', { headers });
+    return Object.assign(context, { env: { incoming: { socket } } });
+  }
+
+  it('sets the peer port and address type regardless of userInfo', async () => {
     mockUserInfo(false);
-    const getConnInfo = getConnInfoStub({ port: 54321, transport: 'tcp', addressType: 'IPv4' });
 
-    // oxlint-disable-next-line typescript/no-explicit-any
-    requestHandler(createMockContext(200) as any, getConnInfo as any);
+    await runMiddleware(createNodeContext({ remoteAddress: '203.0.113.5', remotePort: 54321, remoteFamily: 'IPv4' }));
 
-    expect(rootSpanAttributes['client.port']).toBe(54321);
-    expect(rootSpanAttributes['network.peer.port']).toBe(54321);
-    expect(rootSpanAttributes['network.transport']).toBe('tcp');
-    expect(rootSpanAttributes['network.type']).toBe('ipv4');
-    expect(rootSpanAttributes['client.address']).toBeUndefined();
+    const attributes = getRootSpanAttributes();
+    expect(attributes[NETWORK_PEER_PORT]).toBe(54321);
+    expect(attributes[NETWORK_TYPE]).toBe('ipv4');
   });
 
-  it('sets IP-bearing attributes and user.ip_address when userInfo is true', () => {
+  it('sets IP-bearing attributes and user.ip_address when userInfo is true', async () => {
     mockUserInfo(true);
-    const getConnInfo = getConnInfoStub({ address: '203.0.113.5', port: 443, addressType: 'IPv6' });
 
-    // oxlint-disable-next-line typescript/no-explicit-any
-    requestHandler(createMockContext(200) as any, getConnInfo as any);
+    await runMiddleware(createNodeContext({ remoteAddress: '203.0.113.5', remotePort: 443, remoteFamily: 'IPv6' }));
 
-    expect(rootSpanAttributes['client.address']).toBe('203.0.113.5');
-    expect(rootSpanAttributes['network.peer.address']).toBe('203.0.113.5');
-    expect(rootSpanAttributes['network.type']).toBe('ipv6');
+    const attributes = getRootSpanAttributes();
+    expect(attributes[CLIENT_ADDRESS]).toBe('203.0.113.5');
+    expect(attributes[CLIENT_PORT]).toBe(443);
+    expect(attributes[NETWORK_PEER_ADDRESS]).toBe('203.0.113.5');
+    expect(attributes[NETWORK_TYPE]).toBe('ipv6');
     expect(mockSetUser).toHaveBeenCalledWith({ ip_address: '203.0.113.5' });
   });
 
-  it('merges ip_address into the existing user without overwriting other fields', () => {
+  it('merges ip_address into the existing user without overwriting other fields', async () => {
     mockUserInfo(true);
     mockGetUser.mockReturnValue({ id: 'user-123', email: 'jane@example.com' });
-    const getConnInfo = getConnInfoStub({ address: '203.0.113.5', port: 443 });
 
-    // oxlint-disable-next-line typescript/no-explicit-any
-    requestHandler(createMockContext(200) as any, getConnInfo as any);
+    await runMiddleware(createNodeContext({ remoteAddress: '203.0.113.5', remotePort: 443 }));
 
     expect(mockSetUser).toHaveBeenCalledWith({
       id: 'user-123',
@@ -268,69 +289,117 @@ describe('requestHandler — connection info', () => {
     });
   });
 
-  it('omits IP-bearing attributes when userInfo is false', () => {
+  it('omits IP-bearing attributes when userInfo is false', async () => {
     mockUserInfo(false);
-    const getConnInfo = getConnInfoStub({ address: '203.0.113.5', port: 8080 });
 
-    // oxlint-disable-next-line typescript/no-explicit-any
-    requestHandler(createMockContext(200) as any, getConnInfo as any);
+    await runMiddleware(
+      createNodeContext({ remoteAddress: '203.0.113.5', remotePort: 8080 }, { 'x-forwarded-for': '198.51.100.7' }),
+    );
 
-    expect(rootSpanAttributes['client.address']).toBeUndefined();
-    expect(rootSpanAttributes['network.peer.address']).toBeUndefined();
+    const attributes = getRootSpanAttributes();
+    expect(attributes).not.toHaveProperty(CLIENT_ADDRESS);
+    expect(attributes).not.toHaveProperty(CLIENT_PORT);
+    expect(attributes).not.toHaveProperty(NETWORK_PEER_ADDRESS);
     expect(mockSetUser).not.toHaveBeenCalled();
     // Non-PII data is still recorded.
-    expect(rootSpanAttributes['client.port']).toBe(8080);
+    expect(attributes[NETWORK_PEER_PORT]).toBe(8080);
   });
 
-  it('sets no connection attributes when remote info is empty', () => {
+  it('does not write the attributes that the runtime does not give', async () => {
     mockUserInfo(true);
-    const getConnInfo = getConnInfoStub({});
+    rootSpan.setAttribute(NETWORK_TRANSPORT, 'tcp');
 
-    // oxlint-disable-next-line typescript/no-explicit-any
-    requestHandler(createMockContext(200) as any, getConnInfo as any);
+    await runMiddleware(createNodeContext({ remotePort: 54321 }));
 
-    expect(rootSpanAttributes['client.port']).toBeUndefined();
-    expect(rootSpanAttributes['network.peer.port']).toBeUndefined();
-    expect(rootSpanAttributes['network.transport']).toBeUndefined();
-    expect(rootSpanAttributes['network.type']).toBeUndefined();
-    expect(rootSpanAttributes['client.address']).toBeUndefined();
+    const attributes = getRootSpanAttributes();
+    expect(attributes[NETWORK_TRANSPORT]).toBe('tcp');
+    expect(attributes).not.toHaveProperty(CLIENT_ADDRESS);
+    expect(attributes).not.toHaveProperty(NETWORK_TYPE);
     expect(mockSetUser).not.toHaveBeenCalled();
   });
 
-  it('does not throw or set attributes when getConnInfo throws', () => {
+  it('does not throw or set attributes when a runtime object throws', async () => {
     mockUserInfo(true);
-    const getConnInfo = vi.fn(() => {
-      throw new Error('socket unavailable');
+    const incoming = Object.defineProperty({}, 'socket', {
+      get() {
+        throw new Error('socket unavailable');
+      },
     });
+    const context = Object.assign(createMockContext(200), { env: { incoming } });
 
-    expect(() =>
-      // oxlint-disable-next-line typescript/no-explicit-any
-      requestHandler(createMockContext(200) as any, getConnInfo as any),
-    ).not.toThrow();
-    expect(rootSpanAttributes['client.port']).toBeUndefined();
-    expect(rootSpanAttributes['client.address']).toBeUndefined();
+    await expect(runMiddleware(context)).resolves.toBeUndefined();
+    expect(getRootSpanAttributes()).not.toHaveProperty(CLIENT_PORT);
     expect(mockSetUser).not.toHaveBeenCalled();
   });
 
-  it('does not set connection attributes when there is no active span', () => {
+  it('does not set connection attributes when there is no active span', async () => {
     mockUserInfo(true);
     getActiveSpanMock.mockReturnValue(null);
-    const getConnInfo = getConnInfoStub({ address: '203.0.113.5', port: 443 });
 
-    // oxlint-disable-next-line typescript/no-explicit-any
-    requestHandler(createMockContext(200) as any, getConnInfo as any);
+    await runMiddleware(createNodeContext({ remoteAddress: '203.0.113.5', remotePort: 443 }));
 
-    expect(getConnInfo).not.toHaveBeenCalled();
-    expect(rootSpanAttributes).toEqual({});
+    const attributes = getRootSpanAttributes();
+    expect(attributes).not.toHaveProperty(CLIENT_ADDRESS);
+    expect(attributes).not.toHaveProperty(NETWORK_PEER_PORT);
+    expect(mockSetUser).not.toHaveBeenCalled();
   });
 
-  it('is a no-op when getConnInfo is not provided', () => {
+  it('sets no connection attributes when the runtime objects are missing', async () => {
     mockUserInfo(true);
 
-    // oxlint-disable-next-line typescript/no-explicit-any
-    requestHandler(createMockContext(200) as any);
+    await runMiddleware(createMockContext(200));
 
-    expect(rootSpanAttributes['client.port']).toBeUndefined();
+    const attributes = getRootSpanAttributes();
+    expect(attributes).not.toHaveProperty(CLIENT_PORT);
+    expect(attributes).not.toHaveProperty(CLIENT_ADDRESS);
     expect(mockSetUser).not.toHaveBeenCalled();
+  });
+
+  it('sets the transport that the runtime gives', async () => {
+    mockUserInfo(false);
+    const context = Object.assign(createMockContext(200), {
+      env: { remoteAddr: { hostname: '203.0.113.5', port: 54321, transport: 'tcp' } },
+    });
+
+    await runMiddleware(context, { runtime: 'deno' });
+
+    expect(getRootSpanAttributes()[NETWORK_TRANSPORT]).toBe('tcp');
+  });
+
+  it('keeps attributes that are already on the root span', async () => {
+    mockUserInfo(true);
+    rootSpan.setAttributes({ [CLIENT_ADDRESS]: '198.51.100.7', [CLIENT_PORT]: 1234 });
+
+    await runMiddleware(createNodeContext({ remoteAddress: '10.0.0.1', remotePort: 54321 }));
+
+    const attributes = getRootSpanAttributes();
+    expect(attributes[CLIENT_ADDRESS]).toBe('198.51.100.7');
+    expect(attributes[CLIENT_PORT]).toBe(1234);
+    expect(attributes[NETWORK_PEER_ADDRESS]).toBe('10.0.0.1');
+    expect(attributes[NETWORK_PEER_PORT]).toBe(54321);
+  });
+
+  it('does not pair the socket port with a client.address that is already on the root span', async () => {
+    mockUserInfo(true);
+    // Set by the runtime SDK from a forwarding header, without a port.
+    rootSpan.setAttribute(CLIENT_ADDRESS, '198.51.100.7');
+
+    await runMiddleware(createNodeContext({ remoteAddress: '10.0.0.1', remotePort: 54321 }));
+
+    const attributes = getRootSpanAttributes();
+    expect(attributes[CLIENT_ADDRESS]).toBe('198.51.100.7');
+    expect(attributes).not.toHaveProperty(CLIENT_PORT);
+    expect(attributes[NETWORK_PEER_PORT]).toBe(54321);
+  });
+
+  it('sets user.ip_address from a forwarding header before the socket address', async () => {
+    mockUserInfo(true);
+
+    await runMiddleware(
+      createNodeContext({ remoteAddress: '10.0.0.1', remotePort: 54321 }, { 'x-forwarded-for': '198.51.100.7' }),
+    );
+
+    expect(mockSetUser).toHaveBeenCalledWith({ ip_address: '198.51.100.7' });
+    expect(getRootSpanAttributes()[NETWORK_PEER_ADDRESS]).toBe('10.0.0.1');
   });
 });

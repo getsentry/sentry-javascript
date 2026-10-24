@@ -1,7 +1,6 @@
 import type { BunOptions } from '@sentry/bun';
 import { debug } from '@sentry/core';
 import { init } from './sdk';
-import { getConnInfo } from 'hono/bun';
 import type { Env, Hono, MiddlewareHandler } from 'hono';
 import { requestHandler, responseHandler } from '../shared/middlewareHandlers';
 import { applyPatches } from '../shared/applyPatches';
@@ -20,7 +19,7 @@ export const sentry = <E extends Env>(app: Hono<E>, options: HonoBunOptions): Mi
   applyPatches(app);
 
   return async (context, next) => {
-    requestHandler(context, getConnInfo);
+    requestHandler(context, 'bun');
 
     await next(); // Handler runs in between Request above ⤴ and Response below ⤵
 
