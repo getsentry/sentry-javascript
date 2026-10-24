@@ -47,15 +47,13 @@ beforeEach(() => {
 });
 
 describe('BullMQTelemetry', () => {
-  it('exposes tracer and contextManager without a meter by default', () => {
+  it('does not create a meter by default', () => {
     const telemetry = new BullMQTelemetry();
 
-    expect(telemetry.tracer).toBeDefined();
-    expect(telemetry.contextManager).toBeDefined();
     expect(telemetry.meter).toBeUndefined();
   });
 
-  it('exposes a meter when enableMetrics is true', () => {
+  it('creates a meter when enableMetrics is true', () => {
     const telemetry = new BullMQTelemetry({ enableMetrics: true });
 
     expect(telemetry.meter).toBeDefined();
@@ -73,6 +71,7 @@ describe('SentryBullMQTracer', () => {
       { name: 'close myQueue', expectedOp: 'queue', expectedOrigin: 'auto.queue.bullmq' },
       { name: 'drain myQueue', expectedOp: 'queue', expectedOrigin: 'auto.queue.bullmq' },
       { name: 'getNextJob myQueue', expectedOp: 'queue', expectedOrigin: 'auto.queue.bullmq' },
+      { name: 'moveStalledJobsToWait myQueue', expectedOp: 'queue', expectedOrigin: 'auto.queue.bullmq' },
     ])('maps "$name" to op=$expectedOp and origin=$expectedOrigin', ({ name, expectedOp, expectedOrigin }) => {
       const telemetry = new BullMQTelemetry();
 
@@ -87,6 +86,7 @@ describe('SentryBullMQTracer', () => {
         },
         onlyIfParent: expectedOp === 'queue',
       });
+      expect(SentryCore.startNewTrace).not.toHaveBeenCalled();
     });
 
     it('maps "process myQueue" to op=queue.process and origin=auto.queue.bullmq.consumer', () => {
@@ -129,29 +129,13 @@ describe('SentryBullMQTracer', () => {
 
       telemetry.tracer.startSpan('process notifications');
 
-      expect(SentryCore.startNewTrace).toHaveBeenCalledWith(expect.any(Function));
-    });
-
-    it('starts queue.publish spans as children of the active span', () => {
-      const telemetry = new BullMQTelemetry();
-
-      telemetry.tracer.startSpan('add notifications');
-
-      expect(SentryCore.startNewTrace).not.toHaveBeenCalled();
-      expect(SentryCore.startInactiveSpan).toHaveBeenCalledWith(expect.objectContaining({ onlyIfParent: false }));
-    });
-
-    it('only starts spans for internal operations when there is a parent span', () => {
-      const telemetry = new BullMQTelemetry();
-
-      telemetry.tracer.startSpan('moveStalledJobsToWait notifications');
-
-      expect(SentryCore.startNewTrace).not.toHaveBeenCalled();
-      expect(SentryCore.startInactiveSpan).toHaveBeenCalledWith(expect.objectContaining({ onlyIfParent: true }));
+      expect(SentryCore.startNewTrace).toHaveBeenCalledOnce();
     });
 
     it('adds span link to producer when context has producerSpanContext', () => {
       const telemetry = new BullMQTelemetry();
+      const otelSpan = mockOtelSpan();
+      vi.mocked(SentryCore.startInactiveSpan).mockReturnValueOnce(otelSpan as any);
 
       telemetry.tracer.startSpan('process myQueue', undefined, {
         span: undefined,
@@ -163,8 +147,7 @@ describe('SentryBullMQTracer', () => {
         },
       });
 
-      const span = vi.mocked(SentryCore.startInactiveSpan).mock.results[0]!.value;
-      expect(span.addLink).toHaveBeenCalledWith({
+      expect(otelSpan.addLink).toHaveBeenCalledWith({
         context: {
           traceId: 'aabbccddaabbccddaabbccddaabbccdd',
           spanId: '1122334455667788',
@@ -174,19 +157,46 @@ describe('SentryBullMQTracer', () => {
           'sentry.link.type': 'message_origin',
         },
       });
-      expect(span.setAttribute).not.toHaveBeenCalled();
+    });
+
+    it('adds the span link with traceFlags 0 when the producer span was not sampled', () => {
+      const telemetry = new BullMQTelemetry();
+      const otelSpan = mockOtelSpan();
+      vi.mocked(SentryCore.startInactiveSpan).mockReturnValueOnce(otelSpan as any);
+
+      telemetry.tracer.startSpan('process myQueue', undefined, {
+        span: undefined,
+        scope: mockScope() as any,
+        producerSpanContext: {
+          traceId: 'aabbccddaabbccddaabbccddaabbccdd',
+          spanId: '1122334455667788',
+          sampled: false,
+        },
+      });
+
+      expect(otelSpan.addLink).toHaveBeenCalledWith({
+        context: {
+          traceId: 'aabbccddaabbccddaabbccddaabbccdd',
+          spanId: '1122334455667788',
+          traceFlags: 0,
+        },
+        attributes: {
+          'sentry.link.type': 'message_origin',
+        },
+      });
     });
 
     it('does not add span link when context has no producerSpanContext', () => {
       const telemetry = new BullMQTelemetry();
+      const otelSpan = mockOtelSpan();
+      vi.mocked(SentryCore.startInactiveSpan).mockReturnValueOnce(otelSpan as any);
 
       telemetry.tracer.startSpan('process myQueue', undefined, {
         span: undefined,
         scope: mockScope() as any,
       });
 
-      const span = vi.mocked(SentryCore.startInactiveSpan).mock.results[0]!.value;
-      expect(span.addLink).not.toHaveBeenCalled();
+      expect(otelSpan.addLink).not.toHaveBeenCalled();
     });
   });
 });
@@ -194,29 +204,13 @@ describe('SentryBullMQTracer', () => {
 describe('SentryBullMQSpan', () => {
   function createSpan() {
     const telemetry = new BullMQTelemetry();
-    const span = telemetry.tracer.startSpan('Queue.add test-queue');
-    const otelSpan = vi.mocked(SentryCore.startInactiveSpan).mock.results[0]!.value;
-    return { span, otelSpan };
+    const otelSpan = mockOtelSpan();
+    const scope = mockScope();
+    vi.mocked(SentryCore.startInactiveSpan).mockReturnValueOnce(otelSpan as any);
+    vi.mocked(SentryCore.getCurrentScope).mockReturnValueOnce(scope as any);
+    const span = telemetry.tracer.startSpan('process emails');
+    return { span, otelSpan, scope };
   }
-
-  it('delegates setAttribute to the underlying OTel span', () => {
-    const { span, otelSpan } = createSpan();
-
-    span.setAttribute('bullmq.job.name', 'welcome-email');
-
-    expect(otelSpan.setAttributes).toHaveBeenCalledWith({ 'messaging.bullmq.job.name': 'welcome-email' });
-  });
-
-  it('delegates setAttributes to the underlying OTel span', () => {
-    const { span, otelSpan } = createSpan();
-
-    span.setAttributes({ 'bullmq.job.name': 'welcome-email', 'bullmq.worker.name': 'mailer' });
-
-    expect(otelSpan.setAttributes).toHaveBeenCalledWith({
-      'messaging.bullmq.job.name': 'welcome-email',
-      'messaging.bullmq.worker.name': 'mailer',
-    });
-  });
 
   it('replaces the BullMQ attributes that have a messaging convention and prefixes the others', () => {
     const { span, otelSpan } = createSpan();
@@ -229,10 +223,12 @@ describe('SentryBullMQSpan', () => {
       'bullmq.job.bulk.count': 5,
       'bullmq.worker.id': '03327d57-05cc-4528-9d24-c59bf6520039',
       'bullmq.job.name': 'welcome-email',
+      'bullmq.worker.name': 'mailer',
     });
 
     expect(otelSpan.setAttributes).toHaveBeenCalledWith({
       'messaging.bullmq.job.name': 'welcome-email',
+      'messaging.bullmq.worker.name': 'mailer',
       'messaging.destination.name': 'emails',
       'messaging.operation.name': 'process',
       'messaging.message.id': '42',
@@ -337,20 +333,12 @@ describe('SentryBullMQSpan', () => {
     });
   });
 
-  it('delegates addEvent to the underlying OTel span', () => {
+  it('passes events to the OTel span without renaming their attributes', () => {
     const { span, otelSpan } = createSpan();
 
-    span.addEvent('job.retry', { 'bullmq.job.attempt': 3 });
+    span.addEvent('job completed', { 'bullmq.job.result': '{"sent":true}' });
 
-    expect(otelSpan.addEvent).toHaveBeenCalledWith('job.retry', { 'bullmq.job.attempt': 3 });
-  });
-
-  it('delegates addEvent without attributes', () => {
-    const { span, otelSpan } = createSpan();
-
-    span.addEvent('job.completed');
-
-    expect(otelSpan.addEvent).toHaveBeenCalledWith('job.completed', undefined);
+    expect(otelSpan.addEvent).toHaveBeenCalledWith('job completed', { 'bullmq.job.result': '{"sent":true}' });
   });
 
   describe('recordException', () => {
@@ -425,14 +413,12 @@ describe('SentryBullMQSpan', () => {
   });
 
   it('returns context with span and scope from setSpanOnContext', () => {
-    const { span, otelSpan } = createSpan();
+    const { span, otelSpan, scope } = createSpan();
     const inputContext = { existingKey: 'value' };
 
-    const result = span.setSpanOnContext(inputContext) as Record<string, unknown>;
+    const result = span.setSpanOnContext(inputContext);
 
-    expect(result.existingKey).toBe('value');
-    expect(result.span).toBe(otelSpan);
-    expect(result.scope).toBeDefined();
+    expect(result).toEqual({ existingKey: 'value', span: otelSpan, scope });
   });
 
   it('delegates end to the underlying OTel span', () => {
@@ -447,13 +433,14 @@ describe('SentryBullMQSpan', () => {
 describe('SentryBullMQContextManager', () => {
   it('returns current active span and scope from active()', () => {
     const telemetry = new BullMQTelemetry();
+    const activeSpan = mockOtelSpan();
+    const scope = mockScope();
+    vi.mocked(SentryCore.getActiveSpan).mockReturnValueOnce(activeSpan as any);
+    vi.mocked(SentryCore.getCurrentScope).mockReturnValueOnce(scope as any);
 
     const context = telemetry.contextManager.active();
 
-    expect(SentryCore.getActiveSpan).toHaveBeenCalledOnce();
-    expect(SentryCore.getCurrentScope).toHaveBeenCalled();
-    expect(context).toHaveProperty('span');
-    expect(context).toHaveProperty('scope');
+    expect(context).toEqual({ span: activeSpan, scope });
   });
 
   describe('with', () => {
@@ -531,12 +518,30 @@ describe('SentryBullMQContextManager', () => {
         'aabbccddaabbccddaabbccddaabbccdd-1122334455667788-1',
       );
 
-      expect(result.span).toBe(fakeSpan);
-      expect(result.scope).toBe(context.scope);
+      expect(result).toEqual({
+        span: fakeSpan,
+        scope: context.scope,
+        producerSpanContext: {
+          traceId: 'aabbccddaabbccddaabbccddaabbccdd',
+          spanId: '1122334455667788',
+          sampled: true,
+        },
+      });
+    });
+
+    it('marks the producer span context as not sampled when the sentry-trace header has no sampled flag', () => {
+      const telemetry = new BullMQTelemetry();
+      const context = { span: undefined, scope: mockScope() };
+
+      const result = telemetry.contextManager.fromMetadata(
+        context as any,
+        'aabbccddaabbccddaabbccddaabbccdd-1122334455667788',
+      );
+
       expect(result.producerSpanContext).toEqual({
         traceId: 'aabbccddaabbccddaabbccddaabbccdd',
         spanId: '1122334455667788',
-        sampled: true,
+        sampled: false,
       });
     });
 
