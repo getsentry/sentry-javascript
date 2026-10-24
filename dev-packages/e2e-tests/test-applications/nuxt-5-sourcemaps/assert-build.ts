@@ -61,24 +61,6 @@ function debugIdsOfChunksWithoutSourceMap(dir: string): Set<string> {
   return debugIds;
 }
 
-// TODO: The uploader passes the emitted file paths to `glob` as patterns, so it skips a file whose path has glob
-// characters, like Nitro 3's `_libs/_sentry/node+[...].mjs`. Remove this when the uploader matches paths literally.
-function debugIdsOfFilesWithGlobCharacters(dir: string): Set<string> {
-  const debugIds = new Set<string>();
-
-  for (const file of filesContaining(dir, 'sentry-dbid-')) {
-    if (!/[[\]{}()*?]/.test(path.relative(dir, file))) {
-      continue;
-    }
-
-    for (const match of fs.readFileSync(file, 'utf8').matchAll(/sentry-dbid-([\da-f-]{36})/gi)) {
-      debugIds.add((match[1] as string).toLowerCase());
-    }
-  }
-
-  return debugIds;
-}
-
 console.log(
   `Variant: ${isStaticBuild ? 'nuxt generate' : 'nuxt build'}, ` +
     `client source maps ${keepClientSourceMaps ? 'kept' : 'deleted'}\n`,
@@ -192,7 +174,6 @@ const outputDirsWithSourceMaps = [
 const debugIdsWithoutSourceMap = new Set(
   outputDirsWithSourceMaps.flatMap(dir => [...debugIdsOfChunksWithoutSourceMap(dir)]),
 );
-const debugIdsSkippedByUploader = isStaticBuild ? new Set<string>() : debugIdsOfFilesWithGlobCharacters(SERVER_OUTPUT);
 
 for (const outputDir of isStaticBuild ? [CLIENT_OUTPUT] : [CLIENT_OUTPUT, SERVER_OUTPUT]) {
   const injectedDebugIds = findInjectedDebugIds({ outputDir });
@@ -205,10 +186,7 @@ for (const outputDir of isStaticBuild ? [CLIENT_OUTPUT] : [CLIENT_OUTPUT, SERVER
 
   if (outputDirsWithSourceMaps.includes(outputDir)) {
     const unuploaded = injectedDebugIds.filter(
-      debugId =>
-        !uploadedDebugIds.has(debugId) &&
-        !debugIdsWithoutSourceMap.has(debugId) &&
-        !debugIdsSkippedByUploader.has(debugId),
+      debugId => !uploadedDebugIds.has(debugId) && !debugIdsWithoutSourceMap.has(debugId),
     );
     assert.deepEqual(unuploaded, [], `Expected every debug ID in ${outputDir} to have an uploaded sourcemap`);
   }
