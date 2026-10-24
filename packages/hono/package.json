@@ -92,7 +92,7 @@
     "tag": "v10"
   },
   "dependencies": {
-    "@opentelemetry/api": "^1.9.1",
+    "@opentelemetry/api": ">=1.9.1 <1.10.0",
     "@sentry/core": "10.76.2",
     "@sentry/conventions": "^0.16.0"
   },
