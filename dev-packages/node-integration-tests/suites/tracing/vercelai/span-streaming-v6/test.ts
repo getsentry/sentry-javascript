@@ -293,6 +293,7 @@ describe('Vercel AI integration (streaming, v6)', () => {
     {
       additionalDependencies: {
         ai: '^6.0.0',
+        '@opentelemetry/api': '1.9.1',
       },
     },
   );
@@ -309,6 +310,7 @@ describe('Vercel AI integration (streaming, v6)', () => {
     {
       additionalDependencies: {
         ai: '^6.0.0',
+        '@opentelemetry/api': '1.9.1',
       },
     },
   );
@@ -325,6 +327,7 @@ describe('Vercel AI integration (streaming, v6)', () => {
     {
       additionalDependencies: {
         ai: '^6.0.0',
+        '@opentelemetry/api': '1.9.1',
       },
     },
   );
