@@ -55,6 +55,8 @@ export function setupNitroServer(
     addNitroPlugin(moduleDirResolver.resolve('./runtime/plugins/update-route-name-legacy.server'));
   }
 
+  addTunnelPlugin(serverApi);
+
   addNitroPlugin(moduleDirResolver.resolve('./runtime/plugins/sentry.server'));
 
   // Preps the middleware instrumentation module.
@@ -122,4 +124,21 @@ function setupDeprecatedInjectMode(
       });
     }
   }
+}
+
+/**
+ * Adds the plugin that answers the managed tunnel. The Cloudflare setup has no server config file, so it skips
+ * `setupNitroServer` and adds this on its own.
+ */
+export function addTunnelPlugin(serverApi: ServerApi): void {
+  if (serverApi === 'nuxt') {
+    return;
+  }
+
+  const moduleDirResolver = createResolver(import.meta.url);
+  addNitroPlugin(
+    moduleDirResolver.resolve(
+      serverApi === 'nitro3' ? './runtime/plugins/tunnel.server' : './runtime/plugins/tunnel-legacy.server',
+    ),
+  );
 }
