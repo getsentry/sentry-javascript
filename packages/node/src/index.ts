@@ -37,6 +37,8 @@ export {
   openAIIntegration,
   togetherAIIntegration,
   typesafeIntegration,
+  tanstackAiIntegration,
+  createTanstackAiMiddleware,
   postgresIntegration,
   postgresJsIntegration,
   neonIntegration,

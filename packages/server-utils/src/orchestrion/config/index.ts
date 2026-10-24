@@ -42,6 +42,7 @@ import { remixConfig } from './remix';
 import { remixV3Config } from './remix-v3';
 import { tediousConfig } from './tedious';
 import { togetherAiConfig } from './together-ai';
+import { tanstackAiConfig } from './tanstack-ai';
 import { typesafeConfig } from './typesafe';
 import { vercelAiConfig } from './vercel-ai';
 // Kept sorted alphabetically by module so concurrent additions insert at different
@@ -101,6 +102,7 @@ export const SENTRY_INSTRUMENTATIONS: InstrumentationConfig[] = [
   ...remixV3Config,
   ...tediousConfig,
   ...togetherAiConfig,
+  ...tanstackAiConfig,
   ...typesafeConfig,
   ...vercelAiConfig,
 ];

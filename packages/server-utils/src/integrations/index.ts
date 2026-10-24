@@ -26,6 +26,7 @@ import { mistralAIIntegration } from './mistral';
 import { groqIntegration } from './groq';
 import { togetherAIIntegration } from './together-ai';
 import { typesafeIntegration } from './typesafe';
+import { tanstackAiIntegration } from './tanstack-ai';
 import { postgresJsIntegration } from './postgres-js';
 import { neonIntegration } from './neon';
 import { firebaseIntegration } from './firebase';
@@ -63,6 +64,7 @@ export function getTracingIntegrations(): Integration[] {
     langGraphIntegration(),
     mastraIntegration(),
     piDurableIntegration(),
+    tanstackAiIntegration(),
     vercelAIIntegration(),
     openAIIntegration(),
     anthropicAIIntegration(),

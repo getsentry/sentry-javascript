@@ -35,6 +35,7 @@ import { redisChannels } from './config/redis';
 import { remixChannels } from './config/remix';
 import { tediousChannels } from './config/tedious';
 import { togetherAiChannels } from './config/together-ai';
+import { tanstackAiChannels } from './config/tanstack-ai';
 import { typesafeChannels } from './config/typesafe';
 import { vercelAiChannels } from './config/vercel-ai';
 
@@ -92,6 +93,7 @@ export const CHANNELS = {
   ...remixChannels,
   ...tediousChannels,
   ...togetherAiChannels,
+  ...tanstackAiChannels,
   ...typesafeChannels,
   ...vercelAiChannels,
 } as const;

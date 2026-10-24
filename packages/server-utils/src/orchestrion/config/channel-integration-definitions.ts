@@ -35,6 +35,7 @@ export const CHANNEL_INTEGRATION_DEFINITIONS = [
   { exportName: 'groqIntegration', modules: ['groq-sdk'] },
   { exportName: 'togetherAIIntegration', modules: ['together-ai'] },
   { exportName: 'typesafeIntegration', modules: ['@typesafe-ai/sdk'] },
+  { exportName: 'tanstackAiIntegration', modules: ['@tanstack/ai'] },
   { exportName: 'vercelAIIntegration', modules: ['ai'] },
   {
     exportName: 'langChainIntegration',
