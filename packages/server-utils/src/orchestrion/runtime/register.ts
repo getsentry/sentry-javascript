@@ -105,6 +105,14 @@ export function registerDiagnosticsChannelInjection(_options?: RegisterDiagnosti
       // Our own bundled copy of the tracing-hooks async hooks (see
       // `src/orchestrion/runtime/hook.mjs`) — the dependency itself is bundled into this package's
       // build and no longer resolvable as a bare specifier at runtime.
+      // Deployments can omit the package marker that tells Node these bundled hook files are ESM.
+      const esmDirUrl = new URL('../../../esm/', parentURL).href;
+      mod.register(
+        `data:text/javascript,${encodeURIComponent(
+          `const d=${JSON.stringify(esmDirUrl)};export async function load(u,c,n){return n(u,u.startsWith(d)?{...c,format:'module'}:c)}`,
+        )}`,
+      );
+
       mod.register('@sentry/server-utils/orchestrion/hook', {
         parentURL,
         data: { instrumentations: SENTRY_INSTRUMENTATIONS, diagnosticsPort },
