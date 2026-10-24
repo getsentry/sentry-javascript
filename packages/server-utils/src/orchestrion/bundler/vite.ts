@@ -1,3 +1,4 @@
+import { createExternalRequireResolver } from './externalRequire';
 import codeTransformer from '@apm-js-collab/code-transformer-bundler-plugins/vite';
 import type { Plugin, ResolvedConfig } from 'vite';
 import { instrumentedModuleNames } from '../config';
@@ -19,8 +20,11 @@ import { externalEntryMatchesModule, externalizedModulesWarning, orchestrionTran
  * ```
  */
 export function sentryOrchestrionPlugin(options: PluginOptions = {}): Plugin {
+  const resolveExternalRequire = createExternalRequireResolver(instrumentedModuleNames(options.instrumentations));
+
   return {
     ...codeTransformer(orchestrionTransformOptions(options)),
+    resolveId: resolveExternalRequire,
     applyToEnvironment(environment) {
       // Orchestrion splices `node:diagnostics_channel` calls into instrumented modules, which only
       // exist server-side. Only apply to server-consumed environments so injected `tracingChannel`
