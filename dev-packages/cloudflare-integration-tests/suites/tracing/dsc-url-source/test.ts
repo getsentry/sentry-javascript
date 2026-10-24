@@ -34,7 +34,6 @@ it('omits the span name from the DSC for url-source spans when tracing is enable
             trace: {
               trace_id: UUID_MATCHER,
               span_id: SHORT_UUID_MATCHER,
-              // From workerd 1.20261009.1 (`Span.spanContext()`), the span continues the Cloudflare trace.
               parent_span_id: supports({ minWorkerd: '1.20261009.1' }) ? SHORT_UUID_MATCHER : undefined,
             },
           },

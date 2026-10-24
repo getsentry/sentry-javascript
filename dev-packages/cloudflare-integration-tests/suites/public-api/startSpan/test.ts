@@ -284,7 +284,6 @@ it('sends a streamed span envelope with correct spans for a manually started spa
       },
     },
     is_segment: true,
-    // From workerd 1.20261009.1 (`Span.spanContext()`), the segment continues the Cloudflare trace.
     parent_span_id: supports({ minWorkerd: '1.20261009.1' }) ? expect.stringMatching(/^[\da-f]{16}$/) : undefined,
     trace_id: traceId,
     span_id: segmentSpanId,
