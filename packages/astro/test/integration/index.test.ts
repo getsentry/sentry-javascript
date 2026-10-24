@@ -690,6 +690,22 @@ describe('sentryAstro integration', () => {
     });
   });
 
+  it('keeps the default middleware entrypoint for the Cloudflare Workers adapter', async () => {
+    const addMiddleware = vi.fn();
+    const setup = sentryAstro({ serverInitPath: 'my-server-init-path.js' }).hooks['astro:config:setup'] as (params: unknown) => Promise<void>;
+
+    await setup({
+      ...baseConfigHookObject,
+      config: { output: 'server', adapter: { name: '@astrojs/cloudflare' } },
+      addMiddleware,
+      updateConfig,
+      injectScript,
+    });
+
+    expect(addMiddleware).toHaveBeenCalledWith({ order: 'pre', entrypoint: '@sentry/astro/middleware' });
+    expect(getServerInit(updateConfig)).toContain('my-server-init-path.js');
+  });
+
   it('runs the server init once, from SSR pages and the middleware alike, so requests that render no page find a client', async () => {
     const integration = sentryAstro({});
     const updateConfig = vi.fn();
