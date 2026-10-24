@@ -232,20 +232,23 @@ function reconstructNameFromDescendantParent(
 }
 
 /**
+ * Returns the routes that aren't a child of another route in the list.
+ * `matchRoutes` already walks each route's children, so also passing those children multiplies its work.
+ */
+export function getRootRoutes(routes: RouteObject[]): RouteObject[] {
+  const nestedRoutes = new Set(routes.flatMap(route => route.children ?? []));
+  return routes.filter(route => !nestedRoutes.has(route));
+}
+
+/**
  * Checks if the current location is inside a descendant route (route with splat parameter).
  */
 export function locationIsInsideDescendantRoute(location: Location, routes: RouteObject[]): boolean {
-  const matchedRoutes = _matchRoutes(routes, location) as RouteMatch[];
+  return matchesAreInsideDescendantRoute(_matchRoutes(getRootRoutes(routes), location) as RouteMatch[] | null);
+}
 
-  if (matchedRoutes) {
-    for (const match of matchedRoutes) {
-      if (routeIsDescendant(match.route) && pickSplat(match)) {
-        return true;
-      }
-    }
-  }
-
-  return false;
+function matchesAreInsideDescendantRoute(matches: RouteMatch[] | null): boolean {
+  return !!matches?.some(match => routeIsDescendant(match.route) && pickSplat(match));
 }
 
 /**
@@ -343,7 +346,10 @@ export function resolveRouteNameAndSource(
   let name: string | undefined;
   let source: TransactionSource = 'url';
 
-  const isInDescendantRoute = locationIsInsideDescendantRoute(location, allRoutes);
+  // `branches` were matched with the basename, which the descendant route lookups don't strip.
+  const isInDescendantRoute = basename
+    ? locationIsInsideDescendantRoute(location, allRoutes)
+    : matchesAreInsideDescendantRoute(branches);
 
   if (isInDescendantRoute) {
     name = prefixWithSlash(rebuildRoutePathFromAllRoutes(allRoutes, location));
