@@ -1,6 +1,31 @@
 import type { Attributes, Span } from '@opentelemetry/api';
 import {
   MESSAGING_BATCH_MESSAGE_COUNT,
+  MESSAGING_BULLMQ_FLOW_NAME,
+  MESSAGING_BULLMQ_JOB_ATTEMPT_FINISHED_TIMESTAMP,
+  MESSAGING_BULLMQ_JOB_BULK_NAMES,
+  MESSAGING_BULLMQ_JOB_DEDUPLICATION_KEY,
+  MESSAGING_BULLMQ_JOB_IDS,
+  MESSAGING_BULLMQ_JOB_KEY,
+  MESSAGING_BULLMQ_JOB_NAME,
+  MESSAGING_BULLMQ_JOB_PROCESSED_TIMESTAMP,
+  MESSAGING_BULLMQ_JOB_SCHEDULER_ID,
+  MESSAGING_BULLMQ_JOB_STATE,
+  MESSAGING_BULLMQ_JOB_TYPE,
+  MESSAGING_BULLMQ_QUEUE_CLEAN_COUNT,
+  MESSAGING_BULLMQ_QUEUE_CLEAN_LIMIT,
+  MESSAGING_BULLMQ_QUEUE_DRAIN_DELAY,
+  MESSAGING_BULLMQ_QUEUE_EVENT_MAX_LENGTH,
+  MESSAGING_BULLMQ_QUEUE_GRACE,
+  MESSAGING_BULLMQ_QUEUE_JOBS_STATE,
+  MESSAGING_BULLMQ_QUEUE_RATE_LIMIT,
+  MESSAGING_BULLMQ_WORKER_DO_NOT_WAIT_ACTIVE,
+  MESSAGING_BULLMQ_WORKER_FORCE_CLOSE,
+  MESSAGING_BULLMQ_WORKER_JOBS_TO_EXTEND_LOCKS,
+  MESSAGING_BULLMQ_WORKER_NAME,
+  MESSAGING_BULLMQ_WORKER_RATE_LIMIT,
+  MESSAGING_BULLMQ_WORKER_STALLED_JOBS,
+  MESSAGING_CLIENT_ID,
   MESSAGING_DESTINATION_NAME,
   MESSAGING_MESSAGE_ID,
   MESSAGING_MESSAGE_RETRY_COUNT,
@@ -24,24 +49,40 @@ function toOtelAttributes(attributes: Record<string, AttributeValue>): Attribute
   return attributes as Attributes;
 }
 
-// BullMQ separates the words of these keys with dots. Sentry keys use dots only between sub-concepts.
-const SNAKE_CASE_KEYS = new Map([
-  ['bullmq.job.processed.timestamp', 'messaging.bullmq.job.processed_timestamp'],
-  ['bullmq.queue.event.max.length', 'messaging.bullmq.queue.event.max_length'],
-  ['bullmq.queue.rate.limit', 'messaging.bullmq.queue.rate_limit'],
-  ['bullmq.worker.do.not.wait.active', 'messaging.bullmq.worker.do_not_wait_active'],
-  ['bullmq.worker.force.close', 'messaging.bullmq.worker.force_close'],
-  ['bullmq.worker.jobs.to.extend.locks', 'messaging.bullmq.worker.jobs_to_extend_locks'],
-  ['bullmq.worker.rate.limit', 'messaging.bullmq.worker.rate_limit'],
-  ['bullmq.worker.stalled.jobs', 'messaging.bullmq.worker.stalled_jobs'],
+// The BullMQ attribute keys and their `messaging.bullmq.*` keys in the Sentry conventions. Where BullMQ separates
+// the words of a key with dots, the Sentry key uses snake_case.
+const MESSAGING_BULLMQ_KEYS = new Map([
+  ['bullmq.flow.name', MESSAGING_BULLMQ_FLOW_NAME],
+  ['bullmq.job.attempt_finished_timestamp', MESSAGING_BULLMQ_JOB_ATTEMPT_FINISHED_TIMESTAMP],
+  ['bullmq.job.bulk.names', MESSAGING_BULLMQ_JOB_BULK_NAMES],
+  ['bullmq.job.deduplication.key', MESSAGING_BULLMQ_JOB_DEDUPLICATION_KEY],
+  ['bullmq.job.ids', MESSAGING_BULLMQ_JOB_IDS],
+  ['bullmq.job.key', MESSAGING_BULLMQ_JOB_KEY],
+  ['bullmq.job.name', MESSAGING_BULLMQ_JOB_NAME],
+  ['bullmq.job.processed.timestamp', MESSAGING_BULLMQ_JOB_PROCESSED_TIMESTAMP],
+  ['bullmq.job.scheduler.id', MESSAGING_BULLMQ_JOB_SCHEDULER_ID],
+  ['bullmq.job.type', MESSAGING_BULLMQ_JOB_TYPE],
+  ['bullmq.queue.clean.count', MESSAGING_BULLMQ_QUEUE_CLEAN_COUNT],
+  ['bullmq.queue.clean.limit', MESSAGING_BULLMQ_QUEUE_CLEAN_LIMIT],
+  ['bullmq.queue.drain.delay', MESSAGING_BULLMQ_QUEUE_DRAIN_DELAY],
+  ['bullmq.queue.event.max.length', MESSAGING_BULLMQ_QUEUE_EVENT_MAX_LENGTH],
+  ['bullmq.queue.grace', MESSAGING_BULLMQ_QUEUE_GRACE],
+  ['bullmq.queue.jobs.state', MESSAGING_BULLMQ_QUEUE_JOBS_STATE],
+  ['bullmq.queue.rate.limit', MESSAGING_BULLMQ_QUEUE_RATE_LIMIT],
+  ['bullmq.worker.do.not.wait.active', MESSAGING_BULLMQ_WORKER_DO_NOT_WAIT_ACTIVE],
+  ['bullmq.worker.force.close', MESSAGING_BULLMQ_WORKER_FORCE_CLOSE],
+  ['bullmq.worker.jobs.to.extend.locks', MESSAGING_BULLMQ_WORKER_JOBS_TO_EXTEND_LOCKS],
+  ['bullmq.worker.name', MESSAGING_BULLMQ_WORKER_NAME],
+  ['bullmq.worker.rate.limit', MESSAGING_BULLMQ_WORKER_RATE_LIMIT],
+  ['bullmq.worker.stalled.jobs', MESSAGING_BULLMQ_WORKER_STALLED_JOBS],
 ]);
 
 /**
- * Returns the Sentry key for a `bullmq.*` attribute key or metric name: `messaging.<key>`, with snake_case for the
- * keys in `SNAKE_CASE_KEYS`. Returns all other keys unchanged.
+ * Returns the Sentry key for a `bullmq.*` attribute key or metric name: the key from `MESSAGING_BULLMQ_KEYS`, or
+ * `messaging.<key>` for the keys that are not in it, such as the metric names. Returns all other keys unchanged.
  */
 export function toMessagingKey(key: string): string {
-  return SNAKE_CASE_KEYS.get(key) ?? (key.startsWith('bullmq.') ? `messaging.${key}` : key);
+  return MESSAGING_BULLMQ_KEYS.get(key) ?? (key.startsWith('bullmq.') ? `messaging.${key}` : key);
 }
 
 /**
@@ -90,13 +131,13 @@ export function toSentryAttributes(attributes: Record<string, AttributeValue>): 
   }
 
   if (typeof workerId === 'string') {
-    result['messaging.client.id'] = workerId;
+    result[MESSAGING_CLIENT_ID] = workerId;
   }
 
   // BullMQ before 5.81.2 sets `bullmq.job.status` instead of `bullmq.job.state`.
   const state = jobState ?? jobStatus;
   if (typeof state === 'string') {
-    result['messaging.bullmq.job.state'] = state;
+    result[MESSAGING_BULLMQ_JOB_STATE] = state;
   }
 
   return result;
