@@ -1,9 +1,11 @@
-import { describe, expect, it, test, vi } from 'vitest';
-import { applySdkMetadata, createTransport, Scope } from '../../src';
+import { beforeEach, describe, expect, it, test, vi } from 'vitest';
+import { applySdkMetadata, createTransport, getIsolationScope, Scope } from '../../src';
+import { startRequestSession } from '../../src/integrations/http/record-request-session';
 import { _INTERNAL_captureMetric, _INTERNAL_getMetricBuffer } from '../../src/metrics/internal';
 import type { ServerRuntimeClientOptions } from '../../src/server-runtime-client';
 import { ServerRuntimeClient } from '../../src/server-runtime-client';
-import type { Event, EventHint } from '../../src/types/event';
+import type { ErrorEvent, Event, EventHint } from '../../src/types/event';
+import { resetGlobals } from '../testutils';
 
 const PUBLIC_DSN = 'https://username@domain/123';
 
@@ -180,6 +182,57 @@ describe('ServerRuntimeClient', () => {
           ],
         ],
       ]);
+    });
+  });
+
+  describe('request sessions', () => {
+    beforeEach(() => {
+      resetGlobals();
+    });
+
+    it.each([
+      ['errored for a handled exception', {}, undefined, { errored: 1 }],
+      ['crashed for an unhandled exception', {}, { mechanism: { type: 'test', handled: false } }, { crashed: 1 }],
+      ['exited for an exception that `beforeSend` drops', { beforeSend: () => null }, undefined, { exited: 1 }],
+      ['errored for an exception that `sampleRate` drops', { sampleRate: 0 }, undefined, { errored: 1 }],
+      [
+        'errored for an exception that is processed after the request ended',
+        { beforeSend: (event: ErrorEvent) => new Promise<ErrorEvent>(resolve => setTimeout(() => resolve(event), 10)) },
+        undefined,
+        { errored: 1 },
+      ],
+    ] as const)('records the session as %s', async (_, options, hint, counts) => {
+      client = new ServerRuntimeClient(getDefaultClientOptions({ dsn: PUBLIC_DSN, ...options }));
+      const sendSessionSpy = vi.spyOn(client, 'sendSession');
+      const endRequestSession = startRequestSession(client, { requestIsolationScope: getIsolationScope() });
+      client.captureException(new Error('foo'), hint);
+      endRequestSession();
+      await client.flush();
+
+      expect(sendSessionSpy).toHaveBeenCalledExactlyOnceWith({
+        aggregates: [{ started: expect.any(String), exited: 0, errored: 0, crashed: 0, ...counts }],
+      });
+    });
+
+    it('sends a session that settles during a flush with an aggregate opened during that flush', async () => {
+      client = new ServerRuntimeClient(
+        getDefaultClientOptions({
+          dsn: PUBLIC_DSN,
+          beforeSend: event => new Promise<ErrorEvent>(resolve => setTimeout(() => resolve(event), 10)),
+        }),
+      );
+      const sendSessionSpy = vi.spyOn(client, 'sendSession');
+      const endErroredRequestSession = startRequestSession(client, { requestIsolationScope: getIsolationScope() });
+      client.captureException(new Error('foo'));
+      endErroredRequestSession();
+
+      const flushed = client.flush();
+      startRequestSession(client, { requestIsolationScope: new Scope() })();
+      await flushed;
+
+      expect(sendSessionSpy).toHaveBeenCalledExactlyOnceWith({
+        aggregates: [{ started: expect.any(String), exited: 1, errored: 1, crashed: 0 }],
+      });
     });
   });
 

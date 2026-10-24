@@ -65,11 +65,7 @@ export function startRequestSession(
   client.emit('startRequestSession');
 
   let ended = false;
-  return () => {
-    if (ended) {
-      return;
-    }
-    ended = true;
+  const record = (): void => {
     const requestSession = requestIsolationScope.getScopeData().sdkProcessingMetadata.requestSession;
 
     if (client && requestSession) {
@@ -93,6 +89,7 @@ export function startRequestSession(
         const flushPendingClientAggregates = (): void => {
           clearTimeout(timeout);
           unregisterClientFlushHook();
+          unregisterAfterFlushProcessingHook();
           clientToRequestSessionAggregatesMap.delete(client);
 
           const aggregatePayload: AggregationCounts[] = Object.entries(newClientAggregate).map(
@@ -110,6 +107,11 @@ export function startRequestSession(
           DEBUG_BUILD && debug.log('Sending request session aggregate due to client flush');
           flushPendingClientAggregates();
         });
+        // A session can settle while `client.flush()` waits for event processing, after `flush` was emitted.
+        const unregisterAfterFlushProcessingHook = client.on('afterFlushProcessing', () => {
+          DEBUG_BUILD && debug.log('Sending request session aggregate due to client flush');
+          flushPendingClientAggregates();
+        });
         const timeout = setTimeout(() => {
           DEBUG_BUILD && debug.log('Sending request session aggregate due to flushing schedule');
           flushPendingClientAggregates();
@@ -117,5 +119,22 @@ export function startRequestSession(
         safeUnref(timeout);
       }
     }
+  };
+
+  return () => {
+    if (ended) {
+      return;
+    }
+    ended = true;
+
+    // The event pipeline decides whether an error counts towards the session, and it can still run after the
+    // response ended (e.g. async event processors), so the status is final only once those errors settle.
+    const pendingErrors = requestIsolationScope.getScopeData().sdkProcessingMetadata.requestSession?.pendingErrors;
+    if (!pendingErrors?.size) {
+      record();
+      return;
+    }
+
+    void Promise.allSettled(pendingErrors).then(record);
   };
 }

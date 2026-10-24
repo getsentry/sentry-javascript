@@ -57,6 +57,8 @@ export interface SdkProcessingMetadata {
   [key: string]: unknown;
   requestSession?: {
     status: 'ok' | 'errored' | 'crashed';
+    /** Error events of the request that are still in the event pipeline. */
+    pendingErrors?: Set<PromiseLike<unknown>>;
   };
   normalizedRequest?: RequestEventData;
   dynamicSamplingContext?: Partial<DynamicSamplingContext>;

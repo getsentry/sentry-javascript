@@ -5,6 +5,8 @@ Sentry.init({
   dsn: 'https://public@dsn.ingest.sentry.io/1337',
   release: '1.0',
   transport: loggingTransport,
+  ignoreErrors: ['Ignored!'],
+  beforeSend: event => (event.exception?.values?.[0]?.value === 'Dropped!' ? null : event),
   integrations: [
     Sentry.httpIntegration({
       // Flush after 2 seconds (to avoid waiting for the default 60s)
