@@ -22,11 +22,13 @@ describeWithDockerCompose('bullmq', { workingDirectory: [__dirname] }, () => {
 
       const producerSpans = await producerSpansPromise;
       const consumerSpans = [await consumer1SpansPromise, await consumer2SpansPromise];
-      const producerSegment = producerSpans.find(span => span.is_segment)!;
+      const producerSegment = producerSpans.find(span => span.is_segment && span.name === 'enqueue test-jobs')!;
       const publishSpans = producerSpans
         .filter(span => span.attributes['messaging.system']?.value === 'bullmq')
         .sort((a, b) => a.start_timestamp - b.start_timestamp);
-      const consumerSegments = consumerSpans.map(spans => spans.find(span => span.is_segment)!);
+      const consumerSegments = consumerSpans.map(spans =>
+        spans.find(span => span.is_segment && span.name === 'process test-queue')!,
+      );
 
       expect(
         publishSpans.map(span => ({
@@ -208,7 +210,7 @@ describeWithDockerCompose('bullmq', { workingDirectory: [__dirname] }, () => {
           .completed();
 
         const consumerSpans = await consumerSpansPromise;
-        const processSpan = consumerSpans.find(span => span.is_segment)!;
+        const processSpan = consumerSpans.find(span => span.is_segment && span.name === 'process test-failed-queue')!;
 
         expect(
           consumerSpans
