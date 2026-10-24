@@ -32,6 +32,7 @@ exports.onCreateWebpackConfig = ({ getConfig, actions }, options) => {
             assets: ['./public/**'],
             // Delete source files after uploading
             filesToDeleteAfterUpload: deleteSourcemapsAfterUpload ? ['./public/**/*.map'] : undefined,
+            deleteSourcemapsAfterUpload: false,
             // Ignore files that aren't users' source code related
             ignore: [
               'polyfill-*', // related to polyfills

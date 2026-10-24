@@ -66,6 +66,7 @@ export function makeAddSentryVitePlugin(options: SentrySolidStartPluginOptions, 
       sourcemaps: {
         ...sourcemaps,
         filesToDeleteAfterUpload: sourcemaps?.filesToDeleteAfterUpload ?? updatedFilesToDeleteAfterUpload,
+        deleteSourcemapsAfterUpload: false,
       },
       _metaOptions: {
         telemetry: {
@@ -140,6 +141,7 @@ export function makeAddSentryVitePluginSolidStart2(options: SentrySolidStartOpti
     sourcemaps: {
       ...sourcemaps,
       filesToDeleteAfterUpload: filesToDeleteAfterUploadPromise,
+      deleteSourcemapsAfterUpload: false,
     },
     _metaOptions: {
       telemetry: {

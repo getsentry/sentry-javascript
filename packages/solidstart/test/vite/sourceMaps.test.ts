@@ -104,6 +104,7 @@ describe('makeAddSentryVitePlugin()', () => {
         moduleMetadata: { team: 'sdk' },
         sourcemaps: {
           filesToDeleteAfterUpload: ['baz/*.js'],
+          deleteSourcemapsAfterUpload: false,
         },
         bundleSizeOptimizations: {
           excludeTracing: true,

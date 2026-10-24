@@ -114,6 +114,7 @@ export function makeAddSentryVitePlugin(options: SentryTanstackStartOptions): Pl
       rewriteSources: sourcemaps?.rewriteSources ?? rewriteTanstackStartSource,
       resolveSourceMap: sourcemaps?.resolveSourceMap,
       filesToDeleteAfterUpload: filesToDeleteAfterUploadPromise,
+      deleteSourcemapsAfterUpload: false,
     },
     reactComponentAnnotation: {
       enabled: reactComponentAnnotation?.enabled ?? undefined,

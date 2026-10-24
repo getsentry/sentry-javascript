@@ -97,6 +97,7 @@ export function makeAddSentryVitePlugin(options: SentryRemixVitePluginOptions): 
       rewriteSources: sourcemaps?.rewriteSources,
       resolveSourceMap: sourcemaps?.resolveSourceMap,
       filesToDeleteAfterUpload: filesToDeleteAfterUploadPromise,
+      deleteSourcemapsAfterUpload: false,
     },
     telemetry: telemetry ?? true,
     url: sentryUrl,

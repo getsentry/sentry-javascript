@@ -118,6 +118,7 @@ export const sentryAstro = (options: SentryOptions = {}): AstroIntegration => {
                     ...sourcemaps,
                     assets: sourcemaps?.assets ?? getSourcemapsAssetsGlobs(config),
                     filesToDeleteAfterUpload: sourcemaps?.filesToDeleteAfterUpload ?? updatedFilesToDeleteAfterUpload,
+                    deleteSourcemapsAfterUpload: false,
                   },
                   bundleSizeOptimizations: {
                     ...bundleSizeOptimizations,
