@@ -680,7 +680,220 @@ describe('sentryAstro integration', () => {
     expect(addMiddleware).toHaveBeenCalledTimes(1);
     expect(addMiddleware).toHaveBeenCalledWith({
       order: 'pre',
-      entrypoint: '@sentry/astro/middleware',
+      entrypoint: 'virtual:sentry-astro/server-init-middleware',
+    });
+  });
+
+  describe('server init in the middleware', () => {
+    const setupWithMiddleware = async (options: SentryOptions, astroConfig: Record<string, unknown>) => {
+      const addMiddleware = vi.fn();
+      const updateConfig = vi.fn();
+      const injectScript = vi.fn();
+      const setup = sentryAstro(options).hooks['astro:config:setup'] as (params: unknown) => Promise<void>;
+
+      await setup({
+        config: astroConfig,
+        addMiddleware,
+        updateConfig,
+        injectScript,
+        logger: baseConfigHookObject.logger,
+      });
+
+      const plugin = updateConfig.mock.calls
+        .flatMap(([updatedConfig]) => updatedConfig.vite?.plugins ?? [])
+        .find((vitePlugin: { name?: string }) => vitePlugin?.name === 'sentry-astro-server-init');
+
+      return { addMiddleware, injectScript, plugin };
+    };
+
+    it('adds a middleware entrypoint that imports the init file before the Sentry middleware', async () => {
+      const { addMiddleware, injectScript, plugin } = await setupWithMiddleware(
+        { serverInitPath: 'my-server-init-path.js' },
+        { output: 'server' },
+      );
+
+      expect(addMiddleware).toHaveBeenCalledTimes(1);
+      expect(addMiddleware).toHaveBeenCalledWith({
+        order: 'pre',
+        entrypoint: 'virtual:sentry-astro/server-init-middleware',
+      });
+
+      expect(plugin).toBeDefined();
+      expect(plugin.resolveId('virtual:sentry-astro/server-init-middleware')).toBe(
+        '\0virtual:sentry-astro/server-init-middleware',
+      );
+      expect(plugin.resolveId('virtual:sentry-astro/server-init')).toBe('\0virtual:sentry-astro/server-init');
+      expect(plugin.resolveId('@sentry/astro/middleware')).toBeUndefined();
+      expect(plugin.load('\0virtual:sentry-astro/server-init-middleware')).toBe(
+        'import "virtual:sentry-astro/server-init";\nexport { onRequest } from \'@sentry/astro/middleware\';',
+      );
+      expect(plugin.load('\0virtual:sentry-astro/server-init')).toMatch(/^import ".*\/my-server-init-path.js";$/);
+      expect(plugin.load('some-other-module')).toBeUndefined();
+
+      expect(injectScript).toHaveBeenCalledWith(
+        'page-ssr',
+        expect.stringMatching(/^import ".*\/my-server-init-path.js"/),
+      );
+    });
+
+    it('keeps the default middleware entrypoint for the cloudflare workers adapter', async () => {
+      const { addMiddleware, plugin } = await setupWithMiddleware(
+        { serverInitPath: 'my-server-init-path.js' },
+        { output: 'server', adapter: { name: '@astrojs/cloudflare' } },
+      );
+
+      expect(addMiddleware).toHaveBeenCalledWith({ order: 'pre', entrypoint: '@sentry/astro/middleware' });
+      expect(plugin).toBeUndefined();
+    });
+
+    it("doesn't add the middleware entrypoint if the middleware is disabled by users", async () => {
+      const { addMiddleware, plugin } = await setupWithMiddleware(
+        { serverInitPath: 'my-server-init-path.js', autoInstrumentation: { requestHandler: false } },
+        { output: 'server' },
+      );
+
+      expect(addMiddleware).not.toHaveBeenCalled();
+      expect(plugin).toBeUndefined();
+    });
+
+    it.each(['server', 'hybrid'])('uses the init middleware entrypoint in %s mode', async output => {
+      const { addMiddleware, plugin } = await setupWithMiddleware(
+        { serverInitPath: 'my-server-init-path.js' },
+        { output },
+      );
+
+      expect(addMiddleware).toHaveBeenCalledWith({
+        order: 'pre',
+        entrypoint: 'virtual:sentry-astro/server-init-middleware',
+      });
+      expect(plugin).toBeDefined();
+    });
+
+    it("doesn't add the middleware entrypoint if the server SDK is disabled", async () => {
+      const { addMiddleware, plugin } = await setupWithMiddleware(
+        { serverInitPath: 'my-server-init-path.js', enabled: { client: true, server: false } },
+        { output: 'server' },
+      );
+
+      expect(addMiddleware).not.toHaveBeenCalled();
+      expect(plugin).toBeUndefined();
+    });
+
+    it('initializes the SDK with the default snippet once, from a module shared by page-ssr and the middleware', async () => {
+      const { addMiddleware, injectScript, plugin } = await setupWithMiddleware({}, { output: 'server' });
+
+      expect(addMiddleware).toHaveBeenCalledWith({
+        order: 'pre',
+        entrypoint: 'virtual:sentry-astro/server-init-middleware',
+      });
+      expect(injectScript.mock.calls.filter(([target]) => target === 'page-ssr')).toHaveLength(1);
+      expect(injectScript).toHaveBeenCalledWith('page-ssr', 'import "virtual:sentry-astro/server-init";');
+
+      const initCode: string = plugin.load('\0virtual:sentry-astro/server-init');
+      const middlewareCode: string = plugin.load('\0virtual:sentry-astro/server-init-middleware');
+      expect(initCode.match(/Sentry\.init\(/g)).toHaveLength(1);
+      expect(middlewareCode).not.toContain('Sentry.init(');
+      expect(middlewareCode).toContain('import "virtual:sentry-astro/server-init";');
+    });
+
+    it('does not put a Sentry.init into the virtual modules when a server init file is used', async () => {
+      const { plugin } = await setupWithMiddleware({ serverInitPath: 'my-server-init-path.js' }, { output: 'server' });
+
+      expect(plugin.load('\0virtual:sentry-astro/server-init')).not.toContain('Sentry.init(');
+      expect(plugin.load('\0virtual:sentry-astro/server-init-middleware')).not.toContain('Sentry.init(');
+    });
+
+    it('passes the build options to the default snippet in the virtual module', async () => {
+      const { plugin } = await setupWithMiddleware({ debug: true, release: { name: '1.0.0' } }, { output: 'server' });
+
+      const code: string = plugin.load('\0virtual:sentry-astro/server-init');
+      expect(code).toContain('release: "1.0.0"');
+      expect(code).toContain('debug: true');
+    });
+
+    it('keeps the default snippet in page-ssr for the cloudflare workers adapter', async () => {
+      const { addMiddleware, injectScript, plugin } = await setupWithMiddleware(
+        {},
+        { output: 'server', adapter: { name: '@astrojs/cloudflare' } },
+      );
+
+      expect(addMiddleware).toHaveBeenCalledWith({ order: 'pre', entrypoint: '@sentry/astro/middleware' });
+      expect(plugin).toBeUndefined();
+      expect(injectScript).toHaveBeenCalledWith('page-ssr', expect.stringContaining('Sentry.init'));
+    });
+
+    it.each([
+      ['a server init file', { serverInitPath: 'my-server-init-path.js' }],
+      ['the default snippet', {}],
+    ])('uses the init middleware entrypoint for the cloudflare pages adapter with %s', async (_, options) => {
+      wranglerPagesConfig = '{ "pages_build_output_dir": "./dist" }';
+
+      try {
+        const { addMiddleware, injectScript, plugin } = await setupWithMiddleware(options, {
+          output: 'server',
+          adapter: { name: '@astrojs/cloudflare' },
+        });
+
+        expect(addMiddleware).toHaveBeenCalledWith({
+          order: 'pre',
+          entrypoint: 'virtual:sentry-astro/server-init-middleware',
+        });
+        expect(plugin).toBeDefined();
+        expect(injectScript).toHaveBeenCalledWith(
+          'page-ssr',
+          'serverInitPath' in options
+            ? expect.stringMatching(/^import ".*\/my-server-init-path.js"/)
+            : 'import "virtual:sentry-astro/server-init";',
+        );
+      } finally {
+        wranglerPagesConfig = undefined;
+      }
+    });
+
+    it.each([
+      ['a server init file', { serverInitPath: 'my-server-init-path.js' }, /^import ".*\/my-server-init-path.js";$/],
+      ['the default snippet', {}, /^import \* as Sentry from "@sentry\/astro";[\s\S]*Sentry\.init\(/],
+    ])('keeps the previous setup for the netlify adapter with %s', async (_, options, pageSsrScript) => {
+      const { addMiddleware, injectScript, plugin } = await setupWithMiddleware(options, {
+        output: 'server',
+        adapter: { name: '@astrojs/netlify' },
+      });
+
+      expect(addMiddleware).toHaveBeenCalledWith({ order: 'pre', entrypoint: '@sentry/astro/middleware' });
+      expect(plugin).toBeUndefined();
+      expect(injectScript).toHaveBeenCalledWith('page-ssr', expect.stringMatching(pageSsrScript));
+    });
+
+    it('uses the init middleware entrypoint when only an adapter is configured', async () => {
+      const { addMiddleware, plugin } = await setupWithMiddleware(
+        { serverInitPath: 'my-server-init-path.js' },
+        { adapter: { name: '@astrojs/node' } },
+      );
+
+      expect(addMiddleware).toHaveBeenCalledWith({
+        order: 'pre',
+        entrypoint: 'virtual:sentry-astro/server-init-middleware',
+      });
+      expect(plugin).toBeDefined();
+    });
+
+    it('keeps the default snippet in page-ssr if the middleware is disabled by users', async () => {
+      const { addMiddleware, injectScript, plugin } = await setupWithMiddleware(
+        { autoInstrumentation: { requestHandler: false } },
+        { output: 'server' },
+      );
+
+      expect(addMiddleware).not.toHaveBeenCalled();
+      expect(plugin).toBeUndefined();
+      expect(injectScript).toHaveBeenCalledWith('page-ssr', expect.stringContaining('Sentry.init'));
+    });
+
+    it('keeps the default snippet in page-ssr in static mode', async () => {
+      const { addMiddleware, injectScript, plugin } = await setupWithMiddleware({}, {});
+
+      expect(addMiddleware).not.toHaveBeenCalled();
+      expect(plugin).toBeUndefined();
+      expect(injectScript).toHaveBeenCalledWith('page-ssr', expect.stringContaining('Sentry.init'));
     });
   });
 

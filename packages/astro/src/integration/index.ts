@@ -7,6 +7,7 @@ import { createRequire } from 'module';
 import * as path from 'path';
 import type { VitePlugin } from './cloudflare';
 import { sentryCloudflareNodeWarningPlugin, sentryCloudflareVitePlugin } from './cloudflare';
+import { SERVER_INIT_ID, SERVER_INIT_MIDDLEWARE_ID, sentryServerInitPlugin } from './serverInit';
 import { buildClientSnippet, buildSdkInitFileImportSnippet, buildServerSnippet } from './snippets';
 import type { SentryOptions } from './types';
 
@@ -174,8 +175,10 @@ export const sentryAstro = (options: SentryOptions = {}): AstroIntegration => {
           }
         }
 
+        let pathToServerInit: string | undefined;
+
         if (sdkEnabled.server) {
-          const pathToServerInit = serverInitPath ? path.resolve(serverInitPath) : findDefaultSdkInitFile('server');
+          pathToServerInit = serverInitPath ? path.resolve(serverInitPath) : findDefaultSdkInitFile('server');
 
           if (pathToServerInit) {
             debug && logger.info(`Using ${pathToServerInit} for server init.`);
@@ -183,9 +186,6 @@ export const sentryAstro = (options: SentryOptions = {}): AstroIntegration => {
             // This ensures Sentry.init() runs in dev mode (where the Vite plugin doesn't fire)
             // and also serves as the fallback for non-Cloudflare adapters in production.
             injectScript('page-ssr', buildSdkInitFileImportSnippet(pathToServerInit));
-          } else if (!usesCloudflareVitePlugin) {
-            debug && logger.info('Using default server init.');
-            injectScript('page-ssr', buildServerSnippet(options || {}));
           }
 
           if (isCloudflareWorkers && command !== 'dev') {
@@ -231,10 +231,36 @@ export const sentryAstro = (options: SentryOptions = {}): AstroIntegration => {
         const isSSR = config && (config.output === 'server' || config.output === 'hybrid' || !!config.adapter);
         const shouldAddMiddleware = sdkEnabled.server && autoInstrumentation?.requestHandler !== false;
 
+        const isNetlify = config?.adapter?.name?.startsWith('@astrojs/netlify');
+        const initServerInMiddleware = isSSR && shouldAddMiddleware && !isCloudflareWorkers && !isNetlify;
+
+        if (sdkEnabled.server && !pathToServerInit && !usesCloudflareVitePlugin) {
+          debug && logger.info('Using default server init.');
+
+          injectScript(
+            'page-ssr',
+            initServerInMiddleware ? `import "${SERVER_INIT_ID}";` : buildServerSnippet(options || {}),
+          );
+        }
+
         if (isSSR && shouldAddMiddleware) {
+          if (initServerInMiddleware) {
+            updateConfig({
+              vite: {
+                plugins: [
+                  sentryServerInitPlugin(
+                    pathToServerInit
+                      ? buildSdkInitFileImportSnippet(pathToServerInit)
+                      : buildServerSnippet(options || {}),
+                  ),
+                ],
+              },
+            });
+          }
+
           addMiddleware({
             order: 'pre',
-            entrypoint: '@sentry/astro/middleware',
+            entrypoint: initServerInMiddleware ? SERVER_INIT_MIDDLEWARE_ID : '@sentry/astro/middleware',
           });
         }
       },
