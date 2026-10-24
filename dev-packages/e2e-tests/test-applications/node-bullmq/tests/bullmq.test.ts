@@ -3,51 +3,97 @@ import { getSpanOp, waitForError, waitForMetric, waitForStreamedSpan } from '@se
 
 test('Creates a queue.publish span when adding a job', async ({ baseURL }) => {
   const publishSpanPromise = waitForStreamedSpan('node-bullmq', span => {
-    return (
-      getSpanOp(span) === 'queue.publish' && span.attributes['sentry.segment.name']?.value === 'GET /enqueue/success'
-    );
+    return getSpanOp(span) === 'queue.publish' && span.attributes['messaging.bullmq.job.name']?.value === 'publish-job';
   });
 
-  await fetch(`${baseURL}/enqueue/success`);
+  await fetch(`${baseURL}/enqueue/publish-job`);
 
   const publishSpan = await publishSpanPromise;
 
+  expect(publishSpan.name).toBe('add test-queue.publish-job');
   expect(publishSpan.is_segment).toBe(false);
-  expect(publishSpan.attributes['sentry.origin']?.value).toBe('auto.queue.bullmq.producer');
-  expect(publishSpan.attributes['messaging.system']?.value).toBe('bullmq');
+  expect(publishSpan.status).toBe('ok');
+  expect(publishSpan.attributes['sentry.segment.name']?.value).toBe('GET /enqueue/:jobName');
+  expect(
+    Object.fromEntries(
+      Object.entries(publishSpan.attributes).filter(
+        ([key]) =>
+          key.startsWith('messaging.') || key.startsWith('bullmq.') || key === 'sentry.op' || key === 'sentry.origin',
+      ),
+    ),
+  ).toEqual({
+    'sentry.op': { type: 'string', value: 'queue.publish' },
+    'sentry.origin': { type: 'string', value: 'auto.queue.bullmq.producer' },
+    'messaging.system': { type: 'string', value: 'bullmq' },
+    'messaging.destination.name': { type: 'string', value: 'test-queue' },
+    'messaging.operation.name': { type: 'string', value: 'add' },
+    'messaging.message.id': { type: 'string', value: expect.any(String) },
+    'messaging.bullmq.job.name': { type: 'string', value: 'publish-job' },
+  });
 });
 
 test('Creates a segment span for queue.process when processing a job', async ({ baseURL }) => {
   const processSpanPromise = waitForStreamedSpan('node-bullmq', span => {
-    return span.is_segment && getSpanOp(span) === 'queue.process';
+    return (
+      span.is_segment &&
+      getSpanOp(span) === 'queue.process' &&
+      span.attributes['messaging.bullmq.job.name']?.value === 'process-job'
+    );
   });
 
-  await fetch(`${baseURL}/enqueue/success`);
+  await fetch(`${baseURL}/enqueue/process-job`);
 
   const processSpan = await processSpanPromise;
 
-  expect(processSpan.attributes['sentry.origin']?.value).toBe('auto.queue.bullmq.consumer');
-  expect(processSpan.attributes['messaging.system']?.value).toBe('bullmq');
+  expect(processSpan.name).toBe('process test-queue');
+  expect(processSpan.status).toBe('ok');
+  expect(
+    Object.fromEntries(
+      Object.entries(processSpan.attributes).filter(
+        ([key]) =>
+          key.startsWith('messaging.') || key.startsWith('bullmq.') || key === 'sentry.op' || key === 'sentry.origin',
+      ),
+    ),
+  ).toEqual({
+    'sentry.op': { type: 'string', value: 'queue.process' },
+    'sentry.origin': { type: 'string', value: 'auto.queue.bullmq.consumer' },
+    'messaging.system': { type: 'string', value: 'bullmq' },
+    'messaging.destination.name': { type: 'string', value: 'test-queue' },
+    'messaging.operation.name': { type: 'string', value: 'process' },
+    'messaging.message.id': { type: 'string', value: expect.any(String) },
+    'messaging.message.retry.count': { type: 'integer', value: 0 },
+    'messaging.client.id': { type: 'string', value: expect.any(String) },
+    'messaging.bullmq.job.name': { type: 'string', value: 'process-job' },
+    'messaging.bullmq.job.processed_timestamp': { type: 'integer', value: expect.any(Number) },
+    'messaging.bullmq.job.attempt_finished_timestamp': { type: 'integer', value: expect.any(Number) },
+  });
 });
 
 test('Sends exception to Sentry on error in job processor', async ({ baseURL }) => {
   const errorEventPromise = waitForError('node-bullmq', event => {
+    return !event.type && event.exception?.values?.[0]?.value === 'Test error from BullMQ processor';
+  });
+  const processSpanPromise = waitForStreamedSpan('node-bullmq', span => {
     return (
-      !event.type &&
-      event.exception?.values?.[0]?.value === 'Test error from BullMQ processor' &&
-      event.exception?.values?.[0]?.mechanism?.type === 'auto.queue.bullmq'
+      span.is_segment &&
+      getSpanOp(span) === 'queue.process' &&
+      span.attributes['messaging.bullmq.job.name']?.value === 'fail-job'
     );
   });
 
-  await fetch(`${baseURL}/enqueue/fail`);
+  await fetch(`${baseURL}/enqueue/fail-job`);
 
   const errorEvent = await errorEventPromise;
+  const processSpan = await processSpanPromise;
 
   expect(errorEvent.exception?.values).toHaveLength(1);
   expect(errorEvent.exception?.values?.[0]?.mechanism).toEqual({
     handled: false,
     type: 'auto.queue.bullmq',
   });
+  expect(processSpan.status).toBe('error');
+  expect(errorEvent.contexts?.trace?.trace_id).toBe(processSpan.trace_id);
+  expect(errorEvent.contexts?.trace?.span_id).toBe(processSpan.span_id);
 });
 
 test('BullMQ processor breadcrumbs do not leak into subsequent HTTP requests', async ({ baseURL }) => {
@@ -59,7 +105,7 @@ test('BullMQ processor breadcrumbs do not leak into subsequent HTTP requests', a
     );
   });
 
-  await fetch(`${baseURL}/enqueue/breadcrumb-test`);
+  await fetch(`${baseURL}/enqueue/breadcrumb-job`);
 
   await processSpanPromise;
 
@@ -90,13 +136,14 @@ test('Links the queue.process segment span to its producer span', async ({ baseU
     );
   });
 
-  await fetch(`${baseURL}/enqueue/link-test`);
+  await fetch(`${baseURL}/enqueue/link-job`);
 
   const producerSpan = await producerSpanPromise;
   const consumerSpan = await consumerSpanPromise;
 
-  expect(producerSpan.attributes['sentry.segment.name']?.value).toBe('GET /enqueue/link-test');
-  expect(consumerSpan.attributes['sentry.previous_trace']).toBeUndefined();
+  expect(producerSpan.name).toBe('add test-queue.link-job');
+  expect(consumerSpan.name).toBe('process test-queue');
+  expect(consumerSpan.trace_id).not.toBe(producerSpan.trace_id);
   expect(consumerSpan.links).toEqual([
     {
       trace_id: producerSpan.trace_id,
@@ -109,28 +156,68 @@ test('Links the queue.process segment span to its producer span', async ({ baseU
 
 test('Emits messaging.bullmq.jobs.completed counter metric on successful job', async ({ baseURL }) => {
   const metricPromise = waitForMetric('node-bullmq', metric => {
-    return metric.name === 'messaging.bullmq.jobs.completed' && metric.type === 'counter';
+    return (
+      metric.name === 'messaging.bullmq.jobs.completed' &&
+      metric.attributes?.['messaging.bullmq.job.name']?.value === 'counter-job'
+    );
   });
 
-  await fetch(`${baseURL}/enqueue/success`);
+  await fetch(`${baseURL}/enqueue/counter-job`);
 
   const metric = await metricPromise;
 
-  expect(metric.name).toBe('messaging.bullmq.jobs.completed');
-  expect(metric.type).toBe('counter');
-  expect(metric.value).toEqual(expect.any(Number));
+  expect({
+    type: metric.type,
+    unit: metric.unit,
+    value: metric.value,
+    attributes: Object.fromEntries(
+      Object.entries(metric.attributes ?? {}).filter(
+        ([key]) => key.startsWith('messaging.') || key.startsWith('bullmq.'),
+      ),
+    ),
+  }).toEqual({
+    type: 'counter',
+    unit: 'none',
+    value: 1,
+    attributes: {
+      'messaging.destination.name': { type: 'string', value: 'test-queue' },
+      'messaging.bullmq.job.name': { type: 'string', value: 'counter-job' },
+      'messaging.bullmq.job.state': { type: 'string', value: 'completed' },
+    },
+  });
 });
 
 test('Emits messaging.process.duration histogram metric on job completion', async ({ baseURL }) => {
   const metricPromise = waitForMetric('node-bullmq', metric => {
-    return metric.name === 'messaging.process.duration' && metric.type === 'distribution';
+    return (
+      metric.name === 'messaging.process.duration' &&
+      metric.attributes?.['messaging.bullmq.job.name']?.value === 'duration-job'
+    );
   });
 
-  await fetch(`${baseURL}/enqueue/success`);
+  await fetch(`${baseURL}/enqueue/duration-job`);
 
   const metric = await metricPromise;
 
-  expect(metric.name).toBe('messaging.process.duration');
-  expect(metric.type).toBe('distribution');
-  expect(metric.value).toEqual(expect.any(Number));
+  expect({
+    type: metric.type,
+    unit: metric.unit,
+    value: metric.value,
+    attributes: Object.fromEntries(
+      Object.entries(metric.attributes ?? {}).filter(
+        ([key]) => key.startsWith('messaging.') || key.startsWith('bullmq.'),
+      ),
+    ),
+  }).toEqual({
+    type: 'distribution',
+    unit: 'second',
+    value: expect.any(Number),
+    attributes: {
+      'messaging.system': { type: 'string', value: 'bullmq' },
+      'messaging.operation.name': { type: 'string', value: 'process' },
+      'messaging.destination.name': { type: 'string', value: 'test-queue' },
+      'messaging.bullmq.job.name': { type: 'string', value: 'duration-job' },
+      'messaging.bullmq.job.state': { type: 'string', value: 'completed' },
+    },
+  });
 });

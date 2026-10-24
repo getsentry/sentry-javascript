@@ -32,23 +32,8 @@ worker.on('error', err => {
   console.error('Worker error:', err);
 });
 
-app.get('/enqueue/success', async (req, res) => {
-  await testQueue.add('success-job', { data: 'test' });
-  res.send('Job enqueued');
-});
-
-app.get('/enqueue/fail', async (req, res) => {
-  await testQueue.add('fail-job', { data: 'test' });
-  res.send('Job enqueued');
-});
-
-app.get('/enqueue/breadcrumb-test', async (req, res) => {
-  await testQueue.add('breadcrumb-job', { data: 'test' });
-  res.send('Job enqueued');
-});
-
-app.get('/enqueue/link-test', async (req, res) => {
-  await testQueue.add('link-job', { data: 'test' });
+app.get('/enqueue/:jobName', async (req, res) => {
+  await testQueue.add(req.params.jobName, { data: 'test' });
   res.send('Job enqueued');
 });
 

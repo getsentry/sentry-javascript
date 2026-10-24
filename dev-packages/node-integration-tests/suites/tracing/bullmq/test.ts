@@ -1,4 +1,4 @@
-import type { SerializedMetricContainer } from '@sentry/core';
+import type { Event, SerializedMetric } from '@sentry/core';
 import { afterAll, expect } from 'vitest';
 import { cleanupChildProcesses, createEsmAndCjsTests, describeWithDockerCompose } from '../../../utils/runner';
 
@@ -9,281 +9,706 @@ describeWithDockerCompose('bullmq', { workingDirectory: [__dirname] }, () => {
 
   createEsmAndCjsTests(__dirname, 'scenario.mjs', 'instrument.mjs', (createRunner, test) => {
     test('traces producer and consumer operations with queue attributes', { timeout: 90_000 }, async () => {
-      const producerSpans: Record<string, { trace_id: string; span_id: string; messageId: unknown }> = {};
-      const consumerSpans: Record<string, { trace_id: string; link: unknown; messageId: unknown }> = {};
+      const runner = createRunner().ignore('trace_metric');
+      const producerSpansPromise = runner.collectStreamedSpansUntilSegment('enqueue test-jobs');
+      const consumer1SpansPromise = runner.collectStreamedSpansUntilSegment(
+        span => span.attributes['messaging.bullmq.job.name']?.value === 'test-job-1',
+      );
+      const consumer2SpansPromise = runner.collectStreamedSpansUntilSegment(
+        span => span.attributes['messaging.bullmq.job.name']?.value === 'test-job-2',
+      );
 
-      await createRunner()
-        .ignore('trace_metric')
-        .unordered()
-        .expect({
-          span: container => {
-            const producerSegment = container.items.find(item => item.is_segment && item.name === 'enqueue test-jobs');
-            const publishSpans = container.items.filter(
-              item => item.attributes['sentry.origin']?.value === 'auto.queue.bullmq.producer',
-            );
+      await runner.start().completed();
 
-            expect(producerSegment).toBeDefined();
-            expect(publishSpans).toHaveLength(2);
+      const producerSpans = await producerSpansPromise;
+      const consumerSpans = [await consumer1SpansPromise, await consumer2SpansPromise];
+      const producerSegment = producerSpans.find(span => span.is_segment)!;
+      const publishSpans = producerSpans
+        .filter(span => span.attributes['messaging.system']?.value === 'bullmq')
+        .sort((a, b) => a.start_timestamp - b.start_timestamp);
+      const consumerSegments = consumerSpans.map(spans => spans.find(span => span.is_segment)!);
 
-            for (const publishSpan of publishSpans) {
-              expect(publishSpan).toEqual(
-                expect.objectContaining({
-                  parent_span_id: producerSegment!.span_id,
-                  is_segment: false,
-                  status: 'ok',
-                  attributes: expect.objectContaining({
-                    'sentry.op': { type: 'string', value: 'queue.publish' },
-                    'messaging.system': { type: 'string', value: 'bullmq' },
-                    'messaging.destination.name': { type: 'string', value: 'test-queue' },
-                    'messaging.message.id': { type: 'string', value: expect.any(String) },
-                    'messaging.operation.name': { type: 'string', value: 'add' },
-                  }),
-                }),
-              );
-
-              producerSpans[publishSpan.attributes['messaging.bullmq.job.name']!.value as string] = {
-                trace_id: publishSpan.trace_id,
-                span_id: publishSpan.span_id,
-                messageId: publishSpan.attributes['messaging.message.id']!.value,
-              };
-            }
+      expect(
+        publishSpans.map(span => ({
+          name: span.name,
+          parent_span_id: span.parent_span_id,
+          status: span.status,
+          attributes: Object.fromEntries(
+            Object.entries(span.attributes).filter(
+              ([key]) =>
+                key.startsWith('messaging.') ||
+                key.startsWith('bullmq.') ||
+                key === 'sentry.op' ||
+                key === 'sentry.origin',
+            ),
+          ),
+        })),
+      ).toEqual(
+        ['test-job-1', 'test-job-2'].map(jobName => ({
+          name: `add test-queue.${jobName}`,
+          parent_span_id: producerSegment.span_id,
+          status: 'ok',
+          attributes: {
+            'sentry.op': { type: 'string', value: 'queue.publish' },
+            'sentry.origin': { type: 'string', value: 'auto.queue.bullmq.producer' },
+            'messaging.system': { type: 'string', value: 'bullmq' },
+            'messaging.destination.name': { type: 'string', value: 'test-queue' },
+            'messaging.operation.name': { type: 'string', value: 'add' },
+            'messaging.message.id': { type: 'string', value: expect.any(String) },
+            'messaging.bullmq.job.name': { type: 'string', value: jobName },
           },
-        })
-        .expect({
-          span: container => {
-            const consumerSegment = container.items.find(
-              item => item.is_segment && item.attributes['messaging.bullmq.job.name']?.value === 'test-job-1',
-            );
+        })),
+      );
 
-            expect(consumerSegment).toEqual(
-              expect.objectContaining({
-                status: 'ok',
-                attributes: expect.objectContaining({
-                  'sentry.op': { type: 'string', value: 'queue.process' },
-                  'sentry.origin': { type: 'string', value: 'auto.queue.bullmq.consumer' },
-                  'messaging.system': { type: 'string', value: 'bullmq' },
-                  'messaging.destination.name': { type: 'string', value: 'test-queue' },
-                  'messaging.message.id': { type: 'string', value: expect.any(String) },
-                  'messaging.message.retry.count': { type: 'integer', value: 0 },
-                  'messaging.operation.name': { type: 'string', value: 'process' },
-                }),
-              }),
-            );
-            expect(consumerSegment!.attributes['sentry.previous_trace']).toBeUndefined();
-            expect(consumerSegment!.attributes['bullmq.queue.name']).toBeUndefined();
-
-            consumerSpans['test-job-1'] = {
-              trace_id: consumerSegment!.trace_id,
-              link: consumerSegment!.links?.[0],
-              messageId: consumerSegment!.attributes['messaging.message.id']!.value,
-            };
+      expect(
+        consumerSpans.map(spans =>
+          spans
+            .filter(span => span.attributes['messaging.system']?.value === 'bullmq')
+            .sort((a, b) => a.start_timestamp - b.start_timestamp)
+            .map(span => ({
+              name: span.name,
+              is_segment: span.is_segment,
+              status: span.status,
+              attributes: Object.fromEntries(
+                Object.entries(span.attributes).filter(
+                  ([key]) =>
+                    key.startsWith('messaging.') ||
+                    key.startsWith('bullmq.') ||
+                    key === 'sentry.op' ||
+                    key === 'sentry.origin',
+                ),
+              ),
+            })),
+        ),
+      ).toEqual(
+        ['test-job-1', 'test-job-2'].map(jobName => [
+          {
+            name: 'process test-queue',
+            is_segment: true,
+            status: 'ok',
+            attributes: {
+              'sentry.op': { type: 'string', value: 'queue.process' },
+              'sentry.origin': { type: 'string', value: 'auto.queue.bullmq.consumer' },
+              'messaging.system': { type: 'string', value: 'bullmq' },
+              'messaging.destination.name': { type: 'string', value: 'test-queue' },
+              'messaging.operation.name': { type: 'string', value: 'process' },
+              'messaging.message.id': { type: 'string', value: expect.any(String) },
+              'messaging.message.retry.count': { type: 'integer', value: 0 },
+              'messaging.client.id': { type: 'string', value: expect.any(String) },
+              'messaging.bullmq.job.name': { type: 'string', value: jobName },
+              'messaging.bullmq.job.processed_timestamp': { type: 'integer', value: expect.any(Number) },
+              'messaging.bullmq.job.attempt_finished_timestamp': { type: 'integer', value: expect.any(Number) },
+            },
           },
-        })
-        .expect({
-          span: container => {
-            const consumerSegment = container.items.find(
-              item => item.is_segment && item.attributes['messaging.bullmq.job.name']?.value === 'test-job-2',
-            );
-
-            expect(consumerSegment).toEqual(
-              expect.objectContaining({
-                status: 'ok',
-                attributes: expect.objectContaining({
-                  'sentry.op': { type: 'string', value: 'queue.process' },
-                  'messaging.destination.name': { type: 'string', value: 'test-queue' },
-                }),
-              }),
-            );
-
-            consumerSpans['test-job-2'] = {
-              trace_id: consumerSegment!.trace_id,
-              link: consumerSegment!.links?.[0],
-              messageId: consumerSegment!.attributes['messaging.message.id']!.value,
-            };
+          {
+            name: 'complete test-queue',
+            is_segment: false,
+            status: 'ok',
+            attributes: {
+              'sentry.op': { type: 'string', value: 'queue' },
+              'sentry.origin': { type: 'string', value: 'auto.queue.bullmq' },
+              'messaging.system': { type: 'string', value: 'bullmq' },
+              'messaging.destination.name': { type: 'string', value: 'test-queue' },
+              'messaging.operation.name': { type: 'string', value: 'complete' },
+              'messaging.message.id': { type: 'string', value: expect.any(String) },
+              'messaging.bullmq.job.name': { type: 'string', value: jobName },
+            },
           },
-        })
-        .start()
-        .completed();
+        ]),
+      );
 
-      for (const jobName of ['test-job-1', 'test-job-2']) {
-        const producer = producerSpans[jobName]!;
-        const consumer = consumerSpans[jobName]!;
-
-        expect(consumer.trace_id).not.toBe(producer.trace_id);
-        expect(consumer.messageId).toBe(producer.messageId);
-        expect(consumer.link).toEqual({
-          trace_id: producer.trace_id,
-          span_id: producer.span_id,
-          sampled: true,
-          attributes: { 'sentry.link.type': { type: 'string', value: 'message_origin' } },
-        });
-      }
-
-      expect(consumerSpans['test-job-1']!.trace_id).not.toBe(consumerSpans['test-job-2']!.trace_id);
+      expect(consumerSegments.map(segment => segment.attributes['messaging.message.id'])).toEqual(
+        publishSpans.map(span => span.attributes['messaging.message.id']),
+      );
+      expect(consumerSegments.map(segment => segment.links)).toEqual(
+        publishSpans.map(span => [
+          {
+            trace_id: span.trace_id,
+            span_id: span.span_id,
+            sampled: true,
+            attributes: { 'sentry.link.type': { type: 'string', value: 'message_origin' } },
+          },
+        ]),
+      );
+      expect(new Set([producerSegment.trace_id, ...consumerSegments.map(segment => segment.trace_id)]).size).toBe(3);
     });
 
     test('emits completion counter and duration histogram for processed jobs', { timeout: 90_000 }, async () => {
+      let metrics: SerializedMetric[] = [];
+
       await createRunner()
         .ignore('span')
         .expect({
-          trace_metric: (metrics: SerializedMetricContainer) => {
-            const items = metrics.items || [];
-
-            expect(items).toHaveLength(4);
-            expect(items.filter(item => item.name === 'messaging.bullmq.jobs.completed')).toEqual([
-              expect.objectContaining({ type: 'counter', unit: 'none', value: expect.any(Number) }),
-              expect.objectContaining({ type: 'counter', unit: 'none', value: expect.any(Number) }),
-            ]);
-            const processDuration = expect.objectContaining({
-              type: 'distribution',
-              unit: 'second',
-              value: expect.any(Number),
-              attributes: expect.objectContaining({
-                'messaging.system': { value: 'bullmq', type: 'string' },
-                'messaging.operation.name': { value: 'process', type: 'string' },
-              }),
-            });
-            expect(items.filter(item => item.name === 'messaging.process.duration')).toEqual([
-              processDuration,
-              processDuration,
-            ]);
+          trace_metric: container => {
+            metrics = container.items;
           },
         })
         .start()
         .completed();
+
+      expect(
+        metrics.map(metric => ({
+          name: metric.name,
+          type: metric.type,
+          unit: metric.unit,
+          value: metric.value,
+          attributes: Object.fromEntries(
+            Object.entries(metric.attributes ?? {}).filter(
+              ([key]) => key.startsWith('messaging.') || key.startsWith('bullmq.'),
+            ),
+          ),
+        })),
+      ).toEqual(
+        ['test-job-1', 'test-job-2'].flatMap(jobName => [
+          {
+            name: 'messaging.bullmq.jobs.completed',
+            type: 'counter',
+            unit: 'none',
+            value: 1,
+            attributes: {
+              'messaging.destination.name': { type: 'string', value: 'test-queue' },
+              'messaging.bullmq.job.name': { type: 'string', value: jobName },
+              'messaging.bullmq.job.state': { type: 'string', value: 'completed' },
+            },
+          },
+          {
+            name: 'messaging.process.duration',
+            type: 'distribution',
+            unit: 'second',
+            value: expect.any(Number),
+            attributes: {
+              'messaging.system': { type: 'string', value: 'bullmq' },
+              'messaging.operation.name': { type: 'string', value: 'process' },
+              'messaging.destination.name': { type: 'string', value: 'test-queue' },
+              'messaging.bullmq.job.name': { type: 'string', value: jobName },
+              'messaging.bullmq.job.state': { type: 'string', value: 'completed' },
+            },
+          },
+        ]),
+      );
     });
   });
 
   createEsmAndCjsTests(__dirname, 'scenario-failed-job.mjs', 'instrument.mjs', (createRunner, test) => {
-    test('captures an error for a failed job in the trace of the job', { timeout: 90_000 }, async () => {
-      let consumerTraceId: string | undefined;
-      let errorTraceId: string | undefined;
+    test(
+      'captures an error for a failed job and sets the error status on its process span',
+      { timeout: 90_000 },
+      async () => {
+        let errorEvent: Event | undefined;
+        const runner = createRunner().ignore('trace_metric');
+        const consumerSpansPromise = runner.collectStreamedSpansUntilSegment('process test-failed-queue');
 
-      await createRunner()
-        .ignore('trace_metric')
-        .unordered()
-        .expect({
-          event: event => {
-            expect(event.exception?.values).toEqual([
-              expect.objectContaining({
-                type: 'Error',
-                value: 'Job failed on purpose',
-                mechanism: { type: 'auto.queue.bullmq', handled: false },
-              }),
-            ]);
+        await runner
+          .expect({
+            event: event => {
+              errorEvent = event;
+            },
+          })
+          .start()
+          .completed();
 
-            errorTraceId = event.contexts?.trace?.trace_id;
+        const consumerSpans = await consumerSpansPromise;
+        const processSpan = consumerSpans.find(span => span.is_segment)!;
+
+        expect(
+          consumerSpans
+            .filter(span => span.attributes['messaging.system']?.value === 'bullmq')
+            .sort((a, b) => a.start_timestamp - b.start_timestamp)
+            .map(span => ({
+              name: span.name,
+              status: span.status,
+              attributes: Object.fromEntries(
+                Object.entries(span.attributes).filter(
+                  ([key]) =>
+                    key.startsWith('messaging.') ||
+                    key.startsWith('bullmq.') ||
+                    key === 'sentry.op' ||
+                    key === 'sentry.origin',
+                ),
+              ),
+            })),
+        ).toEqual([
+          {
+            name: 'process test-failed-queue',
+            status: 'error',
+            attributes: {
+              'sentry.op': { type: 'string', value: 'queue.process' },
+              'sentry.origin': { type: 'string', value: 'auto.queue.bullmq.consumer' },
+              'messaging.system': { type: 'string', value: 'bullmq' },
+              'messaging.destination.name': { type: 'string', value: 'test-failed-queue' },
+              'messaging.operation.name': { type: 'string', value: 'process' },
+              'messaging.message.id': { type: 'string', value: expect.any(String) },
+              'messaging.message.retry.count': { type: 'integer', value: 0 },
+              'messaging.client.id': { type: 'string', value: expect.any(String) },
+              'messaging.bullmq.job.name': { type: 'string', value: 'failing-job' },
+              'messaging.bullmq.job.processed_timestamp': { type: 'integer', value: expect.any(Number) },
+              'messaging.bullmq.job.attempt_finished_timestamp': { type: 'integer', value: expect.any(Number) },
+            },
           },
-        })
-        .expect({
-          span: container => {
-            const consumerSegment = container.items.find(
-              item => item.is_segment && item.attributes['sentry.op']?.value === 'queue.process',
-            );
-
-            expect(consumerSegment).toBeDefined();
-
-            consumerTraceId = consumerSegment!.trace_id;
+          {
+            name: 'fail test-failed-queue',
+            status: 'ok',
+            attributes: {
+              'sentry.op': { type: 'string', value: 'queue' },
+              'sentry.origin': { type: 'string', value: 'auto.queue.bullmq' },
+              'messaging.system': { type: 'string', value: 'bullmq' },
+              'messaging.destination.name': { type: 'string', value: 'test-failed-queue' },
+              'messaging.operation.name': { type: 'string', value: 'fail' },
+              'messaging.message.id': { type: 'string', value: expect.any(String) },
+              'messaging.bullmq.job.name': { type: 'string', value: 'failing-job' },
+            },
           },
-        })
-        .start()
-        .completed();
-
-      expect(errorTraceId).toBe(consumerTraceId);
-    });
+        ]);
+        expect(errorEvent?.exception?.values).toHaveLength(1);
+        expect(errorEvent?.exception?.values?.[0]?.type).toBe('Error');
+        expect(errorEvent?.exception?.values?.[0]?.value).toBe('Job failed on purpose');
+        expect(errorEvent?.exception?.values?.[0]?.mechanism).toEqual({ type: 'auto.queue.bullmq', handled: false });
+        expect(errorEvent?.contexts?.trace?.trace_id).toBe(processSpan.trace_id);
+        expect(errorEvent?.contexts?.trace?.span_id).toBe(processSpan.span_id);
+      },
+    );
   });
 
   createEsmAndCjsTests(__dirname, 'scenario-attributes.mjs', 'instrument.mjs', (createRunner, test) => {
-    test('sends the BullMQ attributes that are registered in the conventions', { timeout: 90_000 }, async () => {
-      const attributeKeys = new Set<string>();
+    test('sends the attributes and metrics of all BullMQ operations', { timeout: 90_000 }, async () => {
+      let metrics: SerializedMetric[] = [];
+      const runner = createRunner();
+      const opsSpansPromise = runner.collectStreamedSpansUntilSegment('bullmq attributes');
+      const processSpansPromise = runner.collectStreamedSpansUntilSegment('process attributes-process-queue');
 
-      await createRunner()
-        .unordered()
+      await runner
         .expect({
-          span: container => {
-            expect(container.items.find(item => item.is_segment && item.name === 'bullmq attributes')).toBeDefined();
-
-            for (const item of container.items) {
-              Object.keys(item.attributes).forEach(key => attributeKeys.add(key));
-            }
-          },
-        })
-        .expect({
-          span: container => {
-            expect(
-              container.items.find(item => item.is_segment && item.attributes['sentry.op']?.value === 'queue.process'),
-            ).toBeDefined();
-
-            for (const item of container.items) {
-              Object.keys(item.attributes).forEach(key => attributeKeys.add(key));
-            }
-          },
-        })
-        .expect({
-          trace_metric: (metrics: SerializedMetricContainer) => {
-            expect(metrics.items.find(item => item.name === 'messaging.bullmq.jobs.completed')).toBeDefined();
-            expect(metrics.items.find(item => item.name === 'messaging.bullmq.queue.jobs')).toBeDefined();
-
-            for (const item of metrics.items) {
-              Object.keys(item.attributes || {}).forEach(key => attributeKeys.add(key));
-            }
+          trace_metric: container => {
+            metrics = container.items;
           },
         })
         .start()
         .completed();
 
-      // `messaging.bullmq.queue.clean.count` needs BullMQ 6.
-      expect([...attributeKeys]).toEqual(
-        expect.arrayContaining([
-          'messaging.client.id',
-          'messaging.bullmq.flow.name',
-          'messaging.bullmq.job.attempt_finished_timestamp',
-          'messaging.bullmq.job.bulk.names',
-          'messaging.bullmq.job.deduplication.key',
-          'messaging.bullmq.job.ids',
-          'messaging.bullmq.job.key',
-          'messaging.bullmq.job.name',
-          'messaging.bullmq.job.processed_timestamp',
-          'messaging.bullmq.job.scheduler.id',
-          'messaging.bullmq.job.state',
-          'messaging.bullmq.job.type',
-          'messaging.bullmq.queue.clean.limit',
-          'messaging.bullmq.queue.drain.delay',
-          'messaging.bullmq.queue.event.max_length',
-          'messaging.bullmq.queue.grace',
-          'messaging.bullmq.queue.jobs.state',
-          'messaging.bullmq.queue.rate_limit',
-          'messaging.bullmq.worker.do_not_wait_active',
-          'messaging.bullmq.worker.force_close',
-          'messaging.bullmq.worker.jobs_to_extend_locks',
-          'messaging.bullmq.worker.name',
-          'messaging.bullmq.worker.rate_limit',
-          'messaging.bullmq.worker.stalled_jobs',
-        ]),
-      );
+      const opsSpans = await opsSpansPromise;
+      const processSpans = await processSpansPromise;
+
       expect(
-        [...attributeKeys].filter(
-          key =>
-            key.startsWith('bullmq.') ||
-            [
-              'messaging.bullmq.worker.id',
-              'messaging.bullmq.job.status',
-              'messaging.bullmq.job.finished.timestamp',
-              'messaging.bullmq.job.processed.timestamp',
-              'messaging.bullmq.queue.event.max.length',
-              'messaging.bullmq.queue.rate.limit',
-              'messaging.bullmq.worker.do.not.wait.active',
-              'messaging.bullmq.worker.force.close',
-              'messaging.bullmq.worker.jobs.to.extend.locks',
-              'messaging.bullmq.worker.rate.limit',
-              'messaging.bullmq.worker.stalled.jobs',
-              'messaging.bullmq.job.options',
-              'messaging.bullmq.job.progress',
-              'messaging.bullmq.queue.options',
-              'messaging.bullmq.worker.options',
-            ].includes(key),
-        ),
-      ).toEqual([]);
+        opsSpans
+          .filter(span => span.attributes['messaging.system']?.value === 'bullmq')
+          .sort((a, b) => a.start_timestamp - b.start_timestamp)
+          .map(span => ({
+            name: span.name,
+            status: span.status,
+            attributes: Object.fromEntries(
+              Object.entries(span.attributes).filter(
+                ([key]) =>
+                  key.startsWith('messaging.') ||
+                  key.startsWith('bullmq.') ||
+                  key === 'sentry.op' ||
+                  key === 'sentry.origin',
+              ),
+            ),
+          })),
+      ).toEqual([
+        {
+          name: 'add attributes-process-queue.process-job',
+          status: 'ok',
+          attributes: {
+            'sentry.op': { type: 'string', value: 'queue.publish' },
+            'sentry.origin': { type: 'string', value: 'auto.queue.bullmq.producer' },
+            'messaging.system': { type: 'string', value: 'bullmq' },
+            'messaging.destination.name': { type: 'string', value: 'attributes-process-queue' },
+            'messaging.operation.name': { type: 'string', value: 'add' },
+            'messaging.message.id': { type: 'string', value: expect.any(String) },
+            'messaging.bullmq.job.name': { type: 'string', value: 'process-job' },
+          },
+        },
+        {
+          name: 'addBulk attributes-ops-queue',
+          status: 'ok',
+          attributes: {
+            'sentry.op': { type: 'string', value: 'queue.publish' },
+            'sentry.origin': { type: 'string', value: 'auto.queue.bullmq.producer' },
+            'messaging.system': { type: 'string', value: 'bullmq' },
+            'messaging.destination.name': { type: 'string', value: 'attributes-ops-queue' },
+            'messaging.operation.name': { type: 'string', value: 'addBulk' },
+            'messaging.batch.message_count': { type: 'integer', value: 2 },
+            'messaging.bullmq.job.bulk.names': { type: 'array', value: ['bulk-job-1', 'bulk-job-2'] },
+          },
+        },
+        {
+          name: 'addFlow attributes-ops-queue',
+          status: 'ok',
+          attributes: {
+            'sentry.op': { type: 'string', value: 'queue.publish' },
+            'sentry.origin': { type: 'string', value: 'auto.queue.bullmq.producer' },
+            'messaging.system': { type: 'string', value: 'bullmq' },
+            'messaging.destination.name': { type: 'string', value: 'attributes-ops-queue' },
+            'messaging.operation.name': { type: 'string', value: 'addFlow' },
+            'messaging.bullmq.flow.name': { type: 'string', value: 'flow-root' },
+          },
+        },
+        {
+          name: 'addNode attributes-ops-queue',
+          status: 'ok',
+          attributes: {
+            'sentry.op': { type: 'string', value: 'queue' },
+            'sentry.origin': { type: 'string', value: 'auto.queue.bullmq' },
+            'messaging.system': { type: 'string', value: 'bullmq' },
+            'messaging.destination.name': { type: 'string', value: 'attributes-ops-queue' },
+            'messaging.operation.name': { type: 'string', value: 'addNode' },
+            'messaging.message.id': { type: 'string', value: expect.any(String) },
+            'messaging.bullmq.job.name': { type: 'string', value: 'flow-root' },
+          },
+        },
+        {
+          name: 'addNode attributes-ops-queue',
+          status: 'ok',
+          attributes: {
+            'sentry.op': { type: 'string', value: 'queue' },
+            'sentry.origin': { type: 'string', value: 'auto.queue.bullmq' },
+            'messaging.system': { type: 'string', value: 'bullmq' },
+            'messaging.destination.name': { type: 'string', value: 'attributes-ops-queue' },
+            'messaging.operation.name': { type: 'string', value: 'addNode' },
+            'messaging.message.id': { type: 'string', value: expect.any(String) },
+            'messaging.bullmq.job.name': { type: 'string', value: 'flow-child' },
+          },
+        },
+        {
+          name: 'add attributes-ops-queue.scheduled-job',
+          status: 'ok',
+          attributes: {
+            'sentry.op': { type: 'string', value: 'queue.publish' },
+            'sentry.origin': { type: 'string', value: 'auto.queue.bullmq.producer' },
+            'messaging.system': { type: 'string', value: 'bullmq' },
+            'messaging.destination.name': { type: 'string', value: 'attributes-ops-queue' },
+            'messaging.operation.name': { type: 'string', value: 'add' },
+            'messaging.message.id': {
+              type: 'string',
+              value: expect.stringMatching(/^repeat:attributes-scheduler:\d+$/),
+            },
+            'messaging.bullmq.job.scheduler.id': { type: 'string', value: 'attributes-scheduler' },
+          },
+        },
+        {
+          name: 'add attributes-ops-queue.progress-job',
+          status: 'ok',
+          attributes: {
+            'sentry.op': { type: 'string', value: 'queue.publish' },
+            'sentry.origin': { type: 'string', value: 'auto.queue.bullmq.producer' },
+            'messaging.system': { type: 'string', value: 'bullmq' },
+            'messaging.destination.name': { type: 'string', value: 'attributes-ops-queue' },
+            'messaging.operation.name': { type: 'string', value: 'add' },
+            'messaging.message.id': { type: 'string', value: expect.any(String) },
+            'messaging.bullmq.job.name': { type: 'string', value: 'progress-job' },
+          },
+        },
+        {
+          name: 'updateJobProgress attributes-ops-queue',
+          status: 'ok',
+          attributes: {
+            'sentry.op': { type: 'string', value: 'queue' },
+            'sentry.origin': { type: 'string', value: 'auto.queue.bullmq' },
+            'messaging.system': { type: 'string', value: 'bullmq' },
+            'messaging.destination.name': { type: 'string', value: 'attributes-ops-queue' },
+            'messaging.operation.name': { type: 'string', value: 'updateJobProgress' },
+            'messaging.message.id': { type: 'string', value: expect.any(String) },
+          },
+        },
+        {
+          name: 'remove attributes-ops-queue',
+          status: 'ok',
+          attributes: {
+            'sentry.op': { type: 'string', value: 'queue' },
+            'sentry.origin': { type: 'string', value: 'auto.queue.bullmq' },
+            'messaging.system': { type: 'string', value: 'bullmq' },
+            'messaging.destination.name': { type: 'string', value: 'attributes-ops-queue' },
+            'messaging.operation.name': { type: 'string', value: 'remove' },
+            'messaging.message.id': { type: 'string', value: expect.any(String) },
+          },
+        },
+        {
+          name: 'removeDeduplicationKey attributes-ops-queue',
+          status: 'ok',
+          attributes: {
+            'sentry.op': { type: 'string', value: 'queue' },
+            'sentry.origin': { type: 'string', value: 'auto.queue.bullmq' },
+            'messaging.system': { type: 'string', value: 'bullmq' },
+            'messaging.destination.name': { type: 'string', value: 'attributes-ops-queue' },
+            'messaging.operation.name': { type: 'string', value: 'removeDeduplicationKey' },
+            'messaging.bullmq.job.deduplication.key': { type: 'string', value: 'attributes-deduplication-id' },
+          },
+        },
+        {
+          name: 'removeDebounceKey attributes-ops-queue',
+          status: 'ok',
+          attributes: {
+            'sentry.op': { type: 'string', value: 'queue' },
+            'sentry.origin': { type: 'string', value: 'auto.queue.bullmq' },
+            'messaging.system': { type: 'string', value: 'bullmq' },
+            'messaging.destination.name': { type: 'string', value: 'attributes-ops-queue' },
+            'messaging.operation.name': { type: 'string', value: 'removeDebounceKey' },
+            'messaging.bullmq.job.key': { type: 'string', value: 'attributes-debounce-id' },
+          },
+        },
+        {
+          name: 'retryJobs attributes-ops-queue',
+          status: 'ok',
+          attributes: {
+            'sentry.op': { type: 'string', value: 'queue' },
+            'sentry.origin': { type: 'string', value: 'auto.queue.bullmq' },
+            'messaging.system': { type: 'string', value: 'bullmq' },
+            'messaging.destination.name': { type: 'string', value: 'attributes-ops-queue' },
+            'messaging.operation.name': { type: 'string', value: 'retryJobs' },
+          },
+        },
+        {
+          name: 'promoteJobs attributes-ops-queue',
+          status: 'ok',
+          attributes: {
+            'sentry.op': { type: 'string', value: 'queue' },
+            'sentry.origin': { type: 'string', value: 'auto.queue.bullmq' },
+            'messaging.system': { type: 'string', value: 'bullmq' },
+            'messaging.destination.name': { type: 'string', value: 'attributes-ops-queue' },
+            'messaging.operation.name': { type: 'string', value: 'promoteJobs' },
+          },
+        },
+        {
+          name: 'trimEvents attributes-ops-queue',
+          status: 'ok',
+          attributes: {
+            'sentry.op': { type: 'string', value: 'queue' },
+            'sentry.origin': { type: 'string', value: 'auto.queue.bullmq' },
+            'messaging.system': { type: 'string', value: 'bullmq' },
+            'messaging.destination.name': { type: 'string', value: 'attributes-ops-queue' },
+            'messaging.operation.name': { type: 'string', value: 'trimEvents' },
+            'messaging.bullmq.queue.event.max_length': { type: 'integer', value: 100 },
+          },
+        },
+        {
+          // `messaging.bullmq.queue.clean.count` replaces `messaging.bullmq.job.ids` in BullMQ 6.
+          name: 'clean attributes-ops-queue',
+          status: 'ok',
+          attributes: {
+            'sentry.op': { type: 'string', value: 'queue' },
+            'sentry.origin': { type: 'string', value: 'auto.queue.bullmq' },
+            'messaging.system': { type: 'string', value: 'bullmq' },
+            'messaging.destination.name': { type: 'string', value: 'attributes-ops-queue' },
+            'messaging.operation.name': { type: 'string', value: 'clean' },
+            'messaging.bullmq.job.type': { type: 'string', value: 'completed' },
+            'messaging.bullmq.job.ids': { type: 'array', value: [] },
+            'messaging.bullmq.queue.clean.limit': { type: 'integer', value: 100 },
+            'messaging.bullmq.queue.grace': { type: 'integer', value: 0 },
+          },
+        },
+        {
+          name: 'getNextJob attributes-ops-queue',
+          status: 'ok',
+          attributes: {
+            'sentry.op': { type: 'string', value: 'queue' },
+            'sentry.origin': { type: 'string', value: 'auto.queue.bullmq' },
+            'messaging.system': { type: 'string', value: 'bullmq' },
+            'messaging.destination.name': { type: 'string', value: 'attributes-ops-queue' },
+            'messaging.operation.name': { type: 'string', value: 'getNextJob' },
+            'messaging.message.id': { type: 'string', value: expect.any(String) },
+            'messaging.client.id': { type: 'string', value: expect.any(String) },
+            'messaging.bullmq.worker.name': { type: 'string', value: 'attributes-ops-worker' },
+          },
+        },
+        {
+          name: 'moveStalledJobsToWait attributes-ops-queue',
+          status: 'ok',
+          attributes: {
+            'sentry.op': { type: 'string', value: 'queue' },
+            'sentry.origin': { type: 'string', value: 'auto.queue.bullmq' },
+            'messaging.system': { type: 'string', value: 'bullmq' },
+            'messaging.destination.name': { type: 'string', value: 'attributes-ops-queue' },
+            'messaging.operation.name': { type: 'string', value: 'moveStalledJobsToWait' },
+            'messaging.client.id': { type: 'string', value: expect.any(String) },
+            'messaging.bullmq.worker.name': { type: 'string', value: 'attributes-ops-worker' },
+            'messaging.bullmq.worker.stalled_jobs': { type: 'array', value: [] },
+          },
+        },
+        {
+          name: 'extendLocks attributes-ops-queue',
+          status: 'ok',
+          attributes: {
+            'sentry.op': { type: 'string', value: 'queue' },
+            'sentry.origin': { type: 'string', value: 'auto.queue.bullmq' },
+            'messaging.system': { type: 'string', value: 'bullmq' },
+            'messaging.destination.name': { type: 'string', value: 'attributes-ops-queue' },
+            'messaging.operation.name': { type: 'string', value: 'extendLocks' },
+            'messaging.client.id': { type: 'string', value: expect.any(String) },
+            'messaging.bullmq.worker.name': { type: 'string', value: 'attributes-ops-worker' },
+            'messaging.bullmq.worker.jobs_to_extend_locks': { type: 'array', value: [] },
+          },
+        },
+        {
+          name: 'rateLimit attributes-ops-queue',
+          status: 'ok',
+          attributes: {
+            'sentry.op': { type: 'string', value: 'queue' },
+            'sentry.origin': { type: 'string', value: 'auto.queue.bullmq' },
+            'messaging.system': { type: 'string', value: 'bullmq' },
+            'messaging.destination.name': { type: 'string', value: 'attributes-ops-queue' },
+            'messaging.operation.name': { type: 'string', value: 'rateLimit' },
+            'messaging.client.id': { type: 'string', value: expect.any(String) },
+            'messaging.bullmq.worker.rate_limit': { type: 'integer', value: 1 },
+          },
+        },
+        {
+          name: 'pause attributes-ops-queue',
+          status: 'ok',
+          attributes: {
+            'sentry.op': { type: 'string', value: 'queue' },
+            'sentry.origin': { type: 'string', value: 'auto.queue.bullmq' },
+            'messaging.system': { type: 'string', value: 'bullmq' },
+            'messaging.destination.name': { type: 'string', value: 'attributes-ops-queue' },
+            'messaging.operation.name': { type: 'string', value: 'pause' },
+            'messaging.client.id': { type: 'string', value: expect.any(String) },
+            'messaging.bullmq.worker.name': { type: 'string', value: 'attributes-ops-worker' },
+            'messaging.bullmq.worker.do_not_wait_active': { type: 'boolean', value: true },
+          },
+        },
+        {
+          name: 'close attributes-ops-queue',
+          status: 'ok',
+          attributes: {
+            'sentry.op': { type: 'string', value: 'queue' },
+            'sentry.origin': { type: 'string', value: 'auto.queue.bullmq' },
+            'messaging.system': { type: 'string', value: 'bullmq' },
+            'messaging.destination.name': { type: 'string', value: 'attributes-ops-queue' },
+            'messaging.operation.name': { type: 'string', value: 'close' },
+            'messaging.client.id': { type: 'string', value: expect.any(String) },
+            'messaging.bullmq.worker.name': { type: 'string', value: 'attributes-ops-worker' },
+            'messaging.bullmq.worker.force_close': { type: 'boolean', value: true },
+          },
+        },
+        {
+          name: 'rateLimit attributes-ops-queue',
+          status: 'ok',
+          attributes: {
+            'sentry.op': { type: 'string', value: 'queue' },
+            'sentry.origin': { type: 'string', value: 'auto.queue.bullmq' },
+            'messaging.system': { type: 'string', value: 'bullmq' },
+            'messaging.destination.name': { type: 'string', value: 'attributes-ops-queue' },
+            'messaging.operation.name': { type: 'string', value: 'rateLimit' },
+            'messaging.bullmq.queue.rate_limit': { type: 'integer', value: 1 },
+          },
+        },
+        {
+          name: 'drain attributes-ops-queue',
+          status: 'ok',
+          attributes: {
+            'sentry.op': { type: 'string', value: 'queue' },
+            'sentry.origin': { type: 'string', value: 'auto.queue.bullmq' },
+            'messaging.system': { type: 'string', value: 'bullmq' },
+            'messaging.destination.name': { type: 'string', value: 'attributes-ops-queue' },
+            'messaging.operation.name': { type: 'string', value: 'drain' },
+            'messaging.bullmq.queue.drain.delay': { type: 'boolean', value: true },
+          },
+        },
+      ]);
+
+      expect(
+        processSpans
+          .filter(span => span.attributes['messaging.system']?.value === 'bullmq')
+          .sort((a, b) => a.start_timestamp - b.start_timestamp)
+          .map(span => ({
+            name: span.name,
+            status: span.status,
+            attributes: Object.fromEntries(
+              Object.entries(span.attributes).filter(
+                ([key]) =>
+                  key.startsWith('messaging.') ||
+                  key.startsWith('bullmq.') ||
+                  key === 'sentry.op' ||
+                  key === 'sentry.origin',
+              ),
+            ),
+          })),
+      ).toEqual([
+        {
+          name: 'process attributes-process-queue',
+          status: 'ok',
+          attributes: {
+            'sentry.op': { type: 'string', value: 'queue.process' },
+            'sentry.origin': { type: 'string', value: 'auto.queue.bullmq.consumer' },
+            'messaging.system': { type: 'string', value: 'bullmq' },
+            'messaging.destination.name': { type: 'string', value: 'attributes-process-queue' },
+            'messaging.operation.name': { type: 'string', value: 'process' },
+            'messaging.message.id': { type: 'string', value: expect.any(String) },
+            'messaging.message.retry.count': { type: 'integer', value: 0 },
+            'messaging.client.id': { type: 'string', value: expect.any(String) },
+            'messaging.bullmq.worker.name': { type: 'string', value: 'attributes-worker' },
+            'messaging.bullmq.job.name': { type: 'string', value: 'process-job' },
+            'messaging.bullmq.job.processed_timestamp': { type: 'integer', value: expect.any(Number) },
+            'messaging.bullmq.job.attempt_finished_timestamp': { type: 'integer', value: expect.any(Number) },
+          },
+        },
+        {
+          name: 'complete attributes-process-queue',
+          status: 'ok',
+          attributes: {
+            'sentry.op': { type: 'string', value: 'queue' },
+            'sentry.origin': { type: 'string', value: 'auto.queue.bullmq' },
+            'messaging.system': { type: 'string', value: 'bullmq' },
+            'messaging.destination.name': { type: 'string', value: 'attributes-process-queue' },
+            'messaging.operation.name': { type: 'string', value: 'complete' },
+            'messaging.message.id': { type: 'string', value: expect.any(String) },
+            'messaging.bullmq.job.name': { type: 'string', value: 'process-job' },
+          },
+        },
+      ]);
+
+      expect(
+        metrics.map(metric => ({
+          name: metric.name,
+          type: metric.type,
+          unit: metric.unit,
+          value: metric.value,
+          attributes: Object.fromEntries(
+            Object.entries(metric.attributes ?? {}).filter(
+              ([key]) => key.startsWith('messaging.') || key.startsWith('bullmq.'),
+            ),
+          ),
+        })),
+      ).toEqual([
+        {
+          name: 'messaging.bullmq.jobs.completed',
+          type: 'counter',
+          unit: 'none',
+          value: 1,
+          attributes: {
+            'messaging.destination.name': { type: 'string', value: 'attributes-process-queue' },
+            'messaging.bullmq.job.name': { type: 'string', value: 'process-job' },
+            'messaging.bullmq.job.state': { type: 'string', value: 'completed' },
+          },
+        },
+        {
+          name: 'messaging.process.duration',
+          type: 'distribution',
+          unit: 'second',
+          value: expect.any(Number),
+          attributes: {
+            'messaging.system': { type: 'string', value: 'bullmq' },
+            'messaging.operation.name': { type: 'string', value: 'process' },
+            'messaging.destination.name': { type: 'string', value: 'attributes-process-queue' },
+            'messaging.bullmq.job.name': { type: 'string', value: 'process-job' },
+            'messaging.bullmq.job.state': { type: 'string', value: 'completed' },
+          },
+        },
+        ...[
+          { state: 'waiting', value: 0 },
+          { state: 'completed', value: 1 },
+          { state: 'paused', value: 0 },
+        ].map(({ state, value }) => ({
+          name: 'messaging.bullmq.queue.jobs',
+          type: 'gauge',
+          unit: 'none',
+          value,
+          attributes: {
+            'messaging.destination.name': { type: 'string', value: 'attributes-process-queue' },
+            'messaging.bullmq.queue.jobs.state': { type: 'string', value: state },
+          },
+        })),
+      ]);
     });
   });
 });
