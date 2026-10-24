@@ -1,6 +1,7 @@
 import { expect, it } from 'vitest';
 import { eventEnvelope, SHORT_UUID_MATCHER, UUID_MATCHER } from '../../expect';
 import { createRunner } from '../../runner';
+import { supports } from '../../runtime';
 import { getSpanOp, getSpansFromEnvelope } from '../../spanUtils';
 
 it('Hono app captures parametrized errors (Hono SDK)', async ({ signal }) => {
@@ -29,9 +30,12 @@ it('Hono app captures parametrized errors (Hono SDK)', async ({ signal }) => {
             url: expect.stringContaining('/error/param-123'),
           },
           contexts: {
-            // On runtimes with `Span.spanContext()`, the span continues the Cloudflare trace, so the trace context also
-            // has the Cloudflare span as `parent_span_id`.
-            trace: expect.objectContaining({ trace_id: UUID_MATCHER, span_id: SHORT_UUID_MATCHER }),
+            trace: {
+              trace_id: UUID_MATCHER,
+              span_id: SHORT_UUID_MATCHER,
+              // From workerd 1.20261009.1 (`Span.spanContext()`), the span continues the Cloudflare trace.
+              parent_span_id: supports({ minWorkerd: '1.20261009.1' }) ? SHORT_UUID_MATCHER : undefined,
+            },
           },
           breadcrumbs: [
             {

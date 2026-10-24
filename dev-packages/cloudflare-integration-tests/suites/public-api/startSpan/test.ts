@@ -14,6 +14,7 @@ import {
 } from '@sentry/conventions/attributes';
 import { expect, it } from 'vitest';
 import { createRunner } from '../../../runner';
+import { supports } from '../../../runtime';
 import { getSpansFromEnvelope } from '../../../spanUtils';
 
 const CLOUDFLARE_SDK = 'sentry.javascript.cloudflare';
@@ -183,11 +184,7 @@ it('sends a streamed span envelope with correct spans for a manually started spa
     status: 'ok',
   });
 
-  // On runtimes with `Span.spanContext()`, the segment continues the Cloudflare trace, so the Cloudflare span is its parent.
-  const { parent_span_id: segmentParentSpanId, ...segmentSpanWithoutParent } = segmentSpan!;
-  expect(segmentParentSpanId).toBeOneOf([undefined, expect.stringMatching(/^[\da-f]{16}$/)]);
-
-  expect(segmentSpanWithoutParent).toEqual({
+  expect(segmentSpan).toEqual({
     attributes: {
       'sentry.is_localhost': { value: true, type: 'boolean' },
       [SENTRY_TRACE_LIFECYCLE]: { type: 'string', value: 'stream' },
@@ -287,6 +284,8 @@ it('sends a streamed span envelope with correct spans for a manually started spa
       },
     },
     is_segment: true,
+    // From workerd 1.20261009.1 (`Span.spanContext()`), the segment continues the Cloudflare trace.
+    parent_span_id: supports({ minWorkerd: '1.20261009.1' }) ? expect.stringMatching(/^[\da-f]{16}$/) : undefined,
     trace_id: traceId,
     span_id: segmentSpanId,
     start_timestamp: expect.any(Number),
