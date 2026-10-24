@@ -51,7 +51,10 @@ describe('MCP Server Semantic Conventions', () => {
         attributes: {
           'mcp.method.name': 'tools/call',
           'mcp.tool.name': 'get-weather',
+          'gen_ai.tool.name': 'get-weather',
+          'gen_ai.operation.name': 'execute_tool',
           'mcp.request.id': 'req-1',
+          'jsonrpc.request.id': 'req-1',
           'mcp.session.id': 'test-session-123',
           'client.address': '192.168.1.100',
           'client.port': 54321,
@@ -59,6 +62,7 @@ describe('MCP Server Semantic Conventions', () => {
           'network.transport': 'tcp',
           'network.protocol.version': '2.0',
           'mcp.request.argument.location': '"Seattle, WA"',
+          'gen_ai.tool.call.arguments': '{"location":"Seattle, WA"}',
           'sentry.op': 'mcp.server',
           'sentry.origin': 'auto.function.mcp_server',
           'sentry.segment.name.source': 'route',
@@ -85,6 +89,7 @@ describe('MCP Server Semantic Conventions', () => {
           'mcp.method.name': 'resources/read',
           'mcp.resource.uri': 'file:///docs/api.md',
           'mcp.request.id': 'req-2',
+          'jsonrpc.request.id': 'req-2',
           'mcp.session.id': 'test-session-123',
           'mcp.transport': 'StreamableHTTPServerTransport',
           'network.transport': 'tcp',
@@ -115,7 +120,9 @@ describe('MCP Server Semantic Conventions', () => {
         attributes: {
           'mcp.method.name': 'prompts/get',
           'mcp.prompt.name': 'analyze-code',
+          'gen_ai.prompt.name': 'analyze-code',
           'mcp.request.id': 'req-3',
+          'jsonrpc.request.id': 'req-3',
           'mcp.session.id': 'test-session-123',
           'mcp.transport': 'StreamableHTTPServerTransport',
           'network.transport': 'tcp',
@@ -162,6 +169,57 @@ describe('MCP Server Semantic Conventions', () => {
       expect(callArgs).toBeDefined();
       const attributes = callArgs?.[0]?.attributes;
       expect(attributes).not.toHaveProperty('mcp.request.id');
+    });
+
+    it('preserves a numeric zero request ID in canonical and legacy attributes', async () => {
+      await wrappedMcpServer.connect(mockTransport);
+
+      mockTransport.onmessage?.({ jsonrpc: '2.0', method: 'tools/list', id: 0 }, {});
+
+      expect(startInactiveSpanSpy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          attributes: expect.objectContaining({ 'jsonrpc.request.id': '0', 'mcp.request.id': '0' }),
+        }),
+      );
+    });
+
+    it.each(['tools/list', 'prompts/get', 'resources/read'])('does not label %s as tool execution', async method => {
+      await wrappedMcpServer.connect(mockTransport);
+
+      mockTransport.onmessage?.({ jsonrpc: '2.0', method, id: 'non-tool', params: { name: 'example' } }, {});
+
+      expect(startInactiveSpanSpy).toHaveBeenCalledOnce();
+      expect(startInactiveSpanSpy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          attributes: expect.not.objectContaining({ 'gen_ai.operation.name': expect.anything() }),
+        }),
+      );
+    });
+
+    it('keeps prompt variable names and strings intact alongside legacy arguments', async () => {
+      await wrappedMcpServer.connect(mockTransport);
+
+      mockTransport.onmessage?.(
+        {
+          jsonrpc: '2.0',
+          method: 'prompts/get',
+          id: 'prompt-variables',
+          params: { name: 'greeting', arguments: { Language: 'English', language: 'Spanish' } },
+        },
+        {},
+      );
+
+      expect(startInactiveSpanSpy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          attributes: expect.objectContaining({
+            'gen_ai.prompt.name': 'greeting',
+            'mcp.prompt.name': 'greeting',
+            'gen_ai.prompt.variable.Language': 'English',
+            'gen_ai.prompt.variable.language': 'Spanish',
+            'mcp.request.argument.language': '"Spanish"',
+          }),
+        }),
+      );
     });
 
     it('should create spans for list operations without target in name', async () => {
