@@ -1,4 +1,4 @@
-import { E2E_TEST_DSN } from '$app/env/private';
+import { E2E_TEST_DSN, E2E_TEST_TUNNEL } from '$app/env/private';
 import { handleErrorWithSentry, initCloudflareSentryHandle, sentryHandle } from '@sentry/sveltekit';
 import { sequence } from '@sveltejs/kit/hooks';
 
@@ -10,7 +10,7 @@ export const handle = sequence(
     environment: 'qa', // dynamic sampling bias to keep spans
     dsn: E2E_TEST_DSN,
     debug: !!process.env.DEBUG,
-    tunnel: 'http://localhost:3031/', // proxy server
+    tunnel: E2E_TEST_TUNNEL ? true : 'http://localhost:3031/', // proxy server
     tracesSampleRate: 1.0,
   }),
   sentryHandle(),
