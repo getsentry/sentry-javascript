@@ -2,10 +2,11 @@ import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
 import { rollup } from 'rollup';
-import { rolldown } from 'rolldown';
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { sentryRollupPlugin } from '../../src/rollup';
 import { sentryVitePlugin } from '../../src/vite';
+
+const supportsRolldown = Number(process.versions.node.split('.')[0]) >= 20;
 
 const RELEASE_SNIPPET = /SENTRY_RELEASE\s*=\s*\{\s*id:\s*"1\.2\.3"\s*\}/;
 const DEBUG_ID_MARKER = /sentry-dbid-[0-9a-f-]{36}/;
@@ -75,29 +76,33 @@ describe('release injection', () => {
     expect(routeChunk).toMatch(DEBUG_ID_MARKER);
   });
 
-  it('injects the release only into chunks that load at startup (rolldown / vite)', async () => {
-    const outDir = path.join(tmpDir, 'dist');
-    const build = await rolldown({
-      input: entries,
-      plugins: sentryVitePlugin({ telemetry: false, release: { name: '1.2.3', create: false } }),
-    });
-    await build.write({ dir: outDir, chunkFileNames: '[name].js' });
+  it.skipIf(!supportsRolldown)(
+    'injects the release only into chunks that load at startup (rolldown / vite)',
+    async () => {
+      const { rolldown } = await import('rolldown');
+      const outDir = path.join(tmpDir, 'dist');
+      const build = await rolldown({
+        input: entries,
+        plugins: sentryVitePlugin({ telemetry: false, release: { name: '1.2.3', create: false } }),
+      });
+      await build.write({ dir: outDir, chunkFileNames: '[name].js' });
 
-    const chunks = readChunks(outDir);
-    expect(Object.keys(chunks)).toHaveLength(4);
+      const chunks = readChunks(outDir);
+      expect(Object.keys(chunks)).toHaveLength(4);
 
-    const entryChunk = findChunk(chunks, '"entry"');
-    const secondChunk = findChunk(chunks, '"second"');
-    const sharedChunk = findChunk(chunks, '"shared"');
-    const routeChunk = findChunk(chunks, '"route"');
+      const entryChunk = findChunk(chunks, '"entry"');
+      const secondChunk = findChunk(chunks, '"second"');
+      const sharedChunk = findChunk(chunks, '"shared"');
+      const routeChunk = findChunk(chunks, '"route"');
 
-    expect(entryChunk).toMatch(RELEASE_SNIPPET);
-    expect(secondChunk).toMatch(RELEASE_SNIPPET);
-    expect(sharedChunk).toMatch(RELEASE_SNIPPET);
-    expect(routeChunk).not.toMatch(RELEASE_SNIPPET);
+      expect(entryChunk).toMatch(RELEASE_SNIPPET);
+      expect(secondChunk).toMatch(RELEASE_SNIPPET);
+      expect(sharedChunk).toMatch(RELEASE_SNIPPET);
+      expect(routeChunk).not.toMatch(RELEASE_SNIPPET);
 
-    expect(entryChunk).toMatch(DEBUG_ID_MARKER);
-    expect(sharedChunk).toMatch(DEBUG_ID_MARKER);
-    expect(routeChunk).toMatch(DEBUG_ID_MARKER);
-  });
+      expect(entryChunk).toMatch(DEBUG_ID_MARKER);
+      expect(sharedChunk).toMatch(DEBUG_ID_MARKER);
+      expect(routeChunk).toMatch(DEBUG_ID_MARKER);
+    },
+  );
 });
