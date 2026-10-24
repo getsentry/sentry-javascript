@@ -37,7 +37,9 @@ interface StreamingState {
    * Accumulated tool calls from Chat Completion streaming, indexed by tool call index.
    * @see https://platform.openai.com/docs/guides/function-calling?api-mode=chat#streaming
    */
-  chatCompletionToolCalls: Record<number, ChatCompletionToolCall>;
+  chatCompletionToolCalls: Record<number | string, ChatCompletionToolCall>;
+  /** Key of the latest tool call, which unindexed argument fragments continue. */
+  lastChatCompletionToolCallKey?: number | string;
   /**
    * Accumulated function calls from Responses API streaming.
    * @see https://platform.openai.com/docs/guides/function-calling?api-mode=responses#streaming
@@ -56,8 +58,8 @@ interface StreamingState {
  */
 function processChatCompletionToolCalls(toolCalls: ChatCompletionToolCall[], state: StreamingState): void {
   for (const toolCall of toolCalls) {
-    const index = toolCall.index;
-    if (index === undefined || !toolCall.function) continue;
+    if (!toolCall.function) continue;
+    const index = getToolCallKey(toolCall, state);
 
     // Initialize tool call if this is the first chunk for this index
     if (!(index in state.chatCompletionToolCalls)) {
@@ -75,7 +77,31 @@ function processChatCompletionToolCalls(toolCalls: ChatCompletionToolCall[], sta
         existingToolCall.function.arguments += toolCall.function.arguments;
       }
     }
+    state.lastChatCompletionToolCallKey = index;
   }
+}
+
+/**
+ * OpenAI-compatible providers such as Gemini's OpenAI endpoint send tool calls without an `index`.
+ * Those are matched by a known `id`; a new `id` or a function name opens a new call, and anything
+ * else continues the latest call.
+ */
+function getToolCallKey(toolCall: ChatCompletionToolCall, state: StreamingState): number | string {
+  if (toolCall.index !== undefined) {
+    return toolCall.index;
+  }
+  if (toolCall.id) {
+    const known = Object.keys(state.chatCompletionToolCalls).find(
+      key => state.chatCompletionToolCalls[key]?.id === toolCall.id,
+    );
+    if (known !== undefined) {
+      return known;
+    }
+  }
+  if (toolCall.id || toolCall.function?.name || state.lastChatCompletionToolCallKey === undefined) {
+    return `no-index-${Object.keys(state.chatCompletionToolCalls).length}`;
+  }
+  return state.lastChatCompletionToolCallKey;
 }
 
 /**
