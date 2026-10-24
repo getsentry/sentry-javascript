@@ -187,9 +187,8 @@ export function getHttpClientSubscriptions(options: HttpInstrumentationOptions):
           if (breadcrumbs) {
             addBreadcrumbs(request, response);
           }
-          const aborted = response.aborted && !response.complete;
           const status: SpanStatus =
-            error || typeof response.statusCode !== 'number' || aborted
+            error || typeof response.statusCode !== 'number'
               ? { code: SPAN_STATUS_ERROR }
               : getSpanStatusFromHttpCode(response.statusCode);
           options.applyCustomAttributesOnSpan?.(span, request, response);
@@ -199,6 +198,9 @@ export function getHttpClientSubscriptions(options: HttpInstrumentationOptions):
 
       response.on('end', () => finishWithResponse());
       response.on(errorMonitor, finishWithResponse);
+      // `res.destroy()` emits only `close`. `errored` separates a caller destroy from a connection
+      // error that was not emitted because nothing listens for `error`.
+      response.on('close', () => finishWithResponse(response.errored));
     });
   };
 
