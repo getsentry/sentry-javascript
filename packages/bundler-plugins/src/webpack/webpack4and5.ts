@@ -41,6 +41,7 @@ try {
 interface BannerPluginCallbackArg {
   chunk?: {
     hash?: string;
+    canBeInitial?: () => boolean;
     contentHash?: {
       javascript?: string;
     };
@@ -208,7 +209,8 @@ export function sentryWebpackPluginFactory({
     }
 
     const sourcemapsEnabled = options.sourcemaps?.disable !== true;
-    const staticInjectionCode = new CodeInjection();
+    const releaseInjectionCode = new CodeInjection();
+    const chunkInjectionCode = new CodeInjection();
 
     if (!options.release.inject) {
       logger.debug('Release injection disabled via `release.inject` option. Will not inject release.');
@@ -217,7 +219,7 @@ export function sentryWebpackPluginFactory({
         'No release name provided. Will not inject release. Please set the `release.name` option to identify your release.',
       );
     } else {
-      staticInjectionCode.append(
+      releaseInjectionCode.append(
         generateReleaseInjectorCode({
           release: options.release.name,
           injectBuildInformation: options._experiments.injectBuildInformation || false,
@@ -226,7 +228,7 @@ export function sentryWebpackPluginFactory({
     }
 
     if (Object.keys(bundleMetadata).length > 0) {
-      staticInjectionCode.append(generateModuleMetadataInjectorCode(bundleMetadata));
+      chunkInjectionCode.append(generateModuleMetadataInjectorCode(bundleMetadata));
     }
 
     const transformAnnotations = options.reactComponentAnnotation?.enabled
@@ -249,7 +251,7 @@ export function sentryWebpackPluginFactory({
         const DefinePlugin = compiler?.webpack?.DefinePlugin || UnsafeDefinePlugin;
 
         // Add BannerPlugin for code injection (release, metadata, debug IDs)
-        if (!staticInjectionCode.isEmpty() || sourcemapsEnabled) {
+        if (!releaseInjectionCode.isEmpty() || !chunkInjectionCode.isEmpty() || sourcemapsEnabled) {
           if (!BannerPlugin) {
             logger.warn(
               'BannerPlugin is not available. Skipping code injection. This usually means webpack is not properly configured.',
@@ -261,7 +263,11 @@ export function sentryWebpackPluginFactory({
                 raw: true,
                 include: /\.(js|ts|jsx|tsx|mjs|cjs)(\?[^?]*)?(#[^#]*)?$/,
                 banner: (arg?: BannerPluginCallbackArg) => {
-                  const codeToInject = staticInjectionCode.clone();
+                  const codeToInject = new CodeInjection();
+                  if (arg?.chunk?.canBeInitial?.() ?? true) {
+                    codeToInject.append(releaseInjectionCode);
+                  }
+                  codeToInject.append(chunkInjectionCode);
                   if (sourcemapsEnabled) {
                     const hash = arg?.chunk?.contentHash?.javascript ?? arg?.chunk?.hash;
                     const debugId = hash ? stringToUUID(hash) : randomUUID();
