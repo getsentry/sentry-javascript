@@ -62,6 +62,7 @@ export {
   getTraceMetaTags,
   httpHeadersToSpanAttributes,
   winterCGHeadersToDict,
+  graphileWorkerIntegration,
   graphqlIntegration,
   hapiIntegration,
   httpIntegration,
