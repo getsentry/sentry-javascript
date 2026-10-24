@@ -7,11 +7,17 @@
 // exports in this file - which we do below.
 import type { Client, Integration, Options, StackParser } from '@sentry/core';
 import type * as clientSdk from './client';
+import type * as configSdk from './config';
 import type * as serverSdk from './server';
 
 export * from './client';
 export * from './server';
-export * from './config';
+
+/**
+ * @deprecated Import `withSentry` from `@sentry/solidstart/vite` instead.
+ * This export will be removed in the next major version.
+ */
+export declare const withSentry: typeof configSdk.withSentry;
 
 /** Initializes Sentry Solid Start SDK */
 export declare function init(options: Options | clientSdk.BrowserOptions | serverSdk.NodeOptions): Client | undefined;
