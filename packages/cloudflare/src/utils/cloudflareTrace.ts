@@ -23,10 +23,16 @@ const SPAN_ID_REGEXP = /^(?!0{16})[0-9a-f]{16}$/;
  * Sets the propagation context of the current scope to the Cloudflare trace of the invocation, so
  * errors, logs and spans get the trace id of the spans that Cloudflare exports.
  *
- * Does nothing when Cloudflare does not trace the invocation, or when the runtime does not expose
+ * Does nothing when the request `headers` have a `sentry-trace` header: an incoming Sentry trace
+ * keeps precedence, so traces from instrumented clients stay connected. Also does nothing when
+ * Cloudflare does not trace the invocation, or when the runtime does not expose
  * `Span.spanContext()`. The sampling decision is left to the SDK.
  */
-export function continueCloudflareTrace(context: unknown): void {
+export function continueCloudflareTrace(context: unknown, headers?: Headers): void {
+  if (headers?.get('sentry-trace')) {
+    return;
+  }
+
   let spanContext: CloudflareSpanContext | undefined;
   try {
     const span = (context as { tracing?: CloudflareTracing } | undefined)?.tracing?.getActiveSpan?.();

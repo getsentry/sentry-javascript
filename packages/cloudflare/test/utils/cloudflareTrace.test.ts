@@ -27,6 +27,26 @@ describe('continueCloudflareTrace()', () => {
     });
   });
 
+  it('keeps the propagation context when the request has a sentry-trace header', () => {
+    const context = {
+      tracing: {
+        getActiveSpan: () => ({
+          isTraced: true,
+          spanContext: () => ({ traceId: CLOUDFLARE_TRACE_ID, spanId: CLOUDFLARE_SPAN_ID, traceFlags: 1 }),
+        }),
+      },
+    };
+    const headers = new Headers({ 'sentry-trace': '12345678901234567890123456789012-1234567890123456-1' });
+
+    withScope(scope => {
+      const propagationContext = scope.getPropagationContext();
+
+      continueCloudflareTrace(context, headers);
+
+      expect(scope.getPropagationContext()).toBe(propagationContext);
+    });
+  });
+
   it.each([
     ['there is no execution context', undefined],
     ['the runtime has no tracing API', {}],

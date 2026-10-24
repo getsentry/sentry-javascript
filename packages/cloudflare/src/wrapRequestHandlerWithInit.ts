@@ -159,10 +159,7 @@ export function wrapRequestHandlerWithInit(
     return continueTrace(
       { sentryTrace: request.headers.get('sentry-trace') || '', baggage: request.headers.get('baggage') },
       () => {
-        // An incoming Sentry trace keeps precedence, so traces from instrumented clients stay connected.
-        if (!request.headers.get('sentry-trace')) {
-          continueCloudflareTrace(context);
-        }
+        continueCloudflareTrace(context, request.headers);
 
         // Note: This span will not have a duration unless I/O happens in the handler. This is
         // because of how the cloudflare workers runtime works.
