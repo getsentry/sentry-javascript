@@ -76,6 +76,7 @@ export {
   type NodeRuntimeMetricsOptions,
   contextLinesIntegration,
   nodeContextIntegration,
+  awsLambdaWebIntegration,
   localVariablesIntegration,
   requestDataIntegration,
   functionToStringIntegration,

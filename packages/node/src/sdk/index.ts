@@ -20,6 +20,7 @@ import {
 import { isMainThread, parentPort } from 'node:worker_threads';
 import { detectOrchestrionSetup, getErrorIntegrations, getTracingIntegrations } from '@sentry/server-utils';
 import { DEBUG_BUILD } from '../debug-build';
+import { awsLambdaWebIntegration } from '../integrations/awsLambdaWeb';
 import { childProcessIntegration } from '../integrations/childProcess';
 import { consoleIntegration } from '../integrations/console';
 import { nodeContextIntegration } from '../integrations/context';
@@ -66,6 +67,7 @@ function getBaseDefaultIntegrations(): Integration[] {
     // Event Info
     contextLinesIntegration(),
     localVariablesIntegration(),
+    awsLambdaWebIntegration(),
     nodeContextIntegration(),
     childProcessIntegration(),
     workerThreadsIntegration(),

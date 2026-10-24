@@ -7,6 +7,7 @@
 // `node:sqlite`, which `flue` needs, and the Vercel keep-alive, which needs `http.server.response.finish`.
 const NODE_ONLY = [
   'suites/anr/test.ts',
+  'suites/aws-lambda-web/**',
   'suites/aws-serverless/**',
   'suites/breadcrumbs/**',
   'suites/child-process/test.ts',
