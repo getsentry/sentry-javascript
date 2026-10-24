@@ -6,11 +6,11 @@
 
 # Contributing
 
-We welcome suggested improvements and bug fixes to the `@sentry/*` family of packages, in the form of pull requests on
-[`GitHub`](https://github.com/getsentry/sentry-javascript). The guide below will help you get started, but if you have
-further questions, please feel free to reach out on [Discord](https://discord.gg/Ww9hbqr). To learn about some general
-SDK development principles check out the [SDK Development Guide](https://develop.sentry.dev/sdk/) in the Sentry
-Developer Documentation.
+We welcome suggested improvements and bug fixes to the `@sentry/*` family of packages. If you're not on the Sentry
+team, read [External contributors](#external-contributors) before you open a pull request. The guide below will help
+you get started, but if you have further questions, please feel free to reach out on
+[Discord](https://discord.gg/Ww9hbqr). To learn about some general SDK development principles check out the
+[SDK Development Guide](https://develop.sentry.dev/sdk/) in the Sentry Developer Documentation.
 
 ## Setting up an Environment
 
@@ -165,17 +165,30 @@ Similar to building and testing, linting can be done in the project root or in i
 
 Note: you must run `pnpm run build` before `pnpm run lint` will work.
 
-## External Contributors
+## External contributors
 
-We highly appreciate external contributions to the SDK. If you want to contribute something, you can just open a PR
-against `develop`.
+Before you write code, get a maintainer's go-ahead in an issue. That way, nobody spends a weekend on a PR that just
+sits in our queue. We check that the change fits our plans and that we have time to review it. Code details can wait
+for the PR review.
 
-The SDK team will check out your PR shortly!
+1. Find or open an issue for your change. Describe the problem and what you want to change.
+2. Wait for a maintainer to give you the go-ahead.
+3. If someone else is assigned to the issue, ask them in the issue before you start.
+4. Open a PR against `develop` and link the issue, for example `Fixes #1234`.
 
-When contributing to the codebase, please note:
+This also applies to small changes. We may close PRs without a go-ahead.
 
-- Make sure to follow the [Commit, Issue & PR guidelines](./docs/commit-issue-pr-guidelines.md)
-- Non-trivial PRs will not be accepted without tests (see above).
+### Using AI tools
+
+Use any tools you like. You're still the one who answers the review comments, so read, test, and understand every
+change before you submit it. We close PRs that look like unreviewed agent output.
+
+### Before you open a PR
+
+- Follow the [Commit, Issue & PR guidelines](./docs/commit-issue-pr-guidelines.md).
+- Add tests for non-trivial changes (see [Adding Tests](#adding-tests)).
+- Keep each PR to one change. Put unrelated refactors in a separate PR.
+- Run `pnpm run lint` and the tests for the packages you changed.
 
 ## Commit, Issue & PR guidelines
 
