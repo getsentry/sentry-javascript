@@ -4,6 +4,7 @@ import {
   getClient,
   getRootSpan,
   hasSpanStreamingEnabled,
+  LRUMap,
   SPAN_STATUS_ERROR,
   spanIsIgnored,
   spanToJSON,
@@ -26,7 +27,7 @@ import {
 } from '@sentry/conventions/attributes';
 import { GEN_AI_CHAT, GEN_AI_EXECUTE_TOOL, GEN_AI_INVOKE_AGENT } from '@sentry/conventions/op';
 import { resolveAIRecordingOptions } from '../core/utils';
-import { LANGCHAIN_ORIGIN } from './constants';
+import { LANGCHAIN_ORIGIN, MAX_TRACKED_LANGCHAIN_RUNS } from './constants';
 import {
   addTypeSafeClassifierResponseAttributes,
   isTypeSafeClassifier,
@@ -68,25 +69,34 @@ export function createLangChainCallbackHandler(options: LangChainOptions = {}): 
   const { recordInputs, recordOutputs } = resolveAIRecordingOptions(options);
 
   // Internal state - single instance tracks all spans
-  const runs = new Map<string, LangChainRun>();
+  const runs = new LRUMap<string, LangChainRun>(MAX_TRACKED_LANGCHAIN_RUNS);
   const getRun = (runId: string | undefined): LangChainRun | undefined => (runId ? runs.get(runId) : undefined);
 
   /**
    * Exit a span and clean up
    */
   const exitSpan = (runId: string): void => {
-    const span = runs.get(runId)?.span;
+    const span = runs.remove(runId)?.span;
     if (span?.isRecording()) {
       span.end();
     }
-    runs.delete(runId);
+  };
+
+  // Nearest first. `LRUMap.get()` marks each run recently used, so a long-running root run is not evicted while
+  // its subtree is busy.
+  const getAncestors = (parentRunId: string | undefined): LangChainRun[] => {
+    const ancestors: LangChainRun[] = [];
+    for (let run = getRun(parentRunId); run; run = getRun(run.parentRunId)) {
+      ancestors.push(run);
+    }
+    return ancestors;
   };
 
   // LangChain never makes our run spans active, so a run starts under its nearest ancestor run span. Like core,
   // an ignored span only parents when it is a root, which drops its subtree. The active span stays the parent
   // if the ancestor run has no span, or if another span was opened since that run started.
-  const getParentRunSpan = (parentRunId: string | undefined, activeSpan: Span | undefined): Span | undefined => {
-    for (let run = getRun(parentRunId); run; run = getRun(run.parentRunId)) {
+  const getParentRunSpan = (ancestors: LangChainRun[], activeSpan: Span | undefined): Span | undefined => {
+    for (const run of ancestors) {
       if (run.activeSpan !== activeSpan) {
         return undefined;
       }
@@ -98,15 +108,16 @@ export function createLangChainCallbackHandler(options: LangChainOptions = {}): 
   };
 
   const startRunSpan = (runId: string, parentRunId: string | undefined, start: () => Span): LangChainRun => {
+    const ancestors = getAncestors(parentRunId);
     const activeSpan = getActiveSpan();
-    const parentSpan = getParentRunSpan(parentRunId, activeSpan);
+    const parentSpan = getParentRunSpan(ancestors, activeSpan);
     const span = parentSpan ? withActiveSpan(parentSpan, start) : start();
 
     // `@langchain/core` >= 1.1.40 keeps `configurable` out of run metadata, so often only the chat span knows
     // the conversation id. The own id is read off the span, since one from `Sentry.setConversationId()` is
     // only set there.
     const ownId = spanToJSON(span).attributes[GEN_AI_CONVERSATION_ID];
-    const conversationId = typeof ownId === 'string' ? ownId : getRun(parentRunId)?.conversationId;
+    const conversationId = typeof ownId === 'string' ? ownId : ancestors[0]?.conversationId;
     if (conversationId && conversationId !== ownId) {
       span.setAttribute(GEN_AI_CONVERSATION_ID, conversationId);
     }
@@ -114,11 +125,10 @@ export function createLangChainCallbackHandler(options: LangChainOptions = {}): 
     const run: LangChainRun = { span, parentRunId, activeSpan, conversationId };
     runs.set(runId, run);
     if (conversationId) {
-      for (
-        let ancestor = getRun(parentRunId);
-        ancestor && !ancestor.conversationId;
-        ancestor = getRun(ancestor.parentRunId)
-      ) {
+      for (const ancestor of ancestors) {
+        if (ancestor.conversationId) {
+          break;
+        }
         ancestor.conversationId = conversationId;
         ancestor.span.setAttribute(GEN_AI_CONVERSATION_ID, conversationId);
       }
