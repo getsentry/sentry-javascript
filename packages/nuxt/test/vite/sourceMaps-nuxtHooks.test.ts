@@ -1,3 +1,4 @@
+import * as path from 'node:path';
 import type { Nuxt } from '@nuxt/schema';
 import type { Plugin, UserConfig } from 'vite';
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -18,6 +19,23 @@ function createMockAddVitePlugin() {
 }
 
 type HookCallback = (...args: unknown[]) => void | Promise<void>;
+
+/** Nitro's output directories of the `node-server` preset, relative to the working directory. */
+const NODE_SERVER_OUTPUT = { publicDir: '.output/public', serverDir: '.output/server' };
+
+function createMockNitro(options: { dev?: boolean; output?: { publicDir: string; serverDir: string } } = {}) {
+  const output = options.output ?? NODE_SERVER_OUTPUT;
+  return {
+    options: {
+      dev: options.dev ?? false,
+      output: {
+        publicDir: path.join(process.cwd(), output.publicDir),
+        serverDir: path.join(process.cwd(), output.serverDir),
+      },
+      rollupConfig: { plugins: [{ name: 'sentry-rollup-plugin' }] as unknown },
+    },
+  };
+}
 
 function createMockNuxt(options: {
   _prepare?: boolean;
@@ -47,12 +65,7 @@ function createMockNuxt(options: {
 }
 
 describe('setupSourceMaps hooks', () => {
-  const defaultFilesToDeleteAfterUpload = [
-    '.*/**/public/**/*.map',
-    '.*/**/server/**/*.map',
-    '.*/**/output/**/*.map',
-    '.*/**/function/**/*.map',
-  ];
+  const defaultFilesToDeleteAfterUpload = ['.output/public/**/*.map', '.output/server/**/*.map'];
 
   const mockSentryVitePlugin = vi.fn(() => [{ name: 'sentry-vite-plugin' }]);
   const mockSentryRollupPlugin = vi.fn(() => ({ name: 'sentry-rollup-plugin' }));
@@ -220,6 +233,7 @@ describe('setupSourceMaps hooks', () => {
 
       setupSourceMaps({ debug: false }, mockNuxt as unknown as Nuxt, mockAddVitePlugin);
       await mockNuxt.triggerHook('modules:done');
+      await mockNuxt.triggerHook('nitro:init', createMockNitro());
       await mockNuxt.triggerHook('close');
 
       expect(mockCreateSentryBuildPluginManager).toHaveBeenCalledWith(
@@ -229,6 +243,47 @@ describe('setupSourceMaps hooks', () => {
         { buildTool: 'nuxt', loggerPrefix: '[Sentry Nuxt]' },
       );
       expect(mockDeleteArtifacts).toHaveBeenCalledTimes(1);
+    });
+
+    it('keeps the server source maps that `nitro.rollupConfig.output.sourcemap` enables', async () => {
+      const { setupSourceMaps } = await import('../../src/vite/sourceMaps');
+      const mockNuxt = createMockNuxt({ sourcemap: { client: undefined, server: undefined } });
+      const nitroConfig = { rollupConfig: { plugins: [] as unknown[], output: { sourcemap: true } }, dev: false };
+
+      setupSourceMaps({}, mockNuxt as unknown as Nuxt, vi.fn());
+      await mockNuxt.triggerHook('modules:done');
+      await mockNuxt.triggerHook('nitro:config', nitroConfig);
+      await mockNuxt.triggerHook('nitro:init', createMockNitro());
+      await mockNuxt.triggerHook('close');
+
+      expect(mockCreateSentryBuildPluginManager).toHaveBeenCalledWith(
+        expect.objectContaining({
+          sourcemaps: expect.objectContaining({ filesToDeleteAfterUpload: ['.output/public/**/*.map'] }),
+        }),
+        { buildTool: 'nuxt', loggerPrefix: '[Sentry Nuxt]' },
+      );
+    });
+
+    it.each([
+      { publicDir: 'dist', serverDir: '.netlify/functions-internal/server' },
+      { publicDir: 'dist', serverDir: 'dist/_worker.js' },
+    ])('uses Nitro output directories $publicDir and $serverDir for fallback deletion', async output => {
+      const { setupSourceMaps } = await import('../../src/vite/sourceMaps');
+      const mockNuxt = createMockNuxt({ sourcemap: { client: undefined, server: undefined } });
+
+      setupSourceMaps({}, mockNuxt as unknown as Nuxt, vi.fn());
+      await mockNuxt.triggerHook('modules:done');
+      await mockNuxt.triggerHook('nitro:init', createMockNitro({ output }));
+      await mockNuxt.triggerHook('close');
+
+      expect(mockCreateSentryBuildPluginManager).toHaveBeenCalledWith(
+        expect.objectContaining({
+          sourcemaps: expect.objectContaining({
+            filesToDeleteAfterUpload: [`${output.publicDir}/**/*.map`, `${output.serverDir}/**/*.map`],
+          }),
+        }),
+        { buildTool: 'nuxt', loggerPrefix: '[Sentry Nuxt]' },
+      );
     });
 
     it('uses user-provided deletion patterns after the build', async () => {
