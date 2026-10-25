@@ -1,5 +1,7 @@
 import { expect, it } from 'vitest';
+import { SHORT_UUID_MATCHER } from '../../../expect';
 import { createRunner } from '../../../runner';
+import { supports } from '../../../runtime';
 import { getSpanOp } from '../../../spanUtils';
 
 // A Durable Object invoked via `fetch` gets its own `http.server` /
@@ -26,8 +28,11 @@ it('auto-instruments the default handler and a Durable Object', async ({ signal 
   await runner.makeRequest('get', '/increment');
 
   const spans = await spansPromise;
-  const workerSpan = spans.find(span => span.is_segment && !span.parent_span_id);
-  const durableObjectSpan = spans.find(span => span.is_segment && span.parent_span_id);
+  // The worker segment has no parent in this trace. On runtimes with `Span.spanContext()`, its parent is the Cloudflare span.
+  const durableObjectSpan = spans.find(
+    span => span.is_segment && spans.some(parent => parent.span_id === span.parent_span_id),
+  );
+  const workerSpan = spans.find(span => span.is_segment && span !== durableObjectSpan);
 
   expect(getSpanOp(workerSpan!)).toBe('http.server');
   expect(workerSpan?.attributes['sentry.origin']).toEqual({ type: 'string', value: 'auto.http.cloudflare' });
@@ -35,6 +40,7 @@ it('auto-instruments the default handler and a Durable Object', async ({ signal 
   expect(getSpanOp(durableObjectSpan!)).toBe('http.server');
   expect(durableObjectSpan?.attributes['sentry.origin']).toEqual({ type: 'string', value: 'auto.http.cloudflare' });
   expect(durableObjectSpan?.parent_span_id).toBe(workerSpan?.span_id);
+  expect(workerSpan?.parent_span_id).toEqual(supports({ minWorkerd: '1.20261009.1' }) ? SHORT_UUID_MATCHER : undefined);
 
   expect(
     spans

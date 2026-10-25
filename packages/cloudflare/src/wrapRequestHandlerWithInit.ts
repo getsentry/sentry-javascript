@@ -14,6 +14,7 @@ import type { CloudflareClient, CloudflareOptions } from './client';
 import type { ExecutionContextCompat } from './executionContext';
 import { flushAndDispose, getOriginalWaitUntil } from './flush';
 import { addCloudResourceContext, addCultureContext } from './scope-utils';
+import { continueCloudflareTrace } from './utils/cloudflareTrace';
 import { getInvocationState, getInvocationWaitUntil } from './utils/invocationContext';
 import { withInvocationIsolationScope } from './utils/invocationScope';
 
@@ -128,6 +129,7 @@ export function wrapRequestHandlerWithInit(
         origin: 'auto.http.cloudflare',
         mechanism: captureErrors ? { handled: false, type: getRequestErrorMechanismType(context) } : undefined,
         attributes,
+        onTraceContinued: () => continueCloudflareTrace(context, request.headers),
         isStreamingResponse: response => {
           const classification = safeCallback(
             DEBUG_BUILD ? 'Error in `isStreamingResponse`, using the default classification:' : '',
