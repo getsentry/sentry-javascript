@@ -1,5 +1,7 @@
 import { expect, it } from 'vitest';
+import { SHORT_UUID_MATCHER } from '../../../expect';
 import { createRunner } from '../../../runner';
+import { supports } from '../../../runtime';
 import { getSpanOp } from '../../../spanUtils';
 
 // A single worker exports a plain `WorkerEntrypoint`, a plain `DurableObject`,
@@ -47,12 +49,16 @@ it('auto-instruments a WorkerEntrypoint and a Durable Object exported from the s
   await runner.makeRequest('get', '/increment');
 
   const durableObjectTraceSpans = await durableObjectSpansPromise;
-  const workerSpan = durableObjectTraceSpans.find(span => span.is_segment && !span.parent_span_id);
-  const durableObjectSpan = durableObjectTraceSpans.find(span => span.is_segment && span.parent_span_id);
+  // The worker segment has no parent in this trace. On runtimes with `Span.spanContext()`, its parent is the Cloudflare span.
+  const durableObjectSpan = durableObjectTraceSpans.find(
+    span => span.is_segment && durableObjectTraceSpans.some(parent => parent.span_id === span.parent_span_id),
+  );
+  const workerSpan = durableObjectTraceSpans.find(span => span.is_segment && span !== durableObjectSpan);
 
   expect(getSpanOp(workerSpan!)).toBe('http.server');
   expect(getSpanOp(durableObjectSpan!)).toBe('http.server');
   expect(durableObjectSpan?.parent_span_id).toBe(workerSpan?.span_id);
+  expect(workerSpan?.parent_span_id).toEqual(supports({ minWorkerd: '1.20261009.1' }) ? SHORT_UUID_MATCHER : undefined);
 
   // The `auto.db.cloudflare.durable_object` storage pair (`get` + `put`) is the fingerprint of an
   // instrumented Durable Object.

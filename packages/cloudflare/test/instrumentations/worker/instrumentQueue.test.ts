@@ -295,6 +295,35 @@ describe('instrumentQueue', () => {
         trace_id: expect.stringMatching(/[a-f0-9]{32}/),
       });
     });
+
+    test('makes the queue span a child of the Cloudflare span', async () => {
+      let rootSpan: ReturnType<typeof SentryCore.spanToJSON> | undefined;
+      const handler = {
+        queue(_batch, _env, _context) {
+          rootSpan = SentryCore.spanToJSON(SentryCore.getRootSpan(SentryCore.getActiveSpan()!));
+        },
+      } satisfies ExportedHandler<typeof MOCK_ENV>;
+
+      const wrappedHandler = withSentry(env => ({ dsn: env.SENTRY_DSN, tracesSampleRate: 1 }), handler);
+      const context = {
+        ...createMockExecutionContext(),
+        tracing: {
+          getActiveSpan: () => ({
+            isTraced: true,
+            spanContext: () => ({
+              traceId: 'a1b2c3d4e5f60718293a4b5c6d7e8f90',
+              spanId: 'b1c2d3e4f5a60718',
+              traceFlags: 1,
+            }),
+          }),
+        },
+      } as unknown as ExecutionContext;
+
+      await wrappedHandler.queue?.(createMockQueueBatch(), MOCK_ENV, context);
+
+      expect(rootSpan?.trace_id).toBe('a1b2c3d4e5f60718293a4b5c6d7e8f90');
+      expect(rootSpan?.parent_span_id).toBe('b1c2d3e4f5a60718');
+    });
   });
 
   test('flush must be called when all waitUntil are done', async () => {

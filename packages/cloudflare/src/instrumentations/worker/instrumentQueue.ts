@@ -10,6 +10,7 @@ import { ensureInstrumented } from '../../instrument';
 import { getFinalOptions } from '../../options';
 import { addCloudResourceContext } from '../../scope-utils';
 import { init } from '../../sdk';
+import { continueCloudflareTrace } from '../../utils/cloudflareTrace';
 import { instrumentContext } from '../../utils/instrumentContext';
 import { setInvocationState } from '../../utils/invocationContext';
 import { instrumentEnv } from './instrumentEnv';
@@ -32,6 +33,7 @@ function wrapQueueHandler(
     isolationScope.setClient(client);
 
     addCloudResourceContext(isolationScope);
+    continueCloudflareTrace(context);
 
     return startSpan(
       {

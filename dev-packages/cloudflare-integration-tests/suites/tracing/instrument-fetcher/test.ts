@@ -1,5 +1,7 @@
 import { expect, it } from 'vitest';
+import { SHORT_UUID_MATCHER } from '../../../expect';
 import { createRunner } from '../../../runner';
+import { supports } from '../../../runtime';
 import type { SerializedStreamedSpan } from '@sentry/core';
 import { getSpanOp, getSpansFromEnvelope } from '../../../spanUtils';
 
@@ -15,8 +17,7 @@ type EchoedHeaders = {
 const SENTRY_TRACE_HEADER_RE = /^[0-9a-f]{32}-[0-9a-f]{16}-[01]$/;
 
 function startStubFetchScenario(signal: AbortSignal) {
-  let mainSpan: SerializedStreamedSpan | undefined;
-  let doSpan: SerializedStreamedSpan | undefined;
+  const segmentSpans: SerializedStreamedSpan[] = [];
 
   // The worker and the Durable Object stream their spans from separate isolates, so each one
   // arrives in its own envelope.
@@ -25,15 +26,13 @@ function startStubFetchScenario(signal: AbortSignal) {
       const segmentSpan = getSpansFromEnvelope(envelope).find(span => span.is_segment);
 
       expect(getSpanOp(segmentSpan!)).toBe('http.server');
-      expect(segmentSpan?.parent_span_id).toBeUndefined();
-      mainSpan = segmentSpan;
+      segmentSpans.push(segmentSpan!);
     })
     .expect(envelope => {
       const segmentSpan = getSpansFromEnvelope(envelope).find(span => span.is_segment);
 
       expect(getSpanOp(segmentSpan!)).toBe('http.server');
-      expect(segmentSpan?.parent_span_id).toBeDefined();
-      doSpan = segmentSpan;
+      segmentSpans.push(segmentSpan!);
     })
     .unordered()
     .start(signal);
@@ -43,6 +42,10 @@ function startStubFetchScenario(signal: AbortSignal) {
     async completedWithTraceCheck(): Promise<void> {
       await completed();
 
+      // The worker segment has no parent in this trace. On runtimes with `Span.spanContext()`, its parent is the Cloudflare span.
+      const doSpan = segmentSpans.find(span => segmentSpans.some(parent => parent.span_id === span.parent_span_id));
+      const mainSpan = segmentSpans.find(span => span !== doSpan);
+
       // Both routes are raw URLs, so the streamed segment name keeps the method only.
       expect(mainSpan?.name).toBe('GET');
       expect(doSpan?.name).toBe('GET');
@@ -50,6 +53,9 @@ function startStubFetchScenario(signal: AbortSignal) {
       expect(doSpan?.attributes['sentry.origin']?.value).toBe('auto.http.cloudflare');
       expect(doSpan?.trace_id).toBe(mainSpan?.trace_id);
       expect(doSpan?.parent_span_id).toBe(mainSpan?.span_id);
+      expect(mainSpan?.parent_span_id).toEqual(
+        supports({ minWorkerd: '1.20261009.1' }) ? SHORT_UUID_MATCHER : undefined,
+      );
     },
   };
 }
