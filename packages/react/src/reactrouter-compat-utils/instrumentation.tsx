@@ -43,6 +43,7 @@ import {
   clearNavigationContext,
   getActiveRootSpan,
   initializeRouterUtils,
+  getRootRoutes,
   resolveRouteNameAndSource,
   setNavigationContext,
   transactionNameHasWildcard,
@@ -378,7 +379,7 @@ export function updateNavigationSpan(
   const shouldUpdate = !hasBeenNamed || forceUpdate || currentNameHasWildcard;
 
   if (shouldUpdate && !spanJson.timestamp) {
-    const currentBranches = matchRoutes(allRoutes, location);
+    const currentBranches = matchRoutes(getRootRoutes(allRoutes), location);
     const [name, source] = resolveRouteNameAndSource(
       location,
       allRoutes,
@@ -962,7 +963,9 @@ export function handleNavigation(opts: {
   allRoutes?: RouteObject[];
 }): void {
   const { location, routes, navigationType, version, matches, basename, allRoutes } = opts;
-  const branches = Array.isArray(matches) ? matches : _matchRoutes(allRoutes || routes, location, basename);
+  const branches = Array.isArray(matches)
+    ? matches
+    : _matchRoutes(getRootRoutes(allRoutes || routes), location, basename);
 
   const client = getClient();
   if (!client || !CLIENTS_WITH_INSTRUMENT_NAVIGATION.has(client)) {
@@ -1132,7 +1135,7 @@ function updatePageloadTransaction({
 }): void {
   const branches = Array.isArray(matches)
     ? matches
-    : (_matchRoutes(allRoutes || routes, location, basename) as unknown as RouteMatch[]);
+    : (_matchRoutes(getRootRoutes(allRoutes || routes), location, basename) as unknown as RouteMatch[]);
 
   if (branches) {
     const [name, source] = resolveRouteNameAndSource(
@@ -1227,7 +1230,7 @@ function tryUpdateSpanNameBeforeEnd(
 
     const currentAllRoutes = Array.from(allRoutes);
     const routesToUse = currentAllRoutes.length > 0 ? currentAllRoutes : routes;
-    const branches = _matchRoutes(routesToUse, location, basename) as unknown as RouteMatch[];
+    const branches = _matchRoutes(getRootRoutes(routesToUse), location, basename) as unknown as RouteMatch[];
 
     if (!branches) {
       return;

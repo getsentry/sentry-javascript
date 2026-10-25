@@ -1,9 +1,12 @@
-import type { Options } from '../core';
+/* oxlint-disable max-lines */
+
+import type { ChunkGraphNode, Options } from '../core';
 import {
   createSentryBuildPluginManager,
   generateReleaseInjectorCode,
   generateModuleMetadataInjectorCode,
   isJsFile,
+  isInitialChunk,
   shouldSkipCodeInjection,
   getDebugIdSnippet,
   stringToUUID,
@@ -141,7 +144,8 @@ export function _rollupPluginInternal(
   const freeGlobalDependencyOnBuildArtifacts = createDependencyOnBuildArtifacts();
   const upload = createDebugIdUploadFunction({ sentryBuildPluginManager });
   const sourcemapsEnabled = options.sourcemaps?.disable !== true;
-  const staticInjectionCode = new CodeInjection();
+  const releaseInjectionCode = new CodeInjection();
+  const chunkInjectionCode = new CodeInjection();
 
   if (!options.release.inject) {
     logger.debug('Release injection disabled via `release.inject` option. Will not inject release.');
@@ -150,7 +154,7 @@ export function _rollupPluginInternal(
       'No release name provided. Will not inject release. Please set the `release.name` option to identify your release.',
     );
   } else {
-    staticInjectionCode.append(
+    releaseInjectionCode.append(
       generateReleaseInjectorCode({
         release: options.release.name,
         injectBuildInformation: options._experiments.injectBuildInformation || false,
@@ -159,7 +163,7 @@ export function _rollupPluginInternal(
   }
 
   if (Object.keys(bundleMetadata).length > 0) {
-    staticInjectionCode.append(generateModuleMetadataInjectorCode(bundleMetadata));
+    chunkInjectionCode.append(generateModuleMetadataInjectorCode(bundleMetadata));
   }
 
   const transformAnnotations = options.reactComponentAnnotation?.enabled
@@ -239,9 +243,9 @@ export function _rollupPluginInternal(
 
   function renderChunk(
     code: string,
-    chunk: { fileName: string; facadeModuleId?: string | null },
+    chunk: { fileName: string; facadeModuleId?: string | null; isEntry?: boolean },
     _?: unknown,
-    meta?: { magicString?: MagicString },
+    meta?: { magicString?: MagicString; chunks?: Record<string, ChunkGraphNode> },
   ): {
     code: string;
     map?: SourceMap;
@@ -255,7 +259,13 @@ export function _rollupPluginInternal(
       return null;
     }
 
-    const injectCode = staticInjectionCode.clone();
+    const injectCode = new CodeInjection();
+
+    if (isInitialChunk(chunk, meta?.chunks)) {
+      injectCode.append(releaseInjectionCode);
+    }
+
+    injectCode.append(chunkInjectionCode);
 
     if (sourcemapsEnabled && !hasExistingDebugID(code)) {
       const debugId = stringToUUID(code); // generate a deterministic debug ID

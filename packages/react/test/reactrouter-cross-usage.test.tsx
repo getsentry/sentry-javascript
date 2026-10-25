@@ -19,6 +19,7 @@ import {
   matchRoutes,
   MemoryRouter,
   Navigate,
+  Outlet,
   Route,
   RouterProvider,
   Routes,
@@ -895,6 +896,59 @@ describe('React Router cross usage of wrappers', () => {
         attributes: expect.objectContaining({
           [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'navigation',
         }),
+      });
+    });
+  });
+
+  describe('nested route matching', () => {
+    it('should name navigations after the route the router renders, not a nested route matched on its own', async () => {
+      const client = createMockBrowserClient();
+      setCurrentClient(client);
+
+      client.addIntegration(
+        reactRouterV6BrowserTracingIntegration({
+          useEffect: React.useEffect,
+          useLocation,
+          useNavigationType,
+          createRoutesFromChildren,
+          matchRoutes,
+        }),
+      );
+
+      const createSentryMemoryRouter = wrapCreateMemoryRouterV6(createMemoryRouter);
+
+      const router = createSentryMemoryRouter([
+        {
+          path: '/',
+          element: <Outlet />,
+          children: [
+            { path: ':orgId', element: <div>Org</div> },
+            {
+              path: 'settings',
+              element: <Outlet />,
+              children: [{ path: 'account', element: <div>Account settings</div> }],
+            },
+          ],
+        },
+      ]);
+
+      render(<RouterProvider router={router} />);
+
+      await act(async () => {
+        router.navigate('/account');
+      });
+
+      await waitFor(() => expect(mockStartBrowserTracingNavigationSpan).toHaveBeenCalledTimes(1));
+
+      expect(router.state.matches.map(match => match.route.path)).toEqual(['/', ':orgId']);
+      expect(mockStartBrowserTracingNavigationSpan).toHaveBeenLastCalledWith(expect.any(BrowserClient), {
+        name: '/:orgId',
+        attributes: {
+          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
+          [URL_TEMPLATE]: '/:orgId',
+          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'navigation',
+          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.react.reactrouter_v6',
+        },
       });
     });
   });
