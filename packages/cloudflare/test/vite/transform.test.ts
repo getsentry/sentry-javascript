@@ -348,6 +348,20 @@ describe('default export wrapping', () => {
     );
   });
 
+  it('wraps a default export with a line comment that mentions `default`', () => {
+    const code = ['export // the default', 'default // default handler', '{ fetch() {} };'].join('\n');
+
+    expect(transform(code, ctx)!.code).toBe(
+      [
+        "import * as __SENTRY__ from '@sentry/cloudflare';",
+        'var __SENTRY_DEFAULT_EXPORT__ = // default handler',
+        '{ fetch() {} };',
+        'export { __SENTRY_DEFAULT_EXPORT__ as default };',
+        '__SENTRY_DEFAULT_EXPORT__ = __SENTRY__.withSentry((env) => ({}), __SENTRY_DEFAULT_EXPORT__);',
+      ].join('\n'),
+    );
+  });
+
   it('keeps the module binding of a named default class', () => {
     const code = ['export default class Handler { fetch() {} }', 'Handler.ready = true;'].join('\n');
 
