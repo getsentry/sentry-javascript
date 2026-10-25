@@ -165,7 +165,11 @@ export class SentryBullMQSpan implements TelemetrySpan {
       this._span.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
 
       const reason = attributes?.['bullmq.job.failed.reason'];
-      captureException(new Error(String(reason || 'Unknown error')), {
+      const error = new Error(String(reason || 'Unknown error'));
+      // BullMQ passes only the error message (https://github.com/taskforcesh/bullmq/issues/4902), so this stack has only
+      // BullMQ and SDK frames, the same for every job. Without it, Sentry groups the errors by their message.
+      error.stack = undefined;
+      captureException(error, {
         mechanism: {
           handled: false,
           type: 'auto.queue.bullmq',

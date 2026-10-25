@@ -296,6 +296,7 @@ describeWithDockerCompose('bullmq', { workingDirectory: [__dirname] }, () => {
         expect(errorEvent?.exception?.values?.[0]?.type).toBe('Error');
         expect(errorEvent?.exception?.values?.[0]?.value).toBe('Job failed on purpose');
         expect(errorEvent?.exception?.values?.[0]?.mechanism).toEqual({ type: 'auto.queue.bullmq', handled: false });
+        expect(errorEvent?.exception?.values?.[0]?.stacktrace).toBeUndefined();
         expect(errorEvent?.contexts?.trace?.trace_id).toBe(processSpan.trace_id);
         expect(errorEvent?.contexts?.trace?.span_id).toBe(processSpan.span_id);
       },
