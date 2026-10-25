@@ -23,6 +23,11 @@ export const tanstackAiConfig = [
     module: { name: '@tanstack/ai', versionRange: '>=1.0.0 <2.0.0', filePath: 'dist/esm/activities/rerank/index.js' },
     functionQuery: { functionName: 'rerank', kind: 'Async' },
   },
+  {
+    channelName: 'decide',
+    module: { name: '@tanstack/ai', versionRange: '>=1.0.0 <2.0.0', filePath: 'dist/esm/activities/evaluate/index.js' },
+    functionQuery: { functionName: 'decide', kind: 'Async' },
+  },
 ] satisfies InstrumentationConfig[];
 
 export const tanstackAiModuleNames = getModuleNames(tanstackAiConfig);
@@ -31,4 +36,5 @@ export const tanstackAiChannels = {
   TANSTACK_AI_CHAT: 'orchestrion:@tanstack/ai:chat',
   TANSTACK_AI_EMBED: 'orchestrion:@tanstack/ai:embed',
   TANSTACK_AI_RERANK: 'orchestrion:@tanstack/ai:rerank',
+  TANSTACK_AI_DECIDE: 'orchestrion:@tanstack/ai:decide',
 } as const;

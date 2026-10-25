@@ -4,6 +4,7 @@ import {
   setGenerationEndAttributes,
   setGenerationResponseAttributes,
   startGenerationSpan,
+  TANSTACK_AI_DECIDE,
   TANSTACK_AI_EMBED,
   TANSTACK_AI_RERANK,
 } from '../../../../src/ai/tanstack-ai/generation';
@@ -54,7 +55,7 @@ describe('TanStack AI activities', () => {
     };
     const span = startGenerationSpan(TANSTACK_AI_EMBED, callOptions, {})!;
     const error = Object.assign(new Error('Request was aborted.'), { name: 'APIUserAbortError' });
-    setGenerationEndAttributes(span, { arguments: [callOptions], error });
+    setGenerationEndAttributes(span, TANSTACK_AI_EMBED, { arguments: [callOptions], error }, {});
 
     expect(spanToStaticSpanJSON(span).status).toBe('cancelled');
   });
@@ -158,6 +159,74 @@ describe('TanStack AI activities', () => {
       expect(data).not.toHaveProperty('gen_ai.response.id');
       expect(data).not.toHaveProperty('gen_ai.usage.input_tokens');
       expect(data).not.toHaveProperty('gen_ai.usage.output_tokens');
+    });
+  });
+
+  describe('decide', () => {
+    const callOptions = {
+      adapter: { name: 'openai', model: 'gpt-6-luna' },
+      state: 'I was charged twice.',
+      questions: { refund: { type: 'noul', instructions: 'Does the customer ask for a refund?' } },
+    };
+    const adapterResult = {
+      id: 'decision-1',
+      model: 'gpt-6-luna-2026-09-01',
+      answers: { refund: { type: 'noul', noul: 0.8 } },
+      usage: { promptTokens: 30, completionTokens: 4, totalTokens: 34 },
+    };
+    const result = {
+      refund: { type: 'boolean', value: true, probability: 0.8 },
+      meta: { id: adapterResult.id, model: adapterResult.model, usage: adapterResult.usage },
+    };
+
+    it('records the questions and answers', () => {
+      const span = startGenerationSpan(TANSTACK_AI_DECIDE, callOptions, {})!;
+      setGenerationResponseAttributes(span, TANSTACK_AI_DECIDE, adapterResult);
+      setGenerationEndAttributes(span, TANSTACK_AI_DECIDE, { arguments: [callOptions], result }, {});
+
+      expect(spanToStaticSpanJSON(span)).toMatchObject({
+        description: 'decide gpt-6-luna',
+        op: 'gen_ai.decide',
+        data: {
+          'gen_ai.operation.name': 'decide',
+          'gen_ai.input.messages':
+            '[{"type":"evaluation","state":"I was charged twice.","questions":{"refund":{"type":"noul","instructions":"Does the customer ask for a refund?"}}}]',
+          'gen_ai.output.messages':
+            '[{"type":"evaluation","answers":{"refund":{"type":"boolean","value":true,"probability":0.8}}}]',
+          'gen_ai.response.id': 'decision-1',
+          'gen_ai.response.model': 'gpt-6-luna-2026-09-01',
+          'gen_ai.usage.input_tokens': 30,
+          'gen_ai.usage.output_tokens': 4,
+        },
+      });
+    });
+
+    it('leaves out the questions and answers when inputs and outputs are not recorded', () => {
+      const options = { recordInputs: false, recordOutputs: false };
+      const span = startGenerationSpan(TANSTACK_AI_DECIDE, callOptions, options)!;
+      setGenerationResponseAttributes(span, TANSTACK_AI_DECIDE, adapterResult);
+      setGenerationEndAttributes(span, TANSTACK_AI_DECIDE, { arguments: [callOptions], result }, options);
+
+      const { data } = spanToStaticSpanJSON(span);
+      expect(data).not.toHaveProperty('gen_ai.input.messages');
+      expect(data).not.toHaveProperty('gen_ai.output.messages');
+      expect(data['gen_ai.response.model']).toBe('gpt-6-luna-2026-09-01');
+    });
+
+    it('records the model and usage of a refused call, which the provider bills', () => {
+      const span = startGenerationSpan(TANSTACK_AI_DECIDE, callOptions, {})!;
+      const error = Object.assign(new Error('The model refused to answer "refund".'), {
+        name: 'EvaluateError',
+        model: 'gpt-6-luna-2026-09-01',
+        usage: { promptTokens: 30, completionTokens: 4, totalTokens: 34 },
+      });
+      setGenerationEndAttributes(span, TANSTACK_AI_DECIDE, { arguments: [callOptions], error }, {});
+
+      expect(spanToStaticSpanJSON(span).data).toMatchObject({
+        'gen_ai.response.model': 'gpt-6-luna-2026-09-01',
+        'gen_ai.usage.input_tokens': 30,
+        'gen_ai.usage.output_tokens': 4,
+      });
     });
   });
 });

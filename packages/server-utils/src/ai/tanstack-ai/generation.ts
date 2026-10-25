@@ -2,7 +2,9 @@ import type { Span, SpanAttributes } from '@sentry/core';
 import { isObjectLike, SPAN_STATUS_ERROR, startInactiveSpan, stringify } from '@sentry/core';
 import {
   GEN_AI_EMBEDDINGS_INPUT,
+  GEN_AI_INPUT_MESSAGES,
   GEN_AI_OPERATION_NAME,
+  GEN_AI_OUTPUT_MESSAGES,
   GEN_AI_PROVIDER_NAME,
   GEN_AI_REQUEST_MODEL,
   GEN_AI_RESPONSE_ID,
@@ -11,7 +13,12 @@ import {
 } from '@sentry/conventions/attributes';
 import type { OrchestrionChannelContext } from '../../orchestrion/types';
 import type { GenAiOptions } from '../core/utils';
-import { getGenAiSpanOp, resolveAIRecordingOptions } from '../core/utils';
+import {
+  getEvaluationInputMessages,
+  getEvaluationOutputMessages,
+  getGenAiSpanOp,
+  resolveAIRecordingOptions,
+} from '../core/utils';
 import { TANSTACK_AI_ORIGIN } from './constants';
 import { usageAttributes } from './utils';
 
@@ -32,6 +39,8 @@ export interface TanstackAiGenerationActivity {
    * after the provider answered, e.g. for a rerank index out of range, because the provider bills that call too.
    */
   responseAttributes: (adapterResult: Record<string, unknown>) => SpanAttributes;
+  /** Attributes from the value that the call resolves to, recorded only when outputs are recorded. */
+  outputAttributes?: (result: Record<string, unknown>) => SpanAttributes;
 }
 
 export const TANSTACK_AI_EMBED: TanstackAiGenerationActivity = {
@@ -57,6 +66,19 @@ export const TANSTACK_AI_RERANK: TanstackAiGenerationActivity = {
       model,
       usage: isObjectLike(usage) ? { ...usage, promptTokens: undefined, completionTokens: undefined } : usage,
     }),
+};
+
+export const TANSTACK_AI_DECIDE: TanstackAiGenerationActivity = {
+  operation: 'decide',
+  adapterMethod: 'evaluate',
+  requestAttributes: ({ state, questions }) => ({
+    [GEN_AI_INPUT_MESSAGES]: getEvaluationInputMessages({ state, questions }),
+  }),
+  responseAttributes: responseMetadataAttributes,
+  // `decide()` resolves to the answers keyed by question name, plus `meta` with the model, the usage and the id.
+  outputAttributes: ({ meta: _meta, ...answers }) => ({
+    [GEN_AI_OUTPUT_MESSAGES]: getEvaluationOutputMessages(answers),
+  }),
 };
 
 /** Start the span of an activity call, or return `undefined` for options that are not a call's options. */
@@ -98,10 +120,22 @@ export function setGenerationResponseAttributes(
   }
 }
 
-/** Record what the error that a call threw tells. */
-export function setGenerationEndAttributes(span: Span, call: OrchestrionChannelContext): void {
+/** Record the value that a call resolved to, or what the error that it threw tells. */
+export function setGenerationEndAttributes(
+  span: Span,
+  activity: TanstackAiGenerationActivity,
+  call: OrchestrionChannelContext,
+  options: GenAiOptions,
+): void {
   if ('result' in call) {
+    if (activity.outputAttributes && isObjectLike(call.result) && resolveAIRecordingOptions(options).recordOutputs) {
+      span.setAttributes(activity.outputAttributes(call.result));
+    }
     return;
+  }
+  if (isObjectLike(call.error) && call.error.name === 'EvaluateError') {
+    // A refused `decide()` is still billed. TanStack AI puts the usage and the model on the error.
+    setGenerationResponseAttributes(span, activity, call.error);
   }
   // As for `chat()`, a call that the app aborted counts as cancelled.
   const [callOptions] = call.arguments;

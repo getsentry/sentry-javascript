@@ -501,4 +501,92 @@ describe('TanStack AI integration', () => {
     },
     TANSTACK_AI_DEPENDENCIES,
   );
+
+  createEsmAndCjsTests(
+    __dirname,
+    'scenario-decide.mjs',
+    'instrument.mjs',
+    (createRunner, test, mode) => {
+      if (mode === 'cjs') {
+        return;
+      }
+
+      test('records decide spans with the questions, the answers and the usage, with the provider request under them', async () => {
+        await createRunner()
+          .expect({
+            span: container => {
+              const spans = container.items;
+              const main = spans.find(span => span.name === 'main')!;
+              const refused = spans.find(span => span.name === 'refused')!;
+              const direct = spans.find(span => span.name === 'direct')!;
+              const decisions = spans.filter(span => attr(span, 'sentry.op') === 'gen_ai.decide');
+              // The OpenAI integration is skipped for TanStack's calls, but not for the direct call after them.
+              expect(decisions.map(span => attr(span, 'sentry.origin')).sort()).toEqual([
+                'auto.ai.openai',
+                ORIGIN,
+                ORIGIN,
+              ]);
+              const decision = decisions.find(span => span.parent_span_id === main.span_id)!;
+              const refusal = decisions.find(span => span.parent_span_id === refused.span_id)!;
+              const directDecision = decisions.find(span => span.parent_span_id === direct.span_id)!;
+              expect(attr(directDecision, 'sentry.origin')).toBe('auto.ai.openai');
+              expect(decision.name).toBe('decide gpt-6-luna');
+              expect(decision.status).toBe('ok');
+              expect(attr(decision, 'sentry.origin')).toBe(ORIGIN);
+              expect(attr(decision, GEN_AI_OPERATION_NAME)).toBe('decide');
+              expect(attr(decision, GEN_AI_PROVIDER_NAME)).toBe('openai');
+              expect(attr(decision, GEN_AI_REQUEST_MODEL)).toBe('gpt-6-luna');
+              expect(attr(decision, GEN_AI_RESPONSE_MODEL)).toBe('gpt-6-luna-2026-09-01');
+              expect(attr(decision, GEN_AI_USAGE_INPUT_TOKENS)).toBe(30);
+              expect(attr(decision, GEN_AI_USAGE_OUTPUT_TOKENS)).toBe(4);
+              expect(attr(decision, GEN_AI_USAGE_TOTAL_TOKENS)).toBe(34);
+              expect(JSON.parse(String(attr(decision, GEN_AI_INPUT_MESSAGES)))).toEqual([
+                {
+                  type: 'evaluation',
+                  state: 'I was charged twice for my subscription.',
+                  questions: {
+                    queue: {
+                      type: 'choice',
+                      instructions: 'Which team handles this ticket?',
+                      criteria: { billing: null, tech: null },
+                    },
+                    refund: { type: 'noul', instructions: 'Does the customer ask for a refund?' },
+                  },
+                },
+              ]);
+              expect(JSON.parse(String(attr(decision, GEN_AI_OUTPUT_MESSAGES)))).toEqual([
+                {
+                  type: 'evaluation',
+                  answers: {
+                    queue: {
+                      type: 'choice',
+                      value: 'billing',
+                      probability: 0.9,
+                      confidence: 0.85,
+                      probabilities: { billing: 0.9, tech: 0.1 },
+                    },
+                    refund: { type: 'boolean', value: true, probability: 0.8 },
+                  },
+                },
+              ]);
+
+              // A refused call fails, but is still billed.
+              expect(refusal.status).toBe('error');
+              expect(attr(refusal, 'sentry.origin')).toBe(ORIGIN);
+              expect(attr(refusal, GEN_AI_RESPONSE_MODEL)).toBe('gpt-6-luna-2026-09-01');
+              expect(attr(refusal, GEN_AI_USAGE_INPUT_TOKENS)).toBe(30);
+              expect(attr(refusal, GEN_AI_USAGE_OUTPUT_TOKENS)).toBe(4);
+
+              const requests = spans.filter(span => attr(span, 'sentry.op') === 'http.client');
+              expect(requests.map(span => span.parent_span_id).sort()).toEqual(
+                [decision.span_id, refusal.span_id, directDecision.span_id].sort(),
+              );
+            },
+          })
+          .start()
+          .completed();
+      });
+    },
+    TANSTACK_AI_DEPENDENCIES,
+  );
 });

@@ -9,6 +9,7 @@ import {
   setGenerationEndAttributes,
   setGenerationResponseAttributes,
   startGenerationSpan,
+  TANSTACK_AI_DECIDE,
   TANSTACK_AI_EMBED,
   TANSTACK_AI_RERANK,
 } from '../ai/tanstack-ai/generation';
@@ -22,6 +23,7 @@ import { bindTracingChannelToSpan, safeChannelCallback } from '../tracing-channe
 const GENERATION_ACTIVITIES: Array<[channel: string, activity: TanstackAiGenerationActivity]> = [
   [CHANNELS.TANSTACK_AI_EMBED, TANSTACK_AI_EMBED],
   [CHANNELS.TANSTACK_AI_RERANK, TANSTACK_AI_RERANK],
+  [CHANNELS.TANSTACK_AI_DECIDE, TANSTACK_AI_DECIDE],
 ];
 
 const _tanstackAiIntegration = ((options: TanstackAiOptions = {}) => {
@@ -89,7 +91,7 @@ function instrumentGenerationActivities(options: TanstackAiOptions): void {
         }
         return span;
       },
-      { beforeSpanEnd: (span, data) => setGenerationEndAttributes(span, data) },
+      { beforeSpanEnd: (span, data) => setGenerationEndAttributes(span, activity, data, options) },
     );
   }
 }
