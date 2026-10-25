@@ -430,10 +430,19 @@ function wrapDefaultExport(node: ExportDefaultNode, ctx: TransformContext, state
  * sit between `export`, `default` and the expression, and may themselves contain the word `default`.
  */
 function exportDefaultKeywordsEnd(source: string, start: number): number {
-  const keywords = /export(?:\s|\/\/[^\n]*|\/\*[\s\S]*?\*\/)*default/y;
-  keywords.lastIndex = start;
-  keywords.exec(source);
-  return keywords.lastIndex;
+  let index = start + 'export'.length;
+  while (index < source.length && !source.startsWith('default', index)) {
+    if (source.startsWith('//', index)) {
+      const lineEnd = source.indexOf('\n', index);
+      index = lineEnd === -1 ? source.length : lineEnd;
+    } else if (source.startsWith('/*', index)) {
+      const commentEnd = source.indexOf('*/', index + 2);
+      index = commentEnd === -1 ? source.length : commentEnd + 2;
+    } else {
+      index++;
+    }
+  }
+  return index + 'default'.length;
 }
 
 function isAnonymousFunctionOrClass(node: BaseNode): boolean {
