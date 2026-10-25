@@ -2,6 +2,7 @@ import type { Span } from '@sentry/core';
 import {
   _INTERNAL_withAiProviderWrappingSkipped,
   isObjectLike,
+  isThenable,
   SPAN_STATUS_ERROR,
   startInactiveSpan,
   stringify,
@@ -74,8 +75,13 @@ type AdapterMethod = (...args: unknown[]) => unknown;
 /**
  * The adapter, with the Sentry integrations of the vendor SDKs skipped during its calls, as our spans record
  * them. A direct call to the same SDK elsewhere in the app still gets its span.
+ *
+ * `onResult.callback` gets the value that the adapter method named `onResult.method` resolves to.
  */
-export function skipProviderIntegrations<T>(adapter: T): T {
+export function skipProviderIntegrations<T>(
+  adapter: T,
+  onResult?: { method: string; callback: (result: unknown) => void },
+): T {
   if (!isObjectLike(adapter)) {
     return adapter;
   }
@@ -99,11 +105,20 @@ export function skipProviderIntegrations<T>(adapter: T): T {
       if (known) {
         return known;
       }
+      const callback = property === onResult?.method ? onResult.callback : undefined;
       const wrapped: AdapterMethod = (...args) => {
         const result: unknown = skipped(() => value.apply(target, args));
         // A text adapter returns an async generator, whose body runs on each `next()` in the async
         // context of the caller, which for a streamed `chat()` is the app's code.
-        return isAsyncIterable(result) ? skipDuringIteration(result, skipped) : result;
+        if (isAsyncIterable(result)) {
+          return skipDuringIteration(result, skipped);
+        }
+        return callback && isThenable(result)
+          ? result.then(resolved => {
+              callback(resolved);
+              return resolved;
+            })
+          : result;
       };
       wrappedMethods.set(value as AdapterMethod, wrapped);
       return wrapped;

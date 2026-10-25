@@ -11,10 +11,18 @@ export const tanstackAiConfig = [
     module: { name: '@tanstack/ai', versionRange: '>=1.0.0 <2.0.0', filePath: 'dist/esm/activities/chat/index.js' },
     functionQuery: { functionName: 'chat', kind: 'Sync' },
   },
+  // The other activities take observe-only middleware that never sees the input or the result, so we
+  // trace the call itself.
+  {
+    channelName: 'embed',
+    module: { name: '@tanstack/ai', versionRange: '>=1.0.0 <2.0.0', filePath: 'dist/esm/activities/embed/index.js' },
+    functionQuery: { functionName: 'embed', kind: 'Async' },
+  },
 ] satisfies InstrumentationConfig[];
 
 export const tanstackAiModuleNames = getModuleNames(tanstackAiConfig);
 
 export const tanstackAiChannels = {
   TANSTACK_AI_CHAT: 'orchestrion:@tanstack/ai:chat',
+  TANSTACK_AI_EMBED: 'orchestrion:@tanstack/ai:embed',
 } as const;

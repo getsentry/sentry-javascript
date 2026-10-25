@@ -1,6 +1,8 @@
 import {
   GEN_AI_CONVERSATION_ID,
+  GEN_AI_EMBEDDINGS_INPUT,
   GEN_AI_INPUT_MESSAGES,
+  GEN_AI_OPERATION_NAME,
   GEN_AI_OUTPUT_MESSAGES,
   GEN_AI_PROVIDER_NAME,
   GEN_AI_REQUEST_MODEL,
@@ -390,6 +392,54 @@ describe('TanStack AI integration', () => {
               expect(agent?.status).toBe('error');
               expect(chat?.status).toBe('error');
               expect(chat?.parent_span_id).toBe(agent?.span_id);
+            },
+          })
+          .start()
+          .completed();
+      });
+    },
+    TANSTACK_AI_DEPENDENCIES,
+  );
+
+  createEsmAndCjsTests(
+    __dirname,
+    'scenario-embed.mjs',
+    'instrument.mjs',
+    (createRunner, test, mode) => {
+      if (mode === 'cjs') {
+        return;
+      }
+
+      test('records an embeddings span, with the provider request under it', async () => {
+        await createRunner()
+          .expect({
+            span: container => {
+              const spans = container.items;
+              const main = spans.find(span => span.name === 'main')!;
+              const direct = spans.find(span => span.name === 'direct')!;
+              const embeddings = spans.filter(span => attr(span, 'sentry.op') === 'gen_ai.embeddings');
+              // The OpenAI integration is skipped for TanStack's call, but not for the direct call after it.
+              expect(embeddings.map(span => attr(span, 'sentry.origin')).sort()).toEqual(['auto.ai.openai', ORIGIN]);
+              const embedding = embeddings.find(span => attr(span, 'sentry.origin') === ORIGIN)!;
+              const directEmbedding = embeddings.find(span => attr(span, 'sentry.origin') === 'auto.ai.openai')!;
+              expect(directEmbedding.parent_span_id).toBe(direct.span_id);
+              expect(embedding.name).toBe('embeddings text-embedding-3-small');
+              expect(embedding.parent_span_id).toBe(main.span_id);
+              expect(embedding.status).toBe('ok');
+              expect(attr(embedding, 'sentry.origin')).toBe(ORIGIN);
+              expect(attr(embedding, GEN_AI_OPERATION_NAME)).toBe('embeddings');
+              expect(attr(embedding, GEN_AI_PROVIDER_NAME)).toBe('openai');
+              expect(attr(embedding, GEN_AI_REQUEST_MODEL)).toBe('text-embedding-3-small');
+              expect(attr(embedding, GEN_AI_RESPONSE_MODEL)).toBe('text-embedding-3-small');
+              expect(attr(embedding, GEN_AI_EMBEDDINGS_INPUT)).toBe('["a red guitar","a blue drum kit"]');
+              expect(attr(embedding, GEN_AI_USAGE_INPUT_TOKENS)).toBe(8);
+              expect(attr(embedding, GEN_AI_USAGE_TOTAL_TOKENS)).toBe(8);
+              expect(attr(embedding, GEN_AI_USAGE_OUTPUT_TOKENS)).toBeUndefined();
+
+              const requests = spans.filter(span => attr(span, 'sentry.op') === 'http.client');
+              expect(requests.map(span => span.parent_span_id).sort()).toEqual(
+                [embedding.span_id, directEmbedding.span_id].sort(),
+              );
             },
           })
           .start()

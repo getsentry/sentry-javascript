@@ -4,12 +4,23 @@ import { defineIntegration, isObjectLike } from '@sentry/core';
 import type { TanstackAiOptions } from '../ai/tanstack-ai';
 import { createTanstackAiMiddleware } from '../ai/tanstack-ai';
 import { TANSTACK_AI_INTEGRATION_NAME, TANSTACK_AI_MIDDLEWARE_BRAND } from '../ai/tanstack-ai/constants';
+import type { TanstackAiGenerationActivity } from '../ai/tanstack-ai/generation';
+import {
+  setGenerationEndAttributes,
+  setGenerationResponseAttributes,
+  startGenerationSpan,
+  TANSTACK_AI_EMBED,
+} from '../ai/tanstack-ai/generation';
 import { skipProviderIntegrations } from '../ai/tanstack-ai/utils';
 import { CHANNELS } from '../orchestrion/channels';
 import { tanstackAiModuleNames } from '../orchestrion/config/tanstack-ai';
 import { invokeOrchestrionInstrumentation } from '../orchestrion/instrumentation';
 import type { OrchestrionChannelContext } from '../orchestrion/types';
-import { safeChannelCallback } from '../tracing-channel';
+import { bindTracingChannelToSpan, safeChannelCallback } from '../tracing-channel';
+
+const GENERATION_ACTIVITIES: Array<[channel: string, activity: TanstackAiGenerationActivity]> = [
+  [CHANNELS.TANSTACK_AI_EMBED, TANSTACK_AI_EMBED],
+];
 
 const _tanstackAiIntegration = ((options: TanstackAiOptions = {}) => {
   return {
@@ -19,6 +30,8 @@ const _tanstackAiIntegration = ((options: TanstackAiOptions = {}) => {
       invokeOrchestrionInstrumentation(client, tanstackAiModuleNames, injectMiddleware, [options], {
         requiresTracingChannelBinding: false,
       });
+      // The other activities open their own spans via `bindTracingChannelToSpan`, which needs the binding.
+      invokeOrchestrionInstrumentation(client, tanstackAiModuleNames, instrumentGenerationActivities, [options]);
     },
   };
 }) satisfies IntegrationFn;
@@ -51,6 +64,32 @@ function injectMiddleware(options: TanstackAiOptions): void {
       };
     });
   });
+}
+
+/** Record a span for each call of the activities other than `chat()`, active while the call runs. */
+function instrumentGenerationActivities(options: TanstackAiOptions): void {
+  for (const [channel, activity] of GENERATION_ACTIVITIES) {
+    bindTracingChannelToSpan(
+      diagnosticsChannel.tracingChannel<OrchestrionChannelContext>(channel),
+      data => {
+        const callOptions = data.arguments[0];
+        const span = startGenerationSpan(activity, callOptions, options);
+        // Only a call that our span records skips the integrations of the vendor SDKs.
+        if (span && isObjectLike(callOptions)) {
+          data.arguments[0] = {
+            ...callOptions,
+            adapter: skipProviderIntegrations(callOptions.adapter, {
+              method: activity.adapterMethod,
+              callback: adapterResult =>
+                safeChannelCallback(() => setGenerationResponseAttributes(span, activity, adapterResult)),
+            }),
+          };
+        }
+        return span;
+      },
+      { beforeSpanEnd: (span, data) => setGenerationEndAttributes(span, data) },
+    );
+  }
 }
 
 export const tanstackAiIntegration = defineIntegration(_tanstackAiIntegration);
