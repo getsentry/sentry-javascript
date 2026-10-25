@@ -448,6 +448,12 @@ describe('MCP Server Capture Policy', () => {
         { mcp: { inputs: true }, genAI: { inputs: false, outputs: false } },
         { inputs: true, outputs: false },
       ],
+      ["records nothing with defaults: 'off'", { defaults: 'off' }, { inputs: false, outputs: false }],
+      [
+        "falls back to genAI with defaults: 'off'",
+        { defaults: 'off', genAI: { inputs: true } },
+        { inputs: true, outputs: false },
+      ],
     ])('%s', async (_, dataCollection, expected) => {
       const sessionId = `data-collection-${JSON.stringify(dataCollection)}`;
       const transport = await connectWrappedServer(sessionId);

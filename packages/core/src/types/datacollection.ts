@@ -21,9 +21,21 @@ export interface HttpHeadersCollection {
 /**
  * Controls what data the SDK collects and sends to Sentry.
  *
- * All fields are optional. Omitted fields use the documented defaults.
+ * All fields are optional. Omitted fields use the documented defaults, or collect nothing when `defaults` is `'off'`.
  */
 export interface DataCollection {
+  /**
+   * The value used for every field that is not set.
+   *
+   * - `'on'`: Unset fields use their documented defaults.
+   * - `'off'`: Unset fields collect nothing. This also applies to fields added in future releases, so
+   *   only the data you turn on explicitly is collected.
+   *
+   * With `'off'`, MCP content still follows `genAI` when `mcp` is not set.
+   * @default 'on'
+   */
+  defaults?: 'on' | 'off';
+
   /**
    * Automatically populate `user.*` fields from instrumentation sources.
    * @default true
@@ -143,7 +155,7 @@ export interface DataCollection {
 /**
  * Fully resolved `DataCollection` with all defaults applied.
  */
-export type ResolvedDataCollection = Required<Omit<DataCollection, 'httpHeaders'>> & {
+export type ResolvedDataCollection = Required<Omit<DataCollection, 'httpHeaders' | 'defaults'>> & {
   httpHeaders: Required<HttpHeadersCollection>;
   graphQL: Required<NonNullable<DataCollection['graphQL']>>;
   genAI: Required<NonNullable<DataCollection['genAI']>>;

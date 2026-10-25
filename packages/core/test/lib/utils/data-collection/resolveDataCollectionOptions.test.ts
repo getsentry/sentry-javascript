@@ -224,6 +224,56 @@ describe('resolveDataCollectionOptions', () => {
     });
   });
 
+  describe('defaults', () => {
+    const ALL_OFF = {
+      userInfo: false,
+      cookies: false,
+      httpHeaders: { request: false, response: false },
+      httpBodies: [],
+      urlQueryParams: false,
+      graphQL: { document: false, variables: false },
+      genAI: { inputs: false, outputs: false },
+      mcp: { inputs: false, outputs: false },
+      databaseQueryData: false,
+      queues: false,
+      stackFrameVariables: false,
+      frameContextLines: 0,
+    };
+
+    it('turns off every field that is not set', () => {
+      expect(resolveDataCollectionOptions({ dataCollection: { defaults: 'off' } })).toEqual(ALL_OFF);
+    });
+
+    it('keeps fields that are set explicitly', () => {
+      const result = resolveDataCollectionOptions({
+        dataCollection: {
+          defaults: 'off',
+          genAI: { inputs: true },
+          urlQueryParams: { deny: ['token'] },
+          frameContextLines: 7,
+        },
+      });
+
+      expect(result).toEqual({
+        ...ALL_OFF,
+        genAI: { inputs: true, outputs: false },
+        urlQueryParams: { deny: ['token'] },
+        frameContextLines: 7,
+      });
+    });
+
+    it('turns off the unset httpHeaders direction', () => {
+      expect(
+        resolveDataCollectionOptions({ dataCollection: { defaults: 'off', httpHeaders: { request: true } } })
+          .httpHeaders,
+      ).toEqual({ request: true, response: false });
+    });
+
+    it("uses spec defaults with defaults: 'on'", () => {
+      expect(resolveDataCollectionOptions({ dataCollection: { defaults: 'on' } })).toEqual(SPEC_DEFAULTS);
+    });
+  });
+
   describe('return type completeness', () => {
     it('always returns all fields', () => {
       const result = resolveDataCollectionOptions({});

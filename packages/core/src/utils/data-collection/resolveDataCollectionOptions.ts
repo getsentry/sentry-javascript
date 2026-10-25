@@ -20,13 +20,31 @@ const DEFAULTS: ResolvedDataCollection = {
   frameContextLines: 5,
 };
 
+const OFF: ResolvedDataCollection = {
+  userInfo: false,
+  cookies: false,
+  httpHeaders: { request: false, response: false },
+  httpBodies: [],
+  urlQueryParams: false,
+  graphQL: { document: false, variables: false },
+  genAI: { inputs: false, outputs: false },
+  mcp: { inputs: false, outputs: false },
+  databaseQueryData: false,
+  queues: false,
+  stackFrameVariables: false,
+  frameContextLines: 0,
+};
+
 function isCollectBehavior(value: CollectBehavior | HttpHeadersCollection): value is CollectBehavior {
   return typeof value === 'boolean' || 'allow' in value || 'deny' in value;
 }
 
-function resolveHttpHeaders(httpHeaders: DataCollection['httpHeaders']): ResolvedDataCollection['httpHeaders'] {
+function resolveHttpHeaders(
+  httpHeaders: DataCollection['httpHeaders'],
+  base: ResolvedDataCollection,
+): ResolvedDataCollection['httpHeaders'] {
   if (httpHeaders === undefined) {
-    return { ...DEFAULTS.httpHeaders };
+    return { ...base.httpHeaders };
   }
 
   if (isCollectBehavior(httpHeaders)) {
@@ -34,8 +52,8 @@ function resolveHttpHeaders(httpHeaders: DataCollection['httpHeaders']): Resolve
   }
 
   return {
-    request: httpHeaders.request ?? DEFAULTS.httpHeaders.request,
-    response: httpHeaders.response ?? DEFAULTS.httpHeaders.response,
+    request: httpHeaders.request ?? base.httpHeaders.request,
+    response: httpHeaders.response ?? base.httpHeaders.response,
   };
 }
 
@@ -43,33 +61,34 @@ function resolveHttpHeaders(httpHeaders: DataCollection['httpHeaders']): Resolve
  * Resolves the effective `DataCollection` configuration from client options.
  *
  * Precedence:
- * 1. Spec defaults
+ * 1. Spec defaults, or all collection turned off when `dataCollection.defaults` is `'off'`
  * 2. Fields explicitly set in `dataCollection`
  */
 export function resolveDataCollectionOptions(options: { dataCollection?: DataCollection }): ResolvedDataCollection {
   const dc = options.dataCollection ?? {};
+  const base = dc.defaults === 'off' ? OFF : DEFAULTS;
 
   return {
-    userInfo: dc.userInfo ?? DEFAULTS.userInfo,
-    cookies: dc.cookies ?? DEFAULTS.cookies,
-    httpHeaders: resolveHttpHeaders(dc.httpHeaders),
-    httpBodies: dc.httpBodies ?? DEFAULTS.httpBodies,
-    urlQueryParams: dc.urlQueryParams ?? DEFAULTS.urlQueryParams,
+    userInfo: dc.userInfo ?? base.userInfo,
+    cookies: dc.cookies ?? base.cookies,
+    httpHeaders: resolveHttpHeaders(dc.httpHeaders, base),
+    httpBodies: dc.httpBodies ?? base.httpBodies,
+    urlQueryParams: dc.urlQueryParams ?? base.urlQueryParams,
     graphQL: {
-      document: dc.graphQL?.document ?? DEFAULTS.graphQL.document,
-      variables: dc.graphQL?.variables ?? DEFAULTS.graphQL.variables,
+      document: dc.graphQL?.document ?? base.graphQL.document,
+      variables: dc.graphQL?.variables ?? base.graphQL.variables,
     },
     genAI: {
-      inputs: dc.genAI?.inputs ?? DEFAULTS.genAI.inputs,
-      outputs: dc.genAI?.outputs ?? DEFAULTS.genAI.outputs,
+      inputs: dc.genAI?.inputs ?? base.genAI.inputs,
+      outputs: dc.genAI?.outputs ?? base.genAI.outputs,
     },
     mcp: {
-      inputs: dc.mcp?.inputs ?? DEFAULTS.mcp.inputs,
-      outputs: dc.mcp?.outputs ?? DEFAULTS.mcp.outputs,
+      inputs: dc.mcp?.inputs ?? base.mcp.inputs,
+      outputs: dc.mcp?.outputs ?? base.mcp.outputs,
     },
-    databaseQueryData: dc.databaseQueryData ?? DEFAULTS.databaseQueryData,
-    queues: dc.queues ?? DEFAULTS.queues,
-    stackFrameVariables: dc.stackFrameVariables ?? DEFAULTS.stackFrameVariables,
-    frameContextLines: dc.frameContextLines ?? DEFAULTS.frameContextLines,
+    databaseQueryData: dc.databaseQueryData ?? base.databaseQueryData,
+    queues: dc.queues ?? base.queues,
+    stackFrameVariables: dc.stackFrameVariables ?? base.stackFrameVariables,
+    frameContextLines: dc.frameContextLines ?? base.frameContextLines,
   };
 }

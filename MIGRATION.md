@@ -209,27 +209,22 @@ Sentry.init({});
 
 #### If you want to keep the v10 default behavior
 
-Set the baseline explicitly. **Don't leave `dataCollection` unset** — that now enables broader collection.
+Set `defaults: 'off'` and turn on only what v10 collected. **Don't leave `dataCollection` unset** — that now enables broader collection.
 
 ```js
 // v11 — preserves the v10 default
 Sentry.init({
   dataCollection: {
-    userInfo: false,
-    cookies: false,
-    httpHeaders: {
-      request: { deny: ['forwarded', '-ip', 'remote-', 'via', '-user'] },
-      response: { deny: ['forwarded', '-ip', 'remote-', 'via', '-user'] },
-    },
-    httpBodies: [],
+    defaults: 'off',
+    httpHeaders: { deny: ['forwarded', '-ip', 'remote-', 'via', '-user'] },
     urlQueryParams: { deny: ['forwarded', '-ip', 'remote-', 'via', '-user'] },
-    genAI: { inputs: false, outputs: false },
-    databaseQueryData: false,
-    queues: false,
-    graphQL: { document: false, variables: false },
+    stackFrameVariables: true,
+    frameContextLines: 7,
   },
 });
 ```
+
+With `defaults: 'off'`, every field you don't set collects nothing. This includes fields added in later minor releases, so upgrading never starts collecting new data on its own.
 
 Each key-value field (`cookies`, `urlQueryParams`, `httpHeaders.request`, `httpHeaders.response`) accepts
 `true`, `false`, `{ allow: string[] }`, or `{ deny: string[] }` for fine-grained control.
