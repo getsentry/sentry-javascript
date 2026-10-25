@@ -10,6 +10,7 @@ import {
   setGenerationResponseAttributes,
   startGenerationSpan,
   TANSTACK_AI_EMBED,
+  TANSTACK_AI_RERANK,
 } from '../ai/tanstack-ai/generation';
 import { skipProviderIntegrations } from '../ai/tanstack-ai/utils';
 import { CHANNELS } from '../orchestrion/channels';
@@ -20,6 +21,7 @@ import { bindTracingChannelToSpan, safeChannelCallback } from '../tracing-channe
 
 const GENERATION_ACTIVITIES: Array<[channel: string, activity: TanstackAiGenerationActivity]> = [
   [CHANNELS.TANSTACK_AI_EMBED, TANSTACK_AI_EMBED],
+  [CHANNELS.TANSTACK_AI_RERANK, TANSTACK_AI_RERANK],
 ];
 
 const _tanstackAiIntegration = ((options: TanstackAiOptions = {}) => {

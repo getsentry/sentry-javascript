@@ -5,6 +5,7 @@ import {
   setGenerationResponseAttributes,
   startGenerationSpan,
   TANSTACK_AI_EMBED,
+  TANSTACK_AI_RERANK,
 } from '../../../../src/ai/tanstack-ai/generation';
 import { getDefaultTestClientOptions, TestClient } from '../../../mocks/client';
 
@@ -125,6 +126,37 @@ describe('TanStack AI activities', () => {
         'gen_ai.cost.total_tokens': 0.0001,
       });
       expect(data).not.toHaveProperty('gen_ai.response.id');
+      expect(data).not.toHaveProperty('gen_ai.usage.output_tokens');
+    });
+  });
+
+  describe('rerank', () => {
+    it('records the total tokens and provider cost, but not the id and the input and output tokens that the adapter made', () => {
+      const span = startGenerationSpan(
+        TANSTACK_AI_RERANK,
+        { adapter: { name: 'openrouter', model: 'cohere/rerank-v3.5' }, query: 'travel laptop', documents: ['a', 'b'] },
+        {},
+      )!;
+      setGenerationResponseAttributes(span, TANSTACK_AI_RERANK, {
+        id: 'rerank-1792850464143-k3j9x2a',
+        ranking: [{ index: 1, score: 0.9 }],
+        usage: { promptTokens: 0, completionTokens: 0, totalTokens: 12, cost: 0.002 },
+      });
+
+      expect(spanToStaticSpanJSON(span)).toMatchObject({
+        description: 'rerank cohere/rerank-v3.5',
+        op: 'gen_ai.rerank',
+        data: {
+          'gen_ai.operation.name': 'rerank',
+          'gen_ai.provider.name': 'openrouter',
+          'gen_ai.request.model': 'cohere/rerank-v3.5',
+          'gen_ai.usage.total_tokens': 12,
+          'gen_ai.cost.total_tokens': 0.002,
+        },
+      });
+      const { data } = spanToStaticSpanJSON(span);
+      expect(data).not.toHaveProperty('gen_ai.response.id');
+      expect(data).not.toHaveProperty('gen_ai.usage.input_tokens');
       expect(data).not.toHaveProperty('gen_ai.usage.output_tokens');
     });
   });

@@ -1,5 +1,6 @@
 import {
   GEN_AI_CONVERSATION_ID,
+  GEN_AI_COST_TOTAL_TOKENS,
   GEN_AI_EMBEDDINGS_INPUT,
   GEN_AI_INPUT_MESSAGES,
   GEN_AI_OPERATION_NAME,
@@ -30,6 +31,7 @@ const TANSTACK_AI_DEPENDENCIES = {
   additionalDependencies: {
     '@tanstack/ai': '1.0.0',
     '@tanstack/ai-openai': '1.0.0',
+    '@tanstack/ai-openrouter': '1.0.0',
     // In the range of `@tanstack/ai-openai`, so that the scenarios and the adapter share one copy.
     openai: '7.32.0',
   },
@@ -439,6 +441,57 @@ describe('TanStack AI integration', () => {
               const requests = spans.filter(span => attr(span, 'sentry.op') === 'http.client');
               expect(requests.map(span => span.parent_span_id).sort()).toEqual(
                 [embedding.span_id, directEmbedding.span_id].sort(),
+              );
+            },
+          })
+          .start()
+          .completed();
+      });
+    },
+    TANSTACK_AI_DEPENDENCIES,
+  );
+
+  createEsmAndCjsTests(
+    __dirname,
+    'scenario-rerank.mjs',
+    'instrument.mjs',
+    (createRunner, test, mode) => {
+      if (mode === 'cjs') {
+        return;
+      }
+
+      test('records rerank spans with the usage, with the provider request under them', async () => {
+        await createRunner()
+          .expect({
+            span: container => {
+              const spans = container.items;
+              const main = spans.find(span => span.name === 'main')!;
+              const failed = spans.find(span => span.name === 'failed')!;
+              const reranks = spans.filter(span => attr(span, 'sentry.op') === 'gen_ai.rerank');
+              expect(reranks).toHaveLength(2);
+              const rerank = reranks.find(span => span.parent_span_id === main.span_id)!;
+              expect(rerank.name).toBe('rerank cohere/rerank-v3.5');
+              expect(rerank.status).toBe('ok');
+              expect(attr(rerank, 'sentry.origin')).toBe(ORIGIN);
+              expect(attr(rerank, GEN_AI_OPERATION_NAME)).toBe('rerank');
+              expect(attr(rerank, GEN_AI_PROVIDER_NAME)).toBe('openrouter');
+              expect(attr(rerank, GEN_AI_REQUEST_MODEL)).toBe('cohere/rerank-v3.5');
+              // The adapter reports no model, and makes the id itself when the response has none.
+              expect(attr(rerank, GEN_AI_RESPONSE_MODEL)).toBeUndefined();
+              expect(attr(rerank, GEN_AI_RESPONSE_ID)).toBeUndefined();
+              expect(attr(rerank, GEN_AI_USAGE_TOTAL_TOKENS)).toBe(12);
+              expect(attr(rerank, GEN_AI_USAGE_INPUT_TOKENS)).toBeUndefined();
+              expect(attr(rerank, GEN_AI_COST_TOTAL_TOKENS)).toBe(0.002);
+
+              // `rerank()` throws after the provider answered, and the provider bills the call.
+              const failedRerank = reranks.find(span => span.parent_span_id === failed.span_id)!;
+              expect(failedRerank.status).toBe('error');
+              expect(attr(failedRerank, GEN_AI_USAGE_TOTAL_TOKENS)).toBe(12);
+              expect(attr(failedRerank, GEN_AI_COST_TOTAL_TOKENS)).toBe(0.002);
+
+              const requests = spans.filter(span => attr(span, 'sentry.op') === 'http.client');
+              expect(requests.map(span => span.parent_span_id).sort()).toEqual(
+                [rerank.span_id, failedRerank.span_id].sort(),
               );
             },
           })

@@ -5,6 +5,7 @@ import {
   GEN_AI_OPERATION_NAME,
   GEN_AI_PROVIDER_NAME,
   GEN_AI_REQUEST_MODEL,
+  GEN_AI_RESPONSE_ID,
   GEN_AI_RESPONSE_MODEL,
   SENTRY_ORIGIN,
 } from '@sentry/conventions/attributes';
@@ -28,7 +29,7 @@ export interface TanstackAiGenerationActivity {
   requestAttributes?: (options: Record<string, unknown>) => SpanAttributes;
   /**
    * Attributes from the value that the adapter method resolves to. They are recorded also when TanStack AI throws
-   * after the provider answered, because the provider bills that call too.
+   * after the provider answered, e.g. for a rerank index out of range, because the provider bills that call too.
    */
   responseAttributes: (adapterResult: Record<string, unknown>) => SpanAttributes;
 }
@@ -39,10 +40,23 @@ export const TANSTACK_AI_EMBED: TanstackAiGenerationActivity = {
   requestAttributes: ({ input }) => (input !== undefined ? { [GEN_AI_EMBEDDINGS_INPUT]: embeddingsInput(input) } : {}),
   // The adapters make `id` themselves, so it is not the provider's response id. An embedding has no output
   // tokens, but the OpenAI adapter reports 0.
-  responseAttributes: ({ model, usage }) => ({
-    ...(typeof model === 'string' ? { [GEN_AI_RESPONSE_MODEL]: model } : {}),
-    ...(isObjectLike(usage) ? usageAttributes({ ...usage, completionTokens: undefined }) : {}),
-  }),
+  responseAttributes: ({ model, usage }) =>
+    responseMetadataAttributes({
+      model,
+      usage: isObjectLike(usage) ? { ...usage, completionTokens: undefined } : usage,
+    }),
+};
+
+export const TANSTACK_AI_RERANK: TanstackAiGenerationActivity = {
+  operation: 'rerank',
+  adapterMethod: 'rerank',
+  // Rerank models bill search units. The OpenRouter adapter reports 0 input and output tokens, so only the
+  // total and the cost are real, and it makes `id` itself when the response has none.
+  responseAttributes: ({ model, usage }) =>
+    responseMetadataAttributes({
+      model,
+      usage: isObjectLike(usage) ? { ...usage, promptTokens: undefined, completionTokens: undefined } : usage,
+    }),
 };
 
 /** Start the span of an activity call, or return `undefined` for options that are not a call's options. */
@@ -94,6 +108,14 @@ export function setGenerationEndAttributes(span: Span, call: OrchestrionChannelC
   if (isObjectLike(callOptions) && (callOptions.abortSignal as AbortSignal | undefined)?.aborted) {
     span.setStatus({ code: SPAN_STATUS_ERROR, message: 'cancelled' });
   }
+}
+
+function responseMetadataAttributes({ id, model, usage }: Record<string, unknown>): SpanAttributes {
+  return {
+    ...(typeof id === 'string' ? { [GEN_AI_RESPONSE_ID]: id } : {}),
+    ...(typeof model === 'string' ? { [GEN_AI_RESPONSE_MODEL]: model } : {}),
+    ...(isObjectLike(usage) ? usageAttributes(usage) : {}),
+  };
 }
 
 /** An input item is a string, a content part, or an array of content parts. */
