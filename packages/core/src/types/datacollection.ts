@@ -30,8 +30,6 @@ export interface DataCollection {
    * - `'on'`: Unset fields use their documented defaults.
    * - `'off'`: Unset fields collect nothing. This also applies to fields added in future releases, so
    *   only the data you turn on explicitly is collected.
-   *
-   * With `'off'`, MCP content still follows `genAI` when `mcp` is not set.
    * @default 'on'
    */
   defaults?: 'on' | 'off';
