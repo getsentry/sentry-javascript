@@ -5,6 +5,7 @@ import {
   GEN_AI_PROVIDER_NAME,
   GEN_AI_REQUEST_MODEL,
   GEN_AI_RESPONSE_FINISH_REASONS,
+  GEN_AI_RESPONSE_ID,
   GEN_AI_RESPONSE_MODEL,
   GEN_AI_SYSTEM_INSTRUCTIONS,
   GEN_AI_TOOL_CALL_ARGUMENTS,
@@ -20,12 +21,15 @@ import {
 } from '@sentry/conventions/attributes';
 import type { SerializedStreamedSpan } from '@sentry/core';
 import { afterAll, describe, expect } from 'vitest';
+import { GEN_AI_TOOL_CALL_ID_ATTRIBUTE } from '../../../../../packages/server-utils/src/ai/core/gen-ai-attributes';
 import { cleanupChildProcesses, createEsmAndCjsTests } from '../../../utils/runner';
 
 const TANSTACK_AI_DEPENDENCIES = {
   additionalDependencies: {
     '@tanstack/ai': '1.0.0',
     '@tanstack/ai-openai': '1.0.0',
+    // In the range of `@tanstack/ai-openai`, so that the scenarios and the adapter share one copy.
+    openai: '7.32.0',
   },
 };
 
@@ -61,6 +65,7 @@ function expectAgentTree(spans: Spans): void {
     expect(chat.parent_span_id).toBe(agent.span_id);
   }
   expect(chats.map(chat => attr(chat, GEN_AI_RESPONSE_FINISH_REASONS))).toEqual(['["tool_calls"]', '["stop"]']);
+  expect(attr(agent, GEN_AI_RESPONSE_MODEL)).toBe('fake-model');
 
   // The fake caches per thread: the first call writes the whole prompt, the second reads the
   // repeated prefix back.
@@ -80,6 +85,9 @@ function expectAgentTree(spans: Spans): void {
 
   const tool = spans.find(span => span.name === 'execute_tool get_weather')!;
   expect(tool.status).toBe('ok');
+  // Each model call ends before the tool that it asked for runs.
+  expect(chats[0]!.end_timestamp).toBeLessThanOrEqual(tool.start_timestamp);
+  expect(tool.end_timestamp).toBeLessThanOrEqual(chats[1]!.start_timestamp);
   expect(attr(tool, 'sentry.op')).toBe('gen_ai.execute_tool');
   expect(attr(tool, GEN_AI_TOOL_NAME)).toBe('get_weather');
   expect(tool.parent_span_id).toBe(agent.span_id);
@@ -131,6 +139,7 @@ describe('TanStack AI integration', () => {
                   finish_reason: 'tool_calls',
                 },
               ]);
+              const toolCallId = JSON.parse(String(attr(chats[0], GEN_AI_OUTPUT_MESSAGES)))[0].parts[1].id;
               const secondInput = JSON.parse(String(attr(chats[1], GEN_AI_INPUT_MESSAGES)));
               expect(secondInput.map((message: { role: string }) => message.role)).toEqual([
                 'user',
@@ -138,7 +147,20 @@ describe('TanStack AI integration', () => {
                 'tool',
               ]);
 
+              // The agent span has the input of the run and the answer of its last model call.
+              const agent = container.items.find(span => span.name === 'invoke_agent');
+              expect(attr(agent, GEN_AI_INPUT_MESSAGES)).toBe(attr(chats[0], GEN_AI_INPUT_MESSAGES));
+              expect(attr(agent, GEN_AI_SYSTEM_INSTRUCTIONS)).toBe('You are a helpful assistant.');
+              expect(JSON.parse(String(attr(agent, GEN_AI_OUTPUT_MESSAGES)))).toEqual([
+                {
+                  role: 'assistant',
+                  parts: [{ type: 'text', content: 'It is 21 degrees in Vienna.' }],
+                  finish_reason: 'stop',
+                },
+              ]);
+
               const tool = container.items.find(span => span.name === 'execute_tool get_weather');
+              expect(attr(tool, GEN_AI_TOOL_CALL_ID_ATTRIBUTE)).toBe(toolCallId);
               expect(attr(tool, GEN_AI_TOOL_CALL_ARGUMENTS)).toBe('{"city":"Vienna"}');
               expect(attr(tool, GEN_AI_TOOL_CALL_RESULT)).toBe('{"city":"Vienna","temperature":21}');
             },
@@ -159,6 +181,20 @@ describe('TanStack AI integration', () => {
         await createRunner()
           .withEnv({ MIDDLEWARE: 'manual' })
           .expect({ span: container => expectAgentTree(container.items) })
+          .start()
+          .completed();
+      });
+
+      test('records the tool span when an earlier middleware changes the tool arguments', async () => {
+        await createRunner()
+          .withEnv({ MIDDLEWARE: 'transform-args' })
+          .expect({
+            span: container => {
+              expectAgentTree(container.items);
+              const tool = container.items.find(span => span.name === 'execute_tool get_weather');
+              expect(attr(tool, GEN_AI_TOOL_CALL_ARGUMENTS)).toBe('{"city":"Vienna","unit":"celsius"}');
+            },
+          })
           .start()
           .completed();
       });
@@ -212,23 +248,148 @@ describe('TanStack AI integration', () => {
           .expect({
             span: container => {
               const spans = container.items;
+              const direct = spans.find(span => span.name === 'direct')!;
               const chats = spans.filter(span => attr(span, 'sentry.op') === 'gen_ai.chat');
-              // Only ours: the OpenAI SDK integration is skipped for TanStack's model calls.
-              expect(chats).toHaveLength(1);
-              const chat = chats[0]!;
-              expect(attr(chat, 'sentry.origin')).toBe(ORIGIN);
+              // The OpenAI integration is skipped for TanStack's model call, but not for the direct call after it.
+              expect(chats.map(span => attr(span, 'sentry.origin')).sort()).toEqual(['auto.ai.openai', ORIGIN]);
+              const chat = chats.find(span => attr(span, 'sentry.origin') === ORIGIN)!;
+              const directChat = chats.find(span => attr(span, 'sentry.origin') === 'auto.ai.openai')!;
+              expect(directChat.parent_span_id).toBe(direct.span_id);
               // TanStack reports the adapter's name, which is per API, not the vendor.
               expect(attr(chat, GEN_AI_PROVIDER_NAME)).toBe('openai-chat');
               expect(attr(chat, GEN_AI_REQUEST_MODEL)).toBe('gpt-4o');
               expect(attr(chat, GEN_AI_RESPONSE_MODEL)).toBe('gpt-4o-2024-08-06');
+              expect(attr(chat, GEN_AI_RESPONSE_ID)).toBe('chatcmpl-1');
+              const agent = spans.find(span => attr(span, 'sentry.op') === 'gen_ai.invoke_agent');
+              expect(attr(agent, GEN_AI_RESPONSE_ID)).toBe('chatcmpl-1');
               expect(attr(chat, GEN_AI_USAGE_INPUT_TOKENS)).toBe(20);
               expect(attr(chat, GEN_AI_USAGE_OUTPUT_TOKENS)).toBe(5);
               expect(attr(chat, GEN_AI_USAGE_TOTAL_TOKENS)).toBe(25);
               expect(attr(chat, GEN_AI_USAGE_CACHE_READ_INPUT_TOKENS)).toBe(8);
               expect(attr(chat, GEN_AI_USAGE_REASONING_OUTPUT_TOKENS)).toBe(2);
 
-              const http = spans.find(span => attr(span, 'sentry.op') === 'http.client');
-              expect(http?.parent_span_id).toBe(chat.span_id);
+              const requests = spans.filter(span => attr(span, 'sentry.op') === 'http.client');
+              expect(requests.map(span => span.parent_span_id).sort()).toEqual(
+                [chat.span_id, directChat.span_id].sort(),
+              );
+            },
+          })
+          .start()
+          .completed();
+      });
+
+      test('skips the OpenAI integration also while the app reads the stream', async () => {
+        await createRunner()
+          .withEnv({ STREAM: '1' })
+          .expect({
+            span: container => {
+              const spans = container.items;
+              const direct = spans.find(span => span.name === 'direct')!;
+              const chats = spans.filter(span => attr(span, 'sentry.op') === 'gen_ai.chat');
+              expect(chats.map(span => attr(span, 'sentry.origin')).sort()).toEqual(['auto.ai.openai', ORIGIN]);
+              const directChat = chats.find(span => attr(span, 'sentry.origin') === 'auto.ai.openai')!;
+              expect(directChat.parent_span_id).toBe(direct.span_id);
+            },
+          })
+          .start()
+          .completed();
+      });
+    },
+    TANSTACK_AI_DEPENDENCIES,
+  );
+
+  createEsmAndCjsTests(
+    __dirname,
+    'scenario-interrupt.mjs',
+    'instrument.mjs',
+    (createRunner, test, mode) => {
+      if (mode === 'cjs') {
+        return;
+      }
+
+      // TanStack calls no terminal hook for a run that pauses at an interrupt before or after a model call.
+      test('ends the spans of a run that pauses at an interrupt before the model call', async () => {
+        await createRunner()
+          .withEnv({ INTERRUPT: 'beforeModel' })
+          .expect({
+            span: container => {
+              const agent = container.items.find(span => span.name === 'invoke_agent');
+              const chat = container.items.find(span => span.name === 'chat fake-model');
+              expect(agent?.status).toBe('ok');
+              expect(chat?.parent_span_id).toBe(agent?.span_id);
+            },
+          })
+          .start()
+          .completed();
+      });
+
+      test('ends the spans of a run that pauses at an interrupt after the model call', async () => {
+        await createRunner()
+          .withEnv({ INTERRUPT: 'afterModel' })
+          .expect({
+            span: container => {
+              const agent = container.items.find(span => span.name === 'invoke_agent');
+              const chat = container.items.find(span => span.name === 'chat fake-model');
+              expect(agent?.status).toBe('ok');
+              expect(chat?.parent_span_id).toBe(agent?.span_id);
+              expect(attr(chat, GEN_AI_RESPONSE_FINISH_REASONS)).toBe('["stop"]');
+            },
+          })
+          .start()
+          .completed();
+      });
+    },
+    TANSTACK_AI_DEPENDENCIES,
+  );
+
+  createEsmAndCjsTests(
+    __dirname,
+    'scenario-retry.mjs',
+    'instrument.mjs',
+    (createRunner, test, mode) => {
+      if (mode === 'cjs') {
+        return;
+      }
+
+      test('ends a model call that a middleware retried with an error status', async () => {
+        await createRunner()
+          .expect({
+            span: container => {
+              const agent = container.items.find(span => span.name === 'invoke_agent');
+              const chats = container.items
+                .filter(span => span.name === 'chat fake-model')
+                .sort((a, b) => a.start_timestamp - b.start_timestamp);
+              expect(chats.map(chat => chat.status)).toEqual(['error', 'ok']);
+              expect(chats.map(chat => chat.parent_span_id)).toEqual([agent?.span_id, agent?.span_id]);
+              expect(agent?.status).toBe('ok');
+            },
+          })
+          .start()
+          .completed();
+      });
+    },
+    TANSTACK_AI_DEPENDENCIES,
+  );
+
+  createEsmAndCjsTests(
+    __dirname,
+    'scenario-provider-error.mjs',
+    'instrument.mjs',
+    (createRunner, test, mode) => {
+      if (mode === 'cjs') {
+        return;
+      }
+
+      test('ends the spans with an error status when the provider call fails', async () => {
+        await createRunner()
+          .expect({
+            span: container => {
+              const spans = container.items;
+              const agent = spans.find(span => attr(span, 'sentry.op') === 'gen_ai.invoke_agent');
+              const chat = spans.find(span => attr(span, 'sentry.op') === 'gen_ai.chat');
+              expect(agent?.status).toBe('error');
+              expect(chat?.status).toBe('error');
+              expect(chat?.parent_span_id).toBe(agent?.span_id);
             },
           })
           .start()

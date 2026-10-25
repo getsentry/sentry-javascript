@@ -65,6 +65,8 @@ export {
   groqIntegration,
   togetherAIIntegration,
   typesafeIntegration,
+  tanstackAiIntegration,
+  createTanstackAiMiddleware,
   langChainIntegration,
   langGraphIntegration,
   createFlueInstrumentation,

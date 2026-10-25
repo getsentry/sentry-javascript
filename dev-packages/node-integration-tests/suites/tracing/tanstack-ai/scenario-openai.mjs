@@ -2,6 +2,7 @@ import express from 'express';
 import * as Sentry from '@sentry/node';
 import { chat } from '@tanstack/ai';
 import { createOpenaiChatCompletions } from '@tanstack/ai-openai';
+import OpenAI from 'openai';
 
 // Inlined OpenAI-compatible streaming mock: the runner copies only this file into its temp dir.
 function startMockProvider() {
@@ -31,12 +32,30 @@ function startMockProvider() {
 }
 
 const server = await startMockProvider();
-const adapter = createOpenaiChatCompletions('gpt-4o', 'test-key', {
-  baseURL: `http://localhost:${server.address().port}/v1`,
-});
+const baseURL = `http://localhost:${server.address().port}/v1`;
+const adapter = createOpenaiChatCompletions('gpt-4o', 'test-key', { baseURL });
+const messages = [{ role: 'user', content: 'Hi' }];
 
 await Sentry.startSpan({ name: 'main' }, async () => {
-  await chat({ adapter, threadId: 'thread-1', messages: [{ role: 'user', content: 'Hi' }], stream: false });
+  if (process.env.STREAM) {
+    // The adapter calls the SDK while the app reads the stream, after `chat()` has returned.
+    for await (const _chunk of chat({ adapter, threadId: 'thread-1', messages, stream: true })) {
+      // drain
+    }
+  } else {
+    await chat({ adapter, threadId: 'thread-1', messages, stream: false });
+  }
+
+  await Sentry.startSpan({ name: 'direct' }, async () => {
+    const stream = await new OpenAI({ apiKey: 'test-key', baseURL }).chat.completions.create({
+      model: 'gpt-4o',
+      messages,
+      stream: true,
+    });
+    for await (const _chunk of stream) {
+      // drain
+    }
+  });
 });
 
 server.close();

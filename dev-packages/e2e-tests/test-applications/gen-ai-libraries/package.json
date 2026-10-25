@@ -1,6 +1,6 @@
 {
   "name": "gen-ai-libraries",
-  "description": "Real gen_ai spans for every instrumented AI library (OpenAI, Anthropic, Mistral, Together, Vercel AI), each driven through OpenRouter with a chat query and a tool call, on Node and on Cloudflare",
+  "description": "Real gen_ai spans for every instrumented AI library (OpenAI, Anthropic, Mistral, Together, Vercel AI, TanStack AI), each driven through OpenRouter with a chat query and a tool call, on Node and on Cloudflare",
   "version": "1.0.0",
   "private": true,
   "type": "module",
@@ -21,6 +21,8 @@
     "@openrouter/ai-sdk-provider": "~3.0.0",
     "@sentry/cloudflare": "file:../../packed/sentry-cloudflare-packed.tgz",
     "@sentry/node": "file:../../packed/sentry-node-packed.tgz",
+    "@tanstack/ai": "^1.0.0",
+    "@tanstack/ai-openrouter": "^1.0.0",
     "ai": "~7.0.97",
     "express": "^4.21.2",
     "openai": "5.18.1",

@@ -115,6 +115,7 @@ export {
   instrumentAnthropicAiClient,
   instrumentGoogleGenAIClient,
   createLangChainCallbackHandler,
+  createTanstackAiMiddleware,
   instrumentLangChainEmbeddings,
   instrumentStateGraph,
   instrumentCreateReactAgent,

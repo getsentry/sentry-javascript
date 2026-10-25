@@ -3,6 +3,7 @@ import {
   _INTERNAL_clearAiProviderSkips,
   _INTERNAL_shouldSkipAiProviderWrapping,
   _INTERNAL_skipAiProviderWrapping,
+  _INTERNAL_withAiProviderWrappingSkipped,
 } from '../../../../src/index';
 
 const OPENAI_INTEGRATION_NAME = 'OpenAI';
@@ -33,6 +34,40 @@ describe('AI Provider Skip', () => {
       _INTERNAL_skipAiProviderWrapping([OPENAI_INTEGRATION_NAME]);
       _INTERNAL_skipAiProviderWrapping([OPENAI_INTEGRATION_NAME]);
       expect(_INTERNAL_shouldSkipAiProviderWrapping(OPENAI_INTEGRATION_NAME)).toBe(true);
+    });
+  });
+
+  describe('_INTERNAL_withAiProviderWrappingSkipped', () => {
+    it('skips the providers only inside the callback', () => {
+      const skippedInside = _INTERNAL_withAiProviderWrappingSkipped([OPENAI_INTEGRATION_NAME], () => [
+        _INTERNAL_shouldSkipAiProviderWrapping(OPENAI_INTEGRATION_NAME),
+        _INTERNAL_shouldSkipAiProviderWrapping(ANTHROPIC_AI_INTEGRATION_NAME),
+      ]);
+
+      expect(skippedInside).toEqual([true, false]);
+      expect(_INTERNAL_shouldSkipAiProviderWrapping(OPENAI_INTEGRATION_NAME)).toBe(false);
+    });
+
+    it('keeps the skip in the async work that the callback starts', async () => {
+      const skippedAfterAwait = await _INTERNAL_withAiProviderWrappingSkipped([OPENAI_INTEGRATION_NAME], async () => {
+        await Promise.resolve();
+        return _INTERNAL_shouldSkipAiProviderWrapping(OPENAI_INTEGRATION_NAME);
+      });
+
+      expect(skippedAfterAwait).toBe(true);
+      expect(_INTERNAL_shouldSkipAiProviderWrapping(OPENAI_INTEGRATION_NAME)).toBe(false);
+    });
+
+    it('adds the providers of a nested call to the providers of the outer call', () => {
+      const skippedInside = _INTERNAL_withAiProviderWrappingSkipped([OPENAI_INTEGRATION_NAME], () =>
+        _INTERNAL_withAiProviderWrappingSkipped([ANTHROPIC_AI_INTEGRATION_NAME], () => [
+          _INTERNAL_shouldSkipAiProviderWrapping(OPENAI_INTEGRATION_NAME),
+          _INTERNAL_shouldSkipAiProviderWrapping(ANTHROPIC_AI_INTEGRATION_NAME),
+          _INTERNAL_shouldSkipAiProviderWrapping(GOOGLE_GENAI_INTEGRATION_NAME),
+        ]),
+      );
+
+      expect(skippedInside).toEqual([true, true, false]);
     });
   });
 

@@ -1,5 +1,11 @@
 import type { Span } from '@sentry/core';
-import { SPAN_STATUS_ERROR, startInactiveSpan, stringify } from '@sentry/core';
+import {
+  _INTERNAL_withAiProviderWrappingSkipped,
+  isObjectLike,
+  SPAN_STATUS_ERROR,
+  startInactiveSpan,
+  stringify,
+} from '@sentry/core';
 import {
   GEN_AI_CONVERSATION_ID,
   GEN_AI_COST_TOTAL_TOKENS,
@@ -17,12 +23,19 @@ import {
   GEN_AI_USAGE_REASONING_OUTPUT_TOKENS,
   SENTRY_ORIGIN,
 } from '@sentry/conventions/attributes';
+import { AWS_BEDROCK_INTEGRATION_NAME } from '../../integrations/aws-sdk/constants';
+import { ANTHROPIC_AI_INTEGRATION_NAME } from '../anthropic-ai/constants';
 import { getGenAiSpanOp, getTokenUsageAttributes } from '../core/utils';
+import { GOOGLE_GENAI_INTEGRATION_NAME } from '../google-genai/constants';
+import { MISTRAL_INTEGRATION_NAME } from '../mistral/constants';
+import { OPENAI_INTEGRATION_NAME } from '../openai/constants';
+import { WORKERS_AI_INTEGRATION_NAME } from '../workers-ai/constants';
 import { TANSTACK_AI_ORIGIN } from './constants';
 import type {
   TanstackAiMiddlewareConfig,
   TanstackAiMiddlewareContext,
   TanstackAiModelMessage,
+  TanstackAiTool,
   TanstackAiUsage,
 } from './types';
 
@@ -37,7 +50,93 @@ export interface RunState {
   // `TOOL_CALL_END` carries the parsed input but not the name, which only `TOOL_CALL_START` has.
   toolCallNames: Map<string, string>;
   usage: TanstackAiUsage;
-  toolCallIds: Set<string>;
+  /** The open `execute_tool` spans of the run, keyed by tool call id. */
+  toolSpans: Map<string, Span>;
+  /** Each tool of the run mapped to the copy whose `execute` runs with the tool span active. */
+  wrappedTools: WeakMap<TanstackAiTool, TanstackAiTool>;
+}
+
+// The Sentry instrumentations of the vendor SDKs and bindings that adapters call. Each one would report the
+// model call of an adapter a second time beside our span.
+const PROVIDER_INTEGRATIONS = [
+  OPENAI_INTEGRATION_NAME,
+  ANTHROPIC_AI_INTEGRATION_NAME,
+  GOOGLE_GENAI_INTEGRATION_NAME,
+  MISTRAL_INTEGRATION_NAME,
+  // The Cloudflare adapter calls `env.AI.run()`, which `@sentry/cloudflare` instruments.
+  WORKERS_AI_INTEGRATION_NAME,
+  // The Bedrock adapters call `@aws-sdk/client-bedrock-runtime`, which `awsIntegration` instruments.
+  AWS_BEDROCK_INTEGRATION_NAME,
+];
+
+type AdapterMethod = (...args: unknown[]) => unknown;
+
+/**
+ * The adapter, with the Sentry integrations of the vendor SDKs skipped during its calls, as our spans record
+ * them. A direct call to the same SDK elsewhere in the app still gets its span.
+ */
+export function skipProviderIntegrations<T>(adapter: T): T {
+  if (!isObjectLike(adapter)) {
+    return adapter;
+  }
+  const skipped = <R>(callback: () => R): R => _INTERNAL_withAiProviderWrappingSkipped(PROVIDER_INTEGRATIONS, callback);
+  // So that each read of a method returns the same function.
+  const wrappedMethods = new WeakMap<AdapterMethod, AdapterMethod>();
+
+  return new Proxy(adapter, {
+    get(target, property) {
+      const value: unknown = Reflect.get(target, property);
+      const descriptor = Reflect.getOwnPropertyDescriptor(target, property);
+      // A Proxy must return a read-only, non-configurable property (e.g. of a frozen adapter) as it is.
+      if (
+        typeof value !== 'function' ||
+        property === 'constructor' ||
+        (descriptor && !descriptor.configurable && !descriptor.writable)
+      ) {
+        return value;
+      }
+      const known = wrappedMethods.get(value as AdapterMethod);
+      if (known) {
+        return known;
+      }
+      const wrapped: AdapterMethod = (...args) => {
+        const result: unknown = skipped(() => value.apply(target, args));
+        // A text adapter returns an async generator, whose body runs on each `next()` in the async
+        // context of the caller, which for a streamed `chat()` is the app's code.
+        return isAsyncIterable(result) ? skipDuringIteration(result, skipped) : result;
+      };
+      wrappedMethods.set(value as AdapterMethod, wrapped);
+      return wrapped;
+    },
+  });
+}
+
+function isAsyncIterable(value: unknown): value is AsyncIterable<unknown> {
+  return isObjectLike(value) && typeof value[Symbol.asyncIterator] === 'function';
+}
+
+function skipDuringIteration<T>(
+  iterable: AsyncIterable<T>,
+  skipped: <R>(callback: () => R) => R,
+): AsyncIterableIterator<T> {
+  const iterator = iterable[Symbol.asyncIterator]();
+  return {
+    next: (...args) => skipped(() => iterator.next(...args)),
+    return: value => skipped(() => iterator.return?.(value) ?? Promise.resolve({ done: true, value })),
+    throw: error => skipped(() => iterator.throw?.(error) ?? Promise.reject(error)),
+    [Symbol.asyncIterator]() {
+      return this;
+    },
+  };
+}
+
+/**
+ * `ctx.provider` is the adapter name, which for some adapters also names the wire API (e.g.
+ * `openrouter-responses`). The call metadata carries the adapter's provider identity, but only once the
+ * first model call has started.
+ */
+export function getProviderName(ctx: TanstackAiMiddlewareContext): string {
+  return ctx.callMetadata?.source?.provider ?? ctx.provider;
 }
 
 export function startChatSpan(
@@ -48,25 +147,22 @@ export function startChatSpan(
   const attributes: Record<string, string | number | boolean | undefined> = {
     [SENTRY_ORIGIN]: TANSTACK_AI_ORIGIN,
     [GEN_AI_OPERATION_NAME]: 'chat',
-    [GEN_AI_PROVIDER_NAME]: ctx.provider,
+    [GEN_AI_PROVIDER_NAME]: getProviderName(ctx),
     [GEN_AI_REQUEST_MODEL]: ctx.model,
     [GEN_AI_CONVERSATION_ID]: ctx.threadId,
     [GEN_AI_RESPONSE_STREAMING]: ctx.streaming,
     ...requestAttributes(config.modelOptions),
   };
 
-  if (config.tools.length) {
+  // The `structuredOutput` call sends no tools, although its config lists them.
+  if (run.recordInputs && config.tools.length && ctx.phase !== 'structuredOutput') {
     attributes[GEN_AI_TOOL_DEFINITIONS] = stringify(
       config.tools.map(({ name, description, inputSchema }) => ({ name, description, inputSchema })),
     );
   }
   if (run.recordInputs) {
-    attributes[GEN_AI_INPUT_MESSAGES] = stringify(config.messages.map(toGenAiMessage));
-    if (config.systemPrompts.length) {
-      attributes[GEN_AI_SYSTEM_INSTRUCTIONS] = config.systemPrompts
-        .map(prompt => (typeof prompt === 'string' ? prompt : prompt.content))
-        .join('\n');
-    }
+    // A middleware can send the provider other messages than the history of the run.
+    Object.assign(attributes, inputAttributes(config.providerMessages ?? config.messages, config.systemPrompts));
   }
 
   run.outputText = '';
@@ -80,14 +176,29 @@ export function startChatSpan(
   });
 }
 
-export function endChatSpan(run: RunState, error?: unknown): void {
+export function inputAttributes(
+  messages: ReadonlyArray<TanstackAiModelMessage>,
+  systemPrompts: TanstackAiMiddlewareConfig['systemPrompts'],
+): Record<string, string | undefined> {
+  return {
+    [GEN_AI_INPUT_MESSAGES]: stringify(messages.map(toGenAiMessage)),
+    [GEN_AI_SYSTEM_INSTRUCTIONS]: systemPrompts.length
+      ? systemPrompts.map(prompt => (typeof prompt === 'string' ? prompt : prompt.content)).join('\n')
+      : undefined,
+  };
+}
+
+export function endChatSpan(run: RunState, errorStatus?: string): void {
   const span = run.chatSpan;
-  if (!span) {
-    return;
-  }
   run.chatSpan = undefined;
-  if (error !== undefined) {
-    span.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
+  if (span) {
+    endSpan(span, errorStatus);
+  }
+}
+
+export function endSpan(span: Span, errorStatus?: string): void {
+  if (errorStatus) {
+    span.setStatus({ code: SPAN_STATUS_ERROR, message: errorStatus });
   }
   span.end();
 }
@@ -155,9 +266,12 @@ export function usageAttributes(usage: TanstackAiUsage): Record<string, number> 
     attributes[GEN_AI_USAGE_REASONING_OUTPUT_TOKENS] = usage.completionTokensDetails.reasoningTokens;
   }
   // The provider's own figure (e.g. OpenRouter) includes cache discounts and gateway markup that a
-  // price table cannot reproduce.
-  if (typeof usage.cost === 'number') {
-    attributes[GEN_AI_COST_TOTAL_TOKENS] = usage.cost;
+  // price table cannot reproduce. With a BYOK key, OpenRouter reports only its fee as `cost` and the
+  // provider's charge as `upstreamCost`. Relay keeps any cost it gets, so a 0 would replace the cost it
+  // computes from the token counts.
+  const cost = (usage.cost ?? 0) + (usage.costDetails?.upstreamCost ?? 0);
+  if (cost > 0) {
+    attributes[GEN_AI_COST_TOTAL_TOKENS] = cost;
   }
   return attributes;
 }
@@ -170,6 +284,7 @@ export function addUsage(total: TanstackAiUsage, usage: TanstackAiUsage): Tansta
     completionTokens: add(total.completionTokens, usage.completionTokens),
     totalTokens: add(total.totalTokens, usage.totalTokens),
     cost: add(total.cost, usage.cost),
+    costDetails: { upstreamCost: add(total.costDetails?.upstreamCost, usage.costDetails?.upstreamCost) },
     promptTokensDetails: {
       cachedTokens: add(total.promptTokensDetails?.cachedTokens, usage.promptTokensDetails?.cachedTokens),
       cacheWriteTokens: add(total.promptTokensDetails?.cacheWriteTokens, usage.promptTokensDetails?.cacheWriteTokens),

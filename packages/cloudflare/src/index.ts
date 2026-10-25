@@ -108,7 +108,7 @@ export {
   spanStreamingIntegration,
 } from '@sentry/core';
 export { trpcMiddleware, wrapMcpServerWithSentry } from '@sentry/core/server';
-export { createFlueInstrumentation, instrumentPostgresJsSql } from '@sentry/server-utils';
+export { createFlueInstrumentation, createTanstackAiMiddleware, instrumentPostgresJsSql } from '@sentry/server-utils';
 export type { FlueOptions } from '@sentry/server-utils';
 
 export { withSentry } from './withSentry';

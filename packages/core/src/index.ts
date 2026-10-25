@@ -77,6 +77,7 @@ export {
 } from './integration';
 export {
   _INTERNAL_skipAiProviderWrapping,
+  _INTERNAL_withAiProviderWrappingSkipped,
   _INTERNAL_shouldSkipAiProviderWrapping,
   _INTERNAL_clearAiProviderSkips,
 } from './utils/ai/providerSkip';

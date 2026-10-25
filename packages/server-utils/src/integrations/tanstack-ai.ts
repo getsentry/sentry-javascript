@@ -4,6 +4,7 @@ import { defineIntegration, isObjectLike } from '@sentry/core';
 import type { TanstackAiOptions } from '../ai/tanstack-ai';
 import { createTanstackAiMiddleware } from '../ai/tanstack-ai';
 import { TANSTACK_AI_INTEGRATION_NAME, TANSTACK_AI_MIDDLEWARE_BRAND } from '../ai/tanstack-ai/constants';
+import { skipProviderIntegrations } from '../ai/tanstack-ai/utils';
 import { CHANNELS } from '../orchestrion/channels';
 import { tanstackAiModuleNames } from '../orchestrion/config/tanstack-ai';
 import { invokeOrchestrionInstrumentation } from '../orchestrion/instrumentation';
@@ -22,7 +23,10 @@ const _tanstackAiIntegration = ((options: TanstackAiOptions = {}) => {
   };
 }) satisfies IntegrationFn;
 
-/** Add our middleware to every `chat()` call that does not already carry one. */
+/**
+ * Add our middleware to every `chat()` call that does not already carry one, and skip the integrations of
+ * the vendor SDKs during the calls of the adapter.
+ */
 function injectMiddleware(options: TanstackAiOptions): void {
   const middleware = createTanstackAiMiddleware(options);
 
@@ -38,11 +42,13 @@ function injectMiddleware(options: TanstackAiOptions): void {
       if (existing !== undefined && !Array.isArray(existing)) {
         return;
       }
-      if (existing?.some(entry => isObjectLike(entry) && entry[TANSTACK_AI_MIDDLEWARE_BRAND])) {
-        return;
-      }
+      const hasOurMiddleware = existing?.some(entry => isObjectLike(entry) && entry[TANSTACK_AI_MIDDLEWARE_BRAND]);
       // A copy, so options the app reuses across calls do not collect one middleware per call.
-      data.arguments[0] = { ...chatOptions, middleware: [...(existing ?? []), middleware] };
+      data.arguments[0] = {
+        ...chatOptions,
+        adapter: skipProviderIntegrations(chatOptions.adapter),
+        ...(hasOurMiddleware ? {} : { middleware: [...(existing ?? []), middleware] }),
+      };
     });
   });
 }

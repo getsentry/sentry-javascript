@@ -17,3 +17,11 @@ export const MESSAGING_DESTINATION_KIND_VALUE_TOPIC = 'topic';
 export const GEN_AI_OPERATION_NAME_VALUE_CHAT = 'chat';
 export const GEN_AI_OPERATION_NAME_VALUE_GENERATE_CONTENT = 'generate_content';
 export const GEN_AI_SYSTEM_VALUE_AWS_BEDROCK = 'aws.bedrock';
+
+/**
+ * The key of Bedrock in the AI provider skip registry. An AI framework integration that records the Bedrock calls
+ * of its adapters itself skips it, so `awsIntegration` records no span for these calls.
+ *
+ * @see `_INTERNAL_withAiProviderWrappingSkipped`
+ */
+export const AWS_BEDROCK_INTEGRATION_NAME = 'AwsBedrock' as const;

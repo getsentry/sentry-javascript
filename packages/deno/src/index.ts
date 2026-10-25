@@ -180,6 +180,8 @@ export {
   groqIntegration,
   togetherAIIntegration,
   typesafeIntegration,
+  tanstackAiIntegration,
+  createTanstackAiMiddleware,
   postgresIntegration,
   postgresJsIntegration,
   neonIntegration,

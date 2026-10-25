@@ -2,9 +2,18 @@ import * as Sentry from '@sentry/node';
 import { chat, toolDefinition } from '@tanstack/ai';
 import { fakeText } from '@tanstack/ai/testing';
 
-// `MIDDLEWARE=manual` passes the middleware explicitly; otherwise the call carries none and relies
-// on the integration injecting it.
-const middleware = process.env.MIDDLEWARE === 'manual' ? [Sentry.createTanstackAiMiddleware()] : undefined;
+// `MIDDLEWARE=manual` passes the middleware explicitly, and `MIDDLEWARE=transform-args` passes a middleware that
+// changes the arguments of each tool call; otherwise the call carries none. Except with `manual`, it relies on the
+// integration injecting the middleware.
+const middleware = {
+  manual: [Sentry.createTanstackAiMiddleware()],
+  'transform-args': [
+    {
+      name: 'transform-args',
+      onBeforeToolCall: (_ctx, { args }) => ({ type: 'transformArgs', args: { ...args, unit: 'celsius' } }),
+    },
+  ],
+}[process.env.MIDDLEWARE];
 
 const getWeather = toolDefinition({
   name: 'get_weather',

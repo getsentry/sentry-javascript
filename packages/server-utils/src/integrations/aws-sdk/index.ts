@@ -1,6 +1,6 @@
 import * as diagnosticsChannel from '../../utils/diagnosticsChannel';
 import type { IntegrationFn, Span } from '@sentry/core';
-import { defineIntegration, startInactiveSpan } from '@sentry/core';
+import { _INTERNAL_shouldSkipAiProviderWrapping, defineIntegration, startInactiveSpan } from '@sentry/core';
 import {
   _AWS_REQUEST_ID as AWS_REQUEST_ID,
   AWS_REQUEST_EXTENDED_ID,
@@ -16,7 +16,7 @@ import { awsSdkModuleNames } from '../../orchestrion/config/aws-sdk';
 import { invokeOrchestrionInstrumentation } from '../../orchestrion/instrumentation';
 import type { TracingChannelLifeCycleOptions } from '../../tracing-channel';
 import { bindTracingChannelToSpan, safeChannelCallback } from '../../tracing-channel';
-import { AWS_SDK_ORIGIN } from './constants';
+import { AWS_BEDROCK_INTEGRATION_NAME, AWS_SDK_ORIGIN } from './constants';
 import { ServicesExtensions } from './services';
 import type { NormalizedRequest, NormalizedResponse, RequestMetadata } from './types';
 import { extractAttributesFromNormalizedRequest, normalizeV3Request, removeSuffixFromStringIfExists } from './utils';
@@ -101,6 +101,12 @@ function instrumentAwsSdk(servicesExtensions: ServicesExtensions): void {
         command.input = {};
       }
       const normalizedRequest = normalizeV3Request(serviceName, commandName, command.input, undefined);
+      if (
+        normalizedRequest.serviceName === 'BedrockRuntime' &&
+        _INTERNAL_shouldSkipAiProviderWrapping(AWS_BEDROCK_INTEGRATION_NAME)
+      ) {
+        return undefined;
+      }
       const requestMetadata = servicesExtensions.requestPreSpanHook(normalizedRequest);
 
       const span = startInactiveSpan({

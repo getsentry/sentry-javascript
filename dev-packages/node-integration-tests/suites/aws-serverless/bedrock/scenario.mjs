@@ -1,4 +1,5 @@
 import * as Sentry from '@sentry/aws-serverless';
+import { _INTERNAL_withAiProviderWrappingSkipped } from '@sentry/core';
 import { BedrockRuntimeClient, ConverseCommand, InvokeModelCommand } from '@aws-sdk/client-bedrock-runtime';
 // Force the HTTP/1 handler so `nock` can intercept the request instead of hitting real AWS.
 import { NodeHttpHandler } from '@smithy/node-http-handler';
@@ -76,8 +77,16 @@ async function invokeModel() {
 
 async function run() {
   await Sentry.startSpan({ name: 'Test Transaction' }, async () => {
-    await converse();
-    await invokeModel();
+    if (process.env.SKIP_BEDROCK) {
+      // What an AI framework integration does around the Bedrock calls of its adapters, which it records itself.
+      await _INTERNAL_withAiProviderWrappingSkipped(['AwsBedrock'], async () => {
+        await converse();
+        await invokeModel();
+      });
+    } else {
+      await converse();
+      await invokeModel();
+    }
   });
 }
 

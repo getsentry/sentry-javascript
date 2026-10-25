@@ -19,6 +19,8 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { createOpenRouter } from '@openrouter/ai-sdk-provider';
 import { Mistral } from '@mistralai/mistralai';
+import { chat, toolDefinition } from '@tanstack/ai';
+import { createOpenRouterText } from '@tanstack/ai-openrouter';
 import OpenAI from 'openai';
 import Together from 'together-ai';
 import { generateText, tool } from 'ai';
@@ -54,9 +56,9 @@ export interface Library {
   id: string;
   /** The op of the model-call span; asserted by the tests. */
   op: 'gen_ai.chat' | 'gen_ai.generate_content';
-  /** `gen_ai.provider.name` for the direct-SDK libraries; unset for the Vercel AI SDK. */
+  /** `gen_ai.provider.name` of the model-call span; unset for the Vercel AI SDK. */
   provider?: string;
-  /** `sentry.origin` for the direct-SDK libraries; unset for the Vercel AI SDK. */
+  /** `sentry.origin` of the model-call span; unset for the Vercel AI SDK. */
   origin?: string;
   chat: (apiKey: string) => Promise<unknown>;
   tools: (apiKey: string) => Promise<unknown>;
@@ -214,6 +216,51 @@ export const libraries: Library[] = [
         },
       });
       return result.toolCalls ?? [];
+    },
+  },
+
+  {
+    id: 'tanstack-ai',
+    // TanStack AI runs an agent loop like the Vercel AI SDK: an `invoke_agent` span with one `chat` span
+    // per model call, and an `execute_tool` span for each tool it runs.
+    op: 'gen_ai.chat',
+    provider: 'openrouter',
+    origin: 'auto.ai.tanstack_ai',
+    chat: async apiKey => {
+      const { text } = await chat({
+        adapter: createOpenRouterText(MODEL, apiKey),
+        threadId: crypto.randomUUID(),
+        systemPrompts: [SYSTEM],
+        messages: [{ role: 'user', content: CHAT_PROMPT }],
+        modelOptions: { temperature: 0 },
+        stream: false,
+      });
+      return text;
+    },
+    tools: async apiKey => {
+      const getWeather = toolDefinition({
+        name: 'get_weather',
+        description: 'Get the current weather for a city.',
+        inputSchema: z.object({ city: z.string().describe('The city name') }),
+      }).server(async ({ city }) => `It is sunny in ${city}.`);
+
+      const { text } = await chat({
+        adapter: createOpenRouterText(MODEL, apiKey),
+        threadId: crypto.randomUUID(),
+        messages: [{ role: 'user', content: WEATHER_PROMPT }],
+        tools: [getWeather],
+        // A `toolChoice` option would apply to every model call of the loop, so the model could never
+        // answer. Forcing only the first call keeps the turn at one tool call and one answer.
+        middleware: [
+          {
+            name: 'force-first-tool-call',
+            onConfig: ctx =>
+              ctx.phase === 'beforeModel' && ctx.iteration === 0 ? { toolChoice: 'required' } : undefined,
+          },
+        ],
+        stream: false,
+      });
+      return text;
     },
   },
 ];

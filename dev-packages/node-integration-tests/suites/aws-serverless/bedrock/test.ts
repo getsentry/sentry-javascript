@@ -65,6 +65,26 @@ describe('awsIntegration - Bedrock', () => {
       test('auto-instruments Bedrock Converse and InvokeModel', { timeout: 90_000 }, async () => {
         await createTestRunner().ignore('event').expect({ span: assertBedrockSpans }).start().completed();
       });
+
+      test(
+        'records no Bedrock spans while an AI framework integration skips Bedrock',
+        { timeout: 90_000 },
+        async () => {
+          await createTestRunner()
+            .withEnv({ SKIP_BEDROCK: '1' })
+            .ignore('event')
+            .expect({
+              span: container => {
+                expect(container.items.find(span => span.is_segment && span.name === 'Test Transaction')).toBeDefined();
+                expect(
+                  container.items.filter(span => span.attributes[SENTRY_ORIGIN]?.value === 'auto.aws.aws_sdk'),
+                ).toEqual([]);
+              },
+            })
+            .start()
+            .completed();
+        },
+      );
     },
     { additionalDependencies: { '@aws-sdk/client-bedrock-runtime': '^3.1046.0' } },
   );

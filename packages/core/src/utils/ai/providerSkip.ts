@@ -1,3 +1,4 @@
+import { getCurrentScope, withScope } from '../../currentScopes';
 import { DEBUG_BUILD } from '../../debug-build';
 import { debug } from '../debug-logger';
 
@@ -8,6 +9,9 @@ import { debug } from '../debug-logger';
  * already instruments AI providers at a higher abstraction level.
  */
 const SKIPPED_AI_PROVIDERS = new Set<string>();
+
+/** Scope metadata key of the modules that `_INTERNAL_withAiProviderWrappingSkipped` skips, as `{ [module]: true }`. */
+const SCOPED_SKIPPED_AI_PROVIDERS_KEY = '__SENTRY_SKIPPED_AI_PROVIDERS__';
 
 /**
  * Mark AI provider modules to skip instrumentation wrapping.
@@ -32,6 +36,25 @@ export function _INTERNAL_skipAiProviderWrapping(modules: string[]): void {
 }
 
 /**
+ * Run `callback` with AI provider modules skipped, for the calls that it makes and the async work that
+ * it starts. A call to the same provider outside of `callback` is still instrumented.
+ *
+ * @internal
+ * @param modules - Array of npm module names to skip (e.g., '@anthropic-ai/sdk', 'openai')
+ */
+export function _INTERNAL_withAiProviderWrappingSkipped<T>(modules: string[], callback: () => T): T {
+  return withScope(scope => {
+    const skipped: Record<string, true> = {};
+    for (const module of modules) {
+      skipped[module] = true;
+    }
+    // `setSDKProcessingMetadata` merges one level deep, so a nested call adds to the modules of the outer one.
+    scope.setSDKProcessingMetadata({ [SCOPED_SKIPPED_AI_PROVIDERS_KEY]: skipped });
+    return callback();
+  });
+}
+
+/**
  * Check if an AI provider module should skip instrumentation wrapping.
  *
  * @internal
@@ -47,7 +70,13 @@ export function _INTERNAL_skipAiProviderWrapping(modules: string[]): void {
  * ```
  */
 export function _INTERNAL_shouldSkipAiProviderWrapping(module: string): boolean {
-  return SKIPPED_AI_PROVIDERS.has(module);
+  if (SKIPPED_AI_PROVIDERS.has(module)) {
+    return true;
+  }
+  const scoped = getCurrentScope().getScopeData().sdkProcessingMetadata[SCOPED_SKIPPED_AI_PROVIDERS_KEY] as
+    | Record<string, true>
+    | undefined;
+  return scoped?.[module] === true;
 }
 
 /**

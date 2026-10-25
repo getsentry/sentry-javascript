@@ -16,6 +16,8 @@ export interface TanstackAiUsage {
   completionTokens?: number;
   totalTokens?: number;
   cost?: number;
+  /** `upstreamCost` is the provider's charge that a gateway passes through, set by OpenRouter for BYOK keys. */
+  costDetails?: { upstreamCost?: number };
   promptTokensDetails?: { cachedTokens?: number; cacheWriteTokens?: number };
   completionTokensDetails?: { reasoningTokens?: number };
 }
@@ -27,14 +29,29 @@ export interface TanstackAiTool {
   execute?: (args: unknown, context?: { toolCallId?: string }) => unknown;
 }
 
+/** Mirrors the `TanStackMessageMetadata` fields of the current model call. */
+export interface TanstackAiCallMetadata {
+  model?: string;
+  responseId?: string;
+  /** `provider` is the adapter's `provider ?? name`, e.g. `openrouter` for the `openrouter-responses` adapter. */
+  source?: { provider?: string; api?: string };
+}
+
 export interface TanstackAiMiddlewareContext {
   activity: string;
   phase: string;
+  /** The adapter's `name`, e.g. `openai-chat`. */
   provider: string;
   model: string;
   threadId: string;
   streaming: boolean;
   subagentName?: string;
+  callMetadata?: TanstackAiCallMetadata;
+  /** The signal of the `abortController` passed to `chat()`. */
+  signal?: AbortSignal;
+  /** The conversation history of the run, as passed to `chat()`. */
+  messages: ReadonlyArray<TanstackAiModelMessage>;
+  systemPrompts: Array<string | { content: string }>;
 }
 
 /** Mirrors `ModelMessage`. */
@@ -47,6 +64,8 @@ export interface TanstackAiModelMessage {
 
 export interface TanstackAiMiddlewareConfig {
   messages: TanstackAiModelMessage[];
+  /** The messages sent to the provider, when a middleware sets them apart from `messages`. */
+  providerMessages?: TanstackAiModelMessage[];
   systemPrompts: Array<string | { content: string }>;
   tools: TanstackAiTool[];
   modelOptions?: Record<string, unknown>;
@@ -58,10 +77,13 @@ export interface TanstackAiChunk {
   type: string;
   delta?: string;
   model?: string;
+  responseId?: string;
   finishReason?: string | null;
   toolCallId?: string;
   toolCallName?: string;
   input?: unknown;
+  /** `{ type: 'interrupt' }` on the `RUN_FINISHED` chunk of a run that pauses at an interrupt. */
+  outcome?: { type: string };
 }
 
 export interface TanstackAiToolCallHookContext {
@@ -85,10 +107,10 @@ export interface TanstackAiChatMiddleware {
     ctx: TanstackAiMiddlewareContext,
     config: TanstackAiMiddlewareConfig,
   ): Partial<TanstackAiMiddlewareConfig> | undefined;
-  onStart(ctx: TanstackAiMiddlewareContext): void;
   onChunk(ctx: TanstackAiMiddlewareContext, chunk: TanstackAiChunk): void;
+  onInterruptBoundary(ctx: TanstackAiMiddlewareContext): void;
   onUsage(ctx: TanstackAiMiddlewareContext, usage: TanstackAiUsage): void;
-  onBeforeToolCall(ctx: TanstackAiMiddlewareContext, hookCtx: TanstackAiToolCallHookContext): void;
+  onGuardToolCall(ctx: TanstackAiMiddlewareContext, hookCtx: TanstackAiToolCallHookContext): void;
   onAfterToolCall(ctx: TanstackAiMiddlewareContext, info: TanstackAiAfterToolCallInfo): void;
   onFinish(ctx: TanstackAiMiddlewareContext): void;
   onAbort(ctx: TanstackAiMiddlewareContext): void;

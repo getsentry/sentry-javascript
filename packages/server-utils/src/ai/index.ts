@@ -15,3 +15,5 @@ export { instrumentStateGraph, instrumentStateGraphCompile, instrumentCreateReac
 export { SentryMastraExporter } from './mastra';
 export { createFlueInstrumentation } from './flue';
 export type { FlueOptions } from './flue';
+export { createTanstackAiMiddleware } from './tanstack-ai';
+export type { TanstackAiOptions } from './tanstack-ai';

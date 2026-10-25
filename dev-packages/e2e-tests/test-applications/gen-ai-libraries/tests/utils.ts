@@ -8,11 +8,14 @@ export interface LibraryUnderTest {
   /** The op of the model-call span: `gen_ai.chat` for the direct SDKs, `gen_ai.generate_content` for
    * the Vercel AI SDK. */
   op: string;
-  /** `gen_ai.provider.name` for the direct-SDK libraries; unset for the Vercel AI SDK, whose provider
-   * name comes from the model id and is not asserted. */
+  /** `gen_ai.provider.name` of the model-call span; unset for the Vercel AI SDK, whose provider name
+   * comes from the model id and is not asserted. */
   provider?: string;
-  /** `sentry.origin` for the direct-SDK libraries; unset for the Vercel AI SDK. */
+  /** `sentry.origin` of the model-call span; unset for the Vercel AI SDK. */
   origin?: string;
+  /** The library runs the tool itself and records a `gen_ai.execute_tool` span for it, instead of only
+   * returning the model's tool call to the caller. */
+  executesTools?: boolean;
 }
 
 export const LIBRARIES: LibraryUnderTest[] = [
@@ -20,24 +23,27 @@ export const LIBRARIES: LibraryUnderTest[] = [
   { id: 'together', op: 'gen_ai.chat', provider: 'together_ai', origin: 'auto.ai.together_ai' },
   { id: 'mistral', op: 'gen_ai.chat', provider: 'mistralai', origin: 'auto.ai.mistralai' },
   { id: 'anthropic', op: 'gen_ai.chat', provider: 'anthropic', origin: 'auto.ai.anthropic' },
-  { id: 'vercel-ai', op: 'gen_ai.generate_content' },
+  { id: 'vercel-ai', op: 'gen_ai.generate_content', executesTools: true },
+  { id: 'tanstack-ai', op: 'gen_ai.chat', provider: 'openrouter', origin: 'auto.ai.tanstack_ai', executesTools: true },
 ];
 
 export const attr = (span: SerializedStreamedSpan, key: string): unknown => span.attributes?.[key]?.value;
 
 /**
- * The model-call span for a library. The four direct SDKs all report `gen_ai.chat`, so the provider
- * name is what tells them apart — without it, a leftover span from another library's request could be
+ * The model-call span for a library. Most libraries report `gen_ai.chat`, so the provider name and origin
+ * are what tell them apart. Without them, a leftover span from another library's request could be
  * mistaken for this one's.
  */
 export const isModelCallSpan = (span: SerializedStreamedSpan, library: LibraryUnderTest): boolean =>
-  getSpanOp(span) === library.op && (!library.provider || attr(span, 'gen_ai.provider.name') === library.provider);
+  getSpanOp(span) === library.op &&
+  (!library.provider || attr(span, 'gen_ai.provider.name') === library.provider) &&
+  (!library.origin || attr(span, 'sentry.origin') === library.origin);
 
 /** A span that recorded the model returning tool calls on a chat-completions request (direct SDKs). */
 export const hasRecordedToolCalls = (span: SerializedStreamedSpan): boolean =>
   typeof attr(span, 'gen_ai.response.tool_calls') === 'string';
 
-/** The dedicated tool-execution span the Vercel AI SDK emits. */
+/** The dedicated tool-execution span the libraries that run tools emit. */
 export const isExecuteToolSpan = (span: SerializedStreamedSpan): boolean => getSpanOp(span) === 'gen_ai.execute_tool';
 
 /** Whether a trace shows any evidence of a tool call, used to tell a chat request from a tools one. */

@@ -1,13 +1,4 @@
-import type { Span } from '@sentry/core';
-import {
-  _INTERNAL_shouldSkipAiProviderWrapping,
-  _INTERNAL_skipAiProviderWrapping,
-  captureException,
-  SPAN_STATUS_ERROR,
-  startInactiveSpan,
-  stringify,
-  withActiveSpan,
-} from '@sentry/core';
+import { captureException, SPAN_STATUS_ERROR, startInactiveSpan, stringify, withActiveSpan } from '@sentry/core';
 import {
   GEN_AI_AGENT_NAME,
   GEN_AI_CONVERSATION_ID,
@@ -15,6 +6,7 @@ import {
   GEN_AI_PROVIDER_NAME,
   GEN_AI_REQUEST_MODEL,
   GEN_AI_RESPONSE_FINISH_REASONS,
+  GEN_AI_RESPONSE_ID,
   GEN_AI_RESPONSE_MODEL,
   GEN_AI_RESPONSE_STREAMING,
   GEN_AI_TOOL_CALL_ARGUMENTS,
@@ -23,21 +15,24 @@ import {
   GEN_AI_TOOL_NAME,
   SENTRY_ORIGIN,
 } from '@sentry/conventions/attributes';
-import { ANTHROPIC_AI_INTEGRATION_NAME } from '../anthropic-ai/constants';
+import { GEN_AI_TOOL_CALL_ID_ATTRIBUTE } from '../core/gen-ai-attributes';
 import type { GenAiOptions } from '../core/utils';
 import { getGenAiSpanOp, resolveAIRecordingOptions } from '../core/utils';
-import { GOOGLE_GENAI_INTEGRATION_NAME } from '../google-genai/constants';
-import { OPENAI_INTEGRATION_NAME } from '../openai/constants';
 import { TANSTACK_AI_MIDDLEWARE_BRAND, TANSTACK_AI_ORIGIN } from './constants';
 import type { TanstackAiChatMiddleware, TanstackAiFetch, TanstackAiMiddlewareContext, TanstackAiTool } from './types';
 import type { RunState } from './utils';
-import { addUsage, endChatSpan, setOutputMessages, startChatSpan, usageAttributes } from './utils';
+import {
+  addUsage,
+  endChatSpan,
+  endSpan,
+  getProviderName,
+  inputAttributes,
+  setOutputMessages,
+  startChatSpan,
+  usageAttributes,
+} from './utils';
 
 export type TanstackAiOptions = GenAiOptions;
-
-// TanStack's provider adapters call the vendor SDKs that Sentry instruments too, which would report
-// each model call a second time beside our `chat` span.
-const PROVIDER_INTEGRATIONS = [OPENAI_INTEGRATION_NAME, ANTHROPIC_AI_INTEGRATION_NAME, GOOGLE_GENAI_INTEGRATION_NAME];
 
 /**
  * Create a `@tanstack/ai` chat middleware that records `invoke_agent`, `chat` and `execute_tool`
@@ -50,103 +45,74 @@ const PROVIDER_INTEGRATIONS = [OPENAI_INTEGRATION_NAME, ANTHROPIC_AI_INTEGRATION
 export function createTanstackAiMiddleware(options: TanstackAiOptions = {}): TanstackAiChatMiddleware {
   // Keyed by the middleware context, which TanStack creates once per `chat()` call.
   const runs = new WeakMap<TanstackAiMiddlewareContext, RunState>();
-  // Tool call ids are unique per call, so one map serves every run this middleware sees.
-  const toolSpans = new Map<string, Span>();
-  const wrappedTools = new WeakMap<TanstackAiTool, TanstackAiTool>();
 
-  // TanStack runs `execute` outside any of the middleware hooks, so wrapping it is the only way to
-  // make the tool span active while the tool runs and have the tool's own spans nest under it.
-  const wrapTool = (tool: TanstackAiTool): TanstackAiTool => {
-    const known = wrappedTools.get(tool);
-    if (known) {
-      return known;
-    }
-    const { execute } = tool;
-    if (typeof execute !== 'function') {
-      wrappedTools.set(tool, tool);
-      return tool;
-    }
-    const wrapped: TanstackAiTool = {
-      ...tool,
-      execute: (args, context) => {
-        const span = context?.toolCallId ? toolSpans.get(context.toolCallId) : undefined;
-        return span ? withActiveSpan(span, () => execute.call(tool, args, context)) : execute.call(tool, args, context);
-      },
-    };
-    wrappedTools.set(tool, wrapped);
-    wrappedTools.set(wrapped, wrapped);
-    return wrapped;
-  };
-
-  const endRun = (ctx: TanstackAiMiddlewareContext, error?: unknown): void => {
+  const endRun = (ctx: TanstackAiMiddlewareContext, errorStatus?: string): void => {
     const run = runs.get(ctx);
     if (!run) {
       return;
     }
     runs.delete(ctx);
 
-    for (const id of run.toolCallIds) {
-      toolSpans.get(id)?.end();
-      toolSpans.delete(id);
+    for (const span of run.toolSpans.values()) {
+      endSpan(span, errorStatus);
     }
-    endChatSpan(run, error);
-
+    endChatSpan(run, errorStatus);
     run.agentSpan.setAttributes(usageAttributes(run.usage));
-    if (error !== undefined) {
-      run.agentSpan.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
-    }
-    run.agentSpan.end();
+    endSpan(run.agentSpan, errorStatus);
   };
 
   return {
     name: 'sentry',
     [TANSTACK_AI_MIDDLEWARE_BRAND]: true,
 
-    onStart(ctx) {
-      if (ctx.activity !== 'chat') {
-        return;
-      }
-      if (!PROVIDER_INTEGRATIONS.every(name => _INTERNAL_shouldSkipAiProviderWrapping(name))) {
-        _INTERNAL_skipAiProviderWrapping(PROVIDER_INTEGRATIONS);
-      }
-
-      const { recordInputs, recordOutputs } = resolveAIRecordingOptions(options);
-      const agentName = ctx.subagentName;
-      runs.set(ctx, {
-        agentSpan: startInactiveSpan({
-          name: agentName ? `invoke_agent ${agentName}` : 'invoke_agent',
-          op: getGenAiSpanOp('invoke_agent'),
-          attributes: {
-            [SENTRY_ORIGIN]: TANSTACK_AI_ORIGIN,
-            [GEN_AI_OPERATION_NAME]: 'invoke_agent',
-            [GEN_AI_PROVIDER_NAME]: ctx.provider,
-            [GEN_AI_REQUEST_MODEL]: ctx.model,
-            [GEN_AI_CONVERSATION_ID]: ctx.threadId,
-            [GEN_AI_RESPONSE_STREAMING]: ctx.streaming,
-            ...(agentName ? { [GEN_AI_AGENT_NAME]: agentName } : {}),
-          },
-        }),
-        recordInputs,
-        recordOutputs,
-        outputText: '',
-        outputToolCalls: [],
-        toolCallNames: new Map(),
-        usage: {},
-        toolCallIds: new Set(),
-      });
-    },
-
     onConfig(ctx, config) {
-      const tools = config.tools.some(tool => wrappedTools.get(tool) !== tool) ? config.tools.map(wrapTool) : undefined;
+      // TanStack runs the `init` phase once per `chat()` call, before `onStart` and before any tool can run, so the
+      // run starts here and its tools get the span of their call from the start.
+      if (ctx.phase === 'init' && ctx.activity === 'chat') {
+        const { recordInputs, recordOutputs } = resolveAIRecordingOptions(options);
+        const agentName = ctx.subagentName;
+        runs.set(ctx, {
+          agentSpan: startInactiveSpan({
+            name: agentName ? `invoke_agent ${agentName}` : 'invoke_agent',
+            op: getGenAiSpanOp('invoke_agent'),
+            attributes: {
+              [SENTRY_ORIGIN]: TANSTACK_AI_ORIGIN,
+              [GEN_AI_OPERATION_NAME]: 'invoke_agent',
+              [GEN_AI_PROVIDER_NAME]: getProviderName(ctx),
+              [GEN_AI_REQUEST_MODEL]: ctx.model,
+              [GEN_AI_CONVERSATION_ID]: ctx.threadId,
+              [GEN_AI_RESPONSE_STREAMING]: ctx.streaming,
+              ...(agentName ? { [GEN_AI_AGENT_NAME]: agentName } : {}),
+              ...(recordInputs ? inputAttributes(config.messages, config.systemPrompts) : {}),
+            },
+          }),
+          recordInputs,
+          recordOutputs,
+          outputText: '',
+          outputToolCalls: [],
+          toolCallNames: new Map(),
+          usage: {},
+          toolSpans: new Map(),
+          wrappedTools: new WeakMap(),
+        });
+      }
 
       const run = runs.get(ctx);
+      if (!run) {
+        return undefined;
+      }
+      const tools = config.tools.some(tool => run.wrappedTools.get(tool) !== tool)
+        ? config.tools.map(tool => wrapTool(run, tool))
+        : undefined;
       // `beforeModel` opens each agent-loop model call; `structuredOutput` the separate final call
-      // made for `outputSchema`. `init` fires once before `onStart`, with no run yet.
-      if (!run || (ctx.phase !== 'beforeModel' && ctx.phase !== 'structuredOutput')) {
+      // made for `outputSchema`.
+      if (ctx.phase !== 'beforeModel' && ctx.phase !== 'structuredOutput') {
         return tools ? { tools } : undefined;
       }
 
-      endChatSpan(run);
+      // A model call that completes ends its span at the `afterModel` boundary. A span that is still open here
+      // belongs to a call that failed and that a middleware retried with `ctx.retry()`.
+      endChatSpan(run, 'internal_error');
       const chatSpan = startChatSpan(ctx, config, run);
       run.chatSpan = chatSpan;
 
@@ -163,8 +129,29 @@ export function createTanstackAiMiddleware(options: TanstackAiOptions = {}): Tan
 
     onChunk(ctx, chunk) {
       const run = runs.get(ctx);
-      const span = run?.chatSpan;
-      if (!run || !span) {
+      if (!run) {
+        return;
+      }
+      if (chunk.type === 'RUN_FINISHED' || chunk.type === 'RUN_ERROR') {
+        // TanStack sets the call metadata of the `structuredOutput` call only after `onConfig`.
+        const provider = getProviderName(ctx);
+        run.chatSpan?.setAttribute(GEN_AI_PROVIDER_NAME, provider);
+        run.agentSpan.setAttribute(GEN_AI_PROVIDER_NAME, provider);
+      }
+      // A provider error ends the run with this chunk. `chat({ stream: false })` throws on it and stops
+      // reading, so TanStack calls no terminal hook.
+      if (chunk.type === 'RUN_ERROR') {
+        endRun(ctx, ctx.signal?.aborted ? 'cancelled' : 'internal_error');
+        return;
+      }
+      // A run that pauses at an interrupt ends with this chunk. For an interrupt at `beforeModel` or
+      // `afterModel`, TanStack calls no terminal hook.
+      if (chunk.type === 'RUN_FINISHED' && chunk.outcome?.type === 'interrupt') {
+        endRun(ctx);
+        return;
+      }
+      const span = run.chatSpan;
+      if (!span) {
         return;
       }
 
@@ -180,13 +167,31 @@ export function createTanstackAiMiddleware(options: TanstackAiOptions = {}): Tan
           arguments: stringify(chunk.input ?? {}),
         });
       } else if (chunk.type === 'RUN_FINISHED') {
-        if (chunk.model) {
-          span.setAttribute(GEN_AI_RESPONSE_MODEL, chunk.model);
-        }
+        // An adapter can report these only in the chunk's `metadata.tanstack`. TanStack copies them
+        // into `callMetadata` before middleware sees the chunk.
+        const responseModel = chunk.model ?? ctx.callMetadata?.model;
+        const responseId = chunk.responseId ?? ctx.callMetadata?.responseId;
         if (chunk.finishReason) {
           span.setAttribute(GEN_AI_RESPONSE_FINISH_REASONS, stringify([chunk.finishReason]));
         }
-        setOutputMessages(span, run, chunk.finishReason ?? undefined);
+        // The agent span keeps the response of the last model call, which is the answer of the run.
+        for (const target of [span, run.agentSpan]) {
+          if (responseModel) {
+            target.setAttribute(GEN_AI_RESPONSE_MODEL, responseModel);
+          }
+          if (responseId) {
+            target.setAttribute(GEN_AI_RESPONSE_ID, responseId);
+          }
+          setOutputMessages(target, run, chunk.finishReason ?? undefined);
+        }
+      }
+    },
+
+    // Runs after each model call, before the tools that it asked for, so the `chat` span does not cover them.
+    onInterruptBoundary(ctx) {
+      const run = runs.get(ctx);
+      if (run && ctx.phase === 'afterModel') {
+        endChatSpan(run);
       }
     },
 
@@ -199,15 +204,17 @@ export function createTanstackAiMiddleware(options: TanstackAiOptions = {}): Tan
       run.usage = addUsage(run.usage, usage);
     },
 
-    onBeforeToolCall(ctx, { toolName, toolCallId, args, tool }) {
+    // Guards run after every `onBeforeToolCall` decision and after the input check, so `args` are the
+    // arguments the tool gets. A `transformArgs` decision of an earlier middleware ends the `onBeforeToolCall`
+    // chain, but not the guards.
+    onGuardToolCall(ctx, { toolName, toolCallId, args, tool }) {
       const run = runs.get(ctx);
       // A client tool runs in the browser, not here, so there is nothing to time.
       if (!run || (tool && typeof tool.execute !== 'function')) {
         return;
       }
 
-      run.toolCallIds.add(toolCallId);
-      toolSpans.set(
+      run.toolSpans.set(
         toolCallId,
         startInactiveSpan({
           name: `execute_tool ${toolName}`,
@@ -217,6 +224,7 @@ export function createTanstackAiMiddleware(options: TanstackAiOptions = {}): Tan
             [SENTRY_ORIGIN]: TANSTACK_AI_ORIGIN,
             [GEN_AI_OPERATION_NAME]: 'execute_tool',
             [GEN_AI_TOOL_NAME]: toolName,
+            [GEN_AI_TOOL_CALL_ID_ATTRIBUTE]: toolCallId,
             [GEN_AI_CONVERSATION_ID]: ctx.threadId,
             ...(tool?.description ? { [GEN_AI_TOOL_DESCRIPTION]: tool.description } : {}),
             ...(run.recordInputs ? { [GEN_AI_TOOL_CALL_ARGUMENTS]: stringify(args) } : {}),
@@ -226,18 +234,20 @@ export function createTanstackAiMiddleware(options: TanstackAiOptions = {}): Tan
     },
 
     onAfterToolCall(ctx, { toolCallId, ok, result, error }) {
-      const span = toolSpans.get(toolCallId);
-      if (!span) {
+      const run = runs.get(ctx);
+      const span = run?.toolSpans.get(toolCallId);
+      if (!run || !span) {
         return;
       }
-      toolSpans.delete(toolCallId);
-      const run = runs.get(ctx);
-      run?.toolCallIds.delete(toolCallId);
+      run.toolSpans.delete(toolCallId);
 
-      if (run?.recordOutputs && ok && result !== undefined) {
+      if (run.recordOutputs && ok && result !== undefined) {
         span.setAttribute(GEN_AI_TOOL_CALL_RESULT, typeof result === 'string' ? result : stringify(result));
       }
-      if (!ok) {
+      if (!ok && ctx.signal?.aborted) {
+        // TanStack fails each tool that has not started yet with an `Operation aborted` error.
+        span.setStatus({ code: SPAN_STATUS_ERROR, message: 'cancelled' });
+      } else if (!ok) {
         span.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
         // TanStack hands a tool failure back to the model as its result, so it never reaches the
         // app's error handlers.
@@ -252,12 +262,38 @@ export function createTanstackAiMiddleware(options: TanstackAiOptions = {}): Tan
       endRun(ctx);
     },
 
+    // As in the other AI integrations, an aborted call counts as failed.
     onAbort(ctx) {
-      endRun(ctx);
+      endRun(ctx, 'cancelled');
     },
 
-    onError(ctx, { error }) {
-      endRun(ctx, error);
+    onError(ctx) {
+      endRun(ctx, 'internal_error');
     },
   };
+}
+
+// TanStack runs `execute` outside any of the middleware hooks, so wrapping it is the only way to make the
+// tool span active while the tool runs and have the tool's own spans nest under it.
+function wrapTool(run: RunState, tool: TanstackAiTool): TanstackAiTool {
+  const known = run.wrappedTools.get(tool);
+  if (known) {
+    return known;
+  }
+  const { execute } = tool;
+  const wrapped: TanstackAiTool =
+    typeof execute === 'function'
+      ? {
+          ...tool,
+          execute: (args, context) => {
+            const span = context?.toolCallId ? run.toolSpans.get(context.toolCallId) : undefined;
+            return span
+              ? withActiveSpan(span, () => execute.call(tool, args, context))
+              : execute.call(tool, args, context);
+          },
+        }
+      : tool;
+  run.wrappedTools.set(tool, wrapped);
+  run.wrappedTools.set(wrapped, wrapped);
+  return wrapped;
 }

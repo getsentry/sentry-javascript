@@ -1,4 +1,5 @@
 allowBuilds:
+  '@openrouter/sdk': false
   esbuild: true
   workerd: true
 minimumReleaseAge: 0
