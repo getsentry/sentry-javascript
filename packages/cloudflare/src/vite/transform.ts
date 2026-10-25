@@ -607,6 +607,11 @@ function wrapDefaultSpecifier(localName: string, state: TransformState): string 
 /**
  * `export { default } from './handler'`. The handler may already be wrapped in its own module,
  * which this transform cannot see, so the emitted guard returns such a handler as-is.
+ *
+ * The original re-export is a live binding to the handler module's export, but the wrapper is not
+ * set until this module's body runs. A circular import that reads the default export before then
+ * gets `undefined` instead of the handler. The binding is a `var` so that the read does not throw,
+ * as a `const` would, and stop the Worker from starting. See `wrapDefaultSpecifier`.
  */
 function wrapDefaultReexport(
   localName: string,
@@ -619,7 +624,7 @@ function wrapDefaultReexport(
     localName === DEFAULT_IMPORT
       ? `import ${target} from ${sourceLiteral};`
       : `import { ${localName} as ${target} } from ${sourceLiteral};`,
-    `const __SENTRY_DEFAULT_EXPORT__ = __SENTRY__._INTERNAL_wrapUnlessInstrumented(__SENTRY__.withSentry, ${state.optionsFn}, ${target});`,
+    `var __SENTRY_DEFAULT_EXPORT__ = __SENTRY__._INTERNAL_wrapUnlessInstrumented(__SENTRY__.withSentry, ${state.optionsFn}, ${target});`,
   );
   state.needsImport = true;
   state.autoWrapped.add(DEFAULT_EXPORT);
