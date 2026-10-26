@@ -116,8 +116,10 @@ describe('wrapServerRequestHandler', () => {
   });
 
   // Serves a streamed response whose source fails after the handler returns.
-  async function serveFailingStream(serve: ReturnType<typeof setup>['serve']): Promise<void> {
-    const error = new Error('stream interrupted');
+  async function serveFailingStream(
+    serve: ReturnType<typeof setup>['serve'],
+    error: unknown = new Error('stream interrupted'),
+  ): Promise<void> {
     let controller: ReadableStreamDefaultController<Uint8Array>;
     const source = new ReadableStream<Uint8Array>({
       start(value) {
@@ -153,5 +155,15 @@ describe('wrapServerRequestHandler', () => {
 
     expect(events[0]?.exception?.values?.[0]?.mechanism).toEqual(MECHANISM);
     expect(transactions).toHaveLength(0);
+  });
+
+  it('does not capture or fail the span when the client disconnects from a streamed response', async () => {
+    const { events, transactions, serve } = setup({ spans: true });
+
+    await serveFailingStream(serve, new DOMException('The request has been cancelled.', 'AbortError'));
+    await vi.waitFor(() => expect(transactions).toHaveLength(1));
+
+    expect(events).toHaveLength(0);
+    expect(transactions[0]?.contexts?.trace?.status).toBe('ok');
   });
 });

@@ -98,4 +98,23 @@ describe('monitorStream', () => {
       process.off('unhandledRejection', unhandled);
     }
   });
+
+  it('does not report an abort of the source, such as a client disconnect, as an error', async () => {
+    const onDone = vi.fn();
+    const onError = vi.fn();
+    const abort = new DOMException('The request has been cancelled.', 'AbortError');
+    let controller: ReadableStreamDefaultController<Uint8Array>;
+    const source = new ReadableStream<Uint8Array>({
+      start(value) {
+        controller = value;
+      },
+    });
+
+    const text = new Response(monitorStream(source, onDone, onError)).text();
+    controller!.error(abort);
+
+    await expect(text).rejects.toBe(abort);
+    await vi.waitFor(() => expect(onDone).toHaveBeenCalledTimes(1));
+    expect(onError).not.toHaveBeenCalled();
+  });
 });
