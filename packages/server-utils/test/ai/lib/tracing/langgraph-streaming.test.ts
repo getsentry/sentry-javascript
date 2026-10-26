@@ -418,9 +418,19 @@ describe('LangGraph stream cancellation and tee', () => {
   });
 
   it.each([
-    ['pipeThrough without a readable side', (stream: ReadableStream<string>) => stream.pipeThrough({ writable: new WritableStream() } as ReadableWritablePair<string, string>)],
-    ['pipeThrough with an invalid signal', (stream: ReadableStream<string>) => stream.pipeThrough(new TransformStream(), { signal: {} as AbortSignal })],
-    ['pipeTo with an invalid signal', (stream: ReadableStream<string>) => stream.pipeTo(new WritableStream(), { signal: {} as AbortSignal })],
+    [
+      'pipeThrough without a readable side',
+      (stream: ReadableStream<string>) =>
+        stream.pipeThrough({ writable: new WritableStream() } as ReadableWritablePair<string, string>),
+    ],
+    [
+      'pipeThrough with an invalid signal',
+      (stream: ReadableStream<string>) => stream.pipeThrough(new TransformStream(), { signal: {} as AbortSignal }),
+    ],
+    [
+      'pipeTo with an invalid signal',
+      (stream: ReadableStream<string>) => stream.pipeTo(new WritableStream(), { signal: {} as AbortSignal }),
+    ],
   ])('rejects %s without locking the source', async (_label, pipe) => {
     const span = createSpan();
     const stream = instrumentStreamResult(
