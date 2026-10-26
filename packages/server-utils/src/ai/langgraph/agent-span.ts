@@ -18,6 +18,7 @@ import {
   _INTERNAL_mergeLangChainCallbackHandler,
   getConversationIdFromMetadata,
   getConversationIdMetadataFromConfig,
+  getInheritedLangChainCallbacks,
   normalizeLangChainMessages,
 } from '../langchain/utils';
 import { LANGGRAPH_ORIGIN } from './constants';
@@ -81,9 +82,9 @@ export function prepareAgentSpan(
     span.setAttribute(GEN_AI_REQUEST_MODEL, modelName);
   }
 
-  // Inject callback handler and agent name into invoke config
   if (sentryCallbackHandler) {
-    const invokeConfig = (args[1] ?? {}) as Record<string, unknown>;
+    // A copy, so nothing is written back to a config object the caller reuses for other calls.
+    const invokeConfig: Record<string, unknown> = { ...(args[1] as Record<string, unknown> | undefined) };
     args[1] = invokeConfig;
 
     const existingMetadata = (invokeConfig.metadata ?? {}) as Record<string, unknown>;
@@ -94,12 +95,15 @@ export function prepareAgentSpan(
       ...(typeof graphName === 'string' ? { lc_agent_name: graphName } : {}),
     };
 
-    invokeConfig.callbacks = _INTERNAL_mergeLangChainCallbackHandler(invokeConfig.callbacks, sentryCallbackHandler);
+    // Explicit callbacks replace the parent run's, which LangChain would otherwise inherit.
+    invokeConfig.callbacks = _INTERNAL_mergeLangChainCallbackHandler(
+      invokeConfig.callbacks ?? getInheritedLangChainCallbacks(),
+      sentryCallbackHandler,
+    );
   }
 
   const recordInputs = options.recordInputs;
 
-  // Extract available tools from the graph instance
   const tools = recordInputs ? extractToolsFromCompiledGraph(graphInstance) : null;
   if (tools) {
     span.setAttribute(GEN_AI_TOOL_DEFINITIONS, JSON.stringify(tools));

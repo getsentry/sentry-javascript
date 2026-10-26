@@ -332,4 +332,28 @@ describe('LangGraph stream() agent span', () => {
 
     expect(agentSpans()).toHaveLength(1);
   });
+
+  it('leaves the caller config untouched in invoke() and stream() when the Sentry handler is injected', async () => {
+    const graph = createGraph(emit => {
+      emit('handleChainEnd', {}, 'root');
+      return createStream();
+    });
+    const instrumented = Object.assign(graph, {
+      async invoke(
+        this: { stream: (input: unknown, config: unknown) => Promise<unknown> },
+        input: unknown,
+        config: unknown,
+      ) {
+        await this.stream(input, config);
+        return {};
+      },
+    });
+    instrumentCompiledGraph(instrumented, { name: 'weather_graph' }, {}, undefined, { name: 'SentryCallbackHandler' });
+    const config = { configurable: { thread_id: 't1' } };
+
+    await instrumented.invoke({}, config);
+    await instrumented.stream({}, config);
+
+    expect(config).toEqual({ configurable: { thread_id: 't1' } });
+  });
 });

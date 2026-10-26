@@ -1,7 +1,7 @@
 import { getCurrentScope, SPAN_STATUS_ERROR, startSpanManual } from '@sentry/core';
 import { GEN_AI_RESPONSE_STREAMING } from '@sentry/conventions/attributes';
 import type { BaseChatModel, LangChainMessage } from '../langchain/types';
-import { _INTERNAL_addLangChainCallbackHandler } from '../langchain/utils';
+import { _INTERNAL_addLangChainCallbackHandler, getInheritedLangChainCallbacks } from '../langchain/utils';
 import { getAgentSpanOptions, getInvokeMarker, LANGGRAPH_INVOKE_ACTIVE, prepareAgentSpan } from './agent-span';
 import type { CompiledGraph, LangGraphOptions } from './types';
 import { setResponseAttributes } from './utils';
@@ -57,6 +57,7 @@ export function instrumentCompiledGraphStream(
             // Recording must never change the outcome of the run.
           }
           span.end();
+          inputMessages = null;
         };
 
         // The root run starts before any of its children, so it is the first run this per-call listener sees.
@@ -92,7 +93,12 @@ export function instrumentCompiledGraphStream(
             llm,
             sentryCallbackHandler,
           );
-          config.callbacks = _INTERNAL_addLangChainCallbackHandler(config.callbacks, listener);
+          // `prepareAgentSpan` may have replaced the config with its own copy.
+          const callConfig = callArgs[1] as Record<string, unknown>;
+          callConfig.callbacks = _INTERNAL_addLangChainCallbackHandler(
+            callConfig.callbacks ?? getInheritedLangChainCallbacks(),
+            listener,
+          );
           stream = (await Reflect.apply(target, thisArg, callArgs)) as typeof stream;
         } catch (error) {
           finish({ error });

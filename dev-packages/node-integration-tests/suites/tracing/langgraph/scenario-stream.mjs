@@ -1,3 +1,4 @@
+import { RunnableLambda } from '@langchain/core/runnables';
 import { FakeListChatModel } from '@langchain/core/utils/testing';
 import { END, MessagesAnnotation, START, StateGraph } from '@langchain/langgraph';
 import * as Sentry from '@sentry/node';
@@ -61,6 +62,25 @@ async function run() {
     }
 
     await graph.invoke(user('Invoke the graph'));
+
+    // stream() called without config inside a parent run must keep reporting to the parent's callbacks.
+    let graphRunsSeenByParent = 0;
+    const parentCallback = {
+      handleChainStart: (_chain, _inputs, _runId, _parentRunId, _tags, metadata) => {
+        if (metadata?.lc_agent_name === 'weather_graph') {
+          graphRunsSeenByParent++;
+        }
+      },
+    };
+    await RunnableLambda.from(async input => {
+      for await (const _chunk of await graph.stream(input)) {
+        // drain
+      }
+    }).invoke(user('Stream inside a parent run'), { callbacks: [parentCallback] });
+    Sentry.startSpan(
+      { name: 'parent callbacks', attributes: { 'test.graph_runs_seen': graphRunsSeenByParent } },
+      () => {},
+    );
 
     // Lets the unread stream's run finish before the root span ends.
     await sleep(200);

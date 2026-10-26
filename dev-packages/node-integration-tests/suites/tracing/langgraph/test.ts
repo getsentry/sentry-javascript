@@ -383,7 +383,10 @@ describe('LangGraph integration', () => {
                 span => span.attributes[SENTRY_OP]?.value === 'gen_ai.chat' && span.parent_span_id === parent?.span_id,
               );
 
-            expect(agentSpans).toHaveLength(9);
+            expect(agentSpans).toHaveLength(10);
+            expect(agentSpanFor('Stream inside a parent run')?.status).toBe('ok');
+            const parentCallbacks = spans.find(span => span.name === 'parent callbacks');
+            expect(parentCallbacks?.attributes['test.graph_runs_seen']?.value).toBeGreaterThan(0);
 
             const read = agentSpanFor('Read the whole stream');
             expect(read?.status).toBe('ok');
@@ -414,6 +417,7 @@ describe('LangGraph integration', () => {
             expect(invoked?.attributes[GEN_AI_RESPONSE_STREAMING]).toBeUndefined();
           },
         })
+        .unordered()
         .start()
         .completed();
     });
@@ -440,6 +444,7 @@ describe('LangGraph integration', () => {
               expect(chatSpans[0]!.attributes[GEN_AI_AGENT_NAME]?.value).toBe('helpful_assistant');
             },
           })
+          .unordered()
           .start()
           .completed();
       },
