@@ -157,3 +157,68 @@ test('records an image decision with its image data', async ({ baseURL }) => {
     { type: 'evaluation', answers: { is_red: { type: 'predicate', probability: expect.any(Number) } } },
   ]);
 });
+
+test('records a Vercel AI decision with the confidence of its answers', async ({ baseURL }) => {
+  const response = await fetch(`${baseURL}/vercel-ai-decide`);
+  const body = await response.json();
+  expect(response.status, JSON.stringify(body)).toBe(200);
+  const { traceId }: { traceId: string } = body;
+
+  console.log(`Polling for gen_ai.decide span: sentry trace view ${traceTarget(traceId)}`);
+
+  let spanId: string | undefined;
+  await expect
+    .poll(() => (spanId = findSpanInTrace(traceId, GEN_AI_DECIDE)?.event_id), EVENT_POLLING_OPTIONS)
+    .toBeDefined();
+
+  let attributes: Record<string, unknown> | undefined;
+  await expect
+    .poll(() => (attributes = fetchSpanAttributes(traceId, spanId!)), EVENT_POLLING_OPTIONS)
+    .toMatchObject({
+      'span.name': `decide ${MODEL}`,
+      [SEARCH_SPAN__OP]: GEN_AI_DECIDE,
+      [SEARCH_SPAN__STATUS]: 'ok',
+      [SEARCH_ORIGIN]: 'auto.vercelai.channel',
+      [SEARCH_GEN_AI__OPERATION__NAME]: 'decide',
+      [SEARCH_GEN_AI__PROVIDER__NAME]: 'openai.decision',
+      [SEARCH_GEN_AI__REQUEST__MODEL]: MODEL,
+    });
+
+  expect(JSON.parse(attributes![SEARCH_GEN_AI__INPUT__MESSAGES] as string)).toEqual([
+    {
+      type: 'evaluation',
+      state: 'I was charged twice this month and want a refund.',
+      questions: {
+        wantsRefund: { type: 'boolean', instructions: 'Is a refund requested?' },
+        department: {
+          type: 'choice',
+          instructions: 'Which team should handle this?',
+          criteria: { billing: 'Charges and refunds', other: 'Anything else' },
+        },
+        urgency: { type: 'score', instructions: 'How urgent is this ticket?', criteria: ['low', 'high'] },
+      },
+    },
+  ]);
+
+  // The OpenAI provider moves `confidence` into its provider metadata; the span must keep it on the answers.
+  expect(JSON.parse(attributes![SEARCH_GEN_AI__OUTPUT__MESSAGES] as string)).toEqual([
+    {
+      type: 'evaluation',
+      answers: {
+        wantsRefund: { type: 'boolean', probability: expect.any(Number) },
+        department: {
+          type: 'choice',
+          choice: expect.stringMatching(/^(billing|other)$/),
+          probabilities: { billing: expect.any(Number), other: expect.any(Number) },
+          confidence: expect.any(Number),
+        },
+        urgency: {
+          type: 'score',
+          score: expect.any(Number),
+          probabilities: { 0: expect.any(Number), 1: expect.any(Number) },
+          confidence: expect.any(Number),
+        },
+      },
+    },
+  ]);
+});

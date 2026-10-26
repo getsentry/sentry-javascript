@@ -41,7 +41,7 @@ describe.runIf(supports({ min: 22 }))('GraphQL tracing channel Test', () => {
               expect(executeSpan?.name).toBe('GraphQL query');
               expect(executeSpan?.attributes['sentry.op']).toEqual({ value: 'graphql', type: 'string' });
               expect(executeSpan?.attributes['sentry.origin']).toEqual({
-                value: 'auto.graphql.diagnostic_channel',
+                value: 'auto.graphql.graphql',
                 type: 'string',
               });
               expect(executeSpan?.attributes['graphql.operation.type']).toEqual({ value: 'query', type: 'string' });
@@ -54,7 +54,7 @@ describe.runIf(supports({ min: 22 }))('GraphQL tracing channel Test', () => {
               expect(getUserSpan?.name).toBe('GraphQL query');
               expect(getUserSpan?.attributes['sentry.op']).toEqual({ value: 'graphql', type: 'string' });
               expect(getUserSpan?.attributes['sentry.origin']).toEqual({
-                value: 'auto.graphql.diagnostic_channel',
+                value: 'auto.graphql.graphql',
                 type: 'string',
               });
               expect(getUserSpan?.attributes['graphql.operation.type']).toEqual({ value: 'query', type: 'string' });
@@ -71,7 +71,7 @@ describe.runIf(supports({ min: 22 }))('GraphQL tracing channel Test', () => {
               expect(loginSpan?.name).toBe('GraphQL mutation');
               expect(loginSpan?.attributes['sentry.op']).toEqual({ value: 'graphql', type: 'string' });
               expect(loginSpan?.attributes['sentry.origin']).toEqual({
-                value: 'auto.graphql.diagnostic_channel',
+                value: 'auto.graphql.graphql',
                 type: 'string',
               });
               expect(loginSpan?.attributes['graphql.operation.name']).toEqual({ value: 'Login', type: 'string' });

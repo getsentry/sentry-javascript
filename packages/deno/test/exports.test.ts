@@ -12,6 +12,7 @@ const EXPECTED_FUNCTION_EXPORTS = [
   'createConsolaReporter',
   'growthbookIntegration',
   'moduleMetadataIntegration',
+  'parameterize',
   // @sentry/core/server
   'trpcMiddleware',
   // @sentry/server-utils
@@ -24,7 +25,10 @@ const EXPECTED_FUNCTION_EXPORTS = [
   'createLangChainCallbackHandler',
   'instrumentLangChainEmbeddings',
   'instrumentStateGraph',
+  'instrumentStateGraphCompile',
   'instrumentCreateReactAgent',
+  // In the default integrations, so users who set `defaultIntegrations` can add it back
+  'fastifyIntegration',
   // ./sdk
   'initWithoutDefaultIntegrations',
   'getDefaultIntegrationsWithoutPerformance',

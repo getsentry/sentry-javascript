@@ -23,6 +23,17 @@ const mockEnableSourceMapsPlugin: Plugin = {
   config: vi.fn(),
 };
 
+const mockComposeNitroServiceSourceMapsPlugin: Plugin = {
+  name: 'sentry-tanstackstart-nitro-service-source-maps',
+  apply: 'build',
+  load: vi.fn(),
+};
+
+const mockEnableNitroSourceMapsPlugin: Plugin = {
+  name: 'sentry-tanstackstart-nitro-source-maps',
+  apply: 'build',
+};
+
 const mockMiddlewarePlugin: Plugin = {
   name: 'sentry-tanstack-middleware-auto-instrument',
   apply: 'build',
@@ -61,6 +72,11 @@ vi.mock('../../src/vite/sourceMaps', () => ({
   makeEnableSourceMapsVitePlugin: vi.fn(() => [mockEnableSourceMapsPlugin]),
 }));
 
+vi.mock('../../src/vite/nitroSourceMaps', () => ({
+  makeComposeNitroServiceSourceMapsPlugin: vi.fn(() => mockComposeNitroServiceSourceMapsPlugin),
+  makeEnableNitroSourceMapsPlugin: vi.fn(() => mockEnableNitroSourceMapsPlugin),
+}));
+
 vi.mock('../../src/vite/autoInstrumentMiddleware', () => ({
   makeAutoInstrumentMiddlewarePlugin: vi.fn(() => mockMiddlewarePlugin),
 }));
@@ -88,7 +104,9 @@ describe('sentryTanstackStart()', () => {
         mockOrchestrionPlugin,
         mockSourceMapsConfigPlugin,
         mockSentryVitePlugin,
+        mockComposeNitroServiceSourceMapsPlugin,
         mockEnableSourceMapsPlugin,
+        mockEnableNitroSourceMapsPlugin,
       ]);
     });
 
@@ -122,6 +140,7 @@ describe('sentryTanstackStart()', () => {
         mockOrchestrionPlugin,
         mockSourceMapsConfigPlugin,
         mockSentryVitePlugin,
+        mockComposeNitroServiceSourceMapsPlugin,
       ]);
     });
 
@@ -136,6 +155,7 @@ describe('sentryTanstackStart()', () => {
         mockOrchestrionPlugin,
         mockSourceMapsConfigPlugin,
         mockSentryVitePlugin,
+        mockComposeNitroServiceSourceMapsPlugin,
       ]);
     });
 
@@ -150,7 +170,9 @@ describe('sentryTanstackStart()', () => {
         mockOrchestrionPlugin,
         mockSourceMapsConfigPlugin,
         mockSentryVitePlugin,
+        mockComposeNitroServiceSourceMapsPlugin,
         mockEnableSourceMapsPlugin,
+        mockEnableNitroSourceMapsPlugin,
       ]);
     });
   });
@@ -164,6 +186,7 @@ describe('sentryTanstackStart()', () => {
         mockOrchestrionPlugin,
         mockSourceMapsConfigPlugin,
         mockSentryVitePlugin,
+        mockComposeNitroServiceSourceMapsPlugin,
         mockMiddlewarePlugin,
       ]);
     });
@@ -179,6 +202,7 @@ describe('sentryTanstackStart()', () => {
         mockOrchestrionPlugin,
         mockSourceMapsConfigPlugin,
         mockSentryVitePlugin,
+        mockComposeNitroServiceSourceMapsPlugin,
         mockMiddlewarePlugin,
       ]);
     });
@@ -194,6 +218,7 @@ describe('sentryTanstackStart()', () => {
         mockOrchestrionPlugin,
         mockSourceMapsConfigPlugin,
         mockSentryVitePlugin,
+        mockComposeNitroServiceSourceMapsPlugin,
       ]);
     });
 
@@ -226,6 +251,7 @@ describe('sentryTanstackStart()', () => {
         mockOrchestrionPlugin,
         mockSourceMapsConfigPlugin,
         mockSentryVitePlugin,
+        mockComposeNitroServiceSourceMapsPlugin,
         mockMiddlewarePlugin,
       ]);
     });
