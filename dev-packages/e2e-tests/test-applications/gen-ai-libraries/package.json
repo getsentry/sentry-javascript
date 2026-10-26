@@ -22,6 +22,7 @@
     "@sentry/cloudflare": "file:../../packed/sentry-cloudflare-packed.tgz",
     "@sentry/node": "file:../../packed/sentry-node-packed.tgz",
     "@tanstack/ai": "^1.0.0",
+    "@tanstack/ai-openai": "^1.0.0",
     "@tanstack/ai-openrouter": "^1.0.0",
     "ai": "~7.0.97",
     "express": "^4.21.2",

@@ -2,6 +2,7 @@
 import * as Sentry from '@sentry/node';
 import express from 'express';
 import { libraries } from './libraries';
+import { tanstackAiActivities } from './tanstack-ai-activities';
 
 const apiKey = process.env.E2E_OPENROUTER_API_KEY;
 if (!apiKey) {
@@ -29,6 +30,17 @@ for (const library of libraries) {
         library.tools(apiKey),
       );
       res.send({ toolCalls });
+    } catch (error) {
+      next(error);
+    }
+  });
+}
+
+for (const activity of tanstackAiActivities) {
+  app.get(`/tanstack-ai/${activity.id}`, async (_req, res, next) => {
+    try {
+      const result = await Sentry.startSpan({ name: 'ai-workflow', op: 'function' }, () => activity.run(apiKey));
+      res.send({ result });
     } catch (error) {
       next(error);
     }
