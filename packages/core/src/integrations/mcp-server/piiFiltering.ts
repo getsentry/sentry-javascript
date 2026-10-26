@@ -3,7 +3,7 @@
  *
  * Removes network-level sensitive data when dataCollection.userInfo is false.
  * Input/output data (request arguments, tool/prompt results) is controlled
- * separately via recordInputs/recordOutputs options.
+ * separately via dataCollection.mcp and the recordInputs/recordOutputs options.
  */
 import { CLIENT_ADDRESS, CLIENT_PORT, MCP_RESOURCE_URI } from '@sentry/conventions/attributes';
 import type { SpanAttributeValue } from '../../types/span';

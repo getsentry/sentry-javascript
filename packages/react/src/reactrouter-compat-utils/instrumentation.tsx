@@ -44,6 +44,7 @@ import { checkRouteForAsyncHandler } from './lazy-routes';
 import {
   clearNavigationContext,
   getActiveRootSpan,
+  getRootRoutes,
   resolveRouteNameAndSource,
   setNavigationContext,
   transactionNameHasWildcard,
@@ -389,7 +390,7 @@ export function updateNavigationSpan(
   const shouldUpdate = !hasBeenNamed || forceUpdate || currentNameHasWildcard;
 
   if (shouldUpdate && !end_timestamp) {
-    const currentBranches = config.matchRoutes(allRoutes, location);
+    const currentBranches = config.matchRoutes(getRootRoutes(allRoutes), location);
     const [name, source] = resolveRouteNameAndSource(
       location,
       allRoutes,
@@ -993,7 +994,7 @@ export function handleNavigation(opts: {
   const { location, routes, navigationType, version, config, matches, allRoutes } = opts;
   const branches = Array.isArray(matches)
     ? matches
-    : config.matchRoutes(allRoutes || routes, location, config.basename);
+    : config.matchRoutes(getRootRoutes(allRoutes || routes), location, config.basename);
 
   const client = getClient();
   if (!client || !config.instrumentNavigation) {
@@ -1167,7 +1168,7 @@ function updatePageloadTransaction({
 }): void {
   const branches = Array.isArray(matches)
     ? matches
-    : (config.matchRoutes(allRoutes || routes, location, config.basename) as unknown as RouteMatch[]);
+    : (config.matchRoutes(getRootRoutes(allRoutes || routes), location, config.basename) as unknown as RouteMatch[]);
 
   if (branches) {
     const [name, source] = resolveRouteNameAndSource(
@@ -1263,7 +1264,11 @@ function tryUpdateSpanNameBeforeEnd(
 
     const currentAllRoutes = Array.from(allRoutes);
     const routesToUse = currentAllRoutes.length > 0 ? currentAllRoutes : routes;
-    const branches = config.matchRoutes(routesToUse, location, config.basename) as unknown as RouteMatch[];
+    const branches = config.matchRoutes(
+      getRootRoutes(routesToUse),
+      location,
+      config.basename,
+    ) as unknown as RouteMatch[];
 
     if (!branches) {
       return;

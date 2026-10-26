@@ -145,7 +145,7 @@ describe('GoogleCloudGrpc tracing', () => {
         onlyIfParent: true,
         attributes: {
           [SENTRY_OP]: 'grpc',
-          [SENTRY_ORIGIN]: 'auto.grpc.serverless',
+          [SENTRY_ORIGIN]: 'auto.grpc.google_cloud',
           'rpc.system.name': 'grpc',
           'rpc.service': 'test-service',
           'rpc.method': 'unaryMethod',
