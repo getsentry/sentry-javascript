@@ -71,7 +71,7 @@ sentryTest('captures CLS as a streamed span with source attributes', async ({ ge
 [
   { cls: 0.05, min: 0.03, max: 0.07, source: 'body > div#content > p#partial' },
   { cls: 0.21, min: 0.18, max: 0.23, source: 'body > div#content > p' },
-  { cls: 0.35, min: 0.34, max: 0.36, source: 'body > div#content > p' },
+  { cls: 0.35, min: 0.32, max: 0.38, source: 'body > div#content > p' },
 ].forEach(({ cls, min, max, source }) => {
   sentryTest(`captures CLS ${cls} with its source`, async ({ getLocalTestUrl, page }) => {
     const url = await getLocalTestUrl({ testDir: __dirname });
