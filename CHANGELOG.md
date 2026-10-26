@@ -23,6 +23,19 @@ Work in this release was contributed by @faizansaiyed123, @itisrmk, @kunal649, @
   - Bun and Cloudflare now export the `Log` and `LogSeverityLevel` types.
   - Deno now exports `fastifyIntegration`, which was already in its default integrations.
 
+- **feat(cloudflare): Let users configure the channel integrations**
+
+  When the `@sentry/cloudflare/vite` plugin bundles an instrumented package (for example `pg` or `openai`), the SDK adds the matching integration with its default options. `@sentry/cloudflare` now exports these integrations, so you can set their options, for example in `instrument.server.ts`:
+
+  ```ts
+  export default Sentry.defineCloudflareOptions(env => ({
+    dsn: env.SENTRY_DSN,
+    integrations: [Sentry.openAIIntegration({ recordInputs: false, recordOutputs: false })],
+  }));
+  ```
+
+  These integrations need the vite plugin. Without it, they record nothing, and with `debug: true` the SDK logs a warning.
+
 ## 11.9.0
 
 ### Important Changes

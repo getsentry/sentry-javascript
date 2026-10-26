@@ -6,7 +6,7 @@ import type { CloudflareOptions } from '../src/client';
 import { CloudflareClient } from '../src/client';
 import { getDefaultIntegrations, init } from '../src/sdk';
 import { resetSdk } from './testUtils';
-import { spanStreamingIntegration } from '../src/';
+import { mysqlIntegration as exportedMysqlIntegration, spanStreamingIntegration } from '../src/';
 
 describe('init', () => {
   beforeEach(() => {
@@ -442,5 +442,34 @@ describe('getDefaultIntegrations', () => {
     client?.emit('orchestrion.module-injected', 'mysql');
 
     expect(client?.getIntegrationByName('Mysql')).toBeDefined();
+  });
+
+  test('keeps a channel integration the user configured instead of the registered default', async () => {
+    resetSdk();
+    const { mysqlIntegration } = await import('@sentry/server-utils');
+    globalThis.__SENTRY_ORCHESTRION__ = {
+      bundler: new Set(['mysql']),
+      integrations: new Map([['mysql', mysqlIntegration]]),
+    };
+    const userInstance = exportedMysqlIntegration();
+
+    const client = init({ dsn: 'https://public@dsn.ingest.sentry.io/1337', integrations: [userInstance] });
+
+    expect(client?.getIntegrationByName('Mysql')).toBe(userInstance);
+  });
+
+  test('keeps a channel integration the user configured when its module loads after init', async () => {
+    resetSdk();
+    const { mysqlIntegration } = await import('@sentry/server-utils');
+    const userInstance = exportedMysqlIntegration();
+    const client = init({ dsn: 'https://public@dsn.ingest.sentry.io/1337', integrations: [userInstance] });
+
+    globalThis.__SENTRY_ORCHESTRION__ = {
+      bundler: new Set(['mysql']),
+      integrations: new Map([['mysql', mysqlIntegration]]),
+    };
+    client?.emit('orchestrion.module-injected', 'mysql');
+
+    expect(client?.getIntegrationByName('Mysql')).toBe(userInstance);
   });
 });
