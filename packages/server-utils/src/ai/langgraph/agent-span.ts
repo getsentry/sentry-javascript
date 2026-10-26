@@ -40,7 +40,10 @@ export function getInvokeMarker(graph: object): symbol {
 }
 
 /** Name and initial attributes of an agent span, from the call's config. */
-export function getAgentSpanOptions(args: unknown[]): { name: string; attributes: SpanAttributes } {
+export function getAgentSpanOptions(
+  args: unknown[],
+  extraAttributes?: SpanAttributes,
+): { name: string; attributes: SpanAttributes } {
   const config = args.length > 1 ? (args[1] as Record<string, unknown> | undefined) : undefined;
   return {
     name: 'invoke_agent',
@@ -50,6 +53,7 @@ export function getAgentSpanOptions(args: unknown[]): { name: string; attributes
       [SENTRY_ORIGIN]: LANGGRAPH_ORIGIN,
       [SENTRY_OP]: GEN_AI_INVOKE_AGENT,
       [GEN_AI_OPERATION_NAME]: 'invoke_agent',
+      ...extraAttributes,
     },
   };
 }

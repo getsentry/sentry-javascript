@@ -1,4 +1,3 @@
-/* eslint-disable typescript-eslint/no-deprecated */
 import { getCurrentScope, SPAN_STATUS_ERROR, startSpan } from '@sentry/core';
 import { resolveAIRecordingOptions } from '../core/utils';
 import { createLangChainCallbackHandler } from '../langchain';
