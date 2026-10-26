@@ -52,7 +52,7 @@ describe('default export wrapping', () => {
     const result = transform(code, ctx)!;
     expect(result).toBeDefined();
     expect(result.code).toContain("import * as __SENTRY__ from '@sentry/cloudflare'");
-    expect(result.code).toContain('const __SENTRY_DEFAULT_EXPORT__ = handler');
+    expect(result.code).toContain('var __SENTRY_DEFAULT_EXPORT__ = handler');
     expect(result.code).toContain('__SENTRY__.withSentry((env) => ({}), __SENTRY_DEFAULT_EXPORT__)');
     expect(result.code).not.toContain('export default handler');
     expect(result.map).toBeDefined();
@@ -62,7 +62,7 @@ describe('default export wrapping', () => {
     const code = 'export default { fetch() { return new Response("ok"); } };';
     const result = transform(code, ctx)!;
     expect(result).toBeDefined();
-    expect(result.code).toContain('const __SENTRY_DEFAULT_EXPORT__ =');
+    expect(result.code).toContain('var __SENTRY_DEFAULT_EXPORT__ =');
     expect(result.code).toContain('__SENTRY__.withSentry(');
   });
 
@@ -284,6 +284,121 @@ describe('default export wrapping', () => {
     const result = transform(code, custom)!;
     expect(result.code).toContain('dsn: env.SENTRY_DSN');
     expect(result.code).toContain('tracesSampleRate: 1.0');
+  });
+
+  /**
+   * Writes `files` to a temp dir, with `a.mjs` transformed and `withSentry` stubbed to mark each
+   * method it finds as instrumented, and returns what `node <entry>` prints.
+   */
+  function runWithEntry(files: Record<string, string>, entry: string, transformEntry = true): string {
+    const dir = mkdtempSync(join(tmpdir(), 'sentry-cf-default-'));
+    try {
+      for (const [name, code] of Object.entries(files)) {
+        const out =
+          name === 'a.mjs' && transformEntry
+            ? transform(code, ctx)!.code.replace(
+                "import * as __SENTRY__ from '@sentry/cloudflare';",
+                'const __SENTRY__ = { withSentry: (_options, handler) => { for (const key of Object.keys(handler)) handler[key].instrumented = true; return handler; } };',
+              )
+            : code;
+        writeFileSync(join(dir, name), out);
+      }
+      return execFileSync(process.execPath, [join(dir, entry)], { encoding: 'utf8' }).trim();
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  }
+
+  it.each([
+    'export default class { fetch() {} }',
+    'export default function () {}',
+    'export default () => {};',
+    'export default (class { fetch() {} });',
+    'export default class Handler { fetch() {} }',
+    'export default function handler() {}',
+  ])('keeps the name of the default export of `%s`', code => {
+    const files = { 'a.mjs': code, 'b.mjs': "import handler from './a.mjs';\nconsole.log(handler.name);" };
+    expect(runWithEntry(files, 'b.mjs')).toBe(runWithEntry(files, 'b.mjs', false));
+  });
+
+  it('wraps a parenthesized default export', () => {
+    const code = ['const handler = { fetch() {} };', 'export default (handler);'].join('\n');
+
+    expect(transform(code, ctx)!.code).toBe(
+      [
+        "import * as __SENTRY__ from '@sentry/cloudflare';",
+        'const handler = { fetch() {} };',
+        'var __SENTRY_DEFAULT_EXPORT__ = (handler);',
+        'export { __SENTRY_DEFAULT_EXPORT__ as default };',
+        '__SENTRY_DEFAULT_EXPORT__ = __SENTRY__.withSentry((env) => ({}), __SENTRY_DEFAULT_EXPORT__);',
+      ].join('\n'),
+    );
+  });
+
+  it('wraps a default export with a comment that mentions `default`', () => {
+    const code = 'export /* the default */ default /* default handler */ { fetch() {} };';
+
+    expect(transform(code, ctx)!.code).toBe(
+      [
+        "import * as __SENTRY__ from '@sentry/cloudflare';",
+        'var __SENTRY_DEFAULT_EXPORT__ = /* default handler */ { fetch() {} };',
+        'export { __SENTRY_DEFAULT_EXPORT__ as default };',
+        '__SENTRY_DEFAULT_EXPORT__ = __SENTRY__.withSentry((env) => ({}), __SENTRY_DEFAULT_EXPORT__);',
+      ].join('\n'),
+    );
+  });
+
+  it('wraps a default export with a line comment that mentions `default`', () => {
+    const code = ['export // the default', 'default // default handler', '{ fetch() {} };'].join('\n');
+
+    expect(transform(code, ctx)!.code).toBe(
+      [
+        "import * as __SENTRY__ from '@sentry/cloudflare';",
+        'var __SENTRY_DEFAULT_EXPORT__ = // default handler',
+        '{ fetch() {} };',
+        'export { __SENTRY_DEFAULT_EXPORT__ as default };',
+        '__SENTRY_DEFAULT_EXPORT__ = __SENTRY__.withSentry((env) => ({}), __SENTRY_DEFAULT_EXPORT__);',
+      ].join('\n'),
+    );
+  });
+
+  it('keeps the module binding of a named default class', () => {
+    const code = ['export default class Handler { fetch() {} }', 'Handler.ready = true;'].join('\n');
+
+    expect(transform(code, ctx)!.code).toBe(
+      [
+        "import * as __SENTRY__ from '@sentry/cloudflare';",
+        'class Handler { fetch() {} }',
+        'var __SENTRY_DEFAULT_EXPORT__ = Handler;',
+        'export { __SENTRY_DEFAULT_EXPORT__ as default };',
+        'Handler.ready = true;',
+        '__SENTRY_DEFAULT_EXPORT__ = __SENTRY__.withSentry((env) => ({}), Handler);',
+      ].join('\n'),
+    );
+  });
+
+  it('wraps a method added to the default export after `export default`', () => {
+    const files = {
+      'a.mjs': ['const handler = {};', 'export default handler;', 'handler.fetch = function () {};'].join('\n'),
+      'main.mjs': "import handler from './a.mjs';\nconsole.log(String(handler.fetch.instrumented));",
+    };
+
+    expect(runWithEntry(files, 'main.mjs')).toBe('true');
+  });
+
+  it('sets the default export where the original statement set it', () => {
+    // `b` reads the default export of `a` while `a` is still evaluating, after its `export default`.
+    const files = {
+      'a.mjs': [
+        "import { readDefault } from './b.mjs';",
+        'export default { fetch() {} };',
+        'export const seen = readDefault();',
+      ].join('\n'),
+      'b.mjs': "import handler from './a.mjs';\nexport function readDefault() { return typeof handler.fetch; }",
+      'main.mjs': "import { seen } from './a.mjs';\nconsole.log(seen);",
+    };
+
+    expect(runWithEntry(files, 'main.mjs')).toBe('function');
   });
 
   it('skips when already wrapped with withSentry', () => {
@@ -926,9 +1041,9 @@ describe('agent class wrapping', () => {
         'class __SENTRY_ORIGINAL_MyDO__ extends DurableObject {}',
         'export const MyDO = __SENTRY__.instrumentDurableObjectWithSentry((env) => ({ dsn: env.SENTRY_DSN }), __SENTRY_ORIGINAL_MyDO__);',
         '',
-        'const __SENTRY_DEFAULT_EXPORT__ = { fetch() {} };',
-        'export default __SENTRY__.withSentry((env) => ({ dsn: env.SENTRY_DSN }), __SENTRY_DEFAULT_EXPORT__);',
-        '',
+        'var __SENTRY_DEFAULT_EXPORT__ = { fetch() {} };',
+        'export { __SENTRY_DEFAULT_EXPORT__ as default };',
+        '__SENTRY_DEFAULT_EXPORT__ = __SENTRY__.withSentry((env) => ({ dsn: env.SENTRY_DSN }), __SENTRY_DEFAULT_EXPORT__);',
       ].join('\n'),
     );
   });
@@ -1034,8 +1149,8 @@ describe('combined transforms', () => {
     expect(result.code).toContain('export const MyDO = __SENTRY__.instrumentDurableObjectWithSentry(');
 
     // Default export wrapped
-    expect(result.code).toContain('const __SENTRY_DEFAULT_EXPORT__ =');
-    expect(result.code).toContain('export default __SENTRY__.withSentry(');
+    expect(result.code).toContain('var __SENTRY_DEFAULT_EXPORT__ =');
+    expect(result.code).toContain('__SENTRY_DEFAULT_EXPORT__ = __SENTRY__.withSentry(');
 
     // Single import
     const importCount = (result.code.match(/import \* as __SENTRY__/g) ?? []).length;
