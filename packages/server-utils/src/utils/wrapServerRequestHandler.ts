@@ -8,7 +8,7 @@ import {
   USER_AGENT_ORIGINAL,
 } from '@sentry/conventions/attributes';
 import { HTTP_SERVER } from '@sentry/conventions/op';
-import type { Client, Mechanism, Scope, Span } from '@sentry/core';
+import type { Client, Mechanism, Scope, Span, SpanAttributes } from '@sentry/core';
 import {
   captureBodyFromWinterCGRequest,
   captureException,
@@ -49,6 +49,10 @@ export interface ServerRequestHandlerConfig {
   mechanism: Mechanism;
   /** The address and port of the socket, if the runtime knows them. */
   getSocketAddress?: () => { address: string; port?: number } | undefined;
+  /** The matched route of the server framework, e.g. `/users/:id`. Sets `http.route` and the span name. */
+  routeName?: string;
+  /** Span attributes that only the runtime knows, e.g. the route parameters. */
+  attributes?: SpanAttributes;
 }
 
 /**
@@ -61,11 +65,13 @@ export interface ServerRequestHandlerConfig {
  * - `OPTIONS` and `HEAD` requests get no span and no body capture.
  * - The static asset filter applies only to `GET`.
  * - The span and the session of a streamed response end when the stream finishes.
+ *
+ * The handler can return no response, as Bun's `fetch` does after a WebSocket upgrade.
  */
-export async function wrapServerRequestHandler(
+export async function wrapServerRequestHandler<R extends Response | undefined = Response>(
   config: ServerRequestHandlerConfig,
-  handler: () => Response | Promise<Response>,
-): Promise<Response> {
+  handler: () => R | Promise<R>,
+): Promise<R> {
   const { request, client, isolationScope, options, mechanism } = config;
   const method = request.method.toUpperCase();
 
@@ -124,7 +130,7 @@ export async function wrapServerRequestHandler(
     },
     async () => {
       if (!createSpan) {
-        let response: Response;
+        let response: R;
         try {
           response = await handler();
         } catch (e) {
@@ -132,7 +138,9 @@ export async function wrapServerRequestHandler(
           endSession?.();
           throw e;
         }
-        isolationScope.setContext('response', { status_code: response.status });
+        if (response) {
+          isolationScope.setContext('response', { status_code: response.status });
+        }
         return onResponseDone(response, mechanism, () => endSession?.());
       }
 
@@ -141,7 +149,7 @@ export async function wrapServerRequestHandler(
         'server',
         config.origin,
         request,
-        undefined,
+        config.routeName,
         client,
       );
       // With span streaming, span names have to be low cardinality, so we can't fall back to the URL.
@@ -179,6 +187,7 @@ export async function wrapServerRequestHandler(
       // describes the OSI application-layer protocol (http), not the scheme (might be https)
       attributes[NETWORK_PROTOCOL_NAME] = 'http';
       Object.assign(attributes, httpHeadersToSpanAttributes(headers, dataCollection));
+      Object.assign(attributes, config.attributes);
       attributes[SENTRY_OP] = HTTP_SERVER;
 
       return startSpanManual({ name, attributes }, async span => {
@@ -191,7 +200,7 @@ export async function wrapServerRequestHandler(
           );
         }
 
-        let response: Response;
+        let response: R;
         try {
           response = await handler();
         } catch (e) {
@@ -202,17 +211,19 @@ export async function wrapServerRequestHandler(
           throw e;
         }
 
-        setHttpStatus(span, response.status);
-        isolationScope.setContext('response', { status_code: response.status });
-        span.setAttributes(
-          httpHeadersToSpanAttributes(winterCGHeadersToDict(response.headers), dataCollection, 'response'),
-        );
+        if (response) {
+          setHttpStatus(span, response.status);
+          isolationScope.setContext('response', { status_code: response.status });
+          span.setAttributes(
+            httpHeadersToSpanAttributes(responseHeadersToDict(response.headers), dataCollection, 'response'),
+          );
+        }
 
         return onResponseDone(
           response,
           mechanism,
           () => {
-            if (onSpanEnd) {
+            if (onSpanEnd && response) {
               safeCallback(
                 DEBUG_BUILD ? 'Error in `onSpanEnd`:' : '',
                 () => onSpanEnd(span, request, response),
@@ -256,15 +267,30 @@ function shouldCreateSpan(
  * Calls `onDone` when the response is done: at once, or when a streamed body finishes.
  * Returns the response to send.
  */
-function onResponseDone(response: Response, mechanism: Mechanism, onDone: () => void, span?: Span): Response {
-  if (response.body && !response.body.locked && classifyResponseStreaming(response).isStreaming) {
+function onResponseDone<R extends Response | undefined>(
+  response: R,
+  mechanism: Mechanism,
+  onDone: () => void,
+  span?: Span,
+): R {
+  if (response?.body && !response.body.locked && classifyResponseStreaming(response).isStreaming) {
     const body = monitorStream(response.body, onDone, error => {
       span?.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
       captureException(error, { mechanism });
     });
     // Passing the original response as the init keeps its status, status text and headers.
-    return new Response(body, response);
+    return new Response(body, response) as R;
   }
   onDone();
   return response;
+}
+
+// `Headers.forEach` lists each `Set-Cookie` header on its own, so a plain dict keeps only the last one.
+function responseHeadersToDict(headers: Headers): Record<string, string | string[]> {
+  const dict: Record<string, string | string[]> = winterCGHeadersToDict(headers);
+  const setCookie = typeof headers.getSetCookie === 'function' ? headers.getSetCookie() : [];
+  if (setCookie.length) {
+    dict['set-cookie'] = setCookie;
+  }
+  return dict;
 }

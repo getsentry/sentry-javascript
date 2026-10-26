@@ -36,13 +36,21 @@ Work in this release was contributed by @faizansaiyed123, @itisrmk, @kunal649, @
 
   These integrations need the vite plugin. Without it, they record nothing, and with `debug: true` the SDK logs a warning.
 
-- **ref(deno): Use the shared request handler wrapper for `Deno.serve`**
+- **ref(deno, bun): Use a shared request handler wrapper for `Deno.serve` and `Bun.serve`**
 
-  `Deno.serve` now uses a request handler wrapper that `Bun.serve` and Cloudflare will also use. Three small changes for Deno users:
+  `Deno.serve` and `Bun.serve` now use the same request handler wrapper, which Cloudflare will also use. On both runtimes, errors in `OPTIONS` and `HEAD` requests now carry the request data, and the SDK keeps every `Set-Cookie` header of a response instead of only the last one.
+
+  For Deno users:
 
   - When the source of a streamed response fails, the SDK now captures the error and marks the span as failed.
   - The SDK no longer reads a streamed response ahead of the client.
-  - Errors in `OPTIONS` and `HEAD` requests now carry the request data.
+
+  `Bun.serve` spans now follow the Sentry conventions for `http.server` spans, as on Node, Deno and Cloudflare:
+
+  - `url.template` is now `http.route`. Routes without parameters also get `http.route` and the `route` source.
+  - `url.domain` is now `server.address`.
+  - A request to `/` gets the `route` source and the name `GET /`.
+  - Spans also get `user_agent.original` and `http.request.body.size`.
 
 ## 11.9.0
 

@@ -1,3 +1,4 @@
+import { HTTP_ROUTE, SENTRY_SEGMENT_NAME_SOURCE, URL_PATH_PARAMETER_KEY_BASE } from '@sentry/conventions/attributes';
 import type { Event } from '@sentry/core';
 import { getIsolationScope, setCurrentClient, withIsolationScope } from '@sentry/core';
 import { beforeAll, describe, expect, it, vi } from 'vitest';
@@ -8,10 +9,13 @@ import { getDefaultTestClientOptions, TestClient } from '../mocks/client';
 
 const MECHANISM = { handled: false, type: 'auto.http.test' };
 
-function setup(options: ServerRequestHandlerConfig['options'] = {}): {
+function setup(
+  options: ServerRequestHandlerConfig['options'] = {},
+  extra: Partial<ServerRequestHandlerConfig> = {},
+): {
   events: Event[];
   transactions: Event[];
-  serve: (request: Request, handler: () => Response | Promise<Response>) => Promise<Response>;
+  serve: <R extends Response | undefined = Response>(request: Request, handler: () => R | Promise<R>) => Promise<R>;
 } {
   const events: Event[] = [];
   const transactions: Event[] = [];
@@ -32,10 +36,13 @@ function setup(options: ServerRequestHandlerConfig['options'] = {}): {
   setCurrentClient(client);
   client.init();
 
-  const serve = (request: Request, handler: () => Response | Promise<Response>): Promise<Response> =>
+  const serve = <R extends Response | undefined = Response>(
+    request: Request,
+    handler: () => R | Promise<R>,
+  ): Promise<R> =>
     withIsolationScope(isolationScope =>
       wrapServerRequestHandler(
-        { request, client, isolationScope, options, origin: 'auto.http.test', mechanism: MECHANISM },
+        { request, client, isolationScope, options, origin: 'auto.http.test', mechanism: MECHANISM, ...extra },
         handler,
       ),
     );
@@ -157,6 +164,19 @@ describe('wrapServerRequestHandler', () => {
     expect(transactions).toHaveLength(0);
   });
 
+  it('ends the span when the handler returns no response, as after a WebSocket upgrade', async () => {
+    const onSpanEnd = vi.fn();
+    const { events, transactions, serve } = setup({ spans: true, onSpanEnd });
+
+    const response = await serve(new Request('https://example.com/socket'), () => undefined);
+    await vi.waitFor(() => expect(transactions).toHaveLength(1));
+
+    expect(response).toBeUndefined();
+    expect(events).toHaveLength(0);
+    expect(transactions[0]?.contexts?.response).toBeUndefined();
+    expect(onSpanEnd).not.toHaveBeenCalled();
+  });
+
   it('does not capture or fail the span when the client disconnects from a streamed response', async () => {
     const { events, transactions, serve } = setup({ spans: true });
 
@@ -165,5 +185,39 @@ describe('wrapServerRequestHandler', () => {
 
     expect(events).toHaveLength(0);
     expect(transactions[0]?.contexts?.trace?.status).toBe('ok');
+  });
+
+  it('names the span after the route and adds the runtime attributes', async () => {
+    const { transactions, serve } = setup(
+      {},
+      { routeName: '/users/:id', attributes: { [`${URL_PATH_PARAMETER_KEY_BASE}.id`]: '42' } },
+    );
+
+    const response = await serve(new Request('https://example.com/users/42'), () => new Response('ok'));
+    expect(await response.text()).toBe('ok');
+    await vi.waitFor(() => expect(transactions).toHaveLength(1));
+
+    expect(transactions[0]?.transaction).toBe('GET /users/:id');
+    expect(transactions[0]?.contexts?.trace?.data).toEqual(
+      expect.objectContaining({
+        [HTTP_ROUTE]: '/users/:id',
+        [SENTRY_SEGMENT_NAME_SOURCE]: 'route',
+        [`${URL_PATH_PARAMETER_KEY_BASE}.id`]: '42',
+      }),
+    );
+  });
+
+  it('keeps every Set-Cookie header of the response', async () => {
+    const { transactions, serve } = setup();
+    const headers = new Headers();
+    headers.append('set-cookie', 'first=1');
+    headers.append('set-cookie', 'second=2');
+
+    const response = await serve(new Request('https://example.com/login'), () => new Response('ok', { headers }));
+    expect(await response.text()).toBe('ok');
+    await vi.waitFor(() => expect(transactions).toHaveLength(1));
+
+    const setCookie = transactions[0]?.contexts?.trace?.data?.['http.response.header.set-cookie'] as string[];
+    expect(setCookie.map(cookie => cookie.split('=')[0])).toEqual(['first', 'second']);
   });
 });
