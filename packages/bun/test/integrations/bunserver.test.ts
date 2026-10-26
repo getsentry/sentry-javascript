@@ -105,6 +105,37 @@ describe('Bun Serve Integration', () => {
     },
   );
 
+  test('lets the fetch handler upgrade a request to a WebSocket', async () => {
+    const server = Bun.serve({
+      port,
+      fetch(request, server) {
+        if (server.upgrade(request)) {
+          return undefined;
+        }
+        return new Response('no upgrade', { status: 400 });
+      },
+      websocket: {
+        message(ws, message) {
+          ws.send(`echo: ${message}`);
+        },
+      },
+    });
+    try {
+      const ws = new WebSocket(`ws://localhost:${port}/socket`);
+      const reply = await new Promise<string>((resolve, reject) => {
+        ws.onopen = () => ws.send('hello');
+        ws.onmessage = event => resolve(String(event.data));
+        ws.onerror = () => reject(new Error('WebSocket failed'));
+      });
+      ws.close();
+
+      expect(reply).toBe('echo: hello');
+      expect(captureExceptionSpy).not.toHaveBeenCalled();
+    } finally {
+      await server.stop(true);
+    }
+  });
+
   test.each(['client disconnected', new Error('client disconnected')])(
     'ends the span without capturing a cancelled stream: %s',
     async reason => {

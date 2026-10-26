@@ -15,7 +15,7 @@ function setup(
 ): {
   events: Event[];
   transactions: Event[];
-  serve: (request: Request, handler: () => Response | Promise<Response>) => Promise<Response>;
+  serve: <R extends Response | undefined = Response>(request: Request, handler: () => R | Promise<R>) => Promise<R>;
 } {
   const events: Event[] = [];
   const transactions: Event[] = [];
@@ -36,7 +36,10 @@ function setup(
   setCurrentClient(client);
   client.init();
 
-  const serve = (request: Request, handler: () => Response | Promise<Response>): Promise<Response> =>
+  const serve = <R extends Response | undefined = Response>(
+    request: Request,
+    handler: () => R | Promise<R>,
+  ): Promise<R> =>
     withIsolationScope(isolationScope =>
       wrapServerRequestHandler(
         { request, client, isolationScope, options, origin: 'auto.http.test', mechanism: MECHANISM, ...extra },
@@ -159,6 +162,19 @@ describe('wrapServerRequestHandler', () => {
 
     expect(events[0]?.exception?.values?.[0]?.mechanism).toEqual(MECHANISM);
     expect(transactions).toHaveLength(0);
+  });
+
+  it('ends the span when the handler returns no response, as after a WebSocket upgrade', async () => {
+    const onSpanEnd = vi.fn();
+    const { events, transactions, serve } = setup({ spans: true, onSpanEnd });
+
+    const response = await serve(new Request('https://example.com/socket'), () => undefined);
+    await vi.waitFor(() => expect(transactions).toHaveLength(1));
+
+    expect(response).toBeUndefined();
+    expect(events).toHaveLength(0);
+    expect(transactions[0]?.contexts?.response).toBeUndefined();
+    expect(onSpanEnd).not.toHaveBeenCalled();
   });
 
   it('does not capture or fail the span when the client disconnects from a streamed response', async () => {

@@ -271,7 +271,8 @@ function wrapRequestHandler<T extends RouteHandler = RouteHandler>(
 ): Promise<Awaited<ReturnType<T>>> {
   return withIsolationScope(async isolationScope => {
     const request = args[0];
-    const runHandler = (): Promise<Response> => Promise.resolve(target.apply(thisArg, args) as Response);
+    const runHandler = (): Promise<Response | undefined> =>
+      Promise.resolve(target.apply(thisArg, args) as Response | undefined);
 
     const client = getClient();
     if (!client) {

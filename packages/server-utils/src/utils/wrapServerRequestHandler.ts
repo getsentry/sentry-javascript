@@ -65,11 +65,13 @@ export interface ServerRequestHandlerConfig {
  * - `OPTIONS` and `HEAD` requests get no span and no body capture.
  * - The static asset filter applies only to `GET`.
  * - The span and the session of a streamed response end when the stream finishes.
+ *
+ * The handler can return no response, as Bun's `fetch` does after a WebSocket upgrade.
  */
-export async function wrapServerRequestHandler(
+export async function wrapServerRequestHandler<R extends Response | undefined = Response>(
   config: ServerRequestHandlerConfig,
-  handler: () => Response | Promise<Response>,
-): Promise<Response> {
+  handler: () => R | Promise<R>,
+): Promise<R> {
   const { request, client, isolationScope, options, mechanism } = config;
   const method = request.method.toUpperCase();
 
@@ -128,7 +130,7 @@ export async function wrapServerRequestHandler(
     },
     async () => {
       if (!createSpan) {
-        let response: Response;
+        let response: R;
         try {
           response = await handler();
         } catch (e) {
@@ -136,7 +138,9 @@ export async function wrapServerRequestHandler(
           endSession?.();
           throw e;
         }
-        isolationScope.setContext('response', { status_code: response.status });
+        if (response) {
+          isolationScope.setContext('response', { status_code: response.status });
+        }
         return onResponseDone(response, mechanism, () => endSession?.());
       }
 
@@ -196,7 +200,7 @@ export async function wrapServerRequestHandler(
           );
         }
 
-        let response: Response;
+        let response: R;
         try {
           response = await handler();
         } catch (e) {
@@ -207,17 +211,19 @@ export async function wrapServerRequestHandler(
           throw e;
         }
 
-        setHttpStatus(span, response.status);
-        isolationScope.setContext('response', { status_code: response.status });
-        span.setAttributes(
-          httpHeadersToSpanAttributes(responseHeadersToDict(response.headers), dataCollection, 'response'),
-        );
+        if (response) {
+          setHttpStatus(span, response.status);
+          isolationScope.setContext('response', { status_code: response.status });
+          span.setAttributes(
+            httpHeadersToSpanAttributes(responseHeadersToDict(response.headers), dataCollection, 'response'),
+          );
+        }
 
         return onResponseDone(
           response,
           mechanism,
           () => {
-            if (onSpanEnd) {
+            if (onSpanEnd && response) {
               safeCallback(
                 DEBUG_BUILD ? 'Error in `onSpanEnd`:' : '',
                 () => onSpanEnd(span, request, response),
@@ -261,14 +267,19 @@ function shouldCreateSpan(
  * Calls `onDone` when the response is done: at once, or when a streamed body finishes.
  * Returns the response to send.
  */
-function onResponseDone(response: Response, mechanism: Mechanism, onDone: () => void, span?: Span): Response {
-  if (response.body && !response.body.locked && classifyResponseStreaming(response).isStreaming) {
+function onResponseDone<R extends Response | undefined>(
+  response: R,
+  mechanism: Mechanism,
+  onDone: () => void,
+  span?: Span,
+): R {
+  if (response?.body && !response.body.locked && classifyResponseStreaming(response).isStreaming) {
     const body = monitorStream(response.body, onDone, error => {
       span?.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
       captureException(error, { mechanism });
     });
     // Passing the original response as the init keeps its status, status text and headers.
-    return new Response(body, response);
+    return new Response(body, response) as R;
   }
   onDone();
   return response;
