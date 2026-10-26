@@ -22,14 +22,14 @@
     }
   ],
   "configurations": [
-    // Debug the ts-node script in the currently active window
+    // Debug the TypeScript script in the currently active window
     {
-      "name": "Debug ts-node script (open file)",
+      "name": "Debug TypeScript script (open file)",
       "type": "pwa-node",
       "cwd": "${workspaceFolder}/packages/${input:getPackageName}",
       "request": "launch",
       "runtimeExecutable": "pnpm",
-      "runtimeArgs": ["ts-node", "-P", "${workspaceFolder}/tsconfig.dev.json", "${file}"],
+      "runtimeArgs": ["exec", "tsx", "${file}"],
       "skipFiles": ["<node_internals>/**"],
       "outFiles": ["${workspaceFolder}/**/*.js", "!**/node_modules/**"],
       "sourceMaps": true,

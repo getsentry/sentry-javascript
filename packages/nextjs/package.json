@@ -111,7 +111,7 @@
   "scripts": {
     "build": "run-p build:transpile build:types",
     "build:dev": "pnpm run build",
-    "build:transpile": "tsx --tsconfig tsconfig.tsnode.json scripts/buildRollup.ts",
+    "build:transpile": "tsx scripts/buildRollup.ts",
     "build:types": "tsc -p tsconfig.types.json",
     "build:watch": "run-p build:transpile:watch",
     "build:dev:watch": "pnpm run build:watch",
