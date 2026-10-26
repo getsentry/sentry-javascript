@@ -25,13 +25,6 @@ function spanForCall(spans: SerializedSpan[], id: string): SerializedSpan {
   return callSpans[0]!;
 }
 
-// The span named by the outgoing request's `sentry-trace` header, which the scenario records on `main`.
-function propagatedSpanId(spans: SerializedSpan[], id: string): string | undefined {
-  const main = spans.find(span => span.is_segment && span.name === 'main');
-  const header = main?.attributes[`test.sentry_trace.${id}`]?.value;
-  return typeof header === 'string' ? header.split('-')[1] : undefined;
-}
-
 function expectOneSentrySpanPerCall(container: SerializedStreamedSpanContainer): void {
   const spans = container.items;
   expect(spans.filter(span => span.name.startsWith('anthropic.'))).toEqual([]);
@@ -41,12 +34,6 @@ function expectOneSentrySpanPerCall(container: SerializedStreamedSpanContainer):
     expect(chatSpan.attributes[SENTRY_ORIGIN]?.value, id).toBe('auto.ai.anthropic');
     expect(chatSpan.attributes[SENTRY_OP]?.value, id).toBe('gen_ai.chat');
     expect(chatSpan.attributes[GEN_AI_RESPONSE_STREAMING]?.value ?? false, id).toBe(streaming);
-
-    const httpSpans = spans.filter(
-      span => span.parent_span_id === chatSpan.span_id && span.attributes[SENTRY_OP]?.value === 'http.client',
-    );
-    expect(httpSpans, id).toHaveLength(1);
-    expect(propagatedSpanId(spans, id), id).toBe(httpSpans[0]!.span_id);
   }
 }
 

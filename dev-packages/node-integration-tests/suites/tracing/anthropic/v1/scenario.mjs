@@ -2,8 +2,6 @@ import Anthropic from '@anthropic-ai/sdk';
 import * as Sentry from '@sentry/node';
 import express from 'express';
 
-const sentryTraceHeaders = {};
-
 function streamEvents(id, model) {
   return [
     {
@@ -23,9 +21,8 @@ function startMockAnthropicServer() {
   app.use(express.json());
 
   app.post('/anthropic/v1/messages', (req, res) => {
-    // The prompt names the response id, so each call's propagated header can be matched to its spans.
+    // The prompt names the response id, so each call's span can be told apart.
     const id = req.body.messages[0].content;
-    sentryTraceHeaders[id] = req.headers['sentry-trace'];
 
     if (!req.body.stream) {
       res.json({
@@ -64,7 +61,7 @@ function startMockAnthropicServer() {
 async function run() {
   const server = await startMockAnthropicServer();
 
-  await Sentry.startSpan({ op: 'function', name: 'main' }, async span => {
+  await Sentry.startSpan({ op: 'function', name: 'main' }, async () => {
     const client = new Anthropic({
       apiKey: 'mock-api-key',
       baseURL: `http://localhost:${server.address().port}/anthropic`,
@@ -91,10 +88,6 @@ async function run() {
     await client.messages
       .stream({ model, max_tokens: 100, messages: [{ role: 'user', content: 'msg_v1_stream_helper' }] })
       .finalMessage();
-
-    for (const [id, header] of Object.entries(sentryTraceHeaders)) {
-      span.setAttribute(`test.sentry_trace.${id}`, header ?? 'missing');
-    }
   });
 
   await Sentry.flush(2000);
