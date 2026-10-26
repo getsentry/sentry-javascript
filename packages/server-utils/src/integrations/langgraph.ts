@@ -3,9 +3,9 @@ import type { IntegrationFn } from '@sentry/core';
 import { debug, defineIntegration, isObjectLike } from '@sentry/core';
 import { resolveAIRecordingOptions } from '../ai/core/utils';
 import { createLangChainCallbackHandler } from '../ai/langchain';
-import { instrumentCompiledGraphInvoke } from '../ai/langgraph';
+import { instrumentCompiledGraph, isInsideManualLangGraphInstrumentation } from '../ai/langgraph';
 import { LANGGRAPH_INTEGRATION_NAME } from '../ai/langgraph/constants';
-import type { CompiledGraph, LangGraphOptions } from '../ai/langgraph/types';
+import type { LangGraphOptions } from '../ai/langgraph/types';
 import { extractAgentNameFromParams, extractLLMFromParams, wrapToolsWithSpans } from '../ai/langgraph/utils';
 import { DEBUG_BUILD } from '../debug-build';
 import type { OrchestrionChannelContext } from '../orchestrion/types';
@@ -38,19 +38,19 @@ function instrumentLanggraph(options: LangGraphOptions): void {
   const resolvedOptions = resolveAIRecordingOptions(options);
   const sentryHandler = createLangChainCallbackHandler(resolvedOptions);
 
-  // StateGraph.compile returns synchronously; wrap the returned graph's `invoke` at `end`.
+  // StateGraph.compile returns synchronously; wrap the returned graph's `invoke` and `stream` at `end`.
   diagnosticsChannel
     .tracingChannel<OrchestrionChannelContext>(CHANNELS.LANGGRAPH_STATE_GRAPH_COMPILE)
     .end.subscribe(message => {
-      if (insideCreateReactAgent) {
+      if (insideCreateReactAgent || isInsideManualLangGraphInstrumentation()) {
         return;
       }
       const { arguments: args, result } = message as OrchestrionChannelContext;
-      wrapCompiledGraphInvoke(result, getFirstArgObject(args) ?? {}, resolvedOptions, null, sentryHandler);
+      instrumentCompiledGraph(result, getFirstArgObject(args) ?? {}, resolvedOptions, null, sentryHandler);
     });
 
-  // createReactAgent only wraps tools and the returned graph's `invoke`. Tools are wrapped at
-  // `start` (before the agent runs), invoke at `end`.
+  // createReactAgent only wraps tools and the returned graph's `invoke` and `stream`. Tools are wrapped at
+  // `start` (before the agent runs), the graph at `end`.
   const reactAgentChannel = diagnosticsChannel.tracingChannel<OrchestrionChannelContext>(
     CHANNELS.LANGGRAPH_CREATE_REACT_AGENT,
   );
@@ -72,10 +72,13 @@ function instrumentLanggraph(options: LangGraphOptions): void {
   });
   reactAgentChannel.end.subscribe(message => {
     insideCreateReactAgent = false;
+    if (isInsideManualLangGraphInstrumentation()) {
+      return;
+    }
     const { arguments: args, result } = message as OrchestrionChannelContext;
     const agentName = extractAgentNameFromParams(args) ?? undefined;
     const compileOptions = agentName ? { name: agentName } : {};
-    wrapCompiledGraphInvoke(result, compileOptions, resolvedOptions, extractLLMFromParams(args), sentryHandler);
+    instrumentCompiledGraph(result, compileOptions, resolvedOptions, extractLLMFromParams(args), sentryHandler);
   });
   // Make sure a thrown `createReactAgent` doesn't leave the suppression flag stuck on.
   reactAgentChannel.error.subscribe(() => {
@@ -87,35 +90,6 @@ function getFirstArgObject(args: unknown[] | undefined): Record<string, unknown>
   const first = (args ?? [])[0];
 
   return isObjectLike(first) ? first : undefined;
-}
-
-/**
- * Wrap the compiled graph's `invoke` with the shared `invoke_agent` instrumentation, exactly as the
- * OTel path does on the returned graph.
- */
-function wrapCompiledGraphInvoke(
-  graph: unknown,
-  compileOptions: Record<string, unknown>,
-  options: LangGraphOptions,
-  llm: ReturnType<typeof extractLLMFromParams>,
-  sentryHandler: unknown,
-): void {
-  if (!graph || typeof graph !== 'object') {
-    return;
-  }
-
-  const compiledGraph = graph as CompiledGraph;
-  const originalInvoke = compiledGraph.invoke;
-  if (typeof originalInvoke === 'function') {
-    compiledGraph.invoke = instrumentCompiledGraphInvoke(
-      originalInvoke.bind(compiledGraph),
-      compiledGraph,
-      compileOptions,
-      options,
-      llm,
-      sentryHandler,
-    );
-  }
 }
 
 /**

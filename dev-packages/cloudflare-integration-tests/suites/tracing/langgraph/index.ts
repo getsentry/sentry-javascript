@@ -60,7 +60,11 @@ export default Sentry.withSentry(
         messages: [{ role: 'user', content: 'What is the weather in SF?' }],
       });
 
-      return new Response(JSON.stringify({ success: true }));
+      const stream = await compiled.stream(
+        { messages: [{ role: 'user', content: 'Stream the weather in SF' }] },
+        { encoding: 'text/event-stream' },
+      );
+      return new Response(stream as unknown as ReadableStream, { headers: { 'content-type': 'text/event-stream' } });
     },
   },
 );

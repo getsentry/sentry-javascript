@@ -606,24 +606,32 @@ function containsSentryHandler(handlers: unknown[]): boolean {
  * @internal Exported for cross-package instrumentation.
  */
 export function _INTERNAL_mergeLangChainCallbackHandler(existing: unknown, sentryHandler: unknown): unknown {
+  const handlers = isCallbackManager(existing)
+    ? (existing.handlers ?? [])
+    : Array.isArray(existing)
+      ? existing
+      : existing
+        ? [existing]
+        : [];
+
+  return containsSentryHandler(handlers) ? existing : _INTERNAL_addLangChainCallbackHandler(existing, sentryHandler);
+}
+
+/**
+ * Add `handler` to a given set of LangChain callbacks or callback manager, without deduplicating it.
+ * A callback manager is copied rather than mutated.
+ * @internal Exported for cross-package instrumentation.
+ */
+export function _INTERNAL_addLangChainCallbackHandler(existing: unknown, handler: unknown): unknown {
   if (!existing) {
-    return [sentryHandler];
+    return [handler];
   }
 
   if (isCallbackManager(existing)) {
-    if (containsSentryHandler(existing.handlers ?? [])) {
-      return existing;
-    }
-
     const copied = existing.copy() as { addHandler: (handler: unknown, inherit?: boolean) => void };
-    copied.addHandler(sentryHandler, true);
+    copied.addHandler(handler, true);
     return copied;
   }
 
-  const handlers = Array.isArray(existing) ? existing : [existing];
-  if (containsSentryHandler(handlers)) {
-    return existing;
-  }
-
-  return [...handlers, sentryHandler];
+  return [...(Array.isArray(existing) ? existing : [existing]), handler];
 }
