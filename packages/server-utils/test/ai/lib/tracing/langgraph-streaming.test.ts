@@ -1,9 +1,20 @@
 import { describe, expect, it, vi } from 'vitest';
 import type { Span } from '@sentry/core';
 import { SPAN_STATUS_ERROR } from '@sentry/core';
-import { AIMessageChunk } from '@langchain/core/messages';
 import { GEN_AI_RESPONSE_TEXT, GEN_AI_USAGE_OUTPUT_TOKENS } from '@sentry/conventions/attributes';
 import { instrumentStreamResult } from '../../../../src/ai/langgraph/streaming';
+
+// Stands in for `AIMessageChunk`: `@langchain/core` is not a dependency of this package.
+class MessageChunk {
+  public constructor(fields: Record<string, unknown>) {
+    Object.assign(this, fields);
+  }
+
+  public concat(other: Record<string, unknown>): MessageChunk {
+    const self = this as unknown as Record<string, unknown>;
+    return new MessageChunk({ ...self, ...other, content: `${self.content}${other.content}` });
+  }
+}
 
 function createSpan() {
   return {
@@ -129,8 +140,8 @@ describe('LangGraph stream response recording', () => {
       content: 'in Seoul',
       usage_metadata: { input_tokens: 5, output_tokens: 4, total_tokens: 9 },
     };
-    const first = nativeConcat ? new AIMessageChunk(firstMessage) : firstMessage;
-    const last = nativeConcat ? new AIMessageChunk(lastMessage) : lastMessage;
+    const first = nativeConcat ? new MessageChunk(firstMessage) : firstMessage;
+    const last = nativeConcat ? new MessageChunk(lastMessage) : lastMessage;
     const stream = instrumentStreamResult(
       {
         async *[Symbol.asyncIterator]() {
