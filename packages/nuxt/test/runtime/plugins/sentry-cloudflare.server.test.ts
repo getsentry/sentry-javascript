@@ -36,7 +36,7 @@ describe('sentryCloudflareNitroPlugin', () => {
       expect.objectContaining({
         options: expect.objectContaining({
           defaultIntegrations: expect.any(Array),
-          extendsDefaultIntegrations: true,
+          _extendsDefaultIntegrations: true,
         }),
       }),
       expect.any(Function),
@@ -48,7 +48,7 @@ describe('sentryCloudflareNitroPlugin', () => {
 
     expect(wrapRequestHandler).toHaveBeenCalledWith(
       expect.objectContaining({
-        options: expect.objectContaining({ defaultIntegrations: [], extendsDefaultIntegrations: false }),
+        options: expect.objectContaining({ defaultIntegrations: [], _extendsDefaultIntegrations: false }),
       }),
       expect.any(Function),
     );

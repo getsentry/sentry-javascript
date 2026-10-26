@@ -66,7 +66,7 @@ describe('initCloudflareSentryHandle', () => {
         options: expect.objectContaining({
           dsn: options.dsn,
           enableOpenTelemetrySetup: true,
-          extendsDefaultIntegrations: true,
+          _extendsDefaultIntegrations: true,
         }),
         request,
         context,
@@ -91,7 +91,7 @@ describe('initCloudflareSentryHandle', () => {
 
     expect(wrapRequestHandler).toHaveBeenCalledWith(
       expect.objectContaining({
-        options: expect.objectContaining({ defaultIntegrations: [], extendsDefaultIntegrations: false }),
+        options: expect.objectContaining({ defaultIntegrations: [], _extendsDefaultIntegrations: false }),
       }),
       expect.any(Function),
     );

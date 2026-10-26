@@ -73,7 +73,7 @@ export const sentryCloudflareNitroPlugin =
             // Nitro's Cloudflare presets require the flag anyway, so opt into the full set.
             options: {
               defaultIntegrations: getDefaultIntegrations(cloudflareOptions),
-              extendsDefaultIntegrations: cloudflareOptions.defaultIntegrations === undefined,
+              _extendsDefaultIntegrations: cloudflareOptions.defaultIntegrations === undefined,
               ...cloudflareOptions,
             },
             request,

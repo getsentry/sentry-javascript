@@ -359,7 +359,7 @@ interface BaseCloudflareOptions {
    * the integrations of instrumented modules that load after `init()`.
    * @default false
    */
-  extendsDefaultIntegrations?: boolean;
+  _extendsDefaultIntegrations?: boolean;
 
   /**
    * The Cloudflare SDK is not OpenTelemetry native. By default (`false`) it does not set up a tracer

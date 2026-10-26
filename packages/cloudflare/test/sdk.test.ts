@@ -526,7 +526,7 @@ describe('getDefaultIntegrations', () => {
 
     test('adds it when a custom defaultIntegrations list extends the SDK defaults', async () => {
       resetSdk();
-      const client = init({ dsn: DSN, defaultIntegrations: [], extendsDefaultIntegrations: true });
+      const client = init({ dsn: DSN, defaultIntegrations: [], _extendsDefaultIntegrations: true });
 
       await loadMysqlLate(client);
 
@@ -538,7 +538,7 @@ describe('getDefaultIntegrations', () => {
       const client = init({
         dsn: DSN,
         defaultIntegrations: [],
-        extendsDefaultIntegrations: true,
+        _extendsDefaultIntegrations: true,
         integrations: defaults => defaults.filter(integration => integration.name !== 'Mysql'),
       });
 
