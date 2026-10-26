@@ -45,6 +45,15 @@ describe('getDefaultIntegrations', () => {
 });
 
 describe('init', () => {
+  it('enables the managed tunnel for `tunnel: { allowedDsns }`', () => {
+    const browserDsn = 'https://browser@o1.ingest.sentry.io/42';
+    const client = init({ dsn: 'https://public@dsn.ingest.sentry.io/1337', tunnel: { allowedDsns: [browserDsn] } });
+
+    const options = client?.getOptions();
+    expect(options?.tunnel).toBeUndefined();
+    expect(options?._managedTunnel).toEqual({ allowedDsns: [browserDsn] });
+  });
+
   it('adds spanStreamingIntegration by default', () => {
     const client = init({});
     const integrations = client?.getOptions().integrations;
