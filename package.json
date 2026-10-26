@@ -164,7 +164,7 @@
     "size-limit": "~12.1.0",
     "tslib": "^2.4.1",
     "tsx": "^4.23.0",
-    "typescript": "~7.0.2",
+    "typescript": "7.1.0-beta",
     "vitest": "^4.1.11",
     "webpack": "^5.104.1",
     "yalc": "^1.0.0-pre.53"
