@@ -14,6 +14,15 @@ Work in this release was contributed by @faizansaiyed123, @itisrmk, @kunal649, @
 
   `ignoreStaticAssets` defaults to `true`, so workers no longer create spans for `GET` requests to common static assets such as `favicon.ico`, `robots.txt` or `*.js` files. To keep these spans, set `httpServerIntegration({ ignoreStaticAssets: false })`. Request spans also follow the client's tracing configuration by default, so the SDK does not start them when tracing is disabled. If `ignoreRequestBody` throws, the request no longer fails, and the SDK skips the body.
 
+- **feat(node, bun, deno, cloudflare): Align portable exports across server SDKs**
+
+  Node, Bun, Deno and Cloudflare now export the same helpers from `@sentry/core` and `@sentry/server-utils` where they work on that runtime:
+
+  - Node and Bun now export `moduleMetadataIntegration`, `instrumentPostgresJsSql`, `instrumentCreateReactAgent`, `awsIntegration` and the `FlueOptions` type. `awsIntegration` was already in their default integrations.
+  - Deno and Cloudflare now export `parameterize` and `instrumentStateGraphCompile`.
+  - Bun and Cloudflare now export the `Log` and `LogSeverityLevel` types.
+  - Deno now exports `fastifyIntegration`, which was already in its default integrations.
+
 ## 11.9.0
 
 ### Important Changes
@@ -220,15 +229,6 @@ Work in this release was contributed by @4ktLuffy, @adityareddy-dev, @dasilvalui
   `sentryBunPlugin` from `@sentry/bun/plugin` now accepts the same options as `sentryEsbuildPlugin` (`org`, `project`, `authToken`, `release`, `sourcemaps`, ...). When `Bun.build` writes source maps to `outdir`, the plugin injects the debug ID that Bun writes into each bundle, injects the release, and uploads the source maps at the end of the build. You no longer need to run `sentry sourcemap inject` and `sentry sourcemap upload` after the build.
 
   Like the other bundler plugins, `sentryBunPlugin` now sends build telemetry and injects the release it detects (for example, from git). To turn off telemetry, set `telemetry: false`.
-
-- **feat(node, bun, deno, cloudflare): Align portable exports across server SDKs**
-
-  Node, Bun, Deno and Cloudflare now export the same helpers from `@sentry/core` and `@sentry/server-utils` where they work on that runtime:
-
-  - Node and Bun now export `moduleMetadataIntegration`, `instrumentPostgresJsSql`, `instrumentCreateReactAgent`, `awsIntegration` and the `FlueOptions` type. `awsIntegration` was already in their default integrations.
-  - Deno and Cloudflare now export `parameterize` and `instrumentStateGraphCompile`.
-  - Bun and Cloudflare now export the `Log` and `LogSeverityLevel` types.
-  - Deno now exports `fastifyIntegration`, which was already in its default integrations.
 
 ## 11.8.0
 
