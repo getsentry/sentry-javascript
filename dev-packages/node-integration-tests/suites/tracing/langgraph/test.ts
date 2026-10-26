@@ -386,7 +386,7 @@ describe('LangGraph integration', () => {
             expect(agentSpans).toHaveLength(10);
             expect(agentSpanFor('Stream inside a parent run')?.status).toBe('ok');
             const parentCallbacks = spans.find(span => span.name === 'parent callbacks');
-            expect(parentCallbacks?.attributes['test.graph_runs_seen']?.value).toBeGreaterThan(0);
+            expect(parentCallbacks?.attributes['test.parent_saw_graph_run']?.value).toBe(true);
 
             const read = agentSpanFor('Read the whole stream');
             expect(read?.status).toBe('ok');

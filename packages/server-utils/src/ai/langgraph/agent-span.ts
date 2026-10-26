@@ -82,24 +82,25 @@ export function prepareAgentSpan(
     span.setAttribute(GEN_AI_REQUEST_MODEL, modelName);
   }
 
-  if (sentryCallbackHandler) {
-    // A copy, so nothing is written back to a config object the caller reuses for other calls.
-    const invokeConfig: Record<string, unknown> = { ...(args[1] as Record<string, unknown> | undefined) };
-    args[1] = invokeConfig;
+  // A copy, so nothing is written back to a config object the caller reuses for other calls.
+  const config: Record<string, unknown> = { ...(args[1] as Record<string, unknown> | undefined) };
+  args[1] = config;
+  // Explicit callbacks replace the parent run's, which LangChain would otherwise inherit.
+  const callbacks = config.callbacks ?? getInheritedLangChainCallbacks();
+  if (callbacks) {
+    config.callbacks = callbacks;
+  }
 
-    const existingMetadata = (invokeConfig.metadata ?? {}) as Record<string, unknown>;
-    invokeConfig.metadata = {
-      ...getConversationIdMetadataFromConfig(invokeConfig),
+  if (sentryCallbackHandler) {
+    const existingMetadata = (config.metadata ?? {}) as Record<string, unknown>;
+    config.metadata = {
+      ...getConversationIdMetadataFromConfig(config),
       ...existingMetadata,
       __sentry_langgraph__: true,
       ...(typeof graphName === 'string' ? { lc_agent_name: graphName } : {}),
     };
 
-    // Explicit callbacks replace the parent run's, which LangChain would otherwise inherit.
-    invokeConfig.callbacks = _INTERNAL_mergeLangChainCallbackHandler(
-      invokeConfig.callbacks ?? getInheritedLangChainCallbacks(),
-      sentryCallbackHandler,
-    );
+    config.callbacks = _INTERNAL_mergeLangChainCallbackHandler(config.callbacks, sentryCallbackHandler);
   }
 
   const recordInputs = options.recordInputs;

@@ -65,8 +65,8 @@ describe('LangGraph stream() agent span', () => {
     getMainCarrier().__SENTRY__ = undefined;
   });
 
-  function instrument<T extends object>(graph: T, options = {}): T {
-    instrumentCompiledGraph(graph, { name: 'weather_graph' }, options, undefined, undefined);
+  function instrument<T extends object>(graph: T, options = {}, sentryCallbackHandler?: unknown): T {
+    instrumentCompiledGraph(graph, { name: 'weather_graph' }, options, undefined, sentryCallbackHandler);
     return graph;
   }
 
@@ -334,25 +334,28 @@ describe('LangGraph stream() agent span', () => {
   });
 
   it('leaves the caller config untouched in invoke() and stream() when the Sentry handler is injected', async () => {
-    const graph = createGraph(emit => {
-      emit('handleChainEnd', {}, 'root');
-      return createStream();
-    });
-    const instrumented = Object.assign(graph, {
-      async invoke(
-        this: { stream: (input: unknown, config: unknown) => Promise<unknown> },
-        input: unknown,
-        config: unknown,
-      ) {
-        await this.stream(input, config);
-        return {};
+    const graph = instrument(
+      {
+        ...createGraph(emit => {
+          emit('handleChainEnd', {}, 'root');
+          return createStream();
+        }),
+        async invoke(
+          this: { stream: (input: unknown, config: unknown) => Promise<unknown> },
+          input: unknown,
+          config: unknown,
+        ) {
+          await this.stream(input, config);
+          return {};
+        },
       },
-    });
-    instrumentCompiledGraph(instrumented, { name: 'weather_graph' }, {}, undefined, { name: 'SentryCallbackHandler' });
+      {},
+      { name: 'SentryCallbackHandler' },
+    );
     const config = { configurable: { thread_id: 't1' } };
 
-    await instrumented.invoke({}, config);
-    await instrumented.stream({}, config);
+    await graph.invoke({}, config);
+    await graph.stream({}, config);
 
     expect(config).toEqual({ configurable: { thread_id: 't1' } });
   });

@@ -1,7 +1,7 @@
 import { getCurrentScope, SPAN_STATUS_ERROR, startSpanManual } from '@sentry/core';
 import { GEN_AI_RESPONSE_STREAMING } from '@sentry/conventions/attributes';
 import type { BaseChatModel, LangChainMessage } from '../langchain/types';
-import { _INTERNAL_addLangChainCallbackHandler, getInheritedLangChainCallbacks } from '../langchain/utils';
+import { _INTERNAL_addLangChainCallbackHandler } from '../langchain/utils';
 import { getAgentSpanOptions, getInvokeMarker, LANGGRAPH_INVOKE_ACTIVE, prepareAgentSpan } from './agent-span';
 import type { CompiledGraph, LangGraphOptions } from './types';
 import { setResponseAttributes } from './utils';
@@ -30,11 +30,7 @@ export function instrumentCompiledGraphStream(
         return Reflect.apply(target, thisArg, args);
       }
 
-      // A copy, so the per-call listener never lands on a config object the caller reuses.
-      const config: Record<string, unknown> = { ...(args[1] as Record<string, unknown> | undefined) };
-      const callArgs = [args[0], config, ...args.slice(2)];
-
-      return startSpanManual(getAgentSpanOptions(callArgs, { [GEN_AI_RESPONSE_STREAMING]: true }), async span => {
+      return startSpanManual(getAgentSpanOptions(args, { [GEN_AI_RESPONSE_STREAMING]: true }), async span => {
         let inputMessages: LangChainMessage[] | null = null;
         let stream: { signal?: AbortSignal } | undefined;
         let ended = false;
@@ -47,7 +43,7 @@ export function instrumentCompiledGraphStream(
             if (outcome && 'error' in outcome) {
               // A cancel or abort by the caller is not a failed run. LangGraph reports both, and step
               // timeouts too, as `Error('Abort')`, so only the signals tell them apart.
-              if (!stream?.signal?.aborted && !(config.signal as AbortSignal | undefined)?.aborted) {
+              if (!stream?.signal?.aborted && !(args[1] as { signal?: AbortSignal } | undefined)?.signal?.aborted) {
                 span.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
               }
             } else if (outcome && options.recordOutputs) {
@@ -86,20 +82,17 @@ export function instrumentCompiledGraphStream(
         try {
           inputMessages = prepareAgentSpan(
             span,
-            callArgs,
+            args,
             graphInstance,
             compileOptions,
             options,
             llm,
             sentryCallbackHandler,
           );
-          // `prepareAgentSpan` may have replaced the config with its own copy.
-          const callConfig = callArgs[1] as Record<string, unknown>;
-          callConfig.callbacks = _INTERNAL_addLangChainCallbackHandler(
-            callConfig.callbacks ?? getInheritedLangChainCallbacks(),
-            listener,
-          );
-          stream = (await Reflect.apply(target, thisArg, callArgs)) as typeof stream;
+          // `prepareAgentSpan` gave the call its own copy of the config, so the listener stays on this call.
+          const config = args[1] as Record<string, unknown>;
+          config.callbacks = _INTERNAL_addLangChainCallbackHandler(config.callbacks, listener);
+          stream = (await Reflect.apply(target, thisArg, args)) as typeof stream;
         } catch (error) {
           finish({ error });
           throw error;

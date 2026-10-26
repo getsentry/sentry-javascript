@@ -64,11 +64,11 @@ async function run() {
     await graph.invoke(user('Invoke the graph'));
 
     // stream() called without config inside a parent run must keep reporting to the parent's callbacks.
-    let graphRunsSeenByParent = 0;
+    let parentSawGraphRun = false;
     const parentCallback = {
       handleChainStart: (_chain, _inputs, _runId, _parentRunId, _tags, metadata) => {
         if (metadata?.lc_agent_name === 'weather_graph') {
-          graphRunsSeenByParent++;
+          parentSawGraphRun = true;
         }
       },
     };
@@ -78,7 +78,7 @@ async function run() {
       }
     }).invoke(user('Stream inside a parent run'), { callbacks: [parentCallback] });
     Sentry.startSpan(
-      { name: 'parent callbacks', attributes: { 'test.graph_runs_seen': graphRunsSeenByParent } },
+      { name: 'parent callbacks', attributes: { 'test.parent_saw_graph_run': parentSawGraphRun } },
       () => {},
     );
 
