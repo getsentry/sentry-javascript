@@ -42,10 +42,21 @@ const _anthropicAIIntegration = ((options: AnthropicAiOptions = {}) => {
   return {
     name: INTEGRATION_NAME,
     setup(client) {
+      disableNativeTracing();
       invokeOrchestrionInstrumentation(client, anthropicAiModuleNames, instrumentAnthropic, [options]);
     },
   };
 }) satisfies IntegrationFn;
+
+// `@anthropic-ai/sdk` 1.x traces itself through the global OTel tracer provider, which duplicates our spans
+// wherever Sentry registers that provider. A value the user set wins.
+function disableNativeTracing(): void {
+  try {
+    process.env.ANTHROPIC_OPEN_TELEMETRY ??= 'false';
+  } catch {
+    // `process` is absent (edge runtimes) or env access is gated (Deno without `--allow-env`).
+  }
+}
 
 function instrumentAnthropic(options: AnthropicAiOptions): void {
   for (const { channel, operation, stream } of INSTRUMENTED_CHANNELS) {
