@@ -100,4 +100,51 @@ describe('instrumentStream (openai chat completion tool calls)', () => {
       expect.objectContaining({ id: 'call_b', function: { name: 'search', arguments: '{}' } }),
     ]);
   });
+
+  it('treats a null index like a missing one', async () => {
+    const toolCalls = await recordedToolCalls([
+      chunkWith([
+        { index: null, id: 'call_a', type: 'function', function: { name: 'lookup', arguments: '{"q":"a"}' } },
+        { index: null, id: 'call_b', type: 'function', function: { name: 'search', arguments: '{"q":"b"}' } },
+      ]),
+      chunkWith([{ index: null, function: { name: '', arguments: ' ' } }]),
+    ]);
+
+    expect(toolCalls.map(call => call.id)).toEqual(['call_a', 'call_b']);
+    expect((toolCalls[1]?.function as { arguments: string }).arguments).toBe('{"q":"b"} ');
+  });
+
+  it('opens a new call when a different id lands on an index that is already taken', async () => {
+    const toolCalls = await recordedToolCalls([
+      chunkWith([
+        { index: 0, id: 'call_a', type: 'function', function: { name: 'lookup', arguments: '{"q":"a"}' } },
+        { index: 0, id: 'call_b', type: 'function', function: { name: 'search', arguments: '{"q":"b"}' } },
+      ]),
+    ]);
+
+    expect(toolCalls).toEqual([
+      { index: 0, id: 'call_a', type: 'function', function: { name: 'lookup', arguments: '{"q":"a"}' } },
+      { index: 0, id: 'call_b', type: 'function', function: { name: 'search', arguments: '{"q":"b"}' } },
+    ]);
+  });
+
+  it('continues the latest call opened on a reused index when the next delta has no id', async () => {
+    const toolCalls = await recordedToolCalls([
+      chunkWith([{ index: 0, id: 'call_a', function: { name: 'lookup', arguments: '{}' } }]),
+      chunkWith([{ index: 0, id: 'call_b', function: { name: 'search', arguments: '{"q":' } }]),
+      chunkWith([{ index: 0, function: { name: '', arguments: '"b"}' } }]),
+    ]);
+
+    expect(toolCalls.map(call => (call.function as { arguments: string }).arguments)).toEqual(['{}', '{"q":"b"}']);
+  });
+
+  it('does not split a call whose id is repeated on every delta of its index', async () => {
+    const toolCalls = await recordedToolCalls([
+      chunkWith([{ index: 0, id: 'call_a', function: { name: 'lookup', arguments: '{"q":' } }]),
+      chunkWith([{ index: 0, id: 'call_a', function: { name: '', arguments: '"a"}' } }]),
+    ]);
+
+    expect(toolCalls).toHaveLength(1);
+    expect((toolCalls[0]?.function as { arguments: string }).arguments).toBe('{"q":"a"}');
+  });
 });

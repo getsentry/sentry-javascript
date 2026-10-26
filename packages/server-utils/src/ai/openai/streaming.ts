@@ -40,6 +40,8 @@ interface StreamingState {
   chatCompletionToolCalls: Record<number | string, ChatCompletionToolCall>;
   /** Key of the latest tool call, which unindexed argument fragments continue. */
   lastChatCompletionToolCallKey?: number | string;
+  /** Key of the call currently open for a reported `index`, when a new `id` reused that index. */
+  chatCompletionToolCallKeyByIndex?: Record<number, number | string>;
   /**
    * Accumulated function calls from Responses API streaming.
    * @see https://platform.openai.com/docs/guides/function-calling?api-mode=responses#streaming
@@ -82,24 +84,35 @@ function processChatCompletionToolCalls(toolCalls: ChatCompletionToolCall[], sta
 }
 
 /**
- * OpenAI-compatible providers such as Gemini's OpenAI endpoint send tool calls without an `index`.
- * Those are matched by a known `id`; a new `id` or a function name opens a new call, and anything
- * else continues the latest call.
+ * OpenAI-compatible providers such as Gemini's OpenAI endpoint send tool calls without an `index`
+ * (or with `null`), or reuse the same `index` for every call. A call without a usable `index` is
+ * matched by a known `id`; a new `id` or a function name opens a new call, and anything else
+ * continues the latest call. A different non-empty `id` on an `index` that is already taken also
+ * opens a new call.
  */
 function getToolCallKey(toolCall: ChatCompletionToolCall, state: StreamingState): number | string {
-  if (toolCall.index !== undefined) {
-    return toolCall.index;
+  const calls = state.chatCompletionToolCalls;
+  const findById = (id: string): string | undefined => Object.keys(calls).find(key => calls[key]?.id === id);
+
+  if (typeof toolCall.index === 'number') {
+    const keyByIndex = (state.chatCompletionToolCallKeyByIndex ??= {});
+    const key = keyByIndex[toolCall.index] ?? toolCall.index;
+    const existingId = calls[key]?.id;
+    if (existingId && toolCall.id && existingId !== toolCall.id) {
+      const next = findById(toolCall.id) ?? `index-${toolCall.index}-${Object.keys(calls).length}`;
+      keyByIndex[toolCall.index] = next;
+      return next;
+    }
+    return key;
   }
   if (toolCall.id) {
-    const known = Object.keys(state.chatCompletionToolCalls).find(
-      key => state.chatCompletionToolCalls[key]?.id === toolCall.id,
-    );
+    const known = findById(toolCall.id);
     if (known !== undefined) {
       return known;
     }
   }
   if (toolCall.id || toolCall.function?.name || state.lastChatCompletionToolCallKey === undefined) {
-    return `no-index-${Object.keys(state.chatCompletionToolCalls).length}`;
+    return `no-index-${Object.keys(calls).length}`;
   }
   return state.lastChatCompletionToolCallKey;
 }
