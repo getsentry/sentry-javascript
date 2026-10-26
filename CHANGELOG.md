@@ -36,6 +36,14 @@ Work in this release was contributed by @faizansaiyed123, @itisrmk, @kunal649, @
 
   These integrations need the vite plugin. Without it, they record nothing, and with `debug: true` the SDK logs a warning.
 
+- **ref(deno): Use the shared request handler wrapper for `Deno.serve`**
+
+  `Deno.serve` now uses a request handler wrapper that `Bun.serve` and Cloudflare will also use. Three small changes for Deno users:
+
+  - When the source of a streamed response fails, the SDK now captures the error and marks the span as failed.
+  - The SDK no longer reads a streamed response ahead of the client.
+  - Errors in `OPTIONS` and `HEAD` requests now carry the request data.
+
 ## 11.9.0
 
 ### Important Changes
