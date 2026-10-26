@@ -30,7 +30,7 @@ import type {
 import type { SpanStatus } from '../types/spanStatus';
 import { addNonEnumerableProperty } from '../utils/object';
 import { generateSpanId } from '../utils/propagationContext';
-import { timestampInSeconds } from '../utils/time';
+import { browserPerformanceTimeOrigin, timestampInSeconds } from '../utils/time';
 import { generateSentryTraceHeader, generateTraceparentHeader } from '../utils/tracing';
 import { _getSpanForScope } from './spanOnScope';
 
@@ -154,6 +154,22 @@ export function spanTimeInputToSeconds(input: SpanTimeInput | undefined): number
   }
 
   return timestampInSeconds();
+}
+
+/** Convert OpenTelemetry TimeInput, whose numeric values are milliseconds, to Unix seconds. */
+export function otelTimeInputToSeconds(input: SpanTimeInput | undefined): number {
+  if (typeof input === 'number') {
+    const origin = browserPerformanceTimeOrigin(input);
+    // Match OTel's distinction between epoch milliseconds and performance.now(),
+    // including epoch values just before the process's time origin.
+    return (origin !== undefined && input < origin / 2 ? origin + input : input) / 1000;
+  }
+
+  if (input instanceof Date) {
+    return input.getTime() / 1000;
+  }
+
+  return spanTimeInputToSeconds(input);
 }
 
 /**

@@ -10,6 +10,7 @@ import {
   getCurrentScope,
   getIsolationScope,
   markSpanAsTracerProviderSpan,
+  otelTimeInputToSeconds,
   SentryNonRecordingSpan,
   setCapturedScopesOnSpan,
   spanIsIgnored,
@@ -136,7 +137,7 @@ export class SentryTracer implements Tracer {
       name,
       attributes: (options.attributes as SpanAttributes) || {},
       links: convertSpanLinkType(options.links),
-      startTime: options.startTime,
+      startTime: options.startTime === undefined ? undefined : otelTimeInputToSeconds(options.startTime),
     };
 
     // Convert otel kind to our sentry.kind attribtue

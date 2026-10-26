@@ -45,6 +45,43 @@ describe('SentryTracerProvider', () => {
     });
   });
 
+  it('anchors performance timestamps to the Unix epoch and preserves millisecond durations', () => {
+    const before = Date.now() / 1000;
+    const start = performance.now();
+    const span = trace.getTracer('test').startSpan('NextNodeServer.clientComponentLoading', { startTime: start });
+
+    span.end(start + 25);
+
+    const json = spanToJSON(span as Span);
+    expect(json.start_timestamp).toBeGreaterThanOrEqual(before - 1);
+    expect(json.start_timestamp).toBeLessThanOrEqual(Date.now() / 1000 + 1);
+    expect(json.end_timestamp! - json.start_timestamp).toBeCloseTo(0.025, 5);
+  });
+
+  it('accepts zero as a performance timestamp', () => {
+    const span = trace.getTracer('test').startSpan('performance origin', { startTime: 0 });
+
+    span.end(25);
+
+    const json = spanToJSON(span as Span);
+    expect(json.start_timestamp).toBeCloseTo(performance.timeOrigin / 1000, 2);
+    expect(json.end_timestamp! - json.start_timestamp).toBeCloseTo(0.025, 5);
+  });
+
+  it.each([
+    { startTime: 1700000000000, endTime: 1700000000025 },
+    { startTime: new Date(1700000000000), endTime: new Date(1700000000025) },
+    { startTime: [1700000000, 0] as [number, number], endTime: [1700000000, 25000000] as [number, number] },
+  ])('preserves absolute OpenTelemetry timestamps ($startTime)', ({ startTime, endTime }) => {
+    const span = trace.getTracer('test').startSpan('absolute timestamp', { startTime });
+
+    span.end(endTime);
+
+    const json = spanToJSON(span as Span);
+    expect(json.start_timestamp).toBe(1700000000);
+    expect(json.end_timestamp).toBe(1700000000.025);
+  });
+
   it('parents inactive spans to the active OpenTelemetry span', () => {
     trace.getTracer('test').startActiveSpan('parent', parent => {
       const child = trace.getTracer('test').startSpan('child');

@@ -17,6 +17,7 @@ import {
   startSpanManual,
 } from '../../../src';
 import { startIdleSpan, TRACING_DEFAULTS } from '../../../src/tracing/idleSpan';
+import { markSpanAsTracerProviderSpan } from '../../../src/tracing/utils';
 import type { Event } from '../../../src/types/event';
 import type { Span } from '../../../src/types/span';
 import { getDefaultTestClientOptions, TestClient } from '../../mocks/client';
@@ -56,6 +57,17 @@ describe('startIdleSpan', () => {
     vi.runAllTimers();
 
     expect(getActiveSpan()).toBe(undefined);
+  });
+
+  it('cancels a provider-created child using the idle span end timestamp', () => {
+    const endTimestamp = Date.now() / 1000 + 1;
+    const idleSpan = startIdleSpan({ name: 'idle span' });
+    const child = startInactiveSpan({ name: 'OpenTelemetry child' });
+    markSpanAsTracerProviderSpan(child);
+
+    idleSpan.end(endTimestamp);
+
+    expect(spanToJSON(child).end_timestamp).toBe(endTimestamp);
   });
 
   it('returns non recording span if tracing is disabled', () => {

@@ -322,7 +322,8 @@ export function startIdleSpan(startSpanOptions: StartSpanOptions, options: Parti
       // We cancel all pending spans with status "cancelled" to indicate the idle span was finished early
       if (childSpan.isRecording()) {
         childSpan.setStatus({ code: SPAN_STATUS_ERROR, message: 'cancelled' });
-        childSpan.end(endTimestamp);
+        // Provider-created descendants use OTel's millisecond-based numeric timestamps.
+        childSpan.end([Math.floor(endTimestamp), (endTimestamp % 1) * 1e9]);
         DEBUG_BUILD &&
           debug.log('[Tracing] Cancelling span since span ended early', JSON.stringify(childSpan, undefined, 2));
       }

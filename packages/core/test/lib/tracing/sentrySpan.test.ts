@@ -169,8 +169,8 @@ describe('SentrySpan', () => {
       });
       markSpanAsTracerProviderSpan(span);
 
-      span.end(2);
-      span.end(3);
+      span.end([2, 0]);
+      span.end([3, 0]);
 
       span.setAttribute('key', 'after');
       expect(spanToStaticSpanJSON(span).data?.['key']).toBe('before');

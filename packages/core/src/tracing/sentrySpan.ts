@@ -38,6 +38,7 @@ import {
   INTERNAL_setSegmentNameSourceIfSegment,
   spanIsSegment,
   spanTimeInputToSeconds,
+  otelTimeInputToSeconds,
   spanToStaticSpanJSON,
   spanToTransactionTraceContext,
   TRACE_FLAG_NONE,
@@ -253,7 +254,12 @@ export class SentrySpan implements Span {
       return;
     }
 
-    this._endTime = endTimestamp == null ? this._getEndTimeFromDuration() : spanTimeInputToSeconds(endTimestamp);
+    this._endTime =
+      endTimestamp == null
+        ? this._getEndTimeFromDuration()
+        : spanIsTracerProviderSpan(this)
+          ? otelTimeInputToSeconds(endTimestamp)
+          : spanTimeInputToSeconds(endTimestamp);
     logSpanEnd(this);
 
     this._onSpanEnded();
