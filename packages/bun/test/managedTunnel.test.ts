@@ -1,7 +1,7 @@
 import type { TransactionEvent } from '@sentry/core';
 import * as SentryCore from '@sentry/core';
 import { afterEach, describe, expect, test } from 'bun:test';
-import { init } from '../src';
+import { init, serveTunnelIntegration } from '../src';
 
 const DSN = 'https://username@domain/123';
 
@@ -17,7 +17,7 @@ describe('managed tunnel', () => {
       tracesSampleRate: 1,
       traceLifecycle: 'static',
       // A meta-framework answers the tunnel requests, Bun only drops their server spans.
-      tunnel: true,
+      integrations: [serveTunnelIntegration()],
       beforeSendTransaction: (event: TransactionEvent) => {
         transactions.push(event.request?.url ?? '');
         return null;

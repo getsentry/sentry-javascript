@@ -1,7 +1,7 @@
 // <reference lib="deno.ns" />
 
 import { getTunnelPath } from '@sentry/core';
-import { flush, init } from '@sentry/deno';
+import { flush, init, serveTunnelIntegration } from '@sentry/deno';
 import { assertEquals } from 'https://deno.land/std@0.212.0/assert/assert_equals.ts';
 import { getSpanOp, resetGlobals, spanSink, withTimeout } from '../../src/index.ts';
 
@@ -15,7 +15,7 @@ Deno.test('Deno.serve drops the server span of managed tunnel requests', async (
     dsn: DSN,
     tracesSampleRate: 1,
     // A meta-framework answers the tunnel requests, Deno only drops their server spans.
-    tunnel: true,
+    integrations: [serveTunnelIntegration()],
     transport: sink.transport,
   });
 

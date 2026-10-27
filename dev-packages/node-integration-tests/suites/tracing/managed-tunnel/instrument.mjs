@@ -6,6 +6,6 @@ Sentry.init({
   release: '1.0',
   tracesSampleRate: 1.0,
   // A meta-framework answers the tunnel requests, Node only drops their server spans.
-  tunnel: true,
+  integrations: [Sentry.serveTunnelIntegration()],
   transport: loggingTransport,
 });
