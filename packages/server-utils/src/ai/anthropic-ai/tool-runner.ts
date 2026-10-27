@@ -63,8 +63,12 @@ export function instrumentToolRunner(runner: unknown, options: AnthropicAiOption
 
 /** Give each tool call of a Managed Agents session runner a `gen_ai.execute_tool` span. */
 export function instrumentSessionToolRunner(runner: unknown, options: AnthropicAiOptions): void {
+  if (!runner || typeof runner !== 'object') {
+    return;
+  }
+
   // The session runner has no `addTools()`: it only runs the tools it was created with.
-  instrumentTools((runner as SessionToolRunner | undefined)?.tools, options);
+  instrumentTools((runner as SessionToolRunner).tools, options);
 }
 
 function instrumentTools(tools: unknown, options: AnthropicAiOptions): void {
