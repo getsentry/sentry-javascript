@@ -1194,7 +1194,7 @@ A comprehensive migration guide outlining all changes can be found within the Se
 
 #### @sentry/react-router
 
-- feat(react-router)!: Raise minimum supported React Router version to >= 7.15 ([#22481](https://github.com/getsentry/sentry-javascript/pull/22481))
+- feat(react-router)!: Raise minimum supported React Router (framework mode) version to >= 7.15 ([#22481](https://github.com/getsentry/sentry-javascript/pull/22481))
 - feat(react-router)!: Remove deprecated server wrappers ([#22529](https://github.com/getsentry/sentry-javascript/pull/22529))
 - feat(react-router)!: Remove server OTel instrumentation ([#22551](https://github.com/getsentry/sentry-javascript/pull/22551))
 - feat(react-router)!: Remove unstable_sentryVitePluginOptions ([#23374](https://github.com/getsentry/sentry-javascript/pull/23374))
