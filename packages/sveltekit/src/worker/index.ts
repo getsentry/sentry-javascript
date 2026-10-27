@@ -81,6 +81,7 @@ export {
   startSpan,
   startSpanManual,
   trpcMiddleware,
+  serveTunnelIntegration,
   withActiveSpan,
   withIsolationScope,
   withMonitor,
