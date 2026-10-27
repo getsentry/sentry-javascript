@@ -1,4 +1,5 @@
 import type { Client } from '../client';
+import type { Integration } from '../types/integration';
 import { getClient } from '../currentScopes';
 import type { IgnoreSpanFilter, ServerTunnelOptions } from '../types/options';
 import type { TunnelForwarder } from './tunnel';
@@ -27,6 +28,12 @@ interface ManagedTunnelDefaults {
    */
   basePath?: string;
 }
+
+/**
+ * The name of `serveTunnelIntegration`, which carries the forwarder. Kept here so this module doesn't import the
+ * integration, and with it the forwarder, into apps that don't use it.
+ */
+export const SERVE_TUNNEL_INTEGRATION_NAME = 'ServeTunnel';
 
 let managedTunnelDefaults: ManagedTunnelDefaults | undefined;
 
@@ -69,7 +76,13 @@ export function enableManagedTunnel(
 export function applyManagedTunnelDefaults(client: Client | undefined): void {
   const options = client?.getOptions();
   const tunnelOptions: ServerTunnelOptions | undefined = options?._managedTunnel ?? managedTunnelDefaults?.tunnel;
-  const forward = client && (tunnelForwarders.get(client) ?? managedTunnelDefaults?.forward);
+  // A framework SDK can bundle its own copy of this module, which only reaches the forwarder through the client.
+  const forward =
+    client &&
+    (tunnelForwarders.get(client) ??
+      client.getIntegrationByName?.<Integration & { forward?: TunnelForwarder }>(SERVE_TUNNEL_INTEGRATION_NAME)
+        ?.forward ??
+      managedTunnelDefaults?.forward);
   if (!client || !options || !tunnelOptions || !forward) {
     return;
   }

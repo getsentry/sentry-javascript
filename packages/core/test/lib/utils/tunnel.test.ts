@@ -703,6 +703,26 @@ describe('serveTunnelIntegration', () => {
     expect(client.getOptions().ignoreSpans).toBeUndefined();
   });
 
+  it('serves the tunnel from a separately bundled copy of core, which reaches the forwarder through the client', async () => {
+    const client = new ServerRuntimeClient(
+      getDefaultTestClientOptions({ dsn: TEST_DSN, integrations: [serveTunnelIntegration()] }),
+    );
+    setCurrentClient(client);
+    client.init();
+
+    vi.resetModules();
+    const bundledDefaults = await import('../../../src/utils/managedTunnelDefaults');
+    const bundledTunnel = await import('../../../src/utils/tunnel');
+    bundledDefaults.setManagedTunnelDefaults({ basePath: '/app' });
+
+    expect(bundledTunnel.getTunnelPaths()).toEqual([getTunnelPath(TEST_DSN)]);
+    expect(
+      bundledTunnel.handleTunnelRequestIfMatched(
+        makeEnvelopeRequest({ dsn: TEST_DSN }, `http://localhost/app${getTunnelPath(TEST_DSN)}`),
+      ),
+    ).toBeDefined();
+  });
+
   it('serves nothing for a `_managedTunnel` set without it, since only the integration brings the forwarder', () => {
     const client = new ServerRuntimeClient(getDefaultTestClientOptions({ dsn: TEST_DSN, _managedTunnel: {} }));
     setCurrentClient(client);
