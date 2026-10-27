@@ -22,7 +22,7 @@
     "test:assert": "pnpm test:prod && pnpm test:dev",
     "test:assert-webpack": "pnpm test:prod && pnpm test:dev-webpack",
     "test:build:cloudflare": "pnpm install && opennextjs-cloudflare build --config wrangler.opennext.jsonc",
-    "test:build-latest:cloudflare": "pnpm install && pnpm add next@16.3 && opennextjs-cloudflare build --config wrangler.opennext.jsonc",
+    "test:build-latest:cloudflare": "pnpm install && pnpm add next@latest && opennextjs-cloudflare build --config wrangler.opennext.jsonc",
     "start:cloudflare": "opennextjs-cloudflare preview --config wrangler.opennext.jsonc --var \"E2E_TEST_DSN:$E2E_TEST_DSN\"",
     "test:build:vinext": "pnpm install && pnpm add react@19.3.1 react-dom@19.3.1 && npm pkg set type=module && vinext build",
     "test:assert:vinext": "VINEXT=1 pnpm test:prod"
