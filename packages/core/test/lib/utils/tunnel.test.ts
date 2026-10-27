@@ -737,20 +737,9 @@ describe('applyTunnelDefaults', () => {
     expect(applyTunnelDefaults({ basePath: '/custom' }, { basePath: '/app' })).toEqual({ basePath: '/custom' });
   });
 
-  it('treats a relative path as a managed tunnel with that path', () => {
-    expect(applyTunnelDefaults('/monitor', { basePath: '/app' })).toEqual({ basePath: '/app', path: '/monitor' });
-  });
-
-  it('does not add the base path again to a path that already starts with it', () => {
-    expect(applyTunnelDefaults('/app/monitor', { basePath: '/app' })).toEqual({ basePath: '/app', path: '/monitor' });
-    expect(applyTunnelDefaults({ path: '/app/monitor' }, { basePath: '/app' })).toEqual({
-      basePath: '/app',
-      path: '/monitor',
-    });
-    expect(applyTunnelDefaults('/application/monitor', { basePath: '/app' })).toEqual({
-      basePath: '/app',
-      path: '/application/monitor',
-    });
+  it('leaves a path the user wrote as written', () => {
+    expect(applyTunnelDefaults('/monitor', { basePath: '/app' })).toBe('/monitor');
+    expect(applyTunnelDefaults({ path: '/monitor' }, { basePath: '/app' })).toEqual({ path: '/monitor' });
   });
 
   it('leaves a URL, an unset tunnel and empty defaults alone', () => {
@@ -802,15 +791,15 @@ describe('setManagedTunnelDefaults', () => {
     );
   });
 
-  it('does not add the base path again to a fixed path that already starts with it', () => {
-    setTestClient(TEST_DSN, { path: '/app/monitor' });
+  it('serves a fixed path as written, outside the base path', () => {
+    setTestClient(TEST_DSN, { path: '/monitor' });
     const client = getCurrentScope().getClient()!;
 
     setManagedTunnelDefaults({ basePath: '/app' });
 
-    expect(client.getOptions()._managedTunnel).toEqual({ basePath: '/app', path: '/monitor' });
-    expect(isTunnelRequest({ method: 'POST', url: '/app/monitor' })).toBe(true);
-    expect(isTunnelRequest({ method: 'POST', url: '/app/app/monitor' })).toBe(false);
+    expect(client.getOptions()._managedTunnel).toEqual({ path: '/monitor' });
+    expect(isTunnelRequest({ method: 'POST', url: '/monitor' })).toBe(true);
+    expect(isTunnelRequest({ method: 'POST', url: '/app/monitor' })).toBe(false);
   });
 
   it('keeps a base path the user set, and does nothing without a managed tunnel or a base path', () => {
@@ -838,15 +827,15 @@ describe('setManagedTunnelDefaults', () => {
     setTestClient(TEST_DSN);
     const laterClient = getCurrentScope().getClient()!;
     applyManagedTunnelDefaults(laterClient);
-    expect(laterClient.getOptions()._managedTunnel).toEqual({ path: '/monitor', basePath: '/app' });
+    expect(laterClient.getOptions()._managedTunnel).toEqual({ path: '/monitor' });
     expect(laterClient.getOptions().ignoreSpans).toContainEqual(
-      getTunnelIgnoreSpanFilter({ path: '/monitor', basePath: '/app' }, makeDsn(TEST_DSN)),
+      getTunnelIgnoreSpanFilter({ path: '/monitor' }, makeDsn(TEST_DSN)),
     );
 
     setTestClient(TEST_DSN, { path: '/from-init' });
     const initClient = getCurrentScope().getClient()!;
     applyManagedTunnelDefaults(initClient);
-    expect(initClient.getOptions()._managedTunnel).toEqual({ path: '/from-init', basePath: '/app' });
+    expect(initClient.getOptions()._managedTunnel).toEqual({ path: '/from-init' });
   });
 });
 

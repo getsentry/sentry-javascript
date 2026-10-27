@@ -60,25 +60,26 @@ export function resolveServerTunnelOption(tunnel: TunnelInit<ServerTunnelOptions
 }
 
 /**
- * Fills in framework defaults (like the base path) for a managed tunnel. User options win; URLs pass through.
+ * Fills in framework defaults (like the base path) for a managed tunnel on the DSN-derived path. User options win.
+ * A path the user wrote, as a string or `path`, is used as written, so a tunnel served outside the app keeps working.
  * The base path is normalized, and a root one is no default at all.
  */
 export function applyTunnelDefaults(
   tunnel: TunnelInit | undefined,
   defaults: TunnelOptions | undefined,
 ): TunnelInit | undefined {
-  const { basePath, ...rest } = defaults ?? {};
-  const normalizedBasePath = normalizeTunnelBasePath(basePath);
-  const resolvedDefaults: TunnelOptions = normalizedBasePath ? { ...rest, basePath: normalizedBasePath } : rest;
-  if (!tunnel || !Object.keys(resolvedDefaults).length) {
+  if (!tunnel || typeof tunnel === 'string' || (tunnel !== true && tunnel.path)) {
     return tunnel;
   }
 
-  if (typeof tunnel === 'string') {
-    return tunnel.startsWith('/') ? stripBasePathFromTunnelPath({ ...resolvedDefaults, path: tunnel }) : tunnel;
+  const { basePath, ...rest } = defaults ?? {};
+  const normalizedBasePath = normalizeTunnelBasePath(basePath);
+  const resolvedDefaults: TunnelOptions = normalizedBasePath ? { ...rest, basePath: normalizedBasePath } : rest;
+  if (!Object.keys(resolvedDefaults).length) {
+    return tunnel;
   }
 
-  return stripBasePathFromTunnelPath({ ...resolvedDefaults, ...(tunnel === true ? {} : tunnel) });
+  return { ...resolvedDefaults, ...(tunnel === true ? {} : tunnel) };
 }
 
 /**
@@ -412,15 +413,6 @@ export function resolveAllowedDsns(
   }
 
   return [...dsns];
-}
-
-/**
- * Makes a fixed `path` relative to `basePath`, so one written with the base path isn't served under it twice.
- */
-export function stripBasePathFromTunnelPath<T extends TunnelOptions>(tunnelOptions: T): T {
-  const path = tunnelOptions.path && stripBasePath(tunnelOptions.path, tunnelOptions.basePath);
-
-  return path ? { ...tunnelOptions, path } : tunnelOptions;
 }
 
 /**

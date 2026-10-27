@@ -7,7 +7,6 @@ import {
   resolveAllowedDsns,
   resolveTunnelPaths,
   setServedTunnel,
-  stripBasePathFromTunnelPath,
 } from './tunnel';
 
 /**
@@ -19,7 +18,10 @@ interface ManagedTunnelDefaults {
    * path is `basePath`, so it has none of its own.
    */
   tunnel?: Omit<ServerTunnelOptions, 'basePath'>;
-  /** The path prefix the app is served under. Applies however the tunnel was enabled, unless `init` set its own. */
+  /**
+   * The path prefix the app is served under. Applies to the DSN-derived path however the tunnel was enabled, unless
+   * `init` set its own. A fixed `path` is served as written.
+   */
   basePath?: string;
 }
 
@@ -53,9 +55,10 @@ export function applyManagedTunnelDefaults(client: Client | undefined): void {
   }
 
   const basePath = normalizeTunnelBasePath(managedTunnelDefaults?.basePath);
-  const resolved = stripBasePathFromTunnelPath(
-    tunnelOptions.basePath === undefined && basePath ? { ...tunnelOptions, basePath } : tunnelOptions,
-  );
+  const resolved =
+    tunnelOptions.basePath === undefined && !tunnelOptions.path && basePath
+      ? { ...tunnelOptions, basePath }
+      : tunnelOptions;
   options._managedTunnel = resolved;
   const allowedDsns = resolveAllowedDsns(resolved.allowedDsns, client.getDsn());
   const paths = resolveTunnelPaths(resolved, allowedDsns);
