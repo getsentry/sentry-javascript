@@ -14,6 +14,28 @@ interface Props {
 
 type UseTakeScreenshot = ({ onBeforeScreenshot, onScreenshot, onAfterScreenshot, onError }: Props) => void;
 
+const FRAMES_BEFORE_CAPTURE = 2;
+// Safari drops the user gesture that `getDisplayMedia` needs 1s after the click, so stay well below that.
+const MAX_WAIT_BEFORE_CAPTURE_MS = 300;
+
+/** Resolves once `frames` animation frames have been drawn, or after `timeout` ms if the page draws none. */
+function waitForFrames(frames: number, timeout: number): Promise<void> {
+  return new Promise(resolve => {
+    const timeoutId = setTimeout(resolve, timeout);
+    let remaining = frames;
+    const onFrame = (): void => {
+      remaining -= 1;
+      if (remaining > 0) {
+        WINDOW.requestAnimationFrame(onFrame);
+        return;
+      }
+      clearTimeout(timeoutId);
+      resolve();
+    };
+    WINDOW.requestAnimationFrame(onFrame);
+  });
+}
+
 export function useTakeScreenshotFactory({ hooks }: FactoryParams): UseTakeScreenshot {
   function useDpi(): number {
     const [dpi, setDpi] = hooks.useState<number>(WINDOW.devicePixelRatio ?? 1);
@@ -37,6 +59,10 @@ export function useTakeScreenshotFactory({ hooks }: FactoryParams): UseTakeScree
     hooks.useEffect(() => {
       const takeScreenshot = async (): Promise<void> => {
         onBeforeScreenshot();
+
+        // The capture starts from the last frame the browser painted, which can still show the form that
+        // `onBeforeScreenshot` just hid. A tab that draws no frames (e.g. a background tab) must not hold it forever.
+        await waitForFrames(FRAMES_BEFORE_CAPTURE, MAX_WAIT_BEFORE_CAPTURE_MS);
 
         // Chrome will animate a top-bar which can shrink the window height by a
         // few pixels. The exact amount depends on how fast it takes to exec

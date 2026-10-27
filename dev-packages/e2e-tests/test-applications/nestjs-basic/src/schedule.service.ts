@@ -7,15 +7,16 @@ export class ScheduleService {
   constructor(private schedulerRegistry: SchedulerRegistry) {}
 
   // @Cron error test (auto-instrumentation, no @SentryCron)
+  // The timestamp keeps the Dedupe integration from dropping the error on repeated ticks.
   @Cron('*/5 * * * * *', { name: 'test-schedule-cron-error' })
   handleCronError() {
-    throw new Error('Test error from schedule cron');
+    throw new Error(`Test error from schedule cron ${Date.now()}`);
   }
 
   // @Interval error test
   @Interval('test-schedule-interval-error', 2000)
   async handleIntervalError() {
-    throw new Error('Test error from schedule interval');
+    throw new Error(`Test error from schedule interval ${Date.now()}`);
   }
 
   // @Timeout error test

@@ -1,0 +1,5 @@
+allowBuilds:
+  '@sveltejs/kit': true
+  esbuild: true
+  svelte-preprocess: false
+minimumReleaseAge: 0

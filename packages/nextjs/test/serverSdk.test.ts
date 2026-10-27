@@ -6,6 +6,13 @@ import * as SentryNode from '@sentry/node';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { TRANSACTION_ATTR_SHOULD_DROP_TRANSACTION } from '../src/common/span-attributes-with-logic-attached';
 import { init } from '../src/server';
+import type * as NextSentryPropagatorModule from '../src/server/nextSentryPropagator';
+import { registerNextSentryPropagator } from '../src/server/nextSentryPropagator';
+
+vi.mock('../src/server/nextSentryPropagator', async importOriginal => ({
+  ...(await importOriginal<typeof NextSentryPropagatorModule>()),
+  registerNextSentryPropagator: vi.fn(),
+}));
 
 // normally this is set as part of the build process, so mock it here
 (GLOBAL_OBJ as typeof GLOBAL_OBJ & { _sentryRewriteFramesDistDir: string })._sentryRewriteFramesDistDir = '.next';
@@ -25,6 +32,7 @@ describe('Server init()', () => {
 
     delete process.env.VERCEL;
     delete (process as { turbopack?: boolean }).turbopack;
+    delete (GLOBAL_OBJ as typeof GLOBAL_OBJ & { _sentryRelease?: string })._sentryRelease;
   });
 
   it('inits the Node SDK', () => {
@@ -60,6 +68,33 @@ describe('Server init()', () => {
         defaultIntegrations: expect.any(Array),
       }),
     );
+  });
+
+  describe('trace propagator', () => {
+    it('replaces the propagator when the Node SDK set up OpenTelemetry itself', () => {
+      const traceProvider = {};
+      nodeInit.mockReturnValueOnce({
+        on: vi.fn(),
+        addEventProcessor: vi.fn(),
+        traceProvider,
+      } as unknown as ReturnType<typeof SentryNode.init>);
+
+      init({});
+
+      expect(registerNextSentryPropagator).toHaveBeenCalledWith(traceProvider);
+    });
+
+    it('leaves a foreign OpenTelemetry setup alone', () => {
+      nodeInit.mockReturnValueOnce({
+        on: vi.fn(),
+        addEventProcessor: vi.fn(),
+        traceProvider: undefined,
+      } as unknown as ReturnType<typeof SentryNode.init>);
+
+      init({});
+
+      expect(registerNextSentryPropagator).not.toHaveBeenCalled();
+    });
   });
 
   it("doesn't reinitialize the node SDK if already initialized", () => {
@@ -144,6 +179,48 @@ describe('Server init()', () => {
     withIsolationScope(() => init({}));
 
     expect(nodeInit).toHaveBeenCalledTimes(1);
+  });
+
+  it('sets the release on the client of `@sentry/cloudflare` when it has none', () => {
+    vi.stubGlobal('navigator', { userAgent: 'Cloudflare-Workers' });
+    const client = SentryNode.init({
+      dsn: 'https://public@dsn.ingest.sentry.io/1337',
+      enableOpenTelemetrySetup: false,
+    });
+    // `init` of `@sentry/node` takes a release from CI env vars like `GITHUB_SHA`.
+    client!.getOptions().release = undefined;
+
+    withIsolationScope(() => init({ release: '1.2.3' }));
+
+    expect(client!.getOptions().release).toBe('1.2.3');
+    expect((GLOBAL_OBJ as typeof GLOBAL_OBJ & { _sentryRelease?: string })._sentryRelease).toBe('1.2.3');
+  });
+
+  it('keeps the release of the client of `@sentry/cloudflare`', () => {
+    vi.stubGlobal('navigator', { userAgent: 'Cloudflare-Workers' });
+    const client = SentryNode.init({
+      dsn: 'https://public@dsn.ingest.sentry.io/1337',
+      enableOpenTelemetrySetup: false,
+      release: 'worker@2.0.0',
+    });
+
+    withIsolationScope(() => init({ release: '1.2.3' }));
+
+    expect(client!.getOptions().release).toBe('worker@2.0.0');
+  });
+
+  it('adds its event processors to the global scope when the client of `@sentry/cloudflare` exists', () => {
+    vi.stubGlobal('navigator', { userAgent: 'Cloudflare-Workers' });
+    SentryNode.init({ dsn: 'https://public@dsn.ingest.sentry.io/1337', enableOpenTelemetrySetup: false });
+
+    withIsolationScope(() => init({}));
+
+    // With `cacheClient: false`, each request has a new client, so only the global scope reaches all of them.
+    expect(
+      getGlobalScope()
+        .getScopeData()
+        .eventProcessors.filter(processor => processor.id === 'DropReactControlFlowErrors'),
+    ).toHaveLength(1);
   });
 
   // TODO: test `vercel` tag when running on Vercel

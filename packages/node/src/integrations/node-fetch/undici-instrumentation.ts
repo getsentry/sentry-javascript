@@ -22,6 +22,7 @@ import type { Span, SpanAttributes } from '@sentry/core';
 import {
   debug,
   getClient,
+  isSentryRequestUrl,
   getSanitizedUrlString,
   getSpanStatusFromHttpCode,
   hasSpanStreamingEnabled,
@@ -171,15 +172,19 @@ function parseRequestHeaders(request: UndiciRequest): Map<string, string | strin
 function onRequestCreated(config: NodeFetchOptions, { request }: RequestMessage): void {
   const url = getAbsoluteUrl(request.origin, request.path);
 
-  const ignoredByCallback = safeCallback(
-    DEBUG_BUILD ? 'The `ignoreOutgoingRequests` callback threw an error, not ignoring the request:' : '',
-    () => !!config.ignoreOutgoingRequests?.(url),
-    () => false,
-  );
+  // Requests to Sentry are only traced here when another SDK in this process (e.g. the Next.js Edge Runtime SDK) sends
+  // them, since our own transport suppresses tracing
+  const isIgnored =
+    isSentryRequestUrl(url, getClient()) ||
+    safeCallback(
+      DEBUG_BUILD ? 'The `ignoreOutgoingRequests` callback threw an error, not ignoring the request:' : '',
+      () => !!config.ignoreOutgoingRequests?.(url),
+      () => false,
+    );
 
   // Breadcrumbs & span-less trace propagation are additionally skipped when tracing is suppressed.
   // We store this here because the active context is no longer correct in later channel events.
-  const ignoreForBreadcrumbs = isTracingSuppressed() || !!ignoredByCallback;
+  const ignoreForBreadcrumbs = isTracingSuppressed() || isIgnored;
   ignoreRequestMap.set(request, ignoreForBreadcrumbs);
 
   // When spans are disabled we do not create a span, but we still inject trace propagation headers
@@ -192,9 +197,9 @@ function onRequestCreated(config: NodeFetchOptions, { request }: RequestMessage)
   }
 
   // Ignore span creation if:
-  // - the outgoing request is ignored via config
+  // - the outgoing request is ignored via config or goes to Sentry
   // - method is 'CONNECT'
-  if (request.method === 'CONNECT' || ignoredByCallback) {
+  if (request.method === 'CONNECT' || isIgnored) {
     return;
   }
 
@@ -414,13 +419,25 @@ function onDone({ request }: RequestTrailersMessage): void {
 // This is the event we get when something is wrong in the request like
 // - invalid options when calling `fetch` global API or any undici method for request
 // - connectivity errors such as unreachable host
-// - requests aborted through an `AbortController.signal`
+// - requests aborted through an `AbortController.signal`, or a response body cancelled by the caller
 // NOTE: server errors are considered valid responses and it's the lib consumer
-// who should deal with that.
+// who should deal with that. Aborts initiated by the caller are not errors either, so they end the
+// span without an error status.
 function onError({ request, error }: RequestErrorMessage): void {
   const span = spanFromReq.get(request);
 
   if (!span) {
+    return;
+  }
+
+  // An intentional cancellation (`AbortController.abort()` or cancelling the response body) is not
+  // a failure of the request, so don't flip the span (which may already carry a 2xx status) to error.
+  const isAbort =
+    error.name === 'AbortError' ||
+    (typeof DOMException !== 'undefined' && error instanceof DOMException && error.code === DOMException.ABORT_ERR);
+  if (isAbort) {
+    span.end();
+    spanFromReq.delete(request);
     return;
   }
 

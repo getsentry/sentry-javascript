@@ -18,7 +18,7 @@ permissions:
 
 jobs:
   release:
-    runs-on: ubuntu-24.04
+    runs-on: namespace-profile-sentry-javascript-small
     name: 'Release a new version'
     steps:
       - name: Get auth token
@@ -31,6 +31,9 @@ jobs:
         with:
           token: ${{ steps.token.outputs.token }}
           fetch-depth: 0
+      # scripts/craft-pre-release.sh installs dependencies with pnpm.
+      - name: Install pnpm
+        uses: ./.github/actions/install-pnpm
       - name: Set up Node
         uses: actions/setup-node@v7
         with:

@@ -1,13 +1,13 @@
 # Sentry JavaScript SDK
 
-Monorepo with 40+ packages in `@sentry/*`, managed with Yarn workspaces and Nx.
+Monorepo with 40+ packages in `@sentry/*`, managed with pnpm workspaces and Nx.
 
 ## Setup
 
-- [Volta](https://volta.sh/) for Node.js/Yarn/PNPM version management
+- [Volta](https://volta.sh/) for Node.js/pnpm version management
 - Requires `VOLTA_FEATURE_PNPM=1`
-- After cloning: `yarn install && yarn build`
-- Never change Volta, Yarn, or package manager versions unless explicitly asked
+- After cloning: `pnpm install && pnpm run build`
+- Never change Volta, pnpm, or package manager versions unless explicitly asked
 
 ### Code Intelligence
 
@@ -24,10 +24,10 @@ After writing or editing code, check LSP diagnostics and fix errors before proce
 
 ## Package Manager
 
-Use **yarn**, never npm or pnpm. Scripts live in the root `package.json`.
-`yarn build:dev:filter @sentry/<pkg>` builds one package and its deps.
+Use **pnpm**, never npm or yarn. Scripts live in the root `package.json`.
+`pnpm run build:dev:filter @sentry/<pkg>` builds one package and its deps.
 
-Single package: `cd packages/<name> && yarn test`
+Single package: `cd packages/<name> && pnpm run test`
 
 ## Commit Attribution
 
@@ -52,10 +52,10 @@ Uses **Git Flow** (see `docs/gitflow.md`).
 
 ## Before Every Pull Request
 
-1. `yarn format`
-2. `yarn build:dev`
-3. `yarn lint`
-4. `yarn test`
+1. `pnpm run format`
+2. `pnpm run build:dev`
+3. `pnpm run lint`
+4. Run the unit and integration/E2E tests for the affected packages.
 5. NEVER push on `develop`
 
 ## Pull Requests
@@ -79,11 +79,17 @@ Uses **Git Flow** (see `docs/gitflow.md`).
 - `Sentry.init()` follows one rule for repeated calls: the first call wins. See
   `docs/repeated-init.md` before you add or change an `init()`.
 
+- Span origins must follow the [trace origin spec](https://develop.sentry.dev/sdk/telemetry/traces/trace-origin/):
+  `<type>.<category>.<integration_name>.<integration_part>`, at most four parts, no skipped
+  parts, only `[a-zA-Z0-9_]` within a part. `category` is the span op category
+  (`auto.queue.kafkajs.producer`, not `auto.kafkajs.producer`). Don't encode tooling like
+  `otel` or `orchestrion` in the origin.
+
 ## Linting & Formatting
 
 - This project uses **Oxlint** and **Oxfmt** — NOT ESLint or Prettier
-- Never run `eslint`, `npx eslint`, or any ESLint CLI — use `yarn lint` (Oxlint) instead
-- Never run `prettier` — use `yarn format` (Oxfmt) instead
+- Never run `eslint`, `npx eslint`, or any ESLint CLI — use `pnpm run lint` (Oxlint) instead
+- Never run `prettier` — use `pnpm run format` (Oxfmt) instead
 - ESLint packages in the repo are legacy/e2e test app dependencies — ignore them
 - Do not create, modify, or suggest `.eslintrc`, `eslint.config.*`, or `.prettierrc` files
 

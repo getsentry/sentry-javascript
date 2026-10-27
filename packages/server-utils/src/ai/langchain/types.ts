@@ -41,12 +41,27 @@ export interface LangChainMessage {
   };
   role?: string;
   additional_kwargs?: Record<string, unknown>;
+  usage_metadata?: {
+    input_tokens?: number;
+    output_tokens?: number;
+    total_tokens?: number;
+    input_token_details?: {
+      cache_read?: number;
+      cache_creation?: number;
+    };
+  };
   // LangChain serialized format
   lc?: number;
   id?: string[] | string;
   response_metadata?: {
+    [key: string]: unknown;
     model_name?: string;
     finish_reason?: string;
+    tokenUsage?: {
+      promptTokens?: number;
+      completionTokens?: number;
+      totalTokens?: number;
+    };
   };
   kwargs?: {
     [key: string]: unknown;

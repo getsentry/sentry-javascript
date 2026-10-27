@@ -12,6 +12,8 @@ describe('getSqlQuerySummary', () => {
       ['select count(*) from orders', 'select orders'],
       ['SELECT DISTINCT email FROM subscribers WHERE active = ?', 'SELECT subscribers'],
       ['  SELECT * FROM users', 'SELECT users'],
+      ['(SELECT * FROM users)', 'SELECT users'],
+      [' \t( \nselect * from users)', 'select users'],
     ])('%j => %j', (input, expected) => {
       expect(getSqlQuerySummary(input)).toBe(expected);
     });
@@ -164,6 +166,17 @@ describe('getSqlQuerySummary', () => {
 
     it('handles leading whitespace in fallback', () => {
       expect(getSqlQuerySummary('  VACUUM')).toBe('VACUUM');
+    });
+
+    it('handles long leading whitespace without excessive backtracking', () => {
+      const query = `${' '.repeat(100_000)}VACUUM`;
+      const start = performance.now();
+
+      const summary = getSqlQuerySummary(query);
+      const duration = performance.now() - start;
+
+      expect(summary).toBe('VACUUM');
+      expect(duration).toBeLessThan(1_000);
     });
   });
 

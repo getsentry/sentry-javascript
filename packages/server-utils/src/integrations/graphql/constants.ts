@@ -1,7 +1,7 @@
 // Shared by both graphql paths (orchestrion for v14–16, diagnostics channels for >= 17) so they emit
 // identical spans.
 
-export const ORIGIN = 'auto.graphql.diagnostic_channel';
+export const ORIGIN = 'auto.graphql.graphql';
 
 export const SPAN_NAME_PARSE = 'graphql.parse';
 export const SPAN_NAME_VALIDATE = 'graphql.validate';

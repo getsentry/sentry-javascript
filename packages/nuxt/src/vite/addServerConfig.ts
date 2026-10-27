@@ -1,7 +1,7 @@
 import { existsSync } from 'node:fs';
 import { basename } from 'node:path';
 import { pathToFileURL } from 'node:url';
-import { addServerPlugin, addTemplate, createResolver } from '@nuxt/kit';
+import { addNitroPlugin, addTemplate, createResolver } from '@nuxt/kit';
 import type { Nuxt } from '@nuxt/schema';
 import { consoleSandbox, debug } from '@sentry/core';
 import * as fs from 'fs';
@@ -132,7 +132,7 @@ export function addServerConfigPlugin(nuxt: Nuxt, serverConfigFile: string, isLe
       `import ${JSON.stringify(runtimeFlagsTemplate.dst)};\nimport ${JSON.stringify(configPath)};\nexport default () => {};\n`,
   });
 
-  addServerPlugin(configPluginTemplate.dst);
+  addNitroPlugin(configPluginTemplate.dst);
 
   // Nitro v2 treeshakes side-effect-only imports outside its runtime dir, which would silently drop
   // the top-level `Sentry.init` and the flag assignments.

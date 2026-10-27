@@ -18,6 +18,7 @@
 export const CHANNEL_INTEGRATION_DEFINITIONS = [
   { exportName: 'postgresIntegration', modules: ['pg', 'pg-pool'] },
   { exportName: 'postgresJsIntegration', modules: ['postgres'] },
+  { exportName: 'neonIntegration', modules: ['@neondatabase/serverless'] },
   { exportName: 'prismaIntegration', modules: ['@prisma/orm-family-sql'] },
   { exportName: 'mysqlIntegration', modules: ['mysql'] },
   { exportName: 'mysql2Integration', modules: ['mysql2'] },
@@ -43,11 +44,13 @@ export const CHANNEL_INTEGRATION_DEFINITIONS = [
       '@langchain/google-common',
       '@langchain/google-genai',
       '@langchain/mistralai',
+      '@langchain/typesafe',
     ],
   },
   { exportName: 'langGraphIntegration', modules: ['@langchain/langgraph'] },
   { exportName: 'mastraIntegration', modules: ['@mastra/core'] },
   { exportName: 'flueIntegration', modules: ['@flue/runtime'] },
+  { exportName: 'piDurableIntegration', modules: ['@earendil-works/pi-durable'] },
   { exportName: 'mcpServerIntegration', modules: ['@modelcontextprotocol/server', '@modelcontextprotocol/sdk'] },
   { exportName: 'awsIntegration', modules: ['@aws-sdk/smithy-client', '@smithy/core', '@smithy/smithy-client'] },
   { exportName: 'firebaseIntegration', modules: ['@firebase/firestore', 'firebase-functions'] },
@@ -60,6 +63,7 @@ export const CHANNEL_INTEGRATION_DEFINITIONS = [
   { exportName: 'kafkaIntegration', modules: ['kafkajs'] },
   { exportName: 'redisIntegration', modules: ['redis', '@redis/client', 'ioredis'] },
   { exportName: 'dataloaderIntegration', modules: ['dataloader'] },
+  { exportName: 'nitroIntegration', modules: ['h3'] },
 ] as const satisfies ReadonlyArray<{ exportName: string; modules: readonly string[] }>;
 
 /** Look up the subscriber export name for an instrumented package, if any. */

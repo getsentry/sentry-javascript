@@ -11,6 +11,8 @@ export type {
   FeatureFlagsIntegration,
   Session,
   SeverityLevel,
+  Log,
+  LogSeverityLevel,
   Span,
   StackFrame,
   Stacktrace,
@@ -30,6 +32,7 @@ export {
   captureException,
   captureEvent,
   captureMessage,
+  parameterize,
   captureFeedback,
   close,
   createTransport,
@@ -124,6 +127,8 @@ export { httpServerIntegration } from './integrations/httpServer';
 export { fetchIntegration } from './integrations/fetch';
 export type { FetchIntegrationOptions } from '@sentry/core';
 export { spotlightIntegration } from './integrations/spotlight';
+export { cronTriggersIntegration } from './integrations/cronTriggers';
+export type { CronTriggerMonitorSettings, CronTriggersOptions } from './integrations/cronTriggers';
 export {
   openTelemetryIntegration,
   getOtlpTracesEndpoint,
@@ -137,6 +142,7 @@ export {
   createLangChainCallbackHandler,
   instrumentLangChainEmbeddings,
   instrumentStateGraph,
+  instrumentStateGraphCompile,
   instrumentCreateReactAgent,
   vercelAIIntegration,
   honoIntegration,
@@ -144,6 +150,48 @@ export {
   eveConversationHook,
   eveIntegration,
   getInstrumentedModuleNames,
+} from '@sentry/server-utils';
+
+// The orchestrion channel integrations. When the `@sentry/cloudflare/vite`
+// plugin bundles an instrumented package, the SDK adds the matching
+// integration with its default options. Pass one in `integrations` to set
+// options. Without the plugin, these integrations record nothing.
+export {
+  amqplibIntegration,
+  anthropicAIIntegration,
+  awsIntegration,
+  dataloaderIntegration,
+  expressIntegration,
+  firebaseIntegration,
+  genericPoolIntegration,
+  googleGenAIIntegration,
+  graphqlIntegration,
+  groqIntegration,
+  hapiIntegration,
+  kafkaIntegration,
+  knexIntegration,
+  koaIntegration,
+  langChainIntegration,
+  langGraphIntegration,
+  lruMemoizerIntegration,
+  mastraIntegration,
+  mcpServerIntegration,
+  mistralAIIntegration,
+  mongoIntegration,
+  mongooseIntegration,
+  mysql2Integration,
+  mysqlIntegration,
+  neonIntegration,
+  nitroIntegration,
+  openAIIntegration,
+  piDurableIntegration,
+  postgresIntegration,
+  postgresJsIntegration,
+  redisIntegration,
+  SentryMastraExporter,
+  tediousIntegration,
+  togetherAIIntegration,
+  typesafeIntegration,
 } from '@sentry/server-utils';
 
 export { instrumentWorkflowWithSentry } from './workflows';

@@ -10,6 +10,7 @@ import {
   getDefaultCurrentScope,
   isObjectLike,
   startNewTrace,
+  timestampInSeconds,
   withActiveSpan,
   withScope,
 } from '@sentry/core';
@@ -19,14 +20,6 @@ import type * as EffectLayer from 'effect/Layer';
 import { succeed as succeedLayer } from 'effect/Layer';
 import * as Option from 'effect/Option';
 import * as EffectTracer from 'effect/Tracer';
-
-function deriveOrigin(name: string): string | undefined {
-  if (name.startsWith('http.server') || name.startsWith('http.client')) {
-    return 'auto.http.effect';
-  }
-
-  return undefined;
-}
 
 const EFFECT_SPAN_SYMBOL = Symbol.for('@sentry/effect.EffectSpan');
 
@@ -42,34 +35,29 @@ function isEffectSpan(span: Span): boolean {
   return (span as { [EFFECT_SPAN_SYMBOL]?: boolean })[EFFECT_SPAN_SYMBOL] === true;
 }
 
+const HTTP_METHODS = new Set(['GET', 'HEAD', 'POST', 'PUT', 'DELETE', 'CONNECT', 'OPTIONS', 'TRACE', 'PATCH']);
+
 /**
- * Effect span names are chosen by whoever calls `Effect.withSpan`, so the name is the only signal
- * available. `@effect/platform` names its HTTP spans `http.server`/`http.client`, which map onto the
- * matching Sentry ops. Every other name comes from user code or a third-party library, whose semantics
- * we cannot infer, so op and origin stay unset and the span keeps the core defaults: no op, and a
- * `manual` origin.
+ * Effect span names are chosen by whoever calls `Effect.withSpan`, so the name and the kind are the only
+ * signals available. Effect names its HTTP spans `http.server <method>`/`http.client <method>` (Effect v3
+ * and v4 before 4.0.2) or only `<method>` with a `server`/`client` kind (Effect 4.0.2 and later), which map
+ * onto the matching Sentry ops. Every other span comes from user code or a third-party library, whose
+ * semantics we cannot infer, so op and origin stay unset and the span keeps the core defaults: no op, and
+ * a `manual` origin.
  */
-function deriveOp(name: string): string | undefined {
-  if (name.startsWith('http.server')) {
+function deriveOp(name: string, kind: EffectTracer.SpanKind): string | undefined {
+  if (name.startsWith('http.server') || (kind === 'server' && HTTP_METHODS.has(name))) {
     return HTTP_SERVER;
   }
 
-  if (name.startsWith('http.client')) {
+  if (name.startsWith('http.client') || (kind === 'client' && HTTP_METHODS.has(name))) {
     return HTTP_CLIENT;
   }
 
   return undefined;
 }
 
-type HrTime = [number, number];
-
 const SENTRY_SPAN_SYMBOL = Symbol.for('@sentry/effect.SentrySpan');
-
-function nanosToHrTime(nanos: bigint): HrTime {
-  const seconds = Number(nanos / BigInt(1_000_000_000));
-  const remainingNanos = Number(nanos % BigInt(1_000_000_000));
-  return [seconds, remainingNanos];
-}
 
 interface SentrySpanLike extends EffectTracer.Span {
   readonly [SENTRY_SPAN_SYMBOL]: true;
@@ -127,6 +115,7 @@ class SentrySpanWrapper implements SentrySpanLike {
   public status: EffectTracer.SpanStatus;
   public readonly sentrySpan: Span;
   public readonly annotations: Context.Context<never>;
+  private readonly _sentryStartTime: number;
 
   public constructor(
     public readonly name: string,
@@ -136,6 +125,7 @@ class SentrySpanWrapper implements SentrySpanLike {
     startTime: bigint,
     public readonly kind: EffectTracer.SpanKind,
     existingSpan: Span,
+    sentryStartTime: number,
   ) {
     this[SENTRY_SPAN_SYMBOL] = true as const;
     this._tag = 'Span' as const;
@@ -144,6 +134,7 @@ class SentrySpanWrapper implements SentrySpanLike {
     this.links = [...links];
     this.sentrySpan = existingSpan;
     this.annotations = context;
+    this._sentryStartTime = sentryStartTime;
 
     const spanContext = this.sentrySpan.spanContext();
     this.spanId = spanContext.spanId;
@@ -187,7 +178,7 @@ class SentrySpanWrapper implements SentrySpanLike {
       this.sentrySpan.setStatus({ code: 1 });
     }
 
-    this.sentrySpan.end(nanosToHrTime(endTime));
+    this.sentrySpan.end(this._toSentryTime(endTime));
   }
 
   public event(name: string, startTime: bigint, attributes?: Record<string, unknown>): void {
@@ -195,7 +186,23 @@ class SentrySpanWrapper implements SentrySpanLike {
       return;
     }
 
-    this.sentrySpan.addEvent(name, attributes as Parameters<Span['addEvent']>[1], nanosToHrTime(startTime));
+    this.sentrySpan.addEvent(name, attributes as Parameters<Span['addEvent']>[1], this._toSentryTime(startTime));
+  }
+
+  /**
+   * Converts an Effect time to Sentry's clock by adding its offset from the span's start.
+   *
+   * Effect's clock doesn't correct for clock drift (e.g. after the device slept), so its absolute times can be off
+   * from the Sentry spans around this one. Its durations are still correct, and this way we also respect end times
+   * that were passed explicitly.
+   */
+  private _toSentryTime(effectTime: bigint): number | undefined {
+    // Effect passes 0 if tracer timing is disabled. Sentry then takes the current time.
+    if (!effectTime || !this.status.startTime) {
+      return undefined;
+    }
+
+    return this._sentryStartTime + Number(effectTime - this.status.startTime) / 1e9;
   }
 }
 
@@ -378,14 +385,17 @@ function createSentrySpan(
   startTime: bigint,
   kind: EffectTracer.SpanKind,
 ): SentrySpanLike {
-  const op = deriveOp(name);
-  const origin = deriveOrigin(name);
+  const op = deriveOp(name, kind);
+  const origin = op && 'auto.http.effect';
 
+  // Effect calls the tracer when the span starts, so we start it on Sentry's clock and convert later Effect times
+  // relative to this (see `_toSentryTime`).
+  const sentryStartTime = timestampInSeconds();
   const newSpan = startSentrySpan(
     startInactiveSpan,
     {
       name,
-      startTime: nanosToHrTime(startTime),
+      startTime: sentryStartTime,
       // Setting these to `undefined` would strip the core defaults instead of leaving them in place.
       attributes: {
         ...(op && { [SENTRY_OP]: op }),
@@ -397,7 +407,7 @@ function createSentrySpan(
   );
   markEffectSpan(newSpan);
 
-  return new SentrySpanWrapper(name, parent, context, links, startTime, kind, newSpan);
+  return new SentrySpanWrapper(name, parent, context, links, startTime, kind, newSpan, sentryStartTime);
 }
 
 const makeSentryTracerV3 = (

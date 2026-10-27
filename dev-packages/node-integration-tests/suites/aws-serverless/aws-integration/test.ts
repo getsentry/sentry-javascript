@@ -5,7 +5,9 @@ import { cleanupChildProcesses, createEsmAndCjsTests } from '../../../utils/runn
 // The suite runs twice on CI: once with the OTel `Aws` integration (default) and once with the
 // orchestrion diagnostics-channel integration auto-injected (`INJECT_ORCHESTRION`). Both emit the
 // same spans; only the origin differs.
-const ORIGIN = 'auto.aws.aws_sdk';
+const RPC_ORIGIN = 'auto.rpc.aws_sdk';
+const DB_ORIGIN = 'auto.db.aws_sdk';
+const QUEUE_ORIGIN = 'auto.queue.aws_sdk';
 
 // The aws-sdk instrumentation creates spans by patching the underlying smithy middleware stack. The
 // patch target differs between aws-sdk versions, so we run the exact same assertions against both:
@@ -52,7 +54,7 @@ function assertAwsServiceSpans(spans: SerializedStreamedSpanContainer['items']):
     name: 'S3.PutObject',
     status: 'ok',
     attributes: expect.objectContaining({
-      'sentry.origin': { value: ORIGIN, type: 'string' },
+      'sentry.origin': { value: RPC_ORIGIN, type: 'string' },
       'sentry.op': { value: 'rpc', type: 'string' },
       'rpc.system': { value: 'aws-api', type: 'string' },
       'rpc.method': { value: 'PutObject', type: 'string' },
@@ -71,7 +73,7 @@ function assertAwsServiceSpans(spans: SerializedStreamedSpanContainer['items']):
       status: 'ok',
       attributes: expect.objectContaining({
         'sentry.op': { value: 'rpc', type: 'string' },
-        'sentry.origin': { value: ORIGIN, type: 'string' },
+        'sentry.origin': { value: RPC_ORIGIN, type: 'string' },
         'rpc.method': { value: 'GetObject', type: 'string' },
         'rpc.service': { value: 'S3', type: 'string' },
         'aws.s3.bucket': { value: 'ot-demo-test', type: 'string' },
@@ -89,7 +91,7 @@ function assertAwsServiceSpans(spans: SerializedStreamedSpanContainer['items']):
       status: 'error',
       attributes: expect.objectContaining({
         'sentry.op': { value: 'rpc', type: 'string' },
-        'sentry.origin': { value: ORIGIN, type: 'string' },
+        'sentry.origin': { value: RPC_ORIGIN, type: 'string' },
         'rpc.method': { value: 'GetObject', type: 'string' },
         'rpc.service': { value: 'S3', type: 'string' },
       }),
@@ -102,7 +104,7 @@ function assertAwsServiceSpans(spans: SerializedStreamedSpanContainer['items']):
     name: 'DynamoDB.PutItem',
     attributes: expect.objectContaining({
       'sentry.op': { value: 'db', type: 'string' },
-      'sentry.origin': { value: ORIGIN, type: 'string' },
+      'sentry.origin': { value: DB_ORIGIN, type: 'string' },
       'rpc.method': { value: 'PutItem', type: 'string' },
       'rpc.service': { value: 'DynamoDB', type: 'string' },
       'db.system.name': { value: 'dynamodb', type: 'string' },
@@ -117,7 +119,7 @@ function assertAwsServiceSpans(spans: SerializedStreamedSpanContainer['items']):
     name: 'DynamoDB.Query',
     attributes: expect.objectContaining({
       'sentry.op': { value: 'db', type: 'string' },
-      'sentry.origin': { value: ORIGIN, type: 'string' },
+      'sentry.origin': { value: DB_ORIGIN, type: 'string' },
       'rpc.method': { value: 'Query', type: 'string' },
       'db.operation.name': { value: 'Query', type: 'string' },
       'aws.dynamodb.count': { value: 1, type: 'integer' },
@@ -129,7 +131,7 @@ function assertAwsServiceSpans(spans: SerializedStreamedSpanContainer['items']):
   expectSpan('SQS SendMessage', {
     name: 'send my-queue',
     attributes: expect.objectContaining({
-      'sentry.origin': { value: ORIGIN, type: 'string' },
+      'sentry.origin': { value: QUEUE_ORIGIN, type: 'string' },
       'sentry.op': { value: 'queue.publish', type: 'string' },
       'rpc.method': { value: 'SendMessage', type: 'string' },
       'rpc.service': { value: 'SQS', type: 'string' },
@@ -145,7 +147,7 @@ function assertAwsServiceSpans(spans: SerializedStreamedSpanContainer['items']):
   expectSpan('SQS ReceiveMessage', {
     name: 'receive my-queue',
     attributes: expect.objectContaining({
-      'sentry.origin': { value: ORIGIN, type: 'string' },
+      'sentry.origin': { value: QUEUE_ORIGIN, type: 'string' },
       'sentry.op': { value: 'queue.receive', type: 'string' },
       'rpc.method': { value: 'ReceiveMessage', type: 'string' },
       'messaging.system': { value: 'aws_sqs', type: 'string' },
@@ -159,7 +161,7 @@ function assertAwsServiceSpans(spans: SerializedStreamedSpanContainer['items']):
   expectSpan('SNS Publish', {
     name: 'send my-topic',
     attributes: expect.objectContaining({
-      'sentry.origin': { value: ORIGIN, type: 'string' },
+      'sentry.origin': { value: QUEUE_ORIGIN, type: 'string' },
       'rpc.method': { value: 'Publish', type: 'string' },
       'rpc.service': { value: 'SNS', type: 'string' },
       'messaging.system': { value: 'aws.sns', type: 'string' },
@@ -190,7 +192,7 @@ function assertAwsServiceSpans(spans: SerializedStreamedSpanContainer['items']):
     name: 'my-function Invoke',
     attributes: expect.objectContaining({
       'sentry.op': { value: 'rpc', type: 'string' },
-      'sentry.origin': { value: ORIGIN, type: 'string' },
+      'sentry.origin': { value: RPC_ORIGIN, type: 'string' },
       'rpc.method': { value: 'Invoke', type: 'string' },
       'rpc.service': { value: 'Lambda', type: 'string' },
       'faas.invoked_name': { value: 'my-function', type: 'string' },
@@ -205,7 +207,7 @@ function assertAwsServiceSpans(spans: SerializedStreamedSpanContainer['items']):
     status: 'ok',
     attributes: expect.objectContaining({
       'sentry.op': { value: 'rpc', type: 'string' },
-      'sentry.origin': { value: ORIGIN, type: 'string' },
+      'sentry.origin': { value: RPC_ORIGIN, type: 'string' },
       'rpc.method': { value: 'PutRecord', type: 'string' },
       'rpc.service': { value: 'Kinesis', type: 'string' },
       'aws.kinesis.stream.name': { value: 'my-stream', type: 'string' },
@@ -217,7 +219,7 @@ function assertAwsServiceSpans(spans: SerializedStreamedSpanContainer['items']):
     name: 'SecretsManager.GetSecretValue',
     attributes: expect.objectContaining({
       'sentry.op': { value: 'rpc', type: 'string' },
-      'sentry.origin': { value: ORIGIN, type: 'string' },
+      'sentry.origin': { value: RPC_ORIGIN, type: 'string' },
       'rpc.method': { value: 'GetSecretValue', type: 'string' },
       'rpc.service': { value: 'SecretsManager', type: 'string' },
       'aws.secretsmanager.secret.arn': {
@@ -232,7 +234,7 @@ function assertAwsServiceSpans(spans: SerializedStreamedSpanContainer['items']):
     name: 'SFN.StartExecution',
     attributes: expect.objectContaining({
       'sentry.op': { value: 'rpc', type: 'string' },
-      'sentry.origin': { value: ORIGIN, type: 'string' },
+      'sentry.origin': { value: RPC_ORIGIN, type: 'string' },
       'rpc.method': { value: 'StartExecution', type: 'string' },
       'rpc.service': { value: 'SFN', type: 'string' },
       'aws.step_functions.state_machine.arn': {
@@ -258,18 +260,12 @@ describe('awsIntegration', () => {
       'instrument.mjs',
       (createTestRunner, test) => {
         test('auto-instruments aws-sdk service operations', { timeout: 90_000 }, async () => {
-          const spans: SerializedStreamedSpanContainer['items'] = [];
-          await createTestRunner()
-            .ignore('event')
-            .unordered()
-            .expect({
-              span: container => {
-                spans.push(...container.items);
-                assertAwsServiceSpans(spans);
-              },
-            })
-            .start()
-            .completed();
+          const runner = createTestRunner().ignore('event');
+          const spansPromise = runner.collectStreamedSpansUntilSegment('Test Transaction');
+
+          await runner.start().completed();
+
+          assertAwsServiceSpans(await spansPromise);
         });
       },
       { additionalDependencies },
