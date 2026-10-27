@@ -32,7 +32,7 @@ function freshIsolationScope(): void {
 function createApp({ restoreRouteIndex }: { restoreRouteIndex: boolean }): Hono {
   const app = new Hono();
   applyHonoPatches(app);
-  app.use(createHonoRequestMiddleware());
+  app.use(createHonoRequestMiddleware({ runtime: 'node' }));
 
   if (restoreRouteIndex) {
     // Like Hono 5, which resets `routeIndex` after `next()` (honojs/hono#4424).
