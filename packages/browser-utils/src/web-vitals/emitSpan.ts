@@ -1,25 +1,19 @@
 import type { Integration, Span, SpanAttributes } from '@sentry/core';
-import {
-  getClient,
-  getCurrentScope,
-  getRootSpan,
-  SEMANTIC_ATTRIBUTE_EXCLUSIVE_TIME,
-  SEMANTIC_ATTRIBUTE_SENTRY_OP,
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  spanToJSON,
-} from '@sentry/core';
+import { getClient, getCurrentScope, getRootSpan, spanToJSON } from '@sentry/core';
 import { startInactiveSpan } from '@sentry/core/browser';
 import {
+  SENTRY_EXCLUSIVE_TIME,
   BROWSER_NAVIGATION_ID,
   BROWSER_NAVIGATION_TYPE,
   SENTRY_REPLAY_ID,
   SENTRY_SEGMENT_NAME,
   SENTRY_TRANSACTION,
   USER_AGENT_ORIGINAL,
+  SENTRY_OP,
+  SENTRY_ORIGIN,
 } from '@sentry/conventions/attributes';
 import { WINDOW } from '../types';
 import type { MetricNavigationType } from '../instrumentation/performanceObserver';
-import type { WebVitalReportEvent } from './reportEvents';
 
 // Locally-defined interfaces to avoid leaking bare global type references into the
 // generated .d.ts. The `declare global` augmentations in web-vitals/types.ts make these
@@ -48,7 +42,6 @@ interface WebVitalSpanOptions {
   value: number;
   attributes?: SpanAttributes;
   parentSpan?: Span;
-  reportEvent?: WebVitalReportEvent;
   startTime: number;
   endTime?: number;
   /** Set when the vital was reported for a soft navigation rather than the initial page load. */
@@ -78,7 +71,6 @@ export function _emitWebVitalSpan(options: WebVitalSpanOptions): void {
     value,
     attributes: passedAttributes,
     parentSpan,
-    reportEvent,
     startTime,
     endTime,
     standalone,
@@ -94,9 +86,9 @@ export function _emitWebVitalSpan(options: WebVitalSpanOptions): void {
   const segmentName = segmentSpan ? spanToJSON(segmentSpan).name : getCurrentScope().getScopeData().transactionName;
 
   const attributes: SpanAttributes = {
-    [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: origin,
-    [SEMANTIC_ATTRIBUTE_SENTRY_OP]: op,
-    [SEMANTIC_ATTRIBUTE_EXCLUSIVE_TIME]: 0,
+    [SENTRY_ORIGIN]: origin,
+    [SENTRY_OP]: op,
+    [SENTRY_EXCLUSIVE_TIME]: 0,
     [`browser.web_vital.${metricName}.value`]: value,
     // oxlint-disable-next-line typescript-eslint/no-deprecated
     [SENTRY_TRANSACTION]: segmentName,
@@ -106,13 +98,9 @@ export function _emitWebVitalSpan(options: WebVitalSpanOptions): void {
     ...passedAttributes,
   };
 
-  if (parentSpan && spanToJSON(parentSpan).attributes[SEMANTIC_ATTRIBUTE_SENTRY_OP] === 'pageload') {
+  if (parentSpan && spanToJSON(parentSpan).attributes[SENTRY_OP] === 'pageload') {
     // for LCP and CLS, we collect the pageload span id as an attribute
     attributes['sentry.pageload.span_id'] = parentSpan.spanContext().spanId;
-  }
-
-  if (reportEvent) {
-    attributes[`browser.web_vital.${metricName}.report_event`] = reportEvent;
   }
 
   if (softNavigationId != null) {

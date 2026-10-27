@@ -2,6 +2,7 @@ import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { setAsyncLocalStorageAsyncContextStrategy } from '@sentry/server-utils/no-diagnostic-channels';
 import { CloudflareClient, type CloudflareClientOptions } from '../src/client';
 import { makeFlushLock } from '../src/flush';
+import { makeCloudflareTransport } from '../src/transport';
 import { getInvocationState } from '../src/utils/invocationContext';
 import { withInvocationIsolationScope } from '../src/utils/invocationScope';
 
@@ -267,6 +268,31 @@ describe('CloudflareClient', () => {
       releaseLock();
       await flushPromise;
       expect(privateClient._transport.flush).toHaveBeenCalledWith(1000);
+    });
+
+    it('drains the transport when the flush lock does not settle within the timeout', async () => {
+      vi.useFakeTimers();
+      try {
+        const client = new CloudflareClient({
+          ...MOCK_CLIENT_OPTIONS,
+          flushLock: { ready: Promise.resolve(), finalize: () => new Promise<void>(() => undefined) },
+        });
+
+        const privateClient = client as unknown as {
+          _transport: { flush: ReturnType<typeof vi.fn> };
+        };
+
+        void client.flush(1000);
+
+        await vi.advanceTimersByTimeAsync(999);
+        expect(privateClient._transport.flush).not.toHaveBeenCalled();
+
+        // The lock wait ends at 1000 ms; the client processing check after it also runs on timers.
+        await vi.advanceTimersByTimeAsync(100);
+        expect(privateClient._transport.flush).toHaveBeenCalledWith(1000);
+      } finally {
+        vi.useRealTimers();
+      }
     });
   });
 
@@ -770,6 +796,52 @@ describe('CloudflareClient', () => {
       }, ctx as never);
 
       expect(flushSpy).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('check-in delivery', () => {
+    it.each([true, false])(
+      'drains the transport for a check-in before the flush point and registers it with the invocation waitUntil (cacheClient: %s)',
+      cacheClient => {
+        const flushMock = vi.fn().mockResolvedValue(true);
+        const client = new CloudflareClient({
+          ...MOCK_CLIENT_OPTIONS,
+          cacheClient,
+          transport: () => ({ send: vi.fn().mockResolvedValue({}), flush: flushMock }),
+        });
+        client.init();
+        const ctx = { waitUntil: vi.fn(), passThroughOnException: vi.fn() };
+
+        withInvocationIsolationScope(() => {
+          client.captureCheckIn({ monitorSlug: 'foo', status: 'in_progress' });
+        }, ctx as never);
+
+        expect(flushMock).toHaveBeenCalledTimes(1);
+        expect(ctx.waitUntil).toHaveBeenCalledTimes(1);
+        expect(ctx.waitUntil).toHaveBeenCalledWith(expect.any(Promise));
+      },
+    );
+
+    it('does not throw when the fetch of the transport throws synchronously', async () => {
+      const client = new CloudflareClient({
+        ...MOCK_CLIENT_OPTIONS,
+        transport: makeCloudflareTransport,
+        transportOptions: {
+          fetch: () => {
+            throw new Error('foo');
+          },
+        },
+      });
+      client.init();
+      const waits: Promise<unknown>[] = [];
+      const ctx = { waitUntil: vi.fn(promise => waits.push(promise)), passThroughOnException: vi.fn() };
+
+      withInvocationIsolationScope(() => {
+        expect(() => client.captureCheckIn({ monitorSlug: 'foo', status: 'in_progress' })).not.toThrow();
+      }, ctx as never);
+
+      expect(waits).toHaveLength(1);
+      await expect(Promise.all(waits)).resolves.toBeDefined();
     });
   });
 });

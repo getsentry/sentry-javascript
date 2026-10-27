@@ -72,6 +72,8 @@ function addIncludesForTestApp(testApp, includes, { optionalMode }) {
   const shouldSkip = packageJson.sentryTest?.skip || false;
   const isOptional = packageJson.sentryTest?.optional || false;
   const variants = (optionalMode ? packageJson.sentryTest?.optionalVariants : packageJson.sentryTest?.variants) || [];
+  const runner = packageJson.sentryTest?.runner;
+  const baseInclude = { 'test-application': testApp, ...(runner ? { runner } : {}) };
 
   if (shouldSkip) {
     return;
@@ -79,15 +81,21 @@ function addIncludesForTestApp(testApp, includes, { optionalMode }) {
 
   // Add the basic test-application itself, if it is in the current mode
   if (optionalMode === isOptional) {
-    includes.push({
-      'test-application': testApp,
-    });
+    includes.push(baseInclude);
   }
 
   variants.forEach(variant => {
+    // Allow skipping an individual variant (e.g. one blocked by an upstream bug) while keeping the
+    // others. `sentryTest.skip` above skips the whole app; this is the per-variant equivalent.
+    if (variant.skip) {
+      return;
+    }
+
+    // Don't leak the `skip` flag into the matrix include.
+    const { skip: _skip, ...variantConfig } = variant;
     includes.push({
-      'test-application': testApp,
-      ...variant,
+      ...baseInclude,
+      ...variantConfig,
     });
   });
 }
@@ -122,7 +130,7 @@ function getAffectedTestApplications(testApplications, { base = 'develop', head 
 
   let affectedProjects = [];
   try {
-    affectedProjects = execSync(`yarn --silent nx show projects --affected ${additionalArgs.join(' ')}`)
+    affectedProjects = execSync(`pnpm --silent exec nx show projects --affected ${additionalArgs.join(' ')}`)
       .toString()
       .split('\n')
       .map(line => line.trim())

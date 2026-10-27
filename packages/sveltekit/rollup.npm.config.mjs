@@ -15,6 +15,7 @@ export default makeNPMConfigVariants(
       'src/server/index.ts',
       'src/worker/index.ts',
       'src/vite/index.ts',
+      'src/opentelemetryApi.ts',
     ],
     packageSpecificConfig: {
       // Keep the variant subpath external so the transpiled output preserves the import for the

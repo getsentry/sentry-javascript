@@ -1,6 +1,6 @@
+import { SENTRY_OP, SENTRY_ORIGIN } from '@sentry/conventions/attributes';
 import { expect, test } from '@playwright/test';
 import { waitForError, waitForTransaction } from '@sentry-internal/test-utils';
-import { SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '@sentry/nuxt';
 
 test('sends a server action transaction on pageload', async ({ page }) => {
   const transactionPromise = waitForTransaction('nuxt-4-static', transactionEvent => {
@@ -14,8 +14,8 @@ test('sends a server action transaction on pageload', async ({ page }) => {
   expect(transaction.contexts.trace).toEqual(
     expect.objectContaining({
       data: expect.objectContaining({
-        [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'http.server',
-        [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.http_server',
+        [SENTRY_OP]: 'http.server',
+        [SENTRY_ORIGIN]: 'auto.http.http_server',
       }),
     }),
   );

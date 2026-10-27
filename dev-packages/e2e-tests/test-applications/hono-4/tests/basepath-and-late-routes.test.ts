@@ -42,8 +42,7 @@ test.describe('basePath with sub-app routes', () => {
   });
 });
 
-// TODO: this test is currently skipped because we do not yet support middleware registered on new instances (e.g. here via .basePath(..).use(...)).
-test.skip('.basePath() middleware instrumentation', () => {
+test.describe('.basePath() middleware instrumentation', () => {
   test('creates middleware span for .use() on .basePath() clone', async ({ baseURL }) => {
     const segmentPromise = collectStreamedSpansUntilSegment(
       APP_NAME,

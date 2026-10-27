@@ -1,6 +1,6 @@
 import type { WrappedFunction } from '@sentry/core';
-import { describe, expect, it, vi } from 'vitest';
-import { wrap } from '../src/helpers';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { ignoreNextOnErrorMatching, shouldIgnoreOnError, wrap } from '../src/helpers';
 
 describe('internal wrap()', () => {
   it('should wrap only functions', () => {
@@ -199,5 +199,44 @@ describe('internal wrap()', () => {
 
     expect(wrapped).toBe(fn);
     expect(wrapped).not.toBe('something that is not a function');
+  });
+});
+
+describe('ignoreNextOnErrorMatching()', () => {
+  const report = { msg: 'Uncaught Error: boom', url: 'http://localhost/worker.js', line: 12, column: 9 };
+
+  beforeEach(async () => {
+    // The wrap() tests above leave real `ignoreNextOnError` resets pending.
+    await new Promise(resolve => setTimeout(resolve));
+    vi.useFakeTimers();
+  });
+
+  afterEach(() => {
+    vi.runAllTimers();
+    vi.useRealTimers();
+  });
+
+  it('skips a matching report once', () => {
+    ignoreNextOnErrorMatching(report);
+
+    expect(shouldIgnoreOnError({ ...report })).toBe(true);
+    expect(shouldIgnoreOnError({ ...report })).toBe(false);
+  });
+
+  it('does not skip a report that differs in any field', () => {
+    ignoreNextOnErrorMatching(report);
+
+    expect(shouldIgnoreOnError({ ...report, msg: 'Uncaught Error: other' })).toBe(false);
+    expect(shouldIgnoreOnError({ ...report, url: 'http://localhost/other.js' })).toBe(false);
+    expect(shouldIgnoreOnError({ ...report, line: 13 })).toBe(false);
+    expect(shouldIgnoreOnError({ ...report, column: 10 })).toBe(false);
+    expect(shouldIgnoreOnError()).toBe(false);
+  });
+
+  it('forgets a report that never arrives after the current task', () => {
+    ignoreNextOnErrorMatching(report);
+    vi.runAllTimers();
+
+    expect(shouldIgnoreOnError({ ...report })).toBe(false);
   });
 });

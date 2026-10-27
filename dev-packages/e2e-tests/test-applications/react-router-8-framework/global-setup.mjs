@@ -13,7 +13,7 @@ export default async function globalSetup() {
   // part of the same project - but the container name is fixed, so the daemon
   // still refuses to create a new one. Force-remove any stale leftover first.
   try {
-    execSync('docker rm -f e2e-tests-react-router-8-redis', { stdio: 'ignore' });
+    execSync('docker rm -f e2e-tests-react-router-8-redis e2e-tests-react-router-8-mysql', { stdio: 'ignore' });
   } catch {
     // no stale container to remove
   }

@@ -139,6 +139,15 @@ describe('tunnelRoute vite plugin', () => {
     expect(virtualRouteModule).toContain('createSentryTunnelRoute({})');
   });
 
+  it('rejects non-POST requests in the virtual managed tunnel route module', async () => {
+    const plugin = makeTunnelRoutePlugin('/monitor');
+
+    const virtualRouteModule = plugin.load && (await plugin.load('\0virtual:sentry-tanstackstart-react/tunnel-route'));
+
+    expect(virtualRouteModule).toContain('ANY()');
+    expect(virtualRouteModule).toContain("status: 405, headers: { Allow: 'POST' }");
+  });
+
   it('treats an empty string `path` like omitted and uses a generated tunnel route', () => {
     const plugin = makeTunnelRoutePlugin({ path: '' });
 

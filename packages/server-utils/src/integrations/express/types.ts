@@ -1,3 +1,4 @@
+import type { OrchestrionChannelContext } from '../../orchestrion/types';
 import type { Span } from '@sentry/core';
 
 export type ExpressLayerType = 'router' | 'middleware' | 'request_handler';
@@ -33,20 +34,18 @@ export interface ExpressResponse {
  * object for `Layer.prototype.handle_request`/`handleRequest`: `self` is the
  * Layer the method was invoked on and `arguments` are `[req, res, next]`.
  *
- * `_sentryCleanup` is ours: a teardown for the `res.on('finish')` listener we
+ * `_sentryCleanup` is ours: a teardown for the `res` `finish`/`close` listeners we
  * register, invoked from `beforeSpanEnd` when the span ends via `next()`.
  * `_sentryStoredLayer` marks that this invocation pushed a layer path (so the
  * matching pop on `asyncStart` stays symmetric). `_sentrySpan` is the span bound
  * for this layer by `bindTracingChannelToSpan`, and `error` is present on the
  * channel's `error` event.
  */
-export interface HandleChannelContext {
+export interface HandleChannelContext extends OrchestrionChannelContext {
   self?: ExpressLayer;
-  arguments?: unknown[];
   _sentryCleanup?: () => void;
   _sentryStoredLayer?: boolean;
   _sentrySpan?: Span;
-  error?: unknown;
 }
 
 /**
@@ -55,9 +54,8 @@ export interface HandleChannelContext {
  * the last entry in `stack`) and `arguments` are the registration args (the
  * first of which is the path pattern).
  */
-export interface RegistrationChannelContext {
+export interface RegistrationChannelContext extends OrchestrionChannelContext {
   self?: { stack?: ExpressLayer[] };
-  arguments?: unknown[];
 }
 
 /** An Express error carrying an optional HTTP status, in the various shapes middleware use. */

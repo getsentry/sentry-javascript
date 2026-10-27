@@ -16,13 +16,13 @@
 
 /* eslint-disable max-lines */
 
-import * as diagch from 'diagnostics_channel';
 import { URL } from 'url';
 
 import type { Span, SpanAttributes } from '@sentry/core';
 import {
   debug,
   getClient,
+  isSentryRequestUrl,
   getSanitizedUrlString,
   getSpanStatusFromHttpCode,
   hasSpanStreamingEnabled,
@@ -32,7 +32,6 @@ import {
   parseUrl,
   safeCallback,
   SEMANTIC_ATTRIBUTE_SENTRY_CUSTOM_SPAN_NAME,
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SPAN_STATUS_ERROR,
   startInactiveSpan,
   stripDataUrlContent,
@@ -40,7 +39,9 @@ import {
   getUrlQuery,
   filterCollectedUrl,
   filterCollectedUrlQuery,
+  httpHeadersToSpanAttributes,
 } from '@sentry/core';
+import { subscribeDiagnosticsChannel } from '@sentry/server-utils';
 import { addFetchRequestBreadcrumb, addTracePropagationHeadersToFetchRequest } from '../../utils/outgoingFetchRequest';
 import {
   HTTP_REQUEST_METHOD,
@@ -58,6 +59,7 @@ import {
   URL_QUERY,
   URL_SCHEME,
   USER_AGENT_ORIGINAL,
+  SENTRY_ORIGIN,
 } from '@sentry/conventions/attributes';
 import { HTTP_CLIENT } from '@sentry/conventions/op';
 import { DEBUG_BUILD } from '../../debug-build';
@@ -117,7 +119,7 @@ function subscribeToChannel(
   diagnosticChannel: string,
   onMessage: (message: unknown, name: string | symbol) => void,
 ): void {
-  diagch.subscribe?.(diagnosticChannel, onMessage);
+  subscribeDiagnosticsChannel(diagnosticChannel, onMessage);
 }
 
 function parseRequestHeaders(request: UndiciRequest): Map<string, string | string[]> {
@@ -170,15 +172,19 @@ function parseRequestHeaders(request: UndiciRequest): Map<string, string | strin
 function onRequestCreated(config: NodeFetchOptions, { request }: RequestMessage): void {
   const url = getAbsoluteUrl(request.origin, request.path);
 
-  const ignoredByCallback = safeCallback(
-    DEBUG_BUILD ? 'The `ignoreOutgoingRequests` callback threw an error, not ignoring the request:' : '',
-    () => !!config.ignoreOutgoingRequests?.(url),
-    () => false,
-  );
+  // Requests to Sentry are only traced here when another SDK in this process (e.g. the Next.js Edge Runtime SDK) sends
+  // them, since our own transport suppresses tracing
+  const isIgnored =
+    isSentryRequestUrl(url, getClient()) ||
+    safeCallback(
+      DEBUG_BUILD ? 'The `ignoreOutgoingRequests` callback threw an error, not ignoring the request:' : '',
+      () => !!config.ignoreOutgoingRequests?.(url),
+      () => false,
+    );
 
   // Breadcrumbs & span-less trace propagation are additionally skipped when tracing is suppressed.
   // We store this here because the active context is no longer correct in later channel events.
-  const ignoreForBreadcrumbs = isTracingSuppressed() || !!ignoredByCallback;
+  const ignoreForBreadcrumbs = isTracingSuppressed() || isIgnored;
   ignoreRequestMap.set(request, ignoreForBreadcrumbs);
 
   // When spans are disabled we do not create a span, but we still inject trace propagation headers
@@ -191,9 +197,9 @@ function onRequestCreated(config: NodeFetchOptions, { request }: RequestMessage)
   }
 
   // Ignore span creation if:
-  // - the outgoing request is ignored via config
+  // - the outgoing request is ignored via config or goes to Sentry
   // - method is 'CONNECT'
-  if (request.method === 'CONNECT' || ignoredByCallback) {
+  if (request.method === 'CONNECT' || isIgnored) {
     return;
   }
 
@@ -219,7 +225,7 @@ function onRequestCreated(config: NodeFetchOptions, { request }: RequestMessage)
     [URL_QUERY]: filterCollectedUrlQuery(getUrlQuery(requestUrl.search)),
     [URL_FRAGMENT]: getUrlFragment(requestUrl.hash),
     [URL_SCHEME]: urlScheme,
-    [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.node_fetch',
+    [SENTRY_ORIGIN]: 'auto.http.node_fetch',
   };
 
   // Sanitize data URLs to prevent long base64 strings in span attributes
@@ -312,16 +318,21 @@ function onRequestHeaders(config: NodeFetchOptions, { request, socket }: Request
 
   // After hooks have been processed (which may modify request headers)
   // we can collect the headers based on the configuration
-  if (config.headersToSpanAttributes?.requestHeaders) {
+  const client = getClient();
+  if (config.headersToSpanAttributes?.requestHeaders && client) {
     const headersToAttribs = new Set(config.headersToSpanAttributes.requestHeaders.map(n => n.toLowerCase()));
     const headersMap = parseRequestHeaders(request);
 
+    const allowlisted: Record<string, string | string[]> = {};
     for (const [name, value] of headersMap.entries()) {
       if (headersToAttribs.has(name)) {
-        const attrValue = Array.isArray(value) ? value : [value];
-        spanAttributes[`http.request.header.${name}`] = attrValue;
+        allowlisted[name] = value;
       }
     }
+
+    // An entry in `headersToSpanAttributes` does not exempt a header from the `dataCollection`
+    // filtering, so the allowlisted subset goes through the same pipeline as any other header.
+    Object.assign(spanAttributes, httpHeadersToSpanAttributes(allowlisted, client.getDataCollectionOptions()));
   }
 
   span.setAttributes(spanAttributes);
@@ -354,10 +365,12 @@ function onResponseHeaders(config: NodeFetchOptions, { request, response }: Resp
     () => undefined,
   );
 
-  if (config.headersToSpanAttributes?.responseHeaders) {
+  const client = getClient();
+  if (config.headersToSpanAttributes?.responseHeaders && client) {
     const headersToAttribs = new Set<string>();
     config.headersToSpanAttributes?.responseHeaders.forEach(name => headersToAttribs.add(name.toLowerCase()));
 
+    const allowlisted: Record<string, string[]> = {};
     for (let idx = 0; idx < response.headers.length; idx = idx + 2) {
       const nameBuf = response.headers[idx];
       const valueBuf = response.headers[idx + 1];
@@ -365,17 +378,18 @@ function onResponseHeaders(config: NodeFetchOptions, { request, response }: Resp
         continue;
       }
       const name = nameBuf.toString().toLowerCase();
-      const value = valueBuf;
 
       if (headersToAttribs.has(name)) {
-        const attrName = `http.response.header.${name}`;
-        if (!Object.prototype.hasOwnProperty.call(spanAttributes, attrName)) {
-          spanAttributes[attrName] = [value.toString()];
-        } else {
-          (spanAttributes[attrName] as string[]).push(value.toString());
-        }
+        (allowlisted[name] ??= []).push(valueBuf.toString());
       }
     }
+
+    // An entry in `headersToSpanAttributes` does not exempt a header from the `dataCollection`
+    // filtering, so the allowlisted subset goes through the same pipeline as any other header.
+    Object.assign(
+      spanAttributes,
+      httpHeadersToSpanAttributes(allowlisted, client.getDataCollectionOptions(), 'response'),
+    );
   }
 
   span.setAttributes(spanAttributes);
@@ -405,13 +419,25 @@ function onDone({ request }: RequestTrailersMessage): void {
 // This is the event we get when something is wrong in the request like
 // - invalid options when calling `fetch` global API or any undici method for request
 // - connectivity errors such as unreachable host
-// - requests aborted through an `AbortController.signal`
+// - requests aborted through an `AbortController.signal`, or a response body cancelled by the caller
 // NOTE: server errors are considered valid responses and it's the lib consumer
-// who should deal with that.
+// who should deal with that. Aborts initiated by the caller are not errors either, so they end the
+// span without an error status.
 function onError({ request, error }: RequestErrorMessage): void {
   const span = spanFromReq.get(request);
 
   if (!span) {
+    return;
+  }
+
+  // An intentional cancellation (`AbortController.abort()` or cancelling the response body) is not
+  // a failure of the request, so don't flip the span (which may already carry a 2xx status) to error.
+  const isAbort =
+    error.name === 'AbortError' ||
+    (typeof DOMException !== 'undefined' && error instanceof DOMException && error.code === DOMException.ABORT_ERR);
+  if (isAbort) {
+    span.end();
+    spanFromReq.delete(request);
     return;
   }
 

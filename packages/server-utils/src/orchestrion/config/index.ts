@@ -13,6 +13,7 @@ import { googleGenAiConfig } from './google-genai';
 import { graphqlConfig } from './graphql';
 import { groqConfig } from './groq';
 import { hapiConfig } from './hapi';
+import { honoConfig } from './hono';
 import { ioredisConfig } from './ioredis';
 import { kafkajsConfig } from './kafkajs';
 import { knexConfig } from './knex';
@@ -20,20 +21,28 @@ import { koaConfig } from './koa';
 import { langchainConfig } from './langchain';
 import { langgraphConfig } from './langgraph';
 import { lruMemoizerConfig } from './lru-memoizer';
+import { flueConfig } from './flue';
 import { mastraConfig } from './mastra';
+import { piDurableConfig } from './pi-durable';
+import { mcpServerConfig } from './mcp-server';
 import { mistralConfig } from './mistral';
 import { mongodbConfig } from './mongodb';
 import { mongooseConfig } from './mongoose';
 import { mysql2Config } from './mysql2';
 import { mysqlConfig } from './mysql';
+import { neonConfig } from './neon';
 import { nestjsConfig } from './nestjs';
+import { nitroConfig } from './nitro';
 import { openaiConfig } from './openai';
 import { pgConfig } from './pg';
 import { postgresJsConfig } from './postgres';
+import { prismaConfig } from './prisma';
 import { redisConfig } from './redis';
 import { remixConfig } from './remix';
+import { remixV3Config } from './remix-v3';
 import { tediousConfig } from './tedious';
 import { togetherAiConfig } from './together-ai';
+import { typesafeConfig } from './typesafe';
 import { vercelAiConfig } from './vercel-ai';
 // Kept sorted alphabetically by module so concurrent additions insert at different
 // points rather than all appending to the end (fewer merge conflicts).
@@ -63,6 +72,7 @@ export const SENTRY_INSTRUMENTATIONS: InstrumentationConfig[] = [
   ...graphqlConfig,
   ...groqConfig,
   ...hapiConfig,
+  ...honoConfig,
   ...ioredisConfig,
   ...kafkajsConfig,
   ...knexConfig,
@@ -70,20 +80,28 @@ export const SENTRY_INSTRUMENTATIONS: InstrumentationConfig[] = [
   ...langchainConfig,
   ...langgraphConfig,
   ...lruMemoizerConfig,
+  ...flueConfig,
   ...mastraConfig,
+  ...mcpServerConfig,
   ...mistralConfig,
   ...mongodbConfig,
   ...mongooseConfig,
   ...mysql2Config,
   ...mysqlConfig,
+  ...neonConfig,
   ...nestjsConfig,
+  ...nitroConfig,
   ...openaiConfig,
   ...pgConfig,
+  ...piDurableConfig,
   ...postgresJsConfig,
+  ...prismaConfig,
   ...redisConfig,
   ...remixConfig,
+  ...remixV3Config,
   ...tediousConfig,
   ...togetherAiConfig,
+  ...typesafeConfig,
   ...vercelAiConfig,
 ];
 
@@ -183,3 +201,6 @@ export function withoutInstrumentedExternals(
 export { nestjsChannels } from './nestjs';
 // This is exported so that the remix package can use it to subscribe to the channels.
 export { remixChannels } from './remix';
+// Exported so the remix package can subscribe to the Remix 3 channels, and hand only these configs to
+// the browser transform.
+export { remixV3Channels, remixV3Config } from './remix-v3';

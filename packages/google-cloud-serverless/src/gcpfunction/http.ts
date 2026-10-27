@@ -5,6 +5,7 @@ import {
   HTTP_REQUEST_METHOD,
   SENTRY_OP,
   URL_PATH,
+  SENTRY_ORIGIN,
 } from '@sentry/conventions/attributes';
 import { FUNCTION_GCP } from '@sentry/conventions/op';
 import {
@@ -14,7 +15,6 @@ import {
   hasSpanStreamingEnabled,
   httpRequestToRequestData,
   isString,
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SERVERLESS_FUNCTION_SPAN_NAME_FALLBACK,
   setHttpStatus,
   stripUrlQueryAndFragment,
@@ -73,7 +73,7 @@ function _wrapHttpFunction(fn: HttpFunction, options: Partial<WrapperOptions>): 
             [FAAS_NAME]: functionName,
             [FAAS_TRIGGER]: 'http',
             [SENTRY_SEGMENT_NAME_SOURCE]: hasSpanStreaming ? 'component' : 'route',
-            [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.serverless.gcp_http',
+            [SENTRY_ORIGIN]: 'auto.function.serverless.gcp_http',
             // The method and path used to be the span name; they stay on the span so that
             // information survives the low-cardinality rename.
             [HTTP_REQUEST_METHOD]: reqMethod || undefined,

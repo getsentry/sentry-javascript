@@ -6,25 +6,24 @@
 
 # Contributing
 
-We welcome suggested improvements and bug fixes to the `@sentry/*` family of packages, in the form of pull requests on
-[`GitHub`](https://github.com/getsentry/sentry-javascript). The guide below will help you get started, but if you have
-further questions, please feel free to reach out on [Discord](https://discord.gg/Ww9hbqr). To learn about some general
-SDK development principles check out the [SDK Development Guide](https://develop.sentry.dev/sdk/) in the Sentry
-Developer Documentation.
+We welcome suggested improvements and bug fixes to the `@sentry/*` family of packages. If you're not on the Sentry
+team, read [External contributors](#external-contributors) before you open a pull request. The guide below will help
+you get started, but if you have further questions, please feel free to reach out on
+[Discord](https://discord.gg/Ww9hbqr). To learn about some general SDK development principles check out the
+[SDK Development Guide](https://develop.sentry.dev/sdk/) in the Sentry Developer Documentation.
 
 ## Setting up an Environment
 
-We use [Volta](https://volta.sh/) to ensure we use consistent versions of node, yarn and pnpm.
+We use [Volta](https://volta.sh/) to ensure we use consistent versions of node and pnpm. Volta manages pnpm only when
+[pnpm support](https://docs.volta.sh/advanced/pnpm) is enabled, so add `export VOLTA_FEATURE_PNPM=1` to your shell
+profile (for example `~/.zshrc`).
 
-Make sure to also enable [pnpm support in Volta](https://docs.volta.sh/advanced/pnpm) if you want to run the E2E tests
-locally.
-
-`sentry-javascript` is a monorepo containing several packages, managed with Yarn workspaces and Nx. To get started,
+`sentry-javascript` is a monorepo containing several packages, managed with pnpm workspaces and Nx. To get started,
 install all dependencies, and then perform an initial build, so TypeScript can read all of the linked type definitions.
 
 ```
-$ yarn
-$ yarn build
+$ pnpm install
+$ pnpm run build
 ```
 
 With that, the repo is fully set up and you are ready to run all commands.
@@ -34,16 +33,16 @@ With that, the repo is fully set up and you are ready to run all commands.
 Since we are using [`TypeScript`](https://www.typescriptlang.org/), you need to transpile the code to JavaScript to be
 able to use it. From the top level of the repo, there are three commands available:
 
-- `yarn build:dev`, which runs a one-time build of every package
-- `yarn build:dev:filter <name of npm package>`, which runs `yarn build:dev` only in projects relevant to the given
-  package (so, for example, running `yarn build:dev:filter @sentry/react` will build the `react` package, all of its
+- `pnpm run build:dev`, which runs a one-time build of every package
+- `pnpm run build:dev:filter <name of npm package>`, which runs `pnpm run build:dev` only in projects relevant to the given
+  package (so, for example, running `pnpm run build:dev:filter @sentry/react` will build the `react` package, all of its
   dependencies (`utils`, `core`, `browser`, etc), and all packages which depend on it (currently `gatsby` and `nextjs`))
-- `yarn build:dev:watch`, which runs `yarn build:dev` in watch mode (recommended)
+- `pnpm run build:dev:watch`, which runs `pnpm run build:dev` in watch mode (recommended)
 
 Note: Due to package incompatibilities between Python versions, building native binaries currently requires a Python
 version <3.12.
 
-You can also run a production build via `yarn build`, which will build everything except for the tarballs for publishing
+You can also run a production build via `pnpm run build`, which will build everything except for the tarballs for publishing
 to NPM. You can use this if you want to bundle Sentry yourself. The build output can be found in the packages `build/`
 folder, e.g. `packages/browser/build`. Bundled files can be found in `packages/browser/build/bundles`. Note that there
 are no guarantees about the produced file names etc., so make sure to double check which files are generated after
@@ -53,9 +52,9 @@ upgrading.
 
 To test local versions of SDK packages, for instance in test projects, you have a couple of options:
 
-- Use [`yarn link`](https://classic.yarnpkg.com/lang/en/docs/cli/link/) to symlink your package to the test project.
+- Use [`pnpm link`](./docs/using-pnpm-link.md) to symlink your package to the test project.
 - Use [`yalc` to install SDK packages](./docs/using-yalc.md) as if they were already published.
-- Run `build:tarball` in the repo and `yarn add ./path/to/tarball.tgz` in the project.
+- Run `build:tarball` in the repo and `pnpm add ./path/to/tarball.tgz` in the project.
 
 ## Adding Tests
 
@@ -67,11 +66,11 @@ integration tests can be added in `dev-packages/node-integration-tests`. Finally
 
 ## Running Tests
 
-Running tests works the same way as building - running `yarn test` at the project root will run tests for all packages,
-and running `yarn test` in a specific package will run tests for that package. There are also commands to run subsets of
+Running tests works the same way as building - running `pnpm run test` at the project root will run tests for all packages,
+and running `pnpm run test` in a specific package will run tests for that package. There are also commands to run subsets of
 the tests in each location. Check out the `scripts` entry of the corresponding `package.json` for details.
 
-Note: you must run `yarn build` before `yarn test` will work.
+Note: you must run `pnpm run build` before `pnpm run test` will work.
 
 ## Running E2E Tests Locally
 
@@ -80,18 +79,19 @@ E2E tests verify SDK behavior in real-world framework scenarios.
 ### Prerequisites
 
 1. **Docker**: Required for some E2E tests
-2. **Volta with pnpm support**: Enable pnpm in Volta by setting `VOLTA_FEATURE_PNPM=1` in your environment. See [Volta pnpm docs](https://docs.volta.sh/advanced/pnpm).
+2. **Volta**: The E2E tests run each app on the node version that it pins. Without Volta, they use your current node
+   version.
 
 ### Step-by-Step Instructions
 
 1. **Build the SDK packages and create tarballs:**
 
    ```bash
-   yarn build
-   yarn build:tarball
+   pnpm run build
+   pnpm run build:tarball
    ```
 
-   Note: You must re-run `yarn build:tarball` after any changes to packages.
+   Note: You must re-run `pnpm run build:tarball` after any changes to packages.
 
 2. **Set up environment (optional):**
 
@@ -104,20 +104,20 @@ E2E tests verify SDK behavior in real-world framework scenarios.
 3. **Run all E2E tests:**
 
    ```bash
-   yarn test:e2e
+   pnpm run test:e2e
    ```
 
 4. **Or run a specific test application:**
 
    ```bash
-   yarn test:run <app-name>
-   # Example: yarn test:run nextjs-app-dir
+   pnpm run test:run <app-name>
+   # Example: pnpm run test:run nextjs-app-dir
    ```
 
 5. **Run with a specific variant:**
    ```bash
-   yarn test:run <app-name> --variant <variant-name>
-   # Example: yarn test:run nextjs-pages-dir --variant 15
+   pnpm run test:run <app-name> --variant <variant-name>
+   # Example: pnpm run test:run nextjs-pages-dir --variant 15
    ```
 
 ### Common Issues and Troubleshooting
@@ -127,8 +127,8 @@ E2E tests verify SDK behavior in real-world framework scenarios.
 Make sure to rebuild tarballs:
 
 ```bash
-yarn build
-yarn build:tarball
+pnpm run build
+pnpm run build:tarball
 ```
 
 #### Docker-related issues
@@ -161,21 +161,43 @@ replacement (as would happen if we reused `__DEBUG_BUILD__`).
 ## Linting
 
 Similar to building and testing, linting can be done in the project root or in individual packages by calling
-`yarn lint`.
+`pnpm run lint`.
 
-Note: you must run `yarn build` before `yarn lint` will work.
+Note: you must run `pnpm run build` before `pnpm run lint` will work.
 
-## External Contributors
+## External contributors
 
-We highly appreciate external contributions to the SDK. If you want to contribute something, you can just open a PR
-against `develop`.
+Before you write code, get a maintainer's go-ahead in an issue. That way, nobody spends a weekend on a PR that just
+sits in our queue. We check that the change fits our plans and that we have time to review it. Code details can wait
+for the PR review.
 
-The SDK team will check out your PR shortly!
+1. Find or open an issue for your change. Describe the problem and what you want to change.
+2. Wait for a maintainer to give you the go-ahead.
+3. If someone else is assigned to the issue, ask them in the issue before you start.
+4. Open a PR against `develop` and link the issue, for example `Fixes #1234`.
 
-When contributing to the codebase, please note:
+This also applies to small changes. We may close PRs without a go-ahead.
 
-- Make sure to follow the [Commit, Issue & PR guidelines](./docs/commit-issue-pr-guidelines.md)
-- Non-trivial PRs will not be accepted without tests (see above).
+### Using AI tools
+
+Use any tools you like. You're still the one who answers the review comments, so read, test, and understand every
+change before you submit it. We close PRs that look like unreviewed agent output.
+
+### Before you open a PR
+
+- Follow the [Commit, Issue & PR guidelines](./docs/commit-issue-pr-guidelines.md).
+- Add tests for non-trivial changes (see [Adding Tests](#adding-tests)).
+- Keep each PR to one change. Put unrelated refactors in a separate PR.
+- Run `pnpm run lint` and the tests for the packages you changed.
+
+### After you open a PR
+
+Ideally, answer review comments within a few hours, and within a day at the latest. While the change is still fresh in
+the reviewer's head, each round is quick, and a PR that keeps moving is more likely to get merged. We may close PRs
+that go quiet for a long time.
+
+We try to review PRs quickly, but now and then one slips through the cracks. That's on us, not you. If you haven't heard
+back in a few days, `@` mention a maintainer to ping us.
 
 ## Commit, Issue & PR guidelines
 

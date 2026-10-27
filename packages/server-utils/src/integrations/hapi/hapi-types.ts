@@ -29,7 +29,7 @@ export interface ServerRouteOptions {
 
 export interface ServerRoute {
   path: string;
-  method: string;
+  method: string | string[];
   handler?: LifecycleMethod | unknown;
   options?: ((server: unknown) => ServerRouteOptions) | ServerRouteOptions;
   [key: string]: unknown;
@@ -96,6 +96,7 @@ export interface HapiResponse {
 
 /** The subset of a hapi request the error listener reads. */
 export interface HapiRequest {
+  method: string;
   route: { path?: string; method: string };
   response?: HapiResponse;
   [key: string]: unknown;
@@ -121,10 +122,4 @@ export interface HapiServerEvents {
 export interface HapiServer {
   events: HapiServerEvents;
   [key: string]: unknown;
-}
-
-export enum AttributeNames {
-  HAPI_TYPE = 'hapi.type',
-  PLUGIN_NAME = 'hapi.plugin.name',
-  EXT_TYPE = 'server.ext.type',
 }

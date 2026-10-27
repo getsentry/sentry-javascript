@@ -5,6 +5,7 @@
 // expose it — same setup as `@sentry/server-utils/orchestrion/vite` itself.
 import { sentryOrchestrionPlugin } from '@sentry/server-utils/orchestrion/vite';
 import { sentryCloudflareAutoInstrumentPlugin } from './autoInstrument';
+import { sentryFlueRuntimeProviderPlugin } from './flueRuntime';
 import { sentryMastraObservabilityProviderPlugin } from './mastraObservability';
 
 /**
@@ -91,6 +92,7 @@ export function sentryCloudflareVitePlugin(options: SentryCloudflareVitePluginOp
       dcModule: '@sentry/cloudflare/orchestrion-diagnostics-channel',
     }),
     sentryMastraObservabilityProviderPlugin(),
+    sentryFlueRuntimeProviderPlugin(),
     ...(options.autoInstrumentation !== false
       ? [sentryCloudflareAutoInstrumentPlugin({ wranglerConfigPath: options.wranglerConfigPath })]
       : []),

@@ -23,6 +23,7 @@ import { HTTP_ON_SERVER_REQUEST } from './constants';
 import type { HttpIncomingMessage, HttpInstrumentationOptions, HttpServer, HttpServerResponse } from './types';
 import { DEBUG_BUILD } from '../../debug-build';
 import { debug } from '../../utils/debug-logger';
+import { safeCallback } from '../../utils/safeCallback';
 import { getClient, getCurrentScope, getIsolationScope, withIsolationScope } from '../../currentScopes';
 import { hasSpansEnabled } from '../../utils/hasSpansEnabled';
 import {
@@ -39,7 +40,6 @@ import { continueTrace, startSpanManual } from '../../tracing/trace';
 import { getSpanStatusFromHttpCode, SPAN_STATUS_ERROR } from '../../tracing';
 import { hasSpanStreamingEnabled } from '../../tracing/spans/hasSpanStreamingEnabled';
 import { HTTP_SPAN_NAME_FALLBACK } from '../../tracing/spans/spanNames';
-import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '../../semanticAttributes';
 import { safeMathRandom } from '../../utils/randomSafeContext';
 import type { SpanStatus } from '../../types/spanStatus';
 import {
@@ -66,9 +66,11 @@ import {
   URL_QUERY,
   URL_SCHEME,
   USER_AGENT_ORIGINAL,
+  SENTRY_ORIGIN,
 } from '@sentry/conventions/attributes';
 import { HTTP_SERVER } from '@sentry/conventions/op';
 import { filterCollectedUrl, filterCollectedUrlQuery } from '../../utils/data-collection/filterCollectedUrl';
+import { getClientIPAddress } from '../../utils/clientIPAddress';
 
 // Tree-shakable guard to remove all code related to tracing
 declare const __SENTRY_TRACING__: boolean;
@@ -146,7 +148,14 @@ export function instrumentServer(options: HttpInstrumentationOptions, server: Ht
         configuredBodySize ??
         (client.getDataCollectionOptions().httpBodies.includes('incomingRequest') ? 'medium' : 'none');
 
-      if (effectiveBodySize !== 'none' && !ignoreRequestBody?.(url, request)) {
+      if (
+        effectiveBodySize !== 'none' &&
+        !safeCallback(
+          DEBUG_BUILD ? 'The `ignoreRequestBody` callback threw an error, ignoring the request body:' : '',
+          () => !!ignoreRequestBody?.(url, request),
+          () => true,
+        )
+      ) {
         patchRequestToCaptureBody(request, isolationScope, effectiveBodySize, INTEGRATION_NAME);
       }
 
@@ -306,7 +315,6 @@ function buildServerSpanWrap(
         : `${method} ${httpTargetWithoutQueryFragment}`;
       const headers = request.headers;
       const userAgent = headers['user-agent'];
-      const ips = headers['x-forwarded-for'];
       const httpVersion = request.httpVersion;
       const host = headers.host as undefined | string;
       const hostname = host?.replace(/^(.*)(:[0-9]{1,5})/, '$1') || 'localhost';
@@ -315,8 +323,10 @@ function buildServerSpanWrap(
       const { localAddress, localPort, remoteAddress, remotePort } = socket ?? {};
       const collectClientAddress = client.getDataCollectionOptions().userInfo;
       // `client.address` is the originating client, so a forwarding header wins over the socket, which
-      // behind a proxy holds the proxy's address. `network.peer.address` keeps the socket value.
-      const clientAddress = getForwardedClientAddress(ips) ?? remoteAddress;
+      // behind a proxy holds the proxy's address. The socket port is the proxy's too, so `client.port`
+      // stays unset then. `network.peer.*` keeps the socket values.
+      const forwardedAddress = getClientIPAddress(headers);
+      const clientAddress = forwardedAddress || remoteAddress;
 
       return startSpanManual(
         {
@@ -324,7 +334,7 @@ function buildServerSpanWrap(
           attributes: {
             // Sentry-specific attributes
             [SENTRY_OP]: HTTP_SERVER,
-            [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.server',
+            [SENTRY_ORIGIN]: 'auto.http.http_server',
             [SENTRY_SEGMENT_NAME_SOURCE]: 'url',
             [SENTRY_KIND]: 'server',
             // Network attributes
@@ -333,7 +343,7 @@ function buildServerSpanWrap(
             [NETWORK_LOCAL_ADDRESS]: localAddress,
             [NETWORK_LOCAL_PORT]: localPort,
             [CLIENT_ADDRESS]: collectClientAddress ? clientAddress : undefined,
-            [CLIENT_PORT]: remotePort,
+            [CLIENT_PORT]: forwardedAddress ? undefined : remotePort,
             [NETWORK_PEER_ADDRESS]: collectClientAddress ? remoteAddress : undefined,
             [NETWORK_PEER_PORT]: remotePort,
             [SENTRY_HTTP_PREFETCH]: isKnownPrefetchRequest(request) || undefined,
@@ -352,7 +362,11 @@ function buildServerSpanWrap(
           },
         },
         span => {
-          onSpanCreated?.(span, request, response);
+          safeCallback(
+            DEBUG_BUILD ? 'The `onSpanCreated` callback threw an error:' : '',
+            () => onSpanCreated?.(span, request, response),
+            () => undefined,
+          );
           // Ensure we only end the span once
           // E.g. error can be emitted before close is emitted
           let isEnded = false;
@@ -370,7 +384,11 @@ function buildServerSpanWrap(
               ...httpHeadersToSpanAttributes(headersToDict(response.headers), dataCollectionOptions, 'response'),
             });
             span.setStatus(status);
-            onSpanEnd?.(span, request, response);
+            safeCallback(
+              DEBUG_BUILD ? 'The `onSpanEnd` callback threw an error:' : '',
+              () => onSpanEnd?.(span, request, response),
+              () => undefined,
+            );
             span.end();
           }
 
@@ -390,14 +408,6 @@ function buildServerSpanWrap(
       );
     }
   };
-}
-
-/**
- * First entry of `X-Forwarded-For`: the client as seen by the outermost proxy.
- * https://opentelemetry.io/docs/specs/semconv/registry/attributes/client/#client-address
- */
-function getForwardedClientAddress(forwardedFor: string | string[] | undefined): string | undefined {
-  return typeof forwardedFor === 'string' ? forwardedFor.split(',')[0]?.trim() || undefined : undefined;
 }
 
 function shouldIgnoreSpansForIncomingRequest(
@@ -425,7 +435,13 @@ function shouldIgnoreSpansForIncomingRequest(
     return true;
   }
 
-  if (ignoreIncomingRequests?.(urlPath, request)) {
+  if (
+    safeCallback(
+      DEBUG_BUILD ? 'The `ignoreIncomingRequests` callback threw an error, not ignoring the request:' : '',
+      () => !!ignoreIncomingRequests?.(urlPath, request),
+      () => false,
+    )
+  ) {
     return true;
   }
 

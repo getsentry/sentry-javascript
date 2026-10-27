@@ -1,0 +1,250 @@
+// Node suites that do not run on Bun, relative to `node-integration-tests`. A single test that
+// fails on Bun runs only on the other runtimes, with `test.runIf(supports({ runtimes }))` in the
+// Node suite, and a suite or test that fails only on older Bun versions runs with
+// `supports({ bunMin })`. Neither is listed here.
+
+// Node-only features: ANR and native thread watchdogs, child processes, the AWS Lambda Node runtime,
+// `node:sqlite`, which `flue` needs, and the Vercel keep-alive, which needs `http.server.response.finish`.
+const NODE_ONLY = [
+  'suites/anr/test.ts',
+  'suites/aws-serverless/**',
+  'suites/breadcrumbs/**',
+  'suites/child-process/test.ts',
+  'suites/thread-blocked-native/test.ts',
+  'suites/tracing/flue/test.ts',
+  'suites/vercel/keep-alive/test.ts',
+];
+
+// Bun does not publish `http.server.request.start`, so `@sentry/node` creates no `http.server`
+// span and does not isolate incoming requests. `@sentry/bun` has `bunHttpServerIntegration` for this,
+// so the `@sentry/bun` project runs these suites, except the ones in `SENTRY_BUN_EXCLUDE`.
+const NO_HTTP_SERVER_SPANS = [
+  'suites/sessions/**',
+  'suites/tracing/envelope-header/sampleRate-propagation/test.ts',
+  'suites/tracing/httpIntegration-streamed/test.ts',
+  'suites/tracing/httpIntegration/test.ts',
+  'suites/tracing/httpServerSpans-unrouted/test.ts',
+  'suites/tracing/ignoreSpans/**',
+  'suites/tracing/meta-tags-twp-errors/test.ts',
+  'suites/tracing/meta-tags/test.ts',
+  'suites/tracing/requestData/test.ts',
+  'suites/tracing/sample-rand-propagation/test.ts',
+  'suites/tracing/sample-rate-propagation/**',
+  'suites/tracing/sampling-static/test.ts',
+  'suites/tracing/sampling/test.ts',
+  'suites/tracing/traceid-recycling-with-spans/test.ts',
+  'suites/tracing/traceid-recycling/test.ts',
+];
+
+// `@sentry/node` instruments `fetch` through undici's diagnostics channels, which Bun's `fetch`
+// does not publish. `@sentry/bun` has its own `fetchIntegration` for this, so the `@sentry/bun`
+// project runs these suites, except the ones in `SENTRY_BUN_EXCLUDE`.
+const NO_FETCH_INSTRUMENTATION = [
+  'suites/tracing/double-baggage/**',
+  'suites/tracing/http-client-span/test.ts',
+  'suites/tracing/http-client-spans/fetch-basic-streamed/test.ts',
+  'suites/tracing/http-client-spans/fetch-basic/test.ts',
+  'suites/tracing/http-client-spans/fetch-error/test.ts',
+  'suites/tracing/http-client-spans/fetch-forward-request-hook/test.ts',
+  'suites/tracing/http-client-spans/fetch-headers-to-span-attributes/test.ts',
+  'suites/tracing/http-client-spans/fetch-strip-query/test.ts',
+  'suites/tracing/no-parent-span-client-report/test.ts',
+  'suites/tracing/requests/fetch-breadcrumbs/test.ts',
+  'suites/tracing/requests/fetch-no-trace-propagation/test.ts',
+  'suites/tracing/requests/fetch-no-tracing-no-spans/test.ts',
+  'suites/tracing/requests/fetch-no-tracing/test.ts',
+  'suites/tracing/requests/fetch-sampled-no-active-span/test.ts',
+  'suites/tracing/requests/fetch-sentry-requests/test.ts',
+  'suites/tracing/requests/fetch-unsampled/test.ts',
+  'suites/tracing/requests/traceparent/test.ts',
+];
+
+// `bun run` cannot inject the diagnostics channels into libraries, so framework, database and AI
+// instrumentation creates no spans. Apps must be built with `@sentry/bun/plugin`.
+// See https://github.com/getsentry/sentry-javascript/issues/23882
+export const NO_AUTO_INSTRUMENTATION = [
+  'suites/express/**',
+  'suites/fs-instrumentation/test.ts',
+  'suites/hono/test.ts',
+  'suites/hono-sdk/test.ts',
+  'suites/pino/test.ts',
+  'suites/tracing/amqplib/test.ts',
+  'suites/tracing/anthropic/test.ts',
+  'suites/tracing/anthropic/v0.129/test.ts',
+  'suites/tracing/apollo-graphql/**',
+  'suites/tracing/dataloader/test.ts',
+  'suites/tracing/fastify/test.ts',
+  'suites/tracing/genericPool-v2/test.ts',
+  'suites/tracing/genericPool/test.ts',
+  'suites/tracing/is-localhost/test.ts',
+  'suites/tracing/google-genai-v2/test.ts',
+  'suites/tracing/google-genai/test.ts',
+  'suites/tracing/groq/test.ts',
+  'suites/tracing/hapi/test.ts',
+  'suites/tracing/ioredis-dc/test.ts',
+  'suites/tracing/kafkajs/test.ts',
+  'suites/tracing/knex/**',
+  'suites/tracing/koa/test.ts',
+  'suites/tracing/langchain/**',
+  'suites/tracing/langgraph/**',
+  'suites/tracing/lru-memoizer/test.ts',
+  'suites/tracing/mastra/test.ts',
+  'suites/tracing/mcp-handler-exact-once/test.ts',
+  'suites/tracing/mcp-server/**',
+  'suites/tracing/mistral/test.ts',
+  'suites/tracing/mongodb-v4/test.ts',
+  'suites/tracing/mongodb-v5/test.ts',
+  'suites/tracing/mongodb-v6/test.ts',
+  'suites/tracing/mongodb-v7/test.ts',
+  'suites/tracing/mongodb/test.ts',
+  'suites/tracing/mongoose-tracing-channel/test.ts',
+  'suites/tracing/mongoose-v5/test.ts',
+  'suites/tracing/mongoose-v7/test.ts',
+  'suites/tracing/mongoose-v8/test.ts',
+  'suites/tracing/mongoose-v9/test.ts',
+  'suites/tracing/mongoose/test.ts',
+  'suites/tracing/mysql/test.ts',
+  'suites/tracing/mysql2-tracing-channel/test.ts',
+  'suites/tracing/mysql2/test.ts',
+  'suites/tracing/neon/test.ts',
+  'suites/tracing/openai/test.ts',
+  'suites/tracing/openai/v6/test.ts',
+  'suites/tracing/openai/v7/test.ts',
+  'suites/tracing/orchestrion-lazy-registration/test.ts',
+  'suites/tracing/pi-durable/test.ts',
+  'suites/tracing/postgres/test.ts',
+  'suites/tracing/postgresjs/test.ts',
+  'suites/tracing/prisma-orm-v5/test.ts',
+  'suites/tracing/prisma-orm-v6/test.ts',
+  'suites/tracing/prisma-orm-v7/test.ts',
+  'suites/tracing/prisma-orm-v8/test.ts',
+  'suites/tracing/redis-cache/test.ts',
+  'suites/tracing/redis-dc/test.ts',
+  'suites/tracing/redis/test.ts',
+  'suites/tracing/tedious/test.ts',
+  'suites/tracing/together-ai/test.ts',
+  'suites/tracing/typesafe/test.ts',
+  'suites/tracing/vercelai/**',
+];
+
+// Fail on Bun. The cause is not investigated yet.
+const NOT_TRIAGED = [
+  'suites/contextLines/filename-with-spaces/test.ts',
+  'suites/modules/test.ts',
+  'suites/proxy/test.ts',
+];
+
+// The scenario configures `nativeNodeFetchIntegration`, which `@sentry/bun` does not export.
+const NO_NATIVE_NODE_FETCH_INTEGRATION = [
+  'suites/tracing/http-client-spans/fetch-forward-request-hook/test.ts',
+  'suites/tracing/http-client-spans/fetch-headers-to-span-attributes/test.ts',
+  'suites/tracing/requests/fetch-no-trace-propagation/test.ts',
+  'suites/tracing/requests/fetch-no-tracing-no-spans/test.ts',
+];
+
+// The `fetchIntegration` of `@sentry/bun` comes from `@sentry/core`. Its spans, breadcrumbs and
+// `sentry-trace` headers differ from the ones `@sentry/node` creates, for example the span origin
+// is `auto.http.fetch`, not `auto.http.node_fetch`, and the spans have no `url.path`, so
+// `ignoreSpans` cannot match them on it.
+const FETCH_INTEGRATION_DIFFERS = [
+  'suites/tracing/double-baggage/spans-parent/test.ts',
+  'suites/tracing/http-client-spans/fetch-basic/test.ts',
+  'suites/tracing/http-client-spans/fetch-error/test.ts',
+  'suites/tracing/http-client-spans/fetch-strip-query/test.ts',
+  'suites/tracing/ignoreSpans/continued-trace-http-client/test.ts',
+  'suites/tracing/requests/fetch-breadcrumbs/test.ts',
+  'suites/tracing/requests/fetch-sampled-no-active-span/test.ts',
+];
+
+// `@sentry/bun` creates `http.server` spans with `bunHttpServerIntegration`, not `httpIntegration`,
+// so the incoming-request options that the scenario passes to `httpIntegration` (for example
+// `sessionFlushingDelayMS`, `onSpanCreated`, `ignoreIncomingRequests`, `ignoreStaticAssets`) have
+// no effect. Its spans also differ: response headers become attributes, and there is no
+// `http.response.status_text`. And a server
+// that sets `emit` back to the `emit` it had before its first request gets no spans after that.
+const HTTP_SERVER_OPTIONS_IGNORED = [
+  'suites/sessions/exited-session-aggregate/test.ts',
+  'suites/sessions/server-without-process-session/test.ts',
+  'suites/tracing/httpIntegration/test.ts',
+];
+
+// With `@sentry/bun`, these suites fail only because they need Express spans or route names,
+// which `bun run` does not create. The crashed and errored session suites also need
+// `sessionFlushingDelayMS` (see above).
+// See https://github.com/getsentry/sentry-javascript/issues/23882
+const NO_EXPRESS_INSTRUMENTATION = [
+  'suites/sessions/crashed-session-aggregate/test.ts',
+  'suites/sessions/errored-session-aggregate/test.ts',
+  'suites/tracing/httpIntegration-streamed/test.ts',
+  'suites/tracing/ignoreSpans/attributes/test.ts',
+  'suites/tracing/ignoreSpans/children/test.ts',
+  'suites/tracing/ignoreSpans/continued-trace-child/test.ts',
+  'suites/tracing/ignoreSpans/segments/test.ts',
+  'suites/tracing/sampling/test.ts',
+  'suites/tracing/traceid-recycling-with-spans/test.ts',
+];
+
+export const NODE_SUITES_EXCLUDE = ['**/node_modules/**', ...NODE_ONLY, ...NO_AUTO_INSTRUMENTATION, ...NOT_TRIAGED];
+
+// Excluded only in the `node-suites` project, which runs the suites with `@sentry/node`.
+export const SENTRY_NODE_EXCLUDE = [...NO_HTTP_SERVER_SPANS, ...NO_FETCH_INSTRUMENTATION];
+
+// Excluded only in the `node-suites-sentry-bun` project, which maps `@sentry/node` to `@sentry/bun`.
+export const SENTRY_BUN_EXCLUDE = [
+  ...HTTP_SERVER_OPTIONS_IGNORED,
+  ...NO_EXPRESS_INSTRUMENTATION,
+  ...NO_NATIVE_NODE_FETCH_INTEGRATION,
+  ...FETCH_INTEGRATION_DIFFERS,
+];
+
+// The build project (`node-suites-bun-build`) runs the suites of `NO_AUTO_INSTRUMENTATION` with the
+// scenarios bundled by `@sentry/bun/plugin`. These do not run there.
+
+// On Bun the channel integrations subscribe at `init()` by design, and this suite checks that
+// they wait until their module loads.
+const BUN_BUILD_EAGER_SUBSCRIPTION = ['suites/tracing/orchestrion-lazy-registration/test.ts'];
+
+// The first `init()` has no DSN, so `bunHttpServerIntegration` is not set up, and the suite then
+// adds only `httpIntegration`. On Bun that does not isolate requests, because Bun does not publish
+// `http.server.request.start`.
+const BUN_BUILD_NO_HTTP_SERVER_INTEGRATION = ['suites/express/multiple-init/test.ts'];
+
+// Some or all tests fail with the bundled scenarios. The cause is not investigated yet. In
+// `express/tracing` only the request data tests fail: they set `httpIntegration` options, and with
+// `@sentry/bun` the request body comes from `bunHttpServerIntegration`.
+const BUN_BUILD_NOT_TRIAGED = [
+  'suites/express/sentry-trace/test.ts',
+  'suites/express/tracing/test.ts',
+  'suites/express/with-http/**',
+  'suites/hono-sdk/test.ts',
+  'suites/pino/test.ts',
+  'suites/tracing/google-genai-v2/test.ts',
+  'suites/tracing/google-genai/test.ts',
+  'suites/tracing/langchain/v1/test.ts',
+  'suites/tracing/langgraph/v1/test.ts',
+  'suites/tracing/mastra/test.ts',
+  'suites/tracing/mcp-handler-exact-once/test.ts',
+  'suites/tracing/mcp-server-streamed/test.ts',
+  'suites/tracing/mongodb-v4/test.ts',
+  'suites/tracing/mongodb-v5/test.ts',
+  'suites/tracing/mongodb-v6/test.ts',
+  'suites/tracing/mongodb-v7/test.ts',
+  'suites/tracing/mongodb/test.ts',
+  'suites/tracing/mongoose-tracing-channel/test.ts',
+  'suites/tracing/mongoose-v5/test.ts',
+  'suites/tracing/mongoose-v7/test.ts',
+  'suites/tracing/mongoose-v8/test.ts',
+  'suites/tracing/mongoose-v9/test.ts',
+  'suites/tracing/mongoose/test.ts',
+  'suites/tracing/mysql/test.ts',
+  'suites/tracing/prisma-orm-v8/test.ts',
+  'suites/tracing/together-ai/test.ts',
+  'suites/tracing/vercelai/v6_v7/test.ts',
+];
+
+export const BUN_BUILD_EXCLUDE = [
+  '**/node_modules/**',
+  ...BUN_BUILD_EAGER_SUBSCRIPTION,
+  ...BUN_BUILD_NO_HTTP_SERVER_INTEGRATION,
+  ...BUN_BUILD_NOT_TRIAGED,
+];

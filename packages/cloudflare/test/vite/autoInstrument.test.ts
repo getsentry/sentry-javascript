@@ -2,8 +2,11 @@ import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { parse } from 'acorn';
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { sentryCloudflareAutoInstrumentPlugin } from '../../src/vite/autoInstrument';
+
+const { idResolver } = vi.hoisted(() => ({ idResolver: vi.fn() }));
+vi.mock('vite', () => ({ createIdResolver: () => idResolver }));
 
 function parseJS(code: string) {
   return parse(code, { ecmaVersion: 'latest', sourceType: 'module' }) as unknown as { body: any[] };
@@ -53,6 +56,99 @@ describe('sentryCloudflareAutoInstrumentPlugin', () => {
     const result = await tx(code, entryPath);
     expect(result).toBeDefined();
     expect(result.code).toContain('__SENTRY__.withSentry(');
+  });
+
+  it('wraps the entry with `@sentry/nextjs/cloudflare` in a vinext build', async () => {
+    const dir = writeTempDir({ 'wrangler.toml': 'main = "src/index.ts"' });
+    const plugin = sentryCloudflareAutoInstrumentPlugin();
+    plugin.configResolved({ root: dir, plugins: [{ name: 'vinext:config' }] });
+    const resolve = vi
+      .fn()
+      .mockResolvedValue({ id: join(dir, 'node_modules/@sentry/nextjs/build/esm/cloudflare/index.js') });
+
+    const code = 'export default { fetch() { return new Response("ok"); } };';
+    const result = await plugin.transform.call(
+      { parse: (c: string) => parseJS(c), resolve },
+      code,
+      join(dir, 'src/index.ts'),
+    );
+
+    expect(resolve).toHaveBeenCalledWith('@sentry/nextjs/cloudflare', join(dir, 'src/index.ts'));
+    expect(result.code).toBe(
+      "import * as __SENTRY__ from '@sentry/nextjs/cloudflare';\n" +
+        'var __SENTRY_DEFAULT_EXPORT__ = { fetch() { return new Response("ok"); } };\n' +
+        'export { __SENTRY_DEFAULT_EXPORT__ as default };\n' +
+        '__SENTRY_DEFAULT_EXPORT__ = __SENTRY__.withSentry(() => undefined, __SENTRY_DEFAULT_EXPORT__);',
+    );
+  });
+
+  it('wraps the entry with `@sentry/cloudflare` when `@sentry/nextjs/cloudflare` resolves outside a vinext build', async () => {
+    const dir = writeTempDir({ 'wrangler.toml': 'main = "src/index.ts"' });
+    const plugin = sentryCloudflareAutoInstrumentPlugin();
+    plugin.configResolved({ root: dir, plugins: [{ name: 'vite:react' }] });
+    const resolve = vi
+      .fn()
+      .mockResolvedValue({ id: join(dir, 'node_modules/@sentry/nextjs/build/esm/cloudflare/index.js') });
+
+    const code = 'export default { fetch() { return new Response("ok"); } };';
+    const result = await plugin.transform.call(
+      { parse: (c: string) => parseJS(c), resolve },
+      code,
+      join(dir, 'src/index.ts'),
+    );
+
+    expect(result.code).toBe(
+      "import * as __SENTRY__ from '@sentry/cloudflare';\n" +
+        'var __SENTRY_DEFAULT_EXPORT__ = { fetch() { return new Response("ok"); } };\n' +
+        'export { __SENTRY_DEFAULT_EXPORT__ as default };\n' +
+        '__SENTRY_DEFAULT_EXPORT__ = __SENTRY__.withSentry(() => undefined, __SENTRY_DEFAULT_EXPORT__);',
+    );
+  });
+
+  it('wraps the entry with `@sentry/cloudflare` in a vinext build without `@sentry/nextjs`', async () => {
+    const dir = writeTempDir({ 'wrangler.toml': 'main = "src/index.ts"' });
+    const plugin = sentryCloudflareAutoInstrumentPlugin();
+    plugin.configResolved({ root: dir, plugins: [{ name: 'vinext:config' }] });
+    const resolve = vi.fn().mockResolvedValue(null);
+
+    const code = 'export default { fetch() { return new Response("ok"); } };';
+    const result = await plugin.transform.call(
+      { parse: (c: string) => parseJS(c), resolve },
+      code,
+      join(dir, 'src/index.ts'),
+    );
+
+    expect(result.code).toBe(
+      "import * as __SENTRY__ from '@sentry/cloudflare';\n" +
+        'var __SENTRY_DEFAULT_EXPORT__ = { fetch() { return new Response("ok"); } };\n' +
+        'export { __SENTRY_DEFAULT_EXPORT__ as default };\n' +
+        '__SENTRY_DEFAULT_EXPORT__ = __SENTRY__.withSentry(() => undefined, __SENTRY_DEFAULT_EXPORT__);',
+    );
+  });
+
+  it('wraps the entry with `@sentry/cloudflare` in a vinext build with an `@sentry/nextjs` without the `./cloudflare` entry', async () => {
+    const dir = writeTempDir({ 'wrangler.toml': 'main = "src/index.ts"' });
+    const plugin = sentryCloudflareAutoInstrumentPlugin();
+    plugin.configResolved({ root: dir, plugins: [{ name: 'vinext:config' }] });
+    const resolve = vi
+      .fn()
+      .mockRejectedValue(
+        new Error('"./cloudflare" is not exported under the conditions ["workerd"] from package @sentry/nextjs'),
+      );
+
+    const code = 'export default { fetch() { return new Response("ok"); } };';
+    const result = await plugin.transform.call(
+      { parse: (c: string) => parseJS(c), resolve },
+      code,
+      join(dir, 'src/index.ts'),
+    );
+
+    expect(result.code).toBe(
+      "import * as __SENTRY__ from '@sentry/cloudflare';\n" +
+        'var __SENTRY_DEFAULT_EXPORT__ = { fetch() { return new Response("ok"); } };\n' +
+        'export { __SENTRY_DEFAULT_EXPORT__ as default };\n' +
+        '__SENTRY_DEFAULT_EXPORT__ = __SENTRY__.withSentry(() => undefined, __SENTRY_DEFAULT_EXPORT__);',
+    );
   });
 
   it('leaves an already-manually-wrapped entry untouched', async () => {
@@ -155,10 +251,11 @@ describe('sentryCloudflareAutoInstrumentPlugin', () => {
       [
         "import * as __SENTRY__ from '@sentry/cloudflare';",
         "import { WorkerEntrypoint } from 'cloudflare:workers';",
-        'class __SENTRY_ORIGINAL_AdminEntry__ extends WorkerEntrypoint {',
+        'class AdminEntry extends WorkerEntrypoint {',
         '  fetch() { return new Response("admin"); }',
         '}',
-        'export const AdminEntry = __SENTRY__.withSentry(() => undefined, __SENTRY_ORIGINAL_AdminEntry__);',
+        'const __SENTRY_WRAPPED_AdminEntry__ = __SENTRY__.withSentry(() => undefined, AdminEntry);',
+        'export { __SENTRY_WRAPPED_AdminEntry__ as AdminEntry };',
         '',
       ].join('\n'),
     );
@@ -181,7 +278,7 @@ describe('sentryCloudflareAutoInstrumentPlugin', () => {
     const result = await plugin.transform.call({ parse: (c: string) => parseJS(c) }, code, join(dir, 'index.ts'));
 
     expect(result).toBeDefined();
-    expect(result.code).toContain('export const AdminEntry = __SENTRY__.withSentry(');
+    expect(result.code).toContain('const __SENTRY_WRAPPED_AdminEntry__ = __SENTRY__.withSentry(');
   });
 
   it('wraps a WorkerEntrypoint named via a services[].entrypoint self-binding (jsonc config)', async () => {
@@ -210,7 +307,7 @@ describe('sentryCloudflareAutoInstrumentPlugin', () => {
     const result = await plugin.transform.call({ parse: (c: string) => parseJS(c) }, code, join(dir, 'index.ts'));
 
     expect(result).toBeDefined();
-    expect(result.code).toContain('export const BindingEntrypoint = __SENTRY__.withSentry(');
+    expect(result.code).toContain('const __SENTRY_WRAPPED_BindingEntrypoint__ = __SENTRY__.withSentry(');
   });
 
   it('does not wrap an entrypoint that is neither detected nor self-bound', async () => {
@@ -266,7 +363,7 @@ describe('sentryCloudflareAutoInstrumentPlugin', () => {
       const code = ["import { Agent } from 'agents';", 'export class MyAgent extends Agent {}'].join('\n');
 
       const result = await tx(code);
-      expect(result.code).toContain('export const MyAgent = __SENTRY__.instrumentAgentWithSentry(');
+      expect(result.code).toContain('const __SENTRY_WRAPPED_MyAgent__ = __SENTRY__.instrumentAgentWithSentry(');
       expect(result.code).not.toContain('instrumentDurableObjectWithSentry');
     });
 
@@ -278,7 +375,7 @@ describe('sentryCloudflareAutoInstrumentPlugin', () => {
       ].join('\n');
 
       const result = await tx(code);
-      expect(result.code).toContain('export const MyAgent = __SENTRY__.instrumentAgentWithSentry(');
+      expect(result.code).toContain('const __SENTRY_WRAPPED_MyAgent__ = __SENTRY__.instrumentAgentWithSentry(');
     });
 
     it('wraps an Agent whose base class lives in another module', async () => {
@@ -288,7 +385,7 @@ describe('sentryCloudflareAutoInstrumentPlugin', () => {
       const code = ["import { MyBase } from './base';", 'export class MyAgent extends MyBase {}'].join('\n');
 
       const result = await tx(code);
-      expect(result.code).toContain('export const MyAgent = __SENTRY__.instrumentAgentWithSentry(');
+      expect(result.code).toContain('const __SENTRY_WRAPPED_MyAgent__ = __SENTRY__.instrumentAgentWithSentry(');
     });
 
     it('keeps the Durable Object helper for a DO whose base class lives in another module', async () => {
@@ -301,7 +398,7 @@ describe('sentryCloudflareAutoInstrumentPlugin', () => {
       const code = ["import { MyBase } from './base';", 'export class MyAgent extends MyBase {}'].join('\n');
 
       const result = await tx(code);
-      expect(result.code).toContain('export const MyAgent = __SENTRY__.instrumentDurableObjectWithSentry(');
+      expect(result.code).toContain('const __SENTRY_WRAPPED_MyAgent__ = __SENTRY__.instrumentDurableObjectWithSentry(');
       expect(result.code).not.toContain('instrumentAgentWithSentry');
     });
 
@@ -425,9 +522,9 @@ describe('wranglerConfigPath option', () => {
     expect(result.code).toBe(
       [
         "import * as __SENTRY__ from '@sentry/cloudflare';",
-        'const __SENTRY_DEFAULT_EXPORT__ = { fetch() { return new Response("ok"); } };',
-        'export default __SENTRY__.withSentry(() => undefined, __SENTRY_DEFAULT_EXPORT__);',
-        '',
+        'var __SENTRY_DEFAULT_EXPORT__ = { fetch() { return new Response("ok"); } };',
+        'export { __SENTRY_DEFAULT_EXPORT__ as default };',
+        '__SENTRY_DEFAULT_EXPORT__ = __SENTRY__.withSentry(() => undefined, __SENTRY_DEFAULT_EXPORT__);',
       ].join('\n'),
     );
   });
@@ -469,6 +566,84 @@ describe('wranglerConfigPath option', () => {
 
     expect(warnings).toHaveLength(1);
     expect(warnings[0]).toContain('`wranglerConfigPath`');
+  });
+});
+
+describe('package specifier as wrangler `main`', () => {
+  const MAIN = 'vinext/server/fetch-handler';
+  const code = 'export default { fetch() { return new Response("ok"); } };';
+  const ssr = { name: 'ssr' };
+
+  beforeEach(() => {
+    idResolver.mockReset();
+  });
+
+  function createPlugin(files: Record<string, string> = {}) {
+    const dir = writeTempDir({ 'wrangler.jsonc': JSON.stringify({ main: MAIN }), ...files });
+    const plugin = sentryCloudflareAutoInstrumentPlugin();
+    plugin.configResolved({ root: dir });
+
+    const entryPath = join(dir, 'node_modules/vinext/dist/server/fetch-handler.js');
+    idResolver.mockImplementation(async (_env: unknown, id: string) => (id === MAIN ? entryPath : undefined));
+    const warn = vi.fn();
+    const tx = (id: string, environment = ssr) =>
+      plugin.transform.call({ parse: (c: string) => parseJS(c), warn, environment }, code, id);
+
+    return { tx, entryPath, dir, warn };
+  }
+
+  it('wraps the module the specifier resolves to', async () => {
+    const { tx, entryPath, dir } = createPlugin();
+
+    const result = await tx(entryPath);
+    expect(idResolver).toHaveBeenCalledWith(ssr, MAIN, join(dir, 'wrangler.jsonc'));
+    expect(result.code).toBe(
+      [
+        "import * as __SENTRY__ from '@sentry/cloudflare';",
+        'var __SENTRY_DEFAULT_EXPORT__ = { fetch() { return new Response("ok"); } };',
+        'export { __SENTRY_DEFAULT_EXPORT__ as default };',
+        '__SENTRY_DEFAULT_EXPORT__ = __SENTRY__.withSentry(() => undefined, __SENTRY_DEFAULT_EXPORT__);',
+      ].join('\n'),
+    );
+  });
+
+  it('resolves the specifier once per environment', async () => {
+    const { tx, dir } = createPlugin();
+
+    await tx(join(dir, 'a.js'));
+    await tx(join(dir, 'b.js'));
+    await tx(join(dir, 'a.js'), { name: 'rsc' });
+    expect(idResolver).toHaveBeenCalledTimes(2);
+    expect(idResolver).toHaveBeenCalledWith({ name: 'rsc' }, MAIN, join(dir, 'wrangler.jsonc'));
+  });
+
+  it('does not treat the specifier as a path relative to the config', async () => {
+    const { tx, dir } = createPlugin();
+
+    expect(await tx(join(dir, MAIN))).toBeUndefined();
+    expect(await tx(join(dir, `${MAIN}.js`))).toBeUndefined();
+  });
+
+  it('imports instrument.server.* from beside the wrangler config', async () => {
+    const { tx, entryPath } = createPlugin({
+      'instrument.server.ts': 'export default (env) => ({ dsn: env.SENTRY_DSN });',
+    });
+
+    const result = await tx(entryPath);
+    expect(result.code).toContain("import __SENTRY_OPTIONS_CALLBACK__ from '../../../../instrument.server.ts';");
+    expect(result.code).toContain('__SENTRY__.withSentry(__SENTRY_OPTIONS_CALLBACK__,');
+  });
+
+  it('warns once when the specifier does not resolve', async () => {
+    const { tx, dir, warn } = createPlugin();
+    idResolver.mockResolvedValue(undefined);
+
+    expect(await tx(join(dir, 'a.js'))).toBeUndefined();
+    expect(await tx(join(dir, 'b.js'))).toBeUndefined();
+    expect(warn).toHaveBeenCalledTimes(1);
+    expect(warn).toHaveBeenCalledWith(
+      '[sentry] Could not resolve the wrangler `main` "vinext/server/fetch-handler". Auto-instrumentation disabled.',
+    );
   });
 });
 

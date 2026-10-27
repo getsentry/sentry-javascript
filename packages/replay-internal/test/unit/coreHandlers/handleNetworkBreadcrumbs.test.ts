@@ -926,7 +926,7 @@ other-header: test`;
                   method: 'POST',
                   statusCode: 200,
                   request: {
-                    headers: {},
+                    headers: { 'content-type': 'text/plain;charset=UTF-8' },
                     size: 33,
                     body: 'Some example request body content', // When body is stored via Symbol, the body text should be captured
                   },
@@ -1067,7 +1067,9 @@ other-header: test`;
                 data: {
                   method: 'POST',
                   statusCode: 200,
-                  request: undefined,
+                  request: {
+                    headers: { 'content-type': 'text/plain;charset=UTF-8' },
+                  },
                   response: {
                     size: 13,
                     headers: {},

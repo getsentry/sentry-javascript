@@ -6,9 +6,9 @@ import {
   getActiveSpan,
   getClient,
   getIsolationScope,
+  getSpanStatusFromHttpCode,
   handleCallbackErrors,
   hasSpanStreamingEnabled,
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SPAN_STATUS_ERROR,
   SPAN_STATUS_OK,
   startSpan,
@@ -17,6 +17,7 @@ import {
 import { flushSafelyWithTimeout, waitUntil } from '../common/utils/responseEnd';
 import { DEBUG_BUILD } from './debug-build';
 import {
+  getAuthInterruptStatusCode,
   isNotFoundNavigationError,
   isPrerenderControlFlowError,
   isRedirectNavigationError,
@@ -27,6 +28,7 @@ import {
   SENTRY_KIND,
   SENTRY_OP,
   SENTRY_SEGMENT_NAME_SOURCE,
+  SENTRY_ORIGIN,
 } from '@sentry/conventions/attributes';
 import { FUNCTION } from '@sentry/conventions/op';
 
@@ -138,15 +140,18 @@ async function withServerActionInstrumentationImplementation<A extends (...args:
                 [SENTRY_DESCRIPTION]: description,
                 [CODE_FUNCTION_NAME]: serverActionName,
                 [SENTRY_SEGMENT_NAME_SOURCE]: 'route',
-                [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.nextjs.server_action',
+                [SENTRY_ORIGIN]: 'auto.function.nextjs.server_action',
               },
             },
             async span => {
               // oxlint-disable-next-line typescript/await-thenable -- callback may be async at runtime
               const result = await handleCallbackErrors(callback, error => {
+                const authInterruptStatusCode = getAuthInterruptStatusCode(error);
                 if (isNotFoundNavigationError(error)) {
                   // We don't want to report "not-found"s
                   span.setStatus({ code: SPAN_STATUS_ERROR, message: 'not_found' });
+                } else if (authInterruptStatusCode) {
+                  span.setStatus(getSpanStatusFromHttpCode(authInterruptStatusCode));
                 } else if (isRedirectNavigationError(error)) {
                   // Redirects are normal Next.js control flow, not errors. Mark the span as OK and end it
                   // early so the surrounding `startSpan` error handler doesn't override the status to

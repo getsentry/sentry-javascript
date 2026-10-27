@@ -21,6 +21,14 @@ export interface BaseBunOptions extends ServerRuntimeOptions {
    * @default false
    */
   enableOpenTelemetrySetup?: boolean;
+
+  /**
+   * Override the runtime name reported in events.
+   * Defaults to 'bun' with the current Bun version if not specified.
+   *
+   * @hidden This is primarily used internally to support SDKs wrapping the Bun SDK, like Elysia.
+   */
+  runtime?: { name: string; version?: string };
 }
 
 /**

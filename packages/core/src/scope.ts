@@ -62,6 +62,9 @@ export interface SdkProcessingMetadata {
   dynamicSamplingContext?: Partial<DynamicSamplingContext>;
   capturedSpanScope?: Scope;
   capturedSpanIsolationScope?: Scope;
+  /**
+   * @deprecated This is no longer set or read by the SDK and will be removed in the next major version.
+   */
   spanCountBeforeProcessing?: number;
   ipAddress?: string;
 }
@@ -574,7 +577,6 @@ export class Scope {
     this._breadcrumbs.push(mergedBreadcrumb);
     if (this._breadcrumbs.length > maxCrumbs) {
       this._breadcrumbs = this._breadcrumbs.slice(-maxCrumbs);
-      this._client?.recordDroppedEvent('buffer_overflow', 'log_item');
     }
 
     this._notifyScopeListeners();

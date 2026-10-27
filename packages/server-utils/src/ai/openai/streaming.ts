@@ -31,6 +31,8 @@ interface StreamingState {
   completionTokens: number | undefined;
   /** Total number of tokens used (prompt + completion). */
   totalTokens: number | undefined;
+  cacheReadInputTokens: number | undefined;
+  cacheCreationInputTokens: number | undefined;
   /**
    * Accumulated tool calls from Chat Completion streaming, indexed by tool call index.
    * @see https://platform.openai.com/docs/guides/function-calling?api-mode=chat#streaming
@@ -96,6 +98,9 @@ function processChatCompletionChunk(chunk: ChatCompletionChunk, state: Streaming
     state.promptTokens = chunk.usage.prompt_tokens;
     state.completionTokens = chunk.usage.completion_tokens;
     state.totalTokens = chunk.usage.total_tokens;
+    state.cacheReadInputTokens = chunk.usage.prompt_tokens_details?.cached_tokens ?? state.cacheReadInputTokens;
+    state.cacheCreationInputTokens =
+      chunk.usage.prompt_tokens_details?.cache_write_tokens ?? state.cacheCreationInputTokens;
   }
 
   for (const choice of chunk.choices ?? []) {
@@ -179,6 +184,9 @@ function processResponsesApiEvent(
       state.promptTokens = response.usage.input_tokens;
       state.completionTokens = response.usage.output_tokens;
       state.totalTokens = response.usage.total_tokens;
+      state.cacheReadInputTokens = response.usage.input_tokens_details?.cached_tokens ?? state.cacheReadInputTokens;
+      state.cacheCreationInputTokens =
+        response.usage.input_tokens_details?.cache_write_tokens ?? state.cacheCreationInputTokens;
     }
 
     if (response.status) {
@@ -215,6 +223,8 @@ export async function* instrumentStream<T>(
     promptTokens: undefined,
     completionTokens: undefined,
     totalTokens: undefined,
+    cacheReadInputTokens: undefined,
+    cacheCreationInputTokens: undefined,
     chatCompletionToolCalls: {},
     responsesApiToolCalls: [],
   };

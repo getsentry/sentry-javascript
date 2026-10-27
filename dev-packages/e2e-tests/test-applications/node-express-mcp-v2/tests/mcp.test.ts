@@ -3,7 +3,9 @@ import { waitForStreamedSpan, getSpanOp } from '@sentry-internal/test-utils';
 import { Client } from '@modelcontextprotocol/client';
 import { StreamableHTTPClientTransport } from '@modelcontextprotocol/client';
 
-test('records spans for stable MCP SDK v2 handlers using the register API', async ({ baseURL }) => {
+// The server in this app is never wrapped with `wrapMcpServerWithSentry` — spans are produced
+// solely by the auto-instrumenting `mcpServer` integration.
+test('auto-instruments a stable MCP SDK v2 server (no manual wrap)', async ({ baseURL }) => {
   const transport = new StreamableHTTPClientTransport(new URL(`${baseURL}/mcp`));
 
   const client = new Client({

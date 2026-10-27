@@ -1,15 +1,13 @@
+import { SENTRY_OP, SENTRY_ORIGIN } from '@sentry/conventions/attributes';
 import type { Span, SpanAttributes } from '@sentry/core';
-import {
-  getClient,
-  getMainCarrier,
-  SEMANTIC_ATTRIBUTE_SENTRY_OP,
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  SentrySpan,
-  setCurrentClient,
-  spanToJSON,
-} from '@sentry/core';
+import { getClient, getMainCarrier, SentrySpan, setCurrentClient, spanToJSON } from '@sentry/core';
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
-import { _addNavigationSpans, _addResourceSpans, _setResourceRequestAttributes } from '../../src/performance/entries';
+import {
+  _addNavigationSpans,
+  _addPaintSpan,
+  _addResourceSpans,
+  _setResourceRequestAttributes,
+} from '../../src/performance/entries';
 import { addWebVitalsToSpan, startTrackingWebVitals } from '../../src/web-vitals/tracking';
 import { WINDOW } from '../../src/types';
 import { getDefaultClientOptions, TestClient } from '../utils/TestClient';
@@ -175,7 +173,7 @@ describe('_addResourceSpans', () => {
       renderBlockingStatus: 'non-blocking',
       nextHopProtocol: 'http/1.1',
     });
-    _addResourceSpans(span, entry, resourceEntryName, 123, 456, 100);
+    _addResourceSpans(span, entry, resourceEntryName, 123, 456);
 
     expect(spans).toHaveLength(0);
   });
@@ -195,7 +193,7 @@ describe('_addResourceSpans', () => {
       renderBlockingStatus: 'non-blocking',
       nextHopProtocol: 'http/1.1',
     });
-    _addResourceSpans(span, entry, 'https://example.com/assets/to/me', 123, 456, 100);
+    _addResourceSpans(span, entry, 'https://example.com/assets/to/me', 123, 456);
 
     expect(spans).toHaveLength(0);
   });
@@ -228,21 +226,20 @@ describe('_addResourceSpans', () => {
       workerStart: 1006,
     });
 
-    const timeOrigin = 100;
-    const startTime = 23;
+    const startTimestamp = 123;
     const duration = 356;
 
-    _addResourceSpans(span, entry, resourceEntryName, startTime, duration, timeOrigin);
+    _addResourceSpans(span, entry, resourceEntryName, startTimestamp, duration);
 
     expect(spans).toHaveLength(1);
     expect(spanToJSON(spans[0]!)).toEqual(
       expect.objectContaining({
         name: '/assets/to/css',
-        start_timestamp: timeOrigin + startTime,
-        end_timestamp: timeOrigin + startTime + duration,
+        start_timestamp: startTimestamp,
+        end_timestamp: startTimestamp + duration,
         attributes: {
-          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'resource.css',
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.resource.browser.metrics',
+          [SENTRY_OP]: 'resource.css',
+          [SENTRY_ORIGIN]: 'auto.resource.browser.metrics',
           ['http.response.body.decoded_size']: entry.decodedBodySize,
           ['http.response.body.size']: entry.encodedBodySize,
           ['http.response.size']: entry.transferSize,
@@ -284,12 +281,32 @@ describe('_addResourceSpans', () => {
       nextHopProtocol: 'http/1.1',
     });
 
-    _addResourceSpans(span, entry, 'https://example.com/assets/app.js?v=42#main', 100, 23, 345);
+    _addResourceSpans(span, entry, 'https://example.com/assets/app.js?v=42#main', 100, 23);
 
     expect(spans).toHaveLength(1);
     const json = spanToJSON(spans[0]!);
     expect(json.name).toBe('/assets/app.js?v=42#main');
     expect(json.attributes['url.full']).toBe('https://example.com/assets/app.js?v=42#main');
+  });
+
+  it('filters sensitive query params in the description and url.full', () => {
+    const spans: Span[] = [];
+
+    getClient()?.on('spanEnd', span => {
+      spans.push(span);
+    });
+
+    const entry = mockPerformanceResourceTiming({
+      initiatorType: 'script',
+      nextHopProtocol: 'http/1.1',
+    });
+
+    _addResourceSpans(span, entry, 'https://example.com/assets/app.js?token=abc&v=42', 100, 23);
+
+    expect(spans).toHaveLength(1);
+    const json = spanToJSON(spans[0]!);
+    expect(json.name).toBe('/assets/app.js?token=[Filtered]&v=42');
+    expect(json.attributes['url.full']).toBe('https://example.com/assets/app.js?token=[Filtered]&v=42');
   });
 
   it('sets url.full to the full cross-origin URL', () => {
@@ -304,7 +321,7 @@ describe('_addResourceSpans', () => {
       nextHopProtocol: 'http/1.1',
     });
 
-    _addResourceSpans(span, entry, 'https://cdn.example.org/static/logo.png', 100, 23, 345);
+    _addResourceSpans(span, entry, 'https://cdn.example.org/static/logo.png', 100, 23);
 
     expect(spans).toHaveLength(1);
     const json = spanToJSON(spans[0]!);
@@ -348,10 +365,10 @@ describe('_addResourceSpans', () => {
         initiatorType,
         nextHopProtocol: 'http/1.1',
       });
-      _addResourceSpans(span, entry, 'https://example.com/assets/to/me', 123, 234, 465);
+      _addResourceSpans(span, entry, 'https://example.com/assets/to/me', 123, 234);
 
       expect(spans).toHaveLength(i + 1);
-      expect(spanToJSON(spans[i]!).attributes).toEqual(expect.objectContaining({ [SEMANTIC_ATTRIBUTE_SENTRY_OP]: op }));
+      expect(spanToJSON(spans[i]!).attributes).toEqual(expect.objectContaining({ [SENTRY_OP]: op }));
     }
   });
 
@@ -391,7 +408,7 @@ describe('_addResourceSpans', () => {
         initiatorType,
         nextHopProtocol: 'http/1.1',
       });
-      _addResourceSpans(span, entry, 'https://example.com/assets/to/me', 123, 234, 465, ignoredResourceSpans);
+      _addResourceSpans(span, entry, 'https://example.com/assets/to/me', 123, 234, ignoredResourceSpans);
     }
     expect(spans).toHaveLength(table.length - ignoredResourceSpans.length);
     const spanOps = new Set(
@@ -418,14 +435,14 @@ describe('_addResourceSpans', () => {
       nextHopProtocol: 'h2',
     });
 
-    _addResourceSpans(span, entry, resourceEntryName, 100, 23, 345);
+    _addResourceSpans(span, entry, resourceEntryName, 100, 23);
 
     expect(spans).toHaveLength(1);
     expect(spanToJSON(spans[0]!)).toEqual(
       expect.objectContaining({
         attributes: expect.objectContaining({
-          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'resource.css',
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.resource.browser.metrics',
+          [SENTRY_OP]: 'resource.css',
+          [SENTRY_ORIGIN]: 'auto.resource.browser.metrics',
           ['http.response.body.decoded_size']: entry.decodedBodySize,
           ['http.response.body.size']: entry.encodedBodySize,
           ['http.response.size']: entry.transferSize,
@@ -457,14 +474,14 @@ describe('_addResourceSpans', () => {
       nextHopProtocol: 'h3',
     });
 
-    _addResourceSpans(span, entry, resourceEntryName, 100, 23, 345);
+    _addResourceSpans(span, entry, resourceEntryName, 100, 23);
 
     expect(spans).toHaveLength(1);
     expect(spanToJSON(spans[0]!)).toEqual(
       expect.objectContaining({
         attributes: expect.objectContaining({
-          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'resource.css',
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.resource.browser.metrics',
+          [SENTRY_OP]: 'resource.css',
+          [SENTRY_ORIGIN]: 'auto.resource.browser.metrics',
           'server.address': 'example.com',
           'url.domain': 'example.com',
           'http.request.same_origin': true,
@@ -474,8 +491,8 @@ describe('_addResourceSpans', () => {
           ['network.protocol.version']: '3',
         }),
         name: '/assets/to/css',
-        end_timestamp: 468,
-        start_timestamp: 445,
+        end_timestamp: 123,
+        start_timestamp: 100,
       }),
     );
   });
@@ -509,14 +526,14 @@ describe('_addResourceSpans', () => {
       workerStart: 1006,
     } as unknown as PerformanceResourceTiming;
 
-    _addResourceSpans(span, entry, resourceEntryName, 100, 23, 345);
+    _addResourceSpans(span, entry, resourceEntryName, 100, 23);
 
     expect(spans).toHaveLength(1);
     expect(spanToJSON(spans[0]!)).toEqual(
       expect.objectContaining({
         attributes: {
-          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'resource.css',
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.resource.browser.metrics',
+          [SENTRY_OP]: 'resource.css',
+          [SENTRY_ORIGIN]: 'auto.resource.browser.metrics',
           'server.address': 'example.com',
           'url.domain': 'example.com',
           'http.request.same_origin': true,
@@ -539,8 +556,8 @@ describe('_addResourceSpans', () => {
           'http.request.worker_start': expect.any(Number),
         },
         name: '/assets/to/css',
-        end_timestamp: 468,
-        start_timestamp: 445,
+        end_timestamp: 123,
+        start_timestamp: 100,
       }),
     );
   });
@@ -565,7 +582,7 @@ describe('_addResourceSpans', () => {
         nextHopProtocol: 'h3',
       });
 
-      _addResourceSpans(span, entry, resourceEntryName, 100, 23, 345);
+      _addResourceSpans(span, entry, resourceEntryName, 100, 23);
 
       expect(spans).toHaveLength(1);
       expect(spanToJSON(spans[0]!).attributes).toMatchObject({
@@ -588,7 +605,7 @@ describe('_addResourceSpans', () => {
 
       const entry = mockPerformanceResourceTiming({ initiatorType: 'css', nextHopProtocol: 'h2' });
 
-      _addResourceSpans(span, entry, url, 100, 23, 345, undefined, true);
+      _addResourceSpans(span, entry, url, 100, 23, undefined, true);
 
       expect(spans).toHaveLength(1);
       expect(spanToJSON(spans[0]!)).toEqual(
@@ -611,7 +628,7 @@ describe('_addResourceSpans', () => {
 
       const entry = mockPerformanceResourceTiming({ initiatorType: 'script', nextHopProtocol: 'h2' });
 
-      _addResourceSpans(span, entry, 'blob:0f6b3f0a-1e2d-4d1a-9c3f-2a5c1d7b8e90', 100, 23, 345, undefined, true);
+      _addResourceSpans(span, entry, 'blob:0f6b3f0a-1e2d-4d1a-9c3f-2a5c1d7b8e90', 100, 23, undefined, true);
 
       expect(spans).toHaveLength(1);
       const spanJson = spanToJSON(spans[0]!);
@@ -644,52 +661,53 @@ describe('_addNavigationSpans', () => {
     client.init();
   });
 
+  // entry taken from a real entry via browser dev tools
+  const entry: PerformanceNavigationTiming = {
+    name: 'https://santry.com/test?q=secret#frag',
+    entryType: 'navigation',
+    startTime: 0,
+    duration: 546.1000000014901,
+    initiatorType: 'navigation',
+    nextHopProtocol: 'h2',
+    workerStart: 0,
+    redirectStart: 7.5,
+    redirectEnd: 20.5,
+    redirectCount: 2,
+    fetchStart: 4.9000000059604645,
+    domainLookupStart: 4.9000000059604645,
+    domainLookupEnd: 4.9000000059604645,
+    connectStart: 4.9000000059604645,
+    secureConnectionStart: 4.9000000059604645,
+    connectEnd: 4.9000000059604645,
+    requestStart: 7.9000000059604645,
+    responseStart: 396.80000000447035,
+    responseEnd: 416.40000000596046,
+    transferSize: 14726,
+    encodedBodySize: 14426,
+    decodedBodySize: 67232,
+    responseStatus: 200,
+    serverTiming: [],
+    unloadEventStart: 0,
+    unloadEventEnd: 0,
+    domInteractive: 473.20000000298023,
+    domContentLoadedEventStart: 480.1000000014901,
+    domContentLoadedEventEnd: 480.30000000447035,
+    domComplete: 546,
+    loadEventStart: 546,
+    loadEventEnd: 546.1000000014901,
+    type: 'navigate',
+    activationStart: 0,
+    toJSON: () => ({}),
+  };
+
   it('adds navigation spans based on the navigation performance entry', () => {
-    // entry taken from a real entry via browser dev tools
-    const entry: PerformanceNavigationTiming = {
-      name: 'https://santry.com/test',
-      entryType: 'navigation',
-      startTime: 0,
-      duration: 546.1000000014901,
-      initiatorType: 'navigation',
-      nextHopProtocol: 'h2',
-      workerStart: 0,
-      redirectStart: 7.5,
-      redirectEnd: 20.5,
-      redirectCount: 2,
-      fetchStart: 4.9000000059604645,
-      domainLookupStart: 4.9000000059604645,
-      domainLookupEnd: 4.9000000059604645,
-      connectStart: 4.9000000059604645,
-      secureConnectionStart: 4.9000000059604645,
-      connectEnd: 4.9000000059604645,
-      requestStart: 7.9000000059604645,
-      responseStart: 396.80000000447035,
-      responseEnd: 416.40000000596046,
-      transferSize: 14726,
-      encodedBodySize: 14426,
-      decodedBodySize: 67232,
-      responseStatus: 200,
-      serverTiming: [],
-      unloadEventStart: 0,
-      unloadEventEnd: 0,
-      domInteractive: 473.20000000298023,
-      domContentLoadedEventStart: 480.1000000014901,
-      domContentLoadedEventEnd: 480.30000000447035,
-      domComplete: 546,
-      loadEventStart: 546,
-      loadEventEnd: 546.1000000014901,
-      type: 'navigate',
-      activationStart: 0,
-      toJSON: () => ({}),
-    };
     const spans: Span[] = [];
 
     getClient()?.on('spanEnd', span => {
       spans.push(span);
     });
 
-    _addNavigationSpans(pageloadSpan, entry, 999);
+    _addNavigationSpans(pageloadSpan, entry);
 
     const trace_id = pageloadSpan.spanContext().traceId;
     const parent_span_id = pageloadSpan.spanContext().spanId;
@@ -701,8 +719,9 @@ describe('_addNavigationSpans', () => {
           attributes: {
             'sentry.op': 'browser.dom_content_loaded_event',
             'sentry.origin': 'auto.ui.browser.metrics',
+            'url.full': 'https://santry.com/test?q=secret#frag',
           },
-          name: 'https://santry.com/test',
+          name: 'https://santry.com/test?q=secret#frag',
           parent_span_id,
           trace_id,
         }),
@@ -710,8 +729,9 @@ describe('_addNavigationSpans', () => {
           attributes: {
             'sentry.op': 'browser.load_event',
             'sentry.origin': 'auto.ui.browser.metrics',
+            'url.full': 'https://santry.com/test?q=secret#frag',
           },
-          name: 'https://santry.com/test',
+          name: 'https://santry.com/test?q=secret#frag',
           parent_span_id,
           trace_id,
         }),
@@ -719,8 +739,9 @@ describe('_addNavigationSpans', () => {
           attributes: {
             'sentry.op': 'browser.connect',
             'sentry.origin': 'auto.ui.browser.metrics',
+            'url.full': 'https://santry.com/test?q=secret#frag',
           },
-          name: 'https://santry.com/test',
+          name: 'https://santry.com/test?q=secret#frag',
           parent_span_id,
           trace_id,
         }),
@@ -728,8 +749,9 @@ describe('_addNavigationSpans', () => {
           attributes: {
             'sentry.op': 'browser.tls_ssl',
             'sentry.origin': 'auto.ui.browser.metrics',
+            'url.full': 'https://santry.com/test?q=secret#frag',
           },
-          name: 'https://santry.com/test',
+          name: 'https://santry.com/test?q=secret#frag',
           parent_span_id,
           trace_id,
         }),
@@ -737,8 +759,9 @@ describe('_addNavigationSpans', () => {
           attributes: {
             'sentry.op': 'browser.cache',
             'sentry.origin': 'auto.ui.browser.metrics',
+            'url.full': 'https://santry.com/test?q=secret#frag',
           },
-          name: 'https://santry.com/test',
+          name: 'https://santry.com/test?q=secret#frag',
           parent_span_id,
           trace_id,
         }),
@@ -746,8 +769,9 @@ describe('_addNavigationSpans', () => {
           attributes: {
             'sentry.op': 'browser.dns',
             'sentry.origin': 'auto.ui.browser.metrics',
+            'url.full': 'https://santry.com/test?q=secret#frag',
           },
-          name: 'https://santry.com/test',
+          name: 'https://santry.com/test?q=secret#frag',
           parent_span_id,
           trace_id,
         }),
@@ -755,8 +779,9 @@ describe('_addNavigationSpans', () => {
           attributes: {
             'sentry.op': 'browser.request',
             'sentry.origin': 'auto.ui.browser.metrics',
+            'url.full': 'https://santry.com/test?q=secret#frag',
           },
-          name: 'https://santry.com/test',
+          name: 'https://santry.com/test?q=secret#frag',
           parent_span_id,
           trace_id,
         }),
@@ -764,8 +789,9 @@ describe('_addNavigationSpans', () => {
           attributes: {
             'sentry.op': 'browser.response',
             'sentry.origin': 'auto.ui.browser.metrics',
+            'url.full': 'https://santry.com/test?q=secret#frag',
           },
-          name: 'https://santry.com/test',
+          name: 'https://santry.com/test?q=secret#frag',
           parent_span_id,
           trace_id,
         }),
@@ -774,13 +800,97 @@ describe('_addNavigationSpans', () => {
             'http.redirect_count': 2,
             'sentry.op': 'browser.redirect',
             'sentry.origin': 'auto.ui.browser.metrics',
+            'url.full': 'https://santry.com/test?q=secret#frag',
           },
-          name: 'https://santry.com/test',
+          name: 'https://santry.com/test?q=secret#frag',
           parent_span_id,
           trace_id,
         }),
       ]),
     );
+  });
+
+  it('filters sensitive query params in span names and url.full', () => {
+    const spans: Span[] = [];
+
+    getClient()?.on('spanEnd', span => {
+      spans.push(span);
+    });
+
+    _addNavigationSpans(pageloadSpan, { ...entry, name: 'https://santry.com/test?jwt=baz&q=1' });
+
+    const filteredUrl = 'https://santry.com/test?jwt=[Filtered]&q=1';
+    expect(spans.map(spanToJSON)).toEqual(
+      Array(9).fill(
+        expect.objectContaining({
+          name: filteredUrl,
+          attributes: expect.objectContaining({ 'url.full': filteredUrl }),
+        }),
+      ),
+    );
+  });
+
+  describe('with span streaming enabled', () => {
+    it.each([
+      ['browser.unload_event', 'Unload event'],
+      ['browser.redirect', 'Redirect'],
+      ['browser.dom_content_loaded_event', 'DOMContentLoaded event'],
+      ['browser.load_event', 'Load event'],
+      ['browser.connect', 'Connect'],
+      ['browser.tls_ssl', 'TLS handshake'],
+      ['browser.cache', 'Cache lookup'],
+      ['browser.dns', 'DNS lookup'],
+      ['browser.request', 'Request'],
+      ['browser.response', 'Response'],
+    ])('names the %s span %j and keeps the document URL in url.full', (op, expectedName) => {
+      const spans: Span[] = [];
+
+      getClient()?.on('spanEnd', span => {
+        spans.push(span);
+      });
+
+      // `unloadEventStart`/`End` are 0 in the shared entry, so that span is never created.
+      _addNavigationSpans(pageloadSpan, { ...entry, unloadEventStart: 1, unloadEventEnd: 2 }, true);
+
+      const spanJson = spans.map(spanToJSON).find(span => span.attributes[SENTRY_OP] === op);
+
+      expect(spanJson?.name).toBe(expectedName);
+      expect(spanJson?.attributes['url.full']).toBe('https://santry.com/test?q=secret#frag');
+    });
+  });
+});
+
+describe('_addPaintSpan', () => {
+  const pageloadSpan = new SentrySpan({ op: 'pageload', name: '/', sampled: true });
+
+  beforeEach(() => {
+    getMainCarrier().__SENTRY__ = undefined;
+
+    const client = new TestClient(getDefaultClientOptions({ tracesSampleRate: 1 }));
+    setCurrentClient(client);
+    client.init();
+  });
+
+  it('names the span after the paint type and keeps it on browser.paint.type', () => {
+    const spans: Span[] = [];
+
+    getClient()?.on('spanEnd', span => {
+      spans.push(span);
+    });
+
+    const entry = {
+      entryType: 'paint',
+      name: 'first-contentful-paint',
+      startTime: 12,
+      duration: 0,
+    } as PerformanceEntry;
+
+    _addPaintSpan(pageloadSpan, entry, 12, 0);
+
+    expect(spans).toHaveLength(1);
+    const spanJson = spanToJSON(spans[0]!);
+    expect(spanJson.name).toBe('first-contentful-paint');
+    expect(spanJson.attributes['browser.paint.type']).toBe('first-contentful-paint');
   });
 });
 

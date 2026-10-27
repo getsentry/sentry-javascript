@@ -275,17 +275,21 @@ test.describe('TraceDirective', () => {
     expect(traceDirectiveSpans).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
-          name: '<sample-component>', // custom component name passed to trace directive
+          name: 'sample-component', // custom component name passed to trace directive
           attributes: expect.objectContaining({
             'sentry.op': { type: 'string', value: 'ui.mount' },
             'sentry.origin': { type: 'string', value: 'auto.ui.angular.trace_directive' },
+            'ui.component_name': { type: 'string', value: 'sample-component' },
+            'sentry.description': { type: 'string', value: '<sample-component>' },
           }),
         }),
         expect.objectContaining({
-          name: '<app-sample-component>', // fallback selector name
+          name: 'app-sample-component', // fallback element tag name
           attributes: expect.objectContaining({
             'sentry.op': { type: 'string', value: 'ui.mount' },
             'sentry.origin': { type: 'string', value: 'auto.ui.angular.trace_directive' },
+            'ui.component_name': { type: 'string', value: 'app-sample-component' },
+            'sentry.description': { type: 'string', value: '<app-sample-component>' },
           }),
         }),
       ]),
@@ -318,10 +322,12 @@ test.describe('TraceClass Decorator', () => {
     expect(classDecoratorSpan).toBeDefined();
     expect(classDecoratorSpan).toEqual(
       expect.objectContaining({
-        name: '<ComponentTrackingComponent>',
+        name: 'ComponentTrackingComponent',
         attributes: expect.objectContaining({
           'sentry.op': { type: 'string', value: 'ui.mount' },
           'sentry.origin': { type: 'string', value: 'auto.ui.angular.trace_class_decorator' },
+          'ui.component_name': { type: 'string', value: 'ComponentTrackingComponent' },
+          'sentry.description': { type: 'string', value: '<ComponentTrackingComponent>' },
         }),
       }),
     );

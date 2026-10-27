@@ -1,3 +1,4 @@
+import { sendPortToRunner } from '@sentry-internal/node-integration-tests';
 import * as Sentry from '@sentry/bun';
 
 // One scenario per process; the test picks the SDK setup through this variable.
@@ -6,8 +7,6 @@ const mode = process.env.BODY_MODE;
 Sentry.init({
   dsn: process.env.SENTRY_DSN,
   tracesSampleRate: 1.0,
-  // Request bodies are only attached to transaction events, so this suite needs the static trace lifecycle.
-  traceLifecycle: 'static',
   ...(mode === 'explicit-small' && {
     dataCollection: { httpBodies: [] },
     integrations: integrations => [
@@ -32,4 +31,4 @@ const server = Bun.serve({
   },
 });
 
-process.send?.(JSON.stringify({ event: 'READY', port: server.port }));
+sendPortToRunner(server.port!);

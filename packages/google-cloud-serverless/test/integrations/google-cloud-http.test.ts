@@ -1,7 +1,13 @@
 import { BigQuery } from '@google-cloud/bigquery';
-import { HTTP_REQUEST_METHOD, SENTRY_OP, SERVER_ADDRESS, URL_DOMAIN, URL_FULL } from '@sentry/conventions/attributes';
+import {
+  HTTP_REQUEST_METHOD,
+  SENTRY_OP,
+  SERVER_ADDRESS,
+  URL_DOMAIN,
+  URL_FULL,
+  SENTRY_ORIGIN,
+} from '@sentry/conventions/attributes';
 import { HTTP_CLIENT } from '@sentry/conventions/op';
-import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '@sentry/core';
 import { createTransport, NodeClient, setCurrentClient } from '@sentry/node';
 import * as fs from 'fs';
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
@@ -93,7 +99,7 @@ describe('GoogleCloudHttp tracing', () => {
         onlyIfParent: true,
         attributes: {
           [SENTRY_OP]: HTTP_CLIENT,
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.serverless',
+          [SENTRY_ORIGIN]: 'auto.http.serverless',
           [HTTP_REQUEST_METHOD]: 'POST',
           [SERVER_ADDRESS]: 'bigquery.googleapis.com',
           [URL_DOMAIN]: 'bigquery.googleapis.com',
@@ -105,7 +111,7 @@ describe('GoogleCloudHttp tracing', () => {
         onlyIfParent: true,
         attributes: {
           [SENTRY_OP]: HTTP_CLIENT,
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.serverless',
+          [SENTRY_ORIGIN]: 'auto.http.serverless',
           [HTTP_REQUEST_METHOD]: 'GET',
           [SERVER_ADDRESS]: 'bigquery.googleapis.com',
           [URL_DOMAIN]: 'bigquery.googleapis.com',

@@ -7,11 +7,12 @@ import {
   GCP_FUNCTION_CONTEXT_EVENT_ID,
   GCP_FUNCTION_CONTEXT_RESOURCE,
   GCP_FUNCTION_CONTEXT_TIMESTAMP,
+  SENTRY_ORIGIN,
 } from '@sentry/conventions/attributes';
 import { FUNCTION_GCP } from '@sentry/conventions/op';
 import type { Client, Event } from '@sentry/core';
 import * as SentryCore from '@sentry/core';
-import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, SERVERLESS_FUNCTION_SPAN_NAME_FALLBACK } from '@sentry/core';
+import { SERVERLESS_FUNCTION_SPAN_NAME_FALLBACK } from '@sentry/core';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 import { wrapEventFunction } from '../../src/gcpfunction/events';
 import type { EventFunction, EventFunctionWithCallback } from '../../src/gcpfunction/general';
@@ -88,7 +89,7 @@ describe('wrapEventFunction', () => {
           [FAAS_NAME]: undefined,
           [FAAS_TRIGGER]: 'event',
           [SENTRY_SEGMENT_NAME_SOURCE]: 'component',
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.serverless.gcp_event',
+          [SENTRY_ORIGIN]: 'auto.function.serverless.gcp_event',
           [GCP_FUNCTION_CONTEXT_EVENT_TYPE]: 'providers/cloud.firestore/eventTypes/document.write',
           [GCP_FUNCTION_CONTEXT_EVENT_ID]: '1144231683168617',
           [GCP_FUNCTION_CONTEXT_RESOURCE]: 'projects/my-project/databases/(default)/documents/users/abc123',
@@ -116,7 +117,7 @@ describe('wrapEventFunction', () => {
           [FAAS_NAME]: undefined,
           [FAAS_TRIGGER]: 'event',
           [SENTRY_SEGMENT_NAME_SOURCE]: 'component',
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.serverless.gcp_event',
+          [SENTRY_ORIGIN]: 'auto.function.serverless.gcp_event',
           [GCP_FUNCTION_CONTEXT_EVENT_TYPE]: 'providers/cloud.firestore/eventTypes/document.write',
           [GCP_FUNCTION_CONTEXT_EVENT_ID]: '1144231683168617',
           [GCP_FUNCTION_CONTEXT_RESOURCE]: 'projects/my-project/databases/(default)/documents/users/abc123',
@@ -149,7 +150,7 @@ describe('wrapEventFunction', () => {
           [FAAS_NAME]: undefined,
           [FAAS_TRIGGER]: 'event',
           [SENTRY_SEGMENT_NAME_SOURCE]: 'component',
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.serverless.gcp_event',
+          [SENTRY_ORIGIN]: 'auto.function.serverless.gcp_event',
           [GCP_FUNCTION_CONTEXT_EVENT_TYPE]: 'providers/cloud.firestore/eventTypes/document.write',
           [GCP_FUNCTION_CONTEXT_EVENT_ID]: '1144231683168617',
           [GCP_FUNCTION_CONTEXT_RESOURCE]: 'projects/my-project/databases/(default)/documents/users/abc123',
@@ -181,7 +182,7 @@ describe('wrapEventFunction', () => {
           [FAAS_NAME]: undefined,
           [FAAS_TRIGGER]: 'event',
           [SENTRY_SEGMENT_NAME_SOURCE]: 'component',
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.serverless.gcp_event',
+          [SENTRY_ORIGIN]: 'auto.function.serverless.gcp_event',
           [GCP_FUNCTION_CONTEXT_EVENT_TYPE]: 'providers/cloud.firestore/eventTypes/document.write',
           [GCP_FUNCTION_CONTEXT_EVENT_ID]: '1144231683168617',
           [GCP_FUNCTION_CONTEXT_RESOURCE]: 'projects/my-project/databases/(default)/documents/users/abc123',
@@ -211,7 +212,7 @@ describe('wrapEventFunction', () => {
           [FAAS_NAME]: undefined,
           [FAAS_TRIGGER]: 'event',
           [SENTRY_SEGMENT_NAME_SOURCE]: 'component',
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.serverless.gcp_event',
+          [SENTRY_ORIGIN]: 'auto.function.serverless.gcp_event',
           [GCP_FUNCTION_CONTEXT_EVENT_TYPE]: 'providers/cloud.firestore/eventTypes/document.write',
           [GCP_FUNCTION_CONTEXT_EVENT_ID]: '1144231683168617',
           [GCP_FUNCTION_CONTEXT_RESOURCE]: 'projects/my-project/databases/(default)/documents/users/abc123',
@@ -239,7 +240,7 @@ describe('wrapEventFunction', () => {
           [FAAS_NAME]: undefined,
           [FAAS_TRIGGER]: 'event',
           [SENTRY_SEGMENT_NAME_SOURCE]: 'component',
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.serverless.gcp_event',
+          [SENTRY_ORIGIN]: 'auto.function.serverless.gcp_event',
           [GCP_FUNCTION_CONTEXT_EVENT_TYPE]: 'providers/cloud.firestore/eventTypes/document.write',
           [GCP_FUNCTION_CONTEXT_EVENT_ID]: '1144231683168617',
           [GCP_FUNCTION_CONTEXT_RESOURCE]: 'projects/my-project/databases/(default)/documents/users/abc123',
@@ -268,7 +269,7 @@ describe('wrapEventFunction', () => {
           [FAAS_NAME]: undefined,
           [FAAS_TRIGGER]: 'event',
           [SENTRY_SEGMENT_NAME_SOURCE]: 'component',
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.serverless.gcp_event',
+          [SENTRY_ORIGIN]: 'auto.function.serverless.gcp_event',
           [GCP_FUNCTION_CONTEXT_EVENT_TYPE]: 'providers/cloud.firestore/eventTypes/document.write',
           [GCP_FUNCTION_CONTEXT_EVENT_ID]: '1144231683168617',
           [GCP_FUNCTION_CONTEXT_RESOURCE]: 'projects/my-project/databases/(default)/documents/users/abc123',

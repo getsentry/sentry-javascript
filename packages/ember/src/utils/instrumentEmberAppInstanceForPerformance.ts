@@ -5,13 +5,15 @@ import type {
   startBrowserTracingNavigationSpan as startBrowserTracingNavigationSpanType,
   startBrowserTracingPageLoadSpan as startBrowserTracingPageLoadSpanType,
 } from '@sentry/browser';
-import { getAbsoluteUrl, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, startInactiveSpan, WINDOW } from '@sentry/browser';
+import { getAbsoluteUrl, startInactiveSpan, WINDOW } from '@sentry/browser';
 import {
+  ROUTER_NAVIGATION_ROUTE_ID,
   SENTRY_SEGMENT_NAME_SOURCE,
   SENTRY_OP,
   URL_FULL,
   URL_PATH,
   URL_TEMPLATE,
+  SENTRY_ORIGIN,
 } from '@sentry/conventions/attributes';
 import { ROUTER } from '@sentry/conventions/op';
 import {
@@ -68,13 +70,16 @@ export function instrumentEmberAppInstanceForPerformance(
     activeRootSpan = startBrowserTracingPageLoadSpan(client, {
       // With span streaming, span names have to be low cardinality, so we can't fall back to the URL.
       name: routeInfo
-        ? `route:${routeInfo.name}`
+        ? routeInfo.name
+          ? `route:${routeInfo.name}`
+          : 'route'
         : hasSpanStreamingEnabled(client)
           ? PAGELOAD_SPAN_NAME_FALLBACK
           : url || WINDOW.location.pathname,
       attributes: {
         [SENTRY_SEGMENT_NAME_SOURCE]: routeInfo ? 'route' : 'url',
-        [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.pageload.ember',
+        [SENTRY_ORIGIN]: 'auto.pageload.ember',
+        ...(routeInfo?.name && { [ROUTER_NAVIGATION_ROUTE_ID]: routeInfo.name }),
         ...(url ? _getRouteUrlAttributes(client, url, routeInfo?.params) : {}),
         toRoute: routeInfo?.name,
       },
@@ -91,9 +96,10 @@ export function instrumentEmberAppInstanceForPerformance(
 
   routerService.on('routeWillChange', (transition: Transition) => {
     const { fromRoute, toRoute } = getTransitionInformation(transition, routerService);
+    const transactionName = toRoute ? `route:${toRoute}` : 'route';
 
     // Store this here to be used, even if the active span has ended
-    getCurrentScope().setTransactionName(`route:${toRoute}`);
+    getCurrentScope().setTransactionName(transactionName);
 
     // We want to ignore loading && error routes
     if (transitionIsIntermediate(transition)) {
@@ -113,10 +119,11 @@ export function instrumentEmberAppInstanceForPerformance(
         const urlAttributes = targetUrl ? _getRouteUrlAttributes(client, targetUrl, transition.to?.params) : {};
 
         activeRootSpan = startBrowserTracingNavigationSpan(client, {
-          name: `route:${toRoute}`,
+          name: transactionName,
           attributes: {
             [SENTRY_SEGMENT_NAME_SOURCE]: 'route',
-            [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.ember',
+            [SENTRY_ORIGIN]: 'auto.navigation.ember',
+            ...(toRoute && { [ROUTER_NAVIGATION_ROUTE_ID]: toRoute }),
             ...urlAttributes,
             fromRoute,
             toRoute,
@@ -130,9 +137,10 @@ export function instrumentEmberAppInstanceForPerformance(
       const url = _getLocationURL(location);
       if (url) {
         const routeInfo = _recognizeURL(routerService, url);
-        activeRootSpan.updateName(`route:${toRoute}`);
+        activeRootSpan.updateName(transactionName);
         activeRootSpan.setAttributes({
           [SENTRY_SEGMENT_NAME_SOURCE]: 'route',
+          ...(toRoute && { [ROUTER_NAVIGATION_ROUTE_ID]: toRoute }),
           ..._getRouteUrlAttributes(client, url, routeInfo?.params),
           toRoute: toRoute,
         });
@@ -147,7 +155,7 @@ export function instrumentEmberAppInstanceForPerformance(
     transitionSpan = startInactiveSpan({
       attributes: {
         [SENTRY_OP]: ROUTER,
-        [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ui.ember',
+        [SENTRY_ORIGIN]: 'auto.ui.ember',
       },
       // With span streaming, span names have to be low cardinality, and Ember gives us no route
       // template for the transition itself, so it's the fallback.

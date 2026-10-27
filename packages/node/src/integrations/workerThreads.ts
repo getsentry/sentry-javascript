@@ -1,6 +1,6 @@
 import type { Worker } from 'node:worker_threads';
-import * as diagnosticsChannel from 'node:diagnostics_channel';
 import { captureException, defineIntegration, isObjectLike } from '@sentry/core';
+import { subscribeDiagnosticsChannel } from '@sentry/server-utils';
 
 const INTEGRATION_NAME = 'WorkerThreads' as const;
 
@@ -12,7 +12,7 @@ export const workerThreadsIntegration = defineIntegration(() => {
   return {
     name: INTEGRATION_NAME,
     setup() {
-      diagnosticsChannel.channel('worker_threads').subscribe((event: unknown) => {
+      subscribeDiagnosticsChannel('worker_threads', (event: unknown) => {
         if (isObjectLike(event) && 'worker' in event) {
           captureWorkerThreadEvents(event.worker as Worker);
         }

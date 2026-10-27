@@ -123,6 +123,12 @@ describe('API', () => {
         { onClose: () => {} },
         'https://sentry.io:1234/subpath/api/embed/error-page/?dsn=https://abc@sentry.io:1234/subpath/123',
       ],
+      [
+        'with Public DSN and onError callback',
+        dsnPublic,
+        { onError: () => {} },
+        'https://sentry.io:1234/subpath/api/embed/error-page/?dsn=https://abc@sentry.io:1234/subpath/123',
+      ],
     ])(
       '%s',
       (

@@ -1,5 +1,6 @@
 import * as fs from 'fs';
 import * as path from 'path';
+import type { SourcemapEntry } from './sourcemap-upload-utils';
 
 export interface OutputScanOptions {
   /** Directory holding the emitted bundles, e.g. `<app>/.output/public`. */
@@ -18,6 +19,12 @@ const SOURCE_MAPPING_URL_PATTERN = /[#@]\s*sourceMappingURL\s*=\s*(?!data:)(\S+)
 /** The `sentry-dbid-<uuid>` identifier the bundler plugin injects alongside `_sentryDebugIds`. */
 const INJECTED_DEBUG_ID_PATTERN = /sentry-dbid-([\da-f]{8}-[\da-f]{4}-[\da-f]{4}-[\da-f]{4}-[\da-f]{12})/gi;
 
+/** Distinct lowercased debug IDs in `file`, in order of appearance. */
+function readDebugIds(file: string): string[] {
+  const matches = fs.readFileSync(file, 'utf8').matchAll(INJECTED_DEBUG_ID_PATTERN);
+  return [...new Set([...matches].map(match => (match[1] as string).toLowerCase()))];
+}
+
 function* walkFiles(outputDir: string, extensions?: string[]): Generator<string> {
   if (!fs.existsSync(outputDir)) {
     throw new Error(`[build-output] Output directory does not exist: ${outputDir}`);
@@ -28,6 +35,11 @@ function* walkFiles(outputDir: string, extensions?: string[]): Generator<string>
       continue;
     }
     if (extensions && !extensions.includes(path.extname(entry.name))) {
+      continue;
+    }
+    // Dependencies a server build traces into its output are not the app's bundles. Some ship debug
+    // IDs of their own, for example the `sentry` package.
+    if (path.relative(outputDir, entry.parentPath).split(path.sep).includes('node_modules')) {
       continue;
     }
     yield path.join(entry.parentPath, entry.name);
@@ -147,12 +159,81 @@ export function findInjectedDebugIds({ outputDir, extensions = JS_EXTENSIONS }: 
   const debugIds = new Set<string>();
 
   for (const file of walkFiles(outputDir, extensions)) {
-    const contents = fs.readFileSync(file, 'utf8');
+    readDebugIds(file).forEach(debugId => debugIds.add(debugId));
+  }
 
-    for (const match of contents.matchAll(INJECTED_DEBUG_ID_PATTERN)) {
-      debugIds.add((match[1] as string).toLowerCase());
+  return [...debugIds];
+}
+
+/**
+ * Returns the debug IDs of emitted files whose path has glob characters, such as Nitro 3's
+ * `_libs/_sentry/node+[...].mjs`.
+ *
+ * TODO: The uploader passes the emitted file paths to `glob` as patterns, so it skips these files.
+ * Remove this when the uploader matches paths literally.
+ */
+export function findDebugIdsInFilesWithGlobCharacters({
+  outputDir,
+  extensions = JS_EXTENSIONS,
+}: OutputScanOptions): string[] {
+  const debugIds = new Set<string>();
+
+  for (const file of walkFiles(outputDir, extensions)) {
+    if (/[[\]{}()*?]/.test(path.relative(outputDir, file))) {
+      readDebugIds(file).forEach(debugId => debugIds.add(debugId));
     }
   }
 
   return [...debugIds];
+}
+
+/**
+ * Returns `<file> → <debug IDs>` for each file with more than one debug ID.
+ * The uploader reads the first ID, but the SDK can report any of them.
+ */
+export function findFilesWithMultipleDebugIds({
+  outputDir,
+  buildDir = process.cwd(),
+  extensions = JS_EXTENSIONS,
+}: OutputScanOptions): string[] {
+  const offenders: string[] = [];
+
+  for (const file of walkFiles(outputDir, extensions)) {
+    const debugIds = readDebugIds(file);
+
+    if (debugIds.length > 1) {
+      offenders.push(`${path.relative(buildDir, file)} → ${debugIds.join(', ')}`);
+    }
+  }
+
+  return offenders;
+}
+
+/**
+ * Returns `<file> → <map files>` for each file where no map uploaded under its first debug ID names it in `file`.
+ * Skips files without a debug ID or without an uploaded map that has `file`.
+ */
+export function findFilesWithForeignSourcemaps(
+  { outputDir, buildDir = process.cwd(), extensions = JS_EXTENSIONS }: OutputScanOptions,
+  uploadedSourcemaps: SourcemapEntry[],
+): string[] {
+  const offenders: string[] = [];
+
+  for (const file of walkFiles(outputDir, extensions)) {
+    const [debugId] = readDebugIds(file);
+    if (!debugId) {
+      continue;
+    }
+
+    const mapFiles = uploadedSourcemaps
+      .filter(entry => entry.debugId === debugId)
+      .map(entry => entry.sourcemap.file)
+      .filter(mapFile => mapFile !== undefined);
+
+    if (mapFiles.length > 0 && !mapFiles.includes(path.basename(file))) {
+      offenders.push(`${path.relative(buildDir, file)} → ${mapFiles.join(', ')}`);
+    }
+  }
+
+  return offenders;
 }

@@ -21,8 +21,7 @@ function getBaseOptionsForTraceLifecycle(sendMock: Mock<any>, enableTracing = tr
 
 describe('Browser Profiling v2 trace lifecycle', () => {
   afterEach(async () => {
-    const client = Sentry.getClient();
-    await client?.close();
+    await Sentry.close();
     // reset profiler constructor
     (window as any).Profiler = undefined;
     vi.restoreAllMocks();
@@ -46,7 +45,10 @@ describe('Browser Profiling v2 trace lifecycle', () => {
       addEventListener() {}
     }
 
-    const mockConstructor = vi.fn().mockImplementation((opts: { sampleInterval: number; maxBufferSize: number }) => {
+    const mockConstructor = vi.fn().mockImplementation(function (opts: {
+      sampleInterval: number;
+      maxBufferSize: number;
+    }) {
       return new MockProfilerImpl(opts);
     });
 
@@ -348,9 +350,12 @@ describe('Browser Profiling v2 trace lifecycle', () => {
         addEventListener() {}
       }
 
-      (window as any).Profiler = vi
-        .fn()
-        .mockImplementation((opts: { sampleInterval: number; maxBufferSize: number }) => new MockProfilerImpl(opts));
+      (window as any).Profiler = vi.fn().mockImplementation(function (opts: {
+        sampleInterval: number;
+        maxBufferSize: number;
+      }) {
+        return new MockProfilerImpl(opts);
+      });
 
       const send = vi.fn().mockResolvedValue(undefined);
 
@@ -408,9 +413,12 @@ describe('Browser Profiling v2 trace lifecycle', () => {
         addEventListener() {}
       }
 
-      (window as any).Profiler = vi
-        .fn()
-        .mockImplementation((opts: { sampleInterval: number; maxBufferSize: number }) => new MockProfilerImpl(opts));
+      (window as any).Profiler = vi.fn().mockImplementation(function (opts: {
+        sampleInterval: number;
+        maxBufferSize: number;
+      }) {
+        return new MockProfilerImpl(opts);
+      });
 
       const send = vi.fn().mockResolvedValue(undefined);
 
@@ -462,9 +470,12 @@ describe('Browser Profiling v2 trace lifecycle', () => {
         addEventListener() {}
       }
 
-      (window as any).Profiler = vi
-        .fn()
-        .mockImplementation((opts: { sampleInterval: number; maxBufferSize: number }) => new MockProfilerImpl(opts));
+      (window as any).Profiler = vi.fn().mockImplementation(function (opts: {
+        sampleInterval: number;
+        maxBufferSize: number;
+      }) {
+        return new MockProfilerImpl(opts);
+      });
 
       const send = vi.fn().mockResolvedValue(undefined);
 
@@ -521,9 +532,12 @@ describe('Browser Profiling v2 trace lifecycle', () => {
         addEventListener() {}
       }
 
-      (window as any).Profiler = vi
-        .fn()
-        .mockImplementation((opts: { sampleInterval: number; maxBufferSize: number }) => new MockProfilerImpl(opts));
+      (window as any).Profiler = vi.fn().mockImplementation(function (opts: {
+        sampleInterval: number;
+        maxBufferSize: number;
+      }) {
+        return new MockProfilerImpl(opts);
+      });
 
       // Session 1
       const send1 = vi.fn().mockResolvedValue(undefined);
@@ -553,7 +567,7 @@ describe('Browser Profiling v2 trace lifecycle', () => {
       }
 
       // End Session 1
-      await client?.close();
+      await Sentry.close();
 
       // Session 2 (new init simulates new user session)
       const send2 = vi.fn().mockResolvedValue(undefined);
@@ -722,8 +736,7 @@ function getBaseOptionsForManualLifecycle(sendMock: Mock<any>, enableTracing = t
 
 describe('Browser Profiling v2 manual lifecycle', () => {
   afterEach(async () => {
-    const client = Sentry.getClient();
-    await client?.close();
+    await Sentry.close();
     // reset profiler constructor
     (window as any).Profiler = undefined;
     vi.restoreAllMocks();
@@ -747,7 +760,10 @@ describe('Browser Profiling v2 manual lifecycle', () => {
       addEventListener() {}
     }
 
-    const mockConstructor = vi.fn().mockImplementation((opts: { sampleInterval: number; maxBufferSize: number }) => {
+    const mockConstructor = vi.fn().mockImplementation(function (opts: {
+      sampleInterval: number;
+      maxBufferSize: number;
+    }) {
       return new MockProfilerImpl(opts);
     });
 
@@ -869,9 +885,12 @@ describe('Browser Profiling v2 manual lifecycle', () => {
         addEventListener() {}
       }
 
-      (window as any).Profiler = vi
-        .fn()
-        .mockImplementation((opts: { sampleInterval: number; maxBufferSize: number }) => new MockProfilerImpl(opts));
+      (window as any).Profiler = vi.fn().mockImplementation(function (opts: {
+        sampleInterval: number;
+        maxBufferSize: number;
+      }) {
+        return new MockProfilerImpl(opts);
+      });
 
       const send = vi.fn().mockResolvedValue(undefined);
 

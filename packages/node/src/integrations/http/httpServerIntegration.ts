@@ -1,10 +1,10 @@
-import { subscribe } from 'node:diagnostics_channel';
 import type { RequestOptions } from 'node:http';
 import { context, createContextKey, propagation } from '@opentelemetry/api';
 import type { Integration, IntegrationFn } from '@sentry/core';
 import { addNonEnumerableProperty, debug, getClient } from '@sentry/core';
 import type { HttpIncomingMessage, HttpServerResponse } from '@sentry/core/server';
 import { getHttpServerSubscriptions, HTTP_ON_SERVER_REQUEST, recordRequestSession } from '@sentry/core/server';
+import { subscribeDiagnosticsChannel } from '@sentry/server-utils';
 import type { RequestEventData } from '@sentry/core';
 import { DEBUG_BUILD } from '../../debug-build';
 
@@ -45,9 +45,11 @@ export interface HttpServerIntegrationOptions {
    * This can be useful for long running requests where the body is not needed and we want to avoid capturing it.
    *
    * @param url Contains the entire URL, including query string (if any), protocol, host, etc. of the incoming request.
-   * @param request Contains the {@type RequestOptions} object used to make the incoming request.
+   * @param request The incoming request, a `node:http` `IncomingMessage`. Use `request.url`, `request.method`,
+   * `request.headers`, etc. The `RequestOptions` part of the type is deprecated and will be removed in v12. Its
+   * fields that `IncomingMessage` does not have (such as `path` or `hostname`) are always `undefined`.
    */
-  ignoreRequestBody?: (url: string, request: RequestOptions) => boolean;
+  ignoreRequestBody?: (url: string, request: RequestOptions & HttpIncomingMessage) => boolean;
 
   /**
    * Controls the maximum size of incoming HTTP request bodies attached to events.
@@ -84,13 +86,7 @@ const _httpServerIntegration = ((options: HttpServerIntegrationOptions = {}) => 
     // core subscription helper. Explicitly opt out so the helper does not
     // double-create spans when the client has tracing enabled.
     spans: false as const,
-    // Cast: core uses HttpIncomingMessage; node consumers pass
-    // RequestOptions-typed callbacks.
-    // The two are structurally compatible for the fields the callback reads
-    // (url, method, headers).
-    ignoreRequestBody: options.ignoreRequestBody as
-      | ((url: string, request: HttpIncomingMessage) => boolean)
-      | undefined,
+    ignoreRequestBody: options.ignoreRequestBody,
 
     /**
      * Hook called by core's `instrumentServer` to wrap the upstream
@@ -143,7 +139,7 @@ const _httpServerIntegration = ((options: HttpServerIntegrationOptions = {}) => 
     name: INTEGRATION_NAME,
     setupOnce() {
       const { [HTTP_ON_SERVER_REQUEST]: onHttpServerRequestStart } = getHttpServerSubscriptions(_options);
-      subscribe(HTTP_ON_SERVER_REQUEST, onHttpServerRequestStart);
+      subscribeDiagnosticsChannel(HTTP_ON_SERVER_REQUEST, onHttpServerRequestStart);
     },
     afterAllSetup(client) {
       if (DEBUG_BUILD && client.getIntegrationByName('Http')) {

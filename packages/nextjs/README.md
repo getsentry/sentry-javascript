@@ -10,50 +10,14 @@
 [![npm dm](https://img.shields.io/npm/dm/@sentry/nextjs.svg)](https://www.npmjs.com/package/@sentry/nextjs)
 [![npm dt](https://img.shields.io/npm/dt/@sentry/nextjs.svg)](https://www.npmjs.com/package/@sentry/nextjs)
 
-> See the [Official Sentry Next.js SDK Docs](https://docs.sentry.io/platforms/javascript/guides/nextjs/) to get started.
+The official Sentry SDK for monitoring Next.js applications.
 
-## Compatibility
+## Documentation
 
-Currently, the minimum supported version of Next.js is `14.0.0`.
+- [Getting started](https://docs.sentry.io/platforms/javascript/guides/nextjs/)
+- [Configuration](https://docs.sentry.io/platforms/javascript/guides/nextjs/configuration/)
 
-## Installation
+## Support
 
-To get started installing the SDK, use the Sentry Next.js Wizard by running the following command in your terminal or
-read the [Getting Started Docs](https://docs.sentry.io/platforms/javascript/guides/nextjs/):
-
-```sh
-npx @sentry/wizard@latest -i nextjs
-```
-
-The wizard will prompt you to log in to Sentry. After the wizard setup is completed, the SDK will automatically capture
-unhandled errors, and monitor performance.
-
-## Custom Usage
-
-To set context information or to send manual events, you can use `@sentry/nextjs` as follows:
-
-```ts
-import * as Sentry from '@sentry/nextjs';
-
-// Set user information, as well as tags and further extras
-Sentry.setTag('user_mode', 'admin');
-Sentry.setUser({ id: '4711' });
-Sentry.setContext('application_area', { location: 'checkout' });
-
-// Add a breadcrumb for future events
-Sentry.addBreadcrumb({
-  message: '"Add to cart" clicked',
-  // ...
-});
-
-// Capture exceptions or messages
-Sentry.captureException(new Error('Oh no.'));
-Sentry.captureMessage('Hello, world!');
-```
-
-## Links
-
-- [Official SDK Docs](https://docs.sentry.io/platforms/javascript/guides/nextjs/)
-- [Sentry.io](https://sentry.io/?utm_source=github&utm_medium=npm_nextjs)
-- [Sentry Discord Server](https://discord.gg/Ww9hbqr)
-- [Stack Overflow](https://stackoverflow.com/questions/tagged/sentry)
+- [Report a bug](https://github.com/getsentry/sentry-javascript/issues/new/choose)
+- [Contributing](https://github.com/getsentry/sentry-javascript/blob/develop/CONTRIBUTING.md)

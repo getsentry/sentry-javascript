@@ -4,7 +4,6 @@ import { trace } from '@opentelemetry/api';
 import type { ServerRuntimeClientOptions } from '@sentry/core/server';
 import {
   _INTERNAL_clearAiProviderSkips,
-  _INTERNAL_flushLogsBuffer,
   _INTERNAL_setDeferSegmentSpanCapture,
   applySdkMetadata,
   debug,
@@ -37,7 +36,7 @@ export class NodeClient extends ServerRuntimeClient<NodeClientOptions> {
   private _tracer: Tracer | undefined;
   private _clientReportInterval: NodeJS.Timeout | undefined;
   private _clientReportOnExitFlushListener: (() => void) | undefined;
-  private _logOnExitFlushListener: (() => void) | undefined;
+  private _onExitFlushListener: (() => void) | undefined;
 
   public constructor(options: NodeClientOptions) {
     const serverName =
@@ -59,8 +58,10 @@ export class NodeClient extends ServerRuntimeClient<NodeClientOptions> {
 
     super(clientOptions);
 
-    this._logOnExitFlushListener = () => {
-      _INTERNAL_flushLogsBuffer(this);
+    // The log, metric and span buffers drain on `flush`. Their timers are unref'd, so a natural exit
+    // would drop what they hold.
+    this._onExitFlushListener = () => {
+      this.emit('flush');
     };
 
     if (serverName) {
@@ -72,7 +73,7 @@ export class NodeClient extends ServerRuntimeClient<NodeClientOptions> {
       });
     }
 
-    process.on('beforeExit', this._logOnExitFlushListener);
+    process.on('beforeExit', this._onExitFlushListener);
 
     // Enable deferred segment-span transaction capture here, in the constructor, rather than in
     // `initOtel`. Every client runs its constructor exactly once, whereas `initOtel` only runs on
@@ -154,8 +155,8 @@ export class NodeClient extends ServerRuntimeClient<NodeClientOptions> {
       process.off('beforeExit', this._clientReportOnExitFlushListener);
     }
 
-    if (this._logOnExitFlushListener) {
-      process.off('beforeExit', this._logOnExitFlushListener);
+    if (this._onExitFlushListener) {
+      process.off('beforeExit', this._onExitFlushListener);
     }
 
     const allEventsSent = await super.close(timeout);

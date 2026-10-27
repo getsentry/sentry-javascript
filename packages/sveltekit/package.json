@@ -1,6 +1,6 @@
 {
   "name": "@sentry/sveltekit",
-  "version": "10.67.0",
+  "version": "11.9.0",
   "description": "Official Sentry SDK for SvelteKit",
   "repository": "git://github.com/getsentry/sentry-javascript.git",
   "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/sveltekit",
@@ -46,6 +46,11 @@
         "require": "./build/cjs/index.server.js"
       }
     },
+    "./opentelemetry-api": {
+      "types": "./build/types/opentelemetryApi.d.ts",
+      "import": "./build/esm/opentelemetryApi.js",
+      "require": "./build/cjs/opentelemetryApi.js"
+    },
     "./vite": {
       "types": "./build/types/vite/index.d.ts",
       "import": "./build/esm/vite/index.js",
@@ -56,7 +61,7 @@
     "access": "public"
   },
   "peerDependencies": {
-    "@sveltejs/kit": "2.x || ^3.0.0-0",
+    "@sveltejs/kit": "2.x || 3.x",
     "vite": "*"
   },
   "peerDependenciesMeta": {
@@ -65,32 +70,36 @@
     }
   },
   "dependencies": {
-    "@sentry/cloudflare": "10.67.0",
-    "@sentry/core": "10.67.0",
-    "@sentry/conventions": "^0.23.0",
-    "@sentry/node": "10.67.0",
-    "@sentry/server-runtime-injection": "10.67.0",
-    "@sentry/server-utils": "10.67.0",
-    "@sentry/svelte": "10.67.0",
-    "@sentry/bundler-plugins": "10.67.0",
+    "@opentelemetry/api": "^1.9.1",
+    "@sentry/cloudflare": "11.9.0",
+    "@sentry/core": "11.9.0",
+    "@sentry/conventions": "^0.29.0",
+    "@sentry/node": "11.9.0",
+    "@sentry/server-runtime-injection": "11.9.0",
+    "@sentry/server-utils": "11.9.0",
+    "@sentry/svelte": "11.9.0",
+    "@sentry/bundler-plugins": "11.9.0",
     "@sveltejs/acorn-typescript": "^1.0.9",
     "acorn": "^8.14.0",
     "magic-string": "~0.30.0",
     "sorcery": "1.0.0"
   },
   "devDependencies": {
+    "@sentry-internal/rollup-utils": "11.9.0",
+    "@sentry/browser": "11.9.0",
     "@sveltejs/kit": "^2.70.2",
     "@sveltejs/vite-plugin-svelte": "^3.0.0",
+    "@types/node": "^20.19.0",
     "svelte": "^4.2.8",
-    "vite": "^6.4.3"
+    "vite": "^8.3.1"
   },
   "scripts": {
     "build": "run-p build:transpile build:types",
-    "build:dev": "yarn build",
+    "build:dev": "pnpm run build",
     "build:transpile": "rollup -c rollup.npm.config.mjs",
     "build:types": "tsc -p tsconfig.types.json",
     "build:watch": "run-p build:transpile:watch",
-    "build:dev:watch": "yarn build:watch",
+    "build:dev:watch": "pnpm run build:watch",
     "build:transpile:watch": "rollup -c rollup.npm.config.mjs --watch",
     "build:tarball": "npm pack",
     "circularDepCheck": "madge --circular src/index.client.ts && madge --circular src/index.server.ts && madge --circular src/index.types.ts",
@@ -99,7 +108,7 @@
     "lint": "oxlint . --type-aware",
     "lint:types": "oxlint src --type-aware --type-check",
     "lint:es-compatibility": "es-check es2020 ./build/cjs/*.js && es-check es2020 ./build/esm/*.js --module",
-    "test": "yarn test:unit",
+    "test": "pnpm run test:unit",
     "test:unit": "vitest run",
     "test:watch": "vitest --watch",
     "yalc:publish": "yalc publish --push --sig"

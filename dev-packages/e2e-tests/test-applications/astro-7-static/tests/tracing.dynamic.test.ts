@@ -128,7 +128,7 @@ test.describe('nested SSR routes (client, server, server request)', () => {
   /** The user-page route fetches from an endpoint and creates a deeply nested span structure:
    * pageload — /user-page/myUsername123
    * ├── browser.** — multiple browser spans
-   * └── browser.request — /user-page/myUsername123
+   * └── browser.request — Request
    *     └── http.server — GET /user-page/[userId]                    (SSR page request)
    *         └── http.client — GET /api/user/myUsername123.json       (executing fetch call from SSR page - span)
    *             └── http.server — GET /api/user/myUsername123.json   (server request)

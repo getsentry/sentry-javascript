@@ -10,7 +10,7 @@ test('Event emitter', async () => {
   });
   const successEventSpanPromise = waitForStreamedSpan(
     APP_NAME,
-    span => span.is_segment && span.name === 'event myEvent.pass',
+    span => span.is_segment && span.name === 'myEvent.pass',
   );
 
   const eventsUrl = `http://localhost:3050/events/emit`;
@@ -36,7 +36,7 @@ test('Event emitter', async () => {
   // A segment span also carries the scope contexts and the SDK's integration list, which vary by
   // machine, so only the event-handler attributes are pinned here.
   expect(successEventSpan).toEqual({
-    name: 'event myEvent.pass',
+    name: 'myEvent.pass',
     span_id: expect.stringMatching(/^[a-f0-9]{16}$/),
     trace_id: expect.stringMatching(/^[a-f0-9]{32}$/),
     parent_span_id: expect.stringMatching(/^[a-f0-9]{16}$/),
@@ -49,7 +49,9 @@ test('Event emitter', async () => {
       'sentry.origin': { type: 'string', value: 'auto.event.nestjs' },
       'sentry.segment.name.source': { type: 'string', value: 'custom' },
       'sentry.trace_lifecycle': { type: 'string', value: 'stream' },
-      'sentry.segment.name': { type: 'string', value: 'event myEvent.pass' },
+      'sentry.segment.name': { type: 'string', value: 'myEvent.pass' },
+      'sentry.description': { type: 'string', value: 'event myEvent.pass' },
+      'code.function.name': { type: 'string', value: 'myEvent.pass' },
       'sentry.sdk.name': { type: 'string', value: 'sentry.javascript.nestjs' },
       'sentry.environment': { type: 'string', value: 'qa' },
     }),
@@ -100,7 +102,7 @@ test('Multiple OnEvent decorators', async () => {
   const rootSpan = await rootSpanPromise;
 
   const findHandlerSpans = () =>
-    streamedSpans.filter(span => span.is_segment && span.name === 'event multiple.first|multiple.second');
+    streamedSpans.filter(span => span.is_segment && span.name === 'multiple.first|multiple.second');
   await expect.poll(() => findHandlerSpans().length).toBe(2);
 
   // Streamed spans carry no scope tags, so the app reports its isolation scope as an attribute.

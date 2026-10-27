@@ -8,6 +8,7 @@ export { instrumentOpenAiClient } from './openai';
 export { instrumentAnthropicAiClient } from './anthropic-ai';
 export { instrumentGoogleGenAIClient } from './google-genai';
 export { instrumentMistralAiClient } from './mistral';
+export { instrumentTypeSafeClient } from './typesafe';
 export { instrumentWorkersAiClient } from './workers-ai';
 export { createLangChainCallbackHandler, instrumentLangChainEmbeddings } from './langchain';
 export { instrumentStateGraph, instrumentStateGraphCompile, instrumentCreateReactAgent } from './langgraph';

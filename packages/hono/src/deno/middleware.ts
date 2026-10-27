@@ -1,12 +1,14 @@
-import { type BaseTransportOptions, debug, type Options } from '@sentry/core';
+import { debug } from '@sentry/core';
+import type { DenoOptions } from '@sentry/deno';
 import { init } from './sdk';
+import {
+  applyHonoPatches,
+  createHonoRequestMiddleware,
+  type SentryHonoMiddlewareOptions,
+} from '@sentry/server-utils/no-diagnostic-channels';
 import type { Env, Hono, MiddlewareHandler } from 'hono';
-import { getConnInfo } from 'hono/deno';
-import { requestHandler, responseHandler } from '../shared/middlewareHandlers';
-import { applyPatches } from '../shared/applyPatches';
-import type { SentryHonoMiddlewareOptions } from '../shared/types';
 
-export interface HonoDenoOptions extends Options<BaseTransportOptions>, SentryHonoMiddlewareOptions {}
+export interface HonoDenoOptions extends DenoOptions, SentryHonoMiddlewareOptions {}
 
 /**
  * Sentry middleware for Hono running in a Deno runtime environment.
@@ -16,13 +18,7 @@ export const sentry = <E extends Env>(app: Hono<E>, options: HonoDenoOptions): M
 
   init(options);
 
-  applyPatches(app);
+  applyHonoPatches(app);
 
-  return async (context, next) => {
-    requestHandler(context, getConnInfo);
-
-    await next(); // Handler runs in between Request above ⤴ and Response below ⤵
-
-    responseHandler(context, options.shouldHandleError);
-  };
+  return createHonoRequestMiddleware({ runtime: 'deno', shouldHandleError: options.shouldHandleError });
 };

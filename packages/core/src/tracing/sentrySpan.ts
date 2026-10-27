@@ -1,14 +1,14 @@
 /* eslint-disable max-lines */
 import { getClient, getCurrentScope } from '../currentScopes';
 import { DEBUG_BUILD } from '../debug-build';
-import { SENTRY_SEGMENT_NAME_SOURCE } from '@sentry/conventions/attributes';
 import {
-  SEMANTIC_ATTRIBUTE_EXCLUSIVE_TIME,
-  SEMANTIC_ATTRIBUTE_PROFILE_ID,
-  SEMANTIC_ATTRIBUTE_SENTRY_CUSTOM_SPAN_NAME,
-  SEMANTIC_ATTRIBUTE_SENTRY_OP,
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-} from '../semanticAttributes';
+  SENTRY_PROFILE_ID,
+  SENTRY_EXCLUSIVE_TIME,
+  SENTRY_SEGMENT_NAME_SOURCE,
+  SENTRY_OP,
+  SENTRY_ORIGIN,
+} from '@sentry/conventions/attributes';
+import { SEMANTIC_ATTRIBUTE_SENTRY_CUSTOM_SPAN_NAME } from '../semanticAttributes';
 import type { Client } from '../client';
 import type { TransactionEvent } from '../types/event';
 import type { SpanLink } from '../types/link';
@@ -43,7 +43,7 @@ import {
   TRACE_FLAG_NONE,
   TRACE_FLAG_SAMPLED,
 } from '../utils/spanUtils';
-import { timestampInSeconds } from '../utils/time';
+import { safePerformanceNow, timestampInSeconds } from '../utils/time';
 import { getDynamicSamplingContextFromSpan } from './dynamicSamplingContext';
 import { logSpanEnd } from './logSpans';
 import { timedEventsToMeasurements } from './measurement';
@@ -71,6 +71,8 @@ export class SentrySpan implements Span {
   protected _startTime: number;
   /** Epoch timestamp in seconds when the span ended. */
   protected _endTime?: number | undefined;
+  /** `performance.now()` in milliseconds when the span started. Only set if no start time was passed in. */
+  private _startPerformanceNow?: number | undefined;
   /** Internal keeper of the status */
   protected _status?: SpanStatus;
   /** The timed events added to this span. */
@@ -99,13 +101,18 @@ export class SentrySpan implements Span {
   public constructor(spanContext: SentrySpanArguments = {}) {
     this._traceId = spanContext.traceId || generateTraceId();
     this._spanId = spanContext.spanId || generateSpanId();
-    this._startTime = spanContext.startTimestamp || timestampInSeconds();
+    if (spanContext.startTimestamp) {
+      this._startTime = spanContext.startTimestamp;
+    } else {
+      this._startTime = timestampInSeconds();
+      this._startPerformanceNow = safePerformanceNow();
+    }
     this._links = spanContext.links;
 
     this._attributes = {};
     this.setAttributes({
-      [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'manual',
-      [SEMANTIC_ATTRIBUTE_SENTRY_OP]: spanContext.op,
+      [SENTRY_ORIGIN]: 'manual',
+      [SENTRY_OP]: spanContext.op,
       ...spanContext.attributes,
     });
 
@@ -213,6 +220,7 @@ export class SentrySpan implements Span {
       return;
     }
     this._startTime = spanTimeInputToSeconds(timeInput);
+    this._startPerformanceNow = undefined;
   }
 
   /**
@@ -245,7 +253,7 @@ export class SentrySpan implements Span {
       return;
     }
 
-    this._endTime = spanTimeInputToSeconds(endTimestamp);
+    this._endTime = endTimestamp == null ? this._getEndTimeFromDuration() : spanTimeInputToSeconds(endTimestamp);
     logSpanEnd(this);
 
     this._onSpanEnded();
@@ -272,16 +280,16 @@ export class SentrySpan implements Span {
     return {
       data: this._attributes,
       description: this._name,
-      op: this._attributes[SEMANTIC_ATTRIBUTE_SENTRY_OP],
+      op: this._attributes[SENTRY_OP],
       parent_span_id: this._parentSpanId,
       span_id: this._spanId,
       start_timestamp: this._startTime,
       status: getStatusMessage(this._status),
       timestamp: this._endTime,
       trace_id: this._traceId,
-      origin: this._attributes[SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN] as SpanOrigin | undefined,
-      profile_id: this._attributes[SEMANTIC_ATTRIBUTE_PROFILE_ID] as string | undefined,
-      exclusive_time: this._attributes[SEMANTIC_ATTRIBUTE_EXCLUSIVE_TIME] as number | undefined,
+      origin: this._attributes[SENTRY_ORIGIN] as SpanOrigin | undefined,
+      profile_id: this._attributes[SENTRY_PROFILE_ID] as string | undefined,
+      exclusive_time: this._attributes[SENTRY_EXCLUSIVE_TIME] as number | undefined,
       measurements: timedEventsToMeasurements(this._events),
       links: convertSpanLinksForEnvelope(this._links),
     };
@@ -351,6 +359,20 @@ export class SentrySpan implements Span {
     return !!this._isStandaloneSpan;
   }
 
+  /**
+   * Returns the start time plus the `performance.now()` time since the span started.
+   *
+   * This way, the duration is correct even if the time origin was corrected while the span was running (e.g. after the
+   * device slept), and it can never be negative.
+   */
+  private _getEndTimeFromDuration(): number {
+    const performanceNow = safePerformanceNow();
+    if (this._startPerformanceNow == null || performanceNow == null) {
+      return timestampInSeconds();
+    }
+    return this._startTime + (performanceNow - this._startPerformanceNow) / 1000;
+  }
+
   /** Emit `spanEnd` when the span is ended. */
   private _onSpanEnded(): void {
     const client = getClient();
@@ -370,8 +392,6 @@ export class SentrySpan implements Span {
       }
 
       DEBUG_BUILD && debug.log('[Tracing] Discarding standalone span because its trace was not chosen to be sampled.');
-      client.recordDroppedEvent('sample_rate', 'span');
-
       return;
     }
 
@@ -436,16 +456,29 @@ export class SentrySpan implements Span {
     // TODO(standalone): drop the `isStandaloneSpan(descendant)` check once the static trace lifecycle is gone.
     options.onSpanCaptured?.(this);
     const spans: SpanJSON[] = [];
+    let droppedUnfinishedSpanCount = 0;
     for (const descendant of getSpanDescendants(this)) {
       if (descendant === this || isStandaloneSpan(descendant) || options.isSpanAlreadyCaptured?.(descendant)) {
         continue;
       }
       const spanJSON = spanToStaticSpanJSON(descendant);
       if (!isFullFinishedSpan(spanJSON)) {
+        // A strategy tracking captured spans re-emits this child as an orphan transaction once it ends.
+        if (!options.onSpanCaptured) {
+          droppedUnfinishedSpanCount++;
+        }
         continue;
       }
       options.onSpanCaptured?.(descendant);
       spans.push(spanJSON);
+    }
+
+    const client = capturedSpanScope?.getClient() || getClient();
+    if (droppedUnfinishedSpanCount) {
+      client?.recordDroppedEvent('invalid', 'span', droppedUnfinishedSpanCount);
+    }
+    if (spans.length > MAX_SPAN_COUNT) {
+      client?.recordDroppedEvent('buffer_overflow', 'span', spans.length - MAX_SPAN_COUNT);
     }
 
     const source = this._attributes[SENTRY_SEGMENT_NAME_SOURCE];

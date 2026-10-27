@@ -9,6 +9,11 @@ const SEGMENT_SPAN = {
       type: 'string',
       value: 'stream',
     },
+    // The e2e app is served over localhost (`baseURL: http://localhost:<port>`).
+    'sentry.is_localhost': {
+      type: 'boolean',
+      value: true,
+    },
     'app.start_time': {
       type: 'string',
       value: expect.any(String),
@@ -141,6 +146,10 @@ const SEGMENT_SPAN = {
       type: 'string',
       value: 'http:',
     },
+    'user.ip_address': {
+      type: 'string',
+      value: expect.any(String),
+    },
     'user_agent.original': {
       type: 'string',
       value: 'node',
@@ -167,6 +176,10 @@ const CHILD_SPAN_ATTRIBUTES = {
   ['sentry.trace_lifecycle']: {
     type: 'string',
     value: 'stream',
+  },
+  'sentry.is_localhost': {
+    type: 'boolean',
+    value: true,
   },
   'sentry.environment': {
     type: 'string',

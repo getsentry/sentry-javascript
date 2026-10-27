@@ -10,7 +10,7 @@ import { errorSink, resetGlobals, withTimeout } from '../../src/index.ts';
 
 Deno.test('fastify instrumentation: included in default integrations (Deno 2.8.0+)', () => {
   resetGlobals();
-  const client = init({ traceLifecycle: 'static', dsn: 'https://username@domain/123' }) as DenoClient;
+  const client = init({ dsn: 'https://username@domain/123' }) as DenoClient;
   const names = client.getOptions().integrations.map(i => i.name);
   assert(names.includes('Fastify'), `Fastify should be in defaults, got ${names.join(', ')}`);
 });
@@ -19,7 +19,6 @@ Deno.test('fastify instrumentation: tracing:fastify.request.handler:error channe
   resetGlobals();
   const sink = errorSink();
   init({
-    traceLifecycle: 'static',
     dsn: 'https://username@domain/123',
     beforeSend: sink.beforeSend,
   });

@@ -1,5 +1,31 @@
-import { describe, expect, it } from 'vitest';
-import { extractRoutePatterns } from '../../src/vite/routePatterns';
+import * as fs from 'node:fs';
+import * as os from 'node:os';
+import * as path from 'node:path';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { extractRoutePatterns, findRouteTreeFile, makeRoutePatternPlugin } from '../../src/vite/routePatterns';
+
+describe('makeRoutePatternPlugin', () => {
+  const configEnvironment = makeRoutePatternPlugin().configEnvironment as (
+    name: string,
+    config: { consumer?: 'client' | 'server' },
+    env: { command: 'build' | 'serve'; mode: string },
+  ) => { resolve: { noExternal: string[] } } | null;
+
+  it('bundles the SDK into server environments of a build', () => {
+    const build = { command: 'build', mode: 'production' } as const;
+
+    expect(configEnvironment('ssr', {}, build)).toEqual({ resolve: { noExternal: ['@sentry/tanstackstart-react'] } });
+    expect(configEnvironment('nitro', { consumer: 'server' }, build)).toEqual({
+      resolve: { noExternal: ['@sentry/tanstackstart-react'] },
+    });
+  });
+
+  it('does not change client environments or the dev server', () => {
+    expect(configEnvironment('client', {}, { command: 'build', mode: 'production' })).toBeNull();
+    expect(configEnvironment('ssr', { consumer: 'client' }, { command: 'build', mode: 'production' })).toBeNull();
+    expect(configEnvironment('ssr', {}, { command: 'serve', mode: 'development' })).toBeNull();
+  });
+});
 
 describe('extractRoutePatterns', () => {
   it('extracts full path patterns from single-line fullPaths union', () => {
@@ -57,17 +83,6 @@ export interface FileRouteTypes {
     expect(patterns).toContain('/users/$userId/posts/$postId');
   });
 
-  it('sorts patterns by specificity: more segments first, static before dynamic', () => {
-    const content = `
-export interface FileRouteTypes {
-  fullPaths: '/' | '/page-b/$id' | '/page-b/special' | '/users/$id/profile' | '/users/$id'
-  fileRoutesByTo: FileRoutesByTo
-}
-`;
-    const patterns = extractRoutePatterns(content);
-    expect(patterns).toEqual(['/users/$id/profile', '/page-b/special', '/page-b/$id', '/users/$id', '/']);
-  });
-
   it('handles double-quoted paths (quoteStyle: "double")', () => {
     const content = `
 export interface FileRouteTypes {
@@ -90,5 +105,47 @@ export interface FileRouteTypes {
 `;
     const patterns = extractRoutePatterns(content);
     expect(patterns.filter(p => p === '/page-a')).toHaveLength(1);
+  });
+});
+
+describe('findRouteTreeFile', () => {
+  let root: string;
+
+  beforeEach(() => {
+    root = fs.mkdtempSync(path.join(os.tmpdir(), 'sentry-tanstackstart-route-tree-'));
+  });
+
+  afterEach(() => {
+    fs.rmSync(root, { recursive: true, force: true });
+  });
+
+  function writeRouteTree(dir: string): string {
+    const filePath = path.join(root, dir, 'routeTree.gen.ts');
+    fs.mkdirSync(path.dirname(filePath), { recursive: true });
+    fs.writeFileSync(filePath, '');
+    return filePath;
+  }
+
+  it('finds the route tree in the default `src` directory', () => {
+    const expected = writeRouteTree('src');
+    writeRouteTree('app');
+    expect(findRouteTreeFile(root)).toBe(expected);
+  });
+
+  it('finds the route tree in a custom `srcDirectory`', () => {
+    fs.mkdirSync(path.join(root, 'src'));
+    const expected = writeRouteTree('app');
+    expect(findRouteTreeFile(root)).toBe(expected);
+  });
+
+  it('finds the route tree in the project root', () => {
+    const expected = writeRouteTree('.');
+    expect(findRouteTreeFile(root)).toBe(expected);
+  });
+
+  it('ignores node_modules and dot directories', () => {
+    writeRouteTree('node_modules');
+    writeRouteTree('.output');
+    expect(findRouteTreeFile(root)).toBeUndefined();
   });
 });

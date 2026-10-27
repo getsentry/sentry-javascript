@@ -1,8 +1,12 @@
 import type { ServerRuntimeClientOptions } from '@sentry/core/server';
-import { _INTERNAL_flushLogsBuffer, SDK_VERSION } from '@sentry/core';
+import { SDK_VERSION } from '@sentry/core';
 import { ServerRuntimeClient } from '@sentry/core/server';
+import { registerDiagnosticsChannelInjection } from '@sentry/server-runtime-injection/register';
 import { setAsyncLocalStorageAsyncContextStrategy } from '@sentry/server-utils';
+import process from 'node:process';
 import type { DenoClientOptions } from './types';
+
+declare const __SENTRY_CHANNEL_INJECTION__: boolean | undefined;
 
 function getHostName(): string | undefined {
   // Deno.permissions.querySync is not available on Deno Deploy
@@ -21,7 +25,7 @@ function getHostName(): string | undefined {
  * @see SentryClient for usage documentation.
  */
 export class DenoClient extends ServerRuntimeClient<DenoClientOptions> {
-  private _logOnExitFlushListener: (() => void) | undefined;
+  private _onExitFlushListener: (() => void) | undefined;
 
   /**
    * Creates a new Deno SDK instance.
@@ -51,8 +55,10 @@ export class DenoClient extends ServerRuntimeClient<DenoClientOptions> {
 
     super(clientOptions);
 
-    this._logOnExitFlushListener = () => {
-      _INTERNAL_flushLogsBuffer(this);
+    // The log, metric and span buffers drain on `flush`. Their timers are unref'd, so a natural exit
+    // would drop what they hold.
+    this._onExitFlushListener = () => {
+      this.emit('flush');
     };
 
     if (serverName) {
@@ -64,7 +70,18 @@ export class DenoClient extends ServerRuntimeClient<DenoClientOptions> {
       });
     }
 
-    globalThis.addEventListener('unload', this._logOnExitFlushListener);
+    // Unlike unload, beforeExit lets the transport finish asynchronous sends.
+    process.on('beforeExit', this._onExitFlushListener);
+    globalThis.addEventListener('unload', this._onExitFlushListener);
+
+    // In the constructor, as in `NodeClient`, so a directly constructed client installs the hooks
+    // too. Registration is idempotent.
+    if (
+      (typeof __SENTRY_CHANNEL_INJECTION__ === 'undefined' || __SENTRY_CHANNEL_INJECTION__) &&
+      options.enableRuntimeChannelInjection !== false
+    ) {
+      registerDiagnosticsChannelInjection();
+    }
   }
 
   /** @inheritDoc */
@@ -80,8 +97,9 @@ export class DenoClient extends ServerRuntimeClient<DenoClientOptions> {
   /** @inheritDoc */
   // @ts-expect-error - PromiseLike is a subset of Promise
   public async close(timeout?: number | undefined): PromiseLike<boolean> {
-    if (this._logOnExitFlushListener) {
-      globalThis.removeEventListener('unload', this._logOnExitFlushListener);
+    if (this._onExitFlushListener) {
+      process.off('beforeExit', this._onExitFlushListener);
+      globalThis.removeEventListener('unload', this._onExitFlushListener);
     }
 
     return super.close(timeout);

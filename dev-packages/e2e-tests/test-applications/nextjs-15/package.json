@@ -20,20 +20,21 @@
     "@types/react": "18.0.26",
     "@types/react-dom": "18.0.9",
     "ai": "^3.0.0",
-    "next": "15.5.21",
+    "next": "15.5.24",
     "react": "latest",
     "react-dom": "latest",
     "typescript": "~5.0.0",
     "zod": "^3.22.4"
   },
   "devDependencies": {
-    "@playwright/test": "~1.63.0",
-    "@sentry-internal/test-utils": "link:../../../test-utils"
+    "@playwright/test": "1.64.1",
+    "@sentry-internal/test-utils": "file:../../packed/sentry-internal-test-utils-packed.tgz"
   },
   "volta": {
     "extends": "../../package.json"
   },
   "sentryTest": {
+    "runner": "namespace-profile-sentry-javascript",
     "optionalVariants": [
       {
         "build-command": "pnpm test:build-latest",

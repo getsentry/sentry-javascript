@@ -1,6 +1,6 @@
+import { SENTRY_IDLE_SPAN_FINISH_REASON } from '@sentry/conventions/attributes';
 import { getClient, getCurrentScope, getIsolationScope } from '../currentScopes';
 import { DEBUG_BUILD } from '../debug-build';
-import { SEMANTIC_ATTRIBUTE_SENTRY_IDLE_SPAN_FINISH_REASON } from '../semanticAttributes';
 import type { Span } from '../types/span';
 import type { StartSpanOptions } from '../types/startSpanOptions';
 import { debug } from '../utils/debug-logger';
@@ -303,8 +303,8 @@ export function startIdleSpan(startSpanOptions: StartSpanOptions, options: Parti
     }
 
     const attributes = spanJSON.data;
-    if (!attributes[SEMANTIC_ATTRIBUTE_SENTRY_IDLE_SPAN_FINISH_REASON]) {
-      span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_IDLE_SPAN_FINISH_REASON, _finishReason);
+    if (!attributes[SENTRY_IDLE_SPAN_FINISH_REASON]) {
+      span.setAttribute(SENTRY_IDLE_SPAN_FINISH_REASON, _finishReason);
     }
 
     // Set span status to 'ok' if it hasn't been explicitly set to an error status

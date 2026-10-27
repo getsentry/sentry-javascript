@@ -1,12 +1,7 @@
-import {
-  captureException,
-  getIsolationScope,
-  httpRequestToRequestData,
-  isAlreadyCaptured,
-  withScope,
-} from '@sentry/core';
+import { captureException, getIsolationScope, isAlreadyCaptured, withScope } from '@sentry/core';
 import type { NextPageContext } from 'next';
 import { flushSafelyWithTimeout, waitUntil } from '../utils/responseEnd';
+import { pagesRouterRequestToRequestData } from '../utils/pagesRouterRequestToRequestData';
 
 type ContextOrProps = {
   req?: NextPageContext['req'];
@@ -62,7 +57,7 @@ export async function captureUnderscoreErrorException(contextOrProps: ContextOrP
 
   const eventId = withScope(scope => {
     if (req) {
-      const normalizedRequest = httpRequestToRequestData(req);
+      const normalizedRequest = pagesRouterRequestToRequestData(req);
       scope.setSDKProcessingMetadata({ normalizedRequest });
     }
 

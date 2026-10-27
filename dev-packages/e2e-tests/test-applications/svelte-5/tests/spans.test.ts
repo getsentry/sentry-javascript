@@ -20,17 +20,21 @@ test('sends a pageload span with component tracking init spans', async ({ page }
   expect(spans).toEqual(
     expect.arrayContaining([
       expect.objectContaining({
-        name: '<App>',
+        name: 'App',
         attributes: expect.objectContaining({
           'sentry.op': { value: 'ui.mount', type: 'string' },
           'sentry.origin': { value: 'auto.ui.svelte', type: 'string' },
+          'ui.component_name': { value: 'App', type: 'string' },
+          'sentry.description': { value: '<App>', type: 'string' },
         }),
       }),
       expect.objectContaining({
-        name: '<Counter>',
+        name: 'Counter',
         attributes: expect.objectContaining({
           'sentry.op': { value: 'ui.mount', type: 'string' },
           'sentry.origin': { value: 'auto.ui.svelte', type: 'string' },
+          'ui.component_name': { value: 'Counter', type: 'string' },
+          'sentry.description': { value: '<Counter>', type: 'string' },
         }),
       }),
     ]),

@@ -8,6 +8,7 @@ import {
   createTransport,
   getActiveSpan,
   getAsyncContextStrategy,
+  getCurrentScope,
   getDefaultCurrentScope,
   getDefaultIsolationScope,
   getMainCarrier,
@@ -42,6 +43,7 @@ class TestClient extends Client<any> {
 }
 
 function initTestClient(traceLifecycle: 'static' | 'stream' = 'static'): void {
+  getCurrentScope().setClient(undefined);
   initAndBind(TestClient, {
     dsn: 'https://username@domain/123',
     integrations: [],
@@ -197,7 +199,7 @@ describe('subscribeMysql2DiagnosticChannels', () => {
       const json = spanToJSON(span!);
       expect(json.name).toBe('SELECT solution FROM maths');
       expect(json.attributes['sentry.op']).toBe('db');
-      expect(json.attributes['sentry.origin']).toBe('auto.db.mysql2.diagnostic_channel');
+      expect(json.attributes['sentry.origin']).toBe('auto.db.mysql2.native_channel');
       expect(json.attributes['db.system.name']).toBe('mysql');
       expect(json.attributes['db.operation.name']).toBe('SELECT');
       // reported regardless of trace lifecycle, even though only span streaming names the span after it
@@ -356,7 +358,7 @@ describe('subscribeMysql2DiagnosticChannels', () => {
       const json = spanToJSON(span!);
       expect(json.name).toBe('mysql2.connect');
       expect(json.attributes['sentry.op']).toBe('db');
-      expect(json.attributes['sentry.origin']).toBe('auto.db.mysql2.diagnostic_channel');
+      expect(json.attributes['sentry.origin']).toBe('auto.db.mysql2.native_channel');
       expect(json.attributes['db.system.name']).toBe('mysql');
       expect(json.attributes['db.namespace']).toBe('test');
       expect(json.attributes['server.address']).toBe('127.0.0.1');

@@ -1,3 +1,4 @@
+import { sendPortToRunner } from '@sentry-internal/node-integration-tests';
 import * as Sentry from '@sentry/bun';
 
 // The target server the instrumented app makes outgoing fetch requests to. It
@@ -48,4 +49,4 @@ const server = Bun.serve({
   },
 });
 
-process.send?.(JSON.stringify({ event: 'READY', port: server.port }));
+sendPortToRunner(server.port!);

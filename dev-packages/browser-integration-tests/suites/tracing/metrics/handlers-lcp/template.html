@@ -6,6 +6,8 @@
   <body>
     <div id="content"></div>
     <img src="https://sentry-test-site.example/path/to/image.png" />
-    <button type="button">Test button</button>
+    <!-- Keeps the button off the image's line: whitespace between inline elements is painted as text, which can
+         become an LCP entry in the same frame as the image and hide the image from the LCP handlers. -->
+    <div><button type="button" aria-label="Finalize LCP"></button></div>
   </body>
 </html>

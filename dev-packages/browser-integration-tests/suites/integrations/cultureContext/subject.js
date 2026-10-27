@@ -1,1 +1,1 @@
-window._sentryScope.captureException(new Error('test error'));
+window.Sentry.captureException(new Error('test error'));

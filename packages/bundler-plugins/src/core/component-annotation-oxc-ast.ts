@@ -59,13 +59,10 @@ export type ComponentAnnotationTransformMeta = {
   magicString?: MagicStringLike;
 };
 
-export type ComponentAnnotationTransformResult =
-  | {
-      code: string;
-      map?: SourceMap | string;
-    }
-  | null
-  | undefined;
+export type ComponentAnnotationTransformResult = {
+  code: string;
+  map?: SourceMap | string;
+} | null;
 
 export function isAstNode(value: unknown): value is AstNode {
   return isObjectLike(value) && typeof value.type === 'string';

@@ -9,3 +9,5 @@ export const ANTHROPIC_METHOD_REGISTRY = {
   'completions.create': { operation: 'chat' },
   'beta.messages.create': { operation: 'chat' },
 } as const satisfies InstrumentedMethodRegistry;
+
+export const ANTHROPIC_AI_ORIGIN = 'auto.ai.anthropic';

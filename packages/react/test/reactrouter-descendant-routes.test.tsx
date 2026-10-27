@@ -1,14 +1,8 @@
 /**
  * @vitest-environment jsdom
  */
-import {
-  createTransport,
-  getCurrentScope,
-  SEMANTIC_ATTRIBUTE_SENTRY_OP,
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  setCurrentClient,
-} from '@sentry/core';
-import { SENTRY_SEGMENT_NAME_SOURCE, URL_TEMPLATE } from '@sentry/conventions/attributes';
+import { createTransport, getCurrentScope, setCurrentClient } from '@sentry/core';
+import { SENTRY_SEGMENT_NAME_SOURCE, URL_TEMPLATE, SENTRY_OP, SENTRY_ORIGIN } from '@sentry/conventions/attributes';
 import { render } from '@testing-library/react';
 import * as React from 'react';
 import {
@@ -90,6 +84,81 @@ describe('React Router Descendant Routes', () => {
   });
 
   describe('withSentryReactRouterV6Routing', () => {
+    it('keeps the parent path prefix for a descendant route with a percent-encoded parameter', () => {
+      const client = createMockBrowserClient();
+      setCurrentClient(client);
+
+      client.addIntegration(
+        reactRouterV6BrowserTracingIntegration({
+          useEffect: React.useEffect,
+          useLocation,
+          useNavigationType,
+          createRoutesFromChildren,
+          matchRoutes,
+        }),
+      );
+      const SentryRoutes = withSentryReactRouterV6Routing(Routes);
+
+      const ChildRouter = () => (
+        <SentryRoutes>
+          <Route path=":id" element={<div id="child">Child</div>} />
+        </SentryRoutes>
+      );
+
+      const { container } = render(
+        // What a browser's `location.pathname` holds for `/child/한글`
+        <MemoryRouter initialEntries={['/child/%ED%95%9C%EA%B8%80']}>
+          <SentryRoutes>
+            <Route path="child/*" element={<ChildRouter />} />
+          </SentryRoutes>
+        </MemoryRouter>,
+      );
+
+      expect(container.innerHTML).toContain('Child');
+      expect(mockStartBrowserTracingPageLoadSpan).toHaveBeenCalledTimes(1);
+      expect(getCurrentScope().getScopeData().transactionName).toEqual('/child/:id');
+    });
+
+    it('re-matches the descendant remainder without decoding it twice', () => {
+      const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+      const client = createMockBrowserClient();
+      setCurrentClient(client);
+
+      client.addIntegration(
+        reactRouterV6BrowserTracingIntegration({
+          useEffect: React.useEffect,
+          useLocation,
+          useNavigationType,
+          createRoutesFromChildren,
+          matchRoutes,
+        }),
+      );
+      const SentryRoutes = withSentryReactRouterV6Routing(Routes);
+
+      const ChildRouter = () => (
+        <SentryRoutes>
+          <Route path=":id" element={<div id="child">Child</div>} />
+        </SentryRoutes>
+      );
+
+      try {
+        const { container } = render(
+          // `100%25` decodes to `100%`, which React Router cannot decode a second time
+          <MemoryRouter initialEntries={['/child/100%25']}>
+            <SentryRoutes>
+              <Route path="child/*" element={<ChildRouter />} />
+            </SentryRoutes>
+          </MemoryRouter>,
+        );
+
+        expect(container.innerHTML).toContain('Child');
+        expect(getCurrentScope().getScopeData().transactionName).toEqual('/child/:id');
+        expect(warnSpy).not.toHaveBeenCalledWith(expect.stringContaining('could not be decoded'));
+      } finally {
+        warnSpy.mockRestore();
+      }
+    });
+
     it('keeps the parent path prefix for descendant routes with non-wildcard nested children - pageload', () => {
       const client = createMockBrowserClient();
       setCurrentClient(client);
@@ -177,8 +246,8 @@ describe('React Router Descendant Routes', () => {
         attributes: {
           [SENTRY_SEGMENT_NAME_SOURCE]: 'route',
           [URL_TEMPLATE]: '/child/:id',
-          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'navigation',
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.react.reactrouter_v6',
+          [SENTRY_OP]: 'navigation',
+          [SENTRY_ORIGIN]: 'auto.navigation.react.reactrouter_v6',
         },
       });
     });
@@ -309,8 +378,8 @@ describe('React Router Descendant Routes', () => {
         attributes: {
           [SENTRY_SEGMENT_NAME_SOURCE]: 'route',
           [URL_TEMPLATE]: '/:orgId/:id',
-          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'navigation',
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.react.reactrouter_v6',
+          [SENTRY_OP]: 'navigation',
+          [SENTRY_ORIGIN]: 'auto.navigation.react.reactrouter_v6',
         },
       });
     });
@@ -420,8 +489,8 @@ describe('React Router Descendant Routes', () => {
         attributes: {
           [SENTRY_SEGMENT_NAME_SOURCE]: 'route',
           [URL_TEMPLATE]: '/projects/:projectId/views/:viewId/:detailId',
-          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'navigation',
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.react.reactrouter_v6',
+          [SENTRY_OP]: 'navigation',
+          [SENTRY_ORIGIN]: 'auto.navigation.react.reactrouter_v6',
         },
       });
     });
@@ -481,8 +550,8 @@ describe('React Router Descendant Routes', () => {
         attributes: {
           [SENTRY_SEGMENT_NAME_SOURCE]: 'route',
           [URL_TEMPLATE]: '/projects/:projectId/views/:viewId/:detailId',
-          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'navigation',
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.react.reactrouter_v6',
+          [SENTRY_OP]: 'navigation',
+          [SENTRY_ORIGIN]: 'auto.navigation.react.reactrouter_v6',
         },
       });
     });
@@ -634,8 +703,8 @@ describe('React Router Descendant Routes', () => {
         attributes: {
           [SENTRY_SEGMENT_NAME_SOURCE]: 'route',
           [URL_TEMPLATE]: '/projects/:projectId/views/:viewId/:detailId',
-          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'navigation',
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.react.reactrouter_v6',
+          [SENTRY_OP]: 'navigation',
+          [SENTRY_ORIGIN]: 'auto.navigation.react.reactrouter_v6',
         },
       });
     });

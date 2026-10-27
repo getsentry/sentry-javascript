@@ -1,7 +1,13 @@
 import { _INTERNAL_filterKeyValueData, defineIntegration, safeSetSpanJSONAttributes } from '@sentry/core';
 import { getHttpRequestData, WINDOW } from '../helpers';
 import { filterCollectedUrl } from '@sentry/core';
-import { HTTP_REQUEST_HEADER_KEY_BASE, SENTRY_OP, URL_FULL, USER_AGENT_ORIGINAL } from '@sentry/conventions/attributes';
+import {
+  HTTP_REQUEST_HEADER_KEY_BASE,
+  SENTRY_IS_LOCALHOST,
+  SENTRY_OP,
+  URL_FULL,
+  USER_AGENT_ORIGINAL,
+} from '@sentry/conventions/attributes';
 
 /**
  * Collects information about HTTP request headers and
@@ -16,7 +22,7 @@ export const httpContextIntegration = defineIntegration(() => {
         return;
       }
 
-      const { url, headers: collectedHeaders } = getHttpRequestData();
+      const { url, headers: collectedHeaders } = getHttpRequestData(client);
 
       // We only filter the headers we collected ourselves, so headers the user set are left alone. Going by key
       // means we also catch these headers when `browserTracingIntegration` already put them on the event.
@@ -29,8 +35,7 @@ export const httpContextIntegration = defineIntegration(() => {
       };
 
       event.request = {
-        // The URL isn't gated by `dataCollection`, same as on the server.
-        url,
+        url: filterCollectedUrl(url, client),
         ...event.request,
         ...(Object.keys(headers).length > 0 ? { headers } : { headers: undefined }),
       };
@@ -42,7 +47,7 @@ export const httpContextIntegration = defineIntegration(() => {
         return;
       }
 
-      const reqData = getHttpRequestData();
+      const reqData = getHttpRequestData(client);
 
       // `httpHeadersToSpanAttributes` would also work here, but its cookie and array handling never runs for these
       // two headers and costs every browser bundle ~400B gzip.
@@ -51,11 +56,23 @@ export const httpContextIntegration = defineIntegration(() => {
         client.getDataCollectionOptions().httpHeaders.request,
       );
       const referer = headers['Referer'];
+      const { hostname, protocol } = WINDOW.location || {};
 
       safeSetSpanJSONAttributes(span, {
         // This attribute is used by the "Filter out events from legacy browsers and crawlers" features on the Sentry backend.
         // Therefore, it's set on every span.
         [USER_AGENT_ORIGINAL]: headers['User-Agent'],
+
+        // Likewise for the "Filter out localhost events" feature. Deliberately inlined rather than
+        // sharing the server-side helper, which costs bundle size for request headers and IPs that
+        // don't exist here. Mirrors Relay's localhost filter (relay-filter/src/localhost.rs).
+        [SENTRY_IS_LOCALHOST]:
+          protocol === 'file:' ||
+          hostname === 'localhost' ||
+          hostname === '127.0.0.1' ||
+          // `location.hostname` keeps the brackets for IPv6 hosts, so this is `[::1]`, not `::1`.
+          hostname === '[::1]' ||
+          !!hostname?.endsWith('.localhost'),
 
         // These attributes, we only need on the segment span (analogous to the `request` context for events)
         ...(span.is_segment && {

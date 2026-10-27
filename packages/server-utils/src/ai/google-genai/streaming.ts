@@ -21,8 +21,11 @@ interface StreamingState {
   promptTokens?: number;
   /** Number of completion/output tokens used. */
   completionTokens?: number;
+  candidateTokens?: number;
+  reasoningOutputTokens?: number;
   /** Number of total tokens used. */
   totalTokens?: number;
+  cacheReadInputTokens?: number;
   /** Accumulated tool calls (finalized) */
   toolCalls: Array<Record<string, unknown>>;
   /** Accumulated output message parts (for output recording). */
@@ -60,8 +63,13 @@ function handleResponseMetadata(chunk: GoogleGenAIResponse, state: StreamingStat
   const usage = chunk.usageMetadata;
   if (usage) {
     if (typeof usage.promptTokenCount === 'number') state.promptTokens = usage.promptTokenCount;
-    if (typeof usage.candidatesTokenCount === 'number') state.completionTokens = usage.candidatesTokenCount;
+    if (typeof usage.candidatesTokenCount === 'number') state.candidateTokens = usage.candidatesTokenCount;
+    if (typeof usage.thoughtsTokenCount === 'number') state.reasoningOutputTokens = usage.thoughtsTokenCount;
+    if (state.candidateTokens !== undefined || state.reasoningOutputTokens !== undefined) {
+      state.completionTokens = (state.candidateTokens ?? 0) + (state.reasoningOutputTokens ?? 0);
+    }
     if (typeof usage.totalTokenCount === 'number') state.totalTokens = usage.totalTokenCount;
+    if (typeof usage.cachedContentTokenCount === 'number') state.cacheReadInputTokens = usage.cachedContentTokenCount;
   }
 }
 
@@ -72,6 +80,7 @@ function handleResponseMetadata(chunk: GoogleGenAIResponse, state: StreamingStat
  * @param recordOutputs - Whether to record outputs
  */
 function handleCandidateContent(chunk: GoogleGenAIResponse, state: StreamingState, recordOutputs: boolean): void {
+  // The SDK getter already extracts function calls from candidate parts.
   if (Array.isArray(chunk.functionCalls)) {
     state.toolCalls.push(...chunk.functionCalls);
   }
@@ -87,14 +96,6 @@ function handleCandidateContent(chunk: GoogleGenAIResponse, state: StreamingStat
 
     for (const part of candidate?.content?.parts ?? []) {
       if (recordOutputs && part.text) state.responseTexts.push(part.text);
-      if (part.functionCall) {
-        state.toolCalls.push({
-          type: 'function',
-          id: part.functionCall.id,
-          name: part.functionCall.name,
-          arguments: part.functionCall.args,
-        });
-      }
     }
   }
 }

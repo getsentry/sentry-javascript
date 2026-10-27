@@ -49,6 +49,7 @@ export interface OpenAIResponseObject {
     input_tokens: number;
     input_tokens_details?: {
       cached_tokens?: number;
+      cache_write_tokens?: number;
     };
     output_tokens: number;
     output_tokens_details?: {
@@ -231,6 +232,7 @@ export interface ChatCompletionChunk {
     prompt_tokens_details: {
       audio_tokens: number;
       cached_tokens: number;
+      cache_write_tokens?: number;
     };
   };
 }

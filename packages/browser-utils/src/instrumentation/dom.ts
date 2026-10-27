@@ -19,8 +19,19 @@ type InstrumentedElement = Element & {
   __sentry_instrumentation_handlers__?: {
     [key in 'click' | 'keypress']?: {
       handler?: unknown;
-      /** The number of custom listeners attached to this element */
-      refCount: number;
+      capture?: boolean;
+      // listeners added with `capture: true`, meaning the listener is invoked before other
+      // listeners inside the element's hierarchy.
+      captureListeners: WeakSet<EventListenerOrEventListenerObject>;
+      // listeners added with `capture: false` (default), meaning the listener is invoked
+      // after other listeners inside the element's hierarchy (i.e. the event bubbles up)
+      bubbleListeners: WeakSet<EventListenerOrEventListenerObject>;
+      // Total number of listeners in `captureListeners` and `bubbleListeners`. WeakSets have no `size`, but we use them
+      // so listeners removed without going through our `removeEventListener` patch aren't retained by us.
+      listenerCount: number;
+      // Set once a `once` or `signal` listener was added. The browser removes those without going
+      // through `removeEventListener`, so we can't tell when they're gone and must keep our handler attached.
+      sticky?: boolean;
     };
   };
 };
@@ -30,6 +41,10 @@ const DEBOUNCE_DURATION = 1000;
 let debounceTimerID: number | undefined;
 let lastCapturedEventType: string | undefined;
 let lastCapturedEventTargetId: string | undefined;
+
+function getCapture(options: boolean | EventListenerOptions | undefined): boolean {
+  return typeof options === 'boolean' ? options : !!options?.capture;
+}
 
 /**
  * Add an instrumentation handler for when a click or a keypress happens.
@@ -73,19 +88,42 @@ export function instrumentDOM(): void {
 
     fill(proto, 'addEventListener', function (originalAddEventListener: AddEventListener): AddEventListener {
       return function (this: InstrumentedElement, type, listener, options): AddEventListener {
-        if (type === 'click' || type == 'keypress') {
+        // The browser ignores `null` listeners, so there's nothing for our handler to accompany.
+        if ((type === 'click' || type == 'keypress') && listener) {
           try {
             const handlers = (this.__sentry_instrumentation_handlers__ =
               this.__sentry_instrumentation_handlers__ || {});
-            const handlerForType = (handlers[type] = handlers[type] || { refCount: 0 });
+
+            const handlerForType = (handlers[type] = handlers[type] || {
+              captureListeners: new WeakSet(),
+              bubbleListeners: new WeakSet(),
+              listenerCount: 0,
+            });
+
+            const capture = getCapture(options);
 
             if (!handlerForType.handler) {
               const handler = makeDOMEventHandler(triggerDOMHandler);
               handlerForType.handler = handler;
-              originalAddEventListener.call(this, type, handler, options);
+              // Track the user-set `capture` option because it changes the identity of the registration of the
+              // event listener callback function (addEL(fn, true) vs addEL(fn, false) are two different registrations).
+              // Our listener needs to have the same capture setting, so that subsequent calls or removeEventListener
+              // calls correspond to the correct handler function.
+              handlerForType.capture = capture;
+              originalAddEventListener.call(this, type, handler, handlerForType.capture);
             }
 
-            handlerForType.refCount++;
+            const listeners = handlerForType[capture ? 'captureListeners' : 'bubbleListeners'];
+            // Adding the same listener twice in the same phase is a no-op in the browser.
+            if (!listeners.has(listener)) {
+              if (typeof options === 'object' && (options?.once || options?.signal)) {
+                // Not tracked to avoid retaining listeners the browser auto-removes.
+                handlerForType.sticky = true;
+              } else {
+                listeners.add(listener);
+                handlerForType.listenerCount++;
+              }
+            }
           } catch {
             // Accessing dom properties is always fragile.
             // Also allows us to skip `addEventListeners` calls with no proper `this` context.
@@ -101,16 +139,16 @@ export function instrumentDOM(): void {
       'removeEventListener',
       function (originalRemoveEventListener: RemoveEventListener): RemoveEventListener {
         return function (this: InstrumentedElement, type, listener, options): () => void {
-          if (type === 'click' || type == 'keypress') {
+          if ((type === 'click' || type == 'keypress') && listener) {
             try {
               const handlers = this.__sentry_instrumentation_handlers__ || {};
               const handlerForType = handlers[type];
 
-              if (handlerForType) {
-                handlerForType.refCount--;
+              // Removing a listener that was never added is a no-op in the browser, so it mustn't count for ours either.
+              if (handlerForType?.[getCapture(options) ? 'captureListeners' : 'bubbleListeners'].delete(listener)) {
                 // If there are no longer any custom handlers of the current type on this element, we can remove ours, too.
-                if (handlerForType.refCount <= 0) {
-                  originalRemoveEventListener.call(this, type, handlerForType.handler, options);
+                if (!--handlerForType.listenerCount && !handlerForType.sticky) {
+                  originalRemoveEventListener.call(this, type, handlerForType.handler, handlerForType.capture);
                   handlerForType.handler = undefined;
                   delete handlers[type]; // eslint-disable-line @typescript-eslint/no-dynamic-delete
                 }

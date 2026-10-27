@@ -6,6 +6,7 @@ export { expressErrorHandler, setupExpressErrorHandler } from '@sentry/server-ut
 export {
   amqplibIntegration,
   anthropicAIIntegration,
+  awsIntegration,
   dataloaderIntegration,
   expressIntegration,
   type ExpressIntegrationOptions,
@@ -15,6 +16,8 @@ export {
   graphqlIntegration,
   groqIntegration,
   hapiIntegration,
+  honoIntegration,
+  honoMiddleware,
   kafkaIntegration,
   knexIntegration,
   koaIntegration,
@@ -23,16 +26,21 @@ export {
   lruMemoizerIntegration,
   createFlueInstrumentation,
   mastraIntegration,
+  piDurableIntegration,
+  mcpServerIntegration,
   SentryMastraExporter,
   mongoIntegration,
   mongooseIntegration,
   mysqlIntegration,
   mistralAIIntegration,
   mysql2Integration,
+  nitroIntegration,
   openAIIntegration,
   togetherAIIntegration,
+  typesafeIntegration,
   postgresIntegration,
   postgresJsIntegration,
+  neonIntegration,
   redisIntegration,
   tediousIntegration,
   vercelAIIntegration,
@@ -45,10 +53,13 @@ export {
   instrumentAnthropicAiClient,
   instrumentGoogleGenAIClient,
   instrumentMistralAiClient,
+  instrumentTypeSafeClient,
   createLangChainCallbackHandler,
   instrumentLangChainEmbeddings,
   instrumentStateGraph,
   instrumentStateGraphCompile,
+  instrumentCreateReactAgent,
+  instrumentPostgresJsSql,
   fastifyIntegration,
   // oxlint-disable-next-line typescript/no-deprecated
   setupFastifyErrorHandler,
@@ -108,7 +119,9 @@ export {
   setAttributes,
   setUser,
   setConversationId,
+  // oxlint-disable-next-line typescript/no-deprecated
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
+  // oxlint-disable-next-line typescript/no-deprecated
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE,
   setCurrentClient,
@@ -138,6 +151,7 @@ export {
   captureSession,
   endSession,
   addIntegration,
+  moduleMetadataIntegration,
   startSpan,
   startSpanManual,
   startInactiveSpan,
@@ -220,8 +234,8 @@ export { defaultStackParser, getSentryRelease } from './sdk/api';
 export { makeNodeTransport } from './transports';
 export { createGetModuleFromFilename } from './utils/module';
 
-export { SENTRY_SEGMENT_NAME_SOURCE } from '@sentry/conventions/attributes';
-export { eveConversationHook, getInstrumentedModuleNames } from '@sentry/server-utils';
+export { eveConversationHook, eveIntegration, getInstrumentedModuleNames } from '@sentry/server-utils';
+export { eveInstrumentation } from './eve';
 export { httpServerIntegration } from './integrations/http/httpServerIntegration';
 export { httpServerSpansIntegration } from './integrations/http/httpServerSpansIntegration';
 export { processSessionIntegration } from './integrations/processSession';

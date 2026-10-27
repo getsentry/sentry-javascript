@@ -1,7 +1,16 @@
 import { AsyncLocalStorage } from 'node:async_hooks';
 import { ProxyTracer } from '@opentelemetry/api';
 import type { Event, EventHint, Log } from '@sentry/core';
-import { getAsyncContextStrategy, getMainCarrier, Scope, SDK_VERSION } from '@sentry/core';
+import {
+  createTransport,
+  getAsyncContextStrategy,
+  getClient,
+  getMainCarrier,
+  resolvedSyncPromise,
+  Scope,
+  SDK_VERSION,
+  startSpan,
+} from '@sentry/core';
 import type { SentryTracerProvider } from '@sentry/opentelemetry';
 import { setOpenTelemetryContextAsyncContextStrategy } from '@sentry/opentelemetry';
 import * as SentryOpentelemetry from '@sentry/opentelemetry';
@@ -10,7 +19,7 @@ import * as os from 'os';
 import { afterEach, beforeEach, describe, expect, it, test, vi } from 'vitest';
 import { NodeClient } from '../../src';
 import { getDefaultNodeClientOptions } from '../helpers/getDefaultNodeClientOptions';
-import { cleanupOtel } from '../helpers/mockSdkInit';
+import { cleanupOtel, mockSdkInit } from '../helpers/mockSdkInit';
 
 describe('NodeClient', () => {
   beforeEach(() => {
@@ -397,39 +406,63 @@ describe('NodeClient', () => {
       expect(forceFlushSpy).toHaveBeenCalledTimes(1);
     });
 
-    it('stops client report tracking if it was started', async () => {
-      const processOffSpy = vi.spyOn(process, 'off');
-      const clearIntervalSpy = vi.spyOn(globalThis, 'clearInterval');
-
+    it('stops client report tracking when closed', async () => {
+      const originalListeners = process.listeners('beforeExit');
       const client = new NodeClient(getDefaultNodeClientOptions({ sendClientReports: true }));
+      const listenersBeforeTracking = process.listeners('beforeExit');
+      const setIntervalSpy = vi.spyOn(globalThis, 'setInterval');
+      const clearIntervalSpy = vi.spyOn(globalThis, 'clearInterval');
 
       client.startClientReportTracking();
 
-      const result = await client.close();
+      const addedListeners = process
+        .listeners('beforeExit')
+        .filter(listener => !listenersBeforeTracking.includes(listener));
+      const [intervalResult] = setIntervalSpy.mock.results;
 
-      expect(result).toBe(true);
+      await client.close();
 
+      expect(addedListeners).toHaveLength(1);
+      expect(process.listeners('beforeExit')).toEqual(originalListeners);
+      expect(setIntervalSpy).toHaveBeenCalledTimes(1);
       expect(clearIntervalSpy).toHaveBeenCalledTimes(1);
-
-      // removes `_clientReportOnExitFlushListener`
-      expect(processOffSpy).toHaveBeenNthCalledWith(1, 'beforeExit', expect.any(Function));
+      expect(clearIntervalSpy).toHaveBeenCalledWith(intervalResult?.value);
     });
 
-    it('stops log capture if it was started', async () => {
-      const processOffSpy = vi.spyOn(process, 'off');
+    it('removes the exit flush listener when closed', async () => {
+      const originalListeners = process.listeners('beforeExit');
+      const client = new NodeClient(getDefaultNodeClientOptions({ sendClientReports: false }));
 
-      const client = new NodeClient(getDefaultNodeClientOptions());
+      const addedListeners = process.listeners('beforeExit').filter(listener => !originalListeners.includes(listener));
 
-      const result = await client.close();
+      await client.close();
 
-      expect(result).toBe(true);
-
-      // removes `_logOnExitFlushListener`
-      expect(processOffSpy).toHaveBeenNthCalledWith(1, 'beforeExit', expect.any(Function));
+      expect(addedListeners).toHaveLength(1);
+      expect(process.listeners('beforeExit')).toEqual(originalListeners);
     });
   });
 
   describe('flush', () => {
+    it('sends buffered streamed spans before the process exits', async () => {
+      const send = vi.fn(() => resolvedSyncPromise({}));
+      mockSdkInit({
+        tracesSampleRate: 1,
+        traceLifecycle: 'stream',
+        transport: () => createTransport({ recordDroppedEvent: () => undefined }, send),
+      });
+
+      startSpan({ name: 'cron-job' }, () => {});
+      await new Promise(resolve => setImmediate(resolve));
+      expect(send).not.toHaveBeenCalled();
+
+      process.emit('beforeExit', 0);
+
+      expect(send).toHaveBeenCalledTimes(1);
+      expect(send).toHaveBeenCalledWith(expect.objectContaining({ body: expect.stringContaining('"type":"span"') }));
+
+      await getClient()?.close();
+    });
+
     it('flush returns immediately when nothing is processing', async () => {
       const options = getDefaultNodeClientOptions();
       const client = new NodeClient(options);

@@ -58,6 +58,7 @@ What the reference files won't tell you:
 - [ ] Instrumentation in `src/ai/`, integration in `src/integrations/`, registered in `getTracingIntegrations()` (LangChain first)
 - [ ] Exported from `packages/server-utils/src/index.ts`, re-exported from the supported runtime packages
 - [ ] E2E tests in `dev-packages/node-integration-tests/suites/tracing/{provider}/` (and `cloudflare-integration-tests/` if supported)
+- [ ] The new suite passes on the other runtimes that run the Node suites, or is excluded there (see "Other Runtimes" in `dev-packages/node-integration-tests/README.md`)
 - [ ] Ops and attributes from `@sentry/conventions`, op derived via `getGenAiSpanOp()`
 - [ ] Recording gated on `resolveAIRecordingOptions()`; no truncation, no token rollup
 - [ ] JSDoc names the channels subscribed to, the supported SDK versions, and — for Pattern 2 — that it requires the Sentry runtime hook or bundler plugin

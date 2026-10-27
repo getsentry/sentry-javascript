@@ -2,7 +2,6 @@ import { DEBUG_BUILD } from '../../debug-build';
 import type { BeforeSendStaticSpanCallback, BeforeSendStreamedSpanCallback } from '../../types/options';
 import type { SpanJSON, StreamedSpanJSON } from '../../types/span';
 import { addNonEnumerableProperty } from '../../utils/object';
-import { consoleSandbox } from '../../utils/debug-logger';
 import { safeCallback } from '../../utils/safeCallback';
 
 /**
@@ -57,7 +56,6 @@ export function isStaticBeforeSendSpanCallback(callback: unknown): callback is B
   return !!callback && typeof callback === 'function' && '_static' in callback && !!callback._static;
 }
 
-let hasShownSpanDropWarning = false;
 /**
  * Apply a user-provided beforeSendSpan callback to a span JSON.
  */
@@ -72,18 +70,5 @@ export function applyBeforeSendSpanCallback<T extends StreamedSpanJSON | SpanJSO
     () => beforeSendSpan(span),
     () => span,
   );
-  if (modifiedSpan) {
-    return modifiedSpan;
-  }
-
-  if (!hasShownSpanDropWarning) {
-    consoleSandbox(() => {
-      // eslint-disable-next-line no-console
-      console.warn(
-        '[Sentry] Returning null from `beforeSendSpan` is disallowed. To drop certain spans, configure the respective integrations directly or use `ignoreSpans`.',
-      );
-    });
-    hasShownSpanDropWarning = true;
-  }
-  return span;
+  return modifiedSpan || span;
 }

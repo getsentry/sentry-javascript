@@ -1,4 +1,6 @@
 // @vitest-environment jsdom
+import { SENTRY_OP, URL_FULL, URL_PATH } from '@sentry/conventions/attributes';
+import { PAGELOAD } from '@sentry/conventions/op';
 import type { Client } from '@sentry/core';
 import type * as SentryCore from '@sentry/core';
 import type * as SentryReact from '@sentry/react';
@@ -11,11 +13,13 @@ import '@sentry/core';
 import '@sentry/react';
 import '../../src/client/routing/appRouterRoutingInstrumentation';
 import type * as AppRouterInstrumentation from '../../src/client/routing/appRouterRoutingInstrumentation';
+import type * as RouteProvider from '../../src/client/routing/routeProvider';
 import type { RouteManifest } from '../../src/config/manifest/types';
 
 type Core = typeof SentryCore;
 type React = typeof SentryReact;
 type Instrumentation = typeof AppRouterInstrumentation;
+type RouteProviderModule = typeof RouteProvider;
 
 interface NextRouter {
   back: () => void;
@@ -27,6 +31,7 @@ interface NextRouter {
 const globalWithNext = globalThis as typeof globalThis & {
   next?: { router?: NextRouter };
   _sentryRouteManifest?: string;
+  _sentryBasePath?: string;
 };
 
 const manifest: RouteManifest = {
@@ -38,8 +43,13 @@ const manifest: RouteManifest = {
       paramNames: ['param'],
       hasOptionalPrefix: false,
     },
+    {
+      path: '/my-app/navigation/:param/router-push',
+      regex: '^/my-app/navigation/([^/]+)/router-push$',
+      paramNames: ['param'],
+      hasOptionalPrefix: false,
+    },
   ],
-  isrRoutes: [],
 };
 
 function sleep(ms: number): Promise<void> {
@@ -56,11 +66,13 @@ async function setup(traceLifecycle: 'stream' | 'static'): Promise<{
   core: Core;
   router: NextRouter;
   client: Client;
+  instrumentation: Instrumentation;
 }> {
   vi.resetModules();
   const core: Core = await import('@sentry/core');
   const react: React = await import('@sentry/react');
   const instrumentation: Instrumentation = await import('../../src/client/routing/appRouterRoutingInstrumentation');
+  const routeProvider: RouteProviderModule = await import('../../src/client/routing/routeProvider');
 
   const client = new react.BrowserClient({
     dsn: 'http://examplePublicKey@localhost/0',
@@ -68,6 +80,7 @@ async function setup(traceLifecycle: 'stream' | 'static'): Promise<{
     stackParser: () => [],
     tracesSampleRate: 1,
     traceLifecycle,
+    routeProvider: routeProvider.createNextRouteProvider(),
     integrations: [react.browserTracingIntegration({ instrumentPageLoad: false, instrumentNavigation: false })],
   });
   core.setCurrentClient(client);
@@ -80,7 +93,7 @@ async function setup(traceLifecycle: 'stream' | 'static'): Promise<{
   instrumentation.appRouterInstrumentNavigation(client);
   await vi.waitFor(() => expect(router.back).not.toBe(originalBack));
 
-  return { core, router, client };
+  return { core, router, client, instrumentation };
 }
 
 describe('appRouterInstrumentNavigation (router-patch mode)', () => {
@@ -206,4 +219,120 @@ describe('appRouterInstrumentNavigation (router-patch mode)', () => {
       );
     });
   });
+});
+
+describe('appRouterInstrumentNavigation with basePath', () => {
+  beforeEach(() => {
+    globalWithNext._sentryRouteManifest = JSON.stringify(manifest);
+    globalWithNext._sentryBasePath = '/my-app';
+    window.history.replaceState({}, '', '/my-app/navigation');
+  });
+
+  afterEach(() => {
+    delete globalWithNext.next;
+    delete globalWithNext._sentryRouteManifest;
+    delete globalWithNext._sentryBasePath;
+  });
+
+  it.each([
+    ['a root-relative path without basePath', '/navigation/42/router-push'],
+    ['a root-relative path with basePath', '/my-app/navigation/42/router-push'],
+    ['an absolute URL', 'http://localhost:3000/my-app/navigation/42/router-push'],
+  ])('names the router-patch navigation span correctly for %s', async (_, href) => {
+    const { core, router } = await setup('static');
+
+    router.push(href);
+
+    const span = core.getActiveSpan();
+    expect(span).toBeDefined();
+    const spanJson = core.spanToJSON(span!);
+    expect(spanJson.name).toBe('/my-app/navigation/:param/router-push');
+    expect(spanJson.attributes).toEqual(
+      expect.objectContaining({ 'url.full': 'http://localhost:3000/my-app/navigation/42/router-push' }),
+    );
+  });
+
+  it.each([
+    ['a root-relative path without basePath', '/navigation/42/router-push'],
+    ['a root-relative path with basePath', '/my-app/navigation/42/router-push'],
+    ['an absolute URL', 'http://localhost:3000/my-app/navigation/42/router-push'],
+  ])('names the transition-start-hook navigation span correctly for %s', async (_, href) => {
+    const { core, instrumentation } = await setup('static');
+
+    instrumentation.captureRouterTransitionStart(href, 'push');
+
+    const span = core.getActiveSpan();
+    expect(span).toBeDefined();
+    expect(core.spanToJSON(span!).name).toBe('/my-app/navigation/:param/router-push');
+  });
+});
+
+describe('appRouterInstrumentPageLoad', () => {
+  const originalReadyState = Object.getOwnPropertyDescriptor(Document.prototype, 'readyState');
+
+  beforeEach(() => {
+    globalWithNext._sentryRouteManifest = JSON.stringify(manifest);
+    window.history.replaceState({}, '', '/navigation?from=document');
+    Object.defineProperty(document, 'readyState', { value: 'loading', configurable: true });
+    vi.spyOn(performance, 'getEntriesByType').mockReturnValue([]);
+    vi.stubEnv('_sentryCacheComponents', 'true');
+  });
+
+  afterEach(() => {
+    delete globalWithNext.next;
+    delete globalWithNext._sentryRouteManifest;
+    // @ts-expect-error deleting the instance override restores the prototype getter
+    delete document.readyState;
+    if (originalReadyState) {
+      Object.defineProperty(Document.prototype, 'readyState', originalReadyState);
+    }
+    vi.restoreAllMocks();
+    vi.unstubAllEnvs();
+  });
+
+  it('records the URL of the document when the pageload starts after a navigation changed it', async () => {
+    const { core, instrumentation } = await setup('static');
+
+    instrumentation.appRouterInstrumentPageLoad(core.getClient()!);
+    const spanBeforeSettling = core.getActiveSpan();
+
+    window.history.replaceState({}, '', '/navigation/42/router-back');
+    instrumentation.settlePendingPageloadWait();
+
+    const span = core.getActiveSpan();
+    expect(span).toBeDefined();
+    expect(span).not.toBe(spanBeforeSettling);
+    const spanJson = core.spanToJSON(span!);
+    expect(spanJson.name).toBe('/navigation');
+    expect(spanJson.attributes?.[SENTRY_OP]).toBe(PAGELOAD);
+    expect(spanJson.attributes).toEqual(
+      expect.objectContaining({
+        [URL_PATH]: '/navigation',
+        [URL_FULL]: 'http://localhost:3000/navigation?from=document',
+      }),
+    );
+    expect(core.getCurrentScope().getScopeData().sdkProcessingMetadata.normalizedRequest?.url).toBe(
+      'http://localhost:3000/navigation?from=document',
+    );
+  });
+
+  // `settlePendingPageloadWait` is a no-op when the pageload did not wait, so both cases run the same steps.
+  it.each([
+    { start: 'at once', cacheComponents: 'false' },
+    { start: 'after the wait', cacheComponents: 'true' },
+  ])(
+    'filters sensitive query parameters from the document URL of a pageload that starts $start',
+    async ({ cacheComponents }) => {
+      vi.stubEnv('_sentryCacheComponents', cacheComponents);
+      window.history.replaceState({}, '', '/navigation?token=2c4f9e1b&from=document');
+      const { core, instrumentation } = await setup('static');
+
+      instrumentation.appRouterInstrumentPageLoad(core.getClient()!);
+      instrumentation.settlePendingPageloadWait();
+
+      const filteredUrl = 'http://localhost:3000/navigation?token=[Filtered]&from=document';
+      expect(core.spanToJSON(core.getActiveSpan()!).attributes?.[URL_FULL]).toBe(filteredUrl);
+      expect(core.getCurrentScope().getScopeData().sdkProcessingMetadata.normalizedRequest?.url).toBe(filteredUrl);
+    },
+  );
 });

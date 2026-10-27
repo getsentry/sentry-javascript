@@ -23,6 +23,7 @@ export type {
 } from '@sentry/core';
 
 export type { BrowserOptions } from './client';
+export type { LoaderSentry } from './loader-types';
 
 export {
   addEventProcessor,
@@ -78,10 +79,11 @@ export {
 } from '@sentry/core';
 
 export {
+  // oxlint-disable-next-line typescript/no-deprecated
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
+  // oxlint-disable-next-line typescript/no-deprecated
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE,
-  SENTRY_SEGMENT_NAME_SOURCE,
 } from '@sentry/core';
 
 export { WINDOW } from './helpers';

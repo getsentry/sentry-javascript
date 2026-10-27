@@ -64,6 +64,21 @@ describe('orchestrion config — channel-subscriber coverage', () => {
   });
 });
 
+describe('orchestrion config — Flue', () => {
+  it('transforms @flue/runtime', () => {
+    expect(SENTRY_INSTRUMENTATIONS.map(i => i.module.name)).toContain('@flue/runtime');
+  });
+
+  it('is force-bundled as a side effect of being instrumented', () => {
+    expect(INSTRUMENTED_MODULE_NAMES).toContain('@flue/runtime');
+  });
+
+  // Registration-only configs carry a custom transform the runtime loader cannot apply.
+  it('excludes @flue/runtime from the runtime loader', () => {
+    expect(SENTRY_RUNTIME_INSTRUMENTATIONS.map(i => i.module.name)).not.toContain('@flue/runtime');
+  });
+});
+
 describe('orchestrion config — custom instrumentations', () => {
   const customInstrumentation = { module: { name: 'my-lib' } } as InstrumentationConfig;
 

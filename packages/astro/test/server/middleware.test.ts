@@ -1,4 +1,4 @@
-import { SENTRY_SEGMENT_NAME_SOURCE, URL_FULL, URL_PATH } from '@sentry/conventions/attributes';
+import { HTTP_REQUEST_METHOD, SENTRY_SEGMENT_NAME_SOURCE, URL_FULL, URL_PATH } from '@sentry/conventions/attributes';
 import type { Client, Span } from '@sentry/core';
 
 import * as SentryCore from '@sentry/core';
@@ -54,6 +54,7 @@ describe('sentryMiddleware', () => {
     urlQueryParams: true,
     graphQL: { document: true, variables: true },
     genAI: { inputs: true, outputs: true },
+    mcp: { inputs: true, outputs: true },
     databaseQueryData: true,
     stackFrameVariables: true,
     frameContextLines: 5,
@@ -128,7 +129,7 @@ describe('sentryMiddleware', () => {
           [URL_FULL]: 'https://mydomain.io/users/123/details',
           [URL_PATH]: '/users/123/details',
           [SENTRY_SEGMENT_NAME_SOURCE]: 'route',
-          [SentryCore.SEMANTIC_ATTRIBUTE_HTTP_REQUEST_METHOD]: 'GET',
+          [HTTP_REQUEST_METHOD]: 'GET',
           'http.route': '/users/[id]/details',
         },
         name: 'GET /users/[id]/details',
@@ -160,6 +161,7 @@ describe('sentryMiddleware', () => {
               urlQueryParams: true,
               graphQL: { document: true, variables: true },
               genAI: { inputs: true, outputs: true },
+              mcp: { inputs: true, outputs: true },
               databaseQueryData: true,
               stackFrameVariables: true,
               frameContextLines: 5,
@@ -230,7 +232,7 @@ describe('sentryMiddleware', () => {
           [URL_FULL]: 'http://localhost:1234/a%xx',
           [URL_PATH]: 'a%xx',
           [SENTRY_SEGMENT_NAME_SOURCE]: 'url',
-          [SentryCore.SEMANTIC_ATTRIBUTE_HTTP_REQUEST_METHOD]: 'GET',
+          [HTTP_REQUEST_METHOD]: 'GET',
         },
         name: 'GET a%xx',
       },

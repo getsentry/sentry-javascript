@@ -50,6 +50,7 @@ interface DrawCommand {
 function drawRect(command: DrawCommand, ctx: CanvasRenderingContext2D, color: string): void {
   switch (command.type) {
     case 'highlight': {
+      ctx.save();
       // creates a shadow around
       ctx.shadowColor = 'rgba(0, 0, 0, 0.7)';
       ctx.shadowBlur = 50;
@@ -60,6 +61,7 @@ function drawRect(command: DrawCommand, ctx: CanvasRenderingContext2D, color: st
 
       // cut out the inside of the rectangle
       ctx.clearRect(command.x, command.y, command.w, command.h);
+      ctx.restore();
 
       break;
     }
@@ -229,8 +231,8 @@ export function ScreenshotEditorFactory({
       const boundingRect = mouseRef.current.getBoundingClientRect();
       const startingPoint: DrawCommand = {
         type: action,
-        x: e.offsetX / scaleFactor,
-        y: e.offsetY / scaleFactor,
+        x: (e.clientX - boundingRect.x) / scaleFactor,
+        y: (e.clientY - boundingRect.y) / scaleFactor,
         w: 0,
         h: 0,
       };

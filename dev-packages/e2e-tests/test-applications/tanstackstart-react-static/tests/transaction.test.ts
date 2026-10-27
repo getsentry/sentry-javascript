@@ -33,8 +33,10 @@ test('Sends a server function transaction with auto-instrumentation', async ({ p
         data: {
           'sentry.op': 'function',
           'sentry.origin': 'auto.function.tanstackstart.server',
+          'code.function.name': 'testLog',
+          'http.request.method': 'GET',
           'tanstackstart.function.id': expect.any(String),
-          'tanstackstart.function.filename': 'src/routes/test-serverFn.tsx',
+          'tanstackstart.function.filename': 'app/routes/test-serverFn.tsx',
         },
         status: 'ok',
       }),
@@ -72,8 +74,10 @@ test('Sends a server function transaction for a nested server function only if i
         data: {
           'sentry.op': 'function',
           'sentry.origin': 'auto.function.tanstackstart.server',
+          'code.function.name': 'testNestedLog',
+          'http.request.method': 'GET',
           'tanstackstart.function.id': expect.any(String),
-          'tanstackstart.function.filename': 'src/routes/test-serverFn.tsx',
+          'tanstackstart.function.filename': 'app/routes/test-serverFn.tsx',
         },
         status: 'ok',
       }),

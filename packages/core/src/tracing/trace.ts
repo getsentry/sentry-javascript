@@ -6,8 +6,8 @@ import { getMainCarrier } from '../carrier';
 import { getClient, getCurrentScope, getIsolationScope, withScope } from '../currentScopes';
 import { DEBUG_BUILD } from '../debug-build';
 import type { Scope } from '../scope';
-import { SENTRY_SEGMENT_NAME_SOURCE } from '@sentry/conventions/attributes';
-import { SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE } from '../semanticAttributes';
+import { SENTRY_SEGMENT_NAME_SOURCE, SENTRY_OP } from '@sentry/conventions/attributes';
+import { SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE } from '../semanticAttributes';
 import type { ClientOptions } from '../types/options';
 import type { SentrySpanArguments, Span, SpanTimeInput } from '../types/span';
 import type { StartSpanOptions } from '../types/startSpanOptions';
@@ -308,7 +308,11 @@ export function startNewTrace<T>(callback: () => T): T {
  */
 function startMissingRequiredParentSpan(scope: Scope, client: Client | undefined): SentryNonRecordingSpan {
   client?.recordDroppedEvent('no_parent_span', 'span');
-  const span = new SentryNonRecordingSpan({ traceId: scope.getPropagationContext().traceId });
+  // Spans nested inside the placeholder inherit its drop reason in `_startChildSpan`
+  const span = new SentryNonRecordingSpan({
+    dropReason: 'no_parent_span',
+    traceId: scope.getPropagationContext().traceId,
+  });
   setCapturedScopesOnSpan(span, scope, getIsolationScope());
   return span;
 }
@@ -448,7 +452,7 @@ function parseSentrySpanArguments(options: StartSpanOptions): SentrySpanArgument
   // constructor only adds it after the sampling decision. An explicit `sentry.op` attribute wins.
   if (options.op) {
     initialCtx.attributes = {
-      [SEMANTIC_ATTRIBUTE_SENTRY_OP]: options.op,
+      [SENTRY_OP]: options.op,
       ...options.attributes,
     };
   }
@@ -523,7 +527,14 @@ function _startRootSpan(
 
   if (!sampled && client && !_isTracingSuppressed) {
     DEBUG_BUILD && debug.log('[Tracing] Discarding root span because its trace was not chosen to be sampled.');
-    client.recordDroppedEvent(dropReason || 'sample_rate', hasSpanStreamingEnabled(client) ? 'span' : 'transaction');
+    const outcomeReason = dropReason || 'sample_rate';
+    // A standalone span is sent on its own and never becomes a transaction.
+    // TODO(v12): Drop the `isStandalone` check once the static trace lifecycle is gone.
+    if (!hasSpanStreamingEnabled(client) && !spanArguments.isStandalone) {
+      client.recordDroppedEvent(outcomeReason, 'transaction');
+    }
+    // Child spans of this root record their own `span` outcome in `_startChildSpan`.
+    client.recordDroppedEvent(outcomeReason, 'span');
   }
 
   setCapturedScopesOnSpan(rootSpan, scope, isolationScope);
@@ -568,11 +579,10 @@ function _startChildSpan(
     return childSpan;
   }
 
-  if (hasSpanStreamingEnabled(client) && spanIsNonRecordingSpan(childSpan)) {
+  if (spanIsNonRecordingSpan(childSpan)) {
     if (spanIsNonRecordingSpan(parentSpan) && parentSpan.dropReason) {
-      // We land here if the parent span was a segment span that was ignored (`ignoreSpans`).
-      // In this case, the child was also ignored (see `sampled` above) but we need to
-      // record a client outcome for the child.
+      // The parent was dropped for a reason other than sampling (e.g. an ignored segment span or
+      // an `onlyIfParent` placeholder), so the child is dropped for the same reason.
       childSpan.dropReason = parentSpan.dropReason;
       client.recordDroppedEvent(parentSpan.dropReason, 'span');
     } else if (!_isTracingSuppressed) {
@@ -633,7 +643,7 @@ function _shouldIgnoreStreamedSpan(client: Client | undefined, spanArguments: Se
   return shouldIgnoreSpan(
     {
       description: spanArguments.name || '',
-      op: spanArguments.attributes?.[SEMANTIC_ATTRIBUTE_SENTRY_OP] || spanArguments.op,
+      op: spanArguments.attributes?.[SENTRY_OP] || spanArguments.op,
       attributes: spanArguments.attributes,
     },
     ignoreSpans,

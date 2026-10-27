@@ -66,7 +66,7 @@ test('sends spans for MCP 2026-07-28 tool calls', async ({ baseURL }) => {
   expect(requestSpan.attributes['http.request.method']?.value).toBe('POST');
   expect(requestSpan.attributes['url.path']?.value).toBe('/mcp');
   expect(requestSpan.attributes['url.full']?.value).toBe(url);
-  expect(requestSpan.attributes['url.port']?.value).toBe('38787');
+  expect(requestSpan.attributes['url.port']?.value).toBe('8787');
   expect(requestSpan.attributes['url.scheme']?.value).toBe('http:');
   expect(requestSpan.attributes['server.address']?.value).toBe('localhost');
   expect(requestSpan.attributes['http.request.body.size']?.value).toBe(341);

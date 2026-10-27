@@ -46,10 +46,9 @@ test('sends a navigation root span with a parameterized URL', async ({ page }) =
 });
 
 test('sends component tracking spans when `trackComponents` is enabled', async ({ page }) => {
-  // Nuxt 5 disables the Options API by default (nuxt/nuxt#35791), which turns `app.mixin()` into a
-  // no-op, and that mixin is where the SDK creates every UI span. Flips to passing once component
-  // tracking works without it.
-  test.fail(true, 'Vue tracing is registered through app.mixin(), which needs the Options API');
+  // Nuxt 5 disables the Options API by default (nuxt/nuxt#35791), and component spans only exist
+  // through `app.mixin()`, which that flag turns into a no-op. `vue: { optionsApi: true }` re-enables it.
+  test.fail(true, 'Component tracking (`trackComponents`) needs the Options API');
 
   const spansPromise = collectStreamedSpansUntilSegment(
     'nuxt-5',
@@ -59,10 +58,10 @@ test('sends component tracking spans when `trackComponents` is enabled', async (
   await page.goto(`/client-error`);
 
   const spans = await spansPromise;
-  const errorButtonSpan = spans.find(span => span.name === 'Vue <ErrorButton>');
+  const errorButtonSpan = spans.find(span => span.name === 'ErrorButton');
 
   expect(errorButtonSpan).toMatchObject({
-    name: 'Vue <ErrorButton>',
+    name: 'ErrorButton',
     is_segment: false,
     parent_span_id: expect.stringMatching(/[a-f0-9]{16}/),
     span_id: expect.stringMatching(/[a-f0-9]{16}/),
@@ -72,15 +71,13 @@ test('sends component tracking spans when `trackComponents` is enabled', async (
     attributes: expect.objectContaining({
       'sentry.op': { type: 'string', value: 'ui.mount' },
       'sentry.origin': { type: 'string', value: 'auto.ui.vue' },
+      'ui.component_name': { type: 'string', value: 'ErrorButton' },
+      'sentry.description': { type: 'string', value: 'Vue <ErrorButton>' },
     }),
   });
 });
 
 test('sends an application render span and a root component span on pageload', async ({ page }) => {
-  // Same root cause as above: no Options API, no `app.mixin()`, no UI spans. Flips to passing once
-  // the root spans stop depending on the mixin.
-  test.fail(true, 'Vue tracing is registered through app.mixin(), which needs the Options API');
-
   const spansPromise = collectStreamedSpansUntilSegment(
     'nuxt-5',
     span => span.name === '/client-error' && getSpanOp(span) === 'pageload',
@@ -91,10 +88,12 @@ test('sends an application render span and a root component span on pageload', a
   const spans = await spansPromise;
   const uiSpans = spans.filter(span => span.attributes['sentry.origin']?.value === 'auto.ui.vue');
 
-  const applicationRenderSpans = uiSpans.filter(span => span.name === 'Application Render');
+  const applicationRenderSpans = uiSpans.filter(
+    span => span.name === 'Root' && span.attributes['sentry.op']?.value === 'ui.render',
+  );
   expect(applicationRenderSpans).toHaveLength(1);
   expect(applicationRenderSpans[0]).toMatchObject({
-    name: 'Application Render',
+    name: 'Root',
     is_segment: false,
     parent_span_id: expect.stringMatching(/[a-f0-9]{16}/),
     span_id: expect.stringMatching(/[a-f0-9]{16}/),
@@ -104,13 +103,17 @@ test('sends an application render span and a root component span on pageload', a
     attributes: expect.objectContaining({
       'sentry.op': { type: 'string', value: 'ui.render' },
       'sentry.origin': { type: 'string', value: 'auto.ui.vue' },
+      'ui.component_name': { type: 'string', value: 'Root' },
+      'sentry.description': { type: 'string', value: 'Application Render' },
     }),
   });
 
-  const rootComponentSpans = uiSpans.filter(span => span.name === 'Vue <Root>');
+  const rootComponentSpans = uiSpans.filter(
+    span => span.name === 'Root' && span.attributes['sentry.op']?.value === 'ui.mount',
+  );
   expect(rootComponentSpans).toHaveLength(1);
   expect(rootComponentSpans[0]).toMatchObject({
-    name: 'Vue <Root>',
+    name: 'Root',
     is_segment: false,
     parent_span_id: expect.stringMatching(/[a-f0-9]{16}/),
     span_id: expect.stringMatching(/[a-f0-9]{16}/),
@@ -120,6 +123,8 @@ test('sends an application render span and a root component span on pageload', a
     attributes: expect.objectContaining({
       'sentry.op': { type: 'string', value: 'ui.mount' },
       'sentry.origin': { type: 'string', value: 'auto.ui.vue' },
+      'ui.component_name': { type: 'string', value: 'Root' },
+      'sentry.description': { type: 'string', value: 'Vue <Root>' },
     }),
   });
 });

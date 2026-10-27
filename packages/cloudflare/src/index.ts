@@ -11,6 +11,8 @@ export type {
   FeatureFlagsIntegration,
   Session,
   SeverityLevel,
+  Log,
+  LogSeverityLevel,
   Span,
   StackFrame,
   Stacktrace,
@@ -30,6 +32,7 @@ export {
   captureException,
   captureEvent,
   captureMessage,
+  parameterize,
   captureFeedback,
   close,
   createTransport,
@@ -86,9 +89,10 @@ export {
   instrumentSupabaseClient,
   zodErrorsIntegration,
   consoleIntegration,
+  // oxlint-disable-next-line typescript/no-deprecated
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
+  // oxlint-disable-next-line typescript/no-deprecated
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  SENTRY_SEGMENT_NAME_SOURCE,
   SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE,
   spanToStaticSpanJSON,
   spanToJSON,
@@ -108,6 +112,7 @@ export {
 } from '@sentry/core';
 export { trpcMiddleware, wrapMcpServerWithSentry } from '@sentry/core/server';
 export { createFlueInstrumentation, instrumentPostgresJsSql } from '@sentry/server-utils';
+export type { FlueOptions } from '@sentry/server-utils';
 
 export { withSentry } from './withSentry';
 export { defineCloudflareOptions } from './defineCloudflareOptions';
@@ -122,11 +127,14 @@ export { httpServerIntegration } from './integrations/httpServer';
 export { fetchIntegration } from './integrations/fetch';
 export type { FetchIntegrationOptions } from '@sentry/core';
 export { spotlightIntegration } from './integrations/spotlight';
+export { cronTriggersIntegration } from './integrations/cronTriggers';
+export type { CronTriggerMonitorSettings, CronTriggersOptions } from './integrations/cronTriggers';
 export {
   openTelemetryIntegration,
   getOtlpTracesEndpoint,
   prismaIntegration,
   instrumentMistralAiClient,
+  instrumentTypeSafeClient,
   instrumentOpenAiClient,
   instrumentAnthropicAiClient,
   instrumentGoogleGenAIClient,
@@ -134,10 +142,56 @@ export {
   createLangChainCallbackHandler,
   instrumentLangChainEmbeddings,
   instrumentStateGraph,
+  instrumentStateGraphCompile,
   instrumentCreateReactAgent,
   vercelAIIntegration,
+  honoIntegration,
+  honoMiddleware,
   eveConversationHook,
+  eveIntegration,
   getInstrumentedModuleNames,
+} from '@sentry/server-utils';
+
+// The orchestrion channel integrations. When the `@sentry/cloudflare/vite`
+// plugin bundles an instrumented package, the SDK adds the matching
+// integration with its default options. Pass one in `integrations` to set
+// options. Without the plugin, these integrations record nothing.
+export {
+  amqplibIntegration,
+  anthropicAIIntegration,
+  awsIntegration,
+  dataloaderIntegration,
+  expressIntegration,
+  firebaseIntegration,
+  genericPoolIntegration,
+  googleGenAIIntegration,
+  graphqlIntegration,
+  groqIntegration,
+  hapiIntegration,
+  kafkaIntegration,
+  knexIntegration,
+  koaIntegration,
+  langChainIntegration,
+  langGraphIntegration,
+  lruMemoizerIntegration,
+  mastraIntegration,
+  mcpServerIntegration,
+  mistralAIIntegration,
+  mongoIntegration,
+  mongooseIntegration,
+  mysql2Integration,
+  mysqlIntegration,
+  neonIntegration,
+  nitroIntegration,
+  openAIIntegration,
+  piDurableIntegration,
+  postgresIntegration,
+  postgresJsIntegration,
+  redisIntegration,
+  SentryMastraExporter,
+  tediousIntegration,
+  togetherAIIntegration,
+  typesafeIntegration,
 } from '@sentry/server-utils';
 
 export { instrumentWorkflowWithSentry } from './workflows';

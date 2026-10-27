@@ -3,7 +3,7 @@ import { createRunner } from '../../../../utils/runner';
 
 test('envelope header for error event during active unsampled span is correct', async () => {
   await createRunner(__dirname, 'scenario.ts')
-    .ignore('transaction')
+    .ignore('span')
     .expectHeader({
       event: {
         trace: {

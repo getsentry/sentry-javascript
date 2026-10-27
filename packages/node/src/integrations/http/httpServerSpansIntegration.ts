@@ -24,18 +24,23 @@ import {
   URL_QUERY,
   URL_SCHEME,
   USER_AGENT_ORIGINAL,
+  SENTRY_ORIGIN,
 } from '@sentry/conventions/attributes';
 import { HTTP_SERVER } from '@sentry/conventions/op';
 import type { Event, Integration, IntegrationFn, Span, SpanAttributes, SpanStatus } from '@sentry/core';
 import type { HttpIncomingMessage, HttpServerResponse } from '@sentry/core/server';
-import { DEFAULT_IGNORE_STATUS_CODES, processHttpServerTransactionEvent } from '@sentry/core/server';
+import {
+  DEFAULT_IGNORE_STATUS_CODES,
+  getClientIPAddress,
+  processHttpServerTransactionEvent,
+} from '@sentry/core/server';
 import {
   debug,
+  safeCallback,
   getSpanStatusFromHttpCode,
   httpHeadersToSpanAttributes,
   getContentLengthFromHeaders,
   parseStringToURLObject,
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SPAN_STATUS_ERROR,
   stripUrlQueryAndFragment,
   isTracingSuppressed,
@@ -100,6 +105,12 @@ export interface HttpServerSpansIntegrationOptions {
    * This is triggered after the span is created, but before it is recorded.
    */
   onSpanCreated?: (span: Span, request: HttpIncomingMessage, response: HttpServerResponse) => void;
+
+  /**
+   * A hook that can be used to mutate the span one last time when the response is finished.
+   * This is triggered after the response status is set on the span, before the span ends.
+   */
+  onSpanEnd?: (span: Span, request: HttpIncomingMessage, response: HttpServerResponse) => void;
 }
 
 const _httpServerSpansIntegration = ((options: HttpServerSpansIntegrationOptions = {}) => {
@@ -108,7 +119,7 @@ const _httpServerSpansIntegration = ((options: HttpServerSpansIntegrationOptions
   // oxlint-disable-next-line typescript/no-deprecated
   const ignoreStatusCodes = options.ignoreStatusCodes ?? DEFAULT_IGNORE_STATUS_CODES;
 
-  const { onSpanCreated } = options;
+  const { onSpanCreated, onSpanEnd } = options;
 
   return {
     name: INTEGRATION_NAME,
@@ -164,7 +175,7 @@ const _httpServerSpansIntegration = ((options: HttpServerSpansIntegrationOptions
               [SENTRY_KIND]: 'server',
               [SENTRY_OP]: HTTP_SERVER,
               [SENTRY_SEGMENT_NAME_SOURCE]: 'url',
-              [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.http_server',
+              [SENTRY_ORIGIN]: 'auto.http.http_server',
               [SENTRY_HTTP_PREFETCH]: isKnownPrefetchRequest(request) || undefined,
               [URL_FULL]: filterCollectedUrl(fullUrl, client),
               [URL_PATH]: urlObj?.pathname ?? httpTargetWithoutQueryFragment,
@@ -182,7 +193,11 @@ const _httpServerSpansIntegration = ((options: HttpServerSpansIntegrationOptions
             },
           });
 
-          onSpanCreated?.(span, request, response);
+          safeCallback(
+            DEBUG_BUILD ? 'The `onSpanCreated` callback threw an error:' : '',
+            () => onSpanCreated?.(span, request, response),
+            () => undefined,
+          );
 
           return withActiveSpan(span, () => {
             bindScopeToEmitter(request);
@@ -205,6 +220,15 @@ const _httpServerSpansIntegration = ((options: HttpServerSpansIntegrationOptions
               );
               span.setAttributes(newAttributes);
               span.setStatus(status);
+              if (onSpanEnd) {
+                // A hook that throws must not skip `span.end()` or crash the process from the
+                // response's event listener.
+                safeCallback(
+                  DEBUG_BUILD ? 'The `onSpanEnd` callback threw an error:' : '',
+                  () => onSpanEnd(span, request, response),
+                  () => undefined,
+                );
+              }
               span.end();
             }
 
@@ -313,19 +337,17 @@ function shouldIgnoreSpansForIncomingRequest(
     return true;
   }
 
-  if (ignoreIncomingRequests?.(urlPath, request)) {
+  if (
+    safeCallback(
+      DEBUG_BUILD ? 'The `ignoreIncomingRequests` callback threw an error, not ignoring the request:' : '',
+      () => !!ignoreIncomingRequests?.(urlPath, request),
+      () => false,
+    )
+  ) {
     return true;
   }
 
   return false;
-}
-
-/**
- * First entry of `X-Forwarded-For`: the client as seen by the outermost proxy.
- * https://opentelemetry.io/docs/specs/semconv/registry/attributes/client/#client-address
- */
-function getForwardedClientAddress(forwardedFor: string | string[] | undefined): string | undefined {
-  return typeof forwardedFor === 'string' ? forwardedFor.split(',')[0]?.trim() || undefined : undefined;
 }
 
 function getIncomingRequestAttributesOnResponse(
@@ -343,11 +365,12 @@ function getIncomingRequestAttributesOnResponse(
     'http.response.status_text': statusMessage?.toUpperCase(),
   };
 
+  // `client.address` is the originating client, so a forwarding header wins over the socket, which
+  // behind a proxy holds the proxy's address. The socket port is the proxy's too, so `client.port`
+  // stays unset then. `network.peer.*` below keeps the socket values.
+  const forwardedAddress = getClientIPAddress(request.headers);
   if (collectClientAddress) {
-    // `client.address` is the originating client, so a forwarding header wins over the socket, which
-    // behind a proxy holds the proxy's address. `network.peer.address` below keeps the socket value.
-    newAttributes[CLIENT_ADDRESS] =
-      getForwardedClientAddress(request.headers['x-forwarded-for']) ?? socket?.remoteAddress;
+    newAttributes[CLIENT_ADDRESS] = forwardedAddress || socket?.remoteAddress;
   }
 
   if (socket) {
@@ -355,7 +378,7 @@ function getIncomingRequestAttributesOnResponse(
     newAttributes[SERVER_PORT] = localPort;
     newAttributes[NETWORK_LOCAL_ADDRESS] = localAddress;
     newAttributes[NETWORK_LOCAL_PORT] = localPort;
-    newAttributes[CLIENT_PORT] = remotePort;
+    newAttributes[CLIENT_PORT] = forwardedAddress ? undefined : remotePort;
     newAttributes[NETWORK_PEER_ADDRESS] = collectClientAddress ? remoteAddress : undefined;
     newAttributes[NETWORK_PEER_PORT] = remotePort;
   }
