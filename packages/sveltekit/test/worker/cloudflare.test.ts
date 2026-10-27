@@ -63,7 +63,11 @@ describe('initCloudflareSentryHandle', () => {
       {
         // SvelteKit emits its own OpenTelemetry spans, so it opts into the tracer provider rather than
         // inheriting Cloudflare's no-provider default.
-        options: expect.objectContaining({ dsn: options.dsn, enableOpenTelemetrySetup: true }),
+        options: expect.objectContaining({
+          dsn: options.dsn,
+          enableOpenTelemetrySetup: true,
+          _extendsDefaultIntegrations: true,
+        }),
         request,
         context,
         captureErrors: false,
@@ -72,6 +76,25 @@ describe('initCloudflareSentryHandle', () => {
     );
 
     expect(resolve).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not mark a defaultIntegrations list the user passed as extending the SDK defaults', async () => {
+    const { options, event, resolve } = getHandlerInput();
+
+    // @ts-expect-error - resolving an empty object is enough for this test
+    vi.mocked(wrapRequestHandler).mockImplementationOnce((_, cb) => cb());
+
+    const handle = initCloudflareSentryHandle({ ...options, defaultIntegrations: [] });
+
+    // @ts-expect-error - only passing a partial event object
+    await handle({ event, resolve });
+
+    expect(wrapRequestHandler).toHaveBeenCalledWith(
+      expect.objectContaining({
+        options: expect.objectContaining({ defaultIntegrations: [], _extendsDefaultIntegrations: false }),
+      }),
+      expect.any(Function),
+    );
   });
 
   it('adds flag to skip request isolation in subsequent sentry handler', async () => {

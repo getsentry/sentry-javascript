@@ -101,7 +101,7 @@ sentryTest(
       status: 'ok',
       attributes: {
         [SENTRY_IS_LOCALHOST]: { value: false, type: 'boolean' },
-        [SENTRY_ORIGIN]: { value: 'auto.http.browser.inp', type: 'string' },
+        [SENTRY_ORIGIN]: { value: 'auto.ui.browser.inp', type: 'string' },
         [SENTRY_OP]: { value: UI_INTERACTION_CLICK, type: 'string' },
         [UI_COMPONENT_NAME]: { value: 'NavigationLink', type: 'string' },
         [BROWSER_WEB_VITAL_INP_TARGET]: { value: 'body > nav#navigation > NavigationLink', type: 'string' },
@@ -192,7 +192,7 @@ sentryTest(
       status: 'ok',
       attributes: {
         [SENTRY_IS_LOCALHOST]: { value: false, type: 'boolean' },
-        [SENTRY_ORIGIN]: { value: 'auto.http.browser.inp', type: 'string' },
+        [SENTRY_ORIGIN]: { value: 'auto.ui.browser.inp', type: 'string' },
         [SENTRY_OP]: { value: UI_INTERACTION_CLICK, type: 'string' },
         [BROWSER_WEB_VITAL_INP_TARGET]: { value: 'body > nav#navigation > NavigationLink', type: 'string' },
         [SENTRY_EXCLUSIVE_TIME]: { value: inpValue, type: expect.stringMatching(/^(integer)|(double)$/) },
