@@ -70,16 +70,17 @@ describe('Vercel AI runtime and tool context', () => {
     expect(data).not.toHaveProperty('vercel.ai.settings.context.missing');
   });
 
-  it('records runtimeContext on embed, rerank and decide spans', () => {
-    const endedSpans = setupClient();
-    for (const type of ['embed', 'embedMany', 'rerank', 'experimental_decide'] as const) {
+  it.each(['embed', 'embedMany', 'rerank', 'experimental_decide'] as const)(
+    'records runtimeContext on %s spans',
+    type => {
+      const endedSpans = setupClient();
       const data = spanData(
         { type, event: { aiVersion: '7.0.154', runtimeContext: { tenantId: 'acme' } } },
         endedSpans,
       );
       expect(data['vercel.ai.settings.context.tenantId']).toBe('acme');
-    }
-  });
+    },
+  );
 
   it('ignores runtimeContext from an ai version that does not report aiVersion', () => {
     const endedSpans = setupClient();

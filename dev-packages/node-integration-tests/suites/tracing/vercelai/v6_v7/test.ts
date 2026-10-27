@@ -26,7 +26,12 @@ import {
   SENTRY_OP,
   SENTRY_ORIGIN,
 } from '@sentry/conventions/attributes';
-import { GEN_AI_DECIDE } from '@sentry/conventions/op';
+import {
+  GEN_AI_DECIDE,
+  GEN_AI_EXECUTE_TOOL,
+  GEN_AI_GENERATE_CONTENT,
+  GEN_AI_INVOKE_AGENT,
+} from '@sentry/conventions/op';
 import { GEN_AI_TOOL_CALL_ID_ATTRIBUTE } from '../../../../../../packages/server-utils/src/ai/core/gen-ai-attributes';
 import { cleanupChildProcesses, createEsmAndCjsTests, createEsmTests } from '../../../../utils/runner';
 
@@ -1454,10 +1459,10 @@ describe('Vercel AI runtime and tool context (v7)', () => {
                 span => span.attributes['vercel.ai.settings.context.requestId']?.value === 'req_generate',
               );
               expect(generateSpans.map(span => span.attributes[SENTRY_OP]?.value).sort()).toEqual([
-                'gen_ai.execute_tool',
-                'gen_ai.generate_content',
-                'gen_ai.generate_content',
-                'gen_ai.invoke_agent',
+                GEN_AI_EXECUTE_TOOL,
+                GEN_AI_GENERATE_CONTENT,
+                GEN_AI_GENERATE_CONTENT,
+                GEN_AI_INVOKE_AGENT,
               ]);
               for (const span of generateSpans) {
                 expect(span.attributes['vercel.ai.settings.context.tenantId']).toEqual({
@@ -1466,7 +1471,7 @@ describe('Vercel AI runtime and tool context (v7)', () => {
                 });
               }
 
-              const toolSpan = generateSpans.find(span => span.attributes[SENTRY_OP]?.value === 'gen_ai.execute_tool');
+              const toolSpan = generateSpans.find(span => span.attributes[SENTRY_OP]?.value === GEN_AI_EXECUTE_TOOL);
               expect(toolSpan?.attributes['vercel.ai.toolCall.context.units']).toEqual({
                 type: 'string',
                 value: 'metric',
@@ -1476,8 +1481,8 @@ describe('Vercel AI runtime and tool context (v7)', () => {
                 span => span.attributes['vercel.ai.settings.context.requestId']?.value === 'req_stream',
               );
               expect(streamSpans.map(span => span.attributes[SENTRY_OP]?.value).sort()).toEqual([
-                'gen_ai.generate_content',
-                'gen_ai.invoke_agent',
+                GEN_AI_GENERATE_CONTENT,
+                GEN_AI_INVOKE_AGENT,
               ]);
             },
           })
