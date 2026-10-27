@@ -166,6 +166,9 @@ export const sentryAstro = (options: SentryOptions = {}): AstroIntegration => {
 
         const isCloudflare = config?.adapter?.name?.startsWith('@astrojs/cloudflare');
         const isCloudflareWorkers = isCloudflare && !isCloudflarePages();
+        // With `_experimental.autoInstrumentation`, that plugin wraps the Worker entry, which inits
+        // the SDK from `instrument.server.*` or `env`, so our wrap and default init are not needed.
+        const usesCloudflareVitePlugin = isCloudflareWorkers && hasCloudflareVitePlugin(config);
 
         if (isCloudflare) {
           try {
@@ -189,7 +192,7 @@ export const sentryAstro = (options: SentryOptions = {}): AstroIntegration => {
             // This ensures Sentry.init() runs in dev mode (where the Vite plugin doesn't fire)
             // and also serves as the fallback for non-Cloudflare adapters in production.
             injectScript('page-ssr', buildSdkInitFileImportSnippet(pathToServerInit));
-          } else {
+          } else if (!usesCloudflareVitePlugin) {
             debug && logger.info('Using default server init.');
             injectScript('page-ssr', buildServerSnippet(options || {}));
           }
@@ -209,7 +212,9 @@ export const sentryAstro = (options: SentryOptions = {}): AstroIntegration => {
             debug && logger.info('Adding Cloudflare Vite plugin to wrap Worker entry with withSentry.');
             updateConfig({
               vite: {
-                plugins: [sentryCloudflareNodeWarningPlugin(), sentryCloudflareVitePlugin()],
+                plugins: usesCloudflareVitePlugin
+                  ? [sentryCloudflareNodeWarningPlugin()]
+                  : [sentryCloudflareNodeWarningPlugin(), sentryCloudflareVitePlugin()],
               },
             });
           } else if (isCloudflare) {
@@ -249,6 +254,32 @@ export const sentryAstro = (options: SentryOptions = {}): AstroIntegration => {
     },
   };
 };
+
+// Of the sub-plugins `sentryCloudflareVitePlugin()` adds, only the one for
+// `_experimental.autoInstrumentation`, which wraps the Worker, has this prefix.
+const CLOUDFLARE_VITE_PLUGIN_NAME_PREFIX = 'sentry-cloudflare-';
+
+/**
+ * Whether the user added `sentryCloudflareVitePlugin()` from `@sentry/cloudflare/vite`. It is
+ * detected by name because importing it here would load `@sentry/cloudflare` and `wrangler` for
+ * every Astro app.
+ */
+function hasCloudflareVitePlugin(config: AstroConfig): boolean {
+  const pending: unknown[] = [config.vite?.plugins];
+  while (pending.length > 0) {
+    const plugin = pending.pop();
+    if (Array.isArray(plugin)) {
+      pending.push(...plugin);
+    } else if (
+      typeof plugin === 'object' &&
+      plugin !== null &&
+      String((plugin as { name?: unknown }).name).startsWith(CLOUDFLARE_VITE_PLUGIN_NAME_PREFIX)
+    ) {
+      return true;
+    }
+  }
+  return false;
+}
 
 const possibleFileExtensions = ['ts', 'js', 'tsx', 'jsx', 'mjs', 'cjs', 'mts'];
 
