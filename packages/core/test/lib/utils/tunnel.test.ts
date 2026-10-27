@@ -199,6 +199,32 @@ describe('handleTunnelRequest call forms', () => {
     }
   });
 
+  it("answers a Node request with a 500 when Sentry's answer breaks off", async () => {
+    fetchMock.mockResolvedValue(
+      new Response(
+        new ReadableStream({
+          pull(controller) {
+            controller.error(new Error('connection to Sentry dropped'));
+          },
+        }),
+      ),
+    );
+    const server = http.createServer((req, res) => {
+      void handleTunnelRequest(req, res, { allowedDsns: [TEST_DSN] });
+    });
+    await new Promise<void>(resolve => server.listen(0, resolve));
+    const { port } = server.address() as AddressInfo;
+    const envelope = serializeEnvelope(createEnvelope({ dsn: TEST_DSN }, [])) as string;
+
+    try {
+      const response = await realFetch(`http://localhost:${port}/tunnel`, { method: 'POST', body: envelope });
+
+      expect(response.status).toBe(500);
+    } finally {
+      await new Promise(resolve => server.close(resolve));
+    }
+  });
+
   it('rejects a Node request whose body a parser already read', async () => {
     const server = http.createServer(async (req, res) => {
       for await (const _chunk of req) {

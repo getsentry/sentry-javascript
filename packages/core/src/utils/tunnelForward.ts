@@ -174,6 +174,14 @@ function toFetchRequest(request: NodeTunnelRequest): Request {
 }
 
 async function writeNodeResponse(response: NodeTunnelResponse, fetchResponse: Response): Promise<void> {
+  // Read before writing, so an answer from Sentry that breaks off still ends the browser's request.
+  const body = await fetchResponse.arrayBuffer().catch(() => undefined);
+  if (!body) {
+    response.writeHead(500);
+    response.end();
+    return;
+  }
+
   const responseHeaders: Record<string, string> = {};
   for (const name of FORWARDED_RESPONSE_HEADERS) {
     const value = fetchResponse.headers.get(name);
@@ -182,7 +190,7 @@ async function writeNodeResponse(response: NodeTunnelResponse, fetchResponse: Re
     }
   }
   response.writeHead(fetchResponse.status, responseHeaders);
-  response.end(new Uint8Array(await fetchResponse.arrayBuffer()));
+  response.end(new Uint8Array(body));
 }
 
 function withDecodedBodyHeaders(response: Response): Response {
