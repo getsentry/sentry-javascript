@@ -3,6 +3,9 @@
 
   "include": ["src/**/*"],
 
+  "//": "The Solid 2 entry points type-check against solid-js 2.x in src/solid2/tsconfig.json",
+  "exclude": ["src/solid2"],
+
   "compilerOptions": {
     "lib": ["DOM", "es2020"]
   }
