@@ -1,5 +1,5 @@
 import type { CallHandler, ExecutionContext } from '@nestjs/common';
-import { getDefaultIsolationScope, getIsolationScope } from '@sentry/core';
+import { getDefaultIsolationScope, getIsolationScope, startSpanManual } from '@sentry/core';
 import { of, tap } from 'rxjs';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { SentryModule } from '../src/setup';
@@ -11,6 +11,9 @@ const mocks = vi.hoisted(() => ({
   defaultIsolationScope: {},
   debugWarn: vi.fn(),
   inIsolationScope: false,
+  span: {
+    end: vi.fn(),
+  },
 }));
 
 vi.mock('@sentry/core', () => ({
@@ -24,6 +27,8 @@ vi.mock('@sentry/core', () => ({
       mocks.inIsolationScope = false;
     }
   }),
+  withActiveSpan: vi.fn((_span: unknown, callback: () => unknown) => callback()),
+  startSpanManual: vi.fn((_options: unknown, callback: (span: unknown) => unknown) => callback(mocks.span)),
   debug: {
     warn: mocks.debugWarn,
   },
@@ -67,6 +72,11 @@ describe('SentryTracingInterceptor', () => {
     interceptor.intercept(context, next).subscribe();
 
     expect(mocks.isolationScope.setTransactionName).toHaveBeenCalledWith('WS /events message');
+    expect(startSpanManual).toHaveBeenCalledWith(
+      { op: 'ws', name: 'WS /events message' },
+      expect.any(Function),
+    );
+    expect(mocks.span.end).toHaveBeenCalled();
   });
 
   it('sets a transaction name without a namespace for other WebSocket adapters', () => {
