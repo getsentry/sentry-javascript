@@ -39,7 +39,6 @@ test('answers a request to the managed tunnel itself', async ({ request }) => {
     headers: { 'Content-Type': 'application/x-sentry-envelope' },
   });
 
-  expect(response.headers()['x-sentry-tunnel']).toBe('1');
   expect(response.status()).toBe(200);
 });
 

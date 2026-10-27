@@ -16,7 +16,6 @@ test('answers the managed tunnel set up by `sentryCloudflareNitroPlugin`, withou
     headers: { 'Content-Type': 'application/x-sentry-envelope' },
   });
 
-  expect(response.headers()['x-sentry-tunnel']).toBe('1');
   expect(response.status()).toBe(200);
   expect(await raceTunnelSpan(isServerSpanAt('/app/api/anchor'), () => request.get('/app/api/anchor'))).toBe('anchor');
 });

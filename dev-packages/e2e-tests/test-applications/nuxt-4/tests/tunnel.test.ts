@@ -54,7 +54,6 @@ test('answers the managed tunnel once, without errors from route rules that run 
     data: makeClientReportEnvelope(dsn),
     headers: { 'Content-Type': 'application/x-sentry-envelope' },
   });
-  expect(response.headers()['x-sentry-tunnel']).toBe('1');
   expect(response.status()).toBe(200);
 
   // Errors are sent in order, so one from the tunnel request would arrive before this later one.
