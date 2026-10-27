@@ -47,8 +47,6 @@ function resolveTunnelRouteOption() {
       return true;
     case 'static':
       return '/monitor';
-    case 'object':
-      return { path: '/object-monitor', allowedDsns: [appDsn] };
     default:
       return undefined;
   }
@@ -66,7 +64,10 @@ export default defineConfig({
   },
   plugins: [
     tsConfigPaths(),
-    tanstackStart(),
+    // Start routes the whole app under the base path, so the tunnel has to be served under it too.
+    tanstackStart(
+      process.env.E2E_TEST_BASE_PATH ? { router: { basepath: process.env.E2E_TEST_BASE_PATH } } : undefined,
+    ),
     nitro(),
     // react's vite plugin must come after start's vite plugin
     viteReact(),
