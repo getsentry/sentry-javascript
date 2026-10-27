@@ -1,6 +1,6 @@
 import type { CallHandler, ExecutionContext } from '@nestjs/common';
 import { getDefaultIsolationScope, getIsolationScope } from '@sentry/core';
-import { of } from 'rxjs';
+import { of, tap } from 'rxjs';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { SentryModule } from '../src/setup';
 
@@ -110,10 +110,13 @@ describe('SentryTracingInterceptor', () => {
     const interceptor = createInterceptor();
     const context = createContext({ nsp: { name: '/events' } }, 'message');
     const next = {
-      handle: vi.fn(() => {
-        expect(mocks.inIsolationScope).toBe(true);
-        return of(undefined);
-      }),
+      handle: vi.fn(() =>
+        of(undefined).pipe(
+          tap(() => {
+            expect(mocks.inIsolationScope).toBe(true);
+          }),
+        ),
+      ),
     } as unknown as CallHandler;
     vi.mocked(getIsolationScope).mockReturnValue(mocks.defaultIsolationScope as never);
 
