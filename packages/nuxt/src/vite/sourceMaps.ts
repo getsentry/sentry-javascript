@@ -1,14 +1,14 @@
 import type { Nuxt } from '@nuxt/schema';
 import { sentryRollupPlugin, type SentryRollupPluginOptions } from '@sentry/rollup-plugin';
 import { sentryVitePlugin, type SentryVitePluginOptions } from '@sentry/vite-plugin';
-import type { Nitro, NitroConfig } from 'nitropack';
+import type { NitroConfig } from 'nitropack';
 import type { Plugin } from 'vite';
 import type { SentryNuxtModuleOptions } from '../common/types';
 import {
   addPublicSourceMapDeletionPlugin,
+  deleteSourceMapsAfterBuild,
   type DeletionFallback,
   getFallbackFilesToDelete,
-  deleteSourceMapsAfterBuild,
   withoutSourceMapDeletion,
 } from './sourceMapDeletion';
 import { validateSourceMapsOptionsPlugin } from './sentryVitePlugin';
@@ -114,6 +114,8 @@ export function setupSourceMaps(
       }
 
       validateNitroSourceMapSettings(nuxt, nitroConfig, moduleOptions);
+
+      // `rollupConfig.output.sourcemap` overrides `sourcemap.server`, so the server source maps are the user's.
       shouldDeleteFilesFallback.server &&= nitroConfig.rollupConfig.output?.sourcemap === undefined;
 
       if (isDebug) {
@@ -129,9 +131,10 @@ export function setupSourceMaps(
     }
   });
 
-  nuxt.hook('nitro:init', (nitro: Nitro) => {
+  nuxt.hook('nitro:init', nitro => {
     if (sourceMapsEnabled && !nitro.options.dev && !nuxt.options?._prepare) {
-      shouldDeleteFilesFallback.outputDirs = nitro.options.output;
+      const publicDir = nitro.options.output.publicDir;
+      shouldDeleteFilesFallback.outputDirs = { publicDir, serverDir: nitro.options.output.serverDir };
       addPublicSourceMapDeletionPlugin(nitro, () => getPluginOptions(moduleOptions, shouldDeleteFilesFallback));
     }
   });
@@ -164,6 +167,7 @@ export function getPluginOptions(
   // eslint-disable-next-line typescript/no-deprecated
   const sourceMapsUploadOptions = moduleOptions.sourceMapsUploadOptions || {};
 
+  // Sentry deletes them in Nitro's output directories, which are only known once Nitro is set up.
   const fallbackFilesToDelete = getFallbackFilesToDelete(shouldDeleteFilesFallback);
   const shouldDeleteFilesAfterUpload = fallbackFilesToDelete.length > 0;
 

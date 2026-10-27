@@ -1,7 +1,10 @@
-import * as path from 'node:path';
 import type { Nuxt } from '@nuxt/schema';
+import type * as BundlerPluginsCore from '@sentry/bundler-plugins/core';
+import * as fs from 'fs';
+import * as os from 'os';
+import * as path from 'path';
 import type { Plugin, UserConfig } from 'vite';
-import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, type MockInstance, vi } from 'vitest';
 import type { SourceMapSetting } from '../../src/vite/sourceMaps';
 
 function createMockAddVitePlugin() {
@@ -76,7 +79,8 @@ describe('setupSourceMaps hooks', () => {
   const consoleWarnSpy = vi.spyOn(console, 'warn');
 
   beforeAll(() => {
-    vi.doMock('@sentry/bundler-plugins/core', () => ({
+    vi.doMock('@sentry/bundler-plugins/core', async importOriginal => ({
+      ...(await importOriginal<typeof BundlerPluginsCore>()),
       createSentryBuildPluginManager: mockCreateSentryBuildPluginManager,
     }));
     vi.doMock('@sentry/vite-plugin', () => ({
@@ -264,28 +268,6 @@ describe('setupSourceMaps hooks', () => {
       );
     });
 
-    it.each([
-      { publicDir: 'dist', serverDir: '.netlify/functions-internal/server' },
-      { publicDir: 'dist', serverDir: 'dist/_worker.js' },
-    ])('uses Nitro output directories $publicDir and $serverDir for fallback deletion', async output => {
-      const { setupSourceMaps } = await import('../../src/vite/sourceMaps');
-      const mockNuxt = createMockNuxt({ sourcemap: { client: undefined, server: undefined } });
-
-      setupSourceMaps({}, mockNuxt as unknown as Nuxt, vi.fn());
-      await mockNuxt.triggerHook('modules:done');
-      await mockNuxt.triggerHook('nitro:init', createMockNitro({ output }));
-      await mockNuxt.triggerHook('close');
-
-      expect(mockCreateSentryBuildPluginManager).toHaveBeenCalledWith(
-        expect.objectContaining({
-          sourcemaps: expect.objectContaining({
-            filesToDeleteAfterUpload: [`${output.publicDir}/**/*.map`, `${output.serverDir}/**/*.map`],
-          }),
-        }),
-        { buildTool: 'nuxt', loggerPrefix: '[Sentry Nuxt]' },
-      );
-    });
-
     it('uses user-provided deletion patterns after the build', async () => {
       const { setupSourceMaps } = await import('../../src/vite/sourceMaps');
       const mockNuxt = createMockNuxt({
@@ -378,6 +360,54 @@ describe('setupSourceMaps hooks', () => {
       await mockNuxt.triggerHook('nitro:config', nitroConfig);
 
       expect(mockSentryRollupPlugin).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('nitro:init hook', () => {
+    let rootDir: string;
+    let cwdSpy: MockInstance<typeof process.cwd>;
+
+    beforeEach(() => {
+      rootDir = fs.mkdtempSync(path.join(os.tmpdir(), 'sentry-nuxt-root-'));
+      // The fallback deletion patterns are relative to the working directory.
+      cwdSpy = vi.spyOn(process, 'cwd').mockReturnValue(rootDir);
+    });
+
+    afterEach(() => {
+      cwdSpy.mockRestore();
+      fs.rmSync(rootDir, { recursive: true, force: true });
+    });
+
+    function findDeletionPlugin(nitro: ReturnType<typeof createMockNitro>) {
+      return [nitro.options.rollupConfig.plugins]
+        .flat(2)
+        .find(
+          (plugin): plugin is { name: string; buildStart: () => Promise<void> } =>
+            typeof plugin === 'object' &&
+            plugin !== null &&
+            'name' in plugin &&
+            plugin.name === 'sentry-nuxt-public-source-map-deletion' &&
+            'buildStart' in plugin &&
+            typeof plugin.buildStart === 'function',
+        );
+    }
+
+    it('deletes the public source maps of a preset that writes the public files outside of `.output`', async () => {
+      const { setupSourceMaps } = await import('../../src/vite/sourceMaps');
+      const netlifyPublicMap = 'dist/_nuxt/entry.DxB3kLmA.js.map';
+      fs.mkdirSync(path.dirname(path.join(rootDir, netlifyPublicMap)), { recursive: true });
+      fs.writeFileSync(path.join(rootDir, netlifyPublicMap), '');
+      const mockNuxt = createMockNuxt({ sourcemap: { client: undefined, server: true } });
+      const nitro = createMockNitro({
+        output: { publicDir: 'dist', serverDir: '.netlify/functions-internal/server' },
+      });
+
+      setupSourceMaps({}, mockNuxt as unknown as Nuxt, vi.fn());
+      await mockNuxt.triggerHook('modules:done');
+      await mockNuxt.triggerHook('nitro:init', nitro);
+      await findDeletionPlugin(nitro)?.buildStart();
+
+      expect(fs.existsSync(path.join(rootDir, netlifyPublicMap))).toBe(false);
     });
   });
 
