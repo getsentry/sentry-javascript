@@ -119,6 +119,9 @@ describe('handleTunnelRequest call forms', () => {
   });
 
   it("forwards from a Node server's request and writes the answer to its response", async () => {
+    fetchMock.mockResolvedValue(
+      new Response('forwarded', { status: 202, headers: { 'x-sentry-rate-limits': '60:error', 'retry-after': '60' } }),
+    );
     const server = http.createServer((req, res) => {
       void handleTunnelRequest(req, res, { allowedDsns: [TEST_DSN] });
     });
@@ -130,6 +133,8 @@ describe('handleTunnelRequest call forms', () => {
       const response = await realFetch(`http://localhost:${port}/tunnel`, { method: 'POST', body: envelope });
 
       expect(response.status).toBe(202);
+      expect(response.headers.get('x-sentry-rate-limits')).toBe('60:error');
+      expect(response.headers.get('retry-after')).toBe('60');
       expect(await response.text()).toBe('forwarded');
       const [url, init] = fetchMock.mock.lastCall as unknown as [string, RequestInit];
       expect(url).toBe(getEnvelopeEndpointWithUrlEncodedAuth(makeDsn(TEST_DSN)!));

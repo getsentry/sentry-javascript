@@ -1,10 +1,9 @@
 import { getEnvelopeEndpointWithUrlEncodedAuth } from '../api';
-import { getClient } from '../currentScopes';
 import { suppressTracing } from '../tracing/trace';
 import { debug } from './debug-logger';
 import { makeDsn } from './dsn';
 import type { ServerTunnelOptions } from '../types/options';
-import { getTunnelAllowedDsns, matchesTunnel, resolveAllowedDsns, resolveTunnelMatch } from './tunnel';
+import { matchesTunnel, resolveTunnelMatch } from './tunnel';
 
 /**
  * Options for {@link handleTunnelRequest}.
@@ -26,7 +25,7 @@ export interface HandleTunnelRequestOptions {
 /**
  * The parts of Node's `IncomingMessage` the tunnel reads.
  */
-interface NodeTunnelRequest extends AsyncIterable<Uint8Array | string> {
+interface NodeTunnelRequest extends AsyncIterable<Uint8Array> {
   method?: string;
   url?: string;
   headers: Record<string, string | string[] | undefined>;
@@ -76,9 +75,7 @@ export function handleTunnelRequest(
   const options = isLegacyCall ? requestOrOptions : responseOrOptions;
 
   // Without `allowedDsns`, the DSNs `serveTunnelIntegration` allows, so its options apply here too.
-  const allowedDsns = options?.allowedDsns
-    ? resolveAllowedDsns(options.allowedDsns, getClient()?.getDsn())
-    : (getTunnelAllowedDsns() ?? resolveAllowedDsns(undefined, getClient()?.getDsn()));
+  const { allowedDsns } = resolveTunnelMatch(options?.allowedDsns && { allowedDsns: options.allowedDsns });
 
   return forwardTunnelRequest(request, allowedDsns);
 }
@@ -117,17 +114,14 @@ export function handleTunnelRequestIfMatched(
 }
 
 /**
- * Headers about the connection to Sentry, not about the answer. Node sets its own on HTTP/1, and HTTP/2 rejects them.
+ * The headers of Sentry's answer the browser SDK reads. The rest describe the connection to Sentry, which HTTP/2
+ * rejects.
  */
-const HOP_BY_HOP_HEADERS = new Set([
-  'connection',
-  'keep-alive',
-  'proxy-connection',
-  'transfer-encoding',
-  'upgrade',
-  'te',
-  'trailer',
-]);
+const FORWARDED_RESPONSE_HEADERS = ['content-type', 'retry-after', 'x-sentry-rate-limits'];
+
+interface ReadableStreamWithFrom {
+  from(iterable: AsyncIterable<Uint8Array>): ReadableStream<Uint8Array>;
+}
 
 function isNodeTunnelResponse(value: unknown): value is NodeTunnelResponse {
   return typeof (value as NodeTunnelResponse | undefined)?.writeHead === 'function';
@@ -148,19 +142,8 @@ async function handleNodeTunnelRequest(
   const authority = request.headers[':authority'];
   const host = headers.get('host') ?? (typeof authority === 'string' ? authority : 'localhost');
 
-  const iterator = request[Symbol.asyncIterator]();
-  const encoder = new TextEncoder();
-  const body = new ReadableStream<Uint8Array>({
-    async pull(controller) {
-      const { done, value } = await iterator.next();
-      if (done) {
-        controller.close();
-        return;
-      }
-
-      controller.enqueue(typeof value === 'string' ? encoder.encode(value) : value);
-    },
-  });
+  // In every runtime the Node form runs on, but not in core's TypeScript lib.
+  const body = (ReadableStream as unknown as ReadableStreamWithFrom).from(request);
 
   const fetchRequest = new Request(`http://${host}${request.url ?? '/'}`, {
     method: 'POST',
@@ -171,11 +154,12 @@ async function handleNodeTunnelRequest(
 
   const fetchResponse = await handleTunnelRequest(fetchRequest, options);
   const responseHeaders: Record<string, string> = {};
-  fetchResponse.headers.forEach((value, name) => {
-    if (!HOP_BY_HOP_HEADERS.has(name)) {
+  for (const name of FORWARDED_RESPONSE_HEADERS) {
+    const value = fetchResponse.headers.get(name);
+    if (value) {
       responseHeaders[name] = value;
     }
-  });
+  }
   response.writeHead(fetchResponse.status, responseHeaders);
   response.end(new Uint8Array(await fetchResponse.arrayBuffer()));
 }
