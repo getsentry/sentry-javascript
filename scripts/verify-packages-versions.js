@@ -2,7 +2,7 @@ const fs = require('fs');
 const path = require('path');
 const pkg = require('../package.json');
 
-const TYPESCRIPT_VERSION = '~7.0.2';
+const TYPESCRIPT_VERSION = '7.1.0-beta';
 
 if (pkg.devDependencies.typescript !== TYPESCRIPT_VERSION) {
   console.error(`
