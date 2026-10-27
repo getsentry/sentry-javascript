@@ -88,7 +88,7 @@ test('sends an INP span', async ({ page }) => {
   expect(inpSpan.attributes).toEqual(
     expect.objectContaining({
       'sentry.op': { value: 'ui.interaction.click', type: 'string' },
-      'sentry.origin': { value: 'auto.http.browser.inp', type: 'string' },
+      'sentry.origin': { value: 'auto.ui.browser.inp', type: 'string' },
       'browser.web_vital.inp.target': {
         value: 'body > div#root > input#exception-button[type="button"]',
         type: 'string',

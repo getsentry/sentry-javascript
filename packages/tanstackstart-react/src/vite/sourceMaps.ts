@@ -1,6 +1,13 @@
 import { sentryVitePlugin } from '@sentry/bundler-plugins/vite';
 import * as path from 'node:path';
-import type { BuildEnvironmentOptions, Plugin, ResolvedConfig, UserConfig } from 'vite';
+import type { Plugin, ResolvedConfig, UserConfig } from 'vite';
+import {
+  getNitroServiceOutDirs,
+  hasOutputSourceMapSetting,
+  isNitroService,
+  type PluginEnvironment,
+  type SourceMapsEnablerApi,
+} from './nitroSourceMaps';
 import type { SentryTanstackStartOptions } from './sentryTanstackStart';
 
 type FilesToDeleteAfterUpload = string | string[] | undefined;
@@ -29,12 +36,6 @@ export function rewriteTanstackStartSource(source: string, _map: unknown, contex
   const absolutePath = path.resolve(context?.mapDir ?? process.cwd(), sourcePath);
   return path.relative(process.cwd(), absolutePath).split(path.sep).join('/');
 }
-
-/**
- * Tells the plugin that deletes source maps after the upload whether the source maps of an environment are only
- * there because Sentry enabled them.
- */
-type SourceMapsEnablerApi = { hasSentryEnabledSourceMaps(environmentName: string): boolean };
 
 /**
  * A Sentry plugin for adding the @sentry/bundler-plugins/vite to automatically upload source maps to Sentry.
@@ -127,7 +128,14 @@ export function makeAddSentryVitePlugin(options: SentryTanstackStartOptions): Pl
     },
   });
 
-  return [configPlugin, ...sentryPlugins];
+  // Nitro bundles the output of its services again. Debug IDs from a service would end up in Nitro's output and point
+  // to the service's source maps instead of Nitro's.
+  const scopedSentryPlugins = sentryPlugins.map(plugin => ({
+    ...plugin,
+    applyToEnvironment: (environment: PluginEnvironment) => !isNitroService(environment),
+  }));
+
+  return [configPlugin, ...scopedSentryPlugins];
 }
 
 /**
@@ -135,10 +143,12 @@ export function makeAddSentryVitePlugin(options: SentryTanstackStartOptions): Pl
  * such as `./**\/*.map` does not enter dot directories like `.output`, where Nitro puts the client build.
  */
 function getSentryEnabledSourceMapGlobs(config: ResolvedConfig): string[] {
+  const serviceOutDirs = getNitroServiceOutDirs(config);
   const outDirs = Object.entries(config.environments)
     .filter(([name]) => hasSentryEnabledSourceMaps(config, name))
     .filter(([, environment]) => !hasOutputSourceMapSetting(environment.build))
-    .flatMap(([, environment]) => getOutputDirs(config.root, environment.build));
+    .flatMap(([, environment]) => getOutputDirs(config.root, environment.build))
+    .filter(outDir => !serviceOutDirs.includes(outDir));
 
   return [...new Set(outDirs)].map(outDir => {
     const relativeOutDir = path.relative(process.cwd(), outDir).split(path.sep).join('/');
@@ -151,11 +161,6 @@ function getOutputDirs(root: string, build: ResolvedConfig['environments'][strin
   // Vite 7 has no `rolldownOptions`.
   const outputs = [build.rolldownOptions?.output ?? {}].flat();
   return outputs.map(output => path.resolve(root, output.dir ?? build.outDir));
-}
-
-/** `output.sourcemap` of the bundler config overrides `build.sourcemap` in the build output. */
-function hasOutputSourceMapSetting(build: Pick<BuildEnvironmentOptions, 'rolldownOptions'> | undefined): boolean {
-  return [build?.rolldownOptions?.output ?? []].flat().some(output => output.sourcemap !== undefined);
 }
 
 /** Vite tells plugins its version since Vite 7. */
