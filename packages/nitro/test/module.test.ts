@@ -1,5 +1,6 @@
 import type { Client } from '@sentry/core';
 import { getCurrentScope, makeDsn } from '@sentry/core';
+import { _INTERNAL_resetManagedTunnelDefaults, serveTunnelIntegration } from '@sentry/core/server';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { createNitroModule } from '../src/module';
 
@@ -8,9 +9,12 @@ vi.mock('../src/sourceMaps', () => ({ setupSourceMaps: vi.fn() }));
 
 const DSN = 'https://public@o1.ingest.sentry.io/1337';
 
-function setClient(managedTunnel: object | undefined): Record<string, unknown> {
-  const options = { dsn: DSN, _managedTunnel: managedTunnel };
-  getCurrentScope().setClient({ getDsn: () => makeDsn(DSN), getOptions: () => options } as unknown as Client);
+/** Sets a client with `serveTunnelIntegration` set up. */
+function setClient(managedTunnel: object): Record<string, unknown> {
+  const options: Record<string, unknown> = { dsn: DSN };
+  const client = { getDsn: () => makeDsn(DSN), getOptions: () => options } as unknown as Client;
+  getCurrentScope().setClient(client);
+  serveTunnelIntegration(managedTunnel).setup!(client);
 
   return options;
 }
@@ -22,6 +26,7 @@ function setup(options: { dev: boolean; baseURL: string }): void {
 describe('createNitroModule', () => {
   afterEach(() => {
     getCurrentScope().setClient(undefined);
+    _INTERNAL_resetManagedTunnelDefaults();
   });
 
   it("serves the dev server's managed tunnel under `baseURL`", () => {
