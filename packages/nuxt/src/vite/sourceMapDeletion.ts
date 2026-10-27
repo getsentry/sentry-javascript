@@ -1,6 +1,6 @@
 import { createSentryBuildPluginManager, globFiles, type Options } from '@sentry/bundler-plugins/core';
 import * as fs from 'node:fs';
-import * as path from 'node:path';
+import { isInDirectory } from './utils';
 
 /** Nitro's output directories, which depend on the Nitro preset, e.g. `dist` for the public files on Netlify. */
 type NitroOutputDirs = { publicDir: string; serverDir: string };
@@ -103,14 +103,4 @@ function logDebug(options: Options, ...messages: unknown[]): void {
     // eslint-disable-next-line no-console
     console.log('[Sentry]', ...messages);
   }
-}
-
-function isInDirectory(file: string, directory: string): boolean {
-  const relativePath = path.relative(directory, file);
-  return (
-    relativePath !== '' &&
-    relativePath !== '..' &&
-    !relativePath.startsWith(`..${path.sep}`) &&
-    !path.isAbsolute(relativePath)
-  );
 }

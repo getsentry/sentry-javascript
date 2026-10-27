@@ -12,6 +12,7 @@ import {
   getAssembleRequests,
   getChunkUploadPosts,
   getDebugIdPairs,
+  getSourcemapSources,
   getSourcemaps,
   loadMockServerResults,
   startNodeServer,
@@ -234,14 +235,18 @@ for (const outputDir of isStaticBuild ? [CLIENT_OUTPUT] : [CLIENT_OUTPUT, SERVER
 const conflictingDebugIds = findDebugIdsWithConflictingSourcemaps(sourcemaps);
 assert.deepEqual(conflictingDebugIds, [], 'Expected every uploaded debug ID to resolve to exactly one source map');
 
-// TODO: Nitro 3 bundles the SSR build's output again, but its maps stop at that output
-// (`.nuxt/vite/services/ssr/...`) and do not chain to the SSR build's own maps. So server frames do not reach
-// `.vue` files. Assert this when the server maps reach the original sources:
-// const serverDebugIds = new Set(findInjectedDebugIds({ outputDir: SERVER_OUTPUT }));
-// const serverSources = sourcemaps
-//   .filter(map => map.debugId && serverDebugIds.has(map.debugId))
-//   .flatMap(map => getSourcemapSources(map.sourcemap));
-// assert.ok(serverSources.some(source => source.endsWith('app/pages/index.vue')));
+if (!isStaticBuild) {
+  // Nitro bundles the output of the SSR build (`.nuxt/vite/services/ssr`) again, so server frames reach `.vue`
+  // files only through the maps of that build.
+  const serverDebugIds = new Set(findInjectedDebugIds({ outputDir: SERVER_OUTPUT }));
+  const serverSources = sourcemaps
+    .filter(map => map.debugId && serverDebugIds.has(map.debugId))
+    .flatMap(map => getSourcemapSources(map.sourcemap));
+  assert.ok(
+    serverSources.some(source => source.endsWith('app/pages/index.vue')),
+    `Expected the server source maps to resolve to app/pages/index.vue, got: ${serverSources.join(', ')}`,
+  );
+}
 console.log('');
 
 // --- What the build leaves behind in the client output ---
