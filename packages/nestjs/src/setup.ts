@@ -9,7 +9,6 @@ import type {
 import { Catch, Global, HttpException, Injectable, Logger, Module } from '@nestjs/common';
 import { APP_INTERCEPTOR, BaseExceptionFilter } from '@nestjs/core';
 import { captureException, debug, getDefaultIsolationScope, getIsolationScope, isObjectLike, withIsolationScope } from '@sentry/core';
-import { Observable } from 'rxjs';
 import { isExpectedError, isWsOrRpcException } from './helpers';
 
 // Partial extract of FastifyRequest interface
@@ -47,7 +46,7 @@ class SentryTracingInterceptor implements NestInterceptor {
   /**
    * Intercepts HTTP requests to set the transaction name for Sentry tracing.
    */
-  public intercept(context: ExecutionContext, next: CallHandler): Observable<unknown> {
+  public intercept(context: ExecutionContext, next: CallHandler): ReturnType<CallHandler['handle']> {
     if (context.getType() === 'ws') {
       const wsHost = context.switchToWs();
       const client = wsHost.getClient<{ nsp?: { name?: string } }>();
@@ -57,14 +56,19 @@ class SentryTracingInterceptor implements NestInterceptor {
         return next.handle();
       }
 
-      return new Observable(subscriber =>
-        withIsolationScope(isolationScope => {
-          const namespace = client?.nsp?.name;
-          isolationScope.setTransactionName(namespace ? `WS ${namespace} ${pattern}` : `WS ${pattern}`);
+      const observable = next.handle();
+      observable.subscribe = new Proxy(observable.subscribe, {
+        apply: (originalSubscribe, thisArgSubscribe, argsSubscribe) => {
+          return withIsolationScope(isolationScope => {
+            const namespace = client?.nsp?.name;
+            isolationScope.setTransactionName(namespace ? `WS ${namespace} ${pattern}` : `WS ${pattern}`);
 
-          return next.handle().subscribe(subscriber);
-        }),
-      );
+            return originalSubscribe.apply(thisArgSubscribe, argsSubscribe);
+          });
+        },
+      });
+
+      return observable;
     }
 
     if (getIsolationScope() === getDefaultIsolationScope()) {
