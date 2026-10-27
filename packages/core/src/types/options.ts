@@ -654,7 +654,7 @@ export type BeforeSendStaticSpanCallback = (span: SpanJSON) => SpanJSON;
 
 /** Managed tunnel options shared by the browser and the server `init`, see `tunnel`. */
 export interface TunnelOptions {
-  /** A fixed tunnel path instead of the one derived from the DSN. A relative `tunnel` string sets this. */
+  /** A fixed tunnel path instead of the one derived from the DSN, used as written without `basePath`. */
   path?: string;
 
   /** Path prefix the app is served under, e.g. `/docs`. Set the same value in the browser and the server `init`. */
@@ -677,9 +677,8 @@ export interface ServerTunnelOptions extends TunnelOptions {
  * The `tunnel` option, where to send envelopes instead of the Sentry ingest URL:
  *
  * - A URL, e.g. `https://example.com/tunnel`, sends envelopes to your own tunnel endpoint.
- * - A relative path, e.g. `/monitor`, is a shortcut for `{ path: '/monitor' }`: the managed tunnel at that fixed
- *   path. The browser sends envelopes to it, and the server SDK serves it when its `init` sets the same path. An app
- *   can also serve the path itself, the browser only sends to Sentry directly when the path answers 404 or 405.
+ * - A relative path, e.g. `/monitor`: the browser sends envelopes to it as written, and a server `init` with the same
+ *   path serves the managed tunnel there.
  * - `true` enables the managed tunnel at a same-origin path derived from the DSN. Set it in both the browser and the
  *   server `init`: the browser sends envelopes to that path and the server SDK forwards them to Sentry. This keeps
  *   ad-blockers from dropping events.
