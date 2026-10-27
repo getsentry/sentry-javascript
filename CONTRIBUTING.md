@@ -28,6 +28,10 @@ node and pnpm versions the repo pins.
    pnpm runtime set node 24 -g
    ```
 
+   If this fails with `ERR_PNPM_GLOBAL_BIN_DIR_NOT_IN_PATH` (for example because pnpm came from npm or Homebrew instead
+   of the install script), run [`pnpm setup`](https://pnpm.io/cli/setup) to add pnpm's global bin directory to your
+   `PATH`, restart your shell, and try again.
+
 3. Install all dependencies, and then perform an initial build, so TypeScript can read all of the linked type
    definitions:
 
