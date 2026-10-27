@@ -8,7 +8,7 @@ Before you request a review:
 - Read your own diff first, add inline comments with explanation or where to look closely.
 - Large PR? Split or stack it, or describe why you cannot.
 
-- Remove fields that do not apply (e.g. small PRs).
+- Remove fields that do not apply (e.g. on small PRs).
 - External contributors: link an issue where you got a maintainer's go-ahead.
 -->
 
