@@ -1,3 +1,5 @@
+import { builtinModules } from 'module';
+
 /**
  * Helper function to compensate for the fact that JS can't handle negative array indices very well
  */
@@ -33,34 +35,21 @@ export function mergeExternals(base, specific) {
  * Merge two arrays of plugins, making sure they're sorted in the correct order.
  *
  * Each entry in `order` is pinned for a real reason; `...` is where every other plugin lands.
+ *
+ * Rolldown's builtin plugins all report the same `name` (e.g. `builtin:replace`), so they can't be
+ * pinned individually and all land in `...`, where `Array.prototype.sort` keeps them in insertion
+ * order. That's fine: the transpile step they used to be ordered against is now part of rolldown
+ * itself and always runs first.
  */
 export function mergePlugins(pluginsA, pluginsB) {
   const order = [
-    // (transform) Strips `/*! rollup-include-development-only */` marker blocks. Must precede `esbuild` so the
-    // now-unused imports inside the block can be tree-shaken by rollup.
+    // (transform) Strips `/*! rollup-include-development-only */` marker blocks. Runs first so the
+    // now-unused imports inside the block can be tree-shaken.
     'remove-dev-mode-blocks',
-    // (transform) Rewrites the `/*! __SENTRY_SDK_SOURCE__ */` comment marker in `getSDKSource()` for CDN builds.
-    // Comment-based → must precede `esbuild` (the marker uses `/*!` legal-comment syntax, but pinning is defensive).
-    'replace-sdk-source',
-    // (transform) TS/JSX → JS, strips non-legal block comments, strips `declare const` lines.
-    'esbuild',
-    // The identifier-based `replace-*` plugins below MUST run AFTER `esbuild`. Each of these identifiers is also
-    // declared in TS via `declare const __FOO__: ...;` lines. If the replace runs before esbuild, it rewrites the
-    // declaration's identifier into an expression and produces invalid TS. esbuild strips `declare const` lines,
-    // so by the time these plugins run the only remaining occurrences are real references.
-    'replace-debug-build-statement',
-    'replace-browser-bundle-flag',
-    'replace-debug-flags',
-    'replace-rrweb-build-flags',
-    // Every other plugin lands here — including additional identifier-based `replace-*` plugins (e.g.
-    // `replace-sdk-version`), which intentionally run AFTER `esbuild` for the same reason as the ones pinned above.
+    // (transform) Strips the marker blocks for the format we're not currently emitting.
+    'remove-esm-cjs-mode-blocks',
+    // Every other plugin lands here, including the identifier-based `builtin:replace` instances.
     '...',
-    // (renderChunk) Minifies and strips comments (we use `comments: false`). Anything that contributes code to a
-    // chunk must run before this.
-    'terser',
-    // (renderChunk) Prepends the license banner, which is a comment. Must run AFTER `terser`, otherwise terser
-    // would strip it.
-    'license',
     // (renderChunk) Captures the final chunk text as base64, so it must run last.
     'output-base64-worker-script',
   ];
@@ -71,4 +60,34 @@ export function mergePlugins(pluginsA, pluginsB) {
     return order.indexOf(sortKeyA) - order.indexOf(sortKeyB);
   });
   return plugins;
+}
+
+/**
+ * Rolldown has no `'smallest'` treeshake preset, so spell out what rollup's `'smallest'` meant.
+ *
+ * https://rolldown.rs/options/treeshake#treeshake
+ * https://rollupjs.org/configuration-options/#treeshake
+ */
+export function treeShakePreset(preset) {
+  if (preset === 'smallest') {
+    return {
+      propertyReadSideEffects: false,
+      moduleSideEffects: false,
+      unknownGlobalSideEffects: false,
+    };
+  }
+
+  return preset;
+}
+
+/**
+ * List every Node.js builtin under both its bare name (`fs`) and its prefixed name (`node:fs`).
+ *
+ * Rollup normalised the `node:` prefix for us when matching externals; rolldown doesn't, so both
+ * spellings have to be listed explicitly.
+ */
+export function getNodeBuiltIns(excludeBuiltins = []) {
+  const excluded = new Set(excludeBuiltins);
+
+  return builtinModules.flatMap(builtin => (excluded.has(builtin) ? [] : [builtin, `node:${builtin}`]));
 }

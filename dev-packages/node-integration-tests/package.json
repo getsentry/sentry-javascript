@@ -12,7 +12,7 @@
   "scripts": {
     "build": "pnpm run build:transpile && pnpm run build:types",
     "build:dev": "pnpm run build",
-    "build:transpile": "rollup -c rollup.npm.config.mjs",
+    "build:transpile": "rolldown -c rollup.npm.config.mjs",
     "build:types": "tsc -p tsconfig.types.json",
     "clean": "rimraf -g suites/**/node_modules suites/**/tmp_* && pnpm run clean:script",
     "clean:script": "node scripts/clean.js",
