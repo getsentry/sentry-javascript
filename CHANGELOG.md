@@ -4,6 +4,46 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 10.77.1
+
+### Important Changes
+
+- **fix(v10/deps)!: Limit `@opentelemetry/api` to `<1.10.0` and the OpenTelemetry SDK to `<3.0.0` ([#25715](https://github.com/getsentry/sentry-javascript/pull/25715))**
+
+  **Breaking change**
+
+  If your app uses `@opentelemetry/api` 1.10.0 or OpenTelemetry SDK v3 together with v10 of the Sentry SDK, you must stay on `@opentelemetry/api` below 1.10.0 and OpenTelemetry SDK v2, or upgrade to v11.
+
+  `@opentelemetry/api` 1.10.0 only works with OpenTelemetry SDK v3 (`@opentelemetry/core` 3.x, `@opentelemetry/instrumentation` 0.300.x). The SDK v2 packages that v10 uses only support `@opentelemetry/api` below 1.10.0, and SDK v3 needs Node.js 22.15.0 or newer, while v10 supports Node.js 18 and newer. For this reason, v10 now limits `@opentelemetry/api` to `<1.10.0`, and the `@opentelemetry/instrumentation` and `@opentelemetry/exporter-trace-otlp-http` peer dependencies of `@sentry/node-core` to `<0.300.0`.
+
+  If your app depends on `@opentelemetry/api` directly, use a version below 1.10.0 (for example `~1.9.1`). With 1.10.0, your app and the Sentry SDK use different copies of the API, and the OpenTelemetry calls of your app do not see the tracer provider of the Sentry SDK.
+
+  To use `@opentelemetry/api` 1.10.0 and OpenTelemetry SDK v3, upgrade to v11 of the Sentry SDK. For the upgrade steps, see the [migration guide](https://docs.sentry.io/platforms/javascript/migration/v10-to-v11/).
+
+### Other Changes
+
+- fix(v10/aws-serverless): End the `function.aws` span when a callback-style handler calls back ([#25693](https://github.com/getsentry/sentry-javascript/pull/25693))
+- fix(v10/build): Make CJS re-exports visible to Node ESM imports ([#25690](https://github.com/getsentry/sentry-javascript/pull/25690))
+- fix(v10/bundler-plugins): Inject the release only into chunks that load at startup ([#25695](https://github.com/getsentry/sentry-javascript/pull/25695))
+- fix(v10/cloudflare): auto-instrument a re-exported default export ([#25407](https://github.com/getsentry/sentry-javascript/pull/25407))
+- fix(v10/cloudflare): Bind a default re-export with `var` in the Vite transform ([#25733](https://github.com/getsentry/sentry-javascript/pull/25733))
+- fix(v10/cloudflare): keep default exports intact when auto-instrumenting ([#25732](https://github.com/getsentry/sentry-javascript/pull/25732))
+- fix(v10/nitro): Use forward slashes for resolved plugin paths on Windows ([#25692](https://github.com/getsentry/sentry-javascript/pull/25692))
+- fix(v10/node): Only read JavaScript and TypeScript source files in ContextLines ([#25699](https://github.com/getsentry/sentry-javascript/pull/25699))
+- fix(v10/node): Read module versions from the isolated layouts of pnpm and Bun ([#25698](https://github.com/getsentry/sentry-javascript/pull/25698))
+- fix(v10/react): Don't crash ErrorBoundary when `error.cause` is not an Error ([#25691](https://github.com/getsentry/sentry-javascript/pull/25691))
+- fix(v10/react): Match React Router navigations against root routes only ([#25694](https://github.com/getsentry/sentry-javascript/pull/25694))
+- fix(v10/replay): Apply attribute masking to breadcrumb messages ([#25697](https://github.com/getsentry/sentry-javascript/pull/25697))
+
+<details>
+  <summary> <strong>Internal Changes</strong> </summary>
+
+- ci(v10): Cache Playwright browsers on v10 ([#25720](https://github.com/getsentry/sentry-javascript/pull/25720))
+- test(v10/e2e): Pull Supabase images from GHCR ([#25719](https://github.com/getsentry/sentry-javascript/pull/25719))
+- test(v10/e2e): Use Node 22.23.4 in E2E test apps ([#25687](https://github.com/getsentry/sentry-javascript/pull/25687))
+
+</details>
+
 ## 10.77.0
 
 ### Important Changes

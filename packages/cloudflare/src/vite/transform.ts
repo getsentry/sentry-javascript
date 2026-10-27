@@ -416,12 +416,67 @@ function wrapDefaultExport(node: ExportDefaultNode, ctx: TransformContext, state
     return;
   }
 
-  // `export default <expr>` → `const __SENTRY_DEFAULT_EXPORT__ = <expr>`
-  // MagicString positions are always relative to the original source.
-  state.ms.overwrite(node.start, decl.start, 'const __SENTRY_DEFAULT_EXPORT__ = ');
-  state.ms.append(`\nexport default __SENTRY__.withSentry(${state.optionsFn}, __SENTRY_DEFAULT_EXPORT__);\n`);
+  // MagicString positions are always relative to the original source. Only the `export default`
+  // keywords are replaced, so parentheses around the expression stay.
+  const source = state.ms.original;
+  const keywordsEnd = exportDefaultKeywordsEnd(source, node.start);
+  const declaredName =
+    decl.type === 'ClassDeclaration' || decl.type === 'FunctionDeclaration'
+      ? (decl as ClassDeclarationNode).id?.name
+      : undefined;
+
+  // As with `export { handler as default }`, the export is set in two steps: bound as-is where the
+  // original statement set it, then rebound at the end of the module to the wrapper, which sees
+  // methods added in between. See `wrapDefaultSpecifier`.
+  let wrapped = '__SENTRY_DEFAULT_EXPORT__';
+  if (declaredName) {
+    // `export default class Handler {}`: the declaration stays, so `Handler` stays bound in the module.
+    state.ms.remove(node.start, decl.start);
+    state.ms.appendLeft(node.end, `\nvar __SENTRY_DEFAULT_EXPORT__ = ${declaredName};`);
+    wrapped = declaredName;
+  } else if (isAnonymousFunctionOrClass(decl)) {
+    // As a property value, the class or function gets the name `default`, as `export default` gives it.
+    const hasSemicolon = source[node.end - 1] === ';';
+    state.ms.overwrite(node.start, keywordsEnd, 'var __SENTRY_DEFAULT_EXPORT__ = { default:');
+    state.ms.appendLeft(hasSemicolon ? node.end - 1 : node.end, hasSemicolon ? ' }.default' : ' }.default;');
+  } else {
+    state.ms.overwrite(node.start, keywordsEnd, 'var __SENTRY_DEFAULT_EXPORT__ =');
+  }
+  state.ms.appendLeft(node.end, '\nexport { __SENTRY_DEFAULT_EXPORT__ as default };');
+  state.ms.append(`\n__SENTRY_DEFAULT_EXPORT__ = __SENTRY__.withSentry(${state.optionsFn}, ${wrapped});`);
   state.needsImport = true;
   state.autoWrapped.add(DEFAULT_EXPORT);
+}
+
+/**
+ * Offset just past the `default` keyword of the `export default` statement at `start`. Comments can
+ * sit between `export`, `default` and the expression, and may themselves contain the word `default`.
+ */
+function exportDefaultKeywordsEnd(source: string, start: number): number {
+  let index = start + 'export'.length;
+  while (index < source.length && !source.startsWith('default', index)) {
+    if (source.startsWith('//', index)) {
+      const lineEnd = source.indexOf('\n', index);
+      index = lineEnd === -1 ? source.length : lineEnd;
+    } else if (source.startsWith('/*', index)) {
+      const commentEnd = source.indexOf('*/', index + 2);
+      index = commentEnd === -1 ? source.length : commentEnd + 2;
+    } else {
+      index++;
+    }
+  }
+  return index + 'default'.length;
+}
+
+function isAnonymousFunctionOrClass(node: BaseNode): boolean {
+  if (node.type === 'ArrowFunctionExpression') return true;
+  const isFunctionOrClass = [
+    'FunctionExpression',
+    'FunctionDeclaration',
+    'ClassExpression',
+    'ClassDeclaration',
+  ].includes(node.type);
+  return isFunctionOrClass && !(node as ClassDeclarationNode).id;
 }
 
 function handleNamedExport(node: ExportNamedNode, ctx: TransformContext, state: TransformState): void {
@@ -570,6 +625,33 @@ function wrapDefaultSpecifier(localName: string, state: TransformState): string 
 }
 
 /**
+ * `export { default } from './handler'`. The handler may already be wrapped in its own module,
+ * which this transform cannot see, so the emitted guard returns such a handler as-is.
+ *
+ * The original re-export is a live binding to the handler module's export, but the wrapper is not
+ * set until this module's body runs. A circular import that reads the default export before then
+ * gets `undefined` instead of the handler. The binding is a `var` so that the read does not throw,
+ * as a `const` would, and stop the Worker from starting. See `wrapDefaultSpecifier`.
+ */
+function wrapDefaultReexport(
+  localName: string,
+  sourceLiteral: string,
+  state: TransformState,
+  prelude: string[],
+): string {
+  const target = '__SENTRY_REEXPORT_default__';
+  prelude.push(
+    localName === DEFAULT_IMPORT
+      ? `import ${target} from ${sourceLiteral};`
+      : `import { ${localName} as ${target} } from ${sourceLiteral};`,
+    `var __SENTRY_DEFAULT_EXPORT__ = __SENTRY__._INTERNAL_wrapUnlessInstrumented(__SENTRY__.withSentry, ${state.optionsFn}, ${target});`,
+  );
+  state.needsImport = true;
+  state.autoWrapped.add(DEFAULT_EXPORT);
+  return '__SENTRY_DEFAULT_EXPORT__ as default';
+}
+
+/**
  * Handle one export specifier, returning the `Wrapped as Exported` pair to emit when its class has
  * to be wrapped through a fresh binding — the cross-module case. The import/wrapper statements that
  * pair depends on are pushed onto `prelude`.
@@ -597,7 +679,10 @@ function wrapCrossModuleSpecifier(
 
   if (!exportedName || !localName) return undefined;
   if (!kind) {
-    return exportedName === DEFAULT_IMPORT && !sourceLiteral ? wrapDefaultSpecifier(localName, state) : undefined;
+    if (exportedName !== DEFAULT_IMPORT) return undefined;
+    return sourceLiteral
+      ? wrapDefaultReexport(localName, sourceLiteral, state, prelude)
+      : wrapDefaultSpecifier(localName, state);
   }
 
   // Without a `from` clause the specifier points at a module-local binding, which may already be
