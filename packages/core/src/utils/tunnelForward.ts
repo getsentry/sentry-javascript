@@ -3,7 +3,7 @@ import { getClient } from '../currentScopes';
 import { suppressTracing } from '../tracing/trace';
 import { debug } from './debug-logger';
 import { makeDsn } from './dsn';
-import { resolveAllowedDsns } from './tunnel';
+import { getTunnelAllowedDsns, resolveAllowedDsns } from './tunnel';
 
 /**
  * Options for {@link handleTunnelRequest}.
@@ -15,7 +15,10 @@ export interface HandleTunnelRequestOptions {
    * @deprecated Pass the request as the first argument of `handleTunnelRequest` instead.
    */
   request?: Request;
-  /** DSNs whose envelopes may be forwarded, in addition to the DSN of the active client. */
+  /**
+   * DSNs whose envelopes may be forwarded, in addition to the DSN of the active client. Defaults to the DSNs
+   * `serveTunnelIntegration` allows.
+   */
   allowedDsns?: Array<string>;
 }
 
@@ -70,7 +73,12 @@ export function handleTunnelRequest(
   const request = isLegacyCall ? requestOrOptions.request : (requestOrOptions as Request);
   const options = isLegacyCall ? requestOrOptions : responseOrOptions;
 
-  return forwardTunnelRequest(request, resolveAllowedDsns(options?.allowedDsns, getClient()?.getDsn()));
+  // Without `allowedDsns`, the DSNs `serveTunnelIntegration` allows, so its options apply here too.
+  const allowedDsns = options?.allowedDsns
+    ? resolveAllowedDsns(options.allowedDsns, getClient()?.getDsn())
+    : (getTunnelAllowedDsns() ?? resolveAllowedDsns(undefined, getClient()?.getDsn()));
+
+  return forwardTunnelRequest(request, allowedDsns);
 }
 
 function isNodeTunnelResponse(value: unknown): value is NodeTunnelResponse {

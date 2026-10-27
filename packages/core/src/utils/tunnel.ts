@@ -87,6 +87,13 @@ export function getTunnelPaths(): string[] {
 }
 
 /**
+ * Returns the DSNs the active server client's managed tunnel forwards, its own DSN included.
+ */
+export function getTunnelAllowedDsns(): string[] | undefined {
+  return getServedTunnel()?.allowedDsns;
+}
+
+/**
  * The paths a managed tunnel is served at: the fixed `path`, or else one per allowed DSN.
  */
 export function resolveTunnelPaths(tunnelOptions: ServerTunnelOptions, allowedDsns: Array<string>): string[] {

@@ -88,6 +88,20 @@ describe('handleTunnelRequest call forms', () => {
     vi.unstubAllGlobals();
   });
 
+  it('forwards the DSNs `serveTunnelIntegration` allows when no `allowedDsns` are passed', async () => {
+    const browserDsn = 'https://browser@o1.ingest.sentry.io/42';
+    setTestClient(TEST_DSN, { allowedDsns: [browserDsn] });
+
+    const fromIntegration = await handleTunnelRequest(makeEnvelopeRequest({ dsn: browserDsn }));
+    const explicit = await handleTunnelRequest(makeEnvelopeRequest({ dsn: browserDsn }), {
+      allowedDsns: ['https://other@o2.ingest.sentry.io/7'],
+    });
+    getCurrentScope().setClient(undefined);
+
+    expect(fromIntegration.status).toBe(202);
+    expect(explicit.status).toBe(403);
+  });
+
   it('still takes the released options object', async () => {
     // oxlint-disable-next-line typescript/no-deprecated -- the form under test
     const response = await handleTunnelRequest({
