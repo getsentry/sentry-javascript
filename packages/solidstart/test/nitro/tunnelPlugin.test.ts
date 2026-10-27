@@ -1,5 +1,6 @@
 import type { Client } from '@sentry/core';
 import { createEnvelope, getCurrentScope, getTunnelPath, makeDsn, serializeEnvelope } from '@sentry/core';
+import { _INTERNAL_resetManagedTunnelDefaults, serveTunnelIntegration } from '@sentry/core/server';
 import { createApp, eventHandler, setHeaders, toNodeListener } from 'h3';
 import { fetchNodeRequestHandler } from 'node-mock-http';
 import { afterEach, describe, expect, it, vi } from 'vitest';
@@ -39,13 +40,16 @@ const onError = vi.fn();
 describe('SolidStart v1 tunnel plugin', () => {
   afterEach(() => {
     getCurrentScope().setClient(undefined);
+    _INTERNAL_resetManagedTunnelDefaults();
     vi.unstubAllGlobals();
     vi.clearAllMocks();
   });
 
-  it('answers tunnel requests before route rules and the app when `init` enabled the managed tunnel', async () => {
-    const options = { dsn: DSN, _managedTunnel: {} };
-    getCurrentScope().setClient({ getDsn: () => makeDsn(DSN), getOptions: () => options } as unknown as Client);
+  it('answers tunnel requests before route rules and the app with `serveTunnelIntegration`', async () => {
+    const options = { dsn: DSN };
+    const client = { getDsn: () => makeDsn(DSN), getOptions: () => options } as unknown as Client;
+    getCurrentScope().setClient(client);
+    serveTunnelIntegration().setup!(client);
     const sentryFetch = vi.fn((_url: string, _init: RequestInit) => Promise.resolve(new Response('forwarded')));
     vi.stubGlobal('fetch', sentryFetch);
     const envelope = serializeEnvelope(createEnvelope({ dsn: DSN }, [])) as string;
