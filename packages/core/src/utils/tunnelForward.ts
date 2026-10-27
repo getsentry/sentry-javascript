@@ -3,7 +3,8 @@ import { getClient } from '../currentScopes';
 import { suppressTracing } from '../tracing/trace';
 import { debug } from './debug-logger';
 import { makeDsn } from './dsn';
-import { getTunnelAllowedDsns, resolveAllowedDsns } from './tunnel';
+import type { ServerTunnelOptions } from '../types/options';
+import { getTunnelAllowedDsns, matchesTunnel, resolveAllowedDsns, resolveTunnelMatch } from './tunnel';
 
 /**
  * Options for {@link handleTunnelRequest}.
@@ -26,6 +27,7 @@ export interface HandleTunnelRequestOptions {
  * The parts of Node's `IncomingMessage` the tunnel reads.
  */
 interface NodeTunnelRequest extends AsyncIterable<Uint8Array | string> {
+  method?: string;
   url?: string;
   headers: Record<string, string | string[] | undefined>;
 }
@@ -79,6 +81,39 @@ export function handleTunnelRequest(
     : (getTunnelAllowedDsns() ?? resolveAllowedDsns(undefined, getClient()?.getDsn()));
 
   return forwardTunnelRequest(request, allowedDsns);
+}
+
+/**
+ * Forwards the request if it's a POST to the managed tunnel, otherwise returns `undefined` for the app to handle. The
+ * tunnel comes from `options`, else from `serveTunnelIntegration`, else it's the path of the active client's own DSN.
+ */
+export function handleTunnelRequestIfMatched(
+  request: Request,
+  options?: ServerTunnelOptions,
+): Promise<Response> | undefined;
+/**
+ * Forwards a tunnel request from a Node server, like Express or `node:http`, and writes the answer to `response`.
+ * Returns `undefined` for anything else, so the app can handle it.
+ */
+export function handleTunnelRequestIfMatched(
+  request: NodeTunnelRequest,
+  response: NodeTunnelResponse,
+  options?: ServerTunnelOptions,
+): Promise<void> | undefined;
+export function handleTunnelRequestIfMatched(
+  request: Request | NodeTunnelRequest,
+  responseOrOptions?: NodeTunnelResponse | ServerTunnelOptions,
+  nodeOptions?: ServerTunnelOptions,
+): Promise<Response | void> | undefined {
+  const response = isNodeTunnelResponse(responseOrOptions) ? responseOrOptions : undefined;
+  const tunnel = resolveTunnelMatch(response ? nodeOptions : (responseOrOptions as ServerTunnelOptions | undefined));
+  if (!tunnel.allowedDsns.length || !matchesTunnel(request, tunnel)) {
+    return undefined;
+  }
+
+  return response
+    ? handleNodeTunnelRequest(request as NodeTunnelRequest, response, { allowedDsns: tunnel.allowedDsns })
+    : forwardTunnelRequest(request as Request, tunnel.allowedDsns);
 }
 
 function isNodeTunnelResponse(value: unknown): value is NodeTunnelResponse {

@@ -26,7 +26,10 @@ import {
   filterCollectedUrl,
   filterCollectedUrlQuery,
 } from '@sentry/core';
-import { flushIfServerless, handleTunnelRequestIfMatched } from '@sentry/core/server';
+import {
+  flushIfServerless,
+  _INTERNAL_handleServedTunnelRequest as handleServedTunnelRequest,
+} from '@sentry/core/server';
 import {
   captureException,
   continueTrace,
@@ -87,7 +90,7 @@ export const handleRequest: (options?: MiddlewareOptions) => MiddlewareHandler =
       return next();
     }
 
-    const tunnelResponse = handleTunnelRequestIfMatched(ctx.request);
+    const tunnelResponse = handleServedTunnelRequest(ctx.request);
     if (tunnelResponse) {
       return tunnelResponse;
     }

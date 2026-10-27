@@ -11,13 +11,18 @@ import {
   getTunnelPath,
   getTunnelIgnoreSpanFilters,
   getTunnelPaths,
-  handleTunnelRequestIfMatched,
+  handleServedTunnelRequest,
+  isServedTunnelRequest,
   isTunnelRequest,
   normalizeTunnelBasePath,
   resolveAllowedDsns,
   resolveTunnelPaths,
 } from '../../../src/utils/tunnel';
-import { forwardTunnelRequest, handleTunnelRequest } from '../../../src/utils/tunnelForward';
+import {
+  forwardTunnelRequest,
+  handleTunnelRequest,
+  handleTunnelRequestIfMatched,
+} from '../../../src/utils/tunnelForward';
 import { serveTunnelIntegration } from '../../../src/integrations/serveTunnel';
 import {
   _INTERNAL_resetManagedTunnelDefaults,
@@ -456,6 +461,14 @@ describe('handleTunnelRequest', () => {
 });
 
 describe('getTunnelPath', () => {
+  it("defaults to the active client's DSN", () => {
+    setTestClient(TEST_DSN);
+
+    expect(getTunnelPath()).toBe(getTunnelPath(TEST_DSN));
+    getCurrentScope().setClient(undefined);
+    expect(getTunnelPath()).toBeUndefined();
+  });
+
   it('returns a short opaque path that does not leak the DSN', () => {
     const path = getTunnelPath(TEST_DSN);
 
@@ -509,12 +522,27 @@ describe('isTunnelRequest', () => {
     );
   });
 
-  it('uses the managed tunnel config of the active client when no options are passed', () => {
+  it("falls back to the active client's own DSN without `serveTunnelIntegration`, unlike the served-only matcher", () => {
     setTestClient(TEST_DSN);
-    expect(isTunnelRequest({ method: 'POST', url: tunnelPath })).toBe(false);
 
-    setTestClient(TEST_DSN, {});
     expect(isTunnelRequest({ method: 'POST', url: tunnelPath })).toBe(true);
+    expect(isServedTunnelRequest({ method: 'POST', url: tunnelPath })).toBe(false);
+  });
+
+  it('matches the tunnel the options describe, with no client at all', () => {
+    const browserDsn = 'https://browser@o1.ingest.sentry.io/42';
+
+    expect(
+      isTunnelRequest(
+        { method: 'POST', url: `/app${getTunnelPath(browserDsn)}` },
+        {
+          allowedDsns: [browserDsn],
+          basePath: '/app',
+        },
+      ),
+    ).toBe(true);
+    expect(isTunnelRequest({ method: 'POST', url: '/monitor' }, { path: '/monitor' })).toBe(true);
+    expect(isTunnelRequest({ method: 'POST', url: getTunnelPath(browserDsn)! }, { path: '/monitor' })).toBe(false);
   });
 
   it('matches nothing without a client', () => {
@@ -685,6 +713,55 @@ describe('handleTunnelRequestIfMatched', () => {
     expect(request.bodyUsed).toBe(false);
     expect(fetchMock).not.toHaveBeenCalled();
   });
+  it('forwards to the own DSN path without `serveTunnelIntegration`, which the framework SDKs ignore', async () => {
+    fetchMock.mockResolvedValue(new Response('ok'));
+    setTestClient(TEST_DSN);
+    const tunnelUrl = `http://localhost${getTunnelPath(TEST_DSN)}`;
+
+    expect((await handleTunnelRequestIfMatched(makeEnvelopeRequest({ dsn: TEST_DSN }, tunnelUrl)))?.status).toBe(200);
+    expect(handleServedTunnelRequest(makeEnvelopeRequest({ dsn: TEST_DSN }, tunnelUrl))).toBeUndefined();
+  });
+
+  it('forwards the tunnel the options describe', async () => {
+    fetchMock.mockResolvedValue(new Response('ok'));
+    const browserDsn = 'https://browser@o1.ingest.sentry.io/42';
+    setTestClient(TEST_DSN);
+
+    const response = await handleTunnelRequestIfMatched(
+      makeEnvelopeRequest({ dsn: browserDsn }, 'http://localhost/monitor'),
+      { path: '/monitor', allowedDsns: [browserDsn] },
+    );
+
+    expect(response?.status).toBe(200);
+    expect(
+      handleTunnelRequestIfMatched(makeEnvelopeRequest({ dsn: browserDsn }, 'http://localhost/other'), {
+        path: '/monitor',
+      }),
+    ).toBeUndefined();
+  });
+
+  it("answers a Node server's tunnel requests and leaves the rest to the app", async () => {
+    fetchMock.mockResolvedValue(new Response('forwarded', { status: 202 }));
+    setTestClient(TEST_DSN);
+    const server = http.createServer((req, res) => {
+      if (!handleTunnelRequestIfMatched(req, res)) {
+        res.writeHead(200).end('app');
+      }
+    });
+    await new Promise<void>(resolve => server.listen(0, resolve));
+    const { port } = server.address() as AddressInfo;
+    const envelope = serializeEnvelope(createEnvelope({ dsn: TEST_DSN }, [])) as string;
+
+    try {
+      const tunnel = await nodeRequest(port, getTunnelPath(TEST_DSN)!, envelope);
+      const other = await nodeRequest(port, '/api', envelope);
+
+      expect(tunnel).toEqual({ status: 202, body: 'forwarded' });
+      expect(other).toEqual({ status: 200, body: 'app' });
+    } finally {
+      await new Promise(resolve => server.close(resolve));
+    }
+  });
 });
 
 describe('getTunnelIgnoreSpanFilter', () => {
@@ -777,7 +854,7 @@ describe('serveTunnelIntegration', () => {
       'fetch',
       vi.fn(() => Promise.resolve(new Response('forwarded'))),
     );
-    const response = await bundledTunnel.handleTunnelRequestIfMatched(
+    const response = await bundledTunnel.handleServedTunnelRequest(
       makeEnvelopeRequest({ dsn: TEST_DSN }, `http://localhost/app${getTunnelPath(TEST_DSN)}`),
     );
     vi.unstubAllGlobals();
@@ -793,9 +870,7 @@ describe('serveTunnelIntegration', () => {
 
     expect(getTunnelPaths()).toEqual([]);
     expect(
-      handleTunnelRequestIfMatched(
-        makeEnvelopeRequest({ dsn: TEST_DSN }, `http://localhost${getTunnelPath(TEST_DSN)}`),
-      ),
+      handleServedTunnelRequest(makeEnvelopeRequest({ dsn: TEST_DSN }, `http://localhost${getTunnelPath(TEST_DSN)}`)),
     ).toBeUndefined();
   });
 });
@@ -930,4 +1005,17 @@ function isTunnelRequestFor(
   setTestClient(SERVER_DSN, managedTunnel);
 
   return isTunnelRequest(request);
+}
+
+/** POSTs `body` to a local server with `node:http`, since `fetch` is stubbed in these tests. */
+function nodeRequest(port: number, path: string, body: string): Promise<{ status: number; body: string }> {
+  return new Promise((resolve, reject) => {
+    const req = http.request({ port, path, method: 'POST' }, res => {
+      let data = '';
+      res.on('data', chunk => (data += chunk));
+      res.on('end', () => resolve({ status: res.statusCode!, body: data }));
+    });
+    req.on('error', reject);
+    req.end(body);
+  });
 }

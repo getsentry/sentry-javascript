@@ -1,7 +1,7 @@
 import * as diagnosticsChannel from 'node:diagnostics_channel';
 import { createMultiMatcher } from 'remix/route-pattern/match';
 import { consoleSandbox } from '@sentry/core';
-import { handleTunnelRequestIfMatched } from '@sentry/core/server';
+import { _INTERNAL_handleServedTunnelRequest as handleServedTunnelRequest } from '@sentry/core/server';
 import type { OrchestrionChannelContext } from '@sentry/server-utils';
 import { remixV3Channels } from '@sentry/server-utils/orchestrion/config';
 
@@ -95,7 +95,7 @@ function wrapFetchHandler(args: unknown[]): void {
   }
 
   args[0] = function sentryFetchHandler(this: unknown, request: Request, ...rest: unknown[]): unknown {
-    return handleTunnelRequestIfMatched(request) ?? handler.call(this, request, ...rest);
+    return handleServedTunnelRequest(request) ?? handler.call(this, request, ...rest);
   };
 }
 

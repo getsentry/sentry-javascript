@@ -60,11 +60,11 @@ export function applyTunnelDefaults(
 }
 
 /**
- * Returns the same-origin tunnel path for a DSN, e.g. `/k3x9q2a`. Browser and server derive it independently,
- * and as a hash it gives ad-blocker filter lists nothing to match.
+ * Returns the same-origin tunnel path for a DSN, e.g. `/k3x9q2a`, by default the active client's. Browser and server
+ * derive it independently, and as a hash it gives ad-blocker filter lists nothing to match.
  */
-export function getTunnelPath(dsn: DsnLike): string | undefined {
-  const components = makeDsn(dsn);
+export function getTunnelPath(dsn?: DsnLike): string | undefined {
+  const components = dsn ? makeDsn(dsn) : getClient()?.getDsn();
 
   return components ? `/${fnv1a32(dsnToString(components)).toString(36)}` : undefined;
 }
@@ -139,29 +139,74 @@ export function normalizeTunnelBasePath(basePath: string | undefined): string {
 }
 
 /**
- * Returns true if the request targets the active server client's managed tunnel.
+ * The paths, base path and allowed DSNs of a tunnel to match requests against.
  */
-export function isTunnelRequest(request: TunnelRequestLike): boolean {
+interface TunnelMatch {
+  paths: string[];
+  basePath?: string;
+  allowedDsns: string[];
+}
+
+/**
+ * Resolves the tunnel the public helpers match: `options`, else the one `serveTunnelIntegration` serves, else the
+ * path of the active client's own DSN.
+ */
+export function resolveTunnelMatch(options?: ServerTunnelOptions): TunnelMatch {
+  const client = getClient();
+  const servedTunnel = getServedTunnel();
+  if (!options && servedTunnel) {
+    return { ...servedTunnel, basePath: client?.getOptions()._managedTunnel?.basePath };
+  }
+
+  const allowedDsns = resolveAllowedDsns(options?.allowedDsns, client?.getDsn());
+
+  return { paths: resolveTunnelPaths(options ?? {}, allowedDsns), basePath: options?.basePath, allowedDsns };
+}
+
+/**
+ * Returns true if the request is a POST to one of the tunnel's paths.
+ */
+export function matchesTunnel(request: TunnelRequestLike, tunnel: Omit<TunnelMatch, 'allowedDsns'>): boolean {
   if (request.method !== 'POST' || !request.url) {
     return false;
   }
 
-  const tunnelOptions = getClient()?.getOptions()._managedTunnel;
-  if (!tunnelOptions) {
-    return false;
-  }
+  const path = stripBasePath(parseUrl(request.url).path || '/', tunnel.basePath);
 
-  const path = stripBasePath(parseUrl(request.url).path || '/', tunnelOptions.basePath);
-
-  return path !== undefined && getTunnelPaths().includes(path.replace(/\/$/, ''));
+  return path !== undefined && tunnel.paths.includes(path.replace(/\/$/, ''));
 }
 
 /**
- * Forwards the request if it targets the managed tunnel, otherwise returns `undefined` for the app to handle.
+ * Returns true if the request is a POST to the managed tunnel. The tunnel comes from `options`, else from
+ * `serveTunnelIntegration`, else it's the path of the active client's own DSN.
  */
-export function handleTunnelRequestIfMatched(request: Request): Promise<Response> | undefined {
+export function isTunnelRequest(request: TunnelRequestLike, options?: ServerTunnelOptions): boolean {
+  return matchesTunnel(request, resolveTunnelMatch(options));
+}
+
+/**
+ * Returns true if the request targets the tunnel `serveTunnelIntegration` serves. Unlike {@link isTunnelRequest},
+ * there's no fallback, so the framework SDKs serve nothing without the integration.
+ */
+export function isServedTunnelRequest(request: TunnelRequestLike): boolean {
   const servedTunnel = getServedTunnel();
-  if (!servedTunnel?.allowedDsns.length || !isTunnelRequest(request)) {
+
+  return (
+    !!servedTunnel &&
+    matchesTunnel(request, {
+      paths: servedTunnel.paths,
+      basePath: getClient()?.getOptions()._managedTunnel?.basePath,
+    })
+  );
+}
+
+/**
+ * Forwards the request if it targets the tunnel `serveTunnelIntegration` serves, otherwise returns `undefined`. The
+ * framework SDKs answer tunnel requests with it.
+ */
+export function handleServedTunnelRequest(request: Request): Promise<Response> | undefined {
+  const servedTunnel = getServedTunnel();
+  if (!servedTunnel?.allowedDsns.length || !isServedTunnelRequest(request)) {
     return undefined;
   }
 

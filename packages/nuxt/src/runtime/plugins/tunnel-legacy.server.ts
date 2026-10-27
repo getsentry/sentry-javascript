@@ -1,6 +1,6 @@
 import {
-  handleTunnelRequestIfMatched,
-  isTunnelRequest,
+  _INTERNAL_handleServedTunnelRequest as handleServedTunnelRequest,
+  _INTERNAL_isServedTunnelRequest as isServedTunnelRequest,
   _INTERNAL_setManagedTunnelDefaults as setManagedTunnelDefaults,
 } from '@sentry/core/server';
 import { eventHandler, toWebRequest } from 'h3';
@@ -22,12 +22,12 @@ export default (nitroApp => {
     route: '',
     handler: eventHandler(event => {
       // Checked on the method and path first, so no other request's body gets wrapped in a web `Request`.
-      if (!isTunnelRequest({ method: event.method, url: event.path })) {
+      if (!isServedTunnelRequest({ method: event.method, url: event.path })) {
         return undefined;
       }
 
       // A returned `Response` is sent and ends the request, while `undefined` hands it to the next layer.
-      return handleTunnelRequestIfMatched(toWebRequest(event));
+      return handleServedTunnelRequest(toWebRequest(event));
     }),
   });
 }) satisfies NitroAppPlugin;

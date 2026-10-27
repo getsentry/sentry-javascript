@@ -1,7 +1,7 @@
 import { debug, getClient } from '@sentry/core';
 import {
   _INTERNAL_getTunnelPaths as getTunnelPaths,
-  handleTunnelRequestIfMatched,
+  _INTERNAL_handleServedTunnelRequest as handleServedTunnelRequest,
   _INTERNAL_setManagedTunnelDefaults as setManagedTunnelDefaults,
 } from '@sentry/core/server';
 import { DEBUG_BUILD } from '../common/debug-build';
@@ -63,7 +63,7 @@ function makeTunnelRoute(id: string, getPath: () => string): Record<string, unkn
     },
     module: {
       action: ({ request }: { request: Request }) =>
-        handleTunnelRequestIfMatched(request) ?? new Response(null, { status: 404 }),
+        handleServedTunnelRequest(request) ?? new Response(null, { status: 404 }),
       loader: () => new Response(null, { status: 405, headers: { Allow: 'POST' } }),
     },
   };

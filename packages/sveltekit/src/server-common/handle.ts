@@ -21,7 +21,7 @@ import {
 } from '@sentry/core';
 import {
   flushIfServerless,
-  handleTunnelRequestIfMatched,
+  _INTERNAL_handleServedTunnelRequest as handleServedTunnelRequest,
   _INTERNAL_setManagedTunnelDefaults as setManagedTunnelDefaults,
 } from '@sentry/core/server';
 import { getTunnelBasePath } from '../common/tunnel';
@@ -300,7 +300,7 @@ export function sentryHandle(handlerOptions?: SentryHandleOptions): Handle {
   };
 
   const sentryRequestHandler: Handle = input => {
-    const tunnelResponse = handleTunnelRequestIfMatched(input.event.request);
+    const tunnelResponse = handleServedTunnelRequest(input.event.request);
     if (tunnelResponse) {
       return tunnelResponse;
     }
