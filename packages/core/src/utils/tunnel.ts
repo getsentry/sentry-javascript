@@ -14,11 +14,9 @@ import { parseUrl } from './url';
 export type TunnelForwarder = (request: Request, allowedDsns: Array<string>) => Promise<Response>;
 
 /**
- * A server client's tunnel paths, allowed DSNs and forwarder, computed once per client.
+ * A server client's tunnel paths, base path, allowed DSNs and forwarder, computed once per client.
  */
-interface ServedTunnel {
-  paths: string[];
-  allowedDsns: string[];
+interface ServedTunnel extends TunnelMatch {
   forward: TunnelForwarder;
 }
 
@@ -31,34 +29,53 @@ const servedTunnels = new WeakMap<Client, ServedTunnel>();
 export const SERVE_TUNNEL_INTEGRATION_NAME = 'ServeTunnel';
 
 /**
- * Stores a server client's computed tunnel paths and allowed DSNs.
+ * Computes a server client's served tunnel from its resolved options, and stores it.
  */
-export function setServedTunnel(client: Client, servedTunnel: ServedTunnel): void {
+export function setServedTunnel(
+  client: Client,
+  tunnelOptions: ServerTunnelOptions,
+  forward: TunnelForwarder,
+): ServedTunnel {
+  const allowedDsns = resolveAllowedDsns(tunnelOptions.allowedDsns, client.getDsn());
+  const servedTunnel = {
+    paths: resolveTunnelPaths(tunnelOptions, allowedDsns),
+    basePath: tunnelOptions.basePath,
+    allowedDsns,
+    forward,
+  };
   servedTunnels.set(client, servedTunnel);
-}
 
-function getServedTunnel(): ServedTunnel | undefined {
-  const client = getClient();
-
-  return client && (servedTunnels.get(client) ?? getServedTunnelFromClient(client));
+  return servedTunnel;
 }
 
 /**
- * Rebuilds the served tunnel from what the client carries, for a copy of this module that didn't set it up. Bundlers
- * can give a framework's request hook its own copy, like Next.js's middleware next to its `instrumentation`.
+ * The forwarder `serveTunnelIntegration` carries. Any copy of this module can reach it through the client.
  */
-function getServedTunnelFromClient(client: Client): ServedTunnel | undefined {
-  const tunnelOptions = client.getOptions()._managedTunnel;
-  const forward = client.getIntegrationByName?.<Integration & { forward?: TunnelForwarder }>(
-    SERVE_TUNNEL_INTEGRATION_NAME,
-  )?.forward;
-  if (!tunnelOptions || !forward) {
+export function getServeTunnelForwarder(client: Client): TunnelForwarder | undefined {
+  return client.getIntegrationByName?.<Integration & { forward?: TunnelForwarder }>(SERVE_TUNNEL_INTEGRATION_NAME)
+    ?.forward;
+}
+
+/**
+ * The active client's served tunnel. A copy of this module that didn't set it up rebuilds it once from what the
+ * client carries. Bundlers can give a framework's request hook its own copy, like Next.js's middleware next to its
+ * `instrumentation`.
+ */
+function getServedTunnel(): ServedTunnel | undefined {
+  const client = getClient();
+  if (!client) {
     return undefined;
   }
 
-  const allowedDsns = resolveAllowedDsns(tunnelOptions.allowedDsns, client.getDsn());
+  const servedTunnel = servedTunnels.get(client);
+  if (servedTunnel) {
+    return servedTunnel;
+  }
 
-  return { paths: resolveTunnelPaths(tunnelOptions, allowedDsns), allowedDsns, forward };
+  const tunnelOptions = client.getOptions()._managedTunnel;
+  const forward = getServeTunnelForwarder(client);
+
+  return tunnelOptions && forward ? setServedTunnel(client, tunnelOptions, forward) : undefined;
 }
 
 /**
@@ -170,13 +187,12 @@ interface TunnelMatch {
  * path of the active client's own DSN.
  */
 export function resolveTunnelMatch(options?: ServerTunnelOptions): TunnelMatch {
-  const client = getClient();
-  const servedTunnel = getServedTunnel();
-  if (!options && servedTunnel) {
-    return { ...servedTunnel, basePath: client?.getOptions()._managedTunnel?.basePath };
+  const servedTunnel = !options && getServedTunnel();
+  if (servedTunnel) {
+    return servedTunnel;
   }
 
-  const allowedDsns = resolveAllowedDsns(options?.allowedDsns, client?.getDsn());
+  const allowedDsns = resolveAllowedDsns(options?.allowedDsns, getClient()?.getDsn());
 
   return { paths: resolveTunnelPaths(options ?? {}, allowedDsns), basePath: options?.basePath, allowedDsns };
 }
@@ -209,7 +225,7 @@ export function isTunnelRequest(request: TunnelRequestLike, options?: ServerTunn
 export function isServedTunnelRequest(request: TunnelRequestLike): boolean {
   const servedTunnel = getServedTunnel();
 
-  return !!servedTunnel && matchesTunnel(request, resolveTunnelMatch());
+  return !!servedTunnel && matchesTunnel(request, servedTunnel);
 }
 
 /**
@@ -218,7 +234,7 @@ export function isServedTunnelRequest(request: TunnelRequestLike): boolean {
  */
 export function handleServedTunnelRequest(request: Request): Promise<Response> | undefined {
   const servedTunnel = getServedTunnel();
-  if (!servedTunnel?.allowedDsns.length || !isServedTunnelRequest(request)) {
+  if (!servedTunnel?.allowedDsns.length || !matchesTunnel(request, servedTunnel)) {
     return undefined;
   }
 

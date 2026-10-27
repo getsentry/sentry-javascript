@@ -1,9 +1,10 @@
 import { getEnvelopeEndpointWithUrlEncodedAuth } from '../api';
+import { getClient } from '../currentScopes';
 import { suppressTracing } from '../tracing/trace';
 import { debug } from './debug-logger';
 import { makeDsn } from './dsn';
 import type { ServerTunnelOptions } from '../types/options';
-import { matchesTunnel, resolveTunnelMatch } from './tunnel';
+import { matchesTunnel, resolveAllowedDsns, resolveTunnelMatch } from './tunnel';
 
 /**
  * Options for {@link handleTunnelRequest}.
@@ -65,7 +66,12 @@ export function handleTunnelRequest(
   nodeOptions?: HandleTunnelRequestOptions,
 ): Promise<Response | void> {
   if (isNodeTunnelResponse(responseOrOptions)) {
-    return handleNodeTunnelRequest(requestOrOptions as NodeTunnelRequest, responseOrOptions, nodeOptions);
+    const nodeResponse = responseOrOptions;
+
+    return forwardTunnelRequest(
+      toFetchRequest(requestOrOptions as NodeTunnelRequest),
+      getAllowedDsns(nodeOptions),
+    ).then(fetchResponse => writeNodeResponse(nodeResponse, fetchResponse));
   }
 
   // The released `handleTunnelRequest({ request })` form. A `Request` has a `method`, the options object doesn't.
@@ -74,10 +80,7 @@ export function handleTunnelRequest(
   const request = isLegacyCall ? requestOrOptions.request : (requestOrOptions as Request);
   const options = isLegacyCall ? requestOrOptions : responseOrOptions;
 
-  // Without `allowedDsns`, the DSNs `serveTunnelIntegration` allows, so its options apply here too.
-  const { allowedDsns } = resolveTunnelMatch(options?.allowedDsns && { allowedDsns: options.allowedDsns });
-
-  return forwardTunnelRequest(request, allowedDsns);
+  return forwardTunnelRequest(request, getAllowedDsns(options));
 }
 
 /**
@@ -108,9 +111,23 @@ export function handleTunnelRequestIfMatched(
     return undefined;
   }
 
-  return response
-    ? handleNodeTunnelRequest(request as NodeTunnelRequest, response, { allowedDsns: tunnel.allowedDsns })
-    : forwardTunnelRequest(request as Request, tunnel.allowedDsns);
+  if (!response) {
+    return forwardTunnelRequest(request as Request, tunnel.allowedDsns);
+  }
+
+  return forwardTunnelRequest(toFetchRequest(request as NodeTunnelRequest), tunnel.allowedDsns).then(fetchResponse =>
+    writeNodeResponse(response, fetchResponse),
+  );
+}
+
+/**
+ * `allowedDsns` plus the server's own DSN. Without `allowedDsns`, the DSNs `serveTunnelIntegration` allows, so its
+ * options apply here too.
+ */
+function getAllowedDsns(options: HandleTunnelRequestOptions | undefined): string[] {
+  return options?.allowedDsns
+    ? resolveAllowedDsns(options.allowedDsns, getClient()?.getDsn())
+    : resolveTunnelMatch().allowedDsns;
 }
 
 /**
@@ -123,11 +140,7 @@ function isNodeTunnelResponse(value: unknown): value is NodeTunnelResponse {
   return typeof (value as NodeTunnelResponse | undefined)?.writeHead === 'function';
 }
 
-async function handleNodeTunnelRequest(
-  request: NodeTunnelRequest,
-  response: NodeTunnelResponse,
-  options: HandleTunnelRequestOptions | undefined,
-): Promise<void> {
+function toFetchRequest(request: NodeTunnelRequest): Request {
   const headers = new Headers();
   for (const [name, value] of Object.entries(request.headers)) {
     // HTTP/2 pseudo-headers like `:authority` aren't valid fetch header names.
@@ -153,14 +166,15 @@ async function handleNodeTunnelRequest(
     },
   });
 
-  const fetchRequest = new Request(`http://${host}${request.url ?? '/'}`, {
+  return new Request(`http://${host}${request.url ?? '/'}`, {
     method: 'POST',
     headers,
     body,
     duplex: 'half',
   } as RequestInit);
+}
 
-  const fetchResponse = await handleTunnelRequest(fetchRequest, options);
+async function writeNodeResponse(response: NodeTunnelResponse, fetchResponse: Response): Promise<void> {
   const responseHeaders: Record<string, string> = {};
   for (const name of FORWARDED_RESPONSE_HEADERS) {
     const value = fetchResponse.headers.get(name);

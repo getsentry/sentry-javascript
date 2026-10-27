@@ -1,14 +1,11 @@
 import type { Client } from '../client';
-import type { Integration } from '../types/integration';
 import { getClient } from '../currentScopes';
 import type { IgnoreSpanFilter, ServerTunnelOptions } from '../types/options';
 import type { TunnelForwarder } from './tunnel';
 import {
-  SERVE_TUNNEL_INTEGRATION_NAME,
+  getServeTunnelForwarder,
   getTunnelIgnoreSpanFilters,
   normalizeTunnelBasePath,
-  resolveAllowedDsns,
-  resolveTunnelPaths,
   setServedTunnel,
 } from './tunnel';
 
@@ -73,11 +70,7 @@ export function applyManagedTunnelDefaults(client: Client | undefined): void {
   const tunnelOptions: ServerTunnelOptions | undefined = options?._managedTunnel ?? managedTunnelDefaults?.tunnel;
   // A framework SDK can bundle its own copy of this module, which only reaches the forwarder through the client.
   const forward =
-    client &&
-    (tunnelForwarders.get(client) ??
-      client.getIntegrationByName?.<Integration & { forward?: TunnelForwarder }>(SERVE_TUNNEL_INTEGRATION_NAME)
-        ?.forward ??
-      managedTunnelDefaults?.forward);
+    client && (tunnelForwarders.get(client) ?? getServeTunnelForwarder(client) ?? managedTunnelDefaults?.forward);
   if (!client || !options || !tunnelOptions || !forward) {
     return;
   }
@@ -88,9 +81,7 @@ export function applyManagedTunnelDefaults(client: Client | undefined): void {
       ? { ...tunnelOptions, basePath }
       : tunnelOptions;
   options._managedTunnel = resolved;
-  const allowedDsns = resolveAllowedDsns(resolved.allowedDsns, client.getDsn());
-  const paths = resolveTunnelPaths(resolved, allowedDsns);
-  setServedTunnel(client, { paths, allowedDsns, forward });
+  const { paths } = setServedTunnel(client, resolved, forward);
 
   const previousFilters = installedSpanFilters.get(client) ?? [];
   const spanFilters = getTunnelIgnoreSpanFilters(resolved, paths);
