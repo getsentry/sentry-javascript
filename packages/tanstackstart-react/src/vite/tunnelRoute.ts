@@ -34,7 +34,7 @@ function validateStaticPath(path: string): void {
 }
 
 /**
- * Maps `tunnelRoute` onto the options `Sentry.init({ tunnel })` takes, so both are served the same way.
+ * Maps `tunnelRoute` onto the options `serveTunnelIntegration` takes, so both are served the same way.
  */
 export function normalizeTunnelRouteOptions(options: TunnelRouteOptions): ServerTunnelOptions {
   if (options === true) {
