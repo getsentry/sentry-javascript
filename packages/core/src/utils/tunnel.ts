@@ -1,4 +1,5 @@
 import type { Client } from '../client';
+import type { Integration } from '../types/integration';
 import { getClient } from '../currentScopes';
 import { URL_PATH } from '@sentry/conventions/attributes';
 import type { DsnComponents, DsnLike } from '../types/dsn';
@@ -24,6 +25,12 @@ interface ServedTunnel {
 const servedTunnels = new WeakMap<Client, ServedTunnel>();
 
 /**
+ * The name of `serveTunnelIntegration`, which carries the forwarder. Kept here so this module doesn't import the
+ * integration, and with it the forwarder, into apps that don't use it.
+ */
+export const SERVE_TUNNEL_INTEGRATION_NAME = 'ServeTunnel';
+
+/**
  * Stores a server client's computed tunnel paths and allowed DSNs.
  */
 export function setServedTunnel(client: Client, servedTunnel: ServedTunnel): void {
@@ -33,7 +40,25 @@ export function setServedTunnel(client: Client, servedTunnel: ServedTunnel): voi
 function getServedTunnel(): ServedTunnel | undefined {
   const client = getClient();
 
-  return client && servedTunnels.get(client);
+  return client && (servedTunnels.get(client) ?? getServedTunnelFromClient(client));
+}
+
+/**
+ * Rebuilds the served tunnel from what the client carries, for a copy of this module that didn't set it up. Bundlers
+ * can give a framework's request hook its own copy, like Next.js's middleware next to its `instrumentation`.
+ */
+function getServedTunnelFromClient(client: Client): ServedTunnel | undefined {
+  const tunnelOptions = client.getOptions()._managedTunnel;
+  const forward = client.getIntegrationByName?.<Integration & { forward?: TunnelForwarder }>(
+    SERVE_TUNNEL_INTEGRATION_NAME,
+  )?.forward;
+  if (!tunnelOptions || !forward) {
+    return undefined;
+  }
+
+  const allowedDsns = resolveAllowedDsns(tunnelOptions.allowedDsns, client.getDsn());
+
+  return { paths: resolveTunnelPaths(tunnelOptions, allowedDsns), allowedDsns, forward };
 }
 
 /**

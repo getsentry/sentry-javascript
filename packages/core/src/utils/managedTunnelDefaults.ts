@@ -4,6 +4,7 @@ import { getClient } from '../currentScopes';
 import type { IgnoreSpanFilter, ServerTunnelOptions } from '../types/options';
 import type { TunnelForwarder } from './tunnel';
 import {
+  SERVE_TUNNEL_INTEGRATION_NAME,
   getTunnelIgnoreSpanFilters,
   normalizeTunnelBasePath,
   resolveAllowedDsns,
@@ -28,12 +29,6 @@ interface ManagedTunnelDefaults {
    */
   basePath?: string;
 }
-
-/**
- * The name of `serveTunnelIntegration`, which carries the forwarder. Kept here so this module doesn't import the
- * integration, and with it the forwarder, into apps that don't use it.
- */
-export const SERVE_TUNNEL_INTEGRATION_NAME = 'ServeTunnel';
 
 let managedTunnelDefaults: ManagedTunnelDefaults | undefined;
 

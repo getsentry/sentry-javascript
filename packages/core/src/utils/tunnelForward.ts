@@ -127,10 +127,13 @@ async function handleNodeTunnelRequest(
 ): Promise<void> {
   const headers = new Headers();
   for (const [name, value] of Object.entries(request.headers)) {
-    if (value !== undefined) {
+    // HTTP/2 pseudo-headers like `:authority` aren't valid fetch header names.
+    if (value !== undefined && !name.startsWith(':')) {
       headers.set(name, Array.isArray(value) ? value.join(', ') : value);
     }
   }
+  const authority = request.headers[':authority'];
+  const host = headers.get('host') ?? (typeof authority === 'string' ? authority : 'localhost');
 
   const iterator = request[Symbol.asyncIterator]();
   const encoder = new TextEncoder();
@@ -146,7 +149,7 @@ async function handleNodeTunnelRequest(
     },
   });
 
-  const fetchRequest = new Request(`http://${headers.get('host') ?? 'localhost'}${request.url ?? '/'}`, {
+  const fetchRequest = new Request(`http://${host}${request.url ?? '/'}`, {
     method: 'POST',
     headers,
     body,

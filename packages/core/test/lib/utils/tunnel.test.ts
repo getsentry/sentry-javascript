@@ -1,4 +1,5 @@
 import * as http from 'node:http';
+import * as http2 from 'node:http2';
 import type { AddressInfo } from 'node:net';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { getEnvelopeEndpointWithUrlEncodedAuth } from '../../../src/api';
@@ -134,6 +135,34 @@ describe('handleTunnelRequest call forms', () => {
       expect(url).toBe(getEnvelopeEndpointWithUrlEncodedAuth(makeDsn(TEST_DSN)!));
       expect(await new Response(init.body).text()).toBe(envelope);
     } finally {
+      await new Promise(resolve => server.close(resolve));
+    }
+  });
+
+  it('forwards from a Node HTTP/2 server, whose request carries pseudo-headers', async () => {
+    const server = http2.createServer((req, res) => {
+      void handleTunnelRequest(req, res, { allowedDsns: [TEST_DSN] });
+    });
+    await new Promise<void>(resolve => server.listen(0, resolve));
+    const client = http2.connect(`http://localhost:${(server.address() as AddressInfo).port}`);
+    const envelope = serializeEnvelope(createEnvelope({ dsn: TEST_DSN }, [])) as string;
+
+    try {
+      const { status, body } = await new Promise<{ status: unknown; body: string }>(resolve => {
+        const req = client.request({ ':method': 'POST', ':path': '/tunnel', 'content-length': envelope.length });
+        let responseStatus: unknown;
+        let responseBody = '';
+        req.on('response', headers => (responseStatus = headers[':status']));
+        req.on('data', chunk => (responseBody += chunk));
+        req.on('end', () => resolve({ status: responseStatus, body: responseBody }));
+        req.end(envelope);
+      });
+
+      expect(status).toBe(202);
+      expect(body).toBe('forwarded');
+      expect(fetchMock).toHaveBeenCalledOnce();
+    } finally {
+      client.close();
       await new Promise(resolve => server.close(resolve));
     }
   });
@@ -860,6 +889,28 @@ describe('serveTunnelIntegration', () => {
     vi.unstubAllGlobals();
 
     expect(bundledTunnel.getTunnelPaths()).toEqual([getTunnelPath(TEST_DSN)]);
+    expect(await response?.text()).toBe('forwarded');
+  });
+
+  it('serves the tunnel from a copy of core that never set it up, like a separately bundled request hook', async () => {
+    const client = new ServerRuntimeClient(
+      getDefaultTestClientOptions({ dsn: TEST_DSN, integrations: [serveTunnelIntegration({ basePath: '/app' })] }),
+    );
+    setCurrentClient(client);
+    client.init();
+
+    vi.resetModules();
+    const bundledTunnel = await import('../../../src/utils/tunnel');
+    const tunnelUrl = `http://localhost/app${getTunnelPath(TEST_DSN)}`;
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(() => Promise.resolve(new Response('forwarded'))),
+    );
+    const response = await bundledTunnel.handleServedTunnelRequest(makeEnvelopeRequest({ dsn: TEST_DSN }, tunnelUrl));
+    vi.unstubAllGlobals();
+
+    expect(bundledTunnel.isServedTunnelRequest({ method: 'POST', url: tunnelUrl })).toBe(true);
+    expect(bundledTunnel.isTunnelRequest({ method: 'POST', url: tunnelUrl })).toBe(true);
     expect(await response?.text()).toBe('forwarded');
   });
 
