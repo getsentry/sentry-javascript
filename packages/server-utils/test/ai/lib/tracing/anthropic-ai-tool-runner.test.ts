@@ -32,9 +32,31 @@ class FakeRunner {
   }
 }
 
+// Mirrors the SDK session runner: it keeps `opts.tools` as `tools` and passes the call event as both `toolUse` and `toolUseBlock`.
+class FakeSessionRunner {
+  public readonly tools: Tool[];
+  public constructor(opts: { tools: Tool[] }) {
+    this.tools = opts.tools;
+  }
+  public async dispatch(name: string, toolUse: { id: string; input: unknown }): Promise<{ isError: boolean }> {
+    const tool = this.tools.find(t => t.name === name)!;
+    try {
+      await tool.run(toolUse.input, { toolUse, toolUseBlock: toolUse, signal: new AbortController().signal });
+      return { isError: false };
+    } catch {
+      return { isError: true };
+    }
+  }
+}
+
 function fakeClient() {
   return {
     beta: {
+      sessions: {
+        events: {
+          toolRunner: vi.fn((_sessionId: string, opts: { tools: Tool[] }) => new FakeSessionRunner(opts)),
+        },
+      },
       messages: {
         create: vi.fn(),
         toolRunner: vi.fn((params: Params) => {
@@ -262,5 +284,51 @@ describe('instrumentAnthropicAiClient tool runner', () => {
     const instrumented = instrumentAnthropicAiClient(fakeClient());
 
     expect(() => instrumented.beta.messages.toolRunner(undefined as unknown as Params)).toThrow('params required');
+  });
+
+  describe('sessions.events.toolRunner()', () => {
+    it('wraps each tool call of the session runner in an execute_tool span', async () => {
+      const weather = tool('weather', async () => 'sunny');
+
+      const runner = instrumentAnthropicAiClient(fakeClient()).beta.sessions.events.toolRunner('sesn_1', {
+        tools: [weather],
+      });
+      const parent = await startSpan({ name: 'agent' }, async span => {
+        await runner.dispatch('weather', { id: 'sevt_1', input: { city: 'Vienna' } });
+        return spanToStaticSpanJSON(span);
+      });
+
+      expect(toolSpans()).toEqual([
+        expect.objectContaining({
+          description: 'execute_tool weather',
+          parent_span_id: parent.span_id,
+          origin: 'auto.ai.anthropic',
+          status: 'ok',
+          data: expect.objectContaining({
+            [GEN_AI_TOOL_NAME]: 'weather',
+            [GEN_AI_TOOL_CALL_ID_ATTRIBUTE]: 'sevt_1',
+          }),
+        }),
+      ]);
+    });
+
+    it('captures the error of a failing tool, which the session runner turns into a result', async () => {
+      const explode = tool('explode', async () => {
+        throw new Error('disk full');
+      });
+
+      const runner = instrumentAnthropicAiClient(fakeClient()).beta.sessions.events.toolRunner('sesn_1', {
+        tools: [explode],
+      });
+      const outcome = await runner.dispatch('explode', { id: 'sevt_2', input: {} });
+
+      expect(outcome).toEqual({ isError: true });
+      expect(toolSpans()[0]!.status).toBe('internal_error');
+      await vi.waitFor(() => expect(events).toHaveLength(1));
+      expect(events[0]!.exception?.values?.[0]).toMatchObject({
+        value: 'disk full',
+        mechanism: { type: 'auto.ai.anthropic', handled: true },
+      });
+    });
   });
 });

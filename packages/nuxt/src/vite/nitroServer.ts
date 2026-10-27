@@ -21,20 +21,13 @@ type NitroModuleOptions = Omit<SentryNuxtModuleOptions, 'experimental_entrypoint
 /**
  * Sets up the server SDK on the Nitro side: the server config plugin, the server plugins, and the
  * middleware, storage and database instrumentation.
- *
- * A host on the `nuxt` server API runs no Nitro, so it gets none of this. Kit would skip each
- * Nitro-only registration there with a `NUXT_B8024` warning.
  */
 export function setupNitroServer(
   nuxt: Nuxt,
-  serverApi: ServerApi,
+  serverApi: Exclude<ServerApi, 'nuxt'>,
   serverConfigFile: string,
   moduleOptions: NitroModuleOptions,
 ): void {
-  if (serverApi === 'nuxt') {
-    return;
-  }
-
   const isNitroV3 = serverApi === 'nitro3';
   const moduleDirResolver = createResolver(import.meta.url);
   // oxlint-disable-next-line typescript/no-deprecated -- supported until removal
@@ -54,6 +47,8 @@ export function setupNitroServer(
     addNitroPlugin(moduleDirResolver.resolve('./runtime/plugins/handler-legacy.server'));
     addNitroPlugin(moduleDirResolver.resolve('./runtime/plugins/update-route-name-legacy.server'));
   }
+
+  addTunnelPlugin(serverApi);
 
   addNitroPlugin(moduleDirResolver.resolve('./runtime/plugins/sentry.server'));
 
@@ -122,4 +117,21 @@ function setupDeprecatedInjectMode(
       });
     }
   }
+}
+
+/**
+ * Adds the plugin that answers the managed tunnel. The Cloudflare setup has no server config file, so it skips
+ * `setupNitroServer` and adds this on its own.
+ */
+export function addTunnelPlugin(serverApi: ServerApi): void {
+  if (serverApi === 'nuxt') {
+    return;
+  }
+
+  const moduleDirResolver = createResolver(import.meta.url);
+  addNitroPlugin(
+    moduleDirResolver.resolve(
+      serverApi === 'nitro3' ? './runtime/plugins/tunnel.server' : './runtime/plugins/tunnel-legacy.server',
+    ),
+  );
 }

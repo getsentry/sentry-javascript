@@ -1,4 +1,5 @@
-import { debug } from '@sentry/core';
+import { fileURLToPath } from 'node:url';
+import { debug, GLOBAL_OBJ, _INTERNAL_normalizeTunnelBasePath as normalizeTunnelBasePath } from '@sentry/core';
 import { INSTRUMENTED_MODULE_NAMES } from '@sentry/server-utils/orchestrion/config';
 import {
   commonJSInteropOptions,
@@ -6,6 +7,7 @@ import {
   sentryOrchestrionPlugin,
 } from '@sentry/server-utils/orchestrion/rollup';
 import type { Nitro, NitroConfig } from 'nitropack';
+import { TUNNEL_BASE_PATH_GLOBAL } from '../common/tunnel';
 import { addSentryPluginToVite } from '../vite/sentrySolidStartVite';
 import type { SentrySolidStartPluginOptions } from '../vite/types';
 import {
@@ -46,11 +48,21 @@ export function withSentry(
   };
 
   const server = (solidStartConfig.server || {}) as SolidStartInlineServerConfig;
+  // Requests reach the tunnel with `server.baseURL` still in front, so both sides serve it under that.
+  const tunnelBasePath = normalizeTunnelBasePath(
+    (server as SolidStartInlineServerConfig & { baseURL?: string }).baseURL,
+  );
+  // vinxi's dev server runs Nitro in this process, so the tunnel plugin can read it from here in dev.
+  if (tunnelBasePath) {
+    (GLOBAL_OBJ as { [TUNNEL_BASE_PATH_GLOBAL]?: string })[TUNNEL_BASE_PATH_GLOBAL] = tunnelBasePath;
+  }
+
   const viteConfig = solidStartConfig.vite;
   const vite =
     typeof viteConfig === 'function'
-      ? (...args: Parameters<typeof viteConfig>) => addSentryPluginToVite(viteConfig(...args), sentryPluginOptions)
-      : addSentryPluginToVite(viteConfig, sentryPluginOptions);
+      ? (...args: Parameters<typeof viteConfig>) =>
+          addSentryPluginToVite(viteConfig(...args), sentryPluginOptions, tunnelBasePath)
+      : addSentryPluginToVite(viteConfig, sentryPluginOptions, tunnelBasePath);
 
   const addBuildTimeInstrumentation = sentryPluginOptions.buildTimeInstrumentation !== false;
 
@@ -60,6 +72,14 @@ export function withSentry(
       // Nitro types the `rollup:before` hook's `rollupConfig.plugins` as `string[]` (plugin paths),
       // but at runtime it holds resolved plugin objects we can push onto, so narrow to our own shape.
       const sentryRollupConfig = rollupConfig as unknown as RollupConfig;
+
+      if (tunnelBasePath) {
+        // The built server runs in another process, so the tunnel plugin reads the base path from the bundle.
+        sentryRollupConfig.plugins.push({
+          name: 'sentry-solidstart-tunnel-base-path',
+          banner: `globalThis.${TUNNEL_BASE_PATH_GLOBAL} = ${JSON.stringify(tunnelBasePath)};`,
+        });
+      }
 
       if (addBuildTimeInstrumentation) {
         sentryRollupConfig.plugins.push(
@@ -116,6 +136,15 @@ export function withSentry(
       externals,
       commonJS,
       modules: [...existingModules, sentryNitroModule],
+      // Through `server.plugins`, since vinxi's dev server ignores plugins that Nitro modules add.
+      plugins: [...(server.plugins || []), getTunnelPluginPath()],
     },
   };
+}
+
+function getTunnelPluginPath(): string {
+  const url = new URL('../nitro/tunnelPlugin.js', import.meta.url);
+
+  // `import.meta.url` is a file URL in the built package, but not in every test environment.
+  return url.protocol === 'file:' ? fileURLToPath(url) : url.pathname;
 }

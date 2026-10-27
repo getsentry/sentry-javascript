@@ -139,8 +139,6 @@ const _cronTriggersIntegration = ((options: CronTriggersOptions = {}): CronTrigg
           );
       }
 
-      // Check-ins are captured directly rather than through `withMonitor`, which would fork the
-      // isolation scope and lose the invocation state attached to it.
       const checkInId = captureCheckIn(
         { monitorSlug, status: 'in_progress' },
         crontab ? { ...monitorSettings, schedule: { type: 'crontab', value: crontab } } : undefined,

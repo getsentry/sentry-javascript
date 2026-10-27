@@ -26,8 +26,9 @@ import type {
   WebpackPluginInstance,
 } from './types';
 import { sentryOrchestrionWebpackPlugin } from '@sentry/server-utils/orchestrion/webpack';
-import { getNextjsVersion, getPackageModules } from './util';
+import { DEFAULT_PAGE_EXTENSIONS, getNextjsVersion, getPackageModules } from './util';
 import type { VercelCronsConfigResult } from './withSentryConfig/getFinalConfigObjectUtils';
+import { getTunnelRouteInjectedValues } from './withSentryConfig/tunnel';
 
 // Next.js runs webpack 3 times, once for the client, the server, and for edge. Because we don't want to print certain
 // warnings 3 times, we keep track of them here.
@@ -72,8 +73,7 @@ export function constructWebpackConfigFunction({
     const { isServer, dev: isDev, dir: projectDir } = buildContext;
     const logger = getBuildLogger(userSentryOptions.silent);
     const runtime = isServer ? (buildContext.nextRuntime === 'edge' ? 'edge' : 'server') : 'client';
-    // Default page extensions per https://github.com/vercel/next.js/blob/f1dbc9260d48c7995f6c52f8fbcc65f08e627992/packages/next/server/config-shared.ts#L161
-    const pageExtensions = userNextConfig.pageExtensions || ['tsx', 'ts', 'jsx', 'js'];
+    const pageExtensions = userNextConfig.pageExtensions || DEFAULT_PAGE_EXTENSIONS;
     const dotPrefixedPageExtensions = pageExtensions.map(ext => `.${ext}`);
     const pageExtensionRegex = pageExtensions.map(escapeStringForRegex).join('|');
     const nextVersion = nextJsVersion || getNextjsVersion();
@@ -515,19 +515,8 @@ function getInstrumentationFile(projectDir: string, dotPrefixedExtensions: strin
  * Make sure the instrumentation file has a `onRequestError` Handler
  */
 function warnAboutMissingOnRequestErrorHandler(instrumentationFile: string | null, silent?: boolean): void {
-  const logger = getBuildLogger(silent);
-
-  if (!instrumentationFile) {
-    if (!process.env.SENTRY_SUPPRESS_INSTRUMENTATION_FILE_WARNING) {
-      logger.warn(
-        '[@sentry/nextjs] Could not find a Next.js instrumentation file. This indicates an incomplete configuration of the Sentry SDK. An instrumentation file is required for the Sentry SDK to be initialized on the server: https://docs.sentry.io/platforms/javascript/guides/nextjs/manual-setup/#create-initialization-config-files (you can suppress this warning by setting SENTRY_SUPPRESS_INSTRUMENTATION_FILE_WARNING=1 as environment variable)',
-      );
-    }
-    return;
-  }
-
-  if (!instrumentationFile.includes('onRequestError')) {
-    logger.warn(
+  if (instrumentationFile && !instrumentationFile.includes('onRequestError')) {
+    getBuildLogger(silent).warn(
       '[@sentry/nextjs] Could not find `onRequestError` hook in instrumentation file. This indicates outdated configuration of the Sentry SDK. Use `Sentry.captureRequestError` to instrument the `onRequestError` hook: https://docs.sentry.io/platforms/javascript/guides/nextjs/manual-setup/#errors-from-nested-react-server-components',
     );
   }
@@ -719,13 +708,7 @@ function addValueInjectionLoader({
   const releaseToInject = releaseName && shouldCreateRelease ? releaseName : undefined;
 
   const isomorphicValues = {
-    // `rewritesTunnel` set by the user in Next.js config
-    _sentryRewritesTunnelPath:
-      userSentryOptions.tunnelRoute !== undefined &&
-      userNextConfig.output !== 'export' &&
-      typeof userSentryOptions.tunnelRoute === 'string'
-        ? `${userNextConfig.basePath ?? ''}${userSentryOptions.tunnelRoute}`
-        : undefined,
+    ...getTunnelRouteInjectedValues(userNextConfig, userSentryOptions),
 
     // The webpack plugin's release injection breaks the `app` directory so we inject the release manually here instead.
     // Having a release defined in dev-mode spams releases in Sentry so we only set one in non-dev mode

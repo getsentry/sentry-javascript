@@ -101,6 +101,10 @@ that point to the versioned tarballs. When a test application is run, pnpm overr
 `pnpm-workspace.yaml` to pin all `@sentry/*` and `@sentry-internal/*` packages to those local tarballs. This means test apps
 install the packages as if they were published, but from the local build output instead of a registry.
 
+`@sentry-internal/test-utils` is packed as well. Test apps depend on its tarball directly
+(`"@sentry-internal/test-utils": "file:../../packed/sentry-internal-test-utils-packed.tgz"`), so after changing
+test-utils, run `pnpm run build:tarball` again.
+
 The E2E test script looks for test applications in the `test-applications` folder. These are standalone apps that use
 our SDKs and can be used to verify their behavior.
 
@@ -275,6 +279,10 @@ For example, if something is changed in the browser package, only E2E test apps 
 
 You can add additional information about the test (e.g. canary versions, optional in CI) by adding `sentryTest` in the `package.json`
 of a test application.
+
+The required E2E jobs run on 2 vCPUs (`namespace-profile-sentry-javascript-small`). If an app's job takes longer than
+about 90 seconds, set `"sentryTest": { "runner": "namespace-profile-sentry-javascript" }` to run it and its variants on
+4 vCPUs.
 
 If you add Sentry dependencies to your test application, set the dependency versions to `latest || *` in order
 for it to work with both regular and prerelease versions:

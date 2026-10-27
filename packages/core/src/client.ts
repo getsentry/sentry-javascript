@@ -52,6 +52,7 @@ import { makePromiseBuffer, type PromiseBuffer, SENTRY_BUFFER_FULL_ERROR } from 
 import { safeMathRandom } from './utils/randomSafeContext';
 import { safeCallback } from './utils/safeCallback';
 import { reparentChildSpans, shouldIgnoreSpan } from './utils/should-ignore-span';
+import { rejectedSyncPromise } from './utils/syncpromise';
 import { safeUnref } from './utils/timer';
 import { convertSpanJsonToTransactionEvent, convertTransactionEventToSpanJson } from './utils/transactionEvent';
 import { maybeWarnAboutIgnoredTransactionOptions } from './utils/warnAboutIgnoredTransactionOptions';
@@ -103,6 +104,12 @@ function _makeDoNotSendEventError(message: string): DoNotSendEventError {
     message,
     [DO_NOT_SEND_EVENT_SYMBOL]: true,
   };
+}
+
+function _makeSampledOutError(sampleRate: ClientOptions['sampleRate']): DoNotSendEventError {
+  return _makeDoNotSendEventError(
+    `Discarding event because it's not included in the random sample (sampling rate = ${sampleRate})`,
+  );
 }
 
 function _isInternalError(error: unknown): error is InternalError {
@@ -1317,6 +1324,7 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
       try {
         const result = await this._transport.send(envelope);
         this.emit('afterEnvelope', envelope);
+
         return result;
       } catch (reason) {
         DEBUG_BUILD && debug.error('Error while sending envelope:', reason);
@@ -1550,10 +1558,19 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
     // 0.0 === 0% events are sent
     // Sampling for transaction happens somewhere else
     const parsedSampleRate = typeof sampleRate === 'undefined' ? undefined : parseSampleRate(sampleRate);
+    const isSampledOut = isError && typeof parsedSampleRate === 'number' && safeMathRandom() > parsedSampleRate;
     const dataCategory = getDataCategoryByType(event.type);
     // Spans that event processors removed are already recorded in `prepareEvent`, so all later
     // span outcomes are relative to the span count of the prepared event.
     let preparedSpanCount = 0;
+
+    const session = currentScope.getSession() || isolationScope.getSession();
+    // A sampled-out error only runs the pipeline to update the session. Without a session it could update,
+    // drop it right away so it doesn't hold a promise buffer slot while event processors run.
+    if (isSampledOut && session?.status !== 'ok') {
+      this.recordDroppedEvent('sample_rate', 'error');
+      return rejectedSyncPromise(_makeSampledOutError(sampleRate));
+    }
 
     return this._prepareEvent(event, hint, currentScope, isolationScope)
       .then(prepared => {
@@ -1602,16 +1619,13 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
           throw _makeDoNotSendEventError(`${dropMessage}, will not send event.`);
         }
 
-        const session = currentScope.getSession() || isolationScope.getSession();
         if (isError && session) {
           this._updateSessionFromEvent(session, processedEvent);
         }
 
-        if (isError && typeof parsedSampleRate === 'number' && safeMathRandom() > parsedSampleRate) {
+        if (isSampledOut) {
           this.recordDroppedEvent('sample_rate', 'error');
-          throw _makeDoNotSendEventError(
-            `Discarding event because it's not included in the random sample (sampling rate = ${sampleRate})`,
-          );
+          throw _makeSampledOutError(sampleRate);
         }
 
         if (isTransaction) {

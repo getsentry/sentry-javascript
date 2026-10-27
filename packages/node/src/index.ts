@@ -6,6 +6,7 @@ export { expressErrorHandler, setupExpressErrorHandler } from '@sentry/server-ut
 export {
   amqplibIntegration,
   anthropicAIIntegration,
+  awsIntegration,
   dataloaderIntegration,
   expressIntegration,
   type ExpressIntegrationOptions,
@@ -33,6 +34,7 @@ export {
   mysqlIntegration,
   mistralAIIntegration,
   mysql2Integration,
+  nitroIntegration,
   openAIIntegration,
   togetherAIIntegration,
   typesafeIntegration,
@@ -56,6 +58,8 @@ export {
   instrumentLangChainEmbeddings,
   instrumentStateGraph,
   instrumentStateGraphCompile,
+  instrumentCreateReactAgent,
+  instrumentPostgresJsSql,
   fastifyIntegration,
   // oxlint-disable-next-line typescript/no-deprecated
   setupFastifyErrorHandler,
@@ -147,6 +151,7 @@ export {
   captureSession,
   endSession,
   addIntegration,
+  moduleMetadataIntegration,
   startSpan,
   startSpanManual,
   startInactiveSpan,
@@ -170,7 +175,7 @@ export {
   featureFlagsIntegration,
   spanStreamingIntegration,
 } from '@sentry/core';
-export { trpcMiddleware, wrapMcpServerWithSentry } from '@sentry/core/server';
+export { trpcMiddleware, serveTunnelIntegration, wrapMcpServerWithSentry } from '@sentry/core/server';
 
 export type {
   Breadcrumb,

@@ -345,6 +345,16 @@ describe('determineReleaseName', () => {
       execSyncSpy.mockRestore();
     }
   });
+  it('detects HEROKU_BUILD_COMMIT', () => {
+    const originalEnv = process.env;
+    process.env = { HEROKU_BUILD_COMMIT: 'heroku-build-commit' };
+
+    try {
+      expect(determineReleaseName()).toBe('heroku-build-commit');
+    } finally {
+      process.env = originalEnv;
+    }
+  });
   it('ignores a commit env var whose value is its own name', () => {
     const originalEnv = process.env;
     process.env = { VERCEL_GIT_COMMIT_SHA: 'VERCEL_GIT_COMMIT_SHA', COMMIT_REF: 'abc123' };

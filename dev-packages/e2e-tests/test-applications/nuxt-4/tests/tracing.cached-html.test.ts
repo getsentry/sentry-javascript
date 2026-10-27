@@ -1,16 +1,20 @@
 import { expect, test, type Page } from '@playwright/test';
 import { getSpanOp, waitForStreamedSpan } from '@sentry-internal/test-utils';
+import { isViteServer, NO_META_TAGS } from './isViteServer';
 
 test.describe('Rendering Modes with Cached HTML', () => {
   test('changes tracing meta tags with multiple requests on Client-Side only page', async ({ page }) => {
+    test.fail(isViteServer, NO_META_TAGS);
     await testChangingTracingMetaTagsOnISRPage(page, '/rendering-modes/client-side-only-page', 'Client Side Only Page');
   });
 
   test('changes tracing meta tags with multiple requests on ISR-cached page', async ({ page }) => {
+    test.fail(isViteServer, NO_META_TAGS);
     await testChangingTracingMetaTagsOnISRPage(page, '/rendering-modes/isr-cached-page', 'ISR Cached Page');
   });
 
   test('changes tracing meta tags with multiple requests on 1h ISR-cached page', async ({ page }) => {
+    test.fail(isViteServer, NO_META_TAGS);
     await testChangingTracingMetaTagsOnISRPage(page, '/rendering-modes/isr-1h-cached-page', 'ISR 1h Cached Page');
   });
 
@@ -69,6 +73,7 @@ export async function testChangingTracingMetaTagsOnISRPage(
     expect(page.getByText(expectedPageText, { exact: true })).toBeVisible(),
   ]);
 
+  await expect(page.locator('meta[name="baggage"]')).toHaveCount(1);
   const baggageMetaTagContent1 = await page.locator('meta[name="baggage"]').getAttribute('content');
   const sentryTraceMetaTagContent1 = await page.locator('meta[name="sentry-trace"]').getAttribute('content');
   const [htmlMetaTraceId1] = sentryTraceMetaTagContent1?.split('-') || [];
@@ -85,6 +90,7 @@ export async function testChangingTracingMetaTagsOnISRPage(
     expect(page.getByText(expectedPageText, { exact: true })).toBeVisible(),
   ]);
 
+  await expect(page.locator('meta[name="baggage"]')).toHaveCount(1);
   const baggageMetaTagContent2 = await page.locator('meta[name="baggage"]').getAttribute('content');
   const sentryTraceMetaTagContent2 = await page.locator('meta[name="sentry-trace"]').getAttribute('content');
   const [htmlMetaTraceId2] = sentryTraceMetaTagContent2?.split('-') || [];

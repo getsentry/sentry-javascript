@@ -39,7 +39,7 @@ export function sentryCloudflareNodeWarningPlugin(): VitePlugin {
 
 // The Worker entry module: `@astrojs/cloudflare` v12 builds its own virtual entry, and v13+ builds
 // through `@cloudflare/vite-plugin`, whose entry ends in `export default mod.default ?? {};`.
-const WORKER_ENTRY_IDS = ['astrojs-ssr-virtual-entry', 'virtual:cloudflare/worker-entry'];
+export const WORKER_ENTRY_IDS = ['astrojs-ssr-virtual-entry', 'virtual:cloudflare/worker-entry'];
 
 /**
  * A Vite plugin that ensures the Sentry server config is loaded at the

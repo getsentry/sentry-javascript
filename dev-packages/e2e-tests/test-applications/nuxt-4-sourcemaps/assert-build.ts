@@ -2,19 +2,15 @@ import * as assert from 'assert/strict';
 import * as fs from 'fs';
 import * as path from 'path';
 import {
+  assertSourceMapUpload,
   findDebugIdsWithConflictingSourcemaps,
   findFilesWithForeignSourcemaps,
   findFilesWithMultipleDebugIds,
   findInjectedDebugIds,
   findSourceMapFiles,
   findSourceMappingUrlComments,
-  getArtifactBundles,
   getAssembleRequests,
-  getChunkUploadPosts,
-  getDebugIdPairs,
   getSourcemapSources,
-  getSourcemaps,
-  loadMockServerResults,
   startNodeServer,
 } from '@sentry-internal/test-utils';
 
@@ -24,16 +20,34 @@ const keepClientSourceMaps = process.env.E2E_KEEP_CLIENT_SOURCEMAPS === 'true';
 /** `nuxt generate` emits no `.output/server`. Keyed on the command so a missing one under `nuxt build` still fails. */
 const isStaticBuild = process.env.NUXT_COMMAND === 'generate';
 
-const CLIENT_OUTPUT = path.join('.output', 'public');
+const nitroPreset = process.env.NITRO_PRESET ?? 'node-server';
+
+/** If Nitro moves one of these directories, the debug ID checks below fail. */
+const OUTPUT_DIRS: Record<string, { client: string; server: string }> = {
+  'node-server': { client: path.join('.output', 'public'), server: path.join('.output', 'server') },
+  netlify: { client: 'dist', server: path.join('.netlify', 'functions-internal', 'server') },
+  'cloudflare-pages': { client: 'dist', server: path.join('dist', '_worker.js') },
+};
+
+const outputDirs = OUTPUT_DIRS[nitroPreset];
+assert.ok(outputDirs, `Expected output directories for the Nitro preset ${nitroPreset}`);
+
+const CLIENT_OUTPUT = outputDirs.client;
 /** Vite's own output directory. Nitro copies it to `CLIENT_OUTPUT`, and Sentry deletes no maps here. */
 const CLIENT_BUILD_OUTPUT = path.join('.nuxt', 'dist', 'client');
-const SERVER_OUTPUT = path.join('.output', 'server');
+const SERVER_OUTPUT = outputDirs.server;
 
 /** Both markers sit in comments, so bundlers strip them from the code but keep them in `sourcesContent`. */
 const CLIENT_MARKER = 'SOURCEMAP_MARKER_CLIENT';
 const SERVER_MARKER = 'SOURCEMAP_MARKER_SERVER';
 
 const UUID_REGEX = /^[\da-f]{8}-[\da-f]{4}-[\da-f]{4}-[\da-f]{4}-[\da-f]{12}$/i;
+
+/** Some presets write the server into the client output, e.g. Cloudflare Pages. */
+function isClientFile(file: string): boolean {
+  const relativePath = path.relative(SERVER_OUTPUT, file);
+  return relativePath.startsWith('..') || path.isAbsolute(relativePath);
+}
 
 function filesContaining(dir: string, needle: string): string[] {
   return fs
@@ -64,24 +78,26 @@ function debugIdsOfChunksWithoutSourceMap(dir: string): Set<string> {
 }
 
 console.log(
-  `Variant: ${isStaticBuild ? 'nuxt generate' : 'nuxt build'}, ` +
+  `Variant: ${isStaticBuild ? 'nuxt generate' : 'nuxt build'}, Nitro preset ${nitroPreset}, ` +
     `client source maps ${keepClientSourceMaps ? 'kept' : 'deleted'}\n`,
 );
 
-const requests = loadMockServerResults();
+const { requests, bundles, sourcemaps, uploadedDebugIds } = assertSourceMapUpload({
+  outputDirs: isStaticBuild ? [CLIENT_OUTPUT] : [CLIENT_OUTPUT, SERVER_OUTPUT],
+  // The client output is checked below, because the "kept" variant expects its maps to stay and some presets
+  // write the server into it.
+  strippedDirs: [],
+  // Vite builds the client and Nitro's Rollup builds the server. Counting bundles would still pass
+  // with either plugin dropped, so each side is pinned to a marker only that side's source supplies.
+  // Nitro defaults to `sourcemapExcludeSources: true`; the module flips it to `false`, which is the
+  // only reason the server marker survives into `sourcesContent`.
+  markers: { 'client source (Vite plugin)': CLIENT_MARKER, 'server source (Rollup plugin)': SERVER_MARKER },
+  // Nitro copies Vite's client output to `CLIENT_OUTPUT`, and Sentry deletes no maps in Vite's own directory.
+  debugIdsWithoutSourceMap: debugIdsOfChunksWithoutSourceMap(CLIENT_BUILD_OUTPUT),
+});
+console.log(`Found ${bundles.length} artifact bundle(s)\n`);
 
-console.log(`Captured ${requests.length} requests to mock Sentry server:\n`);
-for (const request of requests) {
-  console.log(`  ${request.method} ${request.url} (${request.bodySize} bytes)`);
-}
-console.log('');
-
-// --- The upload reached Sentry ---
-
-assert.ok(
-  requests.some(r => r.authorization.includes('fake-auth-token')),
-  'Expected requests with the configured auth token',
-);
+// --- Nuxt-specific checks on the upload ---
 
 // Sentry rejects a release that names no project with a 400, and the mock server accepts anything,
 // so assert on the body rather than on the call alone.
@@ -111,44 +127,12 @@ assert.ok(
   'Expected a GET for the chunk-upload options',
 );
 
-const chunkPosts = getChunkUploadPosts(requests);
-assert.ok(
-  chunkPosts.some(r => r.bodySize > 0),
-  'Expected at least one chunk upload POST with a non-empty body',
-);
-
-const assembleRequests = getAssembleRequests(requests);
-assert.ok(assembleRequests.length > 0, 'Expected at least one assemble request');
-for (const request of assembleRequests) {
-  assert.ok(request.assembleBody?.projects?.includes('test-project'), 'Expected assemble request for test-project');
-  assert.equal(request.assembleBody?.version, 'test-release', 'Expected assemble request to reference the release');
+for (const request of getAssembleRequests(requests)) {
   assert.ok((request.assembleBody?.chunks?.length ?? 0) > 0, 'Expected assemble request to have chunk checksums');
   for (const chunk of request.assembleBody?.chunks ?? []) {
     assert.match(chunk, /^[\da-f]{40}$/i, `Expected a SHA-1 chunk checksum, got: ${chunk}`);
   }
 }
-
-const bundles = getArtifactBundles(requests);
-assert.ok(bundles.length > 0, 'Expected at least one artifact bundle with a manifest');
-console.log(`Found ${bundles.length} artifact bundle(s)\n`);
-
-// --- Both bundlers uploaded ---
-
-const sourcemaps = getSourcemaps(bundles);
-assert.ok(
-  sourcemaps.some(map => map.sourcemap.mappings?.length),
-  'Expected at least one uploaded sourcemap with non-empty mappings',
-);
-
-const containsMarker = (marker: string): boolean =>
-  sourcemaps.some(map => map.sourcemap.sourcesContent?.some(source => source?.includes(marker)));
-
-// Vite builds the client and Nitro's Rollup builds the server. Counting bundles would still pass
-// with either plugin dropped, so each side is pinned to a marker only that side's source supplies.
-assert.ok(containsMarker(CLIENT_MARKER), 'Expected an uploaded sourcemap carrying the client source (Vite plugin)');
-// Nitro defaults to `sourcemapExcludeSources: true`; the module flips it to `false`, which is the
-// only reason this marker survives into `sourcesContent`.
-assert.ok(containsMarker(SERVER_MARKER), 'Expected an uploaded sourcemap carrying the server source (Rollup plugin)');
 
 // `rewriteSources` normalizes `../../../foo` to `./foo` so paths stay resolvable in Sentry.
 const unnormalizedSources = [...new Set(sourcemaps.flatMap(map => map.sourcemap.sources ?? []))].filter(
@@ -156,34 +140,10 @@ const unnormalizedSources = [...new Set(sourcemaps.flatMap(map => map.sourcemap.
 );
 assert.deepEqual(unnormalizedSources, [], `Expected every uploaded source to be normalized to './…'`);
 
-// --- Debug IDs tie the shipped bundle to the uploaded map ---
-
-const uploadedDebugIds = new Set(getDebugIdPairs(bundles).map(pair => pair.debugId.toLowerCase()));
-assert.ok(uploadedDebugIds.size > 0, 'Expected at least one JS/sourcemap pair with matching debug IDs');
-
 const malformedDebugIds = [...uploadedDebugIds].filter(debugId => !UUID_REGEX.test(debugId));
 assert.deepEqual(malformedDebugIds, [], 'Expected every uploaded debug ID to be a UUID');
 
-// An uploaded map is only reachable at runtime if the shipped bundle claims the same ID. Inspecting
-// the upload alone cannot show this.
-const debugIdsWithoutSourceMap = debugIdsOfChunksWithoutSourceMap(CLIENT_BUILD_OUTPUT);
-
 for (const outputDir of isStaticBuild ? [CLIENT_OUTPUT] : [CLIENT_OUTPUT, SERVER_OUTPUT]) {
-  const injectedDebugIds = findInjectedDebugIds({ outputDir });
-  assert.ok(injectedDebugIds.length > 0, `Expected debug IDs to be injected into ${outputDir}`);
-  // The exemption for chunks without a source map must not let a build without any uploaded map pass.
-  assert.ok(
-    injectedDebugIds.some(debugId => uploadedDebugIds.has(debugId)),
-    `Expected at least one debug ID in ${outputDir} to have an uploaded sourcemap`,
-  );
-
-  const unuploaded = injectedDebugIds.filter(
-    debugId => !uploadedDebugIds.has(debugId) && !debugIdsWithoutSourceMap.has(debugId),
-  );
-  assert.deepEqual(unuploaded, [], `Expected every debug ID in ${outputDir} to have an uploaded sourcemap`);
-
-  console.log(`  ${outputDir}: ${injectedDebugIds.length} injected debug ID(s), all uploaded`);
-
   // Nitro bundles the SSR build again, so its debug IDs can end up next to Nitro's own.
   // Reference issue: https://github.com/getsentry/sentry-javascript/issues/18519
   const filesWithMultipleDebugIds = findFilesWithMultipleDebugIds({ outputDir });
@@ -218,7 +178,7 @@ console.log('');
 
 // --- What the build leaves behind in the client output ---
 
-const clientSourceMaps = findSourceMapFiles({ outputDir: CLIENT_OUTPUT });
+const clientSourceMaps = findSourceMapFiles({ outputDir: CLIENT_OUTPUT }).filter(isClientFile);
 
 if (keepClientSourceMaps) {
   assert.ok(clientSourceMaps.length > 0, `Expected Sentry to leave the user-enabled maps in ${CLIENT_OUTPUT}`);
@@ -228,20 +188,30 @@ if (keepClientSourceMaps) {
   assert.deepEqual(clientSourceMaps, [], `Expected no source maps in ${CLIENT_OUTPUT} after upload`);
 
   // The maps are gone, so a surviving reference only 404s in devtools and leaks where they were.
-  const danglingReferences = findSourceMappingUrlComments({ outputDir: CLIENT_OUTPUT });
+  const danglingReferences = findSourceMappingUrlComments({ outputDir: CLIENT_OUTPUT }).filter(isClientFile);
   assert.deepEqual(danglingReferences, [], `Expected no sourceMappingURL comments in ${CLIENT_OUTPUT}`);
 
   // Catches source maps inlined as `data:` URIs, which the reference check above skips by design.
-  const leakedSource = filesContaining(CLIENT_OUTPUT, CLIENT_MARKER);
+  const leakedSource = filesContaining(CLIENT_OUTPUT, CLIENT_MARKER).filter(isClientFile);
   assert.deepEqual(leakedSource, [], `Expected no original client source under ${CLIENT_OUTPUT}`);
 
   console.log(`  ${CLIENT_OUTPUT} is free of source maps, sourceMappingURL comments and original source\n`);
 }
 
+// --- What the build leaves behind in the server output ---
+
+// Nuxt enables the server maps by default, so they are the user's and Sentry must keep them.
+if (!isStaticBuild) {
+  const serverSourceMaps = findSourceMapFiles({ outputDir: SERVER_OUTPUT });
+  assert.ok(serverSourceMaps.length > 0, `Expected Sentry to keep the server source maps in ${SERVER_OUTPUT}`);
+  console.log(`  ${serverSourceMaps.length} source map(s) kept in ${SERVER_OUTPUT}, as Nuxt enables them\n`);
+}
+
 // --- What the built server answers for the client source maps ---
 
-// `nuxt generate` emits no server, and a static host serves only the files that exist.
-if (!isStaticBuild) {
+// `nuxt generate` emits no server, and a static host serves only the files that exist. The other presets build a
+// server for their platform, which Node cannot start.
+if (!isStaticBuild && nitroPreset === 'node-server') {
   const clientChunkUrls = fs
     .readdirSync(CLIENT_OUTPUT, { recursive: true, withFileTypes: true })
     .filter(entry => entry.isFile() && entry.name.endsWith('.js'))

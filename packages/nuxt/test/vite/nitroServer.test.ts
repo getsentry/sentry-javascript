@@ -1,6 +1,6 @@
 import type { Nuxt } from '@nuxt/schema';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { setupNitroServer } from '../../src/vite/nitroServer';
+import { addTunnelPlugin, setupNitroServer } from '../../src/vite/nitroServer';
 
 const addNitroPluginMock = vi.hoisted(() => vi.fn());
 const addServerImportsMock = vi.hoisted(() => vi.fn());
@@ -26,7 +26,6 @@ type HookCallback = (arg: unknown) => void;
 
 function createFakeNuxt(): {
   nuxt: Nuxt;
-  hook: ReturnType<typeof vi.fn>;
   callHook: (name: string, arg: unknown) => void;
 } {
   const callbacks = new Map<string, HookCallback[]>();
@@ -39,7 +38,7 @@ function createFakeNuxt(): {
     hooks: { hook },
   } as unknown as Nuxt;
 
-  return { nuxt, hook, callHook: (name, arg) => callbacks.get(name)?.forEach(callback => callback(arg)) };
+  return { nuxt, callHook: (name, arg) => callbacks.get(name)?.forEach(callback => callback(arg)) };
 }
 
 describe('setupNitroServer', () => {
@@ -48,42 +47,42 @@ describe('setupNitroServer', () => {
     addTemplateMock.mockImplementation((opts: { filename: string }) => ({ dst: `${APP_ROOT}/.nuxt/${opts.filename}` }));
   });
 
-  it('registers nothing on a host without Nitro', () => {
-    const { nuxt, hook } = createFakeNuxt();
-
-    setupNitroServer(nuxt, 'nuxt', SERVER_CONFIG, MODULE_OPTIONS);
-
-    expect(addNitroPluginMock).not.toHaveBeenCalled();
-    expect(addServerImportsMock).not.toHaveBeenCalled();
-    expect(addTemplateMock).not.toHaveBeenCalled();
-    expect(addServerTemplateMock).not.toHaveBeenCalled();
-    expect(hook).not.toHaveBeenCalled();
-  });
-
   it.each([
     {
       serverApi: 'nitro2',
       handler: 'handler-legacy.server',
       updateRouteName: 'update-route-name-legacy.server',
+      tunnel: 'tunnel-legacy.server',
       storage: 'storage-legacy.server',
     },
     {
       serverApi: 'nitro3',
       handler: 'handler.server',
       updateRouteName: 'update-route-name.server',
+      tunnel: 'tunnel.server',
       storage: 'storage.server',
     },
-  ] as const)('registers the $handler plugins on $serverApi', ({ serverApi, handler, updateRouteName, storage }) => {
-    const { nuxt } = createFakeNuxt();
+  ] as const)(
+    'registers the $handler plugins on $serverApi',
+    ({ serverApi, handler, updateRouteName, tunnel, storage }) => {
+      const { nuxt } = createFakeNuxt();
 
-    setupNitroServer(nuxt, serverApi, SERVER_CONFIG, MODULE_OPTIONS);
+      setupNitroServer(nuxt, serverApi, SERVER_CONFIG, MODULE_OPTIONS);
 
-    expect(addNitroPluginMock).toHaveBeenCalledTimes(5);
-    expect(addNitroPluginMock).toHaveBeenNthCalledWith(1, `${APP_ROOT}/.nuxt/sentry-server-config-plugin.mjs`);
-    expect(addNitroPluginMock).toHaveBeenNthCalledWith(2, `./runtime/plugins/${handler}`);
-    expect(addNitroPluginMock).toHaveBeenNthCalledWith(3, `./runtime/plugins/${updateRouteName}`);
-    expect(addNitroPluginMock).toHaveBeenNthCalledWith(4, './runtime/plugins/sentry.server');
-    expect(addNitroPluginMock).toHaveBeenNthCalledWith(5, `./runtime/plugins/${storage}`);
+      expect(addNitroPluginMock).toHaveBeenCalledTimes(6);
+      expect(addNitroPluginMock).toHaveBeenNthCalledWith(1, `${APP_ROOT}/.nuxt/sentry-server-config-plugin.mjs`);
+      expect(addNitroPluginMock).toHaveBeenNthCalledWith(2, `./runtime/plugins/${handler}`);
+      expect(addNitroPluginMock).toHaveBeenNthCalledWith(3, `./runtime/plugins/${updateRouteName}`);
+      expect(addNitroPluginMock).toHaveBeenNthCalledWith(4, `./runtime/plugins/${tunnel}`);
+      expect(addNitroPluginMock).toHaveBeenNthCalledWith(5, './runtime/plugins/sentry.server');
+      expect(addNitroPluginMock).toHaveBeenNthCalledWith(6, `./runtime/plugins/${storage}`);
+    },
+  );
+
+  it('adds no tunnel plugin to a host without Nitro', () => {
+    addTunnelPlugin('nuxt');
+
+    expect(addNitroPluginMock).not.toHaveBeenCalled();
   });
 
   it('instruments the middleware and adds the config shim once Nitro initializes', () => {
