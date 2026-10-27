@@ -30,9 +30,11 @@ export interface BuildTimeOptionsBase {
   /**
    * The slug of the Sentry project associated with the app.
    *
+   * Multiple projects can be passed to upload the build's source maps to each of them.
+   *
    * This value can also be specified via the `SENTRY_PROJECT` environment variable.
    */
-  project?: string;
+  project?: string | string[];
 
   /**
    * The authentication token to use for all communication with Sentry.
