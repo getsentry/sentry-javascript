@@ -121,7 +121,7 @@ const COMPILE_CACHE_ENV: Record<string, string> =
 
 // The Bun and Deno packages run these suites from their own folder. Scenarios read the working
 // directory (e.g. `modulesIntegration` reads its `package.json`), so it is always this package.
-const PACKAGE_ROOT = join(__dirname, '..', '..');
+export const PACKAGE_ROOT = join(__dirname, '..', '..');
 
 /** Node flags that preload a module before the entry point. */
 const PRELOAD_FLAGS = ['--import', '--require', '-r'];
@@ -180,6 +180,7 @@ export function createRunner(...paths: string[]) {
   let withEnv: Record<string, string | undefined> = {};
   let withSentryServer = false;
   let ensureNoErrorOutput = false;
+  let autoFlush = true;
   // When set, the test using this runner expects `completed()` to reject (e.g. `test.fails` variants
   // created via `createEsmAndCjsTests` with `failsOnEsm`/`failsOnCjs`). We suppress the captured-log
   // dump in that case, since the failure is expected and the output would just be noise.
@@ -328,6 +329,11 @@ export function createRunner(...paths: string[]) {
     },
     unordered: function () {
       unordered = true;
+      return this;
+    },
+    /** Skip the injected `beforeExit` flush, so the test sees only what the SDK sends on its own. */
+    withoutAutoFlush: function () {
+      autoFlush = false;
       return this;
     },
     ensureNoErrorOutput: function () {
@@ -630,7 +636,7 @@ export function createRunner(...paths: string[]) {
           // `should-exit`, `ensureNoErrorOutput`) verify the child exits
           // naturally and auto-flush would delay that with retrying HTTP
           // requests to the fake DSN.
-          const wantsAutoFlush = !ensureNoErrorOutput && hasExpectations;
+          const wantsAutoFlush = autoFlush && !ensureNoErrorOutput && hasExpectations;
           const runtime = getRuntime();
           const childFlags = wantsAutoFlush ? [...buildAutoFlushFlags(flags, testPath, runtime), ...flags] : flags;
           const entryPath = buildScenario(runtime, testPath);

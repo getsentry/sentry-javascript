@@ -1,0 +1,6 @@
+{
+  "name": "openai-options-worker",
+  "compatibility_date": "2026-04-26",
+  "main": "index.ts",
+  "compatibility_flags": ["nodejs_compat"],
+}

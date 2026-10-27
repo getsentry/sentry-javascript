@@ -36,6 +36,7 @@ import {
 } from '@sentry/core/server';
 import {
   debug,
+  safeCallback,
   getSpanStatusFromHttpCode,
   httpHeadersToSpanAttributes,
   getContentLengthFromHeaders,
@@ -52,7 +53,6 @@ import {
   filterCollectedUrlQuery,
   hasSpanStreamingEnabled,
   HTTP_SPAN_NAME_FALLBACK,
-  safeCallback,
 } from '@sentry/core';
 import { DEBUG_BUILD } from '../../debug-build';
 import type { NodeClient } from '../../sdk/client';
@@ -105,6 +105,12 @@ export interface HttpServerSpansIntegrationOptions {
    * This is triggered after the span is created, but before it is recorded.
    */
   onSpanCreated?: (span: Span, request: HttpIncomingMessage, response: HttpServerResponse) => void;
+
+  /**
+   * A hook that can be used to mutate the span one last time when the response is finished.
+   * This is triggered after the response status is set on the span, before the span ends.
+   */
+  onSpanEnd?: (span: Span, request: HttpIncomingMessage, response: HttpServerResponse) => void;
 }
 
 const _httpServerSpansIntegration = ((options: HttpServerSpansIntegrationOptions = {}) => {
@@ -113,7 +119,7 @@ const _httpServerSpansIntegration = ((options: HttpServerSpansIntegrationOptions
   // oxlint-disable-next-line typescript/no-deprecated
   const ignoreStatusCodes = options.ignoreStatusCodes ?? DEFAULT_IGNORE_STATUS_CODES;
 
-  const { onSpanCreated } = options;
+  const { onSpanCreated, onSpanEnd } = options;
 
   return {
     name: INTEGRATION_NAME,
@@ -214,6 +220,15 @@ const _httpServerSpansIntegration = ((options: HttpServerSpansIntegrationOptions
               );
               span.setAttributes(newAttributes);
               span.setStatus(status);
+              if (onSpanEnd) {
+                // A hook that throws must not skip `span.end()` or crash the process from the
+                // response's event listener.
+                safeCallback(
+                  DEBUG_BUILD ? 'The `onSpanEnd` callback threw an error:' : '',
+                  () => onSpanEnd(span, request, response),
+                  () => undefined,
+                );
+              }
               span.end();
             }
 
