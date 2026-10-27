@@ -1563,9 +1563,10 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
     // span outcomes are relative to the span count of the prepared event.
     let preparedSpanCount = 0;
 
+    const session = currentScope.getSession() || isolationScope.getSession();
     // A sampled-out error only runs the pipeline to update the session. Without a session it could update,
     // drop it right away so it doesn't hold a promise buffer slot while event processors run.
-    if (isSampledOut && (currentScope.getSession() || isolationScope.getSession())?.status !== 'ok') {
+    if (isSampledOut && session?.status !== 'ok') {
       this.recordDroppedEvent('sample_rate', 'error');
       return rejectedSyncPromise(_makeSampledOutError(sampleRate));
     }
@@ -1617,7 +1618,6 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
           throw _makeDoNotSendEventError(`${dropMessage}, will not send event.`);
         }
 
-        const session = currentScope.getSession() || isolationScope.getSession();
         if (isError && session) {
           this._updateSessionFromEvent(session, processedEvent);
         }
