@@ -150,7 +150,7 @@ const DEFAULT_SERVER_ENTRY = /\/react-start\/dist\/(?:plugin\/)?default-entry\/(
  */
 export function makeServerEntryTunnelPlugin(
   tunnelRoute: TunnelRouteOptions | undefined,
-  getBasePath: () => string = () => '',
+  getBasePath: () => string,
 ): Plugin {
   const normalizedTunnelOptions = tunnelRoute ? normalizeTunnelRouteOptions(tunnelRoute) : undefined;
   const tunnelOptions = normalizedTunnelOptions ? JSON.stringify(normalizedTunnelOptions) : 'undefined';
