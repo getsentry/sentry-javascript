@@ -11,8 +11,9 @@ export {
   getTunnelPaths as _INTERNAL_getTunnelPaths,
   handleTunnelRequestIfMatched,
   isTunnelRequest,
-  resolveServerTunnelOption as _INTERNAL_resolveServerTunnelOption,
 } from './utils/tunnel';
+export { forwardTunnelRequest as _INTERNAL_forwardTunnelRequest } from './utils/tunnelForward';
+export { serveTunnelIntegration } from './integrations/serveTunnel';
 export {
   _INTERNAL_resetManagedTunnelDefaults,
   setManagedTunnelDefaults as _INTERNAL_setManagedTunnelDefaults,

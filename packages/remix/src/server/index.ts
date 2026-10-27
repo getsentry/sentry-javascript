@@ -121,6 +121,7 @@ export {
   startSpanManual,
   tediousIntegration,
   trpcMiddleware,
+  serveTunnelIntegration,
   updateSpanName,
   withActiveSpan,
   withIsolationScope,

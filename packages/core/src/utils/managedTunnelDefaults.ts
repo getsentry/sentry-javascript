@@ -1,13 +1,14 @@
 import type { Client } from '../client';
+import type { Integration } from '../types/integration';
 import { getClient } from '../currentScopes';
 import type { IgnoreSpanFilter, ServerTunnelOptions } from '../types/options';
+import type { TunnelForwarder } from './tunnel';
 import {
   getTunnelIgnoreSpanFilters,
   normalizeTunnelBasePath,
   resolveAllowedDsns,
   resolveTunnelPaths,
   setServedTunnel,
-  stripBasePathFromTunnelPath,
 } from './tunnel';
 
 /**
@@ -19,11 +20,24 @@ interface ManagedTunnelDefaults {
    * path is `basePath`, so it has none of its own.
    */
   tunnel?: Omit<ServerTunnelOptions, 'basePath'>;
-  /** The path prefix the app is served under. Applies however the tunnel was enabled, unless `init` set its own. */
+  /** Forwards the requests of the tunnel `tunnel` enables. */
+  forward?: TunnelForwarder;
+  /**
+   * The path prefix the app is served under. Applies to the DSN-derived path however the tunnel was enabled, unless
+   * `init` set its own. A fixed `path` is served as written.
+   */
   basePath?: string;
 }
 
+/**
+ * The name of `serveTunnelIntegration`, which carries the forwarder. Kept here so this module doesn't import the
+ * integration, and with it the forwarder, into apps that don't use it.
+ */
+export const SERVE_TUNNEL_INTEGRATION_NAME = 'ServeTunnel';
+
 let managedTunnelDefaults: ManagedTunnelDefaults | undefined;
+
+const tunnelForwarders = new WeakMap<Client, TunnelForwarder>();
 
 // So re-applying defaults replaces a client's filters instead of adding more.
 const installedSpanFilters = new WeakMap<Client, IgnoreSpanFilter[]>();
@@ -35,31 +49,53 @@ const installedSpanFilters = new WeakMap<Client, IgnoreSpanFilter[]>();
 export function setManagedTunnelDefaults(defaults: ManagedTunnelDefaults): void {
   managedTunnelDefaults = {
     ...managedTunnelDefaults,
-    ...(defaults.tunnel && { tunnel: defaults.tunnel }),
+    ...(defaults.tunnel && { tunnel: defaults.tunnel, forward: defaults.forward }),
     ...(defaults.basePath !== undefined && { basePath: defaults.basePath }),
   };
   applyManagedTunnelDefaults(getClient());
 }
 
 /**
- * Resolves a server client's managed tunnel (from `init` or the defaults), computes its paths and allowed DSNs, and
- * installs its span filters. Runs when a server client is created and from {@link setManagedTunnelDefaults}.
+ * Enables the managed tunnel on a server client, from `serveTunnelIntegration`.
+ */
+export function enableManagedTunnel(
+  client: Client,
+  tunnelOptions: ServerTunnelOptions,
+  forward: TunnelForwarder,
+): void {
+  client.getOptions()._managedTunnel = { ...tunnelOptions };
+  tunnelForwarders.set(client, forward);
+  applyManagedTunnelDefaults(client);
+}
+
+/**
+ * Resolves a server client's managed tunnel (from `serveTunnelIntegration` or the defaults), computes its paths and
+ * allowed DSNs, and installs its span filters. Runs when a server client is created and from
+ * {@link setManagedTunnelDefaults}.
  */
 export function applyManagedTunnelDefaults(client: Client | undefined): void {
   const options = client?.getOptions();
   const tunnelOptions: ServerTunnelOptions | undefined = options?._managedTunnel ?? managedTunnelDefaults?.tunnel;
-  if (!client || !options || !tunnelOptions) {
+  // A framework SDK can bundle its own copy of this module, which only reaches the forwarder through the client.
+  const forward =
+    client &&
+    (tunnelForwarders.get(client) ??
+      client.getIntegrationByName?.<Integration & { forward?: TunnelForwarder }>(SERVE_TUNNEL_INTEGRATION_NAME)
+        ?.forward ??
+      managedTunnelDefaults?.forward);
+  if (!client || !options || !tunnelOptions || !forward) {
     return;
   }
 
   const basePath = normalizeTunnelBasePath(managedTunnelDefaults?.basePath);
-  const resolved = stripBasePathFromTunnelPath(
-    tunnelOptions.basePath === undefined && basePath ? { ...tunnelOptions, basePath } : tunnelOptions,
-  );
+  const resolved =
+    tunnelOptions.basePath === undefined && !tunnelOptions.path && basePath
+      ? { ...tunnelOptions, basePath }
+      : tunnelOptions;
   options._managedTunnel = resolved;
   const allowedDsns = resolveAllowedDsns(resolved.allowedDsns, client.getDsn());
   const paths = resolveTunnelPaths(resolved, allowedDsns);
-  setServedTunnel(client, { paths, allowedDsns });
+  setServedTunnel(client, { paths, allowedDsns, forward });
 
   const previousFilters = installedSpanFilters.get(client) ?? [];
   const spanFilters = getTunnelIgnoreSpanFilters(resolved, paths);

@@ -126,6 +126,7 @@ export {
   systemErrorIntegration,
   tediousIntegration,
   trpcMiddleware,
+  serveTunnelIntegration,
   updateSpanName,
   withActiveSpan,
   withIsolationScope,

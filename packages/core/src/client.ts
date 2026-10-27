@@ -1324,6 +1324,7 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
       try {
         const result = await this._transport.send(envelope);
         this.emit('afterEnvelope', envelope);
+
         return result;
       } catch (reason) {
         DEBUG_BUILD && debug.error('Error while sending envelope:', reason);
