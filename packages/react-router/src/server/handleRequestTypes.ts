@@ -15,17 +15,12 @@ type RenderToReadableStreamFunction = (
   options: RenderToReadableStreamOptions,
 ) => Promise<RenderToReadableStreamResult>;
 
-export interface SentryWebStreamHandleRequestOptions {
+export interface SentryHandleRequestBaseOptions {
   /**
    * Timeout in milliseconds after which the rendering stream will be aborted
    * @default 10000
    */
   streamTimeout?: number;
-
-  /**
-   * React's renderToReadableStream function from 'react-dom/server'
-   */
-  renderToReadableStream: RenderToReadableStreamFunction;
 
   /**
    * The <ServerRouter /> component from '@react-router/server'
@@ -40,9 +35,16 @@ export interface SentryWebStreamHandleRequestOptions {
 
   /**
    * Returns a Content Security Policy nonce for the current request.
-   * The nonce is passed to both `<ServerRouter />` and `renderToReadableStream`.
+   * The nonce is passed to both `<ServerRouter />` and the render function.
    */
   getNonce?: (args: { request: Request; loadContext: AppLoadContext | RouterContextProvider }) => string | undefined;
+}
+
+export interface SentryWebStreamHandleRequestOptions extends SentryHandleRequestBaseOptions {
+  /**
+   * React's renderToReadableStream function from 'react-dom/server'
+   */
+  renderToReadableStream: RenderToReadableStreamFunction;
 }
 
 export type HandleRequestWithoutMiddleware = (

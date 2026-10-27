@@ -1,13 +1,14 @@
 import type { createReadableStreamFromReadable } from '@react-router/node';
 import type { ReactNode } from 'react';
 import React from 'react';
-import type { AppLoadContext, EntryContext, RouterContextProvider, ServerRouter } from 'react-router';
+import type { AppLoadContext, EntryContext, RouterContextProvider } from 'react-router';
 import { PassThrough } from 'stream';
 import { getMetaTagTransformer } from './getMetaTagTransformer';
 import { createSentryHandleRequestWebStream } from './createSentryHandleRequestWebStream';
 import type {
   HandleRequestWithMiddleware,
   HandleRequestWithoutMiddleware,
+  SentryHandleRequestBaseOptions,
   SentryWebStreamHandleRequestOptions,
 } from './handleRequestTypes';
 import { wrapSentryHandleRequest } from './wrapSentryHandleRequest';
@@ -30,39 +31,16 @@ type RenderToPipeableStreamFunction = (
   options: RenderToPipeableStreamOptions,
 ) => RenderToPipeableStreamResult;
 
-export interface SentryHandleRequestOptions {
-  /**
-   * Timeout in milliseconds after which the rendering stream will be aborted
-   * @default 10000
-   */
-  streamTimeout?: number;
-
+export interface SentryHandleRequestOptions extends SentryHandleRequestBaseOptions {
   /**
    * React's renderToPipeableStream function from 'react-dom/server'
    */
   renderToPipeableStream: RenderToPipeableStreamFunction;
 
   /**
-   * The <ServerRouter /> component from '@react-router/server'
-   */
-  ServerRouter: typeof ServerRouter;
-
-  /**
    * createReadableStreamFromReadable from '@react-router/node'
    */
   createReadableStreamFromReadable: typeof createReadableStreamFromReadable;
-
-  /**
-   * Regular expression to identify bot user agents
-   * @default /bot|crawler|spider|googlebot|chrome-lighthouse|baidu|bing|google|yahoo|lighthouse/i
-   */
-  botRegex?: RegExp;
-
-  /**
-   * Returns a Content Security Policy nonce for the current request.
-   * The nonce is passed to both `<ServerRouter />` and `renderToPipeableStream`.
-   */
-  getNonce?: (args: { request: Request; loadContext: AppLoadContext | RouterContextProvider }) => string | undefined;
 }
 
 /**
