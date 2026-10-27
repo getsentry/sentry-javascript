@@ -66,6 +66,19 @@ describe('wrapServerEntryWithSentryTunnel', () => {
     expect(await response.text()).toBe('forwarded');
   });
 
+  it('rejects other methods on a fixed `tunnelRoute` path instead of rendering the app', async () => {
+    setClient(undefined);
+    const entry: { fetch: (request: Request) => Response } = { fetch: appFetch };
+    const wrapped = wrapServerEntryWithSentryTunnel(entry, { path: '/monitor' });
+
+    const response = await wrapped.fetch(new Request('http://localhost:3000/monitor'));
+
+    expect(response.status).toBe(405);
+    expect(response.headers.get('allow')).toBe('POST');
+    expect(appFetch).not.toHaveBeenCalled();
+    expect(await (await wrapped.fetch(new Request('http://localhost:3000/other'))).text()).toBe('app');
+  });
+
   it('passes other requests and their options to the app', async () => {
     setClient({});
     const request = makeEnvelopeRequest('http://localhost:3000/api/users');

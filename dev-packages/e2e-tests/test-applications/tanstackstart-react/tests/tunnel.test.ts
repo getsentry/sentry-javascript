@@ -61,12 +61,13 @@ test('Sends client-side errors through the configured tunnel route', async ({ pa
   expect(errorEvent.transaction).toBe(`${basePath}/`);
 });
 
-test('Only answers POSTs on the managed tunnel path and leaves other methods to the app', async ({ request }) => {
+test('Rejects non-POST requests to the managed tunnel route instead of rendering the app', async ({ request }) => {
   test.skip(tunnelRouteMode !== 'static', 'Requires a known managed tunnel path');
 
   const response = await request.get('/monitor');
 
-  expect(response.status()).toBe(404);
+  expect(response.status()).toBe(405);
+  expect(response.headers()['allow']).toBe('POST');
 });
 
 function pathnameMatchesTunnelRoute(pathname: string): boolean {
