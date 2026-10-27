@@ -27,7 +27,7 @@
     "ai": "^7.0.82",
     "dataloader": "^2.2.3",
     "eve": "^0.63.0",
-    "zod": "4.5.4"
+    "zod": "4.6.6"
   },
   "devDependencies": {
     "@playwright/test": "1.64.1",

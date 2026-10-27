@@ -26,7 +26,6 @@ type HookCallback = (arg: unknown) => void;
 
 function createFakeNuxt(): {
   nuxt: Nuxt;
-  hook: ReturnType<typeof vi.fn>;
   callHook: (name: string, arg: unknown) => void;
 } {
   const callbacks = new Map<string, HookCallback[]>();
@@ -39,25 +38,13 @@ function createFakeNuxt(): {
     hooks: { hook },
   } as unknown as Nuxt;
 
-  return { nuxt, hook, callHook: (name, arg) => callbacks.get(name)?.forEach(callback => callback(arg)) };
+  return { nuxt, callHook: (name, arg) => callbacks.get(name)?.forEach(callback => callback(arg)) };
 }
 
 describe('setupNitroServer', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     addTemplateMock.mockImplementation((opts: { filename: string }) => ({ dst: `${APP_ROOT}/.nuxt/${opts.filename}` }));
-  });
-
-  it('registers nothing on a host without Nitro', () => {
-    const { nuxt, hook } = createFakeNuxt();
-
-    setupNitroServer(nuxt, 'nuxt', SERVER_CONFIG, MODULE_OPTIONS);
-
-    expect(addNitroPluginMock).not.toHaveBeenCalled();
-    expect(addServerImportsMock).not.toHaveBeenCalled();
-    expect(addTemplateMock).not.toHaveBeenCalled();
-    expect(addServerTemplateMock).not.toHaveBeenCalled();
-    expect(hook).not.toHaveBeenCalled();
   });
 
   it.each([

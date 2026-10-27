@@ -4,9 +4,15 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
-Work in this release was contributed by @faizansaiyed123, @itisrmk, @kunal649, @kyrylolvov and @seongwon030. Thank you for your contributions!
+Work in this release was contributed by @faizansaiyed123, @itisrmk, @kunal649, @kyrylolvov, @seongwon030, @larcane97, and @pcbeingused333. Thank you for your contributions!
 
 ### Important Changes
+
+- **feat(nuxt): Start the server SDK on the Nuxt Vite server (experimental) ([#25524](https://github.com/getsentry/sentry-javascript/pull/25524))**
+
+  Sentry now supports Node.js production builds using Nuxt 4.6's experimental Vite server (`server: { builder: 'vite' }`). Your `sentry.server.config` loads automatically, enabling request tracing and automatic database spans for supported libraries.
+
+  Development mode, Cloudflare, automatic capture of server rendering errors, and connecting server and browser traces via HTML meta tags are not yet supported. This experimental support may change in minor releases.
 
 - **feat(cloudflare): Add incoming request span options to `httpServerIntegration`**
 
