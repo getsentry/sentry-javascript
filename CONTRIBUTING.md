@@ -190,6 +190,15 @@ change before you submit it. We close PRs that look like unreviewed agent output
 - Keep each PR to one change. Put unrelated refactors in a separate PR.
 - Run `pnpm run lint` and the tests for the packages you changed.
 
+### After you open a PR
+
+Ideally, answer review comments within a few hours, and within a day at the latest. While the change is still fresh in
+the reviewer's head, each round is quick, and a PR that keeps moving is more likely to get merged. We may close PRs
+that go quiet for a long time.
+
+We try to review PRs quickly, but now and then one slips through the cracks. That's on us, not you. If you haven't heard
+back in a few days, `@` mention a maintainer to ping us.
+
 ## Commit, Issue & PR guidelines
 
 See [Commit, Issue & PR guidelines](./docs/commit-issue-pr-guidelines.md).
