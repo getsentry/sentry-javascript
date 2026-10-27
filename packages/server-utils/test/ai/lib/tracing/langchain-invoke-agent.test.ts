@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   GEN_AI_AGENT_NAME,
   GEN_AI_CONVERSATION_ID,
@@ -10,6 +10,7 @@ import {
 import { GEN_AI_DECIDE } from '@sentry/conventions/op';
 import {
   conversationIdIntegration,
+  debug,
   getClient,
   getMainCarrier,
   setConversationId,
@@ -20,6 +21,7 @@ import {
 } from '@sentry/core';
 import type { ClientOptions, Span } from '@sentry/core';
 import { createLangChainCallbackHandler } from '../../../../src/ai/langchain';
+import { MAX_TRACKED_LANGCHAIN_RUNS } from '../../../../src/ai/langchain/constants';
 import { getDefaultTestClientOptions, TestClient } from '../../../mocks/client';
 
 beforeEach(() => {
@@ -318,6 +320,39 @@ describe('LangChain callback handler run tree', () => {
       'execute_tool tool_b': 'thread-b',
       'chat unknown': 'thread-b',
     });
+  });
+
+  it('ends the oldest run once too many runs are open, and warns once', () => {
+    const endedSpans = setupClient();
+    const warn = vi.spyOn(debug, 'warn').mockImplementation(() => undefined);
+    const handler = createLangChainCallbackHandler();
+
+    handler.handleChainStart?.({}, {}, 'abandoned', undefined, undefined, undefined, undefined, 'abandoned');
+    for (let i = 0; i <= MAX_TRACKED_LANGCHAIN_RUNS; i++) {
+      handler.handleChainStart?.({}, {}, `run-${i}`, undefined, undefined, undefined, undefined, `run-${i}`);
+    }
+    expect(endedSpans.map(span => spanToJSON(span).name)).toEqual(['chain abandoned', 'chain run-0']);
+    expect(warn).toHaveBeenCalledTimes(1);
+
+    handler.handleChainEnd?.({}, 'abandoned');
+    expect(endedSpans).toHaveLength(2);
+    warn.mockRestore();
+  });
+
+  it('keeps every ancestor of a busy run open', () => {
+    const endedSpans = setupClient();
+    const handler = createLangChainCallbackHandler();
+
+    handler.handleChainStart?.({}, {}, 'outer', undefined, undefined, undefined, undefined, 'outer');
+    handler.handleChainStart?.({}, {}, 'inner', 'outer', undefined, undefined, undefined, 'inner');
+    for (let i = 0; i < MAX_TRACKED_LANGCHAIN_RUNS; i++) {
+      handler.handleChatModelStart?.(chatModel, [[]], `chat-${i}`, 'inner');
+    }
+    handler.handleChainEnd?.({}, 'inner');
+    handler.handleChainEnd?.({}, 'outer');
+
+    const chainNames = endedSpans.map(span => spanToJSON(span).name).filter(name => name.startsWith('chain'));
+    expect(chainNames).toEqual(['chain inner', 'chain outer']);
   });
 
   it('lets an id from Sentry.setConversationId() win over one from a child run', () => {
