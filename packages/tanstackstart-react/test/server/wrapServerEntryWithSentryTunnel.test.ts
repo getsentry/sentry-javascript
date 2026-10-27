@@ -1,6 +1,6 @@
 import type { Client } from '@sentry/core';
 import { createEnvelope, getCurrentScope, getTunnelPath, makeDsn, serializeEnvelope } from '@sentry/core';
-import { _INTERNAL_resetManagedTunnelDefaults } from '@sentry/core/server';
+import { _INTERNAL_resetManagedTunnelDefaults, serveTunnelIntegration } from '@sentry/core/server';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { wrapServerEntryWithSentryTunnel } from '../../src/server/tunnelRoute';
 
@@ -13,9 +13,14 @@ function makeEnvelopeRequest(url: string): Request {
   return new Request(url, { method: 'POST', body, headers: { 'content-length': String(body.length) } });
 }
 
+/** Sets a client, with `serveTunnelIntegration` set up when `managedTunnel` is given. */
 function setClient(managedTunnel: object | undefined): void {
-  const options = { dsn: DSN, _managedTunnel: managedTunnel, ignoreSpans: [] };
-  getCurrentScope().setClient({ getDsn: () => makeDsn(DSN), getOptions: () => options } as unknown as Client);
+  const options = { dsn: DSN, ignoreSpans: [] };
+  const client = { getDsn: () => makeDsn(DSN), getOptions: () => options } as unknown as Client;
+  getCurrentScope().setClient(client);
+  if (managedTunnel) {
+    serveTunnelIntegration(managedTunnel).setup!(client);
+  }
 }
 
 describe('wrapServerEntryWithSentryTunnel', () => {
@@ -33,7 +38,7 @@ describe('wrapServerEntryWithSentryTunnel', () => {
     vi.clearAllMocks();
   });
 
-  it('answers the tunnel path when `init` enabled the managed tunnel, without calling the app', async () => {
+  it('answers the tunnel path when `serveTunnelIntegration` is set up, without calling the app', async () => {
     setClient({});
 
     const response = await wrapServerEntryWithSentryTunnel({ fetch: appFetch }).fetch(makeEnvelopeRequest(TUNNEL_URL));
@@ -51,7 +56,7 @@ describe('wrapServerEntryWithSentryTunnel', () => {
     expect(sentryFetch).not.toHaveBeenCalled();
   });
 
-  it('serves the tunnel with build-time options even when `init` did not enable it', async () => {
+  it('serves the tunnel with build-time options even without `serveTunnelIntegration`', async () => {
     setClient(undefined);
 
     const response = await wrapServerEntryWithSentryTunnel({ fetch: appFetch }, {}).fetch(
@@ -91,7 +96,7 @@ describe('wrapServerEntryWithSentryTunnel', () => {
     expect(wrapServerEntryWithSentryTunnel(Worker as unknown as { fetch: () => Response })).toBe(Worker);
   });
 
-  it('enables `tunnelRoute` on the client like `init` would, dropping its spans from the start', () => {
+  it('enables `tunnelRoute` on the client like `serveTunnelIntegration` would, dropping its spans from the start', () => {
     setClient(undefined);
     const options = getCurrentScope().getClient()!.getOptions();
 
@@ -105,7 +110,7 @@ describe('wrapServerEntryWithSentryTunnel', () => {
     ).toBe(true);
   });
 
-  it('keeps the managed tunnel `init` enabled over `tunnelRoute`', async () => {
+  it('keeps the options of `serveTunnelIntegration` over `tunnelRoute`', async () => {
     setClient({ path: '/from-init' });
     const options = getCurrentScope().getClient()!.getOptions();
 
@@ -127,7 +132,7 @@ describe('wrapServerEntryWithSentryTunnel', () => {
     expect(await (await wrapped.fetch(makeEnvelopeRequest(TUNNEL_URL))).text()).toBe('app');
   });
 
-  it('keeps a base path the server `init` set', async () => {
+  it('keeps a base path `serveTunnelIntegration` set', async () => {
     setClient({ basePath: '/custom' });
     const wrapped = wrapServerEntryWithSentryTunnel({ fetch: appFetch }, undefined, '/app');
 

@@ -1,5 +1,6 @@
 import type { Client } from '@sentry/core';
 import { getCurrentScope, getTunnelPath, makeDsn } from '@sentry/core';
+import { _INTERNAL_resetManagedTunnelDefaults, serveTunnelIntegration } from '@sentry/core/server';
 import type { Plugin, ResolvedConfig, UserConfig } from 'vite';
 import { afterEach, describe, expect, it } from 'vitest';
 import {
@@ -154,11 +155,17 @@ describe('server entry tunnel vite plugin in `vite dev`', () => {
 
   afterEach(() => {
     getCurrentScope().setClient(undefined);
+    _INTERNAL_resetManagedTunnelDefaults();
   });
 
+  /** Sets a client, with `serveTunnelIntegration` set up when `managedTunnel` is given. */
   function setClient(managedTunnel: object | undefined): Record<string, unknown> {
-    const options = { dsn: DSN, _managedTunnel: managedTunnel, ignoreSpans: [] as unknown[] };
-    getCurrentScope().setClient({ getDsn: () => makeDsn(DSN), getOptions: () => options } as unknown as Client);
+    const options: Record<string, unknown> = { dsn: DSN, ignoreSpans: [] as unknown[] };
+    const client = { getDsn: () => makeDsn(DSN), getOptions: () => options } as unknown as Client;
+    getCurrentScope().setClient(client);
+    if (managedTunnel) {
+      serveTunnelIntegration(managedTunnel).setup!(client);
+    }
 
     return options;
   }
@@ -173,7 +180,7 @@ describe('server entry tunnel vite plugin in `vite dev`', () => {
     expect(filter?.attributes['url.path']?.test(`/app${getTunnelPath(DSN)}`)).toBe(true);
   });
 
-  it("serves the dev server's managed tunnel from `init` under the base path", () => {
+  it("serves the dev server's managed tunnel from `serveTunnelIntegration` under the base path", () => {
     const options = setClient({});
     const plugin = makeServerEntryTunnelPlugin(undefined, () => '/app');
 
