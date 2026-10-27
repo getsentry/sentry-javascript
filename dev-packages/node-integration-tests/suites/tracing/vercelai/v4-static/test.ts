@@ -697,6 +697,36 @@ describe('Vercel AI integration (v4)', () => {
     });
   });
 
+  createEsmAndCjsTests(__dirname, 'scenario-stream-object.mjs', 'instrument.mjs', (createRunner, test) => {
+    test('creates ai spans for streamObject (doStream)', async () => {
+      await createRunner()
+        .expect({ transaction: { transaction: 'main' } })
+        .expect({
+          span: container => {
+            expect(container.items).toHaveLength(2);
+
+            const invokeAgentSpan = container.items.find(span => span.name === 'invoke_agent');
+            expect(invokeAgentSpan!.status).toBe('ok');
+            expect(invokeAgentSpan!.attributes[SENTRY_OP].value).toBe('gen_ai.invoke_agent');
+            expect(invokeAgentSpan!.attributes[SENTRY_ORIGIN].value).toBe(expectedOrigin);
+            expect(invokeAgentSpan!.attributes['vercel.ai.operationId'].value).toBe('ai.streamObject');
+            expect(invokeAgentSpan!.attributes[GEN_AI_USAGE_INPUT_TOKENS].value).toBe(15);
+            expect(invokeAgentSpan!.attributes[GEN_AI_USAGE_OUTPUT_TOKENS].value).toBe(25);
+            expect(invokeAgentSpan!.attributes[GEN_AI_USAGE_TOTAL_TOKENS].value).toBe(40);
+
+            const generateContentSpan = container.items.find(span => span.name === 'generate_content mock-model-id');
+            expect(generateContentSpan!.status).toBe('ok');
+            expect(generateContentSpan!.parent_span_id).toBe(invokeAgentSpan!.span_id);
+            expect(generateContentSpan!.attributes['vercel.ai.operationId'].value).toBe('ai.streamObject.doStream');
+            expect(generateContentSpan!.attributes[GEN_AI_USAGE_INPUT_TOKENS].value).toBe(15);
+            expect(generateContentSpan!.attributes[GEN_AI_USAGE_OUTPUT_TOKENS].value).toBe(25);
+          },
+        })
+        .start()
+        .completed();
+    });
+  });
+
   createEsmAndCjsTests(__dirname, 'scenario-generate-object.mjs', 'instrument-with-pii.mjs', (createRunner, test) => {
     test('captures generateObject spans with schema attributes', async () => {
       await createRunner()
