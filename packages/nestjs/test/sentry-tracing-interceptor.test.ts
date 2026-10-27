@@ -120,13 +120,14 @@ describe('SentryTracingInterceptor', () => {
     const interceptor = createInterceptor();
     const context = createContext({ nsp: { name: '/events' } }, 'message');
     const next = {
-      handle: vi.fn(() =>
-        of(undefined).pipe(
+      handle: vi.fn(() => {
+        expect(mocks.inIsolationScope).toBe(true);
+        return of(undefined).pipe(
           tap(() => {
             expect(mocks.inIsolationScope).toBe(true);
           }),
-        ),
-      ),
+        );
+      }),
     } as unknown as CallHandler;
     vi.mocked(getIsolationScope).mockReturnValue(mocks.defaultIsolationScope as never);
 
