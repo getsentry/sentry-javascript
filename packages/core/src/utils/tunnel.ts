@@ -76,7 +76,6 @@ export interface TunnelRequestLike {
   method?: string;
   /** Absolute URL or path with query, e.g. Node's `IncomingMessage.url`. */
   url?: string;
-  headers?: Headers | Record<string, string | string[] | undefined>;
 }
 
 /**
