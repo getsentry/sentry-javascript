@@ -20,7 +20,7 @@ import {
   startSpanManual,
 } from '@sentry/core';
 
-const FUNCTIONS_ORIGIN = 'auto.firebase.functions';
+const FUNCTIONS_ORIGIN = 'auto.function.firebase';
 
 // Set on a wrapped handler so re-entrant `start` events don't double-wrap it.
 const WRAPPED = '__sentryFirebaseWrapped';

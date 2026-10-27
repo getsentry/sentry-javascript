@@ -30,7 +30,7 @@ test('captures Vercel AI v7 spans with nodejs_compat using tracing channels', as
       'gen_ai.usage.output_tokens': { value: 20, type: 'integer' },
       'gen_ai.usage.total_tokens': { value: 30, type: 'integer' },
       'sentry.op': { value: 'gen_ai.invoke_agent', type: 'string' },
-      'sentry.origin': { value: 'auto.vercelai.channel', type: 'string' },
+      'sentry.origin': { value: 'auto.ai.vercelai', type: 'string' },
     }),
   });
 
@@ -49,7 +49,7 @@ test('captures Vercel AI v7 spans with nodejs_compat using tracing channels', as
       'gen_ai.usage.output_tokens': { value: 20, type: 'integer' },
       'gen_ai.usage.total_tokens': { value: 30, type: 'integer' },
       'sentry.op': { value: 'gen_ai.generate_content', type: 'string' },
-      'sentry.origin': { value: 'auto.vercelai.channel', type: 'string' },
+      'sentry.origin': { value: 'auto.ai.vercelai', type: 'string' },
     }),
   });
 });
