@@ -4,6 +4,7 @@ import { dsnToString, escapeStringForRegex, getClient, handleTunnelRequest } fro
 import {
   _INTERNAL_forwardTunnelRequest as forwardTunnelRequest,
   handleTunnelRequestIfMatched,
+  isTunnelRequest,
   _INTERNAL_setManagedTunnelDefaults as setManagedTunnelDefaults,
 } from '@sentry/core/server';
 import type { ServerEntry } from './wrapFetchWithSentry';
@@ -124,8 +125,6 @@ export function wrapServerEntryWithSentryTunnel<T extends ServerEntry>(
     return entry;
   }
 
-  const fixedPath = tunnelRoute?.path?.replace(/\/$/, '');
-
   // Keeps the prototype, so a class instance entry keeps its other handlers, like `scheduled` or `queue`. `fetch` is
   // defined rather than assigned, which a read-only `fetch` on a frozen prototype would reject.
   return Object.create(Object.getPrototypeOf(entry), {
@@ -133,8 +132,8 @@ export function wrapServerEntryWithSentryTunnel<T extends ServerEntry>(
     fetch: {
       // Cloudflare Workers pass `env` and `ctx` after the request, and `withSentry` needs `ctx` to flush.
       value: (request: Request, ...rest: unknown[]) => {
-        // Start would render the app for any other method on this path, running its root loaders.
-        if (fixedPath && request.method !== 'POST' && new URL(request.url).pathname.replace(/\/$/, '') === fixedPath) {
+        // Start would render the app for any other method on a tunnel path, running its root loaders.
+        if (request.method !== 'POST' && isTunnelRequest({ method: 'POST', url: request.url })) {
           return new Response(null, { status: 405, headers: { Allow: 'POST' } });
         }
 

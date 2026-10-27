@@ -79,6 +79,17 @@ describe('wrapServerEntryWithSentryTunnel', () => {
     expect(await (await wrapped.fetch(new Request('http://localhost:3000/other'))).text()).toBe('app');
   });
 
+  it('rejects other methods on the DSN-derived tunnel path too', async () => {
+    setClient({});
+    const entry: { fetch: (request: Request) => Response } = { fetch: appFetch };
+
+    const response = await wrapServerEntryWithSentryTunnel(entry).fetch(new Request(TUNNEL_URL));
+
+    expect(response.status).toBe(405);
+    expect(response.headers.get('allow')).toBe('POST');
+    expect(appFetch).not.toHaveBeenCalled();
+  });
+
   it('passes other requests and their options to the app', async () => {
     setClient({});
     const request = makeEnvelopeRequest('http://localhost:3000/api/users');
