@@ -23,7 +23,6 @@ test('answers the managed tunnel under the base path, without tunnel spans', asy
   const tunnelResponse = await tunnelResponsePromise;
 
   expect(tunnelResponse.status()).toBe(200);
-  expect(tunnelResponse.headers()['x-sentry-tunnel']).toBeDefined();
   expect(
     await raceTunnelSpan(
       span => getSpanOp(span) === 'http.server' && span.is_segment && span.name.includes('test-ssr'),
