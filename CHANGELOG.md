@@ -39,9 +39,9 @@ Work in this release was contributed by @4ktLuffy, @rubas, and @dasilvaluis. Tha
 
   If you set up OpenTelemetry yourself and register `SentryPropagator`, register `NextSentryPropagator` instead and pass your tracer provider to `markPrerendersOnTracerProvider`, so that your prerendered pages carry no trace information either.
 
-- **feat(nextjs): Mark pageloads that were served from a cached shell**
+- **feat(nextjs): Mark pageloads of cached pages ([#25318](https://github.com/getsentry/sentry-javascript/pull/25318))**
 
-  A pageload whose document was served from a cache, for example an ISR page or a `cacheComponents` page generated on first visit, now carries the `document.cached` attribute and a `cache_origin` span link to the request that prerendered the page. That tells apart "nothing ran on the server for this visit" from missing server instrumentation. The link is never continued as a parent, so pageloads keep their own traces and sampling decisions.
+  When Next.js serves a page from its cache, for example an ISR page or a `cacheComponents` shell, the pageload now has the `page.server_rendering.type` attribute. It is `static` if the whole page came from the cache, and `partially_static` if parts of it rendered for this request. Then the pageload stays connected to this request, as before. If the request that rendered the cached page was sampled, the pageload also links to it. So in Sentry, a cached page no longer looks like missing server instrumentation.
 
 Work in this release was contributed by @adityareddy-dev, @jpdefo, @Jxxunnn, @philipatkinson, @Shubham-Padkonde, @mikamikasuki, and @mketiku. Thank you for your contributions!
 

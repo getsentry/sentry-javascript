@@ -1,14 +1,14 @@
 import type { Context, TextMapSetter, TracerProvider } from '@opentelemetry/api';
-import { propagation } from '@opentelemetry/api';
+import { defaultTextMapSetter, propagation } from '@opentelemetry/api';
 import { SentryPropagator } from '@sentry/opentelemetry';
-import { PRERENDER_META_TAG_NAME } from '../common/traceMetaTags';
+import { CACHE_ORIGIN_META_TAG_NAME } from '../common/traceMetaTags';
 import { isPrerenderContext, markPrerendersOnTracerProvider } from './prerenderContext';
 
 /**
  * A `SentryPropagator` that does not hand out the trace meta tags of a document while Next.js
  * prerenders it. Trace context baked into a prerendered shell would be replayed to every visitor the
  * shell is served to, so the browser could continue a trace that never handled its request. The shell
- * gets a `sentry-prerender` marker tag with the prerender's trace instead, which the client only ever links.
+ * gets the prerender's trace in a `sentry-cache-origin` tag instead, which the client only links.
  *
  * The SDK registers it when it sets up OpenTelemetry. An app that sets up OpenTelemetry itself
  * registers it in place of `SentryPropagator` and calls `markPrerendersOnTracerProvider` with its
@@ -25,10 +25,10 @@ export class NextSentryPropagator extends SentryPropagator {
     }
 
     const values: Record<string, string> = {};
-    super.inject(ctx, values, { set: (c, key, value) => ((c as Record<string, string>)[key] = value) });
+    super.inject(ctx, values, defaultTextMapSetter);
     const sentryTrace = values['sentry-trace'];
     if (sentryTrace) {
-      setter.set(carrier, PRERENDER_META_TAG_NAME, sentryTrace);
+      setter.set(carrier, CACHE_ORIGIN_META_TAG_NAME, sentryTrace);
     }
   }
 }

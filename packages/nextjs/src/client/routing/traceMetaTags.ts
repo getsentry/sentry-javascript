@@ -1,7 +1,7 @@
 import { SENTRY_LINK_TYPE } from '@sentry/conventions/attributes';
 import type { Span, SpanLink, StartSpanOptions } from '@sentry/core';
 import { extractTraceparentData, GLOBAL_OBJ } from '@sentry/core';
-import { PRERENDER_META_TAG_NAME } from '../../common/traceMetaTags';
+import { CACHE_ORIGIN_META_TAG_NAME } from '../../common/traceMetaTags';
 import { WINDOW } from '@sentry/react';
 
 // `@opentelemetry/api` `TraceFlags`, inlined because core does not export its copies.
@@ -9,14 +9,15 @@ const TRACE_FLAG_SAMPLED = 0x1;
 const TRACE_FLAG_NONE = 0x0;
 
 const SERVER_REQUEST_LINK_TYPE = 'server_request';
+const CACHE_ORIGIN_LINK_TYPE = 'cache_origin';
 
 export interface TraceMetaTagValues {
   sentryTrace: string;
   baggage: string | undefined;
 }
 
-/** Set on a pageload whose document was served from a cache, so no server render ran for the request. */
-export const DOCUMENT_CACHED_ATTRIBUTE = 'document.cached';
+// Not in `@sentry/conventions` yet: https://github.com/getsentry/sentry-conventions/pull/740
+const PAGE_SERVER_RENDERING_TYPE = 'page.server_rendering.type';
 
 function getDocument(): Document | undefined {
   return WINDOW.document;
@@ -161,19 +162,38 @@ export function addTraceMetaTagLink(span: Span, { sentryTrace }: TraceMetaTagVal
   }
 }
 
-/** Reads the marker the server writes into a document while it prerenders it, see `nextSentryPropagator.ts`. */
-export function readPrerenderMarker(): string | undefined {
-  const document = getDocument();
-  return document && lastMetaContent(document, PRERENDER_META_TAG_NAME);
+/**
+ * How the server rendered a document with a `sentry-cache-origin` tag. With trace meta tags of this
+ * request, only the shell was reused. Unset while a resumed part can still bring those tags.
+ */
+function getServerRenderingType(traceMetaTags: TraceMetaTagValues | undefined): string | undefined {
+  if (traceMetaTags) {
+    return 'partially_static';
+  }
+  return canWaitForTraceMetaTag() ? undefined : 'static';
 }
 
 /**
- * The start options that mark a pageload whose document was served from a cache and link the request
- * that prerendered it. Applied at span start, so `tracesSampler` and `ignoreSpans` see the attribute.
- * The marker is never continued: the document is served to every later visitor, and the request behind
- * it handled none of their visits.
+ * Marks a pageload whose document carries a `sentry-cache-origin` tag with how the server rendered
+ * it, and links the render that the page reuses. Applied at span start, so `tracesSampler` and
+ * `ignoreSpans` see both. Like a `use cache` hit, the pageload links only a sampled render.
  */
-export function cachedDocumentSpanOptions(marker: string): Pick<StartSpanOptions, 'attributes' | 'links'> {
-  const link = traceMetaTagLink(marker, 'cache_origin');
-  return { attributes: { [DOCUMENT_CACHED_ATTRIBUTE]: true }, ...(link && { links: [link] }) };
+export function withCacheOrigin(spanOptions: StartSpanOptions, traceMetaTags?: TraceMetaTagValues): StartSpanOptions {
+  const document = getDocument();
+  const cacheOrigin = document && lastMetaContent(document, CACHE_ORIGIN_META_TAG_NAME);
+  if (!cacheOrigin) {
+    return spanOptions;
+  }
+
+  const link = traceMetaTagLink(cacheOrigin, CACHE_ORIGIN_LINK_TYPE);
+  const isSampled = link?.context.traceFlags === TRACE_FLAG_SAMPLED;
+  const serverRenderingType = getServerRenderingType(traceMetaTags);
+  return {
+    ...spanOptions,
+    attributes: {
+      ...spanOptions.attributes,
+      ...(serverRenderingType && { [PAGE_SERVER_RENDERING_TYPE]: serverRenderingType }),
+    },
+    links: link && isSampled ? [...(spanOptions.links ?? []), link] : spanOptions.links,
+  };
 }

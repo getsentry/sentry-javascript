@@ -74,6 +74,9 @@ async function setup(traceLifecycle: 'stream' | 'static'): Promise<{
 }> {
   vi.resetModules();
   const core: Core = await import('@sentry/core');
+  // The scopes live on a global carrier that `vi.resetModules()` keeps, so the active span of an
+  // earlier test would otherwise become the parent of the spans of this one.
+  core.getMainCarrier().__SENTRY__ = undefined;
   const react: React = await import('@sentry/react');
   const instrumentation: Instrumentation = await import('../../src/client/routing/appRouterRoutingInstrumentation');
   const pageload: PageloadInstrumentation = await import('../../src/client/routing/appRouterPageloadInstrumentation');
@@ -274,11 +277,30 @@ describe('appRouterInstrumentNavigation with basePath', () => {
 
 describe('appRouterInstrumentPageLoad', () => {
   const originalReadyState = Object.getOwnPropertyDescriptor(Document.prototype, 'readyState');
+  const PRERENDER_TRACE_ID = '11111111111111111111111111111111';
+  const PRERENDER_SENTRY_TRACE = `${PRERENDER_TRACE_ID}-1111111111111111-1`;
+  const PRERENDER_LINK = {
+    trace_id: PRERENDER_TRACE_ID,
+    span_id: '1111111111111111',
+    sampled: true,
+    attributes: { [SENTRY_LINK_TYPE]: 'cache_origin' },
+  };
+
+  function setReadyState(value: DocumentReadyState): void {
+    Object.defineProperty(document, 'readyState', { value, configurable: true });
+  }
+
+  function appendMeta(parent: HTMLElement, name: string, content: string): void {
+    const meta = document.createElement('meta');
+    meta.setAttribute('name', name);
+    meta.setAttribute('content', content);
+    parent.appendChild(meta);
+  }
 
   beforeEach(() => {
     globalWithNext._sentryRouteManifest = JSON.stringify(manifest);
     window.history.replaceState({}, '', '/navigation?from=document');
-    Object.defineProperty(document, 'readyState', { value: 'loading', configurable: true });
+    setReadyState('loading');
     vi.spyOn(performance, 'getEntriesByType').mockReturnValue([]);
     vi.stubEnv('_sentryCacheComponents', 'true');
   });
@@ -286,6 +308,9 @@ describe('appRouterInstrumentPageLoad', () => {
   afterEach(() => {
     delete globalWithNext.next;
     delete globalWithNext._sentryRouteManifest;
+    document.head.innerHTML = '';
+    document.body.innerHTML = '';
+    vi.useRealTimers();
     // @ts-expect-error deleting the instance override restores the prototype getter
     delete document.readyState;
     if (originalReadyState) {
@@ -341,29 +366,71 @@ describe('appRouterInstrumentPageLoad', () => {
     },
   );
 
-  it('marks a pageload whose document is a cached shell and links the prerender', async () => {
+  it('starts a new trace for a static page and links the prerender as cache origin', async () => {
     const { core, pageload } = await setup('static');
-    Object.defineProperty(document, 'readyState', { value: 'complete', configurable: true });
-    const meta = document.createElement('meta');
-    meta.name = 'sentry-prerender';
-    meta.content = '11111111111111111111111111111111-1111111111111111-1';
-    document.head.appendChild(meta);
+    setReadyState('complete');
+    appendMeta(document.head, 'sentry-cache-origin', PRERENDER_SENTRY_TRACE);
 
     pageload.appRouterInstrumentPageLoad(core.getClient()!);
 
-    const span = core.getActiveSpan();
-    expect(span).toBeDefined();
-    const spanJson = core.spanToJSON(span!);
+    const spanJson = core.spanToJSON(core.getActiveSpan()!);
     expect(spanJson.attributes?.[SENTRY_OP]).toBe(PAGELOAD);
-    expect(spanJson.attributes?.['document.cached']).toBe(true);
-    expect(spanJson.trace_id).not.toBe('11111111111111111111111111111111');
+    expect(spanJson.attributes?.['page.server_rendering.type']).toBe('static');
+    expect(spanJson.trace_id).not.toBe(PRERENDER_TRACE_ID);
+    expect(spanJson.links).toEqual([PRERENDER_LINK]);
+  });
+
+  // A shell that was prerendered at runtime keeps its tag, and the part resumed for this request
+  // brings its own `sentry-trace` tag.
+  it('continues the server trace of a resumed cached shell and links the prerender as cache origin', async () => {
+    const { core, pageload } = await setup('static');
+    setReadyState('complete');
+    appendMeta(document.head, 'sentry-cache-origin', PRERENDER_SENTRY_TRACE);
+    appendMeta(document.body, 'sentry-trace', '22222222222222222222222222222222-2222222222222222-1');
+
+    pageload.appRouterInstrumentPageLoad(core.getClient()!);
+
+    const spanJson = core.spanToJSON(core.getActiveSpan()!);
+    expect(spanJson.trace_id).toBe('22222222222222222222222222222222');
+    expect(spanJson.parent_span_id).toBe('2222222222222222');
+    expect(spanJson.attributes?.['page.server_rendering.type']).toBe('partially_static');
+    expect(spanJson.links).toEqual([PRERENDER_LINK]);
+  });
+
+  it('links the prerender without a type when a navigation starts the pageload before the resumed part', async () => {
+    const { core, pageload } = await setup('static');
+    appendMeta(document.head, 'sentry-cache-origin', PRERENDER_SENTRY_TRACE);
+
+    pageload.appRouterInstrumentPageLoad(core.getClient()!);
+    pageload.settlePendingPageloadWait();
+
+    const spanJson = core.spanToJSON(core.getActiveSpan()!);
+    expect(spanJson.attributes?.[SENTRY_OP]).toBe(PAGELOAD);
+    expect(spanJson.attributes).not.toHaveProperty('page.server_rendering.type');
+    expect(spanJson.links).toEqual([PRERENDER_LINK]);
+  });
+
+  it('links the server request when its trace meta tag arrives after the wait gave up', async () => {
+    const { core, pageload } = await setup('static');
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+
+    pageload.appRouterInstrumentPageLoad(core.getClient()!);
+    vi.advanceTimersByTime(10_000);
+    const span = core.getActiveSpan()!;
+    appendMeta(document.body, 'sentry-trace', '22222222222222222222222222222222-2222222222222222-1');
+    // MutationObserver callbacks run as microtasks.
+    await Promise.resolve();
+
+    const spanJson = core.spanToJSON(span);
+    expect(spanJson.attributes?.[SENTRY_OP]).toBe(PAGELOAD);
+    expect(spanJson.trace_id).not.toBe('22222222222222222222222222222222');
     expect(spanJson.links).toEqual([
-      expect.objectContaining({
-        trace_id: '11111111111111111111111111111111',
-        span_id: '1111111111111111',
-        attributes: expect.objectContaining({ [SENTRY_LINK_TYPE]: 'cache_origin' }),
-      }),
+      {
+        trace_id: '22222222222222222222222222222222',
+        span_id: '2222222222222222',
+        sampled: true,
+        attributes: { [SENTRY_LINK_TYPE]: 'server_request' },
+      },
     ]);
-    meta.remove();
   });
 });

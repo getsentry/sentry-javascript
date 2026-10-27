@@ -19,11 +19,10 @@ import { stripTrailingSlash } from './parameterization';
 import type { TraceMetaTagValues, TraceMetaTagWait } from './traceMetaTags';
 import {
   addTraceMetaTagLink,
-  cachedDocumentSpanOptions,
   canWaitForTraceMetaTag,
-  readPrerenderMarker,
   readTraceMetaTags,
   waitForTraceMetaTag,
+  withCacheOrigin,
 } from './traceMetaTags';
 
 /**
@@ -53,19 +52,7 @@ function startPageloadSpan(
   documentUrl: string,
   traceMetaTags?: TraceMetaTagValues,
 ): Span | undefined {
-  const prerenderMarker = readPrerenderMarker();
-  const prerenderOptions = prerenderMarker ? cachedDocumentSpanOptions(prerenderMarker) : undefined;
-  const span = startBrowserTracingPageLoadSpan(
-    client,
-    prerenderOptions
-      ? {
-          ...spanOptions,
-          attributes: { ...spanOptions.attributes, ...prerenderOptions.attributes },
-          links: prerenderOptions.links,
-        }
-      : spanOptions,
-    traceMetaTags,
-  );
+  const span = startBrowserTracingPageLoadSpan(client, withCacheOrigin(spanOptions, traceMetaTags), traceMetaTags);
   const scope = getCurrentScope();
   const { normalizedRequest } = scope.getScopeData().sdkProcessingMetadata;
   if (normalizedRequest) {
