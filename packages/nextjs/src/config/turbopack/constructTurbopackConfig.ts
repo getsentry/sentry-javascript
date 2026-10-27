@@ -65,22 +65,21 @@ export function constructTurbopackConfig({
     newConfig.rules = safelyAddTurbopackRule(newConfig.rules, { matcher, rule });
   }
 
-  // Add module metadata injection loader for thirdPartyErrorFilterIntegration support.
-  // This loader tags modules with `_sentryModuleMetadata` so the integration can tell
-  // first-party code from third-party code. We intentionally do NOT use
-  // `condition: { not: 'foreign' }` so that node_modules are also tagged as first-party,
-  // matching the webpack plugin's BannerPlugin behavior (which injects into all chunks
-  // without excluding node_modules). The injected code is wrapped in a try-catch IIFE
-  // so it is safe even for node_modules with strict initialization order.
-  // We only exclude Next.js build polyfills which contain non-standard syntax that causes
-  // parse errors when any code is prepended (Turbopack re-parses the loader output).
+  // Dependencies are tagged by default to match webpack's per-chunk metadata injection.
+  // Next.js build polyfills contain non-standard syntax that fails when Turbopack re-parses loader output.
   // Server and edge modules are skipped because only the browser reads these tags.
   const applicationKey = userSentryOptions?.applicationKey;
   if (applicationKey && nextJsVersion && supportsTurbopackRuleCondition(nextJsVersion)) {
     newConfig.rules = safelyAddTurbopackRule(newConfig.rules, {
       matcher: '*.{ts,tsx,js,jsx,mjs,cjs}',
       rule: {
-        condition: { all: ['browser', { not: { path: /next\/dist\/build\/polyfills/ } }] },
+        condition: {
+          all: [
+            'browser',
+            { not: { path: /next\/dist\/build\/polyfills/ } },
+            ...(userSentryOptions?.applicationKeyExcludeDependencies ? [{ not: 'foreign' as const }] : []),
+          ],
+        },
         loaders: [
           {
             loader: path.resolve(__dirname, '..', 'loaders', 'moduleMetadataInjectionLoader.js'),

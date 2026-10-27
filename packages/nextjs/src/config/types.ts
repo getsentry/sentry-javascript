@@ -226,6 +226,21 @@ export type SentryBuildOptions = Omit<
   applicationKey?: string;
 
   /**
+   * Skip application key metadata injection for dependencies in Turbopack builds with Next.js 16+.
+   * Uses Turbopack's `foreign` condition, which includes `node_modules` and some Next.js internals.
+   * Requires `applicationKey`. Has no effect on webpack builds.
+   *
+   * This reduces per-module injection overhead, but chunks containing only dependencies may no
+   * longer be tagged as first-party. Only use with `*-exclusively-contains-third-party-frames`
+   * behaviours of `thirdPartyErrorFilterIntegration`, and accept that errors whose stacks are
+   * entirely in untagged chunks can be dropped or tagged as third-party. With `*-contains-*`
+   * behaviours, even one frame from an untagged chunk can cause this misclassification.
+   *
+   * @default false
+   */
+  applicationKeyExcludeDependencies?: boolean;
+
+  /**
    * Metadata that should be associated with the built application.
    *
    * The metadata is serialized and can be looked up at runtime from within the SDK (for example in
