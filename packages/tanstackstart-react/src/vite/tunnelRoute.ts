@@ -137,6 +137,7 @@ function getRouterBasePathFromViteBase(base: string | undefined): string | undef
   return base && !/^[a-z][a-z\d+.-]*:/i.test(base) && !base.startsWith('//') ? base : undefined;
 }
 
+const SDK_PACKAGE = '@sentry/tanstackstart-react';
 const SERVER_ENTRY_ALIAS = 'virtual:tanstack-start-server-entry';
 const ORIGINAL_SERVER_ENTRY_QUERY = '?sentry-tunnel-original';
 // The default entry is used directly when the app has no `src/server.ts`, and by Cloudflare's `main`.
@@ -154,11 +155,13 @@ export function makeServerEntryTunnelPlugin(
   const normalizedTunnelOptions = tunnelRoute ? normalizeTunnelRouteOptions(tunnelRoute) : undefined;
   const tunnelOptions = normalizedTunnelOptions ? JSON.stringify(normalizedTunnelOptions) : 'undefined';
   const serverEntryIds = new Set<string>();
+  let root = '';
 
   return {
     name: 'sentry-tanstackstart-server-entry-tunnel',
     enforce: 'pre',
     configResolved(config) {
+      root = normalizePath(config.root ?? '');
       const aliases = Array.isArray(config.resolve.alias) ? config.resolve.alias : [];
       const serverEntry = aliases.find(alias => alias.find === SERVER_ENTRY_ALIAS);
       if (serverEntry) {
@@ -174,16 +177,21 @@ export function makeServerEntryTunnelPlugin(
         basePath: getBasePath(),
       });
     },
-    load(id) {
+    async load(id) {
       const normalizedId = normalizePath(id);
       if (!serverEntryIds.has(normalizedId) && !DEFAULT_SERVER_ENTRY.test(normalizedId)) {
         return null;
       }
 
       const original = JSON.stringify(`${id}${ORIGINAL_SERVER_ENTRY_QUERY}`);
+      // The default entry lives in `@tanstack/react-start`, which doesn't depend on this SDK, so resolving the import
+      // from there only works when the SDK is hoisted (not under Yarn PnP or pnpm without hoisting). The app depends
+      // on it, so a bundled SDK is resolved from the app. An external one keeps its name, which the output resolves.
+      const resolved = await this.resolve(SDK_PACKAGE, `${root}/package.json`, { skipSelf: true });
+      const sdk = resolved && !resolved.external ? resolved.id : SDK_PACKAGE;
 
       return `import entry from ${original};
-import { wrapServerEntryWithSentryTunnel } from '@sentry/tanstackstart-react';
+import { wrapServerEntryWithSentryTunnel } from ${JSON.stringify(sdk)};
 export * from ${original};
 export default wrapServerEntryWithSentryTunnel(entry, ${tunnelOptions}, ${JSON.stringify(getBasePath())});
 `;
