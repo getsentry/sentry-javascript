@@ -198,23 +198,17 @@ export function handleTunnelRequest(options: HandleTunnelRequestOptions): Promis
   return forwardTunnelRequest(options.request, resolveAllowedDsns(options.allowedDsns, getClient()?.getDsn()));
 }
 
-/**
- * Marks responses from the tunnel handler, so the browser can tell them from e.g. a static host's `index.html`.
- */
-export const TUNNEL_RESPONSE_HEADER = 'X-Sentry-Tunnel';
-
-function markTunnelResponse(response: Response): Response {
+function withDecodedBodyHeaders(response: Response): Response {
   const headers = new Headers(response.headers);
   // `fetch` already decoded the body, so its original encoding and length no longer describe it.
   headers.delete('content-encoding');
   headers.delete('content-length');
-  headers.set(TUNNEL_RESPONSE_HEADER, '1');
 
   return new Response(response.body, { status: response.status, statusText: response.statusText, headers });
 }
 
 async function forwardTunnelRequest(request: Request, allowedDsns: Array<string>): Promise<Response> {
-  return markTunnelResponse(await forwardEnvelope(request, allowedDsns));
+  return withDecodedBodyHeaders(await forwardEnvelope(request, allowedDsns));
 }
 
 async function forwardEnvelope(request: Request, allowedDsns: Array<string>): Promise<Response> {

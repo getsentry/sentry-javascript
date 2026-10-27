@@ -129,7 +129,7 @@ describe('handleTunnelRequest', () => {
     expect(await result.text()).toBe('ok');
   });
 
-  it("marks every response it returns as the tunnel's, so the browser can tell it from a static host", async () => {
+  it('drops the encoding of the body `fetch` already decoded', async () => {
     fetchMock.mockResolvedValueOnce(
       new Response('{}', { status: 200, headers: { 'Content-Type': 'application/json', 'Content-Encoding': 'gzip' } }),
     );
@@ -138,17 +138,10 @@ describe('handleTunnelRequest', () => {
       request: makeEnvelopeRequest({ dsn: TEST_DSN }),
       allowedDsns: [TEST_DSN],
     });
-    const rejected = await handleTunnelRequest({
-      request: makeEnvelopeRequest({ dsn: 'https://public@other.ingest.sentry.io/1' }),
-      allowedDsns: [TEST_DSN],
-    });
 
-    expect(forwarded.headers.get('X-Sentry-Tunnel')).toBe('1');
     expect(forwarded.headers.get('Content-Type')).toBe('application/json');
-    // `fetch` already decoded the body, so the original encoding would make the browser decode it twice.
+    // The original encoding would make the browser decode it twice.
     expect(forwarded.headers.get('Content-Encoding')).toBeNull();
-    expect(rejected.status).toBe(403);
-    expect(rejected.headers.get('X-Sentry-Tunnel')).toBe('1');
   });
 
   it.each([

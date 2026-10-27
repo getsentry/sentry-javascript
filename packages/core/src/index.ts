@@ -107,7 +107,6 @@ export {
   getTunnelPath,
   handleTunnelRequest,
   normalizeTunnelBasePath as _INTERNAL_normalizeTunnelBasePath,
-  TUNNEL_RESPONSE_HEADER,
 } from './utils/tunnel';
 export { addAutoIpAddressToSession } from './utils/ipAddress';
 export {
