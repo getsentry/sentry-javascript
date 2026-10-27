@@ -1,3 +1,11 @@
+import {
+  CLIENT_ADDRESS,
+  CLIENT_PORT,
+  NETWORK_PEER_ADDRESS,
+  NETWORK_PEER_PORT,
+  NETWORK_TRANSPORT,
+  NETWORK_TYPE,
+} from '@sentry/conventions/attributes';
 import * as SentryCore from '@sentry/core';
 import { SDK_VERSION } from '@sentry/core';
 import { Hono } from 'hono';
@@ -5,15 +13,10 @@ import { beforeEach, describe, expect, it, type Mock, vi } from 'vitest';
 import { sentry, type HonoDenoOptions } from '../../src/deno/middleware';
 import { init } from '../../src/deno/sdk';
 import { LOW_QUALITY_TRANSACTION_PATTERNS } from '../../src/shared/lowQualityTransactionPatterns';
+import { requestConnInfoAttributes } from '../shared/requestConnInfoAttributes';
 
 vi.mock('@sentry/deno', () => ({
   init: vi.fn(),
-}));
-
-// `hono/deno` references the `Deno` global at module-eval time, which is not defined in the
-// vitest (Node) environment.
-vi.mock('hono/deno', () => ({
-  getConnInfo: vi.fn(),
 }));
 
 // eslint-disable-next-line @typescript-eslint/consistent-type-imports
@@ -252,5 +255,22 @@ describe('Hono Deno Middleware', () => {
       const callArgs = (initDenoMock as Mock).mock.calls[0]?.[0];
       expect(callArgs.ignoreSpans).toHaveLength(LOW_QUALITY_TRANSACTION_PATTERNS.length);
     });
+  });
+});
+
+describe('Hono Deno Middleware — connection info', () => {
+  it('reads the `remoteAddr` of the serve handler info', async () => {
+    const middleware = sentry(new Hono(), { dsn: 'https://public@dsn.ingest.sentry.io/1337' });
+    // `Deno.serve` passes the `ServeHandlerInfo` to `app.fetch` as `env`.
+    const env = { remoteAddr: { hostname: '127.0.0.1', port: 54321, transport: 'tcp' } };
+
+    const attributes = await requestConnInfoAttributes(middleware, { env });
+
+    expect(attributes[CLIENT_ADDRESS]).toBe('127.0.0.1');
+    expect(attributes[CLIENT_PORT]).toBe(54321);
+    expect(attributes[NETWORK_PEER_ADDRESS]).toBe('127.0.0.1');
+    expect(attributes[NETWORK_PEER_PORT]).toBe(54321);
+    expect(attributes[NETWORK_TRANSPORT]).toBe('tcp');
+    expect(attributes).not.toHaveProperty(NETWORK_TYPE);
   });
 });

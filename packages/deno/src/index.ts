@@ -30,6 +30,7 @@ export {
   captureException,
   captureEvent,
   captureMessage,
+  parameterize,
   captureFeedback,
   close,
   createTransport,
@@ -122,6 +123,7 @@ export {
   createLangChainCallbackHandler,
   instrumentLangChainEmbeddings,
   instrumentStateGraph,
+  instrumentStateGraphCompile,
   instrumentCreateReactAgent,
 } from '@sentry/server-utils';
 export type { FlueOptions } from '@sentry/server-utils';
@@ -156,6 +158,7 @@ export {
   genericPoolIntegration,
   googleGenAIIntegration,
   graphqlIntegration,
+  fastifyIntegration,
   hapiIntegration,
   honoIntegration,
   honoMiddleware,
