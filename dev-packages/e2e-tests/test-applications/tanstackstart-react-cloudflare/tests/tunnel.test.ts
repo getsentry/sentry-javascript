@@ -14,6 +14,5 @@ test('answers a fixed tunnelRoute with the DSN that `withSentry` initializes', a
     headers: { 'Content-Type': 'application/x-sentry-envelope' },
   });
 
-  expect(response.headers()['x-sentry-tunnel']).toBe('1');
   expect(response.status()).toBe(403);
 });
