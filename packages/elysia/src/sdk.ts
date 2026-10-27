@@ -49,7 +49,7 @@ export function init(userOptions: ElysiaOptions = {}): NodeClient | undefined {
     serverName: userOptions.serverName || global.process.env.SENTRY_NAME || os.hostname(),
   };
 
-  applySdkMetadata(userOptions, 'elysia', ['elysia', options.runtime.name]);
+  applySdkMetadata(options, 'elysia', ['elysia', options.runtime.name]);
 
   options.transport = options.transport || (options.runtime.name === 'bun' ? makeFetchTransport : makeNodeTransport);
 
