@@ -1,6 +1,6 @@
-# Solid 2's observe tier — what `@sentry/solid-2` builds on
+# Solid 2's observe tier — what `@sentry/solid/solid2` builds on
 
-A reviewer's brief for the Solid 2 SDK (`packages/solid-2`): what the runtime exposes, what the integration relies
+A reviewer's brief for the Solid 2 SDK (`packages/solid/src/solid2`): what the runtime exposes, what the integration relies
 on, and where the trust boundaries are. The normative text lives in the Solid repo
 ([RFC 08, dev diagnostics](https://github.com/solidjs/solid/blob/next/documentation/solid-2.0/08-dev-diagnostics.md),
 [RFC 12, SSR/HTTP](https://github.com/solidjs/solid/blob/next/documentation/solid-2.0/12-ssr-http.md),
@@ -217,7 +217,7 @@ exists.
 
 ## Where the proofs are
 
-- Unit tests in `packages/solid-2/test` run against the **built observe artifacts** of the published Solid (aliased
+- Unit tests in `packages/solid/test/solid2` run against the **built observe artifacts** of the published Solid (aliased
   explicitly — Vitest's resolver always prefers `development`), in jsdom for the client and Node for the server,
   through the real `BrowserClient`/`NodeClient` under span streaming.
 - The join-by-identity of a call to its interaction, the trace provider answering from a real span, a waiting
@@ -228,7 +228,7 @@ exists.
   `http.server` span, the browser `pageload` continuing the server trace with no middleware, a click's call becoming
   its child through a real fetch, and both error hooks firing once with component paths.
 
-Two things to know when reading the e2e app's config: the client module imports `@sentry/solid-2/client` explicitly
+Two things to know when reading the e2e app's config: the client module imports `@sentry/solid/solid2/client` explicitly
 because the module is reachable from the server graph (behind an `isServer` guard), where the bare specifier resolves
 to the server half; and the app declares `@sentry/node` as a direct dependency. The plugin inlines this package into
 the server bundle (it consumes the Solid runtime; an externalized copy would load Solid's prod build through Node and

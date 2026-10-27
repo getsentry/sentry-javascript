@@ -38,7 +38,6 @@ packages:
   - 'packages/server-runtime-injection'
   - 'packages/server-utils'
   - 'packages/solid'
-  - 'packages/solid-2'
   - 'packages/solidstart'
   - 'packages/svelte'
   - 'packages/sveltekit'

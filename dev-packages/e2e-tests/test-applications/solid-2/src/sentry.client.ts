@@ -2,7 +2,7 @@
 // (App.tsx imports it behind an `isServer` guard), where the bare package
 // would resolve to the server half and the client integrations would not
 // exist.
-import * as Sentry from '@sentry/solid-2/client';
+import * as Sentry from '@sentry/solid/solid2/client';
 
 // Module-level so it runs when the app module is evaluated, before hydration.
 Sentry.init({

@@ -1,7 +1,7 @@
 {
   "name": "solid-2",
   "version": "0.0.0",
-  "//": "Solid 2 on @solidjs/vite-plugin start mode: an observe build (`observe: true`), the server SDK initialized through `start.instrument` (awaited before the server graph loads — no `--import`), the browser SDK from the app's client module. server.mjs is the whole production host. @sentry/node is a direct dependency so the server build externalizes it: the plugin inlines @sentry/solid-2 (a consumer of the Solid runtime), and under pnpm a transitive @sentry/node would be bundled with it, where import-in-the-middle cannot find itself.",
+  "//": "Solid 2 on @solidjs/vite-plugin start mode: an observe build (`observe: true`), the server SDK initialized through `start.instrument` (awaited before the server graph loads — no `--import`), the browser SDK from the app's client module. server.mjs is the whole production host. @sentry/node is a direct dependency so the server build externalizes it: the plugin inlines @sentry/solid (a consumer of the Solid runtime), and under pnpm a transitive @sentry/node would be bundled with it, where import-in-the-middle cannot find itself.",
   "scripts": {
     "clean": "pnpx rimraf node_modules pnpm-lock.yaml dist",
     "build": "vite build",
@@ -13,7 +13,7 @@
   "type": "module",
   "dependencies": {
     "@sentry/node": "file:../../packed/sentry-node-packed.tgz",
-    "@sentry/solid-2": "file:../../packed/sentry-solid-2-packed.tgz",
+    "@sentry/solid": "file:../../packed/sentry-solid-packed.tgz",
     "@solidjs/router": "^2.0.0-next.42",
     "@solidjs/web": "^2.0.0-rc.19",
     "solid-js": "^2.0.0-rc.19"

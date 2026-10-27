@@ -1,0 +1,14 @@
+{
+  "extends": "./src/solid2/tsconfig.json",
+
+  "compilerOptions": {
+    "declaration": true,
+    "declarationMap": true,
+    "emitDeclarationOnly": true,
+    "outDir": "build/types",
+    "rootDir": "./src"
+  },
+
+  "//": "Built separately from tsconfig.types.json because it resolves solid-js to 2.x",
+  "include": ["src/solid2/**/*", "src/debug-build.ts"]
+}

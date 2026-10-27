@@ -1,0 +1,15 @@
+{
+  "extends": "../../../../tsconfig.json",
+
+  "include": ["./**/*", "../debug-build.ts"],
+
+  "compilerOptions": {
+    "lib": ["DOM", "es2020"],
+    // The package's own `solid-js` dev dependency is 1.x for the Solid 1 SDK. The Solid 2
+    // entry points (and the @solidjs/web types they import) resolve `solid-js` to 2.x instead.
+    "paths": {
+      "solid-js": ["../../node_modules/solid-js-2/types/index.d.ts"],
+      "solid-js/attribution": ["../../node_modules/solid-js-2/types/attribution.d.ts"]
+    }
+  }
+}

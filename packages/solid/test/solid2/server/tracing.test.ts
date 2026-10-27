@@ -13,7 +13,7 @@ import type { RequestEvent } from '@solidjs/web';
 import { createRequestEvent, getTraceContext, Loading, renderToStream } from '@solidjs/web';
 import { OBSERVE, createComponent, createMemo } from 'solid-js';
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from 'vitest';
-import { solidServerTracingIntegration } from '../../src/server';
+import { solidServerTracingIntegration } from '../../../src/solid2/server';
 
 // The runtime finds the request scope on this storage — what a host wires up.
 const RequestContext = Symbol.for('solid.RequestContext');

@@ -1,6 +1,6 @@
 # solid-2
 
-A Solid 2 app on `@solidjs/vite-plugin`'s start mode, built with `observe: true`, with `@sentry/solid-2` on both halves:
+A Solid 2 app on `@solidjs/vite-plugin`'s start mode, built with `observe: true`, with `@sentry/solid/solid2` on both halves:
 
 - the server SDK through `start.instrument` (`src/instrument.ts`), which the plugin awaits before the server graph loads;
 - the browser SDK from `src/sentry.client.ts`, imported by the app behind an `isServer` guard;

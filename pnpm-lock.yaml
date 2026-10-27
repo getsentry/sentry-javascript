@@ -2236,6 +2236,9 @@ importers:
       '@sentry/core':
         specifier: 11.9.0
         version: link:../core
+      '@sentry/node':
+        specifier: 11.9.0
+        version: link:../node
     devDependencies:
       '@sentry-internal/rollup-utils':
         specifier: 11.9.0
@@ -2243,9 +2246,15 @@ importers:
       '@solidjs/router':
         specifier: ^1.0.0
         version: 1.0.0(solid-js@1.9.11)
+      '@solidjs/signals':
+        specifier: ^2.0.0-rc.19
+        version: 2.0.0-rc.19
       '@solidjs/testing-library':
         specifier: 0.8.5
         version: 0.8.5(@solidjs/router@1.0.0(solid-js@1.9.11))(solid-js@1.9.11)
+      '@solidjs/web':
+        specifier: ^2.0.0-rc.19
+        version: 2.0.0-rc.19(solid-js@1.9.11)
       '@tanstack/solid-router':
         specifier: ^1.169.2
         version: 1.169.2(solid-js@1.9.11)
@@ -2261,40 +2270,15 @@ importers:
       solid-js:
         specifier: ^1.9.11
         version: 1.9.11
+      solid-js-2:
+        specifier: npm:solid-js@^2.0.0-rc.19
+        version: solid-js@2.0.0-rc.19
       vite:
         specifier: ^8.3.1
         version: 8.3.1(@types/node@20.19.43)(esbuild@0.28.1)(jiti@2.7.0)(less@4.2.0(supports-color@10.0.0))(sass@1.72.0)(stylus@0.59.0(supports-color@10.0.0))(terser@5.43.1)(tsx@4.23.0)(yaml@2.9.0)
       vite-plugin-solid:
         specifier: ^2.11.6
         version: 2.11.14(@testing-library/jest-dom@6.9.1)(solid-js@1.9.11)(supports-color@10.0.0)(vite@8.3.1(@types/node@20.19.43)(esbuild@0.28.1)(jiti@2.7.0)(less@4.2.0(supports-color@10.0.0))(sass@1.72.0)(stylus@0.59.0(supports-color@10.0.0))(terser@5.43.1)(tsx@4.23.0)(yaml@2.9.0))
-
-  packages/solid-2:
-    dependencies:
-      '@sentry/browser':
-        specifier: 11.9.0
-        version: link:../browser
-      '@sentry/conventions':
-        specifier: ^0.29.0
-        version: 0.29.0
-      '@sentry/core':
-        specifier: 11.9.0
-        version: link:../core
-      '@sentry/node':
-        specifier: 11.9.0
-        version: link:../node
-    devDependencies:
-      '@sentry-internal/rollup-utils':
-        specifier: 11.9.0
-        version: link:../../dev-packages/rollup-utils
-      '@solidjs/signals':
-        specifier: ^2.0.0-rc.19
-        version: 2.0.0-rc.19
-      '@solidjs/web':
-        specifier: ^2.0.0-rc.19
-        version: 2.0.0-rc.19(solid-js@2.0.0-rc.19)
-      solid-js:
-        specifier: ^2.0.0-rc.19
-        version: 2.0.0-rc.19
 
   packages/solidstart:
     dependencies:
@@ -26711,11 +26695,11 @@ snapshots:
       '@testing-library/dom': 9.3.4
       solid-js: 1.9.11
 
-  '@solidjs/web@2.0.0-rc.19(solid-js@2.0.0-rc.19)':
+  '@solidjs/web@2.0.0-rc.19(solid-js@1.9.11)':
     dependencies:
       seroval: 1.7.0
       seroval-plugins: 1.7.0(seroval@1.7.0)
-      solid-js: 2.0.0-rc.19
+      solid-js: 1.9.11
 
   '@speed-highlight/core@1.2.15': {}
 

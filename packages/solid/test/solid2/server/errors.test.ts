@@ -4,8 +4,8 @@ import { NodeClient } from '@sentry/node';
 import { Errored, renderToString } from '@solidjs/web';
 import { createComponent } from 'solid-js';
 import { beforeEach, describe, expect, it } from 'vitest';
-import type { SolidServerErrorsOptions } from '../../src/server';
-import { solidServerErrorsIntegration } from '../../src/server';
+import type { SolidServerErrorsOptions } from '../../../src/solid2/server';
+import { solidServerErrorsIntegration } from '../../../src/solid2/server';
 
 function clientWith(events: Event[], options?: SolidServerErrorsOptions): NodeClient {
   const client = new NodeClient({

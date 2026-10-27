@@ -14,7 +14,7 @@ import type { DiagnosticsOptions } from '../common/diagnostics';
 import { captureDiagnostic } from '../common/diagnostics';
 import { describeOrigin, describeTarget } from '../common/target';
 import { epochSeconds, round } from '../common/time';
-import { DEBUG_BUILD } from '../debug-build';
+import { DEBUG_BUILD } from '../../debug-build';
 import { drivesNavigationSpans } from './browser-tracing';
 import { browserNavigationSpan, holdSpan, nameInitialRoute, navigationSpan, ORIGIN } from './navigation';
 import { callSpan, frameSpan } from './records';

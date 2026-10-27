@@ -11,7 +11,7 @@ export function init(options: BrowserOptions): Client | undefined {
     ...options,
   };
 
-  applySdkMetadata(opts, 'solid-2', ['solid-2', 'browser']);
+  applySdkMetadata(opts, 'solid', ['solid', 'browser']);
 
   return browserInit(opts);
 }

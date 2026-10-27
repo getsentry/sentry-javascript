@@ -7,7 +7,7 @@ import { render } from '@solidjs/web';
 import { createComponent, createMemo, createSignal, flush } from 'solid-js';
 import { Errored } from 'solid-js';
 import { beforeEach, describe, expect, it } from 'vitest';
-import { BrowserClient, solidErrorsIntegration } from '../../src/client';
+import { BrowserClient, solidErrorsIntegration } from '../../../src/solid2/client';
 import { DEV, OBSERVE } from 'solid-js';
 
 function clientWith(events: Event[]): BrowserClient {

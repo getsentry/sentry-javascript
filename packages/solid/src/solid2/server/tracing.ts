@@ -28,7 +28,7 @@ import { OBSERVE } from 'solid-js';
 import type { DiagnosticsOptions } from '../common/diagnostics';
 import { captureDiagnostic } from '../common/diagnostics';
 import { epochSeconds } from '../common/time';
-import { DEBUG_BUILD } from '../debug-build';
+import { DEBUG_BUILD } from '../../debug-build';
 
 const INTEGRATION_NAME = 'SolidServerTracing';
 const ORIGIN = 'auto.function.solid.server';

@@ -1,7 +1,7 @@
 // `start.instrument`: awaited to completion before anything else in the
 // server graph loads, so the Node SDK's OpenTelemetry setup lands before the
 // modules it patches.
-import * as Sentry from '@sentry/solid-2/server';
+import * as Sentry from '@sentry/solid/solid2/server';
 
 Sentry.init({
   dsn: process.env.E2E_TEST_DSN,

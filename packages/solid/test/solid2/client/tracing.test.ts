@@ -14,8 +14,8 @@ import {
 import { OBSERVE, createEffect, createRoot, createSignal, flush } from 'solid-js';
 import { attribution } from 'solid-js/attribution';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { BrowserClient, solidBrowserTracingIntegration, solidTracingIntegration } from '../../src/client';
-import type { SolidTracingOptions } from '../../src/client';
+import { BrowserClient, solidBrowserTracingIntegration, solidTracingIntegration } from '../../../src/solid2/client';
+import type { SolidTracingOptions } from '../../../src/solid2/client';
 
 interface Captured {
   events: Event[];

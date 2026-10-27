@@ -11,7 +11,7 @@ export function init(options: NodeOptions): NodeClient | undefined {
     ...options,
   };
 
-  applySdkMetadata(opts, 'solid-2', ['solid-2', 'node']);
+  applySdkMetadata(opts, 'solid', ['solid', 'node']);
 
   return initNodeSdk(opts);
 }

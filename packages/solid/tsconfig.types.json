@@ -10,5 +10,5 @@
   },
 
   "//": "This is built separately in tsconfig.routers-types.json",
-  "exclude": ["src/solidrouter.ts", "src/tanstackrouter.ts"]
+  "exclude": ["src/solidrouter.ts", "src/tanstackrouter.ts", "src/solid2"]
 }

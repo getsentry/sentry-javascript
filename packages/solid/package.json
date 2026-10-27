@@ -48,6 +48,31 @@
         "types": "./tanstackrouter.d.ts",
         "default": "./build/cjs/tanstackrouter.js"
       }
+    },
+    "./solid2": {
+      "types": "./build/types/solid2/index.types.d.ts",
+      "browser": {
+        "import": "./build/esm/solid2/index.client.js",
+        "require": "./build/cjs/solid2/index.client.js"
+      },
+      "node": {
+        "import": "./build/esm/solid2/index.server.js",
+        "require": "./build/cjs/solid2/index.server.js"
+      },
+      "default": {
+        "import": "./build/esm/solid2/index.server.js",
+        "require": "./build/cjs/solid2/index.server.js"
+      }
+    },
+    "./solid2/client": {
+      "types": "./build/types/solid2/client/index.d.ts",
+      "import": "./build/esm/solid2/client/index.js",
+      "require": "./build/cjs/solid2/client/index.js"
+    },
+    "./solid2/server": {
+      "types": "./build/types/solid2/server/index.d.ts",
+      "import": "./build/esm/solid2/server/index.js",
+      "require": "./build/cjs/solid2/server/index.js"
     }
   },
   "publishConfig": {
@@ -55,16 +80,21 @@
   },
   "dependencies": {
     "@sentry/browser": "11.9.0",
+    "@sentry/conventions": "^0.29.0",
     "@sentry/core": "11.9.0",
-    "@sentry/conventions": "^0.29.0"
+    "@sentry/node": "11.9.0"
   },
   "peerDependencies": {
     "@solidjs/router": ">=0.13.4 <2.0.0-0",
+    "@solidjs/web": "^2.0.0-rc.19",
     "@tanstack/solid-router": "^1.132.27",
-    "solid-js": "^1.8.4"
+    "solid-js": "^1.8.4 || ^2.0.0-rc.19"
   },
   "peerDependenciesMeta": {
     "@solidjs/router": {
+      "optional": true
+    },
+    "@solidjs/web": {
       "optional": true
     },
     "@tanstack/solid-router": {
@@ -74,12 +104,15 @@
   "devDependencies": {
     "@sentry-internal/rollup-utils": "11.9.0",
     "@solidjs/router": "^1.0.0",
+    "@solidjs/signals": "^2.0.0-rc.19",
     "@solidjs/testing-library": "0.8.5",
+    "@solidjs/web": "^2.0.0-rc.19",
     "@tanstack/solid-router": "^1.169.2",
     "@testing-library/dom": "^7.21.4",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/user-event": "^14.5.2",
     "solid-js": "^1.9.11",
+    "solid-js-2": "npm:solid-js@^2.0.0-rc.19",
     "vite": "^8.3.1",
     "vite-plugin-solid": "^2.11.6"
   },
@@ -87,14 +120,15 @@
     "build": "run-p build:transpile build:types",
     "build:dev": "pnpm run build",
     "build:transpile": "rollup -c rollup.npm.config.mjs",
-    "build:types": "run-s build:types:core build:types:routers",
+    "build:types": "run-s build:types:core build:types:routers build:types:solid2",
     "build:types:core": "tsc -p tsconfig.types.json",
     "build:types:routers": "tsc -p tsconfig.routers-types.json",
+    "build:types:solid2": "tsc -p tsconfig.solid2-types.json",
     "build:watch": "run-p build:transpile:watch",
     "build:dev:watch": "pnpm run build:watch",
     "build:transpile:watch": "rollup -c rollup.npm.config.mjs --watch",
     "build:tarball": "npm pack",
-    "circularDepCheck": "madge --circular src/index.ts && madge --circular src/solidrouter.ts && madge --circular src/tanstackrouter.ts",
+    "circularDepCheck": "madge --circular src/index.ts && madge --circular src/solidrouter.ts && madge --circular src/tanstackrouter.ts && madge --circular src/solid2/index.client.ts && madge --circular src/solid2/index.server.ts",
     "clean": "rimraf build coverage sentry-solid-*.tgz ./*.d.ts ./*.d.ts.map",
     "lint:fix": "oxlint . --fix --type-aware",
     "lint": "oxlint . --type-aware",

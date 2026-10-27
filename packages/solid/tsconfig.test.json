@@ -3,6 +3,9 @@
 
   "include": ["test/**/*", "vite.config.ts"],
 
+  "//": "Solid 2 tests type-check against solid-js 2.x in test/solid2/tsconfig.json",
+  "exclude": ["test/solid2"],
+
   "compilerOptions": {
     // should include all types from `./tsconfig.json` plus types for all test frameworks used
     "types": ["vite/client", "@testing-library/jest-dom"],
