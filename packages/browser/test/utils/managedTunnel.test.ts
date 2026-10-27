@@ -43,22 +43,14 @@ describe('resolveBrowserTunnelOption', () => {
     expect(resolveBrowserTunnelOption({ dsn: DSN, tunnel: { path: '/monitor' } }).tunnel).toBe('/monitor');
   });
 
-  it('treats a relative path as a shortcut for a fixed path', () => {
-    expect(resolveBrowserTunnelOption({ dsn: DSN, tunnel: '/monitor' })).toEqual(
-      resolveBrowserTunnelOption({ dsn: DSN, tunnel: { path: '/monitor' } }),
-    );
-  });
+  it.each(['https://proxy.example.com/tunnel', '/monitor'])(
+    'keeps the string tunnel %s and its transport options untouched',
+    tunnel => {
+      const transportOptions = { headers: { 'x-custom': '1' } };
 
-  it('keeps a URL tunnel and its transport options untouched', () => {
-    const transportOptions = { headers: { 'x-custom': '1' } };
-
-    expect(
-      resolveBrowserTunnelOption({ dsn: DSN, tunnel: 'https://proxy.example.com/tunnel', transportOptions }),
-    ).toEqual({
-      tunnel: 'https://proxy.example.com/tunnel',
-      transportOptions,
-    });
-  });
+      expect(resolveBrowserTunnelOption({ dsn: DSN, tunnel, transportOptions })).toEqual({ tunnel, transportOptions });
+    },
+  );
 
   it('turns the tunnel off without a valid DSN', () => {
     expect(resolveBrowserTunnelOption({ tunnel: true }).tunnel).toBeUndefined();

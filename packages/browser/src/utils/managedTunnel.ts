@@ -9,18 +9,18 @@ import { DEBUG_BUILD } from '../debug-build';
 import type { BrowserOptions } from '../client';
 
 /**
- * Resolves `tunnel: true`, a relative path or {@link BrowserTunnelOptions} to the managed tunnel's same-origin path.
+ * Resolves `tunnel: true` or {@link BrowserTunnelOptions} to the managed tunnel's same-origin path. A string is left as
+ * written, so a tunnel the app serves itself gets the same requests as before.
  */
 export function resolveBrowserTunnelOption(
   options: BrowserOptions,
 ): Pick<BrowserOptions, 'transportOptions'> & { tunnel: string | undefined } {
   const { tunnel, dsn, transportOptions } = options;
-  if (!tunnel || (typeof tunnel === 'string' && !tunnel.startsWith('/'))) {
+  if (!tunnel || typeof tunnel === 'string') {
     return { tunnel, transportOptions };
   }
 
-  const tunnelOptions: BrowserTunnelOptions =
-    tunnel === true ? {} : typeof tunnel === 'string' ? { path: tunnel } : tunnel;
+  const tunnelOptions: BrowserTunnelOptions = tunnel === true ? {} : tunnel;
   const dsnComponents = dsn && makeDsn(dsn);
   const tunnelPath = tunnelOptions.path ?? (dsnComponents && getTunnelPath(dsnComponents));
   if (!tunnelPath) {
