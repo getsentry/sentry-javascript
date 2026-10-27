@@ -1,4 +1,6 @@
 import type { CallHandler, ExecutionContext } from '@nestjs/common';
+import { SENTRY_OP, SENTRY_ORIGIN } from '@sentry/conventions/attributes';
+import { WEBSOCKET } from '@sentry/conventions/op';
 import { getDefaultIsolationScope, getIsolationScope, startSpanManual } from '@sentry/core';
 import { of, tap } from 'rxjs';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -73,9 +75,24 @@ describe('SentryTracingInterceptor', () => {
 
     expect(mocks.isolationScope.setTransactionName).toHaveBeenCalledWith('WS /events message');
     expect(startSpanManual).toHaveBeenCalledWith(
-      { op: 'ws', name: 'WS /events message' },
+      {
+        name: 'WS /events message',
+        attributes: {
+          [SENTRY_OP]: WEBSOCKET,
+          [SENTRY_ORIGIN]: 'auto.middleware.nestjs.interceptor',
+        },
+      },
       expect.any(Function),
     );
+    expect(mocks.span.end).toHaveBeenCalled();
+  });
+
+  it('ends the WebSocket span if the handler throws', () => {
+    const interceptor = createInterceptor();
+    const context = createContext({ nsp: { name: '/events' } }, 'message');
+    const next = { handle: vi.fn(() => { throw new Error('handler failed'); }) } as unknown as CallHandler;
+
+    expect(() => interceptor.intercept(context, next)).toThrow('handler failed');
     expect(mocks.span.end).toHaveBeenCalled();
   });
 
