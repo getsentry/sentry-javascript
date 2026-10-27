@@ -25,17 +25,19 @@ export function getNextjsVersion(): string | undefined {
   return undefined;
 }
 
-// Anchored at this package so `next` (a peer dependency) still resolves when the process cwd is not
-// the Next.js project root, e.g. custom servers or monorepos started from the repo root.
-let sdkRequire: NodeJS.Require;
-/*! rollup-include-cjs-only */
-sdkRequire = createRequire(__filename);
-/*! rollup-include-cjs-only-end */
-/*! rollup-include-esm-only */
-sdkRequire = createRequire(import.meta.url);
-/*! rollup-include-esm-only-end */
-
 function resolveNextjsPackageJson(): string | undefined {
+  // Anchored at this package so `next` (a peer dependency) still resolves when the process cwd is not
+  // the Next.js project root, e.g. custom servers or monorepos started from the repo root.
+  // Not created at module scope: the server entry imports this module, and webpack-built Cloudflare
+  // workers have an empty `__filename`, so `createRequire` would throw on import.
+  let sdkRequire: NodeJS.Require;
+  /*! rollup-include-cjs-only */
+  sdkRequire = createRequire(__filename);
+  /*! rollup-include-cjs-only-end */
+  /*! rollup-include-esm-only */
+  sdkRequire = createRequire(import.meta.url);
+  /*! rollup-include-esm-only-end */
+
   for (const nodeRequire of [createRequire(`${process.cwd()}/`), sdkRequire]) {
     try {
       return nodeRequire.resolve('next/package.json');
