@@ -1,5 +1,6 @@
 import type { Client } from '@sentry/core';
 import { createEnvelope, getCurrentScope, getTunnelPath, makeDsn, serializeEnvelope } from '@sentry/core';
+import { _INTERNAL_resetManagedTunnelDefaults, serveTunnelIntegration } from '@sentry/core/server';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { createSentryTunnelRoutes } from '../../src/server/tunnelRoute';
 
@@ -15,9 +16,14 @@ function firstRoute(basename?: string): TunnelRoute {
   return Object.values(createSentryTunnelRoutes(basename))[0] as TunnelRoute;
 }
 
+/** Sets a client, with `serveTunnelIntegration` set up when `managedTunnel` is given. */
 function setClient(managedTunnel: object | undefined): void {
-  const options = { dsn: DSN, _managedTunnel: managedTunnel };
-  getCurrentScope().setClient({ getDsn: () => makeDsn(DSN), getOptions: () => options } as unknown as Client);
+  const options = { dsn: DSN };
+  const client = { getDsn: () => makeDsn(DSN), getOptions: () => options } as unknown as Client;
+  getCurrentScope().setClient(client);
+  if (managedTunnel) {
+    serveTunnelIntegration(managedTunnel).setup!(client);
+  }
 }
 
 const ENVELOPE = serializeEnvelope(createEnvelope({ dsn: DSN }, [])) as string;
@@ -25,10 +31,11 @@ const ENVELOPE = serializeEnvelope(createEnvelope({ dsn: DSN }, [])) as string;
 describe('createSentryTunnelRoutes', () => {
   afterEach(() => {
     getCurrentScope().setClient(undefined);
+    _INTERNAL_resetManagedTunnelDefaults();
     vi.unstubAllGlobals();
   });
 
-  it('is a top-level route at the tunnel path when `init` enabled the managed tunnel', () => {
+  it('is a top-level route at the tunnel path when `serveTunnelIntegration` is set up', () => {
     setClient({});
     const route = firstRoute();
 
