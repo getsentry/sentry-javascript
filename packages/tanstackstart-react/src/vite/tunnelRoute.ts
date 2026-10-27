@@ -191,7 +191,7 @@ export function makeServerEntryTunnelPlugin(
       const sdk = resolved && !resolved.external ? resolved.id : SDK_PACKAGE;
 
       return `import entry from ${original};
-import { wrapServerEntryWithSentryTunnel } from ${JSON.stringify(sdk)};
+import { _INTERNAL_wrapServerEntryWithSentryTunnel as wrapServerEntryWithSentryTunnel } from ${JSON.stringify(sdk)};
 export * from ${original};
 export default wrapServerEntryWithSentryTunnel(entry, ${tunnelOptions}, ${JSON.stringify(getBasePath())});
 `;

@@ -138,7 +138,7 @@ describe('server entry tunnel vite plugin', () => {
     const load = setup(undefined, '', resolve);
 
     expect(await load('/app/node_modules/@tanstack/react-start/dist/default-entry/esm/server.js')).toContain(
-      `import { wrapServerEntryWithSentryTunnel } from "${SDK_ID}";`,
+      `import { _INTERNAL_wrapServerEntryWithSentryTunnel as wrapServerEntryWithSentryTunnel } from "${SDK_ID}";`,
     );
     expect(resolve).toHaveBeenCalledWith('@sentry/tanstackstart-react', '/app/package.json', { skipSelf: true });
   });

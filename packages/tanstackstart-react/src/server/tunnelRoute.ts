@@ -106,6 +106,8 @@ export function createSentryTunnelRoute(options: CreateSentryTunnelRouteOptions)
  *
  * `tunnelRoute` enables the managed tunnel on every server client the same way `serveTunnelIntegration` does, unless
  * that integration is set up too, and the tunnel is then served from the client's config like in every other SDK.
+ *
+ * @internal Only the code the Vite plugin generates calls this, so its parameters can change at any time.
  */
 export function wrapServerEntryWithSentryTunnel<T extends ServerEntry>(
   entry: T,

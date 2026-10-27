@@ -49,4 +49,4 @@ export declare const sentryGlobalRequestMiddleware: typeof serverSdk.sentryGloba
 export declare const sentryGlobalFunctionMiddleware: typeof serverSdk.sentryGlobalFunctionMiddleware;
 export declare const createSentryTunnelRoute: typeof serverSdk.createSentryTunnelRoute;
 export declare const registerSentryServerTunnelRoute: typeof serverSdk.registerSentryServerTunnelRoute;
-export declare const wrapServerEntryWithSentryTunnel: typeof serverSdk.wrapServerEntryWithSentryTunnel;
+export declare const _INTERNAL_wrapServerEntryWithSentryTunnel: typeof serverSdk._INTERNAL_wrapServerEntryWithSentryTunnel;

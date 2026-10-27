@@ -65,7 +65,9 @@ export function registerSentryServerTunnelRoute(_path: string): void {}
 
 /**
  * No-op stub for client-side builds. The server entry the Vite plugin wraps only runs on the server.
+ *
+ * @internal
  */
-export function wrapServerEntryWithSentryTunnel<T>(entry: T, _options?: unknown): T {
+export function _INTERNAL_wrapServerEntryWithSentryTunnel<T>(entry: T, _options?: unknown): T {
   return entry;
 }
