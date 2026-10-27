@@ -4,7 +4,7 @@ import { consoleSandbox } from '@sentry/core';
 import { sentryOrchestrionPlugin } from '@sentry/server-utils/orchestrion/vite';
 import type { Plugin } from 'vite';
 import type { SentryNuxtModuleOptions } from '../common/types';
-import { addRuntimeFlagsTemplate } from './addServerConfig';
+import { addRuntimeFlagsTemplate } from './utils';
 
 const SERVER_ENTRY_ALIAS = '#server-entry';
 
@@ -14,6 +14,7 @@ const SERVER_ENTRY_ALIAS = '#server-entry';
  * instruments the dependencies in that build.
  */
 export function setupViteServer(nuxt: Nuxt, serverConfigFile: string, moduleOptions: SentryNuxtModuleOptions): void {
+  // `nuxt prepare` (often a `postinstall` script) only generates types, so it needs no plugins and no warnings.
   if (nuxt.options._prepare) {
     return;
   }
