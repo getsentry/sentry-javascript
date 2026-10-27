@@ -57,7 +57,7 @@ export function handleTunnelRequest(
   options?: HandleTunnelRequestOptions,
 ): Promise<void>;
 /**
- * @deprecated Use `handleTunnelRequest(request, options)` instead.
+ * The released form, kept until v12. Its `request` option is deprecated: pass the request as the first argument.
  */
 export function handleTunnelRequest(options: HandleTunnelRequestOptions & { request: Request }): Promise<Response>;
 export function handleTunnelRequest(
