@@ -102,6 +102,7 @@ export {
   nodeContextIntegration,
   localVariablesIntegration,
   requestDataIntegration,
+  systemErrorIntegration,
   fsIntegration,
   functionToStringIntegration,
   eventFiltersIntegration,

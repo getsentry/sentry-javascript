@@ -134,9 +134,6 @@ const NOT_TRIAGED = [
   'suites/proxy/test.ts',
 ];
 
-// The suite expects the events of `nodeSystemErrorIntegration`, which `@sentry/bun` does not include.
-const NO_SYSTEM_ERROR_INTEGRATION = ['suites/system-error/test.ts'];
-
 // The scenario configures `nativeNodeFetchIntegration`, which `@sentry/bun` does not export.
 const NO_NATIVE_NODE_FETCH_INTEGRATION = [
   'suites/tracing/http-client-spans/fetch-forward-request-hook/test.ts',
@@ -196,7 +193,6 @@ export const SENTRY_NODE_EXCLUDE = [...NO_HTTP_SERVER_SPANS, ...NO_FETCH_INSTRUM
 export const SENTRY_BUN_EXCLUDE = [
   ...HTTP_SERVER_OPTIONS_IGNORED,
   ...NO_EXPRESS_INSTRUMENTATION,
-  ...NO_SYSTEM_ERROR_INTEGRATION,
   ...NO_NATIVE_NODE_FETCH_INTEGRATION,
   ...FETCH_INTEGRATION_DIFFERS,
 ];
