@@ -487,6 +487,7 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
     }
 
     const clientFinished = await this._isClientDoneProcessing(timeout);
+    this.emit('afterFlushProcessing');
     const transportFlushed = await transport.flush(timeout);
 
     return clientFinished && transportFlushed;
@@ -913,6 +914,12 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
   public on(hook: 'flush', callback: () => void): () => void;
 
   /**
+   * A hook that is called during a flush, after the client is done processing events and before the transport is flushed.
+   * @returns {() => void} A function that, when executed, removes the registered callback.
+   */
+  public on(hook: 'afterFlushProcessing', callback: () => void): () => void;
+
+  /**
    * A hook that is called when spans of a single trace should be flushed eagerly,
    * ahead of the trace's regular flush point. Only runtimes with a span streaming
    * buffer (e.g. the Cloudflare SDK) listen to this hook.
@@ -1228,6 +1235,11 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
   public emit(hook: 'flush'): void;
 
   /**
+   * Emit a hook event during a flush, after the client is done processing events.
+   */
+  public emit(hook: 'afterFlushProcessing'): void;
+
+  /**
    * Fire a hook event indicating that spans of a single trace should be flushed eagerly.
    */
   public emit(hook: 'flushTraceSpans', traceId: string): void;
@@ -1360,6 +1372,17 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
     const { integrations } = this._options;
     this._integrations = setupIntegrations(this, integrations);
     afterSetupIntegrations(this, integrations);
+  }
+
+  /**
+   * Updates the sessions an error event counts towards. Runs after event processors and `beforeSend` kept the
+   * event, but before `sampleRate` is applied: dropped errors must not affect sessions, sampled-out errors must.
+   */
+  protected _updateSessionsFromEvent(event: Event, currentScope: Scope, isolationScope: Scope): void {
+    const session = currentScope.getSession() || isolationScope.getSession();
+    if (session) {
+      this._updateSessionFromEvent(session, event);
+    }
   }
 
   /** Updates existing session based on the provided event */
@@ -1602,9 +1625,8 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
           throw _makeDoNotSendEventError(`${dropMessage}, will not send event.`);
         }
 
-        const session = currentScope.getSession() || isolationScope.getSession();
-        if (isError && session) {
-          this._updateSessionFromEvent(session, processedEvent);
+        if (isError) {
+          this._updateSessionsFromEvent(processedEvent, currentScope, isolationScope);
         }
 
         if (isError && typeof parsedSampleRate === 'number' && safeMathRandom() > parsedSampleRate) {
