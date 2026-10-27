@@ -241,7 +241,7 @@ describe('default export wrapping', () => {
       [
         "import * as __SENTRY__ from '@sentry/cloudflare';",
         "import __SENTRY_REEXPORT_default__ from './handler';",
-        'const __SENTRY_DEFAULT_EXPORT__ = __SENTRY__._INTERNAL_wrapUnlessInstrumented(__SENTRY__.withSentry, (env) => ({}), __SENTRY_REEXPORT_default__);',
+        'var __SENTRY_DEFAULT_EXPORT__ = __SENTRY__._INTERNAL_wrapUnlessInstrumented(__SENTRY__.withSentry, (env) => ({}), __SENTRY_REEXPORT_default__);',
         'export { __SENTRY_DEFAULT_EXPORT__ as default };',
       ].join('\n'),
     );
@@ -254,10 +254,37 @@ describe('default export wrapping', () => {
       [
         "import * as __SENTRY__ from '@sentry/cloudflare';",
         "import { handler as __SENTRY_REEXPORT_default__ } from './handler';",
-        'const __SENTRY_DEFAULT_EXPORT__ = __SENTRY__._INTERNAL_wrapUnlessInstrumented(__SENTRY__.withSentry, (env) => ({}), __SENTRY_REEXPORT_default__);',
+        'var __SENTRY_DEFAULT_EXPORT__ = __SENTRY__._INTERNAL_wrapUnlessInstrumented(__SENTRY__.withSentry, (env) => ({}), __SENTRY_REEXPORT_default__);',
         'export { __SENTRY_DEFAULT_EXPORT__ as default };',
       ].join('\n'),
     );
+  });
+
+  it('does not throw when a circular import reads a default re-export during module evaluation', () => {
+    // `b` reads the entry's default export after `./handler.mjs` has run but before the entry has.
+    const entry = [
+      "export { default } from './handler.mjs';",
+      "import { readDefault } from './b.mjs';",
+      'console.log(readDefault());',
+    ].join('\n');
+    const transformed = transform(entry, ctx)!.code.replace(
+      "import * as __SENTRY__ from '@sentry/cloudflare';",
+      'const __SENTRY__ = { withSentry: (_options, handler) => handler, _INTERNAL_wrapUnlessInstrumented: (wrap, options, handler) => wrap(options, handler) };',
+    );
+
+    const dir = mkdtempSync(join(tmpdir(), 'sentry-cf-cycle-'));
+    try {
+      writeFileSync(join(dir, 'a.mjs'), transformed);
+      writeFileSync(join(dir, 'handler.mjs'), 'export default { fetch() {} };\n');
+      writeFileSync(
+        join(dir, 'b.mjs'),
+        "import handler from './a.mjs';\nconst kind = typeof handler;\nexport function readDefault() { return kind; }\n",
+      );
+      // Plain Node: Vitest's module runner does not evaluate import cycles like native ESM does.
+      expect(execFileSync(process.execPath, [join(dir, 'a.mjs')], { encoding: 'utf8' }).trim()).toBe('undefined');
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
   });
 
   it('leaves sibling specifiers of a default re-export untouched', () => {
@@ -267,7 +294,7 @@ describe('default export wrapping', () => {
       [
         "import * as __SENTRY__ from '@sentry/cloudflare';",
         "import __SENTRY_REEXPORT_default__ from './handler';",
-        'const __SENTRY_DEFAULT_EXPORT__ = __SENTRY__._INTERNAL_wrapUnlessInstrumented(__SENTRY__.withSentry, (env) => ({}), __SENTRY_REEXPORT_default__);',
+        'var __SENTRY_DEFAULT_EXPORT__ = __SENTRY__._INTERNAL_wrapUnlessInstrumented(__SENTRY__.withSentry, (env) => ({}), __SENTRY_REEXPORT_default__);',
         'export { __SENTRY_DEFAULT_EXPORT__ as default };',
         "export { helper } from './handler';",
       ].join('\n'),
@@ -329,6 +356,33 @@ describe('default export wrapping', () => {
         "import * as __SENTRY__ from '@sentry/cloudflare';",
         'const handler = { fetch() {} };',
         'var __SENTRY_DEFAULT_EXPORT__ = (handler);',
+        'export { __SENTRY_DEFAULT_EXPORT__ as default };',
+        '__SENTRY_DEFAULT_EXPORT__ = __SENTRY__.withSentry((env) => ({}), __SENTRY_DEFAULT_EXPORT__);',
+      ].join('\n'),
+    );
+  });
+
+  it('wraps a default export with a comment that mentions `default`', () => {
+    const code = 'export /* the default */ default /* default handler */ { fetch() {} };';
+
+    expect(transform(code, ctx)!.code).toBe(
+      [
+        "import * as __SENTRY__ from '@sentry/cloudflare';",
+        'var __SENTRY_DEFAULT_EXPORT__ = /* default handler */ { fetch() {} };',
+        'export { __SENTRY_DEFAULT_EXPORT__ as default };',
+        '__SENTRY_DEFAULT_EXPORT__ = __SENTRY__.withSentry((env) => ({}), __SENTRY_DEFAULT_EXPORT__);',
+      ].join('\n'),
+    );
+  });
+
+  it('wraps a default export with a line comment that mentions `default`', () => {
+    const code = ['export // the default', 'default // default handler', '{ fetch() {} };'].join('\n');
+
+    expect(transform(code, ctx)!.code).toBe(
+      [
+        "import * as __SENTRY__ from '@sentry/cloudflare';",
+        'var __SENTRY_DEFAULT_EXPORT__ = // default handler',
+        '{ fetch() {} };',
         'export { __SENTRY_DEFAULT_EXPORT__ as default };',
         '__SENTRY_DEFAULT_EXPORT__ = __SENTRY__.withSentry((env) => ({}), __SENTRY_DEFAULT_EXPORT__);',
       ].join('\n'),

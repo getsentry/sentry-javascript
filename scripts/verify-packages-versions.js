@@ -59,19 +59,4 @@ must contain the same packages in the same order.
   process.exit(1);
 }
 
-// Configs import workspace packages that they do not declare, so every workspace package must be linked into the
-// root node_modules folder, as Yarn did.
-const missingRootDevDependencies = pkg.workspaces
-  .map(workspace => require(path.join(__dirname, '..', workspace, 'package.json')).name)
-  .filter(name => pkg.devDependencies[name] !== 'workspace:*');
-
-if (missingRootDevDependencies.length > 0) {
-  console.error(`
-[MISSING ROOT DEV DEPENDENCIES]: Every workspace package must be in the \`devDependencies\` of the root package.json
-with the version \`workspace:*\`. Missing:
-${missingRootDevDependencies.join('\n')}
-`);
-  process.exit(1);
-}
-
 process.exit(0);

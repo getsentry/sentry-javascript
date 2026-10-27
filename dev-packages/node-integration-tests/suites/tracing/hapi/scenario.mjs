@@ -19,6 +19,18 @@ const run = async () => {
   });
 
   server.route({
+    method: ['GET', 'POST'],
+    path: '/multi',
+    handler: () => 'Hello World!',
+  });
+
+  server.route({
+    method: '*',
+    path: '/wildcard',
+    handler: () => 'Hello World!',
+  });
+
+  server.route({
     method: 'GET',
     path: '/error',
     handler: () => {
@@ -29,6 +41,14 @@ const run = async () => {
   server.route({
     method: 'GET',
     path: '/error/{id}',
+    handler: () => {
+      return new Error('Sentry Test Error');
+    },
+  });
+
+  server.route({
+    method: '*',
+    path: '/wildcard-error',
     handler: () => {
       return new Error('Sentry Test Error');
     },

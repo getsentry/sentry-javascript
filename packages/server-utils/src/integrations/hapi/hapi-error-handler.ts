@@ -73,7 +73,7 @@ export function attachHapiErrorHandler(server: HapiServer, shouldHandleError?: H
     if (getIsolationScope() !== getDefaultIsolationScope()) {
       const route = request.route;
       if (route?.path) {
-        getIsolationScope().setTransactionName(`${route.method.toUpperCase()} ${route.path}`);
+        getIsolationScope().setTransactionName(`${request.method.toUpperCase()} ${route.path}`);
       }
     } else {
       DEBUG_BUILD &&
