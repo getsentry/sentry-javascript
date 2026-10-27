@@ -163,6 +163,7 @@ export {
   systemErrorIntegration,
   tediousIntegration,
   trpcMiddleware,
+  serveTunnelIntegration,
   updateSpanName,
   vercelAIIntegration,
   withActiveSpan,

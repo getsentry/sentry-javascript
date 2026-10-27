@@ -171,6 +171,7 @@ export {
   spanToTraceHeader,
   spanToBaggageHeader,
   trpcMiddleware,
+  serveTunnelIntegration,
   updateSpanName,
   supabaseIntegration,
   instrumentSupabaseClient,

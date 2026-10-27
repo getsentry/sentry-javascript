@@ -60,33 +60,6 @@ describe('init', () => {
       );
     });
 
-    test('keeps the managed tunnel when the Lambda extension takes over the transport', () => {
-      mockGetSDKSource.mockReturnValue('aws-lambda-layer');
-
-      init({ tunnel: true, useLayerExtension: true });
-
-      expect(mockInitWithoutDefaultIntegrations).toHaveBeenCalledWith(
-        expect.objectContaining({
-          tunnel: 'http://localhost:9000/envelope',
-          _managedTunnel: {},
-        }),
-      );
-    });
-
-    test('keeps the Lambda extension for a relative tunnel path, which is the managed tunnel to serve', () => {
-      mockGetSDKSource.mockReturnValue('aws-lambda-layer');
-
-      init({ tunnel: '/monitor' });
-
-      expect(mockInitWithoutDefaultIntegrations).toHaveBeenCalledWith(
-        expect.objectContaining({
-          useLayerExtension: true,
-          tunnel: 'http://localhost:9000/envelope',
-          _managedTunnel: { path: '/monitor' },
-        }),
-      );
-    });
-
     test('should not set tunnel when Lambda extension is disabled', () => {
       mockGetSDKSource.mockReturnValue('aws-lambda-layer');
       const options: AwsServerlessOptions = {

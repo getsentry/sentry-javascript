@@ -96,7 +96,9 @@ type BrowserSpecificOptions = BrowserClientReplayOptions &
 export type BrowserOptions = CoreOptions<BrowserTransportOptions> &
   BrowserSpecificOptions & {
     /**
-     * See {@link CoreOptions.tunnel}. The browser `init` also takes the browser-only {@link BrowserTunnelOptions}.
+     * Where to send envelopes instead of the Sentry ingest URL, see {@link TunnelInit}.
+     *
+     * @default undefined
      */
     tunnel?: TunnelInit<BrowserTunnelOptions>;
   };

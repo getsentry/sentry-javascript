@@ -3,7 +3,7 @@ import { debug, originalConsoleMethods, SDK_VERSION } from '@sentry/core';
 import * as SentryOpentelemetry from '@sentry/opentelemetry';
 import * as SentryServerUtils from '@sentry/server-utils';
 import { afterEach, beforeEach, describe, expect, it, type Mock, type MockInstance, vi } from 'vitest';
-import { close, getClient, NodeClient } from '../../src/';
+import { close, getClient, NodeClient, serveTunnelIntegration } from '../../src/';
 import { init } from '../../src/sdk';
 import { cleanupOtel } from '../helpers/mockSdkInit';
 
@@ -41,15 +41,15 @@ describe('init()', () => {
   });
 
   describe('tunnel', () => {
-    it('enables the managed tunnel for `tunnel: true` and sends its own envelopes directly', () => {
-      init({ dsn: PUBLIC_DSN, tunnel: true });
+    it('serves the managed tunnel with `serveTunnelIntegration` and sends its own envelopes directly', () => {
+      init({ dsn: PUBLIC_DSN, integrations: [serveTunnelIntegration()] });
 
       const options = getClient<NodeClient>()?.getOptions();
       expect(options?.tunnel).toBeUndefined();
       expect(options?._managedTunnel).toEqual({});
     });
 
-    it('keeps a URL tunnel for its own envelopes', () => {
+    it('keeps a `tunnel` string as the URL for its own envelopes', () => {
       init({ dsn: PUBLIC_DSN, tunnel: 'https://example.com/tunnel' });
 
       const options = getClient<NodeClient>()?.getOptions();

@@ -1,11 +1,4 @@
-import type {
-  BaseTransportOptions,
-  ClientOptions,
-  Options,
-  ServerTunnelOptions,
-  TunnelInit,
-  TracePropagationTargets,
-} from '@sentry/core';
+import type { BaseTransportOptions, ClientOptions, Options, TracePropagationTargets } from '@sentry/core';
 
 export interface BaseDenoOptions {
   /**
@@ -65,9 +58,10 @@ export interface BaseDenoOptions {
  */
 export interface DenoOptions extends Options<BaseTransportOptions>, BaseDenoOptions {
   /**
-   * See {@link Options.tunnel}. A server `init` also takes the server-only {@link ServerTunnelOptions}.
+   * A URL to send this server's own envelopes to instead of the Sentry ingest URL. To serve the managed tunnel for the
+   * browser, use `serveTunnelIntegration`.
    */
-  tunnel?: TunnelInit<ServerTunnelOptions>;
+  tunnel?: string;
 }
 
 /**

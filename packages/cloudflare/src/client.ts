@@ -1,13 +1,4 @@
-import type {
-  CheckIn,
-  ClientOptions,
-  MonitorConfig,
-  Options,
-  Scope,
-  ServerTunnelOptions,
-  TunnelInit,
-  TracePropagationTargets,
-} from '@sentry/core';
+import type { CheckIn, ClientOptions, MonitorConfig, Options, Scope, TracePropagationTargets } from '@sentry/core';
 import {
   _INTERNAL_clearAiProviderSkips,
   _INTERNAL_flushLogsBuffer,
@@ -551,9 +542,10 @@ export interface CloudflareOptions extends Options<CloudflareTransportOptions>, 
   ctx?: ExecutionContextCompat;
 
   /**
-   * See {@link Options.tunnel}. A server `init` also takes the server-only {@link ServerTunnelOptions}.
+   * A URL to send this server's own envelopes to instead of the Sentry ingest URL. To serve the managed tunnel for the
+   * browser, use `serveTunnelIntegration`.
    */
-  tunnel?: TunnelInit<ServerTunnelOptions>;
+  tunnel?: string;
 }
 
 /**

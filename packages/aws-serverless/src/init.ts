@@ -1,6 +1,5 @@
 import type { Integration, Options } from '@sentry/core';
 import { applySdkMetadata, debug, envToBool, getSDKSource } from '@sentry/core';
-import { _INTERNAL_resolveServerTunnelOption as resolveServerTunnelOption } from '@sentry/core/server';
 import type { NodeClient, NodeOptions } from '@sentry/node';
 import { getDefaultIntegrationsWithoutPerformance, initWithoutDefaultIntegrations } from '@sentry/node';
 import { awsIntegration } from '@sentry/server-utils';
@@ -77,17 +76,13 @@ export function init(options: AwsServerlessOptions = {}): NodeClient | undefined
   // 2. Environment variable SENTRY_LAYER_EXTENSION (if set)
   // 3. Default logic based on sdkSource, tunnel, and proxy settings
   const useLayerExtensionFromEnv = envToBool(process.env.SENTRY_LAYER_EXTENSION, { strict: true });
-  // A relative path is the managed tunnel's path, not a transport URL.
-  const { tunnel, _managedTunnel } = resolveServerTunnelOption(options.tunnel);
-  const defaultUseLayerExtension = sdkSource === 'aws-lambda-layer' && !tunnel && !proxyWouldInterfere;
+  const defaultUseLayerExtension = sdkSource === 'aws-lambda-layer' && !options.tunnel && !proxyWouldInterfere;
   const useLayerExtension = options.useLayerExtension ?? useLayerExtensionFromEnv ?? defaultUseLayerExtension;
 
   const opts = {
     defaultIntegrations: getDefaultIntegrations(options),
     useLayerExtension,
     ...options,
-    tunnel,
-    _managedTunnel,
   };
 
   if (opts.useLayerExtension) {

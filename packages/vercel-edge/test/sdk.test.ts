@@ -1,5 +1,13 @@
 import { afterEach, beforeEach, describe, expect, it, type Mock, vi } from 'vitest';
-import { close, getClient, getCurrentScope, getDefaultIntegrations, init, spanStreamingIntegration } from '../src';
+import {
+  close,
+  getClient,
+  getCurrentScope,
+  getDefaultIntegrations,
+  init,
+  spanStreamingIntegration,
+  serveTunnelIntegration,
+} from '../src';
 import { type Event, type Integration, originalConsoleMethods } from '@sentry/core';
 
 afterEach(() => {
@@ -45,9 +53,12 @@ describe('getDefaultIntegrations', () => {
 });
 
 describe('init', () => {
-  it('enables the managed tunnel for `tunnel: { allowedDsns }`', () => {
+  it('serves the managed tunnel with `serveTunnelIntegration`', () => {
     const browserDsn = 'https://browser@o1.ingest.sentry.io/42';
-    const client = init({ dsn: 'https://public@dsn.ingest.sentry.io/1337', tunnel: { allowedDsns: [browserDsn] } });
+    const client = init({
+      dsn: 'https://public@dsn.ingest.sentry.io/1337',
+      integrations: [serveTunnelIntegration({ allowedDsns: [browserDsn] })],
+    });
 
     const options = client?.getOptions();
     expect(options?.tunnel).toBeUndefined();

@@ -1,4 +1,4 @@
-import type { ClientOptions, Options, ServerTunnelOptions, TracePropagationTargets, TunnelInit } from '@sentry/core';
+import type { ClientOptions, Options, TracePropagationTargets } from '@sentry/core';
 import type { VercelEdgeClient } from './client';
 import type { VercelEdgeTransportOptions } from './transports';
 
@@ -60,9 +60,10 @@ export interface BaseVercelEdgeOptions {
  */
 export interface VercelEdgeOptions extends Options<VercelEdgeTransportOptions>, BaseVercelEdgeOptions {
   /**
-   * See {@link Options.tunnel}. A server `init` also takes the server-only {@link ServerTunnelOptions}.
+   * A URL to send this server's own envelopes to instead of the Sentry ingest URL. To serve the managed tunnel for the
+   * browser, use `serveTunnelIntegration`.
    */
-  tunnel?: TunnelInit<ServerTunnelOptions>;
+  tunnel?: string;
 }
 
 /**

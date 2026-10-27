@@ -1,4 +1,4 @@
-import type { BaseTransportOptions, ClientOptions, Options, ServerTunnelOptions, TunnelInit } from '@sentry/core';
+import type { BaseTransportOptions, ClientOptions, Options } from '@sentry/core';
 import type { ServerRuntimeOptions } from '@sentry/core/server';
 
 /**
@@ -37,9 +37,10 @@ export interface BaseBunOptions extends ServerRuntimeOptions {
  */
 export interface BunOptions extends Options<BaseTransportOptions>, BaseBunOptions {
   /**
-   * See {@link Options.tunnel}. A server `init` also takes the server-only {@link ServerTunnelOptions}.
+   * A URL to send this server's own envelopes to instead of the Sentry ingest URL. To serve the managed tunnel for the
+   * browser, use `serveTunnelIntegration`.
    */
-  tunnel?: TunnelInit<ServerTunnelOptions>;
+  tunnel?: string;
 }
 
 /**
