@@ -17,7 +17,7 @@ export {
   getSpanOp,
 } from './event-proxy-server';
 export type { SerializedStreamedSpan } from '@sentry/core';
-export { isServerSpanAt, watchForTunnelSpan } from './tunnel';
+export { isServerSpanAt, makeClientReportEnvelope, watchForTunnelSpan } from './tunnel';
 
 export {
   findAbsolutePathImports,

@@ -3,8 +3,9 @@ import { addPlugin, addPluginTemplate, addTemplate, addVitePlugin, createResolve
 import type {} from '@nuxt/nitro-server';
 
 import * as path from 'path';
+import { NUXT_TUNNEL_BASE_PATH_GLOBAL } from './common/tunnel';
 import type { SentryNuxtModuleOptions } from './common/types';
-import { setupNitroServer } from './vite/nitroServer';
+import { addTunnelPlugin, setupNitroServer } from './vite/nitroServer';
 import { setupOrchestrion } from './vite/orchestrion';
 import { setupSourceMaps } from './vite/sourceMaps';
 import { findDefaultSdkInitFile, resolveServerApi } from './vite/utils';
@@ -56,11 +57,12 @@ export default defineNuxtModule<ModuleOptions>({
         // Dynamic import of config file to wrap it within a Nuxt context (here: defineNuxtPlugin)
         // Makes it possible to call useRuntimeConfig() in the user-defined sentry config file
         getContents: () => `
-          import { defineNuxtPlugin } from "#imports";
+          import { defineNuxtPlugin, useRuntimeConfig } from "#imports";
 
           export default defineNuxtPlugin({
             name: 'sentry-client-config',
             async setup() {
+              globalThis.${NUXT_TUNNEL_BASE_PATH_GLOBAL} = useRuntimeConfig().app.baseURL;
               await import("${buildDirResolver.resolve(`/${clientConfigFile}`)}")
             }
           });`,
@@ -96,6 +98,9 @@ export default defineNuxtModule<ModuleOptions>({
       } else {
         addPlugin({ src: moduleDirResolver.resolve('./runtime/plugins/route-detector-legacy.server'), mode: 'server' });
       }
+    } else {
+      // The Cloudflare setup initializes the SDK from `sentryCloudflareNitroPlugin`, so it needs the tunnel too.
+      addTunnelPlugin(serverApi);
     }
 
     if (clientConfigFile || serverConfigFile) {
