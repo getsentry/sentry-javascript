@@ -15,13 +15,18 @@ export interface HandleTunnelRequestOptions {
    *
    * @deprecated Pass the request as the first argument of `handleTunnelRequest` instead.
    */
-  request?: Request;
+  request: Request;
   /**
    * DSNs whose envelopes may be forwarded, in addition to the DSN of the active client. Defaults to the DSNs
    * `serveTunnelIntegration` allows.
    */
   allowedDsns?: Array<string>;
 }
+
+/**
+ * The options of {@link handleTunnelRequest} that take the request as an argument.
+ */
+type TunnelForwardOptions = Omit<HandleTunnelRequestOptions, 'request'>;
 
 /**
  * The parts of Node's `IncomingMessage` the tunnel reads.
@@ -37,7 +42,7 @@ interface NodeTunnelRequest extends AsyncIterable<Uint8Array | string> {
  */
 interface NodeTunnelResponse {
   writeHead(statusCode: number, headers?: Record<string, string>): unknown;
-  end(chunk?: Uint8Array): unknown;
+  end(chunk: Uint8Array): unknown;
 }
 
 /**
@@ -46,7 +51,7 @@ interface NodeTunnelResponse {
  *
  * @returns Sentry's response, or the response rejecting the request.
  */
-export function handleTunnelRequest(request: Request, options?: HandleTunnelRequestOptions): Promise<Response>;
+export function handleTunnelRequest(request: Request, options?: TunnelForwardOptions): Promise<Response>;
 /**
  * Forwards a tunnel request from a Node server, like Express or `node:http`, and writes the answer to `response`.
  * Mount it before body parsers, which would read the envelope first.
@@ -54,16 +59,16 @@ export function handleTunnelRequest(request: Request, options?: HandleTunnelRequ
 export function handleTunnelRequest(
   request: NodeTunnelRequest,
   response: NodeTunnelResponse,
-  options?: HandleTunnelRequestOptions,
+  options?: TunnelForwardOptions,
 ): Promise<void>;
 /**
  * The released form, kept until v12. Its `request` option is deprecated: pass the request as the first argument.
  */
-export function handleTunnelRequest(options: HandleTunnelRequestOptions & { request: Request }): Promise<Response>;
+export function handleTunnelRequest(options: HandleTunnelRequestOptions): Promise<Response>;
 export function handleTunnelRequest(
-  requestOrOptions: Request | NodeTunnelRequest | (HandleTunnelRequestOptions & { request: Request }),
-  responseOrOptions?: NodeTunnelResponse | HandleTunnelRequestOptions,
-  nodeOptions?: HandleTunnelRequestOptions,
+  requestOrOptions: Request | NodeTunnelRequest | HandleTunnelRequestOptions,
+  responseOrOptions?: NodeTunnelResponse | TunnelForwardOptions,
+  nodeOptions?: TunnelForwardOptions,
 ): Promise<Response | void> {
   if (isNodeTunnelResponse(responseOrOptions)) {
     const nodeResponse = responseOrOptions;
@@ -124,7 +129,7 @@ export function handleTunnelRequestIfMatched(
  * `allowedDsns` plus the server's own DSN. Without `allowedDsns`, the DSNs `serveTunnelIntegration` allows, so its
  * options apply here too.
  */
-function getAllowedDsns(options: HandleTunnelRequestOptions | undefined): string[] {
+function getAllowedDsns(options: TunnelForwardOptions | undefined): string[] {
   return options?.allowedDsns
     ? resolveAllowedDsns(options.allowedDsns, getClient()?.getDsn())
     : resolveTunnelMatch().allowedDsns;
@@ -178,7 +183,7 @@ async function writeNodeResponse(response: NodeTunnelResponse, fetchResponse: Re
   const body = await fetchResponse.arrayBuffer().catch(() => undefined);
   if (!body) {
     response.writeHead(500);
-    response.end();
+    response.end(new Uint8Array());
     return;
   }
 
@@ -253,7 +258,7 @@ async function forwardEnvelope(request: Request, allowedDsns: Array<string>): Pr
  * Returns the ingest URL for an envelope header line, or the rejecting response.
  */
 function resolveIngestUrl(headerLine: Uint8Array, allowedDsns: Array<string>): string | Response {
-  let envelopeHeader: { dsn?: string } | null;
+  let envelopeHeader: { dsn?: unknown } | null;
   try {
     envelopeHeader = JSON.parse(new TextDecoder().decode(headerLine));
   } catch {
@@ -265,7 +270,7 @@ function resolveIngestUrl(headerLine: Uint8Array, allowedDsns: Array<string>): s
   }
 
   const dsn = envelopeHeader.dsn;
-  if (!dsn) {
+  if (!dsn || typeof dsn !== 'string') {
     return new Response('Invalid envelope: missing DSN', { status: 400 });
   }
 

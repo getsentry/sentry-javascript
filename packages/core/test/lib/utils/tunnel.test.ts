@@ -20,6 +20,7 @@ import {
   resolveAllowedDsns,
   resolveTunnelPaths,
 } from '../../../src/utils/tunnel';
+import type { HandleTunnelRequestOptions } from '../../../src/utils/tunnelForward';
 import {
   forwardTunnelRequest,
   handleTunnelRequest,
@@ -110,11 +111,13 @@ describe('handleTunnelRequest call forms', () => {
   });
 
   it('still takes the released options object', async () => {
+    // A typed variable, like code written against the released type.
     // oxlint-disable-next-line typescript/no-deprecated -- the form under test
-    const response = await handleTunnelRequest({
+    const options: HandleTunnelRequestOptions = {
       request: makeEnvelopeRequest({ dsn: TEST_DSN }),
       allowedDsns: [TEST_DSN],
-    });
+    };
+    const response = await handleTunnelRequest(options);
 
     expect(response.status).toBe(202);
   });
@@ -220,6 +223,35 @@ describe('handleTunnelRequest call forms', () => {
       const response = await realFetch(`http://localhost:${port}/tunnel`, { method: 'POST', body: envelope });
 
       expect(response.status).toBe(500);
+    } finally {
+      await new Promise(resolve => server.close(resolve));
+    }
+  });
+
+  it('rejects an envelope whose DSN is no string, also from a Node server', async () => {
+    const body = '{"dsn":{"toString":1}}\n{}';
+    const server = http.createServer((req, res) => {
+      void handleTunnelRequest(req, res, { allowedDsns: [TEST_DSN] });
+    });
+    await new Promise<void>(resolve => server.listen(0, resolve));
+
+    try {
+      const fetchForm = await handleTunnelRequest(
+        new Request('http://localhost/tunnel', {
+          method: 'POST',
+          body,
+          headers: { 'content-length': `${body.length}` },
+        }),
+        { allowedDsns: [TEST_DSN] },
+      );
+      const nodeForm = await realFetch(`http://localhost:${(server.address() as AddressInfo).port}/tunnel`, {
+        method: 'POST',
+        body,
+      });
+
+      expect(fetchForm.status).toBe(400);
+      expect(nodeForm.status).toBe(400);
+      expect(fetchMock).not.toHaveBeenCalled();
     } finally {
       await new Promise(resolve => server.close(resolve));
     }
