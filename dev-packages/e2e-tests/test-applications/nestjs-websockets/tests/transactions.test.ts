@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test';
+import { WEBSOCKET } from '@sentry/conventions/op';
 import { getSpanOp, waitForStreamedSpan } from '@sentry-internal/test-utils';
 import { io } from 'socket.io-client';
 
@@ -36,7 +37,7 @@ test('Names WebSocket segment spans with the Socket.IO namespace and message pat
     const [span] = await Promise.all([spanPromise, responsePromise]);
 
     expect(span.is_segment).toBe(true);
-    expect(getSpanOp(span)).toBe('ws');
+    expect(getSpanOp(span)).toBe(WEBSOCKET);
     expect(span.name).toBe('WS /events test-transaction');
   } finally {
     socket.disconnect();
