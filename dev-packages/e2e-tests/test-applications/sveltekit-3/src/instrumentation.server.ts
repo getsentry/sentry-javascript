@@ -7,6 +7,7 @@ Sentry.init({
   environment: 'qa', // dynamic sampling bias to keep transactions
   dsn: E2E_TEST_DSN,
   debug: !!process.env.DEBUG,
-  tunnel: __E2E_TEST_TUNNEL__ ? true : `http://localhost:3031/`, // proxy server
+  tunnel: `http://localhost:3031/`, // proxy server
+  integrations: __E2E_TEST_TUNNEL__ ? [Sentry.serveTunnelIntegration()] : [],
   tracesSampleRate: 1.0,
 });
