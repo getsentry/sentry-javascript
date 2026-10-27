@@ -36,6 +36,7 @@ test('Names WebSocket segment spans with the Socket.IO namespace and message pat
     const [span] = await Promise.all([spanPromise, responsePromise]);
 
     expect(span.is_segment).toBe(true);
+    expect(getSpanOp(span)).toBe('ws');
     expect(span.name).toBe('WS /events test-transaction');
   } finally {
     socket.disconnect();
