@@ -1,3 +1,4 @@
+import { escapeStringForRegex } from '@sentry/core';
 import type { Builder } from '@sveltejs/kit';
 import * as fs from 'fs';
 import * as os from 'os';
@@ -52,6 +53,23 @@ export async function loadSvelteConfig(): Promise<SvelteConfigFileContents> {
  */
 export function getHooksFileName(kitConfig: ResolvedKitConfig, hookType: 'client' | 'server'): string {
   return kitConfig.files?.hooks?.[hookType] || `src/hooks.${hookType}`;
+}
+
+/**
+ * Matches the Vite module ids of SvelteKit entry files given without an extension, like the hooks files: the file with
+ * one of SvelteKit's module extensions, or the `index` file of a directory by that name, which SvelteKit also accepts.
+ */
+export function makeEntryFileMatcher(kitConfig: ResolvedKitConfig, entryPaths: string[]): (id: string) => boolean {
+  const extensions = new Set([...(kitConfig.moduleExtensions ?? ['.js', '.ts']), '.mjs', '.mts']);
+  const extensionPattern = [...extensions]
+    .map(extension => escapeStringForRegex(extension.replace(/^\./, '')))
+    .join('|');
+  const pathPattern = entryPaths.map(escapeStringForRegex).join('|');
+  // oxlint-disable-next-line sdk/no-regexp-constructor -- not end user input + escaped anyway
+  const entryFileRegexp = new RegExp(`/(?:${pathPattern})(?:/index)?\\.(?:${extensionPattern})$`);
+
+  // Vite appends queries like `?v=123` to module ids.
+  return id => entryFileRegexp.test(id.split('?')[0] ?? id);
 }
 
 /**

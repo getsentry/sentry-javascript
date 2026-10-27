@@ -41,6 +41,17 @@ describe('makeTunnelBasePathPlugin', () => {
     expect((plugin.transform as Hook)('', '/p/src/hooks.server.ts')).toBeNull();
   });
 
+  it('follows the hooks file forms SvelteKit accepts: an index file, custom module extensions, and query ids', async () => {
+    const plugin = await setup({ paths: { base: '/app' }, moduleExtensions: ['.js', '.ts', '.coffee'] });
+    const transform = plugin.transform as Hook;
+
+    expect(transform('', '/p/src/hooks.server/index.ts')).not.toBeNull();
+    expect(transform('', '/p/src/hooks.client.coffee')).not.toBeNull();
+    expect(transform('', '/p/src/hooks.server.ts?v=123')).not.toBeNull();
+    expect(transform('', '/p/src/hooks.server/utils.ts')).toBeNull();
+    expect(transform('', '/p/src/hooks.server.tsx')).toBeNull();
+  });
+
   it('does nothing without a base path', async () => {
     const plugin = await setup({});
 

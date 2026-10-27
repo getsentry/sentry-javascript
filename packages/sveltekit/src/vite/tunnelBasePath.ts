@@ -1,9 +1,8 @@
-import { escapeStringForRegex } from '@sentry/core';
 import MagicString from 'magic-string';
 import type { Plugin } from 'vite';
 import { TUNNEL_BASE_PATH_GLOBAL } from '../common/tunnel';
 import type { ResolvedKitConfig } from './kitConfig';
-import { getHooksFileName } from './svelteConfig';
+import { getHooksFileName, makeEntryFileMatcher } from './svelteConfig';
 
 const VIRTUAL_BASE_PATH_FILE = '\0sentry-sveltekit-tunnel-base-path';
 
@@ -13,7 +12,7 @@ const VIRTUAL_BASE_PATH_FILE = '\0sentry-sveltekit-tunnel-base-path';
  */
 export function makeTunnelBasePathPlugin(getKitConfig: () => Promise<ResolvedKitConfig>): Plugin {
   let basePath = '';
-  let entryFileRegexp: RegExp | undefined;
+  let isEntryFile: ((id: string) => boolean) | undefined;
 
   return {
     name: 'sentry-sveltekit-tunnel-base-path',
@@ -22,11 +21,11 @@ export function makeTunnelBasePathPlugin(getKitConfig: () => Promise<ResolvedKit
       const kitConfig = await getKitConfig();
       basePath = kitConfig.paths?.base || '';
 
-      const hooksFiles = [getHooksFileName(kitConfig, 'server'), getHooksFileName(kitConfig, 'client')]
-        .map(escapeStringForRegex)
-        .join('|');
-      // oxlint-disable-next-line sdk/no-regexp-constructor -- not end user input + escaped anyway
-      entryFileRegexp = new RegExp(`/(?:${hooksFiles}|src/instrumentation\\.server)\\.(?:js|ts|mjs|mts)$`);
+      isEntryFile = makeEntryFileMatcher(kitConfig, [
+        getHooksFileName(kitConfig, 'server'),
+        getHooksFileName(kitConfig, 'client'),
+        'src/instrumentation.server',
+      ]);
     },
 
     resolveId: id => (id === VIRTUAL_BASE_PATH_FILE ? { id, moduleSideEffects: true } : null),
@@ -37,7 +36,7 @@ export function makeTunnelBasePathPlugin(getKitConfig: () => Promise<ResolvedKit
         : null,
 
     transform: (code, id) => {
-      if (!basePath || !entryFileRegexp?.test(id)) {
+      if (!basePath || !isEntryFile?.(id)) {
         return null;
       }
 
