@@ -8,6 +8,8 @@ import type {
 } from '@nestjs/common';
 import { Catch, Global, HttpException, Injectable, Logger, Module } from '@nestjs/common';
 import { APP_INTERCEPTOR, BaseExceptionFilter } from '@nestjs/core';
+import { SENTRY_OP, SENTRY_ORIGIN } from '@sentry/conventions/attributes';
+import { WEBSOCKET } from '@sentry/conventions/op';
 import {
   captureException,
   debug,
@@ -72,24 +74,38 @@ class SentryTracingInterceptor implements NestInterceptor {
       return withIsolationScope(isolationScope => {
         isolationScope.setTransactionName(transactionName);
 
-        return startSpanManual({ op: 'ws', name: transactionName }, span => {
-          const observable = next.handle();
-
-          // Keep the transaction name on the isolation scope active while the handler runs.
-          observable.subscribe = new Proxy(observable.subscribe, {
-            apply: (originalSubscribe, thisArgSubscribe, argsSubscribe) => {
-              return withIsolationScope(subscriptionIsolationScope => {
-                subscriptionIsolationScope.setTransactionName(transactionName);
-                return originalSubscribe.apply(thisArgSubscribe, argsSubscribe);
-              });
+        return startSpanManual(
+          {
+            name: transactionName,
+            attributes: {
+              [SENTRY_OP]: WEBSOCKET,
+              [SENTRY_ORIGIN]: 'auto.middleware.nestjs.interceptor',
             },
-          });
+          },
+          span => {
+            try {
+              const observable = next.handle();
 
-          // Instrument the Observable returned by Nest rather than creating a new one.
-          instrumentObservable(observable as unknown as IntegrationObservable<unknown>, span);
+              // Keep the transaction name on the isolation scope active while the handler runs.
+              observable.subscribe = new Proxy(observable.subscribe, {
+                apply: (originalSubscribe, thisArgSubscribe, argsSubscribe) => {
+                  return withIsolationScope(subscriptionIsolationScope => {
+                    subscriptionIsolationScope.setTransactionName(transactionName);
+                    return originalSubscribe.apply(thisArgSubscribe, argsSubscribe);
+                  });
+                },
+              });
 
-          return observable;
-        });
+              // Nest returns an RxJS Observable, while the helper intentionally uses a minimal type to avoid importing RxJS here.
+              instrumentObservable(observable as unknown as IntegrationObservable<unknown>, span);
+
+              return observable;
+            } catch (error) {
+              span.end();
+              throw error;
+            }
+          },
+        );
       });
     }
 
