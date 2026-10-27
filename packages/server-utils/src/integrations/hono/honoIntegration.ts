@@ -1,11 +1,10 @@
 import * as diagnosticsChannel from '../../utils/diagnosticsChannel';
-import { createRequire } from 'node:module';
 import { SENTRY_OP, SENTRY_ORIGIN } from '@sentry/conventions/attributes';
 import { HTTP_SERVER } from '@sentry/conventions/op';
 import type { IntegrationFn } from '@sentry/core';
-import { debug, defineIntegration, startInactiveSpan } from '@sentry/core';
-import { DEBUG_BUILD } from '../../debug-build';
-import type { Env, GetConnInfo, Hono, MatchedHandler, MiddlewareHandler } from './honoTypes';
+import { defineIntegration, startInactiveSpan } from '@sentry/core';
+import type { HonoRuntime } from './connInfo';
+import type { Env, Hono, MatchedHandler, MiddlewareHandler } from './honoTypes';
 import type { OrchestrionChannelContext } from '../../orchestrion/types';
 import { CHANNELS } from '../../orchestrion/channels';
 import { honoModuleNames } from '../../orchestrion/config/hono';
@@ -31,40 +30,7 @@ const isBun = typeof globalAny.Bun !== 'undefined';
 const isDeno = typeof globalAny.Deno !== 'undefined';
 const isCloudflare = globalAny.navigator?.userAgent === 'Cloudflare-Workers';
 
-let connInfoResolved = false;
-let cachedGetConnInfo: GetConnInfo | undefined;
-
-/**
- * Resolves the runtime's `getConnInfo` helper once, best-effort.
- *
- * Cloudflare Workers can't `require()` out of a bundle at runtime, so there conn-info is left to the
- * platform's `requestDataIntegration`. On Node/Bun/Deno a missing optional peer dependency degrades
- * to `undefined`, which just skips the connection-info attributes.
- */
-function resolveGetConnInfo(): GetConnInfo | undefined {
-  if (connInfoResolved) {
-    return cachedGetConnInfo;
-  }
-  connInfoResolved = true;
-
-  const specifier = isBun ? 'hono/bun' : isDeno ? 'hono/deno' : isCloudflare ? undefined : '@hono/node-server/conninfo';
-
-  if (!specifier) {
-    return undefined;
-  }
-
-  try {
-    // `createRequire` resolves relative to its argument's directory, so a never-loaded dummy path
-    // roots resolution at the app directory, where the runtime helper is installed.
-    const appRequire = createRequire(`${process.cwd()}/noop.js`);
-    cachedGetConnInfo = (appRequire(specifier) as { getConnInfo?: GetConnInfo }).getConnInfo;
-  } catch {
-    DEBUG_BUILD && debug.log(`[instrumentation:hono] could not resolve \`getConnInfo\` from "${specifier}"`);
-    cachedGetConnInfo = undefined;
-  }
-
-  return cachedGetConnInfo;
-}
+const runtime: HonoRuntime = isBun ? 'bun' : isDeno ? 'deno' : isCloudflare ? 'cloudflare' : 'node';
 
 /**
  * Manually instruments a Hono app and returns the Sentry request/response middleware to register
@@ -79,7 +45,7 @@ export function honoMiddleware<E extends Env>(app: Hono<E>, options: HonoIntegra
   applyPatches(app);
 
   return createHonoRequestMiddleware({
-    getConnInfo: resolveGetConnInfo(),
+    runtime,
     shouldHandleError: options.shouldHandleError,
   });
 }
@@ -175,7 +141,7 @@ function instrumentHono(options: HonoIntegrationOptions): void {
   // The request/response middleware is stateless (per-request state lives on the request scope) and
   // `options` is fixed, so build it once and reuse it across every dispatched Context.
   const requestMiddleware = createHonoRequestMiddleware({
-    getConnInfo: resolveGetConnInfo(),
+    runtime,
     shouldHandleError: options.shouldHandleError,
   });
 

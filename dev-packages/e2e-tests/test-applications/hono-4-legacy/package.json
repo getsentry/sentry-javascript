@@ -24,9 +24,9 @@
     "hono": "^4.13.1"
   },
   "devDependencies": {
-    "@playwright/test": "~1.63.0",
+    "@playwright/test": "1.64.1",
     "@cloudflare/workers-types": "^4.20240725.0",
-    "@sentry-internal/test-utils": "link:../../../test-utils",
+    "@sentry-internal/test-utils": "file:../../packed/sentry-internal-test-utils-packed.tgz",
     "tsx": "4.21.0",
     "typescript": "^5.5.2",
     "wrangler": "^4.61.0"

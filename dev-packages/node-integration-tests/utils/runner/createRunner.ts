@@ -121,7 +121,7 @@ const COMPILE_CACHE_ENV: Record<string, string> =
 
 // The Bun and Deno packages run these suites from their own folder. Scenarios read the working
 // directory (e.g. `modulesIntegration` reads its `package.json`), so it is always this package.
-const PACKAGE_ROOT = join(__dirname, '..', '..');
+export const PACKAGE_ROOT = join(__dirname, '..', '..');
 
 /** Node flags that preload a module before the entry point. */
 const PRELOAD_FLAGS = ['--import', '--require', '-r'];

@@ -306,6 +306,10 @@ export class ReplayContainer implements ReplayContainerInterface {
     return this._options;
   }
 
+  public getMaskAttributeFn(): RecordingOptions['maskAttributeFn'] {
+    return this._recordingOptions.maskAttributeFn;
+  }
+
   /** A wrapper to conditionally capture exceptions. */
   public handleException(error: unknown): void {
     DEBUG_BUILD && debug.exception(error);

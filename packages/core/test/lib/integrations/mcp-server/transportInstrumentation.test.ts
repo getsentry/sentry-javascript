@@ -1095,7 +1095,7 @@ describe('MCP Server Transport Instrumentation', () => {
   });
 
   describe('Wrapper Options', () => {
-    it('should NOT capture inputs/outputs when dataCollection.genAI.inputs/outputs are false', async () => {
+    it('should NOT capture inputs/outputs when dataCollection.mcp.inputs/outputs are false', async () => {
       getClientSpy.mockReturnValue(createMockClient(false));
 
       const mockMcpServer = createMockMcpServer();
@@ -1123,7 +1123,7 @@ describe('MCP Server Transport Instrumentation', () => {
       );
     });
 
-    it('should capture inputs/outputs when dataCollection.genAI.inputs/outputs are true', async () => {
+    it('should capture inputs/outputs when dataCollection.mcp.inputs/outputs are true', async () => {
       getClientSpy.mockReturnValue(createMockClient(true));
 
       const mockMcpServer = createMockMcpServer();

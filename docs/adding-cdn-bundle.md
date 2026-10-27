@@ -186,9 +186,9 @@ Uncompressed size is approximately 3x the gzipped size.
 Add test scripts in the `scripts` section:
 
 ```json
-"test:bundle:{feature_combo}": "PW_BUNDLE=bundle_{feature_combo} yarn test",
-"test:bundle:{feature_combo}:min": "PW_BUNDLE=bundle_{feature_combo}_min yarn test",
-"test:bundle:{feature_combo}:debug_min": "PW_BUNDLE=bundle_{feature_combo}_debug_min yarn test",
+"test:bundle:{feature_combo}": "PW_BUNDLE=bundle_{feature_combo} pnpm run test",
+"test:bundle:{feature_combo}:min": "PW_BUNDLE=bundle_{feature_combo}_min pnpm run test",
+"test:bundle:{feature_combo}:debug_min": "PW_BUNDLE=bundle_{feature_combo}_debug_min pnpm run test",
 ```
 
 ### 6. `dev-packages/browser-integration-tests/utils/generatePlugin.ts`
@@ -213,9 +213,9 @@ Add to the bundle matrix (in the `job_browser_playwright_tests` job):
 
 After making changes:
 
-1. Run `yarn lint` to check for linting issues
-2. Run `cd packages/browser && yarn build:dev` to verify TypeScript compilation
-3. Run `cd packages/browser && yarn test` to run the unit tests
+1. Run `pnpm run lint` to check for linting issues
+2. Run `cd packages/browser && pnpm run build:dev` to verify TypeScript compilation
+3. Run `cd packages/browser && pnpm run test` to run the unit tests
 
 ## Reference: Existing Bundle Examples
 
@@ -230,5 +230,5 @@ Look at these existing bundles for reference:
 
 - **Invalid feature combination**: Validate feature names are valid (tracing, replay, feedback, logs, metrics)
 - **Build failures**: Fix TypeScript errors before proceeding
-- **Lint errors**: Run `yarn fix` to auto-fix common issues
+- **Lint errors**: Run `pnpm run fix` to auto-fix common issues
 - **Test failures**: Update test expectations to match the bundle's actual exports

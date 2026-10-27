@@ -1,15 +1,20 @@
+import {
+  CLIENT_ADDRESS,
+  CLIENT_PORT,
+  NETWORK_PEER_ADDRESS,
+  NETWORK_PEER_PORT,
+  NETWORK_TRANSPORT,
+  NETWORK_TYPE,
+} from '@sentry/conventions/attributes';
 import * as SentryCore from '@sentry/core';
 import { Hono } from 'hono';
 import { beforeEach, describe, expect, it, type Mock, vi } from 'vitest';
 import { sentry } from '../../src/node/middleware';
 import { init } from '../../src/node/sdk';
+import { requestConnInfoAttributes } from '../shared/requestConnInfoAttributes';
 
 vi.mock('@sentry/node', () => ({
   init: vi.fn(),
-}));
-
-vi.mock('@hono/node-server/conninfo', () => ({
-  getConnInfo: vi.fn(() => ({ remote: {} })),
 }));
 
 // eslint-disable-next-line @typescript-eslint/consistent-type-imports
@@ -230,5 +235,24 @@ describe('Hono Node Middleware', () => {
 
       getActiveClientSpy.mockRestore();
     });
+  });
+});
+
+describe('Hono Node Middleware — connection info', () => {
+  it('reads the socket of the incoming message', async () => {
+    const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+    const middleware = sentry(new Hono());
+    consoleWarnSpy.mockRestore();
+    // The `env` that `@hono/node-server` passes to `app.fetch`.
+    const env = { incoming: { socket: { remoteAddress: '203.0.113.5', remotePort: 54321, remoteFamily: 'IPv4' } } };
+
+    const attributes = await requestConnInfoAttributes(middleware, { env });
+
+    expect(attributes[CLIENT_ADDRESS]).toBe('203.0.113.5');
+    expect(attributes[CLIENT_PORT]).toBe(54321);
+    expect(attributes[NETWORK_PEER_ADDRESS]).toBe('203.0.113.5');
+    expect(attributes[NETWORK_PEER_PORT]).toBe(54321);
+    expect(attributes[NETWORK_TYPE]).toBe('ipv4');
+    expect(attributes).not.toHaveProperty(NETWORK_TRANSPORT);
   });
 });

@@ -30,7 +30,7 @@ export interface HonoRoute {
 }
 
 // One entry of Hono's `matchResult[0]`.
-export type MatchedHandler = [[handler: HonoRoute['handler'], route: HonoRoute], paramIndexMap: unknown];
+export type MatchedHandler = [pair: [handler: HonoRoute['handler'], route: HonoRoute], paramIndexMap: unknown];
 
 export interface HonoRequest {
   raw: Request;
@@ -61,12 +61,3 @@ export interface Hono<E extends Env = Env> {
   routes: HonoRoute[];
   [key: string]: any;
 }
-
-export interface ConnInfoRemote {
-  address?: string;
-  port?: number;
-  transport?: string;
-  addressType?: string;
-}
-
-export type GetConnInfo = (context: any) => { remote?: ConnInfoRemote };
