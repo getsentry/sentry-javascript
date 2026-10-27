@@ -43,7 +43,7 @@ sentryTest('captures CLS as a streamed span with source attributes', async ({ ge
   const pageloadSpan = await pageloadSpanPromise;
 
   expect(clsSpan.attributes[SENTRY_OP]).toEqual({ type: 'string', value: 'ui.webvital.cls' });
-  expect(clsSpan.attributes[SENTRY_ORIGIN]).toEqual({ type: 'string', value: 'auto.http.browser.cls' });
+  expect(clsSpan.attributes[SENTRY_ORIGIN]).toEqual({ type: 'string', value: 'auto.ui.browser.cls' });
   expect(clsSpan.attributes[SENTRY_EXCLUSIVE_TIME]).toEqual({ type: 'integer', value: 0 });
   expect(clsSpan.attributes[USER_AGENT_ORIGINAL]?.value).toEqual(expect.stringContaining('Chrome'));
 

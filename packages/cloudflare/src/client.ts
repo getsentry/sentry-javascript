@@ -352,6 +352,16 @@ interface BaseCloudflareOptions {
   enableDedupe?: boolean;
 
   /**
+   * @ignore Used internally by SDKs that build `defaultIntegrations` from the Cloudflare defaults.
+   * @hidden Used internally by SDKs that build `defaultIntegrations` from the Cloudflare defaults.
+   *
+   * Marks the `defaultIntegrations` list as an extension of the SDK defaults, so the SDK also adds
+   * the integrations of instrumented modules that load after `init()`.
+   * @default false
+   */
+  _extendsDefaultIntegrations?: boolean;
+
+  /**
    * The Cloudflare SDK is not OpenTelemetry native. By default (`false`) it does not set up a tracer
    * provider; spans are emitted via the SDK's own instrumentation and scopes are isolated with
    * AsyncLocalStorage.

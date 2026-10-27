@@ -27,7 +27,7 @@ describe('instrumentSqlStorage', () => {
         name: 'SELECT users',
         attributes: {
           'sentry.op': 'db.query',
-          [SENTRY_ORIGIN]: 'auto.db.cloudflare.durable_object.sql',
+          [SENTRY_ORIGIN]: 'auto.db.cloudflare.durable_object_sql',
           'db.system.name': 'cloudflare-durable-object-sql',
           'db.operation.name': 'exec',
           'db.query.text': 'SELECT * FROM users WHERE id = ?',
@@ -51,7 +51,7 @@ describe('instrumentSqlStorage', () => {
         name: 'SELECT users',
         attributes: {
           'sentry.op': 'db.query',
-          [SENTRY_ORIGIN]: 'auto.db.cloudflare.durable_object.sql',
+          [SENTRY_ORIGIN]: 'auto.db.cloudflare.durable_object_sql',
           'db.system.name': 'cloudflare-durable-object-sql',
           'db.operation.name': 'exec',
           'db.query.text': 'SELECT * FROM users WHERE name = ? AND age > ?',
@@ -84,7 +84,7 @@ describe('instrumentSqlStorage', () => {
         name: 'INSERT users',
         attributes: {
           'sentry.op': 'db.query',
-          [SENTRY_ORIGIN]: 'auto.db.cloudflare.durable_object.sql',
+          [SENTRY_ORIGIN]: 'auto.db.cloudflare.durable_object_sql',
           'db.system.name': 'cloudflare-durable-object-sql',
           'db.operation.name': 'exec',
           'db.query.text': 'INSERT INTO users (name, email) VALUES (?, ?)',
@@ -304,7 +304,7 @@ describe('instrumentSqlStorage', () => {
         name: 'exec',
         attributes: {
           'sentry.op': 'db.query',
-          [SENTRY_ORIGIN]: 'auto.db.cloudflare.durable_object.sql',
+          [SENTRY_ORIGIN]: 'auto.db.cloudflare.durable_object_sql',
           'db.system.name': 'cloudflare-durable-object-sql',
           'db.operation.name': 'exec',
         },

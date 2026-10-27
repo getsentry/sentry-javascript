@@ -1,0 +1,5 @@
+{
+  // The rest of `src` needs Node, Bun and Deno types, which this app does not install.
+  "extends": "./tsconfig.json",
+  "include": ["src/*.typecheck.ts"]
+}

@@ -1,0 +1,13 @@
+{
+  "$schema": "../../node_modules/wrangler/config-schema.json",
+  "name": "cloudflare-kv",
+  "main": "index.ts",
+  "compatibility_date": "2025-06-17",
+  "compatibility_flags": ["nodejs_compat"],
+  "kv_namespaces": [
+    {
+      "binding": "MY_KV",
+      "id": "00000000000000000000000000000000",
+    },
+  ],
+}

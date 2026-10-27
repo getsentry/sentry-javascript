@@ -79,6 +79,12 @@ Uses **Git Flow** (see `docs/gitflow.md`).
 - `Sentry.init()` follows one rule for repeated calls: the first call wins. See
   `docs/repeated-init.md` before you add or change an `init()`.
 
+- Span origins must follow the [trace origin spec](https://develop.sentry.dev/sdk/telemetry/traces/trace-origin/):
+  `<type>.<category>.<integration_name>.<integration_part>`, at most four parts, no skipped
+  parts, only `[a-zA-Z0-9_]` within a part. `category` is the span op category
+  (`auto.queue.kafkajs.producer`, not `auto.kafkajs.producer`). Don't encode tooling like
+  `otel` or `orchestrion` in the origin.
+
 ## Linting & Formatting
 
 - This project uses **Oxlint** and **Oxfmt** — NOT ESLint or Prettier
