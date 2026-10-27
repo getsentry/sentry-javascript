@@ -14,7 +14,9 @@ export function getFullURL(url: string): string | undefined {
   try {
     // By adding a base URL to new URL(), this will also work for relative urls
     // If `url` is a full URL, the base URL is ignored anyhow
-    const parsed = new URL(url, WINDOW.location.origin);
+    // We use `href` and not `origin`: in sandboxed iframes and data: pages `origin` is the string "null",
+    // and `new URL()` parses the base first, so it would throw even for absolute URLs.
+    const parsed = new URL(url, WINDOW.location?.href);
     return parsed.href;
   } catch {
     return undefined;

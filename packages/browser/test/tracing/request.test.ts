@@ -228,7 +228,7 @@ describe('instrumentOutgoingRequests', () => {
   });
 
   it('resolves a relative fetch URL against the page origin for the streamed span name', () => {
-    vi.stubGlobal('location', { origin: 'https://app.example.com' });
+    vi.stubGlobal('location', { origin: 'https://app.example.com', href: 'https://app.example.com/' });
 
     let fetchHandler: ((data: utils.HandlerDataFetch) => void) | undefined;
     let requestSpan: utils.Span | undefined;
@@ -261,7 +261,7 @@ describe('instrumentOutgoingRequests', () => {
   });
 
   it('resolves a relative XHR URL against the page origin for the streamed span name', () => {
-    vi.stubGlobal('location', { origin: 'https://app.example.com' });
+    vi.stubGlobal('location', { origin: 'https://app.example.com', href: 'https://app.example.com/' });
 
     let xhrHandler: ((data: utils.HandlerDataXhr) => void) | undefined;
     let requestSpan: utils.Span | undefined;
@@ -297,6 +297,89 @@ describe('instrumentOutgoingRequests', () => {
     expect(requestSpanJson.attributes['url.domain']).toBe('app.example.com');
 
     vi.unstubAllGlobals();
+  });
+
+  describe('resolving request URLs against location.href', () => {
+    afterEach(() => {
+      vi.unstubAllGlobals();
+    });
+
+    it.each([
+      {
+        name: 'an absolute URL on a page with an opaque origin',
+        location: { origin: 'null', href: 'about:srcdoc' },
+        requestUrl: 'https://api.example.org/v1/users',
+        expected: 'https://api.example.org/v1/users',
+      },
+      {
+        name: 'a relative path without a leading slash',
+        location: { origin: 'https://app.example.com', href: 'https://app.example.com/dashboard/settings' },
+        requestUrl: 'users',
+        expected: 'https://app.example.com/dashboard/users',
+      },
+    ])('sets url.full on XHR spans for $name', ({ location, requestUrl, expected }) => {
+      vi.stubGlobal('location', location);
+
+      let xhrHandler: ((data: utils.HandlerDataXhr) => void) | undefined;
+      let requestSpan: utils.Span | undefined;
+
+      vi.spyOn(browserUtils, 'addXhrInstrumentationHandler').mockImplementation(handler => {
+        xhrHandler = handler;
+      });
+      const tracingClient = new BrowserClient(getDefaultBrowserClientOptions({ tracesSampleRate: 1 }));
+      utils.setCurrentClient(tracingClient);
+      utils._INTERNAL_setSpanForScope(utils.getCurrentScope(), new utils.SentrySpan({ sampled: true }));
+
+      instrumentOutgoingRequests(tracingClient, {
+        traceFetch: false,
+        enableHTTPTimings: false,
+        onRequestSpanStart: span => {
+          requestSpan = span;
+        },
+      });
+      xhrHandler?.({
+        xhr: {
+          [browserUtils.SENTRY_XHR_DATA_KEY]: {
+            method: 'GET',
+            url: requestUrl,
+            request_headers: {},
+          },
+          setRequestHeader: vi.fn(),
+        },
+        startTimestamp: Date.now(),
+      } as utils.HandlerDataXhr);
+
+      expect(utils.spanToJSON(requestSpan!).attributes['url.full']).toBe(expected);
+    });
+
+    it('sets url.domain on fetch spans for an absolute URL on a page with an opaque origin', () => {
+      vi.stubGlobal('location', { origin: 'null', href: 'about:srcdoc' });
+
+      let fetchHandler: ((data: utils.HandlerDataFetch) => void) | undefined;
+      let requestSpan: utils.Span | undefined;
+
+      vi.spyOn(utils, 'addFetchInstrumentationHandler').mockImplementation(handler => {
+        fetchHandler = handler;
+      });
+      const tracingClient = new BrowserClient(getDefaultBrowserClientOptions({ tracesSampleRate: 1 }));
+      utils.setCurrentClient(tracingClient);
+      utils._INTERNAL_setSpanForScope(utils.getCurrentScope(), new utils.SentrySpan({ sampled: true }));
+
+      instrumentOutgoingRequests(tracingClient, {
+        traceXHR: false,
+        enableHTTPTimings: false,
+        onRequestSpanStart: span => {
+          requestSpan = span;
+        },
+      });
+      fetchHandler?.({
+        fetchData: { method: 'GET', url: 'https://api.example.org/v1/users' },
+        args: ['https://api.example.org/v1/users'],
+        startTimestamp: Date.now(),
+      });
+
+      expect(utils.spanToJSON(requestSpan!).attributes['url.domain']).toBe('api.example.org');
+    });
   });
 
   it('falls back to the request method for a data URL, which has no domain', () => {
