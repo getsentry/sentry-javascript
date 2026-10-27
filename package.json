@@ -51,7 +51,7 @@
   "packageManager": "pnpm@12.11.2",
   "//_devEngines_comment": [
     "pnpm's global `node` shim runs the nearest `devEngines.runtime` version, see CONTRIBUTING.md. Packages and E2E apps override it with their own entry.",
-    "`onFail: warn` keeps node out of the lockfile, so `pnpm run` uses the node of `setup-node` in the CI node version matrix."
+    "`onFail: warn` keeps Node.js out of the lockfile, so `pnpm run` uses the Node.js of `setup-node` in the CI Node.js version matrix."
   ],
   "devEngines": {
     "runtime": {

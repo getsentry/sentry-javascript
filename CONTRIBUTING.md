@@ -19,10 +19,10 @@ you get started, but if you have further questions, please feel free to reach ou
 ## Setting up an Environment
 
 `sentry-javascript` is a monorepo containing several packages, managed with pnpm workspaces and Nx. pnpm installs the
-node and pnpm versions the repo pins.
+Node.js and pnpm versions the repo pins.
 
 1. Install pnpm 12 or newer, see the [pnpm installation docs](https://pnpm.io/installation).
-2. Install a default node version through pnpm:
+2. Install a default Node.js version through pnpm:
 
    ```sh
    pnpm runtime set node 24 -g
@@ -41,7 +41,7 @@ node and pnpm versions the repo pins.
    ```
 
 With that, the repo is fully set up and you are ready to run all commands. If you used Volta before, or `node --version`
-doesn't match the repo, see [Node and pnpm Versions](#node-and-pnpm-versions).
+doesn't match the repo, see [Node.js and pnpm Versions](#nodejs-and-pnpm-versions).
 
 ## Building Packages
 
@@ -94,8 +94,8 @@ E2E tests verify SDK behavior in real-world framework scenarios.
 ### Prerequisites
 
 1. **Docker**: Required for some E2E tests
-2. **pnpm-managed node** (see [Setting up an Environment](#setting-up-an-environment)): The E2E tests run each app on
-   the node version that it pins. Without pnpm's `node` shim, they use your current node version.
+2. **pnpm-managed Node.js** (see [Setting up an Environment](#setting-up-an-environment)): The E2E tests run each app on
+   the Node.js version that it pins. Without pnpm's `node` shim, they use your current Node.js version.
 
 ### Step-by-Step Instructions
 
@@ -228,20 +228,20 @@ _These steps are only relevant to Sentry employees when preparing and publishing
 
 [See the docs for publishing a release](./docs/publishing-a-release.md)
 
-## Node and pnpm Versions
+## Node.js and pnpm Versions
 
-- The root `package.json` pins node in `devEngines.runtime` and pnpm in `packageManager`. CI reads the same fields.
-- pnpm's `node` command runs the node version of the nearest `package.json` that pins one
+- The root `package.json` pins Node.js in `devEngines.runtime` and pnpm in `packageManager`. CI reads the same fields.
+- pnpm's `node` command runs the Node.js version of the nearest `package.json` that pins one
   ([project-aware global bins](https://pnpm.io/global-packages#project-aware-global-bins)). Packages and E2E test apps
   inherit the root version, and can override it with their own `devEngines.runtime`.
 
 If `node --version` or `pnpm --version` doesn't match the repo, run `which node pnpm`. Both should be in
-`$PNPM_HOME/bin`. If not, another tool (Volta, nvm, fnm, corepack, Homebrew node) comes first in your `PATH`. Remove it,
+`$PNPM_HOME/bin`. If not, another tool (Volta, nvm, fnm, corepack, Homebrew Node.js) comes first in your `PATH`. Remove it,
 or move `$PNPM_HOME/bin` before it.
 
 ### Migrating from Volta
 
-The repo no longer has a `volta` field, so Volta runs its default node instead of the version the repo pins.
+The repo no longer has a `volta` field, so Volta runs its default Node.js instead of the version the repo pins.
 [Uninstall Volta](https://docs.volta.sh/advanced/uninstall) and follow the
 [setup](#setting-up-an-environment). If other projects still need Volta, keep it, but put `$PNPM_HOME/bin` before
 `~/.volta/bin` in your `PATH`, and use `volta run node` in those projects.
