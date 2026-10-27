@@ -1,7 +1,6 @@
 import type { BrowserTunnelOptions } from '@sentry/core';
 import {
   debug,
-  getEnvelopeEndpointWithUrlEncodedAuth,
   getTunnelPath,
   makeDsn,
   _INTERNAL_normalizeTunnelBasePath as normalizeTunnelBasePath,
@@ -37,9 +36,8 @@ export function resolveBrowserTunnelOption(
     tunnel: resolvedTunnel,
     transportOptions: {
       ...transportOptions,
-      _tunnelFallbackUrl: dsnComponents
-        ? getEnvelopeEndpointWithUrlEncodedAuth(dsnComponents, undefined, options._metadata?.sdk)
-        : undefined,
+      // CSRF protection (SvelteKit, Astro) rejects the default `text/plain` POST to the tunnel as a form submission.
+      headers: { 'Content-Type': 'application/x-sentry-envelope', ...transportOptions?.headers },
     },
   };
 }
