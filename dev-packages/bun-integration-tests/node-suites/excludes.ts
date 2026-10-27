@@ -25,6 +25,7 @@ const NO_HTTP_SERVER_SPANS = [
   'suites/tracing/httpIntegration/test.ts',
   'suites/tracing/httpServerSpans-unrouted/test.ts',
   'suites/tracing/ignoreSpans/**',
+  'suites/tracing/managed-tunnel/test.ts',
   'suites/tracing/meta-tags-twp-errors/test.ts',
   'suites/tracing/meta-tags/test.ts',
   'suites/tracing/requestData/test.ts',
