@@ -9,7 +9,7 @@ Before you request a review:
 - Large PR? Split or stack it, or describe why you cannot.
 
 - Remove fields that do not apply (e.g. small PRs).
-- External contributors: link an issue where a maintainer agreed to the approach.
+- External contributors: link an issue where you got a maintainer's go-ahead.
 -->
 
 **Why:** <!-- reason behind change, why this approach (no implementation walkthrough), non-obvious decisions/tradeoffs -->

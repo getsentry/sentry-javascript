@@ -2,6 +2,7 @@
 export default defineNuxtConfig({
   compatibilityDate: '2025-06-06',
   imports: { autoImport: false },
+  ...(process.env.E2E_TEST_VITE_SERVER && { server: { builder: 'vite' } }),
 
   routeRules: {
     '/rendering-modes/client-side-only-page': { ssr: false },

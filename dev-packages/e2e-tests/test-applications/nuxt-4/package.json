@@ -46,6 +46,11 @@
         "build-command": "pnpm test:build",
         "assert-command": "pnpm test:prod:import",
         "label": "nuxt-4 (--import compat)"
+      },
+      {
+        "build-command": "E2E_TEST_VITE_SERVER=true pnpm test:build",
+        "assert-command": "E2E_TEST_VITE_SERVER=true pnpm test:prod",
+        "label": "nuxt-4 (Vite server)"
       }
     ],
     "optionalVariants": [
