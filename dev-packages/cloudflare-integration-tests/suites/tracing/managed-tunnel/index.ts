@@ -1,24 +1,17 @@
-import * as Sentry from '@sentry/cloudflare';
 import { getTunnelPath } from '@sentry/core';
 
 interface Env {
   SENTRY_DSN: string;
 }
 
-export default Sentry.withSentry(
-  (env: Env) => ({
-    dsn: env.SENTRY_DSN,
-    tracesSampleRate: 1,
-    // A meta-framework answers the tunnel requests, the Worker only drops their server spans.
-    integrations: [Sentry.serveTunnelIntegration()],
-  }),
-  {
-    async fetch(request, env) {
-      if (new URL(request.url).pathname === '/tunnel-path') {
-        return new Response(getTunnelPath(env.SENTRY_DSN));
-      }
+// A plain worker. The `@sentry/cloudflare/vite` plugin wraps it with `withSentry` at build time,
+// with the options from `instrument.server.ts`.
+export default {
+  async fetch(request: Request, env: Env): Promise<Response> {
+    if (new URL(request.url).pathname === '/tunnel-path') {
+      return new Response(getTunnelPath(env.SENTRY_DSN));
+    }
 
-      return new Response('app');
-    },
+    return new Response('app');
   },
-);
+};
