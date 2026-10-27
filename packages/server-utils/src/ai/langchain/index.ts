@@ -1,5 +1,6 @@
 /* eslint-disable max-lines */
 import {
+  debug,
   getActiveSpan,
   getClient,
   getRootSpan,
@@ -26,6 +27,7 @@ import {
   SENTRY_ORIGIN,
 } from '@sentry/conventions/attributes';
 import { GEN_AI_CHAT, GEN_AI_EXECUTE_TOOL, GEN_AI_INVOKE_AGENT } from '@sentry/conventions/op';
+import { DEBUG_BUILD } from '../../debug-build';
 import { resolveAIRecordingOptions } from '../core/utils';
 import { LANGCHAIN_ORIGIN, MAX_TRACKED_LANGCHAIN_RUNS } from './constants';
 import {
@@ -82,6 +84,25 @@ export function createLangChainCallbackHandler(options: LangChainOptions = {}): 
     }
   };
 
+  // `LRUMap.set` would drop the oldest run without ending its span, so it is ended first, like Flue and Mastra.
+  let warnedFull = false;
+  const trackRun = (runId: string, run: LangChainRun): void => {
+    if (runs.size >= MAX_TRACKED_LANGCHAIN_RUNS) {
+      if (!warnedFull) {
+        warnedFull = true;
+        DEBUG_BUILD &&
+          debug.warn(
+            `[LangChain] More than ${MAX_TRACKED_LANGCHAIN_RUNS} runs are open, ending the oldest. Its span may be cut short.`,
+          );
+      }
+      const oldestRunId = runs.keys()[0];
+      if (oldestRunId !== undefined) {
+        exitSpan(oldestRunId);
+      }
+    }
+    runs.set(runId, run);
+  };
+
   // Nearest first. `LRUMap.get()` marks each run recently used, so a long-running root run is not evicted while
   // its subtree is busy.
   const getAncestors = (parentRunId: string | undefined): LangChainRun[] => {
@@ -123,7 +144,7 @@ export function createLangChainCallbackHandler(options: LangChainOptions = {}): 
     }
 
     const run: LangChainRun = { span, parentRunId, activeSpan, conversationId };
-    runs.set(runId, run);
+    trackRun(runId, run);
     if (conversationId) {
       for (const ancestor of ancestors) {
         if (ancestor.conversationId) {

@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   GEN_AI_AGENT_NAME,
   GEN_AI_CONVERSATION_ID,
@@ -10,6 +10,7 @@ import {
 import { GEN_AI_DECIDE } from '@sentry/conventions/op';
 import {
   conversationIdIntegration,
+  debug,
   getClient,
   getMainCarrier,
   setConversationId,
@@ -321,18 +322,21 @@ describe('LangChain callback handler run tree', () => {
     });
   });
 
-  it('drops the oldest run without ending it once too many runs are open', () => {
+  it('ends the oldest run once too many runs are open, and warns once', () => {
     const endedSpans = setupClient();
+    const warn = vi.spyOn(debug, 'warn').mockImplementation(() => undefined);
     const handler = createLangChainCallbackHandler();
 
     handler.handleChainStart?.({}, {}, 'abandoned', undefined, undefined, undefined, undefined, 'abandoned');
-    for (let i = 0; i < MAX_TRACKED_LANGCHAIN_RUNS; i++) {
+    for (let i = 0; i <= MAX_TRACKED_LANGCHAIN_RUNS; i++) {
       handler.handleChainStart?.({}, {}, `run-${i}`, undefined, undefined, undefined, undefined, `run-${i}`);
     }
-    handler.handleChainEnd?.({}, 'abandoned');
-    handler.handleChainEnd?.({}, 'run-0');
+    expect(endedSpans.map(span => spanToJSON(span).name)).toEqual(['chain abandoned', 'chain run-0']);
+    expect(warn).toHaveBeenCalledTimes(1);
 
-    expect(endedSpans.map(span => spanToJSON(span).name)).toEqual(['chain run-0']);
+    handler.handleChainEnd?.({}, 'abandoned');
+    expect(endedSpans).toHaveLength(2);
+    warn.mockRestore();
   });
 
   it('keeps every ancestor of a busy run open', () => {
