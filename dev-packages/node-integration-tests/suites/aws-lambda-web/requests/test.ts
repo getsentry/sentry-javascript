@@ -1,5 +1,4 @@
 import {
-  CLOUD_ACCOUNT_ID,
   CLOUD_PLATFORM,
   CLOUD_PROVIDER,
   CLOUD_REGION,
@@ -19,7 +18,6 @@ createEsmAndCjsTests(__dirname, 'scenario.mjs', 'instrument.mjs', (createRunner,
       .withEnv({
         AWS_LAMBDA_HTTP_ENDPOINT: '0.0.0.0:3000',
         AWS_REGION: 'us-east-1',
-        AWS_ACCOUNT_ID: '123456789012',
         AWS_LAMBDA_FUNCTION_MEMORY_SIZE: '2048',
         AWS_LAMBDA_INITIALIZATION_TYPE: 'native-http',
         AWS_EXECUTION_ENV: 'AWS_Lambda_nodejs24.x-lite',
@@ -36,7 +34,6 @@ createEsmAndCjsTests(__dirname, 'scenario.mjs', 'instrument.mjs', (createRunner,
               [CLOUD_PROVIDER]: 'aws',
               [CLOUD_PLATFORM]: 'aws_lambda',
               [CLOUD_REGION]: 'us-east-1',
-              [CLOUD_ACCOUNT_ID]: '123456789012',
             },
             'aws.lambda': {
               memory_size: 2_147_483_648,

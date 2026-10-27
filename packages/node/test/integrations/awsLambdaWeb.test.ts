@@ -1,12 +1,4 @@
-import {
-  CLOUD_ACCOUNT_ID,
-  CLOUD_PLATFORM,
-  CLOUD_PROVIDER,
-  CLOUD_REGION,
-  FAAS_COLDSTART,
-  FAAS_INVOCATION_ID,
-  SENTRY_ORIGIN,
-} from '@sentry/conventions/attributes';
+import { CLOUD_REGION, FAAS_COLDSTART, FAAS_INVOCATION_ID, SENTRY_ORIGIN } from '@sentry/conventions/attributes';
 import type { Integration } from '@sentry/core';
 import { getCurrentScope, getIsolationScope, SentrySpan, spanToJSON, withIsolationScope } from '@sentry/core';
 import { setAsyncLocalStorageAsyncContextStrategy } from '@sentry/server-utils';
@@ -22,7 +14,6 @@ describe('awsLambdaWebIntegration', () => {
     setAsyncLocalStorageAsyncContextStrategy();
     vi.stubEnv('AWS_LAMBDA_HTTP_ENDPOINT', '0.0.0.0:3000');
     vi.stubEnv('AWS_REGION', 'us-east-1');
-    vi.stubEnv('AWS_ACCOUNT_ID', '123456789012');
     vi.stubEnv('AWS_LAMBDA_FUNCTION_MEMORY_SIZE', '2048');
     vi.stubEnv('AWS_LAMBDA_INITIALIZATION_TYPE', 'native-http');
     const { awsLambdaWebIntegration } = await import('../../src/integrations/awsLambdaWeb');
@@ -65,12 +56,7 @@ describe('awsLambdaWebIntegration', () => {
     expect(integration.processEvent!(event, {}, client)).toEqual({
       contexts: {
         'aws.lambda': { aws_request_id: 'request', memory_size: 2_147_483_648, initialization_type: 'native-http' },
-        cloud_resource: {
-          [CLOUD_PROVIDER]: 'aws',
-          [CLOUD_PLATFORM]: 'aws_lambda',
-          [CLOUD_REGION]: 'custom',
-          [CLOUD_ACCOUNT_ID]: '123456789012',
-        },
+        cloud_resource: { [CLOUD_REGION]: 'custom' },
       },
     });
   });
@@ -118,9 +104,6 @@ describe('awsLambdaWebIntegration', () => {
       expect(spanJSON.attributes).toEqual({
         [SENTRY_ORIGIN]: 'manual',
         [CLOUD_REGION]: 'custom-region',
-        [CLOUD_PROVIDER]: 'aws',
-        [CLOUD_PLATFORM]: 'aws_lambda',
-        [CLOUD_ACCOUNT_ID]: '123456789012',
         [FAAS_COLDSTART]: false,
         [FAAS_INVOCATION_ID]: 'request',
         'faas.max_memory': 0,
@@ -153,9 +136,6 @@ describe('awsLambdaWebIntegration', () => {
     expect(span.attributes).toEqual({
       [SENTRY_ORIGIN]: 'manual',
       [CLOUD_REGION]: 'custom-region',
-      [CLOUD_PROVIDER]: 'aws',
-      [CLOUD_PLATFORM]: 'aws_lambda',
-      [CLOUD_ACCOUNT_ID]: '123456789012',
       'faas.max_memory': 2_147_483_648,
       'aws.lambda.initialization_type': 'native-http',
     });
@@ -180,7 +160,6 @@ describe('awsLambdaWebIntegration', () => {
 
   it('omits unavailable metadata and does not infer function identity', async () => {
     vi.stubEnv('AWS_REGION', undefined);
-    vi.stubEnv('AWS_ACCOUNT_ID', undefined);
     vi.stubEnv('AWS_LAMBDA_FUNCTION_MEMORY_SIZE', 'invalid');
     vi.stubEnv('AWS_LAMBDA_INITIALIZATION_TYPE', undefined);
     const { awsLambdaWebIntegration } = await import('../../src/integrations/awsLambdaWeb');
@@ -192,7 +171,6 @@ describe('awsLambdaWebIntegration', () => {
     });
     expect(minimal.processEvent!({}, {}, client)).toEqual({
       contexts: {
-        cloud_resource: { [CLOUD_PROVIDER]: 'aws', [CLOUD_PLATFORM]: 'aws_lambda' },
         'aws.lambda': {},
       },
     });
