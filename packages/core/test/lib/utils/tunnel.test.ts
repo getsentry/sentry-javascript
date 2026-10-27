@@ -1,5 +1,6 @@
 import * as http from 'node:http';
 import * as http2 from 'node:http2';
+import * as net from 'node:net';
 import type { AddressInfo } from 'node:net';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { getEnvelopeEndpointWithUrlEncodedAuth } from '../../../src/api';
@@ -171,6 +172,29 @@ describe('handleTunnelRequest call forms', () => {
       expect(fetchMock).toHaveBeenCalledOnce();
     } finally {
       client.close();
+      await new Promise(resolve => server.close(resolve));
+    }
+  });
+
+  it('forwards a Node request whose Host header is no valid URL host', async () => {
+    const server = http.createServer((req, res) => {
+      void handleTunnelRequest(req, res, { allowedDsns: [TEST_DSN] });
+    });
+    await new Promise<void>(resolve => server.listen(0, resolve));
+    const envelope = serializeEnvelope(createEnvelope({ dsn: TEST_DSN }, [])) as string;
+
+    try {
+      const statusLine = await new Promise<string>((resolve, reject) => {
+        const socket = net.connect((server.address() as AddressInfo).port, () => {
+          socket.end(`POST /tunnel HTTP/1.1\r\nHost: a b<>\r\nContent-Length: ${envelope.length}\r\n\r\n${envelope}`);
+        });
+        socket.on('data', data => resolve(String(data).split('\r\n')[0]!));
+        socket.on('error', reject);
+      });
+
+      expect(statusLine).toBe('HTTP/1.1 202 Accepted');
+      expect(fetchMock).toHaveBeenCalledOnce();
+    } finally {
       await new Promise(resolve => server.close(resolve));
     }
   });

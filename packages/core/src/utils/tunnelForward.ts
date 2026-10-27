@@ -148,9 +148,6 @@ function toFetchRequest(request: NodeTunnelRequest): Request {
       headers.set(name, Array.isArray(value) ? value.join(', ') : value);
     }
   }
-  const authority = request.headers[':authority'];
-  const host = headers.get('host') ?? (typeof authority === 'string' ? authority : 'localhost');
-
   const iterator = request[Symbol.asyncIterator]();
   const encoder = new TextEncoder();
   // Not `ReadableStream.from`, which Bun 1.3 lacks.
@@ -166,7 +163,9 @@ function toFetchRequest(request: NodeTunnelRequest): Request {
     },
   });
 
-  return new Request(`http://${host}${request.url ?? '/'}`, {
+  // The forward reads only the headers and the body. A URL built from the request's `Host` would throw on one
+  // Node accepts, like `a b`.
+  return new Request('http://localhost/', {
     method: 'POST',
     headers,
     body,
