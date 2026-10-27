@@ -92,10 +92,7 @@ export function createSentryTunnelRoute(options: CreateSentryTunnelRouteOptions)
           );
         }
 
-        return handleTunnelRequest({
-          request,
-          allowedDsns,
-        });
+        return handleTunnelRequest(request, { allowedDsns });
       },
     },
   };

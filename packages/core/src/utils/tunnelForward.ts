@@ -5,23 +5,114 @@ import { debug } from './debug-logger';
 import { makeDsn } from './dsn';
 import { resolveAllowedDsns } from './tunnel';
 
+/**
+ * Options for {@link handleTunnelRequest}.
+ */
 export interface HandleTunnelRequestOptions {
-  /** Incoming request containing the Sentry envelope as its body */
-  request: Request;
+  /**
+   * The incoming request.
+   *
+   * @deprecated Pass the request as the first argument of `handleTunnelRequest` instead.
+   */
+  request?: Request;
   /** DSNs whose envelopes may be forwarded, in addition to the DSN of the active client. */
   allowedDsns?: Array<string>;
 }
 
 /**
- * Core Sentry tunnel handler - framework agnostic.
- *
- * Validates the envelope DSN against allowed DSNs, then forwards the
- * envelope to the Sentry ingest endpoint.
- *
- * @returns A `Response` — either the upstream Sentry response on success, or an error response.
+ * The parts of Node's `IncomingMessage` the tunnel reads.
  */
-export function handleTunnelRequest(options: HandleTunnelRequestOptions): Promise<Response> {
-  return forwardTunnelRequest(options.request, resolveAllowedDsns(options.allowedDsns, getClient()?.getDsn()));
+interface NodeTunnelRequest extends AsyncIterable<Uint8Array | string> {
+  url?: string;
+  headers: Record<string, string | string[] | undefined>;
+}
+
+/**
+ * The parts of Node's `ServerResponse` the tunnel writes.
+ */
+interface NodeTunnelResponse {
+  writeHead(statusCode: number, headers?: Record<string, string>): unknown;
+  end(chunk?: Uint8Array): unknown;
+}
+
+/**
+ * Forwards a tunnel request to Sentry, if its envelope's DSN is the active client's or one of `allowedDsns`.
+ * It doesn't check the path: route the tunnel requests to it, e.g. on `getTunnelPath(dsn)`.
+ *
+ * @returns Sentry's response, or the response rejecting the request.
+ */
+export function handleTunnelRequest(request: Request, options?: HandleTunnelRequestOptions): Promise<Response>;
+/**
+ * Forwards a tunnel request from a Node server, like Express or `node:http`, and writes the answer to `response`.
+ * Mount it before body parsers, which would read the envelope first.
+ */
+export function handleTunnelRequest(
+  request: NodeTunnelRequest,
+  response: NodeTunnelResponse,
+  options?: HandleTunnelRequestOptions,
+): Promise<void>;
+/**
+ * @deprecated Use `handleTunnelRequest(request, options)` instead.
+ */
+export function handleTunnelRequest(options: HandleTunnelRequestOptions & { request: Request }): Promise<Response>;
+export function handleTunnelRequest(
+  requestOrOptions: Request | NodeTunnelRequest | (HandleTunnelRequestOptions & { request: Request }),
+  responseOrOptions?: NodeTunnelResponse | HandleTunnelRequestOptions,
+  nodeOptions?: HandleTunnelRequestOptions,
+): Promise<Response | void> {
+  if (isNodeTunnelResponse(responseOrOptions)) {
+    return handleNodeTunnelRequest(requestOrOptions as NodeTunnelRequest, responseOrOptions, nodeOptions);
+  }
+
+  // The released `handleTunnelRequest({ request })` form. A `Request` has a `method`, the options object doesn't.
+  const isLegacyCall = 'request' in requestOrOptions && !('method' in requestOrOptions);
+  // oxlint-disable-next-line typescript/no-deprecated -- reads the released form to keep it working
+  const request = isLegacyCall ? requestOrOptions.request : (requestOrOptions as Request);
+  const options = isLegacyCall ? requestOrOptions : responseOrOptions;
+
+  return forwardTunnelRequest(request, resolveAllowedDsns(options?.allowedDsns, getClient()?.getDsn()));
+}
+
+function isNodeTunnelResponse(value: unknown): value is NodeTunnelResponse {
+  return typeof (value as NodeTunnelResponse | undefined)?.writeHead === 'function';
+}
+
+async function handleNodeTunnelRequest(
+  request: NodeTunnelRequest,
+  response: NodeTunnelResponse,
+  options: HandleTunnelRequestOptions | undefined,
+): Promise<void> {
+  const headers = new Headers();
+  for (const [name, value] of Object.entries(request.headers)) {
+    if (value !== undefined) {
+      headers.set(name, Array.isArray(value) ? value.join(', ') : value);
+    }
+  }
+
+  const iterator = request[Symbol.asyncIterator]();
+  const encoder = new TextEncoder();
+  const body = new ReadableStream<Uint8Array>({
+    async pull(controller) {
+      const { done, value } = await iterator.next();
+      if (done) {
+        controller.close();
+        return;
+      }
+
+      controller.enqueue(typeof value === 'string' ? encoder.encode(value) : value);
+    },
+  });
+
+  const fetchRequest = new Request(`http://${headers.get('host') ?? 'localhost'}${request.url ?? '/'}`, {
+    method: 'POST',
+    headers,
+    body,
+    duplex: 'half',
+  } as RequestInit);
+
+  const fetchResponse = await handleTunnelRequest(fetchRequest, options);
+  response.writeHead(fetchResponse.status, Object.fromEntries(fetchResponse.headers));
+  response.end(new Uint8Array(await fetchResponse.arrayBuffer()));
 }
 
 function withDecodedBodyHeaders(response: Response): Response {
