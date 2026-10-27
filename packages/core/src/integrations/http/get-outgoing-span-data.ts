@@ -24,6 +24,7 @@ import {
   SERVER_PORT,
   URL_FULL,
   USER_AGENT_ORIGINAL,
+  HTTP_RESPONSE_STATUS_TEXT,
 } from '@sentry/conventions/attributes';
 import { HTTP_CLIENT } from '@sentry/conventions/op';
 
@@ -77,7 +78,7 @@ export function setIncomingResponseSpanData(response: HttpIncomingMessage, span:
     [NETWORK_PROTOCOL_NAME]: 'http',
     [NETWORK_PROTOCOL_VERSION]: httpVersion,
     [NETWORK_TRANSPORT]: transport,
-    'http.response.status_text': statusMessage?.toUpperCase(),
+    [HTTP_RESPONSE_STATUS_TEXT]: statusMessage?.toUpperCase(),
     [HTTP_RESPONSE_BODY_SIZE]: getContentLengthFromHeaders(response.headers),
     ...getSocketAttrs(socket),
   });
