@@ -256,10 +256,16 @@ describe('sentryOrchestrionPlugin (vite)', () => {
   function runConfigEnvironment(
     name: string,
     environmentConfig: Record<string, unknown>,
-    command: 'build' | 'serve' = 'build',
-    // Vite 6 passes no context, Vite 8 passes `rolldownVersion`.
-    context?: { meta: { rolldownVersion?: string } },
-    plugin = vitePlugin(),
+    {
+      command = 'build',
+      context,
+      plugin = vitePlugin(),
+    }: {
+      command?: 'build' | 'serve';
+      // Vite 6 passes no context, Vite 8 passes `rolldownVersion`.
+      context?: { meta: { rolldownVersion?: string } };
+      plugin?: VitePlugin;
+    } = {},
   ): EnvironmentConfigResult {
     const configEnvironment = plugin.configEnvironment as (
       name: string,
@@ -296,43 +302,60 @@ describe('sentryOrchestrionPlugin (vite)', () => {
   it('does not force-bundle instrumented modules on the dev server', () => {
     // Inlined in dev, the CommonJS drivers throw `exports is not defined` on import.
     expect(runConfig('serve')).toBeNull();
-    expect(runConfigEnvironment('ssr', {}, 'serve')?.resolve).toBeUndefined();
+    expect(
+      runConfigEnvironment('ssr', {}, { command: 'serve', plugin: vitePlugin({ transformOptimizedDeps: true }) })
+        ?.resolve,
+    ).toBeUndefined();
   });
 
-  it('runs the transform in the dependency optimizer of server environments on the dev server', () => {
-    expect(runConfigEnvironment('ssr', {}, 'serve')).toEqual({
+  it('does not change the dependency optimizer on the dev server without transformOptimizedDeps', () => {
+    // A Node server loads its dependencies with Node, where the runtime hook instruments them.
+    expect(runConfigEnvironment('ssr', {}, { command: 'serve' })).toBeNull();
+    expect(
+      runConfigEnvironment(
+        'worker',
+        { consumer: 'server' },
+        { command: 'serve', context: { meta: { rolldownVersion: '1.2.14' } } },
+      ),
+    ).toBeNull();
+  });
+
+  it('runs the transform in the dependency optimizer of server environments with transformOptimizedDeps', () => {
+    const plugin = vitePlugin({ transformOptimizedDeps: true });
+    const context = { meta: { rolldownVersion: '1.2.14' } };
+
+    expect(runConfigEnvironment('ssr', {}, { command: 'serve', plugin })).toEqual({
       optimizeDeps: {
         esbuildOptions: { plugins: [expect.objectContaining({ name: 'sentry-orchestrion-dep-optimizer' })] },
       },
     });
-    expect(
-      runConfigEnvironment('worker', { consumer: 'server' }, 'serve', { meta: { rolldownVersion: '1.2.14' } }),
-    ).toEqual({
+    expect(runConfigEnvironment('worker', { consumer: 'server' }, { command: 'serve', context, plugin })).toEqual({
       optimizeDeps: {
         rolldownOptions: { plugins: [expect.objectContaining({ name: 'sentry-orchestrion-dep-optimizer' })] },
       },
     });
-    expect(runConfigEnvironment('client', {}, 'serve')).toBeNull();
-    expect(
-      runConfigEnvironment('browser', { consumer: 'client' }, 'serve', { meta: { rolldownVersion: '1.2.14' } }),
-    ).toBeNull();
+    expect(runConfigEnvironment('client', {}, { command: 'serve', plugin })).toBeNull();
+    expect(runConfigEnvironment('browser', { consumer: 'client' }, { command: 'serve', context, plugin })).toBeNull();
   });
 
-  it('transforms in the Rolldown dependency optimizer without the ssr flag, only in the first instance', () => {
-    const first = vitePlugin();
-    const second = vitePlugin();
+  it('transforms in the Rolldown dependency optimizer without the ssr flag, only in the first instance with transformOptimizedDeps', () => {
+    // For example the instance of `sentryReactRouter` before the one of `sentryCloudflareVitePlugin`.
+    const other = vitePlugin();
+    const first = vitePlugin({ transformOptimizedDeps: true });
+    const second = vitePlugin({ transformOptimizedDeps: true });
     const config = {
       command: 'serve',
-      plugins: [first, second],
+      plugins: [other, first, second],
       ssr: {},
       logger: { warn: vi.fn() },
     } as unknown as ResolvedConfig;
     const context = { meta: { rolldownVersion: '1.2.14' } };
-    const firstOptimizerPlugin = runConfigEnvironment('worker', {}, 'serve', context, first)?.optimizeDeps
-      ?.rolldownOptions?.plugins[0];
-    const secondOptimizerPlugin = runConfigEnvironment('worker', {}, 'serve', context, second)?.optimizeDeps
-      ?.rolldownOptions?.plugins[0];
+    const firstOptimizerPlugin = runConfigEnvironment('worker', {}, { command: 'serve', context, plugin: first })
+      ?.optimizeDeps?.rolldownOptions?.plugins[0];
+    const secondOptimizerPlugin = runConfigEnvironment('worker', {}, { command: 'serve', context, plugin: second })
+      ?.optimizeDeps?.rolldownOptions?.plugins[0];
 
+    (other.configResolved as (config: unknown) => void)(config);
     (first.configResolved as (config: unknown) => void)(config);
     (second.configResolved as (config: unknown) => void)(config);
 
@@ -343,8 +366,15 @@ describe('sentryOrchestrionPlugin (vite)', () => {
   });
 
   it('resolves the snippet import to the ESM entry in the Rolldown dependency optimizer', async () => {
-    const optimizerPlugin = runConfigEnvironment('worker', {}, 'serve', { meta: { rolldownVersion: '1.2.14' } })
-      ?.optimizeDeps?.rolldownOptions?.plugins[0];
+    const optimizerPlugin = runConfigEnvironment(
+      'worker',
+      {},
+      {
+        command: 'serve',
+        context: { meta: { rolldownVersion: '1.2.14' } },
+        plugin: vitePlugin({ transformOptimizedDeps: true }),
+      },
+    )?.optimizeDeps?.rolldownOptions?.plugins[0];
     const resolveId = optimizerPlugin?.resolveId as (
       this: unknown,
       source: string,
@@ -361,7 +391,11 @@ describe('sentryOrchestrionPlugin (vite)', () => {
   });
 
   it('resolves the snippet import to the ESM entry in the esbuild dependency optimizer', async () => {
-    const optimizerPlugin = runConfigEnvironment('ssr', {}, 'serve')?.optimizeDeps?.esbuildOptions?.plugins[0];
+    const optimizerPlugin = runConfigEnvironment(
+      'ssr',
+      {},
+      { command: 'serve', plugin: vitePlugin({ transformOptimizedDeps: true }) },
+    )?.optimizeDeps?.esbuildOptions?.plugins[0];
     const onResolve = vi.fn();
     const resolve = vi.fn().mockResolvedValue({
       errors: [],
@@ -381,20 +415,22 @@ describe('sentryOrchestrionPlugin (vite)', () => {
     expect(fallback?.path).toMatch(/[/\\]build[/\\]esm[/\\]index\.js$/);
   });
 
-  it('sets up the esbuild dependency optimizer plugin only in the first instance', async () => {
-    const first = vitePlugin();
-    const second = vitePlugin();
+  it('sets up the esbuild dependency optimizer plugin only in the first instance with transformOptimizedDeps', async () => {
+    const other = vitePlugin();
+    const first = vitePlugin({ transformOptimizedDeps: true });
+    const second = vitePlugin({ transformOptimizedDeps: true });
     const config = {
       command: 'serve',
-      plugins: [first, second],
+      plugins: [other, first, second],
       ssr: {},
       logger: { warn: vi.fn() },
     } as unknown as ResolvedConfig;
-    const firstOptimizerPlugin = runConfigEnvironment('ssr', {}, 'serve', undefined, first)?.optimizeDeps
+    const firstOptimizerPlugin = runConfigEnvironment('ssr', {}, { command: 'serve', plugin: first })?.optimizeDeps
       ?.esbuildOptions?.plugins[0];
-    const secondOptimizerPlugin = runConfigEnvironment('ssr', {}, 'serve', undefined, second)?.optimizeDeps
+    const secondOptimizerPlugin = runConfigEnvironment('ssr', {}, { command: 'serve', plugin: second })?.optimizeDeps
       ?.esbuildOptions?.plugins[0];
 
+    (other.configResolved as (config: unknown) => void)(config);
     (first.configResolved as (config: unknown) => void)(config);
     (second.configResolved as (config: unknown) => void)(config);
 

@@ -18,7 +18,9 @@ type ResolveIdHandler = Extract<NonNullable<Plugin['resolveId']>, (...args: neve
 // can find the first instance in a build also through a wrapper.
 const INSTANCE_KEY = '__sentryOrchestrionInstance';
 
-type OrchestrionVitePlugin = Plugin & { [INSTANCE_KEY]?: object };
+type OrchestrionInstance = { transformOptimizedDeps: boolean };
+
+type OrchestrionVitePlugin = Plugin & { [INSTANCE_KEY]?: OrchestrionInstance };
 
 function gateTransform(
   transform: Plugin['transform'],
@@ -143,9 +145,12 @@ export function sentryOrchestrionPlugin(options: PluginOptions = {}): Plugin {
   ];
   const resolveExternalRequire = createExternalRequireResolver(noExternalModules());
 
-  const instance = {};
+  const instance: OrchestrionInstance = { transformOptimizedDeps: options.transformOptimizedDeps === true };
   // `true` when an earlier instance of this plugin is in the same build, which then transforms the modules alone.
   let isDuplicate = false;
+  // `true` when an earlier instance with `transformOptimizedDeps` is in the same build, which then transforms the
+  // pre-bundled dependencies alone.
+  let isDuplicateOptimizer = false;
 
   const plugin: OrchestrionVitePlugin = {
     ...upstream,
@@ -202,20 +207,25 @@ export function sentryOrchestrionPlugin(options: PluginOptions = {}): Plugin {
         return null;
       }
 
-      // Some server environments pre-bundle their dependencies in `serve`, for example the ones
-      // of `@cloudflare/vite-plugin`. The dependency optimizer runs no Vite plugins, so the
-      // transform has to run inside it.
+      // `@cloudflare/vite-plugin` pre-bundles the dependencies of a Worker in `serve`. The dependency
+      // optimizer runs no Vite plugins, so the transform has to run inside it. A Node server loads its
+      // dependencies with Node, where the runtime hook instruments them.
       if (env?.command === 'serve') {
+        if (!options.transformOptimizedDeps) {
+          return null;
+        }
         if (this?.meta?.rolldownVersion) {
           return {
-            optimizeDeps: { rolldownOptions: { plugins: [depOptimizerRolldownPlugin(options, () => isDuplicate)] } },
+            optimizeDeps: {
+              rolldownOptions: { plugins: [depOptimizerRolldownPlugin(options, () => isDuplicateOptimizer)] },
+            },
           };
         }
         return {
           optimizeDeps: {
             // Vite 6 and 7 have no `rolldownOptions`.
             // oxlint-disable-next-line typescript/no-deprecated
-            esbuildOptions: { plugins: [depOptimizerEsbuildPlugin(options, () => isDuplicate)] },
+            esbuildOptions: { plugins: [depOptimizerEsbuildPlugin(options, () => isDuplicateOptimizer)] },
           },
         };
       }
@@ -225,8 +235,12 @@ export function sentryOrchestrionPlugin(options: PluginOptions = {}): Plugin {
     configResolved(config: ResolvedConfig): void {
       // Two Sentry Vite plugins can each add this plugin to one build, for example `sentryCloudflareVitePlugin` and
       // `sentryReactRouter`. A module transformed twice declares the injected snippet twice and fails the build.
-      const first = (config.plugins as readonly OrchestrionVitePlugin[]).find(p => p[INSTANCE_KEY]);
-      isDuplicate = first !== undefined && first[INSTANCE_KEY] !== instance;
+      const instances = (config.plugins as readonly OrchestrionVitePlugin[]).flatMap(p => p[INSTANCE_KEY] ?? []);
+      isDuplicate = instances[0] !== undefined && instances[0] !== instance;
+      // The first instance can be one without `transformOptimizedDeps`, for example the one of `sentryReactRouter`
+      // before `sentryCloudflareVitePlugin`.
+      const firstOptimizer = instances.find(i => i.transformOptimizedDeps);
+      isDuplicateOptimizer = firstOptimizer !== undefined && firstOptimizer !== instance;
 
       // Nothing is force-bundled in `serve`, so an externalized module is expected there.
       if (isDuplicate || config.command === 'serve') {

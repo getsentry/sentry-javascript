@@ -32,7 +32,7 @@ describe('sentryOrchestrionPlugin (vite) in the Rolldown dependency optimizer', 
       root,
       configFile: false,
       logLevel: 'silent',
-      plugins: [sentryOrchestrionPlugin({ instrumentations })],
+      plugins: [sentryOrchestrionPlugin({ instrumentations, transformOptimizedDeps: true })],
       server: { middlewareMode: true, ws: false, watch: null },
       environments: {
         ssr: {
