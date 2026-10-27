@@ -193,6 +193,12 @@ is the reference setup.
   because workerd does not allow it. `nextjs-16` has no Vite build: its Cloudflare variant builds with
   `opennextjs-cloudflare build --config wrangler.opennext.jsonc` and wraps the generated Worker in `worker.ts` with
   `withSentry` from `@sentry/nextjs/cloudflare`.
+- **Cloudflare in `vite dev`**: to run the Worker in `vite dev` (for example the dev tests of the `hono-4` Cloudflare
+  variant), start it with `CLOUDFLARE_INCLUDE_PROCESS_ENV=true vite dev`. The runner gives `E2E_TEST_DSN` to the app
+  only as a process env var. `wrangler dev` adds it to the Worker `env` with `--var "E2E_TEST_DSN:$E2E_TEST_DSN"`, but
+  `@cloudflare/vite-plugin` has no such option. It fills the Worker `env` from the `vars` of the wrangler config and
+  from `.dev.vars` or `.env`, and adds process env vars only when `CLOUDFLARE_INCLUDE_PROCESS_ENV` is `true`. Without
+  it, `env.E2E_TEST_DSN` is `undefined`, the SDK sends no events, and the tests fail.
 - **Build flavors**: a variant can also build the same app with another tool, for example `nextjs-16 (vinext)` builds
   `nextjs-16` with vinext. A build flavor is not a runtime: its assert script sets its own env var (`VINEXT=1`, read by
   `tests/isVinext.ts`). It sets `runtime` only to run on another runtime, for example `nextjs-16 (vinext, bun)`.

@@ -10,7 +10,11 @@ if (!testEnv) {
 const APP_PORT = 8787;
 
 const startCommands: Record<Runtime, string> = {
-  cloudflare: `pnpm dev:cloudflare --port ${APP_PORT}`,
+  // `vite dev` pre-bundles `hono` with its Rolldown dependency optimizer, so this also tests the transform there.
+  cloudflare:
+    testEnv === 'development'
+      ? `pnpm dev:cloudflare:vite --port ${APP_PORT} --strictPort`
+      : `pnpm dev:cloudflare --port ${APP_PORT}`,
   node: `pnpm dev:node`,
   bun: `pnpm dev:bun`,
   deno: `pnpm dev:deno`,
