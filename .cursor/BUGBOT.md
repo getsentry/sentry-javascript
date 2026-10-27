@@ -49,6 +49,9 @@ Keep reviews high-signal. Prefer actionable, high-confidence findings over specu
 - When calling any `startSpan` API (`startInactiveSpan`, `startSpanManual`, etc), always ensure that the following span attributes are set:
   - `SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN` (`'sentry.origin'`) with a proper span origin
     - a proper origin must only contain [a-z], [A-Z], [0-9], `_` and `.` characters.
+    - a proper origin has at most four parts, `<type>.<category>.<integration_name>.<integration_part>`, and must not skip a part. `type` is `auto` or `manual`.
+    - `category` must be a span op category (e.g. `http`, `db`, `queue`, `function`, `ai`, `ui`, `rpc`), matching the span's op. Flag origins that put a library or vendor in the category slot (e.g. `auto.kafkajs.producer` instead of `auto.queue.kafkajs.producer`).
+    - the origin identifies the integration, not the tooling behind it. Flag leftover implementation markers like `otel` or `orchestrion` used as a part.
     - flag any non-conforming origin values as invalid and link to the trace origin specification (https://develop.sentry.dev/sdk/telemetry/traces/trace-origin/)
   - `SEMANTIC_ATTRIBUTE_SENTRY_OP` (`'sentry.op'`) with a proper span op
     - Span ops should be lower case only, and use snake_case. The `.` character is used to delimit op parts.

@@ -1,3 +1,5 @@
+import { isError } from '@sentry/core';
+
 /** Monitor the source without reading ahead or treating cancellation as a source failure. */
 export function monitorStream(
   stream: ReadableStream<Uint8Array>,
@@ -6,8 +8,12 @@ export function monitorStream(
 ): ReadableStream<Uint8Array> {
   const reader = stream.getReader();
   // A cancelled reader closes normally; only a source failure should be captured as an error.
+  // A source that stops on `request.signal` errors with an `AbortError` when the client
+  // disconnects, which is a cancellation too.
   void reader.closed.then(onDone, error => {
-    onError(error);
+    if (!(isError(error) && error.name === 'AbortError')) {
+      onError(error);
+    }
     onDone();
   });
 

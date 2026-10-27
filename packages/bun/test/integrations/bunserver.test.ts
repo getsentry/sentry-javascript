@@ -1,3 +1,9 @@
+import {
+  HTTP_ROUTE,
+  SENTRY_SEGMENT_NAME_SOURCE,
+  SERVER_ADDRESS,
+  URL_PATH_PARAMETER_KEY_BASE,
+} from '@sentry/conventions/attributes';
 import type { AggregationCounts, Envelope, RequestEventData } from '@sentry/core';
 import * as SentryCore from '@sentry/core';
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, spyOn, test } from 'bun:test';
@@ -98,6 +104,37 @@ describe('Bun Serve Integration', () => {
       }
     },
   );
+
+  test('lets the fetch handler upgrade a request to a WebSocket', async () => {
+    const server = Bun.serve({
+      port,
+      fetch(request, server) {
+        if (server.upgrade(request)) {
+          return undefined;
+        }
+        return new Response('no upgrade', { status: 400 });
+      },
+      websocket: {
+        message(ws, message) {
+          ws.send(`echo: ${message}`);
+        },
+      },
+    });
+    try {
+      const ws = new WebSocket(`ws://localhost:${port}/socket`);
+      const reply = await new Promise<string>((resolve, reject) => {
+        ws.onopen = () => ws.send('hello');
+        ws.onmessage = event => resolve(String(event.data));
+        ws.onerror = () => reject(new Error('WebSocket failed'));
+      });
+      ws.close();
+
+      expect(reply).toBe('echo: hello');
+      expect(captureExceptionSpy).not.toHaveBeenCalled();
+    } finally {
+      await server.stop(true);
+    }
+  });
 
   test.each(['client disconnected', new Error('client disconnected')])(
     'ends the span without capturing a cancelled stream: %s',
@@ -228,7 +265,7 @@ describe('Bun Serve Integration', () => {
           'url.full': `http://localhost:${port}/users?id=123`,
           'url.port': port.toString(),
           'url.scheme': 'http:',
-          'url.domain': 'localhost',
+          [SERVER_ADDRESS]: 'localhost',
           'http.request.header.accept': ['*/*'],
           'http.request.header.accept-encoding': ['gzip, deflate, br, zstd'],
           'http.request.header.connection': ['keep-alive'],
@@ -266,12 +303,12 @@ describe('Bun Serve Integration', () => {
           'sentry.op': 'http.server',
           'sentry.origin': 'auto.http.bun.serve',
           'http.request.method': 'POST',
-          'sentry.segment.name.source': 'url',
+          [SENTRY_SEGMENT_NAME_SOURCE]: 'route',
           'url.path': '/',
           'url.full': `http://localhost:${port}/`,
           'url.port': port.toString(),
           'url.scheme': 'http:',
-          'url.domain': 'localhost',
+          [SERVER_ADDRESS]: 'localhost',
           'http.request.header.accept': ['*/*'],
           'http.request.header.accept-encoding': ['gzip, deflate, br, zstd'],
           'http.request.header.connection': ['keep-alive'],
@@ -279,7 +316,7 @@ describe('Bun Serve Integration', () => {
           'http.request.header.host': [expect.any(String)],
           'http.request.header.user-agent': [expect.stringContaining('Bun')],
         }),
-        name: 'POST',
+        name: 'POST /',
       },
       expect.any(Function),
     );
@@ -390,7 +427,7 @@ describe('Bun Serve Integration', () => {
           'url.full': `http://localhost:${port}/api/test`,
           'url.port': port.toString(),
           'url.scheme': 'http:',
-          'url.domain': 'localhost',
+          [SERVER_ADDRESS]: 'localhost',
           // HTTP headers as span attributes following OpenTelemetry semantic conventions
           'http.request.header.user-agent': ['Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'],
           'http.request.header.content-type': ['application/json'],
@@ -463,15 +500,40 @@ describe('Bun Serve Integration', () => {
           'sentry.origin': 'auto.http.bun.serve',
           'http.request.method': 'GET',
           'sentry.segment.name.source': 'route',
-          'url.template': '/users/:id',
-          'url.path.parameter.id': '123',
+          [HTTP_ROUTE]: '/users/:id',
+          [`${URL_PATH_PARAMETER_KEY_BASE}.id`]: '123',
           'url.path': '/users/123',
           'url.full': `http://localhost:${port}/users/123`,
           'url.port': port.toString(),
           'url.scheme': 'http:',
-          'url.domain': 'localhost',
+          [SERVER_ADDRESS]: 'localhost',
         }),
         name: 'GET /users/:id',
+      }),
+      expect.any(Function),
+    );
+
+    await server.stop();
+  });
+
+  test('sets http.route for a route without parameters', async () => {
+    const server = Bun.serve({
+      routes: {
+        '/api/health': () => new Response('ok'),
+      },
+      port,
+    });
+
+    const response = await fetch(`http://localhost:${port}/api/health`);
+    expect(await response.text()).toBe('ok');
+
+    expect(startSpanSpy).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        attributes: expect.objectContaining({
+          [SENTRY_SEGMENT_NAME_SOURCE]: 'route',
+          [HTTP_ROUTE]: '/api/health',
+        }),
+        name: 'GET /api/health',
       }),
       expect.any(Function),
     );
@@ -502,12 +564,12 @@ describe('Bun Serve Integration', () => {
           'sentry.origin': 'auto.http.bun.serve',
           'http.request.method': 'GET',
           'sentry.segment.name.source': 'route',
-          'url.template': '/api/*',
+          [HTTP_ROUTE]: '/api/*',
           'url.path': '/api/users/123',
           'url.full': `http://localhost:${port}/api/users/123`,
           'url.port': port.toString(),
           'url.scheme': 'http:',
-          'url.domain': 'localhost',
+          [SERVER_ADDRESS]: 'localhost',
         }),
         name: 'GET /api/*',
       }),

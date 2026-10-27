@@ -6,6 +6,52 @@
 
 Work in this release was contributed by @faizansaiyed123, @itisrmk, @kunal649, @kyrylolvov and @seongwon030. Thank you for your contributions!
 
+### Important Changes
+
+- **feat(cloudflare): Add incoming request span options to `httpServerIntegration`**
+
+  Cloudflare's `httpServerIntegration` now accepts `ignoreIncomingRequests`, `ignoreStaticAssets`, `spans`, `onSpanCreated` and `onSpanEnd`, with the same meaning as in the Node, Deno and Bun integrations. The callbacks receive the web `Request`.
+
+  `ignoreStaticAssets` defaults to `true`, so workers no longer create spans for `GET` requests to common static assets such as `favicon.ico`, `robots.txt` or `*.js` files. To keep these spans, set `httpServerIntegration({ ignoreStaticAssets: false })`. Request spans also follow the client's tracing configuration by default, so the SDK does not start them when tracing is disabled. If `ignoreRequestBody` throws, the request no longer fails, and the SDK skips the body.
+
+- **feat(node, bun, deno, cloudflare): Align portable exports across server SDKs**
+
+  Node, Bun, Deno and Cloudflare now export the same helpers from `@sentry/core` and `@sentry/server-utils` where they work on that runtime:
+
+  - Node and Bun now export `moduleMetadataIntegration`, `instrumentPostgresJsSql`, `instrumentCreateReactAgent`, `awsIntegration` and the `FlueOptions` type. `awsIntegration` was already in their default integrations.
+  - Deno and Cloudflare now export `parameterize` and `instrumentStateGraphCompile`.
+  - Bun and Cloudflare now export the `Log` and `LogSeverityLevel` types.
+  - Deno now exports `fastifyIntegration`, which was already in its default integrations.
+
+- **feat(cloudflare): Let users configure the channel integrations**
+
+  When the `@sentry/cloudflare/vite` plugin bundles an instrumented package (for example `pg` or `openai`), the SDK adds the matching integration with its default options. `@sentry/cloudflare` now exports these integrations, so you can set their options, for example in `instrument.server.ts`:
+
+  ```ts
+  export default Sentry.defineCloudflareOptions(env => ({
+    dsn: env.SENTRY_DSN,
+    integrations: [Sentry.openAIIntegration({ recordInputs: false, recordOutputs: false })],
+  }));
+  ```
+
+  These integrations need the vite plugin. Without it, they record nothing, and with `debug: true` the SDK logs a warning.
+
+- **ref(deno, bun): Use a shared request handler wrapper for `Deno.serve` and `Bun.serve`**
+
+  `Deno.serve` and `Bun.serve` now use the same request handler wrapper, which Cloudflare will also use. On both runtimes, errors in `OPTIONS` and `HEAD` requests now carry the request data, and the SDK keeps every `Set-Cookie` header of a response instead of only the last one.
+
+  For Deno users:
+
+  - When the source of a streamed response fails, the SDK now captures the error and marks the span as failed.
+  - The SDK no longer reads a streamed response ahead of the client.
+
+  `Bun.serve` spans now follow the Sentry conventions for `http.server` spans, as on Node, Deno and Cloudflare:
+
+  - `url.template` is now `http.route`. Routes without parameters also get `http.route` and the `route` source.
+  - `url.domain` is now `server.address`.
+  - A request to `/` gets the `route` source and the name `GET /`.
+  - Spans also get `user_agent.original` and `http.request.body.size`.
+
 ## 11.9.0
 
 ### Important Changes
