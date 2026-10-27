@@ -139,7 +139,10 @@ describe('handleTunnelRequest call forms', () => {
     }
   });
 
-  it('forwards from a Node HTTP/2 server, whose request carries pseudo-headers', async () => {
+  it('forwards from a Node HTTP/2 server, which rejects the connection headers of the answer', async () => {
+    fetchMock.mockResolvedValue(
+      new Response('forwarded', { status: 202, headers: { connection: 'keep-alive', 'keep-alive': 'timeout=5' } }),
+    );
     const server = http2.createServer((req, res) => {
       void handleTunnelRequest(req, res, { allowedDsns: [TEST_DSN] });
     });

@@ -116,6 +116,19 @@ export function handleTunnelRequestIfMatched(
     : forwardTunnelRequest(request as Request, tunnel.allowedDsns);
 }
 
+/**
+ * Headers about the connection to Sentry, not about the answer. Node sets its own on HTTP/1, and HTTP/2 rejects them.
+ */
+const HOP_BY_HOP_HEADERS = new Set([
+  'connection',
+  'keep-alive',
+  'proxy-connection',
+  'transfer-encoding',
+  'upgrade',
+  'te',
+  'trailer',
+]);
+
 function isNodeTunnelResponse(value: unknown): value is NodeTunnelResponse {
   return typeof (value as NodeTunnelResponse | undefined)?.writeHead === 'function';
 }
@@ -157,7 +170,13 @@ async function handleNodeTunnelRequest(
   } as RequestInit);
 
   const fetchResponse = await handleTunnelRequest(fetchRequest, options);
-  response.writeHead(fetchResponse.status, Object.fromEntries(fetchResponse.headers));
+  const responseHeaders: Record<string, string> = {};
+  fetchResponse.headers.forEach((value, name) => {
+    if (!HOP_BY_HOP_HEADERS.has(name)) {
+      responseHeaders[name] = value;
+    }
+  });
+  response.writeHead(fetchResponse.status, responseHeaders);
   response.end(new Uint8Array(await fetchResponse.arrayBuffer()));
 }
 
