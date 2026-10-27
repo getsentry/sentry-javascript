@@ -8,10 +8,18 @@ import type {
 } from '@nestjs/common';
 import { Catch, Global, HttpException, Injectable, Logger, Module } from '@nestjs/common';
 import { APP_INTERCEPTOR, BaseExceptionFilter } from '@nestjs/core';
-import { captureException, debug, getDefaultIsolationScope, getIsolationScope, isObjectLike, startSpanManual, withIsolationScope } from '@sentry/core';
+import {
+  captureException,
+  debug,
+  getDefaultIsolationScope,
+  getIsolationScope,
+  isObjectLike,
+  startSpanManual,
+  withIsolationScope,
+} from '@sentry/core';
+import { isExpectedError, isWsOrRpcException } from './helpers';
 import { instrumentObservable } from './integrations/helpers';
 import type { Observable as IntegrationObservable } from './integrations/types';
-import { isExpectedError, isWsOrRpcException } from './helpers';
 
 // Partial extract of FastifyRequest interface
 // https://github.com/fastify/fastify/blob/87f9f20687c938828f1138f91682d568d2a31e53/types/request.d.ts#L41
