@@ -32,6 +32,7 @@ interface ZodIssue {
   expected?: unknown;
   received?: unknown;
   unionErrors?: unknown[];
+  errors?: unknown[];
   keys?: unknown[];
   invalid_literal?: unknown;
 }
@@ -43,7 +44,8 @@ interface ZodError extends Error {
 function originalExceptionIsZodError(originalException: unknown): originalException is ZodError {
   return (
     isError(originalException) &&
-    originalException.name === 'ZodError' &&
+    // `zod/mini` (Zod 4) throws `$ZodError`
+    (originalException.name === 'ZodError' || originalException.name === '$ZodError') &&
     Array.isArray((originalException as ZodError).issues)
   );
 }
@@ -75,6 +77,8 @@ export function flattenIssue(issue: ZodIssue): SingleLevelZodIssue<ZodIssue> {
     path: 'path' in issue && Array.isArray(issue.path) ? issue.path.join('.') : undefined,
     keys: 'keys' in issue ? JSON.stringify(issue.keys) : undefined,
     unionErrors: 'unionErrors' in issue ? JSON.stringify(issue.unionErrors) : undefined,
+    // Zod 4 nests union failures under `errors` instead of `unionErrors`
+    ...('errors' in issue ? { errors: JSON.stringify(issue.errors) } : {}),
   };
 }
 
