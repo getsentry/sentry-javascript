@@ -7,7 +7,8 @@ import { router } from './app/router.ts';
 
 Sentry.init({
   dsn: process.env.E2E_TEST_DSN,
-  tunnel: process.env.E2E_TEST_TUNNEL ? true : 'http://localhost:3061/',
+  tunnel: 'http://localhost:3061/',
+  integrations: process.env.E2E_TEST_TUNNEL ? [Sentry.serveTunnelIntegration()] : [],
   tracesSampleRate: 1.0,
 });
 
