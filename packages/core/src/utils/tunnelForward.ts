@@ -25,7 +25,7 @@ export interface HandleTunnelRequestOptions {
 /**
  * The parts of Node's `IncomingMessage` the tunnel reads.
  */
-interface NodeTunnelRequest extends AsyncIterable<Uint8Array> {
+interface NodeTunnelRequest extends AsyncIterable<Uint8Array | string> {
   method?: string;
   url?: string;
   headers: Record<string, string | string[] | undefined>;
@@ -119,10 +119,6 @@ export function handleTunnelRequestIfMatched(
  */
 const FORWARDED_RESPONSE_HEADERS = ['content-type', 'retry-after', 'x-sentry-rate-limits'];
 
-interface ReadableStreamWithFrom {
-  from(iterable: AsyncIterable<Uint8Array>): ReadableStream<Uint8Array>;
-}
-
 function isNodeTunnelResponse(value: unknown): value is NodeTunnelResponse {
   return typeof (value as NodeTunnelResponse | undefined)?.writeHead === 'function';
 }
@@ -142,8 +138,20 @@ async function handleNodeTunnelRequest(
   const authority = request.headers[':authority'];
   const host = headers.get('host') ?? (typeof authority === 'string' ? authority : 'localhost');
 
-  // In every runtime the Node form runs on, but not in core's TypeScript lib.
-  const body = (ReadableStream as unknown as ReadableStreamWithFrom).from(request);
+  const iterator = request[Symbol.asyncIterator]();
+  const encoder = new TextEncoder();
+  // Not `ReadableStream.from`, which Bun 1.3 lacks.
+  const body = new ReadableStream<Uint8Array>({
+    async pull(controller) {
+      const { done, value } = await iterator.next();
+      if (done) {
+        controller.close();
+        return;
+      }
+
+      controller.enqueue(typeof value === 'string' ? encoder.encode(value) : value);
+    },
+  });
 
   const fetchRequest = new Request(`http://${host}${request.url ?? '/'}`, {
     method: 'POST',
