@@ -61,12 +61,12 @@ function resolveHttpHeaders(
  * Resolves the effective `DataCollection` configuration from client options.
  *
  * Precedence:
- * 1. Spec defaults, or all collection turned off when `dataCollection.defaults` is `'off'`
+ * 1. Spec defaults, or all collection turned off when `dataCollection.unlisted` is `'off'`
  * 2. Fields explicitly set in `dataCollection`
  */
 export function resolveDataCollectionOptions(options: { dataCollection?: DataCollection }): ResolvedDataCollection {
   const dc = options.dataCollection ?? {};
-  const base = dc.defaults === 'off' ? OFF : DEFAULTS;
+  const base = dc.unlisted === 'off' ? OFF : DEFAULTS;
 
   return {
     userInfo: dc.userInfo ?? base.userInfo,

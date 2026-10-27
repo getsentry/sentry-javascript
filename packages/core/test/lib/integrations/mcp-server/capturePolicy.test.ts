@@ -448,10 +448,10 @@ describe('MCP Server Capture Policy', () => {
         { mcp: { inputs: true }, genAI: { inputs: false, outputs: false } },
         { inputs: true, outputs: false },
       ],
-      ["records nothing with defaults: 'off'", { defaults: 'off' }, { inputs: false, outputs: false }],
+      ["records nothing with unlisted: 'off'", { unlisted: 'off' }, { inputs: false, outputs: false }],
       [
-        "falls back to genAI with defaults: 'off'",
-        { defaults: 'off', genAI: { inputs: true } },
+        "falls back to genAI with unlisted: 'off'",
+        { unlisted: 'off', genAI: { inputs: true } },
         { inputs: true, outputs: false },
       ],
     ])('%s', async (_, dataCollection, expected) => {

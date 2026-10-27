@@ -209,13 +209,13 @@ Sentry.init({});
 
 #### If you want to keep the v10 default behavior
 
-Set `defaults: 'off'` and turn on only what v10 collected. **Don't leave `dataCollection` unset** — that now enables broader collection.
+Set `unlisted: 'off'` and list only what v10 collected. **Don't leave `dataCollection` unset** — that now enables broader collection.
 
 ```js
 // v11 — preserves the v10 default
 Sentry.init({
   dataCollection: {
-    defaults: 'off',
+    unlisted: 'off',
     httpHeaders: { deny: ['forwarded', '-ip', 'remote-', 'via', '-user'] },
     urlQueryParams: { deny: ['forwarded', '-ip', 'remote-', 'via', '-user'] },
     stackFrameVariables: true,
@@ -224,7 +224,7 @@ Sentry.init({
 });
 ```
 
-With `defaults: 'off'`, every field you don't set collects nothing. This includes fields added in later minor releases, so upgrading never starts collecting new data on its own.
+With `unlisted: 'off'`, every field you don't list collects nothing. This includes fields added in later minor releases, so upgrading never starts collecting new data on its own. A field you do list is collected as configured: here, `httpHeaders` and `urlQueryParams` are collected except for the keys in their `deny` lists.
 
 Each key-value field (`cookies`, `urlQueryParams`, `httpHeaders.request`, `httpHeaders.response`) accepts
 `true`, `false`, `{ allow: string[] }`, or `{ deny: string[] }` for fine-grained control.
