@@ -1449,9 +1449,10 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
     const isSampledOut = isError && typeof parsedSampleRate === 'number' && safeMathRandom() > parsedSampleRate;
     const dataCategory = getDataCategoryByType(event.type);
 
+    const session = currentScope.getSession() || isolationScope.getSession();
     // A sampled-out error only runs the pipeline to update the session. Without a session it could update,
     // drop it right away so it doesn't hold a promise buffer slot while event processors run.
-    if (isSampledOut && (currentScope.getSession() || isolationScope.getSession())?.status !== 'ok') {
+    if (isSampledOut && session?.status !== 'ok') {
       this.recordDroppedEvent('sample_rate', 'error');
       return rejectedSyncPromise(_makeSampledOutError(sampleRate));
     }
@@ -1482,7 +1483,6 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
           throw _makeDoNotSendEventError(`${beforeSendLabel} returned \`null\`, will not send event.`);
         }
 
-        const session = currentScope.getSession() || isolationScope.getSession();
         if (isError && session) {
           this._updateSessionFromEvent(session, processedEvent);
         }
