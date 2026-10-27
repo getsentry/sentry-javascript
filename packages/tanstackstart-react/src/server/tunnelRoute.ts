@@ -122,11 +122,17 @@ export function wrapServerEntryWithSentryTunnel<T extends ServerEntry>(
     return entry;
   }
 
-  return {
-    ...entry,
-    // Cloudflare Workers pass `env` and `ctx` after the request, and `withSentry` needs `ctx` to flush.
-    fetch(request: Request, ...rest: unknown[]) {
-      return handleTunnelRequestIfMatched(request) ?? entry.fetch(request, ...rest);
+  // Keeps the prototype, so a class instance entry keeps its other handlers, like `scheduled` or `queue`. `fetch` is
+  // defined rather than assigned, which a read-only `fetch` on a frozen prototype would reject.
+  return Object.create(Object.getPrototypeOf(entry), {
+    ...Object.getOwnPropertyDescriptors(entry),
+    fetch: {
+      // Cloudflare Workers pass `env` and `ctx` after the request, and `withSentry` needs `ctx` to flush.
+      value: (request: Request, ...rest: unknown[]) =>
+        handleTunnelRequestIfMatched(request) ?? entry.fetch(request, ...rest),
+      writable: true,
+      configurable: true,
+      enumerable: true,
     },
-  };
+  }) as T;
 }

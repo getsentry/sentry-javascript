@@ -86,6 +86,39 @@ describe('wrapServerEntryWithSentryTunnel', () => {
     expect(appFetch).toHaveBeenCalledWith(request, env, ctx);
   });
 
+  it("keeps a class instance entry's prototype handlers, like a Worker's `scheduled`", async () => {
+    setClient({});
+    class Handler {
+      public fetch(_request: Request): Response {
+        return new Response('app');
+      }
+
+      public scheduled(): string {
+        return 'scheduled';
+      }
+    }
+
+    const wrapped = wrapServerEntryWithSentryTunnel(new Handler());
+
+    expect(wrapped.scheduled()).toBe('scheduled');
+    expect(wrapped).toBeInstanceOf(Handler);
+    expect(await (await wrapped.fetch(makeEnvelopeRequest(TUNNEL_URL))).text()).toBe('forwarded');
+  });
+
+  it('wraps an entry whose prototype is frozen', async () => {
+    setClient({});
+    class Handler {
+      public fetch(_request: Request): Response {
+        return new Response('app');
+      }
+    }
+    Object.freeze(Handler.prototype);
+
+    const wrapped = wrapServerEntryWithSentryTunnel(new Handler());
+
+    expect(await (await wrapped.fetch(makeEnvelopeRequest(TUNNEL_URL))).text()).toBe('forwarded');
+  });
+
   it('returns a class entry, like a `WorkerEntrypoint`, unchanged', () => {
     class Worker {
       public fetch(): Response {
