@@ -228,7 +228,7 @@ export function _sendLcpSpan(
   _emitWebVitalSpan({
     name,
     op: UI_WEBVITAL_LCP,
-    origin: 'auto.http.browser.lcp',
+    origin: 'auto.ui.browser.lcp',
     metricName: 'lcp',
     value: lcpValue,
     attributes,
@@ -329,7 +329,7 @@ export function _sendClsSpan(
   _emitWebVitalSpan({
     name,
     op: UI_WEBVITAL_CLS,
-    origin: 'auto.http.browser.cls',
+    origin: 'auto.ui.browser.cls',
     metricName: 'cls',
     value: clsValue,
     attributes,
@@ -457,7 +457,7 @@ export function _sendInpSpan(
   _emitWebVitalSpan({
     name,
     op: INTERACTION_TYPE_TO_SPAN_OP[interactionType],
-    origin: 'auto.http.browser.inp',
+    origin: 'auto.ui.browser.inp',
     metricName: 'inp',
     value: inpValue,
     attributes,

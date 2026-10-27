@@ -1,4 +1,10 @@
-import type { RequestEventData } from '@sentry/core';
+import {
+  HTTP_ROUTE,
+  SENTRY_SEGMENT_NAME_SOURCE,
+  SERVER_ADDRESS,
+  URL_PATH_PARAMETER_KEY_BASE,
+} from '@sentry/conventions/attributes';
+import type { AggregationCounts, Envelope, RequestEventData } from '@sentry/core';
 import * as SentryCore from '@sentry/core';
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, spyOn, test } from 'bun:test';
 import type { BunOptions } from '../../src';
@@ -21,9 +27,11 @@ describe('Bun Serve Integration', () => {
     init({
       dsn: 'https://username@domain/123',
       defaultIntegrations: false,
-      ...options,
+      // Spans follow the client's tracing configuration.
+      tracesSampleRate: 1,
       transport: () =>
         SentryCore.createTransport({ recordDroppedEvent: () => undefined }, () => SentryCore.resolvedSyncPromise({})),
+      ...options,
     });
   };
 
@@ -96,6 +104,37 @@ describe('Bun Serve Integration', () => {
       }
     },
   );
+
+  test('lets the fetch handler upgrade a request to a WebSocket', async () => {
+    const server = Bun.serve({
+      port,
+      fetch(request, server) {
+        if (server.upgrade(request)) {
+          return undefined;
+        }
+        return new Response('no upgrade', { status: 400 });
+      },
+      websocket: {
+        message(ws, message) {
+          ws.send(`echo: ${message}`);
+        },
+      },
+    });
+    try {
+      const ws = new WebSocket(`ws://localhost:${port}/socket`);
+      const reply = await new Promise<string>((resolve, reject) => {
+        ws.onopen = () => ws.send('hello');
+        ws.onmessage = event => resolve(String(event.data));
+        ws.onerror = () => reject(new Error('WebSocket failed'));
+      });
+      ws.close();
+
+      expect(reply).toBe('echo: hello');
+      expect(captureExceptionSpy).not.toHaveBeenCalled();
+    } finally {
+      await server.stop(true);
+    }
+  });
 
   test.each(['client disconnected', new Error('client disconnected')])(
     'ends the span without capturing a cancelled stream: %s',
@@ -226,7 +265,7 @@ describe('Bun Serve Integration', () => {
           'url.full': `http://localhost:${port}/users?id=123`,
           'url.port': port.toString(),
           'url.scheme': 'http:',
-          'url.domain': 'localhost',
+          [SERVER_ADDRESS]: 'localhost',
           'http.request.header.accept': ['*/*'],
           'http.request.header.accept-encoding': ['gzip, deflate, br, zstd'],
           'http.request.header.connection': ['keep-alive'],
@@ -264,12 +303,12 @@ describe('Bun Serve Integration', () => {
           'sentry.op': 'http.server',
           'sentry.origin': 'auto.http.bun.serve',
           'http.request.method': 'POST',
-          'sentry.segment.name.source': 'url',
+          [SENTRY_SEGMENT_NAME_SOURCE]: 'route',
           'url.path': '/',
           'url.full': `http://localhost:${port}/`,
           'url.port': port.toString(),
           'url.scheme': 'http:',
-          'url.domain': 'localhost',
+          [SERVER_ADDRESS]: 'localhost',
           'http.request.header.accept': ['*/*'],
           'http.request.header.accept-encoding': ['gzip, deflate, br, zstd'],
           'http.request.header.connection': ['keep-alive'],
@@ -277,7 +316,7 @@ describe('Bun Serve Integration', () => {
           'http.request.header.host': [expect.any(String)],
           'http.request.header.user-agent': [expect.stringContaining('Bun')],
         }),
-        name: 'POST',
+        name: 'POST /',
       },
       expect.any(Function),
     );
@@ -388,7 +427,7 @@ describe('Bun Serve Integration', () => {
           'url.full': `http://localhost:${port}/api/test`,
           'url.port': port.toString(),
           'url.scheme': 'http:',
-          'url.domain': 'localhost',
+          [SERVER_ADDRESS]: 'localhost',
           // HTTP headers as span attributes following OpenTelemetry semantic conventions
           'http.request.header.user-agent': ['Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'],
           'http.request.header.content-type': ['application/json'],
@@ -461,15 +500,40 @@ describe('Bun Serve Integration', () => {
           'sentry.origin': 'auto.http.bun.serve',
           'http.request.method': 'GET',
           'sentry.segment.name.source': 'route',
-          'url.template': '/users/:id',
-          'url.path.parameter.id': '123',
+          [HTTP_ROUTE]: '/users/:id',
+          [`${URL_PATH_PARAMETER_KEY_BASE}.id`]: '123',
           'url.path': '/users/123',
           'url.full': `http://localhost:${port}/users/123`,
           'url.port': port.toString(),
           'url.scheme': 'http:',
-          'url.domain': 'localhost',
+          [SERVER_ADDRESS]: 'localhost',
         }),
         name: 'GET /users/:id',
+      }),
+      expect.any(Function),
+    );
+
+    await server.stop();
+  });
+
+  test('sets http.route for a route without parameters', async () => {
+    const server = Bun.serve({
+      routes: {
+        '/api/health': () => new Response('ok'),
+      },
+      port,
+    });
+
+    const response = await fetch(`http://localhost:${port}/api/health`);
+    expect(await response.text()).toBe('ok');
+
+    expect(startSpanSpy).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        attributes: expect.objectContaining({
+          [SENTRY_SEGMENT_NAME_SOURCE]: 'route',
+          [HTTP_ROUTE]: '/api/health',
+        }),
+        name: 'GET /api/health',
       }),
       expect.any(Function),
     );
@@ -500,12 +564,12 @@ describe('Bun Serve Integration', () => {
           'sentry.origin': 'auto.http.bun.serve',
           'http.request.method': 'GET',
           'sentry.segment.name.source': 'route',
-          'url.template': '/api/*',
+          [HTTP_ROUTE]: '/api/*',
           'url.path': '/api/users/123',
           'url.full': `http://localhost:${port}/api/users/123`,
           'url.port': port.toString(),
           'url.scheme': 'http:',
-          'url.domain': 'localhost',
+          [SERVER_ADDRESS]: 'localhost',
         }),
         name: 'GET /api/*',
       }),
@@ -1193,6 +1257,477 @@ describe('Bun Serve Integration', () => {
       });
 
       expect(normalizedRequest?.data).toBeUndefined();
+    });
+  });
+
+  describe('options', () => {
+    const captureBodySpy = spyOn(SentryCore, 'captureBodyFromWinterCGRequest');
+
+    beforeEach(() => {
+      captureBodySpy.mockClear();
+    });
+
+    test('does not capture request bodies that ignoreRequestBody matches', async () => {
+      const ignoreRequestBody = (url: string, request: Request): boolean =>
+        url.endsWith('/upload?id=1') && request.method === 'POST';
+      setupClient({ integrations: [bunServerIntegration({ ignoreRequestBody })] });
+      const server = Bun.serve({ port, fetch: async req => new Response(await req.text()) });
+      try {
+        const ignored = await fetch(`http://localhost:${port}/upload?id=1`, { method: 'POST', body: 'secret' });
+        expect(await ignored.text()).toBe('secret');
+        expect(captureBodySpy).not.toHaveBeenCalled();
+
+        const captured = await fetch(`http://localhost:${port}/login`, { method: 'POST', body: 'hello' });
+        expect(await captured.text()).toBe('hello');
+        expect(captureBodySpy).toHaveBeenCalledTimes(1);
+      } finally {
+        await server.stop(true);
+      }
+    });
+
+    test('does not capture the body and still responds when ignoreRequestBody throws', async () => {
+      setupClient({
+        integrations: [
+          bunServerIntegration({
+            ignoreRequestBody: () => {
+              throw new Error('filter failed');
+            },
+          }),
+        ],
+      });
+      const server = Bun.serve({ port, fetch: async req => new Response(await req.text()) });
+      try {
+        const response = await fetch(`http://localhost:${port}/login`, { method: 'POST', body: 'secret' });
+        expect(await response.text()).toBe('secret');
+        expect(captureBodySpy).not.toHaveBeenCalled();
+        expect(captureExceptionSpy).not.toHaveBeenCalled();
+      } finally {
+        await server.stop(true);
+      }
+    });
+
+    test('does not create spans for requests that ignoreIncomingRequests matches', async () => {
+      const urlPaths: string[] = [];
+      setupClient({
+        integrations: [
+          bunServerIntegration({
+            ignoreIncomingRequests: (urlPath, request) => {
+              urlPaths.push(urlPath);
+              return urlPath.startsWith('/health') && request instanceof Request;
+            },
+          }),
+        ],
+      });
+      const server = Bun.serve({ port, fetch: () => new Response('ok') });
+      try {
+        expect(await (await fetch(`http://localhost:${port}/health?probe=1`)).text()).toBe('ok');
+        expect(startSpanSpy).not.toHaveBeenCalled();
+
+        expect(await (await fetch(`http://localhost:${port}/users`)).text()).toBe('ok');
+        expect(startSpanSpy).toHaveBeenCalledTimes(1);
+        expect(urlPaths).toEqual(['/health?probe=1', '/users']);
+      } finally {
+        await server.stop(true);
+      }
+    });
+
+    test('creates the span and still responds when ignoreIncomingRequests throws', async () => {
+      setupClient({
+        integrations: [
+          bunServerIntegration({
+            ignoreIncomingRequests: () => {
+              throw new Error('filter failed');
+            },
+          }),
+        ],
+      });
+      const server = Bun.serve({ port, fetch: () => new Response('ok') });
+      try {
+        expect(await (await fetch(`http://localhost:${port}/users`)).text()).toBe('ok');
+        expect(startSpanSpy).toHaveBeenCalledTimes(1);
+        expect(captureExceptionSpy).not.toHaveBeenCalled();
+      } finally {
+        await server.stop(true);
+      }
+    });
+
+    test('does not create spans for static assets by default', async () => {
+      setupClient({ integrations: [bunServerIntegration()] });
+      const server = Bun.serve({ port, fetch: () => new Response('ok') });
+      try {
+        expect(await (await fetch(`http://localhost:${port}/favicon.ico`)).text()).toBe('ok');
+        expect(await (await fetch(`http://localhost:${port}/assets/app.js`)).text()).toBe('ok');
+        expect(startSpanSpy).not.toHaveBeenCalled();
+
+        // The filter only applies to GET.
+        await (await fetch(`http://localhost:${port}/favicon.ico`, { method: 'POST', body: 'x' })).text();
+        expect(startSpanSpy).toHaveBeenCalledTimes(1);
+      } finally {
+        await server.stop(true);
+      }
+    });
+
+    test('creates spans for static assets when ignoreStaticAssets is false', async () => {
+      setupClient({ integrations: [bunServerIntegration({ ignoreStaticAssets: false })] });
+      const server = Bun.serve({ port, fetch: () => new Response('ok') });
+      try {
+        expect(await (await fetch(`http://localhost:${port}/favicon.ico`)).text()).toBe('ok');
+        expect(startSpanSpy).toHaveBeenCalledTimes(1);
+      } finally {
+        await server.stop(true);
+      }
+    });
+
+    test('does not create spans when spans is false, but still captures errors and request data', async () => {
+      setupClient({ integrations: [bunServerIntegration({ spans: false })] });
+      let normalizedRequest: RequestEventData | undefined;
+      const error = new Error('handler failed');
+      const server = Bun.serve({
+        port,
+        fetch: () => {
+          normalizedRequest = SentryCore.getIsolationScope().getScopeData().sdkProcessingMetadata.normalizedRequest;
+          throw error;
+        },
+      });
+      try {
+        // `server.fetch` returns the handler error, which `bun:test` would report as unhandled from a real request.
+        await expect(server.fetch(new Request(`http://localhost:${port}/users`))).rejects.toBe(error);
+        expect(startSpanSpy).not.toHaveBeenCalled();
+        expect(normalizedRequest?.url).toBe(`http://localhost:${port}/users`);
+        expect(captureExceptionSpy).toHaveBeenCalledWith(error, {
+          mechanism: { type: 'auto.http.bun.serve', handled: false },
+        });
+      } finally {
+        await server.stop(true);
+      }
+    });
+
+    test('does not create spans when tracing is disabled', async () => {
+      setupClient({ tracesSampleRate: undefined, integrations: [bunServerIntegration()] });
+      const server = Bun.serve({ port, fetch: () => new Response('ok') });
+      try {
+        expect(await (await fetch(`http://localhost:${port}/users`)).text()).toBe('ok');
+        expect(startSpanSpy).not.toHaveBeenCalled();
+        expect(continueTraceSpy).toHaveBeenCalledTimes(1);
+      } finally {
+        await server.stop(true);
+      }
+    });
+
+    test('calls onSpanCreated and onSpanEnd', async () => {
+      const calls: string[] = [];
+      setupClient({
+        integrations: [
+          bunServerIntegration({
+            onSpanCreated: (span, request) => {
+              expect(span).toBe(mockSpan as unknown as SentryCore.Span);
+              calls.push(`created ${request.method} ${new URL(request.url).pathname}`);
+            },
+            onSpanEnd: (span, request, response) => {
+              expect(span).toBe(mockSpan as unknown as SentryCore.Span);
+              calls.push(`end ${request.method} ${response.status}`);
+            },
+          }),
+        ],
+      });
+      const server = Bun.serve({
+        port,
+        fetch: () => {
+          calls.push('handler');
+          return new Response('ok', { status: 201 });
+        },
+      });
+      try {
+        expect(await (await fetch(`http://localhost:${port}/users`)).text()).toBe('ok');
+        expect(calls).toEqual(['created GET /users', 'handler', 'end GET 201']);
+      } finally {
+        await server.stop(true);
+      }
+    });
+
+    test('calls onSpanEnd when a streamed response finishes', async () => {
+      const onSpanEndCalls: number[] = [];
+      setupClient({
+        integrations: [
+          bunServerIntegration({ onSpanEnd: (_span, _request, response) => onSpanEndCalls.push(response.status) }),
+        ],
+      });
+      let controller: ReadableStreamDefaultController<Uint8Array>;
+      const source = new ReadableStream<Uint8Array>({
+        start(value) {
+          controller = value;
+        },
+      });
+      const server = Bun.serve({
+        port,
+        fetch: () => new Response(source, { headers: { 'content-type': 'text/event-stream' } }),
+      });
+      try {
+        const response = await server.fetch(new Request(`http://localhost:${port}/events`));
+        controller!.enqueue(new TextEncoder().encode('data: one\n\n'));
+        expect(onSpanEndCalls).toEqual([]);
+
+        controller!.close();
+        expect(await response.text()).toBe('data: one\n\n');
+        expect(onSpanEndCalls).toEqual([200]);
+      } finally {
+        await server.stop(true);
+      }
+    });
+
+    test.each(['onSpanCreated', 'onSpanEnd'] as const)(
+      'still responds and ends the span when %s throws',
+      async hook => {
+        setupClient({
+          integrations: [
+            bunServerIntegration({
+              [hook]: () => {
+                throw new Error(`${hook} failed`);
+              },
+            }),
+          ],
+        });
+        const server = Bun.serve({ port, fetch: () => new Response('ok') });
+        try {
+          expect(await (await fetch(`http://localhost:${port}/users`)).text()).toBe('ok');
+          expect(endSpanSpy).toHaveBeenCalledTimes(1);
+          expect(captureExceptionSpy).not.toHaveBeenCalled();
+        } finally {
+          await server.stop(true);
+        }
+      },
+    );
+
+    test.each(['OPTIONS', 'HEAD'])('captures errors thrown for %s requests', async method => {
+      const error = new Error(`${method} failed`);
+      const server = Bun.serve({
+        port,
+        fetch: () => {
+          throw error;
+        },
+      });
+      try {
+        await expect(server.fetch(new Request(`http://localhost:${port}/`, { method }))).rejects.toBe(error);
+        expect(startSpanSpy).not.toHaveBeenCalled();
+        expect(captureExceptionSpy).toHaveBeenCalledWith(error, {
+          mechanism: { type: 'auto.http.bun.serve', handled: false },
+        });
+      } finally {
+        await server.stop(true);
+      }
+    });
+  });
+
+  describe('sessions', () => {
+    type SessionCounts = Omit<AggregationCounts, 'started'>;
+
+    function setupSessionClient(options?: BunOptions): {
+      client: SentryCore.Client;
+      sessions: SessionCounts[];
+      firstSession: Promise<void>;
+    } {
+      const sessions: SessionCounts[] = [];
+      let resolveFirstSession: () => void;
+      const firstSession = new Promise<void>(resolve => (resolveFirstSession = resolve));
+      setupClient({
+        release: '1.0.0',
+        integrations: [bunServerIntegration()],
+        ...options,
+        transport: () =>
+          SentryCore.createTransport({ recordDroppedEvent: () => undefined }, request => {
+            const envelope = SentryCore.parseEnvelope(request.body) as Envelope;
+            SentryCore.forEachEnvelopeItem(envelope, (item, type) => {
+              if (type === 'sessions') {
+                for (const { started: _started, ...counts } of (item[1] as { aggregates: AggregationCounts[] })
+                  .aggregates) {
+                  sessions.push(counts);
+                }
+                resolveFirstSession();
+              }
+            });
+            return SentryCore.resolvedSyncPromise({});
+          }),
+      });
+      return { client: SentryCore.getClient()!, sessions, firstSession };
+    }
+
+    test('records an exited session for a successful request', async () => {
+      const { client, sessions } = setupSessionClient();
+      const server = Bun.serve({ port, fetch: () => new Response('ok') });
+      try {
+        await (await fetch(`http://localhost:${port}/ok`)).text();
+      } finally {
+        await server.stop(true);
+      }
+      await client.flush();
+
+      expect(sessions).toEqual([{ exited: 1, errored: 0, crashed: 0 }]);
+    });
+
+    test('records an errored session for a handled exception', async () => {
+      const { client, sessions } = setupSessionClient();
+      const server = Bun.serve({
+        port,
+        fetch: () => {
+          SentryCore.captureException(new Error('handled'));
+          return new Response('ok');
+        },
+      });
+      try {
+        await (await fetch(`http://localhost:${port}/handled`)).text();
+      } finally {
+        await server.stop(true);
+      }
+      await client.flush();
+
+      expect(sessions).toEqual([{ exited: 0, errored: 1, crashed: 0 }]);
+    });
+
+    test('records a crashed session when the handler throws', async () => {
+      const { client, sessions } = setupSessionClient();
+      const error = new Error('unhandled');
+      const server = Bun.serve({
+        port,
+        fetch: () => {
+          throw error;
+        },
+      });
+      try {
+        await expect(server.fetch(new Request(`http://localhost:${port}/throws`))).rejects.toBe(error);
+      } finally {
+        await server.stop(true);
+      }
+      await client.flush();
+
+      expect(sessions).toEqual([{ exited: 0, errored: 0, crashed: 1 }]);
+    });
+
+    test.each([
+      ['when tracing is enabled', {}],
+      ['when tracing is disabled', { tracesSampleRate: undefined }],
+    ] as const)('records a crashed session when a streamed response source fails %s', async (_label, options) => {
+      const { client, sessions } = setupSessionClient(options);
+      let controller: ReadableStreamDefaultController<Uint8Array>;
+      const source = new ReadableStream<Uint8Array>({
+        start(value) {
+          controller = value;
+        },
+      });
+      const server = Bun.serve({
+        port,
+        fetch: () => new Response(source, { headers: { 'content-type': 'text/event-stream' } }),
+      });
+      try {
+        const response = await server.fetch(new Request(`http://localhost:${port}/events`));
+        const error = new Error('stream interrupted');
+        const text = response.text();
+        controller!.error(error);
+        await expect(text).rejects.toBe(error);
+      } finally {
+        await server.stop(true);
+      }
+      await client.flush();
+
+      expect(sessions).toEqual([{ exited: 0, errored: 0, crashed: 1 }]);
+    });
+
+    test('records sessions for OPTIONS and HEAD requests', async () => {
+      const { client, sessions } = setupSessionClient();
+      const server = Bun.serve({ port, fetch: () => new Response('ok') });
+      try {
+        await (await fetch(`http://localhost:${port}/cors`, { method: 'OPTIONS' })).text();
+        await (await fetch(`http://localhost:${port}/cors`, { method: 'HEAD' })).text();
+      } finally {
+        await server.stop(true);
+      }
+      await client.flush();
+
+      expect(sessions).toEqual([{ exited: 2, errored: 0, crashed: 0 }]);
+    });
+
+    test('records sessions for requests without a span', async () => {
+      const { client, sessions } = setupSessionClient({
+        integrations: [bunServerIntegration({ ignoreIncomingRequests: urlPath => urlPath === '/health' })],
+      });
+      const server = Bun.serve({ port, fetch: () => new Response('ok') });
+      try {
+        await (await fetch(`http://localhost:${port}/health`)).text();
+        await (await fetch(`http://localhost:${port}/favicon.ico`)).text();
+      } finally {
+        await server.stop(true);
+      }
+      await client.flush();
+
+      expect(startSpanSpy).not.toHaveBeenCalled();
+      expect(sessions).toEqual([{ exited: 2, errored: 0, crashed: 0 }]);
+    });
+
+    test('does not record sessions when sessions is false', async () => {
+      const { client, sessions } = setupSessionClient({ integrations: [bunServerIntegration({ sessions: false })] });
+      const server = Bun.serve({ port, fetch: () => new Response('ok') });
+      try {
+        await (await fetch(`http://localhost:${port}/ok`)).text();
+      } finally {
+        await server.stop(true);
+      }
+      await client.flush();
+
+      expect(sessions).toEqual([]);
+    });
+
+    test('sends the session aggregate after sessionFlushingDelayMS', async () => {
+      const { sessions, firstSession } = setupSessionClient({
+        integrations: [bunServerIntegration({ sessionFlushingDelayMS: 50 })],
+      });
+      const server = Bun.serve({ port, fetch: () => new Response('ok') });
+      try {
+        await (await fetch(`http://localhost:${port}/ok`)).text();
+      } finally {
+        await server.stop(true);
+      }
+
+      // No flush here. The timeout only bounds a failure. With the default 60s delay, no session
+      // arrives within it.
+      let timeoutId: ReturnType<typeof setTimeout> | undefined;
+      const timedOut = new Promise<'timed out'>(resolve => {
+        timeoutId = setTimeout(() => resolve('timed out'), 2_000);
+      });
+      const result = await Promise.race([firstSession.then(() => 'sent' as const), timedOut]);
+      clearTimeout(timeoutId);
+
+      expect(result).toBe('sent');
+      expect(sessions).toEqual([{ exited: 1, errored: 0, crashed: 0 }]);
+    });
+
+    test.each([
+      ['when tracing is enabled', {}],
+      ['when tracing is disabled', { tracesSampleRate: undefined }],
+    ] as const)('records a streamed response session when the stream finishes %s', async (_label, options) => {
+      const { client, sessions } = setupSessionClient(options);
+      let controller: ReadableStreamDefaultController<Uint8Array>;
+      const source = new ReadableStream<Uint8Array>({
+        start(value) {
+          controller = value;
+        },
+      });
+      const server = Bun.serve({
+        port,
+        fetch: () => new Response(source, { headers: { 'content-type': 'text/event-stream' } }),
+      });
+      try {
+        const response = await server.fetch(new Request(`http://localhost:${port}/events`));
+        controller!.enqueue(new TextEncoder().encode('chunk\n'));
+        await client.flush();
+        expect(sessions).toEqual([]);
+
+        controller!.close();
+        expect(await response.text()).toBe('chunk\n');
+      } finally {
+        await server.stop(true);
+      }
+      await client.flush();
+
+      expect(sessions).toEqual([{ exited: 1, errored: 0, crashed: 0 }]);
     });
   });
 });

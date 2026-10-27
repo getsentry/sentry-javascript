@@ -87,7 +87,7 @@
     "@sentry/server-utils": "11.9.0",
     "@sentry/solid": "11.9.0",
     "@sentry/bundler-plugins": "11.9.0",
-    "@sentry/conventions": "0.27.0"
+    "@sentry/conventions": "0.29.0"
   },
   "devDependencies": {
     "@sentry-internal/rollup-utils": "11.9.0",
