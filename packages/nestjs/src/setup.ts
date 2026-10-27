@@ -8,7 +8,9 @@ import type {
 } from '@nestjs/common';
 import { Catch, Global, HttpException, Injectable, Logger, Module } from '@nestjs/common';
 import { APP_INTERCEPTOR, BaseExceptionFilter } from '@nestjs/core';
-import { captureException, debug, getDefaultIsolationScope, getIsolationScope, isObjectLike, withIsolationScope } from '@sentry/core';
+import { captureException, debug, getDefaultIsolationScope, getIsolationScope, isObjectLike, startSpanManual, withIsolationScope } from '@sentry/core';
+import { instrumentObservable } from './integrations/helpers';
+import type { Observable as IntegrationObservable } from './integrations/types';
 import { isExpectedError, isWsOrRpcException } from './helpers';
 
 // Partial extract of FastifyRequest interface
@@ -56,19 +58,31 @@ class SentryTracingInterceptor implements NestInterceptor {
         return next.handle();
       }
 
-      const observable = next.handle();
-      observable.subscribe = new Proxy(observable.subscribe, {
-        apply: (originalSubscribe, thisArgSubscribe, argsSubscribe) => {
-          return withIsolationScope(isolationScope => {
-            const namespace = client?.nsp?.name;
-            isolationScope.setTransactionName(namespace ? `WS ${namespace} ${pattern}` : `WS ${pattern}`);
+      const namespace = client?.nsp?.name;
+      const transactionName = namespace ? `WS ${namespace} ${pattern}` : `WS ${pattern}`;
 
-            return originalSubscribe.apply(thisArgSubscribe, argsSubscribe);
+      return withIsolationScope(isolationScope => {
+        isolationScope.setTransactionName(transactionName);
+
+        return startSpanManual({ op: 'ws', name: transactionName }, span => {
+          const observable = next.handle();
+
+          // Keep the transaction name on the isolation scope active while the handler runs.
+          observable.subscribe = new Proxy(observable.subscribe, {
+            apply: (originalSubscribe, thisArgSubscribe, argsSubscribe) => {
+              return withIsolationScope(subscriptionIsolationScope => {
+                subscriptionIsolationScope.setTransactionName(transactionName);
+                return originalSubscribe.apply(thisArgSubscribe, argsSubscribe);
+              });
+            },
           });
-        },
-      });
 
-      return observable;
+          // Instrument the Observable returned by Nest rather than creating a new one.
+          instrumentObservable(observable as unknown as IntegrationObservable<unknown>, span);
+
+          return observable;
+        });
+      });
     }
 
     if (getIsolationScope() === getDefaultIsolationScope()) {
