@@ -207,7 +207,14 @@ describe('Sentry Nuxt client plugin', () => {
       cb(error, undefined, 'setup');
     };
 
-    it.each([404, 301])('skips reporting when a Nuxt error carries a %d status code', async statusCode => {
+    // The plugin's skip guard reads `error.status || error.statusCode`, so both
+    // field names in the 3xx/4xx range must be covered.
+    it.each([
+      { status: 404 },
+      { status: 301 },
+      { statusCode: 404 },
+      { statusCode: 301 },
+    ])('skips reporting when a Nuxt error carries %o', async errorShape => {
       const { isNuxtError } = await import('nuxt/app');
       const reportSpy = vi.spyOn(utils, 'reportNuxtError').mockImplementation(() => {});
       vi.mocked(isNuxtError).mockReturnValue(true);
@@ -216,7 +223,7 @@ describe('Sentry Nuxt client plugin', () => {
 
       const nuxtApp = makeNuxtApp();
       await (clientPlugin as NuxtPluginShape).setup(nuxtApp);
-      fireHook(nuxtApp, { statusCode });
+      fireHook(nuxtApp, errorShape);
 
       expect(reportSpy).not.toHaveBeenCalled();
     });
