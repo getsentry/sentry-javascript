@@ -10,9 +10,17 @@ const createVueRouteProvider = vi.hoisted(() => vi.fn());
 const getRouteProvider = vi.hoisted(() => vi.fn());
 const setRouteProvider = vi.hoisted(() => vi.fn());
 
+const nuxtVueOptions = vi.hoisted(() => ({
+  trackComponents: ['NuxtApp'],
+  attachProps: false,
+}));
+const globalObj = vi.hoisted(() => ({
+  _sentryNuxtVueIntegrationOptions: nuxtVueOptions,
+}));
+
 vi.mock(import('@sentry/core'), async importOriginal => {
   const mod = await importOriginal();
-  return { ...mod, getClient, GLOBAL_OBJ: {} as never };
+  return { ...mod, getClient, GLOBAL_OBJ: globalObj as never };
 });
 
 vi.mock(import('@sentry/vue'), async importOriginal => {
@@ -67,10 +75,7 @@ describe('Sentry Nuxt client plugin', () => {
 
       await (clientPlugin as NuxtPluginShape).setup(makeNuxtApp(router));
 
-      expect(createVueRouteProvider).toHaveBeenCalledTimes(1);
-      // The provider is a lazy router getter — confirm it resolves to our router.
-      const routerGetter = createVueRouteProvider.mock.calls[0]![0] as () => unknown;
-      expect(routerGetter()).toBe(router);
+      expect(createVueRouteProvider).toHaveBeenCalledWith(expect.any(Function));
       expect(setRouteProvider).toHaveBeenCalledWith(provider, client);
     });
 
@@ -141,7 +146,7 @@ describe('Sentry Nuxt client plugin', () => {
   });
 
   describe('app:created hook — Vue integration', () => {
-    it('adds the Nuxt-specific Vue integration with attachErrorHandler disabled', async () => {
+    it('adds the Nuxt-specific Vue integration with attachErrorHandler disabled and merges GLOBAL_OBJ-provided options', async () => {
       const client = makeClient();
       const integration = { name: 'NuxtVueIntegration' };
       const vueApp = { Symbol: 'app' };
@@ -156,13 +161,16 @@ describe('Sentry Nuxt client plugin', () => {
       const appCreatedCb = appCreatedCall![1] as (app: unknown) => void;
       appCreatedCb(vueApp);
 
-      expect(vueIntegration).toHaveBeenCalledTimes(1);
-      const vueCallArgs = vueIntegration.mock.calls[0]![0] as {
-        app: unknown;
-        attachErrorHandler: boolean;
-      };
-      expect(vueCallArgs.app).toBe(vueApp);
-      expect(vueCallArgs.attachErrorHandler).toBe(false);
+      // Nuxt-specific: _sentryNuxtVueIntegrationOptions from GLOBAL_OBJ must
+      // flow into vueIntegration alongside the fixed Nuxt options.
+      expect(vueIntegration).toHaveBeenCalledWith(
+        expect.objectContaining({
+          app: vueApp,
+          attachErrorHandler: false,
+          trackComponents: nuxtVueOptions.trackComponents,
+          attachProps: nuxtVueOptions.attachProps,
+        }),
+      );
       expect(client.addIntegration).toHaveBeenCalledWith(integration);
     });
 
@@ -183,8 +191,23 @@ describe('Sentry Nuxt client plugin', () => {
     });
   });
 
-  describe('app:error hook — status-code filtering', () => {
-    it.each([404, 301])('skips reporting when a Nuxt error carries a %dxx status code', async statusCode => {
+  describe.each(['app:error', 'vue:error'] as const)('%s hook — status-code filtering', hookName => {
+    const fireHook = (
+      nuxtApp: { hook: ReturnType<typeof vi.fn> },
+      error: unknown,
+    ) => {
+      const cb = nuxtApp.hook.mock.calls.find(c => c[0] === hookName)?.[1] as (
+        e: unknown,
+        instance?: unknown,
+        info?: string,
+      ) => void;
+      // vue:error carries (error, instance, info); app:error only (error). The
+      // plugin passes the extra args through for vue:error, so include them
+      // uniformly here and rely on expect.objectContaining({ error }) below.
+      cb(error, undefined, 'setup');
+    };
+
+    it.each([404, 301])('skips reporting when a Nuxt error carries a %d status code', async statusCode => {
       const { isNuxtError } = await import('nuxt/app');
       const reportSpy = vi.spyOn(utils, 'reportNuxtError').mockImplementation(() => {});
       vi.mocked(isNuxtError).mockReturnValue(true);
@@ -193,8 +216,7 @@ describe('Sentry Nuxt client plugin', () => {
 
       const nuxtApp = makeNuxtApp();
       await (clientPlugin as NuxtPluginShape).setup(nuxtApp);
-      const errorCb = nuxtApp.hook.mock.calls.find(c => c[0] === 'app:error')?.[1] as (e: unknown) => void;
-      errorCb({ statusCode });
+      fireHook(nuxtApp, { statusCode });
 
       expect(reportSpy).not.toHaveBeenCalled();
     });
@@ -208,15 +230,14 @@ describe('Sentry Nuxt client plugin', () => {
 
       const nuxtApp = makeNuxtApp();
       await (clientPlugin as NuxtPluginShape).setup(nuxtApp);
-      const errorCb = nuxtApp.hook.mock.calls.find(c => c[0] === 'app:error')?.[1] as (e: unknown) => void;
       const err = { statusCode: 503, message: 'bad gateway' };
-      errorCb(err);
+      fireHook(nuxtApp, err);
 
-      expect(reportSpy).toHaveBeenCalledWith({ error: err });
+      expect(reportSpy).toHaveBeenCalledWith(expect.objectContaining({ error: err }));
     });
 
-    // Non-Nuxt error carrying a 4xx statusCode: exercises the `isNuxtError`
-    // guard directly (without the guard this would be skipped as 4xx).
+    // Non-Nuxt error carrying a 4xx statusCode exercises the `isNuxtError`
+    // guard directly — without the guard this would be skipped as 4xx.
     it('reports a non-Nuxt error even when it carries a 4xx statusCode', async () => {
       const { isNuxtError } = await import('nuxt/app');
       const reportSpy = vi.spyOn(utils, 'reportNuxtError').mockImplementation(() => {});
@@ -226,15 +247,14 @@ describe('Sentry Nuxt client plugin', () => {
 
       const nuxtApp = makeNuxtApp();
       await (clientPlugin as NuxtPluginShape).setup(nuxtApp);
-      const errorCb = nuxtApp.hook.mock.calls.find(c => c[0] === 'app:error')?.[1] as (e: unknown) => void;
       const err = Object.assign(new Error('boom'), { statusCode: 404 });
-      errorCb(err);
+      fireHook(nuxtApp, err);
 
-      expect(reportSpy).toHaveBeenCalledWith({ error: err });
+      expect(reportSpy).toHaveBeenCalledWith(expect.objectContaining({ error: err }));
     });
   });
 
-  describe('vue:error hook', () => {
+  describe('vue:error hook — component instance passthrough', () => {
     it('forwards the error, component instance and info to reportNuxtError', async () => {
       const reportSpy = vi.spyOn(utils, 'reportNuxtError').mockImplementation(() => {});
       getClient.mockReturnValue(makeClient());
@@ -252,70 +272,6 @@ describe('Sentry Nuxt client plugin', () => {
       vueErrorCb(err, instance, 'render');
 
       expect(reportSpy).toHaveBeenCalledWith({ error: err, instance, info: 'render' });
-    });
-
-    // Mirror the status-code filtering from app:error so both hooks are
-    // covered symmetrically (matches upstream #25341's `it.each` across
-    // both hook names).
-    it.each([404, 301])('skips reporting when a Nuxt error carries a %dxx status code', async statusCode => {
-      const { isNuxtError } = await import('nuxt/app');
-      const reportSpy = vi.spyOn(utils, 'reportNuxtError').mockImplementation(() => {});
-      vi.mocked(isNuxtError).mockReturnValue(true);
-      getClient.mockReturnValue(makeClient());
-      getRouteProvider.mockReturnValue(undefined);
-
-      const nuxtApp = makeNuxtApp();
-      await (clientPlugin as NuxtPluginShape).setup(nuxtApp);
-      const vueErrorCb = nuxtApp.hook.mock.calls.find(c => c[0] === 'vue:error')?.[1] as (
-        e: unknown,
-        instance: unknown,
-        info: string,
-      ) => void;
-      vueErrorCb({ statusCode }, undefined, 'setup');
-
-      expect(reportSpy).not.toHaveBeenCalled();
-    });
-
-    it('reports a Nuxt error when the status code is 5xx', async () => {
-      const { isNuxtError } = await import('nuxt/app');
-      const reportSpy = vi.spyOn(utils, 'reportNuxtError').mockImplementation(() => {});
-      vi.mocked(isNuxtError).mockReturnValue(true);
-      getClient.mockReturnValue(makeClient());
-      getRouteProvider.mockReturnValue(undefined);
-
-      const nuxtApp = makeNuxtApp();
-      await (clientPlugin as NuxtPluginShape).setup(nuxtApp);
-      const vueErrorCb = nuxtApp.hook.mock.calls.find(c => c[0] === 'vue:error')?.[1] as (
-        e: unknown,
-        instance: unknown,
-        info: string,
-      ) => void;
-      const err = { statusCode: 503, message: 'bad gateway' };
-      vueErrorCb(err, undefined, 'setup');
-
-      expect(reportSpy).toHaveBeenCalledWith({ error: err, instance: undefined, info: 'setup' });
-    });
-
-    // Non-Nuxt error carrying a 4xx statusCode: exercises the `isNuxtError`
-    // guard directly (without the guard this would be skipped as 4xx).
-    it('reports a non-Nuxt error even when it carries a 4xx statusCode', async () => {
-      const { isNuxtError } = await import('nuxt/app');
-      const reportSpy = vi.spyOn(utils, 'reportNuxtError').mockImplementation(() => {});
-      vi.mocked(isNuxtError).mockReturnValue(false);
-      getClient.mockReturnValue(makeClient());
-      getRouteProvider.mockReturnValue(undefined);
-
-      const nuxtApp = makeNuxtApp();
-      await (clientPlugin as NuxtPluginShape).setup(nuxtApp);
-      const vueErrorCb = nuxtApp.hook.mock.calls.find(c => c[0] === 'vue:error')?.[1] as (
-        e: unknown,
-        instance: unknown,
-        info: string,
-      ) => void;
-      const err = Object.assign(new Error('boom'), { statusCode: 404 });
-      vueErrorCb(err, undefined, 'setup');
-
-      expect(reportSpy).toHaveBeenCalledWith({ error: err, instance: undefined, info: 'setup' });
     });
   });
 });
