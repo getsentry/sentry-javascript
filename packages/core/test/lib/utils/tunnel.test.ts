@@ -715,12 +715,17 @@ describe('serveTunnelIntegration', () => {
     const bundledTunnel = await import('../../../src/utils/tunnel');
     bundledDefaults.setManagedTunnelDefaults({ basePath: '/app' });
 
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(() => Promise.resolve(new Response('forwarded'))),
+    );
+    const response = await bundledTunnel.handleTunnelRequestIfMatched(
+      makeEnvelopeRequest({ dsn: TEST_DSN }, `http://localhost/app${getTunnelPath(TEST_DSN)}`),
+    );
+    vi.unstubAllGlobals();
+
     expect(bundledTunnel.getTunnelPaths()).toEqual([getTunnelPath(TEST_DSN)]);
-    expect(
-      bundledTunnel.handleTunnelRequestIfMatched(
-        makeEnvelopeRequest({ dsn: TEST_DSN }, `http://localhost/app${getTunnelPath(TEST_DSN)}`),
-      ),
-    ).toBeDefined();
+    expect(await response?.text()).toBe('forwarded');
   });
 
   it('serves nothing for a `_managedTunnel` set without it, since only the integration brings the forwarder', () => {
