@@ -62,7 +62,7 @@ function createApp({ restoreRouteIndex }: { restoreRouteIndex: boolean }): Hono 
   subApp.get('/items/:itemId', c => c.text('item'));
   app.route('/sub', subApp);
 
-  // Passes `draft` on to the catch-all below with `next()`. The catch-all responds, so it names the request.
+  // Passes `draft` on to the catch-all below, which then names the request.
   app.get('/posts/:id', async (c, next) => {
     if (c.req.param('id') === 'draft') {
       await next();

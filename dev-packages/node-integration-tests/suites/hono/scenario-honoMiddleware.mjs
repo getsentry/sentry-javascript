@@ -7,9 +7,8 @@ import { Hono } from 'hono';
 const app = new Hono();
 app.use(Sentry.honoMiddleware(app));
 
-// Counts the Sentry wrappers around the handler that runs. Both setups wrap route handlers, and the
-// router reuses the handler list for each request, so without a guard the wrappers would pile up.
-// It reads the match result like `hono/route` does.
+// Counts the Sentry wrappers around the handler that runs. Both setups wrap, and the router reuses the
+// handler list for each request.
 function wrapperCount(c) {
   const [matchResultKey] = Object.getOwnPropertySymbols(Object.getPrototypeOf(c.req));
   let handler = c.req[matchResultKey][0][c.req.routeIndex][0][0];
@@ -21,10 +20,10 @@ function wrapperCount(c) {
   return count;
 }
 
-// No route handler here declares `next`, so the SDK does not wrap them.
+// No route handler declares `next`, so the SDK does not wrap.
 app.get('/users/me', c => c.json({ wrappers: wrapperCount(c) }));
 
-// A route handler that declares `next`, so the SDK wraps the route handlers of this request.
+// Declares `next`, so the SDK wraps the route handlers.
 app.get('/posts/:id', async (c, next) => {
   if (c.req.param('id') === 'draft') {
     await next();

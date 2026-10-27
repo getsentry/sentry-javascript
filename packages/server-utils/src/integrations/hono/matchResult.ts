@@ -2,16 +2,14 @@ import { addNonEnumerableProperty, isPlainObject } from '@sentry/core';
 import type { Context, HonoRoute, MatchedHandler } from './honoTypes';
 import { isMiddleware } from './isMiddleware';
 
-// The `Context` key for the `routeIndex` of the last route handler that started. `Symbol.for`, so that
-// other copies of `@sentry/server-utils` can read it.
+// `routeIndex` of the route handler that started last. `Symbol.for` shares it between SDK copies.
 const ROUTE_HANDLER_INDEX = Symbol.for('sentry.hono.routeHandlerIndex');
 
-// Marks the index wrapper, so that a handler gets it only once. The router reuses the same match result
-// for each request to a route. Span wrappers do not count, because a route handler from `app.use()`
-// has a span wrapper and still needs the index wrapper.
+// Marks the index wrapper. The router reuses the match result for each request to a route, so without
+// it the wrappers pile up. A span wrapper does not count: a route handler from `app.use()` has one and
+// still needs this wrapper.
 const RECORDS_ROUTE_HANDLER_INDEX = Symbol.for('sentry.hono.recordsRouteHandlerIndex');
 
-// The `Context` key for the callback that runs when a route handler starts.
 const ON_ROUTE_HANDLER_START = Symbol.for('sentry.hono.onRouteHandlerStart');
 
 function isMatchedHandler(entry: unknown): entry is MatchedHandler {
@@ -30,18 +28,15 @@ function isMatchedHandler(entry: unknown): entry is MatchedHandler {
   );
 }
 
-/**
- * Checks the entry shape that `compose` and `hono/route` read. The match result is a Hono internal, so
- * the SDK leaves other shapes alone.
- */
+/** The match result is internal to Hono. The SDK uses it only in the shape that `compose` reads. */
 export function isMatchedHandlerList(handlers: unknown): handlers is MatchedHandler[] {
   return Array.isArray(handlers) && handlers.every(isMatchedHandler);
 }
 
 /**
- * Reads the match result through the getter that `hono/route` uses (Hono 4.8 and later). `hono` does
- * not export the getter's symbol, so this finds it as the symbol-keyed getter that returns a match
- * result.
+ * Reads the match result like `hono/route` does (Hono 4.8+). Hono does not export the getter's symbol,
+ * so this looks for a symbol getter that returns a match result.
+ * https://github.com/honojs/hono/blob/v5.0.0-rc.1/src/helper/route/index.ts#L32-L34
  */
 export function getMatchedHandlers(context: Context): MatchedHandler[] | undefined {
   const requestProto: object | null = Object.getPrototypeOf(context.req);
@@ -67,17 +62,16 @@ export function onRouteHandlerStart(context: Context, callback: () => void): voi
 }
 
 /**
- * Wraps each route handler, so that it stores `c.req.routeIndex` when it starts. Hono 5 resets the
- * index after `next()`, so the Sentry middleware cannot read it there.
+ * Wraps the route handlers so that each stores `c.req.routeIndex` when it starts. Hono 5 resets the
+ * index after `next()` (https://github.com/honojs/hono/pull/4424).
  *
- * Only a route handler that declares `next` can pass the request on to a later one. If none does, the
- * first route handler that runs also responds, so this wraps nothing and returns `false`.
+ * Wraps only if a route handler declares `next`. Otherwise the first route handler also responds.
+ * Returns `true` if it wrapped.
  *
- * Calling this from the Sentry middleware itself works, because `compose` reads each handler from the
- * match result only when it calls it.
+ * Safe to call during the request: `compose` reads each handler only when it calls it.
  */
 export function wrapRouteHandlers(handlers: MatchedHandler[], middlewareFlags: boolean[]): boolean {
-  // `isMiddleware()` checks the arity, so for a route handler it tells if the handler declares `next`.
+  // For a route handler, `isMiddleware()` tells if it declares `next`.
   const canPassOn = handlers.some(([[handler]], i) => !middlewareFlags[i] && isMiddleware(handler));
   if (!canPassOn) {
     return false;

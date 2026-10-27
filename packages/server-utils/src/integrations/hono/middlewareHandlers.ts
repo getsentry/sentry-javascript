@@ -25,7 +25,7 @@ import { HTTP_ROUTE } from '@sentry/conventions/attributes';
  */
 export function requestHandler(context: Context, getConnInfo?: GetConnInfo): void {
   const isolationScope = getCurrentIsolationScope();
-  // The span to name. When a route handler starts, a span of the user can be the active one.
+  // Read now: when a route handler starts, a user span can be active.
   const span = getActiveSpan();
 
   // Hono 5 removes `c.req.matchedRoutes`. Before Hono 4.8, it is the only source.
@@ -35,13 +35,12 @@ export function requestHandler(context: Context, getConnInfo?: GetConnInfo): voi
   const nameSpan = (): void =>
     updateSpanRouteName(isolationScope, span, context, resolveRouteName(context, routes, middlewareFlags));
 
-  // Name the span before the handlers run, so that events captured during the request carry the route.
+  // Name early, so that events from the handlers carry the route.
   nameSpan();
 
-  // The manual setup has no Context hook, so wrap the route handlers here. Without the getter, the
-  // Context hook may still have wrapped them.
+  // A route handler that calls `next()` passes the request on, so rename when each one starts. Without
+  // the getter, only the Context hook can wrap the route handlers.
   if (!matchedHandlers || wrapRouteHandlers(matchedHandlers, middlewareFlags)) {
-    // A route handler can pass the request on with `next()`, so the one that responds names it.
     onRouteHandlerStart(context, nameSpan);
   }
 

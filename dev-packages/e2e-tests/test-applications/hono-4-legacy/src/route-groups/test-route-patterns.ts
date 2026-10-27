@@ -38,7 +38,7 @@ routePatterns.get('/capture/:id', c => {
 });
 routePatterns.get('/capture/*', c => c.text('capture catch-all'));
 
-// Passes `draft` on to the catch-all below with `next()`. The catch-all responds, so it names the request.
+// Passes `draft` on to the catch-all below, which then names the request.
 routePatterns.get('/posts/:id', async (c, next) => {
   if (c.req.param('id') === 'draft') {
     await next();

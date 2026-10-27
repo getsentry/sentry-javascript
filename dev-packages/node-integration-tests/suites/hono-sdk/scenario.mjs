@@ -30,8 +30,7 @@ app.get('/users/:id/capture', c => {
   return c.text('captured');
 });
 
-// A middleware that returns early. No route handler runs, so the name falls back to the last matched
-// route handler.
+// A middleware that returns early. The request gets the route that would have run.
 app.use('/early/*', async (c, _next) => c.text('blocked by middleware'));
 app.get('/early/:id', c => c.text('never reached'));
 
@@ -59,7 +58,7 @@ app.get('/outer/:itemId', async c => {
   return c.json({ outer: c.req.param('itemId'), inner: await res.json() });
 });
 
-// Passes `draft` on to the catch-all below with `next()`. The catch-all responds, so it names the request.
+// Passes `draft` on to the catch-all below, which then names the request.
 app.get('/posts/:id', async (c, next) => {
   if (c.req.param('id') === 'draft') {
     await next();

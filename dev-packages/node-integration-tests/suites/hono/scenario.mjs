@@ -108,8 +108,7 @@ app.get('/users/:id/capture', c => {
   return c.text('captured');
 });
 
-// A middleware that returns early. No route handler runs, so the name falls back to the last matched
-// route handler.
+// A middleware that returns early. The request gets the route that would have run.
 app.use('/early/*', async (c, _next) => c.text('blocked by middleware'));
 app.get('/early/:id', c => c.text('never reached'));
 
@@ -121,12 +120,12 @@ app.get('/head-error/:id', () => {
   throw new Error('Test error from a HEAD request');
 });
 
-// Runs the rest of the chain in its own span. The SDK must name the segment, not this span. The route
-// handler declares `next`, so the SDK names the request when the handler starts, inside this span.
+// A user span around the route handler. The SDK must rename the segment, not this span. The handler
+// declares `next`, so the SDK renames inside this span.
 app.use('/traced/*', (_c, next) => startSpan({ name: 'user span' }, () => next()));
 app.get('/traced/:id', (c, _next) => c.text('traced'));
 
-// Passes `draft` on to the catch-all below with `next()`. The catch-all responds, so it names the request.
+// Passes `draft` on to the catch-all below, which then names the request.
 app.get('/posts/:id', async (c, next) => {
   if (c.req.param('id') === 'draft') {
     await next();
