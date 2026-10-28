@@ -63,7 +63,7 @@ import { asNumber, asString, isReadableStream, type StreamedModelCallResult, sum
  * via `node:diagnostics_channel`. Events are discriminated by their `type` field.
  * @see https://github.com/vercel/ai/pull/15660
  */
-const AI_SDK_TELEMETRY_TRACING_CHANNEL = 'ai:telemetry';
+export const AI_SDK_TELEMETRY_TRACING_CHANNEL = 'ai:telemetry';
 
 const ORIGIN = 'auto.ai.vercelai';
 
