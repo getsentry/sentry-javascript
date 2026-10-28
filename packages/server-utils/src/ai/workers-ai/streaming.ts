@@ -5,7 +5,7 @@ import type { WorkersAiUsage } from './types';
 import { setOutputMessagesAttribute } from './utils';
 
 interface WorkersAiStreamingToolCall {
-  index?: number;
+  index?: number | null;
   id?: string;
   type?: string;
   function?: { name?: string; arguments?: string };
@@ -29,13 +29,35 @@ interface WorkersAiStreamChunk {
 }
 
 /**
- * Accumulate a fragmented OpenAI-compatible tool call (delivered across multiple
- * `choices[].delta.tool_calls` chunks) into the index-keyed accumulator.
+ * Tool calls accumulated from a stream: those that carry an `index` are keyed by it, those that don't
+ * are kept in arrival order so they can never collide with a real index.
  */
-function accumulateStreamingToolCalls(
-  toolCalls: WorkersAiStreamingToolCall[],
-  accumulator: Record<number, WorkersAiStreamingToolCall>,
-): void {
+interface ToolCallAccumulator {
+  byIndex: Record<number, WorkersAiStreamingToolCall>;
+  unindexed: WorkersAiStreamingToolCall[];
+}
+
+/**
+ * Find the call a tool call delta without an `index` belongs to. Some providers omit the index and send each
+ * parallel call whole in its own chunk: a delta with a known id continues that call, a new id (or a name without
+ * an id) starts a new call, and anything else continues the latest one.
+ */
+function getUnindexedToolCall(
+  toolCall: WorkersAiStreamingToolCall,
+  name: string | undefined,
+  accumulator: ToolCallAccumulator,
+): WorkersAiStreamingToolCall | undefined {
+  if (toolCall.id) {
+    return accumulator.unindexed.find(call => call.id === toolCall.id);
+  }
+  return name ? undefined : accumulator.unindexed[accumulator.unindexed.length - 1];
+}
+
+/**
+ * Accumulate a fragmented OpenAI-compatible tool call (delivered across multiple
+ * `choices[].delta.tool_calls` chunks) into the accumulator.
+ */
+function accumulateStreamingToolCalls(toolCalls: WorkersAiStreamingToolCall[], accumulator: ToolCallAccumulator): void {
   for (const toolCall of toolCalls) {
     // Normalize both shapes: name/arguments nested under `function`, or at the top level.
     const name = toolCall.function?.name ?? toolCall.name;
@@ -46,12 +68,12 @@ function accumulateStreamingToolCalls(
       continue;
     }
 
-    const index = toolCall.index ?? 0;
-    const existing = accumulator[index];
+    const existing =
+      toolCall.index == null ? getUnindexedToolCall(toolCall, name, accumulator) : accumulator.byIndex[toolCall.index];
 
     if (!existing) {
-      accumulator[index] = {
-        index,
+      const created: WorkersAiStreamingToolCall = {
+        index: toolCall.index ?? accumulator.unindexed.length,
         id: toolCall.id,
         type: toolCall.type,
         function: {
@@ -59,6 +81,11 @@ function accumulateStreamingToolCalls(
           arguments: args ?? '',
         },
       };
+      if (toolCall.index == null) {
+        accumulator.unindexed.push(created);
+      } else {
+        accumulator.byIndex[toolCall.index] = created;
+      }
     } else if (existing.function) {
       if (name && !existing.function.name) {
         existing.function.name = name;
@@ -81,7 +108,7 @@ function processLine(
   line: string,
   state: StreamResponseState,
   recordOutputs: boolean,
-  toolCallAccumulator: Record<number, WorkersAiStreamingToolCall>,
+  toolCallAccumulator: ToolCallAccumulator,
 ): void {
   const trimmed = line.trim();
   if (!trimmed.startsWith('data:')) {
@@ -162,7 +189,7 @@ export function instrumentWorkersAiStream(
 
   // OpenAI-compatible tool calls arrive fragmented across chunks and are keyed by index;
   // accumulate them here and flatten into `state.toolCalls` once the stream ends.
-  const toolCallAccumulator: Record<number, WorkersAiStreamingToolCall> = {};
+  const toolCallAccumulator: ToolCallAccumulator = { byIndex: {}, unindexed: [] };
 
   let buffer = '';
   let spanEnded = false;
@@ -174,7 +201,7 @@ export function instrumentWorkersAiStream(
     spanEnded = true;
 
     if (recordOutputs) {
-      const accumulatedToolCalls = Object.values(toolCallAccumulator);
+      const accumulatedToolCalls = [...Object.values(toolCallAccumulator.byIndex), ...toolCallAccumulator.unindexed];
       if (accumulatedToolCalls.length > 0) {
         state.toolCalls.push(...accumulatedToolCalls);
       }
