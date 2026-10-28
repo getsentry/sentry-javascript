@@ -17,6 +17,7 @@ import { collectStreamedSpans, getSpanOp, waitForError } from '@sentry-internal/
 import { newAgentId, prompt, submitPrompt, waitForOperation } from './utils';
 
 const APP = 'cloudflare-pi-durable';
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 
 test('traces a PiHarness prompt as invoke_agent with chat, execute_tool and provider spans', async ({ baseURL }) => {
   // A run is its own trace, and its `invoke_agent` segment ends last. Only this test calls get_weather.
@@ -43,8 +44,8 @@ test('traces a PiHarness prompt as invoke_agent with chat, execute_tool and prov
   const providerCalls = spans.filter(span => getSpanOp(span) === HTTP_CLIENT);
 
   expect(agent.attributes[SENTRY_ORIGIN]?.value).toBe('auto.ai.pi_durable');
-  // The PiHarness root session is pi conversation 1, in a Harness of its own per Durable Object.
-  expect(agent.attributes[GEN_AI_CONVERSATION_ID]?.value).toMatch(/^[0-9a-f]{32}:1$/);
+  // The provider session id pi-durable keeps with the conversation.
+  expect(agent.attributes[GEN_AI_CONVERSATION_ID]?.value).toMatch(UUID);
   // The request that submitted the prompt is a trace of its own: the scheduler runs the work.
   expect(spans.some(span => getSpanOp(span) === HTTP_SERVER)).toBe(false);
   // pi-durable keeps its state in the `pi_` tables of `PiHarness`, whose statements start no span.
@@ -141,6 +142,9 @@ test('resumes a run in a new trace after the Durable Object resets during a tool
   expect(getSpanOp(agent)).toBe(GEN_AI_INVOKE_AGENT);
   expect(tool.parent_span_id).toBe(agent.span_id);
   expect(finalAnswer?.parent_span_id).toBe(agent.span_id);
+  // The restarted object reads the conversation id from storage, also when the run resumes with a tool call.
+  expect(agent.attributes[GEN_AI_CONVERSATION_ID]?.value).toMatch(UUID);
+  expect(tool.attributes[GEN_AI_CONVERSATION_ID]?.value).toBe(agent.attributes[GEN_AI_CONVERSATION_ID]?.value);
   // The request that called the tool ran before the reset, so this trace starts with the rerun of the
   // tool. A run that never reset would start with that request.
   expect(chats.every(chat => chat.start_timestamp >= tool.start_timestamp)).toBe(true);

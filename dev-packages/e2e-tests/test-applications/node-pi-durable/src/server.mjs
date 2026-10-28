@@ -11,6 +11,7 @@ import {
   defineExtension,
   defineTool,
   Harness,
+  ProviderDoc,
   section,
 } from '@earendil-works/pi-durable';
 import { openNodeSqliteStorage } from '@earendil-works/pi-durable/storage/sqlite/node';
@@ -125,7 +126,9 @@ async function handle(req, res) {
       { ownership: { kind: 'ownerless' }, agent: { model: MODEL } },
       context,
     );
-    return { id: conversation.id };
+    // The SDK reports the provider session id as `gen_ai.conversation.id`.
+    const provider = await harness.snapshot(ProviderDoc, conversation.id, context);
+    return { id: conversation.id, sessionId: provider?.sessionId };
   }
 
   // Returns as soon as the input is admitted. The run continues in the background, possibly in a

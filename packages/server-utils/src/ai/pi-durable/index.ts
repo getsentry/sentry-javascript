@@ -8,12 +8,13 @@ import {
   startNewTrace,
   withActiveSpan,
 } from '@sentry/core';
+import { GEN_AI_CONVERSATION_ID } from '@sentry/conventions/attributes';
 import type { GenAiOptions } from '../core/utils';
 import { skipPiAiProviderIntegrations } from '../pi-ai/providers';
 import { PI_DURABLE_ORIGIN, PI_TASK } from './constants';
 import { instrumentPiModels } from './models';
 import type { PiRuns } from './runs';
-import { createRuns, endRun, observeRunControl, startRun, toSentryConversationId } from './runs';
+import { createRuns, endRun, observeRunControl, readProviderSessionId, startRun, toSentryConversationId } from './runs';
 import { instrumentTool, instrumentToolPhase } from './tools';
 import type {
   PiHarness,
@@ -137,6 +138,7 @@ function instrumentRegistry(registry: PiRegistryReader, options: PiDurableOption
             definition.name,
             observed => phase.call(receiver, taskRecord, observed, context),
             runtime,
+            context,
             runs,
             wrapTool,
             isAbort,
@@ -191,6 +193,7 @@ function runPhase(
   kind: string,
   phase: (runtime: PiTaskRuntime) => Promise<unknown>,
   runtime: PiTaskRuntime,
+  context: unknown,
   runs: PiRuns,
   wrapTool: (tool: PiTool) => PiTool,
   isAbort: boolean,
@@ -216,7 +219,17 @@ function runPhase(
   }
 
   const runInScope = async (scope: Scope): Promise<unknown> => {
-    scope.setConversationId(toSentryConversationId(runs, conversationId));
+    // Read at the first phase of a run, which is a `pi.tool` phase when a restarted Harness reruns a
+    // tool call.
+    let sessionId = run?.sessionId;
+    if (!sessionId && (run || kind === PI_TASK.COMPACTION)) {
+      sessionId = await readProviderSessionId(runtime, context);
+      if (run && sessionId) {
+        run.sessionId = sessionId;
+        run.span.setAttribute(GEN_AI_CONVERSATION_ID, sessionId);
+      }
+    }
+    scope.setConversationId(sessionId ?? toSentryConversationId(runs, conversationId));
     try {
       return await phase(observed);
     } catch (error) {
