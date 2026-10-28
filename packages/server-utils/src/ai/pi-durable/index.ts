@@ -220,9 +220,9 @@ function runPhase(
 
   const runInScope = async (scope: Scope): Promise<unknown> => {
     // Read at the first phase of a run, which is a `pi.tool` phase when a restarted Harness reruns a
-    // tool call.
+    // tool call, and at each phase outside a run, such as an idle compaction or a task of an extension.
     let sessionId = run?.sessionId;
-    if (!sessionId && (run || kind === PI_TASK.COMPACTION)) {
+    if (!sessionId) {
       sessionId = await readProviderSessionId(runtime, context);
       if (run && sessionId) {
         run.sessionId = sessionId;

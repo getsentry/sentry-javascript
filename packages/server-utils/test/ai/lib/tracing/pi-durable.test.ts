@@ -1049,6 +1049,35 @@ describe('instrumentPiDurableHarnessOptions', () => {
       );
     });
 
+    it('uses the provider session id for a task of an extension on an idle conversation', async () => {
+      const sessionId = '019a2b3c-4d5e-7f60-8172-93a4b5c6d7e8';
+      const task: PiTask = {
+        definition: {
+          name: 'app.title',
+          phases: {
+            request: async () => {
+              await harness.models!.completeSimple!(MODEL, { messages: [] });
+            },
+          },
+        },
+      };
+      const harness: PiHarnessOptions = instrumentPiDurableHarnessOptions({
+        models: { completeSimple: async () => ANSWER },
+        registry: { snapshot: () => ({ task: () => task, tasks: () => [task] }), subscribe: () => () => undefined },
+      });
+      const runtime: PiTaskRuntime = {
+        taskId: 7,
+        conversationId: 1,
+        agent: async () => ({}),
+        commit: async () => undefined,
+        snapshot: async () => ({ sessionId }),
+      };
+
+      await harness.registry!.snapshot().task('app.title')!.definition.phases.request!(undefined, runtime, undefined);
+
+      expect(spanToJSON(endedSpans[0]!).attributes[GEN_AI_CONVERSATION_ID]).toBe(sessionId);
+    });
+
     it('ends the open runs when the Harness closes', async () => {
       const harness = harnessFor(generationPhase([{ run: { inputs: [5] } }]));
       let onClose: (() => void) | undefined;
