@@ -61,6 +61,7 @@ Uses **Git Flow** (see `docs/gitflow.md`).
 
 - Use `.github/PULL_REQUEST_TEMPLATE.md` for the body (`gh pr create --body` skips it). Ideally 1-2 sentences per field, no AI walkthrough.
 - Always open PRs as draft.
+- Never apply the `Accept Bundlesize Increase` label.
 - **Keep PR descriptions condensed** — usually a few sentences. Explain the _reasoning_: why the change is needed, and any non-obvious decisions or tradeoffs made along the way. Do **not** walk through the implementation or describe what changed file-by-file — the diff already shows that. Only go longer when the decisions genuinely warrant it.
 
 ## Architecture
