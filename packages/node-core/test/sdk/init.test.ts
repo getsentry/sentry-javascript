@@ -186,6 +186,30 @@ describe('init()', () => {
     process.env.VERCEL = originalVercelEnv;
   });
 
+  it('registers one SIGTERM handler on Vercel that flushes the latest client across repeated inits', () => {
+    const originalVercelEnv = process.env.VERCEL;
+    process.env.VERCEL = '1';
+
+    const baselineListeners = process.listeners('SIGTERM');
+
+    const firstClient = init({ dsn: PUBLIC_DSN, skipOpenTelemetrySetup: true });
+    const latestClient = init({ dsn: PUBLIC_DSN, skipOpenTelemetrySetup: true });
+    const firstFlushSpy = vi.spyOn(firstClient as NodeClient, 'flush').mockResolvedValue(true);
+    const latestFlushSpy = vi.spyOn(latestClient as NodeClient, 'flush').mockResolvedValue(true);
+
+    const postInitListeners = process.listeners('SIGTERM');
+    const addedListeners = postInitListeners.filter(l => !baselineListeners.includes(l));
+    expect(addedListeners).toHaveLength(1);
+
+    process.emit('SIGTERM');
+
+    expect(firstFlushSpy).not.toHaveBeenCalled();
+    expect(latestFlushSpy).toHaveBeenCalledWith(200);
+
+    process.off('SIGTERM', addedListeners[0] as any);
+    process.env.VERCEL = originalVercelEnv;
+  });
+
   it('does not register a SIGTERM handler when not running on Vercel', () => {
     const originalVercelEnv = process.env.VERCEL;
     delete process.env.VERCEL;
