@@ -209,6 +209,18 @@ describe('Integration | coreHandlers | handleGlobalEvent', () => {
     expect(replay.recordingMode).toBe('buffer');
   });
 
+  it('does not sample events whose stack trace only comes from the attachStacktrace default in buffer mode', () => {
+    const messageEvent: Event = {
+      message: 'Some message',
+      exception: { values: [{ value: 'Some message', stacktrace: { frames: [{ filename: 'app.js' }] } }] },
+      sdkProcessingMetadata: { hasDefaultSyntheticStacktrace: true },
+    };
+
+    expect(replay.recordingMode).toBe('buffer');
+    expect(handleGlobalEventListener(replay)(messageEvent, {})?.tags?.replayId).toBeUndefined();
+    expect(replay.session?.dirty).toBe(false);
+  });
+
   it('does not skip non-rrweb errors', () => {
     const errorEvent: Event = {
       exception: {

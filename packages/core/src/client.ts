@@ -250,6 +250,9 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
    */
   protected _unhandledSessionStatus: SessionStatus;
 
+  /** Whether `attachStacktrace` came from the SDK default rather than the user's options. */
+  protected readonly _attachStacktraceIsDefault: boolean;
+
   /**
    * Initializes this client instance.
    *
@@ -271,6 +274,7 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
     this._promiseBuffer = makePromiseBuffer(options.transportOptions?.bufferSize ?? DEFAULT_TRANSPORT_BUFFER_SIZE);
     this._dataCollection = resolveDataCollectionOptions(options);
     this._unhandledSessionStatus = 'crashed';
+    this._attachStacktraceIsDefault = options.attachStacktrace === undefined;
 
     if (options.dsn) {
       this._dsn = makeDsn(options.dsn);
@@ -372,7 +376,14 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
     const eventMessage = isParameterizedString(message) ? message : String(message);
     const isMessage = isPrimitive(message);
     const promisedEvent = isMessage
-      ? this.eventFromMessage(eventMessage, level, hintWithEventId)
+      ? this.eventFromMessage(eventMessage, level, hintWithEventId).then(event => {
+          // Lets Replay keep treating messages as non-errors unless the user opted into stack traces
+          if (event.exception && this._attachStacktraceIsDefault) {
+            event.sdkProcessingMetadata = { ...event.sdkProcessingMetadata, hasDefaultSyntheticStacktrace: true };
+          }
+
+          return event;
+        })
       : this.eventFromException(message, hintWithEventId);
 
     this._process(
