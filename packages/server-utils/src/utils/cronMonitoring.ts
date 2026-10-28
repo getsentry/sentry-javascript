@@ -5,7 +5,7 @@ import * as diagnosticsChannel from './diagnosticsChannel';
 
 export type AnyFn = (this: unknown, ...args: unknown[]) => unknown;
 
-// Set by `Sentry.cron.instrumentNodeCron` and `Sentry.cron.instrumentNodeSchedule`, which already send check-ins.
+// Set by `Sentry.cron.instrumentCron`, `instrumentNodeCron` and `instrumentNodeSchedule`, which already send check-ins.
 const MONITORED = Symbol.for('sentry.cron.monitored');
 
 /**
@@ -26,7 +26,7 @@ export function subscribeToJobCreation(
   });
 }
 
-/** Whether a job is named, not excluded, and not already monitored by `Sentry.cron.instrumentNodeCron` or `instrumentNodeSchedule`. */
+/** Whether a job is named, not excluded, and not already monitored by `Sentry.cron.instrumentCron`, `instrumentNodeCron` or `instrumentNodeSchedule`. */
 export function shouldMonitorJob(
   name: unknown,
   job: unknown,
