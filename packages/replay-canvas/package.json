@@ -59,7 +59,7 @@
   "homepage": "https://docs.sentry.io/platforms/javascript/session-replay/",
   "devDependencies": {
     "@sentry-internal/rollup-utils": "11.9.0",
-    "@sentry/rrweb": "2.44.1"
+    "@sentry/rrweb": "2.45.0"
   },
   "dependencies": {
     "@sentry/replay": "11.9.0",

@@ -307,8 +307,8 @@ importers:
         specifier: 11.9.0
         version: link:../../packages/replay-internal
       '@sentry/rrweb':
-        specifier: 2.44.1
-        version: 2.44.1
+        specifier: 2.45.0
+        version: 2.45.0
       '@supabase/supabase-js':
         specifier: 2.109.0
         version: 2.109.0
@@ -338,8 +338,8 @@ importers:
         specifier: 11.9.0
         version: link:../../packages/replay-canvas
       '@sentry/rrweb-types':
-        specifier: ^2.44.1
-        version: 2.44.1
+        specifier: ^2.45.0
+        version: 2.45.0
       '@sentry/wasm':
         specifier: 11.9.0
         version: link:../../packages/wasm
@@ -2104,8 +2104,8 @@ importers:
         specifier: 11.9.0
         version: link:../../dev-packages/rollup-utils
       '@sentry/rrweb':
-        specifier: 2.44.1
-        version: 2.44.1
+        specifier: 2.45.0
+        version: 2.45.0
 
   packages/replay-internal:
     dependencies:
@@ -2129,11 +2129,11 @@ importers:
         specifier: ^0.29.0
         version: 0.29.0
       '@sentry/rrweb':
-        specifier: 2.44.1
-        version: 2.44.1
+        specifier: 2.45.0
+        version: 2.45.0
       '@sentry/rrweb-snapshot':
-        specifier: 2.44.1
-        version: 2.44.1
+        specifier: 2.45.0
+        version: 2.45.0
       fflate:
         specifier: 0.8.3
         version: 0.8.3
@@ -8190,17 +8190,17 @@ packages:
     resolution: {integrity: sha512-tF8eI4Z5YP6l7piLcy4BeGv6J96Y2ttssAAVFPgdzxzsT9i+S2olqGWgA9qav6+Gzs6E5pC9PAkObp2eDftabQ==}
     engines: {node: '>=18'}
 
-  '@sentry/rrdom@2.44.1':
-    resolution: {integrity: sha512-1w4FmGe1ddSOl7Qsu30f+SI2YdQSyEJ5Oo2zR8ymzCRJ0gaC8ZpkusGQe6tSLX3IwKL9DNLrEM4zO031+9BLtA==}
+  '@sentry/rrdom@2.45.0':
+    resolution: {integrity: sha512-JIDMWjghWbV6xlqKHiUFAInOLMYClrE1Sm5OoACQk1Bfv0+Am/Bgnb7Hj/uA2Quh8uKybn0kh9PqQ/AV3r3rzg==}
 
-  '@sentry/rrweb-snapshot@2.44.1':
-    resolution: {integrity: sha512-pMrOrncMfbN2gLe8IIGK6ReMThbNeCcnAxVff1EolxGHW6ry8qhVgFYhURZpDZuWLjiDOVAEcCFz/j3XTzMBGQ==}
+  '@sentry/rrweb-snapshot@2.45.0':
+    resolution: {integrity: sha512-me5T/2e58Lic5ztB9HSrko2m8gnCgDgy2Qq5iW0JbMX1FiztuwxqKku3/ZxhK10iVIgZGDqzT/d7EoJDPrC1qw==}
 
-  '@sentry/rrweb-types@2.44.1':
-    resolution: {integrity: sha512-qsDPN5pfR1lswCrEpGKoQp5MNC6bpta/Fi/WpS41vpV6hCI7IWB9GYzD4PDgfERslGihY3S35v+wnanktsFgaw==}
+  '@sentry/rrweb-types@2.45.0':
+    resolution: {integrity: sha512-IeCGojaSHZUgstG3nrTE5KJQkd4OvseYqsvCn+Nt18r8IkluaIiJhYstISPU8OaizZM1V5GM6DFV93Xweyqa4A==}
 
-  '@sentry/rrweb@2.44.1':
-    resolution: {integrity: sha512-DsxmVOlrsvSUgdbYELTtgP9zSan96NuZBM+kx85itij+/0ADBe6i2Mx2MLKQCMExenhnoZhTzf0ksZY0fkEymg==}
+  '@sentry/rrweb@2.45.0':
+    resolution: {integrity: sha512-R5ukWK6E3dgt7eE47d2m5MHPsxGtLxn3DK/AD1K6edgizWXMSP8+aatmM9cW1ZTmJhSN5mXU5YRO7QvkvH8mEA==}
 
   '@shikijs/core@1.29.2':
     resolution: {integrity: sha512-vju0lY9r27jJfOY4Z7+Rt/nIOjzJpZ3y+nYpqtUZInVoXQ/TJZcfGnNOGnKjFdVZb8qexiCuSlZRKcGfhhTTZQ==}
@@ -26147,22 +26147,22 @@ snapshots:
       detect-libc: 2.1.2
       node-abi: 3.89.0
 
-  '@sentry/rrdom@2.44.1':
+  '@sentry/rrdom@2.45.0':
     dependencies:
-      '@sentry/rrweb-snapshot': 2.44.1
+      '@sentry/rrweb-snapshot': 2.45.0
 
-  '@sentry/rrweb-snapshot@2.44.1': {}
+  '@sentry/rrweb-snapshot@2.45.0': {}
 
-  '@sentry/rrweb-types@2.44.1':
+  '@sentry/rrweb-types@2.45.0':
     dependencies:
-      '@sentry/rrweb-snapshot': 2.44.1
+      '@sentry/rrweb-snapshot': 2.45.0
       '@types/css-font-loading-module': 0.0.7
 
-  '@sentry/rrweb@2.44.1':
+  '@sentry/rrweb@2.45.0':
     dependencies:
-      '@sentry/rrdom': 2.44.1
-      '@sentry/rrweb-snapshot': 2.44.1
-      '@sentry/rrweb-types': 2.44.1
+      '@sentry/rrdom': 2.45.0
+      '@sentry/rrweb-snapshot': 2.45.0
+      '@sentry/rrweb-types': 2.45.0
       '@types/css-font-loading-module': 0.0.7
       '@xstate/fsm': 1.6.5
       base64-arraybuffer: 1.0.2
