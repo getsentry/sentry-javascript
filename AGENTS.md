@@ -64,6 +64,7 @@ Uses **Git Flow** (see `docs/gitflow.md`).
 - **Omit the "Summary" heading** in PR bodies — lead with the summary text itself, no `## Summary` header.
 - Include `Fixes #<issue-number>` somewhere in the PR body so the merge auto-closes the linked issue.
 - Always open PRs as draft.
+- Never apply the `Accept Bundlesize Increase` label.
 - **Keep PR descriptions condensed** — usually a few sentences. Explain the _reasoning_: why the change is needed, and any non-obvious decisions or tradeoffs made along the way. Do **not** walk through the implementation or describe what changed file-by-file — the diff already shows that. Only go longer when the decisions genuinely warrant it.
 
 ## Architecture
