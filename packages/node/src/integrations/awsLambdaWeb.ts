@@ -1,4 +1,10 @@
-import { FAAS_COLDSTART, FAAS_INVOCATION_ID } from '@sentry/conventions/attributes';
+import {
+  AWS_LAMBDA_INITIALIZATION_TYPE,
+  AWS_LAMBDA_WEB_ENDPOINT_NAME,
+  FAAS_COLDSTART,
+  FAAS_INVOCATION_ID,
+  FAAS_MAX_MEMORY,
+} from '@sentry/conventions/attributes';
 import type { IntegrationFn, SpanAttributes } from '@sentry/core';
 import { defineIntegration, getIsolationScope, safeSetSpanJSONAttributes } from '@sentry/core';
 
@@ -12,8 +18,8 @@ const _awsLambdaWebIntegration = (() => {
     initialization_type: process.env.AWS_LAMBDA_INITIALIZATION_TYPE,
   };
   const environmentAttributes = {
-    'faas.max_memory': lambdaContext.memory_size,
-    'aws.lambda.initialization_type': lambdaContext.initialization_type,
+    [FAAS_MAX_MEMORY]: lambdaContext.memory_size,
+    [AWS_LAMBDA_INITIALIZATION_TYPE]: lambdaContext.initialization_type,
   };
 
   return {
@@ -55,7 +61,7 @@ const _awsLambdaWebIntegration = (() => {
         attributes[FAAS_INVOCATION_ID] = requestContext.aws_request_id;
       }
       if (typeof requestContext?.endpoint_name === 'string') {
-        attributes['aws.lambda.web.endpoint_name'] = requestContext.endpoint_name;
+        attributes[AWS_LAMBDA_WEB_ENDPOINT_NAME] = requestContext.endpoint_name;
       }
       safeSetSpanJSONAttributes(span, attributes);
     },

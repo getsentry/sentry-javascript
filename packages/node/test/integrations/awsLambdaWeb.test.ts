@@ -1,4 +1,12 @@
-import { CLOUD_REGION, FAAS_COLDSTART, FAAS_INVOCATION_ID, SENTRY_ORIGIN } from '@sentry/conventions/attributes';
+import {
+  AWS_LAMBDA_INITIALIZATION_TYPE,
+  AWS_LAMBDA_WEB_ENDPOINT_NAME,
+  CLOUD_REGION,
+  FAAS_COLDSTART,
+  FAAS_INVOCATION_ID,
+  FAAS_MAX_MEMORY,
+  SENTRY_ORIGIN,
+} from '@sentry/conventions/attributes';
 import type { Integration } from '@sentry/core';
 import { getCurrentScope, getIsolationScope, SentrySpan, spanToJSON, withIsolationScope } from '@sentry/core';
 import { setAsyncLocalStorageAsyncContextStrategy } from '@sentry/server-utils';
@@ -96,7 +104,7 @@ describe('awsLambdaWebIntegration', () => {
       client.emit('httpServerRequest', {}, {}, { headers: { 'lambda-web-request-id': 'request' } });
       const span = new SentrySpan({
         name: 'request',
-        attributes: { [CLOUD_REGION]: 'custom-region', [FAAS_COLDSTART]: false, 'faas.max_memory': 0 },
+        attributes: { [CLOUD_REGION]: 'custom-region', [FAAS_COLDSTART]: false, [FAAS_MAX_MEMORY]: 0 },
       });
       const spanJSON = spanToJSON(span);
       integration.processSegmentSpan!(spanJSON, client);
@@ -106,8 +114,8 @@ describe('awsLambdaWebIntegration', () => {
         [CLOUD_REGION]: 'custom-region',
         [FAAS_COLDSTART]: false,
         [FAAS_INVOCATION_ID]: 'request',
-        'faas.max_memory': 0,
-        'aws.lambda.initialization_type': 'native-http',
+        [FAAS_MAX_MEMORY]: 0,
+        [AWS_LAMBDA_INITIALIZATION_TYPE]: 'native-http',
       });
     });
   });
@@ -124,7 +132,7 @@ describe('awsLambdaWebIntegration', () => {
 
       expect(scope.getScopeData().contexts['aws.lambda']).toEqual({ revision_id: 'rev-current', cold_start: true });
       expect(spanJSON.attributes).not.toHaveProperty([FAAS_INVOCATION_ID]);
-      expect(spanJSON.attributes).not.toHaveProperty(['aws.lambda.web.endpoint_name']);
+      expect(spanJSON.attributes).not.toHaveProperty([AWS_LAMBDA_WEB_ENDPOINT_NAME]);
     });
   });
 
@@ -136,8 +144,8 @@ describe('awsLambdaWebIntegration', () => {
     expect(span.attributes).toEqual({
       [SENTRY_ORIGIN]: 'manual',
       [CLOUD_REGION]: 'custom-region',
-      'faas.max_memory': 2_147_483_648,
-      'aws.lambda.initialization_type': 'native-http',
+      [FAAS_MAX_MEMORY]: 2_147_483_648,
+      [AWS_LAMBDA_INITIALIZATION_TYPE]: 'native-http',
     });
   });
 
@@ -153,7 +161,7 @@ describe('awsLambdaWebIntegration', () => {
       integration.processSegmentSpan!(span, client);
       integration.processEvent!(event, {}, client);
 
-      expect(span.attributes).not.toHaveProperty(['faas.max_memory']);
+      expect(span.attributes).not.toHaveProperty([FAAS_MAX_MEMORY]);
       expect(event.contexts['aws.lambda']).toHaveProperty('memory_size', undefined);
     },
   );

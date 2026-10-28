@@ -1,9 +1,11 @@
 import {
+  AWS_LAMBDA_WEB_ENDPOINT_NAME,
   CLOUD_PLATFORM,
   CLOUD_PROVIDER,
   CLOUD_REGION,
   FAAS_COLDSTART,
   FAAS_INVOCATION_ID,
+  FAAS_MAX_MEMORY,
   SENTRY_OP,
 } from '@sentry/conventions/attributes';
 import { expect, vi } from 'vitest';
@@ -84,10 +86,10 @@ createEsmAndCjsTests(__dirname, 'scenario.mjs', 'instrument.mjs', (createRunner,
           [SENTRY_OP]: { type: 'string', value: 'http.server' },
           [CLOUD_PLATFORM]: { type: 'string', value: 'aws_lambda' },
           [CLOUD_REGION]: { type: 'string', value: 'us-east-1' },
-          'faas.max_memory': { type: 'integer', value: 2_147_483_648 },
+          [FAAS_MAX_MEMORY]: { type: 'integer', value: 2_147_483_648 },
           [FAAS_COLDSTART]: { type: 'boolean', value: request === 'first' },
           [FAAS_INVOCATION_ID]: { type: 'string', value: request },
-          'aws.lambda.web.endpoint_name': { type: 'string', value: `${request}-endpoint` },
+          [AWS_LAMBDA_WEB_ENDPOINT_NAME]: { type: 'string', value: `${request}-endpoint` },
         },
       });
     }
