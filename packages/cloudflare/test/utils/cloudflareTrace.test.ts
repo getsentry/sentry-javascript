@@ -27,7 +27,7 @@ describe('continueCloudflareTrace()', () => {
     });
   });
 
-  it('continues the trace when the sentry-trace header is empty', () => {
+  it('keeps the propagation context when the scope continues a trace', () => {
     const context = {
       tracing: {
         getActiveSpan: () => ({
@@ -36,34 +36,16 @@ describe('continueCloudflareTrace()', () => {
         }),
       },
     };
-    const headers = new Headers({ 'sentry-trace': '' });
-
-    withScope(() => {
-      continueCloudflareTrace(context, headers);
-
-      expect(getCurrentScope().getPropagationContext()).toEqual({
-        traceId: CLOUDFLARE_TRACE_ID,
-        parentSpanId: CLOUDFLARE_SPAN_ID,
-        sampleRand: expect.any(Number),
-      });
-    });
-  });
-
-  it('keeps the propagation context when the request has a sentry-trace header', () => {
-    const context = {
-      tracing: {
-        getActiveSpan: () => ({
-          isTraced: true,
-          spanContext: () => ({ traceId: CLOUDFLARE_TRACE_ID, spanId: CLOUDFLARE_SPAN_ID, traceFlags: 1 }),
-        }),
-      },
-    };
-    const headers = new Headers({ 'sentry-trace': '12345678901234567890123456789012-1234567890123456-1' });
 
     withScope(scope => {
+      scope.setPropagationContext({
+        traceId: '12345678901234567890123456789012',
+        parentSpanId: '1234567890123456',
+        sampleRand: 0.5,
+      });
       const propagationContext = scope.getPropagationContext();
 
-      continueCloudflareTrace(context, headers);
+      continueCloudflareTrace(context);
 
       expect(scope.getPropagationContext()).toBe(propagationContext);
     });

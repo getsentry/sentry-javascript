@@ -266,7 +266,7 @@ export function wrapRequestHandlerWithInit(
     return continueTrace(
       { sentryTrace: request.headers.get('sentry-trace') || '', baggage: request.headers.get('baggage') },
       () => {
-        continueCloudflareTrace(context, request.headers);
+        continueCloudflareTrace(context);
 
         if (!createSpan) {
           return respond(undefined);

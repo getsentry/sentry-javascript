@@ -531,6 +531,100 @@ describe('instrumentWorkerEntrypoint', () => {
 
       expect(initAndBind).toHaveBeenCalledTimes(3);
     });
+
+    describe('with a Cloudflare trace', () => {
+      const CLOUDFLARE_TRACE_ID = 'a1b2c3d4e5f60718293a4b5c6d7e8f90';
+      const CLOUDFLARE_SPAN_ID = 'b1c2d3e4f5a60718';
+      const INCOMING_TRACE_ID = '12312012123120121231201212312012';
+      const INCOMING_SPAN_ID = '1121201211212012';
+      const CLOUDFLARE_TRACING = {
+        getActiveSpan: () => ({
+          isTraced: true,
+          spanContext: () => ({ traceId: CLOUDFLARE_TRACE_ID, spanId: CLOUDFLARE_SPAN_ID, traceFlags: 1 }),
+        }),
+      };
+
+      it('attaches errors of RPC calls without RPC metadata to the Cloudflare trace', async () => {
+        const events: Event[] = [];
+        const waits: Promise<unknown>[] = [];
+        const context = { ...createMockExecutionContext(), tracing: CLOUDFLARE_TRACING } as unknown as ExecutionContext;
+        context.waitUntil = vi.fn(promise => {
+          waits.push(promise);
+        });
+        const TestClass = class extends WorkerEntrypoint {
+          async fail(): Promise<never> {
+            throw new Error('rpc failure');
+          }
+        };
+        const obj = Reflect.construct(
+          instrumentWorkerEntrypoint(
+            () => ({
+              dsn: 'https://public@dsn.ingest.sentry.io/1337',
+              beforeSend(event) {
+                events.push(event);
+                return null;
+              },
+            }),
+            TestClass as unknown as WorkerEntrypointConstructor,
+          ),
+          [context, {}],
+        );
+
+        await expect(obj.fail()).rejects.toThrow('rpc failure');
+        await Promise.all(waits);
+
+        expect(events).toHaveLength(1);
+        expect(events[0]?.contexts?.trace?.trace_id).toBe(CLOUDFLARE_TRACE_ID);
+        expect(events[0]?.contexts?.trace?.parent_span_id).toBe(CLOUDFLARE_SPAN_ID);
+      });
+
+      it('makes the RPC span a child of the Cloudflare span when the SDK does not continue the RPC trace', () => {
+        let rpcSpan: ReturnType<typeof SentryCore.spanToJSON> | undefined;
+        const TestClass = class extends WorkerEntrypoint {
+          read() {
+            rpcSpan = SentryCore.spanToJSON(SentryCore.getActiveSpan()!);
+          }
+        };
+        const obj = Reflect.construct(
+          instrumentWorkerEntrypoint(
+            () => ({ dsn: 'https://public@o1.ingest.sentry.io/1337', tracesSampleRate: 1 }),
+            TestClass as unknown as WorkerEntrypointConstructor,
+          ),
+          [{ ...createMockExecutionContext(), tracing: CLOUDFLARE_TRACING }, {}],
+        );
+
+        obj.read({
+          __sentry_rpc_meta__: {
+            'sentry-trace': `${INCOMING_TRACE_ID}-${INCOMING_SPAN_ID}-1`,
+            baggage: `sentry-trace_id=${INCOMING_TRACE_ID},sentry-org_id=2`,
+          },
+        });
+
+        expect(rpcSpan?.trace_id).toBe(CLOUDFLARE_TRACE_ID);
+        expect(rpcSpan?.parent_span_id).toBe(CLOUDFLARE_SPAN_ID);
+      });
+
+      it('prefers the Sentry trace of the RPC metadata', () => {
+        let rpcSpan: ReturnType<typeof SentryCore.spanToJSON> | undefined;
+        const TestClass = class extends WorkerEntrypoint {
+          read() {
+            rpcSpan = SentryCore.spanToJSON(SentryCore.getActiveSpan()!);
+          }
+        };
+        const obj = Reflect.construct(
+          instrumentWorkerEntrypoint(
+            () => ({ dsn: 'https://public@o1.ingest.sentry.io/1337', tracesSampleRate: 1 }),
+            TestClass as unknown as WorkerEntrypointConstructor,
+          ),
+          [{ ...createMockExecutionContext(), tracing: CLOUDFLARE_TRACING }, {}],
+        );
+
+        obj.read({ __sentry_rpc_meta__: { 'sentry-trace': `${INCOMING_TRACE_ID}-${INCOMING_SPAN_ID}-1` } });
+
+        expect(rpcSpan?.trace_id).toBe(INCOMING_TRACE_ID);
+        expect(rpcSpan?.parent_span_id).toBe(INCOMING_SPAN_ID);
+      });
+    });
   });
 
   describe('env instrumentation', () => {
