@@ -29,7 +29,7 @@
   },
   "//": "Pin `ioredis` to 5.10.1: it's the last version before the driver publishes its own native diagnostics channels; orchestrion's config covers `ioredis <5.11.0`.",
   "dependencies": {
-    "@opennextjs/cloudflare": "^1.14.9",
+    "@opennextjs/cloudflare": "^1.20.12",
     "@sentry/bun": "file:../../packed/sentry-bun-packed.tgz",
     "@sentry/deno": "file:../../packed/sentry-deno-packed.tgz",
     "@sentry/nextjs": "file:../../packed/sentry-nextjs-packed.tgz",
