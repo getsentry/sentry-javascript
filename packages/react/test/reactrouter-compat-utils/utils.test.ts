@@ -185,6 +185,28 @@ describe('reactrouter-compat-utils/utils', () => {
   });
 
   describe('rebuildRoutePathFromAllRoutes', () => {
+    it('should match a percent-encoded pathname against the decoded pathnameBase', () => {
+      const allRoutes: RouteObject[] = [{ path: ':clubId', element: null }];
+
+      // What a browser's `location.pathname` holds for `/한글`
+      const location: Location = { pathname: '/%ED%95%9C%EA%B8%80' };
+
+      const mockMatches: RouteMatch[] = [
+        {
+          route: { path: ':clubId', element: null },
+          params: { clubId: '한글' },
+          pathname: '/한글',
+          pathnameBase: '/한글',
+        },
+      ];
+
+      // The recursive call matches the remaining routes (none) against the stripped pathname
+      mockMatchRoutes.mockImplementation((routes: RouteObject[]) => (routes.length ? mockMatches : []));
+
+      const result = rebuildRoutePathFromAllRoutes(allRoutes, location, mockMatchRoutes as MatchRoutes);
+      expect(result).toBe(':clubId');
+    });
+
     it('should return pathname when it matches stripped path', () => {
       const allRoutes: RouteObject[] = [{ path: '/users', element: null }];
 
@@ -423,6 +445,112 @@ describe('reactrouter-compat-utils/utils', () => {
   });
 
   describe('getNormalizedName', () => {
+    it('should parameterize a percent-encoded pathname whose branch pathname is decoded', () => {
+      const routes: RouteObject[] = [{ path: '/clubs/:clubId', element: null }];
+      // What a browser's `location.pathname` holds for `/clubs/한글`
+      const location: Location = { pathname: '/clubs/%ED%95%9C%EA%B8%80' };
+      const branches: RouteMatch[] = [
+        {
+          route: { path: '/clubs/:clubId', element: null },
+          params: { clubId: '한글' },
+          pathname: '/clubs/한글',
+          pathnameBase: '/clubs/한글',
+        },
+      ];
+
+      const result = getNormalizedName(routes, location, branches, '');
+      expect(result).toEqual(['/clubs/:clubId', 'route']);
+    });
+
+    it('should keep matching when the basename itself is percent-encoded', () => {
+      const routes: RouteObject[] = [{ path: '/clubs/:clubId', element: null }];
+      // React Router strips the basename from the raw pathname, so an encoded basename is passed encoded
+      const basename = '/%ED%95%9C%EA%B5%AD';
+      const location: Location = { pathname: `${basename}/clubs/abc` };
+      const branches: RouteMatch[] = [
+        {
+          route: { path: '/clubs/:clubId', element: null },
+          params: { clubId: 'abc' },
+          pathname: '/clubs/abc',
+          pathnameBase: '/clubs/abc',
+        },
+      ];
+
+      expect(getNormalizedName(routes, location, branches, basename)).toEqual([`${basename}/clubs/:clubId`, 'route']);
+      expect(getNormalizedName(routes, location, branches, basename, true)).toEqual(['/clubs/:clubId', 'route']);
+    });
+
+    it('should not double the slash when the basename ends with one', () => {
+      const routes: RouteObject[] = [{ path: '/clubs/:clubId', element: null }];
+      const branches: RouteMatch[] = [
+        {
+          route: { path: '/clubs/:clubId', element: null },
+          params: { clubId: 'abc' },
+          pathname: '/clubs/abc',
+          pathnameBase: '/clubs/abc',
+        },
+      ];
+
+      // e.g. Vite's `import.meta.env.BASE_URL` always ends with a slash
+      expect(getNormalizedName(routes, { pathname: '/clubs/abc' }, branches, '/')).toEqual(['/clubs/:clubId', 'route']);
+      expect(getNormalizedName(routes, { pathname: '/app/clubs/abc' }, branches, '/app/')).toEqual([
+        '/app/clubs/:clubId',
+        'route',
+      ]);
+      expect(getNormalizedName(routes, { pathname: '/app/clubs/abc' }, branches, '/app/', true)).toEqual([
+        '/clubs/:clubId',
+        'route',
+      ]);
+    });
+
+    it('should keep matching when the router left the branch pathname encoded', () => {
+      // react-router < 6.5 matched against the raw pathname, 6.5 - 6.22 used `decodeURI` (keeps `%40`)
+      const routes: RouteObject[] = [{ path: '/users/:email', element: null }];
+      const location: Location = { pathname: '/users/a%40b.com' };
+      const branches: RouteMatch[] = [
+        {
+          route: { path: '/users/:email', element: null },
+          params: { email: 'a%40b.com' },
+          pathname: '/users/a%40b.com',
+          pathnameBase: '/users/a%40b.com',
+        },
+      ];
+
+      expect(getNormalizedName(routes, location, branches, '')).toEqual(['/users/:email', 'route']);
+    });
+
+    it('should parameterize a pathname whose parameter still looks percent-encoded after decoding', () => {
+      // `%2541` decodes to the literal `%41`; a second decode would turn it into `A`
+      const routes: RouteObject[] = [{ path: '/clubs/:clubId', element: null }];
+      const location: Location = { pathname: '/clubs/%2541' };
+      const branches: RouteMatch[] = [
+        {
+          route: { path: '/clubs/:clubId', element: null },
+          params: { clubId: '%41' },
+          pathname: '/clubs/%41',
+          pathnameBase: '/clubs/%41',
+        },
+      ];
+
+      expect(getNormalizedName(routes, location, branches, '')).toEqual(['/clubs/:clubId', 'route']);
+    });
+
+    it('should parameterize a pathname whose decoded parameter is not valid percent-encoding', () => {
+      // `100%25` decodes to `100%`, which cannot be decoded again
+      const routes: RouteObject[] = [{ path: '/clubs/:clubId', element: null }];
+      const location: Location = { pathname: '/clubs/100%25' };
+      const branches: RouteMatch[] = [
+        {
+          route: { path: '/clubs/:clubId', element: null },
+          params: { clubId: '100%' },
+          pathname: '/clubs/100%',
+          pathnameBase: '/clubs/100%',
+        },
+      ];
+
+      expect(getNormalizedName(routes, location, branches, '')).toEqual(['/clubs/:clubId', 'route']);
+    });
+
     it('should return pathname with url source when no routes provided', () => {
       const routes: RouteObject[] = [];
       const location: Location = { pathname: '/test' };
@@ -545,6 +673,21 @@ describe('reactrouter-compat-utils/utils', () => {
   });
 
   describe('resolveRouteNameAndSource', () => {
+    it.each([
+      { basename: '/app/', pathname: '/app/users/42', expected: '/app/users/:id' },
+      { basename: '/', pathname: '/users/42', expected: '/users/:id' },
+    ])('avoids double slashes in manifest route names with basename $basename', ({ basename, pathname, expected }) => {
+      const config = makeConfig({
+        enableAsyncRouteHandlers: true,
+        lazyRouteManifest: ['/users/:id'],
+        basename,
+      });
+
+      const result = resolveRouteNameAndSource({ pathname }, [], [], [], config);
+
+      expect(result).toEqual([expected, 'route']);
+    });
+
     it('should use descendant route when location is inside one', () => {
       const location: Location = { pathname: '/users/123/profile' };
       const routes: RouteObject[] = [{ path: '/users', element: null }];

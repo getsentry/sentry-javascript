@@ -6,6 +6,18 @@
 
 export type { ServerRuntimeClientOptions } from './server-runtime-client';
 export { ServerRuntimeClient } from './server-runtime-client';
+export type { TunnelRequestLike } from './utils/tunnel';
+export {
+  getTunnelPaths as _INTERNAL_getTunnelPaths,
+  handleTunnelRequestIfMatched,
+  isTunnelRequest,
+} from './utils/tunnel';
+export { forwardTunnelRequest as _INTERNAL_forwardTunnelRequest } from './utils/tunnelForward';
+export { serveTunnelIntegration } from './integrations/serveTunnel';
+export {
+  _INTERNAL_resetManagedTunnelDefaults,
+  setManagedTunnelDefaults as _INTERNAL_setManagedTunnelDefaults,
+} from './utils/managedTunnelDefaults';
 export type { ServerRuntimeOptions } from './types/options';
 export { trpcMiddleware } from './trpc';
 export { wrapMcpServerWithSentry } from './integrations/mcp-server';
@@ -43,6 +55,11 @@ export type {
   HttpServerResponse,
   HttpModuleExport,
 } from './integrations/http/types';
+export type {
+  AssertTrue,
+  CheckServerRequestOptions,
+  ServerRequestOptions,
+} from './integrations/http/server-request-options';
 export { createFetchIntegration } from './integrations/fetch';
 export type { FetchIntegrationOptions } from './integrations/fetch';
 export { classifyResponseStreaming } from './utils/responseStreaming';

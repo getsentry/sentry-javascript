@@ -46,9 +46,6 @@
     "karma-jasmine-html-reporter": "~2.1.0",
     "typescript": "~6.0.0"
   },
-  "volta": {
-    "extends": "../../package.json"
-  },
   "sentryTest": {
     "optionalVariants": [
       {

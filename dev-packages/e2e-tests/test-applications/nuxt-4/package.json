@@ -16,7 +16,10 @@
     "test:build": "pnpm install && node ./scripts/build-with-prerender-event-sink.mjs",
     "test:build-canary": "pnpm add nuxt@npm:nuxt-nightly@latest && pnpm add nitropack@npm:nitropack-nightly@latest && pnpm install --force && node ./scripts/build-with-prerender-event-sink.mjs",
     "test:assert": "pnpm test:prod && pnpm test:dev",
-    "test:prod:import": "TEST_ENV=production-import playwright test"
+    "test:prod:import": "TEST_ENV=production-import playwright test",
+    "test:build:tunnel-basepath": "pnpm install && E2E_TEST_TUNNEL=1 E2E_TEST_BASE_PATH=/app node ./scripts/build-with-prerender-event-sink.mjs",
+    "test:assert:tunnel-basepath": "E2E_TEST_TUNNEL=1 E2E_TEST_BASE_PATH=/app TEST_ENV=production playwright test tunnel",
+    "test:assert:tunnel-basepath-dev": "E2E_TEST_TUNNEL=1 E2E_TEST_BASE_PATH=/app TEST_ENV=development playwright test tunnel"
   },
   "//": "Pin ioredis to 5.10.1 because that's the last version before it publishes its own diagnostics channels",
   "dependencies": {
@@ -31,10 +34,8 @@
     "@playwright/test": "1.64.1",
     "@sentry-internal/test-utils": "file:../../packed/sentry-internal-test-utils-packed.tgz"
   },
-  "volta": {
-    "extends": "../../package.json"
-  },
   "sentryTest": {
+    "runner": "namespace-profile-sentry-javascript",
     "variants": [
       {
         "build-command": "E2E_TEST_OTEL_SETUP=true pnpm test:build",
@@ -45,6 +46,21 @@
         "build-command": "pnpm test:build",
         "assert-command": "pnpm test:prod:import",
         "label": "nuxt-4 (--import compat)"
+      },
+      {
+        "build-command": "E2E_TEST_VITE_SERVER=true pnpm test:build",
+        "assert-command": "E2E_TEST_VITE_SERVER=true pnpm test:prod",
+        "label": "nuxt-4 (Vite server)"
+      },
+      {
+        "build-command": "pnpm test:build:tunnel-basepath",
+        "assert-command": "pnpm test:assert:tunnel-basepath",
+        "label": "nuxt-4 (tunnel-basepath)"
+      },
+      {
+        "build-command": "pnpm install",
+        "assert-command": "pnpm test:assert:tunnel-basepath-dev",
+        "label": "nuxt-4 (tunnel-basepath-dev)"
       }
     ],
     "optionalVariants": [

@@ -1,62 +1,26 @@
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { vi } from 'vitest';
-import { injectManagedTunnelRoute, makeTunnelRoutePlugin, resolveTunnelRoute } from '../../src/vite/tunnelRoute';
-
-const ROUTE_TREE_SOURCE = `import { Route as rootRouteImport } from './routes/__root'
-import { Route as IndexRouteImport } from './routes/index'
-
-const IndexRoute = IndexRouteImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => rootRouteImport,
-} as any)
-
-export interface FileRoutesByFullPath {
-  '/': typeof IndexRoute
-}
-export interface RootRouteChildren {
-  IndexRoute: typeof IndexRoute
-}
-
-const rootRouteChildren: RootRouteChildren = {
-  IndexRoute: IndexRoute,
-}
-export const routeTree = rootRouteImport
-  ._addFileChildren(rootRouteChildren)
-`;
-
-const UNTYPED_ROUTE_TREE_SOURCE = ROUTE_TREE_SOURCE.replace(
-  'const rootRouteChildren: RootRouteChildren = {',
-  'const rootRouteChildren = {',
-);
+import type { Client } from '@sentry/core';
+import { getCurrentScope, getTunnelPath, makeDsn } from '@sentry/core';
+import { _INTERNAL_resetManagedTunnelDefaults, serveTunnelIntegration } from '@sentry/core/server';
+import type { Plugin, ResolvedConfig, UserConfig } from 'vite';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import {
+  makeServerEntryTunnelPlugin,
+  makeTunnelBasePathPlugin,
+  makeTunnelRoutePlugin,
+  normalizeTunnelRouteOptions,
+} from '../../src/vite/tunnelRoute';
 
 describe('tunnelRoute vite plugin', () => {
-  beforeEach(() => {
-    delete process.env.__SENTRY_INTERNAL_TANSTACKSTART_TUNNEL_ROUTE__;
-  });
-
-  afterEach(() => {
-    delete process.env.__SENTRY_INTERNAL_TANSTACKSTART_TUNNEL_ROUTE__;
-  });
-
-  it('reuses the same generated tunnel route within one process', () => {
-    const firstTunnelRoute = resolveTunnelRoute(true);
-    const secondTunnelRoute = resolveTunnelRoute(true);
-
-    expect(firstTunnelRoute).toBe(secondTunnelRoute);
-    expect(firstTunnelRoute).toMatch(/^\/[a-z0-9]{8}$/);
-  });
-
-  it('always generates an 8-character tunnel route', () => {
-    vi.spyOn(Math, 'random').mockReturnValue(0.5);
-
-    expect(resolveTunnelRoute(true)).toBe('/iiiiiiii');
-  });
-
-  it('returns the provided static tunnel route without reusing a generated one', () => {
-    resolveTunnelRoute(true);
-
-    expect(resolveTunnelRoute('/monitor')).toBe('/monitor');
+  it('maps `tunnelRoute` onto the `tunnel` init options', () => {
+    expect(normalizeTunnelRouteOptions(true)).toEqual({});
+    expect(normalizeTunnelRouteOptions('/monitor')).toEqual({ path: '/monitor' });
+    expect(normalizeTunnelRouteOptions({ path: '', allowedDsns: [] })).toEqual({
+      path: undefined,
+      allowedDsns: undefined,
+    });
+    expect(
+      normalizeTunnelRouteOptions({ path: '/monitor', allowedDsns: ['https://public@o0.ingest.sentry.io/0'] }),
+    ).toEqual({ path: '/monitor', allowedDsns: ['https://public@o0.ingest.sentry.io/0'] });
   });
 
   it('rejects invalid static tunnel routes', () => {
@@ -71,89 +35,185 @@ describe('tunnelRoute vite plugin', () => {
     );
   });
 
-  it('injects the managed tunnel route into the generated TanStack route tree', () => {
-    const transformedRouteTree = injectManagedTunnelRoute(ROUTE_TREE_SOURCE, '/monitor');
+  it('tells the client the static path, or that the path comes from the DSN', () => {
+    const staticPlugin = makeTunnelRoutePlugin({ path: '/monitor' });
+    const dsnPlugin = makeTunnelRoutePlugin(true);
 
-    expect(transformedRouteTree).toContain(
-      "import { Route as SentryManagedTunnelRouteImport } from 'virtual:sentry-tanstackstart-react/tunnel-route'",
-    );
-    expect(transformedRouteTree).toContain('const SentryManagedTunnelRoute = SentryManagedTunnelRouteImport.update({');
-    expect(transformedRouteTree).toContain('id: "/monitor"');
-    expect(transformedRouteTree).toContain('path: "/monitor"');
-    expect(transformedRouteTree).toContain('SentryManagedTunnelRoute: SentryManagedTunnelRoute,');
-    expect(transformedRouteTree).toContain('IndexRoute: IndexRoute,');
+    expect(staticPlugin.config && staticPlugin.config()).toEqual({
+      define: { __SENTRY_TANSTACKSTART_TUNNEL_ROUTE__: '"/monitor"' },
+    });
+    expect(dsnPlugin.config && dsnPlugin.config()).toEqual({
+      define: { __SENTRY_TANSTACKSTART_TUNNEL_ROUTE__: 'true' },
+    });
   });
 
-  it('injects the managed tunnel route when rootRouteChildren is untyped', () => {
-    const transformedRouteTree = injectManagedTunnelRoute(UNTYPED_ROUTE_TREE_SOURCE, '/monitor');
+  it('fails when a static tunnel route conflicts with an existing route', () => {
+    const transform = (path: string, source: string): unknown =>
+      (makeTunnelRoutePlugin(path).transform as (source: string, id: string) => unknown)(
+        source,
+        '/app/src/routeTree.gen.ts',
+      );
+    const singleQuoted = "const MonitorRoute = MonitorRouteImport.update({\n  id: '/monitor',\n  path: '/monitor',";
+    const doubleQuoted = singleQuoted.replace(/'/g, '"');
 
-    expect(transformedRouteTree).toContain('const rootRouteChildren = {');
-    expect(transformedRouteTree).toContain('SentryManagedTunnelRoute: SentryManagedTunnelRoute,');
-  });
-
-  it('fails when the managed tunnel route conflicts with an existing route', () => {
-    expect(() => injectManagedTunnelRoute(ROUTE_TREE_SOURCE, '/')).toThrow(
-      'Cannot register managed tunnel route "/" because an existing TanStack Start route already uses that path.',
-    );
-  });
-
-  it('fails on route conflict when routeTree.gen.ts uses double quotes (tsr quoteStyle: double)', () => {
-    const doubleQuotedMonitorTree = ROUTE_TREE_SOURCE.replace("path: '/'", 'path: "/monitor"').replace(
-      "id: '/'",
-      'id: "/monitor"',
-    );
-
-    expect(() => injectManagedTunnelRoute(doubleQuotedMonitorTree, '/monitor')).toThrow(
+    expect(() => transform('/monitor', singleQuoted)).toThrow(
       'Cannot register managed tunnel route "/monitor" because an existing TanStack Start route already uses that path.',
     );
+    expect(() => transform('/monitor', doubleQuoted)).toThrow('already uses that path');
+    expect(transform('/other', singleQuoted)).toBeNull();
+    expect(
+      (makeTunnelRoutePlugin(true).transform as (s: string, id: string) => unknown)(
+        singleQuoted,
+        '/app/src/routeTree.gen.ts',
+      ),
+    ).toBeNull();
   });
+});
 
-  it('loads a virtual managed tunnel route module for a static tunnel path', async () => {
-    const plugin = makeTunnelRoutePlugin({
-      allowedDsns: ['http://public@localhost:3031/1337'],
-      path: '/monitor',
-    });
+describe('server entry tunnel vite plugin', () => {
+  const USER_ENTRY = '/app/src/server.ts';
 
-    expect(plugin.config && plugin.config()).toEqual({
-      define: {
-        __SENTRY_TANSTACKSTART_TUNNEL_ROUTE__: '"/monitor"',
-      },
-    });
+  const SDK_ID = '/app/node_modules/@sentry/tanstackstart-react/build/esm/index.server.js';
 
-    expect(plugin.resolveId && plugin.resolveId('virtual:sentry-tanstackstart-react/tunnel-route')).toBe(
-      '\0virtual:sentry-tanstackstart-react/tunnel-route',
+  function setup(
+    tunnelRoute?: Parameters<typeof makeServerEntryTunnelPlugin>[0],
+    basePath = '',
+    resolve: (source: string, importer: string) => unknown = () => Promise.resolve({ id: SDK_ID, external: false }),
+  ): (id: string) => Promise<unknown> {
+    const plugin = makeServerEntryTunnelPlugin(tunnelRoute, () => basePath);
+    const config = {
+      root: '/app',
+      resolve: { alias: [{ find: 'virtual:tanstack-start-server-entry', replacement: USER_ENTRY }] },
+    } as unknown as ResolvedConfig;
+    (plugin.configResolved as (config: ResolvedConfig) => void)(config);
+
+    return id =>
+      (plugin.load as Extract<Plugin['load'], (...args: never[]) => unknown>).call(
+        { resolve } as never,
+        id,
+      ) as Promise<unknown>;
+  }
+
+  it('wraps the app server entry and the default entry', async () => {
+    const load = setup();
+
+    expect(await load(USER_ENTRY)).toContain('export default wrapServerEntryWithSentryTunnel(entry, undefined, "");');
+    expect(await load(`${USER_ENTRY}?sentry-tunnel-original`)).toBeNull();
+    expect(await load('/app/node_modules/@tanstack/react-start/dist/default-entry/esm/server.js')).toContain(
+      'wrapServerEntryWithSentryTunnel',
     );
-
-    const virtualRouteModule = plugin.load && (await plugin.load('\0virtual:sentry-tanstackstart-react/tunnel-route'));
-
-    expect(virtualRouteModule).toContain('createFileRoute("/monitor")');
-    expect(virtualRouteModule).toContain('allowedDsns: ["http://public@localhost:3031/1337"]');
+    expect(
+      await load('C:\\app\\node_modules\\@tanstack\\react-start\\dist\\plugin\\default-entry\\server.ts'),
+    ).toContain('wrapServerEntryWithSentryTunnel');
+    expect(await load('/app/src/routes/index.tsx')).toBeNull();
   });
 
-  it('omits allowedDsns from the virtual managed tunnel route module when not provided', async () => {
-    const plugin = makeTunnelRoutePlugin('/monitor');
+  it('re-exports everything from the original server entry', async () => {
+    const load = setup();
 
-    const virtualRouteModule = plugin.load && (await plugin.load('\0virtual:sentry-tanstackstart-react/tunnel-route'));
-
-    expect(virtualRouteModule).toContain('createFileRoute("/monitor")');
-    expect(virtualRouteModule).toContain('createSentryTunnelRoute({})');
+    expect(await load(USER_ENTRY)).toContain(`export * from "${USER_ENTRY}?sentry-tunnel-original";`);
   });
 
-  it('rejects non-POST requests in the virtual managed tunnel route module', async () => {
-    const plugin = makeTunnelRoutePlugin('/monitor');
-
-    const virtualRouteModule = plugin.load && (await plugin.load('\0virtual:sentry-tanstackstart-react/tunnel-route'));
-
-    expect(virtualRouteModule).toContain('ANY()');
-    expect(virtualRouteModule).toContain("status: 405, headers: { Allow: 'POST' }");
+  it('passes the build-time options when `tunnelRoute` derives the path from the DSN', async () => {
+    expect(await setup(true)(USER_ENTRY)).toContain('wrapServerEntryWithSentryTunnel(entry, {}, "");');
+    expect(await setup({ allowedDsns: ['https://public@o0.ingest.sentry.io/0'] })(USER_ENTRY)).toContain(
+      'wrapServerEntryWithSentryTunnel(entry, {"allowedDsns":["https://public@o0.ingest.sentry.io/0"]}, "");',
+    );
   });
 
-  it('treats an empty string `path` like omitted and uses a generated tunnel route', () => {
-    const plugin = makeTunnelRoutePlugin({ path: '' });
+  it('serves a static `tunnelRoute` path from the wrapper too', async () => {
+    expect(await setup('/monitor')(USER_ENTRY)).toContain(
+      'wrapServerEntryWithSentryTunnel(entry, {"path":"/monitor"}, "");',
+    );
+  });
 
-    const defined = plugin.config && plugin.config();
-    const serialized = defined?.define?.__SENTRY_TANSTACKSTART_TUNNEL_ROUTE__;
-    expect(typeof serialized).toBe('string');
-    expect(serialized).toMatch(/^"\/[a-z0-9]{8}"$/);
+  it('passes the base path Start routes on to the wrapper', async () => {
+    expect(await setup(undefined, '/app')(USER_ENTRY)).toContain(
+      'wrapServerEntryWithSentryTunnel(entry, undefined, "/app");',
+    );
+  });
+
+  it('imports a bundled SDK from where the app resolves it, which also works without hoisting', async () => {
+    const resolve = vi.fn(() => Promise.resolve({ id: SDK_ID, external: false }));
+    const load = setup(undefined, '', resolve);
+
+    expect(await load('/app/node_modules/@tanstack/react-start/dist/default-entry/esm/server.js')).toContain(
+      `import { _INTERNAL_wrapServerEntryWithSentryTunnel as wrapServerEntryWithSentryTunnel } from "${SDK_ID}";`,
+    );
+    expect(resolve).toHaveBeenCalledWith('@sentry/tanstackstart-react', '/app/package.json', { skipSelf: true });
+  });
+
+  it('imports an external or unresolved SDK by its name, so no build path ends up in the output', async () => {
+    const external = setup(undefined, '', () => Promise.resolve({ id: SDK_ID, external: true }));
+    const unresolved = setup(undefined, '', () => Promise.resolve(null));
+
+    expect(await external(USER_ENTRY)).toContain(`from "@sentry/tanstackstart-react";`);
+    expect(await unresolved(USER_ENTRY)).toContain(`from "@sentry/tanstackstart-react";`);
+  });
+});
+
+describe('tunnel base path vite plugin', () => {
+  function resolve(config: UserConfig): { define: unknown; basePath: string } {
+    const { plugin, getBasePath } = makeTunnelBasePathPlugin();
+    const result = (plugin.config as (config: UserConfig) => { define: unknown })(config);
+
+    return { define: result.define, basePath: getBasePath() };
+  }
+
+  it('reads the base path Start defines for every environment', () => {
+    expect(resolve({ define: { 'process.env.TSS_ROUTER_BASEPATH': JSON.stringify('/app/') } })).toEqual({
+      define: { __SENTRY_TANSTACKSTART_TUNNEL_BASE_PATH__: '"/app"' },
+      basePath: '/app',
+    });
+  });
+
+  it("falls back to Vite's `base`, ignoring an absolute one", () => {
+    expect(resolve({ base: '/my-app/' }).basePath).toBe('/my-app');
+    expect(resolve({ base: 'https://cdn.example.com/assets/' }).basePath).toBe('');
+  });
+
+  it('serves the tunnel from the root without a base path', () => {
+    expect(resolve({ define: { 'process.env.TSS_ROUTER_BASEPATH': JSON.stringify('/') } }).basePath).toBe('');
+    expect(resolve({}).basePath).toBe('');
+  });
+});
+
+describe('server entry tunnel vite plugin in `vite dev`', () => {
+  const DSN = 'https://public@o1.ingest.sentry.io/1337';
+
+  afterEach(() => {
+    getCurrentScope().setClient(undefined);
+    _INTERNAL_resetManagedTunnelDefaults();
+  });
+
+  /** Sets a client, with `serveTunnelIntegration` set up when `managedTunnel` is given. */
+  function setClient(managedTunnel: object | undefined): Record<string, unknown> {
+    const options: Record<string, unknown> = { dsn: DSN, ignoreSpans: [] as unknown[] };
+    const client = { getDsn: () => makeDsn(DSN), getOptions: () => options } as unknown as Client;
+    getCurrentScope().setClient(client);
+    if (managedTunnel) {
+      serveTunnelIntegration(managedTunnel).setup!(client);
+    }
+
+    return options;
+  }
+
+  it("drops the dev server's spans for a `tunnelRoute` under the base path", () => {
+    const options = setClient(undefined);
+    const plugin = makeServerEntryTunnelPlugin(true, () => '/app');
+
+    (plugin.configureServer as () => void)();
+
+    const [filter] = options.ignoreSpans as { attributes: Record<string, RegExp> }[];
+    expect(filter?.attributes['url.path']?.test(`/app${getTunnelPath(DSN)}`)).toBe(true);
+  });
+
+  it("serves the dev server's managed tunnel from `serveTunnelIntegration` under the base path", () => {
+    const options = setClient({});
+    const plugin = makeServerEntryTunnelPlugin(undefined, () => '/app');
+
+    (plugin.configureServer as () => void)();
+
+    expect(options._managedTunnel).toEqual({ basePath: '/app' });
   });
 });

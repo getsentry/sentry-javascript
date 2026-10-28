@@ -30,6 +30,7 @@ export {
   captureException,
   captureEvent,
   captureMessage,
+  parameterize,
   captureFeedback,
   close,
   createTransport,
@@ -110,7 +111,7 @@ export {
   consoleLoggingIntegration,
   spanStreamingIntegration,
 } from '@sentry/core';
-export { trpcMiddleware, wrapMcpServerWithSentry } from '@sentry/core/server';
+export { trpcMiddleware, serveTunnelIntegration, wrapMcpServerWithSentry } from '@sentry/core/server';
 export {
   instrumentPostgresJsSql,
   prismaIntegration,
@@ -122,6 +123,7 @@ export {
   createLangChainCallbackHandler,
   instrumentLangChainEmbeddings,
   instrumentStateGraph,
+  instrumentStateGraphCompile,
   instrumentCreateReactAgent,
 } from '@sentry/server-utils';
 export type { FlueOptions } from '@sentry/server-utils';
@@ -156,6 +158,7 @@ export {
   genericPoolIntegration,
   googleGenAIIntegration,
   graphqlIntegration,
+  fastifyIntegration,
   hapiIntegration,
   honoIntegration,
   honoMiddleware,

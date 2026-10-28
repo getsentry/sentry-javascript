@@ -24,7 +24,7 @@
   "devDependencies": {
     "@playwright/test": "1.64.1",
     "@sentry-internal/test-utils": "file:../../packed/sentry-internal-test-utils-packed.tgz",
-    "@sentry/conventions": "0.27.0",
+    "@sentry/conventions": "0.29.0",
     "@types/express": "^4.17.21",
     "@types/node": "^24.0.0",
     "sentry": "~0.44.1",
@@ -38,9 +38,5 @@
         "label": "node-openai-decisions-send-to-sentry (latest)"
       }
     ]
-  },
-  "volta": {
-    "node": "24.15.0",
-    "extends": "../../package.json"
   }
 }

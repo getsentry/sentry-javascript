@@ -2,6 +2,20 @@ import { Links, Meta, Outlet, Scripts, ScrollRestoration, isRouteErrorResponse }
 import type { Route } from './+types/root';
 import stylesheet from './app.css?url';
 
+// The tunnel variant checks that the managed tunnel answers before an auth middleware like this one. Other variants
+// get none, so their span assertions stay as they are.
+export const middleware: Route.MiddlewareFunction[] = __E2E_TEST_TUNNEL__
+  ? [
+      ({ request }, next) => {
+        if (request.method === 'POST' && request.headers.get('x-auth') !== 'ok') {
+          return new Response('blocked by user auth', { status: 401 });
+        }
+
+        return next();
+      },
+    ]
+  : [];
+
 export const links: Route.LinksFunction = () => [
   { rel: 'preconnect', href: 'https://fonts.googleapis.com' },
   {

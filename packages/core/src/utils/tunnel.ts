@@ -1,88 +1,210 @@
-import { getEnvelopeEndpointWithUrlEncodedAuth } from '../api';
-import { debug } from './debug-logger';
-import { makeDsn } from './dsn';
-import { parseEnvelope } from './envelope';
+import type { Client } from '../client';
+import { getClient } from '../currentScopes';
+import { URL_PATH } from '@sentry/conventions/attributes';
+import type { DsnComponents, DsnLike } from '../types/dsn';
+import type { IgnoreSpanFilter, ServerTunnelOptions, TunnelInit, TunnelOptions } from '../types/options';
+import { escapeStringForRegex } from '../vendor/escapeStringForRegex';
+import { dsnToString, makeDsn } from './dsn';
+import { parseUrl } from './url';
 
-// Bounds the memory of each request. SDK envelopes stay far below it.
-export const MAX_TUNNEL_BODY_SIZE = 20 * 1024 * 1024;
+/**
+ * Forwards a tunnel request to Sentry. Only `serveTunnelIntegration` brings it in, so apps without a tunnel don't bundle it.
+ */
+export type TunnelForwarder = (request: Request, allowedDsns: Array<string>) => Promise<Response>;
 
-export interface HandleTunnelRequestOptions {
-  /** Incoming request containing the Sentry envelope as its body */
-  request: Request;
-  /** Pre-parsed array of allowed DSN strings */
-  allowedDsns: Array<string>;
+/**
+ * A server client's tunnel paths, allowed DSNs and forwarder, computed once per client.
+ */
+interface ServedTunnel {
+  paths: string[];
+  allowedDsns: string[];
+  forward: TunnelForwarder;
+}
+
+const servedTunnels = new WeakMap<Client, ServedTunnel>();
+
+/**
+ * Stores a server client's computed tunnel paths and allowed DSNs.
+ */
+export function setServedTunnel(client: Client, servedTunnel: ServedTunnel): void {
+  servedTunnels.set(client, servedTunnel);
+}
+
+function getServedTunnel(): ServedTunnel | undefined {
+  const client = getClient();
+
+  return client && servedTunnels.get(client);
 }
 
 /**
- * Core Sentry tunnel handler - framework agnostic.
- *
- * Validates the envelope DSN against allowed DSNs, then forwards the
- * envelope to the Sentry ingest endpoint.
- *
- * @returns A `Response` — either the upstream Sentry response on success, or an error response.
+ * Fills in framework defaults (like the base path) for a managed tunnel on the DSN-derived path. User options win.
+ * A path the user wrote, as a string or `path`, is used as written, so a tunnel served outside the app keeps working.
+ * The base path is normalized, and a root one is no default at all.
  */
-export async function handleTunnelRequest(options: HandleTunnelRequestOptions): Promise<Response> {
-  const { request, allowedDsns } = options;
-
-  if (allowedDsns.length === 0) {
-    return new Response('Tunnel not configured', { status: 500 });
+export function applyTunnelDefaults(
+  tunnel: TunnelInit | undefined,
+  defaults: TunnelOptions | undefined,
+): TunnelInit | undefined {
+  if (!tunnel || typeof tunnel === 'string' || (tunnel !== true && tunnel.path)) {
+    return tunnel;
   }
 
-  // The HTTP server ends the body at `Content-Length`, so the header bounds what `arrayBuffer()` reads.
-  const contentLength = Number(request.headers.get('content-length'));
-  if (!contentLength) {
-    return new Response('Length required', { status: 411 });
-  }
-  if (contentLength > MAX_TUNNEL_BODY_SIZE) {
-    return new Response('Envelope too large', { status: 413 });
+  const { basePath, ...rest } = defaults ?? {};
+  const normalizedBasePath = normalizeTunnelBasePath(basePath);
+  const resolvedDefaults: TunnelOptions = normalizedBasePath ? { ...rest, basePath: normalizedBasePath } : rest;
+  if (!Object.keys(resolvedDefaults).length) {
+    return tunnel;
   }
 
-  const body = new Uint8Array(await request.arrayBuffer());
+  return { ...resolvedDefaults, ...(tunnel === true ? {} : tunnel) };
+}
 
-  let envelopeHeader;
-  try {
-    [envelopeHeader] = parseEnvelope(body);
-  } catch {
-    return new Response('Invalid envelope', { status: 400 });
+/**
+ * Returns the same-origin tunnel path for a DSN, e.g. `/k3x9q2a`. Browser and server derive it independently,
+ * and as a hash it gives ad-blocker filter lists nothing to match.
+ */
+export function getTunnelPath(dsn: DsnLike): string | undefined {
+  const components = makeDsn(dsn);
+
+  return components ? `/${fnv1a32(dsnToString(components)).toString(36)}` : undefined;
+}
+
+/**
+ * The parts of a request the tunnel match reads. Satisfied by a fetch `Request` and Node's `IncomingMessage`.
+ */
+export interface TunnelRequestLike {
+  method?: string;
+  /** Absolute URL or path with query, e.g. Node's `IncomingMessage.url`. */
+  url?: string;
+  headers?: Headers | Record<string, string | string[] | undefined>;
+}
+
+/**
+ * Returns the active server client's tunnel paths, relative to its base path. For frameworks that can only register
+ * routes; everything else uses {@link handleTunnelRequestIfMatched}.
+ */
+export function getTunnelPaths(): string[] {
+  return getServedTunnel()?.paths ?? [];
+}
+
+/**
+ * The paths a managed tunnel is served at: the fixed `path`, or else one per allowed DSN.
+ */
+export function resolveTunnelPaths(tunnelOptions: ServerTunnelOptions, allowedDsns: Array<string>): string[] {
+  // A root path would take over every POST to the app's root, so it falls back to the DSN-derived ones.
+  const fixedPath = tunnelOptions.path?.replace(/\/$/, '');
+  if (fixedPath) {
+    return [fixedPath];
   }
 
-  if (!envelopeHeader) {
-    return new Response('Invalid envelope: missing header', { status: 400 });
+  // Differently written DSNs can hash to the same path.
+  const paths = allowedDsns.map(dsn => getTunnelPath(dsn));
+
+  return [...new Set(paths.filter((path): path is string => !!path))];
+}
+
+/**
+ * `ignoreSpans` filters for the server spans of tunnel requests. They match `url.path` and the legacy `http.url`,
+ * which some framework spans start with (SvelteKit's `sveltekit.handle.root`).
+ */
+export function getTunnelIgnoreSpanFilters(tunnelOptions: TunnelOptions, paths: string[]): IgnoreSpanFilter[] {
+  if (!paths.length) {
+    return [];
   }
 
-  const dsn = envelopeHeader.dsn;
-  if (!dsn) {
-    return new Response('Invalid envelope: missing DSN', { status: 400 });
+  const basePath = escapeStringForRegex(normalizeTunnelBasePath(tunnelOptions.basePath));
+  const pathPattern = `${basePath}(?:${paths.map(escapeStringForRegex).join('|')})/?`;
+
+  return [
+    // oxlint-disable-next-line sdk/no-regexp-constructor -- built from escaped config values, not end user input
+    { attributes: { [URL_PATH]: new RegExp(`^${pathPattern}$`) } },
+    // oxlint-disable-next-line sdk/no-regexp-constructor -- built from escaped config values, not end user input
+    { attributes: { 'http.url': new RegExp(`^[a-z][a-z\\d+.-]*://[^/]+${pathPattern}(?:[?#].*)?$`) } },
+  ];
+}
+
+/**
+ * Normalizes a base path to `/app`, or `''` for the root.
+ */
+export function normalizeTunnelBasePath(basePath: string | undefined): string {
+  const path = (basePath?.startsWith('./') ? basePath.slice(1) : (basePath ?? '')).replace(/\/$/, '');
+
+  return !path || path.startsWith('/') ? path : `/${path}`;
+}
+
+/**
+ * Returns true if the request targets the active server client's managed tunnel.
+ */
+export function isTunnelRequest(request: TunnelRequestLike): boolean {
+  if (request.method !== 'POST' || !request.url) {
+    return false;
   }
 
-  // SECURITY: Validate that the envelope DSN matches one of the allowed DSNs
-  // This prevents SSRF attacks where attackers send crafted envelopes
-  // with malicious DSNs pointing to arbitrary hosts
-  const isAllowed = allowedDsns.some(allowed => allowed === dsn);
-
-  if (!isAllowed) {
-    debug.warn(`Sentry tunnel: rejected request with unauthorized DSN (${dsn})`);
-    return new Response('DSN not allowed', { status: 403 });
+  const tunnelOptions = getClient()?.getOptions()._managedTunnel;
+  if (!tunnelOptions) {
+    return false;
   }
 
-  const dsnComponents = makeDsn(dsn);
-  if (!dsnComponents) {
-    debug.warn(`Could not extract DSN Components from: ${dsn}`);
-    return new Response('Invalid DSN', { status: 403 });
+  const path = stripBasePath(parseUrl(request.url).path || '/', tunnelOptions.basePath);
+
+  return path !== undefined && getTunnelPaths().includes(path.replace(/\/$/, ''));
+}
+
+/**
+ * Forwards the request if it targets the managed tunnel, otherwise returns `undefined` for the app to handle.
+ */
+export function handleTunnelRequestIfMatched(request: Request): Promise<Response> | undefined {
+  const servedTunnel = getServedTunnel();
+  if (!servedTunnel?.allowedDsns.length || !isTunnelRequest(request)) {
+    return undefined;
   }
 
-  const sentryIngestUrl = getEnvelopeEndpointWithUrlEncodedAuth(dsnComponents);
+  return servedTunnel.forward(request, servedTunnel.allowedDsns);
+}
 
-  try {
-    return await fetch(sentryIngestUrl, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/x-sentry-envelope',
-      },
-      body,
-    });
-  } catch (error) {
-    debug.error('Sentry tunnel: failed to forward envelope', error);
-    return new Response('Failed to forward envelope to Sentry', { status: 500 });
+/**
+ * `allowedDsns` plus the server's own DSN, which is always allowed.
+ */
+export function resolveAllowedDsns(
+  allowedDsns: Array<string> | undefined,
+  ownDsn: DsnComponents | undefined,
+): Array<string> {
+  // Normalized like the envelope header's DSN, which has no secret key.
+  const dsns = new Set<string>();
+  for (const components of [...(allowedDsns ?? []).map(dsn => makeDsn(dsn)), ownDsn]) {
+    if (components) {
+      dsns.add(dsnToString(components));
+    }
   }
+
+  return [...dsns];
+}
+
+/**
+ * Returns the path below `basePath`, or `undefined` outside it.
+ */
+function stripBasePath(pathname: string, basePath: string | undefined): string | undefined {
+  const base = normalizeTunnelBasePath(basePath);
+  if (!base) {
+    return pathname;
+  }
+
+  return pathname === base || pathname.startsWith(`${base}/`) ? pathname.slice(base.length) : undefined;
+}
+
+/**
+ * 32-bit FNV-1a (https://www.ietf.org/archive/id/draft-eastlake-fnv-22.html#name-fnv32-code): synchronous (the
+ * browser needs it in `init`) and dependency free. Changing it breaks mixed SDK versions, since browser and server
+ * compute the path separately.
+ */
+function fnv1a32(input: string): number {
+  let hash = 0x811c9dc5;
+  for (let i = 0; i < input.length; i++) {
+    // eslint-disable-next-line no-bitwise
+    hash ^= input.charCodeAt(i);
+    hash = Math.imul(hash, 0x01000193);
+  }
+
+  // eslint-disable-next-line no-bitwise
+  return hash >>> 0;
 }

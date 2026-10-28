@@ -105,7 +105,7 @@ export {
   withStreamedSpan,
   spanStreamingIntegration,
 } from '@sentry/core';
-export { trpcMiddleware, wrapMcpServerWithSentry } from '@sentry/core/server';
+export { trpcMiddleware, serveTunnelIntegration, wrapMcpServerWithSentry } from '@sentry/core/server';
 export {
   openTelemetryIntegration,
   getOtlpTracesEndpoint,

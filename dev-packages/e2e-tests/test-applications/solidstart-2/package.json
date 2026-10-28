@@ -4,12 +4,12 @@
   "//": "Sentry is initialized from server/plugins/sentry.ts, a Nitro plugin. Build-time instrumentation means there is no `--import` preload and nothing to copy into .output.",
   "scripts": {
     "clean": "pnpx rimraf node_modules pnpm-lock.yaml .nitro .output",
-    "build": "vite build",
+    "build": "node start-mock-sentry-server.mjs & vite build > .tmp_build_stdout 2> .tmp_build_stderr; BUILD_EXIT=$?; kill %1 2>/dev/null; if [ $BUILD_EXIT -ne 0 ]; then cat .tmp_build_stdout; cat .tmp_build_stderr >&2; fi; exit $BUILD_EXIT",
     "preview": "HOST=localhost PORT=3030 vite preview",
     "start": "HOST=localhost PORT=3030 node .output/server/index.mjs",
     "test:prod": "TEST_ENV=production playwright test",
     "test:build": "pnpm install && pnpm build",
-    "test:assert": "pnpm test:prod"
+    "test:assert": "node assert-build.ts && pnpm test:prod"
   },
   "type": "module",
   "dependencies": {
@@ -30,9 +30,6 @@
     "typescript": "^5.4.5",
     "vite": "^8.1.5",
     "vite-plugin-solid": "^2.11.6"
-  },
-  "volta": {
-    "extends": "../../package.json"
   },
   "engines": {
     "node": ">=24"

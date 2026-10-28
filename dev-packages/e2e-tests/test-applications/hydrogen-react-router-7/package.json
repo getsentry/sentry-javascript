@@ -43,8 +43,5 @@
     "typescript": "^5.2.2",
     "vite": "^6.2.4",
     "vite-tsconfig-paths": "^4.3.1"
-  },
-  "volta": {
-    "extends": "../../package.json"
   }
 }

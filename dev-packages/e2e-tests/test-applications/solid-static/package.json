@@ -26,8 +26,5 @@
   "dependencies": {
     "solid-js": "^1.8.18",
     "@sentry/solid": "file:../../packed/sentry-solid-packed.tgz"
-  },
-  "volta": {
-    "extends": "../../package.json"
   }
 }
