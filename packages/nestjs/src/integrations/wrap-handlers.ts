@@ -63,12 +63,41 @@ export function wrapScheduleHandler(handler: AnyFn, mechanismType: string): AnyF
   };
 }
 
+// `@nestjs/schedule`'s metadata key for the `@Cron()` options.
+const SCHEDULE_CRON_OPTIONS = 'SCHEDULE_CRON_OPTIONS';
+
 const CRON_HANDLER_MONITORS = new WeakMap<AnyFn, () => boolean>();
+const CRON_OPTIONS_MONITORS = new WeakMap<object, () => boolean>();
+
+function getCronOptions(method: AnyFn): object | undefined {
+  const R = Reflect as unknown as ReflectWithMetadata;
+  const options = typeof R.getMetadata === 'function' ? R.getMetadata(SCHEDULE_CRON_OPTIONS, method) : undefined;
+  return isObjectLike(options) ? options : undefined;
+}
+
+/**
+ * Link the `@Cron()` options that `@nestjs/schedule` set on `method` to its monitor. Decorators applied above
+ * `@Cron()` replace the method but must copy this metadata for Nest to schedule it, so it identifies the job.
+ */
+export function linkCronOptionsToMonitor(method: unknown): void {
+  const isMonitored = typeof method === 'function' ? CRON_HANDLER_MONITORS.get(method as AnyFn) : undefined;
+  const options = isMonitored && getCronOptions(method as AnyFn);
+  if (isMonitored && options) {
+    CRON_OPTIONS_MONITORS.set(options, isMonitored);
+  }
+}
 
 /** Whether a `@Cron()` method sends check-ins when it runs, from `monitorCronJobs` or `@SentryCron()`. */
 export function sendsCronCheckIns(method: unknown): boolean {
+  if (typeof method !== 'function') {
+    return false;
+  }
+  const fn = method as AnyFn;
+  const options = getCronOptions(fn);
   return (
-    typeof method === 'function' && (isSentryCronMethod(method) || !!CRON_HANDLER_MONITORS.get(method as AnyFn)?.())
+    isSentryCronMethod(fn) ||
+    !!CRON_HANDLER_MONITORS.get(fn)?.() ||
+    !!(options && CRON_OPTIONS_MONITORS.get(options)?.())
   );
 }
 
@@ -91,7 +120,10 @@ export function wrapCronHandler(
     }
     return withMonitor(monitor.slug, () => scheduleHandler.apply(this, args), monitor.config);
   };
-  CRON_HANDLER_MONITORS.set(wrapped, () => isSentryCronMethod(handler) || !!resolveMonitor(handler, wrapped));
+  CRON_HANDLER_MONITORS.set(
+    wrapped,
+    () => isSentryCronMethod(handler) || isSentryCronMethod(wrapped) || !!resolveMonitor(handler, wrapped),
+  );
   return wrapped;
 }
 

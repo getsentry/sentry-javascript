@@ -41,11 +41,25 @@ function initClient(options: NestCronMonitoringOptions): void {
 function cron(cronTime: unknown, options?: Record<string, unknown>): MethodDecorator {
   const data: { arguments: unknown[]; result?: unknown } = { arguments: [cronTime, options] };
   tracingChannel<{ arguments: unknown[]; result?: unknown }>(CHANNELS.NESTJS_SCHEDULE_CRON).traceSync(
-    () => (_target: unknown, _key: unknown, descriptor: PropertyDescriptor) => descriptor,
+    () => (_target: unknown, _key: unknown, descriptor: PropertyDescriptor) => {
+      Reflect.defineMetadata('SCHEDULE_CRON_OPTIONS', { ...options, cronTime }, descriptor.value);
+      return descriptor;
+    },
     data,
   );
   return data.result as MethodDecorator;
 }
+
+// A decorator that replaces the method and copies its metadata, as Nest needs to still schedule it.
+const wrapMethod: MethodDecorator = (_target, _key, descriptor: PropertyDescriptor) => {
+  const original = descriptor.value as AnyFn;
+  descriptor.value = function (this: unknown, ...args: unknown[]): unknown {
+    return original.apply(this, args);
+  };
+  for (const key of Reflect.getMetadataKeys(original)) {
+    Reflect.defineMetadata(key, Reflect.getMetadata(key, original), descriptor.value);
+  }
+};
 
 function decorate(className: string, decorators: MethodDecorator[]): AnyFn {
   const target = Object.create({ constructor: { name: className } }) as object;
@@ -166,6 +180,33 @@ describe('@Cron() monitoring', () => {
 
       expect(isMarkedMonitored(onTick)).toBe(true);
       expect(Object.keys(onTick)).toEqual([]);
+    });
+
+    it('when a decorator above @Cron() replaces the method', () => {
+      initClient({ monitorCronJobs: true });
+      const onTick = cronJobOnTick(decorate('Jobs', [wrapMethod, cron('* * * * *', { name: 'job' })]));
+
+      expect(isMarkedMonitored(onTick)).toBe(true);
+    });
+
+    it.each([
+      ['@SentryCron(), another decorator, @Cron()', (c: MethodDecorator, s: MethodDecorator) => [s, wrapMethod, c]],
+      ['another decorator, @SentryCron(), @Cron()', (c: MethodDecorator, s: MethodDecorator) => [wrapMethod, s, c]],
+      ['another decorator, @Cron(), @SentryCron()', (c: MethodDecorator, s: MethodDecorator) => [wrapMethod, c, s]],
+    ])('when the method has %s', (_, order) => {
+      initClient({});
+      const onTick = cronJobOnTick(
+        decorate('Jobs', order(cron('* * * * *', { name: 'job' }), SentryCron('explicit-slug'))),
+      );
+
+      expect(isMarkedMonitored(onTick)).toBe(true);
+    });
+
+    it('not when a decorator above @Cron() replaces an excluded method', () => {
+      initClient({ monitorCronJobs: true, excludeCronJobs: ['job'] });
+      const onTick = cronJobOnTick(decorate('Jobs', [wrapMethod, cron('* * * * *', { name: 'job' })]));
+
+      expect(isMarkedMonitored(onTick)).toBe(false);
     });
 
     it('when the method has @SentryCron()', () => {

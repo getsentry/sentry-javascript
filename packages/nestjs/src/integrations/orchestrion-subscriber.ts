@@ -10,6 +10,7 @@ import type { CatchTarget, InjectableTarget, MinimalNestJsExecutionContext } fro
 import { patchCatchTarget, patchInjectableTarget } from './wrap-components';
 import {
   extractQueueName,
+  linkCronOptionsToMonitor,
   MECHANISM_INTERVAL,
   MECHANISM_TIMEOUT,
   patchMethodDescriptor,
@@ -188,11 +189,16 @@ export function subscribeToNestChannels(): void {
   subscribeDecoratorChannel<CatchTarget>(CHANNELS.NESTJS_CATCH, patchCatchTarget);
 
   // @Cron/@Interval/@Timeout (schedule), @OnEvent (event), @Processor (bullmq)
-  subscribeFactoryDecorator(CHANNELS.NESTJS_SCHEDULE_CRON, (decorator, data) =>
-    makeMethodDecorator(decorator, (handler, target, propertyKey) =>
+  subscribeFactoryDecorator(CHANNELS.NESTJS_SCHEDULE_CRON, (decorator, data) => {
+    const cronDecorator = makeMethodDecorator(decorator, (handler, target, propertyKey) =>
       wrapCronHandler(handler, [...(data.arguments || [])], target, propertyKey),
-    ),
-  );
+    );
+    return function (this: unknown, ...args: unknown[]): unknown {
+      const result = cronDecorator.apply(this, args);
+      linkCronOptionsToMonitor((args[2] as PropertyDescriptor | undefined)?.value);
+      return result;
+    };
+  });
   // `@nestjs/schedule` passes this function to `CronJob` as `onTick`. Mark it when the method already
   // sends check-ins, so `cronJobIntegration` doesn't send a second set.
   diagnosticsChannel.tracingChannel<OrchestrionChannelContext>(CHANNELS.NESTJS_SCHEDULE_EXPLORER_WRAP).subscribe({
