@@ -23,6 +23,7 @@ const openToolCalls = new Map<string, VercelAiChannelMessage>();
  * Register a global `ai` (>= 7) telemetry integration that publishes tool executions to the
  * `ai:telemetry` channel. Frameworks such as eve (>= 0.84) run tools outside `ai`'s tool loop, so `ai`
  * publishes nothing for them, but they still call registered telemetry integrations.
+ * @see https://ai-sdk.dev/docs/ai-sdk-core/telemetry
  */
 export function registerVercelAiToolTelemetry(): void {
   const channel = dc.tracingChannel<VercelAiChannelMessage>(AI_SDK_TELEMETRY_TRACING_CHANNEL);
