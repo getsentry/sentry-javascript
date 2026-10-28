@@ -1,11 +1,11 @@
 import cron from 'node-cron';
 
-const excluded = cron.schedule('0 * * * * *', () => {}, { name: 'excluded-job' });
-const unnamed = cron.schedule('0 * * * * *', () => {});
+const excluded = cron.schedule('0 0 0 1 1 *', () => {}, { name: 'excluded-job' });
+const unnamed = cron.schedule('0 0 0 1 1 *', () => {});
 
 let runs = 0;
 const task = cron.schedule(
-  '0 * * * * *',
+  '0 0 0 1 1 *',
   () => {
     runs++;
     if (runs > 1) {
@@ -15,7 +15,7 @@ const task = cron.schedule(
   { name: 'my-cron-job', timezone: 'America/New_York' },
 );
 
-// Run the task without waiting for the next minute.
+// Run the tasks by hand. Their schedules can't fire during the test.
 excluded
   .execute()
   .then(() => unnamed.execute())
