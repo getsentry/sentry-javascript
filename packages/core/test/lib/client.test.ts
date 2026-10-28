@@ -9,6 +9,7 @@ import {
   lastEventId,
   linkedErrorsIntegration,
   makeSession,
+  resolvedSyncPromise,
   Scope,
   setCurrentClient,
   SyncPromise,
@@ -661,6 +662,44 @@ describe('Client', () => {
           message: 'test message',
           timestamp: 2020,
         }),
+      );
+    });
+
+    test.each([
+      ['left at its default', {}, expect.objectContaining({ hasDefaultSyntheticStacktrace: true })],
+      [
+        'explicitly enabled',
+        { attachStacktrace: true },
+        expect.not.objectContaining({ hasDefaultSyntheticStacktrace: true }),
+      ],
+    ])('marks message stack traces only when attachStacktrace is %s', (_, attachStacktraceOptions, metadataMatcher) => {
+      const client = new TestClient(getDefaultTestClientOptions({ dsn: PUBLIC_DSN, ...attachStacktraceOptions }));
+      vi.spyOn(client, 'eventFromMessage').mockReturnValue(
+        resolvedSyncPromise({ message: 'test message', exception: { values: [{ value: 'test message' }] } }),
+      );
+      const processor = vi.fn((event: Event) => event);
+      client.addEventProcessor(processor);
+
+      client.captureMessage('test message');
+
+      expect(processor).toHaveBeenCalledWith(
+        expect.objectContaining({ sdkProcessingMetadata: metadataMatcher }),
+        expect.anything(),
+      );
+    });
+
+    test('does not mark message events without a stack trace', () => {
+      const client = new TestClient(getDefaultTestClientOptions({ dsn: PUBLIC_DSN }));
+      const processor = vi.fn((event: Event) => event);
+      client.addEventProcessor(processor);
+
+      client.captureMessage('test message');
+
+      expect(processor).toHaveBeenCalledWith(
+        expect.objectContaining({
+          sdkProcessingMetadata: expect.not.objectContaining({ hasDefaultSyntheticStacktrace: true }),
+        }),
+        expect.anything(),
       );
     });
 
