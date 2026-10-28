@@ -92,6 +92,7 @@ export const NO_AUTO_INSTRUMENTATION = [
   'suites/tracing/mastra/test.ts',
   'suites/tracing/mcp-handler-exact-once/test.ts',
   'suites/tracing/mcp-server/**',
+  'suites/tracing/mistral-v2/test.ts',
   'suites/tracing/mistral/test.ts',
   'suites/tracing/mongodb-v4/test.ts',
   'suites/tracing/mongodb-v5/test.ts',
