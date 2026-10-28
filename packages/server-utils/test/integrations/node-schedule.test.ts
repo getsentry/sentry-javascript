@@ -1,5 +1,9 @@
-import { describe, expect, it } from 'vitest';
-import { getMonitorConfig, isOneOffSpec } from '../../src/integrations/node-schedule';
+import type { MonitorConfig } from '@sentry/core';
+import { setCurrentClient } from '@sentry/core';
+import { beforeEach, describe, expect, it } from 'vitest';
+import { getMonitorConfig, isOneOffSpec, onReschedule } from '../../src/integrations/node-schedule';
+import { wrapScheduledJob } from '../../src/utils/cronMonitoring';
+import { getDefaultTestClientOptions, TestClient } from '../mocks/client';
 
 describe('isOneOffSpec', () => {
   it.each([
@@ -47,5 +51,48 @@ describe('getMonitorConfig', () => {
     ['a UTC offset', { rule: '0 9 * * *', tz: '+02:00' }],
   ])('is undefined for %s', (_, spec) => {
     expect(getMonitorConfig(spec)).toBeUndefined();
+  });
+});
+
+describe('onReschedule', () => {
+  let sentConfigs: Array<MonitorConfig | undefined>;
+
+  beforeEach(() => {
+    sentConfigs = [];
+    const client = new TestClient(getDefaultTestClientOptions());
+    client.captureCheckIn = (_checkIn, monitorConfig) => {
+      sentConfigs.push(monitorConfig);
+      return 'check-in-id';
+    };
+    setCurrentClient(client);
+  });
+
+  const createJob = () => ({
+    job: wrapScheduledJob(() => {}, 'my-job', getMonitorConfig('0 9 * * *'), 'auto.function.node-schedule'),
+  });
+
+  it('sends the new schedule after a reschedule', () => {
+    const job = createJob();
+    onReschedule({ arguments: [{ rule: '30 10 * * 1-5', tz: 'UTC' }], self: job, result: true });
+    job.job();
+
+    expect(sentConfigs[0]).toEqual({ schedule: { type: 'crontab', value: '30 10 * * 1-5' }, timezone: 'UTC' });
+  });
+
+  it('sends no config after a reschedule to a spec it cannot convert', () => {
+    const job = createJob();
+    onReschedule({ arguments: [{ hour: 3, minute: 0 }], self: job, result: true });
+    job.job();
+
+    expect(sentConfigs).toHaveLength(2);
+    expect(sentConfigs[0]).toBeUndefined();
+  });
+
+  it('keeps the old schedule when the reschedule fails', () => {
+    const job = createJob();
+    onReschedule({ arguments: ['not a spec'], self: job, result: false });
+    job.job();
+
+    expect(sentConfigs[0]?.schedule).toEqual({ type: 'crontab', value: '0 9 * * *' });
   });
 });
