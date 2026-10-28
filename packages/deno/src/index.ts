@@ -26,6 +26,7 @@ export type { DenoOptions } from './types';
 export {
   addEventProcessor,
   addBreadcrumb,
+  addIntegration,
   captureException,
   captureEvent,
   captureMessage,
@@ -52,6 +53,7 @@ export {
   setAttribute,
   setAttributes,
   setUser,
+  setConversationId,
   getSpanStatusFromHttpCode,
   setHttpStatus,
   withScope,
@@ -69,6 +71,8 @@ export {
   startNewTrace,
   bindScopeToEmitter,
   suppressTracing,
+  withActiveSpan,
+  getSpanDescendants,
   // eslint-disable-next-line typescript/no-deprecated
   inboundFiltersIntegration,
   eventFiltersIntegration,
@@ -79,6 +83,7 @@ export {
   dedupeIntegration,
   extraErrorDataIntegration,
   rewriteFramesIntegration,
+  moduleMetadataIntegration,
   supabaseIntegration,
   instrumentSupabaseClient,
   instrumentPostgresJsSql,
@@ -95,13 +100,25 @@ export {
   spanToBaggageHeader,
   updateSpanName,
   wrapMcpServerWithSentry,
+  trpcMiddleware,
+  instrumentOpenAiClient,
+  instrumentAnthropicAiClient,
+  instrumentGoogleGenAIClient,
+  createLangChainCallbackHandler,
+  instrumentLangChainEmbeddings,
+  instrumentStateGraph,
+  instrumentCreateReactAgent,
+  createConsolaReporter,
   featureFlagsIntegration,
+  growthbookIntegration,
   metrics,
   withStreamedSpan,
   logger,
   consoleLoggingIntegration,
   spanStreamingIntegration,
 } from '@sentry/core';
+
+export { prismaIntegration } from '@sentry/server-utils';
 
 export { DenoClient } from './client';
 
