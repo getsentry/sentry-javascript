@@ -645,4 +645,38 @@ describe('Supabase Integration', () => {
       expect(spanOptions.attributes['db.operation.name']).toBe('upsert');
     });
   });
+
+  describe('onlyIfParent', () => {
+    beforeEach(() => {
+      vi.spyOn(exportsModule, 'captureException').mockImplementation(() => '');
+      vi.spyOn(breadcrumbModule, 'addBreadcrumb').mockImplementation(() => {});
+    });
+
+    afterEach(() => {
+      vi.restoreAllMocks();
+    });
+
+    it('starts the PostgREST span with onlyIfParent so it is dropped without an active parent', async () => {
+      tracingMocks.startSpanManual.mockClear();
+      const client = createMockSupabaseClient({ status: 200, data: [] });
+      instrumentSupabaseClient(client);
+
+      await (client as any).from('todos').select('*').then();
+
+      const spanOptions = tracingMocks.startSpanManual.mock.calls[0]![0] as { onlyIfParent?: boolean };
+      expect(spanOptions.onlyIfParent).toBe(true);
+    });
+
+    it('starts the auth span with onlyIfParent so it is dropped without an active parent', async () => {
+      tracingMocks.startSpanManual.mockClear();
+      const client = createMockSupabaseClient(undefined) as any;
+      client.auth.signInWithPassword = vi.fn(() => Promise.resolve({ data: { user: {} }, error: null }));
+      instrumentSupabaseClient(client);
+
+      await client.auth.signInWithPassword({ email: 'a@b.c', password: 'pw' });
+
+      const spanOptions = tracingMocks.startSpanManual.mock.calls[0]![0] as { onlyIfParent?: boolean };
+      expect(spanOptions.onlyIfParent).toBe(true);
+    });
+  });
 });
