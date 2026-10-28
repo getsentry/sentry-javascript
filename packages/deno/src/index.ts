@@ -183,6 +183,8 @@ export {
   postgresIntegration,
   postgresJsIntegration,
   neonIntegration,
+  nodeCronIntegration,
+  nodeScheduleIntegration,
   tediousIntegration,
   eveConversationHook,
   eveIntegration,

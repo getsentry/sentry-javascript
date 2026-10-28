@@ -2,7 +2,7 @@ import { afterAll, describe, expect } from 'vitest';
 import { cleanupChildProcesses, createEsmAndCjsTests } from '../../../../utils/runner';
 
 const MONITOR_CONFIG = {
-  schedule: { type: 'crontab', value: '* * * * *' },
+  schedule: { type: 'crontab', value: '0 0 1 1 *' },
   timezone: 'America/New_York',
 };
 
