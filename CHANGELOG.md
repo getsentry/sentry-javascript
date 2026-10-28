@@ -107,7 +107,6 @@
 - feat(astro): Serve the managed tunnel from the Sentry middleware ([#25419](https://github.com/getsentry/sentry-javascript/pull/25419))
 - feat(cloudflare): instrument Workers KV bindings ([#25488](https://github.com/getsentry/sentry-javascript/pull/25488))
 - feat(core): Add managed tunnel helpers that derive the tunnel path from the DSN ([#25199](https://github.com/getsentry/sentry-javascript/pull/25199))
-- feat(deps): Bump `@opentelemetry/api` to 1.10.0 ([#25629](https://github.com/getsentry/sentry-javascript/pull/25629))
 - feat(deps): Bump fastify from 5.12.5 to 5.12.7 ([#25654](https://github.com/getsentry/sentry-javascript/pull/25654))
 - feat(nextjs): Warn when Next.js production builds miss the instrumentation file ([#25603](https://github.com/getsentry/sentry-javascript/pull/25603))
 - feat(nuxt, nitro): Serve the managed tunnel before the app's server middleware ([#25418](https://github.com/getsentry/sentry-javascript/pull/25418))
@@ -179,7 +178,6 @@
 - ci: Prepare required workflows for develop merge queue ([#25642](https://github.com/getsentry/sentry-javascript/pull/25642))
 - ci: Remove temporary pull_request trigger from optional E2E workflow ([#25817](https://github.com/getsentry/sentry-javascript/pull/25817))
 - ci: Show an unknown status for optional E2E jobs without a final result ([#25660](https://github.com/getsentry/sentry-javascript/pull/25660))
-- ci: Stop uploading duplicate tarballs to the release artifact
 - ci: Upload the weekly flaky test report as an artifact ([#25814](https://github.com/getsentry/sentry-javascript/pull/25814))
 - docs(changelog): Clarify React Router framework mode minimum in 11.0.0 ([#25771](https://github.com/getsentry/sentry-javascript/pull/25771))
 - docs: Update contribution guidelines ([#25714](https://github.com/getsentry/sentry-javascript/pull/25714))
