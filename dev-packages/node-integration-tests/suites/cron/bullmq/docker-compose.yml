@@ -5,7 +5,7 @@ services:
     image: redis:latest
     restart: always
     ports:
-      - '6384:6379'
+      - '6385:6379'
     healthcheck:
       test: ['CMD-SHELL', 'redis-cli ping | grep -q PONG']
       interval: 2s

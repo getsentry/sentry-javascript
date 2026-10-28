@@ -8,7 +8,7 @@ Sentry.init({
   transport: loggingTransport,
 });
 
-const connection = { host: 'localhost', port: 6384 };
+const connection = { host: 'localhost', port: 6385 };
 
 async function run(): Promise<void> {
   const queue = new Queue('crons', { connection });
