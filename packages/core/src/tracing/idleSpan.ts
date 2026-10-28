@@ -21,7 +21,7 @@ import { SentryNonRecordingSpan, spanIsNonRecordingSpan } from './sentryNonRecor
 import { SentrySpan } from './sentrySpan';
 import { SPAN_STATUS_ERROR, SPAN_STATUS_OK } from './spanstatus';
 import { startInactiveSpan } from './trace';
-import { setCapturedScopesOnSpan, spanIsTracerProviderSpan } from './utils';
+import { setCapturedScopesOnSpan } from './utils';
 
 export const TRACING_DEFAULTS = {
   idleTimeout: 1_000,
