@@ -166,6 +166,10 @@ describe('@Cron() monitoring', () => {
   it.each([
     ['@Cron() above @SentryCron()', (c: MethodDecorator, s: MethodDecorator) => [c, s]],
     ['@SentryCron() above @Cron()', (c: MethodDecorator, s: MethodDecorator) => [s, c]],
+    ['@Cron(), another decorator, @SentryCron()', (c: MethodDecorator, s: MethodDecorator) => [c, wrapMethod, s]],
+    ['@SentryCron(), another decorator, @Cron()', (c: MethodDecorator, s: MethodDecorator) => [s, wrapMethod, c]],
+    ['another decorator, @Cron(), @SentryCron()', (c: MethodDecorator, s: MethodDecorator) => [wrapMethod, c, s]],
+    ['another decorator, @SentryCron(), @Cron()', (c: MethodDecorator, s: MethodDecorator) => [wrapMethod, s, c]],
   ])('only sends the @SentryCron() check-ins with %s', async (_, order) => {
     initClient({ monitorCronJobs: true });
     await decorate('Jobs', order(cron('* * * * *', { name: 'job' }), SentryCron('explicit-slug')))();

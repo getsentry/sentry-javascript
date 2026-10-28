@@ -3,6 +3,7 @@ import { makeCronMonitorResolver } from './cron-monitoring';
 import type { AnyFn, ReflectWithMetadata } from './helpers';
 import {
   getBullMQProcessSpanOptions,
+  getCronOptions,
   getEventSpanOptions,
   isSentryCronMethod,
   isWrapped,
@@ -63,17 +64,8 @@ export function wrapScheduleHandler(handler: AnyFn, mechanismType: string): AnyF
   };
 }
 
-// `@nestjs/schedule`'s metadata key for the `@Cron()` options.
-const SCHEDULE_CRON_OPTIONS = 'SCHEDULE_CRON_OPTIONS';
-
 const CRON_HANDLER_MONITORS = new WeakMap<AnyFn, () => boolean>();
 const CRON_OPTIONS_MONITORS = new WeakMap<object, () => boolean>();
-
-function getCronOptions(method: AnyFn): object | undefined {
-  const R = Reflect as unknown as ReflectWithMetadata;
-  const options = typeof R.getMetadata === 'function' ? R.getMetadata(SCHEDULE_CRON_OPTIONS, method) : undefined;
-  return isObjectLike(options) ? options : undefined;
-}
 
 /**
  * Link the `@Cron()` options that `@nestjs/schedule` set on `method` to its monitor. Decorators applied above
