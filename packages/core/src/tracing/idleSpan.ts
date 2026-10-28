@@ -322,8 +322,9 @@ export function startIdleSpan(startSpanOptions: StartSpanOptions, options: Parti
       // We cancel all pending spans with status "cancelled" to indicate the idle span was finished early
       if (childSpan.isRecording()) {
         childSpan.setStatus({ code: SPAN_STATUS_ERROR, message: 'cancelled' });
-        // `endTimestamp` is in seconds, but provider spans read numbers as OpenTelemetry milliseconds
-        childSpan.end(spanIsTracerProviderSpan(childSpan) ? endTimestamp * 1000 : endTimestamp);
+        // NOTE: This deliberately does not work for OTEL-provider spans (which use ms timestamps)
+        // We do not really support OTEL in the browser, which is the only place that uses idle spans
+        childSpan.end(endTimestamp);
         DEBUG_BUILD &&
           debug.log('[Tracing] Cancelling span since span ended early', JSON.stringify(childSpan, undefined, 2));
       }
