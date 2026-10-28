@@ -23,6 +23,7 @@ const _nodeCronIntegration = ((options: NodeCronIntegrationOptions = {}) => {
     name: INTEGRATION_NAME,
     setup(client) {
       invokeOrchestrionInstrumentation(client, nodeCronModuleNames, subscribe, [options], {
+        // The binding only parents spans, and this integration creates none.
         requiresTracingChannelBinding: false,
       });
     },
