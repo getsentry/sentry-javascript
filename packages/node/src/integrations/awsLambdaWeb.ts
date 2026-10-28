@@ -8,10 +8,15 @@ import {
 import type { IntegrationFn, SpanAttributes } from '@sentry/core';
 import { defineIntegration, getIsolationScope, safeSetSpanJSONAttributes } from '@sentry/core';
 
+const INTEGRATION_NAME = 'AwsLambdaWeb';
+
 let requestHandled = false;
 
 const _awsLambdaWebIntegration = (() => {
-  const enabled = !!process.env.AWS_LAMBDA_HTTP_ENDPOINT;
+  if (!process.env.AWS_LAMBDA_HTTP_ENDPOINT) {
+    return { name: INTEGRATION_NAME };
+  }
+
   const memory = Number(process.env.AWS_LAMBDA_FUNCTION_MEMORY_SIZE) * 1024 * 1024;
   const lambdaContext = {
     memory_size: Number.isFinite(memory) && memory > 0 ? memory : undefined,
@@ -23,10 +28,8 @@ const _awsLambdaWebIntegration = (() => {
   };
 
   return {
-    name: 'AwsLambdaWeb',
+    name: INTEGRATION_NAME,
     setup(client) {
-      if (!enabled) return;
-
       client.on('httpServerRequest', (_request, _response, request) => {
         const coldStart = !requestHandled;
         requestHandled = true;
@@ -42,7 +45,6 @@ const _awsLambdaWebIntegration = (() => {
       });
     },
     processEvent(event) {
-      if (!enabled) return event;
       event.contexts = {
         ...event.contexts,
         'aws.lambda': { ...lambdaContext, ...event.contexts?.['aws.lambda'] },
@@ -50,8 +52,6 @@ const _awsLambdaWebIntegration = (() => {
       return event;
     },
     processSegmentSpan(span) {
-      if (!enabled) return;
-
       const requestContext = getIsolationScope().getScopeData().contexts['aws.lambda'];
       const attributes: SpanAttributes = { ...environmentAttributes };
       if (typeof requestContext?.cold_start === 'boolean') {

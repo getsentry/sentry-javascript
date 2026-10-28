@@ -48,13 +48,8 @@ describe('awsLambdaWebIntegration', () => {
     vi.stubEnv('AWS_LAMBDA_HTTP_ENDPOINT', undefined);
     const { awsLambdaWebIntegration } = await import('../../src/integrations/awsLambdaWeb');
     const disabled = awsLambdaWebIntegration();
-    disabled.setup!(client);
-    const span = spanToJSON(new SentrySpan({ name: 'outside Web Functions' }));
 
-    disabled.processSegmentSpan!(span, client);
-
-    expect(disabled.processEvent!({}, {}, client)).toEqual({});
-    expect(span.attributes).toEqual({ [SENTRY_ORIGIN]: 'manual' });
+    expect(disabled).toEqual({ name: 'AwsLambdaWeb' });
   });
 
   it('preserves request and user context while adding environment metadata', () => {
