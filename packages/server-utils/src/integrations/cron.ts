@@ -1,13 +1,15 @@
-import type { IntegrationFn } from '@sentry/core';
+import type { IntegrationFn, MonitorConfig } from '@sentry/core';
 import { defineIntegration } from '@sentry/core';
 import { CHANNELS } from '../orchestrion/channels';
 import { cronModuleNames } from '../orchestrion/config/cron';
 import { invokeOrchestrionInstrumentation } from '../orchestrion/instrumentation';
-import type { AnyFn } from '../utils/cronMonitoring';
+import type { AnyFn, ScheduleChange } from '../utils/cronMonitoring';
 import {
   cronExpressionToMonitorConfig,
   shouldMonitorJob,
   subscribeToJobCreation,
+  subscribeToScheduleChange,
+  updateMonitorConfig,
   wrapScheduledJob,
 } from '../utils/cronMonitoring';
 
@@ -37,6 +39,22 @@ export const cronJobIntegration = defineIntegration(_cronJobIntegration);
 
 function subscribe(options: CronJobIntegrationOptions): void {
   subscribeToJobCreation(CHANNELS.CRON_JOB_CONSTRUCTOR, INTEGRATION_NAME, args => wrapJob(args, options));
+  subscribeToScheduleChange(CHANNELS.CRON_JOB_SET_TIME, INTEGRATION_NAME, onSetTime);
+}
+
+/** Sends the new time's config after `job.setTime(cronTime)`. */
+export function onSetTime({ arguments: [cronTime], self }: ScheduleChange): void {
+  const job = self as { cronTime?: unknown; _callbacks?: unknown[] } | undefined;
+  // `setTime` throws and keeps the old time when it isn't given a `CronTime`.
+  if (!job || job.cronTime !== cronTime) {
+    return;
+  }
+  const { source, timeZone, utcOffset } = cronTime as { source?: unknown; timeZone?: unknown; utcOffset?: unknown };
+  const monitorConfig: MonitorConfig | undefined =
+    typeof source === 'string' && utcOffset == null ? cronExpressionToMonitorConfig(source, timeZone, 'or') : undefined;
+  for (const callback of job._callbacks || []) {
+    updateMonitorConfig(callback, monitorConfig);
+  }
 }
 
 // `new CronJob(cronTime, onTick, onComplete, start, timeZone, context, runOnInit, utcOffset, ..., name)`

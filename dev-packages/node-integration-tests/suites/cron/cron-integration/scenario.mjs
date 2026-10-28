@@ -1,4 +1,4 @@
-import { CronJob } from 'cron';
+import { CronJob, CronTime } from 'cron';
 
 const excluded = CronJob.from({ cronTime: '0 0 * * *', onTick: () => {}, name: 'excluded-job' });
 const unnamed = new CronJob('0 0 * * *', () => {});
@@ -15,7 +15,7 @@ const job = CronJob.from({
   errorHandler: () => {},
   onTick: async () => {
     runs++;
-    if (runs > 1) {
+    if (runs === 2) {
       throw new Error('Error in cron job');
     }
   },
@@ -29,6 +29,8 @@ const job = CronJob.from({
   await offset.fireOnTick();
   await subMinute.fireOnTick();
   await job.fireOnTick();
+  await job.fireOnTick();
+  job.setTime(new CronTime('0 8 * * *', 'UTC'));
   await job.fireOnTick();
 })();
 
