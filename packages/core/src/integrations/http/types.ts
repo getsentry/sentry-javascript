@@ -93,6 +93,7 @@ export interface HttpIncomingMessage {
   socket?: HttpSocket;
   aborted?: boolean;
   complete?: boolean;
+  errored?: Error | null;
   resume(): void;
   on(event: 'end', listener: () => void): this;
   on(event: string | symbol, listener: (...args: unknown[]) => void): this;

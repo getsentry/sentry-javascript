@@ -1,0 +1,32 @@
+{
+  "name": "astro-7-sourcemaps",
+  "description": "E2E test app asserting what the Astro SDK uploads to Sentry and what it leaves behind in `dist`.",
+  "type": "module",
+  "version": "0.0.1",
+  "private": true,
+  "scripts": {
+    "build": "node start-mock-sentry-server.mjs & astro build > .tmp_build_stdout 2> .tmp_build_stderr; BUILD_EXIT=$?; kill %1 2>/dev/null; if [ $BUILD_EXIT -ne 0 ]; then cat .tmp_build_stdout; cat .tmp_build_stderr >&2; fi; exit $BUILD_EXIT",
+    "test:build": "pnpm install && pnpm build",
+    "test:assert": "node assert-build.ts",
+    "test:build:static": "E2E_ASTRO_OUTPUT=static pnpm test:build",
+    "test:assert:static": "E2E_ASTRO_OUTPUT=static pnpm test:assert"
+  },
+  "dependencies": {
+    "@astrojs/node": "^11.1.4",
+    "@sentry/astro": "file:../../packed/sentry-astro-packed.tgz",
+    "astro": "^7.2.8"
+  },
+  "devDependencies": {
+    "@sentry-internal/test-utils": "file:../../packed/sentry-internal-test-utils-packed.tgz",
+    "@types/node": "^22.20.0"
+  },
+  "sentryTest": {
+    "variants": [
+      {
+        "build-command": "pnpm test:build:static",
+        "assert-command": "pnpm test:assert:static",
+        "label": "astro-7-sourcemaps (static output)"
+      }
+    ]
+  }
+}

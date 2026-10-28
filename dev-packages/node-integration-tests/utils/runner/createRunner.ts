@@ -98,7 +98,7 @@ type ExpectedEnvelopeHeader =
 
 type StartResult = {
   completed(): Promise<void>;
-  childHasExited(): boolean;
+  exited(): Promise<void>;
   getLogs(): string[];
   getPort(): number | undefined;
   sendSignal(signal: NodeJS.Signals): void;
@@ -121,7 +121,7 @@ const COMPILE_CACHE_ENV: Record<string, string> =
 
 // The Bun and Deno packages run these suites from their own folder. Scenarios read the working
 // directory (e.g. `modulesIntegration` reads its `package.json`), so it is always this package.
-const PACKAGE_ROOT = join(__dirname, '..', '..');
+export const PACKAGE_ROOT = join(__dirname, '..', '..');
 
 /** Node flags that preload a module before the entry point. */
 const PRELOAD_FLAGS = ['--import', '--require', '-r'];
@@ -180,6 +180,7 @@ export function createRunner(...paths: string[]) {
   let withEnv: Record<string, string | undefined> = {};
   let withSentryServer = false;
   let ensureNoErrorOutput = false;
+  let autoFlush = true;
   // When set, the test using this runner expects `completed()` to reject (e.g. `test.fails` variants
   // created via `createEsmAndCjsTests` with `failsOnEsm`/`failsOnCjs`). We suppress the captured-log
   // dump in that case, since the failure is expected and the output would just be noise.
@@ -330,6 +331,11 @@ export function createRunner(...paths: string[]) {
       unordered = true;
       return this;
     },
+    /** Skip the injected `beforeExit` flush, so the test sees only what the SDK sends on its own. */
+    withoutAutoFlush: function () {
+      autoFlush = false;
+      return this;
+    },
     ensureNoErrorOutput: function () {
       if (expectedEnvelopes.length > 0) {
         throw new Error('You should not use `ensureNoErrorOutput` when using `expect`!');
@@ -380,6 +386,8 @@ export function createRunner(...paths: string[]) {
       const completedDeferred = createDeferred();
       // Resolved once the scenario reports its server port, so `makeRequest` can await it directly.
       const portReady = createDeferred();
+      // Resolved when the scenario process closes, so exit tests can await it instead of polling.
+      const exitedDeferred = createDeferred();
 
       // Vitest stops a test at its own timeout before `completed()` gives up, so print the child
       // output then too. `completed()` prints it for the failures it reports itself.
@@ -628,7 +636,7 @@ export function createRunner(...paths: string[]) {
           // `should-exit`, `ensureNoErrorOutput`) verify the child exits
           // naturally and auto-flush would delay that with retrying HTTP
           // requests to the fake DSN.
-          const wantsAutoFlush = !ensureNoErrorOutput && hasExpectations;
+          const wantsAutoFlush = autoFlush && !ensureNoErrorOutput && hasExpectations;
           const runtime = getRuntime();
           const childFlags = wantsAutoFlush ? [...buildAutoFlushFlags(flags, testPath, runtime), ...flags] : flags;
           const entryPath = buildScenario(runtime, testPath);
@@ -666,6 +674,7 @@ export function createRunner(...paths: string[]) {
           child.on('close', (code, signal) => {
             hasExited = true;
             exitStatus = signal ? `signal ${signal}` : `code ${code ?? 'unknown'}`;
+            exitedDeferred.resolve();
 
             if (ensureNoErrorOutput) {
               complete();
@@ -759,8 +768,8 @@ export function createRunner(...paths: string[]) {
             throw completeError;
           }
         },
-        childHasExited: function (): boolean {
-          return hasExited;
+        exited: function (): Promise<void> {
+          return exitedDeferred.promise;
         },
         getLogs(): string[] {
           return logs;

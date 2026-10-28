@@ -18,10 +18,7 @@
     "typescript": "~5.0.0"
   },
   "devDependencies": {
-    "@playwright/test": "~1.63.0"
-  },
-  "volta": {
-    "extends": "../../package.json"
+    "@playwright/test": "1.64.1"
   },
   "sentryTest": {
     "optional": true

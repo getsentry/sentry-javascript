@@ -96,7 +96,7 @@ export type IgnoreSpanAttributeValue = string | boolean | number | string[] | bo
  * At least one of the properties (`name`, `op`, or `attributes`) must be set.
  * If multiple are set, all must match for the span to be ignored.
  */
-type IgnoreSpanFilter =
+export type IgnoreSpanFilter =
   | {
       /**
        * Spans with a name matching this pattern will be ignored.
@@ -374,6 +374,13 @@ export interface ClientOptions<TO extends BaseTransportOptions = BaseTransportOp
   tunnel?: string;
 
   /**
+   * Set by `serveTunnelIntegration` or a framework SDK that serves the managed tunnel.
+   *
+   * @internal This option is not part of the public API and is subject to change at any time.
+   */
+  _managedTunnel?: ServerTunnelOptions;
+
+  /**
    * Controls what data the SDK collects and sends to Sentry.
    * All fields are optional — omitted fields use the documented defaults.
    *
@@ -645,11 +652,50 @@ export type BeforeSendStreamedSpanCallback = (span: StreamedSpanJSON) => Streame
  */
 export type BeforeSendStaticSpanCallback = (span: SpanJSON) => SpanJSON;
 
+/** Managed tunnel options shared by the browser `tunnel` option and the server `serveTunnelIntegration`. */
+export interface TunnelOptions {
+  /** A fixed tunnel path instead of the one derived from the DSN, used as written without `basePath`. */
+  path?: string;
+
+  /** Path prefix the app is served under, e.g. `/docs`. Set the same value in the browser and on the server. */
+  basePath?: string;
+}
+
+/** Managed tunnel options for the browser `tunnel` option. */
+export interface BrowserTunnelOptions extends TunnelOptions {
+  /** Append a trailing slash to the tunnel path, for servers that redirect paths without one. */
+  trailingSlash?: boolean;
+}
+
+/** Options for the server `serveTunnelIntegration`. */
+export interface ServerTunnelOptions extends TunnelOptions {
+  /** DSNs to forward besides the server's own, e.g. a different browser DSN. */
+  allowedDsns?: string[];
+}
+
+/**
+ * The browser `tunnel` option, where to send envelopes instead of the Sentry ingest URL:
+ *
+ * - A URL or a relative path, e.g. `/monitor`, sends envelopes to it as written, to a tunnel the app serves itself.
+ * - `true` sends envelopes to the managed tunnel at a same-origin path derived from the DSN, which the server serves
+ *   with `serveTunnelIntegration`. This keeps ad-blockers from dropping events.
+ * - {@link BrowserTunnelOptions}, like `true`, with options of the managed tunnel.
+ */
+export type TunnelInit<T extends TunnelOptions = TunnelOptions> = string | true | T;
+
 /** Base configuration options for every SDK. */
 export interface CoreOptions<TO extends BaseTransportOptions = BaseTransportOptions> extends Omit<
   Partial<ClientOptions<TO>>,
-  'integrations' | 'transport' | 'stackParser'
+  'integrations' | 'transport' | 'stackParser' | 'tunnel'
 > {
+  /**
+   * Where to send envelopes instead of the Sentry ingest URL. The browser also takes `true` and options for the managed
+   * tunnel, see {@link TunnelInit}. Server SDKs only take a URL.
+   *
+   * @default undefined
+   */
+  tunnel?: TunnelInit;
+
   /**
    * If this is set to false, default integrations will not be added, otherwise this will internally be set to the
    * recommended default integrations.

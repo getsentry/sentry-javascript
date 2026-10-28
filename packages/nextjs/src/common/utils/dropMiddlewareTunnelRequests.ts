@@ -1,12 +1,18 @@
 import { HTTP_TARGET, URL_FULL, URL_PATH, SENTRY_ORIGIN } from '@sentry/conventions/attributes';
-import type { RawAttributes } from '@sentry/core';
-import { getClient, GLOBAL_OBJ, isSentryRequestUrl, type Span } from '@sentry/core';
-import { ATTR_NEXT_SPAN_TYPE } from '../nextSpanAttributes';
-import { isPathnameUnderSentryTunnelRoute } from './tunnelPathnameMatch';
+import type { ClientOptions, RawAttributes } from '@sentry/core';
+import { escapeStringForRegex, getClient, GLOBAL_OBJ, isSentryRequestUrl, type Span } from '@sentry/core';
+import { ATTR_NEXT_ROUTE, ATTR_NEXT_SPAN_TYPE } from '../nextSpanAttributes';
+import {
+  getTunnelRouteRequestPattern,
+  isPathnameUnderSentryTunnelRoute,
+  TUNNEL_ROUTE_HANDLER_PATH,
+  type TunnelRouteMode,
+} from './tunnelPathnameMatch';
 import { TRANSACTION_ATTR_SHOULD_DROP_TRANSACTION } from '../span-attributes-with-logic-attached';
 
 const globalWithInjectedValues = GLOBAL_OBJ as typeof GLOBAL_OBJ & {
   _sentryRewritesTunnelPath?: string;
+  _sentryTunnelRouteMode?: TunnelRouteMode;
 };
 
 /**
@@ -81,4 +87,43 @@ export function isTunnelRouteSpan(spanAttributes: Record<string, unknown>): bool
   }
 
   return false;
+}
+
+/**
+ * Returns `ignoreSpans` entries for the spans of incoming tunnel requests.
+ *
+ * Span streaming checks `ignoreSpans` at span start, before `dropMiddlewareTunnelRequests` runs. The entries match only
+ * Next.js request spans, so other spans with the same path are kept.
+ */
+export function getTunnelRouteIgnoreSpans(): NonNullable<ClientOptions['ignoreSpans']> {
+  const tunnelPath = globalWithInjectedValues._sentryRewritesTunnelPath || process.env._sentryRewritesTunnelPath;
+  if (!tunnelPath) {
+    return [];
+  }
+
+  const tunnelRouteMode =
+    (globalWithInjectedValues._sentryTunnelRouteMode || process.env._sentryTunnelRouteMode) === 'handler'
+      ? 'handler'
+      : 'rewrite';
+  const tunnelRequestIgnoreSpan = {
+    attributes: {
+      [ATTR_NEXT_SPAN_TYPE]: /^(?:BaseServer\.handleRequest|Middleware\.execute)$/,
+      // Next.js sets only `http.target` at span start.
+      // eslint-disable-next-line typescript/no-deprecated
+      [HTTP_TARGET]: getTunnelRouteRequestPattern(tunnelPath, tunnelRouteMode),
+    },
+  };
+
+  if (tunnelRouteMode !== 'handler') {
+    return [tunnelRequestIgnoreSpan];
+  }
+
+  // On edge, the root span of a route handler has only `next.route`, with a `/route` suffix before Next.js 16.
+  const tunnelRouteHandlerIgnoreSpan = {
+    attributes: {
+      [ATTR_NEXT_SPAN_TYPE]: /^AppRouteRouteHandlers\.runHandler$/,
+      [ATTR_NEXT_ROUTE]: new RegExp(`^${escapeStringForRegex(TUNNEL_ROUTE_HANDLER_PATH)}(?:/route)?$`),
+    },
+  };
+  return [tunnelRequestIgnoreSpan, tunnelRouteHandlerIgnoreSpan];
 }

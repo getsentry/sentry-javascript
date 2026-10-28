@@ -17,8 +17,8 @@
     "@types/react-dom": "19.2.3",
     "@types/node": "^20",
     "@react-router/dev": "^8.3.0",
-    "@playwright/test": "~1.63.0",
-    "@sentry-internal/test-utils": "link:../../../test-utils",
+    "@playwright/test": "1.64.1",
+    "@sentry-internal/test-utils": "file:../../packed/sentry-internal-test-utils-packed.tgz",
     "tsx": "^4.23.0",
     "typescript": "^5.6.3",
     "vite": "^7.3.2"
@@ -28,8 +28,5 @@
     "clean": "npx rimraf node_modules pnpm-lock.yaml",
     "test:build": "pnpm install && pnpm build",
     "test:assert": "pnpm tsx assert-build.ts"
-  },
-  "volta": {
-    "extends": "../../package.json"
   }
 }

@@ -6,8 +6,8 @@
   "type": "module",
   "scripts": {
     "dev:node": "node --import tsx/esm --import ./src/instrument.node.ts src/entry.node.ts",
-    "dev:cloudflare": "wrangler dev --config ./dist/gen_ai_libraries/wrangler.json --var \"E2E_TEST_DSN:$E2E_TEST_DSN\" --var \"E2E_OPENROUTER_API_KEY:$E2E_OPENROUTER_API_KEY\" --port 38787",
-    "preview": "vite preview --port 38787",
+    "dev:cloudflare": "wrangler dev --config ./dist/gen_ai_libraries/wrangler.json --var \"E2E_TEST_DSN:$E2E_TEST_DSN\" --var \"E2E_OPENROUTER_API_KEY:$E2E_OPENROUTER_API_KEY\" --port 8787",
+    "preview": "vite preview --port 8787",
     "test": "playwright test",
     "clean": "npx rimraf node_modules dist pnpm-lock.yaml",
     "test:build": "pnpm install",
@@ -30,8 +30,8 @@
   "devDependencies": {
     "@cloudflare/vite-plugin": "1.52.0",
     "@cloudflare/workers-types": "^4.20260426.0",
-    "@playwright/test": "~1.63.0",
-    "@sentry-internal/test-utils": "link:../../../test-utils",
+    "@playwright/test": "1.64.1",
+    "@sentry-internal/test-utils": "file:../../packed/sentry-internal-test-utils-packed.tgz",
     "@types/express": "^4.17.21",
     "@types/node": "^18.19.1",
     "tsx": "4.21.0",
@@ -48,9 +48,5 @@
         "label": "gen-ai-libraries (cloudflare)"
       }
     ]
-  },
-  "volta": {
-    "node": "24.15.0",
-    "extends": "../../package.json"
   }
 }

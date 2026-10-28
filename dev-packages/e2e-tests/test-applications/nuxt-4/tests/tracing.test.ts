@@ -1,11 +1,14 @@
 import { expect, test } from '@playwright/test';
 import { collectStreamedSpans, getSpanOp, waitForStreamedSpan } from '@sentry-internal/test-utils';
 import { IMPORT_SURFACES } from './importSurfaces';
+import { isViteServer, NITRO_ONLY, NO_META_TAGS } from './isViteServer';
 
 test.describe('distributed tracing', () => {
   const PARAM = 's0me-param';
 
   test('capture a distributed pageload trace', async ({ page }) => {
+    test.fail(isViteServer, NO_META_TAGS);
+
     const clientSpanPromise = waitForStreamedSpan('nuxt-4', span => {
       return getSpanOp(span) === 'pageload' && span.is_segment;
     });
@@ -21,6 +24,7 @@ test.describe('distributed tracing', () => {
       expect(page.getByText(`Param: ${PARAM}`)).toBeVisible(),
     ]);
 
+    await expect(page.locator('meta[name="baggage"]')).toHaveCount(1);
     const baggageMetaTagContent = await page.locator('meta[name="baggage"]').getAttribute('content');
 
     // URL-encoded for parametrized 'GET /test-param/s0me-param' -> `GET /test-param/:param`
@@ -66,6 +70,8 @@ test.describe('distributed tracing', () => {
     test(`capture a distributed trace from a client-side API request with parametrized routes (${name})`, async ({
       page,
     }) => {
+      test.skip(isViteServer, NITRO_ONLY);
+
       const API_PATH = `${apiPrefix}/user/${PARAM}`;
 
       // The `http.client` span ends after the pageload segment, so it can be flushed in a later

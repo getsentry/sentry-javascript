@@ -35,3 +35,17 @@ describe('Node-only integrations are statically detectable exports from every ru
     },
   );
 });
+
+/**
+ * Node loads this CJS file for ESM imports too, and must see that it re-exports everything from `@sentry/node`.
+ *
+ * Regression test for https://github.com/getsentry/sentry-javascript/issues/22791
+ */
+describe('CJS server build re-exports are detectable by Node', () => {
+  it('detects the `@sentry/node` re-export', async () => {
+    await init();
+    const { reexports } = parse(readFileSync(resolve(__dirname, '../build/cjs/index.server.js'), 'utf8'));
+
+    expect(reexports).toContain('@sentry/node');
+  });
+});

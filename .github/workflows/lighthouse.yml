@@ -11,7 +11,7 @@ on:
 jobs:
   build-and-upload:
     name: Bundle and upload Lighthouse cells
-    runs-on: ubuntu-24.04
+    runs-on: namespace-profile-sentry-javascript-large
     timeout-minutes: 30
     env:
       LIGHTHOUSE_LAB_URL: ${{ secrets.LIGHTHOUSE_LAB_URL }}
@@ -19,15 +19,14 @@ jobs:
       VITE_E2E_TEST_DSN: 'https://username@domain/123'
     steps:
       - uses: actions/checkout@v7
-      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
-        with:
-          version: 9.15.9
+      - name: Install pnpm
+        uses: ./.github/actions/install-pnpm
       - uses: actions/setup-node@v7
         with:
           node-version-file: 'package.json'
-      - run: yarn install --frozen-lockfile --ignore-engines
-      - run: yarn build:ci
-      - run: yarn build:tarball
-      - run: yarn test:prepare
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm run build:ci
+      - run: pnpm run build:tarball
+      - run: pnpm run test:prepare
         working-directory: dev-packages/e2e-tests
       - run: node scripts/lighthouse-bundle-and-upload.mjs

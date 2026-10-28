@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "vite dev",
     "build": "vite build",
-    "preview": "vite preview --port 38787",
+    "preview": "vite preview --port 8787",
     "typecheck": "tsc --noEmit",
     "test:build": "pnpm install && pnpm build",
     "test:assert": "pnpm test:prod",
@@ -18,15 +18,12 @@
   },
   "devDependencies": {
     "@cloudflare/vite-plugin": "1.52.0",
-    "@playwright/test": "~1.63.0",
+    "@playwright/test": "1.64.1",
     "@cloudflare/workers-types": "^4.20260426.0",
-    "@sentry-internal/test-utils": "link:../../../test-utils",
+    "@sentry-internal/test-utils": "file:../../packed/sentry-internal-test-utils-packed.tgz",
     "typescript": "^5.5.2",
     "vite": "7.3.5",
     "wrangler": "^4.86.0",
     "ws": "^8.18.3"
-  },
-  "volta": {
-    "extends": "../../package.json"
   }
 }

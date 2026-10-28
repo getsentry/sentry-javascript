@@ -19,8 +19,8 @@
     "@spotlightjs/spotlight": "2.0.0-alpha.1"
   },
   "devDependencies": {
-    "@playwright/test": "~1.63.0",
-    "@sentry-internal/test-utils": "link:../../../test-utils",
+    "@playwright/test": "1.64.1",
+    "@sentry-internal/test-utils": "file:../../packed/sentry-internal-test-utils-packed.tgz",
     "@sveltejs/adapter-node": "5.5.1",
     "@sveltejs/kit": "2.52.2",
     "@sveltejs/vite-plugin-svelte": "^6.1.3",
@@ -30,8 +30,5 @@
     "typescript": "^5.0.0",
     "vite": "^7.3.2"
   },
-  "type": "module",
-  "volta": {
-    "extends": "../../package.json"
-  }
+  "type": "module"
 }

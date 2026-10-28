@@ -35,6 +35,7 @@ import { DEBUG_BUILD } from '../../debug-build';
 import { LOG_PREFIX, HTTP_ON_CLIENT_REQUEST } from './constants';
 import type { ClientSubscriptionName } from './constants';
 import { getClient } from '../../currentScopes';
+import { isSentryRequestUrl } from '../../utils/isSentryRequestUrl';
 import { hasSpansEnabled } from '../../utils/hasSpansEnabled';
 import { doubleWrapWarning } from './double-wrap-warning';
 
@@ -66,8 +67,10 @@ export function getHttpClientSubscriptions(options: HttpInstrumentationOptions):
 
     const { request } = data as { request: HttpClientRequest };
 
-    // check if request is ignored. if so, we do nothing at all.
-    if (options.ignoreOutgoingRequests?.(getRequestUrlFromClientRequest(request), request)) {
+    // check if request is ignored or goes to Sentry. if so, we do nothing at all.
+    // Our own transport suppresses tracing, but another SDK in this process (e.g. the Next.js Edge Runtime SDK) may not.
+    const url = getRequestUrlFromClientRequest(request);
+    if (isSentryRequestUrl(url, getClient()) || options.ignoreOutgoingRequests?.(url, request)) {
       return;
     }
 
@@ -184,9 +187,8 @@ export function getHttpClientSubscriptions(options: HttpInstrumentationOptions):
           if (breadcrumbs) {
             addBreadcrumbs(request, response);
           }
-          const aborted = response.aborted && !response.complete;
           const status: SpanStatus =
-            error || typeof response.statusCode !== 'number' || aborted
+            error || typeof response.statusCode !== 'number'
               ? { code: SPAN_STATUS_ERROR }
               : getSpanStatusFromHttpCode(response.statusCode);
           options.applyCustomAttributesOnSpan?.(span, request, response);
@@ -196,6 +198,9 @@ export function getHttpClientSubscriptions(options: HttpInstrumentationOptions):
 
       response.on('end', () => finishWithResponse());
       response.on(errorMonitor, finishWithResponse);
+      // `res.destroy()` emits only `close`. `errored` separates a caller destroy from a connection
+      // error that was not emitted because nothing listens for `error`.
+      response.on('close', () => finishWithResponse(response.errored));
     });
   };
 

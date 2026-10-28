@@ -14,17 +14,9 @@
   "dependencies": {
     "@astrojs/internal-helpers": "^0.4.2",
     "@astrojs/node": "^9.0.0",
-    "@playwright/test": "~1.63.0",
-    "@sentry-internal/test-utils": "link:../../../test-utils",
+    "@playwright/test": "1.64.1",
+    "@sentry-internal/test-utils": "file:../../packed/sentry-internal-test-utils-packed.tgz",
     "@sentry/astro": "file:../../packed/sentry-astro-packed.tgz",
     "astro": "^5.0.3"
-  },
-  "pnpm": {
-    "overrides": {
-      "esbuild": "0.24.0"
-    }
-  },
-  "volta": {
-    "extends": "../../package.json"
   }
 }

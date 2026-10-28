@@ -20,7 +20,7 @@ import {
   SENTRY_OP,
   SENTRY_ORIGIN,
 } from '@sentry/conventions/attributes';
-import { GEN_AI_EVALUATE } from '@sentry/conventions/op';
+import { GEN_AI_CHAT, GEN_AI_DECIDE } from '@sentry/conventions/op';
 import { GEN_AI_RESPONSE_STOP_REASON_ATTRIBUTE } from '../../../../../../packages/server-utils/src/ai/core/gen-ai-attributes';
 import { cleanupChildProcesses, createEsmAndCjsTests } from '../../../../utils/runner';
 import { createEsmTests } from '../../../../utils/runner/createEsmAndCjsTests';
@@ -238,10 +238,73 @@ describe('LangChain integration (v1)', () => {
 
   createEsmAndCjsTests(
     __dirname,
+    'scenario-nested-runtime-context.mjs',
+    'instrument.mjs',
+    (createRunner, test) => {
+      test('keeps the conversation id and trace for a model called from a tool without config', async () => {
+        const runner = createRunner().ignore('event');
+        const spansPromise = runner.collectStreamedSpansUntilSegment('main');
+
+        await runner.start().completed();
+
+        const spans = await spansPromise;
+        const byId = new Map(spans.map(span => [span.span_id, span]));
+        const ancestorNames = (span: (typeof spans)[number]): string[] => {
+          const names: string[] = [];
+          for (let p = byId.get(span.parent_span_id ?? ''); p; p = byId.get(p.parent_span_id ?? '')) {
+            names.push(p.name);
+          }
+          return names;
+        };
+        const chatSpans = spans.filter(span => span.attributes[SENTRY_OP]?.value === GEN_AI_CHAT);
+
+        expect(chatSpans).toHaveLength(2);
+        expect(
+          chatSpans
+            .map(span => [
+              span.attributes[GEN_AI_CONVERSATION_ID]?.value,
+              ancestorNames(span).find(name => name === 'auto' || name === 'handler'),
+            ])
+            .sort(),
+        ).toEqual([
+          ['thread_auto', 'auto'],
+          ['thread_handler', 'handler'],
+        ]);
+
+        // Each run span sits under its parent run's span. The id only reaches runs still open when the model
+        // call reveals it, so the step that ran before the model call has none.
+        const handlerSpans = spans.filter(
+          span =>
+            span.attributes[SENTRY_ORIGIN]?.value === 'auto.ai.langchain' && ancestorNames(span).includes('handler'),
+        );
+        expect(
+          handlerSpans
+            .map(span => [span.name, ancestorNames(span)[0], span.attributes[GEN_AI_CONVERSATION_ID]?.value])
+            .sort(),
+        ).toEqual([
+          ['chat claude-3-5-sonnet-20241022', 'invoke_agent nested_chain', 'thread_handler'],
+          ['execute_tool lookup_weather', 'invoke_agent outer', 'thread_handler'],
+          ['invoke_agent RunnableLambda', 'invoke_agent nested_chain', undefined],
+          ['invoke_agent nested_chain', 'execute_tool lookup_weather', 'thread_handler'],
+          ['invoke_agent outer', 'handler', 'thread_handler'],
+        ]);
+      });
+    },
+    {
+      additionalDependencies: {
+        langchain: '^1.0.0',
+        '@langchain/core': '^1.0.0',
+        '@langchain/anthropic': '^1.0.0',
+      },
+    },
+  );
+
+  createEsmAndCjsTests(
+    __dirname,
     'scenario-typesafe-classifier.mjs',
     'instrument-with-pii.mjs',
     (createRunner, test) => {
-      test('records a TypeSafeClassifier run as a gen_ai.evaluate span', async () => {
+      test('records a TypeSafeClassifier run as a gen_ai.decide span', async () => {
         const runner = createRunner().ignore('event');
         const spansPromise = runner.collectStreamedSpansUntilSegment('main');
 
@@ -250,19 +313,19 @@ describe('LangChain integration (v1)', () => {
         const spans = (await spansPromise).filter(
           span => span.attributes[SENTRY_ORIGIN]?.value === 'auto.ai.langchain',
         );
-        expect(spans.map(span => span.name)).toEqual(['evaluate jev-latest', 'evaluate jev-latest']);
+        expect(spans.map(span => span.name)).toEqual(['decide jev-latest', 'decide jev-latest']);
 
-        const [evaluateSpan, messageEvaluateSpan] = spans.sort((a, b) => a.start_timestamp - b.start_timestamp);
-        expect(evaluateSpan.attributes[SENTRY_OP].value).toBe(GEN_AI_EVALUATE);
-        expect(evaluateSpan.attributes[SENTRY_ORIGIN].value).toBe('auto.ai.langchain');
-        expect(evaluateSpan.attributes[GEN_AI_OPERATION_NAME].value).toBe('evaluate');
-        expect(evaluateSpan.attributes[GEN_AI_PROVIDER_NAME].value).toBe('typesafe');
-        expect(evaluateSpan.attributes[GEN_AI_REQUEST_MODEL].value).toBe('jev-latest');
-        expect(evaluateSpan.attributes[GEN_AI_RESPONSE_MODEL].value).toBe('jev-1.13');
-        expect(evaluateSpan.attributes[GEN_AI_USAGE_INPUT_TOKENS].value).toBe(30);
-        expect(evaluateSpan.attributes[GEN_AI_USAGE_OUTPUT_TOKENS].value).toBe(2);
-        expect(evaluateSpan.attributes[GEN_AI_USAGE_TOTAL_TOKENS].value).toBe(32);
-        expect(JSON.parse(evaluateSpan.attributes[GEN_AI_INPUT_MESSAGES].value)).toEqual([
+        const [decideSpan, messageDecideSpan] = spans.sort((a, b) => a.start_timestamp - b.start_timestamp);
+        expect(decideSpan.attributes[SENTRY_OP].value).toBe(GEN_AI_DECIDE);
+        expect(decideSpan.attributes[SENTRY_ORIGIN].value).toBe('auto.ai.langchain');
+        expect(decideSpan.attributes[GEN_AI_OPERATION_NAME].value).toBe('decide');
+        expect(decideSpan.attributes[GEN_AI_PROVIDER_NAME].value).toBe('typesafe');
+        expect(decideSpan.attributes[GEN_AI_REQUEST_MODEL].value).toBe('jev-latest');
+        expect(decideSpan.attributes[GEN_AI_RESPONSE_MODEL].value).toBe('jev-1.13');
+        expect(decideSpan.attributes[GEN_AI_USAGE_INPUT_TOKENS].value).toBe(30);
+        expect(decideSpan.attributes[GEN_AI_USAGE_OUTPUT_TOKENS].value).toBe(2);
+        expect(decideSpan.attributes[GEN_AI_USAGE_TOTAL_TOKENS].value).toBe(32);
+        expect(JSON.parse(decideSpan.attributes[GEN_AI_INPUT_MESSAGES].value)).toEqual([
           {
             type: 'evaluation',
             state: 'My payouts have been failing.',
@@ -270,14 +333,14 @@ describe('LangChain integration (v1)', () => {
           },
         ]);
         // A message is recorded as the transcript line the classifier sends, not as LangChain's serialized form.
-        expect(JSON.parse(messageEvaluateSpan!.attributes[GEN_AI_INPUT_MESSAGES].value)).toEqual([
+        expect(JSON.parse(messageDecideSpan!.attributes[GEN_AI_INPUT_MESSAGES].value)).toEqual([
           {
             type: 'evaluation',
             state: 'user: My card was charged twice.',
             questions: { urgent: { type: 'noul', instructions: 'Is this urgent?' } },
           },
         ]);
-        expect(JSON.parse(evaluateSpan.attributes[GEN_AI_OUTPUT_MESSAGES].value)).toEqual([
+        expect(JSON.parse(decideSpan.attributes[GEN_AI_OUTPUT_MESSAGES].value)).toEqual([
           { type: 'evaluation', answers: { urgent: { type: 'noul', noul: 0.9 } } },
         ]);
       });
@@ -305,7 +368,7 @@ describe('LangChain integration (v1)', () => {
         const spans = await spansPromise;
         const segment = spans.find(span => span.is_segment && span.name === 'main');
         expect(segment!.attributes['test.recorded_runs'].value).toBe('RunnableLambda:root,TypeSafeClassifier:child');
-        expect(spans.filter(span => span.attributes[SENTRY_OP]?.value === GEN_AI_EVALUATE)).toHaveLength(1);
+        expect(spans.filter(span => span.attributes[SENTRY_OP]?.value === GEN_AI_DECIDE)).toHaveLength(1);
       });
     },
     {
@@ -330,15 +393,15 @@ describe('LangChain integration (v1)', () => {
         await runner.start().completed();
 
         const spans = await spansPromise;
-        const evaluateSpan = spans.find(span => span.attributes[SENTRY_OP]?.value === GEN_AI_EVALUATE)!;
+        const decideSpan = spans.find(span => span.attributes[SENTRY_OP]?.value === GEN_AI_DECIDE)!;
         const chatSpan = spans.find(span => span.name === 'chat claude-3-5-haiku-20241022')!;
 
         // The router classifies in `beforeAgent`, inside the agent run, where other chain steps are skipped.
-        expect(evaluateSpan.name).toBe('evaluate jev-latest');
-        expect(evaluateSpan.attributes[SENTRY_ORIGIN].value).toBe('auto.ai.langchain');
-        expect(evaluateSpan.attributes[GEN_AI_AGENT_NAME].value).toBe('support_agent');
-        expect(evaluateSpan.parent_span_id).toBe(chatSpan.parent_span_id);
-        expect(JSON.parse(evaluateSpan.attributes[GEN_AI_INPUT_MESSAGES].value)).toEqual([
+        expect(decideSpan.name).toBe('decide jev-latest');
+        expect(decideSpan.attributes[SENTRY_ORIGIN].value).toBe('auto.ai.langchain');
+        expect(decideSpan.attributes[GEN_AI_AGENT_NAME].value).toBe('support_agent');
+        expect(decideSpan.parent_span_id).toBe(chatSpan.parent_span_id);
+        expect(JSON.parse(decideSpan.attributes[GEN_AI_INPUT_MESSAGES].value)).toEqual([
           {
             type: 'evaluation',
             // The router passes the latest human message, which the classifier sends as a transcript line.
@@ -352,7 +415,7 @@ describe('LangChain integration (v1)', () => {
             },
           },
         ]);
-        expect(JSON.parse(evaluateSpan.attributes[GEN_AI_OUTPUT_MESSAGES].value)).toEqual([
+        expect(JSON.parse(decideSpan.attributes[GEN_AI_OUTPUT_MESSAGES].value)).toEqual([
           {
             type: 'evaluation',
             answers: {

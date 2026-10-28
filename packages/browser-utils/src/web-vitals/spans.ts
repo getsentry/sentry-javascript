@@ -3,6 +3,7 @@ import type { Client, Span, SpanAttributes } from '@sentry/core';
 import {
   browserPerformanceTimeOrigin,
   debug,
+  filterCollectedUrl,
   getActiveSpan,
   getClient,
   getRootSpan,
@@ -219,7 +220,7 @@ export function _sendLcpSpan(
     attributes[UI_COMPONENT_NAME] = componentName;
   }
   entry?.id && (attributes['browser.web_vital.lcp.id'] = entry.id);
-  entry?.url && (attributes['browser.web_vital.lcp.url'] = entry.url);
+  entry?.url && (attributes['browser.web_vital.lcp.url'] = filterCollectedUrl(entry.url, client));
   entry?.loadTime != null && (attributes['browser.web_vital.lcp.load_time'] = entry.loadTime);
   entry?.renderTime != null && (attributes['browser.web_vital.lcp.render_time'] = entry.renderTime);
   entry?.size != null && (attributes['browser.web_vital.lcp.size'] = entry.size);
@@ -227,7 +228,7 @@ export function _sendLcpSpan(
   _emitWebVitalSpan({
     name,
     op: UI_WEBVITAL_LCP,
-    origin: 'auto.http.browser.lcp',
+    origin: 'auto.ui.browser.lcp',
     metricName: 'lcp',
     value: lcpValue,
     attributes,
@@ -328,7 +329,7 @@ export function _sendClsSpan(
   _emitWebVitalSpan({
     name,
     op: UI_WEBVITAL_CLS,
-    origin: 'auto.http.browser.cls',
+    origin: 'auto.ui.browser.cls',
     metricName: 'cls',
     value: clsValue,
     attributes,
@@ -456,7 +457,7 @@ export function _sendInpSpan(
   _emitWebVitalSpan({
     name,
     op: INTERACTION_TYPE_TO_SPAN_OP[interactionType],
-    origin: 'auto.http.browser.inp',
+    origin: 'auto.ui.browser.inp',
     metricName: 'inp',
     value: inpValue,
     attributes,

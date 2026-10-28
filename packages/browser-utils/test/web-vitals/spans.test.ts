@@ -99,7 +99,7 @@ describe('_emitWebVitalSpan', () => {
     _emitWebVitalSpan({
       name: 'Test Vital',
       op: 'ui.webvital.lcp',
-      origin: 'auto.http.browser.lcp',
+      origin: 'auto.ui.browser.lcp',
       metricName: 'lcp',
       value: 100,
       startTime: 1.5,
@@ -108,7 +108,7 @@ describe('_emitWebVitalSpan', () => {
     expect(SentryCoreBrowser.startInactiveSpan).toHaveBeenCalledWith({
       name: 'Test Vital',
       attributes: {
-        'sentry.origin': 'auto.http.browser.lcp',
+        'sentry.origin': 'auto.ui.browser.lcp',
         'sentry.op': 'ui.webvital.lcp',
         'sentry.exclusive_time': 0,
         'browser.web_vital.lcp.value': 100,
@@ -135,7 +135,7 @@ describe('_emitWebVitalSpan', () => {
     _emitWebVitalSpan({
       name: 'Test Vital',
       op: 'ui.webvital.lcp',
-      origin: 'auto.http.browser.lcp',
+      origin: 'auto.ui.browser.lcp',
       metricName: 'lcp',
       value: 100,
       startTime: 1.5,
@@ -156,7 +156,7 @@ describe('_emitWebVitalSpan', () => {
     _emitWebVitalSpan({
       name: 'Test',
       op: 'ui.interaction.click',
-      origin: 'auto.http.browser.inp',
+      origin: 'auto.ui.browser.inp',
       metricName: 'inp',
       value: 100,
       startTime: 1.5,
@@ -176,7 +176,7 @@ describe('_emitWebVitalSpan', () => {
     _emitWebVitalSpan({
       name: 'Test',
       op: 'ui.interaction.click',
-      origin: 'auto.http.browser.inp',
+      origin: 'auto.ui.browser.inp',
       metricName: 'inp',
       value: 100,
       startTime: 1.5,
@@ -201,7 +201,7 @@ describe('_emitWebVitalSpan', () => {
     _emitWebVitalSpan({
       name: 'Test',
       op: 'ui.interaction.click',
-      origin: 'auto.http.browser.inp',
+      origin: 'auto.ui.browser.inp',
       metricName: 'inp',
       value: 100,
       startTime: 1.5,
@@ -223,7 +223,7 @@ describe('_emitWebVitalSpan', () => {
     _emitWebVitalSpan({
       name: 'Test',
       op: 'ui.interaction.click',
-      origin: 'auto.http.browser.inp',
+      origin: 'auto.ui.browser.inp',
       metricName: 'inp',
       value: 100,
       startTime: 1.5,
@@ -244,7 +244,7 @@ describe('_emitWebVitalSpan', () => {
     _emitWebVitalSpan({
       name: 'Test',
       op: 'ui.webvital.lcp',
-      origin: 'auto.http.browser.lcp',
+      origin: 'auto.ui.browser.lcp',
       metricName: 'lcp',
       value: 50,
       parentSpan: mockPageloadSpan as any,
@@ -270,7 +270,7 @@ describe('_emitWebVitalSpan', () => {
     _emitWebVitalSpan({
       name: 'Test',
       op: 'ui.interaction.click',
-      origin: 'auto.http.browser.inp',
+      origin: 'auto.ui.browser.inp',
       metricName: 'inp',
       value: 50,
       parentSpan: mockNonPageloadSpan as any,
@@ -290,7 +290,7 @@ describe('_emitWebVitalSpan', () => {
     _emitWebVitalSpan({
       name: 'Test',
       op: 'ui.webvital.lcp',
-      origin: 'auto.http.browser.lcp',
+      origin: 'auto.ui.browser.lcp',
       metricName: 'lcp',
       value: 50,
       attributes: { 'custom.attr': 'value' },
@@ -313,7 +313,7 @@ describe('_emitWebVitalSpan', () => {
       _emitWebVitalSpan({
         name: 'Test',
         op: 'ui.webvital.lcp',
-        origin: 'auto.http.browser.lcp',
+        origin: 'auto.ui.browser.lcp',
         metricName: 'lcp',
         value: 50,
         startTime: 1.0,
@@ -333,7 +333,7 @@ describe('_emitWebVitalSpan', () => {
     _emitWebVitalSpan({
       name: 'Test',
       op: 'ui.webvital.lcp',
-      origin: 'auto.http.browser.lcp',
+      origin: 'auto.ui.browser.lcp',
       metricName: 'lcp',
       value: 50,
       startTime: 1.0,
@@ -351,7 +351,7 @@ describe('_emitWebVitalSpan', () => {
     _emitWebVitalSpan({
       name: 'Test',
       op: 'ui.webvital.lcp',
-      origin: 'auto.http.browser.lcp',
+      origin: 'auto.ui.browser.lcp',
       metricName: 'lcp',
       value: 50,
       startTime: 1.0,
@@ -392,6 +392,7 @@ describe('_sendLcpSpan', () => {
     vi.mocked(SentryCore.getClient).mockReturnValue({
       getOptions: () => ({ traceLifecycle: 'static' }),
       getIntegrationByName: () => undefined,
+      getDataCollectionOptions: () => ({ urlQueryParams: true }),
     } as any);
   });
 
@@ -403,7 +404,7 @@ describe('_sendLcpSpan', () => {
     const mockEntry = {
       element: { tagName: 'img' } as Element,
       id: 'hero',
-      url: 'https://example.com/hero.jpg',
+      url: 'https://example.com/hero.jpg?token=abc&size=2',
       loadTime: 100,
       renderTime: 150,
       size: 50000,
@@ -418,13 +419,13 @@ describe('_sendLcpSpan', () => {
       expect.objectContaining({
         name: '<img>',
         attributes: expect.objectContaining({
-          'sentry.origin': 'auto.http.browser.lcp',
+          'sentry.origin': 'auto.ui.browser.lcp',
           'sentry.op': 'ui.webvital.lcp',
           'sentry.exclusive_time': 0,
           'sentry.pageload.span_id': 'pageload-123',
           'browser.web_vital.lcp.element': '<img>',
           'browser.web_vital.lcp.id': 'hero',
-          'browser.web_vital.lcp.url': 'https://example.com/hero.jpg',
+          'browser.web_vital.lcp.url': 'https://example.com/hero.jpg?token=[Filtered]&size=2',
           'browser.web_vital.lcp.load_time': 100,
           'browser.web_vital.lcp.render_time': 150,
           'browser.web_vital.lcp.size': 50000,
@@ -566,7 +567,7 @@ describe('_sendClsSpan', () => {
       expect.objectContaining({
         name: '<div>',
         attributes: expect.objectContaining({
-          'sentry.origin': 'auto.http.browser.cls',
+          'sentry.origin': 'auto.ui.browser.cls',
           'sentry.op': 'ui.webvital.cls',
           'sentry.pageload.span_id': 'pageload-789',
           'browser.web_vital.cls.source.1': '<div>',
@@ -675,7 +676,7 @@ describe('_sendInpSpan', () => {
         name: '<button>',
         startTime: 1.5,
         attributes: expect.objectContaining({
-          'sentry.origin': 'auto.http.browser.inp',
+          'sentry.origin': 'auto.ui.browser.inp',
           'sentry.op': 'ui.interaction.click',
           'sentry.exclusive_time': 120,
           'browser.web_vital.inp.target': '<button>',

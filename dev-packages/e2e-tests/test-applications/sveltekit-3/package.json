@@ -12,14 +12,17 @@
     "check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
     "test:prod": "TEST_ENV=production playwright test",
     "test:build": "pnpm install && pnpm build",
-    "test:assert": "pnpm test:prod"
+    "test:assert": "pnpm test:prod",
+    "test:build:tunnel": "pnpm install && E2E_TEST_TUNNEL=1 PUBLIC_E2E_TEST_TUNNEL=1 E2E_TEST_DSN=http://public@localhost:3031/1337 PUBLIC_E2E_TEST_DSN=http://public@localhost:3031/1337 pnpm build",
+    "test:assert:tunnel": "E2E_TEST_TUNNEL=1 PUBLIC_E2E_TEST_TUNNEL=1 E2E_TEST_DSN=http://public@localhost:3031/1337 PUBLIC_E2E_TEST_DSN=http://public@localhost:3031/1337 TEST_ENV=production playwright test tunnel",
+    "test:assert:tunnel-dev": "E2E_TEST_TUNNEL=1 PUBLIC_E2E_TEST_TUNNEL=1 E2E_TEST_DSN=http://public@localhost:3031/1337 PUBLIC_E2E_TEST_DSN=http://public@localhost:3031/1337 TEST_ENV=development playwright test tunnel"
   },
   "dependencies": {
     "@sentry/sveltekit": "file:../../packed/sentry-sveltekit-packed.tgz"
   },
   "devDependencies": {
-    "@playwright/test": "~1.63.0",
-    "@sentry-internal/test-utils": "link:../../../test-utils",
+    "@playwright/test": "1.64.1",
+    "@sentry-internal/test-utils": "file:../../packed/sentry-internal-test-utils-packed.tgz",
     "@sveltejs/adapter-node": "^6.0.0",
     "@sveltejs/kit": "^3.0.0",
     "@sveltejs/vite-plugin-svelte": "^7.3.1",
@@ -28,9 +31,19 @@
     "typescript": "^6.0.0",
     "vite": "^8.0.12"
   },
-  "volta": {
-    "node": "22.20.0",
-    "extends": "../../package.json"
-  },
-  "type": "module"
+  "type": "module",
+  "sentryTest": {
+    "variants": [
+      {
+        "label": "sveltekit-3 (tunnel)",
+        "build-command": "pnpm test:build:tunnel",
+        "assert-command": "pnpm test:assert:tunnel"
+      },
+      {
+        "label": "sveltekit-3 (tunnel-dev)",
+        "build-command": "pnpm install",
+        "assert-command": "pnpm test:assert:tunnel-dev"
+      }
+    ]
+  }
 }

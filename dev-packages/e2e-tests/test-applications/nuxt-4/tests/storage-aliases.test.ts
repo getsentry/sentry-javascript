@@ -1,5 +1,8 @@
 import { expect, test } from '@playwright/test';
 import { collectStreamedSpansUntilSegment } from '@sentry-internal/test-utils';
+import { isViteServer, NITRO_ONLY } from './isViteServer';
+
+test.skip(isViteServer, NITRO_ONLY);
 
 async function collectStorageSpans(route: string) {
   const spans = await collectStreamedSpansUntilSegment('nuxt-4', span => span.attributes['url.path']?.value === route);

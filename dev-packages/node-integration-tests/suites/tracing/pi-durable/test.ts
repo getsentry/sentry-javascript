@@ -20,9 +20,9 @@ import {
   SENTRY_STATUS_MESSAGE,
 } from '@sentry/conventions/attributes';
 import { GEN_AI_CHAT, GEN_AI_EXECUTE_TOOL, GEN_AI_INVOKE_AGENT } from '@sentry/conventions/op';
-import { afterAll, expect } from 'vitest';
+import { afterAll, describe, expect } from 'vitest';
 import { GEN_AI_TOOL_CALL_ID_ATTRIBUTE } from '../../../../../packages/server-utils/src/ai/core/gen-ai-attributes';
-import { conditionalTest, RUNTIME } from '../../../utils';
+import { supports } from '../../../utils';
 import { cleanupChildProcesses, createEsmAndCjsTests } from '../../../utils/runner';
 
 // The pi packages declare `engines.node >= 22.19`, so they can't live in the package's root
@@ -30,9 +30,9 @@ import { cleanupChildProcesses, createEsmAndCjsTests } from '../../../utils/runn
 // instead, guarded by the `min: 22` skip below.
 const PI_DURABLE_DEPENDENCIES = {
   additionalDependencies: {
-    '@earendil-works/pi-durable': '^1.0.0',
-    '@earendil-works/pi-ai': '^1.0.0',
-    '@earendil-works/chord': '^1.0.0',
+    '@earendil-works/pi-durable': '^1.2.0',
+    '@earendil-works/pi-ai': '^1.2.0',
+    '@earendil-works/chord': '^1.2.0',
   },
 };
 
@@ -45,7 +45,7 @@ const CONTENT_ATTRIBUTES = [
   GEN_AI_TOOL_CALL_RESULT,
 ];
 
-conditionalTest({ min: 22 })('pi-durable integration', () => {
+describe.runIf(supports({ min: 22 }))('pi-durable integration', () => {
   afterAll(() => {
     cleanupChildProcesses();
   });
@@ -481,7 +481,7 @@ conditionalTest({ min: 22 })('pi-durable integration', () => {
       }
 
       // Bun does not implement `v8.setFlagsFromString`, which the scenario needs to force GC.
-      test.skipIf(RUNTIME === 'bun')(
+      test.runIf(supports({ runtimes: ['node', 'deno'] }))(
         'does not keep the traces of tool calls alive for subagent conversations that never run',
         async () => {
           await createRunner()

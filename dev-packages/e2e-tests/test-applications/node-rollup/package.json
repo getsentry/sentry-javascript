@@ -11,17 +11,13 @@
   },
   "dependencies": {
     "@sentry/node": "file:../../packed/sentry-node-packed.tgz",
-    "@sentry/server-utils": "file:../../packed/sentry-server-utils-packed.tgz",
-    "@sentry/bundler-plugins": "file:../../packed/sentry-bundler-plugins-packed.tgz"
+    "@sentry/server-utils": "file:../../packed/sentry-server-utils-packed.tgz"
   },
   "devDependencies": {
-    "@sentry-internal/test-utils": "link:../../../test-utils",
+    "@sentry-internal/test-utils": "file:../../packed/sentry-internal-test-utils-packed.tgz",
     "graphql": "16.9.0",
     "rollup": "4.62.3",
     "@rollup/plugin-node-resolve": "^16.0.0",
     "@rollup/plugin-commonjs": "^28.0.0"
-  },
-  "volta": {
-    "extends": "../../package.json"
   }
 }

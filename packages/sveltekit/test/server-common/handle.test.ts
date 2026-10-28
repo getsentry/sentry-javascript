@@ -2,7 +2,9 @@ import type { EventEnvelopeHeaders, Span } from '@sentry/core';
 import { SENTRY_SEGMENT_NAME_SOURCE, HTTP_ROUTE } from '@sentry/conventions/attributes';
 import { getCapturedScopesOnSpan, getRootSpan, getSpanDescendants, spanIsSampled, spanToJSON } from '@sentry/core';
 import * as SentryCore from '@sentry/core';
-import { NodeClient, setCurrentClient } from '@sentry/node';
+import { NodeClient, serveTunnelIntegration, setCurrentClient } from '@sentry/node';
+import { _INTERNAL_resetManagedTunnelDefaults } from '@sentry/core/server';
+import { TUNNEL_BASE_PATH_GLOBAL } from '../../src/common/tunnel';
 import type { Handle } from '@sveltejs/kit';
 import { redirect } from '@sveltejs/kit';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -138,6 +140,73 @@ describe('sentryHandle with span streaming', () => {
 
     expect(spanToJSON(kitRootSpan).name).toEqual('GET');
     kitRootSpan.end();
+  });
+});
+
+describe('sentryHandle with the managed tunnel', () => {
+  const DSN = 'https://public@o1.ingest.sentry.io/1337';
+
+  function makeTunnelRequest(path: string): Request {
+    const body = SentryCore.serializeEnvelope(SentryCore.createEnvelope({ dsn: DSN }, [])) as string;
+
+    return new Request(`http://localhost:3000${path}`, {
+      method: 'POST',
+      body,
+      headers: { 'content-length': String(body.length) },
+    });
+  }
+
+  beforeEach(() => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(() => Promise.resolve(new Response('forwarded'))),
+    );
+    const client = new NodeClient(getDefaultNodeClientOptions({ dsn: DSN, integrations: [serveTunnelIntegration()] }));
+    setCurrentClient(client);
+    client.init();
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    _INTERNAL_resetManagedTunnelDefaults();
+  });
+
+  it('answers tunnel requests without resolving the route', async () => {
+    const mockResolve = vi.fn();
+
+    const response = await sentryHandle()({
+      event: mockEvent({ request: makeTunnelRequest(SentryCore.getTunnelPath(DSN)!), route: { id: null } }),
+      resolve: mockResolve,
+    });
+
+    expect(await response.text()).toBe('forwarded');
+    expect(mockResolve).not.toHaveBeenCalled();
+  });
+
+  it('serves the tunnel under the base path `sentrySvelteKit()` set before the handle was created', async () => {
+    vi.stubGlobal(TUNNEL_BASE_PATH_GLOBAL, '/app');
+    const mockResolve = vi.fn(() => Promise.resolve(new Response('app')));
+    const handle = sentryHandle();
+
+    const underBasePath = await handle({
+      event: mockEvent({ request: makeTunnelRequest(`/app${SentryCore.getTunnelPath(DSN)!}`), route: { id: null } }),
+      resolve: mockResolve,
+    });
+    const atRoot = await handle({
+      event: mockEvent({ request: makeTunnelRequest(SentryCore.getTunnelPath(DSN)!), route: { id: null } }),
+      resolve: mockResolve,
+    });
+
+    expect(await underBasePath.text()).toBe('forwarded');
+    expect(await atRoot.text()).toBe('app');
+  });
+
+  it('resolves every other request', async () => {
+    const mockResolve = vi.fn(() => Promise.resolve(new Response('app')));
+
+    const response = await sentryHandle()({ event: mockEvent(), resolve: mockResolve });
+
+    expect(await response.text()).toBe('app');
   });
 });
 

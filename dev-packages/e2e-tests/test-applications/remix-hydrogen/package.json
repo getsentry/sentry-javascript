@@ -10,7 +10,7 @@
     "typecheck": "tsc",
     "codegen": "shopify hydrogen codegen",
     "clean": "npx rimraf node_modules dist pnpm-lock.yaml",
-    "test:build": "pnpm install && npx playwright install && pnpm build",
+    "test:build": "pnpm install && pnpm build",
     "test:assert": "pnpm playwright test"
   },
   "dependencies": {
@@ -30,10 +30,10 @@
   },
   "devDependencies": {
     "@graphql-codegen/cli": "5.0.2",
-    "@playwright/test": "~1.63.0",
+    "@playwright/test": "1.64.1",
     "@remix-run/dev": "^2.17.4",
     "@remix-run/eslint-config": "^2.17.4",
-    "@sentry-internal/test-utils": "link:../../../test-utils",
+    "@sentry-internal/test-utils": "file:../../packed/sentry-internal-test-utils-packed.tgz",
     "@shopify/cli": "3.74.1",
     "@shopify/hydrogen-codegen": "^0.3.1",
     "@shopify/mini-oxygen": "3.2.0",
@@ -50,8 +50,5 @@
     "typescript": "^5.2.2",
     "vite": "^5.1.0",
     "vite-tsconfig-paths": "^4.3.1"
-  },
-  "volta": {
-    "extends": "../../package.json"
   }
 }
