@@ -33,6 +33,17 @@ for (const library of libraries) {
       next(error);
     }
   });
+
+  for (const [name, call] of Object.entries(library.extras ?? {})) {
+    app.get(`/${library.id}/${name}`, async (_req, res, next) => {
+      try {
+        const result = await Sentry.startSpan({ name: `${library.id}/${name}`, op: 'function' }, () => call(apiKey));
+        res.send({ result });
+      } catch (error) {
+        next(error);
+      }
+    });
+  }
 }
 
 Sentry.setupExpressErrorHandler(app);

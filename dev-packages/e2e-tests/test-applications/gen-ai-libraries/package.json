@@ -1,6 +1,6 @@
 {
   "name": "gen-ai-libraries",
-  "description": "Real gen_ai spans for every instrumented AI library (OpenAI, Anthropic, Mistral, Together, Vercel AI), each driven through OpenRouter with a chat query and a tool call, on Node and on Cloudflare",
+  "description": "Real gen_ai spans for every instrumented AI library (OpenAI, Anthropic, Mistral, Together, Vercel AI), each driven through OpenRouter with a chat query and a tool call, plus provider-specific calls (streaming, the OpenAI Responses and embeddings APIs, the Anthropic stream helper), on Node and on Cloudflare",
   "version": "1.0.0",
   "private": true,
   "type": "module",
@@ -13,7 +13,8 @@
     "test:build": "pnpm install",
     "test:build:cloudflare": "pnpm install && vite build",
     "test:assert": "pnpm test",
-    "test:assert:cloudflare": "RUNTIME=cloudflare pnpm test"
+    "test:assert:cloudflare": "RUNTIME=cloudflare pnpm test",
+    "test:build-latest": "pnpm install && pnpm add openai@latest && pnpm update '@anthropic-ai/sdk@<1'"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "0.63.0",
@@ -46,6 +47,10 @@
         "build-command": "pnpm test:build:cloudflare",
         "assert-command": "pnpm test:assert:cloudflare",
         "label": "gen-ai-libraries (cloudflare)"
+      },
+      {
+        "build-command": "pnpm test:build-latest",
+        "label": "gen-ai-libraries (latest)"
       }
     ]
   }
