@@ -59,13 +59,13 @@ const NODE_CRON_3_FIELD_MINIMUMS = [0, 0, 1, 1, 0];
 
 /**
  * node-cron 3 keeps the values of a stepped field that are multiples of the step (`*\/2` days are 2, 4, ...)
- * and reads `7` in a weekday range as `0`. Returns `false` where that differs from standard cron.
+ * and gets weekday ranges with `7` or ending on Sunday (`sat-sun`) wrong. Returns `false` where that differs from standard cron.
  */
 export function isReadAlikeByNodeCron3(expression: string): boolean {
   const fields = expression.trim().split(/\s+/);
   const minimums = fields.length === 6 ? [0, ...NODE_CRON_3_FIELD_MINIMUMS] : NODE_CRON_3_FIELD_MINIMUMS;
   const weekday = fields[fields.length - 1] || '';
-  if (weekday.includes('-') && weekday.includes('7')) {
+  if (weekday.includes('-') && (weekday.includes('7') || /-(?:0|sun)/i.test(weekday))) {
     return false;
   }
   return fields.every((field, index) => {
