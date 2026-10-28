@@ -58,10 +58,6 @@ Work in this release was contributed by @faizansaiyed123, @itisrmk, @kunal649, @
   - A request to `/` gets the `route` source and the name `GET /`.
   - Spans also get `user_agent.original` and `http.request.body.size`.
 
-### Other Changes
-
-- fix(core): Only create Supabase db spans when there is a parent span ([#25806](https://github.com/getsentry/sentry-javascript/issues/25806))
-
 ## 11.9.0
 
 ### Important Changes
