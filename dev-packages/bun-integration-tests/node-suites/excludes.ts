@@ -124,6 +124,7 @@ export const NO_AUTO_INSTRUMENTATION = [
   'suites/tracing/redis/test.ts',
   'suites/tracing/tedious/test.ts',
   'suites/tracing/together-ai/test.ts',
+  'suites/tracing/together-ai/v1/test.ts',
   'suites/tracing/typesafe/test.ts',
   'suites/tracing/vercelai/**',
 ];
