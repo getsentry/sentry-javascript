@@ -30,7 +30,7 @@ import type {
 import type { SpanStatus } from '../types/spanStatus';
 import { addNonEnumerableProperty } from '../utils/object';
 import { generateSpanId } from '../utils/propagationContext';
-import { timestampInSeconds } from '../utils/time';
+import { performanceTimeToSeconds, timestampInSeconds } from '../utils/time';
 import { generateSentryTraceHeader, generateTraceparentHeader } from '../utils/tracing';
 import { _getSpanForScope } from './spanOnScope';
 
@@ -138,10 +138,13 @@ export function getStreamedSpanLinks(
 
 /**
  * Convert a span time input into a timestamp in seconds.
+ *
+ * Numbers are treated as epoch seconds or milliseconds, unless `isOtelTimeInput` is set: OpenTelemetry numbers are
+ * always milliseconds, either since the epoch or since the performance time origin (`performance.now()`).
  */
-export function spanTimeInputToSeconds(input: SpanTimeInput | undefined): number {
+export function spanTimeInputToSeconds(input: SpanTimeInput | undefined, isOtelTimeInput = false): number {
   if (typeof input === 'number') {
-    return ensureTimestampInSeconds(input);
+    return isOtelTimeInput ? otelTimestampToSeconds(input) : ensureTimestampInSeconds(input);
   }
 
   if (Array.isArray(input)) {
@@ -162,6 +165,15 @@ export function spanTimeInputToSeconds(input: SpanTimeInput | undefined): number
 function ensureTimestampInSeconds(timestamp: number): number {
   const isMs = timestamp > 9999999999;
   return isMs ? timestamp / 1000 : timestamp;
+}
+
+function otelTimestampToSeconds(timestampInMs: number): number {
+  // Epoch milliseconds are > 1e12 for any date after 2001, while `performance.now()` would need ~30 years of uptime
+  // to get there. Unlike Sentry seconds vs. `performance.now()`, these two ranges can't overlap.
+  if (timestampInMs < 1e12) {
+    return performanceTimeToSeconds(timestampInMs) ?? timestampInSeconds();
+  }
+  return timestampInMs / 1000;
 }
 
 /**

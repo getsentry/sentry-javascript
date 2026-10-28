@@ -17,6 +17,7 @@ import {
   startSpanManual,
 } from '../../../src';
 import { startIdleSpan, TRACING_DEFAULTS } from '../../../src/tracing/idleSpan';
+import { markSpanAsTracerProviderSpan } from '../../../src/tracing/utils';
 import type { Event } from '../../../src/types/event';
 import type { Span } from '../../../src/types/span';
 import { getDefaultTestClientOptions, TestClient } from '../../mocks/client';
@@ -458,6 +459,22 @@ describe('startIdleSpan', () => {
         }),
       ]),
     );
+  });
+
+  it('cancels a tracer-provider child span at the idle span end time', () => {
+    const client = new TestClient(getDefaultTestClientOptions({ dsn, tracesSampleRate: 1 }));
+    setCurrentClient(client);
+    client.init();
+
+    const baseTimeInSeconds = Math.floor(Date.now() / 1000) - 9999;
+    const idleSpan = startIdleSpan({ name: 'idle span', startTime: baseTimeInSeconds }, { finalTimeout: 99_999 });
+
+    const childSpan = startInactiveSpan({ name: 'provider span', startTime: baseTimeInSeconds + 4 });
+    markSpanAsTracerProviderSpan(childSpan);
+
+    vi.runOnlyPendingTimers();
+
+    expect(spanToJSON(childSpan).end_timestamp).toBe(spanToJSON(idleSpan).end_timestamp);
   });
 
   it('emits span hooks', () => {

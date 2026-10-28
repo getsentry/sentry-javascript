@@ -21,7 +21,7 @@ import { SentryNonRecordingSpan, spanIsNonRecordingSpan } from './sentryNonRecor
 import { SentrySpan } from './sentrySpan';
 import { SPAN_STATUS_ERROR, SPAN_STATUS_OK } from './spanstatus';
 import { startInactiveSpan } from './trace';
-import { setCapturedScopesOnSpan } from './utils';
+import { setCapturedScopesOnSpan, spanIsTracerProviderSpan } from './utils';
 
 export const TRACING_DEFAULTS = {
   idleTimeout: 1_000,
@@ -322,7 +322,8 @@ export function startIdleSpan(startSpanOptions: StartSpanOptions, options: Parti
       // We cancel all pending spans with status "cancelled" to indicate the idle span was finished early
       if (childSpan.isRecording()) {
         childSpan.setStatus({ code: SPAN_STATUS_ERROR, message: 'cancelled' });
-        childSpan.end(endTimestamp);
+        // `endTimestamp` is in seconds, but provider spans read numbers as OpenTelemetry milliseconds
+        childSpan.end(spanIsTracerProviderSpan(childSpan) ? endTimestamp * 1000 : endTimestamp);
         DEBUG_BUILD &&
           debug.log('[Tracing] Cancelling span since span ended early', JSON.stringify(childSpan, undefined, 2));
       }

@@ -219,7 +219,7 @@ export class SentrySpan implements Span {
     if (this._frozen) {
       return;
     }
-    this._startTime = spanTimeInputToSeconds(timeInput);
+    this._startTime = spanTimeInputToSeconds(timeInput, spanIsTracerProviderSpan(this));
     this._startPerformanceNow = undefined;
   }
 
@@ -253,7 +253,10 @@ export class SentrySpan implements Span {
       return;
     }
 
-    this._endTime = endTimestamp == null ? this._getEndTimeFromDuration() : spanTimeInputToSeconds(endTimestamp);
+    this._endTime =
+      endTimestamp == null
+        ? this._getEndTimeFromDuration()
+        : spanTimeInputToSeconds(endTimestamp, spanIsTracerProviderSpan(this));
     logSpanEnd(this);
 
     this._onSpanEnded();
@@ -336,12 +339,12 @@ export class SentrySpan implements Span {
     }
     DEBUG_BUILD && debug.log('[Tracing] Adding an event to span:', name);
 
-    const time = isSpanTimeInput(attributesOrStartTime) ? attributesOrStartTime : startTime || timestampInSeconds();
+    const time = isSpanTimeInput(attributesOrStartTime) ? attributesOrStartTime : startTime || undefined;
     const attributes = isSpanTimeInput(attributesOrStartTime) ? {} : attributesOrStartTime || {};
 
     const event: TimedEvent = {
       name,
-      time: spanTimeInputToSeconds(time),
+      time: spanTimeInputToSeconds(time, spanIsTracerProviderSpan(this)),
       attributes,
     };
 
