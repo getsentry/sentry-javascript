@@ -14,7 +14,7 @@
   },
   "dependencies": {
     "@sentry/remix": "file:../../packed/sentry-remix-packed.tgz",
-    "remix": "3.0.0"
+    "remix": "3.1.0"
   },
   "devDependencies": {
     "@playwright/test": "1.64.1",
