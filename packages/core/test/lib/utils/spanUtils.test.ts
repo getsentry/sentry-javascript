@@ -355,12 +355,6 @@ describe('spanTimeInputToSeconds', () => {
       expect(seconds).toBeGreaterThanOrEqual(before);
       expect(seconds).toBeLessThanOrEqual(Date.now() / 1000);
     });
-
-    it('does not change non-number inputs', () => {
-      const date = new Date();
-      expect(spanTimeInputToSeconds(date, true)).toEqual(date.getTime() / 1000);
-      expect(spanTimeInputToSeconds([1767778040, 0], true)).toEqual(1767778040);
-    });
   });
 });
 

@@ -168,8 +168,7 @@ function ensureTimestampInSeconds(timestamp: number): number {
 }
 
 function otelTimestampToSeconds(timestampInMs: number): number {
-  // Epoch milliseconds are > 1e12 for any date after 2001, while `performance.now()` would need ~30 years of uptime
-  // to get there. Unlike Sentry seconds vs. `performance.now()`, these two ranges can't overlap.
+  // Epoch milliseconds are > 1e12 for any date after 2001, `performance.now()` would need ~30 years of uptime to get there
   if (timestampInMs < 1e12) {
     return performanceTimeToSeconds(timestampInMs) ?? timestampInSeconds();
   }
