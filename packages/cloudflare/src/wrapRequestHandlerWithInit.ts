@@ -129,7 +129,7 @@ export function wrapRequestHandlerWithInit(
         origin: 'auto.http.cloudflare',
         mechanism: captureErrors ? { handled: false, type: getRequestErrorMechanismType(context) } : undefined,
         attributes,
-        onTraceContinued: () => continueCloudflareTrace(context, request.headers),
+        onTraceContinued: () => continueCloudflareTrace(context),
         isStreamingResponse: response => {
           const classification = safeCallback(
             DEBUG_BUILD ? 'Error in `isStreamingResponse`, using the default classification:' : '',

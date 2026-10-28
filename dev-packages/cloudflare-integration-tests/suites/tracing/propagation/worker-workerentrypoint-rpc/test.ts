@@ -1,6 +1,8 @@
 import { expect, it } from 'vitest';
 import type { Event, SerializedStreamedSpan } from '@sentry/core';
+import { SHORT_UUID_MATCHER } from '../../../../expect';
 import { createRunner } from '../../../../runner';
+import { supports } from '../../../../runtime';
 import { getSpanOp, getSpansFromEnvelope } from '../../../../spanUtils';
 
 // Every route here is a raw URL, so the streamed segment name keeps the method only and the route
@@ -225,3 +227,32 @@ it('captures errors from loopback WorkerEntrypoint RPC without trace propagation
 
   await runner.completed();
 });
+
+it.runIf(supports({ minWorkerd: '1.20261009.1' }))(
+  'attaches errors from loopback WorkerEntrypoint RPC without trace propagation to the Cloudflare trace',
+  async ({ signal }) => {
+    const errorEvents: Event[] = [];
+    const segmentSpans: SerializedStreamedSpan[] = [];
+
+    const runner = createRunner(__dirname)
+      .expect(envelope => {
+        expect(envelope[1][0][0].type).toBe('event');
+        errorEvents.push(envelope[1][0][1] as Event);
+      })
+      .expect(envelope => {
+        expect(envelope[1][0][0].type).toBe('span');
+        segmentSpans.push(...getSpansFromEnvelope(envelope).filter(span => span.is_segment));
+      })
+      .unordered()
+      .start(signal);
+
+    await runner.makeRequest<string>('get', '/call-loopback-rpc-error');
+    await runner.completed();
+
+    expect(errorEvents).toHaveLength(1);
+    expect(segmentSpans).toHaveLength(1);
+    // The RPC call carries no Sentry trace data, so only the Cloudflare trace connects the error to the caller.
+    expect(errorEvents[0]?.contexts?.trace?.trace_id).toBe(segmentSpans[0]?.trace_id);
+    expect(errorEvents[0]?.contexts?.trace?.parent_span_id).toEqual(SHORT_UUID_MATCHER);
+  },
+);
