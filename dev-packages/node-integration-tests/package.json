@@ -118,7 +118,7 @@
     "@neondatabase/serverless": "1.2.0",
     "@opentelemetry/instrumentation-http": "0.220.0",
     "@sentry-internal/rollup-utils": "11.10.0",
-    "@sentry/conventions": "0.29.0",
+    "@sentry/conventions": "0.30.0",
     "@sentry-internal/test-utils": "11.10.0",
     "@sentry/node-native": "11.10.0",
     "@types/amqplib": "^0.10.5",

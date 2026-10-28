@@ -74,7 +74,7 @@
     "@babel/core": "^7.29.6",
     "@sentry-internal/replay-worker": "11.10.0",
     "@sentry-internal/rollup-utils": "11.10.0",
-    "@sentry/conventions": "^0.29.0",
+    "@sentry/conventions": "^0.30.0",
     "@sentry/rrweb": "2.45.0",
     "@sentry/rrweb-snapshot": "2.45.0",
     "fflate": "0.8.3",

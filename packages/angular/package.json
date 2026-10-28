@@ -23,7 +23,7 @@
   "dependencies": {
     "@sentry/browser": "11.10.0",
     "@sentry/core": "11.10.0",
-    "@sentry/conventions": "^0.29.0",
+    "@sentry/conventions": "^0.30.0",
     "tslib": "^2.4.1"
   },
   "devDependencies": {
