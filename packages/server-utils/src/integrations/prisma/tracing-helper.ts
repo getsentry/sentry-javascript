@@ -26,6 +26,7 @@ import {
 import { DEBUG_BUILD } from '../../debug-build';
 import type { EngineSpan, ExtendedSpanOptions, SpanCallback, TracingHelper } from './types';
 import {
+  DB_OPERATION_NAME,
   DB_QUERY_SUMMARY,
   DB_QUERY_TEXT,
   DB_STATEMENT,
@@ -35,7 +36,13 @@ import {
   SENTRY_OP,
   SENTRY_ORIGIN,
 } from '@sentry/conventions/attributes';
-import { getSqlQuerySummary, sanitizeSqlQuery, type SqlDialect, toSqlDialect } from '../../utils/sql';
+import {
+  getSqlOperationName,
+  getSqlQuerySummary,
+  sanitizeSqlQuery,
+  type SqlDialect,
+  toSqlDialect,
+} from '../../utils/sql';
 
 // Reading `process.env` can throw in runtimes that gate env access (e.g. Deno without `--allow-env`)
 // and `process` may be absent altogether (edge runtimes), so this degrades to `false` in those cases.
@@ -117,7 +124,9 @@ function buildSpanAttributes(name: string, attributes: Record<string, unknown> |
   if (statement) {
     // Sanitized before summarizing, so that a string literal containing `from`/`join` can't leak a
     // value into the summary.
-    merged[DB_QUERY_SUMMARY] = getSqlQuerySummary(sanitizeSqlQuery(statement, getSqlDialect(merged)));
+    const queryText = sanitizeSqlQuery(statement, getSqlDialect(merged));
+    merged[DB_QUERY_SUMMARY] = getSqlQuerySummary(queryText);
+    merged[DB_OPERATION_NAME] ??= getSqlOperationName(queryText);
   }
 
   return merged;

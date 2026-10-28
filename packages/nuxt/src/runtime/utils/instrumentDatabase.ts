@@ -16,7 +16,13 @@ import { flushIfServerless } from '@sentry/core/server';
 import { sanitizeSqlQuery, sanitizeSqlQueryWithSummary, type SqlDialect } from '@sentry/server-utils';
 import type { Database, PreparedStatement } from 'db0';
 import { type DatabaseConnectionConfig, type DatabaseSpanData, getDatabaseSpanData } from './database-span-data';
-import { DB_NAMESPACE, DB_QUERY_SUMMARY, DB_QUERY_TEXT, DB_SYSTEM_NAME } from '@sentry/conventions/attributes';
+import {
+  DB_NAMESPACE,
+  DB_OPERATION_NAME,
+  DB_QUERY_SUMMARY,
+  DB_QUERY_TEXT,
+  DB_SYSTEM_NAME,
+} from '@sentry/conventions/attributes';
 
 type MaybeInstrumentedDatabase = Database & {
   __sentry_instrumented__?: boolean;
@@ -261,7 +267,7 @@ function createStartSpanOptions(
   data: DatabaseSpanData,
   dialect: SqlDialect | undefined,
 ): StartSpanOptions {
-  const { queryText, querySummary } = sanitizeSqlQueryWithSummary(query, dialect);
+  const { queryText, querySummary, operationName } = sanitizeSqlQueryWithSummary(query, dialect);
 
   const client = getClient();
   const name =
@@ -274,6 +280,7 @@ function createStartSpanOptions(
     attributes: {
       [DB_QUERY_TEXT]: queryText,
       [DB_QUERY_SUMMARY]: querySummary,
+      [DB_OPERATION_NAME]: operationName,
       [SENTRY_ORIGIN]: NUXT_DATABASE_ORIGIN,
       [SENTRY_OP]: DB_QUERY,
       ...data,

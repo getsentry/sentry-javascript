@@ -1,6 +1,7 @@
 import * as diagnosticsChannel from '../utils/diagnosticsChannel';
 import {
   DB_OPERATION_BATCH_SIZE,
+  DB_OPERATION_NAME,
   DB_QUERY_SUMMARY,
   DB_QUERY_TEXT,
   DB_SYSTEM_NAME,
@@ -101,6 +102,7 @@ function httpQuerySpanOptions(args: unknown[]): Parameters<typeof startInactiveS
     .map(text => sanitizeSqlQueryWithSummary(text));
   const queryText = joinDefined(statements.map(s => s.queryText));
   const querySummary = joinDefined(statements.map(s => s.querySummary));
+  const operationName = batchSize === undefined ? statements[0]?.operationName : getBatchOperationName(statements);
   const name = querySummary || DB_SYSTEM_POSTGRESQL;
 
   return {
@@ -113,9 +115,17 @@ function httpQuerySpanOptions(args: unknown[]): Parameters<typeof startInactiveS
       [DB_SYSTEM_NAME]: DB_SYSTEM_POSTGRESQL,
       [DB_QUERY_TEXT]: queryText || undefined,
       [DB_QUERY_SUMMARY]: querySummary,
+      [DB_OPERATION_NAME]: operationName,
       [DB_OPERATION_BATCH_SIZE]: batchSize,
     },
   };
+}
+
+// OTel names a batch `BATCH <op>` when every statement shares one operation, plain `BATCH` otherwise.
+function getBatchOperationName(statements: { operationName: string | undefined }[]): string {
+  const operations = new Set(statements.map(s => s.operationName?.toUpperCase()));
+  const [operation] = operations;
+  return operations.size === 1 && operation ? `BATCH ${operation}` : 'BATCH';
 }
 
 function joinDefined(parts: (string | undefined)[]): string | undefined {

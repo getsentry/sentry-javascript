@@ -103,6 +103,27 @@ export function getSqlQuerySummary(query: string | undefined): string | undefine
   return truncate(query.trim().split(/\s+/)[0] ?? query);
 }
 
+const LEADING_KEYWORD_RE = /^\s*(?:\(\s*)*([A-Za-z]+)\b/;
+const CTE_OPERATION_RE = /\b(SELECT|INSERT|UPDATE|DELETE|MERGE)\b/i;
+
+/**
+ * Derives `db.operation.name` from a SQL query: the first operation keyword, in its original case.
+ *
+ * A `WITH` clause only names the CTEs, so for those the first DML keyword is the operation.
+ *
+ * @see https://opentelemetry.io/docs/specs/semconv/registry/attributes/db/#db-operation-name
+ */
+export function getSqlOperationName(query: string | undefined): string | undefined {
+  const keyword = query && LEADING_KEYWORD_RE.exec(query)?.[1];
+  if (!keyword) {
+    return undefined;
+  }
+  if (keyword.toUpperCase() === 'WITH') {
+    return CTE_OPERATION_RE.exec(query)?.[1];
+  }
+  return keyword;
+}
+
 function extractTableNames(sql: string): string[] {
   const tables: string[] = [];
   TOKEN_RE.lastIndex = 0;
@@ -385,14 +406,15 @@ export function sanitizeSqlQuery(sqlQuery: string | undefined, dialect: SqlDiale
 }
 
 /**
- * Sanitizes a collected SQL statement and derives the matching `db.query.summary`, the pair the SQL
- * integrations attach to their spans. Both come back `undefined` when there is no statement, so an
- * empty query omits the attributes instead of reporting the sanitizer's fallback text.
+ * Sanitizes a collected SQL statement and derives the matching `db.query.summary` and
+ * `db.operation.name`, the attributes the SQL integrations attach to their spans. All come back
+ * `undefined` when there is no statement, so an empty query omits the attributes instead of
+ * reporting the sanitizer's fallback text.
  */
 export function sanitizeSqlQueryWithSummary(
   sqlQuery: string | undefined,
   dialect?: SqlDialect,
-): { queryText: string | undefined; querySummary: string | undefined } {
+): { queryText: string | undefined; querySummary: string | undefined; operationName: string | undefined } {
   const queryText = sqlQuery ? sanitizeSqlQuery(sqlQuery, dialect) : undefined;
-  return { queryText, querySummary: getSqlQuerySummary(queryText) };
+  return { queryText, querySummary: getSqlQuerySummary(queryText), operationName: getSqlOperationName(queryText) };
 }

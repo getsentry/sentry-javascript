@@ -1,6 +1,7 @@
 import * as diagnosticsChannel from '../utils/diagnosticsChannel';
 import {
   DB_NAMESPACE,
+  DB_OPERATION_NAME,
   DB_QUERY_SUMMARY,
   DB_QUERY_TEXT,
   DB_SYSTEM_NAME,
@@ -189,7 +190,7 @@ function querySpanOptions(
   const params = (ctx.self as { connectionParameters?: PgConnectionParams } | undefined)?.connectionParameters ?? {};
   const queryConfig = extractQueryConfig(ctx.arguments);
   const client = getClient();
-  const { queryText, querySummary } = sanitizeSqlQueryWithSummary(queryConfig?.text);
+  const { queryText, querySummary, operationName } = sanitizeSqlQueryWithSummary(queryConfig?.text);
   const name =
     client && hasSpanStreamingEnabled(client)
       ? querySummary || params.database || DB_SYSTEM_POSTGRESQL
@@ -203,6 +204,7 @@ function querySpanOptions(
       [SENTRY_ORIGIN]: origin,
       [DB_QUERY_TEXT]: queryText || undefined,
       [DB_QUERY_SUMMARY]: querySummary,
+      [DB_OPERATION_NAME]: operationName,
       [ATTR_PG_PLAN]: typeof queryConfig?.name === 'string' ? queryConfig.name : undefined,
     },
   };

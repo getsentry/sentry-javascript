@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { getSqlQuerySummary, sanitizeSqlQuery, sanitizeSqlQueryWithSummary, toSqlDialect } from '../../src/utils/sql';
+import {
+  getSqlOperationName,
+  getSqlQuerySummary,
+  sanitizeSqlQuery,
+  sanitizeSqlQueryWithSummary,
+  toSqlDialect,
+} from '../../src/utils/sql';
 
 describe('getSqlQuerySummary', () => {
   it.each([undefined, ''])('returns undefined for %j', input => {
@@ -280,6 +286,35 @@ describe('getSqlQuerySummary', () => {
 
   it('returns empty srting for whitespace-only queries', () => {
     expect(getSqlQuerySummary('   ')).toBe('');
+  });
+});
+
+describe('getSqlOperationName', () => {
+  it.each([undefined, '', '   ', '?'])('returns undefined for %j', input => {
+    expect(getSqlOperationName(input)).toBeUndefined();
+  });
+
+  it.each([
+    ['SELECT * FROM users WHERE id = ?', 'SELECT'],
+    ['select count(*) from orders', 'select'],
+    ['  INSERT INTO users (name) VALUES (?)', 'INSERT'],
+    ['UPDATE users SET name = ? WHERE id = ?', 'UPDATE'],
+    ['DELETE FROM users WHERE id = ?', 'DELETE'],
+    ['CREATE TABLE IF NOT EXISTS users (id INT)', 'CREATE'],
+    ['(SELECT * FROM users) UNION (SELECT * FROM admins)', 'SELECT'],
+    ['BEGIN', 'BEGIN'],
+    ['PRAGMA table_info(users)', 'PRAGMA'],
+  ])('%j => %j', (input, expected) => {
+    expect(getSqlOperationName(input)).toBe(expected);
+  });
+
+  it.each([
+    ['WITH active AS (SELECT * FROM users WHERE active = ?) SELECT * FROM active', 'SELECT'],
+    ['with moved AS (DELETE FROM queue RETURNING *) insert into archive SELECT * FROM moved', 'DELETE'],
+    ['WITH RECURSIVE t(n) AS (VALUES (?)) SELECT n FROM t', 'SELECT'],
+    ['WITH x AS (VALUES (?)) TABLE x', undefined],
+  ])('takes the first DML keyword after a WITH clause: %j => %j', (input, expected) => {
+    expect(getSqlOperationName(input)).toBe(expected);
   });
 });
 
@@ -853,6 +888,7 @@ describe('sanitizeSqlQueryWithSummary', () => {
     expect(sanitizeSqlQueryWithSummary("SELECT * FROM users WHERE email = 'jane@example.com'")).toEqual({
       queryText: 'SELECT * FROM users WHERE email = ?',
       querySummary: 'SELECT users',
+      operationName: 'SELECT',
     });
   });
 
@@ -860,12 +896,21 @@ describe('sanitizeSqlQueryWithSummary', () => {
     expect(sanitizeSqlQueryWithSummary('SELECT * FROM users WHERE email = "jane@example.com"', 'mysql')).toEqual({
       queryText: 'SELECT * FROM users WHERE email = ?',
       querySummary: 'SELECT users',
+      operationName: 'SELECT',
     });
   });
 
-  it('returns undefined for both when there is no statement', () => {
-    expect(sanitizeSqlQueryWithSummary(undefined)).toEqual({ queryText: undefined, querySummary: undefined });
-    expect(sanitizeSqlQueryWithSummary('')).toEqual({ queryText: undefined, querySummary: undefined });
+  it('returns undefined for all when there is no statement', () => {
+    expect(sanitizeSqlQueryWithSummary(undefined)).toEqual({
+      queryText: undefined,
+      querySummary: undefined,
+      operationName: undefined,
+    });
+    expect(sanitizeSqlQueryWithSummary('')).toEqual({
+      queryText: undefined,
+      querySummary: undefined,
+      operationName: undefined,
+    });
   });
 });
 
@@ -891,6 +936,7 @@ describe('sanitizeSqlQueryWithSummary', () => {
     expect(sanitizeSqlQueryWithSummary("SELECT * FROM users WHERE email = 'jane@example.com'")).toEqual({
       queryText: 'SELECT * FROM users WHERE email = ?',
       querySummary: 'SELECT users',
+      operationName: 'SELECT',
     });
   });
 
@@ -903,6 +949,7 @@ describe('sanitizeSqlQueryWithSummary', () => {
     expect(sanitizeSqlQueryWithSummary(input, dialect)).toEqual({
       queryText: 'SELECT * FROM users WHERE email = ?',
       querySummary: 'SELECT users',
+      operationName: 'SELECT',
     });
   });
 
@@ -910,6 +957,7 @@ describe('sanitizeSqlQueryWithSummary', () => {
     expect(sanitizeSqlQueryWithSummary("SELECT * FROM [users] WHERE [email] = 'jane@example.com'", 'mssql')).toEqual({
       queryText: 'SELECT * FROM [users] WHERE [email] = ?',
       querySummary: 'SELECT [users]',
+      operationName: 'SELECT',
     });
   });
 
@@ -917,11 +965,20 @@ describe('sanitizeSqlQueryWithSummary', () => {
     expect(sanitizeSqlQueryWithSummary("SELECT * FROM users WHERE bio = 'from secret_table'")).toEqual({
       queryText: 'SELECT * FROM users WHERE bio = ?',
       querySummary: 'SELECT users',
+      operationName: 'SELECT',
     });
   });
 
-  it('returns undefined for both when there is no statement', () => {
-    expect(sanitizeSqlQueryWithSummary(undefined)).toEqual({ queryText: undefined, querySummary: undefined });
-    expect(sanitizeSqlQueryWithSummary('')).toEqual({ queryText: undefined, querySummary: undefined });
+  it('returns undefined for all when there is no statement', () => {
+    expect(sanitizeSqlQueryWithSummary(undefined)).toEqual({
+      queryText: undefined,
+      querySummary: undefined,
+      operationName: undefined,
+    });
+    expect(sanitizeSqlQueryWithSummary('')).toEqual({
+      queryText: undefined,
+      querySummary: undefined,
+      operationName: undefined,
+    });
   });
 });
