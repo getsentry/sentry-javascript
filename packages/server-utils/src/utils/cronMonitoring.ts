@@ -26,6 +26,31 @@ export function subscribeToJobCreation(
   });
 }
 
+/** A call on a schedule-change channel: its arguments, the job it was called on, and what it returned. */
+export interface ScheduleChange {
+  arguments: unknown[];
+  self?: unknown;
+  result?: unknown;
+}
+
+/**
+ * Calls `onChange` after each call on a scheduler's schedule-change channel, so it can update the job's monitor config.
+ * Errors are logged and the job keeps its config.
+ */
+export function subscribeToScheduleChange(
+  channelName: string,
+  integrationName: string,
+  onChange: (change: ScheduleChange) => void,
+): void {
+  diagnosticsChannel.tracingChannel<ScheduleChange>(channelName).end.subscribe(message => {
+    try {
+      onChange(message as ScheduleChange);
+    } catch (e) {
+      DEBUG_BUILD && debug.error(`[${integrationName}] Failed to update the cron monitor:`, e);
+    }
+  });
+}
+
 /** Whether a job is named, not excluded, and not already monitored by `Sentry.cron.instrumentNodeCron` or `instrumentNodeSchedule`. */
 export function shouldMonitorJob(
   name: unknown,
@@ -134,6 +159,8 @@ function toSentryTimezone(timezone: string | undefined): string | undefined {
   }
 }
 
+const monitorConfigs = new WeakMap<AnyFn, MonitorConfig | undefined>();
+
 /**
  * Wraps a scheduled job with check-ins. Errors are captured, because schedulers catch them, and rethrown.
  */
@@ -148,7 +175,7 @@ export function wrapScheduledJob(
     throw error;
   };
 
-  return function (this: unknown, ...args: unknown[]): unknown {
+  const wrapped = function (this: unknown, ...args: unknown[]): unknown {
     return withMonitor(
       monitorSlug,
       () => {
@@ -159,7 +186,16 @@ export function wrapScheduledJob(
           return captureAndRethrow(e);
         }
       },
-      monitorConfig,
+      monitorConfigs.get(wrapped),
     );
   };
+  monitorConfigs.set(wrapped, monitorConfig);
+  return wrapped;
+}
+
+/** Sets the monitor config a job from `wrapScheduledJob` sends on its next runs. Other functions are ignored. */
+export function updateMonitorConfig(job: unknown, monitorConfig: MonitorConfig | undefined): void {
+  if (typeof job === 'function' && monitorConfigs.has(job as AnyFn)) {
+    monitorConfigs.set(job as AnyFn, monitorConfig);
+  }
 }

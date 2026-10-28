@@ -3,11 +3,13 @@ import { defineIntegration } from '@sentry/core';
 import { CHANNELS } from '../orchestrion/channels';
 import { nodeScheduleModuleNames } from '../orchestrion/config/node-schedule';
 import { invokeOrchestrionInstrumentation } from '../orchestrion/instrumentation';
-import type { AnyFn } from '../utils/cronMonitoring';
+import type { AnyFn, ScheduleChange } from '../utils/cronMonitoring';
 import {
   cronExpressionToMonitorConfig,
   shouldMonitorJob,
   subscribeToJobCreation,
+  subscribeToScheduleChange,
+  updateMonitorConfig,
   wrapScheduledJob,
 } from '../utils/cronMonitoring';
 
@@ -37,6 +39,15 @@ export const nodeScheduleIntegration = defineIntegration(_nodeScheduleIntegratio
 
 function subscribe(options: NodeScheduleIntegrationOptions): void {
   subscribeToJobCreation(CHANNELS.NODE_SCHEDULE_SCHEDULE_JOB, INTEGRATION_NAME, args => wrapJob(args, options));
+  subscribeToScheduleChange(CHANNELS.NODE_SCHEDULE_RESCHEDULE, INTEGRATION_NAME, onReschedule);
+}
+
+/** Sends the new spec's config after `job.reschedule(spec)`, which `rescheduleJob` calls. */
+export function onReschedule({ arguments: [spec], self, result }: ScheduleChange): void {
+  // node-schedule keeps the old schedule when this returns false.
+  if (result === true) {
+    updateMonitorConfig((self as { job?: unknown } | undefined)?.job, getMonitorConfig(spec));
+  }
 }
 
 // `scheduleJob([name], spec, method, [callback])`, like node-schedule reads it.

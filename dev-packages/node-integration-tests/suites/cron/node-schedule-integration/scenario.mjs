@@ -9,7 +9,7 @@ const ending = schedule.scheduleJob('ending-job', { rule: '0 0 * * *', end: Date
 let runs = 0;
 const job = schedule.scheduleJob('my-schedule-job', { rule: '30 9 * * 1-5', tz: 'Europe/Vienna' }, () => {
   runs++;
-  if (runs > 1) {
+  if (runs === 2) {
     throw new Error('Error in scheduled job');
   }
 });
@@ -26,5 +26,7 @@ try {
 } catch {
   // node-schedule catches errors when it runs the job itself
 }
+schedule.rescheduleJob(job, { rule: '0 8 * * *', tz: 'UTC' });
+job.invoke();
 
 setTimeout(() => process.exit(), 10_000);
