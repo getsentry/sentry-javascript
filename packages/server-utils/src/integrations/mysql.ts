@@ -110,6 +110,7 @@ function instrumentMysql(): void {
       });
     },
     {
+      requiresParentSpan: true,
       // No-callback `query(sql)` returns a streamable `Query` emitter as `result`; it settles on the
       // emitter's `'end'`/`'error'`, not the channel, so defer ending to those.
       deferSpanEnd({ data, end }) {
