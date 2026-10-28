@@ -30,7 +30,7 @@ import type {
 import type { SpanStatus } from '../types/spanStatus';
 import { addNonEnumerableProperty } from '../utils/object';
 import { generateSpanId } from '../utils/propagationContext';
-import { timestampInSeconds } from '../utils/time';
+import { performanceTimeToSeconds, timestampInSeconds } from '../utils/time';
 import { generateSentryTraceHeader, generateTraceparentHeader } from '../utils/tracing';
 import { _getSpanForScope } from './spanOnScope';
 
@@ -162,6 +162,23 @@ export function spanTimeInputToSeconds(input: SpanTimeInput | undefined): number
 function ensureTimestampInSeconds(timestamp: number): number {
   const isMs = timestamp > 9999999999;
   return isMs ? timestamp / 1000 : timestamp;
+}
+
+/**
+ * Convert an OpenTelemetry time input into a timestamp in seconds.
+ *
+ * OpenTelemetry numbers are always milliseconds, either since the epoch or since the performance time origin
+ * (`performance.now()`).
+ */
+export function otelTimeInputToSeconds(input: SpanTimeInput | undefined): number {
+  if (typeof input !== 'number') {
+    return spanTimeInputToSeconds(input);
+  }
+  // Epoch milliseconds are > 1e12 for any date after 2001, `performance.now()` would need ~30 years of uptime to get there
+  if (input < 1e12) {
+    return performanceTimeToSeconds(input) ?? timestampInSeconds();
+  }
+  return input / 1000;
 }
 
 /**

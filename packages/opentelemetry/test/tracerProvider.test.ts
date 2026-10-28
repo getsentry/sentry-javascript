@@ -17,6 +17,27 @@ describe('SentryTracerProvider', () => {
     mockSdkInit({ tracesSampleRate: 1 });
   });
 
+  it('converts `performance.now()` start and end times', () => {
+    const start = performance.now();
+    const span = trace.getTracer('test').startSpan('span', { startTime: start });
+    span.end(start + 25);
+
+    const { start_timestamp, end_timestamp } = spanToJSON(span as Span);
+    expect(start_timestamp).toBeCloseTo(Date.now() / 1000, 0);
+    expect(end_timestamp! - start_timestamp).toBeCloseTo(0.025, 6);
+  });
+
+  it('converts epoch millisecond start and end times', () => {
+    const start = Date.now();
+    const span = trace.getTracer('test').startSpan('span', { startTime: start });
+    span.end(start + 25);
+
+    expect(spanToJSON(span as Span)).toMatchObject({
+      start_timestamp: start / 1000,
+      end_timestamp: (start + 25) / 1000,
+    });
+  });
+
   it('creates Sentry spans from the global OpenTelemetry tracer', () => {
     const span = trace.getTracer('test').startSpan('SELECT users', {
       attributes: {
