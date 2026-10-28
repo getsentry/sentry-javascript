@@ -56,6 +56,19 @@ function decorate(className: string, decorators: MethodDecorator[]): AnyFn {
   return descriptor.value as AnyFn;
 }
 
+// Drives the channel for the function `@nestjs/schedule` passes to `CronJob` as `onTick`, and returns it.
+function cronJobOnTick(method: AnyFn): AnyFn {
+  const data: { arguments: unknown[]; result?: unknown } = { arguments: [method, {}] };
+  tracingChannel<{ arguments: unknown[]; result?: unknown }>(CHANNELS.NESTJS_SCHEDULE_EXPLORER_WRAP).traceSync(
+    () => async () => {},
+    data,
+  );
+  return data.result as AnyFn;
+}
+
+const isMarkedMonitored = (onTick: AnyFn): boolean =>
+  !!(onTick as AnyFn & Record<symbol, unknown>)[Symbol.for('sentry.cron.monitored')];
+
 function sentCheckIns(): Array<[string, string, unknown]> {
   return captureCheckIn.mock.calls.map(([checkIn, config]) => [checkIn.monitorSlug, checkIn.status, config]);
 }
@@ -144,5 +157,38 @@ describe('@Cron() monitoring', () => {
     await decorate('Jobs', order(cron('* * * * *', { name: 'job' }), SentryCron('explicit-slug')))();
 
     expect(sentCheckIns().map(([slug]) => slug)).toEqual(['explicit-slug', 'explicit-slug']);
+  });
+
+  describe('marks the CronJob onTick so the cron package integration skips it', () => {
+    it('when the method is monitored', () => {
+      initClient({ monitorCronJobs: true });
+      const onTick = cronJobOnTick(decorate('Jobs', [cron('* * * * *', { name: 'job' })]));
+
+      expect(isMarkedMonitored(onTick)).toBe(true);
+      expect(Object.keys(onTick)).toEqual([]);
+    });
+
+    it('when the method has @SentryCron()', () => {
+      initClient({});
+      const onTick = cronJobOnTick(decorate('Jobs', [cron('* * * * *', { name: 'job' }), SentryCron('explicit-slug')]));
+
+      expect(isMarkedMonitored(onTick)).toBe(true);
+    });
+
+    it.each([
+      ['monitorCronJobs is off', {}],
+      ['the job is excluded', { monitorCronJobs: true, excludeCronJobs: ['job'] }],
+    ])('not when %s', (_, options) => {
+      initClient(options);
+      const onTick = cronJobOnTick(decorate('Jobs', [cron('* * * * *', { name: 'job' })]));
+
+      expect(isMarkedMonitored(onTick)).toBe(false);
+    });
+
+    it('not for other scheduled methods', () => {
+      initClient({ monitorCronJobs: true });
+
+      expect(isMarkedMonitored(cronJobOnTick(function interval(): void {}))).toBe(false);
+    });
   });
 });

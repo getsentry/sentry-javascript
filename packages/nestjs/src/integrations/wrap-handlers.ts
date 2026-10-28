@@ -1,7 +1,13 @@
 import { captureException, isObjectLike, isThenable, startSpan, withIsolationScope, withMonitor } from '@sentry/core';
 import { makeCronMonitorResolver } from './cron-monitoring';
 import type { AnyFn, ReflectWithMetadata } from './helpers';
-import { getBullMQProcessSpanOptions, getEventSpanOptions, isWrapped, markWrapped } from './helpers';
+import {
+  getBullMQProcessSpanOptions,
+  getEventSpanOptions,
+  isSentryCronMethod,
+  isWrapped,
+  markWrapped,
+} from './helpers';
 
 /**
  * Span-emitting / error-capturing logic for the `@Cron`/`@Interval`/
@@ -57,6 +63,15 @@ export function wrapScheduleHandler(handler: AnyFn, mechanismType: string): AnyF
   };
 }
 
+const CRON_HANDLER_MONITORS = new WeakMap<AnyFn, () => boolean>();
+
+/** Whether a `@Cron()` method sends check-ins when it runs, from `monitorCronJobs` or `@SentryCron()`. */
+export function sendsCronCheckIns(method: unknown): boolean {
+  return (
+    typeof method === 'function' && (isSentryCronMethod(method) || !!CRON_HANDLER_MONITORS.get(method as AnyFn)?.())
+  );
+}
+
 /**
  * Wrap a `@Cron` handler like {@link wrapScheduleHandler}, sending check-ins when `monitorCronJobs` is enabled.
  */
@@ -76,6 +91,7 @@ export function wrapCronHandler(
     }
     return withMonitor(monitor.slug, () => scheduleHandler.apply(this, args), monitor.config);
   };
+  CRON_HANDLER_MONITORS.set(wrapped, () => isSentryCronMethod(handler) || !!resolveMonitor(handler, wrapped));
   return wrapped;
 }
 
