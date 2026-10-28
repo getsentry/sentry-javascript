@@ -143,6 +143,11 @@ export {
   spanToTraceHeader,
   spanToBaggageHeader,
   trpcMiddleware,
+  serveTunnelIntegration,
+  getTunnelPath,
+  handleTunnelRequest,
+  handleTunnelRequestIfMatched,
+  isTunnelRequest,
   updateSpanName,
   supabaseIntegration,
   instrumentSupabaseClient,
@@ -182,6 +187,7 @@ export {
   type BunRuntimeMetricsOptions,
   makeFetchTransport,
 } from '@sentry/bun';
+export type { HandleTunnelRequestOptions, ServerTunnelOptions, TunnelRequestLike } from '@sentry/bun';
 
 export type {
   Breadcrumb,

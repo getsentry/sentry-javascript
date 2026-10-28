@@ -2,18 +2,15 @@ import * as assert from 'assert/strict';
 import * as fs from 'fs';
 import * as path from 'path';
 import {
+  assertSourceMapUpload,
+  findDebugIdsInFilesWithGlobCharacters,
   findDebugIdsWithConflictingSourcemaps,
   findFilesWithForeignSourcemaps,
   findFilesWithMultipleDebugIds,
   findInjectedDebugIds,
   findSourceMapFiles,
   findSourceMappingUrlComments,
-  getArtifactBundles,
   getAssembleRequests,
-  getChunkUploadPosts,
-  getDebugIdPairs,
-  getSourcemaps,
-  loadMockServerResults,
   startNodeServer,
 } from '@sentry-internal/test-utils';
 
@@ -61,43 +58,39 @@ function debugIdsOfChunksWithoutSourceMap(dir: string): Set<string> {
   return debugIds;
 }
 
-// TODO: The uploader passes the emitted file paths to `glob` as patterns, so it skips a file whose path has glob
-// characters, like Nitro 3's `_libs/_sentry/node+[...].mjs`. Remove this when the uploader matches paths literally.
-function debugIdsOfFilesWithGlobCharacters(dir: string): Set<string> {
-  const debugIds = new Set<string>();
-
-  for (const file of filesContaining(dir, 'sentry-dbid-')) {
-    if (!/[[\]{}()*?]/.test(path.relative(dir, file))) {
-      continue;
-    }
-
-    for (const match of fs.readFileSync(file, 'utf8').matchAll(/sentry-dbid-([\da-f-]{36})/gi)) {
-      debugIds.add((match[1] as string).toLowerCase());
-    }
-  }
-
-  return debugIds;
-}
-
 console.log(
   `Variant: ${isStaticBuild ? 'nuxt generate' : 'nuxt build'}, ` +
     `client source maps ${keepClientSourceMaps ? 'kept' : 'deleted'}\n`,
 );
 
-const requests = loadMockServerResults();
-
-console.log(`Captured ${requests.length} requests to mock Sentry server:\n`);
-for (const request of requests) {
-  console.log(`  ${request.method} ${request.url} (${request.bodySize} bytes)`);
-}
-console.log('');
-
-// --- The upload reached Sentry ---
-
-assert.ok(
-  requests.some(r => r.authorization.includes('fake-auth-token')),
-  'Expected requests with the configured auth token',
+// Nuxt 5 writes the client build to `CLIENT_OUTPUT` directly. After Sentry deletes the client maps there, a chunk
+// that never had a map looks the same as one whose map was deleted. So the client upload is checked only when the
+// maps are kept. The upload is the same in all variants.
+const outputDirsWithSourceMaps = [
+  ...(keepClientSourceMaps ? [CLIENT_OUTPUT] : []),
+  ...(isStaticBuild ? [] : [SERVER_OUTPUT]),
+];
+const debugIdsWithoutSourceMap = new Set(
+  outputDirsWithSourceMaps.flatMap(dir => [...debugIdsOfChunksWithoutSourceMap(dir)]),
 );
+const debugIdsSkippedByUploader = isStaticBuild
+  ? []
+  : findDebugIdsInFilesWithGlobCharacters({ outputDir: SERVER_OUTPUT });
+
+const { requests, bundles, sourcemaps, uploadedDebugIds } = assertSourceMapUpload({
+  outputDirs: outputDirsWithSourceMaps,
+  // The client output is checked below, because the "kept" variant expects its maps to stay.
+  strippedDirs: [],
+  // Vite builds the client and Nitro builds the server. Counting bundles would still pass with either
+  // plugin dropped, so each side is pinned to a marker only that side's source supplies.
+  // Nitro 3 deletes `sourcesContent` from the server maps unless `experimental.sourcemapMinify` is `false`. The module
+  // sets it to `false`, which is the only reason the server marker survives into `sourcesContent`.
+  markers: { 'client source (Vite plugin)': CLIENT_MARKER, 'server source (Rollup plugin)': SERVER_MARKER },
+  debugIdsWithoutSourceMap: [...debugIdsWithoutSourceMap, ...debugIdsSkippedByUploader],
+});
+console.log(`Found ${bundles.length} artifact bundle(s)\n`);
+
+// --- Nuxt-specific checks on the upload ---
 
 // Sentry rejects a release that names no project with a 400, and the mock server accepts anything,
 // so assert on the body rather than on the call alone.
@@ -127,44 +120,12 @@ assert.ok(
   'Expected a GET for the chunk-upload options',
 );
 
-const chunkPosts = getChunkUploadPosts(requests);
-assert.ok(
-  chunkPosts.some(r => r.bodySize > 0),
-  'Expected at least one chunk upload POST with a non-empty body',
-);
-
-const assembleRequests = getAssembleRequests(requests);
-assert.ok(assembleRequests.length > 0, 'Expected at least one assemble request');
-for (const request of assembleRequests) {
-  assert.ok(request.assembleBody?.projects?.includes('test-project'), 'Expected assemble request for test-project');
-  assert.equal(request.assembleBody?.version, 'test-release', 'Expected assemble request to reference the release');
+for (const request of getAssembleRequests(requests)) {
   assert.ok((request.assembleBody?.chunks?.length ?? 0) > 0, 'Expected assemble request to have chunk checksums');
   for (const chunk of request.assembleBody?.chunks ?? []) {
     assert.match(chunk, /^[\da-f]{40}$/i, `Expected a SHA-1 chunk checksum, got: ${chunk}`);
   }
 }
-
-const bundles = getArtifactBundles(requests);
-assert.ok(bundles.length > 0, 'Expected at least one artifact bundle with a manifest');
-console.log(`Found ${bundles.length} artifact bundle(s)\n`);
-
-// --- Both bundlers uploaded ---
-
-const sourcemaps = getSourcemaps(bundles);
-assert.ok(
-  sourcemaps.some(map => map.sourcemap.mappings?.length),
-  'Expected at least one uploaded sourcemap with non-empty mappings',
-);
-
-const containsMarker = (marker: string): boolean =>
-  sourcemaps.some(map => map.sourcemap.sourcesContent?.some(source => source?.includes(marker)));
-
-// Vite builds the client and Nitro builds the server. Counting bundles would still pass with either
-// plugin dropped, so each side is pinned to a marker only that side's source supplies.
-assert.ok(containsMarker(CLIENT_MARKER), 'Expected an uploaded sourcemap carrying the client source (Vite plugin)');
-// Nitro 3 deletes `sourcesContent` from the server maps unless `experimental.sourcemapMinify` is `false`. The module
-// sets it to `false`, which is the only reason this marker survives into `sourcesContent`.
-assert.ok(containsMarker(SERVER_MARKER), 'Expected an uploaded sourcemap carrying the server source (Rollup plugin)');
 
 // `rewriteSources` normalizes `../../../foo` to `./foo` so paths stay resolvable in Sentry.
 const unnormalizedSources = [...new Set(sourcemaps.flatMap(map => map.sourcemap.sources ?? []))].filter(
@@ -172,46 +133,20 @@ const unnormalizedSources = [...new Set(sourcemaps.flatMap(map => map.sourcemap.
 );
 assert.deepEqual(unnormalizedSources, [], `Expected every uploaded source to be normalized to './…'`);
 
-// --- Debug IDs tie the shipped bundle to the uploaded map ---
-
-const uploadedDebugIds = new Set(getDebugIdPairs(bundles).map(pair => pair.debugId.toLowerCase()));
-assert.ok(uploadedDebugIds.size > 0, 'Expected at least one JS/sourcemap pair with matching debug IDs');
-
 const malformedDebugIds = [...uploadedDebugIds].filter(debugId => !UUID_REGEX.test(debugId));
 assert.deepEqual(malformedDebugIds, [], 'Expected every uploaded debug ID to be a UUID');
 
-// An uploaded map is only reachable at runtime if the shipped bundle claims the same ID. Inspecting
-// the upload alone cannot show this.
-// Nuxt 5 writes the client build to `CLIENT_OUTPUT` directly. After Sentry deletes the client maps there, a chunk
-// that never had a map looks the same as one whose map was deleted. So the client upload is checked only when the
-// maps are kept. The upload is the same in all variants.
-const outputDirsWithSourceMaps = [
-  ...(keepClientSourceMaps ? [CLIENT_OUTPUT] : []),
-  ...(isStaticBuild ? [] : [SERVER_OUTPUT]),
-];
-const debugIdsWithoutSourceMap = new Set(
-  outputDirsWithSourceMaps.flatMap(dir => [...debugIdsOfChunksWithoutSourceMap(dir)]),
-);
-const debugIdsSkippedByUploader = isStaticBuild ? new Set<string>() : debugIdsOfFilesWithGlobCharacters(SERVER_OUTPUT);
+// --- Every output directory ships at least one uploaded debug ID ---
 
+// The shared assertions cover the directories that keep their maps. A directory whose maps are deleted
+// must still ship a debug ID with an uploaded map, or a build that uploads nothing would pass.
 for (const outputDir of isStaticBuild ? [CLIENT_OUTPUT] : [CLIENT_OUTPUT, SERVER_OUTPUT]) {
   const injectedDebugIds = findInjectedDebugIds({ outputDir });
   assert.ok(injectedDebugIds.length > 0, `Expected debug IDs to be injected into ${outputDir}`);
-  // The exemption for chunks without a source map must not let a build without any uploaded map pass.
   assert.ok(
     injectedDebugIds.some(debugId => uploadedDebugIds.has(debugId)),
     `Expected at least one debug ID in ${outputDir} to have an uploaded sourcemap`,
   );
-
-  if (outputDirsWithSourceMaps.includes(outputDir)) {
-    const unuploaded = injectedDebugIds.filter(
-      debugId =>
-        !uploadedDebugIds.has(debugId) &&
-        !debugIdsWithoutSourceMap.has(debugId) &&
-        !debugIdsSkippedByUploader.has(debugId),
-    );
-    assert.deepEqual(unuploaded, [], `Expected every debug ID in ${outputDir} to have an uploaded sourcemap`);
-  }
 
   console.log(`  ${outputDir}: ${injectedDebugIds.length} injected debug ID(s)`);
 

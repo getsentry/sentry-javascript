@@ -20,9 +20,6 @@
     "glob": "^11.0.3",
     "rimraf": "^5.0.10"
   },
-  "volta": {
-    "extends": "../../package.json"
-  },
   "sentryTest": {
     "runner": "namespace-profile-sentry-javascript",
     "variants": [

@@ -38,8 +38,8 @@ import { bindTracingChannelToSpan } from '../tracing-channel';
 // When enabled, the OTel 'Amqplib' integration is omitted from the default set.
 const INTEGRATION_NAME = 'Amqplib' as const;
 
-const PUBLISHER_ORIGIN = 'auto.amqplib.publisher';
-const CONSUMER_ORIGIN = 'auto.amqplib.consumer';
+const PUBLISHER_ORIGIN = 'auto.queue.amqplib.publisher';
+const CONSUMER_ORIGIN = 'auto.queue.amqplib.consumer';
 
 const ATTR_MESSAGING_RABBITMQ_DESTINATION_ROUTING_KEY = 'messaging.rabbitmq.destination.routing_key';
 const ATTR_MESSAGING_CONVERSATION_ID = 'messaging.message.conversation_id';

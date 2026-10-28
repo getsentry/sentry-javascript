@@ -1,6 +1,7 @@
 import { getDefaultIntegrations as getBrowserDefaultIntegrations, init as initBrowser } from '@sentry/browser';
 import type { Client } from '@sentry/core';
 import { applySdkMetadata, DEFAULT_ENVIRONMENT, DEV_ENVIRONMENT } from '@sentry/core';
+import { applyNuxtTunnelBasePath } from '../common/tunnel';
 import type { SentryNuxtClientOptions } from '../common/types';
 
 /**
@@ -17,6 +18,7 @@ export function init(options: SentryNuxtClientOptions): Client | undefined {
     ...options,
   };
 
+  applyNuxtTunnelBasePath(sentryOptions);
   applySdkMetadata(sentryOptions, 'nuxt', ['nuxt', 'vue']);
 
   return initBrowser(sentryOptions);

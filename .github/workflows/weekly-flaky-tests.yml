@@ -33,3 +33,9 @@ jobs:
               `${process.env.GITHUB_WORKSPACE}/scripts/weekly-flaky-tests.mjs`
             );
             await run({ github, context, core });
+      - name: Upload the report
+        uses: actions/upload-artifact@v7
+        with:
+          name: flaky-tests-report
+          path: flaky-tests-report/
+          retention-days: 15

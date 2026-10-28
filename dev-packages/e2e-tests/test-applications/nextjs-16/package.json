@@ -22,14 +22,14 @@
     "test:assert": "pnpm test:prod && pnpm test:dev",
     "test:assert-webpack": "pnpm test:prod && pnpm test:dev-webpack",
     "test:build:cloudflare": "pnpm install && opennextjs-cloudflare build --config wrangler.opennext.jsonc",
-    "test:build-latest:cloudflare": "pnpm install && pnpm add next@16.3 && opennextjs-cloudflare build --config wrangler.opennext.jsonc",
+    "test:build-latest:cloudflare": "pnpm install && pnpm add next@latest && opennextjs-cloudflare build --config wrangler.opennext.jsonc",
     "start:cloudflare": "opennextjs-cloudflare preview --config wrangler.opennext.jsonc --var \"E2E_TEST_DSN:$E2E_TEST_DSN\"",
     "test:build:vinext": "pnpm install && pnpm add react@19.3.1 react-dom@19.3.1 && npm pkg set type=module && vinext build",
     "test:assert:vinext": "VINEXT=1 pnpm test:prod"
   },
   "//": "Pin `ioredis` to 5.10.1: it's the last version before the driver publishes its own native diagnostics channels; orchestrion's config covers `ioredis <5.11.0`.",
   "dependencies": {
-    "@opennextjs/cloudflare": "^1.14.9",
+    "@opennextjs/cloudflare": "^1.20.12",
     "@sentry/bun": "file:../../packed/sentry-bun-packed.tgz",
     "@sentry/deno": "file:../../packed/sentry-deno-packed.tgz",
     "@sentry/nextjs": "file:../../packed/sentry-nextjs-packed.tgz",
@@ -62,9 +62,6 @@
     "vinext": "^1.0.1",
     "vite": "^8.3.0",
     "wrangler": "^4.61.0"
-  },
-  "volta": {
-    "extends": "../../package.json"
   },
   "sentryTest": {
     "runner": "namespace-profile-sentry-javascript",

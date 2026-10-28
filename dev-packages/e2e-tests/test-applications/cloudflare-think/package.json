@@ -33,9 +33,6 @@
     "wrangler": "^4.136.2",
     "ws": "^8.18.3"
   },
-  "volta": {
-    "extends": "../../package.json"
-  },
   "sentryTest": {
     "optional": true,
     "optionalVariants": [

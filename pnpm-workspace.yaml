@@ -117,4 +117,8 @@ allowBuilds:
   workerd: true
 minimumReleaseAgeExclude:
   - '@opentelemetry/api@1.10.0'
-  - '@sentry/conventions@0.29.0'
+  - '@sentry/conventions@0.30.0'
+  - '@sentry/rrdom@2.45.0'
+  - '@sentry/rrweb-snapshot@2.45.0'
+  - '@sentry/rrweb-types@2.45.0'
+  - '@sentry/rrweb@2.45.0'

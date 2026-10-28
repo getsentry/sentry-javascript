@@ -70,6 +70,6 @@ test('sends an INP span', async ({ page }) => {
   expect(inpSpan.span_id).toMatch(/[a-f0-9]{16}/);
   expect(inpSpan.end_timestamp).toBeGreaterThan(inpSpan.start_timestamp);
   expect(inpSpan.attributes['sentry.op']?.value).toBe('ui.interaction.click');
-  expect(inpSpan.attributes['sentry.origin']?.value).toBe('auto.http.browser.inp');
+  expect(inpSpan.attributes['sentry.origin']?.value).toBe('auto.ui.browser.inp');
   expect(inpSpan.attributes['sentry.exclusive_time']?.value).toEqual(expect.any(Number));
 });

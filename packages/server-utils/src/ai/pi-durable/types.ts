@@ -99,6 +99,11 @@ export interface PiLiveState {
   run?: { inputs?: unknown[] };
 }
 
+/** The `pi.provider` document, in pi-durable 1.0.2 and later. */
+export interface PiProviderState {
+  sessionId?: string;
+}
+
 export type PiCommitChange = (tx: object, current: unknown) => unknown;
 
 /** pi-durable ids (conversations, tasks, submissions) are numbers, typed as `unknown` here. */
@@ -108,6 +113,7 @@ export interface PiTaskRuntime {
   readonly signal?: AbortSignal;
   agent(context: unknown): Promise<PiAgent>;
   commit(change: PiCommitChange, context: unknown): Promise<void>;
+  snapshot?(token: PiDocToken, ownerId: unknown, ...rest: unknown[]): Promise<unknown>;
 }
 
 export type PiPhaseHandler = (task: unknown, runtime: PiTaskRuntime, context: unknown) => Promise<unknown>;

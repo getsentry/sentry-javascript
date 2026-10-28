@@ -1,6 +1,6 @@
 {
   "name": "@sentry/astro",
-  "version": "11.9.0",
+  "version": "11.10.0",
   "description": "Official Sentry SDK for Astro",
   "repository": "git://github.com/getsentry/sentry-javascript.git",
   "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/astro",
@@ -51,16 +51,16 @@
     "astro": ">=4.0.0-beta || >=7.0.0-beta"
   },
   "dependencies": {
-    "@sentry/browser": "11.9.0",
-    "@sentry/core": "11.9.0",
-    "@sentry/conventions": "^0.29.0",
-    "@sentry/node": "11.9.0",
-    "@sentry/server-runtime-injection": "11.9.0",
-    "@sentry/server-utils": "11.9.0",
-    "@sentry/bundler-plugins": "11.9.0"
+    "@sentry/browser": "11.10.0",
+    "@sentry/core": "11.10.0",
+    "@sentry/conventions": "^0.30.0",
+    "@sentry/node": "11.10.0",
+    "@sentry/server-runtime-injection": "11.10.0",
+    "@sentry/server-utils": "11.10.0",
+    "@sentry/bundler-plugins": "11.10.0"
   },
   "devDependencies": {
-    "@sentry-internal/rollup-utils": "11.9.0",
+    "@sentry-internal/rollup-utils": "11.10.0",
     "astro": "^4.16.19",
     "vite": "^8.3.1"
   },
@@ -83,9 +83,6 @@
     "test:unit": "vitest run",
     "test:watch": "vitest --watch",
     "yalc:publish": "yalc publish --push --sig"
-  },
-  "volta": {
-    "extends": "../../package.json"
   },
   "astro": {
     "external": true

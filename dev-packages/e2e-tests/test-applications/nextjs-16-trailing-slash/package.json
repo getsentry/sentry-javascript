@@ -29,9 +29,6 @@
     "@types/react-dom": "^19",
     "typescript": "^5"
   },
-  "volta": {
-    "extends": "../../package.json"
-  },
   "sentryTest": {
     "variants": [
       {

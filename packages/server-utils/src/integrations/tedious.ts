@@ -7,6 +7,7 @@ import * as diagnosticsChannel from '../utils/diagnosticsChannel';
 import type { IntegrationFn, SpanAttributes } from '@sentry/core';
 import {
   defineIntegration,
+  getActiveSpan,
   getClient,
   hasSpanStreamingEnabled,
   SPAN_STATUS_ERROR,
@@ -110,6 +111,10 @@ function subscribeConnect(): void {
 
 function subscribeQuery(channelName: string, operation: string): void {
   diagnosticsChannel.tracingChannel(channelName).start.subscribe(message => {
+    if (!getActiveSpan()) {
+      return;
+    }
+
     const data = message as TediousQueryChannelContext;
     const connection = data.self;
     const request = data.arguments[0];

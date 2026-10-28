@@ -31,8 +31,5 @@
         "label": "nuxt-3 (canary)"
       }
     ]
-  },
-  "volta": {
-    "extends": "../../package.json"
   }
 }
