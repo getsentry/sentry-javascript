@@ -1,7 +1,7 @@
 import { GLOBAL_OBJ } from '@sentry/core';
 import {
-  handleTunnelRequestIfMatched,
-  isTunnelRequest,
+  _INTERNAL_handleServedTunnelRequest as handleServedTunnelRequest,
+  _INTERNAL_isServedTunnelRequest as isServedTunnelRequest,
   _INTERNAL_setManagedTunnelDefaults as setManagedTunnelDefaults,
 } from '@sentry/core/server';
 import { eventHandler, toWebRequest } from 'h3';
@@ -25,13 +25,13 @@ export default (nitroApp => {
     route: '',
     handler: eventHandler(event => {
       // Checked on the method and path first, so no other request's body gets wrapped in a web `Request`.
-      if (!isTunnelRequest({ method: event.method, url: event.path })) {
+      if (!isServedTunnelRequest({ method: event.method, url: event.path })) {
         return undefined;
       }
 
       // `toWebRequest` also reads the body of the mock requests serverless presets pass through `localFetch`, which
       // aren't Node streams. A returned `Response` is sent and ends the request, `undefined` hands it on.
-      return handleTunnelRequestIfMatched(toWebRequest(event));
+      return handleServedTunnelRequest(toWebRequest(event));
     }),
   });
 }) satisfies NitroAppPlugin;

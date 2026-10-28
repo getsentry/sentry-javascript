@@ -13,8 +13,13 @@ const EXPECTED_FUNCTION_EXPORTS = [
   'growthbookIntegration',
   'moduleMetadataIntegration',
   'parameterize',
+  'getTunnelPath',
+  'handleTunnelRequest',
   // @sentry/core/server
   'trpcMiddleware',
+  'serveTunnelIntegration',
+  'handleTunnelRequestIfMatched',
+  'isTunnelRequest',
   // @sentry/server-utils
   'prismaIntegration',
   'instrumentOpenAiClient',

@@ -3,8 +3,8 @@ import type { ServerTunnelOptions } from '@sentry/core';
 import { dsnToString, escapeStringForRegex, getClient, handleTunnelRequest } from '@sentry/core';
 import {
   _INTERNAL_forwardTunnelRequest as forwardTunnelRequest,
-  handleTunnelRequestIfMatched,
-  isTunnelRequest,
+  _INTERNAL_handleServedTunnelRequest as handleServedTunnelRequest,
+  _INTERNAL_isServedTunnelRequest as isServedTunnelRequest,
   _INTERNAL_setManagedTunnelDefaults as setManagedTunnelDefaults,
 } from '@sentry/core/server';
 import type { ServerEntry } from './wrapFetchWithSentry';
@@ -92,10 +92,7 @@ export function createSentryTunnelRoute(options: CreateSentryTunnelRouteOptions)
           );
         }
 
-        return handleTunnelRequest({
-          request,
-          allowedDsns,
-        });
+        return handleTunnelRequest(request, { allowedDsns });
       },
     },
   };
@@ -133,11 +130,11 @@ export function wrapServerEntryWithSentryTunnel<T extends ServerEntry>(
       // Cloudflare Workers pass `env` and `ctx` after the request, and `withSentry` needs `ctx` to flush.
       value: (request: Request, ...rest: unknown[]) => {
         // Start would render the app for any other method on a tunnel path, running its root loaders.
-        if (request.method !== 'POST' && isTunnelRequest({ method: 'POST', url: request.url })) {
+        if (request.method !== 'POST' && isServedTunnelRequest({ method: 'POST', url: request.url })) {
           return new Response(null, { status: 405, headers: { Allow: 'POST' } });
         }
 
-        return handleTunnelRequestIfMatched(request) ?? entry.fetch(request, ...rest);
+        return handleServedTunnelRequest(request) ?? entry.fetch(request, ...rest);
       },
       writable: true,
       configurable: true,

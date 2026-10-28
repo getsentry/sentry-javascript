@@ -1,7 +1,8 @@
 import { defineIntegration } from '../integration';
 import type { IntegrationFn } from '../types/integration';
 import type { ServerTunnelOptions } from '../types/options';
-import { enableManagedTunnel, SERVE_TUNNEL_INTEGRATION_NAME } from '../utils/managedTunnelDefaults';
+import { enableManagedTunnel } from '../utils/managedTunnelDefaults';
+import { SERVE_TUNNEL_INTEGRATION_NAME } from '../utils/tunnel';
 import { forwardTunnelRequest } from '../utils/tunnelForward';
 
 const _serveTunnelIntegration = ((options: ServerTunnelOptions = {}) => {
