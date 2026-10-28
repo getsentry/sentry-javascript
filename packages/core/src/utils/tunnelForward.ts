@@ -166,6 +166,12 @@ function toFetchRequest(request: NodeTunnelRequest): Request {
 
       controller.enqueue(typeof value === 'string' ? encoder.encode(value) : value);
     },
+    // Node only reads the rest of a body nobody started reading, and unread bytes stall a keep-alive connection.
+    async cancel() {
+      while (!(await iterator.next()).done) {
+        // Drain.
+      }
+    },
   });
 
   // The forward reads only the headers and the body. A URL built from the request's `Host` would throw on one

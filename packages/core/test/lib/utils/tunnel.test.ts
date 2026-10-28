@@ -257,6 +257,34 @@ describe('handleTunnelRequest call forms', () => {
     }
   });
 
+  it('reads the rest of a rejected Node request, so the next request on the connection gets an answer', async () => {
+    const server = http.createServer((req, res) => {
+      void handleTunnelRequest(req, res, { allowedDsns: [TEST_DSN] });
+    });
+    await new Promise<void>(resolve => server.listen(0, resolve));
+    const { port } = server.address() as AddressInfo;
+    const agent = new http.Agent({ keepAlive: true, maxSockets: 1 });
+    const post = (body: string): Promise<number | undefined> =>
+      new Promise((resolve, reject) => {
+        http
+          .request({ port, agent, method: 'POST', path: '/tunnel' }, res => {
+            res.resume();
+            res.on('end', () => resolve(res.statusCode));
+          })
+          .on('error', reject)
+          .end(body);
+      });
+    const foreign = serializeEnvelope(createEnvelope({ dsn: SERVER_DSN }, [])) as string;
+
+    try {
+      expect(await post(`${foreign}\n${'a'.repeat(2 * 1024 * 1024)}`)).toBe(403);
+      expect(await post(foreign)).toBe(403);
+    } finally {
+      agent.destroy();
+      await new Promise(resolve => server.close(resolve));
+    }
+  });
+
   it('rejects a Node request whose body a parser already read', async () => {
     const server = http.createServer(async (req, res) => {
       for await (const _chunk of req) {
