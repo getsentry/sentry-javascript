@@ -1472,7 +1472,7 @@ describe('Vercel AI runtime and tool context (v7)', () => {
               }
 
               const toolSpan = generateSpans.find(span => span.attributes[SENTRY_OP]?.value === GEN_AI_EXECUTE_TOOL);
-              expect(toolSpan?.attributes['vercel.ai.toolCall.context.units']).toEqual({
+              expect(toolSpan?.attributes['vercel.ai.tool_call.context.units']).toEqual({
                 type: 'string',
                 value: 'metric',
               });

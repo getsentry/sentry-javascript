@@ -37,7 +37,7 @@ describe('Vercel AI runtime and tool context', () => {
     return spanToStaticSpanJSON(endedSpans.at(-1)!).data;
   }
 
-  it('records runtimeContext keys on the operation span', () => {
+  it('records runtimeContext keys as strings on the operation span', () => {
     const endedSpans = setupClient();
     const data = spanData(
       {
@@ -61,8 +61,8 @@ describe('Vercel AI runtime and tool context', () => {
 
     expect(data).toMatchObject({
       'vercel.ai.settings.context.requestId': 'req_1',
-      'vercel.ai.settings.context.attempt': 2,
-      'vercel.ai.settings.context.cached': false,
+      'vercel.ai.settings.context.attempt': '2',
+      'vercel.ai.settings.context.cached': 'false',
       'vercel.ai.settings.context.user': '{"id":"u1"}',
       'vercel.ai.settings.context.tags': '["a","b"]',
     });
@@ -147,8 +147,8 @@ describe('Vercel AI runtime and tool context', () => {
     );
 
     expect(data).toMatchObject({
-      'vercel.ai.toolCall.context.units': 'metric',
-      'vercel.ai.toolCall.context.region': '{"code":"eu"}',
+      'vercel.ai.tool_call.context.units': 'metric',
+      'vercel.ai.tool_call.context.region': '{"code":"eu"}',
     });
   });
 

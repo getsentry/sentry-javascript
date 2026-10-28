@@ -87,7 +87,7 @@ const VERCEL_AI_MODEL_PROVIDER_ATTRIBUTE = 'vercel.ai.model.provider';
 const VERCEL_AI_SETTINGS_MAX_RETRIES_ATTRIBUTE = 'vercel.ai.settings.maxRetries';
 const VERCEL_AI_TELEMETRY_METADATA_ATTRIBUTE_PREFIX = 'vercel.ai.telemetry.metadata.';
 const VERCEL_AI_SETTINGS_CONTEXT_ATTRIBUTE_PREFIX = 'vercel.ai.settings.context.';
-const VERCEL_AI_TOOL_CALL_CONTEXT_ATTRIBUTE_PREFIX = 'vercel.ai.toolCall.context.';
+const VERCEL_AI_TOOL_CALL_CONTEXT_ATTRIBUTE_PREFIX = 'vercel.ai.tool_call.context.';
 
 // Tracks the top-level operationId (and whether it streams) per `callId` so a model-call span can
 // name its `doGenerate`/`doStream` operation the same way the OTel integration does. `isStream` is
@@ -536,7 +536,7 @@ function telemetryMetadataAttributes(metadata: unknown): Record<string, string> 
 }
 
 /**
- * One attribute per context key, as `<prefix><key>`. `ai` < 7.0.114 published the full context to the
+ * One string attribute per context key, as `<prefix><key>`. `ai` < 7.0.114 published the full context to the
  * channel, ignoring `telemetry.includeRuntimeContext`/`includeToolsContext`, and a filtered context
  * looks the same as an unfiltered one. `aiVersion` (added in 7.0.154) is the only reliable sign that
  * the AI SDK filtered it, so without it we record nothing.
@@ -547,8 +547,7 @@ function contextAttributes(event: Record<string, unknown>, context: unknown, pre
     return attributes;
   }
   for (const [key, value] of Object.entries(context)) {
-    const attributeValue =
-      typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean' ? value : stringify(value);
+    const attributeValue = stringify(value);
     if (value !== null && attributeValue !== undefined) {
       attributes[`${prefix}${key}`] = attributeValue;
     }
