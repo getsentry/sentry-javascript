@@ -1,7 +1,10 @@
 import type { Event, IntegrationFn, StackFrame } from '@sentry/core';
-import { addContextToFrame, defineIntegration, LRUMap } from '@sentry/core';
+import { addContextToFrame, defineIntegration, LRUMap, stripUrlQueryAndFragment } from '@sentry/core';
 
 const INTEGRATION_NAME = 'ContextLines' as const;
+// Frame filenames come from the parsed `error.stack` string, which application
+// code can overwrite with external input, so only read source files.
+const SOURCE_FILE_EXTENSION = /\.(?:[cm]?[jt]sx?|vue|svelte|astro|mdx)$/i;
 const FILE_CONTENT_CACHE = new LRUMap<string, string | null>(100);
 const DEFAULT_LINES_OF_CONTEXT = 5;
 
@@ -91,7 +94,12 @@ async function addSourceContext(event: Event, contextLines: number): Promise<Eve
 async function addSourceContextToFrames(frames: StackFrame[], contextLines: number): Promise<void> {
   for (const frame of frames) {
     // Only add context if we have a filename and it hasn't already been added
-    if (frame.filename && frame.in_app && frame.context_line === undefined) {
+    if (
+      frame.filename &&
+      frame.in_app &&
+      frame.context_line === undefined &&
+      SOURCE_FILE_EXTENSION.test(stripUrlQueryAndFragment(frame.filename))
+    ) {
       const permission = await Deno.permissions.query({
         name: 'read',
         path: frame.filename,

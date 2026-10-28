@@ -31,6 +31,10 @@ describe('getClientIPAddress', () => {
     expect(getClientIPAddress({ 'x-forwarded-for': ['unknown', '203.0.113.7:4711'] })).toBe('203.0.113.7');
   });
 
+  it('skips headers whose value is null', () => {
+    expect(getClientIPAddress({ 'x-forwarded-for': null, 'x-real-ip': '198.51.100.1' })).toBe('198.51.100.1');
+  });
+
   it('keeps the header priority order', () => {
     expect(getClientIPAddress({ 'X-Real-IP': '198.51.100.1', 'X-Forwarded-For': '203.0.113.7:4711' })).toBe(
       '203.0.113.7',

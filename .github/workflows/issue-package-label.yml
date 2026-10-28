@@ -7,7 +7,7 @@ on:
 jobs:
   add_labels:
     name: Add package label
-    runs-on: ubuntu-latest
+    runs-on: namespace-profile-sentry-javascript-small
     if: ${{ !github.event.issue.pull_request }}
     steps:
       - name: Get used package from issue body
@@ -121,6 +121,18 @@ jobs:
               },
               "@sentry.wasm": {
                 "label": "WASM"
+              },
+              "@sentry.esbuild-plugin": {
+                "label": "Feature: Source Maps"
+              },
+              "@sentry.rollup-plugin": {
+                "label": "Feature: Source Maps"
+              },
+              "@sentry.vite-plugin": {
+                "label": "Feature: Source Maps"
+              },
+              "@sentry.webpack-plugin": {
+                "label": "Feature: Source Maps"
               },
               "Sentry.Browser.Loader": {
                 "label": "Browser"

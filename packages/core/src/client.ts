@@ -42,8 +42,8 @@ import { createClientReportEnvelope } from './utils/clientreport';
 import { consoleSandbox, debug } from './utils/debug-logger';
 import { dsnToString, makeDsn } from './utils/dsn';
 import { addItemToEnvelope, createAttachmentEnvelopeItem, getDataCategoryByType } from './utils/envelope';
-import { getPossibleEventMessages } from './utils/eventUtils';
-import { isObjectLike, isParameterizedString, isPlainObject, isPrimitive, isThenable } from './utils/is';
+import { getPossibleEventMessages, isInternalException } from './utils/eventUtils';
+import { isObjectLike, isParameterizedString, isPlainObject, isPrimitive } from './utils/is';
 import { merge } from './utils/merge';
 import { checkOrSetAlreadyCaught, uuid4 } from './utils/misc';
 import { parseSampleRate } from './utils/parseSampleRate';
@@ -52,6 +52,7 @@ import { makePromiseBuffer, type PromiseBuffer, SENTRY_BUFFER_FULL_ERROR } from 
 import { safeMathRandom } from './utils/randomSafeContext';
 import { safeCallback } from './utils/safeCallback';
 import { reparentChildSpans, shouldIgnoreSpan } from './utils/should-ignore-span';
+import { rejectedSyncPromise } from './utils/syncpromise';
 import { safeUnref } from './utils/timer';
 import { convertSpanJsonToTransactionEvent, convertTransactionEventToSpanJson } from './utils/transactionEvent';
 import { maybeWarnAboutIgnoredTransactionOptions } from './utils/warnAboutIgnoredTransactionOptions';
@@ -66,6 +67,20 @@ const DO_NOT_SEND_EVENT_SYMBOL = Symbol.for('SentryDoNotSendEventError');
 
 // Default interval for flushing logs and metrics (5 seconds)
 const DEFAULT_FLUSH_INTERVAL = 5000;
+
+// Clones of a scope keep their own reference to its client, so unbinding a
+// closed client from one scope does not reach the others. The mark lives on
+// the client under a `Symbol.for` key, so every copy of the SDK can read it.
+const CLOSED_CLIENT_SYMBOL = Symbol.for('SentryClosedClient');
+
+/**
+ * Whether `close()` was called on the given client.
+ *
+ * @hidden
+ */
+export function isClientClosed(client: Client): boolean {
+  return CLOSED_CLIENT_SYMBOL in client;
+}
 
 interface InternalError {
   message: string;
@@ -89,6 +104,12 @@ function _makeDoNotSendEventError(message: string): DoNotSendEventError {
     message,
     [DO_NOT_SEND_EVENT_SYMBOL]: true,
   };
+}
+
+function _makeSampledOutError(sampleRate: ClientOptions['sampleRate']): DoNotSendEventError {
+  return _makeDoNotSendEventError(
+    `Discarding event because it's not included in the random sample (sampling rate = ${sampleRate})`,
+  );
 }
 
 function _isInternalError(error: unknown): error is InternalError {
@@ -229,6 +250,9 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
    */
   protected _unhandledSessionStatus: SessionStatus;
 
+  /** Whether `attachStacktrace` came from the SDK default rather than the user's options. */
+  protected readonly _attachStacktraceIsDefault: boolean;
+
   /**
    * Initializes this client instance.
    *
@@ -250,6 +274,7 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
     this._promiseBuffer = makePromiseBuffer(options.transportOptions?.bufferSize ?? DEFAULT_TRANSPORT_BUFFER_SIZE);
     this._dataCollection = resolveDataCollectionOptions(options);
     this._unhandledSessionStatus = 'crashed';
+    this._attachStacktraceIsDefault = options.attachStacktrace === undefined;
 
     if (options.dsn) {
       this._dsn = makeDsn(options.dsn);
@@ -351,7 +376,14 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
     const eventMessage = isParameterizedString(message) ? message : String(message);
     const isMessage = isPrimitive(message);
     const promisedEvent = isMessage
-      ? this.eventFromMessage(eventMessage, level, hintWithEventId)
+      ? this.eventFromMessage(eventMessage, level, hintWithEventId).then(event => {
+          // Lets Replay keep treating messages as non-errors unless the user opted into stack traces
+          if (event.exception && this._attachStacktraceIsDefault) {
+            event.sdkProcessingMetadata = { ...event.sdkProcessingMetadata, hasDefaultSyntheticStacktrace: true };
+          }
+
+          return event;
+        })
       : this.eventFromException(message, hintWithEventId);
 
     this._process(
@@ -488,6 +520,7 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
    */
   // @ts-expect-error - PromiseLike is a subset of Promise
   public async close(timeout?: number): PromiseLike<boolean> {
+    Object.defineProperty(this, CLOSED_CLIENT_SYMBOL, { value: true });
     const result = await this.flush(timeout);
     this.getOptions().enabled = false;
     this.emit('close');
@@ -578,8 +611,10 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
 
     let env = createEventEnvelope(event, this._dsn, this._options._metadata, this._options.tunnel);
 
-    for (const attachment of hint.attachments || []) {
-      env = addItemToEnvelope(env, createAttachmentEnvelopeItem(attachment));
+    if (!isInternalException(hint)) {
+      for (const attachment of hint.attachments || []) {
+        env = addItemToEnvelope(env, createAttachmentEnvelopeItem(attachment));
+      }
     }
 
     if (genAiSpanItem) {
@@ -882,6 +917,12 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
     hook: 'beforeOutgoingRequestBreadcrumb',
     callback: (breadcrumb: Breadcrumb, hint: XhrBreadcrumbHint | FetchBreadcrumbHint) => void,
   ): () => void;
+
+  /**
+   * A hook that is called when an incoming request starts being tracked as a request session.
+   * @returns {() => void} A function that, when executed, removes the registered callback.
+   */
+  public on(hook: 'startRequestSession', callback: () => void): () => void;
 
   /**
    * A hook that is called when the client is flushing
@@ -1195,6 +1236,11 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
   ): void;
 
   /**
+   * Emit a hook event when an incoming request starts being tracked as a request session.
+   */
+  public emit(hook: 'startRequestSession'): void;
+
+  /**
    * Emit a hook event for client flush
    */
   public emit(hook: 'flush'): void;
@@ -1289,6 +1335,7 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
       try {
         const result = await this._transport.send(envelope);
         this.emit('afterEnvelope', envelope);
+
         return result;
       } catch (reason) {
         DEBUG_BUILD && debug.error('Error while sending envelope:', reason);
@@ -1515,13 +1562,26 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
     const isError = isErrorEvent(event);
     const eventType = event.type || 'error';
     const beforeSendLabel = `before send for type \`${eventType}\``;
-    let beforeSendDropReason: 'before_send' | 'callback_error' = 'before_send';
+    let beforeSendDropReason: BeforeSendDropReason = 'before_send';
+    let ignoredSpanCount = 0;
 
     // 1.0 === 100% events are sent
     // 0.0 === 0% events are sent
     // Sampling for transaction happens somewhere else
     const parsedSampleRate = typeof sampleRate === 'undefined' ? undefined : parseSampleRate(sampleRate);
+    const isSampledOut = isError && typeof parsedSampleRate === 'number' && safeMathRandom() > parsedSampleRate;
     const dataCategory = getDataCategoryByType(event.type);
+    // Spans that event processors removed are already recorded in `prepareEvent`, so all later
+    // span outcomes are relative to the span count of the prepared event.
+    let preparedSpanCount = 0;
+
+    const session = currentScope.getSession() || isolationScope.getSession();
+    // A sampled-out error only runs the pipeline to update the session. Without a session it could update,
+    // drop it right away so it doesn't hold a promise buffer slot while event processors run.
+    if (isSampledOut && session?.status !== 'ok') {
+      this.recordDroppedEvent('sample_rate', 'error');
+      return rejectedSyncPromise(_makeSampledOutError(sampleRate));
+    }
 
     return this._prepareEvent(event, hint, currentScope, isolationScope)
       .then(prepared => {
@@ -1529,45 +1589,58 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
           throw _makeDoNotSendEventError('An event processor returned `null`, will not send event.');
         }
 
-        const isInternalException = (hint.data as { __sentry__: boolean })?.__sentry__ === true;
-        if (isInternalException) {
+        preparedSpanCount = prepared.spans?.length || 0;
+
+        if (isInternalException(hint)) {
           return prepared;
         }
 
-        const result = processBeforeSend(this, options, prepared, hint, () => {
-          beforeSendDropReason = 'callback_error';
-        });
-        return _validateBeforeSendResult(result, beforeSendLabel);
+        return processBeforeSend(
+          options,
+          prepared,
+          hint,
+          reason => {
+            beforeSendDropReason = reason;
+          },
+          count => {
+            ignoredSpanCount = count;
+          },
+        );
       })
       .then(processedEvent => {
-        if (processedEvent === null) {
-          this.recordDroppedEvent(beforeSendDropReason, dataCategory);
-          if (isTransaction) {
-            const spans = event.spans || [];
-            // the transaction itself counts as one span, plus all the child spans that are added
-            this.recordDroppedEvent(beforeSendDropReason, 'span', 1 + spans.length);
-          }
-          const dropMessage = beforeSendDropReason === 'callback_error' ? 'threw an error' : 'returned `null`';
-          throw _makeDoNotSendEventError(`${beforeSendLabel} ${dropMessage}, will not send event.`);
+        if (ignoredSpanCount) {
+          this.recordDroppedEvent('ignored', 'span', ignoredSpanCount);
         }
 
-        const session = currentScope.getSession() || isolationScope.getSession();
+        // An annotated boolean keeps `isPlainObject` from narrowing `processedEvent` to a plain record
+        const isValidEvent: boolean = isPlainObject(processedEvent);
+        if (!isValidEvent || processedEvent === null) {
+          this.recordDroppedEvent(beforeSendDropReason, dataCategory);
+          if (isTransaction) {
+            // the transaction itself counts as one span, plus all the child spans that weren't ignored before
+            this.recordDroppedEvent(beforeSendDropReason, 'span', 1 + preparedSpanCount - ignoredSpanCount);
+          }
+          if (processedEvent !== null) {
+            throw _makeInternalError(`${beforeSendLabel} must return \`null\` or a valid event.`);
+          }
+          const dropMessage =
+            beforeSendDropReason === 'ignored'
+              ? 'Transaction matched `ignoreSpans`'
+              : `${beforeSendLabel} ${beforeSendDropReason === 'callback_error' ? 'threw an error' : 'returned `null`'}`;
+          throw _makeDoNotSendEventError(`${dropMessage}, will not send event.`);
+        }
+
         if (isError && session) {
           this._updateSessionFromEvent(session, processedEvent);
         }
 
-        if (isError && typeof parsedSampleRate === 'number' && safeMathRandom() > parsedSampleRate) {
+        if (isSampledOut) {
           this.recordDroppedEvent('sample_rate', 'error');
-          throw _makeDoNotSendEventError(
-            `Discarding event because it's not included in the random sample (sampling rate = ${sampleRate})`,
-          );
+          throw _makeSampledOutError(sampleRate);
         }
 
         if (isTransaction) {
-          const spanCountBefore = processedEvent.sdkProcessingMetadata?.spanCountBeforeProcessing || 0;
-          const spanCountAfter = processedEvent.spans ? processedEvent.spans.length : 0;
-
-          const droppedSpanCount = spanCountBefore - spanCountAfter;
+          const droppedSpanCount = preparedSpanCount - ignoredSpanCount - (processedEvent.spans?.length || 0);
           if (droppedSpanCount > 0) {
             this.recordDroppedEvent('before_send', 'span', droppedSpanCount);
           }
@@ -1691,41 +1764,17 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
   ): PromiseLike<Event>;
 }
 
-/**
- * Verifies that return value of configured `beforeSend` or `beforeSendTransaction` is of expected type, and returns the value if so.
- */
-function _validateBeforeSendResult(
-  beforeSendResult: PromiseLike<Event | null> | Event | null,
-  beforeSendLabel: string,
-): PromiseLike<Event | null> | Event | null {
-  const invalidValueError = `${beforeSendLabel} must return \`null\` or a valid event.`;
-  if (isThenable(beforeSendResult)) {
-    return beforeSendResult.then(
-      event => {
-        if (!isPlainObject(event) && event !== null) {
-          throw _makeInternalError(invalidValueError);
-        }
-        return event;
-      },
-      e => {
-        throw _makeInternalError(`${beforeSendLabel} rejected with ${e}`);
-      },
-    );
-  } else if (!isPlainObject(beforeSendResult) && beforeSendResult !== null) {
-    throw _makeInternalError(invalidValueError);
-  }
-  return beforeSendResult;
-}
+type BeforeSendDropReason = 'before_send' | 'callback_error' | 'ignored';
 
 /**
  * Process the matching `beforeSendXXX` callback.
  */
 function processBeforeSend(
-  client: Client,
   options: ClientOptions,
   event: Event,
   hint: EventHint,
-  onCallbackError: () => void,
+  onDrop: (reason: Exclude<BeforeSendDropReason, 'before_send'>) => void,
+  onIgnoredSpans: (count: number) => void,
 ): PromiseLike<Event | null> | Event | null {
   const {
     beforeSend,
@@ -1743,7 +1792,7 @@ function processBeforeSend(
       DEBUG_BUILD ? 'The `beforeSend` callback threw an error, dropping the event:' : '',
       () => beforeSend(errorEvent, hint),
       () => {
-        onCallbackError();
+        onDrop('callback_error');
         return null;
       },
     );
@@ -1763,7 +1812,7 @@ function processBeforeSend(
           ignoreSpans,
         )
       ) {
-        // dropping the whole transaction!
+        onDrop('ignored');
         return null;
       }
 
@@ -1798,30 +1847,17 @@ function processBeforeSend(
           }
         }
 
-        const droppedSpans = processedEvent.spans.length - processedSpans.length;
-        if (droppedSpans) {
-          client.recordDroppedEvent('before_send', 'span', droppedSpans);
-        }
-
+        onIgnoredSpans(initialSpans.length - processedSpans.length);
         processedEvent.spans = processedSpans;
       }
     }
 
     if (beforeSendTransaction) {
-      if (processedEvent.spans) {
-        // We store the # of spans before processing in SDK metadata,
-        // so we can compare it afterwards to determine how many spans were dropped
-        const spanCountBefore = processedEvent.spans.length;
-        processedEvent.sdkProcessingMetadata = {
-          ...event.sdkProcessingMetadata,
-          spanCountBeforeProcessing: spanCountBefore,
-        };
-      }
       return safeCallback(
         DEBUG_BUILD ? 'The `beforeSendTransaction` callback threw an error, dropping the event:' : '',
         () => beforeSendTransaction(processedEvent as TransactionEvent, hint),
         () => {
-          onCallbackError();
+          onDrop('callback_error');
           return null;
         },
       );

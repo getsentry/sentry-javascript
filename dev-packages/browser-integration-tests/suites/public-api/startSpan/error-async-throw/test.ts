@@ -1,13 +1,14 @@
 import { expect } from '@playwright/test';
-import type { Event } from '@sentry/core';
 import { sentryTest } from '../../../../utils/fixtures';
-import { getMultipleSentryEnvelopeRequests, shouldSkipTracingTest } from '../../../../utils/helpers';
+import { envelopeRequestParser, waitForErrorRequest, shouldSkipTracingTest } from '../../../../utils/helpers';
+import { waitForStreamedSpan } from '../../../../utils/spanUtils';
 
 sentryTest('should capture a thrown error within an async startSpan callback', async ({ getLocalTestUrl, page }) => {
   if (shouldSkipTracingTest()) {
     sentryTest.skip();
   }
-  const envelopePromise = getMultipleSentryEnvelopeRequests<Event>(page, 2);
+  const spanPromise = waitForStreamedSpan(page, span => span.name === 'parent_span');
+  const errorPromise = waitForErrorRequest(page);
 
   const url = await getLocalTestUrl({ testDir: __dirname });
   await page.goto(url);
@@ -15,10 +16,10 @@ sentryTest('should capture a thrown error within an async startSpan callback', a
   const clickPromise = page.getByText('Button 1').click();
 
   // awaiting both events simultaneously to avoid race conditions
-  const [, events] = await Promise.all([clickPromise, envelopePromise]);
-  const txn = events.find(event => event.type === 'transaction');
-  const err = events.find(event => !event.type);
+  const [, span, errorRequest] = await Promise.all([clickPromise, spanPromise, errorPromise]);
+  const err = envelopeRequestParser(errorRequest);
 
-  expect(txn).toMatchObject({ transaction: 'parent_span' });
+  expect(span.name).toBe('parent_span');
+  expect(span.status).toBe('error');
   expect(err?.exception?.values?.[0]?.value).toBe('Async Thrown Error');
 });

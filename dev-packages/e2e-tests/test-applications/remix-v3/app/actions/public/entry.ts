@@ -9,7 +9,7 @@ declare const process: { env: Record<string, string | undefined> };
 
 Sentry.init({
   dsn: process.env.E2E_TEST_DSN,
-  tunnel: 'http://localhost:3061/',
+  tunnel: process.env.E2E_TEST_TUNNEL ? true : 'http://localhost:3061/',
   tracesSampleRate: 1.0,
 });
 
@@ -31,7 +31,7 @@ document.addEventListener('click', event => {
   if (id === 'component-error') {
     void app.frames.top.replace(createElement(Boom, {}));
   }
-  if (id === 'throw-error') {
+  if (id === 'throw-error' || id === 'throw-on-user') {
     throwError();
   }
 });

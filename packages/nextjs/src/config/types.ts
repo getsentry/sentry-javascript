@@ -60,6 +60,7 @@ export type NextConfigObject = {
   serverExternalPackages?: string[]; // next >= v15.0.0
   turbopack?: TurbopackOptions;
   compiler?: {
+    define?: Record<string, string | boolean>;
     runAfterProductionCompile?: (context: { distDir: string; projectDir: string }) => Promise<void> | void;
   };
 };
@@ -113,6 +114,9 @@ export type SentryBuildWebpackOptions = {
 
   /**
    * Tree-shaking options to help reduce the size of the Sentry SDK bundle.
+   *
+   * Prefer the top-level `bundleSizeOptimizations` option, which works for both webpack and Turbopack builds.
+   * If both are set, `bundleSizeOptimizations` takes precedence.
    */
   treeshake?: {
     /**
@@ -149,7 +153,7 @@ export type SentryBuildWebpackOptions = {
      * This has no effect if you did not add `replayIntegration`.
      */
     excludeReplayCompressionWorker?: boolean;
-  };
+  }; // TODO: Deprecate this option and its nested options in favor of `bundleSizeOptimizations` closer to v12
 
   /**
    * Options related to react component name annotations.
@@ -268,9 +272,24 @@ export type SentryBuildOptions = Omit<
    * - Pass `true` to auto-generate a random, ad-blocker-resistant route for each build
    * - Pass a string path (e.g., '/monitoring') to use a custom route
    *
+   * By default, the tunnel route proxies each request to Sentry with its headers. To forward only the event payload,
+   * create `app/sentry-tunnel/route.ts` (or `src/app/sentry-tunnel/route.ts`, not in a route
+   * group) with:
+   *
+   * ```ts
+   * export { POST } from '@sentry/nextjs/tunnel';
+   * ```
+   *
+   * This handler accepts the DSN of the server SDK, also a self-hosted one. For other DSNs, use
+   * `createSentryTunnelRoute` from the same import.
+   *
    * Tunnel requests go through your middleware (`proxy.ts` / `middleware.ts`) like any other request. If your
    * middleware redirects or blocks unauthenticated requests, exclude the tunnel route in its `matcher` so events
    * can reach Sentry. Matchers have to be static, so use a fixed string route in that case rather than `true`.
+   *
+   * Without the route handler, the browser sends tunnel requests with `credentials: 'omit'`, so without cookies or HTTP
+   * authentication. If a layer in front of your app needs them (for example Vercel Deployment Protection or HTTP Basic authentication), set
+   * `transportOptions: { fetchOptions: { credentials: 'same-origin' } }` in `Sentry.init` of `instrumentation-client.ts`.
    *
    * NOTE: This feature only works with Next.js 11+
    */
@@ -393,7 +412,7 @@ export type SentryBuildOptions = Omit<
        * @deprecated Use the top-level `reactComponentAnnotation` option instead, which works for both webpack and Turbopack builds.
        */
       ignoredComponents?: string[];
-    }; // TODO(v12): remove this option
+    }; // TODO: Deprecate this option and its nested options in favor of `bundleSizeOptimizations` closer to v12
   }>;
 
   /**

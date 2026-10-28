@@ -34,6 +34,27 @@ export class MockAi {
       };
     }
 
+    // Unwrapped, as in the documented Clef output schema, so this covers the path without `{ state, result }`.
+    if (model === '@cf/cloudflare/clef') {
+      return {
+        model: 'clef',
+        answers: { urgent: { type: 'noul', noul: 0.98 } },
+        usage: { input_tokens: 412, output_tokens: 1 },
+      };
+    }
+
+    if (model === '@cf/cloudflare/clairic') {
+      return {
+        model: 'clairic',
+        answers: {
+          invoice_number: { type: 'text', span: [8, 16], confidence: 1, value: 'INV-2291' },
+          total: { type: 'number', confidence: 0.99, value: 1080 },
+        },
+        truncated: false,
+        usage: { state_tokens: 30, schema_tokens: 20, input_tokens: 50, output_tokens: 4, passes: 1 },
+      };
+    }
+
     if (inputs?.stream === true) {
       return createSseStream([
         '{"response":"The capital "}',

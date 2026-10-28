@@ -118,6 +118,7 @@ it('names D1 query spans after their query summary', async ({ signal }) => {
         },
       ]);
     })
+    .unordered()
     .start(signal);
 
   await runner.makeRequest('get', '/init');

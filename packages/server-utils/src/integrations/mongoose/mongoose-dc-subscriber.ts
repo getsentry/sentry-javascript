@@ -27,7 +27,7 @@ export const MONGOOSE_DC_CHANNEL_MODEL_INSERT_MANY = 'mongoose:model:insertMany'
 export const MONGOOSE_DC_CHANNEL_MODEL_BULK_WRITE = 'mongoose:model:bulkWrite';
 export const MONGOOSE_DC_CHANNEL_CURSOR_NEXT = 'mongoose:cursor:next';
 
-const ORIGIN = 'auto.db.mongoose.diagnostic_channel';
+const ORIGIN = 'auto.db.mongoose.native_channel';
 const DB_SYSTEM_NAME_VALUE_MONGODB = 'mongodb';
 
 // Cap recursion so a self-referential or pathologically deep query can never

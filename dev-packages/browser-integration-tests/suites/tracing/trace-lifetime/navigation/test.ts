@@ -1,117 +1,117 @@
 import { expect } from '@playwright/test';
 import type { Event } from '@sentry/core';
 import { sentryTest } from '../../../../utils/fixtures';
-import type { EventAndTraceHeader } from '../../../../utils/helpers';
 import {
   eventAndTraceHeaderRequestParser,
-  getFirstSentryEnvelopeRequest,
   getMultipleSentryEnvelopeRequests,
   shouldSkipFeedbackTest,
   shouldSkipTracingTest,
+  waitForErrorRequest,
 } from '../../../../utils/helpers';
+import { getSpanOp, waitForStreamedSpan, waitForStreamedSpanEnvelope } from '../../../../utils/spanUtils';
 
 sentryTest('creates a new trace and sample_rand on each navigation', async ({ getLocalTestUrl, page }) => {
-  if (shouldSkipTracingTest()) {
-    sentryTest.skip();
-  }
+  sentryTest.skip(shouldSkipTracingTest());
 
   const url = await getLocalTestUrl({ testDir: __dirname });
 
-  await getFirstSentryEnvelopeRequest(page, url);
+  // Wait for and skip the initial pageload span
+  const pageloadSpanPromise = waitForStreamedSpan(page, span => getSpanOp(span) === 'pageload');
+  await page.goto(url);
+  await pageloadSpanPromise;
 
-  const [navigation1Event, navigation1TraceHeader] = await getFirstSentryEnvelopeRequest<EventAndTraceHeader>(
+  const navigation1SpanEnvelopePromise = waitForStreamedSpanEnvelope(
     page,
-    `${url}#foo`,
-    eventAndTraceHeaderRequestParser,
+    env => !!env[1][0][1].items.find(s => getSpanOp(s) === 'navigation'),
   );
-  const [navigation2Event, navigation2TraceHeader] = await getFirstSentryEnvelopeRequest<EventAndTraceHeader>(
+  await page.goto(`${url}#foo`);
+  const navigation1SpanEnvelope = await navigation1SpanEnvelopePromise;
+
+  const navigation2SpanEnvelopePromise = waitForStreamedSpanEnvelope(
     page,
-    `${url}#bar`,
-    eventAndTraceHeaderRequestParser,
+    env => !!env[1][0][1].items.find(s => getSpanOp(s) === 'navigation'),
   );
+  await page.goto(`${url}#bar`);
+  const navigation2SpanEnvelope = await navigation2SpanEnvelopePromise;
 
-  const navigation1TraceContext = navigation1Event.contexts?.trace;
-  const navigation2TraceContext = navigation2Event.contexts?.trace;
+  const navigation1TraceId = navigation1SpanEnvelope[0].trace?.trace_id;
+  const navigation1SampleRand = navigation1SpanEnvelope[0].trace?.sample_rand;
+  const navigation2TraceId = navigation2SpanEnvelope[0].trace?.trace_id;
+  const navigation2SampleRand = navigation2SpanEnvelope[0].trace?.sample_rand;
 
-  expect(navigation1Event.type).toEqual('transaction');
-  expect(navigation2Event.type).toEqual('transaction');
+  const navigation1Span = navigation1SpanEnvelope[1][0][1].items.find(s => getSpanOp(s) === 'navigation')!;
+  const navigation2Span = navigation2SpanEnvelope[1][0][1].items.find(s => getSpanOp(s) === 'navigation')!;
 
-  expect(navigation1TraceContext).toMatchObject({
-    op: 'navigation',
-    trace_id: expect.stringMatching(/^[\da-f]{32}$/),
-    span_id: expect.stringMatching(/^[\da-f]{16}$/),
-  });
-  expect(navigation1TraceContext).not.toHaveProperty('parent_span_id');
+  expect(getSpanOp(navigation1Span)).toEqual('navigation');
+  expect(navigation1TraceId).toMatch(/^[\da-f]{32}$/);
+  expect(navigation1Span.span_id).toMatch(/^[\da-f]{16}$/);
+  expect(navigation1Span.parent_span_id).toBeUndefined();
 
-  expect(navigation1TraceHeader).toEqual({
+  expect(navigation1SpanEnvelope[0].trace).toEqual({
     environment: 'production',
     public_key: 'public',
     sample_rate: '1',
     sampled: 'true',
-    trace_id: navigation1TraceContext?.trace_id,
+    trace_id: navigation1TraceId,
     sample_rand: expect.any(String),
   });
 
-  expect(navigation2TraceContext).toMatchObject({
-    op: 'navigation',
-    trace_id: expect.stringMatching(/^[\da-f]{32}$/),
-    span_id: expect.stringMatching(/^[\da-f]{16}$/),
-  });
-  expect(navigation2TraceContext).not.toHaveProperty('parent_span_id');
+  expect(getSpanOp(navigation2Span)).toEqual('navigation');
+  expect(navigation2TraceId).toMatch(/^[\da-f]{32}$/);
+  expect(navigation2Span.span_id).toMatch(/^[\da-f]{16}$/);
+  expect(navigation2Span.parent_span_id).toBeUndefined();
 
-  expect(navigation2TraceHeader).toEqual({
+  expect(navigation2SpanEnvelope[0].trace).toEqual({
     environment: 'production',
     public_key: 'public',
     sample_rate: '1',
     sampled: 'true',
-    trace_id: navigation2TraceContext?.trace_id,
+    trace_id: navigation2TraceId,
     sample_rand: expect.any(String),
   });
 
-  expect(navigation1TraceContext?.trace_id).not.toEqual(navigation2TraceContext?.trace_id);
-  expect(navigation1TraceHeader?.sample_rand).not.toEqual(navigation2TraceHeader?.sample_rand);
+  expect(navigation1TraceId).not.toEqual(navigation2TraceId);
+  expect(navigation1SampleRand).not.toEqual(navigation2SampleRand);
 });
 
 sentryTest('error after navigation has navigation traceId', async ({ getLocalTestUrl, page }) => {
-  if (shouldSkipTracingTest()) {
-    sentryTest.skip();
-  }
+  sentryTest.skip(shouldSkipTracingTest());
 
   const url = await getLocalTestUrl({ testDir: __dirname });
 
-  // ensure pageload transaction is finished
-  await getFirstSentryEnvelopeRequest<Event>(page, url);
+  // ensure pageload span is finished
+  const pageloadSpanPromise = waitForStreamedSpan(page, span => getSpanOp(span) === 'pageload');
+  await page.goto(url);
+  await pageloadSpanPromise;
 
-  const [navigationEvent, navigationTraceHeader] = await getFirstSentryEnvelopeRequest<EventAndTraceHeader>(
+  const navigationSpanPromise = waitForStreamedSpan(page, span => getSpanOp(span) === 'navigation');
+  const navigationSpanEnvelopePromise = waitForStreamedSpanEnvelope(
     page,
-    `${url}#foo`,
-    eventAndTraceHeaderRequestParser,
+    env => !!env[1][0][1].items.find(s => getSpanOp(s) === 'navigation'),
   );
-  const navigationTraceContext = navigationEvent.contexts?.trace;
+  await page.goto(`${url}#foo`);
+  const [navigationSpan, navigationSpanEnvelope] = await Promise.all([
+    navigationSpanPromise,
+    navigationSpanEnvelopePromise,
+  ]);
 
-  expect(navigationEvent.type).toEqual('transaction');
+  const navigationTraceId = navigationSpan.trace_id;
 
-  expect(navigationTraceContext).toMatchObject({
-    op: 'navigation',
-    trace_id: expect.stringMatching(/^[\da-f]{32}$/),
-    span_id: expect.stringMatching(/^[\da-f]{16}$/),
-  });
-  expect(navigationTraceContext).not.toHaveProperty('parent_span_id');
+  expect(getSpanOp(navigationSpan)).toEqual('navigation');
+  expect(navigationTraceId).toMatch(/^[\da-f]{32}$/);
+  expect(navigationSpan.span_id).toMatch(/^[\da-f]{16}$/);
+  expect(navigationSpan.parent_span_id).toBeUndefined();
 
-  expect(navigationTraceHeader).toEqual({
+  expect(navigationSpanEnvelope[0].trace).toEqual({
     environment: 'production',
     public_key: 'public',
     sample_rate: '1',
     sampled: 'true',
-    trace_id: navigationTraceContext?.trace_id,
+    trace_id: navigationTraceId,
     sample_rand: expect.any(String),
   });
 
-  const errorEventPromise = getFirstSentryEnvelopeRequest<EventAndTraceHeader>(
-    page,
-    undefined,
-    eventAndTraceHeaderRequestParser,
-  );
+  const errorEventPromise = waitForErrorRequest(page).then(eventAndTraceHeaderRequestParser);
   await page.locator('#errorBtn').click();
   const [errorEvent, errorTraceHeader] = await errorEventPromise;
 
@@ -119,7 +119,7 @@ sentryTest('error after navigation has navigation traceId', async ({ getLocalTes
 
   const errorTraceContext = errorEvent.contexts?.trace;
   expect(errorTraceContext).toEqual({
-    trace_id: navigationTraceContext?.trace_id,
+    trace_id: navigationTraceId,
     span_id: expect.stringMatching(/^[\da-f]{16}$/),
   });
   expect(errorTraceHeader).toEqual({
@@ -127,58 +127,42 @@ sentryTest('error after navigation has navigation traceId', async ({ getLocalTes
     public_key: 'public',
     sample_rate: '1',
     sampled: 'true',
-    trace_id: navigationTraceContext?.trace_id,
+    trace_id: navigationTraceId,
     sample_rand: expect.any(String),
   });
 });
 
 sentryTest('error during navigation has new navigation traceId', async ({ getLocalTestUrl, page }) => {
-  if (shouldSkipTracingTest()) {
-    sentryTest.skip();
-  }
+  sentryTest.skip(shouldSkipTracingTest());
 
   const url = await getLocalTestUrl({ testDir: __dirname });
 
-  // ensure pageload transaction is finished
-  await getFirstSentryEnvelopeRequest<Event>(page, url);
+  // ensure pageload span is finished
+  const pageloadSpanPromise = waitForStreamedSpan(page, span => getSpanOp(span) === 'pageload');
+  await page.goto(url);
+  await pageloadSpanPromise;
 
-  const envelopeRequestsPromise = getMultipleSentryEnvelopeRequests<EventAndTraceHeader>(
-    page,
-    2,
-    undefined,
-    eventAndTraceHeaderRequestParser,
-  );
+  const navigationSpanPromise = waitForStreamedSpan(page, span => getSpanOp(span) === 'navigation');
+  const errorEventPromise = waitForErrorRequest(page).then(eventAndTraceHeaderRequestParser);
 
   await page.goto(`${url}#foo`);
   await page.locator('#errorBtn').click();
-  const envelopes = await envelopeRequestsPromise;
+  const [navigationSpan, [errorEvent, errorTraceHeader]] = await Promise.all([
+    navigationSpanPromise,
+    errorEventPromise,
+  ]);
 
-  const [navigationEvent, navigationTraceHeader] = envelopes.find(envelope => envelope[0].type === 'transaction')!;
-  const [errorEvent, errorTraceHeader] = envelopes.find(envelope => !envelope[0].type)!;
-
-  expect(navigationEvent.type).toEqual('transaction');
+  expect(getSpanOp(navigationSpan)).toEqual('navigation');
   expect(errorEvent.type).toEqual(undefined);
 
-  const navigationTraceContext = navigationEvent?.contexts?.trace;
-  expect(navigationTraceContext).toMatchObject({
-    op: 'navigation',
-    trace_id: expect.stringMatching(/^[\da-f]{32}$/),
-    span_id: expect.stringMatching(/^[\da-f]{16}$/),
-  });
-  expect(navigationTraceContext).not.toHaveProperty('parent_span_id');
-
-  expect(navigationTraceHeader).toEqual({
-    environment: 'production',
-    public_key: 'public',
-    sample_rate: '1',
-    sampled: 'true',
-    trace_id: navigationTraceContext?.trace_id,
-    sample_rand: expect.any(String),
-  });
+  const navigationTraceId = navigationSpan.trace_id;
+  expect(navigationTraceId).toMatch(/^[\da-f]{32}$/);
+  expect(navigationSpan.span_id).toMatch(/^[\da-f]{16}$/);
+  expect(navigationSpan.parent_span_id).toBeUndefined();
 
   const errorTraceContext = errorEvent?.contexts?.trace;
   expect(errorTraceContext).toEqual({
-    trace_id: navigationTraceContext?.trace_id,
+    trace_id: navigationTraceId,
     span_id: expect.stringMatching(/^[\da-f]{16}$/),
   });
 
@@ -187,7 +171,7 @@ sentryTest('error during navigation has new navigation traceId', async ({ getLoc
     public_key: 'public',
     sample_rate: '1',
     sampled: 'true',
-    trace_id: navigationTraceContext?.trace_id,
+    trace_id: navigationTraceId,
     sample_rand: expect.any(String),
   });
 });
@@ -195,9 +179,7 @@ sentryTest('error during navigation has new navigation traceId', async ({ getLoc
 sentryTest(
   'outgoing fetch request during navigation has navigation traceId in headers',
   async ({ getLocalTestUrl, page }) => {
-    if (shouldSkipTracingTest()) {
-      sentryTest.skip();
-    }
+    sentryTest.skip(shouldSkipTracingTest());
 
     const url = await getLocalTestUrl({ testDir: __dirname });
 
@@ -209,48 +191,31 @@ sentryTest(
       });
     });
 
-    // ensure pageload transaction is finished
-    await getFirstSentryEnvelopeRequest<Event>(page, url);
+    // ensure pageload span is finished
+    const pageloadSpanPromise = waitForStreamedSpan(page, span => getSpanOp(span) === 'pageload');
+    await page.goto(url);
+    await pageloadSpanPromise;
 
-    const navigationEventPromise = getFirstSentryEnvelopeRequest<EventAndTraceHeader>(
+    const navigationSpanEnvelopePromise = waitForStreamedSpanEnvelope(
       page,
-      undefined,
-      eventAndTraceHeaderRequestParser,
+      env => !!env[1][0][1].items.find(s => getSpanOp(s) === 'navigation'),
     );
     const requestPromise = page.waitForRequest('http://sentry-test-site.example/*');
     await page.goto(`${url}#foo`);
     await page.locator('#fetchBtn').click();
-    const [[navigationEvent, navigationTraceHeader], request] = await Promise.all([
-      navigationEventPromise,
-      requestPromise,
-    ]);
+    const [navigationSpanEnvelope, request] = await Promise.all([navigationSpanEnvelopePromise, requestPromise]);
 
-    const navigationTraceContext = navigationEvent.contexts?.trace;
+    const navigationTraceId = navigationSpanEnvelope[0].trace?.trace_id;
+    const sampleRand = navigationSpanEnvelope[0].trace?.sample_rand;
 
-    expect(navigationEvent.type).toEqual('transaction');
-    expect(navigationTraceContext).toMatchObject({
-      op: 'navigation',
-      trace_id: expect.stringMatching(/^[\da-f]{32}$/),
-      span_id: expect.stringMatching(/^[\da-f]{16}$/),
-    });
-    expect(navigationTraceContext).not.toHaveProperty('parent_span_id');
-
-    expect(navigationTraceHeader).toEqual({
-      environment: 'production',
-      public_key: 'public',
-      sample_rate: '1',
-      sampled: 'true',
-      trace_id: navigationTraceContext?.trace_id,
-      sample_rand: expect.any(String),
-    });
+    expect(navigationTraceId).toMatch(/^[\da-f]{32}$/);
 
     const headers = request.headers();
 
     // sampling decision is propagated from active span sampling decision
-    const navigationTraceId = navigationTraceContext?.trace_id;
     expect(headers['sentry-trace']).toMatch(new RegExp(`^${navigationTraceId}-[0-9a-f]{16}-1$`));
     expect(headers['baggage']).toEqual(
-      `sentry-environment=production,sentry-public_key=public,sentry-trace_id=${navigationTraceId},sentry-sampled=true,sentry-sample_rand=${navigationTraceHeader?.sample_rand},sentry-sample_rate=1`,
+      `sentry-environment=production,sentry-public_key=public,sentry-trace_id=${navigationTraceId},sentry-sampled=true,sentry-sample_rand=${sampleRand},sentry-sample_rate=1`,
     );
   },
 );
@@ -258,9 +223,7 @@ sentryTest(
 sentryTest(
   'outgoing XHR request during navigation has navigation traceId in headers',
   async ({ getLocalTestUrl, page }) => {
-    if (shouldSkipTracingTest()) {
-      sentryTest.skip();
-    }
+    sentryTest.skip(shouldSkipTracingTest());
 
     const url = await getLocalTestUrl({ testDir: __dirname });
 
@@ -272,48 +235,31 @@ sentryTest(
       });
     });
 
-    // ensure navigation transaction is finished
-    await getFirstSentryEnvelopeRequest(page, url);
+    // ensure navigation span is finished
+    const pageloadSpanPromise = waitForStreamedSpan(page, span => getSpanOp(span) === 'pageload');
+    await page.goto(url);
+    await pageloadSpanPromise;
 
-    const navigationEventPromise = getFirstSentryEnvelopeRequest<EventAndTraceHeader>(
+    const navigationSpanEnvelopePromise = waitForStreamedSpanEnvelope(
       page,
-      undefined,
-      eventAndTraceHeaderRequestParser,
+      env => !!env[1][0][1].items.find(s => getSpanOp(s) === 'navigation'),
     );
     const requestPromise = page.waitForRequest('http://sentry-test-site.example/*');
     await page.goto(`${url}#foo`);
     await page.locator('#xhrBtn').click();
-    const [[navigationEvent, navigationTraceHeader], request] = await Promise.all([
-      navigationEventPromise,
-      requestPromise,
-    ]);
+    const [navigationSpanEnvelope, request] = await Promise.all([navigationSpanEnvelopePromise, requestPromise]);
 
-    const navigationTraceContext = navigationEvent.contexts?.trace;
+    const navigationTraceId = navigationSpanEnvelope[0].trace?.trace_id;
+    const sampleRand = navigationSpanEnvelope[0].trace?.sample_rand;
 
-    expect(navigationEvent.type).toEqual('transaction');
-    expect(navigationTraceContext).toMatchObject({
-      op: 'navigation',
-      trace_id: expect.stringMatching(/^[\da-f]{32}$/),
-      span_id: expect.stringMatching(/^[\da-f]{16}$/),
-    });
-    expect(navigationTraceContext).not.toHaveProperty('parent_span_id');
-
-    expect(navigationTraceHeader).toEqual({
-      environment: 'production',
-      public_key: 'public',
-      sample_rate: '1',
-      sampled: 'true',
-      trace_id: navigationTraceContext?.trace_id,
-      sample_rand: expect.any(String),
-    });
+    expect(navigationTraceId).toMatch(/^[\da-f]{32}$/);
 
     const headers = request.headers();
 
     // sampling decision is propagated from active span sampling decision
-    const navigationTraceId = navigationTraceContext?.trace_id;
     expect(headers['sentry-trace']).toMatch(new RegExp(`^${navigationTraceId}-[0-9a-f]{16}-1$`));
     expect(headers['baggage']).toEqual(
-      `sentry-environment=production,sentry-public_key=public,sentry-trace_id=${navigationTraceId},sentry-sampled=true,sentry-sample_rand=${navigationTraceHeader?.sample_rand},sentry-sample_rate=1`,
+      `sentry-environment=production,sentry-public_key=public,sentry-trace_id=${navigationTraceId},sentry-sampled=true,sentry-sample_rand=${sampleRand},sentry-sample_rate=1`,
     );
   },
 );
@@ -321,26 +267,26 @@ sentryTest(
 sentryTest(
   'user feedback event after navigation has navigation traceId in headers',
   async ({ getLocalTestUrl, page }) => {
-    if (shouldSkipTracingTest() || shouldSkipFeedbackTest()) {
-      sentryTest.skip();
-    }
+    sentryTest.skip(shouldSkipTracingTest() || shouldSkipFeedbackTest());
 
     const url = await getLocalTestUrl({ testDir: __dirname, handleLazyLoadedFeedback: true });
 
-    // ensure pageload transaction is finished
-    await getFirstSentryEnvelopeRequest<Event>(page, url);
+    // ensure pageload span is finished
+    const pageloadSpanPromise = waitForStreamedSpan(page, span => getSpanOp(span) === 'pageload');
+    await page.goto(url);
+    await pageloadSpanPromise;
 
-    const navigationEvent = await getFirstSentryEnvelopeRequest<Event>(page, `${url}#foo`);
+    const navigationSpanPromise = waitForStreamedSpan(page, span => getSpanOp(span) === 'navigation');
+    await page.goto(`${url}#foo`);
+    const navigationSpan = await navigationSpanPromise;
 
-    const navigationTraceContext = navigationEvent.contexts?.trace;
-    expect(navigationTraceContext).toMatchObject({
-      op: 'navigation',
-      trace_id: expect.stringMatching(/^[\da-f]{32}$/),
-      span_id: expect.stringMatching(/^[\da-f]{16}$/),
-    });
-    expect(navigationTraceContext).not.toHaveProperty('parent_span_id');
+    const navigationTraceId = navigationSpan.trace_id;
+    expect(getSpanOp(navigationSpan)).toEqual('navigation');
+    expect(navigationTraceId).toMatch(/^[\da-f]{32}$/);
+    expect(navigationSpan.span_id).toMatch(/^[\da-f]{16}$/);
+    expect(navigationSpan.parent_span_id).toBeUndefined();
 
-    const feedbackEventPromise = getFirstSentryEnvelopeRequest<Event>(page);
+    const feedbackEventsPromise = getMultipleSentryEnvelopeRequests<Event>(page, 1, { envelopeType: 'feedback' });
 
     await page.getByText('Report a Bug').click();
     expect(await page.locator(':visible:text-is("Report a Bug")').count()).toEqual(1);
@@ -349,14 +295,14 @@ sentryTest(
     await page.locator('[name="message"]').fill('my example feedback');
     await page.locator('[data-sentry-feedback] .btn--primary').click();
 
-    const feedbackEvent = await feedbackEventPromise;
+    const [feedbackEvent] = await feedbackEventsPromise;
 
     expect(feedbackEvent.type).toEqual('feedback');
 
     const feedbackTraceContext = feedbackEvent.contexts?.trace;
 
     expect(feedbackTraceContext).toMatchObject({
-      trace_id: navigationTraceContext?.trace_id,
+      trace_id: navigationTraceId,
       span_id: expect.stringMatching(/^[\da-f]{16}$/),
     });
   },

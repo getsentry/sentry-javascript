@@ -1,6 +1,7 @@
 import * as diagnosticsChannel from '../utils/diagnosticsChannel';
 import type { IntegrationFn } from '@sentry/core';
 import { defineIntegration } from '@sentry/core';
+import type { OrchestrionChannelContext } from '../orchestrion/types';
 import { CHANNELS } from '../orchestrion/channels';
 import { bindTracingChannelToSpan } from '../tracing-channel';
 import { lruMemoizerModuleNames } from '../orchestrion/config/lru-memoizer';
@@ -9,10 +10,6 @@ import { invokeOrchestrionInstrumentation } from '../orchestrion/instrumentation
 // Same name as the OTel integration by design — when enabled, the OTel
 // 'LruMemoizer' integration is omitted from the default set.
 const INTEGRATION_NAME = 'LruMemoizer' as const;
-
-interface LruMemoizerLoadContext {
-  arguments: unknown[];
-}
 
 const _lruMemoizerIntegration = (() => {
   return {
@@ -25,7 +22,7 @@ const _lruMemoizerIntegration = (() => {
 
 function instrumentLruMemoizer(): void {
   bindTracingChannelToSpan(
-    diagnosticsChannel.tracingChannel<LruMemoizerLoadContext>(CHANNELS.LRU_MEMOIZER_LOAD),
+    diagnosticsChannel.tracingChannel<OrchestrionChannelContext>(CHANNELS.LRU_MEMOIZER_LOAD),
     // We only want the helper's caller-context restore for the callback lru-memoizer fires from a detached `setImmediate`.
     () => undefined,
   );

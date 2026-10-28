@@ -1,29 +1,14 @@
 import * as Sentry from '@sentry/browser';
 
 window.Sentry = Sentry;
+window._testBaseTimestamp = performance.timeOrigin / 1000;
 
 Sentry.init({
-  traceLifecycle: 'static',
   dsn: 'https://public@dsn.ingest.sentry.io/1337',
   integrations: [
     Sentry.browserTracingIntegration({
-      idleTimeout: 4000,
-      enableLongTask: false,
-      enableInp: true,
-      instrumentPageLoad: false,
-      instrumentNavigation: false,
+      idleTimeout: 5000,
     }),
   ],
   tracesSampleRate: 1,
-  debug: true,
-});
-
-const client = Sentry.getClient();
-
-// Force page load transaction name to a testable value
-Sentry.startBrowserTracingPageLoadSpan(client, {
-  name: 'test-url',
-  attributes: {
-    ['sentry.segment.name.source']: 'url',
-  },
 });

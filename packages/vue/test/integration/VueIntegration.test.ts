@@ -45,6 +45,7 @@ describe('Sentry.VueIntegration', () => {
   });
 
   afterEach(() => {
+    Sentry.getCurrentScope().setClient(undefined);
     vi.resetAllMocks();
   });
 

@@ -48,8 +48,8 @@ test('attaches HTTP connection info to the server span', async ({ baseURL, page 
   expect(data['client.address']?.value).toEqual(expect.any(String));
   expect(data['network.peer.address']?.value).toBe(data['client.address']?.value);
 
-  if (RUNTIME !== 'deno') {
-    // Only exposed in `hono/deno`
+  if (RUNTIME !== 'node' && RUNTIME !== 'deno') {
+    // Only the Node HTTP server span and Deno's `remoteAddr` give a transport.
     expect(data['network.transport']?.value).toBeUndefined();
   } else {
     expect(data['network.transport']?.value).toMatch(/tcp/);
@@ -99,7 +99,7 @@ test("preserves the baseline server.*, client.* and network.* server span attrib
     expect(data['network.type']?.value).toMatch(/^ipv[46]$/);
     expect(data['network.protocol.name']?.value).toBe('http');
     expect(data['network.protocol.version']?.value).toBe('1.1');
-    expect(data['network.transport']?.value).toBeUndefined();
+    expect(data['network.transport']?.value).toBe('tcp');
     expect(data['network.local.port']?.value).toBe(data['server.port']?.value);
     expect(data['network.local.address']?.value).toEqual(expect.any(String));
     expect(data['network.peer.address']?.value).toBe(data['client.address']?.value);

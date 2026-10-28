@@ -41,11 +41,30 @@ const mastraContextConfig: InstrumentationConfig[] = ['executeWithContext', 'exe
   }),
 );
 
-export const mastraConfig = [...mastraConstructorConfig, ...mastraContextConfig] satisfies InstrumentationConfig[];
+// Mastra's `classifier_evaluation` span carries no input or output, so we read them from the
+// `Classifier.evaluate()` call. `Classifier` lives in the stable, unhashed `classifier` entry.
+const mastraClassifierConfig: InstrumentationConfig[] = [
+  {
+    channelName: 'mastraClassifierEvaluate',
+    module: {
+      name: '@mastra/core',
+      versionRange: '>=1.63.2 <2.0.0',
+      filePath: /^dist\/classifier\/index\.(?:cjs|mjs|js)$/,
+    },
+    functionQuery: { className: 'Classifier', methodName: 'evaluate', kind: 'Async' },
+  },
+];
+
+export const mastraConfig = [
+  ...mastraConstructorConfig,
+  ...mastraContextConfig,
+  ...mastraClassifierConfig,
+] satisfies InstrumentationConfig[];
 
 export const mastraModuleNames = getModuleNames(mastraConfig);
 
 export const mastraChannels = {
   MASTRA_CONSTRUCTOR: 'orchestrion:@mastra/core:mastraConstructor',
   MASTRA_EXECUTE_WITH_CONTEXT: 'orchestrion:@mastra/core:mastraExecuteWithContext',
+  MASTRA_CLASSIFIER_EVALUATE: 'orchestrion:@mastra/core:mastraClassifierEvaluate',
 } as const;

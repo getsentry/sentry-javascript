@@ -1,12 +1,14 @@
 import type { LRUMap, Span } from '@sentry/core';
-import { captureException, SPAN_STATUS_ERROR, startInactiveSpan, stringify, withActiveSpan } from '@sentry/core';
+import {
+  captureException,
+  isObjectLike,
+  SPAN_STATUS_ERROR,
+  startInactiveSpan,
+  stringify,
+  withActiveSpan,
+} from '@sentry/core';
 import {
   GEN_AI_CONVERSATION_ID,
-  GEN_AI_COST_CACHE_CREATION_INPUT_TOKENS,
-  GEN_AI_COST_CACHE_READ_INPUT_TOKENS,
-  GEN_AI_COST_INPUT_TOKENS,
-  GEN_AI_COST_OUTPUT_TOKENS,
-  GEN_AI_COST_TOTAL_TOKENS,
   GEN_AI_INPUT_MESSAGES,
   GEN_AI_OPERATION_NAME,
   GEN_AI_OUTPUT_MESSAGES,
@@ -23,18 +25,20 @@ import {
   GEN_AI_TOOL_CALL_RESULT,
   GEN_AI_TOOL_DEFINITIONS,
   GEN_AI_TOOL_NAME,
-  GEN_AI_USAGE_CACHE_CREATION_INPUT_TOKENS,
-  GEN_AI_USAGE_CACHE_READ_INPUT_TOKENS,
-  GEN_AI_USAGE_INPUT_TOKENS,
-  GEN_AI_USAGE_OUTPUT_TOKENS,
-  GEN_AI_USAGE_TOTAL_TOKENS,
   SERVER_ADDRESS,
   SERVER_PORT,
   SENTRY_ORIGIN,
 } from '@sentry/conventions/attributes';
 import { getGenAiSpanOp } from '../core/utils';
+import {
+  piAiAssistantMessageToGenAiMessage,
+  piAiContentToString,
+  piAiFinishReason,
+  piAiMessagesToGenAiMessages,
+} from '../pi-ai/messages';
+import { setPiAiUsageAttributes } from '../pi-ai/usage';
 import { FLUE_ORIGIN, MAX_TRACKED_FLUE_SPANS } from './constants';
-import type { FlueErrorInfo, FlueModelRequestInfo, FlueObservation, FlueUsage } from './types';
+import type { FlueErrorInfo, FlueModelRequestInfo, FlueObservation } from './types';
 
 /**
  * Flue persists the incoming W3C `traceparent` at admission and replays it on the agent operation.
@@ -157,60 +161,30 @@ export function endTurnSpan(observation: FlueObservation, turnSpans: SpanTracker
 
   setRequestAttributes(span, observation.request);
 
-  const { responseId, finishReason } = observation.response ?? {};
+  const responseId = observation.response?.responseId;
   if (responseId) {
     span.setAttribute(GEN_AI_RESPONSE_ID, responseId);
   }
+  const finishReason = piAiFinishReason(observation.response?.finishReason);
   if (finishReason) {
     // Serialized, not a raw array: the conventions declare this attribute's value type as `string`,
     // and that is what `ai/core`, Mastra, OpenAI and Vercel AI all write.
     span.setAttribute(GEN_AI_RESPONSE_FINISH_REASONS, stringify([finishReason]));
   }
 
-  const output = observation.response?.output;
-  if (recordOutputs && output !== undefined) {
-    span.setAttribute(GEN_AI_OUTPUT_MESSAGES, stringify(output));
+  const output = recordOutputs
+    ? piAiAssistantMessageToGenAiMessage(observation.response?.output, finishReason)
+    : undefined;
+  if (output) {
+    span.setAttribute(GEN_AI_OUTPUT_MESSAGES, stringify([output]));
   }
 
-  setUsageAttributes(span, observation.response?.usage, observation.isError);
+  setPiAiUsageAttributes(span, observation.response?.usage, observation.isError);
 
   if (observation.isError) {
     span.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
   }
   span.end();
-}
-
-/**
- * Flue reports token counts and its own computed costs on the same `usage` object, so both are set
- * here. The cost figures have no equivalent in the provider SDKs' own instrumentation.
- */
-export function setUsageAttributes(span: Span, usage: FlueUsage | undefined, isError?: boolean): void {
-  // A turn that failed before the provider billed anything reports every counter as 0. Writing
-  // those is noise that reads as a real zero-cost call, so skip the block entirely.
-  if (!usage || (isError && !usage.totalTokens)) {
-    return;
-  }
-
-  const attributes: Record<string, number> = {};
-  const set = (key: string, value: number | undefined): void => {
-    if (typeof value === 'number') {
-      attributes[key] = value;
-    }
-  };
-
-  set(GEN_AI_USAGE_INPUT_TOKENS, usage.input);
-  set(GEN_AI_USAGE_OUTPUT_TOKENS, usage.output);
-  set(GEN_AI_USAGE_TOTAL_TOKENS, usage.totalTokens);
-  set(GEN_AI_USAGE_CACHE_READ_INPUT_TOKENS, usage.cacheRead);
-  set(GEN_AI_USAGE_CACHE_CREATION_INPUT_TOKENS, usage.cacheWrite);
-
-  set(GEN_AI_COST_INPUT_TOKENS, usage.cost?.input);
-  set(GEN_AI_COST_OUTPUT_TOKENS, usage.cost?.output);
-  set(GEN_AI_COST_TOTAL_TOKENS, usage.cost?.total);
-  set(GEN_AI_COST_CACHE_READ_INPUT_TOKENS, usage.cost?.cacheRead);
-  set(GEN_AI_COST_CACHE_CREATION_INPUT_TOKENS, usage.cost?.cacheWrite);
-
-  span.setAttributes(attributes);
 }
 
 /**
@@ -251,8 +225,11 @@ export function endToolSpan(observation: FlueObservation, toolSpans: SpanTracker
   }
   toolSpans.remove(toolCallId);
 
-  if (recordOutputs && observation.result !== undefined) {
-    span.setAttribute(GEN_AI_TOOL_CALL_RESULT, stringify(observation.result));
+  if (recordOutputs) {
+    const result = toolResultForModel(observation);
+    if (result !== undefined) {
+      span.setAttribute(GEN_AI_TOOL_CALL_RESULT, result);
+    }
   }
 
   if (observation.isError) {
@@ -260,6 +237,25 @@ export function endToolSpan(observation: FlueObservation, toolSpans: SpanTracker
     captureToolError(span, observation.errorInfo);
   }
   span.end();
+}
+
+/**
+ * The result the model receives: Flue's `effectiveResult` when it has one, else the content blocks
+ * of its harness-level `result` (`{ content, details }`, whose `details` payload is tool-specific).
+ */
+function toolResultForModel(observation: FlueObservation): string | undefined {
+  const { effectiveResult } = observation;
+  if (effectiveResult !== undefined) {
+    if (typeof effectiveResult === 'string') {
+      return effectiveResult;
+    }
+    return Array.isArray(effectiveResult) ? piAiContentToString(effectiveResult) : stringify(effectiveResult);
+  }
+  const { result } = observation;
+  if (isObjectLike(result) && Array.isArray(result.content)) {
+    return piAiContentToString(result.content);
+  }
+  return result === undefined ? undefined : stringify(result);
 }
 
 /**
@@ -277,8 +273,9 @@ export function recordRequestContent(observation: FlueObservation, turnSpans: Sp
   if (input.systemPrompt) {
     span.setAttribute(GEN_AI_SYSTEM_INSTRUCTIONS, input.systemPrompt);
   }
-  if (input.messages) {
-    span.setAttribute(GEN_AI_INPUT_MESSAGES, stringify(input.messages));
+  const messages = piAiMessagesToGenAiMessages(input.messages);
+  if (messages.length) {
+    span.setAttribute(GEN_AI_INPUT_MESSAGES, stringify(messages));
   }
   if (input.tools?.length) {
     span.setAttribute(GEN_AI_TOOL_DEFINITIONS, stringify(input.tools));

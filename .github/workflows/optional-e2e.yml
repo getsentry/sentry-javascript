@@ -1,0 +1,145 @@
+name: 'CI: Optional E2E Tests'
+run-name: Optional E2E tests for ${{ inputs.commit }} (${{ inputs.correlation_id }})
+
+# Dispatched by `job_optional_e2e_tests` in build.yml. This is a separate workflow because GitHub
+# does not count failed checks of a dispatched run in the PR status, so these failures do not mark
+# the PR as failed.
+on:
+  workflow_dispatch:
+    inputs:
+      commit:
+        description: The commit that the tarballs were built from
+        required: true
+      build_run_id:
+        description: The build.yml run that uploaded the tarball artifacts
+        required: true
+      matrix:
+        description: The optional E2E test matrix as JSON
+        required: true
+      pr_number:
+        description: The PR that the run is for, if there is one
+        required: false
+      correlation_id:
+        description: Lets the dispatching job find this run
+        required: true
+
+# Like build.yml: a new push to a PR cancels the old run, other runs are never cancelled.
+concurrency:
+  group: ${{ github.workflow }}-${{ inputs.pr_number || github.run_id }}
+  cancel-in-progress: true
+
+env:
+  HEAD_COMMIT: ${{ inputs.commit }}
+
+  # See build.yml
+  DISABLE_V8_COMPILE_CACHE: '1'
+
+jobs:
+  job_optional_e2e_tests:
+    name: E2E ${{ matrix.label || matrix.test-application }} Test (optional)
+    # Same cache volume as the E2E jobs in build.yml. The event is always `workflow_dispatch`, so the PR number
+    # decides if the run gets the PR volume.
+    runs-on:
+      namespace-profile-sentry-javascript;overrides.cache-tag=sentry-javascript-e2e${{ inputs.pr_number != '' && '-pr'
+      || '' }}
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      # To download the artifacts of the build.yml run
+      actions: read
+    env:
+      E2E_TEST_AUTH_TOKEN: ${{ secrets.E2E_TEST_AUTH_TOKEN }}
+      E2E_TEST_DSN: ${{ secrets.E2E_TEST_DSN }}
+      # Needed because some apps expect a certain prefix
+      NEXT_PUBLIC_E2E_TEST_DSN: ${{ secrets.E2E_TEST_DSN }}
+      PUBLIC_E2E_TEST_DSN: ${{ secrets.E2E_TEST_DSN }}
+      REACT_APP_E2E_TEST_DSN: ${{ secrets.E2E_TEST_DSN }}
+      E2E_TEST_SENTRY_ORG_SLUG: 'sentry-javascript-sdks'
+      E2E_TEST_SENTRY_PROJECT: 'sentry-javascript-e2e-tests'
+      E2E_OPENROUTER_API_KEY: ${{ secrets.E2E_OPENROUTER_API_KEY }}
+      # Only this app talks to OpenAI directly (OpenRouter has no Decisions route), so only it gets the key.
+      E2E_OPENAI_DECISIONS_API_KEY:
+        ${{ matrix.test-application == 'node-openai-decisions-send-to-sentry' && secrets.E2E_OPENAI_DECISIONS_API_KEY ||
+        '' }}
+      # Used by test apps that deploy a real Cloudflare Worker, e.g. cloudflare-workers-send-to-sentry
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      # Keeps the Worker name at `<prefix>-pr-<number>`, which the cleanup-e2e-workers workflow deletes
+      E2E_PR_NUMBER: ${{ inputs.pr_number }}
+      # The `runtime` of a runtime variant, see dev-packages/e2e-tests/README.md
+      RUNTIME: ${{ matrix.runtime }}
+      # Without the root node_modules, `pnpm run` would first install the whole workspace.
+      pnpm_config_verify_deps_before_run: 'false'
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJson(inputs.matrix) }}
+
+    steps:
+      - name: Check out commit ${{ env.HEAD_COMMIT }}
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ env.HEAD_COMMIT }}
+      - name: Prepare E2E test application
+        uses: ./.github/actions/prepare-e2e-test
+        with:
+          test-application: ${{ matrix.test-application }}
+          runtime: ${{ matrix.runtime }}
+          deno-version: ${{ matrix.deno-version }}
+          artifacts-run-id: ${{ inputs.build_run_id }}
+          github-token: ${{ github.token }}
+
+      # Installs Playwright while the app builds. Keep it right before the build: the runner sets up a background
+      # composite action's steps from the job's shared `github` context, which fails with "Collection was modified" if
+      # a foreground step starts at that moment. Starting next to `download-artifact` also made it fail to read the event file.
+      - name: Install Playwright
+        id: install-playwright
+        background: true
+        uses: ./.github/actions/install-playwright
+        with:
+          browsers: chromium
+          cwd: dev-packages/e2e-tests/test-applications/${{ matrix.test-application }}
+
+      - name: Build E2E app
+        working-directory: ${{ runner.temp }}/test-application
+        timeout-minutes: 7
+        run: ${{ matrix.build-command || 'pnpm test:build' }}
+
+      - wait: [install-playwright]
+
+      - name: Run E2E test
+        working-directory: ${{ runner.temp }}/test-application
+        timeout-minutes: 10
+        run: ${{ matrix.assert-command || 'pnpm test:assert' }}
+
+  # A separate job in this workflow, so that a re-run of this run (all jobs or only the failed ones) also updates the
+  # comment. GitHub re-runs the jobs that depend on a re-run job.
+  job_report:
+    name: Report in PR comment
+    needs: [job_optional_e2e_tests]
+    # Not for a cancelled run: a new push cancels the old run, and the new run reports.
+    if: ${{ !cancelled() && inputs.pr_number != '' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      actions: read
+      pull-requests: write
+    steps:
+      - name: Check out commit ${{ env.HEAD_COMMIT }}
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ env.HEAD_COMMIT }}
+      - name: Set up Node
+        uses: actions/setup-node@v7
+        with:
+          node-version-file: 'package.json'
+      - name: Install pnpm
+        uses: ./.github/actions/install-pnpm
+      - name: Install action dependencies
+        run: pnpm install --frozen-lockfile --filter @sentry-internal/optional-e2e-gh-action
+      - name: Report optional E2E results
+        uses: ./dev-packages/optional-e2e-gh-action
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          mode: report
+          pr_number: ${{ inputs.pr_number }}

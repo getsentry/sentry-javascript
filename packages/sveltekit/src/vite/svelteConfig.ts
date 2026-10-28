@@ -1,5 +1,7 @@
+import { escapeStringForRegex } from '@sentry/core';
 import type { Builder } from '@sveltejs/kit';
 import * as fs from 'fs';
+import * as os from 'os';
 import * as path from 'path';
 import * as url from 'url';
 import type { SupportedSvelteKitAdapters } from './detectAdapter';
@@ -51,6 +53,23 @@ export async function loadSvelteConfig(): Promise<SvelteConfigFileContents> {
  */
 export function getHooksFileName(kitConfig: ResolvedKitConfig, hookType: 'client' | 'server'): string {
   return kitConfig.files?.hooks?.[hookType] || `src/hooks.${hookType}`;
+}
+
+/**
+ * Matches the Vite module ids of SvelteKit entry files given without an extension, like the hooks files: the file with
+ * one of SvelteKit's module extensions, or the `index` file of a directory by that name, which SvelteKit also accepts.
+ */
+export function makeEntryFileMatcher(kitConfig: ResolvedKitConfig, entryPaths: string[]): (id: string) => boolean {
+  const extensions = new Set([...(kitConfig.moduleExtensions ?? ['.js', '.ts']), '.mjs', '.mts']);
+  const extensionPattern = [...extensions]
+    .map(extension => escapeStringForRegex(extension.replace(/^\./, '')))
+    .join('|');
+  const pathPattern = entryPaths.map(escapeStringForRegex).join('|');
+  // oxlint-disable-next-line sdk/no-regexp-constructor -- not end user input + escaped anyway
+  const entryFileRegexp = new RegExp(`/(?:${pathPattern})(?:/index)?\\.(?:${extensionPattern})$`);
+
+  // Vite appends queries like `?v=123` to module ids.
+  return id => entryFileRegexp.test(id.split('?')[0] ?? id);
 }
 
 /**
@@ -106,7 +125,11 @@ async function getNodeAdapterOutputDir(kitConfig: ResolvedKitConfig): Promise<st
     rimraf: () => {},
     mkdirp: () => {},
 
+    // SvelteKit 3 passes the kit config directly (`config.paths`), SvelteKit 2 nests it (`config.kit.paths`)
     config: {
+      paths: {
+        base: kitConfig.paths?.base || '',
+      },
       kit: {
         // @ts-expect-error - the builder expects a validated config but for our purpose it's fine to just pass this partial config
         paths: {
@@ -116,10 +139,33 @@ async function getNodeAdapterOutputDir(kitConfig: ResolvedKitConfig): Promise<st
     },
   };
 
+  // `@sveltejs/adapter-node` v6 deletes its (relative) output dir with `fs.rmSync` before it touches the
+  // builder, so our no-op `rimraf` doesn't help. Running `adapt()` from an empty temp cwd keeps it from
+  // wiping the user's real build output. The rm and `writeClient` both run synchronously, so the cwd is
+  // only changed for the synchronous part of the call and no other code observes it.
+  const originalCwd = process.cwd();
+  let sandboxDir: string | undefined;
+  let adaptResult: unknown;
   try {
-    await nodeAdapter.adapt(adapterBuilder);
+    sandboxDir = fs.mkdtempSync(path.join(os.tmpdir(), 'sentry-sveltekit-'));
+    process.chdir(sandboxDir);
+    adaptResult = nodeAdapter.adapt(adapterBuilder);
   } catch {
     // We expect the adapter to throw in writeClient!
+  } finally {
+    if (process.cwd() !== originalCwd) {
+      process.chdir(originalCwd);
+    }
+  }
+
+  try {
+    await adaptResult;
+  } catch {
+    // We expect the adapter to throw in writeClient!
+  }
+
+  if (sandboxDir) {
+    fs.rmSync(sandboxDir, { recursive: true, force: true });
   }
 
   return outputDir;

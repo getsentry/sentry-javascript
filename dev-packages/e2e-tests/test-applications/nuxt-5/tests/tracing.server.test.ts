@@ -1,5 +1,6 @@
 import { expect, test } from '@playwright/test';
-import { collectStreamedSpansUntilSegment, getSpanOp, waitForStreamedSpan } from '@sentry-internal/test-utils';
+import { collectStreamedSpans, getSpanOp, waitForStreamedSpan } from '@sentry-internal/test-utils';
+import { IMPORT_SURFACES } from './importSurfaces';
 
 test('sends a server root span on pageload', async ({ page }) => {
   const serverSpanPromise = waitForStreamedSpan('nuxt-5', span => {
@@ -38,27 +39,36 @@ test('does not send spans for build asset folder "_nuxt"', async ({ page }) => {
   expect(serverSpan.attributes['sentry.segment.name.source']?.value).toBe('route');
 });
 
-// TODO: Make test work with Nuxt 5
-test.skip('captures server API calls made with Nitro $fetch', async ({ page }) => {
-  const spansPromise = collectStreamedSpansUntilSegment(
-    'nuxt-5',
-    span => span.attributes['url.path']?.value === '/api/nitro-fetch',
-  );
+IMPORT_SURFACES.forEach(({ name, apiPrefix }) => {
+  test(`captures server API calls made with Nitro $fetch (${name})`, async ({ page }) => {
+    // The server-side http.client span can flush before its segment. Accumulate until both arrived.
+    const spansPromise = collectStreamedSpans('nuxt-5', spans => {
+      return (
+        spans.some(span => span.is_segment && span.attributes['url.path']?.value === `${apiPrefix}/nitro-fetch`) &&
+        spans.some(
+          span => getSpanOp(span) === 'http.client' && span.attributes['url.full']?.value === 'https://example.com/',
+        )
+      );
+    });
 
-  await page.goto(`/fetch-server-routes`);
-  await page.getByText('Fetch Nitro $fetch', { exact: true }).click();
+    await page.goto(`/fetch-server-routes?apiPrefix=${apiPrefix}`);
+    await page.getByText('Fetch Nitro $fetch', { exact: true }).click();
 
-  const spans = await spansPromise;
+    const spans = await spansPromise;
 
-  const httpServerSpan = spans.find(
-    span => span.is_segment && span.attributes['url.path']?.value === '/api/nitro-fetch',
-  );
-  const httpClientSpan = spans.find(
-    span => span.trace_id === httpServerSpan?.trace_id && span.attributes['url.full']?.value === 'https://example.com/',
-  );
+    const serverSegmentSpan = spans.find(
+      span => span.is_segment && span.attributes['url.path']?.value === `${apiPrefix}/nitro-fetch`,
+    );
+    const httpClientSpan = spans.find(
+      span => getSpanOp(span) === 'http.client' && span.attributes['url.full']?.value === 'https://example.com/',
+    );
 
-  expect(getSpanOp(httpServerSpan!)).toEqual('http.server');
+    expect(serverSegmentSpan).toBeDefined();
+    expect(getSpanOp(serverSegmentSpan!)).toBe('http.server');
 
-  expect(httpClientSpan?.parent_span_id).toEqual(httpServerSpan?.span_id);
-  expect(getSpanOp(httpClientSpan!)).toEqual('http.client');
+    expect(httpClientSpan).toBeDefined();
+    expect(httpClientSpan?.name).toBe('GET example.com');
+    expect(httpClientSpan?.trace_id).toBe(serverSegmentSpan?.trace_id);
+    expect(httpClientSpan?.parent_span_id).toBe(serverSegmentSpan?.span_id);
+  });
 });

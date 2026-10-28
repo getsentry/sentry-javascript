@@ -51,6 +51,50 @@ Deno.test('@sentry/deno/import: transforms mysql so it publishes the orchestrion
   assert(line.includes('"runtime":["mysql"]'), `expected runtime marker, got: ${line}`);
 });
 
+async function runInitScenario(...args: string[]): Promise<{ line: string; out: string; err: string }> {
+  const scenario = new URL('./scenario-init.mjs', import.meta.url);
+  const cwd = new URL('../../', import.meta.url);
+
+  // Deno throws on a `process.env` read without permission. Grant only the
+  // variable `mysql` itself reads, so any read by the SDK fails the run.
+  const command = new Deno.Command('deno', {
+    args: ['run', '--allow-read', '--allow-net', '--allow-env=READABLE_STREAM', scenario.pathname, ...args],
+    cwd: cwd.pathname,
+    stdout: 'piped',
+    stderr: 'piped',
+  });
+
+  const { code, stdout, stderr } = await command.output();
+  const out = new TextDecoder().decode(stdout);
+  const err = new TextDecoder().decode(stderr);
+
+  assertEquals(code, 0, `scenario exited ${code}\nstdout:\n${out}\nstderr:\n${err}`);
+
+  const line = out.split('\n').find(l => l.startsWith('SCENARIO')) ?? '';
+  assert(line, `no SCENARIO line in output:\n${out}\nstderr:\n${err}`);
+  return { line, out, err };
+}
+
+Deno.test('init(): transforms mysql imported after it', async () => {
+  const { line, out, err } = await runInitScenario();
+  assert(line.includes('events=start'), `expected channel 'start' event, got: ${line}`);
+  assert(line.includes('"runtime":["mysql"]'), `expected runtime marker, got: ${line}`);
+  assert(
+    !`${out}${err}`.includes('No diagnostics-channel injection detected'),
+    `unexpected missing-injection warning:\n${out}\n${err}`,
+  );
+});
+
+Deno.test('init(): enableRuntimeChannelInjection: false skips the hook and warns', async () => {
+  const { line, out, err } = await runInitScenario('disabled');
+  assert(line.includes('events= '), `expected no channel events, got: ${line}`);
+  assert(!line.includes('"runtime"'), `expected no runtime marker, got: ${line}`);
+  assert(
+    `${out}${err}`.includes('No diagnostics-channel injection detected'),
+    `expected missing-injection warning:\n${out}\n${err}`,
+  );
+});
+
 Deno.test('mysql instrumentation: orchestrion:mysql:query channel produces a nested db span', async () => {
   resetGlobals();
   const sink = spanSink();

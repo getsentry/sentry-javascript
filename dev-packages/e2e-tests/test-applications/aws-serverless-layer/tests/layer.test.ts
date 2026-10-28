@@ -37,7 +37,7 @@ test.describe('Lambda layer', () => {
       data: {
         'sentry.sample_rate': 1,
         'sentry.segment.name.source': 'component',
-        'sentry.origin': 'auto.aws_lambda',
+        'sentry.origin': 'auto.function.aws_serverless',
         'sentry.op': 'function.aws',
         'cloud.account.id': '012345678912',
         'cloud.platform': 'aws_lambda',
@@ -49,7 +49,7 @@ test.describe('Lambda layer', () => {
         'sentry.kind': 'server',
       },
       op: 'function.aws',
-      origin: 'auto.aws_lambda',
+      origin: 'auto.function.aws_serverless',
       span_id: expect.stringMatching(/[a-f0-9]{16}/),
       status: 'ok',
       trace_id: expect.stringMatching(/[a-f0-9]{32}/),
@@ -108,7 +108,7 @@ test.describe('Lambda layer', () => {
       data: {
         'sentry.sample_rate': 1,
         'sentry.segment.name.source': 'component',
-        'sentry.origin': 'auto.aws_lambda',
+        'sentry.origin': 'auto.function.aws_serverless',
         'sentry.op': 'function.aws',
         'cloud.account.id': '012345678912',
         'cloud.platform': 'aws_lambda',
@@ -120,7 +120,7 @@ test.describe('Lambda layer', () => {
         'sentry.kind': 'server',
       },
       op: 'function.aws',
-      origin: 'auto.aws_lambda',
+      origin: 'auto.function.aws_serverless',
       span_id: expect.stringMatching(/[a-f0-9]{16}/),
       status: 'ok',
       trace_id: expect.stringMatching(/[a-f0-9]{32}/),
@@ -234,7 +234,7 @@ test.describe('Lambda layer', () => {
       data: {
         'sentry.sample_rate': 1,
         'sentry.segment.name.source': 'component',
-        'sentry.origin': 'auto.aws_lambda',
+        'sentry.origin': 'auto.function.aws_serverless',
         'sentry.op': 'function.aws',
         'cloud.account.id': '012345678912',
         'cloud.platform': 'aws_lambda',
@@ -246,7 +246,7 @@ test.describe('Lambda layer', () => {
         'sentry.kind': 'server',
       },
       op: 'function.aws',
-      origin: 'auto.aws_lambda',
+      origin: 'auto.function.aws_serverless',
       span_id: expect.stringMatching(/[a-f0-9]{16}/),
       status: 'ok',
       trace_id: expect.stringMatching(/[a-f0-9]{32}/),
@@ -283,11 +283,11 @@ test.describe('Lambda layer', () => {
     expect(transactionEvent.contexts?.trace).toEqual(
       expect.objectContaining({
         op: 'function.aws',
-        origin: 'auto.aws_lambda',
+        origin: 'auto.function.aws_serverless',
         status: 'ok',
         data: expect.objectContaining({
           'sentry.op': 'function.aws',
-          'sentry.origin': 'auto.aws_lambda',
+          'sentry.origin': 'auto.function.aws_serverless',
           'sentry.kind': 'server',
           'cloud.resource_id': 'arn:aws:lambda:us-east-1:012345678912:function:LayerCallback',
           'faas.name': 'LayerCallback',
@@ -320,6 +320,49 @@ test.describe('Lambda layer', () => {
         },
       }),
     );
+  });
+
+  test('ends the span when a callback-style handler calls back after it returned', async ({ lambdaClient }) => {
+    const transactionEventPromise = waitForTransaction('aws-serverless-layer', transactionEvent => {
+      return transactionEvent?.transaction === 'LayerCallback';
+    });
+
+    await lambdaClient.send(
+      new InvokeCommand({
+        FunctionName: 'LayerCallback',
+        Payload: JSON.stringify({ callbackDelayMs: 200 }),
+      }),
+    );
+
+    const transactionEvent = await transactionEventPromise;
+
+    expect(transactionEvent.contexts?.trace?.status).toBe('ok');
+    // Node timers can fire up to a millisecond early, so the 200 ms callback delay can measure as 199.x ms
+    expect(transactionEvent.timestamp! - transactionEvent.start_timestamp!).toBeGreaterThanOrEqual(0.19);
+  });
+
+  test('sets error status when a callback-style handler calls back with an error after it returned', async ({
+    lambdaClient,
+  }) => {
+    const errorEventPromise = waitForError('aws-serverless-layer', errorEvent => {
+      return errorEvent?.exception?.values?.[0]?.value === 'callback error';
+    });
+    const transactionEventPromise = waitForTransaction('aws-serverless-layer', transactionEvent => {
+      return transactionEvent?.transaction === 'LayerCallback';
+    });
+
+    await lambdaClient.send(
+      new InvokeCommand({
+        FunctionName: 'LayerCallback',
+        Payload: JSON.stringify({ shouldError: true, callbackDelayMs: 200 }),
+      }),
+    );
+
+    const [errorEvent, transactionEvent] = await Promise.all([errorEventPromise, transactionEventPromise]);
+
+    expect(transactionEvent.contexts?.trace?.status).toBe('internal_error');
+    expect(transactionEvent.timestamp! - transactionEvent.start_timestamp!).toBeGreaterThanOrEqual(0.19);
+    expect(errorEvent.contexts?.trace?.trace_id).toBe(transactionEvent.contexts?.trace?.trace_id);
   });
 
   test('continues a trace from incoming headers', async ({ lambdaClient }) => {

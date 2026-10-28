@@ -145,6 +145,9 @@ describe('adapter output dir resolution', () => {
       ],
     });
 
+    const sourceMapSettingPlugin = plugins.find(
+      plugin => plugin.name === 'sentry-sveltekit-update-source-map-setting-plugin',
+    )!;
     const filesToDeletePlugin = plugins.find(
       plugin => plugin.name === 'sentry-sveltekit-files-to-delete-after-upload-setting-plugin',
     )!;
@@ -153,7 +156,7 @@ describe('adapter output dir resolution', () => {
     // This takes the branch that leaves `filesToDeleteAfterUpload` untouched - the adapter still
     // has to be resolved by `configResolved`, not later in `closeBundle`
     // @ts-expect-error these hooks exist and are callable
-    filesToDeletePlugin.config({ build: { sourcemap: true } });
+    await sourceMapSettingPlugin.config({ build: { sourcemap: true } });
     // @ts-expect-error these hooks exist and are callable
     await filesToDeletePlugin.configResolved();
 

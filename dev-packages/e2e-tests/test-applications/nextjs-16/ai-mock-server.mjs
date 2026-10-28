@@ -24,11 +24,12 @@ function sendJson(res, status, obj) {
   res.end(JSON.stringify(obj));
 }
 
-let serverPromise;
+/** Port of the mock server. The Playwright global setup starts it, so the app reaches it on every runtime. */
+export const MOCK_AI_PORT = 3032;
 
-/** Lazily starts the shared mock server and resolves to its port. */
-export function getMockAiPort() {
-  serverPromise ??= new Promise(resolve => {
+/** Starts the mock server on `MOCK_AI_PORT` and resolves to a function that stops it. */
+export function startMockAiServer() {
+  return new Promise(resolve => {
     const server = createServer(async (req, res) => {
       const url = req.url || '';
 
@@ -84,10 +85,8 @@ export function getMockAiPort() {
       res.writeHead(404).end();
     });
 
-    server.listen(0, () => {
-      resolve(server.address().port);
+    server.listen(MOCK_AI_PORT, () => {
+      resolve(() => new Promise(done => server.close(done)));
     });
   });
-
-  return serverPromise;
 }

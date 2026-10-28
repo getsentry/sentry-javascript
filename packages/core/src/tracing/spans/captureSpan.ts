@@ -1,6 +1,7 @@
 import type { RawAttributes } from '../../attributes';
 import type { Client } from '../../client';
 import type { ScopeData } from '../../scope';
+import { SEMANTIC_ATTRIBUTE_SENTRY_CUSTOM_SPAN_NAME } from '../../semanticAttributes';
 import type { SerializedStreamedSpan, Span, SpanAttributeValue, SpanJSON, StreamedSpanJSON } from '../../types/span';
 import { getCombinedScopeData } from '../../utils/scopeData';
 import {
@@ -45,6 +46,10 @@ export type SerializedStreamedSpanWithSegmentSpan = SerializedStreamedSpan & {
 export function captureSpan(span: Span, client: Client): SerializedStreamedSpanWithSegmentSpan {
   // Convert to JSON FIRST - we cannot write to an already-ended span
   const spanJSON = spanToJSON(span);
+  if (spanJSON.attributes) {
+    // oxlint-disable-next-line typescript/no-dynamic-delete
+    delete spanJSON.attributes[SEMANTIC_ATTRIBUTE_SENTRY_CUSTOM_SPAN_NAME];
+  }
 
   const segmentSpan = INTERNAL_getSegmentSpan(span);
   const serializedSegmentSpan = spanToJSON(segmentSpan);

@@ -1,15 +1,20 @@
+import {
+  CLIENT_ADDRESS,
+  CLIENT_PORT,
+  NETWORK_PEER_ADDRESS,
+  NETWORK_PEER_PORT,
+  NETWORK_TRANSPORT,
+  NETWORK_TYPE,
+} from '@sentry/conventions/attributes';
 import * as SentryCore from '@sentry/core';
 import { Hono } from 'hono';
 import { beforeEach, describe, expect, it, type Mock, vi } from 'vitest';
 import { sentry } from '../../src/node/middleware';
 import { init } from '../../src/node/sdk';
+import { requestConnInfoAttributes } from '../shared/requestConnInfoAttributes';
 
 vi.mock('@sentry/node', () => ({
   init: vi.fn(),
-}));
-
-vi.mock('@hono/node-server/conninfo', () => ({
-  getConnInfo: vi.fn(() => ({ remote: {} })),
 }));
 
 // eslint-disable-next-line @typescript-eslint/consistent-type-imports
@@ -127,8 +132,8 @@ describe('Hono Node Middleware', () => {
   describe('double-init guard', () => {
     it('skips re-initialization when a client already exists', () => {
       const fakeClient = { getOptions: () => ({}) };
-      const getClientSpy = vi
-        .spyOn(SentryCore, 'getClient')
+      const getActiveClientSpy = vi
+        .spyOn(SentryCore, '_INTERNAL_getActiveClient')
         .mockReturnValue(fakeClient as unknown as SentryCore.Client);
 
       const result = init({ dsn: 'https://public@dsn.ingest.sentry.io/1337' });
@@ -136,17 +141,17 @@ describe('Hono Node Middleware', () => {
       expect(result).toBe(fakeClient);
       expect(initNodeMock).not.toHaveBeenCalled();
 
-      getClientSpy.mockRestore();
+      getActiveClientSpy.mockRestore();
     });
 
     it('initializes normally when no client exists yet', () => {
-      const getClientSpy = vi.spyOn(SentryCore, 'getClient').mockReturnValue(undefined);
+      const getActiveClientSpy = vi.spyOn(SentryCore, '_INTERNAL_getActiveClient').mockReturnValue(undefined);
 
       init({ dsn: 'https://public@dsn.ingest.sentry.io/1337' });
 
       expect(initNodeMock).toHaveBeenCalledTimes(1);
 
-      getClientSpy.mockRestore();
+      getActiveClientSpy.mockRestore();
     });
   });
 
@@ -208,8 +213,8 @@ describe('Hono Node Middleware', () => {
   describe('double-init guard', () => {
     it('skips re-initialization when a client already exists', () => {
       const fakeClient = { getOptions: () => ({}) };
-      const getClientSpy = vi
-        .spyOn(SentryCore, 'getClient')
+      const getActiveClientSpy = vi
+        .spyOn(SentryCore, '_INTERNAL_getActiveClient')
         .mockReturnValue(fakeClient as unknown as SentryCore.Client);
 
       const result = init({ dsn: 'https://public@dsn.ingest.sentry.io/1337' });
@@ -218,17 +223,36 @@ describe('Hono Node Middleware', () => {
       expect(initNodeMock).not.toHaveBeenCalled();
       expect(applySdkMetadataMock).not.toHaveBeenCalled();
 
-      getClientSpy.mockRestore();
+      getActiveClientSpy.mockRestore();
     });
 
     it('initializes normally when no client exists yet', () => {
-      const getClientSpy = vi.spyOn(SentryCore, 'getClient').mockReturnValue(undefined);
+      const getActiveClientSpy = vi.spyOn(SentryCore, '_INTERNAL_getActiveClient').mockReturnValue(undefined);
 
       init({ dsn: 'https://public@dsn.ingest.sentry.io/1337' });
 
       expect(initNodeMock).toHaveBeenCalledTimes(1);
 
-      getClientSpy.mockRestore();
+      getActiveClientSpy.mockRestore();
     });
+  });
+});
+
+describe('Hono Node Middleware — connection info', () => {
+  it('reads the socket of the incoming message', async () => {
+    const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+    const middleware = sentry(new Hono());
+    consoleWarnSpy.mockRestore();
+    // The `env` that `@hono/node-server` passes to `app.fetch`.
+    const env = { incoming: { socket: { remoteAddress: '203.0.113.5', remotePort: 54321, remoteFamily: 'IPv4' } } };
+
+    const attributes = await requestConnInfoAttributes(middleware, { env });
+
+    expect(attributes[CLIENT_ADDRESS]).toBe('203.0.113.5');
+    expect(attributes[CLIENT_PORT]).toBe(54321);
+    expect(attributes[NETWORK_PEER_ADDRESS]).toBe('203.0.113.5');
+    expect(attributes[NETWORK_PEER_PORT]).toBe(54321);
+    expect(attributes[NETWORK_TYPE]).toBe('ipv4');
+    expect(attributes).not.toHaveProperty(NETWORK_TRANSPORT);
   });
 });

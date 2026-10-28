@@ -1,5 +1,5 @@
 import type { Page } from '@playwright/test';
-import type { SerializedStreamedSpan, StreamedSpanEnvelope } from '@sentry/core';
+import type { DynamicSamplingContext, SerializedStreamedSpan, StreamedSpanEnvelope } from '@sentry/core';
 import { properFullEnvelopeParser } from './helpers';
 
 /**
@@ -130,4 +130,43 @@ export function getSpanOp(span: SerializedStreamedSpan): string | undefined {
 
 export function getSpansFromEnvelope(envelope: StreamedSpanEnvelope): SerializedStreamedSpan[] {
   return envelope[1][0][1].items;
+}
+
+export type StreamedSpanAndTraceHeader = [SerializedStreamedSpan, Partial<DynamicSamplingContext> | undefined];
+
+export async function waitForStreamedSpanAndTraceHeader(
+  page: Page,
+  callback: (span: SerializedStreamedSpan) => boolean = span => span.is_segment,
+): Promise<StreamedSpanAndTraceHeader> {
+  const envelope = await waitForStreamedSpanEnvelope(page, envelope => envelope[1][0][1].items.some(callback));
+  const span = envelope[1][0][1].items.find(callback)!;
+  return [span, envelope[0].trace];
+}
+
+export async function waitForStreamedSpanAndTraceHeaderOnUrl(
+  page: Page,
+  url: string,
+  callback?: (span: SerializedStreamedSpan) => boolean,
+): Promise<StreamedSpanAndTraceHeader> {
+  const [spanAndTraceHeader] = await Promise.all([waitForStreamedSpanAndTraceHeader(page, callback), page.goto(url)]);
+  return spanAndTraceHeader;
+}
+
+export function collectStreamedSpans(page: Page): SerializedStreamedSpan[] {
+  const spans: SerializedStreamedSpan[] = [];
+  page.on('request', request => {
+    if (!request.postData()) {
+      return;
+    }
+    try {
+      const envelope = properFullEnvelopeParser<StreamedSpanEnvelope>(request);
+      const header = envelope[1][0][0];
+      if (header.type === 'span' && header.content_type === 'application/vnd.sentry.items.span.v2+json') {
+        spans.push(...envelope[1][0][1].items);
+      }
+    } catch {
+      // Other requests may contain bodies which are not envelopes.
+    }
+  });
+  return spans;
 }

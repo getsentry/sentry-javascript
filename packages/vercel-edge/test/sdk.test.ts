@@ -1,6 +1,18 @@
-import { describe, expect, it } from 'vitest';
-import { getDefaultIntegrations, init, spanStreamingIntegration } from '../src';
-import { type Event, type Integration } from '@sentry/core';
+import { afterEach, beforeEach, describe, expect, it, type Mock, vi } from 'vitest';
+import {
+  close,
+  getClient,
+  getCurrentScope,
+  getDefaultIntegrations,
+  init,
+  spanStreamingIntegration,
+  serveTunnelIntegration,
+} from '../src';
+import { type Event, type Integration, originalConsoleMethods } from '@sentry/core';
+
+afterEach(() => {
+  getCurrentScope().setClient(undefined);
+});
 
 describe('getDefaultIntegrations', () => {
   it('includes request data collection by default', () => {
@@ -41,6 +53,18 @@ describe('getDefaultIntegrations', () => {
 });
 
 describe('init', () => {
+  it('serves the managed tunnel with `serveTunnelIntegration`', () => {
+    const browserDsn = 'https://browser@o1.ingest.sentry.io/42';
+    const client = init({
+      dsn: 'https://public@dsn.ingest.sentry.io/1337',
+      integrations: [serveTunnelIntegration({ allowedDsns: [browserDsn] })],
+    });
+
+    const options = client?.getOptions();
+    expect(options?.tunnel).toBeUndefined();
+    expect(options?._managedTunnel).toEqual({ allowedDsns: [browserDsn] });
+  });
+
   it('adds spanStreamingIntegration by default', () => {
     const client = init({});
     const integrations = client?.getOptions().integrations;
@@ -73,5 +97,44 @@ describe('init', () => {
 
     expect(integrations?.length).toBe(1);
     expect((integrations?.[0] as MarkedIntegration)?._custom).toBe(true);
+  });
+
+  describe('when called again', () => {
+    // `consoleSandbox` calls the method stored in `originalConsoleMethods`, so a
+    // spy on `console.warn` misses the warning once the console is instrumented.
+    const originalWarn = originalConsoleMethods.warn;
+    let warnSpy: Mock;
+
+    beforeEach(() => {
+      warnSpy = vi.fn();
+      originalConsoleMethods.warn = warnSpy;
+    });
+
+    afterEach(() => {
+      if (originalWarn) {
+        originalConsoleMethods.warn = originalWarn;
+      } else {
+        delete originalConsoleMethods.warn;
+      }
+    });
+
+    it('warns and replaces the active client', () => {
+      const first = init({ enableOpenTelemetrySetup: false });
+      const second = init({ enableOpenTelemetrySetup: false });
+
+      expect(warnSpy).toHaveBeenCalledTimes(1);
+      expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('`Sentry.init()` was called more than once'));
+      expect(second).not.toBe(first);
+      expect(getClient()).toBe(second);
+    });
+
+    it('does not warn after close()', async () => {
+      init({ enableOpenTelemetrySetup: false });
+      await close();
+      const second = init({ enableOpenTelemetrySetup: false });
+
+      expect(warnSpy).not.toHaveBeenCalled();
+      expect(getClient()).toBe(second);
+    });
   });
 });

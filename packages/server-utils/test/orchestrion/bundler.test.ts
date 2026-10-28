@@ -227,6 +227,7 @@ describe('sentryOrchestrionPlugin (vite)', () => {
     const plugin = vitePlugin();
     (plugin.configResolved as (config: unknown) => void)({
       command,
+      plugins: [plugin],
       ssr: { external: ssrExternal },
       logger: { warn },
     } as unknown as ResolvedConfig);
@@ -324,6 +325,59 @@ describe('sentryOrchestrionPlugin (vite)', () => {
     expect(transform.call({}, 'code', 'id', { ssr: true })).toBe('transformed');
   });
 
+  it('transforms and warns only in the first instance when two Sentry plugins add it to one build', () => {
+    const first = vitePlugin();
+    const second = vitePlugin();
+    const warn = vi.fn();
+    const config = {
+      command: 'build',
+      plugins: [{ name: 'other' }, first, second],
+      ssr: { external: ['mysql'] },
+      logger: { warn },
+    } as unknown as ResolvedConfig;
+
+    (first.configResolved as (config: unknown) => void)(config);
+    (second.configResolved as (config: unknown) => void)(config);
+
+    const firstTransform = first.transform as (
+      this: unknown,
+      code: string,
+      id: string,
+      opts?: { ssr?: boolean },
+    ) => unknown;
+    const secondTransform = second.transform as (
+      this: unknown,
+      code: string,
+      id: string,
+      opts?: { ssr?: boolean },
+    ) => unknown;
+    expect(firstTransform.call({}, 'code', 'id', { ssr: true })).toBe('transformed');
+    expect(secondTransform.call({}, 'code', 'id', { ssr: true })).toBeNull();
+    expect(warn).toHaveBeenCalledTimes(1);
+  });
+
+  it('still transforms when an SDK wraps the plugin with an object spread', () => {
+    // `@sentry/remix` puts `{ ...orchestrion, configResolved, transform }` into the build and calls the original hooks.
+    const plugin = vitePlugin();
+    const wrapper = { ...plugin, configResolved: vi.fn(), transform: vi.fn() };
+    const config = {
+      command: 'build',
+      plugins: [wrapper],
+      ssr: {},
+      logger: { warn: vi.fn() },
+    } as unknown as ResolvedConfig;
+
+    (plugin.configResolved as (config: unknown) => void)(config);
+
+    const transform = plugin.transform as (
+      this: unknown,
+      code: string,
+      id: string,
+      opts?: { ssr?: boolean },
+    ) => unknown;
+    expect(transform.call({}, 'code', 'id', { ssr: true })).toBe('transformed');
+  });
+
   it('gates resolveId on the ssr flag and falls back to self-resolution', async () => {
     const plugin = vitePlugin();
     const resolveId = plugin.resolveId as (
@@ -347,6 +401,71 @@ describe('sentryOrchestrionPlugin (vite)', () => {
     const fallback = await resolveId.call({ resolve }, '@sentry/server-utils', '/x.js', { ssr: true });
     expect(typeof fallback).toBe('string');
     expect(fallback).toContain('server-utils');
+  });
+
+  it('resolves the snippet import to the ESM entry, also for require() calls', async () => {
+    const plugin = vitePlugin();
+    const resolveId = plugin.resolveId as (
+      this: unknown,
+      source: string,
+      importer: string | undefined,
+      opts?: { ssr?: boolean },
+    ) => Promise<unknown>;
+
+    const resolve = vi.fn().mockResolvedValue(null);
+    // How Vite 5-7 resolve a `require()` in a CommonJS module.
+    const requireOptions = { ssr: true, custom: { 'node-resolve': { isRequire: true } } };
+
+    resolve.mockResolvedValueOnce({
+      id: '/app/node_modules/@sentry/server-utils/build/cjs/index.js',
+      moduleSideEffects: false,
+    });
+    await expect(
+      resolveId.call({ resolve }, '@sentry/server-utils', '/app/node_modules/mysql/index.js', requireOptions),
+    ).resolves.toEqual({
+      id: '/app/node_modules/@sentry/server-utils/build/esm/index.js',
+      moduleSideEffects: false,
+    });
+    expect(resolve).toHaveBeenCalledWith('@sentry/server-utils', '/app/node_modules/mysql/index.js', {
+      ...requireOptions,
+      skipSelf: true,
+    });
+
+    resolve.mockResolvedValueOnce({ id: 'C:\\app\\node_modules\\@sentry\\server-utils\\build\\cjs\\index.js' });
+    await expect(resolveId.call({ resolve }, '@sentry/server-utils', '/x.js', requireOptions)).resolves.toEqual({
+      id: 'C:\\app\\node_modules\\@sentry\\server-utils\\build\\esm\\index.js',
+    });
+
+    resolve.mockResolvedValueOnce({ id: '@sentry/server-utils', external: true });
+    await expect(resolveId.call({ resolve }, '@sentry/server-utils', '/x.js', requireOptions)).resolves.toEqual({
+      id: '@sentry/server-utils',
+      external: true,
+    });
+
+    const fallback = await resolveId.call({ resolve }, '@sentry/server-utils', '/x.js', requireOptions);
+    expect(fallback).toMatch(/[/\\]build[/\\]esm[/\\]index\.js$/);
+    expect(existsSync(fallback as string)).toBe(true);
+  });
+
+  it('resolves the snippet require() to the ESM entry before it handles other requires on Rolldown', async () => {
+    const resolveId = vitePlugin().resolveId as (
+      this: unknown,
+      source: string,
+      importer: string,
+      opts: { ssr: boolean; kind: string },
+    ) => Promise<unknown>;
+    const context = {
+      meta: { rolldownVersion: '1.2.14' },
+      environment: { name: 'ssr', mode: 'build', config: { resolve: { external: [] } } },
+      resolve: vi.fn().mockResolvedValue({ id: '/app/node_modules/@sentry/server-utils/build/cjs/index.js' }),
+    };
+
+    const resolved = await resolveId.call(context, '@sentry/server-utils', '/app/node_modules/pg/lib/client.js', {
+      ssr: true,
+      kind: 'require-call',
+    });
+
+    expect(resolved).toEqual({ id: '/app/node_modules/@sentry/server-utils/build/esm/index.js' });
   });
 });
 

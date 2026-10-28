@@ -8,6 +8,7 @@ import type {
   SerializedLogContainer,
   SerializedMetricContainer,
   SerializedSession,
+  SerializedStreamedSpan,
   SerializedStreamedSpanContainer,
   SessionAggregates,
   TransactionEvent,
@@ -19,7 +20,7 @@ import { existsSync } from 'fs';
 import { tmpdir } from 'os';
 import { join } from 'path';
 import { inspect } from 'util';
-import { onTestFailed } from 'vitest';
+import { onTestFailed, onTestFinished } from 'vitest';
 import type { DeepPartial } from './../assertions';
 import {
   assertEnvelopeHeader,
@@ -36,6 +37,15 @@ import {
 } from './../assertions';
 
 type VoidFunction = () => void;
+
+type SegmentMatcher = string | ((span: SerializedStreamedSpan) => boolean);
+
+type SpanCollector = {
+  done: boolean;
+  spanCount: number;
+  add(spans: SerializedStreamedSpan[]): void;
+  reject(error: Error): void;
+};
 
 type ExpectedEvent = Partial<Event> | ((event: Event) => void);
 type ExpectedTransaction = DeepPartial<TransactionEvent> | ((event: TransactionEvent) => void);
@@ -88,14 +98,14 @@ type ExpectedEnvelopeHeader =
 
 type StartResult = {
   completed(): Promise<void>;
-  childHasExited(): boolean;
+  exited(): Promise<void>;
   getLogs(): string[];
   getPort(): number | undefined;
   sendSignal(signal: NodeJS.Signals): void;
   makeRequest<T>(
     method: 'get' | 'post' | 'put' | 'delete' | 'patch',
     path: string,
-    options?: { headers?: Record<string, string>; data?: BodyInit; expectError?: boolean },
+    options?: { headers?: Record<string, string>; data?: BodyInit; expectError?: boolean; timeout?: number },
   ): Promise<T | undefined>;
 };
 
@@ -111,7 +121,7 @@ const COMPILE_CACHE_ENV: Record<string, string> =
 
 // The Bun and Deno packages run these suites from their own folder. Scenarios read the working
 // directory (e.g. `modulesIntegration` reads its `package.json`), so it is always this package.
-const PACKAGE_ROOT = join(__dirname, '..', '..');
+export const PACKAGE_ROOT = join(__dirname, '..', '..');
 
 /** Node flags that preload a module before the entry point. */
 const PRELOAD_FLAGS = ['--import', '--require', '-r'];
@@ -158,6 +168,10 @@ export function createRunner(...paths: string[]) {
   }
 
   const expectedEnvelopes: Expected[] = [];
+  const spanCollectors: SpanCollector[] = [];
+  let started = false;
+  let cleanupError: Error | undefined;
+  let stopRunner: ((error: Error) => void) | undefined;
   let expectedEnvelopeHeaders: ExpectedEnvelopeHeader[] | undefined = undefined;
   const flags: string[] = [];
   // By default, we ignore session & sessions
@@ -166,6 +180,7 @@ export function createRunner(...paths: string[]) {
   let withEnv: Record<string, string | undefined> = {};
   let withSentryServer = false;
   let ensureNoErrorOutput = false;
+  let autoFlush = true;
   // When set, the test using this runner expects `completed()` to reject (e.g. `test.fails` variants
   // created via `createEsmAndCjsTests` with `failsOnEsm`/`failsOnCjs`). We suppress the captured-log
   // dump in that case, since the failure is expected and the output would just be noise.
@@ -190,14 +205,72 @@ export function createRunner(...paths: string[]) {
     CLEANUP_STEPS.add(step);
   }
 
+  function cleanup(): void {
+    cleanupError ??= new Error('Test runner cleaned up before collection completed.');
+    stopRunner?.(cleanupError);
+    for (const collector of spanCollectors) {
+      if (!collector.done) collector.reject(cleanupError);
+    }
+    for (const step of runnerCleanupSteps) {
+      step();
+      CLEANUP_STEPS.delete(step);
+    }
+    runnerCleanupSteps.clear();
+  }
+
+  function collectStreamedSpans(
+    isDone: (spansOfTrace: SerializedStreamedSpan[]) => boolean,
+  ): Promise<SerializedStreamedSpan[]> {
+    if (started || cleanupError) {
+      throw new Error('Register span collectors before calling start() or cleanup().');
+    }
+
+    const promise = new Promise<SerializedStreamedSpan[]>((resolve, reject) => {
+      const spansByTrace = new Map<string, SerializedStreamedSpan[]>();
+      const collector: SpanCollector = {
+        done: false,
+        spanCount: 0,
+        reject(error) {
+          spansByTrace.clear();
+          reject(error);
+        },
+        add(spans) {
+          collector.spanCount += spans.length;
+          for (const span of spans) {
+            const traceSpans = spansByTrace.get(span.trace_id);
+            if (traceSpans) {
+              traceSpans.push(span);
+            } else {
+              spansByTrace.set(span.trace_id, [span]);
+            }
+          }
+          for (const traceSpans of spansByTrace.values()) {
+            if (isDone(traceSpans)) {
+              collector.done = true;
+              resolve(traceSpans);
+              spansByTrace.clear();
+              return;
+            }
+          }
+        },
+      };
+      spanCollectors.push(collector);
+    });
+    // completed() can reject before the caller reaches await spansPromise.
+    promise.catch(() => {});
+    return promise;
+  }
+
   return {
     /** Run (and de-register) only the cleanup steps registered by this runner. */
-    cleanup: function (): void {
-      for (const step of runnerCleanupSteps) {
-        step();
-        CLEANUP_STEPS.delete(step);
-      }
-      runnerCleanupSteps.clear();
+    cleanup,
+    /** Register before start(). Collect across envelopes until one trace satisfies the predicate. */
+    collectStreamedSpans,
+    /** Collect until a matching segment arrives; children arriving later are not included. */
+    collectStreamedSpansUntilSegment(segment: SegmentMatcher = () => true): Promise<SerializedStreamedSpan[]> {
+      const matchesSegment =
+        typeof segment === 'string' ? (span: SerializedStreamedSpan) => span.name === segment : segment;
+      return collectStreamedSpans(spans => spans.some(span => span.is_segment && matchesSegment(span)));
     },
     expect: function (expected: Expected) {
       if (ensureNoErrorOutput) {
@@ -258,6 +331,11 @@ export function createRunner(...paths: string[]) {
       unordered = true;
       return this;
     },
+    /** Skip the injected `beforeExit` flush, so the test sees only what the SDK sends on its own. */
+    withoutAutoFlush: function () {
+      autoFlush = false;
+      return this;
+    },
     ensureNoErrorOutput: function () {
       if (expectedEnvelopes.length > 0) {
         throw new Error('You should not use `ensureNoErrorOutput` when using `expect`!');
@@ -274,10 +352,25 @@ export function createRunner(...paths: string[]) {
       return this;
     },
     start: function (): StartResult {
+      if (started || cleanupError) {
+        throw new Error('A test runner can only be started once, before cleanup().');
+      }
+      if (
+        spanCollectors.length > 0 &&
+        (ensureNoErrorOutput || expectedEnvelopeHeaders || expectedEnvelopes.some(expected => 'span' in expected))
+      ) {
+        const error = new Error(
+          'Span collectors cannot be combined with span/header expectations or ensureNoErrorOutput().',
+        );
+        for (const collector of spanCollectors) collector.reject(error);
+        throw error;
+      }
+      started = true;
       let isComplete = false;
       let completeError: Error | undefined;
 
       const expectedEnvelopeCount = Math.max(expectedEnvelopes.length, (expectedEnvelopeHeaders || []).length);
+      const hasExpectations = expectedEnvelopeCount > 0 || spanCollectors.length > 0;
 
       let envelopeCount = 0;
       let scenarioServerPort: number | undefined;
@@ -293,6 +386,8 @@ export function createRunner(...paths: string[]) {
       const completedDeferred = createDeferred();
       // Resolved once the scenario reports its server port, so `makeRequest` can await it directly.
       const portReady = createDeferred();
+      // Resolved when the scenario process closes, so exit tests can await it instead of polling.
+      const exitedDeferred = createDeferred();
 
       // Vitest stops a test at its own timeout before `completed()` gives up, so print the child
       // output then too. `completed()` prints it for the failures it reports itself.
@@ -301,6 +396,10 @@ export function createRunner(...paths: string[]) {
           dumpCapturedLogs();
         }
       });
+      if (spanCollectors.length > 0) {
+        onTestFinished(cleanup);
+      }
+      stopRunner = complete;
 
       function complete(error?: Error): void {
         if (isComplete) {
@@ -309,6 +408,11 @@ export function createRunner(...paths: string[]) {
 
         isComplete = true;
         completeError = error || undefined;
+        if (error) {
+          for (const collector of spanCollectors) {
+            if (!collector.done) collector.reject(error);
+          }
+        }
         stopChild();
         completedDeferred.resolve();
       }
@@ -350,6 +454,7 @@ export function createRunner(...paths: string[]) {
           `pid=${child?.pid ?? 'none'}`,
           hasExited ? `exited (${exitStatus})` : 'running',
           `envelopes=${envelopeCount}/${expectedEnvelopeCount}`,
+          ...(spanCollectors.length > 0 ? [collectorProgress()] : []),
           `ms since spawn=${spawnedAt ? now - spawnedAt : 'not spawned'}`,
           `ms since last output=${lastOutputAt ? now - lastOutputAt : 'no output'}`,
         ].join(', ');
@@ -369,19 +474,47 @@ export function createRunner(...paths: string[]) {
         console.log('--- End of captured child process output ---\n');
       }
 
+      function collectorProgress(): string {
+        const pending = spanCollectors.filter(collector => !collector.done);
+        return `pending span collectors=${pending.length}, received spans=[${pending.map(c => c.spanCount).join(', ')}]`;
+      }
+
+      function checkComplete(): void {
+        if (
+          hasExpectations &&
+          envelopeCount === expectedEnvelopeCount &&
+          spanCollectors.every(collector => collector.done)
+        ) {
+          complete();
+        }
+      }
+
       /** Called after each expect callback to check if we're complete */
       function expectCallbackCalled(): void {
         envelopeCount++;
-        if (envelopeCount === expectedEnvelopeCount) {
-          complete();
-        }
+        checkComplete();
       }
 
       function newEnvelope(envelope: Envelope): void {
         if (process.env.DEBUG) log('newEnvelope', inspect(envelope, false, null, true));
 
         for (const item of envelope[1]) {
+          if (isComplete) return;
           const envelopeItemType = item[0].type;
+
+          if (envelopeItemType === 'span' && spanCollectors.length > 0) {
+            try {
+              const container = item[1] as SerializedStreamedSpanContainer;
+              for (const collector of spanCollectors) {
+                if (!collector.done) collector.add(container.items);
+              }
+            } catch (error) {
+              complete(error instanceof Error ? error : new Error(String(error)));
+              return;
+            }
+            checkComplete();
+            continue;
+          }
 
           if (ignored.has(envelopeItemType)) {
             continue;
@@ -425,6 +558,7 @@ export function createRunner(...paths: string[]) {
             });
 
             if (matchIndex < 0) {
+              if (spanCollectors.length > 0) continue;
               return;
             }
 
@@ -436,6 +570,7 @@ export function createRunner(...paths: string[]) {
             // Catch any error or failed assertions and pass them to done to end the test quickly
             try {
               if (!expected) {
+                if (spanCollectors.length > 0) continue;
                 return;
               }
 
@@ -466,6 +601,10 @@ export function createRunner(...paths: string[]) {
 
       serverStartup
         .then(([mockServerPort, mockServerClose]) => {
+          if (isComplete) {
+            mockServerClose?.();
+            return;
+          }
           if (mockServerClose) {
             registerCleanupStep(() => {
               mockServerClose();
@@ -497,8 +636,7 @@ export function createRunner(...paths: string[]) {
           // `should-exit`, `ensureNoErrorOutput`) verify the child exits
           // naturally and auto-flush would delay that with retrying HTTP
           // requests to the fake DSN.
-          const wantsAutoFlush =
-            !ensureNoErrorOutput && (expectedEnvelopes.length > 0 || (expectedEnvelopeHeaders?.length ?? 0) > 0);
+          const wantsAutoFlush = autoFlush && !ensureNoErrorOutput && hasExpectations;
           const runtime = getRuntime();
           const childFlags = wantsAutoFlush ? [...buildAutoFlushFlags(flags, testPath, runtime), ...flags] : flags;
           const entryPath = buildScenario(runtime, testPath);
@@ -536,6 +674,7 @@ export function createRunner(...paths: string[]) {
           child.on('close', (code, signal) => {
             hasExited = true;
             exitStatus = signal ? `signal ${signal}` : `code ${code ?? 'unknown'}`;
+            exitedDeferred.resolve();
 
             if (ensureNoErrorOutput) {
               complete();
@@ -550,12 +689,12 @@ export function createRunner(...paths: string[]) {
             // child output is dumped by `completed()`. In the success path `complete()` has already
             // run (so `isComplete` short-circuits this), server-style tests are killed by `complete()`
             // first, and tests that expect no envelopes drive completion some other way.
-            if (!isComplete && expectedEnvelopeCount > 0) {
+            if (!isComplete && hasExpectations) {
               const how = signal ? `signal ${signal}` : `code ${code ?? 'unknown'}`;
               complete(
                 new Error(
                   `Scenario exited (${how}) after ${envelopeCount}/${expectedEnvelopeCount} expected ` +
-                    'envelope(s), before the test completed.',
+                    `envelope(s), before the test completed.${spanCollectors.length > 0 ? ` ${collectorProgress()}` : ''}`,
                 ),
               );
             }
@@ -616,6 +755,7 @@ export function createRunner(...paths: string[]) {
           try {
             await waitForEvent(completedDeferred.promise, 120_000, 'Timed out waiting for test to complete');
           } catch (e) {
+            complete(e instanceof Error ? e : new Error(String(e)));
             // On timeout, dump the captured child output (same info `DEBUG=1` would have streamed live)
             // so CI failures are diagnosable without re-running locally with DEBUG enabled.
             dumpCapturedLogs();
@@ -628,8 +768,8 @@ export function createRunner(...paths: string[]) {
             throw completeError;
           }
         },
-        childHasExited: function (): boolean {
-          return hasExited;
+        exited: function (): Promise<void> {
+          return exitedDeferred.promise;
         },
         getLogs(): string[] {
           return logs;
@@ -643,7 +783,12 @@ export function createRunner(...paths: string[]) {
         makeRequest: async function <T>(
           method: 'get' | 'post' | 'put' | 'delete' | 'patch',
           path: string,
-          options: { headers?: Record<string, string>; data?: BodyInit; expectError?: boolean } = {},
+          options: {
+            headers?: Record<string, string>;
+            data?: BodyInit;
+            expectError?: boolean;
+            timeout?: number;
+          } = {},
         ): Promise<T | undefined> {
           try {
             await waitForEvent(portReady.promise, PORT_TIMEOUT, 'Timed out waiting for server port');
@@ -660,7 +805,12 @@ export function createRunner(...paths: string[]) {
           if (process.env.DEBUG) log('making request', method, url, headers, body);
 
           try {
-            const res = await fetch(url, { headers, method: method.toUpperCase(), body });
+            const res = await fetch(url, {
+              headers,
+              method: method.toUpperCase(),
+              body,
+              signal: options.timeout !== undefined ? AbortSignal.timeout(options.timeout) : undefined,
+            });
 
             if (!res.ok) {
               if (!expectError) {

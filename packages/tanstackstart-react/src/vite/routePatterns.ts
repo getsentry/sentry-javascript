@@ -3,6 +3,8 @@ import * as path from 'node:path';
 import { uniq } from '@sentry/core';
 import type { Plugin } from 'vite';
 
+const ROUTE_TREE_FILE_NAME = 'routeTree.gen.ts';
+
 /**
  * Extracts route patterns from TanStack Start's generated routeTree.gen.ts
  * and replaces `__SENTRY_ROUTE_PATTERNS__` references with the extracted patterns.
@@ -17,6 +19,16 @@ export function makeRoutePatternPlugin(): Plugin {
     name: 'sentry-tanstackstart-route-patterns',
     enforce: 'post',
 
+    // The transform below must see the SDK's own `wrapFetchWithSentry` file. Vite externalizes dependencies in
+    // server builds, and Nitro 3 copies external dependencies into its output instead of bundling them.
+    configEnvironment(name, config, env) {
+      if (env.command === 'serve' || (config.consumer ?? (name === 'client' ? 'client' : 'server')) !== 'server') {
+        return null;
+      }
+
+      return { resolve: { noExternal: ['@sentry/tanstackstart-react'] } };
+    },
+
     configResolved(config) {
       resolvedRoot = config.root || process.cwd();
     },
@@ -28,11 +40,10 @@ export function makeRoutePatternPlugin(): Plugin {
         return null;
       }
 
-      // extract the patterns from the route tree file
-      const routeTreePath = path.resolve(resolvedRoot, 'src/routeTree.gen.ts');
       let patterns: string[] = [];
       try {
-        if (fs.existsSync(routeTreePath)) {
+        const routeTreePath = findRouteTreeFile(resolvedRoot);
+        if (routeTreePath) {
           patterns = extractRoutePatterns(fs.readFileSync(routeTreePath, 'utf-8'));
         }
       } catch {
@@ -45,6 +56,31 @@ export function makeRoutePatternPlugin(): Plugin {
       };
     },
   };
+}
+
+/**
+ * Finds the generated route tree. TanStack Start writes it to `<srcDirectory>/routeTree.gen.ts`, and the
+ * `srcDirectory` option (default `src`) is not exposed by its Vite plugin, so we check `src` first and then
+ * every other top-level directory.
+ */
+export function findRouteTreeFile(root: string): string | undefined {
+  const defaultPath = path.join(root, 'src', ROUTE_TREE_FILE_NAME);
+  if (fs.existsSync(defaultPath)) {
+    return defaultPath;
+  }
+
+  for (const entry of fs.readdirSync(root, { withFileTypes: true })) {
+    if (!entry.isDirectory() || entry.name === 'node_modules' || entry.name.startsWith('.')) {
+      continue;
+    }
+    const candidate = path.join(root, entry.name, ROUTE_TREE_FILE_NAME);
+    if (fs.existsSync(candidate)) {
+      return candidate;
+    }
+  }
+
+  const rootPath = path.join(root, ROUTE_TREE_FILE_NAME);
+  return fs.existsSync(rootPath) ? rootPath : undefined;
 }
 
 /**
@@ -69,14 +105,5 @@ export function extractRoutePatterns(content: string): string[] {
     }
   }
 
-  return uniq(patterns).sort((a, b) => {
-    const aSegments = a.split('/');
-    const bSegments = b.split('/');
-    if (bSegments.length !== aSegments.length) {
-      return bSegments.length - aSegments.length;
-    }
-    const aDynamic = aSegments.filter(s => s.startsWith('$')).length;
-    const bDynamic = bSegments.filter(s => s.startsWith('$')).length;
-    return aDynamic - bDynamic;
-  });
+  return uniq(patterns);
 }

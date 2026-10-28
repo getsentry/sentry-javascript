@@ -391,6 +391,10 @@ describe('SentryBrowser', () => {
 });
 
 describe('SentryBrowser initialization', () => {
+  beforeEach(() => {
+    getCurrentScope().setClient(undefined);
+  });
+
   it('should use window.SENTRY_RELEASE to set release on initialization if available', () => {
     global.SENTRY_RELEASE = { id: 'foobar' };
     init({ dsn });

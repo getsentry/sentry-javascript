@@ -45,7 +45,8 @@ export default defineConfig({
   },
   plugins: [
     tsConfigPaths(),
-    tanstackStart(),
+    // Non-default `srcDirectory` moves the generated route tree, which route parametrization has to find
+    tanstackStart({ srcDirectory: 'app' }),
     nitro(),
     // react's vite plugin must come after start's vite plugin
     viteReact(),

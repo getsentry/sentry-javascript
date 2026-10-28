@@ -53,7 +53,7 @@ describe('child compiler injection', () => {
     fs.rmSync(tmpDir, { recursive: true, force: true });
   });
 
-  it('injects release information into child-compiler bundles', async () => {
+  it('injects release information into child-compiler bundles', { timeout: 15_000 }, async () => {
     const outDir = path.join(tmpDir, 'dist');
 
     await build({

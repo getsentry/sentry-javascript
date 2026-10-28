@@ -37,7 +37,7 @@ export interface InstrumentationFixture {
 const FIXTURES: Record<string, InstrumentationFixture> = {
   graphql: {
     moduleName: 'graphql',
-    origin: 'auto.graphql.diagnostic_channel',
+    origin: 'auto.graphql.graphql',
     sourceMarker: 'GraphQLSchema',
     assertResult: result => (result as { data?: { hello?: string } })?.data?.hello === 'world',
   },
@@ -69,10 +69,12 @@ interface BundleRun {
  *
  * @param fixtureOrName A built-in fixture name (e.g. `'graphql'`) or an {@link InstrumentationFixture}.
  * @param options.appDir The test app directory holding `dist/<variant>/main.*`. Defaults to `cwd`.
+ * @param options.importHook The `--import` entry that registers the runtime hook for the external
+ *   variants. Defaults to `@sentry/node/import`; SDKs that wrap `@sentry/node` ship their own.
  */
 export function assertBundlerInstrumentation(
   fixtureOrName: string | InstrumentationFixture,
-  { appDir = process.cwd() }: { appDir?: string } = {},
+  { appDir = process.cwd(), importHook = '@sentry/node/import' }: { appDir?: string; importHook?: string } = {},
 ): void {
   const fixture = typeof fixtureOrName === 'string' ? FIXTURES[fixtureOrName] : fixtureOrName;
   if (!fixture) {
@@ -98,7 +100,7 @@ export function assertBundlerInstrumentation(
   // result to a file (not stdout) so a piped, buffered write can't be truncated by the child's exit.
   const runBundle = (name: string, withImport: boolean): BundleRun => {
     const resultFile = join(tmpdir(), `sentry-bundler-e2e-${name}-${randomUUID()}.json`);
-    const args = withImport ? ['--import', '@sentry/node/import', entryPath(name)] : [entryPath(name)];
+    const args = withImport ? ['--import', importHook, entryPath(name)] : [entryPath(name)];
     const label = `${name}${withImport ? ' (--import)' : ''}`;
     let stdout: string;
     try {

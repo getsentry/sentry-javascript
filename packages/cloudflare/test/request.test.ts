@@ -356,6 +356,45 @@ describe('withSentry', () => {
       expect(sentryEvent.sdkProcessingMetadata?.normalizedRequest?.data).toEqual(JSON.stringify({ key: 'value' }));
     });
 
+    test.each([
+      ['matches', () => true],
+      [
+        'throws',
+        () => {
+          throw new Error('filter failed');
+        },
+      ],
+    ])('does not capture the body when ignoreRequestBody %s', async (_label, ignoreRequestBody) => {
+      let sentryEvent: Event = {};
+
+      const response = await wrapRequestHandler(
+        {
+          options: {
+            ...MOCK_OPTIONS,
+            integrations: [httpServerIntegration({ ignoreRequestBody })],
+            beforeSend(event) {
+              sentryEvent = event;
+              return null;
+            },
+          },
+          request: new Request('https://example.com/login', {
+            method: 'POST',
+            headers: { 'content-type': 'application/json' },
+            body: JSON.stringify({ password: 'secret' }),
+          }),
+          context: createMockExecutionContext(),
+        },
+        () => {
+          SentryCore.captureMessage('request body');
+          return new Response('test');
+        },
+      );
+
+      expect(await response.text()).toBe('test');
+      expect(sentryEvent.message).toBe('request body');
+      expect(sentryEvent.sdkProcessingMetadata?.normalizedRequest?.data).toBeUndefined();
+    });
+
     test('does not capture cookies when dataCollection.cookies is disabled', async () => {
       let sentryEvent: Event = {};
 
@@ -647,6 +686,220 @@ describe('withSentry', () => {
         parent_span_id: undefined,
         links: undefined,
       });
+    });
+  });
+
+  describe('httpServerIntegration span options', () => {
+    // Whether a span is active in the handler.
+    async function hasActiveSpan(
+      options: Partial<CloudflareOptions>,
+      url = 'https://example.com/users?id=1',
+      init?: RequestInit,
+    ): Promise<boolean> {
+      let active = false;
+      const response = await wrapRequestHandler(
+        {
+          options: { ...MOCK_OPTIONS, tracesSampleRate: 1, ...options },
+          request: new Request(url, init),
+          context: createMockExecutionContext(),
+        },
+        () => {
+          active = !!SentryCore.getActiveSpan();
+          return new Response('ok');
+        },
+      );
+      expect(await response.text()).toBe('ok');
+      return active;
+    }
+
+    test('creates a span by default', async () => {
+      expect(await hasActiveSpan({})).toBe(true);
+    });
+
+    test('does not create spans for requests that ignoreIncomingRequests matches', async () => {
+      const calls: [string, string][] = [];
+      const integrations = [
+        httpServerIntegration({
+          ignoreIncomingRequests: (urlPath, request) => {
+            calls.push([urlPath, request.method]);
+            return urlPath.startsWith('/health');
+          },
+        }),
+      ];
+
+      expect(await hasActiveSpan({ integrations }, 'https://example.com/health?probe=1')).toBe(false);
+      expect(await hasActiveSpan({ integrations }, 'https://example.com/users')).toBe(true);
+      expect(calls).toEqual([
+        ['/health?probe=1', 'GET'],
+        ['/users', 'GET'],
+      ]);
+    });
+
+    test('creates the span when ignoreIncomingRequests throws', async () => {
+      const integrations = [
+        httpServerIntegration({
+          ignoreIncomingRequests: () => {
+            throw new Error('filter failed');
+          },
+        }),
+      ];
+
+      expect(await hasActiveSpan({ integrations })).toBe(true);
+    });
+
+    test('does not create spans for GET requests to static assets by default', async () => {
+      expect(await hasActiveSpan({}, 'https://example.com/favicon.ico')).toBe(false);
+      expect(await hasActiveSpan({}, 'https://example.com/assets/app.js')).toBe(false);
+      expect(await hasActiveSpan({}, 'https://example.com/favicon.ico', { method: 'POST', body: 'x' })).toBe(true);
+    });
+
+    test('creates spans for static assets when ignoreStaticAssets is false', async () => {
+      const integrations = [httpServerIntegration({ ignoreStaticAssets: false })];
+
+      expect(await hasActiveSpan({ integrations }, 'https://example.com/favicon.ico')).toBe(true);
+    });
+
+    test('does not create spans when tracing is disabled', async () => {
+      expect(await hasActiveSpan({ tracesSampleRate: undefined })).toBe(false);
+    });
+
+    test('does not create spans when spans is false, but still captures errors and continues the trace', async () => {
+      const events: Event[] = [];
+      const request = new Request('https://example.com/users');
+      request.headers.set('sentry-trace', '12312012123120121231201212312012-1121201211212012-1');
+      const error = new Error('handler failed');
+
+      await expect(
+        wrapRequestHandler(
+          {
+            options: {
+              ...MOCK_OPTIONS,
+              tracesSampleRate: 1,
+              integrations: [httpServerIntegration({ spans: false })],
+              beforeSend(event) {
+                events.push(event);
+                return null;
+              },
+            },
+            request,
+            context: createMockExecutionContext(),
+          },
+          () => {
+            expect(SentryCore.getActiveSpan()).toBeUndefined();
+            throw error;
+          },
+        ),
+      ).rejects.toBe(error);
+
+      expect(events).toHaveLength(1);
+      expect(events[0]?.exception?.values?.[0]?.mechanism).toEqual({ handled: false, type: 'auto.http.cloudflare' });
+      expect(events[0]?.contexts?.trace?.trace_id).toBe('12312012123120121231201212312012');
+    });
+
+    test('calls onSpanCreated and onSpanEnd', async () => {
+      const calls: string[] = [];
+      let transaction: Event | undefined;
+
+      await wrapRequestHandler(
+        {
+          options: {
+            ...MOCK_OPTIONS,
+            tracesSampleRate: 1,
+            integrations: [
+              httpServerIntegration({
+                onSpanCreated: (span, request) => {
+                  calls.push(`created ${request.method} ${new URL(request.url).pathname}`);
+                  span.setAttribute('onSpanCreated', 'yes');
+                },
+                onSpanEnd: (span, request, response) => {
+                  calls.push(`end ${request.method} ${response.status}`);
+                  span.setAttribute('onSpanEnd', response.status);
+                },
+              }),
+            ],
+            beforeSendTransaction(event) {
+              transaction = event;
+              return null;
+            },
+          },
+          request: new Request('https://example.com/users'),
+          context: createMockExecutionContext(),
+        },
+        () => {
+          calls.push('handler');
+          return new Response('ok', { status: 201 });
+        },
+      ).then(response => response.text());
+
+      await vi.waitFor(() => expect(transaction).toBeDefined());
+      expect(calls).toEqual(['created GET /users', 'handler', 'end GET 201']);
+      expect(transaction?.contexts?.trace?.data).toEqual(
+        expect.objectContaining({ onSpanCreated: 'yes', onSpanEnd: 201 }),
+      );
+    });
+
+    test('calls onSpanEnd when a streamed response finishes', async () => {
+      const onSpanEnd = vi.fn();
+      let controller: ReadableStreamDefaultController<Uint8Array>;
+      const source = new ReadableStream<Uint8Array>({
+        start(value) {
+          controller = value;
+        },
+      });
+
+      const response = await wrapRequestHandler(
+        {
+          options: { ...MOCK_OPTIONS, tracesSampleRate: 1, integrations: [httpServerIntegration({ onSpanEnd })] },
+          request: new Request('https://example.com/events'),
+          context: createMockExecutionContext(),
+        },
+        () => new Response(source, { headers: { 'content-type': 'text/event-stream' } }),
+      );
+
+      controller!.enqueue(new TextEncoder().encode('data: one\n\n'));
+      expect(onSpanEnd).not.toHaveBeenCalled();
+
+      controller!.close();
+      expect(await response.text()).toBe('data: one\n\n');
+      expect(onSpanEnd).toHaveBeenCalledTimes(1);
+      expect(onSpanEnd).toHaveBeenCalledWith(expect.anything(), expect.any(Request), expect.any(Response));
+    });
+
+    test.each(['onSpanCreated', 'onSpanEnd'] as const)('still responds when %s throws', async hook => {
+      const integrations = [
+        httpServerIntegration({
+          [hook]: () => {
+            throw new Error(`${hook} failed`);
+          },
+        }),
+      ];
+
+      expect(await hasActiveSpan({ integrations })).toBe(true);
+    });
+
+    test('flushes after a streamed response finishes when no span is created', async () => {
+      const context = createMockExecutionContext();
+      const waitUntilSpy = vi.spyOn(context, 'waitUntil');
+      let controller: ReadableStreamDefaultController<Uint8Array>;
+      const source = new ReadableStream<Uint8Array>({
+        start(value) {
+          controller = value;
+        },
+      });
+
+      const response = await wrapRequestHandler(
+        {
+          options: { ...MOCK_OPTIONS, tracesSampleRate: undefined },
+          request: new Request('https://example.com/events'),
+          context,
+        },
+        () => new Response(source, { headers: { 'content-type': 'text/event-stream' } }),
+      );
+      expect(waitUntilSpy).not.toHaveBeenCalled();
+
+      controller!.close();
+      await response.text();
+      expect(waitUntilSpy).toHaveBeenCalledTimes(1);
     });
   });
 });
@@ -961,6 +1214,250 @@ describe('flushAndDispose', () => {
     });
   });
 
+  describe('streaming response classification', () => {
+    const options: CloudflareOptions = { dsn: MOCK_OPTIONS.dsn, cacheClient: false };
+
+    test('defers teardown until a text/x-component body without Content-Length is consumed', async () => {
+      const waits: Promise<unknown>[] = [];
+      const waitUntil = vi.fn((promise: Promise<unknown>) => waits.push(promise));
+      const context = { waitUntil } as unknown as ExecutionContext;
+
+      const flushSpy = vi.spyOn(SentryCore.Client.prototype, 'flush').mockResolvedValue(true);
+
+      let releaseLastChunk!: () => void;
+      const lastChunkGate = new Promise<void>(resolve => {
+        releaseLastChunk = resolve;
+      });
+
+      const stream = new ReadableStream({
+        async start(controller) {
+          controller.enqueue(new TextEncoder().encode('<div>shell</div>'));
+          await lastChunkGate;
+          controller.enqueue(new TextEncoder().encode('<div>suspended</div>'));
+          controller.close();
+        },
+      });
+
+      const result = await wrapRequestHandler(
+        { options, request: new Request('https://example.com'), context },
+        () => new Response(stream, { headers: { 'content-type': 'text/x-component;charset=utf-8' } }),
+      );
+
+      expect(waitUntil).not.toHaveBeenCalled();
+
+      releaseLastChunk();
+      expect(await result.text()).toBe('<div>shell</div><div>suspended</div>');
+
+      await Promise.all(waits);
+      expect(waitUntil).toHaveBeenCalledTimes(1);
+
+      flushSpy.mockRestore();
+    });
+
+    test('tears down at handler return for a text/html body without Content-Length', async () => {
+      const waitUntil = vi.fn();
+      const context = { waitUntil } as unknown as ExecutionContext;
+
+      const flushSpy = vi.spyOn(SentryCore.Client.prototype, 'flush').mockResolvedValue(true);
+
+      const response = new Response('<div>page</div>', { headers: { 'content-type': 'text/html;charset=utf-8' } });
+
+      const result = await wrapRequestHandler(
+        { options, request: new Request('https://example.com'), context },
+        () => response,
+      );
+
+      expect(result).toBe(response);
+      expect(waitUntil).toHaveBeenCalledTimes(1);
+
+      flushSpy.mockRestore();
+    });
+
+    test.each(['text/x-component;charset=utf-8', 'text/html;charset=utf-8'])(
+      'tears down at handler return for a %s body with a Content-Length',
+      async contentType => {
+        const waitUntil = vi.fn();
+        const context = { waitUntil } as unknown as ExecutionContext;
+
+        const flushSpy = vi.spyOn(SentryCore.Client.prototype, 'flush').mockResolvedValue(true);
+
+        const response = new Response('<div>prerendered</div>', {
+          headers: { 'content-type': contentType, 'content-length': '22' },
+        });
+
+        const result = await wrapRequestHandler(
+          { options, request: new Request('https://example.com'), context },
+          () => response,
+        );
+
+        expect(result).toBe(response);
+        expect(waitUntil).toHaveBeenCalledTimes(1);
+
+        flushSpy.mockRestore();
+      },
+    );
+
+    test('tears down at handler return when TransformStream ignores the transformer', async () => {
+      // workerd without `transformstream_enable_standard_constructor` returns an identity stream.
+      vi.stubGlobal(
+        'TransformStream',
+        class extends TransformStream {
+          constructor() {
+            super();
+          }
+        },
+      );
+      onTestFinished(() => {
+        vi.unstubAllGlobals();
+      });
+
+      const waitUntil = vi.fn();
+      const context = { waitUntil } as unknown as ExecutionContext;
+
+      const flushSpy = vi.spyOn(SentryCore.Client.prototype, 'flush').mockResolvedValue(true);
+
+      const response = new Response('<div>shell</div>', {
+        headers: { 'content-type': 'text/x-component;charset=utf-8' },
+      });
+
+      const result = await wrapRequestHandler(
+        { options, request: new Request('https://example.com'), context },
+        () => response,
+      );
+
+      expect(result).toBe(response);
+      expect(waitUntil).toHaveBeenCalledTimes(1);
+
+      flushSpy.mockRestore();
+    });
+
+    test('tears down at handler return when isStreamingResponse returns false', async () => {
+      const waitUntil = vi.fn();
+      const context = { waitUntil } as unknown as ExecutionContext;
+
+      const flushSpy = vi.spyOn(SentryCore.Client.prototype, 'flush').mockResolvedValue(true);
+
+      const response = new Response('<div>buffered</div>', {
+        headers: { 'content-type': 'text/x-component;charset=utf-8' },
+      });
+
+      const result = await wrapRequestHandler(
+        {
+          options: { ...options, isStreamingResponse: () => false },
+          request: new Request('https://example.com'),
+          context,
+        },
+        () => response,
+      );
+
+      expect(result).toBe(response);
+      expect(waitUntil).toHaveBeenCalledTimes(1);
+
+      flushSpy.mockRestore();
+    });
+
+    test('defers teardown when isStreamingResponse returns true for the request route', async () => {
+      const waits: Promise<unknown>[] = [];
+      const waitUntil = vi.fn((promise: Promise<unknown>) => waits.push(promise));
+      const context = { waitUntil } as unknown as ExecutionContext;
+
+      const flushSpy = vi.spyOn(SentryCore.Client.prototype, 'flush').mockResolvedValue(true);
+
+      let releaseLastChunk!: () => void;
+      const lastChunkGate = new Promise<void>(resolve => {
+        releaseLastChunk = resolve;
+      });
+
+      const stream = new ReadableStream({
+        async start(controller) {
+          controller.enqueue(new TextEncoder().encode('first'));
+          await lastChunkGate;
+          controller.enqueue(new TextEncoder().encode('deferred'));
+          controller.close();
+        },
+      });
+
+      const result = await wrapRequestHandler(
+        {
+          options: {
+            ...options,
+            isStreamingResponse: (_response, request) => (request.url.endsWith('.data') ? true : undefined),
+          },
+          request: new Request('https://example.com/products.data'),
+          context,
+        },
+        () => new Response(stream, { headers: { 'content-type': 'text/x-script' } }),
+      );
+
+      expect(waitUntil).not.toHaveBeenCalled();
+
+      releaseLastChunk();
+      expect(await result.text()).toBe('firstdeferred');
+
+      await Promise.all(waits);
+      expect(waitUntil).toHaveBeenCalledTimes(1);
+
+      flushSpy.mockRestore();
+    });
+
+    test('uses the default classification when isStreamingResponse throws', async () => {
+      const waitUntil = vi.fn();
+      const context = { waitUntil } as unknown as ExecutionContext;
+
+      const flushSpy = vi.spyOn(SentryCore.Client.prototype, 'flush').mockResolvedValue(true);
+
+      const response = new Response('<div>shell</div>', {
+        headers: { 'content-type': 'text/x-component;charset=utf-8' },
+      });
+
+      const result = await wrapRequestHandler(
+        {
+          options: {
+            ...options,
+            isStreamingResponse: () => {
+              throw new Error('isStreamingResponse failed');
+            },
+          },
+          request: new Request('https://example.com'),
+          context,
+        },
+        () => response,
+      );
+
+      expect(result).not.toBe(response);
+      expect(waitUntil).not.toHaveBeenCalled();
+      expect(await result.text()).toBe('<div>shell</div>');
+
+      flushSpy.mockRestore();
+    });
+
+    test('uses the default classification when isStreamingResponse returns a promise', async () => {
+      const waitUntil = vi.fn();
+      const context = { waitUntil } as unknown as ExecutionContext;
+
+      const flushSpy = vi.spyOn(SentryCore.Client.prototype, 'flush').mockResolvedValue(true);
+
+      const response = new Response('<div>page</div>', { headers: { 'content-type': 'text/html;charset=utf-8' } });
+
+      const result = await wrapRequestHandler(
+        {
+          options: {
+            ...options,
+            isStreamingResponse: (async () => true) as unknown as CloudflareOptions['isStreamingResponse'],
+          },
+          request: new Request('https://example.com'),
+          context,
+        },
+        () => response,
+      );
+
+      expect(result).toBe(response);
+      expect(waitUntil).toHaveBeenCalledTimes(1);
+
+      flushSpy.mockRestore();
+    });
+  });
+
   test('dispose is NOT called for protocol upgrade responses (status 101)', async () => {
     const context = createMockExecutionContext();
     const waits: Promise<unknown>[] = [];
@@ -1174,6 +1671,7 @@ describe('cached client (cacheClient)', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     _clearGlobalClientCache();
+    SentryCore.getCurrentScope().setClient(undefined);
   });
 
   // `init()` resolves defaults into the options object it is given, so each call
@@ -1221,6 +1719,7 @@ describe('cached client (cacheClient)', () => {
   test('clears cache with _clearGlobalClientCache', async () => {
     const client1 = init(makeOptions());
     _clearGlobalClientCache();
+    SentryCore.getCurrentScope().setClient(undefined);
     const client2 = init(makeOptions());
     expect(client2).not.toBe(client1);
   });

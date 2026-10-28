@@ -1,0 +1,147 @@
+import { afterAll, describe, expect } from 'vitest';
+import { cleanupChildProcesses, createEsmAndCjsTests } from '../../../utils/runner';
+
+describe('requestData', () => {
+  afterAll(() => {
+    cleanupChildProcesses();
+  });
+
+  createEsmAndCjsTests(__dirname, 'server.mjs', 'instrument.mjs', (createRunner, test) => {
+    test('applies request data attributes to the segment span', async () => {
+      const runner = createRunner()
+        .expect({
+          span: container => {
+            const serverSpan = container.items.find(item => item.is_segment);
+
+            expect(serverSpan).toBeDefined();
+
+            expect(serverSpan?.attributes['url.full']).toEqual({
+              type: 'string',
+              value: expect.stringContaining('/test?foo=bar'),
+            });
+
+            expect(serverSpan?.attributes['http.request.method']).toEqual({
+              type: 'string',
+              value: 'GET',
+            });
+
+            expect(serverSpan?.attributes['url.query']).toEqual({
+              type: 'string',
+              value: 'foo=bar',
+            });
+
+            expect(serverSpan?.attributes['http.request.header.host']).toEqual({
+              type: 'array',
+              value: [expect.any(String)],
+            });
+
+            expect(serverSpan?.attributes['user.ip_address']).toEqual({
+              type: 'string',
+              value: expect.any(String),
+            });
+          },
+        })
+        .start();
+
+      await runner.makeRequest('get', '/test?foo=bar');
+
+      await runner.completed();
+    });
+  });
+
+  createEsmAndCjsTests(__dirname, 'server.mjs', 'instrument.mjs', (createRunner, test) => {
+    test('applies request data attributes by default', async () => {
+      const runner = createRunner()
+        .expect({
+          span: container => {
+            const serverSpan = container.items.find(item => item.is_segment);
+
+            expect(serverSpan).toBeDefined();
+
+            expect(serverSpan?.attributes['url.full']).toEqual({
+              type: 'string',
+              value: expect.stringContaining('/test?foo=bar'),
+            });
+
+            expect(serverSpan?.attributes['http.request.method']).toEqual({
+              type: 'string',
+              value: 'GET',
+            });
+
+            expect(serverSpan?.attributes['url.query']).toEqual({
+              type: 'string',
+              value: 'foo=bar',
+            });
+
+            expect(serverSpan?.attributes['http.request.header.host']).toEqual({
+              type: 'array',
+              value: [expect.any(String)],
+            });
+
+            expect(serverSpan?.attributes['user.ip_address']).toEqual({
+              type: 'string',
+              value: expect.any(String),
+            });
+          },
+        })
+        .start();
+
+      await runner.makeRequest('get', '/test?foo=bar');
+
+      await runner.completed();
+    });
+  });
+
+  createEsmAndCjsTests(
+    __dirname,
+    'server.mjs',
+    'instrument-with-datacollection-no-userinfo.mjs',
+    (createRunner, test) => {
+      test('does not include user.ip_address when dataCollection.userInfo is false', async () => {
+        const runner = createRunner()
+          .expect({
+            span: container => {
+              const serverSpan = container.items.find(item => item.is_segment);
+
+              expect(serverSpan).toBeDefined();
+
+              expect(serverSpan?.attributes['http.request.header.host']).toEqual({
+                type: 'array',
+                value: [expect.any(String)],
+              });
+
+              expect(serverSpan?.attributes['user.ip_address']).toBeUndefined();
+            },
+          })
+          .start();
+
+        await runner.makeRequest('get', '/test?foo=bar');
+
+        await runner.completed();
+      });
+    },
+  );
+
+  createEsmAndCjsTests(__dirname, 'server.mjs', 'instrument-without-request-data.mjs', (createRunner, test) => {
+    test('does not apply request data attributes when requestDataIntegration is removed', async () => {
+      const runner = createRunner()
+        .expect({
+          span: container => {
+            const serverSpan = container.items.find(item => item.is_segment);
+
+            expect(serverSpan).toBeDefined();
+
+            // user.ip_address is only set by applyScopeToSegmentSpan (not by OTel instrumentation),
+            // so it should be absent when the integration is removed. `url.query` is set by
+            // `httpServerSpansIntegration` itself, so it stays present either way.
+            expect(serverSpan?.attributes['user.ip_address']).toBeUndefined();
+          },
+        })
+        .start();
+
+      await runner.makeRequest('get', '/test?foo=bar');
+
+      await runner.completed();
+    });
+  });
+});

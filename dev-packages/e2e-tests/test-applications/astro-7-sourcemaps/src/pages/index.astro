@@ -1,0 +1,15 @@
+---
+import { getPrerenderGreeting } from '../lib/prerender';
+
+export const prerender = true;
+---
+
+<html lang="en">
+  <body>
+    <p>{getPrerenderGreeting()}</p>
+    <button>Throw error</button>
+    <script>
+      import '../lib/client';
+    </script>
+  </body>
+</html>

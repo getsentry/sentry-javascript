@@ -1,0 +1,3 @@
+minimumReleaseAge: 0
+overrides:
+  '@types/qs': '6.9.17'

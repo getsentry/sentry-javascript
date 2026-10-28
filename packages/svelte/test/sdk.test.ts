@@ -12,6 +12,7 @@ const browserInit = vi.spyOn(SentryBrowser, 'init');
 describe('Initialize Svelte SDk', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    SentryBrowser.getCurrentScope().setClient(undefined);
   });
 
   it('has the correct metadata', () => {

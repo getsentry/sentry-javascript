@@ -22,6 +22,7 @@ function currentTraceId(): string | undefined {
 
 describe('Bun HTTP Server Integration', () => {
   beforeAll(() => {
+    getCurrentScope().setClient(undefined);
     init({
       dsn: 'https://public@dsn.ingest.sentry.io/1337',
       tracesSampleRate: 1.0,
@@ -55,7 +56,7 @@ describe('Bun HTTP Server Integration', () => {
     // No router resolves a route here, so with span streaming the name is the request method.
     expect(span?.name).toBe('GET');
     expect(span?.attributes['url.path']).toBe('/users');
-    expect(span?.attributes['sentry.origin']).toBe('auto.http.server');
+    expect(span?.attributes['sentry.origin']).toBe('auto.http.http_server');
   });
 
   test('creates an http.server span for incoming QUERY requests', async () => {

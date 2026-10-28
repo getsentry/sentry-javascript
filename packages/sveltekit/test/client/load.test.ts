@@ -1,4 +1,4 @@
-import { SENTRY_SEGMENT_NAME_SOURCE, SENTRY_OP, SENTRY_ORIGIN } from '@sentry/conventions/attributes';
+import { SENTRY_SEGMENT_NAME_SOURCE, SENTRY_OP, SENTRY_ORIGIN, URL_PATH } from '@sentry/conventions/attributes';
 import type { Client } from '@sentry/core';
 import * as SentryCore from '@sentry/core';
 import * as SentrySvelte from '@sentry/svelte';
@@ -6,6 +6,7 @@ import type { Load } from '@sveltejs/kit';
 import { redirect } from '@sveltejs/kit';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { wrapLoadWithSentry } from '../../src/client/load';
+import { createTrackedLoadEvent } from '../utils';
 
 const mockCaptureException = vi.spyOn(SentrySvelte, 'captureException').mockImplementation(() => 'xx');
 
@@ -164,13 +165,33 @@ describe('wrapLoadWithSentry', () => {
       const wrappedLoad = wrapLoadWithSentry(load);
       await wrappedLoad(eventWithUntrack);
 
-      expect(untrack).toHaveBeenCalledTimes(1);
+      expect(untrack).toHaveBeenCalledTimes(2);
       expect(mockStartSpan).toHaveBeenCalledWith(
         expect.objectContaining({
           name: routeIdFromUntrack,
           attributes: expect.objectContaining({
             [SENTRY_SEGMENT_NAME_SOURCE]: 'route',
           }),
+        }),
+        expect.any(Function),
+      );
+    });
+
+    it("doesn't add route or url dependencies to the load function when untrack is present", async () => {
+      const { event, trackedReads } = createTrackedLoadEvent({
+        params: { id: '123' },
+        route: { id: '/users/[id]' },
+        url: new URL('http://localhost:3000/users/123'),
+      });
+
+      const wrappedLoad = wrapLoadWithSentry(async () => ({}));
+      await wrappedLoad(event);
+
+      expect(trackedReads).toEqual([]);
+      expect(mockStartSpan).toHaveBeenCalledWith(
+        expect.objectContaining({
+          name: '/users/[id]',
+          attributes: expect.objectContaining({ [URL_PATH]: '/users/123' }),
         }),
         expect.any(Function),
       );

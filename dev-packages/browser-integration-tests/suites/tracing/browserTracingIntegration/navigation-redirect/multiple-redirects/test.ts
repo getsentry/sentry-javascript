@@ -1,8 +1,13 @@
 import { expect } from '@playwright/test';
 import { SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE } from '@sentry/core';
 import { sentryTest } from '../../../../../utils/fixtures';
-import { envelopeRequestParser, shouldSkipTracingTest, waitForTransactionRequest } from '../../../../../utils/helpers';
+import { shouldSkipTracingTest } from '../../../../../utils/helpers';
+import { collectStreamedSpans, getSpanOp, waitForStreamedSpan } from '../../../../../utils/spanUtils';
 import {
+  SENTRY_IDLE_SPAN_FINISH_REASON,
+  USER_AGENT_ORIGINAL,
+  SENTRY_SEGMENT_ID,
+  SENTRY_SEGMENT_NAME,
   SENTRY_SEGMENT_NAME_SOURCE,
   URL_FULL,
   URL_PATH,
@@ -17,66 +22,72 @@ sentryTest(
       sentryTest.skip();
     }
 
+    const allSpans = collectStreamedSpans(page);
     const url = await getLocalTestUrl({ testDir: __dirname });
 
-    const pageloadRequestPromise = waitForTransactionRequest(page, event => event.contexts?.trace?.op === 'pageload');
-    const navigationRequestPromise = waitForTransactionRequest(
+    const pageloadSpanPromise = waitForStreamedSpan(page, span => getSpanOp(span) === 'pageload');
+    const navigationSpanPromise = waitForStreamedSpan(
       page,
-      event => event.contexts?.trace?.op === 'navigation' && event.transaction === '/next-page',
+      span => getSpanOp(span) === 'navigation' && span.attributes[URL_PATH]?.value === '/next-page',
     );
 
     await page.goto(url);
 
-    const pageloadRequest = envelopeRequestParser(await pageloadRequestPromise);
-    const navigationRequest = envelopeRequestParser(await navigationRequestPromise);
+    const pageloadSpan = await pageloadSpanPromise;
+    const navigationSpan = await navigationSpanPromise;
+    await page.evaluate(() => (window as any).Sentry.flush());
 
-    expect(pageloadRequest.contexts?.trace?.op).toBe('pageload');
+    expect(getSpanOp(pageloadSpan)).toBe('pageload');
 
-    expect(pageloadRequest.contexts?.trace?.data).toMatchObject({
-      [SENTRY_ORIGIN]: 'auto.pageload.browser',
-      [SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE]: 1,
-      [SENTRY_SEGMENT_NAME_SOURCE]: 'url',
-      [SENTRY_OP]: 'pageload',
-      ['sentry.idle_span_finish_reason']: 'cancelled',
+    expect(pageloadSpan.attributes).toMatchObject({
+      [SENTRY_ORIGIN]: { type: 'string', value: 'auto.pageload.browser' },
+      [SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE]: { type: 'integer', value: 1 },
+      [SENTRY_SEGMENT_NAME_SOURCE]: { type: 'string', value: 'url' },
+      [SENTRY_OP]: { type: 'string', value: 'pageload' },
+      [SENTRY_IDLE_SPAN_FINISH_REASON]: { type: 'string', value: 'cancelled' },
     });
 
-    expect(pageloadRequest.request).toEqual({
-      headers: {
-        'User-Agent': expect.any(String),
-      },
-      url: 'http://sentry-test.io/index.html',
+    expect(pageloadSpan.attributes).toMatchObject({
+      [USER_AGENT_ORIGINAL]: { type: 'string', value: expect.any(String) },
+      [URL_FULL]: { type: 'string', value: 'http://sentry-test.io/index.html' },
     });
 
-    const spans = pageloadRequest.spans || [];
+    const spans = allSpans.filter(span => span.attributes[SENTRY_SEGMENT_ID]?.value === pageloadSpan.span_id);
 
-    const redirectSpans = spans.filter(span => span.op === 'navigation.redirect');
+    const redirectSpans = spans.filter(span => getSpanOp(span) === 'navigation.redirect');
     expect(redirectSpans).toHaveLength(3);
 
     redirectSpans.forEach(redirectSpan => {
-      expect(redirectSpan?.timestamp).toEqual(redirectSpan?.start_timestamp);
-      expect(redirectSpan).toEqual({
-        data: {
-          'sentry.op': 'navigation.redirect',
-          'sentry.origin': 'auto.navigation.browser',
-          [URL_FULL]: expect.any(String),
-          [URL_PATH]: expect.any(String),
+      expect(redirectSpan?.end_timestamp).toEqual(redirectSpan?.start_timestamp);
+      expect(redirectSpan).toMatchObject({
+        attributes: {
+          [SENTRY_OP]: { type: 'string', value: 'navigation.redirect' },
+          [SENTRY_ORIGIN]: { type: 'string', value: 'auto.navigation.browser' },
+          [SENTRY_SEGMENT_ID]: { type: 'string', value: pageloadSpan.span_id },
+          [SENTRY_SEGMENT_NAME]: { type: 'string', value: 'Pageload' },
+          [URL_FULL]: { type: 'string', value: expect.any(String) },
+          [URL_PATH]: { type: 'string', value: expect.any(String) },
         },
-        description: expect.stringContaining('/sub-page-redirect-'),
-        op: 'navigation.redirect',
-        origin: 'auto.navigation.browser',
+        name: 'Navigation',
+        is_segment: false,
         status: 'ok',
-        parent_span_id: pageloadRequest.contexts!.trace!.span_id,
+        parent_span_id: pageloadSpan.span_id,
         span_id: expect.any(String),
         start_timestamp: expect.any(Number),
-        timestamp: expect.any(Number),
+        end_timestamp: expect.any(Number),
         trace_id: expect.any(String),
       });
     });
 
-    expect(navigationRequest.contexts?.trace?.op).toBe('navigation');
-    expect(navigationRequest.transaction).toEqual('/next-page');
+    expect(getSpanOp(navigationSpan)).toBe('navigation');
+    expect(navigationSpan.name).toEqual('Navigation');
+    expect(navigationSpan.attributes[URL_PATH]?.value).toEqual('/next-page');
 
     // 2 subsequent redirects belonging to the navigation root span
-    expect(navigationRequest.spans?.filter(span => span.op === 'navigation.redirect')).toHaveLength(2);
+    expect(
+      allSpans
+        .filter(span => span.attributes[SENTRY_SEGMENT_ID]?.value === navigationSpan.span_id)
+        .filter(span => getSpanOp(span) === 'navigation.redirect'),
+    ).toHaveLength(2);
   },
 );

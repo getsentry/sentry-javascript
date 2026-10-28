@@ -188,6 +188,61 @@ describe('makeCustomSentryVitePlugins()', () => {
       await plugin.closeBundle();
       expect(mockedMainPlugin.writeBundle).not.toHaveBeenCalled();
     });
+
+    it('uploads source maps in the post `buildApp` hook when there is no separate SSR build (SvelteKit 3)', async () => {
+      const plugin = await getSentryViteSubPlugin('sentry-sveltekit-debug-id-upload-plugin');
+
+      // @ts-expect-error this function exists!
+      plugin.configResolved({ build: { ssr: false } });
+      // @ts-expect-error this function exists!
+      await plugin.closeBundle();
+      expect(mockedMainPlugin.writeBundle).not.toHaveBeenCalled();
+
+      expect(plugin?.buildApp).toEqual({ order: 'post', handler: expect.any(Function) });
+      // @ts-expect-error this function exists!
+      await plugin.buildApp.handler({ environments: { ssr: { isBuilt: true }, client: { isBuilt: true } } });
+      expect(mockedMainPlugin.writeBundle).toHaveBeenCalledTimes(1);
+    });
+
+    it("doesn't upload source maps in the post `buildApp` hook before any environment was built (SvelteKit 2 on Vite 7+)", async () => {
+      const plugin = await getSentryViteSubPlugin('sentry-sveltekit-debug-id-upload-plugin');
+
+      // @ts-expect-error this function exists!
+      await plugin.buildApp.handler({ environments: { ssr: { isBuilt: false } } });
+      expect(mockedMainPlugin.writeBundle).not.toHaveBeenCalled();
+
+      // @ts-expect-error this function exists!
+      plugin.configResolved({ build: { ssr: true } });
+      // @ts-expect-error this function exists!
+      await plugin.closeBundle();
+      expect(mockedMainPlugin.writeBundle).toHaveBeenCalledTimes(1);
+    });
+
+    it('uploads source maps only once when both `closeBundle` and `buildApp` run (SvelteKit 2 on Vite 7+)', async () => {
+      const plugin = await getSentryViteSubPlugin('sentry-sveltekit-debug-id-upload-plugin');
+
+      // @ts-expect-error this function exists!
+      plugin.configResolved({ build: { ssr: true } });
+      // @ts-expect-error this function exists!
+      await plugin.closeBundle();
+      // @ts-expect-error this function exists!
+      await plugin.buildApp.handler({ environments: { ssr: { isBuilt: true } } });
+
+      expect(mockedMainPlugin.writeBundle).toHaveBeenCalledTimes(1);
+    });
+
+    it('uploads source maps on every SSR rebuild in watch mode', async () => {
+      const plugin = await getSentryViteSubPlugin('sentry-sveltekit-debug-id-upload-plugin');
+
+      // @ts-expect-error this function exists!
+      plugin.configResolved({ build: { ssr: true } });
+      // @ts-expect-error this function exists!
+      await plugin.closeBundle();
+      // @ts-expect-error this function exists!
+      await plugin.closeBundle();
+
+      expect(mockedMainPlugin.writeBundle).toHaveBeenCalledTimes(2);
+    });
   });
 
   it('catches errors while uploading source maps', async () => {
@@ -201,12 +256,9 @@ describe('makeCustomSentryVitePlugins()', () => {
     const plugin = await getSentryViteSubPlugin('sentry-sveltekit-debug-id-upload-plugin');
 
     // @ts-expect-error this function exists!
-    expect(plugin.closeBundle).not.toThrow();
-
-    // @ts-expect-error this function exists!
     plugin.configResolved({ build: { ssr: true } });
     // @ts-expect-error this function exists!
-    await plugin.closeBundle();
+    await expect(plugin.closeBundle()).resolves.toBeUndefined();
 
     expect(consoleWarnSpy).toHaveBeenCalledWith(expect.stringContaining('Failed to upload source maps'));
     expect(consoleLogSpy).toHaveBeenCalled();
@@ -348,11 +400,7 @@ describe('deleteFilesAfterUpload', () => {
       plugin => plugin.name === 'sentry-sveltekit-files-to-delete-after-upload-setting-plugin',
     )!;
 
-    // `config` records whether the user set `build.sourcemap`; `configResolved` resolves the
-    // setting (it can't be awaited from `config` - see the note in `kitConfig.ts`)
-    // @ts-expect-error these functions exist!
-    filesToDeleteAfterUploadSettingPlugin.config(viteConfig);
-    // @ts-expect-error these functions exist!
+    // @ts-expect-error this function exists!
     await filesToDeleteAfterUploadSettingPlugin.configResolved();
 
     await expect(mergedOptions.sourcemaps.filesToDeleteAfterUpload).resolves.toEqual([
@@ -430,11 +478,7 @@ describe('deleteFilesAfterUpload', () => {
         plugin => plugin.name === 'sentry-sveltekit-files-to-delete-after-upload-setting-plugin',
       )!;
 
-      // `config` records whether the user set `build.sourcemap`; `configResolved` resolves the
-      // setting (it can't be awaited from `config` - see the note in `kitConfig.ts`)
-      // @ts-expect-error these functions exist!
-      filesToDeleteAfterUploadSettingPlugin.config(viteConfig);
-      // @ts-expect-error these functions exist!
+      // @ts-expect-error this function exists!
       await filesToDeleteAfterUploadSettingPlugin.configResolved();
 
       await expect(mergedOptions.sourcemaps.filesToDeleteAfterUpload).resolves.toEqual(

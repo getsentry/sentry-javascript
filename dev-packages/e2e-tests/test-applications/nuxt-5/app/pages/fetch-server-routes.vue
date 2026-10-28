@@ -7,17 +7,19 @@
 </template>
 
 <script setup lang="ts">
-import { useFetch } from '#imports';
+import { useFetch, useRoute } from '#imports';
+
+const apiPrefix = useRoute().query.apiPrefix ?? '/api';
 
 const fetchError = async () => {
-  await useFetch('/api/server-error');
+  await useFetch(`${apiPrefix}/server-error`);
 };
 
 const fetchNitroFetch = async () => {
-  await useFetch('/api/nitro-fetch');
+  await useFetch(`${apiPrefix}/nitro-fetch`);
 };
 
 const fetchThirdPartyHttpError = async () => {
-  await useFetch('/api/third-party-http-error');
+  await useFetch(`${apiPrefix}/third-party-http-error`);
 };
 </script>

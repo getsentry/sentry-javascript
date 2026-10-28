@@ -1,6 +1,15 @@
 /* eslint-disable max-lines */
 import type { Event, IntegrationFn, ProfileChunk, ProfilingIntegration } from '@sentry/core';
-import { consoleSandbox, debug, defineIntegration, getCurrentScope, getGlobalScope, uuid4 } from '@sentry/core';
+import {
+  consoleSandbox,
+  debug,
+  defineIntegration,
+  getCurrentScope,
+  getGlobalScope,
+  getRootSpan,
+  spanIsSampled,
+  uuid4,
+} from '@sentry/core';
 import type { NodeClient } from '@sentry/node';
 import { CpuProfilerBindings, ProfileFormat } from '@sentry/node-cpu-profiler';
 import { isMainThread } from 'worker_threads';
@@ -24,6 +33,7 @@ class ContinuousProfiler {
   private _profilerId: string | undefined;
   private _client: NodeClient | undefined = undefined;
   private _chunkData: ChunkData | undefined = undefined;
+  private _pendingChunkRestart: NodeJS.Immediate | undefined = undefined;
   private _profileLifecycle: 'manual' | 'trace' | undefined = undefined;
   private _sampled: boolean | undefined = undefined;
   private _sessionSamplingRate: number | undefined = undefined;
@@ -95,7 +105,7 @@ class ContinuousProfiler {
   }
 
   private _startProfiler(): void {
-    if (this._chunkData !== undefined) {
+    if (this._isSessionRunning()) {
       DEBUG_BUILD && debug.log('[Profiling] Profile session already running, no-op.');
       return;
     }
@@ -125,7 +135,7 @@ class ContinuousProfiler {
       return;
     }
 
-    if (!this._chunkData) {
+    if (!this._isSessionRunning()) {
       DEBUG_BUILD && debug.log('[Profiling] No profile session running, no-op.');
       return;
     }
@@ -151,19 +161,30 @@ class ContinuousProfiler {
       return;
     }
 
-    let activeSpanCounter = 0;
-    this._client.on('spanStart', _span => {
-      if (activeSpanCounter === 0) {
+    // Unsampled child spans emit `spanStart` but never `spanEnd`, so only sampled spans are tracked.
+    const activeSpanIds = new Set<string>();
+    this._client.on('spanStart', span => {
+      if (!spanIsSampled(span)) {
+        if (DEBUG_BUILD && span === getRootSpan(span)) {
+          debug.log('[Profiling] Not profiling trace because its root span was not sampled.');
+        }
+        return;
+      }
+      if (activeSpanIds.size === 0) {
         this._startChunkProfiling();
       }
-      activeSpanCounter++;
+      activeSpanIds.add(span.spanContext().spanId);
     });
 
-    this._client.on('spanEnd', _span => {
-      if (activeSpanCounter === 1) {
+    this._client.on('spanEnd', span => {
+      const spanId = span.spanContext().spanId;
+      if (!activeSpanIds.has(spanId)) {
+        return;
+      }
+      activeSpanIds.delete(spanId);
+      if (activeSpanIds.size === 0) {
         this._stopChunkProfiling();
       }
-      activeSpanCounter--;
     });
   }
 
@@ -194,6 +215,10 @@ class ContinuousProfiler {
    * Stops profiling of the current chunks and flushes the profile to Sentry
    */
   private _stopChunkProfiling(): void {
+    // The chunk timer stops the current chunk before it schedules the next one, so a stop that lands
+    // in between must also cancel that restart, or profiling continues with nothing left to profile.
+    this._cancelPendingChunkRestart();
+
     if (!this._chunkData) {
       DEBUG_BUILD && debug.log('[Profiling] No chunk data found, no-op.');
       return;
@@ -257,10 +282,6 @@ class ContinuousProfiler {
     }
 
     this._flush(chunk);
-    // Depending on the profile and stack sizes, stopping the profile and converting
-    // the format may negatively impact the performance of the application. To avoid
-    // blocking for too long, enqueue the next chunk start inside the next macrotask.
-    // clear current chunk
     this._resetChunkData();
   }
 
@@ -305,11 +326,38 @@ class ContinuousProfiler {
       DEBUG_BUILD && debug.log(`[Profiling] Stopping profiling chunk: ${chunk.id}`);
       this._stopChunkProfiling();
       DEBUG_BUILD && debug.log('[Profiling] Starting new profiling chunk.');
-      setImmediate(this._restartChunkProfiling.bind(this));
+      // Depending on the profile and stack sizes, stopping the profile and converting
+      // the format may negatively impact the performance of the application. To avoid
+      // blocking for too long, enqueue the next chunk start inside the next macrotask.
+      this._pendingChunkRestart = setImmediate(() => {
+        this._pendingChunkRestart = undefined;
+        this._restartChunkProfiling();
+      });
     }, CHUNK_INTERVAL_MS);
 
     // Unref timeout so it doesn't keep the process alive.
     chunk.timer.unref();
+  }
+
+  /**
+   * A session is also running in the gap after the chunk timer stopped one chunk and before the next one starts.
+   */
+  private _isSessionRunning(): boolean {
+    return this._chunkData !== undefined || this._pendingChunkRestart !== undefined;
+  }
+
+  /**
+   * Cancels the next chunk if the chunk timer scheduled one that has not started yet.
+   */
+  private _cancelPendingChunkRestart(): void {
+    if (!this._pendingChunkRestart) {
+      return;
+    }
+
+    clearImmediate(this._pendingChunkRestart);
+    this._pendingChunkRestart = undefined;
+    DEBUG_BUILD &&
+      debug.log('[Profiling] Profiling stopped before the next chunk started, cancelled the scheduled chunk.');
   }
 
   /**

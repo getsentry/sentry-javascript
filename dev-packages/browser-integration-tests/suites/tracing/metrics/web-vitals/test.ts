@@ -1,8 +1,16 @@
+import {
+  BROWSER_WEB_VITAL_TTFB_VALUE,
+  BROWSER_WEB_VITAL_LCP_VALUE,
+  BROWSER_WEB_VITAL_FCP_VALUE,
+  BROWSER_WEB_VITAL_FP_VALUE,
+  BROWSER_PERFORMANCE_TIME_ORIGIN,
+  BROWSER_PERFORMANCE_NAVIGATION_ACTIVATION_START,
+} from '@sentry/conventions/attributes';
 import type { Route } from '@playwright/test';
 import { expect } from '@playwright/test';
-import type { Event } from '@sentry/core';
 import { sentryTest } from '../../../../utils/fixtures';
-import { getFirstSentryEnvelopeRequest, shouldSkipTracingTest } from '../../../../utils/helpers';
+import { shouldSkipTracingTest, waitForLcpCandidate } from '../../../../utils/helpers';
+import { getSpanOp, waitForStreamedSpan } from '../../../../utils/spanUtils';
 
 /**
  * Bit of an odd test but we previously ran into cases where we would report TTFB > (LCP, FCP, FP)
@@ -23,15 +31,14 @@ sentryTest('paint web vitals values are greater than TTFB', async ({ browserName
   });
 
   const url = await getLocalTestUrl({ testDir: __dirname });
-  const [eventData] = await Promise.all([
-    getFirstSentryEnvelopeRequest<Event>(page),
-    page.goto(url),
-    page.locator('button').click(),
-  ]);
+  const pageloadPromise = waitForStreamedSpan(page, span => span.is_segment && getSpanOp(span) === 'pageload');
+  const lcpPromise = waitForStreamedSpan(page, span => getSpanOp(span) === 'ui.webvital.lcp');
+  await page.goto(url);
+  await waitForLcpCandidate(page, 'img');
+  await page.locator('button').click();
+  const [eventData, lcpSpan] = await Promise.all([pageloadPromise, lcpPromise]);
 
-  expect(eventData.measurements).toBeDefined();
-
-  const ttfbValue = eventData.measurements?.ttfb?.value;
+  const ttfbValue = eventData.attributes[BROWSER_WEB_VITAL_TTFB_VALUE]?.value as number | undefined;
 
   if (!ttfbValue) {
     // TTFB is unfortunately quite flaky. Sometimes, the web-vitals library doesn't report TTFB because
@@ -44,9 +51,9 @@ sentryTest('paint web vitals values are greater than TTFB', async ({ browserName
     sentryTest.skip();
   }
 
-  const lcpValue = eventData.measurements?.lcp?.value;
-  const fcpValue = eventData.measurements?.fcp?.value;
-  const fpValue = eventData.measurements?.fp?.value;
+  const lcpValue = lcpSpan.attributes[BROWSER_WEB_VITAL_LCP_VALUE]?.value;
+  const fcpValue = eventData.attributes[BROWSER_WEB_VITAL_FCP_VALUE]?.value;
+  const fpValue = eventData.attributes[BROWSER_WEB_VITAL_FP_VALUE]?.value;
 
   expect(lcpValue).toBeDefined();
   expect(fcpValue).toBeDefined();
@@ -67,17 +74,20 @@ sentryTest(
     }
 
     const url = await getLocalTestUrl({ testDir: __dirname });
-    const [eventData] = await Promise.all([getFirstSentryEnvelopeRequest<Event>(page), page.goto(url)]);
+    const [eventData] = await Promise.all([
+      waitForStreamedSpan(page, span => span.is_segment && getSpanOp(span) === 'pageload'),
+      page.goto(url),
+    ]);
 
-    const timeOriginAttribute = eventData.contexts?.trace?.data?.['performance.timeOrigin'];
-    const activationStart = eventData.contexts?.trace?.data?.['performance.activationStart'];
+    const timeOriginAttribute = eventData.attributes[BROWSER_PERFORMANCE_TIME_ORIGIN]?.value as number;
+    const activationStart = eventData.attributes[BROWSER_PERFORMANCE_NAVIGATION_ACTIVATION_START]?.value;
 
-    const transactionStartTimestamp = eventData.start_timestamp;
+    const spanStartTimestamp = eventData.start_timestamp;
 
     expect(timeOriginAttribute).toBeDefined();
-    expect(transactionStartTimestamp).toBeDefined();
+    expect(spanStartTimestamp).toBeDefined();
 
-    const delta = Math.abs(transactionStartTimestamp! - timeOriginAttribute);
+    const delta = Math.abs(spanStartTimestamp! - timeOriginAttribute);
 
     // The delta should be less than 1ms if this flakes, we should increase the threshold
     expect(delta).toBeLessThanOrEqual(1);

@@ -61,7 +61,19 @@ const embeddingsConfig = EMBEDDINGS_PROVIDERS.flatMap(({ name, versionRange, met
   ),
 );
 
-export const langchainConfig = [...chatModelConfig, ...embeddingsConfig] satisfies InstrumentationConfig[];
+// `TypeSafeClassifier` (`@langchain/typesafe`) is a plain `Runnable`, not a chat model, so the chat-model
+// hooks never add the Sentry callback handler to its runs.
+const typesafeClassifierConfig = ['dist/classifier.cjs', 'dist/classifier.js'].map(filePath => ({
+  channelName: 'typesafeClassifierInvoke',
+  module: { name: '@langchain/typesafe', versionRange: '>=0.0.1 <1.0.0', filePath },
+  functionQuery: { className: 'TypeSafeClassifier', methodName: 'invoke', kind: 'Async' as const },
+}));
+
+export const langchainConfig = [
+  ...chatModelConfig,
+  ...embeddingsConfig,
+  ...typesafeClassifierConfig,
+] satisfies InstrumentationConfig[];
 
 // The embeddings channel strings the subscriber binds to, derived from the provider list above so that
 // adding a provider is a single edit that both instruments it and subscribes the listener to it.
@@ -74,4 +86,5 @@ export const langchainModuleNames = getModuleNames(langchainConfig);
 export const langchainChannels = {
   LANGCHAIN_CHAT_MODEL_INVOKE: 'orchestrion:@langchain/core:chatModelInvoke',
   LANGCHAIN_CHAT_MODEL_STREAM: 'orchestrion:@langchain/core:chatModelStream',
+  LANGCHAIN_TYPESAFE_CLASSIFIER_INVOKE: 'orchestrion:@langchain/typesafe:typesafeClassifierInvoke',
 } as const;

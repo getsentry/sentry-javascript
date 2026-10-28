@@ -1,6 +1,6 @@
 {
   "name": "@sentry/replay-canvas",
-  "version": "11.4.0",
+  "version": "11.10.0",
   "description": "Replay canvas integration",
   "main": "build/npm/cjs/index.js",
   "module": "build/npm/esm/index.js",
@@ -31,8 +31,8 @@
     "build:types": "tsc -p tsconfig.types.json",
     "build:watch": "run-p build:transpile:watch build:bundle:watch",
     "build:dev:watch": "run-p build:transpile:watch",
-    "build:transpile:watch": "yarn build:transpile --watch",
-    "build:bundle:watch": "yarn build:bundle --watch",
+    "build:transpile:watch": "pnpm run build:transpile --watch",
+    "build:bundle:watch": "pnpm run build:bundle --watch",
     "build:tarball": "npm pack",
     "circularDepCheck": "madge --circular src/index.ts",
     "clean": "rimraf build sentry-replay-*.tgz",
@@ -58,16 +58,14 @@
   },
   "homepage": "https://docs.sentry.io/platforms/javascript/session-replay/",
   "devDependencies": {
-    "@sentry/rrweb": "2.43.2"
+    "@sentry-internal/rollup-utils": "11.10.0",
+    "@sentry/rrweb": "2.45.0"
   },
   "dependencies": {
-    "@sentry/replay": "11.4.0",
-    "@sentry/core": "11.4.0"
+    "@sentry/replay": "11.10.0",
+    "@sentry/core": "11.10.0"
   },
   "engines": {
     "node": ">=20.19.0 <22.0.0 || >=22.12.0 <23.0.0 || >=23.2.0"
-  },
-  "volta": {
-    "extends": "../../package.json"
   }
 }

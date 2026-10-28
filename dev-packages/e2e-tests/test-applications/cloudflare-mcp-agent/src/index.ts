@@ -56,7 +56,7 @@ export const MyMCPAgent = Sentry.instrumentDurableObjectWithSentry(
     tracesSampleRate: 1.0,
     debug: true,
     dataCollection: {
-      genAI: {
+      mcp: {
         inputs: false,
         outputs: false,
       },
@@ -78,7 +78,7 @@ export default Sentry.withSentry(
     // The worker and the Durable Object share one cached client per isolate, so the entrypoint that
     // initializes first decides the data collection settings for both.
     dataCollection: {
-      genAI: {
+      mcp: {
         inputs: false,
         outputs: false,
       },

@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  getAuthInterruptStatusCode,
   isNotFoundNavigationError,
   isPrerenderControlFlowError,
   isRedirectNavigationError,
@@ -18,6 +19,22 @@ describe('isNotFoundNavigationError', () => {
     expect(isNotFoundNavigationError(new Error('boom'))).toBe(false);
     expect(isNotFoundNavigationError(errorWithDigest('NEXT_REDIRECT;/foo'))).toBe(false);
     expect(isNotFoundNavigationError({ digest: 'NEXT_NOT_FOUND' })).toBe(false);
+  });
+});
+
+describe('getAuthInterruptStatusCode', () => {
+  it.each([
+    ['NEXT_HTTP_ERROR_FALLBACK;403', 403],
+    ['NEXT_HTTP_ERROR_FALLBACK;401', 401],
+  ])('returns the status for the %s digest', (digest, status) => {
+    expect(getAuthInterruptStatusCode(errorWithDigest(digest))).toBe(status);
+    expect(getAuthInterruptStatusCode(new Error('wrapped', { cause: errorWithDigest(digest) }))).toBe(status);
+  });
+
+  it('returns undefined for other errors', () => {
+    expect(getAuthInterruptStatusCode(errorWithDigest('NEXT_HTTP_ERROR_FALLBACK;404'))).toBeUndefined();
+    expect(getAuthInterruptStatusCode(new Error('boom'))).toBeUndefined();
+    expect(getAuthInterruptStatusCode({ digest: 'NEXT_HTTP_ERROR_FALLBACK;403' })).toBeUndefined();
   });
 });
 

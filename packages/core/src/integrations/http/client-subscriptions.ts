@@ -25,6 +25,7 @@ import {
 } from '../../tracing';
 import { startInactiveSpan } from '../../tracing/trace';
 import { debug } from '../../utils/debug-logger';
+import { isError } from '../../utils/is';
 import { LRUMap } from '../../utils/lru';
 import { getOutgoingRequestSpanData, setIncomingResponseSpanData } from './get-outgoing-span-data';
 import { getRequestUrlFromClientRequest } from './get-request-url';
@@ -34,6 +35,7 @@ import { DEBUG_BUILD } from '../../debug-build';
 import { LOG_PREFIX, HTTP_ON_CLIENT_REQUEST } from './constants';
 import type { ClientSubscriptionName } from './constants';
 import { getClient } from '../../currentScopes';
+import { isSentryRequestUrl } from '../../utils/isSentryRequestUrl';
 import { hasSpansEnabled } from '../../utils/hasSpansEnabled';
 import { doubleWrapWarning } from './double-wrap-warning';
 
@@ -65,8 +67,10 @@ export function getHttpClientSubscriptions(options: HttpInstrumentationOptions):
 
     const { request } = data as { request: HttpClientRequest };
 
-    // check if request is ignored. if so, we do nothing at all.
-    if (options.ignoreOutgoingRequests?.(getRequestUrlFromClientRequest(request), request)) {
+    // check if request is ignored or goes to Sentry. if so, we do nothing at all.
+    // Our own transport suppresses tracing, but another SDK in this process (e.g. the Next.js Edge Runtime SDK) may not.
+    const url = getRequestUrlFromClientRequest(request);
+    if (isSentryRequestUrl(url, getClient()) || options.ignoreOutgoingRequests?.(url, request)) {
       return;
     }
 
@@ -141,18 +145,31 @@ export function getHttpClientSubscriptions(options: HttpInstrumentationOptions):
     const requestOnClose = () => endSpan({ code: SPAN_STATUS_UNSET });
     request.on('close', requestOnClose);
 
+    let responseStatusCode: number | undefined;
+
     request.on(errorMonitor, error => {
       DEBUG_BUILD && debug.log(LOG_PREFIX, 'outgoingRequest on request error()', error);
       if (breadcrumbs) {
         addBreadcrumbs(request, undefined);
       }
-      endSpan({ code: SPAN_STATUS_ERROR });
+      // An abort by the caller (e.g. `AbortController.abort()`) is not a failure of the request,
+      // so keep the status of the response if one arrived already.
+      if (isError(error) && error.name === 'AbortError') {
+        endSpan(
+          typeof responseStatusCode === 'number'
+            ? getSpanStatusFromHttpCode(responseStatusCode)
+            : { code: SPAN_STATUS_UNSET },
+        );
+      } else {
+        endSpan({ code: SPAN_STATUS_ERROR });
+      }
     });
 
     request.prependListener('response', response => {
       // no longer need this, listen on response now.
       // do not end the span until the response finishes
       request.removeListener('close', requestOnClose);
+      responseStatusCode = response.statusCode;
       if (request.listenerCount('response') <= 1) {
         response.resume();
       }
@@ -170,9 +187,8 @@ export function getHttpClientSubscriptions(options: HttpInstrumentationOptions):
           if (breadcrumbs) {
             addBreadcrumbs(request, response);
           }
-          const aborted = response.aborted && !response.complete;
           const status: SpanStatus =
-            error || typeof response.statusCode !== 'number' || aborted
+            error || typeof response.statusCode !== 'number'
               ? { code: SPAN_STATUS_ERROR }
               : getSpanStatusFromHttpCode(response.statusCode);
           options.applyCustomAttributesOnSpan?.(span, request, response);
@@ -182,6 +198,9 @@ export function getHttpClientSubscriptions(options: HttpInstrumentationOptions):
 
       response.on('end', () => finishWithResponse());
       response.on(errorMonitor, finishWithResponse);
+      // `res.destroy()` emits only `close`. `errored` separates a caller destroy from a connection
+      // error that was not emitted because nothing listens for `error`.
+      response.on('close', () => finishWithResponse(response.errored));
     });
   };
 

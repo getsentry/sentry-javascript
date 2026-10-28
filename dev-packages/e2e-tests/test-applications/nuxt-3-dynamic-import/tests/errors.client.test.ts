@@ -1,5 +1,6 @@
 import { expect, test } from '@playwright/test';
 import { waitForError } from '@sentry-internal/test-utils';
+import { waitForHydration } from './waitForHydration';
 
 test.describe('client-side errors', async () => {
   test('captures error thrown on click', async ({ page }) => {
@@ -8,6 +9,7 @@ test.describe('client-side errors', async () => {
     });
 
     await page.goto(`/client-error`);
+    await waitForHydration(page);
     await page.locator('#errorBtn').click();
 
     const error = await errorPromise;
@@ -35,7 +37,7 @@ test.describe('client-side errors', async () => {
     });
 
     await page.goto(`/test-param/1234`);
-    await page.waitForFunction(() => typeof window.__SENTRY__ === 'object');
+    await waitForHydration(page);
     await page.locator('#errorBtn').click();
 
     const error = await errorPromise;
@@ -65,6 +67,7 @@ test.describe('client-side errors', async () => {
     });
 
     await page.goto(`/client-error`);
+    await waitForHydration(page);
     await page.locator('#errorBtn').click();
 
     const error1 = await error1Promise;

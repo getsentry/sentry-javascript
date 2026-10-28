@@ -1,6 +1,10 @@
 import type { Nuxt } from '@nuxt/schema';
+import type * as BundlerPluginsCore from '@sentry/bundler-plugins/core';
+import * as fs from 'fs';
+import * as os from 'os';
+import * as path from 'path';
 import type { ConfigEnv, Plugin, UserConfig } from 'vite';
-import { afterAll, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterAll, afterEach, beforeEach, describe, expect, it, type MockInstance, vi } from 'vitest';
 import { setupSourceMaps, type SourceMapSetting } from '../../src/vite/sourceMaps';
 
 const { mockSentryVitePlugin, mockSentryRollupPlugin, mockDeleteArtifacts, mockCreateSentryBuildPluginManager } =
@@ -15,27 +19,45 @@ const { mockSentryVitePlugin, mockSentryRollupPlugin, mockDeleteArtifacts, mockC
     };
   });
 
-vi.mock('@sentry/bundler-plugins/core', () => ({
+vi.mock('@sentry/bundler-plugins/core', async importOriginal => ({
+  ...(await importOriginal<typeof BundlerPluginsCore>()),
   createSentryBuildPluginManager: mockCreateSentryBuildPluginManager,
 }));
 vi.mock('@sentry/bundler-plugins/vite', () => ({ sentryVitePlugin: mockSentryVitePlugin }));
 vi.mock('@sentry/bundler-plugins/rollup', () => ({ sentryRollupPlugin: mockSentryRollupPlugin }));
 
 function createMockAddVitePlugin() {
-  let capturedPlugins: Plugin[] | null = null;
+  const capturedPlugins: Plugin[] = [];
 
   const mockAddVitePlugin = vi.fn((plugins: Plugin[]) => {
-    capturedPlugins = plugins;
+    capturedPlugins.push(...plugins);
   });
 
   return {
     mockAddVitePlugin,
-    getCapturedPlugin: () => capturedPlugins?.[0] ?? null,
-    getCapturedPlugins: () => capturedPlugins,
+    getValidationPlugin: () =>
+      capturedPlugins.find(plugin => plugin.name === 'sentry-nuxt-source-map-validation') ?? null,
   };
 }
 
 type HookCallback = (...args: unknown[]) => void | Promise<void>;
+
+/** Nitro's output directories of the `node-server` preset, relative to the working directory. */
+const NODE_SERVER_OUTPUT = { publicDir: '.output/public', serverDir: '.output/server' };
+
+function createMockNitro(options: { dev?: boolean; output?: { publicDir: string; serverDir: string } } = {}) {
+  const output = options.output ?? NODE_SERVER_OUTPUT;
+  return {
+    options: {
+      dev: options.dev ?? false,
+      output: {
+        publicDir: path.join(process.cwd(), output.publicDir),
+        serverDir: path.join(process.cwd(), output.serverDir),
+      },
+      rollupConfig: { plugins: [{ name: 'sentry-rollup-plugin' }] as unknown },
+    },
+  };
+}
 
 function createMockNuxt(options: {
   _prepare?: boolean;
@@ -65,12 +87,7 @@ function createMockNuxt(options: {
 }
 
 describe('setupSourceMaps hooks', () => {
-  const defaultFilesToDeleteAfterUpload = [
-    '.*/**/public/**/*.map',
-    '.*/**/server/**/*.map',
-    '.*/**/output/**/*.map',
-    '.*/**/function/**/*.map',
-  ];
+  const defaultFilesToDeleteAfterUpload = ['.output/public/**/*.map', '.output/server/**/*.map'];
 
   const consoleLogSpy = vi.spyOn(console, 'log');
   const consoleWarnSpy = vi.spyOn(console, 'warn');
@@ -121,15 +138,30 @@ describe('setupSourceMaps hooks', () => {
   });
 
   describe('vite plugin registration', () => {
-    it('calls `addVitePlugin` when setupSourceMaps is called', async () => {
+    it('adds the source map validation plugin to the client and server builds', async () => {
       const mockNuxt = createMockNuxt({ _prepare: false, dev: false });
-      const { mockAddVitePlugin, getCapturedPlugin } = createMockAddVitePlugin();
+      const { mockAddVitePlugin } = createMockAddVitePlugin();
 
       setupSourceMaps({ debug: true }, mockNuxt as unknown as Nuxt, mockAddVitePlugin);
 
-      const plugin = getCapturedPlugin();
-      expect(plugin).not.toBeNull();
-      expect(plugin?.name).toBe('sentry-nuxt-source-map-validation');
+      expect(mockAddVitePlugin).toHaveBeenCalledWith(
+        [expect.objectContaining({ name: 'sentry-nuxt-source-map-validation' })],
+        { dev: false, build: true },
+      );
+    });
+
+    it('adds the Sentry Vite plugin to the client build only', async () => {
+      const mockNuxt = createMockNuxt({ _prepare: false, dev: false });
+      const { mockAddVitePlugin } = createMockAddVitePlugin();
+
+      setupSourceMaps({ debug: true }, mockNuxt as unknown as Nuxt, mockAddVitePlugin);
+
+      expect(mockAddVitePlugin).toHaveBeenCalledTimes(2);
+      expect(mockAddVitePlugin).toHaveBeenCalledWith([{ name: 'sentry-vite-plugin' }], {
+        dev: false,
+        build: true,
+        server: false,
+      });
     });
 
     it.each([
@@ -159,21 +191,6 @@ describe('setupSourceMaps hooks', () => {
       await mockNuxt.triggerHook('modules:done');
 
       expect(mockAddVitePlugin).not.toHaveBeenCalled();
-    });
-
-    it.each([
-      { label: 'server (SSR) build', buildConfig: { build: { ssr: true }, plugins: [] } },
-      { label: 'client build', buildConfig: { build: { ssr: false }, plugins: [] } },
-    ])('adds sentry vite plugin to vite config for $label in production', async () => {
-      const mockNuxt = createMockNuxt({ _prepare: false, dev: false });
-      const { mockAddVitePlugin, getCapturedPlugins } = createMockAddVitePlugin();
-
-      setupSourceMaps({ debug: true }, mockNuxt as unknown as Nuxt, mockAddVitePlugin);
-
-      const plugins = getCapturedPlugins();
-      expect(plugins).not.toBeNull();
-      expect(plugins?.length).toBeGreaterThan(0);
-      expect(mockSentryVitePlugin).toHaveBeenCalled();
     });
   });
 
@@ -268,6 +285,7 @@ describe('setupSourceMaps hooks', () => {
 
       setupSourceMaps({ debug: false }, mockNuxt as unknown as Nuxt, mockAddVitePlugin);
       await mockNuxt.triggerHook('modules:done');
+      await mockNuxt.triggerHook('nitro:init', createMockNitro());
       await mockNuxt.triggerHook('close');
 
       expect(mockCreateSentryBuildPluginManager).toHaveBeenCalledWith(
@@ -277,6 +295,24 @@ describe('setupSourceMaps hooks', () => {
         { buildTool: 'nuxt', loggerPrefix: '[Sentry Nuxt]' },
       );
       expect(mockDeleteArtifacts).toHaveBeenCalledTimes(1);
+    });
+
+    it('keeps the server source maps that `nitro.rollupConfig.output.sourcemap` enables', async () => {
+      const mockNuxt = createMockNuxt({ sourcemap: { client: undefined, server: undefined } });
+      const nitroConfig = { rollupConfig: { plugins: [] as unknown[], output: { sourcemap: true } }, dev: false };
+
+      setupSourceMaps({}, mockNuxt as unknown as Nuxt, vi.fn());
+      await mockNuxt.triggerHook('modules:done');
+      await mockNuxt.triggerHook('nitro:config', nitroConfig);
+      await mockNuxt.triggerHook('nitro:init', createMockNitro());
+      await mockNuxt.triggerHook('close');
+
+      expect(mockCreateSentryBuildPluginManager).toHaveBeenCalledWith(
+        expect.objectContaining({
+          sourcemaps: expect.objectContaining({ filesToDeleteAfterUpload: ['.output/public/**/*.map'] }),
+        }),
+        { buildTool: 'nuxt', loggerPrefix: '[Sentry Nuxt]' },
+      );
     });
 
     it('uses user-provided deletion patterns after the build', async () => {
@@ -369,15 +405,120 @@ describe('setupSourceMaps hooks', () => {
     });
   });
 
+  describe('nitro:init hook', () => {
+    const PUBLIC_MAP = '.output/public/_nuxt/entry.DxB3kLmA.js.map';
+    const PUBLIC_CHUNK = '.output/public/_nuxt/entry.DxB3kLmA.js';
+    const SSR_BUILD_MAP = '.nuxt/dist/server/_nuxt/index-B2kR7mXp.mjs.map';
+
+    let rootDir: string;
+    let cwdSpy: MockInstance<typeof process.cwd>;
+
+    beforeEach(() => {
+      rootDir = fs.mkdtempSync(path.join(os.tmpdir(), 'sentry-nuxt-root-'));
+      // The fallback deletion patterns are relative to the working directory.
+      cwdSpy = vi.spyOn(process, 'cwd').mockReturnValue(rootDir);
+      for (const file of [PUBLIC_MAP, PUBLIC_CHUNK, SSR_BUILD_MAP]) {
+        fs.mkdirSync(path.dirname(path.join(rootDir, file)), { recursive: true });
+        fs.writeFileSync(path.join(rootDir, file), '');
+      }
+    });
+
+    afterEach(() => {
+      cwdSpy.mockRestore();
+      fs.rmSync(rootDir, { recursive: true, force: true });
+    });
+
+    function findDeletionPlugin(nitro: ReturnType<typeof createMockNitro>) {
+      return [nitro.options.rollupConfig.plugins]
+        .flat(2)
+        .find(
+          (plugin): plugin is { name: string; buildStart: () => Promise<void> } =>
+            typeof plugin === 'object' &&
+            plugin !== null &&
+            'name' in plugin &&
+            plugin.name === 'sentry-nuxt-public-source-map-deletion' &&
+            'buildStart' in plugin &&
+            typeof plugin.buildStart === 'function',
+        );
+    }
+
+    function remainingFiles(): string[] {
+      return [PUBLIC_MAP, PUBLIC_CHUNK, SSR_BUILD_MAP].filter(file => fs.existsSync(path.join(rootDir, file)));
+    }
+
+    it('deletes the source maps in the Nitro public dir when Nitro starts to bundle the server', async () => {
+      const mockNuxt = createMockNuxt({ sourcemap: { client: 'hidden', server: true } });
+      const nitro = createMockNitro();
+      const filesToDeleteAfterUpload = [`${rootDir.split(path.sep).join('/')}/.output/public/**/*.map`];
+
+      setupSourceMaps({ sourcemaps: { filesToDeleteAfterUpload } }, mockNuxt as unknown as Nuxt, vi.fn());
+      await mockNuxt.triggerHook('modules:done');
+      await mockNuxt.triggerHook('nitro:init', nitro);
+      const deletionPlugin = findDeletionPlugin(nitro);
+      await deletionPlugin?.buildStart();
+
+      expect(deletionPlugin).toBeDefined();
+      expect(remainingFiles()).toEqual([PUBLIC_CHUNK, SSR_BUILD_MAP]);
+    });
+
+    it('deletes only the public source maps with the fallback patterns and keeps the SSR build maps', async () => {
+      const mockNuxt = createMockNuxt({ sourcemap: { client: undefined, server: undefined } });
+      const nitro = createMockNitro();
+
+      setupSourceMaps({}, mockNuxt as unknown as Nuxt, vi.fn());
+      await mockNuxt.triggerHook('modules:done');
+      await mockNuxt.triggerHook('nitro:init', nitro);
+      const deletionPlugin = findDeletionPlugin(nitro);
+      await deletionPlugin?.buildStart();
+
+      expect(deletionPlugin).toBeDefined();
+      expect(remainingFiles()).toEqual([PUBLIC_CHUNK, SSR_BUILD_MAP]);
+    });
+
+    it('deletes the public source maps of a preset that writes the public files outside of `.output`', async () => {
+      const netlifyPublicMap = 'dist/_nuxt/entry.DxB3kLmA.js.map';
+      fs.mkdirSync(path.dirname(path.join(rootDir, netlifyPublicMap)), { recursive: true });
+      fs.writeFileSync(path.join(rootDir, netlifyPublicMap), '');
+      const mockNuxt = createMockNuxt({ sourcemap: { client: undefined, server: true } });
+      const nitro = createMockNitro({
+        output: { publicDir: 'dist', serverDir: '.netlify/functions-internal/server' },
+      });
+
+      setupSourceMaps({}, mockNuxt as unknown as Nuxt, vi.fn());
+      await mockNuxt.triggerHook('modules:done');
+      await mockNuxt.triggerHook('nitro:init', nitro);
+      await findDeletionPlugin(nitro)?.buildStart();
+
+      expect(fs.existsSync(path.join(rootDir, netlifyPublicMap))).toBe(false);
+    });
+
+    it.each([
+      { label: 'prepare mode', nuxtOptions: { _prepare: true }, nitroOptions: {} },
+      { label: 'dev mode', nuxtOptions: { dev: true }, nitroOptions: { dev: true } },
+    ])('does not add the deletion plugin in $label', async ({ nuxtOptions, nitroOptions }) => {
+      const mockNuxt = createMockNuxt(nuxtOptions);
+      const nitro = createMockNitro(nitroOptions);
+
+      setupSourceMaps(
+        { sourcemaps: { filesToDeleteAfterUpload: ['.output/**/*.map'] } },
+        mockNuxt as unknown as Nuxt,
+        vi.fn(),
+      );
+      await mockNuxt.triggerHook('nitro:init', nitro);
+
+      expect(findDeletionPlugin(nitro)).toBeUndefined();
+    });
+  });
+
   describe('debug logging', () => {
     it('logs a [Sentry] message in production mode', async () => {
       const mockNuxt = createMockNuxt({ _prepare: false, dev: false });
-      const { mockAddVitePlugin, getCapturedPlugin } = createMockAddVitePlugin();
+      const { mockAddVitePlugin, getValidationPlugin } = createMockAddVitePlugin();
 
       setupSourceMaps({ debug: true }, mockNuxt as unknown as Nuxt, mockAddVitePlugin);
       await mockNuxt.triggerHook('modules:done');
 
-      const plugin = getCapturedPlugin();
+      const plugin = getValidationPlugin();
       if (plugin && typeof plugin.config === 'function') {
         (plugin.config as (config: UserConfig, env: ConfigEnv) => void)(
           { build: { ssr: false }, plugins: [] } as UserConfig,
@@ -398,12 +539,12 @@ describe('setupSourceMaps hooks', () => {
 
     it('does not log a [Sentry] messages in prepare mode', async () => {
       const mockNuxt = createMockNuxt({ _prepare: true });
-      const { mockAddVitePlugin, getCapturedPlugin } = createMockAddVitePlugin();
+      const { mockAddVitePlugin, getValidationPlugin } = createMockAddVitePlugin();
 
       setupSourceMaps({ debug: true }, mockNuxt as unknown as Nuxt, mockAddVitePlugin);
       await mockNuxt.triggerHook('modules:done');
 
-      const plugin = getCapturedPlugin();
+      const plugin = getValidationPlugin();
       if (plugin && typeof plugin.config === 'function') {
         (plugin.config as (config: UserConfig, env: ConfigEnv) => void)({ build: {}, plugins: [] } as UserConfig, {
           mode: 'production',

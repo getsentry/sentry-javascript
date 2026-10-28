@@ -12,6 +12,11 @@ import { BASE_TIMESTAMP } from '../..';
 import { decompress } from '../../utils/compression';
 import { getTestEventIncremental } from '../../utils/getTestEvent';
 
+vi.mock('../../../src/constants', async importOriginal => ({
+  ...(await importOriginal<object>()),
+  REPLAY_MAX_EVENT_BUFFER_SIZE: 100_000,
+}));
+
 const TEST_EVENT = getTestEventIncremental({ timestamp: BASE_TIMESTAMP });
 
 describe('Unit | eventBuffer | EventBufferCompressionWorker', () => {
@@ -152,7 +157,7 @@ describe('Unit | eventBuffer | EventBufferCompressionWorker', () => {
     await expect(() => buffer.addEvent({ data: { o: 3 }, timestamp: BASE_TIMESTAMP, type: 3 })).rejects.toBeDefined();
   });
 
-  describe('size limit', { timeout: 10_000 }, () => {
+  describe('size limit', () => {
     it('rejects if size exceeds limit', async function () {
       const buffer = createEventBuffer({
         useCompression: true,

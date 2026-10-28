@@ -1,12 +1,8 @@
 import type { Page } from '@playwright/test';
 import { expect } from '@playwright/test';
-import type { Event } from '@sentry/core';
+import { getSpanOp, waitForStreamedSpan } from '../../../../utils/spanUtils';
 import { sentryTest } from '../../../../utils/fixtures';
-import {
-  getFirstSentryEnvelopeRequest,
-  getMultipleSentryEnvelopeRequests,
-  shouldSkipTracingTest,
-} from '../../../../utils/helpers';
+import { envelopeRequestParser, waitForErrorRequest, shouldSkipTracingTest } from '../../../../utils/helpers';
 
 async function mockSupabaseAuthRoutesSuccess(page: Page) {
   await page.route(/\/auth\/v1\/token\?grant_type=password/, route => {
@@ -84,82 +80,96 @@ if (bundle.startsWith('bundle')) {
 
 sentryTest('should capture Supabase authentication spans', async ({ getLocalTestUrl, page }) => {
   if (shouldSkipTracingTest()) {
-    return;
+    sentryTest.skip();
   }
 
   await mockSupabaseAuthRoutesSuccess(page);
 
   const url = await getLocalTestUrl({ testDir: __dirname });
 
-  const eventData = await getFirstSentryEnvelopeRequest<Event>(page, url);
-  const supabaseSpans = eventData.spans?.filter(({ op }) => op?.startsWith('db'));
+  const rootSpanPromise = waitForStreamedSpan(page, span => span.is_segment && getSpanOp(span) === 'pageload');
+  const signInSpanPromise = waitForStreamedSpan(page, span => span.name === 'auth.signInWithPassword');
+  const signOutSpanPromise = waitForStreamedSpan(page, span => span.name === 'auth.signOut');
+  await page.goto(url);
 
-  expect(supabaseSpans).toHaveLength(2);
-  expect(supabaseSpans![0]).toMatchObject({
-    description: 'auth signInWithPassword',
-    op: 'db',
-    parent_span_id: eventData.contexts?.trace?.span_id,
+  const [rootSpan, signInSpan, signOutSpan] = await Promise.all([
+    rootSpanPromise,
+    signInSpanPromise,
+    signOutSpanPromise,
+  ]);
+
+  expect(signInSpan).toMatchObject({
+    name: 'auth.signInWithPassword',
+    parent_span_id: rootSpan.span_id,
     span_id: expect.any(String),
     start_timestamp: expect.any(Number),
-    timestamp: expect.any(Number),
-    trace_id: eventData.contexts?.trace?.trace_id,
+    end_timestamp: expect.any(Number),
+    trace_id: rootSpan.trace_id,
     status: 'ok',
-    data: expect.objectContaining({
-      'sentry.op': 'db',
-      'sentry.origin': 'auto.db.supabase',
-      'db.operation.name': 'auth.signInWithPassword',
-      'db.system.name': 'postgresql',
+    attributes: expect.objectContaining({
+      'sentry.op': { type: 'string', value: 'db' },
+      'sentry.origin': { type: 'string', value: 'auto.db.supabase' },
+      'db.operation.name': { type: 'string', value: 'auth.signInWithPassword' },
+      'db.system.name': { type: 'string', value: 'postgresql' },
     }),
   });
 
-  expect(supabaseSpans![1]).toMatchObject({
-    description: 'auth signOut',
-    op: 'db',
-    parent_span_id: eventData.contexts?.trace?.span_id,
+  expect(signOutSpan).toMatchObject({
+    name: 'auth.signOut',
+    parent_span_id: rootSpan.span_id,
     span_id: expect.any(String),
     start_timestamp: expect.any(Number),
-    timestamp: expect.any(Number),
-    trace_id: eventData.contexts?.trace?.trace_id,
+    end_timestamp: expect.any(Number),
+    trace_id: rootSpan.trace_id,
     status: 'ok',
-    data: expect.objectContaining({
-      'sentry.op': 'db',
-      'sentry.origin': 'auto.db.supabase',
-      'db.operation.name': 'auth.signOut',
-      'db.system.name': 'postgresql',
+    attributes: expect.objectContaining({
+      'sentry.op': { type: 'string', value: 'db' },
+      'sentry.origin': { type: 'string', value: 'auto.db.supabase' },
+      'db.operation.name': { type: 'string', value: 'auth.signOut' },
+      'db.system.name': { type: 'string', value: 'postgresql' },
     }),
   });
 });
 
 sentryTest('should capture Supabase authentication errors', async ({ getLocalTestUrl, page }) => {
   if (shouldSkipTracingTest()) {
-    return;
+    sentryTest.skip();
   }
 
   await mockSupabaseAuthRoutesFailure(page);
 
   const url = await getLocalTestUrl({ testDir: __dirname });
 
-  const [errorEvent, transactionEvent] = await getMultipleSentryEnvelopeRequests<Event>(page, 2, { url });
+  const rootSpanPromise = waitForStreamedSpan(page, span => span.is_segment && getSpanOp(span) === 'pageload');
+  const signInSpanPromise = waitForStreamedSpan(page, span => span.name === 'auth.signInWithPassword');
+  const errorRequestPromise = waitForErrorRequest(
+    page,
+    event => event.exception?.values?.[0]?.value === 'Invalid email or password',
+  );
+  await page.goto(url);
 
-  const supabaseSpans = transactionEvent.spans?.filter(({ op }) => op?.startsWith('db'));
+  const [rootSpan, signInSpan, errorRequest] = await Promise.all([
+    rootSpanPromise,
+    signInSpanPromise,
+    errorRequestPromise,
+  ]);
+  const errorEvent = envelopeRequestParser(errorRequest);
 
   expect(errorEvent.exception?.values?.[0].value).toBe('Invalid email or password');
 
-  expect(supabaseSpans).toHaveLength(2);
-  expect(supabaseSpans![0]).toMatchObject({
-    description: 'auth signInWithPassword',
-    op: 'db',
-    parent_span_id: transactionEvent.contexts?.trace?.span_id,
+  expect(signInSpan).toMatchObject({
+    name: 'auth.signInWithPassword',
+    parent_span_id: rootSpan.span_id,
     span_id: expect.any(String),
     start_timestamp: expect.any(Number),
-    timestamp: expect.any(Number),
-    trace_id: transactionEvent.contexts?.trace?.trace_id,
-    status: 'internal_error',
-    data: expect.objectContaining({
-      'sentry.op': 'db',
-      'sentry.origin': 'auto.db.supabase',
-      'db.operation.name': 'auth.signInWithPassword',
-      'db.system.name': 'postgresql',
+    end_timestamp: expect.any(Number),
+    trace_id: rootSpan.trace_id,
+    status: 'error',
+    attributes: expect.objectContaining({
+      'sentry.op': { type: 'string', value: 'db' },
+      'sentry.origin': { type: 'string', value: 'auto.db.supabase' },
+      'db.operation.name': { type: 'string', value: 'auth.signInWithPassword' },
+      'db.system.name': { type: 'string', value: 'postgresql' },
     }),
   });
 });

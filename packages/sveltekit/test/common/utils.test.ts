@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { getRouteId, isHttpError, isRedirect } from '../../src/common/utils';
+import { getPathname, getRouteId, isHttpError, isRedirect } from '../../src/common/utils';
 
 describe('isRedirect', () => {
   it.each([
@@ -100,5 +100,34 @@ describe('getRouteId', () => {
     expect(getRouteId({})).toBeUndefined();
     // @ts-expect-error - only passing a partial load event here
     expect(getRouteId({ route: null })).toBeUndefined();
+  });
+});
+
+describe('getPathname', () => {
+  it('reads url.pathname through untrack when available (SvelteKit 2+)', () => {
+    const untrack = vi.fn(<T>(fn: () => T) => fn());
+    const event = {
+      url: new URL('http://localhost:3000/users/123'),
+      untrack,
+    };
+
+    // @ts-expect-error - only passing a partial load event here
+    expect(getPathname(event)).toBe('/users/123');
+    expect(untrack).toHaveBeenCalledTimes(1);
+  });
+
+  it('bypasses tracked url getters without untrack', () => {
+    const tracked = vi.fn();
+    const url = new URL('http://localhost:3000/users/123');
+    Object.defineProperty(url, 'pathname', {
+      get() {
+        tracked();
+        return '/tracked';
+      },
+    });
+
+    // @ts-expect-error - only passing a partial load event here
+    expect(getPathname({ url })).toBe('/users/123');
+    expect(tracked).not.toHaveBeenCalled();
   });
 });

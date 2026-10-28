@@ -1,5 +1,5 @@
 import type { Client, Measurements, Span } from '@sentry/core';
-import { browserPerformanceTimeOrigin, debug, setMeasurement, spanToJSON } from '@sentry/core';
+import { browserPerformanceTimeOrigin, debug, filterCollectedUrl, setMeasurement, spanToJSON } from '@sentry/core';
 import { BROWSER_NAVIGATION_TYPE, SENTRY_OP } from '@sentry/conventions/attributes';
 import { DEBUG_BUILD } from '../debug-build';
 import { htmlTreeAsString } from '../htmlTreeAsString';
@@ -253,7 +253,7 @@ function _setWebVitalAttributes(span: Span, options: AddWebVitalsToSpanOptions):
 
     if (_lcpEntry.url) {
       // Trim URL to the first 200 characters.
-      span.setAttribute('lcp.url', _lcpEntry.url.trim().slice(0, 200));
+      span.setAttribute('lcp.url', filterCollectedUrl(_lcpEntry.url.trim()).slice(0, 200));
     }
 
     if (_lcpEntry.loadTime != null) {

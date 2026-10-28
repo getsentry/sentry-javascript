@@ -1,6 +1,7 @@
 services:
   mongo:
-    image: mongo:8
+    # `mongo:8` floats to the newest 8.x release, whose server sometimes exits right after start on CI.
+    image: mongo:8.0
     restart: always
     container_name: e2e-tests-nuxt-5-mongo
     ports:

@@ -1,8 +1,12 @@
 import * as SentryBrowser from '@sentry/browser';
-import { vi } from 'vitest';
+import { afterEach, vi } from 'vitest';
 import { getDefaultIntegrations, init } from '../src/sdk';
 
 describe('init', () => {
+  afterEach(() => {
+    SentryBrowser.getCurrentScope().setClient(undefined);
+  });
+
   it('sets the Angular version (if available) in the global scope', () => {
     const setContextSpy = vi.spyOn(SentryBrowser, 'setContext');
 

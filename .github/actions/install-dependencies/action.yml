@@ -1,27 +1,64 @@
-name: 'Install yarn dependencies'
-description: 'Installs yarn dependencies and caches them.'
-
-outputs:
-  cache_key:
-    description: 'The dependency cache key'
-    value: ${{ steps.compute_lockfile_hash.outputs.hash }}
+name: 'Install pnpm dependencies'
+description: 'Installs pnpm dependencies into node_modules folders on the Namespace cache volume.'
 
 runs:
   using: 'composite'
   steps:
-    - name: Compute dependency cache key
-      id: compute_lockfile_hash
-      run: node ./scripts/dependency-hash-key.js >> "$GITHUB_OUTPUT"
+    - name: List dependency paths
+      id: paths
+      run: |
+        {
+          echo 'paths<<EOF'
+          node -e 'const { workspaces } = require("./package.json"); for (const dir of [".", ...workspaces]) console.log(require("path").resolve(dir, "node_modules"))'
+          echo '~/.cache/mongodb-binaries'
+          echo '~/.cache/prisma'
+          echo 'EOF'
+        } >> "$GITHUB_OUTPUT"
       shell: bash
 
-    - name: Check dependency cache
-      uses: actions/cache@v6.1.0
-      id: cache_dependencies
+    - name: Mount dependency cache
+      uses: ./.github/actions/mount-pnpm-store
       with:
-        path: ${{ env.CACHED_DEPENDENCY_PATHS }}
-        key: ${{ steps.compute_lockfile_hash.outputs.hash }}
+        path: ${{ steps.paths.outputs.paths }}
 
+    - name: Install pnpm
+      uses: ./.github/actions/install-pnpm
+
+    # When the node_modules layout changes, `pnpm install` keeps the `.bin` scripts of the workspace packages, which
+    # then point into a folder that the new layout does not have. Branches that change `nodeLinker` share this cache
+    # volume, so start from empty node_modules folders when the layout on the volume differs, or when an earlier
+    # install already left such broken `.bin` scripts behind.
+    - name: Remove node_modules of another layout
+      run: |
+        mapfile -t dirs < <(grep '/node_modules$' <<< "$DEPENDENCY_PATHS")
+        expected=$(pnpm config get node-linker)
+        if [[ "$expected" == undefined ]]; then
+          expected=isolated
+        fi
+        actual=$(node -p 'try { JSON.parse(require("fs").readFileSync("node_modules/.modules.yaml", "utf8")).nodeLinker ?? "" } catch { "" }')
+        if [[ -n "$actual" && "$actual" != "$expected" ]]; then
+          reason="The node_modules folders use the $actual layout, but nodeLinker is $expected."
+        else
+          broken=$(node "$GITHUB_ACTION_PATH/find-broken-bin.mjs" "${dirs[@]}")
+          if [[ -n "$broken" ]]; then
+            reason="The target of $broken does not exist."
+          fi
+        fi
+        if [[ -n "$reason" ]]; then
+          echo "$reason Removing the node_modules folders."
+          for dir in "${dirs[@]}"; do
+            if [[ -d "$dir" ]]; then
+              # The folders are mounted from the cache volume, so empty them instead of removing them
+              find "$dir/" -mindepth 1 -maxdepth 1 -exec rm -rf {} +
+            fi
+          done
+        fi
+      env:
+        DEPENDENCY_PATHS: ${{ steps.paths.outputs.paths }}
+      shell: bash
+
+    # The cache volume can hold node_modules of another commit or branch. This is a no-op when they match
+    # pnpm-lock.yaml.
     - name: Install dependencies
-      if: steps.cache_dependencies.outputs.cache-hit != 'true'
-      run: yarn install --ignore-engines --frozen-lockfile
+      run: pnpm install --frozen-lockfile
       shell: bash

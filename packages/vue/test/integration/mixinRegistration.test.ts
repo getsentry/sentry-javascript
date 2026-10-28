@@ -130,6 +130,7 @@ const it = baseIt.extend<Fixtures>({
         }
       });
     });
+    Sentry.getCurrentScope().setClient(undefined);
   },
 });
 /* oxlint-enable no-empty-pattern */

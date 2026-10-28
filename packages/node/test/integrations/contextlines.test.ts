@@ -69,6 +69,44 @@ describe('ContextLines', () => {
     });
   });
 
+  describe('file filtering', () => {
+    test.each([
+      '/var/task/.env',
+      '/etc/passwd',
+      '/home/user/.ssh/id_rsa',
+      'file:///var/task/config.json',
+      'file:///var/task/index.js.bak',
+      'file:///var/task/index.min.js?v=abc',
+    ])('does not read non-source file %s', async filename => {
+      expect.assertions(1);
+      const frames: StackFrame[] = [{ colno: 1, filename, lineno: 1, function: 'fxn1' }];
+
+      const readStreamSpy = vi.spyOn(fs, 'createReadStream');
+      await addContext(frames);
+      expect(readStreamSpy).not.toHaveBeenCalled();
+    });
+
+    test.each([
+      'file:///var/task/index.js',
+      'file:///var/task/index.mjs',
+      'file:///var/task/index.cjs',
+      'file:///var/task/index.ts',
+      'file:///var/task/index.tsx',
+      'file:///var/task/Index.JS',
+      'file:///var/task/index.js?v=abc123',
+      'file:///var/task/index.js#hash',
+      'file:///var/task/Component.vue',
+      'file:///var/task/page.mdx',
+    ])('reads source file %s', async filename => {
+      expect.assertions(1);
+      const frames: StackFrame[] = [{ colno: 1, filename, lineno: 1, function: 'fxn1' }];
+
+      const readStreamSpy = vi.spyOn(fs, 'createReadStream');
+      await addContext(frames);
+      expect(readStreamSpy).toHaveBeenCalledTimes(1);
+    });
+  });
+
   describe('lru file cache', () => {
     test('parseStack when file does not exist', async () => {
       expect.assertions(4);

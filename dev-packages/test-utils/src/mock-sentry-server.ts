@@ -171,7 +171,9 @@ function sendResponse(
       res.end(
         JSON.stringify({
           url: `http://localhost:${port}/api/0/organizations/${org}/chunk-upload/`,
-          chunkSize: 8388608,
+          // Each chunk is unzipped on its own, so a bundle split across chunks loses its manifest.
+          // Keep chunks as large as a request allows so that every bundle fits in one chunk.
+          chunkSize: 33554432,
           chunksPerRequest: 64,
           maxFileSize: 2147483648,
           maxRequestSize: 33554432,

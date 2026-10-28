@@ -323,7 +323,9 @@ export function getBuildPluginOptions({
   const skipSourcemapsUpload = shouldSkipSourcemapUpload(buildTool, useRunAfterProductionCompileHook);
 
   return {
-    applicationKey: sentryBuildOptions.applicationKey,
+    // Only the browser reads these tags (`thirdPartyErrorFilterIntegration`), so server bundles skip the per-module cost.
+    applicationKey:
+      buildTool === 'webpack-nodejs' || buildTool === 'webpack-edge' ? undefined : sentryBuildOptions.applicationKey,
     authToken: sentryBuildOptions.authToken,
     headers: sentryBuildOptions.headers,
     org: sentryBuildOptions.org,

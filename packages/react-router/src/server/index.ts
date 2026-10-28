@@ -6,8 +6,10 @@ export * from '@sentry/node';
 export { init } from './sdk';
 export { wrapSentryHandleRequest } from './wrapSentryHandleRequest';
 export { createSentryHandleRequest, type SentryHandleRequestOptions } from './createSentryHandleRequest';
+export type { SentryWebStreamHandleRequestOptions } from './handleRequestTypes';
 export { createSentryHandleError, type SentryHandleErrorOptions } from './createSentryHandleError';
 export { getMetaTagTransformer } from './getMetaTagTransformer';
+export { createSentryTunnelRoutes } from './tunnelRoute';
 
 // React Router instrumentation API support
 export {

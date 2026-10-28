@@ -4,6 +4,7 @@ import * as currentScopesModule from '../../../src/currentScopes';
 import * as fetchModule from '../../../src/fetch';
 import { createFetchIntegration } from '../../../src/integrations/fetch';
 import * as instrumentFetchModule from '../../../src/instrument/fetch';
+import { suppressTracing } from '../../../src/tracing/trace';
 import type { HandlerDataFetch } from '../../../src/types/instrument';
 import type { Integration } from '../../../src/types/integration';
 import { getDefaultTestClientOptions, TestClient } from '../../mocks/client';
@@ -83,7 +84,7 @@ describe('createFetchIntegration', () => {
   it('uses the span origin it was created with', () => {
     const winterCGFetchIntegration = createFetchIntegration({
       name: 'WinterCGFetch',
-      spanOrigin: 'auto.http.wintercg_fetch',
+      spanOrigin: 'auto.http.fetch',
     });
 
     const handler = setupIntegration(winterCGFetchIntegration(), client);
@@ -94,7 +95,7 @@ describe('createFetchIntegration', () => {
       expect.any(Function),
       expect.any(Function),
       expect.any(Object),
-      expect.objectContaining({ spanOrigin: 'auto.http.wintercg_fetch' }),
+      expect.objectContaining({ spanOrigin: 'auto.http.fetch' }),
     );
   });
 
@@ -131,6 +132,23 @@ describe('createFetchIntegration', () => {
       args: ['https://dsn.ingest.sentry.io/1337?sentry_key=public'],
       startTimestamp: Date.now(),
     });
+
+    expect(instrumentFetchRequestSpy).not.toHaveBeenCalled();
+    expect(addBreadcrumbSpy).not.toHaveBeenCalled();
+  });
+
+  it('does not instrument requests made while tracing is suppressed', () => {
+    const handler = setupIntegration(fetchIntegration(), client);
+
+    suppressTracing(() =>
+      handler({
+        fetchData: { url: 'https://o1.ingest.us.sentry.io/api/2/envelope/', method: 'POST' },
+        args: ['https://o1.ingest.us.sentry.io/api/2/envelope/'],
+        startTimestamp: Date.now(),
+        endTimestamp: Date.now() + 100,
+        response: { status: 200 } as Response,
+      }),
+    );
 
     expect(instrumentFetchRequestSpy).not.toHaveBeenCalled();
     expect(addBreadcrumbSpy).not.toHaveBeenCalled();

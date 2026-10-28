@@ -1,6 +1,25 @@
-import { SENTRY_TRACE_LIFECYCLE, SENTRY_OP } from '@sentry/conventions/attributes';
-import { type SerializedStreamedSpanContainer } from '@sentry/core';
-import { afterAll, describe, expect } from 'vitest';
+import {
+  DB_OPERATION_NAME,
+  DB_QUERY_TEXT,
+  DB_SYSTEM_NAME,
+  ERROR_TYPE,
+  SENTRY_ENVIRONMENT,
+  SENTRY_IS_LOCALHOST,
+  SENTRY_KIND,
+  SENTRY_OP,
+  SENTRY_ORIGIN,
+  SENTRY_RELEASE,
+  SENTRY_SDK_NAME,
+  SENTRY_SDK_VERSION,
+  SENTRY_SEGMENT_ID,
+  SENTRY_SEGMENT_NAME,
+  SENTRY_STATUS_MESSAGE,
+  SENTRY_TRACE_LIFECYCLE,
+  SERVER_ADDRESS,
+  SERVER_PORT,
+} from '@sentry/conventions/attributes';
+import { DB_QUERY } from '@sentry/conventions/op';
+import { afterAll, expect } from 'vitest';
 import { EXPECTED_SDK_NAME } from '../../../utils';
 import { cleanupChildProcesses, createEsmAndCjsTests, describeWithDockerCompose } from '../../../utils/runner';
 
@@ -13,126 +32,66 @@ describeWithDockerCompose('redis auto instrumentation', { workingDirectory: [__d
   // subscriber instead of the OTel monkey-patch, so the span origin differs. All
   // other attributes are identical.
   const origin = 'auto.db.redis';
-  const redisSpanOp = 'db.query';
-  const redisData = {
-    'db.system.name': 'redis',
-    'server.address': 'localhost',
-    'server.port': 6380,
+  const redisSpanOp = DB_QUERY;
+  const COMMON_ATTRIBUTES = {
+    [SENTRY_IS_LOCALHOST]: { type: 'boolean', value: false },
+    [DB_SYSTEM_NAME]: { type: 'string', value: 'redis' },
+    [SERVER_ADDRESS]: { type: 'string', value: 'localhost' },
+    [SERVER_PORT]: { type: 'integer', value: 6380 },
+    [SENTRY_KIND]: { type: 'string', value: 'client' },
+    [SENTRY_ENVIRONMENT]: { type: 'string', value: 'production' },
+    [SENTRY_OP]: { type: 'string', value: redisSpanOp },
+    [SENTRY_ORIGIN]: { type: 'string', value: origin },
+    [SENTRY_RELEASE]: { type: 'string', value: '1.0' },
+    [SENTRY_SDK_NAME]: { type: 'string', value: EXPECTED_SDK_NAME },
+    [SENTRY_SDK_VERSION]: { type: 'string', value: expect.any(String) },
+    [SENTRY_SEGMENT_ID]: { type: 'string', value: expect.stringMatching(/^[\da-f]{16}$/) },
+    [SENTRY_SEGMENT_NAME]: { type: 'string', value: 'Test Span' },
+    [SENTRY_TRACE_LIFECYCLE]: { type: 'string', value: 'stream' },
   };
 
-  const EXPECTED_TRANSACTION = {
-    transaction: 'Test Span',
-    spans: expect.arrayContaining([
-      expect.objectContaining({
-        description: 'set test-key [1 other arguments]',
-        op: redisSpanOp,
-        origin,
-        data: expect.objectContaining({
-          'sentry.op': redisSpanOp,
-          'sentry.origin': origin,
-          ...redisData,
-          'db.query.text': 'set test-key [1 other arguments]',
-        }),
-      }),
-      expect.objectContaining({
-        description: 'get test-key',
-        op: redisSpanOp,
-        origin,
-        data: expect.objectContaining({
-          'sentry.op': redisSpanOp,
-          'sentry.origin': origin,
-          ...redisData,
-          'db.query.text': 'get test-key',
-        }),
-      }),
-      // a failing command produces a span with an error status
-      expect.objectContaining({
-        description: 'incr test-key',
-        op: redisSpanOp,
-        status: 'internal_error',
-        origin,
-        data: expect.objectContaining({
-          'sentry.op': redisSpanOp,
-          'sentry.origin': origin,
-          ...redisData,
-          'db.query.text': 'incr test-key',
-        }),
-      }),
-    ]),
-  };
+  function expectedDbSpan({
+    operation,
+    statement,
+    status = 'ok',
+    errorMessage,
+  }: {
+    operation: string;
+    statement: string;
+    status?: string;
+    errorMessage?: string;
+  }): unknown {
+    return {
+      attributes: {
+        ...COMMON_ATTRIBUTES,
+        [DB_OPERATION_NAME]: { type: 'string', value: operation },
+        [DB_QUERY_TEXT]: { type: 'string', value: statement },
+        ...(errorMessage
+          ? {
+              [ERROR_TYPE]: { type: 'string', value: 'ReplyError' },
+              [SENTRY_STATUS_MESSAGE]: { type: 'string', value: errorMessage },
+            }
+          : {}),
+      },
+      name: `${operation} localhost:6380`,
+      end_timestamp: expect.any(Number),
+      is_segment: false,
+      parent_span_id: expect.stringMatching(/^[\da-f]{16}$/),
+      span_id: expect.stringMatching(/^[\da-f]{16}$/),
+      start_timestamp: expect.any(Number),
+      status,
+      trace_id: expect.stringMatching(/^[\da-f]{32}$/),
+    };
+  }
 
   createEsmAndCjsTests(__dirname, 'scenario-ioredis.mjs', 'instrument.mjs', (createTestRunner, test) => {
     test(
       'should auto-instrument `ioredis` package when using redis.set() and redis.get()',
       { timeout: 75_000 },
       async () => {
-        await createTestRunner().expect({ transaction: EXPECTED_TRANSACTION }).start().completed();
-      },
-    );
-  });
-
-  describe('streamed', () => {
-    // The same three commands as above, asserted on the streamed span container. Only the span
-    // name differs: with span streaming names have to be low cardinality, so the serialized
-    // statement is reported through `db.query.text` alone and the name becomes
-    // `{db.operation.name} {server.address}:{server.port}`.
-    const COMMON_ATTRIBUTES = {
-      'sentry.is_localhost': { type: 'boolean', value: false },
-      'db.system.name': { type: 'string', value: 'redis' },
-      'server.address': { type: 'string', value: 'localhost' },
-      'server.port': { type: 'integer', value: 6380 },
-      'sentry.kind': { type: 'string', value: 'client' },
-      'sentry.environment': { type: 'string', value: 'production' },
-      'sentry.op': { type: 'string', value: redisSpanOp },
-      'sentry.origin': { type: 'string', value: origin },
-      'sentry.release': { type: 'string', value: '1.0' },
-      'sentry.sdk.name': { type: 'string', value: EXPECTED_SDK_NAME },
-      'sentry.sdk.version': { type: 'string', value: expect.any(String) },
-      'sentry.segment.id': { type: 'string', value: expect.stringMatching(/^[\da-f]{16}$/) },
-      'sentry.segment.name': { type: 'string', value: 'Test Span' },
-      [SENTRY_TRACE_LIFECYCLE]: { type: 'string', value: 'stream' },
-    };
-
-    function expectedDbSpan({
-      operation,
-      statement,
-      status = 'ok',
-      errorMessage,
-    }: {
-      operation: string;
-      statement: string;
-      status?: string;
-      errorMessage?: string;
-    }): unknown {
-      return {
-        attributes: {
-          ...COMMON_ATTRIBUTES,
-          'db.operation.name': { type: 'string', value: operation },
-          'db.query.text': { type: 'string', value: statement },
-          ...(errorMessage
-            ? {
-                'error.type': { type: 'string', value: 'ReplyError' },
-                'sentry.status.message': { type: 'string', value: errorMessage },
-              }
-            : {}),
-        },
-        name: `${operation} localhost:6380`,
-        end_timestamp: expect.any(Number),
-        is_segment: false,
-        parent_span_id: expect.stringMatching(/^[\da-f]{16}$/),
-        span_id: expect.stringMatching(/^[\da-f]{16}$/),
-        start_timestamp: expect.any(Number),
-        status,
-        trace_id: expect.stringMatching(/^[\da-f]{32}$/),
-      };
-    }
-
-    createEsmAndCjsTests(__dirname, 'scenario-ioredis.mjs', 'instrument.mjs', (createTestRunner, test) => {
-      test('should auto-instrument `ioredis` package with span streaming enabled', { timeout: 75_000 }, async () => {
         await createTestRunner()
-          .withEnv({ STREAMED: 'true' })
           .expect({
-            span: (container: SerializedStreamedSpanContainer) => {
+            span: container => {
               const segmentSpan = container.items.find(item => item.is_segment);
               expect(segmentSpan?.name).toBe('Test Span');
 
@@ -153,7 +112,7 @@ describeWithDockerCompose('redis auto instrumentation', { workingDirectory: [__d
           })
           .start()
           .completed();
-      });
-    });
+      },
+    );
   });
 });

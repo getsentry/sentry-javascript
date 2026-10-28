@@ -1,4 +1,5 @@
 import * as diagnosticsChannel from '../../utils/diagnosticsChannel';
+import type { OrchestrionChannelContext } from '../../orchestrion/types';
 import { CHANNELS } from '../../orchestrion/channels';
 import { bindTracingChannelToSpan, safeChannelCallback } from '../../tracing-channel';
 import type { FirestoreReference } from './firestore-types';
@@ -7,13 +8,6 @@ import { wrapFunctionsRegistration } from './functions';
 
 // The context orchestrion's transform attaches to each firestore channel: `arguments` is the live args
 // of the wrapped `addDoc`/`getDocs`/`setDoc`/`deleteDoc` call, `arguments[0]` the reference.
-interface FirestoreChannelContext {
-  arguments: unknown[];
-  self?: unknown;
-  result?: unknown;
-  error?: unknown;
-}
-
 // The firestore operations, keyed by channel. `useParent` mirrors the OTel integration: `setDoc`/
 // `deleteDoc` take a *document* reference but the span is named after its parent *collection*.
 const FIRESTORE_OPERATIONS: Array<{ channel: string; spanName: string; useParent: boolean }> = [
@@ -43,7 +37,7 @@ const NOOP = (): void => {};
 
 export function instrumentFirebase() {
   for (const { channel, spanName, useParent } of FIRESTORE_OPERATIONS) {
-    bindTracingChannelToSpan(diagnosticsChannel.tracingChannel<FirestoreChannelContext>(channel), data =>
+    bindTracingChannelToSpan(diagnosticsChannel.tracingChannel<OrchestrionChannelContext>(channel), data =>
       safeChannelCallback(() => {
         const reference = data.arguments[0] as FirestoreReference | undefined;
         if (!reference) {
@@ -61,7 +55,7 @@ export function instrumentFirebase() {
     // span inside that wrapper. The other lifecycle events are irrelevant, so no-op them.
     diagnosticsChannel.tracingChannel(channel).subscribe({
       start: data =>
-        safeChannelCallback(() => wrapFunctionsRegistration(data as { arguments: unknown[] }, triggerType)),
+        safeChannelCallback(() => wrapFunctionsRegistration(data as OrchestrionChannelContext, triggerType)),
       end: NOOP,
       asyncStart: NOOP,
       asyncEnd: NOOP,

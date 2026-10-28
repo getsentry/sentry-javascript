@@ -12,8 +12,14 @@ import { markSpanAsTracerProviderSpan } from '../../../src/tracing/utils';
 import { withStaticSpan } from '../../../src/tracing/spans/beforeSendSpan';
 import type { Envelope } from '../../../src/types/envelope';
 import type { Span, SpanJSON } from '../../../src/types/span';
-import { getRootSpan, spanToStaticSpanJSON, TRACE_FLAG_NONE, TRACE_FLAG_SAMPLED } from '../../../src/utils/spanUtils';
-import { timestampInSeconds } from '../../../src/utils/time';
+import {
+  getRootSpan,
+  spanToJSON,
+  spanToStaticSpanJSON,
+  TRACE_FLAG_NONE,
+  TRACE_FLAG_SAMPLED,
+} from '../../../src/utils/spanUtils';
+import { browserPerformanceTimeOrigin, timestampInSeconds } from '../../../src/utils/time';
 import { getDefaultTestClientOptions, TestClient } from '../../mocks/client';
 import { SENTRY_SEGMENT_NAME_SOURCE } from '@sentry/conventions/attributes';
 
@@ -163,12 +169,53 @@ describe('SentrySpan', () => {
       });
       markSpanAsTracerProviderSpan(span);
 
-      span.end(2);
-      span.end(3);
+      span.end([2, 0]);
+      span.end([3, 0]);
 
       span.setAttribute('key', 'after');
       expect(spanToStaticSpanJSON(span).data?.['key']).toBe('before');
       expect(spanToStaticSpanJSON(span).timestamp).toBe(2);
+    });
+  });
+
+  describe('tracer-provider span timestamps', () => {
+    it('reads numbers as OpenTelemetry milliseconds', () => {
+      const origin = browserPerformanceTimeOrigin()!;
+      const span = new SentrySpan({ name: 'span' });
+      markSpanAsTracerProviderSpan(span);
+
+      span.updateStartTime(1_000);
+      span.addEvent('event', 1_010);
+      span.end(1_025);
+
+      const json = spanToStaticSpanJSON(span);
+      expect(json.start_timestamp).toBe((origin + 1_000) / 1000);
+      expect(json.timestamp).toBe((origin + 1_025) / 1000);
+      expect(span['_events'][0]?.time).toBe((origin + 1_010) / 1000);
+    });
+
+    it('defaults an event without a time to now', () => {
+      const span = new SentrySpan({ name: 'span' });
+      markSpanAsTracerProviderSpan(span);
+
+      const before = timestampInSeconds();
+      span.addEvent('event');
+
+      expect(span['_events'][0]?.time).toBeGreaterThanOrEqual(before);
+      expect(span['_events'][0]?.time).toBeLessThanOrEqual(timestampInSeconds());
+    });
+
+    it('keeps reading numbers as seconds on other spans', () => {
+      const span = new SentrySpan({ name: 'span' });
+
+      span.updateStartTime(1_000);
+      span.addEvent('event', 1_010);
+      span.end(1_025);
+
+      const json = spanToStaticSpanJSON(span);
+      expect(json.start_timestamp).toBe(1_000);
+      expect(json.timestamp).toBe(1_025);
+      expect(span['_events'][0]?.time).toBe(1_010);
     });
   });
 
@@ -450,6 +497,77 @@ describe('SentrySpan', () => {
         type: 'transaction',
       });
     });
+
+    test('records an `invalid` span outcome for unfinished child spans', () => {
+      const client = new TestClient(getDefaultTestClientOptions({ tracesSampleRate: 1 }));
+      setCurrentClient(client);
+      const recordDroppedEventSpy = vi.spyOn(client, 'recordDroppedEvent');
+      const captureEventSpy = vi.spyOn(getCurrentScope(), 'captureEvent').mockImplementation(() => 'testId');
+
+      const root = startInactiveSpan({ name: 'root' });
+      withActiveSpan(root, () => {
+        startInactiveSpan({ name: 'unfinished-1' });
+        startInactiveSpan({ name: 'unfinished-2' });
+        startInactiveSpan({ name: 'finished' }).end();
+      });
+      root.end();
+
+      expect(captureEventSpy).toHaveBeenCalledWith(
+        expect.objectContaining({ spans: [expect.objectContaining({ description: 'finished' })] }),
+      );
+      expect(recordDroppedEventSpy).toHaveBeenCalledTimes(1);
+      expect(recordDroppedEventSpy).toHaveBeenCalledWith('invalid', 'span', 2);
+    });
+
+    test('records a `buffer_overflow` span outcome for spans beyond the 1000 span limit', () => {
+      const client = new TestClient(getDefaultTestClientOptions({ tracesSampleRate: 1 }));
+      setCurrentClient(client);
+      const recordDroppedEventSpy = vi.spyOn(client, 'recordDroppedEvent');
+      const captureEventSpy = vi.spyOn(getCurrentScope(), 'captureEvent').mockImplementation(() => 'testId');
+
+      const root = startInactiveSpan({ name: 'root' });
+      withActiveSpan(root, () => {
+        for (let i = 0; i < 1005; i++) {
+          startInactiveSpan({ name: `child-${i}` }).end();
+        }
+      });
+      root.end();
+
+      expect(captureEventSpy).toHaveBeenCalledWith(
+        expect.objectContaining({ spans: expect.objectContaining({ length: 1000 }) }),
+      );
+      expect(recordDroppedEventSpy).toHaveBeenCalledTimes(1);
+      expect(recordDroppedEventSpy).toHaveBeenCalledWith('buffer_overflow', 'span', 5);
+    });
+
+    test('does not record span outcomes for an unsampled root span', () => {
+      const client = new TestClient(getDefaultTestClientOptions({ tracesSampleRate: 1 }));
+      setCurrentClient(client);
+      const recordDroppedEventSpy = vi.spyOn(client, 'recordDroppedEvent');
+
+      const root = new SentrySpan({ name: 'root', sampled: false });
+      withActiveSpan(root, () => {
+        startInactiveSpan({ name: 'unfinished' });
+      });
+      root.end();
+
+      expect(recordDroppedEventSpy).not.toHaveBeenCalledWith('invalid', 'span', expect.anything());
+    });
+
+    test('does not record span outcomes for unfinished standalone child spans', () => {
+      const client = new TestClient(getDefaultTestClientOptions({ tracesSampleRate: 1 }));
+      setCurrentClient(client);
+      const recordDroppedEventSpy = vi.spyOn(client, 'recordDroppedEvent');
+      vi.spyOn(getCurrentScope(), 'captureEvent').mockImplementation(() => 'testId');
+
+      const root = startInactiveSpan({ name: 'root' });
+      withActiveSpan(root, () => {
+        startInactiveSpan({ name: 'inp', experimental: { standalone: true } });
+      });
+      root.end();
+
+      expect(recordDroppedEventSpy).not.toHaveBeenCalled();
+    });
   });
 
   describe('setAttribute', () => {
@@ -588,7 +706,9 @@ describe('SentrySpan', () => {
       const now = timestampInSeconds();
       span.end();
 
-      expect(spanToStaticSpanJSON(span).timestamp).toBeGreaterThanOrEqual(now);
+      const { start_timestamp, end_timestamp } = spanToJSON(span);
+      expect(end_timestamp).toBeGreaterThanOrEqual(start_timestamp);
+      expect(end_timestamp).toBeCloseTo(now, 2);
     });
 
     it('works with endTimestamp in seconds', () => {
@@ -613,6 +733,50 @@ describe('SentrySpan', () => {
       span.end([seconds, 0]);
 
       expect(spanToStaticSpanJSON(span).timestamp).toEqual(seconds);
+    });
+
+    it('uses the `performance.now()` duration if the wall clock jumps forward while the span runs', () => {
+      vi.useFakeTimers();
+      const span = new SentrySpan();
+      const startTimestamp = spanToStaticSpanJSON(span).start_timestamp;
+
+      // The device sleeps for an hour: `Date.now()` moves on, `performance.now()` only moves by 500ms.
+      vi.setSystemTime(Date.now() + 3_600_000);
+      vi.advanceTimersByTime(500);
+      span.end();
+      vi.useRealTimers();
+
+      expect(spanToStaticSpanJSON(span).timestamp! - startTimestamp).toBeCloseTo(0.5, 1);
+    });
+
+    it('never has a negative duration if the wall clock jumps backwards while the span runs', () => {
+      vi.useFakeTimers();
+      const span = new SentrySpan();
+      const startTimestamp = spanToStaticSpanJSON(span).start_timestamp;
+
+      vi.setSystemTime(Date.now() - 60_000);
+      vi.advanceTimersByTime(500);
+      span.end();
+      vi.useRealTimers();
+
+      expect(spanToStaticSpanJSON(span).timestamp! - startTimestamp).toBeCloseTo(0.5, 1);
+    });
+
+    it('uses the current time as end if the span was started with a start time', () => {
+      const startTimestamp = timestampInSeconds() - 10;
+      const span = new SentrySpan({ startTimestamp });
+      span.end();
+
+      expect(spanToStaticSpanJSON(span).timestamp! - startTimestamp).toBeCloseTo(10, 1);
+    });
+
+    it('uses the current time as end if the start time was updated', () => {
+      const span = new SentrySpan();
+      const startTimestamp = timestampInSeconds() - 10;
+      span.updateStartTime(startTimestamp);
+      span.end();
+
+      expect(spanToStaticSpanJSON(span).timestamp! - startTimestamp).toBeCloseTo(10, 1);
     });
 
     it('skips if span is already ended', () => {

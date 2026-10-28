@@ -1,9 +1,10 @@
 import { createReadStream } from 'node:fs';
 import { createInterface } from 'node:readline';
 import type { Event, IntegrationFn, StackFrame } from '@sentry/core';
-import { debug, defineIntegration, LRUMap, snipLine } from '@sentry/core';
+import { debug, defineIntegration, LRUMap, snipLine, stripUrlQueryAndFragment } from '@sentry/core';
 import { DEBUG_BUILD } from '../debug-build';
 
+const SOURCE_FILE_EXTENSION = /\.(?:[cm]?[jt]sx?|vue|svelte|astro|mdx)$/;
 const LRU_FILE_CONTENTS_CACHE = new LRUMap<string, Record<number, string>>(10);
 const LRU_FILE_CONTENTS_FS_READ_FAILED = new LRUMap<string, 1>(20);
 const DEFAULT_LINES_OF_CONTEXT = 5;
@@ -31,6 +32,7 @@ interface ContextLinesOptions {
  */
 export function resetFileContentCache(): void {
   LRU_FILE_CONTENTS_CACHE.clear();
+  LRU_FILE_CONTENTS_FS_READ_FAILED.clear();
 }
 
 /**
@@ -49,19 +51,22 @@ function emplace<T extends LRUMap<K, V>, K extends string, V>(map: T, key: K, co
 
 /**
  * Determines if context lines should be skipped for a file.
- * - .min.(mjs|cjs|js) files are and not useful since they dont point to the original source
  * - node: prefixed modules are part of the runtime and cannot be resolved to a file
  * - data: skip json, wasm and inline js https://nodejs.org/api/esm.html#data-imports
+ * - .min.(mjs|cjs|js) files are and not useful since they dont point to the original source
+ * - anything that is not a JavaScript or TypeScript source file. Frame filenames come
+ *   from the parsed `error.stack` string, which application code can overwrite with
+ *   external input, so we must not read arbitrary files off the filesystem.
  */
 function shouldSkipContextLinesForFile(path: string): boolean {
-  // Test the most common prefix and extension first. These are the ones we
-  // are most likely to see in user applications and are the ones we can break out of first.
   if (path.startsWith('node:')) return true;
-  if (path.endsWith('.min.js')) return true;
-  if (path.endsWith('.min.cjs')) return true;
-  if (path.endsWith('.min.mjs')) return true;
   if (path.startsWith('data:')) return true;
-  return false;
+
+  const pathname = stripUrlQueryAndFragment(path).toLowerCase();
+  if (pathname.endsWith('.min.js')) return true;
+  if (pathname.endsWith('.min.cjs')) return true;
+  if (pathname.endsWith('.min.mjs')) return true;
+  return !SOURCE_FILE_EXTENSION.test(pathname);
 }
 
 /**

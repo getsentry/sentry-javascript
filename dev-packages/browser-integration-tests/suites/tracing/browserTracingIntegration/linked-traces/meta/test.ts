@@ -1,54 +1,51 @@
-import { expect } from '@playwright/test';
 import { SENTRY_LINK_TYPE } from '@sentry/conventions/attributes';
+import { expect } from '@playwright/test';
+
 import { sentryTest } from '../../../../../utils/fixtures';
-import { envelopeRequestParser, shouldSkipTracingTest, waitForTransactionRequest } from '../../../../../utils/helpers';
+import { shouldSkipTracingTest } from '../../../../../utils/helpers';
+import { getSpanOp, waitForStreamedSpan } from '../../../../../utils/spanUtils';
 
 sentryTest(
   "links back to previous trace's local root span if continued from meta tags",
   async ({ getLocalTestUrl, page }) => {
-    if (shouldSkipTracingTest()) {
-      sentryTest.skip();
-    }
+    sentryTest.skip(shouldSkipTracingTest());
 
     const url = await getLocalTestUrl({ testDir: __dirname });
 
     const metaTagTraceId = '12345678901234567890123456789012';
 
-    const pageloadTraceContext = await sentryTest.step('Initial pageload', async () => {
-      const pageloadRequestPromise = waitForTransactionRequest(page, evt => evt.contexts?.trace?.op === 'pageload');
+    const pageloadSpan = await sentryTest.step('Initial pageload', async () => {
+      const pageloadSpanPromise = waitForStreamedSpan(page, span => getSpanOp(span) === 'pageload');
       await page.goto(url);
-      const pageloadRequest = envelopeRequestParser(await pageloadRequestPromise);
-
-      const traceContext = pageloadRequest.contexts?.trace;
+      const span = await pageloadSpanPromise;
 
       // sanity check
-      expect(traceContext?.trace_id).toBe(metaTagTraceId);
+      expect(span.trace_id).toBe(metaTagTraceId);
+      expect(span.links).toBeUndefined();
 
-      expect(traceContext?.links).toBeUndefined();
-
-      return traceContext;
+      return span;
     });
 
-    const navigationTraceContext = await sentryTest.step('Navigation', async () => {
-      const navigationRequestPromise = waitForTransactionRequest(page, evt => evt.contexts?.trace?.op === 'navigation');
+    const navigationSpan = await sentryTest.step('Navigation', async () => {
+      const navigationSpanPromise = waitForStreamedSpan(page, span => getSpanOp(span) === 'navigation');
       await page.goto(`${url}#foo`);
-      const navigationRequest = envelopeRequestParser(await navigationRequestPromise);
-      return navigationRequest.contexts?.trace;
+      return navigationSpanPromise;
     });
 
-    const navigationTraceId = navigationTraceContext?.trace_id;
-
-    expect(navigationTraceContext?.links).toEqual([
+    expect(navigationSpan.links).toEqual([
       {
         trace_id: metaTagTraceId,
-        span_id: pageloadTraceContext?.span_id,
+        span_id: pageloadSpan.span_id,
         sampled: true,
         attributes: {
-          [SENTRY_LINK_TYPE]: 'previous_trace',
+          [SENTRY_LINK_TYPE]: {
+            type: 'string',
+            value: 'previous_trace',
+          },
         },
       },
     ]);
 
-    expect(navigationTraceId).not.toEqual(metaTagTraceId);
+    expect(navigationSpan.trace_id).not.toEqual(metaTagTraceId);
   },
 );

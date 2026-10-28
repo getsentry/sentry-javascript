@@ -10,6 +10,7 @@ const browserInit = vi.spyOn(SentryNode, 'init');
 describe('Initialize Solid Start SDK', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    SentryNode.getCurrentScope().setClient(undefined);
   });
 
   it('has the correct metadata', () => {

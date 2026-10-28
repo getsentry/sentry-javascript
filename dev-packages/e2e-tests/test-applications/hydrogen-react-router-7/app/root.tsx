@@ -1,5 +1,5 @@
-import { type LoaderFunctionArgs } from '@shopify/remix-oxygen';
 import {
+  type LoaderFunctionArgs,
   Outlet,
   isRouteErrorResponse,
   type ShouldRevalidateFunction,

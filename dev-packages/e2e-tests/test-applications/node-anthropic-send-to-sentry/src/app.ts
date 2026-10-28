@@ -12,7 +12,43 @@ if (!apiKey) {
 // different base URL. It authenticates with a bearer token, so the key goes in `authToken`
 // (Authorization: Bearer) rather than `apiKey` (x-api-key). The model is incidental: what is under
 // test is the SDK's own request/response code path, which is what Sentry instruments.
-const client = new Anthropic({ authToken: apiKey, baseURL: 'https://openrouter.ai/api' });
+const client = new Anthropic({ authToken: apiKey, baseURL: 'https://openrouter.ai/api', fetch: fetchWithoutDone });
+
+/**
+ * OpenRouter ends each stream with an OpenAI-style `data: [DONE]` frame, which is not part of
+ * Anthropic's protocol. Since 0.136.0 the SDK JSON-parses every named event, so this frame
+ * makes it throw. Drop the frame before the SDK sees it.
+ */
+async function fetchWithoutDone(input: string | URL | Request, init?: RequestInit): Promise<Response> {
+  const response = await fetch(input, init);
+  if (!response.body || !response.headers.get('content-type')?.includes('text/event-stream')) {
+    return response;
+  }
+
+  let buffer = '';
+  const keepFrame = (frame: string): boolean => !/^data: \[DONE\]$/m.test(frame);
+  const body = response.body.pipeThrough(new TextDecoderStream()).pipeThrough(
+    new TransformStream<string, string>({
+      transform(chunk, controller) {
+        buffer += chunk;
+        const frames = buffer.split(/(?<=\r?\n\r?\n)/);
+        buffer = /\r?\n\r?\n$/.test(frames[frames.length - 1] ?? '') ? '' : (frames.pop() ?? '');
+        controller.enqueue(frames.filter(keepFrame).join(''));
+      },
+      flush(controller) {
+        if (keepFrame(buffer)) {
+          controller.enqueue(buffer);
+        }
+      },
+    }),
+  );
+
+  return new Response(body.pipeThrough(new TextEncoderStream()), {
+    status: response.status,
+    statusText: response.statusText,
+    headers: response.headers,
+  });
+}
 
 const MODEL = 'openai/gpt-4o-mini';
 
@@ -53,7 +89,6 @@ app.get('/chat', async (_req, res, next) => {
     const message = await client.messages.create({
       model: MODEL,
       max_tokens: 32,
-      temperature: 0,
       system: SYSTEM,
       messages: [{ role: 'user', content: CHAT_PROMPT }],
     });
@@ -69,7 +104,6 @@ app.get('/chat-stream', async (_req, res, next) => {
     const stream = await client.messages.create({
       model: MODEL,
       max_tokens: 32,
-      temperature: 0,
       system: SYSTEM,
       messages: [{ role: 'user', content: CHAT_PROMPT }],
       stream: true,
@@ -95,7 +129,6 @@ app.get('/stream-helper', async (_req, res, next) => {
       .stream({
         model: MODEL,
         max_tokens: 32,
-        temperature: 0,
         system: SYSTEM,
         messages: [{ role: 'user', content: CHAT_PROMPT }],
       })

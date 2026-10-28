@@ -1,43 +1,9 @@
-import type { Integration, IntegrationFn, MaxRequestBodySize, SpanAttributes } from '@sentry/core';
-import {
-  captureBodyFromWinterCGRequest,
-  captureException,
-  continueTrace,
-  defineIntegration,
-  getClient,
-  getUrlFragment,
-  getUrlQuery,
-  hasSpanStreamingEnabled,
-  httpHeadersToSpanAttributes,
-  HTTP_SPAN_NAME_FALLBACK,
-  isURLObjectRelative,
-  parseStringToURLObject,
-  setHttpStatus,
-  startSpan,
-  winterCGRequestToRequestData,
-  withIsolationScope,
-  filterCollectedUrl,
-  filterCollectedUrlQuery,
-} from '@sentry/core';
-import { getClientIPAddress } from '@sentry/core/server';
+import type { Client, Integration, IntegrationFn, MaxRequestBodySize, Span, SpanAttributes } from '@sentry/core';
+import { debug, defineIntegration, getClient, withIsolationScope } from '@sentry/core';
+import type { AssertTrue, CheckServerRequestOptions, ServerRequestOptions } from '@sentry/core/server';
+import { URL_PATH_PARAMETER_KEY_BASE } from '@sentry/conventions/attributes';
+import { wrapServerRequestHandler } from '@sentry/server-utils';
 import type { Server, ServeOptions } from 'bun';
-import {
-  CLIENT_ADDRESS,
-  CLIENT_PORT,
-  HTTP_REQUEST_METHOD,
-  NETWORK_PROTOCOL_NAME,
-  SENTRY_OP,
-  SENTRY_SEGMENT_NAME_SOURCE,
-  URL_DOMAIN,
-  URL_FRAGMENT,
-  URL_FULL,
-  URL_PATH,
-  URL_PORT,
-  URL_QUERY,
-  URL_SCHEME,
-  SENTRY_ORIGIN,
-} from '@sentry/conventions/attributes';
-import { HTTP_SERVER } from '@sentry/conventions/op';
 
 const INTEGRATION_NAME = 'BunServer' as const;
 
@@ -51,12 +17,103 @@ export type BunServerIntegrationOptions = {
    * @default 'medium'
    */
   maxRequestBodySize?: MaxRequestBodySize;
+
+  /**
+   * Do not capture the request body for incoming requests where the given callback returns `true`.
+   *
+   * `url` is the full URL of the request, including the query string. `request` is the incoming
+   * {@link Request}. The callback runs before the SDK reads the body.
+   */
+  ignoreRequestBody?: (url: string, request: Request) => boolean;
+
+  /**
+   * Do not capture server spans for incoming requests whose URL path makes the given callback return `true`.
+   *
+   * `urlPath` is the path of the request, including the query string. `request` is the incoming
+   * {@link Request}. Errors thrown by the handler are still captured.
+   */
+  ignoreIncomingRequests?: (urlPath: string, request: Request) => boolean;
+
+  /**
+   * Whether to automatically ignore common static asset requests (favicon.ico, robots.txt, etc.)
+   * when creating server spans.
+   *
+   * @default `true`
+   */
+  ignoreStaticAssets?: boolean;
+
+  /**
+   * Whether to create spans for incoming requests.
+   * Errors are still captured and request data is still attached when this is `false`.
+   * Defaults to the client's tracing configuration (`hasSpansEnabled`).
+   */
+  spans?: boolean;
+
+  /**
+   * A hook that can be used to mutate the span for incoming requests.
+   * This is triggered after the span is created, before the request handler runs.
+   */
+  onSpanCreated?: (span: Span, request: Request) => void;
+
+  /**
+   * A hook that can be used to mutate the span one last time before it ends.
+   * For a streamed response, this runs when the stream finishes.
+   * It is not called when the request handler throws.
+   */
+  onSpanEnd?: (span: Span, request: Request, response: Response) => void;
+
+  /**
+   * Whether the integration should create [Sessions](https://docs.sentry.io/product/releases/health/#sessions) for
+   * incoming requests to track the health and crash-free rate of your releases in Sentry.
+   *
+   * For a streamed response, the session ends when the stream finishes.
+   *
+   * @default `true`
+   */
+  sessions?: boolean;
+
+  /**
+   * Number of milliseconds until sessions are flushed as a session aggregate.
+   *
+   * @default `60000` (60s)
+   */
+  sessionFlushingDelayMS?: number;
 };
 
-const _bunServerIntegration = ((options: BunServerIntegrationOptions = {}) => {
+// Checks these options against the shared `ServerRequestOptions`. A new
+// shared field fails to compile here, until this integration supports
+// it or lists it as unsupported.
+type _ServerRequestOptionsCheck = AssertTrue<CheckServerRequestOptions<BunServerIntegrationOptions, Request, Response>>;
+
+// Every shared option is a required key, so a new one fails to compile below until the integration
+// passes it on.
+type BunServerRequestOptions = {
+  [K in keyof Required<ServerRequestOptions<Request, Response>>]: ServerRequestOptions<Request, Response>[K];
+};
+
+interface BunServerIntegration extends Integration {
+  requestOptions: BunServerRequestOptions;
+}
+
+/** The incoming request options of the client's `bunServerIntegration`, if it has one. */
+function getBunServerRequestOptions(client: Client): ServerRequestOptions<Request, Response> | undefined {
+  return client.getIntegrationByName<BunServerIntegration>(INTEGRATION_NAME)?.requestOptions;
+}
+
+const _bunServerIntegration = ((options: BunServerIntegrationOptions = {}): BunServerIntegration => {
   return {
     name: INTEGRATION_NAME,
-    maxRequestBodySize: options.maxRequestBodySize,
+    requestOptions: {
+      maxRequestBodySize: options.maxRequestBodySize,
+      ignoreRequestBody: options.ignoreRequestBody,
+      ignoreIncomingRequests: options.ignoreIncomingRequests,
+      ignoreStaticAssets: options.ignoreStaticAssets ?? true,
+      spans: options.spans,
+      onSpanCreated: options.onSpanCreated,
+      onSpanEnd: options.onSpanEnd,
+      sessions: options.sessions ?? true,
+      sessionFlushingDelayMS: options.sessionFlushingDelayMS,
+    },
     setupOnce() {
       instrumentBunServe();
     },
@@ -214,125 +271,37 @@ function wrapRequestHandler<T extends RouteHandler = RouteHandler>(
 ): Promise<Awaited<ReturnType<T>>> {
   return withIsolationScope(async isolationScope => {
     const request = args[0];
-    const upperCaseMethod = request.method.toUpperCase();
-    if (upperCaseMethod === 'OPTIONS' || upperCaseMethod === 'HEAD') {
-      return target.apply(thisArg, args);
-    }
-
-    const parsedUrl = parseStringToURLObject(request.url);
-    const attributes = getSpanAttributesFromParsedUrl(parsedUrl, request);
-
-    let routeName = parsedUrl?.pathname || '/';
-    if (request.params) {
-      Object.keys(request.params).forEach(key => {
-        attributes[`url.path.parameter.${key}`] = (request.params as Record<string, string>)[key];
-      });
-
-      // If a route has parameters, it's a parameterized route
-      if (route) {
-        attributes[SENTRY_SEGMENT_NAME_SOURCE] = 'route';
-        attributes['url.template'] = route;
-        routeName = route;
-      }
-    }
-
-    // Handle wildcard routes
-    if (route?.endsWith('/*')) {
-      attributes[SENTRY_SEGMENT_NAME_SOURCE] = 'route';
-      attributes['url.template'] = route;
-      routeName = route;
-    }
+    const runHandler = (): Promise<Response | undefined> =>
+      Promise.resolve(target.apply(thisArg, args) as Response | undefined);
 
     const client = getClient();
-    const dataCollection = client?.getDataCollectionOptions();
-
-    let socketAddress: { address: string; port: number } | undefined;
-    if (dataCollection) {
-      const headers = request.headers.toJSON();
-      // Bun passes the `Server` as the second argument to both `fetch` and route handlers, except
-      // when the handler runs through `server.fetch()`.
-      socketAddress = getRequestIP(args[1], request);
-
-      if (dataCollection.userInfo) {
-        // `client.address` is the originating client, so a forwarding header wins over the socket, which
-        // behind a proxy holds the proxy's address. The socket port is the proxy's too, so `client.port`
-        // stays unset then.
-        const forwardedAddress = getClientIPAddress(headers);
-        if (forwardedAddress) {
-          attributes[CLIENT_ADDRESS] = forwardedAddress;
-        } else if (socketAddress) {
-          attributes[CLIENT_ADDRESS] = socketAddress.address;
-          attributes[CLIENT_PORT] = socketAddress.port;
-        }
-      }
-
-      Object.assign(attributes, httpHeadersToSpanAttributes(headers, dataCollection));
+    if (!client) {
+      debug.warn('Cannot instrument Bun.serve request. No client defined.');
+      return runHandler();
     }
 
-    // describes the OSI application-layer protocol (http), not the scheme (might be https)
-    attributes[NETWORK_PROTOCOL_NAME] = 'http';
-
-    isolationScope.setSDKProcessingMetadata({
-      normalizedRequest: winterCGRequestToRequestData(request),
-      ipAddress: socketAddress?.address,
-    });
-
-    if (client && dataCollection) {
-      const configuredBodySize = client.getIntegrationByName<Integration & { maxRequestBodySize?: MaxRequestBodySize }>(
-        INTEGRATION_NAME,
-      )?.maxRequestBodySize;
-      const effectiveBodySize =
-        configuredBodySize ?? (dataCollection.httpBodies.includes('incomingRequest') ? 'medium' : 'none');
-      if (upperCaseMethod !== 'GET' && effectiveBodySize !== 'none') {
-        await captureBodyFromWinterCGRequest(request, isolationScope, effectiveBodySize);
-      }
+    const attributes: SpanAttributes = {};
+    for (const [key, value] of Object.entries(request.params ?? {})) {
+      attributes[`${URL_PATH_PARAMETER_KEY_BASE}.${key}`] = String(value);
     }
 
-    return continueTrace(
+    return wrapServerRequestHandler(
       {
-        sentryTrace: request.headers.get('sentry-trace') ?? '',
-        baggage: request.headers.get('baggage'),
+        request,
+        client,
+        isolationScope,
+        options: getBunServerRequestOptions(client),
+        origin: 'auto.http.bun.serve',
+        mechanism: { type: 'auto.http.bun.serve', handled: false },
+        // Bun passes the `Server` as the second argument to both `fetch` and route handlers, except
+        // when the handler runs through `server.fetch()`.
+        getSocketAddress: () => getRequestIP(args[1], request),
+        routeName: route,
+        attributes,
       },
-      () =>
-        startSpan(
-          {
-            attributes: { ...attributes, [SENTRY_OP]: HTTP_SERVER },
-            // With span streaming, span names have to be low cardinality, so we can't fall back to the URL path.
-            name:
-              attributes[SENTRY_SEGMENT_NAME_SOURCE] === 'route' || !client || !hasSpanStreamingEnabled(client)
-                ? `${request.method} ${routeName}`
-                : request.method?.toUpperCase() || HTTP_SPAN_NAME_FALLBACK,
-          },
-          async span => {
-            try {
-              const response = (await target.apply(thisArg, args)) as Response | undefined;
-              if (response?.status) {
-                setHttpStatus(span, response.status);
-
-                isolationScope.setContext('response', {
-                  status_code: response.status,
-                });
-
-                if (dataCollection) {
-                  span.setAttributes(
-                    httpHeadersToSpanAttributes(response.headers.toJSON(), dataCollection, 'response'),
-                  );
-                }
-              }
-              return response;
-            } catch (e) {
-              captureException(e, {
-                mechanism: {
-                  type: 'auto.http.bun.serve',
-                  handled: false,
-                },
-              });
-              throw e;
-            }
-          },
-        ),
+      runHandler,
     );
-  });
+  }) as Promise<Awaited<ReturnType<T>>>;
 }
 
 function getRequestIP(
@@ -348,37 +317,4 @@ function getRequestIP(
     // Defensive: never let a failed lookup break the user's handler.
     return undefined;
   }
-}
-
-function getSpanAttributesFromParsedUrl(
-  parsedUrl: ReturnType<typeof parseStringToURLObject>,
-  request: Request,
-): SpanAttributes {
-  const attributes: SpanAttributes = {
-    [SENTRY_ORIGIN]: 'auto.http.bun.serve',
-    [HTTP_REQUEST_METHOD]: request.method || 'GET',
-    [SENTRY_SEGMENT_NAME_SOURCE]: 'url',
-  };
-
-  if (parsedUrl) {
-    attributes[URL_QUERY] = filterCollectedUrlQuery(getUrlQuery(parsedUrl.search));
-    attributes[URL_FRAGMENT] = getUrlFragment(parsedUrl.hash);
-    if (parsedUrl.pathname) {
-      attributes[URL_PATH] = parsedUrl.pathname;
-    }
-    if (!isURLObjectRelative(parsedUrl)) {
-      attributes[URL_FULL] = filterCollectedUrl(parsedUrl.href);
-      if (parsedUrl.port) {
-        attributes[URL_PORT] = parsedUrl.port;
-      }
-      if (parsedUrl.protocol) {
-        attributes[URL_SCHEME] = parsedUrl.protocol;
-      }
-      if (parsedUrl.hostname) {
-        attributes[URL_DOMAIN] = parsedUrl.hostname;
-      }
-    }
-  }
-
-  return attributes;
 }

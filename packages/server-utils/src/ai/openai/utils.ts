@@ -1,7 +1,9 @@
 /* eslint-disable typescript-eslint/no-deprecated */
+import { isObjectLike } from '@sentry/core';
 import type { Span, SpanAttributeValue } from '@sentry/core';
 import {
   GEN_AI_CONVERSATION_ID,
+  GEN_AI_OUTPUT_MESSAGES,
   GEN_AI_REQUEST_FREQUENCY_PENALTY,
   GEN_AI_REQUEST_MODEL,
   GEN_AI_REQUEST_PRESENCE_PENALTY,
@@ -12,8 +14,11 @@ import {
   GEN_AI_RESPONSE_MODEL,
   GEN_AI_RESPONSE_TEXT,
   GEN_AI_RESPONSE_TOOL_CALLS,
+  GEN_AI_USAGE_CACHE_CREATION_INPUT_TOKENS,
+  GEN_AI_USAGE_CACHE_READ_INPUT_TOKENS,
   GEN_AI_USAGE_INPUT_TOKENS,
   GEN_AI_USAGE_OUTPUT_TOKENS,
+  GEN_AI_USAGE_REASONING_OUTPUT_TOKENS,
   GEN_AI_USAGE_TOTAL_TOKENS,
 } from '@sentry/conventions/attributes';
 import {
@@ -21,6 +26,7 @@ import {
   GEN_AI_REQUEST_ENCODING_FORMAT_ATTRIBUTE,
   GEN_AI_REQUEST_STREAM_ATTRIBUTE,
 } from '../core/gen-ai-attributes';
+import { getDecisionOutputMessages } from './mapping';
 import type { ChatCompletionChunk, ResponseStreamingEvent } from './types';
 
 /**
@@ -50,9 +56,15 @@ export function isChatCompletionChunk(event: unknown): event is ChatCompletionCh
 
 /**
  * Add response attributes to a span using duck-typing.
- * Works for Chat Completions, Responses API, Embeddings, and Conversations API responses.
+ * Works for Chat Completions, Responses API, Embeddings, and Conversations API responses. Decision
+ * answers are only recorded when `operationName` is `decide`.
  */
-export function addResponseAttributes(span: Span, result: unknown, recordOutputs?: boolean): void {
+export function addResponseAttributes(
+  span: Span,
+  result: unknown,
+  recordOutputs?: boolean,
+  operationName?: string,
+): void {
   if (!result || typeof result !== 'object') return;
 
   const response = result as Record<string, unknown>;
@@ -73,23 +85,8 @@ export function addResponseAttributes(span: Span, result: unknown, recordOutputs
     attrs[GEN_AI_CONVERSATION_ID] = response.id;
   }
 
-  // Token usage — supports both naming conventions (chat: prompt_tokens/completion_tokens, responses: input_tokens/output_tokens)
-  if (response.usage && typeof response.usage === 'object') {
-    const usage = response.usage as Record<string, unknown>;
-
-    const inputTokens = usage.prompt_tokens ?? usage.input_tokens;
-    if (typeof inputTokens === 'number') {
-      attrs[GEN_AI_USAGE_INPUT_TOKENS] = inputTokens;
-    }
-
-    const outputTokens = usage.completion_tokens ?? usage.output_tokens;
-    if (typeof outputTokens === 'number') {
-      attrs[GEN_AI_USAGE_OUTPUT_TOKENS] = outputTokens;
-    }
-
-    if (typeof usage.total_tokens === 'number') {
-      attrs[GEN_AI_USAGE_TOTAL_TOKENS] = usage.total_tokens;
-    }
+  if (isObjectLike(response.usage)) {
+    addUsageAttributes(attrs, response.usage);
   }
 
   // Finish reasons from choices (chat completions)
@@ -139,6 +136,14 @@ export function addResponseAttributes(span: Span, result: unknown, recordOutputs
       attrs[GEN_AI_RESPONSE_TEXT] = response.output_text;
     }
 
+    // Typed answers (decisions API)
+    if (operationName === 'decide' && Array.isArray(response.answers)) {
+      const outputMessages = getDecisionOutputMessages(response.answers);
+      if (outputMessages) {
+        attrs[GEN_AI_OUTPUT_MESSAGES] = outputMessages;
+      }
+    }
+
     // Tool calls from output array (responses API)
     if (Array.isArray(response.output) && response.output.length > 0 && !attrs[GEN_AI_RESPONSE_TOOL_CALLS]) {
       const functionCalls = (response.output as Array<Record<string, unknown>>).filter(
@@ -154,20 +159,46 @@ export function addResponseAttributes(span: Span, result: unknown, recordOutputs
 }
 
 /**
- * Extract conversation ID from request parameters
- * Supports both Conversations API and previous_response_id chaining
+ * Token usage, in both naming conventions (chat: prompt_tokens/completion_tokens,
+ * responses and decisions: input_tokens/output_tokens).
+ */
+function addUsageAttributes(attrs: Record<string, SpanAttributeValue>, usage: Record<string, unknown>): void {
+  const inputTokens = usage.prompt_tokens ?? usage.input_tokens;
+  if (typeof inputTokens === 'number') {
+    attrs[GEN_AI_USAGE_INPUT_TOKENS] = inputTokens;
+  }
+
+  const outputTokens = usage.completion_tokens ?? usage.output_tokens;
+  if (typeof outputTokens === 'number') {
+    attrs[GEN_AI_USAGE_OUTPUT_TOKENS] = outputTokens;
+  }
+
+  if (typeof usage.total_tokens === 'number') {
+    attrs[GEN_AI_USAGE_TOTAL_TOKENS] = usage.total_tokens;
+  }
+  const inputDetails = usage.prompt_tokens_details ?? usage.input_tokens_details;
+  if (isObjectLike(inputDetails)) {
+    if (typeof inputDetails.cached_tokens === 'number') {
+      attrs[GEN_AI_USAGE_CACHE_READ_INPUT_TOKENS] = inputDetails.cached_tokens;
+    }
+    if (typeof inputDetails.cache_write_tokens === 'number') {
+      attrs[GEN_AI_USAGE_CACHE_CREATION_INPUT_TOKENS] = inputDetails.cache_write_tokens;
+    }
+  }
+  const outputDetails = usage.completion_tokens_details ?? usage.output_tokens_details;
+  if (isObjectLike(outputDetails) && typeof outputDetails.reasoning_tokens === 'number') {
+    attrs[GEN_AI_USAGE_REASONING_OUTPUT_TOKENS] = outputDetails.reasoning_tokens;
+  }
+}
+
+/**
+ * Extract the Conversations API id (`conversation: "conv_..."`) from request parameters.
+ * `previous_response_id` is deliberately not read: it names the previous response, so it changes on
+ * every turn and cannot group a conversation's spans.
  * @see https://platform.openai.com/docs/guides/conversation-state
  */
 function extractConversationId(params: Record<string, unknown>): string | undefined {
-  // Conversations API: conversation parameter (e.g., "conv_...")
-  if ('conversation' in params && typeof params.conversation === 'string') {
-    return params.conversation;
-  }
-  // Responses chaining: previous_response_id links to parent response
-  if ('previous_response_id' in params && typeof params.previous_response_id === 'string') {
-    return params.previous_response_id;
-  }
-  return undefined;
+  return 'conversation' in params && typeof params.conversation === 'string' ? params.conversation : undefined;
 }
 
 /**

@@ -16,9 +16,9 @@ describe('startNewTrace', () => {
     test.each(CONFIGS)('starts a fresh trace shared by every root span in the callback [%s]', async (_name, rate) => {
       await createRunner()
         .withEnv({ TRACES_SAMPLE_RATE: rate })
-        // Transactions (if any, in rate=1) are irrelevant here and their ordering vs. the error is
+        // Spans (if any, in rate=1) are irrelevant here and their ordering vs. the error is
         // not deterministic, so we ignore them and rely entirely on the stashed error context.
-        .ignore('transaction')
+        .ignore('span')
         .expect({
           event: event => {
             const trace = event.contexts?.trace;

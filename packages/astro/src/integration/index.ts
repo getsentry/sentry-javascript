@@ -7,7 +7,9 @@ import { createRequire } from 'module';
 import * as path from 'path';
 import type { VitePlugin } from './cloudflare';
 import { sentryCloudflareNodeWarningPlugin, sentryCloudflareVitePlugin } from './cloudflare';
+import { makeServerInitVitePlugin, SENTRY_MIDDLEWARE_MODULE, SERVER_INIT_IMPORT } from './serverInit';
 import { buildClientSnippet, buildSdkInitFileImportSnippet, buildServerSnippet } from './snippets';
+import { getAstroTunnelOptions, makeTunnelOptionsVitePlugin, TUNNEL_OPTIONS_IMPORT } from './tunnel';
 import type { SentryOptions } from './types';
 
 const PKG_NAME = '@sentry/astro';
@@ -71,8 +73,15 @@ export const sentryAstro = (options: SentryOptions = {}): AstroIntegration => {
             typeof sourcemaps?.filesToDeleteAfterUpload === 'undefined' &&
             computedSourceMapSettings.previousUserSourceMapSetting === 'unset'
           ) {
-            // This also works for adapters, as the source maps are also copied to e.g. the .vercel folder
-            updatedFilesToDeleteAfterUpload = ['./dist/**/client/**/*.map', './dist/**/server/**/*.map'];
+            // This also works for adapters, as the source maps are also copied to e.g. the .vercel folder.
+            // Static output has no client folder and writes client assets to `<outDir>/<build.assets>` instead.
+            // Astro removes the hidden `.prerender` folder itself, but we don't want to rely on that.
+            updatedFilesToDeleteAfterUpload = [
+              './dist/**/client/**/*.map',
+              './dist/**/server/**/*.map',
+              `./dist/**/${config.build?.assets ?? '_astro'}/**/*.map`,
+              './dist/**/.prerender/**/*.map',
+            ];
 
             debug &&
               logger.info(
@@ -109,7 +118,7 @@ export const sentryAstro = (options: SentryOptions = {}): AstroIntegration => {
                   release,
                   sourcemaps: {
                     ...sourcemaps,
-                    assets: sourcemaps?.assets ?? [getSourcemapsAssetsGlob(config)],
+                    assets: sourcemaps?.assets ?? getSourcemapsAssetsGlobs(config),
                     filesToDeleteAfterUpload: sourcemaps?.filesToDeleteAfterUpload ?? updatedFilesToDeleteAfterUpload,
                   },
                   bundleSizeOptimizations: {
@@ -121,20 +130,30 @@ export const sentryAstro = (options: SentryOptions = {}): AstroIntegration => {
           });
         }
 
+        const tunnelOptions = getAstroTunnelOptions(config);
+        if (tunnelOptions) {
+          updateConfig({ vite: { plugins: [makeTunnelOptionsVitePlugin(tunnelOptions)] } });
+        }
+        const tunnelOptionsImport = tunnelOptions ? TUNNEL_OPTIONS_IMPORT : '';
+
         if (sdkEnabled.client) {
           const pathToClientInit = clientInitPath ? path.resolve(clientInitPath) : findDefaultSdkInitFile('client');
 
           if (pathToClientInit) {
             debug && logger.info(`Using ${pathToClientInit} for client init.`);
-            injectScript('page', buildSdkInitFileImportSnippet(pathToClientInit));
+            injectScript('page', tunnelOptionsImport + buildSdkInitFileImportSnippet(pathToClientInit));
           } else {
             debug && logger.info('Using default client init.');
-            injectScript('page', buildClientSnippet(options || {}));
+            injectScript('page', tunnelOptionsImport + buildClientSnippet(options || {}));
           }
         }
 
         const isCloudflare = config?.adapter?.name?.startsWith('@astrojs/cloudflare');
         const isCloudflareWorkers = isCloudflare && !isCloudflarePages();
+        // That plugin adds its own orchestrion transform and wraps the Worker entry, which inits the
+        // SDK from `instrument.server.*` or `env`. With its `autoInstrumentation: false`, the user's
+        // own `withSentry` does the init. Either way, none of ours are needed.
+        const usesCloudflareVitePlugin = isCloudflareWorkers && hasCloudflareVitePlugin(config);
 
         // Wire up the orchestrion code transform so instrumented server-side dependencies (e.g.
         // `mysql`, `ioredis`) get `diagnostics_channel` publishers injected into the SSR bundle at
@@ -142,7 +161,7 @@ export const sentryAstro = (options: SentryOptions = {}): AstroIntegration => {
         // `buildTimeInstrumentation` is `false`. Cloudflare Pages is skipped: it gets no
         // `withSentry` wrap, so nothing would read the marker the injected snippets write, and
         // keeping the transform off avoids bundling dead subscriber code.
-        if (sdkEnabled.server && (!isCloudflare || isCloudflareWorkers)) {
+        if (sdkEnabled.server && (!isCloudflare || isCloudflareWorkers) && !usesCloudflareVitePlugin) {
           updateConfig({
             vite: {
               plugins: [sentryOrchestrionPlugin({ buildTimeInstrumentation }) as VitePlugin],
@@ -163,18 +182,24 @@ export const sentryAstro = (options: SentryOptions = {}): AstroIntegration => {
           }
         }
 
+        let serverInitSnippet = '';
         if (sdkEnabled.server) {
           const pathToServerInit = serverInitPath ? path.resolve(serverInitPath) : findDefaultSdkInitFile('server');
 
           if (pathToServerInit) {
             debug && logger.info(`Using ${pathToServerInit} for server init.`);
-            // Always inject the server config via `injectScript('page-ssr')`.
-            // This ensures Sentry.init() runs in dev mode (where the Vite plugin doesn't fire)
-            // and also serves as the fallback for non-Cloudflare adapters in production.
-            injectScript('page-ssr', buildSdkInitFileImportSnippet(pathToServerInit));
-          } else {
+            serverInitSnippet = tunnelOptionsImport + buildSdkInitFileImportSnippet(pathToServerInit);
+          } else if (!usesCloudflareVitePlugin) {
             debug && logger.info('Using default server init.');
-            injectScript('page-ssr', buildServerSnippet(options || {}));
+            serverInitSnippet = tunnelOptionsImport + buildServerSnippet(options || {});
+          }
+
+          // Always inject the server config via `injectScript('page-ssr')`.
+          // This ensures Sentry.init() runs in dev mode (where the Vite plugin doesn't fire)
+          // and also serves as the fallback for non-Cloudflare adapters in production.
+          if (serverInitSnippet) {
+            updateConfig({ vite: { plugins: [makeServerInitVitePlugin(serverInitSnippet)] } });
+            injectScript('page-ssr', SERVER_INIT_IMPORT);
           }
 
           if (isCloudflareWorkers && command !== 'dev') {
@@ -192,7 +217,9 @@ export const sentryAstro = (options: SentryOptions = {}): AstroIntegration => {
             debug && logger.info('Adding Cloudflare Vite plugin to wrap Worker entry with withSentry.');
             updateConfig({
               vite: {
-                plugins: [sentryCloudflareNodeWarningPlugin(), sentryCloudflareVitePlugin()],
+                plugins: usesCloudflareVitePlugin
+                  ? [sentryCloudflareNodeWarningPlugin()]
+                  : [sentryCloudflareNodeWarningPlugin(), sentryCloudflareVitePlugin()],
               },
             });
           } else if (isCloudflare) {
@@ -221,13 +248,39 @@ export const sentryAstro = (options: SentryOptions = {}): AstroIntegration => {
         if (isSSR && shouldAddMiddleware) {
           addMiddleware({
             order: 'pre',
-            entrypoint: '@sentry/astro/middleware',
+            entrypoint: serverInitSnippet ? SENTRY_MIDDLEWARE_MODULE : '@sentry/astro/middleware',
           });
         }
       },
     },
   };
 };
+
+// Every sub-plugin of `sentryCloudflareVitePlugin()` but its orchestrion transform has this prefix,
+// and some are added whatever its options are.
+const CLOUDFLARE_VITE_PLUGIN_NAME_PREFIX = 'sentry-cloudflare-';
+
+/**
+ * Whether the user added `sentryCloudflareVitePlugin()` from `@sentry/cloudflare/vite`. It is
+ * detected by name because importing it here would load `@sentry/cloudflare` and `wrangler` for
+ * every Astro app.
+ */
+function hasCloudflareVitePlugin(config: AstroConfig): boolean {
+  const pending: unknown[] = [config.vite?.plugins];
+  while (pending.length > 0) {
+    const plugin = pending.pop();
+    if (Array.isArray(plugin)) {
+      pending.push(...plugin);
+    } else if (
+      typeof plugin === 'object' &&
+      plugin !== null &&
+      String((plugin as { name?: unknown }).name).startsWith(CLOUDFLARE_VITE_PLUGIN_NAME_PREFIX)
+    ) {
+      return true;
+    }
+  }
+  return false;
+}
 
 const possibleFileExtensions = ['ts', 'js', 'tsx', 'jsx', 'mjs', 'cjs', 'mts'];
 
@@ -273,7 +326,14 @@ function isCloudflarePages(): boolean {
   return false;
 }
 
-function getSourcemapsAssetsGlob(config: AstroConfig): string {
+function getSourcemapsAssetsGlobs(config: AstroConfig): string[] {
+  const outDirGlob = getOutDirGlob(config);
+  // Astro 7 writes the prerender build to a hidden `.prerender` folder, which `**` does not enter.
+  // Its chunks only run at build time to render static pages, but we still upload them for errors captured then.
+  return [`${outDirGlob}/**/*`, `${outDirGlob}/**/.prerender/**/*`];
+}
+
+function getOutDirGlob(config: AstroConfig): string {
   // The vercel adapter puts the output into its .vercel directory
   // However, the way this adapter is written, the config.outDir value is update too late for
   // us to reliably detect it. Also, server files are first temporarily written to <root>/dist and then
@@ -281,7 +341,7 @@ function getSourcemapsAssetsGlob(config: AstroConfig): string {
   // So we glob on both of these directories.
   // Another case of "it ain't pretty but it works":(
   if (config.adapter?.name?.startsWith('@astrojs/vercel')) {
-    return '{.vercel,dist}/**/*';
+    return '{.vercel,dist}';
   }
 
   // paths are stored as "file://" URLs
@@ -289,12 +349,11 @@ function getSourcemapsAssetsGlob(config: AstroConfig): string {
   const rootDirName = path.resolve(config.root?.pathname || process.cwd());
 
   if (outDirPathname) {
-    const relativePath = path.relative(rootDirName, outDirPathname);
-    return `${relativePath}/**/*`;
+    return path.relative(rootDirName, outDirPathname);
   }
 
   // fallback to default output dir
-  return 'dist/**/*';
+  return 'dist';
 }
 
 /**

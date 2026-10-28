@@ -3,18 +3,24 @@
  */
 
 import {
+  addIntegration,
   init,
   getClient,
   spanToStaticSpanJSON,
   getActiveSpan,
+  getCurrentScope,
   browserTracingIntegration,
   browserProfilingIntegration,
 } from '../../src/index';
 import { debug } from '@sentry/core';
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { BrowserClient } from '../../src/index';
 
 describe('BrowserProfilingIntegration', () => {
+  beforeEach(() => {
+    getCurrentScope().setClient(undefined);
+  });
+
   it('profiles an already active pageload span in trace lifecycle mode', async () => {
     const stopProfile = vi.fn().mockResolvedValue({
       frames: [{ name: 'pageload_fn', line: 1, column: 1 }],
@@ -85,6 +91,114 @@ describe('BrowserProfilingIntegration', () => {
     });
     // The pageload begins before profiling starts, so profile samples cannot predate the transaction.
     expect(profileChunk.profile.samples[0].timestamp).toBeGreaterThanOrEqual(transaction.start_timestamp);
+  });
+
+  it('does not profile an already active pageload span that is not sampled in trace lifecycle mode', async () => {
+    const mockProfiler = vi.fn().mockImplementation(function () {
+      return {
+        stop: vi.fn().mockResolvedValue({
+          frames: [{ name: 'pageload_fn', line: 1, column: 1 }],
+          stacks: [{ frameId: 0 }],
+          samples: [
+            { stackId: 0, timestamp: 0 },
+            { stackId: 0, timestamp: 100 },
+          ],
+          resources: [],
+        }),
+        addEventListener: vi.fn(),
+      };
+    });
+
+    // @ts-expect-error this is a mock constructor
+    window.Profiler = mockProfiler;
+
+    const send = vi.fn().mockResolvedValue(undefined);
+    const client = init({
+      tracesSampleRate: 0,
+      traceLifecycle: 'static',
+      profileSessionSampleRate: 1,
+      profileLifecycle: 'trace',
+      dsn: 'https://examplePublicKey@o0.ingest.sentry.io/0',
+      transport: () => ({
+        flush: vi.fn().mockResolvedValue(true),
+        send,
+      }),
+      integrations: [browserTracingIntegration(), browserProfilingIntegration()],
+    });
+
+    const pageloadSpan = getActiveSpan();
+    expect(pageloadSpan).toBeDefined();
+    expect(spanToStaticSpanJSON(pageloadSpan!).op).toBe('pageload');
+    expect(pageloadSpan!.isRecording()).toBe(false);
+
+    // The integration re-checks the active root span in a timeout after setup.
+    await new Promise(resolve => setTimeout(resolve, 0));
+
+    pageloadSpan?.end();
+    await Promise.resolve();
+    await client?.flush(1000);
+
+    expect(mockProfiler).not.toHaveBeenCalled();
+    const profileChunkEnvelope = send.mock.calls.find(call => call[0][1][0][0].type === 'profile_chunk');
+    expect(profileChunkEnvelope).toBeUndefined();
+  });
+
+  it('profiles a sampled root span that is already active when the integration is added', async () => {
+    const stopProfile = vi.fn().mockResolvedValue({
+      frames: [{ name: 'pageload_fn', line: 1, column: 1 }],
+      stacks: [{ frameId: 0 }],
+      samples: [
+        { stackId: 0, timestamp: 0 },
+        { stackId: 0, timestamp: 100 },
+      ],
+      resources: [],
+    });
+
+    const mockProfiler = vi.fn().mockImplementation(function () {
+      return {
+        stop: stopProfile,
+        addEventListener: vi.fn(),
+      };
+    });
+
+    // @ts-expect-error this is a mock constructor
+    window.Profiler = mockProfiler;
+
+    const send = vi.fn().mockResolvedValue(undefined);
+    const client = init({
+      tracesSampleRate: 1,
+      traceLifecycle: 'static',
+      profileSessionSampleRate: 1,
+      profileLifecycle: 'trace',
+      dsn: 'https://examplePublicKey@o0.ingest.sentry.io/0',
+      transport: () => ({
+        flush: vi.fn().mockResolvedValue(true),
+        send,
+      }),
+      integrations: [browserTracingIntegration()],
+    });
+
+    const pageloadSpan = getActiveSpan();
+    expect(pageloadSpan!.isRecording()).toBe(true);
+
+    // The pageload span started before the profiler listens to `spanStart`,
+    // so only the integration setup can start the profiler for it.
+    addIntegration(browserProfilingIntegration());
+    const profilerCallsAfterSetup = mockProfiler.mock.calls.length;
+
+    // The re-check in a timeout notifies the same root span again, which must not start another profiler.
+    await new Promise(resolve => setTimeout(resolve, 0));
+    const profilerCallsAfterRecheck = mockProfiler.mock.calls.length;
+
+    pageloadSpan?.end();
+    await Promise.resolve();
+    await client?.flush(1000);
+
+    expect(profilerCallsAfterSetup).toBe(1);
+    expect(profilerCallsAfterRecheck).toBe(1);
+    expect(stopProfile).toHaveBeenCalledTimes(1);
+    const profileChunkEnvelope = send.mock.calls.find(call => call[0][1][0][0].type === 'profile_chunk');
+    expect(profileChunkEnvelope).toBeDefined();
   });
 
   it("warns when profileLifecycle is 'trace' but tracing is disabled", async () => {

@@ -1,7 +1,20 @@
 import { JSDOM } from 'jsdom';
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
+import * as client from '../../src/client/index.js';
+import * as edge from '../../src/edge/index.js';
+import * as server from '../../src/server/index.js';
 
 const TEST_DSN = 'https://public@dsn.ingest.sentry.io/1337';
+
+const debugBuild = vi.hoisted(() => ({ value: true }));
+
+// The entry points read `DEBUG_BUILD` inside `init()`, so a getter lets each test switch it without
+// re-importing the SDK module graphs.
+vi.mock('../../src/common/debug-build.js', () => ({
+  get DEBUG_BUILD() {
+    return debugBuild.value;
+  },
+}));
 
 function didWarnAboutDebugRemoved(warnSpy: ReturnType<typeof vi.spyOn>): boolean {
   return warnSpy.mock.calls.some(call =>
@@ -21,15 +34,7 @@ describe('debug: true + removeDebugLogging warning', () => {
   let originalAddEventListener: unknown;
   let originalRemoveEventListener: unknown;
 
-  beforeAll(async () => {
-    // Pre-warm V8 compilation cache for the large SDK module graphs.
-    // Without this, the first dynamic import after vi.resetModules() can hang
-    // because vitest needs to compile the entire module graph from scratch.
-    await import('../../src/client/index.js');
-    await import('../../src/server/index.js');
-    await import('../../src/edge/index.js');
-    vi.resetModules();
-
+  beforeAll(() => {
     dom = new JSDOM('<!doctype html><html><head></head><body></body></html>', { url: 'https://example.com/' });
 
     originalDocument = (globalThis as any).document;
@@ -52,41 +57,30 @@ describe('debug: true + removeDebugLogging warning', () => {
 
   afterEach(() => {
     vi.restoreAllMocks();
-    vi.resetModules();
-    vi.unmock('../../src/common/debug-build.js');
+    debugBuild.value = true;
     delete process.env.NEXT_OTEL_FETCH_DISABLED;
     delete process.env.NEXT_PHASE;
   });
 
-  it('warns on client/server/edge when debug is true but DEBUG_BUILD is false', async () => {
-    vi.doMock('../../src/common/debug-build.js', () => ({ DEBUG_BUILD: false }));
+  it('warns on client/server/edge when debug is true but DEBUG_BUILD is false', () => {
+    debugBuild.value = false;
 
     const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
 
-    const client = await import('../../src/client/index.js');
     client.init({ dsn: TEST_DSN, debug: true } as any);
-
-    const server = await import('../../src/server/index.js');
     server.init({ dsn: TEST_DSN, debug: true } as any);
-
-    const edge = await import('../../src/edge/index.js');
     edge.init({ dsn: TEST_DSN, debug: true } as any);
 
     expect(didWarnAboutDebugRemoved(warnSpy)).toBe(true);
   });
 
-  it('does not emit that warning when DEBUG_BUILD is true', async () => {
-    vi.doMock('../../src/common/debug-build.js', () => ({ DEBUG_BUILD: true }));
+  it('does not emit that warning when DEBUG_BUILD is true', () => {
+    debugBuild.value = true;
 
     const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
 
-    const client = await import('../../src/client/index.js');
     client.init({ dsn: TEST_DSN, debug: true } as any);
-
-    const server = await import('../../src/server/index.js');
     server.init({ dsn: TEST_DSN, debug: true } as any);
-
-    const edge = await import('../../src/edge/index.js');
     edge.init({ dsn: TEST_DSN, debug: true } as any);
 
     expect(didWarnAboutDebugRemoved(warnSpy)).toBe(false);

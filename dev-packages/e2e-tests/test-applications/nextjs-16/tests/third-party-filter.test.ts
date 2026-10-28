@@ -1,9 +1,11 @@
 import test, { expect } from '@playwright/test';
 import { waitForError } from '@sentry-internal/test-utils';
+import { isVinext } from './isVinext';
 
 const isWebpackDev = process.env.TEST_ENV === 'development-webpack';
 
 test('First-party error with React frames should not be tagged as third-party code', async ({ page }) => {
+  test.skip(isVinext, 'vinext runs no Sentry build plugin, so the filter has no module metadata of first-party frames');
   test.skip(isWebpackDev, 'Only relevant for Turbopack builds');
 
   const errorPromise = waitForError('nextjs-16', errorEvent => {

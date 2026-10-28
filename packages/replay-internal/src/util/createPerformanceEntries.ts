@@ -1,6 +1,5 @@
-import { browserPerformanceTimeOrigin } from '@sentry/core';
+import { _INTERNAL_performanceTimeToSeconds } from '@sentry/core';
 import { record } from '@sentry/rrweb';
-import { WINDOW } from '../constants';
 import type {
   AllPerformanceEntry,
   AllPerformanceEntryData,
@@ -44,6 +43,12 @@ export interface Metric {
    * entries (e.g. a CLS value of 0 given no layout shifts).
    */
   entries: PerformanceEntry[] | LayoutShift[];
+
+  /**
+   * The start time the metric value is relative to.
+   * Non-zero for soft navigations and bfcache restores.
+   */
+  navigationStartTime?: number;
 }
 
 interface LayoutShift extends PerformanceEntry {
@@ -86,10 +91,11 @@ function createPerformanceEntry(entry: AllPerformanceEntry): ReplayPerformanceEn
   return entryType(entry);
 }
 
-function getAbsoluteTime(time: number): number {
-  // browserPerformanceTimeOrigin can be undefined if `performance` or
-  // `performance.now` doesn't exist, but this is already checked by this integration
-  return ((browserPerformanceTimeOrigin() || WINDOW.performance.timeOrigin) + time) / 1000;
+function getAbsoluteTime(time: number, entryStartTime = time): number {
+  // Entries are only converted on flush, which can be minutes after they were recorded, so we use the time origin
+  // from when the entry started. Pass the entry's start for all its timings, so its duration stays correct.
+  // The cast is safe: this integration only runs if the Performance API exists.
+  return _INTERNAL_performanceTimeToSeconds(time, entryStartTime) as number;
 }
 
 function createPaintEntry(entry: PerformancePaintTiming): ReplayPerformanceEntry<PaintData> {
@@ -132,7 +138,7 @@ function createNavigationEntry(entry: PerformanceNavigationTiming): ReplayPerfor
   return {
     type: `${entryType}.${type}`,
     start: getAbsoluteTime(startTime),
-    end: getAbsoluteTime(domComplete),
+    end: getAbsoluteTime(domComplete, startTime),
     name,
     data: {
       size: transferSize,
@@ -173,7 +179,7 @@ function createResourceEntry(
   return {
     type: `${entryType}.${initiatorType}`,
     start: getAbsoluteTime(startTime),
-    end: getAbsoluteTime(responseEnd),
+    end: getAbsoluteTime(responseEnd, startTime),
     name,
     data: {
       size: transferSize,
@@ -245,7 +251,12 @@ function getWebVital(
   const value = metric.value;
   const rating = metric.rating;
 
-  const end = getAbsoluteTime(value);
+  // The value is a score for CLS and a duration for INP, so it is not a time. We place the event at the last entry
+  // instead: the render for LCP, the last layout shift for CLS and the interaction for INP. Without entries (a CLS of
+  // 0, a bfcache LCP), we fall back to the start of the navigation the metric belongs to, plus the value. For a soft
+  // navigation, this keeps the event on that navigation instead of at page load.
+  const lastEntry = metric.entries[metric.entries.length - 1];
+  const end = getAbsoluteTime(lastEntry?.startTime ?? (metric.navigationStartTime ?? 0) + value);
 
   return {
     type: 'web-vital',

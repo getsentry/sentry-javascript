@@ -1,6 +1,6 @@
 {
   "name": "@sentry/nuxt",
-  "version": "11.4.0",
+  "version": "11.10.0",
   "description": "Official Sentry SDK for Nuxt",
   "repository": "git://github.com/getsentry/sentry-javascript.git",
   "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/nuxt",
@@ -45,7 +45,7 @@
   },
   "peerDependencies": {
     "nuxt": ">=3.7.0 || 4.x || 5.x",
-    "nitro": "2.x || 3.x"
+    "nitro": "2.x || 3.x || 3.0.260311-beta || 3.0.260415-beta || 3.0.260429-beta || 3.0.260522-beta || 3.0.260603-beta || 3.0.260610-beta || 3.0.260903-beta"
   },
   "peerDependenciesMeta": {
     "nitro": {
@@ -53,33 +53,40 @@
     }
   },
   "dependencies": {
-    "@nuxt/kit": "^4.5.2",
-    "@sentry/browser": "11.4.0",
-    "@sentry/cloudflare": "11.4.0",
-    "@sentry/conventions": "^0.25.0",
-    "@sentry/core": "11.4.0",
-    "@sentry/node": "11.4.0",
-    "@sentry/bundler-plugins": "11.4.0",
-    "@sentry/server-runtime-injection": "11.4.0",
-    "@sentry/server-utils": "11.4.0",
-    "@sentry/vue": "11.4.0",
-    "local-pkg": "^1.1.2"
+    "@nuxt/kit": "^4.6.0",
+    "@sentry/browser": "11.10.0",
+    "@sentry/cloudflare": "11.10.0",
+    "@sentry/conventions": "^0.30.0",
+    "@sentry/core": "11.10.0",
+    "@sentry/node": "11.10.0",
+    "@sentry/bundler-plugins": "11.10.0",
+    "@sentry/server-runtime-injection": "11.10.0",
+    "@sentry/server-utils": "11.10.0",
+    "@sentry/vue": "11.10.0"
   },
   "devDependencies": {
+    "@cloudflare/workers-types": "^4.20260519.1",
     "@nuxt/nitro-server": "^3.21.11",
+    "@nuxt/schema": "^3.21.11",
+    "@sentry-internal/rollup-utils": "11.10.0",
+    "db0": "^0.3.4",
+    "h3": "^1.15.10",
     "nitro": "^3.0.260311-beta",
+    "nitropack": "^2.13.4",
     "nuxi": "^3.25.1",
     "nuxt": "3.21.11",
-    "vite": "^8.3.1"
+    "unstorage": "^1.17.5",
+    "vite": "^8.3.1",
+    "vue": "^3.5.41"
   },
   "scripts": {
     "build": "run-s build:types build:transpile",
-    "build:dev": "yarn build",
+    "build:dev": "pnpm run build",
     "build:nuxt-module": "rollup -c rollup.module.config.mjs && tsc -p tsconfig.module.json && node scripts/build-module-meta.mjs",
-    "build:transpile": "rollup -c rollup.npm.config.mjs && yarn build:nuxt-module",
+    "build:transpile": "rollup -c rollup.npm.config.mjs && pnpm run build:nuxt-module",
     "build:types": "tsc -p tsconfig.types.json",
     "build:watch": "run-p build:transpile:watch",
-    "build:dev:watch": "yarn build:watch",
+    "build:dev:watch": "pnpm run build:watch",
     "build:transpile:watch": "rollup -c rollup.npm.config.mjs --watch",
     "build:tarball": "npm pack",
     "circularDepCheck": "madge --circular src/index.client.ts && madge --circular src/index.server.ts && madge --circular src/index.types.ts",
@@ -88,13 +95,10 @@
     "lint": "oxlint . --type-aware",
     "lint:types": "oxlint src --type-aware --type-check",
     "lint:es-compatibility": "es-check es2020 ./build/cjs/*.js && es-check es2020 ./build/esm/*.js --module && es-check es2020 ./build/module/*.mjs --module",
-    "test": "yarn test:unit",
+    "test": "pnpm run test:unit",
     "test:unit": "vitest run",
     "test:watch": "vitest --watch",
     "yalc:publish": "yalc publish --push --sig"
-  },
-  "volta": {
-    "extends": "../../package.json"
   },
   "nx": {
     "targets": {

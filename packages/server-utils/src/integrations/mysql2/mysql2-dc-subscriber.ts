@@ -23,7 +23,7 @@ export const MYSQL2_DC_CHANNEL_EXECUTE = 'mysql2:execute';
 export const MYSQL2_DC_CHANNEL_CONNECT = 'mysql2:connect';
 export const MYSQL2_DC_CHANNEL_POOL_CONNECT = 'mysql2:pool:connect';
 
-const ORIGIN = 'auto.db.mysql2.diagnostic_channel';
+const ORIGIN = 'auto.db.mysql2.native_channel';
 const DB_SYSTEM_NAME_VALUE_MYSQL = 'mysql';
 
 // Leading keyword of a SQL statement (SELECT, INSERT, …) → `db.operation.name`.

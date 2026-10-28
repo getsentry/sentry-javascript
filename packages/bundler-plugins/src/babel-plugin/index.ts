@@ -47,6 +47,7 @@ import {
   type ComponentAnnotationAttributeNames,
 } from './component-annotation';
 import { KNOWN_INCOMPATIBLE_PLUGINS } from './constants';
+import type { BabelApi, BabelPlugin } from './types';
 
 const SENTRY_LABEL_ATTRIBUTE = 'sentry-label';
 const MAX_LABEL_LENGTH = 64;
@@ -100,9 +101,14 @@ interface JSXProcessingContext {
 }
 
 export { experimentalComponentNameAnnotatePlugin } from './experimental';
+export type { BabelApi, BabelPlugin } from './types';
 
 // We must export the plugin as default, otherwise the Babel loader will not be able to resolve it when configured using its string identifier
-export default function componentNameAnnotatePlugin({ types: t }: typeof Babel): AnnotationPlugin {
+export default function componentNameAnnotatePlugin(babel: BabelApi): BabelPlugin {
+  return createPlugin(babel as typeof Babel);
+}
+
+function createPlugin({ types: t }: typeof Babel): AnnotationPlugin {
   return {
     visitor: {
       Program: {

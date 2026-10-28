@@ -3,7 +3,13 @@ import { errorMonitor } from 'node:events';
 import type { RequestOptions } from 'node:http';
 import type { Event, Integration, IntegrationFn, Span } from '@sentry/core';
 import { defineIntegration } from '@sentry/core';
-import type { HttpClientRequest, HttpIncomingMessage, HttpServerResponse } from '@sentry/core/server';
+import type {
+  AssertTrue,
+  CheckServerRequestOptions,
+  HttpClientRequest,
+  HttpIncomingMessage,
+  HttpServerResponse,
+} from '@sentry/core/server';
 import {
   DEFAULT_IGNORE_STATUS_CODES,
   getHttpClientSubscriptions,
@@ -151,6 +157,13 @@ export interface DenoHttpIntegrationOptions {
   onSpanEnd?: (span: Span, request: HttpIncomingMessage, response: HttpServerResponse) => void;
 }
 
+// Checks these options against the shared `ServerRequestOptions`. A new
+// shared field fails to compile here, until this integration supports
+// it or lists it as unsupported.
+type _ServerRequestOptionsCheck = AssertTrue<
+  CheckServerRequestOptions<DenoHttpIntegrationOptions, HttpIncomingMessage, HttpServerResponse>
+>;
+
 const _denoHttpIntegration = ((options: DenoHttpIntegrationOptions = {}) => {
   const breadcrumbs = options.breadcrumbs ?? true;
   const tracePropagation = options.tracePropagation ?? true;
@@ -162,7 +175,7 @@ const _denoHttpIntegration = ((options: DenoHttpIntegrationOptions = {}) => {
     processEvent(event: Event): Event | null {
       // Gated on this integration's own span origin so it does not filter `Deno.serve`
       // transactions, which `denoServeIntegration` owns via its own `ignoreStatusCodes`.
-      return processHttpServerTransactionEvent(event, ignoreStatusCodes, 'auto.http.server');
+      return processHttpServerTransactionEvent(event, ignoreStatusCodes, 'auto.http.http_server');
     },
     setupOnce() {
       const { [HTTP_ON_SERVER_REQUEST]: onHttpServerRequest } = getHttpServerSubscriptions({

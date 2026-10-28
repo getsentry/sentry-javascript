@@ -21,8 +21,7 @@ function getBaseOptionsForTraceLifecycle(sendMock: Mock<any>, enableTracing = tr
 
 describe('Browser Profiling v2 trace lifecycle', () => {
   afterEach(async () => {
-    const client = Sentry.getClient();
-    await client?.close();
+    await Sentry.close();
     // reset profiler constructor
     (window as any).Profiler = undefined;
     vi.restoreAllMocks();
@@ -568,7 +567,7 @@ describe('Browser Profiling v2 trace lifecycle', () => {
       }
 
       // End Session 1
-      await client?.close();
+      await Sentry.close();
 
       // Session 2 (new init simulates new user session)
       const send2 = vi.fn().mockResolvedValue(undefined);
@@ -737,8 +736,7 @@ function getBaseOptionsForManualLifecycle(sendMock: Mock<any>, enableTracing = t
 
 describe('Browser Profiling v2 manual lifecycle', () => {
   afterEach(async () => {
-    const client = Sentry.getClient();
-    await client?.close();
+    await Sentry.close();
     // reset profiler constructor
     (window as any).Profiler = undefined;
     vi.restoreAllMocks();

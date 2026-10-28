@@ -45,7 +45,7 @@ describe('startFirestoreSpan', () => {
         name: 'addDoc cities',
         attributes: expect.objectContaining({
           'sentry.op': 'db.query',
-          'sentry.origin': 'auto.firebase.firestore',
+          'sentry.origin': 'auto.db.firebase.firestore',
           'db.operation.name': 'addDoc',
           'db.collection.name': 'cities',
           'db.namespace': '[DEFAULT]',
@@ -111,7 +111,7 @@ describe('wrapFunctionsRegistration', () => {
       expect.objectContaining({
         name: 'firebase.function.http.request',
         attributes: expect.objectContaining({
-          'sentry.origin': 'auto.firebase.functions',
+          'sentry.origin': 'auto.function.firebase',
           'sentry.op': 'function.gcp',
           'faas.trigger': 'http.request',
           'faas.provider': 'firebase',
@@ -150,7 +150,7 @@ describe('wrapFunctionsRegistration', () => {
     expect(captureExceptionSpy).toHaveBeenCalledWith(
       error,
       expect.objectContaining({
-        mechanism: expect.objectContaining({ type: 'auto.firebase.functions' }),
+        mechanism: expect.objectContaining({ type: 'auto.function.firebase' }),
       }),
     );
     expect(span.end).toHaveBeenCalledTimes(1);

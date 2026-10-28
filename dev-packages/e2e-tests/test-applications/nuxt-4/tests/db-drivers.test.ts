@@ -1,5 +1,8 @@
 import { expect, test } from '@playwright/test';
 import { collectStreamedSpansUntilSegment, getSpanOp } from '@sentry-internal/test-utils';
+import { isViteServer, NITRO_ONLY } from './isViteServer';
+
+test.skip(isViteServer, NITRO_ONLY);
 
 // The Nuxt module auto-wires the orchestrion build-time transform, which injects
 // `diagnostics_channel` publishers into these drivers as Nitro bundles them. `nuxt dev`
@@ -83,7 +86,7 @@ test('Instruments mongoose automatically', async ({ baseURL }) => {
   expect(getSpanOp(rootSpan!)).toBe('http.server');
 
   const mongooseSpans = spans.filter(
-    span => span.attributes['sentry.origin']?.value === 'auto.db.mongoose.diagnostic_channel',
+    span => span.attributes['sentry.origin']?.value === 'auto.db.mongoose.native_channel',
   );
   expect(mongooseSpans).toHaveLength(2);
 

@@ -1,6 +1,6 @@
 {
   "name": "@sentry/cloudflare",
-  "version": "11.4.0",
+  "version": "11.10.0",
   "description": "Official Sentry SDK for Cloudflare Workers and Pages",
   "repository": "git://github.com/getsentry/sentry-javascript.git",
   "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/cloudflare",
@@ -53,18 +53,22 @@
   },
   "dependencies": {
     "@opentelemetry/api": "^1.9.1",
-    "@sentry/conventions": "^0.25.0",
-    "@sentry/core": "11.4.0",
-    "@sentry/opentelemetry": "11.4.0",
-    "@sentry/server-utils": "11.4.0",
+    "@sentry/conventions": "^0.30.0",
+    "@sentry/core": "11.10.0",
+    "@sentry/opentelemetry": "11.10.0",
+    "@sentry/server-utils": "11.10.0",
     "magic-string": "~0.30.21"
   },
   "peerDependencies": {
     "@cloudflare/workers-types": "^4.x || ^5.x",
+    "vite": "^6.1.0 || ^7.0.0 || ^8.0.0",
     "wrangler": "^4.x"
   },
   "peerDependenciesMeta": {
     "@cloudflare/workers-types": {
+      "optional": true
+    },
+    "vite": {
       "optional": true
     },
     "wrangler": {
@@ -73,16 +77,19 @@
   },
   "devDependencies": {
     "@cloudflare/workers-types": "5.20260710.1",
-    "@types/node": "^18.19.1",
+    "@sentry-internal/rollup-utils": "11.10.0",
+    "@types/node": "^20.19.0",
+    "acorn": "^8.14.0",
+    "vite": "^8.3.1",
     "wrangler": "4.61.0"
   },
   "scripts": {
     "build": "run-p build:transpile build:types",
-    "build:dev": "yarn build",
+    "build:dev": "pnpm run build",
     "build:transpile": "rollup -c rollup.npm.config.mjs",
     "build:types": "tsc -p tsconfig.types.json",
     "build:watch": "run-p build:transpile:watch",
-    "build:dev:watch": "yarn build:watch",
+    "build:dev:watch": "pnpm run build:watch",
     "build:transpile:watch": "rollup -c rollup.npm.config.mjs --watch",
     "build:tarball": "npm pack",
     "circularDepCheck": "madge --circular src/index.ts",
@@ -91,13 +98,10 @@
     "lint": "oxlint . --type-aware",
     "lint:types": "oxlint src --type-aware --type-check",
     "lint:es-compatibility": "es-check es2022 ./build/cjs/prod/*.js && es-check es2022 ./build/esm/prod/*.js --module",
-    "test": "yarn test:unit",
+    "test": "pnpm run test:unit",
     "test:unit": "vitest run",
     "test:watch": "vitest --watch",
     "yalc:publish": "yalc publish --push --sig"
-  },
-  "volta": {
-    "extends": "../../package.json"
   },
   "sideEffects": false
 }
