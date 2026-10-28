@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import plugin from '../../../src/runtime/plugins/sentry.client';
 import { reportNuxtError } from '../../../src/runtime/utils';
 
 vi.mock('nuxt/app', () => ({
@@ -13,7 +14,6 @@ vi.mock('../../../src/runtime/utils', () => ({
 type Hook = (...args: unknown[]) => void;
 
 async function setupHook(hookName: string): Promise<Hook> {
-  const { default: plugin } = await import('../../../src/runtime/plugins/sentry.client');
   const hooks: Record<string, Hook> = {};
   const nuxtApp = { hook: (name: string, hook: Hook) => (hooks[name] = hook) };
   await (plugin as unknown as { setup: (app: unknown) => Promise<void> }).setup(nuxtApp);
