@@ -85,13 +85,13 @@ describe('instrumentStream (openai chat completion tool calls)', () => {
       chunkWith([{ index: 0, id: 'call_a', function: { name: 'lookup', arguments: '{}' } }]),
     ]);
 
-    expect(toolCalls.map(call => call.id).sort()).toEqual(['call_a', 'call_b']);
+    expect(toolCalls.map(call => call.id)).toEqual(['call_b', 'call_a']);
   });
 
   it('still groups indexed deltas by index', async () => {
     const toolCalls = await recordedToolCalls([
-      chunkWith([{ index: 1, id: 'call_b', function: { name: 'search', arguments: '{' } }]),
       chunkWith([{ index: 0, id: 'call_a', function: { name: 'lookup', arguments: '{}' } }]),
+      chunkWith([{ index: 1, id: 'call_b', function: { name: 'search', arguments: '{' } }]),
       chunkWith([{ index: 1, function: { name: '', arguments: '}' } }]),
     ]);
 
@@ -146,5 +146,17 @@ describe('instrumentStream (openai chat completion tool calls)', () => {
 
     expect(toolCalls).toHaveLength(1);
     expect((toolCalls[0]?.function as { arguments: string }).arguments).toBe('{"q":"a"}');
+  });
+
+  it('keeps the order calls were opened when a reused index is followed by a higher index', async () => {
+    const toolCalls = await recordedToolCalls([
+      chunkWith([
+        { index: 0, id: 'call_a', function: { name: 'lookup', arguments: '{}' } },
+        { index: 0, id: 'call_b', function: { name: 'search', arguments: '{}' } },
+        { index: 1, id: 'call_c', function: { name: 'fetch', arguments: '{}' } },
+      ]),
+    ]);
+
+    expect(toolCalls.map(call => call.id)).toEqual(['call_a', 'call_b', 'call_c']);
   });
 });
