@@ -453,7 +453,7 @@ importers:
         version: 0.133.0(zod@4.6.7)
       '@google/genai':
         specifier: ^1.20.0
-        version: 1.20.0(encoding@0.1.13)(supports-color@10.0.0)
+        version: 1.20.0(@modelcontextprotocol/sdk@1.32.2(@cfworker/json-schema@4.1.1)(supports-color@10.0.0)(zod@4.6.7))(encoding@0.1.13)(supports-color@10.0.0)
       '@langchain/core':
         specifier: ^1.2.17
         version: 1.2.17(@opentelemetry/api@1.10.0)(openai@5.18.1(ws@8.21.3)(zod@4.6.7))(ws@8.21.3)
@@ -606,7 +606,7 @@ importers:
         version: 3.1068.0
       '@google/genai':
         specifier: ^1.20.0
-        version: 1.20.0(encoding@0.1.13)(supports-color@10.0.0)
+        version: 1.20.0(@modelcontextprotocol/sdk@1.32.2(@cfworker/json-schema@4.1.1)(supports-color@10.0.0)(zod@4.6.7))(encoding@0.1.13)(supports-color@10.0.0)
       '@growthbook/growthbook':
         specifier: ^1.6.5
         version: 1.6.5
@@ -632,8 +632,8 @@ importers:
         specifier: ^0.5.0
         version: 0.5.18(@langchain/core@0.3.80(@opentelemetry/api@1.9.0)(openai@5.18.1(ws@8.21.3)(zod@4.6.7)))(ws@8.21.3)
       '@mistralai/mistralai':
-        specifier: 2.6.4
-        version: 2.6.4(@opentelemetry/api@1.9.0)
+        specifier: 3.3.0
+        version: 3.3.0(@aws-sdk/client-s3@3.1068.0)(@azure/storage-blob@12.31.0(supports-color@10.0.0))(@cfworker/json-schema@4.1.1)(@opentelemetry/api@1.9.0)(supports-color@10.0.0)
       '@modelcontextprotocol/client':
         specifier: ^2.0.0
         version: 2.0.0
@@ -6083,14 +6083,36 @@ packages:
     engines: {node: '>=18'}
     hasBin: true
 
-  '@mistralai/mistralai@2.6.4':
-    resolution: {integrity: sha512-PPt4GyJqs2hEsWrYCJZK5f0ORmT+L2MSm75LVGD7kBLf6ZKsoDpld/FRBQXr8xG6iFCBOFJFYzvGYhUb+UCkbw==}
+  '@mistralai/mistralai@3.3.0':
+    resolution: {integrity: sha512-b5NSkQ8lFBxwZfA4Vj5oHxs7Jw7VrZRI2E9g95sigQiTi3NsQ//o6y3nDXjKUPWjksfagjH3STEFCYBg19SMvg==}
     peerDependencies:
+      '@aws-sdk/client-s3': ^3.300.0
+      '@azure/identity': ^4.0.0
+      '@azure/storage-blob': ^12.24.0
+      '@google-cloud/storage': ^7.0.0 || ^8.0.0
+      '@hpcc-js/wasm-zstd': ^1.16.0
+      '@livekit/rtc-node': ^0.13.28
+      '@msgpack/msgpack': ^3.0.0
       '@opentelemetry/api': ^1.9.0
       '@opentelemetry/exporter-trace-otlp-http': ^0.220.0
       '@opentelemetry/resources': ^2.9.0
       '@opentelemetry/sdk-trace-base': ^2.9.0
+      livekit-client: ^2.19.0
     peerDependenciesMeta:
+      '@aws-sdk/client-s3':
+        optional: true
+      '@azure/identity':
+        optional: true
+      '@azure/storage-blob':
+        optional: true
+      '@google-cloud/storage':
+        optional: true
+      '@hpcc-js/wasm-zstd':
+        optional: true
+      '@livekit/rtc-node':
+        optional: true
+      '@msgpack/msgpack':
+        optional: true
       '@opentelemetry/api':
         optional: true
       '@opentelemetry/exporter-trace-otlp-http':
@@ -6098,6 +6120,8 @@ packages:
       '@opentelemetry/resources':
         optional: true
       '@opentelemetry/sdk-trace-base':
+        optional: true
+      livekit-client:
         optional: true
 
   '@mjackson/node-fetch-server@0.2.0':
@@ -6110,6 +6134,16 @@ packages:
   '@modelcontextprotocol/core@2.0.0':
     resolution: {integrity: sha512-pJCEwGG7Lfr/+PQp9ZTwKXNeO5wzbfKL7H3MYpCorM4oFBoQrdjnBgEoqG+RjhsvS1FKrDbKux+M1HhlnGWqcA==}
     engines: {node: '>=20'}
+
+  '@modelcontextprotocol/sdk@1.32.2':
+    resolution: {integrity: sha512-SWsVtH/0vULSQStoZ6xxH2K09Li8fXYTMC64ZeogCdpZ3XSi1eCPOByV1OpuJxuI3OcmHhosDWYyii07tpPsLw==}
+    engines: {node: '>=18'}
+    peerDependencies:
+      '@cfworker/json-schema': ^4.1.1
+      zod: ^3.25 || ^4.0
+    peerDependenciesMeta:
+      '@cfworker/json-schema':
+        optional: true
 
   '@modelcontextprotocol/server@2.0.0':
     resolution: {integrity: sha512-YhHWdHfpFMQfd0prsEnxKeS3Qz3ytIGmsS0sth4KDjnacIT7hxk6hXHkJ9KysxlkvTM+WZAtQbbcUhdoP4Hvtw==}
@@ -12164,6 +12198,12 @@ packages:
     resolution: {integrity: sha512-KfYbmpRm0VbLjEvVa9yGwCi9GI34xvi7A/HXYWQO65CSD2u3MczUJSuwXKFIxlGsgBQizV9q5J9NHj4VG0n+pA==}
     engines: {node: '>=12.0.0'}
 
+  express-rate-limit@8.7.1:
+    resolution: {integrity: sha512-2FXbqkygil3mZiXzEtM0IjE/UBmBNot0J1GEVrJT4JbrvwOSoEtqtO+wHbiMQELWe1eNvHoYRg2dkjOid+6JkA==}
+    engines: {node: '>= 16'}
+    peerDependencies:
+      express: '>= 4.11'
+
   express@4.22.1:
     resolution: {integrity: sha512-F2X8g9P1X7uCPZMA3MVf9wcTqlyNp7IhH5qPCI0izhaOIYXaW9L535tGA3qmjRzpH+bZczqq7hVKxTR4NWnu+g==}
     engines: {node: '>= 0.10.0'}
@@ -13657,6 +13697,9 @@ packages:
 
   json-schema-traverse@1.0.0:
     resolution: {integrity: sha512-NM8/P9n3XjXhIZn1lLhkFaACTOURQXjWhV4BA/RnOv8xvgqtqpAX9IO4mRQxSx1Rlo4tqzeqb0sOlruaOy3dug==}
+
+  json-schema-typed@8.0.2:
+    resolution: {integrity: sha512-fQhoXdcvc3V28x7C7BMs4P5+kNlgUURe2jmUT1T//oBRMDrqy1QPelJimwZGo7Hg9VPV3EQV5Bnq4hbFy2vetA==}
 
   json-schema@0.4.0:
     resolution: {integrity: sha512-es94M3nTIfsEPisRafak+HDLfHXnKBhV3vU5eqPcS3flIWqcxJWgXHXiey3YrpaNsanY5ei1VoYEbOzijuq9BA==}
@@ -23424,10 +23467,12 @@ snapshots:
 
   '@google-cloud/promisify@2.0.3': {}
 
-  '@google/genai@1.20.0(encoding@0.1.13)(supports-color@10.0.0)':
+  '@google/genai@1.20.0(@modelcontextprotocol/sdk@1.32.2(@cfworker/json-schema@4.1.1)(supports-color@10.0.0)(zod@4.6.7))(encoding@0.1.13)(supports-color@10.0.0)':
     dependencies:
       google-auth-library: 9.15.1(encoding@0.1.13)(supports-color@10.0.0)
       ws: 8.21.3
+    optionalDependencies:
+      '@modelcontextprotocol/sdk': 1.32.2(@cfworker/json-schema@4.1.1)(supports-color@10.0.0)(zod@4.6.7)
     transitivePeerDependencies:
       - bufferutil
       - encoding
@@ -24179,16 +24224,21 @@ snapshots:
       - encoding
       - supports-color
 
-  '@mistralai/mistralai@2.6.4(@opentelemetry/api@1.9.0)':
+  '@mistralai/mistralai@3.3.0(@aws-sdk/client-s3@3.1068.0)(@azure/storage-blob@12.31.0(supports-color@10.0.0))(@cfworker/json-schema@4.1.1)(@opentelemetry/api@1.9.0)(supports-color@10.0.0)':
     dependencies:
+      '@modelcontextprotocol/sdk': 1.32.2(@cfworker/json-schema@4.1.1)(supports-color@10.0.0)(zod@4.6.7)
       '@opentelemetry/semantic-conventions': 1.43.0
       ws: 8.21.3
       zod: 4.6.7
       zod-to-json-schema: 3.25.2(zod@4.6.7)
     optionalDependencies:
+      '@aws-sdk/client-s3': 3.1068.0
+      '@azure/storage-blob': 12.31.0(supports-color@10.0.0)
       '@opentelemetry/api': 1.9.0
     transitivePeerDependencies:
+      - '@cfworker/json-schema'
       - bufferutil
+      - supports-color
       - utf-8-validate
 
   '@mjackson/node-fetch-server@0.2.0': {}
@@ -24206,6 +24256,30 @@ snapshots:
   '@modelcontextprotocol/core@2.0.0':
     dependencies:
       zod: 4.6.7
+
+  '@modelcontextprotocol/sdk@1.32.2(@cfworker/json-schema@4.1.1)(supports-color@10.0.0)(zod@4.6.7)':
+    dependencies:
+      '@hono/node-server': 2.0.10(hono@4.13.11)
+      ajv: 8.20.0
+      ajv-formats: 3.0.1
+      content-type: 1.0.5
+      cors: 2.8.6
+      cross-spawn: 7.0.6
+      eventsource: 3.0.7
+      eventsource-parser: 3.1.1
+      express: 5.2.1(supports-color@10.0.0)
+      express-rate-limit: 8.7.1(express@5.2.1(supports-color@10.0.0))(supports-color@10.0.0)
+      hono: 4.13.11
+      jose: 6.2.10
+      json-schema-typed: 8.0.2
+      pkce-challenge: 5.0.1
+      raw-body: 3.0.2
+      zod: 4.6.7
+      zod-to-json-schema: 3.25.2(zod@4.6.7)
+    optionalDependencies:
+      '@cfworker/json-schema': 4.1.1
+    transitivePeerDependencies:
+      - supports-color
 
   '@modelcontextprotocol/server@2.0.0':
     dependencies:
@@ -31108,6 +31182,14 @@ snapshots:
 
   expect-type@1.4.0: {}
 
+  express-rate-limit@8.7.1(express@5.2.1(supports-color@10.0.0))(supports-color@10.0.0):
+    dependencies:
+      debug: 4.4.3(supports-color@10.0.0)
+      express: 5.2.1(supports-color@10.0.0)
+      ip-address: 10.7.2
+    transitivePeerDependencies:
+      - supports-color
+
   express@4.22.1(supports-color@10.0.0):
     dependencies:
       accepts: 1.3.8
@@ -33077,6 +33159,8 @@ snapshots:
   json-schema-traverse@0.4.1: {}
 
   json-schema-traverse@1.0.0: {}
+
+  json-schema-typed@8.0.2: {}
 
   json-schema@0.4.0: {}
 
