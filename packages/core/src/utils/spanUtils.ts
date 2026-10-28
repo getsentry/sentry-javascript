@@ -138,13 +138,10 @@ export function getStreamedSpanLinks(
 
 /**
  * Convert a span time input into a timestamp in seconds.
- *
- * Numbers are treated as epoch seconds or milliseconds, unless `isOtelTimeInput` is set: OpenTelemetry numbers are
- * always milliseconds, either since the epoch or since the performance time origin (`performance.now()`).
  */
-export function spanTimeInputToSeconds(input: SpanTimeInput | undefined, isOtelTimeInput = false): number {
+export function spanTimeInputToSeconds(input: SpanTimeInput | undefined): number {
   if (typeof input === 'number') {
-    return isOtelTimeInput ? otelTimestampToSeconds(input) : ensureTimestampInSeconds(input);
+    return ensureTimestampInSeconds(input);
   }
 
   if (Array.isArray(input)) {
@@ -167,12 +164,21 @@ function ensureTimestampInSeconds(timestamp: number): number {
   return isMs ? timestamp / 1000 : timestamp;
 }
 
-function otelTimestampToSeconds(timestampInMs: number): number {
-  // Epoch milliseconds are > 1e12 for any date after 2001, `performance.now()` would need ~30 years of uptime to get there
-  if (timestampInMs < 1e12) {
-    return performanceTimeToSeconds(timestampInMs) ?? timestampInSeconds();
+/**
+ * Convert an OpenTelemetry time input into a timestamp in seconds.
+ *
+ * OpenTelemetry numbers are always milliseconds, either since the epoch or since the performance time origin
+ * (`performance.now()`).
+ */
+export function otelTimeInputToSeconds(input: SpanTimeInput | undefined): number {
+  if (typeof input !== 'number') {
+    return spanTimeInputToSeconds(input);
   }
-  return timestampInMs / 1000;
+  // Epoch milliseconds are > 1e12 for any date after 2001, `performance.now()` would need ~30 years of uptime to get there
+  if (input < 1e12) {
+    return performanceTimeToSeconds(input) ?? timestampInSeconds();
+  }
+  return input / 1000;
 }
 
 /**

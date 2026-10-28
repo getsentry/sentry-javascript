@@ -124,6 +124,7 @@ export {
   getActiveSpan,
   addChildSpanToSpan,
   spanTimeInputToSeconds,
+  otelTimeInputToSeconds,
   updateSpanName,
   INTERNAL_setSegmentNameSourceIfSegment,
 } from './utils/spanUtils';
