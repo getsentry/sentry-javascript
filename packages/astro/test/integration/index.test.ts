@@ -852,15 +852,18 @@ describe('sentryAstro integration', () => {
 
     it.each([
       ['a server init file', { serverInitPath: 'my-server-init-path.js' }, /^import ".*\/my-server-init-path.js";$/],
-      ['the default snippet', {}, /^import \* as Sentry from "@sentry\/astro";[\s\S]*Sentry\.init\(/],
-    ])('keeps the previous setup for the netlify adapter with %s', async (_, options, pageSsrScript) => {
+      ['the default snippet', {}, /^import "virtual:sentry-astro\/server-init";$/],
+    ])('uses the init middleware entrypoint for the netlify adapter with %s', async (_, options, pageSsrScript) => {
       const { addMiddleware, injectScript, plugin } = await setupWithMiddleware(options, {
         output: 'server',
         adapter: { name: '@astrojs/netlify' },
       });
 
-      expect(addMiddleware).toHaveBeenCalledWith({ order: 'pre', entrypoint: '@sentry/astro/middleware' });
-      expect(plugin).toBeUndefined();
+      expect(addMiddleware).toHaveBeenCalledWith({
+        order: 'pre',
+        entrypoint: 'virtual:sentry-astro/server-init-middleware',
+      });
+      expect(plugin).toBeDefined();
       expect(injectScript).toHaveBeenCalledWith('page-ssr', expect.stringMatching(pageSsrScript));
     });
 

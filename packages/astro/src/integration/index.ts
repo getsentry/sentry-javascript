@@ -231,8 +231,7 @@ export const sentryAstro = (options: SentryOptions = {}): AstroIntegration => {
         const isSSR = config && (config.output === 'server' || config.output === 'hybrid' || !!config.adapter);
         const shouldAddMiddleware = sdkEnabled.server && autoInstrumentation?.requestHandler !== false;
 
-        const isNetlify = config?.adapter?.name?.startsWith('@astrojs/netlify');
-        const initServerInMiddleware = isSSR && shouldAddMiddleware && !isCloudflareWorkers && !isNetlify;
+        const initServerInMiddleware = isSSR && shouldAddMiddleware && !isCloudflareWorkers;
 
         if (sdkEnabled.server && !pathToServerInit && !usesCloudflareVitePlugin) {
           debug && logger.info('Using default server init.');
