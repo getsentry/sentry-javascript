@@ -155,7 +155,6 @@ export function instrumentOutgoingRequests(client: Client, _options?: Partial<Re
         propagateTraceparent,
         onRequestSpanEnd,
         // The generic fetch instrumentation has no page origin to resolve relative URLs against.
-        // `href` and not `origin`, because `origin` can be "null" (sandboxed iframes) and is not a valid base.
         urlBase: WINDOW.location?.href,
       });
 

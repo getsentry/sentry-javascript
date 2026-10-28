@@ -2,7 +2,7 @@ import type { Client } from '@sentry/core';
 import * as utils from '@sentry/core';
 import * as coreBrowser from '@sentry/core/browser';
 import * as browserUtils from '@sentry/browser-utils';
-import { HTTP_REQUEST_METHOD } from '@sentry/conventions/attributes';
+import { HTTP_REQUEST_METHOD, SERVER_ADDRESS, URL_DOMAIN, URL_FULL } from '@sentry/conventions/attributes';
 import type { MockInstance } from 'vitest';
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { BrowserClient } from '../../src/client';
@@ -223,8 +223,8 @@ describe('instrumentOutgoingRequests', () => {
 
     const requestSpanJson = utils.spanToJSON(requestSpan!);
     expect(requestSpanJson.name).toBe('GET example.com');
-    expect(requestSpanJson.attributes['url.domain']).toBe('example.com');
-    expect(requestSpanJson.attributes['server.address']).toBe('example.com:8443');
+    expect(requestSpanJson.attributes[URL_DOMAIN]).toBe('example.com');
+    expect(requestSpanJson.attributes[SERVER_ADDRESS]).toBe('example.com:8443');
   });
 
   it('resolves a relative fetch URL against the page origin for the streamed span name', () => {
@@ -255,7 +255,7 @@ describe('instrumentOutgoingRequests', () => {
 
     const requestSpanJson = utils.spanToJSON(requestSpan!);
     expect(requestSpanJson.name).toBe('GET app.example.com');
-    expect(requestSpanJson.attributes['url.domain']).toBe('app.example.com');
+    expect(requestSpanJson.attributes[URL_DOMAIN]).toBe('app.example.com');
 
     vi.unstubAllGlobals();
   });
@@ -294,7 +294,7 @@ describe('instrumentOutgoingRequests', () => {
 
     const requestSpanJson = utils.spanToJSON(requestSpan!);
     expect(requestSpanJson.name).toBe('GET app.example.com');
-    expect(requestSpanJson.attributes['url.domain']).toBe('app.example.com');
+    expect(requestSpanJson.attributes[URL_DOMAIN]).toBe('app.example.com');
 
     vi.unstubAllGlobals();
   });
@@ -349,7 +349,7 @@ describe('instrumentOutgoingRequests', () => {
         startTimestamp: Date.now(),
       } as utils.HandlerDataXhr);
 
-      expect(utils.spanToJSON(requestSpan!).attributes['url.full']).toBe(expected);
+      expect(utils.spanToJSON(requestSpan!).attributes[URL_FULL]).toBe(expected);
     });
 
     it('sets url.domain on fetch spans for an absolute URL on a page with an opaque origin', () => {
@@ -378,7 +378,7 @@ describe('instrumentOutgoingRequests', () => {
         startTimestamp: Date.now(),
       });
 
-      expect(utils.spanToJSON(requestSpan!).attributes['url.domain']).toBe('api.example.org');
+      expect(utils.spanToJSON(requestSpan!).attributes[URL_DOMAIN]).toBe('api.example.org');
     });
   });
 
@@ -408,7 +408,7 @@ describe('instrumentOutgoingRequests', () => {
 
     const requestSpanJson = utils.spanToJSON(requestSpan!);
     expect(requestSpanJson.name).toBe('GET');
-    expect(requestSpanJson.attributes['url.domain']).toBeUndefined();
+    expect(requestSpanJson.attributes[URL_DOMAIN]).toBeUndefined();
   });
 
   describe('XHR trace header span', () => {
