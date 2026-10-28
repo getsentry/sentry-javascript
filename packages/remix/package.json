@@ -106,7 +106,7 @@
     "@remix-run/react": "2.x",
     "@remix-run/server-runtime": "2.x",
     "react": "18.x",
-    "remix": ">=3.0.0-rc.1 <4"
+    "remix": "3.x"
   },
   "scripts": {
     "build": "run-p build:transpile build:types",
