@@ -663,8 +663,10 @@ describe('Supabase Integration', () => {
 
       await (client as any).from('todos').select('*').then();
 
-      const spanOptions = tracingMocks.startSpanManual.mock.calls[0]![0] as { onlyIfParent?: boolean };
-      expect(spanOptions.onlyIfParent).toBe(true);
+      expect(tracingMocks.startSpanManual).toHaveBeenCalledWith(
+        expect.objectContaining({ onlyIfParent: true }),
+        expect.any(Function),
+      );
     });
 
     it('starts the auth span with onlyIfParent so it is dropped without an active parent', async () => {
@@ -675,8 +677,10 @@ describe('Supabase Integration', () => {
 
       await client.auth.signInWithPassword({ email: 'a@b.c', password: 'pw' });
 
-      const spanOptions = tracingMocks.startSpanManual.mock.calls[0]![0] as { onlyIfParent?: boolean };
-      expect(spanOptions.onlyIfParent).toBe(true);
+      expect(tracingMocks.startSpanManual).toHaveBeenCalledWith(
+        expect.objectContaining({ onlyIfParent: true }),
+        expect.any(Function),
+      );
     });
   });
 });
