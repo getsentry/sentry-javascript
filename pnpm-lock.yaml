@@ -694,6 +694,9 @@ importers:
       body-parser:
         specifier: ^2.3.0
         version: 2.3.0(supports-color@10.0.0)
+      bullmq:
+        specifier: ^5.79.1
+        version: 5.81.5(redis@5.12.1(@opentelemetry/api@1.9.0))(supports-color@10.0.0)
       consola:
         specifier: ^3.2.3
         version: 3.4.2
@@ -738,7 +741,7 @@ importers:
         version: 5.10.1(supports-color@10.0.0)
       ioredis-5:
         specifier: npm:ioredis@^5.11.0
-        version: ioredis@5.11.0(supports-color@10.0.0)
+        version: ioredis@5.11.1(supports-color@10.0.0)
       ioredis-6:
         specifier: npm:ioredis@^6.0.0
         version: ioredis@6.0.0(supports-color@10.0.0)
@@ -1718,13 +1721,13 @@ importers:
         version: 2.0.1-rc.22(crossws@0.4.10(srvx@0.11.22))
       nitro:
         specifier: ^3.0.260415-beta
-        version: 3.0.260415-beta(@azure/storage-blob@12.31.0(supports-color@10.0.0))(chokidar@5.0.0)(dotenv@17.4.2)(giget@3.3.1)(ioredis@5.11.0(supports-color@10.0.0))(jiti@2.7.0)(lru-cache@11.4.0)(miniflare@4.20260426.0)(mongodb@7.1.0(@aws-sdk/credential-providers@3.983.0)(socks@2.8.7))(mysql2@3.23.3(@types/node@20.19.43))(rollup@4.62.3)(vite@8.3.1(@types/node@20.19.43)(esbuild@0.28.1)(jiti@2.7.0)(less@4.2.0(supports-color@10.0.0))(sass@1.72.0)(stylus@0.59.0(supports-color@10.0.0))(terser@5.43.1)(tsx@4.23.0)(yaml@2.9.0))
+        version: 3.0.260415-beta(@azure/storage-blob@12.31.0(supports-color@10.0.0))(chokidar@5.0.0)(dotenv@17.4.2)(giget@3.3.1)(ioredis@5.11.1(supports-color@10.0.0))(jiti@2.7.0)(lru-cache@11.4.0)(miniflare@4.20260426.0)(mongodb@7.1.0(@aws-sdk/credential-providers@3.983.0)(socks@2.8.7))(mysql2@3.23.3(@types/node@20.19.43))(rollup@4.62.3)(vite@8.3.1(@types/node@20.19.43)(esbuild@0.28.1)(jiti@2.7.0)(less@4.2.0(supports-color@10.0.0))(sass@1.72.0)(stylus@0.59.0(supports-color@10.0.0))(terser@5.43.1)(tsx@4.23.0)(yaml@2.9.0))
       srvx:
         specifier: ^0.11.22
         version: 0.11.22
       unstorage:
         specifier: ^2.0.0-alpha.7
-        version: 2.0.0-alpha.7(@azure/storage-blob@12.31.0(supports-color@10.0.0))(chokidar@5.0.0)(db0@0.3.4(mysql2@3.23.3(@types/node@20.19.43)))(ioredis@5.11.0(supports-color@10.0.0))(lru-cache@11.4.0)(mongodb@7.1.0(@aws-sdk/credential-providers@3.983.0)(socks@2.8.7))(ofetch@1.5.1)
+        version: 2.0.0-alpha.7(@azure/storage-blob@12.31.0(supports-color@10.0.0))(chokidar@5.0.0)(db0@0.3.4(mysql2@3.23.3(@types/node@20.19.43)))(ioredis@5.11.1(supports-color@10.0.0))(lru-cache@11.4.0)(mongodb@7.1.0(@aws-sdk/credential-providers@3.983.0)(socks@2.8.7))(ofetch@1.5.1)
 
   packages/node:
     dependencies:
@@ -1814,7 +1817,7 @@ importers:
         version: 4.20260519.1
       '@nuxt/nitro-server':
         specifier: ^3.21.11
-        version: 3.21.11(@azure/storage-blob@12.31.0(supports-color@10.0.0))(@parcel/watcher@2.5.6)(db0@0.3.4(mysql2@3.23.3(@types/node@20.19.43)))(encoding@0.1.13)(esbuild@0.28.1)(ioredis@5.11.0(supports-color@10.0.0))(magicast@0.5.4)(mysql2@3.23.3(@types/node@20.19.43))(nuxt@3.21.11(0dc0d2df1a20b551c0e4dd687b74c07c))(oxc-parser@0.152.0)(rolldown@1.2.11)(rollup@4.62.3)(srvx@0.11.22)(supports-color@10.0.0)(typescript@7.0.2)(vite@8.3.1(@types/node@20.19.43)(esbuild@0.28.1)(jiti@2.7.0)(less@4.2.0(supports-color@10.0.0))(sass@1.72.0)(stylus@0.59.0(supports-color@10.0.0))(terser@5.43.1)(tsx@4.23.0)(yaml@2.9.0))(webpack@5.107.2(clean-css@5.2.2)(cssnano@7.1.9(postcss@8.5.31))(csso@5.0.5)(esbuild@0.28.1)(html-minifier-terser@6.1.0)(lightningcss@1.33.0)(postcss@8.5.31)(uglify-js@3.13.3))
+        version: 3.21.11(@azure/storage-blob@12.31.0(supports-color@10.0.0))(@parcel/watcher@2.5.6)(db0@0.3.4(mysql2@3.23.3(@types/node@20.19.43)))(encoding@0.1.13)(esbuild@0.28.1)(ioredis@5.11.1(supports-color@10.0.0))(magicast@0.5.4)(mysql2@3.23.3(@types/node@20.19.43))(nuxt@3.21.11(955174819940f662d7743f134f0d89c6))(oxc-parser@0.152.0)(rolldown@1.2.11)(rollup@4.62.3)(srvx@0.11.22)(supports-color@10.0.0)(typescript@7.0.2)(vite@8.3.1(@types/node@20.19.43)(esbuild@0.28.1)(jiti@2.7.0)(less@4.2.0(supports-color@10.0.0))(sass@1.72.0)(stylus@0.59.0(supports-color@10.0.0))(terser@5.43.1)(tsx@4.23.0)(yaml@2.9.0))(webpack@5.107.2(clean-css@5.2.2)(cssnano@7.1.9(postcss@8.5.31))(csso@5.0.5)(esbuild@0.28.1)(html-minifier-terser@6.1.0)(lightningcss@1.33.0)(postcss@8.5.31)(uglify-js@3.13.3))
       '@nuxt/schema':
         specifier: ^3.21.11
         version: 3.21.11
@@ -1829,7 +1832,7 @@ importers:
         version: 1.15.11
       nitro:
         specifier: ^3.0.260311-beta
-        version: 3.0.260311-beta(@azure/storage-blob@12.31.0(supports-color@10.0.0))(chokidar@5.0.0)(dotenv@17.4.2)(giget@3.3.1)(ioredis@5.11.0(supports-color@10.0.0))(jiti@2.7.0)(lru-cache@11.4.0)(miniflare@4.20260426.0)(mongodb@7.1.0(@aws-sdk/credential-providers@3.983.0)(socks@2.8.7))(mysql2@3.23.3(@types/node@20.19.43))(rollup@4.62.3)(vite@8.3.1(@types/node@20.19.43)(esbuild@0.28.1)(jiti@2.7.0)(less@4.2.0(supports-color@10.0.0))(sass@1.72.0)(stylus@0.59.0(supports-color@10.0.0))(terser@5.43.1)(tsx@4.23.0)(yaml@2.9.0))
+        version: 3.0.260311-beta(@azure/storage-blob@12.31.0(supports-color@10.0.0))(chokidar@5.0.0)(dotenv@17.4.2)(giget@3.3.1)(ioredis@5.11.1(supports-color@10.0.0))(jiti@2.7.0)(lru-cache@11.4.0)(miniflare@4.20260426.0)(mongodb@7.1.0(@aws-sdk/credential-providers@3.983.0)(socks@2.8.7))(mysql2@3.23.3(@types/node@20.19.43))(rollup@4.62.3)(vite@8.3.1(@types/node@20.19.43)(esbuild@0.28.1)(jiti@2.7.0)(less@4.2.0(supports-color@10.0.0))(sass@1.72.0)(stylus@0.59.0(supports-color@10.0.0))(terser@5.43.1)(tsx@4.23.0)(yaml@2.9.0))
       nitropack:
         specifier: ^2.13.4
         version: 2.13.4(@azure/storage-blob@12.31.0(supports-color@10.0.0))(@parcel/watcher@2.5.6)(encoding@0.1.13)(mysql2@3.23.3(@types/node@20.19.43))(oxc-parser@0.152.0)(rolldown@1.2.11)(srvx@0.11.22)(supports-color@10.0.0)(vite@8.3.1(@types/node@20.19.43)(esbuild@0.28.1)(jiti@2.7.0)(less@4.2.0(supports-color@10.0.0))(sass@1.72.0)(stylus@0.59.0(supports-color@10.0.0))(terser@5.43.1)(tsx@4.23.0)(yaml@2.9.0))(webpack@5.107.2(clean-css@5.2.2)(cssnano@7.1.9(postcss@8.5.31))(csso@5.0.5)(esbuild@0.28.1)(html-minifier-terser@6.1.0)(lightningcss@1.33.0)(postcss@8.5.31)(uglify-js@3.13.3))
@@ -1838,10 +1841,10 @@ importers:
         version: 3.25.1
       nuxt:
         specifier: 3.21.11
-        version: 3.21.11(0dc0d2df1a20b551c0e4dd687b74c07c)
+        version: 3.21.11(955174819940f662d7743f134f0d89c6)
       unstorage:
         specifier: ^1.17.5
-        version: 1.17.5(@azure/storage-blob@12.31.0(supports-color@10.0.0))(db0@0.3.4(mysql2@3.23.3(@types/node@20.19.43)))(ioredis@5.11.0(supports-color@10.0.0))
+        version: 1.17.5(@azure/storage-blob@12.31.0(supports-color@10.0.0))(db0@0.3.4(mysql2@3.23.3(@types/node@20.19.43)))(ioredis@5.11.1(supports-color@10.0.0))
       vite:
         specifier: ^8.3.1
         version: 8.3.1(@types/node@20.19.43)(esbuild@0.28.1)(jiti@2.7.0)(less@4.2.0(supports-color@10.0.0))(sass@1.72.0)(stylus@0.59.0(supports-color@10.0.0))(terser@5.43.1)(tsx@4.23.0)(yaml@2.9.0)
@@ -2309,7 +2312,7 @@ importers:
         version: 1.0.0(solid-js@1.9.11)
       '@solidjs/start':
         specifier: ^1.3.2
-        version: 1.3.2(@testing-library/jest-dom@6.9.1)(solid-js@1.9.11)(supports-color@10.0.0)(vinxi@0.5.11(@azure/storage-blob@12.31.0(supports-color@10.0.0))(@parcel/watcher@2.5.6)(@types/node@20.19.43)(db0@0.3.4(mysql2@3.23.3(@types/node@20.19.43)))(debug@4.4.3(supports-color@10.0.0))(encoding@0.1.13)(ioredis@5.11.0(supports-color@10.0.0))(jiti@2.7.0)(less@4.2.0(supports-color@10.0.0))(lightningcss@1.33.0)(mysql2@3.23.3(@types/node@20.19.43))(oxc-parser@0.152.0)(rolldown@1.2.11)(sass@1.72.0)(srvx@0.11.22)(stylus@0.59.0(supports-color@10.0.0))(supports-color@10.0.0)(terser@5.43.1)(tsx@4.23.0)(webpack@5.107.2(clean-css@5.2.2)(cssnano@7.1.9(postcss@8.5.31))(csso@5.0.5)(esbuild@0.28.1)(html-minifier-terser@6.1.0)(lightningcss@1.33.0)(postcss@8.5.31)(uglify-js@3.13.3))(yaml@2.9.0))(vite@8.3.1(@types/node@20.19.43)(esbuild@0.28.1)(jiti@2.7.0)(less@4.2.0(supports-color@10.0.0))(sass@1.72.0)(stylus@0.59.0(supports-color@10.0.0))(terser@5.43.1)(tsx@4.23.0)(yaml@2.9.0))
+        version: 1.3.2(@testing-library/jest-dom@6.9.1)(solid-js@1.9.11)(supports-color@10.0.0)(vinxi@0.5.11(@azure/storage-blob@12.31.0(supports-color@10.0.0))(@parcel/watcher@2.5.6)(@types/node@20.19.43)(db0@0.3.4(mysql2@3.23.3(@types/node@20.19.43)))(debug@4.4.3(supports-color@10.0.0))(encoding@0.1.13)(ioredis@5.11.1(supports-color@10.0.0))(jiti@2.7.0)(less@4.2.0(supports-color@10.0.0))(lightningcss@1.33.0)(mysql2@3.23.3(@types/node@20.19.43))(oxc-parser@0.152.0)(rolldown@1.2.11)(sass@1.72.0)(srvx@0.11.22)(stylus@0.59.0(supports-color@10.0.0))(supports-color@10.0.0)(terser@5.43.1)(tsx@4.23.0)(webpack@5.107.2(clean-css@5.2.2)(cssnano@7.1.9(postcss@8.5.31))(csso@5.0.5)(esbuild@0.28.1)(html-minifier-terser@6.1.0)(lightningcss@1.33.0)(postcss@8.5.31)(uglify-js@3.13.3))(yaml@2.9.0))(vite@8.3.1(@types/node@20.19.43)(esbuild@0.28.1)(jiti@2.7.0)(less@4.2.0(supports-color@10.0.0))(sass@1.72.0)(stylus@0.59.0(supports-color@10.0.0))(terser@5.43.1)(tsx@4.23.0)(yaml@2.9.0))
       '@solidjs/testing-library':
         specifier: 0.8.5
         version: 0.8.5(@solidjs/router@1.0.0(solid-js@1.9.11))(solid-js@1.9.11)
@@ -2333,7 +2336,7 @@ importers:
         version: 1.9.11
       vinxi:
         specifier: ^0.5.11
-        version: 0.5.11(@azure/storage-blob@12.31.0(supports-color@10.0.0))(@parcel/watcher@2.5.6)(@types/node@20.19.43)(db0@0.3.4(mysql2@3.23.3(@types/node@20.19.43)))(debug@4.4.3(supports-color@10.0.0))(encoding@0.1.13)(ioredis@5.11.0(supports-color@10.0.0))(jiti@2.7.0)(less@4.2.0(supports-color@10.0.0))(lightningcss@1.33.0)(mysql2@3.23.3(@types/node@20.19.43))(oxc-parser@0.152.0)(rolldown@1.2.11)(sass@1.72.0)(srvx@0.11.22)(stylus@0.59.0(supports-color@10.0.0))(supports-color@10.0.0)(terser@5.43.1)(tsx@4.23.0)(webpack@5.107.2(clean-css@5.2.2)(cssnano@7.1.9(postcss@8.5.31))(csso@5.0.5)(esbuild@0.28.1)(html-minifier-terser@6.1.0)(lightningcss@1.33.0)(postcss@8.5.31)(uglify-js@3.13.3))(yaml@2.9.0)
+        version: 0.5.11(@azure/storage-blob@12.31.0(supports-color@10.0.0))(@parcel/watcher@2.5.6)(@types/node@20.19.43)(db0@0.3.4(mysql2@3.23.3(@types/node@20.19.43)))(debug@4.4.3(supports-color@10.0.0))(encoding@0.1.13)(ioredis@5.11.1(supports-color@10.0.0))(jiti@2.7.0)(less@4.2.0(supports-color@10.0.0))(lightningcss@1.33.0)(mysql2@3.23.3(@types/node@20.19.43))(oxc-parser@0.152.0)(rolldown@1.2.11)(sass@1.72.0)(srvx@0.11.22)(stylus@0.59.0(supports-color@10.0.0))(supports-color@10.0.0)(terser@5.43.1)(tsx@4.23.0)(webpack@5.107.2(clean-css@5.2.2)(cssnano@7.1.9(postcss@8.5.31))(csso@5.0.5)(esbuild@0.28.1)(html-minifier-terser@6.1.0)(lightningcss@1.33.0)(postcss@8.5.31)(uglify-js@3.13.3))(yaml@2.9.0)
       vite:
         specifier: ^8.3.1
         version: 8.3.1(@types/node@20.19.43)(esbuild@0.28.1)(jiti@2.7.0)(less@4.2.0(supports-color@10.0.0))(sass@1.72.0)(stylus@0.59.0(supports-color@10.0.0))(terser@5.43.1)(tsx@4.23.0)(yaml@2.9.0)
@@ -6117,6 +6120,36 @@ packages:
 
   '@mongodb-js/saslprep@1.4.6':
     resolution: {integrity: sha512-y+x3H1xBZd38n10NZF/rEBlvDOOMQ6LKUTHqr8R9VkJ+mmQOYtJFxIlkkK8fZrtOiL6VixbOBWMbZGBdal3Z1g==}
+
+  '@msgpackr-extract/msgpackr-extract-darwin-arm64@3.0.4':
+    resolution: {integrity: sha512-LCkGo6JDfaBhgST7UpPWgNgLINpcpabaHfyz5OBx75nUYxBsaEPxjnyNjWpeb/xBup/682QnBfRBy2/LvPutZQ==}
+    cpu: [arm64]
+    os: [darwin]
+
+  '@msgpackr-extract/msgpackr-extract-darwin-x64@3.0.4':
+    resolution: {integrity: sha512-zExlW9zUJKZH/tOtVMttwjKa4Xm/3KcNjnE3dPN92uCktwavMxpgCA3MoJK/DOnTWsQgo224OaST27/mPNAf+w==}
+    cpu: [x64]
+    os: [darwin]
+
+  '@msgpackr-extract/msgpackr-extract-linux-arm64@3.0.4':
+    resolution: {integrity: sha512-dgX0P/9wGPJeHFBG+ZmhgE6bmtMt7NP5CRBGyyktpopdk/mW4POnrpQsSLtKI1dwpc+pPLuXHDh6vvskyQE/sw==}
+    cpu: [arm64]
+    os: [linux]
+
+  '@msgpackr-extract/msgpackr-extract-linux-arm@3.0.4':
+    resolution: {integrity: sha512-Tg3yX65f5GbtXLkrYEHE5oibZG9epyYWas7FogTTEJeDEF9JlXJzKgXaNhT3UXlTOeA+AfZpYZYZ0uPj7Cfquw==}
+    cpu: [arm]
+    os: [linux]
+
+  '@msgpackr-extract/msgpackr-extract-linux-x64@3.0.4':
+    resolution: {integrity: sha512-8TNXMEjJc3QEy7R/x1INhgiU+XakDAFUzBhaz7+Rbrs8NH5UQeHQxxmzsSBJGyV6I1jW79undiQm8tOI+D+8FQ==}
+    cpu: [x64]
+    os: [linux]
+
+  '@msgpackr-extract/msgpackr-extract-win32-x64@3.0.4':
+    resolution: {integrity: sha512-CmCXPQrkbwExx3j946/PtHWHbYJiCRBRDl4BlkRQcJB/YOwQxJRTpoo7aTsortjgoJ1x7opzTSxn7C+ASSLVjQ==}
+    cpu: [x64]
+    os: [win32]
 
   '@mswjs/interceptors@0.41.9':
     resolution: {integrity: sha512-VVPPgHyQ6ShqnrmDWuxjmUIsO9gWyOZFmuOfLd9LfBGQJwZfy0gvv9pbHSJuoFNIYC7ZDX9aoFwowjcdSC4E8w==}
@@ -10355,6 +10388,15 @@ packages:
   builtins@5.0.1:
     resolution: {integrity: sha512-qwVpFEHNfhYJIzNRBvd2C1kyo6jz3ZSMPyyuR47OPdiKWlbYnZNyDWuyR175qDnAJLiCo5fBBqPb3RiXgWlkOQ==}
 
+  bullmq@5.81.5:
+    resolution: {integrity: sha512-pW7pFc/X+9AEIx91TWTdIpZ1icfbJnA0unsyzD7VICjCUw8a3qedSjej5dxxn6LjfM1kr2jvalOCGbCmoA5Kxg==}
+    engines: {node: '>=12.22.0'}
+    peerDependencies:
+      redis: '>=5.0.0'
+    peerDependenciesMeta:
+      redis:
+        optional: true
+
   bun-types@1.2.9:
     resolution: {integrity: sha512-dk/kOEfQbajENN/D6FyiSgOKEuUi9PWfqKQJEgwKrCMWbjS/S6tEXp178mWvWAcUSYm9ArDlWHZKO3T/4cLXiw==}
 
@@ -13172,8 +13214,8 @@ packages:
     resolution: {integrity: sha512-HuEDBTI70aYdx1v6U97SbNx9F1+svQKBDo30o0b9fw055LMepzpOOd0Ccg9Q6tbqmBSJaMuY0fB7yw9/vjBYCA==}
     engines: {node: '>=12.22.0'}
 
-  ioredis@5.11.0:
-    resolution: {integrity: sha512-EZBErytyVovD8f6pDfG3Kb37N6Y3lmDA9NNj+4+IP13CzzHGeX+OyeRM2Um13khRzoBSzzL+5lVnCX8V2RLeMg==}
+  ioredis@5.11.1:
+    resolution: {integrity: sha512-ehuGcf94bQXhfagULNXrJdfnWO38v070jxSx/qE87Kjzmu2fU7ro5EFAb+OPituLqgfyuQaym5DlrNydW2sJ9A==}
     engines: {node: '>=12.22.0'}
 
   ioredis@6.0.0:
@@ -14716,6 +14758,13 @@ packages:
   ms@2.1.3:
     resolution: {integrity: sha512-6FlzubTLZG3J2a/NVCAleEhjzq5oxgHyaCU9yYXvcLsvoVaHJq/s5xXI6/XXP6tz7R9xAOtHnSO/tXtF3WRTlA==}
 
+  msgpackr-extract@3.0.4:
+    resolution: {integrity: sha512-4kmO/MdyUIkLIvTPr8VHLil4AtoKIoniWPIEk5+CDy0xnWC84azhSFmuJ7PxZdsYtiP5kEeQsORAVIeMgxT+Hw==}
+    hasBin: true
+
+  msgpackr@2.0.5:
+    resolution: {integrity: sha512-cef05H/dSYpLpqp3sj/qyZh5vhUYCalnaLO7j1yOmpsR0y/XwLVtK7r5gn+U/F7CTEfMowcGhlUQJDLcLf7jcA==}
+
   muggle-string@0.4.1:
     resolution: {integrity: sha512-VNTrAak/KhO2i8dqqnqnAHOa3cYBwXEZe9h+D5h/1ZqFSTEFHdM65lR7RoIqq3tBBYavsOXV84NoHXZ0AkPyqQ==}
 
@@ -14925,6 +14974,9 @@ packages:
     resolution: {integrity: sha512-6u9UwL0HlAl21+agMN3YAMXcKByMqwGx+pq+P76vii5f7hTPtKDp08/H9py6DY+cfDw7kQNTGEj/rly3IgbNQA==}
     engines: {node: '>=10'}
 
+  node-abort-controller@3.1.1:
+    resolution: {integrity: sha512-AGK2yQKIjRuqnc6VkX2Xj5d+QW8xZ87pa1UK6yA6ouUyuxfHuMP6umE5QK7UmTeOAymo+Zx1Fxiuw9rVx8taHQ==}
+
   node-addon-api@3.2.1:
     resolution: {integrity: sha512-mmcei9JghVNDYydghQmeDX8KoAm0FAiYyIcUt/N4nhyAipB17pllZQDOJD2fotxABnt4Mdz+dKTO7eftLg4d0A==}
 
@@ -14951,6 +15003,10 @@ packages:
   node-forge@1.4.0:
     resolution: {integrity: sha512-LarFH0+6VfriEhqMMcLX2F7SwSXeWwnEAJEsYm5QKWchiVYVvJyV9v7UDvUv+w5HO23ZpQTXDv/GxdDdMyOuoQ==}
     engines: {node: '>= 6.13.0'}
+
+  node-gyp-build-optional-packages@5.2.2:
+    resolution: {integrity: sha512-s+w+rBWnpTMwSFbaE0UXsRlg7hU4FjekKU4eyAih5T8nJuNZT1nNsskXpxmeqSK9UzkBl6UgRlnKc8hz8IEqOw==}
+    hasBin: true
 
   node-gyp-build@4.6.0:
     resolution: {integrity: sha512-NTZVKn9IylLwUzaKjkas1e4u2DLNcV4rdYagA4PWdPwW87Bi7z+BznyKSRwS/761tV/lzCGXplWsiaMjLqP2zQ==}
@@ -24216,6 +24272,24 @@ snapshots:
     dependencies:
       sparse-bitfield: 3.0.3
 
+  '@msgpackr-extract/msgpackr-extract-darwin-arm64@3.0.4':
+    optional: true
+
+  '@msgpackr-extract/msgpackr-extract-darwin-x64@3.0.4':
+    optional: true
+
+  '@msgpackr-extract/msgpackr-extract-linux-arm64@3.0.4':
+    optional: true
+
+  '@msgpackr-extract/msgpackr-extract-linux-arm@3.0.4':
+    optional: true
+
+  '@msgpackr-extract/msgpackr-extract-linux-x64@3.0.4':
+    optional: true
+
+  '@msgpackr-extract/msgpackr-extract-win32-x64@3.0.4':
+    optional: true
+
   '@mswjs/interceptors@0.41.9':
     dependencies:
       '@open-draft/deferred-promise': 2.2.0
@@ -24460,7 +24534,7 @@ snapshots:
       pkg-types: 2.3.1
       semver: 7.8.5
 
-  '@nuxt/devtools@3.4.1(@azure/storage-blob@12.31.0(supports-color@10.0.0))(@nuxt/schema@3.21.11)(confbox@0.2.4)(db0@0.3.4(mysql2@3.23.3(@types/node@20.19.43)))(dotenv@17.4.2)(giget@3.3.1)(ioredis@5.11.0(supports-color@10.0.0))(jiti@2.7.0)(magic-string@0.30.21)(mlly@1.8.2)(oxc-parser@0.143.0)(rolldown@1.2.11)(supports-color@10.0.0)(unplugin@3.3.0(esbuild@0.28.1)(rolldown@1.2.11)(rollup@4.62.3)(vite@8.3.1(@types/node@20.19.43)(esbuild@0.28.1)(jiti@2.7.0)(less@4.2.0(supports-color@10.0.0))(sass@1.72.0)(stylus@0.59.0(supports-color@10.0.0))(terser@5.43.1)(tsx@4.23.0)(yaml@2.9.0))(webpack@5.107.2(clean-css@5.2.2)(cssnano@7.1.9(postcss@8.5.31))(csso@5.0.5)(esbuild@0.28.1)(html-minifier-terser@6.1.0)(lightningcss@1.33.0)(postcss@8.5.31)(uglify-js@3.13.3)))(vite@8.3.1(@types/node@20.19.43)(esbuild@0.28.1)(jiti@2.7.0)(less@4.2.0(supports-color@10.0.0))(sass@1.72.0)(stylus@0.59.0(supports-color@10.0.0))(terser@5.43.1)(tsx@4.23.0)(yaml@2.9.0))(vue@3.5.44(typescript@7.0.2))':
+  '@nuxt/devtools@3.4.1(@azure/storage-blob@12.31.0(supports-color@10.0.0))(@nuxt/schema@3.21.11)(confbox@0.2.4)(db0@0.3.4(mysql2@3.23.3(@types/node@20.19.43)))(dotenv@17.4.2)(giget@3.3.1)(ioredis@5.11.1(supports-color@10.0.0))(jiti@2.7.0)(magic-string@0.30.21)(mlly@1.8.2)(oxc-parser@0.143.0)(rolldown@1.2.11)(supports-color@10.0.0)(unplugin@3.3.0(esbuild@0.28.1)(rolldown@1.2.11)(rollup@4.62.3)(vite@8.3.1(@types/node@20.19.43)(esbuild@0.28.1)(jiti@2.7.0)(less@4.2.0(supports-color@10.0.0))(sass@1.72.0)(stylus@0.59.0(supports-color@10.0.0))(terser@5.43.1)(tsx@4.23.0)(yaml@2.9.0))(webpack@5.107.2(clean-css@5.2.2)(cssnano@7.1.9(postcss@8.5.31))(csso@5.0.5)(esbuild@0.28.1)(html-minifier-terser@6.1.0)(lightningcss@1.33.0)(postcss@8.5.31)(uglify-js@3.13.3)))(vite@8.3.1(@types/node@20.19.43)(esbuild@0.28.1)(jiti@2.7.0)(less@4.2.0(supports-color@10.0.0))(sass@1.72.0)(stylus@0.59.0(supports-color@10.0.0))(terser@5.43.1)(tsx@4.23.0)(yaml@2.9.0))(vue@3.5.44(typescript@7.0.2))':
     dependencies:
       '@nuxt/devtools-kit': 3.4.1(@nuxt/schema@3.21.11)(confbox@0.2.4)(dotenv@17.4.2)(giget@3.3.1)(jiti@2.7.0)(magic-string@0.30.21)(mlly@1.8.2)(oxc-parser@0.143.0)(rolldown@1.2.11)(unplugin@3.3.0(esbuild@0.28.1)(rolldown@1.2.11)(rollup@4.62.3)(vite@8.3.1(@types/node@20.19.43)(esbuild@0.28.1)(jiti@2.7.0)(less@4.2.0(supports-color@10.0.0))(sass@1.72.0)(stylus@0.59.0(supports-color@10.0.0))(terser@5.43.1)(tsx@4.23.0)(yaml@2.9.0))(webpack@5.107.2(clean-css@5.2.2)(cssnano@7.1.9(postcss@8.5.31))(csso@5.0.5)(esbuild@0.28.1)(html-minifier-terser@6.1.0)(lightningcss@1.33.0)(postcss@8.5.31)(uglify-js@3.13.3)))(vite@8.3.1(@types/node@20.19.43)(esbuild@0.28.1)(jiti@2.7.0)(less@4.2.0(supports-color@10.0.0))(sass@1.72.0)(stylus@0.59.0(supports-color@10.0.0))(terser@5.43.1)(tsx@4.23.0)(yaml@2.9.0))
       '@nuxt/devtools-wizard': 3.4.1
@@ -24490,7 +24564,7 @@ snapshots:
       sirv: 3.0.2
       structured-clone-es: 2.0.1
       tinyglobby: 0.2.17
-      unstorage: 1.17.5(@azure/storage-blob@12.31.0(supports-color@10.0.0))(db0@0.3.4(mysql2@3.23.3(@types/node@20.19.43)))(ioredis@5.11.0(supports-color@10.0.0))
+      unstorage: 1.17.5(@azure/storage-blob@12.31.0(supports-color@10.0.0))(db0@0.3.4(mysql2@3.23.3(@types/node@20.19.43)))(ioredis@5.11.1(supports-color@10.0.0))
       vite: 8.3.1(@types/node@20.19.43)(esbuild@0.28.1)(jiti@2.7.0)(less@4.2.0(supports-color@10.0.0))(sass@1.72.0)(stylus@0.59.0(supports-color@10.0.0))(terser@5.43.1)(tsx@4.23.0)(yaml@2.9.0)
       vite-plugin-inspect: 11.4.1(@nuxt/kit@4.6.0(@nuxt/schema@3.21.11)(confbox@0.2.4)(dotenv@17.4.2)(giget@3.3.1)(jiti@2.7.0)(magic-string@0.30.21)(mlly@1.8.2)(oxc-parser@0.143.0)(rolldown@1.2.11)(unplugin@3.3.0(esbuild@0.28.1)(rolldown@1.2.11)(rollup@4.62.3)(vite@8.3.1(@types/node@20.19.43)(esbuild@0.28.1)(jiti@2.7.0)(less@4.2.0(supports-color@10.0.0))(sass@1.72.0)(stylus@0.59.0(supports-color@10.0.0))(terser@5.43.1)(tsx@4.23.0)(yaml@2.9.0))(webpack@5.107.2(clean-css@5.2.2)(cssnano@7.1.9(postcss@8.5.31))(csso@5.0.5)(esbuild@0.28.1)(html-minifier-terser@6.1.0)(lightningcss@1.33.0)(postcss@8.5.31)(uglify-js@3.13.3))))(vite@8.3.1(@types/node@20.19.43)(esbuild@0.28.1)(jiti@2.7.0)(less@4.2.0(supports-color@10.0.0))(sass@1.72.0)(stylus@0.59.0(supports-color@10.0.0))(terser@5.43.1)(tsx@4.23.0)(yaml@2.9.0))
       vite-plugin-vue-tracer: 1.5.0(vite@8.3.1(@types/node@20.19.43)(esbuild@0.28.1)(jiti@2.7.0)(less@4.2.0(supports-color@10.0.0))(sass@1.72.0)(stylus@0.59.0(supports-color@10.0.0))(terser@5.43.1)(tsx@4.23.0)(yaml@2.9.0))(vue@3.5.44(typescript@7.0.2))
@@ -24656,7 +24730,7 @@ snapshots:
       - magic-string
       - unplugin
 
-  '@nuxt/nitro-server@3.21.11(@azure/storage-blob@12.31.0(supports-color@10.0.0))(@parcel/watcher@2.5.6)(db0@0.3.4(mysql2@3.23.3(@types/node@20.19.43)))(encoding@0.1.13)(esbuild@0.28.1)(ioredis@5.11.0(supports-color@10.0.0))(magicast@0.5.4)(mysql2@3.23.3(@types/node@20.19.43))(nuxt@3.21.11(0dc0d2df1a20b551c0e4dd687b74c07c))(oxc-parser@0.143.0)(rolldown@1.2.11)(rollup@4.62.3)(srvx@0.11.22)(supports-color@10.0.0)(typescript@7.0.2)(vite@8.3.1(@types/node@20.19.43)(esbuild@0.28.1)(jiti@2.7.0)(less@4.2.0(supports-color@10.0.0))(sass@1.72.0)(stylus@0.59.0(supports-color@10.0.0))(terser@5.43.1)(tsx@4.23.0)(yaml@2.9.0))(webpack@5.107.2(clean-css@5.2.2)(cssnano@7.1.9(postcss@8.5.31))(csso@5.0.5)(esbuild@0.28.1)(html-minifier-terser@6.1.0)(lightningcss@1.33.0)(postcss@8.5.31)(uglify-js@3.13.3))':
+  '@nuxt/nitro-server@3.21.11(@azure/storage-blob@12.31.0(supports-color@10.0.0))(@parcel/watcher@2.5.6)(db0@0.3.4(mysql2@3.23.3(@types/node@20.19.43)))(encoding@0.1.13)(esbuild@0.28.1)(ioredis@5.11.1(supports-color@10.0.0))(magicast@0.5.4)(mysql2@3.23.3(@types/node@20.19.43))(nuxt@3.21.11(955174819940f662d7743f134f0d89c6))(oxc-parser@0.143.0)(rolldown@1.2.11)(rollup@4.62.3)(srvx@0.11.22)(supports-color@10.0.0)(typescript@7.0.2)(vite@8.3.1(@types/node@20.19.43)(esbuild@0.28.1)(jiti@2.7.0)(less@4.2.0(supports-color@10.0.0))(sass@1.72.0)(stylus@0.59.0(supports-color@10.0.0))(terser@5.43.1)(tsx@4.23.0)(yaml@2.9.0))(webpack@5.107.2(clean-css@5.2.2)(cssnano@7.1.9(postcss@8.5.31))(csso@5.0.5)(esbuild@0.28.1)(html-minifier-terser@6.1.0)(lightningcss@1.33.0)(postcss@8.5.31)(uglify-js@3.13.3))':
     dependencies:
       '@nuxt/devalue': 2.0.2
       '@nuxt/kit': 3.21.11(magicast@0.5.4)
@@ -24674,7 +24748,7 @@ snapshots:
       klona: 2.0.6
       mocked-exports: 0.1.1
       nitropack: 2.13.4(@azure/storage-blob@12.31.0(supports-color@10.0.0))(@parcel/watcher@2.5.6)(encoding@0.1.13)(mysql2@3.23.3(@types/node@20.19.43))(oxc-parser@0.143.0)(rolldown@1.2.11)(srvx@0.11.22)(supports-color@10.0.0)(vite@8.3.1(@types/node@20.19.43)(esbuild@0.28.1)(jiti@2.7.0)(less@4.2.0(supports-color@10.0.0))(sass@1.72.0)(stylus@0.59.0(supports-color@10.0.0))(terser@5.43.1)(tsx@4.23.0)(yaml@2.9.0))(webpack@5.107.2(clean-css@5.2.2)(cssnano@7.1.9(postcss@8.5.31))(csso@5.0.5)(esbuild@0.28.1)(html-minifier-terser@6.1.0)(lightningcss@1.33.0)(postcss@8.5.31)(uglify-js@3.13.3))
-      nuxt: 3.21.11(0dc0d2df1a20b551c0e4dd687b74c07c)
+      nuxt: 3.21.11(955174819940f662d7743f134f0d89c6)
       ohash: 2.0.11
       pathe: 2.0.3
       pkg-types: 2.3.1
@@ -24682,7 +24756,7 @@ snapshots:
       std-env: 4.3.0
       ufo: 1.6.4
       unctx: 2.5.0
-      unstorage: 1.17.5(@azure/storage-blob@12.31.0(supports-color@10.0.0))(db0@0.3.4(mysql2@3.23.3(@types/node@20.19.43)))(ioredis@5.11.0(supports-color@10.0.0))
+      unstorage: 1.17.5(@azure/storage-blob@12.31.0(supports-color@10.0.0))(db0@0.3.4(mysql2@3.23.3(@types/node@20.19.43)))(ioredis@5.11.1(supports-color@10.0.0))
       vue: 3.5.44(typescript@7.0.2)
       vue-bundle-renderer: 2.3.2
       vue-devtools-stub: 0.1.0
@@ -24730,7 +24804,7 @@ snapshots:
       - webpack
       - xml2js
 
-  '@nuxt/nitro-server@3.21.11(@azure/storage-blob@12.31.0(supports-color@10.0.0))(@parcel/watcher@2.5.6)(db0@0.3.4(mysql2@3.23.3(@types/node@20.19.43)))(encoding@0.1.13)(esbuild@0.28.1)(ioredis@5.11.0(supports-color@10.0.0))(magicast@0.5.4)(mysql2@3.23.3(@types/node@20.19.43))(nuxt@3.21.11(0dc0d2df1a20b551c0e4dd687b74c07c))(oxc-parser@0.152.0)(rolldown@1.2.11)(rollup@4.62.3)(srvx@0.11.22)(supports-color@10.0.0)(typescript@7.0.2)(vite@8.3.1(@types/node@20.19.43)(esbuild@0.28.1)(jiti@2.7.0)(less@4.2.0(supports-color@10.0.0))(sass@1.72.0)(stylus@0.59.0(supports-color@10.0.0))(terser@5.43.1)(tsx@4.23.0)(yaml@2.9.0))(webpack@5.107.2(clean-css@5.2.2)(cssnano@7.1.9(postcss@8.5.31))(csso@5.0.5)(esbuild@0.28.1)(html-minifier-terser@6.1.0)(lightningcss@1.33.0)(postcss@8.5.31)(uglify-js@3.13.3))':
+  '@nuxt/nitro-server@3.21.11(@azure/storage-blob@12.31.0(supports-color@10.0.0))(@parcel/watcher@2.5.6)(db0@0.3.4(mysql2@3.23.3(@types/node@20.19.43)))(encoding@0.1.13)(esbuild@0.28.1)(ioredis@5.11.1(supports-color@10.0.0))(magicast@0.5.4)(mysql2@3.23.3(@types/node@20.19.43))(nuxt@3.21.11(955174819940f662d7743f134f0d89c6))(oxc-parser@0.152.0)(rolldown@1.2.11)(rollup@4.62.3)(srvx@0.11.22)(supports-color@10.0.0)(typescript@7.0.2)(vite@8.3.1(@types/node@20.19.43)(esbuild@0.28.1)(jiti@2.7.0)(less@4.2.0(supports-color@10.0.0))(sass@1.72.0)(stylus@0.59.0(supports-color@10.0.0))(terser@5.43.1)(tsx@4.23.0)(yaml@2.9.0))(webpack@5.107.2(clean-css@5.2.2)(cssnano@7.1.9(postcss@8.5.31))(csso@5.0.5)(esbuild@0.28.1)(html-minifier-terser@6.1.0)(lightningcss@1.33.0)(postcss@8.5.31)(uglify-js@3.13.3))':
     dependencies:
       '@nuxt/devalue': 2.0.2
       '@nuxt/kit': 3.21.11(magicast@0.5.4)
@@ -24748,7 +24822,7 @@ snapshots:
       klona: 2.0.6
       mocked-exports: 0.1.1
       nitropack: 2.13.4(@azure/storage-blob@12.31.0(supports-color@10.0.0))(@parcel/watcher@2.5.6)(encoding@0.1.13)(mysql2@3.23.3(@types/node@20.19.43))(oxc-parser@0.152.0)(rolldown@1.2.11)(srvx@0.11.22)(supports-color@10.0.0)(vite@8.3.1(@types/node@20.19.43)(esbuild@0.28.1)(jiti@2.7.0)(less@4.2.0(supports-color@10.0.0))(sass@1.72.0)(stylus@0.59.0(supports-color@10.0.0))(terser@5.43.1)(tsx@4.23.0)(yaml@2.9.0))(webpack@5.107.2(clean-css@5.2.2)(cssnano@7.1.9(postcss@8.5.31))(csso@5.0.5)(esbuild@0.28.1)(html-minifier-terser@6.1.0)(lightningcss@1.33.0)(postcss@8.5.31)(uglify-js@3.13.3))
-      nuxt: 3.21.11(0dc0d2df1a20b551c0e4dd687b74c07c)
+      nuxt: 3.21.11(955174819940f662d7743f134f0d89c6)
       ohash: 2.0.11
       pathe: 2.0.3
       pkg-types: 2.3.1
@@ -24756,7 +24830,7 @@ snapshots:
       std-env: 4.3.0
       ufo: 1.6.4
       unctx: 2.5.0
-      unstorage: 1.17.5(@azure/storage-blob@12.31.0(supports-color@10.0.0))(db0@0.3.4(mysql2@3.23.3(@types/node@20.19.43)))(ioredis@5.11.0(supports-color@10.0.0))
+      unstorage: 1.17.5(@azure/storage-blob@12.31.0(supports-color@10.0.0))(db0@0.3.4(mysql2@3.23.3(@types/node@20.19.43)))(ioredis@5.11.1(supports-color@10.0.0))
       vue: 3.5.44(typescript@7.0.2)
       vue-bundle-renderer: 2.3.2
       vue-devtools-stub: 0.1.0
@@ -24825,7 +24899,7 @@ snapshots:
       rc9: 3.1.0
       std-env: 4.3.0
 
-  '@nuxt/vite-builder@3.21.11(@types/node@20.19.43)(less@4.2.0(supports-color@10.0.0))(lightningcss@1.33.0)(magicast@0.5.4)(meow@13.2.0)(nuxt@3.21.11(0dc0d2df1a20b551c0e4dd687b74c07c))(optionator@0.9.4)(oxlint@1.89.0(oxlint-tsgolint@7.0.2004))(rolldown@1.2.11)(rollup-plugin-visualizer@6.0.11(rolldown@1.2.11)(rollup@4.62.3))(rollup@4.62.3)(sass@1.72.0)(stylus@0.59.0(supports-color@10.0.0))(supports-color@10.0.0)(terser@5.43.1)(tsx@4.23.0)(typescript@7.0.2)(vue@3.5.44(typescript@7.0.2))(yaml@2.9.0)':
+  '@nuxt/vite-builder@3.21.11(@types/node@20.19.43)(less@4.2.0(supports-color@10.0.0))(lightningcss@1.33.0)(magicast@0.5.4)(meow@13.2.0)(nuxt@3.21.11(955174819940f662d7743f134f0d89c6))(optionator@0.9.4)(oxlint@1.89.0(oxlint-tsgolint@7.0.2004))(rolldown@1.2.11)(rollup-plugin-visualizer@6.0.11(rolldown@1.2.11)(rollup@4.62.3))(rollup@4.62.3)(sass@1.72.0)(stylus@0.59.0(supports-color@10.0.0))(supports-color@10.0.0)(terser@5.43.1)(tsx@4.23.0)(typescript@7.0.2)(vue@3.5.44(typescript@7.0.2))(yaml@2.9.0)':
     dependencies:
       '@nuxt/kit': 3.21.11(magicast@0.5.4)
       '@rollup/plugin-replace': 6.0.3(rollup@4.62.3)
@@ -24845,7 +24919,7 @@ snapshots:
       magic-string: 0.30.21
       mlly: 1.8.2
       mocked-exports: 0.1.1
-      nuxt: 3.21.11(0dc0d2df1a20b551c0e4dd687b74c07c)
+      nuxt: 3.21.11(955174819940f662d7743f134f0d89c6)
       nypm: 0.6.9
       ohash: 2.0.11
       pathe: 2.0.3
@@ -26633,11 +26707,11 @@ snapshots:
     dependencies:
       solid-js: 1.9.11
 
-  '@solidjs/start@1.3.2(@testing-library/jest-dom@6.9.1)(solid-js@1.9.11)(supports-color@10.0.0)(vinxi@0.5.11(@azure/storage-blob@12.31.0(supports-color@10.0.0))(@parcel/watcher@2.5.6)(@types/node@20.19.43)(db0@0.3.4(mysql2@3.23.3(@types/node@20.19.43)))(debug@4.4.3(supports-color@10.0.0))(encoding@0.1.13)(ioredis@5.11.0(supports-color@10.0.0))(jiti@2.7.0)(less@4.2.0(supports-color@10.0.0))(lightningcss@1.33.0)(mysql2@3.23.3(@types/node@20.19.43))(oxc-parser@0.152.0)(rolldown@1.2.11)(sass@1.72.0)(srvx@0.11.22)(stylus@0.59.0(supports-color@10.0.0))(supports-color@10.0.0)(terser@5.43.1)(tsx@4.23.0)(webpack@5.107.2(clean-css@5.2.2)(cssnano@7.1.9(postcss@8.5.31))(csso@5.0.5)(esbuild@0.28.1)(html-minifier-terser@6.1.0)(lightningcss@1.33.0)(postcss@8.5.31)(uglify-js@3.13.3))(yaml@2.9.0))(vite@8.3.1(@types/node@20.19.43)(esbuild@0.28.1)(jiti@2.7.0)(less@4.2.0(supports-color@10.0.0))(sass@1.72.0)(stylus@0.59.0(supports-color@10.0.0))(terser@5.43.1)(tsx@4.23.0)(yaml@2.9.0))':
+  '@solidjs/start@1.3.2(@testing-library/jest-dom@6.9.1)(solid-js@1.9.11)(supports-color@10.0.0)(vinxi@0.5.11(@azure/storage-blob@12.31.0(supports-color@10.0.0))(@parcel/watcher@2.5.6)(@types/node@20.19.43)(db0@0.3.4(mysql2@3.23.3(@types/node@20.19.43)))(debug@4.4.3(supports-color@10.0.0))(encoding@0.1.13)(ioredis@5.11.1(supports-color@10.0.0))(jiti@2.7.0)(less@4.2.0(supports-color@10.0.0))(lightningcss@1.33.0)(mysql2@3.23.3(@types/node@20.19.43))(oxc-parser@0.152.0)(rolldown@1.2.11)(sass@1.72.0)(srvx@0.11.22)(stylus@0.59.0(supports-color@10.0.0))(supports-color@10.0.0)(terser@5.43.1)(tsx@4.23.0)(webpack@5.107.2(clean-css@5.2.2)(cssnano@7.1.9(postcss@8.5.31))(csso@5.0.5)(esbuild@0.28.1)(html-minifier-terser@6.1.0)(lightningcss@1.33.0)(postcss@8.5.31)(uglify-js@3.13.3))(yaml@2.9.0))(vite@8.3.1(@types/node@20.19.43)(esbuild@0.28.1)(jiti@2.7.0)(less@4.2.0(supports-color@10.0.0))(sass@1.72.0)(stylus@0.59.0(supports-color@10.0.0))(terser@5.43.1)(tsx@4.23.0)(yaml@2.9.0))':
     dependencies:
       '@tanstack/server-functions-plugin': 1.121.21(supports-color@10.0.0)(vite@8.3.1(@types/node@20.19.43)(esbuild@0.28.1)(jiti@2.7.0)(less@4.2.0(supports-color@10.0.0))(sass@1.72.0)(stylus@0.59.0(supports-color@10.0.0))(terser@5.43.1)(tsx@4.23.0)(yaml@2.9.0))
-      '@vinxi/plugin-directives': 0.5.1(vinxi@0.5.11(@azure/storage-blob@12.31.0(supports-color@10.0.0))(@parcel/watcher@2.5.6)(@types/node@20.19.43)(db0@0.3.4(mysql2@3.23.3(@types/node@20.19.43)))(debug@4.4.3(supports-color@10.0.0))(encoding@0.1.13)(ioredis@5.11.0(supports-color@10.0.0))(jiti@2.7.0)(less@4.2.0(supports-color@10.0.0))(lightningcss@1.33.0)(mysql2@3.23.3(@types/node@20.19.43))(oxc-parser@0.152.0)(rolldown@1.2.11)(sass@1.72.0)(srvx@0.11.22)(stylus@0.59.0(supports-color@10.0.0))(supports-color@10.0.0)(terser@5.43.1)(tsx@4.23.0)(webpack@5.107.2(clean-css@5.2.2)(cssnano@7.1.9(postcss@8.5.31))(csso@5.0.5)(esbuild@0.28.1)(html-minifier-terser@6.1.0)(lightningcss@1.33.0)(postcss@8.5.31)(uglify-js@3.13.3))(yaml@2.9.0))
-      '@vinxi/server-components': 0.5.1(vinxi@0.5.11(@azure/storage-blob@12.31.0(supports-color@10.0.0))(@parcel/watcher@2.5.6)(@types/node@20.19.43)(db0@0.3.4(mysql2@3.23.3(@types/node@20.19.43)))(debug@4.4.3(supports-color@10.0.0))(encoding@0.1.13)(ioredis@5.11.0(supports-color@10.0.0))(jiti@2.7.0)(less@4.2.0(supports-color@10.0.0))(lightningcss@1.33.0)(mysql2@3.23.3(@types/node@20.19.43))(oxc-parser@0.152.0)(rolldown@1.2.11)(sass@1.72.0)(srvx@0.11.22)(stylus@0.59.0(supports-color@10.0.0))(supports-color@10.0.0)(terser@5.43.1)(tsx@4.23.0)(webpack@5.107.2(clean-css@5.2.2)(cssnano@7.1.9(postcss@8.5.31))(csso@5.0.5)(esbuild@0.28.1)(html-minifier-terser@6.1.0)(lightningcss@1.33.0)(postcss@8.5.31)(uglify-js@3.13.3))(yaml@2.9.0))
+      '@vinxi/plugin-directives': 0.5.1(vinxi@0.5.11(@azure/storage-blob@12.31.0(supports-color@10.0.0))(@parcel/watcher@2.5.6)(@types/node@20.19.43)(db0@0.3.4(mysql2@3.23.3(@types/node@20.19.43)))(debug@4.4.3(supports-color@10.0.0))(encoding@0.1.13)(ioredis@5.11.1(supports-color@10.0.0))(jiti@2.7.0)(less@4.2.0(supports-color@10.0.0))(lightningcss@1.33.0)(mysql2@3.23.3(@types/node@20.19.43))(oxc-parser@0.152.0)(rolldown@1.2.11)(sass@1.72.0)(srvx@0.11.22)(stylus@0.59.0(supports-color@10.0.0))(supports-color@10.0.0)(terser@5.43.1)(tsx@4.23.0)(webpack@5.107.2(clean-css@5.2.2)(cssnano@7.1.9(postcss@8.5.31))(csso@5.0.5)(esbuild@0.28.1)(html-minifier-terser@6.1.0)(lightningcss@1.33.0)(postcss@8.5.31)(uglify-js@3.13.3))(yaml@2.9.0))
+      '@vinxi/server-components': 0.5.1(vinxi@0.5.11(@azure/storage-blob@12.31.0(supports-color@10.0.0))(@parcel/watcher@2.5.6)(@types/node@20.19.43)(db0@0.3.4(mysql2@3.23.3(@types/node@20.19.43)))(debug@4.4.3(supports-color@10.0.0))(encoding@0.1.13)(ioredis@5.11.1(supports-color@10.0.0))(jiti@2.7.0)(less@4.2.0(supports-color@10.0.0))(lightningcss@1.33.0)(mysql2@3.23.3(@types/node@20.19.43))(oxc-parser@0.152.0)(rolldown@1.2.11)(sass@1.72.0)(srvx@0.11.22)(stylus@0.59.0(supports-color@10.0.0))(supports-color@10.0.0)(terser@5.43.1)(tsx@4.23.0)(webpack@5.107.2(clean-css@5.2.2)(cssnano@7.1.9(postcss@8.5.31))(csso@5.0.5)(esbuild@0.28.1)(html-minifier-terser@6.1.0)(lightningcss@1.33.0)(postcss@8.5.31)(uglify-js@3.13.3))(yaml@2.9.0))
       cookie-es: 2.0.1
       defu: 6.1.7
       error-stack-parser: 2.1.4
@@ -26649,7 +26723,7 @@ snapshots:
       source-map-js: 1.2.2
       terracotta: 1.0.5(solid-js@1.9.11)
       tinyglobby: 0.2.17
-      vinxi: 0.5.11(@azure/storage-blob@12.31.0(supports-color@10.0.0))(@parcel/watcher@2.5.6)(@types/node@20.19.43)(db0@0.3.4(mysql2@3.23.3(@types/node@20.19.43)))(debug@4.4.3(supports-color@10.0.0))(encoding@0.1.13)(ioredis@5.11.0(supports-color@10.0.0))(jiti@2.7.0)(less@4.2.0(supports-color@10.0.0))(lightningcss@1.33.0)(mysql2@3.23.3(@types/node@20.19.43))(oxc-parser@0.152.0)(rolldown@1.2.11)(sass@1.72.0)(srvx@0.11.22)(stylus@0.59.0(supports-color@10.0.0))(supports-color@10.0.0)(terser@5.43.1)(tsx@4.23.0)(webpack@5.107.2(clean-css@5.2.2)(cssnano@7.1.9(postcss@8.5.31))(csso@5.0.5)(esbuild@0.28.1)(html-minifier-terser@6.1.0)(lightningcss@1.33.0)(postcss@8.5.31)(uglify-js@3.13.3))(yaml@2.9.0)
+      vinxi: 0.5.11(@azure/storage-blob@12.31.0(supports-color@10.0.0))(@parcel/watcher@2.5.6)(@types/node@20.19.43)(db0@0.3.4(mysql2@3.23.3(@types/node@20.19.43)))(debug@4.4.3(supports-color@10.0.0))(encoding@0.1.13)(ioredis@5.11.1(supports-color@10.0.0))(jiti@2.7.0)(less@4.2.0(supports-color@10.0.0))(lightningcss@1.33.0)(mysql2@3.23.3(@types/node@20.19.43))(oxc-parser@0.152.0)(rolldown@1.2.11)(sass@1.72.0)(srvx@0.11.22)(stylus@0.59.0(supports-color@10.0.0))(supports-color@10.0.0)(terser@5.43.1)(tsx@4.23.0)(webpack@5.107.2(clean-css@5.2.2)(cssnano@7.1.9(postcss@8.5.31))(csso@5.0.5)(esbuild@0.28.1)(html-minifier-terser@6.1.0)(lightningcss@1.33.0)(postcss@8.5.31)(uglify-js@3.13.3))(yaml@2.9.0)
       vite-plugin-solid: 2.11.14(@testing-library/jest-dom@6.9.1)(solid-js@1.9.11)(supports-color@10.0.0)(vite@8.3.1(@types/node@20.19.43)(esbuild@0.28.1)(jiti@2.7.0)(less@4.2.0(supports-color@10.0.0))(sass@1.72.0)(stylus@0.59.0(supports-color@10.0.0))(terser@5.43.1)(tsx@4.23.0)(yaml@2.9.0))
     transitivePeerDependencies:
       - '@testing-library/jest-dom'
@@ -27590,7 +27664,7 @@ snapshots:
       untun: 0.1.3
       uqr: 0.1.3
 
-  '@vinxi/plugin-directives@0.5.1(vinxi@0.5.11(@azure/storage-blob@12.31.0(supports-color@10.0.0))(@parcel/watcher@2.5.6)(@types/node@20.19.43)(db0@0.3.4(mysql2@3.23.3(@types/node@20.19.43)))(debug@4.4.3(supports-color@10.0.0))(encoding@0.1.13)(ioredis@5.11.0(supports-color@10.0.0))(jiti@2.7.0)(less@4.2.0(supports-color@10.0.0))(lightningcss@1.33.0)(mysql2@3.23.3(@types/node@20.19.43))(oxc-parser@0.152.0)(rolldown@1.2.11)(sass@1.72.0)(srvx@0.11.22)(stylus@0.59.0(supports-color@10.0.0))(supports-color@10.0.0)(terser@5.43.1)(tsx@4.23.0)(webpack@5.107.2(clean-css@5.2.2)(cssnano@7.1.9(postcss@8.5.31))(csso@5.0.5)(esbuild@0.28.1)(html-minifier-terser@6.1.0)(lightningcss@1.33.0)(postcss@8.5.31)(uglify-js@3.13.3))(yaml@2.9.0))':
+  '@vinxi/plugin-directives@0.5.1(vinxi@0.5.11(@azure/storage-blob@12.31.0(supports-color@10.0.0))(@parcel/watcher@2.5.6)(@types/node@20.19.43)(db0@0.3.4(mysql2@3.23.3(@types/node@20.19.43)))(debug@4.4.3(supports-color@10.0.0))(encoding@0.1.13)(ioredis@5.11.1(supports-color@10.0.0))(jiti@2.7.0)(less@4.2.0(supports-color@10.0.0))(lightningcss@1.33.0)(mysql2@3.23.3(@types/node@20.19.43))(oxc-parser@0.152.0)(rolldown@1.2.11)(sass@1.72.0)(srvx@0.11.22)(stylus@0.59.0(supports-color@10.0.0))(supports-color@10.0.0)(terser@5.43.1)(tsx@4.23.0)(webpack@5.107.2(clean-css@5.2.2)(cssnano@7.1.9(postcss@8.5.31))(csso@5.0.5)(esbuild@0.28.1)(html-minifier-terser@6.1.0)(lightningcss@1.33.0)(postcss@8.5.31)(uglify-js@3.13.3))(yaml@2.9.0))':
     dependencies:
       '@babel/parser': 7.29.9
       acorn: 8.18.0
@@ -27601,18 +27675,18 @@ snapshots:
       magicast: 0.2.11
       recast: 0.23.11
       tslib: 2.8.1
-      vinxi: 0.5.11(@azure/storage-blob@12.31.0(supports-color@10.0.0))(@parcel/watcher@2.5.6)(@types/node@20.19.43)(db0@0.3.4(mysql2@3.23.3(@types/node@20.19.43)))(debug@4.4.3(supports-color@10.0.0))(encoding@0.1.13)(ioredis@5.11.0(supports-color@10.0.0))(jiti@2.7.0)(less@4.2.0(supports-color@10.0.0))(lightningcss@1.33.0)(mysql2@3.23.3(@types/node@20.19.43))(oxc-parser@0.152.0)(rolldown@1.2.11)(sass@1.72.0)(srvx@0.11.22)(stylus@0.59.0(supports-color@10.0.0))(supports-color@10.0.0)(terser@5.43.1)(tsx@4.23.0)(webpack@5.107.2(clean-css@5.2.2)(cssnano@7.1.9(postcss@8.5.31))(csso@5.0.5)(esbuild@0.28.1)(html-minifier-terser@6.1.0)(lightningcss@1.33.0)(postcss@8.5.31)(uglify-js@3.13.3))(yaml@2.9.0)
+      vinxi: 0.5.11(@azure/storage-blob@12.31.0(supports-color@10.0.0))(@parcel/watcher@2.5.6)(@types/node@20.19.43)(db0@0.3.4(mysql2@3.23.3(@types/node@20.19.43)))(debug@4.4.3(supports-color@10.0.0))(encoding@0.1.13)(ioredis@5.11.1(supports-color@10.0.0))(jiti@2.7.0)(less@4.2.0(supports-color@10.0.0))(lightningcss@1.33.0)(mysql2@3.23.3(@types/node@20.19.43))(oxc-parser@0.152.0)(rolldown@1.2.11)(sass@1.72.0)(srvx@0.11.22)(stylus@0.59.0(supports-color@10.0.0))(supports-color@10.0.0)(terser@5.43.1)(tsx@4.23.0)(webpack@5.107.2(clean-css@5.2.2)(cssnano@7.1.9(postcss@8.5.31))(csso@5.0.5)(esbuild@0.28.1)(html-minifier-terser@6.1.0)(lightningcss@1.33.0)(postcss@8.5.31)(uglify-js@3.13.3))(yaml@2.9.0)
 
-  '@vinxi/server-components@0.5.1(vinxi@0.5.11(@azure/storage-blob@12.31.0(supports-color@10.0.0))(@parcel/watcher@2.5.6)(@types/node@20.19.43)(db0@0.3.4(mysql2@3.23.3(@types/node@20.19.43)))(debug@4.4.3(supports-color@10.0.0))(encoding@0.1.13)(ioredis@5.11.0(supports-color@10.0.0))(jiti@2.7.0)(less@4.2.0(supports-color@10.0.0))(lightningcss@1.33.0)(mysql2@3.23.3(@types/node@20.19.43))(oxc-parser@0.152.0)(rolldown@1.2.11)(sass@1.72.0)(srvx@0.11.22)(stylus@0.59.0(supports-color@10.0.0))(supports-color@10.0.0)(terser@5.43.1)(tsx@4.23.0)(webpack@5.107.2(clean-css@5.2.2)(cssnano@7.1.9(postcss@8.5.31))(csso@5.0.5)(esbuild@0.28.1)(html-minifier-terser@6.1.0)(lightningcss@1.33.0)(postcss@8.5.31)(uglify-js@3.13.3))(yaml@2.9.0))':
+  '@vinxi/server-components@0.5.1(vinxi@0.5.11(@azure/storage-blob@12.31.0(supports-color@10.0.0))(@parcel/watcher@2.5.6)(@types/node@20.19.43)(db0@0.3.4(mysql2@3.23.3(@types/node@20.19.43)))(debug@4.4.3(supports-color@10.0.0))(encoding@0.1.13)(ioredis@5.11.1(supports-color@10.0.0))(jiti@2.7.0)(less@4.2.0(supports-color@10.0.0))(lightningcss@1.33.0)(mysql2@3.23.3(@types/node@20.19.43))(oxc-parser@0.152.0)(rolldown@1.2.11)(sass@1.72.0)(srvx@0.11.22)(stylus@0.59.0(supports-color@10.0.0))(supports-color@10.0.0)(terser@5.43.1)(tsx@4.23.0)(webpack@5.107.2(clean-css@5.2.2)(cssnano@7.1.9(postcss@8.5.31))(csso@5.0.5)(esbuild@0.28.1)(html-minifier-terser@6.1.0)(lightningcss@1.33.0)(postcss@8.5.31)(uglify-js@3.13.3))(yaml@2.9.0))':
     dependencies:
-      '@vinxi/plugin-directives': 0.5.1(vinxi@0.5.11(@azure/storage-blob@12.31.0(supports-color@10.0.0))(@parcel/watcher@2.5.6)(@types/node@20.19.43)(db0@0.3.4(mysql2@3.23.3(@types/node@20.19.43)))(debug@4.4.3(supports-color@10.0.0))(encoding@0.1.13)(ioredis@5.11.0(supports-color@10.0.0))(jiti@2.7.0)(less@4.2.0(supports-color@10.0.0))(lightningcss@1.33.0)(mysql2@3.23.3(@types/node@20.19.43))(oxc-parser@0.152.0)(rolldown@1.2.11)(sass@1.72.0)(srvx@0.11.22)(stylus@0.59.0(supports-color@10.0.0))(supports-color@10.0.0)(terser@5.43.1)(tsx@4.23.0)(webpack@5.107.2(clean-css@5.2.2)(cssnano@7.1.9(postcss@8.5.31))(csso@5.0.5)(esbuild@0.28.1)(html-minifier-terser@6.1.0)(lightningcss@1.33.0)(postcss@8.5.31)(uglify-js@3.13.3))(yaml@2.9.0))
+      '@vinxi/plugin-directives': 0.5.1(vinxi@0.5.11(@azure/storage-blob@12.31.0(supports-color@10.0.0))(@parcel/watcher@2.5.6)(@types/node@20.19.43)(db0@0.3.4(mysql2@3.23.3(@types/node@20.19.43)))(debug@4.4.3(supports-color@10.0.0))(encoding@0.1.13)(ioredis@5.11.1(supports-color@10.0.0))(jiti@2.7.0)(less@4.2.0(supports-color@10.0.0))(lightningcss@1.33.0)(mysql2@3.23.3(@types/node@20.19.43))(oxc-parser@0.152.0)(rolldown@1.2.11)(sass@1.72.0)(srvx@0.11.22)(stylus@0.59.0(supports-color@10.0.0))(supports-color@10.0.0)(terser@5.43.1)(tsx@4.23.0)(webpack@5.107.2(clean-css@5.2.2)(cssnano@7.1.9(postcss@8.5.31))(csso@5.0.5)(esbuild@0.28.1)(html-minifier-terser@6.1.0)(lightningcss@1.33.0)(postcss@8.5.31)(uglify-js@3.13.3))(yaml@2.9.0))
       acorn: 8.18.0
       acorn-loose: 8.4.0
       acorn-typescript: 1.4.13(acorn@8.18.0)
       astring: 1.9.0
       magicast: 0.2.11
       recast: 0.23.11
-      vinxi: 0.5.11(@azure/storage-blob@12.31.0(supports-color@10.0.0))(@parcel/watcher@2.5.6)(@types/node@20.19.43)(db0@0.3.4(mysql2@3.23.3(@types/node@20.19.43)))(debug@4.4.3(supports-color@10.0.0))(encoding@0.1.13)(ioredis@5.11.0(supports-color@10.0.0))(jiti@2.7.0)(less@4.2.0(supports-color@10.0.0))(lightningcss@1.33.0)(mysql2@3.23.3(@types/node@20.19.43))(oxc-parser@0.152.0)(rolldown@1.2.11)(sass@1.72.0)(srvx@0.11.22)(stylus@0.59.0(supports-color@10.0.0))(supports-color@10.0.0)(terser@5.43.1)(tsx@4.23.0)(webpack@5.107.2(clean-css@5.2.2)(cssnano@7.1.9(postcss@8.5.31))(csso@5.0.5)(esbuild@0.28.1)(html-minifier-terser@6.1.0)(lightningcss@1.33.0)(postcss@8.5.31)(uglify-js@3.13.3))(yaml@2.9.0)
+      vinxi: 0.5.11(@azure/storage-blob@12.31.0(supports-color@10.0.0))(@parcel/watcher@2.5.6)(@types/node@20.19.43)(db0@0.3.4(mysql2@3.23.3(@types/node@20.19.43)))(debug@4.4.3(supports-color@10.0.0))(encoding@0.1.13)(ioredis@5.11.1(supports-color@10.0.0))(jiti@2.7.0)(less@4.2.0(supports-color@10.0.0))(lightningcss@1.33.0)(mysql2@3.23.3(@types/node@20.19.43))(oxc-parser@0.152.0)(rolldown@1.2.11)(sass@1.72.0)(srvx@0.11.22)(stylus@0.59.0(supports-color@10.0.0))(supports-color@10.0.0)(terser@5.43.1)(tsx@4.23.0)(webpack@5.107.2(clean-css@5.2.2)(cssnano@7.1.9(postcss@8.5.31))(csso@5.0.5)(esbuild@0.28.1)(html-minifier-terser@6.1.0)(lightningcss@1.33.0)(postcss@8.5.31)(uglify-js@3.13.3))(yaml@2.9.0)
 
   '@vitejs/plugin-vue-jsx@5.1.6(supports-color@10.0.0)(vite@7.3.6(@types/node@20.19.43)(jiti@2.7.0)(less@4.2.0(supports-color@10.0.0))(lightningcss@1.33.0)(sass@1.72.0)(stylus@0.59.0(supports-color@10.0.0))(terser@5.43.1)(tsx@4.23.0)(yaml@2.9.0))(vue@3.5.44(typescript@7.0.2))':
     dependencies:
@@ -29081,6 +29155,19 @@ snapshots:
   builtins@5.0.1:
     dependencies:
       semver: 7.8.5
+
+  bullmq@5.81.5(redis@5.12.1(@opentelemetry/api@1.9.0))(supports-color@10.0.0):
+    dependencies:
+      cron-parser: 4.9.0
+      ioredis: 5.11.1(supports-color@10.0.0)
+      msgpackr: 2.0.5
+      node-abort-controller: 3.1.1
+      semver: 7.8.5
+      tslib: 2.8.1
+    optionalDependencies:
+      redis: 5.12.1(@opentelemetry/api@1.9.0)
+    transitivePeerDependencies:
+      - supports-color
 
   bun-types@1.2.9:
     dependencies:
@@ -32557,7 +32644,7 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  ioredis@5.11.0(supports-color@10.0.0):
+  ioredis@5.11.1(supports-color@10.0.0):
     dependencies:
       '@ioredis/commands': 1.10.0
       cluster-key-slot: 1.1.1
@@ -34350,6 +34437,22 @@ snapshots:
 
   ms@2.1.3: {}
 
+  msgpackr-extract@3.0.4:
+    dependencies:
+      node-gyp-build-optional-packages: 5.2.2
+    optionalDependencies:
+      '@msgpackr-extract/msgpackr-extract-darwin-arm64': 3.0.4
+      '@msgpackr-extract/msgpackr-extract-darwin-x64': 3.0.4
+      '@msgpackr-extract/msgpackr-extract-linux-arm': 3.0.4
+      '@msgpackr-extract/msgpackr-extract-linux-arm64': 3.0.4
+      '@msgpackr-extract/msgpackr-extract-linux-x64': 3.0.4
+      '@msgpackr-extract/msgpackr-extract-win32-x64': 3.0.4
+    optional: true
+
+  msgpackr@2.0.5:
+    optionalDependencies:
+      msgpackr-extract: 3.0.4
+
   muggle-string@0.4.1: {}
 
   multer@2.1.1:
@@ -34513,7 +34616,7 @@ snapshots:
       node-gyp-build: 4.6.0
     optional: true
 
-  nitro@3.0.260311-beta(@azure/storage-blob@12.31.0(supports-color@10.0.0))(chokidar@5.0.0)(dotenv@17.4.2)(giget@3.3.1)(ioredis@5.11.0(supports-color@10.0.0))(jiti@2.7.0)(lru-cache@11.4.0)(miniflare@4.20260426.0)(mongodb@7.1.0(@aws-sdk/credential-providers@3.983.0)(socks@2.8.7))(mysql2@3.23.3(@types/node@20.19.43))(rollup@4.62.3)(vite@8.3.1(@types/node@20.19.43)(esbuild@0.28.1)(jiti@2.7.0)(less@4.2.0(supports-color@10.0.0))(sass@1.72.0)(stylus@0.59.0(supports-color@10.0.0))(terser@5.43.1)(tsx@4.23.0)(yaml@2.9.0)):
+  nitro@3.0.260311-beta(@azure/storage-blob@12.31.0(supports-color@10.0.0))(chokidar@5.0.0)(dotenv@17.4.2)(giget@3.3.1)(ioredis@5.11.1(supports-color@10.0.0))(jiti@2.7.0)(lru-cache@11.4.0)(miniflare@4.20260426.0)(mongodb@7.1.0(@aws-sdk/credential-providers@3.983.0)(socks@2.8.7))(mysql2@3.23.3(@types/node@20.19.43))(rollup@4.62.3)(vite@8.3.1(@types/node@20.19.43)(esbuild@0.28.1)(jiti@2.7.0)(less@4.2.0(supports-color@10.0.0))(sass@1.72.0)(stylus@0.59.0(supports-color@10.0.0))(terser@5.43.1)(tsx@4.23.0)(yaml@2.9.0)):
     dependencies:
       consola: 3.4.2
       crossws: 0.4.10(srvx@0.11.22)
@@ -34528,7 +34631,7 @@ snapshots:
       rolldown: 1.2.11
       srvx: 0.11.22
       unenv: 2.0.0-rc.24
-      unstorage: 2.0.0-alpha.7(@azure/storage-blob@12.31.0(supports-color@10.0.0))(chokidar@5.0.0)(db0@0.3.4(mysql2@3.23.3(@types/node@20.19.43)))(ioredis@5.11.0(supports-color@10.0.0))(lru-cache@11.4.0)(mongodb@7.1.0(@aws-sdk/credential-providers@3.983.0)(socks@2.8.7))(ofetch@2.0.0-alpha.3)
+      unstorage: 2.0.0-alpha.7(@azure/storage-blob@12.31.0(supports-color@10.0.0))(chokidar@5.0.0)(db0@0.3.4(mysql2@3.23.3(@types/node@20.19.43)))(ioredis@5.11.1(supports-color@10.0.0))(lru-cache@11.4.0)(mongodb@7.1.0(@aws-sdk/credential-providers@3.983.0)(socks@2.8.7))(ofetch@2.0.0-alpha.3)
     optionalDependencies:
       dotenv: 17.4.2
       giget: 3.3.1
@@ -34566,7 +34669,7 @@ snapshots:
       - sqlite3
       - uploadthing
 
-  nitro@3.0.260415-beta(@azure/storage-blob@12.31.0(supports-color@10.0.0))(chokidar@5.0.0)(dotenv@17.4.2)(giget@3.3.1)(ioredis@5.11.0(supports-color@10.0.0))(jiti@2.7.0)(lru-cache@11.4.0)(miniflare@4.20260426.0)(mongodb@7.1.0(@aws-sdk/credential-providers@3.983.0)(socks@2.8.7))(mysql2@3.23.3(@types/node@20.19.43))(rollup@4.62.3)(vite@8.3.1(@types/node@20.19.43)(esbuild@0.28.1)(jiti@2.7.0)(less@4.2.0(supports-color@10.0.0))(sass@1.72.0)(stylus@0.59.0(supports-color@10.0.0))(terser@5.43.1)(tsx@4.23.0)(yaml@2.9.0)):
+  nitro@3.0.260415-beta(@azure/storage-blob@12.31.0(supports-color@10.0.0))(chokidar@5.0.0)(dotenv@17.4.2)(giget@3.3.1)(ioredis@5.11.1(supports-color@10.0.0))(jiti@2.7.0)(lru-cache@11.4.0)(miniflare@4.20260426.0)(mongodb@7.1.0(@aws-sdk/credential-providers@3.983.0)(socks@2.8.7))(mysql2@3.23.3(@types/node@20.19.43))(rollup@4.62.3)(vite@8.3.1(@types/node@20.19.43)(esbuild@0.28.1)(jiti@2.7.0)(less@4.2.0(supports-color@10.0.0))(sass@1.72.0)(stylus@0.59.0(supports-color@10.0.0))(terser@5.43.1)(tsx@4.23.0)(yaml@2.9.0)):
     dependencies:
       consola: 3.4.2
       crossws: 0.4.10(srvx@0.11.22)
@@ -34581,7 +34684,7 @@ snapshots:
       rolldown: 1.2.11
       srvx: 0.11.22
       unenv: 2.0.0-rc.24
-      unstorage: 2.0.0-alpha.7(@azure/storage-blob@12.31.0(supports-color@10.0.0))(chokidar@5.0.0)(db0@0.3.4(mysql2@3.23.3(@types/node@20.19.43)))(ioredis@5.11.0(supports-color@10.0.0))(lru-cache@11.4.0)(mongodb@7.1.0(@aws-sdk/credential-providers@3.983.0)(socks@2.8.7))(ofetch@2.0.0-alpha.3)
+      unstorage: 2.0.0-alpha.7(@azure/storage-blob@12.31.0(supports-color@10.0.0))(chokidar@5.0.0)(db0@0.3.4(mysql2@3.23.3(@types/node@20.19.43)))(ioredis@5.11.1(supports-color@10.0.0))(lru-cache@11.4.0)(mongodb@7.1.0(@aws-sdk/credential-providers@3.983.0)(socks@2.8.7))(ofetch@2.0.0-alpha.3)
     optionalDependencies:
       dotenv: 17.4.2
       giget: 3.3.1
@@ -34965,6 +35068,8 @@ snapshots:
     dependencies:
       semver: 7.8.5
 
+  node-abort-controller@3.1.1: {}
+
   node-addon-api@3.2.1:
     optional: true
 
@@ -34981,6 +35086,11 @@ snapshots:
       encoding: 0.1.13
 
   node-forge@1.4.0: {}
+
+  node-gyp-build-optional-packages@5.2.2:
+    dependencies:
+      detect-libc: 2.1.2
+    optional: true
 
   node-gyp-build@4.6.0: {}
 
@@ -35147,16 +35257,16 @@ snapshots:
 
   nuxi@3.25.1: {}
 
-  nuxt@3.21.11(0dc0d2df1a20b551c0e4dd687b74c07c):
+  nuxt@3.21.11(955174819940f662d7743f134f0d89c6):
     dependencies:
       '@dxup/nuxt': 0.5.6(@nuxt/schema@3.21.11)(confbox@0.2.4)(dotenv@17.4.2)(esbuild@0.28.1)(giget@3.3.1)(jiti@2.7.0)(mlly@1.8.2)(oxc-parser@0.143.0)(rolldown@1.2.11)(rollup@4.62.3)(vite@8.3.1(@types/node@20.19.43)(esbuild@0.28.1)(jiti@2.7.0)(less@4.2.0(supports-color@10.0.0))(sass@1.72.0)(stylus@0.59.0(supports-color@10.0.0))(terser@5.43.1)(tsx@4.23.0)(yaml@2.9.0))(webpack@5.107.2(clean-css@5.2.2)(cssnano@7.1.9(postcss@8.5.31))(csso@5.0.5)(esbuild@0.28.1)(html-minifier-terser@6.1.0)(lightningcss@1.33.0)(postcss@8.5.31)(uglify-js@3.13.3))
       '@nuxt/cli': 3.37.0(@nuxt/schema@3.21.11)(@parcel/watcher@2.5.6)(cac@6.7.14)(commander@14.0.3)(magicast@0.5.4)(supports-color@10.0.0)
-      '@nuxt/devtools': 3.4.1(@azure/storage-blob@12.31.0(supports-color@10.0.0))(@nuxt/schema@3.21.11)(confbox@0.2.4)(db0@0.3.4(mysql2@3.23.3(@types/node@20.19.43)))(dotenv@17.4.2)(giget@3.3.1)(ioredis@5.11.0(supports-color@10.0.0))(jiti@2.7.0)(magic-string@0.30.21)(mlly@1.8.2)(oxc-parser@0.143.0)(rolldown@1.2.11)(supports-color@10.0.0)(unplugin@3.3.0(esbuild@0.28.1)(rolldown@1.2.11)(rollup@4.62.3)(vite@8.3.1(@types/node@20.19.43)(esbuild@0.28.1)(jiti@2.7.0)(less@4.2.0(supports-color@10.0.0))(sass@1.72.0)(stylus@0.59.0(supports-color@10.0.0))(terser@5.43.1)(tsx@4.23.0)(yaml@2.9.0))(webpack@5.107.2(clean-css@5.2.2)(cssnano@7.1.9(postcss@8.5.31))(csso@5.0.5)(esbuild@0.28.1)(html-minifier-terser@6.1.0)(lightningcss@1.33.0)(postcss@8.5.31)(uglify-js@3.13.3)))(vite@8.3.1(@types/node@20.19.43)(esbuild@0.28.1)(jiti@2.7.0)(less@4.2.0(supports-color@10.0.0))(sass@1.72.0)(stylus@0.59.0(supports-color@10.0.0))(terser@5.43.1)(tsx@4.23.0)(yaml@2.9.0))(vue@3.5.44(typescript@7.0.2))
+      '@nuxt/devtools': 3.4.1(@azure/storage-blob@12.31.0(supports-color@10.0.0))(@nuxt/schema@3.21.11)(confbox@0.2.4)(db0@0.3.4(mysql2@3.23.3(@types/node@20.19.43)))(dotenv@17.4.2)(giget@3.3.1)(ioredis@5.11.1(supports-color@10.0.0))(jiti@2.7.0)(magic-string@0.30.21)(mlly@1.8.2)(oxc-parser@0.143.0)(rolldown@1.2.11)(supports-color@10.0.0)(unplugin@3.3.0(esbuild@0.28.1)(rolldown@1.2.11)(rollup@4.62.3)(vite@8.3.1(@types/node@20.19.43)(esbuild@0.28.1)(jiti@2.7.0)(less@4.2.0(supports-color@10.0.0))(sass@1.72.0)(stylus@0.59.0(supports-color@10.0.0))(terser@5.43.1)(tsx@4.23.0)(yaml@2.9.0))(webpack@5.107.2(clean-css@5.2.2)(cssnano@7.1.9(postcss@8.5.31))(csso@5.0.5)(esbuild@0.28.1)(html-minifier-terser@6.1.0)(lightningcss@1.33.0)(postcss@8.5.31)(uglify-js@3.13.3)))(vite@8.3.1(@types/node@20.19.43)(esbuild@0.28.1)(jiti@2.7.0)(less@4.2.0(supports-color@10.0.0))(sass@1.72.0)(stylus@0.59.0(supports-color@10.0.0))(terser@5.43.1)(tsx@4.23.0)(yaml@2.9.0))(vue@3.5.44(typescript@7.0.2))
       '@nuxt/kit': 3.21.11(magicast@0.5.4)
-      '@nuxt/nitro-server': 3.21.11(@azure/storage-blob@12.31.0(supports-color@10.0.0))(@parcel/watcher@2.5.6)(db0@0.3.4(mysql2@3.23.3(@types/node@20.19.43)))(encoding@0.1.13)(esbuild@0.28.1)(ioredis@5.11.0(supports-color@10.0.0))(magicast@0.5.4)(mysql2@3.23.3(@types/node@20.19.43))(nuxt@3.21.11(0dc0d2df1a20b551c0e4dd687b74c07c))(oxc-parser@0.143.0)(rolldown@1.2.11)(rollup@4.62.3)(srvx@0.11.22)(supports-color@10.0.0)(typescript@7.0.2)(vite@8.3.1(@types/node@20.19.43)(esbuild@0.28.1)(jiti@2.7.0)(less@4.2.0(supports-color@10.0.0))(sass@1.72.0)(stylus@0.59.0(supports-color@10.0.0))(terser@5.43.1)(tsx@4.23.0)(yaml@2.9.0))(webpack@5.107.2(clean-css@5.2.2)(cssnano@7.1.9(postcss@8.5.31))(csso@5.0.5)(esbuild@0.28.1)(html-minifier-terser@6.1.0)(lightningcss@1.33.0)(postcss@8.5.31)(uglify-js@3.13.3))
+      '@nuxt/nitro-server': 3.21.11(@azure/storage-blob@12.31.0(supports-color@10.0.0))(@parcel/watcher@2.5.6)(db0@0.3.4(mysql2@3.23.3(@types/node@20.19.43)))(encoding@0.1.13)(esbuild@0.28.1)(ioredis@5.11.1(supports-color@10.0.0))(magicast@0.5.4)(mysql2@3.23.3(@types/node@20.19.43))(nuxt@3.21.11(955174819940f662d7743f134f0d89c6))(oxc-parser@0.143.0)(rolldown@1.2.11)(rollup@4.62.3)(srvx@0.11.22)(supports-color@10.0.0)(typescript@7.0.2)(vite@8.3.1(@types/node@20.19.43)(esbuild@0.28.1)(jiti@2.7.0)(less@4.2.0(supports-color@10.0.0))(sass@1.72.0)(stylus@0.59.0(supports-color@10.0.0))(terser@5.43.1)(tsx@4.23.0)(yaml@2.9.0))(webpack@5.107.2(clean-css@5.2.2)(cssnano@7.1.9(postcss@8.5.31))(csso@5.0.5)(esbuild@0.28.1)(html-minifier-terser@6.1.0)(lightningcss@1.33.0)(postcss@8.5.31)(uglify-js@3.13.3))
       '@nuxt/schema': 3.21.11
       '@nuxt/telemetry': 2.8.0(@nuxt/kit@3.21.11(magicast@0.5.4))
-      '@nuxt/vite-builder': 3.21.11(@types/node@20.19.43)(less@4.2.0(supports-color@10.0.0))(lightningcss@1.33.0)(magicast@0.5.4)(meow@13.2.0)(nuxt@3.21.11(0dc0d2df1a20b551c0e4dd687b74c07c))(optionator@0.9.4)(oxlint@1.89.0(oxlint-tsgolint@7.0.2004))(rolldown@1.2.11)(rollup-plugin-visualizer@6.0.11(rolldown@1.2.11)(rollup@4.62.3))(rollup@4.62.3)(sass@1.72.0)(stylus@0.59.0(supports-color@10.0.0))(supports-color@10.0.0)(terser@5.43.1)(tsx@4.23.0)(typescript@7.0.2)(vue@3.5.44(typescript@7.0.2))(yaml@2.9.0)
+      '@nuxt/vite-builder': 3.21.11(@types/node@20.19.43)(less@4.2.0(supports-color@10.0.0))(lightningcss@1.33.0)(magicast@0.5.4)(meow@13.2.0)(nuxt@3.21.11(955174819940f662d7743f134f0d89c6))(optionator@0.9.4)(oxlint@1.89.0(oxlint-tsgolint@7.0.2004))(rolldown@1.2.11)(rollup-plugin-visualizer@6.0.11(rolldown@1.2.11)(rollup@4.62.3))(rollup@4.62.3)(sass@1.72.0)(stylus@0.59.0(supports-color@10.0.0))(supports-color@10.0.0)(terser@5.43.1)(tsx@4.23.0)(typescript@7.0.2)(vue@3.5.44(typescript@7.0.2))(yaml@2.9.0)
       '@unhead/vue': 2.1.17(vue@3.5.44(typescript@7.0.2))
       '@vue/shared': 3.5.44
       c12: 3.3.4(magicast@0.5.4)
@@ -39486,7 +39596,7 @@ snapshots:
       db0: 0.3.4(mysql2@3.23.3(@types/node@20.19.43))
       ioredis: 5.10.1(supports-color@10.0.0)
 
-  unstorage@1.17.5(@azure/storage-blob@12.31.0(supports-color@10.0.0))(db0@0.3.4(mysql2@3.23.3(@types/node@20.19.43)))(ioredis@5.11.0(supports-color@10.0.0)):
+  unstorage@1.17.5(@azure/storage-blob@12.31.0(supports-color@10.0.0))(db0@0.3.4(mysql2@3.23.3(@types/node@20.19.43)))(ioredis@5.11.1(supports-color@10.0.0)):
     dependencies:
       anymatch: 3.1.3
       chokidar: 5.0.0
@@ -39499,7 +39609,7 @@ snapshots:
     optionalDependencies:
       '@azure/storage-blob': 12.31.0(supports-color@10.0.0)
       db0: 0.3.4(mysql2@3.23.3(@types/node@20.19.43))
-      ioredis: 5.11.0(supports-color@10.0.0)
+      ioredis: 5.11.1(supports-color@10.0.0)
 
   unstorage@2.0.0-alpha.7(@azure/storage-blob@12.31.0(supports-color@10.0.0))(chokidar@5.0.0)(db0@0.3.4(mysql2@3.23.3(@types/node@20.19.43)))(ioredis@5.10.1(supports-color@10.0.0))(lru-cache@11.4.0)(mongodb@3.7.4)(ofetch@1.5.1):
     optionalDependencies:
@@ -39511,22 +39621,22 @@ snapshots:
       mongodb: 3.7.4
       ofetch: 1.5.1
 
-  unstorage@2.0.0-alpha.7(@azure/storage-blob@12.31.0(supports-color@10.0.0))(chokidar@5.0.0)(db0@0.3.4(mysql2@3.23.3(@types/node@20.19.43)))(ioredis@5.11.0(supports-color@10.0.0))(lru-cache@11.4.0)(mongodb@7.1.0(@aws-sdk/credential-providers@3.983.0)(socks@2.8.7))(ofetch@1.5.1):
+  unstorage@2.0.0-alpha.7(@azure/storage-blob@12.31.0(supports-color@10.0.0))(chokidar@5.0.0)(db0@0.3.4(mysql2@3.23.3(@types/node@20.19.43)))(ioredis@5.11.1(supports-color@10.0.0))(lru-cache@11.4.0)(mongodb@7.1.0(@aws-sdk/credential-providers@3.983.0)(socks@2.8.7))(ofetch@1.5.1):
     optionalDependencies:
       '@azure/storage-blob': 12.31.0(supports-color@10.0.0)
       chokidar: 5.0.0
       db0: 0.3.4(mysql2@3.23.3(@types/node@20.19.43))
-      ioredis: 5.11.0(supports-color@10.0.0)
+      ioredis: 5.11.1(supports-color@10.0.0)
       lru-cache: 11.4.0
       mongodb: 7.1.0(@aws-sdk/credential-providers@3.983.0)(socks@2.8.7)
       ofetch: 1.5.1
 
-  unstorage@2.0.0-alpha.7(@azure/storage-blob@12.31.0(supports-color@10.0.0))(chokidar@5.0.0)(db0@0.3.4(mysql2@3.23.3(@types/node@20.19.43)))(ioredis@5.11.0(supports-color@10.0.0))(lru-cache@11.4.0)(mongodb@7.1.0(@aws-sdk/credential-providers@3.983.0)(socks@2.8.7))(ofetch@2.0.0-alpha.3):
+  unstorage@2.0.0-alpha.7(@azure/storage-blob@12.31.0(supports-color@10.0.0))(chokidar@5.0.0)(db0@0.3.4(mysql2@3.23.3(@types/node@20.19.43)))(ioredis@5.11.1(supports-color@10.0.0))(lru-cache@11.4.0)(mongodb@7.1.0(@aws-sdk/credential-providers@3.983.0)(socks@2.8.7))(ofetch@2.0.0-alpha.3):
     optionalDependencies:
       '@azure/storage-blob': 12.31.0(supports-color@10.0.0)
       chokidar: 5.0.0
       db0: 0.3.4(mysql2@3.23.3(@types/node@20.19.43))
-      ioredis: 5.11.0(supports-color@10.0.0)
+      ioredis: 5.11.1(supports-color@10.0.0)
       lru-cache: 11.4.0
       mongodb: 7.1.0(@aws-sdk/credential-providers@3.983.0)(socks@2.8.7)
       ofetch: 2.0.0-alpha.3
@@ -39647,7 +39757,7 @@ snapshots:
       '@types/unist': 3.0.0
       vfile-message: 4.0.3
 
-  vinxi@0.5.11(@azure/storage-blob@12.31.0(supports-color@10.0.0))(@parcel/watcher@2.5.6)(@types/node@20.19.43)(db0@0.3.4(mysql2@3.23.3(@types/node@20.19.43)))(debug@4.4.3(supports-color@10.0.0))(encoding@0.1.13)(ioredis@5.11.0(supports-color@10.0.0))(jiti@2.7.0)(less@4.2.0(supports-color@10.0.0))(lightningcss@1.33.0)(mysql2@3.23.3(@types/node@20.19.43))(oxc-parser@0.152.0)(rolldown@1.2.11)(sass@1.72.0)(srvx@0.11.22)(stylus@0.59.0(supports-color@10.0.0))(supports-color@10.0.0)(terser@5.43.1)(tsx@4.23.0)(webpack@5.107.2(clean-css@5.2.2)(cssnano@7.1.9(postcss@8.5.31))(csso@5.0.5)(esbuild@0.28.1)(html-minifier-terser@6.1.0)(lightningcss@1.33.0)(postcss@8.5.31)(uglify-js@3.13.3))(yaml@2.9.0):
+  vinxi@0.5.11(@azure/storage-blob@12.31.0(supports-color@10.0.0))(@parcel/watcher@2.5.6)(@types/node@20.19.43)(db0@0.3.4(mysql2@3.23.3(@types/node@20.19.43)))(debug@4.4.3(supports-color@10.0.0))(encoding@0.1.13)(ioredis@5.11.1(supports-color@10.0.0))(jiti@2.7.0)(less@4.2.0(supports-color@10.0.0))(lightningcss@1.33.0)(mysql2@3.23.3(@types/node@20.19.43))(oxc-parser@0.152.0)(rolldown@1.2.11)(sass@1.72.0)(srvx@0.11.22)(stylus@0.59.0(supports-color@10.0.0))(supports-color@10.0.0)(terser@5.43.1)(tsx@4.23.0)(webpack@5.107.2(clean-css@5.2.2)(cssnano@7.1.9(postcss@8.5.31))(csso@5.0.5)(esbuild@0.28.1)(html-minifier-terser@6.1.0)(lightningcss@1.33.0)(postcss@8.5.31)(uglify-js@3.13.3))(yaml@2.9.0):
     dependencies:
       '@babel/core': 7.29.7(supports-color@10.0.0)
       '@babel/plugin-syntax-jsx': 7.29.7(@babel/core@7.29.7(supports-color@10.0.0))
@@ -39680,7 +39790,7 @@ snapshots:
       ufo: 1.6.4
       unctx: 2.5.0
       unenv: 1.10.0
-      unstorage: 1.17.5(@azure/storage-blob@12.31.0(supports-color@10.0.0))(db0@0.3.4(mysql2@3.23.3(@types/node@20.19.43)))(ioredis@5.11.0(supports-color@10.0.0))
+      unstorage: 1.17.5(@azure/storage-blob@12.31.0(supports-color@10.0.0))(db0@0.3.4(mysql2@3.23.3(@types/node@20.19.43)))(ioredis@5.11.1(supports-color@10.0.0))
       vite: 6.4.3(@types/node@20.19.43)(jiti@2.7.0)(less@4.2.0(supports-color@10.0.0))(lightningcss@1.33.0)(sass@1.72.0)(stylus@0.59.0(supports-color@10.0.0))(terser@5.43.1)(tsx@4.23.0)(yaml@2.9.0)
       zod: 4.6.7
     transitivePeerDependencies:

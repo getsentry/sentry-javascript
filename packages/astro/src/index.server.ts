@@ -19,6 +19,7 @@ export {
   googleGenAIIntegration,
   // eslint-disable-next-line typescript/no-deprecated
   disableAnrDetectionForCallback,
+  BullMQTelemetry,
   captureCheckIn,
   captureConsoleIntegration,
   captureEvent,
