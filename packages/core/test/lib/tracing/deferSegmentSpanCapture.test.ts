@@ -100,6 +100,39 @@ describe('deferred segment-span capture', () => {
     expect(transactions[1]!.contexts?.trace?.data?.['sentry.parent_span_already_sent']).toBe(true);
   });
 
+  it('does not record a span outcome for a child that is later sent as an orphan transaction', () => {
+    const recordDroppedEventSpy = vi.spyOn(client, 'recordDroppedEvent');
+
+    const root = startInactiveSpan({ name: 'root' });
+    const child = withActiveSpan(root, () => startInactiveSpan({ name: 'child' }));
+
+    root.end();
+    vi.advanceTimersByTime(100);
+    child.end();
+    vi.advanceTimersByTime(100);
+
+    expect(transactions).toHaveLength(2);
+    expect(recordDroppedEventSpy).not.toHaveBeenCalledWith('invalid', 'span', expect.anything());
+  });
+
+  it('records a `buffer_overflow` span outcome for spans beyond the 1000 span limit once', () => {
+    const recordDroppedEventSpy = vi.spyOn(client, 'recordDroppedEvent');
+
+    const root = startInactiveSpan({ name: 'root' });
+    withActiveSpan(root, () => {
+      for (let i = 0; i < 1003; i++) {
+        startInactiveSpan({ name: `child-${i}` }).end();
+      }
+    });
+    root.end();
+    vi.advanceTimersByTime(100);
+
+    expect(transactions).toHaveLength(1);
+    expect(transactions[0]!.spans).toHaveLength(1000);
+    expect(recordDroppedEventSpy).toHaveBeenCalledWith('buffer_overflow', 'span', 3);
+    expect(recordDroppedEventSpy).not.toHaveBeenCalledWith('invalid', 'span', expect.anything());
+  });
+
   it('drains pending captures synchronously on flush', () => {
     const root = startInactiveSpan({ name: 'root' });
     root.end();

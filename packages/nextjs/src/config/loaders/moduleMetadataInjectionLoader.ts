@@ -34,7 +34,7 @@ export default function moduleMetadataInjectionLoader(
   const metadata = JSON.stringify({ [`_sentryBundlerPluginAppKey:${applicationKey}`]: true });
   const injectedCode =
     ';!function(){try{' +
-    'var e="undefined"!=typeof window?window:"undefined"!=typeof global?global:"undefined"!=typeof globalThis?globalThis:"undefined"!=typeof self?self:{};' +
+    'var e="undefined"!=typeof globalThis?globalThis:"undefined"!=typeof window?window:"undefined"!=typeof global?global:"undefined"!=typeof self?self:{};' +
     'e._sentryModuleMetadata=e._sentryModuleMetadata||{},' +
     `e._sentryModuleMetadata[(new e.Error).stack]=Object.assign({},e._sentryModuleMetadata[(new e.Error).stack],${metadata});` +
     '}catch(e){}}();';

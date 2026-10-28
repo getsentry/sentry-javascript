@@ -1,19 +1,22 @@
+import {
+  CLIENT_ADDRESS,
+  CLIENT_PORT,
+  NETWORK_PEER_ADDRESS,
+  NETWORK_PEER_PORT,
+  NETWORK_TRANSPORT,
+  NETWORK_TYPE,
+} from '@sentry/conventions/attributes';
 import * as SentryCore from '@sentry/core';
 import { SDK_VERSION } from '@sentry/core';
 import { Hono } from 'hono';
 import { beforeEach, describe, expect, it, type Mock, vi } from 'vitest';
-import { sentry } from '../../src/deno/middleware';
+import { sentry, type HonoDenoOptions } from '../../src/deno/middleware';
 import { init } from '../../src/deno/sdk';
 import { LOW_QUALITY_TRANSACTION_PATTERNS } from '../../src/shared/lowQualityTransactionPatterns';
+import { requestConnInfoAttributes } from '../shared/requestConnInfoAttributes';
 
 vi.mock('@sentry/deno', () => ({
   init: vi.fn(),
-}));
-
-// `hono/deno` references the `Deno` global at module-eval time, which is not defined in the
-// vitest (Node) environment.
-vi.mock('hono/deno', () => ({
-  getConnInfo: vi.fn(),
 }));
 
 // eslint-disable-next-line @typescript-eslint/consistent-type-imports
@@ -26,14 +29,14 @@ vi.mock('@sentry/core', async () => {
     // eslint-disable-next-line @typescript-eslint/ban-ts-comment
     // @ts-ignore
     applySdkMetadata: vi.fn(actual.applySdkMetadata),
-    getClient: vi.fn(() => undefined),
+    _INTERNAL_getActiveClient: vi.fn(() => undefined),
     // Pass-through so console.warn calls inside consoleSandbox are observable in tests
     consoleSandbox: vi.fn((cb: () => unknown) => cb()),
   };
 });
 
 const applySdkMetadataMock = SentryCore.applySdkMetadata as Mock;
-const getClientMock = SentryCore.getClient as Mock;
+const getActiveClientMock = SentryCore._INTERNAL_getActiveClient as Mock;
 
 describe('Hono Deno Middleware', () => {
   beforeEach(() => {
@@ -64,7 +67,7 @@ describe('Hono Deno Middleware', () => {
     });
 
     it('calls init from @sentry/deno when no client exists yet', () => {
-      getClientMock.mockReturnValue(undefined);
+      getActiveClientMock.mockReturnValue(undefined);
       const app = new Hono();
       const options = {
         dsn: 'https://public@dsn.ingest.sentry.io/1337',
@@ -102,7 +105,8 @@ describe('Hono Deno Middleware', () => {
         sampleRate: 0.5,
         tracesSampleRate: 1.0,
         debug: true,
-      };
+        enableOpenTelemetrySetup: false,
+      } satisfies HonoDenoOptions;
 
       sentry(app, options);
 
@@ -113,6 +117,7 @@ describe('Hono Deno Middleware', () => {
           sampleRate: 0.5,
           tracesSampleRate: 1.0,
           debug: true,
+          enableOpenTelemetrySetup: false,
         }),
       );
     });
@@ -173,7 +178,7 @@ describe('Hono Deno Middleware', () => {
   describe('double-init guard', () => {
     it('does not re-initialize when Sentry is already initialized', () => {
       const fakeClient = { getOptions: () => ({}) };
-      getClientMock.mockReturnValue(fakeClient as unknown as SentryCore.Client);
+      getActiveClientMock.mockReturnValue(fakeClient as unknown as SentryCore.Client);
 
       const app = new Hono();
       sentry(app, { dsn: 'https://public@dsn.ingest.sentry.io/1337' });
@@ -183,7 +188,7 @@ describe('Hono Deno Middleware', () => {
 
     it('returns the existing client when Sentry is already initialized', () => {
       const fakeClient = { getOptions: () => ({}) };
-      getClientMock.mockReturnValue(fakeClient as unknown as SentryCore.Client);
+      getActiveClientMock.mockReturnValue(fakeClient as unknown as SentryCore.Client);
 
       expect(init({ dsn: 'https://public@dsn.ingest.sentry.io/1337' })).toBe(fakeClient);
       expect(initDenoMock).not.toHaveBeenCalled();
@@ -192,7 +197,7 @@ describe('Hono Deno Middleware', () => {
     it('emits a console.warn directing to remove the duplicate init call when Sentry is already initialized', () => {
       const warnSpy = vi.spyOn(console, 'warn');
       const fakeClient = { getOptions: () => ({}) };
-      getClientMock.mockReturnValue(fakeClient as unknown as SentryCore.Client);
+      getActiveClientMock.mockReturnValue(fakeClient as unknown as SentryCore.Client);
 
       const app = new Hono();
       sentry(app, { dsn: 'https://public@dsn.ingest.sentry.io/1337' });
@@ -204,7 +209,7 @@ describe('Hono Deno Middleware', () => {
 
     it('does not emit a console.warn when no client exists yet', () => {
       const warnSpy = vi.spyOn(console, 'warn');
-      getClientMock.mockReturnValue(undefined);
+      getActiveClientMock.mockReturnValue(undefined);
 
       const app = new Hono();
       sentry(app, { dsn: 'https://public@dsn.ingest.sentry.io/1337' });
@@ -213,7 +218,7 @@ describe('Hono Deno Middleware', () => {
     });
 
     it('always calls init regardless of whether a client already exists', () => {
-      getClientMock.mockReturnValue(undefined);
+      getActiveClientMock.mockReturnValue(undefined);
 
       init({ dsn: 'https://public@dsn.ingest.sentry.io/1337' });
 
@@ -250,5 +255,22 @@ describe('Hono Deno Middleware', () => {
       const callArgs = (initDenoMock as Mock).mock.calls[0]?.[0];
       expect(callArgs.ignoreSpans).toHaveLength(LOW_QUALITY_TRANSACTION_PATTERNS.length);
     });
+  });
+});
+
+describe('Hono Deno Middleware — connection info', () => {
+  it('reads the `remoteAddr` of the serve handler info', async () => {
+    const middleware = sentry(new Hono(), { dsn: 'https://public@dsn.ingest.sentry.io/1337' });
+    // `Deno.serve` passes the `ServeHandlerInfo` to `app.fetch` as `env`.
+    const env = { remoteAddr: { hostname: '127.0.0.1', port: 54321, transport: 'tcp' } };
+
+    const attributes = await requestConnInfoAttributes(middleware, { env });
+
+    expect(attributes[CLIENT_ADDRESS]).toBe('127.0.0.1');
+    expect(attributes[CLIENT_PORT]).toBe(54321);
+    expect(attributes[NETWORK_PEER_ADDRESS]).toBe('127.0.0.1');
+    expect(attributes[NETWORK_PEER_PORT]).toBe(54321);
+    expect(attributes[NETWORK_TRANSPORT]).toBe('tcp');
+    expect(attributes).not.toHaveProperty(NETWORK_TYPE);
   });
 });

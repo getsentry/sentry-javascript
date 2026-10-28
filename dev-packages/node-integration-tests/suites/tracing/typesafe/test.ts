@@ -11,6 +11,7 @@ import {
   SENTRY_OP,
   SENTRY_ORIGIN,
 } from '@sentry/conventions/attributes';
+import { GEN_AI_DECIDE } from '@sentry/conventions/op';
 import { afterAll, describe, expect } from 'vitest';
 import { cleanupChildProcesses, createEsmAndCjsTests } from '../../../utils/runner';
 
@@ -28,22 +29,20 @@ describe('TypeSafe integration', () => {
       scenarioFile,
       instrumentFile,
       (createRunner, test) => {
-        test('creates evaluate spans for systemOne', async () => {
+        test('creates decide spans for systemOne', async () => {
           await createRunner()
             .unordered()
             .expect({
               span: container => {
-                const evaluateSpans = container.items.filter(
-                  span => span.attributes[SENTRY_OP]?.value === 'gen_ai.evaluate',
-                );
-                expect(evaluateSpans).toHaveLength(4);
-                for (const span of evaluateSpans) {
+                const decideSpans = container.items.filter(span => span.attributes[SENTRY_OP]?.value === GEN_AI_DECIDE);
+                expect(decideSpans).toHaveLength(4);
+                for (const span of decideSpans) {
                   expect(span.attributes[SENTRY_ORIGIN]?.value).toBe('auto.ai.typesafe');
-                  expect(span.attributes[GEN_AI_OPERATION_NAME]?.value).toBe('evaluate');
+                  expect(span.attributes[GEN_AI_OPERATION_NAME]?.value).toBe('decide');
                   expect(span.attributes[GEN_AI_PROVIDER_NAME]?.value).toBe('typesafe');
                 }
 
-                const defaultModelSpan = evaluateSpans.find(span => span.name === 'evaluate jev-latest')!;
+                const defaultModelSpan = decideSpans.find(span => span.name === 'decide jev-latest')!;
                 expect(defaultModelSpan).toBeDefined();
                 expect(defaultModelSpan.status).toBe('ok');
                 expect(defaultModelSpan.attributes[GEN_AI_REQUEST_MODEL]?.value).toBe('jev-latest');
@@ -92,18 +91,18 @@ describe('TypeSafe integration', () => {
                   },
                 ]);
 
-                const asResponseSpan = evaluateSpans.find(span => span.name === 'evaluate jev-1.13')!;
+                const asResponseSpan = decideSpans.find(span => span.name === 'decide jev-1.13')!;
                 expect(asResponseSpan).toBeDefined();
                 expect(asResponseSpan.status).toBe('ok');
                 expect(asResponseSpan.attributes[GEN_AI_RESPONSE_MODEL]?.value).toBe('jev-1.13.0');
 
-                const errorSpan = evaluateSpans.find(span => span.name === 'evaluate error-model')!;
+                const errorSpan = decideSpans.find(span => span.name === 'decide error-model')!;
                 expect(errorSpan).toBeDefined();
                 expect(errorSpan.status).toBe('error');
                 expect(errorSpan.attributes[GEN_AI_RESPONSE_MODEL]).toBeUndefined();
                 expect(errorSpan.attributes[GEN_AI_OUTPUT_MESSAGES]).toBeUndefined();
 
-                const validationErrorSpan = evaluateSpans.find(span => span.name === 'evaluate validation-error')!;
+                const validationErrorSpan = decideSpans.find(span => span.name === 'decide validation-error')!;
                 expect(validationErrorSpan).toBeDefined();
                 expect(validationErrorSpan.status).toBe('error');
                 expect(validationErrorSpan.attributes[GEN_AI_OUTPUT_MESSAGES]).toBeUndefined();
@@ -130,12 +129,10 @@ describe('TypeSafe integration', () => {
             .unordered()
             .expect({
               span: container => {
-                const evaluateSpans = container.items.filter(
-                  span => span.attributes[SENTRY_OP]?.value === 'gen_ai.evaluate',
-                );
-                expect(evaluateSpans).toHaveLength(4);
-                expect(evaluateSpans.filter(span => span.status === 'error')).toHaveLength(2);
-                for (const span of evaluateSpans) {
+                const decideSpans = container.items.filter(span => span.attributes[SENTRY_OP]?.value === GEN_AI_DECIDE);
+                expect(decideSpans).toHaveLength(4);
+                expect(decideSpans.filter(span => span.status === 'error')).toHaveLength(2);
+                for (const span of decideSpans) {
                   expect(span.attributes[GEN_AI_INPUT_MESSAGES]).toBeUndefined();
                   expect(span.attributes[GEN_AI_OUTPUT_MESSAGES]).toBeUndefined();
                   // State, questions and answers must not come back through another attribute (e.g. an error message).

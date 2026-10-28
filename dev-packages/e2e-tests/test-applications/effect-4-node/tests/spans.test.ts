@@ -12,7 +12,7 @@ import { collectStreamedSpans, getSpanOp, waitForStreamedSpan } from '@sentry-in
     await fetch(`${baseURL}/${route}`);
 
     const span = await spanPromise;
-    expect(span.name).toBe('http.server GET');
+    expect(span.name).toBe('GET');
     expect(span.attributes['sentry.origin']?.value).toBe('auto.http.effect');
   });
 });
@@ -30,7 +30,7 @@ test('Sends a manual Effect span', async ({ baseURL }) => {
   const spans = await spansPromise;
   const segment = spans.find(span => span.is_segment)!;
   const children = spans.filter(span => !span.is_segment);
-  expect(segment.name).toBe('http.server GET');
+  expect(segment.name).toBe('GET');
   expect(children).toHaveLength(1);
   expect(children[0]).toMatchObject({ name: 'test-span', parent_span_id: segment.span_id });
 });
@@ -49,7 +49,7 @@ test('Sends Effect spans with correct parent-child structure', async ({ baseURL 
   const spans = await spansPromise;
   const segment = spans.find(span => span.is_segment)!;
   const children = spans.filter(span => !span.is_segment);
-  expect(segment.name).toBe('http.server GET');
+  expect(segment.name).toBe('GET');
   expect(segment.attributes['sentry.origin']?.value).toBe('auto.http.effect');
   expect(segment.attributes['sentry.sdk.name']?.value).toBe('sentry.javascript.effect');
   expect(children).toHaveLength(2);
@@ -83,7 +83,7 @@ test('Sends a root: true span as its own segment in a new trace', async ({ baseU
 
   const [requestSpans, detachedSpan] = await Promise.all([requestSpansPromise, detachedSpanPromise]);
   const segment = requestSpans.find(span => span.is_segment && getSpanOp(span) === 'http.server')!;
-  expect(segment.name).toBe('http.server GET');
+  expect(segment.name).toBe('GET');
   expect(requestSpans.filter(span => !span.is_segment).map(span => span.name)).toEqual(['root-span-request-marker']);
 
   expect(detachedSpan.is_segment).toBe(true);

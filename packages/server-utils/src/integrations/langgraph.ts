@@ -8,6 +8,7 @@ import { LANGGRAPH_INTEGRATION_NAME } from '../ai/langgraph/constants';
 import type { CompiledGraph, LangGraphOptions } from '../ai/langgraph/types';
 import { extractAgentNameFromParams, extractLLMFromParams, wrapToolsWithSpans } from '../ai/langgraph/utils';
 import { DEBUG_BUILD } from '../debug-build';
+import type { OrchestrionChannelContext } from '../orchestrion/types';
 import { CHANNELS } from '../orchestrion/channels';
 import { langgraphModuleNames } from '../orchestrion/config/langgraph';
 import { invokeOrchestrionInstrumentation } from '../orchestrion/instrumentation';
@@ -15,16 +16,6 @@ import { invokeOrchestrionInstrumentation } from '../orchestrion/instrumentation
 // Same name as the OTel integration by design, so the OTel 'LangGraph' integration is
 // deduplicated out of the default set.
 const INTEGRATION_NAME = LANGGRAPH_INTEGRATION_NAME;
-
-interface CompileChannelContext {
-  arguments: unknown[];
-  result?: unknown;
-}
-
-interface CreateReactAgentChannelContext {
-  arguments: unknown[];
-  result?: unknown;
-}
 
 // `createReactAgent` compiles a `StateGraph` internally. When set, the compile subscriber skips that
 // nested graph so its `invoke` is wrapped once (by the createReactAgent handler), not twice.
@@ -49,18 +40,18 @@ function instrumentLanggraph(options: LangGraphOptions): void {
 
   // StateGraph.compile returns synchronously; wrap the returned graph's `invoke` at `end`.
   diagnosticsChannel
-    .tracingChannel<CompileChannelContext>(CHANNELS.LANGGRAPH_STATE_GRAPH_COMPILE)
+    .tracingChannel<OrchestrionChannelContext>(CHANNELS.LANGGRAPH_STATE_GRAPH_COMPILE)
     .end.subscribe(message => {
       if (insideCreateReactAgent) {
         return;
       }
-      const { arguments: args, result } = message as CompileChannelContext;
+      const { arguments: args, result } = message as OrchestrionChannelContext;
       wrapCompiledGraphInvoke(result, getFirstArgObject(args) ?? {}, resolvedOptions, null, sentryHandler);
     });
 
   // createReactAgent only wraps tools and the returned graph's `invoke`. Tools are wrapped at
   // `start` (before the agent runs), invoke at `end`.
-  const reactAgentChannel = diagnosticsChannel.tracingChannel<CreateReactAgentChannelContext>(
+  const reactAgentChannel = diagnosticsChannel.tracingChannel<OrchestrionChannelContext>(
     CHANNELS.LANGGRAPH_CREATE_REACT_AGENT,
   );
   reactAgentChannel.start.subscribe(message => {
@@ -70,7 +61,7 @@ function instrumentLanggraph(options: LangGraphOptions): void {
     // stay off during this call's nested compile. Tool wrapping is guarded for the same reason.
     insideCreateReactAgent = true;
     try {
-      const { arguments: args } = message as CreateReactAgentChannelContext;
+      const { arguments: args } = message as OrchestrionChannelContext;
       const params = getFirstArgObject(args);
       if (params && Array.isArray(params.tools) && params.tools.length > 0) {
         wrapToolsWithSpans(params.tools, resolvedOptions, extractAgentNameFromParams(args) ?? undefined);
@@ -81,7 +72,7 @@ function instrumentLanggraph(options: LangGraphOptions): void {
   });
   reactAgentChannel.end.subscribe(message => {
     insideCreateReactAgent = false;
-    const { arguments: args, result } = message as CreateReactAgentChannelContext;
+    const { arguments: args, result } = message as OrchestrionChannelContext;
     const agentName = extractAgentNameFromParams(args) ?? undefined;
     const compileOptions = agentName ? { name: agentName } : {};
     wrapCompiledGraphInvoke(result, compileOptions, resolvedOptions, extractLLMFromParams(args), sentryHandler);

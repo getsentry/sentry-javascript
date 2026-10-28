@@ -37,13 +37,14 @@ import {
   getStreamedSpanLinks,
   INTERNAL_setSegmentNameSourceIfSegment,
   spanIsSegment,
+  otelTimeInputToSeconds,
   spanTimeInputToSeconds,
   spanToStaticSpanJSON,
   spanToTransactionTraceContext,
   TRACE_FLAG_NONE,
   TRACE_FLAG_SAMPLED,
 } from '../utils/spanUtils';
-import { timestampInSeconds } from '../utils/time';
+import { safePerformanceNow, timestampInSeconds } from '../utils/time';
 import { getDynamicSamplingContextFromSpan } from './dynamicSamplingContext';
 import { logSpanEnd } from './logSpans';
 import { timedEventsToMeasurements } from './measurement';
@@ -71,6 +72,8 @@ export class SentrySpan implements Span {
   protected _startTime: number;
   /** Epoch timestamp in seconds when the span ended. */
   protected _endTime?: number | undefined;
+  /** `performance.now()` in milliseconds when the span started. Only set if no start time was passed in. */
+  private _startPerformanceNow?: number | undefined;
   /** Internal keeper of the status */
   protected _status?: SpanStatus;
   /** The timed events added to this span. */
@@ -99,7 +102,12 @@ export class SentrySpan implements Span {
   public constructor(spanContext: SentrySpanArguments = {}) {
     this._traceId = spanContext.traceId || generateTraceId();
     this._spanId = spanContext.spanId || generateSpanId();
-    this._startTime = spanContext.startTimestamp || timestampInSeconds();
+    if (spanContext.startTimestamp) {
+      this._startTime = spanContext.startTimestamp;
+    } else {
+      this._startTime = timestampInSeconds();
+      this._startPerformanceNow = safePerformanceNow();
+    }
     this._links = spanContext.links;
 
     this._attributes = {};
@@ -212,7 +220,8 @@ export class SentrySpan implements Span {
     if (this._frozen) {
       return;
     }
-    this._startTime = spanTimeInputToSeconds(timeInput);
+    this._startTime = timeInputToSeconds(this, timeInput);
+    this._startPerformanceNow = undefined;
   }
 
   /**
@@ -245,7 +254,7 @@ export class SentrySpan implements Span {
       return;
     }
 
-    this._endTime = spanTimeInputToSeconds(endTimestamp);
+    this._endTime = endTimestamp == null ? this._getEndTimeFromDuration() : timeInputToSeconds(this, endTimestamp);
     logSpanEnd(this);
 
     this._onSpanEnded();
@@ -328,12 +337,12 @@ export class SentrySpan implements Span {
     }
     DEBUG_BUILD && debug.log('[Tracing] Adding an event to span:', name);
 
-    const time = isSpanTimeInput(attributesOrStartTime) ? attributesOrStartTime : startTime || timestampInSeconds();
+    const time = isSpanTimeInput(attributesOrStartTime) ? attributesOrStartTime : startTime || undefined;
     const attributes = isSpanTimeInput(attributesOrStartTime) ? {} : attributesOrStartTime || {};
 
     const event: TimedEvent = {
       name,
-      time: spanTimeInputToSeconds(time),
+      time: timeInputToSeconds(this, time),
       attributes,
     };
 
@@ -349,6 +358,20 @@ export class SentrySpan implements Span {
    */
   public isStandaloneSpan(): boolean {
     return !!this._isStandaloneSpan;
+  }
+
+  /**
+   * Returns the start time plus the `performance.now()` time since the span started.
+   *
+   * This way, the duration is correct even if the time origin was corrected while the span was running (e.g. after the
+   * device slept), and it can never be negative.
+   */
+  private _getEndTimeFromDuration(): number {
+    const performanceNow = safePerformanceNow();
+    if (this._startPerformanceNow == null || performanceNow == null) {
+      return timestampInSeconds();
+    }
+    return this._startTime + (performanceNow - this._startPerformanceNow) / 1000;
   }
 
   /** Emit `spanEnd` when the span is ended. */
@@ -370,8 +393,6 @@ export class SentrySpan implements Span {
       }
 
       DEBUG_BUILD && debug.log('[Tracing] Discarding standalone span because its trace was not chosen to be sampled.');
-      client.recordDroppedEvent('sample_rate', 'span');
-
       return;
     }
 
@@ -436,16 +457,29 @@ export class SentrySpan implements Span {
     // TODO(standalone): drop the `isStandaloneSpan(descendant)` check once the static trace lifecycle is gone.
     options.onSpanCaptured?.(this);
     const spans: SpanJSON[] = [];
+    let droppedUnfinishedSpanCount = 0;
     for (const descendant of getSpanDescendants(this)) {
       if (descendant === this || isStandaloneSpan(descendant) || options.isSpanAlreadyCaptured?.(descendant)) {
         continue;
       }
       const spanJSON = spanToStaticSpanJSON(descendant);
       if (!isFullFinishedSpan(spanJSON)) {
+        // A strategy tracking captured spans re-emits this child as an orphan transaction once it ends.
+        if (!options.onSpanCaptured) {
+          droppedUnfinishedSpanCount++;
+        }
         continue;
       }
       options.onSpanCaptured?.(descendant);
       spans.push(spanJSON);
+    }
+
+    const client = capturedSpanScope?.getClient() || getClient();
+    if (droppedUnfinishedSpanCount) {
+      client?.recordDroppedEvent('invalid', 'span', droppedUnfinishedSpanCount);
+    }
+    if (spans.length > MAX_SPAN_COUNT) {
+      client?.recordDroppedEvent('buffer_overflow', 'span', spans.length - MAX_SPAN_COUNT);
     }
 
     const source = this._attributes[SENTRY_SEGMENT_NAME_SOURCE];
@@ -504,6 +538,10 @@ export class SentrySpan implements Span {
 
     return transaction;
   }
+}
+
+function timeInputToSeconds(span: SentrySpan, input: SpanTimeInput | undefined): number {
+  return spanIsTracerProviderSpan(span) ? otelTimeInputToSeconds(input) : spanTimeInputToSeconds(input);
 }
 
 function isSpanTimeInput(value: undefined | SpanAttributes | SpanTimeInput): value is SpanTimeInput {

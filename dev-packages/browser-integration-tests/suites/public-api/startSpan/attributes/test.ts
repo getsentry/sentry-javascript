@@ -1,20 +1,14 @@
 import { expect } from '@playwright/test';
 import { sentryTest } from '../../../../utils/fixtures';
-import {
-  envelopeRequestParser,
-  shouldSkipTracingTest,
-  waitForTransactionRequestOnUrl,
-} from '../../../../utils/helpers';
+import { shouldSkipTracingTest } from '../../../../utils/helpers';
+import { waitForStreamedSpan } from '../../../../utils/spanUtils';
 
 sentryTest('sends an empty string attribute', async ({ getLocalTestUrl, page }) => {
-  if (shouldSkipTracingTest()) {
-    sentryTest.skip();
-  }
-
+  sentryTest.skip(shouldSkipTracingTest());
   const url = await getLocalTestUrl({ testDir: __dirname });
-  const req = await waitForTransactionRequestOnUrl(page, url);
-  const transaction = envelopeRequestParser(req);
+  const spanPromise = waitForStreamedSpan(page, span => span.name === 'child_span');
+  await page.goto(url);
 
-  const childSpan = transaction.spans?.[0];
-  expect(childSpan?.data?.someAttribute).toBe('');
+  const span = await spanPromise;
+  expect(span.attributes.someAttribute).toEqual({ type: 'string', value: '' });
 });

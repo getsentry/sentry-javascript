@@ -42,6 +42,27 @@ export default Sentry.withSentry(
         return new Response(JSON.stringify(result));
       }
 
+      if (url.pathname === '/evaluate-clef') {
+        const result = await ai.run('@cf/cloudflare/clef', {
+          model: 'clef',
+          state: 'Checkout has been failing for every customer for the last hour.',
+          questions: { urgent: { type: 'noul', instructions: 'Is this support request urgent?' } },
+        });
+        return new Response(JSON.stringify(result));
+      }
+
+      if (url.pathname === '/extract-clairic') {
+        const result = await ai.run('@cf/cloudflare/clairic', {
+          model: 'clairic',
+          state: 'Invoice INV-2291 from Northwind Supply. Total due: $1,080.00.',
+          fields: {
+            invoice_number: { type: 'text' },
+            total: { type: 'number', decimals: 2, unit: 'USD', instructions: 'Amount due' },
+          },
+        });
+        return new Response(JSON.stringify(result));
+      }
+
       if (url.pathname === '/stream') {
         const stream = (await ai.run('@cf/meta/llama-3.1-8b-instruct', {
           messages: [{ role: 'user', content: 'What is the capital of France?' }],

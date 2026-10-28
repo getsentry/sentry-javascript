@@ -7,6 +7,7 @@ import * as diagnosticsChannel from '../utils/diagnosticsChannel';
 import type { IntegrationFn, SpanAttributes } from '@sentry/core';
 import {
   defineIntegration,
+  getActiveSpan,
   getClient,
   hasSpanStreamingEnabled,
   SPAN_STATUS_ERROR,
@@ -25,6 +26,7 @@ import {
   SENTRY_ORIGIN,
 } from '@sentry/conventions/attributes';
 import { DB } from '@sentry/conventions/op';
+import type { OrchestrionChannelContext } from '../orchestrion/types';
 import { CHANNELS } from '../orchestrion/channels';
 import { tediousModuleNames } from '../orchestrion/config/tedious';
 import { invokeOrchestrionInstrumentation } from '../orchestrion/instrumentation';
@@ -66,16 +68,14 @@ interface TediousRequest extends EventEmitter {
 }
 
 /** Context orchestrion attaches to the query channels (wrapping the `Connection` request methods). */
-interface TediousQueryChannelContext {
+interface TediousQueryChannelContext extends OrchestrionChannelContext {
   // `arguments[0]` is the `Request` (or `BulkLoad` for `execBulkLoad`), both `EventEmitter`s.
   arguments: [TediousRequest?, ...unknown[]];
   self?: TediousConnection;
-  moduleVersion?: string;
 }
 
 /** Context orchestrion attaches to the `Connection.connect` channel. */
-interface TediousConnectChannelContext {
-  arguments: unknown[];
+interface TediousConnectChannelContext extends OrchestrionChannelContext {
   self?: TediousConnection;
 }
 
@@ -111,6 +111,10 @@ function subscribeConnect(): void {
 
 function subscribeQuery(channelName: string, operation: string): void {
   diagnosticsChannel.tracingChannel(channelName).start.subscribe(message => {
+    if (!getActiveSpan()) {
+      return;
+    }
+
     const data = message as TediousQueryChannelContext;
     const connection = data.self;
     const request = data.arguments[0];

@@ -134,6 +134,11 @@ function getPatchedHandler(original: Handler | StreamifyHandler, lambdaStartTime
           throw error;
         }
 
+        // Callback-style handlers usually return before invoking the callback, so the wrapped callback ends the span.
+        if (original.length > 2 && typeof maybePromise?.then !== 'function') {
+          return maybePromise;
+        }
+
         return handlePromiseResult(span, maybePromise);
       }),
     );

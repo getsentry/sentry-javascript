@@ -10,6 +10,7 @@ describe('TanStack Start React Client SDK', () => {
     beforeEach(() => {
       vi.clearAllMocks();
       vi.unstubAllGlobals();
+      SentryReact.getCurrentScope().setClient(undefined);
     });
 
     it('Adds TanStack Start React client metadata to the SDK options', () => {

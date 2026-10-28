@@ -33,11 +33,43 @@ export function recordRequestSession(
     sessionFlushingDelayMS?: number;
   },
 ): void {
+  response.once('close', startRequestSession(client, { requestIsolationScope, sessionFlushingDelayMS }));
+}
+
+/**
+ * Starts a session and tracks it in the context of a given isolation scope.
+ * Returns a function to call when the request ends. It puts the session into
+ * a task, which aggregates it with other sessions in a certain time window
+ * (sessionFlushingDelayMs, 60 seconds by default). Calls after the first
+ * one do nothing.
+ *
+ * Use this when the server has no `node:http` response to pass to
+ * {@link recordRequestSession}.
+ */
+export function startRequestSession(
+  client: Client,
+  {
+    requestIsolationScope,
+    sessionFlushingDelayMS = 60_000,
+  }: {
+    requestIsolationScope: Scope;
+    sessionFlushingDelayMS?: number;
+  },
+): () => void {
+  // Errors in this request are counted by the request session aggregate, so they must not also
+  // update a process session inherited from the parent isolation scope.
+  requestIsolationScope.setSession();
   requestIsolationScope.setSDKProcessingMetadata({
     requestSession: { status: 'ok' },
   });
+  client.emit('startRequestSession');
 
-  response.once('close', () => {
+  let ended = false;
+  return () => {
+    if (ended) {
+      return;
+    }
+    ended = true;
     const requestSession = requestIsolationScope.getScopeData().sdkProcessingMetadata.requestSession;
 
     if (client && requestSession) {
@@ -85,5 +117,5 @@ export function recordRequestSession(
         safeUnref(timeout);
       }
     }
-  });
+  };
 }

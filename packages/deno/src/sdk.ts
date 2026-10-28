@@ -14,7 +14,7 @@ import {
   requestDataIntegration,
   stackParserFromStackParserOptions,
 } from '@sentry/core';
-import { getTracingIntegrations, getErrorIntegrations } from '@sentry/server-utils';
+import { detectOrchestrionSetup, getTracingIntegrations, getErrorIntegrations } from '@sentry/server-utils';
 import { DenoClient } from './client';
 import { nodeStackLineParser } from '@sentry/core/server';
 import { breadcrumbsIntegration } from './integrations/breadcrumbs';
@@ -29,8 +29,8 @@ import { setupOpenTelemetryTracer } from './opentelemetry/tracer';
 import { makeFetchTransport } from './transports';
 import type { DenoOptions } from './types';
 
-/** Get the default integrations for the Deno SDK. */
-export function getDefaultIntegrations(options: Options): Integration[] {
+/** Get the default integrations for the Deno SDK, excluding performance integrations. */
+export function getDefaultIntegrationsWithoutPerformance(): Integration[] {
   // We return a copy of the defaultIntegrations here to avoid mutating this
   return [
     // Common
@@ -52,8 +52,12 @@ export function getDefaultIntegrations(options: Options): Integration[] {
     globalHandlersIntegration(),
     // server-utils integrations
     ...getErrorIntegrations(),
-    ...(hasSpansEnabled(options) ? getTracingIntegrations() : []),
   ];
+}
+
+/** Get the default integrations for the Deno SDK. */
+export function getDefaultIntegrations(options: Options): Integration[] {
+  return [...getDefaultIntegrationsWithoutPerformance(), ...(hasSpansEnabled(options) ? getTracingIntegrations() : [])];
 }
 
 const defaultStackParser: StackParser = createStackParser(nodeStackLineParser());
@@ -103,10 +107,21 @@ const defaultStackParser: StackParser = createStackParser(nodeStackLineParser())
  * @see {@link DenoOptions} for documentation on configuration options.
  */
 export function init(options: DenoOptions = {}): Client {
+  return _init(options, getDefaultIntegrations);
+}
+
+/**
+ * Initialize Sentry for Deno, without any integrations added by default.
+ */
+export function initWithoutDefaultIntegrations(options: DenoOptions = {}): Client {
+  return _init(options, () => []);
+}
+
+function _init(options: DenoOptions, getDefaultIntegrationsImpl: (options: Options) => Integration[]): Client {
   // Computed into a local rather than written back onto `options`: the default set
   // depends on the tracing options, so caching it on the caller's object would pin the
   // result of the first `init` for any reused options object.
-  const defaultIntegrations = options.defaultIntegrations ?? getDefaultIntegrations(options);
+  const defaultIntegrations = options.defaultIntegrations ?? getDefaultIntegrationsImpl(options);
 
   const clientOptions: ServerRuntimeClientOptions = {
     ...options,
@@ -122,6 +137,9 @@ export function init(options: DenoOptions = {}): Client {
   if (options.enableOpenTelemetrySetup ?? true) {
     setupOpenTelemetryTracer();
   }
+
+  // After client creation, so the debug logger is enabled.
+  detectOrchestrionSetup();
 
   return client;
 }

@@ -113,20 +113,20 @@ git cherry-pick <mergeCommit-oid>
 ### 4. Build and verify
 
 Run the repo's pre-commit checks. Do this **before** finalizing the commit in step 5, because
-`yarn format` writes changes to the working tree — those fixes must end up inside the backport
+`pnpm run format` writes changes to the working tree — those fixes must end up inside the backport
 commit, not left dangling after it (otherwise you'd push an unformatted tree and CI would fail
 on a commit that doesn't match your local state).
 
 ```bash
-yarn format
-yarn lint:fix
-yarn build:dev
+pnpm run format
+pnpm run lint:fix
+pnpm run build:dev
 ```
 
-Use `lint:fix`, not `lint` — plain `yarn lint` only reports, so auto-fixable issues would
+Use `lint:fix`, not `lint` — plain `pnpm run lint` only reports, so auto-fixable issues would
 otherwise survive to fail CI.
 
-Run tests scoped to the touched packages when possible (full `yarn test` if unsure). If the
+Run tests scoped to the touched packages when possible (full `pnpm run test` if unsure). If the
 target major's toolchain differs and a check fails for reasons unrelated to the change, note
 it for the user rather than silently skipping.
 
@@ -134,7 +134,7 @@ it for the user rather than silently skipping.
 
 First stage the format/lint fixes. Use `git add -u` so only tracked files the cherry-pick and
 verification touched are staged, not unrelated local edits — sanity-check with `git status`
-first if `yarn format` may have reformatted files outside the backport.
+first if `pnpm run format` may have reformatted files outside the backport.
 
 ```bash
 git add -u
@@ -172,7 +172,7 @@ git status --porcelain   # expect no output
 
 ### 6. Diff the backport against the original PR
 
-Even a cherry-pick that reported no conflicts can end up different — `yarn format`/`lint:fix`
+Even a cherry-pick that reported no conflicts can end up different — `pnpm run format`/`lint:fix`
 on the older toolchain, dropped hunks, adaptations you made in step 3. Compare the final commit
 against the original before writing the PR body, rather than trusting your memory of step 3:
 

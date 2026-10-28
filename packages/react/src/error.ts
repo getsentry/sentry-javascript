@@ -15,6 +15,10 @@ export function setCause(error: Error & { cause?: Error }, cause: Error): void {
       return;
     }
     if (error.cause) {
+      // We can only link to an `Error` cause, not e.g. a string (`new Error('x', { cause: 'y' })`).
+      if (!isError(error.cause)) {
+        return;
+      }
       seenErrors.add(error);
       return recurse(error.cause, cause);
     }

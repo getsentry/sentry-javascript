@@ -9,6 +9,7 @@ describe('Nuxt Client SDK', () => {
   describe('init', () => {
     beforeEach(() => {
       vi.clearAllMocks();
+      SentryBrowser.getCurrentScope().setClient(undefined);
     });
 
     it('Adds Nuxt metadata to the SDK options', () => {

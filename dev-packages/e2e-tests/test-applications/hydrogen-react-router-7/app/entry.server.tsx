@@ -1,7 +1,6 @@
 import '../instrument.server';
-import { HandleErrorFunction, ServerRouter } from 'react-router';
+import { type EntryContext, HandleErrorFunction, ServerRouter } from 'react-router';
 import { createContentSecurityPolicy } from '@shopify/hydrogen';
-import type { EntryContext } from '@shopify/remix-oxygen';
 import { renderToReadableStream } from 'react-dom/server';
 import * as Sentry from '@sentry/react-router/cloudflare';
 

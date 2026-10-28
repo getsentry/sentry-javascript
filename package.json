@@ -19,8 +19,8 @@
     "circularDepCheck": "nx run-many -t circularDepCheck",
     "clean": "run-s clean:build clean:caches",
     "clean:build": "nx run-many -t clean",
-    "clean:caches": "yarn rimraf eslintcache .nxcache .nx",
-    "clean:deps": "rimraf packages/*/node_modules dev-packages/*/node_modules && rm -rf node_modules && yarn",
+    "clean:caches": "pnpm exec rimraf eslintcache .nxcache .nx",
+    "clean:deps": "rimraf packages/*/node_modules dev-packages/*/node_modules && rm -rf node_modules && pnpm install",
     "clean:tarballs": "rimraf {packages,dev-packages}/*/*.tgz",
     "clean:watchman": "watchman watch-del \".\"",
     "clean:all": "run-s clean:build clean:tarballs clean:caches clean:deps clean:watchman",
@@ -32,8 +32,8 @@
     "lint:fix": "oxlint . --fix",
     "lint:es-compatibility": "nx run-many -t lint:es-compatibility",
     "lint:types": "nx run-many -t lint:types",
-    "dedupe-deps:check": "yarn-deduplicate yarn.lock --list --fail",
-    "dedupe-deps:fix": "yarn-deduplicate yarn.lock",
+    "dedupe-deps:check": "pnpm dedupe --check",
+    "dedupe-deps:fix": "pnpm dedupe",
     "postpublish": "nx run-many -t postpublish --parallel=1",
     "test": "nx run-many -t test --exclude=@sentry-internal/browser-integration-tests --exclude=@sentry-internal/bun-integration-tests --exclude=@sentry-internal/deno-integration-tests --exclude=@sentry-internal/e2e-tests --exclude=@sentry-internal/integration-shims --exclude=@sentry-internal/node-integration-tests --exclude=@sentry-internal/cloudflare-integration-tests --exclude=@sentry-internal/bundler-plugin-integration-tests",
     "test:scripts": "vitest run scripts/*.test.ts",
@@ -45,14 +45,25 @@
     "test:ci:browser": "UNIT_TEST_ENV=browser tsx ./scripts/ci-unit-tests.ts",
     "test:ci:node": "UNIT_TEST_ENV=node tsx ./scripts/ci-unit-tests.ts",
     "test:ci:bun": "nx run-many -t test -p @sentry/bun",
-    "test:size-limit": "yarn size-limit --json",
+    "test:size-limit": "pnpm exec size-limit --json",
     "yalc:publish": "nx run-many -t yalc:publish"
   },
-  "volta": {
-    "node": "24.21.0",
-    "yarn": "1.22.22",
-    "pnpm": "9.15.9"
+  "packageManager": "pnpm@12.11.2",
+  "//_devEngines_comment": [
+    "pnpm's global `node` shim runs the nearest `devEngines.runtime` version, see CONTRIBUTING.md. Packages and E2E apps override it with their own entry.",
+    "`onFail: warn` keeps Node.js out of the lockfile, so `pnpm run` uses the Node.js of `setup-node` in the CI Node.js version matrix."
+  ],
+  "devEngines": {
+    "runtime": {
+      "name": "node",
+      "version": "24.22.1",
+      "onFail": "warn"
+    }
   },
+  "//_workspaces_comment": [
+    "pnpm reads the workspace packages from pnpm-workspace.yaml. Deno and the repo scripts read this list.",
+    "scripts/verify-packages-versions.js checks that both lists are the same."
+  ],
   "workspaces": [
     "packages/angular",
     "packages/astro",
@@ -67,6 +78,7 @@
     "packages/effect",
     "packages/ember",
     "packages/elysia",
+    "packages/esbuild-plugin",
     "packages/eslint-config-sdk",
     "packages/eslint-plugin-sdk",
     "packages/feedback",
@@ -88,6 +100,7 @@
     "packages/replay-internal",
     "packages/replay-canvas",
     "packages/replay-worker",
+    "packages/rollup-plugin",
     "packages/server-runtime-injection",
     "packages/server-utils",
     "packages/solid",
@@ -97,8 +110,10 @@
     "packages/tanstackstart-react",
     "packages/typescript",
     "packages/vercel-edge",
+    "packages/vite-plugin",
     "packages/vue",
     "packages/wasm",
+    "packages/webpack-plugin",
     "dev-packages/browser-integration-tests",
     "dev-packages/bundler-plugin-integration-tests",
     "dev-packages/e2e-tests",
@@ -110,8 +125,14 @@
     "dev-packages/size-limit-gh-action",
     "dev-packages/clear-cache-gh-action",
     "dev-packages/external-contributor-gh-action",
+    "dev-packages/optional-e2e-gh-action",
     "dev-packages/rollup-utils",
     "dev-packages/bundler-tests"
+  ],
+  "//_devDependencies_comment": [
+    "`@sentry-internal/node-integration-tests`: its suites import it by name, also from tmp folders with their own package.json.",
+    "`@sentry/eslint-plugin-sdk`: the root oxlint config loads it as a JS plugin.",
+    "`@sentry/sveltekit`: size-limit bundles its build output, which imports `@sentry/sveltekit/browser-tracing-variant`."
   ],
   "devDependencies": {
     "@rollup/plugin-commonjs": "^25.0.7",
@@ -119,39 +140,37 @@
     "@rollup/plugin-node-resolve": "^16.0.3",
     "@rollup/plugin-replace": "^5.0.5",
     "@rollup/plugin-terser": "^0.4.4",
+    "@sentry-internal/node-integration-tests": "workspace:*",
+    "@sentry/eslint-plugin-sdk": "workspace:*",
+    "@sentry/sveltekit": "workspace:*",
     "@size-limit/esbuild": "~12.1.0",
     "@size-limit/file": "~12.1.0",
     "@size-limit/webpack": "~12.1.0",
     "@types/jsdom": "^21.1.6",
-    "@types/node": "^18.19.1",
+    "@types/node": "^20.19.0",
     "@vitest/coverage-v8": "^4.1.11",
     "deepmerge": "^4.2.2",
-    "es-check": "^7.2.1",
+    "es-check": "^9.8.1",
     "esbuild": "^0.28.1",
     "jsdom": "^21.1.2",
     "madge": "8.0.0",
     "nodemon": "^3.1.10",
     "npm-run-all2": "^6.2.0",
-    "nx": "22.7.7",
-    "oxfmt": "^0.70.0",
-    "oxlint": "^1.75.0",
-    "oxlint-tsgolint": "7",
-    "rimraf": "^5.0.10",
+    "nx": "22.7.10",
+    "oxfmt": "^0.74.0",
+    "oxlint": "^1.89.0",
+    "oxlint-tsgolint": "^7.0.2004",
+    "rimraf": "^6.1.3",
     "rollup": "^4.60.3",
     "rollup-plugin-esbuild": "^6.2.1",
     "rollup-plugin-license": "^3.7.1",
     "size-limit": "~12.1.0",
+    "tslib": "^2.4.1",
     "tsx": "^4.23.0",
     "typescript": "~7.0.2",
     "vitest": "^4.1.11",
-    "yalc": "^1.0.0-pre.53",
-    "yarn-deduplicate": "6.0.2"
-  },
-  "resolutions": {
-    "**/nx/minimatch": "10.2.5",
-    "**/ng-packagr/postcss-url/minimatch": "3.1.5",
-    "**/@angular-devkit/build-angular/minimatch": "5.1.9",
-    "**/nitropack/rollup-plugin-visualizer": "^6.0.3"
+    "webpack": "^5.104.1",
+    "yalc": "^1.0.0-pre.53"
   },
   "version": "0.0.0",
   "name": "sentry-javascript"

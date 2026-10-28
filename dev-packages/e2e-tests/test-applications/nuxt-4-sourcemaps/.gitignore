@@ -5,6 +5,7 @@
 .nitro
 .cache
 dist
+.netlify
 
 # Node dependencies
 node_modules

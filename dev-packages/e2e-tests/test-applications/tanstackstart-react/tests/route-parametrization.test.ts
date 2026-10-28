@@ -72,3 +72,50 @@ test('should parametrize API route span names', async ({ baseURL }) => {
   expect(serverSpan.name).toBe('GET /api/user/$id');
   expect(serverSpan.attributes['sentry.segment.name.source']).toEqual({ type: 'string', value: 'route' });
 });
+
+test('should parametrize server span names for index routes', async ({ page }) => {
+  const serverSpanPromise = waitForStreamedSpan('tanstackstart-react', span => {
+    return span.is_segment && getSpanOp(span) === 'http.server' && span.attributes['url.path']?.value === '/artists';
+  });
+
+  await page.goto('/artists');
+
+  const serverSpan = await serverSpanPromise;
+
+  expect(serverSpan.name).toBe('GET /artists/');
+  expect(serverSpan.attributes['sentry.segment.name.source']).toEqual({ type: 'string', value: 'route' });
+});
+
+test('should parametrize server span names for params with a prefix and suffix', async ({ baseURL }) => {
+  const serverSpanPromise = waitForStreamedSpan('tanstackstart-react', span => {
+    return (
+      span.is_segment &&
+      getSpanOp(span) === 'http.server' &&
+      String(span.attributes['url.path']?.value ?? '').includes('/api/sitemap-')
+    );
+  });
+
+  await fetch(`${baseURL}/api/sitemap-3.xml`);
+
+  const serverSpan = await serverSpanPromise;
+
+  expect(serverSpan.name).toBe('GET /api/sitemap-{$page}.xml');
+  expect(serverSpan.attributes['sentry.segment.name.source']).toEqual({ type: 'string', value: 'route' });
+});
+
+test('should parametrize server span names for splat routes', async ({ baseURL }) => {
+  const serverSpanPromise = waitForStreamedSpan('tanstackstart-react', span => {
+    return (
+      span.is_segment &&
+      getSpanOp(span) === 'http.server' &&
+      String(span.attributes['url.path']?.value ?? '').includes('/api/files/')
+    );
+  });
+
+  await fetch(`${baseURL}/api/files/a/b/c.txt`);
+
+  const serverSpan = await serverSpanPromise;
+
+  expect(serverSpan.name).toBe('GET /api/files/$');
+  expect(serverSpan.attributes['sentry.segment.name.source']).toEqual({ type: 'string', value: 'route' });
+});

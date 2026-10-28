@@ -14,7 +14,7 @@ When the size-limit GitHub Action fails, it means one or more bundle scenarios e
 A full build is required because size-limit measures the actual compiled artifacts.
 
 ```bash
-yarn build
+pnpm run build
 ```
 
 This takes a few minutes. CDN bundles in `packages/browser/build/bundles/` must be up to date — a dev build is not sufficient.
@@ -22,7 +22,7 @@ This takes a few minutes. CDN bundles in `packages/browser/build/bundles/` must 
 ### Step 2: Run the size check in JSON mode
 
 ```bash
-yarn test:size-limit
+pnpm run test:size-limit
 ```
 
 The JSON output is an array of objects. Each object has:
@@ -55,7 +55,7 @@ Only change limits for scenarios that actually failed. Do not touch passing scen
 Re-run size-limit to confirm everything passes:
 
 ```bash
-yarn test:size-limit
+pnpm run test:size-limit
 ```
 
 If any scenario still fails (e.g., due to rounding edge cases), bump that specific limit by another 1 KB and re-run.

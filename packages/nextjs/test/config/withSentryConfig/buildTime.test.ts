@@ -57,4 +57,39 @@ describe('setUpBuildTimeVariables', () => {
       expect(nextConfig.env._sentryHasPagesRouter).toBe('true');
     });
   });
+
+  describe('tunnel route', () => {
+    it('adds the tunnel path and the handler mode for a project with a tunnel route handler', () => {
+      const nextConfig = { basePath: '/docs' };
+
+      setUpBuildTimeVariables(
+        nextConfig,
+        { tunnelRoute: '/monitoring' },
+        undefined,
+        makeProject(['app/sentry-tunnel/route.ts']),
+      );
+
+      expect(nextConfig).toEqual({
+        basePath: '/docs',
+        env: expect.objectContaining({
+          _sentryRewritesTunnelPath: '/docs/monitoring',
+          _sentryTunnelRouteMode: 'handler',
+        }),
+      });
+    });
+  });
+});
+
+describe('_sentryCacheComponents', () => {
+  it('is set when the Next.js config enables cacheComponents', () => {
+    const config: NextConfigObject = { cacheComponents: true };
+    setUpBuildTimeVariables(config, {}, undefined);
+    expect(config.env?._sentryCacheComponents).toBe('true');
+  });
+
+  it('is left unset otherwise', () => {
+    const config: NextConfigObject = {};
+    setUpBuildTimeVariables(config, {}, undefined);
+    expect(config.env?._sentryCacheComponents).toBeUndefined();
+  });
 });

@@ -23,6 +23,7 @@ import {
   startInactiveSpan,
 } from '@sentry/core';
 import { sanitizeSqlQueryWithSummary } from '../utils/sql';
+import type { OrchestrionChannelContext } from '../orchestrion/types';
 import { CHANNELS } from '../orchestrion/channels';
 import { bindTracingChannelToSpan } from '../tracing-channel';
 import { pgModuleNames } from '../orchestrion/config/pg';
@@ -59,17 +60,12 @@ const SPAN_POOL_CONNECT = 'pg-pool.connect';
  * The shape orchestrion's transform attaches to the tracing-channel `context`. Documented here rather
  * than imported because orchestrion's runtime doesn't export it.
  */
-interface PgChannelContext {
-  // The live args array passed to the wrapped `query`/`connect` call.
-  arguments: unknown[];
-  self?: unknown;
-  result?: unknown;
-  error?: unknown;
+interface PgChannelContext extends OrchestrionChannelContext {
   // The caller's scope, captured at `start` and replayed onto a streamed `Submittable` emitter (see below).
   _sentryCallerScope?: Scope;
 }
 
-interface PgConnectionParams {
+export interface PgConnectionParams {
   database?: string;
   host?: string;
   port?: number;
@@ -96,9 +92,7 @@ const _postgresIntegration = ((options: { ignoreConnectSpans?: boolean } = {}) =
 }) satisfies IntegrationFn;
 
 function instrumentPostgres(options: { ignoreConnectSpans?: boolean }): void {
-  // Query spans: `pg`/native `Client.prototype.query`. Only this channel can return a streamable
-  // `Submittable` result, so it's the only one that defers span-ending to the emitter (see below).
-  subscribeQueryLikeChannel(CHANNELS.PG_QUERY, querySpanOptions, { deferStreamedResult: true });
+  bindPgQueryChannel(CHANNELS.PG_QUERY, { origin: ORIGIN, connectionString: true });
 
   // Connect spans, gated by `ignoreConnectSpans` (same as OTel pg).
   // `Client.prototype.connect` (pg + native)
@@ -107,6 +101,22 @@ function instrumentPostgres(options: { ignoreConnectSpans?: boolean }): void {
     subscribeQueryLikeChannel(CHANNELS.PG_CONNECT, connectSpanOptions);
     subscribeQueryLikeChannel(CHANNELS.PGPOOL_CONNECT, poolConnectSpanOptions);
   }
+}
+
+export interface PgQuerySpanOptions {
+  origin: string;
+  // `db.connection_string` is deprecated in favor of `server.address`/`server.port`. Only the pg
+  // integration keeps emitting it, for parity with its OTel predecessor.
+  connectionString?: boolean;
+}
+
+/**
+ * Query spans for a channel carrying `pg` `Client.prototype.query` calls, from `pg` itself or from
+ * a copy bundled into another driver (`@neondatabase/serverless`). Only this call can return a
+ * streamable `Submittable` result, so it's the only one that defers span-ending to the emitter.
+ */
+export function bindPgQueryChannel(channelName: string, options: PgQuerySpanOptions): void {
+  subscribeQueryLikeChannel(channelName, ctx => querySpanOptions(ctx, options), { deferStreamedResult: true });
 }
 
 /**
@@ -176,7 +186,10 @@ function subscribeQueryLikeChannel(
   );
 }
 
-function querySpanOptions(ctx: PgChannelContext): { name: string; attributes: SpanAttributes } {
+function querySpanOptions(
+  ctx: PgChannelContext,
+  { origin, connectionString }: PgQuerySpanOptions,
+): { name: string; attributes: SpanAttributes } {
   const params = (ctx.self as { connectionParameters?: PgConnectionParams } | undefined)?.connectionParameters ?? {};
   const queryConfig = extractQueryConfig(ctx.arguments);
   const client = getClient();
@@ -190,8 +203,8 @@ function querySpanOptions(ctx: PgChannelContext): { name: string; attributes: Sp
     name,
     attributes: {
       [SENTRY_OP]: DB,
-      ...getConnectionAttributes(params),
-      [SENTRY_ORIGIN]: ORIGIN,
+      ...(connectionString ? getPgConnectionAttributes(params) : getConnectionAttributes(params)),
+      [SENTRY_ORIGIN]: origin,
       [DB_QUERY_TEXT]: queryText || undefined,
       [DB_QUERY_SUMMARY]: querySummary,
       [ATTR_PG_PLAN]: typeof queryConfig?.name === 'string' ? queryConfig.name : undefined,
@@ -202,7 +215,7 @@ function querySpanOptions(ctx: PgChannelContext): { name: string; attributes: Sp
 function connectSpanOptions(ctx: PgChannelContext): { name: string; attributes: SpanAttributes } {
   const params = (ctx.self as { connectionParameters?: PgConnectionParams } | undefined)?.connectionParameters ?? {};
   // No origin set -> defaults to 'manual'
-  return { name: SPAN_CONNECT, attributes: { [SENTRY_OP]: DB, ...getConnectionAttributes(params) } };
+  return { name: SPAN_CONNECT, attributes: { [SENTRY_OP]: DB, ...getPgConnectionAttributes(params) } };
 }
 
 function poolConnectSpanOptions(ctx: PgChannelContext): { name: string; attributes: SpanAttributes } {
@@ -229,15 +242,19 @@ function extractQueryConfig(args: unknown[]): { text: string; name?: unknown } |
   return undefined;
 }
 
-function getConnectionAttributes(params: PgConnectionParams): SpanAttributes {
+/** The `db.*`/`server.*` attributes for a pg-style set of connection parameters. */
+export function getConnectionAttributes(params: PgConnectionParams): SpanAttributes {
   return {
     [DB_SYSTEM_NAME]: DB_SYSTEM_POSTGRESQL,
-    [ATTR_DB_CONNECTION_STRING]: getConnectionString(params),
     [DB_NAMESPACE]: params.database,
     [DB_USER]: params.user,
     [SERVER_ADDRESS]: params.host,
     [SERVER_PORT]: Number.isInteger(params.port) ? params.port : undefined,
   };
+}
+
+function getPgConnectionAttributes(params: PgConnectionParams): SpanAttributes {
+  return { ...getConnectionAttributes(params), [ATTR_DB_CONNECTION_STRING]: getConnectionString(params) };
 }
 
 function getPoolConnectionAttributes(opts: PgPoolOptions): SpanAttributes {

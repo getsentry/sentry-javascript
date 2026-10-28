@@ -23,13 +23,16 @@ import { langgraphConfig } from './langgraph';
 import { lruMemoizerConfig } from './lru-memoizer';
 import { flueConfig } from './flue';
 import { mastraConfig } from './mastra';
+import { piDurableConfig } from './pi-durable';
 import { mcpServerConfig } from './mcp-server';
 import { mistralConfig } from './mistral';
 import { mongodbConfig } from './mongodb';
 import { mongooseConfig } from './mongoose';
 import { mysql2Config } from './mysql2';
 import { mysqlConfig } from './mysql';
+import { neonConfig } from './neon';
 import { nestjsConfig } from './nestjs';
+import { nitroConfig } from './nitro';
 import { openaiConfig } from './openai';
 import { pgConfig } from './pg';
 import { postgresJsConfig } from './postgres';
@@ -85,9 +88,12 @@ export const SENTRY_INSTRUMENTATIONS: InstrumentationConfig[] = [
   ...mongooseConfig,
   ...mysql2Config,
   ...mysqlConfig,
+  ...neonConfig,
   ...nestjsConfig,
+  ...nitroConfig,
   ...openaiConfig,
   ...pgConfig,
+  ...piDurableConfig,
   ...postgresJsConfig,
   ...prismaConfig,
   ...redisConfig,

@@ -1,13 +1,8 @@
 import { expect } from '@playwright/test';
 import { _INTERNAL_MAX_FLAGS_PER_SPAN as MAX_FLAGS_PER_SPAN } from '@sentry/core';
+import { waitForStreamedSpan } from '../../../../../utils/spanUtils';
 import { sentryTest } from '../../../../../utils/fixtures';
-import {
-  type EventAndTraceHeader,
-  eventAndTraceHeaderRequestParser,
-  getMultipleSentryEnvelopeRequests,
-  shouldSkipFeatureFlagsTest,
-  shouldSkipTracingTest,
-} from '../../../../../utils/helpers';
+import { shouldSkipFeatureFlagsTest, shouldSkipTracingTest } from '../../../../../utils/helpers';
 
 sentryTest("Feature flags are added to active span's attributes on span end.", async ({ getLocalTestUrl, page }) => {
   if (shouldSkipFeatureFlagsTest() || shouldSkipTracingTest()) {
@@ -25,14 +20,9 @@ sentryTest("Feature flags are added to active span's attributes on span end.", a
   const url = await getLocalTestUrl({ testDir: __dirname, skipDsnRouteHandler: true });
   await page.goto(url);
 
-  const envelopeRequestPromise = getMultipleSentryEnvelopeRequests<EventAndTraceHeader>(
-    page,
-    1,
-    {},
-    eventAndTraceHeaderRequestParser,
-  );
+  const innerSpanPromise = waitForStreamedSpan(page, span => span.name === 'test-nested-span');
+  const outerSpanPromise = waitForStreamedSpan(page, span => span.name === 'test-span');
 
-  // withNestedSpans is a util used to start 3 nested spans: root-span (not recorded in transaction_event.spans), span, and nested-span.
   await page.evaluate(maxFlags => {
     (window as any).withNestedSpans(() => {
       const ldClient = (window as any).initializeLD();
@@ -45,22 +35,20 @@ sentryTest("Feature flags are added to active span's attributes on span end.", a
     return true;
   }, MAX_FLAGS_PER_SPAN);
 
-  const event = (await envelopeRequestPromise)[0][0];
-  const innerSpan = event.spans?.[0];
-  const outerSpan = event.spans?.[1];
-  const outerSpanFlags = Object.entries(outerSpan?.data ?? {}).filter(([key, _val]) =>
+  const [innerSpan, outerSpan] = await Promise.all([innerSpanPromise, outerSpanPromise]);
+  const outerSpanFlags = Object.entries(outerSpan.attributes).filter(([key, _val]) =>
     key.startsWith('flag.evaluation'),
   );
-  const innerSpanFlags = Object.entries(innerSpan?.data ?? {}).filter(([key, _val]) =>
+  const innerSpanFlags = Object.entries(innerSpan.attributes).filter(([key, _val]) =>
     key.startsWith('flag.evaluation'),
   );
 
-  expect(innerSpanFlags).toEqual([]);
+  expect(outerSpanFlags).toEqual([]);
 
-  const expectedOuterSpanFlags = [];
+  const expectedInnerSpanFlags = [];
   for (let i = 1; i <= MAX_FLAGS_PER_SPAN; i++) {
-    expectedOuterSpanFlags.push([`flag.evaluation.feat${i}`, i === 3]);
+    expectedInnerSpanFlags.push([`flag.evaluation.feat${i}`, { type: 'boolean', value: i === 3 }]);
   }
   // Order agnostic (attribute dict is unordered).
-  expect(outerSpanFlags.sort()).toEqual(expectedOuterSpanFlags.sort());
+  expect(innerSpanFlags.sort()).toEqual(expectedInnerSpanFlags.sort());
 });

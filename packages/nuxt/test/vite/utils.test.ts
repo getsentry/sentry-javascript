@@ -3,7 +3,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
-  addOTelCommonJSImportAlias,
+  addRuntimeInjectionTraceDep,
   constructFunctionReExport,
   constructWrappedFunctionExportQuery,
   extractFunctionReexportQueryParameters,
@@ -429,71 +429,20 @@ export { foo_sentryWrapped as foo };
   });
 });
 
-describe('addOTelCommonJSImportAlias', () => {
-  it('adds alias for @opentelemetry/resources when options.alias does not exist', () => {
-    const nuxtMock: Nuxt = {
-      options: { dev: true },
-    } as unknown as Nuxt;
+describe('addRuntimeInjectionTraceDep', () => {
+  it('keeps `@sentry/server-runtime-injection` out of the Nitro v3 bundle', () => {
+    const nuxtMock = { options: { nitro: { traceDeps: ['sharp'] } } } as unknown as Nuxt;
 
-    addOTelCommonJSImportAlias(nuxtMock);
+    addRuntimeInjectionTraceDep(nuxtMock, true);
 
-    expect(nuxtMock.options.alias).toEqual({
-      '@opentelemetry/resources': '@opentelemetry/resources/build/src/index.js',
-    });
+    expect(nuxtMock.options.nitro).toEqual({ traceDeps: ['sharp', '@sentry/server-runtime-injection'] });
   });
 
-  it('adds alias for @opentelemetry/resources when options.alias already exists', () => {
-    const nuxtMock: Nuxt = {
-      options: {
-        dev: true,
-        alias: {
-          'existing-alias': 'some-path',
-        },
-      },
-    } as unknown as Nuxt;
+  it('does not touch the Nitro v2 config', () => {
+    const nuxtMock = { options: { nitro: {} } } as unknown as Nuxt;
 
-    addOTelCommonJSImportAlias(nuxtMock);
+    addRuntimeInjectionTraceDep(nuxtMock, false);
 
-    expect(nuxtMock.options.alias).toEqual({
-      'existing-alias': 'some-path',
-      '@opentelemetry/resources': '@opentelemetry/resources/build/src/index.js',
-    });
-  });
-
-  it('does not override existing alias for @opentelemetry/resources', () => {
-    const nuxtMock: Nuxt = {
-      options: {
-        dev: true,
-        alias: {
-          '@opentelemetry/resources': 'some-other-path',
-        },
-      },
-    } as unknown as Nuxt;
-
-    addOTelCommonJSImportAlias(nuxtMock);
-
-    expect(nuxtMock.options.alias).toEqual({
-      '@opentelemetry/resources': 'some-other-path',
-    });
-  });
-
-  it('does not add alias when not development mode', () => {
-    const nuxtMock: Nuxt = {
-      options: {},
-    } as unknown as Nuxt;
-
-    addOTelCommonJSImportAlias(nuxtMock);
-
-    expect(nuxtMock.options.alias).toBeUndefined();
-  });
-
-  it('does not add alias when in Nitro v3+ (Rolldown incompatibility)', () => {
-    const nuxtMock: Nuxt = {
-      options: { dev: true },
-    } as unknown as Nuxt;
-
-    addOTelCommonJSImportAlias(nuxtMock, true);
-
-    expect(nuxtMock.options.alias).toBeUndefined();
+    expect(nuxtMock.options.nitro).toEqual({});
   });
 });

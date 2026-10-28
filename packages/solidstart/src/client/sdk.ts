@@ -1,6 +1,7 @@
 import type { Client, Integration } from '@sentry/core';
 import { applySdkMetadata } from '@sentry/core';
 import type { BrowserOptions } from '@sentry/solid';
+import { applyTunnelBasePath } from '../common/tunnel';
 import {
   browserTracingIntegration,
   getDefaultIntegrations as getDefaultSolidIntegrations,
@@ -19,6 +20,7 @@ export function init(options: BrowserOptions): Client | undefined {
     ...options,
   };
 
+  applyTunnelBasePath(opts);
   applySdkMetadata(opts, 'solidstart', ['solidstart', 'solid']);
 
   return initSolidSDK(opts);

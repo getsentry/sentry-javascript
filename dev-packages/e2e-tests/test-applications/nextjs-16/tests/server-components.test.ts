@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { collectStreamedSpansUntilSegment, getSpanOp } from '@sentry-internal/test-utils';
+import { collectStreamedSpansUntilSegment, getRuntime, getSpanOp } from '@sentry-internal/test-utils';
 import { isTurbopackDevMode } from './isDevMode';
 
 // Next.js emits these spans itself. The SDK attaches no op, description or function name to
@@ -8,6 +8,7 @@ const nextjsSpan = { op: undefined, description: undefined, codeFunctionName: un
 
 test('Sends a span for a request to app router with URL', async ({ page }) => {
   test.skip(isTurbopackDevMode, 'Turbopack intermittently returns 404 for nested dynamic routes in dev mode');
+  test.skip(getRuntime() === 'cloudflare', 'On Workers the segment is the request span of `withSentry`');
 
   const spansPromise = collectStreamedSpansUntilSegment(
     'nextjs-16',
@@ -45,6 +46,49 @@ test('Sends a span for a request to app router with URL', async ({ page }) => {
 
   // No child span should share the segment span's name
   expect(spans.filter(span => !span.is_segment && span.name === segmentSpan.name)).toHaveLength(0);
+  expect(spans.filter(span => getSpanOp(span) === 'http.server')).toEqual([segmentSpan]);
+});
+
+// `withSentry` from `@sentry/nextjs/cloudflare` wraps the Worker entry, so the segment is its `http.server` span with
+// the attributes of `@sentry/cloudflare`, named after the route Next.js resolved.
+test('Sends the request span of the Worker for a request to app router with URL', async ({ page }) => {
+  test.skip(getRuntime() !== 'cloudflare', 'Only on Workers the request span of `withSentry` is the segment');
+
+  const spansPromise = collectStreamedSpansUntilSegment(
+    'nextjs-16',
+    span =>
+      span.name === 'GET /parameterized/[one]/beep/[two]' &&
+      span.attributes['url.path']?.value === '/parameterized/1337/beep/42',
+  );
+
+  await page.goto('/parameterized/1337/beep/42');
+
+  const spans = await spansPromise;
+  const segmentSpan = spans.find(
+    span =>
+      span.name === 'GET /parameterized/[one]/beep/[two]' &&
+      span.is_segment &&
+      span.attributes['url.path']?.value === '/parameterized/1337/beep/42',
+  )!;
+
+  expect(segmentSpan.span_id).toEqual(expect.stringMatching(/[a-f0-9]{16}/));
+  expect(segmentSpan.trace_id).toEqual(expect.stringMatching(/[a-f0-9]{32}/));
+  expect(segmentSpan.status).toBe('ok');
+  expect(segmentSpan.attributes).toMatchObject({
+    'sentry.op': { value: 'http.server', type: 'string' },
+    'sentry.origin': { value: 'auto.http.cloudflare', type: 'string' },
+    'sentry.sample_rate': { value: 1, type: 'integer' },
+    'sentry.segment.name.source': { value: 'route', type: 'string' },
+    'http.request.method': { value: 'GET', type: 'string' },
+    'http.response.status_code': { value: 200, type: 'integer' },
+    'http.route': { value: '/parameterized/[one]/beep/[two]', type: 'string' },
+    'url.path': { value: '/parameterized/1337/beep/42', type: 'string' },
+    'next.route': { value: '/parameterized/[one]/beep/[two]', type: 'string' },
+  });
+
+  // No child span should share the segment span's name
+  expect(spans.filter(span => !span.is_segment && span.name === segmentSpan.name)).toHaveLength(0);
+  expect(spans.filter(span => getSpanOp(span) === 'http.server')).toEqual([segmentSpan]);
 });
 
 test('Will create spans for every server component and metadata generation functions when visiting a page', async ({

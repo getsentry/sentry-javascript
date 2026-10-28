@@ -8,8 +8,9 @@ import type { AddressInfo } from 'net';
 export function loggingTransport(_options: BaseTransportOptions): Transport {
   return {
     send(request: Envelope): Promise<TransportMakeRequestResponse> {
-      // eslint-disable-next-line no-console
-      console.log(JSON.stringify(request));
+      // Not `console.log`: Bun 1.3 drops its newline for a string of exactly 4096 bytes, merging two
+      // envelopes into one line the runner can't parse.
+      process.stdout.write(`${JSON.stringify(request)}\n`);
       return Promise.resolve({ statusCode: 200 });
     },
     flush(): PromiseLike<boolean> {

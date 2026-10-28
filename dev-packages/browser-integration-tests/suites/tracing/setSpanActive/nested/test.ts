@@ -1,36 +1,38 @@
 import { expect } from '@playwright/test';
 import { sentryTest } from '../../../../utils/fixtures';
-import { envelopeRequestParser, shouldSkipTracingTest, waitForTransactionRequest } from '../../../../utils/helpers';
+import { shouldSkipTracingTest } from '../../../../utils/helpers';
+import { collectStreamedSpans, waitForStreamedSpan } from '../../../../utils/spanUtils';
 
 sentryTest(
   'nested calls to setActiveSpanInBrowser still parent to root span by default',
   async ({ getLocalTestUrl, page }) => {
-    if (shouldSkipTracingTest()) {
-      sentryTest.skip();
-    }
+    sentryTest.skip(shouldSkipTracingTest());
 
-    const req = waitForTransactionRequest(page, e => e.transaction === 'checkout-flow');
-    const postCheckoutReq = waitForTransactionRequest(page, e => e.transaction === 'post-checkout');
+    const checkoutSpans = collectStreamedSpans(page);
+    const checkoutPromise = waitForStreamedSpan(page, span => span.name === 'checkout-flow' && span.is_segment);
+    const postCheckoutPromise = waitForStreamedSpan(page, span => span.name === 'post-checkout' && span.is_segment);
 
     const url = await getLocalTestUrl({ testDir: __dirname });
     await page.goto(url);
 
-    const checkoutEvent = envelopeRequestParser(await req);
-    const postCheckoutEvent = envelopeRequestParser(await postCheckoutReq);
+    await Promise.all([checkoutPromise, postCheckoutPromise]);
+    await page.evaluate(() => (window as any).Sentry.flush());
 
-    const checkoutSpanId = checkoutEvent.contexts?.trace?.span_id;
-    const postCheckoutSpanId = postCheckoutEvent.contexts?.trace?.span_id;
+    const checkoutSpan = checkoutSpans.find(s => s.name === 'checkout-flow');
+    const postCheckoutSpan = checkoutSpans.find(s => s.name === 'post-checkout');
+
+    const checkoutSpanId = checkoutSpan?.span_id;
+    const postCheckoutSpanId = postCheckoutSpan?.span_id;
 
     expect(checkoutSpanId).toMatch(/[a-f\d]{16}/);
     expect(postCheckoutSpanId).toMatch(/[a-f\d]{16}/);
 
-    expect(checkoutEvent.spans).toHaveLength(4);
-    expect(postCheckoutEvent.spans).toHaveLength(1);
+    expect(checkoutSpans.filter(s => !s.is_segment)).toHaveLength(5);
 
-    const checkoutStep1 = checkoutEvent.spans?.find(s => s.description === 'checkout-step-1');
-    const checkoutStep2 = checkoutEvent.spans?.find(s => s.description === 'checkout-step-2');
-    const checkoutStep21 = checkoutEvent.spans?.find(s => s.description === 'checkout-step-2-1');
-    const checkoutStep3 = checkoutEvent.spans?.find(s => s.description === 'checkout-step-3');
+    const checkoutStep1 = checkoutSpans.find(s => s.name === 'checkout-step-1');
+    const checkoutStep2 = checkoutSpans.find(s => s.name === 'checkout-step-2');
+    const checkoutStep21 = checkoutSpans.find(s => s.name === 'checkout-step-2-1');
+    const checkoutStep3 = checkoutSpans.find(s => s.name === 'checkout-step-3');
 
     expect(checkoutStep1).toBeDefined();
     expect(checkoutStep2).toBeDefined();
@@ -45,7 +47,7 @@ sentryTest(
     // root span due to this being default behaviour in browser environments
     expect(checkoutStep21?.parent_span_id).toBe(checkoutSpanId);
 
-    const postCheckoutStep1 = postCheckoutEvent.spans?.find(s => s.description === 'post-checkout-1');
+    const postCheckoutStep1 = checkoutSpans.find(s => s.name === 'post-checkout-1');
     expect(postCheckoutStep1).toBeDefined();
     expect(postCheckoutStep1?.parent_span_id).toBe(postCheckoutSpanId);
   },

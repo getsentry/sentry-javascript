@@ -135,7 +135,8 @@ export class UIProfiler implements ContinuousProfiler<Client> {
 
   /** Handle an already-active root span at integration setup time (used only in trace mode). */
   public notifyRootSpanActive(rootSpan: Span): void {
-    if (this._lifecycleMode !== 'trace' || !this._sessionSampled) {
+    // Only count sampled root spans, same as the `spanStart` listener
+    if (this._lifecycleMode !== 'trace' || !this._sessionSampled || !rootSpan.isRecording()) {
       return;
     }
 

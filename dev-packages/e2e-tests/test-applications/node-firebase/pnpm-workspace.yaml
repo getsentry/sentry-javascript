@@ -1,3 +1,8 @@
+allowBuilds:
+  '@firebase/util': true
+  protobufjs: false
+  re2: true
 packages:
   - 'functions'
   - 'firestore-app'
+minimumReleaseAge: 0

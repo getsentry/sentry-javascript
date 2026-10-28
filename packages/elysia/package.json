@@ -1,6 +1,6 @@
 {
   "name": "@sentry/elysia",
-  "version": "11.4.0",
+  "version": "11.10.0",
   "description": "Official Sentry SDK for Elysia",
   "repository": "git://github.com/getsentry/sentry-javascript.git",
   "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/elysia",
@@ -32,14 +32,15 @@
     "access": "public"
   },
   "dependencies": {
-    "@sentry/bun": "11.4.0",
-    "@sentry/core": "11.4.0",
-    "@sentry/conventions": "^0.25.0"
+    "@sentry/bun": "11.10.0",
+    "@sentry/core": "11.10.0",
+    "@sentry/conventions": "^0.30.0"
   },
   "peerDependencies": {
     "elysia": "^1.4.0"
   },
   "devDependencies": {
+    "@sentry-internal/rollup-utils": "11.10.0",
     "bun-types": "^1.2.9",
     "elysia": "^1.4.29"
   },
@@ -50,11 +51,11 @@
   },
   "scripts": {
     "build": "run-p build:transpile build:types",
-    "build:dev": "yarn build",
+    "build:dev": "pnpm run build",
     "build:transpile": "rollup -c rollup.npm.config.mjs",
     "build:types": "tsc -p tsconfig.types.json",
     "build:watch": "run-p build:transpile:watch",
-    "build:dev:watch": "yarn build:watch",
+    "build:dev:watch": "pnpm run build:watch",
     "build:transpile:watch": "rollup -c rollup.npm.config.mjs --watch",
     "build:tarball": "npm pack",
     "circularDepCheck": "madge --circular src/index.ts",
@@ -66,9 +67,6 @@
     "test": "vitest run",
     "test:watch": "vitest --watch",
     "yalc:publish": "yalc publish --push --sig"
-  },
-  "volta": {
-    "extends": "../../package.json"
   },
   "sideEffects": false
 }

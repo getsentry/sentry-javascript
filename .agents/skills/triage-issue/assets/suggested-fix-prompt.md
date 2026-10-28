@@ -14,7 +14,7 @@ Changes needed:
 - In `packages/<pkg>/test/<file>.test.ts`: <test updates if needed>
 
 After making changes, run:
-1. yarn build:dev
-2. yarn lint
-3. yarn test (in the affected package directory)
+1. pnpm run build:dev
+2. pnpm run lint
+3. pnpm run test (in the affected package directory)
 ```

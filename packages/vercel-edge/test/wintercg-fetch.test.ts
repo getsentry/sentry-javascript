@@ -17,7 +17,7 @@ describe('winterCGFetchIntegration', () => {
     expect(getDefaultIntegrations().map(integration => integration.name)).toContain('WinterCGFetch');
   });
 
-  it('creates `http.client` spans with the `auto.http.wintercg_fetch` origin', async () => {
+  it('creates `http.client` spans with the `auto.http.fetch` origin', async () => {
     vi.stubGlobal('fetch', () => Promise.resolve(new Response('ok')));
 
     const transactions: TransactionEvent[] = [];
@@ -44,6 +44,6 @@ describe('winterCGFetchIntegration', () => {
     const clientSpan = parent?.spans?.find(span => span.op === 'http.client');
 
     expect(clientSpan).toBeDefined();
-    expect(clientSpan?.origin).toBe('auto.http.wintercg_fetch');
+    expect(clientSpan?.origin).toBe('auto.http.fetch');
   });
 });

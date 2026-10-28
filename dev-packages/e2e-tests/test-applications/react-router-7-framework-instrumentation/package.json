@@ -16,9 +16,9 @@
     "react-router": "^7"
   },
   "devDependencies": {
-    "@playwright/test": "~1.63.0",
+    "@playwright/test": "1.64.1",
     "@react-router/dev": "^7",
-    "@sentry-internal/test-utils": "link:../../../test-utils",
+    "@sentry-internal/test-utils": "file:../../packed/sentry-internal-test-utils-packed.tgz",
     "@types/mysql": "^2.15.26",
     "@types/node": "^20",
     "@types/react": "18.3.1",
@@ -56,9 +56,6 @@
       "last 1 firefox version",
       "last 1 safari version"
     ]
-  },
-  "volta": {
-    "extends": "../../package.json"
   },
   "sentryTest": {
     "optional": true

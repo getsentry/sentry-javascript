@@ -9,7 +9,7 @@ You can run the `/release` skill in Claude Code or Cursor to automate the steps 
 **If you want to release a new SDK for the first time, be sure to follow the
 [New SDK Release Checklist](./new-sdk-release-checklist.md)**
 
-1. Run `yarn changelog` on the `develop` branch and determine what version will be released (we use
+1. Run `pnpm run changelog` on the `develop` branch and determine what version will be released (we use
    [semver](https://semver.org)). The semver version should be decided based on what is in included in the release. For example, if the release includes a new feature, we should increment the minor version. If it includes only bug fixes, we should increment the patch version.
 2. Create a branch `prepare-release/VERSION`, eg. `prepare-release/8.1.0`, off develop
 3. Update [`CHANGELOG.md`](https://github.com/getsentry/sentry-javascript/edit/master/CHANGELOG.md) to add an entry for
@@ -25,7 +25,7 @@ You can run the `/release` skill in Claude Code or Cursor to automate the steps 
 
 ## Publishing a release for previous majors or prerelease (alpha, beta) versions
 
-1. Run `yarn changelog` on a previous major branch (e.g. `v8` or `9.7.0-alpha`) and determine what version will be released (we use
+1. Run `pnpm run changelog` on a previous major branch (e.g. `v8` or `9.7.0-alpha`) and determine what version will be released (we use
    [semver](https://semver.org))
 2. Create a branch, e.g. `changelog-8.45.1`, off a previous major branch (e.g. `v8`)
 3. Update `CHANGELOG.md` to add an entry for the next release number and a list of changes since the
@@ -42,7 +42,7 @@ You can run the `/release` skill in Claude Code or Cursor to automate the steps 
 
 ## Updating the Changelog
 
-1. Run `yarn changelog` (or `yarn generate-changelog` for best-effort formatting) and copy everything.
+1. Run `pnpm run changelog` (or `pnpm run generate-changelog` for best-effort formatting) and copy everything.
 2. Create a new section in the changelog with the previously determined version number.
 3. Paste in the logs you copied earlier.
 4. If there are any important features or fixes, highlight them under the `Important Changes` subheading. If there are no important changes, don't include this section. If the `Important Changes` subheading is used, put all other user-facing changes under the `Other Changes` subheading.

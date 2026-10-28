@@ -85,7 +85,7 @@ type RetryOptions = { maxRetries?: number; retryDelayMs?: number };
 async function fetchWithRetry(
   url: string,
   init: RequestInit,
-  { maxRetries = 25, retryDelayMs = 200 }: RetryOptions = {},
+  { maxRetries = 75, retryDelayMs = 200 }: RetryOptions = {},
 ): Promise<Response> {
   for (let attempt = 0; attempt < maxRetries; attempt++) {
     try {
@@ -489,6 +489,8 @@ export function createRunner(...paths: string[]) {
                 'false',
                 '--var',
                 `SENTRY_DSN:http://public@localhost:${mockServerPort}/1337`,
+                '--ip',
+                '127.0.0.1',
                 '--port',
                 '0',
                 '--inspector-port',
@@ -521,6 +523,10 @@ export function createRunner(...paths: string[]) {
               `SENTRY_DSN:http://public@localhost:${mockServerPort}/1337`,
               '--var',
               `SERVER_URL:${serverUrl}`,
+              // Requests go to `localhost`, which can resolve to `::1`. The IPv4 listener keeps the
+              // client address at `127.0.0.1`, which the event expectations check.
+              '--ip',
+              '127.0.0.1',
               '--port',
               '0',
               '--inspector-port',
@@ -569,7 +575,12 @@ export function createRunner(...paths: string[]) {
 
             if (!res.ok) {
               if (!expectError) {
-                reject(new Error(`Expected request to "${path}" to succeed, but got a ${res.status} response`));
+                const responseBody = await res.text().catch(() => '');
+                reject(
+                  new Error(
+                    `Expected request to "${path}" to succeed, but got a ${res.status} response: ${responseBody.slice(0, 500)}`,
+                  ),
+                );
               }
 
               return;

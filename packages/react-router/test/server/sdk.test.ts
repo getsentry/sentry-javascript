@@ -46,6 +46,26 @@ describe('React Router server SDK', () => {
       expect(client).not.toBeUndefined();
     });
 
+    it.each([
+      { value: 'false', defaultIntegrations: false as const },
+      { value: 'an empty array', defaultIntegrations: [] },
+    ])('disables default integrations when set to $value', ({ defaultIntegrations }) => {
+      const client = reactRouterInit({ defaultIntegrations });
+
+      expect(client?.getOptions().integrations.map(integration => integration.name)).toEqual(['SpanStreaming']);
+    });
+
+    it('replaces default integrations with a custom array', () => {
+      const integration = { name: 'CustomIntegration' };
+
+      const client = reactRouterInit({ defaultIntegrations: [integration] });
+
+      expect(client?.getOptions().integrations.map(integration => integration.name)).toEqual([
+        'CustomIntegration',
+        'SpanStreaming',
+      ]);
+    });
+
     it('adds the low quality transactions filter integration by default', () => {
       const filterSpy = vi.spyOn(LowQualityModule, 'lowQualityTransactionsFilterIntegration');
 

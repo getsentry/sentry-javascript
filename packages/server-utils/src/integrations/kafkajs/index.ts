@@ -2,6 +2,7 @@ import * as diagnosticsChannel from '../../utils/diagnosticsChannel';
 import type { TracingChannelSubscribers } from 'node:diagnostics_channel';
 import type { IntegrationFn, Span } from '@sentry/core';
 import { defineIntegration } from '@sentry/core';
+import type { OrchestrionChannelContext } from '../../orchestrion/types';
 import { CHANNELS } from '../../orchestrion/channels';
 import { kafkajsModuleNames } from '../../orchestrion/config/kafkajs';
 import { invokeOrchestrionInstrumentation } from '../../orchestrion/instrumentation';
@@ -14,16 +15,15 @@ import type { ConsumerRunConfig, ProducerBatch } from './types';
 const INTEGRATION_NAME = 'Kafka' as const;
 
 /** The tracing-channel context the transform attaches around `messageProducer.js`'s `sendBatch`. */
-interface SendBatchChannelContext {
+interface SendBatchChannelContext extends OrchestrionChannelContext {
   // `arguments[0]` is the `{ topicMessages }` batch (kafkajs normalizes `send` into `sendBatch`).
   arguments: [ProducerBatch?, ...unknown[]];
-  error?: unknown;
   // The producer spans opened at `start`, ended on `asyncEnd` (and marked errored on `error`).
   _sentrySpans?: Span[];
 }
 
 /** The tracing-channel context the transform attaches around `consumer/index.js`'s `run`. */
-interface ConsumerRunChannelContext {
+interface ConsumerRunChannelContext extends OrchestrionChannelContext {
   // `arguments[0]` is the `run(config)` config whose `eachMessage`/`eachBatch` we swap in place.
   arguments: [ConsumerRunConfig?, ...unknown[]];
 }

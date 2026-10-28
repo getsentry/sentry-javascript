@@ -1,6 +1,6 @@
 {
   "name": "@sentry-internal/integration-shims",
-  "version": "11.4.0",
+  "version": "11.10.0",
   "description": "Shims for integrations in Sentry SDK.",
   "main": "build/cjs/index.js",
   "module": "build/esm/index.js",
@@ -27,10 +27,10 @@
     "build": "run-p build:transpile build:types",
     "build:transpile": "rollup -c rollup.npm.config.mjs",
     "build:types": "tsc -p tsconfig.types.json",
-    "build:dev": "yarn build",
+    "build:dev": "pnpm run build",
     "build:watch": "run-p build:transpile:watch",
     "build:dev:watch": "run-p build:watch",
-    "build:transpile:watch": "yarn build:transpile --watch",
+    "build:transpile:watch": "pnpm run build:transpile --watch",
     "clean": "rimraf build",
     "lint:fix": "oxlint . --fix --type-aware",
     "lint": "oxlint . --type-aware",
@@ -48,12 +48,12 @@
     "url": "https://github.com/getsentry/sentry-javascript/issues"
   },
   "dependencies": {
-    "@sentry/core": "11.4.0"
+    "@sentry/core": "11.10.0"
+  },
+  "devDependencies": {
+    "@sentry-internal/rollup-utils": "11.10.0"
   },
   "engines": {
     "node": ">=20.19.0 <22.0.0 || >=22.12.0 <23.0.0 || >=23.2.0"
-  },
-  "volta": {
-    "extends": "../../package.json"
   }
 }

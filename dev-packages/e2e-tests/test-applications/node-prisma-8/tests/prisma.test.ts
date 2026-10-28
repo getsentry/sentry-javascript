@@ -43,7 +43,7 @@ test('Prisma 8 ORM calls emit operation spans with the pg queries nested underne
       'sentry.origin': { value: 'auto.db.prisma', type: 'string' },
       'sentry.op': { value: 'db', type: 'string' },
       'db.operation.name': { value: span.attributes['method']?.value, type: 'string' },
-      'db.collection.name': { value: 'user', type: 'string' },
+      'db.collection.name': { value: 'User', type: 'string' },
       model: { value: 'User', type: 'string' },
       name: { value: `User.${span.attributes['method']?.value}`, type: 'string' },
     });
@@ -62,11 +62,11 @@ test('Prisma 8 ORM calls emit operation spans with the pg queries nested underne
       .map(span => span.attributes['db.query.text']?.value);
   };
   expect(queriesUnder('create')).toEqual(
-    expect.arrayContaining([expect.stringMatching(/^INSERT INTO "public"\."user" /)]),
+    expect.arrayContaining([expect.stringMatching(/^INSERT INTO "public"\."User" /)]),
   );
-  expect(queriesUnder('all')).toEqual([expect.stringMatching(/^SELECT .* FROM "public"\."user"$/)]);
+  expect(queriesUnder('all')).toEqual([expect.stringMatching(/^SELECT .* FROM "public"\."User"$/)]);
   expect(queriesUnder('delete')).toEqual(
-    expect.arrayContaining([expect.stringMatching(/^DELETE FROM "public"\."user" /)]),
+    expect.arrayContaining([expect.stringMatching(/^DELETE FROM "public"\."User" /)]),
   );
 
   const dbSpans = spans.filter(span => getSpanOp(span) === 'db' && span.attributes['db.query.text']?.value);

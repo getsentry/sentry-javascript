@@ -4,6 +4,7 @@ import {
   HTTP_ROUTE,
   HTTP_TARGET,
   SENTRY_OP,
+  SENTRY_ORIGIN,
   SENTRY_SEGMENT_NAME_SOURCE,
   URL_PATH,
 } from '@sentry/conventions/attributes';
@@ -34,7 +35,11 @@ export interface MutableRootSpan {
 export function enhanceHandleRequestRootSpan(span: MutableRootSpan): void {
   const { attributes } = span;
 
-  if (attributes[ATTR_NEXT_SPAN_TYPE] !== 'BaseServer.handleRequest') {
+  // On Cloudflare Workers, the `http.server` span of `withSentry` from `@sentry/cloudflare` is the request root span.
+  if (
+    attributes[ATTR_NEXT_SPAN_TYPE] !== 'BaseServer.handleRequest' &&
+    attributes[SENTRY_ORIGIN] !== 'auto.http.cloudflare'
+  ) {
     return;
   }
 

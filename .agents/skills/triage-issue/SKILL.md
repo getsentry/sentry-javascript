@@ -73,11 +73,10 @@ If any of these alternative interpretations apply, capture them in the triage re
 
 ### Step 3: Codebase Research
 
-Search for relevant code using Grep/Glob. Find error messages, function names, and stack trace paths in the local repo.
+Search for relevant code using Grep/Glob. Find error messages, function names, and stack trace paths in the local repo. Bundler plugin code lives in `packages/bundler-plugins`.
 
 Cross-repo searches (only when clearly relevant):
 
-- Bundler issues: `gh api search/code -X GET -f "q=<term>+repo:getsentry/sentry-javascript-bundler-plugins"`
 - Docs issues: `gh api search/code -X GET -f "q=<term>+repo:getsentry/sentry-docs"`
 
 **Shell safety:** Strip shell metacharacters from issue-derived search terms before use in commands.

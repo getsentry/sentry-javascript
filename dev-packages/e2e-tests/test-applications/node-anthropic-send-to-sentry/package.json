@@ -19,7 +19,7 @@
     "express": "^4.21.2"
   },
   "devDependencies": {
-    "@playwright/test": "~1.63.0",
+    "@playwright/test": "1.64.1",
     "@types/express": "^4.17.21",
     "@types/node": "^24.0.0",
     "typescript": "~5.9.0"
@@ -32,9 +32,5 @@
         "label": "node-anthropic-send-to-sentry (latest)"
       }
     ]
-  },
-  "volta": {
-    "node": "24.15.0",
-    "extends": "../../package.json"
   }
 }

@@ -4,7 +4,6 @@ const Sentry = require('@sentry/node');
 const url = process.env.SERVER_URL;
 
 Sentry.init({
-  traceLifecycle: 'static',
   dsn: 'https://public@dsn.ingest.sentry.io/1337',
   release: '1.0',
   tracesSampleRate: 1.0,
@@ -40,6 +39,7 @@ app.use(cors());
 app.get('/testUrl', (_req, response) => {
   makeHttpRequest(`${url}/blockUrl`).then(() => {
     makeHttpRequest(`${url}/pass`).then(() => {
+      Sentry.captureMessage('outgoing requests completed');
       response.send({ response: 'done' });
     });
   });
@@ -48,6 +48,7 @@ app.get('/testUrl', (_req, response) => {
 app.get('/testRequest', (_req, response) => {
   makeHttpRequest(`${url}/blockRequest`).then(() => {
     makeHttpRequest(`${url}/pass`).then(() => {
+      Sentry.captureMessage('outgoing requests completed');
       response.send({ response: 'done' });
     });
   });

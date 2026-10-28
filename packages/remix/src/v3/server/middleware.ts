@@ -4,12 +4,15 @@ import {
   getIsolationScope,
   getRootSpan,
   getSpanStatusFromHttpCode,
+  getTraceData,
   INTERNAL_setSegmentNameSourceIfSegment,
   type Scope,
   updateSpanName,
   winterCGRequestToRequestData,
 } from '@sentry/core';
+import { _INTERNAL_handleServedTunnelRequest as handleServedTunnelRequest } from '@sentry/core/server';
 
+import { formatRouteTiming } from '../routeTiming';
 import type { MatcherLike, MiddlewareLike, NextFunctionLike, RequestContextLike } from '../types';
 import { captureRequestError } from './errorFilter';
 import { resolveRoutePattern } from './route';
@@ -23,11 +26,19 @@ import { resolveRoutePattern } from './route';
  */
 export function sentryRemixMiddleware(matcher: MatcherLike): MiddlewareLike {
   return async function sentryMiddleware(context: RequestContextLike, next: NextFunctionLike): Promise<Response> {
+    const tunnelResponse = handleServedTunnelRequest(context.request);
+    if (tunnelResponse) {
+      return tunnelResponse;
+    }
+
     const isolationScope = getIsolationScope();
     isolationScope.setSDKProcessingMetadata({ normalizedRequest: winterCGRequestToRequestData(context.request) });
 
     // Applied before `next()` so anything captured while the handler runs already carries the route.
-    applyRoute(isolationScope, matcher, context);
+    const route = resolveRoutePattern(matcher, context);
+    if (route) {
+      applyRoute(isolationScope, route, context.method);
+    }
 
     let response;
     try {
@@ -40,20 +51,16 @@ export function sentryRemixMiddleware(matcher: MatcherLike): MiddlewareLike {
     }
 
     setResponseStatus(response);
+    addServerTimingHeaders(response, context.request, route);
 
     return response;
   };
 }
 
-function applyRoute(isolationScope: Scope, matcher: MatcherLike, context: RequestContextLike): void {
-  const route = resolveRoutePattern(matcher, context);
-  if (!route) {
-    // Nothing matched, so the router falls through to its 404 handler. Leaving the name alone keeps the
-    // raw URL out of it, which span streaming requires.
-    return;
-  }
-
-  const name = `${context.method} ${route}`;
+// When nothing matched, the router falls through to its 404 handler. Leaving the name alone keeps the
+// raw URL out of it, which span streaming requires.
+function applyRoute(isolationScope: Scope, route: string, method: string): void {
+  const name = `${method} ${route}`;
   isolationScope.setTransactionName(name);
 
   const activeSpan = getActiveSpan();
@@ -65,6 +72,99 @@ function applyRoute(isolationScope: Scope, matcher: MatcherLike, context: Reques
   updateSpanName(rootSpan, name);
   INTERNAL_setSegmentNameSourceIfSegment(rootSpan, 'route');
   rootSpan.setAttribute(HTTP_ROUTE, route);
+}
+
+/**
+ * What the browser SDK needs from the server on a document: the trace to continue, so a page load
+ * joins the request's trace, and the route that served it, so spans are named after the pattern.
+ * The browser reads both off the navigation timing entry. Only HTML responses carry them, which is
+ * what document loads and the runtime's frame fetches ask for.
+ */
+function addServerTimingHeaders(response: Response, request: Request, route: string | undefined): void {
+  if (!request.headers.get('accept')?.includes('text/html')) {
+    return;
+  }
+
+  const entries: string[] = [];
+  // A shared cache would hand this request's trace to every later page load, so a cacheable response
+  // carries the route only. The route is the same for every request to it.
+  if (!isSharedCacheable(response)) {
+    const traceData = getTraceData();
+    if (traceData['sentry-trace']) {
+      entries.push(`sentry-trace;desc="${traceData['sentry-trace']}"`);
+    }
+    if (traceData.baggage) {
+      entries.push(`baggage;desc="${traceData.baggage}"`);
+    }
+  }
+  if (route) {
+    entries.push(formatRouteTiming(route));
+  }
+
+  for (const entry of entries) {
+    try {
+      response.headers.append('Server-Timing', entry);
+    } catch {
+      // Immutable headers, e.g. a response passed through from `fetch()`.
+      return;
+    }
+  }
+}
+
+// Cache-control fields a CDN reads instead of `Cache-Control`.
+const CDN_CACHE_CONTROL_HEADERS = [
+  'cdn-cache-control',
+  'cloudflare-cdn-cache-control',
+  'vercel-cdn-cache-control',
+  'surrogate-control',
+];
+
+/**
+ * Whether a cache in front of the app may store this response and serve it to other users.
+ *
+ * A CDN that reads a targeted field ignores `Cache-Control`; a cache without targeted support reads
+ * `Cache-Control`. Any of them storing the response is enough.
+ */
+function isSharedCacheable(response: Response): boolean {
+  for (const name of CDN_CACHE_CONTROL_HEADERS) {
+    const value = response.headers.get(name);
+    if (value !== null && sharedCachingVerdict(value.toLowerCase()) === true) {
+      return true;
+    }
+  }
+
+  const verdict = sharedCachingVerdict(response.headers.get('cache-control')?.toLowerCase() ?? '');
+  if (verdict !== undefined) {
+    return verdict;
+  }
+  // Without a lifetime in `Cache-Control`, a cache falls back to `Expires`.
+  const expires = response.headers.get('expires');
+  return expires !== null && Date.parse(expires) > Date.now();
+}
+
+/** Whether these directives let a shared cache reuse the response, or `undefined` when they say nothing. */
+function sharedCachingVerdict(directives: string): boolean | undefined {
+  if (/\b(?:no-store|private)\b/.test(directives)) {
+    return false;
+  }
+  // A stale copy is served even after a zero lifetime.
+  if (/\b(?:stale-while-revalidate|stale-if-error)\s*=\s*[1-9]/.test(directives)) {
+    return true;
+  }
+  // `s-maxage` overrides `max-age` for shared caches. A zero lifetime means the cache revalidates
+  // every time, so it never serves this response to anyone else.
+  const sharedMaxAge = directives.match(/\bs-maxage\s*=\s*(\d+)/)?.[1];
+  if (sharedMaxAge !== undefined) {
+    return Number(sharedMaxAge) > 0;
+  }
+  if (/\bpublic\b/.test(directives)) {
+    return true;
+  }
+  const maxAge = directives.match(/\bmax-age\s*=\s*(\d+)/)?.[1];
+  if (maxAge !== undefined) {
+    return Number(maxAge) > 0;
+  }
+  return undefined;
 }
 
 function setResponseStatus(response: Response): void {

@@ -11,8 +11,10 @@ import {
 
 import childProcess from 'child_process';
 import fs from 'fs';
-import { describe, it, expect, test, vi } from 'vitest';
+import { afterEach, describe, it, expect, test, vi } from 'vitest';
 import path from 'node:path';
+import { runInNewContext } from 'node:vm';
+import { JSDOM } from 'jsdom';
 
 type PackageJson = Record<string, unknown>;
 
@@ -284,6 +286,49 @@ describe('generateModuleMetadataInjectorCode', () => {
   });
 });
 
+describe('code injection in HTML', () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it.each([
+    '</script><script>globalThis.injected = true</script>',
+    '</ScRiPt \n><script>globalThis.injected = true</script>',
+    '<!--<script>',
+    'quotes "\' and backslashes \\u003c with whitespace \n\r\t\u2028\u2029 and <>&',
+  ])('preserves injected values containing %j inside one script element', value => {
+    vi.spyOn(fs, 'readFileSync').mockReturnValueOnce(
+      JSON.stringify({ name: 'test-app', dependencies: { [value]: '1.0.0' } }),
+    );
+    const metadata = { [value]: { values: [value] } };
+    const injection = generateReleaseInjectorCode({ release: value, injectBuildInformation: true });
+    injection.append(generateModuleMetadataInjectorCode(metadata));
+    const code = injection.code();
+    const context: {
+      SENTRY_RELEASE?: { id: string };
+      SENTRY_BUILD_INFO?: { deps: string[]; depsVersions: Record<string, number>; nodeVersion: number };
+      _sentryModuleMetadata?: Record<string, unknown>;
+    } = {};
+
+    const dom = new JSDOM(`<script>${code}</script>`);
+    const scripts = dom.window.document.querySelectorAll('script');
+    dom.window.close();
+
+    expect(scripts).toHaveLength(1);
+    expect(scripts[0]?.textContent).toBe(code);
+
+    runInNewContext(code, context);
+
+    expect(context.SENTRY_RELEASE).toEqual({ id: value });
+    expect(context.SENTRY_BUILD_INFO).toEqual({
+      deps: [value],
+      depsVersions: {},
+      nodeVersion: Number(process.versions.node.split('.')[0]),
+    });
+    expect(Object.values(context._sentryModuleMetadata ?? {})).toEqual([metadata]);
+  });
+});
+
 describe('determineReleaseName', () => {
   it('runs `git rev-parse HEAD` with windowsHide so no console window flashes on Windows', () => {
     // Clear env so the function falls through the CI/git-provider checks to the
@@ -297,6 +342,57 @@ describe('determineReleaseName', () => {
       expect(execSyncSpy).toHaveBeenCalledWith('git rev-parse HEAD', expect.objectContaining({ windowsHide: true }));
     } finally {
       process.env = originalEnv;
+      execSyncSpy.mockRestore();
+    }
+  });
+  it('detects HEROKU_BUILD_COMMIT', () => {
+    const originalEnv = process.env;
+    process.env = { HEROKU_BUILD_COMMIT: 'heroku-build-commit' };
+
+    try {
+      expect(determineReleaseName()).toBe('heroku-build-commit');
+    } finally {
+      process.env = originalEnv;
+    }
+  });
+  it('ignores a commit env var whose value is its own name', () => {
+    const originalEnv = process.env;
+    process.env = { VERCEL_GIT_COMMIT_SHA: 'VERCEL_GIT_COMMIT_SHA', COMMIT_REF: 'abc123' };
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+
+    try {
+      expect(determineReleaseName()).toBe('abc123');
+      expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('VERCEL_GIT_COMMIT_SHA'));
+    } finally {
+      process.env = originalEnv;
+      warnSpy.mockRestore();
+    }
+  });
+  it('does not warn about a placeholder checked after the variable that supplies the release', () => {
+    const originalEnv = process.env;
+    process.env = { VERCEL_GIT_COMMIT_SHA: 'abc123', COMMIT_REF: 'COMMIT_REF' };
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+
+    try {
+      expect(determineReleaseName()).toBe('abc123');
+      expect(warnSpy).not.toHaveBeenCalled();
+    } finally {
+      process.env = originalEnv;
+      warnSpy.mockRestore();
+    }
+  });
+  it('warns once about a CI_COMMIT_SHA placeholder', () => {
+    const originalEnv = process.env;
+    process.env = { CI_COMMIT_SHA: 'CI_COMMIT_SHA' };
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+    const execSyncSpy = vi.spyOn(childProcess, 'execSync').mockReturnValue(Buffer.from('0'.repeat(40)));
+
+    try {
+      expect(determineReleaseName()).toBe('0'.repeat(40));
+      expect(warnSpy).toHaveBeenCalledTimes(1);
+    } finally {
+      process.env = originalEnv;
+      warnSpy.mockRestore();
       execSyncSpy.mockRestore();
     }
   });

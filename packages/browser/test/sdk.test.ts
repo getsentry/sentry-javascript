@@ -34,6 +34,7 @@ export class MockIntegration implements Integration {
 
 describe('init', () => {
   afterEach(() => {
+    SentryCore.getCurrentScope().setClient(undefined);
     vi.restoreAllMocks();
   });
 

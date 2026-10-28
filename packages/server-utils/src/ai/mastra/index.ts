@@ -7,6 +7,7 @@ import {
   LRUMap,
   SPAN_STATUS_ERROR,
   startInactiveSpan,
+  timestampInSeconds,
 } from '@sentry/core';
 import { GEN_AI_RESPONSE_MODEL, SENTRY_OP, SENTRY_ORIGIN } from '@sentry/conventions/attributes';
 import { DEBUG_BUILD } from '../../debug-build';
@@ -19,6 +20,7 @@ import {
   getUsageAttributes,
   isExportedSpanType,
   mergeUsageAttributes,
+  type AttributeRecordingOptions,
   type SpanAttributes,
 } from './utils';
 import {
@@ -29,8 +31,17 @@ import {
   MAX_TRACKED_MASTRA_SPANS,
   MODEL_SPAN_TYPES,
 } from './constants';
+import type { ClassifierEvaluationCall } from './classifier-evaluation';
+import { takeStartingClassifierEvaluation } from './classifier-evaluation';
 import { registerMastraSpan, unregisterMastraSpan } from './span-registry';
-import type { MastraExportedSpan, MastraObservabilityExporter, MastraSpanType, MastraTracingEvent } from './types';
+import type {
+  MastraExportedSpan,
+  MastraExporterInitOptions,
+  MastraObservabilityExporter,
+  MastraSpanOutputProcessor,
+  MastraSpanType,
+  MastraTracingEvent,
+} from './types';
 
 export type MastraExporterOptions = GenAiOptions;
 
@@ -38,6 +49,7 @@ interface TrackedSpan {
   span: Span;
   spanType: MastraSpanType;
   usage: SpanAttributes;
+  evaluation?: ClassifierEvaluationCall;
 }
 
 const FLUSH_TIMEOUT_MS = 2000;
@@ -64,9 +76,15 @@ export class SentryMastraExporter implements MastraObservabilityExporter {
    */
   private readonly _skipped = new LRUMap<string, string>(MAX_TRACKED_MASTRA_SPANS);
   private readonly _options: MastraExporterOptions;
+  private _spanOutputProcessors: MastraSpanOutputProcessor[] = [];
 
   public constructor(options: MastraExporterOptions = {}) {
     this._options = options;
+  }
+
+  /** Called by Mastra with the config of the observability instance this exporter belongs to. */
+  public init(options: MastraExporterInitOptions): void {
+    this._spanOutputProcessors = options.config?.spanOutputProcessors ?? [];
   }
 
   /** Mastra's interface is async; the work is synchronous. */
@@ -117,20 +135,22 @@ export class SentryMastraExporter implements MastraObservabilityExporter {
       return;
     }
 
+    // Per event: the exporter can be constructed before `Sentry.init()`, when `dataCollection.genAI` does not exist yet.
+    const recordingOptions = resolveAIRecordingOptions(this._options);
     switch (event.type) {
       case 'span_started':
-        this._onSpanStarted(span);
+        this._onSpanStarted(span, recordingOptions);
         break;
       case 'span_updated':
-        this._onSpanUpdated(span);
+        this._onSpanUpdated(span, recordingOptions);
         break;
       case 'span_ended':
-        this._onSpanEnded(span);
+        this._onSpanEnded(span, recordingOptions);
         break;
     }
   }
 
-  private _onSpanStarted(span: MastraExportedSpan): void {
+  private _onSpanStarted(span: MastraExportedSpan, recordingOptions: AttributeRecordingOptions): void {
     const parentId = this._resolveParentId(span.parentSpanId);
     const parentSpan = parentId ? this._spans.get(parentId)?.span : undefined;
     const activeSpan = getActiveSpan();
@@ -141,13 +161,24 @@ export class SentryMastraExporter implements MastraObservabilityExporter {
       // Prefer the Mastra parent so the tree stays together; else the active request span.
       parentSpan: parentSpan ?? activeSpan,
       attributes: {
-        ...this._attributesFor(span),
+        ...getSpanAttributes(span, recordingOptions),
         [SENTRY_OP]: getOperation(span.type)?.op,
         [SENTRY_ORIGIN]: MASTRA_ORIGIN,
       },
     });
 
-    this._trackSpan(span.id, { span: sentrySpan, spanType: span.type, usage: {} });
+    const evaluation = span.type === 'classifier_evaluation' ? takeStartingClassifierEvaluation() : undefined;
+    if (evaluation) {
+      Object.assign(evaluation, {
+        span: sentrySpan,
+        mastraSpan: span,
+        spanOutputProcessors: this._spanOutputProcessors,
+        recordInputs: recordingOptions.recordInputs,
+        recordOutputs: recordingOptions.recordOutputs,
+      });
+    }
+
+    this._trackSpan(span.id, { span: sentrySpan, spanType: span.type, usage: {}, evaluation });
   }
 
   /** Track a started span, ending any Sentry span that would otherwise be dropped without `end()`. */
@@ -174,14 +205,14 @@ export class SentryMastraExporter implements MastraObservabilityExporter {
     return this._spans.remove(id);
   }
 
-  private _onSpanUpdated(span: MastraExportedSpan): void {
+  private _onSpanUpdated(span: MastraExportedSpan, recordingOptions: AttributeRecordingOptions): void {
     const tracked = this._spans.get(span.id);
     if (tracked) {
-      tracked.span.setAttributes(this._attributesFor(span));
+      tracked.span.setAttributes(getSpanAttributes(span, recordingOptions));
     }
   }
 
-  private _onSpanEnded(span: MastraExportedSpan): void {
+  private _onSpanEnded(span: MastraExportedSpan, recordingOptions: AttributeRecordingOptions): void {
     const tracked = this._spans.get(span.id);
     if (!tracked) {
       DEBUG_BUILD && debug.warn(`[Mastra] no Sentry span open for ended span ${span.id} (${span.name})`);
@@ -189,7 +220,7 @@ export class SentryMastraExporter implements MastraObservabilityExporter {
     }
 
     const { span: sentrySpan } = tracked;
-    sentrySpan.setAttributes(this._attributesFor(span));
+    sentrySpan.setAttributes(getSpanAttributes(span, recordingOptions));
     sentrySpan.updateName(getSpanName(span));
 
     if (MODEL_SPAN_TYPES.has(span.type)) {
@@ -201,7 +232,13 @@ export class SentryMastraExporter implements MastraObservabilityExporter {
       sentrySpan.setStatus({ code: SPAN_STATUS_ERROR, message: span.errorInfo.message });
     }
 
-    sentrySpan.end(span.endTime);
+    const { evaluation } = tracked;
+    if (evaluation && !evaluation.settled) {
+      // The integration adds the call's input and answers once `evaluate()` settles, then ends the span.
+      evaluation.endTime = span.endTime ?? timestampInSeconds();
+    } else {
+      sentrySpan.end(span.endTime);
+    }
     this._removeTracked(span.id);
   }
 
@@ -239,10 +276,5 @@ export class SentryMastraExporter implements MastraObservabilityExporter {
       current = parentOfSkipped === current ? undefined : parentOfSkipped;
     }
     return undefined;
-  }
-
-  private _attributesFor(span: MastraExportedSpan): ReturnType<typeof getSpanAttributes> {
-    // Per event: the exporter can be constructed before `Sentry.init()`, when `dataCollection.genAI` does not exist yet.
-    return getSpanAttributes(span, resolveAIRecordingOptions(this._options));
   }
 }

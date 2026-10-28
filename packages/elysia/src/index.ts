@@ -69,6 +69,7 @@ export {
   langGraphIntegration,
   createFlueInstrumentation,
   mastraIntegration,
+  piDurableIntegration,
   mcpServerIntegration,
   SentryMastraExporter,
   modulesIntegration,
@@ -124,10 +125,12 @@ export {
   mongooseIntegration,
   mysqlIntegration,
   mysql2Integration,
+  nitroIntegration,
   redisIntegration,
   tediousIntegration,
   postgresIntegration,
   postgresJsIntegration,
+  neonIntegration,
   prismaIntegration,
   processSessionIntegration,
   hapiIntegration,
@@ -140,6 +143,11 @@ export {
   spanToTraceHeader,
   spanToBaggageHeader,
   trpcMiddleware,
+  serveTunnelIntegration,
+  getTunnelPath,
+  handleTunnelRequest,
+  handleTunnelRequestIfMatched,
+  isTunnelRequest,
   updateSpanName,
   supabaseIntegration,
   instrumentSupabaseClient,
@@ -179,6 +187,7 @@ export {
   type BunRuntimeMetricsOptions,
   makeFetchTransport,
 } from '@sentry/bun';
+export type { HandleTunnelRequestOptions, ServerTunnelOptions, TunnelRequestLike } from '@sentry/bun';
 
 export type {
   Breadcrumb,

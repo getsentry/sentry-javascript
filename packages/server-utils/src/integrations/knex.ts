@@ -31,6 +31,7 @@ import {
 } from '@sentry/conventions/attributes';
 import { DB } from '@sentry/conventions/op';
 import { DEBUG_BUILD } from '../debug-build';
+import type { OrchestrionChannelContext } from '../orchestrion/types';
 import { CHANNELS } from '../orchestrion/channels';
 import { bindTracingChannelToSpan } from '../tracing-channel';
 import { sanitizeSqlQueryWithSummary, toSqlDialect } from '../utils/sql';
@@ -89,21 +90,10 @@ interface KnexRunner {
 }
 
 /** Context orchestrion attaches to the `orchestrion:knex:query` channel (wrapping `Runner.query`). */
-interface KnexQueryChannelContext {
+interface KnexQueryChannelContext extends OrchestrionChannelContext {
   // `arguments[0]` is the query object (`{ sql, method, bindings }`).
   arguments: [KnexQuery?];
   self?: KnexRunner;
-  moduleVersion?: string;
-  result?: unknown;
-  error?: unknown;
-}
-
-/** Context orchestrion attaches to the `Client.queryBuilder`/`schemaBuilder`/`raw` channels. */
-interface KnexBuilderChannelContext {
-  arguments: unknown[];
-  self?: unknown;
-  // The builder returned by the wrapped method.
-  result?: KnexBuilder;
 }
 
 const _knexIntegration = (() => {
@@ -135,7 +125,7 @@ const _knexIntegration = (() => {
  */
 function subscribeBuilder(channelName: string): void {
   diagnosticsChannel.tracingChannel(channelName).end.subscribe(message => {
-    const builder = (message as KnexBuilderChannelContext).result;
+    const builder = (message as OrchestrionChannelContext).result;
     if (!builder || typeof builder !== 'object' || parentSpanSymbol in builder) {
       return;
     }

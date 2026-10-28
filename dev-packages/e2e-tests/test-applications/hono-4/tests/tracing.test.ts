@@ -6,7 +6,7 @@ const anyString = expect.any(String) as unknown;
 const anyNumber = expect.any(Number) as unknown;
 const ipvType = expect.stringMatching(/^ipv[46]$/) as unknown;
 
-// Per-runtime `http.server` connection-info expectations. Each runtime's `getConnInfo` helper exposes
+// Per-runtime `http.server` connection-info expectations. Each runtime exposes
 // a different set of fields, so the expected attribute values are declared here once (keyed by
 // runtime) instead of branching inside the tests. `undefined` means the attribute must be absent.
 // Relational checks (`network.peer.*` mirroring `client.*`) are asserted in the tests, since they
@@ -21,7 +21,7 @@ const CONN_INFO: Record<Runtime, { added: Record<string, unknown>; baseline: Rec
       'client.address': anyString,
       'client.port': anyNumber,
       'network.type': ipvType,
-      'network.transport': undefined,
+      'network.transport': 'tcp',
     },
     baseline: {
       'server.address': 'localhost',
@@ -30,7 +30,7 @@ const CONN_INFO: Record<Runtime, { added: Record<string, unknown>; baseline: Rec
       'network.type': ipvType,
       'network.protocol.name': 'http',
       'network.protocol.version': '1.1',
-      'network.transport': undefined,
+      'network.transport': 'tcp',
       'network.local.address': anyString,
       'network.local.port': anyNumber,
     },
@@ -45,7 +45,7 @@ const CONN_INFO: Record<Runtime, { added: Record<string, unknown>; baseline: Rec
     baseline: { 'client.port': anyNumber, 'network.type': ipvType },
   },
   deno: {
-    // Only `hono/deno` exposes `network.transport`.
+    // `network.transport` comes from Deno's `remoteAddr`.
     added: { 'client.address': anyString, 'client.port': anyNumber, 'network.transport': expect.stringMatching(/tcp/) },
     baseline: {
       'server.address': 'localhost',
@@ -55,11 +55,9 @@ const CONN_INFO: Record<Runtime, { added: Record<string, unknown>; baseline: Rec
     },
   },
   cloudflare: {
-    // Cloudflare Workers expose no client address, port, address family, or transport: there is no
-    // `getConnInfo` on Workers and nothing else populates `client.address`, so all of these are
-    // absent. Asserting `undefined` here lets us notice if that ever changes.
+    // Workers give only the client address (the `cf-connecting-ip` header).
     added: {
-      'client.address': undefined,
+      'client.address': anyString,
       'client.port': undefined,
       'network.type': undefined,
       'network.transport': undefined,

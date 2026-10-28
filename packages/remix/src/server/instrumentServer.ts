@@ -556,5 +556,10 @@ export function instrumentServer(options?: { instrumentTracing?: boolean }): voi
     return;
   }
 
+  // `init()` runs this again after `close()`, so skip a handler that is already wrapped.
+  if ((pkg.createRequestHandler as WrappedFunction).__sentry_original__) {
+    return;
+  }
+
   fill(pkg, 'createRequestHandler', makeWrappedCreateRequestHandler(options));
 }

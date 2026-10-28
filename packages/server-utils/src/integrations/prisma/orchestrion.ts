@@ -3,6 +3,7 @@ import type { Span } from '@sentry/core';
 import { getActiveSpan, getRootSpan, spanIsIgnored, startInactiveSpan, withActiveSpan } from '@sentry/core';
 import { DB_COLLECTION_NAME, DB_OPERATION_NAME, SENTRY_OP, SENTRY_ORIGIN } from '@sentry/conventions/attributes';
 import { DB } from '@sentry/conventions/op';
+import type { OrchestrionChannelContext } from '../../orchestrion/types';
 import { prismaChannels, PRISMA_LAZY_TERMINALS } from '../../orchestrion/config/prisma';
 import type { TracingChannelLifeCycleOptions } from '../../tracing-channel';
 import { bindTracingChannelToSpan, safeChannelCallback } from '../../tracing-channel';
@@ -20,12 +21,8 @@ interface PrismaCollection {
   tableName?: unknown;
 }
 
-interface PrismaTerminalChannelContext {
-  arguments: unknown[];
+interface PrismaTerminalChannelContext extends OrchestrionChannelContext {
   self?: PrismaCollection;
-  moduleVersion?: string;
-  result?: unknown;
-  error?: unknown;
 }
 
 // Prisma's `AsyncIterableResult`: `await`, `.then()` and `.first()` all funnel through `toArray()`; only

@@ -3,6 +3,9 @@ import { type RouteConfig, index, prefix, route } from '@react-router/dev/routes
 export default [
   index('routes/home.tsx'),
   route('__sentry-flush', 'routes/sentry-flush.tsx'),
+  route('api/headers', 'routes/api/headers.ts'),
+  route('isolation/:id', 'routes/isolation.ts'),
+  route('logs', 'routes/logs.ts'),
   ...prefix('errors', [
     route('client', 'routes/errors/client.tsx'),
     route('client/:client-param', 'routes/errors/client-param.tsx'),
@@ -21,5 +24,6 @@ export default [
     route('with-middleware', 'routes/performance/with-middleware.tsx'),
     route('redis', 'routes/performance/redis.tsx'),
     route('db-mysql', 'routes/performance/db-mysql.tsx'),
+    route('outgoing-fetch', 'routes/performance/outgoing-fetch.ts'),
   ]),
 ] satisfies RouteConfig;

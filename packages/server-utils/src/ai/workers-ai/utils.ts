@@ -3,6 +3,7 @@ import {
   GEN_AI_EMBEDDINGS_INPUT,
   GEN_AI_INPUT_MESSAGES,
   GEN_AI_OPERATION_NAME,
+  GEN_AI_OUTPUT_MESSAGES,
   GEN_AI_PROVIDER_NAME,
   GEN_AI_REQUEST_FREQUENCY_PENALTY,
   GEN_AI_REQUEST_MAX_TOKENS,
@@ -11,42 +12,59 @@ import {
   GEN_AI_REQUEST_TEMPERATURE,
   GEN_AI_REQUEST_TOP_K,
   GEN_AI_REQUEST_TOP_P,
+  GEN_AI_RESPONSE_MODEL,
   GEN_AI_RESPONSE_TEXT,
   GEN_AI_RESPONSE_TOOL_CALLS,
   GEN_AI_SYSTEM_INSTRUCTIONS,
   SENTRY_ORIGIN,
 } from '@sentry/conventions/attributes';
-import { GEN_AI_CHAT, GEN_AI_EMBEDDINGS } from '@sentry/conventions/op';
+import { GEN_AI_CHAT, GEN_AI_EMBEDDINGS, GEN_AI_DECIDE, GEN_AI_EXTRACT } from '@sentry/conventions/op';
 import { isObjectLike, stringify } from '@sentry/core';
 import type { Span, SpanAttributeValue } from '@sentry/core';
 import { GEN_AI_REQUEST_STREAM_ATTRIBUTE } from '../core/gen-ai-attributes';
 import {
   extractSystemInstructions,
-  getGenAiSpanOp,
+  getEvaluationInputMessages,
+  getTokenUsageAttributes,
   setOutputMessagesAttribute,
-  setTokenUsageAttributes,
 } from '../core/utils';
-import { addResponseAttributes as addEvaluateResponseAttributes, getEvaluationInputMessages } from '../typesafe';
+import { addResponseAttributes as addDecideResponseAttributes } from '../typesafe';
 // Re-exported so `workers-ai/streaming.ts` keeps importing it from this module.
 export { setOutputMessagesAttribute };
 import { WORKERS_AI_ORIGIN, WORKERS_AI_PROVIDER_NAME } from './constants';
 import type { WorkersAiInput, WorkersAiOutput } from './types';
 
-export type WorkersAiOperationName = 'chat' | 'embeddings' | 'evaluate';
+export type WorkersAiOperationName = 'chat' | 'embeddings' | 'decide' | 'extract';
 
 export const WORKERS_AI_OPERATION_SPAN_OPS: Record<WorkersAiOperationName, string> = {
   chat: GEN_AI_CHAT,
   embeddings: GEN_AI_EMBEDDINGS,
-  evaluate: getGenAiSpanOp('evaluate'),
+  decide: GEN_AI_DECIDE,
+  extract: GEN_AI_EXTRACT,
 };
+
+/**
+ * Model ID prefixes of the evaluation models (TypeSafe Jev and Cloudflare Clef), traced as `decide` spans.
+ */
+const DECIDE_MODEL_PREFIXES = ['typesafe/jev', '@cf/cloudflare/clef'];
+
+/**
+ * Model ID prefixes of the field extraction models (Cloudflare Clairic), traced as `extract` spans.
+ */
+const EXTRACT_MODEL_PREFIXES = ['@cf/cloudflare/clairic'];
+
+const BLOB_SUBSTITUTE = '[Blob substitute]';
 
 /**
  * Determine the gen_ai operation name from the model and inputs passed to `AI.run`.
  * Workers AI exposes a single `run` method, so we infer the operation from the model ID and the input shape.
  */
 export function getOperationName(model: unknown, inputs: unknown): WorkersAiOperationName {
-  if (typeof model === 'string' && model.startsWith('typesafe/jev')) {
-    return 'evaluate';
+  if (typeof model === 'string' && DECIDE_MODEL_PREFIXES.some(prefix => model.startsWith(prefix))) {
+    return 'decide';
+  }
+  if (typeof model === 'string' && EXTRACT_MODEL_PREFIXES.some(prefix => model.startsWith(prefix))) {
+    return 'extract';
   }
   if (inputs && typeof inputs === 'object') {
     if ('messages' in inputs || 'prompt' in inputs) {
@@ -113,8 +131,18 @@ export function addRequestAttributes(span: Span, inputs: unknown, operationName:
   }
   const params = inputs as WorkersAiInput;
 
-  if (operationName === 'evaluate') {
+  if (operationName === 'decide') {
     span.setAttribute(GEN_AI_INPUT_MESSAGES, getEvaluationInputMessages(inputs as Record<string, unknown>));
+    return;
+  }
+
+  if (operationName === 'extract') {
+    // Record the request body as passed, but never the image data.
+    const { model: _model, ...request } = inputs as Record<string, unknown>;
+    if (Array.isArray(request.images)) {
+      request.images = request.images.map(() => BLOB_SUBSTITUTE);
+    }
+    span.setAttribute(GEN_AI_INPUT_MESSAGES, stringify([request]));
     return;
   }
 
@@ -154,10 +182,15 @@ export function addResponseAttributes(
   recordOutputs: boolean,
   operationName?: WorkersAiOperationName,
 ): void {
-  if (operationName === 'evaluate') {
+  if (operationName === 'decide') {
     // The binding wraps the TypeSafe response as `{ state, result }`, but the docs show it unwrapped.
     const body = isObjectLike(result) && isObjectLike(result.result) ? result.result : result;
-    addEvaluateResponseAttributes(span, body, recordOutputs);
+    addDecideResponseAttributes(span, body, recordOutputs);
+    return;
+  }
+
+  if (operationName === 'extract') {
+    addExtractResponseAttributes(span, result, recordOutputs);
     return;
   }
 
@@ -173,7 +206,7 @@ export function addResponseAttributes(
   const response = result as WorkersAiOutput;
 
   if (response.usage) {
-    setTokenUsageAttributes(span, response.usage.prompt_tokens, response.usage.completion_tokens);
+    span.setAttributes(getTokenUsageAttributes(response.usage.prompt_tokens, response.usage.completion_tokens));
   }
 
   if (recordOutputs) {
@@ -193,5 +226,30 @@ export function addResponseAttributes(
     }
 
     setOutputMessagesAttribute(span, { responseText, toolCalls });
+  }
+}
+
+function addExtractResponseAttributes(span: Span, body: unknown, recordOutputs: boolean): void {
+  if (!isObjectLike(body)) {
+    return;
+  }
+
+  const { model, usage, ...response } = body;
+
+  if (typeof model === 'string') {
+    span.setAttribute(GEN_AI_RESPONSE_MODEL, model);
+  }
+
+  if (isObjectLike(usage)) {
+    span.setAttributes(
+      getTokenUsageAttributes(
+        typeof usage.input_tokens === 'number' ? usage.input_tokens : undefined,
+        typeof usage.output_tokens === 'number' ? usage.output_tokens : undefined,
+      ),
+    );
+  }
+
+  if (recordOutputs) {
+    span.setAttribute(GEN_AI_OUTPUT_MESSAGES, stringify([response]));
   }
 }

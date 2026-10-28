@@ -1,12 +1,14 @@
 import { expect } from '@playwright/test';
-import type { Event } from '@sentry/core';
 import { sentryTest } from '../../../utils/fixtures';
-import { getFirstSentryEnvelopeRequest } from '../../../utils/helpers';
+import { envelopeRequestParser, shouldSkipTracingTest, waitForErrorRequest } from '../../../utils/helpers';
+import { getSpanOp, waitForStreamedSpan } from '../../../utils/spanUtils';
 
 sentryTest('cultureContextIntegration captures locale, timezone, and calendar', async ({ getLocalTestUrl, page }) => {
   const url = await getLocalTestUrl({ testDir: __dirname });
 
-  const eventData = await getFirstSentryEnvelopeRequest<Event>(page, url);
+  const errorRequestPromise = waitForErrorRequest(page);
+  await page.goto(url);
+  const eventData = envelopeRequestParser(await errorRequestPromise);
 
   expect(eventData.exception?.values).toHaveLength(1);
 
@@ -16,3 +18,21 @@ sentryTest('cultureContextIntegration captures locale, timezone, and calendar', 
     calendar: expect.any(String),
   });
 });
+
+sentryTest(
+  'cultureContextIntegration adds locale, timezone, and calendar to spans',
+  async ({ getLocalTestUrl, page }) => {
+    sentryTest.skip(shouldSkipTracingTest());
+    const url = await getLocalTestUrl({ testDir: __dirname });
+
+    const spanPromise = waitForStreamedSpan(page, span => span.is_segment && getSpanOp(span) === 'pageload');
+
+    await page.goto(url);
+
+    const pageloadSpan = await spanPromise;
+
+    expect(pageloadSpan.attributes['culture.locale']).toEqual({ type: 'string', value: expect.any(String) });
+    expect(pageloadSpan.attributes['culture.timezone']).toEqual({ type: 'string', value: expect.any(String) });
+    expect(pageloadSpan.attributes['culture.calendar']).toEqual({ type: 'string', value: expect.any(String) });
+  },
+);

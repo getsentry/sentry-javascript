@@ -1,9 +1,10 @@
-import type { HandlerDataError, Mechanism, WrappedFunction } from '@sentry/core';
+import type { Client, HandlerDataError, Mechanism, WrappedFunction } from '@sentry/core';
 import {
   addExceptionMechanism,
   addExceptionTypeValue,
   addNonEnumerableProperty,
   captureException,
+  filterCollectedUrl,
   getOriginalFunction,
   GLOBAL_OBJ,
   markFunctionWrapped,
@@ -221,15 +222,18 @@ export function wrap<T extends WrappableFunction, NonFunction>(
 
 /**
  * Get HTTP request data from the current page.
+ *
+ * The `Referer` header has `dataCollection.urlQueryParams` of `client` applied. `url` is unfiltered, so
+ * callers must pass it through `filterCollectedUrl`.
  */
-export function getHttpRequestData(): { url: string; headers: Record<string, string> } {
+export function getHttpRequestData(client: Client): { url: string; headers: Record<string, string> } {
   // grab as much info as exists and add it to the event
   const url = getLocationHref();
   const { referrer } = WINDOW.document || {};
   const { userAgent } = WINDOW.navigator || {};
 
   const headers = {
-    ...(referrer && { Referer: referrer }),
+    ...(referrer && { Referer: filterCollectedUrl(referrer, client) }),
     ...(userAgent && { 'User-Agent': userAgent }),
   };
   const request = {

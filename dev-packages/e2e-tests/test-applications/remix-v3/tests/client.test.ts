@@ -9,10 +9,41 @@ test('sends a pageload span', async ({ page }) => {
   await page.goto('/');
 
   const span = await spanPromise;
-  // Ordinary document load, so this span comes from the upstream integration and takes the low
-  // cardinality streaming name.
-  expect(span.name).toBe('Pageload');
+  // Started by the upstream integration, then named after the route the server reported.
+  expect(span.name).toBe('/');
   expect(span.attributes?.['sentry.origin']?.value).toBe('auto.pageload.browser');
+  expect(span.attributes?.['sentry.segment.name.source']?.value).toBe('route');
+});
+
+test('continues the server trace on a page load', async ({ page }) => {
+  const serverSpanPromise = waitForStreamedSpan(
+    APP_NAME,
+    span =>
+      getSpanOp(span) === 'http.server' && span.is_segment === true && span.attributes?.['http.route']?.value === '/',
+  );
+  const pageloadPromise = waitForStreamedSpan(
+    APP_NAME,
+    span => getSpanOp(span) === 'pageload' && span.is_segment === true,
+  );
+
+  await page.goto('/');
+
+  const [serverSpan, pageload] = await Promise.all([serverSpanPromise, pageloadPromise]);
+  // The document's response carried the trace in `Server-Timing`, which the browser SDK picks up.
+  expect(pageload.trace_id).toBe(serverSpan.trace_id);
+  expect(pageload.parent_span_id).toBe(serverSpan.span_id);
+});
+
+test('parameterizes a page load on a route with params', async ({ page }) => {
+  const spanPromise = waitForStreamedSpan(APP_NAME, span => getSpanOp(span) === 'pageload' && span.is_segment === true);
+
+  await page.goto('/users/12345');
+
+  const span = await spanPromise;
+  expect(span.name).toBe('/users/:id');
+  expect(span.name).not.toContain('12345');
+  expect(span.attributes?.['sentry.segment.name.source']?.value).toBe('route');
+  expect(span.attributes?.['url.template']?.value).toBe('/users/:id');
 });
 
 test('sends a navigation span for a link the runtime intercepts', async ({ page }) => {
@@ -31,7 +62,82 @@ test('sends a navigation span for a link the runtime intercepts', async ({ page 
 
   const span = await spanPromise;
   expect(span.is_segment).toBe(true);
-  expect(span.name).toBe('Navigation');
+  // The pattern, not the path: an id in the name would make every navigation its own transaction.
+  expect(span.name).toBe('/users/:id');
+  expect(span.name).not.toContain('12345');
+  expect(span.attributes?.['sentry.segment.name.source']?.value).toBe('route');
+});
+
+// The span is named by the navigation's own fetch, not the earlier prefetch.
+for (const mode of ['intent', 'viewport'] as const) {
+  test(`names a navigation to a link prefetched on ${mode} by the route`, async ({ page }) => {
+    const prefetchPromise = page.waitForRequest(
+      request => request.url().endsWith(`/users/${mode}`) && request.headers()['x-remix-frame'] === 'true',
+    );
+
+    await page.goto('/');
+    const link = page.locator(`#to-user-prefetch-${mode}`);
+    if (mode === 'intent') {
+      await link.hover();
+    }
+    await (await prefetchPromise).response();
+
+    const spanPromise = waitForStreamedSpan(
+      APP_NAME,
+      span =>
+        getSpanOp(span) === 'navigation' &&
+        span.attributes?.['sentry.origin']?.value === 'auto.navigation.remix_v3' &&
+        span.attributes?.['url.path']?.value === `/users/${mode}`,
+    );
+
+    await link.click();
+    await expect(page.locator('#user')).toBeVisible();
+
+    const span = await spanPromise;
+    expect(span.name).toBe('/users/:id');
+    expect(span.attributes?.['sentry.segment.name.source']?.value).toBe('route');
+  });
+}
+
+test('names a navigation to a route it loaded before right at the start', async ({ page }) => {
+  await page.goto('/');
+  await page.locator('#to-user').click();
+  await expect(page.locator('#user')).toBeVisible();
+  await page.goBack();
+  await expect(page.locator('#to-user')).toBeVisible();
+
+  // Named through the route provider before any response, so the span never carried the fallback name.
+  // Matched on the destination path: the back navigation is a Remix navigation span too, and it can
+  // be sent when this click starts.
+  const spanPromise = waitForStreamedSpan(
+    APP_NAME,
+    span =>
+      getSpanOp(span) === 'navigation' &&
+      span.attributes?.['sentry.origin']?.value === 'auto.navigation.remix_v3' &&
+      span.attributes?.['url.path']?.value === '/users/12345',
+  );
+
+  await page.locator('#to-user').click();
+  await expect(page.locator('#user')).toBeVisible();
+
+  const span = await spanPromise;
+  expect(span.name).toBe('/users/:id');
+  expect(span.attributes?.['url.template']?.value).toBe('/users/:id');
+});
+
+test('groups an error after a first visit navigation by the route, not the path', async ({ page }) => {
+  await page.goto('/');
+  await page.locator('#to-user').click();
+  await expect(page.locator('#user')).toBeVisible();
+
+  const errorPromise = waitForError(APP_NAME, event => event.exception?.values?.[0]?.value === 'Remix 3 client error');
+
+  await page.locator('#throw-on-user').click();
+
+  const error = await errorPromise;
+  // The span started under the fallback name and was renamed later; the scope's transaction name
+  // has to follow, otherwise the error would carry `/users/12345`.
+  expect(error.transaction).toBe('/users/:id');
 });
 
 test('captures a component render error the runtime never rethrows', async ({ page }) => {

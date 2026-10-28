@@ -74,4 +74,5 @@ export type { BrowserOptions } from '@sentry/browser';
 
 export { getDefaultIntegrations, init } from './client/sdk';
 export { browserTracingIntegration } from './client/browserTracingIntegration';
+export { createRemixV3RouteProvider } from './client/routeProvider';
 export { captureRuntimeErrors, instrumentClientRuntime } from './client/errors';

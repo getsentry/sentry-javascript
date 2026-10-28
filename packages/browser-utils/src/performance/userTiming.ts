@@ -1,13 +1,13 @@
 import { SENTRY_OP, SENTRY_ORIGIN } from '@sentry/conventions/attributes';
 import type { IntegrationFn, Span, SpanAttributes, SpanAttributeValue } from '@sentry/core';
 import {
-  browserPerformanceTimeOrigin,
   defineIntegration,
   isPrimitive,
+  _INTERNAL_performanceTimeToSeconds,
   spanToJSON,
   stringMatchesSomePattern,
 } from '@sentry/core';
-import { getBrowserPerformanceAPI, msToSec, startAndEndSpan } from './utils';
+import { getBrowserPerformanceAPI, startAndEndSpan } from './utils';
 import { getNavigationEntry } from '../web-vitals/utils';
 
 interface UserTimingOptions {
@@ -26,11 +26,9 @@ const _userTimingIntegration = ((options: UserTimingOptions = {}) => {
     name: INTEGRATION_NAME,
     setup(client) {
       const performance = getBrowserPerformanceAPI();
-      const timeOrigin = browserPerformanceTimeOrigin();
-      if (!performance?.getEntries || !timeOrigin) {
+      if (!performance?.getEntries) {
         return;
       }
-      const timeOriginInSeconds = msToSec(timeOrigin);
       let performanceCursor = 0;
 
       client.on('beforeIdleSpanEnd', idleSpan => {
@@ -41,7 +39,7 @@ const _userTimingIntegration = ((options: UserTimingOptions = {}) => {
           return;
         }
 
-        const requestTime = msToSec(getNavigationEntry(false)?.requestStart ?? 0);
+        const requestStart = getNavigationEntry(false)?.requestStart ?? 0;
         const performanceEntries = performance.getEntries();
 
         for (const entry of performanceEntries.slice(performanceCursor)) {
@@ -49,22 +47,25 @@ const _userTimingIntegration = ((options: UserTimingOptions = {}) => {
             continue;
           }
 
-          const startTime = msToSec(entry.startTime);
-          const absoluteStartTime = timeOriginInSeconds + startTime;
-
-          if (parentOp === 'navigation' && parentStartTimestamp && absoluteStartTime < parentStartTimestamp) {
+          const startTimestamp = _INTERNAL_performanceTimeToSeconds(entry.startTime);
+          if (!startTimestamp) {
             continue;
           }
 
-          _addUserTimingSpan(
-            idleSpan,
-            entry,
-            startTime,
-            msToSec(Math.max(0, entry.duration)),
-            timeOriginInSeconds,
-            requestTime,
-            options.ignore ?? [],
-          );
+          if (parentOp === 'navigation' && parentStartTimestamp && startTimestamp < parentStartTimestamp) {
+            continue;
+          }
+
+          const endTimestamp = _INTERNAL_performanceTimeToSeconds(
+            entry.startTime + Math.max(0, entry.duration),
+            entry.startTime,
+          ) as number;
+
+          // We convert the request start with the entry's time origin, so that the clamp in `_addUserTimingSpan` compares
+          // timestamps on the same timeline, even if the time origin was corrected between the request and the entry.
+          const requestTimestamp = _INTERNAL_performanceTimeToSeconds(requestStart, entry.startTime) as number;
+
+          _addUserTimingSpan(idleSpan, entry, startTimestamp, endTimestamp, requestTimestamp, options.ignore ?? []);
         }
 
         performanceCursor = performanceEntries.length;
@@ -100,10 +101,9 @@ export const userTimingIntegration = defineIntegration(_userTimingIntegration);
 export function _addUserTimingSpan(
   parentSpan: Span,
   entry: PerformanceEntry,
-  startTime: number,
-  duration: number,
-  timeOrigin: number,
-  requestTime: number,
+  startTimestamp: number,
+  endTimestamp: number,
+  requestTimestamp: number,
   ignore: Array<string | RegExp>,
 ): void {
   if (isReact19MeasureEntry(entry) || stringMatchesSomePattern(entry.name, ignore)) {
@@ -111,15 +111,13 @@ export function _addUserTimingSpan(
   }
 
   // Measures can reference arbitrary timestamps, including timestamps before the page request started.
-  const spanStartTimestamp = timeOrigin + Math.max(startTime, requestTime);
-  const originalStartTimestamp = timeOrigin + startTime;
-  const spanEndTimestamp = originalStartTimestamp + duration;
+  const spanStartTimestamp = Math.max(startTimestamp, requestTimestamp);
 
   const attributes: SpanAttributes = {
     [SENTRY_ORIGIN]: `auto.browser.user_timing.${entry.entryType}`,
   };
 
-  if (spanStartTimestamp !== originalStartTimestamp) {
+  if (spanStartTimestamp !== startTimestamp) {
     attributes['sentry.browser.measure_happened_before_request'] = true;
     attributes['sentry.browser.measure_start_time'] = spanStartTimestamp;
   }
@@ -127,8 +125,8 @@ export function _addUserTimingSpan(
   addDetailToSpanAttributes(attributes, entry as PerformanceMeasure);
 
   // Third-party measurements can contain timestamps which would produce invalid spans.
-  if (spanStartTimestamp <= spanEndTimestamp) {
-    startAndEndSpan(parentSpan, spanStartTimestamp, spanEndTimestamp, {
+  if (spanStartTimestamp <= endTimestamp) {
+    startAndEndSpan(parentSpan, spanStartTimestamp, endTimestamp, {
       name: entry.name,
       op: entry.entryType,
       attributes,

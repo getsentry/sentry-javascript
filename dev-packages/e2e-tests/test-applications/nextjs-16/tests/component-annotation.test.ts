@@ -1,9 +1,11 @@
 import { expect, test } from '@playwright/test';
 import { waitForError } from '@sentry-internal/test-utils';
+import { isVinext } from './isVinext';
 
 const isWebpackDev = process.env.TEST_ENV === 'development-webpack';
 
 test('React component annotation adds data-sentry-component attributes (Turbopack)', async ({ page }) => {
+  test.skip(isVinext, 'vinext runs no Sentry build plugin, so components get no annotation');
   test.skip(isWebpackDev, 'Only relevant for Turbopack builds');
 
   await page.goto('/component-annotation');

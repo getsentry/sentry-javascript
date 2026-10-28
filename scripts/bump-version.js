@@ -22,16 +22,13 @@ function updateWorkspaceDeps(pkgPath, workspaceNames, newVersion, { bumpVersion 
     }
   }
 
-  if (pkg.pnpm?.overrides) {
-    for (const [dep, value] of Object.entries(pkg.pnpm.overrides)) {
-      if (!workspaceNames.has(dep)) continue;
-
-      pkg.pnpm.overrides[dep] = value.replace(/(?<=sentry-[\w-]+-)\d+\.\d+\.\d+(-[\w.]+)?(?=\.tgz$)/, newVersion);
-    }
-  }
-
   fs.writeFileSync(pkgPath, JSON.stringify(pkg, null, 2) + '\n');
   return pkg;
+}
+
+function updateTarballVersions(filePath, newVersion) {
+  const content = fs.readFileSync(filePath, 'utf-8');
+  fs.writeFileSync(filePath, content.replace(/(?<=sentry-[\w-]+-)\d+\.\d+\.\d+(-[\w.]+)?(?=\.tgz)/g, newVersion));
 }
 
 /**
@@ -86,6 +83,12 @@ function bumpVersions(rootDir, newVersion) {
       if (!fs.existsSync(fixturePkgPath)) continue;
 
       updateWorkspaceDeps(fixturePkgPath, workspaceNames, newVersion);
+
+      const fixtureWorkspacePath = path.join(fixturesDir, entry.name, 'pnpm-workspace.yaml');
+
+      if (fs.existsSync(fixtureWorkspacePath)) {
+        updateTarballVersions(fixtureWorkspacePath, newVersion);
+      }
     }
   }
 

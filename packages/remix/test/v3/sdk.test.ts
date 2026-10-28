@@ -52,6 +52,21 @@ describe('the client entry', () => {
   // `@sentry/browser`'s installs span streaming on first use. Taking one from `@sentry/core` is
   // invisible until an app replaces the default integrations, because browser tracing installs span
   // streaming anyway.
+  it('registers a route provider that takes the routes the server reports', () => {
+    init({});
+
+    const { routeProvider } = browserInit.mock.calls.at(-1)?.[0] as { routeProvider: { record: unknown } };
+    expect(routeProvider.record).toEqual(expect.any(Function));
+  });
+
+  it("keeps the app's own route provider", () => {
+    const own = { resolveRoute: () => '/own', resolveCurrentRoute: () => '/own' };
+
+    init({ routeProvider: own });
+
+    expect(browserInit).toHaveBeenLastCalledWith(expect.objectContaining({ routeProvider: own }));
+  });
+
   it('re-exports @sentry/browser, never a @sentry/core lookalike', async () => {
     const [entry, browser] = await Promise.all([
       import('../../src/v3/index.client'),

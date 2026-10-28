@@ -43,6 +43,5 @@ next-env.d.ts
 .vscode
 
 test-results
-event-dumps
 
 .tmp_dev_server_logs

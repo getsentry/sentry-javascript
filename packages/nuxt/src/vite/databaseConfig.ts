@@ -1,4 +1,4 @@
-import { addServerPlugin, createResolver } from '@nuxt/kit';
+import { addNitroPlugin, createResolver } from '@nuxt/kit';
 import { consoleSandbox } from '@sentry/core';
 import type { NitroConfig } from 'nitropack/types';
 import type { SentryNuxtModuleOptions } from '../common/types';
@@ -43,8 +43,8 @@ export function addDatabaseInstrumentation(
   });
 
   if (isLegacyNitro) {
-    addServerPlugin(createResolver(import.meta.url).resolve('./runtime/plugins/database-legacy.server'));
+    addNitroPlugin(createResolver(import.meta.url).resolve('./runtime/plugins/database-legacy.server'));
   } else {
-    addServerPlugin(createResolver(import.meta.url).resolve('./runtime/plugins/database.server'));
+    addNitroPlugin(createResolver(import.meta.url).resolve('./runtime/plugins/database.server'));
   }
 }

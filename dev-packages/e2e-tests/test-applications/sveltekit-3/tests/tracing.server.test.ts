@@ -26,7 +26,7 @@ test('server pageload request span has nested request span for sub request', asy
 
   const spans = getSegmentChildSpans(serverTraceSpans, serverSpan);
 
-  expect(spans).toHaveLength(6);
+  expect(spans).toHaveLength(7);
 
   expect(spans).toEqual(
     expect.arrayContaining([
@@ -100,6 +100,19 @@ test('server pageload request span has nested request span for sub request', asy
           'sentry.op': { value: 'function', type: 'string' },
           'sentry.origin': { value: 'auto.http.sveltekit', type: 'string' },
           'http.route': { value: '/api/users', type: 'string' },
+        }),
+      }),
+
+      // sub request `+server` handler span (emitted by Kit since 3.1.0):
+      expect.objectContaining({
+        name: 'sveltekit.endpoint',
+        status: 'ok',
+        attributes: expect.objectContaining({
+          'sentry.op': { value: 'function', type: 'string' },
+          'sentry.origin': { value: 'auto.function.sveltekit.endpoint', type: 'string' },
+          'sentry.description': { value: 'sveltekit.endpoint', type: 'string' },
+          'http.route': { value: '/api/users', type: 'string' },
+          'http.method': { value: 'GET', type: 'string' },
         }),
       }),
     ]),

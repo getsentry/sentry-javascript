@@ -1,4 +1,5 @@
 import type { Envelope, Transport, TransportMakeRequestResponse } from '@sentry/core';
+import { getCurrentScope } from '@sentry/core';
 import { vi } from 'vitest';
 import type { Replay as ReplayIntegration } from '../../src/integration';
 import type { ReplayContainer } from '../../src/replay';
@@ -70,6 +71,8 @@ export async function mockSdk({ replayOptions, sentryOptions, autoStart = true }
     minReplayDuration: 0,
     ...replayOptions,
   });
+
+  getCurrentScope().setClient(undefined);
 
   const client = init({
     ...getDefaultClientOptions(),

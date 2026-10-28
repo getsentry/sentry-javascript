@@ -1,12 +1,13 @@
-import { exec } from 'child_process';
+import { exec, execFile } from 'child_process';
 import { existsSync } from 'fs';
 import { cp, mkdir, readFile, rm, writeFile } from 'fs/promises';
-import { basename, join } from 'path';
+import { basename, delimiter, join } from 'path';
 import { promisify } from 'util';
 import { afterAll, beforeAll, test, type TestAPI } from 'vitest';
-import { CLEANUP_STEPS, createRunner } from './createRunner';
+import { CLEANUP_STEPS, createRunner, PACKAGE_ROOT } from './createRunner';
 
 const execPromise = promisify(exec);
+const execFilePromise = promisify(execFile);
 
 interface ScenarioPaths {
   cjs: {
@@ -161,10 +162,11 @@ function setupAndCleanup(
   createdRunners: Set<ReturnType<typeof createRunner>>,
   tmpDirPath: string,
 ) {
-  // Create tmp directory and install additionalDependencies (with retries)
+  // Create tmp directory and install additionalDependencies (with retries).
+  // Must cover all npm install attempts (see `NPM_INSTALL_TIMEOUT_MS`) plus `afterSetupCommand`.
   beforeAll(async () => {
     await createTmpDir();
-  }, 120_000);
+  }, 200_000);
 
   // Clean up the tmp directory after both esm and cjs suites have run
   afterAll(async () => {
@@ -267,7 +269,10 @@ function prepareTmpDir(
     }
 
     if (options?.afterSetupCommand) {
-      const env = { ...process.env, PATH: `${join(tmpDirPath, 'node_modules', '.bin')}:${process.env.PATH}` };
+      // The Bun and Deno packages run these suites with their own `PATH`, which does not have the bins of
+      // this package (e.g. `prisma`).
+      const binPaths = [join(tmpDirPath, 'node_modules', '.bin'), join(PACKAGE_ROOT, 'node_modules', '.bin')];
+      const env = { ...process.env, PATH: [...binPaths, process.env.PATH].join(delimiter) };
       await execPromise(options.afterSetupCommand, { cwd: tmpDirPath, env });
     }
   }
@@ -329,17 +334,23 @@ function convertEsmToCjs(content: string): string {
 
 const NPM_INSTALL_MAX_RETRIES = 3;
 const NPM_INSTALL_RETRY_DELAY_MS = 2_000;
+// npm install can stall on CI without ever failing, which would otherwise use up the whole setup hook timeout
+// before a retry gets a chance to run.
+const NPM_INSTALL_TIMEOUT_MS = 60_000;
 
 async function npmInstallWithRetry(cwd: string, deps: string[]): Promise<void> {
   for (let attempt = 1; attempt <= NPM_INSTALL_MAX_RETRIES; attempt++) {
     try {
-      const { stdout, stderr } = await execPromise(
+      // Run npm without a shell, so the timeout kills npm itself rather than leaving it running next to the retry
+      const { stdout, stderr } = await execFilePromise(
+        'npm',
         // We only use --prefer-offline on the first attempt to try to read from cache
         // in follow ups we just try to install in any way
-        `npm install ${attempt === 1 ? '--prefer-offline' : ''} --no-audit --no-fund`,
+        ['install', ...(attempt === 1 ? ['--prefer-offline'] : []), '--no-audit', '--no-fund'],
         {
           cwd,
           encoding: 'utf8',
+          timeout: NPM_INSTALL_TIMEOUT_MS,
         },
       );
 
@@ -359,6 +370,9 @@ async function npmInstallWithRetry(cwd: string, deps: string[]): Promise<void> {
           `npm install attempt ${attempt}/${NPM_INSTALL_MAX_RETRIES} failed, retrying in ${NPM_INSTALL_RETRY_DELAY_MS}ms...`,
         );
         await new Promise(resolve => setTimeout(resolve, NPM_INSTALL_RETRY_DELAY_MS));
+        // A killed attempt leaves a partial install behind, which the next attempt would treat as complete
+        await rm(join(cwd, 'node_modules'), { recursive: true, force: true });
+        await rm(join(cwd, 'package-lock.json'), { force: true });
       } else {
         // oxlint-disable-next-line no-console
         console.error(error);

@@ -1,4 +1,4 @@
-import type { EventEnvelope, EventItem } from '@sentry/core';
+import type { EventEnvelope, EventItem, TransportMakeRequestResponse } from '@sentry/core';
 import { createEnvelope, SENTRY_BUFFER_FULL_ERROR, serializeEnvelope } from '@sentry/core';
 import { afterAll, describe, expect, it, vi } from 'vitest';
 import type { CloudflareTransportOptions } from '../src/transport';
@@ -233,6 +233,22 @@ describe('IsolatedPromiseBuffer', () => {
     await expect(ipb.drain()).resolves.toEqual(true);
 
     expect(task1).toHaveBeenCalled();
+    expect(task2).toHaveBeenCalled();
+  });
+
+  it('runs the other tasks of a drain when one task throws synchronously', async () => {
+    const ipb = new IsolatedPromiseBuffer();
+
+    const task1 = vi.fn((): Promise<TransportMakeRequestResponse> => {
+      throw new Error('foo');
+    });
+    const task2 = vi.fn(() => Promise.resolve({}));
+
+    await ipb.add(task1);
+    await ipb.add(task2);
+
+    await expect(ipb.drain()).resolves.toEqual(true);
+
     expect(task2).toHaveBeenCalled();
   });
 

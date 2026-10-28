@@ -1,8 +1,41 @@
 import { sentryVitePlugin } from '@sentry/bundler-plugins/vite';
-import type { Plugin, UserConfig } from 'vite';
+import * as path from 'node:path';
+import type { Plugin, ResolvedConfig, UserConfig } from 'vite';
+import {
+  getNitroServiceOutDirs,
+  hasOutputSourceMapSetting,
+  isNitroService,
+  type PluginEnvironment,
+  type SourceMapsEnablerApi,
+} from './nitroSourceMaps';
 import type { SentryTanstackStartOptions } from './sentryTanstackStart';
 
 type FilesToDeleteAfterUpload = string | string[] | undefined;
+
+/** TanStack Router and Start split route files into virtual modules, e.g. `index.tsx?tss-serverfn-split`. */
+const TANSTACK_SPLIT_QUERY_REGEX = /\?ts[rs]-[^/]*$/;
+
+/** Sources such as `virtual:#nitro/runtime` are no file paths. Two letters at least, so drive letters, like `C:`, are not matched by the regex. */
+const SCHEME_REGEX = /^[a-z][a-z\d+.-]+:/i;
+
+/**
+ * Makes source paths relative to the project root and removes TanStack's split queries, so that client and server
+ * frames show the path of the source file, such as `src/routes/index.tsx`.
+ *
+ * Paths in a source map are relative to the map's directory, which the default hook ignores.
+ *
+ * @internal Only exported for testing.
+ */
+export function rewriteTanstackStartSource(source: string, _map: unknown, context?: { mapDir: string }): string {
+  const sourcePath = source.replace(TANSTACK_SPLIT_QUERY_REGEX, '');
+
+  if (SCHEME_REGEX.test(sourcePath)) {
+    return sourcePath;
+  }
+
+  const absolutePath = path.resolve(context?.mapDir ?? process.cwd(), sourcePath);
+  return path.relative(process.cwd(), absolutePath).split(path.sep).join('/');
+}
 
 /**
  * A Sentry plugin for adding the @sentry/bundler-plugins/vite to automatically upload source maps to Sentry.
@@ -36,21 +69,29 @@ export function makeAddSentryVitePlugin(options: SentryTanstackStartOptions): Pl
     name: 'sentry-tanstackstart-files-to-delete-after-upload-plugin',
     apply: 'build',
     enforce: 'post',
-    config(config) {
-      const userFilesToDelete = sourcemaps?.filesToDeleteAfterUpload;
-
-      // Only auto-delete source maps if the user didn't configure sourcemaps at all
-      if (typeof userFilesToDelete === 'undefined' && typeof config.build?.sourcemap === 'undefined') {
-        if (debug) {
-          // eslint-disable-next-line no-console
-          console.log(
-            '[Sentry] Automatically setting `sourcemaps.filesToDeleteAfterUpload: ["./**/*.map"]` to delete generated source maps after they were uploaded to Sentry.',
-          );
-        }
-        resolveFilesToDeleteAfterUpload?.(['./**/*.map']);
-      } else {
-        resolveFilesToDeleteAfterUpload?.(userFilesToDelete);
+    configResolved(config) {
+      if (sourcemaps?.filesToDeleteAfterUpload !== undefined) {
+        resolveFilesToDeleteAfterUpload?.(sourcemaps.filesToDeleteAfterUpload);
+        return;
       }
+
+      if (!isVite8OrLater(this.meta.viteVersion)) {
+        // eslint-disable-next-line no-console
+        console.warn(
+          `[Sentry] TanStack Start requires Vite 8 or later. With an older Vite, Sentry deletes the source maps it generated only in \`build.outDir\` of each environment, so source maps in other output directories can stay in the build output.`,
+        );
+      }
+
+      const filesToDelete = getSentryEnabledSourceMapGlobs(config);
+      if (debug) {
+        // eslint-disable-next-line no-console
+        console.log(
+          filesToDelete.length > 0
+            ? `[Sentry] Automatically setting \`sourcemaps.filesToDeleteAfterUpload: ${JSON.stringify(filesToDelete)}\` to delete generated source maps after they were uploaded to Sentry.`
+            : '[Sentry] No source maps are deleted after the upload, because Sentry did not enable source map generation for this build.',
+        );
+      }
+      resolveFilesToDeleteAfterUpload?.(filesToDelete);
     },
   };
 
@@ -70,7 +111,7 @@ export function makeAddSentryVitePlugin(options: SentryTanstackStartOptions): Pl
       assets: sourcemaps?.assets,
       disable: sourcemaps?.disable,
       ignore: sourcemaps?.ignore,
-      rewriteSources: sourcemaps?.rewriteSources,
+      rewriteSources: sourcemaps?.rewriteSources ?? rewriteTanstackStartSource,
       resolveSourceMap: sourcemaps?.resolveSourceMap,
       filesToDeleteAfterUpload: filesToDeleteAfterUploadPromise,
     },
@@ -87,24 +128,79 @@ export function makeAddSentryVitePlugin(options: SentryTanstackStartOptions): Pl
     },
   });
 
-  return [configPlugin, ...sentryPlugins];
+  // Nitro bundles the output of its services again. Debug IDs from a service would end up in Nitro's output and point
+  // to the service's source maps instead of Nitro's.
+  const scopedSentryPlugins = sentryPlugins.map(plugin => ({
+    ...plugin,
+    applyToEnvironment: (environment: PluginEnvironment) => !isNitroService(environment),
+  }));
+
+  return [configPlugin, ...scopedSentryPlugins];
+}
+
+/**
+ * Globs for the source maps in the output directories that only have source maps because Sentry enabled them. A glob
+ * such as `./**\/*.map` does not enter dot directories like `.output`, where Nitro puts the client build.
+ */
+function getSentryEnabledSourceMapGlobs(config: ResolvedConfig): string[] {
+  const serviceOutDirs = getNitroServiceOutDirs(config);
+  const outDirs = Object.entries(config.environments)
+    .filter(([name]) => hasSentryEnabledSourceMaps(config, name))
+    .filter(([, environment]) => !hasOutputSourceMapSetting(environment.build))
+    .flatMap(([, environment]) => getOutputDirs(config.root, environment.build))
+    .filter(outDir => !serviceOutDirs.includes(outDir));
+
+  return [...new Set(outDirs)].map(outDir => {
+    const relativeOutDir = path.relative(process.cwd(), outDir).split(path.sep).join('/');
+    return `${relativeOutDir || '.'}/**/*.map`;
+  });
+}
+
+/** `output.dir` takes precedence over `build.outDir`. Nitro sets only `output.dir` for its server build. */
+function getOutputDirs(root: string, build: ResolvedConfig['environments'][string]['build']): string[] {
+  // Vite 7 has no `rolldownOptions`.
+  const outputs = [build.rolldownOptions?.output ?? {}].flat();
+  return outputs.map(output => path.resolve(root, output.dir ?? build.outDir));
+}
+
+/** Vite tells plugins its version since Vite 7. */
+function isVite8OrLater(viteVersion: string | undefined): boolean {
+  return Number(viteVersion?.split('.')[0]) >= 8;
+}
+
+function hasSentryEnabledSourceMaps(config: ResolvedConfig, environmentName: string): boolean {
+  return config.plugins.some(plugin =>
+    (plugin.api as Partial<SourceMapsEnablerApi> | undefined)?.hasSentryEnabledSourceMaps?.(environmentName),
+  );
 }
 
 /**
  * A Sentry plugin for TanStack Start React to enable "hidden" source maps if they are unset.
  */
 export function makeEnableSourceMapsVitePlugin(options: SentryTanstackStartOptions): Plugin[] {
+  let enabledSourceMaps = false;
+  let environmentsWithSourceMapSetting: string[] = [];
+
+  const api: SourceMapsEnablerApi = {
+    hasSentryEnabledSourceMaps: environmentName =>
+      enabledSourceMaps && !environmentsWithSourceMapSetting.includes(environmentName),
+  };
+
   return [
     {
       name: 'sentry-tanstackstart-react-source-maps',
       apply: 'build',
       enforce: 'post',
+      api,
       config(viteConfig) {
-        return {
-          build: {
-            sourcemap: getUpdatedSourceMapSettings(viteConfig, options),
-          },
-        };
+        const sourcemap = getUpdatedSourceMapSettings(viteConfig, options);
+        enabledSourceMaps = sourcemap !== viteConfig.build?.sourcemap;
+        // The setting of an environment overrides the top-level setting, e.g. `nitro/vite` sets it for its environments.
+        environmentsWithSourceMapSetting = Object.entries(viteConfig.environments ?? {})
+          .filter(([, environment]) => environment?.build?.sourcemap !== undefined)
+          .map(([name]) => name);
+
+        return { build: { sourcemap } };
       },
     },
   ];
@@ -116,19 +212,19 @@ export function makeEnableSourceMapsVitePlugin(options: SentryTanstackStartOptio
  *       - keep this setting (emit a warning that errors won't be unminified in Sentry)
  *       - We won't upload anything
  *
- *     2. Users enabled source map generation (true, 'hidden', 'inline').
+ *     2. Users enabled source map generation (true, 'hidden', 'inline') or set `build.rolldownOptions.output.sourcemap`.
  *       - keep this setting (don't do anything - like deletion - besides uploading)
  *
  *     3. Users didn't set source maps generation
  *       - we enable 'hidden' source maps generation
- *       - configure `filesToDeleteAfterUpload` to delete all .map files (we emit a log about this)
+ *       - configure `filesToDeleteAfterUpload` to delete these .map files after the upload (we emit a log about this)
  *
- * --> only exported for testing
+ * @internal Only exported for testing.
  */
 export function getUpdatedSourceMapSettings(
   viteConfig: UserConfig,
   sentryPluginOptions?: SentryTanstackStartOptions,
-): boolean | 'inline' | 'hidden' {
+): boolean | 'inline' | 'hidden' | undefined {
   viteConfig.build = viteConfig.build || {};
 
   const viteUserSourceMapSetting = viteConfig.build?.sourcemap;
@@ -157,6 +253,15 @@ export function getUpdatedSourceMapSettings(
     }
 
     return viteUserSourceMapSetting;
+  } else if (hasOutputSourceMapSetting(viteConfig.build)) {
+    if (debug) {
+      // eslint-disable-next-line no-console
+      console.log(
+        '[Sentry] We discovered `vite.build.rolldownOptions.output.sourcemap`, which overrides `vite.build.sourcemap`. Sentry will keep this source map setting.',
+      );
+    }
+
+    return undefined;
   }
 
   // If the user did not specify a source map setting, we enable 'hidden' by default

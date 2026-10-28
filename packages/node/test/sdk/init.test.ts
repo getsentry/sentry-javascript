@@ -1,9 +1,9 @@
 import type { Integration } from '@sentry/core';
-import { debug, SDK_VERSION } from '@sentry/core';
+import { debug, originalConsoleMethods, SDK_VERSION } from '@sentry/core';
 import * as SentryOpentelemetry from '@sentry/opentelemetry';
 import * as SentryServerUtils from '@sentry/server-utils';
 import { afterEach, beforeEach, describe, expect, it, type Mock, type MockInstance, vi } from 'vitest';
-import { getClient, NodeClient } from '../../src/';
+import { close, getClient, NodeClient, serveTunnelIntegration } from '../../src/';
 import { init } from '../../src/sdk';
 import { cleanupOtel } from '../helpers/mockSdkInit';
 
@@ -38,6 +38,24 @@ describe('init()', () => {
     cleanupOtel();
 
     vi.clearAllMocks();
+  });
+
+  describe('tunnel', () => {
+    it('serves the managed tunnel with `serveTunnelIntegration` and sends its own envelopes directly', () => {
+      init({ dsn: PUBLIC_DSN, integrations: [serveTunnelIntegration()] });
+
+      const options = getClient<NodeClient>()?.getOptions();
+      expect(options?.tunnel).toBeUndefined();
+      expect(options?._managedTunnel).toEqual({});
+    });
+
+    it('keeps a `tunnel` string as the URL for its own envelopes', () => {
+      init({ dsn: PUBLIC_DSN, tunnel: 'https://example.com/tunnel' });
+
+      const options = getClient<NodeClient>()?.getOptions();
+      expect(options?.tunnel).toBe('https://example.com/tunnel');
+      expect(options?._managedTunnel).toBeUndefined();
+    });
   });
 
   describe('metadata', () => {
@@ -283,62 +301,113 @@ describe('init()', () => {
     expect(client).toBeInstanceOf(NodeClient);
   });
 
-  it('registers a SIGTERM handler on Vercel', () => {
-    const originalVercelEnv = process.env.VERCEL;
-    process.env.VERCEL = '1';
+  describe('when called again', () => {
+    // `consoleSandbox` calls the method stored in `originalConsoleMethods`, so a
+    // spy on `console.warn` misses the warning once the console is instrumented.
+    const originalWarn = originalConsoleMethods.warn;
+    let warnSpy: Mock;
 
-    const baselineListeners = process.listeners('SIGTERM');
+    beforeEach(() => {
+      warnSpy = vi.fn();
+      originalConsoleMethods.warn = warnSpy;
+    });
 
-    init({ dsn: PUBLIC_DSN, enableOpenTelemetrySetup: false });
+    afterEach(() => {
+      if (originalWarn) {
+        originalConsoleMethods.warn = originalWarn;
+      } else {
+        delete originalConsoleMethods.warn;
+      }
+    });
 
-    const postInitListeners = process.listeners('SIGTERM');
-    const addedListeners = postInitListeners.filter(l => !baselineListeners.includes(l));
+    it('warns and replaces the active client', () => {
+      const first = init({ dsn: PUBLIC_DSN, enableOpenTelemetrySetup: false });
+      const second = init({ dsn: PUBLIC_DSN, enableOpenTelemetrySetup: false });
 
-    expect(addedListeners).toHaveLength(1);
+      expect(warnSpy).toHaveBeenCalledTimes(1);
+      expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('`Sentry.init()` was called more than once'));
+      expect(second).not.toBe(first);
+      expect(getClient()).toBe(second);
+    });
 
-    // Cleanup: remove the handler we added in this test.
-    process.off('SIGTERM', addedListeners[0] as any);
-    process.env.VERCEL = originalVercelEnv;
+    it('does not warn after close()', async () => {
+      init({ dsn: PUBLIC_DSN, enableOpenTelemetrySetup: false });
+      await close();
+      const second = init({ dsn: PUBLIC_DSN, enableOpenTelemetrySetup: false });
+
+      expect(warnSpy).not.toHaveBeenCalled();
+      expect(getClient()).toBe(second);
+    });
   });
 
-  it('flushes when SIGTERM is received on Vercel', () => {
-    const originalVercelEnv = process.env.VERCEL;
-    process.env.VERCEL = '1';
+  describe('Vercel keep-alive', () => {
+    let vercelInit: typeof init;
+    let VercelNodeClient: typeof NodeClient;
 
-    const baselineListeners = process.listeners('SIGTERM');
+    beforeEach(async () => {
+      // The keep-alive listeners are registered once per module instance, so each test needs a fresh one.
+      vi.resetModules();
+      ({ init: vercelInit } = await import('../../src/sdk'));
+      ({ NodeClient: VercelNodeClient } = await import('../../src/sdk/client'));
+    });
 
-    const client = init({ dsn: PUBLIC_DSN, enableOpenTelemetrySetup: false });
-    expect(client).toBeInstanceOf(NodeClient);
+    it('registers a SIGTERM handler on Vercel', () => {
+      const originalVercelEnv = process.env.VERCEL;
+      process.env.VERCEL = '1';
 
-    const flushSpy = vi.spyOn(client as NodeClient, 'flush').mockResolvedValue(true);
+      const baselineListeners = process.listeners('SIGTERM');
 
-    const postInitListeners = process.listeners('SIGTERM');
-    const addedListeners = postInitListeners.filter(l => !baselineListeners.includes(l));
-    expect(addedListeners).toHaveLength(1);
+      vercelInit({ dsn: PUBLIC_DSN, enableOpenTelemetrySetup: false });
 
-    process.emit('SIGTERM');
+      const postInitListeners = process.listeners('SIGTERM');
+      const addedListeners = postInitListeners.filter(l => !baselineListeners.includes(l));
 
-    expect(flushSpy).toHaveBeenCalledWith(200);
+      expect(addedListeners).toHaveLength(1);
 
-    // Cleanup: remove the handler we added in this test.
-    process.off('SIGTERM', addedListeners[0] as any);
-    process.env.VERCEL = originalVercelEnv;
-  });
+      // Cleanup: remove the handler we added in this test.
+      process.off('SIGTERM', addedListeners[0] as any);
+      process.env.VERCEL = originalVercelEnv;
+    });
 
-  it('does not register a SIGTERM handler when not running on Vercel', () => {
-    const originalVercelEnv = process.env.VERCEL;
-    delete process.env.VERCEL;
+    it('flushes when SIGTERM is received on Vercel', () => {
+      const originalVercelEnv = process.env.VERCEL;
+      process.env.VERCEL = '1';
 
-    const baselineListeners = process.listeners('SIGTERM');
+      const baselineListeners = process.listeners('SIGTERM');
 
-    init({ dsn: PUBLIC_DSN, enableOpenTelemetrySetup: false });
+      const client = vercelInit({ dsn: PUBLIC_DSN, enableOpenTelemetrySetup: false });
+      expect(client).toBeInstanceOf(VercelNodeClient);
 
-    const postInitListeners = process.listeners('SIGTERM');
-    const addedListeners = postInitListeners.filter(l => !baselineListeners.includes(l));
+      const flushSpy = vi.spyOn(client as InstanceType<typeof VercelNodeClient>, 'flush').mockResolvedValue(true);
 
-    expect(addedListeners).toHaveLength(0);
+      const postInitListeners = process.listeners('SIGTERM');
+      const addedListeners = postInitListeners.filter(l => !baselineListeners.includes(l));
+      expect(addedListeners).toHaveLength(1);
 
-    process.env.VERCEL = originalVercelEnv;
+      process.emit('SIGTERM');
+
+      expect(flushSpy).toHaveBeenCalledWith(200);
+
+      // Cleanup: remove the handler we added in this test.
+      process.off('SIGTERM', addedListeners[0] as any);
+      process.env.VERCEL = originalVercelEnv;
+    });
+
+    it('does not register a SIGTERM handler when not running on Vercel', () => {
+      const originalVercelEnv = process.env.VERCEL;
+      delete process.env.VERCEL;
+
+      const baselineListeners = process.listeners('SIGTERM');
+
+      vercelInit({ dsn: PUBLIC_DSN, enableOpenTelemetrySetup: false });
+
+      const postInitListeners = process.listeners('SIGTERM');
+      const addedListeners = postInitListeners.filter(l => !baselineListeners.includes(l));
+
+      expect(addedListeners).toHaveLength(0);
+
+      process.env.VERCEL = originalVercelEnv;
+    });
   });
 
   describe('environment variable options', () => {

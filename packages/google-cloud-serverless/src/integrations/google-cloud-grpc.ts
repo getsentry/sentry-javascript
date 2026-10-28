@@ -106,7 +106,7 @@ export function fillGrpcFunction(stub: Stub, serviceIdentifier: string, methodNa
       onlyIfParent: true,
       attributes: {
         [SENTRY_OP]: GRPC,
-        [SENTRY_ORIGIN]: 'auto.grpc.serverless',
+        [SENTRY_ORIGIN]: 'auto.grpc.google_cloud',
         [RPC_SYSTEM_NAME]: 'grpc',
         [RPC_SERVICE]: serviceIdentifier,
         [RPC_METHOD]: methodName,

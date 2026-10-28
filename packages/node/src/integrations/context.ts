@@ -20,12 +20,6 @@ import { defineIntegration, safeSetSpanJSONAttributes } from '@sentry/core';
 export const readFileAsync = promisify(readFile);
 export const readDirAsync = promisify(readdir);
 
-// Process enhanced with methods from Node 18, 20, 22 as @types/node
-// is on `14.18.0` to match minimum version requirements of the SDK
-interface ProcessWithCurrentValues extends NodeJS.Process {
-  availableMemory?(): number;
-}
-
 const INTEGRATION_NAME = 'Context' as const;
 
 interface DeviceContextOptions {
@@ -141,8 +135,8 @@ function _updateContext(contexts: Contexts): Contexts {
     contexts.app.app_memory = process.memoryUsage().rss;
   }
 
-  if (contexts.app?.free_memory && typeof (process as ProcessWithCurrentValues).availableMemory === 'function') {
-    const freeMemory = (process as ProcessWithCurrentValues).availableMemory?.();
+  if (contexts.app?.free_memory && typeof process.availableMemory === 'function') {
+    const freeMemory = process.availableMemory();
     if (freeMemory != null) {
       contexts.app.free_memory = freeMemory;
     }
@@ -231,8 +225,8 @@ export function getDynamicSpanAttributes(
 
   if (appContext) {
     attrs['app.memory'] = process.memoryUsage().rss;
-    if (typeof (process as ProcessWithCurrentValues).availableMemory === 'function') {
-      const freeMemory = (process as ProcessWithCurrentValues).availableMemory?.();
+    if (typeof process.availableMemory === 'function') {
+      const freeMemory = process.availableMemory();
       if (freeMemory != null) {
         attrs['app.free_memory'] = freeMemory;
       }
@@ -314,8 +308,8 @@ export function getAppContext(): AppContext {
   // https://nodejs.org/api/process.html#processavailablememory
   const appContext: AppContext = { app_start_time, app_memory };
 
-  if (typeof (process as ProcessWithCurrentValues).availableMemory === 'function') {
-    const freeMemory = (process as ProcessWithCurrentValues).availableMemory?.();
+  if (typeof process.availableMemory === 'function') {
+    const freeMemory = process.availableMemory();
     if (freeMemory != null) {
       appContext.free_memory = freeMemory;
     }

@@ -1,6 +1,8 @@
 import * as diagnosticsChannel from 'node:diagnostics_channel';
 import { createMultiMatcher } from 'remix/route-pattern/match';
 import { consoleSandbox } from '@sentry/core';
+import { _INTERNAL_handleServedTunnelRequest as handleServedTunnelRequest } from '@sentry/core/server';
+import type { OrchestrionChannelContext } from '@sentry/server-utils';
 import { remixV3Channels } from '@sentry/server-utils/orchestrion/config';
 
 import type { MatcherLike, RequestListenerOptionsLike, RouterOptionsLike } from '../types';
@@ -8,11 +10,6 @@ import { captureRequestError } from './errorFilter';
 import { sentryRemixMiddleware } from './middleware';
 
 const NOOP = (): void => {};
-
-/** The call's arguments, as orchestrion's transform attaches them to a tracing channel context. */
-interface ChannelContext {
-  arguments: unknown[];
-}
 
 // Marks an options object already injected into, so the same mutation cannot be applied twice.
 const INJECTED = Symbol.for('SentryRemixV3Injected');
@@ -41,36 +38,15 @@ export function instrumentRemixV3(): void {
 }
 
 function subscribeToCreateRouter(): void {
-  diagnosticsChannel.tracingChannel<ChannelContext, ChannelContext>(remixV3Channels.REMIX_V3_CREATE_ROUTER).subscribe({
-    start(data) {
-      // Node rethrows anything this handler throws as an uncaught exception, which would kill an app
-      // that runs fine without Sentry. Frozen options, a non-writable property and a `route-pattern`
-      // copy that cannot build a matcher all reach here, so the router is left uninstrumented instead.
-      try {
-        injectRouterMiddleware(ensureOptions(data.arguments));
-      } catch {
-        // Ignored on purpose.
-      }
-    },
-    end: NOOP,
-    asyncStart: NOOP,
-    asyncEnd: NOOP,
-    error: NOOP,
-  });
-}
-
-/**
- * Report errors from any fetch handler, router or not. The middleware only sees failures inside a
- * router; this is the only hook that covers a plain handler. No abort guard is needed, because the
- * listener drops aborted requests before calling `onError`.
- */
-function subscribeToCreateRequestListener(): void {
   diagnosticsChannel
-    .tracingChannel<ChannelContext, ChannelContext>(remixV3Channels.REMIX_V3_CREATE_REQUEST_LISTENER)
+    .tracingChannel<OrchestrionChannelContext, OrchestrionChannelContext>(remixV3Channels.REMIX_V3_CREATE_ROUTER)
     .subscribe({
       start(data) {
+        // Node rethrows anything this handler throws as an uncaught exception, which would kill an app
+        // that runs fine without Sentry. Frozen options, a non-writable property and a `route-pattern`
+        // copy that cannot build a matcher all reach here, so the router is left uninstrumented instead.
         try {
-          injectOnError(ensureOptions(data.arguments, 1));
+          injectRouterMiddleware(ensureOptions(data.arguments));
         } catch {
           // Ignored on purpose.
         }
@@ -80,6 +56,47 @@ function subscribeToCreateRequestListener(): void {
       asyncEnd: NOOP,
       error: NOOP,
     });
+}
+
+/**
+ * Report errors from any fetch handler, router or not, and answer managed tunnel requests before it runs.
+ * The middleware only sees failures inside a router; this is the only hook that covers a plain handler.
+ * No abort guard is needed, because the listener drops aborted requests before calling `onError`.
+ */
+function subscribeToCreateRequestListener(): void {
+  diagnosticsChannel
+    .tracingChannel<OrchestrionChannelContext, OrchestrionChannelContext>(
+      remixV3Channels.REMIX_V3_CREATE_REQUEST_LISTENER,
+    )
+    .subscribe({
+      start(data) {
+        try {
+          injectOnError(ensureOptions(data.arguments, 1));
+          wrapFetchHandler(data.arguments);
+        } catch {
+          // Ignored on purpose.
+        }
+      },
+      end: NOOP,
+      asyncStart: NOOP,
+      asyncEnd: NOOP,
+      error: NOOP,
+    });
+}
+
+/**
+ * Answers managed tunnel requests before the app's fetch handler, so code the app runs in front of its router never
+ * sees them. The router middleware still answers them for apps served some other way.
+ */
+function wrapFetchHandler(args: unknown[]): void {
+  const handler = args[0];
+  if (typeof handler !== 'function') {
+    return;
+  }
+
+  args[0] = function sentryFetchHandler(this: unknown, request: Request, ...rest: unknown[]): unknown {
+    return handleServedTunnelRequest(request) ?? handler.call(this, request, ...rest);
+  };
 }
 
 function injectOnError(raw: Record<string, unknown> | undefined): void {

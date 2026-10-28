@@ -15,7 +15,10 @@
     "test:dev": "TEST_ENV=development playwright test environment",
     "test:build": "pnpm install && pnpm build",
     "test:build-canary": "pnpm add nuxt@npm:nuxt-nightly@latest && pnpm add nitro@npm:nitro-nightly@latest && pnpm install --force && pnpm build",
-    "test:assert": "pnpm test:prod && pnpm test:dev"
+    "test:assert": "pnpm test:prod && pnpm test:dev",
+    "test:build:tunnel-basepath": "pnpm install && E2E_TEST_TUNNEL=1 E2E_TEST_BASE_PATH=/app pnpm build",
+    "test:assert:tunnel-basepath": "E2E_TEST_TUNNEL=1 E2E_TEST_BASE_PATH=/app TEST_ENV=production playwright test tunnel",
+    "test:assert:tunnel-dev": "E2E_TEST_TUNNEL=1 TEST_ENV=development playwright test tunnel"
   },
   "//": [
     "Currently, we need to install the latest version of Nitro and the Nuxt nightlies as those contain Nuxt v5",
@@ -34,14 +37,22 @@
     "vue": "^3.5.41"
   },
   "devDependencies": {
-    "@playwright/test": "~1.63.0",
-    "@sentry-internal/test-utils": "link:../../../test-utils"
+    "@playwright/test": "1.64.1",
+    "@sentry-internal/test-utils": "file:../../packed/sentry-internal-test-utils-packed.tgz"
   },
   "sentryTest": {
-    "optional": true
-  },
-  "volta": {
-    "extends": "../../package.json",
-    "pnpm": "11.10.0"
+    "optional": true,
+    "variants": [
+      {
+        "build-command": "pnpm test:build:tunnel-basepath",
+        "assert-command": "pnpm test:assert:tunnel-basepath",
+        "label": "nuxt-5 (tunnel-basepath)"
+      },
+      {
+        "build-command": "pnpm install",
+        "assert-command": "pnpm test:assert:tunnel-dev",
+        "label": "nuxt-5 (tunnel-dev)"
+      }
+    ]
   }
 }

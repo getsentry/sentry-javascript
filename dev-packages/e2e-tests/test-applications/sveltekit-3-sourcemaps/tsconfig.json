@@ -1,0 +1,9 @@
+{
+  "extends": "$app/tsconfig",
+  "include": ["src"],
+  "compilerOptions": {
+    "allowJs": true,
+    "skipLibCheck": true,
+    "strict": true
+  }
+}

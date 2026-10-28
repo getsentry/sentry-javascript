@@ -79,6 +79,12 @@ function normalizeEvent(event: Event): Event {
     }
   }
 
+  // The default integration list is incidental to these snapshots, so collapse it to a placeholder.
+  // This keeps the snapshots stable when integrations are added to or removed from the defaults.
+  if (event.sdk?.integrations) {
+    event.sdk.integrations = ['{{integrations}}'];
+  }
+
   if (event.contexts?.app?.app_start_time) {
     event.contexts.app.app_start_time = '{{time}}';
   }

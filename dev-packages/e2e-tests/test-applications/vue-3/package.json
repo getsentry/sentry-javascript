@@ -30,8 +30,8 @@
     "vue-router": "^4.2.5"
   },
   "devDependencies": {
-    "@playwright/test": "~1.63.0",
-    "@sentry-internal/test-utils": "link:../../../test-utils",
+    "@playwright/test": "1.64.1",
+    "@sentry-internal/test-utils": "file:../../packed/sentry-internal-test-utils-packed.tgz",
     "@tsconfig/node20": "^20.1.2",
     "@types/node": "^18.19.1",
     "@vitejs/plugin-vue": "^5.0.3",
@@ -42,9 +42,6 @@
     "typescript": "~5.3.0",
     "vite": "^5.4.11",
     "vue-tsc": "^1.8.27"
-  },
-  "volta": {
-    "extends": "../../package.json"
   },
   "sentryTest": {
     "variants": [

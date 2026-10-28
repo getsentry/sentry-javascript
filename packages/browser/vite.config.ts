@@ -9,5 +9,10 @@ export default defineConfig({
     fakeTimers: {
       toFake: ['setTimeout', 'clearTimeout', 'setInterval', 'clearInterval', 'setImmediate', 'clearImmediate', 'Date'],
     },
+    typecheck: {
+      enabled: true,
+      tsconfig: './tsconfig.test.json',
+      ignoreSourceErrors: true,
+    },
   },
 });

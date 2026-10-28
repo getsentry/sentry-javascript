@@ -90,7 +90,7 @@ const sentryTest = base.extend<TestFixtures>({
         }
 
         await page.route(`${TEST_HOST}/*.*`, route => {
-          const file = route.request().url().split('/').pop();
+          const file = new URL(route.request().url()).pathname.split('/').pop();
           const filePath = path.resolve(tmpDir, `./${file}`);
 
           return fs.existsSync(filePath)

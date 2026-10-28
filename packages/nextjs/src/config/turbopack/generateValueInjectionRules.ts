@@ -2,6 +2,7 @@ import * as path from 'path';
 import type { VercelCronsConfig } from '../../common/types';
 import type { RouteManifest } from '../manifest/types';
 import type { JSONValue, TurbopackMatcherWithRule } from '../types';
+import type { TunnelRouteInjectedValues } from '../withSentryConfig/tunnel';
 import { getPackageModules, supportsTurbopackRuleCondition } from '../util';
 
 /**
@@ -10,16 +11,16 @@ import { getPackageModules, supportsTurbopackRuleCondition } from '../util';
 export function generateValueInjectionRules({
   routeManifest,
   nextJsVersion,
-  tunnelPath,
+  tunnelRouteValues,
   vercelCronsConfig,
 }: {
   routeManifest?: RouteManifest;
   nextJsVersion?: string;
-  tunnelPath?: string;
+  tunnelRouteValues?: TunnelRouteInjectedValues;
   vercelCronsConfig?: VercelCronsConfig;
 }): TurbopackMatcherWithRule[] {
   const rules: TurbopackMatcherWithRule[] = [];
-  const isomorphicValues: Record<string, JSONValue> = {};
+  const isomorphicValues: Record<string, JSONValue> = { ...tunnelRouteValues };
   let clientValues: Record<string, JSONValue> = {};
   let serverValues: Record<string, JSONValue> = {};
 
@@ -30,11 +31,6 @@ export function generateValueInjectionRules({
 
   if (routeManifest) {
     clientValues._sentryRouteManifest = JSON.stringify(routeManifest);
-  }
-
-  // Inject tunnel route path for both client and server
-  if (tunnelPath) {
-    isomorphicValues._sentryRewritesTunnelPath = tunnelPath;
   }
 
   // Inject Vercel crons config for server-side cron auto-instrumentation

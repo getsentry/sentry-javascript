@@ -6,7 +6,8 @@ import {
   createStorefrontClient,
   storefrontRedirect,
 } from '@shopify/hydrogen';
-import { type AppLoadContext, createRequestHandler, getStorefrontHeaders } from '@shopify/remix-oxygen';
+import { createRequestHandler, getStorefrontHeaders } from '@shopify/hydrogen/oxygen';
+import type { AppLoadContext } from 'react-router';
 import { CART_QUERY_FRAGMENT } from '~/lib/fragments';
 import { AppSession } from '~/lib/session';
 import { httpServerIntegration, wrapRequestHandler } from '@sentry/cloudflare/request';

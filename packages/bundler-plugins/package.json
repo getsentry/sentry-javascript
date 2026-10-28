@@ -1,6 +1,6 @@
 {
   "name": "@sentry/bundler-plugins",
-  "version": "11.4.0",
+  "version": "11.10.0",
   "description": "Sentry Bundler Plugins",
   "repository": "git://github.com/getsentry/sentry-javascript.git",
   "homepage": "https://github.com/getsentry/sentry-javascript/tree/main/packages/bundler-plugins",
@@ -39,6 +39,11 @@
       "import": "./build/esm/esbuild/index.js",
       "require": "./build/cjs/esbuild/index.js"
     },
+    "./bun": {
+      "types": "./build/types/bun/index.d.ts",
+      "import": "./build/esm/bun/index.js",
+      "require": "./build/cjs/bun/index.js"
+    },
     "./core": {
       "types": "./build/types/core/index.d.ts",
       "import": "./build/esm/core/index.js",
@@ -68,19 +73,19 @@
   },
   "scripts": {
     "build": "run-p build:transpile build:types",
-    "build:dev": "yarn build",
+    "build:dev": "pnpm run build",
     "build:version": "node -p \"'export const LIB_VERSION = ' + JSON.stringify(require('./package.json').version) + ';'\" > src/core/version.ts",
     "build:transpile": "rollup -c rollup.npm.config.mjs",
     "build:types": "tsc -p tsconfig.types.json",
     "build:watch": "run-p build:transpile:watch",
-    "build:dev:watch": "yarn build:watch",
+    "build:dev:watch": "pnpm run build:watch",
     "build:transpile:watch": "rollup -c rollup.npm.config.mjs --watch",
     "build:tarball": "npm pack",
-    "prebuild": "yarn build:version",
-    "precheck:types": "yarn build:version",
-    "prelint:types": "yarn build:version",
-    "pretest": "yarn build:version",
-    "pretest:unit": "yarn build:version",
+    "prebuild": "pnpm run build:version",
+    "precheck:types": "pnpm run build:version",
+    "prelint:types": "pnpm run build:version",
+    "pretest": "pnpm run build:version",
+    "pretest:unit": "pnpm run build:version",
     "check:types": "run-p check:types:src check:types:test",
     "check:types:src": "tsc --project ./tsconfig.json --noEmit",
     "check:types:test": "tsc --project ./test/tsconfig.json --noEmit",
@@ -110,7 +115,7 @@
     }
   },
   "dependencies": {
-    "@sentry/core": "11.4.0",
+    "@sentry/core": "11.10.0",
     "dotenv": "^17.4.2",
     "glob": "^13.0.6",
     "magic-string": "~0.30.8 || ^1.0.0",
@@ -119,14 +124,10 @@
     "supports-color": "^8.1.1"
   },
   "peerDependencies": {
-    "@babel/core": "^7.18.5",
     "rollup": ">=3.2.0",
     "webpack": ">=5.1.0"
   },
   "peerDependenciesMeta": {
-    "@babel/core": {
-      "optional": true
-    },
     "rollup": {
       "optional": true
     },
@@ -136,16 +137,16 @@
   },
   "devDependencies": {
     "@babel/core": "^7.18.5",
+    "@babel/parser": "^7.29.8",
     "@babel/preset-react": "^7.23.3",
+    "@sentry-internal/rollup-utils": "11.10.0",
+    "@sentry-internal/test-utils": "11.10.0",
     "@types/babel__core": "^7.20.5",
     "@types/node": "^20.19.0",
     "premove": "^4.0.0",
     "rolldown": "^1.0.0",
     "vitest": "^4.1.11",
     "webpack": "5.104.1"
-  },
-  "volta": {
-    "extends": "../../package.json"
   },
   "engines": {
     "node": ">=20.19.0 <22.0.0 || >=22.12.0 <23.0.0 || >=23.2.0"

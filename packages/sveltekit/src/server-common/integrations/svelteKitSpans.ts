@@ -84,6 +84,8 @@ function _getKitSpanOrigin(spanName: string | undefined): SpanOrigin | undefined
       return 'auto.function.sveltekit.load';
     case 'sveltekit.form_action':
       return 'auto.function.sveltekit.action';
+    case 'sveltekit.endpoint':
+      return 'auto.function.sveltekit.endpoint';
     case 'sveltekit.remote.call':
       return 'auto.rpc.sveltekit.remote';
     case 'sveltekit.handle.root':

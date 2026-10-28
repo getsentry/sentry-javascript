@@ -1,12 +1,6 @@
 import type { SpanAttributes } from '@sentry/core';
-import { browserPerformanceTimeOrigin } from '@sentry/core';
-import { extractNetworkProtocol, getBrowserPerformanceAPI } from './utils';
-
-function getAbsoluteTime(time: number | undefined): number | undefined {
-  // falsy values should be preserved so that we can later on drop undefined values and
-  // preserve 0 vals for cross-origin resources without proper `Timing-Allow-Origin` header.
-  return time ? ((browserPerformanceTimeOrigin() || performance.timeOrigin) + time) / 1000 : time;
-}
+import { _INTERNAL_performanceTimeToSeconds } from '@sentry/core';
+import { extractNetworkProtocol, msToSec } from './utils';
 
 /**
  * Converts a PerformanceResourceTiming entry to span data for the resource span. Most importantly,
@@ -28,9 +22,15 @@ export function resourceTimingToSpanAttributes(resourceTiming: PerformanceResour
     timingSpanData['network.protocol.name'] = name;
   }
 
-  if (!(browserPerformanceTimeOrigin() || getBrowserPerformanceAPI()?.timeOrigin)) {
+  if (_INTERNAL_performanceTimeToSeconds(resourceTiming.startTime) === undefined) {
     return timingSpanData;
   }
+
+  // Use the origin from the request start for all timings, so the durations between them stay correct.
+  const getAbsoluteTime = (time: number | undefined): number | undefined =>
+    // falsy values should be preserved so that we can later on drop undefined values and
+    // preserve 0 vals for cross-origin resources without proper `Timing-Allow-Origin` header.
+    time ? _INTERNAL_performanceTimeToSeconds(time, resourceTiming.startTime) : time;
 
   return dropUndefinedKeysFromObject({
     ...timingSpanData,
@@ -58,7 +58,7 @@ export function resourceTimingToSpanAttributes(resourceTiming: PerformanceResour
     // This way, TTFB always measures the "first page load" experience.
     // see: https://web.dev/articles/ttfb#measure-resource-requests
     'http.request.time_to_first_byte':
-      resourceTiming.responseStart != null ? resourceTiming.responseStart / 1000 : undefined,
+      resourceTiming.responseStart != null ? msToSec(resourceTiming.responseStart) : undefined,
   });
 }
 

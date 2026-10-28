@@ -6,7 +6,6 @@ window.Sentry = Sentry;
 // window.sentryFeatureFlagsIntegration = Sentry.featureFlagsIntegration();
 
 Sentry.init({
-  traceLifecycle: 'static',
   dsn: 'https://public@dsn.ingest.sentry.io/1337',
   sampleRate: 1.0,
   integrations: [Sentry.featureFlagsIntegration()],

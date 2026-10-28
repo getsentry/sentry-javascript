@@ -23,6 +23,7 @@ import { HTTP_ON_SERVER_REQUEST } from './constants';
 import type { HttpIncomingMessage, HttpInstrumentationOptions, HttpServer, HttpServerResponse } from './types';
 import { DEBUG_BUILD } from '../../debug-build';
 import { debug } from '../../utils/debug-logger';
+import { safeCallback } from '../../utils/safeCallback';
 import { getClient, getCurrentScope, getIsolationScope, withIsolationScope } from '../../currentScopes';
 import { hasSpansEnabled } from '../../utils/hasSpansEnabled';
 import {
@@ -147,7 +148,14 @@ export function instrumentServer(options: HttpInstrumentationOptions, server: Ht
         configuredBodySize ??
         (client.getDataCollectionOptions().httpBodies.includes('incomingRequest') ? 'medium' : 'none');
 
-      if (effectiveBodySize !== 'none' && !ignoreRequestBody?.(url, request)) {
+      if (
+        effectiveBodySize !== 'none' &&
+        !safeCallback(
+          DEBUG_BUILD ? 'The `ignoreRequestBody` callback threw an error, ignoring the request body:' : '',
+          () => !!ignoreRequestBody?.(url, request),
+          () => true,
+        )
+      ) {
         patchRequestToCaptureBody(request, isolationScope, effectiveBodySize, INTEGRATION_NAME);
       }
 
@@ -326,7 +334,7 @@ function buildServerSpanWrap(
           attributes: {
             // Sentry-specific attributes
             [SENTRY_OP]: HTTP_SERVER,
-            [SENTRY_ORIGIN]: 'auto.http.server',
+            [SENTRY_ORIGIN]: 'auto.http.http_server',
             [SENTRY_SEGMENT_NAME_SOURCE]: 'url',
             [SENTRY_KIND]: 'server',
             // Network attributes
@@ -354,7 +362,11 @@ function buildServerSpanWrap(
           },
         },
         span => {
-          onSpanCreated?.(span, request, response);
+          safeCallback(
+            DEBUG_BUILD ? 'The `onSpanCreated` callback threw an error:' : '',
+            () => onSpanCreated?.(span, request, response),
+            () => undefined,
+          );
           // Ensure we only end the span once
           // E.g. error can be emitted before close is emitted
           let isEnded = false;
@@ -372,7 +384,11 @@ function buildServerSpanWrap(
               ...httpHeadersToSpanAttributes(headersToDict(response.headers), dataCollectionOptions, 'response'),
             });
             span.setStatus(status);
-            onSpanEnd?.(span, request, response);
+            safeCallback(
+              DEBUG_BUILD ? 'The `onSpanEnd` callback threw an error:' : '',
+              () => onSpanEnd?.(span, request, response),
+              () => undefined,
+            );
             span.end();
           }
 
@@ -419,7 +435,13 @@ function shouldIgnoreSpansForIncomingRequest(
     return true;
   }
 
-  if (ignoreIncomingRequests?.(urlPath, request)) {
+  if (
+    safeCallback(
+      DEBUG_BUILD ? 'The `ignoreIncomingRequests` callback threw an error, not ignoring the request:' : '',
+      () => !!ignoreIncomingRequests?.(urlPath, request),
+      () => false,
+    )
+  ) {
     return true;
   }
 

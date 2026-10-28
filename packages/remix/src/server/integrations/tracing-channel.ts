@@ -14,6 +14,7 @@ import {
   waitForTracingChannelBinding,
   filterCollectedUrl,
 } from '@sentry/core';
+import type { OrchestrionChannelContext } from '@sentry/server-utils';
 import { bindTracingChannelToSpan } from '@sentry/server-utils';
 import {
   SENTRY_SEGMENT_NAME_SOURCE,
@@ -41,17 +42,6 @@ const NOOP = (): void => {};
 const MATCH_ROUTE_ID = 'match.route.id';
 const MATCH_PARAMS = 'match.params';
 
-/**
- * The shape orchestrion's transform attaches to a tracing-channel `context` object. Documented here
- * rather than imported because orchestrion's runtime doesn't export it.
- */
-interface ChannelContext {
-  // The live `arguments` of the wrapped call.
-  arguments: unknown[];
-  result?: unknown;
-  error?: unknown;
-}
-
 // `callRouteLoader`/`callRouteAction` receive a single options object as `arguments[0]`.
 interface RouteCallParams {
   request?: Request;
@@ -61,7 +51,7 @@ interface RouteCallParams {
 
 // The in-flight form-data read, started at span start (before the action consumes the body) so it
 // overlaps the action's execution rather than starting after it settles.
-interface ActionChannelContext extends ChannelContext {
+interface ActionChannelContext extends OrchestrionChannelContext {
   _sentryFormData?: Promise<FormData>;
 }
 
@@ -140,7 +130,7 @@ function enrichActiveSpanWithRoute(result: unknown): void {
 }
 
 function subscribeRequestHandler(): void {
-  bindTracingChannelToSpan<ChannelContext>(
+  bindTracingChannelToSpan<OrchestrionChannelContext>(
     diagnosticsChannel.tracingChannel(remixChannels.REMIX_REQUEST_HANDLER),
     data => {
       const requestAttributes = getRequestAttributes(data.arguments[0]);
@@ -178,19 +168,21 @@ function subscribeRequestHandler(): void {
 function subscribeMatchServerRoutes(): void {
   // `matchServerRoutes` is synchronous, so only the `end` event carries a result; the rest are
   // no-ops. `subscribe` types demand a handler for each channel.
-  diagnosticsChannel.tracingChannel<ChannelContext, ChannelContext>(remixChannels.REMIX_MATCH_SERVER_ROUTES).subscribe({
-    start: NOOP,
-    end(data) {
-      enrichActiveSpanWithRoute(data.result);
-    },
-    asyncStart: NOOP,
-    asyncEnd: NOOP,
-    error: NOOP,
-  });
+  diagnosticsChannel
+    .tracingChannel<OrchestrionChannelContext, OrchestrionChannelContext>(remixChannels.REMIX_MATCH_SERVER_ROUTES)
+    .subscribe({
+      start: NOOP,
+      end(data) {
+        enrichActiveSpanWithRoute(data.result);
+      },
+      asyncStart: NOOP,
+      asyncEnd: NOOP,
+      error: NOOP,
+    });
 }
 
 function subscribeCallRouteLoader(): void {
-  bindTracingChannelToSpan<ChannelContext>(
+  bindTracingChannelToSpan<OrchestrionChannelContext>(
     diagnosticsChannel.tracingChannel(remixChannels.REMIX_CALL_ROUTE_LOADER),
     data => {
       const params = (data.arguments[0] ?? {}) as RouteCallParams;
