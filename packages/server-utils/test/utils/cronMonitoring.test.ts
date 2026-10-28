@@ -1,5 +1,6 @@
+import { getCurrentScope } from '@sentry/core';
 import { describe, expect, it } from 'vitest';
-import { cronExpressionToMonitorConfig, shouldMonitorJob } from '../../src/utils/cronMonitoring';
+import { cronExpressionToMonitorConfig, shouldMonitorJob, wrapScheduledJob } from '../../src/utils/cronMonitoring';
 
 const toMonitorConfig = (expression: string, timezone: unknown) =>
   cronExpressionToMonitorConfig(expression, timezone, 'and');
@@ -14,6 +15,14 @@ describe('cronExpressionToMonitorConfig with node-cron day matching', () => {
     ['@daily', '0 0 * * *'],
     ['@Weekly', '0 0 * * 0'],
     ['*/15 * * * *', '*/15 * * * *'],
+    ['0 9 * * sun', '0 9 * * 0'],
+    ['0 9 * * sat-sun', '0 9 * * 6-7'],
+    ['0 9 * * fri-sun', '0 9 * * 5-7'],
+    ['0 9 * * sun-tue', '0 9 * * 0-2'],
+    ['0 9 * * 6-7', '0 9 * * 6-7'],
+    ['0 9 * * 5-0', '0 9 * * 5-7'],
+    ['0 9 * * 5-0/2', '0 9 * * 5-7/2'],
+    ['0 9 * * 1-3,sat-sun', '0 9 * * 1-3,6-7'],
   ])('sends %s as %s', (expression, crontab) => {
     expect(toMonitorConfig(expression, 'Europe/Vienna')).toEqual({
       schedule: { type: 'crontab', value: crontab },
@@ -31,6 +40,10 @@ describe('cronExpressionToMonitorConfig with node-cron day matching', () => {
     '0 9 * * 1#2',
     '* * * *',
     '0 9 * foo *',
+    '0 9 * * tue-mon',
+    '0 9 * * 7-2',
+    '0 22-2 * * *',
+    '0 9 * nov-feb *',
   ])('sends no config for %s', expression => {
     expect(toMonitorConfig(expression, 'UTC')).toBeUndefined();
   });
@@ -91,5 +104,22 @@ describe('shouldMonitorJob', () => {
   it('skips jobs that `Sentry.cron.instrument*` already monitors', () => {
     const monitored = Object.assign((): void => {}, { [Symbol.for('sentry.cron.monitored')]: true });
     expect(shouldMonitorJob('job', monitored, undefined)).toBe(false);
+  });
+});
+
+describe('wrapScheduledJob', () => {
+  it('runs each job in its own trace', () => {
+    const job = wrapScheduledJob(
+      () => getCurrentScope().getPropagationContext().traceId,
+      'job',
+      undefined,
+      'auto.function.test',
+    );
+    const outerTraceId = getCurrentScope().getPropagationContext().traceId;
+    const firstTraceId = job();
+    const secondTraceId = job();
+
+    expect(firstTraceId).not.toBe(secondTraceId);
+    expect(firstTraceId).not.toBe(outerTraceId);
   });
 });

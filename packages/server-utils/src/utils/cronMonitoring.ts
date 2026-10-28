@@ -1,5 +1,12 @@
 import type { MonitorConfig } from '@sentry/core';
-import { captureException, debug, isThenable, stringMatchesSomePattern, withMonitor } from '@sentry/core';
+import {
+  captureException,
+  debug,
+  isThenable,
+  startNewTrace,
+  stringMatchesSomePattern,
+  withMonitor,
+} from '@sentry/core';
 import { DEBUG_BUILD } from '../debug-build';
 import * as diagnosticsChannel from './diagnosticsChannel';
 
@@ -111,8 +118,14 @@ export function cronExpressionToMonitorConfig(
     return undefined;
   }
 
-  const crontab = [minute, hour, dayOfMonth, replaceNames(month, MONTHS, 1), replaceNames(dayOfWeek, WEEKDAYS, 0)];
-  if (crontab.some(field => /[a-z]/i.test(field))) {
+  const crontab = [
+    minute,
+    hour,
+    dayOfMonth,
+    replaceNames(month, MONTHS, 1),
+    endRangesOnSundayAsSeven(replaceNames(dayOfWeek, WEEKDAYS, 0)),
+  ];
+  if (crontab.some(field => /[a-z]/i.test(field) || hasReversedRange(field))) {
     return undefined;
   }
 
@@ -147,6 +160,19 @@ function replaceNames(field: string, names: string[], offset: number): string {
   });
 }
 
+// `sat-sun` is `6-0`, which node-cron runs on Saturday and Sunday. Sentry only accepts it as `6-7`.
+function endRangesOnSundayAsSeven(field: string): string {
+  return field.replace(/(\d+)-0(?!\d)/g, (range, start: string) => (Number(start) ? `${start}-7` : range));
+}
+
+// node-cron wraps these around (`22-2` hours), the other schedulers reject them, and so does Sentry.
+function hasReversedRange(field: string): boolean {
+  return field.split(',').some(part => {
+    const range = /^(\d+)-(\d+)/.exec(part);
+    return !!range && Number(range[1]) > Number(range[2]);
+  });
+}
+
 function toSentryTimezone(timezone: string | undefined): string | undefined {
   if (timezone && /^(?:utc|gmt)?[+-]/i.test(timezone)) {
     return undefined;
@@ -176,17 +202,19 @@ export function wrapScheduledJob(
   };
 
   const wrapped = function (this: unknown, ...args: unknown[]): unknown {
-    return withMonitor(
-      monitorSlug,
-      () => {
-        try {
-          const result: unknown = func.apply(this, args);
-          return isThenable(result) ? result.then(undefined, captureAndRethrow) : result;
-        } catch (e) {
-          return captureAndRethrow(e);
-        }
-      },
-      monitorConfigs.get(wrapped),
+    return startNewTrace(() =>
+      withMonitor(
+        monitorSlug,
+        () => {
+          try {
+            const result: unknown = func.apply(this, args);
+            return isThenable(result) ? result.then(undefined, captureAndRethrow) : result;
+          } catch (e) {
+            return captureAndRethrow(e);
+          }
+        },
+        monitorConfigs.get(wrapped),
+      ),
     );
   };
   monitorConfigs.set(wrapped, monitorConfig);
