@@ -376,7 +376,7 @@ function xhrCallback(
 
   // `parseUrl` returns the raw authority — userinfo credentials must never reach an attribute.
   const host = parsedUrl?.host?.replace(/^.*@/, '');
-  // `getFullURL` already resolved relative URLs against the page origin; only data URLs have no domain.
+  // `getFullURL` already resolved relative URLs against the page URL; only data URLs have no domain.
   const domain = getUrlDomain(fullUrl || url);
 
   // With span streaming, span names have to be low cardinality, so only the domain is kept.

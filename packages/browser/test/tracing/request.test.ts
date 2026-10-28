@@ -227,7 +227,7 @@ describe('instrumentOutgoingRequests', () => {
     expect(requestSpanJson.attributes[SERVER_ADDRESS]).toBe('example.com:8443');
   });
 
-  it('resolves a relative fetch URL against the page origin for the streamed span name', () => {
+  it('resolves a relative fetch URL against the page URL for the streamed span name', () => {
     vi.stubGlobal('location', { origin: 'https://app.example.com', href: 'https://app.example.com/' });
 
     let fetchHandler: ((data: utils.HandlerDataFetch) => void) | undefined;
@@ -260,7 +260,7 @@ describe('instrumentOutgoingRequests', () => {
     vi.unstubAllGlobals();
   });
 
-  it('resolves a relative XHR URL against the page origin for the streamed span name', () => {
+  it('resolves a relative XHR URL against the page URL for the streamed span name', () => {
     vi.stubGlobal('location', { origin: 'https://app.example.com', href: 'https://app.example.com/' });
 
     let xhrHandler: ((data: utils.HandlerDataXhr) => void) | undefined;
