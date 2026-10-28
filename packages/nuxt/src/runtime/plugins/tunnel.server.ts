@@ -1,5 +1,5 @@
 import {
-  handleTunnelRequestIfMatched,
+  _INTERNAL_handleServedTunnelRequest as handleServedTunnelRequest,
   _INTERNAL_setManagedTunnelDefaults as setManagedTunnelDefaults,
 } from '@sentry/core/server';
 import { useRuntimeConfig } from 'nitro/runtime-config';
@@ -16,5 +16,5 @@ export default ((nitroApp: NitroApp) => {
   // up a `NUXT_APP_BASE_URL` set at runtime.
   setManagedTunnelDefaults({ basePath: (useRuntimeConfig() as { app?: { baseURL?: string } }).app?.baseURL });
   const appFetch = nitroApp.fetch;
-  nitroApp.fetch = request => handleTunnelRequestIfMatched(request) ?? appFetch(request);
+  nitroApp.fetch = request => handleServedTunnelRequest(request) ?? appFetch(request);
 }) satisfies NitroAppPlugin;

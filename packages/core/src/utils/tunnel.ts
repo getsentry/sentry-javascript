@@ -1,4 +1,5 @@
 import type { Client } from '../client';
+import type { Integration } from '../types/integration';
 import { getClient } from '../currentScopes';
 import { URL_PATH } from '@sentry/conventions/attributes';
 import type { DsnComponents, DsnLike } from '../types/dsn';
@@ -13,27 +14,68 @@ import { parseUrl } from './url';
 export type TunnelForwarder = (request: Request, allowedDsns: Array<string>) => Promise<Response>;
 
 /**
- * A server client's tunnel paths, allowed DSNs and forwarder, computed once per client.
+ * A server client's tunnel paths, base path, allowed DSNs and forwarder, computed once per client.
  */
-interface ServedTunnel {
-  paths: string[];
-  allowedDsns: string[];
+interface ServedTunnel extends TunnelMatch {
   forward: TunnelForwarder;
 }
 
 const servedTunnels = new WeakMap<Client, ServedTunnel>();
 
 /**
- * Stores a server client's computed tunnel paths and allowed DSNs.
+ * The name of `serveTunnelIntegration`, which carries the forwarder. Kept here so this module doesn't import the
+ * integration, and with it the forwarder, into apps that don't use it.
  */
-export function setServedTunnel(client: Client, servedTunnel: ServedTunnel): void {
+export const SERVE_TUNNEL_INTEGRATION_NAME = 'ServeTunnel';
+
+/**
+ * Computes a server client's served tunnel from its resolved options, and stores it.
+ */
+export function setServedTunnel(
+  client: Client,
+  tunnelOptions: ServerTunnelOptions,
+  forward: TunnelForwarder,
+): ServedTunnel {
+  const allowedDsns = resolveAllowedDsns(tunnelOptions.allowedDsns, client.getDsn());
+  const servedTunnel = {
+    paths: resolveTunnelPaths(tunnelOptions, allowedDsns),
+    basePath: tunnelOptions.basePath,
+    allowedDsns,
+    forward,
+  };
   servedTunnels.set(client, servedTunnel);
+
+  return servedTunnel;
 }
 
+/**
+ * The forwarder `serveTunnelIntegration` carries. Any copy of this module can reach it through the client.
+ */
+export function getServeTunnelForwarder(client: Client): TunnelForwarder | undefined {
+  return client.getIntegrationByName?.<Integration & { forward?: TunnelForwarder }>(SERVE_TUNNEL_INTEGRATION_NAME)
+    ?.forward;
+}
+
+/**
+ * The active client's served tunnel. A copy of this module that didn't set it up rebuilds it once from what the
+ * client carries. Bundlers can give a framework's request hook its own copy, like Next.js's middleware next to its
+ * `instrumentation`.
+ */
 function getServedTunnel(): ServedTunnel | undefined {
   const client = getClient();
+  if (!client) {
+    return undefined;
+  }
 
-  return client && servedTunnels.get(client);
+  const servedTunnel = servedTunnels.get(client);
+  if (servedTunnel) {
+    return servedTunnel;
+  }
+
+  const tunnelOptions = client.getOptions()._managedTunnel;
+  const forward = getServeTunnelForwarder(client);
+
+  return tunnelOptions && forward ? setServedTunnel(client, tunnelOptions, forward) : undefined;
 }
 
 /**
@@ -60,11 +102,11 @@ export function applyTunnelDefaults(
 }
 
 /**
- * Returns the same-origin tunnel path for a DSN, e.g. `/k3x9q2a`. Browser and server derive it independently,
- * and as a hash it gives ad-blocker filter lists nothing to match.
+ * Returns the same-origin tunnel path for a DSN, e.g. `/k3x9q2a`, by default the active client's. Browser and server
+ * derive it independently, and as a hash it gives ad-blocker filter lists nothing to match.
  */
-export function getTunnelPath(dsn: DsnLike): string | undefined {
-  const components = makeDsn(dsn);
+export function getTunnelPath(dsn?: DsnLike): string | undefined {
+  const components = dsn ? makeDsn(dsn) : getClient()?.getDsn();
 
   return components ? `/${fnv1a32(dsnToString(components)).toString(36)}` : undefined;
 }
@@ -76,7 +118,6 @@ export interface TunnelRequestLike {
   method?: string;
   /** Absolute URL or path with query, e.g. Node's `IncomingMessage.url`. */
   url?: string;
-  headers?: Headers | Record<string, string | string[] | undefined>;
 }
 
 /**
@@ -133,29 +174,67 @@ export function normalizeTunnelBasePath(basePath: string | undefined): string {
 }
 
 /**
- * Returns true if the request targets the active server client's managed tunnel.
+ * The paths, base path and allowed DSNs of a tunnel to match requests against.
  */
-export function isTunnelRequest(request: TunnelRequestLike): boolean {
+interface TunnelMatch {
+  paths: string[];
+  basePath?: string;
+  allowedDsns: string[];
+}
+
+/**
+ * Resolves the tunnel the public helpers match: `options`, else the one `serveTunnelIntegration` serves, else the
+ * path of the active client's own DSN.
+ */
+export function resolveTunnelMatch(options?: ServerTunnelOptions): TunnelMatch {
+  const servedTunnel = !options && getServedTunnel();
+  if (servedTunnel) {
+    return servedTunnel;
+  }
+
+  const allowedDsns = resolveAllowedDsns(options?.allowedDsns, getClient()?.getDsn());
+
+  return { paths: resolveTunnelPaths(options ?? {}, allowedDsns), basePath: options?.basePath, allowedDsns };
+}
+
+/**
+ * Returns true if the request is a POST to one of the tunnel's paths.
+ */
+export function matchesTunnel(request: TunnelRequestLike, tunnel: Omit<TunnelMatch, 'allowedDsns'>): boolean {
   if (request.method !== 'POST' || !request.url) {
     return false;
   }
 
-  const tunnelOptions = getClient()?.getOptions()._managedTunnel;
-  if (!tunnelOptions) {
-    return false;
-  }
+  const path = stripBasePath(parseUrl(request.url).path || '/', tunnel.basePath);
 
-  const path = stripBasePath(parseUrl(request.url).path || '/', tunnelOptions.basePath);
-
-  return path !== undefined && getTunnelPaths().includes(path.replace(/\/$/, ''));
+  return path !== undefined && tunnel.paths.includes(path.replace(/\/$/, ''));
 }
 
 /**
- * Forwards the request if it targets the managed tunnel, otherwise returns `undefined` for the app to handle.
+ * Returns true if the request is a POST to the managed tunnel. The tunnel comes from `options`, else from
+ * `serveTunnelIntegration`, else it's the path of the active client's own DSN.
  */
-export function handleTunnelRequestIfMatched(request: Request): Promise<Response> | undefined {
+export function isTunnelRequest(request: TunnelRequestLike, options?: ServerTunnelOptions): boolean {
+  return matchesTunnel(request, resolveTunnelMatch(options));
+}
+
+/**
+ * Returns true if the request targets the tunnel `serveTunnelIntegration` serves. Unlike {@link isTunnelRequest},
+ * there's no fallback, so the framework SDKs serve nothing without the integration.
+ */
+export function isServedTunnelRequest(request: TunnelRequestLike): boolean {
   const servedTunnel = getServedTunnel();
-  if (!servedTunnel?.allowedDsns.length || !isTunnelRequest(request)) {
+
+  return !!servedTunnel && matchesTunnel(request, servedTunnel);
+}
+
+/**
+ * Forwards the request if it targets the tunnel `serveTunnelIntegration` serves, otherwise returns `undefined`. The
+ * framework SDKs answer tunnel requests with it.
+ */
+export function handleServedTunnelRequest(request: Request): Promise<Response> | undefined {
+  const servedTunnel = getServedTunnel();
+  if (!servedTunnel?.allowedDsns.length || !matchesTunnel(request, servedTunnel)) {
     return undefined;
   }
 

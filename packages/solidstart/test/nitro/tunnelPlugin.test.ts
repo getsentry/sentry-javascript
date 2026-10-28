@@ -67,6 +67,20 @@ describe('SolidStart v1 tunnel plugin', () => {
     expect(onError).not.toHaveBeenCalled();
   });
 
+  it('serves no tunnel without `serveTunnelIntegration`', async () => {
+    const options = { dsn: DSN };
+    getCurrentScope().setClient({ getDsn: () => makeDsn(DSN), getOptions: () => options } as unknown as Client);
+    const envelope = serializeEnvelope(createEnvelope({ dsn: DSN }, [])) as string;
+
+    const response = await fetchApp(getTunnelPath(DSN)!, {
+      method: 'POST',
+      body: envelope,
+      headers: { 'content-length': String(envelope.length) },
+    });
+
+    expect(await response.text()).toBe('app');
+  });
+
   it('leaves every other request to the app', async () => {
     const response = await fetchApp('/api/users', { method: 'POST', body: 'x' });
 

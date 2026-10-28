@@ -1,5 +1,5 @@
 import {
-  handleTunnelRequestIfMatched,
+  _INTERNAL_handleServedTunnelRequest as handleServedTunnelRequest,
   _INTERNAL_setManagedTunnelDefaults as setManagedTunnelDefaults,
 } from '@sentry/core/server';
 import { definePlugin } from 'nitro';
@@ -14,5 +14,5 @@ export default definePlugin(nitroApp => {
   // before route rules and middleware. Requests still carry Nitro's `baseURL` here, so the tunnel is served under it.
   setManagedTunnelDefaults({ basePath: (useRuntimeConfig() as { app?: { baseURL?: string } }).app?.baseURL });
   const appFetch = nitroApp.fetch;
-  nitroApp.fetch = request => handleTunnelRequestIfMatched(request) ?? appFetch(request);
+  nitroApp.fetch = request => handleServedTunnelRequest(request) ?? appFetch(request);
 });

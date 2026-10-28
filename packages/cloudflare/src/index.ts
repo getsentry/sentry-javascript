@@ -110,7 +110,16 @@ export {
   withStreamedSpan,
   spanStreamingIntegration,
 } from '@sentry/core';
-export { trpcMiddleware, serveTunnelIntegration, wrapMcpServerWithSentry } from '@sentry/core/server';
+export {
+  handleTunnelRequestIfMatched,
+  isTunnelRequest,
+  serveTunnelIntegration,
+  trpcMiddleware,
+  wrapMcpServerWithSentry,
+} from '@sentry/core/server';
+export type { TunnelRequestLike } from '@sentry/core/server';
+export { getTunnelPath, handleTunnelRequest } from '@sentry/core';
+export type { HandleTunnelRequestOptions, ServerTunnelOptions } from '@sentry/core';
 export { createFlueInstrumentation, instrumentPostgresJsSql } from '@sentry/server-utils';
 export type { FlueOptions } from '@sentry/server-utils';
 

@@ -172,6 +172,10 @@ export {
   spanToBaggageHeader,
   trpcMiddleware,
   serveTunnelIntegration,
+  getTunnelPath,
+  handleTunnelRequest,
+  handleTunnelRequestIfMatched,
+  isTunnelRequest,
   updateSpanName,
   supabaseIntegration,
   instrumentSupabaseClient,
@@ -214,6 +218,7 @@ export {
   eveIntegration,
   getInstrumentedModuleNames,
 } from '@sentry/node';
+export type { HandleTunnelRequestOptions, ServerTunnelOptions, TunnelRequestLike } from '@sentry/node';
 
 export {
   captureConsoleIntegration,
