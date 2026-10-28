@@ -60,13 +60,19 @@
 
   Development mode, Cloudflare, automatic capture of server rendering errors, and connecting server and browser traces via HTML meta tags are not yet supported. This experimental support may change in minor releases.
 
-- **feat: Add a managed tunnel with `tunnel: true` ([#25200](https://github.com/getsentry/sentry-javascript/pull/25200))**
+- **feat: Add a managed tunnel with `tunnel: true` ([#25200](https://github.com/getsentry/sentry-javascript/pull/25200), [#25783](https://github.com/getsentry/sentry-javascript/pull/25783))**
 
-  Set `tunnel: true` in `Sentry.init` to send browser events through your own server. The SDK makes the tunnel path from the DSN, so client and server builds always use the same path. The server SDKs of Astro, Nuxt, Nitro, React Router, Remix, SolidStart, SvelteKit and TanStack Start answer this path automatically. If the browser uses a different DSN than the server, add it on the server with `tunnel: { allowedDsns: [browserDsn] }`.
+  The managed tunnel sends browser events through your own server, so ad blockers do not drop them. Set `tunnel: true` in the browser `Sentry.init` and add `serveTunnelIntegration()` on the server. The SDK makes the tunnel path from the DSN, so client and server builds always use the same path.
 
   ```ts
+  // browser
   Sentry.init({ dsn, tunnel: true });
+
+  // server
+  Sentry.init({ dsn, integrations: [Sentry.serveTunnelIntegration()] });
   ```
+
+  The server SDKs of Astro, Nuxt, Nitro, React Router, Remix, SolidStart, SvelteKit and TanStack Start then answer the tunnel path from their request hooks. If the browser uses a different DSN than the server, add it with `serveTunnelIntegration({ allowedDsns: [browserDsn] })`. For other servers, use `handleTunnelRequestIfMatched`, or register a route at `getTunnelPath()` that calls `handleTunnelRequest`. The `request` option of `handleTunnelRequest` is deprecated.
 
 - **feat: Make span origins spec compliant ([#25602](https://github.com/getsentry/sentry-javascript/pull/25602))**
 
@@ -142,6 +148,7 @@
 - fix(opentelemetry): Convert OpenTelemetry performance.now() timestamps ([#25790](https://github.com/getsentry/sentry-javascript/pull/25790))
 - fix(react): Avoid double slashes in manifest route names ([#25770](https://github.com/getsentry/sentry-javascript/pull/25770))
 - fix(react): Parameterize React Router transactions with encoded params ([#25639](https://github.com/getsentry/sentry-javascript/pull/25639))
+- fix(remix): Drop Remix 3 release candidates from the peer range ([#25808](https://github.com/getsentry/sentry-javascript/pull/25808))
 - fix(replay): Apply attribute masking to breadcrumb messages ([#25180](https://github.com/getsentry/sentry-javascript/pull/25180))
 - fix(server-utils): Cap the runs the LangChain callback handler keeps open ([#25595](https://github.com/getsentry/sentry-javascript/pull/25595))
 - fix(server-utils): Keep OpenAI streamed tool calls that have no index ([#25622](https://github.com/getsentry/sentry-javascript/pull/25622))
@@ -203,6 +210,7 @@
 - test(tanstackstart-react): Add source map E2E app ([#25363](https://github.com/getsentry/sentry-javascript/pull/25363))
 - test: Check that runtimes drop the server spans of managed tunnel requests ([#25414](https://github.com/getsentry/sentry-javascript/pull/25414))
 - test: Fix unit test timeouts from cold dynamic imports ([#25811](https://github.com/getsentry/sentry-javascript/pull/25811))
+- test: Wire the managed tunnel by hand in Node, Cloudflare and Next.js ([#25785](https://github.com/getsentry/sentry-javascript/pull/25785))
 
 </details>
 
