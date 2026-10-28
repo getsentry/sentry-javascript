@@ -280,8 +280,8 @@ export type SentryBuildOptions = Omit<
    * export { POST } from '@sentry/nextjs/tunnel';
    * ```
    *
-   * This handler accepts the DSN of the server SDK, also a self-hosted one. For other DSNs, use
-   * `createSentryTunnelRoute` from the same import.
+   * This handler accepts the DSN of the server SDK, also a self-hosted one, and the DSNs `serveTunnelIntegration`
+   * allows. For other DSNs, use `createSentryTunnelRoute` from the same import.
    *
    * Tunnel requests go through your middleware (`proxy.ts` / `middleware.ts`) like any other request. If your
    * middleware redirects or blocks unauthenticated requests, exclude the tunnel route in its `matcher` so events
