@@ -1,6 +1,6 @@
 {
   "name": "@sentry-internal/cloudflare-integration-tests",
-  "version": "11.9.0",
+  "version": "11.10.0",
   "license": "MIT",
   "engines": {
     "node": ">=20.19.0 <22.0.0 || >=22.12.0 <23.0.0 || >=23.2.0"
@@ -23,9 +23,9 @@
     "@langchain/typesafe": "^0.0.2",
     "@prisma/adapter-d1": "6.15.0",
     "@prisma/client": "6.15.0",
-    "@sentry/cloudflare": "11.9.0",
-    "@sentry/core": "11.9.0",
-    "@sentry/hono": "11.9.0",
+    "@sentry/cloudflare": "11.10.0",
+    "@sentry/core": "11.10.0",
+    "@sentry/hono": "11.10.0",
     "hono": "^4.13.7",
     "langchain": "^1.5.16",
     "openai": "5.18.1"
@@ -35,7 +35,7 @@
     "@cloudflare/workers-types": "^4.20260426.0",
     "@cloudflare/workers-types-v5": "npm:@cloudflare/workers-types@5.20260710.1",
     "@opentelemetry/api": "^1.9.1",
-    "@sentry-internal/test-utils": "11.9.0",
+    "@sentry-internal/test-utils": "11.10.0",
     "@sentry/conventions": "0.29.0",
     "eslint-plugin-regexp": "^3.1.0",
     "prisma": "6.15.0",

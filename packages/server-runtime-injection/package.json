@@ -1,6 +1,6 @@
 {
   "name": "@sentry/server-runtime-injection",
-  "version": "11.9.0",
+  "version": "11.10.0",
   "description": "Runtime diagnostics-channel injection hooks for the Sentry JavaScript SDKs. Must be kept external (not bundled) when bundling a server.",
   "repository": "git://github.com/getsentry/sentry-javascript.git",
   "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/server-runtime-injection",
@@ -45,13 +45,13 @@
     "access": "public"
   },
   "dependencies": {
-    "@sentry/core": "11.9.0",
-    "@sentry/server-utils": "11.9.0"
+    "@sentry/core": "11.10.0",
+    "@sentry/server-utils": "11.10.0"
   },
   "devDependencies": {
     "@apm-js-collab/code-transformer": "^0.18.1",
     "@apm-js-collab/tracing-hooks": "^0.13.3",
-    "@sentry-internal/rollup-utils": "11.9.0",
+    "@sentry-internal/rollup-utils": "11.10.0",
     "@types/node": "^20.19.0",
     "@vercel/nft": "^1.11.0",
     "meriyah": "^6.1.4",
