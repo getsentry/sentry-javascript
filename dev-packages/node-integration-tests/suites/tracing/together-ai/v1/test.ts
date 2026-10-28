@@ -7,6 +7,7 @@ import {
   SENTRY_OP,
   SENTRY_ORIGIN,
 } from '@sentry/conventions/attributes';
+import { GEN_AI_CHAT, GEN_AI_EMBEDDINGS } from '@sentry/conventions/op';
 import { afterAll, describe, expect } from 'vitest';
 import { cleanupChildProcesses, createEsmAndCjsTests } from '../../../../utils/runner';
 
@@ -44,7 +45,7 @@ describe('Together integration (1.x)', () => {
 
         const chatSpan = spans.find(span => span.attributes[GEN_AI_RESPONSE_ID]?.value === 'chatcmpl-mock123');
         expect(chatSpan!.status).toBe('ok');
-        expect(chatSpan!.attributes[SENTRY_OP]?.value).toBe('gen_ai.chat');
+        expect(chatSpan!.attributes[SENTRY_OP]?.value).toBe(GEN_AI_CHAT);
         expect(chatSpan!.attributes[GEN_AI_USAGE_TOTAL_TOKENS]?.value).toBe(25);
 
         const errorSpan = spans.find(span => span.name === 'chat error-model');
@@ -55,7 +56,7 @@ describe('Together integration (1.x)', () => {
         expect(streamSpan!.attributes[GEN_AI_USAGE_TOTAL_TOKENS]?.value).toBe(30);
 
         const embeddingsSpan = spans.find(span => span.attributes[GEN_AI_RESPONSE_ID]?.value === 'embd-mock123');
-        expect(embeddingsSpan!.attributes[SENTRY_OP]?.value).toBe('gen_ai.embeddings');
+        expect(embeddingsSpan!.attributes[SENTRY_OP]?.value).toBe(GEN_AI_EMBEDDINGS);
         expect(embeddingsSpan!.attributes[GEN_AI_OPERATION_NAME]?.value).toBe('embeddings');
       });
     },
