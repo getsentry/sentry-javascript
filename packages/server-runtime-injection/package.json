@@ -51,6 +51,7 @@
   "devDependencies": {
     "@apm-js-collab/code-transformer": "^0.18.1",
     "@apm-js-collab/tracing-hooks": "^0.13.3",
+    "@sentry-internal/rollup-utils": "11.9.0",
     "@types/node": "^20.19.0",
     "@vercel/nft": "^1.11.0",
     "meriyah": "^6.1.4",
@@ -74,9 +75,6 @@
     "test": "vitest run",
     "test:watch": "vitest --watch",
     "yalc:publish": "yalc publish --push --sig"
-  },
-  "volta": {
-    "extends": "../../package.json"
   },
   "sideEffects": [
     "**/import-hook.mjs"

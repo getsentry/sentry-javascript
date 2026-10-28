@@ -38,6 +38,7 @@
   },
   "devDependencies": {
     "@edge-runtime/types": "4.0.0",
+    "@sentry-internal/rollup-utils": "11.9.0",
     "@sentry/opentelemetry": "11.9.0"
   },
   "scripts": {
@@ -58,9 +59,6 @@
     "test": "vitest run",
     "test:watch": "vitest --watch",
     "yalc:publish": "yalc publish --push --sig"
-  },
-  "volta": {
-    "extends": "../../package.json"
   },
   "sideEffects": false
 }

@@ -178,7 +178,7 @@ test('records a Vercel AI decision with the confidence of its answers', async ({
       'span.name': `decide ${MODEL}`,
       [SEARCH_SPAN__OP]: GEN_AI_DECIDE,
       [SEARCH_SPAN__STATUS]: 'ok',
-      [SEARCH_ORIGIN]: 'auto.vercelai.channel',
+      [SEARCH_ORIGIN]: 'auto.ai.vercelai',
       [SEARCH_GEN_AI__OPERATION__NAME]: 'decide',
       [SEARCH_GEN_AI__PROVIDER__NAME]: 'openai.decision',
       [SEARCH_GEN_AI__REQUEST__MODEL]: MODEL,

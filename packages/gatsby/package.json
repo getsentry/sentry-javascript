@@ -47,6 +47,7 @@
     "react": "17.x || 18.x || 19.x"
   },
   "devDependencies": {
+    "@sentry-internal/rollup-utils": "11.9.0",
     "@testing-library/react": "^15.0.5",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
@@ -72,9 +73,6 @@
     "test": "vitest run",
     "test:watch": "vitest --watch",
     "yalc:publish": "yalc publish --push --sig"
-  },
-  "volta": {
-    "extends": "../../package.json"
   },
   "nx": {
     "targets": {

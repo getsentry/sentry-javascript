@@ -87,7 +87,7 @@
     "@sentry/browser-utils": "11.9.0",
     "@sentry/bundler-plugins": "11.9.0",
     "@sentry/cloudflare": "11.9.0",
-    "@sentry/conventions": "^0.27.0",
+    "@sentry/conventions": "^0.29.0",
     "@sentry/core": "11.9.0",
     "@sentry/node": "11.9.0",
     "@sentry/opentelemetry": "11.9.0",
@@ -99,7 +99,9 @@
     "stacktrace-parser": "^0.1.11"
   },
   "devDependencies": {
-    "next": "15.5.27",
+    "@sentry-internal/rollup-utils": "11.9.0",
+    "cjs-module-lexer": "^2.2.0",
+    "next": "15.5.28",
     "react": "^18.3.1",
     "react-dom": "^18.3.1"
   },
@@ -128,9 +130,6 @@
     "vercel:branch": "source vercel/set-up-branch-for-test-app-use.sh",
     "vercel:project": "source vercel/make-project-use-current-branch.sh",
     "yalc:publish": "yalc publish --push --sig"
-  },
-  "volta": {
-    "extends": "../../package.json"
   },
   "nx": {
     "targets": {

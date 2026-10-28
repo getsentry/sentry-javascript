@@ -34,8 +34,11 @@
   },
   "dependencies": {
     "@sentry/core": "11.9.0",
-    "@sentry/conventions": "^0.27.0",
+    "@sentry/conventions": "^0.29.0",
     "web-vitals": "^6.2.3"
+  },
+  "devDependencies": {
+    "@sentry-internal/rollup-utils": "11.9.0"
   },
   "scripts": {
     "build": "run-p build:transpile build:types",
@@ -55,9 +58,6 @@
     "test": "vitest run",
     "test:watch": "vitest --watch",
     "yalc:publish": "yalc publish --push --sig"
-  },
-  "volta": {
-    "extends": "../../package.json"
   },
   "sideEffects": false
 }

@@ -23,7 +23,7 @@
   "dependencies": {
     "@sentry/browser": "11.9.0",
     "@sentry/core": "11.9.0",
-    "@sentry/conventions": "^0.27.0",
+    "@sentry/conventions": "^0.29.0",
     "tslib": "^2.4.1"
   },
   "devDependencies": {
@@ -60,9 +60,6 @@
     "test:unit": "vitest run",
     "test:unit:watch": "vitest --watch",
     "yalc:publish": "yalc publish --push --sig"
-  },
-  "volta": {
-    "extends": "../../package.json"
   },
   "sideEffects": false,
   "nx": {

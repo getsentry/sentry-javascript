@@ -8,7 +8,7 @@ import { mayTargetCloudflareInternalTable, targetsCloudflareInternalTable } from
 
 const SPAN_ATTRIBUTES = {
   [SENTRY_OP]: DB_QUERY,
-  [SENTRY_ORIGIN]: 'auto.db.cloudflare.durable_object.sql',
+  [SENTRY_ORIGIN]: 'auto.db.cloudflare.durable_object_sql',
   'db.system.name': 'cloudflare-durable-object-sql',
   'db.operation.name': 'exec',
 };

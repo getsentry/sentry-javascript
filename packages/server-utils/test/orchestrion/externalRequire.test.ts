@@ -168,6 +168,8 @@ describe('createExternalRequireResolver', () => {
   });
 
   it('keeps a package external that is not installed', async () => {
-    await expect(resolveRequire(createExternalRequireResolver(['pg']), 'pg-types', pgFile)).resolves.toBeNull();
+    await expect(
+      resolveRequire(createExternalRequireResolver(['pg']), 'not-installed-package', pgFile),
+    ).resolves.toBeNull();
   });
 });

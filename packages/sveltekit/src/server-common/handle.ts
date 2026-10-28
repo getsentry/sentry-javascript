@@ -19,7 +19,12 @@ import {
   withIsolationScope,
   filterCollectedUrl,
 } from '@sentry/core';
-import { flushIfServerless } from '@sentry/core/server';
+import {
+  flushIfServerless,
+  _INTERNAL_handleServedTunnelRequest as handleServedTunnelRequest,
+  _INTERNAL_setManagedTunnelDefaults as setManagedTunnelDefaults,
+} from '@sentry/core/server';
+import { getTunnelBasePath } from '../common/tunnel';
 import type { Handle, ResolveOptions } from '@sveltejs/kit';
 import { DEBUG_BUILD } from '../common/debug-build';
 import { getTracePropagationData, sendErrorToSentry } from './utils';
@@ -284,6 +289,10 @@ async function instrumentHandle(
  * ```
  */
 export function sentryHandle(handlerOptions?: SentryHandleOptions): Handle {
+  // The hooks file creates this after the `sentrySvelteKit()` base path module ran, however the SDK was started
+  // (`--import`, a custom server), and later per-request clients (Cloudflare) start with it too.
+  setManagedTunnelDefaults({ basePath: getTunnelBasePath() });
+
   const { handleUnknownRoutes, ...rest } = handlerOptions ?? {};
   const options = {
     handleUnknownRoutes: handleUnknownRoutes ?? false,
@@ -291,6 +300,11 @@ export function sentryHandle(handlerOptions?: SentryHandleOptions): Handle {
   };
 
   const sentryRequestHandler: Handle = input => {
+    const tunnelResponse = handleServedTunnelRequest(input.event.request);
+    if (tunnelResponse) {
+      return tunnelResponse;
+    }
+
     const backwardsForwardsCompatibleEvent = input.event as typeof input.event & BackwardsForwardsCompatibleEvent;
 
     // Escape hatch to suppress request isolation and trace continuation (see initCloudflareSentryHandle)

@@ -1,6 +1,7 @@
 import { expect, test } from '@playwright/test';
 import { getSpanOp, waitForError, waitForStreamedSpan } from '@sentry-internal/test-utils';
 import { isDevMode } from './isDevMode';
+import { isViteServer, NITRO_ONLY } from './isViteServer';
 
 test.describe('environment detection', async () => {
   test('sets correct environment for client-side errors', async ({ page }) => {
@@ -38,6 +39,8 @@ test.describe('environment detection', async () => {
   });
 
   test('sets correct environment for server-side errors', async ({ page }) => {
+    test.skip(isViteServer, NITRO_ONLY);
+
     const errorPromise = waitForError('nuxt-4', async errorEvent => {
       return errorEvent?.exception?.values?.[0]?.value === 'Nuxt 4 Server error';
     });

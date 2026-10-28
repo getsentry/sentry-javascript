@@ -5,9 +5,6 @@ run-name: Optional E2E tests for ${{ inputs.commit }} (${{ inputs.correlation_id
 # does not count failed checks of a dispatched run in the PR status, so these failures do not mark
 # the PR as failed.
 on:
-  # Only here so that GitHub registers this workflow before it is on the default branch, which a
-  # dispatch needs. The job is skipped for this event. Remove this trigger after the merge.
-  pull_request:
   workflow_dispatch:
     inputs:
       commit:
@@ -40,7 +37,6 @@ env:
 jobs:
   job_optional_e2e_tests:
     name: E2E ${{ matrix.label || matrix.test-application }} Test (optional)
-    if: github.event_name == 'workflow_dispatch'
     # Same cache volume as the E2E jobs in build.yml. The event is always `workflow_dispatch`, so the PR number
     # decides if the run gets the PR volume.
     runs-on:
@@ -76,8 +72,7 @@ jobs:
       pnpm_config_verify_deps_before_run: 'false'
     strategy:
       fail-fast: false
-      # The fallback only keeps the expression valid for the skipped `pull_request` run.
-      matrix: ${{ fromJson(inputs.matrix || '{"include":[{}]}') }}
+      matrix: ${{ fromJson(inputs.matrix) }}
 
     steps:
       - name: Check out commit ${{ env.HEAD_COMMIT }}
@@ -115,3 +110,36 @@ jobs:
         working-directory: ${{ runner.temp }}/test-application
         timeout-minutes: 10
         run: ${{ matrix.assert-command || 'pnpm test:assert' }}
+
+  # A separate job in this workflow, so that a re-run of this run (all jobs or only the failed ones) also updates the
+  # comment. GitHub re-runs the jobs that depend on a re-run job.
+  job_report:
+    name: Report in PR comment
+    needs: [job_optional_e2e_tests]
+    # Not for a cancelled run: a new push cancels the old run, and the new run reports.
+    if: ${{ !cancelled() && inputs.pr_number != '' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      actions: read
+      pull-requests: write
+    steps:
+      - name: Check out commit ${{ env.HEAD_COMMIT }}
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ env.HEAD_COMMIT }}
+      - name: Set up Node
+        uses: actions/setup-node@v7
+        with:
+          node-version-file: 'package.json'
+      - name: Install pnpm
+        uses: ./.github/actions/install-pnpm
+      - name: Install action dependencies
+        run: pnpm install --frozen-lockfile --filter @sentry-internal/optional-e2e-gh-action
+      - name: Report optional E2E results
+        uses: ./dev-packages/optional-e2e-gh-action
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          mode: report
+          pr_number: ${{ inputs.pr_number }}

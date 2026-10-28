@@ -1,5 +1,5 @@
-import { existsSync, readFileSync } from 'node:fs';
-import { dirname, join } from 'node:path';
+import { existsSync, readFileSync, realpathSync } from 'node:fs';
+import { basename, dirname, join } from 'node:path';
 import { GLOBAL_OBJ, type IntegrationFn } from '@sentry/core';
 
 type ModuleInfo = Record<string, string>;
@@ -73,6 +73,34 @@ function collectModules(): ModuleInfo {
   };
 }
 
+/**
+ * Whether `dir` is a node_modules folder of the main module, a folder
+ * `<that node_modules>/<.pnpm or .bun>/<package id>/node_modules`, where the isolated layouts of pnpm and Bun keep
+ * each package, or a scope folder (`@scope`) in one of these folders.
+ */
+function isMainModulesDir(dir: string, mainPaths: string[]): boolean {
+  if (basename(dir).startsWith('@')) {
+    return isMainModulesDir(dirname(dir), mainPaths);
+  }
+
+  if (mainPaths.includes(dir)) {
+    return true;
+  }
+
+  const storeDir = dirname(dirname(dir));
+  return (
+    basename(dir) === 'node_modules' &&
+    ['.pnpm', '.bun'].includes(basename(storeDir)) &&
+    mainPaths.includes(dirname(storeDir))
+  );
+}
+
+/** Whether `require(name)` in the main module loads the package in `packageDir`. */
+function isResolvedFromMain(name: string, packageDir: string, mainPaths: string[]): boolean {
+  const resolvedDir = mainPaths.map(dir => join(dir, name)).find(dir => existsSync(dir));
+  return !!resolvedDir && realpathSync(resolvedDir) === realpathSync(packageDir);
+}
+
 /** Extract information about package.json modules from require.cache */
 function collectRequireModules(): ModuleInfo {
   const mainPaths = require.main?.paths || [];
@@ -81,6 +109,7 @@ function collectRequireModules(): ModuleInfo {
   // We start with the modules from package.json (if possible)
   // These may be overwritten by more specific versions from the require.cache
   const infos: ModuleInfo = {};
+  const packageDirs: Record<string, string> = {};
   const seen = new Set<string>();
 
   paths.forEach(path => {
@@ -94,7 +123,7 @@ function collectRequireModules(): ModuleInfo {
       if (!dir || orig === dir || seen.has(orig)) {
         return undefined;
       }
-      if (mainPaths.indexOf(dir) < 0) {
+      if (!isMainModulesDir(dir, mainPaths)) {
         return updir();
       }
 
@@ -110,7 +139,12 @@ function collectRequireModules(): ModuleInfo {
           name: string;
           version: string;
         };
-        infos[info.name] = info.version;
+        // The isolated layouts of pnpm and Bun keep every version of a package. Keep the one that the main module loads.
+        const previousDir = packageDirs[info.name];
+        if (!previousDir || !isResolvedFromMain(info.name, previousDir, mainPaths)) {
+          infos[info.name] = info.version;
+          packageDirs[info.name] = orig;
+        }
       } catch {
         // no-empty
       }

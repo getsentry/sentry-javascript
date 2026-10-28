@@ -1,5 +1,15 @@
-import type { Client, IntegrationFn, MaxRequestBodySize } from '@sentry/core';
-import { captureBodyFromWinterCGRequest, defineIntegration, getIsolationScope } from '@sentry/core';
+import type { Client, IntegrationFn, MaxRequestBodySize, Span } from '@sentry/core';
+import {
+  captureBodyFromWinterCGRequest,
+  defineIntegration,
+  getIsolationScope,
+  hasSpansEnabled,
+  parseStringToURLObject,
+  safeCallback,
+} from '@sentry/core';
+import type { AssertTrue, CheckServerRequestOptions } from '@sentry/core/server';
+import { isStaticAssetRequest } from '@sentry/core/server';
+import { DEBUG_BUILD } from '../debug-build';
 
 const INTEGRATION_NAME = 'HttpServer' as const;
 
@@ -38,12 +48,61 @@ export interface HttpServerIntegrationOptions {
    * ```
    */
   ignoreRequestBody?: (url: string, request: Request) => boolean;
+
+  /**
+   * Do not create spans for incoming requests whose URL path makes the given callback return `true`.
+   *
+   * `urlPath` is the path of the request, including the query string. `request` is the incoming
+   * {@link Request}. Errors thrown by the handler are still captured.
+   */
+  ignoreIncomingRequests?: (urlPath: string, request: Request) => boolean;
+
+  /**
+   * Whether to automatically ignore common static asset requests (favicon.ico, robots.txt, etc.)
+   * when creating spans.
+   *
+   * @default `true`
+   */
+  ignoreStaticAssets?: boolean;
+
+  /**
+   * Whether to create spans for incoming requests.
+   * Errors are still captured and request data is still attached when this is `false`.
+   * Defaults to the client's tracing configuration (`hasSpansEnabled`).
+   */
+  spans?: boolean;
+
+  /**
+   * A hook that can be used to mutate the span for incoming requests.
+   * This is triggered after the span is created, before the request handler runs.
+   */
+  onSpanCreated?: (span: Span, request: Request) => void;
+
+  /**
+   * A hook that can be used to mutate the span one last time before it ends.
+   * For a streamed response, this runs when the stream finishes.
+   * It is not called when the request handler throws.
+   */
+  onSpanEnd?: (span: Span, request: Request, response: Response) => void;
 }
 
-interface HttpServerIntegrationInstance {
+// Checks these options against the shared `ServerRequestOptions`. A new
+// shared field fails to compile here, until this integration supports
+// it or lists it as unsupported.
+type _ServerRequestOptionsCheck = AssertTrue<
+  CheckServerRequestOptions<
+    HttpServerIntegrationOptions,
+    Request,
+    Response,
+    // Not supported. A worker has no long-lived process to run the timer
+    // that flushes session aggregates.
+    'sessions' | 'sessionFlushingDelayMS'
+  >
+>;
+
+interface HttpServerIntegrationInstance extends HttpServerIntegrationOptions {
   name: string;
   maxRequestBodySize: MaxRequestBodySize | undefined;
-  ignoreRequestBody?: (url: string, request: Request) => boolean;
 }
 
 const _httpServerIntegration = ((options: HttpServerIntegrationOptions = {}): HttpServerIntegrationInstance => {
@@ -51,6 +110,11 @@ const _httpServerIntegration = ((options: HttpServerIntegrationOptions = {}): Ht
     name: INTEGRATION_NAME,
     maxRequestBodySize: options.maxRequestBodySize,
     ignoreRequestBody: options.ignoreRequestBody,
+    ignoreIncomingRequests: options.ignoreIncomingRequests,
+    ignoreStaticAssets: options.ignoreStaticAssets ?? true,
+    spans: options.spans,
+    onSpanCreated: options.onSpanCreated,
+    onSpanEnd: options.onSpanEnd,
   };
 }) satisfies IntegrationFn;
 
@@ -100,10 +164,75 @@ export async function captureIncomingRequestBody(client: Client, request: Reques
     return;
   }
 
-  if (integration.ignoreRequestBody?.(request.url, request)) {
+  const ignoreRequestBody = integration.ignoreRequestBody;
+  if (
+    ignoreRequestBody &&
+    // If the filter throws, skip the body so it cannot leak data the filter was meant to hide.
+    safeCallback(
+      DEBUG_BUILD ? 'Error in `ignoreRequestBody`, skipping the body:' : '',
+      () => ignoreRequestBody(request.url, request),
+      () => true,
+    )
+  ) {
     return;
   }
 
   const isolationScope = getIsolationScope();
   await captureBodyFromWinterCGRequest(request, isolationScope, effectiveBodySize);
+}
+
+/**
+ * Whether to create a span for the incoming request, based on the HttpServer integration config.
+ * Called internally by `wrapRequestHandler`.
+ */
+export function shouldCreateIncomingRequestSpan(client: Client | undefined, request: Request): boolean {
+  if (!client) {
+    return false;
+  }
+
+  const integration = client.getIntegrationByName<HttpServerIntegrationInstance>(INTEGRATION_NAME);
+  if (!(integration?.spans ?? hasSpansEnabled(client.getOptions()))) {
+    return false;
+  }
+
+  const urlObject = parseStringToURLObject(request.url);
+  const urlPath = urlObject ? `${urlObject.pathname}${urlObject.search}` : '/';
+  if (integration?.ignoreStaticAssets && request.method === 'GET' && isStaticAssetRequest(urlPath)) {
+    return false;
+  }
+
+  const ignoreIncomingRequests = integration?.ignoreIncomingRequests;
+  return !(
+    ignoreIncomingRequests &&
+    safeCallback(
+      DEBUG_BUILD ? 'Error in `ignoreIncomingRequests`, creating the span:' : '',
+      () => ignoreIncomingRequests(urlPath, request),
+      () => false,
+    )
+  );
+}
+
+/**
+ * The `onSpanCreated` and `onSpanEnd` hooks of the HttpServer integration, guarded so that a hook
+ * that throws does not fail the request. Called internally by `wrapRequestHandler`.
+ */
+export function getIncomingRequestSpanHooks(client: Client | undefined): {
+  onSpanCreated: (span: Span, request: Request) => void;
+  onSpanEnd: (span: Span, request: Request, response: Response) => void;
+} {
+  const integration = client?.getIntegrationByName<HttpServerIntegrationInstance>(INTEGRATION_NAME);
+  return {
+    onSpanCreated: (span, request) =>
+      safeCallback(
+        DEBUG_BUILD ? 'Error in `onSpanCreated`:' : '',
+        () => integration?.onSpanCreated?.(span, request),
+        () => undefined,
+      ),
+    onSpanEnd: (span, request, response) =>
+      safeCallback(
+        DEBUG_BUILD ? 'Error in `onSpanEnd`:' : '',
+        () => integration?.onSpanEnd?.(span, request, response),
+        () => undefined,
+      ),
+  };
 }

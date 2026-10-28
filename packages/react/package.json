@@ -59,7 +59,7 @@
   "dependencies": {
     "@sentry/browser": "11.9.0",
     "@sentry/core": "11.9.0",
-    "@sentry/conventions": "^0.27.0"
+    "@sentry/conventions": "^0.29.0"
   },
   "peerDependencies": {
     "react": "17.x || 18.x || 19.x",
@@ -71,6 +71,7 @@
     }
   },
   "devDependencies": {
+    "@sentry-internal/rollup-utils": "11.9.0",
     "@testing-library/react": "^15.0.5",
     "@testing-library/react-hooks": "^7.0.2",
     "@types/history-4": "npm:@types/history@4.7.8",
@@ -108,9 +109,6 @@
     "test": "vitest run",
     "test:watch": "vitest --watch",
     "yalc:publish": "yalc publish --push --sig"
-  },
-  "volta": {
-    "extends": "../../package.json"
   },
   "sideEffects": false
 }

@@ -21,6 +21,10 @@
   "publishConfig": {
     "access": "public"
   },
+  "devDependencies": {
+    "@types/eslint": "^8.2.1",
+    "eslint": "^8.57.0"
+  },
   "scripts": {
     "clean": "pnpm exec rimraf sentry-eslint-plugin-sdk-*.tgz",
     "lint:fix": "oxlint . --fix --type-aware",
@@ -30,8 +34,5 @@
     "test:watch": "vitest --watch",
     "build:tarball": "npm pack",
     "circularDepCheck": "madge --circular src/index.js"
-  },
-  "volta": {
-    "extends": "../../package.json"
   }
 }

@@ -86,14 +86,12 @@
     "test:watch": "vitest --watch",
     "yalc:publish": "yalc publish --push --sig"
   },
-  "volta": {
-    "extends": "../../package.json"
-  },
   "sideEffects": false,
   "devDependencies": {
-    "zod": "^3.24.1"
+    "@sentry-internal/rollup-utils": "11.9.0",
+    "zod": "^4.6.7"
   },
   "dependencies": {
-    "@sentry/conventions": "^0.27.0"
+    "@sentry/conventions": "^0.29.0"
   }
 }

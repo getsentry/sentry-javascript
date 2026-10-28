@@ -78,7 +78,7 @@
     "@remix-run/router": "^1.23.4",
     "@sentry/browser": "11.9.0",
     "@sentry/bundler-plugins": "11.9.0",
-    "@sentry/conventions": "^0.27.0",
+    "@sentry/conventions": "^0.29.0",
     "@sentry/core": "11.9.0",
     "@sentry/node": "11.9.0",
     "@sentry/react": "11.9.0",
@@ -90,11 +90,15 @@
   "devDependencies": {
     "@remix-run/node": "^2.17.5",
     "@remix-run/react": "^2.17.5",
-    "@remix-run/route-pattern": "^0.24.0",
+    "@remix-run/route-pattern": "^1.0.0",
     "@remix-run/server-runtime": "^2.17.4",
+    "@sentry-internal/rollup-utils": "11.9.0",
     "@types/express": "^4.17.14",
+    "@types/react": "17.0.3",
+    "@types/semver": "^7.5.3",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
+    "semver": "^7.8.5",
     "vite": "^8.3.1"
   },
   "peerDependencies": {
@@ -102,7 +106,7 @@
     "@remix-run/react": "2.x",
     "@remix-run/server-runtime": "2.x",
     "react": "18.x",
-    "remix": ">=3.0.0-rc.1 <4"
+    "remix": "3.x"
   },
   "scripts": {
     "build": "run-p build:transpile build:types",
@@ -123,9 +127,6 @@
     "test:unit": "vitest run --config vitest.config.unit.ts",
     "test:watch": "vitest --watch --config vitest.config.unit.ts",
     "yalc:publish": "yalc publish --push --sig"
-  },
-  "volta": {
-    "extends": "../../package.json"
   },
   "sideEffects": false,
   "nx": {

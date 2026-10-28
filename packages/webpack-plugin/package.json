@@ -55,10 +55,10 @@
   "dependencies": {
     "@sentry/bundler-plugins": "11.9.0"
   },
+  "devDependencies": {
+    "@sentry-internal/rollup-utils": "11.9.0"
+  },
   "peerDependencies": {
     "webpack": ">=5.1.0"
-  },
-  "volta": {
-    "extends": "../../package.json"
   }
 }

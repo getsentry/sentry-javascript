@@ -34,12 +34,13 @@
   "dependencies": {
     "@sentry/bun": "11.9.0",
     "@sentry/core": "11.9.0",
-    "@sentry/conventions": "^0.27.0"
+    "@sentry/conventions": "^0.29.0"
   },
   "peerDependencies": {
     "elysia": "^1.4.0"
   },
   "devDependencies": {
+    "@sentry-internal/rollup-utils": "11.9.0",
     "bun-types": "^1.2.9",
     "elysia": "^1.4.29"
   },
@@ -66,9 +67,6 @@
     "test": "vitest run",
     "test:watch": "vitest --watch",
     "yalc:publish": "yalc publish --push --sig"
-  },
-  "volta": {
-    "extends": "../../package.json"
   },
   "sideEffects": false
 }

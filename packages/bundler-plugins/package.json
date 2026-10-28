@@ -39,6 +39,11 @@
       "import": "./build/esm/esbuild/index.js",
       "require": "./build/cjs/esbuild/index.js"
     },
+    "./bun": {
+      "types": "./build/types/bun/index.d.ts",
+      "import": "./build/esm/bun/index.js",
+      "require": "./build/cjs/bun/index.js"
+    },
     "./core": {
       "types": "./build/types/core/index.d.ts",
       "import": "./build/esm/core/index.js",
@@ -132,16 +137,16 @@
   },
   "devDependencies": {
     "@babel/core": "^7.18.5",
+    "@babel/parser": "^7.29.8",
     "@babel/preset-react": "^7.23.3",
+    "@sentry-internal/rollup-utils": "11.9.0",
+    "@sentry-internal/test-utils": "11.9.0",
     "@types/babel__core": "^7.20.5",
     "@types/node": "^20.19.0",
     "premove": "^4.0.0",
     "rolldown": "^1.0.0",
     "vitest": "^4.1.11",
     "webpack": "5.104.1"
-  },
-  "volta": {
-    "extends": "../../package.json"
   },
   "engines": {
     "node": ">=20.19.0 <22.0.0 || >=22.12.0 <23.0.0 || >=23.2.0"

@@ -58,7 +58,8 @@
   },
   "homepage": "https://docs.sentry.io/platforms/javascript/session-replay/",
   "devDependencies": {
-    "@sentry/rrweb": "2.44.1"
+    "@sentry-internal/rollup-utils": "11.9.0",
+    "@sentry/rrweb": "2.45.0"
   },
   "dependencies": {
     "@sentry/replay": "11.9.0",
@@ -66,8 +67,5 @@
   },
   "engines": {
     "node": ">=20.19.0 <22.0.0 || >=22.12.0 <23.0.0 || >=23.2.0"
-  },
-  "volta": {
-    "extends": "../../package.json"
   }
 }

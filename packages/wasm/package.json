@@ -35,6 +35,9 @@
     "@sentry/browser": "11.9.0",
     "@sentry/core": "11.9.0"
   },
+  "devDependencies": {
+    "@sentry-internal/rollup-utils": "11.9.0"
+  },
   "scripts": {
     "build": "run-p build:transpile build:bundle build:types",
     "build:bundle": "rollup --config rollup.bundle.config.mjs",
@@ -55,9 +58,6 @@
     "lint:types": "oxlint src --type-aware --type-check",
     "lint:es-compatibility": "es-check es2020 ./build/{bundles,npm/cjs}/*.js && es-check es2020 ./build/npm/esm/*.js --module",
     "yalc:publish": "yalc publish --push --sig"
-  },
-  "volta": {
-    "extends": "../../package.json"
   },
   "sideEffects": false
 }

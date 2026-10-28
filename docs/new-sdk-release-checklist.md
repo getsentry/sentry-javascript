@@ -12,8 +12,7 @@ differ slightly for other SDKs depending on how they are structured and how they
   - [ ] The package has a working unit testing environment
   - [ ] The package builds correctly (inspect `<package>/build` directory)
   - [ ] The package is in the `packages` list of `pnpm-workspace.yaml` and in the `workspaces` list of the root
-        `package.json` (in the same order), and it is in the root `devDependencies` with the version `workspace:*`.
-        `scripts/verify-packages-versions.js` checks this.
+        `package.json` (in the same order). `scripts/verify-packages-versions.js` checks this.
 
 - [ ] Make sure that the `README.md` content is up to date and contains at least:
   - [ ] The correct name + a brief description of the SDK

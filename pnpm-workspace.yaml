@@ -69,14 +69,31 @@ strictPeerDependencies: false
 # The packages depend on each other by exact version, not with `workspace:`.
 # This links them from the workspace instead of installing them from npm.
 linkWorkspacePackages: true
-# A flat node_modules folder like Yarn 1, because some packages and configs import dependencies that they do not declare.
-nodeLinker: hoisted
 
 overrides:
   nx>minimatch: 10.2.5
   postcss-url>minimatch: 3.1.5
   '@angular-devkit/build-angular>minimatch': 5.1.9
   nitropack>rollup-plugin-visualizer: ^6.0.3
+
+# Dependencies that import packages without declaring them. pnpm links these peers to the versions of the importer.
+packageExtensions:
+  # Its type declarations import the bundler types: https://github.com/apm-js-collab/code-transformer-bundler-plugins/issues/49
+  '@apm-js-collab/code-transformer-bundler-plugins':
+    peerDependencies:
+      esbuild: '*'
+      rollup: '*'
+      vite: '*'
+      webpack: '*'
+    peerDependenciesMeta:
+      esbuild:
+        optional: true
+      rollup:
+        optional: true
+      vite:
+        optional: true
+      webpack:
+        optional: true
 
 # Dependencies whose install scripts run. pnpm 11+ fails the install on build scripts that are not listed.
 # `false` only for scripts that just print a message.
@@ -99,3 +116,8 @@ allowBuilds:
   workerd: true
 minimumReleaseAgeExclude:
   - '@opentelemetry/api@1.10.0'
+  - '@sentry/conventions@0.29.0'
+  - '@sentry/rrdom@2.45.0'
+  - '@sentry/rrweb-snapshot@2.45.0'
+  - '@sentry/rrweb-types@2.45.0'
+  - '@sentry/rrweb@2.45.0'

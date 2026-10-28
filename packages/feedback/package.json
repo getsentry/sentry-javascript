@@ -36,6 +36,7 @@
     "@sentry/core": "11.9.0"
   },
   "devDependencies": {
+    "@sentry-internal/rollup-utils": "11.9.0",
     "preact": "^10.29.8"
   },
   "scripts": {
@@ -58,9 +59,6 @@
     "test": "vitest run",
     "test:watch": "vitest --watch",
     "yalc:publish": "yalc publish --push --sig"
-  },
-  "volta": {
-    "extends": "../../package.json"
   },
   "sideEffects": false
 }

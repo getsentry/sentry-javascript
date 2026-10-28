@@ -28,8 +28,5 @@
     "clean": "npx rimraf node_modules pnpm-lock.yaml",
     "test:build": "pnpm install && pnpm build",
     "test:assert": "pnpm tsx assert-build.ts"
-  },
-  "volta": {
-    "extends": "../../package.json"
   }
 }

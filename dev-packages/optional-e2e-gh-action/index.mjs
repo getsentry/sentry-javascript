@@ -12,6 +12,12 @@ const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
 async function run() {
   const octokit = getOctokit(core.getInput('github_token'));
   const { repo } = context;
+
+  if (core.getInput('mode') === 'report') {
+    await report(octokit, repo);
+    return;
+  }
+
   const pr = context.payload.pull_request;
   const correlationId = `${context.runId}-${process.env.GITHUB_RUN_ATTEMPT}`;
 
@@ -41,15 +47,17 @@ async function run() {
   if (workflowRun.conclusion !== 'success') {
     core.warning(`Optional E2E tests ${workflowRun.conclusion}: ${workflowRun.html_url}`);
   }
+}
 
-  if (pr) {
-    // A failed report must not fail this job, because that marks the PR as failed.
-    try {
-      await reportInComment(octokit, repo, pr.number, workflowRun);
-    } catch (error) {
-      core.warning(`Could not report the optional E2E results in a PR comment: ${error.message}`);
-    }
+// Runs as the last job of the optional E2E run itself, so a re-run of that run also updates the comment.
+async function report(octokit, repo) {
+  const prNumber = Number(core.getInput('pr_number'));
+  if (!prNumber) {
+    return;
   }
+
+  const { data: workflowRun } = await octokit.rest.actions.getWorkflowRun({ ...repo, run_id: context.runId });
+  await reportInComment(octokit, repo, prNumber, workflowRun);
 }
 
 async function waitForRun(octokit, repo, workflowId, correlationId) {
@@ -80,8 +88,7 @@ async function waitForRun(octokit, repo, workflowId, correlationId) {
   return workflowRun;
 }
 
-// Keeps one comment per PR up to date, so new pushes do not add more comments. The comment is only
-// created when a check fails.
+// Keeps one comment per PR up to date, so new pushes and re-runs do not add more comments.
 async function reportInComment(octokit, repo, prNumber, workflowRun) {
   const jobs = await octokit.paginate(octokit.rest.actions.listJobsForWorkflowRun, {
     ...repo,
@@ -89,9 +96,13 @@ async function reportInComment(octokit, repo, prNumber, workflowRun) {
     filter: 'latest',
     per_page: 100,
   });
-  const ran = jobs.filter(({ conclusion }) => conclusion !== 'skipped');
+  // The report job itself is still in progress.
+  const ran = jobs.filter(({ status, conclusion }) => status === 'completed' && conclusion !== 'skipped');
   const failing = ran.filter(({ conclusion }) => conclusion !== 'success');
   const successful = ran.filter(({ conclusion }) => conclusion === 'success');
+  if (!ran.length) {
+    return;
+  }
 
   const comments = await octokit.paginate(octokit.rest.issues.listComments, {
     ...repo,
@@ -102,12 +113,8 @@ async function reportInComment(octokit, repo, prNumber, workflowRun) {
     ({ user, body }) => user?.login === 'github-actions[bot]' && body?.startsWith(COMMENT_MARKER),
   );
 
-  if (!failing.length && !previousComment) {
-    return;
-  }
-
   const counts = [
-    failing.length && `${failing.length} failing`,
+    failing.length && `${failing.length} not successful`,
     successful.length && `${successful.length} successful`,
   ].filter(Boolean);
   const runLink = `[See the run](${workflowRun.html_url})`;
@@ -151,16 +158,33 @@ function formatJobs(jobs) {
 }
 
 function formatStatus({ conclusion, started_at, completed_at }) {
-  const seconds = Math.round((new Date(completed_at) - new Date(started_at)) / 1000);
-  const duration = seconds >= 60 ? `${Math.floor(seconds / 60)}m` : `${seconds}s`;
+  const duration = formatDuration(started_at, completed_at);
+  const withDuration = (status, preposition) => (duration ? `${status} ${preposition} ${duration}` : status);
 
-  if (conclusion === 'success') {
-    return `Successful in ${duration}`;
+  switch (conclusion) {
+    case 'success':
+      return withDuration('Successful', 'in');
+    case 'failure':
+      return withDuration('Failing', 'after');
+    case 'timed_out':
+      return withDuration('Timed out', 'after');
+    case 'cancelled':
+      return withDuration('Cancelled', 'after');
+    default:
+      return 'Status unknown';
   }
-  if (conclusion === 'cancelled') {
-    return `Cancelled after ${duration}`;
+}
+
+// A job that never started has no `started_at`, and `new Date(null)` is the epoch, which gives a wrong duration.
+function formatDuration(startedAt, completedAt) {
+  if (!startedAt || !completedAt) {
+    return undefined;
   }
-  return `Failing after ${duration}`;
+  const seconds = Math.round((new Date(completedAt) - new Date(startedAt)) / 1000);
+  if (!Number.isFinite(seconds) || seconds < 0) {
+    return undefined;
+  }
+  return seconds >= 60 ? `${Math.floor(seconds / 60)}m` : `${seconds}s`;
 }
 
 run().catch(error => core.setFailed(error.message));

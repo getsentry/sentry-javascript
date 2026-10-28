@@ -16,10 +16,8 @@
   },
   "devDependencies": {
     "premove": "^4.0.0",
+    "sentry": "^0.45.0",
     "typescript": "~6.0.3",
     "vitest": "^4.1.11"
-  },
-  "volta": {
-    "extends": "../../package.json"
   }
 }

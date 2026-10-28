@@ -89,7 +89,6 @@ app.get('/chat', async (_req, res, next) => {
     const message = await client.messages.create({
       model: MODEL,
       max_tokens: 32,
-      temperature: 0,
       system: SYSTEM,
       messages: [{ role: 'user', content: CHAT_PROMPT }],
     });
@@ -105,7 +104,6 @@ app.get('/chat-stream', async (_req, res, next) => {
     const stream = await client.messages.create({
       model: MODEL,
       max_tokens: 32,
-      temperature: 0,
       system: SYSTEM,
       messages: [{ role: 'user', content: CHAT_PROMPT }],
       stream: true,
@@ -131,7 +129,6 @@ app.get('/stream-helper', async (_req, res, next) => {
       .stream({
         model: MODEL,
         max_tokens: 32,
-        temperature: 0,
         system: SYSTEM,
         messages: [{ role: 'user', content: CHAT_PROMPT }],
       })

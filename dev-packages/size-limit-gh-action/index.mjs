@@ -33,16 +33,14 @@ async function run() {
     }
 
     const octokit = getOctokit(githubToken);
+    let increaseAccepted = false;
 
     if (comparisonBranch) {
       const { data: currentPr } = await octokit.rest.pulls.get({
         ...repo,
         pull_number: pr.number,
       });
-      if (currentPr.labels.some(label => label.name === OVERRIDE_LABEL)) {
-        core.info(`Bundle size increase acknowledged by "${OVERRIDE_LABEL}". Skipping size measurement.`);
-        return;
-      }
+      increaseAccepted = currentPr.labels.some(label => label.name === OVERRIDE_LABEL);
     }
 
     const limit = new SizeLimitFormatter();
@@ -155,7 +153,7 @@ async function run() {
     } else if (!base) {
       failure = 'No baseline size measurements found. Re-run after the base build completes.';
       bodyParts.push(failure);
-    } else if (increases.length > 0) {
+    } else if (increases.length > 0 && !increaseAccepted) {
       failure =
         `One or more gzipped bundles increased by more than ${MAX_INCREASE_BYTES} bytes. ` +
         `If this increase is intentional, add the **${OVERRIDE_LABEL}** label to this PR to rerun and accept the check.`;

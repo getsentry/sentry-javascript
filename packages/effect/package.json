@@ -45,7 +45,7 @@
   },
   "dependencies": {
     "@sentry/browser": "11.9.0",
-    "@sentry/conventions": "^0.27.0",
+    "@sentry/conventions": "^0.29.0",
     "@sentry/core": "11.9.0",
     "@sentry/node": "11.9.0"
   },
@@ -59,6 +59,7 @@
   },
   "devDependencies": {
     "@effect/vitest": "^4.0.0",
+    "@sentry-internal/rollup-utils": "11.9.0",
     "effect": "^4.0.0"
   },
   "scripts": {
@@ -78,9 +79,6 @@
     "test": "vitest run",
     "test:watch": "vitest --watch",
     "yalc:publish": "yalc publish --push --sig"
-  },
-  "volta": {
-    "extends": "../../package.json"
   },
   "sideEffects": false
 }

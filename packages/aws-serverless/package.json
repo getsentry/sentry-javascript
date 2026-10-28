@@ -50,13 +50,23 @@
       "require": {
         "default": "./build/npm/cjs/awslambda-auto.js"
       }
+    },
+    "./esbuild": {
+      "import": {
+        "types": "./build/npm/types/bundler-plugin/esbuild.d.ts",
+        "default": "./build/npm/esm/bundler-plugin/esbuild.js"
+      },
+      "require": {
+        "types": "./build/npm/types/bundler-plugin/esbuild.d.ts",
+        "default": "./build/npm/cjs/bundler-plugin/esbuild.js"
+      }
     }
   },
   "publishConfig": {
     "access": "public"
   },
   "dependencies": {
-    "@sentry/conventions": "^0.27.0",
+    "@sentry/conventions": "^0.29.0",
     "@sentry/core": "11.9.0",
     "@sentry/node": "11.9.0",
     "@sentry/server-runtime-injection": "11.9.0",
@@ -64,6 +74,7 @@
     "@types/aws-lambda": "^8.10.161"
   },
   "devDependencies": {
+    "@sentry-internal/rollup-utils": "11.9.0",
     "@types/node": "^20.19.0",
     "@vercel/nft": "^1.11.0"
   },
@@ -88,9 +99,6 @@
     "test": "vitest run",
     "test:watch": "vitest --watch",
     "yalc:publish": "yalc publish --push --sig"
-  },
-  "volta": {
-    "extends": "../../package.json"
   },
   "sideEffects": false,
   "nx": {

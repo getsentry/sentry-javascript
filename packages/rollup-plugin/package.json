@@ -51,6 +51,9 @@
   "dependencies": {
     "@sentry/bundler-plugins": "11.9.0"
   },
+  "devDependencies": {
+    "@sentry-internal/rollup-utils": "11.9.0"
+  },
   "peerDependencies": {
     "rollup": ">=3.2.0"
   },
@@ -58,8 +61,5 @@
     "rollup": {
       "optional": true
     }
-  },
-  "volta": {
-    "extends": "../../package.json"
   }
 }

@@ -55,10 +55,8 @@
     "@sentry/node": "11.9.0"
   },
   "devDependencies": {
+    "@sentry-internal/rollup-utils": "11.9.0",
     "@types/node": "^20.19.0"
-  },
-  "volta": {
-    "extends": "../../package.json"
   },
   "sideEffects": false,
   "nx": {
