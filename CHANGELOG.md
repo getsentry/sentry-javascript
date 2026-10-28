@@ -4,6 +4,14 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 10.78.0
+
+- feat(v10/deno): Re-export portable helpers that Cloudflare exposes ([#25708](https://github.com/getsentry/sentry-javascript/pull/25708))
+- fix(v10/core): Drop sampled-out errors before they take a promise buffer slot ([#25753](https://github.com/getsentry/sentry-javascript/pull/25753))
+- fix(v10/core): Stop sending client reports for breadcrumbs ([#25752](https://github.com/getsentry/sentry-javascript/pull/25752))
+- fix(v10/core): Use `trace_metric` data category for metrics rate limits and client reports ([#25612](https://github.com/getsentry/sentry-javascript/pull/25612))
+- fix(v10/nextjs): Don't crash Cloudflare workers on import of the Next.js version helper ([#25730](https://github.com/getsentry/sentry-javascript/pull/25730))
+
 ## 10.77.1
 
 ### Important Changes
