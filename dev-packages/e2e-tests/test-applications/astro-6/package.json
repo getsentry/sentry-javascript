@@ -17,8 +17,5 @@
     "@sentry-internal/test-utils": "file:../../packed/sentry-internal-test-utils-packed.tgz",
     "@sentry/astro": "file:../../packed/sentry-astro-packed.tgz",
     "astro": "^6.2.0"
-  },
-  "volta": {
-    "extends": "../../package.json"
   }
 }

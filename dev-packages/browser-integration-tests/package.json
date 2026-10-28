@@ -80,8 +80,5 @@
     "@types/node": "^20.19.0",
     "eslint-plugin-regexp": "^3.1.0",
     "glob": "^13.0.6"
-  },
-  "volta": {
-    "extends": "../../package.json"
   }
 }

@@ -54,8 +54,5 @@
         "label": "nuxt-5 (tunnel-dev)"
       }
     ]
-  },
-  "volta": {
-    "extends": "../../package.json"
   }
 }

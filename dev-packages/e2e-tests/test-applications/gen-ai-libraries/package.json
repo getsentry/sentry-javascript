@@ -48,8 +48,5 @@
         "label": "gen-ai-libraries (cloudflare)"
       }
     ]
-  },
-  "volta": {
-    "extends": "../../package.json"
   }
 }

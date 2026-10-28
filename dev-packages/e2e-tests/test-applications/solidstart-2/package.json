@@ -31,9 +31,6 @@
     "vite": "^8.1.5",
     "vite-plugin-solid": "^2.11.6"
   },
-  "volta": {
-    "extends": "../../package.json"
-  },
   "engines": {
     "node": ">=24"
   },

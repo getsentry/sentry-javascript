@@ -23,5 +23,5 @@ These cannot live in the repo and must be set once per environment:
 
 ## Notes
 
-- Node/pnpm versions come from `package.json` (Volta locally). In the cloud we use the sandbox Node runtime, and the setup script installs the pinned pnpm version when the sandbox has none.
+- Node.js/pnpm versions come from `package.json` (`devEngines.runtime` and `packageManager`, managed by pnpm locally). In the cloud we use the sandbox Node.js runtime, and the setup script installs the pinned pnpm version when the sandbox has none.
 - The full production `pnpm run build` is not run at startup; `build:dev` (transpile + types) is enough for editing and running unit tests. Run `pnpm run build` manually if you need bundles.

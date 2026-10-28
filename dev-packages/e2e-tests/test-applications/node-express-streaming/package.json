@@ -25,8 +25,5 @@
     "@playwright/test": "1.64.1",
     "@sentry-internal/test-utils": "file:../../packed/sentry-internal-test-utils-packed.tgz",
     "@sentry/core": "file:../../packed/sentry-core-packed.tgz"
-  },
-  "volta": {
-    "extends": "../../package.json"
   }
 }

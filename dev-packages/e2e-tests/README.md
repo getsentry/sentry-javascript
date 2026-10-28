@@ -131,6 +131,12 @@ Apps use the pnpm version of `packageManager` in the root `package.json`. To use
 `package.json` (for example `"packageManager": "pnpm@10.34.6"`), and use the settings of that version in its
 `pnpm-workspace.yaml`. pnpm then switches to that version, locally and in CI. The lowest supported version is pnpm 10.
 
+Apps use the Node.js version of `devEngines.runtime` in the root `package.json`. To use another version, set
+`devEngines.runtime` in the app's `package.json` (for example `{ "name": "node", "version": "24.15.0", "onFail": "warn" }`).
+Because the apps run in a temporary directory without the repo's `package.json` files above it, the copy step writes the
+app's Node.js and pnpm versions into the copied `package.json`. pnpm's `node` and `actions/setup-node` in CI read them
+from there.
+
 ### Test apps that deploy a real Cloudflare Worker
 
 Apps like `cloudflare-workers-send-to-sentry` deploy the built app as a real Worker and check what arrives in Sentry:
