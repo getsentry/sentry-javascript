@@ -1,9 +1,16 @@
 import type { createReadableStreamFromReadable } from '@react-router/node';
 import type { ReactNode } from 'react';
 import React from 'react';
-import type { AppLoadContext, EntryContext, RouterContextProvider, ServerRouter } from 'react-router';
+import type { AppLoadContext, EntryContext, RouterContextProvider } from 'react-router';
 import { PassThrough } from 'stream';
 import { getMetaTagTransformer } from './getMetaTagTransformer';
+import { createSentryHandleRequestWebStream } from './createSentryHandleRequestWebStream';
+import type {
+  HandleRequestWithMiddleware,
+  HandleRequestWithoutMiddleware,
+  SentryHandleRequestBaseOptions,
+  SentryWebStreamHandleRequestOptions,
+} from './handleRequestTypes';
 import { wrapSentryHandleRequest } from './wrapSentryHandleRequest';
 
 type RenderToPipeableStreamOptions = {
@@ -24,67 +31,40 @@ type RenderToPipeableStreamFunction = (
   options: RenderToPipeableStreamOptions,
 ) => RenderToPipeableStreamResult;
 
-export interface SentryHandleRequestOptions {
-  /**
-   * Timeout in milliseconds after which the rendering stream will be aborted
-   * @default 10000
-   */
-  streamTimeout?: number;
-
+export interface SentryHandleRequestOptions extends SentryHandleRequestBaseOptions {
   /**
    * React's renderToPipeableStream function from 'react-dom/server'
    */
   renderToPipeableStream: RenderToPipeableStreamFunction;
 
   /**
-   * The <ServerRouter /> component from '@react-router/server'
-   */
-  ServerRouter: typeof ServerRouter;
-
-  /**
    * createReadableStreamFromReadable from '@react-router/node'
    */
   createReadableStreamFromReadable: typeof createReadableStreamFromReadable;
-
-  /**
-   * Regular expression to identify bot user agents
-   * @default /bot|crawler|spider|googlebot|chrome-lighthouse|baidu|bing|google|yahoo|lighthouse/i
-   */
-  botRegex?: RegExp;
-
-  /**
-   * Returns a Content Security Policy nonce for the current request.
-   * The nonce is passed to both `<ServerRouter />` and `renderToPipeableStream`.
-   */
-  getNonce?: (args: { request: Request; loadContext: AppLoadContext | RouterContextProvider }) => string | undefined;
 }
-
-type HandleRequestWithoutMiddleware = (
-  request: Request,
-  responseStatusCode: number,
-  responseHeaders: Headers,
-  routerContext: EntryContext,
-  loadContext: AppLoadContext,
-) => Promise<unknown>;
-
-type HandleRequestWithMiddleware = (
-  request: Request,
-  responseStatusCode: number,
-  responseHeaders: Headers,
-  routerContext: EntryContext,
-  loadContext: RouterContextProvider,
-) => Promise<unknown>;
 
 /**
  * A complete Sentry-instrumented handleRequest implementation that handles both
  * route parametrization and trace meta tag injection.
+ *
+ * Pass `renderToReadableStream` (Web Streams) instead of `renderToPipeableStream` to use the Web Streams variant.
  *
  * @param options Configuration options
  * @returns A Sentry-instrumented handleRequest function
  */
 export function createSentryHandleRequest(
   options: SentryHandleRequestOptions,
+): HandleRequestWithoutMiddleware & HandleRequestWithMiddleware;
+export function createSentryHandleRequest(
+  options: SentryWebStreamHandleRequestOptions,
+): HandleRequestWithoutMiddleware & HandleRequestWithMiddleware;
+export function createSentryHandleRequest(
+  options: SentryHandleRequestOptions | SentryWebStreamHandleRequestOptions,
 ): HandleRequestWithoutMiddleware & HandleRequestWithMiddleware {
+  if ('renderToReadableStream' in options) {
+    return createSentryHandleRequestWebStream(options);
+  }
+
   const {
     streamTimeout = 10000,
     renderToPipeableStream,

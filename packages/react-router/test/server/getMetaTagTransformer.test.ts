@@ -146,4 +146,55 @@ describe('getMetaTagTransformer', () => {
       transformer.write(Buffer.from([0xa9, ...Buffer.from(' 2026</p></body></html>')]));
       transformer.end();
     }));
+
+  test('should inject meta tags when </head> is split across chunks', () =>
+    new Promise<void>((resolve, reject) => {
+      const bodyStream = new PassThrough();
+      const transformer = getMetaTagTransformer(bodyStream);
+
+      let outputData = '';
+      bodyStream.on('data', chunk => {
+        outputData += chunk.toString();
+      });
+
+      bodyStream.on('end', () => {
+        try {
+          expect(outputData).toBe(
+            '<html><head><meta name="sentry-trace" content="test-trace-id"></head><body>Test</body></html>',
+          );
+          expect(getTraceMetaTags).toHaveBeenCalledTimes(1);
+          resolve();
+        } catch (e) {
+          reject(e);
+        }
+      });
+
+      transformer.write('<html><head></he');
+      transformer.write('ad><body>Test</body></html>');
+      transformer.end();
+    }));
+
+  test('should flush a held-back partial tag at end of stream', () =>
+    new Promise<void>((resolve, reject) => {
+      const bodyStream = new PassThrough();
+      const transformer = getMetaTagTransformer(bodyStream);
+
+      let outputData = '';
+      bodyStream.on('data', chunk => {
+        outputData += chunk.toString();
+      });
+
+      bodyStream.on('end', () => {
+        try {
+          expect(outputData).toBe('<html><body></he');
+          expect(getTraceMetaTags).not.toHaveBeenCalled();
+          resolve();
+        } catch (e) {
+          reject(e);
+        }
+      });
+
+      transformer.write('<html><body></he');
+      transformer.end();
+    }));
 });
