@@ -1,6 +1,6 @@
 {
   "name": "@sentry/aws-serverless",
-  "version": "11.9.0",
+  "version": "11.10.0",
   "description": "Official Sentry SDK for AWS Lambda and AWS Serverless Environments",
   "repository": "git://github.com/getsentry/sentry-javascript.git",
   "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/aws-serverless",
@@ -67,14 +67,14 @@
   },
   "dependencies": {
     "@sentry/conventions": "^0.29.0",
-    "@sentry/core": "11.9.0",
-    "@sentry/node": "11.9.0",
-    "@sentry/server-runtime-injection": "11.9.0",
-    "@sentry/server-utils": "11.9.0",
+    "@sentry/core": "11.10.0",
+    "@sentry/node": "11.10.0",
+    "@sentry/server-runtime-injection": "11.10.0",
+    "@sentry/server-utils": "11.10.0",
     "@types/aws-lambda": "^8.10.161"
   },
   "devDependencies": {
-    "@sentry-internal/rollup-utils": "11.9.0",
+    "@sentry-internal/rollup-utils": "11.10.0",
     "@types/node": "^20.19.0",
     "@vercel/nft": "^1.11.0"
   },

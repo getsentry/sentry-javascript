@@ -1,6 +1,6 @@
 {
   "name": "@sentry/nuxt",
-  "version": "11.9.0",
+  "version": "11.10.0",
   "description": "Official Sentry SDK for Nuxt",
   "repository": "git://github.com/getsentry/sentry-javascript.git",
   "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/nuxt",
@@ -54,21 +54,21 @@
   },
   "dependencies": {
     "@nuxt/kit": "^4.6.0",
-    "@sentry/browser": "11.9.0",
-    "@sentry/cloudflare": "11.9.0",
+    "@sentry/browser": "11.10.0",
+    "@sentry/cloudflare": "11.10.0",
     "@sentry/conventions": "^0.29.0",
-    "@sentry/core": "11.9.0",
-    "@sentry/node": "11.9.0",
-    "@sentry/bundler-plugins": "11.9.0",
-    "@sentry/server-runtime-injection": "11.9.0",
-    "@sentry/server-utils": "11.9.0",
-    "@sentry/vue": "11.9.0"
+    "@sentry/core": "11.10.0",
+    "@sentry/node": "11.10.0",
+    "@sentry/bundler-plugins": "11.10.0",
+    "@sentry/server-runtime-injection": "11.10.0",
+    "@sentry/server-utils": "11.10.0",
+    "@sentry/vue": "11.10.0"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^4.20260519.1",
     "@nuxt/nitro-server": "^3.21.11",
     "@nuxt/schema": "^3.21.11",
-    "@sentry-internal/rollup-utils": "11.9.0",
+    "@sentry-internal/rollup-utils": "11.10.0",
     "db0": "^0.3.4",
     "h3": "^1.15.10",
     "nitro": "^3.0.260311-beta",

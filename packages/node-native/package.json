@@ -1,6 +1,6 @@
 {
   "name": "@sentry/node-native",
-  "version": "11.9.0",
+  "version": "11.10.0",
   "description": "Native Tools for the Official Sentry Node.js SDK",
   "repository": "git://github.com/getsentry/sentry-javascript.git",
   "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/node-native",
@@ -56,11 +56,11 @@
   },
   "dependencies": {
     "@sentry/node-native-stacktrace": "^0.5.1",
-    "@sentry/core": "11.9.0",
-    "@sentry/node": "11.9.0"
+    "@sentry/core": "11.10.0",
+    "@sentry/node": "11.10.0"
   },
   "devDependencies": {
-    "@sentry-internal/rollup-utils": "11.9.0",
+    "@sentry-internal/rollup-utils": "11.10.0",
     "@types/node": "^20.19.0"
   },
   "sideEffects": false,
