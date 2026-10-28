@@ -46,7 +46,7 @@
   "dependencies": {
     "@sentry/browser": "11.9.0",
     "@sentry/core": "11.9.0",
-    "@sentry/conventions": "^0.29.0"
+    "@sentry/conventions": "^0.30.0"
   },
   "peerDependencies": {
     "@tanstack/vue-router": "^1.64.0",
