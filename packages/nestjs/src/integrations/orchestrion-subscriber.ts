@@ -195,10 +195,10 @@ export function subscribeToNestChannels(): void {
   );
   // `@nestjs/schedule` passes this function to `CronJob` as `onTick`. Mark it when the method already
   // sends check-ins, so `cronJobIntegration` doesn't send a second set.
-  diagnosticsChannel.tracingChannel<ChannelContext>(CHANNELS.NESTJS_SCHEDULE_EXPLORER_WRAP).subscribe({
+  diagnosticsChannel.tracingChannel<OrchestrionChannelContext>(CHANNELS.NESTJS_SCHEDULE_EXPLORER_WRAP).subscribe({
     start: NOOP,
     end(data) {
-      if (typeof data.result === 'function' && sendsCronCheckIns(data.arguments[0])) {
+      if (typeof data.result === 'function' && sendsCronCheckIns(data.arguments?.[0])) {
         addNonEnumerableProperty(data.result, Symbol.for('sentry.cron.monitored'), true);
       }
     },
