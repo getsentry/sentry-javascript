@@ -74,7 +74,8 @@ jobs:
     if: needs.job_e2e_prepare.outputs.matrix != '{"include":[]}'
     # Canary builds install prerelease dependencies, so they get their own cache volume.
     runs-on:
-      ${{ matrix.runner || 'namespace-profile-sentry-javascript' }};overrides.cache-tag=sentry-javascript-e2e-canary
+      ${{ matrix.runner || 'namespace-profile-sentry-javascript-small'
+      }};overrides.cache-tag=sentry-javascript-e2e-canary
     timeout-minutes: 20
     env:
       # We just use a dummy DSN here, only send to the tunnel anyhow
