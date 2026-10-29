@@ -1,4 +1,4 @@
-import type { SerializedStreamedSpanContainer } from '@sentry/core';
+import type { SerializedStreamedSpan, SerializedStreamedSpanContainer } from '@sentry/core';
 import { afterAll, describe, expect } from 'vitest';
 import { cleanupChildProcesses, createEsmAndCjsTests } from '../../../utils/runner';
 
@@ -266,6 +266,48 @@ describe('awsIntegration', () => {
           await runner.start().completed();
 
           assertAwsServiceSpans(await spansPromise);
+        });
+      },
+      { additionalDependencies },
+    );
+
+    createEsmAndCjsTests(
+      __dirname,
+      'scenario-no-parent.mjs',
+      'instrument.mjs',
+      (createTestRunner, test) => {
+        test('only instruments DynamoDB operations with an active parent span', { timeout: 90_000 }, async () => {
+          const runner = createTestRunner().ignore('event');
+          const dbSpans = new Map<string, SerializedStreamedSpan>();
+          const spansPromise = runner.collectStreamedSpans(spans => {
+            for (const span of spans) {
+              if (span.attributes['sentry.origin']?.value === DB_ORIGIN) {
+                dbSpans.set(span.span_id, span);
+              }
+            }
+            return spans.some(span => span.is_segment && span.name === 'parent operation');
+          });
+
+          await runner.unordered().start().completed();
+
+          const spans = await spansPromise;
+          const parent = spans.find(span => span.is_segment && span.name === 'parent operation');
+          expect(parent).toBeDefined();
+          expect(
+            Array.from(dbSpans.values(), span => ({
+              table: span.attributes['db.namespace']?.value,
+              parentSpanId: span.parent_span_id,
+              traceId: span.trace_id,
+              isSegment: span.is_segment,
+            })),
+          ).toEqual([
+            {
+              table: 'inside-parent',
+              parentSpanId: parent?.span_id,
+              traceId: parent?.trace_id,
+              isSegment: false,
+            },
+          ]);
         });
       },
       { additionalDependencies },

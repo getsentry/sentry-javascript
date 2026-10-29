@@ -1,6 +1,6 @@
 import * as diagnosticsChannel from '../../utils/diagnosticsChannel';
 import type { IntegrationFn, Span } from '@sentry/core';
-import { defineIntegration, startInactiveSpan } from '@sentry/core';
+import { defineIntegration, getActiveSpan, startInactiveSpan } from '@sentry/core';
 import {
   _AWS_REQUEST_ID as AWS_REQUEST_ID,
   AWS_REQUEST_EXTENDED_ID,
@@ -97,6 +97,11 @@ function instrumentAwsSdk(servicesExtensions: ServicesExtensions): void {
         // `clientName` isn't available at the `send` boundary; fall back to the client's
         // constructor name (e.g. `S3Client` -> `S3`). `serviceId` is set for all AWS clients.
         removeSuffixFromStringIfExists(data.self?.constructor?.name || 'AWS', 'Client');
+
+      // A DynamoDB span without a parent has no context; other services (e.g. SQS producers) can be root spans.
+      if (serviceName === 'DynamoDB' && !getActiveSpan()) {
+        return undefined;
+      }
 
       // Commands with all-optional members can be constructed without an input (`new
       // ListBucketsCommand()`); the OTel path traces those too, so default rather than bail.
