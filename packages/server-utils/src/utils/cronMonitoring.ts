@@ -163,6 +163,7 @@ function toSentryTimezone(timezone: string | undefined): string | undefined {
 
 /**
  * Wraps a scheduled job with check-ins. Errors are captured, because schedulers catch them, and rethrown.
+ * Jobs without a monitor config run as they are, with no check-ins.
  */
 export function wrapScheduledJob(
   func: AnyFn,
@@ -176,6 +177,9 @@ export function wrapScheduledJob(
   };
 
   return function (this: unknown, ...args: unknown[]): unknown {
+    if (!monitorConfig) {
+      return func.apply(this, args);
+    }
     return startNewTrace(() =>
       withMonitor(
         monitorSlug,
