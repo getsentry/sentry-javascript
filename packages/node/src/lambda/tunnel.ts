@@ -3,7 +3,7 @@ import {
   _INTERNAL_handleServedTunnelRequest as handleServedTunnelRequest,
   _INTERNAL_isServedTunnelRequest as isServedTunnelRequest,
 } from '@sentry/core/server';
-import { DEBUG_BUILD } from './debug-build';
+import { DEBUG_BUILD } from '../debug-build';
 
 /**
  * The parts of an API Gateway (REST and HTTP API), function URL or ALB event the tunnel reads.
@@ -161,5 +161,41 @@ async function toHttpResult(response: Response, multiValueHeaders: boolean): Pro
       : { headers }),
     body: await response.text(),
     isBase64Encoded: false,
+  };
+}
+
+// The symbols the Lambda runtime reads off a streaming handler (`awslambda.streamifyResponse`).
+const HANDLER_STREAMING_SYMBOL = Symbol.for('aws.lambda.runtime.handler.streaming');
+const HANDLER_HIGHWATERMARK_SYMBOL = Symbol.for('aws.lambda.runtime.handler.streaming.highWaterMark');
+
+type LambdaHandler = (...args: unknown[]) => unknown;
+
+/**
+ * Wraps a Lambda handler so it answers managed tunnel requests before the handler runs, and passes every other event
+ * to it unchanged. Streaming handlers keep the symbols the runtime reads off them.
+ */
+export function wrapLambdaHandlerForTunnel(handler: LambdaHandler): LambdaHandler {
+  const handlerSymbols = handler as unknown as Record<symbol, unknown>;
+  if (handlerSymbols[HANDLER_STREAMING_SYMBOL] === 'response') {
+    const streamingHandler = function (this: unknown, event: unknown, responseStream: unknown, ...rest: unknown[]) {
+      return answerStreamingTunnelEvent(event, responseStream) ?? handler.call(this, event, responseStream, ...rest);
+    };
+    const streamingSymbols = streamingHandler as unknown as Record<symbol, unknown>;
+    streamingSymbols[HANDLER_STREAMING_SYMBOL] = handlerSymbols[HANDLER_STREAMING_SYMBOL];
+    streamingSymbols[HANDLER_HIGHWATERMARK_SYMBOL] = handlerSymbols[HANDLER_HIGHWATERMARK_SYMBOL];
+
+    return streamingHandler;
+  }
+
+  // Keeps the handler's arity, which the runtime reads to tell a callback handler from an async one (and which the
+  // Node.js 24 runtime rejects).
+  if (handler.length > 2) {
+    return function (this: unknown, event: unknown, context: unknown, callback: unknown) {
+      return answerTunnelEvent(event) ?? handler.call(this, event, context, callback);
+    };
+  }
+
+  return function (this: unknown, event: unknown, context: unknown) {
+    return answerTunnelEvent(event) ?? handler.call(this, event, context);
   };
 }
