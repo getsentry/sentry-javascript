@@ -36,6 +36,7 @@
     "@aws-sdk/client-sns": "^3.1046.0",
     "@aws-sdk/client-sqs": "^3.1046.0",
     "@earendil-works/pi-ai": "^1.4.0",
+    "@flue/runtime": "2.0.3",
     "@google/genai": "^1.20.0",
     "@growthbook/growthbook": "^1.6.5",
     "@hapi/hapi": "^21.3.10",
@@ -111,6 +112,7 @@
     "srvx": "^0.11.22",
     "tedious": "^19.2.1",
     "unstorage": "2.0.0-alpha.7",
+    "valibot": "1.1.0",
     "winston": "^3.17.0",
     "ws": "^8.20.1",
     "yargs": "^16.2.0"
