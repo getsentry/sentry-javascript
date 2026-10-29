@@ -206,13 +206,13 @@ describe('instrumentPrismaV8', () => {
     expect(span.end).toHaveBeenCalledTimes(1);
   });
 
-  it('does not open a span without a parent', async () => {
+  it('requires a parent when starting an operation span', async () => {
     await tracingChannel(CHANNELS.PRISMA_CREATE).tracePromise(async () => ({ id: 1 }), {
       arguments: [],
       self: { modelName: 'User' },
     });
 
-    expect(startInactiveSpanSpy).not.toHaveBeenCalled();
+    expect(startInactiveSpanSpy).toHaveBeenCalledWith(expect.objectContaining({ onlyIfParent: true }));
   });
 
   it('async terminal: marks the span as errored when the promise rejects', async () => {

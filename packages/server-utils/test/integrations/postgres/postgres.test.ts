@@ -251,12 +251,12 @@ describe('postgresIntegration', () => {
     );
   });
 
-  it('requireParentSpan: does not create a span when there is no active span', async () => {
+  it('requires a parent when starting a query span', async () => {
     getActiveSpanSpy.mockReturnValue(undefined);
     const ctx: OrchestrionChannelContext = { arguments: ['SELECT 1'], self: { connectionParameters: CONNECTION } };
 
     await tracingChannel(CHANNELS.PG_QUERY).tracePromise(async () => ({ rows: [] }), ctx);
 
-    expect(startInactiveSpanSpy).not.toHaveBeenCalled();
+    expect(startInactiveSpanSpy).toHaveBeenCalledWith(expect.objectContaining({ onlyIfParent: true }));
   });
 });

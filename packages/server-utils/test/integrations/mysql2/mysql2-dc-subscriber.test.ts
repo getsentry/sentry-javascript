@@ -168,7 +168,7 @@ describe('subscribeMysql2DiagnosticChannels', () => {
     vi.clearAllMocks();
   });
 
-  it('does not create a span when there is no enclosing active span', async () => {
+  it('activates a non-recording span when there is no enclosing active span', async () => {
     const channel = tracingChannel(MYSQL2_DC_CHANNEL_QUERY);
     let span: Span | undefined;
 
@@ -179,7 +179,7 @@ describe('subscribeMysql2DiagnosticChannels', () => {
       { query: 'SELECT 1' },
     );
 
-    expect(span).toBeUndefined();
+    expect(span?.isRecording()).toBe(false);
   });
 
   describe('query channel', () => {
