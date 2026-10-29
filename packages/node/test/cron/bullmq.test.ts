@@ -18,9 +18,13 @@ describe('cron.instrumentBullMQWorker', () => {
     vi.restoreAllMocks();
   });
 
-  function runJob(job: object, outcome: 'completed' | 'failed' = 'completed', worker = new EventEmitter()): void {
+  function createWorker(): EventEmitter & { processFn: (job: object) => unknown } {
+    return Object.assign(new EventEmitter(), { processFn: vi.fn((_job: object) => 'result') });
+  }
+
+  function runJob(job: object, outcome: 'completed' | 'failed' = 'completed', worker = createWorker()): void {
     cron.instrumentBullMQWorker(worker);
-    worker.emit('active', job, 'waiting');
+    worker.processFn(job);
     worker.emit(outcome, job, outcome === 'failed' ? new Error('boom') : 'result', 'active');
   }
 
@@ -121,16 +125,47 @@ describe('cron.instrumentBullMQWorker', () => {
     ['an excluded scheduler', schedulerJob('cache-warmup', { every: 60_000 })],
     ['a scheduler matching an excluded pattern', schedulerJob('tmp-cleanup', { every: 60_000 })],
   ])('ignores %s', (_, job) => {
-    const worker = new EventEmitter();
+    const worker = createWorker();
     cron.instrumentBullMQWorker(worker, { excludeJobSchedulers: ['cache-warmup', /^tmp-/] });
-    worker.emit('active', job);
-    worker.emit('completed', job);
+    worker.processFn(job);
+    worker.emit('failed', job);
+
+    expect(captureCheckInSpy).not.toHaveBeenCalled();
+  });
+
+  test('calls the processor with the worker and its arguments', () => {
+    const worker = createWorker();
+    const processor = worker.processFn;
+    cron.instrumentBullMQWorker(worker);
+    const job = schedulerJob('my-scheduler', { every: 60_000 });
+
+    expect(worker.processFn.call(worker, job, 'token')).toBe('result');
+    expect(processor).toHaveBeenCalledWith(job, 'token');
+    expect(vi.mocked(processor).mock.contexts[0]).toBe(worker);
+  });
+
+  test('sends an error check-in for a job that fails without running the processor', () => {
+    const worker = createWorker();
+    cron.instrumentBullMQWorker(worker);
+    worker.emit('failed', schedulerJob('my-scheduler', { every: 60_000 }), new Error('stalled'), 'active');
+
+    expect(captureCheckInSpy).toHaveBeenCalledTimes(1);
+    expect(captureCheckInSpy).toHaveBeenCalledWith(
+      { monitorSlug: 'my-scheduler', status: 'error' },
+      { schedule: { type: 'interval', value: 1, unit: 'minute' } },
+    );
+  });
+
+  test('sends no check-in for a job that completes without running the processor', () => {
+    const worker = createWorker();
+    cron.instrumentBullMQWorker(worker);
+    worker.emit('completed', schedulerJob('my-scheduler', { every: 60_000 }), 'result', 'active');
 
     expect(captureCheckInSpy).not.toHaveBeenCalled();
   });
 
   test('instruments a worker only once', () => {
-    const worker = new EventEmitter();
+    const worker = createWorker();
     cron.instrumentBullMQWorker(worker);
     runJob(schedulerJob('my-scheduler', { every: 60_000 }), 'completed', worker);
 

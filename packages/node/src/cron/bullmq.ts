@@ -58,11 +58,17 @@ export function instrumentBullMQWorker<T extends { on: (...args: never[]) => unk
   }
   instrumentedWorkers.add(worker);
 
-  const running = new WeakMap<object, { monitorSlug: string; checkInId: string; start: number }>();
-  const on = (event: string, listener: (job?: BullMQJob) => void): unknown =>
-    (worker.on as unknown as typeof on).call(worker, event, listener);
+  // Sentry keeps the trace of the `in_progress` check-in. BullMQ emits `active` before the job's trace starts,
+  // often inside the previous job's, so send it from the processor instead.
+  const target = worker as unknown as { processFn?: (job: BullMQJob, ...args: unknown[]) => unknown };
+  const processFn = target.processFn;
+  if (typeof processFn !== 'function') {
+    return worker;
+  }
 
-  on('active', job => {
+  const running = new WeakMap<object, { monitorSlug: string; checkInId: string; start: number }>();
+
+  target.processFn = function (this: unknown, job: BullMQJob, ...args: unknown[]): unknown {
     try {
       const monitorSlug = getJobSchedulerId(job, options.excludeJobSchedulers);
       if (job && monitorSlug) {
@@ -72,7 +78,8 @@ export function instrumentBullMQWorker<T extends { on: (...args: never[]) => unk
     } catch (e) {
       DEBUG_BUILD && debug.error('[BullMQ] Failed to send check-in:', e);
     }
-  });
+    return processFn.call(this, job, ...args);
+  };
 
   const finish =
     (status: 'ok' | 'error') =>
@@ -83,13 +90,20 @@ export function instrumentBullMQWorker<T extends { on: (...args: never[]) => unk
           running.delete(job);
           const { monitorSlug, checkInId, start } = run;
           captureCheckIn({ monitorSlug, status, checkInId, duration: timestampInSeconds() - start });
+          return;
+        }
+        // BullMQ fails some jobs, such as ones that stalled too often, without running the processor.
+        const monitorSlug = status === 'error' && getJobSchedulerId(job, options.excludeJobSchedulers);
+        if (job && monitorSlug) {
+          captureCheckIn({ monitorSlug, status }, getMonitorConfig(job.opts?.repeat));
         }
       } catch (e) {
         DEBUG_BUILD && debug.error('[BullMQ] Failed to send check-in:', e);
       }
     };
-  on('completed', finish('ok'));
-  on('failed', finish('error'));
+  const on = worker.on as unknown as (event: string, listener: (job?: BullMQJob) => void) => unknown;
+  on.call(worker, 'completed', finish('ok'));
+  on.call(worker, 'failed', finish('error'));
 
   return worker;
 }
