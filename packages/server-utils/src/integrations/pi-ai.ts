@@ -75,14 +75,23 @@ function instrumentPiAi(options: PiAiOptions): void {
 }
 
 /**
- * Diagnostics-channel-based integration for pi-ai (`@earendil-works/pi-ai` >= 0.80.0 < 2, whose API
- * is experimental). Subscribes to the `orchestrion:@earendil-works/pi-ai:stream` and `:complete`
- * channels injected into the `Models` methods and the standalone `compat` functions, so it requires
- * the Sentry runtime hook or bundler plugin.
+ * Traces the requests sent with pi-ai (`@earendil-works/pi-ai` >= 0.80.0 < 2) as `gen_ai.chat` spans,
+ * whether they go through `createModels()` or the standalone `stream` and `complete` functions. This
+ * includes the model calls of Flue and pi-durable agents, which send them through pi-ai.
  *
- * Traces one `gen_ai.chat` span per model request, including the requests Flue and pi-durable send.
- * From the first request on, the `openai`, `@anthropic-ai/sdk`, `@google/genai` and Workers AI
- * integrations stop reporting requests in the whole process, because pi-ai sends its requests
- * through those clients.
+ * Enabled by default. It needs the Sentry runtime hook (`--import`) or bundler plugin. Prompts and
+ * responses are recorded per `recordInputs` and `recordOutputs`, which default to
+ * `dataCollection.genAI`.
+ *
+ * Once pi-ai has sent a request, the `openai`, `@anthropic-ai/sdk`, `@google/genai` and Workers AI
+ * integrations stop recording requests for the rest of the process, because pi-ai sends its requests
+ * through those clients and they would report each one a second time.
+ *
+ * @example
+ * ```javascript
+ * Sentry.init({
+ *   integrations: [Sentry.piAiIntegration({ recordInputs: true, recordOutputs: true })],
+ * });
+ * ```
  */
 export const piAiIntegration = defineIntegration(_piAiIntegration);
