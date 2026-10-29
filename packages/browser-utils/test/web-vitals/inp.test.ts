@@ -134,6 +134,20 @@ describe('INP subpart timings', () => {
     });
   });
 
+  it('caps processing at the next paint so the subparts add up to the interaction', async () => {
+    const { getInpSubpartAttributes, recordInteractionTiming } = await loadInp();
+
+    // A sync `alert()` in the handler keeps processing running long after the next paint.
+    const entry = eventEntry(8, 100, 200, [120, 900]);
+    recordInteractionTiming(entry as any);
+
+    expect(getInpSubpartAttributes(entry as any)).toEqual({
+      'browser.web_vital.inp.input_delay': 20,
+      'browser.web_vital.inp.processing_duration': 180,
+      'browser.web_vital.inp.presentation_delay': 0,
+    });
+  });
+
   it('keeps the longest interactions when it has to evict one', async () => {
     const { getInpSubpartAttributes, recordInteractionTiming } = await loadInp();
 
