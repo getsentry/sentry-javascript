@@ -1,16 +1,17 @@
-import type { Span } from '@sentry/core';
+import type { Client, Span, SpanAttributes } from '@sentry/core';
 import {
-  Client,
   createTransport,
   getCurrentScope,
   initAndBind,
   resolvedSyncPromise,
   spanToJSON,
   startSpan,
+  withActiveSpan,
 } from '@sentry/core';
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { instrumentPrisma } from '../../src/integrations/prisma';
-import type { TracingHelper } from '../../src/integrations/prisma/types';
+import type { EngineSpan, TracingHelper } from '../../src/integrations/prisma/types';
+import { TestClient } from '../mocks/client';
 
 type PrismaGlobal = typeof globalThis & {
   PRISMA_INSTRUMENTATION?: { helper?: TracingHelper };
@@ -21,18 +22,9 @@ function getHelper(): (TracingHelper & { createEngineSpan?: unknown }) | undefin
   return (globalThis as PrismaGlobal).PRISMA_INSTRUMENTATION?.helper;
 }
 
-class TestClient extends Client<any> {
-  public eventFromException(): PromiseLike<any> {
-    return resolvedSyncPromise({});
-  }
-  public eventFromMessage(): PromiseLike<any> {
-    return resolvedSyncPromise({});
-  }
-}
-
-function initTestClient(): void {
+function initTestClient(): Client {
   getCurrentScope().setClient(undefined);
-  initAndBind(TestClient, {
+  return initAndBind(TestClient, {
     dsn: 'https://username@domain/123',
     integrations: [],
     sendClientReports: false,
@@ -43,7 +35,7 @@ function initTestClient(): void {
 }
 
 /** Runs a `db_query` span through the installed helper and returns the span it created. */
-function runDbQuerySpan(attributes: Record<string, unknown>): Span {
+function runDbQuerySpan(attributes: SpanAttributes): Span {
   let span: Span | undefined;
   startSpan({ name: 'parent' }, () => {
     getHelper()?.runInChildSpan({ name: 'db_query', attributes }, createdSpan => {
@@ -55,6 +47,7 @@ function runDbQuerySpan(attributes: Record<string, unknown>): Span {
 
 describe('instrumentPrisma', () => {
   afterEach(() => {
+    getCurrentScope().setClient(undefined);
     const g = globalThis as PrismaGlobal;
     g.PRISMA_INSTRUMENTATION = undefined;
     g.V7_PRISMA_INSTRUMENTATION = undefined;
@@ -79,6 +72,72 @@ describe('instrumentPrisma', () => {
     // v5-only interface, backfilled so Prisma 5 doesn't crash calling a missing method
     expect(typeof helper?.createEngineSpan).toBe('function');
     expect(helper?.isEnabled()).toBe(true);
+  });
+
+  describe('engine spans', () => {
+    const engineSpans: EngineSpan[] = [
+      {
+        id: 'engine-query',
+        parentId: null,
+        name: 'prisma:engine:query',
+        kind: 'internal',
+        startTime: [1, 0],
+        endTime: [1, 1_000_000],
+      },
+      {
+        id: 'db-query',
+        parentId: 'engine-query',
+        name: 'prisma:engine:db_query',
+        kind: 'client',
+        startTime: [1, 0],
+        endTime: [1, 1_000_000],
+        attributes: {
+          'db.query.text': 'SELECT * FROM "User"',
+          'db.system.name': 'postgresql',
+        },
+      },
+    ];
+
+    it('runs the callback without creating client or engine spans when no parent is active', () => {
+      const client = initTestClient();
+      instrumentPrisma();
+      const spanStart = vi.fn();
+      client.on('spanStart', spanStart);
+      const helper = getHelper()!;
+      const callback = vi.fn(() => {
+        helper.dispatchEngineSpans(engineSpans);
+        return 'query result';
+      });
+
+      const result = withActiveSpan(null, () => helper.runInChildSpan('operation', callback));
+
+      expect(result).toBe('query result');
+      expect(callback).toHaveBeenCalledExactlyOnceWith();
+      expect(spanStart).not.toHaveBeenCalled();
+    });
+
+    it('attaches the engine batch to the active parent and preserves its child relationships', () => {
+      const client = initTestClient();
+      instrumentPrisma();
+      const endedSpans: Span[] = [];
+      client.on('spanEnd', span => endedSpans.push(span));
+      const helper = getHelper()!;
+
+      startSpan({ name: 'parent' }, parent => {
+        helper.dispatchEngineSpans(engineSpans);
+
+        const engineSpan = endedSpans.find(span => spanToJSON(span).name === 'prisma:engine:query')!;
+        expect(
+          endedSpans.map(span => ({
+            name: spanToJSON(span).name,
+            parentSpanId: spanToJSON(span).parent_span_id,
+          })),
+        ).toEqual([
+          { name: 'SELECT "User"', parentSpanId: engineSpan.spanContext().spanId },
+          { name: 'prisma:engine:query', parentSpanId: parent.spanContext().spanId },
+        ]);
+      });
+    });
   });
 
   describe('db.query.summary', () => {

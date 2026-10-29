@@ -242,6 +242,10 @@ export class ActiveTracingHelper implements TracingHelper {
   }
 
   public dispatchEngineSpans(spans: EngineSpan[]): void {
+    if (!getActiveSpan()) {
+      return;
+    }
+
     const linkIds = new Map<string, string>();
     const roots = spans.filter(span => span.parentId === null);
 
