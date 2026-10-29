@@ -1,8 +1,13 @@
 import type { Integration } from '@sentry/core';
-import { getGlobalScope, getMainCarrier, GLOBAL_OBJ, withIsolationScope } from '@sentry/core';
+import { getGlobalScope, getMainCarrier, getTunnelPath, GLOBAL_OBJ, withIsolationScope } from '@sentry/core';
 import { setAsyncLocalStorageAsyncContextStrategy } from '@sentry/server-utils';
 import * as SentryVercelEdge from '@sentry/vercel-edge';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import {
+  _INTERNAL_resetManagedTunnelDefaults,
+  handleTunnelRequestIfMatched,
+  serveTunnelIntegration,
+} from '@sentry/core/server';
 import { TRANSACTION_ATTR_SHOULD_DROP_TRANSACTION } from '../src/common/span-attributes-with-logic-attached';
 import { init } from '../src/edge';
 
@@ -10,6 +15,8 @@ import { init } from '../src/edge';
 (GLOBAL_OBJ as typeof GLOBAL_OBJ & { _sentryRewriteFramesDistDir: string })._sentryRewriteFramesDistDir = '.next';
 
 const vercelEdgeInit = vi.spyOn(SentryVercelEdge, 'init');
+
+const TEST_DSN = 'https://public@dsn.ingest.sentry.io/1337';
 
 function findIntegrationByName(integrations: Integration[] = [], name: string): Integration | undefined {
   return integrations.find(integration => integration.name === name);
@@ -87,6 +94,27 @@ describe('Edge init()', () => {
     withIsolationScope(() => init({}));
 
     expect(getGlobalScope().getScopeData().tags.turbopack).toBe(true);
+  });
+
+  describe('managed tunnel', () => {
+    afterEach(() => {
+      delete (GLOBAL_OBJ as typeof GLOBAL_OBJ & { _sentryBasePath?: string })._sentryBasePath;
+      _INTERNAL_resetManagedTunnelDefaults();
+    });
+
+    it("serves the tunnel of `serveTunnelIntegration` under the app's `basePath`", () => {
+      (GLOBAL_OBJ as typeof GLOBAL_OBJ & { _sentryBasePath?: string })._sentryBasePath = '/docs';
+      const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response('{}'));
+
+      init({ dsn: TEST_DSN, integrations: [serveTunnelIntegration()] });
+
+      const tunnelPath = getTunnelPath(TEST_DSN);
+      const post = (path: string): Request =>
+        new Request(`https://example.com${path}`, { method: 'POST', body: '{}', headers: { 'content-length': '2' } });
+      expect(handleTunnelRequestIfMatched(post(`/docs${tunnelPath}`))).toBeInstanceOf(Promise);
+      expect(handleTunnelRequestIfMatched(post(`${tunnelPath}`))).toBeUndefined();
+      fetchSpy.mockRestore();
+    });
   });
 
   describe('integrations', () => {

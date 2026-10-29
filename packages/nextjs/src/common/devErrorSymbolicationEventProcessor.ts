@@ -3,6 +3,7 @@ import { debug, GLOBAL_OBJ, parseSemver, suppressTracing } from '@sentry/core';
 import type { StackFrame } from 'stacktrace-parser';
 import * as stackTraceParser from 'stacktrace-parser';
 import { DEBUG_BUILD } from './debug-build';
+import { getInjectedBasePath } from './utils/basePath';
 import { URL_FULL } from '@sentry/conventions/attributes';
 
 type OriginalStackFrameResponse = {
@@ -12,7 +13,6 @@ type OriginalStackFrameResponse = {
 };
 
 const globalWithInjectedValues = GLOBAL_OBJ as typeof GLOBAL_OBJ & {
-  _sentryBasePath?: string;
   _sentryNextJsVersion: string | undefined;
 };
 
@@ -21,7 +21,7 @@ const globalWithInjectedValues = GLOBAL_OBJ as typeof GLOBAL_OBJ & {
  * Returns only the base path when running in the browser (client-side) for relative URLs.
  */
 function getDevServerBaseUrl(): string {
-  let basePath = process.env._sentryBasePath ?? globalWithInjectedValues._sentryBasePath ?? '';
+  let basePath = getInjectedBasePath() ?? '';
 
   // Prefix the basepath with a slash if it doesn't have one
   if (basePath !== '' && !basePath.match(/^\//)) {
