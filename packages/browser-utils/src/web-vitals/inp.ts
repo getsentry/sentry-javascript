@@ -7,30 +7,21 @@ import {
 } from '@sentry/conventions/attributes';
 import { htmlTreeAsString } from '../htmlTreeAsString';
 import { WINDOW } from '../types';
-import type { PerformanceEventTiming } from '../instrumentation/performanceObserver';
 import { addPerformanceInstrumentationHandler, isPerformanceEventTiming } from '../instrumentation/performanceObserver';
 
 interface InteractionContext {
   span: Span | undefined;
   elementName: string;
-}
-
-const LAST_INTERACTIONS: number[] = [];
-const INTERACTIONS_SPAN_MAP = new Map<number, InteractionContext>();
-
-interface InteractionTiming {
+  // Merged across every event of the interaction. web-vitals only keeps the entries that share the
+  // longest entry's start time, which drops e.g. a slow `click` that starts after its `pointerdown`.
   startTime: number;
   processingStart: number;
   processingEnd: number;
   nextPaintTime: number;
 }
 
-/**
- * Timings merged across every event of an interaction, kept for the longest interactions only, the
- * way web-vitals keeps its INP candidates.
- */
-const INTERACTION_TIMINGS = new Map<number, InteractionTiming>();
-const MAX_INTERACTION_TIMINGS = 10;
+const LAST_INTERACTIONS: number[] = [];
+const INTERACTIONS_SPAN_MAP = new Map<number, InteractionContext>();
 
 // Map to store element names by timestamp, since we get the DOM event before the PerformanceObserver entry
 /** What `htmlTreeAsString` returns when it cannot describe the target. */
@@ -168,10 +159,16 @@ export function registerInpInteractionListener(): void {
         return;
       }
 
-      recordInteractionTiming(entry);
+      const nextPaintTime = entry.startTime + entry.duration;
+      const context = INTERACTIONS_SPAN_MAP.get(interactionId);
 
-      // If the interaction was already recorded before, nothing more to do
-      if (INTERACTIONS_SPAN_MAP.has(interactionId)) {
+      // If the interaction was already recorded before, only its timings can change
+      if (context) {
+        context.startTime = Math.min(context.startTime, entry.startTime);
+        context.processingStart = Math.min(context.processingStart, entry.processingStart);
+        context.processingEnd = Math.max(context.processingEnd, entry.processingEnd);
+        context.nextPaintTime = Math.max(context.nextPaintTime, nextPaintTime);
+
         return;
       }
 
@@ -189,6 +186,10 @@ export function registerInpInteractionListener(): void {
       INTERACTIONS_SPAN_MAP.set(interactionId, {
         span: activeRootSpan,
         elementName,
+        startTime: entry.startTime,
+        processingStart: entry.processingStart,
+        processingEnd: entry.processingEnd,
+        nextPaintTime,
       });
     });
   };
@@ -198,63 +199,9 @@ export function registerInpInteractionListener(): void {
 }
 
 /**
- * Merges an event entry into the timings of the interaction it belongs to.
- *
- * web-vitals only keeps the entries that share the longest entry's start time, which drops e.g. a
- * slow `click` that starts after its `pointerdown`. Every entry is seen here instead.
+ * The INP subparts of an interaction, which add up to the time from the input to the next paint.
  */
-export function recordInteractionTiming(entry: PerformanceEventTiming): void {
-  const interactionId = entry.interactionId;
-  if (!interactionId) {
-    return;
-  }
-
-  const nextPaintTime = entry.startTime + entry.duration;
-  const timing = INTERACTION_TIMINGS.get(interactionId);
-  if (timing) {
-    timing.startTime = Math.min(timing.startTime, entry.startTime);
-    timing.processingStart = Math.min(timing.processingStart, entry.processingStart);
-    timing.processingEnd = Math.max(timing.processingEnd, entry.processingEnd);
-    timing.nextPaintTime = Math.max(timing.nextPaintTime, nextPaintTime);
-
-    return;
-  }
-
-  INTERACTION_TIMINGS.set(interactionId, {
-    startTime: entry.startTime,
-    processingStart: entry.processingStart,
-    processingEnd: entry.processingEnd,
-    nextPaintTime,
-  });
-
-  if (INTERACTION_TIMINGS.size > MAX_INTERACTION_TIMINGS) {
-    let shortestId: number | undefined;
-    let shortestLatency = Infinity;
-    INTERACTION_TIMINGS.forEach((t, id) => {
-      const latency = t.nextPaintTime - t.startTime;
-      if (latency < shortestLatency) {
-        shortestLatency = latency;
-        shortestId = id;
-      }
-    });
-    INTERACTION_TIMINGS.delete(shortestId as number);
-  }
-}
-
-/**
- * The INP subparts of the interaction an entry belongs to, which add up to the time from the input
- * to the next paint.
- *
- * The slow handler can be on any event of the interaction, so the subparts come from the timings
- * merged across all of them. Without those they are left out, since a single entry would count
- * the other events' handlers as presentation delay.
- */
-export function getInpSubpartAttributes(entry: PerformanceEventTiming | undefined): SpanAttributes | undefined {
-  const timing = entry?.interactionId ? INTERACTION_TIMINGS.get(entry.interactionId) : undefined;
-  if (!timing) {
-    return undefined;
-  }
-
+export function getInpSubpartAttributes(timing: InteractionContext): SpanAttributes {
   const processingStart = Math.max(timing.processingStart, timing.startTime);
   // `duration` is rounded to 8ms, so the next paint can appear to come before processing starts.
   const nextPaintTime = Math.max(timing.nextPaintTime, processingStart);

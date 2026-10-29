@@ -121,13 +121,15 @@ describe('INP subpart timings', () => {
   }
 
   it('merges every event entry of an interaction seen by the observer', async () => {
-    const { getInpSubpartAttributes, registerInpInteractionListener } = await loadInp();
+    const { getCachedInteractionContext, getInpSubpartAttributes, registerInpInteractionListener } = await loadInp();
     registerInpInteractionListener();
 
-    const pointerdown = eventEntry(7, 500, 520, [505, 506]);
-    performanceHandlers.get('event')?.({ entries: [pointerdown, eventEntry(7, 510, 504, [515, 965])] });
+    // The slow handler is on `click`, which starts after the `pointerdown` web-vitals keeps.
+    performanceHandlers.get('event')?.({
+      entries: [eventEntry(7, 500, 520, [505, 506]), eventEntry(7, 510, 504, [515, 965])],
+    });
 
-    expect(getInpSubpartAttributes(pointerdown as any)).toEqual({
+    expect(getInpSubpartAttributes(getCachedInteractionContext(7)!)).toEqual({
       'browser.web_vital.inp.input_delay': 5,
       'browser.web_vital.inp.processing_duration': 460,
       'browser.web_vital.inp.presentation_delay': 55,
@@ -135,29 +137,22 @@ describe('INP subpart timings', () => {
   });
 
   it('caps processing at the next paint so the subparts add up to the interaction', async () => {
-    const { getInpSubpartAttributes, recordInteractionTiming } = await loadInp();
+    const { getInpSubpartAttributes } = await loadInp();
 
     // A sync `alert()` in the handler keeps processing running long after the next paint.
-    const entry = eventEntry(8, 100, 200, [120, 900]);
-    recordInteractionTiming(entry as any);
+    const timing = {
+      span: undefined,
+      elementName: '',
+      startTime: 100,
+      processingStart: 120,
+      processingEnd: 900,
+      nextPaintTime: 300,
+    };
 
-    expect(getInpSubpartAttributes(entry as any)).toEqual({
+    expect(getInpSubpartAttributes(timing)).toEqual({
       'browser.web_vital.inp.input_delay': 20,
       'browser.web_vital.inp.processing_duration': 180,
       'browser.web_vital.inp.presentation_delay': 0,
     });
-  });
-
-  it('keeps the longest interactions when it has to evict one', async () => {
-    const { getInpSubpartAttributes, recordInteractionTiming } = await loadInp();
-
-    const slow = eventEntry(1, 0, 500, [10, 400]);
-    recordInteractionTiming(slow as any);
-    for (let id = 2; id <= 11; id++) {
-      recordInteractionTiming(eventEntry(id, id * 1000, 50, [id * 1000 + 5, id * 1000 + 10]) as any);
-    }
-
-    expect(getInpSubpartAttributes(slow as any)).toBeDefined();
-    expect(getInpSubpartAttributes(eventEntry(2, 2000, 50, [0, 0]) as any)).toBeUndefined();
   });
 });

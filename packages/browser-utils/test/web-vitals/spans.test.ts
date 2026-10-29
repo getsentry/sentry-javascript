@@ -811,29 +811,24 @@ describe('_sendInpSpan', () => {
     expect(mockSpan.end).toHaveBeenCalledWith(1.62);
   });
 
-  it('reports the INP subparts merged across every event of the interaction', () => {
-    vi.spyOn(inpModule, 'getCachedInteractionContext').mockReturnValue(undefined);
-    // The slow handler is on `click`, but the INP entry is the interaction's first event.
-    const pointerdown = {
+  it('reports the INP subparts from the timings merged for the interaction', () => {
+    vi.spyOn(inpModule, 'getCachedInteractionContext').mockReturnValue({
+      span: undefined,
+      elementName: '<button>',
+      startTime: 500,
+      processingStart: 505,
+      processingEnd: 965,
+      nextPaintTime: 1020,
+    });
+
+    _sendInpSpan(520, {
       name: 'pointerdown',
       startTime: 500,
       processingStart: 505,
       processingEnd: 506,
       duration: 520,
       interactionId: 101,
-    } as any;
-    const click = {
-      name: 'click',
-      startTime: 510,
-      processingStart: 515,
-      processingEnd: 965,
-      duration: 504,
-      interactionId: 101,
-    } as any;
-    inpModule.recordInteractionTiming(pointerdown);
-    inpModule.recordInteractionTiming(click);
-
-    _sendInpSpan(520, pointerdown);
+    } as any);
 
     expect(SentryCoreBrowser.startInactiveSpan).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -957,6 +952,10 @@ describe('_sendInpSpan', () => {
     vi.spyOn(inpModule, 'getCachedInteractionContext').mockReturnValue({
       elementName: 'body > CachedButton',
       span: mockRootSpan as any,
+      startTime: 500,
+      processingStart: 500,
+      processingEnd: 600,
+      nextPaintTime: 620,
     });
 
     const mockEntry = {
