@@ -134,21 +134,29 @@ describe('@Cron() monitoring', () => {
     expect(sentCheckIns().map(([, status]) => status)).toEqual(['in_progress', 'error']);
   });
 
-  it('checks in without a config when the schedule cannot be sent', () => {
+  it('skips jobs whose schedule cannot be sent', () => {
     initClient({ monitorCronJobs: true });
     decorate('Jobs', [cron('*/10 * * * * *', { name: 'every-10s' })])();
 
-    expect(sentCheckIns()[0]).toEqual(['every-10s', 'in_progress', undefined]);
+    expect(captureCheckIn).not.toHaveBeenCalled();
   });
 
-  it.each([
-    ['@nestjs/schedule 3', '3.0.4', undefined],
-    ['@nestjs/schedule 4', '4.1.2', { schedule: { type: 'crontab', value: '0 0 1 1 *' }, timezone: 'UTC' }],
-  ])('sends a numeric month only from %s', (_, moduleVersion, config) => {
+  it('skips a numeric month on @nestjs/schedule 3', () => {
     initClient({ monitorCronJobs: true });
-    decorate('Jobs', [cron('0 0 1 1 *', { name: 'yearly', timeZone: 'UTC' }, moduleVersion)])();
+    decorate('Jobs', [cron('0 0 1 1 *', { name: 'yearly', timeZone: 'UTC' }, '3.0.4')])();
 
-    expect(sentCheckIns()[0]).toEqual(['yearly', 'in_progress', config]);
+    expect(captureCheckIn).not.toHaveBeenCalled();
+  });
+
+  it('sends a numeric month from @nestjs/schedule 4', () => {
+    initClient({ monitorCronJobs: true });
+    decorate('Jobs', [cron('0 0 1 1 *', { name: 'yearly', timeZone: 'UTC' }, '4.1.2')])();
+
+    expect(sentCheckIns()[0]).toEqual([
+      'yearly',
+      'in_progress',
+      { schedule: { type: 'crontab', value: '0 0 1 1 *' }, timezone: 'UTC' },
+    ]);
   });
 
   it('does not monitor by default', () => {

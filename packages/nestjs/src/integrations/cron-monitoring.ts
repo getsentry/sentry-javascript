@@ -9,6 +9,7 @@ export interface NestCronMonitoringOptions {
   /**
    * Send check-ins for every `@Cron()` method of `@nestjs/schedule`. The monitor slug is the `name`
    * option of `@Cron()`, or `ClassName.methodName`. Methods with `@SentryCron()` keep their own slug.
+   * Methods whose schedule Sentry can't represent, like every 10 seconds, are not monitored.
    *
    * Defaults to `false`.
    */
@@ -22,7 +23,7 @@ export interface NestCronMonitoringOptions {
 
 interface CronMonitor {
   slug: string;
-  config: MonitorConfig | undefined;
+  config: MonitorConfig;
 }
 
 const MONITORING_OPTIONS = new WeakMap<Client, NestCronMonitoringOptions>();
@@ -94,5 +95,11 @@ function getCronMonitor(
     return null;
   }
 
-  return { slug, config: nestCronOptionsToMonitorConfig({ ...options, cronTime }, scheduleVersion) };
+  const config = nestCronOptionsToMonitorConfig({ ...options, cronTime }, scheduleVersion);
+  if (!config) {
+    DEBUG_BUILD && debug.log(`[Nest] Not monitoring ${slug}: Sentry can't represent its schedule.`);
+    return null;
+  }
+
+  return { slug, config };
 }
