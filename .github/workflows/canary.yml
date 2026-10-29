@@ -14,7 +14,6 @@ env:
 
 permissions:
   contents: read
-  issues: write
 
 jobs:
   job_e2e_prepare:
@@ -121,13 +120,30 @@ jobs:
         timeout-minutes: 15
         run: ${{ matrix.assert-command || 'pnpm test:assert' }}
 
-      - name: Create Issue
-        if: failure() && github.event_name == 'schedule'
-        uses: JasonEtco/create-an-issue@1b14a70e4d8dc185e5cc76d3bec9eab20257b2c5
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          RUN_LINK: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
-          TITLE: ${{ matrix.label || matrix.test-application }} Test Failed
+  job_report_failures:
+    name: Report canary failures
+    needs: [job_e2e_prepare, job_e2e_tests]
+    if: always() && github.event_name == 'schedule' && needs.job_e2e_tests.result == 'failure'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      # To find the failed jobs of this run
+      actions: read
+      issues: write
+    steps:
+      - name: Check out current commit
+        uses: actions/checkout@v7
         with:
-          filename: .github/CANARY_FAILURE_TEMPLATE.md
-          update_existing: true
+          ref: ${{ env.HEAD_COMMIT }}
+          persist-credentials: false
+      - name: Open or update an issue per failed test application
+        uses: actions/github-script@v9
+        env:
+          CANARY_MATRIX: ${{ needs.job_e2e_prepare.outputs.matrix }}
+        with:
+          script: |
+            const { default: run } = await import(
+              `${process.env.GITHUB_WORKSPACE}/scripts/report-canary-failures.mjs`
+            );
+            await run({ github, context, core, matrix: JSON.parse(process.env.CANARY_MATRIX) });
