@@ -15,7 +15,7 @@
   },
   "dependencies": {
     "@sentry/nuxt": "file:../../packed/sentry-nuxt-packed.tgz",
-    "nitro": "latest",
+    "nitro": "3.0.260903-beta",
     "nuxt": "npm:nuxt-nightly@5x"
   },
   "devDependencies": {

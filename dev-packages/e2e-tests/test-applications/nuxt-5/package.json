@@ -21,7 +21,7 @@
     "test:assert:tunnel-dev": "E2E_TEST_TUNNEL=1 TEST_ENV=development playwright test tunnel"
   },
   "//": [
-    "Currently, we need to install the latest version of Nitro and the Nuxt nightlies as those contain Nuxt v5",
+    "Currently, we need to install Nitro and the Nuxt nightlies as those contain Nuxt v5. Keep nitro on the version nuxt-nightly depends on: mixing two Nitro versions breaks the build.",
     "TODO: remove nitro from dependencies",
     "Nuxt generates `fetch.server.mjs` as a virtual module that imports `ofetch`, and since a virtual id is neither absolute nor on disk, Vite resolves from its `root` (the srcDir) instead of the importer's folder.",
     "This fails because `ofetch` is a dependency of `nuxt` rather than the app, so pnpm leaves it in `.pnpm/`",
@@ -32,7 +32,7 @@
     "@sentry/nuxt": "file:../../packed/sentry-nuxt-packed.tgz",
     "mongoose": "^9.10.2",
     "ofetch": "^2.0.0-alpha.3",
-    "nitro": "latest",
+    "nitro": "3.0.260903-beta",
     "nuxt": "npm:nuxt-nightly@5x",
     "vue": "^3.5.41"
   },
