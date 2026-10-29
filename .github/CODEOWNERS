@@ -1,3 +1,6 @@
+# Catch-all rule for shared packages
+* @getsentry/team-javascript-sdks-browser @getsentry/team-javascript-sdks-server @getsentry/team-javascript-sdks-framework
+
 # Browser, replay, feedback, and related packages
 /packages/browser/                  @getsentry/team-javascript-sdks-browser
 /packages/browser-utils/            @getsentry/team-javascript-sdks-browser

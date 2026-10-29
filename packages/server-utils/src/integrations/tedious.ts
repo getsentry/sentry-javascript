@@ -157,6 +157,7 @@ function subscribeQuery(channelName: string, operation: string): void {
           ? querySummary || getLowCardinalitySecondarySpanName(operation, databaseName, sql, request.table)
           : queryText || getSecondarySpanName(operation, databaseName, request.table),
       attributes,
+      onlyIfParent: true,
     });
 
     const endSpan = once((err?: { message?: string }): void => {

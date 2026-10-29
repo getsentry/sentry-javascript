@@ -43,9 +43,6 @@
     "eslint-config-next": "^16",
     "typescript": "^5"
   },
-  "volta": {
-    "extends": "../../package.json"
-  },
   "sentryTest": {
     "runner": "namespace-profile-sentry-javascript",
     "variants": [

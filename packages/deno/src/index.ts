@@ -111,7 +111,16 @@ export {
   consoleLoggingIntegration,
   spanStreamingIntegration,
 } from '@sentry/core';
-export { trpcMiddleware, wrapMcpServerWithSentry } from '@sentry/core/server';
+export {
+  handleTunnelRequestIfMatched,
+  isTunnelRequest,
+  serveTunnelIntegration,
+  trpcMiddleware,
+  wrapMcpServerWithSentry,
+} from '@sentry/core/server';
+export type { TunnelRequestLike } from '@sentry/core/server';
+export { getTunnelPath, handleTunnelRequest } from '@sentry/core';
+export type { HandleTunnelRequestOptions, ServerTunnelOptions } from '@sentry/core';
 export {
   instrumentPostgresJsSql,
   prismaIntegration,

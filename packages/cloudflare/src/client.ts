@@ -540,6 +540,12 @@ interface BaseCloudflareOptions {
  */
 export interface CloudflareOptions extends Options<CloudflareTransportOptions>, BaseCloudflareOptions {
   ctx?: ExecutionContextCompat;
+
+  /**
+   * A URL to send this server's own envelopes to instead of the Sentry ingest URL. To serve the managed tunnel for the
+   * browser, use `serveTunnelIntegration`.
+   */
+  tunnel?: string;
 }
 
 /**

@@ -673,6 +673,21 @@ describe('reactrouter-compat-utils/utils', () => {
   });
 
   describe('resolveRouteNameAndSource', () => {
+    it.each([
+      { basename: '/app/', pathname: '/app/users/42', expected: '/app/users/:id' },
+      { basename: '/', pathname: '/users/42', expected: '/users/:id' },
+    ])('avoids double slashes in manifest route names with basename $basename', ({ basename, pathname, expected }) => {
+      const config = makeConfig({
+        enableAsyncRouteHandlers: true,
+        lazyRouteManifest: ['/users/:id'],
+        basename,
+      });
+
+      const result = resolveRouteNameAndSource({ pathname }, [], [], [], config);
+
+      expect(result).toEqual([expected, 'route']);
+    });
+
     it('should use descendant route when location is inside one', () => {
       const location: Location = { pathname: '/users/123/profile' };
       const routes: RouteObject[] = [{ path: '/users', element: null }];

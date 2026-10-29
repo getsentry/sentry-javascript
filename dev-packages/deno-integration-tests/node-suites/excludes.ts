@@ -62,6 +62,7 @@ const NOT_TRIAGED = [
   'suites/tracing/koa/test.ts',
   'suites/tracing/langchain/test.ts',
   'suites/tracing/langgraph/test.ts',
+  'suites/tracing/mistral-v2/test.ts',
   'suites/tracing/mistral/test.ts',
   'suites/tracing/mongodb/test.ts',
   'suites/tracing/mongoose-v5/test.ts',

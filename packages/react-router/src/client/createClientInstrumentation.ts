@@ -32,6 +32,8 @@ import {
   URL_FULL,
   URL_TEMPLATE,
   SENTRY_ORIGIN,
+  HTTP_ROUTE,
+  NAVIGATION_TYPE,
 } from '@sentry/conventions/attributes';
 import { FUNCTION, MIDDLEWARE, NAVIGATION } from '@sentry/conventions/op';
 
@@ -120,7 +122,8 @@ export function createSentryClientInstrumentation(
                 [SENTRY_SEGMENT_NAME_SOURCE]: 'url',
                 [SENTRY_OP]: NAVIGATION,
                 [SENTRY_ORIGIN]: 'auto.navigation.react_router.instrumentation_api',
-                'navigation.type': 'browser.popstate',
+                // oxlint-disable-next-line typescript/no-deprecated -- Preserve the existing attribute name.
+                [NAVIGATION_TYPE]: 'browser.popstate',
               },
             },
             { url: getAbsoluteUrl(pathname) },
@@ -165,7 +168,8 @@ export function createSentryClientInstrumentation(
                     [SENTRY_SEGMENT_NAME_SOURCE]: 'url',
                     [SENTRY_OP]: NAVIGATION,
                     [SENTRY_ORIGIN]: 'auto.navigation.react_router.instrumentation_api',
-                    'navigation.type': navigationType,
+                    // oxlint-disable-next-line typescript/no-deprecated -- Preserve the existing attribute name.
+                    [NAVIGATION_TYPE]: navigationType,
                   },
                 },
                 { url: getAbsoluteUrl(currentPathname) },
@@ -212,7 +216,8 @@ export function createSentryClientInstrumentation(
                   [SENTRY_SEGMENT_NAME_SOURCE]: 'url',
                   [SENTRY_OP]: NAVIGATION,
                   [SENTRY_ORIGIN]: 'auto.navigation.react_router.instrumentation_api',
-                  'navigation.type': 'router.navigate',
+                  // oxlint-disable-next-line typescript/no-deprecated -- Preserve the existing attribute name.
+                  [NAVIGATION_TYPE]: 'router.navigate',
                 },
               },
               { url: resolveNavigateAbsoluteUrl(info.to, info.currentUrl) },
@@ -358,7 +363,7 @@ export function createSentryClientInstrumentation(
                 [CODE_FUNCTION_NAME]: 'clientMiddleware',
                 [SENTRY_ORIGIN]: 'auto.function.react_router.instrumentation_api',
                 'react_router.route.id': routeId,
-                'http.route': routePattern,
+                [HTTP_ROUTE]: routePattern,
                 'react_router.middleware.index': middlewareIndex,
               },
             },

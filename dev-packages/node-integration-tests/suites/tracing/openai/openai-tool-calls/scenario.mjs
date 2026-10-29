@@ -12,6 +12,9 @@ class MockOpenAIToolCalls {
 
           // If stream is requested, return an async generator
           if (params.stream) {
+            if (params.model === 'gemini-compat') {
+              return this._createGeminiStyleToolCallsStream(params);
+            }
             return this._createChatCompletionToolCallsStream(params);
           }
 
@@ -129,6 +132,38 @@ class MockOpenAIToolCalls {
               {
                 index: 0,
                 function: { arguments: '{"latitude":48.8566,"longitude":2.3522}' },
+              },
+            ],
+          },
+          finish_reason: 'tool_calls',
+        },
+      ],
+      usage: { prompt_tokens: 15, completion_tokens: 25, total_tokens: 40 },
+    };
+  }
+
+  // Gemini's OpenAI-compatible endpoint streams whole, parallel tool calls without an `index`
+  async *_createGeminiStyleToolCallsStream(params) {
+    yield {
+      id: 'chatcmpl-stream-gemini-tools-123',
+      object: 'chat.completion.chunk',
+      created: 1677652310,
+      model: params.model,
+      choices: [
+        {
+          index: 0,
+          delta: {
+            role: 'assistant',
+            tool_calls: [
+              {
+                id: 'call_paris',
+                type: 'function',
+                function: { name: 'get_weather', arguments: '{"latitude":48.8566,"longitude":2.3522}' },
+              },
+              {
+                id: 'call_london',
+                type: 'function',
+                function: { name: 'get_weather', arguments: '{"latitude":51.5072,"longitude":-0.1276}' },
               },
             ],
           },
@@ -274,6 +309,15 @@ async function run() {
       stream: true,
     });
     for await (const chunk of stream1) void chunk;
+
+    // Test 2b: Chat completion streaming whole parallel tool calls without an index (Gemini style)
+    const geminiStream = await client.chat.completions.create({
+      model: 'gemini-compat',
+      messages: [message],
+      tools: [weatherTool],
+      stream: true,
+    });
+    for await (const chunk of geminiStream) void chunk;
 
     // Test 3: Responses API with tools (non-streaming)
     await client.responses.create({

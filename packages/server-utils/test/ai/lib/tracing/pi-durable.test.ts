@@ -949,6 +949,135 @@ describe('instrumentPiDurableHarnessOptions', () => {
       expect(ids.every(id => id.endsWith(':1'))).toBe(true);
     });
 
+    it('uses the provider session id of the conversation, also in a new Harness', async () => {
+      const sessionId = '019a2b3c-4d5e-7f60-8172-93a4b5c6d7e8';
+      const harnessWithModels = (): PiHarnessOptions => {
+        const settle = generationPhase([{ run: { inputs: [5] } }, { settle: { status: 'done' } }]);
+        const task: PiTask = {
+          definition: {
+            name: 'pi.generation',
+            phases: {
+              request: async (taskRecord, runtime, context) => {
+                await harness.models!.completeSimple!(MODEL, { messages: [] });
+                await settle.definition.phases.request!(taskRecord, runtime, context);
+              },
+            },
+          },
+        };
+        const harness: PiHarnessOptions = instrumentPiDurableHarnessOptions({
+          models: { completeSimple: async () => ANSWER },
+          registry: {
+            snapshot: () => ({ task: () => task, tasks: () => [task] }),
+            subscribe: () => () => undefined,
+          },
+        });
+        return harness;
+      };
+      const runGenerationWithProviderDoc = async (harness: PiHarnessOptions): Promise<void> => {
+        const live: PiLiveState = {};
+        const runtime: PiTaskRuntime = {
+          taskId: 3,
+          conversationId: 1,
+          agent: async () => ({}),
+          commit: async (change: PiCommitChange) => {
+            await change({ doc: async () => live, settleSubmission: () => undefined }, undefined);
+          },
+          // pi-durable rejects a read whose definition disagrees with the stored document.
+          snapshot: async (token, ownerId) => {
+            expect(token.definition).toEqual({
+              kind: 'pi.provider',
+              version: 1,
+              scope: 'conversation',
+              history: 'latest',
+              fork: 'initial',
+            });
+            return ownerId === 1 ? { sessionId } : undefined;
+          },
+        };
+        await harness.registry!.snapshot().task('pi.generation')!.definition.phases.request!(
+          undefined,
+          runtime,
+          undefined,
+        );
+      };
+
+      await runGenerationWithProviderDoc(harnessWithModels());
+      await runGenerationWithProviderDoc(harnessWithModels());
+
+      const ids = endedSpans
+        .map(span => spanToJSON(span))
+        .filter(
+          span => span.attributes[SENTRY_OP] === GEN_AI_INVOKE_AGENT || span.attributes[SENTRY_OP] === GEN_AI_CHAT,
+        )
+        .map(span => span.attributes[GEN_AI_CONVERSATION_ID]);
+      expect(ids).toEqual([sessionId, sessionId, sessionId, sessionId]);
+    });
+
+    it('keeps the harness prefix when the provider session id cannot be read', async () => {
+      const harness = harnessFor(generationPhase([{ run: { inputs: [5] } }, { settle: { status: 'done' } }]));
+      const live: PiLiveState = {};
+      const runtime: PiTaskRuntime = {
+        taskId: 3,
+        conversationId: 1,
+        agent: async () => ({}),
+        commit: async (change: PiCommitChange) => {
+          await change({ doc: async () => live, settleSubmission: () => undefined }, undefined);
+        },
+        snapshot: async () => {
+          throw new Error('Document pi.provider version 2 is newer than version 1');
+        },
+      };
+
+      await harness.registry!.snapshot().task('pi.generation')!.definition.phases.request!(
+        undefined,
+        runtime,
+        undefined,
+      );
+
+      expect(runSpans()[0]!.attributes[GEN_AI_CONVERSATION_ID]).toMatch(/^[0-9a-f]{32}:1$/);
+    });
+
+    it('uses the provider session id of the run for the tool calls of its conversation', async () => {
+      const runs = createRuns();
+      startRun(4, runs).sessionId = '019a2b3c-4d5e-7f60-8172-93a4b5c6d7e8';
+      const tool: PiTool = { name: 'get_weather', execute: async () => ({ content: [] }) };
+
+      await instrumentTool(tool, runs, {}).execute({}, { conversationId: 4 }, undefined);
+
+      expect(spanToJSON(endedSpans[0]!).attributes[GEN_AI_CONVERSATION_ID]).toBe(
+        '019a2b3c-4d5e-7f60-8172-93a4b5c6d7e8',
+      );
+    });
+
+    it('uses the provider session id for a task of an extension on an idle conversation', async () => {
+      const sessionId = '019a2b3c-4d5e-7f60-8172-93a4b5c6d7e8';
+      const task: PiTask = {
+        definition: {
+          name: 'app.title',
+          phases: {
+            request: async () => {
+              await harness.models!.completeSimple!(MODEL, { messages: [] });
+            },
+          },
+        },
+      };
+      const harness: PiHarnessOptions = instrumentPiDurableHarnessOptions({
+        models: { completeSimple: async () => ANSWER },
+        registry: { snapshot: () => ({ task: () => task, tasks: () => [task] }), subscribe: () => () => undefined },
+      });
+      const runtime: PiTaskRuntime = {
+        taskId: 7,
+        conversationId: 1,
+        agent: async () => ({}),
+        commit: async () => undefined,
+        snapshot: async () => ({ sessionId }),
+      };
+
+      await harness.registry!.snapshot().task('app.title')!.definition.phases.request!(undefined, runtime, undefined);
+
+      expect(spanToJSON(endedSpans[0]!).attributes[GEN_AI_CONVERSATION_ID]).toBe(sessionId);
+    });
+
     it('ends the open runs when the Harness closes', async () => {
       const harness = harnessFor(generationPhase([{ run: { inputs: [5] } }]));
       let onClose: (() => void) | undefined;

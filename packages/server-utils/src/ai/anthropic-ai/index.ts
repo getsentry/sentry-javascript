@@ -27,7 +27,7 @@ import {
 } from '../core/utils';
 import { ANTHROPIC_AI_ORIGIN, ANTHROPIC_METHOD_REGISTRY } from './constants';
 import { instrumentAsyncIterableStream, instrumentMessageStream } from './streaming';
-import { instrumentToolRunnerMethod } from './tool-runner';
+import { instrumentSessionToolRunner, instrumentToolRunner, instrumentToolRunnerFactory } from './tool-runner';
 import type { AnthropicAiOptions, AnthropicAiResponse, AnthropicAiStreamingEvent, ContentBlock } from './types';
 import { handleResponseError, messagesFromParams, setMessagesAttribute } from './utils';
 
@@ -351,9 +351,12 @@ function instrumentClientInPlace<T extends object>(client: T, options: Anthropic
     owner[methodName] = instrumented;
   }
 
-  const betaMessages = (client as { beta?: { messages?: object } }).beta?.messages;
-  if (betaMessages) {
-    instrumentToolRunnerMethod(betaMessages, options);
+  const beta = (client as { beta?: { messages?: object; sessions?: { events?: object } } }).beta;
+  if (beta?.messages) {
+    instrumentToolRunnerFactory(beta.messages, instrumentToolRunner, options);
+  }
+  if (beta?.sessions?.events) {
+    instrumentToolRunnerFactory(beta.sessions.events, instrumentSessionToolRunner, options);
   }
 
   return client;

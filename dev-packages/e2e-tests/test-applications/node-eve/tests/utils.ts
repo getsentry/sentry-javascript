@@ -31,7 +31,12 @@ export async function runAgentTurn(baseURL: string, message: string): Promise<st
       const { value, done } = await reader.read();
       if (done) break;
       buffer += decoder.decode(value, { stream: true });
-      if (buffer.includes('"type":"session.waiting"') || buffer.includes('"type":"turn.failed"')) {
+      // eve >= 0.84 settles each request with `delivery.settled`; older versions end on `session.waiting` / `turn.failed`
+      if (
+        buffer.includes('"type":"delivery.settled"') ||
+        buffer.includes('"type":"session.waiting"') ||
+        buffer.includes('"type":"turn.failed"')
+      ) {
         break;
       }
     }

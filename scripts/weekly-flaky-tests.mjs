@@ -1,5 +1,8 @@
+import { mkdir, writeFile } from 'node:fs/promises';
+
 const LOOKBACK_DAYS = 7;
 const CONCURRENT_RUNS = 4;
+const REPORT_DIR = 'flaky-tests-report';
 
 function normalizeJobName(name) {
   return name
@@ -183,6 +186,9 @@ export default async function run({ github, context, core }) {
   for (const warning of report.warnings) {
     core.warning(warning);
   }
-  await core.summary.addRaw(renderReport(report, context)).write();
+  const markdown = renderReport(report, context);
+  await core.summary.addRaw(markdown).write();
+  await mkdir(REPORT_DIR, { recursive: true });
+  await writeFile(`${REPORT_DIR}/report.md`, markdown);
   return report;
 }

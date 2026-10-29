@@ -34,9 +34,6 @@
     "eslint": "8.34.0",
     "eslint-config-next": "14.2.25"
   },
-  "volta": {
-    "extends": "../../package.json"
-  },
   "sentryTest": {
     "optional": true
   }

@@ -2,6 +2,7 @@ import type { ChildProcess } from 'node:child_process';
 import { spawn } from 'node:child_process';
 import { expect, test } from '@playwright/test';
 import { getSpanOp, waitForStreamedSpan } from '@sentry-internal/test-utils';
+import { isViteServer, NO_IMPORT_CONFIG } from './isViteServer';
 
 // `node --import` start commands must keep working now that the config is bundled: the emitted
 // config file is a shim that only prints a removal hint, and a preload that really initializes
@@ -34,6 +35,8 @@ async function startServerWithPreload(preloadPath: string, port: string): Promis
 }
 
 test('serves traced requests with the shim preloaded and prints the removal hint', async () => {
+  test.skip(isViteServer, NO_IMPORT_CONFIG);
+
   const server = await startServerWithPreload('./.output/server/sentry.server.config.mjs', '3081');
 
   try {

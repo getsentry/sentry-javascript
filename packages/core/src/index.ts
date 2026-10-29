@@ -101,13 +101,12 @@ export { isSentryRequestUrl } from './utils/isSentryRequestUrl';
 export { handleCallbackErrors } from './utils/handleCallbackErrors';
 export { safeCallback } from './utils/safeCallback';
 export { parameterize, fmt } from './utils/parameterize';
-export type { HandleTunnelRequestOptions } from './utils/tunnel';
+export type { HandleTunnelRequestOptions } from './utils/tunnelForward';
+export { handleTunnelRequest } from './utils/tunnelForward';
 export {
   applyTunnelDefaults as _INTERNAL_applyTunnelDefaults,
   getTunnelPath,
-  handleTunnelRequest,
   normalizeTunnelBasePath as _INTERNAL_normalizeTunnelBasePath,
-  TUNNEL_RESPONSE_HEADER,
 } from './utils/tunnel';
 export { addAutoIpAddressToSession } from './utils/ipAddress';
 export {
@@ -125,6 +124,7 @@ export {
   getActiveSpan,
   addChildSpanToSpan,
   spanTimeInputToSeconds,
+  otelTimeInputToSeconds,
   updateSpanName,
   INTERNAL_setSegmentNameSourceIfSegment,
 } from './utils/spanUtils';
