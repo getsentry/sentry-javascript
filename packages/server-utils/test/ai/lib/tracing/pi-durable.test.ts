@@ -14,34 +14,13 @@ import {
 } from '@sentry/core';
 import {
   GEN_AI_CONVERSATION_ID,
-  GEN_AI_INPUT_MESSAGES,
-  GEN_AI_OUTPUT_MESSAGES,
-  GEN_AI_PROVIDER_NAME,
-  GEN_AI_REQUEST_MAX_TOKENS,
-  GEN_AI_REQUEST_MODEL,
-  GEN_AI_REQUEST_REASONING_LEVEL,
-  GEN_AI_REQUEST_TEMPERATURE,
-  GEN_AI_RESPONSE_FINISH_REASONS,
-  GEN_AI_RESPONSE_ID,
-  GEN_AI_RESPONSE_MODEL,
-  GEN_AI_RESPONSE_STREAMING,
-  GEN_AI_SYSTEM_INSTRUCTIONS,
   GEN_AI_TOOL_CALL_ARGUMENTS,
   GEN_AI_TOOL_CALL_RESULT,
-  GEN_AI_TOOL_DEFINITIONS,
   GEN_AI_TOOL_DESCRIPTION,
   GEN_AI_TOOL_NAME,
-  GEN_AI_USAGE_CACHE_CREATION_INPUT_TOKENS,
-  GEN_AI_USAGE_CACHE_READ_INPUT_TOKENS,
-  GEN_AI_USAGE_INPUT_TOKENS,
-  GEN_AI_USAGE_OUTPUT_TOKENS,
-  GEN_AI_USAGE_REASONING_OUTPUT_TOKENS,
-  GEN_AI_USAGE_TOTAL_TOKENS,
   SENTRY_OP,
   SENTRY_ORIGIN,
   SENTRY_STATUS_MESSAGE,
-  SERVER_ADDRESS,
-  SERVER_PORT,
 } from '@sentry/conventions/attributes';
 import { GEN_AI_CHAT, GEN_AI_EXECUTE_TOOL, GEN_AI_INVOKE_AGENT } from '@sentry/conventions/op';
 import { GEN_AI_TOOL_CALL_ID_ATTRIBUTE } from '../../../../src/ai/core/gen-ai-attributes';
@@ -63,10 +42,6 @@ import type {
   PiToolExecutionApi,
   PiToolExecutionResult,
 } from '../../../../src/ai/pi-durable/types';
-import { ANTHROPIC_AI_INTEGRATION_NAME } from '../../../../src/ai/anthropic-ai/constants';
-import { GOOGLE_GENAI_INTEGRATION_NAME } from '../../../../src/ai/google-genai/constants';
-import { OPENAI_INTEGRATION_NAME } from '../../../../src/ai/openai/constants';
-import { instrumentWorkersAiClient } from '../../../../src/ai/workers-ai';
 import { getDefaultTestClientOptions, TestClient } from '../../../mocks/client';
 
 const LIVE_DOC = { definition: { kind: 'pi.live' } };
