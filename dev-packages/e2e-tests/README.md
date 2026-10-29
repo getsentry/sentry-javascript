@@ -290,6 +290,18 @@ The required E2E jobs run on 2 vCPUs (`namespace-profile-sentry-javascript-small
 about 90 seconds, set `"sentryTest": { "runner": "namespace-profile-sentry-javascript" }` to run it and its variants on
 4 vCPUs.
 
+Variants that build against upstream prereleases (for example `canary`, `next` or nightly builds of a framework) go into
+`canaryVariants`. They do not run on PRs, only in the nightly `CI: Canary Tests` workflow (`.github/workflows/canary.yml`),
+so failures caused by an upstream prerelease do not show up on unrelated PRs. Run one locally with
+`pnpm run test:run <app> --variant <label>`. Variants that build against the `latest` release belong in
+`optionalVariants`.
+
+```json
+"sentryTest": {
+  "canaryVariants": [{ "build-command": "pnpm test:build-canary", "label": "my-app (canary)" }]
+}
+```
+
 If you add Sentry dependencies to your test application, set the dependency versions to `latest || *` in order
 for it to work with both regular and prerelease versions:
 

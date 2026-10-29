@@ -30,12 +30,14 @@
   "sentryTest": {
     "optionalVariants": [
       {
-        "build-command": "pnpm test:build-canary",
-        "label": "nextjs-14 (canary)"
-      },
-      {
         "build-command": "pnpm test:build-latest",
         "label": "nextjs-14 (latest)"
+      }
+    ],
+    "canaryVariants": [
+      {
+        "build-command": "pnpm test:build-canary",
+        "label": "nextjs-14 (canary)"
       }
     ]
   }
