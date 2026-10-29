@@ -65,7 +65,7 @@ function recordInitSpan(componentName: string | undefined, description: string):
     attributes: {
       [SENTRY_OP]: UI_MOUNT,
       [SENTRY_ORIGIN]: 'auto.ui.svelte',
-      ...(componentName && { [UI_COMPONENT_NAME]: componentName }),
+      [UI_COMPONENT_NAME]: componentName,
       ...(hasSpanStreaming && { [SENTRY_DESCRIPTION]: description }),
     },
   });
@@ -87,7 +87,7 @@ function recordUpdateSpans(componentName: string | undefined, description: strin
       attributes: {
         [SENTRY_OP]: UI_UPDATE,
         [SENTRY_ORIGIN]: 'auto.ui.svelte',
-        ...(componentName && { [UI_COMPONENT_NAME]: componentName }),
+        [UI_COMPONENT_NAME]: componentName,
         ...(hasSpanStreaming && { [SENTRY_DESCRIPTION]: description }),
       },
     });

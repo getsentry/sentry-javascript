@@ -453,10 +453,11 @@ export function createSpanFromMessage(
   const baseAttributes: SpanAttributes = {
     [SENTRY_ORIGIN]: ORIGIN,
     ...telemetryMetadataAttributes(event.telemetryMetadata),
-    ...(provider ? { [GEN_AI_PROVIDER_NAME]: provider, [VERCEL_AI_MODEL_PROVIDER_ATTRIBUTE]: provider } : {}),
-    ...(modelId ? { [GEN_AI_REQUEST_MODEL]: modelId } : {}),
-    ...(maxRetries !== undefined ? { [VERCEL_AI_SETTINGS_MAX_RETRIES_ATTRIBUTE]: maxRetries } : {}),
-    ...(conversationId ? { [GEN_AI_CONVERSATION_ID]: conversationId } : {}),
+    [GEN_AI_PROVIDER_NAME]: provider,
+    [VERCEL_AI_MODEL_PROVIDER_ATTRIBUTE]: provider,
+    [GEN_AI_REQUEST_MODEL]: modelId,
+    [VERCEL_AI_SETTINGS_MAX_RETRIES_ATTRIBUTE]: maxRetries,
+    [GEN_AI_CONVERSATION_ID]: conversationId,
   };
 
   switch (type) {
@@ -547,7 +548,7 @@ function buildInvokeAgentSpan(
     ...baseAttributes,
     [VERCEL_AI_OPERATION_ID_ATTRIBUTE]: operationId,
     [GEN_AI_RESPONSE_STREAMING]: isStream,
-    ...(functionId ? { [GEN_AI_FUNCTION_ID]: functionId } : {}),
+    [GEN_AI_FUNCTION_ID]: functionId,
     ...(recordInputs ? buildInputMessageAttributes(event) : {}),
   });
   if (isStream && callId) {
@@ -591,11 +592,11 @@ function buildToolSpan(
     recordInputs && toolName ? resolveToolDescription(asString(event.callId), toolName, event.tools) : undefined;
   return startGenAiSpan('execute_tool', toolName, {
     [SENTRY_ORIGIN]: ORIGIN,
-    ...(toolName ? { [GEN_AI_TOOL_NAME]: toolName } : {}),
-    ...(toolCallId ? { [GEN_AI_TOOL_CALL_ID_ATTRIBUTE]: toolCallId } : {}),
-    ...(description ? { [GEN_AI_TOOL_DESCRIPTION]: description } : {}),
+    [GEN_AI_TOOL_NAME]: toolName,
+    [GEN_AI_TOOL_CALL_ID_ATTRIBUTE]: toolCallId,
+    [GEN_AI_TOOL_DESCRIPTION]: description,
     ...(recordInputs && toolInput !== undefined ? { [GEN_AI_TOOL_CALL_ARGUMENTS]: stringify(toolInput) } : {}),
-    ...(conversationId ? { [GEN_AI_CONVERSATION_ID]: conversationId } : {}),
+    [GEN_AI_CONVERSATION_ID]: conversationId,
   });
 }
 
