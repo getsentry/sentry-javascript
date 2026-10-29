@@ -811,31 +811,7 @@ describe('_sendInpSpan', () => {
     expect(mockSpan.end).toHaveBeenCalledWith(1.62);
   });
 
-  it('reports the INP subparts from the entry', () => {
-    vi.spyOn(inpModule, 'getCachedInteractionContext').mockReturnValue(undefined);
-
-    _sendInpSpan(120, {
-      name: 'pointerdown',
-      startTime: 500,
-      processingStart: 540,
-      processingEnd: 600,
-      duration: 120,
-      interactionId: 1,
-      target: { tagName: 'button' },
-    } as any);
-
-    expect(SentryCoreBrowser.startInactiveSpan).toHaveBeenCalledWith(
-      expect.objectContaining({
-        attributes: expect.objectContaining({
-          'browser.web_vital.inp.input_delay': 40,
-          'browser.web_vital.inp.processing_duration': 60,
-          'browser.web_vital.inp.presentation_delay': 20,
-        }),
-      }),
-    );
-  });
-
-  it('measures processing across every event of the interaction', () => {
+  it('reports the INP subparts merged across every event of the interaction', () => {
     vi.spyOn(inpModule, 'getCachedInteractionContext').mockReturnValue(undefined);
     // The slow handler is on `click`, but the INP entry is the interaction's first event.
     const pointerdown = {
@@ -844,18 +820,20 @@ describe('_sendInpSpan', () => {
       processingStart: 505,
       processingEnd: 506,
       duration: 520,
-      interactionId: 1,
-    };
+      interactionId: 101,
+    } as any;
     const click = {
       name: 'click',
       startTime: 510,
       processingStart: 515,
       processingEnd: 965,
       duration: 504,
-      interactionId: 1,
-    };
+      interactionId: 101,
+    } as any;
+    inpModule.recordInteractionTiming(pointerdown);
+    inpModule.recordInteractionTiming(click);
 
-    _sendInpSpan(520, pointerdown as any, false, undefined, undefined, { entries: [pointerdown, click] } as any);
+    _sendInpSpan(520, pointerdown);
 
     expect(SentryCoreBrowser.startInactiveSpan).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -865,6 +843,27 @@ describe('_sendInpSpan', () => {
           'browser.web_vital.inp.presentation_delay': 55,
         }),
       }),
+    );
+  });
+
+  it('omits the INP subparts when the interaction was not observed', () => {
+    vi.spyOn(inpModule, 'getCachedInteractionContext').mockReturnValue(undefined);
+
+    _sendInpSpan(120, {
+      name: 'pointerdown',
+      startTime: 500,
+      processingStart: 540,
+      processingEnd: 600,
+      duration: 120,
+      interactionId: 102,
+    } as any);
+
+    ['input_delay', 'processing_duration', 'presentation_delay'].forEach(subpart =>
+      expect(SentryCoreBrowser.startInactiveSpan).toHaveBeenCalledWith(
+        expect.objectContaining({
+          attributes: expect.not.objectContaining({ [`browser.web_vital.inp.${subpart}`]: expect.anything() }),
+        }),
+      ),
     );
   });
 

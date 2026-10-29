@@ -18,6 +18,20 @@ interface InteractionContext {
 const LAST_INTERACTIONS: number[] = [];
 const INTERACTIONS_SPAN_MAP = new Map<number, InteractionContext>();
 
+interface InteractionTiming {
+  startTime: number;
+  processingStart: number;
+  processingEnd: number;
+  nextPaintTime: number;
+}
+
+/**
+ * Timings merged across every event of an interaction, kept for the longest interactions only, the
+ * way web-vitals keeps its INP candidates.
+ */
+const INTERACTION_TIMINGS = new Map<number, InteractionTiming>();
+const MAX_INTERACTION_TIMINGS = 10;
+
 // Map to store element names by timestamp, since we get the DOM event before the PerformanceObserver entry
 /** What `htmlTreeAsString` returns when it cannot describe the target. */
 export const UNKNOWN_ELEMENT_NAME = '<unknown>';
@@ -154,6 +168,8 @@ export function registerInpInteractionListener(): void {
         return;
       }
 
+      recordInteractionTiming(entry);
+
       // If the interaction was already recorded before, nothing more to do
       if (INTERACTIONS_SPAN_MAP.has(interactionId)) {
         return;
@@ -182,31 +198,67 @@ export function registerInpInteractionListener(): void {
 }
 
 /**
- * The INP subparts of one interaction, which add up to the time from the input to the next paint.
+ * Merges an event entry into the timings of the interaction it belongs to.
  *
- * An interaction is several events (e.g. `pointerdown`, `pointerup`, `click`) that share one
- * next paint, and the slow handler can be on any of them. Measuring a single entry would count
- * the other events' handlers as presentation delay, so the processing window spans all of them.
+ * web-vitals only keeps the entries that share the longest entry's start time, which drops e.g. a
+ * slow `click` that starts after its `pointerdown`. Every entry is seen here instead.
  */
-export function getInpSubpartAttributes(
-  entry: PerformanceEventTiming | undefined,
-  metricEntries: PerformanceEventTiming[] = [],
-): SpanAttributes | undefined {
-  if (!entry) {
+export function recordInteractionTiming(entry: PerformanceEventTiming): void {
+  const interactionId = entry.interactionId;
+  if (!interactionId) {
+    return;
+  }
+
+  const nextPaintTime = entry.startTime + entry.duration;
+  const timing = INTERACTION_TIMINGS.get(interactionId);
+  if (timing) {
+    timing.startTime = Math.min(timing.startTime, entry.startTime);
+    timing.processingStart = Math.min(timing.processingStart, entry.processingStart);
+    timing.processingEnd = Math.max(timing.processingEnd, entry.processingEnd);
+    timing.nextPaintTime = Math.max(timing.nextPaintTime, nextPaintTime);
+
+    return;
+  }
+
+  INTERACTION_TIMINGS.set(interactionId, {
+    startTime: entry.startTime,
+    processingStart: entry.processingStart,
+    processingEnd: entry.processingEnd,
+    nextPaintTime,
+  });
+
+  if (INTERACTION_TIMINGS.size > MAX_INTERACTION_TIMINGS) {
+    let shortestId: number | undefined;
+    let shortestLatency = Infinity;
+    INTERACTION_TIMINGS.forEach((t, id) => {
+      const latency = t.nextPaintTime - t.startTime;
+      if (latency < shortestLatency) {
+        shortestLatency = latency;
+        shortestId = id;
+      }
+    });
+    INTERACTION_TIMINGS.delete(shortestId as number);
+  }
+}
+
+/**
+ * The INP subparts of the interaction an entry belongs to, which add up to the time from the input
+ * to the next paint.
+ *
+ * The slow handler can be on any event of the interaction, so the subparts come from the timings
+ * merged across all of them. Without those they are left out, since a single entry would count
+ * the other events' handlers as presentation delay.
+ */
+export function getInpSubpartAttributes(entry: PerformanceEventTiming | undefined): SpanAttributes | undefined {
+  const timing = entry?.interactionId ? INTERACTION_TIMINGS.get(entry.interactionId) : undefined;
+  if (!timing) {
     return undefined;
   }
 
-  const interactionEntries = metricEntries.filter(e => e.interactionId === entry.interactionId);
-  const entries = interactionEntries.length ? interactionEntries : [entry];
-  const startTime = Math.min(...entries.map(entry => entry.startTime));
-  const processingStart = Math.min(...entries.map(entry => entry.processingStart));
-  const processingEnd = Math.max(...entries.map(entry => entry.processingEnd));
-  const nextPaintTime = Math.max(...entries.map(entry => entry.startTime + entry.duration));
-
   // `duration` is rounded to 8ms, so the presentation delay it implies can dip below zero.
   return {
-    [BROWSER_WEB_VITAL_INP_INPUT_DELAY]: Math.max(processingStart - startTime, 0),
-    [BROWSER_WEB_VITAL_INP_PROCESSING_DURATION]: Math.max(processingEnd - processingStart, 0),
-    [BROWSER_WEB_VITAL_INP_PRESENTATION_DELAY]: Math.max(nextPaintTime - processingEnd, 0),
+    [BROWSER_WEB_VITAL_INP_INPUT_DELAY]: Math.max(timing.processingStart - timing.startTime, 0),
+    [BROWSER_WEB_VITAL_INP_PROCESSING_DURATION]: Math.max(timing.processingEnd - timing.processingStart, 0),
+    [BROWSER_WEB_VITAL_INP_PRESENTATION_DELAY]: Math.max(timing.nextPaintTime - timing.processingEnd, 0),
   };
 }
