@@ -10,6 +10,7 @@ import { DB } from '@sentry/conventions/op';
 import type { SerializedStreamedSpan } from '@sentry/core';
 import { afterAll, expect } from 'vitest';
 import { cleanupChildProcesses, createEsmAndCjsTests, describeWithDockerCompose } from '../../../utils/runner';
+import { parentSpanTests } from '../prisma-orm/parent-span-tests';
 
 afterAll(() => {
   cleanupChildProcesses();
@@ -152,4 +153,9 @@ describeWithDockerCompose('Prisma ORM v6 Tests', { workingDirectory: [__dirname]
       copyPaths: ['prisma'],
     },
   );
+
+  createEsmAndCjsTests(__dirname, '../prisma-orm/scenario-no-parent.mjs', 'instrument.mjs', parentSpanTests, {
+    afterSetupCommand: 'prisma generate --schema prisma/schema.prisma',
+    copyPaths: ['prisma'],
+  });
 });

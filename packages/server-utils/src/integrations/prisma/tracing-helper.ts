@@ -291,6 +291,9 @@ export class ActiveTracingHelper implements TracingHelper {
     }
 
     const parentSpan = getActiveSpan();
+    if (!parentSpan) {
+      return callback();
+    }
 
     const attributes = buildSpanAttributes(name, options.attributes);
     const spanOptions = {
