@@ -633,6 +633,45 @@ describe('instrumentDurableObjectWithSentry', () => {
       expect(frameworkDispatch.has(FrameworkLike.prototype.greet)).toBe(true);
       expect(second.greet('World')).toBe('Hello, World!');
     });
+
+    // The `agents` SDK wraps `@callable()` methods before storage initialization, which can throw
+    // (at a storage quota limit, for example). The retry must still see the framework's wrapper as managed.
+    it('keeps excluding a framework-managed method when the first construction throws', () => {
+      const frameworkDispatch = new WeakSet<object>();
+      let failConstruction = true;
+
+      class FrameworkLike {
+        constructor() {
+          const original = FrameworkLike.prototype.greet;
+
+          if (!frameworkDispatch.has(original)) {
+            const dispatched = function (this: FrameworkLike, name: string): string {
+              return original.call(this, name);
+            };
+            frameworkDispatch.add(dispatched);
+            FrameworkLike.prototype.greet = dispatched;
+          }
+
+          if (failConstruction) {
+            throw new Error('storage initialization failed');
+          }
+        }
+
+        greet(name: string): string {
+          return `Hello, ${name}!`;
+        }
+      }
+
+      const instrumented = instrumentDurableObjectWithSentry(vi.fn().mockReturnValue({}), FrameworkLike as any);
+
+      expect(() => Reflect.construct(instrumented, [])).toThrow('storage initialization failed');
+
+      failConstruction = false;
+      const obj = Reflect.construct(instrumented, []) as FrameworkLike;
+
+      expect(frameworkDispatch.has(FrameworkLike.prototype.greet)).toBe(true);
+      expect(obj.greet('World')).toBe('Hello, World!');
+    });
   });
 
   // The wrapper replaces a method on a class the user owns, so it has to keep the parts of the
