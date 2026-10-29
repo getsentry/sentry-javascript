@@ -245,7 +245,6 @@ function bindNodeRedisConnectChannel(): void {
   bindTracingChannelToSpan(channel, data => {
     const options = (data.self as NodeRedisClient | undefined)?.options;
     return startInactiveSpan({
-      onlyIfParent: true,
       name: 'redis-connect',
       attributes: {
         [SENTRY_KIND]: 'client',

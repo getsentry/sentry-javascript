@@ -171,6 +171,7 @@ describe('postgresIntegration', () => {
   });
 
   it('connect: builds a `pg.connect` span with no origin (defaults to manual)', async () => {
+    getActiveSpanSpy.mockReturnValue(undefined);
     const ctx: OrchestrionChannelContext = { arguments: [], self: { connectionParameters: CONNECTION } };
 
     await tracingChannel(CHANNELS.PG_CONNECT).tracePromise(async () => undefined, ctx);
@@ -178,6 +179,7 @@ describe('postgresIntegration', () => {
     expect(startInactiveSpanSpy).toHaveBeenCalledWith(
       expect.objectContaining({
         name: 'pg.connect',
+        onlyIfParent: false,
         attributes: expect.objectContaining({
           'sentry.op': 'db',
           'db.system.name': 'postgresql',
@@ -192,6 +194,7 @@ describe('postgresIntegration', () => {
   });
 
   it('pool connect: builds a `pg-pool.connect` span with masked connection string + pool attributes', async () => {
+    getActiveSpanSpy.mockReturnValue(undefined);
     const ctx: OrchestrionChannelContext = {
       arguments: [],
       self: {
@@ -209,6 +212,7 @@ describe('postgresIntegration', () => {
     expect(startInactiveSpanSpy).toHaveBeenCalledWith(
       expect.objectContaining({
         name: 'pg-pool.connect',
+        onlyIfParent: false,
         attributes: expect.objectContaining({
           'sentry.op': 'db',
           'db.system.name': 'postgresql',

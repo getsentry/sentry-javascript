@@ -123,7 +123,6 @@ export function instrumentIoredis(options: RedisCacheOptions): void {
   bindTracingChannelToSpan(connectChannel, data => {
     const { host, port } = getConnectionOptions(data.self);
     return startInactiveSpan({
-      onlyIfParent: true,
       name: 'connect',
       attributes: {
         [SENTRY_KIND]: 'client',

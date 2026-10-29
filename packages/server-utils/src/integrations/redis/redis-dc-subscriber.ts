@@ -202,7 +202,6 @@ function setupBatchChannel(
 function setupConnectChannel(tracingChannel: RedisTracingChannelFactory, channelName: string): void {
   bindTracingChannelToSpan(tracingChannel<RedisConnectData>(channelName), data => {
     return startInactiveSpan({
-      onlyIfParent: true,
       name: 'redis-connect',
       attributes: {
         [SENTRY_ORIGIN]: ORIGIN,

@@ -23,7 +23,7 @@ import {
   SERVER_ADDRESS,
   SERVER_PORT,
 } from '@sentry/conventions/attributes';
-import { CACHE_GET, CACHE_PUT, type CACHE_REMOVE, DB, DB_QUERY } from '@sentry/conventions/op';
+import { CACHE_GET, CACHE_PUT, type CACHE_REMOVE, DB_QUERY } from '@sentry/conventions/op';
 import { afterAll, expect } from 'vitest';
 import { EXPECTED_SDK_NAME } from '../../../utils';
 import { cleanupChildProcesses, createEsmAndCjsTests, describeWithDockerCompose } from '../../../utils/runner';
@@ -126,20 +126,18 @@ describeWithDockerCompose(
         await createTestRunner()
           .expect({
             span: container => {
-              const segments = container.items.filter(item => item.is_segment);
-              expect(segments.map(item => item.name)).toEqual([SEGMENT_NAME]);
-              const parent = segments[0]!;
+              // The connect span opens its own segment but shares the trace with the test span,
+              // so both segments arrive in the same container.
+              expect(container.items.filter(item => item.is_segment).map(item => item.name)).toEqual([
+                'redis-connect',
+                SEGMENT_NAME,
+              ]);
 
               const spans = container.items.filter(
                 item => !item.is_segment && item.attributes[SENTRY_SEGMENT_NAME]?.value === SEGMENT_NAME,
               );
 
               expect(spans).toEqual([
-                {
-                  ...(streamedSpan('redis-connect', DB, {}) as Record<string, unknown>),
-                  parent_span_id: parent.span_id,
-                  trace_id: parent.trace_id,
-                },
                 streamedSpan(`SET ${HOST}:${PORT}`, DB_QUERY, {
                   [DB_OPERATION_NAME]: 'SET',
                   [DB_QUERY_TEXT]: 'SET dc-test-key ?',

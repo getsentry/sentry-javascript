@@ -142,7 +142,7 @@ function subscribeQueryLikeChannel(
       // `sentry.kind` matches across the OTel and diagnostics-channel paths.
       const spanOptions = getSpanOptions(data);
       return startInactiveSpan({
-        onlyIfParent: true,
+        onlyIfParent: channelName !== CHANNELS.PG_CONNECT && channelName !== CHANNELS.PGPOOL_CONNECT,
         ...spanOptions,
         attributes: { ...spanOptions.attributes, [SENTRY_KIND]: 'client' },
       });

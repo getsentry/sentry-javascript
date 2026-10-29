@@ -35,7 +35,6 @@ function instrumentGenericPool(): void {
     diagnosticsChannel.tracingChannel<OrchestrionChannelContext>(CHANNELS.GENERIC_POOL_ACQUIRE),
     () =>
       startInactiveSpan({
-        onlyIfParent: true,
         name: 'generic-pool.acquire',
         attributes: {
           [SENTRY_OP]: DB,
