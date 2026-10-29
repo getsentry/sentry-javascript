@@ -323,12 +323,7 @@ describeWithDockerCompose('redis cache auto instrumentation', { workingDirectory
           await createTestRunner()
             .expect({
               span: container => {
-                // The connect span opens its own segment, but shares the trace with the test span,
-                // so both segments arrive in the same container.
-                expect(container.items.filter(item => item.is_segment).map(item => item.name)).toEqual([
-                  'redis-connect',
-                  segmentName,
-                ]);
+                expect(container.items.filter(item => item.is_segment).map(item => item.name)).toEqual([segmentName]);
 
                 expect(childSpans(container)).toEqual([
                   span('SET localhost:6383', redisSpanOp, {
@@ -427,10 +422,7 @@ describeWithDockerCompose('redis cache auto instrumentation', { workingDirectory
           await createTestRunner()
             .expect({
               span: container => {
-                expect(container.items.filter(item => item.is_segment).map(item => item.name)).toEqual([
-                  'redis-connect',
-                  segmentName,
-                ]);
+                expect(container.items.filter(item => item.is_segment).map(item => item.name)).toEqual([segmentName]);
 
                 expect(childSpans(container)).toEqual([
                   span('SET localhost:6383', redisSpanOp, {

@@ -165,6 +165,7 @@ function setupCommandChannel<T extends RedisCommandData | IORedisCommandData>(
       });
     },
     {
+      requiresParentSpan: true,
       beforeSpanEnd(span, data) {
         if ('error' in data) return;
         applyCacheResponseAttributes(span, data.result);
@@ -178,36 +179,44 @@ function setupBatchChannel(
   channelName: string,
   getOperationName: (data: RedisBatchData) => string,
 ): void {
-  bindTracingChannelToSpan(tracingChannel<RedisBatchData>(channelName), data => {
-    const operation = getOperationName(data);
-    return startInactiveSpan({
-      name: operation,
-      attributes: {
-        [SENTRY_ORIGIN]: ORIGIN,
-        [SENTRY_OP]: DB_QUERY,
-        [DB_SYSTEM_NAME]: DB_SYSTEM_NAME_VALUE_REDIS,
-        [DB_OPERATION_NAME]: operation,
-        // should only include batch size greater than 1,
-        // or else it isn't properly considered a "batch"
-        ...(Number(data.batchSize) > 1 ? { [DB_OPERATION_BATCH_SIZE]: data.batchSize } : {}),
-        ...(data.serverAddress != null ? { [SERVER_ADDRESS]: data.serverAddress } : {}),
-        ...(data.serverPort != null ? { [SERVER_PORT]: data.serverPort } : {}),
-      },
-    });
-  });
+  bindTracingChannelToSpan(
+    tracingChannel<RedisBatchData>(channelName),
+    data => {
+      const operation = getOperationName(data);
+      return startInactiveSpan({
+        name: operation,
+        attributes: {
+          [SENTRY_ORIGIN]: ORIGIN,
+          [SENTRY_OP]: DB_QUERY,
+          [DB_SYSTEM_NAME]: DB_SYSTEM_NAME_VALUE_REDIS,
+          [DB_OPERATION_NAME]: operation,
+          // should only include batch size greater than 1,
+          // or else it isn't properly considered a "batch"
+          ...(Number(data.batchSize) > 1 ? { [DB_OPERATION_BATCH_SIZE]: data.batchSize } : {}),
+          ...(data.serverAddress != null ? { [SERVER_ADDRESS]: data.serverAddress } : {}),
+          ...(data.serverPort != null ? { [SERVER_PORT]: data.serverPort } : {}),
+        },
+      });
+    },
+    { requiresParentSpan: true },
+  );
 }
 
 function setupConnectChannel(tracingChannel: RedisTracingChannelFactory, channelName: string): void {
-  bindTracingChannelToSpan(tracingChannel<RedisConnectData>(channelName), data => {
-    return startInactiveSpan({
-      name: 'redis-connect',
-      attributes: {
-        [SENTRY_ORIGIN]: ORIGIN,
-        [SENTRY_OP]: DB,
-        [DB_SYSTEM_NAME]: DB_SYSTEM_NAME_VALUE_REDIS,
-        ...(data.serverAddress != null ? { [SERVER_ADDRESS]: data.serverAddress } : {}),
-        ...(data.serverPort != null ? { [SERVER_PORT]: data.serverPort } : {}),
-      },
-    });
-  });
+  bindTracingChannelToSpan(
+    tracingChannel<RedisConnectData>(channelName),
+    data => {
+      return startInactiveSpan({
+        name: 'redis-connect',
+        attributes: {
+          [SENTRY_ORIGIN]: ORIGIN,
+          [SENTRY_OP]: DB,
+          [DB_SYSTEM_NAME]: DB_SYSTEM_NAME_VALUE_REDIS,
+          ...(data.serverAddress != null ? { [SERVER_ADDRESS]: data.serverAddress } : {}),
+          ...(data.serverPort != null ? { [SERVER_PORT]: data.serverPort } : {}),
+        },
+      });
+    },
+    { requiresParentSpan: true },
+  );
 }

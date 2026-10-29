@@ -101,16 +101,8 @@ describeWithDockerCompose(
           await createTestRunner()
             .expect({
               span: container => {
-                // The connect span opens its own segment but shares the trace with the test span,
-                // so both segments arrive in the same container.
-                expect(container.items.filter(item => item.is_segment).map(item => item.name)).toEqual([
-                  'redis-connect',
-                  SEGMENT_NAME,
-                ]);
+                expect(container.items.filter(item => item.is_segment).map(item => item.name)).toEqual([SEGMENT_NAME]);
 
-                // ioredis' own handshake commands (`client SETINFO`, `info`) are emitted on the
-                // channel too, but belong to the connect segment — the test span's children are the
-                // commands the scenario issues.
                 const spans = container.items.filter(
                   item => !item.is_segment && item.attributes[SENTRY_SEGMENT_NAME]?.value === SEGMENT_NAME,
                 );

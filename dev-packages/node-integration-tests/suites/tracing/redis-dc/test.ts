@@ -1,3 +1,4 @@
+import type { SerializedStreamedSpan } from '@sentry/core';
 import {
   CACHE_HIT,
   CACHE_ITEM_SIZE,
@@ -126,12 +127,7 @@ describeWithDockerCompose(
         await createTestRunner()
           .expect({
             span: container => {
-              // The connect span opens its own segment but shares the trace with the test span,
-              // so both segments arrive in the same container.
-              expect(container.items.filter(item => item.is_segment).map(item => item.name)).toEqual([
-                'redis-connect',
-                SEGMENT_NAME,
-              ]);
+              expect(container.items.filter(item => item.is_segment).map(item => item.name)).toEqual([SEGMENT_NAME]);
 
               const spans = container.items.filter(
                 item => !item.is_segment && item.attributes[SENTRY_SEGMENT_NAME]?.value === SEGMENT_NAME,
@@ -202,6 +198,42 @@ describeWithDockerCompose(
           })
           .start()
           .completed();
+      });
+    });
+
+    createEsmAndCjsTests(__dirname, 'scenario-no-parent.mjs', 'instrument.mjs', (createTestRunner, test) => {
+      test('only instruments commands with an active parent span', { timeout: 60_000 }, async () => {
+        const runner = createTestRunner();
+        const dbSpans = new Map<string, SerializedStreamedSpan>();
+        const spansPromise = runner.collectStreamedSpans(spans => {
+          for (const span of spans) {
+            if (span.attributes[SENTRY_ORIGIN]?.value === ORIGIN) {
+              dbSpans.set(span.span_id, span);
+            }
+          }
+          return spans.some(span => span.is_segment && span.name === 'parent operation');
+        });
+
+        await runner.unordered().start().completed();
+
+        const spans = await spansPromise;
+        const parent = spans.find(span => span.is_segment && span.name === 'parent operation');
+        expect(parent).toBeDefined();
+        expect(
+          Array.from(dbSpans.values(), span => ({
+            query: span.attributes[DB_QUERY_TEXT]?.value,
+            parentSpanId: span.parent_span_id,
+            traceId: span.trace_id,
+            isSegment: span.is_segment,
+          })),
+        ).toEqual([
+          {
+            query: 'SET dc-no-parent:inside ?',
+            parentSpanId: parent?.span_id,
+            traceId: parent?.trace_id,
+            isSegment: false,
+          },
+        ]);
       });
     });
   },

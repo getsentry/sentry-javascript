@@ -141,6 +141,10 @@ function subscribeLegacyRedisCommand(cacheOptions: RedisCacheOptions): void {
     asyncStart: noop,
     asyncEnd: noop,
     start(data) {
+      const parentSpan = getActiveSpan();
+      if (!parentSpan) {
+        return;
+      }
       const command = data.arguments?.[0] as LegacyRedisCommand | undefined;
       if (!command || typeof command !== 'object') {
         return;
@@ -166,7 +170,6 @@ function subscribeLegacyRedisCommand(cacheOptions: RedisCacheOptions): void {
       const span = startCommandSpan(command.command, command.args ?? [], attributes, cacheOptions);
       (data as OrchestrionChannelContext & { _sentrySpan?: Span })._sentrySpan = span;
 
-      const parentSpan = getActiveSpan();
       command.callback = function (this: unknown, err: Error | null | undefined, reply: unknown) {
         if (!err) {
           applyCacheResponseAttributes(span, reply);
@@ -174,7 +177,7 @@ function subscribeLegacyRedisCommand(cacheOptions: RedisCacheOptions): void {
         endSpan(span, err);
         // eslint-disable-next-line prefer-rest-params
         const args = arguments as unknown as [Error | null | undefined, unknown];
-        return withActiveSpan(parentSpan ?? null, () => originalCallback.apply(this, args));
+        return withActiveSpan(parentSpan, () => originalCallback.apply(this, args));
       };
     },
     error(data) {
@@ -207,6 +210,7 @@ function bindNodeRedisCommandChannel(
       return startCommandSpan(commandName, wireArgs.slice(1), nodeRedisAttributes(options), cacheOptions);
     },
     {
+      requiresParentSpan: true,
       beforeSpanEnd(span, data) {
         if (!('error' in data)) {
           applyCacheResponseAttributes(span, data.result);
@@ -241,17 +245,21 @@ function bindNodeRedisConnectChannel(): void {
   const channel = diagnosticsChannel.tracingChannel<OrchestrionChannelContext, OrchestrionChannelContext>(
     CHANNELS.NODE_REDIS_CONNECT,
   );
-  bindTracingChannelToSpan(channel, data => {
-    const options = (data.self as NodeRedisClient | undefined)?.options;
-    return startInactiveSpan({
-      name: 'redis-connect',
-      attributes: {
-        [SENTRY_KIND]: 'client',
-        ...nodeRedisAttributes(options),
-        [SENTRY_OP]: DB,
-      },
-    });
-  });
+  bindTracingChannelToSpan(
+    channel,
+    data => {
+      const options = (data.self as NodeRedisClient | undefined)?.options;
+      return startInactiveSpan({
+        name: 'redis-connect',
+        attributes: {
+          [SENTRY_KIND]: 'client',
+          ...nodeRedisAttributes(options),
+          [SENTRY_OP]: DB,
+        },
+      });
+    },
+    { requiresParentSpan: true },
+  );
 }
 
 // Batch (multi/pipeline): one span per `exec`. Batched commands bypass `sendCommand`, so
@@ -262,22 +270,26 @@ function bindNodeRedisBatchChannel(
   getOperation: (data: OrchestrionChannelContext) => string,
 ): void {
   const channel = diagnosticsChannel.tracingChannel<OrchestrionChannelContext, OrchestrionChannelContext>(channelName);
-  bindTracingChannelToSpan(channel, data => {
-    const commands = data.arguments?.[0];
-    const size = Array.isArray(commands) ? commands.length : undefined;
-    const options = (data.self as NodeRedisClient | undefined)?.options;
-    const operation = getOperation(data);
-    return startInactiveSpan({
-      name: operation,
-      attributes: {
-        [SENTRY_KIND]: 'client',
-        ...nodeRedisAttributes(options),
-        [SENTRY_OP]: DB_QUERY,
-        [DB_OPERATION_NAME]: operation,
-        ...(size && size > 1 ? { [DB_OPERATION_BATCH_SIZE]: size } : {}),
-      },
-    });
-  });
+  bindTracingChannelToSpan(
+    channel,
+    data => {
+      const commands = data.arguments?.[0];
+      const size = Array.isArray(commands) ? commands.length : undefined;
+      const options = (data.self as NodeRedisClient | undefined)?.options;
+      const operation = getOperation(data);
+      return startInactiveSpan({
+        name: operation,
+        attributes: {
+          [SENTRY_KIND]: 'client',
+          ...nodeRedisAttributes(options),
+          [SENTRY_OP]: DB_QUERY,
+          [DB_OPERATION_NAME]: operation,
+          ...(size && size > 1 ? { [DB_OPERATION_BATCH_SIZE]: size } : {}),
+        },
+      });
+    },
+    { requiresParentSpan: true },
+  );
 }
 
 const _redisIntegration = ((options: RedisIntegrationOptions = {}) => {
