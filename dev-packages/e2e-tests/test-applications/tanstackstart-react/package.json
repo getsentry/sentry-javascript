@@ -80,7 +80,7 @@
         "assert-command": "pnpm test:assert:tunnel-basepath-dev"
       }
     ],
-    "canaryVariants": [
+    "optionalVariants": [
       {
         "build-command": "pnpm test:build-latest",
         "label": "tanstackstart-react (latest)"

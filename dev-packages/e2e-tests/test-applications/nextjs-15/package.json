@@ -34,15 +34,13 @@
     "runner": "namespace-profile-sentry-javascript",
     "optionalVariants": [
       {
+        "build-command": "pnpm test:build-latest",
+        "label": "nextjs-15 (latest)"
+      },
+      {
         "build-command": "pnpm test:build-turbo",
         "assert-command": "pnpm test:prod-turbo && pnpm test:dev-turbo",
         "label": "nextjs-15 (turbo)"
-      }
-    ],
-    "canaryVariants": [
-      {
-        "build-command": "pnpm test:build-latest",
-        "label": "nextjs-15 (latest)"
       }
     ]
   }
