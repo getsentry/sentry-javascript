@@ -21,7 +21,8 @@ const compatFunction = (functionName: string, channelName: string, kind: Kind): 
 // `ModelsImpl` is what `createModels()` returns, and what Flue and pi-durable send their requests
 // through; the `compat` functions are the standalone API. The `complete` functions only await the
 // stream of their `stream` counterpart, and the integration leaves out that nested call, so the
-// span of a request still tells whether its caller streamed it.
+// span of a request still tells whether its caller streamed it. `streamDeferred` and `fetchDeferred`
+// fetch the answer of a request the provider parked.
 export const piAiConfig = [
   modelsMethod('stream', 'stream', 'Sync'),
   modelsMethod('streamSimple', 'stream', 'Sync'),
@@ -31,9 +32,8 @@ export const piAiConfig = [
   modelsMethod('completeSimple', 'complete', 'Async'),
   compatFunction('complete', 'complete', 'Async'),
   compatFunction('completeSimple', 'complete', 'Async'),
-  // These fetch the answer of a parked request: their second argument is a handle, not the request.
-  modelsMethod('streamDeferred', 'streamDeferred', 'Sync'),
-  modelsMethod('fetchDeferred', 'fetchDeferred', 'Async'),
+  modelsMethod('streamDeferred', 'stream', 'Sync'),
+  modelsMethod('fetchDeferred', 'complete', 'Async'),
 ] satisfies InstrumentationConfig[];
 
 export const piAiModuleNames = getModuleNames(piAiConfig);
@@ -41,6 +41,4 @@ export const piAiModuleNames = getModuleNames(piAiConfig);
 export const piAiChannels = {
   PI_AI_STREAM: 'orchestrion:@earendil-works/pi-ai:stream',
   PI_AI_COMPLETE: 'orchestrion:@earendil-works/pi-ai:complete',
-  PI_AI_STREAM_DEFERRED: 'orchestrion:@earendil-works/pi-ai:streamDeferred',
-  PI_AI_FETCH_DEFERRED: 'orchestrion:@earendil-works/pi-ai:fetchDeferred',
 } as const;

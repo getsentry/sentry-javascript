@@ -1,7 +1,7 @@
 import { GLOBAL_OBJ } from '@sentry/core';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-const MODEL_OP = { type: 'model', turnId: 'turn_1' };
+const MODEL_OP = { type: 'model' };
 
 /** A fresh module per test: the check runs once per process. */
 async function runModelCalls(count: number): Promise<void> {

@@ -19,9 +19,7 @@ import { afterAll, describe, expect } from 'vitest';
 import { supports } from '../../../utils';
 import { cleanupChildProcesses, createEsmTests } from '../../../utils/runner';
 
-// `@flue/runtime` declares `engines.node >= 22.19`, so it can't live in the package's root
-// `devDependencies` (that would break `yarn install` on the 20.19 CI matrix). Install it per-suite
-// instead, guarded by the `min: 22` skip below.
+// `@flue/runtime` declares `engines.node >= 22.19`, so the suite only runs on Node 22+.
 const FLUE_DEPENDENCIES = {
   additionalDependencies: {
     '@flue/runtime': '2.0.3',

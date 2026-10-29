@@ -2,8 +2,8 @@ import { isObjectLike, stringify } from '@sentry/core';
 import type { GenAiMessage, GenAiMessagePart } from '../types';
 
 /**
- * Map pi-ai messages (`@earendil-works/pi-ai`, which Flue and pi-durable send) to the gen_ai
- * conventions. Sentry renders neither pi-ai's `toolResult` role nor its `toolCall` parts.
+ * Map pi-ai messages (`@earendil-works/pi-ai`) to the gen_ai conventions. Sentry renders neither
+ * pi-ai's `toolResult` role nor its `toolCall` parts.
  *
  * System messages are left out: their prompt belongs in `gen_ai.system_instructions`. Messages with
  * a role the conventions do not have are left out too.

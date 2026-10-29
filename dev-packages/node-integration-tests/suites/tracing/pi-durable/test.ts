@@ -25,9 +25,7 @@ import { GEN_AI_TOOL_CALL_ID_ATTRIBUTE } from '../../../../../packages/server-ut
 import { supports } from '../../../utils';
 import { cleanupChildProcesses, createEsmTests } from '../../../utils/runner';
 
-// The pi packages declare `engines.node >= 22.19`, so they can't live in the package's root
-// `devDependencies` (that would break `yarn install` on the 20.19 CI matrix). Install them per-suite
-// instead, guarded by the `min: 22` skip below.
+// The pi packages declare `engines.node >= 22.19`, so the suite only runs on Node 22+.
 const PI_DURABLE_DEPENDENCIES = {
   additionalDependencies: {
     '@earendil-works/pi-durable': '^1.2.0',

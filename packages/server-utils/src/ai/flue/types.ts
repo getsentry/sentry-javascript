@@ -7,7 +7,7 @@
  */
 
 /**
- * Mirrors Flue's `errorInfo`, which it attaches to a failed tool or turn observation. Flue catches
+ * Mirrors Flue's `errorInfo`, which it attaches to a failed tool observation. Flue catches
  * the throw and turns it into a tool result, so this serialized form is the only trace of it.
  */
 export interface FlueErrorInfo {
@@ -26,7 +26,6 @@ export interface FlueObservation {
   agentName?: string;
   conversationId?: string;
   session?: string;
-  turnId?: string;
   taskId?: string;
   submissionId?: string;
   operationId?: string;
@@ -46,7 +45,6 @@ export interface FlueExecutionOperation {
   type: string;
   operationId?: string;
   operationKind?: string;
-  turnId?: string;
   toolCallId?: string;
 }
 
@@ -62,7 +60,6 @@ export interface FlueExecutionContext {
   submissionId?: string;
   conversationId?: string;
   session?: string;
-  turnId?: string;
   taskId?: string;
 }
 

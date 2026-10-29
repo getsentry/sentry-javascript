@@ -42,19 +42,14 @@ import {
 import type { PiAssistantMessage, PiModel, PiStreamOptions } from './types';
 import { setPiAiUsageAttributes } from './usage';
 
-/** How a traced pi-ai call sends its request. */
-export interface PiAiCallKind {
-  /** Whether the call returns the event stream rather than the settled message. */
-  streaming: boolean;
-  /** Whether the call fetches the answer of a parked request, whose second argument is a handle. */
-  deferred: boolean;
-}
-
-/** Start the `gen_ai.chat` span of a pi-ai request, from the `(model, context, options)` it was called with. */
-export function startPiAiChatSpan(args: unknown[] | undefined, kind: PiAiCallKind, options: GenAiOptions): Span {
+/**
+ * Start the `gen_ai.chat` span of a pi-ai request, from the `(model, context, options)` it was called
+ * with. The deferred calls pass a handle in place of the context, which carries no request content.
+ */
+export function startPiAiChatSpan(args: unknown[] | undefined, streaming: boolean, options: GenAiOptions): Span {
   const model = (args?.[0] ?? {}) as PiModel;
-  const context = kind.deferred ? undefined : (args?.[1] as PiAiContext | undefined);
-  const callOptions = kind.deferred ? undefined : (args?.[2] as PiStreamOptions | undefined);
+  const context = args?.[1] as PiAiContext | undefined;
+  const callOptions = args?.[2] as PiStreamOptions | undefined;
 
   // Read per request: `dataCollection.genAI` belongs to the current client, which can change.
   const { recordInputs } = resolveAIRecordingOptions(options);
@@ -71,7 +66,7 @@ export function startPiAiChatSpan(args: unknown[] | undefined, kind: PiAiCallKin
       ...(model.id ? { [GEN_AI_REQUEST_MODEL]: model.id } : {}),
       ...(conversationId ? { [GEN_AI_CONVERSATION_ID]: conversationId } : {}),
       ...getServerAttributes(model),
-      ...(kind.streaming ? { [GEN_AI_RESPONSE_STREAMING]: true } : {}),
+      ...(streaming ? { [GEN_AI_RESPONSE_STREAMING]: true } : {}),
       ...(callOptions?.temperature !== undefined ? { [GEN_AI_REQUEST_TEMPERATURE]: callOptions.temperature } : {}),
       ...(callOptions?.maxTokens !== undefined ? { [GEN_AI_REQUEST_MAX_TOKENS]: callOptions.maxTokens } : {}),
       ...(callOptions?.reasoning ? { [GEN_AI_REQUEST_REASONING_LEVEL]: callOptions.reasoning } : {}),

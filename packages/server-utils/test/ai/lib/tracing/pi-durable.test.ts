@@ -48,11 +48,7 @@ const LIVE_DOC = { definition: { kind: 'pi.live' } };
 
 // What `piAiIntegration` does for each model request pi-durable sends through pi-ai.
 function sendModelRequest(): void {
-  startPiAiChatSpan(
-    [{ id: 'faux-model', provider: 'faux' }, { messages: [] }],
-    { streaming: false, deferred: false },
-    {},
-  ).end();
+  startPiAiChatSpan([{ id: 'faux-model', provider: 'faux' }, { messages: [] }], false, {}).end();
 }
 
 describe('instrumentPiDurableHarnessOptions', () => {

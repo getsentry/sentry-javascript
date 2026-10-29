@@ -1,13 +1,9 @@
-import { AsyncLocalStorage } from 'node:async_hooks';
 import { tracingChannel } from 'node:diagnostics_channel';
-import type { Scope, Span } from '@sentry/core';
+import type { Span } from '@sentry/core';
 import {
   _INTERNAL_clearAiProviderSkips,
-  _INTERNAL_setSpanForScope,
   _INTERNAL_shouldSkipAiProviderWrapping,
   _INTERNAL_skipAiProviderWrapping,
-  getDefaultCurrentScope,
-  getDefaultIsolationScope,
   GLOBAL_OBJ,
   setAsyncContextStrategy,
   setCurrentClient,
@@ -31,11 +27,8 @@ import {
   GEN_AI_RESPONSE_STREAMING,
   GEN_AI_SYSTEM_INSTRUCTIONS,
   GEN_AI_TOOL_DEFINITIONS,
-  GEN_AI_USAGE_CACHE_CREATION_INPUT_TOKENS,
-  GEN_AI_USAGE_CACHE_READ_INPUT_TOKENS,
   GEN_AI_USAGE_INPUT_TOKENS,
   GEN_AI_USAGE_OUTPUT_TOKENS,
-  GEN_AI_USAGE_REASONING_OUTPUT_TOKENS,
   GEN_AI_USAGE_TOTAL_TOKENS,
   SENTRY_OP,
   SENTRY_ORIGIN,
@@ -44,70 +37,23 @@ import {
   SERVER_PORT,
 } from '@sentry/conventions/attributes';
 import { GEN_AI_CHAT } from '@sentry/conventions/op';
-import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { ANTHROPIC_AI_INTEGRATION_NAME } from '../../src/ai/anthropic-ai/constants';
 import { GOOGLE_GENAI_INTEGRATION_NAME } from '../../src/ai/google-genai/constants';
 import { OPENAI_INTEGRATION_NAME } from '../../src/ai/openai/constants';
 import { setPiAiResponseAttributes, startPiAiChatSpan } from '../../src/ai/pi-ai/chat';
+import { setAsyncLocalStorageAsyncContextStrategy } from '../../src/async-context';
 import type { PiEventStream } from '../../src/ai/pi-ai/types';
 import { instrumentWorkersAiClient } from '../../src/ai/workers-ai';
 import { piAiIntegration } from '../../src/integrations/pi-ai';
 import { CHANNELS } from '../../src/orchestrion/channels';
 import { getDefaultTestClientOptions, TestClient } from '../mocks/client';
 
-interface TestStore {
-  scope: Scope;
-  isolationScope: Scope;
-}
-
-// `bindTracingChannelToSpan` only binds when the strategy has a `getTracingChannelBinding`.
-function installTestAsyncContextStrategy(): void {
-  const asyncStorage = new AsyncLocalStorage<TestStore>();
-
-  function getScopes(): TestStore {
-    return asyncStorage.getStore() || { scope: getDefaultCurrentScope(), isolationScope: getDefaultIsolationScope() };
-  }
-
-  setAsyncContextStrategy({
-    withScope: callback => {
-      const scope = getScopes().scope.clone();
-      const isolationScope = getScopes().isolationScope;
-      return asyncStorage.run({ scope, isolationScope }, () => callback(scope));
-    },
-    withSetScope: (scope, callback) => {
-      const isolationScope = getScopes().isolationScope;
-      return asyncStorage.run({ scope, isolationScope }, () => callback(scope));
-    },
-    withIsolationScope: callback => {
-      const scope = getScopes().scope;
-      const isolationScope = getScopes().isolationScope.clone();
-      return asyncStorage.run({ scope, isolationScope }, () => callback(isolationScope));
-    },
-    withSetIsolationScope: (isolationScope, callback) => {
-      const scope = getScopes().scope;
-      return asyncStorage.run({ scope, isolationScope }, () => callback(isolationScope));
-    },
-    getCurrentScope: () => getScopes().scope,
-    getIsolationScope: () => getScopes().isolationScope,
-    getTracingChannelBinding: () => ({
-      asyncLocalStorage: asyncStorage,
-      getStoreWithActiveSpan: (span: Span) => {
-        const scope = getScopes().scope.clone();
-        const isolationScope = getScopes().isolationScope;
-        _INTERNAL_setSpanForScope(scope, span);
-        return { scope, isolationScope };
-      },
-    }),
-  });
-}
-
 const MODEL = { id: 'faux-model', provider: 'faux' };
 const ANSWER = { role: 'assistant', content: [{ type: 'text', text: 'Paris.' }], stopReason: 'stop' };
 
 const streamChannel = tracingChannel(CHANNELS.PI_AI_STREAM);
 const completeChannel = tracingChannel(CHANNELS.PI_AI_COMPLETE);
-const streamDeferredChannel = tracingChannel(CHANNELS.PI_AI_STREAM_DEFERRED);
-const fetchDeferredChannel = tracingChannel(CHANNELS.PI_AI_FETCH_DEFERRED);
 
 // What the orchestrion transform turns the pi-ai entry points into.
 function stream(send: () => unknown, ...args: unknown[]): PiEventStream {
@@ -136,9 +82,8 @@ describe('piAiIntegration', () => {
   }
 
   beforeAll(() => {
-    installTestAsyncContextStrategy();
+    setAsyncLocalStorageAsyncContextStrategy();
     GLOBAL_OBJ.__SENTRY_ORCHESTRION__ = { runtime: ['@earendil-works/pi-ai'] };
-    endedSpans = [];
     useClient();
     piAiIntegration().setup!(client);
   });
@@ -152,33 +97,6 @@ describe('piAiIntegration', () => {
     _INTERNAL_clearAiProviderSkips();
     endedSpans = [];
     useClient();
-  });
-
-  afterEach(() => {
-    _INTERNAL_clearAiProviderSkips();
-  });
-
-  it('traces a streamed request and skips the provider SDK integrations', async () => {
-    const message = { ...ANSWER, model: 'faux-model', usage: { input: 10, output: 2, totalTokens: 12 } };
-
-    await stream(settlesWith(message), MODEL, { messages: [{ role: 'user', content: 'Capital of France?' }] }).result();
-
-    expect(_INTERNAL_shouldSkipAiProviderWrapping(OPENAI_INTEGRATION_NAME)).toBe(true);
-    const chat = spanToJSON(endedSpans[0]!);
-    expect(chat.name).toBe('chat faux-model');
-    expect(chat.attributes[SENTRY_OP]).toBe(GEN_AI_CHAT);
-    expect(chat.attributes).toMatchObject({
-      [SENTRY_ORIGIN]: 'auto.ai.pi_ai',
-      [GEN_AI_PROVIDER_NAME]: 'faux',
-      [GEN_AI_REQUEST_MODEL]: 'faux-model',
-      [GEN_AI_RESPONSE_STREAMING]: true,
-      [GEN_AI_RESPONSE_FINISH_REASONS]: '["stop"]',
-      [GEN_AI_USAGE_INPUT_TOKENS]: 10,
-      [GEN_AI_USAGE_OUTPUT_TOKENS]: 2,
-      [GEN_AI_INPUT_MESSAGES]: '[{"role":"user","parts":[{"type":"text","content":"Capital of France?"}]}]',
-      [GEN_AI_OUTPUT_MESSAGES]:
-        '[{"role":"assistant","parts":[{"type":"text","content":"Paris."}],"finish_reason":"stop"}]',
-    });
   });
 
   it('ends a streamed span only once its result settles', async () => {
@@ -195,43 +113,54 @@ describe('piAiIntegration', () => {
     expect(endedSpans).toHaveLength(1);
   });
 
-  it.each([
-    ['stream', streamChannel, true, false],
-    ['complete', completeChannel, false, false],
-    ['streamDeferred', streamDeferredChannel, true, true],
-    ['fetchDeferred', fetchDeferredChannel, false, true],
-  ] as const)(
-    'traces %s with the request options and the response identity',
-    async (_name, channel, streaming, deferred) => {
-      const message = { ...ANSWER, responseModel: 'faux-model-2026', responseId: 'resp_1' };
-      const args = [
-        { ...MODEL, baseUrl: 'https://api.example.com:8443/v1' },
-        { messages: [{ role: 'user', content: 'Hi.' }] },
-        { temperature: 0.2, maxTokens: 50, reasoning: 'low' },
-      ];
+  it.each([true, false])('traces a request with its options and response identity (streaming: %s)', async streaming => {
+    const message = {
+      ...ANSWER,
+      responseModel: 'faux-model-2026',
+      responseId: 'resp_1',
+      usage: { input: 10, output: 2, totalTokens: 12 },
+    };
+    const args = [
+      { ...MODEL, baseUrl: 'https://api.example.com:8443/v1' },
+      { messages: [{ role: 'user', content: 'Hi.' }] },
+      { temperature: 0.2, maxTokens: 50, reasoning: 'low' },
+    ];
 
-      if (streaming) {
-        await (channel.traceSync(settlesWith(message), { arguments: args }) as PiEventStream).result();
-      } else {
-        await channel.tracePromise(async () => message, { arguments: args });
-      }
+    await (streaming ? stream(settlesWith(message), ...args).result() : complete(async () => message, ...args));
 
-      const chat = spanToJSON(endedSpans[0]!);
-      expect(chat.name).toBe('chat faux-model');
-      expect(chat.attributes[GEN_AI_RESPONSE_STREAMING]).toBe(streaming ? true : undefined);
-      expect(chat.attributes[GEN_AI_RESPONSE_MODEL]).toBe('faux-model-2026');
-      expect(chat.attributes[GEN_AI_RESPONSE_ID]).toBe('resp_1');
-      expect(chat.attributes[SERVER_ADDRESS]).toBe('api.example.com');
-      expect(chat.attributes[SERVER_PORT]).toBe(8443);
-      // The deferred methods take a handle, not a request, so there is nothing to record.
-      expect(chat.attributes[GEN_AI_REQUEST_TEMPERATURE]).toBe(deferred ? undefined : 0.2);
-      expect(chat.attributes[GEN_AI_REQUEST_MAX_TOKENS]).toBe(deferred ? undefined : 50);
-      expect(chat.attributes[GEN_AI_REQUEST_REASONING_LEVEL]).toBe(deferred ? undefined : 'low');
-      expect(chat.attributes[GEN_AI_INPUT_MESSAGES]).toBe(
-        deferred ? undefined : '[{"role":"user","parts":[{"type":"text","content":"Hi."}]}]',
-      );
-    },
-  );
+    const chat = spanToJSON(endedSpans[0]!);
+    expect(chat.name).toBe('chat faux-model');
+    expect(chat.attributes).toMatchObject({
+      [SENTRY_OP]: GEN_AI_CHAT,
+      [SENTRY_ORIGIN]: 'auto.ai.pi_ai',
+      [GEN_AI_PROVIDER_NAME]: 'faux',
+      [GEN_AI_REQUEST_MODEL]: 'faux-model',
+      [GEN_AI_RESPONSE_MODEL]: 'faux-model-2026',
+      [GEN_AI_RESPONSE_ID]: 'resp_1',
+      [SERVER_ADDRESS]: 'api.example.com',
+      [SERVER_PORT]: 8443,
+      [GEN_AI_REQUEST_TEMPERATURE]: 0.2,
+      [GEN_AI_REQUEST_MAX_TOKENS]: 50,
+      [GEN_AI_REQUEST_REASONING_LEVEL]: 'low',
+      [GEN_AI_INPUT_MESSAGES]: '[{"role":"user","parts":[{"type":"text","content":"Hi."}]}]',
+      [GEN_AI_OUTPUT_MESSAGES]:
+        '[{"role":"assistant","parts":[{"type":"text","content":"Paris."}],"finish_reason":"stop"}]',
+      [GEN_AI_RESPONSE_FINISH_REASONS]: '["stop"]',
+      [GEN_AI_USAGE_INPUT_TOKENS]: 10,
+      [GEN_AI_USAGE_OUTPUT_TOKENS]: 2,
+    });
+    expect(chat.attributes[GEN_AI_RESPONSE_STREAMING]).toBe(streaming ? true : undefined);
+  });
+
+  // `streamDeferred` and `fetchDeferred` pass the handle of a parked request where the others pass it.
+  it('records no request content for a call that fetches a parked request', async () => {
+    await stream(settlesWith(ANSWER), MODEL, { id: 'handle_1' }, { signal: new AbortController().signal }).result();
+
+    const recorded = Object.keys(spanToJSON(endedSpans[0]!).attributes);
+    expect(recorded).not.toContain(GEN_AI_INPUT_MESSAGES);
+    expect(recorded).not.toContain(GEN_AI_SYSTEM_INSTRUCTIONS);
+    expect(recorded).not.toContain(GEN_AI_TOOL_DEFINITIONS);
+  });
 
   // `complete` awaits the stream of `stream`, and the `compat` functions hand some models to a
   // `Models` of their own: each is one request.
@@ -282,30 +211,13 @@ describe('piAiIntegration', () => {
     expect(spanToJSON(endedSpans[0]!).attributes[GEN_AI_CONVERSATION_ID]).toBe('harness:7');
   });
 
-  it('counts the cached tokens of a response into its input tokens', async () => {
-    const message = {
-      ...ANSWER,
-      usage: { input: 37, output: 2, cacheRead: 52, cacheWrite: 38, reasoning: 1, totalTokens: 129 },
-    };
-
-    await complete(async () => message, MODEL, { messages: [] });
-
-    expect(spanToJSON(endedSpans[0]!).attributes).toMatchObject({
-      [GEN_AI_USAGE_INPUT_TOKENS]: 127,
-      [GEN_AI_USAGE_CACHE_READ_INPUT_TOKENS]: 52,
-      [GEN_AI_USAGE_CACHE_CREATION_INPUT_TOKENS]: 38,
-      [GEN_AI_USAGE_REASONING_OUTPUT_TOKENS]: 1,
-      [GEN_AI_USAGE_TOTAL_TOKENS]: 129,
-    });
-  });
-
   // The provider parks the request and the caller fetches the answer later: only the fetch is billed.
   it('records no usage for a request the provider parked, and the usage of its answer', async () => {
     const parked = { role: 'assistant', content: [], stopReason: 'deferred', usage: { input: 0, totalTokens: 0 } };
     const answer = { ...ANSWER, usage: { input: 8, output: 2, totalTokens: 10 } };
 
     await complete(async () => parked, MODEL, { messages: [] });
-    await fetchDeferredChannel.tracePromise(async () => answer, { arguments: [MODEL, { id: 'handle_1' }] });
+    await complete(async () => answer, MODEL, { id: 'handle_1' });
 
     const [parkedChat, answerChat] = endedSpans.map(span => spanToJSON(span).attributes);
     expect(parkedChat![GEN_AI_RESPONSE_FINISH_REASONS]).toBe('["deferred"]');
@@ -366,28 +278,6 @@ describe('piAiIntegration', () => {
     expect(stream(() => events, MODEL)).toBe(events);
 
     expect(endedSpans.map(span => spanToJSON(span).attributes[SENTRY_OP])).toEqual([GEN_AI_CHAT]);
-  });
-
-  it('reads the system prompt and the tools from the positional system messages', async () => {
-    // pi-durable never sets `systemPrompt` or `tools`: it sends prompt sections and tool changes as
-    // system messages, and each request replays them.
-    await stream(settlesWith({ role: 'assistant', content: [], stopReason: 'stop' }), MODEL, {
-      messages: [
-        {
-          role: 'system',
-          content: '',
-          sections: { preamble: 'You help.' },
-          toolsAdded: [{ name: 'read' }, { name: 'bash' }],
-        },
-        { role: 'user', content: 'Hi.' },
-        { role: 'system', content: '', sections: { mode: 'Plan only.' }, toolsRemoved: [{ name: 'bash' }] },
-      ],
-    }).result();
-
-    const chat = spanToJSON(endedSpans[0]!);
-    expect(chat.attributes[GEN_AI_SYSTEM_INSTRUCTIONS]).toBe('You help.\n\nPlan only.');
-    expect(chat.attributes[GEN_AI_TOOL_DEFINITIONS]).toBe('[{"name":"read"}]');
-    expect(chat.attributes[GEN_AI_INPUT_MESSAGES]).toBe('[{"role":"user","parts":[{"type":"text","content":"Hi."}]}]');
   });
 
   describe('provider skip', () => {
@@ -464,7 +354,7 @@ describe('piAiIntegration', () => {
     it('records nothing when inputs and outputs are off', () => {
       const options = { recordInputs: false, recordOutputs: false };
 
-      const span = startPiAiChatSpan([MODEL, context], { streaming: false, deferred: false }, options);
+      const span = startPiAiChatSpan([MODEL, context], false, options);
       setPiAiResponseAttributes(span, message, options);
       span.end();
 

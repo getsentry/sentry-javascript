@@ -77,10 +77,7 @@ describe('createFlueInstrumentation', () => {
   // the agent, and the conversation arrives on the observations that follow.
   it('sets the conversation id on the agent span from the observations', async () => {
     await withAgent(() => {
-      instrumentation.observe(
-        { type: 'turn_start', turnId: 'turn_1', operationId: 'op_1', conversationId: 'conv_1' },
-        {},
-      );
+      instrumentation.observe({ type: 'turn_start', operationId: 'op_1', conversationId: 'conv_1' }, {});
     });
 
     expect(findSpan('invoke_agent Hello')?.data['gen_ai.conversation.id']).toBe('conv_1');
@@ -295,7 +292,7 @@ describe('createFlueInstrumentation', () => {
   });
 
   it('does not span operations other than `agent`', async () => {
-    await instrumentation.interceptor({ type: 'model', turnId: 'turn_1' }, {}, async () => undefined);
+    await instrumentation.interceptor({ type: 'model' }, {}, async () => undefined);
 
     expect(endedSpans).toHaveLength(0);
   });
@@ -306,7 +303,7 @@ describe('createFlueInstrumentation', () => {
     let conversationId: string | undefined;
 
     await withAgent(() =>
-      instrumentation.interceptor({ type: 'model', turnId: 'turn_1' }, INNER_CTX, async () => {
+      instrumentation.interceptor({ type: 'model' }, INNER_CTX, async () => {
         conversationId = getCurrentScope().getScopeData().conversationId;
       }),
     );

@@ -2,7 +2,6 @@ import * as diagnosticsChannel from '../utils/diagnosticsChannel';
 import type { IntegrationFn } from '@sentry/core';
 import { defineIntegration, isThenable } from '@sentry/core';
 import type { GenAiOptions } from '../ai/core/utils';
-import type { PiAiCallKind } from '../ai/pi-ai/chat';
 import { setPiAiResponseAttributes, startPiAiChatSpan } from '../ai/pi-ai/chat';
 import { PI_AI_INTEGRATION_NAME } from '../ai/pi-ai/constants';
 import { skipPiAiProviderIntegrations } from '../ai/pi-ai/providers';
@@ -15,13 +14,6 @@ import { bindTracingChannelToSpan } from '../tracing-channel';
 
 export type PiAiOptions = GenAiOptions;
 
-const INSTRUMENTED_CHANNELS: { channel: string; kind: PiAiCallKind }[] = [
-  { channel: CHANNELS.PI_AI_STREAM, kind: { streaming: true, deferred: false } },
-  { channel: CHANNELS.PI_AI_COMPLETE, kind: { streaming: false, deferred: false } },
-  { channel: CHANNELS.PI_AI_STREAM_DEFERRED, kind: { streaming: true, deferred: true } },
-  { channel: CHANNELS.PI_AI_FETCH_DEFERRED, kind: { streaming: false, deferred: true } },
-];
-
 const _piAiIntegration = ((options: PiAiOptions = {}) => {
   return {
     name: PI_AI_INTEGRATION_NAME,
@@ -32,53 +24,47 @@ const _piAiIntegration = ((options: PiAiOptions = {}) => {
 }) satisfies IntegrationFn;
 
 function instrumentPiAi(options: PiAiOptions): void {
+  const streamChannel = diagnosticsChannel.tracingChannel<OrchestrionChannelContext>(CHANNELS.PI_AI_STREAM);
+  const completeChannel = diagnosticsChannel.tracingChannel<OrchestrionChannelContext>(CHANNELS.PI_AI_COMPLETE);
+
   // A traced call that makes another one synchronously is one request: `complete` awaits `stream`,
   // and the `compat` functions hand some models to a `Models` of their own. Only the outermost call
   // gets a span. Every traced call publishes `end` synchronously, so the count is back at zero
   // before anything else runs.
   let depth = 0;
+  const startSpan = (data: OrchestrionChannelContext, streaming: boolean) => {
+    if (depth > 0) {
+      return undefined;
+    }
+    skipPiAiProviderIntegrations();
+    return startPiAiChatSpan(data.arguments, streaming, options);
+  };
 
-  for (const { channel: name, kind } of INSTRUMENTED_CHANNELS) {
-    const channel = diagnosticsChannel.tracingChannel<OrchestrionChannelContext>(name);
+  bindTracingChannelToSpan(streamChannel, data => startSpan(data, true), {
+    // The stream is returned before the request settles; its `result()` settles with the message.
+    deferSpanEnd: ({ span, data, end }) => {
+      const events = data.result as Partial<PiEventStream> | undefined;
+      const settled = 'error' in data || typeof events?.result !== 'function' ? undefined : events.result();
+      if (!isThenable(settled)) {
+        return false;
+      }
+      settled.then(message => {
+        setPiAiResponseAttributes(span, message, options);
+        end();
+      }, end);
+      return true;
+    },
+  });
 
-    bindTracingChannelToSpan(
-      channel,
-      data => {
-        if (depth > 0) {
-          return undefined;
-        }
-        skipPiAiProviderIntegrations();
-        return startPiAiChatSpan(data.arguments, kind, options);
-      },
-      {
-        beforeSpanEnd: (span, data) => {
-          if (!kind.streaming && !('error' in data)) {
-            setPiAiResponseAttributes(span, data.result, options);
-          }
-        },
-        deferSpanEnd: ({ span, data, end }) => {
-          if (!kind.streaming || 'error' in data) {
-            return false;
-          }
-          let settled: unknown;
-          try {
-            settled = (data.result as PiEventStream).result();
-          } catch {
-            return false;
-          }
-          // A result of another shape reaches the caller unchanged, and its span ends without a response.
-          if (!isThenable(settled)) {
-            return false;
-          }
-          (settled as Promise<unknown>).then(message => {
-            setPiAiResponseAttributes(span, message, options);
-            end();
-          }, end);
-          return true;
-        },
-      },
-    );
+  bindTracingChannelToSpan(completeChannel, data => startSpan(data, false), {
+    beforeSpanEnd: (span, data) => {
+      if (!('error' in data)) {
+        setPiAiResponseAttributes(span, data.result, options);
+      }
+    },
+  });
 
+  for (const channel of [streamChannel, completeChannel]) {
     channel.start.subscribe(() => {
       depth++;
     });
@@ -90,9 +76,9 @@ function instrumentPiAi(options: PiAiOptions): void {
 
 /**
  * Diagnostics-channel-based integration for pi-ai (`@earendil-works/pi-ai` >= 0.80.0 < 2, whose API
- * is experimental). Subscribes to the `orchestrion:@earendil-works/pi-ai:stream`, `:complete`,
- * `:streamDeferred` and `:fetchDeferred` channels injected into the `Models` methods and the
- * standalone `compat` functions, so it requires the Sentry runtime hook or bundler plugin.
+ * is experimental). Subscribes to the `orchestrion:@earendil-works/pi-ai:stream` and `:complete`
+ * channels injected into the `Models` methods and the standalone `compat` functions, so it requires
+ * the Sentry runtime hook or bundler plugin.
  *
  * Traces one `gen_ai.chat` span per model request, including the requests Flue and pi-durable send.
  * From the first request on, the `openai`, `@anthropic-ai/sdk`, `@google/genai` and Workers AI
