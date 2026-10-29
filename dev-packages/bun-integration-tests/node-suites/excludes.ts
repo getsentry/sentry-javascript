@@ -92,6 +92,7 @@ export const NO_AUTO_INSTRUMENTATION = [
   'suites/tracing/mastra/test.ts',
   'suites/tracing/mcp-handler-exact-once/test.ts',
   'suites/tracing/mcp-server/**',
+  'suites/tracing/mistral-v2/test.ts',
   'suites/tracing/mistral/test.ts',
   'suites/tracing/mongodb-v4/test.ts',
   'suites/tracing/mongodb-v5/test.ts',
@@ -211,6 +212,10 @@ const BUN_BUILD_EAGER_SUBSCRIPTION = ['suites/tracing/orchestrion-lazy-registrat
 // `http.server.request.start`.
 const BUN_BUILD_NO_HTTP_SERVER_INTEGRATION = ['suites/express/multiple-init/test.ts'];
 
+// `@mistralai/mistralai` v3 statically imports its optional peer `@livekit/rtc-node`, so Bun cannot
+// bundle the scenarios. `mistral-v2` still covers Mistral here.
+const BUN_BUILD_UNBUNDLEABLE_DEPENDENCY = ['suites/tracing/mistral/test.ts'];
+
 // Some or all tests fail with the bundled scenarios. The cause is not investigated yet. In
 // `express/tracing` only the request data tests fail: they set `httpIntegration` options, and with
 // `@sentry/bun` the request body comes from `bunHttpServerIntegration`.
@@ -248,5 +253,6 @@ export const BUN_BUILD_EXCLUDE = [
   '**/node_modules/**',
   ...BUN_BUILD_EAGER_SUBSCRIPTION,
   ...BUN_BUILD_NO_HTTP_SERVER_INTEGRATION,
+  ...BUN_BUILD_UNBUNDLEABLE_DEPENDENCY,
   ...BUN_BUILD_NOT_TRIAGED,
 ];

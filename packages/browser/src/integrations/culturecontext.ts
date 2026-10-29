@@ -1,3 +1,4 @@
+import { CULTURE_CALENDAR, CULTURE_LOCALE, CULTURE_TIMEZONE } from '@sentry/conventions/attributes';
 import type { CultureContext, IntegrationFn } from '@sentry/core';
 import { defineIntegration, safeSetSpanJSONAttributes } from '@sentry/core';
 import { WINDOW } from '../helpers';
@@ -22,9 +23,9 @@ const _cultureContextIntegration = (() => {
 
       if (culture) {
         safeSetSpanJSONAttributes(span, {
-          'culture.locale': culture.locale,
-          'culture.timezone': culture.timezone,
-          'culture.calendar': culture.calendar,
+          [CULTURE_LOCALE]: culture.locale,
+          [CULTURE_TIMEZONE]: culture.timezone,
+          [CULTURE_CALENDAR]: culture.calendar,
         });
       }
     },

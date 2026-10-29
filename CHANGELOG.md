@@ -10,6 +10,8 @@
 
   `@SentryCron` now sends the schedule and time zone from the method's `@Cron()` decorator, so Sentry creates the monitor on the first run. If you use `@SentryCron` without a `schedule`, Sentry now creates missing monitors, which are billed, and overwrites schedules and time zones set by hand. Pass `fromCronDecorator: false` to turn this off.
 
+Work in this release was contributed by @lazerg and @chiliec. Thank you for your contributions!
+
 ## 11.10.0
 
 ### Important Changes
