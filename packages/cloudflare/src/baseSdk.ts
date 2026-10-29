@@ -44,8 +44,9 @@ function getRegisteredChannelIntegrations(): Integration[] {
  * Get the default integrations that run on any Workers-compatible runtime, i.e. without the
  * `nodejs_compat` compatibility flag.
  *
- * `getDefaultIntegrations` in `sdk.ts` returns this same set, so `wrapRequestHandler` stays usable on
- * runtimes that cannot enable `nodejs_compat`, such as Shopify Oxygen.
+ * `getDefaultIntegrations` in `sdk.ts` returns this same set. `wrapRequestHandler` uses it via
+ * `initBaseSdk`, so it stays usable on runtimes that cannot enable `nodejs_compat`, such as Shopify
+ * Oxygen.
  */
 export function getBaseDefaultIntegrations(options: CloudflareOptions): Integration[] {
   return [

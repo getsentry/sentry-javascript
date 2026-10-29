@@ -63,7 +63,7 @@ type InitSdk = (options: CloudflareOptions) => CloudflareClient | undefined;
  * Same as {@link wrapRequestHandler}, but with the SDK initialization injected.
  *
  * Wrappers that are only reachable from the main entry point — where `nodejs_compat` is a
- * requirement anyway — pass `init` from `sdk.ts` to get the full default integrations.
+ * requirement anyway — pass `init` from `sdk.ts` so `enableOpenTelemetrySetup` is honored.
  *
  * @internal
  */
