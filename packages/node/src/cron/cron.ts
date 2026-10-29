@@ -1,5 +1,5 @@
 import { captureException, withMonitor } from '@sentry/core';
-import { replaceCronNames } from './common';
+import { getCronMonitorConfig } from './common';
 
 export type CronJobParams = {
   cronTime: string | Date;
@@ -90,7 +90,8 @@ export function instrumentCron<T>(lib: T & CronJobConstructor, monitorSlug: stri
 
       jobScheduled = true;
 
-      const cronString = replaceCronNames(cronTime);
+      const utcOffset = args[7];
+      const monitorConfig = utcOffset == null ? getCronMonitorConfig(cronTime, timeZone, 'or') : undefined;
 
       async function monitoredTick(context: unknown, onComplete?: unknown): Promise<void> {
         return withMonitor(
@@ -108,10 +109,7 @@ export function instrumentCron<T>(lib: T & CronJobConstructor, monitorSlug: stri
               throw e;
             }
           },
-          {
-            schedule: { type: 'crontab', value: cronString },
-            timezone: timeZone || undefined,
-          },
+          monitorConfig,
         );
       }
 
@@ -120,7 +118,7 @@ export function instrumentCron<T>(lib: T & CronJobConstructor, monitorSlug: stri
     get(target, prop: keyof CronJobConstructor) {
       if (prop === 'from') {
         return (param: CronJobParams) => {
-          const { cronTime, onTick, timeZone } = param;
+          const { cronTime, onTick, timeZone, utcOffset } = param;
 
           if (typeof cronTime !== 'string') {
             throw new Error(ERROR_TEXT);
@@ -132,7 +130,7 @@ export function instrumentCron<T>(lib: T & CronJobConstructor, monitorSlug: stri
 
           jobScheduled = true;
 
-          const cronString = replaceCronNames(cronTime);
+          const monitorConfig = utcOffset == null ? getCronMonitorConfig(cronTime, timeZone, 'or') : undefined;
 
           param.onTick = async (context: unknown, onComplete?: unknown) => {
             return withMonitor(
@@ -150,10 +148,7 @@ export function instrumentCron<T>(lib: T & CronJobConstructor, monitorSlug: stri
                   throw e;
                 }
               },
-              {
-                schedule: { type: 'crontab', value: cronString },
-                timezone: timeZone || undefined,
-              },
+              monitorConfig,
             );
           };
 

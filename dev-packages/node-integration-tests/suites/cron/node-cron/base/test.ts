@@ -13,7 +13,6 @@ test('node-cron instrumentation', { timeout: 30_000 }, async () => {
         monitor_slug: 'my-cron-job',
         status: 'in_progress',
         release: '1.0',
-        monitor_config: { schedule: { type: 'crontab', value: '* * * * * *' } },
         contexts: {
           trace: {
             trace_id: expect.stringMatching(/[a-f\d]{32}/),
@@ -43,7 +42,6 @@ test('node-cron instrumentation', { timeout: 30_000 }, async () => {
         monitor_slug: 'my-cron-job',
         status: 'in_progress',
         release: '1.0',
-        monitor_config: { schedule: { type: 'crontab', value: '* * * * * *' } },
         contexts: {
           trace: {
             trace_id: expect.stringMatching(/[a-f\d]{32}/),

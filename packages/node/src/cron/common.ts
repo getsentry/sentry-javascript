@@ -1,51 +1,24 @@
-const replacements: [string, string][] = [
-  ['january', '1'],
-  ['february', '2'],
-  ['march', '3'],
-  ['april', '4'],
-  ['may', '5'],
-  ['june', '6'],
-  ['july', '7'],
-  ['august', '8'],
-  ['september', '9'],
-  ['october', '10'],
-  ['november', '11'],
-  ['december', '12'],
-  ['jan', '1'],
-  ['feb', '2'],
-  ['mar', '3'],
-  ['apr', '4'],
-  ['may', '5'],
-  ['jun', '6'],
-  ['jul', '7'],
-  ['aug', '8'],
-  ['sep', '9'],
-  ['oct', '10'],
-  ['nov', '11'],
-  ['dec', '12'],
-  ['sunday', '0'],
-  ['monday', '1'],
-  ['tuesday', '2'],
-  ['wednesday', '3'],
-  ['thursday', '4'],
-  ['friday', '5'],
-  ['saturday', '6'],
-  ['sun', '0'],
-  ['mon', '1'],
-  ['tue', '2'],
-  ['wed', '3'],
-  ['thu', '4'],
-  ['fri', '5'],
-  ['sat', '6'],
-];
+import type { MonitorConfig } from '@sentry/core';
+import { debug } from '@sentry/core';
+import type { DayFieldSemantics } from '@sentry/server-utils';
+import { cronExpressionToMonitorConfig } from '@sentry/server-utils';
+import { DEBUG_BUILD } from '../debug-build';
 
 /**
- * Replaces names in cron expressions
+ * The monitor config for a cron expression, or `undefined` if Sentry would read the expression differently than the
+ * scheduler runs it.
  */
-export function replaceCronNames(cronExpression: string): string {
-  return replacements.reduce(
-    // oxlint-disable-next-line sdk/no-regexp-constructor
-    (acc, [name, replacement]) => acc.replace(new RegExp(name, 'gi'), replacement),
-    cronExpression,
-  );
+export function getCronMonitorConfig(
+  expression: string,
+  timezone: unknown,
+  daySemantics: DayFieldSemantics,
+): MonitorConfig | undefined {
+  const monitorConfig = cronExpressionToMonitorConfig(expression, timezone, daySemantics);
+  if (!monitorConfig) {
+    DEBUG_BUILD &&
+      debug.warn(
+        `[Cron] Can't convert "${expression}" to a Sentry schedule, sending check-ins without a monitor config.`,
+      );
+  }
+  return monitorConfig;
 }
