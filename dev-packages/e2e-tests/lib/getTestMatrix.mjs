@@ -6,16 +6,22 @@ import { parseArgs } from 'node:util';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
+const VARIANT_FIELDS = {
+  required: 'variants',
+  optional: 'optionalVariants',
+  canary: 'canaryVariants',
+};
+
 /**
  * Generates a matrix for the GitHub Actions workflow to run the E2E tests.
  * Checks which test applications are affected by the current changes in the PR and then generates a matrix
  * including all test apps that have at least one dependency that was changed in the PR.
  * If no `--base=xxx` is provided, it will output all test applications.
  *
- * If `--optional=true` is set, it will generate a matrix of optional test applications only.
- * Otherwise, these will be skipped.
- *
- * If `--canary=true` is set, it will generate a matrix of the `canaryVariants` of all test applications only.
+ * `--variant` selects which matrix to generate:
+ * - not set: the required test applications and their `variants`
+ * - `optional`: the optional test applications and the `optionalVariants` of all test applications
+ * - `canary`: only the `canaryVariants` of all test applications
  */
 function run() {
   const { values } = parseArgs({
@@ -23,16 +29,19 @@ function run() {
     options: {
       base: { type: 'string' },
       head: { type: 'string' },
-      optional: { type: 'string', default: 'false' },
-      canary: { type: 'string', default: 'false' },
+      variant: { type: 'string', default: 'required' },
     },
   });
 
-  const { base, head = 'HEAD', optional, canary } = values;
+  const { base, head = 'HEAD', variant } = values;
 
   // For GitHub Action debugging
   // eslint-disable-next-line no-console
-  console.error(`Parsed command line arguments: base=${base}, head=${head}, optional=${optional}, canary=${canary}`);
+  console.error(`Parsed command line arguments: base=${base}, head=${head}, variant=${variant}`);
+
+  if (!Object.hasOwn(VARIANT_FIELDS, variant)) {
+    throw new Error(`Unknown --variant=${variant}, expected one of: ${Object.keys(VARIANT_FIELDS).join(', ')}`);
+  }
 
   const testApplications = discoverTestApplicationDirs();
 
@@ -46,12 +55,10 @@ function run() {
     ? getAffectedTestApplications(testApplications, { base, head })
     : testApplications;
 
-  const optionalMode = optional === 'true';
-  const canaryMode = canary === 'true';
   const includes = [];
 
   includedTestApplications.forEach(testApp => {
-    addIncludesForTestApp(testApp, includes, { optionalMode, canaryMode });
+    addIncludesForTestApp(testApp, includes, { variant });
   });
 
   // We print this to the output, so the GHA can use it for the matrix
@@ -70,17 +77,12 @@ function discoverTestApplicationDirs() {
     .sort();
 }
 
-function addIncludesForTestApp(testApp, includes, { optionalMode, canaryMode }) {
+function addIncludesForTestApp(testApp, includes, { variant }) {
   const packageJson = getPackageJson(testApp);
 
   const shouldSkip = packageJson.sentryTest?.skip || false;
   const isOptional = packageJson.sentryTest?.optional || false;
-  const variants =
-    (canaryMode
-      ? packageJson.sentryTest?.canaryVariants
-      : optionalMode
-        ? packageJson.sentryTest?.optionalVariants
-        : packageJson.sentryTest?.variants) || [];
+  const variants = packageJson.sentryTest?.[VARIANT_FIELDS[variant]] || [];
   const runner = packageJson.sentryTest?.runner;
   const baseInclude = { 'test-application': testApp, ...(runner ? { runner } : {}) };
 
@@ -88,8 +90,8 @@ function addIncludesForTestApp(testApp, includes, { optionalMode, canaryMode }) 
     return;
   }
 
-  // Add the basic test-application itself, if it is in the current mode. Canary mode only runs the canary variants.
-  if (!canaryMode && optionalMode === isOptional) {
+  // Add the basic test-application itself, if it is in the current mode. The canary matrix only has canary variants.
+  if (variant !== 'canary' && (variant === 'optional') === isOptional) {
     includes.push(baseInclude);
   }
 
