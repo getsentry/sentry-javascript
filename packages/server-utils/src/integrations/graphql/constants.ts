@@ -9,8 +9,7 @@ export const SPAN_NAME_EXECUTE = 'graphql.execute';
 export const SPAN_NAME_SUBSCRIBE = 'graphql.subscribe';
 export const SPAN_NAME_RESOLVE = 'graphql.resolve';
 
-// Inlined until `@sentry/conventions` ships it (https://github.com/getsentry/sentry-conventions/pull/572).
-export const GRAPHQL_PROCESSING_TYPE = 'graphql.processing.type';
+export { GRAPHQL_PROCESSING_TYPE } from '@sentry/conventions/attributes';
 
 export const PROCESSING_TYPE_PARSE = 'parse';
 export const PROCESSING_TYPE_VALIDATE = 'validate';

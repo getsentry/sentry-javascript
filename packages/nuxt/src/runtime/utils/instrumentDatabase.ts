@@ -248,7 +248,7 @@ function createBreadcrumb(query: string, dialect: SqlDialect | undefined): void 
     category: 'query',
     message: queryText,
     data: {
-      'db.query.text': queryText,
+      [DB_QUERY_TEXT]: queryText,
     },
   });
 }
