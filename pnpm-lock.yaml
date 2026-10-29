@@ -1870,6 +1870,9 @@ importers:
 
   packages/profiling-node:
     dependencies:
+      '@sentry/conventions':
+        specifier: ^0.30.0
+        version: 0.30.0
       '@sentry/core':
         specifier: 11.10.0
         version: link:../core
