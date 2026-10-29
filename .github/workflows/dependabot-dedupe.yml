@@ -1,13 +1,12 @@
 name: 'Dependabot: Dedupe lockfile'
 
 # Dependabot updates pnpm-lock.yaml without deduping it, so `Check lockfile` (`pnpm dedupe --check`)
-# fails on most of its PRs. This pushes a `pnpm dedupe` commit onto the PR branch instead.
-#
-# The PR branch is untrusted: anyone with write access can push to it. So the job that runs pnpm on it
-# has no secrets, and the job that holds the app token runs no code from the PR, only git on a lockfile.
+# fails on most of its PRs. This job dedupes the lockfile and uploads it as an artifact. It runs on
+# `pull_request`, so it has no secrets, a read-only token and PR-scoped caches.
+# `dependabot-dedupe-push.yml` validates the result and pushes it to the PR branch.
 
 on:
-  pull_request_target:
+  pull_request:
     types: [opened, synchronize, reopened]
     branches:
       - develop
@@ -21,32 +20,21 @@ concurrency:
   group: dependabot-dedupe-${{ github.event.pull_request.number }}
   cancel-in-progress: true
 
-env:
-  PR_DIR: pr
-
 jobs:
   dedupe:
     name: Dedupe lockfile
     if: |
       github.event.pull_request.user.login == 'dependabot[bot]'
       && github.event.pull_request.head.repo.full_name == github.repository
-    runs-on: namespace-profile-sentry-javascript
+    # PR code runs here, so keep its cache writes away from the cache used by develop, like the PR jobs in build.yml.
+    runs-on: namespace-profile-sentry-javascript;overrides.cache-tag=sentry-javascript-pr
     # `pnpm dedupe` fetches metadata for every package from npm.
     timeout-minutes: 20
-    outputs:
-      changed: ${{ steps.dedupe.outputs.changed }}
     steps:
-      # Actions and tool versions come from the base branch, not from the PR.
-      - name: Check out base branch
-        uses: actions/checkout@v7
-        with:
-          persist-credentials: false
-
       - name: Check out PR branch
         uses: actions/checkout@v7
         with:
           ref: ${{ github.event.pull_request.head.sha }}
-          path: ${{ env.PR_DIR }}
           persist-credentials: false
 
       - name: Install pnpm
@@ -59,7 +47,6 @@ jobs:
 
       - name: Dedupe lockfile
         id: dedupe
-        working-directory: ${{ env.PR_DIR }}
         run: |
           pnpm dedupe --ignore-scripts --ignore-pnpmfile
           git diff --quiet pnpm-lock.yaml || echo "changed=true" >> "$GITHUB_OUTPUT"
@@ -69,45 +56,5 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           name: pnpm-lock
-          path: ${{ env.PR_DIR }}/pnpm-lock.yaml
+          path: pnpm-lock.yaml
           retention-days: 1
-
-  push:
-    name: Push deduped lockfile
-    needs: dedupe
-    if: needs.dedupe.outputs.changed == 'true'
-    runs-on: namespace-profile-sentry-javascript-small
-    timeout-minutes: 5
-    steps:
-      - name: Check out PR branch
-        uses: actions/checkout@v7
-        with:
-          ref: ${{ github.event.pull_request.head.sha }}
-          persist-credentials: false
-
-      - name: Download deduped lockfile
-        uses: actions/download-artifact@v8
-        with:
-          name: pnpm-lock
-
-      # An app token is needed so the push triggers CI again; pushes made with GITHUB_TOKEN do not.
-      - name: Generate GitHub App token
-        id: app-token
-        uses: actions/create-github-app-token@v3
-        with:
-          client-id: ${{ vars.GITFLOW_APP_ID }}
-          private-key: ${{ secrets.GITFLOW_APP_PRIVATE_KEY }}
-
-      # `[dependabot skip]` lets Dependabot keep rebasing the PR over this commit.
-      # Pushing the PR's head SHA without force fails if the branch moved in the meantime.
-      - name: Commit and push
-        env:
-          GH_TOKEN: ${{ steps.app-token.outputs.token }}
-          APP_SLUG: ${{ steps.app-token.outputs.app-slug }}
-          HEAD_REF: ${{ github.event.pull_request.head.ref }}
-        run: |
-          git config user.name "${APP_SLUG}[bot]"
-          git config user.email "${APP_SLUG}[bot]@users.noreply.github.com"
-          git add pnpm-lock.yaml
-          git commit -m "chore(deps): Dedupe pnpm-lock.yaml [dependabot skip]"
-          git push "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" "HEAD:refs/heads/${HEAD_REF}"
