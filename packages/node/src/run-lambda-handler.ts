@@ -5,7 +5,7 @@
 // It is built as a standalone, ESM-only `build/run-lambda-handler.mjs`, because it uses top-level await to load the
 // user's handler module, which may itself be ESM. `@sentry/aws-serverless` has its own shim with the full Lambda
 // instrumentation, and `init` doesn't redirect when that one is in place.
-import { loadOriginalLambdaHandler } from './lambda/handlerResolution';
+import { loadOriginalLambdaHandler } from './lambda/loadHandler';
 import { wrapLambdaHandlerForTunnel } from './lambda/tunnel';
 
 export const handler = wrapLambdaHandlerForTunnel(await loadOriginalLambdaHandler());
