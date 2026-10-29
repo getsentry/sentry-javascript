@@ -8070,15 +8070,6 @@ packages:
       rollup:
         optional: true
 
-  '@rollup/plugin-terser@1.0.0':
-    resolution: {integrity: sha512-FnCxhTBx6bMOYQrar6C8h3scPt8/JwIzw3+AJ2K++6guogH5fYaIFia+zZuhqv0eo1RN7W1Pz630SyvLbDjhtQ==}
-    engines: {node: '>=20.0.0'}
-    peerDependencies:
-      rollup: ^2.0.0||^3.0.0||^4.0.0
-    peerDependenciesMeta:
-      rollup:
-        optional: true
-
   '@rollup/plugin-terser@1.0.2':
     resolution: {integrity: sha512-+UihHnuLnQDQ/9wog7ym+7oawCXkjTIo0WwkK7s//0mkktTN0VhYk6fGVxH+NtGzW064w5RCGgreMDxRVhHCzw==}
     engines: {node: '>=20.0.0'}
@@ -26215,14 +26206,6 @@ snapshots:
     optionalDependencies:
       rollup: 4.62.3
 
-  '@rollup/plugin-terser@1.0.0(rollup@4.62.3)':
-    dependencies:
-      serialize-javascript: 7.0.5
-      smob: 1.4.1
-      terser: 5.51.2
-    optionalDependencies:
-      rollup: 4.62.3
-
   '@rollup/plugin-terser@1.0.2(rollup@4.62.3)':
     dependencies:
       serialize-javascript: 7.0.5
@@ -34902,7 +34885,7 @@ snapshots:
       '@rollup/plugin-json': 6.1.0(rollup@4.62.3)
       '@rollup/plugin-node-resolve': 16.0.3(rollup@4.62.3)
       '@rollup/plugin-replace': 6.0.3(rollup@4.62.3)
-      '@rollup/plugin-terser': 1.0.0(rollup@4.62.3)
+      '@rollup/plugin-terser': 1.0.2(rollup@4.62.3)
       '@vercel/nft': 1.11.0(encoding@0.1.13)(rollup@4.62.3)(supports-color@10.0.0)
       archiver: 7.0.1
       c12: 3.3.4(magicast@0.5.4)
@@ -35011,7 +34994,7 @@ snapshots:
       '@rollup/plugin-json': 6.1.0(rollup@4.62.3)
       '@rollup/plugin-node-resolve': 16.0.3(rollup@4.62.3)
       '@rollup/plugin-replace': 6.0.3(rollup@4.62.3)
-      '@rollup/plugin-terser': 1.0.0(rollup@4.62.3)
+      '@rollup/plugin-terser': 1.0.2(rollup@4.62.3)
       '@vercel/nft': 1.11.0(encoding@0.1.13)(rollup@4.62.3)(supports-color@10.0.0)
       archiver: 7.0.1
       c12: 3.3.4(magicast@0.5.4)
@@ -35120,7 +35103,7 @@ snapshots:
       '@rollup/plugin-json': 6.1.0(rollup@4.62.3)
       '@rollup/plugin-node-resolve': 16.0.3(rollup@4.62.3)
       '@rollup/plugin-replace': 6.0.3(rollup@4.62.3)
-      '@rollup/plugin-terser': 1.0.0(rollup@4.62.3)
+      '@rollup/plugin-terser': 1.0.2(rollup@4.62.3)
       '@vercel/nft': 1.11.0(encoding@0.1.13)(rollup@4.62.3)(supports-color@10.0.0)
       archiver: 7.0.1
       c12: 3.3.4(magicast@0.5.4)
