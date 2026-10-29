@@ -10,7 +10,6 @@ import { DB } from '@sentry/conventions/op';
 import type { SerializedStreamedSpan } from '@sentry/core';
 import { afterAll, expect } from 'vitest';
 import { cleanupChildProcesses, createEsmAndCjsTests, describeWithDockerCompose } from '../../../utils/runner';
-import { parentSpanTests } from '../prisma-orm/parent-span-tests';
 
 afterAll(() => {
   cleanupChildProcesses();
@@ -22,12 +21,13 @@ describeWithDockerCompose('Prisma ORM v6 Tests', { workingDirectory: [__dirname]
     'scenario.mjs',
     'instrument.mjs',
     (createRunner, test) => {
-      test('should instrument PostgreSQL queries from Prisma ORM', { timeout: 75_000 }, async () => {
+      test('only instruments PostgreSQL queries with an active parent span', { timeout: 75_000 }, async () => {
         await createRunner()
           .expect({
             span: container => {
               const segment = container.items.find(span => span.is_segment);
               expect(segment?.name).toBe('Test Transaction');
+              expect(container.items.filter(span => span.is_segment)).toHaveLength(1);
 
               const spans = container.items.filter(span => !span.is_segment);
               expect(spans.length).toBeGreaterThanOrEqual(5);
@@ -153,9 +153,4 @@ describeWithDockerCompose('Prisma ORM v6 Tests', { workingDirectory: [__dirname]
       copyPaths: ['prisma'],
     },
   );
-
-  createEsmAndCjsTests(__dirname, '../prisma-orm/scenario-no-parent.mjs', 'instrument.mjs', parentSpanTests, {
-    afterSetupCommand: 'prisma generate --schema prisma/schema.prisma',
-    copyPaths: ['prisma'],
-  });
 });
