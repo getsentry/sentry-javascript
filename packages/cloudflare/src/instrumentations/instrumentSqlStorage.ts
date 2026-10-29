@@ -72,8 +72,8 @@ export function instrumentSqlStorage(sql: SqlStorage): SqlStorage {
 }
 
 /**
- * Returns `true` when `startSpan` creates a non-recording span: spans are disabled, no parent exists,
- * or the active span is not sampled. Must agree with `createChildOrRootSpan` and `_startChildSpan` in `@sentry/core`.
+ * Returns `true` when `startSpan` creates a non-recording span: spans are disabled, or the active span
+ * is not sampled. Must agree with `createChildOrRootSpan` and `_startChildSpan` in `@sentry/core`.
  */
 function childSpanWillNotBeRecorded(): boolean {
   if (!hasSpansEnabled()) {
@@ -81,5 +81,5 @@ function childSpanWillNotBeRecorded(): boolean {
   }
 
   const activeSpan = getActiveSpan();
-  return !activeSpan || !spanIsSampled(activeSpan);
+  return !!activeSpan && !spanIsSampled(activeSpan);
 }

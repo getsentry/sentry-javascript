@@ -104,21 +104,17 @@ describeWithDockerCompose(
                 const segments = container.items.filter(item => item.is_segment);
                 expect(segments.map(item => item.name)).toEqual([SEGMENT_NAME]);
                 const parent = segments[0]!;
-                const connection = container.items.find(item => item.name === 'redis-connect')!;
-                expect(connection).toEqual({
-                  ...(streamedSpan('redis-connect', DB, {}) as Record<string, unknown>),
-                  parent_span_id: parent.span_id,
-                  trace_id: parent.trace_id,
-                });
 
                 const spans = container.items.filter(
-                  item =>
-                    !item.is_segment &&
-                    item.span_id !== connection.span_id &&
-                    item.parent_span_id !== connection.span_id,
+                  item => !item.is_segment && item.parent_span_id === parent.span_id,
                 );
 
                 expect(spans).toEqual([
+                  {
+                    ...(streamedSpan('redis-connect', DB, {}) as Record<string, unknown>),
+                    parent_span_id: parent.span_id,
+                    trace_id: parent.trace_id,
+                  },
                   streamedSpan(`set ${HOST}:${PORT}`, DB_QUERY, {
                     [DB_OPERATION_NAME]: 'set',
                     [DB_QUERY_TEXT]: 'set dc-test-key ?',
