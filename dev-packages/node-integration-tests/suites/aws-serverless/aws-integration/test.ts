@@ -1,3 +1,4 @@
+import { DB_NAMESPACE, SENTRY_ORIGIN } from '@sentry/conventions/attributes';
 import type { SerializedStreamedSpan, SerializedStreamedSpanContainer } from '@sentry/core';
 import { afterAll, describe, expect } from 'vitest';
 import { cleanupChildProcesses, createEsmAndCjsTests } from '../../../utils/runner';
@@ -281,7 +282,7 @@ describe('awsIntegration', () => {
           const dbSpans = new Map<string, SerializedStreamedSpan>();
           const spansPromise = runner.collectStreamedSpans(spans => {
             for (const span of spans) {
-              if (span.attributes['sentry.origin']?.value === DB_ORIGIN) {
+              if (span.attributes[SENTRY_ORIGIN]?.value === DB_ORIGIN) {
                 dbSpans.set(span.span_id, span);
               }
             }
@@ -295,7 +296,7 @@ describe('awsIntegration', () => {
           expect(parent).toBeDefined();
           expect(
             Array.from(dbSpans.values(), span => ({
-              table: span.attributes['db.namespace']?.value,
+              table: span.attributes[DB_NAMESPACE]?.value,
               parentSpanId: span.parent_span_id,
               traceId: span.trace_id,
               isSegment: span.is_segment,
