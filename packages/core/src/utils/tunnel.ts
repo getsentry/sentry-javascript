@@ -1,5 +1,7 @@
 import type { Client } from '../client';
 import type { Integration } from '../types/integration';
+import type { SentryCarrier } from '../carrier';
+import { getGlobalSingleton } from '../carrier';
 import { getClient } from '../currentScopes';
 import { URL_PATH } from '@sentry/conventions/attributes';
 import type { DsnComponents, DsnLike } from '../types/dsn';
@@ -18,13 +20,18 @@ export type TunnelForwarder = (request: Request, allowedDsns: Array<string>) => 
 /**
  * A server client's tunnel paths, base path, allowed DSNs and forwarder, computed once per client.
  */
-interface ServedTunnel extends TunnelMatch {
+export interface ServedTunnel extends TunnelMatch {
   forward: TunnelForwarder;
   /** Whether the SDK answers tunnel requests itself, see `ServerTunnelOptions.intercept`. */
   intercept: boolean;
 }
 
-const servedTunnels = new WeakMap<Client, ServedTunnel>();
+/**
+ * The managed tunnel state every copy of this module shares.
+ */
+export function getManagedTunnelState(): NonNullable<SentryCarrier['managedTunnel']> {
+  return getGlobalSingleton('managedTunnel', () => ({ served: new WeakMap() }));
+}
 
 /**
  * The name of `serveTunnelIntegration`, which carries the forwarder. Kept here so this module doesn't import the
@@ -48,7 +55,7 @@ export function setServedTunnel(
     forward,
     intercept: tunnelOptions.intercept !== false,
   };
-  servedTunnels.set(client, servedTunnel);
+  getManagedTunnelState().served.set(client, servedTunnel);
 
   return servedTunnel;
 }
@@ -72,7 +79,7 @@ function getServedTunnel(): ServedTunnel | undefined {
     return undefined;
   }
 
-  const servedTunnel = servedTunnels.get(client);
+  const servedTunnel = getManagedTunnelState().served.get(client);
   if (servedTunnel) {
     return servedTunnel;
   }
