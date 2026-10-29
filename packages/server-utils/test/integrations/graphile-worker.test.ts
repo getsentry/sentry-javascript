@@ -110,13 +110,17 @@ describe('graphile-worker crontab monitoring', () => {
     });
   });
 
-  it('skips items with a custom matcher', () => {
+  it('sends no check-ins for items with a custom matcher but captures their errors', () => {
     const events = new EventEmitter();
     monitorGraphileCronJobs(events, [{ identifier: 'custom', task: 'job', payload: {}, match: () => true }], {});
+    const error = new Error('boom');
 
-    runJob(events, cronJob('job', '2026-10-16T09:00:00.000Z'));
+    runJob(events, cronJob('job', '2026-10-16T09:00:00.000Z'), error);
 
     expect(captureCheckIn).not.toHaveBeenCalled();
+    expect(captureException).toHaveBeenCalledWith(error, {
+      mechanism: { handled: false, type: 'auto.function.graphile_worker.cron' },
+    });
   });
 
   it('tells items of the same task apart by schedule and payload', () => {

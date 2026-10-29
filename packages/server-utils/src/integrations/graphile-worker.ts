@@ -94,7 +94,7 @@ function instrumentGraphileWorker(options: GraphileWorkerOptions): void {
 
 /** Sends check-ins for the jobs a runner's crontab schedules. Exported for tests. */
 export function monitorGraphileCronJobs(events: Events, items: CronItem[], options: GraphileWorkerOptions): void {
-  const runs = new WeakMap<Job, { slug: string; checkInId: string; start: number }>();
+  const runs = new WeakMap<Job, { slug: string; checkInId?: string; start: number }>();
 
   events.on('job:start', ({ job }) => {
     try {
@@ -106,6 +106,7 @@ export function monitorGraphileCronJobs(events: Events, items: CronItem[], optio
       const config = toMonitorConfig(item);
       if (!config) {
         DEBUG_BUILD && debug.log(`[GraphileWorker] Not monitoring ${slug}: Sentry can't represent its schedule.`);
+        runs.set(job, { slug, start: timestampInSeconds() });
         return;
       }
       const checkInId = captureCheckIn({ monitorSlug: slug, status: 'in_progress' }, config);
@@ -124,6 +125,9 @@ export function monitorGraphileCronJobs(events: Events, items: CronItem[], optio
     try {
       if (error) {
         captureException(error, { mechanism: { handled: false, type: 'auto.function.graphile_worker.cron' } });
+      }
+      if (!run.checkInId) {
+        return;
       }
       captureCheckIn({
         monitorSlug: run.slug,
