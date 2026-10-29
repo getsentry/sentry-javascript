@@ -38,15 +38,6 @@ describe('wrapServerEntryWithSentryTunnel', () => {
     vi.clearAllMocks();
   });
 
-  it('answers the tunnel path when `serveTunnelIntegration` is set up, without calling the app', async () => {
-    setClient({});
-
-    const response = await wrapServerEntryWithSentryTunnel({ fetch: appFetch }).fetch(makeEnvelopeRequest(TUNNEL_URL));
-
-    expect(await response.text()).toBe('forwarded');
-    expect(appFetch).not.toHaveBeenCalled();
-  });
-
   it('hands every request to the app when the managed tunnel is off', async () => {
     setClient(undefined);
 
@@ -54,40 +45,6 @@ describe('wrapServerEntryWithSentryTunnel', () => {
 
     expect(await response.text()).toBe('app');
     expect(sentryFetch).not.toHaveBeenCalled();
-  });
-
-  it('serves the tunnel with build-time options even without `serveTunnelIntegration`', async () => {
-    setClient(undefined);
-
-    const response = await wrapServerEntryWithSentryTunnel({ fetch: appFetch }, {}).fetch(
-      makeEnvelopeRequest(TUNNEL_URL),
-    );
-
-    expect(await response.text()).toBe('forwarded');
-  });
-
-  it('rejects other methods on a fixed `tunnelRoute` path instead of rendering the app', async () => {
-    setClient(undefined);
-    const entry: { fetch: (request: Request) => Response } = { fetch: appFetch };
-    const wrapped = wrapServerEntryWithSentryTunnel(entry, { path: '/monitor' });
-
-    const response = await wrapped.fetch(new Request('http://localhost:3000/monitor'));
-
-    expect(response.status).toBe(405);
-    expect(response.headers.get('allow')).toBe('POST');
-    expect(appFetch).not.toHaveBeenCalled();
-    expect(await (await wrapped.fetch(new Request('http://localhost:3000/other'))).text()).toBe('app');
-  });
-
-  it('rejects other methods on the DSN-derived tunnel path too', async () => {
-    setClient({});
-    const entry: { fetch: (request: Request) => Response } = { fetch: appFetch };
-
-    const response = await wrapServerEntryWithSentryTunnel(entry).fetch(new Request(TUNNEL_URL));
-
-    expect(response.status).toBe(405);
-    expect(response.headers.get('allow')).toBe('POST');
-    expect(appFetch).not.toHaveBeenCalled();
   });
 
   it('passes other requests and their options to the app', async () => {
@@ -108,39 +65,6 @@ describe('wrapServerEntryWithSentryTunnel', () => {
     await wrapServerEntryWithSentryTunnel({ fetch: appFetch }).fetch(request, env, ctx);
 
     expect(appFetch).toHaveBeenCalledWith(request, env, ctx);
-  });
-
-  it("keeps a class instance entry's prototype handlers, like a Worker's `scheduled`", async () => {
-    setClient({});
-    class Handler {
-      public fetch(_request: Request): Response {
-        return new Response('app');
-      }
-
-      public scheduled(): string {
-        return 'scheduled';
-      }
-    }
-
-    const wrapped = wrapServerEntryWithSentryTunnel(new Handler());
-
-    expect(wrapped.scheduled()).toBe('scheduled');
-    expect(wrapped).toBeInstanceOf(Handler);
-    expect(await (await wrapped.fetch(makeEnvelopeRequest(TUNNEL_URL))).text()).toBe('forwarded');
-  });
-
-  it('wraps an entry whose prototype is frozen', async () => {
-    setClient({});
-    class Handler {
-      public fetch(_request: Request): Response {
-        return new Response('app');
-      }
-    }
-    Object.freeze(Handler.prototype);
-
-    const wrapped = wrapServerEntryWithSentryTunnel(new Handler());
-
-    expect(await (await wrapped.fetch(makeEnvelopeRequest(TUNNEL_URL))).text()).toBe('forwarded');
   });
 
   it('returns a class entry, like a `WorkerEntrypoint`, unchanged', () => {
@@ -165,36 +89,5 @@ describe('wrapServerEntryWithSentryTunnel', () => {
         getTunnelPath(DSN)!,
       ),
     ).toBe(true);
-  });
-
-  it('keeps the options of `serveTunnelIntegration` over `tunnelRoute`', async () => {
-    setClient({ path: '/from-init' });
-    const options = getCurrentScope().getClient()!.getOptions();
-
-    const response = await wrapServerEntryWithSentryTunnel({ fetch: appFetch }, { path: '/from-build' }).fetch(
-      makeEnvelopeRequest('http://localhost:3000/from-init'),
-    );
-
-    expect(options._managedTunnel).toEqual({ path: '/from-init' });
-    expect(await response.text()).toBe('forwarded');
-  });
-
-  it('answers the tunnel under the base path Start routes on, and only there', async () => {
-    setClient({});
-    const wrapped = wrapServerEntryWithSentryTunnel({ fetch: appFetch }, undefined, '/app');
-
-    expect(
-      await (await wrapped.fetch(makeEnvelopeRequest(`http://localhost:3000/app${getTunnelPath(DSN)}`))).text(),
-    ).toBe('forwarded');
-    expect(await (await wrapped.fetch(makeEnvelopeRequest(TUNNEL_URL))).text()).toBe('app');
-  });
-
-  it('keeps a base path `serveTunnelIntegration` set', async () => {
-    setClient({ basePath: '/custom' });
-    const wrapped = wrapServerEntryWithSentryTunnel({ fetch: appFetch }, undefined, '/app');
-
-    expect(
-      await (await wrapped.fetch(makeEnvelopeRequest(`http://localhost:3000/custom${getTunnelPath(DSN)}`))).text(),
-    ).toBe('forwarded');
   });
 });

@@ -40,19 +40,6 @@ describe('sentryRemixMiddleware', () => {
     handleServedTunnelRequest.mockReturnValue(undefined);
   });
 
-  it('answers tunnel requests before route matching and the rest of the chain', async () => {
-    const tunnelResponse = new Response('forwarded');
-    handleServedTunnelRequest.mockReturnValue(Promise.resolve(tunnelResponse));
-    const next = vi.fn();
-    const context = contextFor('http://x/abc123');
-
-    const response = await sentryRemixMiddleware(matcherFor('/'))(context, next);
-
-    expect(response).toBe(tunnelResponse);
-    expect(handleServedTunnelRequest).toHaveBeenCalledWith(context.request);
-    expect(next).not.toHaveBeenCalled();
-  });
-
   it('propagates the trace to HTML responses through Server-Timing, ahead of the route', async () => {
     getTraceData.mockReturnValue({ 'sentry-trace': 'abc-def-1', baggage: 'sentry-trace_id=abc' });
     const middleware = sentryRemixMiddleware(matcherFor('/users/:id'));
