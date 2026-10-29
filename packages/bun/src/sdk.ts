@@ -28,6 +28,7 @@ import { fetchIntegration } from './integrations/fetch';
 import { makeFetchTransport } from './transports';
 import type { BunOptions } from './types';
 import { bunHttpServerIntegration } from './integrations/bunHttpServer';
+import { instrumentTunnelServers } from './tunnelServer';
 import { getErrorIntegrations, getTracingIntegrations } from '@sentry/server-utils';
 
 /**
@@ -144,6 +145,8 @@ function _init(
   getDefaultIntegrationsImpl: (options: Options) => Integration[],
 ): NodeClient | undefined {
   applySdkMetadata(userOptions, 'bun');
+
+  instrumentTunnelServers();
 
   const options = {
     ...userOptions,

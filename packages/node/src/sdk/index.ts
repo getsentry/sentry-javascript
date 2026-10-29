@@ -41,6 +41,7 @@ import { getSpotlightConfig } from '../utils/spotlight';
 import { defaultStackParser, getSentryRelease } from './api';
 import { NodeClient } from './client';
 import { initOpenTelemetry } from './initOtel';
+import { instrumentTunnelServers } from './tunnelServer';
 import { setupVercelKeepAlive } from './vercel';
 
 /**
@@ -132,6 +133,8 @@ function _init(
   }
 
   applySdkMetadata(options, 'node');
+
+  instrumentTunnelServers();
 
   // Enable debug logging before the client is created, so failure modes during setup (e.g. the
   // channel-injection registration finding no available Node hook API, or dep-resolution errors)

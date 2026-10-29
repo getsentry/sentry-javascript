@@ -1,12 +1,10 @@
 import * as http from 'node:http';
 import * as https from 'node:https';
-import type { IntegrationFn, ServerTunnelOptions } from '@sentry/core';
-import { _INTERNAL_normalizeTunnelBasePath, debug, defineIntegration, getClient } from '@sentry/core';
+import { _INTERNAL_normalizeTunnelBasePath, debug, getClient } from '@sentry/core';
 import {
   _INTERNAL_getTunnelPaths as getTunnelPaths,
   _INTERNAL_handleServedTunnelRequest as handleServedTunnelRequest,
   _INTERNAL_instrumentTunnelServer as instrumentTunnelServer,
-  serveTunnelIntegration as coreServeTunnelIntegration,
 } from '@sentry/core/server';
 import type { Server } from 'bun';
 
@@ -16,49 +14,15 @@ type BunHandler = (request: Request, server: Server) => Response | Promise<Respo
 let hasPatchedBunServe = false;
 let hasPatchedHttpServer = false;
 
-const _serveTunnelIntegration = ((options: ServerTunnelOptions = {}) => {
-  const integration = coreServeTunnelIntegration(options);
-
-  return {
-    ...integration,
-    setupOnce() {
-      if (options.intercept === false) {
-        return;
-      }
-
-      patchBunServe();
-      patchHttpServer();
-    },
-  };
-}) satisfies IntegrationFn;
-
 /**
- * Lets your server forward the events of a browser SDK set up with `tunnel: true` to Sentry.
- *
- * With this integration on the server and `tunnel: true` in the browser `init`, the browser sends its events to your
- * own server instead of Sentry, where ad-blockers can't drop them, and your server forwards them to Sentry.
- *
- * `Bun.serve` (including a default-exported server) and `node:http` servers answer the tunnel requests before the app
- * sees them. To serve them from your own code instead, set `intercept: false` and call `handleTunnelRequestIfMatched`.
- *
- * By default only envelopes for the server's own DSN are forwarded.
- *
- * @example
- * ```js
- * // Server
- * Sentry.init({
- *   dsn: '__DSN__',
- *   integrations: [Sentry.serveTunnelIntegration()],
- * });
- *
- * // Browser
- * Sentry.init({
- *   dsn: '__DSN__',
- *   tunnel: true,
- * });
- * ```
+ * Lets `Bun.serve` (including a default-exported server) and `node:http` servers answer managed tunnel requests
+ * before the app sees them. Nothing is answered unless the tunnel is on, through `serveTunnelIntegration` or a
+ * framework SDK. A server started before `init` isn't covered.
  */
-export const serveTunnelIntegration = defineIntegration(_serveTunnelIntegration);
+export function instrumentTunnelServers(): void {
+  patchBunServe();
+  patchHttpServer();
+}
 
 /**
  * Answers tunnel requests ahead of every `Bun.serve` app, including after `server.reload`. Bun starts a
