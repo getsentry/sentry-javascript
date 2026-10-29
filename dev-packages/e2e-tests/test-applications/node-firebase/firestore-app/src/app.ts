@@ -66,6 +66,13 @@ expressApp.get('/test', async function (req, res) {
   res.send({ version: 'v1' });
 });
 
+expressApp.get('/test-no-parent', async function (req, res) {
+  await addCity();
+  Sentry.startSpan({ name: 'No Parent Marker' }, () => {});
+  await Sentry.flush();
+  res.send({ version: 'v1' });
+});
+
 expressApp.listen(port, () => {
   console.log(`Example app listening on port ${port}`);
 });
