@@ -4,6 +4,12 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+### Important Changes
+
+- **feat(nestjs): Derive SentryCron monitor config from @Cron ([#25013](https://github.com/getsentry/sentry-javascript/pull/25013))**
+
+  `@SentryCron` now sends the schedule and time zone from the method's `@Cron()` decorator, so Sentry creates the monitor on the first run. If you use `@SentryCron` without a `schedule`, Sentry now creates missing monitors, which are billed, and overwrites schedules and time zones set by hand. Pass `fromCronDecorator: false` to turn this off.
+
 ## 11.10.0
 
 ### Important Changes
