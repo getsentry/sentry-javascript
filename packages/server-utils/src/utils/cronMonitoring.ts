@@ -197,6 +197,7 @@ const monitorConfigs = new WeakMap<AnyFn, MonitorConfig | undefined>();
 
 /**
  * Wraps a scheduled job with check-ins. Errors are captured, because schedulers catch them, and rethrown.
+ * Jobs without a monitor config run as they are, with no check-ins.
  */
 export function wrapScheduledJob(
   func: AnyFn,
@@ -210,6 +211,10 @@ export function wrapScheduledJob(
   };
 
   const wrapped = function (this: unknown, ...args: unknown[]): unknown {
+    const currentConfig = monitorConfigs.get(wrapped);
+    if (!currentConfig) {
+      return func.apply(this, args);
+    }
     return startNewTrace(() =>
       withMonitor(
         monitorSlug,
@@ -221,7 +226,7 @@ export function wrapScheduledJob(
             return captureAndRethrow(e);
           }
         },
-        monitorConfigs.get(wrapped),
+        currentConfig,
       ),
     );
   };

@@ -32,7 +32,8 @@ const _nodeCronIntegration = ((options: NodeCronIntegrationOptions = {}) => {
 
 /**
  * Sends Crons check-ins for every named `node-cron` task, with its schedule as the monitor config.
- * The monitor slug is the task's `name` option; tasks without a name are not monitored.
+ * The monitor slug is the task's `name` option. Tasks without a name, or with a schedule Sentry can't express, are not
+ * monitored.
  */
 export const nodeCronIntegration = defineIntegration(_nodeCronIntegration);
 
