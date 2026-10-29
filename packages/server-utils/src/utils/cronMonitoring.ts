@@ -1,5 +1,6 @@
 import type { MonitorConfig } from '@sentry/core';
 import {
+  addNonEnumerableProperty,
   captureException,
   debug,
   isThenable,
@@ -12,7 +13,8 @@ import * as diagnosticsChannel from './diagnosticsChannel';
 
 export type AnyFn = (this: unknown, ...args: unknown[]) => unknown;
 
-// Set by `Sentry.cron.instrumentCron`, `instrumentNodeCron` and `instrumentNodeSchedule`, which already send check-ins.
+// Set by `Sentry.cron.instrumentCron`, `instrumentNodeCron`, `instrumentNodeSchedule` and `wrapScheduledJob`, which already
+// send check-ins.
 const MONITORED = Symbol.for('sentry.cron.monitored');
 
 /**
@@ -42,23 +44,29 @@ export interface ScheduleChange {
 
 /**
  * Calls `onChange` after each call on a scheduler's schedule-change channel, so it can update the job's monitor config.
- * Errors are logged and the job keeps its config.
+ * `onStart` gets the same object before the call. Errors are logged and the job keeps its config.
  */
 export function subscribeToScheduleChange(
   channelName: string,
   integrationName: string,
   onChange: (change: ScheduleChange) => void,
+  onStart?: (change: ScheduleChange) => void,
 ): void {
-  diagnosticsChannel.tracingChannel<ScheduleChange>(channelName).end.subscribe(message => {
+  const channel = diagnosticsChannel.tracingChannel<ScheduleChange>(channelName);
+  const handle = (handler: (change: ScheduleChange) => void) => (message: unknown) => {
     try {
-      onChange(message as ScheduleChange);
+      handler(message as ScheduleChange);
     } catch (e) {
       DEBUG_BUILD && debug.error(`[${integrationName}] Failed to update the cron monitor:`, e);
     }
-  });
+  };
+  if (onStart) {
+    channel.start.subscribe(handle(onStart));
+  }
+  channel.end.subscribe(handle(onChange));
 }
 
-/** Whether a job is named, not excluded, and not already monitored by `Sentry.cron.instrumentCron`, `instrumentNodeCron` or `instrumentNodeSchedule`. */
+/** Whether a job is named, not excluded, and not already monitored by `Sentry.cron.instrument*` or `wrapScheduledJob`. */
 export function shouldMonitorJob(
   name: unknown,
   job: unknown,
@@ -222,6 +230,7 @@ export function wrapScheduledJob(
     );
   };
   monitorConfigs.set(wrapped, monitorConfig);
+  addNonEnumerableProperty(wrapped, MONITORED, true);
   return wrapped;
 }
 

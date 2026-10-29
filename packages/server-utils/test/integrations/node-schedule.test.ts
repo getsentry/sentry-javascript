@@ -1,8 +1,7 @@
 import type { MonitorConfig } from '@sentry/core';
 import { setCurrentClient } from '@sentry/core';
 import { beforeEach, describe, expect, it } from 'vitest';
-import { getMonitorConfig, isOneOffSpec, onReschedule } from '../../src/integrations/node-schedule';
-import { wrapScheduledJob } from '../../src/utils/cronMonitoring';
+import { beforeSchedule, getMonitorConfig, isOneOffSpec, onSchedule } from '../../src/integrations/node-schedule';
 import { getDefaultTestClientOptions, TestClient } from '../mocks/client';
 
 describe('isOneOffSpec', () => {
@@ -54,7 +53,7 @@ describe('getMonitorConfig', () => {
   });
 });
 
-describe('onReschedule', () => {
+describe('job.schedule', () => {
   let sentConfigs: Array<MonitorConfig | undefined>;
 
   beforeEach(() => {
@@ -67,22 +66,66 @@ describe('onReschedule', () => {
     setCurrentClient(client);
   });
 
-  const createJob = () => ({
-    job: wrapScheduledJob(() => {}, 'my-job', getMonitorConfig('0 9 * * *'), 'auto.function.node-schedule'),
+  const createJob = (name = 'my-job') => {
+    let pending = false;
+    return {
+      name,
+      job: (() => {}) as unknown,
+      nextInvocation: () => (pending ? new Date() : null),
+      schedule(spec: unknown) {
+        const change = { arguments: [spec], self: this, result: undefined as unknown };
+        beforeSchedule(change, { excludeJobs: ['excluded-job'] });
+        change.result = spec !== 'not a spec';
+        pending ||= change.result === true;
+        onSchedule(change);
+        return change.result;
+      },
+      reschedule(spec: unknown) {
+        pending = false;
+        return this.schedule(spec);
+      },
+      run() {
+        (this.job as () => void)();
+      },
+    };
+  };
+
+  it('sends the schedule of a named job', () => {
+    const job = createJob();
+    job.schedule({ rule: '30 9 * * 1-5', tz: 'UTC' });
+    job.run();
+
+    expect(sentConfigs[0]).toEqual({ schedule: { type: 'crontab', value: '30 9 * * 1-5' }, timezone: 'UTC' });
   });
 
-  it('sends the new schedule after a reschedule', () => {
-    const job = createJob();
-    onReschedule({ arguments: [{ rule: '30 10 * * 1-5', tz: 'UTC' }], self: job, result: true });
-    job.job();
+  it.each([
+    ['an unnamed job', createJob('<Anonymous Job 1 2026-10-28T00:00:00.000Z>'), '0 9 * * *'],
+    ['an excluded job', createJob('excluded-job'), '0 9 * * *'],
+    ['a one-off job', createJob(), new Date(Date.now() + 86_400_000)],
+  ])('does not monitor %s', (_, job, spec) => {
+    job.schedule(spec);
+    job.run();
 
+    expect(sentConfigs).toEqual([]);
+  });
+
+  it('wraps the job once and sends the new schedule after a reschedule', () => {
+    const job = createJob();
+    job.schedule('0 9 * * *');
+    const wrapped = job.job;
+    job.reschedule({ rule: '30 10 * * 1-5', tz: 'UTC' });
+    job.run();
+
+    expect(job.job).toBe(wrapped);
+    expect(sentConfigs).toHaveLength(2);
     expect(sentConfigs[0]).toEqual({ schedule: { type: 'crontab', value: '30 10 * * 1-5' }, timezone: 'UTC' });
   });
 
   it('sends no config after a reschedule to a spec it cannot convert', () => {
     const job = createJob();
-    onReschedule({ arguments: [{ hour: 3, minute: 0 }], self: job, result: true });
-    job.job();
+    job.schedule('0 9 * * *');
+    job.reschedule({ hour: 3, minute: 0 });
+    job.run();
 
     expect(sentConfigs).toHaveLength(2);
     expect(sentConfigs[0]).toBeUndefined();
@@ -90,9 +133,20 @@ describe('onReschedule', () => {
 
   it('keeps the old schedule when the reschedule fails', () => {
     const job = createJob();
-    onReschedule({ arguments: ['not a spec'], self: job, result: false });
-    job.job();
+    job.schedule('0 9 * * *');
+    job.reschedule('not a spec');
+    job.run();
 
     expect(sentConfigs[0]?.schedule).toEqual({ type: 'crontab', value: '0 9 * * *' });
+  });
+
+  it('sends no config when a second schedule adds to the first', () => {
+    const job = createJob();
+    job.schedule('0 9 * * *');
+    job.schedule('0 18 * * *');
+    job.run();
+
+    expect(sentConfigs).toHaveLength(2);
+    expect(sentConfigs[0]).toBeUndefined();
   });
 });
