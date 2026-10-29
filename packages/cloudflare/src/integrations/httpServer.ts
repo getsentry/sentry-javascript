@@ -107,8 +107,9 @@ interface HttpServerIntegration extends Integration {
 }
 
 /**
- * The incoming request options of the client's `httpServerIntegration`. Without the integration,
- * the SDK attaches no request body, so users can turn body capture off by removing it.
+ * The incoming request options of the client's `httpServerIntegration`. If the integration does not
+ * set `maxRequestBodySize`, `dataCollection.httpBodies` decides. Without the integration, the SDK
+ * attaches no request body.
  */
 export function getHttpServerRequestOptions(client: Client): ServerRequestOptions<Request, Response> {
   return (
