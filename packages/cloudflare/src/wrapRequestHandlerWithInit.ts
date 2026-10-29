@@ -2,6 +2,7 @@ import type { CfProperties, IncomingRequestCfProperties } from '@cloudflare/work
 import { NETWORK_PROTOCOL_NAME, NETWORK_PROTOCOL_VERSION } from '@sentry/conventions/attributes';
 import type { SpanAttributes } from '@sentry/core';
 import { getIsolationScope, safeCallback } from '@sentry/core';
+import { _INTERNAL_handleServedTunnelRequest as handleServedTunnelRequest } from '@sentry/core/server';
 import { wrapServerRequestHandler } from '@sentry/server-utils/request-handler';
 import { DEBUG_BUILD } from './debug-build';
 import { getHttpServerRequestOptions } from './integrations/httpServer';
@@ -13,9 +14,13 @@ import { addCloudResourceContext, addCultureContext } from './scope-utils';
 import { getInvocationState, getInvocationWaitUntil } from './utils/invocationContext';
 import { withInvocationIsolationScope } from './utils/invocationScope';
 
-function getRequestErrorMechanismType(context: ExecutionContextCompat | undefined): string {
+function isDurableObjectContext(context: ExecutionContextCompat | undefined): boolean {
   // Durable Object fetch handlers use DO state as context (see instrumentDurableObjectWithSentry)
-  return context && 'storage' in context ? 'auto.faas.cloudflare.durable_object' : 'auto.http.cloudflare';
+  return !!context && 'storage' in context;
+}
+
+function getRequestErrorMechanismType(context: ExecutionContextCompat | undefined): string {
+  return isDurableObjectContext(context) ? 'auto.faas.cloudflare.durable_object' : 'auto.http.cloudflare';
 }
 
 export interface RequestHandlerWrapperOptions {
@@ -71,6 +76,13 @@ export function wrapRequestHandlerWithInit(
     // `const app = new Hono()` wrapped by build-time instrumentation): we're now in a
     // request, where workerd allows publish, and init() above has registered subscribers.
     flushDeferredChannelEvents();
+
+    // The tunnel answers these before the app, with no span. A Durable Object is only reached through the Worker,
+    // which answered them already.
+    const tunnelResponse = !isDurableObjectContext(context) && handleServedTunnelRequest(request);
+    if (tunnelResponse) {
+      return tunnelResponse.finally(() => waitUntil?.(flushAndDispose(client)));
+    }
 
     addCloudResourceContext(isolationScope);
     const attributes: SpanAttributes = {};

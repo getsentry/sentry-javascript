@@ -15,7 +15,7 @@ export * from './server';
 export * from './worker';
 
 // Use the ./server version of some functions that are also exported from ./worker
-export { sentryHandle } from './server';
+export { sentryHandle, serveTunnelIntegration } from './server';
 // Use the ./worker version of some functions that are also exported from ./server
 export { initCloudflareSentryHandle } from './worker';
 

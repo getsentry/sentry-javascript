@@ -31,6 +31,7 @@ import {
 } from '@sentry/core';
 import type { ServerRequestOptions } from '@sentry/core/server';
 import {
+  _INTERNAL_isServedTunnelRequest as isServedTunnelRequest,
   classifyResponseStreaming,
   getClientIPAddress,
   isStaticAssetRequest,
@@ -83,6 +84,18 @@ export async function wrapServerRequestHandler<R extends Response | undefined = 
   handler: () => R | Promise<R>,
 ): Promise<R> {
   const { request, client, isolationScope, options, mechanism } = config;
+
+  // The tunnel answers these before the app, so they get no session, request data, body or span.
+  if (isServedTunnelRequest(request)) {
+    let response: R | undefined;
+    try {
+      response = await handler();
+      return response;
+    } finally {
+      config.onDone?.(response);
+    }
+  }
+
   const method = request.method.toUpperCase();
   const captureError = (error: unknown): void => {
     if (mechanism) {
