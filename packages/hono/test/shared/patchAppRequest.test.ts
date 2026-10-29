@@ -42,7 +42,7 @@ describe('patchAppRequest', () => {
     );
   });
 
-  it('skips span creation when there is no active span', async () => {
+  it('requires a parent when starting a span', async () => {
     getActiveSpanMock.mockReturnValue(undefined);
 
     const app = new Hono();
@@ -51,7 +51,17 @@ describe('patchAppRequest', () => {
 
     const res = await app.request('/hello');
 
-    expect(startSpanMock).not.toHaveBeenCalled();
+    expect(startSpanMock).toHaveBeenCalledWith(
+      {
+        name: 'GET /hello',
+        onlyIfParent: true,
+        attributes: {
+          'sentry.op': 'http.server',
+          'sentry.origin': 'auto.http.hono.internal_request',
+        },
+      },
+      expect.any(Function),
+    );
     expect(await res.text()).toBe('world');
   });
 

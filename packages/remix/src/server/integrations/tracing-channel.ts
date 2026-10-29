@@ -192,6 +192,7 @@ function subscribeCallRouteLoader(): void {
         // With span streaming, a `function` span is named after the function it wraps. The route id
         // stays on `match.route.id`.
         name: client && hasSpanStreamingEnabled(client) ? 'loader' : description,
+        onlyIfParent: true,
         attributes: {
           [SENTRY_ORIGIN]: ORIGIN,
           [SENTRY_OP]: FUNCTION,
@@ -203,7 +204,6 @@ function subscribeCallRouteLoader(): void {
       });
     },
     {
-      requiresParentSpan: true,
       beforeSpanEnd: (span, data) => setResponseStatus(span, data.result),
     },
   );
@@ -214,23 +214,13 @@ function subscribeCallRouteAction(formDataCapture: FormDataCapture | undefined):
     diagnosticsChannel.tracingChannel(remixChannels.REMIX_CALL_ROUTE_ACTION),
     data => {
       const params = (data.arguments[0] ?? {}) as RouteCallParams;
-      // Start reading the form data now (from a clone taken before the action consumes the body), so
-      // it overlaps the action's execution. Unlike the patched instrumentation, a channel can't
-      // delay the action promise, so reading only after it settles would race the parent
-      // `requestHandler` span flushing the transaction. Reading here means the promise is (virtually
-      // always) already resolved by `asyncEnd`, so ending the span costs a single microtask.
-      if (formDataCapture && params.request) {
-        const formData = params.request.clone().formData();
-        // Attach a handler so an unconsumed rejection (e.g. the action errored) isn't unhandled.
-        formData.catch(() => undefined);
-        data._sentryFormData = formData;
-      }
       const client = getClient();
       const description = `ACTION ${params.routeId}`;
-      return startInactiveSpan({
+      const span = startInactiveSpan({
         // With span streaming, a `function` span is named after the function it wraps. The route id
         // stays on `match.route.id`.
         name: client && hasSpanStreamingEnabled(client) ? 'action' : description,
+        onlyIfParent: true,
         attributes: {
           [SENTRY_ORIGIN]: ORIGIN,
           [SENTRY_OP]: FUNCTION,
@@ -240,9 +230,18 @@ function subscribeCallRouteAction(formDataCapture: FormDataCapture | undefined):
           ...getMatchAttributes(params),
         },
       });
+
+      // Read before the action consumes the body so enrichment can finish before the request span ends.
+      if (span.isRecording() && formDataCapture && params.request) {
+        const formData = params.request.clone().formData();
+        // Attach a handler so an unconsumed rejection (e.g. the action errored) isn't unhandled.
+        formData.catch(() => undefined);
+        data._sentryFormData = formData;
+      }
+
+      return span;
     },
     {
-      requiresParentSpan: true,
       beforeSpanEnd: (span, data) => setResponseStatus(span, data.result),
       // Hold the span end until the (already in-flight) form-data read resolves, then apply the
       // attributes and end (which sets the response status via `beforeSpanEnd`). On error, or when

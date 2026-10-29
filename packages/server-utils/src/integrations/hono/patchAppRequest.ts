@@ -1,6 +1,6 @@
 import { SENTRY_OP, SENTRY_ORIGIN } from '@sentry/conventions/attributes';
 import { HTTP_SERVER } from '@sentry/conventions/op';
-import { debug, getActiveSpan, getOriginalFunction, startSpan, type WrappedFunction } from '@sentry/core';
+import { debug, getOriginalFunction, startSpan, type WrappedFunction } from '@sentry/core';
 import { INTERNAL_REQUEST_ORIGIN } from './constants';
 import type { Env, Hono } from './honoTypes';
 import { DEBUG_BUILD } from '../../debug-build';
@@ -81,10 +81,6 @@ export function patchAppRequest<E extends Env>(app: Hono<E>): void {
   app.request = new Proxy(originalRequest, {
     apply(_target, thisArg, args: [string | Request | URL, RequestInit?, ...unknown[]]) {
       const [input, requestInit, ...rest] = args;
-
-      if (!getActiveSpan()) {
-        return Reflect.apply(_target, thisArg, args);
-      }
 
       let method = requestInit?.method ?? (input instanceof Request ? input.method : 'GET');
       method = method.toUpperCase();
