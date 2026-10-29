@@ -90,8 +90,9 @@ function addIncludesForTestApp(testApp, includes, { variant }) {
     return;
   }
 
-  // Add the basic test-application itself, if it is in the current mode. The canary matrix only has canary variants.
-  if (variant !== 'canary' && (variant === 'optional') === isOptional) {
+  // The test application itself is either required or optional, never canary, and only runs in the matrix of its mode.
+  const appVariant = isOptional ? 'optional' : 'required';
+  if (appVariant === variant) {
     includes.push(baseInclude);
   }
 
