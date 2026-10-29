@@ -4,7 +4,9 @@ import { getClient } from '../currentScopes';
 import { URL_PATH } from '@sentry/conventions/attributes';
 import type { DsnComponents, DsnLike } from '../types/dsn';
 import type { IgnoreSpanFilter, ServerTunnelOptions, TunnelInit, TunnelOptions } from '../types/options';
+import { DEBUG_BUILD } from '../debug-build';
 import { escapeStringForRegex } from '../vendor/escapeStringForRegex';
+import { debug } from './debug-logger';
 import { dsnToString, makeDsn } from './dsn';
 import { parseUrl } from './url';
 
@@ -18,6 +20,8 @@ export type TunnelForwarder = (request: Request, allowedDsns: Array<string>) => 
  */
 interface ServedTunnel extends TunnelMatch {
   forward: TunnelForwarder;
+  /** Whether the SDK answers tunnel requests itself, see `ServerTunnelOptions.intercept`. */
+  intercept: boolean;
 }
 
 const servedTunnels = new WeakMap<Client, ServedTunnel>();
@@ -42,6 +46,7 @@ export function setServedTunnel(
     basePath: tunnelOptions.basePath,
     allowedDsns,
     forward,
+    intercept: tunnelOptions.intercept !== false,
   };
   servedTunnels.set(client, servedTunnel);
 
@@ -223,22 +228,54 @@ export function isTunnelRequest(request: TunnelRequestLike, options?: ServerTunn
  * there's no fallback, so the framework SDKs serve nothing without the integration.
  */
 export function isServedTunnelRequest(request: TunnelRequestLike): boolean {
+  try {
+    return !!getServedTunnelMatch(request);
+  } catch (error) {
+    DEBUG_BUILD && debug.error('Sentry tunnel: failed to match a request', error);
+
+    return false;
+  }
+}
+
+/**
+ * The served tunnel, if the SDK answers this request on it.
+ */
+export function getServedTunnelMatch(request: TunnelRequestLike): ServedTunnel | undefined {
   const servedTunnel = getServedTunnel();
 
-  return !!servedTunnel && matchesTunnel(request, servedTunnel);
+  return servedTunnel?.intercept && servedTunnel.allowedDsns.length && matchesTunnel(request, servedTunnel)
+    ? servedTunnel
+    : undefined;
 }
 
 /**
  * Forwards the request if it targets the tunnel `serveTunnelIntegration` serves, otherwise returns `undefined`. The
- * framework SDKs answer tunnel requests with it.
+ * runtime and framework SDKs answer tunnel requests with it, ahead of the app.
+ *
+ * It never throws, since a throw here would break the app's own requests. Until a request is claimed, a failure hands
+ * it to the app. Once claimed, its body may be read already, so a failure ends in a 502 instead.
  */
 export function handleServedTunnelRequest(request: Request): Promise<Response> | undefined {
-  const servedTunnel = getServedTunnel();
-  if (!servedTunnel?.allowedDsns.length || !matchesTunnel(request, servedTunnel)) {
+  let handled: Promise<Response>;
+  try {
+    // An envelope always has a body. Nuxt's Cloudflare plugin passes a copy without one, which its app answers later.
+    const servedTunnel = request.body && getServedTunnelMatch(request);
+    if (!servedTunnel) {
+      return undefined;
+    }
+
+    handled = servedTunnel.forward(request, servedTunnel.allowedDsns);
+  } catch (error) {
+    DEBUG_BUILD && debug.error('Sentry tunnel: failed to match a request', error);
+
     return undefined;
   }
 
-  return servedTunnel.forward(request, servedTunnel.allowedDsns);
+  return handled.catch(error => {
+    DEBUG_BUILD && debug.error('Sentry tunnel: failed to forward a request', error);
+
+    return new Response(null, { status: 502 });
+  });
 }
 
 /**

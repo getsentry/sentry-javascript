@@ -24,6 +24,7 @@ import type { HttpIncomingMessage, HttpInstrumentationOptions, HttpServer, HttpS
 import { DEBUG_BUILD } from '../../debug-build';
 import { debug } from '../../utils/debug-logger';
 import { safeCallback } from '../../utils/safeCallback';
+import { isServedTunnelRequest } from '../../utils/tunnel';
 import { getClient, getCurrentScope, getIsolationScope, withIsolationScope } from '../../currentScopes';
 import { hasSpansEnabled } from '../../utils/hasSpansEnabled';
 import {
@@ -128,7 +129,8 @@ export function instrumentServer(options: HttpInstrumentationOptions, server: Ht
       const client = getClient();
       const [request, response] = data as [HttpIncomingMessage, HttpServerResponse];
 
-      if (!client || !markRequest(request)) {
+      // The tunnel answers these before the app, so they get no isolation scope, session or span.
+      if (!client || isServedTunnelRequest(request) || !markRequest(request)) {
         return target.apply(thisArg, args);
       }
 
