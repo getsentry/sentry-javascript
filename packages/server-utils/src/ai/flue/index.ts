@@ -1,5 +1,6 @@
 import type { Scope, Span } from '@sentry/core';
 import {
+  consoleSandbox,
   continueTrace,
   getActiveSpan,
   getDefaultIsolationScope,
@@ -19,6 +20,8 @@ import {
 } from '@sentry/conventions/attributes';
 import type { GenAiOptions } from '../core/utils';
 import { getGenAiSpanOp, resolveAIRecordingOptions } from '../core/utils';
+import { getOrchestrionInjectedModules } from '../../orchestrion/detect';
+import { piAiModuleNames } from '../../orchestrion/config/pi-ai';
 import { withCleanScopes } from '../../utils/withCleanScopes';
 import { FLUE_INSTRUMENTATION_KEY, FLUE_OPERATION, FLUE_ORIGIN, MAX_TRACKED_FLUE_SPANS } from './constants';
 import type { SpanTracker } from './utils';
@@ -30,6 +33,36 @@ export type FlueOptions = GenAiOptions;
 interface Admission {
   isolationScope: Scope;
   span: Span | undefined;
+}
+
+let checkedPiAiInstrumentation = false;
+
+/**
+ * Flue's model calls are traced by the pi-ai integration, which needs Sentry's module hook or bundler
+ * plugin, while `instrument()` works without either. Checked on the first model call, by which point
+ * pi-ai has loaded and is listed if it was instrumented.
+ */
+function warnIfPiAiNotInstrumented(): void {
+  if (checkedPiAiInstrumentation) {
+    return;
+  }
+  checkedPiAiInstrumentation = true;
+
+  const injected = getOrchestrionInjectedModules();
+  if (piAiModuleNames.some(name => injected.includes(name))) {
+    return;
+  }
+
+  consoleSandbox(() => {
+    // eslint-disable-next-line no-console
+    console.warn(
+      '[Sentry] Flue model calls are not being traced: `@earendil-works/pi-ai` was not instrumented, so ' +
+        'Flue agents record agent and tool spans but no `gen_ai.chat` spans. Model calls are traced by the ' +
+        "pi-ai integration, which needs Sentry's module hook or bundler plugin. On Node, load Sentry with " +
+        '`--import` (for example `node --import ./instrument.mjs app.mjs`). On Cloudflare, add ' +
+        '`sentryCloudflareVitePlugin()`. On Bun, build with `@sentry/bun/plugin`.',
+    );
+  });
 }
 
 /**
@@ -99,6 +132,7 @@ export function createFlueInstrumentation(options: FlueOptions = {}): FlueInstru
       // The `gen_ai.chat` span of the model call comes from the pi-ai integration, which reads the
       // conversation from the scope.
       if (operation?.type === FLUE_OPERATION.MODEL) {
+        warnIfPiAiNotInstrumented();
         const { conversationId } = ctx;
         return conversationId
           ? withScope(scope => {
