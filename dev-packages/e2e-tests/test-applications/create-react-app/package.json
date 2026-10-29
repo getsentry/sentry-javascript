@@ -40,7 +40,12 @@
       "last 1 safari version"
     ]
   },
-  "volta": {
-    "extends": "../../package.json"
+  "sentryTest": {
+    "canaryVariants": [
+      {
+        "build-command": "pnpm test:build-canary",
+        "label": "create-react-app (canary)"
+      }
+    ]
   }
 }

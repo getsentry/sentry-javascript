@@ -11,6 +11,7 @@ runs:
           echo 'paths<<EOF'
           node -e 'const { workspaces } = require("./package.json"); for (const dir of [".", ...workspaces]) console.log(require("path").resolve(dir, "node_modules"))'
           echo '~/.cache/mongodb-binaries'
+          echo '~/.cache/prisma'
           echo 'EOF'
         } >> "$GITHUB_OUTPUT"
       shell: bash

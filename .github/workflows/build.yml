@@ -10,7 +10,7 @@ on:
       - release/**
   pull_request:
   merge_group:
-    types: [checks_requested]
+    branches: [develop]
   workflow_dispatch:
     inputs:
       commit:
@@ -140,7 +140,7 @@ jobs:
       - name: Determine which test applications should be run
         id: matrix
         run:
-          pnpm --silent run ci:build-matrix --base=${{ (github.event_name == 'pull_request' &&
+          pnpm --silent run ci:build-matrix --shards=2 --base=${{ (github.event_name == 'pull_request' &&
           needs.job_get_metadata.outputs.changed_ci != 'true' && github.event.pull_request.base.sha) || '' }} >>
           $GITHUB_OUTPUT
         working-directory: dev-packages/e2e-tests
@@ -184,15 +184,17 @@ jobs:
       changed_aws_serverless:
         ${{ needs.job_get_metadata.outputs.changed_ci == 'true' || contains(steps.checkForAffected.outputs.affected,
         '@sentry/aws-serverless') }}
-      e2e-matrix: ${{ steps.matrix.outputs.matrix }}
+      e2e-matrix-1: ${{ steps.matrix.outputs.matrix-1 }}
+      e2e-matrix-2: ${{ steps.matrix.outputs.matrix-2 }}
       e2e-matrix-optional: ${{ steps.matrix-optional.outputs.matrix }}
 
   job_build_layer:
     name: Build Lambda layer
     needs: [job_get_metadata, job_build]
     if:
-      needs.job_build.outputs.changed_aws_serverless == 'true' || contains(needs.job_build.outputs.e2e-matrix,
-      'aws-serverless') || github.event_name != 'pull_request'
+      needs.job_build.outputs.changed_aws_serverless == 'true' || contains(needs.job_build.outputs.e2e-matrix-1,
+      'aws-serverless') || contains(needs.job_build.outputs.e2e-matrix-2, 'aws-serverless') || github.event_name !=
+      'pull_request'
     timeout-minutes: 10
     runs-on:
       namespace-profile-sentry-javascript;overrides.cache-tag=sentry-javascript${{ github.event_name == 'pull_request'
@@ -343,6 +345,14 @@ jobs:
             run: pnpm run lint:es-compatibility
           - name: Lint types
             run: pnpm run lint:types
+          - name: Check for circular dependencies
+            run: pnpm run circularDepCheck
+          - name: Check for dts files that reference stuff in the temporary build folder
+            run: |
+              if grep -r --include "*.d.ts" --exclude-dir ".nx" 'import("@sentry(-internal)?/[^/]*/build' .; then
+                echo "Found illegal TypeScript import statement."
+                exit 1
+              fi
           - name: Check Playwright versions
             run: |
               version=$(node -p "require('./dev-packages/test-utils/package.json').devDependencies['@playwright/test']")
@@ -354,7 +364,8 @@ jobs:
   job_check_lockfile:
     name: Check lockfile
     needs: [job_get_metadata]
-    timeout-minutes: 10
+    # `pnpm dedupe --check` fetches metadata for every package from npm, so this job can take 8+ min on PRs.
+    timeout-minutes: 20
     runs-on: namespace-profile-sentry-javascript
     if: |
       needs.job_get_metadata.outputs.changed_deps == 'true' ||
@@ -406,27 +417,6 @@ jobs:
       - name: Check file formatting
         run: pnpm run format:check
 
-  job_circular_dep_check:
-    name: Circular Dependency Check
-    needs: [job_get_metadata, job_build]
-    timeout-minutes: 10
-    runs-on:
-      namespace-profile-sentry-javascript;overrides.cache-tag=sentry-javascript${{ github.event_name == 'pull_request'
-      && '-pr' || '' }}
-    steps:
-      - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
-        uses: actions/checkout@v7
-        with:
-          ref: ${{ env.HEAD_COMMIT }}
-      - name: Set up Node
-        uses: actions/setup-node@v7
-        with:
-          node-version-file: 'package.json'
-      - name: Restore caches
-        uses: ./.github/actions/restore-cache
-      - name: Run madge
-        run: pnpm run circularDepCheck
-
   job_artifacts:
     name: Upload Artifacts
     needs: [job_get_metadata, job_build, job_build_layer, job_build_bundles, job_build_tarballs]
@@ -475,8 +465,10 @@ jobs:
             ${{ github.workspace }}/packages/replay-internal/build/bundles/**
             ${{ github.workspace }}/packages/replay-canvas/build/bundles/**
             ${{ github.workspace }}/packages/feedback/build/bundles/**
-            ${{ github.workspace }}/packages/**/*.tgz
+            ${{ github.workspace }}/packages/*/*.tgz
             ${{ github.workspace }}/packages/aws-serverless/build/aws/dist-serverless/*.zip
+            # `node_modules` contains links to the workspace packages. Without this line, the globs above might upload duplicate tarballs.
+            !${{ github.workspace }}/packages/**/node_modules/**
 
   job_browser_unit_tests:
     name: Browser Unit Tests
@@ -563,7 +555,7 @@ jobs:
       - name: Set up Deno
         uses: denoland/setup-deno@v2.0.5
         with:
-          deno-version: ${{ matrix.deno-version || 'v2.8.3' }}
+          deno-version: 'v2.8.3'
       - name: Restore caches
         uses: ./.github/actions/restore-cache
       - name: Run tests
@@ -772,35 +764,8 @@ jobs:
           overwrite: true
           retention-days: 7
 
-  job_check_for_faulty_dts:
-    name: Check for faulty .d.ts files
-    needs: [job_get_metadata, job_build]
-    runs-on:
-      namespace-profile-sentry-javascript;overrides.cache-tag=sentry-javascript${{ github.event_name == 'pull_request'
-      && '-pr' || '' }}
-    timeout-minutes: 5
-    steps:
-      - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
-        uses: actions/checkout@v7
-        with:
-          ref: ${{ env.HEAD_COMMIT }}
-      - name: Set up Node
-        uses: actions/setup-node@v7
-        with:
-          node-version-file: 'package.json'
-      - name: Restore caches
-        uses: ./.github/actions/restore-cache
-      - name: Check for dts files that reference stuff in the temporary build folder
-        run: |
-          if grep -r --include "*.d.ts" --exclude-dir ".nx" 'import("@sentry(-internal)?/[^/]*/build' .; then
-            echo "Found illegal TypeScript import statement."
-            exit 1
-          fi
-
   job_node_integration_tests:
-    name:
-      Node (${{ matrix.node }})${{ (matrix.typescript && format(' (TS {0})', matrix.typescript)) || '' }} Integration
-      Tests (${{ matrix.shard }}/3)
+    name: Node (${{ matrix.node }}) Integration Tests (${{ matrix.shard }}/3)
     needs: [job_get_metadata, job_build]
     if: needs.job_build.outputs.changed_node_integration == 'true' || github.event_name != 'pull_request'
     runs-on:
@@ -812,19 +777,6 @@ jobs:
       matrix:
         node: [20.19, 22, 24, 26]
         shard: [1, 2, 3]
-        typescript:
-          - false
-        include:
-          # Only check typescript for latest version (to streamline CI)
-          - node: 24
-            typescript: '5.0'
-            shard: 1
-          - node: 24
-            typescript: '5.0'
-            shard: 2
-          - node: 24
-            typescript: '5.0'
-            shard: 3
     steps:
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
         uses: actions/checkout@v7
@@ -849,11 +801,6 @@ jobs:
           node-version: ${{ matrix.node }}
       - name: Restore caches
         uses: ./.github/actions/restore-cache
-
-      - name: Overwrite typescript version
-        if: matrix.typescript == '5.0'
-        run: node ./scripts/use-ts-5_0.js
-        working-directory: dev-packages/node-integration-tests
 
       - name: Run integration tests
         working-directory: dev-packages/node-integration-tests
@@ -1076,19 +1023,23 @@ jobs:
           compression-level: 6
           overwrite: true
 
-  job_e2e_tests:
+  # GitHub Actions allows at most 256 jobs in one matrix, so the E2E tests are split into two jobs that share `env`
+  # and `steps`.
+  job_e2e_tests_1:
     name: E2E ${{ matrix.label || matrix.test-application }} Test
     # We need to add the `always()` check here because the previous step has this as well :(
     # See: https://github.com/actions/runner/issues/2205
     if:
-      always() && needs.job_build_tarballs.result == 'success' && needs.job_build.outputs.e2e-matrix !='{"include":[]}'
+      always() && needs.job_build_tarballs.result == 'success' && needs.job_build.outputs.e2e-matrix-1 !=
+      '{"include":[]}'
     needs: [job_get_metadata, job_build, job_build_layer, job_build_tarballs]
+    # Most apps finish in under a minute on 4 vCPUs, so they run on 2. Apps that take longer set `sentryTest.runner`.
     runs-on:
-      namespace-profile-sentry-javascript;overrides.cache-tag=sentry-javascript-e2e${{ github.event_name ==
-      'pull_request' && '-pr' || '' }}
+      ${{ matrix.runner || 'namespace-profile-sentry-javascript-small' }};overrides.cache-tag=sentry-javascript-e2e${{
+      github.event_name == 'pull_request' && '-pr' || '' }}
     timeout-minutes: 15
-    env:
-      # We just use a dummy DSN here, only send to the tunnel anyhow
+    # We just use a dummy DSN here, only send to the tunnel anyhow
+    env: &e2e-env
       E2E_TEST_DSN: 'https://username@domain/123'
       # Needed because some apps expect a certain prefix
       NEXT_PUBLIC_E2E_TEST_DSN: 'https://username@domain/123'
@@ -1102,8 +1053,8 @@ jobs:
       pnpm_config_verify_deps_before_run: 'false'
     strategy:
       fail-fast: false
-      matrix: ${{ fromJson(needs.job_build.outputs.e2e-matrix) }}
-    steps:
+      matrix: ${{ fromJson(needs.job_build.outputs.e2e-matrix-1) }}
+    steps: &e2e-steps
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
         uses: actions/checkout@v7
         with:
@@ -1115,9 +1066,10 @@ jobs:
           runtime: ${{ matrix.runtime }}
           deno-version: ${{ matrix.deno-version }}
 
-      # Installs Playwright while the app builds. Keep it right before the build: the runner sets up a background
-      # composite action's steps from the job's shared `github` context, which fails with "Collection was modified" if
-      # a foreground step starts at that moment. Starting next to `download-artifact` also made it fail to read the event file.
+      # Installs Playwright while the app installs and builds. Keep it right before the install: the runner sets up a
+      # background composite action's steps from the job's shared `github` context, which fails with "Collection was
+      # modified" if a foreground step starts at that moment. Starting next to `download-artifact` also made it fail to
+      # read the event file.
       - name: Install Playwright
         id: install-playwright
         background: true
@@ -1125,6 +1077,23 @@ jobs:
         with:
           browsers: chromium
           cwd: dev-packages/e2e-tests/test-applications/${{ matrix.test-application }}
+
+      # Every build command runs `pnpm install`, so installing first makes that a no-op. Some downloads from the npm
+      # registry crawl at tens of kB/s for the whole 7 minutes of the build step, and pnpm does not give up on a slow
+      # download. Another attempt reuses what is already in the store and opens new connections.
+      # The hoisted variant installs with another node linker, so installing first would only redo the install.
+      - name: Install E2E app dependencies
+        if: ${{ !contains(matrix.build-command, 'hoisted') }}
+        working-directory: ${{ runner.temp }}/test-application
+        timeout-minutes: 7
+        run: |
+          for attempt in 1 2; do
+            timeout 150 pnpm install && exit 0
+            echo "::warning::pnpm install attempt $attempt failed or did not finish in 150 s, retrying"
+          done
+          pnpm install
+        env:
+          SENTRY_E2E_WORKSPACE_ROOT: ${{ github.workspace }}
 
       - name: Build E2E app
         working-directory: ${{ runner.temp }}/test-application
@@ -1150,6 +1119,22 @@ jobs:
           path: ${{ runner.temp }}/test-application/test-results
           overwrite: true
           retention-days: 7
+
+  job_e2e_tests_2:
+    name: E2E ${{ matrix.label || matrix.test-application }} Test
+    if:
+      always() && needs.job_build_tarballs.result == 'success' && needs.job_build.outputs.e2e-matrix-2 !=
+      '{"include":[]}'
+    needs: [job_get_metadata, job_build, job_build_layer, job_build_tarballs]
+    runs-on:
+      ${{ matrix.runner || 'namespace-profile-sentry-javascript-small' }};overrides.cache-tag=sentry-javascript-e2e${{
+      github.event_name == 'pull_request' && '-pr' || '' }}
+    timeout-minutes: 15
+    env: *e2e-env
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJson(needs.job_build.outputs.e2e-matrix-2) }}
+    steps: *e2e-steps
 
   # - We skip optional tests on release branches
   # - The tests run in optional-e2e.yml, so their failures do not mark the PR as failed. This job only waits for
@@ -1211,12 +1196,12 @@ jobs:
         job_deno_integration_tests,
         job_browser_playwright_tests,
         job_browser_loader_tests,
-        job_e2e_tests,
+        job_e2e_tests_1,
+        job_e2e_tests_2,
         job_artifacts,
         job_lint,
         job_check_lockfile,
         job_check_format,
-        job_circular_dep_check,
         job_size_check,
       ]
     # Always run this, even if a dependent job failed

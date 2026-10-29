@@ -1,16 +1,27 @@
+import {
+  GCP_FUNCTION_CONTEXT_EVENT_ID,
+  GCP_FUNCTION_CONTEXT_EVENT_TYPE,
+  GCP_FUNCTION_CONTEXT_ID,
+  GCP_FUNCTION_CONTEXT_RESOURCE,
+  GCP_FUNCTION_CONTEXT_SOURCE,
+  GCP_FUNCTION_CONTEXT_SPECVERSION,
+  GCP_FUNCTION_CONTEXT_TIME,
+  GCP_FUNCTION_CONTEXT_TIMESTAMP,
+  GCP_FUNCTION_CONTEXT_TYPE,
+} from '@sentry/conventions/attributes';
 import type { IntegrationFn } from '@sentry/core';
 import { defineIntegration, getCurrentScope, safeSetSpanJSONAttributes } from '@sentry/core';
 
 const GCP_CONTEXT_ATTRIBUTE_MAP: Record<string, string> = {
-  type: 'gcp.function.context.type',
-  source: 'gcp.function.context.source',
-  id: 'gcp.function.context.id',
-  specversion: 'gcp.function.context.specversion',
-  time: 'gcp.function.context.time',
-  eventId: 'gcp.function.context.event_id',
-  timestamp: 'gcp.function.context.timestamp',
-  eventType: 'gcp.function.context.event_type',
-  resource: 'gcp.function.context.resource',
+  type: GCP_FUNCTION_CONTEXT_TYPE,
+  source: GCP_FUNCTION_CONTEXT_SOURCE,
+  id: GCP_FUNCTION_CONTEXT_ID,
+  specversion: GCP_FUNCTION_CONTEXT_SPECVERSION,
+  time: GCP_FUNCTION_CONTEXT_TIME,
+  eventId: GCP_FUNCTION_CONTEXT_EVENT_ID,
+  timestamp: GCP_FUNCTION_CONTEXT_TIMESTAMP,
+  eventType: GCP_FUNCTION_CONTEXT_EVENT_TYPE,
+  resource: GCP_FUNCTION_CONTEXT_RESOURCE,
 };
 
 const _gcpContextIntegration = (() => {

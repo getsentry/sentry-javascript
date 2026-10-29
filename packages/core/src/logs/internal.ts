@@ -1,3 +1,15 @@
+import {
+  SENTRY_ENVIRONMENT,
+  SENTRY_MESSAGE_TEMPLATE,
+  SENTRY_RELEASE,
+  SENTRY_REPLAY_ID,
+  SENTRY_SDK_NAME,
+  SENTRY_SDK_VERSION,
+  SENTRY_TRACE_PARENT_SPAN_ID,
+  USER_EMAIL,
+  USER_ID,
+  USER_NAME,
+} from '@sentry/conventions/attributes';
 import type { Attributes } from '../attributes';
 import { serializeAttributes } from '../attributes';
 import { getGlobalSingleton } from '../carrier';
@@ -98,16 +110,16 @@ export function _INTERNAL_captureLog(
     attributes: scopeAttributes,
   } = getCombinedScopeData(getIsolationScope(), currentScope);
 
-  setLogAttribute(processedLogAttributes, 'user.id', id, false);
-  setLogAttribute(processedLogAttributes, 'user.email', email, false);
-  setLogAttribute(processedLogAttributes, 'user.name', username, false);
+  setLogAttribute(processedLogAttributes, USER_ID, id, false);
+  setLogAttribute(processedLogAttributes, USER_EMAIL, email, false);
+  setLogAttribute(processedLogAttributes, USER_NAME, username, false);
 
-  setLogAttribute(processedLogAttributes, 'sentry.release', release);
-  setLogAttribute(processedLogAttributes, 'sentry.environment', environment);
+  setLogAttribute(processedLogAttributes, SENTRY_RELEASE, release);
+  setLogAttribute(processedLogAttributes, SENTRY_ENVIRONMENT, environment);
 
   const { name, version } = client.getSdkMetadata()?.sdk ?? {};
-  setLogAttribute(processedLogAttributes, 'sentry.sdk.name', name);
-  setLogAttribute(processedLogAttributes, 'sentry.sdk.version', version);
+  setLogAttribute(processedLogAttributes, SENTRY_SDK_NAME, name);
+  setLogAttribute(processedLogAttributes, SENTRY_SDK_VERSION, version);
 
   const replay = client.getIntegrationByName<
     Integration & {
@@ -117,7 +129,7 @@ export function _INTERNAL_captureLog(
   >('Replay');
 
   const replayId = replay?.getReplayId(true);
-  setLogAttribute(processedLogAttributes, 'sentry.replay_id', replayId);
+  setLogAttribute(processedLogAttributes, SENTRY_REPLAY_ID, replayId);
 
   if (replayId && replay?.getRecordingMode() === 'buffer') {
     // We send this so we can identify cases where the replayId is attached but the replay itself might not have been sent to Sentry
@@ -128,7 +140,7 @@ export function _INTERNAL_captureLog(
   if (isParameterizedString(beforeLogMessage)) {
     const { __sentry_template_string__, __sentry_template_values__ = [] } = beforeLogMessage;
     if (__sentry_template_values__?.length) {
-      processedLogAttributes['sentry.message.template'] = __sentry_template_string__;
+      processedLogAttributes[SENTRY_MESSAGE_TEMPLATE] = __sentry_template_string__;
     }
     __sentry_template_values__.forEach((param, index) => {
       processedLogAttributes[`sentry.message.parameter.${index}`] = param;
@@ -137,7 +149,8 @@ export function _INTERNAL_captureLog(
 
   const span = getActiveSpan(currentScope);
   // Add the parent span ID to the log attributes for trace context
-  setLogAttribute(processedLogAttributes, 'sentry.trace.parent_span_id', span?.spanContext().spanId);
+  // oxlint-disable-next-line typescript/no-deprecated -- Preserve the existing attribute name.
+  setLogAttribute(processedLogAttributes, SENTRY_TRACE_PARENT_SPAN_ID, span?.spanContext().spanId);
 
   const processedLog = { ...beforeLog, attributes: processedLogAttributes };
 

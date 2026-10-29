@@ -1,6 +1,9 @@
 import { spawn } from 'node:child_process';
 import { expect, test } from '@playwright/test';
 import { waitForError, waitForSession } from '@sentry-internal/test-utils';
+import { isViteServer, NITRO_ONLY } from './isViteServer';
+
+test.skip(isViteServer, NITRO_ONLY);
 
 // Errors thrown between server start and `listen` (module evaluation, nitro plugin runs) must be
 // captured and flushed before the process exits. Each test spawns its own server process because

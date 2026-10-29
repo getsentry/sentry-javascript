@@ -1,3 +1,4 @@
+import { SERVER_ADDRESS } from '@sentry/conventions/attributes';
 import { createCheckInEnvelope } from './checkin';
 import { Client } from './client';
 import { getIsolationScope } from './currentScopes';
@@ -21,6 +22,7 @@ import { uuid4 } from './utils/misc';
 import { makePromiseBuffer } from './utils/promisebuffer';
 import { resolvedSyncPromise } from './utils/syncpromise';
 import { _getTraceInfoFromScope } from './utils/trace-info';
+import { applyManagedTunnelDefaults } from './utils/managedTunnelDefaults';
 
 export interface ServerRuntimeClientOptions extends ClientOptions<BaseTransportOptions> {
   platform?: string;
@@ -58,6 +60,7 @@ export class ServerRuntimeClient<
 
     super(options);
 
+    applyManagedTunnelDefaults(this);
     this._setUpMetricsProcessing();
   }
 
@@ -246,7 +249,7 @@ export class ServerRuntimeClient<
     this.on('processMetric', metric => {
       if (this._options.serverName) {
         metric.attributes = {
-          'server.address': this._options.serverName,
+          [SERVER_ADDRESS]: this._options.serverName,
           ...metric.attributes,
         };
       }

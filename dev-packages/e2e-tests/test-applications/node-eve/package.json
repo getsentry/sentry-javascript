@@ -27,21 +27,18 @@
     "ai": "^7.0.82",
     "dataloader": "^2.2.3",
     "eve": "^0.63.0",
-    "zod": "4.5.4"
+    "zod": "4.6.6"
   },
   "devDependencies": {
     "@playwright/test": "1.64.1",
     "@sentry-internal/test-utils": "file:../../packed/sentry-internal-test-utils-packed.tgz",
-    "@sentry/conventions": "0.27.0",
+    "@sentry/conventions": "0.30.0",
     "@sentry/core": "file:../../packed/sentry-core-packed.tgz",
     "@types/node": "24.x",
     "typescript": "~5.9.0"
   },
   "engines": {
     "node": "24.x"
-  },
-  "volta": {
-    "extends": "../../package.json"
   },
   "sentryTest": {
     "optional": true,

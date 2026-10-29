@@ -1,7 +1,10 @@
 import { expect, test } from '@playwright/test';
 import { waitForError } from '@sentry-internal/test-utils';
 import { IMPORT_SURFACES } from './importSurfaces';
+import { isViteServer, NITRO_ONLY } from './isViteServer';
 import { waitForHydration } from './waitForHydration';
+
+test.skip(isViteServer, NITRO_ONLY);
 
 IMPORT_SURFACES.forEach(({ name, apiPrefix }) => {
   test.describe(`server-side errors (${name})`, () => {

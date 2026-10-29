@@ -2,6 +2,7 @@ export {
   addEventProcessor,
   addBreadcrumb,
   addIntegration,
+  moduleMetadataIntegration,
   captureException,
   captureEvent,
   captureMessage,
@@ -71,6 +72,7 @@ export {
   mcpServerIntegration,
   SentryMastraExporter,
   createFlueInstrumentation,
+  instrumentPostgresJsSql,
   modulesIntegration,
   nodeRuntimeMetricsIntegration,
   type NodeRuntimeMetricsOptions,
@@ -148,6 +150,11 @@ export {
   spanToTraceHeader,
   spanToBaggageHeader,
   trpcMiddleware,
+  serveTunnelIntegration,
+  getTunnelPath,
+  handleTunnelRequest,
+  handleTunnelRequestIfMatched,
+  isTunnelRequest,
   updateSpanName,
   supabaseIntegration,
   systemErrorIntegration,
@@ -159,9 +166,12 @@ export {
   instrumentGoogleGenAIClient,
   instrumentStateGraph,
   instrumentStateGraphCompile,
+  instrumentCreateReactAgent,
+  awsIntegration,
   zodErrorsIntegration,
   profiler,
   amqplibIntegration,
+  BullMQTelemetry,
   anthropicAIIntegration,
   googleGenAIIntegration,
   childProcessIntegration,
@@ -192,6 +202,7 @@ export {
   eveIntegration,
   getInstrumentedModuleNames,
 } from '@sentry/node';
+export type { HandleTunnelRequestOptions, ServerTunnelOptions, TunnelRequestLike } from '@sentry/node';
 
 export {
   captureConsoleIntegration,

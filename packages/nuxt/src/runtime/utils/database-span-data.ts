@@ -1,3 +1,4 @@
+import { DB_NAMESPACE, SERVER_ADDRESS, SERVER_PORT } from '@sentry/conventions/attributes';
 import type { ConnectorName } from 'db0';
 
 export interface DatabaseSpanData {
@@ -27,27 +28,27 @@ export function getDatabaseSpanData(config?: DatabaseConnectionConfig): Partial<
     if (!config?.connector) {
       // Default to SQLite if no connector is configured
       return {
-        'db.namespace': 'db.sqlite',
+        [DB_NAMESPACE]: 'db.sqlite',
       };
     }
 
     if (config.connector === 'postgresql' || config.connector === 'mysql2') {
       return {
-        'server.address': config.options?.host,
-        'server.port': config.options?.port,
+        [SERVER_ADDRESS]: config.options?.host,
+        [SERVER_PORT]: config.options?.port,
       };
     }
 
     if (config.connector === 'pglite') {
       return {
-        'db.namespace': config.options?.dataDir,
+        [DB_NAMESPACE]: config.options?.dataDir,
       };
     }
 
     if ((['better-sqlite3', 'bun', 'sqlite', 'sqlite3'] as ConnectorName[]).includes(config.connector)) {
       return {
         // DB is the default file name in nitro for sqlite-like connectors
-        'db.namespace': `${config.options?.name ?? 'db'}.sqlite`,
+        [DB_NAMESPACE]: `${config.options?.name ?? 'db'}.sqlite`,
       };
     }
 

@@ -1,5 +1,5 @@
 minimumReleaseAge: 0
 overrides:
-  '@sentry/bundler-plugins': 'file:../../../../packages/bundler-plugins/sentry-bundler-plugins-11.8.0.tgz'
-  '@sentry/core': 'file:../../../../packages/core/sentry-core-11.8.0.tgz'
+  '@sentry/bundler-plugins': 'file:../../../../packages/bundler-plugins/sentry-bundler-plugins-11.10.0.tgz'
+  '@sentry/core': 'file:../../../../packages/core/sentry-core-11.10.0.tgz'
   'sentry': 'file:../sentry-stub'

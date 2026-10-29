@@ -131,6 +131,12 @@ Apps use the pnpm version of `packageManager` in the root `package.json`. To use
 `package.json` (for example `"packageManager": "pnpm@10.34.6"`), and use the settings of that version in its
 `pnpm-workspace.yaml`. pnpm then switches to that version, locally and in CI. The lowest supported version is pnpm 10.
 
+Apps use the Node.js version of `devEngines.runtime` in the root `package.json`. To use another version, set
+`devEngines.runtime` in the app's `package.json` (for example `{ "name": "node", "version": "24.15.0", "onFail": "warn" }`).
+Because the apps run in a temporary directory without the repo's `package.json` files above it, the copy step writes the
+app's Node.js and pnpm versions into the copied `package.json`. pnpm's `node` and `actions/setup-node` in CI read them
+from there.
+
 ### Test apps that deploy a real Cloudflare Worker
 
 Apps like `cloudflare-workers-send-to-sentry` deploy the built app as a real Worker and check what arrives in Sentry:
@@ -187,6 +193,12 @@ is the reference setup.
   because workerd does not allow it. `nextjs-16` has no Vite build: its Cloudflare variant builds with
   `opennextjs-cloudflare build --config wrangler.opennext.jsonc` and wraps the generated Worker in `worker.ts` with
   `withSentry` from `@sentry/nextjs/cloudflare`.
+- **Cloudflare in `vite dev`**: to run the Worker in `vite dev` (for example the dev tests of the `hono-4` Cloudflare
+  variant), start it with `CLOUDFLARE_INCLUDE_PROCESS_ENV=true vite dev`. The runner gives `E2E_TEST_DSN` to the app
+  only as a process env var. `wrangler dev` adds it to the Worker `env` with `--var "E2E_TEST_DSN:$E2E_TEST_DSN"`, but
+  `@cloudflare/vite-plugin` has no such option. It fills the Worker `env` from the `vars` of the wrangler config and
+  from `.dev.vars` or `.env`, and adds process env vars only when `CLOUDFLARE_INCLUDE_PROCESS_ENV` is `true`. Without
+  it, `env.E2E_TEST_DSN` is `undefined`, the SDK sends no events, and the tests fail.
 - **Build flavors**: a variant can also build the same app with another tool, for example `nextjs-16 (vinext)` builds
   `nextjs-16` with vinext. A build flavor is not a runtime: its assert script sets its own env var (`VINEXT=1`, read by
   `tests/isVinext.ts`). It sets `runtime` only to run on another runtime, for example `nextjs-16 (vinext, bun)`.
@@ -279,6 +291,22 @@ For example, if something is changed in the browser package, only E2E test apps 
 
 You can add additional information about the test (e.g. canary versions, optional in CI) by adding `sentryTest` in the `package.json`
 of a test application.
+
+The required E2E jobs run on 2 vCPUs (`namespace-profile-sentry-javascript-small`). If an app's job takes longer than
+about 90 seconds, set `"sentryTest": { "runner": "namespace-profile-sentry-javascript" }` to run it and its variants on
+4 vCPUs.
+
+Variants that build against upstream prereleases (for example `canary`, `next` or nightly builds of a framework) go into
+`canaryVariants`. They do not run on PRs, only in the nightly `CI: Canary Tests` workflow (`.github/workflows/canary.yml`),
+so failures caused by an upstream prerelease do not show up on unrelated PRs. Run one locally with
+`pnpm run test:run <app> --variant <label>`. Variants that build against the `latest` release belong in
+`optionalVariants`.
+
+```json
+"sentryTest": {
+  "canaryVariants": [{ "build-command": "pnpm test:build-canary", "label": "my-app (canary)" }]
+}
+```
 
 If you add Sentry dependencies to your test application, set the dependency versions to `latest || *` in order
 for it to work with both regular and prerelease versions:

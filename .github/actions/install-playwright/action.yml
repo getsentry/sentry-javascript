@@ -34,6 +34,13 @@ runs:
           playwright
           apt
 
+    # `--with-deps` names packages that the runner image already has (glib, mesa, nss, ...), and `apt-get install` would
+    # upgrade them to the latest Ubuntu update. That is half of the download on a cold cache, and the image versions work.
+    - name: Keep installed apt packages
+      if: steps.playwright-version.outputs.version != ''
+      run: echo 'APT::Get::Upgrade "false";' | sudo tee /etc/apt/apt.conf.d/99-no-upgrade > /dev/null
+      shell: bash
+
     # Downloads only the browsers and apt packages that are not on the cache volume yet. `npx` runs outside the repo,
     # so it can't pick up a `playwright` that a parallel `pnpm install` is still linking.
     - name: Install Playwright

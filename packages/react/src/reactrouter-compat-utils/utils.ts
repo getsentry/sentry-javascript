@@ -138,6 +138,31 @@ export function prefixWithSlash(path: string): string {
 }
 
 /**
+ * Removes as many leading segments from `pathname` as `pathnameBase` has, the way `useRoutes` strips the parent
+ * `pathnameBase` for descendant routes.
+ *
+ * `location.pathname` is percent-encoded as the browser holds it, while React Router decodes the pathname before
+ * matching, so `pathnameBase` on a `RouteMatch` is decoded (older 6.x routers decoded only partially, or not at all).
+ * Stripping by segment count works regardless of which side is encoded, and keeps the remainder encoded so that
+ * matching it again decodes it exactly once.
+ */
+function stripPathnameBaseSegments(pathname: string, pathnameBase: string): string {
+  const baseSegmentCount = countPathnameSegments(pathnameBase);
+  if (baseSegmentCount === 0) {
+    return pathname;
+  }
+  return prefixWithSlash(pathname.split('/').filter(Boolean).slice(baseSegmentCount).join('/'));
+}
+
+/**
+ * Counts the segments of a pathname with a plain split (`getNumberOfUrlSegments` also drops `,` segments, which a
+ * route parameter can legitimately be).
+ */
+function countPathnameSegments(pathname: string): number {
+  return pathname.split('/').filter(Boolean).length;
+}
+
+/**
  * Rebuilds the route path from all available routes by matching against the current location.
  */
 export function rebuildRoutePathFromAllRoutes(
@@ -154,7 +179,7 @@ export function rebuildRoutePathFromAllRoutes(
   for (const match of matchedRoutes) {
     if (match.route.path && match.route.path !== '*') {
       const path = pickPath(match);
-      const strippedPath = stripBasenameFromPathname(location.pathname, prefixWithSlash(match.pathnameBase));
+      const strippedPath = stripPathnameBaseSegments(location.pathname, prefixWithSlash(match.pathnameBase));
 
       if (location.pathname === strippedPath) {
         return trimSlash(strippedPath);
@@ -220,8 +245,7 @@ function reconstructNameFromDescendantParent(
     return undefined;
   }
 
-  const remainingPathname =
-    stripBasenameFromPathname(location.pathname, prefixWithSlash(parentMatch.pathnameBase)) || '/';
+  const remainingPathname = stripPathnameBaseSegments(location.pathname, prefixWithSlash(parentMatch.pathnameBase));
   const remainingName = rebuildRoutePathFromAllRoutes(
     allRoutes.filter(route => route !== parentMatch.route),
     { pathname: remainingPathname },
@@ -302,8 +326,10 @@ export function getNormalizedName(
     const newPath = path[0] === '/' || pathBuilder[pathBuilder.length - 1] === '/' ? path : `/${path}`;
     pathBuilder = trimSlash(pathBuilder) + prefixWithSlash(newPath);
 
-    // Check if this path matches the current location
-    if (trimSlash(location.pathname) !== trimSlash(basename + branch.pathname)) {
+    // Check if this branch spans the whole location. Compare segment counts rather than strings: the location
+    // pathname is percent-encoded while React Router decoded the branch pathname, and decoding never changes the
+    // number of segments.
+    if (countPathnameSegments(location.pathname) !== countPathnameSegments(basename + branch.pathname)) {
       continue;
     }
 
@@ -312,7 +338,7 @@ export function getNormalizedName(
       getNumberOfUrlSegments(pathBuilder) !== getNumberOfUrlSegments(branch.pathname) &&
       !pathEndsWithWildcard(pathBuilder)
     ) {
-      return [(stripBasename ? '' : basename) + newPath, 'route'];
+      return [(stripBasename ? '' : trimSlash(basename)) + newPath, 'route'];
     }
 
     // Handle wildcard routes with children - strip trailing wildcard
@@ -320,7 +346,7 @@ export function getNormalizedName(
       pathBuilder = pathBuilder.slice(0, -1);
     }
 
-    return [(stripBasename ? '' : basename) + pathBuilder, 'route'];
+    return [(stripBasename ? '' : trimSlash(basename)) + pathBuilder, 'route'];
   }
 
   // Fallback when no matching route found
@@ -343,7 +369,7 @@ export function resolveRouteNameAndSource(
   if (enableAsyncRouteHandlers && lazyRouteManifest && lazyRouteManifest.length > 0) {
     const manifestMatch = matchRouteManifest(location.pathname, lazyRouteManifest, basename);
     if (manifestMatch) {
-      return [(stripBasename ? '' : basename) + manifestMatch, 'route'];
+      return [(stripBasename ? '' : trimSlash(basename)) + manifestMatch, 'route'];
     }
   }
 

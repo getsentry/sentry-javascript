@@ -19,7 +19,7 @@ import {
   TRACE_FLAG_NONE,
   TRACE_FLAG_SAMPLED,
 } from '../../../src/utils/spanUtils';
-import { timestampInSeconds } from '../../../src/utils/time';
+import { browserPerformanceTimeOrigin, timestampInSeconds } from '../../../src/utils/time';
 import { getDefaultTestClientOptions, TestClient } from '../../mocks/client';
 import { SENTRY_SEGMENT_NAME_SOURCE } from '@sentry/conventions/attributes';
 
@@ -169,12 +169,53 @@ describe('SentrySpan', () => {
       });
       markSpanAsTracerProviderSpan(span);
 
-      span.end(2);
-      span.end(3);
+      span.end([2, 0]);
+      span.end([3, 0]);
 
       span.setAttribute('key', 'after');
       expect(spanToStaticSpanJSON(span).data?.['key']).toBe('before');
       expect(spanToStaticSpanJSON(span).timestamp).toBe(2);
+    });
+  });
+
+  describe('tracer-provider span timestamps', () => {
+    it('reads numbers as OpenTelemetry milliseconds', () => {
+      const origin = browserPerformanceTimeOrigin()!;
+      const span = new SentrySpan({ name: 'span' });
+      markSpanAsTracerProviderSpan(span);
+
+      span.updateStartTime(1_000);
+      span.addEvent('event', 1_010);
+      span.end(1_025);
+
+      const json = spanToStaticSpanJSON(span);
+      expect(json.start_timestamp).toBe((origin + 1_000) / 1000);
+      expect(json.timestamp).toBe((origin + 1_025) / 1000);
+      expect(span['_events'][0]?.time).toBe((origin + 1_010) / 1000);
+    });
+
+    it('defaults an event without a time to now', () => {
+      const span = new SentrySpan({ name: 'span' });
+      markSpanAsTracerProviderSpan(span);
+
+      const before = timestampInSeconds();
+      span.addEvent('event');
+
+      expect(span['_events'][0]?.time).toBeGreaterThanOrEqual(before);
+      expect(span['_events'][0]?.time).toBeLessThanOrEqual(timestampInSeconds());
+    });
+
+    it('keeps reading numbers as seconds on other spans', () => {
+      const span = new SentrySpan({ name: 'span' });
+
+      span.updateStartTime(1_000);
+      span.addEvent('event', 1_010);
+      span.end(1_025);
+
+      const json = spanToStaticSpanJSON(span);
+      expect(json.start_timestamp).toBe(1_000);
+      expect(json.timestamp).toBe(1_025);
+      expect(span['_events'][0]?.time).toBe(1_010);
     });
   });
 

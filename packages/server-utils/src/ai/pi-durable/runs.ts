@@ -13,10 +13,16 @@ import {
 import { GEN_AI_CONVERSATION_ID, GEN_AI_OPERATION_NAME, SENTRY_ORIGIN } from '@sentry/conventions/attributes';
 import { GEN_AI_INVOKE_AGENT } from '@sentry/conventions/op';
 import { DEBUG_BUILD } from '../../debug-build';
-import { MAX_TRACKED_PI_RUNS, PI_DURABLE_ORIGIN, PI_LIVE_DOC_KIND } from './constants';
-import type { PiCommitChange, PiDocToken, PiLiveState, PiSettlement, PiTaskRuntime } from './types';
+import { MAX_TRACKED_PI_RUNS, PI_DURABLE_ORIGIN, PI_LIVE_DOC_KIND, PI_PROVIDER_DOC_KIND } from './constants';
+import type { PiCommitChange, PiDocToken, PiLiveState, PiProviderState, PiSettlement, PiTaskRuntime } from './types';
 import { withCleanScopes } from '../../utils/withCleanScopes';
 import { bound } from './utils';
+
+// The definition of `pi.provider` as pi-durable checks it on a read: the address, the version and the
+// persisted semantics of the document.
+const PROVIDER_DOC = {
+  definition: { kind: PI_PROVIDER_DOC_KIND, version: 1, scope: 'conversation', history: 'latest', fork: 'initial' },
+};
 
 // Unanswered reasons that mean the run was stopped, not that it failed.
 const CANCELLED_REASONS = new Set(['aborted', 'reset']);
@@ -32,6 +38,8 @@ export interface PiRun {
   isolationScope: Scope;
   /** The run's first input submission, which identifies the run in `pi.live`. */
   firstInput?: unknown;
+  /** The conversation's provider session id, read by the first phase of the run. */
+  sessionId?: string;
   /**
    * The status the run ends with, set while the commit that ends it is in flight. `harness.close()`
    * can begin in that gap, because `wait()` resolves as soon as the commit settles the inputs.
@@ -42,9 +50,9 @@ export interface PiRun {
 /** Open runs of one Harness, keyed by the pi-durable conversation id. */
 export interface PiRuns {
   /**
-   * Random id of this Harness, prefixed to `gen_ai.conversation.id`. pi-durable numbers
-   * conversations per storage from 1, so the bare id would merge the root conversations of every
-   * Harness into one Sentry conversation.
+   * Random id of this Harness, prefixed to `gen_ai.conversation.id` until the provider session id of
+   * the conversation is known. pi-durable numbers conversations per storage from 1, so the bare id
+   * would merge the root conversations of every Harness into one Sentry conversation.
    */
   harnessId: string;
   active: Map<unknown, PiRun>;
@@ -96,7 +104,27 @@ export function createRuns(): PiRuns {
 }
 
 export function toSentryConversationId(runs: PiRuns, conversationId: unknown): string {
-  return `${runs.harnessId}:${String(conversationId)}`;
+  return runs.active.get(conversationId)?.sessionId ?? `${runs.harnessId}:${String(conversationId)}`;
+}
+
+/**
+ * Read the provider session id of the conversation, or `undefined` when pi-durable keeps none.
+ *
+ * pi-durable 1.0.2 and later keep a UUIDv7 per conversation in the `pi.provider` document, stored with
+ * the conversation. Unlike the harness prefix, it stays the same when a Harness opens the storage
+ * again, for example after a Durable Object restarts, and it is unique across storages.
+ */
+export async function readProviderSessionId(runtime: PiTaskRuntime, context: unknown): Promise<string | undefined> {
+  try {
+    const provider = (await runtime.snapshot?.(PROVIDER_DOC, runtime.conversationId, context)) as
+      | PiProviderState
+      | undefined;
+    return typeof provider?.sessionId === 'string' && provider.sessionId ? provider.sessionId : undefined;
+  } catch (error) {
+    // A later version of the document fails the read. The harness prefix is used then.
+    DEBUG_BUILD && debug.warn('[pi-durable] failed to read the provider session id', error);
+    return undefined;
+  }
 }
 
 /** Start a run of `conversationId`: a new trace, or a child of the tool call that owns the conversation. */

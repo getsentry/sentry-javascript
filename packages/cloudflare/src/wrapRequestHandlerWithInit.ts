@@ -4,8 +4,11 @@ import {
   NETWORK_PROTOCOL_VERSION,
   SENTRY_OP,
   SENTRY_SEGMENT_NAME_SOURCE,
+  HTTP_REQUEST_BODY_SIZE,
+  USER_AGENT_ORIGINAL,
 } from '@sentry/conventions/attributes';
 import { HTTP_SERVER } from '@sentry/conventions/op';
+import type { Span } from '@sentry/core';
 import {
   captureException,
   continueTrace,
@@ -21,7 +24,11 @@ import {
 } from '@sentry/core';
 import { classifyResponseStreaming } from '@sentry/core/server';
 import { DEBUG_BUILD } from './debug-build';
-import { captureIncomingRequestBody } from './integrations/httpServer';
+import {
+  captureIncomingRequestBody,
+  getIncomingRequestSpanHooks,
+  shouldCreateIncomingRequestSpan,
+} from './integrations/httpServer';
 import { flushDeferredChannelEvents } from './orchestrion-deferred-channels';
 import type { CloudflareClient, CloudflareOptions } from './client';
 import type { ExecutionContextCompat } from './executionContext';
@@ -58,7 +65,7 @@ type InitSdk = (options: CloudflareOptions) => CloudflareClient | undefined;
  * Same as {@link wrapRequestHandler}, but with the SDK initialization injected.
  *
  * Wrappers that are only reachable from the main entry point — where `nodejs_compat` is a
- * requirement anyway — pass `init` from `sdk.ts` to get the full default integrations.
+ * requirement anyway — pass `init` from `sdk.ts` so `enableOpenTelemetrySetup` is honored.
  *
  * @internal
  */
@@ -108,12 +115,12 @@ export function wrapRequestHandlerWithInit(
 
     const contentLength = request.headers.get('content-length');
     if (contentLength) {
-      attributes['http.request.body.size'] = parseInt(contentLength, 10);
+      attributes[HTTP_REQUEST_BODY_SIZE] = parseInt(contentLength, 10);
     }
 
     const userAgentHeader = request.headers.get('user-agent');
     if (userAgentHeader) {
-      attributes['user_agent.original'] = userAgentHeader;
+      attributes[USER_AGENT_ORIGINAL] = userAgentHeader;
     }
 
     if (client) {
@@ -155,98 +162,123 @@ export function wrapRequestHandlerWithInit(
       await captureIncomingRequestBody(client, request);
     }
 
+    const { onSpanCreated, onSpanEnd } = getIncomingRequestSpanHooks(client);
+
+    // Runs the handler. Ends the span (if any) and flushes when the response is done.
+    const respond = async (span: Span | undefined): Promise<Response> => {
+      let res: Response;
+
+      try {
+        res = await handler();
+        if (span) {
+          setHttpStatus(span, res.status);
+        }
+
+        // After the handler runs, the span name might have been updated by nested instrumentation
+        // (e.g., Remix parameterizing routes). The span should already have the correct name
+        // from that instrumentation, so we don't need to do anything here.
+      } catch (e) {
+        span?.end();
+        if (captureErrors) {
+          captureException(e, { mechanism: { handled: false, type: errorMechanismType } });
+        }
+        waitUntil?.(flushAndDispose(client));
+        throw e;
+      }
+
+      let ended = false;
+      const endSpan = (): void => {
+        if (ended) return;
+
+        ended = true;
+        if (span) {
+          onSpanEnd(span, request, res);
+          span.end();
+        }
+      };
+
+      const userClassification = safeCallback(
+        DEBUG_BUILD ? 'Error in `isStreamingResponse`, using the default classification:' : '',
+        () => options.isStreamingResponse?.(res, request),
+        () => undefined,
+      );
+      // An async callback returns a promise, which would otherwise count as `true`.
+      const isStreaming =
+        typeof userClassification === 'boolean' ? userClassification : classifyResponseStreaming(res).isStreaming;
+
+      if (isStreaming && res.body) {
+        try {
+          let transformerUsed = false;
+
+          const endSpanOnce = (): void => {
+            if (ended) return;
+
+            endSpan();
+            waitUntil?.(flushAndDispose(client));
+          };
+
+          // Workers with a compatibility date before 2022-11-30 and without the
+          // `transformstream_enable_standard_constructor` flag (for example under older mini-oxygen
+          // releases) ignore the transformer, so `flush` and `cancel` would never end the span. Only a
+          // used transformer runs `start`.
+          const transform = new TransformStream({
+            start() {
+              transformerUsed = true;
+            },
+            flush() {
+              // Source stream completed normally.
+              endSpanOnce();
+            },
+            cancel() {
+              // Client disconnected (or downstream cancelled). The `cancel`
+              // is being called while the response is still considered
+              // active, so this is a safe place to end the span.
+              endSpanOnce();
+            },
+          });
+
+          if (transformerUsed) {
+            // Passing the original response as the init keeps `encodeBody: 'manual'`, which a
+            // Response does not expose as a property. Without it, workerd compresses a
+            // pre-compressed body a second time.
+            return new Response(res.body.pipeThrough(transform), res);
+          }
+        } catch {
+          // Falls back to ending the span at handler return.
+        }
+      }
+
+      // Non-streaming response - end span immediately and return original
+      endSpan();
+
+      // Don't dispose for protocol upgrades (101 Switching Protocols) - the connection stays alive.
+      // This includes WebSocket upgrades where webSocketMessage/webSocketClose handlers
+      // will still be called and may need the client to capture errors.
+      if (res.status === 101) {
+        waitUntil?.(client?.flush(2000));
+      } else {
+        waitUntil?.(flushAndDispose(client));
+      }
+      return res;
+    };
+
+    const createSpan = shouldCreateIncomingRequestSpan(client, request);
+
     return continueTrace(
       { sentryTrace: request.headers.get('sentry-trace') || '', baggage: request.headers.get('baggage') },
       () => {
+        if (!createSpan) {
+          return respond(undefined);
+        }
+
         // Note: This span will not have a duration unless I/O happens in the handler. This is
         // because of how the cloudflare workers runtime works.
         // See: https://developers.cloudflare.com/workers/runtime-apis/performance/
 
         // Use startSpanManual to control when span ends (needed for streaming responses)
-        return startSpanManual({ name, attributes }, async span => {
-          let res: Response;
-
-          try {
-            res = await handler();
-            setHttpStatus(span, res.status);
-
-            // After the handler runs, the span name might have been updated by nested instrumentation
-            // (e.g., Remix parameterizing routes). The span should already have the correct name
-            // from that instrumentation, so we don't need to do anything here.
-          } catch (e) {
-            span.end();
-            if (captureErrors) {
-              captureException(e, { mechanism: { handled: false, type: errorMechanismType } });
-            }
-            waitUntil?.(flushAndDispose(client));
-            throw e;
-          }
-
-          const userClassification = safeCallback(
-            DEBUG_BUILD ? 'Error in `isStreamingResponse`, using the default classification:' : '',
-            () => options.isStreamingResponse?.(res, request),
-            () => undefined,
-          );
-          // An async callback returns a promise, which would otherwise count as `true`.
-          const isStreaming =
-            typeof userClassification === 'boolean' ? userClassification : classifyResponseStreaming(res).isStreaming;
-
-          if (isStreaming && res.body) {
-            try {
-              let ended = false;
-              let transformerUsed = false;
-
-              const endSpanOnce = (): void => {
-                if (ended) return;
-
-                ended = true;
-                span.end();
-                waitUntil?.(flushAndDispose(client));
-              };
-
-              // Workers with a compatibility date before 2022-11-30 and without the
-              // `transformstream_enable_standard_constructor` flag (for example under older mini-oxygen
-              // releases) ignore the transformer, so `flush` and `cancel` would never end the span. Only a
-              // used transformer runs `start`.
-              const transform = new TransformStream({
-                start() {
-                  transformerUsed = true;
-                },
-                flush() {
-                  // Source stream completed normally.
-                  endSpanOnce();
-                },
-                cancel() {
-                  // Client disconnected (or downstream cancelled). The `cancel`
-                  // is being called while the response is still considered
-                  // active, so this is a safe place to end the span.
-                  endSpanOnce();
-                },
-              });
-
-              if (transformerUsed) {
-                // Passing the original response as the init keeps `encodeBody: 'manual'`, which a
-                // Response does not expose as a property. Without it, workerd compresses a
-                // pre-compressed body a second time.
-                return new Response(res.body.pipeThrough(transform), res);
-              }
-            } catch {
-              // Falls back to ending the span at handler return.
-            }
-          }
-
-          // Non-streaming response - end span immediately and return original
-          span.end();
-
-          // Don't dispose for protocol upgrades (101 Switching Protocols) - the connection stays alive.
-          // This includes WebSocket upgrades where webSocketMessage/webSocketClose handlers
-          // will still be called and may need the client to capture errors.
-          if (res.status === 101) {
-            waitUntil?.(client?.flush(2000));
-          } else {
-            waitUntil?.(flushAndDispose(client));
-          }
-          return res;
+        return startSpanManual({ name, attributes }, span => {
+          onSpanCreated(span, request);
+          return respond(span);
         });
       },
     );
