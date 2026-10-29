@@ -35,7 +35,7 @@ export const anthropicAiConfig = [
   // The constructor, not `sessions.events.toolRunner()`, so runners built directly (e.g. by `EnvironmentWorker`) are covered.
   ...['lib/tools/SessionToolRunner.js', 'lib/tools/SessionToolRunner.mjs'].map(filePath => ({
     channelName: 'session-tool-runner',
-    module: { name: '@anthropic-ai/sdk', versionRange: '>=0.97.0 <1', filePath },
+    module: { name: '@anthropic-ai/sdk', versionRange: '>=0.97.0 <2', filePath },
     functionQuery: { className: 'SessionToolRunner' },
   })),
 ] satisfies InstrumentationConfig[];

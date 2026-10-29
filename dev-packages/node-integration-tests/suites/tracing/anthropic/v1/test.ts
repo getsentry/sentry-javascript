@@ -1,4 +1,4 @@
-import type { SerializedStreamedSpanContainer } from '@sentry/core';
+import type { Event, SerializedStreamedSpanContainer } from '@sentry/core';
 import {
   GEN_AI_RESPONSE_ID,
   GEN_AI_RESPONSE_STREAMING,
@@ -8,6 +8,7 @@ import {
 } from '@sentry/conventions/attributes';
 import { GEN_AI_EXECUTE_TOOL } from '@sentry/conventions/op';
 import { afterAll, describe, expect } from 'vitest';
+import { GEN_AI_TOOL_CALL_ID_ATTRIBUTE } from '../../../../../../packages/server-utils/src/ai/core/gen-ai-attributes';
 import { cleanupChildProcesses, createEsmAndCjsTests } from '../../../../utils/runner';
 
 type SerializedSpan = SerializedStreamedSpanContainer['items'][number];
@@ -110,6 +111,46 @@ describe('Anthropic integration (1.x)', () => {
           })
           .start()
           .completed();
+      });
+    }
+  });
+
+  createEsmAndCjsTests(__dirname, 'scenario-session-tool-runner.mjs', 'instrument.mjs', (createRunner, test) => {
+    for (const env of [{}, { OTEL_SETUP: 'true' }]) {
+      test(`emits an execute_tool span for each tool a session runner runs with ${JSON.stringify(env)}`, async () => {
+        let receivedEvent: Event | undefined;
+        let receivedSpans: SerializedStreamedSpanContainer['items'] = [];
+
+        await createRunner()
+          .withEnv(env)
+          .unordered()
+          .expect({
+            span: container => {
+              receivedSpans = container.items;
+            },
+          })
+          .expect({
+            event: event => {
+              receivedEvent = event;
+            },
+          })
+          .start()
+          .completed();
+
+        const main = receivedSpans.find(span => span.is_segment && span.name === 'main')!;
+        expect(receivedSpans.filter(span => span.name.startsWith('anthropic.'))).toEqual([]);
+        const toolSpans = receivedSpans.filter(span => span.attributes[SENTRY_OP]?.value === GEN_AI_EXECUTE_TOOL);
+        expect(toolSpans.map(span => span.attributes[GEN_AI_TOOL_NAME]?.value).sort()).toEqual([
+          'explode',
+          'read',
+          'weather',
+        ]);
+        for (const toolSpan of toolSpans) {
+          expect(toolSpan.parent_span_id, toolSpan.name).toBe(main.span_id);
+        }
+        const weather = toolSpans.find(span => span.attributes[GEN_AI_TOOL_NAME]?.value === 'weather')!;
+        expect(weather.attributes[GEN_AI_TOOL_CALL_ID_ATTRIBUTE]).toEqual({ type: 'string', value: 'sevt_weather' });
+        expect(receivedEvent?.exception?.values?.[0]?.value).toBe('Tool exploded');
       });
     }
   });
