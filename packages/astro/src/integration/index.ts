@@ -228,7 +228,11 @@ export const sentryAstro = (options: SentryOptions = {}): AstroIntegration => {
             // Ref: https://developers.cloudflare.com/workers/runtime-apis/nodejs/
             updateConfig({
               vite: {
-                plugins: [sentryCloudflareNodeWarningPlugin()],
+                // A Pages build gets the same `withSentry` wrap as Workers, which answers managed tunnel requests.
+                plugins:
+                  command !== 'dev'
+                    ? [sentryCloudflareNodeWarningPlugin(), sentryCloudflareVitePlugin()]
+                    : [sentryCloudflareNodeWarningPlugin()],
                 ssr: {
                   // @sentry/node is required in case we have 2 different @sentry/node
                   // packages installed in the same project.

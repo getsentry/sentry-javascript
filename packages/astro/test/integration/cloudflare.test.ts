@@ -176,7 +176,7 @@ describe('Cloudflare Pages vs Workers detection', () => {
       });
 
       expect(baseConfigHookObject.updateConfig).toHaveBeenCalledWith({
-        vite: expect.objectContaining({ plugins: ['sentryCloudflareNodeWarningPlugin'] }),
+        vite: expect.objectContaining({ plugins: ['sentryCloudflareNodeWarningPlugin', 'sentryCloudflareVitePlugin'] }),
       });
     });
 
@@ -208,7 +208,7 @@ describe('Cloudflare Pages vs Workers detection', () => {
       });
 
       expect(baseConfigHookObject.updateConfig).toHaveBeenCalledWith({
-        vite: expect.objectContaining({ plugins: ['sentryCloudflareNodeWarningPlugin'] }),
+        vite: expect.objectContaining({ plugins: ['sentryCloudflareNodeWarningPlugin', 'sentryCloudflareVitePlugin'] }),
       });
     });
 
@@ -270,7 +270,7 @@ directory = "./dist"
       });
     });
 
-    it('does not add Cloudflare Vite plugins for Pages production build', async () => {
+    it('wraps the Worker entry with `withSentry` for a Pages production build', async () => {
       getWranglerConfig.mockReturnValue({
         filename: 'wrangler.json',
         content: JSON.stringify({
@@ -290,9 +290,8 @@ directory = "./dist"
         command: 'build',
       });
 
-      // Check that sentryCloudflareVitePlugin is NOT in any of the calls
       expect(baseConfigHookObject.updateConfig).toHaveBeenCalledWith({
-        vite: expect.objectContaining({ plugins: ['sentryCloudflareNodeWarningPlugin'] }),
+        vite: expect.objectContaining({ plugins: ['sentryCloudflareNodeWarningPlugin', 'sentryCloudflareVitePlugin'] }),
       });
     });
 
