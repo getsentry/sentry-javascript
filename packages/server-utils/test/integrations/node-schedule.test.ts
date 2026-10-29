@@ -102,6 +102,7 @@ describe('job.schedule', () => {
     ['an unnamed job', createJob('<Anonymous Job 1 2026-10-28T00:00:00.000Z>'), '0 9 * * *'],
     ['an excluded job', createJob('excluded-job'), '0 9 * * *'],
     ['a one-off job', createJob(), new Date(Date.now() + 86_400_000)],
+    ['a job with a recurrence rule', createJob(), { hour: 3, minute: 0 }],
   ])('does not monitor %s', (_, job, spec) => {
     job.schedule(spec);
     job.run();
@@ -121,14 +122,13 @@ describe('job.schedule', () => {
     expect(sentConfigs[0]).toEqual({ schedule: { type: 'crontab', value: '30 10 * * 1-5' }, timezone: 'UTC' });
   });
 
-  it('sends no config after a reschedule to a spec it cannot convert', () => {
+  it('stops checking in after a reschedule to a spec it cannot convert', () => {
     const job = createJob();
     job.schedule('0 9 * * *');
     job.reschedule({ hour: 3, minute: 0 });
     job.run();
 
-    expect(sentConfigs).toHaveLength(2);
-    expect(sentConfigs[0]).toBeUndefined();
+    expect(sentConfigs).toEqual([]);
   });
 
   it('keeps the old schedule when the reschedule fails', () => {
@@ -140,13 +140,12 @@ describe('job.schedule', () => {
     expect(sentConfigs[0]?.schedule).toEqual({ type: 'crontab', value: '0 9 * * *' });
   });
 
-  it('sends no config when a second schedule adds to the first', () => {
+  it('stops checking in when a second schedule adds to the first', () => {
     const job = createJob();
     job.schedule('0 9 * * *');
     job.schedule('0 18 * * *');
     job.run();
 
-    expect(sentConfigs).toHaveLength(2);
-    expect(sentConfigs[0]).toBeUndefined();
+    expect(sentConfigs).toEqual([]);
   });
 });

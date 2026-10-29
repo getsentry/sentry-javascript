@@ -32,7 +32,8 @@ const _nodeScheduleIntegration = ((options: NodeScheduleIntegrationOptions = {})
 
 /**
  * Sends Crons check-ins for every named `node-schedule` job, whether it's created with `scheduleJob` or `new Job()`.
- * The monitor slug is the job name; jobs without a name, and one-off jobs, are not monitored.
+ * The monitor slug is the job name. Jobs without a name, one-off jobs, and jobs with a schedule Crons can't express
+ * are not monitored.
  */
 export const nodeScheduleIntegration = defineIntegration(_nodeScheduleIntegration);
 
@@ -70,7 +71,10 @@ export function beforeSchedule(change: ScheduleChange, options: NodeScheduleInte
   job.job = wrapScheduledJob(job.job as AnyFn, name, undefined, 'auto.function.node-schedule');
 }
 
-/** Sends the spec's config after `job.schedule(spec)`, or none when the job also keeps runs from an earlier spec. */
+/**
+ * Sets the spec's config after `job.schedule(spec)`. Without one, from a spec Crons can't express or a job that also
+ * keeps runs from an earlier spec, the job doesn't check in.
+ */
 export function onSchedule(change: ScheduleChange): void {
   // `schedule` returns false when it scheduled nothing, and `reschedule` then keeps the old schedule.
   if (change.result === true) {
@@ -98,7 +102,7 @@ function isCronShaped(value: string): boolean {
   );
 }
 
-// Only cron strings are sent; recurrence rules and rules limited by `start` or `end` check in without a config.
+// Only cron strings convert; recurrence rules and rules limited by `start` or `end` don't.
 export function getMonitorConfig(spec: unknown): MonitorConfig | undefined {
   if (typeof spec === 'string') {
     return cronExpressionToMonitorConfig(spec, undefined, 'or');
