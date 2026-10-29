@@ -12,7 +12,29 @@ const [localVariablesWorkerConfig, getLocalVariablesBase64Code] = createWorkerCo
   'build/esm/integrations/local-variables',
 );
 
+// The Lambda handler shim `init` redirects `_HANDLER` to for the managed tunnel. Standalone and ESM-only, since it
+// uses top-level await to load the user's handler module. Bare imports stay external.
+function makeLambdaHandlerShimConfig() {
+  const baseConfig = makeBaseNPMConfig({
+    entrypoints: ['src/run-lambda-handler.ts'],
+    // Top-level await requires es2022.
+    esbuild: { target: 'es2022' },
+  });
+
+  return {
+    ...baseConfig,
+    output: {
+      ...baseConfig.output,
+      dir: undefined,
+      file: 'build/run-lambda-handler.mjs',
+      format: 'esm',
+      preserveModules: false,
+    },
+  };
+}
+
 export default [
+  makeLambdaHandlerShimConfig(),
   // The `@sentry/node/import` entry (`node --import @sentry/node/import app.js`), which registers
   // the orchestrion diagnostics-channel injection before the app loads.
   ...makeOrchestrionLoader('./build'),
