@@ -201,7 +201,7 @@ const monitorConfigs = new WeakMap<AnyFn, MonitorConfig | undefined>();
 
 /**
  * Wraps a scheduled job with check-ins. Errors are captured, because schedulers catch them, and rethrown.
- * Jobs without a monitor config run as they are, with no check-ins.
+ * Jobs without a monitor config send no check-ins.
  */
 export function wrapScheduledJob(
   func: AnyFn,
@@ -215,24 +215,16 @@ export function wrapScheduledJob(
   };
 
   const wrapped = function (this: unknown, ...args: unknown[]): unknown {
+    const run = (): unknown => {
+      try {
+        const result: unknown = func.apply(this, args);
+        return isThenable(result) ? result.then(undefined, captureAndRethrow) : result;
+      } catch (e) {
+        return captureAndRethrow(e);
+      }
+    };
     const currentConfig = monitorConfigs.get(wrapped);
-    if (!currentConfig) {
-      return func.apply(this, args);
-    }
-    return startNewTrace(() =>
-      withMonitor(
-        monitorSlug,
-        () => {
-          try {
-            const result: unknown = func.apply(this, args);
-            return isThenable(result) ? result.then(undefined, captureAndRethrow) : result;
-          } catch (e) {
-            return captureAndRethrow(e);
-          }
-        },
-        currentConfig,
-      ),
-    );
+    return startNewTrace(() => (currentConfig ? withMonitor(monitorSlug, run, currentConfig) : run()));
   };
   monitorConfigs.set(wrapped, monitorConfig);
   addNonEnumerableProperty(wrapped, MONITORED, true);

@@ -140,4 +140,36 @@ describe('wrapScheduledJob', () => {
     wrapScheduledJob(() => {}, 'job', toMonitorConfig('* * * * *', 'UTC'), 'auto.function.test')();
     expect(captureCheckIn).toHaveBeenCalled();
   });
+
+  it('captures errors from jobs without a monitor config', async () => {
+    const client = new TestClient(getDefaultTestClientOptions());
+    setCurrentClient(client);
+    client.init();
+    const captureCheckIn = vi.fn(() => 'check-in-id');
+    Object.assign(client, { captureCheckIn });
+    const captureException = vi.spyOn(client, 'captureException');
+
+    const syncError = new Error('sync');
+    const job = wrapScheduledJob(
+      () => {
+        throw syncError;
+      },
+      'job',
+      undefined,
+      'auto.function.test',
+    );
+    expect(() => job()).toThrow(syncError);
+
+    const asyncError = new Error('async');
+    const asyncJob = wrapScheduledJob(() => Promise.reject(asyncError), 'job', undefined, 'auto.function.test');
+    await expect(asyncJob()).rejects.toBe(asyncError);
+
+    expect(captureException).toHaveBeenCalledWith(
+      syncError,
+      expect.objectContaining({ mechanism: { handled: false, type: 'auto.function.test' } }),
+      expect.anything(),
+    );
+    expect(captureException).toHaveBeenCalledWith(asyncError, expect.anything(), expect.anything());
+    expect(captureCheckIn).not.toHaveBeenCalled();
+  });
 });
