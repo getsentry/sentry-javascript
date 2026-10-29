@@ -26,6 +26,14 @@ describe('nodeScheduleIntegration', () => {
         .expect({ check_in: expectNoConfig('ending-job') })
         .expect({ check_in: { monitor_slug: 'ending-job', status: 'ok' } })
         .expect({
+          check_in: {
+            monitor_slug: 'new-job',
+            status: 'in_progress',
+            monitor_config: { schedule: { type: 'crontab', value: '0 0 * * *' }, timezone: 'UTC' },
+          },
+        })
+        .expect({ check_in: { monitor_slug: 'new-job', status: 'ok' } })
+        .expect({
           check_in: { monitor_slug: 'my-schedule-job', status: 'in_progress', monitor_config: MONITOR_CONFIG },
         })
         .expect({ check_in: { monitor_slug: 'my-schedule-job', status: 'ok', duration: expect.any(Number) } })

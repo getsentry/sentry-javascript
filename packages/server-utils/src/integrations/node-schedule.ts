@@ -7,7 +7,6 @@ import type { AnyFn, ScheduleChange } from '../utils/cronMonitoring';
 import {
   cronExpressionToMonitorConfig,
   shouldMonitorJob,
-  subscribeToJobCreation,
   subscribeToScheduleChange,
   updateMonitorConfig,
   wrapScheduledJob,
@@ -32,32 +31,52 @@ const _nodeScheduleIntegration = ((options: NodeScheduleIntegrationOptions = {})
 }) satisfies IntegrationFn;
 
 /**
- * Sends Crons check-ins for every named `node-schedule` job created with `scheduleJob`.
+ * Sends Crons check-ins for every named `node-schedule` job, whether it's created with `scheduleJob` or `new Job()`.
  * The monitor slug is the job name; jobs without a name, and one-off jobs, are not monitored.
  */
 export const nodeScheduleIntegration = defineIntegration(_nodeScheduleIntegration);
 
 function subscribe(options: NodeScheduleIntegrationOptions): void {
-  subscribeToJobCreation(CHANNELS.NODE_SCHEDULE_SCHEDULE_JOB, INTEGRATION_NAME, args => wrapJob(args, options));
-  subscribeToScheduleChange(CHANNELS.NODE_SCHEDULE_RESCHEDULE, INTEGRATION_NAME, onReschedule);
+  subscribeToScheduleChange(CHANNELS.NODE_SCHEDULE_SCHEDULE, INTEGRATION_NAME, onSchedule, change =>
+    beforeSchedule(change, options),
+  );
 }
 
-/** Sends the new spec's config after `job.reschedule(spec)`, which `rescheduleJob` calls. */
-export function onReschedule({ arguments: [spec], self, result }: ScheduleChange): void {
-  // node-schedule keeps the old schedule when this returns false.
-  if (result === true) {
-    updateMonitorConfig((self as { job?: unknown } | undefined)?.job, getMonitorConfig(spec));
-  }
+interface Job {
+  name?: unknown;
+  job?: unknown;
+  nextInvocation?: () => unknown;
 }
 
-// `scheduleJob([name], spec, method, [callback])`, like node-schedule reads it.
-function wrapJob(args: unknown[], options: NodeScheduleIntegrationOptions): void {
-  const name = args.length >= 3 && typeof args[0] === 'string' ? args[0] : undefined;
-  const [spec, method] = name ? [args[1], args[2]] : [args[0], args[1]];
-  if (isOneOffSpec(spec) || !shouldMonitorJob(name, method, options.excludeJobs)) {
+// The name node-schedule gives jobs created without one.
+const ANONYMOUS_NAME = /^<Anonymous Job \d+[ >]/;
+
+// `job.schedule(spec)` calls that add to runs the job already has pending, rather than replace them.
+const addsToPendingRuns = new WeakSet<ScheduleChange>();
+
+/** Wraps a named job's method before `job.schedule(spec)` with a recurring spec, unless it's already wrapped. */
+export function beforeSchedule(change: ScheduleChange, options: NodeScheduleIntegrationOptions): void {
+  const job = change.self as Job | undefined;
+  if (!job) {
     return;
   }
-  args[2] = wrapScheduledJob(method as AnyFn, name, getMonitorConfig(spec), 'auto.function.node-schedule');
+  if (typeof job.nextInvocation === 'function' && job.nextInvocation() != null) {
+    addsToPendingRuns.add(change);
+  }
+  const name = typeof job.name === 'string' && !ANONYMOUS_NAME.test(job.name) ? job.name : undefined;
+  if (isOneOffSpec(change.arguments[0]) || !shouldMonitorJob(name, job.job, options.excludeJobs)) {
+    return;
+  }
+  job.job = wrapScheduledJob(job.job as AnyFn, name, undefined, 'auto.function.node-schedule');
+}
+
+/** Sends the spec's config after `job.schedule(spec)`, or none when the job also keeps runs from an earlier spec. */
+export function onSchedule(change: ScheduleChange): void {
+  // `schedule` returns false when it scheduled nothing, and `reschedule` then keeps the old schedule.
+  if (change.result === true) {
+    const job = change.self as Job | undefined;
+    updateMonitorConfig(job?.job, addsToPendingRuns.has(change) ? undefined : getMonitorConfig(change.arguments[0]));
+  }
 }
 
 /** Whether node-schedule runs a job with this spec once: a `Date`, a timestamp, or a date string. */
