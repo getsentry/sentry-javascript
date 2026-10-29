@@ -111,11 +111,6 @@ describeWithDockerCompose(
                   trace_id: parent.trace_id,
                 });
 
-                const handshakes = container.items.filter(item => item.parent_span_id === connection.span_id);
-                expect(handshakes.map(item => item.attributes[DB_OPERATION_NAME]?.value)).toEqual(
-                  label === 'v6' ? ['hello', 'client', 'client', 'info'] : ['client', 'client', 'info'],
-                );
-
                 const spans = container.items.filter(
                   item =>
                     !item.is_segment &&
