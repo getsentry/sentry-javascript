@@ -15,6 +15,7 @@ import { DEBUG_BUILD } from '../common/debug-build';
 import { devErrorSymbolicationEventProcessor } from '../common/devErrorSymbolicationEventProcessor';
 import { getClientVercelEnv } from '../common/getVercelEnv';
 import { isRedirectNavigationError } from '../common/nextNavigationErrorUtils';
+import { getInjectedBasePath } from '../common/utils/basePath';
 import { browserTracingIntegration } from './browserTracingIntegration';
 import { nextjsClientStackFrameNormalizationIntegration } from './clientNormalizationIntegration';
 import { createNextRouteProvider } from './routing/routeProvider';
@@ -30,7 +31,6 @@ export { captureRouterTransitionStart } from './routing/appRouterRoutingInstrume
 const globalWithInjectedValues = GLOBAL_OBJ as typeof GLOBAL_OBJ & {
   _sentryRewriteFramesAssetPrefixPath: string;
   _sentryAssetPrefix?: string;
-  _sentryBasePath?: string;
   _sentryRelease?: string;
   _experimentalThirdPartyOriginStackFrames?: string;
 };
@@ -95,13 +95,6 @@ export function init(options: BrowserOptions): Client | undefined {
   }
 
   return client;
-}
-
-/**
- * The app's `basePath`, which `withSentryConfig` injects.
- */
-function getInjectedBasePath(): string | undefined {
-  return process.env._sentryBasePath || globalWithInjectedValues._sentryBasePath;
 }
 
 function getDefaultIntegrations(options: BrowserOptions): Integration[] {

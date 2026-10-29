@@ -864,3 +864,24 @@ describe('constructWebpackConfigFunction()', () => {
     });
   });
 });
+
+describe('basePath value injection', () => {
+  it.each([
+    ['server', serverWebpackConfig, serverBuildContext],
+    ['edge', serverWebpackConfig, edgeBuildContext],
+  ])(
+    'injects the base path into production %s builds',
+    async (_target, incomingWebpackConfig, incomingWebpackBuildContext) => {
+      const finalWebpackConfig = await materializeFinalWebpackConfig({
+        exportedNextConfig: { ...userNextConfig, basePath: '/docs' },
+        incomingWebpackConfig,
+        incomingWebpackBuildContext,
+      });
+
+      const valueInjectionLoader = finalWebpackConfig.module.rules
+        .flatMap(rule => rule.use ?? [])
+        .find(loader => String(loader.loader).endsWith('valueInjectionLoader.js'));
+      expect(valueInjectionLoader?.options).toMatchObject({ values: { _sentryBasePath: '/docs' } });
+    },
+  );
+});
