@@ -7,6 +7,7 @@ import { assert } from 'https://deno.land/std@0.212.0/assert/assert.ts';
 import { assertExists } from 'https://deno.land/std@0.212.0/assert/assert_exists.ts';
 import { assertEquals } from 'https://deno.land/std@0.212.0/assert/assert_equals.ts';
 import { getSpanOp, resetGlobals, spanSink, withTimeout } from '../../src/index.ts';
+import { DB_QUERY } from '@sentry/conventions/op';
 
 Deno.test('firebase instrumentation: included in default integrations (Deno 2.8.0+)', () => {
   resetGlobals();
@@ -112,7 +113,7 @@ Deno.test('firebase instrumentation: only creates firestore db spans with an act
     5000,
     "'parent' segment span",
   );
-  const dbSpans = sink.spans.filter(span => getSpanOp(span) === 'db.query');
+  const dbSpans = sink.spans.filter(span => getSpanOp(span) === DB_QUERY);
   assertEquals(
     dbSpans.map(span => ({ name: span.name, parentSpanId: span.parent_span_id, isSegment: span.is_segment })),
     [{ name: 'addDoc inside_parent', parentSpanId: parent.span_id, isSegment: false }],
