@@ -2,7 +2,13 @@
 // can be removed once following issue is fixed: https://github.com/import-js/eslint-plugin-import/issues/703
 /* eslint-disable import/export */
 import type { Client, EventProcessor, Integration } from '@sentry/core';
-import { applySdkMetadata, consoleSandbox, getGlobalScope, GLOBAL_OBJ } from '@sentry/core';
+import {
+  _INTERNAL_applyTunnelDefaults as applyTunnelDefaults,
+  applySdkMetadata,
+  consoleSandbox,
+  getGlobalScope,
+  GLOBAL_OBJ,
+} from '@sentry/core';
 import type { BrowserOptions } from '@sentry/react';
 import { getDefaultIntegrations as getReactDefaultIntegrations, init as reactInit } from '@sentry/react';
 import { DEBUG_BUILD } from '../common/debug-build';
@@ -55,6 +61,8 @@ export function init(options: BrowserOptions): Client | undefined {
   } satisfies BrowserOptions;
 
   applyTunnelRouteOption(opts);
+  // The managed tunnel is served under the app's `basePath`, like every other route. A `basePath` the user set wins.
+  opts.tunnel = applyTunnelDefaults(opts.tunnel, { basePath: getInjectedBasePath() });
   applySdkMetadata(opts, 'nextjs', ['nextjs', 'react']);
 
   opts.ignoreSpans = [
@@ -89,6 +97,13 @@ export function init(options: BrowserOptions): Client | undefined {
   return client;
 }
 
+/**
+ * The app's `basePath`, which `withSentryConfig` injects.
+ */
+function getInjectedBasePath(): string | undefined {
+  return process.env._sentryBasePath || globalWithInjectedValues._sentryBasePath;
+}
+
 function getDefaultIntegrations(options: BrowserOptions): Integration[] {
   const customDefaultIntegrations = getReactDefaultIntegrations(options);
   // This evaluates to true unless __SENTRY_TRACING__ is text-replaced with "false",
@@ -104,7 +119,7 @@ function getDefaultIntegrations(options: BrowserOptions): Integration[] {
     globalWithInjectedValues._sentryRewriteFramesAssetPrefixPath ||
     '';
   const assetPrefix = process.env._sentryAssetPrefix || globalWithInjectedValues._sentryAssetPrefix;
-  const basePath = process.env._sentryBasePath || globalWithInjectedValues._sentryBasePath;
+  const basePath = getInjectedBasePath();
   const experimentalThirdPartyOriginStackFrames =
     process.env._experimentalThirdPartyOriginStackFrames === 'true' ||
     globalWithInjectedValues._experimentalThirdPartyOriginStackFrames === 'true';

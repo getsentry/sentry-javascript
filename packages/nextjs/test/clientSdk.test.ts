@@ -1,5 +1,5 @@
 import type { Integration } from '@sentry/core';
-import { debug, getMainCarrier, GLOBAL_OBJ, SentryNonRecordingSpan, spanToJSON } from '@sentry/core';
+import { debug, getMainCarrier, getTunnelPath, GLOBAL_OBJ, SentryNonRecordingSpan, spanToJSON } from '@sentry/core';
 import * as SentryReact from '@sentry/react';
 import { close, getClient, getIsolationScope, WINDOW } from '@sentry/react';
 import { JSDOM } from 'jsdom';
@@ -235,6 +235,36 @@ describe('Client init()', () => {
 
         expect(setIntervalSpy).not.toHaveBeenCalled();
       });
+    });
+  });
+
+  describe('managed tunnel', () => {
+    afterEach(() => {
+      vi.unstubAllEnvs();
+    });
+
+    it("serves `tunnel: true` under the app's `basePath`", () => {
+      vi.stubEnv('_sentryBasePath', '/docs');
+
+      const client = init({ dsn: TEST_DSN, tunnel: true });
+
+      expect(client?.getOptions().tunnel).toBe(`/docs${getTunnelPath(TEST_DSN)}`);
+    });
+
+    it('keeps a `basePath` the user set', () => {
+      vi.stubEnv('_sentryBasePath', '/docs');
+
+      const client = init({ dsn: TEST_DSN, tunnel: { basePath: '/shop' } });
+
+      expect(client?.getOptions().tunnel).toBe(`/shop${getTunnelPath(TEST_DSN)}`);
+    });
+
+    it('keeps a `tunnel` URL as written', () => {
+      vi.stubEnv('_sentryBasePath', '/docs');
+
+      const client = init({ dsn: TEST_DSN, tunnel: '/monitoring' });
+
+      expect(client?.getOptions().tunnel).toBe('/monitoring');
     });
   });
 
