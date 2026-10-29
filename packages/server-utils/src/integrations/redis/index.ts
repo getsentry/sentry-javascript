@@ -131,29 +131,23 @@ function startCommandSpan(
 
 // --- redis v2-v3: `RedisClient.prototype.internal_send_command(command_obj)` ---
 
-// Settles via `command_obj.callback`, not the sync return — so instead of
-// `bindTracingChannelToSpan` we open the span in `start`, wrap the callback to end it, and end on `error` for sync throws.
-function subscribeLegacyRedisCommand(cacheOptions: RedisCacheOptions): void {
-  const channel = diagnosticsChannel.tracingChannel<OrchestrionChannelContext>(CHANNELS.REDIS_COMMAND);
-  const noop = (): void => {};
-  channel.subscribe({
-    end: noop,
-    asyncStart: noop,
-    asyncEnd: noop,
-    start(data) {
-      const parentSpan = getActiveSpan();
-      if (!parentSpan) {
-        return;
-      }
+// Settles via `command_obj.callback`, not the sync return, so the wrapped callback ends the span.
+// Only a sync throw, where the callback never fires, leaves ending it to the helper.
+function bindLegacyRedisCommandChannel(cacheOptions: RedisCacheOptions): void {
+  const channel = diagnosticsChannel.tracingChannel<OrchestrionChannelContext, OrchestrionChannelContext>(
+    CHANNELS.REDIS_COMMAND,
+  );
+  bindTracingChannelToSpan(
+    channel,
+    data => {
       const command = data.arguments?.[0] as LegacyRedisCommand | undefined;
       if (!command || typeof command !== 'object') {
-        return;
+        return undefined;
       }
-      // The span is ended via the wrapped callback (or the sync-throw `error` path). A
-      // command with no callback has no completion signal to end it on, so don't open one.
+      // A command with no callback has no completion signal to end the span on, so don't open one.
       const originalCallback = command.callback;
       if (typeof originalCallback !== 'function') {
-        return;
+        return undefined;
       }
       const client = data.self as LegacyRedisClient | undefined;
       const attributes: SpanAttributes = {
@@ -167,8 +161,8 @@ function subscribeLegacyRedisCommand(cacheOptions: RedisCacheOptions): void {
       if (client?.connection_options?.port != null) {
         attributes[SERVER_PORT] = client.connection_options.port;
       }
+      const parentSpan = getActiveSpan();
       const span = startCommandSpan(command.command, command.args ?? [], attributes, cacheOptions);
-      (data as OrchestrionChannelContext & { _sentrySpan?: Span })._sentrySpan = span;
 
       command.callback = function (this: unknown, err: Error | null | undefined, reply: unknown) {
         if (!err) {
@@ -177,17 +171,15 @@ function subscribeLegacyRedisCommand(cacheOptions: RedisCacheOptions): void {
         endSpan(span, err);
         // eslint-disable-next-line prefer-rest-params
         const args = arguments as unknown as [Error | null | undefined, unknown];
-        return withActiveSpan(parentSpan, () => originalCallback.apply(this, args));
+        return withActiveSpan(parentSpan ?? null, () => originalCallback.apply(this, args));
       };
+      return span;
     },
-    error(data) {
-      // Synchronous throw: the wrapped callback never fires, so end here instead.
-      const span = (data as OrchestrionChannelContext & { _sentrySpan?: Span })._sentrySpan;
-      if (span) {
-        endSpan(span, data.error);
-      }
+    {
+      requiresParentSpan: true,
+      deferSpanEnd: ({ data }) => !('error' in data),
     },
-  });
+  );
 }
 
 // --- node-redis v4/v5 (`@redis/client`) ---
@@ -296,15 +288,8 @@ const _redisIntegration = ((options: RedisIntegrationOptions = {}) => {
   return {
     name: INTEGRATION_NAME,
     setup(client) {
-      // redis v2-v3 uses a nested callback, not `bindStore`, so it subscribes
-      // without the async-context binding. Kept separate so a missing binding
-      // never defers it: on the bundler path the wait would push subscription
-      // past `Sentry.init()` and early commands would emit with no subscriber
-      invokeOrchestrionInstrumentation(client, redisModuleNames, instrumentLegacyRedis, [options], {
-        requiresTracingChannelBinding: false,
-      });
-      // node-redis v4/v5 binds spans into async context via `bindTracingChannelToSpan`.
-      invokeOrchestrionInstrumentation(client, redisModuleNames, instrumentNodeRedis, [options]);
+      // redis v2-v3 and node-redis v4/v5 bind spans into async context via `bindTracingChannelToSpan`.
+      invokeOrchestrionInstrumentation(client, redisModuleNames, instrumentRedis, [options]);
       // ioredis `<5.11.0` (>=5.11.0 publishes its own `ioredis:*` channel, handled in `setupOnce`).
       invokeOrchestrionInstrumentation(client, ioredisModuleNames, instrumentIoredis, [options]);
     },
@@ -320,11 +305,8 @@ const _redisIntegration = ((options: RedisIntegrationOptions = {}) => {
   };
 }) satisfies IntegrationFn;
 
-function instrumentLegacyRedis(options: RedisIntegrationOptions): void {
-  subscribeLegacyRedisCommand(options);
-}
-
-function instrumentNodeRedis(options: RedisIntegrationOptions): void {
+function instrumentRedis(options: RedisIntegrationOptions): void {
+  bindLegacyRedisCommandChannel(options);
   bindNodeRedisCommandChannel(CHANNELS.NODE_REDIS_COMMAND, getSendCommandArgs, options);
   bindNodeRedisCommandChannel(CHANNELS.NODE_REDIS_EXECUTOR, getExecutorArgs, options);
   bindNodeRedisConnectChannel();

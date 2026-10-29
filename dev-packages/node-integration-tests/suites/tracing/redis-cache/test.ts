@@ -497,4 +497,41 @@ describeWithDockerCompose('redis cache auto instrumentation', { workingDirectory
       });
     });
   });
+
+  describe('no parent span', () => {
+    for (const version of [4, 5]) {
+      createEsmAndCjsTests(
+        __dirname,
+        `scenario-no-parent-redis-${version}.mjs`,
+        `instrument-redis-${version}.mjs`,
+        (createTestRunner, test) => {
+          test(
+            `only instruments commands with an active parent span (redis-${version})`,
+            { timeout: 60_000 },
+            async () => {
+              const runner = createTestRunner();
+              // Spans without a parent share the scope's trace id, so they are collected with this trace.
+              const spansPromise = runner.collectStreamedSpansUntilSegment('parent operation');
+
+              await runner.start().completed();
+
+              const spans = await spansPromise;
+              const parent = spans.find(span => span.is_segment && span.name === 'parent operation')!;
+              expect(
+                spans
+                  .filter(span => span.attributes[SENTRY_ORIGIN]?.value === redisOrigin)
+                  .map(span => ({
+                    query: span.attributes[DB_QUERY_TEXT]?.value ?? span.name,
+                    parentId: span.parent_span_id,
+                  })),
+              ).toEqual([
+                { query: `SET redis-${version}-no-parent:inside [1 other arguments]`, parentId: parent.span_id },
+                { query: 'MULTI', parentId: parent.span_id },
+              ]);
+            },
+          );
+        },
+      );
+    }
+  });
 });

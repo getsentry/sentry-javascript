@@ -1,4 +1,3 @@
-import type { SerializedStreamedSpan } from '@sentry/core';
 import {
   CACHE_HIT,
   CACHE_ITEM_SIZE,
@@ -204,35 +203,23 @@ describeWithDockerCompose(
     createEsmAndCjsTests(__dirname, 'scenario-no-parent.mjs', 'instrument.mjs', (createTestRunner, test) => {
       test('only instruments commands with an active parent span', { timeout: 60_000 }, async () => {
         const runner = createTestRunner();
-        const dbSpans = new Map<string, SerializedStreamedSpan>();
-        const spansPromise = runner.collectStreamedSpans(spans => {
-          for (const span of spans) {
-            if (span.attributes[SENTRY_ORIGIN]?.value === ORIGIN) {
-              dbSpans.set(span.span_id, span);
-            }
-          }
-          return spans.some(span => span.is_segment && span.name === 'parent operation');
-        });
+        // Spans without a parent share the scope's trace id, so they are collected with this trace.
+        const spansPromise = runner.collectStreamedSpansUntilSegment('parent operation');
 
-        await runner.unordered().start().completed();
+        await runner.start().completed();
 
         const spans = await spansPromise;
-        const parent = spans.find(span => span.is_segment && span.name === 'parent operation');
-        expect(parent).toBeDefined();
+        const parent = spans.find(span => span.is_segment && span.name === 'parent operation')!;
         expect(
-          Array.from(dbSpans.values(), span => ({
-            query: span.attributes[DB_QUERY_TEXT]?.value,
-            parentSpanId: span.parent_span_id,
-            traceId: span.trace_id,
-            isSegment: span.is_segment,
-          })),
+          spans
+            .filter(span => span.attributes[SENTRY_ORIGIN]?.value === ORIGIN)
+            .map(span => ({
+              query: span.attributes[DB_QUERY_TEXT]?.value ?? span.name,
+              parentId: span.parent_span_id,
+            })),
         ).toEqual([
-          {
-            query: 'SET dc-no-parent:inside ?',
-            parentSpanId: parent?.span_id,
-            traceId: parent?.trace_id,
-            isSegment: false,
-          },
+          { query: 'SET dc-no-parent:inside ?', parentId: parent.span_id },
+          { query: 'MULTI', parentId: parent.span_id },
         ]);
       });
     });
