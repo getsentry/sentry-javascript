@@ -5,10 +5,9 @@ import { type RequestHandlerWrapperOptions, wrapRequestHandlerWithInit } from '.
 /**
  * Wraps a cloudflare request handler in Sentry instrumentation.
  *
- * The client is set up with the default integrations that work without the `nodejs_compat`
- * compatibility flag, so that this also works on runtimes that cannot enable it (e.g. Shopify
- * Oxygen). On a runtime that has `nodejs_compat`, pass `defaultIntegrations:
- * getDefaultIntegrations(options)` in `options` to get the full set instead.
+ * The client uses the same default integrations as `init`, without setting up an OpenTelemetry
+ * tracer provider. This entry point also works on runtimes that cannot enable the `nodejs_compat`
+ * compatibility flag, such as Shopify Oxygen.
  */
 export function wrapRequestHandler(
   wrapperOptions: Omit<RequestHandlerWrapperOptions, 'options'> & {
