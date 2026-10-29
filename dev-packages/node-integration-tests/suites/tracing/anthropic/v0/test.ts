@@ -32,8 +32,10 @@ describe('Anthropic integration (0.x)', () => {
     (createRunner, test) => {
       test('emits one span per call', async () => {
         await createRunner()
+          .unordered()
           .expect({
             span: container => {
+              expect(container.items.find(span => span.is_segment && span.name === 'main')).toBeDefined();
               const spans = container.items.filter(
                 span => span.attributes[SENTRY_ORIGIN]?.value === 'auto.ai.anthropic',
               );

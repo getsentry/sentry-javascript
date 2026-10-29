@@ -126,6 +126,7 @@ describe('Anthropic integration (1.x)', () => {
           .unordered()
           .expect({
             span: container => {
+              expect(container.items.find(span => span.is_segment && span.name === 'main')).toBeDefined();
               receivedSpans = container.items;
             },
           })
