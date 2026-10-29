@@ -14,6 +14,8 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
  *
  * If `--optional=true` is set, it will generate a matrix of optional test applications only.
  * Otherwise, these will be skipped.
+ *
+ * If `--canary=true` is set, it will generate a matrix of the `canaryVariants` of all test applications only.
  */
 function run() {
   const { values } = parseArgs({
@@ -22,14 +24,15 @@ function run() {
       base: { type: 'string' },
       head: { type: 'string' },
       optional: { type: 'string', default: 'false' },
+      canary: { type: 'string', default: 'false' },
     },
   });
 
-  const { base, head = 'HEAD', optional } = values;
+  const { base, head = 'HEAD', optional, canary } = values;
 
   // For GitHub Action debugging
   // eslint-disable-next-line no-console
-  console.error(`Parsed command line arguments: base=${base}, head=${head}, optional=${optional}`);
+  console.error(`Parsed command line arguments: base=${base}, head=${head}, optional=${optional}, canary=${canary}`);
 
   const testApplications = discoverTestApplicationDirs();
 
@@ -44,10 +47,11 @@ function run() {
     : testApplications;
 
   const optionalMode = optional === 'true';
+  const canaryMode = canary === 'true';
   const includes = [];
 
   includedTestApplications.forEach(testApp => {
-    addIncludesForTestApp(testApp, includes, { optionalMode });
+    addIncludesForTestApp(testApp, includes, { optionalMode, canaryMode });
   });
 
   // We print this to the output, so the GHA can use it for the matrix
@@ -66,12 +70,17 @@ function discoverTestApplicationDirs() {
     .sort();
 }
 
-function addIncludesForTestApp(testApp, includes, { optionalMode }) {
+function addIncludesForTestApp(testApp, includes, { optionalMode, canaryMode }) {
   const packageJson = getPackageJson(testApp);
 
   const shouldSkip = packageJson.sentryTest?.skip || false;
   const isOptional = packageJson.sentryTest?.optional || false;
-  const variants = (optionalMode ? packageJson.sentryTest?.optionalVariants : packageJson.sentryTest?.variants) || [];
+  const variants =
+    (canaryMode
+      ? packageJson.sentryTest?.canaryVariants
+      : optionalMode
+        ? packageJson.sentryTest?.optionalVariants
+        : packageJson.sentryTest?.variants) || [];
   const runner = packageJson.sentryTest?.runner;
   const baseInclude = { 'test-application': testApp, ...(runner ? { runner } : {}) };
 
@@ -79,8 +88,8 @@ function addIncludesForTestApp(testApp, includes, { optionalMode }) {
     return;
   }
 
-  // Add the basic test-application itself, if it is in the current mode
-  if (optionalMode === isOptional) {
+  // Add the basic test-application itself, if it is in the current mode. Canary mode only runs the canary variants.
+  if (!canaryMode && optionalMode === isOptional) {
     includes.push(baseInclude);
   }
 

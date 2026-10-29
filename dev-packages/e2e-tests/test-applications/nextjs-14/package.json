@@ -28,7 +28,7 @@
     "@sentry/core": "file:../../packed/sentry-core-packed.tgz"
   },
   "sentryTest": {
-    "optionalVariants": [
+    "canaryVariants": [
       {
         "build-command": "pnpm test:build-canary",
         "label": "nextjs-14 (canary)"
