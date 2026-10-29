@@ -187,8 +187,8 @@ importers:
         specifier: ^5.0.5
         version: 5.0.7(rollup@4.62.3)
       '@rollup/plugin-terser':
-        specifier: ^0.4.4
-        version: 0.4.4(rollup@4.62.3)
+        specifier: ^1.0.2
+        version: 1.0.2(rollup@4.62.3)
       '@sentry-internal/node-integration-tests':
         specifier: workspace:*
         version: link:dev-packages/node-integration-tests
@@ -8070,17 +8070,17 @@ packages:
       rollup:
         optional: true
 
-  '@rollup/plugin-terser@0.4.4':
-    resolution: {integrity: sha512-XHeJC5Bgvs8LfukDwWZp7yeqin6ns8RTl2B9avbejt6tZqsqvVoWI7ZTQrcNsfKEDWBTnTxM8nMDkO2IFFbd0A==}
-    engines: {node: '>=14.0.0'}
+  '@rollup/plugin-terser@1.0.0':
+    resolution: {integrity: sha512-FnCxhTBx6bMOYQrar6C8h3scPt8/JwIzw3+AJ2K++6guogH5fYaIFia+zZuhqv0eo1RN7W1Pz630SyvLbDjhtQ==}
+    engines: {node: '>=20.0.0'}
     peerDependencies:
       rollup: ^2.0.0||^3.0.0||^4.0.0
     peerDependenciesMeta:
       rollup:
         optional: true
 
-  '@rollup/plugin-terser@1.0.0':
-    resolution: {integrity: sha512-FnCxhTBx6bMOYQrar6C8h3scPt8/JwIzw3+AJ2K++6guogH5fYaIFia+zZuhqv0eo1RN7W1Pz630SyvLbDjhtQ==}
+  '@rollup/plugin-terser@1.0.2':
+    resolution: {integrity: sha512-+UihHnuLnQDQ/9wog7ym+7oawCXkjTIo0WwkK7s//0mkktTN0VhYk6fGVxH+NtGzW064w5RCGgreMDxRVhHCzw==}
     engines: {node: '>=20.0.0'}
     peerDependencies:
       rollup: ^2.0.0||^3.0.0||^4.0.0
@@ -26215,15 +26215,15 @@ snapshots:
     optionalDependencies:
       rollup: 4.62.3
 
-  '@rollup/plugin-terser@0.4.4(rollup@4.62.3)':
+  '@rollup/plugin-terser@1.0.0(rollup@4.62.3)':
     dependencies:
-      serialize-javascript: 6.0.2
+      serialize-javascript: 7.0.5
       smob: 1.4.1
       terser: 5.51.2
     optionalDependencies:
       rollup: 4.62.3
 
-  '@rollup/plugin-terser@1.0.0(rollup@4.62.3)':
+  '@rollup/plugin-terser@1.0.2(rollup@4.62.3)':
     dependencies:
       serialize-javascript: 7.0.5
       smob: 1.4.1
