@@ -66,18 +66,6 @@ expressApp.get('/test', async function (req, res) {
   res.send({ version: 'v1' });
 });
 
-expressApp.get('/test-no-parent', async function (req, res) {
-  const noParentRef = collection(db, 'no-parent');
-  await addDoc(noParentRef, { name: 'Without Parent' });
-  // Flush before the marker so a span from the call above would reach the proxy before it.
-  await Sentry.flush();
-  await Sentry.startSpan({ name: 'No Parent Marker' }, async () => {
-    await addDoc(noParentRef, { name: 'With Parent' });
-  });
-  await Sentry.flush();
-  res.send({ version: 'v1' });
-});
-
 expressApp.listen(port, () => {
   console.log(`Example app listening on port ${port}`);
 });
