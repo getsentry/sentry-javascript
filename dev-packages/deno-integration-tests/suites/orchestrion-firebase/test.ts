@@ -7,6 +7,7 @@ import { assert } from 'https://deno.land/std@0.212.0/assert/assert.ts';
 import { assertExists } from 'https://deno.land/std@0.212.0/assert/assert_exists.ts';
 import { assertEquals } from 'https://deno.land/std@0.212.0/assert/assert_equals.ts';
 import { getSpanOp, resetGlobals, spanSink, withTimeout } from '../../src/index.ts';
+import { DB_QUERY } from '@sentry/conventions/op';
 
 Deno.test('firebase instrumentation: included in default integrations (Deno 2.8.0+)', () => {
   resetGlobals();
@@ -71,4 +72,50 @@ Deno.test('firebase instrumentation: orchestrion @firebase/firestore:add-doc cha
   assertEquals(fsSpan.attributes['db.system.name']?.value, 'firebase.firestore');
   assertEquals(fsSpan.attributes['firebase.firestore.options.projectId']?.value, 'demo-project');
   assertEquals(fsSpan.attributes['sentry.origin']?.value, 'auto.db.firebase.firestore');
+});
+
+Deno.test('firebase instrumentation: only creates firestore db spans with an active parent span', async () => {
+  resetGlobals();
+  const sink = spanSink();
+  init({
+    dsn: 'https://username@domain/123',
+    tracesSampleRate: 1,
+    transport: sink.transport,
+  });
+
+  const channel = tracingChannel('orchestrion:@firebase/firestore:add-doc');
+
+  function addDoc(path: string): void {
+    const reference = {
+      path,
+      type: 'collection',
+      firestore: {
+        app: { name: '[DEFAULT]', options: { projectId: 'demo-project', appId: 'demo-app' } },
+        toJSON: () => ({ settings: {} }),
+      },
+    };
+    const ctx: Record<string, unknown> = { arguments: [reference] };
+    channel.start.runStores(ctx, () => undefined);
+    channel.end.publish(ctx);
+    ctx.result = {};
+    channel.asyncStart.runStores(ctx, () => undefined);
+    channel.asyncEnd.publish(ctx);
+  }
+
+  addDoc('before_parent');
+  startSpan({ name: 'parent', op: 'test' }, () => addDoc('inside_parent'));
+  addDoc('after_parent');
+
+  await flush();
+
+  const parent = await withTimeout(
+    sink.waitFor(span => span.is_segment && span.name === 'parent'),
+    5000,
+    "'parent' segment span",
+  );
+  const dbSpans = sink.spans.filter(span => getSpanOp(span) === DB_QUERY);
+  assertEquals(
+    dbSpans.map(span => ({ name: span.name, parentSpanId: span.parent_span_id, isSegment: span.is_segment })),
+    [{ name: 'addDoc inside_parent', parentSpanId: parent.span_id, isSegment: false }],
+  );
 });
