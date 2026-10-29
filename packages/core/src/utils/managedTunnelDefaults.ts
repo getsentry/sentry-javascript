@@ -3,6 +3,7 @@ import { getClient } from '../currentScopes';
 import type { IgnoreSpanFilter, ServerTunnelOptions } from '../types/options';
 import type { TunnelForwarder } from './tunnel';
 import {
+  getManagedTunnelState,
   getServeTunnelForwarder,
   getTunnelIgnoreSpanFilters,
   normalizeTunnelBasePath,
@@ -12,7 +13,7 @@ import {
 /**
  * Managed tunnel settings a framework SDK knows outside `init`.
  */
-interface ManagedTunnelDefaults {
+export interface ManagedTunnelDefaults {
   /**
    * Enables the managed tunnel when `init` didn't, e.g. from TanStack Start's `tunnelRoute` build option. Its base
    * path is `basePath`, so it has none of its own.
@@ -27,8 +28,6 @@ interface ManagedTunnelDefaults {
   basePath?: string;
 }
 
-let managedTunnelDefaults: ManagedTunnelDefaults | undefined;
-
 const tunnelForwarders = new WeakMap<Client, TunnelForwarder>();
 
 // So re-applying defaults replaces a client's filters instead of adding more.
@@ -39,8 +38,9 @@ const installedSpanFilters = new WeakMap<Client, IgnoreSpanFilter[]>();
  * (Cloudflare) start with them. Settings from `init` win. Framework SDKs call this once at load.
  */
 export function setManagedTunnelDefaults(defaults: ManagedTunnelDefaults): void {
-  managedTunnelDefaults = {
-    ...managedTunnelDefaults,
+  const state = getManagedTunnelState();
+  state.defaults = {
+    ...state.defaults,
     ...(defaults.tunnel && { tunnel: defaults.tunnel, forward: defaults.forward }),
     ...(defaults.basePath !== undefined && { basePath: defaults.basePath }),
   };
@@ -66,6 +66,7 @@ export function enableManagedTunnel(
  * {@link setManagedTunnelDefaults}.
  */
 export function applyManagedTunnelDefaults(client: Client | undefined): void {
+  const managedTunnelDefaults = getManagedTunnelState().defaults;
   const options = client?.getOptions();
   const tunnelOptions: ServerTunnelOptions | undefined = options?._managedTunnel ?? managedTunnelDefaults?.tunnel;
   // A framework SDK can bundle its own copy of this module, which only reaches the forwarder through the client.
@@ -98,5 +99,5 @@ export function applyManagedTunnelDefaults(client: Client | undefined): void {
  * @internal
  */
 export function _INTERNAL_resetManagedTunnelDefaults(): void {
-  managedTunnelDefaults = undefined;
+  getManagedTunnelState().defaults = undefined;
 }
