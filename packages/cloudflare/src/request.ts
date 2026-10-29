@@ -7,8 +7,7 @@ import { type RequestHandlerWrapperOptions, wrapRequestHandlerWithInit } from '.
  *
  * The client is set up with the default integrations that work without the `nodejs_compat`
  * compatibility flag, so that this also works on runtimes that cannot enable it (e.g. Shopify
- * Oxygen). On a runtime that has `nodejs_compat`, pass `defaultIntegrations:
- * getDefaultIntegrations(options)` in `options` to get the full set instead.
+ * Oxygen).
  */
 export function wrapRequestHandler(
   wrapperOptions: Omit<RequestHandlerWrapperOptions, 'options'> & {
