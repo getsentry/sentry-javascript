@@ -9,6 +9,9 @@ import {
   SENTRY_EXCLUSIVE_TIME,
   UI_COMPONENT_NAME,
   BROWSER_WEB_VITAL_INP_TARGET,
+  BROWSER_WEB_VITAL_INP_INPUT_DELAY,
+  BROWSER_WEB_VITAL_INP_PROCESSING_DURATION,
+  BROWSER_WEB_VITAL_INP_PRESENTATION_DELAY,
 } from '@sentry/conventions/attributes';
 import { expect } from '@playwright/test';
 import { sentryTest } from '../../../../utils/fixtures';
@@ -97,4 +100,9 @@ sentryTest('captures the slowest interaction as streamed INP span', async ({ get
 
   const inpValue = inpSpan.attributes[BROWSER_WEB_VITAL_INP_VALUE]?.value as number;
   expect(inpValue).toBeGreaterThan(400);
+
+  // The slow button blocks inside its click handler, so the time lands in processing.
+  expect(inpSpan.attributes[BROWSER_WEB_VITAL_INP_PROCESSING_DURATION]?.value).toBeGreaterThan(400);
+  expect(inpSpan.attributes[BROWSER_WEB_VITAL_INP_INPUT_DELAY]?.value).toBeGreaterThanOrEqual(0);
+  expect(inpSpan.attributes[BROWSER_WEB_VITAL_INP_PRESENTATION_DELAY]?.value).toBeGreaterThanOrEqual(0);
 });

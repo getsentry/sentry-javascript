@@ -1,7 +1,13 @@
-import type { Span } from '@sentry/core';
+import type { Span, SpanAttributes } from '@sentry/core';
 import { getActiveSpan, getRootSpan, isBrowser } from '@sentry/core';
+import {
+  BROWSER_WEB_VITAL_INP_INPUT_DELAY,
+  BROWSER_WEB_VITAL_INP_PRESENTATION_DELAY,
+  BROWSER_WEB_VITAL_INP_PROCESSING_DURATION,
+} from '@sentry/conventions/attributes';
 import { htmlTreeAsString } from '../htmlTreeAsString';
 import { WINDOW } from '../types';
+import type { PerformanceEventTiming } from '../instrumentation/performanceObserver';
 import { addPerformanceInstrumentationHandler, isPerformanceEventTiming } from '../instrumentation/performanceObserver';
 
 interface InteractionContext {
@@ -173,4 +179,34 @@ export function registerInpInteractionListener(): void {
 
   addPerformanceInstrumentationHandler('event', handleEntries);
   addPerformanceInstrumentationHandler('first-input', handleEntries);
+}
+
+/**
+ * The INP subparts of one interaction, which add up to the time from the input to the next paint.
+ *
+ * An interaction is several events (e.g. `pointerdown`, `pointerup`, `click`) that share one
+ * next paint, and the slow handler can be on any of them. Measuring a single entry would count
+ * the other events' handlers as presentation delay, so the processing window spans all of them.
+ */
+export function getInpSubpartAttributes(
+  entry: PerformanceEventTiming | undefined,
+  metricEntries: PerformanceEventTiming[] = [],
+): SpanAttributes | undefined {
+  if (!entry) {
+    return undefined;
+  }
+
+  const interactionEntries = metricEntries.filter(e => e.interactionId === entry.interactionId);
+  const entries = interactionEntries.length ? interactionEntries : [entry];
+  const startTime = Math.min(...entries.map(entry => entry.startTime));
+  const processingStart = Math.min(...entries.map(entry => entry.processingStart));
+  const processingEnd = Math.max(...entries.map(entry => entry.processingEnd));
+  const nextPaintTime = Math.max(...entries.map(entry => entry.startTime + entry.duration));
+
+  // `duration` is rounded to 8ms, so the presentation delay it implies can dip below zero.
+  return {
+    [BROWSER_WEB_VITAL_INP_INPUT_DELAY]: Math.max(processingStart - startTime, 0),
+    [BROWSER_WEB_VITAL_INP_PROCESSING_DURATION]: Math.max(processingEnd - processingStart, 0),
+    [BROWSER_WEB_VITAL_INP_PRESENTATION_DELAY]: Math.max(nextPaintTime - processingEnd, 0),
+  };
 }
