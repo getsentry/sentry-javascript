@@ -2,6 +2,7 @@ import type { D1Database, D1DatabaseSession, D1PreparedStatement } from '@cloudf
 import * as SentryCore from '@sentry/core';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 import { instrumentD1 } from '../../../src/instrumentations/worker/instrumentD1';
+import { initTestClient, resetSdk } from '../../testUtils';
 
 const MOCK_FIRST_RETURN_VALUE = { id: 1, name: 'Foo' };
 
@@ -57,6 +58,10 @@ describe('instrumentD1', () => {
     vi.clearAllMocks();
   });
 
+  afterEach(() => {
+    resetSdk();
+  });
+
   const startSpanSpy = vi.spyOn(SentryCore, 'startSpan');
   const addBreadcrumbSpy = vi.spyOn(SentryCore, 'addBreadcrumb');
 
@@ -83,6 +88,7 @@ describe('instrumentD1', () => {
             'sentry.origin': 'auto.db.cloudflare.d1',
           },
           name: 'SELECT * FROM users',
+          onlyIfParent: true,
         },
         expect.any(Function),
       );
@@ -185,6 +191,7 @@ describe('instrumentD1', () => {
             'sentry.origin': 'auto.db.cloudflare.d1',
           },
           name: 'INSERT INTO users (name) VALUES (?)',
+          onlyIfParent: true,
         },
         expect.any(Function),
       );
@@ -239,6 +246,7 @@ describe('instrumentD1', () => {
             'sentry.origin': 'auto.db.cloudflare.d1',
           },
           name: 'INSERT INTO users (name) VALUES (?)',
+          onlyIfParent: true,
         },
         expect.any(Function),
       );
@@ -293,6 +301,7 @@ describe('instrumentD1', () => {
             'sentry.origin': 'auto.db.cloudflare.d1',
           },
           name: 'SELECT * FROM users',
+          onlyIfParent: true,
         },
         expect.any(Function),
       );
@@ -344,6 +353,7 @@ describe('instrumentD1', () => {
             'sentry.origin': 'auto.db.cloudflare.d1',
           },
           name: 'D1 batch',
+          onlyIfParent: true,
         },
         expect.any(Function),
       );
@@ -383,6 +393,7 @@ describe('instrumentD1', () => {
             'sentry.origin': 'auto.db.cloudflare.d1',
           },
           name: 'D1 batch',
+          onlyIfParent: true,
         },
         expect.any(Function),
       );
@@ -412,6 +423,7 @@ describe('instrumentD1', () => {
             'sentry.origin': 'auto.db.cloudflare.d1',
           },
           name: 'CREATE TABLE users (id INTEGER PRIMARY KEY)',
+          onlyIfParent: true,
         },
         expect.any(Function),
       );
@@ -450,6 +462,7 @@ describe('instrumentD1', () => {
             'sentry.origin': 'auto.db.cloudflare.d1',
           },
           name: 'SELECT * FROM users',
+          onlyIfParent: true,
         },
         expect.any(Function),
       );
@@ -487,6 +500,7 @@ describe('instrumentD1', () => {
             'sentry.origin': 'auto.db.cloudflare.d1',
           },
           name: 'D1 batch',
+          onlyIfParent: true,
         },
         expect.any(Function),
       );
@@ -506,6 +520,20 @@ describe('instrumentD1', () => {
         },
       });
     });
+  });
+
+  test('only creates spans when there is an active parent span', async () => {
+    const client = initTestClient({ tracesSampleRate: 1 });
+    const startedSpans: string[] = [];
+    client.on('spanStart', span => startedSpans.push(SentryCore.spanToJSON(span).name));
+    const instrumentedDb = instrumentD1(createMockD1Database());
+
+    await instrumentedDb.prepare('SELECT * FROM users').first();
+    await instrumentedDb.batch([instrumentedDb.prepare('SELECT 1')]);
+    await instrumentedDb.exec('SELECT 1');
+    await SentryCore.startSpan({ name: 'parent' }, () => instrumentedDb.prepare('SELECT * FROM users').first());
+
+    expect(startedSpans).toEqual(['parent', 'SELECT users']);
   });
 
   describe('double instrumentation prevention', () => {

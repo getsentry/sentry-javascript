@@ -135,6 +135,7 @@ function createStartSpanOptions(queryText: string | undefined, type: D1QueryType
 
   return {
     name,
+    onlyIfParent: true,
     attributes: {
       [SENTRY_OP]: DB_QUERY,
       'db.system.name': 'cloudflare-d1',
@@ -174,6 +175,7 @@ function instrumentBatch(
       return startSpan(
         {
           name: 'D1 batch',
+          onlyIfParent: true,
           attributes: {
             [SENTRY_OP]: DB_QUERY,
             'db.system.name': 'cloudflare-d1',

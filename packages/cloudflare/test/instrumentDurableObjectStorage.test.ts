@@ -30,6 +30,7 @@ describe('instrumentDurableObjectStorage', () => {
       expect(startSpanSpy).toHaveBeenCalledWith(
         {
           name: 'durable_object_storage_get',
+          onlyIfParent: true,
           attributes: {
             'sentry.op': 'db',
             [SENTRY_ORIGIN]: 'auto.db.cloudflare.durable_object',
@@ -51,6 +52,7 @@ describe('instrumentDurableObjectStorage', () => {
       expect(startSpanSpy).toHaveBeenCalledWith(
         {
           name: 'durable_object_storage_get',
+          onlyIfParent: true,
           attributes: {
             'sentry.op': 'db',
             [SENTRY_ORIGIN]: 'auto.db.cloudflare.durable_object',
@@ -74,6 +76,7 @@ describe('instrumentDurableObjectStorage', () => {
       expect(startSpanSpy).toHaveBeenCalledWith(
         {
           name: 'durable_object_storage_put',
+          onlyIfParent: true,
           attributes: {
             'sentry.op': 'db',
             [SENTRY_ORIGIN]: 'auto.db.cloudflare.durable_object',
@@ -95,6 +98,7 @@ describe('instrumentDurableObjectStorage', () => {
       expect(startSpanSpy).toHaveBeenCalledWith(
         {
           name: 'durable_object_storage_put',
+          onlyIfParent: true,
           attributes: {
             'sentry.op': 'db',
             [SENTRY_ORIGIN]: 'auto.db.cloudflare.durable_object',
@@ -118,6 +122,7 @@ describe('instrumentDurableObjectStorage', () => {
       expect(startSpanSpy).toHaveBeenCalledWith(
         {
           name: 'durable_object_storage_delete',
+          onlyIfParent: true,
           attributes: {
             'sentry.op': 'db',
             [SENTRY_ORIGIN]: 'auto.db.cloudflare.durable_object',
@@ -139,6 +144,7 @@ describe('instrumentDurableObjectStorage', () => {
       expect(startSpanSpy).toHaveBeenCalledWith(
         {
           name: 'durable_object_storage_delete',
+          onlyIfParent: true,
           attributes: {
             'sentry.op': 'db',
             [SENTRY_ORIGIN]: 'auto.db.cloudflare.durable_object',
@@ -162,6 +168,7 @@ describe('instrumentDurableObjectStorage', () => {
       expect(startSpanSpy).toHaveBeenCalledWith(
         {
           name: 'durable_object_storage_list',
+          onlyIfParent: true,
           attributes: {
             'sentry.op': 'db',
             [SENTRY_ORIGIN]: 'auto.db.cloudflare.durable_object',
@@ -185,6 +192,7 @@ describe('instrumentDurableObjectStorage', () => {
       expect(startSpanSpy).toHaveBeenCalledWith(
         {
           name: 'durable_object_storage_setAlarm',
+          onlyIfParent: true,
           attributes: {
             'sentry.op': 'db',
             [SENTRY_ORIGIN]: 'auto.db.cloudflare.durable_object',
@@ -269,6 +277,7 @@ describe('instrumentDurableObjectStorage', () => {
       expect(startSpanSpy).toHaveBeenCalledWith(
         {
           name: 'durable_object_storage_getAlarm',
+          onlyIfParent: true,
           attributes: {
             'sentry.op': 'db',
             [SENTRY_ORIGIN]: 'auto.db.cloudflare.durable_object',
@@ -290,6 +299,7 @@ describe('instrumentDurableObjectStorage', () => {
       expect(startSpanSpy).toHaveBeenCalledWith(
         {
           name: 'durable_object_storage_deleteAlarm',
+          onlyIfParent: true,
           attributes: {
             'sentry.op': 'db',
             [SENTRY_ORIGIN]: 'auto.db.cloudflare.durable_object',
@@ -313,6 +323,7 @@ describe('instrumentDurableObjectStorage', () => {
     expect(startSpanSpy).toHaveBeenCalledWith(
       {
         name: 'SELECT',
+        onlyIfParent: true,
         attributes: {
           'sentry.op': 'db.query',
           [SENTRY_ORIGIN]: 'auto.db.cloudflare.durable_object_sql',
@@ -325,6 +336,18 @@ describe('instrumentDurableObjectStorage', () => {
       },
       expect.any(Function),
     );
+  });
+
+  it('only creates spans when there is an active parent span', async () => {
+    const client = initTestClient({ tracesSampleRate: 1 });
+    const startedSpans: string[] = [];
+    client.on('spanStart', span => startedSpans.push(sentryCore.spanToJSON(span).name));
+    const instrumented = instrumentDurableObjectStorage(createMockStorage());
+
+    await instrumented.get('outside');
+    await sentryCore.startSpan({ name: 'parent' }, () => instrumented.get('inside'));
+
+    expect(startedSpans).toEqual(['parent', 'durable_object_storage_get']);
   });
 
   describe('framework-internal KV keys', () => {
@@ -437,6 +460,7 @@ describe('instrumentDurableObjectStorage', () => {
       expect(startSpanSpy).toHaveBeenCalledWith(
         {
           name: 'durable_object_storage_kv_get',
+          onlyIfParent: true,
           attributes: {
             'sentry.op': 'db',
             [SENTRY_ORIGIN]: 'auto.db.cloudflare.durable_object',

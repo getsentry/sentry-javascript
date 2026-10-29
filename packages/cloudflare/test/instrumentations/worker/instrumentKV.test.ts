@@ -10,8 +10,9 @@ import {
 } from '@sentry/conventions/attributes';
 import { CACHE_GET, CACHE_PUT, CACHE_REMOVE } from '@sentry/conventions/op';
 import * as SentryCore from '@sentry/core';
-import { beforeEach, describe, expect, test, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 import { instrumentKV } from '../../../src/instrumentations/worker/instrumentKV';
+import { initTestClient, resetSdk } from '../../testUtils';
 
 function createMockKVNamespace(): KVNamespace {
   return {
@@ -26,6 +27,10 @@ function createMockKVNamespace(): KVNamespace {
 describe('instrumentKV', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+  });
+
+  afterEach(() => {
+    resetSdk();
   });
 
   const startSpanSpy = vi.spyOn(SentryCore, 'startSpan');
@@ -49,6 +54,7 @@ describe('instrumentKV', () => {
     expect(startSpanSpy).toHaveBeenCalledWith(
       {
         name: CACHE_GET,
+        onlyIfParent: true,
         attributes: {
           [SENTRY_OP]: CACHE_GET,
           [SENTRY_ORIGIN]: 'auto.cache.cloudflare.kv',
@@ -82,6 +88,7 @@ describe('instrumentKV', () => {
     expect(startSpanSpy).toHaveBeenCalledWith(
       {
         name: CACHE_GET,
+        onlyIfParent: true,
         attributes: {
           [SENTRY_OP]: CACHE_GET,
           [SENTRY_ORIGIN]: 'auto.cache.cloudflare.kv',
@@ -106,6 +113,7 @@ describe('instrumentKV', () => {
     expect(startSpanSpy).toHaveBeenCalledWith(
       {
         name: CACHE_GET,
+        onlyIfParent: true,
         attributes: {
           [SENTRY_OP]: CACHE_GET,
           [SENTRY_ORIGIN]: 'auto.cache.cloudflare.kv',
@@ -133,6 +141,7 @@ describe('instrumentKV', () => {
       1,
       {
         name: CACHE_PUT,
+        onlyIfParent: true,
         attributes: {
           [SENTRY_OP]: CACHE_PUT,
           [SENTRY_ORIGIN]: 'auto.cache.cloudflare.kv',
@@ -149,6 +158,7 @@ describe('instrumentKV', () => {
       2,
       {
         name: CACHE_REMOVE,
+        onlyIfParent: true,
         attributes: {
           [SENTRY_OP]: CACHE_REMOVE,
           [SENTRY_ORIGIN]: 'auto.cache.cloudflare.kv',
@@ -165,6 +175,7 @@ describe('instrumentKV', () => {
       3,
       {
         name: CACHE_GET,
+        onlyIfParent: true,
         attributes: {
           [SENTRY_OP]: CACHE_GET,
           [SENTRY_ORIGIN]: 'auto.cache.cloudflare.kv',
@@ -176,6 +187,18 @@ describe('instrumentKV', () => {
       },
       expect.any(Function),
     );
+  });
+
+  test('only creates spans when there is an active parent span', async () => {
+    const client = initTestClient({ tracesSampleRate: 1 });
+    const startedSpans: string[] = [];
+    client.on('spanStart', span => startedSpans.push(SentryCore.spanToJSON(span).name));
+    const wrapped = instrumentKV(createMockKVNamespace(), 'MY_KV');
+
+    await wrapped.get('outside');
+    await SentryCore.startSpan({ name: 'parent' }, () => wrapped.get('inside'));
+
+    expect(startedSpans).toEqual(['parent', CACHE_GET]);
   });
 
   test('forwards unknown property accesses transparently', () => {

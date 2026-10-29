@@ -2,10 +2,12 @@ import { SENTRY_ORIGIN } from '@sentry/conventions/attributes';
 import * as sentryCore from '@sentry/core';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { instrumentDurableObjectSyncKvStorage } from '../src/instrumentations/instrumentDurableObjectSyncKvStorage';
+import { initTestClient, resetSdk } from './testUtils';
 
 describe('instrumentDurableObjectSyncKvStorage', () => {
   afterEach(() => {
     vi.restoreAllMocks();
+    resetSdk();
   });
 
   describe('get', () => {
@@ -19,6 +21,7 @@ describe('instrumentDurableObjectSyncKvStorage', () => {
       expect(startSpanSpy).toHaveBeenCalledWith(
         {
           name: 'durable_object_storage_kv_get',
+          onlyIfParent: true,
           attributes: {
             'sentry.op': 'db',
             [SENTRY_ORIGIN]: 'auto.db.cloudflare.durable_object',
@@ -62,6 +65,7 @@ describe('instrumentDurableObjectSyncKvStorage', () => {
       expect(startSpanSpy).toHaveBeenCalledWith(
         {
           name: 'durable_object_storage_kv_put',
+          onlyIfParent: true,
           attributes: {
             'sentry.op': 'db',
             [SENTRY_ORIGIN]: 'auto.db.cloudflare.durable_object',
@@ -94,6 +98,7 @@ describe('instrumentDurableObjectSyncKvStorage', () => {
       expect(startSpanSpy).toHaveBeenCalledWith(
         {
           name: 'durable_object_storage_kv_delete',
+          onlyIfParent: true,
           attributes: {
             'sentry.op': 'db',
             [SENTRY_ORIGIN]: 'auto.db.cloudflare.durable_object',
@@ -127,6 +132,7 @@ describe('instrumentDurableObjectSyncKvStorage', () => {
       expect(startSpanSpy).toHaveBeenCalledWith(
         {
           name: 'durable_object_storage_kv_list',
+          onlyIfParent: true,
           attributes: {
             'sentry.op': 'db',
             [SENTRY_ORIGIN]: 'auto.db.cloudflare.durable_object',
@@ -160,6 +166,18 @@ describe('instrumentDurableObjectSyncKvStorage', () => {
 
       expect(result).toBe(entries);
     });
+  });
+
+  it('only creates spans when there is an active parent span', () => {
+    const client = initTestClient({ tracesSampleRate: 1 });
+    const startedSpans: string[] = [];
+    client.on('spanStart', span => startedSpans.push(sentryCore.spanToJSON(span).name));
+    const instrumented = instrumentDurableObjectSyncKvStorage(createMockSyncKv());
+
+    instrumented.get('outside');
+    sentryCore.startSpan({ name: 'parent' }, () => instrumented.get('inside'));
+
+    expect(startedSpans).toEqual(['parent', 'durable_object_storage_kv_get']);
   });
 
   describe('non-instrumented properties', () => {

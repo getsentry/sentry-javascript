@@ -25,6 +25,7 @@ describe('instrumentSqlStorage', () => {
     expect(startSpanSpy).toHaveBeenCalledWith(
       {
         name: 'SELECT users',
+        onlyIfParent: true,
         attributes: {
           'sentry.op': 'db.query',
           [SENTRY_ORIGIN]: 'auto.db.cloudflare.durable_object_sql',
@@ -49,6 +50,7 @@ describe('instrumentSqlStorage', () => {
     expect(startSpanSpy).toHaveBeenCalledWith(
       {
         name: 'SELECT users',
+        onlyIfParent: true,
         attributes: {
           'sentry.op': 'db.query',
           [SENTRY_ORIGIN]: 'auto.db.cloudflare.durable_object_sql',
@@ -82,6 +84,7 @@ describe('instrumentSqlStorage', () => {
     expect(startSpanSpy).toHaveBeenCalledWith(
       {
         name: 'INSERT users',
+        onlyIfParent: true,
         attributes: {
           'sentry.op': 'db.query',
           [SENTRY_ORIGIN]: 'auto.db.cloudflare.durable_object_sql',
@@ -150,6 +153,18 @@ describe('instrumentSqlStorage', () => {
 
     expect(startSpanSpy).toHaveBeenCalledTimes(2);
     expect(mockSql.exec).toHaveBeenCalledTimes(2);
+  });
+
+  it('only creates spans when there is an active parent span', () => {
+    const client = initTestClient({ tracesSampleRate: 1 });
+    const startedSpans: string[] = [];
+    client.on('spanStart', span => startedSpans.push(sentryCore.spanToJSON(span).name));
+    const instrumented = instrumentSqlStorage(createMockSqlStorage());
+
+    instrumented.exec('SELECT * FROM users');
+    sentryCore.startSpan({ name: 'parent' }, () => instrumented.exec('SELECT * FROM users'));
+
+    expect(startedSpans).toEqual(['parent', 'SELECT users']);
   });
 
   describe('internal storage queries', () => {
@@ -302,6 +317,7 @@ describe('instrumentSqlStorage', () => {
     expect(startSpanSpy).toHaveBeenCalledWith(
       {
         name: 'exec',
+        onlyIfParent: true,
         attributes: {
           'sentry.op': 'db.query',
           [SENTRY_ORIGIN]: 'auto.db.cloudflare.durable_object_sql',
