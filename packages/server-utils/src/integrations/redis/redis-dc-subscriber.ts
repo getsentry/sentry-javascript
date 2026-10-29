@@ -160,6 +160,7 @@ function setupCommandChannel<T extends RedisCommandData | IORedisCommandData>(
       };
       const cacheProperties = getRedisCacheAttributes(data.command, args, attributes, cacheOptions);
       return startInactiveSpan({
+        onlyIfParent: true,
         name: cacheProperties?.name ?? streamedName ?? `redis-${data.command}`,
         attributes: { ...attributes, ...cacheProperties?.attributes },
       });
@@ -181,6 +182,7 @@ function setupBatchChannel(
   bindTracingChannelToSpan(tracingChannel<RedisBatchData>(channelName), data => {
     const operation = getOperationName(data);
     return startInactiveSpan({
+      onlyIfParent: true,
       name: operation,
       attributes: {
         [SENTRY_ORIGIN]: ORIGIN,
@@ -200,6 +202,7 @@ function setupBatchChannel(
 function setupConnectChannel(tracingChannel: RedisTracingChannelFactory, channelName: string): void {
   bindTracingChannelToSpan(tracingChannel<RedisConnectData>(channelName), data => {
     return startInactiveSpan({
+      onlyIfParent: true,
       name: 'redis-connect',
       attributes: {
         [SENTRY_ORIGIN]: ORIGIN,

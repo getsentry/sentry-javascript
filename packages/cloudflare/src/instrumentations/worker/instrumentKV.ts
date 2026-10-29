@@ -44,6 +44,7 @@ function createSpanOptions(bindingName: string, operation: KVOperation, args: un
   const keys = getCacheKeys(operation, args);
   return {
     name: cacheOperation,
+    onlyIfParent: true,
     attributes: {
       [SENTRY_OP]: cacheOperation,
       [CACHE_OPERATION]: cacheOperationName,

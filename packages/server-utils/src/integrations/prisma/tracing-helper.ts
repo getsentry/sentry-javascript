@@ -189,6 +189,7 @@ function createResolvedEngineSpans(): void {
 
       const attributes = buildSpanAttributes(engineSpan.name, engineSpan.attributes);
       const span = startInactiveSpan({
+        onlyIfParent: true,
         name: buildSpanName(engineSpan.name, attributes),
         attributes: {
           ...attributes,
@@ -295,6 +296,7 @@ export class ActiveTracingHelper implements TracingHelper {
     const attributes = buildSpanAttributes(name, options.attributes);
     const spanOptions = {
       name: buildSpanName(name, attributes),
+      onlyIfParent: true,
       attributes,
       kind: options.kind,
       links: options.links,
@@ -332,6 +334,7 @@ function dispatchEngineSpan(
   startSpanManual(
     {
       name: buildSpanName(engineSpan.name, attributes),
+      onlyIfParent: true,
       attributes: {
         ...attributes,
         [SENTRY_KIND]: engineSpan.kind === 'client' ? 'client' : undefined,

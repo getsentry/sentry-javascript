@@ -270,8 +270,7 @@ function instrumentPostgresJs(options: PostgresJsIntegrationOptions): void {
 
       // Opt out of re-entrant `handle()` calls (then/catch/finally re-invoke
       // it, guarded by `executed`) and queries already wrapped by the portable
-      // `instrumentPostgresJsSql`. The parent-span requirement is applied via
-      // `requiresParentSpan` below.
+      // `instrumentPostgresJsSql`.
       if (query.executed === true || (query as Record<symbol, unknown>)[QUERY_FROM_INSTRUMENTED_SQL]) {
         return undefined;
       }
@@ -294,6 +293,7 @@ function instrumentPostgresJs(options: PostgresJsIntegrationOptions): void {
 
       // `sentry.kind: client` matches the mysql/pg channel subscribers.
       const span = startInactiveSpan({
+        onlyIfParent: requireParentSpan !== false,
         name,
         attributes: {
           [SENTRY_OP]: DB,
@@ -327,7 +327,6 @@ function instrumentPostgresJs(options: PostgresJsIntegrationOptions): void {
       return span;
     },
     {
-      requiresParentSpan: requireParentSpan !== false,
       deferSpanEnd({ data }) {
         // `handle` is async: its promise settles on dispatch (asyncEnd), long
         // before the query does. The resolve/reject wrappers own the ending.

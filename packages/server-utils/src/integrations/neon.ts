@@ -60,15 +60,11 @@ function instrumentNeon(): void {
   // the pg span shape.
   bindPgQueryChannel(CHANNELS.NEON_QUERY, { origin: ORIGIN });
 
-  bindTracingChannelToSpan(
-    diagnosticsChannel.tracingChannel<NeonHttpQueryContext>(CHANNELS.NEON_HTTP_QUERY),
-    data => {
-      const span = startInactiveSpan(httpQuerySpanOptions(data.arguments));
-      httpQuerySpans.add(span);
-      return span;
-    },
-    { requiresParentSpan: true },
-  );
+  bindTracingChannelToSpan(diagnosticsChannel.tracingChannel<NeonHttpQueryContext>(CHANNELS.NEON_HTTP_QUERY), data => {
+    const span = startInactiveSpan({ ...httpQuerySpanOptions(data.arguments), onlyIfParent: true });
+    httpQuerySpans.add(span);
+    return span;
+  });
 
   // The connection string is resolved inside the HTTP executor, so the query span is active
   // when this settles. The executor's own context never sees the string.

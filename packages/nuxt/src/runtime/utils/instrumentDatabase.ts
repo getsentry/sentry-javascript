@@ -271,6 +271,7 @@ function createStartSpanOptions(
 
   return {
     name,
+    onlyIfParent: true,
     attributes: {
       [DB_QUERY_TEXT]: queryText,
       [DB_QUERY_SUMMARY]: querySummary,

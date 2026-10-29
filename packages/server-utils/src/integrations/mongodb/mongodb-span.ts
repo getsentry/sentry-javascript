@@ -235,6 +235,7 @@ export function startMongoSpan(attributes: SpanAttributes): Span {
       : (attributes[DB_QUERY_TEXT] as string) || `mongodb.${attributes[DB_OPERATION_NAME] || 'command'}`;
 
   return startInactiveSpan({
+    onlyIfParent: true,
     name,
     attributes: {
       [SENTRY_OP]: DB,

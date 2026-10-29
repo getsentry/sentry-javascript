@@ -39,7 +39,7 @@ export function instrumentSqlStorage(sql: SqlStorage): SqlStorage {
           // steps. We still start the span so it records its dropped span
           // outcome. A query that may target a `cf_` or `pi_` table takes the full path,
           // because an internal query must start no span.
-          return startSpan({ name: 'exec', attributes: SPAN_ATTRIBUTES }, callOriginal);
+          return startSpan({ name: 'exec', onlyIfParent: true, attributes: SPAN_ATTRIBUTES }, callOriginal);
         }
 
         const sanitizedQuery = sanitizeSqlQuery(query);
@@ -56,6 +56,7 @@ export function instrumentSqlStorage(sql: SqlStorage): SqlStorage {
         return startSpan(
           {
             name: querySummary || sanitizedQuery,
+            onlyIfParent: true,
             attributes: {
               ...SPAN_ATTRIBUTES,
               'db.query.text': sanitizedQuery,
@@ -71,8 +72,8 @@ export function instrumentSqlStorage(sql: SqlStorage): SqlStorage {
 }
 
 /**
- * Returns `true` when `startSpan` creates a non-recording span: spans are disabled, or the active span
- * is not sampled. Must agree with `createChildOrRootSpan` and `_startChildSpan` in `@sentry/core`.
+ * Returns `true` when `startSpan` creates a non-recording span: spans are disabled, no parent exists,
+ * or the active span is not sampled. Must agree with `createChildOrRootSpan` and `_startChildSpan` in `@sentry/core`.
  */
 function childSpanWillNotBeRecorded(): boolean {
   if (!hasSpansEnabled()) {
@@ -80,5 +81,5 @@ function childSpanWillNotBeRecorded(): boolean {
   }
 
   const activeSpan = getActiveSpan();
-  return !!activeSpan && !spanIsSampled(activeSpan);
+  return !activeSpan || !spanIsSampled(activeSpan);
 }

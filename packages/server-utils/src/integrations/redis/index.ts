@@ -116,6 +116,7 @@ function startCommandSpan(
   const cacheProperties = getRedisCacheAttributes(commandName, commandArgs, attributes, cacheOptions);
 
   return startInactiveSpan({
+    onlyIfParent: true,
     name: cacheProperties?.name ?? streamedName ?? (dbStatement || `redis-${commandName}`),
     attributes: {
       [SENTRY_KIND]: 'client',
@@ -244,6 +245,7 @@ function bindNodeRedisConnectChannel(): void {
   bindTracingChannelToSpan(channel, data => {
     const options = (data.self as NodeRedisClient | undefined)?.options;
     return startInactiveSpan({
+      onlyIfParent: true,
       name: 'redis-connect',
       attributes: {
         [SENTRY_KIND]: 'client',
@@ -268,6 +270,7 @@ function bindNodeRedisBatchChannel(
     const options = (data.self as NodeRedisClient | undefined)?.options;
     const operation = getOperation(data);
     return startInactiveSpan({
+      onlyIfParent: true,
       name: operation,
       attributes: {
         [SENTRY_KIND]: 'client',

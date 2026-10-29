@@ -73,6 +73,7 @@ export function instrumentDurableObjectStorage(
           {
             // Use underscore naming to match Cloudflare's native instrumentation (e.g., "durable_object_storage_get")
             name: `durable_object_storage_${methodName}`,
+            onlyIfParent: true,
             attributes: {
               [SENTRY_OP]: DB,
               [SENTRY_ORIGIN]: 'auto.db.cloudflare.durable_object',

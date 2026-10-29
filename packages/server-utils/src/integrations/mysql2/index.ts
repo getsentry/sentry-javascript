@@ -74,34 +74,31 @@ function instrumentMysql2Orchestrion(): void {
 }
 
 function subscribeQueryChannel(channelName: ChannelName): void {
-  bindTracingChannelToSpan(
-    diagnosticsChannel.tracingChannel<Mysql2QueryChannelContext>(channelName),
-    data => {
-      const statement = getQueryText(data.arguments);
-      const connectionAttributes = getConnectionAttributes(data.self?.config);
-      const { queryText, querySummary } = sanitizeSqlQueryWithSummary(statement, 'mysql');
+  bindTracingChannelToSpan(diagnosticsChannel.tracingChannel<Mysql2QueryChannelContext>(channelName), data => {
+    const statement = getQueryText(data.arguments);
+    const connectionAttributes = getConnectionAttributes(data.self?.config);
+    const { queryText, querySummary } = sanitizeSqlQueryWithSummary(statement, 'mysql');
 
-      const client = getClient();
-      const name =
-        client && hasSpanStreamingEnabled(client)
-          ? querySummary || (connectionAttributes[DB_NAMESPACE] as string | undefined) || DB_SYSTEM_VALUE_MYSQL
-          : (queryText ?? 'mysql2.query');
+    const client = getClient();
+    const name =
+      client && hasSpanStreamingEnabled(client)
+        ? querySummary || (connectionAttributes[DB_NAMESPACE] as string | undefined) || DB_SYSTEM_VALUE_MYSQL
+        : (queryText ?? 'mysql2.query');
 
-      return startInactiveSpan({
-        name,
-        attributes: {
-          [SENTRY_KIND]: 'client',
-          [SENTRY_ORIGIN]: ORIGIN,
-          [SENTRY_OP]: DB,
-          [DB_SYSTEM_NAME]: DB_SYSTEM_VALUE_MYSQL,
-          [DB_QUERY_TEXT]: queryText || undefined,
-          [DB_QUERY_SUMMARY]: querySummary,
-          ...connectionAttributes,
-        },
-      });
-    },
-    { requiresParentSpan: true },
-  );
+    return startInactiveSpan({
+      onlyIfParent: true,
+      name,
+      attributes: {
+        [SENTRY_KIND]: 'client',
+        [SENTRY_ORIGIN]: ORIGIN,
+        [SENTRY_OP]: DB,
+        [DB_SYSTEM_NAME]: DB_SYSTEM_VALUE_MYSQL,
+        [DB_QUERY_TEXT]: queryText || undefined,
+        [DB_QUERY_SUMMARY]: querySummary,
+        ...connectionAttributes,
+      },
+    });
+  });
 }
 
 /**
