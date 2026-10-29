@@ -8,6 +8,7 @@ export default makeNPMConfigVariants(
       'src/rollup/index.ts',
       'src/vite/index.ts',
       'src/esbuild/index.ts',
+      'src/bun/index.ts',
       'src/webpack/index.ts',
       'src/webpack/component-annotation-transform.ts',
       'src/babel-plugin/index.ts',

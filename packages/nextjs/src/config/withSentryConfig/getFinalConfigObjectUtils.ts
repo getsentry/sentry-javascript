@@ -7,7 +7,7 @@ import { getBuildLogger } from '../buildLogger';
 import { createRouteManifest } from '../manifest/createRouteManifest';
 import type { RouteManifest } from '../manifest/types';
 import type { NextConfigObject, SentryBuildOptions } from '../types';
-import { requiresInstrumentationHook } from '../util';
+import { DEFAULT_PAGE_EXTENSIONS, requiresInstrumentationHook } from '../util';
 import { getGitRevision, getInstrumentationClientFileContents } from './buildTime';
 import {
   findTunnelRouteHandlerFile,
@@ -20,6 +20,8 @@ let showedExportModeTunnelWarning = false;
 let showedUnusedTunnelRouteHandlerWarning = false;
 let showedTunnelRouteHandlerModeLog = false;
 let showedExperimentalBuildModeWarning = false;
+
+const MISSING_INSTRUMENTATION_FILE_WARNING_SHOWN = '__SENTRY_MISSING_INSTRUMENTATION_FILE_WARNING_SHOWN__';
 
 /**
  * Resolves the Sentry release name to use for build-time behavior.
@@ -264,6 +266,43 @@ export function warnIfMissingOnRouterTransitionStartHook(userSentryOptions: Sent
       '[@sentry/nextjs] ACTION REQUIRED: To instrument navigations, the Sentry SDK requires you to export an `onRouterTransitionStart` hook from your `instrumentation-client.(js|ts)` file. You can do so by adding `export const onRouterTransitionStart = Sentry.captureRouterTransitionStart;` to the file.',
     );
   }
+}
+
+/**
+ * Warns if there is no `instrumentation` file next to the `app` or `pages` directory.
+ * `next build` only looks there, even though dev and Turbopack also find the file in other places.
+ */
+export function warnIfMissingInstrumentationFile(
+  incomingUserNextConfigObject: NextConfigObject,
+  userSentryOptions: SentryBuildOptions,
+): void {
+  if (
+    process.env[MISSING_INSTRUMENTATION_FILE_WARNING_SHOWN] ||
+    process.env.SENTRY_SUPPRESS_INSTRUMENTATION_FILE_WARNING
+  ) {
+    return;
+  }
+
+  const projectDir = process.cwd();
+  const exists = (relativePath: string): boolean => fs.existsSync(path.join(projectDir, relativePath));
+
+  // Same order as Next.js' `findPagesDir`
+  const routerDir = ['pages', path.join('src', 'pages'), 'app', path.join('src', 'app')].find(exists);
+  if (!routerDir) {
+    return;
+  }
+
+  const instrumentationDir = path.dirname(routerDir);
+  const pageExtensions = incomingUserNextConfigObject.pageExtensions ?? DEFAULT_PAGE_EXTENSIONS;
+  if (pageExtensions.some(extension => exists(path.join(instrumentationDir, `instrumentation.${extension}`)))) {
+    return;
+  }
+
+  // Next.js may evaluate its config in child processes, which inherit this state from their parent.
+  process.env[MISSING_INSTRUMENTATION_FILE_WARNING_SHOWN] = '1';
+  getBuildLogger(userSentryOptions.silent).warn(
+    `[@sentry/nextjs] Could not find an instrumentation file next to your ${routerDir} directory. Next.js production builds only load it from there, so the Sentry SDK will not be initialized on the server. Create ${path.join(instrumentationDir, 'instrumentation.ts')}, or move your existing instrumentation file there: https://docs.sentry.io/platforms/javascript/guides/nextjs/manual-setup/#register-server-side-sdk (you can suppress this warning by setting SENTRY_SUPPRESS_INSTRUMENTATION_FILE_WARNING=1 as environment variable)`,
+  );
 }
 
 /**

@@ -43,7 +43,7 @@ sentryTest('captures INP click as a streamed span', async ({ getLocalTestUrl, pa
   const pageloadSpan = await pageloadSpanPromise;
 
   expect(inpSpan.attributes[SENTRY_OP]).toEqual({ type: 'string', value: UI_INTERACTION_CLICK });
-  expect(inpSpan.attributes[SENTRY_ORIGIN]).toEqual({ type: 'string', value: 'auto.http.browser.inp' });
+  expect(inpSpan.attributes[SENTRY_ORIGIN]).toEqual({ type: 'string', value: 'auto.ui.browser.inp' });
   expect(inpSpan.attributes[USER_AGENT_ORIGINAL]?.value).toEqual(expect.stringContaining('Chrome'));
 
   // Check the INP span carries the transaction/segment name it belongs to

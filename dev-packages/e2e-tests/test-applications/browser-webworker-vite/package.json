@@ -20,8 +20,5 @@
   "dependencies": {
     "@sentry/browser": "file:../../packed/sentry-browser-packed.tgz",
     "@sentry/vite-plugin": "^5.4.1"
-  },
-  "volta": {
-    "extends": "../../package.json"
   }
 }

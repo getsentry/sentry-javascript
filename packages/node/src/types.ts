@@ -73,7 +73,13 @@ export interface BaseNodeOptions extends ServerRuntimeOptions {
  * Configuration options for the Sentry Node SDK
  * @see @sentry/core Options for more information.
  */
-export interface NodeOptions extends Options<NodeTransportOptions>, BaseNodeOptions {}
+export interface NodeOptions extends Options<NodeTransportOptions>, BaseNodeOptions {
+  /**
+   * A URL to send this server's own envelopes to instead of the Sentry ingest URL. To serve the managed tunnel for the
+   * browser, use `serveTunnelIntegration`.
+   */
+  tunnel?: string;
+}
 
 /**
  * Configuration options for the Sentry Node SDK Client class

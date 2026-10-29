@@ -96,7 +96,6 @@ test('Sends a message to Sentry as a gen_ai.chat span under the request span', a
 
   expectModelCallAttributes(span, attributes);
   expect(attributes['gen_ai.usage.input_tokens']).toBeGreaterThan(0);
-  expect(attributes['gen_ai.request.temperature']).toBe(0);
   expect(attributes['gen_ai.response.streaming']).toBeUndefined();
   expectRecordedConversation(attributes);
 

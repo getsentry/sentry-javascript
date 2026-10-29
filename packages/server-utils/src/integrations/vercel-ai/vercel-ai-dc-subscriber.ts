@@ -52,7 +52,7 @@ import {
 import type { TracingChannel } from 'node:diagnostics_channel';
 import { GEN_AI_TOOL_CALL_ID_ATTRIBUTE } from '../../ai/core/gen-ai-attributes';
 import { isEveGenAiRecordingDefault } from './gen-ai-recording-mode';
-import type { GenAiOptions } from '../../ai/core/utils';
+import { getEvaluationOutputMessages, type GenAiOptions } from '../../ai/core/utils';
 import { getProviderMetadataAttributes, LAST_STEP_ONLY_USAGE_KEYS } from '../../ai/vercel-ai';
 import { WORKERS_AI_INTEGRATION_NAME } from '../../ai/workers-ai/constants';
 import { bindTracingChannelToSpan } from '../../tracing-channel';
@@ -63,9 +63,9 @@ import { asNumber, asString, isReadableStream, type StreamedModelCallResult, sum
  * via `node:diagnostics_channel`. Events are discriminated by their `type` field.
  * @see https://github.com/vercel/ai/pull/15660
  */
-const AI_SDK_TELEMETRY_TRACING_CHANNEL = 'ai:telemetry';
+export const AI_SDK_TELEMETRY_TRACING_CHANNEL = 'ai:telemetry';
 
-const ORIGIN = 'auto.vercelai.channel';
+const ORIGIN = 'auto.ai.vercelai';
 
 // `gen_ai.operation.name` values, keyed to the span op they map to.
 const GEN_AI_OPERATION_SPAN_OPS = {
@@ -689,7 +689,7 @@ function getOutputMessages(
   finishReason: string | undefined,
 ): string | undefined {
   if (type === 'experimental_evaluate' || type === 'experimental_decide') {
-    return stringify([{ type: 'evaluation', answers: withProviderConfidence(result) }]);
+    return getEvaluationOutputMessages(withProviderAnswerFields(result));
   }
   // `languageModelCall` exposes the response as a `content` parts array; top-level results expose
   // `text` + `toolCalls`. Both normalize into the OTel `gen_ai.output.messages` assistant message.
@@ -701,26 +701,36 @@ function getOutputMessages(
 }
 
 /**
- * The AI SDK TypeSafe and OpenAI providers move each answer's `confidence` out of the answers into
- * `providerMetadata.<provider>.confidence` (keyed by question id). Put it back so decide answers keep it.
+ * Providers move answer fields into `providerMetadata`: TypeSafe and OpenAI as `<provider>.confidence[id]`,
+ * OpenRouter as `openrouter.answers[id].{confidence,legend}`. Put them back on the answers.
  */
-function withProviderConfidence(result: Record<string, unknown>): unknown {
+function withProviderAnswerFields(result: Record<string, unknown>): unknown {
   const { answers, providerMetadata } = result;
-  const metadata = isObjectLike(providerMetadata)
-    ? [providerMetadata.typesafe, providerMetadata.openai].find(m => isObjectLike(m) && isObjectLike(m.confidence))
-    : undefined;
-  const confidence = isObjectLike(metadata) && isObjectLike(metadata.confidence) ? metadata.confidence : undefined;
-  if (!confidence || !isObjectLike(answers)) {
+  if (!isObjectLike(answers) || !isObjectLike(providerMetadata)) {
+    return answers;
+  }
+  const confidenceById = [providerMetadata.typesafe, providerMetadata.openai]
+    .map(metadata => (isObjectLike(metadata) ? metadata.confidence : undefined))
+    .find(isObjectLike);
+  const { openrouter } = providerMetadata;
+  const openrouterById = isObjectLike(openrouter) && isObjectLike(openrouter.answers) ? openrouter.answers : undefined;
+  if (!confidenceById && !openrouterById) {
     return answers;
   }
 
   return Object.fromEntries(
-    Object.entries(answers).map(([id, answer]) => [
-      id,
-      isObjectLike(answer) && typeof confidence[id] === 'number' && answer.confidence === undefined
-        ? { ...answer, confidence: confidence[id] }
-        : answer,
-    ]),
+    Object.entries(answers).map(([id, answer]) => {
+      if (!isObjectLike(answer)) {
+        return [id, answer];
+      }
+      const openrouterAnswer = openrouterById?.[id];
+      const fields = isObjectLike(openrouterAnswer) ? openrouterAnswer : {};
+      const {
+        confidence = asNumber(confidenceById?.[id]) ?? asNumber(fields.confidence),
+        legend = isObjectLike(fields.legend) ? fields.legend : undefined,
+      } = answer;
+      return [id, { ...answer, confidence, legend }];
+    }),
   );
 }
 
@@ -841,7 +851,7 @@ export function captureToolError(span: Span, data: VercelAiChannelMessage, error
     captureException(
       error instanceof Error ? error : new Error(typeof error === 'string' ? error : 'Tool execution failed'),
       {
-        mechanism: { type: 'auto.vercelai.channel', handled: false },
+        mechanism: { type: 'auto.ai.vercelai', handled: false },
       },
     );
   });

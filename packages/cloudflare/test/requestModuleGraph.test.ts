@@ -76,7 +76,7 @@ describe('module graph of `wrapRequestHandler`', () => {
     expect(modules).not.toContain('async.ts');
   });
 
-  it('does not reach `sdk.ts`, which holds the default integrations that need `nodejs_compat`', () => {
+  it('does not reach `sdk.ts`, which imports the OpenTelemetry tracer setup', () => {
     expect(modules).not.toContain('sdk.ts');
   });
 });

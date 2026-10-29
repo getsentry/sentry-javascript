@@ -26,8 +26,5 @@
     "@sentry-internal/test-utils": "file:../../packed/sentry-internal-test-utils-packed.tgz",
     "@tailwindcss/postcss": "^4",
     "tailwindcss": "^4"
-  },
-  "volta": {
-    "extends": "../../package.json"
   }
 }

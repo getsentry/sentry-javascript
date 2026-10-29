@@ -1,6 +1,6 @@
 import { htmlTreeAsString } from '@sentry/browser-utils';
 import type { Breadcrumb } from '@sentry/core';
-import type { ReplayContainer } from '../types';
+import type { RecordingOptions, ReplayContainer } from '../types';
 import { createBreadcrumb } from '../util/createBreadcrumb';
 import { getBaseDomBreadcrumb } from './handleDom';
 import { addBreadcrumbEvent } from './util/addBreadcrumbEvent';
@@ -16,7 +16,7 @@ export function handleKeyboardEvent(replay: ReplayContainer, event: KeyboardEven
   // session with a single "keydown" breadcrumb is created)
   replay.updateUserActivity();
 
-  const breadcrumb = getKeyboardBreadcrumb(event);
+  const breadcrumb = getKeyboardBreadcrumb(event, replay.getMaskAttributeFn());
 
   if (!breadcrumb) {
     return;
@@ -26,7 +26,10 @@ export function handleKeyboardEvent(replay: ReplayContainer, event: KeyboardEven
 }
 
 /** exported only for tests */
-export function getKeyboardBreadcrumb(event: KeyboardEvent): Breadcrumb | null {
+export function getKeyboardBreadcrumb(
+  event: KeyboardEvent,
+  maskAttributeFn?: RecordingOptions['maskAttributeFn'],
+): Breadcrumb | null {
   const { metaKey, shiftKey, ctrlKey, altKey, key, target } = event;
 
   // never capture for input fields
@@ -44,7 +47,7 @@ export function getKeyboardBreadcrumb(event: KeyboardEvent): Breadcrumb | null {
     return null;
   }
 
-  const message = htmlTreeAsString(target, { maxStringLength: 200 }) || '<unknown>';
+  const message = htmlTreeAsString(target, { maxStringLength: 200, maskAttributeFn }) || '<unknown>';
   const baseBreadcrumb = getBaseDomBreadcrumb(target as Node, message);
 
   return createBreadcrumb({

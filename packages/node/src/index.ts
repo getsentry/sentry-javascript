@@ -6,6 +6,7 @@ export { expressErrorHandler, setupExpressErrorHandler } from '@sentry/server-ut
 export {
   amqplibIntegration,
   anthropicAIIntegration,
+  awsIntegration,
   dataloaderIntegration,
   expressIntegration,
   type ExpressIntegrationOptions,
@@ -61,6 +62,8 @@ export {
   instrumentLangChainEmbeddings,
   instrumentStateGraph,
   instrumentStateGraphCompile,
+  instrumentCreateReactAgent,
+  instrumentPostgresJsSql,
   fastifyIntegration,
   // oxlint-disable-next-line typescript/no-deprecated
   setupFastifyErrorHandler,
@@ -69,6 +72,7 @@ export {
 export { setupHapiErrorHandler } from './integrations/tracing/hapi';
 // oxlint-disable-next-line typescript/no-deprecated -- deprecated but still re-exported for backwards compatibility
 export { setupKoaErrorHandler } from './integrations/tracing/koa';
+export { BullMQTelemetry } from './integrations/tracing/bullmq';
 export {
   launchDarklyIntegration,
   buildLaunchDarklyFlagUsedHandler,
@@ -152,6 +156,7 @@ export {
   captureSession,
   endSession,
   addIntegration,
+  moduleMetadataIntegration,
   startSpan,
   startSpanManual,
   startInactiveSpan,
@@ -175,7 +180,16 @@ export {
   featureFlagsIntegration,
   spanStreamingIntegration,
 } from '@sentry/core';
-export { trpcMiddleware, wrapMcpServerWithSentry } from '@sentry/core/server';
+export {
+  handleTunnelRequestIfMatched,
+  isTunnelRequest,
+  serveTunnelIntegration,
+  trpcMiddleware,
+  wrapMcpServerWithSentry,
+} from '@sentry/core/server';
+export type { TunnelRequestLike } from '@sentry/core/server';
+export { getTunnelPath, handleTunnelRequest } from '@sentry/core';
+export type { HandleTunnelRequestOptions, ServerTunnelOptions } from '@sentry/core';
 
 export type {
   Breadcrumb,

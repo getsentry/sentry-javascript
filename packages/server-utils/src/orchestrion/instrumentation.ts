@@ -1,6 +1,6 @@
 import * as diagnosticsChannel from '../utils/diagnosticsChannel';
 import type { Client } from '@sentry/core';
-import { addNonEnumerableProperty, debug, waitForTracingChannelBinding } from '@sentry/core';
+import { addNonEnumerableProperty, debug, GLOBAL_OBJ, waitForTracingChannelBinding } from '@sentry/core';
 import { DEBUG_BUILD } from '../debug-build';
 import { getOrchestrionInjectedModules } from './detect';
 
@@ -13,9 +13,12 @@ const INSTRUMENTED = Symbol.for('SentryOrchestrionInstrumented');
 // oxlint-disable-next-line typescript/no-explicit-any
 type InstrumentationFn = ((...args: any[]) => void) & { [INSTRUMENTED]?: boolean };
 
-const globalAny = globalThis as { Bun?: unknown; Deno?: unknown };
+const globalAny = globalThis as { Bun?: unknown; Deno?: unknown; navigator?: { userAgent?: string } };
 const isBun = typeof globalAny.Bun !== 'undefined';
 const isDeno = typeof globalAny.Deno !== 'undefined';
+
+// Labels already warned about, so a client per request does not repeat the warning.
+const warnedMissingCloudflarePlugin = new Set<string>();
 
 /**
  * Run an integration's channel-subscription callback once one of its modules is
@@ -111,6 +114,21 @@ export function invokeOrchestrionInstrumentation<Callback extends Instrumentatio
     DEBUG_BUILD && debug.log(`[instrumentation:${label}] "${injectedName}" already injected, subscribing now`);
     run();
     return;
+  }
+
+  // On Cloudflare, only the `@sentry/cloudflare/vite` plugin injects the channels. An entry banner
+  // from the plugin defines `bundler` at boot, so without it the channels never fire.
+  if (
+    DEBUG_BUILD &&
+    globalAny.navigator?.userAgent === 'Cloudflare-Workers' &&
+    !GLOBAL_OBJ.__SENTRY_ORCHESTRION__?.bundler &&
+    !warnedMissingCloudflarePlugin.has(label)
+  ) {
+    warnedMissingCloudflarePlugin.add(label);
+    debug.warn(
+      `[instrumentation:${label}] The integration for "${label}" records nothing, because the ` +
+        '`@sentry/cloudflare/vite` plugin did not run. Add `sentryCloudflareVitePlugin()` to your Vite config.',
+    );
   }
 
   DEBUG_BUILD && debug.log(`[instrumentation:${label}] not injected yet, waiting for the module to load`);

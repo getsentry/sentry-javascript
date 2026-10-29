@@ -12,7 +12,6 @@ it('should add server.address attribute to metrics when serverName is set', asyn
           name: 'test.counter',
           type: 'counter',
           value: 1,
-          span_id: expect.any(String),
           timestamp: expect.any(Number),
           trace_id: expect.any(String),
           attributes: {
