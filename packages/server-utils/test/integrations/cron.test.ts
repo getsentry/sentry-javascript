@@ -51,13 +51,12 @@ describe('onSetTime', () => {
     ['a date', { source: new Date(), timeZone: 'UTC' }],
     ['a UTC offset', { source: '0 9 * * *', utcOffset: 60 }],
     ['a sub-minute cron', { source: '*/10 * * * * *', timeZone: 'UTC' }],
-  ])('sends no config after setTime with %s', (_, cronTime) => {
+  ])('stops checking in after setTime with %s', (_, cronTime) => {
     const job = createJob();
     setTime(job, cronTime);
     job.onTick();
 
-    expect(sentConfigs).toHaveLength(2);
-    expect(sentConfigs[0]).toBeUndefined();
+    expect(sentConfigs).toEqual([]);
   });
 
   it('keeps the old schedule when setTime throws', () => {

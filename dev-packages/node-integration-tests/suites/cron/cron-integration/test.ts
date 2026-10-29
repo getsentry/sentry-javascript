@@ -1,15 +1,9 @@
-import type { SerializedCheckIn } from '@sentry/core';
 import { afterAll, describe, expect } from 'vitest';
 import { cleanupChildProcesses, createEsmAndCjsTests } from '../../../utils/runner';
 
 const MONITOR_CONFIG = {
   schedule: { type: 'crontab', value: '30 9 * * 1-5' },
   timezone: 'Europe/Vienna',
-};
-
-const expectNoConfig = (slug: string) => (checkIn: SerializedCheckIn) => {
-  expect(checkIn).toMatchObject({ monitor_slug: slug, status: 'in_progress' });
-  expect(checkIn.monitor_config).toBeUndefined();
 };
 
 describe('cronJobIntegration', () => {
@@ -21,10 +15,6 @@ describe('cronJobIntegration', () => {
     test('sends check-ins for named jobs', async () => {
       await createRunner()
         .ignore('event')
-        .expect({ check_in: expectNoConfig('offset-job') })
-        .expect({ check_in: { monitor_slug: 'offset-job', status: 'ok' } })
-        .expect({ check_in: expectNoConfig('sub-minute-job') })
-        .expect({ check_in: { monitor_slug: 'sub-minute-job', status: 'ok' } })
         .expect({
           check_in: { monitor_slug: 'my-cron-job', status: 'in_progress', monitor_config: MONITOR_CONFIG },
         })

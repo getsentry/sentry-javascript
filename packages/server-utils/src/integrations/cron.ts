@@ -33,7 +33,8 @@ const _cronJobIntegration = ((options: CronJobIntegrationOptions = {}) => {
 
 /**
  * Sends Crons check-ins for every `CronJob` of the `cron` package (4.3+) that has a `name`.
- * The monitor slug is the job name; jobs without a name, and one-off jobs, are not monitored.
+ * The monitor slug is the job name. Jobs without a name, one-off jobs, and jobs with a schedule Crons can't express
+ * are not monitored.
  */
 export const cronJobIntegration = defineIntegration(_cronJobIntegration);
 
@@ -42,7 +43,7 @@ function subscribe(options: CronJobIntegrationOptions): void {
   subscribeToScheduleChange(CHANNELS.CRON_JOB_SET_TIME, INTEGRATION_NAME, onSetTime);
 }
 
-/** Sends the new time's config after `job.setTime(cronTime)`. */
+/** Sets the new time's config after `job.setTime(cronTime)`. Without one, the job doesn't check in. */
 export function onSetTime({ arguments: [cronTime], self }: ScheduleChange): void {
   const job = self as { cronTime?: unknown; _callbacks?: unknown[] } | undefined;
   // `setTime` throws and keeps the old time when it isn't given a `CronTime`.
