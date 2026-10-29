@@ -40,6 +40,7 @@ const instrumentedWorkers = new WeakSet<object>();
 /**
  * Sends check-ins to Sentry for every job a BullMQ worker runs from a job scheduler.
  * The job scheduler id is the monitor slug, and its `pattern` or `every` is sent as the monitor schedule.
+ * Schedulers whose schedule Sentry can't represent, or that set `limit` or `endDate`, are not monitored.
  *
  * ```ts
  * import * as Sentry from '@sentry/node';
@@ -70,9 +71,10 @@ export function instrumentBullMQWorker<T extends { on: (...args: never[]) => unk
 
   target.processFn = function (this: unknown, job: BullMQJob, ...args: unknown[]): unknown {
     try {
-      const monitorSlug = getJobSchedulerId(job, options.excludeJobSchedulers);
-      if (job && monitorSlug) {
-        const checkInId = captureCheckIn({ monitorSlug, status: 'in_progress' }, getMonitorConfig(job.opts?.repeat));
+      const monitor = getMonitor(job, options.excludeJobSchedulers);
+      if (job && monitor) {
+        const { monitorSlug, config } = monitor;
+        const checkInId = captureCheckIn({ monitorSlug, status: 'in_progress' }, config);
         running.set(job, { monitorSlug, checkInId, start: timestampInSeconds() });
       }
     } catch (e) {
@@ -93,9 +95,9 @@ export function instrumentBullMQWorker<T extends { on: (...args: never[]) => unk
           return;
         }
         // BullMQ fails some jobs, such as ones that stalled too often, without running the processor.
-        const monitorSlug = status === 'error' && getJobSchedulerId(job, options.excludeJobSchedulers);
-        if (job && monitorSlug) {
-          captureCheckIn({ monitorSlug, status }, getMonitorConfig(job.opts?.repeat));
+        const monitor = status === 'error' && getMonitor(job, options.excludeJobSchedulers);
+        if (monitor) {
+          captureCheckIn({ monitorSlug: monitor.monitorSlug, status }, monitor.config);
         }
       } catch (e) {
         DEBUG_BUILD && debug.error('[BullMQ] Failed to send check-in:', e);
@@ -106,6 +108,22 @@ export function instrumentBullMQWorker<T extends { on: (...args: never[]) => unk
   on.call(worker, 'failed', finish('error'));
 
   return worker;
+}
+
+function getMonitor(
+  job: BullMQJob | undefined,
+  exclude: Array<string | RegExp> | undefined,
+): { monitorSlug: string; config: MonitorConfig } | undefined {
+  const monitorSlug = getJobSchedulerId(job, exclude);
+  if (!monitorSlug) {
+    return undefined;
+  }
+  const config = getMonitorConfig(job?.opts?.repeat);
+  if (!config) {
+    DEBUG_BUILD && debug.log(`[BullMQ] Not monitoring ${monitorSlug}: Sentry can't represent its schedule.`);
+    return undefined;
+  }
+  return { monitorSlug, config };
 }
 
 function getJobSchedulerId(job: BullMQJob | undefined, exclude: Array<string | RegExp> = []): string | undefined {

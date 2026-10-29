@@ -33,6 +33,14 @@ describe('cron.instrumentBullMQWorker', () => {
     return captureCheckInSpy.mock.calls[0]?.[1];
   }
 
+  function expectSkipped(repeat: Record<string, unknown>): void {
+    runJob(schedulerJob('my-scheduler', repeat), 'failed');
+    const worker = createWorker();
+    cron.instrumentBullMQWorker(worker);
+    worker.emit('failed', schedulerJob('my-scheduler', repeat), new Error('stalled'), 'active');
+    expect(captureCheckInSpy).not.toHaveBeenCalled();
+  }
+
   test('sends in_progress and ok check-ins with the scheduler id as slug', () => {
     runJob(schedulerJob('daily-report', { pattern: '0 9 * * 1-5', tz: 'Europe/Vienna' }));
 
@@ -80,8 +88,8 @@ describe('cron.instrumentBullMQWorker', () => {
     '0 0 1-31 * 1',
     '0 0 1 * 0-6',
     '0 0 * * * * 2026',
-  ])('sends no config for pattern %j', pattern => {
-    expect(sentConfig({ pattern, tz: 'UTC' })).toBeUndefined();
+  ])('skips pattern %j', pattern => {
+    expectSkipped({ pattern, tz: 'UTC' });
   });
 
   test('uses the local time zone without tz', () => {
@@ -99,8 +107,8 @@ describe('cron.instrumentBullMQWorker', () => {
     });
   });
 
-  test('sends no config for a fixed UTC offset', () => {
-    expect(sentConfig({ pattern: '0 * * * *', tz: 'UTC+5' })).toBeUndefined();
+  test('skips a fixed UTC offset', () => {
+    expectSkipped({ pattern: '0 * * * *', tz: 'UTC+5' });
   });
 
   test.each([
@@ -111,12 +119,12 @@ describe('cron.instrumentBullMQWorker', () => {
     expect(sentConfig({ every })).toEqual({ schedule });
   });
 
-  test.each([30_000, 90_000])('sends no config for every %j ms', every => {
-    expect(sentConfig({ every })).toBeUndefined();
+  test.each([30_000, 90_000])('skips every %j ms', every => {
+    expectSkipped({ every });
   });
 
-  test.each([{ limit: 3 }, { endDate: Date.now() + 60_000 }])('sends no config for a scheduler that ends: %j', end => {
-    expect(sentConfig({ every: 60_000, ...end })).toBeUndefined();
+  test.each([{ limit: 3 }, { endDate: Date.now() + 60_000 }])('skips a scheduler that ends: %j', end => {
+    expectSkipped({ every: 60_000, ...end });
   });
 
   test.each([
