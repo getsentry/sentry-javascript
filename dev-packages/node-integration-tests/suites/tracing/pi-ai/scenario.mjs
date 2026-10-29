@@ -1,11 +1,9 @@
 import * as Sentry from '@sentry/node';
 import { Type } from '@earendil-works/pi-ai';
-import { complete, registerFauxProvider, streamSimple } from '@earendil-works/pi-ai/compat';
 import { createModels } from '@earendil-works/pi-ai/models';
 import { fauxAssistantMessage, fauxProvider, fauxToolCall } from '@earendil-works/pi-ai/providers/faux';
 
-// `pi-ai`'s faux providers script model responses in-process: one for a `Models` collection, one
-// registered with the standalone `compat` functions.
+// `pi-ai`'s faux provider scripts model responses in-process.
 const faux = fauxProvider({ provider: 'faux', models: [{ id: 'faux-model' }] });
 const models = createModels();
 models.setProvider(faux.provider);
@@ -13,9 +11,6 @@ faux.setResponses([
   fauxAssistantMessage(fauxToolCall('get_weather', { city: 'Berlin' }, { id: 'call_1' }), { stopReason: 'toolUse' }),
   fauxAssistantMessage('It is sunny in Berlin.'),
 ]);
-
-const compat = registerFauxProvider({ provider: 'compat-faux', models: [{ id: 'compat-model' }] });
-compat.setResponses([fauxAssistantMessage('Hello.'), fauxAssistantMessage('Goodbye.')]);
 
 const tools = [
   {
@@ -54,8 +49,4 @@ await Sentry.startSpan({ name: 'pi-ai-test' }, async () => {
     ],
     tools,
   });
-
-  const compatModel = compat.getModel();
-  await complete(compatModel, { messages: [{ role: 'user', content: 'Hi.', timestamp: Date.now() }] });
-  await streamSimple(compatModel, { messages: [{ role: 'user', content: 'Bye.', timestamp: Date.now() }] }).result();
 });

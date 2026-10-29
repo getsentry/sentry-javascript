@@ -1,3 +1,4 @@
+import type { SerializedStreamedSpan } from '@sentry/core';
 import {
   GEN_AI_INPUT_MESSAGES,
   GEN_AI_OPERATION_NAME,
@@ -27,6 +28,21 @@ const PI_AI_DEPENDENCIES = {
   },
 };
 
+/** The chat spans under `rootSpanId`, in request order, with what every pi-ai request reports. */
+function chatSpans(spans: SerializedStreamedSpan[], rootSpanId: string): SerializedStreamedSpan[] {
+  const chats = spans
+    .filter(span => span.attributes[SENTRY_OP]?.value === GEN_AI_CHAT)
+    .sort((a, b) => a.start_timestamp - b.start_timestamp);
+  for (const chat of chats) {
+    expect(chat.parent_span_id).toBe(rootSpanId);
+    expect(chat.attributes[SENTRY_ORIGIN]?.value).toBe('auto.ai.pi_ai');
+    expect(chat.attributes[GEN_AI_OPERATION_NAME]?.value).toBe('chat');
+    expect(chat.attributes[GEN_AI_USAGE_INPUT_TOKENS]?.value).toBeGreaterThan(0);
+    expect(chat.attributes[GEN_AI_USAGE_OUTPUT_TOKENS]?.value).toBeGreaterThan(0);
+  }
+  return chats;
+}
+
 describe.runIf(supports({ min: 22 }))('pi-ai integration', () => {
   afterAll(() => {
     cleanupChildProcesses();
@@ -42,7 +58,7 @@ describe.runIf(supports({ min: 22 }))('pi-ai integration', () => {
         return;
       }
 
-      test('traces the requests sent through a `Models` collection and the standalone functions', async () => {
+      test('traces the requests sent through a `Models` collection', async () => {
         await createRunner()
           .unordered()
           .expect({
@@ -53,25 +69,10 @@ describe.runIf(supports({ min: 22 }))('pi-ai integration', () => {
 
               // One span per request: `complete` awaits a `stream` of its own, and no provider SDK
               // reports the request a second time.
-              const chats = spans
-                .filter(span => span.attributes[SENTRY_OP]?.value === GEN_AI_CHAT)
-                .sort((a, b) => a.start_timestamp - b.start_timestamp);
-              expect(chats.map(chat => chat.name)).toEqual([
-                'chat faux-model',
-                'chat faux-model',
-                'chat compat-model',
-                'chat compat-model',
-              ]);
+              const chats = chatSpans(spans, root.span_id);
+              expect(chats.map(chat => chat.name)).toEqual(['chat faux-model', 'chat faux-model']);
 
-              for (const chat of chats) {
-                expect(chat.parent_span_id).toBe(root.span_id);
-                expect(chat.attributes[SENTRY_ORIGIN]?.value).toBe('auto.ai.pi_ai');
-                expect(chat.attributes[GEN_AI_OPERATION_NAME]?.value).toBe('chat');
-                expect(chat.attributes[GEN_AI_USAGE_INPUT_TOKENS]?.value).toBeGreaterThan(0);
-                expect(chat.attributes[GEN_AI_USAGE_OUTPUT_TOKENS]?.value).toBeGreaterThan(0);
-              }
-
-              const [toolCall, answer, compatComplete, compatStream] = chats;
+              const [toolCall, answer] = chats;
               expect(toolCall!.attributes[GEN_AI_PROVIDER_NAME]?.value).toBe('faux');
               expect(toolCall!.attributes[GEN_AI_REQUEST_MODEL]?.value).toBe('faux-model');
               expect(toolCall!.attributes[GEN_AI_RESPONSE_STREAMING]?.value).toBe(true);
@@ -96,16 +97,48 @@ describe.runIf(supports({ min: 22 }))('pi-ai integration', () => {
                   (message: { role: string }) => message.role,
                 ),
               ).toEqual(['user', 'assistant', 'tool']);
-
-              expect(compatComplete!.attributes[GEN_AI_PROVIDER_NAME]?.value).toBe('compat-faux');
-              expect(compatComplete!.attributes[GEN_AI_RESPONSE_STREAMING]).toBeUndefined();
-              expect(compatStream!.attributes[GEN_AI_RESPONSE_STREAMING]?.value).toBe(true);
-              expect(compatStream!.attributes[GEN_AI_OUTPUT_MESSAGES]?.value).toContain('Goodbye.');
             },
           })
           .start()
           .completed();
       });
+    },
+    PI_AI_DEPENDENCIES,
+  );
+
+  createEsmAndCjsTests(
+    __dirname,
+    'scenario-compat.mjs',
+    'instrument.mjs',
+    (createRunner, test, mode) => {
+      if (mode === 'cjs') {
+        return;
+      }
+
+      // `compat` loads pi-ai's model catalog with `import ... with { type: 'json' }`. Deno 2.8 drops
+      // the import attributes once any module hook is registered and compiles the JSON as JavaScript,
+      // which Deno 2.9 fixed. The SDK registers one for its runtime instrumentation.
+      test.runIf(supports({ runtimes: ['node', 'bun'] }))(
+        'traces the requests sent through the standalone functions',
+        async () => {
+          await createRunner()
+            .unordered()
+            .expect({
+              span: container => {
+                const root = container.items.find(span => span.is_segment)!;
+                const [completed, streamed] = chatSpans(container.items, root.span_id);
+                expect([completed!.name, streamed!.name]).toEqual(['chat compat-model', 'chat compat-model']);
+
+                expect(completed!.attributes[GEN_AI_PROVIDER_NAME]?.value).toBe('compat-faux');
+                expect(completed!.attributes[GEN_AI_RESPONSE_STREAMING]).toBeUndefined();
+                expect(streamed!.attributes[GEN_AI_RESPONSE_STREAMING]?.value).toBe(true);
+                expect(streamed!.attributes[GEN_AI_OUTPUT_MESSAGES]?.value).toContain('Goodbye.');
+              },
+            })
+            .start()
+            .completed();
+        },
+      );
     },
     PI_AI_DEPENDENCIES,
   );
