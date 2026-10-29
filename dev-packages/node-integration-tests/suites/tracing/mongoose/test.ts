@@ -1,3 +1,4 @@
+import type { SerializedStreamedSpan } from '@sentry/core';
 import {
   DB_COLLECTION_NAME,
   DB_NAMESPACE,
@@ -105,6 +106,42 @@ describe('Mongoose experimental Test', () => {
         })
         .start()
         .completed();
+    });
+  });
+
+  createEsmAndCjsTests(__dirname, 'scenario-no-parent.mjs', 'instrument.mjs', (createTestRunner, test) => {
+    test('only instruments operations with an active or build-time parent span', async () => {
+      const runner = createTestRunner();
+      const dbSpans = new Map<string, SerializedStreamedSpan>();
+      const spansPromise = runner.collectStreamedSpans(spans => {
+        for (const span of spans) {
+          if (span.attributes[SENTRY_ORIGIN]?.value === origin) {
+            dbSpans.set(span.span_id, span);
+          }
+        }
+        return spans.some(span => span.is_segment && span.name === 'parent operation');
+      });
+
+      await runner.unordered().start().completed();
+
+      const spans = await spansPromise;
+      const parent = spans.find(span => span.is_segment && span.name === 'parent operation');
+      expect(parent).toBeDefined();
+      expect(
+        Array.from(dbSpans.values(), span => ({
+          operation: span.attributes[DB_OPERATION_NAME]?.value,
+          parentSpanId: span.parent_span_id,
+          traceId: span.trace_id,
+          isSegment: span.is_segment,
+        })),
+      ).toEqual(
+        ['findOne', 'countDocuments'].map(operation => ({
+          operation,
+          parentSpanId: parent?.span_id,
+          traceId: parent?.trace_id,
+          isSegment: false,
+        })),
+      );
     });
   });
 });

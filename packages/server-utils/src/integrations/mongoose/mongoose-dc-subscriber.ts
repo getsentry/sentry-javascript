@@ -113,38 +113,42 @@ export function subscribeMongooseDiagnosticChannels(tracingChannel: MongooseTrac
 }
 
 function setupChannel(tracingChannel: MongooseTracingChannelFactory, channelName: string): void {
-  bindTracingChannelToSpan(tracingChannel<MongooseTracingData>(channelName), data => {
-    const collection = data.collection;
-    const queryText = redactMongoQuery(data.args?.pipeline ?? data.args?.filter);
-    const batchSize = getBatchSize(data);
+  bindTracingChannelToSpan(
+    tracingChannel<MongooseTracingData>(channelName),
+    data => {
+      const collection = data.collection;
+      const queryText = redactMongoQuery(data.args?.pipeline ?? data.args?.filter);
+      const batchSize = getBatchSize(data);
 
-    const client = getClient();
-    const target = collection || data.database;
-    const name =
-      client && hasSpanStreamingEnabled(client)
-        ? target
-          ? `${data.operation} ${target}`
-          : DB_SYSTEM_NAME_VALUE_MONGODB
-        : collection
-          ? `mongoose.${collection}.${data.operation}`
-          : `mongoose.${data.operation}`;
+      const client = getClient();
+      const target = collection || data.database;
+      const name =
+        client && hasSpanStreamingEnabled(client)
+          ? target
+            ? `${data.operation} ${target}`
+            : DB_SYSTEM_NAME_VALUE_MONGODB
+          : collection
+            ? `mongoose.${collection}.${data.operation}`
+            : `mongoose.${data.operation}`;
 
-    return startInactiveSpan({
-      name,
-      attributes: {
-        [SENTRY_ORIGIN]: ORIGIN,
-        [SENTRY_OP]: DB,
-        [DB_SYSTEM_NAME]: DB_SYSTEM_NAME_VALUE_MONGODB,
-        [DB_OPERATION_NAME]: data.operation,
-        [DB_COLLECTION_NAME]: collection ?? undefined,
-        [DB_NAMESPACE]: data.database ?? undefined,
-        [DB_QUERY_TEXT]: queryText ?? undefined,
-        [DB_OPERATION_BATCH_SIZE]: batchSize ?? undefined,
-        [SERVER_ADDRESS]: data.serverAddress ?? undefined,
-        [SERVER_PORT]: data.serverPort ?? undefined,
-      },
-    });
-  });
+      return startInactiveSpan({
+        name,
+        attributes: {
+          [SENTRY_ORIGIN]: ORIGIN,
+          [SENTRY_OP]: DB,
+          [DB_SYSTEM_NAME]: DB_SYSTEM_NAME_VALUE_MONGODB,
+          [DB_OPERATION_NAME]: data.operation,
+          [DB_COLLECTION_NAME]: collection ?? undefined,
+          [DB_NAMESPACE]: data.database ?? undefined,
+          [DB_QUERY_TEXT]: queryText ?? undefined,
+          [DB_OPERATION_BATCH_SIZE]: batchSize ?? undefined,
+          [SERVER_ADDRESS]: data.serverAddress ?? undefined,
+          [SERVER_PORT]: data.serverPort ?? undefined,
+        },
+      });
+    },
+    { requiresParentSpan: true },
+  );
 }
 
 /**

@@ -146,7 +146,10 @@ function startSpan(
   modelName: string | undefined,
   operation: string,
   parentSpan?: Span,
-): Span {
+): Span | undefined {
+  if (!parentSpan && !getActiveSpan()) {
+    return undefined;
+  }
   return startMongooseLegacySpan({ collection, modelName, operation, origin: ORIGIN, parentSpan });
 }
 
@@ -157,7 +160,7 @@ function channel(channelName: string): SentryTracingChannel<MongooseChannelConte
   return diagnosticsChannel.tracingChannel<MongooseChannelContext>(channelName);
 }
 
-function bindExecSpan(channelName: string, getSpan: (self: object) => Span): void {
+function bindExecSpan(channelName: string, getSpan: (self: object) => Span | undefined): void {
   bindTracingChannelToSpan<MongooseChannelContext>(
     diagnosticsChannel.tracingChannel<MongooseChannelContext>(channelName),
     data => {
