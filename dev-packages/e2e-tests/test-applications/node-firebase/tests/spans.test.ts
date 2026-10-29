@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test';
 import type { SerializedStreamedSpan } from '@sentry-internal/test-utils';
-import { collectStreamedSpansUntilSegment, getSpanOp, waitForStreamedSpans } from '@sentry-internal/test-utils';
+import { collectStreamedSpansUntilSegment, waitForStreamedSpans } from '@sentry-internal/test-utils';
 
 // The orchestrion spans are Sentry-native, so they carry no span-kind attribute (`sentry.kind`).
 const origin = 'auto.db.firebase.firestore';
@@ -59,8 +59,17 @@ test('does not create firestore spans without a parent span', async ({ baseURL }
     return spans.some(span => span.is_segment && span.name === 'No Parent Marker');
   });
 
-  await fetch(`${baseURL}/test-no-parent`);
+  const response = await fetch(`${baseURL}/test-no-parent`);
+  expect(response.ok).toBe(true);
   await markerPromise;
 
-  expect(seen.filter(span => span.is_segment && getSpanOp(span) === 'db.query')).toEqual([]);
+  const marker = seen.find(span => span.is_segment && span.name === 'No Parent Marker')!;
+  // Only the call inside the marker span may produce a span, as its child.
+  expect(seen.filter(span => span.name === 'addDoc no-parent')).toEqual([
+    expect.objectContaining({
+      is_segment: false,
+      parent_span_id: marker.span_id,
+      trace_id: marker.trace_id,
+    }),
+  ]);
 });
