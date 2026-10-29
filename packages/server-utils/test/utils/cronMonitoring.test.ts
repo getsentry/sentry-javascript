@@ -1,6 +1,7 @@
-import { getCurrentScope } from '@sentry/core';
-import { describe, expect, it } from 'vitest';
+import { getCurrentScope, setCurrentClient } from '@sentry/core';
+import { describe, expect, it, vi } from 'vitest';
 import { cronExpressionToMonitorConfig, shouldMonitorJob, wrapScheduledJob } from '../../src/utils/cronMonitoring';
+import { getDefaultTestClientOptions, TestClient } from '../mocks/client';
 
 const toMonitorConfig = (expression: string, timezone: unknown) =>
   cronExpressionToMonitorConfig(expression, timezone, 'and');
@@ -113,7 +114,7 @@ describe('wrapScheduledJob', () => {
     const job = wrapScheduledJob(
       () => getCurrentScope().getPropagationContext().traceId,
       'job',
-      undefined,
+      toMonitorConfig('* * * * *', 'UTC'),
       'auto.function.test',
     );
     const outerTraceId = getCurrentScope().getPropagationContext().traceId;
@@ -122,5 +123,21 @@ describe('wrapScheduledJob', () => {
 
     expect(firstTraceId).not.toBe(secondTraceId);
     expect(firstTraceId).not.toBe(outerTraceId);
+  });
+
+  it('sends no check-ins for jobs without a monitor config', () => {
+    const client = new TestClient(getDefaultTestClientOptions());
+    setCurrentClient(client);
+    client.init();
+    const captureCheckIn = vi.fn(() => 'check-in-id');
+    Object.assign(client, { captureCheckIn });
+
+    const job = wrapScheduledJob(() => 'done', 'job', undefined, 'auto.function.test');
+
+    expect(job()).toBe('done');
+    expect(captureCheckIn).not.toHaveBeenCalled();
+
+    wrapScheduledJob(() => {}, 'job', toMonitorConfig('* * * * *', 'UTC'), 'auto.function.test')();
+    expect(captureCheckIn).toHaveBeenCalled();
   });
 });
