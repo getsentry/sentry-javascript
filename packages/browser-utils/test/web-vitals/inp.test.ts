@@ -100,3 +100,50 @@ describe('INP element name cache', () => {
     expect(getCachedInteractionContext(44)?.elementName).toBe('<unknown>');
   });
 });
+
+describe('INP subpart timings', () => {
+  beforeEach(() => {
+    windowListeners.clear();
+    performanceHandlers.clear();
+  });
+
+  function eventEntry(interactionId: number, startTime: number, duration: number, processing: [number, number]) {
+    return {
+      entryType: 'event',
+      name: 'click',
+      interactionId,
+      startTime,
+      duration,
+      processingStart: processing[0],
+      processingEnd: processing[1],
+      target: null,
+    };
+  }
+
+  it('merges every event entry of an interaction seen by the observer', async () => {
+    const { getInpSubpartAttributes, registerInpInteractionListener } = await loadInp();
+    registerInpInteractionListener();
+
+    const pointerdown = eventEntry(7, 500, 520, [505, 506]);
+    performanceHandlers.get('event')?.({ entries: [pointerdown, eventEntry(7, 510, 504, [515, 965])] });
+
+    expect(getInpSubpartAttributes(pointerdown as any)).toEqual({
+      'browser.web_vital.inp.input_delay': 5,
+      'browser.web_vital.inp.processing_duration': 460,
+      'browser.web_vital.inp.presentation_delay': 55,
+    });
+  });
+
+  it('keeps the longest interactions when it has to evict one', async () => {
+    const { getInpSubpartAttributes, recordInteractionTiming } = await loadInp();
+
+    const slow = eventEntry(1, 0, 500, [10, 400]);
+    recordInteractionTiming(slow as any);
+    for (let id = 2; id <= 11; id++) {
+      recordInteractionTiming(eventEntry(id, id * 1000, 50, [id * 1000 + 5, id * 1000 + 10]) as any);
+    }
+
+    expect(getInpSubpartAttributes(slow as any)).toBeDefined();
+    expect(getInpSubpartAttributes(eventEntry(2, 2000, 50, [0, 0]) as any)).toBeUndefined();
+  });
+});
