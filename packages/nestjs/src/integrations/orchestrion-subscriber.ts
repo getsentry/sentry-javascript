@@ -5,7 +5,7 @@ import { bindTracingChannelToSpan } from '@sentry/server-utils';
 import { nestjsChannels as CHANNELS } from '@sentry/server-utils/orchestrion/config';
 import { DEBUG_BUILD } from '../debug-build';
 import type { AnyFn } from './helpers';
-import { isWrapped, markWrapped } from './helpers';
+import { isWrapped, markWrapped, setNestScheduleVersion } from './helpers';
 import type { CatchTarget, InjectableTarget, MinimalNestJsExecutionContext } from './types';
 import { patchCatchTarget, patchInjectableTarget } from './wrap-components';
 import {
@@ -191,11 +191,13 @@ export function subscribeToNestChannels(): void {
   // @Cron/@Interval/@Timeout (schedule), @OnEvent (event), @Processor (bullmq)
   subscribeFactoryDecorator(CHANNELS.NESTJS_SCHEDULE_CRON, (decorator, data) => {
     const cronDecorator = makeMethodDecorator(decorator, (handler, target, propertyKey) =>
-      wrapCronHandler(handler, [...(data.arguments || [])], target, propertyKey),
+      wrapCronHandler(handler, [...(data.arguments || [])], target, propertyKey, data.moduleVersion),
     );
     return function (this: unknown, ...args: unknown[]): unknown {
       const result = cronDecorator.apply(this, args);
-      linkCronOptionsToMonitor((args[2] as PropertyDescriptor | undefined)?.value);
+      const method = (args[2] as PropertyDescriptor | undefined)?.value;
+      setNestScheduleVersion(method, data.moduleVersion);
+      linkCronOptionsToMonitor(method);
       return result;
     };
   });

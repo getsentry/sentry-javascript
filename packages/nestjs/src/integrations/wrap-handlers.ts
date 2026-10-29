@@ -101,9 +101,10 @@ export function wrapCronHandler(
   cronArgs: unknown[],
   target: unknown,
   propertyKey: string | symbol | undefined,
+  scheduleVersion?: string,
 ): AnyFn {
   const scheduleHandler = wrapScheduleHandler(handler, MECHANISM_CRON);
-  const resolveMonitor = makeCronMonitorResolver(cronArgs, target, propertyKey);
+  const resolveMonitor = makeCronMonitorResolver(cronArgs, target, propertyKey, scheduleVersion);
 
   const wrapped = function (this: unknown, ...args: unknown[]): unknown {
     const monitor = resolveMonitor(handler, wrapped);

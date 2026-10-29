@@ -2,6 +2,7 @@ import 'reflect-metadata';
 import { tracingChannel } from 'node:diagnostics_channel';
 import * as SentryCore from '@sentry/core';
 import { Client, createTransport, initAndBind, resolvedSyncPromise } from '@sentry/core';
+import type { OrchestrionChannelContext } from '@sentry/server-utils';
 import { nestjsChannels as CHANNELS } from '@sentry/server-utils/orchestrion/config';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { SentryCron } from '../../src/decorators';
@@ -38,9 +39,9 @@ function initClient(options: NestCronMonitoringOptions): void {
 }
 
 // Drives the `@Cron()` factory channel and returns the decorator `@Cron()` would apply.
-function cron(cronTime: unknown, options?: Record<string, unknown>): MethodDecorator {
-  const data: { arguments: unknown[]; result?: unknown } = { arguments: [cronTime, options] };
-  tracingChannel<{ arguments: unknown[]; result?: unknown }>(CHANNELS.NESTJS_SCHEDULE_CRON).traceSync(
+function cron(cronTime: unknown, options?: Record<string, unknown>, moduleVersion?: string): MethodDecorator {
+  const data: OrchestrionChannelContext = { arguments: [cronTime, options], moduleVersion };
+  tracingChannel<OrchestrionChannelContext>(CHANNELS.NESTJS_SCHEDULE_CRON).traceSync(
     () => (_target: unknown, _key: unknown, descriptor: PropertyDescriptor) => {
       Reflect.defineMetadata('SCHEDULE_CRON_OPTIONS', { ...options, cronTime }, descriptor.value);
       return descriptor;
@@ -138,6 +139,16 @@ describe('@Cron() monitoring', () => {
     decorate('Jobs', [cron('*/10 * * * * *', { name: 'every-10s' })])();
 
     expect(sentCheckIns()[0]).toEqual(['every-10s', 'in_progress', undefined]);
+  });
+
+  it.each([
+    ['@nestjs/schedule 3', '3.0.4', undefined],
+    ['@nestjs/schedule 4', '4.1.2', { schedule: { type: 'crontab', value: '0 0 1 1 *' }, timezone: 'UTC' }],
+  ])('sends a numeric month only from %s', (_, moduleVersion, config) => {
+    initClient({ monitorCronJobs: true });
+    decorate('Jobs', [cron('0 0 1 1 *', { name: 'yearly', timeZone: 'UTC' }, moduleVersion)])();
+
+    expect(sentCheckIns()[0]).toEqual(['yearly', 'in_progress', config]);
   });
 
   it('does not monitor by default', () => {

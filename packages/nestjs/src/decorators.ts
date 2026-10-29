@@ -6,7 +6,7 @@ import { startSpan } from '@sentry/node';
 import { DEBUG_BUILD } from './debug-build';
 import { isExpectedError } from './helpers';
 import type { ReflectWithMetadata } from './integrations/helpers';
-import { copyReflectMetadata, markSentryCronMethod } from './integrations/helpers';
+import { copyReflectMetadata, getNestScheduleVersion, markSentryCronMethod } from './integrations/helpers';
 
 /**
  * Monitor settings for `@SentryCron` whose schedule and time zone come from the `@Cron()` decorator
@@ -129,7 +129,7 @@ function getMonitorConfigFromNestCron(candidates: unknown[]): MonitorConfig | un
     }
     const cronOptions = R.getMetadata(SCHEDULE_CRON_OPTIONS, candidate);
     if (cronOptions && typeof cronOptions === 'object') {
-      return nestCronOptionsToMonitorConfig(cronOptions);
+      return nestCronOptionsToMonitorConfig(cronOptions, getNestScheduleVersion(cronOptions));
     }
   }
 
@@ -140,7 +140,10 @@ function getMonitorConfigFromNestCron(candidates: unknown[]): MonitorConfig | un
  * Converts the options `@Cron()` stores as metadata into a Sentry monitor config.
  * Returns `undefined` for schedules Sentry can't represent.
  */
-export function nestCronOptionsToMonitorConfig(cronOptions: NestCronOptions): MonitorConfig | undefined {
+export function nestCronOptionsToMonitorConfig(
+  cronOptions: NestCronOptions,
+  scheduleVersion: string | undefined,
+): MonitorConfig | undefined {
   const { cronTime, timeZone, utcOffset } = cronOptions;
 
   // A fixed UTC offset has no IANA time zone equivalent.
@@ -153,10 +156,10 @@ export function nestCronOptionsToMonitorConfig(cronOptions: NestCronOptions): Mo
   if (fields.length === 1) {
     crontab = CRON_PRESETS[(fields[0] as string).toLowerCase()];
   } else if (fields.length === 5) {
-    crontab = isSupportedCrontab(fields) ? fields.join(' ') : undefined;
+    crontab = isSupportedCrontab(fields, scheduleVersion) ? fields.join(' ') : undefined;
   } else if (fields.length === 6 && /^\d+$/.test(fields[0] as string)) {
     // Sentry schedules have minute granularity, so only a fixed second can be dropped.
-    crontab = isSupportedCrontab(fields.slice(1)) ? fields.slice(1).join(' ') : undefined;
+    crontab = isSupportedCrontab(fields.slice(1), scheduleVersion) ? fields.slice(1).join(' ') : undefined;
   }
 
   if (!crontab) {
@@ -178,27 +181,67 @@ export function nestCronOptionsToMonitorConfig(cronOptions: NestCronOptions): Mo
 /**
  * Whether Sentry reads the 5 crontab fields the same way `cron` (used by `@nestjs/schedule`) runs them.
  */
-function isSupportedCrontab([, , dayOfMonth = '', month = '', dayOfWeek = '']: string[]): boolean {
-  // `cron` 2.x (`@nestjs/schedule` 3) counts months from 0, so a month number is ambiguous. Steps are not.
-  if (/\d/.test(month.replace(/\/\d+/g, ''))) {
+function isSupportedCrontab(
+  [, , dayOfMonth = '', month = '', dayOfWeek = '']: string[],
+  scheduleVersion: string | undefined,
+): boolean {
+  // `cron` 2.x (`@nestjs/schedule` 2 and 3) counts months from 0. Steps don't depend on that.
+  const countsMonthsFromOne = parseInt(scheduleVersion ?? '', 10) >= 4;
+  if (!countsMonthsFromOne && /\d/.test(month.replace(/\/\d+/g, ''))) {
     return false;
   }
 
-  if (dayOfMonth === '*' || dayOfWeek === '*') {
-    return true;
+  const daysOfMonth = countCronValues(dayOfMonth, 1, 31);
+  const daysOfWeek = countCronValues(dayOfWeek, 0, 7);
+  if (daysOfMonth === undefined || daysOfWeek === undefined) {
+    return false;
   }
 
-  // With both day fields set, `cron` runs on either, but Sentry needs both when one starts with `*` (like `*/2`).
-  // `cron` also treats a full range like `1-31` as `*`, which Sentry may not.
-  return !(
-    dayOfMonth.startsWith('*') ||
-    dayOfWeek.startsWith('*') ||
-    dayOfMonth === '1-31' ||
-    FULL_DAY_OF_WEEK_RANGES.has(dayOfWeek)
-  );
+  // `cron` ignores a day field that covers every day (like `1-31` or `sun-sat`) and runs on either day field
+  // otherwise. Sentry reads full ranges as they are and needs both day fields when one starts with `*` (like `*/2`).
+  const allDaysOfMonth = daysOfMonth === 31;
+  const allDaysOfWeek = daysOfWeek === 7;
+  const cronRunsOnEither = !allDaysOfMonth && !allDaysOfWeek;
+  const sentryRunsOnEither = !dayOfMonth.startsWith('*') && !dayOfWeek.startsWith('*');
+  return (allDaysOfMonth && allDaysOfWeek) || cronRunsOnEither === sentryRunsOnEither;
 }
 
-const FULL_DAY_OF_WEEK_RANGES = new Set(['0-6', '0-7', '1-7']);
+const DAY_NAMES: Record<string, number | undefined> = { sun: 0, mon: 1, tue: 2, wed: 3, thu: 4, fri: 5, sat: 6 };
+
+/**
+ * How many days a day field matches, expanded the way `cron` does it, or `undefined` if `cron` can't parse it.
+ * Day of week `7` is Sunday, like `0`.
+ */
+function countCronValues(field: string, low: number, high: number): number | undefined {
+  let unknownName = false;
+  const numericField = field.replace(/[a-z]{1,3}/gi, name => {
+    const value = DAY_NAMES[name.toLowerCase()];
+    unknownName ||= value === undefined;
+    return String(value);
+  });
+  if (unknownName) {
+    return undefined;
+  }
+
+  const values = new Set<number>();
+  for (const part of numericField.split(',')) {
+    const match = part.match(/^(?:(\*)|(\d+)(?:-(\d+))?)(?:\/(\d+))?$/);
+    if (!match) {
+      return undefined;
+    }
+    const [, wildcard, from, to, step] = match;
+    const lower = wildcard ? low : Number(from);
+    const upper = wildcard || (step && !to) ? high : Number(to ?? from);
+    const increment = Number(step ?? 1);
+    if (!increment || lower < low || upper > high || lower > upper) {
+      return undefined;
+    }
+    for (let value = lower; value <= upper; value += increment) {
+      values.add(high === 7 && value === 7 ? 0 : value);
+    }
+  }
+  return values.size;
+}
 
 /**
  * The canonical IANA name of the time zone, or `undefined` if Sentry won't accept it (like `UTC+3`).

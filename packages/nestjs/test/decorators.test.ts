@@ -1,10 +1,14 @@
 import 'reflect-metadata';
+import { tracingChannel } from 'node:diagnostics_channel';
 import { SetMetadata } from '@nestjs/common';
 import { CODE_FUNCTION_NAME, SENTRY_OP, SENTRY_ORIGIN } from '@sentry/conventions/attributes';
 import * as core from '@sentry/core';
+import type { OrchestrionChannelContext } from '@sentry/server-utils';
+import { nestjsChannels as CHANNELS } from '@sentry/server-utils/orchestrion/config';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { SentryCron, SentryExceptionCaptured, SentryTraced } from '../src/decorators';
 import * as helpers from '../src/helpers';
+import { subscribeToNestChannels } from '../src/integrations/orchestrion-subscriber';
 
 describe('SentryTraced decorator', () => {
   beforeEach(() => {
@@ -264,6 +268,14 @@ describe('SentryCron decorator with @Cron', () => {
   const Cron = (cronTime: unknown, options: Record<string, unknown> = {}): MethodDecorator =>
     SetMetadata('SCHEDULE_CRON_OPTIONS', { ...options, cronTime });
 
+  // `@Cron()` as the SDK's instrumentation sees it, with the `@nestjs/schedule` version.
+  const VersionedCron = (cronTime: string, moduleVersion: string): MethodDecorator => {
+    subscribeToNestChannels();
+    const data: OrchestrionChannelContext = { arguments: [cronTime], moduleVersion };
+    tracingChannel<OrchestrionChannelContext>(CHANNELS.NESTJS_SCHEDULE_CRON).traceSync(() => Cron(cronTime), data);
+    return data.result as MethodDecorator;
+  };
+
   // Mirrors the SDK's own `@Cron()` instrumentation, which swaps the method before nest stores the metadata.
   const WrappingCron =
     (cronTime: unknown): MethodDecorator =>
@@ -376,6 +388,14 @@ describe('SentryCron decorator with @Cron', () => {
     ['a full day-of-month range with a day of week', Cron('0 9 1-31 * MON')],
     ['a full day-of-week range with a day of month', Cron('0 9 1 * 0-6')],
     ['a full 1-7 day-of-week range with a day of month', Cron('0 9 15 * 1-7')],
+    ['a full day-of-week name range with a day of month', Cron('0 9 1 * sun-sat')],
+    ['a full upper-case day-of-week name range with a day of month', Cron('0 9 1 * SUN-SAT')],
+    ['a full mon-sun day-of-week range with a day of month', Cron('0 9 1 * mon-sun')],
+    ['a full day-of-week list with a day of month', Cron('0 9 1 * 0,1,2,3,4,5,6')],
+    ['a full day-of-month range with a step of 1 and a day of week', Cron('0 9 1-31/1 * MON')],
+    ['an unknown day name', Cron('0 9 1 * sunday')],
+    ['an out-of-range day of month', Cron('0 9 32 * *')],
+    ['a numeric month from @nestjs/schedule 3', VersionedCron('0 9 1 5 *', '3.0.4')],
     ['a fixed-offset time zone', Cron('0 * * * *', { timeZone: 'UTC+3' })],
     ['an unknown time zone', Cron('0 * * * *', { timeZone: 'Mars/Olympus' })],
   ])('sends no monitor config for %s', async (_, cronDecorator) => {
@@ -389,11 +409,30 @@ describe('SentryCron decorator with @Cron', () => {
   it.each([
     ['a month name', '0 9 1 MAY *'],
     ['both day fields', '0 9 1-7 * MON'],
+    ['a day-of-week name list with a day of month', '0 9 1 * mon,fri'],
+    ['a full day-of-month range with a day-of-week step', '0 9 1-31 * */2'],
+    ['a day-of-month step of 1 with a day of week', '0 9 */1 * MON'],
+    ['both day fields covering every day', '0 9 1-31 * sun-sat'],
     ['CronExpression.EVERY_QUARTER', '0 0 1 */3 *'],
     ['CronExpression.EVERY_6_MONTHS', '0 0 1 */6 *'],
   ])('sends a crontab with %s', async (_, crontab) => {
     const withMonitorSpy = vi.spyOn(core, 'withMonitor');
     const service = decorate(SentryCron('my-job'), Cron(crontab));
+
+    await service.job();
+    expect(withMonitorSpy).toHaveBeenCalledWith('my-job', expect.any(Function), {
+      schedule: { type: 'crontab', value: crontab },
+      timezone: 'Asia/Tokyo',
+    });
+  });
+
+  it.each([
+    ['a numeric month', '0 9 1 5 *'],
+    ['a numeric month range', '0 9 1 1-6 *'],
+    ['CronExpression.EVERY_YEAR', '0 0 1 1 *'],
+  ])('sends a crontab with %s from @nestjs/schedule 4 or later', async (_, crontab) => {
+    const withMonitorSpy = vi.spyOn(core, 'withMonitor');
+    const service = decorate(SentryCron('my-job'), VersionedCron(crontab, '4.1.2'));
 
     await service.job();
     expect(withMonitorSpy).toHaveBeenCalledWith('my-job', expect.any(Function), {

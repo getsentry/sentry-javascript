@@ -42,6 +42,7 @@ export function makeCronMonitorResolver(
   cronArgs: unknown[],
   target: unknown,
   propertyKey: string | symbol | undefined,
+  scheduleVersion?: string,
 ): (handler: AnyFn, wrapped: AnyFn) => CronMonitor | undefined {
   let monitor: CronMonitor | null | undefined;
 
@@ -54,7 +55,7 @@ export function makeCronMonitorResolver(
 
     if (monitor === undefined) {
       try {
-        monitor = getCronMonitor(cronArgs, target, propertyKey);
+        monitor = getCronMonitor(cronArgs, target, propertyKey, scheduleVersion);
       } catch (e) {
         DEBUG_BUILD && debug.error('[Nest] Failed to set up the cron monitor:', e);
         monitor = null;
@@ -72,6 +73,7 @@ function getCronMonitor(
   [cronTime, cronOptions]: unknown[],
   target: unknown,
   propertyKey: string | symbol | undefined,
+  scheduleVersion: string | undefined,
 ): CronMonitor | null {
   // A `Date` runs once, so there is nothing to monitor.
   if (typeof cronTime !== 'string') {
@@ -92,5 +94,5 @@ function getCronMonitor(
     return null;
   }
 
-  return { slug, config: nestCronOptionsToMonitorConfig({ ...options, cronTime }) };
+  return { slug, config: nestCronOptionsToMonitorConfig({ ...options, cronTime }, scheduleVersion) };
 }
