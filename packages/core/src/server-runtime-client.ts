@@ -1,3 +1,4 @@
+import { SERVER_ADDRESS } from '@sentry/conventions/attributes';
 import { createCheckInEnvelope } from './checkin';
 import { Client } from './client';
 import { getIsolationScope } from './currentScopes';
@@ -248,7 +249,7 @@ export class ServerRuntimeClient<
     this.on('processMetric', metric => {
       if (this._options.serverName) {
         metric.attributes = {
-          'server.address': this._options.serverName,
+          [SERVER_ADDRESS]: this._options.serverName,
           ...metric.attributes,
         };
       }
