@@ -466,7 +466,7 @@ export function _sendInpSpan(
   selector && selector !== UNKNOWN_ELEMENT_NAME && (attributes[BROWSER_WEB_VITAL_INP_TARGET] = selector);
   entryInteractionType && (attributes[BROWSER_WEB_VITAL_INP_INTERACTION_TYPE] = entryInteractionType);
 
-  Object.assign(attributes, getInpSubpartAttributes(entry, metric?.entries));
+  Object.assign(attributes, getInpSubpartAttributes(entry));
 
   if (componentName) {
     attributes[UI_COMPONENT_NAME] = componentName;
