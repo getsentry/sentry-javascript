@@ -2,7 +2,7 @@ import * as Sentry from '@sentry/node';
 import { createClient } from 'redis-5';
 
 async function run() {
-  const redisClient = await createClient({ socket: { port: 6383 } }).connect();
+  const redisClient = createClient({ socket: { port: 6383 } });
 
   await Sentry.startSpan(
     {
@@ -10,6 +10,8 @@ async function run() {
       op: 'test-span-redis-5',
     },
     async () => {
+      await redisClient.connect();
+
       try {
         await redisClient.set('redis-5-test-key', 'test-value');
         await redisClient.set('redis-5-cache:test-key', 'test-value');

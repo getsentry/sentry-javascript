@@ -21,7 +21,7 @@ import {
   SERVER_ADDRESS,
   SERVER_PORT,
 } from '@sentry/conventions/attributes';
-import { CACHE_GET, CACHE_PUT, type CACHE_REMOVE, DB_QUERY } from '@sentry/conventions/op';
+import { CACHE_GET, CACHE_PUT, type CACHE_REMOVE, DB, DB_QUERY } from '@sentry/conventions/op';
 import { afterAll, expect } from 'vitest';
 import { EXPECTED_SDK_NAME } from '../../../utils';
 import { cleanupChildProcesses, createEsmAndCjsTests, describeWithDockerCompose } from '../../../utils/runner';
@@ -101,18 +101,26 @@ describeWithDockerCompose(
           await createTestRunner()
             .expect({
               span: container => {
-                // The connect span opens its own segment but shares the trace with the test span,
-                // so both segments arrive in the same container.
-                expect(container.items.filter(item => item.is_segment).map(item => item.name)).toEqual([
-                  'redis-connect',
-                  SEGMENT_NAME,
-                ]);
+                const segments = container.items.filter(item => item.is_segment);
+                expect(segments.map(item => item.name)).toEqual([SEGMENT_NAME]);
+                const parent = segments[0]!;
+                const connection = container.items.find(item => item.name === 'redis-connect')!;
+                expect(connection).toEqual({
+                  ...(streamedSpan('redis-connect', DB, {}) as Record<string, unknown>),
+                  parent_span_id: parent.span_id,
+                  trace_id: parent.trace_id,
+                });
 
-                // ioredis' own handshake commands (`client SETINFO`, `info`) are emitted on the
-                // channel too, but belong to the connect segment — the test span's children are the
-                // commands the scenario issues.
+                const handshakes = container.items.filter(item => item.parent_span_id === connection.span_id);
+                expect(handshakes.map(item => item.attributes[DB_OPERATION_NAME]?.value)).toEqual(
+                  label === 'v6' ? ['hello', 'client', 'client', 'info'] : ['client', 'client', 'info'],
+                );
+
                 const spans = container.items.filter(
-                  item => !item.is_segment && item.attributes[SENTRY_SEGMENT_NAME]?.value === SEGMENT_NAME,
+                  item =>
+                    !item.is_segment &&
+                    item.span_id !== connection.span_id &&
+                    item.parent_span_id !== connection.span_id,
                 );
 
                 expect(spans).toEqual([

@@ -4,14 +4,14 @@ async function run() {
   const { default: Redis } = await import('ioredis-5');
   const redisClient = new Redis({ host: '127.0.0.1', port: 6382, lazyConnect: true });
 
-  await redisClient.connect();
-
   await Sentry.startSpan(
     {
       name: 'Test Span IORedis DC',
       op: 'test-span-ioredis-dc',
     },
     async () => {
+      await redisClient.connect();
+
       try {
         await redisClient.set('dc-test-key', 'test-value');
         await redisClient.set('dc-cache:test-key', 'test-value');

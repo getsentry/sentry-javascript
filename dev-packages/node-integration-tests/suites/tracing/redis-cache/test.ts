@@ -25,7 +25,7 @@ import {
   SERVER_ADDRESS,
   SERVER_PORT,
 } from '@sentry/conventions/attributes';
-import { CACHE_GET, CACHE_PUT, CACHE_REMOVE, DB_QUERY } from '@sentry/conventions/op';
+import { CACHE_GET, CACHE_PUT, CACHE_REMOVE, DB, DB_QUERY } from '@sentry/conventions/op';
 import type { SerializedStreamedSpanContainer } from '@sentry/core';
 import { afterAll, describe, expect } from 'vitest';
 import { EXPECTED_SDK_NAME } from '../../../utils';
@@ -323,14 +323,16 @@ describeWithDockerCompose('redis cache auto instrumentation', { workingDirectory
           await createTestRunner()
             .expect({
               span: container => {
-                // The connect span opens its own segment, but shares the trace with the test span,
-                // so both segments arrive in the same container.
-                expect(container.items.filter(item => item.is_segment).map(item => item.name)).toEqual([
-                  'redis-connect',
-                  segmentName,
-                ]);
+                const segments = container.items.filter(item => item.is_segment);
+                expect(segments.map(item => item.name)).toEqual([segmentName]);
+                const parent = segments[0]!;
 
                 expect(childSpans(container)).toEqual([
+                  {
+                    ...(span('redis-connect', DB, {}) as Record<string, unknown>),
+                    parent_span_id: parent.span_id,
+                    trace_id: parent.trace_id,
+                  },
                   span('SET localhost:6383', redisSpanOp, {
                     [DB_OPERATION_NAME]: 'SET',
                     [DB_QUERY_TEXT]: 'SET redis-test-key [1 other arguments]',
@@ -427,12 +429,16 @@ describeWithDockerCompose('redis cache auto instrumentation', { workingDirectory
           await createTestRunner()
             .expect({
               span: container => {
-                expect(container.items.filter(item => item.is_segment).map(item => item.name)).toEqual([
-                  'redis-connect',
-                  segmentName,
-                ]);
+                const segments = container.items.filter(item => item.is_segment);
+                expect(segments.map(item => item.name)).toEqual([segmentName]);
+                const parent = segments[0]!;
 
                 expect(childSpans(container)).toEqual([
+                  {
+                    ...(span('redis-connect', DB, {}) as Record<string, unknown>),
+                    parent_span_id: parent.span_id,
+                    trace_id: parent.trace_id,
+                  },
                   span('SET localhost:6383', redisSpanOp, {
                     [DB_OPERATION_NAME]: 'SET',
                     [DB_QUERY_TEXT]: 'SET redis-5-test-key [1 other arguments]',
