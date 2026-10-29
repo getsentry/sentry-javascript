@@ -195,6 +195,7 @@ export {
   postgresIntegration,
   postgresJsIntegration,
   neonIntegration,
+  nodeCronIntegration,
   tediousIntegration,
   eveConversationHook,
   eveIntegration,

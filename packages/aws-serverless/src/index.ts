@@ -118,6 +118,7 @@ export {
   firebaseIntegration,
   fsIntegration,
   genericPoolIntegration,
+  nodeCronIntegration,
   graphqlIntegration,
   knexIntegration,
   kafkaIntegration,
