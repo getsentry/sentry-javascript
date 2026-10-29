@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import type { ProvidedModulePluginOptions } from '../../src/vite/providedModulePlugin';
-import { createIntegrationModuleMatcher, createProvidedModulePlugin } from '../../src/vite/providedModulePlugin';
+import { createModuleMatcher, createProvidedModulePlugin } from '../../src/vite/providedModulePlugin';
 
 const TARGET = '/app/node_modules/@sentry/server-utils/build/esm/integrations/flue.js';
 
@@ -8,7 +8,7 @@ const OPTIONS: ProvidedModulePluginOptions = {
   name: 'sentry-test-provider',
   moduleName: '@scope/pkg',
   identifier: '__SENTRY_TEST_PKG__',
-  integrationModule: 'flue',
+  targetModules: ['@sentry/server-utils/build/esm/integrations/flue.js'],
 };
 
 /** A Rollup plugin context whose `resolve` answers however the test wants. */
@@ -38,10 +38,10 @@ async function start(
   return plugin;
 }
 
-describe('createIntegrationModuleMatcher', () => {
-  const isFlueIntegrationModuleId = createIntegrationModuleMatcher('flue');
+describe('createModuleMatcher', () => {
+  const isFlueIntegrationModuleId = createModuleMatcher(OPTIONS.targetModules);
 
-  it('matches the ESM integration module', () => {
+  it('matches the target module', () => {
     expect(isFlueIntegrationModuleId(TARGET)).toBe(true);
   });
 
@@ -69,7 +69,14 @@ describe('createIntegrationModuleMatcher', () => {
 
   it('does not match the instrumented package itself', () => {
     expect(isFlueIntegrationModuleId('/app/node_modules/@flue/runtime/dist/index.mjs')).toBe(false);
-    expect(createIntegrationModuleMatcher('mastra')('/app/node_modules/@mastra/core/dist/index.js')).toBe(false);
+  });
+
+  it('matches any of several targets', () => {
+    const isTarget = createModuleMatcher(['/build/esm/prod/sdk.js', '/build/esm/dev/sdk.js']);
+
+    expect(isTarget('/app/node_modules/@sentry/cloudflare/build/esm/prod/sdk.js')).toBe(true);
+    expect(isTarget('/app/node_modules/@sentry/cloudflare/build/esm/dev/sdk.js')).toBe(true);
+    expect(isTarget('/app/node_modules/@sentry/cloudflare/build/cjs/prod/sdk.js')).toBe(false);
   });
 });
 

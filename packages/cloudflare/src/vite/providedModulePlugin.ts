@@ -30,26 +30,26 @@ export interface ProvidedModulePluginOptions {
   moduleName: string;
   /** Namespace binding the injected import uses, e.g. `__SENTRY_FLUE_RUNTIME__`. */
   identifier: string;
-  /** Basename of the `@sentry/server-utils` integration module to inject into, e.g. `flue`. */
-  integrationModule: string;
+  /**
+   * Paths of the Sentry module to inject into, matched as suffixes of the module id, e.g.
+   * `@sentry/server-utils/build/esm/integrations/mastra.js`. ESM builds only: a worker never loads
+   * the CJS one. Several when the module ships in more than one ESM build.
+   */
+  targetModules: readonly string[];
 }
 
 /**
- * Build the matcher for one `@sentry/server-utils` integration module.
+ * Build the matcher for the Sentry module a provider is injected into.
  *
  * Plain `endsWith`, not a `RegExp`: nothing here needs pattern matching, and building one from
  * a caller-supplied string would need escaping, which is the only reason this file would have to
  * import from `@sentry/core`. A build-time plugin should not drag the SDK into the build.
  */
-export function createIntegrationModuleMatcher(integrationModule: string): (id: string) => boolean {
-  // The ESM build only: a worker never loads the CJS one.
-  const suffix = `@sentry/server-utils/build/esm/integrations/${integrationModule}.js`;
-
-  return (id: string): boolean =>
-    id
-      .replace(/\\/g, '/')
-      .replace(/[?#].*$/, '')
-      .endsWith(suffix);
+export function createModuleMatcher(targetModules: readonly string[]): (id: string) => boolean {
+  return (id: string): boolean => {
+    const path = id.replace(/\\/g, '/').replace(/[?#].*$/, '');
+    return targetModules.some(target => path.endsWith(target));
+  };
 }
 
 function buildProviderSnippet({ moduleName, identifier }: ProvidedModulePluginOptions): string {
@@ -69,7 +69,7 @@ function buildProviderSnippet({ moduleName, identifier }: ProvidedModulePluginOp
 
 /**
  * Build a Vite plugin that splices a static `import * as … from '<moduleName>'` into one of
- * Sentry's own integration modules and exposes the namespace on the global orchestrion marker.
+ * Sentry's own modules and exposes the namespace on the global orchestrion marker.
  *
  * Some packages are instrumented by registration rather than by patching, so instrumenting them
  * needs a reference to that module's own binding and no channel payload carries one. On Node the
@@ -78,7 +78,7 @@ function buildProviderSnippet({ moduleName, identifier }: ProvidedModulePluginOp
  * than the user's code, and is only emitted when the package actually resolves.
  */
 export function createProvidedModulePlugin(options: ProvidedModulePluginOptions): ProvidedModulePlugin {
-  const isIntegrationModuleId = createIntegrationModuleMatcher(options.integrationModule);
+  const isTargetModuleId = createModuleMatcher(options.targetModules);
 
   let root = process.cwd();
   let providerSnippet: string | undefined;
@@ -127,7 +127,7 @@ export function createProvidedModulePlugin(options: ProvidedModulePluginOptions)
     transform(code: string, id: string): { code: string; map: ReturnType<MagicString['generateMap']> } | undefined {
       // `code.includes` keeps this idempotent: a second pass over already-injected output would
       // otherwise emit a duplicate `import * as` binding, which is a syntax error.
-      if (!providerSnippet || !isIntegrationModuleId(id) || code.includes(options.identifier)) return undefined;
+      if (!providerSnippet || !isTargetModuleId(id) || code.includes(options.identifier)) return undefined;
 
       const ms = new MagicString(code);
       ms.prepend(providerSnippet);

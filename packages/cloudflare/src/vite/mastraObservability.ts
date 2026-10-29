@@ -15,6 +15,6 @@ export function sentryMastraObservabilityProviderPlugin(): ProvidedModulePlugin 
     name: 'sentry-cloudflare-mastra-observability-provider',
     moduleName: '@mastra/observability',
     identifier: '__SENTRY_MASTRA_OBSERVABILITY__',
-    integrationModule: 'mastra',
+    targetModules: ['@sentry/server-utils/build/esm/integrations/mastra.js'],
   });
 }
