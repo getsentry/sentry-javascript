@@ -19,7 +19,8 @@ const INTEGRATION_NAME = 'GraphileWorker' as const;
 export interface GraphileWorkerOptions {
   /**
    * Send check-ins for the jobs the crontab schedules. The monitor slug is the identifier of the
-   * crontab item (its `id` option, or else the task identifier).
+   * crontab item (its `id` option, or else the task identifier). Items with a custom `match` function
+   * are not monitored.
    *
    * Defaults to `false`.
    */
@@ -102,7 +103,12 @@ export function monitorGraphileCronJobs(events: Events, items: CronItem[], optio
         return;
       }
       const slug = item.identifier;
-      const checkInId = captureCheckIn({ monitorSlug: slug, status: 'in_progress' }, toMonitorConfig(item));
+      const config = toMonitorConfig(item);
+      if (!config) {
+        DEBUG_BUILD && debug.log(`[GraphileWorker] Not monitoring ${slug}: Sentry can't represent its schedule.`);
+        return;
+      }
+      const checkInId = captureCheckIn({ monitorSlug: slug, status: 'in_progress' }, config);
       runs.set(job, { slug, checkInId, start: timestampInSeconds() });
     } catch (e) {
       DEBUG_BUILD && debug.error('[GraphileWorker] Failed to send the check-in:', e);

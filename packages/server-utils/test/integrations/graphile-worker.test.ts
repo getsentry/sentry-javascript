@@ -110,13 +110,13 @@ describe('graphile-worker crontab monitoring', () => {
     });
   });
 
-  it('checks in without a config for a custom matcher', () => {
+  it('skips items with a custom matcher', () => {
     const events = new EventEmitter();
     monitorGraphileCronJobs(events, [{ identifier: 'custom', task: 'job', payload: {}, match: () => true }], {});
 
     runJob(events, cronJob('job', '2026-10-16T09:00:00.000Z'));
 
-    expect(captureCheckIn.mock.calls[0]).toEqual([{ monitorSlug: 'custom', status: 'in_progress' }, undefined]);
+    expect(captureCheckIn).not.toHaveBeenCalled();
   });
 
   it('tells items of the same task apart by schedule and payload', () => {
