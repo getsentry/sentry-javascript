@@ -108,6 +108,7 @@ allowBuilds:
   core-js-pure: false
   esbuild: true
   mongodb-memory-server-global: true
+  msgpackr-extract: true
   nice-napi: true
   nx: true
   prisma: true

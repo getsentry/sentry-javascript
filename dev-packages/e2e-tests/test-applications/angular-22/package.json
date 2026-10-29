@@ -47,10 +47,10 @@
     "typescript": "~6.0.0"
   },
   "sentryTest": {
-    "optionalVariants": [
+    "canaryVariants": [
       {
         "build-command": "pnpm test:build-canary",
-        "label": "angular (canary)"
+        "label": "angular-22 (canary)"
       }
     ]
   }

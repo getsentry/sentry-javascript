@@ -12,6 +12,8 @@ export {
   type ExpressIntegrationOptions,
   firebaseIntegration,
   genericPoolIntegration,
+  nodeCronIntegration,
+  type NodeCronIntegrationOptions,
   googleGenAIIntegration,
   graphqlIntegration,
   groqIntegration,
@@ -68,6 +70,7 @@ export {
 export { setupHapiErrorHandler } from './integrations/tracing/hapi';
 // oxlint-disable-next-line typescript/no-deprecated -- deprecated but still re-exported for backwards compatibility
 export { setupKoaErrorHandler } from './integrations/tracing/koa';
+export { BullMQTelemetry } from './integrations/tracing/bullmq';
 export {
   launchDarklyIntegration,
   buildLaunchDarklyFlagUsedHandler,

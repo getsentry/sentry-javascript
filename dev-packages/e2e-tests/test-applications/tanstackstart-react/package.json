@@ -79,6 +79,12 @@
         "build-command": "pnpm install",
         "assert-command": "pnpm test:assert:tunnel-basepath-dev"
       }
+    ],
+    "optionalVariants": [
+      {
+        "build-command": "pnpm test:build-latest",
+        "label": "tanstackstart-react (latest)"
+      }
     ]
   }
 }

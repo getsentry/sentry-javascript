@@ -4,6 +4,8 @@ import {
   NETWORK_PROTOCOL_VERSION,
   SENTRY_OP,
   SENTRY_SEGMENT_NAME_SOURCE,
+  HTTP_REQUEST_BODY_SIZE,
+  USER_AGENT_ORIGINAL,
 } from '@sentry/conventions/attributes';
 import { HTTP_SERVER } from '@sentry/conventions/op';
 import type { Span } from '@sentry/core';
@@ -63,7 +65,7 @@ type InitSdk = (options: CloudflareOptions) => CloudflareClient | undefined;
  * Same as {@link wrapRequestHandler}, but with the SDK initialization injected.
  *
  * Wrappers that are only reachable from the main entry point — where `nodejs_compat` is a
- * requirement anyway — pass `init` from `sdk.ts` to get the full default integrations.
+ * requirement anyway — pass `init` from `sdk.ts` so `enableOpenTelemetrySetup` is honored.
  *
  * @internal
  */
@@ -113,12 +115,12 @@ export function wrapRequestHandlerWithInit(
 
     const contentLength = request.headers.get('content-length');
     if (contentLength) {
-      attributes['http.request.body.size'] = parseInt(contentLength, 10);
+      attributes[HTTP_REQUEST_BODY_SIZE] = parseInt(contentLength, 10);
     }
 
     const userAgentHeader = request.headers.get('user-agent');
     if (userAgentHeader) {
-      attributes['user_agent.original'] = userAgentHeader;
+      attributes[USER_AGENT_ORIGINAL] = userAgentHeader;
     }
 
     if (client) {
