@@ -836,8 +836,8 @@ importers:
         specifier: 2.0.0-alpha.7
         version: 2.0.0-alpha.7(@azure/storage-blob@12.31.0(supports-color@10.0.0))(chokidar@5.0.0)(db0@0.3.4(mysql2@3.23.3(@types/node@20.19.43)))(ioredis@5.10.1(supports-color@10.0.0))(lru-cache@11.4.0)(mongodb@3.7.4)(ofetch@1.5.1)
       valibot:
-        specifier: 1.1.0
-        version: 1.1.0(typescript@7.0.2)
+        specifier: 1.4.2
+        version: 1.4.2(typescript@7.0.2)
       winston:
         specifier: ^3.17.0
         version: 3.19.0
@@ -18934,14 +18934,6 @@ packages:
     deprecated: uuid@10 and below is no longer supported.  For ESM codebases, update to uuid@latest.  For CommonJS codebases, use uuid@11 (but be aware this version will likely be deprecated in 2028).
     hasBin: true
 
-  valibot@1.1.0:
-    resolution: {integrity: sha512-Nk8lX30Qhu+9txPYTwM0cFlWLdPFsFr6LblzqIySfbZph9+BFsAHsNvHOymEviUepeIW6KFHzpX8TKhbptBXXw==}
-    peerDependencies:
-      typescript: '>=5'
-    peerDependenciesMeta:
-      typescript:
-        optional: true
-
   valibot@1.4.2:
     resolution: {integrity: sha512-gjdCvJ6d3RyHAneqxMYMW9QMCwYMb3jpOO0IyHZV1bnRHFBHrX3VkIILt5XYR0WhwHiH7Mty8ovuPZ/O3gamrg==}
     peerDependencies:
@@ -23799,11 +23791,11 @@ snapshots:
       '@earendil-works/pi-ai': 0.83.0(@modelcontextprotocol/sdk@1.32.2(@cfworker/json-schema@4.1.1)(supports-color@10.0.0)(zod@4.6.7))(supports-color@10.0.0)(ws@8.21.3)(zod@4.6.7)
       '@hono/node-server': 2.0.10(hono@4.13.11)
       '@modelcontextprotocol/client': 2.0.0
-      '@valibot/to-json-schema': 1.8.0(valibot@1.1.0(typescript@7.0.2))
+      '@valibot/to-json-schema': 1.8.0(valibot@1.4.2(typescript@7.0.2))
       hono: 4.13.11
       js-yaml: 5.5.0
       ulidx: 2.4.1
-      valibot: 1.1.0(typescript@7.0.2)
+      valibot: 1.4.2(typescript@7.0.2)
     transitivePeerDependencies:
       - '@modelcontextprotocol/sdk'
       - bufferutil
@@ -28092,9 +28084,9 @@ snapshots:
       unhead: 2.1.17
       vue: 3.5.44(typescript@7.0.2)
 
-  '@valibot/to-json-schema@1.8.0(valibot@1.1.0(typescript@7.0.2))':
+  '@valibot/to-json-schema@1.8.0(valibot@1.4.2(typescript@7.0.2))':
     dependencies:
-      valibot: 1.1.0(typescript@7.0.2)
+      valibot: 1.4.2(typescript@7.0.2)
 
   '@vercel/nft@1.11.0(encoding@0.1.13)(rollup@4.62.3)(supports-color@10.0.0)':
     dependencies:
@@ -40294,13 +40286,13 @@ snapshots:
 
   uuid@9.0.1: {}
 
-  valibot@1.1.0(typescript@7.0.2):
-    optionalDependencies:
-      typescript: 7.0.2
-
   valibot@1.4.2(typescript@6.0.3):
     optionalDependencies:
       typescript: 6.0.3
+
+  valibot@1.4.2(typescript@7.0.2):
+    optionalDependencies:
+      typescript: 7.0.2
 
   validate-html-nesting@1.2.2: {}
 
