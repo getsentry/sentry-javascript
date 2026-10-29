@@ -255,10 +255,15 @@ export function getInpSubpartAttributes(entry: PerformanceEventTiming | undefine
     return undefined;
   }
 
-  // `duration` is rounded to 8ms, so the presentation delay it implies can dip below zero.
+  const processingStart = Math.max(timing.processingStart, timing.startTime);
+  // `duration` is rounded to 8ms, so the next paint can appear to come before processing starts.
+  const nextPaintTime = Math.max(timing.nextPaintTime, processingStart);
+  // A sync modal like `alert()` keeps processing past the next paint (GoogleChrome/web-vitals#492).
+  const processingEnd = Math.min(Math.max(timing.processingEnd, processingStart), nextPaintTime);
+
   return {
-    [BROWSER_WEB_VITAL_INP_INPUT_DELAY]: Math.max(timing.processingStart - timing.startTime, 0),
-    [BROWSER_WEB_VITAL_INP_PROCESSING_DURATION]: Math.max(timing.processingEnd - timing.processingStart, 0),
-    [BROWSER_WEB_VITAL_INP_PRESENTATION_DELAY]: Math.max(timing.nextPaintTime - timing.processingEnd, 0),
+    [BROWSER_WEB_VITAL_INP_INPUT_DELAY]: processingStart - timing.startTime,
+    [BROWSER_WEB_VITAL_INP_PROCESSING_DURATION]: processingEnd - processingStart,
+    [BROWSER_WEB_VITAL_INP_PRESENTATION_DELAY]: nextPaintTime - processingEnd,
   };
 }
