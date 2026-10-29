@@ -6,6 +6,9 @@ import { parseArgs } from 'node:util';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
+// GitHub Actions fails a job whose matrix has more jobs than this, and runs none of them.
+const MAX_MATRIX_JOBS = 256;
+
 const VARIANT_FIELDS = {
   required: 'variants',
   optional: 'optionalVariants',
@@ -22,6 +25,9 @@ const VARIANT_FIELDS = {
  * - not set: the required test applications and their `variants`
  * - `optional`: the optional test applications and the `optionalVariants` of all test applications
  * - `canary`: only the `canaryVariants` of all test applications
+ *
+ * `--shards=N` splits the matrix into N parts (`matrix-1=...` to `matrix-N=...`), because GitHub Actions allows at
+ * most 256 jobs in one matrix.
  */
 function run() {
   const { values } = parseArgs({
@@ -30,10 +36,11 @@ function run() {
       base: { type: 'string' },
       head: { type: 'string' },
       variant: { type: 'string', default: 'required' },
+      shards: { type: 'string' },
     },
   });
 
-  const { base, head = 'HEAD', variant } = values;
+  const { base, head = 'HEAD', variant, shards } = values;
 
   // For GitHub Action debugging
   // eslint-disable-next-line no-console
@@ -61,9 +68,27 @@ function run() {
     addIncludesForTestApp(testApp, includes, { variant });
   });
 
-  // We print this to the output, so the GHA can use it for the matrix
-  // eslint-disable-next-line no-console
-  console.log(`matrix=${JSON.stringify({ include: includes })}`);
+  if (!shards) {
+    // We print this to the output, so the GHA can use it for the matrix
+    // eslint-disable-next-line no-console
+    console.log(`matrix=${JSON.stringify({ include: includes })}`);
+    return;
+  }
+
+  const shardCount = Number(shards);
+  const shardSize = Math.ceil(includes.length / shardCount);
+
+  if (shardSize > MAX_MATRIX_JOBS) {
+    throw new Error(
+      `${includes.length} jobs do not fit into ${shardCount} matrices of at most ${MAX_MATRIX_JOBS} jobs, increase --shards`,
+    );
+  }
+
+  for (let i = 0; i < shardCount; i++) {
+    const shardIncludes = includes.slice(i * shardSize, (i + 1) * shardSize);
+    // eslint-disable-next-line no-console
+    console.log(`matrix-${i + 1}=${JSON.stringify({ include: shardIncludes })}`);
+  }
 }
 
 /** Direct children of `test-applications/` that contain a `package.json` (replaces glob one-segment + package.json). */
