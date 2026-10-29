@@ -34,7 +34,7 @@ server that renders Solid — the `@solidjs/vite-plugin` handler, an Express or 
 worker — already loads. The one requirement is `@sentry/node`'s: `init()` must run before the app's server graph
 loads, so OpenTelemetry can patch `node:http` and friends. Put it in a module of its own and load that first the way
 your host does — `node --import ./instrument.mjs`, or for an app served by the plugin's handler, its
-`start.instrument` option, which awaits the module before anything else in the server graph (a plain `import` at the
+`start.serverSetup` option, which awaits the module before anything else in the server graph (a plain `import` at the
 top of an ESM entry is hoisted below the entry's own dependencies and does not work):
 
 ```js
@@ -48,7 +48,7 @@ Sentry.init({ dsn: '__DSN__', tracesSampleRate: 1, integrations: [Sentry.solidSe
 solid({
   ssr: true,
   observe: true, // tracing reads the observe build; errors report in every tier
-  start: { instrument: './src/instrument.js' },
+  start: { serverSetup: './src/instrument.js' },
 });
 ```
 
