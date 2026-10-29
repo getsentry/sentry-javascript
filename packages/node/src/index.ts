@@ -188,7 +188,10 @@ export {
   answerStreamingTunnelEvent as _INTERNAL_answerStreamingLambdaTunnelEvent,
   answerTunnelEvent as _INTERNAL_answerLambdaTunnelEvent,
 } from './lambda/tunnel';
-export { loadOriginalLambdaHandler as _INTERNAL_loadOriginalLambdaHandler } from './lambda/handlerResolution';
+export {
+  parseHandlerString as _INTERNAL_parseLambdaHandlerString,
+  resolveHandlerFile as _INTERNAL_resolveLambdaHandlerFile,
+} from './lambda/handlerResolution';
 export { redirectLambdaHandler as _INTERNAL_redirectLambdaHandler } from './lambda/redirectHandler';
 export { getTunnelPath, handleTunnelRequest } from '@sentry/core';
 export type { HandleTunnelRequestOptions, ServerTunnelOptions } from '@sentry/core';
