@@ -9,10 +9,15 @@ export { ServerRuntimeClient } from './server-runtime-client';
 export type { TunnelRequestLike } from './utils/tunnel';
 export {
   getTunnelPaths as _INTERNAL_getTunnelPaths,
-  handleTunnelRequestIfMatched,
+  handleServedTunnelRequest as _INTERNAL_handleServedTunnelRequest,
+  isServedTunnelRequest as _INTERNAL_isServedTunnelRequest,
   isTunnelRequest,
-  resolveServerTunnelOption as _INTERNAL_resolveServerTunnelOption,
 } from './utils/tunnel';
+export {
+  forwardTunnelRequest as _INTERNAL_forwardTunnelRequest,
+  handleTunnelRequestIfMatched,
+} from './utils/tunnelForward';
+export { serveTunnelIntegration } from './integrations/serveTunnel';
 export {
   _INTERNAL_resetManagedTunnelDefaults,
   setManagedTunnelDefaults as _INTERNAL_setManagedTunnelDefaults,

@@ -1,3 +1,4 @@
+import type { SerializedStreamedSpanContainer } from '@sentry/core';
 import {
   GEN_AI_AGENT_NAME,
   GEN_AI_CONVERSATION_ID,
@@ -169,6 +170,38 @@ describe.runIf(supports({ min: 22 }))('Flue integration', () => {
               expect(tool.attributes[GEN_AI_TOOL_CALL_RESULT]?.value).not.toContain('details');
             },
           })
+          .start()
+          .completed();
+      });
+    },
+    FLUE_DEPENDENCIES,
+  );
+
+  createEsmAndCjsTests(
+    __dirname,
+    'scenario-separate-requests.mjs',
+    'instrument.mjs',
+    (createRunner, test, mode) => {
+      if (mode === 'cjs') {
+        return;
+      }
+
+      test('puts each dispatch in the trace of the request that admitted it', async () => {
+        const expectAgentUnder = (requestName: string) => ({
+          span: (container: SerializedStreamedSpanContainer) => {
+            const request = container.items.find(span => span.name === requestName)!;
+            expect(request.is_segment).toBe(true);
+
+            const agents = container.items.filter(span => span.name === 'invoke_agent Hello');
+            expect(agents).toHaveLength(1);
+            expect(agents[0]!.parent_span_id).toBe(request.span_id);
+          },
+        });
+
+        await createRunner()
+          .unordered()
+          .expect(expectAgentUnder('request-a'))
+          .expect(expectAgentUnder('request-b'))
           .start()
           .completed();
       });

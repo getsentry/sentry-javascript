@@ -3,6 +3,7 @@ import { makeConfigInjectorPlugin } from '../../src/vite/makeConfigInjectorPlugi
 import { makeCustomSentryVitePlugins } from '../../src/vite/makeCustomSentryVitePlugins';
 import { makeEnableSourceMapsPlugin } from '../../src/vite/makeEnableSourceMapsPlugin';
 import { makeServerBuildCapturePlugin } from '../../src/vite/makeServerBuildCapturePlugin';
+import { makeTunnelRoutePlugin } from '../../src/vite/makeTunnelRoutePlugin';
 import { sentryReactRouter } from '../../src/vite/plugin';
 
 vi.spyOn(console, 'log').mockImplementation(() => {
@@ -16,6 +17,7 @@ vi.mock('../../src/vite/makeCustomSentryVitePlugins');
 vi.mock('../../src/vite/makeEnableSourceMapsPlugin');
 vi.mock('../../src/vite/makeConfigInjectorPlugin');
 vi.mock('../../src/vite/makeServerBuildCapturePlugin');
+vi.mock('../../src/vite/makeTunnelRoutePlugin');
 
 // Stub the orchestrion plugin so these stay pure wiring tests (no apm code transformer pulled in).
 // Mirror the real plugin's contract: `buildTimeInstrumentation: false` yields the inert variant.
@@ -31,6 +33,7 @@ describe('sentryReactRouter', () => {
   const mockSourceMapsPlugin = { name: 'source-maps-plugin' };
   const mockConfigInjectorPlugin = { name: 'sentry-config-injector' };
   const mockServerBuildCapturePlugin = { name: 'sentry-react-router-server-build-capture' };
+  const mockTunnelRoutePlugin = { name: 'sentry-react-router-tunnel-route' };
   const mockOrchestrionPlugin = { name: 'sentry-orchestrion-vite' };
 
   beforeEach(() => {
@@ -39,6 +42,7 @@ describe('sentryReactRouter', () => {
     vi.mocked(makeEnableSourceMapsPlugin).mockReturnValue(mockSourceMapsPlugin);
     vi.mocked(makeConfigInjectorPlugin).mockReturnValue(mockConfigInjectorPlugin);
     vi.mocked(makeServerBuildCapturePlugin).mockReturnValue(mockServerBuildCapturePlugin);
+    vi.mocked(makeTunnelRoutePlugin).mockReturnValue(mockTunnelRoutePlugin);
   });
 
   afterEach(() => {
@@ -51,7 +55,7 @@ describe('sentryReactRouter', () => {
 
     const result = await sentryReactRouter({}, { command: 'build', mode: 'production' });
 
-    expect(result).toEqual([mockConfigInjectorPlugin, mockServerBuildCapturePlugin]);
+    expect(result).toEqual([mockConfigInjectorPlugin, mockServerBuildCapturePlugin, mockTunnelRoutePlugin]);
     expect(makeCustomSentryVitePlugins).not.toHaveBeenCalled();
     expect(makeEnableSourceMapsPlugin).not.toHaveBeenCalled();
 
@@ -61,7 +65,7 @@ describe('sentryReactRouter', () => {
   it('should return config injector plugin when not in build mode', async () => {
     const result = await sentryReactRouter({}, { command: 'serve', mode: 'production' });
 
-    expect(result).toEqual([mockConfigInjectorPlugin, mockServerBuildCapturePlugin]);
+    expect(result).toEqual([mockConfigInjectorPlugin, mockServerBuildCapturePlugin, mockTunnelRoutePlugin]);
     expect(makeCustomSentryVitePlugins).not.toHaveBeenCalled();
     expect(makeEnableSourceMapsPlugin).not.toHaveBeenCalled();
   });
@@ -69,7 +73,7 @@ describe('sentryReactRouter', () => {
   it('should return config injector plugin in development build mode', async () => {
     const result = await sentryReactRouter({}, { command: 'build', mode: 'development' });
 
-    expect(result).toEqual([mockConfigInjectorPlugin, mockServerBuildCapturePlugin]);
+    expect(result).toEqual([mockConfigInjectorPlugin, mockServerBuildCapturePlugin, mockTunnelRoutePlugin]);
     expect(makeCustomSentryVitePlugins).not.toHaveBeenCalled();
     expect(makeEnableSourceMapsPlugin).not.toHaveBeenCalled();
   });
@@ -83,6 +87,7 @@ describe('sentryReactRouter', () => {
     expect(result).toEqual([
       mockConfigInjectorPlugin,
       mockServerBuildCapturePlugin,
+      mockTunnelRoutePlugin,
       mockOrchestrionPlugin,
       mockSourceMapsPlugin,
       ...mockPlugins,

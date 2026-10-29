@@ -151,6 +151,11 @@ export {
   spanToBaggageHeader,
   systemErrorIntegration,
   trpcMiddleware,
+  serveTunnelIntegration,
+  getTunnelPath,
+  handleTunnelRequest,
+  handleTunnelRequestIfMatched,
+  isTunnelRequest,
   updateSpanName,
   supabaseIntegration,
   instrumentSupabaseClient,
@@ -165,6 +170,7 @@ export {
   zodErrorsIntegration,
   profiler,
   amqplibIntegration,
+  BullMQTelemetry,
   anthropicAIIntegration,
   googleGenAIIntegration,
   vercelAIIntegration,
@@ -192,6 +198,7 @@ export {
   eveIntegration,
   getInstrumentedModuleNames,
 } from '@sentry/node';
+export type { HandleTunnelRequestOptions, ServerTunnelOptions, TunnelRequestLike } from '@sentry/node';
 
 export {
   captureConsoleIntegration,

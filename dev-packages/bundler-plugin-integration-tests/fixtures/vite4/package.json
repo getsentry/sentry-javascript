@@ -7,6 +7,6 @@
     "react": "19.2.4",
     "vite": "4.5.14",
     "@vitejs/plugin-react": "5.2.0",
-    "@sentry/bundler-plugins": "11.9.0"
+    "@sentry/bundler-plugins": "11.10.0"
   }
 }

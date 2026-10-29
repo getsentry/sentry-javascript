@@ -63,9 +63,9 @@ import { asNumber, asString, isReadableStream, type StreamedModelCallResult, sum
  * via `node:diagnostics_channel`. Events are discriminated by their `type` field.
  * @see https://github.com/vercel/ai/pull/15660
  */
-const AI_SDK_TELEMETRY_TRACING_CHANNEL = 'ai:telemetry';
+export const AI_SDK_TELEMETRY_TRACING_CHANNEL = 'ai:telemetry';
 
-const ORIGIN = 'auto.vercelai.channel';
+const ORIGIN = 'auto.ai.vercelai';
 
 // `gen_ai.operation.name` values, keyed to the span op they map to.
 const GEN_AI_OPERATION_SPAN_OPS = {
@@ -851,7 +851,7 @@ export function captureToolError(span: Span, data: VercelAiChannelMessage, error
     captureException(
       error instanceof Error ? error : new Error(typeof error === 'string' ? error : 'Tool execution failed'),
       {
-        mechanism: { type: 'auto.vercelai.channel', handled: false },
+        mechanism: { type: 'auto.ai.vercelai', handled: false },
       },
     );
   });

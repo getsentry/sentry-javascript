@@ -6,7 +6,11 @@ import type { CloudflareOptions } from '../src/client';
 import { CloudflareClient } from '../src/client';
 import { getDefaultIntegrations, init } from '../src/sdk';
 import { resetSdk } from './testUtils';
-import { mysqlIntegration as exportedMysqlIntegration, spanStreamingIntegration } from '../src/';
+import {
+  mysqlIntegration as exportedMysqlIntegration,
+  spanStreamingIntegration,
+  serveTunnelIntegration,
+} from '../src/';
 
 describe('init', () => {
   beforeEach(() => {
@@ -21,6 +25,18 @@ describe('init', () => {
 
     expect(client).toBeDefined();
     expect(client).toBeInstanceOf(CloudflareClient);
+  });
+
+  test('serves the managed tunnel with `serveTunnelIntegration`', () => {
+    const browserDsn = 'https://browser@o1.ingest.sentry.io/42';
+    init({
+      dsn: 'https://public@dsn.ingest.sentry.io/1337',
+      integrations: [serveTunnelIntegration({ allowedDsns: [browserDsn] })],
+    });
+
+    const options = getClient()?.getOptions();
+    expect(options?.tunnel).toBeUndefined();
+    expect(options?._managedTunnel).toEqual({ allowedDsns: [browserDsn] });
   });
 
   test('installs SpanStreaming integration by default', () => {
@@ -456,6 +472,108 @@ describe('getDefaultIntegrations', () => {
     const client = init({ dsn: 'https://public@dsn.ingest.sentry.io/1337', integrations: [userInstance] });
 
     expect(client?.getIntegrationByName('Mysql')).toBe(userInstance);
+  });
+
+  describe('when a channel integration module loads after init', () => {
+    const DSN = 'https://public@dsn.ingest.sentry.io/1337';
+
+    async function loadMysqlLate(client: CloudflareClient | undefined): Promise<void> {
+      const { mysqlIntegration } = await import('@sentry/server-utils');
+      globalThis.__SENTRY_ORCHESTRION__ = {
+        bundler: new Set(['mysql']),
+        integrations: new Map([['mysql', mysqlIntegration]]),
+      };
+      client?.emit('orchestrion.module-injected', 'mysql');
+    }
+
+    test('does not add it when the integrations function filtered it out', async () => {
+      resetSdk();
+      const client = init({
+        dsn: DSN,
+        integrations: defaults => defaults.filter(integration => integration.name !== 'Mysql'),
+      });
+
+      await loadMysqlLate(client);
+
+      expect(client?.getIntegrationByName('Mysql')).toBeUndefined();
+    });
+
+    test('adds it when the integrations function keeps it', async () => {
+      resetSdk();
+      const client = init({ dsn: DSN, integrations: defaults => defaults });
+
+      await loadMysqlLate(client);
+
+      expect(client?.getIntegrationByName('Mysql')).toBeDefined();
+    });
+
+    test('keeps the instance the integrations function configured', async () => {
+      resetSdk();
+      const client = init({
+        dsn: DSN,
+        integrations: defaults => [...defaults, exportedMysqlIntegration()],
+      });
+      const configured = client?.getIntegrationByName('Mysql');
+      expect(configured).toBeDefined();
+
+      await loadMysqlLate(client);
+
+      expect(client?.getIntegrationByName('Mysql')).toBe(configured);
+    });
+
+    test('does not add it and does not throw when the integrations function throws', async () => {
+      resetSdk();
+      let calls = 0;
+      const client = init({
+        dsn: DSN,
+        integrations: defaults => {
+          calls++;
+          if (calls > 1) {
+            throw new Error('integrations failed');
+          }
+          return defaults;
+        },
+      });
+
+      await expect(loadMysqlLate(client)).resolves.toBeUndefined();
+
+      expect(client?.getIntegrationByName('Mysql')).toBeUndefined();
+    });
+
+    test('adds it when a custom defaultIntegrations list extends the SDK defaults', async () => {
+      resetSdk();
+      const client = init({ dsn: DSN, defaultIntegrations: [], _extendsDefaultIntegrations: true });
+
+      await loadMysqlLate(client);
+
+      expect(client?.getIntegrationByName('Mysql')).toBeDefined();
+    });
+
+    test('does not add it when the integrations function filtered it out of a list that extends the SDK defaults', async () => {
+      resetSdk();
+      const client = init({
+        dsn: DSN,
+        defaultIntegrations: [],
+        _extendsDefaultIntegrations: true,
+        integrations: defaults => defaults.filter(integration => integration.name !== 'Mysql'),
+      });
+
+      await loadMysqlLate(client);
+
+      expect(client?.getIntegrationByName('Mysql')).toBeUndefined();
+    });
+
+    test.each([
+      ['false', false as const],
+      ['a custom list', [] as Integration[]],
+    ])('does not add it when defaultIntegrations is %s', async (_label, defaultIntegrations) => {
+      resetSdk();
+      const client = init({ dsn: DSN, defaultIntegrations });
+
+      await loadMysqlLate(client);
+
+      expect(client?.getIntegrationByName('Mysql')).toBeUndefined();
+    });
   });
 
   test('keeps a channel integration the user configured when its module loads after init', async () => {

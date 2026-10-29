@@ -27,18 +27,17 @@
     "@sentry-internal/test-utils": "file:../../packed/sentry-internal-test-utils-packed.tgz",
     "@sentry/core": "file:../../packed/sentry-core-packed.tgz"
   },
-  "volta": {
-    "extends": "../../package.json"
-  },
   "sentryTest": {
     "optionalVariants": [
       {
-        "build-command": "pnpm test:build-canary",
-        "label": "nextjs-14 (canary)"
-      },
-      {
         "build-command": "pnpm test:build-latest",
         "label": "nextjs-14 (latest)"
+      }
+    ],
+    "canaryVariants": [
+      {
+        "build-command": "pnpm test:build-canary",
+        "label": "nextjs-14 (canary)"
       }
     ]
   }

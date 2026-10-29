@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "dependencies": {
-    "@sentry/bundler-plugins": "11.9.0",
+    "@sentry/bundler-plugins": "11.10.0",
     "react": "19.2.4",
     "rolldown": "1.0.0"
   }

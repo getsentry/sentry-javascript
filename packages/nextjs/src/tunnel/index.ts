@@ -43,7 +43,7 @@ export function createSentryTunnelRoute(options: CreateSentryTunnelRouteOptions 
       }
 
       // Like the SDK transports, so that the forward creates no spans, breadcrumbs or trace headers.
-      return suppressTracing(() => handleTunnelRequest({ request, allowedDsns }));
+      return suppressTracing(() => handleTunnelRequest(request, { allowedDsns }));
     },
   };
 }
