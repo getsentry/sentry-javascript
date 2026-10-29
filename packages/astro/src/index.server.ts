@@ -106,6 +106,7 @@ export {
   createFlueInstrumentation,
   instrumentPostgresJsSql,
   mastraIntegration,
+  piAiIntegration,
   piDurableIntegration,
   mcpServerIntegration,
   SentryMastraExporter,

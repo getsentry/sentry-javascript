@@ -28,6 +28,7 @@ import { neonChannels } from './config/neon';
 import { nestjsChannels } from './config/nestjs';
 import { openaiChannels } from './config/openai';
 import { pgChannels } from './config/pg';
+import { piAiChannels } from './config/pi-ai';
 import { piDurableChannels } from './config/pi-durable';
 import { postgresJsChannels } from './config/postgres';
 import { prismaChannels } from './config/prisma';
@@ -85,6 +86,7 @@ export const CHANNELS = {
   ...nestjsChannels,
   ...openaiChannels,
   ...pgChannels,
+  ...piAiChannels,
   ...piDurableChannels,
   ...postgresJsChannels,
   ...prismaChannels,

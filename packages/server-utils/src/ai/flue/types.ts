@@ -6,42 +6,6 @@
  * `FlueExecutionContext` as of `@flue/runtime` 2.x.
  */
 
-import type { PiAiUsage } from '../pi-ai/usage';
-
-/** Mirrors `ModelRequestInfo`. */
-export interface FlueModelRequestInfo {
-  requestedModel?: string;
-  /** Provider slug (`anthropic`, `openrouter`) — what `gen_ai.provider.name` wants. */
-  providerId?: string;
-  temperature?: number;
-  maxTokens?: number;
-  reasoningLevel?: string;
-  serverAddress?: string;
-  serverPort?: number;
-}
-
-/** Mirrors `ModelRequestInput` — the content half of `ModelRequest`, on `turn_request` only. */
-export interface FlueModelRequestInput {
-  systemPrompt?: string;
-  messages?: unknown[];
-  tools?: unknown[];
-}
-
-/** `turn_request` carries `ModelRequest`, which is `ModelRequestInfo` plus the input. */
-export interface FlueModelRequest extends FlueModelRequestInfo {
-  input?: FlueModelRequestInput;
-}
-
-/** Mirrors `ModelResponse`. */
-export interface FlueModelResponse {
-  responseId?: string;
-  responseModel?: string;
-  output?: unknown;
-  /** pi-ai's usage, which Flue passes through with its own cost figures. */
-  usage?: PiAiUsage;
-  finishReason?: string;
-}
-
 /**
  * Mirrors Flue's `errorInfo`, which it attaches to a failed tool or turn observation. Flue catches
  * the throw and turns it into a tool result, so this serialized form is the only trace of it.
@@ -70,14 +34,11 @@ export interface FlueObservation {
   toolCallId?: string;
   isError?: boolean;
   errorInfo?: FlueErrorInfo;
-  purpose?: string;
   durationMs?: number;
-  request?: FlueModelRequest;
   args?: unknown;
   result?: unknown;
   /** The tool result as the model sees it, on successful `tool` events. */
   effectiveResult?: unknown;
-  response?: FlueModelResponse;
 }
 
 /** The execution unit an interceptor wraps. */

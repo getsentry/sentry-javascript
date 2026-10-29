@@ -56,9 +56,11 @@ describe.runIf(supports({ min: 22 }))('Flue integration', () => {
               expect(root.is_segment).toBe(true);
 
               // Counted rather than looked up: the interceptor skips the submission wrapper
-              // operation, so one dispatch opens exactly one agent span, and each turn and tool call
-              // is spanned once. `find` passes just as happily on a duplicate.
-              expect(spans.filter(span => span.attributes['sentry.origin']?.value === 'auto.ai.flue')).toHaveLength(4);
+              // operation, so one dispatch opens exactly one agent span, and each tool call is spanned
+              // once. The turns are spanned by the pi-ai integration, once each: a provider SDK
+              // reporting the same request would add a span. `find` passes just as happily on a duplicate.
+              expect(spans.filter(span => span.attributes['sentry.origin']?.value === 'auto.ai.flue')).toHaveLength(2);
+              expect(spans.filter(span => span.attributes['sentry.origin']?.value === 'auto.ai.pi_ai')).toHaveLength(2);
 
               const agents = spans.filter(span => span.name === 'invoke_agent Hello');
               const chats = spans.filter(span => span.name === 'chat faux-model');
@@ -78,17 +80,17 @@ describe.runIf(supports({ min: 22 }))('Flue integration', () => {
               expect(conversationId).toEqual(expect.any(String));
 
               // Both turns, not just the first: they leave the provider by different paths (a tool
-              // call, then a final answer) and resolve their parent through separate tracker lookups.
+              // call, then a final answer).
               for (const chat of chats) {
                 expect(chat.attributes['sentry.op']?.value).toBe('gen_ai.chat');
-                expect(chat.attributes['sentry.origin']?.value).toBe('auto.ai.flue');
+                expect(chat.attributes['sentry.origin']?.value).toBe('auto.ai.pi_ai');
                 expect(chat.attributes[GEN_AI_OPERATION_NAME]?.value).toBe('chat');
                 expect(chat.attributes[GEN_AI_CONVERSATION_ID]?.value).toBe(conversationId);
                 expect(chat.parent_span_id).toBe(agent.span_id);
                 expect(chat.attributes[GEN_AI_USAGE_INPUT_TOKENS]?.value).toBeGreaterThan(0);
                 expect(chat.attributes[GEN_AI_USAGE_OUTPUT_TOKENS]?.value).toBeGreaterThan(0);
                 expect(chat.attributes[GEN_AI_USAGE_TOTAL_TOKENS]?.value).toBeGreaterThan(0);
-                // Flue computes cost itself; no provider SDK reports it. The faux provider prices
+                // pi-ai computes cost itself; no provider SDK reports it. The faux provider prices
                 // every model at zero, so this only proves the attribute is mapped.
                 expect(chat.attributes[GEN_AI_COST_TOTAL_TOKENS]?.value).toEqual(expect.any(Number));
               }

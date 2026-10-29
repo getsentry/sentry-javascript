@@ -51,6 +51,7 @@ export { langChainIntegration } from './integrations/langchain';
 export { langGraphIntegration } from './integrations/langgraph';
 export { createFlueInstrumentation } from './ai/flue';
 export { flueIntegration } from './integrations/flue';
+export { piAiIntegration } from './integrations/pi-ai';
 export { piDurableIntegration } from './integrations/pi-durable';
 export type { FlueOptions } from './ai/flue';
 export { mastraIntegration } from './integrations/mastra';

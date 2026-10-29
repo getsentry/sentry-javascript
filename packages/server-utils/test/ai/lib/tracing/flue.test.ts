@@ -1,9 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, onTestFinished, vi } from 'vitest';
 import type { Event, Span } from '@sentry/core';
 import {
-  _INTERNAL_clearAiProviderSkips,
-  _INTERNAL_shouldSkipAiProviderWrapping,
-  _INTERNAL_skipAiProviderWrapping,
+  getCurrentScope,
   getIsolationScope,
   getMainCarrier,
   Scope,
@@ -15,50 +13,14 @@ import {
   withActiveSpan,
   withIsolationScope,
 } from '@sentry/core';
-import { ANTHROPIC_AI_INTEGRATION_NAME } from '../../../../src/ai/anthropic-ai/constants';
 import { setAsyncLocalStorageAsyncContextStrategy } from '../../../../src/async-context';
 import { createFlueInstrumentation } from '../../../../src/ai/flue';
-import { MAX_TRACKED_FLUE_SPANS } from '../../../../src/ai/flue/constants';
-import { GOOGLE_GENAI_INTEGRATION_NAME } from '../../../../src/ai/google-genai/constants';
-import type { FlueInstrumentation, FlueObservation } from '../../../../src/ai/flue/types';
-import { OPENAI_INTEGRATION_NAME } from '../../../../src/ai/openai/constants';
+import type { FlueInstrumentation } from '../../../../src/ai/flue/types';
 import { getDefaultTestClientOptions, TestClient } from '../../../mocks/client';
 
 const AGENT_OP = { type: 'agent', operationId: 'op_1' };
 const AGENT_CTX = { agentName: 'Hello', submissionId: 'sub_1' };
 const INNER_CTX = { conversationId: 'conv_1' };
-
-/** A settled turn as Flue reports it, with the field names `ModelRequestInfo`/`ModelResponse` use. */
-function turn(overrides: Partial<FlueObservation> = {}): FlueObservation {
-  return {
-    type: 'turn',
-    turnId: 'turn_1',
-    submissionId: 'sub_1',
-    operationId: 'op_1',
-    request: {
-      requestedModel: 'claude-haiku-4.5',
-      providerId: 'anthropic',
-      temperature: 0.7,
-      maxTokens: 1024,
-      reasoningLevel: 'high',
-      serverAddress: 'api.anthropic.com',
-      serverPort: 443,
-    },
-    response: {
-      responseId: 'resp_1',
-      finishReason: 'stop',
-      usage: {
-        input: 924,
-        output: 57,
-        totalTokens: 981,
-        cacheRead: 0,
-        cacheWrite: 0,
-        cost: { input: 0.000924, output: 0.000275, total: 0.001199, cacheRead: 0, cacheWrite: 0 },
-      },
-    },
-    ...overrides,
-  };
-}
 
 describe('createFlueInstrumentation', () => {
   let endedSpans: Span[];
@@ -66,7 +28,6 @@ describe('createFlueInstrumentation', () => {
   let instrumentation: FlueInstrumentation;
 
   beforeEach(() => {
-    _INTERNAL_clearAiProviderSkips();
     getMainCarrier().__SENTRY__ = undefined;
     client = new TestClient(
       getDefaultTestClientOptions({
@@ -84,7 +45,6 @@ describe('createFlueInstrumentation', () => {
   });
 
   afterEach(() => {
-    _INTERNAL_clearAiProviderSkips();
     getMainCarrier().__SENTRY__ = undefined;
   });
 
@@ -102,55 +62,6 @@ describe('createFlueInstrumentation', () => {
   function findSpan(description: string): ReturnType<typeof spanToStaticSpanJSON> | undefined {
     return endedSpans.map(span => spanToStaticSpanJSON(span)).find(json => json.description === description);
   }
-
-  // Flue drives the providers through `pi-ai`, which bundles the `openai` / `@anthropic-ai/sdk` /
-  // `@google/genai` clients those integrations patch, so their spans duplicate the turn span.
-  // Not at construction: if `instrument()` rejects the object, suppressing the provider
-  // integrations would leave the app with no `gen_ai.chat` spans at all.
-  it('skips raw provider wrapping on first use, not on construction', async () => {
-    expect(_INTERNAL_shouldSkipAiProviderWrapping(OPENAI_INTEGRATION_NAME)).toBe(false);
-
-    await withAgent(() => undefined);
-
-    expect(_INTERNAL_shouldSkipAiProviderWrapping(OPENAI_INTEGRATION_NAME)).toBe(true);
-    expect(_INTERNAL_shouldSkipAiProviderWrapping(ANTHROPIC_AI_INTEGRATION_NAME)).toBe(true);
-  });
-
-  // The registry is reset per client (`_setupIntegrations` clears it, and Cloudflare calls `init()`
-  // per request), so a one-shot call at construction is wiped by the next reset.
-  it('re-applies the provider skip after the registry is cleared', async () => {
-    await withAgent(() => undefined);
-    expect(_INTERNAL_shouldSkipAiProviderWrapping(OPENAI_INTEGRATION_NAME)).toBe(true);
-
-    _INTERNAL_clearAiProviderSkips();
-    expect(_INTERNAL_shouldSkipAiProviderWrapping(OPENAI_INTEGRATION_NAME)).toBe(false);
-
-    await withAgent(() => undefined);
-    expect(_INTERNAL_shouldSkipAiProviderWrapping(OPENAI_INTEGRATION_NAME)).toBe(true);
-  });
-
-  // The guard has to hold for every provider, not just the first: another integration may have
-  // registered a skip for one of them already, which would otherwise short-circuit the rest.
-  it('applies the skip to every provider when only some are already registered', async () => {
-    _INTERNAL_skipAiProviderWrapping([OPENAI_INTEGRATION_NAME]);
-
-    await withAgent(() => undefined);
-
-    expect(_INTERNAL_shouldSkipAiProviderWrapping(ANTHROPIC_AI_INTEGRATION_NAME)).toBe(true);
-    expect(_INTERNAL_shouldSkipAiProviderWrapping(GOOGLE_GENAI_INTEGRATION_NAME)).toBe(true);
-  });
-
-  // A turn whose stream is abandoned never emits the settled `turn` that would remove it, so the
-  // tracker is capped. Eviction has to end the span it drops, or it is never sent.
-  it('ends the oldest chat span when the turn tracker overflows', async () => {
-    await withAgent(() => {
-      for (let i = 0; i <= MAX_TRACKED_FLUE_SPANS; i++) {
-        instrumentation.observe({ type: 'turn_start', turnId: `turn_${i}`, operationId: 'op_1' }, {});
-      }
-    });
-
-    expect(endedSpans.filter(span => spanToStaticSpanJSON(span).data['sentry.op'] === 'gen_ai.chat')).toHaveLength(1);
-  });
 
   it('names agent spans `invoke_agent {name}` and sets the gen_ai op', async () => {
     await withAgent(() => undefined);
@@ -389,20 +300,25 @@ describe('createFlueInstrumentation', () => {
     expect(endedSpans).toHaveLength(0);
   });
 
-  // The `model` and `tool` operations open no span of their own; they make the span `observe`
-  // already opened active, so the provider's HTTP call and the tool's own work nest inside it
-  // rather than landing beside it as siblings of the agent invocation.
-  it('makes the turn span active for the model operation it wraps', async () => {
-    await withAgent(async () => {
-      instrumentation.observe({ type: 'turn_start', turnId: 'turn_1', operationId: 'op_1' }, {});
-      await instrumentation.interceptor({ type: 'model', turnId: 'turn_1' }, {}, async () => {
-        startInactiveSpan({ name: 'provider request' }).end();
-      });
-      instrumentation.observe(turn(), {});
-    });
+  // The model call's `gen_ai.chat` span comes from the pi-ai integration, which reads the
+  // conversation from the scope.
+  it('hands the conversation to the model operation it wraps through the scope', async () => {
+    let conversationId: string | undefined;
 
-    expect(findSpan('provider request')?.parent_span_id).toBe(findSpan('chat claude-haiku-4.5')?.span_id);
+    await withAgent(() =>
+      instrumentation.interceptor({ type: 'model', turnId: 'turn_1' }, INNER_CTX, async () => {
+        conversationId = getCurrentScope().getScopeData().conversationId;
+      }),
+    );
+
+    expect(conversationId).toBe('conv_1');
+    expect(getCurrentScope().getScopeData().conversationId).toBeUndefined();
+    expect(endedSpans.map(span => spanToStaticSpanJSON(span).description)).toEqual(['invoke_agent Hello']);
   });
+
+  // The `tool` operation opens no span of its own; it makes the span `observe` already opened
+  // active, so the tool's own work nests inside it rather than landing beside it as a sibling of
+  // the agent invocation.
 
   it('makes the tool span active for the tool operation it wraps', async () => {
     await withAgent(async () => {
@@ -419,163 +335,9 @@ describe('createFlueInstrumentation', () => {
     expect(findSpan('tool work')?.parent_span_id).toBe(findSpan('execute_tool get_weather')?.span_id);
   });
 
-  it('opens a chat span on turn_start and completes it from the settled turn', async () => {
-    await withAgent(() => {
-      instrumentation.observe(
-        { type: 'turn_start', turnId: 'turn_1', operationId: 'op_1', conversationId: 'conv_1' },
-        {},
-      );
-      instrumentation.observe(turn(), {});
-    });
-
-    const json = findSpan('chat claude-haiku-4.5');
-    expect(json?.data['sentry.op']).toBe('gen_ai.chat');
-    expect(json?.data['sentry.origin']).toBe('auto.ai.flue');
-    expect(json?.data['gen_ai.request.model']).toBe('claude-haiku-4.5');
-    expect(json?.data['gen_ai.provider.name']).toBe('anthropic');
-    expect(json?.data['gen_ai.response.id']).toBe('resp_1');
-    expect(json?.data['gen_ai.response.finish_reasons']).toBe('["stop"]');
-    expect(json?.data['gen_ai.conversation.id']).toBe('conv_1');
-  });
-
-  // Flue computes costs itself; the provider SDKs report none.
-  it('records token usage and Flue-computed cost on the chat span', async () => {
-    await withAgent(() => {
-      instrumentation.observe({ type: 'turn_start', turnId: 'turn_1', operationId: 'op_1' }, {});
-      instrumentation.observe(turn(), {});
-    });
-
-    const json = findSpan('chat claude-haiku-4.5');
-    expect(json?.data['gen_ai.usage.input_tokens']).toBe(924);
-    expect(json?.data['gen_ai.usage.output_tokens']).toBe(57);
-    expect(json?.data['gen_ai.usage.total_tokens']).toBe(981);
-    expect(json?.data['gen_ai.cost.total_tokens']).toBe(0.001199);
-  });
-
-  // pi-ai keeps the cached tokens out of `input`; the conventions count them in.
-  it('counts cached tokens into the input tokens and their cost into the input cost', async () => {
-    const usage = {
-      input: 37,
-      output: 2,
-      cacheRead: 52,
-      cacheWrite: 38,
-      totalTokens: 129,
-      cost: { input: 0.000037, output: 0.00001, cacheRead: 0.0000052, cacheWrite: 0.0000475, total: 0.0000997 },
-    };
-
-    await withAgent(() => {
-      instrumentation.observe({ type: 'turn_start', turnId: 'turn_1', operationId: 'op_1' }, {});
-      instrumentation.observe(turn({ response: { ...turn().response, usage } }), {});
-    });
-
-    const json = findSpan('chat claude-haiku-4.5');
-    expect(json?.data['gen_ai.usage.input_tokens']).toBe(127);
-    expect(json?.data['gen_ai.usage.cache_read.input_tokens']).toBe(52);
-    expect(json?.data['gen_ai.usage.cache_creation.input_tokens']).toBe(38);
-    expect(json?.data['gen_ai.cost.input_tokens']).toBe(0.000037 + 0.0000052 + 0.0000475);
-    expect(json?.data['gen_ai.cost.total_tokens']).toBe(0.0000997);
-  });
-
-  it('reports a tool-calling turn with the finish reason of the conventions', async () => {
-    await withAgent(() => {
-      instrumentation.observe({ type: 'turn_start', turnId: 'turn_1', operationId: 'op_1' }, {});
-      instrumentation.observe(
-        turn({
-          response: {
-            ...turn().response,
-            finishReason: 'toolUse',
-            output: {
-              role: 'assistant',
-              content: [{ type: 'toolCall', id: 'c1', name: 'get_weather', arguments: { city: 'Berlin' } }],
-            },
-          },
-        }),
-        {},
-      );
-    });
-
-    const json = findSpan('chat claude-haiku-4.5');
-    expect(json?.data['gen_ai.response.finish_reasons']).toBe('["tool_call"]');
-    expect(json?.data['gen_ai.output.messages']).toBe(
-      '[{"role":"assistant","parts":[{"type":"tool_call","id":"c1","name":"get_weather","arguments":"{\\"city\\":\\"Berlin\\"}"}],"finish_reason":"tool_call"}]',
-    );
-  });
-
-  it('records the model-call tuning and provider endpoint', async () => {
-    await withAgent(() => {
-      instrumentation.observe({ type: 'turn_start', turnId: 'turn_1', operationId: 'op_1', purpose: 'agent' }, {});
-      instrumentation.observe(turn(), {});
-    });
-
-    const json = findSpan('chat claude-haiku-4.5');
-    expect(json?.data['gen_ai.request.temperature']).toBe(0.7);
-    expect(json?.data['gen_ai.request.max_tokens']).toBe(1024);
-    expect(json?.data['gen_ai.request.reasoning.level']).toBe('high');
-    expect(json?.data['server.address']).toBe('api.anthropic.com');
-    expect(json?.data['server.port']).toBe(443);
-    // Distinguishes a compaction turn from a user-facing one.
-    expect(json?.data['flue.turn.purpose']).toBe('agent');
-  });
-
-  it('marks a failed turn as errored', async () => {
-    await withAgent(() => {
-      instrumentation.observe({ type: 'turn_start', turnId: 'turn_1', operationId: 'op_1' }, {});
-      instrumentation.observe(turn({ isError: true }), {});
-    });
-
-    expect(findSpan('chat claude-haiku-4.5')?.status).toBe('internal_error');
-  });
-
-  // A turn that fails before the provider bills anything reports every counter as 0; writing those
-  // reads as a real zero-cost call.
-  it('omits usage entirely when a failed turn produced no tokens', async () => {
-    const empty = {
-      input: 0,
-      output: 0,
-      totalTokens: 0,
-      cacheRead: 0,
-      cacheWrite: 0,
-      cost: { input: 0, output: 0, total: 0, cacheRead: 0, cacheWrite: 0 },
-    };
-
-    await withAgent(() => {
-      instrumentation.observe({ type: 'turn_start', turnId: 'turn_1', operationId: 'op_1' }, {});
-      instrumentation.observe(turn({ isError: true, response: { usage: empty } }), {});
-    });
-
-    const json = findSpan('chat claude-haiku-4.5');
-    expect(json).toBeDefined();
-    expect(json?.data['gen_ai.usage.total_tokens']).toBeUndefined();
-    expect(json?.data['gen_ai.cost.total_tokens']).toBeUndefined();
-  });
-
   describe('content recording', () => {
-    const requestContent = {
-      type: 'turn_request',
-      turnId: 'turn_1',
-      request: {
-        requestedModel: 'claude-haiku-4.5',
-        input: {
-          systemPrompt: 'You are helpful.',
-          messages: [{ role: 'user', content: 'hi' }],
-          tools: [{ name: 'get_weather', description: 'weather', parameters: {} }],
-        },
-      },
-    } satisfies FlueObservation;
-
     async function record(instr: FlueInstrumentation): Promise<void> {
       await instr.interceptor(AGENT_OP, AGENT_CTX, async () => {
-        instr.observe({ type: 'turn_start', turnId: 'turn_1', operationId: 'op_1' }, {});
-        instr.observe(requestContent, {});
-        instr.observe(
-          turn({
-            response: {
-              ...turn().response,
-              output: { role: 'assistant', content: [{ type: 'text', text: 'It is sunny.' }] },
-            },
-          }),
-          {},
-        );
         instr.observe(
           {
             type: 'tool_start',
@@ -601,17 +363,8 @@ describe('createFlueInstrumentation', () => {
       });
     }
 
-    it('records messages, instructions, tool definitions, arguments and results by default', async () => {
+    it('records tool arguments and results by default', async () => {
       await record(instrumentation);
-
-      const chat = findSpan('chat claude-haiku-4.5');
-      expect(chat?.data['gen_ai.system_instructions']).toBe('You are helpful.');
-      // Mapped from pi-ai's message shape to the conventions, which is what Sentry renders.
-      expect(chat?.data['gen_ai.input.messages']).toBe('[{"role":"user","parts":[{"type":"text","content":"hi"}]}]');
-      expect(chat?.data['gen_ai.output.messages']).toBe(
-        '[{"role":"assistant","parts":[{"type":"text","content":"It is sunny."}],"finish_reason":"stop"}]',
-      );
-      expect(chat?.data['gen_ai.tool.definitions']).toContain('get_weather');
 
       const tool = findSpan('execute_tool get_weather');
       expect(tool?.data['gen_ai.tool.call.arguments']).toBe('{"city":"Berlin"}');
@@ -692,53 +445,12 @@ describe('createFlueInstrumentation', () => {
       expect(findSpan('execute_tool get_weather')?.data['gen_ai.tool.call.result']).toBe('');
     });
 
-    it('maps a tool result in the request and a tool call in the response', async () => {
-      await withAgent(() => {
-        instrumentation.observe({ type: 'turn_start', turnId: 'turn_1', operationId: 'op_1' }, {});
-        instrumentation.observe(
-          {
-            ...requestContent,
-            request: {
-              ...requestContent.request,
-              input: {
-                messages: [
-                  { role: 'user', content: 'Weather in Berlin?' },
-                  {
-                    role: 'assistant',
-                    content: [{ type: 'toolCall', id: 'c1', name: 'get_weather', arguments: { city: 'Berlin' } }],
-                  },
-                  {
-                    role: 'toolResult',
-                    toolCallId: 'c1',
-                    toolName: 'get_weather',
-                    content: [{ type: 'text', text: 'sunny' }],
-                    isError: false,
-                  },
-                ],
-              },
-            },
-          },
-          {},
-        );
-        instrumentation.observe(turn(), {});
-      });
-
-      expect(
-        JSON.parse(String(findSpan('chat claude-haiku-4.5')?.data['gen_ai.input.messages'])).map(
-          (message: { role: string }) => message.role,
-        ),
-      ).toEqual(['user', 'assistant', 'tool']);
-    });
-
     it('omits inputs when recordInputs is false but keeps outputs', async () => {
       await record(createFlueInstrumentation({ recordInputs: false }));
 
-      const chat = findSpan('chat claude-haiku-4.5');
-      expect(chat?.data['gen_ai.input.messages']).toBeUndefined();
-      expect(chat?.data['gen_ai.system_instructions']).toBeUndefined();
-      expect(chat?.data['gen_ai.tool.definitions']).toBeUndefined();
-      expect(chat?.data['gen_ai.output.messages']).toBeDefined();
-      expect(findSpan('execute_tool get_weather')?.data['gen_ai.tool.call.arguments']).toBeUndefined();
+      const tool = findSpan('execute_tool get_weather');
+      expect(tool?.data['gen_ai.tool.call.arguments']).toBeUndefined();
+      expect(tool?.data['gen_ai.tool.call.result']).toBeDefined();
     });
 
     // The client is replaced per request on Cloudflare, so options captured once at construction
@@ -746,7 +458,7 @@ describe('createFlueInstrumentation', () => {
     it('follows the current client when it is replaced', async () => {
       const instr = createFlueInstrumentation();
       await record(instr);
-      expect(findSpan('chat claude-haiku-4.5')?.data['gen_ai.input.messages']).toBeDefined();
+      expect(findSpan('execute_tool get_weather')?.data['gen_ai.tool.call.arguments']).toBeDefined();
 
       endedSpans.length = 0;
       const strict = new TestClient(
@@ -763,18 +475,17 @@ describe('createFlueInstrumentation', () => {
 
       await record(instr);
 
-      const chat = findSpan('chat claude-haiku-4.5');
-      expect(chat).toBeDefined();
-      expect(chat?.data['gen_ai.input.messages']).toBeUndefined();
+      const tool = findSpan('execute_tool get_weather');
+      expect(tool).toBeDefined();
+      expect(tool?.data['gen_ai.tool.call.arguments']).toBeUndefined();
     });
 
     it('omits outputs when recordOutputs is false but keeps inputs', async () => {
       await record(createFlueInstrumentation({ recordOutputs: false }));
 
-      const chat = findSpan('chat claude-haiku-4.5');
-      expect(chat?.data['gen_ai.output.messages']).toBeUndefined();
-      expect(chat?.data['gen_ai.input.messages']).toBeDefined();
-      expect(findSpan('execute_tool get_weather')?.data['gen_ai.tool.call.result']).toBeUndefined();
+      const tool = findSpan('execute_tool get_weather');
+      expect(tool?.data['gen_ai.tool.call.result']).toBeUndefined();
+      expect(tool?.data['gen_ai.tool.call.arguments']).toBeDefined();
     });
   });
 
@@ -878,19 +589,11 @@ describe('createFlueInstrumentation', () => {
   // for a re-entry of the first: it gets no span, and its conversation id lands on the first's span.
   it('keeps concurrent agent runs separate', async () => {
     const runA = instrumentation.interceptor({ type: 'agent', operationId: 'op_a' }, { agentName: 'A' }, async () => {
-      instrumentation.observe(
-        { type: 'turn_start', turnId: 'turn_a', operationId: 'op_a', conversationId: 'conv_a' },
-        {},
-      );
+      instrumentation.observe({ type: 'agent_start', operationId: 'op_a', conversationId: 'conv_a' }, {});
       // B starts while A is still open.
       await instrumentation.interceptor({ type: 'agent', operationId: 'op_b' }, { agentName: 'B' }, async () => {
-        instrumentation.observe(
-          { type: 'turn_start', turnId: 'turn_b', operationId: 'op_b', conversationId: 'conv_b' },
-          {},
-        );
-        instrumentation.observe(turn({ turnId: 'turn_b', operationId: 'op_b' }), {});
+        instrumentation.observe({ type: 'agent_start', operationId: 'op_b', conversationId: 'conv_b' }, {});
       });
-      instrumentation.observe(turn({ turnId: 'turn_a', operationId: 'op_a' }), {});
     });
     await runA;
 
@@ -904,9 +607,8 @@ describe('createFlueInstrumentation', () => {
     expect(agentB?.data['gen_ai.conversation.id']).toBe('conv_b');
   });
 
-  it('ignores a settled turn or tool it never opened a span for', async () => {
+  it('ignores a settled tool it never opened a span for', async () => {
     await withAgent(() => {
-      instrumentation.observe(turn({ turnId: 'never_started' }), {});
       instrumentation.observe({ type: 'tool', toolCallId: 'never_started', toolName: 'x' }, {});
     });
 
@@ -915,18 +617,15 @@ describe('createFlueInstrumentation', () => {
 
   it('ends spans still open at dispose', async () => {
     await withAgent(() => {
-      instrumentation.observe({ type: 'turn_start', turnId: 'turn_1', operationId: 'op_1' }, {});
       instrumentation.observe(
         { type: 'tool_start', toolCallId: 'call_1', toolName: 'get_weather', operationId: 'op_1' },
         {},
       );
     });
-    // Never settled, so the span keeps the unqualified name it opened with.
-    expect(findSpan('chat')).toBeUndefined();
+    expect(findSpan('execute_tool get_weather')).toBeUndefined();
 
     instrumentation.dispose();
 
-    expect(findSpan('chat')).toBeDefined();
     expect(findSpan('execute_tool get_weather')).toBeDefined();
   });
 });
