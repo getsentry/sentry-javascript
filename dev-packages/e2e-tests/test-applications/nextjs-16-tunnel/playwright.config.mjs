@@ -26,4 +26,9 @@ const config = getPlaywrightConfig({
   port: 3030,
 });
 
+if (testEnv === 'development-webpack') {
+  // Cold compilation of the app and edge tunnel route can exceed 30 seconds in CI.
+  config.timeout = 60_000;
+}
+
 export default config;
