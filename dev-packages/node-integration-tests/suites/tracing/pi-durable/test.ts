@@ -23,7 +23,7 @@ import { GEN_AI_CHAT, GEN_AI_EXECUTE_TOOL, GEN_AI_INVOKE_AGENT } from '@sentry/c
 import { afterAll, describe, expect } from 'vitest';
 import { GEN_AI_TOOL_CALL_ID_ATTRIBUTE } from '../../../../../packages/server-utils/src/ai/core/gen-ai-attributes';
 import { supports } from '../../../utils';
-import { cleanupChildProcesses, createEsmAndCjsTests } from '../../../utils/runner';
+import { cleanupChildProcesses, createEsmTests } from '../../../utils/runner';
 
 // The pi packages declare `engines.node >= 22.19`, so they can't live in the package's root
 // `devDependencies` (that would break `yarn install` on the 20.19 CI matrix). Install them per-suite
@@ -53,16 +53,12 @@ describe.runIf(supports({ min: 22 }))('pi-durable integration', () => {
     cleanupChildProcesses();
   });
 
-  createEsmAndCjsTests(
+  // The pi packages are ESM-only: their `exports` maps have no `require` condition.
+  createEsmTests(
     __dirname,
     'scenario.mjs',
     'instrument.mjs',
-    (createRunner, test, mode) => {
-      // The pi packages are ESM-only: their `exports` maps have no `require` condition.
-      if (mode === 'cjs') {
-        return;
-      }
-
+    (createRunner, test) => {
       test('traces each run as its own invoke_agent trace with chat and execute_tool children', async () => {
         let toolRunTraceId: string | undefined;
         let brokenToolSpanId: string | undefined;
@@ -256,15 +252,11 @@ describe.runIf(supports({ min: 22 }))('pi-durable integration', () => {
     PI_DURABLE_DEPENDENCIES,
   );
 
-  createEsmAndCjsTests(
+  createEsmTests(
     __dirname,
     'scenario-tools.mjs',
     'instrument.mjs',
-    (createRunner, test, mode) => {
-      if (mode === 'cjs') {
-        return;
-      }
-
+    (createRunner, test) => {
       test('reports app tool failures but not failures of the built-in coding tools', async () => {
         const appErrors: unknown[] = [];
 
@@ -353,15 +345,11 @@ describe.runIf(supports({ min: 22 }))('pi-durable integration', () => {
     PI_DURABLE_DEPENDENCIES,
   );
 
-  createEsmAndCjsTests(
+  createEsmTests(
     __dirname,
     'scenario-reports.mjs',
     'instrument.mjs',
-    (createRunner, test, mode) => {
-      if (mode === 'cjs') {
-        return;
-      }
-
+    (createRunner, test) => {
       test('captures failures pi-durable does not propagate, and tags idle compaction with its conversation', async () => {
         let runConversationId: unknown;
         let compactionConversationId: unknown;
@@ -409,15 +397,11 @@ describe.runIf(supports({ min: 22 }))('pi-durable integration', () => {
     PI_DURABLE_DEPENDENCIES,
   );
 
-  createEsmAndCjsTests(
+  createEsmTests(
     __dirname,
     'scenario-subagent.mjs',
     'instrument.mjs',
-    (createRunner, test, mode) => {
-      if (mode === 'cjs') {
-        return;
-      }
-
+    (createRunner, test) => {
       test('nests subagent runs under the tool call that started them', async () => {
         await createRunner()
           .unordered()
@@ -475,15 +459,11 @@ describe.runIf(supports({ min: 22 }))('pi-durable integration', () => {
     PI_DURABLE_DEPENDENCIES,
   );
 
-  createEsmAndCjsTests(
+  createEsmTests(
     __dirname,
     'scenario-retention.mjs',
     'instrument.mjs',
-    (createRunner, test, mode) => {
-      if (mode === 'cjs') {
-        return;
-      }
-
+    (createRunner, test) => {
       // Bun does not implement `v8.setFlagsFromString`, which the scenario needs to force GC.
       test.runIf(supports({ runtimes: ['node', 'deno'] }))(
         'does not keep the traces of tool calls alive for subagent conversations that never run',
@@ -499,15 +479,11 @@ describe.runIf(supports({ min: 22 }))('pi-durable integration', () => {
     PI_DURABLE_DEPENDENCIES,
   );
 
-  createEsmAndCjsTests(
+  createEsmTests(
     __dirname,
     'scenario-restart-abort.mjs',
     'instrument.mjs',
-    (createRunner, test, mode) => {
-      if (mode === 'cjs') {
-        return;
-      }
-
+    (createRunner, test) => {
       test('starts no run for an abort handler in a Harness that never saw the run', async () => {
         await createRunner()
           .ignore('span')
@@ -524,15 +500,11 @@ describe.runIf(supports({ min: 22 }))('pi-durable integration', () => {
     PI_DURABLE_DEPENDENCIES,
   );
 
-  createEsmAndCjsTests(
+  createEsmTests(
     __dirname,
     'scenario-interrupted.mjs',
     'instrument.mjs',
-    (createRunner, test, mode) => {
-      if (mode === 'cjs') {
-        return;
-      }
-
+    (createRunner, test) => {
       test('reports a provider that throws as a fault, and nothing for failed, aborted or closed runs', async () => {
         await createRunner()
           .ignore('span')
@@ -623,15 +595,11 @@ describe.runIf(supports({ min: 22 }))('pi-durable integration', () => {
     PI_DURABLE_DEPENDENCIES,
   );
 
-  createEsmAndCjsTests(
+  createEsmTests(
     __dirname,
     'scenario-concurrent.mjs',
     'instrument.mjs',
-    (createRunner, test, mode) => {
-      if (mode === 'cjs') {
-        return;
-      }
-
+    (createRunner, test) => {
       test('keeps concurrent runs apart and out of the scopes of the requests that submitted them', async () => {
         const runTraceIds = new Set<string>();
         const errorTraceIds = new Set<string>();
@@ -705,15 +673,11 @@ describe.runIf(supports({ min: 22 }))('pi-durable integration', () => {
     PI_DURABLE_DEPENDENCIES,
   );
 
-  createEsmAndCjsTests(
+  createEsmTests(
     __dirname,
     'scenario-compaction.mjs',
     'instrument.mjs',
-    (createRunner, test, mode) => {
-      if (mode === 'cjs') {
-        return;
-      }
-
+    (createRunner, test) => {
       test('keeps a compaction that pi-durable starts for a run inside that run', async () => {
         await createRunner()
           .unordered()

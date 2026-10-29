@@ -17,7 +17,7 @@ import {
 import { GEN_AI_CHAT } from '@sentry/conventions/op';
 import { afterAll, describe, expect } from 'vitest';
 import { supports } from '../../../utils';
-import { cleanupChildProcesses, createEsmAndCjsTests } from '../../../utils/runner';
+import { cleanupChildProcesses, createEsmTests } from '../../../utils/runner';
 
 // `@earendil-works/pi-ai` declares `engines.node >= 22.19`, so it can't live in the package's root
 // `devDependencies` (that would break `yarn install` on the 20.19 CI matrix). Install it per-suite
@@ -48,16 +48,12 @@ describe.runIf(supports({ min: 22 }))('pi-ai integration', () => {
     cleanupChildProcesses();
   });
 
-  createEsmAndCjsTests(
+  // `@earendil-works/pi-ai` is ESM-only, so there is no CJS variant of this scenario to run.
+  createEsmTests(
     __dirname,
     'scenario.mjs',
     'instrument.mjs',
-    (createRunner, test, mode) => {
-      // `@earendil-works/pi-ai` is ESM-only, so there is no CJS variant of this scenario to run.
-      if (mode === 'cjs') {
-        return;
-      }
-
+    (createRunner, test) => {
       test('traces the requests sent through a `Models` collection', async () => {
         await createRunner()
           .unordered()
@@ -106,15 +102,11 @@ describe.runIf(supports({ min: 22 }))('pi-ai integration', () => {
     PI_AI_DEPENDENCIES,
   );
 
-  createEsmAndCjsTests(
+  createEsmTests(
     __dirname,
     'scenario-compat.mjs',
     'instrument.mjs',
-    (createRunner, test, mode) => {
-      if (mode === 'cjs') {
-        return;
-      }
-
+    (createRunner, test) => {
       // `compat` loads pi-ai's model catalog with `import ... with { type: 'json' }`. Deno 2.8 drops
       // the import attributes once any module hook is registered and compiles the JSON as JavaScript,
       // which Deno 2.9 fixed. The SDK registers one for its runtime instrumentation.

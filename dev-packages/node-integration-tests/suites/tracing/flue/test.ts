@@ -17,7 +17,7 @@ import {
 } from '@sentry/conventions/attributes';
 import { afterAll, describe, expect } from 'vitest';
 import { supports } from '../../../utils';
-import { cleanupChildProcesses, createEsmAndCjsTests } from '../../../utils/runner';
+import { cleanupChildProcesses, createEsmTests } from '../../../utils/runner';
 
 // `@flue/runtime` declares `engines.node >= 22.19`, so it can't live in the package's root
 // `devDependencies` (that would break `yarn install` on the 20.19 CI matrix). Install it per-suite
@@ -35,17 +35,13 @@ describe.runIf(supports({ min: 22 }))('Flue integration', () => {
     cleanupChildProcesses();
   });
 
-  createEsmAndCjsTests(
+  // `@flue/runtime` is ESM-only — its `exports` map has no `require` condition, so there is no
+  // CJS variant of this scenario to run.
+  createEsmTests(
     __dirname,
     'scenario.mjs',
     'instrument.mjs',
-    (createRunner, test, mode) => {
-      // `@flue/runtime` is ESM-only — its `exports` map has no `require` condition, so there is no
-      // CJS variant of this scenario to run.
-      if (mode === 'cjs') {
-        return;
-      }
-
+    (createRunner, test) => {
       test('creates the invoke_agent / chat / execute_tool hierarchy', async () => {
         await createRunner()
           .expect({
@@ -121,15 +117,11 @@ describe.runIf(supports({ min: 22 }))('Flue integration', () => {
     FLUE_DEPENDENCIES,
   );
 
-  createEsmAndCjsTests(
+  createEsmTests(
     __dirname,
     'scenario.mjs',
     'instrument-with-pii.mjs',
-    (createRunner, test, mode) => {
-      if (mode === 'cjs') {
-        return;
-      }
-
+    (createRunner, test) => {
       test('records the messages of the turns in the gen_ai conventions shape', async () => {
         await createRunner()
           .expect({
@@ -179,15 +171,11 @@ describe.runIf(supports({ min: 22 }))('Flue integration', () => {
     FLUE_DEPENDENCIES,
   );
 
-  createEsmAndCjsTests(
+  createEsmTests(
     __dirname,
     'scenario-separate-requests.mjs',
     'instrument.mjs',
-    (createRunner, test, mode) => {
-      if (mode === 'cjs') {
-        return;
-      }
-
+    (createRunner, test) => {
       test('puts each dispatch in the trace of the request that admitted it', async () => {
         const expectAgentUnder = (requestName: string) => ({
           span: (container: SerializedStreamedSpanContainer) => {
