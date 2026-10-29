@@ -23,8 +23,8 @@ const RED_PIXEL =
 
 const app = express();
 
-// Each route makes one `decisions.create` call and answers with the trace id, so the test can find
-// the request's spans in Sentry.
+// Each route makes one decisions call and answers with the trace id, so the test can check it picked the
+// spans of its own request.
 
 app.get('/decide', async (_req, res, next) => {
   try {
@@ -107,5 +107,5 @@ app.use((error: Error, _req: express.Request, res: express.Response, _next: expr
 const port = Number(process.env.PORT ?? 3030);
 app.listen(port, () => {
   // eslint-disable-next-line no-console
-  console.log(`node-openai-decisions-send-to-sentry listening on port ${port}`);
+  console.log(`node-openai-decisions listening on port ${port}`);
 });

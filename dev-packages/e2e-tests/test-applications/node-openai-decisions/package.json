@@ -1,6 +1,6 @@
 {
-  "name": "node-openai-decisions-send-to-sentry",
-  "description": "The OpenAI Decisions API as a user runs it: a plain Sentry.init on an express app, real decisions requests against OpenAI through the openai client and the Vercel AI SDK, and the gen_ai.decide spans read back from a real Sentry project",
+  "name": "node-openai-decisions",
+  "description": "The OpenAI Decisions API as a user runs it: real decisions requests against OpenAI through the openai client and the Vercel AI SDK, and the gen_ai.decide spans they record",
   "version": "1.0.0",
   "private": true,
   "type": "module",
@@ -27,7 +27,6 @@
     "@sentry/conventions": "0.30.0",
     "@types/express": "^4.17.21",
     "@types/node": "^24.0.0",
-    "sentry": "~0.44.1",
     "typescript": "~5.9.0"
   },
   "sentryTest": {
@@ -35,7 +34,7 @@
     "optionalVariants": [
       {
         "build-command": "pnpm test:build-latest",
-        "label": "node-openai-decisions-send-to-sentry (latest)"
+        "label": "node-openai-decisions (latest)"
       }
     ]
   }
