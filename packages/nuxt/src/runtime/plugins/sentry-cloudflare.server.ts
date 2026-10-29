@@ -1,3 +1,4 @@
+import type { ExecutionContext } from '@cloudflare/workers-types';
 import type { CloudflareOptions } from '@sentry/cloudflare';
 import { getDefaultIntegrations, setAsyncLocalStorageAsyncContextStrategy } from '@sentry/cloudflare';
 import { wrapRequestHandler } from '@sentry/cloudflare/request';
@@ -47,6 +48,34 @@ export const sentryCloudflareNitroPlugin =
   (nitroApp: NitroApp): void => {
     const traceDataMap = new WeakMap<object, ReturnType<typeof getTraceData>>();
 
+    // Nitro v3 (Nuxt 5) has no `localFetch`. It hands the Worker's own request to `fetch`, with `ctx` on it.
+    const nitroV3App = nitroApp as unknown as { localFetch?: unknown; fetch?: (request: Request) => Promise<Response> };
+    const appFetch = nitroV3App.fetch;
+    if (typeof nitroV3App.localFetch !== 'function' && typeof appFetch === 'function') {
+      nitroV3App.fetch = request => {
+        setAsyncLocalStorageAsyncContextStrategy();
+
+        const cloudflareOptions = typeof optionsOrFn === 'function' ? optionsOrFn(nitroApp) : optionsOrFn;
+        const runtime = (request as Request & { runtime?: { cloudflare?: { context?: ExecutionContext } } }).runtime;
+
+        return wrapRequestHandler(
+          {
+            options: {
+              defaultIntegrations: getDefaultIntegrations(cloudflareOptions),
+              _extendsDefaultIntegrations: cloudflareOptions.defaultIntegrations === undefined,
+              ...cloudflareOptions,
+            },
+            request,
+            context: runtime?.cloudflare?.context,
+          },
+          () => appFetch(request),
+        );
+      };
+      nitroApp.hooks.hook('error', sentryCaptureErrorHook);
+
+      return;
+    }
+
     nitroApp.localFetch = new Proxy(nitroApp.localFetch, {
       async apply(handlerTarget, handlerThisArg, handlerArgs: [string, unknown]) {
         setAsyncLocalStorageAsyncContextStrategy();
@@ -64,6 +93,9 @@ export const sentryCloudflareNitroPlugin =
           const request = new Request(url, {
             method: event.method,
             headers: event.headers,
+            // Nitro read the body before calling `localFetch`. The managed tunnel answers from this request, so it
+            // needs the body; a `GET` or `HEAD` request can't have one.
+            body: event.method === 'GET' || event.method === 'HEAD' ? undefined : event.body,
             // @ts-expect-error - 'cf' is a valid property in the RequestInit type for Cloudflare
             cf: getCfProperties(event),
           });
