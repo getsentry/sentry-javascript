@@ -104,6 +104,7 @@ function setupStorageTracingChannel(operation: TracedOperation): void {
       });
     },
     {
+      requiresParentSpan: true,
       beforeSpanEnd(span, data) {
         // Error status is set by the binding; the error itself is captured at the request boundary,
         // not here (cache ops aren't an error boundary). Only enrich the success path.

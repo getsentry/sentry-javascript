@@ -1,3 +1,4 @@
+import type { SerializedStreamedSpan } from '@sentry/core';
 import {
   CACHE_HIT,
   CACHE_KEY,
@@ -111,6 +112,44 @@ describe.runIf(supports({ min: 20 }))('nitro integrations', () => {
 
       expect(await runner.makeRequest('get', '/cache')).toBe('value');
       await runner.completed();
+    });
+  });
+
+  createEsmTests(__dirname, 'scenario-storage-no-parent.mjs', 'instrument.mjs', (createRunner, test) => {
+    test('only instruments storage operations with an active parent span', async () => {
+      const runner = createRunner();
+      const cacheSpans = new Map<string, SerializedStreamedSpan>();
+      const spansPromise = runner.collectStreamedSpans(spans => {
+        for (const span of spans) {
+          if (span.attributes[SENTRY_ORIGIN]?.value === 'auto.cache.nitro') {
+            cacheSpans.set(span.span_id, span);
+          }
+        }
+        return spans.some(span => span.is_segment && span.name === 'parent operation');
+      });
+
+      await runner.unordered().start().completed();
+
+      const spans = await spansPromise;
+      const parent = spans.find(span => span.is_segment && span.name === 'parent operation');
+      expect(parent).toBeDefined();
+      expect(
+        Array.from(cacheSpans.values(), span => ({
+          operation: span.attributes[DB_OPERATION_NAME]?.value,
+          key: span.attributes[CACHE_KEY]?.value,
+          parentSpanId: span.parent_span_id,
+          traceId: span.trace_id,
+          isSegment: span.is_segment,
+        })),
+      ).toEqual(
+        ['setItem', 'getItem'].map(operation => ({
+          operation,
+          key: 'inside_parent',
+          parentSpanId: parent?.span_id,
+          traceId: parent?.trace_id,
+          isSegment: false,
+        })),
+      );
     });
   });
 
