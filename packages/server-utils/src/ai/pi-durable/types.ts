@@ -5,35 +5,7 @@
  */
 
 import type { PiAiContext } from '../pi-ai/messages';
-import type { PiAiUsage } from '../pi-ai/usage';
-
-export interface PiAssistantMessage {
-  role?: string;
-  content?: unknown[];
-  provider?: string;
-  model?: string;
-  responseModel?: string;
-  responseId?: string;
-  usage?: PiAiUsage;
-  stopReason?: string;
-  errorMessage?: string;
-}
-
-export interface PiModel {
-  id?: string;
-  provider?: string;
-  baseUrl?: string;
-}
-
-export interface PiStreamOptions {
-  temperature?: number;
-  maxTokens?: number;
-  reasoning?: string;
-}
-
-export interface PiEventStream {
-  result(): Promise<PiAssistantMessage>;
-}
+import type { PiAssistantMessage, PiEventStream, PiModel, PiStreamOptions } from '../pi-ai/types';
 
 /**
  * The `Models` methods that send a model request. Everything else passes through untouched. The
