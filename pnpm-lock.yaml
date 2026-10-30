@@ -453,7 +453,7 @@ importers:
         version: 0.133.0(zod@4.6.7)
       '@google/genai':
         specifier: ^1.20.0
-        version: 1.20.0(@modelcontextprotocol/sdk@1.30.0(@cfworker/json-schema@4.1.1)(supports-color@10.0.0)(zod@4.6.7))(encoding@0.1.13)(supports-color@10.0.0)
+        version: 1.20.0(@modelcontextprotocol/sdk@1.32.2(@cfworker/json-schema@4.1.1)(supports-color@10.0.0)(zod@4.6.7))(encoding@0.1.13)(supports-color@10.0.0)
       '@langchain/core':
         specifier: ^1.2.17
         version: 1.2.17(@opentelemetry/api@1.10.0)(openai@5.18.1(ws@8.21.3)(zod@4.6.7))(ws@8.21.3)
@@ -609,7 +609,7 @@ importers:
         version: 3.1068.0
       '@google/genai':
         specifier: ^1.20.0
-        version: 1.20.0(@modelcontextprotocol/sdk@1.30.0(@cfworker/json-schema@4.1.1)(supports-color@10.0.0)(zod@4.6.7))(encoding@0.1.13)(supports-color@10.0.0)
+        version: 1.20.0(@modelcontextprotocol/sdk@1.32.2(@cfworker/json-schema@4.1.1)(supports-color@10.0.0)(zod@4.6.7))(encoding@0.1.13)(supports-color@10.0.0)
       '@growthbook/growthbook':
         specifier: ^1.6.5
         version: 1.6.5
@@ -641,8 +641,8 @@ importers:
         specifier: ^2.0.0
         version: 2.0.0
       '@modelcontextprotocol/sdk':
-        specifier: 1.30.0
-        version: 1.30.0(@cfworker/json-schema@4.1.1)(supports-color@10.0.0)(zod@4.6.7)
+        specifier: 1.32.2
+        version: 1.32.2(@cfworker/json-schema@4.1.1)(supports-color@10.0.0)(zod@4.6.7)
       '@modelcontextprotocol/server':
         specifier: ^2.0.0
         version: 2.0.0
@@ -6166,8 +6166,8 @@ packages:
     resolution: {integrity: sha512-pJCEwGG7Lfr/+PQp9ZTwKXNeO5wzbfKL7H3MYpCorM4oFBoQrdjnBgEoqG+RjhsvS1FKrDbKux+M1HhlnGWqcA==}
     engines: {node: '>=20'}
 
-  '@modelcontextprotocol/sdk@1.30.0':
-    resolution: {integrity: sha512-xKd8OIzlqNzcqcNumGAa6g+PW2kjD5vrpcKOnfldAUPP3j7lnqMPwlTXQm8gF+UwH72z0lqaRbjr9hqGz0eITA==}
+  '@modelcontextprotocol/sdk@1.32.2':
+    resolution: {integrity: sha512-SWsVtH/0vULSQStoZ6xxH2K09Li8fXYTMC64ZeogCdpZ3XSi1eCPOByV1OpuJxuI3OcmHhosDWYyii07tpPsLw==}
     engines: {node: '>=18'}
     peerDependencies:
       '@cfworker/json-schema': ^4.1.1
@@ -23634,12 +23634,12 @@ snapshots:
 
   '@google-cloud/promisify@2.0.3': {}
 
-  '@google/genai@1.20.0(@modelcontextprotocol/sdk@1.30.0(@cfworker/json-schema@4.1.1)(supports-color@10.0.0)(zod@4.6.7))(encoding@0.1.13)(supports-color@10.0.0)':
+  '@google/genai@1.20.0(@modelcontextprotocol/sdk@1.32.2(@cfworker/json-schema@4.1.1)(supports-color@10.0.0)(zod@4.6.7))(encoding@0.1.13)(supports-color@10.0.0)':
     dependencies:
       google-auth-library: 9.15.1(encoding@0.1.13)(supports-color@10.0.0)
       ws: 8.21.3
     optionalDependencies:
-      '@modelcontextprotocol/sdk': 1.30.0(@cfworker/json-schema@4.1.1)(supports-color@10.0.0)(zod@4.6.7)
+      '@modelcontextprotocol/sdk': 1.32.2(@cfworker/json-schema@4.1.1)(supports-color@10.0.0)(zod@4.6.7)
     transitivePeerDependencies:
       - bufferutil
       - encoding
@@ -24393,7 +24393,7 @@ snapshots:
 
   '@mistralai/mistralai@3.3.0(@aws-sdk/client-s3@3.1068.0)(@azure/storage-blob@12.31.0(supports-color@10.0.0))(@cfworker/json-schema@4.1.1)(@opentelemetry/api@1.9.0)(supports-color@10.0.0)':
     dependencies:
-      '@modelcontextprotocol/sdk': 1.30.0(@cfworker/json-schema@4.1.1)(supports-color@10.0.0)(zod@4.6.7)
+      '@modelcontextprotocol/sdk': 1.32.2(@cfworker/json-schema@4.1.1)(supports-color@10.0.0)(zod@4.6.7)
       '@opentelemetry/semantic-conventions': 1.43.0
       ws: 8.21.3
       zod: 4.6.7
@@ -24424,7 +24424,7 @@ snapshots:
     dependencies:
       zod: 4.6.7
 
-  '@modelcontextprotocol/sdk@1.30.0(@cfworker/json-schema@4.1.1)(supports-color@10.0.0)(zod@4.6.7)':
+  '@modelcontextprotocol/sdk@1.32.2(@cfworker/json-schema@4.1.1)(supports-color@10.0.0)(zod@4.6.7)':
     dependencies:
       '@hono/node-server': 2.0.10(hono@4.13.11)
       ajv: 8.20.0
