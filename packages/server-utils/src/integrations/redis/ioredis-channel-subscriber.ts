@@ -124,7 +124,6 @@ export function instrumentIoredis(options: RedisCacheOptions): void {
     const { host, port } = getConnectionOptions(data.self);
     return startInactiveSpan({
       name: 'connect',
-      onlyIfParent: true,
       attributes: {
         [SENTRY_KIND]: 'client',
         ...connectionAttributes(host, port),

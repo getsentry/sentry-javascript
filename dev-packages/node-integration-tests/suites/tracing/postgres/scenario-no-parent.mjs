@@ -13,8 +13,7 @@ async function run() {
     await probe.end();
   });
 
-  // No active span here: `requireParentSpan` means the connect and this query
-  // must NOT produce spans.
+  // Connect can produce a root span; the query still requires a parent.
   await client.connect();
   await client.query('SELECT 1 AS unparented');
 

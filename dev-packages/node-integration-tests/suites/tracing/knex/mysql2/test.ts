@@ -88,7 +88,7 @@ describeWithDockerCompose('knex auto instrumentation', { workingDirectory: [__di
         await createRunner()
           .expect({
             span: container => {
-              expect(container.items.find(span => span.is_segment)?.name).toBe('Test Transaction');
+              expect(container.items.find(span => span.is_segment && span.name === 'Test Transaction')).toBeDefined();
               const knexSpans = container.items.filter(span => span.attributes[SENTRY_ORIGIN]?.value === ORIGIN);
               expect(knexSpans).toEqual(EXPECTED_SPANS);
             },

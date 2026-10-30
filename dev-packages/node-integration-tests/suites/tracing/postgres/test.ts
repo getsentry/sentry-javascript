@@ -167,7 +167,9 @@ describeWithDockerCompose('postgres auto instrumentation', { workingDirectory: [
           .expect({
             span: container => {
               expect(container).toMatchObject(EXPECTED_SPANS);
-              const dbSpans = container.items.filter(span => span.attributes[SENTRY_OP]?.value === DB);
+              const dbSpans = container.items.filter(
+                span => !span.is_segment && span.attributes[SENTRY_OP]?.value === DB,
+              );
               expect(dbSpans.map(span => span.name)).toEqual([
                 'pg.connect',
                 'CREATE TABLE "User"',
@@ -375,16 +377,15 @@ describeWithDockerCompose('postgres auto instrumentation', { workingDirectory: [
 
   describe('requireParentSpan', () => {
     createEsmAndCjsTests(__dirname, 'scenario-no-parent.mjs', 'instrument.mjs', (createTestRunner, test) => {
-      test('does not instrument queries or connects without an active parent span', { timeout: 90_000 }, async () => {
+      test('does not instrument queries without an active parent span', { timeout: 90_000 }, async () => {
         await createTestRunner()
           .expect({
             span: container => {
-              const descriptions = container.items.map(span => span.name);
-              // The unparented connect + query must not have produced spans
+              // The unparented query must not have produced a span
               expect(container.items.map(span => span.attributes[DB_QUERY_TEXT]?.value)).not.toContain(
                 'SELECT ? AS unparented',
               );
-              expect(descriptions.find(name => name?.includes('connect'))).toBeUndefined();
+              expect(container.items.find(span => span.is_segment && span.name === 'pg.connect')).toBeDefined();
               // Only the parented query is instrumented
               expect(container).toMatchObject({
                 items: expect.arrayContaining([
@@ -521,7 +522,9 @@ describeWithDockerCompose('postgres auto instrumentation', { workingDirectory: [
             .expect({
               span: container => {
                 expect(container).toMatchObject(EXPECTED_SPANS);
-                const dbSpans = container.items.filter(span => span.attributes[SENTRY_OP]?.value === DB);
+                const dbSpans = container.items.filter(
+                  span => !span.is_segment && span.attributes[SENTRY_OP]?.value === DB,
+                );
                 expect(dbSpans.map(span => span.name)).toEqual([
                   'pg.connect',
                   'CREATE TABLE "NativeUser"',
@@ -679,17 +682,16 @@ describeWithDockerCompose('postgres auto instrumentation', { workingDirectory: [
         'instrument-orchestrion.mjs',
         (createTestRunner, test) => {
           test(
-            'does not instrument queries or connects without an active parent span',
+            'does not instrument queries without an active parent span (orchestrion)',
             { timeout: 90_000 },
             async () => {
               await createTestRunner()
                 .expect({
                   span: container => {
-                    const descriptions = container.items.map(span => span.name);
                     expect(container.items.map(span => span.attributes[DB_QUERY_TEXT]?.value)).not.toContain(
                       'SELECT ? AS unparented',
                     );
-                    expect(descriptions.find(name => name?.includes('connect'))).toBeUndefined();
+                    expect(container.items.find(span => span.is_segment && span.name === 'pg.connect')).toBeDefined();
                     expect(container).toMatchObject({
                       items: expect.arrayContaining([
                         expect.objectContaining({ name: 'Test Transaction', is_segment: true }),
