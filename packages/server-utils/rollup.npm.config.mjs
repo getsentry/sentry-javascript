@@ -1,7 +1,7 @@
 import { builtinModules } from 'node:module';
 import commonjs from '@rollup/plugin-commonjs';
 import license from 'rollup-plugin-license';
-import { makeBaseNPMConfig, makeNPMConfigVariants } from '@sentry-internal/rollup-utils';
+import { FLAT_OUTPUT, makeBaseNPMConfig, makeNPMConfigVariants } from '@sentry-internal/rollup-utils';
 
 // The orchestrion build-time bundler-plugin chain (`@apm-js-collab/code-transformer-bundler-plugins`
 // → `@apm-js-collab/code-transformer` → meriyah/esquery/astring/…) is bundled into this package's
@@ -61,16 +61,7 @@ const importMetaUrlNodeShim = {
   },
 };
 
-// Bundling files from the repo-root `node_modules` moves rollup's common source ancestor up to the
-// repo root, so `preserveModules` names our own files `packages/server-utils/src/...` — strip that
-// prefix to keep the `build/cjs/index.js` layout the `exports` map points at. A vendored dependency
-// is named by its path after the last `node_modules/`, because pnpm installs some of them in nested
-// or `.pnpm` folders. And npm never packs `node_modules` directories, so the vendored dependencies
-// are emitted under `vendored/`.
-const sanitizedFileNames = info =>
-  `${info.name.replace(/^packages\/server-utils\/src\//, '').replace(/^.*node_modules\//, 'vendored/')}.js`;
-
-// The vendored dependencies (see above) are third-party code redistributed inside this package's
+// The vendored dependencies are third-party code redistributed inside this package's
 // published `build/`, so their licenses require us to carry each one's copyright/permission notice
 // (and, for Apache-2.0 deps like `@apm-js-collab/*`, the upstream NOTICE). Rollup strips per-file
 // banners, so instead we aggregate them into a single `build/THIRD-PARTY-LICENSES.txt`. The default
@@ -97,27 +88,30 @@ export default [
       // `.../orchestrion/vite`, etc.) — none are reachable from `src/index.ts`, so
       // we list them as separate entrypoints to guarantee they end up in build/esm
       // and build/cjs.
-      entrypoints: [
-        'src/index.ts',
-        'src/index.no-diagnostic-channels.ts',
-        'src/index.request-handler.ts',
-        'src/orchestrion/config/index.ts',
-        'src/orchestrion/bundler/vite.ts',
-        'src/orchestrion/bundler/rollup.ts',
-        'src/orchestrion/bundler/webpack.ts',
-        'src/orchestrion/bundler/webpack-loader.ts',
-        'src/orchestrion/bundler/load-hook.ts',
-        'src/orchestrion/bundler/esbuild.ts',
-        'src/orchestrion/bundler/bun.ts',
-      ],
+      entrypoints: {
+        index: 'src/index.ts',
+        'index.no-diagnostic-channels': 'src/index.no-diagnostic-channels.ts',
+        'index.request-handler': 'src/index.request-handler.ts',
+        'orchestrion/config/index': 'src/orchestrion/config/index.ts',
+        'orchestrion/bundler/vite': 'src/orchestrion/bundler/vite.ts',
+        'orchestrion/bundler/rollup': 'src/orchestrion/bundler/rollup.ts',
+        'orchestrion/bundler/webpack': 'src/orchestrion/bundler/webpack.ts',
+        'orchestrion/bundler/webpack-loader': 'src/orchestrion/bundler/webpack-loader.ts',
+        'orchestrion/bundler/load-hook': 'src/orchestrion/bundler/load-hook.ts',
+        'orchestrion/bundler/esbuild': 'src/orchestrion/bundler/esbuild.ts',
+        'orchestrion/bundler/bun': 'src/orchestrion/bundler/bun.ts',
+      },
       packageSpecificConfig: {
         plugins: [debugNodeAlias, commonJSPlugin, importMetaUrlNodeShim, thirdPartyLicensePlugin],
         output: {
           // set exports to 'named' or 'auto' so that rollup doesn't warn
           exports: 'named',
-          // set preserveModules to true because we don't want to bundle everything into one file.
-          preserveModules: true,
-          entryFileNames: sanitizedFileNames,
+          ...FLAT_OUTPUT,
+          // `@sentry/cloudflare/vite` finds these modules by their path and injects an import into
+          // them (see `createIntegrationModuleMatcher`).
+          manualChunks: id =>
+            id.match(/\/packages\/server-utils\/src\/(integrations\/(?:flue|mastra))\.ts$/)?.[1] ?? null,
+          chunkFileNames: chunk => (chunk.name.startsWith('integrations/') ? '[name].js' : FLAT_OUTPUT.chunkFileNames),
           // The repo default `interop: 'esModule'` dereferences `.default` on default imports of
           // externals. The commonjs-converted vendored dependencies import Node builtins that way
           // (e.g. `require('path')` → default import of `path`), and builtins have no `.default` in

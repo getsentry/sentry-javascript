@@ -3,7 +3,7 @@ import * as path from 'node:path';
 import commonjs from '@rollup/plugin-commonjs';
 import license from 'rollup-plugin-license';
 import { defineConfig } from 'rollup';
-import { makeBaseNPMConfig, makeNPMConfigVariants } from '@sentry-internal/rollup-utils';
+import { FLAT_OUTPUT, makeBaseNPMConfig, makeNPMConfigVariants } from '@sentry-internal/rollup-utils';
 
 // The orchestrion runtime dependency chain (`@apm-js-collab/tracing-hooks` →
 // `@apm-js-collab/code-transformer` → meriyah/esquery/astring/…) is bundled into this package's
@@ -71,16 +71,7 @@ const guardTracingDump = {
   },
 };
 
-// Bundling files from the repo-root `node_modules` moves rollup's common source ancestor up to the
-// repo root, so `preserveModules` names our own files `packages/server-runtime-injection/src/...` —
-// strip that prefix to keep the `build/cjs/register.js` layout the `exports` map points at. A vendored
-// dependency is named by its path after the last `node_modules/`, because pnpm installs some of them
-// in nested or `.pnpm` folders. And npm never packs `node_modules` directories, so the vendored
-// dependencies are emitted under `vendored/`.
-const sanitizedFileNames = info =>
-  `${info.name.replace(/^packages\/server-runtime-injection\/src\//, '').replace(/^.*node_modules\//, 'vendored/')}.js`;
-
-// The vendored dependencies (see above) are third-party code redistributed inside this package's
+// The vendored dependencies are third-party code redistributed inside this package's
 // published `build/`, so their licenses require us to carry each one's copyright/permission notice
 // (and, for Apache-2.0 deps like `@apm-js-collab/*`, the upstream NOTICE). Rollup strips per-file
 // banners, so instead we aggregate them into a single `build/THIRD-PARTY-LICENSES.txt`.
@@ -119,8 +110,7 @@ export default [
         plugins: [debugShim, guardTracingDump, commonJSPlugin, thirdPartyLicensePlugin],
         output: {
           exports: 'named',
-          preserveModules: true,
-          entryFileNames: sanitizedFileNames,
+          ...FLAT_OUTPUT,
           // The commonjs-converted vendored dependencies import Node builtins as default imports
           // (`require('path')` → default import of `path`), and builtins have no `.default` in CJS —
           // so builtins need `'default'` interop (the module itself is the default export).
