@@ -166,17 +166,26 @@ export function getDynamicSamplingContextFromSpan(span: Span): Readonly<Partial<
     dsc.transaction = name;
   }
 
-  // How can we even land here with hasSpansEnabled() returning false?
-  // Otel creates a Non-recording span in Tracing Without Performance mode when handling incoming requests
-  // So we end up with an active span that is not sampled (neither positively nor negatively)
+  // Only add sampling values if tracing is enabled. With tracing disabled, we still land here for OTel's
+  // own non-recording spans (OTel creates one for an incoming request in Tracing without Performance mode),
+  // and for our non-recording spans while an external propagation context is active. These spans made no
+  // sampling decision.
   if (hasSpansEnabled()) {
-    dsc.sampled = String(spanIsSampled(rootSpan));
+    const propagationContext = getCapturedScopesOnSpan(rootSpan).scope?.getPropagationContext();
+    const sampled = spanIsSampled(rootSpan);
+    dsc.sampled = String(sampled);
     dsc.sample_rand =
       // In OTEL we store the sample rand on the trace state because we cannot access scopes for NonRecordingSpans
       // The Sentry OTEL SpanSampler takes care of writing the sample rand on the root span
       traceState?.get('sentry.sample_rand') ??
       // On all other platforms we can actually get the scopes from a root span (we use this as a fallback)
-      getCapturedScopesOnSpan(rootSpan).scope?.getPropagationContext().sampleRand.toString();
+      propagationContext?.sampleRand.toString();
+
+    // We continue a trace that arrived without a DSC and inherited its sampling decision, so no local sample
+    // rate was applied. The spec requires 1/0 here to keep `sample_rand < sample_rate <=> sampled` intact.
+    if (rootSpanSampleRate == null && typeof propagationContext?.sampled === 'boolean') {
+      dsc.sample_rate = sampled ? '1' : '0';
+    }
   }
 
   applyLocalSampleRateToDsc(dsc);
