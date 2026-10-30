@@ -99,6 +99,7 @@ packageExtensions:
 # `false` only for scripts that just print a message.
 allowBuilds:
   '@apollo/protobufjs': true
+  '@google/genai': false
   '@nestjs/core': false
   '@parcel/watcher': true
   '@prisma/client': true
@@ -112,6 +113,7 @@ allowBuilds:
   nice-napi: true
   nx: true
   prisma: true
+  protobufjs: false
   sharp: true
   vue-demi: true
   workerd: true

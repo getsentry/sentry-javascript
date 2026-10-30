@@ -367,7 +367,7 @@ export const browserTracingIntegration = ((options: Partial<BrowserTracingOption
     const urlObject = parseStringToURLObject(url || getLocationHref());
 
     const attributes = {
-      ...(urlObject?.pathname && { [URL_PATH]: urlObject.pathname }),
+      [URL_PATH]: urlObject?.pathname,
       ...(urlObject && !isURLObjectRelative(urlObject) && { [URL_FULL]: filterCollectedUrl(urlObject.href) }),
       ...finalStartSpanOptions.attributes,
     };

@@ -23,7 +23,7 @@ import {
   hasSpanStreamingEnabled,
   startInactiveSpan,
 } from '@sentry/core';
-import { sanitizeSqlQueryWithSummary } from '../utils/sql';
+import { getSqlQueryAttributes } from '../utils/sql';
 import type { OrchestrionChannelContext } from '../orchestrion/types';
 import { CHANNELS } from '../orchestrion/channels';
 import { bindTracingChannelToSpan } from '../tracing-channel';
@@ -141,6 +141,7 @@ function subscribeQueryLikeChannel(
       const spanOptions = getSpanOptions(data);
       return startInactiveSpan({
         ...spanOptions,
+        onlyIfParent: true,
         attributes: { ...spanOptions.attributes, [SENTRY_KIND]: 'client' },
       });
     },
@@ -151,9 +152,6 @@ function subscribeQueryLikeChannel(
     // `query` can return a streamable `Submittable`, so only it defers.
     deferStreamedResult
       ? {
-          // Only instrument under an active span, leaving the context untouched otherwise
-          // (e.g. connects issued during app startup).
-          requiresParentSpan: true,
           // Streamable `Submittable` (e.g. `client.query(new Query())`)
           // returns an emitter that orchestrion stores on `ctx.result` while
           // firing no async events; the query isn't done until the emitter
@@ -180,7 +178,7 @@ function subscribeQueryLikeChannel(
             return true;
           },
         }
-      : { requiresParentSpan: true },
+      : undefined,
   );
 }
 
@@ -191,11 +189,11 @@ function querySpanOptions(
   const params = (ctx.self as { connectionParameters?: PgConnectionParams } | undefined)?.connectionParameters ?? {};
   const queryConfig = extractQueryConfig(ctx.arguments);
   const client = getClient();
-  const { queryText, querySummary } = sanitizeSqlQueryWithSummary(queryConfig?.text);
+  const queryAttributes = getSqlQueryAttributes(queryConfig?.text);
   const name =
     client && hasSpanStreamingEnabled(client)
-      ? querySummary || params.database || DB_SYSTEM_POSTGRESQL
-      : (queryText ?? SPAN_QUERY_FALLBACK);
+      ? queryAttributes[DB_QUERY_SUMMARY] || params.database || DB_SYSTEM_POSTGRESQL
+      : (queryAttributes[DB_QUERY_TEXT] ?? SPAN_QUERY_FALLBACK);
 
   return {
     name,
@@ -203,8 +201,7 @@ function querySpanOptions(
       [SENTRY_OP]: DB,
       ...(connectionString ? getPgConnectionAttributes(params) : getConnectionAttributes(params)),
       [SENTRY_ORIGIN]: origin,
-      [DB_QUERY_TEXT]: queryText || undefined,
-      [DB_QUERY_SUMMARY]: querySummary,
+      ...queryAttributes,
       [ATTR_PG_PLAN]: typeof queryConfig?.name === 'string' ? queryConfig.name : undefined,
     },
   };
