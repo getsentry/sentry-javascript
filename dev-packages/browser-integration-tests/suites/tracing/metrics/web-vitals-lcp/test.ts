@@ -11,6 +11,9 @@ import {
   BROWSER_WEB_VITAL_LCP_RENDER_TIME,
   BROWSER_WEB_VITAL_LCP_LOAD_TIME,
   SENTRY_PAGELOAD_SPAN_ID,
+  BROWSER_WEB_VITAL_LCP_RESOURCE_LOAD_DELAY,
+  BROWSER_WEB_VITAL_LCP_RESOURCE_LOAD_DURATION,
+  BROWSER_WEB_VITAL_LCP_ELEMENT_RENDER_DELAY,
 } from '@sentry/conventions/attributes';
 import type { Route } from '@playwright/test';
 import { expect } from '@playwright/test';
@@ -72,6 +75,17 @@ sentryTest('captures LCP as a streamed span with element attributes', async ({ g
   expect(renderTime).toBeGreaterThan(0);
   expect(lcpSpan.attributes[BROWSER_WEB_VITAL_LCP_LOAD_TIME]?.value).toBeGreaterThan(0);
   expect(lcpSpan.attributes[BROWSER_WEB_VITAL_LCP_VALUE]?.value).toBeCloseTo(renderTime);
+
+  // Together with TTFB, the subparts add up to the LCP value.
+  const subparts = [
+    BROWSER_WEB_VITAL_LCP_RESOURCE_LOAD_DELAY,
+    BROWSER_WEB_VITAL_LCP_RESOURCE_LOAD_DURATION,
+    BROWSER_WEB_VITAL_LCP_ELEMENT_RENDER_DELAY,
+  ].map(key => lcpSpan.attributes[key]?.value as number);
+  subparts.forEach(subpart => expect(subpart).toBeGreaterThanOrEqual(0));
+  expect(subparts.reduce((sum, subpart) => sum + subpart, 0)).toBeLessThanOrEqual(
+    lcpSpan.attributes[BROWSER_WEB_VITAL_LCP_VALUE]?.value as number,
+  );
 
   // Check pageload span id is present
   expect(lcpSpan.attributes[SENTRY_PAGELOAD_SPAN_ID]?.value).toBe(pageloadSpan.span_id);
