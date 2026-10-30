@@ -2,6 +2,8 @@ import { extractTraceparentData, parseBaggageHeader, TRACEPARENT_REGEXP } from '
 import { afterAll, describe, expect } from 'vitest';
 import { cleanupChildProcesses, createCjsTests } from '../../../utils/runner';
 
+const LIFECYCLES = ['stream', 'static'] as const;
+
 type TestAPIResponse = { test_data: { host: string; 'sentry-trace': string; baggage: string } };
 
 describe('express sentry-trace', () => {
@@ -67,40 +69,58 @@ describe('express sentry-trace', () => {
         });
       });
 
-      test('Should not propagate baggage if sentry-trace header is present in incoming request but no baggage header', async () => {
-        const runner = createRunner().start();
+      test.each(LIFECYCLES)(
+        'Should populate and propagate sentry baggage if sentry-trace header is present in incoming request but no baggage header (traceLifecycle: %s)',
+        async lifecycle => {
+          const runner = createRunner().withEnv({ TRACE_LIFECYCLE: lifecycle }).start();
 
-        const response = await runner.makeRequest<TestAPIResponse>('get', '/test/express', {
-          headers: {
-            'sentry-trace': '12312012123120121231201212312012-1121201211212012-1',
-          },
-        });
+          const response = await runner.makeRequest<TestAPIResponse>('get', '/test/express', {
+            headers: {
+              'sentry-trace': '12312012123120121231201212312012-1121201211212012-1',
+            },
+          });
 
-        expect(response).toBeDefined();
-        expect(response).toMatchObject({
-          test_data: {
-            host: 'somewhere.not.sentry',
-          },
-        });
-      });
+          expect(response?.test_data.host).toBe('somewhere.not.sentry');
+          expect(response?.test_data['sentry-trace']).toMatch(/^12312012123120121231201212312012-[a-f0-9]{16}-1$/);
+          expect(parseBaggageHeader(response?.test_data.baggage)).toStrictEqual({
+            'sentry-environment': 'prod',
+            'sentry-release': '1.0',
+            'sentry-public_key': 'public',
+            'sentry-trace_id': '12312012123120121231201212312012',
+            'sentry-sample_rand': expect.stringMatching(/^0\.\d+$/),
+            'sentry-sample_rate': '1',
+            'sentry-sampled': 'true',
+            'sentry-transaction': 'GET /test/express',
+          });
+        },
+      );
 
-      test('Should not propagate baggage and ignore original 3rd party baggage entries if sentry-trace header is present', async () => {
-        const runner = createRunner().start();
+      test.each(LIFECYCLES)(
+        'Should populate sentry baggage and ignore original 3rd party baggage entries if sentry-trace header is present (traceLifecycle: %s)',
+        async lifecycle => {
+          const runner = createRunner().withEnv({ TRACE_LIFECYCLE: lifecycle }).start();
 
-        const response = await runner.makeRequest<TestAPIResponse>('get', '/test/express', {
-          headers: {
-            'sentry-trace': '12312012123120121231201212312012-1121201211212012-1',
-            baggage: 'foo=bar',
-          },
-        });
+          const response = await runner.makeRequest<TestAPIResponse>('get', '/test/express', {
+            headers: {
+              'sentry-trace': '12312012123120121231201212312012-1121201211212012-1',
+              baggage: 'foo=bar',
+            },
+          });
 
-        expect(response).toBeDefined();
-        expect(response).toMatchObject({
-          test_data: {
-            host: 'somewhere.not.sentry',
-          },
-        });
-      });
+          expect(response?.test_data.host).toBe('somewhere.not.sentry');
+          expect(response?.test_data['sentry-trace']).toMatch(/^12312012123120121231201212312012-[a-f0-9]{16}-1$/);
+          expect(parseBaggageHeader(response?.test_data.baggage)).toStrictEqual({
+            'sentry-environment': 'prod',
+            'sentry-release': '1.0',
+            'sentry-public_key': 'public',
+            'sentry-trace_id': '12312012123120121231201212312012',
+            'sentry-sample_rand': expect.stringMatching(/^0\.\d+$/),
+            'sentry-sample_rate': '1',
+            'sentry-sampled': 'true',
+            'sentry-transaction': 'GET /test/express',
+          });
+        },
+      );
 
       test('Should populate and propagate sentry baggage if sentry-trace header does not exist', async () => {
         const runner = createRunner().start();
@@ -312,25 +332,32 @@ describe('express sentry-trace', () => {
       });
     });
 
-    test('Should assign `sentry-trace` header which sets parent trace id of an outgoing request.', async () => {
-      const runner = createRunner().start();
+    test.each(LIFECYCLES)(
+      'Should assign `sentry-trace` header which sets parent trace id of an outgoing request. (traceLifecycle: %s)',
+      async lifecycle => {
+        const runner = createRunner().withEnv({ TRACE_LIFECYCLE: lifecycle }).start();
 
-      const response = await runner.makeRequest<TestAPIResponse>('get', '/test/express', {
-        headers: {
-          'sentry-trace': '12312012123120121231201212312012-1121201211212012-0',
-        },
-      });
+        const response = await runner.makeRequest<TestAPIResponse>('get', '/test/express', {
+          headers: {
+            'sentry-trace': '12312012123120121231201212312012-1121201211212012-0',
+          },
+        });
 
-      expect(response).toBeDefined();
-      expect(response).toMatchObject({
-        test_data: {
-          host: 'somewhere.not.sentry',
-          'sentry-trace': expect.stringContaining('12312012123120121231201212312012-'),
-        },
-      });
-
-      expect(TRACEPARENT_REGEXP.test(response?.test_data['sentry-trace'] || '')).toBe(true);
-    });
+        expect(response?.test_data.host).toBe('somewhere.not.sentry');
+        expect(response?.test_data['sentry-trace']).toMatch(/^12312012123120121231201212312012-[a-f0-9]{16}-0$/);
+        expect(TRACEPARENT_REGEXP.test(response?.test_data['sentry-trace'] || '')).toBe(true);
+        expect(parseBaggageHeader(response?.test_data.baggage)).toStrictEqual({
+          'sentry-environment': 'prod',
+          'sentry-release': '1.0',
+          'sentry-public_key': 'public',
+          'sentry-trace_id': '12312012123120121231201212312012',
+          'sentry-sample_rand': expect.stringMatching(/^0\.\d+$/),
+          'sentry-sample_rate': '0',
+          'sentry-sampled': 'false',
+          'sentry-transaction': 'GET /test/express',
+        });
+      },
+    );
 
     test('should attach a `sentry-trace` header to an outgoing request.', async () => {
       const runner = createRunner().start();
