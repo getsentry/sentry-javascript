@@ -26,6 +26,7 @@ const NO_HTTP_SERVER_SPANS = [
   'suites/tracing/httpServerSpans-unrouted/test.ts',
   'suites/tracing/ignoreSpans/**',
   'suites/tracing/managed-tunnel/test.ts',
+  'suites/tunnel/hardening/test.ts',
   'suites/tracing/meta-tags-twp-errors/test.ts',
   'suites/tracing/meta-tags/test.ts',
   'suites/tracing/requestData/test.ts',
@@ -193,7 +194,13 @@ export const NODE_SUITES_EXCLUDE = ['**/node_modules/**', ...NODE_ONLY, ...NO_AU
 export const SENTRY_NODE_EXCLUDE = [...NO_HTTP_SERVER_SPANS, ...NO_FETCH_INSTRUMENTATION];
 
 // Excluded only in the `node-suites-sentry-bun` project, which maps `@sentry/node` to `@sentry/bun`.
+// Bun answers nothing on a connection whose first request awaits anything while a second one is
+// queued behind it, which the pipelined cases need. `packages/bun` runs the same cases against Bun's
+// servers without those.
+const BUN_DROPS_PIPELINED_REQUESTS = ['suites/tunnel/hardening/test.ts'];
+
 export const SENTRY_BUN_EXCLUDE = [
+  ...BUN_DROPS_PIPELINED_REQUESTS,
   ...HTTP_SERVER_OPTIONS_IGNORED,
   ...NO_EXPRESS_INSTRUMENTATION,
   ...NO_NATIVE_NODE_FETCH_INTEGRATION,
