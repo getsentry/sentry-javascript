@@ -161,15 +161,11 @@ function subscribeQuery(): void {
       const dbSystem = mapSystem(client?.driverName);
 
       const dialect = toSqlDialect(client?.driverName);
-      const queryAttributes = getSqlQueryAttributes(
-        query?.sql ? truncate(query.sql, MAX_QUERY_LENGTH) : undefined,
-        dialect,
-      );
       const attributes: SpanAttributes = {
         [SENTRY_OP]: DB,
         [SENTRY_KIND]: 'client',
         [SENTRY_ORIGIN]: ORIGIN,
-        ...queryAttributes,
+        ...getSqlQueryAttributes(query?.sql ? truncate(query.sql, MAX_QUERY_LENGTH) : undefined, dialect),
         'knex.version': data.moduleVersion,
         [DB_SYSTEM_NAME]: dbSystem,
         [ATTR_DB_SQL_TABLE]: table,
@@ -181,13 +177,8 @@ function subscribeQuery(): void {
         [NETWORK_TRANSPORT]: connection?.filename === ':memory:' ? 'inproc' : undefined,
       };
 
-      const spanName = getSqlSpanName(queryAttributes, {
-        streamed: dbNameSpace || dbSystem || 'knex.query',
-        static: 'knex.query',
-      });
-
       return startInactiveSpan({
-        name: spanName,
+        name: getSqlSpanName(attributes, 'knex.query'),
         parentSpan,
         attributes,
       });

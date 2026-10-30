@@ -1,4 +1,11 @@
-import { DB_OPERATION_NAME, DB_QUERY_SUMMARY, DB_QUERY_TEXT } from '@sentry/conventions/attributes';
+import {
+  DB_NAMESPACE,
+  DB_OPERATION_NAME,
+  DB_QUERY_SUMMARY,
+  DB_QUERY_TEXT,
+  DB_SYSTEM_NAME,
+} from '@sentry/conventions/attributes';
+import type { SpanAttributes } from '@sentry/core';
 import { getClient, hasSpanStreamingEnabled } from '@sentry/core';
 
 const MAX_SUMMARY_LENGTH = 255;
@@ -447,16 +454,16 @@ export function getSqlQueryAttributes(sqlQuery: string | undefined, dialect?: Sq
 }
 
 /**
- * Names a SQL span from its query attributes. Streamed span names have to be low cardinality, so
- * they use `db.query.summary`; otherwise the sanitized statement is used. Each falls back to the
- * integration's own name when the query yields none.
+ * Names a SQL span from its attributes. Streamed span names have to be low cardinality, so they use
+ * `db.query.summary`, falling back to `db.namespace` and then `db.system.name`; otherwise the
+ * sanitized `db.query.text` is used. `fallback` is the integration's name for a span with none of
+ * those.
  */
-export function getSqlSpanName(
-  queryAttributes: SqlQueryAttributes,
-  fallback: { streamed: string; static: string },
-): string {
+export function getSqlSpanName(attributes: SpanAttributes, fallback: string): string {
   const client = getClient();
-  return client && hasSpanStreamingEnabled(client)
-    ? queryAttributes[DB_QUERY_SUMMARY] || fallback.streamed
-    : (queryAttributes[DB_QUERY_TEXT] ?? fallback.static);
+  const name =
+    client && hasSpanStreamingEnabled(client)
+      ? attributes[DB_QUERY_SUMMARY] || attributes[DB_NAMESPACE] || attributes[DB_SYSTEM_NAME]
+      : attributes[DB_QUERY_TEXT];
+  return typeof name === 'string' && name ? name : fallback;
 }

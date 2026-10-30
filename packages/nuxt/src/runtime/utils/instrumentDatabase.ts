@@ -6,6 +6,7 @@ import {
   DB_SPAN_NAME_FALLBACK,
   debug,
   type Span,
+  type SpanAttributes,
   SPAN_STATUS_ERROR,
   startSpan,
   type StartSpanOptions,
@@ -14,7 +15,7 @@ import { flushIfServerless } from '@sentry/core/server';
 import { getSqlQueryAttributes, getSqlSpanName, sanitizeSqlQuery, type SqlDialect } from '@sentry/server-utils';
 import type { Database, PreparedStatement } from 'db0';
 import { type DatabaseConnectionConfig, type DatabaseSpanData, getDatabaseSpanData } from './database-span-data';
-import { DB_NAMESPACE, DB_QUERY_TEXT, DB_SYSTEM_NAME } from '@sentry/conventions/attributes';
+import { DB_QUERY_TEXT, DB_SYSTEM_NAME } from '@sentry/conventions/attributes';
 
 type MaybeInstrumentedDatabase = Database & {
   __sentry_instrumented__?: boolean;
@@ -259,20 +260,12 @@ function createStartSpanOptions(
   data: DatabaseSpanData,
   dialect: SqlDialect | undefined,
 ): StartSpanOptions {
-  const queryAttributes = getSqlQueryAttributes(query, dialect);
-
-  const name = getSqlSpanName(queryAttributes, {
-    streamed: (data[DB_NAMESPACE] as string | undefined) || DB_SPAN_NAME_FALLBACK,
-    static: DB_SPAN_NAME_FALLBACK,
-  });
-
-  return {
-    name,
-    attributes: {
-      ...queryAttributes,
-      [SENTRY_ORIGIN]: NUXT_DATABASE_ORIGIN,
-      [SENTRY_OP]: DB_QUERY,
-      ...data,
-    },
+  const attributes: SpanAttributes = {
+    ...getSqlQueryAttributes(query, dialect),
+    [SENTRY_ORIGIN]: NUXT_DATABASE_ORIGIN,
+    [SENTRY_OP]: DB_QUERY,
+    ...data,
   };
+
+  return { name: getSqlSpanName(attributes, DB_SPAN_NAME_FALLBACK), attributes };
 }

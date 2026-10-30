@@ -1,4 +1,10 @@
-import { DB_OPERATION_NAME, DB_QUERY_SUMMARY, DB_QUERY_TEXT } from '@sentry/conventions/attributes';
+import {
+  DB_NAMESPACE,
+  DB_OPERATION_NAME,
+  DB_QUERY_SUMMARY,
+  DB_QUERY_TEXT,
+  DB_SYSTEM_NAME,
+} from '@sentry/conventions/attributes';
 import { setCurrentClient } from '@sentry/core';
 import { afterEach, describe, expect, it } from 'vitest';
 import {
@@ -972,7 +978,8 @@ describe('getSqlQueryAttributes', () => {
 });
 
 describe('getSqlSpanName', () => {
-  const fallback = { streamed: 'mydb', static: 'mysql.query' };
+  const query = getSqlQueryAttributes("SELECT * FROM users WHERE id = 'x'");
+  const noQuery = getSqlQueryAttributes(undefined);
 
   function setUpClient(traceLifecycle: 'stream' | 'static'): void {
     const client = new TestClient(getDefaultTestClientOptions({ traceLifecycle, tracesSampleRate: 1 }));
@@ -985,30 +992,28 @@ describe('getSqlSpanName', () => {
   });
 
   describe('with span streaming', () => {
-    it('uses the query summary', () => {
+    it.each([
+      ['the query summary', { ...query, [DB_NAMESPACE]: 'mydb', [DB_SYSTEM_NAME]: 'mysql' }, 'SELECT users'],
+      ['db.namespace without a statement', { ...noQuery, [DB_NAMESPACE]: 'mydb', [DB_SYSTEM_NAME]: 'mysql' }, 'mydb'],
+      ['db.system.name without a namespace', { ...noQuery, [DB_NAMESPACE]: '', [DB_SYSTEM_NAME]: 'mysql' }, 'mysql'],
+      ['the fallback without any of those', noQuery, 'mysql.query'],
+    ])('uses %s', (_, attributes, expected) => {
       setUpClient('stream');
-      expect(getSqlSpanName(getSqlQueryAttributes("SELECT * FROM users WHERE id = 'x'"), fallback)).toBe(
-        'SELECT users',
-      );
-    });
-
-    it('falls back to the streamed fallback without a statement', () => {
-      setUpClient('stream');
-      expect(getSqlSpanName(getSqlQueryAttributes(undefined), fallback)).toBe('mydb');
+      expect(getSqlSpanName(attributes, 'mysql.query')).toBe(expected);
     });
   });
 
   describe('without span streaming', () => {
-    it('uses the sanitized statement', () => {
+    it.each([
+      ['the sanitized statement', { ...query, [DB_NAMESPACE]: 'mydb' }, 'SELECT * FROM users WHERE id = ?'],
+      [
+        'the fallback without a statement',
+        { ...noQuery, [DB_NAMESPACE]: 'mydb', [DB_SYSTEM_NAME]: 'mysql' },
+        'mysql.query',
+      ],
+    ])('uses %s', (_, attributes, expected) => {
       setUpClient('static');
-      expect(getSqlSpanName(getSqlQueryAttributes("SELECT * FROM users WHERE id = 'x'"), fallback)).toBe(
-        'SELECT * FROM users WHERE id = ?',
-      );
-    });
-
-    it('falls back to the static fallback without a statement', () => {
-      setUpClient('static');
-      expect(getSqlSpanName(getSqlQueryAttributes(undefined), fallback)).toBe('mysql.query');
+      expect(getSqlSpanName(attributes, 'mysql.query')).toBe(expected);
     });
   });
 });
