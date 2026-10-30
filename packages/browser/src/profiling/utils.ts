@@ -1,3 +1,4 @@
+import { THREAD_ID, THREAD_NAME } from '@sentry/conventions/attributes';
 /* eslint-disable max-lines */
 import type { Client, ContinuousThreadCpuProfile, DebugImage, ProfileChunk, Span } from '@sentry/core';
 import {
@@ -306,6 +307,6 @@ export function shouldProfileSession(options: BrowserOptions): boolean {
 }
 
 export function setThreadAttributes(span: Span): void {
-  span.setAttribute('thread.id', PROFILER_THREAD_ID_STRING);
-  span.setAttribute('thread.name', PROFILER_THREAD_NAME);
+  span.setAttribute(THREAD_ID, PROFILER_THREAD_ID_STRING);
+  span.setAttribute(THREAD_NAME, PROFILER_THREAD_NAME);
 }

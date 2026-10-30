@@ -76,7 +76,7 @@ export function appRouterInstrumentPageLoad(client: Client): void {
       [SENTRY_SEGMENT_NAME_SOURCE]: parameterizedPathname ? 'route' : 'url',
       [URL_PATH]: WINDOW.location.pathname,
       [URL_FULL]: documentUrl,
-      ...(parameterizedPathname && { [URL_TEMPLATE]: parameterizedPathname }),
+      [URL_TEMPLATE]: parameterizedPathname,
     },
   };
 

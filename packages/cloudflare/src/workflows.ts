@@ -3,6 +3,11 @@ import {
   CODE_FUNCTION_NAME,
   SENTRY_OP,
   SENTRY_ORIGIN,
+  CLOUDFLARE_WORKFLOW_ATTEMPT,
+  CLOUDFLARE_WORKFLOW_RETRIES_BACKOFF,
+  CLOUDFLARE_WORKFLOW_RETRIES_DELAY,
+  CLOUDFLARE_WORKFLOW_RETRIES_LIMIT,
+  CLOUDFLARE_WORKFLOW_TIMEOUT,
 } from '@sentry/conventions/attributes';
 import { FUNCTION } from '@sentry/conventions/op';
 import type { PropagationContext, Scope } from '@sentry/core';
@@ -136,13 +141,13 @@ class WrappedWorkflowStep implements WorkflowStep {
               [SENTRY_OP]: FUNCTION,
               [CODE_FUNCTION_NAME]: name,
               'workflow.step.name': name,
-              'cloudflare.workflow.timeout': config?.timeout,
-              'cloudflare.workflow.retries.backoff': config?.retries?.backoff,
+              [CLOUDFLARE_WORKFLOW_TIMEOUT]: config?.timeout,
+              [CLOUDFLARE_WORKFLOW_RETRIES_BACKOFF]: config?.retries?.backoff,
               // In workers-types v5, `delay` may be a `WorkflowDelayFunction`, which isn't a valid span attribute value.
-              'cloudflare.workflow.retries.delay':
+              [CLOUDFLARE_WORKFLOW_RETRIES_DELAY]:
                 typeof config?.retries?.delay === 'function' ? undefined : config?.retries?.delay,
-              'cloudflare.workflow.retries.limit': config?.retries?.limit,
-              'cloudflare.workflow.attempt': attempt,
+              [CLOUDFLARE_WORKFLOW_RETRIES_LIMIT]: config?.retries?.limit,
+              [CLOUDFLARE_WORKFLOW_ATTEMPT]: attempt,
               [SENTRY_ORIGIN]: 'auto.faas.cloudflare.workflow',
               [SENTRY_SEGMENT_NAME_SOURCE]: 'task',
             },

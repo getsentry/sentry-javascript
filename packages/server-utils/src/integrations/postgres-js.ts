@@ -8,6 +8,7 @@ import {
   SENTRY_KIND,
   SENTRY_OP,
   SENTRY_ORIGIN,
+  DB_RESPONSE_STATUS_CODE,
 } from '@sentry/conventions/attributes';
 import { DB } from '@sentry/conventions/op';
 import type { IntegrationFn, Span } from '@sentry/core';
@@ -41,10 +42,6 @@ const INTEGRATION_NAME = 'PostgresJs' as const;
 const ORIGIN = 'auto.db.postgresjs';
 
 const DB_SYSTEM_NAME_POSTGRES = 'postgres';
-
-// Not part of `@sentry/conventions`, so we keep it inline (matches older OTel
-// `PostgresJsInstrumentation`).
-const DB_RESPONSE_STATUS_CODE = 'db.response.status_code';
 
 const NOOP = (): void => {};
 
@@ -270,8 +267,7 @@ function instrumentPostgresJs(options: PostgresJsIntegrationOptions): void {
 
       // Opt out of re-entrant `handle()` calls (then/catch/finally re-invoke
       // it, guarded by `executed`) and queries already wrapped by the portable
-      // `instrumentPostgresJsSql`. The parent-span requirement is applied via
-      // `requiresParentSpan` below.
+      // `instrumentPostgresJsSql`.
       if (query.executed === true || (query as Record<symbol, unknown>)[QUERY_FROM_INSTRUMENTED_SQL]) {
         return undefined;
       }
@@ -295,6 +291,7 @@ function instrumentPostgresJs(options: PostgresJsIntegrationOptions): void {
       // `sentry.kind: client` matches the mysql/pg channel subscribers.
       const span = startInactiveSpan({
         name,
+        onlyIfParent: requireParentSpan !== false,
         attributes: {
           [SENTRY_OP]: DB,
           [SENTRY_KIND]: 'client',
@@ -327,7 +324,6 @@ function instrumentPostgresJs(options: PostgresJsIntegrationOptions): void {
       return span;
     },
     {
-      requiresParentSpan: requireParentSpan !== false,
       deferSpanEnd({ data }) {
         // `handle` is async: its promise settles on dispatch (asyncEnd), long
         // before the query does. The resolve/reject wrappers own the ending.
