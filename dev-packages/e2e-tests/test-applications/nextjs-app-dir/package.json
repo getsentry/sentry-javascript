@@ -32,9 +32,25 @@
     "runner": "namespace-profile-sentry-javascript",
     "variants": [
       {
+        "build-command": "pnpm test:build",
+        "label": "nextjs-app-dir (development)",
+        "assert-command": "pnpm test:dev"
+      },
+      {
         "build-command": "pnpm test:build-15",
-        "label": "nextjs-app-dir (next@15)"
+        "label": "nextjs-app-dir (next@15, production)",
+        "assert-command": "pnpm test:test-build && pnpm test:prod"
+      },
+      {
+        "build-command": "pnpm test:build-15",
+        "label": "nextjs-app-dir (next@15, development)",
+        "assert-command": "pnpm test:dev"
       }
-    ]
+    ],
+    "baseVariant": {
+      "build-command": "pnpm test:build",
+      "label": "nextjs-app-dir (production)",
+      "assert-command": "pnpm test:test-build && pnpm test:prod"
+    }
   }
 }

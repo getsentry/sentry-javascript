@@ -41,6 +41,18 @@
     "typescript": "^5"
   },
   "sentryTest": {
-    "runner": "namespace-profile-sentry-javascript"
+    "runner": "namespace-profile-sentry-javascript",
+    "baseVariant": {
+      "build-command": "pnpm test:build",
+      "label": "nextjs-16-static (production)",
+      "assert-command": "pnpm test:prod"
+    },
+    "variants": [
+      {
+        "build-command": "pnpm test:build",
+        "label": "nextjs-16-static (development)",
+        "assert-command": "pnpm test:dev"
+      }
+    ]
   }
 }
