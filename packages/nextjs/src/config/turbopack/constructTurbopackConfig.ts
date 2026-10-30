@@ -65,8 +65,12 @@ export function constructTurbopackConfig({
     newConfig.rules = safelyAddTurbopackRule(newConfig.rules, { matcher, rule });
   }
 
-  // Dependencies are tagged by default to match webpack's per-chunk metadata injection.
-  // Next.js build polyfills contain non-standard syntax that fails when Turbopack re-parses loader output.
+  // Tag modules so thirdPartyErrorFilterIntegration can identify first-party code. Dependencies
+  // are tagged by default to match webpack's BannerPlugin, which injects metadata into all chunks.
+  // Opting out with `applicationKeyExcludeDependencies` can leave dependency-only chunks untagged.
+  // The injected code is wrapped in a try-catch IIFE, so it is safe even for dependencies with
+  // strict initialization order. Next.js build polyfills are excluded because they contain
+  // non-standard syntax that causes parse errors when Turbopack re-parses the loader output.
   // Server and edge modules are skipped because only the browser reads these tags.
   const applicationKey = userSentryOptions?.applicationKey;
   if (applicationKey && nextJsVersion && supportsTurbopackRuleCondition(nextJsVersion)) {

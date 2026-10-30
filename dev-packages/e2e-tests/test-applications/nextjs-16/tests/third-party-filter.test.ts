@@ -1,5 +1,6 @@
 import test, { expect } from '@playwright/test';
 import { waitForError } from '@sentry-internal/test-utils';
+import { isDevMode } from './isDevMode';
 import { isVinext } from './isVinext';
 
 const isWebpackDev = process.env.TEST_ENV === 'development-webpack';
@@ -50,4 +51,27 @@ test('retains application errors with dependency frames when dependency metadata
   expect(event.tags?.third_party_code).toBeUndefined();
   expect(event.tags?.turbopack).toBe(true);
   expect(new Set(exception?.stacktrace?.frames?.map(frame => frame.filename)).size).toBeGreaterThan(1);
+});
+
+test('classifies dependency-only errors according to dependency metadata inclusion', async ({ page }) => {
+  test.skip(isVinext || isDevMode, 'Checks dependency-only chunks in production Next.js builds');
+
+  const errorPromise = waitForError('nextjs-16', event => {
+    return event.exception?.values?.some(value => value.value === 'application-key-dependency-only-error') ?? false;
+  });
+
+  await page.goto('/third-party-filter');
+  await page.waitForFunction(() => '__SENTRY__' in window);
+  await page.locator('#dependency-only-error-btn').click();
+
+  const event = await errorPromise;
+  const frames = event.exception?.values?.[0]?.stacktrace?.frames;
+  expect(frames).toHaveLength(1);
+
+  const filename = frames![0]!.filename;
+  const chunkResponse = await page.request.get(filename!.replace('app://', ''));
+  expect(await chunkResponse.text()).toContain('application-key-dependency-only-error');
+  expect(event.tags?.third_party_code).toBe(
+    process.env.NEXT_PUBLIC_EXCLUDE_APPLICATION_KEY_DEPENDENCIES === '1' ? true : undefined,
+  );
 });

@@ -30,6 +30,15 @@ export default function Page() {
       >
         Capture Dependency Error
       </button>
+      <button
+        id="dependency-only-error-btn"
+        onClick={async () => {
+          const { createAsyncDependencyError } = await import('sentry-metadata-test-dependency');
+          Sentry.captureException(await createAsyncDependencyError());
+        }}
+      >
+        Capture Dependency-Only Error
+      </button>
     </>
   );
 }
