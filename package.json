@@ -166,7 +166,7 @@
     "rollup-plugin-license": "^3.7.1",
     "size-limit": "~12.1.0",
     "tslib": "^2.4.1",
-    "tsx": "^4.23.0",
+    "tsx": "^4.23.15",
     "typescript": "~7.0.2",
     "vitest": "^4.1.11",
     "webpack": "^5.112.2",
