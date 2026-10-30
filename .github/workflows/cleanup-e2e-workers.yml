@@ -20,6 +20,7 @@ jobs:
         worker-prefix:
           - e2e-send-to-sentry
           - e2e-flue-send-to-sentry
+          - e2e-without-tracing-send-to-sentry
     steps:
       - name: Set up Node
         uses: actions/setup-node@v7
