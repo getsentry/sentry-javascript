@@ -17,9 +17,16 @@ export default Sentry.withSentry(
       const url = new URL(request.url);
       const [, id, action] = url.pathname.split('/');
       const library = id ? byId.get(id) : undefined;
-      const extra = library && action ? library.extras?.[action] : undefined;
+      const call =
+        action === 'chat'
+          ? library?.chat
+          : action === 'tools'
+            ? library?.tools
+            : action === 'chat-stream'
+              ? library?.chatStream
+              : undefined;
 
-      if (!library || (action !== 'chat' && action !== 'tools' && !extra)) {
+      if (!call) {
         return new Response('Not found', { status: 404 });
       }
 
@@ -29,8 +36,7 @@ export default Sentry.withSentry(
       }
 
       try {
-        const spanName = extra ? `${library.id}/${action}` : action === 'tools' ? 'ai-tool-workflow' : 'ai-workflow';
-        const call = extra ?? library[action as 'chat' | 'tools'];
+        const spanName = action === 'tools' ? 'ai-tool-workflow' : 'ai-workflow';
         const result = await Sentry.startSpan({ name: spanName, op: 'function' }, () => call(apiKey));
         return Response.json({ result });
       } catch (error) {

@@ -60,8 +60,8 @@ export interface Library {
   origin?: string;
   chat: (apiKey: string) => Promise<unknown>;
   tools: (apiKey: string) => Promise<unknown>;
-  /** Library-specific calls, served as `/:lib/:name`. */
-  extras?: Record<string, (apiKey: string) => Promise<unknown>>;
+  /** A streamed chat query; only set for the libraries whose streaming is tested. */
+  chatStream?: (apiKey: string) => Promise<unknown>;
 }
 
 const openAiClient = (apiKey: string): OpenAI => new OpenAI({ apiKey, baseURL: OPENROUTER_V1 });
@@ -147,26 +147,24 @@ function openAiCompatible(
 export const libraries: Library[] = [
   {
     ...openAiCompatible('openai', 'openai', 'auto.ai.openai', openAiClient),
-    extras: {
-      'chat-stream': async apiKey => {
-        const stream = await openAiClient(apiKey).chat.completions.create({
-          model: MODEL,
-          messages: [
-            { role: 'system', content: SYSTEM },
-            { role: 'user', content: CHAT_PROMPT },
-          ],
-          temperature: 0,
-          max_tokens: 32,
-          stream: true,
-          // Ask for the usage in the final chunk, so the streamed span carries token counts.
-          stream_options: { include_usage: true },
-        });
-        let answer = '';
-        for await (const chunk of stream) {
-          answer += chunk.choices[0]?.delta.content ?? '';
-        }
-        return answer;
-      },
+    chatStream: async apiKey => {
+      const stream = await openAiClient(apiKey).chat.completions.create({
+        model: MODEL,
+        messages: [
+          { role: 'system', content: SYSTEM },
+          { role: 'user', content: CHAT_PROMPT },
+        ],
+        temperature: 0,
+        max_tokens: 32,
+        stream: true,
+        // Ask for the usage in the final chunk, so the streamed span carries token counts.
+        stream_options: { include_usage: true },
+      });
+      let answer = '';
+      for await (const chunk of stream) {
+        answer += chunk.choices[0]?.delta.content ?? '';
+      }
+      return answer;
     },
   },
   openAiCompatible(
@@ -244,23 +242,21 @@ export const libraries: Library[] = [
       });
       return (message.content ?? []).filter(block => block.type === 'tool_use');
     },
-    extras: {
-      'chat-stream': async apiKey => {
-        const stream = await anthropicClient(apiKey).messages.create({
-          model: MODEL,
-          max_tokens: 32,
-          system: SYSTEM,
-          messages: [{ role: 'user', content: CHAT_PROMPT }],
-          stream: true,
-        });
-        let answer = '';
-        for await (const event of stream) {
-          if (event.type === 'content_block_delta' && event.delta.type === 'text_delta') {
-            answer += event.delta.text;
-          }
+    chatStream: async apiKey => {
+      const stream = await anthropicClient(apiKey).messages.create({
+        model: MODEL,
+        max_tokens: 32,
+        system: SYSTEM,
+        messages: [{ role: 'user', content: CHAT_PROMPT }],
+        stream: true,
+      });
+      let answer = '';
+      for await (const event of stream) {
+        if (event.type === 'content_block_delta' && event.delta.type === 'text_delta') {
+          answer += event.delta.text;
         }
-        return answer;
-      },
+      }
+      return answer;
     },
   },
 

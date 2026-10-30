@@ -34,11 +34,12 @@ for (const library of libraries) {
     }
   });
 
-  for (const [name, call] of Object.entries(library.extras ?? {})) {
-    app.get(`/${library.id}/${name}`, async (_req, res, next) => {
+  const chatStream = library.chatStream;
+  if (chatStream) {
+    app.get(`/${library.id}/chat-stream`, async (_req, res, next) => {
       try {
-        const result = await Sentry.startSpan({ name: `${library.id}/${name}`, op: 'function' }, () => call(apiKey));
-        res.send({ result });
+        const answer = await Sentry.startSpan({ name: 'ai-workflow', op: 'function' }, () => chatStream(apiKey));
+        res.send({ answer });
       } catch (error) {
         next(error);
       }
