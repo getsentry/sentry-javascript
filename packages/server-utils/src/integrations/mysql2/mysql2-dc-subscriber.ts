@@ -8,6 +8,7 @@ import {
   SENTRY_ORIGIN,
 } from '@sentry/conventions/attributes';
 import { DB } from '@sentry/conventions/op';
+import type { SpanAttributes } from '@sentry/core';
 import { startInactiveSpan } from '@sentry/core';
 import { bindTracingChannelToSpan } from '../../tracing-channel';
 import { getSqlQueryAttributes, getSqlSpanName } from '../../utils/sql';
@@ -90,26 +91,17 @@ function setupQueryChannel(tracingChannel: MySQL2TracingChannelFactory, channelN
     // mysql2 does not sanitize its channel payload, so the statement may carry
     // raw user values (on the `query` channel they are inlined). Strip every
     // literal before it leaves the process; `values` is never attached.
-    const queryAttributes = getSqlQueryAttributes(data.query, 'mysql');
+    const attributes: SpanAttributes = {
+      [SENTRY_ORIGIN]: ORIGIN,
+      [SENTRY_OP]: DB,
+      [DB_SYSTEM_NAME]: DB_SYSTEM_NAME_VALUE_MYSQL,
+      ...getSqlQueryAttributes(data.query, 'mysql'),
+      [DB_NAMESPACE]: data.database || undefined,
+      [SERVER_ADDRESS]: data.serverAddress,
+      [SERVER_PORT]: data.serverPort,
+    };
 
-    const name = getSqlSpanName(queryAttributes, {
-      streamed: data.database || DB_SYSTEM_NAME_VALUE_MYSQL,
-      static: 'mysql2.query',
-    });
-
-    return startInactiveSpan({
-      name,
-      onlyIfParent: true,
-      attributes: {
-        [SENTRY_ORIGIN]: ORIGIN,
-        [SENTRY_OP]: DB,
-        [DB_SYSTEM_NAME]: DB_SYSTEM_NAME_VALUE_MYSQL,
-        ...queryAttributes,
-        [DB_NAMESPACE]: data.database || undefined,
-        [SERVER_ADDRESS]: data.serverAddress,
-        [SERVER_PORT]: data.serverPort,
-      },
-    });
+    return startInactiveSpan({ name: getSqlSpanName(attributes, 'mysql2.query'), attributes, onlyIfParent: true });
   });
 }
 

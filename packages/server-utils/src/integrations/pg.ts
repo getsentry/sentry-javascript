@@ -12,13 +12,7 @@ import {
 } from '@sentry/conventions/attributes';
 import { DB } from '@sentry/conventions/op';
 import type { IntegrationFn, Scope, SpanAttributes } from '@sentry/core';
-import {
-  isObjectLike,
-  bindScopeToEmitter,
-  defineIntegration,
-  getCurrentScope,
-  startInactiveSpan,
-} from '@sentry/core';
+import { isObjectLike, bindScopeToEmitter, defineIntegration, getCurrentScope, startInactiveSpan } from '@sentry/core';
 import { getSqlQueryAttributes, getSqlSpanName } from '../utils/sql';
 import type { OrchestrionChannelContext } from '../orchestrion/types';
 import { CHANNELS } from '../orchestrion/channels';
@@ -184,22 +178,15 @@ function querySpanOptions(
 ): { name: string; attributes: SpanAttributes } {
   const params = (ctx.self as { connectionParameters?: PgConnectionParams } | undefined)?.connectionParameters ?? {};
   const queryConfig = extractQueryConfig(ctx.arguments);
-  const queryAttributes = getSqlQueryAttributes(queryConfig?.text);
-  const name = getSqlSpanName(queryAttributes, {
-    streamed: params.database || DB_SYSTEM_POSTGRESQL,
-    static: SPAN_QUERY_FALLBACK,
-  });
-
-  return {
-    name,
-    attributes: {
-      [SENTRY_OP]: DB,
-      ...(connectionString ? getPgConnectionAttributes(params) : getConnectionAttributes(params)),
-      [SENTRY_ORIGIN]: origin,
-      ...queryAttributes,
-      [ATTR_PG_PLAN]: typeof queryConfig?.name === 'string' ? queryConfig.name : undefined,
-    },
+  const attributes: SpanAttributes = {
+    [SENTRY_OP]: DB,
+    ...(connectionString ? getPgConnectionAttributes(params) : getConnectionAttributes(params)),
+    [SENTRY_ORIGIN]: origin,
+    ...getSqlQueryAttributes(queryConfig?.text),
+    [ATTR_PG_PLAN]: typeof queryConfig?.name === 'string' ? queryConfig.name : undefined,
   };
+
+  return { name: getSqlSpanName(attributes, SPAN_QUERY_FALLBACK), attributes };
 }
 
 function connectSpanOptions(ctx: PgChannelContext): { name: string; attributes: SpanAttributes } {
