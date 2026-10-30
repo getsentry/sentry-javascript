@@ -343,9 +343,6 @@ importers:
       '@types/node':
         specifier: ^20.19.0
         version: 20.19.43
-      eslint-plugin-regexp:
-        specifier: ^3.1.0
-        version: 3.1.0
       glob:
         specifier: ^13.0.6
         version: 13.0.6
@@ -438,10 +435,6 @@ importers:
       '@actions/github':
         specifier: ^5.0.0
         version: 5.1.1(encoding@0.1.13)
-    devDependencies:
-      eslint-plugin-regexp:
-        specifier: ^3.1.0
-        version: 3.1.0
 
   dev-packages/cloudflare-integration-tests:
     dependencies:
@@ -509,9 +502,6 @@ importers:
       '@sentry/conventions':
         specifier: 0.30.0
         version: 0.30.0
-      eslint-plugin-regexp:
-        specifier: ^3.1.0
-        version: 3.1.0
       prisma:
         specifier: 6.15.0
         version: 6.15.0(magicast@0.3.5)(typescript@7.0.2)
@@ -552,9 +542,6 @@ importers:
 
   dev-packages/e2e-tests:
     devDependencies:
-      eslint-plugin-regexp:
-        specifier: ^3.1.0
-        version: 3.1.0
       rimraf:
         specifier: ^6.1.3
         version: 6.1.3
@@ -564,10 +551,6 @@ importers:
       '@actions/core':
         specifier: 1.10.1
         version: 1.10.1
-    devDependencies:
-      eslint-plugin-regexp:
-        specifier: ^3.1.0
-        version: 3.1.0
 
   dev-packages/node-integration-tests:
     dependencies:
@@ -882,11 +865,7 @@ importers:
         specifier: 3.0.3
         version: 3.0.3
 
-  dev-packages/rollup-utils:
-    devDependencies:
-      eslint-plugin-regexp:
-        specifier: ^3.1.0
-        version: 3.1.0
+  dev-packages/rollup-utils: {}
 
   dev-packages/size-limit-gh-action:
     dependencies:
@@ -933,9 +912,6 @@ importers:
       '@types/ws':
         specifier: ^8.18.1
         version: 8.18.1
-      eslint-plugin-regexp:
-        specifier: ^3.1.0
-        version: 3.1.0
 
   packages/angular:
     dependencies:
