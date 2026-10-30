@@ -1,45 +1,26 @@
 import type { CfProperties, IncomingRequestCfProperties } from '@cloudflare/workers-types';
-import {
-  NETWORK_PROTOCOL_NAME,
-  NETWORK_PROTOCOL_VERSION,
-  SENTRY_OP,
-  SENTRY_SEGMENT_NAME_SOURCE,
-  HTTP_REQUEST_BODY_SIZE,
-  USER_AGENT_ORIGINAL,
-} from '@sentry/conventions/attributes';
-import { HTTP_SERVER } from '@sentry/conventions/op';
-import type { Span } from '@sentry/core';
-import {
-  captureException,
-  continueTrace,
-  getHttpSpanDetailsFromUrlObject,
-  hasSpanStreamingEnabled,
-  httpHeadersToSpanAttributes,
-  HTTP_SPAN_NAME_FALLBACK,
-  parseStringToURLObject,
-  safeCallback,
-  setHttpStatus,
-  startSpanManual,
-  winterCGHeadersToDict,
-} from '@sentry/core';
-import { classifyResponseStreaming } from '@sentry/core/server';
+import { NETWORK_PROTOCOL_NAME, NETWORK_PROTOCOL_VERSION } from '@sentry/conventions/attributes';
+import type { SpanAttributes } from '@sentry/core';
+import { getIsolationScope, safeCallback } from '@sentry/core';
+import { _INTERNAL_handleServedTunnelRequest as handleServedTunnelRequest } from '@sentry/core/server';
+import { wrapServerRequestHandler } from '@sentry/server-utils/request-handler';
 import { DEBUG_BUILD } from './debug-build';
-import {
-  captureIncomingRequestBody,
-  getIncomingRequestSpanHooks,
-  shouldCreateIncomingRequestSpan,
-} from './integrations/httpServer';
+import { getHttpServerRequestOptions } from './integrations/httpServer';
 import { flushDeferredChannelEvents } from './orchestrion-deferred-channels';
 import type { CloudflareClient, CloudflareOptions } from './client';
 import type { ExecutionContextCompat } from './executionContext';
 import { flushAndDispose, getOriginalWaitUntil } from './flush';
-import { addCloudResourceContext, addCultureContext, addRequest } from './scope-utils';
+import { addCloudResourceContext, addCultureContext } from './scope-utils';
 import { getInvocationState, getInvocationWaitUntil } from './utils/invocationContext';
 import { withInvocationIsolationScope } from './utils/invocationScope';
 
-function getRequestErrorMechanismType(context: ExecutionContextCompat | undefined): string {
+function isDurableObjectContext(context: ExecutionContextCompat | undefined): boolean {
   // Durable Object fetch handlers use DO state as context (see instrumentDurableObjectWithSentry)
-  return context && 'storage' in context ? 'auto.faas.cloudflare.durable_object' : 'auto.http.cloudflare';
+  return !!context && 'storage' in context;
+}
+
+function getRequestErrorMechanismType(context: ExecutionContextCompat | undefined): string {
+  return isDurableObjectContext(context) ? 'auto.faas.cloudflare.durable_object' : 'auto.http.cloudflare';
 }
 
 export interface RequestHandlerWrapperOptions {
@@ -87,7 +68,6 @@ export function wrapRequestHandlerWithInit(
       : context
         ? getOriginalWaitUntil(context).bind(context)
         : undefined;
-    const errorMechanismType = getRequestErrorMechanismType(context);
 
     const client = initSdk({ ...options, ctx: context });
     isolationScope.setClient(client);
@@ -97,43 +77,15 @@ export function wrapRequestHandlerWithInit(
     // request, where workerd allows publish, and init() above has registered subscribers.
     flushDeferredChannelEvents();
 
-    const urlObject = parseStringToURLObject(request.url);
-    const [rawName, attributes] = getHttpSpanDetailsFromUrlObject(
-      urlObject,
-      'server',
-      'auto.http.cloudflare',
-      request,
-      undefined,
-      client,
-    );
-    // With span streaming, span names have to be low cardinality, so we can't fall back to the URL.
-    // A `route` source means the name already is (e.g. the `/` path), so it is kept as-is.
-    const name =
-      attributes[SENTRY_SEGMENT_NAME_SOURCE] === 'route' || !client || !hasSpanStreamingEnabled(client)
-        ? rawName
-        : request.method?.toUpperCase() || HTTP_SPAN_NAME_FALLBACK;
-
-    const contentLength = request.headers.get('content-length');
-    if (contentLength) {
-      attributes[HTTP_REQUEST_BODY_SIZE] = parseInt(contentLength, 10);
+    // The tunnel answers these before the app, with no span. A Durable Object is only reached through the Worker,
+    // which answered them already.
+    const tunnelResponse = !isDurableObjectContext(context) && handleServedTunnelRequest(request);
+    if (tunnelResponse) {
+      return tunnelResponse.finally(() => waitUntil?.(flushAndDispose(client)));
     }
-
-    const userAgentHeader = request.headers.get('user-agent');
-    if (userAgentHeader) {
-      attributes[USER_AGENT_ORIGINAL] = userAgentHeader;
-    }
-
-    if (client) {
-      Object.assign(
-        attributes,
-        httpHeadersToSpanAttributes(winterCGHeadersToDict(request.headers), client.getDataCollectionOptions()),
-      );
-    }
-
-    attributes[SENTRY_OP] = HTTP_SERVER;
 
     addCloudResourceContext(isolationScope);
-    addRequest(isolationScope, request);
+    const attributes: SpanAttributes = {};
     if (request.cf) {
       addCultureContext(isolationScope, request.cf);
 
@@ -144,143 +96,50 @@ export function wrapRequestHandlerWithInit(
       }
     }
 
-    // Do not capture spans for OPTIONS and HEAD requests
-    if (request.method === 'OPTIONS' || request.method === 'HEAD') {
+    if (!client) {
       try {
         return await handler();
-      } catch (e) {
-        if (captureErrors) {
-          captureException(e, { mechanism: { handled: false, type: errorMechanismType } });
-        }
-        throw e;
       } finally {
         waitUntil?.(flushAndDispose(client));
       }
     }
 
-    if (client) {
-      await captureIncomingRequestBody(client, request);
-    }
-
-    const { onSpanCreated, onSpanEnd } = getIncomingRequestSpanHooks(client);
-
-    // Runs the handler. Ends the span (if any) and flushes when the response is done.
-    const respond = async (span: Span | undefined): Promise<Response> => {
-      let res: Response;
-
-      try {
-        res = await handler();
-        if (span) {
-          setHttpStatus(span, res.status);
-        }
-
-        // After the handler runs, the span name might have been updated by nested instrumentation
-        // (e.g., Remix parameterizing routes). The span should already have the correct name
-        // from that instrumentation, so we don't need to do anything here.
-      } catch (e) {
-        span?.end();
-        if (captureErrors) {
-          captureException(e, { mechanism: { handled: false, type: errorMechanismType } });
-        }
-        waitUntil?.(flushAndDispose(client));
-        throw e;
-      }
-
-      let ended = false;
-      const endSpan = (): void => {
-        if (ended) return;
-
-        ended = true;
-        if (span) {
-          onSpanEnd(span, request, res);
-          span.end();
-        }
-      };
-
-      const userClassification = safeCallback(
-        DEBUG_BUILD ? 'Error in `isStreamingResponse`, using the default classification:' : '',
-        () => options.isStreamingResponse?.(res, request),
-        () => undefined,
-      );
-      // An async callback returns a promise, which would otherwise count as `true`.
-      const isStreaming =
-        typeof userClassification === 'boolean' ? userClassification : classifyResponseStreaming(res).isStreaming;
-
-      if (isStreaming && res.body) {
-        try {
-          let transformerUsed = false;
-
-          const endSpanOnce = (): void => {
-            if (ended) return;
-
-            endSpan();
+    // Note: The span will not have a duration unless I/O happens in the handler. This is
+    // because of how the cloudflare workers runtime works.
+    // See: https://developers.cloudflare.com/workers/runtime-apis/performance/
+    return wrapServerRequestHandler(
+      {
+        request,
+        client,
+        // Without `AsyncLocalStorage`, `withInvocationIsolationScope` does not fork, and the scope it
+        // passes in is not the current one. The request data has to go on the current scope, where
+        // events captured in the handler read it.
+        isolationScope: getIsolationScope(),
+        options: getHttpServerRequestOptions(client),
+        origin: 'auto.http.cloudflare',
+        mechanism: captureErrors ? { handled: false, type: getRequestErrorMechanismType(context) } : undefined,
+        attributes,
+        isStreamingResponse: response => {
+          const classification = safeCallback(
+            DEBUG_BUILD ? 'Error in `isStreamingResponse`, using the default classification:' : '',
+            () => options.isStreamingResponse?.(response, request),
+            () => undefined,
+          );
+          // An async callback returns a promise, which would otherwise count as `true`.
+          return typeof classification === 'boolean' ? classification : undefined;
+        },
+        onDone: response => {
+          // Don't dispose for protocol upgrades (101 Switching Protocols) - the connection stays alive.
+          // This includes WebSocket upgrades where webSocketMessage/webSocketClose handlers
+          // will still be called and may need the client to capture errors.
+          if (response?.status === 101) {
+            waitUntil?.(client.flush(2000));
+          } else {
             waitUntil?.(flushAndDispose(client));
-          };
-
-          // Workers with a compatibility date before 2022-11-30 and without the
-          // `transformstream_enable_standard_constructor` flag (for example under older mini-oxygen
-          // releases) ignore the transformer, so `flush` and `cancel` would never end the span. Only a
-          // used transformer runs `start`.
-          const transform = new TransformStream({
-            start() {
-              transformerUsed = true;
-            },
-            flush() {
-              // Source stream completed normally.
-              endSpanOnce();
-            },
-            cancel() {
-              // Client disconnected (or downstream cancelled). The `cancel`
-              // is being called while the response is still considered
-              // active, so this is a safe place to end the span.
-              endSpanOnce();
-            },
-          });
-
-          if (transformerUsed) {
-            // Passing the original response as the init keeps `encodeBody: 'manual'`, which a
-            // Response does not expose as a property. Without it, workerd compresses a
-            // pre-compressed body a second time.
-            return new Response(res.body.pipeThrough(transform), res);
           }
-        } catch {
-          // Falls back to ending the span at handler return.
-        }
-      }
-
-      // Non-streaming response - end span immediately and return original
-      endSpan();
-
-      // Don't dispose for protocol upgrades (101 Switching Protocols) - the connection stays alive.
-      // This includes WebSocket upgrades where webSocketMessage/webSocketClose handlers
-      // will still be called and may need the client to capture errors.
-      if (res.status === 101) {
-        waitUntil?.(client?.flush(2000));
-      } else {
-        waitUntil?.(flushAndDispose(client));
-      }
-      return res;
-    };
-
-    const createSpan = shouldCreateIncomingRequestSpan(client, request);
-
-    return continueTrace(
-      { sentryTrace: request.headers.get('sentry-trace') || '', baggage: request.headers.get('baggage') },
-      () => {
-        if (!createSpan) {
-          return respond(undefined);
-        }
-
-        // Note: This span will not have a duration unless I/O happens in the handler. This is
-        // because of how the cloudflare workers runtime works.
-        // See: https://developers.cloudflare.com/workers/runtime-apis/performance/
-
-        // Use startSpanManual to control when span ends (needed for streaming responses)
-        return startSpanManual({ name, attributes }, span => {
-          onSpanCreated(span, request);
-          return respond(span);
-        });
+        },
       },
+      () => handler(),
     );
   }, wrapperOptions.context);
 }

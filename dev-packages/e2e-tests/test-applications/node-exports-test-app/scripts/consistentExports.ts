@@ -20,6 +20,12 @@ const NODE_EXPORTS_IGNORE = [
   'initWithoutDefaultIntegrations',
   // Internal helper only needed within integrations (e.g. bunRuntimeMetricsIntegration)
   '_INTERNAL_normalizeCollectionInterval',
+  // Lambda helpers only needed by `@sentry/aws-serverless`
+  '_INTERNAL_answerLambdaTunnelEvent',
+  '_INTERNAL_answerStreamingLambdaTunnelEvent',
+  '_INTERNAL_parseLambdaHandlerString',
+  '_INTERNAL_redirectLambdaHandler',
+  '_INTERNAL_resolveLambdaHandlerFile',
   // not exported by bun
   'nativeNodeFetchIntegration',
 ];

@@ -4,7 +4,6 @@ import { getCapturedScopesOnSpan, getRootSpan, getSpanDescendants, spanIsSampled
 import * as SentryCore from '@sentry/core';
 import { NodeClient, serveTunnelIntegration, setCurrentClient } from '@sentry/node';
 import { _INTERNAL_resetManagedTunnelDefaults } from '@sentry/core/server';
-import { TUNNEL_BASE_PATH_GLOBAL } from '../../src/common/tunnel';
 import type { Handle } from '@sveltejs/kit';
 import { redirect } from '@sveltejs/kit';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -146,16 +145,6 @@ describe('sentryHandle with span streaming', () => {
 describe('sentryHandle with the managed tunnel', () => {
   const DSN = 'https://public@o1.ingest.sentry.io/1337';
 
-  function makeTunnelRequest(path: string): Request {
-    const body = SentryCore.serializeEnvelope(SentryCore.createEnvelope({ dsn: DSN }, [])) as string;
-
-    return new Request(`http://localhost:3000${path}`, {
-      method: 'POST',
-      body,
-      headers: { 'content-length': String(body.length) },
-    });
-  }
-
   beforeEach(() => {
     vi.stubGlobal(
       'fetch',
@@ -169,36 +158,6 @@ describe('sentryHandle with the managed tunnel', () => {
   afterEach(() => {
     vi.unstubAllGlobals();
     _INTERNAL_resetManagedTunnelDefaults();
-  });
-
-  it('answers tunnel requests without resolving the route', async () => {
-    const mockResolve = vi.fn();
-
-    const response = await sentryHandle()({
-      event: mockEvent({ request: makeTunnelRequest(SentryCore.getTunnelPath(DSN)!), route: { id: null } }),
-      resolve: mockResolve,
-    });
-
-    expect(await response.text()).toBe('forwarded');
-    expect(mockResolve).not.toHaveBeenCalled();
-  });
-
-  it('serves the tunnel under the base path `sentrySvelteKit()` set before the handle was created', async () => {
-    vi.stubGlobal(TUNNEL_BASE_PATH_GLOBAL, '/app');
-    const mockResolve = vi.fn(() => Promise.resolve(new Response('app')));
-    const handle = sentryHandle();
-
-    const underBasePath = await handle({
-      event: mockEvent({ request: makeTunnelRequest(`/app${SentryCore.getTunnelPath(DSN)!}`), route: { id: null } }),
-      resolve: mockResolve,
-    });
-    const atRoot = await handle({
-      event: mockEvent({ request: makeTunnelRequest(SentryCore.getTunnelPath(DSN)!), route: { id: null } }),
-      resolve: mockResolve,
-    });
-
-    expect(await underBasePath.text()).toBe('forwarded');
-    expect(await atRoot.text()).toBe('app');
   });
 
   it('resolves every other request', async () => {

@@ -220,4 +220,48 @@ describe('wrapServerRequestHandler', () => {
     const setCookie = transactions[0]?.contexts?.trace?.data?.['http.response.header.set-cookie'] as string[];
     expect(setCookie.map(cookie => cookie.split('=')[0])).toEqual(['first', 'second']);
   });
+
+  it('calls onDone once with the response, or without one when the handler throws', async () => {
+    const done: (number | undefined)[] = [];
+    const { serve } = setup({}, { onDone: response => done.push(response?.status) });
+
+    const response = await serve(new Request('https://example.com/ok'), () => new Response('ok', { status: 201 }));
+    await response.text();
+    await expect(
+      serve(new Request('https://example.com/throws'), () => {
+        throw new Error('handler failed');
+      }),
+    ).rejects.toThrow('handler failed');
+    await serve(new Request('https://example.com/cors', { method: 'OPTIONS' }), () => new Response(null));
+
+    expect(done).toEqual([201, undefined, 200]);
+  });
+
+  it('does not capture errors without a mechanism', async () => {
+    const { events, serve } = setup({}, { mechanism: undefined });
+
+    await expect(
+      serve(new Request('https://example.com/throws'), () => {
+        throw new Error('handler failed');
+      }),
+    ).rejects.toThrow('handler failed');
+
+    expect(events).toHaveLength(0);
+  });
+
+  it('calls onDone at once when isStreamingResponse returns false', async () => {
+    const onDone = vi.fn();
+    const { serve } = setup({}, { onDone, isStreamingResponse: () => false });
+    const source = new ReadableStream<Uint8Array>({
+      start() {
+        // never closes
+      },
+    });
+    const original = new Response(source, { headers: { 'content-type': 'text/event-stream' } });
+
+    const response = await serve(new Request('https://example.com/events'), () => original);
+
+    expect(response).toBe(original);
+    expect(onDone).toHaveBeenCalledTimes(1);
+  });
 });

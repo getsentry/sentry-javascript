@@ -5,6 +5,8 @@ interface EventBase {
   host: string;
   method: string;
   headers: Record<string, string>;
+  /** The request body Nitro already read, e.g. a `Buffer`. */
+  body?: BodyInit | null;
 }
 
 interface MinimalCloudflareProps {

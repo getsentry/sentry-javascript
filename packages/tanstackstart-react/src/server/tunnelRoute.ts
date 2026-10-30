@@ -3,8 +3,6 @@ import type { ServerTunnelOptions } from '@sentry/core';
 import { dsnToString, escapeStringForRegex, getClient, handleTunnelRequest } from '@sentry/core';
 import {
   _INTERNAL_forwardTunnelRequest as forwardTunnelRequest,
-  _INTERNAL_handleServedTunnelRequest as handleServedTunnelRequest,
-  _INTERNAL_isServedTunnelRequest as isServedTunnelRequest,
   _INTERNAL_setManagedTunnelDefaults as setManagedTunnelDefaults,
 } from '@sentry/core/server';
 import type { ServerEntry } from './wrapFetchWithSentry';
@@ -99,8 +97,9 @@ export function createSentryTunnelRoute(options: CreateSentryTunnelRouteOptions)
 }
 
 /**
- * Answers managed tunnel requests before the server entry runs. The `sentryTanstackStart` Vite plugin applies this
- * to the app's server entry automatically, with its `tunnelRoute` and the base path Start routes on.
+ * Enables the managed tunnel for the server entry, which the runtime then answers. The `sentryTanstackStart` Vite
+ * plugin applies this to the app's server entry automatically, with its `tunnelRoute` and the base path Start routes
+ * on.
  *
  * `tunnelRoute` enables the managed tunnel on every server client the same way `serveTunnelIntegration` does, unless
  * that integration is set up too, and the tunnel is then served from the client's config like in every other SDK.
@@ -112,33 +111,9 @@ export function wrapServerEntryWithSentryTunnel<T extends ServerEntry>(
   tunnelRoute?: ServerTunnelOptions,
   basePath?: string,
 ): T {
-  // Runs when the server entry loads, before any request. Requests still carry Start's base path here, so the tunnel
-  // is served under it.
+  // Runs when the server entry loads, before any request. Requests still carry Start's base path, so the tunnel is
+  // served under it.
   setManagedTunnelDefaults({ tunnel: tunnelRoute, forward: forwardTunnelRequest, basePath });
 
-  // A class entry, like Cloudflare's `WorkerEntrypoint`, can't be spread into an object. The tunnel is then served
-  // by the wrapped default server entry it calls.
-  if (typeof entry === 'function') {
-    return entry;
-  }
-
-  // Keeps the prototype, so a class instance entry keeps its other handlers, like `scheduled` or `queue`. `fetch` is
-  // defined rather than assigned, which a read-only `fetch` on a frozen prototype would reject.
-  return Object.create(Object.getPrototypeOf(entry), {
-    ...Object.getOwnPropertyDescriptors(entry),
-    fetch: {
-      // Cloudflare Workers pass `env` and `ctx` after the request, and `withSentry` needs `ctx` to flush.
-      value: (request: Request, ...rest: unknown[]) => {
-        // Start would render the app for any other method on a tunnel path, running its root loaders.
-        if (request.method !== 'POST' && isServedTunnelRequest({ method: 'POST', url: request.url })) {
-          return new Response(null, { status: 405, headers: { Allow: 'POST' } });
-        }
-
-        return handleServedTunnelRequest(request) ?? entry.fetch(request, ...rest);
-      },
-      writable: true,
-      configurable: true,
-      enumerable: true,
-    },
-  }) as T;
+  return entry;
 }

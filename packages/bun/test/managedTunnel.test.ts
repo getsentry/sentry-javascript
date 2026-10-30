@@ -10,13 +10,12 @@ describe('managed tunnel', () => {
     SentryCore.getCurrentScope().setClient(undefined);
   });
 
-  test('Bun.serve drops the server span of tunnel requests', async () => {
+  test('Bun.serve answers tunnel requests before the app, without a server span', async () => {
     const transactions: string[] = [];
     init({
       dsn: DSN,
       tracesSampleRate: 1,
       traceLifecycle: 'static',
-      // A meta-framework answers the tunnel requests, Bun only drops their server spans.
       integrations: [serveTunnelIntegration()],
       beforeSendTransaction: (event: TransactionEvent) => {
         transactions.push(event.request?.url ?? '');
@@ -33,7 +32,8 @@ describe('managed tunnel', () => {
       method: 'POST',
       body: 'envelope',
     });
-    expect(await tunnelResponse.text()).toBe('app');
+    // Answered by the tunnel, which rejects the body as an envelope, not by the app.
+    expect(await tunnelResponse.text()).toBe('Invalid envelope');
     await (await fetch(`${baseUrl}/after-tunnel`)).text();
     await SentryCore.flush();
     server.stop();

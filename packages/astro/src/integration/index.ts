@@ -198,7 +198,9 @@ export const sentryAstro = (options: SentryOptions = {}): AstroIntegration => {
           // This ensures Sentry.init() runs in dev mode (where the Vite plugin doesn't fire)
           // and also serves as the fallback for non-Cloudflare adapters in production.
           if (serverInitSnippet) {
-            updateConfig({ vite: { plugins: [makeServerInitVitePlugin(serverInitSnippet)] } });
+            updateConfig({
+              vite: { plugins: [makeServerInitVitePlugin(serverInitSnippet, { injectIntoEntry: !isCloudflare })] },
+            });
             injectScript('page-ssr', SERVER_INIT_IMPORT);
           }
 
@@ -228,7 +230,11 @@ export const sentryAstro = (options: SentryOptions = {}): AstroIntegration => {
             // Ref: https://developers.cloudflare.com/workers/runtime-apis/nodejs/
             updateConfig({
               vite: {
-                plugins: [sentryCloudflareNodeWarningPlugin()],
+                // A Pages build gets the same `withSentry` wrap as Workers, which answers managed tunnel requests.
+                plugins:
+                  command !== 'dev'
+                    ? [sentryCloudflareNodeWarningPlugin(), sentryCloudflareVitePlugin()]
+                    : [sentryCloudflareNodeWarningPlugin()],
                 ssr: {
                   // @sentry/node is required in case we have 2 different @sentry/node
                   // packages installed in the same project.

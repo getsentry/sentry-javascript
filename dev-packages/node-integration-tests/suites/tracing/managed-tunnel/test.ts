@@ -9,7 +9,7 @@ describe('managed tunnel', () => {
   });
 
   createEsmAndCjsTests(__dirname, 'server.mjs', 'instrument.mjs', (createRunner, test) => {
-    test('drops the server span of tunnel requests', async () => {
+    test('answers tunnel requests before the app, without a server span', async () => {
       const runner = createRunner()
         .expect({
           span: container => {
@@ -20,7 +20,10 @@ describe('managed tunnel', () => {
         })
         .start();
 
-      await runner.makeRequest('post', getTunnelPath('https://public@dsn.ingest.sentry.io/1337')!);
+      // The tunnel rejects the empty body. The app would have answered with a 200.
+      await runner.makeRequest('post', getTunnelPath('https://public@dsn.ingest.sentry.io/1337')!, {
+        expectError: true,
+      });
       await runner.makeRequest('get', '/after-tunnel');
 
       await runner.completed();
