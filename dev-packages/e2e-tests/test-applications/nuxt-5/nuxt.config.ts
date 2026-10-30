@@ -28,6 +28,7 @@ export default defineNuxtConfig({
     },
   },
   nitro: {
+    scanSuffixes: ['first', 'second', 'auth', 'hooks'],
     experimental: {
       database: true,
     },
