@@ -103,7 +103,7 @@ type StartResult = {
   getPort(): number | undefined;
   sendSignal(signal: NodeJS.Signals): void;
   makeRequest<T>(
-    method: 'get' | 'post' | 'put' | 'delete' | 'patch',
+    method: 'get' | 'head' | 'post' | 'put' | 'delete' | 'patch',
     path: string,
     options?: { headers?: Record<string, string>; data?: BodyInit; expectError?: boolean; timeout?: number },
   ): Promise<T | undefined>;
@@ -781,7 +781,7 @@ export function createRunner(...paths: string[]) {
           child?.kill(signal);
         },
         makeRequest: async function <T>(
-          method: 'get' | 'post' | 'put' | 'delete' | 'patch',
+          method: 'get' | 'head' | 'post' | 'put' | 'delete' | 'patch',
           path: string,
           options: {
             headers?: Record<string, string>;
