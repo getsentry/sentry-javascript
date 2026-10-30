@@ -83,9 +83,16 @@ function moduleInjectedSnippet(
 }
 
 /**
- * Publishes the module's own namespace on `providedModules`. A self-import adds no edge to the module
- * graph; importing the package into a Sentry module would close a cycle through every instrumented
- * dependency, since those all import `@sentry/server-utils`.
+ * Publishes the module's own namespace on `providedModules`. For `@flue/runtime`'s `dist/index.mjs`,
+ * this prepends roughly:
+ *
+ * ```js
+ * import * as __SENTRY_SELF_PROVIDED__ from "./index.mjs";
+ * globalThis.__SENTRY_ORCHESTRION__.providedModules["@flue/runtime"] = __SENTRY_SELF_PROVIDED__; // as a getter
+ * ```
+ *
+ * A self-import adds no edge to the module graph; importing the package into a Sentry module would
+ * close a cycle through every instrumented dependency, since those all import `@sentry/server-utils`.
  */
 function selfProvidedSnippet(moduleName: string, filePath: string): string {
   const marker = 'globalThis.__SENTRY_ORCHESTRION__';
