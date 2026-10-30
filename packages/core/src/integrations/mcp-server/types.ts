@@ -1,4 +1,5 @@
 import type { Span } from '../../types/span';
+import type { WebFetchHeaders } from '../../types/webfetchapi';
 
 /** Types for MCP server instrumentation */
 
@@ -146,10 +147,16 @@ export interface MCPServerInstance {
 
 /** Client connection information for handlers */
 export interface ExtraHandlerData {
-  requestInfo?: { remoteAddress?: string; remotePort?: number };
+  requestInfo?: {
+    remoteAddress?: string;
+    remotePort?: number;
+    headers?: Record<string, string | string[] | undefined>;
+  };
   clientAddress?: string;
   clientPort?: number;
   request?: {
+    headers?: Pick<WebFetchHeaders, 'get'> | Record<string, string | string[] | undefined>;
+    cf?: { httpProtocol?: string };
     ip?: string;
     connection?: { remoteAddress?: string; remotePort?: number };
   };
