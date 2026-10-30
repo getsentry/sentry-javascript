@@ -17,6 +17,7 @@
     "test:build-webpack": "pnpm install && pnpm build-webpack",
     "test:build-handler": "pnpm install && cp -R tunnel-handler/node/sentry-tunnel app/ && pnpm build",
     "test:build-handler-webpack": "pnpm install && cp -R tunnel-handler/edge/sentry-tunnel app/ && pnpm build-webpack",
+    "test:build-middleware-webpack": "pnpm install && rm proxy.ts && cp tunnel-middleware/middleware.ts middleware.ts && pnpm build-webpack",
     "test:build-canary": "pnpm install && pnpm add next@canary && pnpm build",
     "test:build-latest": "pnpm install && pnpm add next@latest && pnpm build",
     "test:build-latest-webpack": "pnpm install && pnpm add next@latest && pnpm build-webpack",
@@ -72,6 +73,16 @@
         "build-command": "NEXT_PUBLIC_E2E_TEST_TUNNEL_MODE=handler pnpm test:build-handler-webpack",
         "label": "nextjs-16-tunnel (handler, webpack, edge)",
         "assert-command": "NEXT_PUBLIC_E2E_TEST_TUNNEL_MODE=handler pnpm test:assert-webpack"
+      },
+      {
+        "build-command": "NEXT_PUBLIC_E2E_TEST_TUNNEL_MODE=managed pnpm test:build",
+        "label": "nextjs-16-tunnel (managed, turbopack)",
+        "assert-command": "NEXT_PUBLIC_E2E_TEST_TUNNEL_MODE=managed pnpm test:assert"
+      },
+      {
+        "build-command": "NEXT_PUBLIC_E2E_TEST_TUNNEL_MODE=managed pnpm test:build-middleware-webpack",
+        "label": "nextjs-16-tunnel (managed, webpack, edge middleware)",
+        "assert-command": "NEXT_PUBLIC_E2E_TEST_TUNNEL_MODE=managed pnpm test:assert-webpack"
       }
     ],
     "optionalVariants": [
