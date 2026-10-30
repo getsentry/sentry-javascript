@@ -40,7 +40,7 @@ describe('Anthropic integration', () => {
           span: container => {
             expect(container.items.find(span => span.is_segment && span.name === 'main')).toBeDefined();
             const spans = container.items.filter(span => span.attributes[SENTRY_ORIGIN]?.value === 'auto.ai.anthropic');
-            expect(spans).toHaveLength(6);
+            expect(spans).toHaveLength(5);
             const nonStreamingSpans = spans.filter(
               span => span.attributes[GEN_AI_RESPONSE_ID]?.value === 'msg_withresponse',
             );
@@ -60,7 +60,7 @@ describe('Anthropic integration', () => {
             expect(streamingSpan!.attributes[GEN_AI_RESPONSE_STREAMING].value).toBe(true);
 
             const rawResponseSpans = spans.filter(span => span.attributes[GEN_AI_RESPONSE_ID] === undefined);
-            expect(rawResponseSpans).toHaveLength(4);
+            expect(rawResponseSpans).toHaveLength(3);
             for (const span of rawResponseSpans) {
               expect(span.name).toBe(`chat ${span.attributes[GEN_AI_REQUEST_MODEL].value}`);
               expect(span.status).toBe('ok');
@@ -70,7 +70,6 @@ describe('Anthropic integration', () => {
             expect(rawResponseSpans.map(span => span.attributes[GEN_AI_REQUEST_MODEL].value)).toEqual([
               'claude-3-haiku-20240307',
               'claude-3-haiku-20240307',
-              'claude-2',
               'claude-3-haiku-20240307',
             ]);
           },

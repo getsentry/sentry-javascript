@@ -47,7 +47,19 @@ const _anthropicAIIntegration = ((options: AnthropicAiOptions = {}) => {
   };
 }) satisfies IntegrationFn;
 
+// Since 0.134 `@anthropic-ai/sdk` traces itself through the global OTel tracer provider, which duplicates our
+// spans. Only turned off once our channels subscribe, so an app we do not instrument keeps the SDK's spans.
+// A value the user set wins.
+function disableNativeTracing(): void {
+  try {
+    process.env.ANTHROPIC_OPEN_TELEMETRY ??= 'false';
+  } catch {
+    // `process` is absent (edge runtimes) or env access is gated (Deno without `--allow-env`).
+  }
+}
+
 function instrumentAnthropic(options: AnthropicAiOptions): void {
+  disableNativeTracing();
   for (const { channel, operation, stream } of INSTRUMENTED_CHANNELS) {
     bindTracingChannelToSpan(
       diagnosticsChannel.tracingChannel<OrchestrionChannelContext>(channel),
