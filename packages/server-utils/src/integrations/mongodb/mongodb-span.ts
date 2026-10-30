@@ -235,6 +235,7 @@ export function startMongoSpan(attributes: SpanAttributes): Span {
 
   return startInactiveSpan({
     name,
+    onlyIfParent: true,
     attributes: {
       [SENTRY_OP]: DB,
       [SENTRY_KIND]: 'client',

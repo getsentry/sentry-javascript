@@ -192,6 +192,7 @@ function subscribeCallRouteLoader(): void {
         // With span streaming, a `function` span is named after the function it wraps. The route id
         // stays on `match.route.id`.
         name: client && hasSpanStreamingEnabled(client) ? 'loader' : description,
+        onlyIfParent: true,
         attributes: {
           [SENTRY_ORIGIN]: ORIGIN,
           [SENTRY_OP]: FUNCTION,
@@ -203,7 +204,6 @@ function subscribeCallRouteLoader(): void {
       });
     },
     {
-      requiresParentSpan: true,
       beforeSpanEnd: (span, data) => setResponseStatus(span, data.result),
     },
   );
@@ -231,6 +231,7 @@ function subscribeCallRouteAction(formDataCapture: FormDataCapture | undefined):
         // With span streaming, a `function` span is named after the function it wraps. The route id
         // stays on `match.route.id`.
         name: client && hasSpanStreamingEnabled(client) ? 'action' : description,
+        onlyIfParent: true,
         attributes: {
           [SENTRY_ORIGIN]: ORIGIN,
           [SENTRY_OP]: FUNCTION,
@@ -242,7 +243,6 @@ function subscribeCallRouteAction(formDataCapture: FormDataCapture | undefined):
       });
     },
     {
-      requiresParentSpan: true,
       beforeSpanEnd: (span, data) => setResponseStatus(span, data.result),
       // Hold the span end until the (already in-flight) form-data read resolves, then apply the
       // attributes and end (which sets the response status via `beforeSpanEnd`). On error, or when

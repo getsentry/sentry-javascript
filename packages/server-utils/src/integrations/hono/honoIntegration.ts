@@ -111,13 +111,13 @@ function instrumentInternalRequests(): void {
       ).toUpperCase();
       return startInactiveSpan({
         name: `${method} ${extractPathname(input)}`,
+        onlyIfParent: true,
         attributes: {
           [SENTRY_OP]: HTTP_SERVER,
           [SENTRY_ORIGIN]: INTERNAL_REQUEST_ORIGIN,
         },
       });
     },
-    { requiresParentSpan: true },
   );
 }
 

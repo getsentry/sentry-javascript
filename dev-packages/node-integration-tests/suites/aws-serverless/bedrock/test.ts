@@ -57,15 +57,9 @@ describe('awsIntegration - Bedrock', () => {
     cleanupChildProcesses();
   });
 
-  createEsmAndCjsTests(
-    __dirname,
-    'scenario.mjs',
-    'instrument.mjs',
-    (createTestRunner, test) => {
-      test('auto-instruments Bedrock Converse and InvokeModel', { timeout: 90_000 }, async () => {
-        await createTestRunner().ignore('event').expect({ span: assertBedrockSpans }).start().completed();
-      });
-    },
-    { additionalDependencies: { '@aws-sdk/client-bedrock-runtime': '^3.1046.0' } },
-  );
+  createEsmAndCjsTests(__dirname, 'scenario.mjs', 'instrument.mjs', (createTestRunner, test) => {
+    test('auto-instruments Bedrock Converse and InvokeModel', { timeout: 90_000 }, async () => {
+      await createTestRunner().ignore('event').expect({ span: assertBedrockSpans }).start().completed();
+    });
+  });
 });
