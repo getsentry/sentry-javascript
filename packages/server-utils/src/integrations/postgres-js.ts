@@ -21,11 +21,10 @@ import {
   startInactiveSpan,
 } from '@sentry/core';
 import { DEBUG_BUILD } from '../debug-build';
-import { getSqlQuerySummary, sanitizeSqlQuery } from '../utils/sql';
+import { getSqlQueryAttributes } from '../utils/sql';
 import {
   _buildConnectionContext,
   _getConnectionAttributes,
-  _getOperationName,
   _reconstructQuery,
   type PostgresConnectionContext,
 } from './postgresjs';
@@ -165,7 +164,7 @@ function attachConnectionAttributesFromChannel(message: PostgresJsQueryContext):
  * there. Wrapping happens at handle-start because `reject` can fire
  * synchronously during dispatch and `cursor()` reassigns both before executing.
  */
-function wrapQuerySettlement(data: PostgresJsQueryContext, span: Span, sanitizedSqlQuery: string): void {
+function wrapQuerySettlement(data: PostgresJsQueryContext, span: Span, operationName: string | undefined): void {
   const query = data.self;
   if (!query) {
     return;
@@ -184,7 +183,7 @@ function wrapQuerySettlement(data: PostgresJsQueryContext, span: Span, sanitized
       try {
         const command = (resolveArgs[0] as { command?: string } | undefined)?.command;
         // Re-set the operation name with the server-reported command, which is more reliable than the query text.
-        span.setAttribute(DB_OPERATION_NAME, _getOperationName(sanitizedSqlQuery, command));
+        span.setAttribute(DB_OPERATION_NAME, command || operationName);
         span.end();
       } catch (e) {
         DEBUG_BUILD && debug.error('[instrumentation:postgresjs] error ending span in resolve:', e);
@@ -272,10 +271,8 @@ function instrumentPostgresJs(options: PostgresJsIntegrationOptions): void {
         return undefined;
       }
 
-      const fullQuery = _reconstructQuery(query.strings);
-      const sanitizedSqlQuery = sanitizeSqlQuery(fullQuery);
-
-      const querySummary = getSqlQuerySummary(sanitizedSqlQuery);
+      const queryAttributes = getSqlQueryAttributes(_reconstructQuery(query.strings));
+      const sanitizedSqlQuery = queryAttributes[DB_QUERY_TEXT] ?? '';
 
       const client = getClient();
 
@@ -285,7 +282,7 @@ function instrumentPostgresJs(options: PostgresJsIntegrationOptions): void {
 
       const name =
         client && hasSpanStreamingEnabled(client)
-          ? querySummary || context?.ATTR_DB_NAMESPACE || DB_SYSTEM_NAME_POSTGRES
+          ? queryAttributes[DB_QUERY_SUMMARY] || context?.ATTR_DB_NAMESPACE || DB_SYSTEM_NAME_POSTGRES
           : sanitizedSqlQuery || 'postgresjs.query';
 
       // `sentry.kind: client` matches the mysql/pg channel subscribers.
@@ -297,9 +294,7 @@ function instrumentPostgresJs(options: PostgresJsIntegrationOptions): void {
           [SENTRY_KIND]: 'client',
           [SENTRY_ORIGIN]: ORIGIN,
           [DB_SYSTEM_NAME]: DB_SYSTEM_NAME_POSTGRES,
-          [DB_QUERY_TEXT]: sanitizedSqlQuery,
-          [DB_QUERY_SUMMARY]: querySummary,
-          [DB_OPERATION_NAME]: _getOperationName(sanitizedSqlQuery),
+          ...queryAttributes,
         },
       });
 
@@ -319,7 +314,7 @@ function instrumentPostgresJs(options: PostgresJsIntegrationOptions): void {
         }
       }
 
-      wrapQuerySettlement(data, span, sanitizedSqlQuery);
+      wrapQuerySettlement(data, span, queryAttributes[DB_OPERATION_NAME]);
 
       return span;
     },
