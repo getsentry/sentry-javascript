@@ -22,7 +22,7 @@ function createStorage(entries: Record<string, unknown> = {}) {
   return {
     binary: true,
     get: vi.fn((key: string) => map.get(key) ?? null),
-    set: vi.fn((key: string, value: unknown) => void map.set(key, value)),
+    set: vi.fn((key: string, value: unknown, _opts?: { ttl?: number }) => void map.set(key, value)),
   };
 }
 
