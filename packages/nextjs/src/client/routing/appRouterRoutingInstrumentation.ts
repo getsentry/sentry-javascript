@@ -150,7 +150,7 @@ export function appRouterInstrumentPageLoad(client: Client): void {
       [SENTRY_SEGMENT_NAME_SOURCE]: parameterizedPathname ? 'route' : 'url',
       [URL_PATH]: WINDOW.location.pathname,
       [URL_FULL]: documentUrl,
-      ...(parameterizedPathname && { [URL_TEMPLATE]: parameterizedPathname }),
+      [URL_TEMPLATE]: parameterizedPathname,
     },
   };
 
@@ -258,7 +258,7 @@ export function appRouterInstrumentNavigation(client: Client): void {
             [SENTRY_SEGMENT_NAME_SOURCE]: parameterizedPathname ? 'route' : 'url',
             // oxlint-disable-next-line typescript/no-deprecated -- Preserve the existing attribute name.
             [NAVIGATION_TYPE]: `router.${navigationType}`,
-            ...(parameterizedPathname && { [URL_TEMPLATE]: parameterizedPathname }),
+            [URL_TEMPLATE]: parameterizedPathname,
           },
         },
         { url: getAbsoluteUrl(normalizedHref) },
@@ -296,7 +296,7 @@ export function appRouterInstrumentNavigation(client: Client): void {
             [SENTRY_SEGMENT_NAME_SOURCE]: parameterizedPathname ? 'route' : 'url',
             // oxlint-disable-next-line typescript/no-deprecated -- Preserve the existing attribute name.
             [NAVIGATION_TYPE]: traversal?.navigationType ?? 'browser.popstate',
-            ...(parameterizedPathname && { [URL_TEMPLATE]: parameterizedPathname }),
+            [URL_TEMPLATE]: parameterizedPathname,
           },
         },
         // The full location rather than just the pathname, so the span's `url.full` keeps the
@@ -394,7 +394,7 @@ function patchRouter(client: Client, router: NextRouter, currentNavigationSpanRe
                 [SENTRY_SEGMENT_NAME_SOURCE]: parameterizedPathname ? 'route' : 'url',
                 // oxlint-disable-next-line typescript/no-deprecated -- Preserve the existing attribute name.
                 [NAVIGATION_TYPE]: `router.${routerFunctionName}`,
-                ...(parameterizedPathname && { [URL_TEMPLATE]: parameterizedPathname }),
+                [URL_TEMPLATE]: parameterizedPathname,
               },
             },
             { url: getAbsoluteUrl(normalizedHref) },

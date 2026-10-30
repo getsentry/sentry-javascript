@@ -344,7 +344,7 @@ function getSpanForLayer(data: HandleChannelContext, options: ExpressIntegration
       [SENTRY_OP]: EXPRESS_TYPE_TO_SPAN_OP[type],
       [ATTR_EXPRESS_NAME]: name,
       [ATTR_EXPRESS_TYPE]: type,
-      ...(matchedRoute ? { [HTTP_ROUTE]: matchedRoute } : {}),
+      [HTTP_ROUTE]: matchedRoute,
     },
   });
 

@@ -98,9 +98,9 @@ function instrumentMysql(): void {
           [SENTRY_ORIGIN]: 'auto.db.mysql',
           // oxlint-disable-next-line typescript/no-deprecated -- Preserve the existing attribute name.
           [DB_CONNECTION_STRING]: getJDBCString(host, portIsNumber ? portNumber : undefined, database),
-          ...(database ? { [DB_NAMESPACE]: database } : {}),
-          ...(user ? { [DB_USER]: user } : {}),
-          ...(queryText ? { [DB_QUERY_TEXT]: queryText } : {}),
+          [DB_NAMESPACE]: database,
+          [DB_USER]: user,
+          [DB_QUERY_TEXT]: queryText,
           [DB_QUERY_SUMMARY]: querySummary,
           [SERVER_ADDRESS]: host,
           [SERVER_PORT]: portIsNumber ? portNumber : undefined,
