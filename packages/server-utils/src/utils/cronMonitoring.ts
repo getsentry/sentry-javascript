@@ -56,6 +56,9 @@ const NICKNAMES: Record<string, string> = {
   '@daily': '0 0 * * *',
   '@midnight': '0 0 * * *',
   '@hourly': '0 * * * *',
+  '@minutely': '* * * * *',
+  '@weekdays': '0 0 * * 1-5',
+  '@weekends': '0 0 * * 0,6',
 };
 
 const MONTHS = ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec'];
@@ -89,10 +92,6 @@ export function cronExpressionToMonitorConfig(
   }
 
   const [minute, hour, dayOfMonth, month, dayOfWeek] = fields as [string, string, string, string, string];
-  if (!isSameDayMatching(dayOfMonth, dayOfWeek, daySemantics)) {
-    return undefined;
-  }
-
   const crontab = [
     minute,
     hour,
@@ -100,7 +99,10 @@ export function cronExpressionToMonitorConfig(
     replaceNames(month, MONTHS, 1),
     endRangesOnSundayAsSeven(replaceNames(dayOfWeek, WEEKDAYS, 0)),
   ];
-  if (crontab.some(field => /[a-z]/i.test(field) || hasReversedRange(field))) {
+  if (
+    crontab.some(field => /[a-z]/i.test(field) || hasReversedRange(field)) ||
+    !isSameDayMatching(crontab[2] as string, crontab[4] as string, daySemantics)
+  ) {
     return undefined;
   }
 
@@ -112,20 +114,40 @@ export function cronExpressionToMonitorConfig(
   return { schedule: { type: 'crontab', value: crontab.join(' ') }, timezone: sentryTimezone };
 }
 
-// Sentry requires both day fields to match when one starts with `*`, and either otherwise.
+// Sentry requires both day fields to match when one starts with `*`, and either otherwise. The `or` schedulers
+// ignore a day field that covers every day, like `1-31` or `sun-sat`, so they count the days as `cron` does.
 function isSameDayMatching(dayOfMonth: string, dayOfWeek: string, daySemantics: DayFieldSemantics): boolean {
-  if (dayOfMonth === '*' || dayOfWeek === '*') {
-    return true;
+  const daysOfMonth = countDays(dayOfMonth, 1, 31);
+  const daysOfWeek = countDays(dayOfWeek, 0, 7);
+  if (daysOfMonth === undefined || daysOfWeek === undefined) {
+    return false;
   }
-  if (daySemantics === 'and') {
-    return dayOfMonth.startsWith('*') || dayOfWeek.startsWith('*');
+  const allDaysOfMonth = daysOfMonth === 31;
+  const allDaysOfWeek = daysOfWeek === 7;
+  const schedulerNeedsBoth = daySemantics === 'and' || allDaysOfMonth || allDaysOfWeek;
+  const sentryNeedsBoth = dayOfMonth.startsWith('*') || dayOfWeek.startsWith('*');
+  return (allDaysOfMonth && allDaysOfWeek) || schedulerNeedsBoth === sentryNeedsBoth;
+}
+
+function countDays(field: string, low: number, high: number): number | undefined {
+  const days = new Set<number>();
+  for (const part of field.split(',')) {
+    const match = /^(?:(\*)|(\d+)(?:-(\d+))?)(?:\/(\d+))?$/.exec(part);
+    if (!match) {
+      return undefined;
+    }
+    const [, wildcard, from, to, step] = match;
+    const lower = wildcard ? low : Number(from);
+    const upper = wildcard || (step && !to) ? high : Number(to ?? from);
+    const increment = Number(step ?? 1);
+    if (!increment || lower < low || upper > high || lower > upper) {
+      return undefined;
+    }
+    for (let day = lower; day <= upper; day += increment) {
+      days.add(high === 7 && day === 7 ? 0 : day);
+    }
   }
-  return !(
-    dayOfMonth.startsWith('*') ||
-    dayOfWeek.startsWith('*') ||
-    dayOfMonth === '1-31' ||
-    ['0-6', '0-7', '1-7'].includes(dayOfWeek)
-  );
+  return days.size;
 }
 
 function replaceNames(field: string, names: string[], offset: number): string {

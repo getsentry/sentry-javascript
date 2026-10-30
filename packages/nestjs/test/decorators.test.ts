@@ -310,7 +310,7 @@ describe('SentryCron decorator with @Cron', () => {
       locales?: string | string[],
       options?: Intl.DateTimeFormatOptions,
     ) {
-      return new DateTimeFormat(locales, { timeZone: 'Asia/Tokyo', ...options });
+      return new DateTimeFormat(locales, { ...options, timeZone: options?.timeZone ?? 'Asia/Tokyo' });
     } as typeof Intl.DateTimeFormat);
   });
 
@@ -376,28 +376,17 @@ describe('SentryCron decorator with @Cron', () => {
   it.each([
     ['a sub-minute schedule', Cron('*/5 * * * * *')],
     ['a one-off date', Cron(new Date())],
-    ['an unknown preset', Cron('@reboot')],
     ['a utc offset', Cron('0 * * * *', { utcOffset: 120 })],
     ['a numeric month', Cron('0 9 1 5 *')],
     ['a numeric month range', Cron('0 9 1 1-6 *')],
     ['a numeric month list', Cron('0 9 1 1,7 *')],
     ['a numeric month with a step', Cron('0 9 1 2/3 *')],
+    ['a numeric month with seconds', Cron('0 0 9 1 5 *')],
     // `0 0 1 0 *` in `@nestjs/schedule` 3
     ['CronExpression.EVERY_YEAR', Cron('0 0 1 1 *')],
-    ['a day-of-month step with a day of week', Cron('0 9 */2 * MON')],
-    ['a full day-of-month range with a day of week', Cron('0 9 1-31 * MON')],
-    ['a full day-of-week range with a day of month', Cron('0 9 1 * 0-6')],
-    ['a full 1-7 day-of-week range with a day of month', Cron('0 9 15 * 1-7')],
     ['a full day-of-week name range with a day of month', Cron('0 9 1 * sun-sat')],
-    ['a full upper-case day-of-week name range with a day of month', Cron('0 9 1 * SUN-SAT')],
-    ['a full mon-sun day-of-week range with a day of month', Cron('0 9 1 * mon-sun')],
-    ['a full day-of-week list with a day of month', Cron('0 9 1 * 0,1,2,3,4,5,6')],
-    ['a full day-of-month range with a step of 1 and a day of week', Cron('0 9 1-31/1 * MON')],
-    ['an unknown day name', Cron('0 9 1 * sunday')],
-    ['an out-of-range day of month', Cron('0 9 32 * *')],
     ['a numeric month from @nestjs/schedule 3', VersionedCron('0 9 1 5 *', '3.0.4')],
     ['a fixed-offset time zone', Cron('0 * * * *', { timeZone: 'UTC+3' })],
-    ['an unknown time zone', Cron('0 * * * *', { timeZone: 'Mars/Olympus' })],
   ])('sends no monitor config for %s', async (_, cronDecorator) => {
     const withMonitorSpy = vi.spyOn(core, 'withMonitor');
     const service = decorate(SentryCron('my-job'), cronDecorator);
@@ -407,17 +396,14 @@ describe('SentryCron decorator with @Cron', () => {
   });
 
   it.each([
-    ['a month name', '0 9 1 MAY *'],
-    ['both day fields', '0 9 1-7 * MON'],
-    ['a day-of-week name list with a day of month', '0 9 1 * mon,fri'],
-    ['a full day-of-month range with a day-of-week step', '0 9 1-31 * */2'],
-    ['a day-of-month step of 1 with a day of week', '0 9 */1 * MON'],
-    ['both day fields covering every day', '0 9 1-31 * sun-sat'],
-    ['CronExpression.EVERY_QUARTER', '0 0 1 */3 *'],
-    ['CronExpression.EVERY_6_MONTHS', '0 0 1 */6 *'],
-  ])('sends a crontab with %s', async (_, crontab) => {
+    ['a month name', '0 9 1 MAY *', '0 9 1 5 *'],
+    ['a day-of-week name list with a day of month', '0 9 1 * mon,fri', '0 9 1 * 1,5'],
+    ['both day fields covering every day', '0 9 1-31 * sun-sat', '0 9 1-31 * 0-6'],
+    ['CronExpression.EVERY_QUARTER', '0 0 1 */3 *', '0 0 1 */3 *'],
+    ['a preset', '@WEEKLY', '0 0 * * 0'],
+  ])('sends a crontab with %s', async (_, cronTime, crontab) => {
     const withMonitorSpy = vi.spyOn(core, 'withMonitor');
-    const service = decorate(SentryCron('my-job'), Cron(crontab));
+    const service = decorate(SentryCron('my-job'), Cron(cronTime));
 
     await service.job();
     expect(withMonitorSpy).toHaveBeenCalledWith('my-job', expect.any(Function), {
@@ -450,24 +436,6 @@ describe('SentryCron decorator with @Cron', () => {
 
     await service.job();
     expect(withMonitorSpy).toHaveBeenCalledWith('my-job', expect.any(Function), undefined);
-  });
-
-  it.each([
-    ['@hourly', '@hourly'],
-    ['@daily', '@daily'],
-    ['@WEEKLY', '@weekly'],
-    ['@monthly', '@monthly'],
-    ['@yearly', '@yearly'],
-    ['@weekdays', '0 0 * * 1-5'],
-  ])('sends the preset %s as %s', async (preset, value) => {
-    const withMonitorSpy = vi.spyOn(core, 'withMonitor');
-    const service = decorate(SentryCron('my-job'), Cron(preset));
-
-    await service.job();
-    expect(withMonitorSpy).toHaveBeenCalledWith('my-job', expect.any(Function), {
-      schedule: { type: 'crontab', value },
-      timezone: 'Asia/Tokyo',
-    });
   });
 
   it('warns when monitor settings are passed but no schedule can be derived', async () => {

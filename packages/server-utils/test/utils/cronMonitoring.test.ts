@@ -24,6 +24,7 @@ describe('cronExpressionToMonitorConfig with node-cron day matching', () => {
     ['0 9 * * 5-0', '0 9 * * 5-7'],
     ['0 9 * * 5-0/2', '0 9 * * 5-7/2'],
     ['0 9 * * 1-3,sat-sun', '0 9 * * 1-3,6-7'],
+    ['0 9 1-31 * 0-7', '0 9 1-31 * 0-7'],
   ])('sends %s as %s', (expression, crontab) => {
     expect(toMonitorConfig(expression, 'Europe/Vienna')).toEqual({
       schedule: { type: 'crontab', value: crontab },
@@ -45,6 +46,10 @@ describe('cronExpressionToMonitorConfig with node-cron day matching', () => {
     '0 9 * * 7-2',
     '0 22-2 * * *',
     '0 9 * nov-feb *',
+    '0 9 32 * *',
+    '0 9 * * 8',
+    '@reboot',
+    '@secondly',
   ])('sends no config for %s', expression => {
     expect(toMonitorConfig(expression, 'UTC')).toBeUndefined();
   });
@@ -68,6 +73,16 @@ describe('cronExpressionToMonitorConfig with cron-parser day matching', () => {
     ['0 9 1,15 * mon', '0 9 1,15 * 1'],
     ['0 9 */2 * *', '0 9 */2 * *'],
     ['0 9 * * 1-5', '0 9 * * 1-5'],
+    ['0 9 1-7 * MON', '0 9 1-7 * 1'],
+    ['0 9 1 * mon,fri', '0 9 1 * 1,5'],
+    ['0 9 1-31 * */2', '0 9 1-31 * */2'],
+    ['0 9 */1 * MON', '0 9 */1 * 1'],
+    ['0 9 1-31 * sun-sat', '0 9 1-31 * 0-6'],
+    ['0 0 1 */3 *', '0 0 1 */3 *'],
+    ['@yearly', '0 0 1 1 *'],
+    ['@minutely', '* * * * *'],
+    ['@weekdays', '0 0 * * 1-5'],
+    ['@weekends', '0 0 * * 0,6'],
   ])('sends %s as %s', (expression, crontab) => {
     expect(cronExpressionToMonitorConfig(expression, 'UTC', 'or')?.schedule).toEqual({
       type: 'crontab',
@@ -75,12 +90,20 @@ describe('cronExpressionToMonitorConfig with cron-parser day matching', () => {
     });
   });
 
-  it.each(['0 9 */2 * 1', '0 9 1 * */2', '0 9 1-31 * 1', '0 9 15 * 0-6', '0 9 15 * 1-7'])(
-    'sends no config for %s',
-    expression => {
-      expect(cronExpressionToMonitorConfig(expression, 'UTC', 'or')).toBeUndefined();
-    },
-  );
+  it.each([
+    '0 9 */2 * 1',
+    '0 9 1 * */2',
+    '0 9 1-31 * 1',
+    '0 9 15 * 0-6',
+    '0 9 15 * 1-7',
+    '0 9 1 * sun-sat',
+    '0 9 1 * SUN-SAT',
+    '0 9 1 * mon-sun',
+    '0 9 1 * 0,1,2,3,4,5,6',
+    '0 9 1-31/1 * MON',
+  ])('sends no config for %s', expression => {
+    expect(cronExpressionToMonitorConfig(expression, 'UTC', 'or')).toBeUndefined();
+  });
 });
 
 describe('shouldMonitorJob', () => {
