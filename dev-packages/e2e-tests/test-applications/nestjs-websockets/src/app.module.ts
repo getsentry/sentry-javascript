@@ -2,7 +2,7 @@ import { Module } from '@nestjs/common';
 import { APP_FILTER } from '@nestjs/core';
 import { SentryGlobalFilter, SentryModule } from '@sentry/nestjs/setup';
 import { AppController } from './app.controller';
-import { AppGateway } from './app.gateway';
+import { AppGateway, EventsGateway } from './app.gateway';
 
 @Module({
   imports: [SentryModule.forRoot()],
@@ -13,6 +13,7 @@ import { AppGateway } from './app.gateway';
       useClass: SentryGlobalFilter,
     },
     AppGateway,
+    EventsGateway,
   ],
 })
 export class AppModule {}
