@@ -206,7 +206,7 @@ describe('instrumentPrismaV8', () => {
     expect(span.end).toHaveBeenCalledTimes(1);
   });
 
-  it('delegates the parent requirement to span creation', async () => {
+  it('does not create a recording span without a parent', async () => {
     await tracingChannel(CHANNELS.PRISMA_CREATE).tracePromise(async () => ({ id: 1 }), {
       arguments: [],
       self: { modelName: 'User' },

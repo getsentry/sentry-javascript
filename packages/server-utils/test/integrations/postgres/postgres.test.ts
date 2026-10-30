@@ -243,7 +243,7 @@ describe('postgresIntegration', () => {
     );
   });
 
-  it('delegates the parent requirement to span creation', async () => {
+  it('does not create a recording span without an active parent span', async () => {
     getActiveSpanSpy.mockReturnValue(undefined);
     const ctx: OrchestrionChannelContext = { arguments: ['SELECT 1'], self: { connectionParameters: CONNECTION } };
 

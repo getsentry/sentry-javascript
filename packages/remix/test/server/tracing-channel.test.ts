@@ -128,7 +128,7 @@ describe('remixIntegration (Orchestrion-based)', () => {
     expect(span.end).toHaveBeenCalledTimes(1);
   });
 
-  it('callRouteLoader: delegates the parent requirement to span creation', async () => {
+  it('callRouteLoader: does not create a recording span without an active parent span', async () => {
     getActiveSpanSpy.mockReturnValue(undefined);
     const ctx = { arguments: [{ routeId: 'x', request: makeRequest(), params: {} }] };
 
