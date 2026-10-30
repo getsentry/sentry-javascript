@@ -426,6 +426,10 @@ Work in this release was contributed by @4ktLuffy, @faizansaiyed123, @itisrmk, @
 
 Work in this release was contributed by @4ktLuffy, @adityareddy-dev, @dasilvaluis, @faizansaiyed123, @jpdefo, @Jxxunnn, @mikamikasuki, @philipatkinson, @rubas, and @Shubham-Padkonde. Thank you for your contributions!
 
+- **fix(core): Preserve span links through `beforeSendSpan`**
+
+  A transaction's `contexts.trace.links` (including the `previous_trace` link) was dropped whenever `beforeSendSpan` was set, even for an identity callback, because the transaction-event/span-JSON round trip did not carry `links`. The conversion now preserves them.
+
 ## 11.8.0
 
 ### Important Changes

@@ -48,6 +48,14 @@ describe('convertTransactionEventToSpanJson', () => {
             [SENTRY_EXCLUSIVE_TIME]: 123.45,
             other: 'value',
           },
+          links: [
+            {
+              span_id: 'linked-span',
+              trace_id: 'linked-trace',
+              sampled: true,
+              attributes: { 'sentry.link.type': 'previous_trace' },
+            },
+          ],
         },
       },
       start_timestamp: 1234567800,
@@ -74,6 +82,14 @@ describe('convertTransactionEventToSpanJson', () => {
       origin: 'manual',
       profile_id: 'profile123',
       exclusive_time: 123.45,
+      links: [
+        {
+          span_id: 'linked-span',
+          trace_id: 'linked-trace',
+          sampled: true,
+          attributes: { 'sentry.link.type': 'previous_trace' },
+        },
+      ],
       measurements: {
         fp: { value: 123, unit: 'millisecond' },
       },
@@ -142,6 +158,14 @@ describe('convertSpanJsonToTransactionEvent', () => {
       origin: 'manual',
       profile_id: 'profile123',
       exclusive_time: 123.45,
+      links: [
+        {
+          span_id: 'linked-span',
+          trace_id: 'linked-trace',
+          sampled: true,
+          attributes: { 'sentry.link.type': 'previous_trace' },
+        },
+      ],
       measurements: {
         fp: { value: 123, unit: 'millisecond' },
       },
@@ -160,6 +184,14 @@ describe('convertSpanJsonToTransactionEvent', () => {
           op: 'http',
           status: 'ok',
           origin: 'manual',
+          links: [
+            {
+              span_id: 'linked-span',
+              trace_id: 'linked-trace',
+              sampled: true,
+              attributes: { 'sentry.link.type': 'previous_trace' },
+            },
+          ],
           data: {
             other: 'value',
             [SENTRY_PROFILE_ID]: 'profile123',
