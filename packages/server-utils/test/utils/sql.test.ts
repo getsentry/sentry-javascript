@@ -310,10 +310,12 @@ describe('getSqlOperationName', () => {
 
   it.each([
     ['WITH active AS (SELECT * FROM users WHERE active = ?) SELECT * FROM active', 'SELECT'],
-    ['with moved AS (DELETE FROM queue RETURNING *) insert into archive SELECT * FROM moved', 'DELETE'],
+    ['with moved AS (DELETE FROM queue RETURNING *) insert into archive SELECT * FROM moved', 'insert'],
     ['WITH RECURSIVE t(n) AS (VALUES (?)) SELECT n FROM t', 'SELECT'],
-    ['WITH x AS (VALUES (?)) TABLE x', undefined],
-  ])('takes the first DML keyword after a WITH clause: %j => %j', (input, expected) => {
+    ['WITH a AS (SELECT ?), b (x, y) AS (SELECT * FROM a) UPDATE t SET x = (SELECT x FROM b)', 'UPDATE'],
+    ['WITH x AS (VALUES (?)) TABLE x', 'TABLE'],
+    ['WITH x AS (SELECT ?)', undefined],
+  ])('takes the main statement of a WITH query: %j => %j', (input, expected) => {
     expect(getSqlOperationName(input)).toBe(expected);
   });
 });
@@ -355,11 +357,18 @@ describe('sanitizeSqlQuery', () => {
     });
   });
 
-  describe('trailing semicolon removal', () => {
+  describe('semicolon removal', () => {
     it.each([
       ['SELECT * FROM users;', 'SELECT * FROM users'],
       ['SELECT * FROM users;   ', 'SELECT * FROM users'],
     ])('removes trailing semicolon: %p', (input, expected) => {
+      expect(sanitizeSqlQuery(input)).toBe(expected);
+    });
+
+    it.each([
+      [';SELECT * FROM users', 'SELECT * FROM users'],
+      [' ; ;WITH x AS (SELECT ?) SELECT * FROM x', 'WITH x AS (SELECT ?) SELECT * FROM x'],
+    ])('removes leading semicolons: %p', (input, expected) => {
       expect(sanitizeSqlQuery(input)).toBe(expected);
     });
   });
@@ -896,6 +905,15 @@ describe('sanitizeSqlQueryWithSummary', () => {
     expect(sanitizeSqlQueryWithSummary('SELECT * FROM users WHERE email = "jane@example.com"', 'mysql')).toEqual({
       queryText: 'SELECT * FROM users WHERE email = ?',
       querySummary: 'SELECT users',
+      operationName: 'SELECT',
+    });
+  });
+
+  it("names the operation of T-SQL's `;WITH` queries", () => {
+    expect(
+      sanitizeSqlQueryWithSummary(";WITH x AS (SELECT name FROM users) SELECT * FROM x WHERE name = 'a'", 'mssql'),
+    ).toMatchObject({
+      queryText: 'WITH x AS (SELECT name FROM users) SELECT * FROM x WHERE name = ?',
       operationName: 'SELECT',
     });
   });

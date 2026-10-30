@@ -104,12 +104,10 @@ export function getSqlQuerySummary(query: string | undefined): string | undefine
 }
 
 const LEADING_KEYWORD_RE = /^\s*(?:\(\s*)*([A-Za-z]+)\b/;
-const CTE_OPERATION_RE = /\b(SELECT|INSERT|UPDATE|DELETE|MERGE)\b/i;
+const CTE_MAIN_STATEMENT_RE = /\(|\)|\b(SELECT|INSERT|UPDATE|DELETE|MERGE|VALUES|TABLE)\b/gi;
 
 /**
  * Derives `db.operation.name` from a SQL query: the first operation keyword, in its original case.
- *
- * A `WITH` clause only names the CTEs, so for those the first DML keyword is the operation.
  *
  * @see https://opentelemetry.io/docs/specs/semconv/registry/attributes/db/#db-operation-name
  */
@@ -118,10 +116,26 @@ export function getSqlOperationName(query: string | undefined): string | undefin
   if (!keyword) {
     return undefined;
   }
-  if (keyword.toUpperCase() === 'WITH') {
-    return CTE_OPERATION_RE.exec(query)?.[1];
+  return keyword.toUpperCase() === 'WITH' ? getCteMainOperationName(query) : keyword;
+}
+
+/**
+ * The operation of a `WITH` query is its main statement: the first operation keyword outside the
+ * CTE bodies, which are all parenthesized. Counting parentheses is safe on a sanitized query, which
+ * has no literals or comments left.
+ */
+function getCteMainOperationName(query: string): string | undefined {
+  let depth = 0;
+  for (const match of query.matchAll(CTE_MAIN_STATEMENT_RE)) {
+    if (match[0] === '(') {
+      depth++;
+    } else if (match[0] === ')') {
+      depth--;
+    } else if (depth === 0) {
+      return match[1];
+    }
   }
-  return keyword;
+  return undefined;
 }
 
 function extractTableNames(sql: string): string[] {
@@ -387,6 +401,7 @@ export function sanitizeSqlQuery(sqlQuery: string | undefined, dialect: SqlDiale
     // whether it is looking at SQL syntax or at a user-supplied value.
     stripLiteralsAndComments(sqlQuery, dialect)
       .replace(/;\s*$/, '') // Remove trailing semicolons
+      .replace(/^[\s;]+/, '') // Remove leading semicolons (T-SQL's `;WITH`)
       // Collapse whitespace to a single space (after removing comments)
       .replace(/\s+/g, ' ')
       .trim() // Remove extra spaces and trim
