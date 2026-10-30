@@ -2,11 +2,15 @@ import type { Event, SerializedStreamedSpanContainer } from '@sentry/core';
 import {
   GEN_AI_RESPONSE_ID,
   GEN_AI_RESPONSE_STREAMING,
+  GEN_AI_RESPONSE_TEXT,
+  GEN_AI_RESPONSE_TOOL_CALLS,
   GEN_AI_TOOL_NAME,
+  GEN_AI_USAGE_INPUT_TOKENS,
+  GEN_AI_USAGE_OUTPUT_TOKENS,
   SENTRY_OP,
   SENTRY_ORIGIN,
 } from '@sentry/conventions/attributes';
-import { GEN_AI_EXECUTE_TOOL } from '@sentry/conventions/op';
+import { GEN_AI_CHAT, GEN_AI_EXECUTE_TOOL } from '@sentry/conventions/op';
 import { afterAll, describe, expect } from 'vitest';
 import { GEN_AI_TOOL_CALL_ID_ATTRIBUTE } from '../../../../../../packages/server-utils/src/ai/core/gen-ai-attributes';
 import { cleanupChildProcesses, createEsmAndCjsTests } from '../../../../utils/runner';
@@ -111,6 +115,72 @@ describe('Anthropic integration (1.x)', () => {
           })
           .start()
           .completed();
+      });
+    }
+  });
+
+  // Since 1.2, tool runners and `thread().stream()` send each turn through a thread, which parses the response itself.
+  createEsmAndCjsTests(__dirname, 'scenario-threads.mjs', 'instrument.mjs', (createRunner, test) => {
+    const MODES = [
+      { mode: 'runner_stream_eager', streaming: true, turns: ['tools', 'final'] },
+      { mode: 'runner_stream', streaming: true, turns: ['tools', 'final'] },
+      { mode: 'runner_stream_unthreaded', streaming: true, turns: ['tools', 'final'] },
+      { mode: 'runner', streaming: false, turns: ['tools', 'final'] },
+      { mode: 'thread_send', streaming: false, turns: ['tools'] },
+      { mode: 'thread_stream', streaming: true, turns: ['tools'] },
+      // Only the span's status is known for these. The stream is aborted on its first event or before the response,
+      // its body closes before `message_stop`, or the request fails.
+      { mode: 'thread_stream_abort', streaming: true, turns: ['abort'], status: 'ok' },
+      { mode: 'thread_stream_abort_early', streaming: true, turns: ['abort'], status: 'ok' },
+      { mode: 'thread_stream_truncated', streaming: true, turns: ['truncated'], status: 'ok' },
+      { mode: 'thread_stream_error', streaming: true, turns: ['error'], status: 'error' },
+    ];
+    const TURNS: Record<string, { input?: number; output?: number; text?: string; toolCall?: boolean }> = {
+      tools: { input: 10, output: 20, toolCall: true },
+      final: { input: 30, output: 5, text: 'Sunny.' },
+    };
+
+    for (const env of [{}, { OTEL_SETUP: 'true' }]) {
+      test(`emits one chat span per thread turn with ${JSON.stringify(env)}`, async () => {
+        const runner = createRunner().withEnv({ ...env, RECORD_OUTPUTS: 'true' });
+        const spansPromise = runner.collectStreamedSpansUntilSegment('main');
+
+        await runner.start().completed();
+
+        const spans = await spansPromise;
+        const chatSpans = spans.filter(span => span.attributes[SENTRY_OP]?.value === GEN_AI_CHAT);
+        expect(chatSpans).toHaveLength(MODES.flatMap(({ turns }) => turns).length);
+        expect(spans.filter(span => span.name.startsWith('anthropic.'))).toEqual([]);
+
+        for (const { mode, streaming, turns, status } of MODES) {
+          const modeSpan = spans.find(span => span.name === mode)!;
+          const modeChatSpans = chatSpans.filter(span => span.parent_span_id === modeSpan.span_id);
+          expect(modeChatSpans, mode).toHaveLength(turns.length);
+
+          if (status) {
+            expect(modeChatSpans[0]!.status, mode).toBe(status);
+            continue;
+          }
+
+          for (const turn of turns) {
+            const id = `msg_${mode}_${turn}`;
+            const chatSpan = spanForCall(modeChatSpans, id);
+            const { input, output, text, toolCall } = TURNS[turn]!;
+            expect(chatSpan.status, id).toBe('ok');
+            expect(chatSpan.attributes[GEN_AI_RESPONSE_STREAMING]?.value ?? false, id).toBe(streaming);
+            expect(chatSpan.attributes[GEN_AI_USAGE_INPUT_TOKENS]?.value, id).toBe(input);
+            expect(chatSpan.attributes[GEN_AI_USAGE_OUTPUT_TOKENS]?.value, id).toBe(output);
+            if (text) {
+              expect(chatSpan.attributes[GEN_AI_RESPONSE_TEXT]?.value, id).toBe(text);
+            }
+            const toolCalls = chatSpan.attributes[GEN_AI_RESPONSE_TOOL_CALLS]?.value as string | undefined;
+            expect(toolCalls && JSON.parse(toolCalls), id).toEqual(
+              toolCall
+                ? [{ type: 'tool_use', id: `toolu_${mode}`, name: 'weather', input: { city: 'Vienna' } }]
+                : undefined,
+            );
+          }
+        }
       });
     }
   });
