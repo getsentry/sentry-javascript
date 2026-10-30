@@ -141,6 +141,7 @@ function subscribeQueryLikeChannel(
       const spanOptions = getSpanOptions(data);
       return startInactiveSpan({
         ...spanOptions,
+        onlyIfParent: true,
         attributes: { ...spanOptions.attributes, [SENTRY_KIND]: 'client' },
       });
     },
@@ -151,9 +152,6 @@ function subscribeQueryLikeChannel(
     // `query` can return a streamable `Submittable`, so only it defers.
     deferStreamedResult
       ? {
-          // Only instrument under an active span, leaving the context untouched otherwise
-          // (e.g. connects issued during app startup).
-          requiresParentSpan: true,
           // Streamable `Submittable` (e.g. `client.query(new Query())`)
           // returns an emitter that orchestrion stores on `ctx.result` while
           // firing no async events; the query isn't done until the emitter
@@ -180,7 +178,7 @@ function subscribeQueryLikeChannel(
             return true;
           },
         }
-      : { requiresParentSpan: true },
+      : undefined,
   );
 }
 

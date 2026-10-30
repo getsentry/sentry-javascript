@@ -154,13 +154,13 @@ describe('neonIntegration', () => {
       expect(span.end).toHaveBeenCalledTimes(1);
     });
 
-    it('does not start a span without a parent span', async () => {
+    it('delegates the parent requirement to span creation', async () => {
       getActiveSpanSpy.mockReturnValue(undefined);
       const ctx: ChannelContext = { arguments: ['SELECT 1'], self: { connectionParameters: CONNECTION } };
 
       await tracingChannel(CHANNELS.NEON_QUERY).tracePromise(async () => ({ rows: [] }), ctx);
 
-      expect(startInactiveSpanSpy).not.toHaveBeenCalled();
+      expect(startInactiveSpanSpy).toHaveBeenCalledWith(expect.objectContaining({ onlyIfParent: true }));
     });
   });
 

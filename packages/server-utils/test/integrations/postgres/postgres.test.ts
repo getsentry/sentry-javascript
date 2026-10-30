@@ -63,13 +63,6 @@ function installTestAsyncContextStrategy(): void {
   });
 }
 
-// The subscriber builds spans via `startInactiveSpan` and gates on
-// `getActiveSpan`. We spy both: `getActiveSpan` to satisfy the
-// requireParentSpan gate, and `startInactiveSpan` to capture the span
-// options the subscriber builds (name + raw attributes) and to track the
-// span's lifecycle. The final `db` op / SQL description come from the
-// SDK's `inferDbSpanData` processor, which isn't wired up here. That's
-// covered by the integration test.
 function makeSpan(): Span {
   return { end: vi.fn(), setStatus: vi.fn(), setAttributes: vi.fn() } as unknown as Span;
 }
@@ -98,7 +91,6 @@ describe('postgresIntegration', () => {
   beforeEach(() => {
     span = makeSpan();
     startInactiveSpanSpy = vi.spyOn(SentryCore, 'startInactiveSpan').mockReturnValue(span);
-    // A truthy active span by default, so the requireParentSpan gate passes.
     getActiveSpanSpy = vi.spyOn(SentryCore, 'getActiveSpan').mockReturnValue({} as Span);
   });
 
@@ -251,12 +243,12 @@ describe('postgresIntegration', () => {
     );
   });
 
-  it('requireParentSpan: does not create a span when there is no active span', async () => {
+  it('delegates the parent requirement to span creation', async () => {
     getActiveSpanSpy.mockReturnValue(undefined);
     const ctx: OrchestrionChannelContext = { arguments: ['SELECT 1'], self: { connectionParameters: CONNECTION } };
 
     await tracingChannel(CHANNELS.PG_QUERY).tracePromise(async () => ({ rows: [] }), ctx);
 
-    expect(startInactiveSpanSpy).not.toHaveBeenCalled();
+    expect(startInactiveSpanSpy).toHaveBeenCalledWith(expect.objectContaining({ onlyIfParent: true }));
   });
 });
