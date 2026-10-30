@@ -7,8 +7,8 @@ export { openTelemetryIntegration, getOtlpTracesEndpoint } from './opentelemetry
 export * from './ai';
 export { getSqlQuerySummary, sanitizeSqlQuery, getSqlQueryAttributes } from './utils/sql';
 export type { SqlDialect } from './utils/sql';
-export { instrumentPostgresJsSql } from './integrations/postgresjs';
-export type { PostgresConnectionContext } from './integrations/postgresjs';
+export { instrumentPostgresJsSql } from './integrations/postgresjs-wrapper';
+export type { PostgresConnectionContext } from './integrations/postgresjs-wrapper';
 
 // Shared, runtime-agnostic Hono instrumentation re-used by the `@sentry/hono` SDK across all runtimes.
 // Sourced directly from their modules (not the `./integrations/hono` barrel, which also exports the
