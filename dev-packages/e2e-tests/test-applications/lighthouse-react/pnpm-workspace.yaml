@@ -1,4 +1,0 @@
-allowBuilds:
-  '@swc/core': true
-  esbuild: true
-minimumReleaseAge: 0
