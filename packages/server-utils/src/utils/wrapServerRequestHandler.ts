@@ -106,10 +106,13 @@ export async function wrapServerRequestHandler<R extends Response | undefined = 
   };
 
   const socketAddress = config.getSocketAddress?.();
+  // Without `AsyncLocalStorage`, all requests share one isolation scope, so clear what an earlier
+  // request left on it: the merge keeps its body, and its response context would stay set.
   isolationScope.setSDKProcessingMetadata({
-    normalizedRequest: winterCGRequestToRequestData(request),
+    normalizedRequest: { ...winterCGRequestToRequestData(request), data: undefined },
     ipAddress: socketAddress?.address,
   });
+  isolationScope.setContext('response', null);
 
   if (method === 'OPTIONS' || method === 'HEAD') {
     let response: R | undefined;

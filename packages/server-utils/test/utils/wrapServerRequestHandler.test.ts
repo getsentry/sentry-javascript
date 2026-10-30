@@ -1,6 +1,6 @@
 import { HTTP_ROUTE, SENTRY_SEGMENT_NAME_SOURCE, URL_PATH_PARAMETER_KEY_BASE } from '@sentry/conventions/attributes';
 import type { Event } from '@sentry/core';
-import { getIsolationScope, setCurrentClient, withIsolationScope } from '@sentry/core';
+import { getIsolationScope, Scope, setCurrentClient, withIsolationScope } from '@sentry/core';
 import { beforeAll, describe, expect, it, vi } from 'vitest';
 import { setAsyncLocalStorageAsyncContextStrategy } from '../../src/async-context';
 import type { ServerRequestHandlerConfig } from '../../src/utils/wrapServerRequestHandler';
@@ -88,6 +88,30 @@ describe('wrapServerRequestHandler', () => {
 
     expect(await response.text()).toBe('ok');
     expect(data).toBeUndefined();
+  });
+
+  it('clears the body and response of an earlier request from a shared isolation scope', async () => {
+    const isolationScope = new Scope();
+    const { serve } = setup({ maxRequestBodySize: 'medium' }, { isolationScope });
+
+    await serve(
+      new Request('https://example.com/login', { method: 'POST', body: '{"password":"hunter2"}' }),
+      () => new Response('no', { status: 418 }),
+    );
+    expect(isolationScope.getScopeData().sdkProcessingMetadata.normalizedRequest?.data).toBe('{"password":"hunter2"}');
+    expect(isolationScope.getScopeData().contexts.response).toEqual({ status_code: 418 });
+
+    let normalizedRequest: unknown;
+    let responseContext: unknown;
+    await serve(new Request('https://example.com/profile'), () => {
+      const { sdkProcessingMetadata, contexts } = isolationScope.getScopeData();
+      normalizedRequest = sdkProcessingMetadata.normalizedRequest;
+      responseContext = contexts.response;
+      return new Response('ok');
+    });
+
+    expect(normalizedRequest).toMatchObject({ method: 'GET', data: undefined });
+    expect(responseContext).toBeUndefined();
   });
 
   it('calls onSpanEnd and ends the span when a streamed response finishes', async () => {
