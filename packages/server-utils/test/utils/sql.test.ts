@@ -11,6 +11,7 @@ import {
   getSqlOperationName,
   getSqlQuerySummary,
   getSqlQueryAttributes,
+  getLowCardinalitySqlSpanName,
   getSqlSpanName,
   sanitizeSqlQuery,
   toSqlDialect,
@@ -974,6 +975,36 @@ describe('getSqlQueryAttributes', () => {
       [DB_QUERY_SUMMARY]: undefined,
       [DB_OPERATION_NAME]: undefined,
     });
+  });
+});
+
+describe('getLowCardinalitySqlSpanName', () => {
+  const query = getSqlQueryAttributes("SELECT * FROM users WHERE id = 'x'");
+  const noQuery = getSqlQueryAttributes(undefined);
+
+  afterEach(() => {
+    setCurrentClient(undefined as never);
+  });
+
+  it.each([
+    ['the query summary', { ...query, [DB_NAMESPACE]: 'mydb', [DB_SYSTEM_NAME]: 'postgresql' }, 'SELECT users'],
+    [
+      'db.namespace without a statement',
+      { ...noQuery, [DB_NAMESPACE]: 'mydb', [DB_SYSTEM_NAME]: 'postgresql' },
+      'mydb',
+    ],
+    ['db.system.name without a namespace', { ...noQuery, [DB_SYSTEM_NAME]: 'postgresql' }, 'postgresql'],
+    ['the fallback without any of those', noQuery, 'neon.query'],
+  ])('uses %s', (_, attributes, expected) => {
+    expect(getLowCardinalitySqlSpanName(attributes, 'neon.query')).toBe(expected);
+  });
+
+  it('stays low cardinality when spans are not streamed', () => {
+    const client = new TestClient(getDefaultTestClientOptions({ traceLifecycle: 'static', tracesSampleRate: 1 }));
+    setCurrentClient(client);
+    client.init();
+
+    expect(getLowCardinalitySqlSpanName(query, 'neon.query')).toBe('SELECT users');
   });
 });
 
