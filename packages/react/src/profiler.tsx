@@ -66,7 +66,7 @@ class Profiler extends React.Component<ProfilerProps> {
       attributes: {
         [SENTRY_OP]: UI_MOUNT,
         [SENTRY_ORIGIN]: 'auto.ui.react.profiler',
-        [UI_COMPONENT_NAME]: componentName,
+        [UI_COMPONENT_NAME]: componentName || undefined,
         ...(hasSpanStreaming && { [SENTRY_DESCRIPTION]: description }),
       },
     });
@@ -102,7 +102,7 @@ class Profiler extends React.Component<ProfilerProps> {
             attributes: {
               [SENTRY_OP]: UI_UPDATE,
               [SENTRY_ORIGIN]: 'auto.ui.react.profiler',
-              [UI_COMPONENT_NAME]: componentName,
+              [UI_COMPONENT_NAME]: componentName || undefined,
               'ui.react.changed_props': changedProps,
               ...(hasSpanStreaming && { [SENTRY_DESCRIPTION]: description }),
             },
@@ -142,7 +142,7 @@ class Profiler extends React.Component<ProfilerProps> {
           attributes: {
             [SENTRY_OP]: UI_RENDER,
             [SENTRY_ORIGIN]: 'auto.ui.react.profiler',
-            [UI_COMPONENT_NAME]: componentName,
+            [UI_COMPONENT_NAME]: componentName || undefined,
             ...(hasSpanStreaming && { [SENTRY_DESCRIPTION]: description }),
           },
         });
@@ -229,7 +229,7 @@ function useProfiler(
       attributes: {
         [SENTRY_OP]: UI_MOUNT,
         [SENTRY_ORIGIN]: 'auto.ui.react.profiler',
-        [UI_COMPONENT_NAME]: componentName,
+        [UI_COMPONENT_NAME]: componentName || undefined,
         ...(hasSpanStreaming && { [SENTRY_DESCRIPTION]: description }),
       },
     });
@@ -257,7 +257,7 @@ function useProfiler(
           attributes: {
             [SENTRY_OP]: UI_RENDER,
             [SENTRY_ORIGIN]: 'auto.ui.react.profiler',
-            [UI_COMPONENT_NAME]: componentName,
+            [UI_COMPONENT_NAME]: componentName || undefined,
             ...(hasSpanStreaming && { [SENTRY_DESCRIPTION]: description }),
           },
         });

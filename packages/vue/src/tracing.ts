@@ -146,7 +146,7 @@ export const createTracingMixins = (options: Partial<TracingOptions> = {}): Mixi
               attributes: {
                 [SENTRY_OP]: UI_RENDER,
                 [SENTRY_ORIGIN]: 'auto.ui.vue',
-                [UI_COMPONENT_NAME]: conventionComponentName,
+                [UI_COMPONENT_NAME]: conventionComponentName || undefined,
                 ...(hasSpanStreaming && { [SENTRY_DESCRIPTION]: description }),
               },
               onlyIfParent: true,
@@ -197,7 +197,7 @@ export const createTracingMixins = (options: Partial<TracingOptions> = {}): Mixi
               attributes: {
                 [SENTRY_OP]: VUE_OPERATION_TO_SPAN_OP[operation],
                 [SENTRY_ORIGIN]: 'auto.ui.vue',
-                [UI_COMPONENT_NAME]: conventionComponentName,
+                [UI_COMPONENT_NAME]: conventionComponentName || undefined,
                 ...(hasSpanStreaming && { [SENTRY_DESCRIPTION]: description }),
               },
               // UI spans should only be created if there is an active root span (transaction)
