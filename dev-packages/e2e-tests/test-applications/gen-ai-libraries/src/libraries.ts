@@ -60,11 +60,9 @@ export interface Library {
   origin?: string;
   chat: (apiKey: string) => Promise<unknown>;
   tools: (apiKey: string) => Promise<unknown>;
-  /** Calls only this library's SDK has (streaming, other endpoints), served as `/:lib/:name`. */
+  /** Library-specific calls, served as `/:lib/:name`. */
   extras?: Record<string, (apiKey: string) => Promise<unknown>>;
 }
-
-const EMBEDDINGS_MODEL = 'openai/text-embedding-3-small';
 
 const openAiClient = (apiKey: string): OpenAI => new OpenAI({ apiKey, baseURL: OPENROUTER_V1 });
 
@@ -169,23 +167,6 @@ export const libraries: Library[] = [
         }
         return answer;
       },
-      responses: async apiKey => {
-        const response = await openAiClient(apiKey).responses.create({
-          model: MODEL,
-          instructions: SYSTEM,
-          input: CHAT_PROMPT,
-          temperature: 0,
-          max_output_tokens: 32,
-        });
-        return response.output_text;
-      },
-      embeddings: async apiKey => {
-        const embedding = await openAiClient(apiKey).embeddings.create({
-          model: EMBEDDINGS_MODEL,
-          input: 'The capital of France is Paris.',
-        });
-        return embedding.data[0]?.embedding.length ?? 0;
-      },
     },
   },
   openAiCompatible(
@@ -264,7 +245,6 @@ export const libraries: Library[] = [
       return (message.content ?? []).filter(block => block.type === 'tool_use');
     },
     extras: {
-      // `messages.create({ stream: true })` returns an async iterable of events the caller drains.
       'chat-stream': async apiKey => {
         const stream = await anthropicClient(apiKey).messages.create({
           model: MODEL,
@@ -280,19 +260,6 @@ export const libraries: Library[] = [
           }
         }
         return answer;
-      },
-      // The SDK's streaming helper, which the integration instruments separately from `create`.
-      'stream-helper': async apiKey => {
-        const message = await anthropicClient(apiKey)
-          .messages.stream({
-            model: MODEL,
-            max_tokens: 32,
-            system: SYSTEM,
-            messages: [{ role: 'user', content: CHAT_PROMPT }],
-          })
-          .finalMessage();
-        const first = message.content?.[0];
-        return first && first.type === 'text' ? first.text : '';
       },
     },
   },

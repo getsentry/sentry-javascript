@@ -19,7 +19,7 @@ export default Sentry.withSentry(
       const library = id ? byId.get(id) : undefined;
       const extra = library && action ? library.extras?.[action] : undefined;
 
-      if (!library || !action || (action !== 'chat' && action !== 'tools' && !extra)) {
+      if (!library || (action !== 'chat' && action !== 'tools' && !extra)) {
         return new Response('Not found', { status: 404 });
       }
 

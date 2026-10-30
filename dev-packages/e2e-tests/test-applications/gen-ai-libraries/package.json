@@ -1,6 +1,6 @@
 {
   "name": "gen-ai-libraries",
-  "description": "Real gen_ai spans for every instrumented AI library (OpenAI, Anthropic, Mistral, Together, Vercel AI), each driven through OpenRouter with a chat query and a tool call, plus provider-specific calls (streaming, the OpenAI Responses and embeddings APIs, the Anthropic stream helper), on Node and on Cloudflare",
+  "description": "Real gen_ai spans for every instrumented AI library (OpenAI, Anthropic, Mistral, Together, Vercel AI), each driven through OpenRouter with a chat query and a tool call, plus streamed OpenAI and Anthropic chats, on Node and on Cloudflare",
   "version": "1.0.0",
   "private": true,
   "type": "module",
