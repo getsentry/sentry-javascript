@@ -1,7 +1,6 @@
 import * as diagnosticsChannel from '../utils/diagnosticsChannel';
 import {
   DB_NAMESPACE,
-  DB_OPERATION_NAME,
   DB_QUERY_SUMMARY,
   DB_QUERY_TEXT,
   DB_SYSTEM_NAME,
@@ -24,7 +23,7 @@ import {
   hasSpanStreamingEnabled,
   startInactiveSpan,
 } from '@sentry/core';
-import { sanitizeSqlQueryWithSummary } from '../utils/sql';
+import { getSqlQueryAttributes } from '../utils/sql';
 import type { OrchestrionChannelContext } from '../orchestrion/types';
 import { CHANNELS } from '../orchestrion/channels';
 import { bindTracingChannelToSpan } from '../tracing-channel';
@@ -190,11 +189,11 @@ function querySpanOptions(
   const params = (ctx.self as { connectionParameters?: PgConnectionParams } | undefined)?.connectionParameters ?? {};
   const queryConfig = extractQueryConfig(ctx.arguments);
   const client = getClient();
-  const { queryText, querySummary, operationName } = sanitizeSqlQueryWithSummary(queryConfig?.text);
+  const queryAttributes = getSqlQueryAttributes(queryConfig?.text);
   const name =
     client && hasSpanStreamingEnabled(client)
-      ? querySummary || params.database || DB_SYSTEM_POSTGRESQL
-      : (queryText ?? SPAN_QUERY_FALLBACK);
+      ? queryAttributes[DB_QUERY_SUMMARY] || params.database || DB_SYSTEM_POSTGRESQL
+      : (queryAttributes[DB_QUERY_TEXT] ?? SPAN_QUERY_FALLBACK);
 
   return {
     name,
@@ -202,9 +201,7 @@ function querySpanOptions(
       [SENTRY_OP]: DB,
       ...(connectionString ? getPgConnectionAttributes(params) : getConnectionAttributes(params)),
       [SENTRY_ORIGIN]: origin,
-      [DB_QUERY_TEXT]: queryText || undefined,
-      [DB_QUERY_SUMMARY]: querySummary,
-      [DB_OPERATION_NAME]: operationName,
+      ...queryAttributes,
       [ATTR_PG_PLAN]: typeof queryConfig?.name === 'string' ? queryConfig.name : undefined,
     },
   };

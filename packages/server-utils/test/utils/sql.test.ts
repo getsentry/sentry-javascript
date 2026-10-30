@@ -1,9 +1,10 @@
+import { DB_OPERATION_NAME, DB_QUERY_SUMMARY, DB_QUERY_TEXT } from '@sentry/conventions/attributes';
 import { describe, expect, it } from 'vitest';
 import {
   getSqlOperationName,
   getSqlQuerySummary,
+  getSqlQueryAttributes,
   sanitizeSqlQuery,
-  sanitizeSqlQueryWithSummary,
   toSqlDialect,
 } from '../../src/utils/sql';
 
@@ -894,46 +895,6 @@ describe('sanitizeSqlQuery', () => {
   });
 });
 
-describe('sanitizeSqlQueryWithSummary', () => {
-  it('returns the sanitized statement and its summary', () => {
-    expect(sanitizeSqlQueryWithSummary("SELECT * FROM users WHERE email = 'jane@example.com'")).toEqual({
-      queryText: 'SELECT * FROM users WHERE email = ?',
-      querySummary: 'SELECT users',
-      operationName: 'SELECT',
-    });
-  });
-
-  it('passes the dialect through to the sanitizer', () => {
-    expect(sanitizeSqlQueryWithSummary('SELECT * FROM users WHERE email = "jane@example.com"', 'mysql')).toEqual({
-      queryText: 'SELECT * FROM users WHERE email = ?',
-      querySummary: 'SELECT users',
-      operationName: 'SELECT',
-    });
-  });
-
-  it("names the operation of T-SQL's `;WITH` queries", () => {
-    expect(
-      sanitizeSqlQueryWithSummary(";WITH x AS (SELECT name FROM users) SELECT * FROM x WHERE name = 'a'", 'mssql'),
-    ).toMatchObject({
-      queryText: 'WITH x AS (SELECT name FROM users) SELECT * FROM x WHERE name = ?',
-      operationName: 'SELECT',
-    });
-  });
-
-  it('returns undefined for all when there is no statement', () => {
-    expect(sanitizeSqlQueryWithSummary(undefined)).toEqual({
-      queryText: undefined,
-      querySummary: undefined,
-      operationName: undefined,
-    });
-    expect(sanitizeSqlQueryWithSummary('')).toEqual({
-      queryText: undefined,
-      querySummary: undefined,
-      operationName: undefined,
-    });
-  });
-});
-
 describe('toSqlDialect', () => {
   it.each([
     ['mysql', 'mysql'],
@@ -951,12 +912,12 @@ describe('toSqlDialect', () => {
   });
 });
 
-describe('sanitizeSqlQueryWithSummary', () => {
+describe('getSqlQueryAttributes', () => {
   it('returns the sanitized statement and its summary', () => {
-    expect(sanitizeSqlQueryWithSummary("SELECT * FROM users WHERE email = 'jane@example.com'")).toEqual({
-      queryText: 'SELECT * FROM users WHERE email = ?',
-      querySummary: 'SELECT users',
-      operationName: 'SELECT',
+    expect(getSqlQueryAttributes("SELECT * FROM users WHERE email = 'jane@example.com'")).toEqual({
+      [DB_QUERY_TEXT]: 'SELECT * FROM users WHERE email = ?',
+      [DB_QUERY_SUMMARY]: 'SELECT users',
+      [DB_OPERATION_NAME]: 'SELECT',
     });
   });
 
@@ -966,39 +927,43 @@ describe('sanitizeSqlQueryWithSummary', () => {
     ['standard' as const, 'SELECT * FROM users WHERE email = $$jane@example.com$$'],
     ['standard' as const, "SELECT * FROM users WHERE email = N'jane@example.com'"],
   ])('passes the %s dialect through to the sanitizer: %p', (dialect, input) => {
-    expect(sanitizeSqlQueryWithSummary(input, dialect)).toEqual({
-      queryText: 'SELECT * FROM users WHERE email = ?',
-      querySummary: 'SELECT users',
-      operationName: 'SELECT',
+    expect(getSqlQueryAttributes(input, dialect)).toEqual({
+      [DB_QUERY_TEXT]: 'SELECT * FROM users WHERE email = ?',
+      [DB_QUERY_SUMMARY]: 'SELECT users',
+      [DB_OPERATION_NAME]: 'SELECT',
     });
   });
 
   it('passes the mssql dialect through, so a quote inside a bracketed name stays part of the name', () => {
-    expect(sanitizeSqlQueryWithSummary("SELECT * FROM [users] WHERE [email] = 'jane@example.com'", 'mssql')).toEqual({
-      queryText: 'SELECT * FROM [users] WHERE [email] = ?',
-      querySummary: 'SELECT [users]',
-      operationName: 'SELECT',
+    expect(getSqlQueryAttributes("SELECT * FROM [users] WHERE [email] = 'jane@example.com'", 'mssql')).toEqual({
+      [DB_QUERY_TEXT]: 'SELECT * FROM [users] WHERE [email] = ?',
+      [DB_QUERY_SUMMARY]: 'SELECT [users]',
+      [DB_OPERATION_NAME]: 'SELECT',
+    });
+  });
+
+  it("names the operation of T-SQL's `;WITH` queries", () => {
+    expect(
+      getSqlQueryAttributes(";WITH x AS (SELECT name FROM users) SELECT * FROM x WHERE name = 'a'", 'mssql'),
+    ).toMatchObject({
+      [DB_QUERY_TEXT]: 'WITH x AS (SELECT name FROM users) SELECT * FROM x WHERE name = ?',
+      [DB_OPERATION_NAME]: 'SELECT',
     });
   });
 
   it('derives the summary from the sanitized statement, not the raw one', () => {
-    expect(sanitizeSqlQueryWithSummary("SELECT * FROM users WHERE bio = 'from secret_table'")).toEqual({
-      queryText: 'SELECT * FROM users WHERE bio = ?',
-      querySummary: 'SELECT users',
-      operationName: 'SELECT',
+    expect(getSqlQueryAttributes("SELECT * FROM users WHERE bio = 'from secret_table'")).toEqual({
+      [DB_QUERY_TEXT]: 'SELECT * FROM users WHERE bio = ?',
+      [DB_QUERY_SUMMARY]: 'SELECT users',
+      [DB_OPERATION_NAME]: 'SELECT',
     });
   });
 
-  it('returns undefined for all when there is no statement', () => {
-    expect(sanitizeSqlQueryWithSummary(undefined)).toEqual({
-      queryText: undefined,
-      querySummary: undefined,
-      operationName: undefined,
-    });
-    expect(sanitizeSqlQueryWithSummary('')).toEqual({
-      queryText: undefined,
-      querySummary: undefined,
-      operationName: undefined,
+  it.each([undefined, '', '   ', ';'])('returns undefined for all when there is no statement: %j', input => {
+    expect(getSqlQueryAttributes(input)).toEqual({
+      [DB_QUERY_TEXT]: undefined,
+      [DB_QUERY_SUMMARY]: undefined,
+      [DB_OPERATION_NAME]: undefined,
     });
   });
 });

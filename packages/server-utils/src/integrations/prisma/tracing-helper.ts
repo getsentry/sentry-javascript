@@ -26,7 +26,6 @@ import {
 import { DEBUG_BUILD } from '../../debug-build';
 import type { EngineSpan, ExtendedSpanOptions, SpanCallback, TracingHelper } from './types';
 import {
-  DB_OPERATION_NAME,
   DB_QUERY_SUMMARY,
   DB_QUERY_TEXT,
   DB_STATEMENT,
@@ -36,13 +35,7 @@ import {
   SENTRY_OP,
   SENTRY_ORIGIN,
 } from '@sentry/conventions/attributes';
-import {
-  getSqlOperationName,
-  getSqlQuerySummary,
-  sanitizeSqlQuery,
-  type SqlDialect,
-  toSqlDialect,
-} from '../../utils/sql';
+import { getSqlQueryAttributes, type SqlDialect, toSqlDialect } from '../../utils/sql';
 
 // Reading `process.env` can throw in runtimes that gate env access (e.g. Deno without `--allow-env`)
 // and `process` may be absent altogether (edge runtimes), so this degrades to `false` in those cases.
@@ -103,9 +96,17 @@ function registerPrismaSpan(id: string, span: Span): void {
  * Older Prisma versions emit `prisma:engine:db_query` spans without a db system, so it's backfilled here.
  */
 function buildSpanAttributes(name: string, attributes: Record<string, unknown> | undefined): SpanAttributes {
+  const spanAttributes: SpanAttributes = (attributes as SpanAttributes) || {};
+  const statement = getSqlStatement(name, spanAttributes);
+  const queryAttributes = getSqlQueryAttributes(statement, getSqlDialect(spanAttributes));
+
   const merged: SpanAttributes = {
-    ...(attributes as SpanAttributes | undefined),
+    ...queryAttributes,
+    ...spanAttributes,
     [SENTRY_ORIGIN]: PRISMA_ORIGIN,
+    // Always ours, so the summary (and the streamed span name built from it) is dialect-aware and
+    // consistent across Prisma versions, even if Prisma starts reporting its own.
+    [DB_QUERY_SUMMARY]: queryAttributes[DB_QUERY_SUMMARY],
   };
 
   // Prisma itself emits the deprecated `db.system` on older versions, so both spellings are checked
@@ -118,15 +119,6 @@ function buildSpanAttributes(name: string, attributes: Record<string, unknown> |
   // oxlint-disable-next-line typescript/no-deprecated
   if (merged[DB_SYSTEM] || merged[DB_SYSTEM_NAME]) {
     merged[SENTRY_OP] = 'db';
-  }
-
-  const statement = getSqlStatement(name, merged);
-  if (statement) {
-    // Sanitized before summarizing, so that a string literal containing `from`/`join` can't leak a
-    // value into the summary.
-    const queryText = sanitizeSqlQuery(statement, getSqlDialect(merged));
-    merged[DB_QUERY_SUMMARY] = getSqlQuerySummary(queryText);
-    merged[DB_OPERATION_NAME] ??= getSqlOperationName(queryText);
   }
 
   return merged;
