@@ -85,7 +85,7 @@ export async function wrapServerRequestHandler<R extends Response | undefined = 
 ): Promise<R> {
   const { request, client, isolationScope, options, mechanism } = config;
 
-  // The tunnel answers these before the app, so they get no session, request data, body or span.
+  // Tunnel requests get no session, request data, body or span, whether the SDK or the app answers them.
   if (isServedTunnelRequest(request)) {
     let response: R | undefined;
     try {

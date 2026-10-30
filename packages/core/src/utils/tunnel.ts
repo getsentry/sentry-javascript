@@ -231,12 +231,13 @@ export function isTunnelRequest(request: TunnelRequestLike, options?: ServerTunn
 }
 
 /**
- * Returns true if the request targets the tunnel `serveTunnelIntegration` serves. Unlike {@link isTunnelRequest},
- * there's no fallback, so the framework SDKs serve nothing without the integration.
+ * Returns true if the request targets the tunnel `serveTunnelIntegration` serves, whether the SDK answers it or the
+ * app does with `intercept: false`. The server SDKs record nothing for these. Unlike {@link isTunnelRequest}, there's
+ * no fallback, so the framework SDKs serve nothing without the integration.
  */
 export function isServedTunnelRequest(request: TunnelRequestLike): boolean {
   try {
-    return !!getServedTunnelMatch(request);
+    return !!matchServedTunnel(request);
   } catch (error) {
     DEBUG_BUILD && debug.error('Sentry tunnel: failed to match a request', error);
 
@@ -248,11 +249,18 @@ export function isServedTunnelRequest(request: TunnelRequestLike): boolean {
  * The served tunnel, if the SDK answers this request on it.
  */
 export function getServedTunnelMatch(request: TunnelRequestLike): ServedTunnel | undefined {
+  const servedTunnel = matchServedTunnel(request);
+
+  return servedTunnel?.intercept ? servedTunnel : undefined;
+}
+
+/**
+ * The served tunnel, if this request targets it.
+ */
+function matchServedTunnel(request: TunnelRequestLike): ServedTunnel | undefined {
   const servedTunnel = getServedTunnel();
 
-  return servedTunnel?.intercept && servedTunnel.allowedDsns.length && matchesTunnel(request, servedTunnel)
-    ? servedTunnel
-    : undefined;
+  return servedTunnel?.allowedDsns.length && matchesTunnel(request, servedTunnel) ? servedTunnel : undefined;
 }
 
 /**

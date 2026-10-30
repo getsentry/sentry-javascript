@@ -129,7 +129,7 @@ export function instrumentServer(options: HttpInstrumentationOptions, server: Ht
       const client = getClient();
       const [request, response] = data as [HttpIncomingMessage, HttpServerResponse];
 
-      // The tunnel answers these before the app, so they get no isolation scope, session or span.
+      // Tunnel requests get no isolation scope, session or span, whether the SDK or the app answers them.
       if (!client || isServedTunnelRequest(request) || !markRequest(request)) {
         return target.apply(thisArg, args);
       }
