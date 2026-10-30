@@ -139,7 +139,7 @@
     "@rollup/plugin-json": "^6.1.0",
     "@rollup/plugin-node-resolve": "^16.0.3",
     "@rollup/plugin-replace": "^5.0.5",
-    "@rollup/plugin-terser": "^0.4.4",
+    "@rollup/plugin-terser": "^1.0.2",
     "@sentry-internal/node-integration-tests": "workspace:*",
     "@sentry/eslint-plugin-sdk": "workspace:*",
     "@sentry/sveltekit": "workspace:*",

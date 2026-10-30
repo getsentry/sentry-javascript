@@ -187,8 +187,8 @@ importers:
         specifier: ^5.0.5
         version: 5.0.7(rollup@4.62.3)
       '@rollup/plugin-terser':
-        specifier: ^0.4.4
-        version: 0.4.4(rollup@4.62.3)
+        specifier: ^1.0.2
+        version: 1.0.2(rollup@4.62.3)
       '@sentry-internal/node-integration-tests':
         specifier: workspace:*
         version: link:dev-packages/node-integration-tests
@@ -707,8 +707,8 @@ importers:
         specifier: ^3.1.6
         version: 3.1.6
       dataloader:
-        specifier: 2.2.2
-        version: 2.2.2
+        specifier: 2.2.3
+        version: 2.2.3
       express:
         specifier: ^4.21.2
         version: 4.22.1(supports-color@10.0.0)
@@ -8070,17 +8070,8 @@ packages:
       rollup:
         optional: true
 
-  '@rollup/plugin-terser@0.4.4':
-    resolution: {integrity: sha512-XHeJC5Bgvs8LfukDwWZp7yeqin6ns8RTl2B9avbejt6tZqsqvVoWI7ZTQrcNsfKEDWBTnTxM8nMDkO2IFFbd0A==}
-    engines: {node: '>=14.0.0'}
-    peerDependencies:
-      rollup: ^2.0.0||^3.0.0||^4.0.0
-    peerDependenciesMeta:
-      rollup:
-        optional: true
-
-  '@rollup/plugin-terser@1.0.0':
-    resolution: {integrity: sha512-FnCxhTBx6bMOYQrar6C8h3scPt8/JwIzw3+AJ2K++6guogH5fYaIFia+zZuhqv0eo1RN7W1Pz630SyvLbDjhtQ==}
+  '@rollup/plugin-terser@1.0.2':
+    resolution: {integrity: sha512-+UihHnuLnQDQ/9wog7ym+7oawCXkjTIo0WwkK7s//0mkktTN0VhYk6fGVxH+NtGzW064w5RCGgreMDxRVhHCzw==}
     engines: {node: '>=20.0.0'}
     peerDependencies:
       rollup: ^2.0.0||^3.0.0||^4.0.0
@@ -11107,8 +11098,8 @@ packages:
     resolution: {integrity: sha512-BS8PfmtDGnrgYdOonGZQdLZslWIeCGFP9tpan0hi1Co2Zr2NKADsvGYA8XxuG/4UWgJ6Cjtv+YJnB6MM69QGlQ==}
     engines: {node: '>= 0.4'}
 
-  dataloader@2.2.2:
-    resolution: {integrity: sha512-8YnDaaf7N3k/q5HnTJVuzSyLETjoZjVmHc4AeKAzOvKHEFQKcn64OKBfzHYtE9zGjctNM7V9I0MfnUVLpi7M5g==}
+  dataloader@2.2.3:
+    resolution: {integrity: sha512-y2krtASINtPFS1rSDjacrFgn1dcUuoREVabwlOGOe4SdxenREqwjwjElAdwvbGM7kgZz9a3KVicWR7vcz8rnzA==}
 
   dax-sh@0.43.2:
     resolution: {integrity: sha512-uULa1sSIHgXKGCqJ/pA0zsnzbHlVnuq7g8O2fkHokWFNwEGIhh5lAJlxZa1POG5En5ba7AU4KcBAvGQWMMf8rg==}
@@ -26215,15 +26206,7 @@ snapshots:
     optionalDependencies:
       rollup: 4.62.3
 
-  '@rollup/plugin-terser@0.4.4(rollup@4.62.3)':
-    dependencies:
-      serialize-javascript: 6.0.2
-      smob: 1.4.1
-      terser: 5.51.2
-    optionalDependencies:
-      rollup: 4.62.3
-
-  '@rollup/plugin-terser@1.0.0(rollup@4.62.3)':
+  '@rollup/plugin-terser@1.0.2(rollup@4.62.3)':
     dependencies:
       serialize-javascript: 7.0.5
       smob: 1.4.1
@@ -30040,7 +30023,7 @@ snapshots:
       es-errors: 1.3.0
       is-data-view: 1.0.2
 
-  dataloader@2.2.2: {}
+  dataloader@2.2.3: {}
 
   dax-sh@0.43.2:
     dependencies:
@@ -34902,7 +34885,7 @@ snapshots:
       '@rollup/plugin-json': 6.1.0(rollup@4.62.3)
       '@rollup/plugin-node-resolve': 16.0.3(rollup@4.62.3)
       '@rollup/plugin-replace': 6.0.3(rollup@4.62.3)
-      '@rollup/plugin-terser': 1.0.0(rollup@4.62.3)
+      '@rollup/plugin-terser': 1.0.2(rollup@4.62.3)
       '@vercel/nft': 1.11.0(encoding@0.1.13)(rollup@4.62.3)(supports-color@10.0.0)
       archiver: 7.0.1
       c12: 3.3.4(magicast@0.5.4)
@@ -35011,7 +34994,7 @@ snapshots:
       '@rollup/plugin-json': 6.1.0(rollup@4.62.3)
       '@rollup/plugin-node-resolve': 16.0.3(rollup@4.62.3)
       '@rollup/plugin-replace': 6.0.3(rollup@4.62.3)
-      '@rollup/plugin-terser': 1.0.0(rollup@4.62.3)
+      '@rollup/plugin-terser': 1.0.2(rollup@4.62.3)
       '@vercel/nft': 1.11.0(encoding@0.1.13)(rollup@4.62.3)(supports-color@10.0.0)
       archiver: 7.0.1
       c12: 3.3.4(magicast@0.5.4)
@@ -35120,7 +35103,7 @@ snapshots:
       '@rollup/plugin-json': 6.1.0(rollup@4.62.3)
       '@rollup/plugin-node-resolve': 16.0.3(rollup@4.62.3)
       '@rollup/plugin-replace': 6.0.3(rollup@4.62.3)
-      '@rollup/plugin-terser': 1.0.0(rollup@4.62.3)
+      '@rollup/plugin-terser': 1.0.2(rollup@4.62.3)
       '@vercel/nft': 1.11.0(encoding@0.1.13)(rollup@4.62.3)(supports-color@10.0.0)
       archiver: 7.0.1
       c12: 3.3.4(magicast@0.5.4)
