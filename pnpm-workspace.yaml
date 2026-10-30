@@ -69,6 +69,8 @@ strictPeerDependencies: false
 # The packages depend on each other by exact version, not with `workspace:`.
 # This links them from the workspace instead of installing them from npm.
 linkWorkspacePackages: true
+# Lockfiles written by Dependabot or `pnpm add` would otherwise fail `pnpm dedupe --check` in CI.
+autoDedupe: true
 
 overrides:
   nx>minimatch: 10.2.5
