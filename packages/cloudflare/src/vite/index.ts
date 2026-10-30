@@ -90,8 +90,7 @@ export function sentryCloudflareVitePlugin(options: SentryCloudflareVitePluginOp
       // dependency wrapped at module scope (`const app = new Hono()`) doesn't throw on workerd.
       dcModule: '@sentry/cloudflare/orchestrion-diagnostics-channel',
       transformOptimizedDeps: true,
-      // Flue is registered with its own `instrument()`, so `flueIntegration` needs the package's
-      // binding, which a bundled worker has no `node_modules` to resolve from.
+      // `flueIntegration` needs Flue's own `instrument()`, which a bundled worker can't resolve.
       selfProvidedModules: ['@flue/runtime'],
     }),
     sentryMastraObservabilityProviderPlugin(),

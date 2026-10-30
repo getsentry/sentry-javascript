@@ -44,9 +44,8 @@ export type PluginOptions = {
    */
   transformOptimizedDeps?: boolean;
   /**
-   * Instrumented packages that publish their own namespace on `providedModules` when they evaluate,
-   * for integrations that register with a package rather than patch it (`@flue/runtime`). Off by
-   * default: where the app registers the package itself, the integration would register it again.
+   * Packages that publish their own namespace on `providedModules`, for integrations that register
+   * with a package instead of patching it. Opt-in, as apps that register it themselves would clash.
    */
   selfProvidedModules?: string[];
 };

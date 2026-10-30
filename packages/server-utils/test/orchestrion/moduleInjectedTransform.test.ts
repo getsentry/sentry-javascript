@@ -222,9 +222,8 @@ describe('self-provided modules', () => {
 
     expect(code).toContain('import * as __SENTRY_SELF_PROVIDED__ from "./index.mjs";');
     expect(code).toContain('Object.defineProperty(globalThis.__SENTRY_ORCHESTRION__.providedModules, "@flue/runtime"');
-    // A getter, so the namespace is read at `init()` rather than while the module evaluates.
     expect(code).toMatch(/get\(\)\s*\{\s*return __SENTRY_SELF_PROVIDED__;\s*\}/);
-    // Registering can run the integration's `setup()` right away, which reads the namespace.
+    // Registering can run `setup()` right away, which reads the namespace.
     expect(code.indexOf('providedModules, "@flue/runtime"')).toBeLessThan(
       code.indexOf('orchestrionModuleInjected("@flue/runtime"'),
     );

@@ -5,8 +5,7 @@ import { registrationOnly } from './registration-only';
  * Flue publishes no diagnostics channels and needs none: it is instrumented by registering with
  * `instrument()`, not by patching call sites. Transforming the entry is only how the module's
  * integration gets registered at evaluation time, which is what installs it on a bundler-only SDK
- * like `@sentry/cloudflare`. Where the bundler plugin lists it in `selfProvidedModules`, the entry
- * also publishes its own namespace, which is how that integration reaches `instrument()`.
+ * like `@sentry/cloudflare`. With `selfProvidedModules`, the entry also publishes its namespace.
  */
 export const flueConfig = [
   registrationOnly({ name: '@flue/runtime', versionRange: '>=2.0.0 <3.0.0', filePath: 'dist/index.mjs' }),
