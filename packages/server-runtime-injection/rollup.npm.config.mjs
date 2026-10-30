@@ -3,7 +3,7 @@ import * as path from 'node:path';
 import commonjs from '@rollup/plugin-commonjs';
 import license from 'rollup-plugin-license';
 import { defineConfig } from 'rollup';
-import { makeBaseNPMConfig, makeNPMConfigVariants } from '@sentry-internal/rollup-utils';
+import { makeBaseNPMConfig, makeCjsVariantsFlat, makeNPMConfigVariants } from '@sentry-internal/rollup-utils';
 
 // The orchestrion runtime dependency chain (`@apm-js-collab/tracing-hooks` →
 // `@apm-js-collab/code-transformer` → meriyah/esquery/astring/…) is bundled into this package's
@@ -107,29 +107,31 @@ const orchestrionRuntimeHooks = [
 
 export default [
   ...orchestrionRuntimeHooks,
-  ...makeNPMConfigVariants(
-    makeBaseNPMConfig({
-      // `register.ts` backs `./register` (the Node SDK `require`s it synchronously from
-      // `Sentry.init()`); `hook.mjs` backs `./hook` (the async `Module.register()` target, loaded on
-      // Node's ESM loader thread, which cannot resolve bare specifiers into the vendored chunks — but
-      // relative imports work, so it shares the ESM build's vendored chunks). `./hook` only maps its
-      // `import` condition, so the `build/cjs` copy is unused.
-      entrypoints: ['src/register.ts', 'src/hook.mjs'],
-      packageSpecificConfig: {
-        plugins: [debugShim, guardTracingDump, commonJSPlugin, thirdPartyLicensePlugin],
-        output: {
-          exports: 'named',
-          preserveModules: true,
-          entryFileNames: sanitizedFileNames,
-          // The commonjs-converted vendored dependencies import Node builtins as default imports
-          // (`require('path')` → default import of `path`), and builtins have no `.default` in CJS —
-          // so builtins need `'default'` interop (the module itself is the default export).
-          interop: id => (id && (id.startsWith('node:') || builtinModules.includes(id)) ? 'default' : 'esModule'),
-          // The vendored dependencies import builtins unprefixed (`import … from 'tty'`), which Deno
-          // rejects and vite-node (Node 26) misresolves as a relative path. Emit them `node:`-prefixed.
-          paths: Object.fromEntries(builtinModules.map(m => [m, `node:${m}`])),
+  ...makeCjsVariantsFlat(
+    makeNPMConfigVariants(
+      makeBaseNPMConfig({
+        // `register.ts` backs `./register` (the Node SDK `require`s it synchronously from
+        // `Sentry.init()`); `hook.mjs` backs `./hook` (the async `Module.register()` target, loaded on
+        // Node's ESM loader thread, which cannot resolve bare specifiers into the vendored chunks — but
+        // relative imports work, so it shares the ESM build's vendored chunks). `./hook` only maps its
+        // `import` condition, so the `build/cjs` copy is unused.
+        entrypoints: ['src/register.ts', 'src/hook.mjs'],
+        packageSpecificConfig: {
+          plugins: [debugShim, guardTracingDump, commonJSPlugin, thirdPartyLicensePlugin],
+          output: {
+            exports: 'named',
+            preserveModules: true,
+            entryFileNames: sanitizedFileNames,
+            // The commonjs-converted vendored dependencies import Node builtins as default imports
+            // (`require('path')` → default import of `path`), and builtins have no `.default` in CJS —
+            // so builtins need `'default'` interop (the module itself is the default export).
+            interop: id => (id && (id.startsWith('node:') || builtinModules.includes(id)) ? 'default' : 'esModule'),
+            // The vendored dependencies import builtins unprefixed (`import … from 'tty'`), which Deno
+            // rejects and vite-node (Node 26) misresolves as a relative path. Emit them `node:`-prefixed.
+            paths: Object.fromEntries(builtinModules.map(m => [m, `node:${m}`])),
+          },
         },
-      },
-    }),
+      }),
+    ),
   ),
 ];
