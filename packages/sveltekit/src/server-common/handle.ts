@@ -25,7 +25,7 @@ import {
   _INTERNAL_setManagedTunnelDefaults as setManagedTunnelDefaults,
 } from '@sentry/core/server';
 import { getTunnelBasePath } from '../common/tunnel';
-import type { Handle, ResolveOptions } from '@sveltejs/kit';
+import type { sequence } from '@sveltejs/kit/hooks';
 import { DEBUG_BUILD } from '../common/debug-build';
 import { getTracePropagationData, sendErrorToSentry } from './utils';
 import {
@@ -39,6 +39,11 @@ import {
   SVELTEKIT_TRACING_ORIGINAL_NAME,
 } from '@sentry/conventions/attributes';
 import { HTTP_SERVER } from '@sentry/conventions/op';
+
+// SvelteKit 3 moved `Handle` and `ResolveOptions` from `@sveltejs/kit` to `@sveltejs/kit/hooks`,
+// so we derive them from `sequence`, which `@sveltejs/kit/hooks` exports in both majors.
+export type Handle = ReturnType<typeof sequence>;
+type ResolveOptions = NonNullable<Parameters<Parameters<Handle>[0]['resolve']>[1]>;
 
 export type SentryHandleOptions = {
   /**

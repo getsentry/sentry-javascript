@@ -5,7 +5,7 @@ import {
   setAsyncLocalStorageAsyncContextStrategy,
 } from '@sentry/cloudflare';
 import { addNonEnumerableProperty } from '@sentry/core';
-import type { Handle } from '@sveltejs/kit';
+import type { Handle } from '../server-common/handle';
 import { rewriteFramesIntegration } from '../server-common/integrations/rewriteFramesIntegration';
 import { svelteKitSpansIntegration } from '../server-common/integrations/svelteKitSpans';
 import { getCloudflareExecutionContext } from '../server-common/utils';
