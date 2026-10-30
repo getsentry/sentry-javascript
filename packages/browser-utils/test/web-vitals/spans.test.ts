@@ -811,25 +811,18 @@ describe('_sendInpSpan', () => {
     expect(mockSpan.end).toHaveBeenCalledWith(1.62);
   });
 
-  it('reports the INP subparts from the timings merged for the interaction', () => {
-    vi.spyOn(inpModule, 'getCachedInteractionContext').mockReturnValue({
-      span: undefined,
-      elementName: '<button>',
-      startTime: 500,
-      processingStart: 505,
-      processingEnd: 965,
-      nextPaintTime: 1020,
+  it('adds the INP subparts of the interaction the entry belongs to', () => {
+    vi.spyOn(inpModule, 'getCachedInteractionContext').mockReturnValue(undefined);
+    vi.spyOn(inpModule, 'getInpSubpartAttributes').mockReturnValueOnce({
+      'browser.web_vital.inp.input_delay': 5,
+      'browser.web_vital.inp.processing_duration': 460,
+      'browser.web_vital.inp.presentation_delay': 55,
     });
+    const entry = { name: 'pointerdown', startTime: 500, duration: 520, interactionId: 101 } as any;
 
-    _sendInpSpan(520, {
-      name: 'pointerdown',
-      startTime: 500,
-      processingStart: 505,
-      processingEnd: 506,
-      duration: 520,
-      interactionId: 101,
-    } as any);
+    _sendInpSpan(520, entry);
 
+    expect(inpModule.getInpSubpartAttributes).toHaveBeenCalledWith(entry);
     expect(SentryCoreBrowser.startInactiveSpan).toHaveBeenCalledWith(
       expect.objectContaining({
         attributes: expect.objectContaining({
@@ -952,10 +945,8 @@ describe('_sendInpSpan', () => {
     vi.spyOn(inpModule, 'getCachedInteractionContext').mockReturnValue({
       elementName: 'body > CachedButton',
       span: mockRootSpan as any,
-      startTime: 500,
-      processingStart: 500,
-      processingEnd: 600,
-      nextPaintTime: 620,
+      interactionId: 42,
+      latency: 100,
     });
 
     const mockEntry = {
@@ -968,7 +959,7 @@ describe('_sendInpSpan', () => {
 
     _sendInpSpan(100, mockEntry);
 
-    expect(inpModule.getCachedInteractionContext).toHaveBeenCalledWith(42);
+    expect(inpModule.getCachedInteractionContext).toHaveBeenCalledWith(mockEntry);
 
     expect(SentryCoreBrowser.startInactiveSpan).toHaveBeenCalledWith(
       expect.objectContaining({
