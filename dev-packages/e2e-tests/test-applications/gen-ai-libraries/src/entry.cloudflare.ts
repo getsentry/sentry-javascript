@@ -1,9 +1,23 @@
 // The Cloudflare variant: the same libraries and routes as the Node entry, but instrumented by the
 // `@sentry/cloudflare/vite` bundler plugin (build-time channel injection) and run on workerd.
 import * as Sentry from '@sentry/cloudflare';
+import type { Library } from './libraries';
 import { libraries } from './libraries';
 
 const byId = new Map(libraries.map(library => [library.id, library]));
+
+function getCall(library: Library, action: string | undefined): ((apiKey: string) => Promise<unknown>) | undefined {
+  switch (action) {
+    case 'chat':
+      return library.chat;
+    case 'tools':
+      return library.tools;
+    case 'chat-stream':
+      return library.chatStream;
+    default:
+      return undefined;
+  }
+}
 
 export default Sentry.withSentry(
   (env: Env) => ({
@@ -17,14 +31,7 @@ export default Sentry.withSentry(
       const url = new URL(request.url);
       const [, id, action] = url.pathname.split('/');
       const library = id ? byId.get(id) : undefined;
-      const call =
-        action === 'chat'
-          ? library?.chat
-          : action === 'tools'
-            ? library?.tools
-            : action === 'chat-stream'
-              ? library?.chatStream
-              : undefined;
+      const call = library && getCall(library, action);
 
       if (!call) {
         return new Response('Not found', { status: 404 });
