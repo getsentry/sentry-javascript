@@ -120,7 +120,7 @@ export function wrapMethod<O extends {}, T extends string & keyof O>(
  */
 // eslint-disable-next-line @typescript-eslint/ban-types
 export function getOriginalFunction<T extends Function>(func: WrappedFunction<T>): T | undefined {
-  return func.__sentry_original__;
+  return Object.prototype.hasOwnProperty.call(func, '__sentry_original__') ? func.__sentry_original__ : undefined;
 }
 
 /**

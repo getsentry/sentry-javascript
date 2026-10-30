@@ -120,6 +120,18 @@ describe('FunctionToString', () => {
     expect(Reflect.apply(Function.prototype.toString, inspectedFunction, new Array(100_000))).toBe(expected);
   });
 
+  it('does not overflow the stack when the prototype chain loops through a Proxy', () => {
+    function inspectedFunction(): void {}
+    Object.setPrototypeOf(inspectedFunction, Object.create(new Proxy(inspectedFunction, {})));
+    const callToString = Function.prototype.call.bind(Function.prototype.toString) as (thisArg: unknown) => string;
+    const expected = callToString(inspectedFunction);
+
+    const fts = functionToStringIntegration();
+    getClient()?.addIntegration(fts);
+
+    expect(callToString(inspectedFunction)).toBe(expected);
+  });
+
   it('falls back to native toString and does not throw when the carrier read throws', () => {
     const foo = {
       bar(wat: boolean): boolean {
