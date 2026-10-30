@@ -1,42 +1,37 @@
-/* eslint-disable typescript-eslint/no-deprecated */
-import { SPAN_STATUS_ERROR, startSpan, stringify } from '@sentry/core';
-import {
-  GEN_AI_AGENT_NAME,
-  GEN_AI_INPUT_MESSAGES,
-  GEN_AI_OPERATION_NAME,
-  GEN_AI_PIPELINE_NAME,
-  GEN_AI_REQUEST_MODEL,
-  GEN_AI_SYSTEM_INSTRUCTIONS,
-  GEN_AI_TOOL_DEFINITIONS,
-  SENTRY_OP,
-  SENTRY_ORIGIN,
-} from '@sentry/conventions/attributes';
-import { GEN_AI_INVOKE_AGENT } from '@sentry/conventions/op';
-import { extractSystemInstructions, resolveAIRecordingOptions } from '../core/utils';
+import { getCurrentScope, SPAN_STATUS_ERROR, startSpan } from '@sentry/core';
+import { resolveAIRecordingOptions } from '../core/utils';
 import { createLangChainCallbackHandler } from '../langchain';
-import type { BaseChatModel, LangChainMessage } from '../langchain/types';
-import { normalizeLangChainMessages } from '../langchain/utils';
-import { LANGGRAPH_ORIGIN } from './constants';
+import type { BaseChatModel } from '../langchain/types';
+import { getAgentSpanOptions, getInvokeMarker, LANGGRAPH_INVOKE_ACTIVE, prepareAgentSpan } from './agent-span';
+import { instrumentCompiledGraphStream } from './stream';
 import type { CompiledGraph, LangGraphOptions } from './types';
-import {
-  extractAgentNameFromParams,
-  extractLLMFromParams,
-  extractToolsFromCompiledGraph,
-  setResponseAttributes,
-  wrapToolsWithSpans,
-} from './utils';
-import {
-  getConversationIdMetadataFromConfig,
-  _INTERNAL_mergeLangChainCallbackHandler,
-  getConversationIdFromMetadata,
-} from '../langchain/utils';
+import { extractAgentNameFromParams, extractLLMFromParams, setResponseAttributes, wrapToolsWithSpans } from './utils';
 
 let _insideCreateReactAgent = false;
+// Set while a manual wrapper runs the original `compile`/`createReactAgent`. The integration's channel hooks
+// fire synchronously inside that call, and skip the graph so the options passed explicitly win.
+let _insideManualInstrumentation = false;
 
 const SENTRY_PATCHED = '__sentry_patched__';
+const INSTRUMENTED_GRAPHS = new WeakSet<object>();
+
+/** Whether manual `instrumentStateGraph()`/`instrumentCreateReactAgent()` is creating a graph right now. */
+export function isInsideManualLangGraphInstrumentation(): boolean {
+  return _insideManualInstrumentation;
+}
+
+function runManually<T>(callback: () => T): T {
+  const previous = _insideManualInstrumentation;
+  _insideManualInstrumentation = true;
+  try {
+    return callback();
+  } finally {
+    _insideManualInstrumentation = previous;
+  }
+}
 
 /**
- * Instruments StateGraph's compile method to wrap the returned compiled graph's invoke() with a
+ * Instruments StateGraph's compile method to wrap the returned compiled graph's invoke() and stream() with a
  * `gen_ai.invoke_agent` span.
  */
 export function instrumentStateGraphCompile(
@@ -59,21 +54,9 @@ export function instrumentStateGraphCompile(
         return Reflect.apply(target, thisArg, args);
       }
 
-      const compiledGraph = Reflect.apply(target, thisArg, args);
+      const compiledGraph = runManually(() => Reflect.apply(target, thisArg, args));
       const compileOptions = args.length > 0 ? (args[0] as Record<string, unknown>) : {};
-
-      // Instrument agent invoke method on the compiled graph
-      const originalInvoke = compiledGraph.invoke;
-      if (originalInvoke && typeof originalInvoke === 'function') {
-        compiledGraph.invoke = instrumentCompiledGraphInvoke(
-          originalInvoke.bind(compiledGraph) as (...args: unknown[]) => Promise<unknown>,
-          compiledGraph,
-          compileOptions,
-          options,
-          undefined,
-          sentryHandler,
-        );
-      }
+      instrumentCompiledGraph(compiledGraph, compileOptions, options, undefined, sentryHandler);
 
       return compiledGraph;
     },
@@ -81,6 +64,45 @@ export function instrumentStateGraphCompile(
 
   Object.defineProperty(wrapped, SENTRY_PATCHED, { value: true, enumerable: false });
   return wrapped;
+}
+
+/**
+ * Wraps a compiled graph's `invoke()` and `stream()` with `gen_ai.invoke_agent` spans, once per graph.
+ */
+export function instrumentCompiledGraph(
+  graph: unknown,
+  compileOptions: Record<string, unknown>,
+  options: LangGraphOptions,
+  llm: BaseChatModel | null | undefined,
+  sentryCallbackHandler: unknown,
+): void {
+  if (!graph || typeof graph !== 'object' || INSTRUMENTED_GRAPHS.has(graph)) {
+    return;
+  }
+  INSTRUMENTED_GRAPHS.add(graph);
+
+  const compiledGraph = graph as CompiledGraph;
+  const { invoke, stream } = compiledGraph;
+  if (typeof invoke === 'function') {
+    compiledGraph.invoke = instrumentCompiledGraphInvoke(
+      invoke.bind(compiledGraph),
+      compiledGraph,
+      compileOptions,
+      options,
+      llm,
+      sentryCallbackHandler,
+    );
+  }
+  if (typeof stream === 'function') {
+    compiledGraph.stream = instrumentCompiledGraphStream(
+      stream.bind(compiledGraph),
+      compiledGraph,
+      compileOptions,
+      options,
+      llm,
+      sentryCallbackHandler,
+    );
+  }
 }
 
 /**
@@ -96,104 +118,37 @@ export function instrumentCompiledGraphInvoke(
   llm?: BaseChatModel | null,
   sentryCallbackHandler?: unknown,
 ): (...args: unknown[]) => Promise<unknown> {
+  const invokeMarker = getInvokeMarker(graphInstance);
+
   return new Proxy(originalInvoke, {
     apply(target, thisArg, args: unknown[]): Promise<unknown> {
-      const modelName = llm?.modelName ?? llm?.model;
-      const config = args.length > 1 ? (args[1] as Record<string, unknown> | undefined) : undefined;
-      return startSpan(
-        {
-          name: 'invoke_agent',
-          attributes: {
-            // Set before `spanStart`, so an id from `Sentry.setConversationId()` wins, as on the child spans
-            ...getConversationIdFromMetadata(config?.configurable as Record<string, unknown> | undefined),
-            [SENTRY_ORIGIN]: LANGGRAPH_ORIGIN,
-            [SENTRY_OP]: GEN_AI_INVOKE_AGENT,
-            [GEN_AI_OPERATION_NAME]: 'invoke_agent',
-          },
-        },
-        async span => {
-          try {
-            const graphName = compileOptions?.name;
+      return startSpan(getAgentSpanOptions(args), async span => {
+        try {
+          const inputMessages = prepareAgentSpan(
+            span,
+            args,
+            graphInstance,
+            compileOptions,
+            options,
+            llm,
+            sentryCallbackHandler,
+          );
+          getCurrentScope().setSDKProcessingMetadata({ [LANGGRAPH_INVOKE_ACTIVE]: invokeMarker });
 
-            if (graphName && typeof graphName === 'string') {
-              span.setAttribute(GEN_AI_PIPELINE_NAME, graphName);
-              span.setAttribute(GEN_AI_AGENT_NAME, graphName);
-              span.updateName(`invoke_agent ${graphName}`);
-            }
+          const result = await Reflect.apply(target, thisArg, args);
 
-            if (modelName) {
-              span.setAttribute(GEN_AI_REQUEST_MODEL, modelName);
-            }
-
-            // Inject callback handler and agent name into invoke config
-            if (sentryCallbackHandler) {
-              const invokeConfig = (args[1] ?? {}) as Record<string, unknown>;
-              args[1] = invokeConfig;
-
-              const existingMetadata = (invokeConfig.metadata ?? {}) as Record<string, unknown>;
-              invokeConfig.metadata = {
-                ...getConversationIdMetadataFromConfig(invokeConfig),
-                ...existingMetadata,
-                __sentry_langgraph__: true,
-                ...(typeof graphName === 'string' ? { lc_agent_name: graphName } : {}),
-              };
-
-              invokeConfig.callbacks = _INTERNAL_mergeLangChainCallbackHandler(
-                invokeConfig.callbacks,
-                sentryCallbackHandler,
-              );
-            }
-
-            const recordInputs = options.recordInputs;
-            const recordOutputs = options.recordOutputs;
-
-            // Extract available tools from the graph instance
-            const tools = recordInputs ? extractToolsFromCompiledGraph(graphInstance) : null;
-            if (tools) {
-              span.setAttribute(GEN_AI_TOOL_DEFINITIONS, JSON.stringify(tools));
-            }
-
-            // Custom state annotations have no `messages` array, the whole state is recorded instead.
-            const inputState = args[0] as { messages?: LangChainMessage[]; lg_name?: string } | null | undefined;
-            const inputMessages = Array.isArray(inputState?.messages) ? inputState.messages : null;
-            // `new Command({ resume })` resumes an interrupted run and carries no user turn (LangGraph
-            // tags it `lg_name: 'Command'`), so skip it like a `null` resume rather than recording the
-            // control object as a message nobody wrote.
-            const isResumeCommand = inputState?.lg_name === 'Command';
-
-            if (recordInputs) {
-              if (inputMessages) {
-                const normalizedMessages = normalizeLangChainMessages(inputMessages);
-                const { systemInstructions, filteredMessages } = extractSystemInstructions(normalizedMessages);
-
-                if (systemInstructions) {
-                  span.setAttribute(GEN_AI_SYSTEM_INSTRUCTIONS, systemInstructions);
-                }
-
-                span.setAttributes({
-                  [GEN_AI_INPUT_MESSAGES]: stringify(filteredMessages),
-                });
-              } else if (inputState && typeof inputState === 'object' && !isResumeCommand) {
-                span.setAttribute(GEN_AI_INPUT_MESSAGES, stringify([{ role: 'user', content: stringify(inputState) }]));
-              }
-            }
-
-            // Call original invoke
-            const result = await Reflect.apply(target, thisArg, args);
-
-            if (recordOutputs) {
-              setResponseAttributes(span, inputMessages, result);
-            }
-
-            return result;
-          } catch (error) {
-            // The error is rethrown to the caller (invoke() rejects), so we only mark the span failed
-            // and do not record it.
-            span.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
-            throw error;
+          if (options.recordOutputs) {
+            setResponseAttributes(span, inputMessages, result);
           }
-        },
-      );
+
+          return result;
+        } catch (error) {
+          // The error is rethrown to the caller (invoke() rejects), so we only mark the span failed
+          // and do not record it.
+          span.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
+          throw error;
+        }
+      });
     },
   });
 }
@@ -227,28 +182,13 @@ export function instrumentCreateReactAgent(
       _insideCreateReactAgent = true;
       let compiledGraph: CompiledGraph;
       try {
-        compiledGraph = Reflect.apply(target, thisArg, args);
+        compiledGraph = runManually(() => Reflect.apply(target, thisArg, args));
       } finally {
         _insideCreateReactAgent = false;
       }
 
-      // Wrap invoke() on the returned compiled graph
-      const originalInvoke = compiledGraph.invoke;
-      if (originalInvoke && typeof originalInvoke === 'function') {
-        const compileOptions: Record<string, unknown> = {};
-        if (agentName) {
-          compileOptions.name = agentName;
-        }
-
-        compiledGraph.invoke = instrumentCompiledGraphInvoke(
-          originalInvoke.bind(compiledGraph) as (...args: unknown[]) => Promise<unknown>,
-          compiledGraph,
-          compileOptions,
-          resolvedOptions,
-          llm,
-          sentryHandler,
-        );
-      }
+      const compileOptions: Record<string, unknown> = agentName ? { name: agentName } : {};
+      instrumentCompiledGraph(compiledGraph, compileOptions, resolvedOptions, llm, sentryHandler);
 
       return compiledGraph;
     },

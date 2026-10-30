@@ -7,6 +7,7 @@ import {
   GEN_AI_OUTPUT_MESSAGES,
   GEN_AI_PIPELINE_NAME,
   GEN_AI_RESPONSE_MODEL,
+  GEN_AI_RESPONSE_STREAMING,
   GEN_AI_RESPONSE_TEXT,
   GEN_AI_RESPONSE_TOOL_CALLS,
   GEN_AI_SYSTEM_INSTRUCTIONS,
@@ -364,5 +365,89 @@ describe('LangGraph integration', () => {
         .start()
         .completed();
     });
+  });
+
+  createEsmAndCjsTests(__dirname, 'scenario-stream.mjs', 'instrument-with-pii.mjs', (createRunner, test) => {
+    test('creates one agent span per stream() run, however the stream is consumed', { timeout: 30000 }, async () => {
+      await createRunner()
+        .expect({
+          span: container => {
+            const spans = container.items;
+            const agentSpans = spans.filter(span => span.attributes[SENTRY_OP]?.value === 'gen_ai.invoke_agent');
+            const agentSpanFor = (prompt: string) =>
+              agentSpans.find(span =>
+                getStringAttributeValue(span.attributes[GEN_AI_INPUT_MESSAGES]?.value)?.includes(prompt),
+              );
+            const chatSpanUnder = (parent: { span_id: string } | undefined) =>
+              spans.find(
+                span => span.attributes[SENTRY_OP]?.value === 'gen_ai.chat' && span.parent_span_id === parent?.span_id,
+              );
+
+            expect(agentSpans).toHaveLength(10);
+            expect(agentSpanFor('Stream inside a parent run')?.status).toBe('ok');
+            const parentCallbacks = spans.find(span => span.name === 'parent callbacks');
+            expect(parentCallbacks?.attributes['test.parent_saw_graph_run']?.value).toBe(true);
+
+            const read = agentSpanFor('Read the whole stream');
+            expect(read?.status).toBe('ok');
+            expect(read?.attributes[GEN_AI_RESPONSE_STREAMING]?.value).toBe(true);
+            expect(read?.attributes[GEN_AI_RESPONSE_TEXT]?.value).toBe('[{"role":"assistant","content":"Sunny"}]');
+            expect(chatSpanUnder(read)).toBeDefined();
+
+            const unread = agentSpanFor('Never read the stream');
+            expect(unread?.status).toBe('ok');
+            expect(unread?.attributes[GEN_AI_RESPONSE_TEXT]?.value).toBe('[{"role":"assistant","content":"Sunny"}]');
+            expect(chatSpanUnder(unread)).toBeDefined();
+
+            expect(agentSpanFor('Break out of the stream')?.status).toBe('ok');
+            expect(agentSpanFor('Cancel the stream')?.status).toBe('ok');
+
+            const failed = agentSpans.find(span => span.name === 'invoke_agent failing_graph');
+            expect(failed?.status).toBe('error');
+
+            const outer = agentSpans.find(span => span.name === 'invoke_agent outer_graph');
+            const inner = agentSpans.find(span => span.name === 'invoke_agent inner_graph');
+            expect(outer?.status).toBe('ok');
+            expect(inner?.parent_span_id).toBe(outer?.span_id);
+
+            expect(agentSpanFor('Stream events')?.attributes[GEN_AI_RESPONSE_STREAMING]?.value).toBe(true);
+
+            const invoked = agentSpanFor('Invoke the graph');
+            expect(invoked?.status).toBe('ok');
+            expect(invoked?.attributes[GEN_AI_RESPONSE_STREAMING]).toBeUndefined();
+          },
+        })
+        .unordered()
+        .start()
+        .completed();
+    });
+  });
+
+  createEsmAndCjsTests(__dirname, 'agent-stream-scenario.mjs', 'instrument-agent.mjs', (createRunner, test) => {
+    test(
+      'parents the chat span of a streamed createReactAgent run under its agent span',
+      { timeout: 30000 },
+      async () => {
+        await createRunner()
+          .expect({
+            span: container => {
+              const agentSpans = container.items.filter(
+                span => span.attributes[SENTRY_OP]?.value === 'gen_ai.invoke_agent',
+              );
+              const chatSpans = container.items.filter(span => span.attributes[SENTRY_OP]?.value === 'gen_ai.chat');
+              expect(agentSpans).toHaveLength(1);
+              expect(chatSpans).toHaveLength(1);
+              expect(agentSpans[0]!.name).toBe('invoke_agent helpful_assistant');
+              expect(agentSpans[0]!.status).toBe('ok');
+              expect(agentSpans[0]!.attributes[GEN_AI_RESPONSE_STREAMING]?.value).toBe(true);
+              expect(chatSpans[0]!.parent_span_id).toBe(agentSpans[0]!.span_id);
+              expect(chatSpans[0]!.attributes[GEN_AI_AGENT_NAME]?.value).toBe('helpful_assistant');
+            },
+          })
+          .unordered()
+          .start()
+          .completed();
+      },
+    );
   });
 });
