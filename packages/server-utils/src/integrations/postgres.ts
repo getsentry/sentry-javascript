@@ -1,8 +1,6 @@
 import * as diagnosticsChannel from '../utils/diagnosticsChannel';
 import {
   DB_NAMESPACE,
-  DB_QUERY_SUMMARY,
-  DB_QUERY_TEXT,
   DB_SYSTEM_NAME,
   DB_USER,
   SENTRY_KIND,
@@ -18,12 +16,10 @@ import {
   isObjectLike,
   bindScopeToEmitter,
   defineIntegration,
-  getClient,
   getCurrentScope,
-  hasSpanStreamingEnabled,
   startInactiveSpan,
 } from '@sentry/core';
-import { getSqlQueryAttributes } from '../utils/sql';
+import { getSqlQueryAttributes, getSqlSpanName } from '../utils/sql';
 import type { OrchestrionChannelContext } from '../orchestrion/types';
 import { CHANNELS } from '../orchestrion/channels';
 import { bindTracingChannelToSpan } from '../tracing-channel';
@@ -188,12 +184,11 @@ function querySpanOptions(
 ): { name: string; attributes: SpanAttributes } {
   const params = (ctx.self as { connectionParameters?: PgConnectionParams } | undefined)?.connectionParameters ?? {};
   const queryConfig = extractQueryConfig(ctx.arguments);
-  const client = getClient();
   const queryAttributes = getSqlQueryAttributes(queryConfig?.text);
-  const name =
-    client && hasSpanStreamingEnabled(client)
-      ? queryAttributes[DB_QUERY_SUMMARY] || params.database || DB_SYSTEM_POSTGRESQL
-      : (queryAttributes[DB_QUERY_TEXT] ?? SPAN_QUERY_FALLBACK);
+  const name = getSqlSpanName(queryAttributes, {
+    streamed: params.database || DB_SYSTEM_POSTGRESQL,
+    static: SPAN_QUERY_FALLBACK,
+  });
 
   return {
     name,

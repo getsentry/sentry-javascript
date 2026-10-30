@@ -1,8 +1,6 @@
 import * as diagnosticsChannel from '../utils/diagnosticsChannel';
 import {
   DB_NAMESPACE,
-  DB_QUERY_SUMMARY,
-  DB_QUERY_TEXT,
   DB_SYSTEM_NAME,
   DB_USER,
   SENTRY_KIND,
@@ -14,16 +12,8 @@ import {
 } from '@sentry/conventions/attributes';
 import { DB } from '@sentry/conventions/op';
 import type { IntegrationFn, Scope } from '@sentry/core';
-import {
-  isObjectLike,
-  bindScopeToEmitter,
-  defineIntegration,
-  getClient,
-  getCurrentScope,
-  hasSpanStreamingEnabled,
-  startInactiveSpan,
-} from '@sentry/core';
-import { getSqlQueryAttributes } from '../utils/sql';
+import { isObjectLike, bindScopeToEmitter, defineIntegration, getCurrentScope, startInactiveSpan } from '@sentry/core';
+import { getSqlQueryAttributes, getSqlSpanName } from '../utils/sql';
 import type { OrchestrionChannelContext } from '../orchestrion/types';
 import { CHANNELS } from '../orchestrion/channels';
 import { bindTracingChannelToSpan } from '../tracing-channel';
@@ -83,11 +73,10 @@ function instrumentMysql(): void {
 
       const queryAttributes = getSqlQueryAttributes(sql, 'mysql');
 
-      const client = getClient();
-      const name =
-        client && hasSpanStreamingEnabled(client)
-          ? queryAttributes[DB_QUERY_SUMMARY] || database || DB_SYSTEM_NAME_VALUE_MYSQL
-          : (queryAttributes[DB_QUERY_TEXT] ?? 'mysql.query');
+      const name = getSqlSpanName(queryAttributes, {
+        streamed: database || DB_SYSTEM_NAME_VALUE_MYSQL,
+        static: 'mysql.query',
+      });
 
       return startInactiveSpan({
         name,

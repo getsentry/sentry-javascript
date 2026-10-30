@@ -1,12 +1,15 @@
 import { DB_OPERATION_NAME, DB_QUERY_SUMMARY, DB_QUERY_TEXT } from '@sentry/conventions/attributes';
-import { describe, expect, it } from 'vitest';
+import { setCurrentClient } from '@sentry/core';
+import { afterEach, describe, expect, it } from 'vitest';
 import {
   getSqlOperationName,
   getSqlQuerySummary,
   getSqlQueryAttributes,
+  getSqlSpanName,
   sanitizeSqlQuery,
   toSqlDialect,
 } from '../../src/utils/sql';
+import { getDefaultTestClientOptions, TestClient } from '../mocks/client';
 
 describe('getSqlQuerySummary', () => {
   it.each([undefined, ''])('returns undefined for %j', input => {
@@ -964,6 +967,48 @@ describe('getSqlQueryAttributes', () => {
       [DB_QUERY_TEXT]: undefined,
       [DB_QUERY_SUMMARY]: undefined,
       [DB_OPERATION_NAME]: undefined,
+    });
+  });
+});
+
+describe('getSqlSpanName', () => {
+  const fallback = { streamed: 'mydb', static: 'mysql.query' };
+
+  function setUpClient(traceLifecycle: 'stream' | 'static'): void {
+    const client = new TestClient(getDefaultTestClientOptions({ traceLifecycle, tracesSampleRate: 1 }));
+    setCurrentClient(client);
+    client.init();
+  }
+
+  afterEach(() => {
+    setCurrentClient(undefined as never);
+  });
+
+  describe('with span streaming', () => {
+    it('uses the query summary', () => {
+      setUpClient('stream');
+      expect(getSqlSpanName(getSqlQueryAttributes("SELECT * FROM users WHERE id = 'x'"), fallback)).toBe(
+        'SELECT users',
+      );
+    });
+
+    it('falls back to the streamed fallback without a statement', () => {
+      setUpClient('stream');
+      expect(getSqlSpanName(getSqlQueryAttributes(undefined), fallback)).toBe('mydb');
+    });
+  });
+
+  describe('without span streaming', () => {
+    it('uses the sanitized statement', () => {
+      setUpClient('static');
+      expect(getSqlSpanName(getSqlQueryAttributes("SELECT * FROM users WHERE id = 'x'"), fallback)).toBe(
+        'SELECT * FROM users WHERE id = ?',
+      );
+    });
+
+    it('falls back to the static fallback without a statement', () => {
+      setUpClient('static');
+      expect(getSqlSpanName(getSqlQueryAttributes(undefined), fallback)).toBe('mysql.query');
     });
   });
 });

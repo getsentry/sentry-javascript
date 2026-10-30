@@ -8,8 +8,6 @@ import {
   debug,
   defineIntegration,
   getActiveSpan,
-  getClient,
-  hasSpanStreamingEnabled,
   SPAN_STATUS_ERROR,
   startInactiveSpan,
   truncate,
@@ -18,8 +16,6 @@ import {
 import {
   DB_NAMESPACE,
   DB_OPERATION_NAME,
-  DB_QUERY_SUMMARY,
-  DB_QUERY_TEXT,
   DB_SYSTEM_NAME,
   DB_USER,
   NETWORK_TRANSPORT,
@@ -34,7 +30,7 @@ import { DEBUG_BUILD } from '../debug-build';
 import type { OrchestrionChannelContext } from '../orchestrion/types';
 import { CHANNELS } from '../orchestrion/channels';
 import { bindTracingChannelToSpan } from '../tracing-channel';
-import { getSqlQueryAttributes, toSqlDialect } from '../utils/sql';
+import { getSqlQueryAttributes, getSqlSpanName, toSqlDialect } from '../utils/sql';
 
 // NOTE: this uses the same name as the OTel integration by design. `@sentry/node`'s `knexIntegration`
 // picks this subscriber over the vendored OTel path when orchestrion injection is active.
@@ -185,11 +181,10 @@ function subscribeQuery(): void {
         [NETWORK_TRANSPORT]: connection?.filename === ':memory:' ? 'inproc' : undefined,
       };
 
-      const sentryClient = getClient();
-      const spanName =
-        sentryClient && hasSpanStreamingEnabled(sentryClient)
-          ? queryAttributes[DB_QUERY_SUMMARY] || getSecondaryStreamName(dbSystem, dbNameSpace, operation, table)
-          : (queryAttributes[DB_QUERY_TEXT] ?? getName(dbNameSpace, operation, table) ?? 'knex.query');
+      const spanName = getSqlSpanName(queryAttributes, {
+        streamed: getSecondaryStreamName(dbSystem, dbNameSpace, operation, table),
+        static: getName(dbNameSpace, operation, table) ?? 'knex.query',
+      });
 
       return startInactiveSpan({
         name: spanName,
