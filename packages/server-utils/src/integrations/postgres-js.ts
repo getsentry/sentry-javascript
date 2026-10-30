@@ -1,7 +1,6 @@
 import * as diagnosticsChannel from '../utils/diagnosticsChannel';
 import {
   DB_OPERATION_NAME,
-  DB_QUERY_SUMMARY,
   DB_QUERY_TEXT,
   DB_SYSTEM_NAME,
   ERROR_TYPE,
@@ -11,17 +10,10 @@ import {
   DB_RESPONSE_STATUS_CODE,
 } from '@sentry/conventions/attributes';
 import { DB } from '@sentry/conventions/op';
-import type { IntegrationFn, Span } from '@sentry/core';
-import {
-  debug,
-  defineIntegration,
-  getClient,
-  hasSpanStreamingEnabled,
-  SPAN_STATUS_ERROR,
-  startInactiveSpan,
-} from '@sentry/core';
+import type { IntegrationFn, Span, SpanAttributes } from '@sentry/core';
+import { debug, defineIntegration, SPAN_STATUS_ERROR, startInactiveSpan } from '@sentry/core';
 import { DEBUG_BUILD } from '../debug-build';
-import { getSqlQueryAttributes } from '../utils/sql';
+import { getSqlQueryAttributes, getSqlSpanName } from '../utils/sql';
 import {
   _buildConnectionContext,
   _getConnectionAttributes,
@@ -274,33 +266,30 @@ function instrumentPostgresJs(options: PostgresJsIntegrationOptions): void {
       const queryAttributes = getSqlQueryAttributes(_reconstructQuery(query.strings));
       const sanitizedSqlQuery = queryAttributes[DB_QUERY_TEXT] ?? '';
 
-      const client = getClient();
-
       // Single-endpoint fallback: resolve context now so the span name and `requestHook` have
       // it, and the first-query-per-connection (bare `execute`) path still gets attrs.
       const context = resolveSingleEndpoint();
 
-      const name =
-        client && hasSpanStreamingEnabled(client)
-          ? queryAttributes[DB_QUERY_SUMMARY] || context?.ATTR_DB_NAMESPACE || DB_SYSTEM_NAME_POSTGRES
-          : sanitizedSqlQuery || 'postgresjs.query';
-
       // `sentry.kind: client` matches the mysql/pg channel subscribers.
+      const attributes: SpanAttributes = {
+        [SENTRY_OP]: DB,
+        [SENTRY_KIND]: 'client',
+        [SENTRY_ORIGIN]: ORIGIN,
+        [DB_SYSTEM_NAME]: DB_SYSTEM_NAME_POSTGRES,
+        ...queryAttributes,
+        ...(context && _getConnectionAttributes(context)),
+      };
       const span = startInactiveSpan({
-        name,
+        name: getSqlSpanName(attributes, 'postgresjs.query'),
         onlyIfParent: requireParentSpan !== false,
-        attributes: {
-          [SENTRY_OP]: DB,
-          [SENTRY_KIND]: 'client',
-          [SENTRY_ORIGIN]: ORIGIN,
-          [DB_SYSTEM_NAME]: DB_SYSTEM_NAME_POSTGRES,
-          ...queryAttributes,
-        },
+        attributes,
       });
 
       // Stash for the `execute`/`connect` channels to attach per-connection attributes.
       (query as Record<symbol, unknown>)[QUERY_SPAN] = span;
 
+      // The attributes are already on the span; this marks the query so the `execute`/`connect`
+      // channels don't backfill them again.
       if (context) {
         setConnectionAttributes(span, query, context);
       }

@@ -8,8 +8,6 @@ import {
   debug,
   defineIntegration,
   getActiveSpan,
-  getClient,
-  hasSpanStreamingEnabled,
   SPAN_STATUS_ERROR,
   startInactiveSpan,
   truncate,
@@ -18,8 +16,6 @@ import {
 import {
   DB_NAMESPACE,
   DB_OPERATION_NAME,
-  DB_QUERY_SUMMARY,
-  DB_QUERY_TEXT,
   DB_SYSTEM_NAME,
   DB_USER,
   NETWORK_TRANSPORT,
@@ -34,7 +30,7 @@ import { DEBUG_BUILD } from '../debug-build';
 import type { OrchestrionChannelContext } from '../orchestrion/types';
 import { CHANNELS } from '../orchestrion/channels';
 import { bindTracingChannelToSpan } from '../tracing-channel';
-import { getSqlQueryAttributes, toSqlDialect } from '../utils/sql';
+import { getSqlQueryAttributes, getSqlSpanName, toSqlDialect } from '../utils/sql';
 
 // NOTE: this uses the same name as the OTel integration by design. `@sentry/node`'s `knexIntegration`
 // picks this subscriber over the vendored OTel path when orchestrion injection is active.
@@ -165,15 +161,11 @@ function subscribeQuery(): void {
       const dbSystem = mapSystem(client?.driverName);
 
       const dialect = toSqlDialect(client?.driverName);
-      const queryAttributes = getSqlQueryAttributes(
-        query?.sql ? truncate(query.sql, MAX_QUERY_LENGTH) : undefined,
-        dialect,
-      );
       const attributes: SpanAttributes = {
         [SENTRY_OP]: DB,
         [SENTRY_KIND]: 'client',
         [SENTRY_ORIGIN]: ORIGIN,
-        ...queryAttributes,
+        ...getSqlQueryAttributes(query?.sql ? truncate(query.sql, MAX_QUERY_LENGTH) : undefined, dialect),
         'knex.version': data.moduleVersion,
         [DB_SYSTEM_NAME]: dbSystem,
         [ATTR_DB_SQL_TABLE]: table,
@@ -185,14 +177,8 @@ function subscribeQuery(): void {
         [NETWORK_TRANSPORT]: connection?.filename === ':memory:' ? 'inproc' : undefined,
       };
 
-      const sentryClient = getClient();
-      const spanName =
-        sentryClient && hasSpanStreamingEnabled(sentryClient)
-          ? queryAttributes[DB_QUERY_SUMMARY] || getSecondaryStreamName(dbSystem, dbNameSpace, operation, table)
-          : (queryAttributes[DB_QUERY_TEXT] ?? getName(dbNameSpace, operation, table) ?? 'knex.query');
-
       return startInactiveSpan({
-        name: spanName,
+        name: getSqlSpanName(attributes, 'knex.query'),
         parentSpan,
         attributes,
       });
@@ -259,40 +245,6 @@ function mapSystem(driverName: string | undefined): string | undefined {
     return DB_SYSTEM_POSTGRESQL;
   }
   return driverName;
-}
-
-function getName(db: string | undefined, operation?: string, table?: string): string | undefined {
-  // `db` can be undefined when the database can't be determined from the knex config. Guard against
-  // interpolating it (which would emit the literal "undefined") and let the call site fall back.
-  if (operation && db) {
-    return table ? `${operation} ${db}.${table}` : `${operation} ${db}`;
-  }
-  return db;
-}
-
-function getSecondaryStreamName(
-  dbSystem: string | undefined,
-  dbNameSpace: string | undefined,
-  operation?: string,
-  table?: string,
-): string {
-  if (operation) {
-    if (table) {
-      return `${operation} ${table}`;
-    }
-    if (dbNameSpace) {
-      return `${operation} ${dbNameSpace}`;
-    }
-  }
-  if (table) {
-    return table;
-  }
-  if (dbNameSpace) {
-    return dbNameSpace;
-  }
-  // Mirrors the postgres integration, which falls back to `{db.system.name}` rather than to a static
-  // name. `db.system.name` is only unset when the knex client reports no driver.
-  return dbSystem ?? 'knex.query';
 }
 
 function extractTableName(builder: KnexBuilder | undefined): string | undefined {
