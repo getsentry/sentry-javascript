@@ -454,16 +454,28 @@ export function getSqlQueryAttributes(sqlQuery: string | undefined, dialect?: Sq
 }
 
 /**
- * Names a SQL span from its attributes. Streamed span names have to be low cardinality, so they use
- * `db.query.summary`, falling back to `db.namespace` and then `db.system.name`; otherwise the
- * sanitized `db.query.text` is used. `fallback` is the integration's name for a span with none of
- * those.
+ * Names a SQL span with a low-cardinality name: `db.query.summary`, falling back to `db.namespace`
+ * and then `db.system.name`. `fallback` is the integration's name for a span with none of those.
+ *
+ * New SQL integrations should name their spans with this regardless of span streaming.
+ */
+export function getLowCardinalitySqlSpanName(attributes: SpanAttributes, fallback: string): string {
+  return toSpanName(attributes[DB_QUERY_SUMMARY] || attributes[DB_NAMESPACE] || attributes[DB_SYSTEM_NAME], fallback);
+}
+
+/**
+ * Names a SQL span from its attributes. Streamed span names have to be low cardinality (see
+ * {@link getLowCardinalitySqlSpanName}); otherwise the sanitized `db.query.text` is used, which
+ * existing integrations keep for spans that aren't streamed.
  */
 export function getSqlSpanName(attributes: SpanAttributes, fallback: string): string {
   const client = getClient();
-  const name =
-    client && hasSpanStreamingEnabled(client)
-      ? attributes[DB_QUERY_SUMMARY] || attributes[DB_NAMESPACE] || attributes[DB_SYSTEM_NAME]
-      : attributes[DB_QUERY_TEXT];
-  return typeof name === 'string' && name ? name : fallback;
+  if (client && hasSpanStreamingEnabled(client)) {
+    return getLowCardinalitySqlSpanName(attributes, fallback);
+  }
+  return toSpanName(attributes[DB_QUERY_TEXT], fallback);
+}
+
+function toSpanName(value: unknown, fallback: string): string {
+  return typeof value === 'string' && value ? value : fallback;
 }
