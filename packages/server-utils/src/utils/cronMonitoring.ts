@@ -13,7 +13,8 @@ import * as diagnosticsChannel from './diagnosticsChannel';
 
 export type AnyFn = (this: unknown, ...args: unknown[]) => unknown;
 
-// Set by `Sentry.cron.instrumentNodeCron`, `Sentry.cron.instrumentNodeSchedule` and `wrapScheduledJob`, which already send check-ins.
+// Set by `Sentry.cron.instrumentCron`, `instrumentNodeCron`, `instrumentNodeSchedule` and `wrapScheduledJob`, which already
+// send check-ins.
 const MONITORED = Symbol.for('sentry.cron.monitored');
 
 /**
@@ -65,7 +66,7 @@ export function subscribeToScheduleChange(
   channel.end.subscribe(handle(onChange));
 }
 
-/** Whether a job is named, not excluded, and not already monitored by `Sentry.cron.instrumentNode*` or `wrapScheduledJob`. */
+/** Whether a job is named, not excluded, and not already monitored by `Sentry.cron.instrument*` or `wrapScheduledJob`. */
 export function shouldMonitorJob(
   name: unknown,
   job: unknown,
@@ -88,6 +89,9 @@ const NICKNAMES: Record<string, string> = {
   '@daily': '0 0 * * *',
   '@midnight': '0 0 * * *',
   '@hourly': '0 * * * *',
+  '@minutely': '* * * * *',
+  '@weekdays': '0 0 * * 1-5',
+  '@weekends': '0 0 * * 0,6',
 };
 
 const MONTHS = ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec'];

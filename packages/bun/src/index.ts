@@ -143,6 +143,7 @@ export {
   // oxlint-disable-next-line typescript/no-deprecated
   setupKoaErrorHandler,
   genericPoolIntegration,
+  cronJobIntegration,
   nodeCronIntegration,
   nodeScheduleIntegration,
   graphqlIntegration,

@@ -15,6 +15,7 @@ describe('cronExpressionToMonitorConfig with node-cron day matching', () => {
     ['0 9 */2 * 1', '0 9 */2 * 1'],
     ['@daily', '0 0 * * *'],
     ['@Weekly', '0 0 * * 0'],
+    ['@weekdays', '0 0 * * 1-5'],
     ['*/15 * * * *', '*/15 * * * *'],
     ['0 9 * * sun', '0 9 * * 0'],
     ['0 9 * * sat-sun', '0 9 * * 6-7'],
