@@ -40,8 +40,10 @@ import {
 } from '@sentry/conventions/attributes';
 import { HTTP_SERVER } from '@sentry/conventions/op';
 
-// SvelteKit 3 moved `Handle` and `ResolveOptions` from `@sveltejs/kit` to `@sveltejs/kit/hooks`,
-// so we derive them from `sequence`, which `@sveltejs/kit/hooks` exports in both majors.
+/**
+ * SvelteKit's `Handle`, derived from `sequence` because `Handle` moved from `@sveltejs/kit` to
+ * `@sveltejs/kit/hooks` in SvelteKit 3 and neither import path type-checks against both majors.
+ */
 export type Handle = ReturnType<typeof sequence>;
 type ResolveOptions = NonNullable<Parameters<Parameters<Handle>[0]['resolve']>[1]>;
 
