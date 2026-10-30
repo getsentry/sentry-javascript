@@ -441,7 +441,7 @@ export function _sendInpSpan(
   const entryInteractionType = entry && INP_ENTRY_MAP[entry.name];
   const interactionType = entryInteractionType || 'click';
 
-  const cachedContext = entry && getCachedInteractionContext(entry.interactionId);
+  const cachedContext = getCachedInteractionContext(entry);
   const activeSpan = getActiveSpan();
   const rootSpan = activeSpan ? getRootSpan(activeSpan) : undefined;
 
@@ -466,7 +466,7 @@ export function _sendInpSpan(
   selector && selector !== UNKNOWN_ELEMENT_NAME && (attributes[BROWSER_WEB_VITAL_INP_TARGET] = selector);
   entryInteractionType && (attributes[BROWSER_WEB_VITAL_INP_INTERACTION_TYPE] = entryInteractionType);
 
-  cachedContext && Object.assign(attributes, getInpSubpartAttributes(cachedContext));
+  Object.assign(attributes, getInpSubpartAttributes(entry));
 
   if (componentName) {
     attributes[UI_COMPONENT_NAME] = componentName;

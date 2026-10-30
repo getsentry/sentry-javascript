@@ -73,7 +73,7 @@ describe('INP element name cache', () => {
 
     nameFor(42, 1000);
 
-    expect(getCachedInteractionContext(42)?.elementName).toBe('div#clicked');
+    expect(getCachedInteractionContext({ interactionId: 42 } as any)?.elementName).toBe('div#clicked');
   });
 
   it('replaces an unresolvable name with a real one from the same interaction', async () => {
@@ -86,7 +86,7 @@ describe('INP element name cache', () => {
 
     nameFor(43, 2000);
 
-    expect(getCachedInteractionContext(43)?.elementName).toBe('div#clicked');
+    expect(getCachedInteractionContext({ interactionId: 43 } as any)?.elementName).toBe('div#clicked');
   });
 
   it('reports an unresolvable name when nothing in the interaction resolves', async () => {
@@ -97,11 +97,11 @@ describe('INP element name cache', () => {
 
     nameFor(44, 3000);
 
-    expect(getCachedInteractionContext(44)?.elementName).toBe('<unknown>');
+    expect(getCachedInteractionContext({ interactionId: 44 } as any)?.elementName).toBe('<unknown>');
   });
 });
 
-describe('INP subpart timings', () => {
+describe('INP subparts', () => {
   beforeEach(() => {
     windowListeners.clear();
     performanceHandlers.clear();
@@ -120,39 +120,54 @@ describe('INP subpart timings', () => {
     };
   }
 
-  it('merges every event entry of an interaction seen by the observer', async () => {
-    const { getCachedInteractionContext, getInpSubpartAttributes, registerInpInteractionListener } = await loadInp();
-    registerInpInteractionListener();
+  async function observe(...entries: unknown[]) {
+    const inp = await loadInp();
+    inp.registerInpInteractionListener();
+    performanceHandlers.get('event')?.({ entries });
 
-    // The slow handler is on `click`, which starts after the `pointerdown` web-vitals keeps.
-    performanceHandlers.get('event')?.({
-      entries: [eventEntry(7, 500, 520, [505, 506]), eventEntry(7, 510, 504, [515, 965])],
-    });
+    return inp;
+  }
 
-    expect(getInpSubpartAttributes(getCachedInteractionContext(7)!)).toEqual({
+  it('merges every event presented in the same frame', async () => {
+    // The slow handler is on `click`, which starts after the `pointerdown` web-vitals reports.
+    const pointerdown = eventEntry(7, 500, 520, [505, 506]);
+    const { getInpSubpartAttributes } = await observe(pointerdown, eventEntry(7, 510, 504, [515, 965]));
+
+    expect(getInpSubpartAttributes(pointerdown as any)).toEqual({
       'browser.web_vital.inp.input_delay': 5,
       'browser.web_vital.inp.processing_duration': 460,
       'browser.web_vital.inp.presentation_delay': 55,
     });
   });
 
+  it('counts a handler of another event in the same frame as processing', async () => {
+    // A slow `pointerover` handler (not an interaction) was still running when the click came in.
+    const click = eventEntry(9, 500, 520, [905, 910]);
+    const { getInpSubpartAttributes } = await observe(eventEntry(0, 495, 525, [496, 900]), click);
+
+    expect(getInpSubpartAttributes(click as any)).toEqual({
+      'browser.web_vital.inp.input_delay': 0,
+      'browser.web_vital.inp.processing_duration': 410,
+      'browser.web_vital.inp.presentation_delay': 110,
+    });
+  });
+
   it('caps processing at the next paint so the subparts add up to the interaction', async () => {
-    const { getInpSubpartAttributes } = await loadInp();
-
     // A sync `alert()` in the handler keeps processing running long after the next paint.
-    const timing = {
-      span: undefined,
-      elementName: '',
-      startTime: 100,
-      processingStart: 120,
-      processingEnd: 900,
-      nextPaintTime: 300,
-    };
+    const entry = eventEntry(8, 100, 200, [120, 900]);
+    const { getInpSubpartAttributes } = await observe(entry);
 
-    expect(getInpSubpartAttributes(timing)).toEqual({
+    expect(getInpSubpartAttributes(entry as any)).toEqual({
       'browser.web_vital.inp.input_delay': 20,
       'browser.web_vital.inp.processing_duration': 180,
       'browser.web_vital.inp.presentation_delay': 0,
     });
+  });
+
+  it('ignores entries below the duration web-vitals observes INP with', async () => {
+    const entry = eventEntry(10, 100, 32, [105, 120]);
+    const { getInpSubpartAttributes } = await observe(entry);
+
+    expect(getInpSubpartAttributes(entry as any)).toBeUndefined();
   });
 });
