@@ -116,6 +116,7 @@ const BUILD_TIME_CASES: Case[] = [
   { specifier: '@sentry/nextjs/config', conditions: NODE, formats: BOTH },
   { specifier: '@sentry/nuxt/module', conditions: NODE, formats: ESM },
   { specifier: '@sentry/sveltekit/vite', conditions: NODE, formats: BOTH },
+  { specifier: '@sentry/astro/integration', conditions: NODE, formats: BOTH },
   { specifier: '@sentry/react-router/vite', conditions: NODE, formats: BOTH },
   { specifier: '@sentry/remix/vite', conditions: NODE, formats: BOTH },
   { specifier: '@sentry/solidstart/vite', conditions: NODE, formats: BOTH },
