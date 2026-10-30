@@ -24,7 +24,7 @@ describe('sentryVitePlugin', () => {
 
     const pluginNames = plugins.map(plugin => plugin.name);
 
-    expect(pluginNames).toEqual(expect.arrayContaining(['sentry-vite-plugin']));
+    expect(pluginNames).toEqual(['sentry-vite-plugin', 'sentry-vite-debug-id-sourcemaps']);
   });
 
   it('returns an array of Vite pluginswhen unplugin returns a single plugin', () => {
