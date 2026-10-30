@@ -1243,6 +1243,85 @@ describe.each(matrix)('Vercel AI integration (version %s)', (version, vercelAiVe
 
   createEsmTests(
     __dirname,
+    'scenario-stream-object.mjs',
+    'instrument.mjs',
+    (createRunner, test) => {
+      // Like `generateObject`, v7's native channel never publishes `streamObject`; v6 uses orchestrion.
+      test.skipIf(version === '7')(
+        'creates streamObject spans with the model call parented to invoke_agent',
+        async () => {
+          await createRunner()
+            .expect({
+              span: container => {
+                const segment = container.items.find(span => span.is_segment && span.name === 'main');
+                expect(segment).toBeDefined();
+                const spans = container.items.filter(
+                  span => span.attributes[SENTRY_ORIGIN]?.value === 'auto.ai.vercelai',
+                );
+
+                const invokeAgent = spans.find(span => span.attributes[SENTRY_OP]?.value === 'gen_ai.invoke_agent')!;
+                expect(invokeAgent.status).toBe('ok');
+                expect(invokeAgent.attributes['vercel.ai.operationId']?.value).toBe('ai.streamObject');
+                expect(invokeAgent.attributes[GEN_AI_USAGE_INPUT_TOKENS]?.value).toBe(15);
+                expect(invokeAgent.attributes[GEN_AI_USAGE_OUTPUT_TOKENS]?.value).toBe(25);
+                expect(invokeAgent.attributes[GEN_AI_USAGE_TOTAL_TOKENS]?.value).toBe(40);
+
+                const generateContent = spans.find(
+                  span => span.attributes[SENTRY_OP]?.value === 'gen_ai.generate_content',
+                )!;
+                expect(generateContent.status).toBe('ok');
+                expect(generateContent.parent_span_id).toBe(invokeAgent.span_id);
+                expect(generateContent.attributes['vercel.ai.operationId']?.value).toBe('ai.streamObject.doStream');
+                expect(generateContent.attributes[GEN_AI_REQUEST_MODEL]?.value).toBe('mock-model-id');
+                expect(generateContent.attributes[GEN_AI_USAGE_INPUT_TOKENS]?.value).toBe(15);
+                expect(generateContent.attributes[GEN_AI_USAGE_OUTPUT_TOKENS]?.value).toBe(25);
+              },
+            })
+            .unordered()
+            .start()
+            .completed();
+        },
+      );
+    },
+    {
+      additionalDependencies: {
+        ai: vercelAiVersion,
+      },
+    },
+  );
+
+  createEsmTests(
+    __dirname,
+    'scenario-stream-object-invalid.mjs',
+    'instrument.mjs',
+    (createRunner, test) => {
+      test.skipIf(version === '7')('marks streamObject as failed when the output fails the schema', async () => {
+        await createRunner()
+          .expect({
+            span: container => {
+              const invokeAgent = container.items.find(
+                span =>
+                  span.attributes[SENTRY_ORIGIN]?.value === 'auto.ai.vercelai' &&
+                  span.attributes[SENTRY_OP]?.value === 'gen_ai.invoke_agent',
+              )!;
+              expect(invokeAgent.attributes['vercel.ai.operationId']?.value).toBe('ai.streamObject');
+              expect(invokeAgent.status).toBe('error');
+            },
+          })
+          .unordered()
+          .start()
+          .completed();
+      });
+    },
+    {
+      additionalDependencies: {
+        ai: vercelAiVersion,
+      },
+    },
+  );
+
+  createEsmTests(
+    __dirname,
     'scenario-aborted-stream-text.mjs',
     'instrument-abort.mjs',
     (createRunner, test) => {
