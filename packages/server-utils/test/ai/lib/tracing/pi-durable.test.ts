@@ -52,7 +52,6 @@ import { createRuns, startRun } from '../../../../src/ai/pi-durable/runs';
 import { instrumentTool, markBuiltInTool } from '../../../../src/ai/pi-durable/tools';
 import type {
   PiCommitChange,
-  PiEventStream,
   PiHarnessOptions,
   PiLiveState,
   PiModels,
@@ -64,6 +63,7 @@ import type {
   PiToolExecutionApi,
   PiToolExecutionResult,
 } from '../../../../src/ai/pi-durable/types';
+import type { PiEventStream } from '../../../../src/ai/pi-ai/types';
 import { ANTHROPIC_AI_INTEGRATION_NAME } from '../../../../src/ai/anthropic-ai/constants';
 import { GOOGLE_GENAI_INTEGRATION_NAME } from '../../../../src/ai/google-genai/constants';
 import { OPENAI_INTEGRATION_NAME } from '../../../../src/ai/openai/constants';
