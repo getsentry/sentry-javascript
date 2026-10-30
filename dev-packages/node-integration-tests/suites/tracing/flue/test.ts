@@ -14,7 +14,10 @@ import {
   GEN_AI_USAGE_INPUT_TOKENS,
   GEN_AI_USAGE_OUTPUT_TOKENS,
   GEN_AI_USAGE_TOTAL_TOKENS,
+  SENTRY_OP,
+  SENTRY_ORIGIN,
 } from '@sentry/conventions/attributes';
+import { GEN_AI_CHAT, GEN_AI_EXECUTE_TOOL, GEN_AI_INVOKE_AGENT } from '@sentry/conventions/op';
 import { afterAll, describe, expect } from 'vitest';
 import { supports } from '../../../utils';
 import { cleanupChildProcesses, createEsmTests } from '../../../utils/runner';
@@ -39,7 +42,7 @@ describe.runIf(supports({ min: 22 }))('Flue integration', () => {
             // Counted rather than looked up: the interceptor skips the submission wrapper
             // operation, so one dispatch opens exactly one agent span, and each turn and tool call
             // is spanned once. `find` passes just as happily on a duplicate.
-            expect(spans.filter(span => span.attributes['sentry.origin']?.value === 'auto.ai.flue')).toHaveLength(4);
+            expect(spans.filter(span => span.attributes[SENTRY_ORIGIN]?.value === 'auto.ai.flue')).toHaveLength(4);
 
             const agents = spans.filter(span => span.name === 'invoke_agent Hello');
             const chats = spans.filter(span => span.name === 'chat faux-model');
@@ -50,7 +53,7 @@ describe.runIf(supports({ min: 22 }))('Flue integration', () => {
             expect(chats).toHaveLength(2);
 
             const agent = agents[0]!;
-            expect(agent.attributes['sentry.op']?.value).toBe('gen_ai.invoke_agent');
+            expect(agent.attributes[SENTRY_OP]?.value).toBe(GEN_AI_INVOKE_AGENT);
             expect(agent.attributes[GEN_AI_OPERATION_NAME]?.value).toBe('invoke_agent');
             expect(agent.attributes[GEN_AI_AGENT_NAME]?.value).toBe('Hello');
             expect(agent.parent_span_id).toBe(root.span_id);
@@ -61,8 +64,8 @@ describe.runIf(supports({ min: 22 }))('Flue integration', () => {
             // Both turns, not just the first: they leave the provider by different paths (a tool
             // call, then a final answer) and resolve their parent through separate tracker lookups.
             for (const chat of chats) {
-              expect(chat.attributes['sentry.op']?.value).toBe('gen_ai.chat');
-              expect(chat.attributes['sentry.origin']?.value).toBe('auto.ai.flue');
+              expect(chat.attributes[SENTRY_OP]?.value).toBe(GEN_AI_CHAT);
+              expect(chat.attributes[SENTRY_ORIGIN]?.value).toBe('auto.ai.flue');
               expect(chat.attributes[GEN_AI_OPERATION_NAME]?.value).toBe('chat');
               expect(chat.attributes[GEN_AI_CONVERSATION_ID]?.value).toBe(conversationId);
               expect(chat.parent_span_id).toBe(agent.span_id);
@@ -84,8 +87,8 @@ describe.runIf(supports({ min: 22 }))('Flue integration', () => {
             // The tool has to actually run: a schema mismatch still produces a correctly named and
             // parented span, so only the status separates a real call from a rejected one.
             expect(tool.status).toBe('ok');
-            expect(tool.attributes['sentry.op']?.value).toBe('gen_ai.execute_tool');
-            expect(tool.attributes['sentry.origin']?.value).toBe('auto.ai.flue');
+            expect(tool.attributes[SENTRY_OP]?.value).toBe(GEN_AI_EXECUTE_TOOL);
+            expect(tool.attributes[SENTRY_ORIGIN]?.value).toBe('auto.ai.flue');
             expect(tool.attributes[GEN_AI_TOOL_NAME]?.value).toBe('get_weather');
 
             // Tool spans are siblings of `chat` under the agent invocation, matching how Flue's
