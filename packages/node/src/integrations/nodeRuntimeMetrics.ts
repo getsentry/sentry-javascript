@@ -1,3 +1,4 @@
+import { SENTRY_ORIGIN } from '@sentry/conventions/attributes';
 import { monitorEventLoopDelay, performance } from 'perf_hooks';
 import { _INTERNAL_safeDateNow, defineIntegration, metrics } from '@sentry/core';
 import { _INTERNAL_safeUnref } from '@sentry/core/server';
@@ -138,9 +139,9 @@ export const nodeRuntimeMetricsIntegration = defineIntegration((options: NodeRun
   const resolutionNs = EVENT_LOOP_DELAY_RESOLUTION_MS * 1e6;
   const nsToS = (ns: number): number => Math.max(0, (ns - resolutionNs) / 1e9);
 
-  const METRIC_ATTRIBUTES = { attributes: { 'sentry.origin': 'auto.node.runtime_metrics' } };
-  const METRIC_ATTRIBUTES_BYTE = { unit: 'byte', attributes: { 'sentry.origin': 'auto.node.runtime_metrics' } };
-  const METRIC_ATTRIBUTES_SECOND = { unit: 'second', attributes: { 'sentry.origin': 'auto.node.runtime_metrics' } };
+  const METRIC_ATTRIBUTES = { attributes: { [SENTRY_ORIGIN]: 'auto.node.runtime_metrics' } };
+  const METRIC_ATTRIBUTES_BYTE = { unit: 'byte', attributes: { [SENTRY_ORIGIN]: 'auto.node.runtime_metrics' } };
+  const METRIC_ATTRIBUTES_SECOND = { unit: 'second', attributes: { [SENTRY_ORIGIN]: 'auto.node.runtime_metrics' } };
 
   function collectMetrics(): void {
     const now = _INTERNAL_safeDateNow();

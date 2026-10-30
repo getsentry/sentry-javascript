@@ -37,18 +37,15 @@ const NOOP = (): void => {};
 
 export function instrumentFirebase() {
   for (const { channel, spanName, useParent } of FIRESTORE_OPERATIONS) {
-    bindTracingChannelToSpan(
-      diagnosticsChannel.tracingChannel<OrchestrionChannelContext>(channel),
-      data =>
-        safeChannelCallback(() => {
-          const reference = data.arguments[0] as FirestoreReference | undefined;
-          if (!reference) {
-            return undefined;
-          }
-          const spanReference = useParent ? reference.parent || reference : reference;
-          return startFirestoreSpan(spanName, spanReference);
-        }),
-      { requiresParentSpan: true },
+    bindTracingChannelToSpan(diagnosticsChannel.tracingChannel<OrchestrionChannelContext>(channel), data =>
+      safeChannelCallback(() => {
+        const reference = data.arguments[0] as FirestoreReference | undefined;
+        if (!reference) {
+          return undefined;
+        }
+        const spanReference = useParent ? reference.parent || reference : reference;
+        return startFirestoreSpan(spanName, spanReference);
+      }),
     );
   }
 

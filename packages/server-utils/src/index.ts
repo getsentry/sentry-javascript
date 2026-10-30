@@ -38,6 +38,8 @@ export { anthropicAIIntegration } from './integrations/anthropic';
 export { awsIntegration } from './integrations/aws-sdk';
 export { dataloaderIntegration } from './integrations/dataloader';
 export { genericPoolIntegration } from './integrations/generic-pool';
+export { nodeCronIntegration } from './integrations/node-cron';
+export type { NodeCronIntegrationOptions } from './integrations/node-cron';
 export { googleGenAIIntegration } from './integrations/google-genai';
 export { graphqlIntegration } from './integrations/graphql';
 export { hapiIntegration } from './integrations/hapi';

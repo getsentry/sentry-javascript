@@ -76,7 +76,7 @@ function aggregateExceptionsFromError(
   // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/AggregateError
   if (isExceptionGroup(error)) {
     error.errors.forEach((childError, i) => {
-      if (isError(childError)) {
+      if (newExceptions.length < limit + 1 && isError(childError)) {
         applyExceptionGroupFieldsForParentException(exception, exceptionId, error);
         const newException = exceptionFromErrorImplementation(parser, childError);
         const newExceptionId = newExceptions.length;
@@ -102,7 +102,7 @@ function aggregateExceptionsFromError(
   if (isSuppressedError(error)) {
     ['error', 'suppressed'].forEach(property => {
       const childError = error[property];
-      if (isError(childError)) {
+      if (newExceptions.length < limit + 1 && isError(childError)) {
         applyExceptionGroupFieldsForParentException(exception, exceptionId, error);
         const newException = exceptionFromErrorImplementation(parser, childError);
         const newExceptionId = newExceptions.length;

@@ -93,6 +93,7 @@ export function startIORedisCommandSpan(
 
   return startInactiveSpan({
     name: cacheProperties?.name ?? streamedName ?? statement,
+    onlyIfParent: true,
     attributes: { ...attributes, ...cacheProperties?.attributes },
   });
 }
@@ -112,8 +113,6 @@ export function instrumentIoredis(options: RedisCacheOptions): void {
   );
 
   bindTracingChannelToSpan(commandChannel, data => startIORedisCommandSpan(data, options), {
-    // ioredis' `requireParentSpan` default: only create a span under an active span.
-    requiresParentSpan: true,
     beforeSpanEnd(span, data) {
       if (!('error' in data)) {
         applyCacheResponseAttributes(span, data.result);
@@ -121,19 +120,16 @@ export function instrumentIoredis(options: RedisCacheOptions): void {
     },
   });
 
-  bindTracingChannelToSpan(
-    connectChannel,
-    data => {
-      const { host, port } = getConnectionOptions(data.self);
-      return startInactiveSpan({
-        name: 'connect',
-        attributes: {
-          [SENTRY_KIND]: 'client',
-          ...connectionAttributes(host, port),
-          [SENTRY_OP]: DB,
-        },
-      });
-    },
-    { requiresParentSpan: true },
-  );
+  bindTracingChannelToSpan(connectChannel, data => {
+    const { host, port } = getConnectionOptions(data.self);
+    return startInactiveSpan({
+      name: 'connect',
+      onlyIfParent: true,
+      attributes: {
+        [SENTRY_KIND]: 'client',
+        ...connectionAttributes(host, port),
+        [SENTRY_OP]: DB,
+      },
+    });
+  });
 }

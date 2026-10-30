@@ -1,5 +1,10 @@
 import { expect, test } from '@playwright/test';
-import { collectStreamedSpansUntilSegment, getSpanOp, waitForStreamedSpan } from '@sentry-internal/test-utils';
+import {
+  collectStreamedSpansUntilSegment,
+  getSpanOp,
+  waitForEnvelopeItem,
+  waitForStreamedSpan,
+} from '@sentry-internal/test-utils';
 
 type StreamedSpan = Awaited<ReturnType<typeof waitForStreamedSpan>>;
 
@@ -65,7 +70,21 @@ test('Sends client-side Supabase db-operation spans to Sentry', async ({ page })
     );
   });
 
-  const insertSpanPromise = waitForStreamedSpan('supabase-nextjs', span => span.name === 'insert todos');
+  let insertSpanSent = false;
+  waitForStreamedSpan('supabase-nextjs', span => {
+    if (span.name === 'insert todos') {
+      insertSpanSent = true;
+    }
+    return false;
+  }).catch(() => {});
+
+  const clientReportPromise = waitForEnvelopeItem('supabase-nextjs', ([header, payload]) => {
+    if (header.type !== 'client_report') {
+      return false;
+    }
+    const { discarded_events } = payload as { discarded_events: Array<{ reason: string; category: string }> };
+    return discarded_events.some(e => e.reason === 'no_parent_span' && e.category === 'span');
+  });
 
   await page.goto('/');
 
@@ -78,15 +97,21 @@ test('Sends client-side Supabase db-operation spans to Sentry', async ({ page })
   // Wait for login to complete
   await page.waitForSelector('button:has-text("Add")');
 
-  // Add a new todo entry
-  await page.locator('input[id=new-task-text]').fill('test');
-  await page.locator('button[id=add-task]').click();
+  const [pageloadSpan, selectSpan] = await Promise.all([pageloadSpanPromise, selectSpanPromise]);
 
-  const [pageloadSpan, selectSpan, insertSpan] = await Promise.all([
-    pageloadSpanPromise,
-    selectSpanPromise,
-    insertSpanPromise,
-  ]);
+  // Add a new todo entry
+  const task = `test-${Date.now()}`;
+  await page.locator('input[id=new-task-text]').fill(task);
+  await page.locator('button[id=add-task]').click();
+  await page.getByText(task).waitFor();
+
+  // Hiding the page flushes the pending client report.
+  await page.evaluate(() => {
+    Object.defineProperty(document, 'visibilityState', { configurable: true, get: () => 'hidden' });
+    document.dispatchEvent(new Event('visibilitychange'));
+  });
+
+  await clientReportPromise;
 
   // Client-side database query data is collected by default.
   expectDbSpan(selectSpan, 'select todos', {
@@ -94,13 +119,10 @@ test('Sends client-side Supabase db-operation spans to Sentry', async ({ page })
     'db.query': { value: ['select(*)', 'filter(order, asc)'], type: 'array' },
   });
   expect(selectSpan.trace_id).toBe(pageloadSpan.trace_id);
+  expect(selectSpan.parent_span_id).toBe(pageloadSpan.span_id);
 
-  // The insert is triggered long after the pageload span has ended, so it is streamed on its own
-  // rather than as a child of the pageload span.
-  expectDbSpan(insertSpan, 'insert todos', {
-    'db.operation.name': { value: 'insert', type: 'string' },
-    'db.query': { value: ['select(*)'], type: 'array' },
-  });
+  // The insert runs after the pageload span has ended, so it has no parent and no span is sent.
+  expect(insertSpanSent).toBe(false);
 });
 
 test('Sends server-side Supabase db-operation spans to Sentry', async ({ baseURL }) => {

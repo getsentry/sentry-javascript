@@ -64,6 +64,7 @@ const NO_FETCH_INSTRUMENTATION = [
 // instrumentation creates no spans. Apps must be built with `@sentry/bun/plugin`.
 // See https://github.com/getsentry/sentry-javascript/issues/23882
 export const NO_AUTO_INSTRUMENTATION = [
+  'suites/cron/node-cron/integration/test.ts',
   'suites/express/**',
   'suites/fs-instrumentation/test.ts',
   'suites/hono/test.ts',

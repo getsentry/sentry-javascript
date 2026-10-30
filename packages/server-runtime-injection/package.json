@@ -49,8 +49,8 @@
     "@sentry/server-utils": "11.10.0"
   },
   "devDependencies": {
-    "@apm-js-collab/code-transformer": "^0.18.1",
-    "@apm-js-collab/tracing-hooks": "^0.13.3",
+    "@apm-js-collab/code-transformer": "^0.19.0",
+    "@apm-js-collab/tracing-hooks": "^0.14.0",
     "@sentry-internal/rollup-utils": "11.10.0",
     "@types/node": "^20.19.0",
     "@vercel/nft": "^1.11.0",
