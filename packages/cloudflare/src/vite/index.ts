@@ -5,7 +5,6 @@
 // expose it — same setup as `@sentry/server-utils/orchestrion/vite` itself.
 import { sentryOrchestrionPlugin } from '@sentry/server-utils/orchestrion/vite';
 import { sentryCloudflareAutoInstrumentPlugin } from './autoInstrument';
-import { sentryFlueRuntimeProviderPlugin } from './flueRuntime';
 import { sentryMastraObservabilityProviderPlugin } from './mastraObservability';
 
 /**
@@ -91,9 +90,11 @@ export function sentryCloudflareVitePlugin(options: SentryCloudflareVitePluginOp
       // dependency wrapped at module scope (`const app = new Hono()`) doesn't throw on workerd.
       dcModule: '@sentry/cloudflare/orchestrion-diagnostics-channel',
       transformOptimizedDeps: true,
+      // Flue is registered with its own `instrument()`, so `flueIntegration` needs the package's
+      // binding, which a bundled worker has no `node_modules` to resolve from.
+      selfProvidedModules: ['@flue/runtime'],
     }),
     sentryMastraObservabilityProviderPlugin(),
-    sentryFlueRuntimeProviderPlugin(),
     ...(options.autoInstrumentation !== false
       ? [sentryCloudflareAutoInstrumentPlugin({ wranglerConfigPath: options.wranglerConfigPath })]
       : []),

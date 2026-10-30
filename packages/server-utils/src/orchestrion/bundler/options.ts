@@ -43,6 +43,12 @@ export type PluginOptions = {
    * @default false
    */
   transformOptimizedDeps?: boolean;
+  /**
+   * Instrumented packages that publish their own namespace on `providedModules` when they evaluate,
+   * for integrations that register with a package rather than patch it (`@flue/runtime`). Off by
+   * default: where the app registers the package itself, the integration would register it again.
+   */
+  selfProvidedModules?: string[];
 };
 
 /**
@@ -89,7 +95,10 @@ export function orchestrionTransformOptions(
 ): CodeTransformerPluginOptions {
   return {
     instrumentations: [...SENTRY_INSTRUMENTATIONS, ...(options.instrumentations || [])],
-    customTransforms: { ...options.customTransforms, ...moduleInjectedTransforms() },
+    customTransforms: {
+      ...options.customTransforms,
+      ...moduleInjectedTransforms(undefined, { selfProvidedModules: options.selfProvidedModules }),
+    },
     ...(options.dcModule && { dcModule: options.dcModule }),
     ...(injectDiagnostics && { injectDiagnostics: () => ORCHESTRION_BUNDLER_MARKER_BANNER }),
   };

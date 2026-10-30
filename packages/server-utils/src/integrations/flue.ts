@@ -23,10 +23,10 @@ let registeredBinding: FlueInstrumentFn | undefined;
  *
  * Flue is registered rather than patched — `instrument()` writes into module-scope state — so this
  * needs a reference to that module's own binding. In a bundled worker there is no `node_modules` to
- * resolve one from, so `@sentry/cloudflare/vite` splices a static `@flue/runtime` import into this
- * module at build time and stashes the namespace on the global marker. Outside that setup the marker
- * is empty and this no-ops, leaving the user's own `instrument(Sentry.createFlueInstrumentation())`
- * as the way in.
+ * resolve one from, so `@sentry/cloudflare/vite` has `@flue/runtime` publish its own namespace on the
+ * global marker at build time, through a self-import its orchestrion transform splices in. Outside
+ * that setup the marker is empty and this no-ops, leaving the user's own
+ * `instrument(Sentry.createFlueInstrumentation())` as the way in.
  */
 const _flueIntegration = ((options: FlueOptions = {}) => {
   return {

@@ -80,11 +80,41 @@ function moduleInjectedSnippet(
   // `orchestrionModuleInjected`'s consumer still gets an Integration back from calling the stored
   // thunk. The point of the arrow is to defer the read of the `exportName` binding to when that thunk
   // runs (at `init()`), instead of reading it by reference the moment this snippet evaluates. A
-  // provided-module integration (e.g. `flueIntegration`) is imported back into its own instrumented
-  // package by `@sentry/*/vite`, so a direct reference here would close an import cycle and touch the
+  // provided-module integration (e.g. `mastraIntegration`) gets the package it needs imported into its
+  // own module by `@sentry/*/vite`, so a direct reference here can close an import cycle and touch the
   // binding in its TDZ ("Cannot access '…' before initialization"); deferring the read breaks that.
   const args = exportName ? `${JSON.stringify(moduleName)}, () => ${exportName}()` : JSON.stringify(moduleName);
   return `${importStmt}\n${MODULE_INJECTED_SINK} = orchestrionModuleInjected(${args});`;
+}
+
+/**
+ * Snippet that publishes an instrumented module's own namespace on the marker's `providedModules`,
+ * for packages instrumented by registration rather than patching (Flue's `instrument()`), whose
+ * integration needs a reference to the package itself.
+ *
+ * The module imports itself, so no edge is added to the module graph. Splicing the import into one
+ * of Sentry's modules instead would close a cycle through any instrumented package the provided one
+ * loads at module scope, since every instrumented module imports `@sentry/server-utils`. A getter,
+ * so the namespace is read at `init()`, not while the module is still evaluating.
+ */
+function selfProvidedSnippet(moduleName: string, filePath: string): string {
+  const marker = 'globalThis.__SENTRY_ORCHESTRION__';
+  const self = `./${filePath.split('/').pop()}`;
+  return (
+    `import * as __SENTRY_SELF_PROVIDED__ from ${JSON.stringify(self)};\n` +
+    `(${marker} = ${marker} || {});\n` +
+    `(${marker}.providedModules = ${marker}.providedModules || {});\n` +
+    `Object.defineProperty(${marker}.providedModules, ${JSON.stringify(moduleName)}, ` +
+    '{ configurable: true, enumerable: true, get() { return __SENTRY_SELF_PROVIDED__; } });'
+  );
+}
+
+export interface ModuleInjectedTransformsOptions {
+  /**
+   * Instrumented packages that publish their own namespace on `providedModules` when they evaluate.
+   * ESM only.
+   */
+  selfProvidedModules?: readonly string[];
 }
 
 /**
@@ -112,11 +142,12 @@ export function moduleInjectedTransforms(
   // absolute-path imports nor bare specifiers that don't resolve from the
   // importing file's location).
   importSpecifier?: string | (() => string | undefined),
+  { selfProvidedModules = [] }: ModuleInjectedTransformsOptions = {},
 ): Record<string, CustomTransform> {
   const spliceModuleInjected = (state: unknown, program: unknown): void => {
     const { moduleType, module } = state as {
       moduleType?: string;
-      module?: { name?: string };
+      module?: { name?: string; filePath?: string };
     };
 
     const node = program as ProgramNode;
@@ -134,8 +165,13 @@ export function moduleInjectedTransforms(
     const specifier =
       (typeof importSpecifier === 'function' ? importSpecifier() : importSpecifier) ?? DEFAULT_IMPORT_SPECIFIER;
     const exportName = subscriberExportForModule(moduleName);
-    const statements = parse(moduleInjectedSnippet(moduleName, exportName, moduleType === 'esm', specifier), {
-      module: moduleType === 'esm',
+    const esm = moduleType === 'esm';
+    const selfProvided =
+      esm && module?.filePath && selfProvidedModules.includes(moduleName)
+        ? `${selfProvidedSnippet(moduleName, module.filePath)}\n`
+        : '';
+    const statements = parse(selfProvided + moduleInjectedSnippet(moduleName, exportName, esm, specifier), {
+      module: esm,
       next: true,
     }).body as ProgramNode['body'];
 

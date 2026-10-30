@@ -24,13 +24,13 @@ export interface ProvidedModulePlugin {
 }
 
 export interface ProvidedModulePluginOptions {
-  /** Vite plugin name, e.g. `sentry-cloudflare-flue-runtime-provider`. */
+  /** Vite plugin name, e.g. `sentry-cloudflare-mastra-observability-provider`. */
   name: string;
-  /** Bare specifier of the package to provide, e.g. `@flue/runtime`. */
+  /** Bare specifier of the package to provide, e.g. `@mastra/observability`. */
   moduleName: string;
-  /** Namespace binding the injected import uses, e.g. `__SENTRY_FLUE_RUNTIME__`. */
+  /** Namespace binding the injected import uses, e.g. `__SENTRY_MASTRA_OBSERVABILITY__`. */
   identifier: string;
-  /** Basename of the `@sentry/server-utils` integration module to inject into, e.g. `flue`. */
+  /** Basename of the `@sentry/server-utils` integration module to inject into, e.g. `mastra`. */
   integrationModule: string;
 }
 
