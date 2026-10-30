@@ -110,8 +110,8 @@ test.describe('nested SSR routes (client, server, server request)', () => {
     expect(serverHTTPServerRequestSpan.trace_id).toEqual(traceId);
     expect(serverRequestHTTPClientSpan.trace_id).toEqual(traceId);
 
-    // serverPageRequest has no parent (root span)
-    expect(serverPageRequestSpan.parent_span_id).toBeUndefined();
+    // serverPageRequest's parent is the Cloudflare span of the request
+    expect(serverPageRequestSpan.parent_span_id).toMatch(/^[a-f0-9]{16}$/);
 
     // clientPageload's parent and serverRequestHTTPClient's parent is serverPageRequest
     expect(clientPageloadSpan.parent_span_id).toEqual(serverPageRequestSpan.span_id);

@@ -1,6 +1,7 @@
 import type { Contexts, Envelope, Event, SdkInfo } from '@sentry/core';
 import { SDK_VERSION } from '@sentry/core';
 import { expect } from 'vitest';
+import { supports } from './runtime';
 
 export const UUID_MATCHER = expect.stringMatching(/^[\da-f]{32}$/);
 export const UUID_V4_MATCHER = expect.stringMatching(
@@ -39,6 +40,7 @@ function defaultContexts(eventContexts: Contexts = {}): Contexts {
     trace: {
       trace_id: UUID_MATCHER,
       span_id: SHORT_UUID_MATCHER,
+      parent_span_id: supports({ minWorkerd: '1.20261009.1' }) ? SHORT_UUID_MATCHER : undefined,
     },
     cloud_resource: { 'cloud.provider': 'cloudflare' },
     culture: { timezone: expect.any(String) },

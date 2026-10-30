@@ -34,6 +34,7 @@ import type { CloudflareClient, CloudflareOptions } from './client';
 import type { ExecutionContextCompat } from './executionContext';
 import { flushAndDispose, getOriginalWaitUntil } from './flush';
 import { addCloudResourceContext, addCultureContext, addRequest } from './scope-utils';
+import { continueCloudflareTrace } from './utils/cloudflareTrace';
 import { getInvocationState, getInvocationWaitUntil } from './utils/invocationContext';
 import { withInvocationIsolationScope } from './utils/invocationScope';
 
@@ -267,6 +268,8 @@ export function wrapRequestHandlerWithInit(
     return continueTrace(
       { sentryTrace: request.headers.get('sentry-trace') || '', baggage: request.headers.get('baggage') },
       () => {
+        continueCloudflareTrace(context);
+
         if (!createSpan) {
           return respond(undefined);
         }

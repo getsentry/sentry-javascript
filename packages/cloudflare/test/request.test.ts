@@ -687,6 +687,132 @@ describe('withSentry', () => {
         links: undefined,
       });
     });
+
+    describe('with a Cloudflare trace', () => {
+      const CLOUDFLARE_TRACE_ID = 'a1b2c3d4e5f60718293a4b5c6d7e8f90';
+      const CLOUDFLARE_SPAN_ID = 'b1c2d3e4f5a60718';
+      const CLOUDFLARE_TRACING = {
+        getActiveSpan: () => ({
+          isTraced: true,
+          spanContext: () => ({ traceId: CLOUDFLARE_TRACE_ID, spanId: CLOUDFLARE_SPAN_ID, traceFlags: 1 }),
+        }),
+      };
+
+      test.each([0, undefined])('attaches errors to the Cloudflare trace with tracesSampleRate %s', async rate => {
+        let sentryEvent: Event = {};
+        await wrapRequestHandler(
+          {
+            options: {
+              dsn: MOCK_OPTIONS.dsn,
+              cacheClient: false,
+              tracesSampleRate: rate,
+              beforeSend(event) {
+                sentryEvent = event;
+                return null;
+              },
+            },
+            request: new Request('https://example.com'),
+            context: { ...createMockExecutionContext(), tracing: CLOUDFLARE_TRACING } as unknown as ExecutionContext,
+          },
+          () => {
+            SentryCore.captureException(new Error('test'));
+            return new Response('test');
+          },
+        );
+
+        expect(sentryEvent.contexts?.trace?.trace_id).toBe(CLOUDFLARE_TRACE_ID);
+      });
+
+      test('makes the request span a child of the Cloudflare span', async () => {
+        let rootSpan: ReturnType<typeof SentryCore.spanToJSON> | undefined;
+        await wrapRequestHandler(
+          {
+            options: { dsn: MOCK_OPTIONS.dsn, cacheClient: false, tracesSampleRate: 1 },
+            request: new Request('https://example.com'),
+            context: { ...createMockExecutionContext(), tracing: CLOUDFLARE_TRACING } as unknown as ExecutionContext,
+          },
+          () => {
+            rootSpan = SentryCore.spanToJSON(SentryCore.getRootSpan(SentryCore.getActiveSpan()!));
+            return new Response('test');
+          },
+        );
+
+        expect(rootSpan?.trace_id).toBe(CLOUDFLARE_TRACE_ID);
+        expect(rootSpan?.parent_span_id).toBe(CLOUDFLARE_SPAN_ID);
+      });
+
+      test('prefers an incoming sentry-trace header', async () => {
+        const request = new Request('https://example.com');
+        request.headers.set('sentry-trace', '12312012123120121231201212312012-1121201211212012');
+
+        let sentryEvent: Event = {};
+        await wrapRequestHandler(
+          {
+            options: {
+              dsn: MOCK_OPTIONS.dsn,
+              cacheClient: false,
+              beforeSend(event) {
+                sentryEvent = event;
+                return null;
+              },
+            },
+            request,
+            context: { ...createMockExecutionContext(), tracing: CLOUDFLARE_TRACING } as unknown as ExecutionContext,
+          },
+          () => {
+            SentryCore.captureException(new Error('test'));
+            return new Response('test');
+          },
+        );
+
+        expect(sentryEvent.contexts?.trace?.trace_id).toBe('12312012123120121231201212312012');
+      });
+
+      test.each([
+        {
+          reason: 'the org ids do not match',
+          headers: {
+            'sentry-trace': '12312012123120121231201212312012-1121201211212012-1',
+            baggage: 'sentry-trace_id=12312012123120121231201212312012,sentry-org_id=2',
+          },
+          options: {},
+        },
+        {
+          reason: 'strictTraceContinuation is set and the baggage has no org id',
+          headers: { 'sentry-trace': '12312012123120121231201212312012-1121201211212012-1' },
+          options: { strictTraceContinuation: true },
+        },
+        {
+          reason: 'the sentry-trace header is malformed',
+          headers: { 'sentry-trace': 'not-a-sentry-trace' },
+          options: {},
+        },
+      ])('uses the Cloudflare trace when $reason', async ({ headers, options }) => {
+        let sentryEvent: Event = {};
+        await wrapRequestHandler(
+          {
+            options: {
+              dsn: 'https://public@o1.ingest.sentry.io/1337',
+              cacheClient: false,
+              ...options,
+              beforeSend(event) {
+                sentryEvent = event;
+                return null;
+              },
+            },
+            request: new Request('https://example.com', { headers }),
+            context: { ...createMockExecutionContext(), tracing: CLOUDFLARE_TRACING } as unknown as ExecutionContext,
+          },
+          () => {
+            SentryCore.captureException(new Error('test'));
+            return new Response('test');
+          },
+        );
+
+        expect(sentryEvent.contexts?.trace?.trace_id).toBe(CLOUDFLARE_TRACE_ID);
+        expect(sentryEvent.contexts?.trace?.parent_span_id).toBe(CLOUDFLARE_SPAN_ID);
+      });
+    });
   });
 
   describe('httpServerIntegration span options', () => {
