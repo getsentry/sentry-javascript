@@ -12,6 +12,8 @@ export {
   type ExpressIntegrationOptions,
   firebaseIntegration,
   genericPoolIntegration,
+  nodeCronIntegration,
+  type NodeCronIntegrationOptions,
   googleGenAIIntegration,
   graphqlIntegration,
   groqIntegration,

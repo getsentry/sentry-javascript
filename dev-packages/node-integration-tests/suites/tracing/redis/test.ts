@@ -92,16 +92,10 @@ describeWithDockerCompose('redis auto instrumentation', { workingDirectory: [__d
         await createTestRunner()
           .expect({
             span: container => {
-              expect(container.items.filter(item => item.is_segment).map(item => item.name)).toEqual([
-                'connect',
-                'Test Span',
-              ]);
+              const segmentSpan = container.items.find(item => item.is_segment);
+              expect(segmentSpan?.name).toBe('Test Span');
 
-              const dbSpans = container.items.filter(
-                item =>
-                  item.attributes[SENTRY_OP]?.value === redisSpanOp &&
-                  item.attributes[SENTRY_SEGMENT_NAME]?.value === 'Test Span',
-              );
+              const dbSpans = container.items.filter(item => item.attributes[SENTRY_OP]?.value === redisSpanOp);
 
               expect(dbSpans).toEqual([
                 expectedDbSpan({ operation: 'set', statement: 'set test-key [1 other arguments]' }),

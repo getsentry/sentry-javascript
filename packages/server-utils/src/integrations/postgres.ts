@@ -10,6 +10,7 @@ import {
   SERVER_ADDRESS,
   SERVER_PORT,
   SENTRY_ORIGIN,
+  DB_CONNECTION_STRING,
 } from '@sentry/conventions/attributes';
 import { DB } from '@sentry/conventions/op';
 import type { IntegrationFn, Scope, SpanAttributes } from '@sentry/core';
@@ -37,9 +38,6 @@ const INTEGRATION_NAME = 'Postgres' as const;
 // so they default to 'manual').
 const ORIGIN = 'auto.db.postgres';
 
-// `db.connection_string` is not part of `@sentry/conventions`, so it stays
-// inlined, keeping this integration free of `@opentelemetry/*` deps.
-const ATTR_DB_CONNECTION_STRING = 'db.connection_string';
 const ATTR_PG_PLAN = 'db.postgresql.plan';
 const ATTR_PG_IDLE_TIMEOUT = 'db.postgresql.idle.timeout.millis';
 const ATTR_PG_MAX_CLIENT = 'db.postgresql.max.client';
@@ -142,8 +140,8 @@ function subscribeQueryLikeChannel(
       // `sentry.kind` matches across the OTel and diagnostics-channel paths.
       const spanOptions = getSpanOptions(data);
       return startInactiveSpan({
-        onlyIfParent: channelName !== CHANNELS.PG_CONNECT && channelName !== CHANNELS.PGPOOL_CONNECT,
         ...spanOptions,
+        onlyIfParent: true,
         attributes: { ...spanOptions.attributes, [SENTRY_KIND]: 'client' },
       });
     },
@@ -252,7 +250,8 @@ export function getConnectionAttributes(params: PgConnectionParams): SpanAttribu
 }
 
 function getPgConnectionAttributes(params: PgConnectionParams): SpanAttributes {
-  return { ...getConnectionAttributes(params), [ATTR_DB_CONNECTION_STRING]: getConnectionString(params) };
+  // oxlint-disable-next-line typescript/no-deprecated -- Preserve the existing attribute name.
+  return { ...getConnectionAttributes(params), [DB_CONNECTION_STRING]: getConnectionString(params) };
 }
 
 function getPoolConnectionAttributes(opts: PgPoolOptions): SpanAttributes {
@@ -271,7 +270,8 @@ function getPoolConnectionAttributes(opts: PgPoolOptions): SpanAttributes {
   const user = url?.username || opts.user;
   return {
     [DB_SYSTEM_NAME]: DB_SYSTEM_POSTGRESQL,
-    [ATTR_DB_CONNECTION_STRING]: getConnectionString(opts),
+    // oxlint-disable-next-line typescript/no-deprecated -- Preserve the existing attribute name.
+    [DB_CONNECTION_STRING]: getConnectionString(opts),
     [ATTR_PG_IDLE_TIMEOUT]: opts.idleTimeoutMillis,
     [ATTR_PG_MAX_CLIENT]: opts.max,
     [DB_NAMESPACE]: database,

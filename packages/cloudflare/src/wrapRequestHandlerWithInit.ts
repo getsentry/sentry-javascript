@@ -4,6 +4,8 @@ import {
   NETWORK_PROTOCOL_VERSION,
   SENTRY_OP,
   SENTRY_SEGMENT_NAME_SOURCE,
+  HTTP_REQUEST_BODY_SIZE,
+  USER_AGENT_ORIGINAL,
 } from '@sentry/conventions/attributes';
 import { HTTP_SERVER } from '@sentry/conventions/op';
 import type { Span } from '@sentry/core';
@@ -113,12 +115,12 @@ export function wrapRequestHandlerWithInit(
 
     const contentLength = request.headers.get('content-length');
     if (contentLength) {
-      attributes['http.request.body.size'] = parseInt(contentLength, 10);
+      attributes[HTTP_REQUEST_BODY_SIZE] = parseInt(contentLength, 10);
     }
 
     const userAgentHeader = request.headers.get('user-agent');
     if (userAgentHeader) {
-      attributes['user_agent.original'] = userAgentHeader;
+      attributes[USER_AGENT_ORIGINAL] = userAgentHeader;
     }
 
     if (client) {

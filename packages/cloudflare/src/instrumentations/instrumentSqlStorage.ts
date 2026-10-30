@@ -1,5 +1,13 @@
 import type { SqlStorage } from '@cloudflare/workers-types';
-import { SENTRY_OP, SENTRY_ORIGIN } from '@sentry/conventions/attributes';
+import {
+  SENTRY_OP,
+  SENTRY_ORIGIN,
+  CLOUDFLARE_DURABLE_OBJECT_QUERY_BINDINGS,
+  DB_OPERATION_NAME,
+  DB_QUERY_SUMMARY,
+  DB_QUERY_TEXT,
+  DB_SYSTEM_NAME,
+} from '@sentry/conventions/attributes';
 import { DB_QUERY } from '@sentry/conventions/op';
 import { getActiveSpan, getClient, hasSpansEnabled, spanIsSampled, startSpan } from '@sentry/core';
 import { getSqlQuerySummary, sanitizeSqlQuery } from '@sentry/server-utils';
@@ -9,8 +17,8 @@ import { mayTargetCloudflareInternalTable, targetsCloudflareInternalTable } from
 const SPAN_ATTRIBUTES = {
   [SENTRY_OP]: DB_QUERY,
   [SENTRY_ORIGIN]: 'auto.db.cloudflare.durable_object_sql',
-  'db.system.name': 'cloudflare-durable-object-sql',
-  'db.operation.name': 'exec',
+  [DB_SYSTEM_NAME]: 'cloudflare-durable-object-sql',
+  [DB_OPERATION_NAME]: 'exec',
 };
 
 /**
@@ -59,9 +67,9 @@ export function instrumentSqlStorage(sql: SqlStorage): SqlStorage {
             onlyIfParent: true,
             attributes: {
               ...SPAN_ATTRIBUTES,
-              'db.query.text': sanitizedQuery,
-              'db.query.summary': querySummary,
-              'cloudflare.durable_object.query.bindings': bindings.length,
+              [DB_QUERY_TEXT]: sanitizedQuery,
+              [DB_QUERY_SUMMARY]: querySummary,
+              [CLOUDFLARE_DURABLE_OBJECT_QUERY_BINDINGS]: bindings.length,
             },
           },
           callOriginal,

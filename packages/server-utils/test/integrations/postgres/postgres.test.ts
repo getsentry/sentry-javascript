@@ -63,13 +63,6 @@ function installTestAsyncContextStrategy(): void {
   });
 }
 
-// The subscriber builds spans via `startInactiveSpan` and gates on
-// `getActiveSpan`. We spy both: `getActiveSpan` to satisfy the
-// requireParentSpan gate, and `startInactiveSpan` to capture the span
-// options the subscriber builds (name + raw attributes) and to track the
-// span's lifecycle. The final `db` op / SQL description come from the
-// SDK's `inferDbSpanData` processor, which isn't wired up here. That's
-// covered by the integration test.
 function makeSpan(): Span {
   return { end: vi.fn(), setStatus: vi.fn(), setAttributes: vi.fn() } as unknown as Span;
 }
@@ -98,7 +91,6 @@ describe('postgresIntegration', () => {
   beforeEach(() => {
     span = makeSpan();
     startInactiveSpanSpy = vi.spyOn(SentryCore, 'startInactiveSpan').mockReturnValue(span);
-    // A truthy active span by default, so the requireParentSpan gate passes.
     getActiveSpanSpy = vi.spyOn(SentryCore, 'getActiveSpan').mockReturnValue({} as Span);
   });
 
@@ -171,7 +163,6 @@ describe('postgresIntegration', () => {
   });
 
   it('connect: builds a `pg.connect` span with no origin (defaults to manual)', async () => {
-    getActiveSpanSpy.mockReturnValue(undefined);
     const ctx: OrchestrionChannelContext = { arguments: [], self: { connectionParameters: CONNECTION } };
 
     await tracingChannel(CHANNELS.PG_CONNECT).tracePromise(async () => undefined, ctx);
@@ -179,7 +170,6 @@ describe('postgresIntegration', () => {
     expect(startInactiveSpanSpy).toHaveBeenCalledWith(
       expect.objectContaining({
         name: 'pg.connect',
-        onlyIfParent: false,
         attributes: expect.objectContaining({
           'sentry.op': 'db',
           'db.system.name': 'postgresql',
@@ -194,7 +184,6 @@ describe('postgresIntegration', () => {
   });
 
   it('pool connect: builds a `pg-pool.connect` span with masked connection string + pool attributes', async () => {
-    getActiveSpanSpy.mockReturnValue(undefined);
     const ctx: OrchestrionChannelContext = {
       arguments: [],
       self: {
@@ -212,7 +201,6 @@ describe('postgresIntegration', () => {
     expect(startInactiveSpanSpy).toHaveBeenCalledWith(
       expect.objectContaining({
         name: 'pg-pool.connect',
-        onlyIfParent: false,
         attributes: expect.objectContaining({
           'sentry.op': 'db',
           'db.system.name': 'postgresql',
@@ -255,7 +243,7 @@ describe('postgresIntegration', () => {
     );
   });
 
-  it('requires a parent when starting a query span', async () => {
+  it('does not create a recording span without an active parent span', async () => {
     getActiveSpanSpy.mockReturnValue(undefined);
     const ctx: OrchestrionChannelContext = { arguments: ['SELECT 1'], self: { connectionParameters: CONNECTION } };
 

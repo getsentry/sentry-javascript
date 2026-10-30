@@ -8,6 +8,7 @@ import {
   SENTRY_KIND,
   SENTRY_OP,
   SENTRY_ORIGIN,
+  DB_RESPONSE_STATUS_CODE,
 } from '@sentry/conventions/attributes';
 import { DB } from '@sentry/conventions/op';
 import type { IntegrationFn, Span } from '@sentry/core';
@@ -41,10 +42,6 @@ const INTEGRATION_NAME = 'PostgresJs' as const;
 const ORIGIN = 'auto.db.postgresjs';
 
 const DB_SYSTEM_NAME_POSTGRES = 'postgres';
-
-// Not part of `@sentry/conventions`, so we keep it inline (matches older OTel
-// `PostgresJsInstrumentation`).
-const DB_RESPONSE_STATUS_CODE = 'db.response.status_code';
 
 const NOOP = (): void => {};
 
@@ -293,8 +290,8 @@ function instrumentPostgresJs(options: PostgresJsIntegrationOptions): void {
 
       // `sentry.kind: client` matches the mysql/pg channel subscribers.
       const span = startInactiveSpan({
-        onlyIfParent: requireParentSpan !== false,
         name,
+        onlyIfParent: requireParentSpan !== false,
         attributes: {
           [SENTRY_OP]: DB,
           [SENTRY_KIND]: 'client',

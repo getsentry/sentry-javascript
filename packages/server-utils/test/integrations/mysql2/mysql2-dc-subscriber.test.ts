@@ -102,7 +102,7 @@ function installTestAsyncContextStrategy(): void {
 
 /**
  * Drives a channel's `tracePromise` inside an enclosing span and captures the span bound by the
- * subscriber. The subscriber only creates a span when there is an enclosing active span, so the
+ * subscriber. The subscriber only creates a recording span when there is an enclosing active span, so the
  * helper always establishes one and returns its id for parenting assertions.
  */
 async function traceOperation(
@@ -168,7 +168,7 @@ describe('subscribeMysql2DiagnosticChannels', () => {
     vi.clearAllMocks();
   });
 
-  it('activates a non-recording span when there is no enclosing active span', async () => {
+  it('does not create a recording span when there is no enclosing active span', async () => {
     const channel = tracingChannel(MYSQL2_DC_CHANNEL_QUERY);
     let span: Span | undefined;
 
@@ -179,6 +179,7 @@ describe('subscribeMysql2DiagnosticChannels', () => {
       { query: 'SELECT 1' },
     );
 
+    expect(span).toBeDefined();
     expect(span?.isRecording()).toBe(false);
   });
 
@@ -349,16 +350,11 @@ describe('subscribeMysql2DiagnosticChannels', () => {
 
   describe('connect channels', () => {
     it('creates a connect span without db.query.text', async () => {
-      let span: Span | undefined;
-      await tracingChannel(MYSQL2_DC_CHANNEL_CONNECT).tracePromise(
-        async () => {
-          span = getActiveSpan();
-          expect(span?.isRecording()).toBe(true);
-        },
+      const { span } = await traceOperation(
+        MYSQL2_DC_CHANNEL_CONNECT,
         { database: 'test', serverAddress: '127.0.0.1', serverPort: 3306, user: 'root' },
+        { result: undefined },
       );
-
-      expect(spanToJSON(span!).parent_span_id).toBeUndefined();
 
       const json = spanToJSON(span!);
       expect(json.name).toBe('mysql2.connect');
@@ -372,16 +368,11 @@ describe('subscribeMysql2DiagnosticChannels', () => {
     });
 
     it('names the pool connect span distinctly', async () => {
-      let span: Span | undefined;
-      await tracingChannel(MYSQL2_DC_CHANNEL_POOL_CONNECT).tracePromise(
-        async () => {
-          span = getActiveSpan();
-          expect(span?.isRecording()).toBe(true);
-        },
+      const { span } = await traceOperation(
+        MYSQL2_DC_CHANNEL_POOL_CONNECT,
         { database: 'test', serverAddress: '127.0.0.1', serverPort: 3306 },
+        { result: undefined },
       );
-
-      expect(spanToJSON(span!).parent_span_id).toBeUndefined();
 
       expect(spanToJSON(span!).name).toBe('mysql2.pool.connect');
     });

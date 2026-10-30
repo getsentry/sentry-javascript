@@ -153,12 +153,7 @@ describeWithDockerCompose('redis cache auto instrumentation', { workingDirectory
 
     createEsmAndCjsTests(__dirname, 'scenario-ioredis.mjs', 'instrument-ioredis.mjs', (createTestRunner, test) => {
       test('should create cache spans for prefixed keys (ioredis)', { timeout: 60_000 }, async () => {
-        await createTestRunner()
-          .unordered()
-          .expect({ transaction: { transaction: 'connect' } })
-          .expect({ transaction: EXPECTED_TRANSACTION })
-          .start()
-          .completed();
+        await createTestRunner().expect({ transaction: EXPECTED_TRANSACTION }).start().completed();
       });
     });
   });
@@ -243,14 +238,9 @@ describeWithDockerCompose('redis cache auto instrumentation', { workingDirectory
             .withEnv({ STREAMED: 'true' })
             .expect({
               span: container => {
-                expect(container.items.filter(item => item.is_segment).map(item => item.name)).toEqual([
-                  'connect',
-                  segmentName,
-                ]);
+                expect(container.items.find(item => item.is_segment)?.name).toBe(segmentName);
 
-                expect(
-                  childSpans(container).filter(item => item.attributes[SENTRY_SEGMENT_NAME]?.value === segmentName),
-                ).toEqual([
+                expect(childSpans(container)).toEqual([
                   span('set localhost:6383', redisSpanOp, {
                     [DB_OPERATION_NAME]: 'set',
                     [DB_QUERY_TEXT]: 'set test-key [1 other arguments]',

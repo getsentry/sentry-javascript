@@ -92,8 +92,8 @@ export function startIORedisCommandSpan(
   const cacheProperties = getRedisCacheAttributes(command.name, command.args ?? [], attributes, cacheOptions);
 
   return startInactiveSpan({
-    onlyIfParent: true,
     name: cacheProperties?.name ?? streamedName ?? statement,
+    onlyIfParent: true,
     attributes: { ...attributes, ...cacheProperties?.attributes },
   });
 }
@@ -124,6 +124,7 @@ export function instrumentIoredis(options: RedisCacheOptions): void {
     const { host, port } = getConnectionOptions(data.self);
     return startInactiveSpan({
       name: 'connect',
+      onlyIfParent: true,
       attributes: {
         [SENTRY_KIND]: 'client',
         ...connectionAttributes(host, port),

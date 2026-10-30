@@ -67,8 +67,8 @@ function startOperationSpan(method: string, data: PrismaTerminalChannelContext):
   const table = stringOrUndefined(data.self?.tableName);
 
   const span = startInactiveSpan({
-    onlyIfParent: true,
     name: OPERATION_SPAN_NAME,
+    onlyIfParent: true,
     parentSpan,
     attributes: {
       [SENTRY_ORIGIN]: PRISMA_ORIGIN,

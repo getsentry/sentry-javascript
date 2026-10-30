@@ -154,7 +154,7 @@ describe('neonIntegration', () => {
       expect(span.end).toHaveBeenCalledTimes(1);
     });
 
-    it('requires a parent when starting a query span', async () => {
+    it('does not create a recording span without a parent span', async () => {
       getActiveSpanSpy.mockReturnValue(undefined);
       const ctx: ChannelContext = { arguments: ['SELECT 1'], self: { connectionParameters: CONNECTION } };
 

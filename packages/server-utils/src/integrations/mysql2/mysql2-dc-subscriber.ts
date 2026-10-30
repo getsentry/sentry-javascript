@@ -106,8 +106,8 @@ function setupQueryChannel(tracingChannel: MySQL2TracingChannelFactory, channelN
         : queryText || 'mysql2.query';
 
     return startInactiveSpan({
-      onlyIfParent: true,
       name,
+      onlyIfParent: true,
       attributes: {
         [SENTRY_ORIGIN]: ORIGIN,
         [SENTRY_OP]: DB,
@@ -127,6 +127,7 @@ function setupConnectChannel(tracingChannel: MySQL2TracingChannelFactory, channe
   bindTracingChannelToSpan(tracingChannel<MySQL2ConnectData>(channelName), data => {
     return startInactiveSpan({
       name: spanName,
+      onlyIfParent: true,
       attributes: {
         [SENTRY_ORIGIN]: ORIGIN,
         [SENTRY_OP]: DB,

@@ -189,7 +189,6 @@ function createResolvedEngineSpans(): void {
 
       const attributes = buildSpanAttributes(engineSpan.name, engineSpan.attributes);
       const span = startInactiveSpan({
-        onlyIfParent: true,
         name: buildSpanName(engineSpan.name, attributes),
         attributes: {
           ...attributes,

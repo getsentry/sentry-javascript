@@ -1,4 +1,13 @@
-import { CACHE_HIT, CACHE_KEY, CACHE_OPERATION, SENTRY_OP, SENTRY_ORIGIN } from '@sentry/conventions/attributes';
+import {
+  CACHE_HIT,
+  CACHE_KEY,
+  CACHE_OPERATION,
+  SENTRY_OP,
+  SENTRY_ORIGIN,
+  DB_COLLECTION_NAME,
+  DB_OPERATION_NAME,
+  DB_SYSTEM_NAME,
+} from '@sentry/conventions/attributes';
 import { CACHE_GET, CACHE_PUT, CACHE_REMOVE } from '@sentry/conventions/op';
 import {
   CACHE_OPERATION_NAMES,
@@ -240,9 +249,9 @@ function createSpanStartOptions(
     [CACHE_OPERATION]: cacheOperationName,
     [SENTRY_ORIGIN]: 'auto.cache.nuxt',
     [CACHE_KEY]: keys.length > 1 ? keys : keys[0],
-    'db.operation.name': methodName,
-    'db.collection.name': mountBase.replace(/:$/, ''),
-    'db.system.name': driver.name ?? 'unknown',
+    [DB_OPERATION_NAME]: methodName,
+    [DB_COLLECTION_NAME]: mountBase.replace(/:$/, ''),
+    [DB_SYSTEM_NAME]: driver.name ?? 'unknown',
   };
 
   const client = getClient();

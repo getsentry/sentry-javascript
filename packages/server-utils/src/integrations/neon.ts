@@ -61,7 +61,7 @@ function instrumentNeon(): void {
   bindPgQueryChannel(CHANNELS.NEON_QUERY, { origin: ORIGIN });
 
   bindTracingChannelToSpan(diagnosticsChannel.tracingChannel<NeonHttpQueryContext>(CHANNELS.NEON_HTTP_QUERY), data => {
-    const span = startInactiveSpan({ ...httpQuerySpanOptions(data.arguments), onlyIfParent: true });
+    const span = startInactiveSpan(httpQuerySpanOptions(data.arguments));
     httpQuerySpans.add(span);
     return span;
   });
@@ -105,6 +105,7 @@ function httpQuerySpanOptions(args: unknown[]): Parameters<typeof startInactiveS
 
   return {
     name,
+    onlyIfParent: true,
     attributes: {
       [SENTRY_OP]: DB,
       [SENTRY_ORIGIN]: ORIGIN,

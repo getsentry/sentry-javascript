@@ -86,8 +86,8 @@ function subscribeQueryChannel(channelName: ChannelName): void {
         : (queryText ?? 'mysql2.query');
 
     return startInactiveSpan({
-      onlyIfParent: true,
       name,
+      onlyIfParent: true,
       attributes: {
         [SENTRY_KIND]: 'client',
         [SENTRY_ORIGIN]: ORIGIN,
