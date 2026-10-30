@@ -182,8 +182,8 @@ function subscribeQuery(): void {
       };
 
       const spanName = getSqlSpanName(queryAttributes, {
-        streamed: getSecondaryStreamName(dbSystem, dbNameSpace, operation, table),
-        static: getName(dbNameSpace, operation, table) ?? 'knex.query',
+        streamed: dbNameSpace || dbSystem || 'knex.query',
+        static: 'knex.query',
       });
 
       return startInactiveSpan({
@@ -254,40 +254,6 @@ function mapSystem(driverName: string | undefined): string | undefined {
     return DB_SYSTEM_POSTGRESQL;
   }
   return driverName;
-}
-
-function getName(db: string | undefined, operation?: string, table?: string): string | undefined {
-  // `db` can be undefined when the database can't be determined from the knex config. Guard against
-  // interpolating it (which would emit the literal "undefined") and let the call site fall back.
-  if (operation && db) {
-    return table ? `${operation} ${db}.${table}` : `${operation} ${db}`;
-  }
-  return db;
-}
-
-function getSecondaryStreamName(
-  dbSystem: string | undefined,
-  dbNameSpace: string | undefined,
-  operation?: string,
-  table?: string,
-): string {
-  if (operation) {
-    if (table) {
-      return `${operation} ${table}`;
-    }
-    if (dbNameSpace) {
-      return `${operation} ${dbNameSpace}`;
-    }
-  }
-  if (table) {
-    return table;
-  }
-  if (dbNameSpace) {
-    return dbNameSpace;
-  }
-  // Mirrors the postgres integration, which falls back to `{db.system.name}` rather than to a static
-  // name. `db.system.name` is only unset when the knex client reports no driver.
-  return dbSystem ?? 'knex.query';
 }
 
 function extractTableName(builder: KnexBuilder | undefined): string | undefined {
