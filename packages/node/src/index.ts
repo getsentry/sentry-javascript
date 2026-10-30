@@ -28,6 +28,7 @@ export {
   lruMemoizerIntegration,
   createFlueInstrumentation,
   mastraIntegration,
+  piAiIntegration,
   piDurableIntegration,
   mcpServerIntegration,
   SentryMastraExporter,
