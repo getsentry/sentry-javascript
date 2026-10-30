@@ -1,5 +1,5 @@
 import * as diagnosticsChannel from 'node:diagnostics_channel';
-import { debug, startInactiveSpan, waitForTracingChannelBinding } from '@sentry/core';
+import { addNonEnumerableProperty, debug, startInactiveSpan, waitForTracingChannelBinding } from '@sentry/core';
 import type { OrchestrionChannelContext } from '@sentry/server-utils';
 import { bindTracingChannelToSpan } from '@sentry/server-utils';
 import { nestjsChannels as CHANNELS } from '@sentry/server-utils/orchestrion/config';
@@ -10,11 +10,13 @@ import type { CatchTarget, InjectableTarget, MinimalNestJsExecutionContext } fro
 import { patchCatchTarget, patchInjectableTarget } from './wrap-components';
 import {
   extractQueueName,
-  MECHANISM_CRON,
+  linkCronOptionsToMonitor,
   MECHANISM_INTERVAL,
   MECHANISM_TIMEOUT,
   patchMethodDescriptor,
   patchProcessorTarget,
+  sendsCronCheckIns,
+  wrapCronHandler,
   wrapEventHandler,
   wrapScheduleHandler,
 } from './wrap-handlers';
@@ -50,7 +52,10 @@ function subscribeDecoratorChannel<T>(channelName: string, patch: (target: T) =>
  * `descriptor.value` with a wrapped handler before delegating to the
  * original decorator.
  */
-function makeMethodDecorator(original: AnyFn, wrapHandler: (handler: AnyFn) => AnyFn): AnyFn {
+function makeMethodDecorator(
+  original: AnyFn,
+  wrapHandler: (handler: AnyFn, target: unknown, propertyKey: string | symbol | undefined) => AnyFn,
+): AnyFn {
   return function (this: unknown, ...args: unknown[]): unknown {
     patchMethodDescriptor(
       args[0] as { __SENTRY_INTERNAL__?: boolean } | undefined,
@@ -185,12 +190,29 @@ export function subscribeToNestChannels(): void {
 
   // @Cron/@Interval/@Timeout (schedule), @OnEvent (event), @Processor (bullmq)
   subscribeFactoryDecorator(CHANNELS.NESTJS_SCHEDULE_CRON, (decorator, data) => {
-    const cronDecorator = makeMethodDecorator(decorator, handler => wrapScheduleHandler(handler, MECHANISM_CRON));
+    const cronDecorator = makeMethodDecorator(decorator, (handler, target, propertyKey) =>
+      wrapCronHandler(handler, [...(data.arguments || [])], target, propertyKey, data.moduleVersion),
+    );
     return function (this: unknown, ...args: unknown[]): unknown {
       const result = cronDecorator.apply(this, args);
-      setNestScheduleVersion((args[2] as PropertyDescriptor | undefined)?.value, data.moduleVersion);
+      const method = (args[2] as PropertyDescriptor | undefined)?.value;
+      setNestScheduleVersion(method, data.moduleVersion);
+      linkCronOptionsToMonitor(method);
       return result;
     };
+  });
+  // `@nestjs/schedule` passes this function to `CronJob` as `onTick`. Mark it when the method already
+  // sends check-ins, so `cronJobIntegration` doesn't send a second set.
+  diagnosticsChannel.tracingChannel<OrchestrionChannelContext>(CHANNELS.NESTJS_SCHEDULE_EXPLORER_WRAP).subscribe({
+    start: NOOP,
+    end(data) {
+      if (typeof data.result === 'function' && sendsCronCheckIns(data.arguments?.[0])) {
+        addNonEnumerableProperty(data.result, Symbol.for('sentry.cron.monitored'), true);
+      }
+    },
+    asyncStart: NOOP,
+    asyncEnd: NOOP,
+    error: NOOP,
   });
   subscribeFactoryDecorator(CHANNELS.NESTJS_SCHEDULE_INTERVAL, decorator =>
     makeMethodDecorator(decorator, handler => wrapScheduleHandler(handler, MECHANISM_INTERVAL)),

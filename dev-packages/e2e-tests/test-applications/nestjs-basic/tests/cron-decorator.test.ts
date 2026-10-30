@@ -91,6 +91,29 @@ test('Sends the schedule and time zone of @Cron with the check-in', async ({ bas
   );
 });
 
+test('Monitors @Cron methods without @SentryCron when monitorCronJobs is enabled', async ({ baseURL }) => {
+  const inProgressEnvelopePromise = waitForEnvelopeItem('nestjs-basic', envelope => {
+    return (
+      envelope[0].type === 'check_in' &&
+      envelope[1]['monitor_slug'] === 'test-auto-monitored-cron' &&
+      envelope[1]['status'] === 'in_progress'
+    );
+  });
+
+  await fetch(`${baseURL}/test-auto-monitored-cron`);
+
+  expect((await inProgressEnvelopePromise)[1]).toEqual(
+    expect.objectContaining({
+      monitor_slug: 'test-auto-monitored-cron',
+      status: 'in_progress',
+      monitor_config: {
+        schedule: { type: 'crontab', value: '0 0 * * *' },
+        timezone: 'America/New_York',
+      },
+    }),
+  );
+});
+
 test('Sends exceptions to Sentry on error in async cron job', async ({ baseURL }) => {
   const errorEventPromise = waitForError('nestjs-basic', event => {
     return (

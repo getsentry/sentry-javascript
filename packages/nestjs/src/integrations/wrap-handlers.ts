@@ -1,6 +1,14 @@
-import { captureException, isObjectLike, isThenable, startSpan, withIsolationScope } from '@sentry/core';
+import { captureException, isObjectLike, isThenable, startSpan, withIsolationScope, withMonitor } from '@sentry/core';
+import { makeCronMonitorResolver } from './cron-monitoring';
 import type { AnyFn, ReflectWithMetadata } from './helpers';
-import { getBullMQProcessSpanOptions, getEventSpanOptions, isWrapped, markWrapped } from './helpers';
+import {
+  getBullMQProcessSpanOptions,
+  getCronOptions,
+  getEventSpanOptions,
+  isSentryCronMethod,
+  isWrapped,
+  markWrapped,
+} from './helpers';
 
 /**
  * Span-emitting / error-capturing logic for the `@Cron`/`@Interval`/
@@ -54,6 +62,62 @@ export function wrapScheduleHandler(handler: AnyFn, mechanismType: string): AnyF
       return result;
     });
   };
+}
+
+const CRON_HANDLER_MONITORS = new WeakMap<AnyFn, () => boolean>();
+const CRON_OPTIONS_MONITORS = new WeakMap<object, () => boolean>();
+
+/**
+ * Link the `@Cron()` options that `@nestjs/schedule` set on `method` to its monitor. Decorators applied above
+ * `@Cron()` replace the method but must copy this metadata for Nest to schedule it, so it identifies the job.
+ */
+export function linkCronOptionsToMonitor(method: unknown): void {
+  const isMonitored = typeof method === 'function' ? CRON_HANDLER_MONITORS.get(method as AnyFn) : undefined;
+  const options = isMonitored && getCronOptions(method as AnyFn);
+  if (isMonitored && options) {
+    CRON_OPTIONS_MONITORS.set(options, isMonitored);
+  }
+}
+
+/** Whether a `@Cron()` method sends check-ins when it runs, from `monitorCronJobs` or `@SentryCron()`. */
+export function sendsCronCheckIns(method: unknown): boolean {
+  if (typeof method !== 'function') {
+    return false;
+  }
+  const fn = method as AnyFn;
+  const options = getCronOptions(fn);
+  return (
+    isSentryCronMethod(fn) ||
+    !!CRON_HANDLER_MONITORS.get(fn)?.() ||
+    !!(options && CRON_OPTIONS_MONITORS.get(options)?.())
+  );
+}
+
+/**
+ * Wrap a `@Cron` handler like {@link wrapScheduleHandler}, sending check-ins when `monitorCronJobs` is enabled.
+ */
+export function wrapCronHandler(
+  handler: AnyFn,
+  cronArgs: unknown[],
+  target: unknown,
+  propertyKey: string | symbol | undefined,
+  scheduleVersion?: string,
+): AnyFn {
+  const scheduleHandler = wrapScheduleHandler(handler, MECHANISM_CRON);
+  const resolveMonitor = makeCronMonitorResolver(cronArgs, target, propertyKey, scheduleVersion);
+
+  const wrapped = function (this: unknown, ...args: unknown[]): unknown {
+    const monitor = resolveMonitor(handler, wrapped);
+    if (!monitor) {
+      return scheduleHandler.apply(this, args);
+    }
+    return withMonitor(monitor.slug, () => scheduleHandler.apply(this, args), monitor.config);
+  };
+  CRON_HANDLER_MONITORS.set(
+    wrapped,
+    () => isSentryCronMethod(handler) || isSentryCronMethod(wrapped) || !!resolveMonitor(handler, wrapped),
+  );
+  return wrapped;
 }
 
 function eventNameFromEvent(event: unknown): string {
@@ -140,11 +204,11 @@ export function patchMethodDescriptor(
   target: { __SENTRY_INTERNAL__?: boolean } | undefined,
   propertyKey: string | symbol | undefined,
   descriptor: PropertyDescriptor | undefined,
-  wrapHandler: (handler: AnyFn) => AnyFn,
+  wrapHandler: (handler: AnyFn, target: unknown, propertyKey: string | symbol | undefined) => AnyFn,
 ): void {
   const handler = descriptor?.value as AnyFn | undefined;
   if (descriptor && handler && typeof handler === 'function' && !target?.__SENTRY_INTERNAL__ && !isWrapped(handler)) {
-    const wrapped = wrapHandler(handler);
+    const wrapped = wrapHandler(handler, target, propertyKey);
     Object.defineProperty(wrapped, 'name', {
       value: handler.name || String(propertyKey),
       configurable: true,
