@@ -26,6 +26,8 @@ import {
   SERVER_PORT,
   URL_FULL,
   SENTRY_ORIGIN,
+  MESSAGING_MESSAGE_CONVERSATION_ID,
+  MESSAGING_RABBITMQ_DESTINATION_ROUTING_KEY,
 } from '@sentry/conventions/attributes';
 import { QUEUE_PROCESS, QUEUE_PUBLISH } from '@sentry/conventions/op';
 import type { OrchestrionChannelContext } from '../orchestrion/types';
@@ -40,9 +42,6 @@ const INTEGRATION_NAME = 'Amqplib' as const;
 
 const PUBLISHER_ORIGIN = 'auto.queue.amqplib.publisher';
 const CONSUMER_ORIGIN = 'auto.queue.amqplib.consumer';
-
-const ATTR_MESSAGING_RABBITMQ_DESTINATION_ROUTING_KEY = 'messaging.rabbitmq.destination.routing_key';
-const ATTR_MESSAGING_CONVERSATION_ID = 'messaging.message.conversation_id';
 
 const MESSAGING_OPERATION_VALUE_PROCESS = 'process';
 const MESSAGING_OPERATION_VALUE_SEND = 'send';
@@ -498,11 +497,11 @@ function startPublishSpan(data: AmqpChannelContext): Span {
       [SENTRY_KIND]: 'producer',
       ...getStoredConnectionAttributes(data.self),
       [MESSAGING_DESTINATION_NAME]: destination,
-      [ATTR_MESSAGING_RABBITMQ_DESTINATION_ROUTING_KEY]: routingKey,
+      [MESSAGING_RABBITMQ_DESTINATION_ROUTING_KEY]: routingKey,
       [MESSAGING_OPERATION_NAME]: MESSAGING_OPERATION_VALUE_SEND,
       [MESSAGING_OPERATION_TYPE]: MESSAGING_OPERATION_VALUE_SEND,
       [MESSAGING_MESSAGE_ID]: options?.messageId as string | undefined,
-      [ATTR_MESSAGING_CONVERSATION_ID]: options?.correlationId as string | undefined,
+      [MESSAGING_MESSAGE_CONVERSATION_ID]: options?.correlationId as string | undefined,
       [SENTRY_ORIGIN]: PUBLISHER_ORIGIN,
     },
   });
@@ -544,11 +543,11 @@ function startConsumeSpan(queue: string | undefined, msg: ConsumeMessage, channe
       [SENTRY_SEGMENT_NAME_SOURCE]: 'component',
       ...getStoredConnectionAttributes(channel),
       [MESSAGING_DESTINATION_NAME]: destination,
-      [ATTR_MESSAGING_RABBITMQ_DESTINATION_ROUTING_KEY]: msg.fields?.routingKey,
+      [MESSAGING_RABBITMQ_DESTINATION_ROUTING_KEY]: msg.fields?.routingKey,
       [MESSAGING_OPERATION_NAME]: MESSAGING_OPERATION_VALUE_PROCESS,
       [MESSAGING_OPERATION_TYPE]: MESSAGING_OPERATION_VALUE_PROCESS,
       [MESSAGING_MESSAGE_ID]: msg.properties?.messageId as string | undefined,
-      [ATTR_MESSAGING_CONVERSATION_ID]: msg.properties?.correlationId as string | undefined,
+      [MESSAGING_MESSAGE_CONVERSATION_ID]: msg.properties?.correlationId as string | undefined,
       [SENTRY_ORIGIN]: CONSUMER_ORIGIN,
     },
   });
