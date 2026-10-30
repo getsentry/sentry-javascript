@@ -199,3 +199,65 @@ describe('module-injected transform', () => {
     expect(result!.code).not.toContain('require("@sentry/server-utils")');
   });
 });
+
+describe('self-provided modules', () => {
+  let root: string;
+
+  beforeAll(() => {
+    root = mkdtempSync(join(tmpdir(), 'orch-self-provided-'));
+    makePackage(root, '@flue/runtime', '2.0.3', 'module', 'dist');
+    makePackage(root, 'pg', '8.11.0', 'module');
+    makePackage(root, 'ioredis', '5.11.0', 'commonjs', 'built');
+  });
+
+  afterAll(() => {
+    rmSync(root, { recursive: true, force: true });
+  });
+
+  const FLUE_ENTRY = 'import { r as instrument } from "./instrumentation.mjs";\nexport { instrument };\n';
+
+  it('publishes the namespace through a self-import, before registering the integration', () => {
+    const t = createCodeTransformer(orchestrionTransformOptions({ selfProvidedModules: ['@flue/runtime'] }));
+    const code = t.transform(FLUE_ENTRY, join(root, 'node_modules/@flue/runtime/dist/index.mjs'))!.code;
+
+    expect(code).toContain('import * as __SENTRY_SELF_PROVIDED__ from "./index.mjs";');
+    expect(code).toContain('Object.defineProperty(globalThis.__SENTRY_ORCHESTRION__.providedModules, "@flue/runtime"');
+    // A getter, so the namespace is read at `init()` rather than while the module evaluates.
+    expect(code).toMatch(/get\(\)\s*\{\s*return __SENTRY_SELF_PROVIDED__;\s*\}/);
+    // Registering can run the integration's `setup()` right away, which reads the namespace.
+    expect(code.indexOf('providedModules, "@flue/runtime"')).toBeLessThan(
+      code.indexOf('orchestrionModuleInjected("@flue/runtime"'),
+    );
+  });
+
+  it('publishes nothing for a module that is not listed', () => {
+    const t = createCodeTransformer(orchestrionTransformOptions({}));
+    const code = t.transform(FLUE_ENTRY, join(root, 'node_modules/@flue/runtime/dist/index.mjs'))!.code;
+
+    expect(code).toContain('orchestrionModuleInjected("@flue/runtime"');
+    expect(code).not.toContain('__SENTRY_SELF_PROVIDED__');
+    expect(code).not.toContain('providedModules');
+  });
+
+  it('publishes nothing from a CJS module', () => {
+    const t = createCodeTransformer(orchestrionTransformOptions({ selfProvidedModules: ['ioredis'] }));
+    const code = t.transform(
+      "'use strict';\nclass Redis {}\nmodule.exports = Redis;\n",
+      join(root, 'node_modules/ioredis/built/Redis.js'),
+    )!.code;
+
+    expect(code).toContain('orchestrionModuleInjected("ioredis"');
+    expect(code).not.toContain('__SENTRY_SELF_PROVIDED__');
+  });
+
+  it('publishes once per file', () => {
+    const t = createCodeTransformer(orchestrionTransformOptions({ selfProvidedModules: ['pg'] }));
+    // `pg`'s `lib/client.js` is matched by both the `query` and `connect` configs.
+    const code = t.transform(
+      'export class Client { query(){} connect(){} }\n',
+      join(root, 'node_modules/pg/lib/client.js'),
+    )!.code;
+
+    expect(code.match(/import \* as __SENTRY_SELF_PROVIDED__ from "\.\/client\.js";/g)).toHaveLength(1);
+  });
+});
