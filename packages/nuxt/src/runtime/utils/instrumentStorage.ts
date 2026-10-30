@@ -258,6 +258,7 @@ function createSpanStartOptions(
   return {
     // With span streaming, span names have to be low cardinality, so we can't fall back to the cache keys.
     name: client && hasSpanStreamingEnabled(client) ? cacheOperation : keys.join(', '),
+    onlyIfParent: true,
     attributes,
   };
 }

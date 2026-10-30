@@ -5,7 +5,6 @@
 
 import {
   debug,
-  getActiveSpan,
   getClient,
   hasSpanStreamingEnabled,
   isObjectLike,
@@ -242,7 +241,7 @@ function _wrapSingleQueryHandle(
   const wrappedHandle = async function (this: { executed?: boolean }, ...args: unknown[]): Promise<unknown> {
     // postgres.js calls handle() from then/catch/finally — only the first call executes SQL,
     // subsequent calls are no-ops (guarded by this.executed). Skip span creation for no-ops.
-    if (this.executed || !_shouldCreateSpans(options)) {
+    if (this.executed) {
       return originalHandle.apply(this, args);
     }
 
@@ -264,6 +263,7 @@ function _wrapSingleQueryHandle(
     return startSpanManual(
       {
         name,
+        onlyIfParent: options.requireParentSpan,
         attributes: {
           [SENTRY_OP]: DB,
           [SENTRY_ORIGIN]: 'auto.db.postgresjs',
@@ -339,16 +339,6 @@ function _wrapSingleQueryHandle(
 
   (wrappedHandle as { __sentryWrapped?: boolean }).__sentryWrapped = true;
   query.handle = wrappedHandle;
-}
-
-/**
- * Determines whether a span should be created based on the current context.
- * If `requireParentSpan` is set to true in the options, a span will
- * only be created if there is a parent span available.
- */
-function _shouldCreateSpans(options: PostgresJsSqlInstrumentationOptions): boolean {
-  const hasParentSpan = getActiveSpan() !== undefined;
-  return hasParentSpan || !options.requireParentSpan;
 }
 
 /**

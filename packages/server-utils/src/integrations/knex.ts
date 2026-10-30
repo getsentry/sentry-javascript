@@ -150,10 +150,6 @@ function subscribeQuery(): void {
       // The builder captures the span active when it was created (see `subscribeBuilder`).
       // `onlyIfParent`: only instrument queries that run as part of an existing trace, matching OTel.
       const parentSpan = builder?.[parentSpanSymbol] ?? getActiveSpan();
-      if (!parentSpan) {
-        return undefined;
-      }
-
       const query = data.arguments[0];
       const client = runner?.client;
       const connection = client?.config?.connection;
@@ -193,6 +189,7 @@ function subscribeQuery(): void {
           : (dbStatement ?? getName(dbNameSpace, operation, table) ?? 'knex.query');
 
       return startInactiveSpan({
+        onlyIfParent: true,
         name: spanName,
         parentSpan,
         attributes,

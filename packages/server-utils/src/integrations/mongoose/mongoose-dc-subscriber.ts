@@ -130,6 +130,7 @@ function setupChannel(tracingChannel: MongooseTracingChannelFactory, channelName
           : `mongoose.${data.operation}`;
 
     return startInactiveSpan({
+      onlyIfParent: true,
       name,
       attributes: {
         [SENTRY_ORIGIN]: ORIGIN,
