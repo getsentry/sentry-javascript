@@ -72,6 +72,7 @@ function instrumentAnthropic(options: AnthropicAiOptions): void {
           );
         },
         deferSpanEnd: ({ span, data, end }) =>
+          wrapThreadStreamRequest(span, data, end, options) ||
           wrapApiPromiseResponse(
             data.result,
             response => {
@@ -81,7 +82,8 @@ function instrumentAnthropic(options: AnthropicAiOptions): void {
               }
             },
             end,
-          ) || wrapStreamResult(span, data, stream, options),
+          ) ||
+          wrapStreamResult(span, data, stream, options),
       },
     );
   }
@@ -95,6 +97,15 @@ function instrumentAnthropic(options: AnthropicAiOptions): void {
     .tracingChannel<OrchestrionChannelContext>(CHANNELS.ANTHROPIC_SESSION_TOOL_RUNNER)
     .end.subscribe(message => {
       instrumentSessionToolRunner((message as OrchestrionChannelContext).self, options);
+    });
+  // On `start`, because `_start()` sends the first request before it returns.
+  diagnosticsChannel
+    .tracingChannel<OrchestrionChannelContext>(CHANNELS.ANTHROPIC_THREAD_STREAM)
+    .start.subscribe(message => {
+      const stream = (message as OrchestrionChannelContext).self as ThreadStream | undefined;
+      if (isMessageStream(stream) && stream.controller?.signal) {
+        threadStreams.set(stream.controller.signal, stream);
+      }
     });
 }
 
@@ -197,6 +208,41 @@ function isAsyncIterable(value: unknown): value is AsyncIterableStream {
 
 function isMessageStream(value: unknown): value is MessageStreamEmitter {
   return !!value && typeof (value as MessageStreamEmitter).on === 'function';
+}
+
+type ThreadStream = MessageStreamEmitter & { controller?: { signal?: AbortSignal } };
+
+/**
+ * The streams of threads and tool runners on 1.2+, by the signal they send each `create()` call with. Such a
+ * stream parses the response itself, so the `create()` result is never parsed and never ends its span.
+ */
+const threadStreams = new WeakMap<AbortSignal, ThreadStream>();
+
+/**
+ * End the span of a thread stream's `create()` call from the stream once the response arrives. A thread may
+ * retry a rejected call, so a failed call ends its own span and only the one that succeeds reads the stream.
+ */
+function wrapThreadStreamRequest(
+  span: Span,
+  data: OrchestrionChannelContext,
+  end: (error?: unknown) => void,
+  options: AnthropicAiOptions,
+): boolean {
+  const signal = (data.arguments?.[1] as { signal?: AbortSignal } | undefined)?.signal;
+  const stream = signal && threadStreams.get(signal);
+  const request = data.result as { _responseProps?: () => Promise<unknown> } | undefined;
+  if (!stream || typeof request?._responseProps !== 'function') {
+    return false;
+  }
+
+  const { recordOutputs } = resolveAIRecordingOptions(options);
+  // Not `asResponse()`, which on 1.x also ends the SDK's own span when the user turned its tracing on.
+  void request._responseProps().then(
+    () => instrumentMessageStream(stream, span, recordOutputs),
+    // A caller abort is not a failed request.
+    error => end(signal.aborted ? undefined : error),
+  );
+  return true;
 }
 
 /**
