@@ -43,6 +43,8 @@ export type { NodeCronIntegrationOptions } from './integrations/node-cron';
 export { nodeScheduleIntegration } from './integrations/node-schedule';
 export type { NodeScheduleIntegrationOptions } from './integrations/node-schedule';
 export { googleGenAIIntegration } from './integrations/google-genai';
+export { graphileWorkerIntegration } from './integrations/graphile-worker';
+export type { GraphileWorkerOptions } from './integrations/graphile-worker';
 export { graphqlIntegration } from './integrations/graphql';
 export { hapiIntegration } from './integrations/hapi';
 export { honoIntegration, honoMiddleware } from './integrations/hono';

@@ -119,6 +119,7 @@ export {
   firebaseIntegration,
   fsIntegration,
   genericPoolIntegration,
+  graphileWorkerIntegration,
   nodeCronIntegration,
   nodeScheduleIntegration,
   graphqlIntegration,

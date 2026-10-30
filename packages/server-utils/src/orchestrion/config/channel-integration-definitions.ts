@@ -27,6 +27,7 @@ export const CHANNEL_INTEGRATION_DEFINITIONS = [
   { exportName: 'knexIntegration', modules: ['knex'] },
   { exportName: 'tediousIntegration', modules: ['tedious'] },
   { exportName: 'genericPoolIntegration', modules: ['generic-pool'] },
+  { exportName: 'graphileWorkerIntegration', modules: ['graphile-worker'] },
   { exportName: 'lruMemoizerIntegration', modules: ['lru-memoizer'] },
   { exportName: 'openAIIntegration', modules: ['openai'] },
   { exportName: 'anthropicAIIntegration', modules: ['@anthropic-ai/sdk'] },

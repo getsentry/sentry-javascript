@@ -10,6 +10,7 @@ import { expressConfig } from './express';
 import { firebaseConfig } from './firebase';
 import { genericPoolConfig } from './generic-pool';
 import { googleGenAiConfig } from './google-genai';
+import { graphileWorkerConfig } from './graphile-worker';
 import { graphqlConfig } from './graphql';
 import { groqConfig } from './groq';
 import { hapiConfig } from './hapi';
@@ -71,6 +72,7 @@ export const SENTRY_INSTRUMENTATIONS: InstrumentationConfig[] = [
   ...firebaseConfig,
   ...genericPoolConfig,
   ...googleGenAiConfig,
+  ...graphileWorkerConfig,
   ...graphqlConfig,
   ...groqConfig,
   ...hapiConfig,
