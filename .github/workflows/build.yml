@@ -1141,13 +1141,16 @@ jobs:
   #   them. optional-e2e.yml reports the results in a PR comment.
   job_optional_e2e_tests:
     name: E2E Tests (optional)
-    # We only run E2E tests for non-fork PRs because the E2E tests require secrets to work and they can't be accessed from forks
+    # We only run E2E tests for non-fork PRs because the E2E tests require secrets to work and they can't be accessed from forks.
+    # Dependabot PRs are skipped by author, not by `github.actor`: once the Gitflow app pushes the deduped lockfile
+    # (dependabot-dedupe-push.yml), the actor is the app and the run would otherwise get the E2E secrets.
     # We need to add the `always()` check here because the previous step has this as well :(
     # See: https://github.com/actions/runner/issues/2205
     if:
       always() && needs.job_get_metadata.outputs.is_release != 'true' && needs.job_build_tarballs.result == 'success' &&
       needs.job_build.outputs.e2e-matrix-optional != '{"include":[]}' && (github.event_name != 'pull_request' ||
-      github.event.pull_request.head.repo.full_name == github.repository) && github.actor != 'dependabot[bot]'
+      github.event.pull_request.head.repo.full_name == github.repository) && github.event.pull_request.user.login !=
+      'dependabot[bot]'
     needs: [job_get_metadata, job_build, job_build_tarballs]
     # This job only waits for optional-e2e.yml, which can take most of an hour. GitHub runners are free for public
     # repos and Namespace runners are paid per minute, so the wait runs here and the tests run on Namespace.
