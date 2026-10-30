@@ -72,7 +72,7 @@ const anthropicClient = (apiKey: string): Anthropic =>
   new Anthropic({ authToken: apiKey, baseURL: OPENROUTER_BASE, fetch: fetchWithoutDone });
 
 /**
- * OpenRouter ends each stream with an OpenAI-style `data: [DONE]` frame, which is not part of
+ * OpenRouter ends each stream with an `event: data` / `data: [DONE]` frame, which is not part of
  * Anthropic's protocol. Since 0.136.0 the SDK JSON-parses every named event, so this frame
  * makes it throw. Drop the frame before the SDK sees it.
  */
