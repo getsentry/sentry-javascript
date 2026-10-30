@@ -103,6 +103,43 @@ export function getSqlQuerySummary(query: string | undefined): string | undefine
   return truncate(query.trim().split(/\s+/)[0] ?? query);
 }
 
+const LEADING_KEYWORD_RE = /^\s*(?:\(\s*)*([A-Za-z]+)\b/;
+const CTE_MAIN_STATEMENT_RE = /\(|\)|\b(SELECT|INSERT|UPDATE|DELETE|MERGE|VALUES|TABLE)\b/gi;
+
+/**
+ * Derives `db.operation.name` from a SQL query: the first operation keyword, in its original case.
+ *
+ * @see https://opentelemetry.io/docs/specs/semconv/registry/attributes/db/#db-operation-name
+ */
+export function getSqlOperationName(query: string | undefined): string | undefined {
+  const match = query ? LEADING_KEYWORD_RE.exec(query) : null;
+  const keyword = match?.[1];
+  if (!query || !match || !keyword) {
+    return undefined;
+  }
+  // Scanned from after `WITH`, so parentheses wrapping the whole query don't shift the depth.
+  return keyword.toUpperCase() === 'WITH' ? getCteMainOperationName(query.slice(match[0].length)) : keyword;
+}
+
+/**
+ * The operation of a `WITH` query is its main statement: the first operation keyword outside the
+ * CTE bodies, which are all parenthesized. Counting parentheses is safe on a sanitized query, which
+ * has no literals or comments left.
+ */
+function getCteMainOperationName(query: string): string | undefined {
+  let depth = 0;
+  for (const match of query.matchAll(CTE_MAIN_STATEMENT_RE)) {
+    if (match[0] === '(') {
+      depth++;
+    } else if (match[0] === ')') {
+      depth--;
+    } else if (depth === 0) {
+      return match[1];
+    }
+  }
+  return undefined;
+}
+
 function extractTableNames(sql: string): string[] {
   const tables: string[] = [];
   TOKEN_RE.lastIndex = 0;
@@ -366,6 +403,7 @@ export function sanitizeSqlQuery(sqlQuery: string | undefined, dialect: SqlDiale
     // whether it is looking at SQL syntax or at a user-supplied value.
     stripLiteralsAndComments(sqlQuery, dialect)
       .replace(/;\s*$/, '') // Remove trailing semicolons
+      .replace(/^[\s;]+/, '') // Remove leading semicolons (T-SQL's `;WITH`)
       // Collapse whitespace to a single space (after removing comments)
       .replace(/\s+/g, ' ')
       .trim() // Remove extra spaces and trim
@@ -385,14 +423,15 @@ export function sanitizeSqlQuery(sqlQuery: string | undefined, dialect: SqlDiale
 }
 
 /**
- * Sanitizes a collected SQL statement and derives the matching `db.query.summary`, the pair the SQL
- * integrations attach to their spans. Both come back `undefined` when there is no statement, so an
- * empty query omits the attributes instead of reporting the sanitizer's fallback text.
+ * Sanitizes a collected SQL statement and derives the matching `db.query.summary` and
+ * `db.operation.name`, the attributes the SQL integrations attach to their spans. All come back
+ * `undefined` when there is no statement, so an empty query omits the attributes instead of
+ * reporting the sanitizer's fallback text.
  */
 export function sanitizeSqlQueryWithSummary(
   sqlQuery: string | undefined,
   dialect?: SqlDialect,
-): { queryText: string | undefined; querySummary: string | undefined } {
+): { queryText: string | undefined; querySummary: string | undefined; operationName: string | undefined } {
   const queryText = sqlQuery ? sanitizeSqlQuery(sqlQuery, dialect) : undefined;
-  return { queryText, querySummary: getSqlQuerySummary(queryText) };
+  return { queryText, querySummary: getSqlQuerySummary(queryText), operationName: getSqlOperationName(queryText) };
 }

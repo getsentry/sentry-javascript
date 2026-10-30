@@ -1,5 +1,6 @@
 import {
   DB_CONNECTION_STRING,
+  DB_OPERATION_NAME,
   DB_QUERY_SUMMARY,
   DB_QUERY_TEXT,
   DB_SYSTEM_NAME,
@@ -129,6 +130,7 @@ describe('mysql auto instrumentation', () => {
         ...COMMON_ATTRIBUTES,
         [DB_QUERY_TEXT]: { type: 'string', value: queryText },
         [DB_QUERY_SUMMARY]: { type: 'string', value: 'SELECT' },
+        [DB_OPERATION_NAME]: { type: 'string', value: 'SELECT' },
       },
       ...COMMON_SPAN_PROPS,
     });
