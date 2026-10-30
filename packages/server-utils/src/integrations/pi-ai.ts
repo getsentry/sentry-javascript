@@ -4,7 +4,7 @@ import { defineIntegration, isThenable, startInactiveSpan } from '@sentry/core';
 import type { GenAiOptions } from '../ai/core/utils';
 import { resolveAIRecordingOptions } from '../ai/core/utils';
 import { getPiAiChatSpanOptions, setPiAiResponseAttributes } from '../ai/pi-ai/chat';
-import { PI_AI_INTEGRATION_NAME, PI_AI_ORIGIN } from '../ai/pi-ai/constants';
+import { PI_AI_INTEGRATION_NAME } from '../ai/pi-ai/constants';
 import type { PiAiContext } from '../ai/pi-ai/messages';
 import { skipPiAiProviderIntegrations } from '../ai/pi-ai/providers';
 import type { PiEventStream, PiStreamOptions } from '../ai/pi-ai/types';
@@ -45,7 +45,6 @@ function instrumentPiAi(options: PiAiOptions): void {
         context: context as PiAiContext | undefined,
         callOptions: callOptions as PiStreamOptions | undefined,
         streaming,
-        origin: PI_AI_ORIGIN,
         recordInputs: resolveAIRecordingOptions(options).recordInputs,
       }),
     );
@@ -94,10 +93,8 @@ function instrumentPiAi(options: PiAiOptions): void {
 /**
  * Traces the requests sent with pi-ai (`@earendil-works/pi-ai` >= 0.80.0 < 2) as `gen_ai.chat` spans,
  * through `createModels()` or the standalone `stream` and `complete` functions. Needs the Sentry
- * runtime hook (`--import`) or bundler plugin.
- *
- * Not enabled by default yet. Flue and pi-durable send their model calls through pi-ai and still
- * report them as chat spans of their own, so enabling this alongside them reports each call twice.
+ * runtime hook (`--import`) or bundler plugin. This includes the model calls of Flue and pi-durable
+ * agents, which send them through pi-ai.
  *
  * Once pi-ai has sent a request, the `openai`, `@anthropic-ai/sdk`, `@google/genai` and Workers AI
  * integrations stop recording requests for the rest of the process, since pi-ai sends through them.
@@ -105,7 +102,7 @@ function instrumentPiAi(options: PiAiOptions): void {
  * @example
  * ```javascript
  * Sentry.init({
- *   integrations: [Sentry.piAiIntegration()],
+ *   integrations: [Sentry.piAiIntegration({ recordInputs: true, recordOutputs: true })],
  * });
  * ```
  */

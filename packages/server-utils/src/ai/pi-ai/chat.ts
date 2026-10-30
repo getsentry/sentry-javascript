@@ -28,6 +28,7 @@ import {
   SERVER_PORT,
 } from '@sentry/conventions/attributes';
 import { GEN_AI_CHAT } from '@sentry/conventions/op';
+import { PI_AI_ORIGIN } from './constants';
 import type { PiAiContext } from './messages';
 import {
   piAiAssistantMessageToGenAiMessage,
@@ -45,7 +46,6 @@ export interface PiAiChatRequest {
   context?: PiAiContext;
   callOptions?: PiStreamOptions;
   streaming: boolean;
-  origin: string;
   recordInputs: boolean;
 }
 
@@ -54,7 +54,7 @@ export interface PiAiChatRequest {
  * the caller picks whether the span is active while the request is sent.
  */
 export function getPiAiChatSpanOptions(request: PiAiChatRequest): StartSpanOptions {
-  const { model, context, callOptions, streaming, origin, recordInputs } = request;
+  const { model, context, callOptions, streaming, recordInputs } = request;
   const conversationId =
     getCurrentScope().getScopeData().conversationId ?? getIsolationScope().getScopeData().conversationId;
 
@@ -62,7 +62,7 @@ export function getPiAiChatSpanOptions(request: PiAiChatRequest): StartSpanOptio
     name: model.id ? `chat ${model.id}` : 'chat',
     op: GEN_AI_CHAT,
     attributes: {
-      [SENTRY_ORIGIN]: origin,
+      [SENTRY_ORIGIN]: PI_AI_ORIGIN,
       [GEN_AI_OPERATION_NAME]: 'chat',
       [GEN_AI_PROVIDER_NAME]: model.provider,
       [GEN_AI_REQUEST_MODEL]: model.id,
