@@ -255,27 +255,23 @@ describe('startSpan', () => {
     expect(getCapturedScopesOnSpan(span).isolationScope).toBe(getIsolationScope());
   });
 
-  it('freezes a continued trace empty DSC as-is when tracing is disabled', () => {
+  it('creates the DSC from the client for a trace continued without baggage when tracing is disabled', () => {
     const options = getDefaultTestClientOptions({});
     client = new TestClient(options);
     setCurrentClient(client);
     client.init();
 
-    // A continued `sentry-trace` without baggage yields an empty frozen DSC marker.
-    getCurrentScope().setPropagationContext({
-      traceId: '12345678901234567890123456789012',
-      sampleRand: 0.42,
-      dsc: {},
-    });
-
-    const span = startSpan({ name: 'GET users/[id]' }, span => {
-      return span;
-    });
+    const span = continueTrace(
+      { sentryTrace: '12345678901234567890123456789012-1121201211212012-1', baggage: undefined },
+      () => startSpan({ name: 'GET users/[id]' }, span => span),
+    );
 
     expect(span).toBeInstanceOf(SentryNonRecordingSpan);
     expect(span.spanContext().traceId).toBe('12345678901234567890123456789012');
-    // We are not head of trace: don't fabricate client fields or inject the local transaction.
-    expect(getDynamicSamplingContextFromSpan(span)).toEqual({});
+    expect(getDynamicSamplingContextFromSpan(span)).toEqual({
+      environment: 'production',
+      trace_id: '12345678901234567890123456789012',
+    });
   });
 
   it('does not add a url-source span name to the DSC when tracing is disabled', () => {
@@ -1914,7 +1910,7 @@ describe('continueTrace', () => {
     );
 
     expect(scope.getPropagationContext()).toEqual({
-      dsc: {}, // DSC should be an empty object (frozen), because there was an incoming trace
+      dsc: undefined, // DSC is not frozen, because there was no incoming DSC
       sampled: false,
       parentSpanId: '1121201211212012',
       traceId: '12312012123120121231201212312012',

@@ -300,7 +300,6 @@ describe('getTraceData', () => {
       parentSpanId: '1234567890123456',
       sampleRand: 0.42,
       sampled: false,
-      dsc: {},
     });
 
     startSpan({ name: 'twp-root' }, () => {
@@ -318,7 +317,6 @@ describe('getTraceData', () => {
       parentSpanId: '1234567890123456',
       sampleRand: 0.42,
       sampled: true,
-      dsc: {},
     });
 
     startSpan({ name: 'twp-root' }, () => {
@@ -362,7 +360,7 @@ describe('getTraceData', () => {
     });
   });
 
-  it('does not fabricate baggage for a continued empty frozen DSC on nested TwP placeholder spans', () => {
+  it('creates baggage from the client for a trace continued without baggage on nested TwP placeholder spans', () => {
     setupClient({ tracesSampleRate: undefined });
 
     getCurrentScope().setPropagationContext({
@@ -370,17 +368,15 @@ describe('getTraceData', () => {
       parentSpanId: '1234567890123456',
       sampleRand: 0.42,
       sampled: true,
-      dsc: {},
     });
 
     startSpan({ name: 'twp-root' }, () => {
       startSpan({ name: 'twp-child' }, () => {
         const data = getTraceData();
 
-        // We are not head of trace: a continued `sentry-trace`-only trace must not
-        // gain locally fabricated client fields at depth either.
-        expect(data.baggage ?? '').not.toContain('sentry-environment');
-        expect(data.baggage ?? '').not.toContain('sentry-public_key');
+        expect(data.baggage).toBe(
+          'sentry-environment=production,sentry-public_key=123,sentry-trace_id=12345678901234567890123456789012',
+        );
       });
     });
   });

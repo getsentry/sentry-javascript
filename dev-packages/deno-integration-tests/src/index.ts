@@ -129,3 +129,29 @@ export function spanSink(): {
     }),
   };
 }
+
+/**
+ * A `transport` that records every envelope, headers included, and lets a test `await` the first one
+ * matching a predicate. Use it to assert envelope headers, which `spanSink` discards.
+ */
+export function envelopeSink(): {
+  envelopes: Envelope[];
+  waitFor: (predicate: (envelope: Envelope) => boolean) => Promise<Envelope>;
+  transport: () => Transport;
+} {
+  const envelopes: Envelope[] = [];
+  const sink = eventSink<Envelope>();
+
+  return {
+    envelopes,
+    waitFor: sink.waitFor,
+    transport: () => ({
+      send: (envelope: Envelope) => {
+        envelopes.push(envelope);
+        sink.beforeSend(envelope);
+        return Promise.resolve({});
+      },
+      flush: () => Promise.resolve(true),
+    }),
+  };
+}
