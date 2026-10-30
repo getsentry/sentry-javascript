@@ -6,8 +6,8 @@ import { WORKERS_AI_INTEGRATION_NAME } from '../workers-ai/constants';
 
 // pi-ai sends its requests through the `openai`, `@anthropic-ai/sdk` and `@google/genai` clients, and
 // on Cloudflare through the Workers AI binding (`createAI()` of `agents/models/pi-ai`). Left alone,
-// those integrations report the same request a second time beside the `chat` span of the framework
-// that sent it. Bedrock requests go through `@aws-sdk/client-bedrock-runtime`, which `awsIntegration`
+// those integrations report the same request a second time beside the pi-ai integration's `chat`
+// span. Bedrock requests go through `@aws-sdk/client-bedrock-runtime`, which `awsIntegration`
 // still reports; that one has no skip yet.
 const PI_AI_PROVIDER_INTEGRATIONS = [
   OPENAI_INTEGRATION_NAME,
