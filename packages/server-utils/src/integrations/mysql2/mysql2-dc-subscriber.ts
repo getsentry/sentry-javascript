@@ -127,7 +127,6 @@ function setupConnectChannel(tracingChannel: MySQL2TracingChannelFactory, channe
   bindTracingChannelToSpan(tracingChannel<MySQL2ConnectData>(channelName), data => {
     return startInactiveSpan({
       name: spanName,
-      onlyIfParent: true,
       attributes: {
         [SENTRY_ORIGIN]: ORIGIN,
         [SENTRY_OP]: DB,

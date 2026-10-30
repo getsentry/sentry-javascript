@@ -170,6 +170,7 @@ describe('postgresIntegration', () => {
     expect(startInactiveSpanSpy).toHaveBeenCalledWith(
       expect.objectContaining({
         name: 'pg.connect',
+        onlyIfParent: false,
         attributes: expect.objectContaining({
           'sentry.op': 'db',
           'db.system.name': 'postgresql',
@@ -201,6 +202,7 @@ describe('postgresIntegration', () => {
     expect(startInactiveSpanSpy).toHaveBeenCalledWith(
       expect.objectContaining({
         name: 'pg-pool.connect',
+        onlyIfParent: false,
         attributes: expect.objectContaining({
           'sentry.op': 'db',
           'db.system.name': 'postgresql',
