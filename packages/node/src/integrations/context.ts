@@ -548,10 +548,11 @@ function getCloudResourceContext(): CloudResourceContext | undefined {
     };
   } else if (process.env.AWS_REGION) {
     // https://docs.aws.amazon.com/lambda/latest/dg/configuration-envvars.html
+    const executionEnv = process.env.AWS_EXECUTION_ENV;
     return {
       [CLOUD_PROVIDER]: 'aws',
       [CLOUD_REGION]: process.env.AWS_REGION,
-      [CLOUD_PLATFORM]: process.env.AWS_EXECUTION_ENV,
+      [CLOUD_PLATFORM]: executionEnv?.startsWith('AWS_Lambda') ? 'aws_lambda' : executionEnv,
     };
   } else if (process.env.GCP_PROJECT) {
     // https://cloud.google.com/composer/docs/how-to/managing/environment-variables#reserved_variables
