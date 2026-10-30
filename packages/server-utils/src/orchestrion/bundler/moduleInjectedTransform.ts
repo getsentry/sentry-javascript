@@ -76,26 +76,16 @@ function moduleInjectedSnippet(
     ? `import { ${bindings} } from ${JSON.stringify(importSpecifier)};`
     : `const { ${bindings} } = require(${JSON.stringify(importSpecifier)});`;
 
-  // `exportName` is itself an integration factory, invoked inside the arrow (`() => exportName()`), so
-  // `orchestrionModuleInjected`'s consumer still gets an Integration back from calling the stored
-  // thunk. The point of the arrow is to defer the read of the `exportName` binding to when that thunk
-  // runs (at `init()`), instead of reading it by reference the moment this snippet evaluates. A
-  // provided-module integration (e.g. `mastraIntegration`) gets the package it needs imported into its
-  // own module by `@sentry/*/vite`, so a direct reference here can close an import cycle and touch the
-  // binding in its TDZ ("Cannot access '…' before initialization"); deferring the read breaks that.
+  // The arrow defers reading `exportName` to `init()`. `@sentry/*/vite` imports some packages into
+  // their own integration module (e.g. Mastra's), and in that cycle a direct read would hit the TDZ.
   const args = exportName ? `${JSON.stringify(moduleName)}, () => ${exportName}()` : JSON.stringify(moduleName);
   return `${importStmt}\n${MODULE_INJECTED_SINK} = orchestrionModuleInjected(${args});`;
 }
 
 /**
- * Snippet that publishes an instrumented module's own namespace on the marker's `providedModules`,
- * for packages instrumented by registration rather than patching (Flue's `instrument()`), whose
- * integration needs a reference to the package itself.
- *
- * The module imports itself, so no edge is added to the module graph. Splicing the import into one
- * of Sentry's modules instead would close a cycle through any instrumented package the provided one
- * loads at module scope, since every instrumented module imports `@sentry/server-utils`. A getter,
- * so the namespace is read at `init()`, not while the module is still evaluating.
+ * Publishes the module's own namespace on `providedModules`. A self-import adds no edge to the module
+ * graph; importing the package into a Sentry module would close a cycle through every instrumented
+ * dependency, since those all import `@sentry/server-utils`.
  */
 function selfProvidedSnippet(moduleName: string, filePath: string): string {
   const marker = 'globalThis.__SENTRY_ORCHESTRION__';
@@ -110,10 +100,7 @@ function selfProvidedSnippet(moduleName: string, filePath: string): string {
 }
 
 export interface ModuleInjectedTransformsOptions {
-  /**
-   * Instrumented packages that publish their own namespace on `providedModules` when they evaluate.
-   * ESM only.
-   */
+  /** Packages whose ESM entry publishes its own namespace on `providedModules`. */
   selfProvidedModules?: readonly string[];
 }
 
