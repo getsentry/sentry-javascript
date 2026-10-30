@@ -64,14 +64,14 @@ export function getPiAiChatSpanOptions(request: PiAiChatRequest): StartSpanOptio
     attributes: {
       [SENTRY_ORIGIN]: origin,
       [GEN_AI_OPERATION_NAME]: 'chat',
-      ...(model.provider ? { [GEN_AI_PROVIDER_NAME]: model.provider } : {}),
-      ...(model.id ? { [GEN_AI_REQUEST_MODEL]: model.id } : {}),
-      ...(conversationId ? { [GEN_AI_CONVERSATION_ID]: conversationId } : {}),
+      [GEN_AI_PROVIDER_NAME]: model.provider,
+      [GEN_AI_REQUEST_MODEL]: model.id,
+      [GEN_AI_CONVERSATION_ID]: conversationId,
+      [GEN_AI_RESPONSE_STREAMING]: streaming || undefined,
+      [GEN_AI_REQUEST_TEMPERATURE]: callOptions?.temperature,
+      [GEN_AI_REQUEST_MAX_TOKENS]: callOptions?.maxTokens,
+      [GEN_AI_REQUEST_REASONING_LEVEL]: callOptions?.reasoning,
       ...getServerAttributes(model),
-      ...(streaming ? { [GEN_AI_RESPONSE_STREAMING]: true } : {}),
-      ...(callOptions?.temperature !== undefined ? { [GEN_AI_REQUEST_TEMPERATURE]: callOptions.temperature } : {}),
-      ...(callOptions?.maxTokens !== undefined ? { [GEN_AI_REQUEST_MAX_TOKENS]: callOptions.maxTokens } : {}),
-      ...(callOptions?.reasoning ? { [GEN_AI_REQUEST_REASONING_LEVEL]: callOptions.reasoning } : {}),
       ...(recordInputs && context ? getRequestContentAttributes(context) : {}),
     },
   };
@@ -82,40 +82,34 @@ export function getPiAiChatSpanOptions(request: PiAiChatRequest): StartSpanOptio
  * provider failure or an abort settles as a message with `stopReason` `error` or `aborted`.
  */
 export function setPiAiResponseAttributes(span: Span, message: PiAssistantMessage, recordOutputs: boolean): void {
-  const responseModel = message.responseModel ?? message.model;
-  if (responseModel) {
-    span.setAttribute(GEN_AI_RESPONSE_MODEL, responseModel);
-  }
-  if (message.responseId) {
-    span.setAttribute(GEN_AI_RESPONSE_ID, message.responseId);
-  }
+  const { responseModel, model, responseId, stopReason, usage } = message;
 
-  const finishReason = piAiFinishReason(message.stopReason);
-  if (finishReason) {
-    span.setAttribute(GEN_AI_RESPONSE_FINISH_REASONS, stringify([finishReason]));
-  }
-
-  const failed = message.stopReason === 'error';
-  setPiAiUsageAttributes(span, message.usage, failed || message.stopReason === 'deferred');
-
+  const finishReason = piAiFinishReason(stopReason);
   const output = recordOutputs ? piAiAssistantMessageToGenAiMessage(message, finishReason) : undefined;
-  if (output) {
-    span.setAttribute(GEN_AI_OUTPUT_MESSAGES, stringify([output], String));
-  }
+
+  span.setAttributes({
+    [GEN_AI_RESPONSE_MODEL]: responseModel ?? model,
+    [GEN_AI_RESPONSE_ID]: responseId,
+    [GEN_AI_RESPONSE_FINISH_REASONS]: finishReason ? stringify([finishReason]) : undefined,
+    [GEN_AI_OUTPUT_MESSAGES]: output ? stringify([output], String) : undefined,
+  });
+
+  const failed = stopReason === 'error';
+  setPiAiUsageAttributes(span, usage, failed || stopReason === 'deferred');
 
   if (failed) {
     span.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
-  } else if (message.stopReason === 'aborted') {
+  } else if (stopReason === 'aborted') {
     span.setStatus({ code: SPAN_STATUS_ERROR, message: 'cancelled' });
   }
 }
 
-function getServerAttributes(model: PiModel): Record<string, string | number> {
+function getServerAttributes(model: PiModel): Record<string, string | number | undefined> {
   const url = model.baseUrl ? parseStringToURLObject(model.baseUrl) : undefined;
   if (!url || isURLObjectRelative(url) || !url.hostname) {
     return {};
   }
-  return { [SERVER_ADDRESS]: url.hostname, ...(url.port ? { [SERVER_PORT]: Number(url.port) } : {}) };
+  return { [SERVER_ADDRESS]: url.hostname, [SERVER_PORT]: url.port ? Number(url.port) : undefined };
 }
 
 function getRequestContentAttributes(context: PiAiContext): Record<string, string | undefined> {
