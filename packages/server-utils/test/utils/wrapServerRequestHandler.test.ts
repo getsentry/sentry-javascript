@@ -1,6 +1,6 @@
 import { HTTP_ROUTE, SENTRY_SEGMENT_NAME_SOURCE, URL_PATH_PARAMETER_KEY_BASE } from '@sentry/conventions/attributes';
 import type { Event } from '@sentry/core';
-import { getIsolationScope, setCurrentClient, withIsolationScope } from '@sentry/core';
+import { getIsolationScope, Scope, setCurrentClient, withIsolationScope } from '@sentry/core';
 import { beforeAll, describe, expect, it, vi } from 'vitest';
 import { setAsyncLocalStorageAsyncContextStrategy } from '../../src/async-context';
 import type { ServerRequestHandlerConfig } from '../../src/utils/wrapServerRequestHandler';
@@ -88,6 +88,30 @@ describe('wrapServerRequestHandler', () => {
 
     expect(await response.text()).toBe('ok');
     expect(data).toBeUndefined();
+  });
+
+  it('clears the body and response of an earlier request from a shared isolation scope', async () => {
+    const isolationScope = new Scope();
+    const { serve } = setup({ maxRequestBodySize: 'medium' }, { isolationScope });
+
+    await serve(
+      new Request('https://example.com/login', { method: 'POST', body: '{"password":"hunter2"}' }),
+      () => new Response('no', { status: 418 }),
+    );
+    expect(isolationScope.getScopeData().sdkProcessingMetadata.normalizedRequest?.data).toBe('{"password":"hunter2"}');
+    expect(isolationScope.getScopeData().contexts.response).toEqual({ status_code: 418 });
+
+    let normalizedRequest: unknown;
+    let responseContext: unknown;
+    await serve(new Request('https://example.com/profile'), () => {
+      const { sdkProcessingMetadata, contexts } = isolationScope.getScopeData();
+      normalizedRequest = sdkProcessingMetadata.normalizedRequest;
+      responseContext = contexts.response;
+      return new Response('ok');
+    });
+
+    expect(normalizedRequest).toMatchObject({ method: 'GET', data: undefined });
+    expect(responseContext).toBeUndefined();
   });
 
   it('calls onSpanEnd and ends the span when a streamed response finishes', async () => {
@@ -219,5 +243,49 @@ describe('wrapServerRequestHandler', () => {
 
     const setCookie = transactions[0]?.contexts?.trace?.data?.['http.response.header.set-cookie'] as string[];
     expect(setCookie.map(cookie => cookie.split('=')[0])).toEqual(['first', 'second']);
+  });
+
+  it('calls onDone once with the response, or without one when the handler throws', async () => {
+    const done: (number | undefined)[] = [];
+    const { serve } = setup({}, { onDone: response => done.push(response?.status) });
+
+    const response = await serve(new Request('https://example.com/ok'), () => new Response('ok', { status: 201 }));
+    await response.text();
+    await expect(
+      serve(new Request('https://example.com/throws'), () => {
+        throw new Error('handler failed');
+      }),
+    ).rejects.toThrow('handler failed');
+    await serve(new Request('https://example.com/cors', { method: 'OPTIONS' }), () => new Response(null));
+
+    expect(done).toEqual([201, undefined, 200]);
+  });
+
+  it('does not capture errors without a mechanism', async () => {
+    const { events, serve } = setup({}, { mechanism: undefined });
+
+    await expect(
+      serve(new Request('https://example.com/throws'), () => {
+        throw new Error('handler failed');
+      }),
+    ).rejects.toThrow('handler failed');
+
+    expect(events).toHaveLength(0);
+  });
+
+  it('calls onDone at once when isStreamingResponse returns false', async () => {
+    const onDone = vi.fn();
+    const { serve } = setup({}, { onDone, isStreamingResponse: () => false });
+    const source = new ReadableStream<Uint8Array>({
+      start() {
+        // never closes
+      },
+    });
+    const original = new Response(source, { headers: { 'content-type': 'text/event-stream' } });
+
+    const response = await serve(new Request('https://example.com/events'), () => original);
+
+    expect(response).toBe(original);
+    expect(onDone).toHaveBeenCalledTimes(1);
   });
 });
