@@ -77,7 +77,6 @@
     "@sentry/rrweb-types": "^2.45.0",
     "@sentry/wasm": "11.10.0",
     "@types/node": "^20.19.0",
-    "eslint-plugin-regexp": "^3.1.0",
     "glob": "^13.0.6"
   }
 }
