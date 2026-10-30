@@ -13,6 +13,10 @@ const INTEGRATION_NAME = 'AwsLambdaWeb';
 let requestHandled = false;
 
 const _awsLambdaWebIntegration = (() => {
+  // Lambda Web Functions run ordinary HTTP servers without a Lambda handler to wrap.
+  // We read their request metadata through the `httpServerRequest` hook. Since this hook
+  // runs for all HTTP servers, we bail out early when we are not in a Lambda Web Function.
+  // https://docs.aws.amazon.com/lambda/latest/dg/web-functions-revisions-env-vars.html
   if (!process.env.AWS_LAMBDA_HTTP_ENDPOINT) {
     return { name: INTEGRATION_NAME };
   }
