@@ -68,14 +68,14 @@
     "sentry": "^0.44.0"
   },
   "devDependencies": {
-    "@react-router/dev": "^7.17.0",
+    "@react-router/dev": "^7.18.4",
     "@react-router/node": "^7.15.0",
     "@sentry-internal/rollup-utils": "11.10.0",
     "@testing-library/react": "^15.0.5",
     "@types/node": "^20.19.0",
     "@types/react": "17.0.3",
     "react": "^18.3.1",
-    "react-router": "^7.18.0",
+    "react-router": "^7.18.4",
     "vite": "^8.3.1"
   },
   "peerDependencies": {
