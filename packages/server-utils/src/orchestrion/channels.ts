@@ -27,6 +27,7 @@ import { mysqlChannels } from './config/mysql';
 import { neonChannels } from './config/neon';
 import { nestjsChannels } from './config/nestjs';
 import { nodeCronChannels } from './config/node-cron';
+import { nodeScheduleChannels } from './config/node-schedule';
 import { openaiChannels } from './config/openai';
 import { pgChannels } from './config/pg';
 import { piDurableChannels } from './config/pi-durable';
@@ -85,6 +86,7 @@ export const CHANNELS = {
   ...neonChannels,
   ...nestjsChannels,
   ...nodeCronChannels,
+  ...nodeScheduleChannels,
   ...openaiChannels,
   ...pgChannels,
   ...piDurableChannels,

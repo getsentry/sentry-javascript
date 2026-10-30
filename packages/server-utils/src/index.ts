@@ -40,6 +40,8 @@ export { dataloaderIntegration } from './integrations/dataloader';
 export { genericPoolIntegration } from './integrations/generic-pool';
 export { nodeCronIntegration } from './integrations/node-cron';
 export type { NodeCronIntegrationOptions } from './integrations/node-cron';
+export { nodeScheduleIntegration } from './integrations/node-schedule';
+export type { NodeScheduleIntegrationOptions } from './integrations/node-schedule';
 export { googleGenAIIntegration } from './integrations/google-genai';
 export { graphqlIntegration } from './integrations/graphql';
 export { hapiIntegration } from './integrations/hapi';
