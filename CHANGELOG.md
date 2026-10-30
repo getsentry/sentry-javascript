@@ -10,6 +10,10 @@
 
   `@SentryCron` now sends the schedule and time zone from the method's `@Cron()` decorator, so Sentry creates the monitor on the first run. If you use `@SentryCron` without a `schedule`, Sentry now creates missing monitors, which are billed, and overwrites schedules and time zones set by hand. Pass `fromCronDecorator: false` to turn this off.
 
+- **fix(server-utils): Instrument @anthropic-ai/sdk 1.x and turn off its own OTel spans ([#25750](https://github.com/getsentry/sentry-javascript/pull/25750))**
+
+  The Anthropic integration now instruments `@anthropic-ai/sdk` 1.x. Since 0.134 the SDK also records its own OpenTelemetry spans, such as `anthropic.messages.create`, which duplicated Sentry's `gen_ai` spans. Once Sentry instruments the SDK, it sets `ANTHROPIC_OPEN_TELEMETRY=false` to turn those spans off. To keep them, set `ANTHROPIC_OPEN_TELEMETRY=true` or pass the `openTelemetry` option to the Anthropic client.
+
 Work in this release was contributed by @lazerg and @chiliec. Thank you for your contributions!
 
 ## 11.10.0
