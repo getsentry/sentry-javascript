@@ -4,7 +4,7 @@ import { readFileSync } from 'fs';
 import { dirname, join } from 'path';
 import { replacePlugin } from 'rolldown/plugins';
 import { fileURLToPath } from 'url';
-import { makeBaseNPMConfig, makeNPMConfigVariants } from '@sentry-internal/rollup-utils';
+import { makeBaseNPMConfig, makeCjsVariantsFlat, makeNPMConfigVariants } from '@sentry-internal/rollup-utils';
 
 const packageJson = JSON.parse(readFileSync(join(dirname(fileURLToPath(import.meta.url)), 'package.json'), 'utf-8'));
 
@@ -35,9 +35,11 @@ const settings = {
   },
 };
 
-export default makeNPMConfigVariants(
-  makeBaseNPMConfig({
-    ...settings,
-    entrypoints: ['src/index.ts', 'src/server.ts', 'src/browser.ts'],
-  }),
+export default makeCjsVariantsFlat(
+  makeNPMConfigVariants(
+    makeBaseNPMConfig({
+      ...settings,
+      entrypoints: ['src/index.ts', 'src/server.ts', 'src/browser.ts'],
+    }),
+  ),
 );
