@@ -59,6 +59,7 @@ export function constructTurbopackConfig({
     nextJsVersion,
     tunnelRouteValues: getTunnelRouteInjectedValues(userNextConfig, userSentryOptions),
     vercelCronsConfig,
+    basePath: userNextConfig.basePath,
   });
 
   for (const { matcher, rule } of valueInjectionRules) {

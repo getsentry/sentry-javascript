@@ -13,11 +13,13 @@ export function generateValueInjectionRules({
   nextJsVersion,
   tunnelRouteValues,
   vercelCronsConfig,
+  basePath,
 }: {
   routeManifest?: RouteManifest;
   nextJsVersion?: string;
   tunnelRouteValues?: TunnelRouteInjectedValues;
   vercelCronsConfig?: VercelCronsConfig;
+  basePath?: string;
 }): TurbopackMatcherWithRule[] {
   const rules: TurbopackMatcherWithRule[] = [];
   const isomorphicValues: Record<string, JSONValue> = { ...tunnelRouteValues };
@@ -27,6 +29,11 @@ export function generateValueInjectionRules({
   if (nextJsVersion) {
     // This is used to determine version-based dev-symbolication behavior
     isomorphicValues._sentryNextJsVersion = nextJsVersion;
+  }
+
+  // The server reads it to serve the managed tunnel under the base path.
+  if (basePath) {
+    isomorphicValues._sentryBasePath = basePath;
   }
 
   if (routeManifest) {

@@ -15,7 +15,9 @@ import {
 } from '@sentry/core';
 import type { VercelEdgeOptions } from '@sentry/vercel-edge';
 import { getDefaultIntegrations, init as vercelEdgeInit } from '@sentry/vercel-edge';
+import { _INTERNAL_setManagedTunnelDefaults as setManagedTunnelDefaults } from '@sentry/core/server';
 import { DEBUG_BUILD } from '../common/debug-build';
+import { getInjectedBasePath } from '../common/utils/basePath';
 import { ATTR_NEXT_SPAN_NAME, ATTR_NEXT_SPAN_TYPE } from '../common/nextSpanAttributes';
 import {
   ATTR_NEXT_PAGES_API_ROUTE_TYPE,
@@ -113,6 +115,9 @@ export function init(options: VercelEdgeOptions = {}): void {
     ...getTunnelRouteIgnoreSpans(),
   ];
   opts.ignoreSpans = [...(opts.ignoreSpans || []), ...nextjsIgnoreSpans];
+
+  // Before `init`, which applies it to the managed tunnel of `serveTunnelIntegration`.
+  setManagedTunnelDefaults({ basePath: getInjectedBasePath() });
 
   // Before the Cloudflare check, so that the events of the client of `withSentry` get the tag too.
   try {

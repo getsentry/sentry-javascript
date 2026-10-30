@@ -12,7 +12,9 @@ import {
 } from '@sentry/core';
 import type { NodeClient, NodeOptions } from '@sentry/node';
 import { getDefaultIntegrations, httpIntegration, init as nodeInit } from '@sentry/node';
+import { _INTERNAL_setManagedTunnelDefaults as setManagedTunnelDefaults } from '@sentry/core/server';
 import { DEBUG_BUILD } from '../common/debug-build';
+import { getInjectedBasePath } from '../common/utils/basePath';
 import { devErrorSymbolicationEventProcessor } from '../common/devErrorSymbolicationEventProcessor';
 import { dropReactControlFlowErrorsEventProcessor } from '../common/utils/dropReactControlFlowErrors';
 import { getTunnelRouteIgnoreSpans } from '../common/utils/dropMiddlewareTunnelRequests';
@@ -158,6 +160,9 @@ export function init(options: NodeOptions): NodeClient | undefined {
   };
 
   opts.ignoreSpans = [...(opts.ignoreSpans || []), ...NEXTJS_SERVER_IGNORE_SPANS, ...getTunnelRouteIgnoreSpans()];
+
+  // Before `init`, which applies it to the managed tunnel of `serveTunnelIntegration`.
+  setManagedTunnelDefaults({ basePath: getInjectedBasePath() });
 
   if (DEBUG_BUILD && opts.debug) {
     debug.enable();

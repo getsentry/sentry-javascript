@@ -2,13 +2,20 @@
 // can be removed once following issue is fixed: https://github.com/import-js/eslint-plugin-import/issues/703
 /* eslint-disable import/export */
 import type { Client, EventProcessor, Integration } from '@sentry/core';
-import { applySdkMetadata, consoleSandbox, getGlobalScope, GLOBAL_OBJ } from '@sentry/core';
+import {
+  _INTERNAL_applyTunnelDefaults as applyTunnelDefaults,
+  applySdkMetadata,
+  consoleSandbox,
+  getGlobalScope,
+  GLOBAL_OBJ,
+} from '@sentry/core';
 import type { BrowserOptions } from '@sentry/react';
 import { getDefaultIntegrations as getReactDefaultIntegrations, init as reactInit } from '@sentry/react';
 import { DEBUG_BUILD } from '../common/debug-build';
 import { devErrorSymbolicationEventProcessor } from '../common/devErrorSymbolicationEventProcessor';
 import { getClientVercelEnv } from '../common/getVercelEnv';
 import { isRedirectNavigationError } from '../common/nextNavigationErrorUtils';
+import { getInjectedBasePath } from '../common/utils/basePath';
 import { browserTracingIntegration } from './browserTracingIntegration';
 import { nextjsClientStackFrameNormalizationIntegration } from './clientNormalizationIntegration';
 import { createNextRouteProvider } from './routing/routeProvider';
@@ -24,7 +31,6 @@ export { captureRouterTransitionStart } from './routing/appRouterRoutingInstrume
 const globalWithInjectedValues = GLOBAL_OBJ as typeof GLOBAL_OBJ & {
   _sentryRewriteFramesAssetPrefixPath: string;
   _sentryAssetPrefix?: string;
-  _sentryBasePath?: string;
   _sentryRelease?: string;
   _experimentalThirdPartyOriginStackFrames?: string;
 };
@@ -55,6 +61,8 @@ export function init(options: BrowserOptions): Client | undefined {
   } satisfies BrowserOptions;
 
   applyTunnelRouteOption(opts);
+  // The managed tunnel is served under the app's `basePath`, like every other route. A `basePath` the user set wins.
+  opts.tunnel = applyTunnelDefaults(opts.tunnel, { basePath: getInjectedBasePath() });
   applySdkMetadata(opts, 'nextjs', ['nextjs', 'react']);
 
   opts.ignoreSpans = [
@@ -104,7 +112,7 @@ function getDefaultIntegrations(options: BrowserOptions): Integration[] {
     globalWithInjectedValues._sentryRewriteFramesAssetPrefixPath ||
     '';
   const assetPrefix = process.env._sentryAssetPrefix || globalWithInjectedValues._sentryAssetPrefix;
-  const basePath = process.env._sentryBasePath || globalWithInjectedValues._sentryBasePath;
+  const basePath = getInjectedBasePath();
   const experimentalThirdPartyOriginStackFrames =
     process.env._experimentalThirdPartyOriginStackFrames === 'true' ||
     globalWithInjectedValues._experimentalThirdPartyOriginStackFrames === 'true';

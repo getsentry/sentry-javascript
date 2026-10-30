@@ -1,9 +1,14 @@
 import type { Integration } from '@sentry/core';
-import { GLOBAL_OBJ, getMainCarrier, withIsolationScope } from '@sentry/core';
+import { GLOBAL_OBJ, getMainCarrier, getTunnelPath, withIsolationScope } from '@sentry/core';
 import { setAsyncLocalStorageAsyncContextStrategy } from '@sentry/server-utils';
 import { close, getCurrentScope, getGlobalScope } from '@sentry/node';
 import * as SentryNode from '@sentry/node';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import {
+  _INTERNAL_resetManagedTunnelDefaults,
+  handleTunnelRequestIfMatched,
+  serveTunnelIntegration,
+} from '@sentry/core/server';
 import { TRANSACTION_ATTR_SHOULD_DROP_TRANSACTION } from '../src/common/span-attributes-with-logic-attached';
 import { init } from '../src/server';
 import type * as NextSentryPropagatorModule from '../src/server/nextSentryPropagator';
@@ -18,6 +23,8 @@ vi.mock('../src/server/nextSentryPropagator', async importOriginal => ({
 (GLOBAL_OBJ as typeof GLOBAL_OBJ & { _sentryRewriteFramesDistDir: string })._sentryRewriteFramesDistDir = '.next';
 
 const nodeInit = vi.spyOn(SentryNode, 'init');
+
+const TEST_DSN = 'https://public@dsn.ingest.sentry.io/1337';
 
 function findIntegrationByName(integrations: Integration[] = [], name: string): Integration | undefined {
   return integrations.find(integration => integration.name === name);
@@ -94,6 +101,27 @@ describe('Server init()', () => {
       init({});
 
       expect(registerNextSentryPropagator).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('managed tunnel', () => {
+    afterEach(() => {
+      delete (GLOBAL_OBJ as typeof GLOBAL_OBJ & { _sentryBasePath?: string })._sentryBasePath;
+      _INTERNAL_resetManagedTunnelDefaults();
+    });
+
+    it("serves the tunnel of `serveTunnelIntegration` under the app's `basePath`", () => {
+      (GLOBAL_OBJ as typeof GLOBAL_OBJ & { _sentryBasePath?: string })._sentryBasePath = '/docs';
+      const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response('{}'));
+
+      init({ dsn: TEST_DSN, integrations: [serveTunnelIntegration()] });
+
+      const tunnelPath = getTunnelPath(TEST_DSN);
+      const post = (path: string): Request =>
+        new Request(`https://example.com${path}`, { method: 'POST', body: '{}', headers: { 'content-length': '2' } });
+      expect(handleTunnelRequestIfMatched(post(`/docs${tunnelPath}`))).toBeInstanceOf(Promise);
+      expect(handleTunnelRequestIfMatched(post(`${tunnelPath}`))).toBeUndefined();
+      fetchSpy.mockRestore();
     });
   });
 

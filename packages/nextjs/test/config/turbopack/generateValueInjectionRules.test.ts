@@ -332,6 +332,21 @@ describe('generateValueInjectionRules', () => {
     });
   });
 
+  describe('with basePath', () => {
+    it('injects the base path into the client and server bundles', () => {
+      const result = generateValueInjectionRules({ basePath: '/docs' });
+
+      const injectedValues = result.map(({ matcher, rule }) => [
+        matcher,
+        (rule as { loaders: Array<{ options: { values: Record<string, unknown> } }> }).loaders[0]?.options.values,
+      ]);
+      expect(injectedValues).toEqual([
+        ['**/instrumentation-client.*', { _sentryBasePath: '/docs' }],
+        ['**/instrumentation.*', { _sentryBasePath: '/docs', __SENTRY_SERVER_MODULES__: expect.any(Object) }],
+      ]);
+    });
+  });
+
   describe('path resolution', () => {
     it('should call path.resolve with correct arguments', () => {
       const pathResolveSpy = vi.spyOn(path, 'resolve');
