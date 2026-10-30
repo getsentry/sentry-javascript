@@ -284,6 +284,12 @@ export function instrumentMessageStream<R extends { on: (...args: unknown[]) => 
     endStreamSpan(span, state, recordOutputs);
   });
 
+  // Fires last on every stream, so a stream that stops without 'message' (aborted, or the body closed early) still
+  // ends its span. An 'abort' listener would also stop the SDK from raising an unobserved abort as a rejection.
+  stream.on('end', () => {
+    endStreamSpan(span, state, recordOutputs);
+  });
+
   stream.on('error', (error: unknown) => {
     // Attaching this listener stops the stream error from being raised as an unhandled rejection, so
     // we capture it here to avoid swallowing it (e.g. for callers that don't await/iterate the stream).
