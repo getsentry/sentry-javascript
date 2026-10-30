@@ -42,8 +42,6 @@ import { getSpotlightConfig } from '../utils/spotlight';
 import { defaultStackParser, getSentryRelease } from './api';
 import { NodeClient } from './client';
 import { initOpenTelemetry } from './initOtel';
-import { instrumentTunnelServers } from './tunnelServer';
-import { redirectLambdaHandlerForTunnel } from '../lambda/redirectHandler';
 import { setupVercelKeepAlive } from './vercel';
 
 /**
@@ -137,8 +135,6 @@ function _init(
 
   applySdkMetadata(options, 'node');
 
-  instrumentTunnelServers();
-
   // Enable debug logging before the client is created, so failure modes during setup (e.g. the
   // channel-injection registration finding no available Node hook API, or dep-resolution errors)
   // actually surface. `getClientOptions` resolves `debug` the same way for the client; resolving it
@@ -187,12 +183,6 @@ function _init(
   getCurrentScope().setClient(client);
 
   client.init();
-
-  // Lambda runs no HTTP server, so its handler is wrapped to answer tunnel requests. After `client.init()`, so the
-  // redirect of `@sentry/aws-serverless`, whose handler answers them too, goes first and this one stays out of it.
-  if (process.env.LAMBDA_TASK_ROOT && client.getOptions()._managedTunnel) {
-    redirectLambdaHandlerForTunnel();
-  }
 
   /*! rollup-include-cjs-only */
   debug.log(`SDK initialized from CommonJS`);

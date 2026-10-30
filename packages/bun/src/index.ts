@@ -173,7 +173,6 @@ export {
   spanToTraceHeader,
   spanToBaggageHeader,
   trpcMiddleware,
-  serveTunnelIntegration,
   getTunnelPath,
   handleTunnelRequest,
   handleTunnelRequestIfMatched,
@@ -241,6 +240,7 @@ export {
   initWithoutDefaultIntegrations,
 } from './sdk';
 export { bunServerIntegration } from './integrations/bunserver';
+export { serveTunnelIntegration } from './integrations/serveTunnel';
 export type { BunServerIntegrationOptions } from './integrations/bunserver';
 export { bunHttpServerIntegration } from './integrations/bunHttpServer';
 export { fetchIntegration } from './integrations/fetch';

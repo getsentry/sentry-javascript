@@ -16,7 +16,6 @@ import {
 } from '@sentry/core';
 import { detectOrchestrionSetup, getTracingIntegrations, getErrorIntegrations } from '@sentry/server-utils';
 import { DenoClient } from './client';
-import { instrumentTunnelServers } from './tunnelServer';
 import { nodeStackLineParser } from '@sentry/core/server';
 import { breadcrumbsIntegration } from './integrations/breadcrumbs';
 import { denoContextIntegration } from './integrations/context';
@@ -123,8 +122,6 @@ function _init(options: DenoOptions, getDefaultIntegrationsImpl: (options: Optio
   // depends on the tracing options, so caching it on the caller's object would pin the
   // result of the first `init` for any reused options object.
   const defaultIntegrations = options.defaultIntegrations ?? getDefaultIntegrationsImpl(options);
-
-  instrumentTunnelServers();
 
   const clientOptions: ServerRuntimeClientOptions = {
     ...options,
