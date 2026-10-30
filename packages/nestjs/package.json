@@ -1,6 +1,6 @@
 {
   "name": "@sentry/nestjs",
-  "version": "11.8.0",
+  "version": "11.10.0",
   "description": "Official Sentry SDK for NestJS",
   "repository": "git://github.com/getsentry/sentry-javascript.git",
   "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/nestjs",
@@ -38,21 +38,31 @@
         "types": "./setup.d.ts",
         "default": "./build/cjs/setup.js"
       }
+    },
+    "./webpack": {
+      "import": {
+        "types": "./build/types/bundler-plugin/webpack.d.ts",
+        "default": "./build/esm/bundler-plugin/webpack.js"
+      },
+      "require": {
+        "types": "./build/types/bundler-plugin/webpack.d.ts",
+        "default": "./build/cjs/bundler-plugin/webpack.js"
+      }
     }
   },
   "publishConfig": {
     "access": "public"
   },
   "dependencies": {
-    "@sentry/conventions": "^0.27.0",
-    "@sentry/core": "11.8.0",
-    "@sentry/node": "11.8.0",
-    "@sentry/server-utils": "11.8.0"
+    "@sentry/conventions": "^0.30.0",
+    "@sentry/core": "11.10.0",
+    "@sentry/node": "11.10.0",
+    "@sentry/server-utils": "11.10.0"
   },
   "devDependencies": {
     "@nestjs/common": "^10.0.0",
     "@nestjs/core": "^10.0.0",
-    "@sentry-internal/rollup-utils": "11.8.0",
+    "@sentry-internal/rollup-utils": "11.10.0",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.2"
   },
@@ -80,9 +90,6 @@
     "test": "vitest run",
     "test:watch": "vitest --watch",
     "yalc:publish": "yalc publish --push --sig"
-  },
-  "volta": {
-    "extends": "../../package.json"
   },
   "nx": {
     "targets": {

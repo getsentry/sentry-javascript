@@ -19,6 +19,13 @@ updates:
       # 2.110.0 raised the engine requirement to Node >=22, while this repo runs Node 20.
       - dependency-name: '@supabase/supabase-js'
         versions: ['>=2.110.0']
+      # Keep react-router dev dependencies on v7, so tests cover the older major.
+      - dependency-name: 'react-router'
+        update-types: ['version-update:semver-major']
+      - dependency-name: 'react-router-dom'
+        update-types: ['version-update:semver-major']
+      - dependency-name: '@react-router/*'
+        update-types: ['version-update:semver-major']
     groups:
       opentelemetry:
         patterns:

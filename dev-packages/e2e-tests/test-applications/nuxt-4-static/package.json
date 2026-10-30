@@ -26,13 +26,11 @@
   },
   "devDependencies": {
     "@playwright/test": "1.64.1",
-    "@sentry/conventions": "0.27.0",
+    "@sentry/conventions": "0.30.0",
     "@sentry-internal/test-utils": "file:../../packed/sentry-internal-test-utils-packed.tgz"
   },
-  "volta": {
-    "extends": "../../package.json"
-  },
   "sentryTest": {
+    "runner": "namespace-profile-sentry-javascript",
     "variants": [
       {
         "build-command": "E2E_TEST_OTEL_SETUP=true pnpm test:build",
@@ -40,7 +38,7 @@
         "label": "nuxt-4-static (tracer provider)"
       }
     ],
-    "optionalVariants": [
+    "canaryVariants": [
       {
         "build-command": "pnpm test:build-canary",
         "label": "nuxt-4-static (canary)"

@@ -1,6 +1,8 @@
+import { getBuildLogger } from '../buildLogger';
 import type { NextConfigObject, SentryBuildOptions } from '../types';
 import { getNextjsVersion } from '../util';
 import { setUpBuildTimeVariables } from './buildTime';
+import type { BundlerInfo } from './getFinalConfigObjectBundlerUtils';
 import {
   getBundlerInfo,
   getServerExternalPackagesPatch,
@@ -25,6 +27,7 @@ import {
   maybeSetUpTunnelRouteRewriteRules,
   resolveReleaseName,
   shouldReturnEarlyInExperimentalBuildMode,
+  warnIfMissingInstrumentationFile,
   warnIfMissingOnRouterTransitionStartHook,
 } from './getFinalConfigObjectUtils';
 
@@ -55,10 +58,12 @@ export function getFinalConfigObject(
   maybeSetClientTraceMetadataOption(incomingUserNextConfigObject, nextJsVersion, userSentryOptions.silent);
   maybeSetInstrumentationHookOption(incomingUserNextConfigObject, nextJsVersion, userSentryOptions.silent);
   warnIfMissingOnRouterTransitionStartHook(userSentryOptions);
+  warnIfMissingInstrumentationFile(incomingUserNextConfigObject, userSentryOptions);
 
   const bundlerInfo = getBundlerInfo(nextJsVersion);
   maybeWarnAboutUnsupportedTurbopack(nextJsVersion, bundlerInfo, userSentryOptions.silent);
   maybeWarnAboutTurbopackModuleMetadata(userSentryOptions, bundlerInfo);
+  maybeWarnAboutApplicationKeyExcludeDependencies(userSentryOptions, bundlerInfo);
   maybeWarnAboutUnsupportedRunAfterProductionCompileHook(nextJsVersion, userSentryOptions, bundlerInfo);
 
   const turboPackConfig = maybeConstructTurbopackConfig(
@@ -105,4 +110,24 @@ export function getFinalConfigObject(
     }),
     ...getTurbopackPatch(bundlerInfo, turboPackConfig),
   };
+}
+
+function maybeWarnAboutApplicationKeyExcludeDependencies(
+  userSentryOptions: SentryBuildOptions,
+  bundlerInfo: BundlerInfo,
+): void {
+  if (!userSentryOptions.applicationKeyExcludeDependencies) {
+    return;
+  }
+
+  const logger = getBuildLogger(userSentryOptions.silent);
+  if (!userSentryOptions.applicationKey) {
+    logger.warn(
+      '[@sentry/nextjs] `applicationKeyExcludeDependencies` requires `applicationKey` and has no effect without it.',
+    );
+  } else if (bundlerInfo.isWebpack) {
+    logger.warn(
+      '[@sentry/nextjs] `applicationKeyExcludeDependencies` only applies to Turbopack builds and has no effect on webpack builds.',
+    );
+  }
 }

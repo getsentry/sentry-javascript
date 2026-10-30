@@ -1,6 +1,7 @@
 import * as diagnosticsChannel from '../utils/diagnosticsChannel';
 import {
   DB_OPERATION_BATCH_SIZE,
+  DB_OPERATION_NAME,
   DB_QUERY_SUMMARY,
   DB_QUERY_TEXT,
   DB_SYSTEM_NAME,
@@ -11,7 +12,7 @@ import {
 import { DB } from '@sentry/conventions/op';
 import type { IntegrationFn, Span } from '@sentry/core';
 import { defineIntegration, getActiveSpan, startInactiveSpan } from '@sentry/core';
-import { sanitizeSqlQueryWithSummary } from '../utils/sql';
+import { getSqlQueryAttributes } from '../utils/sql';
 import { CHANNELS } from '../orchestrion/channels';
 import { neonModuleNames } from '../orchestrion/config/neon';
 import { invokeOrchestrionInstrumentation } from '../orchestrion/instrumentation';
@@ -60,15 +61,11 @@ function instrumentNeon(): void {
   // the pg span shape.
   bindPgQueryChannel(CHANNELS.NEON_QUERY, { origin: ORIGIN });
 
-  bindTracingChannelToSpan(
-    diagnosticsChannel.tracingChannel<NeonHttpQueryContext>(CHANNELS.NEON_HTTP_QUERY),
-    data => {
-      const span = startInactiveSpan(httpQuerySpanOptions(data.arguments));
-      httpQuerySpans.add(span);
-      return span;
-    },
-    { requiresParentSpan: true },
-  );
+  bindTracingChannelToSpan(diagnosticsChannel.tracingChannel<NeonHttpQueryContext>(CHANNELS.NEON_HTTP_QUERY), data => {
+    const span = startInactiveSpan(httpQuerySpanOptions(data.arguments));
+    httpQuerySpans.add(span);
+    return span;
+  });
 
   // The connection string is resolved inside the HTTP executor, so the query span is active
   // when this settles. The executor's own context never sees the string.
@@ -102,13 +99,16 @@ function httpQuerySpanOptions(args: unknown[]): Parameters<typeof startInactiveS
   const statements = (Array.isArray(queryData) ? queryData : [queryData])
     .map(getQueryText)
     .filter((text): text is string => !!text)
-    .map(text => sanitizeSqlQueryWithSummary(text));
-  const queryText = joinDefined(statements.map(s => s.queryText));
-  const querySummary = joinDefined(statements.map(s => s.querySummary));
+    .map(text => getSqlQueryAttributes(text));
+  const queryText = joinDefined(statements.map(s => s[DB_QUERY_TEXT]));
+  const querySummary = joinDefined(statements.map(s => s[DB_QUERY_SUMMARY]));
+  const operationName =
+    batchSize === undefined ? statements[0]?.[DB_OPERATION_NAME] : getBatchOperationName(statements);
   const name = querySummary || DB_SYSTEM_POSTGRESQL;
 
   return {
     name,
+    onlyIfParent: true,
     attributes: {
       [SENTRY_OP]: DB,
       [SENTRY_ORIGIN]: ORIGIN,
@@ -116,9 +116,17 @@ function httpQuerySpanOptions(args: unknown[]): Parameters<typeof startInactiveS
       [DB_SYSTEM_NAME]: DB_SYSTEM_POSTGRESQL,
       [DB_QUERY_TEXT]: queryText || undefined,
       [DB_QUERY_SUMMARY]: querySummary,
+      [DB_OPERATION_NAME]: operationName,
       [DB_OPERATION_BATCH_SIZE]: batchSize,
     },
   };
+}
+
+// OTel names a batch `BATCH <op>` when every statement shares one operation, plain `BATCH` otherwise.
+function getBatchOperationName(statements: ReturnType<typeof getSqlQueryAttributes>[]): string {
+  const operations = new Set(statements.map(s => s[DB_OPERATION_NAME]?.toUpperCase()));
+  const [operation] = operations;
+  return operations.size === 1 && operation ? `BATCH ${operation}` : 'BATCH';
 }
 
 function joinDefined(parts: (string | undefined)[]): string | undefined {

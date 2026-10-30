@@ -71,7 +71,11 @@ export const sentryCloudflareNitroPlugin =
           const requestHandlerOptions = {
             // `wrapRequestHandler` only sets up the integrations that work without `nodejs_compat`.
             // Nitro's Cloudflare presets require the flag anyway, so opt into the full set.
-            options: { defaultIntegrations: getDefaultIntegrations(cloudflareOptions), ...cloudflareOptions },
+            options: {
+              defaultIntegrations: getDefaultIntegrations(cloudflareOptions),
+              _extendsDefaultIntegrations: cloudflareOptions.defaultIntegrations === undefined,
+              ...cloudflareOptions,
+            },
             request,
             context: getCloudflareProperties(event).context,
           };

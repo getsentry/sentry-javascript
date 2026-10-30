@@ -10,6 +10,7 @@ import {
   SERVER_ADDRESS,
   SERVER_PORT,
   SENTRY_ORIGIN,
+  DB_CONNECTION_STRING,
 } from '@sentry/conventions/attributes';
 import { DB } from '@sentry/conventions/op';
 import type { IntegrationFn, Scope, SpanAttributes } from '@sentry/core';
@@ -22,7 +23,7 @@ import {
   hasSpanStreamingEnabled,
   startInactiveSpan,
 } from '@sentry/core';
-import { sanitizeSqlQueryWithSummary } from '../utils/sql';
+import { getSqlQueryAttributes } from '../utils/sql';
 import type { OrchestrionChannelContext } from '../orchestrion/types';
 import { CHANNELS } from '../orchestrion/channels';
 import { bindTracingChannelToSpan } from '../tracing-channel';
@@ -37,9 +38,6 @@ const INTEGRATION_NAME = 'Postgres' as const;
 // so they default to 'manual').
 const ORIGIN = 'auto.db.postgres';
 
-// `db.connection_string` is not part of `@sentry/conventions`, so it stays
-// inlined, keeping this integration free of `@opentelemetry/*` deps.
-const ATTR_DB_CONNECTION_STRING = 'db.connection_string';
 const ATTR_PG_PLAN = 'db.postgresql.plan';
 const ATTR_PG_IDLE_TIMEOUT = 'db.postgresql.idle.timeout.millis';
 const ATTR_PG_MAX_CLIENT = 'db.postgresql.max.client';
@@ -143,6 +141,7 @@ function subscribeQueryLikeChannel(
       const spanOptions = getSpanOptions(data);
       return startInactiveSpan({
         ...spanOptions,
+        onlyIfParent: true,
         attributes: { ...spanOptions.attributes, [SENTRY_KIND]: 'client' },
       });
     },
@@ -153,9 +152,6 @@ function subscribeQueryLikeChannel(
     // `query` can return a streamable `Submittable`, so only it defers.
     deferStreamedResult
       ? {
-          // Only instrument under an active span, leaving the context untouched otherwise
-          // (e.g. connects issued during app startup).
-          requiresParentSpan: true,
           // Streamable `Submittable` (e.g. `client.query(new Query())`)
           // returns an emitter that orchestrion stores on `ctx.result` while
           // firing no async events; the query isn't done until the emitter
@@ -182,7 +178,7 @@ function subscribeQueryLikeChannel(
             return true;
           },
         }
-      : { requiresParentSpan: true },
+      : undefined,
   );
 }
 
@@ -193,11 +189,11 @@ function querySpanOptions(
   const params = (ctx.self as { connectionParameters?: PgConnectionParams } | undefined)?.connectionParameters ?? {};
   const queryConfig = extractQueryConfig(ctx.arguments);
   const client = getClient();
-  const { queryText, querySummary } = sanitizeSqlQueryWithSummary(queryConfig?.text);
+  const queryAttributes = getSqlQueryAttributes(queryConfig?.text);
   const name =
     client && hasSpanStreamingEnabled(client)
-      ? querySummary || params.database || DB_SYSTEM_POSTGRESQL
-      : (queryText ?? SPAN_QUERY_FALLBACK);
+      ? queryAttributes[DB_QUERY_SUMMARY] || params.database || DB_SYSTEM_POSTGRESQL
+      : (queryAttributes[DB_QUERY_TEXT] ?? SPAN_QUERY_FALLBACK);
 
   return {
     name,
@@ -205,8 +201,7 @@ function querySpanOptions(
       [SENTRY_OP]: DB,
       ...(connectionString ? getPgConnectionAttributes(params) : getConnectionAttributes(params)),
       [SENTRY_ORIGIN]: origin,
-      [DB_QUERY_TEXT]: queryText || undefined,
-      [DB_QUERY_SUMMARY]: querySummary,
+      ...queryAttributes,
       [ATTR_PG_PLAN]: typeof queryConfig?.name === 'string' ? queryConfig.name : undefined,
     },
   };
@@ -254,7 +249,8 @@ export function getConnectionAttributes(params: PgConnectionParams): SpanAttribu
 }
 
 function getPgConnectionAttributes(params: PgConnectionParams): SpanAttributes {
-  return { ...getConnectionAttributes(params), [ATTR_DB_CONNECTION_STRING]: getConnectionString(params) };
+  // oxlint-disable-next-line typescript/no-deprecated -- Preserve the existing attribute name.
+  return { ...getConnectionAttributes(params), [DB_CONNECTION_STRING]: getConnectionString(params) };
 }
 
 function getPoolConnectionAttributes(opts: PgPoolOptions): SpanAttributes {
@@ -273,7 +269,8 @@ function getPoolConnectionAttributes(opts: PgPoolOptions): SpanAttributes {
   const user = url?.username || opts.user;
   return {
     [DB_SYSTEM_NAME]: DB_SYSTEM_POSTGRESQL,
-    [ATTR_DB_CONNECTION_STRING]: getConnectionString(opts),
+    // oxlint-disable-next-line typescript/no-deprecated -- Preserve the existing attribute name.
+    [DB_CONNECTION_STRING]: getConnectionString(opts),
     [ATTR_PG_IDLE_TIMEOUT]: opts.idleTimeoutMillis,
     [ATTR_PG_MAX_CLIENT]: opts.max,
     [DB_NAMESPACE]: database,

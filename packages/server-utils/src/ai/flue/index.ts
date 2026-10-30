@@ -1,5 +1,15 @@
-import type { Span } from '@sentry/core';
-import { continueTrace, getActiveSpan, LRUMap, startSpan, withActiveSpan } from '@sentry/core';
+import type { Scope, Span } from '@sentry/core';
+import {
+  continueTrace,
+  getActiveSpan,
+  getDefaultIsolationScope,
+  getIsolationScope,
+  GLOBAL_OBJ,
+  LRUMap,
+  startNewTrace,
+  startSpan,
+  withActiveSpan,
+} from '@sentry/core';
 import {
   GEN_AI_AGENT_NAME,
   GEN_AI_CONVERSATION_ID,
@@ -9,6 +19,7 @@ import {
 import type { GenAiOptions } from '../core/utils';
 import { getGenAiSpanOp, resolveAIRecordingOptions } from '../core/utils';
 import { skipPiAiProviderIntegrations } from '../pi-ai/providers';
+import { withCleanScopes } from '../../utils/withCleanScopes';
 import { FLUE_INSTRUMENTATION_KEY, FLUE_OPERATION, FLUE_ORIGIN, MAX_TRACKED_FLUE_SPANS } from './constants';
 import type { SpanTracker } from './utils';
 import {
@@ -22,6 +33,39 @@ import {
 import type { FlueInstrumentation } from './types';
 
 export type FlueOptions = GenAiOptions;
+
+interface Admission {
+  isolationScope: Scope;
+  span: Span | undefined;
+}
+
+/**
+ * Flue's Node coordinator runs every submission from one long-lived claim loop, started by the
+ * first admission and keeping that call's async context for the life of the process. Left alone,
+ * every agent run lands in the trace of whichever request admitted the first one
+ * (https://github.com/withastro/flue/issues/813).
+ */
+function runInAdmissionContext<T>(admission: Admission | undefined, next: () => T): T {
+  if (isCloudflareWorkers()) {
+    return next();
+  }
+  if (!admission) {
+    // Admitted by another process, replayed by idempotency key, or evicted: there is nothing to
+    // restore, but the loop's context still belongs to an unrelated request.
+    return withCleanScopes(getDefaultIsolationScope().clone(), () => startNewTrace(next));
+  }
+  return withCleanScopes(admission.isolationScope, () =>
+    admission.span ? withActiveSpan(admission.span, next) : startNewTrace(next),
+  );
+}
+
+/**
+ * Cloudflare runs each turn from a Durable Object alarm, which already starts a trace of its own, so
+ * there is no leaked context to undo there.
+ */
+function isCloudflareWorkers(): boolean {
+  return GLOBAL_OBJ.navigator?.userAgent === 'Cloudflare-Workers';
+}
 
 /**
  * Build the object to hand to `instrument()` from `@flue/runtime`.
@@ -56,6 +100,8 @@ export function createFlueInstrumentation(options: FlueOptions = {}): FlueInstru
   // Capped, unlike the above: these are keyed off ids that only a matching end observation removes.
   const turnSpans: SpanTracker = new LRUMap(MAX_TRACKED_FLUE_SPANS);
   const toolSpans: SpanTracker = new LRUMap(MAX_TRACKED_FLUE_SPANS);
+  // Capped: a submission admitted here but run by another process never settles here.
+  const admissions = new LRUMap<string, Admission>(MAX_TRACKED_FLUE_SPANS);
 
   return {
     key: FLUE_INSTRUMENTATION_KEY,
@@ -80,9 +126,13 @@ export function createFlueInstrumentation(options: FlueOptions = {}): FlueInstru
 
       // A submission opens with a wrapper operation whose id *is* the submission id; the run it
       // wraps gets its own operation id, and that is the one the observations reference. Spanning
-      // the wrapper too would double-count every agent invocation.
+      // the wrapper too would double-count every agent invocation, but it is the outermost point of
+      // every attempt, so it is where the admitting context goes back in.
       const operationId = operation.operationId;
-      if (!operationId || operationId === ctx.submissionId || agentSpans.has(operationId)) {
+      if (operationId && operationId === ctx.submissionId) {
+        return runInAdmissionContext(admissions.get(operationId), next);
+      }
+      if (!operationId || agentSpans.has(operationId)) {
         return next();
       }
 
@@ -94,8 +144,8 @@ export function createFlueInstrumentation(options: FlueOptions = {}): FlueInstru
             attributes: {
               [SENTRY_ORIGIN]: FLUE_ORIGIN,
               [GEN_AI_OPERATION_NAME]: 'invoke_agent',
-              ...(ctx.agentName ? { [GEN_AI_AGENT_NAME]: ctx.agentName } : {}),
-              ...(ctx.conversationId ? { [GEN_AI_CONVERSATION_ID]: ctx.conversationId } : {}),
+              [GEN_AI_AGENT_NAME]: ctx.agentName,
+              [GEN_AI_CONVERSATION_ID]: ctx.conversationId,
             },
           },
           async (span: Span) => {
@@ -148,6 +198,20 @@ export function createFlueInstrumentation(options: FlueOptions = {}): FlueInstru
       }
 
       switch (observation.type) {
+        // Emitted synchronously from inside the admitting call, so the active context is its own.
+        case 'submission_queued':
+          if (observation.submissionId && !isCloudflareWorkers()) {
+            admissions.set(observation.submissionId, {
+              isolationScope: getIsolationScope(),
+              span: getActiveSpan(),
+            });
+          }
+          return;
+        case 'submission_settled':
+          if (observation.submissionId) {
+            admissions.remove(observation.submissionId);
+          }
+          return;
         case 'turn_start':
           startTurnSpan(observation, turnSpans);
           return;
@@ -179,6 +243,7 @@ export function createFlueInstrumentation(options: FlueOptions = {}): FlueInstru
         span.end();
       }
       agentSpans.clear();
+      admissions.clear();
       turnSpans.clear();
       toolSpans.clear();
     },

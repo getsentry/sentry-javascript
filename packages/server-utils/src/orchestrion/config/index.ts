@@ -34,6 +34,8 @@ import { mysqlConfig } from './mysql';
 import { neonConfig } from './neon';
 import { nestjsConfig } from './nestjs';
 import { nitroConfig } from './nitro';
+import { nodeCronConfig } from './node-cron';
+import { nodeScheduleConfig } from './node-schedule';
 import { openaiConfig } from './openai';
 import { pgConfig } from './pg';
 import { postgresJsConfig } from './postgres';
@@ -93,6 +95,8 @@ export const SENTRY_INSTRUMENTATIONS: InstrumentationConfig[] = [
   ...neonConfig,
   ...nestjsConfig,
   ...nitroConfig,
+  ...nodeCronConfig,
+  ...nodeScheduleConfig,
   ...openaiConfig,
   ...pgConfig,
   ...piDurableConfig,

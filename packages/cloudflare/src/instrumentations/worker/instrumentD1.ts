@@ -1,6 +1,17 @@
 /* eslint-disable @typescript-eslint/unbound-method */
 import type { D1Database, D1DatabaseSession, D1PreparedStatement, D1Response } from '@cloudflare/workers-types';
-import { SENTRY_OP, SENTRY_ORIGIN } from '@sentry/conventions/attributes';
+import {
+  SENTRY_OP,
+  SENTRY_ORIGIN,
+  CLOUDFLARE_D1_DURATION,
+  CLOUDFLARE_D1_ROWS_READ,
+  CLOUDFLARE_D1_ROWS_WRITTEN,
+  DB_OPERATION_BATCH_SIZE,
+  DB_OPERATION_NAME,
+  DB_QUERY_SUMMARY,
+  DB_QUERY_TEXT,
+  DB_SYSTEM_NAME,
+} from '@sentry/conventions/attributes';
 import { DB_QUERY } from '@sentry/conventions/op';
 import type { Span, SpanAttributes, StartSpanOptions } from '@sentry/core';
 import { addBreadcrumb, getClient, hasSpanStreamingEnabled, SPAN_STATUS_ERROR, startSpan } from '@sentry/core';
@@ -106,9 +117,9 @@ function applyD1ReturnObjectToSpan(span: Span, d1Result: D1Response): void {
 
 function getAttributesFromD1Response(d1Result: D1Response): SpanAttributes {
   return {
-    'cloudflare.d1.duration': d1Result.meta.duration,
-    'cloudflare.d1.rows_read': d1Result.meta.rows_read,
-    'cloudflare.d1.rows_written': d1Result.meta.rows_written,
+    [CLOUDFLARE_D1_DURATION]: d1Result.meta.duration,
+    [CLOUDFLARE_D1_ROWS_READ]: d1Result.meta.rows_read,
+    [CLOUDFLARE_D1_ROWS_WRITTEN]: d1Result.meta.rows_written,
   };
 }
 
@@ -121,7 +132,7 @@ function createD1Breadcrumb(message: string | undefined, type: D1QueryType, d1Re
     message,
     data: {
       ...(d1Result ? getAttributesFromD1Response(d1Result) : {}),
-      'db.operation.name': type,
+      [DB_OPERATION_NAME]: type,
     },
   });
 }
@@ -137,10 +148,10 @@ function createStartSpanOptions(queryText: string | undefined, type: D1QueryType
     name,
     attributes: {
       [SENTRY_OP]: DB_QUERY,
-      'db.system.name': 'cloudflare-d1',
-      'db.operation.name': type,
-      'db.query.text': queryText,
-      'db.query.summary': querySummary,
+      [DB_SYSTEM_NAME]: 'cloudflare-d1',
+      [DB_OPERATION_NAME]: type,
+      [DB_QUERY_TEXT]: queryText,
+      [DB_QUERY_SUMMARY]: querySummary,
       [SENTRY_ORIGIN]: 'auto.db.cloudflare.d1',
     },
   };
@@ -176,10 +187,10 @@ function instrumentBatch(
           name: 'D1 batch',
           attributes: {
             [SENTRY_OP]: DB_QUERY,
-            'db.system.name': 'cloudflare-d1',
-            'db.operation.name': 'batch',
-            'db.query.text': queryText || undefined,
-            'db.operation.batch.size': statements.length,
+            [DB_SYSTEM_NAME]: 'cloudflare-d1',
+            [DB_OPERATION_NAME]: 'batch',
+            [DB_QUERY_TEXT]: queryText || undefined,
+            [DB_OPERATION_BATCH_SIZE]: statements.length,
             [SENTRY_ORIGIN]: 'auto.db.cloudflare.d1',
           },
         },

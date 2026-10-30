@@ -60,6 +60,51 @@ export interface Library {
   origin?: string;
   chat: (apiKey: string) => Promise<unknown>;
   tools: (apiKey: string) => Promise<unknown>;
+  /** A streamed chat query; only set for the libraries whose streaming is tested. */
+  chatStream?: (apiKey: string) => Promise<unknown>;
+}
+
+const openAiClient = (apiKey: string): OpenAI => new OpenAI({ apiKey, baseURL: OPENROUTER_V1 });
+
+// OpenRouter's Anthropic skin authenticates with a bearer token, so the key goes in `authToken`
+// (Authorization: Bearer) rather than `apiKey` (x-api-key).
+const anthropicClient = (apiKey: string): Anthropic =>
+  new Anthropic({ authToken: apiKey, baseURL: OPENROUTER_BASE, fetch: fetchWithoutDone });
+
+/**
+ * OpenRouter ends each stream with an `event: data` / `data: [DONE]` frame, which is not part of
+ * Anthropic's protocol. Since 0.136.0 the SDK JSON-parses every named event, so this frame
+ * makes it throw. Drop the frame before the SDK sees it.
+ */
+async function fetchWithoutDone(input: string | URL | Request, init?: RequestInit): Promise<Response> {
+  const response = await fetch(input, init);
+  if (!response.body || !response.headers.get('content-type')?.includes('text/event-stream')) {
+    return response;
+  }
+
+  let buffer = '';
+  const keepFrame = (frame: string): boolean => !/^data: \[DONE\]$/m.test(frame);
+  const body = response.body.pipeThrough(new TextDecoderStream()).pipeThrough(
+    new TransformStream<string, string>({
+      transform(chunk, controller) {
+        buffer += chunk;
+        const frames = buffer.split(/(?<=\r?\n\r?\n)/);
+        buffer = /\r?\n\r?\n$/.test(frames[frames.length - 1] ?? '') ? '' : (frames.pop() ?? '');
+        controller.enqueue(frames.filter(keepFrame).join(''));
+      },
+      flush(controller) {
+        if (keepFrame(buffer)) {
+          controller.enqueue(buffer);
+        }
+      },
+    }),
+  );
+
+  return new Response(body.pipeThrough(new TextEncoderStream()), {
+    status: response.status,
+    statusText: response.statusText,
+    headers: response.headers,
+  });
 }
 
 /** Chat + forced tool call for an OpenAI-compatible chat-completions client (OpenAI, Together). */
@@ -100,7 +145,28 @@ function openAiCompatible(
 }
 
 export const libraries: Library[] = [
-  openAiCompatible('openai', 'openai', 'auto.ai.openai', apiKey => new OpenAI({ apiKey, baseURL: OPENROUTER_V1 })),
+  {
+    ...openAiCompatible('openai', 'openai', 'auto.ai.openai', openAiClient),
+    chatStream: async apiKey => {
+      const stream = await openAiClient(apiKey).chat.completions.create({
+        model: MODEL,
+        messages: [
+          { role: 'system', content: SYSTEM },
+          { role: 'user', content: CHAT_PROMPT },
+        ],
+        temperature: 0,
+        max_tokens: 32,
+        stream: true,
+        // Ask for the usage in the final chunk, so the streamed span carries token counts.
+        stream_options: { include_usage: true },
+      });
+      let answer = '';
+      for await (const chunk of stream) {
+        answer += chunk.choices[0]?.delta.content ?? '';
+      }
+      return answer;
+    },
+  },
   openAiCompatible(
     'together',
     'together_ai',
@@ -146,10 +212,7 @@ export const libraries: Library[] = [
     provider: 'anthropic',
     origin: 'auto.ai.anthropic',
     chat: async apiKey => {
-      // OpenRouter's Anthropic skin authenticates with a bearer token, so the key goes in `authToken`
-      // (Authorization: Bearer) rather than `apiKey` (x-api-key).
-      const client = new Anthropic({ authToken: apiKey, baseURL: OPENROUTER_BASE });
-      const message = await client.messages.create({
+      const message = await anthropicClient(apiKey).messages.create({
         model: MODEL,
         max_tokens: 32,
         temperature: 0,
@@ -160,8 +223,7 @@ export const libraries: Library[] = [
       return first && first.type === 'text' ? first.text : '';
     },
     tools: async apiKey => {
-      const client = new Anthropic({ authToken: apiKey, baseURL: OPENROUTER_BASE });
-      const message = await client.messages.create({
+      const message = await anthropicClient(apiKey).messages.create({
         model: MODEL,
         max_tokens: 64,
         messages: [{ role: 'user', content: WEATHER_PROMPT }],
@@ -179,6 +241,22 @@ export const libraries: Library[] = [
         tool_choice: { type: 'tool', name: 'get_weather' },
       });
       return (message.content ?? []).filter(block => block.type === 'tool_use');
+    },
+    chatStream: async apiKey => {
+      const stream = await anthropicClient(apiKey).messages.create({
+        model: MODEL,
+        max_tokens: 32,
+        system: SYSTEM,
+        messages: [{ role: 'user', content: CHAT_PROMPT }],
+        stream: true,
+      });
+      let answer = '';
+      for await (const event of stream) {
+        if (event.type === 'content_block_delta' && event.delta.type === 'text_delta') {
+          answer += event.delta.text;
+        }
+      }
+      return answer;
     },
   },
 

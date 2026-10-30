@@ -1,9 +1,11 @@
 // Shared exports not using diagnostics channels
 export { setHttpServerSpanRouteAttribute } from './utils/setHttpServerSpanRouteAttribute';
+export { wrapServerRequestHandler } from './utils/wrapServerRequestHandler';
+export type { ServerRequestHandlerConfig } from './utils/wrapServerRequestHandler';
 export { setAsyncLocalStorageAsyncContextStrategy } from './async-context';
 export { openTelemetryIntegration, getOtlpTracesEndpoint } from './opentelemetry';
 export * from './ai';
-export { getSqlQuerySummary, sanitizeSqlQuery, sanitizeSqlQueryWithSummary } from './utils/sql';
+export { getSqlQuerySummary, sanitizeSqlQuery, getSqlQueryAttributes } from './utils/sql';
 export type { SqlDialect } from './utils/sql';
 export { instrumentPostgresJsSql } from './integrations/postgresjs';
 export type { PostgresConnectionContext } from './integrations/postgresjs';

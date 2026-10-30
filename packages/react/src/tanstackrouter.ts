@@ -106,7 +106,7 @@ export function tanstackRouterBrowserTracingIntegration(
             [SENTRY_OP]: PAGELOAD,
             [SENTRY_ORIGIN]: 'auto.pageload.react.tanstack_router',
             [SENTRY_SEGMENT_NAME_SOURCE]: routeMatch ? 'route' : 'url',
-            ...(routeMatch && { [URL_TEMPLATE]: routeMatch.routeId }),
+            [URL_TEMPLATE]: routeMatch?.routeId,
             ...routeMatchToParamSpanAttributes(routeMatch),
           },
         });
@@ -163,7 +163,7 @@ export function tanstackRouterBrowserTracingIntegration(
                 [SENTRY_OP]: NAVIGATION,
                 [SENTRY_ORIGIN]: 'auto.navigation.react.tanstack_router',
                 [SENTRY_SEGMENT_NAME_SOURCE]: routeMatch ? 'route' : 'url',
-                ...(routeMatch && { [URL_TEMPLATE]: routeMatch.routeId }),
+                [URL_TEMPLATE]: routeMatch?.routeId,
                 ...routeMatchToParamSpanAttributes(routeMatch),
               },
             },

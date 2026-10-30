@@ -123,10 +123,10 @@ export function startTurnSpan(observation: FlueObservation, turnSpans: SpanTrack
       attributes: {
         [SENTRY_ORIGIN]: FLUE_ORIGIN,
         [GEN_AI_OPERATION_NAME]: 'chat',
-        ...(observation.conversationId ? { [GEN_AI_CONVERSATION_ID]: observation.conversationId } : {}),
+        [GEN_AI_CONVERSATION_ID]: observation.conversationId,
         // No conventional attribute for this; it is the only way to tell a compaction turn from a
         // user-facing one.
-        ...(observation.purpose ? { 'flue.turn.purpose': observation.purpose } : {}),
+        'flue.turn.purpose': observation.purpose,
       },
     }),
   );
@@ -207,8 +207,8 @@ export function startToolSpan(observation: FlueObservation, toolSpans: SpanTrack
       attributes: {
         [SENTRY_ORIGIN]: FLUE_ORIGIN,
         [GEN_AI_OPERATION_NAME]: 'execute_tool',
-        ...(toolName ? { [GEN_AI_TOOL_NAME]: toolName } : {}),
-        ...(observation.conversationId ? { [GEN_AI_CONVERSATION_ID]: observation.conversationId } : {}),
+        [GEN_AI_TOOL_NAME]: toolName,
+        [GEN_AI_CONVERSATION_ID]: observation.conversationId,
         ...(recordInputs && observation.args !== undefined
           ? { [GEN_AI_TOOL_CALL_ARGUMENTS]: stringify(observation.args) }
           : {}),

@@ -46,7 +46,12 @@
     "@sentry-internal/test-utils": "file:../../packed/sentry-internal-test-utils-packed.tgz",
     "serve": "14.0.1"
   },
-  "volta": {
-    "extends": "../../package.json"
+  "sentryTest": {
+    "canaryVariants": [
+      {
+        "build-command": "pnpm test:build-canary",
+        "label": "react-create-hash-router (canary)"
+      }
+    ]
   }
 }

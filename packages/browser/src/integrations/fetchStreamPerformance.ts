@@ -81,7 +81,7 @@ export const fetchStreamPerformanceIntegration = defineIntegration(() => {
               : url;
 
           // `http.client.stream` follows the same name rules as `http.client`.
-          const domain = getUrlDomain(url, WINDOW.location?.origin);
+          const domain = getUrlDomain(url, WINDOW.location?.href);
           const streamedName = domain ? `${method} ${domain}` : method;
           const streamSpan = startInactiveSpan({
             name: hasSpanStreamingEnabled(client) ? streamedName : `${method} ${sanitizedUrl}`,
