@@ -1,4 +1,11 @@
 import { expect, test } from '@playwright/test';
+import {
+  GEN_AI_PROVIDER_NAME,
+  GEN_AI_RESPONSE_FINISH_REASONS,
+  GEN_AI_RESPONSE_STREAMING,
+  GEN_AI_USAGE_OUTPUT_TOKENS,
+  SENTRY_ORIGIN,
+} from '@sentry/conventions/attributes';
 import type { SerializedStreamedSpan } from '@sentry-internal/test-utils';
 import { collectStreamedSpans } from '@sentry-internal/test-utils';
 import { APP } from './constants';
@@ -12,7 +19,7 @@ const OPENAI = LIBRARIES.find(library => library.id === 'openai')!;
 const ANTHROPIC = LIBRARIES.find(library => library.id === 'anthropic')!;
 
 const isStreamedModelCallSpan = (span: SerializedStreamedSpan, library: LibraryUnderTest): boolean =>
-  isModelCallSpan(span, library) && attr(span, 'gen_ai.response.streaming') === true;
+  isModelCallSpan(span, library) && attr(span, GEN_AI_RESPONSE_STREAMING) === true;
 
 async function requestChatStream(
   baseURL: string | undefined,
@@ -36,7 +43,7 @@ test('openai: a streamed chat completion records its token usage', async ({ base
 
   // The usage only arrives in the final chunk, which the streaming instrumentation has to pick up.
   expectCommonChatAttributes(span, OPENAI);
-  expect(attr(span, 'gen_ai.response.finish_reasons')).toContain('stop');
+  expect(attr(span, GEN_AI_RESPONSE_FINISH_REASONS)).toContain('stop');
 });
 
 test('anthropic: a streamed message records its output usage', async ({ baseURL }) => {
@@ -45,8 +52,8 @@ test('anthropic: a streamed message records its output usage', async ({ baseURL 
   // Not `expectCommonChatAttributes`: the instrumentation takes the input usage from `message_start`,
   // where OpenRouter reports 0, and ignores the real count in `message_delta`.
   expect(span.status).toBe('ok');
-  expect(attr(span, 'gen_ai.usage.output_tokens')).toBeGreaterThan(0);
-  expect(attr(span, 'gen_ai.response.finish_reasons')).toContain('end_turn');
-  expect(attr(span, 'gen_ai.provider.name')).toBe(ANTHROPIC.provider);
-  expect(attr(span, 'sentry.origin')).toBe(ANTHROPIC.origin);
+  expect(attr(span, GEN_AI_USAGE_OUTPUT_TOKENS)).toBeGreaterThan(0);
+  expect(attr(span, GEN_AI_RESPONSE_FINISH_REASONS)).toContain('end_turn');
+  expect(attr(span, GEN_AI_PROVIDER_NAME)).toBe(ANTHROPIC.provider);
+  expect(attr(span, SENTRY_ORIGIN)).toBe(ANTHROPIC.origin);
 });
