@@ -34,8 +34,8 @@ test.describe('Cache Instrumentation', () => {
 
     const getCacheKey = (span: (typeof allCacheSpans)[number]) => span.attributes[SEMANTIC_ATTRIBUTE_CACHE_KEY]?.value;
 
-    // Test getItem spans for cachedFunction - should have both cache miss and cache hit
-    const getItemSpans = findSpansByMethod('getItem');
+    // Test get spans for cachedFunction - should have both cache miss and cache hit
+    const getItemSpans = findSpansByMethod('get');
     expect(getItemSpans.length).toBeGreaterThan(0);
 
     // Find cache miss (first call to getCachedUser('123'))
@@ -51,8 +51,8 @@ test.describe('Cache Instrumentation', () => {
         'cache.operation': { type: 'string', value: 'get' },
         'sentry.origin': { type: 'string', value: 'auto.cache.nuxt' },
         [SEMANTIC_ATTRIBUTE_CACHE_HIT]: { type: 'boolean', value: false },
-        'db.operation.name': { type: 'string', value: 'getItem' },
-        'db.collection.name': { type: 'string', value: expect.stringMatching(/^(cache)?$/) },
+        'db.operation.name': { type: 'string', value: 'get' },
+        'db.system.name': { type: 'string', value: 'memory' },
       });
     }
 
@@ -69,13 +69,13 @@ test.describe('Cache Instrumentation', () => {
         'cache.operation': { type: 'string', value: 'get' },
         'sentry.origin': { type: 'string', value: 'auto.cache.nuxt' },
         [SEMANTIC_ATTRIBUTE_CACHE_HIT]: { type: 'boolean', value: true },
-        'db.operation.name': { type: 'string', value: 'getItem' },
-        'db.collection.name': { type: 'string', value: expect.stringMatching(/^(cache)?$/) },
+        'db.operation.name': { type: 'string', value: 'get' },
+        'db.system.name': { type: 'string', value: 'memory' },
       });
     }
 
-    // Test setItem spans for cachedFunction - when cache miss occurs, value is set
-    const setItemSpans = findSpansByMethod('setItem');
+    // Test set spans for cachedFunction - when cache miss occurs, value is set
+    const setItemSpans = findSpansByMethod('set');
     expect(setItemSpans.length).toBeGreaterThan(0);
 
     const cacheSetSpan = setItemSpans.find(
@@ -86,8 +86,8 @@ test.describe('Cache Instrumentation', () => {
         'sentry.op': { type: 'string', value: 'cache.put' },
         'cache.operation': { type: 'string', value: 'put' },
         'sentry.origin': { type: 'string', value: 'auto.cache.nuxt' },
-        'db.operation.name': { type: 'string', value: 'setItem' },
-        'db.collection.name': { type: 'string', value: expect.stringMatching(/^(cache)?$/) },
+        'db.operation.name': { type: 'string', value: 'set' },
+        'db.system.name': { type: 'string', value: 'memory' },
       });
     }
 
