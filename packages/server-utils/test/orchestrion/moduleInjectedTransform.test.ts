@@ -44,8 +44,7 @@ describe('channel integration definitions', () => {
 
     // `@nestjs/*` and `@remix-run/*` are covered by listeners in their own SDK packages.
     // Each cron monitor is billed, so bundler-only SDKs must not install crons integrations for every app.
-    // pi-ai would duplicate Flue's and pi-durable's own chat spans until they rely on it.
-    const optIn = new Set(['node-cron', '@earendil-works/pi-ai']);
+    const optIn = new Set(['node-cron']);
     const uncovered = [...configured].filter(
       name => !defined.has(name) && !optIn.has(name) && !name.startsWith('@nestjs/') && !name.startsWith('@remix-run/'),
     );

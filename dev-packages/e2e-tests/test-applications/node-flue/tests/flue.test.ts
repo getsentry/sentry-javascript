@@ -33,11 +33,11 @@ test('captures the invoke_agent / chat / execute_tool hierarchy for a Flue turn'
   expect(invokeAgent?.attributes?.['gen_ai.operation.name']?.value).toBe('invoke_agent');
   expect(invokeAgent?.attributes?.['gen_ai.agent.name']?.value).toBe('Hello');
 
-  expect(chat?.attributes?.['sentry.origin']?.value).toBe('auto.ai.flue');
+  expect(chat?.attributes?.['sentry.origin']?.value).toBe('auto.ai.pi_ai');
   expect(chat?.attributes?.['gen_ai.provider.name']?.value).toBe('openrouter');
   expect(typeof chat?.attributes?.['gen_ai.usage.input_tokens']?.value).toBe('number');
   expect(typeof chat?.attributes?.['gen_ai.usage.output_tokens']?.value).toBe('number');
-  // Flue computes cost itself; no provider SDK reports it.
+  // pi-ai computes cost itself; no provider SDK reports it.
   expect(typeof chat?.attributes?.['gen_ai.cost.total_tokens']?.value).toBe('number');
 
   expect(executeTool?.attributes?.['gen_ai.tool.name']?.value).toBe('get_weather');
@@ -92,7 +92,7 @@ test('nests a manual span raised inside a tool under that tool span', async ({ b
   expect(manualSpan?.parent_span_id).toBe(executeTool?.span_id);
 });
 
-// Flue's `model` operation is wrapped so the turn span is active for it, which is what puts the
+// The pi-ai integration makes the chat span active for the request it sends, which is what puts the
 // provider's HTTP call inside `chat` rather than beside it.
 test('nests the provider HTTP call inside the chat span', async ({ baseURL }) => {
   const spansPromise = collectStreamedSpans(

@@ -43,7 +43,6 @@ import { ANTHROPIC_AI_INTEGRATION_NAME } from '../../src/ai/anthropic-ai/constan
 import { GOOGLE_GENAI_INTEGRATION_NAME } from '../../src/ai/google-genai/constants';
 import { OPENAI_INTEGRATION_NAME } from '../../src/ai/openai/constants';
 import { getPiAiChatSpanOptions, setPiAiResponseAttributes } from '../../src/ai/pi-ai/chat';
-import { PI_AI_ORIGIN } from '../../src/ai/pi-ai/constants';
 import { setAsyncLocalStorageAsyncContextStrategy } from '../../src/async-context';
 import type { PiEventStream } from '../../src/ai/pi-ai/types';
 import { instrumentWorkersAiClient } from '../../src/ai/workers-ai';
@@ -355,7 +354,7 @@ describe('piAiIntegration', () => {
 
     it('records nothing when inputs and outputs are off', () => {
       const span = startInactiveSpan(
-        getPiAiChatSpanOptions({ model: MODEL, context, streaming: false, origin: PI_AI_ORIGIN, recordInputs: false }),
+        getPiAiChatSpanOptions({ model: MODEL, context, streaming: false, recordInputs: false }),
       );
       setPiAiResponseAttributes(span, message, false);
       span.end();
