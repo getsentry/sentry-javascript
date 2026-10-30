@@ -10,42 +10,23 @@ import {
   setCurrentClient,
   spanToJSON,
   spanToStaticSpanJSON,
+  startInactiveSpan,
   withScope,
 } from '@sentry/core';
 import {
   GEN_AI_CONVERSATION_ID,
-  GEN_AI_INPUT_MESSAGES,
-  GEN_AI_OUTPUT_MESSAGES,
-  GEN_AI_PROVIDER_NAME,
-  GEN_AI_REQUEST_MAX_TOKENS,
-  GEN_AI_REQUEST_MODEL,
-  GEN_AI_REQUEST_REASONING_LEVEL,
-  GEN_AI_REQUEST_TEMPERATURE,
-  GEN_AI_RESPONSE_FINISH_REASONS,
-  GEN_AI_RESPONSE_ID,
-  GEN_AI_RESPONSE_MODEL,
-  GEN_AI_RESPONSE_STREAMING,
-  GEN_AI_SYSTEM_INSTRUCTIONS,
   GEN_AI_TOOL_CALL_ARGUMENTS,
   GEN_AI_TOOL_CALL_RESULT,
-  GEN_AI_TOOL_DEFINITIONS,
   GEN_AI_TOOL_DESCRIPTION,
   GEN_AI_TOOL_NAME,
-  GEN_AI_USAGE_CACHE_CREATION_INPUT_TOKENS,
-  GEN_AI_USAGE_CACHE_READ_INPUT_TOKENS,
-  GEN_AI_USAGE_INPUT_TOKENS,
-  GEN_AI_USAGE_OUTPUT_TOKENS,
-  GEN_AI_USAGE_REASONING_OUTPUT_TOKENS,
-  GEN_AI_USAGE_TOTAL_TOKENS,
   SENTRY_OP,
   SENTRY_ORIGIN,
   SENTRY_STATUS_MESSAGE,
-  SERVER_ADDRESS,
-  SERVER_PORT,
 } from '@sentry/conventions/attributes';
 import { GEN_AI_CHAT, GEN_AI_EXECUTE_TOOL, GEN_AI_INVOKE_AGENT } from '@sentry/conventions/op';
 import { GEN_AI_TOOL_CALL_ID_ATTRIBUTE } from '../../../../src/ai/core/gen-ai-attributes';
 import { endRunsOnClose, instrumentPiDurableHarnessOptions } from '../../../../src/ai/pi-durable';
+import { getPiAiChatSpanOptions } from '../../../../src/ai/pi-ai/chat';
 import { MAX_TRACKED_PI_RUNS } from '../../../../src/ai/pi-durable/constants';
 import type { PiRuns } from '../../../../src/ai/pi-durable/runs';
 import { createRuns, startRun } from '../../../../src/ai/pi-durable/runs';
@@ -54,7 +35,6 @@ import type {
   PiCommitChange,
   PiHarnessOptions,
   PiLiveState,
-  PiModels,
   PiRegistryReader,
   PiSettlement,
   PiTask,
@@ -63,16 +43,21 @@ import type {
   PiToolExecutionApi,
   PiToolExecutionResult,
 } from '../../../../src/ai/pi-durable/types';
-import type { PiEventStream } from '../../../../src/ai/pi-ai/types';
-import { ANTHROPIC_AI_INTEGRATION_NAME } from '../../../../src/ai/anthropic-ai/constants';
-import { GOOGLE_GENAI_INTEGRATION_NAME } from '../../../../src/ai/google-genai/constants';
-import { OPENAI_INTEGRATION_NAME } from '../../../../src/ai/openai/constants';
-import { instrumentWorkersAiClient } from '../../../../src/ai/workers-ai';
 import { getDefaultTestClientOptions, TestClient } from '../../../mocks/client';
 
 const LIVE_DOC = { definition: { kind: 'pi.live' } };
-const MODEL = { id: 'faux-model', provider: 'faux' };
-const ANSWER = { role: 'assistant', content: [{ type: 'text', text: 'Paris.' }], stopReason: 'stop' };
+
+// What `piAiIntegration` does for each model request pi-durable sends through pi-ai.
+function sendModelRequest(): void {
+  startInactiveSpan(
+    getPiAiChatSpanOptions({
+      model: { id: 'faux-model', provider: 'faux' },
+      context: { messages: [] },
+      streaming: false,
+      recordInputs: false,
+    }),
+  ).end();
+}
 
 describe('instrumentPiDurableHarnessOptions', () => {
   let endedSpans: Span[];
@@ -106,14 +91,17 @@ describe('instrumentPiDurableHarnessOptions', () => {
   });
 
   it('wraps the options once and leaves the caller objects untouched', () => {
-    const models = { completeSimple: async () => ({}) };
-    const options: PiHarnessOptions = { models };
+    const registry: PiRegistryReader = {
+      snapshot: () => ({ task: () => undefined, tasks: () => [] }),
+      subscribe: () => () => undefined,
+    };
+    const options: PiHarnessOptions = { registry };
 
     const instrumented = instrumentPiDurableHarnessOptions(options);
 
     expect(instrumented).not.toBe(options);
-    expect(instrumented.models).not.toBe(models);
-    expect(options.models).toBe(models);
+    expect(instrumented.registry).not.toBe(registry);
+    expect(options.registry).toBe(registry);
     expect(instrumentPiDurableHarnessOptions(instrumented)).toBe(instrumented);
   });
 
@@ -121,7 +109,7 @@ describe('instrumentPiDurableHarnessOptions', () => {
   // assignments on the caller's options must reach it.
   it('keeps the options the caller changes later live', () => {
     let env = 'first';
-    const options = { models: {}, settings: { toolExecution: 'sequential' } } as PiHarnessOptions & {
+    const options = { settings: { toolExecution: 'sequential' } } as PiHarnessOptions & {
       settings: unknown;
       env?: string;
     };
@@ -135,322 +123,18 @@ describe('instrumentPiDurableHarnessOptions', () => {
     expect(instrumented.env).toBe('second');
   });
 
-  it('hands members other than model requests through, bound to the original', () => {
-    class Models {
-      private _provider = 'faux';
-      public getProvider(): string {
-        return this._provider;
-      }
-    }
-
-    const instrumented = instrumentPiDurableHarnessOptions({ models: new Models() as PiModels });
-
-    expect((instrumented.models as unknown as Models).getProvider()).toBe('faux');
-    expect(endedSpans).toHaveLength(0);
-  });
-
-  it('traces a streamed model request and skips the provider SDK integrations', async () => {
-    const message = {
-      ...ANSWER,
-      model: 'faux-model',
-      usage: { input: 10, output: 2, totalTokens: 12 },
-    };
-    const models: PiModels = { streamSimple: () => ({ result: async () => message }) };
-    const instrumented = instrumentPiDurableHarnessOptions({ models });
-
-    await instrumented.models!.streamSimple!(MODEL, {
-      messages: [{ role: 'user', content: 'Capital of France?' }],
-    }).result();
-
-    expect(_INTERNAL_shouldSkipAiProviderWrapping(OPENAI_INTEGRATION_NAME)).toBe(true);
-    const chat = spanToStaticSpanJSON(endedSpans[0]!);
-    expect(chat.description).toBe('chat faux-model');
-    expect(chat.op).toBe(GEN_AI_CHAT);
-    expect(chat.data).toMatchObject({
-      [GEN_AI_PROVIDER_NAME]: 'faux',
-      [GEN_AI_REQUEST_MODEL]: 'faux-model',
-      [GEN_AI_RESPONSE_STREAMING]: true,
-      [GEN_AI_RESPONSE_FINISH_REASONS]: '["stop"]',
-      [GEN_AI_USAGE_INPUT_TOKENS]: 10,
-      [GEN_AI_USAGE_OUTPUT_TOKENS]: 2,
-    });
-    expect(chat.data[GEN_AI_INPUT_MESSAGES]).toBe(
-      '[{"role":"user","parts":[{"type":"text","content":"Capital of France?"}]}]',
-    );
-    expect(chat.data[GEN_AI_OUTPUT_MESSAGES]).toBe(
-      '[{"role":"assistant","parts":[{"type":"text","content":"Paris."}],"finish_reason":"stop"}]',
-    );
-  });
-
-  it.each([
-    ['stream', true],
-    ['streamSimple', true],
-    ['streamDeferred', true],
-    ['complete', false],
-    ['completeSimple', false],
-    ['fetchDeferred', false],
-  ])('traces %s with the request options and the response identity', async (method, streaming) => {
-    const message = { ...ANSWER, responseModel: 'faux-model-2026', responseId: 'resp_1' };
-    const models = {
-      [method]: streaming ? () => ({ result: async () => message }) : async () => message,
-    } as PiModels;
-    const instrumented = instrumentPiDurableHarnessOptions({ models });
-
-    const result = (instrumented.models as Record<string, (...args: unknown[]) => unknown>)[method]!(
-      { ...MODEL, baseUrl: 'https://api.example.com:8443/v1' },
-      { messages: [{ role: 'user', content: 'Hi.' }] },
-      { temperature: 0.2, maxTokens: 50, reasoning: 'low' },
-    );
-    await (streaming ? (result as PiEventStream).result() : result);
-
-    const chat = spanToJSON(endedSpans[0]!);
-    expect(chat.name).toBe('chat faux-model');
-    expect(chat.attributes[GEN_AI_RESPONSE_STREAMING]).toBe(streaming ? true : undefined);
-    expect(chat.attributes[GEN_AI_RESPONSE_MODEL]).toBe('faux-model-2026');
-    expect(chat.attributes[GEN_AI_RESPONSE_ID]).toBe('resp_1');
-    expect(chat.attributes[SERVER_ADDRESS]).toBe('api.example.com');
-    expect(chat.attributes[SERVER_PORT]).toBe(8443);
-    // The deferred methods take a handle, not a request, so there is nothing to record.
-    const deferred = method.endsWith('Deferred');
-    expect(chat.attributes[GEN_AI_REQUEST_TEMPERATURE]).toBe(deferred ? undefined : 0.2);
-    expect(chat.attributes[GEN_AI_REQUEST_MAX_TOKENS]).toBe(deferred ? undefined : 50);
-    expect(chat.attributes[GEN_AI_REQUEST_REASONING_LEVEL]).toBe(deferred ? undefined : 'low');
-    expect(chat.attributes[GEN_AI_INPUT_MESSAGES]).toBe(
-      deferred ? undefined : '[{"role":"user","parts":[{"type":"text","content":"Hi."}]}]',
-    );
-  });
-
-  it('sets the conversation id of the scope on the chat span itself', async () => {
-    const models: PiModels = { completeSimple: async () => ANSWER };
-    const instrumented = instrumentPiDurableHarnessOptions({ models });
-
-    await withScope(async scope => {
-      scope.setConversationId('harness:7');
-      await instrumented.models!.completeSimple!(MODEL, { messages: [] });
-    });
-
-    expect(spanToJSON(endedSpans[0]!).attributes[GEN_AI_CONVERSATION_ID]).toBe('harness:7');
-  });
-
-  it('counts the cached tokens of a response into its input tokens', async () => {
-    const message = {
-      ...ANSWER,
-      usage: { input: 37, output: 2, cacheRead: 52, cacheWrite: 38, reasoning: 1, totalTokens: 129 },
-    };
-    const models: PiModels = { completeSimple: async () => message };
-    const instrumented = instrumentPiDurableHarnessOptions({ models });
-
-    await instrumented.models!.completeSimple!(MODEL, { messages: [] });
-
-    expect(spanToJSON(endedSpans[0]!).attributes).toMatchObject({
-      [GEN_AI_USAGE_INPUT_TOKENS]: 127,
-      [GEN_AI_USAGE_CACHE_READ_INPUT_TOKENS]: 52,
-      [GEN_AI_USAGE_CACHE_CREATION_INPUT_TOKENS]: 38,
-      [GEN_AI_USAGE_REASONING_OUTPUT_TOKENS]: 1,
-      [GEN_AI_USAGE_TOTAL_TOKENS]: 129,
-    });
-  });
-
-  // The provider parks the request and pi-durable fetches the answer later: only the fetch is billed.
-  it('records no usage for a request the provider parked, and the usage of its answer', async () => {
-    const parked = {
-      role: 'assistant',
-      content: [],
-      stopReason: 'deferred',
-      usage: { input: 0, output: 0, totalTokens: 0 },
-    };
-    const answer = { ...ANSWER, usage: { input: 8, output: 2, totalTokens: 10 } };
-    const models: PiModels = { completeSimple: async () => parked, fetchDeferred: async () => answer };
-    const instrumented = instrumentPiDurableHarnessOptions({ models });
-
-    await instrumented.models!.completeSimple!(MODEL, { messages: [] });
-    await instrumented.models!.fetchDeferred!(MODEL, { id: 'handle_1' });
-
-    const [parkedChat, answerChat] = endedSpans.map(span => spanToJSON(span).attributes);
-    expect(parkedChat![GEN_AI_RESPONSE_FINISH_REASONS]).toBe('["deferred"]');
-    expect(parkedChat![GEN_AI_USAGE_TOTAL_TOKENS]).toBeUndefined();
-    expect(answerChat![GEN_AI_USAGE_TOTAL_TOKENS]).toBe(10);
-  });
-
-  it('marks a failed request with a fixed status message and maps a tool-calling stop', async () => {
-    const failed = {
-      role: 'assistant',
-      content: [],
-      stopReason: 'error',
-      errorMessage: '401 invalid x-api-key for user@example.com',
-      usage: { input: 0, output: 0, totalTokens: 0 },
-    };
-    const toolCall = {
-      role: 'assistant',
-      content: [{ type: 'toolCall', id: 'call_1', name: 'read', arguments: { path: 'a.txt' } }],
-      stopReason: 'toolUse',
-    };
-    const models: PiModels = { completeSimple: async () => failed, complete: async () => toolCall };
-    const instrumented = instrumentPiDurableHarnessOptions({ models });
-
-    await instrumented.models!.completeSimple!(MODEL, { messages: [] });
-    await instrumented.models!.complete!(MODEL, { messages: [] });
-
-    const [chatFailed, chatToolCall] = endedSpans.map(span => spanToJSON(span));
-    expect(chatFailed!.status).toBe('error');
-    expect(chatFailed!.attributes[SENTRY_STATUS_MESSAGE]).toBe('internal_error');
-    expect(JSON.stringify(chatFailed!.attributes)).not.toContain('x-api-key');
-    expect(chatFailed!.attributes[GEN_AI_USAGE_TOTAL_TOKENS]).toBeUndefined();
-    expect(chatToolCall!.attributes[GEN_AI_RESPONSE_FINISH_REASONS]).toBe('["tool_call"]');
-    expect(chatToolCall!.attributes[GEN_AI_OUTPUT_MESSAGES]).toContain('"finish_reason":"tool_call"');
-  });
-
-  it('marks a rejected or throwing request as errored and keeps the error', async () => {
-    const models: PiModels = {
-      completeSimple: async () => {
-        throw new Error('boom');
-      },
-      stream: () => {
-        throw new Error('sync boom');
-      },
-    };
-    const instrumented = instrumentPiDurableHarnessOptions({ models });
-
-    await expect(instrumented.models!.completeSimple!(MODEL, { messages: [] })).rejects.toThrow('boom');
-    expect(() => instrumented.models!.stream!(MODEL, { messages: [] })).toThrow('sync boom');
-
-    expect(endedSpans.map(span => spanToJSON(span).attributes[SENTRY_STATUS_MESSAGE])).toEqual([
-      'internal_error',
-      'internal_error',
-    ]);
-  });
-
-  it('returns a result of another shape unchanged and ends its span', () => {
-    const stream = { events: [] };
-    const models: PiModels = {
-      stream: () => stream as unknown as PiEventStream,
-      completeSimple: (() => 'parked') as unknown as PiModels['completeSimple'],
-    };
-    const instrumented = instrumentPiDurableHarnessOptions({ models });
-
-    expect(instrumented.models!.stream!(MODEL, { messages: [] })).toBe(stream);
-    expect(instrumented.models!.completeSimple!(MODEL, { messages: [] })).toBe('parked');
-
-    expect(endedSpans.map(span => spanToJSON(span).name)).toEqual(['chat faux-model', 'chat faux-model']);
-  });
-
-  it('reads the system prompt and the tools from the positional system messages', async () => {
-    const models: PiModels = {
-      streamSimple: () => ({ result: async () => ({ role: 'assistant', content: [], stopReason: 'stop' }) }),
-    };
-    const instrumented = instrumentPiDurableHarnessOptions({ models });
-
-    // pi-durable never sets `systemPrompt` or `tools`: it sends prompt sections and tool changes as
-    // system messages, and each request replays them.
-    await instrumented.models!.streamSimple!(MODEL, {
-      messages: [
-        {
-          role: 'system',
-          content: '',
-          sections: { preamble: 'You help.' },
-          toolsAdded: [{ name: 'read' }, { name: 'bash' }],
-        },
-        { role: 'user', content: 'Hi.' },
-        { role: 'system', content: '', sections: { mode: 'Plan only.' }, toolsRemoved: [{ name: 'bash' }] },
-      ],
-    }).result();
-
-    const chat = spanToStaticSpanJSON(endedSpans[0]!);
-    expect(chat.data[GEN_AI_SYSTEM_INSTRUCTIONS]).toBe('You help.\n\nPlan only.');
-    expect(chat.data[GEN_AI_TOOL_DEFINITIONS]).toBe('[{"name":"read"}]');
-    expect(chat.data[GEN_AI_INPUT_MESSAGES]).toBe('[{"role":"user","parts":[{"type":"text","content":"Hi."}]}]');
-  });
-
-  describe('provider skip', () => {
-    const models: PiModels = { completeSimple: async () => ANSWER };
-
-    it('skips the provider integrations on the first request, not when the options are wrapped', async () => {
-      const instrumented = instrumentPiDurableHarnessOptions({ models });
-      expect(_INTERNAL_shouldSkipAiProviderWrapping(OPENAI_INTEGRATION_NAME)).toBe(false);
-
-      await instrumented.models!.completeSimple!(MODEL, { messages: [] });
-
-      expect(_INTERNAL_shouldSkipAiProviderWrapping(OPENAI_INTEGRATION_NAME)).toBe(true);
-      expect(_INTERNAL_shouldSkipAiProviderWrapping(ANTHROPIC_AI_INTEGRATION_NAME)).toBe(true);
-      expect(_INTERNAL_shouldSkipAiProviderWrapping(GOOGLE_GENAI_INTEGRATION_NAME)).toBe(true);
-    });
-
-    // The registry is reset per client, so a one-shot call would be undone by the next `init()`.
-    it('applies the skip again after the registry is cleared', async () => {
-      const instrumented = instrumentPiDurableHarnessOptions({ models });
-      await instrumented.models!.completeSimple!(MODEL, { messages: [] });
-      _INTERNAL_clearAiProviderSkips();
-      expect(_INTERNAL_shouldSkipAiProviderWrapping(OPENAI_INTEGRATION_NAME)).toBe(false);
-
-      await instrumented.models!.completeSimple!(MODEL, { messages: [] });
-
-      expect(_INTERNAL_shouldSkipAiProviderWrapping(OPENAI_INTEGRATION_NAME)).toBe(true);
-    });
-
-    it('applies the skip to every provider when only some are already registered', async () => {
-      _INTERNAL_skipAiProviderWrapping([OPENAI_INTEGRATION_NAME]);
-      const instrumented = instrumentPiDurableHarnessOptions({ models });
-
-      await instrumented.models!.completeSimple!(MODEL, { messages: [] });
-
-      expect(_INTERNAL_shouldSkipAiProviderWrapping(ANTHROPIC_AI_INTEGRATION_NAME)).toBe(true);
-      expect(_INTERNAL_shouldSkipAiProviderWrapping(GOOGLE_GENAI_INTEGRATION_NAME)).toBe(true);
-    });
-
-    // `createAI()` of `agents/models/pi-ai` sends pi-ai requests through the Workers AI binding.
-    it('reports a request sent through the Workers AI binding once', async () => {
-      const ai = instrumentWorkersAiClient({
-        run: async (_model: string, _inputs: unknown, _options: unknown) => new Response('{}'),
-        gateway: () => ({}),
-        toMarkdown: async () => [],
-      });
-      const models: PiModels = {
-        completeSimple: async () => {
-          await ai.run('@cf/moonshotai/kimi-k2.7-code', { messages: [] }, { returnRawResponse: true });
-          return ANSWER;
-        },
-      };
-      const instrumented = instrumentPiDurableHarnessOptions({ models });
-
-      await instrumented.models!.completeSimple!(MODEL, { messages: [] });
-
-      expect(endedSpans.map(span => spanToStaticSpanJSON(span).description)).toEqual(['chat faux-model']);
-    });
-  });
-
   describe('content recording', () => {
     const tool: PiTool = {
       name: 'get_weather',
       description: 'Get the weather.',
       execute: async () => ({ content: [{ type: 'text', text: 'sunny' }] }),
     };
-    const message = {
-      role: 'assistant',
-      content: [{ type: 'toolCall', id: 'call_1', name: 'get_weather', arguments: { city: 'Berlin' } }],
-      stopReason: 'toolUse',
-    };
-    const context = {
-      messages: [
-        { role: 'system', content: '', sections: { preamble: 'You help.' }, toolsAdded: [{ name: 'get_weather' }] },
-        { role: 'user', content: 'Weather in Berlin?' },
-      ],
-    };
-
     it('records nothing when inputs and outputs are off', async () => {
       const options = { recordInputs: false, recordOutputs: false };
-      const instrumented = instrumentPiDurableHarnessOptions(
-        { models: { completeSimple: async () => message } as PiModels },
-        options,
-      );
 
-      await instrumented.models!.completeSimple!(MODEL, context);
       await instrumentTool(tool, createRuns(), options).execute({ city: 'Berlin' }, { callId: 'call_1' }, undefined);
 
-      const [chat, execute] = endedSpans.map(span => spanToJSON(span).attributes);
-      expect(Object.keys(chat!)).not.toContain(GEN_AI_INPUT_MESSAGES);
-      expect(Object.keys(chat!)).not.toContain(GEN_AI_OUTPUT_MESSAGES);
-      expect(Object.keys(chat!)).not.toContain(GEN_AI_SYSTEM_INSTRUCTIONS);
-      expect(Object.keys(chat!)).not.toContain(GEN_AI_TOOL_DEFINITIONS);
+      const [execute] = endedSpans.map(span => spanToJSON(span).attributes);
       expect(Object.keys(execute!)).not.toContain(GEN_AI_TOOL_CALL_ARGUMENTS);
       expect(Object.keys(execute!)).not.toContain(GEN_AI_TOOL_CALL_RESULT);
       expect(execute![GEN_AI_TOOL_DESCRIPTION]).toBe('Get the weather.');
@@ -467,17 +151,10 @@ describe('instrumentPiDurableHarnessOptions', () => {
       setCurrentClient(strict);
       strict.init();
       strict.on('spanEnd', span => endedSpans.push(span));
-      const models: PiModels = { completeSimple: async () => message };
-      const instrumented = instrumentPiDurableHarnessOptions({ models });
 
-      await instrumented.models!.completeSimple!(MODEL, context);
       await instrumentTool(tool, createRuns(), {}).execute({ city: 'Berlin' }, { callId: 'call_1' }, undefined);
 
       const recorded = endedSpans.flatMap(span => Object.keys(spanToJSON(span).attributes));
-      expect(recorded).not.toContain(GEN_AI_INPUT_MESSAGES);
-      expect(recorded).not.toContain(GEN_AI_OUTPUT_MESSAGES);
-      expect(recorded).not.toContain(GEN_AI_SYSTEM_INSTRUCTIONS);
-      expect(recorded).not.toContain(GEN_AI_TOOL_DEFINITIONS);
       expect(recorded).not.toContain(GEN_AI_TOOL_CALL_ARGUMENTS);
       expect(recorded).not.toContain(GEN_AI_TOOL_CALL_RESULT);
     });
@@ -958,14 +635,13 @@ describe('instrumentPiDurableHarnessOptions', () => {
             name: 'pi.generation',
             phases: {
               request: async (taskRecord, runtime, context) => {
-                await harness.models!.completeSimple!(MODEL, { messages: [] });
+                sendModelRequest();
                 await settle.definition.phases.request!(taskRecord, runtime, context);
               },
             },
           },
         };
         const harness: PiHarnessOptions = instrumentPiDurableHarnessOptions({
-          models: { completeSimple: async () => ANSWER },
           registry: {
             snapshot: () => ({ task: () => task, tasks: () => [task] }),
             subscribe: () => () => undefined,
@@ -1056,13 +732,12 @@ describe('instrumentPiDurableHarnessOptions', () => {
           name: 'app.title',
           phases: {
             request: async () => {
-              await harness.models!.completeSimple!(MODEL, { messages: [] });
+              sendModelRequest();
             },
           },
         },
       };
       const harness: PiHarnessOptions = instrumentPiDurableHarnessOptions({
-        models: { completeSimple: async () => ANSWER },
         registry: { snapshot: () => ({ task: () => task, tasks: () => [task] }), subscribe: () => () => undefined },
       });
       const runtime: PiTaskRuntime = {

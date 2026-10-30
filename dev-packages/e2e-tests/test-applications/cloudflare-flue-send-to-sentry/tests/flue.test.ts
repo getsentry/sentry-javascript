@@ -48,7 +48,7 @@ test('instruments a Flue agent with no manual instrument() call', async () => {
   await expect
     .poll(() => fetchSpanAttributes(traceId!, chat!.event_id!), EVENT_POLLING_OPTIONS)
     .toMatchObject({
-      origin: 'auto.ai.flue',
+      origin: 'auto.ai.pi_ai',
       'gen_ai.provider.name': 'openrouter',
       'gen_ai.usage.input_tokens': expect.anything(),
       'gen_ai.cost.total_tokens': expect.anything(),

@@ -1,5 +1,6 @@
 import type { Scope, Span } from '@sentry/core';
 import {
+  consoleSandbox,
   continueTrace,
   getActiveSpan,
   getDefaultIsolationScope,
@@ -9,6 +10,7 @@ import {
   startNewTrace,
   startSpan,
   withActiveSpan,
+  withScope,
 } from '@sentry/core';
 import {
   GEN_AI_AGENT_NAME,
@@ -18,18 +20,12 @@ import {
 } from '@sentry/conventions/attributes';
 import type { GenAiOptions } from '../core/utils';
 import { getGenAiSpanOp, resolveAIRecordingOptions } from '../core/utils';
-import { skipPiAiProviderIntegrations } from '../pi-ai/providers';
+import { getOrchestrionInjectedModules } from '../../orchestrion/detect';
+import { piAiModuleNames } from '../../orchestrion/config/pi-ai';
 import { withCleanScopes } from '../../utils/withCleanScopes';
 import { FLUE_INSTRUMENTATION_KEY, FLUE_OPERATION, FLUE_ORIGIN, MAX_TRACKED_FLUE_SPANS } from './constants';
 import type { SpanTracker } from './utils';
-import {
-  endToolSpan,
-  endTurnSpan,
-  recordRequestContent,
-  sentryTraceFromTraceparent,
-  startToolSpan,
-  startTurnSpan,
-} from './utils';
+import { endToolSpan, sentryTraceFromTraceparent, startToolSpan } from './utils';
 import type { FlueInstrumentation } from './types';
 
 export type FlueOptions = GenAiOptions;
@@ -37,6 +33,35 @@ export type FlueOptions = GenAiOptions;
 interface Admission {
   isolationScope: Scope;
   span: Span | undefined;
+}
+
+let checkedPiAiInstrumentation = false;
+
+/**
+ * `instrument()` works without Sentry's module hook or bundler plugin, but the pi-ai integration that
+ * spans Flue's model calls doesn't. Checked on the first model call, once pi-ai has loaded.
+ */
+function warnIfPiAiNotInstrumented(): void {
+  if (checkedPiAiInstrumentation) {
+    return;
+  }
+  checkedPiAiInstrumentation = true;
+
+  const injected = getOrchestrionInjectedModules();
+  if (piAiModuleNames.some(name => injected.includes(name))) {
+    return;
+  }
+
+  consoleSandbox(() => {
+    // eslint-disable-next-line no-console
+    console.warn(
+      '[Sentry] Flue model calls are not being traced: `@earendil-works/pi-ai` was not instrumented, so ' +
+        'Flue agents record agent and tool spans but no `gen_ai.chat` spans. Model calls are traced by the ' +
+        "pi-ai integration, which needs Sentry's module hook or bundler plugin. On Node, load Sentry with " +
+        '`--import` (for example `node --import ./instrument.mjs app.mjs`). On Cloudflare, add ' +
+        '`sentryCloudflareVitePlugin()`. On Bun, build with `@sentry/bun/plugin`.',
+    );
+  });
 }
 
 /**
@@ -74,31 +99,21 @@ function isCloudflareWorkers(): boolean {
  *
  * - `interceptor` wraps agent execution, so the agent span is *active* for its duration and every
  *   span opened underneath parents correctly.
- * - `observe` opens and closes the turn span, because Flue's `turn_start`/`turn` events are the
- *   only one-to-one signal for a model call and `turn` is what carries usage and cost.
+ * - `observe` opens and closes the tool spans, and names the agent span.
+ *
+ * Model calls get no span here: Flue sends them through pi-ai, whose integration reports each one
+ * as a `gen_ai.chat` span under the agent span.
  *
  * Message content, tool arguments and tool results are gated on `recordInputs`/`recordOutputs`,
  * which fall back to the current client's `dataCollection.genAI` settings and are read per event.
  */
 export function createFlueInstrumentation(options: FlueOptions = {}): FlueInstrumentation {
-  // Flue drives the providers through `@earendil-works/pi-ai`, which sends its requests through the
-  // provider SDKs that Sentry instruments too (see `skipPiAiProviderIntegrations`). Left alone, their
-  // integrations report the same request a second time, as a second `gen_ai.chat` beside the turn's.
-  //
-  // The provider integrations are skipped on first use rather than here, for two reasons.
-  // Constructing the object proves nothing: if `instrument()` rejects it, suppressing the provider
-  // integrations would leave the app with no `gen_ai.chat` spans at all. And the registry is reset per
-  // client (`_setupIntegrations` clears it, and Cloudflare calls `init()` per request), so a one-shot
-  // call at module scope is wiped by the next `init()` and every later request double-reports.
-  const skipProviders = skipPiAiProviderIntegrations;
-
   // Keyed by the agent operation's own id, which is what the observations carry. That keeps
   // concurrent runs apart and gives a delegated subagent its own span: Flue nests a second `agent`
   // operation inside the parent's for `task` delegation, and the nesting is not bounded at two.
   // A plain map: the entry is removed in a `finally`, so it is bounded by concurrent agent runs.
   const agentSpans = new Map<string, Span>();
   // Capped, unlike the above: these are keyed off ids that only a matching end observation removes.
-  const turnSpans: SpanTracker = new LRUMap(MAX_TRACKED_FLUE_SPANS);
   const toolSpans: SpanTracker = new LRUMap(MAX_TRACKED_FLUE_SPANS);
   // Capped: a submission admitted here but run by another process never settles here.
   const admissions = new LRUMap<string, Admission>(MAX_TRACKED_FLUE_SPANS);
@@ -107,17 +122,23 @@ export function createFlueInstrumentation(options: FlueOptions = {}): FlueInstru
     key: FLUE_INSTRUMENTATION_KEY,
 
     interceptor: async (operation, ctx, next) => {
-      skipProviders();
-
       // `observe` has already opened the span for this unit of work; make it active for the
       // duration so whatever the tool or model call does lands inside it rather than beside it.
       if (operation?.type === FLUE_OPERATION.TOOL) {
         const toolSpan = operation.toolCallId ? toolSpans.get(operation.toolCallId) : undefined;
         return toolSpan ? withActiveSpan(toolSpan, next) : next();
       }
+      // The `gen_ai.chat` span of the model call comes from the pi-ai integration, which reads the
+      // conversation from the scope.
       if (operation?.type === FLUE_OPERATION.MODEL) {
-        const turnSpan = operation.turnId ? turnSpans.get(operation.turnId) : undefined;
-        return turnSpan ? withActiveSpan(turnSpan, next) : next();
+        warnIfPiAiNotInstrumented();
+        const { conversationId } = ctx;
+        return conversationId
+          ? withScope(scope => {
+              scope.setConversationId(conversationId);
+              return next();
+            })
+          : next();
       }
 
       if (operation?.type !== FLUE_OPERATION.AGENT) {
@@ -172,16 +193,14 @@ export function createFlueInstrumentation(options: FlueOptions = {}): FlueInstru
     },
 
     observe: observation => {
-      skipProviders();
-
       // Resolved per observation, not once at construction: `resolveAIRecordingOptions` reads the
       // current client's `dataCollection.genAI`, and Cloudflare replaces the client per request, so
       // values captured at isolate load would be the wrong ones for every later request.
       const { recordInputs, recordOutputs } = resolveAIRecordingOptions(options);
 
       // Observations are emitted synchronously from inside the agent operation, so the active span
-      // here is the agent span the interceptor opened — turn and tool spans parent off it without
-      // any bookkeeping.
+      // here is the agent span the interceptor opened — tool spans parent off it without any
+      // bookkeeping.
       //
       // The agent operation that gets the span is the one the observations reference, and it knows
       // neither the agent's name nor the conversation: the submission wrapper carries the name, the
@@ -212,17 +231,6 @@ export function createFlueInstrumentation(options: FlueOptions = {}): FlueInstru
             admissions.remove(observation.submissionId);
           }
           return;
-        case 'turn_start':
-          startTurnSpan(observation, turnSpans);
-          return;
-        case 'turn_request':
-          if (recordInputs) {
-            recordRequestContent(observation, turnSpans);
-          }
-          return;
-        case 'turn':
-          endTurnSpan(observation, turnSpans, recordOutputs);
-          return;
         case 'tool_start':
           startToolSpan(observation, toolSpans, recordInputs);
           return;
@@ -234,17 +242,16 @@ export function createFlueInstrumentation(options: FlueOptions = {}): FlueInstru
       }
     },
 
-    // Only the turn and tool spans are ended here. They come from `startInactiveSpan`, so nothing
-    // else will. The agent spans come from `startSpan`, which ends them when its callback settles —
-    // ending them here would stamp an early end time on work that is still running, and the later
-    // `end()` would be ignored.
+    // Only the tool spans are ended here. They come from `startInactiveSpan`, so nothing else will.
+    // The agent spans come from `startSpan`, which ends them when its callback settles — ending them
+    // here would stamp an early end time on work that is still running, and the later `end()` would
+    // be ignored.
     dispose: () => {
-      for (const span of [...turnSpans.values(), ...toolSpans.values()]) {
+      for (const span of toolSpans.values()) {
         span.end();
       }
       agentSpans.clear();
       admissions.clear();
-      turnSpans.clear();
       toolSpans.clear();
     },
   };
