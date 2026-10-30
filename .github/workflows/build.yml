@@ -69,9 +69,7 @@ jobs:
   job_build:
     name: Build
     needs: job_get_metadata
-    runs-on:
-      namespace-profile-sentry-javascript-large;overrides.cache-tag=sentry-javascript${{ github.event_name ==
-      'pull_request' && '-pr' || '' }}
+    runs-on: namespace-profile-sentry-javascript-large;overrides.cache-tag=sentry-javascript-pr
     timeout-minutes: 15
     if: |
       needs.job_get_metadata.outputs.changed_any_code == 'true' ||
@@ -196,9 +194,7 @@ jobs:
       'aws-serverless') || contains(needs.job_build.outputs.e2e-matrix-2, 'aws-serverless') || github.event_name !=
       'pull_request'
     timeout-minutes: 10
-    runs-on:
-      namespace-profile-sentry-javascript;overrides.cache-tag=sentry-javascript${{ github.event_name == 'pull_request'
-      && '-pr' || '' }}
+    runs-on: namespace-profile-sentry-javascript;overrides.cache-tag=sentry-javascript-pr
     steps:
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
         uses: actions/checkout@v7
@@ -235,9 +231,7 @@ jobs:
     name: Build bundles
     needs: [job_get_metadata, job_build]
     timeout-minutes: 10
-    runs-on:
-      namespace-profile-sentry-javascript;overrides.cache-tag=sentry-javascript${{ github.event_name == 'pull_request'
-      && '-pr' || '' }}
+    runs-on: namespace-profile-sentry-javascript;overrides.cache-tag=sentry-javascript-pr
     steps:
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
         uses: actions/checkout@v7
@@ -289,9 +283,7 @@ jobs:
     name: Size Check
     needs: [job_get_metadata, job_build, job_build_bundles]
     timeout-minutes: 15
-    runs-on:
-      namespace-profile-sentry-javascript;overrides.cache-tag=sentry-javascript${{ github.event_name == 'pull_request'
-      && '-pr' || '' }}
+    runs-on: namespace-profile-sentry-javascript;overrides.cache-tag=sentry-javascript-pr
     if:
       github.event_name == 'pull_request' || needs.job_get_metadata.outputs.is_base_branch == 'true' ||
       needs.job_get_metadata.outputs.is_release == 'true'
@@ -324,9 +316,7 @@ jobs:
     # inter-package dependencies resolve cleanly.
     needs: [job_get_metadata, job_build]
     timeout-minutes: 10
-    runs-on:
-      namespace-profile-sentry-javascript-large;overrides.cache-tag=sentry-javascript${{ github.event_name ==
-      'pull_request' && '-pr' || '' }}
+    runs-on: namespace-profile-sentry-javascript-large;overrides.cache-tag=sentry-javascript-pr
     steps:
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
         uses: actions/checkout@v7
@@ -397,9 +387,7 @@ jobs:
     name: Check file formatting
     needs: [job_get_metadata]
     timeout-minutes: 10
-    runs-on:
-      namespace-profile-sentry-javascript;overrides.cache-tag=sentry-javascript${{ github.event_name == 'pull_request'
-      && '-pr' || '' }}
+    runs-on: namespace-profile-sentry-javascript;overrides.cache-tag=sentry-javascript-pr
     steps:
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
         uses: actions/checkout@v7
@@ -420,9 +408,7 @@ jobs:
   job_artifacts:
     name: Upload Artifacts
     needs: [job_get_metadata, job_build, job_build_layer, job_build_bundles, job_build_tarballs]
-    runs-on:
-      namespace-profile-sentry-javascript;overrides.cache-tag=sentry-javascript${{ github.event_name == 'pull_request'
-      && '-pr' || '' }}
+    runs-on: namespace-profile-sentry-javascript;overrides.cache-tag=sentry-javascript-pr
     # Build artifacts are only needed for releasing workflow.
     if: needs.job_get_metadata.outputs.is_release == 'true'
     steps:
@@ -474,9 +460,7 @@ jobs:
     name: Browser Unit Tests
     needs: [job_get_metadata, job_build]
     timeout-minutes: 10
-    runs-on:
-      namespace-profile-sentry-javascript-large;overrides.cache-tag=sentry-javascript${{ github.event_name ==
-      'pull_request' && '-pr' || '' }}
+    runs-on: namespace-profile-sentry-javascript-large;overrides.cache-tag=sentry-javascript-pr
     steps:
       - name: Check out base commit (${{ github.event.pull_request.base.sha }})
         uses: actions/checkout@v7
@@ -508,9 +492,7 @@ jobs:
     needs: [job_get_metadata, job_build]
     if: needs.job_build.outputs.changed_bun == 'true' || github.event_name != 'pull_request'
     timeout-minutes: 10
-    runs-on:
-      namespace-profile-sentry-javascript;overrides.cache-tag=sentry-javascript${{ github.event_name == 'pull_request'
-      && '-pr' || '' }}
+    runs-on: namespace-profile-sentry-javascript;overrides.cache-tag=sentry-javascript-pr
     strategy:
       fail-fast: false
       matrix:
@@ -540,9 +522,7 @@ jobs:
     needs: [job_get_metadata, job_build]
     if: needs.job_build.outputs.changed_deno == 'true' || github.event_name != 'pull_request'
     timeout-minutes: 10
-    runs-on:
-      namespace-profile-sentry-javascript;overrides.cache-tag=sentry-javascript${{ github.event_name == 'pull_request'
-      && '-pr' || '' }}
+    runs-on: namespace-profile-sentry-javascript;overrides.cache-tag=sentry-javascript-pr
     steps:
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
         uses: actions/checkout@v7
@@ -568,9 +548,7 @@ jobs:
     name: Node (${{ matrix.node }}) Unit Tests
     needs: [job_get_metadata, job_build]
     timeout-minutes: 10
-    runs-on:
-      namespace-profile-sentry-javascript-large;overrides.cache-tag=sentry-javascript${{ github.event_name ==
-      'pull_request' && '-pr' || '' }}
+    runs-on: namespace-profile-sentry-javascript-large;overrides.cache-tag=sentry-javascript-pr
     strategy:
       fail-fast: false
       matrix:
@@ -610,9 +588,7 @@ jobs:
       matrix.project) || ''}}${{ matrix.shard && format(' ({0}/{1})', matrix.shard, matrix.shards) || ''}} Tests
     needs: [job_get_metadata, job_build, job_build_bundles]
     if: needs.job_build.outputs.changed_browser_integration == 'true' || github.event_name != 'pull_request'
-    runs-on:
-      namespace-profile-sentry-javascript-large;overrides.cache-tag=sentry-javascript${{ github.event_name ==
-      'pull_request' && '-pr' || '' }}
+    runs-on: namespace-profile-sentry-javascript-large;overrides.cache-tag=sentry-javascript-pr
     timeout-minutes: 25
     strategy:
       fail-fast: false
@@ -708,9 +684,7 @@ jobs:
     name: PW ${{ matrix.bundle }} Tests
     needs: [job_get_metadata, job_build, job_build_bundles]
     if: needs.job_build.outputs.changed_browser_integration == 'true' || github.event_name != 'pull_request'
-    runs-on:
-      namespace-profile-sentry-javascript;overrides.cache-tag=sentry-javascript${{ github.event_name == 'pull_request'
-      && '-pr' || '' }}
+    runs-on: namespace-profile-sentry-javascript;overrides.cache-tag=sentry-javascript-pr
     timeout-minutes: 15
     strategy:
       fail-fast: false
@@ -768,9 +742,7 @@ jobs:
     name: Node (${{ matrix.node }}) Integration Tests (${{ matrix.shard }}/3)
     needs: [job_get_metadata, job_build]
     if: needs.job_build.outputs.changed_node_integration == 'true' || github.event_name != 'pull_request'
-    runs-on:
-      namespace-profile-sentry-javascript-large;overrides.cache-tag=sentry-javascript${{ github.event_name ==
-      'pull_request' && '-pr' || '' }}
+    runs-on: namespace-profile-sentry-javascript-large;overrides.cache-tag=sentry-javascript-pr
     timeout-minutes: 20
     strategy:
       fail-fast: false
@@ -811,9 +783,7 @@ jobs:
     name: Cloudflare Integration Tests (${{ matrix.shard }}/2)
     needs: [job_get_metadata, job_build]
     if: needs.job_build.outputs.changed_cloudflare_integration == 'true' || github.event_name != 'pull_request'
-    runs-on:
-      namespace-profile-sentry-javascript;overrides.cache-tag=sentry-javascript${{ github.event_name == 'pull_request'
-      && '-pr' || '' }}
+    runs-on: namespace-profile-sentry-javascript;overrides.cache-tag=sentry-javascript-pr
     timeout-minutes: 15
     strategy:
       fail-fast: false
@@ -854,9 +824,7 @@ jobs:
     if:
       needs.job_get_metadata.outputs.is_release != 'true' && (needs.job_build.outputs.changed_cloudflare_integration ==
       'true' || github.event_name != 'pull_request')
-    runs-on:
-      namespace-profile-sentry-javascript;overrides.cache-tag=sentry-javascript-latest-wrangler${{ github.event_name ==
-      'pull_request' && '-pr' || '' }}
+    runs-on: namespace-profile-sentry-javascript;overrides.cache-tag=sentry-javascript-latest-wrangler-pr
     timeout-minutes: 15
     strategy:
       fail-fast: false
@@ -869,9 +837,7 @@ jobs:
     name: Bundler Plugin Integration Tests (Node ${{ matrix.node }})
     needs: [job_get_metadata, job_build]
     if: needs.job_build.outputs.changed_bundler_plugin_integration == 'true' || github.event_name != 'pull_request'
-    runs-on:
-      namespace-profile-sentry-javascript-large;overrides.cache-tag=sentry-javascript${{ github.event_name ==
-      'pull_request' && '-pr' || '' }}
+    runs-on: namespace-profile-sentry-javascript-large;overrides.cache-tag=sentry-javascript-pr
     timeout-minutes: 15
     strategy:
       fail-fast: false
@@ -897,9 +863,7 @@ jobs:
     name: Bun (${{ matrix.bun }}) Integration Tests (${{ matrix.shard }}/2)
     needs: [job_get_metadata, job_build]
     if: needs.job_build.outputs.changed_bun_integration == 'true' || github.event_name != 'pull_request'
-    runs-on:
-      namespace-profile-sentry-javascript-large;overrides.cache-tag=sentry-javascript${{ github.event_name ==
-      'pull_request' && '-pr' || '' }}
+    runs-on: namespace-profile-sentry-javascript-large;overrides.cache-tag=sentry-javascript-pr
     timeout-minutes: 15
     strategy:
       fail-fast: false
@@ -931,9 +895,7 @@ jobs:
     name: Deno Integration Tests (${{ matrix.shard }}/2)
     needs: [job_get_metadata, job_build]
     if: needs.job_build.outputs.changed_deno_integration == 'true' || github.event_name != 'pull_request'
-    runs-on:
-      namespace-profile-sentry-javascript-large;overrides.cache-tag=sentry-javascript${{ github.event_name ==
-      'pull_request' && '-pr' || '' }}
+    runs-on: namespace-profile-sentry-javascript-large;overrides.cache-tag=sentry-javascript-pr
     timeout-minutes: 15
     strategy:
       fail-fast: false
@@ -972,13 +934,9 @@ jobs:
     name: Build tarballs
     # We want to run this if:
     # - The build job was successful, not skipped
-    if: |
-      always() &&
-      needs.job_build.result == 'success'
+    if: false
     needs: [job_get_metadata, job_build]
-    runs-on:
-      namespace-profile-sentry-javascript-large;overrides.cache-tag=sentry-javascript${{ github.event_name ==
-      'pull_request' && '-pr' || '' }}
+    runs-on: namespace-profile-sentry-javascript-large;overrides.cache-tag=sentry-javascript-pr
     timeout-minutes: 15
     steps:
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
@@ -1035,8 +993,7 @@ jobs:
     needs: [job_get_metadata, job_build, job_build_layer, job_build_tarballs]
     # Most apps finish in under a minute on 4 vCPUs, so they run on 2. Apps that take longer set `sentryTest.runner`.
     runs-on:
-      ${{ matrix.runner || 'namespace-profile-sentry-javascript-small' }};overrides.cache-tag=sentry-javascript-e2e${{
-      github.event_name == 'pull_request' && '-pr' || '' }}
+      ${{ matrix.runner || 'namespace-profile-sentry-javascript-small' }};overrides.cache-tag=sentry-javascript-e2e-pr
     timeout-minutes: 15
     # We just use a dummy DSN here, only send to the tunnel anyhow
     env: &e2e-env
@@ -1127,8 +1084,7 @@ jobs:
       '{"include":[]}'
     needs: [job_get_metadata, job_build, job_build_layer, job_build_tarballs]
     runs-on:
-      ${{ matrix.runner || 'namespace-profile-sentry-javascript-small' }};overrides.cache-tag=sentry-javascript-e2e${{
-      github.event_name == 'pull_request' && '-pr' || '' }}
+      ${{ matrix.runner || 'namespace-profile-sentry-javascript-small' }};overrides.cache-tag=sentry-javascript-e2e-pr
     timeout-minutes: 15
     env: *e2e-env
     strategy:
