@@ -74,13 +74,23 @@
       },
       {
         "build-command": "pnpm test:build-webpack",
-        "label": "nextjs-16 (webpack)",
-        "assert-command": "pnpm test:assert-webpack"
+        "label": "nextjs-16 (webpack, production)",
+        "assert-command": "pnpm test:prod"
+      },
+      {
+        "build-command": "pnpm test:build-webpack",
+        "label": "nextjs-16 (webpack, development)",
+        "assert-command": "pnpm test:dev-webpack"
       },
       {
         "build-command": "pnpm test:build-latest-webpack",
-        "label": "nextjs-16 (latest, webpack)",
-        "assert-command": "pnpm test:assert-webpack"
+        "label": "nextjs-16 (latest, webpack, production)",
+        "assert-command": "pnpm test:prod"
+      },
+      {
+        "build-command": "pnpm test:build-latest-webpack",
+        "label": "nextjs-16 (latest, webpack, development)",
+        "assert-command": "pnpm test:dev-webpack"
       },
       {
         "build-command": "pnpm test:build-latest",
