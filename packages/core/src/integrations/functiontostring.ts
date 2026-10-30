@@ -15,11 +15,15 @@ const _functionToStringIntegration = (() => {
     setupOnce() {
       // eslint-disable-next-line @typescript-eslint/unbound-method
       const originalFunctionToString = Function.prototype.toString;
+      // Bound once so calls neither look up a page-replaceable `apply` nor copy arguments, which native toString ignores
+      const callOriginalFunctionToString = Function.prototype.call.bind(originalFunctionToString) as (
+        thisArg: unknown,
+      ) => string;
 
       // intrinsics (like Function.prototype) might be immutable in some environments
       // e.g. Node with --frozen-intrinsics, XS (an embedded JavaScript engine) or SES (a JavaScript proposal)
       try {
-        Function.prototype.toString = function (this: WrappedFunction, ...args: unknown[]): string {
+        Function.prototype.toString = function (this: WrappedFunction): string {
           const originalFunction = getOriginalFunction(this);
           let unwrappedFunction: WrappedFunction | undefined;
 
@@ -33,7 +37,7 @@ const _functionToStringIntegration = (() => {
             // `toString` never throws here, so fall back to it to avoid turning harmless introspection into noise.
           }
 
-          return originalFunctionToString.apply(unwrappedFunction ?? this, args);
+          return callOriginalFunctionToString(unwrappedFunction ?? this);
         };
       } catch {
         // ignore errors here, just don't patch this
