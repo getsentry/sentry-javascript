@@ -89,7 +89,7 @@ const METHOD_SPAN_OPS = {
  * The `useStorage` parameter is typed as `() => unknown` because nitropack (Nitro v2) and nitro (Nitro v3+) define `StorageValue` differently.
  * Cast to `NitroStorage` is safe since all Nitro versions expose `getMounts()` at runtime.
  */
-export async function createStoragePlugin(useStorage: () => unknown, userStorageMounts: string[]): Promise<void> {
+export function createStoragePlugin(useStorage: () => unknown, userStorageMounts: string[]): void {
   // This runs at runtime when the Nitro server starts
   const storage = useStorage() as NitroStorage;
   // Mounts are suffixed with a colon, so we need to add it to the set items
