@@ -14,7 +14,7 @@
     "test:build:cloudflare": "pnpm install && vite build",
     "test:assert": "pnpm test",
     "test:assert:cloudflare": "RUNTIME=cloudflare pnpm test",
-    "test:build-latest": "pnpm install && pnpm add openai@latest && pnpm update '@anthropic-ai/sdk@<1'"
+    "test:build-latest": "pnpm install && pnpm add 'openai@<8' '@anthropic-ai/sdk@<1' '@mistralai/mistralai@<3' 'together-ai@<2' ai@latest @openrouter/ai-sdk-provider@latest"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "0.63.0",
